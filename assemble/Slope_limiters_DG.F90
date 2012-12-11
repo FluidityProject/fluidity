@@ -38,19 +38,27 @@ use state_fields_module
 use bound_field_module
 use vtk_interfaces
 use transform_elements
+use vector_tools
 implicit none
 
 private
-public limit_slope_dg, limit_fpn, limit_vb
+public limit_slope_dg, limit_fpn, limit_vb, limit_vb_manifold,limit_hull
+
+interface limit_slope_dg
+   module procedure limit_slope_dg_scalar
+end interface limit_slope_dg
 
 integer, parameter :: LIMITER_MINIMAL=1
 integer, parameter :: LIMITER_COCKBURN=2
 integer, parameter :: LIMITER_HERMITE_WENO=3
 integer, parameter :: LIMITER_FPN=4
 integer, parameter :: LIMITER_VB=5
+integer, parameter :: VECTOR_LIMITER_vb=6
+integer, parameter :: LIMITER_BJ=7, LIMITER_EB=8
 
 public :: LIMITER_MINIMAL, LIMITER_COCKBURN, LIMITER_HERMITE_WENO,&
-     & LIMITER_FPN, LIMITER_VB
+     & LIMITER_FPN, LIMITER_VB, VECTOR_LIMITER_VB, LIMITER_BJ,&
+     & LIMITER_EB
 
 !!CockburnShuLimiter stuff
 real :: TVB_factor=5.0
@@ -80,12 +88,13 @@ integer :: limit_count
 
 contains
 
-  subroutine limit_slope_dg(T, U, X, state, limiter)
+  subroutine limit_slope_dg_scalar(T, U, X, state, limiter, delta_T)
     !! Assume 1D linear elements
     type(scalar_field), intent(inout) :: T
     type(vector_field), intent(in) :: X, U
     type(state_type), intent(inout) :: state
     integer, intent(in) :: limiter
+    type(scalar_field), intent(inout), optional :: delta_T
 
     integer :: ele, stat
     type(scalar_field) :: T_limit
@@ -94,7 +103,7 @@ contains
     !assert(field%mesh%continuity<0)
     !assert(field%mesh%shape%degree==1)
 
-    ewrite(2,*) 'subroutiune limit_slope_dg'
+    ewrite(2,*) 'subroutine limit_slope_dg'
 
     select case (limiter)
     case (LIMITER_MINIMAL)
@@ -210,7 +219,7 @@ contains
        call deallocate(T_limit)
 
     case (LIMITER_VB)
-       call limit_VB(state, T)
+       call limit_VB(state, T, delta_t)
 
     case (LIMITER_FPN)
        call limit_fpn(state, T)      
@@ -220,9 +229,9 @@ contains
        FLAbort('no such limiter exists')
     end select
 
-    ewrite(2,*) 'END subroutiune limit_slope_dg'
+    ewrite(2,*) 'END subroutine limit_slope_dg'
 
-  end subroutine limit_slope_dg
+  end subroutine limit_slope_dg_scalar
 
   subroutine limit_slope_ele_dg(ele, T, X, T_limit)
     
@@ -1352,12 +1361,13 @@ contains
     
   end function get_H
 
-  subroutine limit_vb(state, t)
+  subroutine limit_vb(state, t, delta_t)
     !Vertex-based (not Victoria Bitter) limiter from
     !Kuzmin, J. Comp. Appl. Math., 2010
     ! doi:10.1016/j.cam.2009.05.028
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(inout) :: t
+    type(scalar_field), intent(inout), optional :: delta_t
     !
     ! This is the limited version of the field, we have to make a copy
     type(scalar_field) :: T_limit, T_max, T_min
@@ -1373,7 +1383,7 @@ contains
     real :: Tbar
 
     if (.not. element_degree(T%mesh, 1)==1 .or. continuity(T%mesh)>=0) then
-      FLExit("The vertex based slope limiter only works for P1DG fields.")
+       FLExit("The vertex based slope limiter only works for P1DG fields.")
     end if
     
     ! Allocate copy of field
@@ -1389,7 +1399,8 @@ contains
     call set(T_max, -huge(0.0))
     call set(T_min, huge(0.0))
 
-    ! for each vertex in the mesh store the min and max values of the P1DG nodes directly surrounding it
+    ! for each vertex in the mesh store the min and max values of the P1DG
+    !  nodes directly surrounding it
     do ele = 1, ele_count(T)
        T_ele => ele_nodes(T,ele)
        T_val = ele_val(T,ele)
@@ -1438,21 +1449,297 @@ contains
        call set(T_limit, T_ele, Tbar + alpha*T_val_slope)
     end do
 
-
-    !Deallocate copy of field
+    !Update fields
+    if(present(delta_t)) then
+       call set(delta_t, T)
+       call scale(delta_t, -1.0)
+       call addto(delta_t, T_limit)
+       do ele = 1, ele_count(T)
+          assert(abs(sum(ele_val(delta_t,ele)))<1.0e-8)
+       end do
+    end if
     call set(T, T_limit)
     call halo_update(T)
+
+    !Deallocate copy of field
     call deallocate(T_limit)
     call deallocate(T_max)
     call deallocate(T_min)
 
   end subroutine limit_vb
 
+  subroutine limit_vb_manifold(state, t, delta_t)
+    !Vertex-based (not Victoria Bitter) limiter from
+    !Kuzmin, J. Comp. Appl. Math., 2010
+    ! doi:10.1016/j.cam.2009.05.028
+    ! This is a version for solving on embedded 2D surfaces in 3D
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(inout) :: t
+    type(scalar_field), intent(inout), optional :: delta_t
+    !
+    ! This is the limited version of the field, we have to make a copy
+    type(scalar_field) :: T_limit, T_max, T_min
+    type(mesh_type), pointer :: vertex_mesh
+    ! counters
+    integer :: ele, node
+    ! local numbers
+    integer, dimension(:), pointer :: T_ele
+    ! gradient scaling factor
+    real :: alpha
+    ! local field values
+    real, dimension(ele_loc(T,1)) :: T_val, T_val_slope, T_val_min,T_val_max
+    real :: Tbar
+    ! Coordinate field to compute Jacobian for element means
+    type(vector_field), pointer :: X
+
+    X=>extract_vector_field(state, "Coordinate")
+
+    if (.not. element_degree(T%mesh, 1)==1 .or. continuity(T%mesh)>=0) then
+       FLExit("The vertex based slope limiter only works for P1DG fields.")
+    end if
+    
+    ! Allocate copy of field
+    call allocate(T_limit, T%mesh,trim(T%name)//"Limited")
+    call set(T_limit, T)
+    
+    ! returns linear version of T%mesh (if T%mesh is periodic, so is vertex_mesh)
+    call find_linear_parent_mesh(state, T%mesh, vertex_mesh)
+
+    call allocate(T_max, vertex_mesh, trim(T%name)//"LimitMax")
+    call allocate(T_min, vertex_mesh, trim(T%name)//"LimitMin")
+ 
+    call set(T_max, -huge(0.0))
+    call set(T_min, huge(0.0))
+
+    ! for each vertex in the mesh store the min and max values of the P1DG
+    !  nodes directly surrounding it
+    do ele = 1, ele_count(T)
+       T_ele => ele_nodes(T,ele)
+       T_val = ele_val(T,ele)
+       Tbar = element_mean(T,X,ele)
+       ! we assume here T is P1DG and vertex_mesh is linear
+       assert( size(T_ele)==ele_loc(vertex_mesh,ele) )
+       
+       ! do maxes
+       T_val_max = ele_val(T_max,ele)
+       do node = 1, size(T_val)
+          T_val_max(node) = max(T_val_max(node), Tbar)
+       end do
+       call set(T_max, ele_nodes(T_max, ele), T_val_max)
+       
+       ! do mins
+       T_val_min = ele_val(T_min,ele)
+       do node = 1, size(T_val)
+          T_val_min(node) = min(T_val_min(node), Tbar)
+       end do
+       call set(T_min, ele_nodes(T_min,ele), T_val_min)
+    end do
+
+    ! now for each P1DG node make sure the field value is between the recorded vertex min and max
+    ! this is done without changing the element average (Tbar)
+    do ele = 1, ele_count(T)
+       !Set slope factor to 1
+       alpha = 1.
+       !Get local node lists
+       T_ele=>ele_nodes(T,ele)
+       
+       T_val = ele_val(T,ele)
+       Tbar = element_mean(T,X,ele)
+       T_val_slope = T_val - Tbar
+       T_val_max = ele_val(T_max,ele)
+       T_val_min = ele_val(T_min,ele)
+
+       !loop over nodes, adjust alpha
+       do node = 1, size(T_val)
+          if(T_val(node)>Tbar*(1.0+sign(1.0e-12,Tbar))) then
+             alpha = min(alpha,(T_val_max(node)-Tbar)/(T_val(node)-Tbar))
+          else if(T_val(node)<Tbar*(1.0-sign(1.0e-12,Tbar))) then
+             alpha = min(alpha,(T_val_min(node)-Tbar)/(T_val(node)-Tbar))
+          end if
+       end do
+
+       call set(T_limit, T_ele, Tbar + alpha*T_val_slope)
+    end do
+
+    !Update fields
+    if(present(delta_t)) then
+       call set(delta_t, T)
+       call scale(delta_t, -1.0)
+       call addto(delta_t, T_limit)
+    end if
+    call set(T, T_limit)
+    call halo_update(T)
+
+    !Deallocate copy of field
+    call deallocate(T_limit)
+    call deallocate(T_max)
+    call deallocate(T_min)    
+
+  end subroutine limit_vb_manifold
+
+  function element_mean(T,X,ele) result (Tbar)
+    type(scalar_field), intent(in) :: T
+    type(vector_field), intent(in) :: X
+    integer, intent(in) :: ele
+    real :: Tbar
+    !
+    real, dimension(ele_ngi(T,ele)) :: T_quad, detwei
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+
+    ! Get J and detwei
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei&
+         &=detwei, J=J)
+
+    T_quad = ele_val_at_quad(T,ele)
+    Tbar = sum(T_quad*detwei)/sum(detwei)
+
+  end function element_mean
+
+  function rotate_ele2vertex(V_normal,E_normal,V_tangent1,V_tangent2,Vbar)
+    real, dimension(3), intent(in) :: V_normal, E_normal, V_tangent1&
+         &,V_tangent2, Vbar
+    real, dimension(2) :: rotate_ele2vertex
+    real, dimension(3,3) :: A
+    real, dimension(3) :: RHS
+    real, dimension(3) :: t1, t2_nod, t2_ele
+
+    if(maxval(&
+         &abs(cross_product(E_normal,v_normal)))>1.0e-8) then
+       !Rotate Vbar onto 2D plane
+       t1 = cross_product(E_normal,v_normal)
+       t1 = t1/norm2(t1)
+       t2_nod = cross_product(v_normal,t1)
+       t2_ele = cross_product(E_normal,t1)
+       !Need to solve
+       ! Vbar_ele.t1 = Vbar_nod.t1
+       ! Vbar_ele.t2_ele = Vbar_nod.t2_nod
+       ! Vbar_nod.n_nod = 0
+       A(1,:) = t1
+       A(2,:) = t2_nod
+       A(3,:) = V_normal
+       RHS(1) = dot_product(Vbar,t1)
+       RHS(2) = dot_product(Vbar,t2_ele)
+       RHS(3) = 0
+       call solve(A,RHS)
+    else
+       RHS = Vbar
+    end if
+    rotate_ele2vertex(1) = dot_product(RHS,v_tangent1)
+    rotate_ele2vertex(2) = dot_product(RHS,v_tangent2)
+  end function rotate_ele2vertex
+
+  function limit_hull(Ubar,dU,hull,tol) result (alpha)
+    real :: alpha
+    real, dimension(:), intent(in) :: Ubar, dU
+    real, dimension(:,:), intent(in) :: hull
+    real, intent(in), optional :: tol
+    !
+    integer :: Udim, nhull,i, phull, mhull, info
+    real, dimension(size(Ubar)) :: vec1,vec2
+    real, dimension(size(Ubar),size(Ubar)) :: A
+    real :: ltol
+    
+    if(present(tol)) then
+       ltol = tol
+    else
+       ltol = 1.0e-10
+    end if
+
+    !Check dimensions of arrays
+    Udim = size(Ubar)
+    assert(size(dU)==Udim)
+    assert(size(hull,1) == Udim)
+    nhull = size(hull,2)
+
+    if(.not.outside_hull(Ubar + dU,hull)) then
+       alpha = 1.0
+       return
+    end if
+    
+    if(nhull.eq.1) then
+       !Hull is a point, not equal to Ubar + dU
+       !Can only get into hull by completely removing slope.
+       alpha = 0.0
+       return
+    end if
+
+    if(nhull.eq.2) then
+       !Hull is a line segment
+       !Check if point lies on extension of line segment
+       if(abs(cross_product2(hull(:,2)-hull(:,1),Ubar+dU-hull(:,1)))>ltol)&
+            & then
+          !Point does not lie on extension of line segment
+          !Can only get into hull by completely removing slope
+          alpha = 0.0
+          return
+       else
+          !Point lies on extension of line segment
+          alpha = min(1.,max(0.,dot_product(hull(:,2)-hull(:,1),Ubar+dU&
+               &-hull(:,1))/norm2(hull(:,2)-hull(:,1))))
+          return
+       end if
+    end if
+
+    !Find intersected edge
+    intersection_search: do i = 1, nhull
+       phull = mod(i,nhull)+1
+       mhull = mod(i+nhull-1,nhull)+1
+       if(.not.isleft(Ubar,hull(:,mhull),Ubar + dU).and.&
+            & isleft(Ubar,hull(:,phull),Ubar + dU)) then
+          exit intersection_search
+       end if
+       phull = -1
+       mhull = -1
+    end do intersection_search
+
+    if(phull==-1) then
+       !Either point is to right of whole hull wrt Ubar
+       !    or point is to  left of whole hull wrt Ubar
+       !This can only happen if Ubar is on boundary of hull
+       !                    and line to Ubar+dU leads away from hull.
+       alpha = 0.0
+    else
+       !Solve for intersection
+       ! solve Ubar + alpha*dU = Pi + beta*(P_{i+1}-Pi)
+       ! i.e.
+       ! (-dU_1 (P_{i+1}-P_i)_1 )(alpha) = (Ubar_1 - (P_i)_1)
+       ! (-dU_2 (P_{i+1}-P_i)_2 )(beta)    (Ubar_2 - (P_i)_2)
+       
+       vec1 = Ubar - hull(:,mhull)
+       A(:,1) = -dU
+       A(:,2) = hull(:,phull)-hull(:,mhull)
+       call solve(A,vec1,info)
+       !This checks that intersection occurs on selected line segment
+       assert((vec1(2).le.1.0))
+       assert((vec1(2).ge.0.0))
+       alpha = vec1(1)
+       !If alpha>1.0 we should have already exited
+       assert(alpha.le.1.0)
+       !Can't limit below zero
+       if(alpha<0.0) alpha = 0.0
+    end if
+
+    contains 
+      function isleft(seg1,seg2,point,tol)
+        real, intent(in), dimension(:) :: seg1, seg2, point
+        real, intent(in), optional :: tol
+        logical :: isleft
+        real :: ltol
+        if(present(tol)) then
+           ltol = tol
+        else
+           ltol = 1.0e-10
+        end if
+        isleft = cross_product2(seg2-seg1,point-seg1)>0.0
+      end function isleft
+
+  end function limit_hull
+
   subroutine limit_fpn(state, t)
 
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(inout) :: t
-    
+
     type(scalar_field), pointer :: limiting_t, lumped_mass
     type(scalar_field) :: lowerbound, upperbound, inverse_lumped_mass
     type(csr_matrix), pointer :: mass
@@ -1481,8 +1768,8 @@ contains
     real :: nodeval, nodemin, nodemax, adjust
 
     integer, dimension(:,:,:), allocatable, save :: nodes_array
-!     real, dimension(2,4) :: local_values
-!     real, dimension(2) :: line_max, line_min
+    !     real, dimension(2,4) :: local_values
+    !     real, dimension(2) :: line_max, line_min
     real, dimension(:,:), allocatable :: local_values
     real, dimension(:), allocatable :: line_max, line_min
     integer :: node, adjacent_node, local_face
@@ -1501,9 +1788,9 @@ contains
     rows=problem_dimension ! The number of 'lines' to look along
     columns=3 ! The number of nodes on each line. Should always be three
     if (upwind) then
-      values=columns+1
+       values=columns+1
     else
-      values=columns
+       values=columns
     end if
     tol=0.25
 
@@ -1512,14 +1799,14 @@ contains
     midpoint=have_option(trim(t%option_path)//"/prognostic/spatial_discretisation/&
          &discontinuous_galerkin/slope_limiter::FPN/mid-point_scheme")
     if (midpoint) then
-      call get_option(trim(t%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/slope_limiter::FPN/mid-point_scheme/beta", beta, default=1.0)
-      extrapolate=have_option(trim(t%option_path)//"/prognostic/spatial_discretisation/&
-           &discontinuous_galerkin/slope_limiter::FPN/mid-point_scheme/extrapolate")
+       call get_option(trim(t%option_path)//"/prognostic/spatial_discretisation/&
+            &discontinuous_galerkin/slope_limiter::FPN/mid-point_scheme/beta", beta, default=1.0)
+       extrapolate=have_option(trim(t%option_path)//"/prognostic/spatial_discretisation/&
+            &discontinuous_galerkin/slope_limiter::FPN/mid-point_scheme/extrapolate")
     end if
 
-!     pre_dist_mass=have_option(trim(t%option_path)//"/prognostic/spatial_discretisation/&
-!          &discontinuous_galerkin/slope_limiter::FPN/pre_distribute_mass")
+    !     pre_dist_mass=have_option(trim(t%option_path)//"/prognostic/spatial_discretisation/&
+    !          &discontinuous_galerkin/slope_limiter::FPN/pre_distribute_mass")
 
     mass => get_mass_matrix(state, t%mesh)
     lumped_mass => get_lumped_mass(state, t%mesh)
@@ -1528,7 +1815,7 @@ contains
 
     limiting_t => extract_scalar_field(state, trim(t%name))
 
-!     eelist => extract_eelist(t%mesh)
+    !     eelist => extract_eelist(t%mesh)
 
     call allocate(lowerbound, t%mesh, "LowerBound")
     call allocate(upperbound, t%mesh, "UpperBound")
@@ -1536,64 +1823,64 @@ contains
 
     allocate (neighbouring_nodes(ele_loc(limiting_t,1)))
 
-!     allocate (face_nodes(face_loc(limiting_t,1)), neighbouring_nodes(face_loc(limiting_t,1)))
+    !     allocate (face_nodes(face_loc(limiting_t,1)), neighbouring_nodes(face_loc(limiting_t,1)))
 
     if (extrapolate) then
-      position => extract_vector_field(state, "Coordinate")
-      call allocate(dg_position, position%dim, t%mesh, name="DG_Coordinate")
-      call remap_field(position, dg_position)
-      allocate (e_vec_1(position%dim),dt_t(ele_loc(limiting_t, 1), ele_ngi(limiting_t, 1), mesh_dim(limiting_t)))
-      allocate (grad_t(mesh_dim(limiting_t), limiting_t%mesh%shape%ngi))
+       position => extract_vector_field(state, "Coordinate")
+       call allocate(dg_position, position%dim, t%mesh, name="DG_Coordinate")
+       call remap_field(position, dg_position)
+       allocate (e_vec_1(position%dim),dt_t(ele_loc(limiting_t, 1), ele_ngi(limiting_t, 1), mesh_dim(limiting_t)))
+       allocate (grad_t(mesh_dim(limiting_t), limiting_t%mesh%shape%ngi))
     end if
 
     if (upwind) then
-      u => extract_vector_field(state, "Velocity")
+       u => extract_vector_field(state, "Velocity")
     end if
 
     ! Loop to construct an array containing the global node numbers required to compute the limiting values
     ! at a node i. Only evaluated on the first timestep (and after every adapt for adaptive runs).
     if (first) then
-      allocate (nodes_array(node_count(t),rows,columns))
-      first=.false.
-      do node=1,node_count(limiting_t)
-        ele=node_ele(limiting_t, node)
-        nodelist => ele_nodes(limiting_t, ele)
-        faces => ele_faces(limiting_t, ele)
-        row=0
-        do i=1,size(nodelist)
-          if (nodelist(i)==node) cycle
-          row=row+1
-          fnodes=face_global_nodes(limiting_t,faces(i))
-          do j=1,size(fnodes)
-            if (fnodes(j)==node) adjacent_node=j
+       allocate (nodes_array(node_count(t),rows,columns))
+       first=.false.
+       do node=1,node_count(limiting_t)
+          ele=node_ele(limiting_t, node)
+          nodelist => ele_nodes(limiting_t, ele)
+          faces => ele_faces(limiting_t, ele)
+          row=0
+          do i=1,size(nodelist)
+             if (nodelist(i)==node) cycle
+             row=row+1
+             fnodes=face_global_nodes(limiting_t,faces(i))
+             do j=1,size(fnodes)
+                if (fnodes(j)==node) adjacent_node=j
+             end do
+             neighbouring_face = face_neigh(limiting_t, faces(i))
+             neighbouring_face_nodes = face_global_nodes(limiting_t,neighbouring_face)
+             !           secnd_val=neighbouring_face_nodes(adjacent_node) ! 2nd node we want
+             local_face=local_face_number(limiting_t,neighbouring_face)
+             neighbouring_ele = face_ele(limiting_t, neighbouring_face)
+             neighbouring_nodes = ele_nodes(limiting_t, neighbouring_ele)
+             !           thrid_val=neighbouring_nodes(local_face)
+             nodes_array(node,row,1)=nodelist(i)
+             nodes_array(node,row,2)=neighbouring_face_nodes(adjacent_node)
+             nodes_array(node,row,3)=neighbouring_nodes(local_face)
           end do
-          neighbouring_face = face_neigh(limiting_t, faces(i))
-          neighbouring_face_nodes = face_global_nodes(limiting_t,neighbouring_face)
-!           secnd_val=neighbouring_face_nodes(adjacent_node) ! 2nd node we want
-          local_face=local_face_number(limiting_t,neighbouring_face)
-          neighbouring_ele = face_ele(limiting_t, neighbouring_face)
-          neighbouring_nodes = ele_nodes(limiting_t, neighbouring_ele)
-!           thrid_val=neighbouring_nodes(local_face)
-          nodes_array(node,row,1)=nodelist(i)
-          nodes_array(node,row,2)=neighbouring_face_nodes(adjacent_node)
-          nodes_array(node,row,3)=neighbouring_nodes(local_face)
-        end do
-      end do
+       end do
     end if
 
     ! Loop through the nodes and calculate the bounds for each node
     do node=1,node_count(limiting_t)
-      ! Calculate the av. value of the tracer within the element
-      ele=node_ele(limiting_t, node)
-      nodelist => ele_nodes(limiting_t, ele)
-      do i=1, size(nodelist)
-        tracer_val(i)=node_val(limiting_t,nodelist(i))
-      end do
-      mean_val=sum(tracer_val)/float(size(nodelist))
-      ! Get the values needed for calculating the bounds
-      do row=1,rows
-        do column=1,columns
-          local_values(row,column)=node_val(limiting_t, nodes_array(node,row,column))
+       ! Calculate the av. value of the tracer within the element
+       ele=node_ele(limiting_t, node)
+       nodelist => ele_nodes(limiting_t, ele)
+       do i=1, size(nodelist)
+          tracer_val(i)=node_val(limiting_t,nodelist(i))
+       end do
+       mean_val=sum(tracer_val)/float(size(nodelist))
+       ! Get the values needed for calculating the bounds
+       do row=1,rows
+          do column=1,columns
+             local_values(row,column)=node_val(limiting_t, nodes_array(node,row,column))
         end do
         ! Adjust values depending on options
         if (midpoint.and.(.not.extrapolate)) then

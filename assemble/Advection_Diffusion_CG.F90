@@ -99,6 +99,8 @@ module advection_diffusion_cg
   logical :: integrate_advection_by_parts
   ! Source?
   logical :: have_source
+  ! Add source directly to the right hand side?
+  logical :: add_src_directly_to_rhs
   ! Absorption?
   logical :: have_absorption
   ! Diffusivity?
@@ -110,8 +112,7 @@ module advection_diffusion_cg
 
 contains
 
-  subroutine solve_field_equation_cg(field_name, state, dt, velocity_name, &
-                                     extra_discretised_source, iterations_taken)
+  subroutine solve_field_equation_cg(field_name, state, dt, velocity_name, iterations_taken)
     !!< Construct and solve the advection-diffusion equation for the given
     !!< field using a continuous Galerkin discretisation. Based on
     !!< Advection_Diffusion_DG and Momentum_CG.
@@ -120,7 +121,6 @@ contains
     type(state_type), intent(inout) :: state
     real, intent(in) :: dt
     character(len = *), optional, intent(in) :: velocity_name
-    type(scalar_field), intent(in), optional :: extra_discretised_source
     integer, intent(out), optional :: iterations_taken
     
     type(csr_matrix) :: matrix
@@ -135,8 +135,7 @@ contains
     call initialise_advection_diffusion_cg(field_name, t, delta_t, matrix, rhs, state)
     
     call profiler_tic(t, "assembly")
-    call assemble_advection_diffusion_cg(t, matrix, rhs, state, dt, velocity_name = velocity_name, &
-                                         extra_discretised_source = extra_discretised_source)    
+    call assemble_advection_diffusion_cg(t, matrix, rhs, state, dt, velocity_name = velocity_name)    
     call profiler_toc(t, "assembly")
 
     call profiler_tic(t, "solve_total")
@@ -206,15 +205,13 @@ contains
     
   end subroutine set_advection_diffusion_cg_initial_guess
   
-  subroutine assemble_advection_diffusion_cg(t, matrix, rhs, state, dt, velocity_name, &
-                                             extra_discretised_source)
+  subroutine assemble_advection_diffusion_cg(t, matrix, rhs, state, dt, velocity_name)
     type(scalar_field), intent(inout) :: t
     type(csr_matrix), intent(inout) :: matrix
     type(scalar_field), intent(inout) :: rhs
     type(state_type), intent(in) :: state
     real, intent(in) :: dt
     character(len = *), optional, intent(in) :: velocity_name
-    type(scalar_field), intent(in), optional :: extra_discretised_source
 
     character(len = FIELD_NAME_LEN) :: lvelocity_name
     integer :: i, j, stat
@@ -229,7 +226,9 @@ contains
     type(scalar_field), pointer :: density, olddensity
     character(len = FIELD_NAME_LEN) :: density_name
     type(scalar_field), pointer :: pressure
-        
+      
+    type(element_type) :: supg_element
+  
     ewrite(1, *) "In assemble_advection_diffusion_cg"
     
     assert(mesh_dim(rhs) == mesh_dim(t))
@@ -279,10 +278,19 @@ contains
     if(have_source) then
       assert(mesh_dim(source) == mesh_dim(t))
       assert(ele_count(source) == ele_count(t))
-    
+      
+      add_src_directly_to_rhs = have_option(trim(source%option_path)//'/diagnostic/add_directly_to_rhs')
+      
+      if (add_src_directly_to_rhs) then 
+         ewrite(2, *) "Adding Source field directly to the right hand side"
+         assert(node_count(source) == node_count(t))
+      end if
+      
       ewrite_minmax(source)
     else
       ewrite(2, *) "No source"
+      
+      add_src_directly_to_rhs = .false.
     end if
     
     ! Absorption
@@ -403,6 +411,9 @@ contains
       stabilisation_scheme = STABILISATION_SUPG
       call get_upwind_options(trim(t%option_path) // "/prognostic/spatial_discretisation/continuous_galerkin/stabilisation/streamline_upwind_petrov_galerkin", &
           & nu_bar_scheme, nu_bar_scale)
+      ! Note this is not mixed mesh safe (but then nothing really is)
+      ! You actually need 1 supg_element per thread.
+      supg_element=make_supg_element(ele_shape(t,1)) 
       if(move_mesh) then
         FLExit("Haven't thought about how mesh movement works with stabilisation yet.")
       end if
@@ -455,13 +466,14 @@ contains
                                         positions, old_positions, new_positions, &
                                         velocity, grid_velocity, &
                                         source, absorption, diffusivity, &
-                                        density, olddensity, pressure)
+                                        density, olddensity, pressure,&
+                                        supg_element)
     end do
 
-    ! as part of assembly include the already discretised optional source
-    ! needed before applying direchlet boundary conditions
-    call addto_rhs_extra_discretised_source(rhs, extra_discretised_source = extra_discretised_source)
-
+    ! Add the source directly to the rhs if required 
+    ! which must be included before dirichlet BC's.
+    if (add_src_directly_to_rhs) call addto(rhs, source)
+    
     ! Step 4: Boundary conditions
     
     if( &
@@ -504,7 +516,9 @@ contains
     
     call deallocate(velocity)
     call deallocate(dummydensity)
-    
+    if (stabilisation_scheme == STABILISATION_SUPG) &
+         call deallocate(supg_element)
+
     ewrite(1, *) "Exiting assemble_advection_diffusion_cg"
     
   end subroutine assemble_advection_diffusion_cg
@@ -554,7 +568,7 @@ contains
                                       positions, old_positions, new_positions, &
                                       velocity, grid_velocity, &
                                       source, absorption, diffusivity, &
-                                      density, olddensity, pressure)
+                                      density, olddensity, pressure, supg_shape)
     integer, intent(in) :: ele
     type(scalar_field), intent(in) :: t
     type(csr_matrix), intent(inout) :: matrix
@@ -569,7 +583,8 @@ contains
     type(scalar_field), intent(in) :: density
     type(scalar_field), intent(in) :: olddensity
     type(scalar_field), intent(in) :: pressure
-    
+    type(element_type), intent(inout) :: supg_shape
+
     integer, dimension(:), pointer :: element_nodes
     real, dimension(ele_ngi(t, ele)) :: detwei, detwei_old, detwei_new
     real, dimension(ele_loc(t, ele), ele_ngi(t, ele), mesh_dim(t)) :: dt_t
@@ -650,15 +665,16 @@ contains
     select case(stabilisation_scheme)
       case(STABILISATION_SUPG)
         if(have_diffusivity) then
-          test_function = make_supg_shape(t_shape, dt_t, ele_val_at_quad(velocity, ele), j_mat, diff_q = ele_val_at_quad(diffusivity, ele), &
+          call supg_test_function(supg_shape, t_shape, dt_t, ele_val_at_quad(velocity, ele), j_mat, diff_q = ele_val_at_quad(diffusivity, ele), &
             & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
+          test_function = supg_shape
         else
-          test_function = make_supg_shape(t_shape, dt_t, ele_val_at_quad(velocity, ele), j_mat, &
+          call supg_test_function(supg_shape, t_shape, dt_t, ele_val_at_quad(velocity, ele), j_mat, &
             & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
         end if
+        test_function = supg_shape
       case default
         test_function = t_shape
-        call incref(test_function)
     end select
     ! Important note: with SUPG the test function derivatives have not been
     ! modified - i.e. dt_t is currently used everywhere. This is fine for P1,
@@ -682,7 +698,9 @@ contains
     if(have_diffusivity) call add_diffusivity_element_cg(ele, t, diffusivity, dt_t, detwei, matrix_addto, rhs_addto)
     
     ! Source
-    if(have_source) call add_source_element_cg(ele, test_function, t, source, detwei, rhs_addto)
+    if(have_source .and. (.not. add_src_directly_to_rhs)) then 
+       call add_source_element_cg(ele, test_function, t, source, detwei, rhs_addto)
+    end if
     
     ! Pressure
     if(equation_type==FIELD_EQUATION_INTERNALENERGY) call add_pressurediv_element_cg(ele, test_function, t, &
@@ -695,8 +713,6 @@ contains
     call addto(matrix, element_nodes, element_nodes, matrix_addto)
     call addto(rhs, element_nodes, rhs_addto)
 
-    call deallocate(test_function)
-      
   end subroutine assemble_advection_diffusion_element_cg
   
   subroutine add_mass_element_cg(ele, test_function, t, density, olddensity, detwei, detwei_old, detwei_new, matrix_addto, rhs_addto)
@@ -1117,22 +1133,6 @@ contains
     end if
 
   end subroutine add_diffusivity_face_cg
-
-  subroutine addto_rhs_extra_discretised_source(rhs, extra_discretised_source)
-     type(scalar_field), intent(inout) :: rhs
-     type(scalar_field), intent(in),optional :: extra_discretised_source
-     
-     ! include the already discretised source into rhs
-     add_extra_source: if (present(extra_discretised_source)) then 
-         
-        ! assert that the rhs and extra_discretised_source have the same mesh
-        assert(trim(rhs%mesh%name) == trim(extra_discretised_source%mesh%name))
-         
-        call addto(rhs, extra_discretised_source)
-      
-     end if add_extra_source
-  
-  end subroutine  addto_rhs_extra_discretised_source
      
   subroutine solve_advection_diffusion_cg(t, delta_t, matrix, rhs, state, iterations_taken)
     type(scalar_field), intent(in) :: t

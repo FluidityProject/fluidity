@@ -405,20 +405,28 @@ contains
       call allocate(vec, dim, U%mesh, "workingvecmem")
 
       call zero(u_rhs)
+      ewrite(2,*) 'GETTING U_RHS'
 
       !Coriolis term
       call mult(rhs2,coriolis_mat,U)
       call addto(U_rhs,rhs2,scale=-dt)
+      ewrite_minmax(u_rhs)
 
       !Pressure gradient
+      ewrite_minmax(D)
       call mult_T(vec,div_mat,D)
+      ewrite_minmax(vec)
+      ewrite(2,*) dt, g
       call addto(u_rhs,vec,scale=-dt*g)
+
+      ewrite_minmax(u_rhs)
 
       !Source term
       if (present(source)) then
         call mult(vec,u_mass_mat,source)
         call addto(u_rhs,vec,scale=dt)
       end if
+      ewrite_minmax(u_rhs)
 
       do i=1,u_rhs%dim
          ewrite(1,*) 'SW u_rhs',maxval(abs(u_rhs%val(i,:)))

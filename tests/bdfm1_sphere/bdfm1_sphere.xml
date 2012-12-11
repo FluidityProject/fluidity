@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>BDFM1 sphere</name>
+  <owner userid="cjc"/>
+  <tags>swml</tags>
+  <problem_definition length="special" nprocs="1">
+    <command_line>shallow_water projection3.swml; shallow_water projection4.swml; shallow_water projection4.swml; shallow_water projection5.swml; shallow_water projection6.swml 
+</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="l2errors" language="python">
+import fluidity_tools
+l2errors = []
+for filenumber in [3,4,5,6]:
+   filename = 'projection'+str(filenumber)
+   s = fluidity_tools.stat_parser(filename+".stat")
+   error = s['Fluid']['LayerThicknessError']['l2norm'][-1]
+   error = error/s['Fluid']['LayerThickness']['l2norm'][0]
+   l2errors.append(error)
+    </variable>
+    <variable name="l_inftyerrors" language="python">
+import fluidity_tools
+l_inftyerrors = []
+for filenumber in [3,4,5,6]:
+   filename = 'projection'+str(filenumber)
+   s = fluidity_tools.stat_parser(filename+".stat")
+   error = s['Fluid']['LayerThicknessError']['max'][-1]
+   error = max(error,s['Fluid']['LayerThicknessError']['min'][-1])
+   error = error/s['Fluid']['LayerThickness']['max'][0]
+   l_inftyerrors.append(error)
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="l2 convergence 1" language="python">
+assert(l2errors[1]/l2errors[0] &lt; 0.25)
+    </test>
+    <test name="l2 convergence 2" language="python">
+assert(l2errors[2]/l2errors[1]&lt; 0.26)
+    </test>
+    <test name="l2 convergence 3" language="python">
+assert(l2errors[3]/l2errors[2]&lt; 0.26)
+    </test>
+    <test name="l_infty convergence 1" language="python">
+print l_inftyerrors[1]/l_inftyerrors[0]
+assert(l_inftyerrors[1]/l_inftyerrors[0] &lt; 0.36)
+    </test>
+    <test name="l_infty convergence 2" language="python">
+print l_inftyerrors[2]/l_inftyerrors[1]
+assert(l_inftyerrors[2]/l_inftyerrors[1]&lt; 0.29)
+    </test>
+    <test name="l_infty convergence 3" language="python">
+print l_inftyerrors[3]/l_inftyerrors[2]
+assert(l_inftyerrors[3]/l_inftyerrors[2]&lt; 0.27)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
+

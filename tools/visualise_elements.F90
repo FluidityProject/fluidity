@@ -9,7 +9,7 @@ program visualise_elements
   implicit none
 
   type(element_type) :: element, visualisation_element
-  type(vector_field) :: position, visualisation_position
+  type(vector_field) :: position, visualisation_position, outline_position
   type(scalar_field) :: shape_values, visualisation_shape_values, tracer
   type(mesh_type) :: linear_mesh, visualisation_mesh
   type(state_type), dimension(:), pointer :: state
@@ -18,6 +18,8 @@ program visualise_elements
   character(len=1024) :: projectname
 #ifdef HAVE_MPI
   integer :: ierror, stat
+
+  call set_global_debug_level(0)
 
   call mpi_init(ierror)
 #endif
@@ -48,6 +50,8 @@ program visualise_elements
      
      visualisation_shape_values%mesh=linear_mesh
      visualisation_position%mesh=linear_mesh
+
+     outline_position=construct_outline_positions(element)
 
      if (has_vector_field(state(1),"Derivative")) then
         
@@ -83,9 +87,9 @@ program visualise_elements
              linear_mesh, &
              sfields=(/visualisation_shape_values/))
 
-     call vtk_write_fields("linear"//projectname, 0, &
-          position, &
-          position%mesh)
+        call vtk_write_fields("outline"//projectname, 0, &
+             outline_position, &
+             outline_position%mesh)
 
 
      end if
@@ -111,11 +115,16 @@ program visualise_elements
      visualisation_shape_values%mesh=linear_mesh
      visualisation_position%mesh=linear_mesh
 
+     outline_position=construct_outline_positions(element)
 
      call vtk_write_fields(projectname, 0, &
           visualisation_position, &
           linear_mesh, &
           sfields=(/visualisation_shape_values/))
+
+     call vtk_write_fields("outline"//projectname, 0, &
+          outline_position, &
+          outline_position%mesh)
 
   end if
 
@@ -246,7 +255,7 @@ contains
   function construct_positions(element) result (position)
     type(element_type), intent(inout) :: element
     type(vector_field) :: position
-    
+
     type(mesh_type) :: mesh, linear_mesh, one_mesh_linear, one_mesh
     type(vector_field) :: linear_position, one_element_linear, one_element
     type(element_type) :: linear_element
@@ -304,6 +313,62 @@ contains
     call deallocate(one_mesh_linear)
 
   end function construct_positions
+
+  function construct_outline_positions(element) result (position)
+    type(element_type), intent(inout) :: element
+    type(vector_field) :: position
+
+    type(mesh_type) :: mesh, linear_mesh, one_mesh_linear, one_mesh
+    type(vector_field) :: linear_position, one_element_linear, one_element
+    type(element_type) :: linear_element
+
+    real,dimension(2,element%numbering%vertices) :: vertices, lvertices
+    real,dimension(2) :: node_loc
+    real :: scale
+    integer :: i, d
+
+    vertices=regular_figure(element%numbering%vertices, 1.0)
+
+    linear_element=make_element_shape(element%numbering%vertices, 2, degree=1, &
+         quad=element%quadrature)
+
+    linear_mesh=construct_mesh(linear_element, element, "LinearMesh")
+
+    one_mesh_linear=construct_one_element_mesh(linear_element, &
+         "OneLinearMesh")
+
+    one_mesh=construct_one_element_mesh(element, "OneMesh")
+    
+    call allocate(one_element_linear, 2, one_mesh_linear, &
+         "OneLinearCoordinate")
+
+    call allocate(one_element, 2, one_mesh, "OneCoordinate")
+
+    call set(one_element_linear, ele_nodes(one_element_linear,1), vertices)
+    
+    call remap_field(one_element_linear, one_element)
+
+    call allocate(position, 2, linear_mesh, "LinearCoordinate")
+    
+    scale=1.5*element%degree
+
+    do i=1, node_count(one_element)
+       node_loc=node_val(one_element, i)
+       do d=1,2
+          lvertices(d,:)=vertices(d,:)+scale*node_loc(d)
+       end do
+       
+       call set(position, ele_nodes(linear_mesh,i), lvertices)
+    end do
+    
+    call deallocate(linear_mesh)
+    call deallocate(linear_element)
+    call deallocate(one_element)
+    call deallocate(one_element_linear)
+    call deallocate(one_mesh)
+    call deallocate(one_mesh_linear)
+
+  end function construct_outline_positions
 
   function construct_mesh(mesh_element, layout_element, name) result(mesh)
     type(mesh_type) :: mesh

@@ -120,7 +120,8 @@ module quadrature
 
   logical, save, private :: initialised=.false.
 
-  integer, parameter :: FAMILY_COOLS=0, FAMILY_WANDZURA=1, FAMILY_GM=2
+  integer, parameter :: FAMILY_COOLS=0, FAMILY_WANDZURA=1, FAMILY_GM=2, &
+       FAMILY_SIMPSONS=3
 
   interface allocate
      module procedure allocate_quad

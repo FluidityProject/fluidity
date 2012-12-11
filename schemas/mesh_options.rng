@@ -67,6 +67,13 @@ enforcing continuity by Lagrange multipliers).</a:documentation>
                     <value>trace</value>
                   </choice>
                 </element>
+                <optional>
+                  <element name="nodalise_basis">
+                    <a:documentation>Make the basis nodal. Useful for bubble spaces, 
+breaks interpolation.</a:documentation>
+                    <empty/>
+                  </element>
+                </optional>
               </element>
             </optional>
           </element>
@@ -83,10 +90,13 @@ enforcing continuity by Lagrange multipliers).</a:documentation>
         </optional>
         <optional>
           <element name="constraint_type">
+            <a:documentation>Constraint type.  
+Apply additional constraints to the polynomial representation
+of a vector field.
+This is used to implement div-conforming
+elements such as RT0 in a hybridised solver.</a:documentation>
             <element name="string_value">
-              <a:documentation>Set the constraint type. This is used to implement
-div-conforming elements such as RT0 in a hybridised
-solver.</a:documentation>
+              <a:documentation>Select constraint type.</a:documentation>
               <choice>
                 <value>BDM</value>
                 <value>BDFM</value>

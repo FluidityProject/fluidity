@@ -98,17 +98,29 @@ contains
                                 momentum_diagnostic=.true.)
     end if
     
+    ! Note: For multimaterial-multiphase simulations we normally pass the submaterials array to 
+    ! diagnostic algorithms in order to compute bulk properties correctly. However, for Python 
+    ! diagnostic algorithms where the user may wish to use fields from other phases, we need to 
+    ! pass in the whole state array.
     vfield => extract_vector_field(submaterials(submaterials_istate), "VelocityAbsorption", stat = stat)
     if(stat == 0) then
       if(have_option(trim(vfield%option_path) // "/diagnostic")) then
-        call calculate_diagnostic_variable(submaterials, submaterials_istate, vfield)
+        if(have_option(trim(vfield%option_path) // "/diagnostic/algorithm::vector_python_diagnostic")) then
+          call calculate_diagnostic_variable(state, istate, vfield)
+        else
+          call calculate_diagnostic_variable(submaterials, submaterials_istate, vfield)
+        end if
       end if
     end if
 
     vfield => extract_vector_field(submaterials(submaterials_istate), "VelocitySource", stat = stat)
     if(stat == 0) then
       if(have_option(trim(vfield%option_path) // "/diagnostic")) then
-        call calculate_diagnostic_variable(state, istate, vfield)
+        if(have_option(trim(vfield%option_path) // "/diagnostic/algorithm::vector_python_diagnostic")) then
+          call calculate_diagnostic_variable(state, istate, vfield)
+        else
+          call calculate_diagnostic_variable(submaterials, submaterials_istate, vfield)
+        end if
       end if
     end if
 
@@ -116,7 +128,11 @@ contains
     if (stat==0) then
       diagnostic = have_option(trim(tfield%option_path)//'/diagnostic')
       if(diagnostic) then
-        call calculate_diagnostic_variable(submaterials, submaterials_istate, tfield)
+        if(have_option(trim(tfield%option_path) // "/diagnostic/algorithm::tensor_python_diagnostic")) then
+          call calculate_diagnostic_variable(state, istate, tfield)
+        else
+          call calculate_diagnostic_variable(submaterials, submaterials_istate, tfield)
+        end if
       end if
     end if
 
@@ -124,6 +140,8 @@ contains
     if(stat==0) then
       diagnostic = have_option(trim(tfield%option_path)//'/diagnostic')
       if(diagnostic) then
+        ! Unlike the above diagnostic variables, SurfaceTension doesn't include
+        ! a Python diagnostic algorithm option yet, so we'll just pass in submaterials for now.
         call calculate_surfacetension(submaterials, tfield)
       end if
     end if

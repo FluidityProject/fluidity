@@ -26,9 +26,16 @@
 !    USA
 #include "fdebug.h"
 module manifold_tools
+  use spud
+  use global_parameters, only:current_debug_level, OPTION_PATH_LEN
   use state_module
   use fields
   use fields_base
+  use sparse_tools
+  use sparsity_patterns
+  use sparse_matrices_fields
+  use sparsity_patterns_meshes
+  use solvers
 
   implicit none
   
@@ -41,9 +48,214 @@ module manifold_tools
   end interface
   private 
 
-  public :: project_cartesian_to_local, project_local_to_cartesian, get_local_normal, get_face_normal_manifold, get_up_vec
+  interface field_stats_manifold
+     module procedure field_stats_scalar_manifold, &
+          field_stats_vector_manifold
+  end interface field_stats_manifold
+
+  public :: project_cartesian_to_local, project_local_to_cartesian,&
+       & get_local_normal, get_face_normal_manifold, get_up_vec,&
+       & get_weights, get_up_gi, field_stats_manifold
 
   contains 
+
+  subroutine field_stats_scalar_manifold(field, X, min, max, norm2, integral)
+    !!< Return scalar statistical informaion about field.
+    type(scalar_field) :: field
+    !! Positions field associated with field
+    type(vector_field), optional :: X
+    !! Minimum value in the field.
+    real, intent(out), optional :: min
+    !! Maximum value in the field.
+    real, intent(out), optional :: max  
+    !! L2 norm of the field. This requires positions to be specified as
+    !! well.
+    real, intent(out), optional :: norm2
+    !! Integral of the field. This requires positions to be specified as
+    !! well.
+    real, intent(out), optional :: integral
+
+    ewrite(1,*) 'field_Stats_scalar_manifold '//trim(field%name)
+    
+    if (present(min)) then
+       min=minval(field%val)
+       call allmin(min)
+    end if
+
+    if (present(max)) then
+       max=maxval(field%val)
+       call allmax(max)
+    end if
+
+    if (present(X).and.present(norm2)) then
+
+       norm2=norm2_scalar_manifold(field, X)
+       
+    elseif (present(norm2)) then
+       FLAbort("Cannot evaluate L2 norm without providing positions field")
+    end if
+
+    if (present(X).and.present(integral)) then
+
+       integral=integral_scalar_manifold(field, X)
+       
+    elseif (present(integral)) then
+       FLAbort("Cannot evaluate integral without providing positions field")
+    end if
+
+  end subroutine field_stats_scalar_manifold
+
+  function norm2_scalar_manifold(field, X) result (norm2)
+    type(scalar_field), intent(in) :: field
+    type(vector_field), intent(in) :: X
+    real :: norm2
+    !
+    integer :: ele
+
+    norm2 = 0.
+    do ele =1, ele_count(X)
+       norm2 = norm2 + norm2_scalar_manifold_ele(field,X,ele)
+    end do
+
+    !call allsum(norm2)
+    
+    norm2 = sqrt(norm2)
+
+  end function norm2_scalar_manifold
+
+  function norm2_scalar_manifold_ele(field, X, ele) result (norm2)
+    type(scalar_field), intent(in) :: field
+    type(vector_field), intent(in) :: X
+    integer, intent(in) :: ele
+    real :: norm2
+    !
+    real, dimension(ele_ngi(X,ele)) :: detwei
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+    type(element_type), pointer :: field_shape
+    real, dimension(ele_loc(field,ele)) :: field_val
+
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele),&
+         detwei=detwei,J=J)
+
+    field_val=ele_val(field, ele)
+    field_shape=>ele_shape(field, ele)
+
+    norm2 = dot_product(field_val, matmul(&
+         &  shape_shape(field_shape, field_shape, detwei)&
+         &                                               ,field_val))
+    
+  end function norm2_scalar_manifold_ele
+
+  function integral_scalar_manifold(field, X) result (integral)
+    type(scalar_field), intent(in) :: field
+    type(vector_field), intent(in) :: X
+    real :: integral
+    !
+    integer :: ele
+
+    integral = 0.
+    do ele = 1, ele_count(X)
+       integral = integral + integral_scalar_manifold_ele(&
+            field,X,ele)
+    end do
+  end function integral_scalar_manifold
+
+  function integral_scalar_manifold_ele(field, X, ele) result (integral)
+    type(scalar_field), intent(in) :: field
+    type(vector_field), intent(in) :: X
+    integer, intent(in) :: ele
+    real :: integral
+    !
+    real, dimension(ele_ngi(X,ele)) :: detwei
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele),&
+         detwei=detwei,J=J)
+
+    integral=dot_product(ele_val_at_quad(field, ele), detwei)
+    
+  end function integral_scalar_manifold_ele
+
+  subroutine field_stats_vector_manifold(field, X, min, max, norm2)
+    !!< Return vector statistical informaion about field.
+    type(vector_field) :: field
+    !! Positions field associated with field
+    type(vector_field), optional :: X
+    !! Minimum value in the field.
+    real, intent(out), optional :: min
+    !! Maximum value in the field.
+    real, intent(out), optional :: max  
+    !! L2 norm of the field. This requires positions to be specified as
+    !! well.
+    real, intent(out), optional :: norm2
+
+    type(scalar_field) :: mag
+
+    ewrite(1,*) 'field_Stats_vector_manifold '//trim(field%name)
+
+    mag=magnitude(field)
+
+    call field_stats_manifold(mag, X, min, max, norm2)
+
+    call deallocate(mag)
+
+  end subroutine field_stats_vector_manifold
+
+  subroutine get_up_gi(X,ele,up_gi,orientation)
+    !subroutine to replace up_gi with a normal to the surface
+    !with the same orientation
+    implicit none
+    type(vector_field), intent(in) :: X
+    integer, intent(in) :: ele
+    real, dimension(X%dim,ele_ngi(X,ele)), intent(inout) :: up_gi
+    integer, intent(out), optional :: orientation
+    !
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+    integer :: gi
+    real, dimension(X%dim,ele_ngi(X,ele)) :: normal_gi
+    real, dimension(ele_ngi(X,ele)) :: orientation_gi
+    integer :: l_orientation
+    real :: norm
+
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J)
+
+    select case(mesh_dim(X)) 
+    case (2)
+       do gi = 1, ele_ngi(X,ele)
+          normal_gi(:,gi) = cross_product(J(1,:,gi),J(2,:,gi))
+          norm = sqrt(sum(normal_gi(:,gi)**2))
+          normal_gi(:,gi) = normal_gi(:,gi)/norm
+       end do
+       do gi = 1, ele_ngi(X,ele)
+          orientation_gi(gi) = dot_product(normal_gi(:,gi),up_gi(:,gi))
+       end do
+       do gi = 1, ele_ngi(X,ele)
+          if(sign(1.0,orientation_gi(gi)).ne.sign(1.0,orientation_gi(1))) then
+             ewrite(0,*) 'gi=',gi
+             ewrite(0,*) 'normal=',normal_gi(:,gi)
+             ewrite(0,*) 'up=',up_gi(:,gi)
+             ewrite(0,*) 'orientation=',orientation_gi(gi)
+             ewrite(0,*) 'orientation(1)=',orientation_gi(1)
+             FLAbort('Nasty geometry problem')
+          end if
+       end do
+
+
+       if(orientation_gi(1)>0.0) then
+          l_orientation = 1
+       else
+          l_orientation = -1
+       end if
+       if(present(orientation)) then
+          orientation =l_orientation
+       end if
+       do gi = 1, ele_ngi(X,ele)
+          up_gi(:,gi) = normal_gi(:,gi)*l_orientation
+       end do
+    case default
+       FLAbort('not implemented')
+    end select
+  end subroutine get_up_gi
 
   subroutine project_cartesian_to_local_state(state, field, transpose)
     !!< Project the cartesian velocity to local coordinates
@@ -250,11 +462,14 @@ module manifold_tools
 
   end subroutine project_local_to_cartesian_state
 
-  subroutine project_local_to_cartesian_generic(X, in_field_local, out_field_cartesian, transpose)
+  subroutine project_local_to_cartesian_generic(X, in_field_local,&
+       & out_field_cartesian, transpose,weights)
     !!< Project the local velocity to cartesian coordinates
     type(vector_field), intent(in) :: X
     type(vector_field), intent(inout) :: out_field_cartesian, in_field_local
     logical, intent(in), optional :: transpose
+    !array of weights for each element to rescale velocity by
+    real, intent(in), dimension(:), optional :: weights
 
     integer :: ele
 
@@ -266,16 +481,19 @@ module manifold_tools
       end do
     else
       do ele=1, element_count(out_field_cartesian)
-         call project_local_to_cartesian_ele(ele, X, out_field_cartesian, in_field_local)
+         call project_local_to_cartesian_ele(ele, X, out_field_cartesian,&
+              & in_field_local,weights)
       end do
     end if
   end subroutine project_local_to_cartesian_generic
   
-  subroutine project_local_to_cartesian_ele(ele, X, U_cartesian, U_local)
+  subroutine project_local_to_cartesian_ele(ele, X, U_cartesian, U_local,&
+       &weights)
     !!< Project the local velocity to cartesian
     integer, intent(in) :: ele
     type(vector_field), intent(in) :: X, U_local
     type(vector_field), intent(inout) :: U_cartesian
+    real, dimension(:), intent(in), optional :: weights
 
     real, dimension(ele_loc(U_cartesian,ele), ele_loc(U_cartesian,ele)) :: mass
     real, dimension(mesh_dim(U_local), X%dim, ele_ngi(X,ele)) :: J
@@ -292,7 +510,6 @@ module manifold_tools
     U_quad=ele_val_at_quad(U_local,ele)
 
     mass=shape_shape(U_shape, U_shape, detwei)
-    call invert(mass)
 
     U_cartesian_gi=0.
     do gi=1, ele_ngi(X,ele)
@@ -300,9 +517,13 @@ module manifold_tools
     end do
 
     rhs=shape_vector_rhs(U_shape, U_cartesian_gi, U_shape%quadrature%weight)
+    if(present(weights)) then
+       rhs = rhs*weights(ele)
+    end if
 
     do d=1,U_cartesian%dim
-       call set(U_cartesian, d, ele_nodes(U_cartesian,ele), matmul(mass,rhs(d,:)))
+       call solve(mass,rhs(d,:))
+       call set(U_cartesian, d, ele_nodes(U_cartesian,ele),rhs(d,:))
     end do
 
   end subroutine project_local_to_cartesian_ele
@@ -503,5 +724,36 @@ module manifold_tools
        up_vec_out = up
     end if
   end function get_up_vec
+
+  subroutine get_weights(X,weights)
+    !subroutine to compute weights to rescale the local velocity
+    type(vector_field), intent(in) :: X
+    real, dimension(:), intent(inout) :: weights
+    !
+    integer :: ele
+    
+    do ele = 1, element_count(X)
+       call get_weights_ele(X,weights,ele)
+    end do
+  end subroutine get_weights
+
+  subroutine get_weights_ele(X,weights,ele)
+    !subroutine to compute weights to rescale the local velocity
+    type(vector_field), intent(in) :: X
+    real, dimension(:), intent(inout) :: weights
+    integer, intent(in) :: ele
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+    real, dimension(ele_ngi(X,ele)) :: detwei
+    
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
+         detwei=detwei)
+    
+    !area = 0.5*base*height
+    !for an equilateral triangle this is
+    ! 0.5*base*sqrt(3./4.)*base = sqrt(3.0)/4.0*base^2
+    ! so base = sqrt(4.0*area/sqrt(3.0))
+    weights(ele) = sqrt(4.0*sum(detwei)/sqrt(3.0))
+    
+  end subroutine get_weights_ele
 
 end module manifold_tools

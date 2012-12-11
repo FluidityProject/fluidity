@@ -31,9 +31,10 @@
 #include <mpi.h>
 #endif
 
+#include <stdlib.h>
+
 extern "C" {
-  void project_to_continuous_fc(const char *, const int *, const char *, const int *);
-  void set_global_debug_level_fc(int *val);
+  void project_to_continuous(const char *, size_t, const char *, size_t);
 }
 
 #ifdef _AIX
@@ -43,13 +44,12 @@ extern "C" {
 #endif
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <errno.h>
 
 #include <map>
 #include <string>
 #include <iostream>
-
+#include "c++debug.h"
 using namespace std; 
 
 void usage(char *binary){
@@ -114,22 +114,14 @@ int main(int argc, char **argv){
   set_global_debug_level_fc(&val);
 
   string vtufile;
-  if(argv[no_option_args+1][0]!='/')
-    vtufile = getenv("PWD");
-  vtufile.append("/");
   vtufile.append(argv[no_option_args+1]);
-  vtufile.append(" "); // needed by fluidity to find end of file
-  int vtulen = vtufile.length();  
+  size_t vtulen = vtufile.size();  
 
   string trianglefile;
-  if(argv[no_option_args+1][0]!='/')
-    trianglefile = getenv("PWD");
-  trianglefile.append("/");
   trianglefile.append(argv[no_option_args+2]);
-  trianglefile.append(" "); // needed by fluidity to find end of file
-  int trianglelen = trianglefile.length();  
+  size_t trianglelen = trianglefile.size();  
 
-  project_to_continuous_fc(vtufile.c_str(),&vtulen,trianglefile.c_str(),&trianglelen);
+  project_to_continuous(vtufile.c_str(),vtulen,trianglefile.c_str(),trianglelen);
   
 #ifdef HAVE_MPI
   MPI::Finalize();

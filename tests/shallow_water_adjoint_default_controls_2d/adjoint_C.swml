@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <shallow_water_options>
   <simulation_name>
     <string_value lines="1">wave_C</string_value>
@@ -102,6 +102,9 @@
     <timestep>
       <real_value rank="0">0.0625</real_value>
     </timestep>
+    <theta>
+      <real_value rank="0">0.5</real_value>
+    </theta>
     <nonlinear_iterations>
       <integer_value rank="0">1</integer_value>
     </nonlinear_iterations>
@@ -147,10 +150,12 @@
               <none/>
             </advection_scheme>
           </discontinuous_galerkin>
-          <conservative_advection>
-            <real_value rank="0">0</real_value>
-          </conservative_advection>
         </spatial_discretisation>
+        <temporal_discretisation>
+          <relaxation>
+            <real_value rank="0">1.0</real_value>
+          </relaxation>
+        </temporal_discretisation>
         <solver>
           <iterative_method name="gmres">
             <restart>
@@ -198,15 +203,6 @@
           </prescribed>
         </vector_field>
         <output/>
-        <stat>
-          <include_in_stat/>
-          <previous_time_step>
-            <exclude_from_stat/>
-          </previous_time_step>
-          <nonlinear_field>
-            <exclude_from_stat/>
-          </nonlinear_field>
-        </stat>
         <convergence>
           <include_in_convergence/>
         </convergence>
@@ -232,14 +228,7 @@
             <real_value rank="0">0</real_value>
           </conservative_advection>
         </spatial_discretisation>
-        <temporal_discretisation>
-          <theta>
-            <real_value rank="0">0.5</real_value>
-          </theta>
-          <relaxation>
-            <real_value rank="0">1</real_value>
-          </relaxation>
-        </temporal_discretisation>
+        <temporal_discretisation/>
         <solver>
           <iterative_method name="cg"/>
           <preconditioner name="sor"/>

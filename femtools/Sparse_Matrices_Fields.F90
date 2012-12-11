@@ -33,7 +33,7 @@ use c_interfaces
 use iso_c_binding
 implicit none
 
-  interface mult
+  interface mult    
      module procedure csr_mult_scalar, csr_mult_scalar_vector,&
           csr_mult_vector_scalar, csr_mult_vector_vector, csr_mult_vector
   end interface
@@ -43,7 +43,8 @@ implicit none
   end interface
 
   interface mult_T
-     module procedure csr_mult_T_scalar, csr_mult_T_vector_scalar, csr_mult_T_vector_vector
+     module procedure csr_mult_T_scalar, csr_mult_T_vector_scalar,&
+          & csr_mult_T_vector_vector,csr_mult_T_scalar_vector
   end interface
 
   interface mult_T_addto
@@ -544,6 +545,38 @@ contains
     end do
 
   end subroutine csr_mult_T_vector_scalar
+
+  subroutine csr_mult_T_scalar_vector(x, A, b)
+    !!< Calculate x=A^T*b Where b is a vector field, A is a dim*1 block
+    !!< block_csr_matrix and x is a scalar field.
+    type(scalar_field), intent(inout) :: x
+    type(block_csr_matrix), intent(in) :: A
+    type(vector_field), intent(in) :: b
+
+    real, dimension(:), allocatable :: tmpb, deltax
+    integer :: dim
+
+    assert(all(A%blocks==(/b%dim,1/)))
+
+    call zero(x)
+    allocate(deltax(node_count(x)))
+
+    do dim=1,b%dim
+       select case(b%field_type)
+       case(FIELD_TYPE_NORMAL)
+          call mult_T(deltax, block(A,dim,1), b%val(dim,:))
+          x%val = x%val + deltax
+       case(FIELD_TYPE_CONSTANT)
+          allocate(tmpb(node_count(b)))
+          tmpb=b%val(dim,1)
+          call mult_T(deltax, block(A,dim,1), tmpb)
+          x%val = x%val + deltax
+          deallocate(tmpb)
+       end select
+    end do
+    deallocate(deltax)
+
+  end subroutine csr_mult_T_scalar_vector
 
   subroutine csr_mult_T_vector_vector(x, A, b)
     !!< Calculate x=A^T*b, where b is a vector fields, A is a dim_b*dim_x block

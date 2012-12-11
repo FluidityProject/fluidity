@@ -46,7 +46,12 @@ mesh_info =
                ## enforcing continuity by Lagrange multipliers).
               element string_value{
                  "lagrangian" | "bubble" | "trace"
-              }
+              },
+              ## Make the basis nodal. Useful for bubble spaces, 
+              ## breaks interpolation.
+              element nodalise_basis{
+                 empty
+              }?
             }?
          }?,
          element mesh_continuity {
@@ -54,10 +59,13 @@ mesh_info =
                "continuous" | "discontinuous"
             }
          }?,
+         ## Constraint type.  
+         ## Apply additional constraints to the polynomial representation
+         ## of a vector field.
+         ## This is used to implement div-conforming
+         ## elements such as RT0 in a hybridised solver.
          element constraint_type {
-            ## Set the constraint type. This is used to implement
-            ## div-conforming elements such as RT0 in a hybridised
-            ## solver.
+            ## Select constraint type.
             element string_value{
                "BDM" | "BDFM" | "RT"
             },

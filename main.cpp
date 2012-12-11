@@ -104,7 +104,9 @@ int main(int argc, char **argv){
 #endif
   
   flprofiler.toc("/fluidity");
-  // flprofiler.print();
+  if ( fl_command_line_options.count("profile") ) {
+    flprofiler.print();
+  }
 
 #ifdef HAVE_MPI
   MPI::Finalize();

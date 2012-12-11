@@ -38,7 +38,7 @@ module diagnostic_fields
   use state_module
   use futils
   use fetools
-  use fefields, only: compute_lumped_mass
+  use fefields, only: compute_lumped_mass, compute_cv_mass
   use MeshDiagnostics
   use spud
   use CV_Shape_Functions
@@ -472,14 +472,17 @@ contains
     type(scalar_field), intent(inout) :: grn
 
     type(vector_field), pointer :: U, X
-    integer :: ele, gi
+    integer :: ele, gi, stat
     ! Transformed quadrature weights.
     real, dimension(ele_ngi(GRN, 1)) :: detwei
     ! Inverse of the local coordinate change matrix.
     real, dimension(mesh_dim(GRN), mesh_dim(GRN), ele_ngi(GRN, 1)) :: J
     ! velocity/dx at each quad point.
     real, dimension(mesh_dim(GRN), ele_ngi(GRN, 1)) :: GRN_q
+    ! viscosity at each quad point
     real, dimension(mesh_dim(GRN), mesh_dim(GRN), ele_ngi(GRN,1)) :: vis_q
+    ! density at each quad point
+    real, dimension(ele_ngi(GRN,1)) :: den_q    
     ! current element global node numbers.
     integer, dimension(:), pointer :: ele_grn
     ! local grn matrix on the current element.
@@ -487,14 +490,25 @@ contains
     ! current GRN element shape
     type(element_type), pointer :: GRN_shape
     type(tensor_field), pointer :: viscosity
-
+    type(scalar_field), pointer :: density
+    logical :: include_density_field
+    
     U=>extract_vector_field(state, "Velocity")
     X=>extract_vector_field(state, "Coordinate")
 
     call zero(grn)
 
     viscosity => extract_tensor_field(state,'Viscosity')
-
+    
+    include_density_field = have_option(trim(GRN%option_path)//'/diagnostic/include_density_field')
+    
+    if (include_density_field) then
+       density => extract_scalar_field(state,'Density', stat = stat)
+       if (stat /= 0) then
+          FLExit('To include the Density field in the Grid Reynolds number calculation Density must exist in the material_phase state')
+       end if
+    end if
+    
     do ele=1, element_count(GRN)
        ele_GRN=>ele_nodes(GRN, ele)
        GRN_shape=>ele_shape(GRN, ele)
@@ -510,7 +524,15 @@ contains
           GRN_q(:,gi)=matmul(GRN_q(:,gi), J(:,:,gi))
           GRN_q(:,gi)=matmul(inverse(vis_q(:,:,gi)), GRN_q(:,gi))
        end do
-
+       
+       ! include the density field if required also at the quad point
+       if (include_density_field) then
+          den_q=ele_val_at_quad(density, ele)
+          do gi=1,size(detwei)
+              GRN_q(:,gi)=den_q(gi)*GRN_q(:,gi)
+          end do          
+       end if
+       
        ! Project onto the basis functions to recover GRN at each node.
        GRN_mat=matmul(inverse(shape_shape(GRN_shape, GRN_shape, detwei)), &
             shape_shape(GRN_shape, GRN_shape, &
@@ -1624,13 +1646,10 @@ contains
 
     u=>extract_vector_field(state, "NonlinearVelocity",stat)
     if(stat.ne.0) then    
-       u=>extract_vector_field(state, "Velocity",stat)
-       if(stat.ne.0) then
-          FLExit('Missing velocity field!')
-       end if
+       FLExit('Missing velocity field!')
     end if
     x=>extract_vector_field(state, "Coordinate")
-
+       
     if(present(dt)) then
        l_dt = dt
     else
@@ -1712,7 +1731,6 @@ contains
     real, dimension(U%dim, face_ngi(U, 1)) :: normal, U_f_quad
     real, dimension(face_ngi(U,1)) :: flux_quad
     integer, dimension(:), pointer :: u_ele
-    real, dimension(ele_loc(u,ele)) :: Vols
     real :: val
     real, dimension(ele_loc(u,ele)) :: Vals
     !
@@ -1740,7 +1758,6 @@ contains
             &                          normal=normal) 
 
        Flux_quad = sum(U_f_quad*normal,1)
-       print*, Flux_quad
        Flux_quad = max(Flux_quad,0.0)
 
        Flux = Flux + sum(Flux_quad*detwei_f)
@@ -1769,10 +1786,9 @@ contains
     real, dimension(U%dim, face_ngi(U, 1)) :: n1, n2, U_f_q, U_f2_q
     real, dimension(face_ngi(U,1)) :: u_q_dotn1, u_q_dotn2, u_q_dotn, flux_quad
     type(element_type), pointer :: U_shape
-    integer, dimension(:), pointer :: u_ele
-    real, dimension(ele_loc(u,ele)) :: Vols
+    integer, dimension(:), pointer :: c_ele
     real :: val, w1, w2
-    real, dimension(ele_loc(u,ele)) :: Vals
+    real, dimension(ele_loc(courant,ele)) :: Vals
     !
     !Get element volume
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, detwei=detwei)
@@ -1789,7 +1805,7 @@ contains
        else
           face_2=ele_face(U, ele_2, ele)
        end if
-       
+
        call get_local_normal(n1, w1, U, local_face_number(U%mesh,face))
        call get_local_normal(n2, w2, U, local_face_number(U%mesh,face_2))
 
@@ -1799,18 +1815,20 @@ contains
        u_q_dotn1 = -sum(U_f_q*w1*n1,1)
        u_q_dotn2 = sum(U_f2_q*w2*n2,1)
        Flux_quad=0.5*(u_q_dotn1+u_q_dotn2)
-       Flux_quad = max(Flux_quad,0.0)
+       !Flux_quad = max(Flux_quad,0.0)
 
        U_shape=>face_shape(U,face)
 
-       Flux = Flux +sum(Flux_quad*U_shape%quadrature%weight,1)
+       if(sum(Flux_quad)>0.0) then
+          Flux = Flux +sum(Flux_quad*U_shape%quadrature%weight,1)
+       end if
     end do
 
-    u_ele => ele_nodes(U,ele)
+    c_ele => ele_nodes(Courant,ele)
 
     Val = Flux/Vol*dt
     Vals = Val
-    call set(Courant,U_ele,Vals)
+    call set(Courant,c_ele,Vals)
 
   end subroutine calculate_courant_number_local_dg_ele
 
@@ -1829,7 +1847,7 @@ contains
       type(element_type) :: x_cvshape, x_cvbdyshape
       type(element_type) :: u_cvshape, u_cvbdyshape
       type(element_type) :: ug_cvshape, ug_cvbdyshape
-      type(scalar_field), pointer :: lumpedmass
+      type(scalar_field), pointer :: cvmass
       real, dimension(:,:), allocatable :: x_ele, x_ele_bdy
       real, dimension(:,:), allocatable :: x_f, u_f, ug_f, u_bdy_f, ug_bdy_f
       real, dimension(:,:), allocatable :: normal, normal_bdy
@@ -1869,11 +1887,7 @@ contains
 
       x_courant=get_coordinate_field(state, courant%mesh)
 
-      if(courant%mesh%shape%degree>1) then
-        lumpedmass => get_lumped_mass_on_submesh(state, courant%mesh)
-      else
-        lumpedmass => get_lumped_mass(state, courant%mesh)
-      end if
+      cvmass => get_cv_mass(state, courant%mesh)
 
       if(courant%mesh%shape%degree /= 0) then
 
@@ -2083,7 +2097,7 @@ contains
 
       end if
 
-      courant%val = courant%val*l_dt/lumpedmass%val
+      courant%val = courant%val*l_dt/cvmass%val
 
       call deallocate(x_courant)
 
@@ -2109,7 +2123,7 @@ contains
       type(element_type) :: ug_cvshape, ug_cvbdyshape
       type(element_type) :: t_cvshape, t_cvbdyshape
       type(element_type) :: x_cvshape, x_cvbdyshape
-      type(scalar_field) :: lumpedmass
+      type(scalar_field) :: cvmass
       real, dimension(:,:), allocatable :: x_ele, x_ele_bdy
       real, dimension(:,:), allocatable :: x_f, u_f, u_bdy_f, ug_f, ug_bdy_f
       real, dimension(:,:), allocatable :: normal, normal_bdy
@@ -2241,9 +2255,9 @@ contains
         allocate(ug_f(ug%dim, ug_cvshape%ngi))
       end if
 
-      call allocate(lumpedmass, courant%mesh, "Lumped mass")
-      call compute_lumped_mass(x, lumpedmass)
-      lumpedmass%val = lumpedmass%val*(matdens_options%theta*matdens%val+(1.0-matdens_options%theta)*oldmatdens%val)
+      call allocate(cvmass, courant%mesh, "CV mass")
+      call compute_cv_mass(x, cvmass)
+      cvmass%val = cvmass%val*(matdens_options%theta*matdens%val+(1.0-matdens_options%theta)*oldmatdens%val)
 
       do ele=1, element_count(courant)
         x_ele=ele_val(x, ele)
@@ -2427,7 +2441,7 @@ contains
 
       end do
 
-      courant%val = courant%val*l_dt/lumpedmass%val
+      courant%val = courant%val*l_dt/cvmass%val
 
       deallocate(x_ele, x_f, u_f, detwei, normal, normgi)
       deallocate(x_ele_bdy, u_bdy_f, detwei_bdy, normal_bdy)
@@ -2440,7 +2454,7 @@ contains
       call deallocate(x_cvshape)
       call deallocate(t_cvshape)
       call deallocate(cvfaces)
-      call deallocate(lumpedmass)
+      call deallocate(cvmass)
       call deallocate(cfl_no)
       call deallocate(matdens_upwind)
       call deallocate(oldmatdens_upwind)

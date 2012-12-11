@@ -39,11 +39,12 @@ module vector_tools
   interface outer_product
      module procedure outer_product
   end interface
-    
+
   private
   public blasmul, solve, norm2, cross_product, invert, inverse, cholesky_factor, &
      mat_diag_mat, eigendecomposition, eigendecomposition_symmetric, eigenrecomposition, &
-     outer_product, det, det_2, det_3, scalar_triple_product, svd, cross_product2, pseudoinverse
+     outer_product, det, det_2, det_3, scalar_triple_product, svd,&
+     & cross_product2, pseudoinverse, convex_hull, outside_hull
 
 contains
 
@@ -658,4 +659,156 @@ contains
 
   end function pseudoinverse
 
+  subroutine convex_hull(vectors_in,vectors_out,tol)
+    real, dimension(:,:), pointer, intent(inout) :: vectors_out
+    real, dimension(:,:), intent(in) :: vectors_in
+    real, intent(in), optional :: tol
+    !
+    integer :: vec_dim, n_vectors_in, ivec, jvec, jstart, pointonhull, endpoint
+    real, dimension(size(vectors_in,1),size(vectors_in,2)) :: vectors_out_loc
+    real, dimension(size(vectors_in,1)) :: vec1, vec2
+    integer :: hull_dim
+    real :: ltol
+    !
+    if(present(tol)) then
+       ltol = tol
+    else
+       ltol = 1.0e-8
+    end if
+
+    vec_dim = size(vectors_in,1)
+    if(vec_dim .ne. 2) then
+       FLAbort('Only 2D supported.')
+    end if
+    n_vectors_in = size(vectors_in)
+
+    !Check if hull dimension is bigger than 0
+    hull_dim = 0
+    do ivec = 1, size(vectors_in,2)
+       if(norm2(vectors_in(:,ivec)-vectors_in(:,1))>ltol) then
+          hull_dim = 1
+       end if
+    end do
+    if(hull_dim==0) then
+       allocate(vectors_out(vec_dim,1))
+       vectors_out(:,1) = vectors_in(:,1)
+       return
+    end if
+
+    !check if hull dimension is bigger than 1
+    allocate(vectors_out(vec_dim,2))
+    vectors_out(:,1) = vectors_in(:,1)
+    vectors_out(:,2) = vectors_in(:,2)
+    do ivec = 2, size(vectors_in,2)
+       vec1 = vectors_in(:,ivec)-vectors_out(:,1)
+       vec2 = vectors_in(:,2)-vectors_out(:,1)
+       if(abs(cross_product2(vec1,vec2))>ltol) then
+          hull_dim=2
+       else
+          if(dot_product(vec1,vec2)<0.0) then
+             !replace vec1
+             vectors_out(:,1) = vectors_in(:,ivec)
+          else
+             vec1 = vectors_in(:,ivec)-vectors_out(:,2)
+             vec2 = vectors_in(:,1)-vectors_out(:,2)            
+             if(dot_product(vec1,vec2)<0.0) then
+                !replace vec2
+                vectors_out(:,2) = vectors_in(:,ivec)
+             end if
+          end if
+       end if
+    end do
+    if(hull_dim==1) then
+       return
+    end if
+    deallocate(vectors_out)
+    
+    !Need to start again, using the Jarvis gift wrapping algorithm
+    vectors_out_loc = 0.
+    
+    !start by finding the furthest left point
+    jstart = minloc(vectors_in(1,:),dim=1)
+    ivec = 1
+    pointonhull = jstart
+    jarvis_loop: do
+       vectors_out_loc(:,ivec) = vectors_in(:,pointonhull)
+       endpoint = 1
+       do jvec = 2, size(vectors_in,2)
+          if(endpoint.eq.pointonhull) then
+             endpoint = jvec
+          else
+             vec1 = vectors_in(:,endpoint)-vectors_out_loc(:,ivec)
+             vec2 = vectors_in(:,jvec)-vectors_out_loc(:,ivec)
+             !prod=v1(1)*v2(2) - v1(2)*v2(1)
+             if(cross_product2(vec1,vec2)>0.0) then
+                endpoint = jvec
+             end if
+          end if
+       end do
+       ivec = ivec+1
+       pointonhull = endpoint
+       if (endpoint.eq.jstart) then
+          exit jarvis_loop
+       end if
+    end do jarvis_loop
+
+    !Need to allocate and populate convex hull
+    allocate(vectors_out(2,ivec-1))
+    vectors_out = vectors_out_loc(:,1:ivec-1)
+    
+  end subroutine convex_hull
+
+  function outside_hull(vector,hull,tol)
+    real, dimension(:), intent(in) :: vector
+    real, dimension(:,:), intent(in) :: hull
+    real, intent(in), optional :: tol
+    logical :: outside_hull
+    !
+    integer :: i1
+    real :: ltol
+    real, dimension(size(vector,1)) :: vec1, vec2
+
+    if(present(tol)) then
+       ltol = tol
+    else
+       ltol = 1.0e-8
+    end if
+
+    outside_hull = .false.
+    select case(size(hull,2))
+    case (1)
+       if(norm2(vector-hull(:,1))>ltol) then
+          outside_hull =.true.
+       end if
+    case (2)
+       vec1 = hull(:,2)-hull(:,1)
+       vec2 = vector-hull(:,1)
+       if(abs(cross_product2(vec1,vec2))>ltol) then
+          outside_hull =.true.
+       else
+          !vector is colinear with 1D hull
+          if(dot_product(vec1,vec2)<0.0) then
+             outside_hull = .true.
+          end if
+          vec1 = hull(:,1)-hull(:,2)
+          vec2 = vector-hull(:,2)
+          if(dot_product(vec1,vec2)<0.0) then
+             outside_hull = .true.
+          end if          
+       end if
+    case default
+       checking_outside_loop: do i1 = 1, size(hull,2)
+          if(i1<size(hull,2)) then
+             vec1 = hull(:,i1+1)-hull(:,i1)
+          else
+             vec1 = hull(:,1)-hull(:,i1)
+          end if
+          vec2 = vector-hull(:,i1)
+          if(cross_product2(vec1,vec2)>0) then
+             outside_hull = .true.
+             exit checking_outside_loop
+          end if
+       end do checking_outside_loop
+    end select
+  end function outside_hull
 end module vector_tools

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>hybridized_balance_manifold</name>
+  <owner userid="colin"/>
+  <tags>flml swml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>shallow_water_mimetic -v 3 hybridized_balance_manifold1.swml &gt; 1.log 2&gt;&amp;1; shallow_water_mimetic -v 3 hybridized_balance_manifold2.swml &gt; 2.log 2&gt;&amp;1; shallow_water_mimetic -v 3 hybridized_balance_manifold3.swml &gt; 3.log 2&gt;&amp;1; shallow_water_mimetic -v 3 energy_manifold.swml &gt; energy.log 2&gt;&amp;1; 
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="DeltaD1" language="python">
+from numpy import double
+f = open('1.log', 'r')
+for line in f:
+   if 'jump in D' in line:
+      line = line.replace('jump in D','')
+      DeltaD1 = double(line)
+f.close()
+    </variable>
+    <variable name="DeltaU1" language="python">
+from numpy import double
+f = open('1.log', 'r')
+for line in f:
+   if 'jump in U' in line:
+      line = line.replace('jump in U','')
+      DeltaU1 = double(line)
+f.close()
+    </variable>
+    <variable name="DeltaD2" language="python">
+from numpy import double
+f = open('2.log', 'r')
+for line in f:
+   if 'jump in D' in line:
+      line = line.replace('jump in D','')
+      DeltaD2 = double(line)
+f.close()
+    </variable>
+    <variable name="DeltaU2" language="python">
+from numpy import double
+f = open('2.log', 'r')
+for line in f:
+   if 'jump in U' in line:
+      line = line.replace('jump in U','')
+      DeltaU2 = double(line)
+f.close()
+    </variable>
+    <variable name="DeltaD3" language="python">
+from numpy import double
+f = open('3.log', 'r')
+for line in f:
+   if 'jump in D' in line:
+      line = line.replace('jump in D','')
+      DeltaD3 = double(line)
+f.close()
+    </variable>
+    <variable name="DeltaU3" language="python">
+from numpy import double
+f = open('3.log', 'r')
+for line in f:
+   if 'jump in U' in line:
+      line = line.replace('jump in U','')
+      DeltaU3 = double(line)
+f.close()
+    </variable>
+    <variable name="DeltaE" language="python">
+from numpy import double
+f = open('energy.log', 'r')
+for line in f:
+   if 'Percentage Change in energy:=' in line:
+      line = line.replace('Percentage Change in energy:=','')
+      DeltaE = double(line)
+f.close()
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Flat D steady state" language="python">
+assert(abs(DeltaD1) &lt; 1.0e-8)
+    </test>
+    <test name="Flat U steady state" language="python">
+assert(abs(DeltaU1) &lt; 1.0e-8)
+    </test>
+    <test name="Sloped D steady state" language="python">
+assert(abs(DeltaD2) &lt; 1.0e-8)
+    </test>
+    <test name="Sloped U steady state" language="python">
+assert(abs(DeltaU2) &lt; 1.0e-8)
+    </test>
+    <test name="Random D steady state" language="python">
+assert(abs(DeltaD3) &lt; 1.0e-8)
+    </test>
+    <test name="Random U steady state" language="python">
+assert(abs(DeltaU3) &lt; 1.0e-8)
+    </test>
+    <test name="Energy conserved" language="python">
+assert(abs(DeltaE) &lt; 1.0e-8)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

@@ -16,8 +16,8 @@ endif
 
 clean: clean-mesh clean-run-debug
 clean-mesh:
-	rm -f $(MESH).ele $(MESH).face $(MESH).node
-	rm -f $(MESH)_?*.ele $(MESH)_?*.face $(MESH)_?*.halo $(MESH)_?*.node decomp.log decomp_err.log
+	rm -f $(MESH).ele $(MESH).face $(MESH).node $(MESH).edge
+	rm -f $(MESH)_?*.ele $(MESH)_?*.edge $(MESH)_?*.face $(MESH)_?*.halo $(MESH)_?*.node decomp.log decomp_err.log
 clean-run:
 	rm -f $(FLMLMODEL)_?*.pvtu $(FLMLMODEL)_?*.vtu
 	rm -f $(FLMLMODEL).detectors $(FLMLMODEL).stat tmpf*
