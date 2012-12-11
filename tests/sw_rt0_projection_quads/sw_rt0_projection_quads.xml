@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>RT0 projection quads</name>
+  <owner userid="jemma"/>
+  <tags>swml mimetic</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>shallow_water_mimetic rt0_projection_quads.swml
+</command_line>
+  </problem_definition>
+  <variables>
+    <variable name = "solvers_converged" language = "python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name = "Solvers converged" language = "python">
+assert(solvers_converged)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
+

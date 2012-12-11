@@ -452,75 +452,75 @@
       !VARIOUS BALANCED INITIAL OPTIONS
       ! Geostrophic balanced initial condition, if required
       if(have_option("/material_phase::Fluid/vector_field::Velocity/prognostic&
-         &/initial_condition::WholeMesh/balanced")) then
-       call set_velocity_from_geostrophic_balance_hybridized(state)
-    end if
-    !Set velocity from commuting projection?
-    if(have_option("/material_phase::Fluid/vector_field::Velocity/&
-         &prognostic/initial_condition::WholeMesh/&
-         &commuting_projection")) then
-       call set_velocity_commuting_projection(state)
-    end if
-    if(have_option("/material_phase::Fluid/vector_field::&
-         &PrescribedVelocityFromCommutingProjection")) then
-       call set_velocity_commuting_projection(state,"PrescribedVelocityFr&
-            &omCommutingProjection")
-    end if
+           &/initial_condition::WholeMesh/balanced")) then
+         call set_velocity_from_geostrophic_balance_hybridized(state)
+      end if
+      !Set velocity from commuting projection?
+      if(have_option("/material_phase::Fluid/vector_field::Velocity/&
+           &prognostic/initial_condition::WholeMesh/&
+           &commuting_projection")) then
+         call set_velocity_commuting_projection(state)
+      end if
+      if(have_option("/material_phase::Fluid/vector_field::&
+           &PrescribedVelocityFromCommutingProjection")) then
+         call set_velocity_commuting_projection(state,"PrescribedVelocityFr&
+              &omCommutingProjection")
+      end if
 
-    !Set velocity from spherical components
-    if(have_option("/material_phase::Fluid/vector_field::Velocity/prognost&
-         &ic/initial_condition::WholeMesh/from_sphere_pullback")) then
-       call set_velocity_from_sphere_pullback(state)
-    end if
+      !Set velocity from spherical components
+      if(have_option("/material_phase::Fluid/vector_field::Velocity/prognost&
+           &ic/initial_condition::WholeMesh/from_sphere_pullback")) then
+         call set_velocity_from_sphere_pullback(state)
+      end if
+      
+      !Set velocity from streamfunction
+      if(have_option("/material_phase::Fluid/vector_field::Velocity/prognost&
+           &ic/initial_condition::WholeMesh/from_streamfunction")) then
+         call set_velocity_from_streamfunction(state)
+      end if
 
-    !Set velocity from streamfunction
-    if(have_option("/material_phase::Fluid/vector_field::Velocity/prognost&
-         &ic/initial_condition::WholeMesh/from_streamfunction")) then
-       call set_velocity_from_streamfunction(state)
-    end if
+      !Set velocity from Galerkin projection
+      if(have_option("/material_phase::Fluid/vector_field::Velocity/prognost&
+           &ic/initial_condition::WholeMesh/galerkin_projection")) then
+         call set_velocity_galerkin_projection(state)
+      end if
 
-    !Set velocity from Galerkin projection
-    if(have_option("/material_phase::Fluid/vector_field::Velocity/prognost&
-         &ic/initial_condition::WholeMesh/galerkin_projection")) then
-       call set_velocity_galerkin_projection(state)
-    end if    
+      v_field => extract_vector_field(state, "LocalVelocity")
+      call project_to_constrained_space(state,v_field)
 
-    v_field => extract_vector_field(state, "LocalVelocity")
-    call project_to_constrained_space(state,v_field)
-    
-    if(have_option("/material_phase::Fluid/scalar_field::LayerThickness/pr&
-         &ognostic/initial_condition::ProjectionFromPython")) then
-       call set_layerthickness_projection(state)
-    end if
-    if(have_option("/material_phase::Fluid/scalar_field::PrescribedLayerDe&
-         &pthFromProjection")) then
-       call set_layerthickness_projection(state,&
-            &"PrescribedLayerDepthFromProjection")
-    end if
-    if(have_option("/material_phase::Fluid/scalar_field::Orography/prescribe&
-         &d/projected")) then
-       call set_layerthickness_projection(state,"Orography")
-    end if
-    if(have_option("/material_phase::Fluid/scalar_field::Orography/prescribe&
-         &d/limit_values")) then
-       s_field => extract_scalar_field(state, "Orography")
-       call limit_vb_manifold(state,s_field)
-    end if
-    call fix_layerdepth_mean(state)
-    if(have_option("/material_phase::Fluid/scalar_field::Orography/prescribe&
-         &d/subtract_from_layer_thickness")) then
-       s_field => extract_scalar_field(state, "Orography")
-       D => extract_scalar_field(state, "LayerThickness")
-       D%val = D%val - s_field%val
-    end if
-
-    s_field => extract_scalar_field(state,"PotentialVorticityTracer",stat)
-    if(stat==0) then
-       if(s_field%mesh%shape%numbering%type==ELEMENT_BUBBLE) then
-          call fix_bubble_component(s_field)
-       end if
-    end if
-
+      if(have_option("/material_phase::Fluid/scalar_field::LayerThickness/pr&
+           &ognostic/initial_condition::ProjectionFromPython")) then
+         call set_layerthickness_projection(state)
+      end if
+      if(have_option("/material_phase::Fluid/scalar_field::PrescribedLayerDe&
+           &pthFromProjection")) then
+         call set_layerthickness_projection(state,&
+              &"PrescribedLayerDepthFromProjection")
+      end if
+      if(have_option("/material_phase::Fluid/scalar_field::Orography/prescribe&
+           &d/projected")) then
+         call set_layerthickness_projection(state,"Orography")
+      end if
+      if(have_option("/material_phase::Fluid/scalar_field::Orography/prescribe&
+           &d/limit_values")) then
+         s_field => extract_scalar_field(state, "Orography")
+         call limit_vb_manifold(state,s_field)
+      end if
+      call fix_layerdepth_mean(state)
+      if(have_option("/material_phase::Fluid/scalar_field::Orography/prescribe&
+           &d/subtract_from_layer_thickness")) then
+         s_field => extract_scalar_field(state, "Orography")
+         D => extract_scalar_field(state, "LayerThickness")
+         D%val = D%val - s_field%val
+      end if
+      
+      s_field => extract_scalar_field(state,"PotentialVorticityTracer",stat)
+      if(stat==0) then
+         if(s_field%mesh%shape%numbering%type==ELEMENT_BUBBLE) then
+            call fix_bubble_component(s_field)
+         end if
+      end if
+      
     end subroutine setup_fields
 
     subroutine recompute_coordinate_field(state)
