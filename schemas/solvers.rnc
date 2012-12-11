@@ -466,10 +466,28 @@ generic_solver_options =
          empty
       }?,
       ## Remove Null-space from residual after applying preconditioner.
-      ## This often leads to better convergence rates, when compared to
-      ## imposing a reference_node to pin the solution.
       element remove_null_space {
-         empty
+         (
+           ## This nullspace applies to all components (or this field is scalar)
+           element all_components {
+             empty
+           }|
+           ## Specify individual components of a vector field that describes the null spaces
+           ## (each component selected will set up an independent null space)
+           ##
+           ## ONLY MAKES SENSE FOR VECTOR FIELDS
+           element specify_components {
+             element x_component {
+                empty
+             }?,
+             element y_component {
+                empty
+             }?,
+             element z_component {
+                empty
+             }?
+           }
+         )
       }?,
       (
          ## Solver failures are always treated as fatal errors. The
