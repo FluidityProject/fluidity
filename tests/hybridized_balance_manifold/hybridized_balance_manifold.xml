@@ -4,7 +4,7 @@
 <testproblem>
   <name>hybridized_balance_manifold</name>
   <owner userid="colin"/>
-  <tags>flml swml</tags>
+  <tags>swml mimetic</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>shallow_water_mimetic -v 3 hybridized_balance_manifold1.swml &gt; 1.log 2&gt;&amp;1; shallow_water_mimetic -v 3 hybridized_balance_manifold2.swml &gt; 2.log 2&gt;&amp;1; shallow_water_mimetic -v 3 hybridized_balance_manifold3.swml &gt; 3.log 2&gt;&amp;1; shallow_water_mimetic -v 3 energy_manifold.swml &gt; energy.log 2&gt;&amp;1; 
     </command_line>

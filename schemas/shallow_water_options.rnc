@@ -725,26 +725,6 @@ input_choice_initial_condition_vector =
             }
          )?
       }|
-      ## Project velocity at constrained DOFs using Brezzi's commuting
-      ## projection (see e.g. the book by Brezzi and Fortin).
-      ## (For hybridized finite element spaces)
-      element commuting_projection {
-         ## Python function prescribing dimensional vector input. Functions should be of the form:
-         ##
-         ##  def val(X, t):
-         ##     # Function code
-         ##     return # Return value
-         ##
-         ## where X and the return value are tuples of length geometry dimension.
-         element python {
-            python_code
-         },
-         ## Apply rotation to vectors that maps 
-         ## sphere normal to element normal
-         element rotate_vectors {
-            empty
-         }?
-      }|
       ## Set velocity from streamfunction
       element from_streamfunction {
          empty
@@ -759,42 +739,6 @@ input_choice_initial_condition_vector =
          ##     return # Return value
          element python {
             python_code
-         }
-      }|
-      ## Evaluate velocity by pulling back from sphere
-      ## using transformation
-      ## z -> z, (x,y) --> R(x,y) where R=(R_0^2-z^2)^0.5
-      element from_sphere_pullback {
-         ## Vector field on the sphere to be pulled back to mesh.
-         ## Python function prescribing dimensional vector input. Functions should be of the form:
-         ##
-         ##  def val(X, t):
-         ##     # Function code
-         ##     return # Return value
-         element python {
-            python_code
-         },
-         ## Radius of sphere
-         element sphere_radius {
-            real
-         }
-      }|
-      ## Evaluate velocity by pulling back from sphere
-      ## using transformation
-      ## z -> z, (x,y) --> R(x,y) where R=(R_0^2-z^2)^0.5
-      element from_sphere_tangents {
-         ## Vector field on the sphere to be pulled back to mesh.
-         ## Python function prescribing dimensional vector input. Functions should be of the form:
-         ##
-         ##  def val(X, t):
-         ##     # Function code
-         ##     return # Return value
-         element python {
-            python_code
-         },
-         ## Radius of sphere
-         element sphere_radius {
-            real
          }
       }
 )

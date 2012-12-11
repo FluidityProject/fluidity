@@ -3,7 +3,7 @@
 <testproblem>
   <name>RT0 projection quads</name>
   <owner userid="jemma"/>
-  <tags>swml mimetic</tags>
+  <tags>swml mimetic quads</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>shallow_water_mimetic rt0_projection_quads.swml
 </command_line>

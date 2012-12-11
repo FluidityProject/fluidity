@@ -925,28 +925,6 @@ where X and the return value are tuples of length geometry dimension.</a:documen
           </choice>
         </optional>
       </element>
-      <element name="commuting_projection">
-        <a:documentation>Project velocity at constrained DOFs using Brezzi's commuting
-projection (see e.g. the book by Brezzi and Fortin).
-(For hybridized finite element spaces)</a:documentation>
-        <element name="python">
-          <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
-
- def val(X, t):
-    # Function code
-    return # Return value
-
-where X and the return value are tuples of length geometry dimension.</a:documentation>
-          <ref name="python_code"/>
-        </element>
-        <optional>
-          <element name="rotate_vectors">
-            <a:documentation>Apply rotation to vectors that maps 
-sphere normal to element normal</a:documentation>
-            <empty/>
-          </element>
-        </optional>
-      </element>
       <element name="from_streamfunction">
         <a:documentation>Set velocity from streamfunction</a:documentation>
         <empty/>
@@ -961,42 +939,6 @@ Python function prescribing dimensional vector input. Functions should be of the
     # Function code
     return # Return value</a:documentation>
           <ref name="python_code"/>
-        </element>
-      </element>
-      <element name="from_sphere_pullback">
-        <a:documentation>Evaluate velocity by pulling back from sphere
-using transformation
-z -&gt; z, (x,y) --&gt; R(x,y) where R=(R_0^2-z^2)^0.5</a:documentation>
-        <element name="python">
-          <a:documentation>Vector field on the sphere to be pulled back to mesh.
-Python function prescribing dimensional vector input. Functions should be of the form:
-
- def val(X, t):
-    # Function code
-    return # Return value</a:documentation>
-          <ref name="python_code"/>
-        </element>
-        <element name="sphere_radius">
-          <a:documentation>Radius of sphere</a:documentation>
-          <ref name="real"/>
-        </element>
-      </element>
-      <element name="from_sphere_tangents">
-        <a:documentation>Evaluate velocity by pulling back from sphere
-using transformation
-z -&gt; z, (x,y) --&gt; R(x,y) where R=(R_0^2-z^2)^0.5</a:documentation>
-        <element name="python">
-          <a:documentation>Vector field on the sphere to be pulled back to mesh.
-Python function prescribing dimensional vector input. Functions should be of the form:
-
- def val(X, t):
-    # Function code
-    return # Return value</a:documentation>
-          <ref name="python_code"/>
-        </element>
-        <element name="sphere_radius">
-          <a:documentation>Radius of sphere</a:documentation>
-          <ref name="real"/>
         </element>
       </element>
     </choice>
