@@ -455,23 +455,6 @@
            &/initial_condition::WholeMesh/balanced")) then
          call set_velocity_from_geostrophic_balance_hybridized(state)
       end if
-      !Set velocity from commuting projection?
-      if(have_option("/material_phase::Fluid/vector_field::Velocity/&
-           &prognostic/initial_condition::WholeMesh/&
-           &commuting_projection")) then
-         call set_velocity_commuting_projection(state)
-      end if
-      if(have_option("/material_phase::Fluid/vector_field::&
-           &PrescribedVelocityFromCommutingProjection")) then
-         call set_velocity_commuting_projection(state,"PrescribedVelocityFr&
-              &omCommutingProjection")
-      end if
-
-      !Set velocity from spherical components
-      if(have_option("/material_phase::Fluid/vector_field::Velocity/prognost&
-           &ic/initial_condition::WholeMesh/from_sphere_pullback")) then
-         call set_velocity_from_sphere_pullback(state)
-      end if
       
       !Set velocity from streamfunction
       if(have_option("/material_phase::Fluid/vector_field::Velocity/prognost&
