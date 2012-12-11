@@ -97,7 +97,7 @@ contains
     do i = 1, rows
       do j = findfe(i), findfe(i+1) - 1
           k = colfe(j)
-          call addto(matrix, blocki = 1, blockj = 1, i = i, j = k, val = a(j))
+          call addto( matrix, blocki = 1, blockj = 1, i = i, j = k, val = a(j) )
        end do
     end do 
 

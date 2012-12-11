@@ -156,7 +156,7 @@
       REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( in ) :: OPT_VEL_UPWIND_COEFS
       INTEGER, INTENT( IN ) :: NOIT_DIM
       REAL, DIMENSION( CV_NONODS ), intent( inout ) :: MEAN_PORE_CV
-      character( len = * ), intent( in ), optional :: option_path
+      character( len = option_path_len ), intent( in ), optional :: option_path
       real, dimension( totele ), intent( inout ) :: mass_ele_transp
 
       ! Local variables
@@ -269,7 +269,9 @@
                  FINACV, COLACV, NCOLACV, ACV, THERMAL, &
                  mass_ele_transp, &
                  option_path )
-         endif
+         end if
+
+         t=0.
 
          Conditional_Lumping: IF(LUMP_EQNS) THEN
             ! Lump the multi-phase flow eqns together
@@ -309,7 +311,7 @@
             ELSE
                CALL SOLVER( ACV, T, CV_RHS, &
                     FINACV, COLACV, &
-                    trim(option_path))
+                    trim(option_path) )
             END IF
             !ewrite(3,*)'cv_rhs:', cv_rhs
             !ewrite(3,*)'SUF_T_BC:',SUF_T_BC
@@ -619,7 +621,7 @@
            NCOLELE, FINELE, COLELE, & ! Element connectivity.
            XU_NLOC, XU_NDGLN, &
            RDUM, JUST_BL_DIAG_MAT,  &
-!!$           TDIFFUSION, & ! TDiffusion need to be obtained down in the tree according to the option_path
+           TDIFFUSION, & ! TDiffusion need to be obtained down in the tree according to the option_path
            IPLIKE_GRAD_SOU, RZERO, RZERO, &
            RZERO,.FALSE.,1 )
 
@@ -770,7 +772,7 @@
       INTEGER, DIMENSION( NCOLELE ), intent( in ) :: COLELE
       REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( in ) :: OPT_VEL_UPWIND_COEFS
       INTEGER, INTENT( IN ) :: NOIT_DIM
-      character(len=*), intent(in), optional :: option_path
+      character(len= * ), intent(in), optional :: option_path
       real, dimension( totele ), intent( inout ) :: mass_ele_transp
 
       ! Local Variables
@@ -858,6 +860,7 @@
               mass_ele_transp, &
               option_path )
 
+         satura=0.
          CALL SOLVER( ACV, SATURA, CV_RHS, &
               FINACV, COLACV, &
               trim(option_path) )
@@ -916,8 +919,7 @@
          V_SOURCE, V_ABSORB, VOLFRA_PORE, &
          NCOLM, FINDM, COLM, MIDM, & ! Sparsity for the CV-FEM
          XU_NLOC, XU_NDGLN, &
-!!$         UDEN, UDENOLD, UDIFFUSION, &
-         UDEN, UDENOLD, &
+         UDEN, UDENOLD, UDIFFUSION, &
          OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
          IGOT_THETA_FLUX, SCVNGI_THETA, USE_THETA_FLUX, &
          THETA_FLUX, ONE_M_THETA_FLUX, &
@@ -994,7 +996,7 @@
       INTEGER, DIMENSION( NCOLM ), intent( in ) :: COLM
       INTEGER, DIMENSION( CV_NONODS ), intent( in ) :: MIDM 
       REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: UDEN, UDENOLD
-!!$      REAL, DIMENSION( MAT_NONODS, NDIM, NDIM, NPHASE ), intent( in ) :: UDIFFUSION 
+      REAL, DIMENSION( MAT_NONODS, NDIM, NDIM, NPHASE ), intent( in ) :: UDIFFUSION 
       REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( in ) :: OPT_VEL_UPWIND_COEFS
       REAL, DIMENSION( TOTELE * IGOT_THETA_FLUX, CV_NLOC, SCVNGI_THETA, NPHASE ), intent( inout ) :: &
            THETA_FLUX, ONE_M_THETA_FLUX
@@ -1075,8 +1077,7 @@
            U_RHS, MCY_RHS, C, CT, CT_RHS, DIAG_SCALE_PRES, GLOBAL_SOLVE, &
            NLENMCY, NCOLMCY,MCY,FINMCY, &
            CMC,PIVIT_MAT, JUST_BL_DIAG_MAT, &
-!!$           UDEN, UDENOLD, UDIFFUSION, &
-           UDEN, UDENOLD, &
+           UDEN, UDENOLD, UDIFFUSION, &
            OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
            IGOT_THETA_FLUX, SCVNGI_THETA, USE_THETA_FLUX, &
            THETA_FLUX, ONE_M_THETA_FLUX, &
@@ -1124,12 +1125,7 @@
 
       ELSE ! solve using a projection method
 
-         ewrite(3,*) 'pivit_mat************++'
-         ewrite(3,*) 'pivit_mat::', pivit_mat
-         ewrite(3,*) 'pivit_mat************--'
-
          CALL PHA_BLOCK_INV( INV_PIVIT_MAT, PIVIT_MAT, TOTELE, U_NLOC * NPHASE * NDIM )
-
 
          ! Put pressure in rhs of force balance eqn:  CDP=C*P
          CALL C_MULT( CDP, P, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
@@ -1146,6 +1142,7 @@
 
          ELSE
 
+            UP_VEL=0.0
             CALL SOLVER( DGM_PHA, UP_VEL, U_RHS_CDP, &
                  FINDGM_PHA, COLDGM_PHA, &
                  option_path = '/material_phase[0]/vector_field::Velocity')
@@ -1174,21 +1171,19 @@
          stop 2982
        endif
 
-       ewrite(3,*) '::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::'
-       ewrite(3,*) '::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::'
        !ewrite(3,*) 'u::', u
        !ewrite(3,*) 'v::', v
        !ewrite(3,*) 'w::', w
-       ewrite(3,*) 'ct::', ct
-       ewrite(3,*) '::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::'
-       ewrite(3,*) '::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::'
-       ewrite(3,*) 'c::', c
+       !ewrite(3,*) 'ct::', ct
+       !ewrite(3,*) 'c::', c
        !ewrite(3,*) 'ct_rhs::', ct_rhs
 
          ! put on rhs the cty eqn; put most recent pressure in RHS of momentum eqn
          ! NB. P_RHS = -CT*U + CT_RHS 
          CALL CT_MULT(P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
               CT, NCOLCT, FINDCT, COLCT)
+
+         !ewrite(3,*) 'P_RHS1::', p_rhs
 
          P_RHS = -P_RHS + CT_RHS
 
@@ -1207,8 +1202,8 @@
               'prognostic/spatial_discretisation/reference_node', ndpset, default = 0 )
          if ( ndpset /= 0 ) p_rhs( ndpset ) = 0.0
 
-         ewrite(3,*) 'P_RHS2::', p_rhs
-         ewrite(3,*) 'CT_RHS::', ct_rhs
+         !ewrite(3,*) 'P_RHS2::', p_rhs
+         !ewrite(3,*) 'CT_RHS::', ct_rhs
 
          ! solve for pressure correction DP that is solve CMC *DP=P_RHS...
          ewrite(3,*)'about to solve for pressure'
@@ -1504,8 +1499,7 @@
          U_RHS, MCY_RHS, C, CT, CT_RHS, DIAG_SCALE_PRES, GLOBAL_SOLVE, &
          NLENMCY, NCOLMCY,MCY,FINMCY, &
          CMC, PIVIT_MAT, JUST_BL_DIAG_MAT, &
-!!$         UDEN, UDENOLD, UDIFFUSION, &
-         UDEN, UDENOLD, &
+         UDEN, UDENOLD, UDIFFUSION, &
          OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
          IGOT_THETA_FLUX, SCVNGI_THETA, USE_THETA_FLUX, &
          THETA_FLUX, ONE_M_THETA_FLUX, &
@@ -1592,7 +1586,7 @@
       INTEGER, DIMENSION( NCOLM ), intent( in ) :: COLM
       INTEGER, DIMENSION( CV_NONODS ), intent( in ) :: MIDM 
       REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: UDEN, UDENOLD
-!!$      REAL, DIMENSION( MAT_NONODS, NDIM, NDIM, NPHASE ), intent( in ) :: UDIFFUSION 
+      REAL, DIMENSION( MAT_NONODS, NDIM, NDIM, NPHASE ), intent( in ) :: UDIFFUSION 
       LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
       REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( in ) :: OPT_VEL_UPWIND_COEFS
       INTEGER, INTENT( IN ) :: NOIT_DIM
@@ -1635,8 +1629,7 @@
            XU_NLOC, XU_NDGLN, &
            U_RHS, MCY_RHS, C, CT, CT_RHS, DIAG_SCALE_PRES, GLOBAL_SOLVE, &
            NLENMCY, NCOLMCY,MCY,FINMCY, PIVIT_MAT, JUST_BL_DIAG_MAT, &
-!!$           UDEN, UDENOLD, UDIFFUSION, &
-           UDEN, UDENOLD, &
+           UDEN, UDENOLD, UDIFFUSION, &
            OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
            IGOT_THETA_FLUX, SCVNGI_THETA, USE_THETA_FLUX, &
            THETA_FLUX, ONE_M_THETA_FLUX, &
@@ -1741,8 +1734,7 @@
          XU_NLOC, XU_NDGLN, &
          U_RHS, MCY_RHS, C, CT, CT_RHS, DIAG_SCALE_PRES, GLOBAL_SOLVE, &
          NLENMCY, NCOLMCY,MCY,FINMCY, PIVIT_MAT, JUST_BL_DIAG_MAT, &
-!!$         UDEN, UDENOLD, UDIFFUSION, &
-         UDEN, UDENOLD, &
+         UDEN, UDENOLD, UDIFFUSION, &
          OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
          IGOT_THETA_FLUX, SCVNGI_THETA, USE_THETA_FLUX, &
          THETA_FLUX, ONE_M_THETA_FLUX, &
@@ -1826,7 +1818,7 @@
       REAL, DIMENSION( NCOLMCY ), intent( inout ) :: MCY
       REAL, DIMENSION( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM ), intent( inout ) :: PIVIT_MAT
       REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: UDEN, UDENOLD
-!!$      REAL, DIMENSION( MAT_NONODS, NDIM, NDIM, NPHASE ), intent( in ) :: UDIFFUSION 
+      REAL, DIMENSION( MAT_NONODS, NDIM, NDIM, NPHASE ), intent( in ) :: UDIFFUSION 
       LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
       REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( in ) :: OPT_VEL_UPWIND_COEFS
       INTEGER, INTENT( IN ) :: NOIT_DIM
@@ -1852,22 +1844,22 @@
 
       ALLOCATE( DEN_OR_ONE( CV_NONODS * NPHASE )) ; DEN_OR_ONE = 0.
       ALLOCATE( DENOLD_OR_ONE( CV_NONODS * NPHASE )) ; DENOLD_OR_ONE = 0.
-      ALLOCATE( T2( CV_NONODS * NPHASE * IGOT_T2 ))
-      ALLOCATE( T2OLD( CV_NONODS * NPHASE * IGOT_T2 ))
+      ALLOCATE( T2( CV_NONODS * NPHASE * IGOT_T2 )) ; T2 = 0.
+      ALLOCATE( T2OLD( CV_NONODS * NPHASE * IGOT_T2 )) ; T2OLD =0.
       ALLOCATE( SUF_T2_BC_ROB1( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  ))
       ALLOCATE( SUF_T2_BC_ROB2( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  ))
-      ALLOCATE( SUF_T2_BC( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  ))
-      ALLOCATE( WIC_T2_BC( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  ))
-      ALLOCATE( THETA_GDIFF( CV_NONODS * NPHASE * IGOT_T2 ))
-      ALLOCATE( ACV( NCOLACV ))
-      ALLOCATE( CV_RHS( CV_NONODS * NPHASE ))
-      ALLOCATE( TDIFFUSION( MAT_NONODS, NDIM, NDIM, NPHASE ))
+      ALLOCATE( SUF_T2_BC( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  )) ; SUF_T2_BC = 0.
+      ALLOCATE( WIC_T2_BC( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  )) ; WIC_T2_BC = 0
+      ALLOCATE( THETA_GDIFF( CV_NONODS * NPHASE * IGOT_T2 )) ; THETA_GDIFF = 0.
+      ALLOCATE( ACV( NCOLACV )) ; ACV = 0.
+      ALLOCATE( CV_RHS( CV_NONODS * NPHASE )) ; CV_RHS = 0.
+      ALLOCATE( TDIFFUSION( MAT_NONODS, NDIM, NDIM, NPHASE )) ; TDIFFUSION = 0.
       ALLOCATE( SUF_VOL_BC_ROB1( STOTEL * CV_SNLOC * NPHASE )) ; SUF_VOL_BC_ROB1 = 0.
       ALLOCATE( SUF_VOL_BC_ROB2( STOTEL * CV_SNLOC * NPHASE )) ; SUF_VOL_BC_ROB2 = 0.
-      ALLOCATE( MEAN_PORE_CV( CV_NONODS ))
-      ALLOCATE( SAT_FEMT( NPHASE * CV_NONODS ) )
-      ALLOCATE( DEN_FEMT( NPHASE * CV_NONODS ) )
-      allocate( dummy_transp( totele ) )
+      ALLOCATE( MEAN_PORE_CV( CV_NONODS )) ; MEAN_PORE_CV = 0.
+      ALLOCATE( SAT_FEMT( NPHASE * CV_NONODS ) ) ; SAT_FEMT = 0.
+      ALLOCATE( DEN_FEMT( NPHASE * CV_NONODS ) ) ; DEN_FEMT = 0.
+      allocate( dummy_transp( totele ) ) ; dummy_transp = 0.
 
       TDIFFUSION = 0.0
 
@@ -1896,7 +1888,7 @@
            NCOLELE, FINELE, COLELE, & ! Element connectivity.
            XU_NLOC, XU_NDGLN, &
            PIVIT_MAT, JUST_BL_DIAG_MAT, &
-!!$           UDIFFUSION, &
+           UDIFFUSION, &
            IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
            P, scale_momentum_by_volume_fraction, NDIM )
       ! scale the momentum equations by the volume fraction / saturation for the matrix and rhs     
@@ -1934,7 +1926,6 @@
            CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
            X, Y, Z, NU, NV, NW, &
            NU, NV, NW, NUOLD, NVOLD, NWOLD, &
-!!$           SATURA, SATURAOLD, DEN, DENOLD, &
            SATURA, SATURAOLD, DEN_OR_ONE, DENOLD_OR_ONE, &
            MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
            V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, SECOND_THETA, V_BETA, &
@@ -2142,7 +2133,7 @@
          NCOLELE, FINELE, COLELE, & ! Element connectivity.
          XU_NLOC, XU_NDGLN, &
          PIVIT_MAT, JUST_BL_DIAG_MAT,  &
-!!$         UDIFFUSION, &
+         UDIFFUSION, &
          IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
          P, scale_momentum_by_volume_fraction, NDIM_VEL )
       use shape_functions_NDim
@@ -2189,7 +2180,7 @@
       INTEGER, DIMENSION( TOTELE + 1 ), intent( in ) :: FINELE
       INTEGER, DIMENSION( NCOLELE ), intent( in ) :: COLELE
       REAL, DIMENSION( TOTELE, U_NLOC * NPHASE * NDIM_VEL, U_NLOC * NPHASE * NDIM_VEL ), intent( inout ) :: PIVIT_MAT
-!!$      REAL, DIMENSION( MAT_NONODS, NDIM, NDIM, NPHASE ), intent( in ) :: UDIFFUSION 
+      REAL, DIMENSION( MAT_NONODS, NDIM, NDIM, NPHASE ), intent( in ) :: UDIFFUSION 
       LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
       REAL, DIMENSION( IPLIKE_GRAD_SOU*CV_NONODS * NPHASE ), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
       REAL, DIMENSION( CV_NONODS ), intent( in ) :: P
@@ -2250,7 +2241,6 @@
       REAL, DIMENSION ( : ), allocatable :: VLK_UVW, P_DX, P_DY, P_DZ
       REAL, DIMENSION ( :, :, : ), allocatable :: RESID, DIFF_FOR_BETWEEN_U, DIFF_FOR_BETWEEN_V, &
            DIFF_FOR_BETWEEN_W, MAT_ELE
-      REAL, DIMENSION ( :, :, :, : ), allocatable :: UDIFFUSION
       REAL, DIMENSION ( :, :, :, :, : ), allocatable :: UDIFF_SUF_STAB
 
       LOGICAL :: D1, D3, DCYL, GOT_DIFFUS, GOT_UDEN, DISC_PRES, QUAD_OVER_WHOLE_ELE
@@ -2586,39 +2576,6 @@
 
       ALLOCATE( VLK_UVW(3) )
 
-!!$ If the option_path is from WRAPPER_ASSEMB_FORCE_CTY, udiffusion --> tdiffusion. and the below need to be changed.
-!!$ As it has not been either tested or assessed let's keep as it is and change it properly (just need the path which
-!!$ is done mostly all way through, i.e., from INTENERGE_ASSEM_SOLVE subrt).
-
-      allocate( udiffusion( mat_nonods, ndim, ndim, nphase ) ) ; udiffusion = 0.
-      tensorfield => extract_tensor_field( state( 1 ), 'Viscosity', stat )
-      if ( have_option( '/physical_parameters/mobility' ) ) then
-
-         ! if solving for porous media and mobility is calculated
-         ! through the viscosity ratio this code will fail
-
-         udiffusion=0.
-      else
-         tensorfield => extract_tensor_field( state( 1 ), 'Viscosity', stat )
-         if (stat == 0) then
-            do iphase = 1, nphase
-               tensorfield => extract_tensor_field( state( iphase ), 'Viscosity', stat )
-               udiffusion=0.
-               do idim = 1, ndim
-                  udiffusion( :, idim, idim, iphase ) = tensorfield%val(idim, idim, :)
-               end do
-
-               !option_path = '/material_phase[' // int2str( iphase - 1 ) // &
-               !     ']/vector_field::Velocity/prognostic/tensor_field::Viscosity'
-               !call Extract_TensorFields_Outof_State( state, iphase, &
-               !     tensorfield, option_path, &
-               !     udiffusion( :, :, :, iphase ), &
-               !     mat_ndgln  )
-
-            end do
-         end if
-      end if
-
       GOT_DIFFUS = ( R2NORM( UDIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0.0 )  &
            .OR. BETWEEN_ELE_STAB
 
@@ -2626,6 +2583,10 @@
 
       JUST_BL_DIAG_MAT=( ( .NOT. GOT_DIFFUS ) .AND. ( .NOT. GOT_UDEN ) )
 
+      !ewrite(3,*) minval( udiffusion(:, 1,1,1) ), maxval( udiffusion(:, 1,1,1) )
+      !ewrite(3,*) minval( udiffusion(:, 1,2,1) ), maxval( udiffusion(:, 1,2,1) )
+      !ewrite(3,*) minval( udiffusion(:, 2,1,1) ), maxval( udiffusion(:, 2,1,1) )
+      !ewrite(3,*) minval( udiffusion(:, 2,2,1) ), maxval( udiffusion(:, 2,2,1) )
       !ewrite(3,*)'RESID_BASED_STAB_DIF,BETWEEN_ELE_STAB,GOT_DIFFUS:', &
       !     RESID_BASED_STAB_DIF,BETWEEN_ELE_STAB,GOT_DIFFUS
       !stop 292
@@ -2690,7 +2651,6 @@
       !ewrite(3,*)'cvn:',cvn
       !ewrite(3,*)'cvn_short:',cvn_short
       !stop 768
-
 
       ALLOCATE( FACE_ELE( NFACE, TOTELE ))
       ! Calculate FACE_ELE
@@ -2770,16 +2730,15 @@
             DO GI = 1, CV_NGI_SHORT
                DO IPHASE = 1,NPHASE
                   CV_NOD_PHA = CV_NOD +( IPHASE - 1) * CV_NONODS
-                  if(.true.) then ! FEM DEN...
+                  if ( .false. ) then ! FEM DEN...
                      DENGI( GI, IPHASE ) = DENGI( GI, IPHASE ) + CVFEN_SHORT( CV_ILOC, GI ) * UDEN( CV_NOD_PHA )
                      DENGIOLD( GI, IPHASE ) = DENGIOLD( GI, IPHASE ) &
                           + CVFEN_SHORT( CV_ILOC, GI ) * UDENOLD( CV_NOD_PHA )
-                  endif
-                  if(.false.) then ! CV DEN...
+                  else ! CV DEN...
                      DENGI( GI, IPHASE ) = DENGI( GI, IPHASE ) + CVN_SHORT( CV_ILOC, GI ) * UDEN( CV_NOD_PHA )
                      DENGIOLD( GI, IPHASE ) = DENGIOLD( GI, IPHASE ) &
                           + CVN_SHORT( CV_ILOC, GI ) * UDENOLD( CV_NOD_PHA )
-                  endif
+                  end if
                   IF(IPLIKE_GRAD_SOU == 1) THEN
                      GRAD_SOU_GI( GI, IPHASE ) = GRAD_SOU_GI( GI, IPHASE ) &
                           + CVFEN_SHORT( CV_ILOC, GI ) * PLIKE_GRAD_SOU_COEF( CV_NOD_PHA )
@@ -2796,10 +2755,10 @@
                DO IPHA_IDIM = 1, NDIM_VEL * NPHASE
                   DO JPHA_JDIM = 1, NDIM_VEL * NPHASE
                      SIGMAGI( GI, IPHA_IDIM, JPHA_JDIM ) = SIGMAGI( GI, IPHA_IDIM, JPHA_JDIM ) &
-                                !+ CVfen( MAT_ILOC, GI ) * U_ABSORB( MAT_NODI, IPHA_IDIM, JPHA_JDIM )
+                          !+ CVfen( MAT_ILOC, GI ) * U_ABSORB( MAT_NODI, IPHA_IDIM, JPHA_JDIM )
                           + CVN( MAT_ILOC, GI ) * U_ABSORB( MAT_NODI, IPHA_IDIM, JPHA_JDIM ) 
                      SIGMAGI_STAB( GI, IPHA_IDIM, JPHA_JDIM ) = SIGMAGI_STAB( GI, IPHA_IDIM, JPHA_JDIM ) &
-                                !+ CVfen( MAT_ILOC, GI ) * U_ABS_STAB( MAT_NODI, IPHA_IDIM, JPHA_JDIM )
+                          !+ CVfen( MAT_ILOC, GI ) * U_ABS_STAB( MAT_NODI, IPHA_IDIM, JPHA_JDIM )
                           + CVN( MAT_ILOC, GI ) * U_ABS_STAB( MAT_NODI, IPHA_IDIM, JPHA_JDIM )
                      !        + max(CVN( MAT_ILOC, GI ),CVfen( MAT_ILOC, GI )) * U_ABSORB( MAT_NODI, IPHA_IDIM, JPHA_JDIM )
                      !      ewrite(3,*)'ele,gi,IPHA_IDIM, JPHA_JDIM,SIGMAGI( GI, IPHA_IDIM, JPHA_JDIM ):', &
@@ -3344,7 +3303,7 @@
                   ENDIF
 
                   U_GRAD_NORM2( GI, IPHASE )= U_DT( GI, IPHASE )**2 + U_DX( GI, IPHASE )**2 + &
-                       U_DY( GI, IPHASE )**2 + U_DZ( GI, IPHASE )**2 
+                       U_DY( GI, IPHASE )**2 + U_DZ( GI, IPHASE )**2
                   U_GRAD_NORM( GI, IPHASE )=MAX(TOLER, SQRT(U_GRAD_NORM2( GI, IPHASE )) )  
                   U_GRAD_NORM2( GI, IPHASE )=MAX(TOLER, U_GRAD_NORM2( GI, IPHASE ) )
 
@@ -4299,8 +4258,6 @@
       !ewrite(3,*)'JUST_BL_DIAG_MAT:',JUST_BL_DIAG_MAT
       !stop 27
 
-      deallocate( udiffusion )
-
       DEALLOCATE( DETWEI )
       DEALLOCATE( RA )
       DEALLOCATE( UD )
@@ -4871,7 +4828,7 @@
 
       integer :: iphase, icomp
       real :: coefficient
-      logical :: surface_tension, use_pressure_force
+      logical :: surface_tension, use_pressure_force, use_smoothing
 
       ewrite(3,*) 'Entering CALCULATE_SURFACE_TENSION'
 
@@ -4896,6 +4853,9 @@
 
             call get_option( '/material_phase[' // int2str( nphase - 1 + icomp ) // &
                  ']/is_multiphase_component/surface_tension/coefficient', coefficient )
+
+            use_smoothing = have_option( '/material_phase[' // int2str( nphase - 1 + icomp ) // &
+                 ']/is_multiphase_component/surface_tension/smooth' )
 
             allocate( U_FORCE_X_SUF_TEN( U_NONODS) ) ; U_FORCE_X_SUF_TEN = 0.0
             allocate( U_FORCE_Y_SUF_TEN( U_NONODS) ) ; U_FORCE_Y_SUF_TEN = 0.0
@@ -4934,7 +4894,7 @@
                     NDIM, USE_PRESSURE_FORCE, &
                     NCOLM, FINDM, COLM, MIDM, &
                     XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
-                    DUMMY_WIC_COMP_BC, DUMMY_SUF_COMP_BC )
+                    DUMMY_WIC_COMP_BC, DUMMY_SUF_COMP_BC, USE_SMOOTHING )
 
             end do
 
@@ -4976,7 +4936,7 @@
          NDIM, USE_PRESSURE_FORCE, &
          NCOLM, FINDM, COLM, MIDM, &
          XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
-         WIC_COMP_BC, SUF_COMP_BC )
+         WIC_COMP_BC, SUF_COMP_BC, USE_SMOOTHING )
 
       ! Calculate the surface tension force: U_FORCE_X_SUF_TEN,U_FORCE_X_SUF_TEN,U_FORCE_X_SUF_TEN
       ! or PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD,
@@ -5145,7 +5105,7 @@
       INTEGER, DIMENSION( CV_NONODS ), intent( in ) :: MIDM
       INTEGER, DIMENSION( TOTELE + 1 ), intent( in ) :: FINELE
       INTEGER, DIMENSION( NCOLELE ), intent( in ) :: COLELE
-      LOGICAL, intent( in ) :: USE_PRESSURE_FORCE
+      LOGICAL, intent( in ) :: USE_PRESSURE_FORCE, USE_SMOOTHING
 
       ! Local variables 
       LOGICAL, DIMENSION( : ), allocatable :: X_SHARE,LOG_ON_BOUND
@@ -5507,7 +5467,6 @@
            1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
            SBCVFEN, SBCVFENSLX, SBCVFENSLY)
 
-
       ! determine the curvature by solving a simple eqn...
 
       ALLOCATE( TDIFFUSION( NDIM, NDIM, CV_NONODS ) ) ; TDIFFUSION=0.0
@@ -5520,7 +5479,7 @@
       END DO
 
       ! smooth...
-      if(.false.) then
+      if ( USE_SMOOTHING ) then
          femtold=0.0
          DO ELE=1,TOTELE
             DO CV_ILOC=1,CV_NLOC
@@ -5618,8 +5577,8 @@
             TAU_ZX=0.0 ; TAU_ZY=0.0 ; TAU_ZZ=0.0
          end if
 
-         !         print *,'SUF_TENSION_COEF:',SUF_TENSION_COEF
-         !         stop 822
+         !print *,'SUF_TENSION_COEF:',SUF_TENSION_COEF
+         !stop 822
 
          DO ELE=1,TOTELE
             DO CV_ILOC=1,CV_NLOC
@@ -5951,7 +5910,7 @@
               CURVATURE,CURVATURE,CURVATURE, &
               RZERO, RZERO, RZERO, IDUM, IN_ELE_UPWIND, DG_ELE_UPWIND, &
               NOIT_DIM, &
-                                ! nits_flux_lim_t
+              ! nits_flux_lim_t
               RZERO, &
               option_path = '/material_phase[0]/scalar_field::Pressure', &
               mass_ele_transp = dummy_ele, &

@@ -172,12 +172,14 @@
     subroutine Computing_Perturbation_Density( state, &
          iphase, nstate_init, nstate_final, eos_option_path, &
          DensityComponent_Field, &
-         Derivative_DensityComponent_Pressure )
+         Derivative_DensityComponent_Pressure, &
+         Single_Component )
       implicit none
       type( state_type ), dimension( : ), intent( in ) :: state
       integer, intent( in ) :: iphase, nstate_init, nstate_final
       character( len = option_path_len ), dimension( : ), intent( in ) :: eos_option_path
       real, dimension( : ), intent( inout ) :: DensityComponent_Field, Derivative_DensityComponent_Pressure
+      logical, optional :: Single_Component
 !!$ Local variables
       type( scalar_field ), pointer :: pressure, temperature, density, component
       character( len = option_path_len ) :: option_path_comp, option_path_incomp, option_path_python, &
@@ -240,8 +242,6 @@
          option_path_incomp = trim( '/material_phase['  // int2str( istate2 - 1 ) // ']/equation_of_state/incompressible' )
          option_path_python = trim( '/material_phase['  // int2str( istate2 - 1 ) // ']/equation_of_state/python_state/algorithm' )
          eos_option_path_tmp = trim( eos_option_path( istate2 ) )
-
-
 
 
          Conditional_EOS_Option: if( trim( eos_option_path_tmp ) == trim( option_path_comp ) // '/stiffened_gas' ) then
@@ -436,6 +436,8 @@
          else
             FLAbort( 'No option given for choice of EOS' )
          end if Conditional_EOS_Option
+
+         !if ( present_and_true( single_component ) ) return
 
          if( have_component_field ) then
             DensityComponent_Field = DensityComponent_Field + Density_Field * component % val
@@ -929,7 +931,7 @@
       have_gravity = ( stat == 0 )
 
       if( have_gravity ) then
-         gravity_direction => extract_vector_field(state(1), 'GravityDirection', stat )
+         gravity_direction => extract_vector_field( state( 1 ), 'GravityDirection' )
          g = node_val(gravity_direction, 1) * gravity_magnitude
 
          u_source_cv = 0.

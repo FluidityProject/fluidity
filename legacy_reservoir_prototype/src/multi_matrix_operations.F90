@@ -424,13 +424,6 @@
       call get_option( '/material_phase[0]/scalar_field::Pressure/' // &
            'prognostic/spatial_discretisation/reference_node', ndpset, default = 0 )
 
-
-ewrite(3,*)'COLOR_GET_CMC_PHA>>>>>>>>>>>>>>>>>'
-ewrite(3,*)'c=',c
-ewrite(3,*)'mass_mn_pres=',mass_mn_pres
-ewrite(3,*)'diag_scale_pres=',diag_scale_pres
-
-
       ALLOCATE( NEED_COLOR( CV_NONODS ))
       ALLOCATE( COLOR_VEC( CV_NONODS ))
       ALLOCATE( CDP( U_NONODS * NDIM * NPHASE ))

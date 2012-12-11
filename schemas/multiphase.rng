@@ -537,6 +537,12 @@ to sum to 1 by adding constraint into compositional source term.</a:documentatio
                     <a:documentation>Surface tension coefficient. </a:documentation>
                     <ref name="real"/>
                   </element>
+                  <optional>
+                    <element name="smooth">
+                      <a:documentation> Smoothing.</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
                 </element>
               </optional>
             </element>

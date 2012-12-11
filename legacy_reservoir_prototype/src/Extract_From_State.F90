@@ -481,9 +481,9 @@
       Conditional_VDISOPT: if( have_option( trim( option_path ) ) ) then
          if( have_option( trim( option_path2 ) // '::FirstOrderUpwind' ) ) v_disopt = 0
          if( have_option( trim( option_path2 ) // '::Trapezoidal' ) ) v_disopt = 2
-         if( have_option( trim( option_path2 ) // 'FiniteElement/do_not_limit_face_value' ) ) v_disopt = 6
-         if( have_option( trim( option_path2 ) // 'FiniteElement/limit_face_value/limiter::Sweby' ) ) v_disopt = 5
-         if( have_option( trim( option_path2 ) // 'FiniteElement/limit_face_value/limiter::CompressiveAdvection' ) ) v_disopt = 9
+         if( have_option( trim( option_path2 ) // '::FiniteElement/do_not_limit_face_value' ) ) v_disopt = 6
+         if( have_option( trim( option_path2 ) // '::FiniteElement/limit_face_value/limiter::Sweby' ) ) v_disopt = 5
+         if( have_option( trim( option_path2 ) // '::FiniteElement/limit_face_value/limiter::CompressiveAdvection' ) ) v_disopt = 9
       end if Conditional_VDISOPT
 
       call get_option( trim( option_path ) // '/prognostic/spatial_discretisation/conservative_advection', v_beta )
@@ -515,6 +515,12 @@
 !!$ IN/DG_ELE_UPWIND are options for optimisation of upwinding across faces in the overlapping
 !!$ formulation. The data structure and options for this formulation need to be added later. 
       in_ele_upwind =  3 ; dg_ele_upwind = 3
+
+      ! simplify things...
+      !in_ele_upwind =  1 ; dg_ele_upwind = 1
+      !u_dg_vel_int_opt = 1
+      !v_dg_vel_int_opt = 1
+      !v_disopt = 0
 
       return
     end subroutine Get_Discretisation_Options
@@ -1003,7 +1009,8 @@
 !!$ This will need to be ammended later on to take into account python functions that impose 
 !!$ time-dependent field changes
       Conditional_InitialisationFromFLML: if( initialised ) then ! Extracting from state after initialisation 
-         field_prot( 1 : node_count( field ) ) = field % val
+         field_prot = field % val
+!!$         field_prot( 1 : node_count( field ) ) = field % val
 !!$         field_prot( ( iphase - 1 ) * node_count( field ) + 1 : iphase * node_count( field ) ) = &
 !!$              field % val
 
@@ -1306,7 +1313,6 @@
             call get_option( trim( option_path ) // '[' // int2str( k - 1 ) // ']/surface_ids', SufID_BC )
             allocate( face_nodes( face_loc( field, 1 ) ) )
             face_nodes = (/ ( l, l = 1, snloc2 ) /)
-
             do j = 1, stotel
                if( any ( sufid_bc == field % mesh % faces % boundary_ids( j ) ) ) then 
                   wic_bc( j  + ( iphase - 1 ) * stotel ) = BC_Type
@@ -1362,8 +1368,8 @@
       positions => extract_vector_field( state, 'Coordinate' )
       pressure => extract_scalar_field( state, 'Pressure' )
 
-      totele = ele_count( positions ) ; field_name = trim( field % name ) ; &
-           compute_viscosity = .false. ; compute_permeability = .false.
+      totele = ele_count( positions ) ; field_name = trim( field % name )
+      compute_viscosity = .false. ; compute_permeability = .false.
 
 !!$ Defining logicals for the field associated with the tensor. For now, it is set up for either 
 !!$ Permeability( totele, ndim, ndim ) and Viscosity( mat_nonods, ndim, ndim, nphase ). We may need to

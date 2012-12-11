@@ -452,7 +452,9 @@ start =
                   element surface_tension { 
                      (
                         ## Surface tension coefficient. 
-                        element coefficient { real }
+                        element coefficient { real },
+                        ##  Smoothing.
+                       element smooth { empty } ?
                      )
                   }?
                )               

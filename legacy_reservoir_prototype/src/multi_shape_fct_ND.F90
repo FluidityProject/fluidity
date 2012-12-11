@@ -3346,6 +3346,7 @@
          zer_l1 = ( abs( l1( cv_sgi ) ) < 1.0e-4 )
          zer_l2 = ( abs( l2( cv_sgi ) ) < 1.0e-4 )
          zer_l3 = ( abs( l3( cv_sgi ) ) < 1.0e-4 )
+         zer_l4=.false.
          if ( d3 ) zer_l4 = ( abs( l4( cv_sgi )) < 1.0e-4 )
 
 !         if(zer_l4 ) icount=icount+1

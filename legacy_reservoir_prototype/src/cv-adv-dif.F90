@@ -258,6 +258,8 @@
       REAL, DIMENSION( CV_NONODS ), intent( inout ) :: MEAN_PORE_CV
       REAL, DIMENSION( TOTELE ), intent( inout ) :: MASS_ELE_TRANSP
       character( len = * ), intent( in ), optional :: option_path_spatial_discretisation
+!      character( len = option_path_len ), intent( in ), optional :: option_path_spatial_discretisation
+
 
       ! Local variables 
       LOGICAL, PARAMETER :: INCLUDE_PORE_VOL_IN_DERIV = .FALSE.
@@ -324,7 +326,7 @@
            FEMDGI, FEMTGI,FEMT2GI, FEMDOLDGI, FEMTOLDGI, FEMT2OLDGI, &
            TMID, TOLDMID, &
            DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX, BCZERO, ROBIN1, ROBIN2, &
-           SUM, &
+           RSUM, &
            SUM_LIMT, SUM_LIMTOLD, FTHETA_T2, ONE_M_FTHETA_T2OLD, THERM_FTHETA, &
            W_SUM_ONE1, W_SUM_ONE2, NDOTQNEW
 
@@ -340,7 +342,7 @@
            NORMALISE, SUM2ONE, GET_GTHETA, QUAD_OVER_WHOLE_ELE
 
       character( len = option_path_len ) :: option_path, option_path2, path_temp, path_volf, &
-               path_comp, path_spatial_discretisation
+           path_comp, path_spatial_discretisation
 
       ewrite(3,*) 'In CV_ASSEMB'
 
@@ -355,7 +357,7 @@
 
       path_temp = '/material_phase[0]/scalar_field::Temperature'
       path_volf = '/material_phase[0]/scalar_field::PhaseVolumeFraction'
-      path_comp = '/material_phase[0]/scalar_field::ComponentMassFractionPhase1'
+      path_comp = '/material_phase[' // int2str( nphase ) // ']/scalar_field::ComponentMassFractionPhase1'
       path_spatial_discretisation = '/prognostic/spatial_discretisation/' // &
            'control_volumes/face_value/limit_face_value'
 
@@ -365,13 +367,15 @@
 
       limit_use_2nd = .false.
 
-      if( Have_Temperature_Fields .or. Have_VolumeFraction_Fields .or. &
-           Have_Components_Fields ) &
-           option_path = trim( option_path_spatial_discretisation ) // &
-           trim( path_spatial_discretisation )
+      if ( present( option_path_spatial_discretisation) ) then
+         if ( Have_Temperature_Fields .or. Have_VolumeFraction_Fields .or. &
+              Have_Components_Fields ) &
+              option_path = trim( option_path_spatial_discretisation ) // &
+              trim( path_spatial_discretisation )
 
-      if( have_option( trim( option_path ) // '/limiter::Extrema' ) ) &
-           limit_use_2nd = .true.
+         if ( have_option( trim( option_path ) // '/limiter::Extrema' ) ) &
+              limit_use_2nd = .true.
+      end if
 
       ewrite(3,*)'CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND, SECOND_THETA:', &
            CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND, SECOND_THETA
@@ -594,8 +598,8 @@
       ALLOCATE( FEMDENOLD( CV_NONODS * NPHASE ))
       ALLOCATE( FEMT2( CV_NONODS * NPHASE * IGOT_T2 ))
       ALLOCATE( FEMT2OLD( CV_NONODS * NPHASE * IGOT_T2 ))
-      ALLOCATE( MASS_CV( CV_NONODS ))
-      ALLOCATE( MASS_ELE( TOTELE ))
+      ALLOCATE( MASS_CV( CV_NONODS )) 
+      ALLOCATE( MASS_ELE( TOTELE )) 
       ALLOCATE( XC_CV( CV_NONODS ))
       ALLOCATE( YC_CV( CV_NONODS ))
       ALLOCATE( ZC_CV( CV_NONODS ))
@@ -626,13 +630,13 @@
       IF( NORMALISE ) THEN
          ! make sure the FEM representation sums to unity so we dont get surprising results...
          DO CV_INOD = 1, CV_NONODS
-            SUM = 0.0
+            RSUM = 0.0
             DO IPHASE = 1, NPHASE
-               SUM = SUM + FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
+               RSUM = RSUM + FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
             END DO
             DO IPHASE = 1, NPHASE
                FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT( CV_INOD + ( IPHASE - 1 ) &
-                    * CV_NONODS ) / SUM
+                    * CV_NONODS ) / RSUM
             END DO
          END DO
       ENDIF
@@ -877,7 +881,7 @@
                                 HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
                                 T2, T2OLD, FEMT2, FEMT2OLD, DEN, DENOLD, &
                                 U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
-                                !                                NU, NV, NW, NUOLD, NVOLD, NWOLD, NUOLD, NVOLD, NWOLD, &
+                                !NU, NV, NW, NUOLD, NVOLD, NWOLD, NUOLD, NVOLD, NWOLD, &
                                 CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
                                 CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
                                 SELE, U_SNLOC, STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC,WIC_U_BC, &
@@ -894,7 +898,7 @@
                                 HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
                                 T, TOLD, FEMT, FEMTOLD, DEN, DENOLD, &
                                 U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
-                                !                                NU, NV, NW, NUOLD, NVOLD, NWOLD, NUOLD, NVOLD, NWOLD, &
+                                !NU, NV, NW, NUOLD, NVOLD, NWOLD, NUOLD, NVOLD, NWOLD, &
                                 CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
                                 CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
                                 SELE, U_SNLOC, STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC,WIC_U_BC, &
@@ -967,7 +971,7 @@
                                 HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
                                 T2, T2OLD, FEMT2, FEMT2OLD, DEN, DENOLD, &
                                 U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
-                                !                                NU, NV, NW, NUOLD, NVOLD, NWOLD, NUOLD, NVOLD, NWOLD, &
+                                !NU, NV, NW, NUOLD, NVOLD, NWOLD, NUOLD, NVOLD, NWOLD, &
                                 CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
                                 CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
                                 SELE, U_SNLOC, STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC,WIC_U_BC, &
@@ -984,7 +988,7 @@
                                 HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
                                 T, TOLD, FEMT, FEMTOLD, DEN, DENOLD, &
                                 U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
-                                !                                NU, NV, NW, NUOLD, NVOLD, NWOLD, NUOLD, NVOLD, NWOLD, &
+                                !NU, NV, NW, NUOLD, NVOLD, NWOLD, NUOLD, NVOLD, NWOLD, &
                                 CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
                                 CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
                                 SELE, U_SNLOC, STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC,WIC_U_BC, &
@@ -1060,9 +1064,10 @@
                         ENDIF
                      ENDIF
 
-                     !ewrite(3,*) 'IGOT_THETA_FLUX,GET_THETA_FLUX,USE_THETA_FLUX:', &
-                     !     IGOT_THETA_FLUX,GET_THETA_FLUX,USE_THETA_FLUX
-                     !ewrite(3,*) 'FTHETA_T2,ONE_M_FTHETA_T2OLD:',FTHETA_T2,ONE_M_FTHETA_T2OLD
+                     ewrite(3,*) 'IGOT_THETA_FLUX,GET_THETA_FLUX,USE_THETA_FLUX:', &
+                          IGOT_THETA_FLUX,GET_THETA_FLUX,USE_THETA_FLUX
+                     ewrite(3,*) 'FTHETA_T2,ONE_M_FTHETA_T2OLD, FTHETA_T2, LIMT2:',FTHETA_T2,ONE_M_FTHETA_T2OLD, FTHETA, LIMT2
+                     ewrite(3,*) 'ndotq, ndotqold', ndotq, ndotqold
                      !stop 2821
 
                      ROBIN1=0.0
@@ -1085,6 +1090,7 @@
                              UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
                              UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2, &
                              NDOTQNEW, NDOTQOLD, LIMDT, LIMDTOLD, FTHETA_T2, ONE_M_FTHETA_T2OLD )
+
 
                      ENDIF Conditional_GETCT2
 
@@ -1205,6 +1211,17 @@
 
       END DO Loop_Elements
 
+
+
+      if( .true. .and. getct) then
+         ewrite(3,*) 'after put_in_ct_rhs'
+         ewrite(3,*) 'ct_rhs:', ct_rhs
+      end if
+      IF( .true. .and. GETCV_DISC ) THEN
+         ewrite(3,*) 'after put_in_ct_rhs'
+         ewrite(3,*) 'cv_rhs:', cv_rhs
+      end if
+
       IF(GET_GTHETA) THEN
          DO CV_NODI = 1, CV_NONODS
             DO IPHASE = 1, NPHASE    
@@ -1238,7 +1255,7 @@
                   !* (DEN(CV_NODI_IPHA) * T2(CV_NODI_IPHA) - DENOLD(CV_NODI_IPHA) * T2OLD(CV_NODI_IPHA)) / DT
 
                   ACV( IMID_IPHA ) =  ACV( IMID_IPHA ) &
-                                !+ (CV_BETA * DENOLD(CV_NODI_IPHA) * T2OLD(CV_NODI_IPHA) &
+                       !+ (CV_BETA * DENOLD(CV_NODI_IPHA) * T2OLD(CV_NODI_IPHA) &
                        + (CV_BETA * DEN(CV_NODI_IPHA) * T2(CV_NODI_IPHA) &
                        + (1.-CV_BETA) * DEN(CV_NODI_IPHA) * T2(CV_NODI_IPHA))  &
                        * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) / DT
@@ -1256,7 +1273,7 @@
                   !* (DEN(CV_NODI_IPHA) - DENOLD(CV_NODI_IPHA)) / DT
 
                   ACV( IMID_IPHA ) =  ACV( IMID_IPHA ) &
-                                !+ (CV_BETA * DENOLD(CV_NODI_IPHA) + (1.-CV_BETA) * DEN(CV_NODI_IPHA))  &
+                       !+ (CV_BETA * DENOLD(CV_NODI_IPHA) + (1.-CV_BETA) * DEN(CV_NODI_IPHA))  &
                        + (CV_BETA * DEN(CV_NODI_IPHA) &
                        + (1.-CV_BETA) * DEN(CV_NODI_IPHA))  &
                        * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) / DT
@@ -1294,8 +1311,8 @@
             DO CV_NODI = 1, CV_NONODS
                CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
 
-               ewrite(3,*) 'MEAN_PORE_CV( CV_NODI ) , TOLD( CV_NODI_IPHA ) , DERIV( CV_NODI_IPHA ), DT , DENOLD( CV_NODI_IPHA )', &
-                    MEAN_PORE_CV( CV_NODI ) , TOLD( CV_NODI_IPHA ) , DERIV( CV_NODI_IPHA ), DT , DENOLD( CV_NODI_IPHA )
+               ewrite(3,*) 'MEAN_PORE_CV( CV_NODI ) , TOLD( CV_NODI_IPHA ) , DERIV( CV_NODI_IPHA ), DT , DENOLD( CV_NODI_IPHA ), CV_P( CV_NODI ) ', &
+                    MEAN_PORE_CV( CV_NODI ) , TOLD( CV_NODI_IPHA ) , DERIV( CV_NODI_IPHA ), DT , DENOLD( CV_NODI_IPHA ), CV_P( CV_NODI ) 
 
                if(.false.) then
                   CT_RHS( CV_NODI ) = CT_RHS( CV_NODI )  -  MEAN_PORE_CV( CV_NODI ) * MASS_CV( CV_NODI ) &
@@ -1345,6 +1362,9 @@
                     MEAN_PORE_CV( CV_NODI ) * T( CV_NODI_IPHA ) * DERIV( CV_NODI_IPHA )  &
                     / ( DT * DEN( CV_NODI_IPHA ) )
 
+               ewrite(3,*) 'MASS_CV( CV_NODI ), SOURCT( CV_NODI_IPHA ), ABSORBT( CV_NODI, :, : ), T( CV_NODI_IPHA ), DEN( CV_NODI_IPHA ) ', &
+                    MASS_CV( CV_NODI ), SOURCT( CV_NODI_IPHA ), ABSORBT( CV_NODI, :, : ), T( CV_NODI_IPHA ), DEN( CV_NODI_IPHA )
+
                CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + MASS_CV( CV_NODI ) * SOURCT( CV_NODI_IPHA ) / DEN( CV_NODI_IPHA )
                !CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + MASS_CV( CV_NODI ) * SOURCT2( CV_NODI_IPHA ) / DEN( CV_NODI_IPHA )
 
@@ -1389,8 +1409,14 @@
       T_FEMT = FEMT
       DEN_FEMT = FEMDEN
 
-      !ewrite(3,*) '----------sub cv_assemb--------'
-      !ewrite(3,*) 'ct_rhs:', ct_rhs
+      ewrite(3,*) '----------sub cv_assemb--------'
+      if( .true. .and. getct) then
+         ewrite(3,*) 'ct_rhs:', ct_rhs
+      end if
+      if( .true. .and. GETCV_DISC ) then
+         ewrite(3,*) 'cv_rhs:', cv_rhs
+      end if
+
       !if( .false. .and. getct) then
       !   ewrite(3,*)'ct(1:ncolct);',ct(1:ncolct)
       !   ewrite(3,*)'ct(1+ncolct:2*ncolct);',ct(1+ncolct:2*ncolct)
@@ -2216,13 +2242,6 @@
                   NNY = NNY + N( CV_ILOC, CV_GI )  * NY( CV_JLOC, CV_GI ) * DETWEI( CV_GI )
                   NNZ = NNZ + N( CV_ILOC, CV_GI )  * NZ( CV_JLOC, CV_GI ) * DETWEI( CV_GI )
                END DO
-
-               !if(ele==1) then
-               !   print *,'for ele 1>>>>', cv_iloc, cv_jloc
-               !   print *, 'NN', NN
-               !   print *, 'NNX', NNX
-               !   print *, 'NNy', NNy
-               !endif
 
                MASELE( CV_ILOC,CV_JLOC, ELE)  = MASELE( CV_ILOC,CV_JLOC, ELE ) + NN
 
@@ -6581,8 +6600,10 @@
       !ewrite(3,*)' vgi_coef_ele2:', vgi_coef_ele2
       !ewrite(3,*)' wgi_coef_ele2:', wgi_coef_ele2
 
-      !ewrite(3,*)' DEN', DEN
-      !ewrite(3,*)' FTHETA_T2, LIMDT', FTHETA_T2, LIMDT
+      !ewrite(3,*)' DEN, DETWEI', DEN( CV_NODI_IPHA ), SCVDETWEI( GI ) 
+      !ewrite(3,*)' FTHETA_T2,  FTHETA_T2OLD, LIMDT, LIMDTOLD', FTHETA_T2, ONE_M_FTHETA_T2OLD, LIMDT, LIMDTOLD
+      !ewrite(3,*)' ndotq, ndotqold', ndotq, ndotqold
+
 
       DO U_KLOC = 1, U_NLOC
 
@@ -6631,6 +6652,9 @@
          !ewrite(3,*) 'CVNORMX( GI ),UDGI_IMP,CVNORMY( GI ),VDGI_IMP,CVNORMZ( GI ),WDGI_IMP:', &
          !     CVNORMX( GI ),UDGI_IMP,CVNORMY( GI ),VDGI_IMP,CVNORMZ( GI ),WDGI_IMP
          !ewrite(3,*) 'NDOTQOLD,NDOTQ,NDOTQ_IMP:',NDOTQOLD,NDOTQ,NDOTQ_IMP
+         !ewrite(3,*)' DEN, DETWEI', DEN( CV_NODI_IPHA ), SCVDETWEI( GI ) 
+         !ewrite(3,*)' FTHETA_T2,  ONE_M_FTHETA_T2OLD, LIMDT, LIMDTOLD', FTHETA_T2, ONE_M_FTHETA_T2OLD, LIMDT, LIMDTOLD
+         !ewrite(3,*)' NDOTQOLD, NDOTQ, NDOTQ_IMP', NDOTQOLD, NDOTQ, NDOTQ_IMP 
 
          CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - SCVDETWEI( GI ) * ( &
               ONE_M_FTHETA_T2OLD * LIMDTOLD * NDOTQOLD &
@@ -6638,6 +6662,10 @@
               ) / DEN( CV_NODI_IPHA )
 
       ELSE
+
+         !ewrite(3,*)' DEN, DETWEI', DEN( CV_NODI_IPHA ), SCVDETWEI( GI ) 
+         !ewrite(3,*)' ONE_M_FTHETA_T2OLD, LIMDTOLD, NDOTQOLD', FTHETA_T2, ONE_M_FTHETA_T2OLD, LIMDTOLD, NDOTQOLD
+
          CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - SCVDETWEI( GI ) * ( &
               ONE_M_FTHETA_T2OLD * LIMDTOLD * NDOTQOLD &
               ) / DEN( CV_NODI_IPHA ) 
