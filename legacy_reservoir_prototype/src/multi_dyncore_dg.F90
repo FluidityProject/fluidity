@@ -5202,6 +5202,8 @@
       LOGICAL :: GET_THETA_FLUX, USE_THETA_FLUX, THERMAL, LUMP_EQNS, &
            SIMPLE_LINEAR_SCHEME, GOTDEC, STRESS_FORM
 
+      INTEGER FEMT_CV_NOD(CV_NLOC)
+
       CHARACTER(LEN=OPTION_PATH_LEN) :: OPTION_PATH
       REAL, DIMENSION(TOTELE) :: DUMMY_ELE
 
@@ -5412,27 +5414,52 @@
       SHARP_FEMT=FEMT
 
 
+      if(.true.) then ! mide side node average...
+        DO ELE=1,TOTELE
+          DO CV_ILOC=1,CV_NLOC
+            FEMT_CV_NOD(CV_ILOC)=SHARP_FEMT(CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC))
+!            print *,'cv_iloc,x,y:',cv_iloc,x(x_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)), &
+!                                           y(X_NDGLN((ELE-1)*CV_NLOC+CV_ILOC))
+!            print *,'cv_iloc,x,y:',cv_iloc,x(cv_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)), &
+!                                           y(cv_NDGLN((ELE-1)*CV_NLOC+CV_ILOC))
+          END DO
+!          stop 382
+          FEMT_CV_NOD(2)=0.5*(FEMT_CV_NOD(1)+FEMT_CV_NOD(3))
+          FEMT_CV_NOD(4)=0.5*(FEMT_CV_NOD(1)+FEMT_CV_NOD(6))
+          FEMT_CV_NOD(5)=0.5*(FEMT_CV_NOD(3)+FEMT_CV_NOD(6))
+          DO CV_ILOC=1,CV_NLOC
+            SHARP_FEMT(CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC))=FEMT_CV_NOD(CV_ILOC)
+          END DO
+        END DO
+        FEMT=SHARP_FEMT
+      endif
+
       !       Smooth FEMT...
       if(.true.) then
-         DO SMOOTH_ITS=1,SMOOTH_NITS
+!         DO SMOOTH_ITS=1,SMOOTH_NITS
+         DO SMOOTH_ITS=1,3
             !     DO SMOOTH_ITS=1,20
             DO CV_NOD=1,CV_NONODS
                RSUM=0.0
                RRSUM=0.0
                DO COUNT=FINACV(CV_NOD),FINACV(CV_NOD+1)-1
                   IF(COLACV(COUNT).LE.CV_NONODS) THEN
-                     RSUM=RSUM+FEMT(COLACV(COUNT))
+!                     RSUM=RSUM+FEMT(COLACV(COUNT))
+                     RSUM=RSUM+SHARP_FEMT(COLACV(COUNT))
                      RRSUM=RRSUM+1.0
                   ENDIF
                END DO
-               FEMTOLD(CV_NOD)=0.5*FEMT(CV_NOD)+0.5*RSUM/RRSUM
+!               FEMTOLD(CV_NOD)=0.5*FEMT(CV_NOD)+0.5*RSUM/RRSUM
+               FEMTOLD(CV_NOD)=0.5*SHARP_FEMT(CV_NOD)+0.5*RSUM/RRSUM
                !         FEMTOLD(CV_NOD)=0.75*FEMT(CV_NOD)+0.25*RSUM/RRSUM
                !         FEMTOLD(CV_NOD)=0.9*FEMT(CV_NOD)+0.1*RSUM/RRSUM
             END DO
-            FEMT=FEMTOLD
+!            FEMT=FEMTOLD
+            SHARP_FEMT=FEMTOLD
             FEMTOLD=0.0
          END DO
       endif
+
 
       ALLOCATE( FACE_ELE( NFACE, TOTELE ) ) ; FACE_ELE = 0
       ! Calculate FACE_ELE
@@ -5929,7 +5956,8 @@
          PLIKE_GRAD_SOU_COEF = PLIKE_GRAD_SOU_COEF + SUF_TENSION_COEF * CURVATURE
 
          !PLIKE_GRAD_SOU_GRAD = PLIKE_GRAD_SOU_GRAD + VOLUME_FRAC
-         PLIKE_GRAD_SOU_GRAD = PLIKE_GRAD_SOU_GRAD + FEMT
+         !PLIKE_GRAD_SOU_GRAD = PLIKE_GRAD_SOU_GRAD + FEMT
+         PLIKE_GRAD_SOU_GRAD = PLIKE_GRAD_SOU_GRAD + sharp_FEMT
 
          !ewrite(3,*) 'MASS_ELE:', MASS_ELE
          !ewrite(3,*) 'MASS_NORMALISE:', MASS_NORMALISE
