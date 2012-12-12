@@ -444,26 +444,6 @@
       else
          call adjoint_register_initial_u_condition(balanced=.false.)
       end if
-      !Set velocity from commuting projection?
-      if(have_option("/material_phase::Fluid/vector_field::Velocity/&
-           &prognostic/initial_condition::WholeMesh/&
-           &commuting_projection")) then
-         if(hybridized) then
-            call set_velocity_commuting_projection(state(1))
-         else
-            FLAbort('Commuting projection only exists for hybridizable spaces.')
-         end if
-      end if
-      if(have_option("/material_phase::Fluid/vector_field::&
-           &PrescribedVelocityFromCommutingProjection")) then
-         call set_velocity_commuting_projection(state(1),"PrescribedVelocityFromCommutingProjection")
-      end if
-
-      !Set velocity from spherical components
-      if(have_option("/material_phase::Fluid/vector_field::Velocity/prognost&
-           &ic/initial_condition::WholeMesh/from_sphere_pullback")) then
-         call set_velocity_from_sphere_pullback(state(1))
-      end if
 
       if(have_option("/material_phase::Fluid/scalar_field::LayerThickness/pr&
            &ognostic/initial_condition::ProjectionFromPython")) then
@@ -645,26 +625,10 @@
       if(have_option('/material_phase::Fluid/vector_field::AdvectingVelocity&
            &')) then
          if(advecting_velocity_set.eqv..false.) then
-            if(have_option('/material_phase::Fluid/vector_field::AdvectingVe&
-                 &locity&
-                 &/prescribed/set_from_sphere_pullback')) then
-               
-               call get_option('/material_phase::Fluid/vector_field::AdvectingV&
-                    &elocity/prescribed/value::WholeMesh/python',&
-                    & Python_Function)
-               call get_option('/material_phase::Fluid/vector_field::Advecti&
-                    &ngVelocity&
-                    &/prescribed/set_from_sphere_pullback/sphere_radius'&
-                    &,sphere_radius)
-               call set_velocity_from_sphere_pullback(state&
-                    &,advecting_u,Python_Function,sphere_radius)
-               advecting_velocity_set = .true.
-            else
                advecting_u_prescribed=> &
                     extract_vector_field(state, "AdvectingVelocity")
                call project_cartesian_to_local(X,advecting_u_prescribed,&
                     advecting_u)
-            end if
          end if
       else
          call set(advecting_u,u)
