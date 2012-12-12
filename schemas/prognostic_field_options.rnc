@@ -1241,14 +1241,6 @@ prognostic_pressure_field =
                element integrate_continuity_by_parts {
                   empty
                }?,
-               ## ** UNDER DEVELOPMENT **
-               ##
-               ## Fix for low reynolds numbers by adding the viscous terms to the inversed lumped mass matrix for the pressure correction.
-               ## 
-               ## ** ONLY WORKS with continuous_galerkin Velocity and lumping the mass matrix and not with lumping on submesh.
-               element low_re_p_correction_fix {
-                  empty
-               }?,
                ## Test the continuity equation with the control volume dual mesh of the finite element pressure mesh.
                ## Only works for incompressible flow. This will make the pressure matrix non symmetric which must be 
                ## considered when selecting the pressure solver options. This will not work with the free surface and 
