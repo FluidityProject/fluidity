@@ -55,7 +55,11 @@ contains
     ! No. 1 pp. 243--268, 1980
     select case(trim(constituent))
     case("M2")
-       frequency = 1.40519E-04
+       if (have_option("/ocean_forcing/tidal_forcing/M2/frequency")) then
+           frequency = get_option("/ocean_forcing/tidal_forcing/M2/frequency")
+       else
+           frequency = 1.40519E-04
+       end if
     case("S2")
        frequency = 1.45444E-04
     case("N2")
@@ -172,21 +176,33 @@ contains
 !  See E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18 No. 1 pp. 243--268, 1980
 !  for details of these parameters
 !     Tidal constituent amplitudes (K in metres)
+!     M2 freq and amp set below as they can be options!
       REAL     M2AMP,S2AMP,N2AMP,K2AMP
-      PARAMETER( M2AMP = 0.242334, S2AMP = 0.112841, N2AMP = 0.046398, K2AMP = 0.030704 )
+      PARAMETER( S2AMP = 0.112841, N2AMP = 0.046398, K2AMP = 0.030704 )
       REAL     K1AMP,O1AMP,P1AMP,Q1AMP
       PARAMETER( K1AMP = 0.141565, O1AMP = 0.100514, P1AMP = 0.046843, Q1AMP = 0.019256 )
       REAL     MfAMP,MmAMP,SsaAMP
       PARAMETER( MfAMP = 0.041742, MmAMP = 0.022026, SsaAMP = 0.019446 )
 !     Tidal constituent frequency (\sigma in seconds)
       REAL     M2FREQ,S2FREQ,N2FREQ,K2FREQ
-      PARAMETER( M2FREQ = 1.40519E-04, S2FREQ = 1.45444E-04, N2FREQ = 1.3788E-04, K2FREQ = 1.45842E-04 )
+      PARAMETER( S2FREQ = 1.45444E-04, N2FREQ = 1.3788E-04, K2FREQ = 1.45842E-04 )
       REAL     K1FREQ,O1FREQ,P1FREQ,Q1FREQ
       PARAMETER( K1FREQ = 0.72921E-04, O1FREQ = 0.67598E-04, P1FREQ = 0.72523E-04, Q1FREQ = 0.64959E-04 )
       REAL     MfFREQ,MmFREQ,SsaFREQ
       PARAMETER( MfFREQ = 0.053234E-04, MmFREQ = 0.026392E-04, SsaFREQ = 0.003982E-04 )   
       integer, parameter :: nchi = 12
       real, dimension(nchi) :: chi
+
+      if (have_option("/ocean_forcing/tidal_forcing/M2/frequency")) then
+        M2FREQ = get_option("/ocean_forcing/tidal_forcing/M2/frequency")
+      else
+        M2FREQ = 1.40519E-04
+      end if
+      if (have_option("/ocean_forcing/tidal_forcing/M2/amplitude")) then
+        M2AMP = get_option("/ocean_forcing/tidal_forcing/M2/amplitude")
+      else
+        M2AMP = 0.242334
+      end if
 
       eqtide   = 0.0
       COLAT    = PIOVER2 - LAT
@@ -204,7 +220,6 @@ contains
 
       IF(which_tide(1).EQv. .true.) THEN
 !  M2 COMPONENT   NB Co-latitude (used below) = 90 degress (pi/2) - latitude 
-         !eqtide = eqtide + M2AMP*(SIN(COLAT)**2.0)*COS(M2FREQ*TIME + TWOLONG)
          eqtide = eqtide + M2AMP*(SIN(COLAT)**2.0)*COS(M2FREQ*TIME + TWOLONG + chi(1))
       ENDIF
       IF(which_tide(2).EQv..true.) THEN
