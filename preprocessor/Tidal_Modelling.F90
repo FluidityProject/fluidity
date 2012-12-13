@@ -56,7 +56,7 @@ contains
     select case(trim(constituent))
     case("M2")
        if (have_option("/ocean_forcing/tidal_forcing/M2/frequency")) then
-           frequency = get_option("/ocean_forcing/tidal_forcing/M2/frequency")
+           call get_option("/ocean_forcing/tidal_forcing/M2/frequency",frequency)
        else
            frequency = 1.40519E-04
        end if
@@ -194,12 +194,12 @@ contains
       real, dimension(nchi) :: chi
 
       if (have_option("/ocean_forcing/tidal_forcing/M2/frequency")) then
-        M2FREQ = get_option("/ocean_forcing/tidal_forcing/M2/frequency")
+        call get_option("/ocean_forcing/tidal_forcing/M2/frequency", M2FREQ)
       else
         M2FREQ = 1.40519E-04
       end if
       if (have_option("/ocean_forcing/tidal_forcing/M2/amplitude")) then
-        M2AMP = get_option("/ocean_forcing/tidal_forcing/M2/amplitude")
+        call get_option("/ocean_forcing/tidal_forcing/M2/amplitude", M2AMP)
       else
         M2AMP = 0.242334
       end if
