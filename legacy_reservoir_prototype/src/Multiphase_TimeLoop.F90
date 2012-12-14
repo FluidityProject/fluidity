@@ -581,6 +581,9 @@
 
                Velocity_NU = Velocity_U ; Velocity_NV = Velocity_V ; Velocity_NW = Velocity_W
 
+
+               !call calculate_diffusivity( state, ncomp, nphase, ndim, cv_nonods, mat_nonods, ScalarAdvectionField_Diffusion  )
+
                call INTENERGE_ASSEM_SOLVE( state, &
                     NCOLACV, FINACV, COLACV, MIDACV, & 
                     NCOLCT, FINDCT, COLCT, &

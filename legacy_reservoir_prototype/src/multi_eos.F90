@@ -951,4 +951,46 @@
 
     end subroutine calculate_u_source_cv
 
+    subroutine calculate_diffusivity(state, ncomp, nphase, ndim, cv_nonods, mat_nonods, ScalarAdvectionField_Diffusion )
+
+      type(state_type), dimension(:), intent(in) :: state
+      integer, intent(in) :: ncomp, nphase, ndim, cv_nonods, mat_nonods
+      real, dimension(mat_nonods, ndim, ndim, nphase), intent(inout) :: ScalarAdvectionField_Diffusion
+
+      type(scalar_field), pointer :: component, diffusivity
+      integer :: icomp, iphase, idim, stat
+
+      ScalarAdvectionField_Diffusion = 0.
+
+!!$
+!!$      if ( ncomp > 1 ) then
+!!$
+!!$         do icomp = 1, ncomp
+!!$            do iphase = 1, nphase
+!!$
+!!$               component => extract_scalar_field( state(nphase+icomp), 'ComponentMassFractionPhase'// int2str(iphase)   )
+!!$               diffusivity => extract_scalar_field( state(nphase+icomp), 'ComponentMassFractionPhase' // int2str(iphase) // 'Diffusivity', stat )
+!!$
+!!$                do idim = 1, ndim
+!!$                ScalarAdvectionField_Diffusion(:, idim, idim, iphase) = ScalarAdvectionField_Diffusion(:, idim, idim, iphase) + &
+!!$                                                                                              component%val * node_val(diffusivity, 1, 1, 1)
+!!$                end do
+!!$            end do 
+!!$         end do
+!!$
+!!$      else
+!!$
+!!$         do iphase = 1, nphase
+!!$            diffusivity => extract_scalar_field( state(iphase), 'Diffusivity', stat )
+!!$            do idim = 1, ndim
+!!$               ScalarAdvectionField_Diffusion(:, idim, idim, iphase) = node_val(diffusivity, 1, 1, 1)
+!!$            end do
+!!$         end do
+!!$
+!!$      end if
+
+
+
+    end subroutine calculate_diffusivity
+
   end module multiphase_EOS

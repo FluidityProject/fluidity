@@ -422,7 +422,7 @@
       REAL :: SUM
 
       call get_option( '/material_phase[0]/scalar_field::Pressure/' // &
-           'prognostic/spatial_discretisation/reference_node', ndpset, default = 0 )
+           'prognostic/reference_node', ndpset, default = 0 )
 
       ALLOCATE( NEED_COLOR( CV_NONODS ))
       ALLOCATE( COLOR_VEC( CV_NONODS ))
