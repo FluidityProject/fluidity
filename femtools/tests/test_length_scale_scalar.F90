@@ -37,7 +37,7 @@ subroutine test_length_scale_scalar
    real :: expected_result, computed_result
    logical :: fail
    
-   positions = read_triangle_files("/home/christian/les-extend-and-fix/tests/data/structured", quad_degree=3)
+   positions = read_triangle_files("data/structured", quad_degree=3)
    
    ! We'll just choose the first element here - each of them should have the same area
    computed_result = length_scale_scalar(positions, 1)
