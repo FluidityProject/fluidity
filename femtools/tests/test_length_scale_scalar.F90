@@ -37,13 +37,13 @@ subroutine test_length_scale_scalar
    real :: expected_result, computed_result
    logical :: fail
    
-   positions = read_triangle_files("data/structured", quad_degree=3)
+   positions = read_triangle_files("/home/christian/les-extend-and-fix/tests/data/structured", quad_degree=3)
    
    ! We'll just choose the first element here - each of them should have the same area
    computed_result = length_scale_scalar(positions, 1)
    expected_result = 0.5*(0.392699081699**2)
    
-   fail = (computed_result .fne. expected_result)
+   fail = .not.fequals(computed_result, expected_result, 1.0e-9)
    call report_test("[length_scale_scalar]", fail, .false., "Result from length_scale_scalar is incorrect.")
    
 end subroutine test_length_scale_scalar
