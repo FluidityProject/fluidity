@@ -153,7 +153,6 @@
     ! Are we running a multi-phase flow simulation?
     logical :: multiphase
     logical :: reduced_model
-
   contains
 
     subroutine construct_momentum_cg(u, p, density, x, &
@@ -201,7 +200,7 @@
       ! equation (containing the prescribed value of the dirichlet bc)
       ! and add dirichlet bcs for the continuity equation to ct_rhs
       logical, intent(in):: include_pressure_and_continuity_bcs
- 
+
       type(scalar_field), pointer :: buoyancy
       type(scalar_field), pointer :: gp
       type(vector_field), pointer :: gravity
@@ -261,8 +260,8 @@
       type(scalar_field) :: nvfrac ! Non-linear version
 
       ewrite(1,*) 'Entering construct_momentum_cg'
+      
       reduced_model= have_option("/reduced_model/execute_reduced_model")
-    
       assert(continuity(u)>=0)
 
       nu=>extract_vector_field(state, "NonlinearVelocity")
@@ -287,6 +286,7 @@
       have_source = stat == 0
       if(.not. have_source) source=>dummyvector
       ewrite_minmax(source)
+
       absorption=>extract_vector_field(state, "VelocityAbsorption", stat)
       have_absorption = stat == 0
       if(.not. have_absorption) absorption=>dummyvector
@@ -573,7 +573,7 @@
         call allocate( inverse_masslump, u%dim, u%mesh, "InverseLumpedMass")
         call zero(inverse_masslump)
       end if
-      if (assemble_mass_matrix.or.reduced_model) then
+      if (assemble_mass_matrix) then
         ! construct mass matrix instead
         u_sparsity => get_csr_sparsity_firstorder(state, u%mesh, u%mesh)
         
@@ -763,6 +763,7 @@
           call invert(visc_inverse_masslump)
           ! apply boundary conditions (zeroing out strong dirichl. rows)
           call apply_dirichlet_conditions_inverse_mass(visc_inverse_masslump, u)
+          
           ewrite(2,*) "Inverted new visc_inverse_masslump and boundary conditions is:"
           ewrite_minmax(visc_inverse_masslump)
           
@@ -773,15 +774,18 @@
              ewrite_minmax(inverse_masslump)
              ewrite(2,*) "****************************************"
           endif
+   
         else 
           ! thus far we have just assembled the lumped mass in inverse_masslump
           ! now invert it:
           if(.not.reduced_model) then
-              call invert(inverse_masslump)
-              ! apply boundary conditions (zeroing out strong dirichl. rows)
-              call apply_dirichlet_conditions_inverse_mass(inverse_masslump, u)
-              ewrite_minmax(inverse_masslump)
+             call invert(inverse_masslump)
+             ! apply boundary conditions (zeroing out strong dirichl. rows)
+             call apply_dirichlet_conditions_inverse_mass(inverse_masslump, u)
+             ewrite_minmax(inverse_masslump)
           endif
+
+ 
         endif
       end if
       
@@ -941,7 +945,7 @@
 
             do dim = 1, u%dim
                
-               if(velocity_bc_type(dim, sele)==1) then
+               if(velocity_bc_type(dim, sele)==1 .and. .not. reduced_model) then
 
                   call addto(rhs, dim, u_nodes_bdy, -matmul(adv_mat_bdy, &
                        ele_val(velocity_bc, dim, sele)))
@@ -1028,32 +1032,24 @@
             do dim2 = 1, u%dim
               call addto(big_m, dim, dim2, u_nodes_bdy, u_nodes_bdy, dt*theta*fs_surfacestab_sphere(dim,dim2,:,:))
             end do
-            if(.not.reduced_model) then
-               call addto(rhs, dim, u_nodes_bdy, -matmul(fs_surfacestab_sphere(dim,dim,:,:), oldu_val(dim,:)))
-            endif
+            call addto(rhs, dim, u_nodes_bdy, -matmul(fs_surfacestab_sphere(dim,dim,:,:), oldu_val(dim,:)))
             ! off block diagonal absorption terms
             do dim2 = 1, u%dim
               if (dim==dim2) cycle ! The dim=dim2 terms were done above
-              if(.not.reduced_model) then
-                 call addto(rhs, dim, u_nodes_bdy, -matmul(fs_surfacestab_sphere(dim,dim2,:,:), oldu_val(dim2,:)))
-              endif
+              call addto(rhs, dim, u_nodes_bdy, -matmul(fs_surfacestab_sphere(dim,dim2,:,:), oldu_val(dim2,:)))
             end do
           end do
         else        
           if (lump_mass) then
             lumped_fs_surfacestab = sum(fs_surfacestab, 3)
             do dim = 1, u%dim
-               call addto_diag(big_m, dim, dim, u_nodes_bdy, dt*theta*lumped_fs_surfacestab(dim,:))
-               if(.not.reduced_model) then
-                  call addto(rhs, dim, u_nodes_bdy, -lumped_fs_surfacestab(dim,:)*oldu_val(dim,:))
-               endif
+              call addto_diag(big_m, dim, dim, u_nodes_bdy, dt*theta*lumped_fs_surfacestab(dim,:))
+              call addto(rhs, dim, u_nodes_bdy, -lumped_fs_surfacestab(dim,:)*oldu_val(dim,:))
             end do
           else if (.not.pressure_corrected_absorption) then
             do dim = 1, u%dim
               call addto(big_m, dim, dim, u_nodes_bdy, u_nodes_bdy, dt*theta*fs_surfacestab(dim,:,:))
-              if(.not.reduced_model) then
-                 call addto(rhs, dim, u_nodes_bdy, -matmul(fs_surfacestab(dim,:,:), oldu_val(dim,:)))
-              endif
+              call addto(rhs, dim, u_nodes_bdy, -matmul(fs_surfacestab(dim,:,:), oldu_val(dim,:)))
             end do
           else
             ewrite(-1,*) "Free surface stabilisation requires that mass is lumped or that"
@@ -1419,16 +1415,16 @@
         if(lump_mass) then
           if (compute_lumped_mass_here) then
             do dim = 1, u%dim
-               if(.not.reduced_model) then
-                  big_m_diag_addto(dim, :) = big_m_diag_addto(dim, :) + mass_lump
-               endif
+            !  if(.not.reduced_model) then
+                big_m_diag_addto(dim, :) = big_m_diag_addto(dim, :) + mass_lump
+             ! endif
             end do
           end if
         else
           do dim = 1, u%dim
-             if(.not.reduced_model) then
-                big_m_tensor_addto(dim, dim, :, :) = big_m_tensor_addto(dim, dim, :, :) + mass_mat
-             endif
+           ! if(.not.reduced_model) then
+               big_m_tensor_addto(dim, dim, :, :) = big_m_tensor_addto(dim, dim, :, :) + mass_mat
+          !  endif
           end do
         end if
       end if
@@ -1440,7 +1436,7 @@
         end do
       end if
       
-      if(assemble_mass_matrix.or.reduced_model) then
+      if(assemble_mass_matrix) then
          do dim=1, u%dim
             call addto(mass, dim, dim, u_ele, u_ele, mass_mat)
          end do
@@ -1574,9 +1570,7 @@
       
       do dim = 1, u%dim
         big_m_tensor_addto(dim, dim, :, :) = big_m_tensor_addto(dim, dim, :, :) + dt*theta*advection_mat
-        if(.not.reduced_model) then
-           rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(advection_mat, oldu_val(dim,:))
-        endif
+        rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(advection_mat, oldu_val(dim,:))
       end do
       
     end subroutine add_advection_element_cg
@@ -1841,15 +1835,11 @@
                       & dt*theta*absorption_lump_sphere(dim,dim2,i)
                   end do
                 end do
-                if(.not.reduced_model) then
-                   rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump_sphere(dim,dim,:)*oldu_val(dim,:)
-                endif
+                rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump_sphere(dim,dim,:)*oldu_val(dim,:)
                 ! off block diagonal absorption terms
                 do dim2 = 1, u%dim
                   if (dim==dim2) cycle ! The dim=dim2 terms were done above
-                  if(.not.reduced_model) then
-                     rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump_sphere(dim,dim2,:)*oldu_val(dim2,:)
-                  endif
+                  rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump_sphere(dim,dim2,:)*oldu_val(dim2,:)
                 end do
               end do
 
@@ -1861,15 +1851,11 @@
               big_m_tensor_addto(dim, dim2, :, :) = big_m_tensor_addto(dim, dim2, :, :) + &
                 & dt*theta*absorption_mat_sphere(dim,dim2,:,:)
             end do
-            if(.not.reduced_model) then
-               rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat_sphere(dim,dim,:,:), oldu_val(dim,:))
-            endif
+            rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat_sphere(dim,dim,:,:), oldu_val(dim,:))
             ! off block diagonal absorption terms
             do dim2 = 1, u%dim
               if (dim==dim2) cycle ! The dim=dim2 terms were done above
-              if(.not.reduced_model) then
-                 rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat_sphere(dim,dim2,:,:), oldu_val(dim2,:))
-              endif
+              rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat_sphere(dim,dim2,:,:), oldu_val(dim2,:))
             end do
           end do
           absorption_lump_sphere = 0.0
@@ -1907,18 +1893,14 @@
             absorption_lump = sum(absorption_mat, 3)
             do dim = 1, u%dim
               big_m_diag_addto(dim, :) = big_m_diag_addto(dim, :) + dt*theta*absorption_lump(dim,:)
-              if(.not.reduced_model) then
-                 rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump(dim,:)*oldu_val(dim,:)
-              endif
+              rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump(dim,:)*oldu_val(dim,:)
             end do
           end if
         else
           do dim = 1, u%dim
             big_m_tensor_addto(dim, dim, :, :) = big_m_tensor_addto(dim, dim, :, :) + &
               & dt*theta*absorption_mat(dim,:,:)
-            if(.not.reduced_model) then
-               rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat(dim,:,:), oldu_val(dim,:))
-            endif
+            rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat(dim,:,:), oldu_val(dim,:))
           end do
           absorption_lump = 0.0
         end if
@@ -2174,9 +2156,7 @@
       big_m_tensor_addto = big_m_tensor_addto + dt*theta*viscosity_mat
       
       do dim = 1, u%dim
-         if(.not.reduced_model) then
-            rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(viscosity_mat(dim,dim,:,:), oldu_val(dim,:))
-         endif
+        rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(viscosity_mat(dim,dim,:,:), oldu_val(dim,:))
       
         ! off block diagonal viscosity terms
         if(stress_form.or.partial_stress_form) then
@@ -2184,9 +2164,7 @@
 
             if (dim==dimj) cycle ! already done this
 
-            if(.not.reduced_model) then
-               rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(viscosity_mat(dim,dimj,:,:), oldu_val(dimj,:))
-            endif
+            rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(viscosity_mat(dim,dimj,:,:), oldu_val(dimj,:))
           end do
         end if
       end do
@@ -2299,10 +2277,8 @@
       big_m_tensor_addto(U_, V_, :, :) = big_m_tensor_addto(U_, V_, :, :) - dt*theta*coriolis_mat
       big_m_tensor_addto(V_, U_, :, :) = big_m_tensor_addto(V_, U_, :, :) + dt*theta*coriolis_mat
       
-      if(.not.reduced_model) then
-         rhs_addto(U_, :) = rhs_addto(U_, :) + matmul(coriolis_mat, oldu_val(V_,:))
-         rhs_addto(V_, :) = rhs_addto(V_, :) - matmul(coriolis_mat, oldu_val(U_,:))
-      endif
+      rhs_addto(U_, :) = rhs_addto(U_, :) + matmul(coriolis_mat, oldu_val(V_,:))
+      rhs_addto(V_, :) = rhs_addto(V_, :) - matmul(coriolis_mat, oldu_val(U_,:))
       
     end subroutine add_coriolis_element_cg
     

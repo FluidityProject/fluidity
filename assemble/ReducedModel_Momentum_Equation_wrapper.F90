@@ -232,8 +232,10 @@
 
                  snapmean=.false.
 
-                 open(30,file='pod_advection_matrix_perturbed')
+                 open(30,file='pod_matrix_perturbed')
+ 	         open(50,file='pod_rhs_perturbed')
                  
+                 open(60,file='advection_matrix_perturbed')
                  do i=1, size(POD_state,1)
                     POD_velocity=>extract_vector_field(POD_state(i,1,istate), "Velocity")
                     POD_pressure=>extract_scalar_field(POD_state(i,2,istate), "Pressure")
@@ -241,8 +243,8 @@
                     !call get_option("/reduced_model/pod_basis_formation/pod_basis_perturbation_coefficient", eps)
                     eps=0.01
                     do d=1,POD_velocity%dim
-                       call zero(perturb_basis_u)
-                       call zero(perturb_basis_p)
+                    call zero(perturb_basis_u)
+                    call zero(perturb_basis_p)
                        do j=1,POD_velocity%dim
                           if(j==d)then
                              perturb_basis_u%val(j,:)=snapmean_velocity%val(j,:)+eps*POD_velocity%val(j,:)
@@ -252,16 +254,18 @@
                        enddo
                        call set(nonlinear_velocity, perturb_basis_u)
                        call set(pressure, snapmean_pressure)
-                       
+
                        call set(velocity, perturb_basis_u)
                        call set(old_velocity, perturb_basis_u)
-                       
+
                        do b=1, get_boundary_condition_count(velocity_backup)
                           surface_field_velocity => extract_surface_field(velocity_backup, b, 'value')
                           call get_boundary_condition(velocity_backup, b, surface_node_list=surface_node_list)
                           do node=1, size(surface_node_list)
                              call set(nonlinear_velocity, surface_node_list(node), node_val(surface_field_velocity, node))
-                          enddo
+                             call set(velocity, surface_node_list(node), node_val(surface_field_velocity, node))
+                             call set(old_velocity, surface_node_list(node), node_val(surface_field_velocity, node))
+                           enddo
                        enddo
                        do b=1, get_boundary_condition_count(pressure_backup)
                           surface_field_pressure => extract_surface_field(pressure_backup, b, 'value')
@@ -306,7 +310,8 @@
                  enddo
 
                  close(30)
-
+                 close(50)
+                 close(60)
                  call deallocate(perturb_basis_u)
                  call deallocate(perturb_basis_p)
                 
@@ -317,19 +322,28 @@
                  call set(old_velocity, velocity_backup)
 
 !print*,'from initial condition'
-                 open(30,file='pod_advection_matrix_perturbed')
+                 open(30,file='pod_matrix_perturbed')
+                 ! open(50,file='pod_rhs_perturbed')
+ 	         open(50,file='pod_rhs_perturbed')
+                 open(60,file='advection_matrix_perturbed')
                  open(40,file='pod_coef')
                  !save pod_coef for pod_matrix and pod_rhs at timestep 2
                  !the initial pod_matrix and pod_rhs
                  call solve_momentum(state, at_first_timestep, timestep, POD_state, snapmean, eps, its)
                  close(40)
                  close(30)
+                 close(50)
+                 close(60)
 
               else
 
-                 open(30,file='pod_advection_matrix_perturbed')
+                 open(30,file='pod_matrix_perturbed')
+                 open(50,file='pod_rhs_perturbed')
+                 open(60,file='advection_matrix_perturbed')
                  call solve_momentum(state, at_first_timestep, timestep, POD_state, snapmean, eps, its)
                  close(30)
+                 close(50)
+                 close(60)
 
               endif
            endif

@@ -99,7 +99,7 @@ contains
 
     type(petsc_csr_matrix), intent(inout) :: big_m
     type(block_csr_matrix), intent(in) :: ct_m
-    type(vector_field), intent(inout) :: mom_rhs
+    type(vector_field), intent(in) :: mom_rhs
     type(scalar_field), intent(in) :: ct_rhs
     real, intent(in) :: dt
 
@@ -115,7 +115,6 @@ contains
     real, dimension(:), allocatable :: pod_coef 
     real, dimension(:,:), allocatable :: pod_sol_velocity
     real, dimension(:), allocatable :: pod_sol_pressure
-    real, dimension(:,:), allocatable :: pod_ct_m
 
     POD_u=>extract_vector_field(POD_state(1,1,1), "Velocity")
     POD_p=>extract_scalar_field(POD_state(1,2,1), "Pressure")
@@ -124,9 +123,8 @@ contains
 
     allocate(pod_coef(POD_u%dim*POD_num+POD_num))
     pod_coef=0.0
-    allocate(pod_ct_m(size(POD_state,1),size(POD_state,1)))
 
-    call project_reduced(big_m, mom_rhs, ct_m, ct_rhs, pod_matrix, pod_ct_m, pod_rhs, dt, POD_state(:,:,1))
+    call project_reduced(big_m, mom_rhs, ct_m, ct_rhs, pod_matrix, pod_rhs, dt, POD_state(:,:,1))
 
 !!call solver
 !        call LEGS_POD(pod_matrix%val, POD_u%dim*POD_num+POD_num, pod_rhs%val, pod_coef) 
@@ -148,25 +146,23 @@ contains
      call deallocate(pod_matrix)
      call deallocate(pod_rhs)
      deallocate(pod_coef)
-                  deallocate(pod_ct_m)
 
   end subroutine solve_momentum_reduced
 
 
-  subroutine project_reduced(big_m, mom_rhs, ct_m, ct_rhs, pod_matrix, pod_ct_m, pod_rhs, dt, POD_state, fs_m)
+  subroutine project_reduced(big_m, mom_rhs, ct_m, ct_rhs, pod_matrix, pod_rhs, dt, POD_state, fs_m)
     !!< project the momentum equation to reduced space.
     type(state_type), dimension(:,:) :: POD_state
 
     type(petsc_csr_matrix), intent(inout) :: big_m
     type(block_csr_matrix), intent(in) :: ct_m
-    type(vector_field), intent(inout) :: mom_rhs
+    type(vector_field), intent(in) :: mom_rhs
     type(scalar_field), intent(in) :: ct_rhs
     real, intent(in) :: dt
 
     type(vector_field), pointer :: POD_u
     type(scalar_field), pointer :: POD_p
     type(scalar_field) :: snapmean_pressure
-    type(vector_field) :: snapmean_velocity
 
     type(vector_field), dimension(:), allocatable :: u_tmp
     type(vector_field) :: u_c, mom_rhs_tmp
@@ -175,8 +171,6 @@ contains
 
     type(pod_matrix_type), intent(inout) :: pod_matrix
     type(pod_rhs_type), intent(inout) :: pod_rhs
-    real, dimension(:,:), intent(inout) :: pod_ct_m
-    
 
     integer :: i, j, d, d1, d2, u_nodes, p_nodes, POD_num
     real, dimension(:,:), allocatable :: pod_tmp
@@ -209,24 +203,24 @@ contains
        call allocate(fs_tmp, POD_p%mesh, "PODTmpFS")
     endif
 
-!    call allocate(pod_matrix, POD_u, POD_p)
-!    call allocate(pod_rhs, POD_u, POD_p)
+   ! call allocate(pod_matrix, POD_u, POD_p)
+   ! call allocate(pod_rhs, POD_u, POD_p)
 
     call allocate(mom_rhs_tmp, POD_u%dim, POD_u%mesh, "mom_rhs_tmp")
-    call zero(mom_rhs_tmp)
 !!Are we solving for p^{n+1}-p^n or p^{n+1}? Take p^{n+1}-p^n now.
     call mult_T(mom_rhs_tmp, ct_m, snapmean_pressure)
 
-!    mom_rhs_tmp%val=-mom_rhs_tmp%val
-
-    pod_ct_m = 0.0
+    !mom_rhs_tmp is constant
+!    do d=1, POD_u%dim
+!!       mom_rhs%val(d)%ptr=mom_rhs%val(d)%ptr-mom_rhs_tmp%val(d)%ptr
+!       mom_rhs%val(d,:)=mom_rhs%val(d,:)-mom_rhs_tmp%val(d,:)
+!    enddo
 
     do j=1, POD_num
        POD_u=>extract_vector_field(POD_state(j,1), "Velocity")
        POD_p=>extract_scalar_field(POD_state(j,2), "Pressure")
 
 !!summation of rows after multiplication       
-
        do d1=1,POD_u%dim
           do d2=1,POD_u%dim
              if (d1==d2) then
@@ -240,10 +234,8 @@ contains
           call mult(ct_tmp, ct_m, u_c)
 
 
-
 !!calculations for pod_rhs
           call addto(POD_state(:,1), pod_rhs, j, d1, sum(dot_product(mom_rhs, u_c)))
-          call addto(POD_state(:,1), pod_rhs, j, d1, -1.0*sum(dot_product(mom_rhs_tmp, u_c)))
           call addto_p(POD_state(:,2), POD_u, pod_rhs, j, dot_product(ct_rhs, POD_p), dt)
 
 !          pod_rhs%val(j+(d1-1)*POD_num)=sum(dot_product(mom_rhs, u_c))
@@ -252,8 +244,7 @@ contains
             do i=1, POD_num
                POD_p=>extract_scalar_field(POD_state(i,2), "Pressure")
 
-                call addto_p(POD_state(:,2), pod_matrix, d1, i, j, dot_product(ct_tmp, POD_p)/dt)
-                pod_ct_m(i,j+(d1-1)*POD_num)=dot_product(ct_tmp, POD_p)/dt
+                call addto_p(POD_state(:,2), pod_matrix, d1, i, j, dot_product(ct_tmp, POD_p))
 !!transpose the block corresponding to ct_m
                 pod_matrix%val(j+(d1-1)*POD_num, i+pod_matrix%u_dim*POD_num)=&
                                & pod_matrix%val(i+pod_matrix%u_dim*POD_num, j+(d1-1)*POD_num)
@@ -305,101 +296,6 @@ contains
      
   end subroutine project_reduced
 
-  subroutine clear_podmatrix_p(ct_m, pod_matrix,POD_state)
-    !!< project the momentum equation to reduced space.
-    type(state_type), dimension(:,:) :: POD_state
-
-    type(block_csr_matrix), intent(in) :: ct_m
-    type(pod_matrix_type), intent(inout) :: pod_matrix
-
-    type(vector_field), pointer :: POD_u
-    type(scalar_field), pointer :: POD_p
-    integer :: i, j, d, d1, d2, u_nodes, p_nodes, POD_num
-
-    POD_u=>extract_vector_field(POD_state(1,1), "Velocity")
-    POD_p=>extract_scalar_field(POD_state(1,2), "Pressure")
-
-    POD_num=size(POD_state,1)
-
-    do d=1, POD_u%dim
-       do j=1, POD_num      
-          do i=1, POD_num
-             pod_matrix%val(i+pod_matrix%u_dim*POD_num, j+(d-1)*POD_num)=0.0
-             ! transpose the block corresponding to ct_m
-             pod_matrix%val(j+(d-1)*POD_num, i+pod_matrix%u_dim*POD_num)=0.0
-          end do
-       end do
-    enddo
-  
-   end subroutine clear_podmatrix_p
-
-  subroutine project_reduced_rhs_mean_petsc(big_m,ct_m,pod_rhs,POD_state,scale,dt)
-    !!< project the momentum equation to reduced space.
-    type(state_type), dimension(:,:) :: POD_state
-
-    type(petsc_csr_matrix), intent(inout) :: big_m
-    type(block_csr_matrix), intent(in) :: ct_m
-
-    type(vector_field), pointer :: POD_u
-    type(scalar_field), pointer :: POD_p
-    type(scalar_field) :: snapmean_pressure
-    type(vector_field) :: snapmean_velocity
- 
-    type(vector_field), dimension(:), allocatable :: u_tmp
-    type(vector_field) :: u_c, mom_rhs_tmp
-    type(scalar_field) :: ct_tmp
-
-    type(pod_rhs_type), intent(inout) :: pod_rhs
-
-    integer :: i, j, d, d1, d2, u_nodes, p_nodes, POD_num
-    real :: scale,dt
-
-
-    POD_u=>extract_vector_field(POD_state(1,1), "Velocity")
-    POD_p=>extract_scalar_field(POD_state(1,2), "Pressure")
-
-    snapmean_velocity=extract_vector_field(POD_state(1,1), "SnapmeanVelocity")
-    snapmean_pressure=extract_scalar_field(POD_state(1,2), "SnapmeanPressure")
-
-    u_nodes=node_count(POD_u)
-    p_nodes=node_count(POD_p)
-    POD_num=size(POD_state,1)
-
-    call allocate(u_c, POD_u%dim, POD_u%mesh, "PODTmpComponent")
-!    call allocate(pod_rhs, POD_u, POD_p)
-
-    call allocate(mom_rhs_tmp, POD_u%dim, POD_u%mesh, "mom_rhs_tmp")
-    call allocate(ct_tmp, POD_p%mesh, "MeanPressureRhs")
-
-    call mult(mom_rhs_tmp,big_m,snapmean_velocity)
-    call mult(ct_tmp, ct_m, snapmean_velocity)
-
-    do j=1, POD_num
-       POD_u=>extract_vector_field(POD_state(j,1), "Velocity")
-       POD_p=>extract_scalar_field(POD_state(j,2), "Pressure")
-       
-       !!summation of rows after multiplication       
-       do d1=1,POD_u%dim
-          do d2=1,POD_u%dim
-             if (d1==d2) then
-                call set(u_c, d2, POD_u)
-             else
-                call set(u_c, d2, 0.0)
-             end if
-          end do
-          !!calculations for pod_rhs
-          call addto(POD_state(:,1), pod_rhs, j, d1, scale*sum(dot_product(mom_rhs_tmp, u_c)))
-          call addto_p(POD_state(:,2), POD_u, pod_rhs, j, dot_product(ct_tmp, POD_p), -1.0/dt)
-       end do
-    enddo
-    
-    
-    call deallocate(u_c)
-    call deallocate(mom_rhs_tmp)
-    
-  end subroutine project_reduced_rhs_mean_petsc
-
- 
   subroutine solve_advection_diffusion_cg_reduced(delta_t, matrix, rhs, timestep, POD_state)
     !!< Solve the advection_diffusion_cg equation in reduced space.
     type(scalar_field), intent(inout) :: delta_t
