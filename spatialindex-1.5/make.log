@@ -661,3 +661,49 @@ Making install in tools
 Making install in capi
  /usr/bin/install -c -m 644 BoundsQuery.h CountVisitor.h DataStream.h Error.h IdVisitor.h Index.h LeafQuery.h ObjVisitor.h sidx_api.h sidx_config.h sidx_impl.h Utility.h '/data/src/fluidity/fluidity_enkf_reduced_new/spatialindex-1.5/../include/spatialindex/capi'
  /usr/bin/install -c -m 644 SpatialIndex.h RTree.h MVRTree.h TPRTree.h Point.h Region.h LineSegment.h TimePoint.h TimeRegion.h MovingPoint.h MovingRegion.h Version.h '/data/src/fluidity/fluidity_enkf_reduced_new/spatialindex-1.5/../include/spatialindex'
+Making clean in include
+Making clean in capi
+Making clean in tools
+Making clean in .
+Making clean in src
+Making clean in capi
+rm -f "./so_locations"
+Making clean in tools
+rm -f "./so_locations"
+Making clean in tprtree
+rm -f "./so_locations"
+Making clean in mvrtree
+rm -f "./so_locations"
+Making clean in rtree
+rm -f "./so_locations"
+Making clean in spatialindex
+rm -f "./so_locations"
+Making clean in storagemanager
+rm -f "./so_locations"
+Making clean in .
+Making clean in .
+rm -f "./so_locations"
+rm -f "./so_locations"
+Making clean in include
+Making clean in capi
+Making clean in tools
+Making clean in .
+Making clean in src
+Making clean in capi
+rm -f "./so_locations"
+Making clean in tools
+rm -f "./so_locations"
+Making clean in tprtree
+rm -f "./so_locations"
+Making clean in mvrtree
+rm -f "./so_locations"
+Making clean in rtree
+rm -f "./so_locations"
+Making clean in spatialindex
+rm -f "./so_locations"
+Making clean in storagemanager
+rm -f "./so_locations"
+Making clean in .
+Making clean in .
+rm -f "./so_locations"
+rm -f "./so_locations"
