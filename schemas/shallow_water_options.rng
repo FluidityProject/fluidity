@@ -2202,55 +2202,33 @@ fields.</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>Free Surface
-NOTE: the prognostic FreeSurface field only works with the
-legacy_continuous_galerkin code path
-NOTE: if you are using the free_surface boundary condition
-applied to the Velocity field (recommended), you should not 
-use the prognostic FreeSurface field. In this case you may 
-(optionally) add a diagnostic FreeSurface field.</a:documentation>
+        <a:documentation>Free Surface</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
         <attribute name="name">
           <value>FreeSurface</value>
         </attribute>
-        <choice>
-          <element name="prognostic">
-            <a:documentation>Free Surface
-NOTE: the prognostic FreeSurface field only works with the
-legacy_continuous_galerkin code path</a:documentation>
-            <element name="mesh">
-              <a:documentation>Note that this is not the quadratic mesh balance pressure is
-actually calculated on, but the linear mesh it is projected back
-on for output purposes.</a:documentation>
-              <attribute name="name">
-                <value>VelocityMesh</value>
-              </attribute>
-            </element>
-            <ref name="prognostic_free_surface_field"/>
-          </element>
-          <element name="diagnostic">
-            <a:documentation>Free Surface
+        <element name="diagnostic">
+          <a:documentation>Free Surface
 NOTE: the diagnostic FreeSurface field only works in combination
 with the free_surface boundary condition applied to the Velocity
 field. It gives you a 3D field (constant over the vertical)
 of the free surface elevation.</a:documentation>
-            <ref name="internal_algorithm"/>
-            <!--
-              this is hard-coded on the PressureMesh as long as the Pressure is
-              if this is no longer true, it should be option-checked to be on the
-              same mesh as Pressure
-            -->
-            <element name="mesh">
-              <a:documentation>Must be on the same mesh as Pressure</a:documentation>
-              <attribute name="name">
-                <value>PressureMesh</value>
-              </attribute>
-            </element>
-            <ref name="diagnostic_scalar_field"/>
+          <ref name="internal_algorithm"/>
+          <!--
+            this is hard-coded on the PressureMesh as long as the Pressure is
+            if this is no longer true, it should be option-checked to be on the
+            same mesh as Pressure
+          -->
+          <element name="mesh">
+            <a:documentation>Must be on the same mesh as Pressure</a:documentation>
+            <attribute name="name">
+              <value>PressureMesh</value>
+            </attribute>
           </element>
-        </choice>
+          <ref name="diagnostic_scalar_field"/>
+        </element>
       </element>
       <element name="scalar_field">
         <a:documentation>Second Fluid</a:documentation>
