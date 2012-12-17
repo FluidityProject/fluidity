@@ -399,7 +399,8 @@ contains
            sfields=lsfields, &
            vfields=lvfields, &
            tfields=ltfields, &
-           write_region_ids=write_region_ids)
+           write_region_ids=write_region_ids, &
+           solid=solid)
 
     ewrite(1, *) "Exiting vtk_write_state_new_options"
     

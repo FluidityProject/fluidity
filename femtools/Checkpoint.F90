@@ -447,7 +447,7 @@ contains
     if (.not. present_and_true(solid)) then
       n_meshes = option_count("/geometry/mesh")
     else
-      n_meshes = 1
+      n_meshes = 1 ! 1 because we only pass down the solid state of one solid mesh file at a time
     end if
     do i = 0, n_meshes - 1
       if (.not. present_and_true(solid)) then
@@ -480,7 +480,10 @@ contains
           mesh_filename = trim(prefix) // "_" // trim(mesh%name)
         end if
         if(present(cp_no)) mesh_filename = trim(mesh_filename) // "_" // int2str(cp_no)
-        if(present_and_nonempty(postfix)) mesh_filename = trim(mesh_filename) // "_" // trim(postfix)
+        ! The solid mesh is only serial for now, thus only dump one solid mesh file:
+        if (.not. present_and_true(solid)) then
+          if(present_and_nonempty(postfix)) mesh_filename = trim(mesh_filename) // "_" // trim(postfix)
+        end if
 
         ! Update the options tree (required for options tree checkpointing)
         if (from_file) then
@@ -572,7 +575,10 @@ contains
           vtu_filename = trim(vtu_filename) // "_solid_" // trim(mesh_name)
         end if
         if(present(cp_no)) vtu_filename = trim(vtu_filename) // "_" // int2str(cp_no)
-        if(present_and_nonempty(postfix)) vtu_filename = trim(vtu_filename) // "_" // trim(postfix)
+        ! The solid mesh is only serial for now, thus only dump one solid mesh file:
+        if (.not. present_and_true(solid)) then
+          if(present_and_nonempty(postfix)) vtu_filename = trim(vtu_filename) // "_" // trim(postfix)
+        end if
         if(nparts > 1 .and. .not. present_and_true(solid)) then
           vtu_filename = trim(vtu_filename) // ".pvtu"
         else

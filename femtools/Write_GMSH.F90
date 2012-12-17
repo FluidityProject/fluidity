@@ -121,15 +121,13 @@ contains
         
       end if
     else
-      if( getprocno() == 1 ) then
-
+      if(GetRank()==0) then ! Do the following only on process "Rank 0":
         fileDesc=free_unit()
 
         meshFile = trim(filename) // ".msh"
 
         open( fileDesc, file=trim(meshFile), status="replace", access="stream", &
              action="write", err=101 )
-        
       end if
     end if
 
@@ -152,7 +150,7 @@ contains
 
        end if
     else
-      if( getprocno() == 1 ) then
+      if(GetRank()==0) then ! Do the following only on process "Rank 0":
           ! Writing GMSH file header
           call write_gmsh_header( fileDesc, meshFile, useBinaryGMSH)
           call write_gmsh_nodes( fileDesc, meshFile, positions, useBinaryGMSH )
