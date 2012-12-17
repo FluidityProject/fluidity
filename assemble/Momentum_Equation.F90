@@ -76,7 +76,7 @@
       use multiphase_module
       use pressure_dirichlet_bcs_cv
       use reduced_projection
-      use sparse_tools_petsc
+      use sparse_tools_petsc 
 
       implicit none
 
@@ -291,7 +291,32 @@
       logical :: timestep_check
       type(scalar_field) :: u_cpt
 
+      !petro
+      type(scalar_field), pointer :: POD_u_scalar  !petro
+      type(pod_rhs_type)::pod_rhs_old
+      type(vector_field), pointer :: POD_u
+      real, dimension(:), allocatable :: theta_pet,smean_gi,KB_pod,b_pod,PSI_GI,PSI_OLD_GI,psi_old,GRADX,GRADT,DIFFGI_pod,PSI
+      real, dimension(:,:), allocatable ::leftsvd,leftsvd_gi,leftsvd_x_gi, AMAT_pod, KMAT_pod
+    
+      !real, dimension(:,:), allocatable :: snapmean_velocity
+      type(element_type), pointer :: x_shape,xf_shape
+      real, dimension(:,:),allocatable ::X_val !for getting the result of detwei
+      real, dimension(:), allocatable :: detwei(:),res(:)
+      real ,dimension(:,:),allocatable :: JJ   !(X%dim, mesh_dim(X)),
+      real :: det ! for getting the result of detwei
+      real, dimension(:,:,:), allocatable ::  dshape
 
+      ! real, dimension(POD_u%dim,ele_loc(POD_u,ele)) :: X_val !for getting the result of detwei
+      ! new added for petro-galerkin
+      integer :: TOTELE,NLOC,NGI,nsvd !,stat
+      integer ::  POD_num
+      type(mesh_type), pointer :: pod_umesh
+      REAL PSI_THETA
+      INTEGER ELE,globi,globj,isvd,jsvd,jloc,GI 
+      REAL A_STAR_COEF,AX_STAR,P_STAR_POD
+      REAL DT1
+      real noloc,nogas
+      logical :: petrov
       real, dimension(:,:), allocatable :: pod_matrix_snapmean,  pod_matrix_adv_mean
       real, dimension(:), allocatable :: pod_rhs_snapmean
       real, dimension(:,:), allocatable :: pod_matrix_perturbed,pod_matrix_adv_perturbed
@@ -307,7 +332,10 @@
       logical :: on_sphere, have_absorption, have_vertical_stabilization
       type(vector_field), pointer :: dummy_absorption
       logical :: lump_mass_form
+      
+     
 
+      
       ewrite(1,*) 'Entering solve_momentum'
       call get_option('/timestepping/nonlinear_iterations', nonlinear_iterations, default=1)
 
@@ -326,8 +354,8 @@
      		timestep_check= .false.
       	endif
 
-     
-
+         petrov=have_option("/reduced_model/execute_reduced_model/petrov_galerkin")  
+         DT1=0.1
          !! Get diagnostics (equations of state, etc) and assemble matrices
 
          ! Get some options that are independent of the states
@@ -1446,7 +1474,191 @@
                      close(52)
                      !stop 45
                     endif
-                     call solve(pod_matrix%val, pod_rhs%val)
+
+                     if(petrov) then
+  print *,"before POD_u"
+    POD_u=>extract_vector_field(POD_state(1,1,istate), "Velocity")
+    print *,"before POD_u_scalar"
+    !POD_u_scalar=extract_scalar_field(POD_u,1)    !!need modify
+    POD_num=size(POD_state)
+    print *,"before allocate(X_val"
+    allocate(X_val(POD_u%dim,ele_loc(POD_u,ele)))
+    print *,"before allocate JJ"
+    allocate(JJ(POD_u%dim,mesh_dim(POD_u)))
+    !allocate(pod_coef(POD_u%dim*POD_num+POD_num))
+    pod_umesh => extract_mesh(POD_state(1,1,istate), "Mesh", stat)
+    TOTELE=pod_umesh%elements
+    NLOC=pod_umesh%shape%loc
+    NGI=pod_umesh%shape%ngi
+    print *,"before allocate rhs_old"
+   call allocate(pod_rhs_old, POD_u, POD_pressure)
+
+    xf_shape=>ele_shape(POD_u,1)
+    x_shape=>ele_shape(POD_u,1)
+     print *, "timestep,, 2+++"
+do j=1, POD_num
+ !POD_u_scalar=>extract_scalar_field(POD_state(j), "PODPressure")
+       !POD_u_scalar=extract_scalar_field(POD_u,j)
+       X_val=ele_val(POD_u, j)
+       xf_shape=>ele_shape(Pod_u,j)  !!
+       x_shape=>ele_shape(POD_u,j)!!
+end do
+                        !!new added for petro-galerkin     
+       
+      
+       ! allocate(pod_sol_velocity(u_nodes,POD_velocity%dim))
+	 allocate(theta_pet(NGI))
+         allocate(leftsvd(TOTELE*NLOC+NLOC,nsvd))
+         allocate(leftsvd_gi(NGI,nsvd))
+         allocate(leftsvd_x_gi(NGI,nsvd))
+         allocate(smean_gi(NGI))
+         allocate(AMAT_pod(nsvd,nsvd))
+         allocate(KMAT_pod(nsvd,nsvd))
+         allocate(KB_pod(nsvd)) 
+         allocate(b_pod(nsvd)) 
+         allocate(PSI(TOTELE*NLOC+NLOC))
+         allocate(PSI_GI(NGI)) 
+         allocate(PSI_OLD_GI(NGI)) 
+         allocate(psi_old(TOTELE*NLOC+NLOC))
+         allocate(GRADX(NGI))
+         allocate(GRADT(NGI))
+         allocate(DIFFGI_pod(NGI))
+         allocate(detwei(NGI))
+         allocate(res(NGI))
+       !  noloc=x_shape%loc
+       !  nogas=x_shape%ngi
+       !  allocate(dshape(noloc,nogas,POD_u%dim))
+	 allocate(dshape(x_shape%loc,x_shape%ngi,POD_u%dim))  !number of nodes, NO. of gussian
+	
+
+     ! new added for petro-galerkin Residual, see  Non-Linear Petrov-Galerkin Methods for
+     ! Hyperbolic Equations and Discontinuous Finite Element Methods .. eqn 102
+     ! get the result of Residual value"
+     
+     pod_rhs_old%val=pod_rhs%val 
+     call solve(pod_matrix%val, pod_rhs%val)
+    ! pod_coef=pod_rhs%val
+     pod_rhs%val=pod_rhs%val-pod_rhs_old%val
+     call SMLINN(pod_matrix%val,RES,pod_rhs%val,GI,GI) ! get the RES
+
+           DO ELE=1,TOTELE
+           leftsvd_gi = 0.0
+           leftsvd_x_gi = 0.0
+           smean_gi =0.0
+
+          call transform_to_physical(POD_u, ele,  ele_shape(POD_u,1), detwei=detwei, dshape=dshape)
+	   DO GI=1,NGI        ! guassian points' number
+	     DO JLOC=1,NLOC   ! NLOC points in one element
+	       GLOBJ=(ELE-1)*NLOC+JLOC
+              
+               do isvd =1,nsvd
+                  leftsvd(GLOBJ,isvd)=POD_u%val(GLOBJ,isvd)
+                  leftsvd_gi(GI,isvd)=leftsvd_gi(GI,isvd)+xf_shape%dn(isvd,GI,1)*leftsvd(GLOBJ,isvd) 
+                      !N shape function, leftsvd: podbasis, N(JLOC,GI): ele_shape(nu, ele)
+                  leftsvd_x_gi(GI,isvd)=leftsvd_gi(GI,isvd)+dshape(JLOC,GI,1)*leftsvd(GLOBJ,isvd)
+               enddo
+                 !smean_gi(gi)=smean_gi(gi)+ 1SMLINN(A,X,B,NMX,N)*smean(GLOBJ)  !need modification
+                 !smean_gi(gi)=smean_gi(gi)+ 1*smean(GLOBJ)
+	     END DO
+	   END DO
+           END DO
+
+	   PSI_GI=0.0   !  quadrature point
+	   PSI_OLD_GI=0.0
+	   
+	   DO GI=1,NGI
+	     DO JLOC=1,NLOC   
+	       GLOBJ=(ELE-1)*NLOC+JLOC
+	       PSI_GI(GI)=PSI_GI(GI)+xf_shape%dn(isvd,GI,1)*PSI(GLOBJ)
+	       PSI_OLD_GI(GI)=PSI_OLD_GI(GI)+xf_shape%dn(isvd,GI,1)*PSI_OLD(GLOBJ)
+	     END DO
+	   END DO
+        
+
+ ! calculate the GRADX and GRADT    quadrature point
+           GRADX=0.0
+           GRADT=0.0
+	   DO GI=1,NGI      !   ?? NGI and NLOC need input 
+	     DO JLOC=1,NLOC
+	       GLOBJ=(ELE-1)*NLOC+JLOC
+	       PSI_theta=theta_pet(GI)*PSI(GLOBJ)+(1.-theta_pet(GI))*PSI_OLD(GLOBJ)
+	    
+               GRADX(GI)=GRADX(GI)+dshape(JLOC,GI,1)*PSI_theta
+               GRADT(GI)=GRADT(GI)+xf_shape%dn(isvd,GI,1)*(PSI(GLOBJ)-PSI_OLD(GLOBJ))/DT1
+	     END DO
+	   END DO
+
+!  get the result of  AX_STAR cos P_STAR_POD need it 
+         DO GI=1,NGI
+
+             A_STAR_COEF=(GRADX(GI)+GRADT(GI)*1.) &
+                         /MAX(1.E-6,GRADX(GI)**2+1.*GRADT(GI)**2)
+            !  AT_STAR=A_STAR_COEF*GRADT(GI)
+             AX_STAR=A_STAR_COEF*GRADX(GI)
+           enddo
+         do gi =1,ngi
+             do isvd = 1,nsvd
+                if(isvd.eq.1) then
+                   P_STAR_POD = 0.25/abs(AX_STAR*leftsvd_x_gi(GI,isvd))
+                else
+                   P_STAR_POD = 0.25/max(P_STAR_POD,abs(AX_STAR*leftsvd_x_gi(GI,isvd)))
+                endif
+             enddo
+             DIFFGI_pod(GI) = 1.0e-4*P_STAR_POD*RES(GI)**2   &
+                            / MAX(1.E-6,GRADX(GI)**2+GRADT(GI)**2)!!v_pod (eqn.100)
+          enddo
+
+          do isvd =1,nsvd
+             do jsvd=1,nsvd
+                do gi =1,ngi
+                   KMAT_pod(isvd,jsvd) = KMAT_pod(isvd,jsvd) &
+                                       + detwei(GI)*leftsvd_x_gi(GI,isvd)*DIFFGI_pod(GI)*leftsvd_x_gi(GI,jsvd)
+                    ! (eqn.99 left side,leftsvd_x_gi:delta N)
+                enddo
+             enddo
+          enddo 
+
+
+!!call solver
+ 
+
+   
+     !pod_rhs%val=0.001*pod_rhs%val
+     ! add K to (MT AM + K) fi *pod= MT b. 
+
+       do isvd =1,nsvd
+               do jsvd=1,nsvd
+                  pod_matrix%val(isvd,jsvd) = pod_matrix%val(isvd,jsvd)+KMAT_pod(isvd,jsvd)
+               enddo
+                  !b_pod(isvd) = b_pod(isvd)-KB_pod(isvd)
+            enddo
+  
+       call solve(pod_matrix%val,pod_rhs_old%val) 
+       pod_rhs%val=pod_rhs_old%val
+          deallocate(theta_pet)
+          deallocate(leftsvd)
+          deallocate(leftsvd_gi)
+          deallocate(leftsvd_x_gi)
+          deallocate(smean_gi)
+          deallocate(AMAT_pod)
+          deallocate(KMAT_pod)
+          deallocate(KB_pod) 
+          deallocate(b_pod) 
+          deallocate(PSI)
+          deallocate(PSI_GI) 
+          deallocate(PSI_OLD_GI) 
+          deallocate(psi_old)
+          deallocate(GRADX)
+          deallocate(GRADT)
+          deallocate(DIFFGI_pod)
+          deallocate(detwei)
+          deallocate(res)
+          deallocate(dshape) 
+  else 
+       call solve(pod_matrix%val,pod_rhs%val)
+       
+ endif ! end petrov 
+                    ! call solve(pod_matrix%val, pod_rhs%val)
                      pod_coef_dt=0.0
                      pod_coef_dt=pod_rhs%val
                      pod_rhs%val=0.0
@@ -2532,6 +2744,46 @@
          ewrite(1,*) 'Finished checking momentum discretisation options'
 
       end subroutine momentum_equation_check_options
+
+SUBROUTINE SMLINN(A,X,B,NMX,N)
+        IMPLICIT NONE
+        INTEGER NMX,N
+        REAL A(NMX,NMX),X(NMX),B(NMX)
+        REAL R
+        INTEGER K,I,J
+!     Form X = A^{-1} B
+!     Useful subroutine for inverse
+!     This sub overwrites the matrix A. 
+        DO K=1,N-1
+           DO I=K+1,N
+              A(I,K)=A(I,K)/A(K,K)
+           END DO
+           DO J=K+1,N
+              DO I=K+1,N
+                 A(I,J)=A(I,J) - A(I,K)*A(K,J)
+              END DO
+           END DO
+        END DO
+!     
+!     Solve L_1 x=b
+        DO I=1,N
+           R=0.
+           DO J=1,I-1
+              R=R+A(I,J)*X(J)
+           END DO
+           X(I)=B(I)-R
+        END DO
+!     
+!     Solve U x=y
+        DO I=N,1,-1
+           R=0.
+           DO J=I+1,N
+              R=R+A(I,J)*X(J)
+           END DO
+           X(I)=(X(I)-R)/A(I,I)
+        END DO
+        RETURN
+        END SUBROUTINE SMLINN
 
   SUBROUTINE Matrix_vector_multiplication(size_vector,A_phi,Mat_A,phi)
         IMPLICIT NONE
