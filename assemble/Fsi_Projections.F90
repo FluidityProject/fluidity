@@ -39,12 +39,17 @@ module fsi_projections
 
   implicit none
 
-  public :: fsi_one_way_galerkin_projection, fsi_one_way_grandy_interpolation
+  interface bound_projection
+    module procedure bound_projection_scalars, bound_projection_vectors
+  end interface  
 
-contains
+  public :: fsi_one_way_galerkin_projection, fsi_one_way_grandy_interpolation, fsi_get_interface
 
-  subroutine fsi_one_way_galerkin_projection(fieldF, positionsF, positionsS, alpha_sf)
+  contains
+
+  subroutine fsi_one_way_galerkin_projection(fieldF, positionsF, positionsS, alpha_sf, solid_velocity_on_solid, solid_velocity_sf)
     !! Return the volume fraction scalar field by projecting unity from the supermesh to the fluid mesh
+    !! and, iff given, the solid velocity from the solid (via the supermesh) to the fluid mesh.
     !! Since positionsF and positionsS are different, we need to supermesh!
     !! positionsF and positionsS are the coordinate fields of the fluid and solid mesh respectively
 
@@ -52,6 +57,8 @@ contains
     type(vector_field), intent(inout) :: fieldF
     type(vector_field), intent(inout) :: positionsF, positionsS
     type(scalar_field), intent(inout) :: alpha_sf
+    type(vector_field), intent(in), optional :: solid_velocity_on_solid
+    type(vector_field), intent(inout), optional :: solid_velocity_sf
 
     ! this is for using the advancing front algorithm, therefore commented for now:
     !type(ilist), dimension(ele_count(positionsS)) :: map_SF 
@@ -66,10 +73,13 @@ contains
     ! Scalar fields for alpha:
     type(scalar_field) :: alpha_sf_on_solid
     type(scalar_field) :: alpha_sf_on_supermesh
+    ! Vector fields for solid velocity:
+    type(vector_field) :: solid_velocity_on_supermesh
 
     type(csr_sparsity) :: sparsity_fluid
     type(csr_matrix) :: mass_matrix_fluid
     type(scalar_field) :: rhs_alpha_sf
+    type(vector_field) :: rhs_fluid
 
     real, dimension(ele_loc(positionsS, 1), ele_loc(positionsS, 1)) :: inversion_matrix_S
     real, dimension(ele_loc(positionsS, 1), ele_loc(positionsS, 1), ele_count(positionsF)) :: inversion_matrices_F
@@ -135,6 +145,11 @@ contains
     call set(alpha_sf_on_solid, 1.0)
     call allocate(rhs_alpha_sf, fieldF%mesh, "AlphaSFOnFluidRHS")
     call zero(rhs_alpha_sf)
+    ! and for the solid velocity, IFF corresponding files were given:
+    if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
+        call allocate(rhs_fluid, fieldF%dim, fieldF%mesh, "FluidRHS")
+        call zero(rhs_fluid)
+    end if 
 
     ! Looping over all the elements of (solid) mesh S:
     do ele_S=1,ele_count(positionsS)
@@ -184,10 +199,21 @@ contains
         supermesh_field_mesh = make_mesh(supermesh%mesh, supermesh_field_shape, -1, "SupermeshFieldMesh")
         call allocate(alpha_sf_on_supermesh, supermesh_field_mesh, "AlphaSFOnSupermesh")
         call zero(alpha_sf_on_supermesh)
+        ! Same for solid velocity (IFF it was given):
+        if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
+            call allocate(solid_velocity_on_supermesh, solid_velocity_on_solid%dim, supermesh_field_mesh, "SolidVelocityOnSupermesh")
+            call zero(solid_velocity_on_supermesh)
+        end if
 
         ! Get alpha for this portion of the supermesh:
-        call compute_alpha_on_supermesh(supermesh_field_shape, positionsS, ele_S, ele_val(alpha_sf_on_solid, ele_S), &
-                                        supermesh, inversion_matrix_S, alpha_sf_on_supermesh)
+        if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
+          call compute_alpha_on_supermesh(supermesh_field_shape, positionsS, ele_S, ele_val(alpha_sf_on_solid, ele_S), &
+                                          supermesh, inversion_matrix_S, alpha_sf_on_supermesh, &
+                                          ele_val(solid_velocity_on_solid, ele_S), solid_velocity_on_supermesh)
+        else
+          call compute_alpha_on_supermesh(supermesh_field_shape, positionsS, ele_S, ele_val(alpha_sf_on_solid, ele_S), &
+                                          supermesh, inversion_matrix_S, alpha_sf_on_supermesh)
+        end if
 
         ! 2nd step: Compute the RHS of the Galerkin projection:
         ! Elemental Values of alpha of this part of the supermesh are now computed.
@@ -195,13 +221,22 @@ contains
         ! M_f * alpha_f = M_{f,sup} * alpha_{sup}
         ! and afterwards, the supermesh can be deleted as it is no longer needed,
         ! remember, (M_{f,sup} * alpha_{sup}) lives on the fluid mesh, not the supermesh.
-        call compute_rhs_galerkin_projection_oneway_fsi(ele_S, rhs_alpha_sf, positionsF, positionsS, alpha_sf_on_supermesh, &
-                                                      supermesh, inversion_matrices_F)
+        if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
+          call compute_rhs_galerkin_projection_oneway_fsi(ele_S, positionsF, positionsS, supermesh, inversion_matrices_F, &
+                                                          rhs_alpha_sf, alpha_sf_on_supermesh, &
+                                                          rhs_fluid, solid_velocity_on_supermesh)
+        else
+          call compute_rhs_galerkin_projection_oneway_fsi(ele_S, positionsF, positionsS, supermesh, inversion_matrices_F, &
+                                                          rhs_alpha_sf, alpha_sf_on_supermesh)
+        end if
 
         ! Portion of supermesh no longer needed
         call deallocate(supermesh)
         call deallocate(supermesh_field_mesh)
         call deallocate(alpha_sf_on_supermesh)
+        if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
+          call deallocate(solid_velocity_on_supermesh)
+        end if
       end if
       ! Flush ilist of intersecting elements (when using the rtree intersection finder):
       !call flush_list(map_SF_rtree)
@@ -235,15 +270,35 @@ contains
     ! Resetting option path for alpha_sf:
     alpha_sf%option_path = trim(tmp)
 
+    ! Same for solid velocity, IFF it was given:
+    if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
+        tmp = solid_velocity_sf%option_path
+        solid_velocity_sf%option_path = "/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/continuous"
+        ! Project solid velocity to the fluid mesh:
+        call petsc_solve(solid_velocity_sf, mass_matrix_fluid, rhs_fluid)
+        ! Resetting option path for solid_velocity_sf:
+        solid_velocity_sf%option_path = trim(tmp)
+    end if
+
     ! Get options from option tree if projection is bounded or not:
     if (have_option('/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/continuous/bounded[0]')) then
-    
-       call bound_projection(alpha_sf, rhs_alpha_sf, mass_matrix_fluid, lumped_mass_matrix_fluid, lumped_inverse_mass_matrix_fluid, positionsF)
+        call bound_projection(alpha_sf, rhs_alpha_sf, mass_matrix_fluid, &
+                              lumped_mass_matrix_fluid, lumped_inverse_mass_matrix_fluid, &
+                              positionsF)
+        ! IFF solid velocity was given, bound that vector field as well:
+        if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
+            call bound_projection(solid_velocity_sf, rhs_fluid, mass_matrix_fluid, &
+                                  lumped_mass_matrix_fluid, lumped_inverse_mass_matrix_fluid, &
+                                  positionsF)
+        end if
     end if
 
     call deallocate(mass_matrix_fluid)
     call deallocate(alpha_sf_on_solid)
     call deallocate(rhs_alpha_sf)
+    if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
+      call deallocate(rhs_fluid)
+    end if
     call deallocate(lumped_mass_matrix_fluid)
     call deallocate(lumped_inverse_mass_matrix_fluid)
 
@@ -252,7 +307,7 @@ contains
   end subroutine fsi_one_way_galerkin_projection
 
   subroutine compute_alpha_on_supermesh(supermesh_field_shape, solid_positions, ele_B, alpha_sf_ele_value, &
-                                        supermesh, inversion_matrix_B, alpha_sf_on_supermesh)
+                                        supermesh, inversion_matrix_B, alpha_sf_on_supermesh, solid_velocity_ele_value, solid_velocity_on_supermesh)
     ! F stands for fluid, S for solid, C for the supermesh in this case:
     type(vector_field), intent(in) :: solid_positions, supermesh
     type(element_type), intent(in), target :: supermesh_field_shape
@@ -261,6 +316,8 @@ contains
     real, dimension(:, :), intent(in) :: inversion_matrix_B
 
     type(scalar_field), intent(inout) :: alpha_sf_on_supermesh
+    real, dimension(:, :), intent(in), optional :: solid_velocity_ele_value
+    type(vector_field), intent(inout), optional :: solid_velocity_on_supermesh
 
     type(mesh_type) :: supermesh_field_mesh
 
@@ -304,6 +361,17 @@ contains
           val = val + eval_shape(supermesh_field_shape, j, local_coords) * alpha_sf_ele_value(j)
         end do
         call set(alpha_sf_on_supermesh, node_C, val)
+        
+        ! Now the same for the solid velocity (IFF it is given):
+        if (present(solid_velocity_ele_value) .and. present(solid_velocity_on_supermesh)) then
+          do k=1,solid_positions%dim
+            val = 0.0
+            do j=1,supermesh_field_shape%loc
+              val = val + eval_shape(supermesh_field_shape, j, local_coords) * solid_velocity_ele_value(k, j)
+            end do
+            call set(solid_velocity_on_supermesh, k, node_C, val)
+          end do
+        end if
 
       end do ! end of looping over the nodes of element 'ele_C' of the supermesh
 
@@ -315,34 +383,53 @@ contains
 
   end subroutine compute_alpha_on_supermesh
 
-  subroutine compute_rhs_galerkin_projection_oneway_fsi(ele_B, rhs_alpha_sf, positionsA, positionsB, alpha_sf_on_supermesh, &
-                                                        supermesh, inversion_matrices_A)
+  subroutine compute_rhs_galerkin_projection_oneway_fsi(ele_B, positionsA, positionsB, supermesh, inversion_matrices_A, &
+                                                         rhs_alpha_sf, alpha_sf_on_supermesh, &
+                                                         rhs_fluid, solid_velocity_on_supermesh)
 
     ! FSI: fluid-solid interactions
     integer, intent(in) :: ele_B
-    type(scalar_field), intent(inout) :: rhs_alpha_sf
     type(vector_field), intent(in) :: positionsA, positionsB
-    type(scalar_field), intent(in) :: alpha_sf_on_supermesh
     type(vector_field), intent(in) :: supermesh
     real, dimension(:, :, :), intent(in) :: inversion_matrices_A
+    type(scalar_field), intent(inout) :: rhs_alpha_sf
+    type(scalar_field), intent(in) :: alpha_sf_on_supermesh
+    type(vector_field), intent(inout), optional :: rhs_fluid
+    type(vector_field), intent(in), optional :: solid_velocity_on_supermesh
 
     integer :: ele_A, ele_C
 
-    do ele_C=1,ele_count(supermesh)
-      ele_A = ele_region_id(supermesh, ele_C) ! get the parent fluid element
-      call compute_rhs_galerkin_projection_oneway_fsi_ele(rhs_alpha_sf, positionsA, positionsB, alpha_sf_on_supermesh, &
-                                                          supermesh, inversion_matrices_A(:, :, ele_A), ele_A, ele_B, ele_C)
-    end do
+    if (present(rhs_fluid) .and. present(solid_velocity_on_supermesh)) then
+      do ele_C=1,ele_count(supermesh)
+        ele_A = ele_region_id(supermesh, ele_C) ! get the parent fluid element
+        call compute_rhs_galerkin_projection_oneway_fsi_ele(positionsA, positionsB, supermesh, &
+                                                            inversion_matrices_A(:, :, ele_A), ele_A, ele_B, ele_C, &
+                                                            rhs_alpha_sf, alpha_sf_on_supermesh, &
+                                                            rhs_fluid, solid_velocity_on_supermesh)
+      end do
+    else ! without solid velocity projection:
+      do ele_C=1,ele_count(supermesh)
+        ele_A = ele_region_id(supermesh, ele_C) ! get the parent fluid element
+        call compute_rhs_galerkin_projection_oneway_fsi_ele(positionsA, positionsB, supermesh, &
+                                                            inversion_matrices_A(:, :, ele_A), ele_A, ele_B, ele_C, &
+                                                            rhs_alpha_sf, alpha_sf_on_supermesh)
+      end do
+    end if
   end subroutine compute_rhs_galerkin_projection_oneway_fsi
 
-  subroutine compute_rhs_galerkin_projection_oneway_fsi_ele(rhs_alpha_sf, positionsA, positionsB, alpha_sf_on_supermesh, &
-                                                            supermesh, inversion_matrix_A, ele_A, ele_B, ele_C)
-    integer, intent(in) :: ele_A, ele_B, ele_C
-    type(scalar_field), intent(inout) :: rhs_alpha_sf
+  subroutine compute_rhs_galerkin_projection_oneway_fsi_ele(positionsA, positionsB, supermesh, &
+                                                             inversion_matrix_A, ele_A, ele_B, ele_C, &
+                                                             rhs_alpha_sf, alpha_sf_on_supermesh, &
+                                                             rhs_fluid, solid_velocity_on_supermesh)
+
     type(vector_field), intent(in) :: positionsA, positionsB
-    type(scalar_field), intent(in) :: alpha_sf_on_supermesh
     type(vector_field), intent(in) :: supermesh
     real, dimension(:, :), intent(in) :: inversion_matrix_A
+    integer, intent(in) :: ele_A, ele_B, ele_C
+    type(scalar_field), intent(inout) :: rhs_alpha_sf
+    type(scalar_field), intent(in) :: alpha_sf_on_supermesh
+    type(vector_field), intent(inout), optional :: rhs_fluid
+    type(vector_field), intent(in), optional :: solid_velocity_on_supermesh
 
     real, dimension(ele_ngi(supermesh, ele_C)) :: detwei_C
     real, dimension(positionsA%dim+1, ele_ngi(supermesh, ele_C)) :: local_coord_at_quad_fluid
@@ -355,6 +442,7 @@ contains
     real, dimension(ele_loc(rhs_alpha_sf, ele_A), ele_loc(alpha_sf_on_supermesh, ele_C)) :: mat_fluid
 
     real, dimension(ele_loc(supermesh, ele_C)) :: supermesh_alpha_sf_val
+    real, dimension(positionsB%dim, ele_loc(supermesh, ele_C)) :: supermesh_solid_velocity_val
 
     integer :: j, k, l, dim
 
@@ -379,7 +467,14 @@ contains
       end forall
     end do
 
-    ! Now compute the rhs contribution for alpha:
+    ! Now compute the rhs contribution for a vector field:
+    if (present(rhs_fluid) .and. present(solid_velocity_on_supermesh)) then
+      supermesh_solid_velocity_val = ele_val(solid_velocity_on_supermesh, ele_C)
+      do dim=1,solid_velocity_on_supermesh%dim
+        call addto(rhs_fluid, dim, ele_nodes(rhs_fluid, ele_A), matmul(mat_fluid, supermesh_solid_velocity_val(dim, :)))
+      end do
+    end if
+    ! Now compute the rhs contribution for alpha (scalar field):
     supermesh_alpha_sf_val = ele_val(alpha_sf_on_supermesh, ele_C)
     call addto(rhs_alpha_sf, ele_nodes(rhs_alpha_sf, ele_A), matmul(mat_fluid, supermesh_alpha_sf_val))
 
@@ -418,10 +513,44 @@ contains
     end if
   end function basis_at_quad
 
-  subroutine bound_projection(field, rhs_field, mass_matrix, mass_matrix_lumped, inverse_mass_matrix_lumped, positions)  
-    ! This subroutine bounds the projection of a scalar field
+  subroutine bound_projection_vectors(vfield, rhs_vfield, mass_matrix, lumped_mass_matrix, lumped_inverse_mass_matrix, positions)
+    ! Bounding a vector field
+    type(vector_field), intent(inout) :: vfield
+    type(vector_field), intent(in) :: rhs_vfield
+    type(csr_matrix), intent(in) :: mass_matrix
+    type(scalar_field), intent(inout) :: lumped_mass_matrix
+    type(scalar_field), intent(in) :: lumped_inverse_mass_matrix
+    type(vector_field), intent(in) :: positions
 
-    type(scalar_field), intent(inout) :: field, mass_matrix_lumped
+    type(scalar_field) :: sfield, rhs_sfield
+    integer :: d
+
+    ewrite(2,*) "Inside bound_projection_vectors"
+
+    call allocate(sfield, vfield%mesh, "VectorComponent")
+    call zero(sfield)
+    call allocate(rhs_sfield, vfield%mesh, "RHSVectorComponent")
+    call zero(rhs_sfield)
+
+    ! For dimension of given vector field, give the interface 'bound_projection' each vector component at a time
+    do d=1, positions%dim
+      sfield%val(:) = vfield%val(d,:)
+      rhs_sfield%val(:) = rhs_vfield%val(d,:)
+      call bound_projection(sfield, rhs_sfield, mass_matrix, lumped_mass_matrix, lumped_inverse_mass_matrix, positions)
+      vfield%val(d,:) = sfield%val(:)
+    end do
+
+    call deallocate(sfield)
+    call deallocate(rhs_sfield)
+
+    ewrite(2,*) "Leaving bound_projection_vectors"
+
+  end subroutine bound_projection_vectors
+
+  subroutine bound_projection_scalars(sfield, rhs_field, mass_matrix, lumped_mass_matrix, inverse_mass_matrix_lumped, positions)
+    ! Bounding a field (only scalar) after an inter-mesh projection.
+    ! Similar to subroutine 'interpolation_galerkin_scalars' in module 'conservative_interpolation_module'
+    type(scalar_field), intent(inout) :: sfield, lumped_mass_matrix
     type(scalar_field), intent(in) :: rhs_field, inverse_mass_matrix_lumped
     type(csr_matrix), intent(in) :: mass_matrix
     type(vector_field), intent(in) :: positions
@@ -431,53 +560,51 @@ contains
     type(csr_sparsity), pointer :: nnlist
     integer :: node_B
     integer, dimension(:), pointer :: patch
+    
+    ewrite(2,*) "Inside bound_projection_scalars"
 
-    upper_bound = huge(0.0)*epsilon(0.0) ! default value
-    lower_bound = -huge(0.0)*epsilon(0.0) ! default value
+    ! Step 0: Computing the bounds,
+    ! here we hard-code the default bounds:
+    upper_bound = huge(0.0)*epsilon(0.0)
+    lower_bound = -huge(0.0)*epsilon(0.0)
 
-    ewrite(2,*) "BOUNDS==========================================================================="
-    ewrite(2,*) "upper_bound = ", upper_bound
-    ewrite(2,*) "lower_bound = ", lower_bound
-    ewrite(2,*) "BOUNDS==========================================================================="
-
-    ! Enable the bounds to vary locally
-    call allocate(max_bound, field%mesh, "MaxBound")
-    call allocate(min_bound, field%mesh, "MinBound")
+    ! Set the default bounds to the whole mesh:
+    call allocate(max_bound, sfield%mesh, "MaxBound")
+    call allocate(min_bound, sfield%mesh, "MinBound")
     call set(max_bound, upper_bound)
     call set(min_bound, lower_bound)
-    call allocate(bounded_soln, field%mesh, "BoundedSolution")
+    call allocate(bounded_soln, sfield%mesh, "BoundedSolution")
 
-    ewrite(2,*) "***********BEFORE********************"
-    ewrite_minmax(field%val(:))
-
+    ! Preparing the solution:
     call set(bounded_soln, rhs_field)
     call scale(bounded_soln, inverse_mass_matrix_lumped)
     call halo_update(bounded_soln)
 
-    nnlist => extract_nnlist(field)
+    nnlist => extract_nnlist(sfield)
 
-    do node_B = 1,node_count(field%mesh)
+    do node_B = 1,node_count(sfield%mesh)
       patch => row_m_ptr(nnlist, node_B)
-      call set(max_bound, node_B, max(min(maxval(bounded_soln%val(patch)), node_val(max_bound, node_B)), lower_bound))
-      call set(min_bound, node_B, max(min(minval(bounded_soln%val(patch)), node_val(max_bound, node_B)), lower_bound))
+      call set(max_bound, node_B, max(min(maxval(bounded_soln%val(patch)), &
+                                                   node_val(max_bound, node_B)), &
+                                                   lower_bound))
+      call set(min_bound, node_B, max(min(minval(bounded_soln%val(patch)), &
+                                                   node_val(max_bound, node_B)), &
+                                                   lower_bound))
     end do
 
     call halo_update(max_bound)
-    ewrite_minmax(max_bound)
     call halo_update(min_bound)
-    ewrite_minmax(min_bound)
 
-    call bound_field(field, max_bound, min_bound, mass_matrix, mass_matrix_lumped, &
-                        & inverse_mass_matrix_lumped, bounded_soln, positions)
-
-    ewrite(2,*) "***********AFTER********************"
-    ewrite_minmax(field%val(:))
+    call bound_field(sfield, max_bound, min_bound, mass_matrix, lumped_mass_matrix, &
+                     inverse_mass_matrix_lumped, bounded_soln, positions)
 
     call deallocate(max_bound)
     call deallocate(min_bound)
     call deallocate(bounded_soln)
 
-   end subroutine bound_projection
+    ewrite(2,*) "Leaving bound_projection_scalars"
+
+   end subroutine bound_projection_scalars
 
    subroutine fsi_one_way_grandy_interpolation(fluid_position, solid_position, alpha)
 
@@ -594,6 +721,67 @@ contains
         end do
 
     end subroutine bound_scalar_field
+
+    subroutine fsi_get_interface(fsi_interface, positionsF, positionsS)
+    !! This subroutine returns a scalar field, that is 1 only at the elements which intersect
+    !! with the surface elements of a solid mesh
+        type(scalar_field), intent(inout) :: fsi_interface
+        type(vector_field), pointer, intent(in) :: positionsF, positionsS
+
+        integer :: ele_F, ele_S
+        integer :: num_intersections
+        integer :: i, j, n, dim, node
+        
+        integer, dimension(:), pointer :: solid_faces
+        integer, dimension(:), pointer :: nodes
+        integer, dimension(face_loc(positionsS, 1)) :: solid_face_nodes
+        integer :: face_number
+
+        ewrite(2,*) "inside fsi_get_interface"
+
+        ! Set the dimension for the intersection finder:
+        dim = mesh_dim(positionsS)
+        call intersector_set_dimension(dim) 
+        ! Use rtree intersection finder because it is more robust, e.g.
+        ! it does not fail when running in parallel and no solid element is found in the 
+        ! composition of the fluid mesh:
+        ! Set input for rtree intersection finder:
+        call rtree_intersection_finder_set_input(positionsF)
+
+        do ele_S=1,ele_count(positionsS)
+            solid_faces => ele_faces(positionsS, ele_S)
+            do i=1, ele_face_count(positionsS,ele_S)
+                !face_number = 0.0
+                face_number = face_neigh(positionsS, solid_faces(i))
+                if (face_number == solid_faces(i)) then
+                    solid_face_nodes = 0.0
+                    ! This means, the face 'face_number' has no neighbour face, meaning
+                    ! this face is at the solid's boundary, 
+                    ! so let's get intersecting fluid elements for this solid element:
+
+                    ! Via rtree, find intersection of solid element with fluid elements:
+                    call rtree_intersection_finder_find(positionsS, ele_S)
+                    ! Fetch output, the number of intersections
+                    call rtree_intersection_finder_query_output(num_intersections)
+                    ! Set scalar field for intersection with the solid boundary
+                    if (num_intersections .ne. 0) then
+                        do j=1, num_intersections
+                            ! Get the donor (fluid) element which intersects with ele_S
+                            call rtree_intersection_finder_get_output(ele_F, j)
+                            nodes => ele_nodes(positionsF, ele_F)
+                            do n = 1, size(nodes)
+                                node = nodes(n)
+                                call set(fsi_interface, node, 1.0)
+                            end do
+                        end do
+                    end if
+                end if
+            end do
+        end do
+
+        ewrite(2,*) "leaving fsi_get_interface"
+
+    end subroutine fsi_get_interface
 
 end module fsi_projections
 
