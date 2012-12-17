@@ -1265,45 +1265,45 @@ module fsi_model
             deallocate(solid_force_diag)
 
         ! Now compute diagnostics for the velocity of the solids:
-            num_pre_solid_vel = option_count('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh')
-            
-            ! Now loop over the number of prescribed solid velocities and set those diagnostics:
-            pre_solid_vel_loop: do i=0, num_pre_solid_vel-1
-            allocate(pre_solid_vel(fluid_coord%dim))
-
-               ! Get mesh name:
-               call get_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh['//int2str(i)//']/name', mesh_name)
-               ! Resetting force:
-               pre_solid_vel = 0.0
-               ! Get min/max values of x/y/z component of solid velocity
-               !/* still to be implemented */!
-
-               ! Set the force of the solid with name 'mesh_name'
-               call set_diagnostic(name='VelocityOfSolid_'//trim(mesh_name), statistic='Value', value=(/ pre_solid_vel, pre_solid_vel /))
-               
-               deallocate(pre_solid_vel)
-            end do pre_solid_vel_loop
-
-            ! Same if prescribed solid position is switched on:
-            num_pre_solid_vel = option_count('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed/mesh')
-            
-            ! Now loop over the number of prescribed solid velocities and set those diagnostics:
-            pre_solid_pos_loop: do i=0, num_pre_solid_pos-1
-            allocate(pre_solid_vel(fluid_coord%dim))
-
-               ! Get mesh name:
-               call get_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed/mesh['//int2str(i)//']/name', mesh_name)
-               ! Resetting force:
-               pre_solid_vel = 0.0
-               ! Get min/max values of x/y/z component of solid velocity
-               !/* still to be implemented */!
-
-               ! Set the force of the solid with name 'mesh_name'
-               call set_diagnostic(name='VelocityOfSolid_'//trim(mesh_name), statistic='Value', value=(/ pre_solid_vel, pre_solid_vel /))
-               
-               deallocate(pre_solid_vel)
-            end do pre_solid_pos_loop
-
+!            num_pre_solid_vel = option_count('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh')
+!            
+!            ! Now loop over the number of prescribed solid velocities and set those diagnostics:
+!            pre_solid_vel_loop: do i=0, num_pre_solid_vel-1
+!            allocate(pre_solid_vel(fluid_coord%dim))
+!
+!               ! Get mesh name:
+!               call get_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh['//int2str(i)//']/name', mesh_name)
+!               ! Resetting force:
+!               pre_solid_vel = 0.0
+!               ! Get min/max values of x/y/z component of solid velocity
+!               !/* still to be implemented */!
+!
+!               ! Set the force of the solid with name 'mesh_name'
+!               call set_diagnostic(name='VelocityOfSolid_'//trim(mesh_name), statistic='Value', value=(/ pre_solid_vel, pre_solid_vel /))
+!               
+!               deallocate(pre_solid_vel)
+!            end do pre_solid_vel_loop
+!
+!            ! Same if prescribed solid position is switched on:
+!            num_pre_solid_vel = option_count('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed/mesh')
+!            
+!            ! Now loop over the number of prescribed solid velocities and set those diagnostics:
+!            pre_solid_pos_loop: do i=0, num_pre_solid_pos-1
+!            allocate(pre_solid_vel(fluid_coord%dim))
+!
+!               ! Get mesh name:
+!               call get_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed/mesh['//int2str(i)//']/name', mesh_name)
+!               ! Resetting force:
+!               pre_solid_vel = 0.0
+!               ! Get min/max values of x/y/z component of solid velocity
+!               !/* still to be implemented */!
+!
+!               ! Set the force of the solid with name 'mesh_name'
+!               call set_diagnostic(name='VelocityOfSolid_'//trim(mesh_name), statistic='Value', value=(/ pre_solid_vel, pre_solid_vel /))
+!               
+!               deallocate(pre_solid_vel)
+!            end do pre_solid_pos_loop
+!
          end if
       else if (have_option('/embedded_models/fsi_model/two_way_coupling')) then
          ! Do nothing at this stage
@@ -1467,33 +1467,33 @@ module fsi_model
 
          end do solid_mesh_loop
 
-         ! Get number of solid meshes that have prescribed velocity:
-         num_pre_solid_vel = option_count('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh')
-         ! Loop over number of solid meshes that have a prescribed velocity:
-         pre_solid_vel_loop: do i=0, num_pre_solid_vel-1
-
-            ! Store prescribed solid velocity (of each solid, thus of each solid mesh) in statfile
-            if (have_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh['//int2str(i)//']/stat/include_in_stat')) then
-               ! Get corresponding mesh name:
-               call get_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh['//int2str(i)//']/name', mesh_name)
-               ! Register diagnostic variable of corresponding mesh (with mesh_name):
-               call register_diagnostic(dim=ndimension, name='VelocityOfSolid_'//trim(mesh_name), statistic='Value')
-            end if
-
-         end do pre_solid_vel_loop
-
-         ! Same for Prescribed Solid Position:
-         ! Get number of solid meshes that have prescribed position:
-         num_pre_solid_pos = option_count('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed/mesh')
-         ! Loop over number of solid meshes that have a prescribed velocity:
-         pre_solid_pos_loop: do i=0, num_pre_solid_pos-1
-            if (have_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed/mesh['//int2str(i)//']/stat/include_in_stat')) then
-               ! Get corresponding mesh name:
-               call get_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed/mesh['//int2str(i)//']/name', mesh_name)
-               ! Register diagnostic variable of corresponding mesh (with mesh_name):
-               call register_diagnostic(dim=ndimension, name='VelocityOfSolid_'//trim(mesh_name), statistic='Value')
-            end if
-         end do pre_solid_pos_loop
+!         ! Get number of solid meshes that have prescribed velocity:
+!         num_pre_solid_vel = option_count('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh')
+!         ! Loop over number of solid meshes that have a prescribed velocity:
+!         pre_solid_vel_loop: do i=0, num_pre_solid_vel-1
+!
+!            ! Store prescribed solid velocity (of each solid, thus of each solid mesh) in statfile
+!            if (have_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh['//int2str(i)//']/stat/include_in_stat')) then
+!               ! Get corresponding mesh name:
+!               call get_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh['//int2str(i)//']/name', mesh_name)
+!               ! Register diagnostic variable of corresponding mesh (with mesh_name):
+!               call register_diagnostic(dim=ndimension, name='VelocityOfSolid_'//trim(mesh_name), statistic='Value')
+!            end if
+!
+!         end do pre_solid_vel_loop
+!
+!         ! Same for Prescribed Solid Position:
+!         ! Get number of solid meshes that have prescribed position:
+!         num_pre_solid_pos = option_count('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed/mesh')
+!         ! Loop over number of solid meshes that have a prescribed velocity:
+!         pre_solid_pos_loop: do i=0, num_pre_solid_pos-1
+!            if (have_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed/mesh['//int2str(i)//']/stat/include_in_stat')) then
+!               ! Get corresponding mesh name:
+!               call get_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed/mesh['//int2str(i)//']/name', mesh_name)
+!               ! Register diagnostic variable of corresponding mesh (with mesh_name):
+!               call register_diagnostic(dim=ndimension, name='VelocityOfSolid_'//trim(mesh_name), statistic='Value')
+!            end if
+!         end do pre_solid_pos_loop
 
       end if
 
