@@ -66,6 +66,7 @@
       use rotated_boundary_conditions
       use Weak_BCs
       use reduced_model_runtime
+      use fsi_model, only: fsi_add_dalpha_solid_dt
       use state_fields_module
       use Tidal_module
       use Coordinates
@@ -734,6 +735,12 @@
                      end if
                      call rotate_ct_m_sphere(state(istate), ctp_m(istate)%ptr, u)
                   end if
+               end if
+
+               if (have_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed') .or. &
+                   have_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed')) then
+                  ewrite(2,*) "calling fsi_add_dalpha_solid_dt"
+                  call fsi_add_dalpha_solid_dt(state(istate), ct_rhs(istate))
                end if
 
                ! Add mass source-absorption for implicit solids.

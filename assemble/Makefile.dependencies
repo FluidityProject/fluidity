@@ -619,13 +619,13 @@ Momentum_Equation.o ../include/momentum_equation.mod: Momentum_Equation.F90 \
    ../include/drag_module.mod ../include/fdebug.h ../include/field_options.mod \
    ../include/field_priority_lists.mod ../include/fields.mod \
    ../include/fldebug.mod ../include/foam_drainage.mod \
-   ../include/free_surface_module.mod ../include/full_projection.mod \
-   ../include/geostrophic_pressure.mod ../include/hydrostatic_pressure.mod \
-   ../include/implicit_solids.mod ../include/linked_lists.mod \
-   ../include/momentum_cg.mod ../include/momentum_dg.mod \
-   ../include/momentum_diagnostic_fields.mod ../include/multiphase_module.mod \
-   ../include/oceansurfaceforcing.mod ../include/parallel_tools.mod \
-   ../include/petsc_solve_state_module.mod \
+   ../include/free_surface_module.mod ../include/fsi_model.mod \
+   ../include/full_projection.mod ../include/geostrophic_pressure.mod \
+   ../include/hydrostatic_pressure.mod ../include/implicit_solids.mod \
+   ../include/linked_lists.mod ../include/momentum_cg.mod \
+   ../include/momentum_dg.mod ../include/momentum_diagnostic_fields.mod \
+   ../include/multiphase_module.mod ../include/oceansurfaceforcing.mod \
+   ../include/parallel_tools.mod ../include/petsc_solve_state_module.mod \
    ../include/pressure_dirichlet_bcs_cv.mod ../include/profiler.mod \
    ../include/reduced_model_runtime.mod \
    ../include/rotated_boundary_conditions.mod ../include/slope_limiters_dg.mod \
