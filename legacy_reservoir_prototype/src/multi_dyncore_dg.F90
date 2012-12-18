@@ -2281,6 +2281,12 @@
       logical :: is_overlapping, mom_conserv, GOT_OTHER_ELE, BETWEEN_ELE_STAB
       real :: beta
 
+      INTEGER :: FILT_DEN
+      LOGICAL :: GOTDEC
+      REAL :: NCVM
+      REAL :: MASS_U(U_NLOC,U_NLOC),STORE_MASS_U(U_NLOC,U_NLOC),MASS_U_CV(U_NLOC,CV_NLOC)
+      REAL :: RHS_U_CV(U_NLOC),RHS_U_CV_OLD(U_NLOC),UDEN_VFILT(NPHASE*U_NLOC),UDENOLD_VFILT(NPHASE*U_NLOC)
+
       ewrite(3,*) 'In ASSEMB_FORCE_CTY'
       !ewrite(3,*) 'Just double-checking sparsity patterns memory allocation:'
       !ewrite(3,*) 'FINDC with size,', size( FINDC ), ':', FINDC( 1 :  size( FINDC ) )
@@ -2746,6 +2752,67 @@
                END DO
             END DO
          END DO
+
+! ********************start filtering density
+!         FILT_DEN=1
+         FILT_DEN=0
+         IF(FILT_DEN.NE.0) THEN ! Filter the density...
+            DENGI = 0.0
+            DENGIOLD = 0.0
+            MASS_U=0.0
+            MASS_U_CV=0.0
+            DO U_ILOC=1,U_NLOC
+               DO U_JLOC=1,U_NLOC
+                  NN=0.0
+                  DO GI=1,CV_NGI
+                     NN = NN + UFEN( U_ILOC, GI ) * UFEN( U_JLOC, GI ) * DETWEI(GI)
+                  END DO
+                  IF(FILT_DEN==2) THEN ! Lump the mass matrix for the filter - positive density...
+                     MASS_U(U_ILOC,U_ILOC)=MASS_U(U_ILOC,U_ILOC)+NN
+                  ELSE
+                     MASS_U(U_ILOC,U_JLOC)=MASS_U(U_ILOC,U_JLOC)+NN
+                  ENDIF
+               END DO
+            END DO
+            DO U_ILOC=1,U_NLOC
+               DO CV_JLOC=1,U_NLOC
+                  NCVM=0.0
+                  DO GI=1,CV_NGI
+                     NCVM = NCVM + UFEN( U_ILOC, GI ) * CVN_SHORT( CV_JLOC, GI ) * DETWEI(GI)
+                  END DO
+                  MASS_U_CV(U_ILOC,CV_ILOC)=MASS_U_CV(U_ILOC,CV_ILOC)+NCVM
+               END DO
+            END DO
+
+            STORE_MASS_U=MASS_U
+! Store the LU decomposition...
+            GOTDEC = .FALSE.
+            DO IPHASE = 1,NPHASE
+               RHS_U_CV=0.0
+               RHS_U_CV_OLD=0.0
+               DO CV_JLOC=1,U_NLOC
+                  CV_NOD = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_JLOC )
+                  CV_NOD_PHA = CV_NOD +( IPHASE - 1) * CV_NONODS
+                  DO U_ILOC=1,U_NLOC
+                     RHS_U_CV(U_ILOC)    =RHS_U_CV(U_ILOC)    +MASS_U_CV(U_ILOC,CV_JLOC)*UDEN(CV_NOD_PHA)
+                     RHS_U_CV_OLD(U_ILOC)=RHS_U_CV_OLD(U_ILOC)+MASS_U_CV(U_ILOC,CV_JLOC)*UDENOLD(CV_NOD_PHA)
+                  END DO
+               END DO
+               CALL SMLINNGOT( STORE_MASS_U, UDEN_VFILT((IPHASE-1)*U_NLOC +1:(IPHASE-1)*U_NLOC +U_NLOC ), RHS_U_CV, U_NLOC, U_NLOC, GOTDEC)
+               GOTDEC =.TRUE.
+               CALL SMLINNGOT( STORE_MASS_U, UDENOLD_VFILT((IPHASE-1)*U_NLOC +1:(IPHASE-1)*U_NLOC +U_NLOC ), RHS_U_CV_OLD, U_NLOC, U_NLOC, GOTDEC)
+            END DO
+
+            DO U_ILOC=1,U_NLOC
+               DO GI = 1, CV_NGI_SHORT
+                  DO IPHASE = 1,NPHASE
+                     DENGI( GI, IPHASE )    = DENGI( GI, IPHASE )    + UFEN( U_ILOC, GI ) * UDEN_VFILT( (IPHASE-1)*U_NLOC + U_ILOC )
+                     DENGIOLD( GI, IPHASE ) = DENGIOLD( GI, IPHASE ) + UFEN( U_ILOC, GI ) * UDENOLD_VFILT( (IPHASE-1)*U_NLOC + U_ILOC )
+                  END DO
+               END DO
+            END DO
+         ENDIF 
+! ********************end filtering density
 
          SIGMAGI = 0.0
          SIGMAGI_STAB = 0.0
@@ -5414,7 +5481,7 @@
       SHARP_FEMT=FEMT
 
 
-      if(.true.) then ! mide side node average...
+      if(.false.) then ! mide side node average...
         DO ELE=1,TOTELE
           DO CV_ILOC=1,CV_NLOC
             FEMT_CV_NOD(CV_ILOC)=SHARP_FEMT(CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC))
@@ -5435,7 +5502,7 @@
       endif
 
       !       Smooth FEMT...
-      if(.true.) then
+      if(.false.) then
 !         DO SMOOTH_ITS=1,SMOOTH_NITS
          DO SMOOTH_ITS=1,3
             !     DO SMOOTH_ITS=1,20
