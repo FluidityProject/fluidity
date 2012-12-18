@@ -27,11 +27,14 @@ embedded_models =
                      (
                         fsi_model_projection
                      ),
-                     ## Prescribed diagnostic Velocity vector for a solid
+                     ## Prescribed diagnostic Velocity vector for a solid.
                      ## 
                      ## Use this if want a solid body to move with a 
-                     ## translational velocity. 
-                     ## on a solid body
+                     ## prescribed velocity.
+                     ##
+                     ## The return vector of the python function is
+                     ## supposed to be the solid velocity based on the
+                     ## current time t of the simulation.
                      element vector_field {
                         attribute rank { "1" },
                         attribute name { "SolidVelocity" },
@@ -47,10 +50,12 @@ embedded_models =
                      ## This is more general than the above case. 
                      ##
                      ## Use this if you want to apply a translational, 
-                     ## rotational velocity on a solid body. The return 
-                     ## vector of the python function is supposed to contain
-                     ## the distance a node of a rigid body
-                     ## travels within the time interval dt.
+                     ## rotational velocity on a solid body with a constant
+                     ## velocity.
+                     ##
+                     ## The return vector of the python function is
+                     ## supposed to contain the distance a node of a 
+                     ## rigid body travels within the time interval dt.
                      ## Hence the computation is entirely done in the 
                      ## python script.
                      element vector_field {
@@ -117,14 +122,30 @@ fsi_model_projection =
         element grandy_interpolation{empty}
     }
 
-fsi_model_input_real_dim_vector_python =
+
+fsi_model_input_real_dim_vector_solidvelocity_python =
+    ## Python function prescribing dimensional vector input. Functions should be of the form:
+    ##
+    ##  def val(X, t):
+    ##     # Function code
+    ##     return # Return value
+    ##
+    ## where X and the return value are tuples of length geometry dimension
+    ## and t as the current time.
+    element python
+    {
+     python_code
+    }
+
+fsi_model_input_real_dim_vector_solidposition_python =
     ## Python function prescribing dimensional vector input. Functions should be of the form:
     ##
     ##  def val(X, dt):
     ##     # Function code
     ##     return # Return value
     ##
-    ## where X and the return value are tuples of length geometry dimension.
+    ## where X and the return value are tuples of length geometry dimension
+    ## and dt as the current timestep.
     element python
     {
      python_code
@@ -138,7 +159,7 @@ fsi_model_prescribed_solid_velocity_mesh =
         element mesh {
             attribute name { xsd:string },
             (
-              fsi_model_input_real_dim_vector_python,
+              fsi_model_input_real_dim_vector_solidvelocity_python,
               prescribed_output_options,
               prescribed_vector_stat_options,
               prescribed_detector_options
@@ -171,7 +192,7 @@ fsi_model_prescribed_solid_position_mesh =
         element mesh {
             attribute name { xsd:string },
             (
-              fsi_model_input_real_dim_vector_python,
+              fsi_model_input_real_dim_vector_solidposition_python,
               prescribed_output_options,
               prescribed_vector_stat_options,
               prescribed_detector_options

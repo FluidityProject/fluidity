@@ -29,11 +29,14 @@ solid with prescribed movement</a:documentation>
                 <ref name="fsi_model_projection"/>
                 <optional>
                   <element name="vector_field">
-                    <a:documentation>Prescribed diagnostic Velocity vector for a solid
+                    <a:documentation>Prescribed diagnostic Velocity vector for a solid.
 
 Use this if want a solid body to move with a 
-translational velocity. 
-on a solid body</a:documentation>
+prescribed velocity.
+
+The return vector of the python function is
+supposed to be the solid velocity based on the
+current time t of the simulation.</a:documentation>
                     <attribute name="rank">
                       <value>1</value>
                     </attribute>
@@ -54,10 +57,12 @@ on a solid body</a:documentation>
 This is more general than the above case. 
 
 Use this if you want to apply a translational, 
-rotational velocity on a solid body. The return 
-vector of the python function is supposed to contain
-the distance a node of a rigid body
-travels within the time interval dt.
+rotational velocity on a solid body with a constant
+velocity.
+
+The return vector of the python function is
+supposed to contain the distance a node of a 
+rigid body travels within the time interval dt.
 Hence the computation is entirely done in the 
 python script.</a:documentation>
                     <attribute name="rank">
@@ -154,7 +159,20 @@ unity from the supermesh, to the fluid mesh.</a:documentation>
       </choice>
     </element>
   </define>
-  <define name="fsi_model_input_real_dim_vector_python">
+  <define name="fsi_model_input_real_dim_vector_solidvelocity_python">
+    <element name="python">
+      <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
+
+ def val(X, t):
+    # Function code
+    return # Return value
+
+where X and the return value are tuples of length geometry dimension
+and t as the current time.</a:documentation>
+      <ref name="python_code"/>
+    </element>
+  </define>
+  <define name="fsi_model_input_real_dim_vector_solidposition_python">
     <element name="python">
       <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
 
@@ -162,7 +180,8 @@ unity from the supermesh, to the fluid mesh.</a:documentation>
     # Function code
     return # Return value
 
-where X and the return value are tuples of length geometry dimension.</a:documentation>
+where X and the return value are tuples of length geometry dimension
+and dt as the current timestep.</a:documentation>
       <ref name="python_code"/>
     </element>
   </define>
@@ -177,7 +196,7 @@ has a prescribed velocity</a:documentation>
             <data type="string"/>
           </attribute>
           <group>
-            <ref name="fsi_model_input_real_dim_vector_python"/>
+            <ref name="fsi_model_input_real_dim_vector_solidvelocity_python"/>
             <ref name="prescribed_output_options"/>
             <ref name="prescribed_vector_stat_options"/>
             <ref name="prescribed_detector_options"/>
@@ -215,7 +234,7 @@ coordinates are prescribed in the python function</a:documentation>
             <data type="string"/>
           </attribute>
           <group>
-            <ref name="fsi_model_input_real_dim_vector_python"/>
+            <ref name="fsi_model_input_real_dim_vector_solidposition_python"/>
             <ref name="prescribed_output_options"/>
             <ref name="prescribed_vector_stat_options"/>
             <ref name="prescribed_detector_options"/>
