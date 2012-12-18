@@ -398,6 +398,13 @@
       call insert(state, new_s_field, "OldLayerThickness")
       call deallocate(new_s_field)
 
+      !Initial layer thickness
+      s_field=>extract_scalar_field(state, "InitialLayerThickness"&
+           &,stat)    
+      if(stat==0) then
+         s_field%val = D%val
+      end if
+
       s_field => extract_scalar_field(&
            state, "PotentialVorticityTracer",stat)
       if(stat==0) then
