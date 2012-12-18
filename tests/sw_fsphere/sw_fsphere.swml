@@ -54,7 +54,7 @@
     </dump_format>
     <dump_period>
       <constant>
-        <real_value rank="0">1</real_value>
+        <real_value rank="0">100</real_value>
       </constant>
     </dump_period>
     <output_mesh name="VelocityMesh"/>
@@ -73,7 +73,7 @@
       <integer_value rank="0">1</integer_value>
     </nonlinear_iterations>
     <finish_time>
-      <real_value rank="0">2000</real_value>
+      <real_value rank="0">20000.</real_value>
     </finish_time>
   </timestepping>
   <physical_parameters>
@@ -203,6 +203,33 @@ val=initial_height()</string_value>
         </stat>
         <consistent_interpolation/>
       </prognostic>
+    </scalar_field>
+    <scalar_field name="InitialLayerThickness" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="LayerThicknessError" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_difference" source_field_1_name="LayerThickness" source_field_2_name="InitialLayerThickness" source_field_2_type="scalar" material_phase_support="single" source_field_1_type="scalar"/>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat>
+          <manifold_transformation/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </diagnostic>
     </scalar_field>
     <vector_field name="VelocityWilliamson" rank="1">
       <prescribed>
