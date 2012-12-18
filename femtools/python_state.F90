@@ -139,13 +139,14 @@ module python_state
       character(len=mesh_name_len) :: mesh_name
     end subroutine python_add_tensor
 
-    subroutine python_add_mesh(ndglno,sndglno,elements,nodes,name,nlen,option_path,oplen,&
-      &continuity,region_ids,sregion_ids,state_name,state_name_len,uid)
+    subroutine python_add_mesh(ndglno,sndglno,elements,nodes,name,nlen,parent_name,plen,&
+      &option_path,oplen,continuity,region_ids,sregion_ids,state_name,state_name_len,uid)
       !! Add a mesh to the state called state_name
       implicit none
       integer, dimension(*) :: ndglno,region_ids    !! might cause a problem
-      integer :: sndglno, elements, nodes, nlen, oplen, continuity, sregion_ids, state_name_len, uid
+      integer :: sndglno, elements, nodes, nlen, plen, oplen, continuity, sregion_ids, state_name_len, uid
       character(len=nlen) :: name
+      character(len=plen) :: parent_name
       character(len=oplen) :: option_path
       character(len=state_name_len) :: state_name
     end subroutine python_add_mesh
@@ -291,22 +292,23 @@ module python_state
   subroutine python_add_mesh_directly(M,st)
     type(mesh_type) :: M
     type(state_type) :: st
-    integer :: snlen,slen,oplen
+    integer :: snlen,slen,plen,oplen
     integer, dimension(:), allocatable :: temp_region_ids
 
     slen = len(trim(M%name))
+    plen = len(trim(M%parent_name))
     snlen = len(trim(st%name))
     oplen = len(trim(M%option_path))
     
     if(associated(M%region_ids)) then
       call python_add_mesh(M%ndglno,size(M%ndglno,1),M%elements,M%nodes,&
-        trim(M%name),slen,M%option_path,oplen,&
+        trim(M%name),slen,trim(M%parent_name),plen,M%option_path,oplen,&
         M%continuity, M%region_ids, size(M%region_ids),&
         trim(st%name),snlen, M%refcount%id)
     else
       allocate(temp_region_ids(0))
       call python_add_mesh(M%ndglno,size(M%ndglno,1),M%elements,M%nodes,&
-        trim(M%name),slen,M%option_path,oplen,&
+        trim(M%name),slen,trim(M%parent_name),plen,M%option_path,oplen,&
         M%continuity, temp_region_ids, size(temp_region_ids),&
         trim(st%name),snlen, M%refcount%id)
       deallocate(temp_region_ids)

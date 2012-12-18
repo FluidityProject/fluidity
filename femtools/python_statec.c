@@ -392,7 +392,7 @@ void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int num_dim[],
 
 
 void python_add_mesh_(int ndglno[],int *sndglno, int *elements, int *nodes, 
-  char *name,int *nlen, char *option_path, int *oplen, 
+  char *name, int *nlen, char *parent_name, int *plen, char *option_path, int *oplen, 
   int *continuity, int region_ids[], int *sregion_ids,
   char *state_name, int *state_name_len, int *uid){
 #ifdef HAVE_NUMPY
@@ -402,6 +402,7 @@ void python_add_mesh_(int ndglno[],int *sndglno, int *elements, int *nodes,
 
   // Fix the Fortran strings for C and Python
   char *namec = fix_string(name,*nlen);
+  char *pnamec = fix_string(parent_name,*plen);
   char *opc = fix_string(option_path,*oplen);
 
   python_add_array_integer_1d(ndglno, sndglno,"mesh_array");
@@ -420,16 +421,22 @@ void python_add_mesh_(int ndglno[],int *sndglno, int *elements, int *nodes,
   int tlen=150 + *state_name_len;
   char t[tlen];
 
+  if (*plen > 1) {
+    snprintf(t, tlen, "m = states['%s'].meshes.get('%s')", n, pnamec);
+    PyRun_SimpleString(t);
+  } else {
+    snprintf(t, tlen, "m = None");
+    PyRun_SimpleString(t);
+  }
   snprintf(t, tlen,
-      "states['%s'].meshes['%s'] = mesh_cache.setdefault(%d, Mesh(mesh_array,%d,%d,%d,n,op,region_ids,%d))",
+      "states['%s'].meshes['%s'] = mesh_cache.setdefault(%d, Mesh(mesh_array,%d,%d,%d,n,m,op,region_ids,%d))",
       n, namec, *uid, *elements, *nodes, *continuity, *uid);
-  PyRun_SimpleString(t);
-  snprintf(t, tlen, "m = states['%s'].meshes['%s']", n, namec);
   PyRun_SimpleString(t);
 
   // Clean up
   PyRun_SimpleString("del n; del op; del m");
   free(namec); 
+  free(pnamec); 
   free(n); 
   free(opc);
 

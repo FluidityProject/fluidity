@@ -737,6 +737,7 @@ contains
        end if
              
        mesh%name = mesh_name
+       mesh%parent_name = trim(model_mesh_name)
                 
        ! Set mesh option path.
        mesh%option_path = trim(mesh_path)

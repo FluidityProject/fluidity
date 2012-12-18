@@ -64,6 +64,7 @@ module fields_data_types
      integer :: elements
      integer :: nodes
      character(len=FIELD_NAME_LEN) :: name
+     character(len=FIELD_NAME_LEN) :: parent_name
      !! path to options in the options tree
 #ifdef DDEBUG
      character(len=OPTION_PATH_LEN) :: option_path="/uninitialised_path/"
