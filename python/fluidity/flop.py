@@ -91,7 +91,8 @@ class Mesh(fluidity_state.Mesh):
 
     @cached_property
     def element_set(self):
-        return op2.Set(self.element_count, "%s_elements" % self.name)
+        return self.parent.element_set if self.parent else \
+                op2.Set(self.element_count, "%s_elements" % self.name)
 
     @cached_property
     def node_set(self):
