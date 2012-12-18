@@ -624,6 +624,12 @@
            X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM, &
            IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC )
 
+!         femt=t
+!         femtold=told
+!         FEMT2=t2
+!         FEMT2OLD=t2old
+
+
       MASS_ELE_TRANSP = MASS_ELE
 
       NORMALISE = .false.
@@ -2770,7 +2776,8 @@
          ENDIF
 
          ! Calculate normalisation parameters for incomming velocities 
-         TDELE = ETDNEW( PELE ) 
+         TDELE = ETDNEW( PELE )
+         !tdele = min( max( tdcen + 1.*( TDELE - tdcen ) , 0.) , 1. )
          DENOIN = TDELE - TUPWIN 
 
          IF( ABS( DENOIN ) < TOLER ) DENOIN = SIGN( TOLER, DENOIN )
@@ -2779,7 +2786,8 @@
          CTILIN = ( UCIN - TUPWIN ) / DENOIN
 
          ! Calculate normalisation parameters for out going velocities 
-         TDELE = ETDNEW( PELEOT ) 
+         TDELE = ETDNEW( PELEOT )
+         !tdele =  min( max( tdcen + 1.*( TDELE - tdcen ) , 0.) , 1. )
          DENOOU = TDELE - TUPWI2
 
          IF( ABS( DENOOU ) < TOLER) DENOOU = SIGN( TOLER, DENOOU )
@@ -2808,6 +2816,7 @@
          TDLIM = INCOME * UCIN + ( 1.0 - INCOME ) * UCOU 
 
       ELSE
+
 
          FTILIN = ( TDCEN - TUPWIN ) / DENOIN
          FTILOU = ( TDCEN - TUPWI2 ) / DENOOU
@@ -3065,7 +3074,7 @@
          IF( COURAT > 0.0 ) THEN
             !TILDEUF = MIN( 1.0, max( UC / COURAT, XI * UC ))
             ! halve the slope for now...
-            TILDEUF = MIN( 1.0, max( UC / 1.0*COURAT, XI * UC ))
+            TILDEUF = MIN( 1.0, max( UC / 1.0 * COURAT, XI * UC ))
          ELSE !For the normal limiting
             MAXUF = MAX( 0.0, UF )
             TILDEUF = MIN( 1.0, XI * UC, MAXUF )
@@ -5338,15 +5347,21 @@
       INTEGER :: CV_KLOC, CV_NODK, CV_NODK_IPHA, CV_KLOC2, CV_NODK2, CV_NODK2_IPHA, CV_STAR_IPHA, &
            CV_SKLOC, CV_SNODK, CV_SNODK_IPHA
 
+      LOGICAL :: VOF_METHOD, VOF_INTER, VOF_INTER_OLD
+      REAL :: T_BETWEEN_MIN, T_BETWEEN_MAX, TOLD_BETWEEN_MIN, TOLD_BETWEEN_MAX
+      REAL :: T_AVE_EDGE, T_AVE_ELE, TOLD_AVE_EDGE, TOLD_AVE_ELE
+      REAL :: T_MIDVAL, TOLD_MIDVAL
+      REAL :: T_UPWIND,TOLD_UPWIND,TMIN_UPWIND,TMAX_UPWIND,TOLDMIN_UPWIND,TOLDMAX_UPWIND
+
       ! The adjustment method is not ready for the LIMIT_USE_2ND - the new limiting method.
       LIM_VOL_ADJUST =LIM_VOL_ADJUST2.AND.(.NOT.LIMIT_USE_2ND)
 
       FVT2    = 1.0
       FVT2OLD = 1.0
 
-      if (cv_disopt>=8) then
-         courant_or_minus_one_new = DT * ndotq / HDC
-         courant_or_minus_one_old = DT * ndotqold / HDC
+      if ( cv_disopt>=8 ) then
+         courant_or_minus_one_new = abs ( dt * ndotq / hdc )
+         courant_or_minus_one_old = abs ( dt * ndotqold / hdc )
       else
          courant_or_minus_one_new = -1.0
          courant_or_minus_one_old = -1.0
@@ -5588,6 +5603,124 @@
 
       END SELECT
 
+      VOF_INTER = .TRUE.
+      VOF_INTER_OLD = .TRUE.
+
+      ! use vof type approach
+      VOF_METHOD= .false.
+
+      IF( VOF_METHOD ) THEN 
+         ! Find interface value pts and see if 0.5 lies within them - then  VOF_INTER=.TRUE.
+         ! if VOF_INTER then use normal limiting options 
+         ! else assume 1.0 or 0.0 depending on the closest value. 
+         ! VOF_INTER_OLD is for the old variable
+
+         T_AVE_EDGE = 0.5 * ( T( CV_NODI_IPHA ) + T( CV_NODJ_IPHA ) )
+         TOLD_AVE_EDGE = 0.5 * ( TOLD( CV_NODI_IPHA ) + TOLD( CV_NODJ_IPHA ) )
+
+         T_AVE_ELE = 0.
+         TOLD_AVE_ELE = 0. 
+         DO CV_KLOC = 1, CV_NLOC
+            CV_NODK_IPHA = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC ) + ( IPHASE - 1 ) * CV_NONODS
+            T_AVE_ELE = T_AVE_ELE + T( CV_NODK_IPHA ) / CV_NLOC
+            TOLD_AVE_ELE = TOLD_AVE_ELE + TOLD( CV_NODK_IPHA ) / CV_NLOC
+         END DO
+
+         T_UPWIND=T( CV_NODI_IPHA ) * (1. - INCOME) + T( CV_NODJ_IPHA ) * INCOME
+         TOLD_UPWIND=TOLD( CV_NODI_IPHA ) * (1. - INCOMEOLD) + TOLD( CV_NODJ_IPHA ) * INCOMEOLD
+         TMIN_UPWIND=TMIN( CV_NODI_IPHA ) * (1. - INCOME) + TMIN( CV_NODJ_IPHA ) * INCOME
+         TMAX_UPWIND=TMAX( CV_NODI_IPHA ) * (1. - INCOME) + TMAX( CV_NODJ_IPHA ) * INCOME 
+         TOLDMIN_UPWIND=TOLDMIN( CV_NODI_IPHA ) * (1. - INCOMEOLD) + TOLDMIN( CV_NODJ_IPHA ) * INCOMEOLD
+         TOLDMAX_UPWIND=TOLDMAX( CV_NODI_IPHA ) * (1. - INCOMEOLD) + TOLDMAX( CV_NODJ_IPHA ) * INCOMEOLD
+
+         IF( ( T_UPWIND >= TMAX_UPWIND-1.E-6 ) .OR. ( T_UPWIND <= TMIN_UPWIND+1.E-6 ) ) THEN
+           ! Extrema...
+           T_MIDVAL = 0.5 * ( TMIN_UPWIND + TMAX_UPWIND )
+           !IF( T_UPWIND >= 0.95 ) T_MIDVAL = 0.5  
+         ELSE
+           T_MIDVAL = 0.5 
+         ENDIF
+
+         IF( ( TOLD_UPWIND >= TOLDMAX_UPWIND-1.E-6 ) .OR. ( TOLD_UPWIND <= TOLDMIN_UPWIND+1.E-6 ) ) THEN
+           ! Extrema...
+           TOLD_MIDVAL = 0.5 * ( TOLDMIN_UPWIND + TOLDMAX_UPWIND )
+           !IF( TOLD_UPWIND >= 0.95 ) TOLD_MIDVAL = 0.5  
+         ELSE
+           TOLD_MIDVAL = 0.5
+         ENDIF
+
+
+         ! hard wired for interfaces...
+         T_MIDVAL = 0.5 
+         TOLD_MIDVAL = 0.5
+
+
+         T_BETWEEN_MIN = MIN( T_AVE_EDGE, T_AVE_ELE )
+         T_BETWEEN_MAX = MAX( T_AVE_EDGE, T_AVE_ELE )
+
+         TOLD_BETWEEN_MIN = MIN( TOLD_AVE_EDGE, TOLD_AVE_ELE )
+         TOLD_BETWEEN_MAX = MAX( TOLD_AVE_EDGE, TOLD_AVE_ELE )
+
+         femtgi = ( t_between_min + t_between_max ) / 2 
+         femtoldgi = ( told_between_min + told_between_max ) / 2 
+
+         VOF_INTER = .FALSE.	    
+         VOF_INTER_OLD = .FALSE.
+         IF( T_BETWEEN_MIN < T_MIDVAL .AND. T_BETWEEN_MAX > T_MIDVAL ) THEN
+            VOF_INTER = .TRUE.
+            femtgi = (t_between_min+t_between_max)/2 !max(min(femtgi, t_between_max), t_between_min)
+         END IF
+
+         IF( TOLD_BETWEEN_MIN < TOLD_MIDVAL .AND. TOLD_BETWEEN_MAX > TOLD_MIDVAL ) then
+            VOF_INTER_OLD = .TRUE. 
+            femtoldgi = (told_between_min+told_between_max)/2 !max(min(femtoldgi, told_between_max), told_between_min)
+         END IF
+
+
+!if( ( T(CV_NODI_IPHA) >= TMAX(CV_NODI_IPHA)-1.E-4 .or. T(CV_NODJ_IPHA) >= TMAX(CV_NODJ_IPHA)-1.E-4 ) .and. (T(CV_NODI_IPHA) <= 0.5+0.1 .OR. T(CV_NODJ_IPHA)<= 0.5+0.1) ) VOF_INTER=.true.
+!if( ( T(CV_NODI_IPHA) <= TMIN(CV_NODI_IPHA)+1.E-4 .or. T(CV_NODJ_IPHA) <= TMIN(CV_NODJ_IPHA)+1.E-4 ) .and. (T(CV_NODI_IPHA) >= 0.5-0.1 .OR. T(CV_NODJ_IPHA)>= 0.5-0.1) ) VOF_INTER=.true.
+
+!if( ( Told(CV_NODI_IPHA) >= ToldMAX(CV_NODI_IPHA)-1.E-4 .or. Told(CV_NODJ_IPHA) >= ToldMAX(CV_NODJ_IPHA)-1.E-4 ) .and. (Told(CV_NODI_IPHA) <= 0.5+0.1 .OR. Told(CV_NODJ_IPHA)<= 0.5+0.1) ) VOF_INTER_OLD=.true.
+!if( ( Told(CV_NODI_IPHA) <= ToldMIN(CV_NODI_IPHA)+1.E-4 .or. Told(CV_NODJ_IPHA) <= ToldMIN(CV_NODJ_IPHA)+1.E-4 ) .and. (Told(CV_NODI_IPHA) >= 0.5-0.1 .OR. Told(CV_NODJ_IPHA)>= 0.5-0.1) ) VOF_INTER_OLD=.true.
+
+!if( ( T(CV_NODI_IPHA) >= TMAX(CV_NODI_IPHA)-1.E-4 .or. T(CV_NODJ_IPHA) >= TMAX(CV_NODJ_IPHA)-1.E-4 ) .and. T_UPWIND <= 0.5+0.1 ) VOF_INTER=.true.
+!if( ( T(CV_NODI_IPHA) <= TMIN(CV_NODI_IPHA)+1.E-4 .or. T(CV_NODJ_IPHA) <= TMIN(CV_NODJ_IPHA)+1.E-4 ) .and. T_UPWIND >= 0.5-0.1 ) VOF_INTER=.true.
+
+!if( ( Told(CV_NODI_IPHA) >= ToldMAX(CV_NODI_IPHA)-1.E-4 .or. Told(CV_NODJ_IPHA) >= ToldMAX(CV_NODJ_IPHA)-1.E-4 ) .and. Told_UPWIND <= 0.5+0.1 ) VOF_INTER_OLD=.true.
+!if( ( Told(CV_NODI_IPHA) <= ToldMIN(CV_NODI_IPHA)+1.E-4 .or. Told(CV_NODJ_IPHA) <= ToldMIN(CV_NODJ_IPHA)+1.E-4 ) .and. Told_UPWIND >= 0.5-0.1 ) VOF_INTER_OLD=.true.
+
+!if( T_UPWIND >= TMAX_UPWIND-1.E-4 .and. T_UPWIND <= 0.5+0.1 ) VOF_INTER=.true.
+!if( T_UPWIND <= TMIN_UPWIND+1.E-4 .and. T_UPWIND >= 0.5-0.1 ) VOF_INTER=.true.
+!if( T_UPWIND >= 0.5+0.3 .or. T_UPWIND <= 0.5-0.3 ) VOF_INTER=.true.
+
+!if( TOLD_UPWIND >= TOLDMAX_UPWIND-1.E-4 .and. TOLD_UPWIND <= 0.5+0.1 ) VOF_INTER_OLD=.true.
+!if( TOLD_UPWIND <= TOLDMIN_UPWIND+1.E-4 .and. TOLD_UPWIND >= 0.5-0.1 ) VOF_INTER_OLD=.true.
+!if( TOLD_UPWIND >= 0.5+0.3 .or. TOLD_UPWIND <= 0.5-0.3 ) VOF_INTER_OLD=.true.
+
+!if( FEMTGI < 0.5 ) VOF_INTER=.true.
+!if( FEMToldGI < 0.5 ) VOF_INTER_OLD=.true.
+
+
+
+
+         IF( .NOT.VOF_INTER ) THEN
+            IF( FEMTGI > T_MIDVAL ) THEN
+               FEMTGI = 1.!MIN(1.0, TMAX_UPWIND )!1.0
+            ELSE 
+               FEMTGI = 0.!MAX(0.0, TMIN_UPWIND )!0.0
+            END IF
+         END IF
+
+         IF( .NOT.VOF_INTER_OLD ) THEN
+            IF( FEMTOLDGI > TOLD_MIDVAL ) THEN
+              FEMTOLDGI = 1.!MIN(1.0, TOLDMAX_UPWIND )!1.0
+            ELSE 
+              FEMTOLDGI = 0.!MAX(0.0, TOLDMIN_UPWIND )!0.0
+            END IF
+         END IF
+
+      END IF
+
       ! The original isotropic limiting method for all other cases
       ! Call the original NVD limiting routine to limit the face value of the old 
       ! and new field variable and "density"
@@ -5641,12 +5774,14 @@
          CALL ONVDLIM_ALL( CV_NONODS, &
               LIMT, FEMTGI, INCOME, CV_NODI_IPHA-(IPHASE-1)*CV_NONODS, CV_NODJ_IPHA-(IPHASE-1)*CV_NONODS, &
               T( CV_STAR_IPHA ), TMIN( CV_STAR_IPHA ), TMAX( CV_STAR_IPHA ), &
-              TMIN_2ND_MC( CV_STAR_IPHA ), TMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_NEW )
+              TMIN_2ND_MC( CV_STAR_IPHA ), TMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, .not.VOF_INTER, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_NEW )
+         !    TMIN_2ND_MC( CV_STAR_IPHA ), TMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, .true., LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_NEW )
 
          CALL ONVDLIM_ALL( CV_NONODS, &
               LIMTOLD, FEMTOLDGI, INCOMEOLD, CV_NODI_IPHA-(IPHASE-1)*CV_NONODS, CV_NODJ_IPHA-(IPHASE-1)*CV_NONODS, &
               TOLD( CV_STAR_IPHA ), TOLDMIN( CV_STAR_IPHA ), TOLDMAX( CV_STAR_IPHA ), &
-              TOLDMIN_2ND_MC( CV_STAR_IPHA ), TOLDMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_OLD )
+              TOLDMIN_2ND_MC( CV_STAR_IPHA ), TOLDMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, .not.VOF_INTER_OLD, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_OLD )
+         !    TOLDMIN_2ND_MC( CV_STAR_IPHA ), TOLDMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, .true., LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_OLD )
 
          CALL ONVDLIM_ALL( CV_NONODS, &
               LIMD, FEMDGI, INCOME, CV_NODI_IPHA-(IPHASE-1)*CV_NONODS, CV_NODJ_IPHA-(IPHASE-1)*CV_NONODS, &

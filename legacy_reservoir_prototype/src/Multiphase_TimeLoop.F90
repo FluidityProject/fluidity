@@ -399,6 +399,12 @@
            Temperature, Temperature_BC_Spatial, Temperature_BC, Temperature_Source, &
            Porosity, Permeability )
 
+
+!print *, Component_BC_Spatial
+!print *, '@@@@@'
+!print *, Component_BC
+!stop 777
+
 !!$ Dummy field used in the scalar advection option:
       Dummy_PhaseVolumeFraction_FEMT = 1.
 
