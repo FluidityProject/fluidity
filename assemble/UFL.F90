@@ -76,8 +76,6 @@ contains
     call python_run_string("flop._init(option_path)")
     call python_run_string("coordinates = state.vector_fields['Coordinate']")
     call python_run_string("for mesh in state.meshes.itervalues(): mesh.coords = coordinates")
-    call python_run_string("dx._domain_data = coordinates")
-    call python_run_string("ds._domain_data = coordinates")
     write(buffer,*) current_time
     call python_run_string("time="//trim(buffer))
     write(buffer,*) dt

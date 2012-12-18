@@ -145,10 +145,6 @@ def _assemble_tensor(f):
     fd = f.form_data()
     is_mat = fd.rank == 2
 
-    # Get relevant entities of the coordinate field
-    coords = f.measures()[0].domain_data()
-    coord_elem_node = coords.element_node_map
-
     if is_mat:
         test,trial = fd.arguments
         itspace_extents = [ arg.mesh.shape.loc for arg in (test, trial) ]
@@ -173,6 +169,7 @@ def _assemble_tensor(f):
 
     # FIXME: put somewhere appropriate
     test.mesh.compute_boundaries()
+    coords = test.mesh.coords
 
     for kernel, integral in zip(kernels, f.integrals()):
         domain_type = integral.measure().domain_type()
@@ -183,7 +180,8 @@ def _assemble_tensor(f):
             else:
                 tensor_arg = tensor(test.mesh.element_node_map[op2.i[0]], op2.INC)
             itspace = test.mesh.element_set(*itspace_extents)
-            args = [kernel, itspace, tensor_arg, coords.dat(coord_elem_node, op2.READ)]
+            args = [kernel, itspace, tensor_arg,
+                    coords.dat(coords.element_node_map, op2.READ)]
             for c in fd.coefficients:
                 args.append(c.dat(c.element_node_map, op2.READ))
             op2.par_loop(*args)
@@ -196,7 +194,8 @@ def _assemble_tensor(f):
             else:
                 tensor_arg = tensor(elem_node[op2.i[0]], op2.INC)
             itspace = test.mesh.faces.boundary_elem_sets[boundary](*itspace_extents)
-            args = [kernel, itspace, tensor_arg, coords.dat(elem_node, op2.READ)]
+            args = [kernel, itspace, tensor_arg,
+                    coords.dat(coords.element_node_map, op2.READ)]
             for c in fd.coefficients:
                 args.append(c.dat(elem_node, op2.READ))
             args.append(test.mesh.faces.boundary_facets[boundary](op2.IdentityMap, op2.READ))
