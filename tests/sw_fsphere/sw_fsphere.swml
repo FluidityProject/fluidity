@@ -8,7 +8,7 @@
       <integer_value rank="0">3</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="sphere">
+      <from_file file_name="spheremesh">
         <format name="triangle"/>
         <dimension>
           <integer_value rank="0">2</integer_value>
@@ -54,7 +54,7 @@
     </dump_format>
     <dump_period>
       <constant>
-        <real_value rank="0">100</real_value>
+        <real_value rank="0">20000.</real_value>
       </constant>
     </dump_period>
     <output_mesh name="VelocityMesh"/>
