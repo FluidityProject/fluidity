@@ -2754,8 +2754,8 @@
          END DO
 
 ! ********************start filtering density
-!         FILT_DEN=1
-         FILT_DEN=0
+         FILT_DEN=1
+!         FILT_DEN=0
          IF(FILT_DEN.NE.0) THEN ! Filter the density...
             DENGI = 0.0
             DENGIOLD = 0.0
@@ -2780,7 +2780,7 @@
                   DO GI=1,CV_NGI
                      NCVM = NCVM + UFEN( U_ILOC, GI ) * CVN_SHORT( CV_JLOC, GI ) * DETWEI(GI)
                   END DO
-                  MASS_U_CV(U_ILOC,CV_ILOC)=MASS_U_CV(U_ILOC,CV_ILOC)+NCVM
+                  MASS_U_CV(U_ILOC,CV_JLOC)=MASS_U_CV(U_ILOC,CV_JLOC)+NCVM
                END DO
             END DO
 

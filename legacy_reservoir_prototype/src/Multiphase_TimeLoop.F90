@@ -561,15 +561,72 @@
                        * CV_NONODS ) / RSUM
                END DO
             END DO
+
+
+
+if ( .false. .and. itime==1 ) then
+               allocate( DEN_CV_NOD( CV_NLOC, NPHASE) ) 
+               if ( cv_nloc==6 .or. cv_nloc==10 ) then ! P2 triangle or tet
+
+                  density_tmp = component
+
+                  DO ELE = 1, TOTELE
+                     DO CV_ILOC = 1, CV_NLOC
+                        CV_NOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
+                        DO IPHASE = 1,NPHASE
+                           CV_NOD_PHA = CV_NOD +( IPHASE - 1) * CV_NONODS
+                           DEN_CV_NOD( CV_ILOC, IPHASE ) = density_tmp( CV_NOD_PHA )
+                        END DO
+                     END DO
+
+                     DEN_CV_NOD(2, :) = 0.5 * ( DEN_CV_NOD(1, :) + DEN_CV_NOD(3, :) )
+                     DEN_CV_NOD(4, :) = 0.5 * ( DEN_CV_NOD(1, :) + DEN_CV_NOD(6, :) )
+                     DEN_CV_NOD(5, :) = 0.5 * ( DEN_CV_NOD(3, :) + DEN_CV_NOD(6, :) )
+
+                     if ( cv_nloc==10 ) then
+                        DEN_CV_NOD(7, :) = 0.5 * ( DEN_CV_NOD(1, :) + DEN_CV_NOD(10, :) )
+                        DEN_CV_NOD(8, :) = 0.5 * ( DEN_CV_NOD(3, :) + DEN_CV_NOD(10, :) )
+                        DEN_CV_NOD(9, :) = 0.5 * ( DEN_CV_NOD(6, :) + DEN_CV_NOD(10, :) )
+                     end if
+
+                     DO CV_ILOC = 1, CV_NLOC
+                        CV_NOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
+                        DO IPHASE = 1, NPHASE
+                           CV_NOD_PHA = CV_NOD +( IPHASE - 1) * CV_NONODS
+                           component( CV_NOD_PHA ) = DEN_CV_NOD( CV_ILOC, IPHASE )
+                        END DO
+                     END DO
+                  END DO
+          
+               end if
+               deallocate( DEN_CV_NOD ) 
+
+               component_old = component
+end if
+
+
+
+
             do icomp = 1, ncomp
                do iphase = 1, nphase
                   Component_State => extract_scalar_field( state( icomp + nphase ), & 
                        'ComponentMassFractionPhase' // int2str( iphase ) )
                   Component_State % val = component( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
                        nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
+
+
+                  Component_State => extract_scalar_field( state( icomp + nphase ), & 
+                       'ComponentMassFractionPhase' // int2str( iphase ) // 'Old' )
+                  Component_State % val = component_old( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
+                       nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
+
                end do
             end do
          END IF
+
+
+
+
 
          Loop_NonLinearIteration: do its = 1, NonLinearIteration
 
@@ -737,13 +794,13 @@
                end if
                deallocate( DEN_CV_NOD ) 
 
-               if ( (cv_nloc==6 .or. cv_nloc==10) .and. &
-                    .not. have_option( '/material_phase[0]/multiphase_properties/relperm_type' ) &
-                    ) then
-                  U_Density = Density_tmp
-                  U_Density_Old = Density_Old_tmp
-                  if ( its == 1 ) U_Density_Old = Density_tmp
-               end if
+               !if ( (cv_nloc==6 .or. cv_nloc==10) .and. &
+               !     .not. have_option( '/material_phase[0]/multiphase_properties/relperm_type' ) &
+               !     ) then
+               !   U_Density = Density_tmp
+               !   U_Density_Old = Density_Old_tmp
+               !   if ( its == 1 ) U_Density_Old = Density_tmp
+               !end if
 
                call calculate_u_source_cv( state, cv_nonods, ndim, nphase, density_tmp, Velocity_U_Source_CV )
 

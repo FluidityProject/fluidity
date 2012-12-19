@@ -39,7 +39,7 @@
         <mesh name="CoordinateMesh"/>
         <mesh_shape>
           <polynomial_degree>
-            <integer_value rank="0">1</integer_value>
+            <integer_value rank="0">2</integer_value>
           </polynomial_degree>
         </mesh_shape>
         <mesh_continuity>
@@ -87,7 +87,7 @@
         <mesh name="CoordinateMesh"/>
         <mesh_shape>
           <polynomial_degree>
-            <integer_value rank="0">1</integer_value>
+            <integer_value rank="0">2</integer_value>
           </polynomial_degree>
         </mesh_shape>
         <mesh_continuity>
@@ -121,7 +121,7 @@
       <real_value rank="0">0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">1e-2</real_value>
+      <real_value rank="0">5e-3</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">10</real_value>
