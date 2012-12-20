@@ -34,7 +34,7 @@ module fsi_projections
   use global_parameters, only: OPTION_PATH_LEN
   use linked_lists
   use bound_field_module
-  use fefields, only: compute_lumped_mass
+  use fefields, only: compute_lumped_mass, project_field
   use tetrahedron_intersection_module
 
   implicit none
@@ -611,6 +611,7 @@ module fsi_projections
        type(vector_field), pointer, intent(in) :: fluid_position
        type(vector_field), intent(in) :: solid_position
        type(scalar_field), intent(inout) :: alpha
+       type(scalar_field) :: alpha_coordinatemesh
 
        type(vector_field), pointer :: positions
        type(vector_field) :: external_positions_local
@@ -623,6 +624,9 @@ module fsi_projections
        real, dimension(:, :), allocatable :: pos_A
        real, dimension(:), allocatable :: detwei
        real :: vol, ele_A_vol
+
+       call allocate(alpha_coordinatemesh, fluid_position%mesh, 'SolidConcentrationCoordinateMesh')
+       call zero(alpha_coordinatemesh)
 
        ! Set the input of the RTREE finder as the coordinates of the fluids mesh:
        call rtree_intersection_finder_set_input(fluid_position)
@@ -697,7 +701,7 @@ module fsi_projections
              ele_A_nodes => ele_nodes(fluid_position, ele_A)
              do k = 1, size(ele_A_nodes)
                 ! Volume fraction by grandy projection
-                call addto(alpha, ele_A_nodes(k), vol/ele_A_vol)
+                call addto(alpha_coordinatemesh, ele_A_nodes(k), vol/ele_A_vol)
              end do
              call deallocate(intersection)
           end do
@@ -707,17 +711,25 @@ module fsi_projections
        call rtree_intersection_finder_reset(ntests)
 
        ! Bound field:
-       call bound_scalar_field(alpha, 0.0, 1.0)
+       call bound_scalar_field(alpha_coordinatemesh, 0.0, 1.0)
+
+       ! Remap to alpha:
+       call remap_field(alpha_coordinatemesh, alpha)
+       call deallocate(alpha_coordinatemesh)
 
     end subroutine fsi_one_way_grandy_interpolation
 
     subroutine bound_scalar_field(sfield, minvalue, maxvalue)
         type(scalar_field), intent(inout) :: sfield
         real, intent(in) :: minvalue, maxvalue
-        integer :: i
+        integer :: i, ele
+        integer, dimension(:), pointer :: nodes
 
-        do i = 1, node_count(sfield)
-           call set(sfield, i, max(minvalue, min(maxvalue, node_val(sfield, i))))
+        do ele = 1, ele_count(sfield%mesh)
+            nodes => ele_nodes(sfield%mesh, ele)
+            do i = 1, size(nodes)
+                call set(sfield, nodes(i), max(minvalue, min(maxvalue, node_val(sfield, nodes(i)))))
+            end do
         end do
 
     end subroutine bound_scalar_field
