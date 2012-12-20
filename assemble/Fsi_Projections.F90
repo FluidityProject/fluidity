@@ -100,7 +100,7 @@ module fsi_projections
     type(scalar_field) :: lumped_inverse_mass_matrix_fluid
 
 
-    ewrite(2,*) "inside one_way_unity_projection"
+    ewrite(2,*) "inside fsi_one_way_galerkin_projection"
 
     dim = mesh_dim(positionsS)
     call intersector_set_dimension(dim)
@@ -274,6 +274,7 @@ module fsi_projections
     if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
         tmp = solid_velocity_sf%option_path
         solid_velocity_sf%option_path = "/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/continuous"
+
         ! Project solid velocity to the fluid mesh:
         call petsc_solve(solid_velocity_sf, mass_matrix_fluid, rhs_fluid)
         ! Resetting option path for solid_velocity_sf:
@@ -302,7 +303,7 @@ module fsi_projections
     call deallocate(lumped_mass_matrix_fluid)
     call deallocate(lumped_inverse_mass_matrix_fluid)
 
-    ewrite(2,*) "leaving one_way_unity_projection"
+    ewrite(2,*) "leaving fsi_one_way_galerkin_projection"
 
   end subroutine fsi_one_way_galerkin_projection
 

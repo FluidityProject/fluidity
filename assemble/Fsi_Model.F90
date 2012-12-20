@@ -829,8 +829,7 @@ module fsi_model
 
         ewrite(2, *) 'inside compute_fluid_absorption'
 
-        !fluid_velocity => extract_vector_field(state, 'Velocity')
-        alpha_global => extract_scalar_field(state, "IteratedSolidConcentration")
+        alpha_global => extract_scalar_field(state, 'IteratedSolidConcentration')
         ! Get absorption velocity from state:
         absorption_iter => extract_vector_field(state, 'IteratedVelocityAbsorption')
         call zero(absorption_iter)
@@ -849,7 +848,7 @@ module fsi_model
             call get_option('/embedded_models/fsi_model/one_way_coupling/beta', beta)
             call scale(absorption_iter, beta)
         end if
-        
+
         ! Now set the absorption velocity:
         ! Get absorption velocity from state:
         absorption => extract_vector_field(state, 'VelocityAbsorption')
