@@ -245,7 +245,7 @@ val=spherical_down()</string_value>
       <prescribed>
         <value>
           <python>
-            <string_value lines="20" type="code" language="python">from Williamson_RHwave import initial_streamfn
+            <string_value lines="20" type="code" language="python">from sw_common.Williamson_RHwave import initial_streamfn
 val=initial_streamfn()</string_value>
           </python>
         </value>
@@ -285,7 +285,7 @@ val=initial_streamfn()</string_value>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">from Williamson_RHwave import initial_velocity
+            <string_value lines="20" type="code" language="python">from sw_common.Williamson_RHwave import initial_velocity
 val=initial_velocity()</string_value>
           </python>
         </value>
