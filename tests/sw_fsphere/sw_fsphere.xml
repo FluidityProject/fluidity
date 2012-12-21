@@ -5,7 +5,7 @@
   <owner userid="jemma"/>
   <tags>swml</tags>
   <problem_definition length="special" nprocs="1">
-    <command_line>shallow_water sw_fsphere3.swml; shallow_water sw_fsphere4.swml; shallow_water sw_fsphere5.swml; shallow_water sw_fsphere6.swml</command_line>
+    <command_line>shallow_water fsphere3.swml; shallow_water fsphere4.swml; shallow_water fsphere5.swml; shallow_water fsphere6.swml</command_line>
     <!-- shallow water test case on a f-sphere-->
   </problem_definition>
   <variables>
