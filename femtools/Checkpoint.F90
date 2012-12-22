@@ -483,6 +483,8 @@ contains
         ! The solid mesh is only serial for now, thus only dump one solid mesh file:
         if (.not. present_and_true(solid)) then
           if(present_and_nonempty(postfix)) mesh_filename = trim(mesh_filename) // "_" // trim(postfix)
+        else
+          mesh_filename = trim(mesh_filename) // "_checkpoint"
         end if
 
         ! Update the options tree (required for options tree checkpointing)
