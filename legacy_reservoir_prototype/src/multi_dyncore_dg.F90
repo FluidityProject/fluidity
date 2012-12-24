@@ -2754,8 +2754,8 @@
          END DO
 
 ! ********************start filtering density
-         FILT_DEN=1
-!         FILT_DEN=0
+!         FILT_DEN=1
+         FILT_DEN=0
          IF(FILT_DEN.NE.0) THEN ! Filter the density...
             DENGI = 0.0
             DENGIOLD = 0.0
