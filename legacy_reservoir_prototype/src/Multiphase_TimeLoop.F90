@@ -794,13 +794,13 @@ end if
                end if
                deallocate( DEN_CV_NOD ) 
 
-               !if ( (cv_nloc==6 .or. cv_nloc==10) .and. &
-               !     .not. have_option( '/material_phase[0]/multiphase_properties/relperm_type' ) &
-               !     ) then
-               !   U_Density = Density_tmp
-               !   U_Density_Old = Density_Old_tmp
-               !   if ( its == 1 ) U_Density_Old = Density_tmp
-               !end if
+               if ( (cv_nloc==6 .or. cv_nloc==10) .and. &
+                    .not. have_option( '/material_phase[0]/multiphase_properties/relperm_type' ) &
+                    ) then
+                  U_Density = Density_tmp
+                  U_Density_Old = Density_Old_tmp
+                  if ( its == 1 ) U_Density_Old = Density_tmp
+               end if
 
                call calculate_u_source_cv( state, cv_nonods, ndim, nphase, density_tmp, Velocity_U_Source_CV )
 

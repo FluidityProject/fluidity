@@ -2753,8 +2753,14 @@
             END DO
          END DO
 
+!         print *,'before'
+!         print *,'DENGI',dengi
+
+!         print *,'DENGIold',dengiold
+
 ! ********************start filtering density
 !         FILT_DEN=1
+!         FILT_DEN=2 ! best option to use
          FILT_DEN=0
          IF(FILT_DEN.NE.0) THEN ! Filter the density...
             DENGI = 0.0
@@ -2812,7 +2818,15 @@
                END DO
             END DO
          ENDIF 
+!         print *,'before cv_nloc,u_nloc',cv_nloc,u_nloc
+!         print *,'DENGI',dengi
+
+!         print *,'DENGIold',dengiold
+!         stop 933
 ! ********************end filtering density
+! not good to have -ve density at quadature pt...
+         DENGI=max(0.0,DENGI)
+         DENGIold=max(0.0,DENGIold)
 
          SIGMAGI = 0.0
          SIGMAGI_STAB = 0.0

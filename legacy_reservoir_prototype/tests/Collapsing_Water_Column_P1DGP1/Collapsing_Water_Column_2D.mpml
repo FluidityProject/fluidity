@@ -121,7 +121,7 @@
       <real_value rank="0">0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">5e-3</real_value>
+      <real_value rank="0">2e-3</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">10</real_value>
@@ -565,7 +565,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value lines="20" type="python">def val(X, t):
  val=0.
  if(X[0]&lt;=0.25 and X[1]&lt;=0.5): val=1.
  return val</string_value>
@@ -656,7 +656,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value lines="20" type="python">def val(X, t):
  val=1.
  if(X[0]&lt;=0.25 and X[1]&lt;=0.5): val=0.
  return val</string_value>
