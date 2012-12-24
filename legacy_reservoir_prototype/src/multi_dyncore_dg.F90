@@ -2775,7 +2775,7 @@
                END DO
             END DO
             DO U_ILOC=1,U_NLOC
-               DO CV_JLOC=1,U_NLOC
+               DO CV_JLOC=1,CV_NLOC
                   NCVM=0.0
                   DO GI=1,CV_NGI
                      NCVM = NCVM + UFEN( U_ILOC, GI ) * CVN_SHORT( CV_JLOC, GI ) * DETWEI(GI)
@@ -2790,7 +2790,7 @@
             DO IPHASE = 1,NPHASE
                RHS_U_CV=0.0
                RHS_U_CV_OLD=0.0
-               DO CV_JLOC=1,U_NLOC
+               DO CV_JLOC=1,CV_NLOC
                   CV_NOD = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_JLOC )
                   CV_NOD_PHA = CV_NOD +( IPHASE - 1) * CV_NONODS
                   DO U_ILOC=1,U_NLOC
