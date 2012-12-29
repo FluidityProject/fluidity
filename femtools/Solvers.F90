@@ -2317,8 +2317,8 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
 end subroutine MyKSPMonitor
 
 subroutine create_null_space_array(solver_option_path, petsc_numbering, null_space_array, vfield, sfield)
-!! returns the option path to solver/ block for new options, otherwise ""
-character(len=*), intent(out):: solver_option_path
+!! option path to solver options
+character(len=*), intent(in):: solver_option_path
 type(petsc_numbering_type), intent(in):: petsc_numbering
 !! provide a vector field to be solved for
 type(vector_field), optional, intent(in):: vfield

@@ -2258,7 +2258,7 @@ contains
     type(vector_field), pointer:: positions, vertical_normal
     type(integer_set):: owned_surface_nodes
     integer, dimension(:), pointer:: surface_element_list, surface_node_list
-    integer:: stat, i, face
+    integer:: stat, i, face, ncols
     
     ewrite(1, *) "Constructing vertical_prolongator_from_free_surface to be used in mg"
     topdis => extract_scalar_field(state, "DistanceToTop", stat=stat)
@@ -2288,9 +2288,12 @@ contains
         face=surface_element_list(i)
         call insert(owned_surface_nodes, face_global_nodes(mesh, face))
       end do
+      ! this should be size(csr_vertical_prolongator,2) but intel with debugging
+      ! seems to choke on it:
+      ncols = csr_vertical_prolongator%sparsity%columns
       ewrite(2,*) "Number of owned surface nodes:", key_count(owned_surface_nodes)
-      ewrite(2,*) "Number of columns in vertical prolongator:", size(vertical_prolongator,2)
-      if (size(vertical_prolongator,2)>key_count(owned_surface_nodes)) then
+      ewrite(2,*) "Number of columns in vertical prolongator:", ncols
+      if (ncols>key_count(owned_surface_nodes)) then
         ewrite(-1,*) "Vertical prolongator seems to be using more surface nodes than the number"
         ewrite(-1,*) "of surface nodes within completely owned surface elements. This indicates"
         ewrite(-1,*) "the parallel decomposition is not done along columns. You shouldn't be using"

@@ -1286,14 +1286,14 @@ fi
 #*************SpatialIndex******
 AC_ARG_ENABLE(spatialindex-version, 
 [AC_HELP_STRING([--enable-spatialindex-version],
-[Select required version of spatialindex library: 1.5])])
+[Select required version of spatialindex library: 1.8.0])])
 
 if test "x$enable_spatialindex_version" != "x"
 then
   SPATIALINDEXDIR="spatialindex-$enable_spatialindex_version"
 else
-  enable_spatialindex_version="1.5"
-  SPATIALINDEXDIR="spatialindex-1.5"
+  enable_spatialindex_version="1.8.0"
+  SPATIALINDEXDIR="spatialindex-1.8.0"
 fi
 AC_SUBST(SPATIALINDEXDIR)
 

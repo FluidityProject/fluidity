@@ -124,9 +124,6 @@
       !! True if the momentum equation should be solved with the reduced model.
       logical :: reduced_model
 
-      ! Add viscous terms to inverse_masslump for low Re which is only used for pressure correction
-      logical :: low_re_p_correction_fix
-
       ! Increased each call to momentum equation, used as index for pressure debugging vtus
       integer, save :: pdv_count = -1
 
@@ -192,7 +189,7 @@
          ! For compressible flow this differs to ct_m in that it will contain the variable density.
          type(block_csr_matrix_pointer), dimension(:), allocatable :: ctp_m
          ! The lumped mass matrix (may vary per component as absorption could be included)
-         type(vector_field), dimension(1:size(state)) :: inverse_masslump, visc_inverse_masslump
+         type(vector_field), dimension(1:size(state)) :: inverse_masslump
          ! Mass matrix
          type(petsc_csr_matrix), dimension(1:size(state)), target :: mass
          ! For DG:
@@ -646,7 +643,7 @@
                ! or cg_pressure_cv_test_continuity is formed for a second time later below.
                call construct_momentum_cg(u, p, density, x, &
                      big_m(istate), mom_rhs(istate), ct_m(istate)%ptr, &
-                     ct_rhs(istate), mass(istate), inverse_masslump(istate), visc_inverse_masslump(istate), &
+                     ct_rhs(istate), mass(istate), inverse_masslump(istate), &
                      state(istate), &
                      assemble_ct_matrix_here=reassemble_ct_m .and. .not. cv_pressure, &
                      include_pressure_and_continuity_bcs=.not. cv_pressure)
@@ -875,14 +872,6 @@
 
                   if(dg(istate).and.(.not.lump_mass(istate))) then
                      call assemble_cmc_dg(cmc_m, ctp_m(istate)%ptr, ct_m(istate)%ptr, inverse_mass(istate))
-                  elseif(lump_mass(istate) .and. low_re_p_correction_fix .and. timestep/=1) then
-                     ewrite(2,*) "Assembling CMC_M with visc_inverse_masslump"
-                     call assemble_masslumped_cmc(cmc_m, ctp_m(istate)%ptr, visc_inverse_masslump(istate), ct_m(istate)%ptr)
-                     ! P1-P1 stabilisation
-                     if (apply_kmk) then
-                        ewrite(2,*) "Adding P1-P1 stabilisation matrix to cmc_m"
-                        call add_kmk_matrix(state(istate), cmc_m)
-                     end if
                   else
                      call assemble_masslumped_cmc(cmc_m, ctp_m(istate)%ptr, inverse_masslump(istate), ct_m(istate)%ptr)
 
@@ -1118,14 +1107,8 @@
                      ! Correct velocity according to new delta_p
                      if(full_schur) then
                         call correct_velocity_cg(u, inner_m(istate)%ptr, ct_m(istate)%ptr, delta_p, state(istate))
-                     else if(lump_mass(istate) .and. (.not.low_re_p_correction_fix)) then
+                     else if(lump_mass(istate)) then
                         call correct_masslumped_velocity(u, inverse_masslump(istate), ct_m(istate)%ptr, delta_p)
-                     else if(lump_mass(istate) .and. low_re_p_correction_fix) then
-                        if (timestep == 1) then
-                           call correct_masslumped_velocity(u, inverse_masslump(istate), ct_m(istate)%ptr, delta_p)
-                        else
-                           call correct_masslumped_velocity(u, visc_inverse_masslump(istate), ct_m(istate)%ptr, delta_p)
-                        endif
                      else if(dg(istate)) then
                         call correct_velocity_dg(u, inverse_mass(istate), ct_m(istate)%ptr, delta_p)
                      else
@@ -1244,7 +1227,7 @@
                                     &"/discontinuous_galerkin")) then
 
                call finalise_state(state, istate, u, mass, inverse_mass, inverse_masslump, &
-                                visc_inverse_masslump, big_m, mom_rhs, ct_rhs, subcycle_m)
+                                   big_m, mom_rhs, ct_rhs, subcycle_m)
 
             end if
 
@@ -1380,11 +1363,6 @@
          full_schur = have_option(trim(p%option_path)//&
                                  &"/prognostic/scheme&
                                  &/use_projection_method/full_schur_complement")
-
-         ! Low Re fix for pressure correction?
-         low_re_p_correction_fix=have_option(trim(p%option_path)//&
-                     &"/prognostic/spatial_discretisation/continuous_galerkin&
-                     &/low_re_p_correction_fix")
 
          ! Are we getting the pressure gradient matrix using control volumes?
          cv_pressure = have_option(trim(p%option_path)//&
@@ -1847,7 +1825,7 @@
 
 
       subroutine finalise_state(state, istate, u, mass, inverse_mass, inverse_masslump, &
-                                visc_inverse_masslump, big_m, mom_rhs, ct_rhs, subcycle_m)
+                               big_m, mom_rhs, ct_rhs, subcycle_m)
          !!< Does some finalisation steps to the velocity field and deallocates some memory
          !!< allocated for the specified state.
 
@@ -1862,7 +1840,7 @@
          ! For DG:
          type(block_csr_matrix), dimension(:), intent(inout) :: inverse_mass
          ! The lumped mass matrix (may vary per component as absorption could be included)
-         type(vector_field), dimension(:), intent(inout) :: inverse_masslump, visc_inverse_masslump
+         type(vector_field), dimension(:), intent(inout) :: inverse_masslump
 
          ! Momentum LHS
          type(petsc_csr_matrix), dimension(:), target, intent(inout) :: big_m
@@ -1909,9 +1887,6 @@
             end if
          else
             call deallocate_cg_mass(mass(istate), inverse_masslump(istate))
-            if (low_re_p_correction_fix) then
-               call deallocate(visc_inverse_masslump(istate))
-            end if
          end if
 
          call deallocate(mom_rhs(istate))
@@ -2133,31 +2108,6 @@
                   end if
                end if
 
-            end if
-
-            ! Check options for Low Re Fix:
-            if(have_option("/material_phase["//int2str(i)//&
-                                 &"]/scalar_field::Pressure/prognostic"//&
-                                 &"/spatial_discretisation/continuous_galerkin"//&
-                                 &"/low_re_p_correction_fix")) then
-               if(.not.have_option("/material_phase["//int2str(i)//&
-                                 &"]/vector_field::Velocity/prognostic"//&
-                                 &"/spatial_discretisation/continuous_galerkin"//&
-                                 &"/mass_terms/lump_mass_matrix").or.&
-                                 &have_option("/material_phase["//int2str(i)//&
-                                 &"]/vector_field::Velocity/prognostic"//&
-                                 &"/spatial_discretisation/continuous_galerkin"//&
-                                 &"/mass_terms/lump_mass_matrix/use_submesh")) then
-                  ewrite(-1,*) "Error: You're not lumping the velocity mass matrix"
-                  ewrite(-1,*) "or you are using the 'lump on submesh' option"
-                  ewrite(-1,*) "but have selected the low Reynolds number fix."
-                  ewrite(-1,*) "If you want to use the low Reynolds number fix,"
-                  ewrite(-1,*) "enable continuous galerkin discretisation for the velocity"
-                  ewrite(-1,*) "and lump the mass matrix. You can do so under:"
-                  ewrite(-1,*) "material_phase/Velocity/prognostic/spatial_discretisation/"
-                  ewrite(-1,*) "continuous_galerkin/mass_terms/lump_mass_matrix"
-                  FLExit("Lump the mass matrix (of the velocity) if you want to make use of the low Reynolds number fix")
-               end if
             end if
 
             ! Check options for case with CG pressure and
