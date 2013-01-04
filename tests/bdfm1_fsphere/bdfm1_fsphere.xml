@@ -3,7 +3,7 @@
 <testproblem>
   <name>bdfm1_fsphere</name>
   <owner userid="jemma"/>
-  <tags>swml</tags>
+  <tags>swml mimetic bdfm sphere</tags>
   <problem_definition length="special" nprocs="1">
     <command_line>shallow_water_mimetic fsphere3.swml; shallow_water_mimetic fsphere4.swml; shallow_water_mimetic fsphere5.swml; shallow_water_mimetic fsphere6.swml</command_line>
     <!-- shallow water test case on a f-sphere-->

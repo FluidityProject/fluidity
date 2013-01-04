@@ -365,7 +365,7 @@ contains
        constraint%n_constraints = 0
        select case(element%numbering%family)
        case (FAMILY_SIMPLEX)
-          if(constraint%degree>2) then
+          if(constraint%degree>3) then
              FLExit('high order not supported')
           end if
           !The below formulas definitely fail for degree=>3
