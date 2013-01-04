@@ -14,8 +14,8 @@ from vtktools import vtu
 from sw_common import calculate_change
 diff=[]
 for filenumber in [3,4,5,6]:
-   vtu1=vtu('fsphere_'+str(filenumber)+'_0.vtu')
-   vtu2=vtu('fsphere_'+str(filenumber)+'_1.vtu')
+   vtu1=vtu('fsphere'+str(filenumber)+'_0.vtu')
+   vtu2=vtu('fsphere'+str(filenumber)+'_1.vtu')
    diff.append(calculate_change.change(vtu1,vtu2))
     </variable>
   </variables>
