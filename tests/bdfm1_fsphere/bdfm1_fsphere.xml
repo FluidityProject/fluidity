@@ -3,32 +3,27 @@
 <testproblem>
   <name>bdfm1_fsphere</name>
   <owner userid="jemma"/>
-  <tags>swml mimetic bdfm sphere</tags>
+  <tags>swml mimetic bdfm sphere fsphere</tags>
   <problem_definition length="special" nprocs="1">
     <command_line>shallow_water_mimetic fsphere3.swml; shallow_water_mimetic fsphere4.swml; shallow_water_mimetic fsphere5.swml; shallow_water_mimetic fsphere6.swml</command_line>
     <!-- shallow water test case on a f-sphere-->
   </problem_definition>
   <variables>
-    <variable name="errors" language="python">
-from sw_common import convergence
-errors=[]
-for filenumber in [3,4,5]:
-   filename1 = 'fsphere'+str(filenumber)
-   filename2 = 'fsphere'+str(filenumber+1)
-   error=test_convergence.errors(filename1, filename2)
-   errors.append(error)
+    <variable name="diff" language="python">
+from vtktools import vtu
+from sw_common import calculate_change
+diff=[]
+for filenumber in [3,4,5,6]:
+   vtu1=vtu('fsphere_'+str(filenumber)+'_0.vtu')
+   vtu2=vtu('fsphere_'+str(filenumber)+'_1.vtu')
+   diff.append(calculate_change.change(vtu1,vtu2))
     </variable>
   </variables>
   <pass_tests>
-    <test name="l2 convergence" language="python">
-for i in [0,1,2]:
-   print errors[i][0]
-   assert(errors[i][0] &lt; 0.25)
-    </test>
-    <test name="l_infty convergence" language="python">
-for i in [0,1,2]:
-   print errors[i][1]
-   assert(errors[i][1] &lt; 0.36)
+    <test name="Nothing happens" language="python">
+for i in [0,1,2,3]: 
+   assert diff[i][0] &lt; 1e-10
+   assert diff[i][1] &lt; 1e-10
     </test>
   </pass_tests>
   <warn_tests>
