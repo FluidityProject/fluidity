@@ -471,7 +471,7 @@ clean-all-tests: clean-test
 
 distclean: clean
 	@echo "    DISTCLEAN"
-	@cd spatialindex-1.5 ; make distclean > /dev/null ; rm -rf	\
+	@cd @SPATIALINDEXDIR@ ; make distclean > /dev/null ; rm -rf	\
 	 make.log regressiontest/mvrtree/.deps				\
 	 regressiontest/rtree/.deps regressiontest/tprtree/.deps >	\
 	 /dev/null
