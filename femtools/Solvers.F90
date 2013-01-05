@@ -42,6 +42,7 @@ module solvers
   use profiler
   use vtk_interfaces
   use parallel_tools
+  use MeshDiagnostics
 #ifdef HAVE_PETSC_MODULES
   use petsc 
 #endif
@@ -693,7 +694,7 @@ type(vector_field), intent(in), optional :: positions
   type(mesh_type), pointer:: mesh
   integer i, j
   KSP, pointer:: ksp_pointer
-  
+
   ! Initialise profiler
   if(present(sfield)) then
      call profiler_tic(sfield, "petsc_setup")
@@ -849,7 +850,6 @@ type(vector_field), intent(in), optional :: positions
 
   ewrite(1, *) 'Matrix assembly completed.'
   
-
   if (IsParallel()) then
     parallel= (associated(halo))
   else
@@ -999,7 +999,7 @@ type(vector_field), intent(in), optional :: positions
       solver_option_path=complete_solver_option_path(tfield%option_path)
     end if
   else
-    FLAbort("Need to provide either sfield or vfield to petsc_solve_setup.")
+    FLAbort("Need to provide either sfield, vfield or tfield to petsc_solve_setup.")
   end if
 
   timing=(debug_level()>=2)
@@ -1015,7 +1015,7 @@ type(vector_field), intent(in), optional :: positions
     ewrite(2,*) 'Ignoring setting from solver option.'
     startfromzero=.true.
   end if
-  
+
   if (IsParallel()) then
     parallel= associated(matrix%row_halo)
   else
@@ -1031,7 +1031,7 @@ type(vector_field), intent(in), optional :: positions
   
   b=PetscNumberingCreateVec(matrix%column_numbering)
   call VecDuplicate(b, y, ierr)
-  
+
   if (timing) then
     call cpu_time(time2)
     ewrite(2,*) "Time spent in Petsc setup: ", time2-time1
@@ -1532,7 +1532,6 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     integer, optional, intent(in) :: internal_smoothing_option
     ! positions field is only used with remove_null_space/ with rotational components
     type(vector_field), intent(in), optional :: positions
-
     
     PetscErrorCode ierr
     
@@ -1564,7 +1563,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     Mat, intent(in):: mat, pmat
     ! path to solver block (including '/solver')
     character(len=*), intent(in):: solver_option_path
-    ! used in the monitors (optional for "inner solves"):
+    ! used in the monitors, fieldsplit and vectorial (near)null spaces:
     type(petsc_numbering_type), optional, intent(in):: petsc_numbering
     ! if true overrides what is set in the options:
     logical, optional, intent(in):: startfromzero_in
@@ -1719,9 +1718,6 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
        '/diagnostics/monitors/true_error') .or. &
        have_option(trim(solver_option_path)// &
        '/diagnostics/monitors/iteration_vtus')) then
-       ! note we have to check the option itself and not the logical
-       ! as we may be in an inner solver, where only the outer solve 
-       ! has the monitor set
        if (.not. present(petsc_numbering)) then
          FLAbort("Need petsc_numbering for monitor")
        end if
@@ -1738,7 +1734,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
   PC, intent(inout):: pc
   Mat, intent(in):: pmat
   character(len=*), intent(in):: option_path
-  ! may need to be passed down to pcksp:
+  ! needed for fieldsplit and to be pass down to pcksp:
   type(petsc_numbering_type), optional, intent(in):: petsc_numbering
   ! additional information for multigrid smoother:
   type(petsc_csr_matrix), dimension(:), optional, intent(in) :: prolongators
@@ -1844,7 +1840,16 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
        call PCBJACOBIGetSubKSP(pc, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, subksp, ierr)
        call KSPGetPC(subksp, subpc, ierr)
        call PCSetType(subpc, pctype, ierr)
-       
+
+    else if (pctype==PCFIELDSPLIT) then
+
+       if (.not. present(petsc_numbering)) then
+         FLAbort("Need to pass down petsc numbering to set up fieldsplit")
+       end if
+
+       call setup_fieldsplit_preconditioner(pc, pmat, option_path, &
+            petsc_numbering=petsc_numbering)
+
     else
        
        ! this doesn't work for hypre
@@ -1868,6 +1873,56 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     end if
     
   end subroutine setup_pc_from_options
+
+  recursive subroutine setup_fieldsplit_preconditioner(pc, pmat, option_path, &
+    petsc_numbering)
+  PC, intent(inout):: pc
+  Mat, intent(in):: pmat
+  character(len=*), intent(in):: option_path
+  type(petsc_numbering_type), intent(in):: petsc_numbering
+
+    character(len=128):: fieldsplit_type
+    KSP, dimension(size(petsc_numbering%gnn2unn,2)):: subksps
+    IS:: index_set
+    PetscErrorCode:: ierr
+    integer:: i
+
+    call PCSetType(pc, "fieldsplit", ierr)
+
+    do i=1, size(subksps)
+      index_set = petsc_numbering_create_is(petsc_numbering, dim=i)
+#if PETSC_VERSION_MINOR>=2
+      call PCFieldSplitSetIS(pc, PETSC_NULL_CHARACTER, index_set, ierr)
+#else
+      call PCFieldSplitSetIS(pc, index_set, ierr)
+#endif
+    end do
+
+    call get_option(trim(option_path)//"/fieldsplit_type/name", &
+      fieldsplit_type, ierr)
+    select case (fieldsplit_type)
+    case ("multiplicative")
+      call pcfieldsplitsettype(pc, PC_COMPOSITE_MULTIPLICATIVE, ierr)
+    case ("additive")
+      call pcfieldsplitsettype(pc, PC_COMPOSITE_ADDITIVE, ierr)
+    case ("symmetric_multiplicative")
+! workaround silly bug in petsc 3.1
+#ifndef PC_COMPOSITE_SYMMETRIC_MULTIPLICATIVE
+#define PC_COMPOSITE_SYMMETRIC_MULTIPLICATIVE PC_COMPOSITE_SYM_MULTIPLICATIVE
+#endif
+      call pcfieldsplitsettype(pc, PC_COMPOSITE_SYMMETRIC_MULTIPLICATIVE, ierr)
+    case default
+      FLAbort("Unknown fieldsplit_type")
+    end select
+
+    call pcfieldsplitgetsubksp(pc, subksps, ierr)
+    do i=1, size(subksps)
+
+      call setup_ksp_from_options(subksps(i), pmat, pmat, option_path)
+
+    end do
+
+  end subroutine setup_fieldsplit_preconditioner
     
   subroutine ewrite_ksp_options(ksp)
     KSP, intent(in):: ksp

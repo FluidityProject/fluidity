@@ -426,6 +426,34 @@ by the PETSc library. Many more methods are provided.
     </choice>
     <ref name="generic_solver_options_scalar"/>
   </define>
+  <define name="pcfieldsplit_options">
+    <element name="preconditioner">
+      <a:documentation>Uses fieldsplit preconditioner that seperately solves/preconditions 
+the diagonal blocks associated with the different velocity components.
+FIXME: maybe some hints what a useful setup is</a:documentation>
+      <attribute name="name">
+        <value>fieldsplit</value>
+      </attribute>
+      <choice>
+        <element name="fieldsplit_type">
+          <attribute name="name">
+            <value>multiplicative</value>
+          </attribute>
+        </element>
+        <element name="fieldsplit_type">
+          <attribute name="name">
+            <value>additive</value>
+          </attribute>
+        </element>
+        <element name="fieldsplit_type">
+          <attribute name="name">
+            <value>symmetric_multiplicative</value>
+          </attribute>
+        </element>
+      </choice>
+      <ref name="pc_ksp_solver_options"/>
+    </element>
+  </define>
   <!--
     ####################################################################
     

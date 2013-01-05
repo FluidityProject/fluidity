@@ -408,6 +408,28 @@ pc_ksp_solver_options =
       generic_solver_options_scalar
    )
 
+pcfieldsplit_options =
+   (
+      ## Uses fieldsplit preconditioner that seperately solves/preconditions 
+      ## the diagonal blocks associated with the different velocity components.
+      ## FIXME: maybe some hints what a useful setup is
+      element preconditioner {
+         attribute name { "fieldsplit" },
+         (
+            element fieldsplit_type {
+               attribute name { "multiplicative" }
+            }|
+            element fieldsplit_type {
+               attribute name { "additive" }
+            }|
+            element fieldsplit_type {
+               attribute name { "symmetric_multiplicative" }
+            }
+         ),
+         pc_ksp_solver_options
+      }
+   )
+
 # ####################################################################
 #
 # all the other solver options

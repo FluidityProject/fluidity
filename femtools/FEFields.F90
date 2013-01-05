@@ -249,7 +249,7 @@ contains
 
   subroutine compute_mass(positions, mesh, mass, lumped_mass, density)
     type(vector_field), intent(in) :: positions
-    type(mesh_type), intent(inout) :: mesh
+    type(mesh_type), intent(in) :: mesh
     type(csr_matrix), intent(inout) :: mass
     type(scalar_field), intent(inout), optional :: lumped_mass
     type(scalar_field), intent(inout), target, optional :: density

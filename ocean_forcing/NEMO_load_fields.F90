@@ -2,6 +2,7 @@
 module nemo_states_module
 
 use NEMO_load_fields_vars
+use nemo_v2
 use spud
 use fields
 use state_module

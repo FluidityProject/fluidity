@@ -44,7 +44,7 @@ module MeshDiagnostics
           & simplex_volume, mesh_stats, pentahedron_vol
 
   interface mesh_stats
-    module procedure mesh_stats_mesh, mesh_stats_vector
+    module procedure mesh_stats_mesh, mesh_stats_scalar, mesh_stats_vector
   end interface mesh_stats
 
 contains
@@ -198,6 +198,18 @@ contains
     end if
 
   end subroutine mesh_stats_mesh
+
+  subroutine mesh_stats_scalar(s_field, nodes, elements, surface_elements)
+    !!< Parallel safe mesh statistics
+
+    type(scalar_field), intent(in) :: s_field
+    integer, optional, intent(out) :: nodes
+    integer, optional, intent(out) :: elements
+    integer, optional, intent(out) :: surface_elements
+
+    call mesh_stats(s_field%mesh, nodes = nodes, elements = elements, surface_elements = surface_elements)
+
+  end subroutine mesh_stats_scalar
 
   subroutine mesh_stats_vector(v_field, nodes, elements, surface_elements)
     !!< Parallel safe mesh statistics
