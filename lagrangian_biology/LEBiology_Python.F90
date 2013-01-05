@@ -428,8 +428,10 @@ contains
 
     call lebiology_sample_environment(agent, xfield, envfields, fgroup%envfield_integrate, envfield_vals)
 
-    food_integrate(:) = fgroup%food_sets(1)%path_integrate
-    call lebiology_sample_environment(agent, xfield, foodfields, food_integrate, foodfield_vals)
+    if (size(fgroup%food_sets) > 0) then
+       food_integrate(:) = fgroup%food_sets(1)%path_integrate
+       call lebiology_sample_environment(agent, xfield, foodfields, food_integrate, foodfield_vals)
+    end if
 
     stat=0
     if (use_kernel_func) then                   

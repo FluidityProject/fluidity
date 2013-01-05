@@ -72,7 +72,12 @@ contains
 
   function get_num_functional_groups()
     integer :: get_num_functional_groups
-    get_num_functional_groups = size(functional_groups)
+
+    if (allocated(functional_groups)) then
+       get_num_functional_groups = size(functional_groups)
+    else
+       get_num_functional_groups = 0
+    end if
   end function get_num_functional_groups
 
   function get_functional_group(i) result(fg)

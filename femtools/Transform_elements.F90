@@ -64,7 +64,7 @@ module transform_elements
             transform_superconvergent_to_physical, transform_horizontal_to_physical, &
             compute_jacobian, compute_inverse_jacobian, element_volume,&
             cache_transform_elements, deallocate_transform_cache, &
-            prepopulate_transform_cache
+            prepopulate_transform_cache, retrieve_cached_face_transform
   
   integer, parameter :: cyc3(1:5)=(/ 1, 2, 3, 1, 2 /)  
 

@@ -813,14 +813,15 @@ contains
       integer, intent(in) :: face
       real, intent(out) :: t
 
-      real :: d, v_n, v_d
+      real :: d, v_n, v_d, detJ
       integer, dimension(face_loc(xfield, face)) :: face_nodes
-      real, dimension(xfield%dim,xfield%mesh%faces%shape%ngi) :: facet_normals
       real, dimension(xfield%dim) :: face_normal, face_node_val
+      logical :: face_cache_valid
 
       ! Get face normal
-      call transform_facet_to_physical(xfield, face, normal=facet_normals)
-      face_normal = facet_normals(:,1)
+      face_cache_valid = .false.
+      face_cache_valid = retrieve_cached_face_transform(xfield, face, face_normal, detJ)
+      assert(face_cache_valid)
 
       ! Establish d using a point on the plane
       face_nodes = face_global_nodes(xfield, face)
