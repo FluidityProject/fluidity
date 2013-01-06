@@ -33,8 +33,6 @@ module detector_move_lagrangian
   use fields
   use global_parameters, only: OPTION_PATH_LEN
   use integer_hash_table_module
-  use halo_data_types
-  use halos_base
   use detector_data_types
   use detector_tools
   use detector_parallel
@@ -110,7 +108,6 @@ contains
 
     type(vector_field), pointer :: vfield, xfield
     type(detector_type), pointer :: detector, move_detector
-    type(halo_type), pointer :: ele_halo
     integer :: dim, stage, cycle, rw, i
     real :: sub_dt
 

@@ -47,6 +47,7 @@ module lagrangian_biology
   use integer_hash_table_module
   use lagrangian_biology_pm
   use lebiology_python
+  use halo_data_types
   use element_path_list, only: elepath_list => linked_list, &
                                elepath_list_next => list_next
 
@@ -1038,7 +1039,7 @@ contains
     end if
   end subroutine reset_exchange_fields
 
-  subroutine derive_agent_counts(state, agent_list, xfield)    
+  subroutine derive_agent_counts(state, agent_list, xfield)
     type(state_type), intent(inout) :: state
     type(detector_linked_list), intent(inout) :: agent_list
     type(vector_field), pointer, intent(inout) :: xfield
@@ -1049,7 +1050,8 @@ contains
 
     ! Note: This has to happen per list for PM to work
     ! Pull and reset agent density field
-    agent_count_field=>extract_scalar_field(state, trim(agent_list%fgroup%name)//"Agents"//trim(agent_list%stage_name))
+    agent_count_field=>extract_scalar_field(state, &
+         trim(agent_list%fgroup%name)//"Agents"//trim(agent_list%stage_name))
     call zero(agent_count_field)
 
     agent => agent_list%first
@@ -1058,6 +1060,7 @@ contains
        call addto(agent_count_field, agent%element, 1.0/ele_volume)
        agent => agent%next
     end do
+
   end subroutine derive_agent_counts
 
   subroutine derive_primary_diagnostics(state, fgroup)
@@ -1071,9 +1074,20 @@ contains
     integer :: v, stage, ele
     real :: conc, ele_volume
 
+    type(mesh_type), pointer :: lebio_mesh
+    type(halo_type), pointer :: ele_halo
+    integer :: halo_level
+
     ewrite(2,*) "Lagrangian biology: Deriving primary diagnostic fields for ", (fgroup%name)
 
     xfield=>extract_vector_field(state, "Coordinate")
+
+    ! Get the element halo 
+    lebio_mesh => extract_mesh(state, "LEBiologyMesh")
+    halo_level = element_halo_count(lebio_mesh)
+    if (halo_level > 0) then
+       ele_halo => lebio_mesh%element_halos(halo_level)
+    end if
 
     ! Pull and reset diagnostic fields
     do v=1, size(fgroup%variables)
@@ -1101,6 +1115,8 @@ contains
 
                 stagefields(v)%ptr => extract_scalar_field(state, trim(var%field_name)//trim(fgroup%stage_names%ptr(stage)))
                 call zero(stagefields(v)%ptr)
+             else
+                stagefields(v)%ptr => null()
              end if
           end if
        end do
@@ -1152,8 +1168,26 @@ contains
 
           agent => agent%next
        end do
+
+       ! Update halos for stage fields
+       if (halo_level > 0) then
+          do v=1, size(fgroup%variables)
+             if (associated(stagefields(v)%ptr)) then
+                call halo_update(ele_halo, stagefields(v)%ptr)
+             end if
+          end do
+       end if
+
     end do
 
+    ! Update halos for diagnostic fields
+    if (halo_level > 0) then
+       do v=1, size(fgroup%variables)
+          if (associated(diagfields(v)%ptr)) then
+             call halo_update(ele_halo, diagfields(v)%ptr)
+          end if
+       end do
+    end if
   end subroutine derive_primary_diagnostics
 
   subroutine aggregate_chemical_diagnostics(state)
@@ -1169,12 +1203,23 @@ contains
     real :: ele_volume
     integer :: f, v, fg, stage, ivar
 
+    type(mesh_type), pointer :: lebio_mesh
+    type(halo_type), pointer :: ele_halo
+    integer :: halo_level
+
     ! Exit if there are no uptake/release fields
     if (.not.associated(uptake_field_names) .and. .not.associated(release_field_names)) return
 
     ewrite(2,*) "Lagrangian biology: Aggregating chemical request/release fields"
 
     xfield=>extract_vector_field(state, "Coordinate")
+
+    ! Get the element halo 
+    lebio_mesh => extract_mesh(state, "LEBiologyMesh")
+    halo_level = element_halo_count(lebio_mesh)
+    if (halo_level > 0) then
+       ele_halo => lebio_mesh%element_halos(halo_level)
+    end if
 
     ! Pull and reset global fields
     if (associated(uptake_field_names)) then
@@ -1243,15 +1288,36 @@ contains
        do v=1, size(fgroup%ivars_uptake)
           var => fgroup%variables( fgroup%ivars_uptake(v) )
           call addto(uptake_fields(var%i_chemfield)%ptr, uptake_diagfields(v)%ptr)
+
+          if (halo_level > 0) then
+             call halo_update(ele_halo, uptake_diagfields(v)%ptr)
+          end if
        end do
        deallocate(uptake_diagfields)
 
        do v=1, size(fgroup%ivars_release)
           var => fgroup%variables( fgroup%ivars_release(v) )
           call addto(release_fields(var%i_chemfield)%ptr, release_diagfields(v)%ptr)
+
+          if (halo_level > 0) then
+             call halo_update(ele_halo, release_diagfields(v)%ptr)
+          end if
        end do
        deallocate(release_diagfields)
     end do
+
+    ! Update halos for global request/release fields
+    if (halo_level > 0 .and. associated(uptake_field_names)) then
+       do f=1, size(uptake_field_names)
+          call halo_update(ele_halo, uptake_fields(f)%ptr)
+       end do
+    end if
+
+    if (halo_level > 0 .and. associated(release_field_names)) then
+       do f=1, size(release_field_names)
+          call halo_update(ele_halo, release_fields(f)%ptr)
+       end do
+    end if
 
   end subroutine aggregate_chemical_diagnostics
 
