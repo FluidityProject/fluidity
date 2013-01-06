@@ -686,8 +686,9 @@ contains
 
     real :: face_t, ele_t
     integer :: i, neigh_face, next_face, boundary_id, py_map_index
-    integer, dimension(:), pointer :: face_list
+    integer, dimension(:), pointer :: face_list, element_nodes
     real, dimension(xfield%dim,1):: old_position, new_position
+    real, dimension(xfield%dim) :: face_normal, face_node_val
     type(path_element) :: path_ele
 
     ! Exit if r_d is zero
@@ -701,9 +702,10 @@ contains
        ! Go through all faces of the element and look for the smallest t in the ray's direction
        next_face = -1
        ele_t = huge(1.0)
-       face_list=>ele_faces(xfield,detector%element)
+       face_list => ele_faces(xfield,detector%element)
+       element_nodes => ele_nodes(xfield,detector%element)
        do i=1, size(face_list)
-          call ray_intersetion_distance(face_list(i), face_t)
+          call ray_intersetion_distance(face_list(i), element_nodes, face_normal, face_node_val, face_t)
 
           ! The second condition is to ensure that we do not trace backwards
           if (face_t < ele_t .and. detector%current_t < face_t .and. search_tolerance < face_t) then
@@ -720,7 +722,7 @@ contains
 
           ele_t = detector%current_t
           do i=1, size(face_list)
-            call ray_intersetion_distance(face_list(i), face_t)
+            call ray_intersetion_distance(face_list(i), element_nodes, face_normal, face_node_val, face_t)
             if (abs(face_t) < search_tolerance) then
                next_face = face_list(i)
             end if
@@ -807,15 +809,17 @@ contains
     
   contains
 
-    subroutine ray_intersetion_distance(face, t)
+    subroutine ray_intersetion_distance(face, ele_nodes, face_normal, face_node_val, t)
       ! Calculate the distance t of the intersection 
       ! between the face and our ray (r_o, r_d)
       integer, intent(in) :: face
+      integer, dimension(:), pointer :: ele_nodes 
+      ! Alocate these outside to increase performance
+      real, dimension(:), intent(inout) :: face_normal, face_node_val
       real, intent(out) :: t
 
       real :: d, v_n, v_d, detJ
       integer, dimension(face_loc(xfield, face)) :: face_nodes
-      real, dimension(xfield%dim) :: face_normal, face_node_val
       logical :: face_cache_valid
 
       ! Get face normal
@@ -824,8 +828,8 @@ contains
       assert(face_cache_valid)
 
       ! Establish d using a point on the plane
-      face_nodes = face_global_nodes(xfield, face)
-      face_node_val = node_val(xfield,face_nodes(1))
+      face_nodes = face_local_nodes(xfield, face)
+      face_node_val = node_val(xfield,ele_nodes(face_nodes(1)))
       d = - sum(face_normal * face_node_val)
 
       ! Calculate t, the distance along the ray to the face intersection

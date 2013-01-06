@@ -708,7 +708,7 @@ contains
     type(element_type), pointer :: x_shape
     !! Column n of X is the position of the nth node. (dim x x_shape%loc)
     !! only need position of n nodes since Jacobian is only calculated once
-    real, dimension(X%dim,ele_loc(X,ele)) :: X_val
+    real, dimension(:,:), allocatable :: X_val
 
     real :: J(X%dim, mesh_dim(X)), det
     integer :: gi, dim, ldim
@@ -738,7 +738,7 @@ contains
 !          ewrite(2,*) "Element geometry cache not used."
 !       end if
 !#endif
-
+       allocate( X_val(X%dim,ele_loc(X,ele)) )
        X_val=ele_val(X, ele)
        
        select case (dim)
@@ -774,8 +774,11 @@ contains
        case default
           FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")   
        end select
+       deallocate(X_val)
+
     else if (ldim<dim) then
 
+       allocate( X_val(X%dim,ele_loc(X,ele)) )
        X_val=ele_val(X, ele)
       
        ! lower dimensional element (ldim) embedded in higher dimensional space (dim)
@@ -808,7 +811,8 @@ contains
              detwei(gi)=det *x_shape%quadrature%weight(gi)
           end do
        end select
-       
+       deallocate(X_val)
+
     else
        FLAbort("Don't know how to compute higher-dimensional elements in a lower-dimensional space.")
        
