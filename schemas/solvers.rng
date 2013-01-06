@@ -9,7 +9,7 @@
     has a _vector version which is used for the Velocity solve - only difference
     here being the null space options
   -->
-  <define name="linear_solver_options_asym">
+  <define name="linear_solver_options_asym_scalar">
     <choice>
       <a:documentation>Iterative (Krylov) method to solve the linear discretised equation
 Given are the most frequently used methods. The solution is done
