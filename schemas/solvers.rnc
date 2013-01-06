@@ -5,7 +5,7 @@
 # not possible as in some cases the asymmetric equation is in fact symmetric
 # (e.g. momentum with no advection or coriolis). The _asym version also
 # has a _vector version which is used for the Velocity solve - only difference
-# here being the null space options
+# here being the null space and fieldsplit preconditioner options
 linear_solver_options_asym_scalar =
    (
       ## Iterative (Krylov) method to solve the linear discretised equation
@@ -59,6 +59,7 @@ linear_solver_options_asym_vector =
          pchypre_options|
          pcbjacobi_options|
          pcasm_options|
+         pcfieldsplit_options|
          pcother_options
       ),
       generic_solver_options_vector
