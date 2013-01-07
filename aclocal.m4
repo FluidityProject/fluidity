@@ -581,6 +581,15 @@ fi
 
 AC_DEFINE(HAVE_PETSC,1,[Define if you have the PETSc library.])
 
+# define HAVE_PETSC33 for use in the Makefiles (including petsc's makefiles
+# would require having PETSC_DIR+PETSC_ARCH set correctly for every make)
+if test "0$PETSC_VERSION_MINOR" -ge 3; then
+  HAVE_PETSC33=yes
+else
+  HAVE_PETSC33=no
+fi
+AC_SUBST(HAVE_PETSC33)
+
 ])dnl ACX_PETSc
 
 AC_DEFUN([ACX_ParMetis], [

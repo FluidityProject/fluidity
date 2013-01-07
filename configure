@@ -620,6 +620,7 @@ LINKER
 OPTIMIZATION_FFLAGS
 FORTRAN_REAL_8
 PROFILING_FLAG
+HAVE_PETSC33
 X_EXTRA_LIBS
 X_LIBS
 X_PRE_LIBS
@@ -13233,6 +13234,15 @@ fi
 
 
 $as_echo "#define HAVE_PETSC 1" >>confdefs.h
+
+
+# define HAVE_PETSC33 for use in the Makefiles (including petsc's makefiles
+# would require having PETSC_DIR+PETSC_ARCH set correctly for every make)
+if test "0$PETSC_VERSION_MINOR" -ge 3; then
+  HAVE_PETSC33=yes
+else
+  HAVE_PETSC33=no
+fi
 
 
 
