@@ -56,7 +56,7 @@
     </dump_format>
     <dump_period>
       <constant>
-        <real_value rank="0">1.0</real_value>
+        <real_value rank="0">0.25</real_value>
       </constant>
     </dump_period>
     <output_mesh name="VelocityMesh"/>
@@ -72,7 +72,7 @@
       <real_value rank="0">0.002</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">120.0</real_value>
+      <real_value rank="0">250.0</real_value>
     </finish_time>
     <wall_time_limit>
       <real_value rank="0">255600</real_value>
@@ -145,7 +145,7 @@
             <les_model>
               <second_order>
                 <smagorinsky_coefficient>
-                  <real_value rank="0">0.231931024229</real_value>
+                  <real_value rank="0">0.164</real_value>
                 </smagorinsky_coefficient>
                 <length_scale_type>scalar</length_scale_type>
                 <tensor_field name="EddyViscosity" rank="2">
@@ -427,11 +427,11 @@
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="TimeAveragedVelocity10" rank="1">
+    <vector_field name="TimeAveragedVelocity30" rank="1">
       <diagnostic>
         <algorithm source_field_type="vector" material_phase_support="single" name="time_averaged_vector" source_field_name="Velocity">
           <spin_up_time>
-            <real_value rank="0">10.0</real_value>
+            <real_value rank="0">30.0</real_value>
           </spin_up_time>
         </algorithm>
         <mesh name="VelocityMesh"/>
