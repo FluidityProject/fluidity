@@ -641,8 +641,7 @@ end if
 
                Velocity_NU = Velocity_U ; Velocity_NV = Velocity_V ; Velocity_NW = Velocity_W
 
-
-               !call calculate_diffusivity( state, ncomp, nphase, ndim, cv_nonods, mat_nonods, ScalarAdvectionField_Diffusion  )
+               call calculate_diffusivity( state, ncomp, nphase, ndim, cv_nonods, mat_nonods, ScalarAdvectionField_Diffusion  )
 
                call INTENERGE_ASSEM_SOLVE( state, &
                     NCOLACV, FINACV, COLACV, MIDACV, & 
@@ -751,8 +750,6 @@ end if
 !!$ This calculates u_source_cv = ScalarField_Source_CV -- ie, the buoyancy term and as the name
 !!$ suggests it's a CV source term for the velocity field
 
-               !call calculate_u_source_cv( state, cv_nonods, ndim, nphase, Density, Velocity_U_Source_CV )
-
                density_tmp = density
 
                ! make mid side nodes the average of the 2 corner nodes...
@@ -801,75 +798,8 @@ end if
 
                call calculate_u_source_cv( state, cv_nonods, ndim, nphase, density_tmp, Velocity_U_Source_CV )
 
-!!$ Calculate diffusion
-               if ( have_option( '/physical_parameters/mobility' ) ) then
-
-                  ! if solving for porous media and mobility is calculated
-                  ! through the viscosity ratio this code will fail
-                  momentum_diffusion=0.
-
-               else
-
-                  momentum_diffusion=0.
-
-                  t_field => extract_tensor_field( state( 1 ), 'Viscosity', stat )
-                  if (stat == 0) then
-
-                     if ( ncomp>1 ) then
-
-!!$                        allocate( momentum_diffusion_tmp( mat_nonods, ndim, ndim ) ) ; momentum_diffusion_tmp = 0.
-!!$                        allocate( constant( 1, 1 ) ) ; constant = 0.
-!!$
-!!$                           do icomp = 1, ncomp
-!!$
-!!$                                    do iphase = 1, nphase
-!!$
-!!$
-!!$                              option_path = '/material_phase[' // int2str( nphase + icomp - 1 ) // &
-!!$                                   ']/vector_field::Velocity/prognostic/tensor_field::ComponentViscosityPhase'// int2str( iphase )
-!!$                              option_path=option_path // '/prescribed/value[0]/isotropic/constant'
-!!$
-!!$         
-!!$               call get_option( trim( option_path ), constant( 1, 1 ) )
-!!$               do idim = 1, ndim
-!!$                 momentum_diffusion_tmp( : , idim, idim ) = constant( 1, 1 )
-!!$               end do
-!!$               
-!!$
-!!$
-!!$                              momentum_diffusion(:, :, :, iphase) = momentum_diffusion(:, :, :, iphase) + &
-!!$                                   momentum_diffusion_tmp * component( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
-!!$                                   nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods
-!!$
-!!$                           end do
-!!$                        end do
-!!$
-!!$                        deallocate( constant )
-!!$                        deallocate( momentum_diffusion_tmp )
-
-                        momentum_diffusion=0.
-                        momentum_diffusion(:, 1,1,1) = 0. !1.e-5
-                        momentum_diffusion(:, 2,2,1) = 0. !1.e-5
-
-                     else
-
-                        do iphase = 1, nphase
-
-                           t_field => extract_tensor_field( state( iphase ), 'Viscosity', stat )
-
-                           option_path = '/material_phase[' // int2str( iphase - 1 ) // &
-                                ']/vector_field::Velocity/prognostic/tensor_field::Viscosity'
-                           call Extract_TensorFields_Outof_State( state, iphase, &
-                                t_field, option_path, &
-                                momentum_diffusion( :, :, :, iphase ), &
-                                mat_ndgln )
-                        end do
-
-                     end if
-
-                  end if
-
-               end if
+               ! calculate the viscosity for the momentum equation...
+               call calculate_viscosity( state, ncomp, nphase, ndim, cv_nonods, mat_nonods, mat_ndgln, Momentum_Diffusion  )
 
                CALL FORCE_BAL_CTY_ASSEM_SOLVE( state, &
                     NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &

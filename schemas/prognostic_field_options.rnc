@@ -215,6 +215,25 @@ prognostic_scalar_field =
             }
          )
       }?,
+      ## Viscosity for compositional field
+      element tensor_field {
+         attribute name { "Viscosity" },
+         attribute rank { "2" },
+         (
+            element prescribed {
+                mesh_choice?,
+                prescribed_tensor_field_no_adapt
+            }|
+            ## For electrical modelling only - holds electrical conductivity
+            element diagnostic {
+               (
+                  tensor_python_diagnostic_algorithm |
+                  internal_algorithm
+               ),
+               diagnostic_tensor_field
+            }
+         )
+      }?,
       ## source term
       element scalar_field {
          attribute name { "Source" },

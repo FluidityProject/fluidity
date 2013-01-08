@@ -962,35 +962,121 @@
 
       ScalarAdvectionField_Diffusion = 0.
 
-!!$
-!!$      if ( ncomp > 1 ) then
-!!$
-!!$         do icomp = 1, ncomp
-!!$            do iphase = 1, nphase
-!!$
-!!$               component => extract_scalar_field( state(nphase+icomp), 'ComponentMassFractionPhase'// int2str(iphase)   )
-!!$               diffusivity => extract_scalar_field( state(nphase+icomp), 'ComponentMassFractionPhase' // int2str(iphase) // 'Diffusivity', stat )
-!!$
-!!$                do idim = 1, ndim
-!!$                ScalarAdvectionField_Diffusion(:, idim, idim, iphase) = ScalarAdvectionField_Diffusion(:, idim, idim, iphase) + &
-!!$                                                                                              component%val * node_val(diffusivity, 1, 1, 1)
-!!$                end do
-!!$            end do 
-!!$         end do
-!!$
-!!$      else
-!!$
-!!$         do iphase = 1, nphase
-!!$            diffusivity => extract_scalar_field( state(iphase), 'Diffusivity', stat )
-!!$            do idim = 1, ndim
-!!$               ScalarAdvectionField_Diffusion(:, idim, idim, iphase) = node_val(diffusivity, 1, 1, 1)
-!!$            end do
-!!$         end do
-!!$
-!!$      end if
+      if ( ncomp > 1 ) then
 
+         do icomp = 1, ncomp
+            do iphase = 1, nphase
 
+               component => extract_scalar_field( state(nphase+icomp), 'ComponentMassFractionPhase'// int2str(iphase)   )
+               diffusivity => extract_scalar_field( state(nphase+icomp), 'ComponentMassFractionPhase' // int2str(iphase) // 'Diffusivity', stat )
+
+               if ( stat == 0 ) then
+                  do idim = 1, ndim
+                     ScalarAdvectionField_Diffusion(:, idim, idim, iphase) = ScalarAdvectionField_Diffusion( :, idim, idim, iphase ) + &
+                          component%val * node_val( diffusivity, 1 )
+                  end do
+               end if
+
+            end do
+         end do
+
+      else
+
+         do iphase = 1, nphase
+            diffusivity => extract_scalar_field( state(iphase), 'Diffusivity', stat )
+
+            if ( stat == 0 ) then
+               do idim = 1, ndim
+                  ScalarAdvectionField_Diffusion(:, idim, idim, iphase) = node_val( diffusivity, 1 )
+               end do
+            end if
+         end do
+
+      end if
 
     end subroutine calculate_diffusivity
+
+    subroutine calculate_viscosity( state, ncomp, nphase, ndim, cv_nonods, mat_nonods, mat_ndgln, Momentum_Diffusion  )
+
+      type(state_type), dimension(:), intent(in) :: state
+      integer, intent(in) :: ncomp, nphase, ndim, cv_nonods, mat_nonods
+      integer, dimension(:), intent(in) :: mat_ndgln
+
+      real, dimension( mat_nonods, ndim, ndim, nphase ), intent(inout) :: Momentum_Diffusion
+      character( len = option_path_len ) :: option_path
+      type(tensor_field), pointer :: t_field
+      integer :: iphase, icomp, idim, stat
+
+
+      if ( have_option( '/physical_parameters/mobility' ) ) then
+
+         ! if solving for porous media and mobility is calculated
+         ! through the viscosity ratio this code will fail
+         momentum_diffusion=0.
+
+      else
+
+         momentum_diffusion=0.
+
+         t_field => extract_tensor_field( state( 1 ), 'Viscosity', stat )
+         if (stat == 0) then
+
+            if ( ncomp>1 ) then
+
+!!$                        allocate( momentum_diffusion_tmp( mat_nonods, ndim, ndim ) ) ; momentum_diffusion_tmp = 0.
+!!$                        allocate( constant( 1, 1 ) ) ; constant = 0.
+!!$
+!!$                           do icomp = 1, ncomp
+!!$
+!!$                                    do iphase = 1, nphase
+!!$
+!!$
+!!$                              option_path = '/material_phase[' // int2str( nphase + icomp - 1 ) // &
+!!$                                   ']/vector_field::Velocity/prognostic/tensor_field::ComponentViscosityPhase'// int2str( iphase )
+!!$                              option_path=option_path // '/prescribed/value[0]/isotropic/constant'
+!!$
+!!$         
+!!$               call get_option( trim( option_path ), constant( 1, 1 ) )
+!!$               do idim = 1, ndim
+!!$                 momentum_diffusion_tmp( : , idim, idim ) = constant( 1, 1 )
+!!$               end do
+!!$               
+!!$
+!!$
+!!$                              momentum_diffusion(:, :, :, iphase) = momentum_diffusion(:, :, :, iphase) + &
+!!$                                   momentum_diffusion_tmp * component( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
+!!$                                   nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods
+!!$
+!!$                           end do
+!!$                        end do
+!!$
+!!$                        deallocate( constant )
+!!$                        deallocate( momentum_diffusion_tmp )
+
+               momentum_diffusion=0.
+               momentum_diffusion(:, 1,1,1) = 0. !1.e-5
+               momentum_diffusion(:, 2,2,1) = 0. !1.e-5
+
+            else
+
+               do iphase = 1, nphase
+
+                  t_field => extract_tensor_field( state( iphase ), 'Viscosity', stat )
+
+                  option_path = '/material_phase[' // int2str( iphase - 1 ) // &
+                       ']/vector_field::Velocity/prognostic/tensor_field::Viscosity'
+                  call Extract_TensorFields_Outof_State( state, iphase, &
+                       t_field, option_path, &
+                       momentum_diffusion( :, :, :, iphase ), &
+                       mat_ndgln )
+               end do
+
+            end if
+
+         end if
+
+      end if
+
+    end subroutine calculate_viscosity
 
   end module multiphase_EOS
