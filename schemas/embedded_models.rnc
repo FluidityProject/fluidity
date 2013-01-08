@@ -131,24 +131,26 @@ fsi_model_input_real_dim_vector_solidvelocity_python =
     ##     return # Return value
     ##
     ## where X and the return value are tuples of length geometry dimension
-    ## and t as the current time.
+    ## and t is either the current time or the timestep, depending on what is set
+    ## in the option 'time_variable_python_interface'.
     element python
     {
-     python_code
+      python_code
     }
 
 fsi_model_input_real_dim_vector_solidposition_python =
     ## Python function prescribing dimensional vector input. Functions should be of the form:
     ##
-    ##  def val(X, dt):
+    ##  def val(X, t):
     ##     # Function code
     ##     return # Return value
     ##
     ## where X and the return value are tuples of length geometry dimension
-    ## and dt as the current timestep.
+    ## and t is either the current time or the timestep, depending on what is set
+    ## in the option 'time_variable_python_interface'.
     element python
     {
-     python_code
+      python_code
     }
 
 fsi_model_prescribed_solid_velocity_mesh =
