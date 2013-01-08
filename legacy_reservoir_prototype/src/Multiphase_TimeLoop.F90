@@ -602,28 +602,25 @@ if ( .false. .and. itime==1 ) then
                deallocate( DEN_CV_NOD ) 
 
                component_old = component
-end if
+
+               do icomp = 1, ncomp
+                  do iphase = 1, nphase
+                     Component_State => extract_scalar_field( state( icomp + nphase ), & 
+                          'ComponentMassFractionPhase' // int2str( iphase ) )
+                     Component_State % val = component( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
+                          nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
 
 
+                     Component_State => extract_scalar_field( state( icomp + nphase ), & 
+                          'ComponentMassFractionPhase' // int2str( iphase ) // 'Old' )
+                     Component_State % val = component_old( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
+                          nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
 
-
-            do icomp = 1, ncomp
-               do iphase = 1, nphase
-                  Component_State => extract_scalar_field( state( icomp + nphase ), & 
-                       'ComponentMassFractionPhase' // int2str( iphase ) )
-                  Component_State % val = component( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
-                       nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
-
-
-                  Component_State => extract_scalar_field( state( icomp + nphase ), & 
-                       'ComponentMassFractionPhase' // int2str( iphase ) // 'Old' )
-                  Component_State % val = component_old( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
-                       nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
-
+                  end do
                end do
-            end do
-         END IF
+            END IF
 
+end if
 
 
 

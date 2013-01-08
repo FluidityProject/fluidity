@@ -121,7 +121,7 @@
       <real_value rank="0">0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">1e-5</real_value>
+      <real_value rank="0">5e-4</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">10</real_value>
@@ -173,18 +173,18 @@
         <solver>
           <iterative_method name="gmres">
             <restart>
-              <integer_value rank="0">60</integer_value>
+              <integer_value rank="0">30</integer_value>
             </restart>
           </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.0e-7</real_value>
+            <real_value rank="0">1.0e-10</real_value>
           </relative_error>
           <absolute_error>
-            <real_value rank="0">1.0e-10</real_value>
+            <real_value rank="0">1.0e-15</real_value>
           </absolute_error>
           <max_iterations>
-            <integer_value rank="0">2500</integer_value>
+            <integer_value rank="0">5504</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
@@ -217,7 +217,7 @@
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
-        <no_interpolation/>
+        <consistent_interpolation/>
       </prognostic>
     </scalar_field>
     <scalar_field name="Density" rank="0">
@@ -295,6 +295,12 @@
               <method>
                 <integer_value rank="0">2</integer_value>
               </method>
+              <nonlinear_velocity_coefficient>
+                <real_value rank="0">1.0</real_value>
+              </nonlinear_velocity_coefficient>
+              <include_pressure>
+                <real_value rank="0">1.0</real_value>
+              </include_pressure>
             </stabilisation>
           </discontinuous_galerkin>
           <conservative_advection>
@@ -312,15 +318,18 @@
         <solver>
           <iterative_method name="gmres">
             <restart>
-              <integer_value rank="0">30</integer_value>
+              <integer_value rank="0">60</integer_value>
             </restart>
           </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.0e-7</real_value>
+            <real_value rank="0">1.0e-12</real_value>
           </relative_error>
+          <absolute_error>
+            <real_value rank="0">1.0e-15</real_value>
+          </absolute_error>
           <max_iterations>
-            <integer_value rank="0">500</integer_value>
+            <integer_value rank="0">2501</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
@@ -421,7 +430,7 @@
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
-        <consistent_interpolation/>
+        <grandy_interpolation/>
       </prognostic>
     </vector_field>
     <scalar_field name="PhaseVolumeFraction" rank="0">
@@ -453,7 +462,7 @@
               <integer_value rank="0">30</integer_value>
             </restart>
           </iterative_method>
-          <preconditioner name="sor"/>
+          <preconditioner name="mg"/>
           <relative_error>
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
@@ -470,16 +479,6 @@
             <real_value rank="0">1.</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="right">
-          <surface_ids>
-            <integer_value shape="1" rank="1">7</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <constant>
-              <real_value rank="0">1.0</real_value>
-            </constant>
-          </type>
-        </boundary_conditions>
         <output/>
         <stat/>
         <convergence>
@@ -571,6 +570,16 @@
  return val</string_value>
           </python>
         </initial_condition>
+        <boundary_conditions name="top">
+          <surface_ids>
+            <integer_value shape="1" rank="1">9</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <constant>
+              <real_value rank="0">0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
         <output/>
         <stat/>
         <convergence>
@@ -588,7 +597,7 @@
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
-                    <real_value rank="0">0.025</real_value>
+                    <real_value rank="0">0.01</real_value>
                   </constant>
                 </value>
                 <output/>
@@ -680,6 +689,16 @@
  return val</string_value>
           </python>
         </initial_condition>
+        <boundary_conditions name="top">
+          <surface_ids>
+            <integer_value shape="1" rank="1">9</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <constant>
+              <real_value rank="0">1</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
         <output/>
         <stat/>
         <convergence>
@@ -714,7 +733,7 @@
       <tensor_field name="MaximumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.25 0.0 0.0 0.25</real_value>
+            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.2 0.0 0.0 0.2</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
