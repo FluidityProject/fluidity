@@ -159,6 +159,7 @@ fsi_model_prescribed_solid_velocity_mesh =
         element mesh {
             attribute name { xsd:string },
             (
+              time_variable_python_interface,
               fsi_model_input_real_dim_vector_solidvelocity_python,
               prescribed_output_options,
               prescribed_vector_stat_options,
@@ -192,6 +193,7 @@ fsi_model_prescribed_solid_position_mesh =
         element mesh {
             attribute name { xsd:string },
             (
+              time_variable_python_interface,
               fsi_model_input_real_dim_vector_solidposition_python,
               prescribed_output_options,
               prescribed_vector_stat_options,
@@ -214,4 +216,19 @@ fsi_model_diagnostic_solid_position_mesh =
                diagnostic_vector_field
             )
         }+
+    }
+
+time_variable_python_interface =
+    ## Determines which time variable is available in the 
+    ## Python interface: The current time (default) or 
+    ## the current timestep.
+    element time_variable_in_python
+    {
+        ## Passes the current simulation time to the python 
+        ## interface below.
+        element current_time {empty}
+        |
+        ## Passes the current timestep to the python 
+        ## interface below.
+        element current_timestep {empty}
     }

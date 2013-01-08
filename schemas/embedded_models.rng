@@ -196,6 +196,7 @@ has a prescribed velocity</a:documentation>
             <data type="string"/>
           </attribute>
           <group>
+            <ref name="time_variable_python_interface"/>
             <ref name="fsi_model_input_real_dim_vector_solidvelocity_python"/>
             <ref name="prescribed_output_options"/>
             <ref name="prescribed_vector_stat_options"/>
@@ -234,6 +235,7 @@ coordinates are prescribed in the python function</a:documentation>
             <data type="string"/>
           </attribute>
           <group>
+            <ref name="time_variable_python_interface"/>
             <ref name="fsi_model_input_real_dim_vector_solidposition_python"/>
             <ref name="prescribed_output_options"/>
             <ref name="prescribed_vector_stat_options"/>
@@ -259,6 +261,25 @@ coordinates are prescribed in the python function</a:documentation>
           </group>
         </element>
       </oneOrMore>
+    </element>
+  </define>
+  <define name="time_variable_python_interface">
+    <element name="time_variable_in_python">
+      <a:documentation>Determines which time variable is available in the 
+Python interface: The current time (default) or 
+the current timestep.</a:documentation>
+      <choice>
+        <element name="current_time">
+          <a:documentation>Passes the current simulation time to the python 
+interface below.</a:documentation>
+          <empty/>
+        </element>
+        <element name="current_timestep">
+          <a:documentation>Passes the current timestep to the python 
+interface below.</a:documentation>
+          <empty/>
+        </element>
+      </choice>
     </element>
   </define>
 </grammar>
