@@ -890,14 +890,27 @@ module fsi_model
       end if
       ! 3rd Set the new coordinates from the python function:
       ! Here we have to differentiate between 'SolidVelocity' and 'SolidPosition' again:
-      ! 'SolidPosition' gets the timestep 'dt' passed into the Python environment and gets back the movement of the solid,
-      ! whereas 'SolidVelocity' gets the current time 't' passed into the Python environment and gets back the solid velocity,
-      ! This allows to easily set prescribed movement for different kinds of problems,
-      ! e.g. movement with constant velocity (SolidPosition), or time dependent movement (SolidVelocity).
+      ! 'SolidPosition' gets back the movement of the solid, whereas 'SolidVelocity' gets back the solid velocity.
+      ! This allows to easily set prescribed movement for different kinds of problems.
+      ! Also, catch what was specified by the user to pass into the Python interface, either current_time or timestep (dt):
+      
       if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed/mesh::"//trim(mesh_name))) then
-        call set_from_python_function(solid_movement_mesh, func, solid_position_mesh, dt)
+        ! current_time or timestep (dt)?
+        if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed/mesh::"//trim(mesh_name)//"/time_variable_in_python/current_time")) then
+          call set_from_python_function(solid_movement_mesh, func, solid_position_mesh, current_time)
+        else if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed/mesh::"//trim(mesh_name)//"/time_variable_in_python/current_timestep")) then
+          call set_from_python_function(solid_movement_mesh, func, solid_position_mesh, dt)
+        else
+          FLAbort('Neither current_time nor current_timestep was enabled in the schema. This must not happen')
+        end if
       else if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh::"//trim(mesh_name))) then
-        call set_from_python_function(solid_movement_mesh, func, solid_position_mesh, current_time)
+        if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh::"//trim(mesh_name)//"/time_variable_in_python/current_time")) then
+          call set_from_python_function(solid_movement_mesh, func, solid_position_mesh, current_time)
+        else if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh::"//trim(mesh_name)//"/time_variable_in_python/current_timestep")) then
+          call set_from_python_function(solid_movement_mesh, func, solid_position_mesh, dt)
+        else
+          FLAbort('Neither current_time nor current_timestep was enabled in the schema. This must not happen')
+        end if
       end if
 
       ! 4th Check if the mesh has actually moved:
