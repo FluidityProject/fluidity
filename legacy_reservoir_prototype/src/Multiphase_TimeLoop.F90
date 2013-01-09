@@ -799,7 +799,7 @@ end if
                call calculate_u_source_cv( state, cv_nonods, ndim, nphase, density_tmp, Velocity_U_Source_CV )
 
                ! calculate the viscosity for the momentum equation...
-               call calculate_viscosity( state, ncomp, nphase, ndim, cv_nonods, mat_nonods, mat_ndgln, Momentum_Diffusion  )
+               call calculate_viscosity( state, ncomp, nphase, ndim, mat_nonods, mat_ndgln, Momentum_Diffusion  )
 
                CALL FORCE_BAL_CTY_ASSEM_SOLVE( state, &
                     NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &

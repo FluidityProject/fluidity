@@ -967,7 +967,7 @@
          do icomp = 1, ncomp
             do iphase = 1, nphase
 
-               component => extract_scalar_field( state(nphase+icomp), 'ComponentMassFractionPhase'// int2str(iphase)   )
+               component => extract_scalar_field( state(nphase+icomp), 'ComponentMassFractionPhase' // int2str(iphase)   )
                diffusivity => extract_scalar_field( state(nphase+icomp), 'ComponentMassFractionPhase' // int2str(iphase) // 'Diffusivity', stat )
 
                if ( stat == 0 ) then
@@ -996,16 +996,21 @@
 
     end subroutine calculate_diffusivity
 
-    subroutine calculate_viscosity( state, ncomp, nphase, ndim, cv_nonods, mat_nonods, mat_ndgln, Momentum_Diffusion  )
+    subroutine calculate_viscosity( state, ncomp, nphase, ndim, mat_nonods, mat_ndgln, Momentum_Diffusion  )
 
       type(state_type), dimension(:), intent(in) :: state
-      integer, intent(in) :: ncomp, nphase, ndim, cv_nonods, mat_nonods
+      integer, intent(in) :: ncomp, nphase, ndim, mat_nonods
       integer, dimension(:), intent(in) :: mat_ndgln
 
       real, dimension( mat_nonods, ndim, ndim, nphase ), intent(inout) :: Momentum_Diffusion
       character( len = option_path_len ) :: option_path
       type(tensor_field), pointer :: t_field
-      integer :: iphase, icomp, idim, stat
+      integer :: iphase, icomp, idim, stat, cv_nod, mat_nod, cv_nloc, ele
+      real, dimension( :, : ), allocatable :: constant
+
+      type(scalar_field), pointer :: component, diffusivity
+      integer, dimension(:), pointer :: st_nodes
+
 
 
       if ( have_option( '/physical_parameters/mobility' ) ) then
@@ -1019,43 +1024,33 @@
          momentum_diffusion=0.
 
          t_field => extract_tensor_field( state( 1 ), 'Viscosity', stat )
-         if (stat == 0) then
+         if ( stat == 0 ) then
 
-            if ( ncomp>1 ) then
+            if ( ncomp > 1 ) then
 
-!!$                        allocate( momentum_diffusion_tmp( mat_nonods, ndim, ndim ) ) ; momentum_diffusion_tmp = 0.
-!!$                        allocate( constant( 1, 1 ) ) ; constant = 0.
-!!$
-!!$                           do icomp = 1, ncomp
-!!$
-!!$                                    do iphase = 1, nphase
-!!$
-!!$
-!!$                              option_path = '/material_phase[' // int2str( nphase + icomp - 1 ) // &
-!!$                                   ']/vector_field::Velocity/prognostic/tensor_field::ComponentViscosityPhase'// int2str( iphase )
-!!$                              option_path=option_path // '/prescribed/value[0]/isotropic/constant'
-!!$
-!!$         
-!!$               call get_option( trim( option_path ), constant( 1, 1 ) )
-!!$               do idim = 1, ndim
-!!$                 momentum_diffusion_tmp( : , idim, idim ) = constant( 1, 1 )
-!!$               end do
-!!$               
-!!$
-!!$
-!!$                              momentum_diffusion(:, :, :, iphase) = momentum_diffusion(:, :, :, iphase) + &
-!!$                                   momentum_diffusion_tmp * component( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
-!!$                                   nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods
-!!$
-!!$                           end do
-!!$                        end do
-!!$
-!!$                        deallocate( constant )
-!!$                        deallocate( momentum_diffusion_tmp )
+               cv_nloc = ele_loc( t_field, ele )
 
-               momentum_diffusion=0.
-               momentum_diffusion(:, 1,1,1) = 0. !1.e-5
-               momentum_diffusion(:, 2,2,1) = 0. !1.e-5
+               do icomp = 1, ncomp
+                  do iphase = 1, nphase
+
+                     component => extract_scalar_field( state(nphase + icomp), 'ComponentMassFractionPhase' // int2str(iphase)   )
+                     t_field => extract_tensor_field( state( nphase + icomp ), ' ComponentMassFractionPhase' // int2str( iphase ) // 'Viscosity' )
+            
+                     do ele = 1, ele_count( t_field )
+                        do iloc = 1, cv_nloc
+
+                           mat_nod = mat_ndgln( (ele-1)*cv_nloc+iloc )
+
+                           st_nodes => ele_nodes( t_field, ele ) 
+                           momentum_diffusion( mat_nod, :, :, iphase ) =  momentum_diffusion( mat_nod, :, :, iphase ) + &
+                                node_val( t_field, st_nodes(iloc) ) * node_val( component, st_nodes(iloc) )
+                        end do
+                     end do
+
+                  end do
+               end do
+
+               deallocate( constant )
 
             else
 
