@@ -34,7 +34,7 @@ embedded_models =
                      ##
                      ## The return vector of the python function is
                      ## supposed to be the solid velocity based on the
-                     ## current time t of the simulation.
+                     ## current time t (or timestep dt) of the simulation.
                      element vector_field {
                         attribute rank { "1" },
                         attribute name { "SolidVelocity" },
@@ -49,15 +49,9 @@ embedded_models =
                      ## 
                      ## This is more general than the above case. 
                      ##
-                     ## Use this if you want to apply a translational, 
-                     ## rotational velocity on a solid body with a constant
-                     ## velocity.
-                     ##
                      ## The return vector of the python function is
-                     ## supposed to contain the distance a node of a 
-                     ## rigid body travels within the time interval dt.
-                     ## Hence the computation is entirely done in the 
-                     ## python script.
+                     ## supposed to contain the new coordinates of 
+                     ## the rigid body.
                      element vector_field {
                         attribute rank { "1" },
                         attribute name { "SolidPosition" },
@@ -66,6 +60,27 @@ embedded_models =
                            fsi_model_prescribed_solid_position_mesh
                            |
                            fsi_model_diagnostic_solid_position_mesh
+                        )
+                     }?,
+                     ## Prescribed diagnostic Solid movement vector.
+                     ## 
+                     ## Here the travelled distance of a solid object is
+                     ## computed, rather than the new coordinates. In some
+                     ## cases this might be more convenient. The velocity
+                     ## and new coordinates are then computed internally
+                     ## based on the given 'movement'.
+                     ##
+                     ## The return vector of the python function is
+                     ## supposed to contain the distance a node of a 
+                     ## rigid body travels within the time interval dt.
+                     element vector_field {
+                        attribute rank { "1" },
+                        attribute name { "SolidMovement" },
+                        ## Field type
+                        (
+                           fsi_model_prescribed_solid_movement_mesh
+                           |
+                           fsi_model_diagnostic_solid_movement_mesh
                         )
                      }?,
                      ## Beta is a scaling factor to improve the 
@@ -153,6 +168,20 @@ fsi_model_input_real_dim_vector_solidposition_python =
       python_code
     }
 
+fsi_model_input_real_dim_vector_solidmovement_python =
+    ## Python function prescribing dimensional vector input. Functions should be of the form:
+    ##
+    ##  def val(X, dt):
+    ##     # Function code
+    ##     return # Return value
+    ##
+    ## where X and the return value are tuples of length geometry dimension
+    ## and dt is the timestep, not the current time.
+    element python
+    {
+      python_code
+    }
+
 fsi_model_prescribed_solid_velocity_mesh =
     ## Prescribed Solid velocity via Python input
     element prescribed {
@@ -211,6 +240,38 @@ fsi_model_diagnostic_solid_position_mesh =
     {
         ## Set the name of the Solid Mesh which
         ## coordinates are prescribed in the python function
+        element mesh {
+            attribute name { xsd:string },
+            (
+               vector_python_diagnostic_algorithm,
+               diagnostic_vector_field
+            )
+        }+
+    }
+
+fsi_model_prescribed_solid_movement_mesh =
+    ## Prescribed Solid movement (distance travelled during timestep dt)
+    ## via Python input
+    element prescribed {
+        ## Set the name of the Solid Mesh which
+        ## travelled distance is prescribed in the python function
+        element mesh {
+            attribute name { xsd:string },
+            (
+              fsi_model_input_real_dim_vector_solidmovement_python,
+              prescribed_output_options,
+              prescribed_vector_stat_options,
+              prescribed_detector_options
+            )
+        }+
+    }
+
+fsi_model_diagnostic_solid_movement_mesh =
+    ## For future use maybe
+    element diagnostic
+    {
+        ## Set the name of the Solid Mesh which
+        ## travelled distance is prescribed in the python function
         element mesh {
             attribute name { xsd:string },
             (

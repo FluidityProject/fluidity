@@ -36,7 +36,7 @@ prescribed velocity.
 
 The return vector of the python function is
 supposed to be the solid velocity based on the
-current time t of the simulation.</a:documentation>
+current time t (or timestep dt) of the simulation.</a:documentation>
                     <attribute name="rank">
                       <value>1</value>
                     </attribute>
@@ -56,15 +56,9 @@ current time t of the simulation.</a:documentation>
 
 This is more general than the above case. 
 
-Use this if you want to apply a translational, 
-rotational velocity on a solid body with a constant
-velocity.
-
 The return vector of the python function is
-supposed to contain the distance a node of a 
-rigid body travels within the time interval dt.
-Hence the computation is entirely done in the 
-python script.</a:documentation>
+supposed to contain the new coordinates of 
+the rigid body.</a:documentation>
                     <attribute name="rank">
                       <value>1</value>
                     </attribute>
@@ -75,6 +69,32 @@ python script.</a:documentation>
                       <a:documentation>Field type</a:documentation>
                       <ref name="fsi_model_prescribed_solid_position_mesh"/>
                       <ref name="fsi_model_diagnostic_solid_position_mesh"/>
+                    </choice>
+                  </element>
+                </optional>
+                <optional>
+                  <element name="vector_field">
+                    <a:documentation>Prescribed diagnostic Solid movement vector.
+
+Here the travelled distance of a solid object is
+computed, rather than the new coordinates. In some
+cases this might be more convenient. The velocity
+and new coordinates are then computed internally
+based on the given 'movement'.
+
+The return vector of the python function is
+supposed to contain the distance a node of a 
+rigid body travels within the time interval dt.</a:documentation>
+                    <attribute name="rank">
+                      <value>1</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>SolidMovement</value>
+                    </attribute>
+                    <choice>
+                      <a:documentation>Field type</a:documentation>
+                      <ref name="fsi_model_prescribed_solid_movement_mesh"/>
+                      <ref name="fsi_model_diagnostic_solid_movement_mesh"/>
                     </choice>
                   </element>
                 </optional>
@@ -187,6 +207,19 @@ in the option 'time_variable_python_interface'.</a:documentation>
       <ref name="python_code"/>
     </element>
   </define>
+  <define name="fsi_model_input_real_dim_vector_solidmovement_python">
+    <element name="python">
+      <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
+
+ def val(X, dt):
+    # Function code
+    return # Return value
+
+where X and the return value are tuples of length geometry dimension
+and dt is the timestep, not the current time.</a:documentation>
+      <ref name="python_code"/>
+    </element>
+  </define>
   <define name="fsi_model_prescribed_solid_velocity_mesh">
     <element name="prescribed">
       <a:documentation>Prescribed Solid velocity via Python input</a:documentation>
@@ -254,6 +287,45 @@ coordinates are prescribed in the python function</a:documentation>
         <element name="mesh">
           <a:documentation>Set the name of the Solid Mesh which
 coordinates are prescribed in the python function</a:documentation>
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+          <group>
+            <ref name="vector_python_diagnostic_algorithm"/>
+            <ref name="diagnostic_vector_field"/>
+          </group>
+        </element>
+      </oneOrMore>
+    </element>
+  </define>
+  <define name="fsi_model_prescribed_solid_movement_mesh">
+    <element name="prescribed">
+      <a:documentation>Prescribed Solid movement (distance travelled during timestep dt)
+via Python input</a:documentation>
+      <oneOrMore>
+        <element name="mesh">
+          <a:documentation>Set the name of the Solid Mesh which
+travelled distance is prescribed in the python function</a:documentation>
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+          <group>
+            <ref name="fsi_model_input_real_dim_vector_solidmovement_python"/>
+            <ref name="prescribed_output_options"/>
+            <ref name="prescribed_vector_stat_options"/>
+            <ref name="prescribed_detector_options"/>
+          </group>
+        </element>
+      </oneOrMore>
+    </element>
+  </define>
+  <define name="fsi_model_diagnostic_solid_movement_mesh">
+    <element name="diagnostic">
+      <a:documentation>For future use maybe</a:documentation>
+      <oneOrMore>
+        <element name="mesh">
+          <a:documentation>Set the name of the Solid Mesh which
+travelled distance is prescribed in the python function</a:documentation>
           <attribute name="name">
             <data type="string"/>
           </attribute>
