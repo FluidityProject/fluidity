@@ -265,7 +265,7 @@ module fsi_model
                 if (solid_moved) then
                   ewrite(1,*) "moved solid mesh: ", trim(mesh_name)
                 else
-                  ewrite(1,*) "solid mesh "//trim(mesh_name)//" did not move this timestep, although it has a prescribed movement."
+                  ewrite(1,*) "solid mesh "//trim(mesh_name)//" did not move this timestep, although it has a prescribed velocity/position/movement."
                 end if
             end if
 
@@ -869,81 +869,129 @@ module fsi_model
       logical, intent(inout) :: solid_moved
 
       type(vector_field), pointer :: solid_velocity_global
-      type(vector_field), pointer :: solid_position_mesh, solid_velocity_mesh
-      type(vector_field) :: solid_movement_mesh
+      type(vector_field), pointer :: solid_position_mesh, new_solid_position_mesh, solid_velocity_mesh
+      type(vector_field) :: solid_python_return_field, solid_movement_mesh
 
       character(len=PYTHON_FUNC_LEN) :: func
       character(len=OPTION_PATH_LEN) :: fsi_path="/embedded_models/fsi_model/one_way_coupling/vector_field::"
+      integer :: d
 
       ewrite(2,*) "inside move_solid_mesh"
 
       ! 1st get coordinate field of this solid mesh, and its velocity field (which is on the fluid mesh):
       solid_position_mesh => extract_vector_field(solid_state, trim(mesh_name)//"SolidCoordinate")
-      ! and create new field in which the travelled distance is stored:
+      ! Get solid velocity field and reset it:
+      solid_velocity_mesh => extract_vector_field(solid_state, trim(mesh_name)//'SolidVelocity')
+      call zero(solid_velocity_mesh)
+      ! and create new field in which the return field from the python interface is stored:
+      call allocate(solid_python_return_field, solid_position_mesh%dim, solid_position_mesh%mesh, name=trim(mesh_name)//"SolidPythonReturnField")
+      call zero(solid_python_return_field)
+      ! Allocate field for the travelled distance of a solid:
       call allocate(solid_movement_mesh, solid_position_mesh%dim, solid_position_mesh%mesh, name=trim(mesh_name)//"SolidMovement")
       call zero(solid_movement_mesh)
 
+
       ! 2nd get the python function for this solid mesh:
-      ! Here we have to differentiate between the user using a prescribed 'SolidVelocity' and 'SolidPosition':
-      if (have_option(trim(fsi_path)//'SolidPosition/prescribed')) then
+      ! Here we have to differentiate between the user using a prescribed 'SolidVelocity', 'SolidPosition', and 'SolidMovement':
+      if (have_option(trim(fsi_path)//'SolidPosition/prescribed/mesh::'//trim(mesh_name)//'/python')) then
         call get_option(trim(fsi_path)//'SolidPosition/prescribed/mesh::'//trim(mesh_name)//'/python', func)
-      else if (have_option(trim(fsi_path)//'SolidVelocity/prescribed')) then
+      else if (have_option(trim(fsi_path)//'SolidVelocity/prescribed/mesh::'//trim(mesh_name)//'/python')) then
         call get_option(trim(fsi_path)//'SolidVelocity/prescribed/mesh::'//trim(mesh_name)//'/python', func)
+      else if (have_option(trim(fsi_path)//'SolidMovement/prescribed/mesh::'//trim(mesh_name)//'/python')) then
+        call get_option(trim(fsi_path)//'SolidMovement/prescribed/mesh::'//trim(mesh_name)//'/python', func)
       end if
       ! 3rd Set the new coordinates from the python function:
-      ! Here we have to differentiate between 'SolidVelocity' and 'SolidPosition' again:
-      ! 'SolidPosition' gets back the movement of the solid, whereas 'SolidVelocity' gets back the solid velocity.
+      ! Here we have to differentiate between 'SolidVelocity', 'SolidPosition', and 'SolidMovement' again:
+      ! 'SolidPosition' gets back the new solid coordinates of the solid, whereas 'SolidVelocity' gets back the solid velocity,
+      ! and 'SolidMovement' gets back the travelled distance within dt.
       ! This allows to easily set prescribed movement for different kinds of problems.
       ! Also, catch what was specified by the user to pass into the Python interface, either current_time or timestep (dt):
-      
+      ! First, for prescribed SolidPosition do:
       if (have_option(trim(fsi_path)//'SolidPosition/prescribed/mesh::'//trim(mesh_name))) then
         ! current_time or timestep (dt)?
         if (have_option(trim(fsi_path)//'SolidPosition/prescribed/mesh::'//trim(mesh_name)//'/time_variable_in_python/current_time')) then
-          call set_from_python_function(solid_movement_mesh, func, solid_position_mesh, current_time)
+          call set_from_python_function(solid_python_return_field, func, solid_position_mesh, current_time)
         else if (have_option(trim(fsi_path)//'SolidPosition/prescribed/mesh::'//trim(mesh_name)//'/time_variable_in_python/current_timestep')) then
-          call set_from_python_function(solid_movement_mesh, func, solid_position_mesh, dt)
+          call set_from_python_function(solid_python_return_field, func, solid_position_mesh, dt)
         else
           FLAbort('Neither current_time nor current_timestep was enabled in the schema. This must not happen')
         end if
+      ! For prescribed SolidVelocity, do:
       else if (have_option(trim(fsi_path)//'SolidVelocity/prescribed/mesh::'//trim(mesh_name))) then
         if (have_option(trim(fsi_path)//'SolidVelocity/prescribed/mesh::'//trim(mesh_name)//'/time_variable_in_python/current_time')) then
-          call set_from_python_function(solid_movement_mesh, func, solid_position_mesh, current_time)
+          call set_from_python_function(solid_python_return_field, func, solid_position_mesh, current_time)
         else if (have_option(trim(fsi_path)//'SolidVelocity/prescribed/mesh::'//trim(mesh_name)//'/time_variable_in_python/current_timestep')) then
-          call set_from_python_function(solid_movement_mesh, func, solid_position_mesh, dt)
+          call set_from_python_function(solid_python_return_field, func, solid_position_mesh, dt)
         else
           FLAbort('Neither current_time nor current_timestep was enabled in the schema. This must not happen')
         end if
+      ! And finally, for prescribed SolidMovement, do:
+      else if (have_option(trim(fsi_path)//'SolidMovement/prescribed/mesh::'//trim(mesh_name))) then
+        ! currently only dt supported
+        call set_from_python_function(solid_python_return_field, func, solid_position_mesh, dt)
       end if
 
       ! 4th Check if the mesh has actually moved:
-      if (maxval(solid_movement_mesh%val(:,:)) == 0.0 .and. &
-          minval(solid_movement_mesh%val(:,:)) == 0.0) then
+      ! If a prescribed SolidVelocity or SolidMovement was set for this solid mesh, 
+      ! the solid did NOT move, if the return field from the python interface is zero,
+      ! if a prescribed SolidPosition was set, the solid did NOT move, if the difference
+      ! of old position and new position is zero:
+      if (have_option(trim(fsi_path)//'SolidVelocity/prescribed/mesh::'//trim(mesh_name)) .or. &
+          have_option(trim(fsi_path)//'SolidMovement/prescribed/mesh::'//trim(mesh_name)) ) then
+        if (maxval(solid_python_return_field%val(:,:)) == 0.0 .and. &
+            minval(solid_python_return_field%val(:,:)) == 0.0) then
           solid_moved = .false.
-      else
+        else
           solid_moved = .true.
+        end if
+      else if (have_option(trim(fsi_path)//'SolidPosition/prescribed/mesh::'//trim(mesh_name)) ) then
+        ! Since we assume that the 1-way coupled solid with prescribed velocity/movement/position 
+        ! is rigid, we only need to check for a displacement of two nodes of the solid mesh, rather than
+        ! all nodes of the mesh. Two nodes are required because looking at only one node, the rotational
+        ! displacement of the solid would not be caught if the checked node is at the centre of the
+        ! rotational axis (that would be very unlikely, but could happen).
+        ! comparing all dimensional values of the first and second node:
+        solid_moved = .false.
+        do d=1, solid_position_mesh%dim
+            if (solid_python_return_field%val(d,1) /= solid_position_mesh%val(d,1) .or. &
+                solid_python_return_field%val(d,2) /= solid_position_mesh%val(d,2) ) then
+              solid_moved = .true.
+            end if
+        end do
       end if
 
-      ! Set fields, IFF the solid moved:
-      if (solid_moved) then
-        ! 4th Set the new coordinates of the solid:
-        if (have_option(trim(fsi_path)//'SolidPosition/prescribed/mesh::'//trim(mesh_name))) then
-          call addto(solid_position_mesh, solid_movement_mesh)
-        else if (have_option(trim(fsi_path)//'SolidVelocity/prescribed/mesh::'//trim(mesh_name))) then
-          call addto(solid_position_mesh, solid_movement_mesh, dt) ! here solid_movement_mesh is actually the velocity
-        end if
-        ! 5th Set the solid velocity field of this solid on solid mesh:
-        solid_velocity_mesh => extract_vector_field(solid_state, trim(mesh_name)//'SolidVelocity')
-        call zero(solid_velocity_mesh)
-        ! And set it:
-        if (have_option(trim(fsi_path)//'SolidPosition/prescribed/mesh::'//trim(mesh_name))) then
-          call addto(solid_velocity_mesh, solid_movement_mesh, 1.0/dt)
-        else if (have_option(trim(fsi_path)//'SolidVelocity/prescribed/mesh::'//trim(mesh_name))) then
-          call addto(solid_velocity_mesh, solid_movement_mesh) ! Here solid_movement_mesh is the solid velocity
-        end if
 
+      ! Set fields (new coordinates, and velocity), IFF the solid moved:
+      if (solid_moved) then
+        ! 4th Set the new coordinates and velocity of the solid:
+        ! First for prescribed SolidVelocity:
+        if (have_option(trim(fsi_path)//'SolidVelocity/prescribed/mesh::'//trim(mesh_name))) then
+            ! Set solid velocity:
+            call set(solid_velocity_mesh, solid_python_return_field) ! Here solid_python_return_field is the solid velocity
+            ! Compute the distance travelled within dt:
+            call addto(solid_movement_mesh, solid_python_return_field, dt) ! Here solid_python_return_field is the solid velocity
+            ! Set new coordinates:
+            call addto(solid_position_mesh, solid_movement_mesh)
+        ! Then for SolidMovement:
+        else if (have_option(trim(fsi_path)//'SolidMovement/prescribed/mesh::'//trim(mesh_name))) then
+            ! Set solid velocity:
+            call addto(solid_velocity_mesh, solid_python_return_field, 1.0/dt) ! Here solid_python_return_field is the travelled distance
+            ! Set new coordinates:
+            call addto(solid_position_mesh, solid_python_return_field) ! Here solid_python_return_field is the travelled distance
+        ! And finally for SolidPosition:
+        else if (have_option(trim(fsi_path)//'SolidPosition/prescribed/mesh::'//trim(mesh_name))) then
+            ! Compute the distance travelled within dt:
+            call set(solid_movement_mesh, solid_python_return_field) ! Here solid_python_return_field is the new solid coordinate
+            call addto(solid_movement_mesh, solid_position_mesh, -1.0)
+            ! Set solid velocity:
+            call addto(solid_velocity_mesh, solid_movement_mesh, 1.0/dt) ! Here solid_python_return_field is the new solid coordinate
+            ! Set new coordinates:
+            call set(solid_position_mesh, solid_python_return_field) ! Here solid_python_return_field is the new solid coordinate
+        end if
       end if
 
       ! 5th Deallocate:
+      call deallocate(solid_python_return_field)
       call deallocate(solid_movement_mesh)
 
       ewrite(2,*) 'end of move_solid_mesh'
