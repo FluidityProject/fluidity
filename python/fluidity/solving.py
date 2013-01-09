@@ -195,7 +195,7 @@ def _assemble_tensor(f):
                 tensor_arg = tensor(elem_node[op2.i[0]], op2.INC)
             itspace = test.mesh.faces.boundary_elem_sets[boundary](*itspace_extents)
             args = [kernel, itspace, tensor_arg,
-                    coords.dat(coords.element_node_map, op2.READ)]
+                    coords.dat(elem_node, op2.READ)]
             for c in fd.coefficients:
                 args.append(c.dat(elem_node, op2.READ))
             args.append(test.mesh.faces.boundary_facets[boundary](op2.IdentityMap, op2.READ))
