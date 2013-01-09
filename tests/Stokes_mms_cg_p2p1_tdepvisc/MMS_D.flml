@@ -1,709 +1,579 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8" ?>
 <fluidity_options>
-  <simulation_name>
-    <string_value lines="1">MMS_D</string_value>
-  </simulation_name>
-  <problem_type>
-    <string_value lines="1">stokes</string_value>
-  </problem_type>
-  <geometry>
-    <dimension>
-      <integer_value rank="0">2</integer_value>
-    </dimension>
-    <mesh name="CoordinateMesh">
-      <from_mesh>
-        <mesh name="InputMesh"/>
-        <stat>
-          <exclude_from_stat/>
-        </stat>
-      </from_mesh>
-    </mesh>
-    <mesh name="VelocityMesh">
-      <from_mesh>
-        <mesh name="InputMesh"/>
-        <mesh_shape>
-          <polynomial_degree>
+    <simulation_name>
+        <string_value lines="1">MMS_D</string_value>
+    </simulation_name>
+    <problem_type>
+        <string_value lines="1">stokes</string_value>
+    </problem_type>
+    <geometry>
+        <dimension>
             <integer_value rank="0">2</integer_value>
-          </polynomial_degree>
-        </mesh_shape>
-        <stat>
-          <exclude_from_stat/>
-        </stat>
-      </from_mesh>
-    </mesh>
-    <mesh name="PressureMesh">
-      <from_mesh>
-        <mesh name="InputMesh"/>
-        <stat>
-          <exclude_from_stat/>
-        </stat>
-      </from_mesh>
-    </mesh>
-    <mesh name="InputMesh">
-      <from_file file_name="MMS_D">
-        <format name="triangle"/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-      </from_file>
-    </mesh>
-    <quadrature>
-      <degree>
-        <integer_value rank="0">4</integer_value>
-      </degree>
-    </quadrature>
-  </geometry>
-  <io>
-    <dump_format>
-      <string_value>vtk</string_value>
-    </dump_format>
-    <dump_period>
-      <constant>
-        <real_value rank="0">15.0</real_value>
-      </constant>
-    </dump_period>
-    <output_mesh name="VelocityMesh"/>
-    <checkpointing>
-      <checkpoint_period_in_dumps>
-        <integer_value rank="0">1000</integer_value>
-      </checkpoint_period_in_dumps>
-      <checkpoint_at_end/>
-    </checkpointing>
-    <stat/>
-  </io>
-  <timestepping>
-    <current_time>
-      <real_value rank="0">0.0</real_value>
-    </current_time>
-    <timestep>
-      <real_value rank="0">1.0</real_value>
-    </timestep>
-    <finish_time>
-      <real_value rank="0">20.0</real_value>
-    </finish_time>
-    <steady_state>
-      <tolerance>
-        <real_value rank="0">1.E-8</real_value>
-        <infinity_norm/>
-      </tolerance>
-    </steady_state>
-  </timestepping>
-  <material_phase name="NS">
-    <equation_of_state>
-      <fluids>
-        <linear>
-          <reference_density>
-            <real_value rank="0">1.0</real_value>
-          </reference_density>
-        </linear>
-      </fluids>
-    </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
-      <prognostic>
-        <mesh name="PressureMesh"/>
-        <spatial_discretisation>
-          <continuous_galerkin>
-            <remove_stabilisation_term/>
-          </continuous_galerkin>
-        </spatial_discretisation>
-        <scheme>
-          <poisson_pressure_solution>
-            <string_value lines="1">never</string_value>
-          </poisson_pressure_solution>
-          <use_projection_method>
-            <full_schur_complement>
-              <inner_matrix name="FullMomentumMatrix">
+        </dimension>
+        <mesh name="CoordinateMesh">
+            <from_mesh>
+                <mesh name="InputMesh"></mesh>
+                <stat>
+                    <exclude_from_stat></exclude_from_stat>
+                </stat>
+            </from_mesh>
+        </mesh>
+        <mesh name="VelocityMesh">
+            <from_mesh>
+                <mesh name="InputMesh"></mesh>
+                <mesh_shape>
+                    <polynomial_degree>
+                        <integer_value rank="0">2</integer_value>
+                    </polynomial_degree>
+                </mesh_shape>
+                <stat>
+                    <exclude_from_stat></exclude_from_stat>
+                </stat>
+            </from_mesh>
+        </mesh>
+        <mesh name="PressureMesh">
+            <from_mesh>
+                <mesh name="InputMesh"></mesh>
+                <stat>
+                    <exclude_from_stat></exclude_from_stat>
+                </stat>
+            </from_mesh>
+        </mesh>
+        <mesh name="InputMesh">
+            <from_file file_name="MMS_D">
+                <format name="triangle"></format>
+                <stat>
+                    <include_in_stat></include_in_stat>
+                </stat>
+            </from_file>
+        </mesh>
+        <quadrature>
+            <degree>
+                <integer_value rank="0">4</integer_value>
+            </degree>
+        </quadrature>
+    </geometry>
+    <io>
+        <dump_format>
+            <string_value>vtk</string_value>
+        </dump_format>
+        <dump_period>
+            <constant>
+                <real_value rank="0">15</real_value>
+            </constant>
+        </dump_period>
+        <output_mesh name="VelocityMesh"></output_mesh>
+        <checkpointing>
+            <checkpoint_period_in_dumps>
+                <integer_value rank="0">1000</integer_value>
+            </checkpoint_period_in_dumps>
+            <checkpoint_at_end></checkpoint_at_end>
+        </checkpointing>
+        <stat></stat>
+    </io>
+    <timestepping>
+        <current_time>
+            <real_value rank="0">0</real_value>
+        </current_time>
+        <timestep>
+            <real_value rank="0">1</real_value>
+        </timestep>
+        <finish_time>
+            <real_value rank="0">20</real_value>
+        </finish_time>
+        <steady_state>
+            <tolerance>
+                <real_value rank="0">1e-08</real_value>
+                <infinity_norm></infinity_norm>
+            </tolerance>
+        </steady_state>
+    </timestepping>
+    <material_phase name="NS">
+        <equation_of_state>
+            <fluids>
+                <linear>
+                    <reference_density>
+                        <real_value rank="0">1</real_value>
+                    </reference_density>
+                </linear>
+            </fluids>
+        </equation_of_state>
+        <scalar_field name="Pressure" rank="0">
+            <prognostic>
+                <mesh name="PressureMesh"></mesh>
+                <spatial_discretisation>
+                    <continuous_galerkin>
+                        <remove_stabilisation_term></remove_stabilisation_term>
+                    </continuous_galerkin>
+                </spatial_discretisation>
+                <scheme>
+                    <poisson_pressure_solution>
+                        <string_value lines="1">never</string_value>
+                    </poisson_pressure_solution>
+                    <use_projection_method>
+                        <full_schur_complement>
+                            <inner_matrix name="FullMomentumMatrix">
+                                <solver>
+                                    <iterative_method name="cg"></iterative_method>
+                                    <preconditioner name="sor"></preconditioner>
+                                    <relative_error>
+                                        <real_value rank="0">1e-10</real_value>
+                                    </relative_error>
+                                    <max_iterations>
+                                        <integer_value rank="0">10000</integer_value>
+                                    </max_iterations>
+                                    <start_from_zero></start_from_zero>
+                                    <never_ignore_solver_failures></never_ignore_solver_failures>
+                                    <diagnostics>
+                                        <monitors></monitors>
+                                    </diagnostics>
+                                </solver>
+                            </inner_matrix>
+                            <preconditioner_matrix name="DiagonalSchurComplement"></preconditioner_matrix>
+                        </full_schur_complement>
+                    </use_projection_method>
+                </scheme>
                 <solver>
-                  <iterative_method name="cg"/>
-                  <preconditioner name="sor"/>
-                  <relative_error>
-                    <real_value rank="0">1E-10</real_value>
-                  </relative_error>
-                  <max_iterations>
-                    <integer_value rank="0">10000</integer_value>
-                  </max_iterations>
-                  <start_from_zero/>
-                  <never_ignore_solver_failures/>
-                  <diagnostics>
-                    <monitors/>
-                  </diagnostics>
+                    <iterative_method name="fgmres"></iterative_method>
+                    <preconditioner name="jacobi"></preconditioner>
+                    <relative_error>
+                        <real_value rank="0">1e-10</real_value>
+                    </relative_error>
+                    <absolute_error>
+                        <real_value rank="0">1e-16</real_value>
+                    </absolute_error>
+                    <max_iterations>
+                        <integer_value rank="0">1000</integer_value>
+                    </max_iterations>
+                    <remove_null_space></remove_null_space>
+                    <never_ignore_solver_failures></never_ignore_solver_failures>
+                    <diagnostics>
+                        <monitors></monitors>
+                    </diagnostics>
                 </solver>
-              </inner_matrix>
-              <preconditioner_matrix name="DiagonalSchurComplement"/>
-            </full_schur_complement>
-          </use_projection_method>
-        </scheme>
-        <solver>
-          <iterative_method name="fgmres"/>
-          <preconditioner name="jacobi"/>
-          <relative_error>
-            <real_value rank="0">1.E-10</real_value>
-          </relative_error>
-          <absolute_error>
-            <real_value rank="0">1e-16</real_value>
-          </absolute_error>
-          <max_iterations>
-            <integer_value rank="0">1000</integer_value>
-          </max_iterations>
-          <remove_null_space/>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
-        <output>
-          <include_previous_time_step/>
-        </output>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <consistent_interpolation/>
-      </prognostic>
-    </scalar_field>
-    <scalar_field name="Density" rank="0">
-      <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
-    <vector_field name="Velocity" rank="1">
-      <prognostic>
-        <mesh name="VelocityMesh"/>
-        <equation name="Boussinesq"/>
-        <spatial_discretisation>
-          <continuous_galerkin>
-            <stabilisation>
-              <no_stabilisation/>
-            </stabilisation>
-            <mass_terms>
-              <exclude_mass_terms/>
-            </mass_terms>
-            <advection_terms>
-              <exclude_advection_terms/>
-            </advection_terms>
-            <stress_terms>
-              <partial_stress_form/>
-            </stress_terms>
-          </continuous_galerkin>
-          <conservative_advection>
-            <real_value rank="0">0.0</real_value>
-          </conservative_advection>
-        </spatial_discretisation>
-        <temporal_discretisation>
-          <theta>
-            <real_value rank="0">1</real_value>
-          </theta>
-          <relaxation>
-            <real_value rank="0">1</real_value>
-          </relaxation>
-        </temporal_discretisation>
-        <solver>
-          <iterative_method name="cg"/>
-          <preconditioner name="sor"/>
-          <relative_error>
-            <real_value rank="0">1.E-7</real_value>
-          </relative_error>
-          <max_iterations>
-            <integer_value rank="0">1000</integer_value>
-          </max_iterations>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
-        <initial_condition name="WholeMesh">
-          <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
-          </constant>
-        </initial_condition>
-        <boundary_conditions name="all_sides">
-          <surface_ids>
-            <integer_value shape="4" rank="1">7 8 9 10</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <align_bc_with_cartesian>
-              <x_component>
-                <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
-   from math import sin, cos
-   # Shear rotation about origin.
-   u = sin(X[0])*cos(X[1])
-   return u</string_value>
-                </python>
-              </x_component>
-              <y_component>
-                <python>
-                  <string_value lines="20" type="code" language="python">def val(X,t):
-   from math import sin, cos
-   # Shear rotation about origin.
-   v = -1.0*cos(X[0])*sin(X[1])
-   return v</string_value>
-                </python>
-              </y_component>
-            </align_bc_with_cartesian>
-          </type>
-        </boundary_conditions>
-        <tensor_field name="Viscosity" rank="2">
-          <diagnostic>
-            <algorithm name="tensor_python_diagnostic" material_phase_support="single">
-              <string_value lines="20" type="code" language="python">from math import exp, log
-from numpy import zeros
-
-Temperature=state.scalar_fields["Temperature"]
-
-b=log(1000)
-deltaT=1.0
-
-dim = 2
-visc = zeros((dim,dim))
-
-for n in range(Temperature.node_count):
-   T = Temperature.node_val(n)
-   nu = exp(-b*T/deltaT)
-   for i in range(dim):
-      visc[i,i] = nu
-   field.set(n, visc)</string_value>
-            </algorithm>
-            <output/>
-            <stat>
-              <include_in_stat/>
-            </stat>
-          </diagnostic>
-        </tensor_field>
-        <vector_field name="Source" rank="1">
-          <prescribed>
-            <value name="WholeMesh">
-              <python>
-                <string_value lines="20" type="code" language="python">def val(XX, t):
-   from math import sin,cos,log,exp,pi
-   from numpy import arctanh
-   b=log(1000);
-   deltaT=1.0;
-   A = 0.25;
-   B = 1.9
-   adv = 0.0;
-   beta = 0.0;
-   mass = 0.0;
-   rho = 1.0;
-   x = XX[0];
-   y = XX[1];
-   Su = A*B*b*exp(-0.5*(2*A*sin(0.5*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1)*pi)*cos(0.5*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1)*pi) - arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1)*b/deltaT)*sin(0.5*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1)*pi)*sin(0.5*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1)*pi)*cos(x)*cos(y)/(((x/pi - 0.500000000000000)**2*B**2 - 1)*deltaT*arctanh(0.500000000000000*B)) + (sin(x)*sin(y)**2*cos(x) + sin(x)*cos(x)*cos(y)**2)*adv*rho + 2*exp(-0.5*(2*A*sin(0.5*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1)*pi)*cos(0.5*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1)*pi) - arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1)*b/deltaT)*sin(x)*cos(y) - sin(x)*cos(y)
-   Sv = (A*B*cos(0.5*(arctanh((x/pi - 0.5)*B)/arctanh(0.5*B) + 1)*pi)*cos(0.5*(arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1)*pi)/(((y/pi - 0.5)**2*B**2 - 1)*arctanh(0.5*B)) - B/(((y/pi - 0.5)**2*B**2 - 1)*pi*arctanh(0.5*B)))*b*exp(-0.5*(2*A*sin(0.5*(arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1)*pi)*cos(0.5*(arctanh((x/pi - 0.5)*B)/arctanh(0.5*B) + 1)*pi) - arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1)*b/deltaT)*cos(x)*cos(y)/deltaT + (sin(x)**2*sin(y)*cos(y) + sin(y)*cos(x)**2*cos(y))*adv*rho - 2*exp(-0.5*(2*A*sin(0.5*(arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1)*pi)*cos(0.5*(arctanh((x/pi - 0.5)*B)/arctanh(0.5*B) + 1)*pi) - arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1)*b/deltaT)*sin(y)*cos(x) - sin(y)*cos(x)
-   return (Su, Sv)</string_value>
-                <comment>u(x,y,rho,beta,nu,adv,mass,t) = sin(x)*cos(y)&#13;
-v(x,y,rho,beta,nu,adv,mass,t) = -cos(x)*sin(y)
-p(x,y,rho,beta,nu,adv,mass,t) = cos(x)*cos(y)
-phi(x,pi,B)=(1+arctanh((x/pi-0.5)*B)/arctanh(0.5*B))*pi/2
-T(x,y,t,nu,mass,adv,beta,pi,A) = 1 - phi(y,pi,B)/pi + A*(cos(phi(x,pi,B))*sin(phi(y,pi,B)))
-nu(x,y,b,deltaT) = exp(-b*T/deltaT)&#13;
-
-u_t = diff(u,t)
-v_t = diff(v,t)
-
-u_x = diff(u,x)&#13;
-u_y = diff(u,y)
-v_x = diff(v,x)
-v_y = diff(v,y)
-
-nu_u_x = nu*u_x
-nu_u_y = nu*u_y
-nu_v_x = nu*v_x
-nu_v_y = nu*v_y
-
-nu_u_xx = diff(nu_u_x,x)
-nu_u_yy = diff(nu_u_y,y)
-nu_v_xx = diff(nu_v_x,x)
-nu_v_yy = diff(nu_v_y,y)
-nu_v_yx = diff(nu_v_x,y)
-nu_u_xy = diff(nu_u_y,x)
-
-p_x = diff(p,x)
-p_y = diff(p,y)
-
-mass*rho*u_t + adv*rho*(u*u_x+v*u_y + beta*(u*u_x + u*v_y)) + p_x - 2*nu_u_xx - nu_u_yy - nu_v_yx
-mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y))  +  p_y - 2*nu_v_yy - nu_v_xx - nu_u_xy</comment>
-              </python>
-            </value>
-            <output/>
-            <stat>
-              <include_in_stat/>
-            </stat>
-            <detectors>
-              <exclude_from_detectors/>
-            </detectors>
-          </prescribed>
-        </vector_field>
-        <output>
-          <include_previous_time_step/>
-        </output>
-        <stat>
-          <include_in_stat/>
-          <previous_time_step>
-            <exclude_from_stat/>
-          </previous_time_step>
-          <nonlinear_field>
-            <exclude_from_stat/>
-          </nonlinear_field>
-        </stat>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <consistent_interpolation/>
-      </prognostic>
-    </vector_field>
-    <scalar_field name="CFLNumber" rank="0">
-      <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="PressureAnalytical" rank="0">
-      <prescribed>
-        <mesh name="PressureMesh"/>
-        <value name="WholeMesh">
-          <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
-   from math import cos
-   p = cos(X[0])*cos(X[1])
-   return p</string_value>
-          </python>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
-    </scalar_field>
-    <scalar_field name="ScalarAbsoluteDifference" rank="0">
-      <diagnostic field_name_b="Pressure" field_name_a="PressureAnalytical">
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <relative_to_average/>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="FiniteElementDivergence" rank="0">
-      <diagnostic field_name="Velocity">
-        <algorithm legacy="true" name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
-        <solver>
-          <iterative_method name="cg"/>
-          <preconditioner name="sor"/>
-          <relative_error>
-            <real_value rank="0">1.E-10</real_value>
-          </relative_error>
-          <max_iterations>
-            <integer_value rank="0">10000</integer_value>
-          </max_iterations>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="Temperature" rank="0">
-      <prognostic>
-        <mesh name="VelocityMesh"/>
-        <equation name="AdvectionDiffusion"/>
-        <spatial_discretisation>
-          <continuous_galerkin>
-            <stabilisation>
-              <no_stabilisation/>
-            </stabilisation>
-            <advection_terms/>
-            <mass_terms>
-              <exclude_mass_terms/>
-            </mass_terms>
-          </continuous_galerkin>
-          <conservative_advection>
-            <real_value rank="0">0.0</real_value>
-          </conservative_advection>
-        </spatial_discretisation>
-        <temporal_discretisation>
-          <theta>
-            <real_value rank="0">1.0</real_value>
-          </theta>
-        </temporal_discretisation>
-        <solver>
-          <iterative_method name="gmres">
-            <restart>
-              <integer_value rank="0">30</integer_value>
-            </restart>
-          </iterative_method>
-          <preconditioner name="sor"/>
-          <relative_error>
-            <real_value rank="0">1.e-8</real_value>
-          </relative_error>
-          <max_iterations>
-            <integer_value rank="0">10000</integer_value>
-          </max_iterations>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
-        <initial_condition name="WholeMesh">
-          <constant>
-            <real_value rank="0">0.0</real_value>
-          </constant>
-        </initial_condition>
-        <boundary_conditions name="Top">
-          <surface_ids>
-            <integer_value shape="1" rank="1">9</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <constant>
-              <real_value rank="0">0.0</real_value>
-            </constant>
-          </type>
-        </boundary_conditions>
-        <boundary_conditions name="Bottom">
-          <surface_ids>
-            <integer_value shape="1" rank="1">7</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <constant>
-              <real_value rank="0">1.0</real_value>
-            </constant>
-          </type>
-        </boundary_conditions>
-        <tensor_field name="Diffusivity" rank="2">
-          <prescribed>
-            <value name="WholeMesh">
-              <isotropic>
-                <constant>
-                  <real_value rank="0">0.7</real_value>
-                </constant>
-              </isotropic>
-            </value>
-            <output/>
-          </prescribed>
-        </tensor_field>
-        <scalar_field name="Source" rank="0">
-          <prescribed>
-            <value name="WholeMesh">
-              <python>
-                <string_value lines="20" type="code" language="python">def val(XX, t):
-   from math import sin,cos,pi
-   from numpy import arctanh
-   nu = 0.7;
-   omega = 0.0;
-   mass = 0.0;
-   adv = 1.0;
-   beta = 0.0;
-   A = 0.25;
-   B = 1.9;
-   x = XX[0];
-   y = XX[1];
-   S = 0.5*(A*B*sin(1.0/2.0*(arctanh((x/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)*sin(1.0/2.0*(arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)*sin(x)*cos(y)/(((x/pi - 0.5)**2.0*B**2.0 - 1.0)*arctanh(0.5*B)) + (A*B*cos(1.0/2.0*(arctanh((x/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)*cos(1.0/2.0*(arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)/(((y/pi - 0.5)**2.0*B**2.0 - 1.0)*arctanh(0.5*B)) - B/(((y/pi - 0.5)**2.0*B**2.0 - 1.0)*pi*arctanh(0.5*B)))*sin(y)*cos(x))*adv - 1.0/4*(2.0*(2.0*y/pi - 1.0)*A*B**3*cos(1.0/2.0*(arctanh((x/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)*cos(1.0/2.0*(arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)/(((y/pi - 0.5)**2.0*B**2.0 - 1.0)**2.0*pi*arctanh(0.5*B)) - 2.0*(2.0*x/pi - 1.0)*A*B**3*sin(1.0/2.0*(arctanh((x/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)*sin(1.0/2.0*(arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)/(((x/pi - 0.5)**2.0*B**2.0 - 1.0)**2.0*pi*arctanh(0.5*B)) - A*B**2.0*sin(1.0/2.0*(arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)*cos(1.0/2.0*(arctanh((x/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)/(((x/pi - 0.5)**2.0*B**2.0 - 1.0)**2.0*arctanh(0.5*B)**2.0) - A*B**2.0*sin(1.0/2.0*(arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)*cos(1.0/2.0*(arctanh((x/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)/(((y/pi - 0.5)**2.0*B**2.0 - 1.0)**2.0*arctanh(0.5*B)**2.0) - 2.0*(2.0*y/pi - 1.0)*B**3/(((y/pi - 0.5)**2.0*B**2.0 - 1.0)**2.0*pi**2.0*arctanh(0.5*B)))*nu
-   return S</string_value>
-                <comment>phi(x,pi,B)=(1+arctanh((x/pi-0.5)*B)/arctanh(0.5*B))*pi/2
-T(x,y,t,nu,mass,adv,beta,pi,A,B) = 1 - phi(y,pi,B)/pi + A*(cos(phi(x,pi,B))*sin(phi(y,pi,B)))
-T_t = diff(T,t)&#13;
-T_x = diff(T,x)&#13;
-T_y = diff(T,y)
-T_xx = diff(T_x,x)
-T_yy = diff(T_y,y)
-
-u(x,y,rho,beta,nu,adv,mass,t) = sin(x)*cos(y)&#13;
-v(x,y,rho,beta,nu,adv,masst) = -cos(x)*sin(y)
-u_x = diff(u,x)&#13;
-u_y = diff(u,y)
-v_x = diff(v,x)&#13;
-v_y = diff(v,y)
-
-S = mass*T_t + adv*(u*T_x + v*T_y + beta*(T*(u_x + v_y))) - nu*(T_xx + T_yy)</comment>
-              </python>
-            </value>
-            <output/>
-            <stat/>
-            <detectors>
-              <exclude_from_detectors/>
-            </detectors>
-          </prescribed>
+                <output>
+                    <include_previous_time_step></include_previous_time_step>
+                </output>
+                <stat></stat>
+                <convergence>
+                    <include_in_convergence></include_in_convergence>
+                </convergence>
+                <detectors>
+                    <exclude_from_detectors></exclude_from_detectors>
+                </detectors>
+                <steady_state>
+                    <include_in_steady_state></include_in_steady_state>
+                </steady_state>
+                <consistent_interpolation></consistent_interpolation>
+            </prognostic>
         </scalar_field>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <consistent_interpolation/>
-      </prognostic>
-    </scalar_field>
-    <scalar_field name="TemperatureAnalytical" rank="0">
-      <prescribed>
-        <mesh name="VelocityMesh"/>
-        <value name="WholeMesh">
-          <python>
-            <string_value lines="20" type="code" language="python">def val(XX,t):
-  from math import cos, sin, pi
-  from numpy import arctanh
-  A = 0.25;
-  B = 1.9;
-  x=XX[0];
-  y=XX[1];
-  phi_x=(arctanh((x/pi-0.5)*B)/arctanh(0.5*B)+1.0)*pi/2.0
-  phi_y=(arctanh((y/pi-0.5)*B)/arctanh(0.5*B)+1.0)*pi/2.0
-  T = 1 - phi_y/pi + A*(cos(phi_x)*sin(phi_y))
-  return T</string_value>
-          </python>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
-    </scalar_field>
-    <scalar_field name="TemperatureAbsoluteDifference" rank="0">
-      <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="Temperature" source_field_2_name="TemperatureAnalytical" material_phase_support="single" source_field_1_type="scalar">
-          <absolute_difference/>
-        </algorithm>
-        <mesh name="VelocityMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
-    <vector_field name="VelocityAnalytical" rank="1">
-      <prescribed>
-        <mesh name="VelocityMesh"/>
-        <value name="WholeMesh">
-          <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
-   from math import sin, cos
-   # Shear rotation about origin.
-   return (sin(X[0])*cos(X[1]), -1.0*cos(X[0])*sin(X[1]))</string_value>
-          </python>
-        </value>
-        <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
-    </vector_field>
-    <vector_field name="VectorAbsoluteDifference" rank="1">
-      <diagnostic field_name_b="Velocity" field_name_a="VelocityAnalytical">
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
-        <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </vector_field>
-    <tensor_field name="ViscosityAnalytical" rank="2">
-      <diagnostic>
-        <algorithm name="tensor_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">from math import exp, log
-from numpy import zeros
-
-Temperature=state.scalar_fields["TemperatureAnalytical"]
-
-b=log(1000)
-deltaT=1.0
-
-dim = 2
-visc = zeros((dim,dim))
-
-for n in range(Temperature.node_count):
-   T = Temperature.node_val(n)
-   nu = exp(-b*T/deltaT)
-   for i in range(dim):
-      visc[i,i] = nu
-   field.set(n, visc)</string_value>
-        </algorithm>
-        <mesh name="VelocityMesh"/>
-        <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-      </diagnostic>
-    </tensor_field>
-  </material_phase>
+        <scalar_field name="Density" rank="0">
+            <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"></algorithm>
+                <mesh name="VelocityMesh"></mesh>
+                <output></output>
+                <stat></stat>
+                <convergence>
+                    <include_in_convergence></include_in_convergence>
+                </convergence>
+                <detectors>
+                    <include_in_detectors></include_in_detectors>
+                </detectors>
+                <steady_state>
+                    <include_in_steady_state></include_in_steady_state>
+                </steady_state>
+            </diagnostic>
+        </scalar_field>
+        <vector_field name="Velocity" rank="1">
+            <prognostic>
+                <mesh name="VelocityMesh"></mesh>
+                <equation name="Boussinesq"></equation>
+                <spatial_discretisation>
+                    <continuous_galerkin>
+                        <stabilisation>
+                            <no_stabilisation></no_stabilisation>
+                        </stabilisation>
+                        <mass_terms>
+                            <exclude_mass_terms></exclude_mass_terms>
+                        </mass_terms>
+                        <advection_terms>
+                            <exclude_advection_terms></exclude_advection_terms>
+                        </advection_terms>
+                        <stress_terms>
+                            <partial_stress_form></partial_stress_form>
+                        </stress_terms>
+                    </continuous_galerkin>
+                    <conservative_advection>
+                        <real_value rank="0">0</real_value>
+                    </conservative_advection>
+                </spatial_discretisation>
+                <temporal_discretisation>
+                    <theta>
+                        <real_value rank="0">1</real_value>
+                    </theta>
+                    <relaxation>
+                        <real_value rank="0">1</real_value>
+                    </relaxation>
+                </temporal_discretisation>
+                <solver>
+                    <iterative_method name="cg"></iterative_method>
+                    <preconditioner name="sor"></preconditioner>
+                    <relative_error>
+                        <real_value rank="0">1e-07</real_value>
+                    </relative_error>
+                    <max_iterations>
+                        <integer_value rank="0">1000</integer_value>
+                    </max_iterations>
+                    <never_ignore_solver_failures></never_ignore_solver_failures>
+                    <diagnostics>
+                        <monitors></monitors>
+                    </diagnostics>
+                </solver>
+                <initial_condition name="WholeMesh">
+                    <constant>
+                        <real_value rank="1" shape="2" dim1="dim">0 0</real_value>
+                    </constant>
+                </initial_condition>
+                <boundary_conditions name="all_sides">
+                    <surface_ids>
+                        <integer_value rank="1" shape="4">7 8 9 10</integer_value>
+                    </surface_ids>
+                    <type name="dirichlet">
+                        <align_bc_with_cartesian>
+                            <x_component>
+                                <python>
+                                    <string_value lines="20" type="code" language="python">def val(X,t):&#x0A;   from math import sin, cos&#x0A;   # Shear rotation about origin.&#x0A;   u = sin(X[0])*cos(X[1])&#x0A;   return u</string_value>
+                                </python>
+                            </x_component>
+                            <y_component>
+                                <python>
+                                    <string_value lines="20" type="code" language="python">def val(X,t):&#x0A;   from math import sin, cos&#x0A;   # Shear rotation about origin.&#x0A;   v = -1.0*cos(X[0])*sin(X[1])&#x0A;   return v</string_value>
+                                </python>
+                            </y_component>
+                        </align_bc_with_cartesian>
+                    </type>
+                </boundary_conditions>
+                <tensor_field name="Viscosity" rank="2">
+                    <diagnostic>
+                        <algorithm name="tensor_python_diagnostic" material_phase_support="single">
+                            <string_value lines="20" type="code" language="python">from math import exp, log&#x0A;from numpy import zeros&#x0A;&#x0A;Temperature=state.scalar_fields[&quot;Temperature&quot;]&#x0A;&#x0A;b=log(1000)&#x0A;deltaT=1.0&#x0A;&#x0A;dim = 2&#x0A;visc = zeros((dim,dim))&#x0A;&#x0A;for n in range(Temperature.node_count):&#x0A;   T = Temperature.node_val(n)&#x0A;   nu = exp(-b*T/deltaT)&#x0A;   for i in range(dim):&#x0A;      visc[i,i] = nu&#x0A;   field.set(n, visc)</string_value>
+                        </algorithm>
+                        <output></output>
+                        <stat>
+                            <include_in_stat></include_in_stat>
+                        </stat>
+                    </diagnostic>
+                </tensor_field>
+                <vector_field name="Source" rank="1">
+                    <prescribed>
+                        <value name="WholeMesh">
+                            <python>
+                                <string_value lines="20" type="code" language="python">def val(XX, t):&#x0A;   from math import sin,cos,log,exp,pi&#x0A;   from numpy import arctanh&#x0A;   b=log(1000);&#x0A;   deltaT=1.0;&#x0A;   A = 0.25;&#x0A;   B = 1.9&#x0A;   adv = 0.0;&#x0A;   beta = 0.0;&#x0A;   mass = 0.0;&#x0A;   rho = 1.0;&#x0A;   x = XX[0];&#x0A;   y = XX[1];&#x0A;   Su = A*B*b*exp(-0.5*(2*A*sin(0.5*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1)*pi)*cos(0.5*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1)*pi) - arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1)*b/deltaT)*sin(0.5*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1)*pi)*sin(0.5*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1)*pi)*cos(x)*cos(y)/(((x/pi - 0.500000000000000)**2*B**2 - 1)*deltaT*arctanh(0.500000000000000*B)) + (sin(x)*sin(y)**2*cos(x) + sin(x)*cos(x)*cos(y)**2)*adv*rho + 2*exp(-0.5*(2*A*sin(0.5*(arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1)*pi)*cos(0.5*(arctanh((x/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1)*pi) - arctanh((y/pi - 0.500000000000000)*B)/arctanh(0.500000000000000*B) + 1)*b/deltaT)*sin(x)*cos(y) - sin(x)*cos(y)&#x0A;   Sv = (A*B*cos(0.5*(arctanh((x/pi - 0.5)*B)/arctanh(0.5*B) + 1)*pi)*cos(0.5*(arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1)*pi)/(((y/pi - 0.5)**2*B**2 - 1)*arctanh(0.5*B)) - B/(((y/pi - 0.5)**2*B**2 - 1)*pi*arctanh(0.5*B)))*b*exp(-0.5*(2*A*sin(0.5*(arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1)*pi)*cos(0.5*(arctanh((x/pi - 0.5)*B)/arctanh(0.5*B) + 1)*pi) - arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1)*b/deltaT)*cos(x)*cos(y)/deltaT + (sin(x)**2*sin(y)*cos(y) + sin(y)*cos(x)**2*cos(y))*adv*rho - 2*exp(-0.5*(2*A*sin(0.5*(arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1)*pi)*cos(0.5*(arctanh((x/pi - 0.5)*B)/arctanh(0.5*B) + 1)*pi) - arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1)*b/deltaT)*sin(y)*cos(x) - sin(y)*cos(x)&#x0A;   return (Su, Sv)</string_value>
+                                <comment>u(x,y,rho,beta,nu,adv,mass,t) = sin(x)*cos(y)&#x0D;&#x0A;v(x,y,rho,beta,nu,adv,mass,t) = -cos(x)*sin(y)&#x0A;p(x,y,rho,beta,nu,adv,mass,t) = cos(x)*cos(y)&#x0A;phi(x,pi,B)=(1+arctanh((x/pi-0.5)*B)/arctanh(0.5*B))*pi/2&#x0A;T(x,y,t,nu,mass,adv,beta,pi,A) = 1 - phi(y,pi,B)/pi + A*(cos(phi(x,pi,B))*sin(phi(y,pi,B)))&#x0A;nu(x,y,b,deltaT) = exp(-b*T/deltaT)&#x0D;&#x0A;&#x0A;u_t = diff(u,t)&#x0A;v_t = diff(v,t)&#x0A;&#x0A;u_x = diff(u,x)&#x0D;&#x0A;u_y = diff(u,y)&#x0A;v_x = diff(v,x)&#x0A;v_y = diff(v,y)&#x0A;&#x0A;nu_u_x = nu*u_x&#x0A;nu_u_y = nu*u_y&#x0A;nu_v_x = nu*v_x&#x0A;nu_v_y = nu*v_y&#x0A;&#x0A;nu_u_xx = diff(nu_u_x,x)&#x0A;nu_u_yy = diff(nu_u_y,y)&#x0A;nu_v_xx = diff(nu_v_x,x)&#x0A;nu_v_yy = diff(nu_v_y,y)&#x0A;nu_v_yx = diff(nu_v_x,y)&#x0A;nu_u_xy = diff(nu_u_y,x)&#x0A;&#x0A;p_x = diff(p,x)&#x0A;p_y = diff(p,y)&#x0A;&#x0A;mass*rho*u_t + adv*rho*(u*u_x+v*u_y + beta*(u*u_x + u*v_y)) + p_x - 2*nu_u_xx - nu_u_yy - nu_v_yx&#x0A;mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y))  +  p_y - 2*nu_v_yy - nu_v_xx - nu_u_xy</comment>
+                            </python>
+                        </value>
+                        <output></output>
+                        <stat>
+                            <include_in_stat></include_in_stat>
+                        </stat>
+                        <detectors>
+                            <exclude_from_detectors></exclude_from_detectors>
+                        </detectors>
+                    </prescribed>
+                </vector_field>
+                <output>
+                    <include_previous_time_step></include_previous_time_step>
+                </output>
+                <stat>
+                    <include_in_stat></include_in_stat>
+                    <previous_time_step>
+                        <exclude_from_stat></exclude_from_stat>
+                    </previous_time_step>
+                    <nonlinear_field>
+                        <exclude_from_stat></exclude_from_stat>
+                    </nonlinear_field>
+                </stat>
+                <convergence>
+                    <include_in_convergence></include_in_convergence>
+                </convergence>
+                <detectors>
+                    <include_in_detectors></include_in_detectors>
+                </detectors>
+                <steady_state>
+                    <include_in_steady_state></include_in_steady_state>
+                </steady_state>
+                <consistent_interpolation></consistent_interpolation>
+            </prognostic>
+        </vector_field>
+        <scalar_field name="CFLNumber" rank="0">
+            <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"></algorithm>
+                <mesh name="VelocityMesh"></mesh>
+                <output></output>
+                <stat></stat>
+                <convergence>
+                    <include_in_convergence></include_in_convergence>
+                </convergence>
+                <detectors>
+                    <include_in_detectors></include_in_detectors>
+                </detectors>
+                <steady_state>
+                    <include_in_steady_state></include_in_steady_state>
+                </steady_state>
+            </diagnostic>
+        </scalar_field>
+        <scalar_field name="PressureAnalytical" rank="0">
+            <prescribed>
+                <mesh name="PressureMesh"></mesh>
+                <value name="WholeMesh">
+                    <python>
+                        <string_value lines="20" type="code" language="python">def val(X,t):&#x0A;   from math import cos&#x0A;   p = cos(X[0])*cos(X[1])&#x0A;   return p</string_value>
+                    </python>
+                </value>
+                <output></output>
+                <stat></stat>
+                <detectors>
+                    <exclude_from_detectors></exclude_from_detectors>
+                </detectors>
+            </prescribed>
+        </scalar_field>
+        <scalar_field name="ScalarAbsoluteDifference" rank="0">
+            <diagnostic field_name_b="Pressure" field_name_a="PressureAnalytical">
+                <algorithm name="Internal" material_phase_support="multiple"></algorithm>
+                <mesh name="PressureMesh"></mesh>
+                <output></output>
+                <stat></stat>
+                <convergence>
+                    <include_in_convergence></include_in_convergence>
+                </convergence>
+                <detectors>
+                    <include_in_detectors></include_in_detectors>
+                </detectors>
+                <steady_state>
+                    <include_in_steady_state></include_in_steady_state>
+                </steady_state>
+                <relative_to_average></relative_to_average>
+            </diagnostic>
+        </scalar_field>
+        <scalar_field name="FiniteElementDivergence" rank="0">
+            <diagnostic field_name="Velocity">
+                <algorithm name="Internal" legacy="true" material_phase_support="multiple"></algorithm>
+                <mesh name="PressureMesh"></mesh>
+                <solver>
+                    <iterative_method name="cg"></iterative_method>
+                    <preconditioner name="sor"></preconditioner>
+                    <relative_error>
+                        <real_value rank="0">1e-10</real_value>
+                    </relative_error>
+                    <max_iterations>
+                        <integer_value rank="0">10000</integer_value>
+                    </max_iterations>
+                    <never_ignore_solver_failures></never_ignore_solver_failures>
+                    <diagnostics>
+                        <monitors></monitors>
+                    </diagnostics>
+                </solver>
+                <output></output>
+                <stat></stat>
+                <convergence>
+                    <include_in_convergence></include_in_convergence>
+                </convergence>
+                <detectors>
+                    <include_in_detectors></include_in_detectors>
+                </detectors>
+                <steady_state>
+                    <include_in_steady_state></include_in_steady_state>
+                </steady_state>
+            </diagnostic>
+        </scalar_field>
+        <scalar_field name="Temperature" rank="0">
+            <prognostic>
+                <mesh name="VelocityMesh"></mesh>
+                <equation name="AdvectionDiffusion"></equation>
+                <spatial_discretisation>
+                    <continuous_galerkin>
+                        <stabilisation>
+                            <no_stabilisation></no_stabilisation>
+                        </stabilisation>
+                        <advection_terms></advection_terms>
+                        <mass_terms>
+                            <exclude_mass_terms></exclude_mass_terms>
+                        </mass_terms>
+                    </continuous_galerkin>
+                    <conservative_advection>
+                        <real_value rank="0">0</real_value>
+                    </conservative_advection>
+                </spatial_discretisation>
+                <temporal_discretisation>
+                    <theta>
+                        <real_value rank="0">1</real_value>
+                    </theta>
+                </temporal_discretisation>
+                <solver>
+                    <iterative_method name="gmres">
+                        <restart>
+                            <integer_value rank="0">30</integer_value>
+                        </restart>
+                    </iterative_method>
+                    <preconditioner name="sor"></preconditioner>
+                    <relative_error>
+                        <real_value rank="0">1e-08</real_value>
+                    </relative_error>
+                    <max_iterations>
+                        <integer_value rank="0">10000</integer_value>
+                    </max_iterations>
+                    <never_ignore_solver_failures></never_ignore_solver_failures>
+                    <diagnostics>
+                        <monitors></monitors>
+                    </diagnostics>
+                </solver>
+                <initial_condition name="WholeMesh">
+                    <constant>
+                        <real_value rank="0">0</real_value>
+                    </constant>
+                </initial_condition>
+                <boundary_conditions name="Top">
+                    <surface_ids>
+                        <integer_value rank="1" shape="1">9</integer_value>
+                    </surface_ids>
+                    <type name="dirichlet">
+                        <constant>
+                            <real_value rank="0">0</real_value>
+                        </constant>
+                    </type>
+                </boundary_conditions>
+                <boundary_conditions name="Bottom">
+                    <surface_ids>
+                        <integer_value rank="1" shape="1">7</integer_value>
+                    </surface_ids>
+                    <type name="dirichlet">
+                        <constant>
+                            <real_value rank="0">1</real_value>
+                        </constant>
+                    </type>
+                </boundary_conditions>
+                <tensor_field name="Diffusivity" rank="2">
+                    <prescribed>
+                        <value name="WholeMesh">
+                            <isotropic>
+                                <constant>
+                                    <real_value rank="0">0.7</real_value>
+                                </constant>
+                            </isotropic>
+                        </value>
+                        <output></output>
+                    </prescribed>
+                </tensor_field>
+                <scalar_field name="Source" rank="0">
+                    <prescribed>
+                        <value name="WholeMesh">
+                            <python>
+                                <string_value lines="20" type="code" language="python">def val(XX, t):&#x0A;   from math import sin,cos,pi&#x0A;   from numpy import arctanh&#x0A;   nu = 0.7;&#x0A;   omega = 0.0;&#x0A;   mass = 0.0;&#x0A;   adv = 1.0;&#x0A;   beta = 0.0;&#x0A;   A = 0.25;&#x0A;   B = 1.9;&#x0A;   x = XX[0];&#x0A;   y = XX[1];&#x0A;   S = 0.5*(A*B*sin(1.0/2.0*(arctanh((x/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)*sin(1.0/2.0*(arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)*sin(x)*cos(y)/(((x/pi - 0.5)**2.0*B**2.0 - 1.0)*arctanh(0.5*B)) + (A*B*cos(1.0/2.0*(arctanh((x/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)*cos(1.0/2.0*(arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)/(((y/pi - 0.5)**2.0*B**2.0 - 1.0)*arctanh(0.5*B)) - B/(((y/pi - 0.5)**2.0*B**2.0 - 1.0)*pi*arctanh(0.5*B)))*sin(y)*cos(x))*adv - 1.0/4*(2.0*(2.0*y/pi - 1.0)*A*B**3*cos(1.0/2.0*(arctanh((x/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)*cos(1.0/2.0*(arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)/(((y/pi - 0.5)**2.0*B**2.0 - 1.0)**2.0*pi*arctanh(0.5*B)) - 2.0*(2.0*x/pi - 1.0)*A*B**3*sin(1.0/2.0*(arctanh((x/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)*sin(1.0/2.0*(arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)/(((x/pi - 0.5)**2.0*B**2.0 - 1.0)**2.0*pi*arctanh(0.5*B)) - A*B**2.0*sin(1.0/2.0*(arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)*cos(1.0/2.0*(arctanh((x/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)/(((x/pi - 0.5)**2.0*B**2.0 - 1.0)**2.0*arctanh(0.5*B)**2.0) - A*B**2.0*sin(1.0/2.0*(arctanh((y/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)*cos(1.0/2.0*(arctanh((x/pi - 0.5)*B)/arctanh(0.5*B) + 1.0)*pi)/(((y/pi - 0.5)**2.0*B**2.0 - 1.0)**2.0*arctanh(0.5*B)**2.0) - 2.0*(2.0*y/pi - 1.0)*B**3/(((y/pi - 0.5)**2.0*B**2.0 - 1.0)**2.0*pi**2.0*arctanh(0.5*B)))*nu&#x0A;   return S</string_value>
+                                <comment>phi(x,pi,B)=(1+arctanh((x/pi-0.5)*B)/arctanh(0.5*B))*pi/2&#x0A;T(x,y,t,nu,mass,adv,beta,pi,A,B) = 1 - phi(y,pi,B)/pi + A*(cos(phi(x,pi,B))*sin(phi(y,pi,B)))&#x0A;T_t = diff(T,t)&#x0D;&#x0A;T_x = diff(T,x)&#x0D;&#x0A;T_y = diff(T,y)&#x0A;T_xx = diff(T_x,x)&#x0A;T_yy = diff(T_y,y)&#x0A;&#x0A;u(x,y,rho,beta,nu,adv,mass,t) = sin(x)*cos(y)&#x0D;&#x0A;v(x,y,rho,beta,nu,adv,masst) = -cos(x)*sin(y)&#x0A;u_x = diff(u,x)&#x0D;&#x0A;u_y = diff(u,y)&#x0A;v_x = diff(v,x)&#x0D;&#x0A;v_y = diff(v,y)&#x0A;&#x0A;S = mass*T_t + adv*(u*T_x + v*T_y + beta*(T*(u_x + v_y))) - nu*(T_xx + T_yy)</comment>
+                            </python>
+                        </value>
+                        <output></output>
+                        <stat></stat>
+                        <detectors>
+                            <exclude_from_detectors></exclude_from_detectors>
+                        </detectors>
+                    </prescribed>
+                </scalar_field>
+                <output></output>
+                <stat></stat>
+                <convergence>
+                    <include_in_convergence></include_in_convergence>
+                </convergence>
+                <detectors>
+                    <include_in_detectors></include_in_detectors>
+                </detectors>
+                <steady_state>
+                    <include_in_steady_state></include_in_steady_state>
+                </steady_state>
+                <consistent_interpolation></consistent_interpolation>
+            </prognostic>
+        </scalar_field>
+        <scalar_field name="TemperatureAnalytical" rank="0">
+            <prescribed>
+                <mesh name="VelocityMesh"></mesh>
+                <value name="WholeMesh">
+                    <python>
+                        <string_value lines="20" type="code" language="python">def val(XX,t):&#x0A;  from math import cos, sin, pi&#x0A;  from numpy import arctanh&#x0A;  A = 0.25;&#x0A;  B = 1.9;&#x0A;  x=XX[0];&#x0A;  y=XX[1];&#x0A;  phi_x=(arctanh((x/pi-0.5)*B)/arctanh(0.5*B)+1.0)*pi/2.0&#x0A;  phi_y=(arctanh((y/pi-0.5)*B)/arctanh(0.5*B)+1.0)*pi/2.0&#x0A;  T = 1 - phi_y/pi + A*(cos(phi_x)*sin(phi_y))&#x0A;  return T</string_value>
+                    </python>
+                </value>
+                <output></output>
+                <stat></stat>
+                <detectors>
+                    <exclude_from_detectors></exclude_from_detectors>
+                </detectors>
+            </prescribed>
+        </scalar_field>
+        <scalar_field name="TemperatureAbsoluteDifference" rank="0">
+            <diagnostic>
+                <algorithm name="scalar_difference" source_field_2_type="scalar" source_field_1_name="Temperature" source_field_2_name="TemperatureAnalytical" material_phase_support="single" source_field_1_type="scalar">
+                    <absolute_difference></absolute_difference>
+                </algorithm>
+                <mesh name="VelocityMesh"></mesh>
+                <output></output>
+                <stat></stat>
+                <convergence>
+                    <include_in_convergence></include_in_convergence>
+                </convergence>
+                <detectors>
+                    <include_in_detectors></include_in_detectors>
+                </detectors>
+                <steady_state>
+                    <include_in_steady_state></include_in_steady_state>
+                </steady_state>
+            </diagnostic>
+        </scalar_field>
+        <vector_field name="VelocityAnalytical" rank="1">
+            <prescribed>
+                <mesh name="VelocityMesh"></mesh>
+                <value name="WholeMesh">
+                    <python>
+                        <string_value lines="20" type="code" language="python">def val(X,t):&#x0A;   from math import sin, cos&#x0A;   # Shear rotation about origin.&#x0A;   return (sin(X[0])*cos(X[1]), -1.0*cos(X[0])*sin(X[1]))</string_value>
+                    </python>
+                </value>
+                <output></output>
+                <stat>
+                    <include_in_stat></include_in_stat>
+                </stat>
+                <detectors>
+                    <exclude_from_detectors></exclude_from_detectors>
+                </detectors>
+            </prescribed>
+        </vector_field>
+        <vector_field name="VectorAbsoluteDifference" rank="1">
+            <diagnostic field_name_b="Velocity" field_name_a="VelocityAnalytical">
+                <algorithm name="Internal" material_phase_support="multiple"></algorithm>
+                <mesh name="VelocityMesh"></mesh>
+                <output></output>
+                <stat>
+                    <include_in_stat></include_in_stat>
+                </stat>
+                <convergence>
+                    <include_in_convergence></include_in_convergence>
+                </convergence>
+                <detectors>
+                    <include_in_detectors></include_in_detectors>
+                </detectors>
+                <steady_state>
+                    <include_in_steady_state></include_in_steady_state>
+                </steady_state>
+            </diagnostic>
+        </vector_field>
+        <tensor_field name="ViscosityAnalytical" rank="2">
+            <diagnostic>
+                <algorithm name="tensor_python_diagnostic" material_phase_support="single">
+                    <string_value lines="20" type="code" language="python">from math import exp, log&#x0A;from numpy import zeros&#x0A;&#x0A;Temperature=state.scalar_fields[&quot;TemperatureAnalytical&quot;]&#x0A;&#x0A;b=log(1000)&#x0A;deltaT=1.0&#x0A;&#x0A;dim = 2&#x0A;visc = zeros((dim,dim))&#x0A;&#x0A;for n in range(Temperature.node_count):&#x0A;   T = Temperature.node_val(n)&#x0A;   nu = exp(-b*T/deltaT)&#x0A;   for i in range(dim):&#x0A;      visc[i,i] = nu&#x0A;   field.set(n, visc)</string_value>
+                </algorithm>
+                <mesh name="VelocityMesh"></mesh>
+                <output></output>
+                <stat>
+                    <include_in_stat></include_in_stat>
+                </stat>
+            </diagnostic>
+        </tensor_field>
+    </material_phase>
 </fluidity_options>

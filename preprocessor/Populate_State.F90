@@ -52,6 +52,7 @@ module populate_state_module
   use initialise_fields_module
   use transform_elements
   use parallel_tools
+  use parallel_fields
   use boundary_conditions_from_options
   use nemo_states_module
   use data_structures
@@ -180,6 +181,8 @@ contains
     type(mesh_type) :: mesh
     type(vector_field) :: position
     type(vector_field), pointer :: position_ptr
+    type(scalar_field), target :: canonical_numbering
+    type(scalar_field), pointer :: uid
     character(len=OPTION_PATH_LEN) :: mesh_path, mesh_file_name,&
          & mesh_file_format, from_file_path
     integer, dimension(:), pointer :: coplanar_ids
@@ -232,7 +235,7 @@ contains
 
           if (is_active_process) then
             select case (mesh_file_format)
-            case ("triangle", "gmsh")
+            case ("triangle", "gmsh", "exodusii")
               ! Get mesh dimension if present
               call get_option(trim(mesh_path)//"/from_file/dimension", mdim, stat)
               ! Read mesh
@@ -246,6 +249,16 @@ contains
                       quad_degree=quad_degree, &
                       quad_family=quad_family, &
                       format=mesh_file_format)
+              end if
+              ! After successfully reading in an ExodusII mesh, change the option
+              ! mesh file format to "gmsh", as the write routines for ExodusII are currently
+              ! not implemented. Thus, checkpoints etc are dumped as gmsh mesh files
+              if (trim(mesh_file_format)=="exodusii") then
+                mesh_file_format = "gmsh"
+                call set_option_attribute(trim(from_file_path)//"/format/name", trim(mesh_file_format), stat=stat)
+                if (stat /= SPUD_NO_ERROR) then
+                  FLAbort("Failed to set the mesh format to gmsh (required for checkpointing). Spud error code is: "//int2str(stat))
+                end if
               end if
               mesh=position%mesh
             case ("vtu")
@@ -336,6 +349,7 @@ contains
             
             deallocate(quad)
             deallocate(shape)
+
           end if
 
           ! if there is a derived mesh which specifies periodic bcs 
@@ -380,6 +394,14 @@ contains
             end if
             mesh = position%mesh
           end if
+
+          ! Reorder the mesh according to the canonical numbering.
+          canonical_numbering=universal_number_field(mesh)
+          ! Temporarily point the uid until this is done properly below.
+          canonical_numbering%mesh%uid=>canonical_numbering
+          call order_elements(canonical_numbering)
+          mesh=canonical_numbering%mesh
+          position%mesh=mesh
           
           ! coplanar ids are create here already and stored on the mesh, 
           ! so its derived meshes get the same coplanar ids
@@ -407,10 +429,18 @@ contains
           
           ! Insert mesh and position field into states(1) and
           ! alias it to all the others
+          call insert(states, canonical_numbering, "CanonicalNumbering")
+          call deallocate(canonical_numbering)
+          uid=>extract_scalar_field(states(1),"CanonicalNumbering")
+          mesh%uid=>uid
+          position%mesh%uid=>uid
           call insert(states, mesh, mesh%name)
           call insert(states, position, position%name)
+#ifdef DDEBUG
+          call verify_halos(position)
+#endif
           call deallocate(position)
-          
+
         else if (extruded) then
           
           ! This will be picked up by insert_derived_meshes and changed
@@ -440,13 +470,40 @@ contains
     
     character(len=FIELD_NAME_LEN) :: mesh_name    
     character(len=OPTION_PATH_LEN) :: mesh_path
-    logical :: incomplete, updated
+    logical :: incomplete, updated, periodic_unique
     integer :: i
     integer :: nmeshes
-    
+
     ! Get number of meshes
     nmeshes=option_count("/geometry/mesh")
     periodic_boundary_option_path=""
+
+    ! Periodic meshes need to be set up first due to the need to renumber
+    !  both the mesh and the parent.
+    periodic_unique=.true.
+    periodic_loop: do i=0, nmeshes-1
+       
+       ! Save mesh path
+       mesh_path="/geometry/mesh["//int2str(i)//"]"
+      
+       if (.not.have_option(trim(mesh_path)&
+            //"/from_mesh/periodic_boundary_conditions")) cycle
+          
+       if (.not.periodic_unique) &
+            FLExit("Only one periodic mesh is supported")
+       periodic_unique=.false.
+
+       ! Get mesh name.
+       call get_option(trim(mesh_path)//"/name", mesh_name)
+       
+       call insert_derived_mesh(trim(mesh_path), &
+            trim(mesh_name), &
+            incomplete, &
+            updated, &
+            states, &
+            skip_extrusion = skip_extrusion)    
+
+    end do periodic_loop
 
     outer_loop: do
        ! Updated becomes true if we manage to set up at least one mesh on
@@ -499,9 +556,13 @@ contains
     ! instead (will have correct shape and dimension)
     logical, optional, intent(in):: skip_extrusion
    
-    type(mesh_type) :: mesh, model_mesh
+    type(mesh_type) :: mesh
+    type(mesh_type), dimension(1) :: mesh_list
+    type(mesh_type), pointer :: model_mesh
     type(vector_field), pointer :: position, modelposition
     type(vector_field) :: periodic_position, nonperiodic_position, extrudedposition, coordinateposition
+    type(scalar_field) :: canonical_numbering
+    type(scalar_field), pointer :: uid
     type(element_type) :: full_shape
     type(quadrature_type) :: quad
 
@@ -518,293 +579,297 @@ contains
        return
     end if
           
-    if(have_option(trim(mesh_path)//"/from_mesh")) then
+    if(.not.have_option(trim(mesh_path)//"/from_mesh")) then
+       FLAbort("Derived mesh is not from mesh. Can't happen")
+    end if
              
-       ! Get model mesh name
-       call get_option(trim(mesh_path)//"/from_mesh/mesh[0]/name", model_mesh_name)
-             
-       ! Extract model mesh
-       model_mesh=extract_mesh(states(1), trim(model_mesh_name), stat=stat)
-       if (stat/=0) then
-          ! The mesh from which this mesh is derived is not yet
-          ! present.
-          incomplete=.true.
-          return
-       end if
-             
-       ! Find out if the new mesh is different from the old mesh and if
-       ! so, find out how it differs - in the options check
-       ! we've made sure only one of those (or both new_shape and new_cont) are .true.
-       ! If there are no differences, do not create new mesh.
-       from_shape=have_option(trim(mesh_path)//"/from_mesh/mesh_shape")
-
-       ! 1. If mesh shape options are specified, check if they are different to the model mesh.
-       if (from_shape) then
-         ! 1.1. Check polynomial_degree option
-         call get_option(trim(mesh_path)//"/from_mesh/mesh_shape/polynomial_degree", &
-              from_degree, stat)
-         if(stat==0) then
-           ! Is polynomial_degree the same as model mesh?
-           if(from_degree==model_mesh%shape%degree) then
+    ! Get model mesh name
+    call get_option(trim(mesh_path)//"/from_mesh/mesh[0]/name", model_mesh_name)
+    
+    ! Extract model mesh
+    model_mesh=>extract_mesh(states(1), trim(model_mesh_name), stat=stat)
+    if (stat/=0) then
+       ! The mesh from which this mesh is derived is not yet
+       ! present.
+       incomplete=.true.
+       return
+    end if
+    
+    ! Find out if the new mesh is different from the old mesh and if
+    ! so, find out how it differs - in the options check
+    ! we've made sure only one of those are .true.
+    ! If there are no differences, do not create new mesh.
+    from_shape=have_option(trim(mesh_path)//"/from_mesh/mesh_shape")
+    
+    ! 1. If mesh shape options are specified, check if they are different to the model mesh.
+    if (from_shape) then
+       ! 1.1. Check polynomial_degree option
+       call get_option(trim(mesh_path)//"/from_mesh/mesh_shape/polynomial_degree", &
+            from_degree, stat)
+       if(stat==0) then
+          ! Is polynomial_degree the same as model mesh?
+          if(from_degree==model_mesh%shape%degree) then
              new_degree=.false.
-           else
+          else
              new_degree=.true.
-           end if
-         ! If degree is not specified, use the model mesh degree.
-         else
-           new_degree=.false.
-         end if
+          end if
+          ! If degree is not specified, use the model mesh degree.
+       else
+          new_degree=.false.
+       end if
 
-         ! 1.2. Check element_type option
-         call get_option(trim(mesh_path)//"/from_mesh/mesh_shape/element_type", &
-              shape_type, stat)
-         if(stat==0) then
-           ! Set comparison variable from_shape_type
-           if(trim(shape_type)=="lagrangian") then
+       ! 1.2. Check element_type option
+       call get_option(trim(mesh_path)//"/from_mesh/mesh_shape/element_type", &
+            shape_type, stat)
+       if(stat==0) then
+          ! Set comparison variable from_shape_type
+          if(trim(shape_type)=="lagrangian") then
              from_shape_type=ELEMENT_LAGRANGIAN
-           else if(trim(shape_type)=="bubble") then
+          else if (trim(shape_type)=="discontinuous_lagrangian") then
+             from_shape_type=ELEMENT_DISCONTINUOUS_LAGRANGIAN
+          else if(trim(shape_type)=="bubble") then
              from_shape_type=ELEMENT_BUBBLE
           else if(trim(shape_type)=="trace") then
              from_shape_type=ELEMENT_TRACE
-           end if
-           ! If new_shape_type does not match model mesh shape type, make new mesh.
-           if(from_shape_type == model_mesh%shape%numbering%type) then
+          end if
+          ! If new_shape_type does not match model mesh shape type, make new mesh.
+          if(from_shape_type == model_mesh%shape%numbering%type) then
              new_shape_type=.false.
-           else
+          else
              new_shape_type=.true.
-           end if
-         ! If no element_type is specified, assume it is the same as model mesh
-         ! and do not create new mesh.
-         else
-           new_shape_type=.false.
-         end if
+          end if
+          ! If no element_type is specified, assume it is the same as model mesh
+          ! and do not create new mesh.
+       else
+          new_shape_type=.false.
+       end if
        ! Else if no mesh shape options are set, do not make new mesh.
-       else
-         new_degree=.false.; new_shape_type=.false.
-       end if
-
-       ! 2. If mesh_continuity is specified, check if it is different to the model mesh.
-       call get_option(trim(mesh_path)//"/from_mesh/mesh_continuity", cont, stat)
-       if(stat==0) then
-         if(trim(cont)=="discontinuous") then
-           from_cont=-1
-         else if(trim(cont)=="continuous") then
-           from_cont=0
-         end if
-         ! 2.1. If continuity is not the same as model mesh, create new mesh.
-         if(from_cont==model_mesh%continuity) then
-           new_cont=.false.
-         else
-           new_cont=.true.
-         end if
-       ! If no continuity is specified, assume it is the same as model mesh,
-       ! and do not create a new mesh.
-       else
-         new_cont=.false.
-       end if
-
-       ! 3. If any of the above are true, make new mesh.
-       make_new_mesh = new_shape_type .or. new_degree .or. new_cont
-
-       extrusion=have_option(trim(mesh_path)//"/from_mesh/extrude")
-       periodic=have_option(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions")
-       exclude_from_mesh_adaptivity=have_option(trim(mesh_path)//"/exclude_from_mesh_adaptivity")
-
-       if (periodic) then
-         ! there is an options check to guarantee that all periodic bcs have remove_periodicity
-         remove_periodicity=option_count(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions/remove_periodicity")>0
-         if (remove_periodicity) then
-           if (.not. mesh_periodic(model_mesh)) then
-              ewrite(0,*) "In derivation of mesh ", trim(mesh_name), " from ", trim(model_mesh_name)
-              FLExit("Trying to remove periodic bcs from non-periodic mesh.")
-           end if
-         end if
-       end if
-             
-       ! We added at least one mesh on this pass.
-       updated=.true.
-                
-       if (extrusion) then
-
-         ! see if adaptivity has left us something:
-         extrudedposition=extract_vector_field(states(1), &
-              "AdaptedExtrudedPositions", stat=stat)
-                    
-         if (stat==0) then
-
-            ! extrusion has already done by adaptivity
-                 
-            ! we remove them here, as we want to insert them under different names
-            call incref(extrudedposition)
-            do j=1, size(states)
-               call remove_vector_field(states(j), "AdaptedExtrudedPositions")
-            end do
-                  
-         else
-                  
-            ! extrusion by user specifed layer depths
-                  
-            modelposition => extract_vector_field(states(1), trim(model_mesh_name)//"Coordinate")
-             
-            if (present_and_true(skip_extrusion)) then
-
-              ! the dummy mesh does need a shape of the right dimension
-              h_dim = mesh_dim(modelposition)
-              call get_option("/geometry/quadrature/degree", quadrature_degree)
-              quad = make_quadrature(vertices=h_dim + 2, dim=h_dim + 1, degree=quadrature_degree)
-              full_shape = make_element_shape(vertices=h_dim + 2, dim=h_dim + 1, degree=1, quad=quad)
-              call deallocate(quad)
-
-              call allocate(mesh, nodes=0, elements=0, shape=full_shape, name=mesh_name)
-              call deallocate(full_shape)
-              allocate(mesh%columns(1:0))
-              call add_faces(mesh)
-              mesh%periodic=modelposition%mesh%periodic
-              call allocate(extrudedposition, h_dim+1, mesh, "EmptyCoordinate") ! name is fixed below
-              call deallocate(mesh)
-              if (IsParallel()) call create_empty_halo(extrudedposition)
-            else if (have_option('/geometry/spherical_earth/')) then
-              call extrude_radially(modelposition, mesh_path, extrudedposition)
-            else
-              call extrude(modelposition, mesh_path, extrudedposition)
-            end if
-                
-         end if
-               
-         mesh = extrudedposition%mesh
-               
-         ! the positions of this mesh have to be stored now 
-         ! as it cannot be interpolated later.
-         if (mesh_name=="CoordinateMesh") then
-            extrudedposition%name = "Coordinate"
-         else
-            extrudedposition%name = trim(mesh_name)//"Coordinate"
-         end if
-         call insert(states, extrudedposition, extrudedposition%name)
-         call deallocate(extrudedposition)
-               
-         call incref(mesh)
-               
-       else if (make_new_mesh) then
-
-         mesh = make_mesh_from_options(model_mesh, mesh_path)
-             
-       else if (periodic) then
-                
-         if (remove_periodicity) then
-           ! model mesh can't be the CoordinateMesh:
-           periodic_position=extract_vector_field(states(1), trim(model_mesh_name)//"Coordinate")
-           nonperiodic_position = make_mesh_unperiodic_from_options( &
-             periodic_position, mesh_path)
-                
-           ! the positions of this mesh have to be stored now 
-           ! as it cannot be interpolated later.
-           if (mesh_name=="CoordinateMesh") then
-              nonperiodic_position%name = "Coordinate"
-           else
-              nonperiodic_position%name = trim(mesh_name)//"Coordinate"
-           end if
-           call insert(states, nonperiodic_position, nonperiodic_position%name)
-           call deallocate(nonperiodic_position)
-                 
-           mesh=nonperiodic_position%mesh
-           call incref(mesh)
-                 
-         else
-           ! this means we can only periodise a mesh with an associated position field
-           if (trim(model_mesh_name) == "CoordinateMesh") then
-             position => extract_vector_field(states(1), 'Coordinate')
-           else
-             position => extract_vector_field(states(1), trim(model_mesh_name)//'Coordinate')
-           end if
-           periodic_position = make_mesh_periodic_from_options(position, mesh_path)
-           ! Ensure the name and option path are set on the original
-           ! mesh descriptor.
-           periodic_position%mesh%name = mesh_name
-           periodic_position%mesh%option_path = trim(mesh_path)
-
-           mesh = periodic_position%mesh
-           call incref(mesh)
-           call insert(states, periodic_position, trim(periodic_position%name))
-           call deallocate(periodic_position)
-         end if
-               
-       else
-          ! copy mesh unchanged, new reference
-          mesh=model_mesh                
-          call incref(mesh)
-                
-       end if
-             
-       mesh%name = mesh_name
-       mesh%parent_name = trim(model_mesh_name)
-                
-       ! Set mesh option path.
-       mesh%option_path = trim(mesh_path)
-             
-       ! if this is the coordinate mesh then we should insert the coordinate field
-       ! also meshes excluded from adaptivity all have their own coordinate field
-       ! for extrusion and periodic: the coordinate field has already been inserted above
-       if ((trim(mesh_name)=="CoordinateMesh" .or. exclude_from_mesh_adaptivity) &
-          .and. .not. (extrusion .or. periodic)) then
-
-          if (model_mesh_name=="CoordinateMesh") then
-             modelposition => extract_vector_field(states(1), "Coordinate")
-          else
-             modelposition => extract_vector_field(states(1), trim(model_mesh_name)//"Coordinate")
-          end if
-                
-          if (mesh_name=="CoordinateMesh") then
-            call allocate(coordinateposition, modelposition%dim, mesh, "Coordinate")
-          else
-            call allocate(coordinateposition, modelposition%dim, mesh, trim(mesh_name)//"/Coordinate")
-          end if
-                
-          ! remap the external mesh positions onto the CoordinateMesh... this requires that the space
-          ! of the coordinates spans that of the external mesh
-          call remap_field(from_field=modelposition, to_field=coordinateposition)
-                
-          if (mesh_name=="CoordinateMesh" .and. have_option('/geometry/spherical_earth/superparametric_mapping/')) then
-
-             call higher_order_sphere_projection(modelposition, coordinateposition)
-                   
-          endif
-
-          ! insert into states(1) and alias to all others
-          call insert(states, coordinateposition, coordinateposition%name)
-          ! drop reference to the local copy of the Coordinate field
-          call deallocate(coordinateposition)
-       end if
-       if (trim(mesh_name)=="CoordinateMesh" .and. mesh_periodic(mesh)) then
-         FLExit("CoordinateMesh may not be periodic")
-       end if             
-
-       ! Insert mesh into all states
-       call insert(states, mesh, mesh%name)
-
-       if (.not. have_option(trim(mesh_path)//'/exclude_from_mesh_adaptivity')) then
-         ! update info for adaptivity/error metric code:
-               
-         if (extrusion .or. (periodic .and. .not. remove_periodicity)) then
-           ! this is the name of the mesh to be used by the error metric for adaptivity
-           topology_mesh_name=mesh%name
-         end if
-               
-         if ((extrusion.and..not.have_option('/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity')) &
-             .or.(periodic .and. .not. remove_periodicity)) then
-           ! this is the name of the mesh to be adapted by adaptivity
-           adaptivity_mesh_name=mesh%name
-         end if
-
-         if (periodic .and. trim(periodic_boundary_option_path(mesh%shape%dim)) == "") then
-           periodic_boundary_option_path(mesh%shape%dim) = trim(mesh_path)
-         end if
-       end if
-             
-       call deallocate(mesh)
-             
+    else
+       new_degree=.false.; new_shape_type=.false.
     end if
+    
+    ! 2. If any of the above are true, make new mesh.
+    make_new_mesh = new_shape_type .or. new_degree
+    
+    extrusion=have_option(trim(mesh_path)//"/from_mesh/extrude")
+    periodic=have_option(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions")
+    exclude_from_mesh_adaptivity=have_option(trim(mesh_path)//"/exclude_from_mesh_adaptivity")
+    
+    if (periodic) then
+       ! there is an options check to guarantee that all periodic bcs have remove_periodicity
+       remove_periodicity=option_count(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions/remove_periodicity")>0
+       if (remove_periodicity) then
+          if (.not. mesh_periodic(model_mesh)) then
+             ewrite(0,*) "In derivation of mesh ", trim(mesh_name), " from ", trim(model_mesh_name)
+             FLExit("Trying to remove periodic bcs from non-periodic mesh.")
+          end if
+       end if
+    end if
+    
+    ! We added at least one mesh on this pass.
+    updated=.true.
+    
+    if (extrusion) then
        
+       ! see if adaptivity has left us something:
+       extrudedposition=extract_vector_field(states(1), &
+            "AdaptedExtrudedPositions", stat=stat)
+       
+       if (stat==0) then
+          
+          ! extrusion has already done by adaptivity
+          
+          ! we remove them here, as we want to insert them under different names
+          call incref(extrudedposition)
+          do j=1, size(states)
+             call remove_vector_field(states(j), "AdaptedExtrudedPositions")
+          end do
+          
+       else
+          
+          ! extrusion by user specifed layer depths
+          
+          modelposition => extract_vector_field(states(1), trim(model_mesh_name)//"Coordinate")
+          
+          if (present_and_true(skip_extrusion)) then
+             
+             ! the dummy mesh does need a shape of the right dimension
+             h_dim = mesh_dim(modelposition)
+             call get_option("/geometry/quadrature/degree", quadrature_degree)
+             quad = make_quadrature(vertices=h_dim + 2, dim=h_dim + 1, degree=quadrature_degree)
+             full_shape = make_element_shape(vertices=h_dim + 2, dim=h_dim + 1, degree=1, quad=quad)
+             call deallocate(quad)
+             
+             call allocate(mesh, nodes=0, elements=0, shape=full_shape, name=mesh_name)
+             call deallocate(full_shape)
+             allocate(mesh%columns(1:0))
+             call add_faces(mesh)
+             mesh%periodic=modelposition%mesh%periodic
+             call allocate(extrudedposition, h_dim+1, mesh, "EmptyCoordinate") ! name is fixed below
+             call deallocate(mesh)
+             if (IsParallel()) call create_empty_halo(extrudedposition)
+          else if (have_option('/geometry/spherical_earth/')) then
+             call extrude_radially(modelposition, mesh_path, extrudedposition)
+          else
+             call extrude(modelposition, mesh_path, extrudedposition)
+          end if
+          
+       end if
+               
+       mesh = extrudedposition%mesh
+       
+       ! the positions of this mesh have to be stored now 
+       ! as it cannot be interpolated later.
+       if (mesh_name=="CoordinateMesh") then
+          extrudedposition%name = "Coordinate"
+       else
+          extrudedposition%name = trim(mesh_name)//"Coordinate"
+       end if
+       call insert(states, extrudedposition, extrudedposition%name)
+       call deallocate(extrudedposition)
+       
+       call incref(mesh)
+       
+    else if (make_new_mesh) then
+       
+       mesh = make_mesh_from_options(model_mesh, mesh_path)
+       
+    else if (periodic) then
+       
+       if (remove_periodicity) then
+          ! model mesh can't be the CoordinateMesh:
+          periodic_position=extract_vector_field(states(1), trim(model_mesh_name)//"Coordinate")
+          nonperiodic_position = make_mesh_unperiodic_from_options( &
+               periodic_position, mesh_path)
+          
+          ! the positions of this mesh have to be stored now 
+          ! as it cannot be interpolated later.
+          if (mesh_name=="CoordinateMesh") then
+             nonperiodic_position%name = "Coordinate"
+          else
+             nonperiodic_position%name = trim(mesh_name)//"Coordinate"
+          end if
+          call insert(states, nonperiodic_position, nonperiodic_position%name)
+          call deallocate(nonperiodic_position)
+          
+          mesh=nonperiodic_position%mesh
+          call incref(mesh)
+          
+       else
+          ! this means we can only periodise a mesh with an associated position field
+          if (trim(model_mesh_name) == "CoordinateMesh") then
+             position => extract_vector_field(states(1), 'Coordinate')
+          else
+             position => extract_vector_field(states(1), trim(model_mesh_name)//'Coordinate')
+          end if
+          periodic_position = make_mesh_periodic_from_options(position, mesh_path)
+          ! Ensure the name and option path are set on the original
+          ! mesh descriptor.
+          periodic_position%mesh%name = mesh_name
+          periodic_position%mesh%option_path = trim(mesh_path)
+          
+          ! The periodic mesh canonical numbering replaces the previous
+          !  one. The positions mesh numbering will be adjusted accordingly.
+          canonical_numbering=periodic_universal_ID_field(&
+               extract_scalar_field(states(1), 'CanonicalNumbering'), &
+               periodic_position%mesh)
+          call insert(states, canonical_numbering, "CanonicalNumbering")
+          call deallocate(canonical_numbering)
+          uid=>extract_scalar_field(states(1),"CanonicalNumbering")
+          periodic_position%mesh%uid=>uid
+          position%mesh%uid=>uid
+          uid%mesh%uid=>uid
+          
+          mesh_list=[ position%mesh ]
+          call order_elements(uid, mesh_list)
+          ! Because we've fiddled with mesh faces, the copy of
+          !  CoordinateMesh in state is out of date.
+          position%mesh=mesh_list(1)
+          mesh=position%mesh
+          call insert(states, mesh, "CoordinateMesh")
+          mesh=uid%mesh
+          periodic_position%mesh=mesh
+          
+          mesh = periodic_position%mesh
+          call incref(mesh)
+          call insert(states, periodic_position, trim(periodic_position%name))
+          call deallocate(periodic_position)
+          
+       end if
+       
+    else
+       ! copy mesh unchanged, new reference
+       mesh=model_mesh                
+       call incref(mesh)
+       
+    end if
+    
+    mesh%name = mesh_name
+    
+    ! Set mesh option path.
+    mesh%option_path = trim(mesh_path)
+    
+    ! if this is the coordinate mesh then we should insert the coordinate field
+    ! also meshes excluded from adaptivity all have their own coordinate field
+    ! for extrusion and periodic: the coordinate field has already been inserted above
+    if ((trim(mesh_name)=="CoordinateMesh" .or. exclude_from_mesh_adaptivity) &
+         .and. .not. (extrusion .or. periodic)) then
+       
+       if (model_mesh_name=="CoordinateMesh") then
+          modelposition => extract_vector_field(states(1), "Coordinate")
+       else
+          modelposition => extract_vector_field(states(1), trim(model_mesh_name)//"Coordinate")
+       end if
+       
+       if (mesh_name=="CoordinateMesh") then
+          call allocate(coordinateposition, modelposition%dim, mesh, "Coordinate")
+       else
+          call allocate(coordinateposition, modelposition%dim, mesh, trim(mesh_name)//"/Coordinate")
+       end if
+       
+       ! remap the external mesh positions onto the CoordinateMesh... this requires that the space
+       ! of the coordinates spans that of the external mesh
+       call remap_field(from_field=modelposition, to_field=coordinateposition)
+       
+       if (mesh_name=="CoordinateMesh" .and. have_option('/geometry/spherical_earth/superparametric_mapping/')) then
+          
+          call higher_order_sphere_projection(modelposition, coordinateposition)
+          
+       endif
+       
+       ! insert into states(1) and alias to all others
+       call insert(states, coordinateposition, coordinateposition%name)
+       ! drop reference to the local copy of the Coordinate field
+       call deallocate(coordinateposition)
+    end if
+    if (trim(mesh_name)=="CoordinateMesh" .and. mesh_periodic(mesh)) then
+       FLExit("CoordinateMesh may not be periodic")
+    end if
+    
+    ! Insert mesh into all states
+    call insert(states, mesh, mesh%name)
+    
+    if (.not. have_option(trim(mesh_path)//'/exclude_from_mesh_adaptivity')) then
+       ! update info for adaptivity/error metric code:
+       
+       if (extrusion .or. (periodic .and. .not. remove_periodicity)) then
+          ! this is the name of the mesh to be used by the error metric for adaptivity
+          topology_mesh_name=mesh%name
+       end if
+       
+       if ((extrusion.and..not.have_option('/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity')) &
+            .or.(periodic .and. .not. remove_periodicity)) then
+          ! this is the name of the mesh to be adapted by adaptivity
+          adaptivity_mesh_name=mesh%name
+       end if
+       
+       if (periodic .and. trim(periodic_boundary_option_path(mesh%shape%dim)) == "") then
+          periodic_boundary_option_path(mesh%shape%dim) = trim(mesh_path)
+       end if
+    end if
+    
+    call deallocate(mesh)
+    
   end subroutine insert_derived_mesh
 
   subroutine insert_trace_meshes(states)
@@ -873,21 +938,20 @@ contains
   end subroutine insert_trace_meshes
 
   function make_mesh_from_options(from_mesh, mesh_path) result (mesh)
-    ! make new mesh changing shape or continuity of from_mesh
+    ! make new mesh changing shape of from_mesh
     type(mesh_type):: mesh
     type(mesh_type), intent(in):: from_mesh
     character(len=*), intent(in):: mesh_path
     
     character(len=FIELD_NAME_LEN) :: mesh_name
-    character(len=OPTION_PATH_LEN) :: continuity_option, element_option, constraint_option_string
+    character(len=OPTION_PATH_LEN) :: element_option, constraint_option_string
+    integer:: loc, dim, poly_degree, new_shape_type, quad_degree, stat
+    integer :: constraint_choice
+    logical :: new_shape
     type(quadrature_type):: quad
     type(element_type):: shape
-    integer :: constraint_choice
-    integer:: loc, dim, poly_degree, continuity, new_shape_type, quad_degree, stat
-    logical :: new_shape
     
     ! Get new mesh shape information
-    
     new_shape = have_option(trim(mesh_path)//"/from_mesh/mesh_shape")
     if(new_shape) then
       ! Get new mesh element type
@@ -896,6 +960,8 @@ contains
       if(stat==0) then
         if(trim(element_option)=="lagrangian") then
            new_shape_type=ELEMENT_LAGRANGIAN
+        else if(trim(element_option)=="discontinuous lagrangian") then
+           new_shape_type=ELEMENT_DISCONTINUOUS_LAGRANGIAN
         else if(trim(element_option)=="bubble") then
            new_shape_type=ELEMENT_BUBBLE
         else if(trim(element_option)=="trace") then
@@ -909,8 +975,8 @@ contains
       call get_option(trim(mesh_path)//"/from_mesh/mesh_shape/polynomial_degree", &
                       poly_degree, default=from_mesh%shape%degree)
     
-      ! loc is the number of vertices of the element
-      loc=from_mesh%shape%loc
+      ! loc is the number of vertices of the element (since from_mesh is linear)
+      loc=from_mesh%shape%ndof
       ! dim is the dimension
       dim=from_mesh%shape%dim
       ! Make quadrature
@@ -943,23 +1009,11 @@ contains
       call incref(shape)
     end if
 
-    ! Get new mesh continuity
-    call get_option(trim(mesh_path)//"/from_mesh/mesh_continuity", continuity_option, stat)
-    if(stat==0) then
-      if(trim(continuity_option)=="discontinuous") then
-         continuity=-1
-      else if(trim(continuity_option)=="continuous") then
-         continuity=0
-      end if
-    else
-      continuity=from_mesh%continuity
-    end if
-
     ! Get mesh name.
     call get_option(trim(mesh_path)//"/name", mesh_name)
 
     ! Make new mesh
-    mesh=make_mesh(from_mesh, shape, continuity, mesh_name)
+    mesh=make_mesh(from_mesh, shape, name=mesh_name)
 
     ! Set mesh option path
     mesh%option_path = trim(mesh_path)
@@ -1030,7 +1084,7 @@ contains
     end do
     
     call add_faces(position_out%mesh, model=position%mesh, periodic_face_map=periodic_face_map)
-    
+
     call deallocate(periodic_face_map)
     
     ! finally fix the name of the produced mesh and its coordinate field
@@ -3254,13 +3308,12 @@ contains
           if (have_option(trim(path)//"/from_mesh/extrude") .and. ( &
              
              have_option(trim(path)//"/from_mesh/mesh_shape") .or. &
-             have_option(trim(path)//"/from_mesh/mesh_continuity") .or. &
              have_option(trim(path)//"/from_mesh/periodic_boundary_conditions") &
              ) ) then
              
              ewrite(-1,*) "In derivation of mesh ", trim(mesh_name), " from ", trim(from_mesh_name)
              ewrite(-1,*) "When extruding a mesh, you cannot at the same time"
-             ewrite(-1,*) "change its shape, continuity or add periodic bcs."
+             ewrite(-1,*) "change its shape, or add periodic bcs."
              ewrite(-1,*) "Need to do this in seperate step (derivation)."
              FLExit("Error in /geometry/mesh with extrude option")
              
@@ -3272,13 +3325,12 @@ contains
              if ( &
              
                 have_option(trim(path)//"/from_mesh/mesh_shape") .or. &
-                have_option(trim(path)//"/from_mesh/mesh_continuity") .or. &
                 have_option(trim(path)//"/from_mesh/extrude") &
              ) then
              
                 ewrite(-1,*) "In derivation of mesh ", trim(mesh_name), " from ", trim(from_mesh_name)
                 ewrite(-1,*) "When adding or removing periodicity to a mesh, you cannot at the same time"
-                ewrite(-1,*) "change its shape, continuity or extrude a mesh."
+                ewrite(-1,*) "change its shape or extrude a mesh."
                 ewrite(-1,*) "Need to do this in seperate step (derivation)."
                 FLExit("Error in /geometry/mesh with extrude option")
                 
@@ -3631,17 +3683,17 @@ contains
 
 ! Check velocity mesh continuity
   call get_option("/material_phase[0]/vector_field::Velocity/prognostic/mesh/name",velmesh)
-  call get_option("/geometry/mesh::"//trim(velmesh)//"/from_mesh/mesh_continuity",continuity2)
+  call get_option("/geometry/mesh::"//trim(velmesh)//"/from_mesh/element_type",continuity2)
     
-  if (trim(continuity2).ne."discontinuous") then
+  if (trim(continuity2).ne."discontinuous lagrangian") then
     FLExit("The velocity mesh is not discontinuous")
   end if
 
   ! Check pressure mesh continuity 
   call get_option("/material_phase[0]/scalar_field::Pressure/prognostic/mesh/name",pressuremesh)
-  if (have_option("/geometry/mesh::"//trim(pressuremesh)//"/from_mesh/mesh_continuity"))then
-    call get_option("/geometry/mesh::"//trim(pressuremesh)//"/from_mesh/mesh_continuity",continuity1)
-    if (trim(continuity1).ne."continuous")then
+  if (have_option("/geometry/mesh::"//trim(pressuremesh)//"/from_mesh/element_type"))then
+    call get_option("/geometry/mesh::"//trim(pressuremesh)//"/from_mesh/element_type",continuity1)
+    if (trim(continuity1).ne."lagrangian")then
       FLExit ("Pressure mesh is not continuous")
     end if
   end if

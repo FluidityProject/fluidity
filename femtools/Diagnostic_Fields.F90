@@ -1847,7 +1847,7 @@ contains
 
           notvisited=.true.
 
-          do iloc = 1, courant%mesh%shape%loc
+          do iloc = 1, courant%mesh%shape%ndof
 
             do face = 1, cvfaces%faces
 
@@ -1921,7 +1921,7 @@ contains
           u_bdy_f=face_val_at_quad(u, sele, u_cvbdyshape)
           if(move_mesh) ug_bdy_f=face_val_at_quad(ug, sele, ug_cvbdyshape)
 
-          do iloc = 1, courant%mesh%faces%shape%loc
+          do iloc = 1, courant%mesh%faces%shape%ndof
 
             do face = 1, cvfaces%sfaces
 
@@ -2196,7 +2196,7 @@ contains
 
         notvisited=.true.
 
-        do iloc = 1, courant%mesh%shape%loc
+        do iloc = 1, courant%mesh%shape%ndof
 
           do face = 1, cvfaces%faces
 
@@ -2316,7 +2316,7 @@ contains
         matdens_ele_bdy=face_val(matdens, sele)
         oldmatdens_ele_bdy=face_val(oldmatdens, sele)
 
-        do iloc = 1, courant%mesh%faces%shape%loc
+        do iloc = 1, courant%mesh%faces%shape%ndof
 
           do face = 1, cvfaces%sfaces
 
@@ -2706,7 +2706,7 @@ contains
 
           notvisited=.true.
 
-          do iloc = 1, s_field%mesh%shape%loc
+          do iloc = 1, s_field%mesh%shape%ndof
 
             do face = 1, cvfaces%faces
 
@@ -2770,7 +2770,7 @@ contains
 
           u_bdy_f=face_val_at_quad(u, sele, u_cvbdyshape)
 
-          do iloc = 1, s_field%mesh%faces%shape%loc
+          do iloc = 1, s_field%mesh%faces%shape%ndof
 
             do face = 1, cvfaces%sfaces
 
@@ -3237,7 +3237,7 @@ contains
         augmented_shape = shape
         call incref(augmented_shape)
      else
-        augmented_shape = make_element_shape(shape%loc, shape%dim, shape%degree, &
+        augmented_shape = make_element_shape(shape%ndof, shape%dim, shape%degree, &
              & shape%quadrature, quad_s = f_shape%quadrature)
      end if
     

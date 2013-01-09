@@ -42,6 +42,7 @@ module adapt_integration
   use surface_id_interleaving
   use tictoc
   use vtk_interfaces
+  use fields_halos
 
   implicit none
   
@@ -613,7 +614,13 @@ contains
       
       ! Adaptivity is not guaranteed to return halo elements in the same
       ! order in which they went in. We therefore need to fix this order.
-      call reorder_element_numbering(output_positions)
+!      call reorder_element_numbering(output_positions)
+      ! Temporarily point the uid until this is done properly below.
+      allocate(output_positions%mesh%uid)
+      output_positions%mesh%uid=universal_number_field(output_positions%mesh)
+      call order_elements(output_positions%mesh%uid)
+      output_positions%mesh=output_positions%mesh%uid%mesh
+
               
 #ifdef DDEBUG
       do i = 1, nhalos
@@ -741,7 +748,7 @@ contains
       assert(all(ele_nodes(positions, i) <= nnodes))
       
       shape => ele_shape(positions, i)
-      if(positions%dim == 3 .and. shape%loc == 4 .and. shape%degree == 1) then
+      if(positions%dim == 3 .and. shape%ndof == 4 .and. shape%degree == 1) then
         volume = simplex_volume(positions, i)
         if(abs(volume) < epsilon(0.0)) then
           ewrite(-1, "(a,i0)") "For element: ", i

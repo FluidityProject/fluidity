@@ -88,7 +88,7 @@ subroutine vertical_integration(target_basename_, target_basename_len, &
 
   assert(ele_count(positions_b_surf) > 0)
   positions_b_surf_shape => ele_shape(positions_b_surf, 1)
-  field_b_shape = make_element_shape(positions_b_surf_shape%loc, positions_b_surf_shape%dim, field_b_degree, quad = positions_b_surf_shape%quadrature)
+  field_b_shape = make_element_shape(positions_b_surf_shape%ndof, positions_b_surf_shape%dim, field_b_degree, quad = positions_b_surf_shape%quadrature)
   if(field_b_degree == 0) then
     field_b_mesh = make_mesh(positions_b_surf%mesh, field_b_shape, name = "VerticalIntegralMesh", continuity = field_b_continuity)
   else

@@ -122,7 +122,7 @@ contains
     type(vector_field), intent(in) :: positions
     type(element_type), intent(in) :: shape
     
-    real, dimension(shape%loc) :: integral
+    real, dimension(shape%ndof) :: integral
     
     real, dimension(ele_ngi(positions, ele)) :: detwei
     
@@ -137,10 +137,10 @@ contains
     type(vector_field), intent(in) :: positions
     type(element_type), intent(in) :: shape
     
-    real, dimension(shape%loc, shape%loc) :: integral
+    real, dimension(shape%ndof, shape%ndof) :: integral
     
     real, dimension(ele_ngi(positions, ele)) :: detwei
-    real, dimension(shape%loc, ele_ngi(positions, ele), positions%dim) :: dn
+    real, dimension(shape%ndof, ele_ngi(positions, ele), positions%dim) :: dn
     
     call transform_to_physical(positions, ele, shape, &
       & dshape = dn, detwei = detwei)

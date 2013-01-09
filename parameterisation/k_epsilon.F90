@@ -259,6 +259,8 @@ subroutine keps_calculate_rhs(state)
   
   if(have_buoyancy_turbulence) then
      buoyancy_density => extract_scalar_field(state, 'VelocityBuoyancyDensity')
+  else
+     buoyancy_density => dummydensity
   end if
 
   field_names(1) = 'TurbulentKineticEnergy'
@@ -1014,7 +1016,7 @@ subroutine keps_wall_function(field1,X,U,masslump,scalar_eddy_visc,density,sele,
     augmented_shape = shape
     call incref(augmented_shape)
   else
-     augmented_shape = make_element_shape(shape%loc, shape%dim, shape%degree, shape%quadrature, quad_s=f_shape%quadrature)
+     augmented_shape = make_element_shape(shape, quad_s=f_shape%quadrature)
   end if
     
   ! assumes that the jacobian is the same for all quadrature points

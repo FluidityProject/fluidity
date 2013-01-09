@@ -1825,7 +1825,7 @@ implicit none
     type(scalar_field), intent(inout) :: to_field
     integer, intent(out), optional :: stat
 
-    real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc) :: locweight
+    real, dimension(to_field%mesh%shape%ndof, from_field%mesh%shape%ndof) :: locweight
 
     integer :: fromloc, toloc, ele
     integer, dimension(:), pointer :: from_ele, to_ele
@@ -1879,11 +1879,11 @@ implicit none
     type(scalar_field), intent(in) :: from_field
     type(scalar_field), intent(inout) :: to_field
     integer, dimension(:), intent(in) :: elements
-    real, dimension(size(elements), to_field%mesh%shape%loc), intent(out) :: output
+    real, dimension(size(elements), to_field%mesh%shape%ndof), intent(out) :: output
     integer, intent(out), optional:: stat
 
-    real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc), optional :: locweight
-    real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc) :: llocweight
+    real, dimension(to_field%mesh%shape%ndof, from_field%mesh%shape%ndof), optional :: locweight
+    real, dimension(to_field%mesh%shape%ndof, from_field%mesh%shape%ndof) :: llocweight
 
     integer :: fromloc, toloc, ele, i
 
@@ -1924,7 +1924,7 @@ implicit none
     type(vector_field), intent(inout) :: to_field
     integer, intent(out), optional :: stat
 
-    real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc) :: locweight
+    real, dimension(to_field%mesh%shape%ndof, from_field%mesh%shape%ndof) :: locweight
 
     integer :: fromloc, toloc, ele, i
     integer, dimension(:), pointer :: from_ele, to_ele
@@ -1997,11 +1997,11 @@ implicit none
     type(vector_field), intent(in) :: from_field
     type(vector_field), intent(inout) :: to_field
     integer, dimension(:), intent(in) :: elements
-    real, dimension(size(elements), to_field%dim, to_field%mesh%shape%loc), intent(out) :: output
+    real, dimension(size(elements), to_field%dim, to_field%mesh%shape%ndof), intent(out) :: output
     integer, intent(out), optional:: stat
 
-    real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc), optional :: locweight
-    real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc) :: llocweight
+    real, dimension(to_field%mesh%shape%ndof, from_field%mesh%shape%ndof), optional :: locweight
+    real, dimension(to_field%mesh%shape%ndof, from_field%mesh%shape%ndof) :: llocweight
 
     integer :: fromloc, toloc, ele, i, j
 
@@ -2051,7 +2051,7 @@ implicit none
     type(tensor_field), intent(inout) :: to_field
     integer, intent(inout), optional :: stat
 
-    real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc) :: locweight
+    real, dimension(to_field%mesh%shape%ndof, from_field%mesh%shape%ndof) :: locweight
 
     integer :: fromloc, toloc, ele, i, j
     integer, dimension(:), pointer :: from_ele, to_ele
@@ -2220,21 +2220,23 @@ implicit none
 
   end subroutine remap_vector_field_to_surface
 
-  function piecewise_constant_mesh(in_mesh, name) result(new_mesh)
+  function piecewise_constant_mesh(in_mesh, name, with_faces) result(new_mesh)
     !!< From a given mesh, return a scalar field
     !!< allocated on the mesh that's topologically the same
     !!< but has piecewise constant basis functions.
     !!< This is for the definition of elementwise quantities.
     type(mesh_type), intent(in) :: in_mesh
+    character(len=*), intent(in) :: name
+    logical, intent(in), optional :: with_faces
+
     type(mesh_type) :: new_mesh
     type(element_type) :: shape, old_shape
-    character(len=*), intent(in) :: name
 
     old_shape = in_mesh%shape
 
-    shape = make_element_shape(vertices=old_shape%loc, dim=old_shape%dim, degree=0, quad=old_shape%quadrature)
-    new_mesh = make_mesh(model=in_mesh, shape=shape, continuity=-1)
-    new_mesh%name=name
+    shape = make_element_shape(vertices=old_shape%ndof, dim=old_shape%dim, degree=0, quad=old_shape%quadrature)
+    new_mesh = make_mesh(model=in_mesh, shape=shape, continuity=-1, &
+         name=name, with_faces=with_faces)
     call deallocate(shape)
     
   end function piecewise_constant_mesh
@@ -2252,7 +2254,7 @@ implicit none
 
     old_shape = in_mesh%shape
 
-    shape = make_element_shape(vertices=old_shape%loc, dim=old_shape%dim, degree=0, quad=old_shape%quadrature)
+    shape = make_element_shape(vertices=old_shape%ndof, dim=old_shape%dim, degree=0, quad=old_shape%quadrature)
     new_mesh = make_mesh(model=in_mesh, shape=shape, continuity=-1)
     call allocate(field, new_mesh, name)
     call zero(field)
@@ -3094,7 +3096,7 @@ implicit none
       FLExit("set_to_submesh_scalar only works for simplex elements")
     end select
 
-    allocate(from_vals(from_field%mesh%shape%loc))
+    allocate(from_vals(from_field%mesh%shape%ndof))
 
     to_ele = 0
     do from_ele = 1, element_count(from_field)
@@ -3180,7 +3182,7 @@ implicit none
       FLExit("set_to_submesh_vector only works for simplex elements")
     end select
 
-    allocate(from_vals(from_field%dim, from_field%mesh%shape%loc))
+    allocate(from_vals(from_field%dim, from_field%mesh%shape%ndof))
 
     to_ele = 0
     do from_ele = 1, element_count(from_field)
@@ -3266,7 +3268,7 @@ implicit none
       FLAbort("set_from_submesh_vector only works for simplex elements")
     end select
 
-    allocate(from_vals(from_field%mesh%shape%loc))
+    allocate(from_vals(from_field%mesh%shape%ndof))
 
     from_ele = 0
     do to_ele = 1, element_count(to_field)
@@ -3355,7 +3357,7 @@ implicit none
       FLAbort("set_from_submesh_vector only works for simplex elements")
     end select
 
-    allocate(from_vals(from_field%dim, from_field%mesh%shape%loc))
+    allocate(from_vals(from_field%dim, from_field%mesh%shape%ndof))
 
     from_ele = 0
     do to_ele = 1, element_count(to_field)
@@ -3381,8 +3383,8 @@ implicit none
 
     assert(size(nodes) == ele_loc(mesh, ele))
 
-    mesh%ndglno(mesh%shape%loc*(ele-1)+1:&
-                &mesh%shape%loc*ele) = nodes
+    mesh%ndglno(mesh%shape%ndof*(ele-1)+1:&
+                &mesh%shape%ndof*ele) = nodes
   end subroutine set_ele_nodes
 
   subroutine renumber_positions_trailing_receives(positions, permutation)
@@ -3503,6 +3505,8 @@ implicit none
       output_mesh%faces%surface_node_list = permutation(input_positions%mesh%faces%surface_node_list)
       allocate(output_mesh%faces%face_element_list(size(input_positions%mesh%faces%face_element_list)))
       output_mesh%faces%face_element_list = input_positions%mesh%faces%face_element_list
+      allocate(output_mesh%faces%local_face_number(size(input_positions%mesh%faces%local_face_number)))
+      output_mesh%faces%local_face_number = input_positions%mesh%faces%local_face_number
       allocate(output_mesh%faces%boundary_ids(size(input_positions%mesh%faces%boundary_ids)))
       output_mesh%faces%boundary_ids = input_positions%mesh%faces%boundary_ids
       if(associated(input_positions%mesh%faces%coplanar_ids)) then

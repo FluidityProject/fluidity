@@ -613,7 +613,7 @@ contains
     
     integer :: ele_owner
     
-    ele_owner = minval(halo_node_owners(node_halo, ele_nodes(mesh, ele)))
+    ele_owner = maxval(halo_node_owners(node_halo, ele_nodes(mesh, ele)))
     assert(ele_owner > 0)
    
   end function ele_owner
@@ -683,7 +683,7 @@ contains
     
     assert(valid_halo_node_counts(element_halo))
     
-    loc = mesh%shape%loc
+    loc = mesh%shape%ndof
     
     allocate(receives_uenlist(nprocs))
     do i = 1, nprocs

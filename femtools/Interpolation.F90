@@ -2,7 +2,6 @@
 
 module interpolation_module
   use fields
-  use superconvergence
   use field_derivatives
   use state_module
   use sparse_tools
@@ -18,14 +17,6 @@ module interpolation_module
     module procedure linear_interpolation_state, linear_interpolation_scalar, &
       & linear_interpolation_scalars, linear_interpolation_vector, linear_interpolation_vectors, &
       & linear_interpolation_tensors, linear_interpolation_tensor
-  end interface
-
-  interface quadratic_interpolation
-    module procedure quadratic_interpolation_eqf
-  end interface
-
-  interface cubic_interpolation
-    module procedure cubic_interpolation_cf_scalar, cubic_interpolation_cf_vector
   end interface
 
   contains
@@ -49,126 +40,6 @@ module interpolation_module
     end if
     
   end function get_element_mapping
-
-  subroutine quadratic_interpolation_qf(old_fields, old_position, new_fields, new_position)
-    !!< Interpolate the fields defined on the old_fields mesh
-    !!< onto the new_fields mesh.
-    !!< This routine assumes new_fields have all been allocated.
-
-    type(scalar_field), dimension(:), intent(in) :: old_fields
-    type(vector_field), intent(inout) :: old_position
-    type(scalar_field), dimension(:), intent(inout) :: new_fields
-    type(vector_field), intent(in) :: new_position
-
-    type(mesh_type) :: old_mesh, new_mesh
-    integer :: old_node
-    integer :: new_node
-    integer :: ele
-    integer :: field_count
-    integer :: field
-    integer, dimension(:), pointer :: node_list
-    integer :: i
-    integer, dimension(node_count(new_position)) :: map
-    real, dimension(MATRIX_SIZE_QF) :: qf_expansion
-    real :: val
-
-    assert(size(old_fields) == size(new_fields))
-    field_count = size(old_fields)
-
-    old_mesh = old_fields(1)%mesh
-    new_mesh = new_fields(1)%mesh
-
-
-    call add_nelist(old_mesh)
-    map = get_element_mapping(old_position, new_position)
-
-    ! Zero the new fields.
-
-    do field=1,field_count
-      call zero(new_fields(field))
-    end do
-
-    ! Loop over the nodes of the new mesh.
-
-    do new_node=1,node_count(new_mesh)
-      
-      ! In what element of the old mesh does the new node lie?
-      ele = map(new_node)
-      node_list => ele_nodes(old_mesh, ele)
-
-      do field=1,field_count
-        ! Loop over the nodes of that element,
-        ! get the quadratic expansion of that field,
-        ! evaluate at the point and average.
-        val = 0.0
-        do i=1,size(node_list)
-          old_node = node_list(i)
-          qf_expansion = get_quadratic_fit_qf(old_fields(field), old_position, old_node)
-          val = val + evaluate_qf(qf_expansion, node_val(new_position, new_node))
-        end do
-        val = val / size(node_list)
-        call set(new_fields(field), new_node, val)
-      end do
-    end do
-
-  end subroutine quadratic_interpolation_qf
-
-  subroutine quadratic_interpolation_eqf(old_fields, old_position, new_fields, new_position)
-    !!< Interpolate the fields defined on the old_fields mesh
-    !!< onto the new_fields mesh.
-    !!< This routine assumes new_fields have all been allocated.
-
-    type(scalar_field), dimension(:), intent(in) :: old_fields
-    type(vector_field), intent(inout) :: old_position
-    type(scalar_field), dimension(:), intent(inout) :: new_fields
-    type(vector_field), intent(in) :: new_position
-
-    type(mesh_type) :: old_mesh, new_mesh
-    integer :: new_node
-    integer :: ele
-    integer :: field_count
-    integer :: field
-    integer, dimension(node_count(new_position)) :: map
-    real, dimension(MATRIX_SIZE_QF) :: fit
-    real :: val
-    type(vector_field) :: gradient
-
-    assert(size(old_fields) == size(new_fields))
-    field_count = size(old_fields)
-
-    old_mesh = old_fields(1)%mesh
-    new_mesh = new_fields(1)%mesh
-
-    call allocate(gradient, 3, old_mesh, "Gradient")
-
-    call add_nelist(old_mesh)
-    map = get_element_mapping(old_position, new_position)
-
-    ! Zero the new fields.
-
-    do field=1,field_count
-      call zero(new_fields(field))
-    end do
-
-    ! Loop over the nodes of the new mesh.
-
-    do field=1,field_count
-      call grad(old_fields(field), old_position, gradient)
-      
-      do new_node=1,node_count(new_mesh)
-
-        ! In what element of the old mesh does the new node lie?
-        ele = map(new_node)
-        fit = get_quadratic_fit_eqf(old_fields(field), old_position, ele, transpose(ele_val(gradient, ele)))
-        val = evaluate_qf(fit, node_val(new_position, new_node))
-
-        call set(new_fields(field), new_node, val)
-      end do
-    end do
-
-    call deallocate(gradient)
-    
-  end subroutine quadratic_interpolation_eqf
 
   subroutine linear_interpolation_scalar(old_field, old_position, new_field, new_position, map)
     type(scalar_field), intent(in) :: old_field
@@ -535,88 +406,6 @@ module interpolation_module
 
   end subroutine linear_interpolation_state
 
-  subroutine cubic_interpolation_cf_scalar(old_fields, old_position, new_fields, new_position)
-    !!< Interpolate the fields defined on the old_fields mesh
-    !!< onto the new_fields mesh.
-    !!< This routine assumes new_fields have all been allocated.
-
-    type(scalar_field), dimension(:), intent(in) :: old_fields
-    type(vector_field), intent(inout) :: old_position
-    type(scalar_field), dimension(:), intent(inout) :: new_fields
-    type(vector_field), intent(in) :: new_position
-
-    type(mesh_type) :: old_mesh, new_mesh
-    integer :: old_node
-    integer :: new_node
-    integer :: ele
-    integer :: field_count
-    integer :: field
-    integer, dimension(:), pointer :: node_list
-    integer :: i
-    integer, dimension(node_count(new_position)) :: map
-    real, dimension(MATRIX_SIZE_CF) :: cf_expansion
-    real :: val
-
-    assert(size(old_fields) == size(new_fields))
-    field_count = size(old_fields)
-
-    old_mesh = old_fields(1)%mesh
-    new_mesh = new_fields(1)%mesh
-
-
-    call add_nelist(old_mesh)
-    map = get_element_mapping(old_position, new_position)
-
-    ! Zero the new fields.
-
-    do field=1,field_count
-      call zero(new_fields(field))
-    end do
-
-    ! Loop over the nodes of the new mesh.
-
-    do new_node=1,node_count(new_mesh)
-      
-      ! In what element of the old mesh does the new node lie?
-      ele = map(new_node)
-      node_list => ele_nodes(old_mesh, ele)
-
-      do field=1,field_count
-        ! Loop over the nodes of that element,
-        ! get the cubic expansion of that field,
-        ! evaluate at the point and average.
-        val = 0.0
-        do i=1,size(node_list)
-          old_node = node_list(i)
-          cf_expansion = get_cubic_fit_cf(old_fields(field), old_position, old_node)
-          val = val + evaluate_cf(cf_expansion, node_val(new_position, new_node))
-        end do
-        val = val / size(node_list)
-        call set(new_fields(field), new_node, val)
-      end do
-    end do
-
-  end subroutine cubic_interpolation_cf_scalar
-
-  subroutine cubic_interpolation_cf_vector(old_fields, old_position, new_fields, new_position)
-    type(vector_field), dimension(:), intent(in) :: old_fields
-    type(vector_field), intent(inout) :: old_position
-    type(vector_field), dimension(:), intent(inout) :: new_fields
-    type(vector_field), intent(in) :: new_position
-
-    type(scalar_field), dimension(old_position%dim * size(old_fields)) :: scalars_in
-    type(scalar_field), dimension(old_position%dim * size(old_fields)) :: scalars_out
-    integer :: i, j
-
-    do i=1,size(old_fields)
-      do j=1,old_position%dim
-        scalars_in((i-1) * old_position%dim + j) = extract_scalar_field(old_fields(i), j)
-        scalars_out((i-1) * old_position%dim + j) = extract_scalar_field(new_fields(i), j)
-      end do
-    end do
-    call cubic_interpolation_cf_scalar(scalars_in, old_position, scalars_out, new_position)
-  end subroutine cubic_interpolation_cf_vector
-    
   subroutine linear_interpolate_states(from_states, target_states, map)
   type(state_type), dimension(:), intent(inout):: from_states
   type(state_type), dimension(:), intent(inout):: target_states

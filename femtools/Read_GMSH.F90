@@ -206,7 +206,9 @@ contains
     if (haveRegionIDs) then
       allocate( field%mesh%region_ids(numElements) )
     end if
+
     if(nodes(1)%columnID>=0)  allocate(field%mesh%columns(1:numNodes))
+
 
     ! Loop round nodes copying across coords and column IDs to field mesh,
     ! if they exist

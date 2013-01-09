@@ -136,19 +136,30 @@ file).</a:documentation>
         <ref name="coordinate_mesh_choice"/>
         <optional>
           <element name="mesh_shape">
-            <element name="polynomial_degree">
-              <ref name="integer"/>
-            </element>
-          </element>
-        </optional>
-        <optional>
-          <element name="mesh_continuity">
-            <element name="string_value">
-              <choice>
-                <value>continuous</value>
-                <value>discontinuous</value>
-              </choice>
-            </element>
+            <optional>
+              <element name="polynomial_degree">
+                <ref name="integer"/>
+              </element>
+            </optional>
+            <optional>
+              <element name="element_type">
+                <element name="string_value">
+                  <a:documentation>Select the element type. "lagrangian" means the usual
+Pn element type. "discontinuous lagrangian" is the corresponding DG element. 
+"bubble" adds bubble functions that
+vanish on the element boundaries, and
+trace defines an element that is only defined on faces
+and is undefined on the element interior (used for 
+enforcing continuity by Lagrange multipliers).</a:documentation>
+                  <choice>
+                    <value>lagrangian</value>
+                    <value>discontinuous lagrangian</value>
+                    <value>bubble</value>
+                    <value>trace</value>
+                  </choice>
+                </element>
+              </element>
+            </optional>
           </element>
         </optional>
         <zeroOrMore>

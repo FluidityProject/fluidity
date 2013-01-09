@@ -24,8 +24,8 @@ subroutine test_remap_coordinate
   quad = make_quadrature(vertices = vertices, dim  = dim, degree = 1)
   baseshape = make_element_shape(vertices = vertices, dim  = dim, degree = 1, quad = quad)
   toshape = make_element_shape(vertices = vertices, dim  = dim, degree = 0, quad = quad)
-  call allocate(basemesh, nodes = baseshape%loc, elements = 1, shape = baseshape, name = "BaseMesh")
-  call allocate(tomesh, nodes = toshape%loc, elements = 1, shape = toshape, name = "ToMesh")
+  call allocate(basemesh, nodes = baseshape%ndof, elements = 1, shape = baseshape, name = "BaseMesh")
+  call allocate(tomesh, nodes = toshape%ndof, elements = 1, shape = toshape, name = "ToMesh")
   call allocate(basex, mesh_dim(basemesh), basemesh, "BaseCoordinate")
   call allocate(tox, mesh_dim(tomesh), tomesh, "ToCoordinate")
 

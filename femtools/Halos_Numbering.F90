@@ -278,7 +278,7 @@ contains
     ewrite(2, "(a,i0)") "Owned nodes universal node number base = ", &
       & halo%my_owned_nodes_unn_base
     ewrite(2, "(a,i0)") "Total receive_nodes = ", halo_all_receives_count(halo)
-    allocate(halo%receives_gnn_to_unn(halo_all_receives_count(halo)))
+    allocate(halo%receives_gnn_to_unn(max_halo_node(halo)-halo%nowned_nodes))
     
     if(present_and_true(local_only)) then
       halo%receives_gnn_to_unn = -1
@@ -354,7 +354,7 @@ contains
 
     logical :: valid
 
-    integer, dimension(node_count(halo)) :: unns
+    integer, dimension(max_halo_node(halo)) :: unns
 
     call get_universal_numbering(halo, unns)
     valid = halo_verifies(halo, unns)
@@ -526,10 +526,10 @@ contains
 
   subroutine get_universal_numbering_order_trailing_receives(halo, unns)
     type(halo_type), intent(in) :: halo
-    integer, dimension(node_count(halo)), intent(out) :: unns
+    integer, dimension(max_halo_node(halo)), intent(out) :: unns
 
     integer :: i
-    
+
     assert(trailing_receives_consistent(halo))
     
     unns = -1

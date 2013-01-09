@@ -355,6 +355,7 @@ if __name__ == "__main__":
     parser.add_option("-c", "--clean", action="store_true", dest="clean", default = False)
     parser.add_option("--just-test", action="store_true", dest="justtest")
     parser.add_option("--just-list", action="store_true", dest="justlist")
+    parser.add_option("--tests-from-file", dest="from_file", default=None, help="take tests to run from file")
     (options, args) = parser.parse_args()
 
     if len(args) > 0: parser.error("Too many arguments.")

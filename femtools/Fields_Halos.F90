@@ -30,11 +30,14 @@ module fields_halos
 use fields
 use halos
 use data_structures
+use parallel_fields
+use quicksort
 implicit none
 
 private
 
-public:: make_mesh_unperiodic, verify_consistent_local_element_numbering
+public:: make_mesh_unperiodic, verify_consistent_local_element_numbering,&
+     & order_elements
   
 contains
 
@@ -250,4 +253,215 @@ contains
     
   end function verify_consistent_local_element_numbering
   
+  subroutine order_elements(numbering, meshes)
+    !!< Given a universal numbering field, renumber the local elements of
+    !!< its mesh into this order. This should only be called for linear meshes:
+    !!< derive the other meshes from the linear one.
+    !!<
+    !!< If meshes is present, also reorder the local elements in each of
+    !!< its meshes. Meshes should likewise be linear: the intended use case
+    !!< is that numbering is on the periodic mesh while the meshes are the
+    !!< non-periodic (or possibly periodic on fewer sides) alternatives. 
+    type(scalar_field), intent(in), target :: numbering
+    
+    type(mesh_type), dimension(:), intent(inout), target, optional :: meshes
+
+    integer :: ele, m, i, face, ndof, facet_ndof, new_ele
+    integer, dimension(:), pointer :: nodes, facet_row, neigh_row
+    real, dimension(:), allocatable :: unn
+    integer, dimension(:), allocatable :: perm, ndglno, element_owner,&
+         & boundary_id, surface_facets
+    integer, dimension(2) :: tmpent
+    type(cell_type), pointer :: cell
+    type(mesh_type), pointer :: mesh
+    type(mesh_type) :: p0_mesh
+
+    assert(numbering%mesh%shape%degree==1)
+
+    facet_ndof=face_loc(numbering,1)
+    ndof=ele_loc(numbering,1)
+    allocate(unn(ndof))
+    allocate(perm(ndof))
+    cell=>numbering%mesh%shape%cell
+
+    ! First record the information required to rebuild faces.
+    allocate(surface_facets(facet_ndof*surface_element_count(numbering%mesh)))
+    do face=1,surface_element_count(numbering%mesh)
+       surface_facets((face-1)*facet_ndof+1:face*facet_ndof)&
+            &=face_global_nodes(numbering,face)
+    end do
+    if (numbering%mesh%faces%has_internal_boundaries) then
+       allocate(element_owner(surface_element_count(numbering%mesh)))
+       element_owner=numbering%mesh%faces&
+            &%face_element_list(1:surface_element_count(numbering%mesh)) 
+    end if
+    allocate(boundary_id(surface_element_count(numbering%mesh)))
+    boundary_id=numbering%mesh%faces%boundary_ids
+    
+    ! Next re-order the vertices in each element.
+    do ele=1,element_count(numbering%mesh)
+       nodes=>ele_nodes(numbering,ele)
+       unn=ele_val(numbering, ele)
+       
+       ! Establish the node permutation.
+       perm=vertex_permutation(unn, cell)
+
+       nodes=nodes(perm)
+       
+       ! Re-order any additional meshes.
+       if (present(meshes)) then
+          do m=1, size(meshes)
+             mesh=>meshes(m)
+             nodes=>ele_nodes(mesh, ele)
+             nodes=nodes(perm)
+          end do
+       end if
+    end do
+ 
+    ! Now re-order the elements.
+    mesh=>numbering%mesh
+    
+    p0_mesh=piecewise_constant_mesh(mesh,"ReorderMesh", with_faces=.false.)
+    allocate(ndglno(size(mesh%ndglno)))
+    ndglno=mesh%ndglno
+    do ele=1,element_count(mesh)
+       new_ele=p0_mesh%ndglno(ele)
+       
+       mesh%ndglno((new_ele-1)*ndof+1:new_ele*ndof)&
+            =ndglno((ele-1)*ndof+1:ele*ndof)
+    end do
+    if (present(meshes)) then
+       do m=1, size(meshes)
+          mesh=>meshes(m)
+          ndglno=mesh%ndglno
+          do ele=1,element_count(mesh)
+             new_ele=p0_mesh%ndglno(ele)
+             
+             mesh%ndglno((new_ele-1)*ndof+1:new_ele*ndof)&
+                  =ndglno((ele-1)*ndof+1:ele*ndof)
+          end do
+       end do
+    end if
+    if (allocated(element_owner)) then
+       ! The element_owner list is contains old element numbers, it needs
+       !  the new ones
+       do i = 1, size(element_owner)
+          element_owner(i) = p0_mesh%ndglno(element_owner(i))
+       end do
+    end if
+
+    call deallocate(p0_mesh)
+
+    ! The faces are now invalid so re-establish them.
+    mesh=>numbering%mesh
+    call deallocate_faces(mesh)
+    ! Ordering is significant in the NElist and EElist.
+    call remove_nelist(mesh) 
+    call add_nelist(mesh) 
+    call remove_eelist(mesh) 
+    call add_eelist(mesh) 
+    if (allocated(element_owner)) then
+       call add_faces(mesh, &
+            &               sndgln=surface_facets, &
+            &               boundary_ids=boundary_id, &
+            &               element_owner=element_owner)
+    else
+       call add_faces(mesh, &
+            &               sndgln=surface_facets, &
+            &               boundary_ids=boundary_id)
+    end if
+    
+    ! Since we have renumbered the elements, the element halo is now
+    !  invalid.
+    if (associated(mesh%element_halos)) then
+       if (present(meshes)) then
+          do m=1, size(meshes)
+             mesh=>meshes(m)
+             call deallocate(mesh%element_halos)
+          end do
+       end if
+       call deallocate(mesh%element_halos)
+       call nullify(mesh%element_halos)
+       call derive_element_halo_from_node_halo(mesh, &
+            & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES, create_caches = .true.)
+    end if
+
+    if (present(meshes)) then
+       do m=1, size(meshes)
+          mesh=>meshes(m)
+          call deallocate_faces(mesh)
+          call remove_nelist(mesh) 
+          call add_nelist(mesh) 
+          call remove_eelist(mesh) 
+          call add_eelist(mesh) 
+          call add_faces(mesh, model=numbering%mesh)
+          if (associated(mesh%element_halos)) then
+             do i=1,size(mesh%element_halos)
+                mesh%element_halos(i)=numbering%mesh%element_halos(i)
+                call incref(mesh%element_halos(i))
+             end do
+          end if
+       end do
+    end if
+
+  contains 
+
+    function vertex_permutation(unn, cell) result (perm)
+      ! Canonical numbers of the element vertices.
+      real, dimension(:), intent(in) :: unn
+      type(cell_type), intent(in) :: cell
+      integer, dimension(size(unn)) :: perm
+
+      integer, dimension(cell%dimension) :: adjacent_vertices, tmp
+      real, dimension(cell%entity_counts(0), cell%dimension) :: vertex_coords
+      real, dimension(cell%dimension, cell%dimension) :: A
+      integer :: i, k, v0
+      integer, dimension(2) :: edge
+
+      if (cell%type==CELL_QUAD.or.cell%type==CELL_HEX) then
+         ! The first vertex is the vertex of minimal canonical number.
+         v0=minloc(unn,1)
+         
+         ! Vertices adjacent to the initial vertex.
+         k=0
+         do i=1,cell%entity_counts(1)
+            edge=entity_vertices(cell,[1,i])
+            if (any(edge==v0)) then
+               k=k+1
+               if (edge(1)==v0) then
+                  adjacent_vertices(k)=edge(2)
+               else
+                  adjacent_vertices(k)=edge(1)
+               end if
+            end if
+         end do
+
+         ! Sort the adjacent vertices by canonical number.
+         call qsort(unn(adjacent_vertices), tmp)
+         adjacent_vertices=adjacent_vertices(tmp)
+
+         ! Calculate change of coordinates matrix.
+         do i=1,cell%dimension
+            A(i,:)=cell%vertex_coords(adjacent_vertices(i),:)&
+                 -cell%vertex_coords(v0,:)
+         end do
+         
+         ! Calculate vertex coordinates in new coordinate system.
+         do i=1,size(unn)
+            vertex_coords(i,:)=matmul(A, cell%vertex_coords(i,:)&
+                 -cell%vertex_coords(v0,:))
+         end do
+
+         ! Calculate permutation of vertices into new coordinate order.
+         call sort(vertex_coords(:,cell%dimension:1:-1), perm)
+
+      else
+         call qsort(unn, perm)
+      end if
+
+    end function vertex_permutation
+  
+  end subroutine order_elements
+
+
 end module fields_halos

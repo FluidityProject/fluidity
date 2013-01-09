@@ -51,11 +51,17 @@ module parallel_fields
        & surface_element_owned, nowned_nodes
   ! Apparently ifort has a problem with the generic name node_owned
   public :: node_owned_mesh, zero_non_owned
+  public :: universal_number, universal_number_field, periodic_universal_ID_field
   
   interface node_owned
     module procedure node_owned_mesh, node_owned_scalar, node_owned_vector, &
       & node_owned_tensor
   end interface node_owned
+
+  interface node_owner
+    module procedure node_owner_mesh, node_owner_scalar, &
+      & node_owner_vector, node_owner_tensor
+  end interface node_owner
 
   interface element_owned
     module procedure element_owned_mesh, element_owned_scalar, &
@@ -97,8 +103,83 @@ module parallel_fields
       & nowned_nodes_vector, nowned_nodes_tensor
   end interface nowned_nodes
 
+  interface universal_number
+     module procedure mesh_universal_number, mesh_universal_number_vector
+  end interface universal_number
+
 contains
+
+  function universal_number_field(mesh) result (unn)
+    !!< Return a field containing the universal numbering of mesh.
+    type(mesh_type), intent(inout) :: mesh
+
+    type(scalar_field) :: unn
+    integer :: node
+
+    call allocate(unn, mesh, trim(mesh%name)//"UniversalNumbering")
+    
+    do node=1,node_count(mesh)
+       call set(unn, node, real(universal_number(mesh, node)))
+    end do
+
+  end function universal_number_field
   
+  function mesh_universal_number(mesh, node) result (unn)
+    !!< Return the universal node number of node in mesh.
+    type(mesh_type), intent(in) :: mesh
+    integer, intent(in) :: node
+    
+    integer :: unn
+
+    integer :: nhalos
+
+    nhalos=halo_count(mesh)
+    if (nhalos>0) then
+       unn=halo_universal_number(mesh%halos(nhalos), node)
+    else
+       unn=node
+    end if
+
+  end function mesh_universal_number
+
+  function mesh_universal_number_vector(mesh, node) result (unn)
+    !!< Return the universal node number of node in mesh.
+    type(mesh_type), intent(in) :: mesh
+    integer, dimension(:), intent(in) :: node
+    
+    integer, dimension(size(node)) :: unn
+
+    integer :: nhalos
+
+    nhalos=halo_count(mesh)
+    if (nhalos>0) then
+       unn=halo_universal_number(mesh%halos(nhalos), node)
+    else
+       unn=node
+    end if
+
+  end function mesh_universal_number_vector
+
+  function periodic_universal_ID_field(uid_in, periodic_mesh) result (uid)
+    ! Given a (non-periodic) universal ID field, return the periodic
+    !  version applicable to periodic_mesh. Note that this is the universal
+    !  ID which is not necessarily contiguous and definitely not contiguous
+    !  per processor.
+    type(scalar_field), intent(in) :: uid_in
+    type(mesh_type), intent(inout) :: periodic_mesh
+
+    type(scalar_field) :: uid
+
+    integer :: ele
+
+    call allocate(uid, periodic_mesh, trim(periodic_mesh%name)//"UniversalNumbering")
+
+    do ele=1,element_count(periodic_mesh)
+       call set(uid, ele_nodes(uid, ele), ele_val(uid_in,ele))
+    end do
+
+  end function periodic_universal_ID_field
+
   function halo_communicator_mesh(mesh) result(communicator)
     !!< Return the halo communicator for this mesh. Returns the halo
     !!< communicator off of the max level node halo.
@@ -158,6 +239,68 @@ contains
   
   end function halo_communicator_tensor
 
+  function node_owner_mesh(mesh, node_number) result(owner)
+  !!< Return number of processor that owns the supplied node in the
+  !given mesh
+
+    type(mesh_type), intent(in) :: mesh
+    integer, intent(in) :: node_number
+
+    integer :: nhalos
+    integer :: owner
+
+    assert(node_number > 0)
+    assert(node_number <= ele_count(mesh))
+
+    nhalos = halo_count(mesh)
+
+    if(nhalos == 0) then
+      owner=getprocno()
+    else
+      owner = halo_node_owner(mesh%halos(nhalos), node_number)
+    end if
+
+  end function node_owner_mesh
+
+  function node_owner_scalar(s_field, node_number) result(owner)
+    !!< Return the processor that owns the supplied node in the mesh of the given scalar
+    !!< field 
+    
+    type(scalar_field), intent(in) :: s_field
+    integer, intent(in) :: node_number
+
+    integer :: owner
+
+    owner = node_owner(s_field%mesh, node_number)
+
+  end function node_owner_scalar
+
+  function node_owner_vector(v_field, node_number) result(owner)
+    !!< Return the processor that owns the supplied node in the mesh of the given vector
+    !!< field 
+
+    type(vector_field), intent(in) :: v_field
+    integer, intent(in) :: node_number
+
+    integer :: owner
+
+    owner = node_owner(v_field%mesh, node_number)
+
+  end function node_owner_vector
+
+  function node_owner_tensor(t_field, node_number) result(owner)
+    !!< Return the processor that owns the supplied node in the mesh of the given tensor
+    !!< field 
+
+    type(tensor_field), intent(in) :: t_field
+    integer, intent(in) :: node_number
+    
+    integer :: owner
+
+    owner = node_owner(t_field%mesh, node_number)
+  
+  end function node_owner_tensor
+
   function node_owned_mesh(mesh, node_number) result(owned)
     !!< Return whether the supplied node in the given mesh is owned by this
     !!< process
@@ -199,7 +342,6 @@ contains
 
     type(vector_field), intent(in) :: v_field
     integer, intent(in) :: node_number
-
     logical :: owned
 
     owned = node_owned(v_field%mesh, node_number)
@@ -590,126 +732,6 @@ contains
     end if
 
   end subroutine zero_non_owned_vector
-
-  function owner_map(model_owner, new_mesh) result (new_owner)
-    !!< Given a P1 field whose values are the node owners, and a new Pn
-    !!< mesh, return a field whose values are the new node owners of the Pn
-    !!< mesh. 
-    type(scalar_field) :: new_owner
-    type(scalar_field), intent(in) :: model_owner
-    type(mesh_type), intent(inout) :: new_mesh
-
-    integer :: face, ele
-
-    call allocate(new_owner, new_mesh, trim(new_mesh%name)//"OwnerMap")
-    call zero(new_owner)
-
-    do face=1,face_count(new_mesh)
-       call create_owner_map_face(model_owner, new_owner, face)
-    end do
-    
-    do ele=1,element_count(new_mesh)
-       call create_owner_map_ele(model_owner, new_owner, ele)
-    end do
-
-  contains
-    
-    subroutine create_owner_map_face(model_owner, new_owner, face)
-      type(scalar_field), intent(in) :: model_owner
-      type(scalar_field), intent(inout) :: new_owner
-      ! Global face number.
-      integer, intent(in) :: face
-
-      type(element_type), pointer :: model_shape, new_shape
-      real, dimension(face_loc(new_owner, face)) :: new_node_owner
-      real, dimension(face_loc(model_owner, face)) :: model_node_owner
-      real :: face_owner
-
-      new_node_owner=face_val(new_owner, face)
-
-      ! Quick bit of premature optimisation.
-      if (all(new_node_owner/=0)) return
-
-      model_shape=>face_shape(model_owner, face)
-      new_shape=>face_shape(new_owner, face)
-      model_node_owner=face_val(model_owner, face)
-      
-      ! The vertices all belong to the owners of the 
-      ! corresponding vertices in the model.
-      new_node_owner(local_vertices(new_shape))=model_node_owner
-      
-      ! In 3D the face elements have edges which have to be dealt with
-      ! separately. 
-      if (mesh_dim(model_owner)>2) then
-         call create_owner_map_edge(new_node_owner, &
-              & new_shape)
-      end if
-      
-      ! Any remaining nodes are interior to the face and 
-      ! belong to the face_owner element owner.
-      
-      face_owner=minval(model_node_owner)
-
-      where(new_node_owner==0)
-         new_node_owner=face_owner
-      end where
-
-      call set(new_owner, ele_nodes(new_owner, ele), new_node_owner)
-
-    end subroutine create_owner_map_face
-
-    subroutine create_owner_map_edge(new_node_owner, &
-              & new_shape)
-      ! Numbering on the edge.
-      real, dimension(:), intent(inout) :: new_node_owner
-      type(element_type), intent(in) :: new_shape
-
-      ! Local edge number.
-      integer :: edge
-      real :: edge_owner
-
-      ! Interval elements always have degree+1 nodes.
-      integer, dimension(new_shape%degree+1) :: edge_numbering
-
-      do edge=1,new_shape%numbering%boundaries
-         edge_numbering=boundary_numbering(new_shape, edge)
-         
-         edge_owner=min(new_node_owner(edge_numbering(1)), &
-              new_node_owner(edge_numbering(size(edge_numbering))))
-
-         new_node_owner(edge_numbering(2:size(edge_numbering)-1))&
-              &=edge_owner 
-
-      end do
-            
-    end subroutine create_owner_map_edge
-
-    subroutine create_owner_map_ele(model_owner, new_owner, ele)
-      ! Any remaining nodes are interior to elements and belong to the
-      ! element owner.
-      type(scalar_field), intent(in) :: model_owner
-      type(scalar_field), intent(inout) :: new_owner
-      integer, intent(in) :: ele
-
-      real, dimension(ele_loc(new_owner, ele)) :: new_node_owner
-      real :: element_owner
-
-      new_node_owner=ele_val(new_owner, ele)
-
-      ! Quick bit of premature optimisation.
-      if (all(new_node_owner/=0)) return
-
-      element_owner=minval(ele_val(model_owner,ele))
-
-      where(new_node_owner==0)
-         new_node_owner=element_owner
-      end where
-
-      call set(new_owner, ele_nodes(new_owner, ele), new_node_owner)
-
-    end subroutine create_owner_map_ele
-
-  end function owner_map
   
   pure function nowned_nodes_mesh(mesh) result(nodes)
     type(mesh_type), intent(in) :: mesh

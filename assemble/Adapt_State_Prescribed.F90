@@ -32,6 +32,7 @@ module adapt_state_prescribed_module
   use embed_python
   use field_options
   use fields
+  use fields_halos
   use global_parameters, only : OPTION_PATH_LEN
   use interpolation_manager
   use node_boundary
@@ -133,6 +134,7 @@ contains
     type(mesh_type) :: lnew_positions_mesh
     type(mesh_type), pointer :: old_linear_mesh
     type(vector_field) :: old_positions, lnew_positions
+    type(scalar_field), target :: canonical_numbering
   
     ewrite(1, *) "In adapt_state_prescribed_internal"
     
@@ -200,7 +202,22 @@ contains
     do i = 1, size(states)
       call deallocate(states(i))
     end do
+
+    ! Insert canonical numbering, then ensure that all uid pointers are
+    !  correct.
+    assert(.not.associated(lnew_positions%mesh%uid))
+    canonical_numbering=universal_number_field(lnew_positions%mesh)
+    canonical_numbering%mesh%uid=>canonical_numbering
+    call order_elements(canonical_numbering)
+    call insert(states, canonical_numbering, name="CanonicalNumbering")
+    ! order_elements mucks with the mesh, so we need a new copy of the
+    !  mesh descriptor.
+    lnew_positions%mesh=canonical_numbering%mesh
+    call deallocate(canonical_numbering)
     
+    ! The previous pointer to canonical numbering is unsafe, so fix it.
+    lnew_positions%mesh%uid=>extract_scalar_field(states(1), "CanonicalNumbering")      
+
     ! Insert the new mesh field and linear mesh into all states
     call insert(states, lnew_positions%mesh, name = lnew_positions%mesh%name)
     call insert(states, lnew_positions, name = lnew_positions%name)

@@ -185,6 +185,40 @@ This performs a complete, direct solve of the equation and should only be used i
       <attribute name="name">
         <value>lu</value>
       </attribute>
+      <choice>
+        <element name="factorization_package">
+          <a:documentation>Package to use for the factorization - petsc.</a:documentation>
+          <attribute name="name">
+            <value>petsc</value>
+          </attribute>
+          <empty/>
+        </element>
+        <element name="factorization_package">
+          <a:documentation>Package to use for the factorization - umfpack.
+
+Useful for systems with a near zero pivot (if installed on system).</a:documentation>
+          <attribute name="name">
+            <value>umfpack</value>
+          </attribute>
+          <empty/>
+        </element>
+        <element name="factorization_package">
+          <a:documentation>Package to use for the factorization - mumps.
+
+Useful for parallel direct solves (if installed on system).</a:documentation>
+          <attribute name="name">
+            <value>mumps</value>
+          </attribute>
+          <empty/>
+        </element>
+        <element name="factorization_package">
+          <a:documentation>Package to use for the factorization - any valid package.</a:documentation>
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+          <empty/>
+        </element>
+      </choice>
     </element>
   </define>
   <define name="pcmg_options">

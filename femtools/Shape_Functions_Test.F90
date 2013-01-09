@@ -59,7 +59,7 @@ contains
 
     integral=0.0
 
-    do i=1, element%loc
+    do i=1, element%ndof
 
        tmpval=integrand(local_coords(i,element))       
        
@@ -90,7 +90,7 @@ contains
 
     integral=0.0
 
-    do i=1, element%loc
+    do i=1, element%ndof
        
        tmpval=integrand(local_coords(i,element))
 
@@ -124,7 +124,7 @@ contains
 
     integral=0.0
 
-    do i=1, element%loc
+    do i=1, element%ndof
        
        tmpval=integrand(local_coords(i,element))
 
@@ -167,7 +167,7 @@ contains
 
     integral=0.0
 
-    do i=1, element%loc
+    do i=1, element%ndof
        
        tmpval=integrand(local_coords(i,element))
 
@@ -204,7 +204,7 @@ contains
     real :: cube_monic
     real, dimension(:), intent(in) :: coords
 
-    cube_monic=((1-coords(1))/2.0)**power
+    cube_monic=(1-coords(1))**power
 
   end function cube_monic
 

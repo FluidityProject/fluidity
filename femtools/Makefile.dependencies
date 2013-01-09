@@ -134,6 +134,12 @@ CV_Upwind_Values.o ../include/cv_upwind_values.mod: CV_Upwind_Values.F90 \
 C_Interfaces_Fortran.o ../include/c_interfaces.mod: C_Interfaces_Fortran.F90 \
    ../include/fdebug.h ../include/fldebug.mod
 
+../include/cell_numbering.mod: Cell_Numbering.o
+	@true
+
+Cell_Numbering.o ../include/cell_numbering.mod: Cell_Numbering.F90 \
+   ../include/data_structures.mod ../include/fdebug.h ../include/fldebug.mod
+
 ../include/checkpoint.mod: Checkpoint.o
 	@true
 
@@ -340,6 +346,17 @@ Embed_Python_Fortran.o ../include/embed_python.mod: Embed_Python_Fortran.F90 \
 EventCounter.o ../include/eventcounter.mod: EventCounter.F90 \
    ../include/fdebug.h ../include/fldebug.mod
 
+../include/exodusii_common.mod: Exodusii_Common.o
+	@true
+
+Exodusii_Common.o ../include/exodusii_common.mod: Exodusii_Common.F90
+
+../include/exodusii_f_interface.mod: Exodusii_F_Interface.o
+	@true
+
+Exodusii_F_Interface.o ../include/exodusii_f_interface.mod: \
+   Exodusii_F_Interface.F90
+
 ../include/fefields.mod: FEFields.o
 	@true
 
@@ -376,7 +393,7 @@ Field_derivatives.o ../include/field_derivatives.mod: Field_derivatives.F90 \
    ../include/elements.mod ../include/eventcounter.mod ../include/fdebug.h \
    ../include/fetools.mod ../include/fields.mod ../include/halos.mod \
    ../include/node_boundary.mod ../include/state_module.mod \
-   ../include/superconvergence.mod ../include/surfacelabels.mod \
+   ../include/surfacelabels.mod \
    ../include/transform_elements.mod ../include/vector_set.mod \
    ../include/vector_tools.mod ../include/vtk_interfaces.mod
 
@@ -650,7 +667,7 @@ Interpolation.o ../include/interpolation_module.mod: Interpolation.F90 \
    ../include/field_options.mod ../include/fields.mod ../include/futils.mod \
    ../include/meshdiagnostics.mod ../include/node_ownership.mod \
    ../include/sparse_tools.mod ../include/state_module.mod \
-   ../include/superconvergence.mod ../include/supermesh_construction.mod \
+   ../include/supermesh_construction.mod \
    ../include/transform_elements.mod
 
 ../include/intersection_finder_module.mod: Intersection_finder.o
@@ -722,7 +739,8 @@ MeshDiagnostics.o ../include/meshdiagnostics.mod: MeshDiagnostics.F90 \
 Mesh_Files.o ../include/mesh_files.mod: Mesh_Files.F90 ../include/elements.mod \
    ../include/fdebug.h ../include/fields.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/gmsh_common.mod \
-   ../include/read_gmsh.mod ../include/read_triangle.mod ../include/spud.mod \
+   ../include/read_exodusii.mod ../include/read_gmsh.mod \
+   ../include/read_triangle.mod ../include/spud.mod \
    ../include/state_module.mod ../include/write_gmsh.mod \
    ../include/write_triangle.mod
 
@@ -903,6 +921,16 @@ Quadrature.o ../include/quadrature.mod: Quadrature.F90 ../include/fdebug.h \
 Quadrature_Test.o ../include/quadrature_test.mod: Quadrature_Test.F90 \
    ../include/quadrature.mod
 
+../include/read_exodusii.mod: Read_Exodusii.o
+	@true
+
+Read_Exodusii.o ../include/read_exodusii.mod: Read_Exodusii.F90 \
+   ../include/elements.mod ../include/exodusii_common.mod \
+   ../include/exodusii_f_interface.mod ../include/fdebug.h \
+   ../include/fields.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/spud.mod \
+   ../include/state_module.mod ../include/vtk_interfaces.mod
+
 ../include/read_gmsh.mod: Read_GMSH.o
 	@true
 
@@ -947,7 +975,6 @@ Shape_Functions.o ../include/shape_functions.mod: Shape_Functions.F90 \
    ../include/element_numbering.mod ../include/elements.mod \
    ../include/fdebug.h ../include/fldebug.mod ../include/futils.mod \
    ../include/ieee_arithmetic.mod ../include/polynomials.mod \
-   ../include/superconvergence.mod
 
 ../include/shape_functions_test.mod: Shape_Functions_Test.o
 	@true
@@ -1073,12 +1100,6 @@ Streamfunction.o ../include/streamfunction.mod: Streamfunction.F90 \
    ../include/sparsity_patterns.mod ../include/sparsity_patterns_meshes.mod \
    ../include/spud.mod ../include/state_module.mod \
    ../include/transform_elements.mod ../include/vector_tools.mod
-
-../include/superconvergence.mod: Superconvergence.o
-	@true
-
-Superconvergence.o ../include/superconvergence.mod: Superconvergence.F90 \
-   ../include/elements.mod ../include/fdebug.h ../include/vector_tools.mod
 
 ../include/supermesh_construction.mod: Supermesh.o
 	@true

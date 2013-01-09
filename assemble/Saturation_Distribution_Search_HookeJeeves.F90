@@ -526,7 +526,7 @@ module saturation_distribution_search_hookejeeves
     real, intent(in) :: x_min, x_max, y_min, y_max, z_min, z_max
     real :: along_step, borehole_x
     real :: zone_along_min, err
-    real, dimension(coordinates%dim, coordinates%mesh%shape%loc) :: coords
+    real, dimension(coordinates%dim, coordinates%mesh%shape%ndof) :: coords
     real, dimension(coordinates%dim) :: coords_nodal
     integer :: ele, node, in_zone_counter
     integer :: i, n, coord_along, coord_perp
@@ -581,7 +581,7 @@ module saturation_distribution_search_hookejeeves
             if ((coords(1,1).gt.borehole_x-widths(i)/2-err).and.(coords(1,1).lt.borehole_x+widths(i)/2+err).and.&
                   (coords(coord_along,1).gt.zone_along_min-err).and.(coords(coord_along,1).lt.zone_along_min+along_step+err).and.&
                   (coords(coord_perp,1).lt.point(i)+err)) then
-              do node=2,coordinates%mesh%shape%loc
+              do node=2,coordinates%mesh%shape%ndof
                 if ((coords(1,node).gt.borehole_x-widths(i)/2-err).and.(coords(1,node).lt.borehole_x+widths(i)/2+err).and.&
                      (coords(coord_along,node).gt.zone_along_min-err).and.(coords(coord_along,node).lt.zone_along_min+along_step+err).and.&
                      (coords(coord_perp,node).lt.point(i)+err)) then
@@ -589,7 +589,7 @@ module saturation_distribution_search_hookejeeves
                 end if
               end do
               ! If they're ALL in the zone
-              if (in_zone_counter==coordinates%mesh%shape%loc-1) then
+              if (in_zone_counter==coordinates%mesh%shape%ndof-1) then
                  in_zone=.true.
               endif            
             end if
@@ -597,14 +597,14 @@ module saturation_distribution_search_hookejeeves
             ewrite(3,*) 'in 2d'
             if ((coords(coord_along,1).gt.zone_along_min-err).and.(coords(coord_along,1).lt.zone_along_min+along_step+err).and.&
                   (coords(coord_perp,1).lt.point(i)+err)) then
-              do node=2,coordinates%mesh%shape%loc
+              do node=2,coordinates%mesh%shape%ndof
                 if ((coords(coord_along,node).gt.zone_along_min-err).and.(coords(coord_along,node).lt.zone_along_min+along_step+err).and.&
                      (coords(coord_perp,node).lt.point(i)+err)) then
                   in_zone_counter=in_zone_counter+1
                 end if
               end do
               ! If they're ALL in the zone
-              if (in_zone_counter==coordinates%mesh%shape%loc-1) then
+              if (in_zone_counter==coordinates%mesh%shape%ndof-1) then
                  in_zone=.true.
               endif            
             end if

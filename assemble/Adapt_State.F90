@@ -947,6 +947,9 @@ contains
     !! if these fields are initialised from_file (checkpointed).
     logical, optional, intent(in) :: initialise_fields
 
+    ! Temporary for canonical numbering field
+    type(scalar_field), target :: canonical_numbering
+
     character(len = FIELD_NAME_LEN) :: metric_name
     integer :: i, j, k, max_adapt_iteration
     integer :: zoltan_min_adapt_iterations, zoltan_max_adapt_iterations, zoltan_additional_adapt_iterations
@@ -1071,6 +1074,21 @@ contains
         call set(new_positions,old_positions)
       end if
 
+      ! Insert canonical numbering, then ensure that all uid pointers are
+      !  correct.
+      assert(.not.associated(new_positions%mesh%uid))
+      canonical_numbering=universal_number_field(new_positions%mesh)
+      canonical_numbering%mesh%uid=>canonical_numbering
+      call order_elements(canonical_numbering)
+      call insert(states, canonical_numbering, name="CanonicalNumbering")
+      ! order_elements mucks with the mesh, so we need a new copy of the
+      !  mesh descriptor.
+      new_positions%mesh=canonical_numbering%mesh
+      call deallocate(canonical_numbering)
+      
+      ! The previous pointer to canonical numbering is unsafe, so fix it.
+      new_positions%mesh%uid=>extract_scalar_field(states(1), "CanonicalNumbering")      
+
       ! Insert the new mesh field and linear mesh into all states
       call insert(states, new_positions%mesh, name = new_positions%mesh%name)
       call insert(states, new_positions, name = new_positions%name)
@@ -1129,6 +1147,7 @@ contains
       call allocate_and_insert_fields(states)
       ! Insert fields from reserve states
       call restore_reserved_fields(states)
+      
       ! Add on the boundary conditions again
       call populate_boundary_conditions(states)
       ! Set their values

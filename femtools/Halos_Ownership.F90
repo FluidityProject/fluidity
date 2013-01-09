@@ -71,7 +71,7 @@ contains
     assert(trailing_receives_consistent(halo))
     nowned_nodes = halo_nowned_nodes(halo)
     
-    allocate(halo%owners(halo_all_receives_count(halo)))
+    allocate(halo%owners(max_halo_node(halo)-halo%nowned_nodes))
     do i = 1, halo_proc_count(halo)
       assert(all(halo_receives(halo, i) >= nowned_nodes))
       assert(all(halo_receives(halo, i) <= nowned_nodes + size(halo%owners)))

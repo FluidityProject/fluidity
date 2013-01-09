@@ -84,7 +84,7 @@ module adaptive_interpolation_module
       do p=1,max_ai_degree
         shape_fns(p) = make_element_shape(vertices=ele_loc(new_positions, 1), dim=dim, degree=p, quad=supermesh_quad)
       end do
-      allocate(element_value(shape_fns(max_ai_degree)%loc))
+      allocate(element_value(shape_fns(max_ai_degree)%ndof))
 
       domain_volume = 0.0
       do ele_A=1,ele_count(old_positions)
@@ -150,9 +150,9 @@ module adaptive_interpolation_module
       real :: vol_B, vols_C
       real, dimension(ele_loc(new_positions, ele_B), ele_loc(new_positions, ele_B)) :: inversion_matrix_A
 
-      real, dimension(shape_B%loc, shape_B%loc) :: little_mass_matrix
-      real, dimension(shape_B%loc, ele_loc(old_field, 1)) :: little_mixed_mass_matrix, little_mixed_mass_matrix_int
-      real, dimension(shape_B%loc) :: little_rhs
+      real, dimension(shape_B%ndof, shape_B%ndof) :: little_mass_matrix
+      real, dimension(shape_B%ndof, ele_loc(old_field, 1)) :: little_mixed_mass_matrix, little_mixed_mass_matrix_int
+      real, dimension(shape_B%ndof) :: little_rhs
 
       real, dimension(shape_B%ngi) :: detwei_B
       real, dimension(ele_ngi(supermesh, 1)) :: detwei_C
@@ -161,7 +161,7 @@ module adaptive_interpolation_module
 
       real, dimension(new_positions%dim, ele_ngi(supermesh, 1)) :: intersection_val_at_quad
       real, dimension(new_positions%dim+1, ele_ngi(supermesh, 1)) :: pos_at_quad_A, pos_at_quad_B
-      real, dimension(shape_B%loc, ele_ngi(supermesh, 1)) :: basis_at_quad_B
+      real, dimension(shape_B%ndof, ele_ngi(supermesh, 1)) :: basis_at_quad_B
       real, dimension(ele_loc(old_field, 1), ele_ngi(supermesh, 1)) :: basis_at_quad_A
 
       integer :: loc
@@ -201,7 +201,7 @@ module adaptive_interpolation_module
         elseif (shape_B%degree==1) then
           basis_at_quad_B = pos_at_quad_B 
         else
-          do loc=1,shape_B%loc
+          do loc=1,shape_B%ndof
             do j=1,ele_ngi(supermesh, ele_C)
               basis_at_quad_B(loc, j) = eval_shape(shape_B, loc, pos_at_quad_B(:, j))
             end do
@@ -223,7 +223,7 @@ module adaptive_interpolation_module
         little_mixed_mass_matrix = 0.0
         little_mixed_mass_matrix_int = 0.0
         do j=1,ele_ngi(supermesh, ele_C)
-          forall (k=1:shape_B%loc,l=1:ele_loc(old_field, ele_A))
+          forall (k=1:shape_B%ndof,l=1:ele_loc(old_field, ele_A))
             little_mixed_mass_matrix_int(k, l) = basis_at_quad_B(k, j) * basis_at_quad_A(l, j)
           end forall
           little_mixed_mass_matrix = little_mixed_mass_matrix + little_mixed_mass_matrix_int * detwei_C(j)
@@ -238,7 +238,7 @@ module adaptive_interpolation_module
     else
       stat = 0
       call solve(little_mass_matrix, little_rhs)
-      element_value(1:shape_B%loc) = little_rhs
+      element_value(1:shape_B%ndof) = little_rhs
     end if
 
     end subroutine galerkin_projection_ele

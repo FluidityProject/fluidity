@@ -139,7 +139,7 @@ contains
 
     element=mesh%shape
 
-    linear_element=make_element_shape(element%numbering%vertices, 2, degree=1, &
+    linear_element=make_element_shape(element%cell%entity_counts(0), 2, degree=1, &
          quad=element%quadrature)
     
     triangles=tr(element%degree) + tr(element%degree-1)
@@ -151,7 +151,7 @@ contains
     e=0
     do ele=1, element_count(mesh)
        ! Point up triangles.
-       n=element%loc*(ele-1)
+       n=element%ndof*(ele-1)
        do row=1, element%degree
           rowlen=element%degree+2-row
           do column=1,element%degree+1-row
@@ -164,7 +164,7 @@ contains
        end do
        
        ! Point down triangles.
-       n=element%loc*(ele-1)+1
+       n=element%ndof*(ele-1)+1
        do row=1, element%degree-1
           rowlen=element%degree+2-row
           do column=1,element%degree-row
@@ -260,14 +260,14 @@ contains
     type(vector_field) :: linear_position, one_element_linear, one_element
     type(element_type) :: linear_element
 
-    real,dimension(2,element%numbering%vertices) :: vertices, lvertices
+    real,dimension(2,element%cell%entity_counts(0)) :: vertices, lvertices
     real,dimension(2) :: node_loc
     real :: scale
     integer :: i, d
 
-    vertices=regular_figure(element%numbering%vertices, 1.0)
+    vertices=regular_figure(element%cell%entity_counts(0), 1.0)
 
-    linear_element=make_element_shape(element%numbering%vertices, 2, degree=1, &
+    linear_element=make_element_shape(element%cell%entity_counts(0), 2, degree=1, &
          quad=element%quadrature)
 
     linear_mesh=construct_mesh(linear_element, element, "LinearMesh")
@@ -378,13 +378,13 @@ contains
 
     integer :: i
 
-    call allocate(mesh, nodes=mesh_element%loc*layout_element%loc, &
-         elements=layout_element%loc, shape=mesh_element, name=name)
+    call allocate(mesh, nodes=mesh_element%ndof*layout_element%ndof, &
+         elements=layout_element%ndof, shape=mesh_element, name=name)
     ! Definitely a DG mesh
     mesh%continuity=-1
 
     ! Usual dg numbering.
-    mesh%ndglno=(/(i, i=1,mesh_element%loc*layout_element%loc)/)
+    mesh%ndglno=(/(i, i=1,mesh_element%ndof*layout_element%ndof)/)
 
   end function construct_mesh
 
@@ -395,11 +395,11 @@ contains
 
     integer :: i
 
-    call allocate(mesh, nodes=element%loc, elements=1, shape&
+    call allocate(mesh, nodes=element%ndof, elements=1, shape&
          &=element, name=name)
     
     ! Usual dg numbering.
-    mesh%ndglno=(/(i, i=1,element%loc)/)
+    mesh%ndglno=(/(i, i=1,element%ndof)/)
 
   end function construct_one_element_mesh
 

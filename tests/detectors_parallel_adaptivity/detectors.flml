@@ -1,255 +1,237 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8" ?>
 <fluidity_options>
-  <simulation_name>
-    <string_value lines="1">detectors</string_value>
-  </simulation_name>
-  <problem_type>
-    <string_value lines="1">fluids</string_value>
-  </problem_type>
-  <geometry>
-    <dimension>
-      <integer_value rank="0">2</integer_value>
-    </dimension>
-    <mesh name="CoordinateMesh">
-      <from_file file_name="square">
-        <format name="triangle"/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-      </from_file>
-    </mesh>
-    <quadrature>
-      <degree>
-        <integer_value rank="0">6</integer_value>
-      </degree>
-    </quadrature>
-  </geometry>
-  <io>
-    <dump_format>
-      <string_value>vtk</string_value>
-    </dump_format>
-    <dump_period>
-      <constant>
-        <real_value rank="0">2.0</real_value>
-      </constant>
-    </dump_period>
-    <output_mesh name="CoordinateMesh"/>
-    <stat/>
-    <detectors>
-      <static_detector name="D1">
-        <location>
-          <real_value shape="2" dim1="dim" rank="1">-0.5 0.0</real_value>
-        </location>
-      </static_detector>
-      <static_detector name="D2">
-        <location>
-          <real_value shape="2" dim1="dim" rank="1">0.5 0.0</real_value>
-        </location>
-      </static_detector>
-      <static_detector name="D3">
-        <location>
-          <real_value shape="2" dim1="dim" rank="1">0.0 -0.5</real_value>
-        </location>
-      </static_detector>
-      <static_detector name="D4">
-        <location>
-          <real_value shape="2" dim1="dim" rank="1">0.0 0.5</real_value>
-        </location>
-      </static_detector>
-      <detector_array name="Steve">
-        <number_of_detectors>
-          <integer_value rank="0">100</integer_value>
-        </number_of_detectors>
-        <lagrangian/>
-        <python>
-          <string_value lines="20" type="code" language="python">def val(t):
-  from numpy import arange,zeros,reshape,concatenate
-  x = 0.25*arange(0,100.)/100.
-  y = zeros(100)
-  return reshape(concatenate((x,y)),(2,100)).T</string_value>
-        </python>
-      </detector_array>
-      <fail_outside_domain/>
-      <binary_output/>
-      <lagrangian_timestepping>
-        <subcycles>
-          <integer_value rank="0">1</integer_value>
-        </subcycles>
-        <search_tolerance>
-          <real_value rank="0">1.0e-10</real_value>
-        </search_tolerance>
-        <rk4_guided_search/>
-      </lagrangian_timestepping>
-    </detectors>
-  </io>
-  <timestepping>
-    <current_time>
-      <real_value rank="0">0.0</real_value>
-    </current_time>
-    <timestep>
-      <real_value rank="0">0.1</real_value>
-    </timestep>
-    <finish_time>
-      <real_value rank="0">8.0</real_value>
-    </finish_time>
-  </timestepping>
-  <physical_parameters/>
-  <material_phase name="Water">
-    <vector_field name="Velocity" rank="1">
-      <prescribed>
-        <mesh name="CoordinateMesh"/>
-        <value name="WholeMesh">
-          <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
-  x = X[0]
-  y = X[1]
-  return [-(y),x]</string_value>
-          </python>
-        </value>
-        <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
+    <simulation_name>
+        <string_value lines="1">detectors</string_value>
+    </simulation_name>
+    <problem_type>
+        <string_value lines="1">fluids</string_value>
+    </problem_type>
+    <geometry>
+        <dimension>
+            <integer_value rank="0">2</integer_value>
+        </dimension>
+        <mesh name="CoordinateMesh">
+            <from_file file_name="square">
+                <format name="triangle"></format>
+                <stat>
+                    <include_in_stat></include_in_stat>
+                </stat>
+            </from_file>
+        </mesh>
+        <quadrature>
+            <degree>
+                <integer_value rank="0">6</integer_value>
+            </degree>
+        </quadrature>
+    </geometry>
+    <io>
+        <dump_format>
+            <string_value>vtk</string_value>
+        </dump_format>
+        <dump_period>
+            <constant>
+                <real_value rank="0">2</real_value>
+            </constant>
+        </dump_period>
+        <output_mesh name="CoordinateMesh"></output_mesh>
+        <stat></stat>
         <detectors>
-          <include_in_detectors/>
+            <static_detector name="D1">
+                <location>
+                    <real_value rank="1" shape="2" dim1="dim">-0.5 0</real_value>
+                </location>
+            </static_detector>
+            <static_detector name="D2">
+                <location>
+                    <real_value rank="1" shape="2" dim1="dim">0.5 0</real_value>
+                </location>
+            </static_detector>
+            <static_detector name="D3">
+                <location>
+                    <real_value rank="1" shape="2" dim1="dim">0 -0.5</real_value>
+                </location>
+            </static_detector>
+            <static_detector name="D4">
+                <location>
+                    <real_value rank="1" shape="2" dim1="dim">0 0.5</real_value>
+                </location>
+            </static_detector>
+            <detector_array name="Steve">
+                <number_of_detectors>
+                    <integer_value rank="0">100</integer_value>
+                </number_of_detectors>
+                <lagrangian></lagrangian>
+                <python>
+                    <string_value lines="20" type="code" language="python">def val(t):&#x0A;  from numpy import arange,zeros,reshape,concatenate&#x0A;  x = 0.25*arange(0,100.)/100.&#x0A;  y = zeros(100)&#x0A;  return reshape(concatenate((x,y)),(2,100)).T</string_value>
+                </python>
+            </detector_array>
+            <fail_outside_domain></fail_outside_domain>
+            <binary_output></binary_output>
+            <lagrangian_timestepping>
+                <subcycles>
+                    <integer_value rank="0">1</integer_value>
+                </subcycles>
+                <search_tolerance>
+                    <real_value rank="0">1e-10</real_value>
+                </search_tolerance>
+                <rk4_guided_search></rk4_guided_search>
+            </lagrangian_timestepping>
         </detectors>
-        <consistent_interpolation/>
-      </prescribed>
-    </vector_field>
-    <scalar_field name="Tracer" rank="0">
-      <prescribed>
-        <mesh name="CoordinateMesh"/>
-        <value name="WholeMesh">
-          <python>
-            <string_value lines="20" type="code" language="python">def val(x, t):
-	return x[0]</string_value>
-          </python>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <consistent_interpolation/>
-      </prescribed>
-    </scalar_field>
-    <scalar_field name="AdaptivityControl" rank="0">
-      <prescribed>
-        <mesh name="CoordinateMesh"/>
-        <value name="WholeMesh">
-          <python>
-            <string_value lines="20" type="code" language="python">def val(x, t):
-  if t &lt; 4.0:
-    if x[0] &lt; 0.0:
-      return 0.0
-    else:
-      return 1.0
-  else:
-    if x[1] &lt; 0.0:
-      return 0.0
-    else:
-      return 1.0</string_value>
-          </python>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-        <adaptivity_options>
-          <absolute_measure>
-            <scalar_field name="InterpolationErrorBound" rank="0">
-              <prescribed>
+    </io>
+    <timestepping>
+        <current_time>
+            <real_value rank="0">0</real_value>
+        </current_time>
+        <timestep>
+            <real_value rank="0">0.1</real_value>
+        </timestep>
+        <finish_time>
+            <real_value rank="0">8</real_value>
+        </finish_time>
+    </timestepping>
+    <physical_parameters></physical_parameters>
+    <material_phase name="Water">
+        <vector_field name="Velocity" rank="1">
+            <prescribed>
+                <mesh name="CoordinateMesh"></mesh>
                 <value name="WholeMesh">
-                  <constant>
-                    <real_value rank="0">1.0</real_value>
-                  </constant>
+                    <python>
+                        <string_value lines="20" type="code" language="python">def val(X,t):&#x0A;  x = X[0]&#x0A;  y = X[1]&#x0A;  return [-(y),x]</string_value>
+                    </python>
                 </value>
-                <output/>
-                <stat/>
+                <output></output>
+                <stat>
+                    <include_in_stat></include_in_stat>
+                </stat>
                 <detectors>
-                  <exclude_from_detectors/>
+                    <include_in_detectors></include_in_detectors>
                 </detectors>
-              </prescribed>
-            </scalar_field>
-          </absolute_measure>
-        </adaptivity_options>
-      </prescribed>
-    </scalar_field>
-    <scalar_field name="NodeOwner" rank="0">
-      <diagnostic>
-        <algorithm legacy="true" name="Internal" material_phase_support="multiple"/>
-        <mesh name="CoordinateMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="MaxEdgeWeightOnNodes" rank="0">
-      <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="CoordinateMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <consistent_interpolation/>
-      </diagnostic>
-    </scalar_field>
-  </material_phase>
-  <mesh_adaptivity>
-    <hr_adaptivity>
-      <period>
-        <real_value rank="0">2.0</real_value>
-      </period>
-      <minimum_number_of_nodes>
-        <integer_value rank="0">1000</integer_value>
-      </minimum_number_of_nodes>
-      <maximum_number_of_nodes>
-        <integer_value rank="0">1000</integer_value>
-      </maximum_number_of_nodes>
-      <enable_gradation/>
-      <tensor_field name="MinimumEdgeLengths">
-        <anisotropic_symmetric>
-          <constant>
-            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">1.0e-6 0.0 0.0 1.0e-6</real_value>
-          </constant>
-        </anisotropic_symmetric>
-      </tensor_field>
-      <tensor_field name="MaximumEdgeLengths">
-        <anisotropic_symmetric>
-          <constant>
-            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">1.0e6 0.0 0.0 1.0e6</real_value>
-          </constant>
-        </anisotropic_symmetric>
-      </tensor_field>
-      <adapt_at_first_timestep>
-        <number_of_adapts>
-          <integer_value rank="0">2</integer_value>
-        </number_of_adapts>
-      </adapt_at_first_timestep>
-      <zoltan_options>
-        <partitioner>
-          <metis/>
-        </partitioner>
-        <zoltan_debug/>
-      </zoltan_options>
-      <debug/>
-    </hr_adaptivity>
-  </mesh_adaptivity>
+                <consistent_interpolation></consistent_interpolation>
+            </prescribed>
+        </vector_field>
+        <scalar_field name="Tracer" rank="0">
+            <prescribed>
+                <mesh name="CoordinateMesh"></mesh>
+                <value name="WholeMesh">
+                    <python>
+                        <string_value lines="20" type="code" language="python">def val(x, t):&#x0A;&#x09;return x[0]</string_value>
+                    </python>
+                </value>
+                <output></output>
+                <stat></stat>
+                <detectors>
+                    <include_in_detectors></include_in_detectors>
+                </detectors>
+                <consistent_interpolation></consistent_interpolation>
+            </prescribed>
+        </scalar_field>
+        <scalar_field name="AdaptivityControl" rank="0">
+            <prescribed>
+                <mesh name="CoordinateMesh"></mesh>
+                <value name="WholeMesh">
+                    <python>
+                        <string_value lines="20" type="code" language="python">def val(x, t):&#x0A;  if t &lt; 4.0:&#x0A;    if x[0] &lt; 0.0:&#x0A;      return 0.0&#x0A;    else:&#x0A;      return 1.0&#x0A;  else:&#x0A;    if x[1] &lt; 0.0:&#x0A;      return 0.0&#x0A;    else:&#x0A;      return 1.0</string_value>
+                    </python>
+                </value>
+                <output></output>
+                <stat></stat>
+                <detectors>
+                    <exclude_from_detectors></exclude_from_detectors>
+                </detectors>
+                <adaptivity_options>
+                    <absolute_measure>
+                        <scalar_field name="InterpolationErrorBound" rank="0">
+                            <prescribed>
+                                <value name="WholeMesh">
+                                    <constant>
+                                        <real_value rank="0">1</real_value>
+                                    </constant>
+                                </value>
+                                <output></output>
+                                <stat></stat>
+                                <detectors>
+                                    <exclude_from_detectors></exclude_from_detectors>
+                                </detectors>
+                            </prescribed>
+                        </scalar_field>
+                    </absolute_measure>
+                </adaptivity_options>
+            </prescribed>
+        </scalar_field>
+        <scalar_field name="NodeOwner" rank="0">
+            <diagnostic>
+                <algorithm name="Internal" legacy="true" material_phase_support="multiple"></algorithm>
+                <mesh name="CoordinateMesh"></mesh>
+                <output></output>
+                <stat></stat>
+                <convergence>
+                    <include_in_convergence></include_in_convergence>
+                </convergence>
+                <detectors>
+                    <include_in_detectors></include_in_detectors>
+                </detectors>
+                <steady_state>
+                    <include_in_steady_state></include_in_steady_state>
+                </steady_state>
+            </diagnostic>
+        </scalar_field>
+        <scalar_field name="MaxEdgeWeightOnNodes" rank="0">
+            <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"></algorithm>
+                <mesh name="CoordinateMesh"></mesh>
+                <output></output>
+                <stat></stat>
+                <convergence>
+                    <include_in_convergence></include_in_convergence>
+                </convergence>
+                <detectors>
+                    <include_in_detectors></include_in_detectors>
+                </detectors>
+                <steady_state>
+                    <include_in_steady_state></include_in_steady_state>
+                </steady_state>
+                <consistent_interpolation></consistent_interpolation>
+            </diagnostic>
+        </scalar_field>
+    </material_phase>
+    <mesh_adaptivity>
+        <hr_adaptivity>
+            <period>
+                <real_value rank="0">2</real_value>
+            </period>
+            <minimum_number_of_nodes>
+                <integer_value rank="0">1000</integer_value>
+            </minimum_number_of_nodes>
+            <maximum_number_of_nodes>
+                <integer_value rank="0">1000</integer_value>
+            </maximum_number_of_nodes>
+            <enable_gradation></enable_gradation>
+            <tensor_field name="MinimumEdgeLengths">
+                <anisotropic_symmetric>
+                    <constant>
+                        <real_value rank="2" shape="2 2" symmetric="true" dim2="dim" dim1="dim">1e-06 0 0 1e-06</real_value>
+                    </constant>
+                </anisotropic_symmetric>
+            </tensor_field>
+            <tensor_field name="MaximumEdgeLengths">
+                <anisotropic_symmetric>
+                    <constant>
+                        <real_value rank="2" shape="2 2" symmetric="true" dim2="dim" dim1="dim">1000000 0 0 1000000</real_value>
+                    </constant>
+                </anisotropic_symmetric>
+            </tensor_field>
+            <adapt_at_first_timestep>
+                <number_of_adapts>
+                    <integer_value rank="0">2</integer_value>
+                </number_of_adapts>
+            </adapt_at_first_timestep>
+            <zoltan_options>
+                <partitioner>
+                    <metis></metis>
+                </partitioner>
+                <zoltan_debug></zoltan_debug>
+            </zoltan_options>
+            <debug></debug>
+        </hr_adaptivity>
+    </mesh_adaptivity>
 </fluidity_options>

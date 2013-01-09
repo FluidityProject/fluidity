@@ -125,7 +125,7 @@ contains
 
       x => extract_vector_field(state, "Coordinate")
       
-      allocate(x_ele(x%dim, x%mesh%shape%loc))
+      allocate(x_ele(x%dim, x%mesh%shape%ndof))
 
       call get_option("/geometry/quadrature/controlvolume_surface_degree", quaddegree, default=1)
 
@@ -145,14 +145,14 @@ contains
       call get_entire_boundary_condition(p, (/"weakdirichlet", &
                                               "dirichlet    "/), pressure_bc, pressure_bc_type)
       
-      allocate(x_ele_bdy(x%dim,x%mesh%faces%shape%loc), &
+      allocate(x_ele_bdy(x%dim,x%mesh%faces%shape%ndof), &
                detwei_bdy(x_cvbdyshape%ngi), &
                normal_bdy(x%dim, x_cvbdyshape%ngi), &
-               pressure_bc_val(pressure_bc%mesh%shape%loc))
+               pressure_bc_val(pressure_bc%mesh%shape%ndof))
       
-      allocate(u_nodes_bdy(u%mesh%faces%shape%loc))
+      allocate(u_nodes_bdy(u%mesh%faces%shape%ndof))
             
-      allocate(ct_mat_local_bdy(x%dim, p%mesh%faces%shape%loc, u%mesh%faces%shape%loc))
+      allocate(ct_mat_local_bdy(x%dim, p%mesh%faces%shape%ndof, u%mesh%faces%shape%ndof))
 
       ! Check if we need to multiply through by the non-linear volume fraction
       if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
@@ -205,7 +205,7 @@ contains
         ct_mat_local_bdy = 0.0
         
         ! calculate the ct local matrix
-        surface_nodal_loop_i: do iloc = 1, p%mesh%faces%shape%loc
+        surface_nodal_loop_i: do iloc = 1, p%mesh%faces%shape%ndof
   
            surface_face_loop: do face = 1, cvfaces%sfaces
           
@@ -215,7 +215,7 @@ contains
   
                     ggi = (face-1)*cvfaces%shape%ngi + gi
                                         
-                    surface_nodal_loop_j: do jloc = 1, u%mesh%faces%shape%loc
+                    surface_nodal_loop_j: do jloc = 1, u%mesh%faces%shape%ndof
                        
                        surface_inner_dimension_loop: do dim = 1, size(normal_bdy,1)
 

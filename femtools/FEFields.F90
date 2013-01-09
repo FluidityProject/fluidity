@@ -77,7 +77,7 @@ contains
     dim        = cv_mass%mesh%shape%dim
     type       = cv_mass%mesh%shape%numbering%type
     family     = cv_mass%mesh%shape%numbering%family
-    loc        = cv_mass%mesh%shape%loc
+    loc        = cv_mass%mesh%shape%ndof
         
     ! The element type must be Lagrangian
     if (type /= ELEMENT_LAGRANGIAN) then
