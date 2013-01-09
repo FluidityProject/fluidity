@@ -255,9 +255,10 @@ module fsi_model
             ! Get mesh name:
             call get_option('/embedded_models/fsi_model/geometry/mesh['//int2str(i)//']/name', mesh_name)
 
-            ! Check if the current mesh has a prescribed movement by setting 'SolidPosition':
-            if (have_option(trim(fsi_path)//"SolidPosition/prescribed/mesh::"//trim(mesh_name)) .or. &
-                have_option(trim(fsi_path)//"SolidVelocity/prescribed/mesh::"//trim(mesh_name)) ) then
+            ! Check if the current mesh has a prescribed velocity/position/movement:
+            if (have_option(trim(fsi_path)//"SolidVelocity/prescribed/mesh::"//trim(mesh_name)) .or. &
+                have_option(trim(fsi_path)//"SolidPosition/prescribed/mesh::"//trim(mesh_name)) .or. &
+                have_option(trim(fsi_path)//"SolidMovement/prescribed/mesh::"//trim(mesh_name)) ) then
                 ! Move the mesh:
                 call fsi_move_solid_mesh(state, solid_states(i+1), mesh_name, solid_moved)
 
@@ -872,6 +873,7 @@ module fsi_model
       type(vector_field) :: solid_movement_mesh
 
       character(len=PYTHON_FUNC_LEN) :: func
+      character(len=OPTION_PATH_LEN) :: fsi_path="/embedded_models/fsi_model/one_way_coupling/vector_field::"
 
       ewrite(2,*) "inside move_solid_mesh"
 
@@ -883,10 +885,10 @@ module fsi_model
 
       ! 2nd get the python function for this solid mesh:
       ! Here we have to differentiate between the user using a prescribed 'SolidVelocity' and 'SolidPosition':
-      if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed")) then
-        call get_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed/mesh::'//trim(mesh_name)//'/python', func)
-      else if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed")) then
-        call get_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh::'//trim(mesh_name)//'/python', func)
+      if (have_option(trim(fsi_path)//'SolidPosition/prescribed')) then
+        call get_option(trim(fsi_path)//'SolidPosition/prescribed/mesh::'//trim(mesh_name)//'/python', func)
+      else if (have_option(trim(fsi_path)//'SolidVelocity/prescribed')) then
+        call get_option(trim(fsi_path)//'SolidVelocity/prescribed/mesh::'//trim(mesh_name)//'/python', func)
       end if
       ! 3rd Set the new coordinates from the python function:
       ! Here we have to differentiate between 'SolidVelocity' and 'SolidPosition' again:
@@ -894,19 +896,19 @@ module fsi_model
       ! This allows to easily set prescribed movement for different kinds of problems.
       ! Also, catch what was specified by the user to pass into the Python interface, either current_time or timestep (dt):
       
-      if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed/mesh::"//trim(mesh_name))) then
+      if (have_option(trim(fsi_path)//'SolidPosition/prescribed/mesh::'//trim(mesh_name))) then
         ! current_time or timestep (dt)?
-        if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed/mesh::"//trim(mesh_name)//"/time_variable_in_python/current_time")) then
+        if (have_option(trim(fsi_path)//'SolidPosition/prescribed/mesh::'//trim(mesh_name)//'/time_variable_in_python/current_time')) then
           call set_from_python_function(solid_movement_mesh, func, solid_position_mesh, current_time)
-        else if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed/mesh::"//trim(mesh_name)//"/time_variable_in_python/current_timestep")) then
+        else if (have_option(trim(fsi_path)//'SolidPosition/prescribed/mesh::'//trim(mesh_name)//'/time_variable_in_python/current_timestep')) then
           call set_from_python_function(solid_movement_mesh, func, solid_position_mesh, dt)
         else
           FLAbort('Neither current_time nor current_timestep was enabled in the schema. This must not happen')
         end if
-      else if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh::"//trim(mesh_name))) then
-        if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh::"//trim(mesh_name)//"/time_variable_in_python/current_time")) then
+      else if (have_option(trim(fsi_path)//'SolidVelocity/prescribed/mesh::'//trim(mesh_name))) then
+        if (have_option(trim(fsi_path)//'SolidVelocity/prescribed/mesh::'//trim(mesh_name)//'/time_variable_in_python/current_time')) then
           call set_from_python_function(solid_movement_mesh, func, solid_position_mesh, current_time)
-        else if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh::"//trim(mesh_name)//"/time_variable_in_python/current_timestep")) then
+        else if (have_option(trim(fsi_path)//'SolidVelocity/prescribed/mesh::'//trim(mesh_name)//'/time_variable_in_python/current_timestep')) then
           call set_from_python_function(solid_movement_mesh, func, solid_position_mesh, dt)
         else
           FLAbort('Neither current_time nor current_timestep was enabled in the schema. This must not happen')
@@ -924,18 +926,18 @@ module fsi_model
       ! Set fields, IFF the solid moved:
       if (solid_moved) then
         ! 4th Set the new coordinates of the solid:
-        if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed/mesh::"//trim(mesh_name))) then
+        if (have_option(trim(fsi_path)//'SolidPosition/prescribed/mesh::'//trim(mesh_name))) then
           call addto(solid_position_mesh, solid_movement_mesh)
-        else if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh::"//trim(mesh_name))) then
+        else if (have_option(trim(fsi_path)//'SolidVelocity/prescribed/mesh::'//trim(mesh_name))) then
           call addto(solid_position_mesh, solid_movement_mesh, dt) ! here solid_movement_mesh is actually the velocity
         end if
         ! 5th Set the solid velocity field of this solid on solid mesh:
-        solid_velocity_mesh => extract_vector_field(solid_state, trim(mesh_name)//"SolidVelocity")
+        solid_velocity_mesh => extract_vector_field(solid_state, trim(mesh_name)//'SolidVelocity')
         call zero(solid_velocity_mesh)
         ! And set it:
-        if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed/mesh::"//trim(mesh_name))) then
+        if (have_option(trim(fsi_path)//'SolidPosition/prescribed/mesh::'//trim(mesh_name))) then
           call addto(solid_velocity_mesh, solid_movement_mesh, 1.0/dt)
-        else if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh::"//trim(mesh_name))) then
+        else if (have_option(trim(fsi_path)//'SolidVelocity/prescribed/mesh::'//trim(mesh_name))) then
           call addto(solid_velocity_mesh, solid_movement_mesh) ! Here solid_movement_mesh is the solid velocity
         end if
 
