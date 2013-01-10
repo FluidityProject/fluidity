@@ -1,0 +1,310 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>2D 1way FSI model: Prescribed solid velocity/position/movement</name>
+  <owner userid="ffm10"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity fsi_1way_prescribed_velocity_dt.flml; fluidity fsi_1way_prescribed_velocity_t.flml;
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name = "solvers_converged" language = "python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
+    </variable>
+    <!-- Below variables checking on solid vtu dump files -->
+    <variable name="solid_dump_check" language="python">
+import os
+files = os.listdir("./")
+solid_dump_check = "test-fsi_solid_prescribed_velocity_dt_solid_frontcylinder_0.vtu" in files and "test-fsi_solid_prescribed_velocity_dt_solid_frontcylinder_1.vtu" in files and "test-fsi_solid_prescribed_velocity_t_solid_frontcylinder_0.vtu" in files and "test-fsi_solid_prescribed_velocity_t_solid_frontcylinder_1.vtu" in files
+    </variable>
+    <!-- Below variables checking on solid checkpoint files -->
+    <variable name="solid_checkpoint_check" language="python">
+import os
+files = os.listdir("./")
+solid_checkpoint_check = "test-fsi_solid_prescribed_velocity_dt_solid_frontcylinderSolidCoordinateMesh_1_checkpoint.msh" in files and "test-fsi_solid_prescribed_velocity_dt_solid_frontcylinder_1_checkpoint.vtu" in files and "test-fsi_solid_prescribed_velocity_t_solid_frontcylinderSolidCoordinateMesh_1_checkpoint.msh" in files and "test-fsi_solid_prescribed_velocity_t_solid_frontcylinder_1_checkpoint.vtu" in files
+    </variable>
+
+    <!-- Variables from stat files -->
+    <!-- First for the prescribed solid velocity based on dt -->
+    <variable name="fluid_mesh_number_nodes_presc_vel_dt" language="python">from fluidity_tools import stat_parser
+s = stat_parser("test-fsi_solid_prescribed_velocity_dt.stat")
+fluid_mesh_number_nodes_presc_vel_dt = s["CoordinateMesh"]["nodes"]
+    </variable>
+    <variable name="ElapsedTime_presc_vel_dt" language="python">from fluidity_tools import stat_parser
+s = stat_parser("test-fsi_solid_prescribed_velocity_dt.stat")
+ElapsedTime_presc_vel_dt = s["ElapsedTime"]["value"][-1]
+    </variable>
+    <variable name="fluid_mesh_max_SolidConcentration_presc_vel_dt" language="python">from fluidity_tools import stat_parser
+s = stat_parser("test-fsi_solid_prescribed_velocity_dt.stat")
+fluid_mesh_max_SolidConcentration_presc_vel_dt = s["fluid"]["SolidConcentration"]["max"]
+    </variable>
+    <variable name="fluid_mesh_IntSolidConcentration_presc_vel_dt" language="python">from fluidity_tools import stat_parser
+s = stat_parser("test-fsi_solid_prescribed_velocity_dt.stat")
+fluid_mesh_IntSolidConcentration_presc_vel_dt = s["fluid"]["SolidConcentration"]["integral"]
+    </variable>
+    <variable name="fluid_mesh_max_SolidConcentration_of_solid_mesh_presc_vel_dt" language="python">from fluidity_tools import stat_parser
+s = stat_parser("test-fsi_solid_prescribed_velocity_dt.stat")
+fluid_mesh_max_SolidConcentration_of_solid_mesh_presc_vel_dt = s["fluid"]["frontcylinderSolidConcentration"]["max"]
+    </variable>
+    <variable name="fluid_mesh_IntSolidConcentration_of_solid_mesh_presc_vel_dt" language="python">from fluidity_tools import stat_parser
+s = stat_parser("test-fsi_solid_prescribed_velocity_dt.stat")
+fluid_mesh_IntSolidConcentration_of_solid_mesh_presc_vel_dt = s["fluid"]["frontcylinderSolidConcentration"]["integral"]
+    </variable>
+    <!-- Now for the prescribed solid velocity based on t -->
+    <variable name="fluid_mesh_number_nodes_presc_vel_t" language="python">from fluidity_tools import stat_parser
+s = stat_parser("test-fsi_solid_prescribed_velocity_t.stat")
+fluid_mesh_number_nodes_presc_vel_t = s["CoordinateMesh"]["nodes"]
+    </variable>
+    <variable name="ElapsedTime_presc_vel_t" language="python">from fluidity_tools import stat_parser
+s = stat_parser("test-fsi_solid_prescribed_velocity_t.stat")
+ElapsedTime_presc_vel_t = s["ElapsedTime"]["value"][-1]
+    </variable>
+    <variable name="fluid_mesh_max_SolidConcentration_presc_vel_t" language="python">from fluidity_tools import stat_parser
+s = stat_parser("test-fsi_solid_prescribed_velocity_t.stat")
+fluid_mesh_max_SolidConcentration_presc_vel_t = s["fluid"]["SolidConcentration"]["max"]
+    </variable>
+    <variable name="fluid_mesh_IntSolidConcentration_presc_vel_t" language="python">from fluidity_tools import stat_parser
+s = stat_parser("test-fsi_solid_prescribed_velocity_t.stat")
+fluid_mesh_IntSolidConcentration_presc_vel_t = s["fluid"]["SolidConcentration"]["integral"]
+    </variable>
+    <variable name="fluid_mesh_max_SolidConcentration_of_solid_mesh_presc_vel_t" language="python">from fluidity_tools import stat_parser
+s = stat_parser("test-fsi_solid_prescribed_velocity_t.stat")
+fluid_mesh_max_SolidConcentration_of_solid_mesh_presc_vel_t = s["fluid"]["frontcylinderSolidConcentration"]["max"]
+    </variable>
+    <variable name="fluid_mesh_IntSolidConcentration_of_solid_mesh_presc_vel_t" language="python">from fluidity_tools import stat_parser
+s = stat_parser("test-fsi_solid_prescribed_velocity_t.stat")
+fluid_mesh_IntSolidConcentration_of_solid_mesh_presc_vel_t = s["fluid"]["frontcylinderSolidConcentration"]["integral"]
+    </variable>
+
+
+    <!-- For checking SOLID VTU files -->
+    <!-- First for the prescribed solid velocity based on dt -->
+    <variable name = "initial_solid_vtu_presc_vel_dt" language = "python">
+import vtktools
+initial_solid_vtu_presc_vel_dt = vtktools.vtu("test-fsi_solid_prescribed_velocity_dt_solid_frontcylinder_0.vtu")
+    </variable>
+    <variable name = "initial_fluid_vtu_presc_vel_dt" language = "python">
+import vtktools
+initial_fluid_vtu_presc_vel_dt = vtktools.vtu("test-fsi_solid_prescribed_velocity_dt_0.vtu")
+    </variable>
+    <variable name = "final_solid_vtu_presc_vel_dt" language = "python">
+import vtktools
+final_solid_vtu_presc_vel_dt = vtktools.vtu("test-fsi_solid_prescribed_velocity_dt_solid_frontcylinder_1.vtu")
+    </variable>
+    <variable name = "final_fluid_vtu_presc_vel_dt" language = "python">
+import vtktools
+final_fluid_vtu_presc_vel_dt = vtktools.vtu("test-fsi_solid_prescribed_velocity_dt_1.vtu")
+    </variable>
+    <variable name = "checkpoint_solid_vtu_presc_vel_dt" language = "python">
+import vtktools
+checkpoint_solid_vtu_presc_vel_dt = vtktools.vtu("test-fsi_solid_prescribed_velocity_dt_solid_frontcylinder_1_checkpoint.vtu")
+    </variable>
+    <!-- Now for the prescribed solid velocity based on t -->
+    <variable name = "initial_solid_vtu_presc_vel_t" language = "python">
+import vtktools
+initial_solid_vtu_presc_vel_t = vtktools.vtu("test-fsi_solid_prescribed_velocity_t_solid_frontcylinder_0.vtu")
+    </variable>
+    <variable name = "initial_fluid_vtu_presc_vel_t" language = "python">
+import vtktools
+initial_fluid_vtu_presc_vel_t = vtktools.vtu("test-fsi_solid_prescribed_velocity_t_0.vtu")
+    </variable>
+    <variable name = "final_solid_vtu_presc_vel_t" language = "python">
+import vtktools
+final_solid_vtu_presc_vel_t = vtktools.vtu("test-fsi_solid_prescribed_velocity_t_solid_frontcylinder_1.vtu")
+    </variable>
+    <variable name = "final_fluid_vtu_presc_vel_t" language = "python">
+import vtktools
+final_fluid_vtu_presc_vel_t = vtktools.vtu("test-fsi_solid_prescribed_velocity_t_1.vtu")
+    </variable>
+    <variable name = "checkpoint_solid_vtu_presc_vel_t" language = "python">
+import vtktools
+checkpoint_solid_vtu_presc_vel_t = vtktools.vtu("test-fsi_solid_prescribed_velocity_t_solid_frontcylinder_1_checkpoint.vtu")
+    </variable>
+
+  </variables>
+
+  <pass_tests>
+    <test name = "Solvers converged" language = "python">
+assert(solvers_converged)
+    </test>
+    <test name = "Solid vtu dump files present" language = "python">
+assert(solid_dump_check)
+    </test>
+    <test name = "Solid checkpoint dump files present" language = "python">
+assert(solid_checkpoint_check)
+    </test>
+    <test name = "Simulation completed" language = "python">
+import fluidity_tools
+fluidity_tools.compare_variable(ElapsedTime_presc_vel_dt, 0.01, 1.0e-7)
+fluidity_tools.compare_variable(ElapsedTime_presc_vel_t, 0.01, 1.0e-7)
+    </test>
+    <test name = "Adapt mesh at first adapt" language = "python">
+import fluidity_tools
+fluidity_tools.compare_variable(fluid_mesh_number_nodes_presc_vel_dt[0], 1266, 1.0e-7)
+fluidity_tools.compare_variable(fluid_mesh_number_nodes_presc_vel_dt[0], fluid_mesh_number_nodes_presc_vel_dt[1], 1.0e-7)
+fluidity_tools.compare_variable(fluid_mesh_number_nodes_presc_vel_t[0], 1266, 1.0e-7)
+fluidity_tools.compare_variable(fluid_mesh_number_nodes_presc_vel_t[0], fluid_mesh_number_nodes_presc_vel_t[1], 1.0e-7)
+    </test>
+    <test name = "SolidConcentration from stat-file for prescribed velocity based on dt" language = "python">
+import fluidity_tools
+print "Checking on SolidConcentration on fluid mesh (prescribed velocity based on dt):"
+fluidity_tools.compare_variable(fluid_mesh_max_SolidConcentration_presc_vel_dt[0], 1.0, 1.0e-7)
+fluidity_tools.compare_variable(fluid_mesh_max_SolidConcentration_presc_vel_dt[1], 1.0, 1.0e-7)
+print "Checking consistency of global SolidConcentration with SolidConcentration of specific solid (on fluid mesh) (prescribed velocity based on dt):"
+fluidity_tools.compare_variable(fluid_mesh_max_SolidConcentration_presc_vel_dt[0], fluid_mesh_max_SolidConcentration_of_solid_mesh_presc_vel_dt[0], 1.0e-7)
+fluidity_tools.compare_variable(fluid_mesh_max_SolidConcentration_presc_vel_dt[1], fluid_mesh_max_SolidConcentration_of_solid_mesh_presc_vel_dt[1], 1.0e-7)
+
+print "Checking on IntegralSolidConcentration on fluid mesh (prescribed velocity based on dt):"
+fluidity_tools.compare_variable(fluid_mesh_IntSolidConcentration_presc_vel_dt[0], 0.00785082789129, 1.0e-7)
+fluidity_tools.compare_variable(fluid_mesh_IntSolidConcentration_presc_vel_dt[1], fluid_mesh_IntSolidConcentration_presc_vel_dt[0], 1.0e-7)
+print "Checking consistency of global IntegralSolidConcentration with IntegralSolidConcentration of specific solid (on fluid mesh) (prescribed velocity based on dt):"
+fluidity_tools.compare_variable(fluid_mesh_IntSolidConcentration_presc_vel_dt[0], fluid_mesh_IntSolidConcentration_of_solid_mesh_presc_vel_dt[0], 1.0e-7)
+fluidity_tools.compare_variable(fluid_mesh_IntSolidConcentration_presc_vel_dt[1], fluid_mesh_IntSolidConcentration_of_solid_mesh_presc_vel_dt[1], 1.0e-7)
+    </test>
+    <test name = "SolidConcentration from stat-file for prescribed velocity based on t" language = "python">
+import fluidity_tools
+print "Checking on SolidConcentration on fluid mesh (prescribed velocity based on t):"
+fluidity_tools.compare_variable(fluid_mesh_max_SolidConcentration_presc_vel_t[0], 1.0, 1.0e-7)
+fluidity_tools.compare_variable(fluid_mesh_max_SolidConcentration_presc_vel_t[1], 1.0, 1.0e-7)
+print "Checking consistency of global SolidConcentration with SolidConcentration of specific solid (on fluid mesh) (prescribed velocity based on t):"
+fluidity_tools.compare_variable(fluid_mesh_max_SolidConcentration_presc_vel_t[0], fluid_mesh_max_SolidConcentration_of_solid_mesh_presc_vel_t[0], 1.0e-7)
+fluidity_tools.compare_variable(fluid_mesh_max_SolidConcentration_presc_vel_t[1], fluid_mesh_max_SolidConcentration_of_solid_mesh_presc_vel_t[1], 1.0e-7)
+
+print "Checking on IntegralSolidConcentration on fluid mesh (prescribed velocity based on t):"
+fluidity_tools.compare_variable(fluid_mesh_IntSolidConcentration_presc_vel_t[0], 0.00785082789129, 1.0e-7)
+fluidity_tools.compare_variable(fluid_mesh_IntSolidConcentration_presc_vel_t[1], fluid_mesh_IntSolidConcentration_presc_vel_t[0], 1.0e-7)
+print "Checking consistency of global IntegralSolidConcentration with IntegralSolidConcentration of specific solid (on fluid mesh) (prescribed velocity based on t):"
+fluidity_tools.compare_variable(fluid_mesh_IntSolidConcentration_presc_vel_t[0], fluid_mesh_IntSolidConcentration_of_solid_mesh_presc_vel_t[0], 1.0e-7)
+fluidity_tools.compare_variable(fluid_mesh_IntSolidConcentration_presc_vel_t[1], fluid_mesh_IntSolidConcentration_of_solid_mesh_presc_vel_t[1], 1.0e-7)
+    </test>
+
+<!-- Tests for SOLID VTU files -->
+    <test name = "Checking fields on FLUID and SOLID VTU files for prescribed velocity based on dt" language = "python">
+import fluidity_tools
+
+fluid_initial_global_alpha_presc_vel_dt = initial_fluid_vtu_presc_vel_dt.GetScalarField("SolidConcentration")
+fluid_final_global_alpha_presc_vel_dt = final_fluid_vtu_presc_vel_dt.GetScalarField("SolidConcentration")
+fluid_initial_solid_alpha_presc_vel_dt = initial_fluid_vtu_presc_vel_dt.GetScalarField("frontcylinderSolidConcentration")
+fluid_final_solid_alpha_presc_vel_dt = final_fluid_vtu_presc_vel_dt.GetScalarField("frontcylinderSolidConcentration")
+
+print "Checking FLUID VTU files for global and solid specific SolidConcentration (prescribed velocity based on dt):"
+
+print "min(fluid_initial_global_alpha_presc_vel_dt) = ", min(fluid_initial_global_alpha_presc_vel_dt)
+print "min(fluid_initial_solid_alpha_presc_vel_dt) = ", min(fluid_initial_solid_alpha_presc_vel_dt)
+print "max(fluid_initial_global_alpha_presc_vel_dt) = ", max(fluid_initial_global_alpha_presc_vel_dt)
+print "max(fluid_initial_solid_alpha_presc_vel_dt) = ", max(fluid_initial_solid_alpha_presc_vel_dt)
+assert (abs(min(fluid_initial_global_alpha_presc_vel_dt)) &lt; 1e-4)
+assert (abs(max(fluid_initial_global_alpha_presc_vel_dt) - 1.0) &lt; 1e-7)
+assert (abs(min(fluid_initial_global_alpha_presc_vel_dt) - min(fluid_initial_solid_alpha_presc_vel_dt)) &lt; 1e-7)
+assert (abs(max(fluid_initial_global_alpha_presc_vel_dt) - max(fluid_initial_solid_alpha_presc_vel_dt)) &lt; 1e-7)
+
+print "min(fluid_final_global_alpha_presc_vel_dt) = ", min(fluid_final_global_alpha_presc_vel_dt)
+print "min(fluid_final_solid_alpha_presc_vel_dt) = ", min(fluid_final_solid_alpha_presc_vel_dt)
+print "max(fluid_final_global_alpha_presc_vel_dt) = ", max(fluid_final_global_alpha_presc_vel_dt)
+print "max(fluid_final_solid_alpha_presc_vel_dt) = ", max(fluid_final_solid_alpha_presc_vel_dt)
+assert (abs(min(fluid_final_global_alpha_presc_vel_dt)) &lt; 1e-4)
+assert (abs(max(fluid_final_global_alpha_presc_vel_dt) - 1.0) &lt; 1e-7)
+assert (abs(min(fluid_final_global_alpha_presc_vel_dt) - min(fluid_final_solid_alpha_presc_vel_dt)) &lt; 1e-7)
+assert (abs(max(fluid_final_global_alpha_presc_vel_dt) - max(fluid_final_solid_alpha_presc_vel_dt)) &lt; 1e-7)
+
+print "Checking SOLID VTU files for solid velocity (prescribed velocity based on dt):"
+solid_initial_solid_velocity_presc_vel_dt = initial_solid_vtu_presc_vel_dt.GetVectorField("frontcylinderSolidVelocity")
+solid_final_solid_velocity_presc_vel_dt = final_solid_vtu_presc_vel_dt.GetVectorField("frontcylinderSolidVelocity")
+solid_checkpoint_solid_velocity_presc_vel_dt = checkpoint_solid_vtu_presc_vel_dt.GetVectorField("frontcylinderSolidVelocity")
+x=0; y=1;
+
+print "min(solid_initial_solid_velocity_presc_vel_dt[:,0]) = ", min(solid_initial_solid_velocity_presc_vel_dt[:,x])
+print "max(solid_initial_solid_velocity_presc_vel_dt[:,0]) = ", max(solid_initial_solid_velocity_presc_vel_dt[:,x])
+assert (min(solid_initial_solid_velocity_presc_vel_dt[:,x]) &lt; 1e-7)
+assert (max(solid_initial_solid_velocity_presc_vel_dt[:,x]) &lt; 1e-7)
+print "min(solid_initial_solid_velocity_presc_vel_dt[:,1]) = ", min(solid_initial_solid_velocity_presc_vel_dt[:,y])
+print "max(solid_initial_solid_velocity_presc_vel_dt[:,1]) = ", max(solid_initial_solid_velocity_presc_vel_dt[:,y])
+assert (min(solid_initial_solid_velocity_presc_vel_dt[:,y]) &lt; 1e-7)
+assert (max(solid_initial_solid_velocity_presc_vel_dt[:,y]) &lt; 1e-7)
+
+print "min(solid_final_solid_velocity_presc_vel_dt[:,0]) = ", min(solid_final_solid_velocity_presc_vel_dt[:,x])
+print "max(solid_final_solid_velocity_presc_vel_dt[:,0]) = ", max(solid_final_solid_velocity_presc_vel_dt[:,x])
+assert (min(solid_final_solid_velocity_presc_vel_dt[:,x]) == 5.0)
+assert (max(solid_final_solid_velocity_presc_vel_dt[:,x]) == 5.0)
+print "min(solid_final_solid_velocity_presc_vel_dt[:,1]) = ", min(solid_final_solid_velocity_presc_vel_dt[:,y])
+print "max(solid_final_solid_velocity_presc_vel_dt[:,1]) = ", max(solid_final_solid_velocity_presc_vel_dt[:,y])
+assert (min(solid_final_solid_velocity_presc_vel_dt[:,y]) == 2.5)
+assert (max(solid_final_solid_velocity_presc_vel_dt[:,y]) == 2.5)
+
+print "Checking SOLID CHECKPOINT VTU file for solid velocity field (prescribed velocity based on dt):"
+print "min(solid_checkpoint_solid_velocity_presc_vel_dt[:,0]) = ", min(solid_checkpoint_solid_velocity_presc_vel_dt[:,x])
+print "max(solid_checkpoint_solid_velocity_presc_vel_dt[:,0]) = ", max(solid_checkpoint_solid_velocity_presc_vel_dt[:,x])
+assert (min(solid_checkpoint_solid_velocity_presc_vel_dt[:,x]) == 5.0)
+assert (max(solid_checkpoint_solid_velocity_presc_vel_dt[:,x]) == 5.0)
+print "min(solid_checkpoint_solid_velocity_presc_vel_dt[:,1]) = ", min(solid_checkpoint_solid_velocity_presc_vel_dt[:,y])
+print "max(solid_checkpoint_solid_velocity_presc_vel_dt[:,1]) = ", max(solid_checkpoint_solid_velocity_presc_vel_dt[:,y])
+assert (min(solid_checkpoint_solid_velocity_presc_vel_dt[:,y]) == 2.5)
+assert (max(solid_checkpoint_solid_velocity_presc_vel_dt[:,y]) == 2.5)
+    </test>
+    <test name = "Checking fields on FLUID and SOLID VTU files for prescribed velocity based on t" language = "python">
+import fluidity_tools
+
+fluid_initial_global_alpha_presc_vel_t = initial_fluid_vtu_presc_vel_t.GetScalarField("SolidConcentration")
+fluid_final_global_alpha_presc_vel_t = final_fluid_vtu_presc_vel_t.GetScalarField("SolidConcentration")
+fluid_initial_solid_alpha_presc_vel_t = initial_fluid_vtu_presc_vel_t.GetScalarField("frontcylinderSolidConcentration")
+fluid_final_solid_alpha_presc_vel_t = final_fluid_vtu_presc_vel_t.GetScalarField("frontcylinderSolidConcentration")
+
+print "Checking FLUID VTU files for global and solid specific SolidConcentration (prescribed velocity based on t):"
+
+print "min(fluid_initial_global_alpha_presc_vel_t) = ", min(fluid_initial_global_alpha_presc_vel_t)
+print "min(fluid_initial_solid_alpha_presc_vel_t) = ", min(fluid_initial_solid_alpha_presc_vel_t)
+print "max(fluid_initial_global_alpha_presc_vel_t) = ", max(fluid_initial_global_alpha_presc_vel_t)
+print "max(fluid_initial_solid_alpha_presc_vel_t) = ", max(fluid_initial_solid_alpha_presc_vel_t)
+assert (abs(min(fluid_initial_global_alpha_presc_vel_t)) &lt; 1e-4)
+assert (abs(max(fluid_initial_global_alpha_presc_vel_t) - 1.0) &lt; 1e-7)
+assert (abs(min(fluid_initial_global_alpha_presc_vel_t) - min(fluid_initial_solid_alpha_presc_vel_t)) &lt; 1e-7)
+assert (abs(max(fluid_initial_global_alpha_presc_vel_t) - max(fluid_initial_solid_alpha_presc_vel_t)) &lt; 1e-7)
+
+print "min(fluid_final_global_alpha_presc_vel_t) = ", min(fluid_final_global_alpha_presc_vel_t)
+print "min(fluid_final_solid_alpha_presc_vel_t) = ", min(fluid_final_solid_alpha_presc_vel_t)
+print "max(fluid_final_global_alpha_presc_vel_t) = ", max(fluid_final_global_alpha_presc_vel_t)
+print "max(fluid_final_solid_alpha_presc_vel_t) = ", max(fluid_final_solid_alpha_presc_vel_t)
+assert (abs(min(fluid_final_global_alpha_presc_vel_t)) &lt; 1e-4)
+assert (abs(max(fluid_final_global_alpha_presc_vel_t) - 1.0) &lt; 1e-7)
+assert (abs(min(fluid_final_global_alpha_presc_vel_t) - min(fluid_final_solid_alpha_presc_vel_t)) &lt; 1e-7)
+assert (abs(max(fluid_final_global_alpha_presc_vel_t) - max(fluid_final_solid_alpha_presc_vel_t)) &lt; 1e-7)
+
+print "Checking SOLID VTU files for solid velocity (prescribed velocity based on t):"
+solid_initial_solid_velocity_presc_vel_t = initial_solid_vtu_presc_vel_t.GetVectorField("frontcylinderSolidVelocity")
+solid_final_solid_velocity_presc_vel_t = final_solid_vtu_presc_vel_t.GetVectorField("frontcylinderSolidVelocity")
+solid_checkpoint_solid_velocity_presc_vel_t = checkpoint_solid_vtu_presc_vel_t.GetVectorField("frontcylinderSolidVelocity")
+x=0; y=1;
+
+print "min(solid_initial_solid_velocity_presc_vel_t[:,0]) = ", min(solid_initial_solid_velocity_presc_vel_t[:,x])
+print "max(solid_initial_solid_velocity_presc_vel_t[:,0]) = ", max(solid_initial_solid_velocity_presc_vel_t[:,x])
+assert (min(solid_initial_solid_velocity_presc_vel_t[:,x]) &lt; 1e-7)
+assert (max(solid_initial_solid_velocity_presc_vel_t[:,x]) &lt; 1e-7)
+print "min(solid_initial_solid_velocity_presc_vel_t[:,1]) = ", min(solid_initial_solid_velocity_presc_vel_t[:,y])
+print "max(solid_initial_solid_velocity_presc_vel_t[:,1]) = ", max(solid_initial_solid_velocity_presc_vel_t[:,y])
+assert (min(solid_initial_solid_velocity_presc_vel_t[:,y]) &lt; 1e-7)
+assert (max(solid_initial_solid_velocity_presc_vel_t[:,y]) &lt; 1e-7)
+
+print "min(solid_final_solid_velocity_presc_vel_t[:,0]) = ", min(solid_final_solid_velocity_presc_vel_t[:,x])
+print "max(solid_final_solid_velocity_presc_vel_t[:,0]) = ", max(solid_final_solid_velocity_presc_vel_t[:,x])
+assert (min(solid_final_solid_velocity_presc_vel_t[:,x]) == 5.0)
+assert (max(solid_final_solid_velocity_presc_vel_t[:,x]) == 5.0)
+print "min(solid_final_solid_velocity_presc_vel_t[:,1]) = ", min(solid_final_solid_velocity_presc_vel_t[:,y])
+print "max(solid_final_solid_velocity_presc_vel_t[:,1]) = ", max(solid_final_solid_velocity_presc_vel_t[:,y])
+assert (min(solid_final_solid_velocity_presc_vel_t[:,y]) == 2.5)
+assert (max(solid_final_solid_velocity_presc_vel_t[:,y]) == 2.5)
+
+print "Checking SOLID CHECKPOINT VTU file for solid velocity field (prescribed velocity based on t):"
+print "min(solid_checkpoint_solid_velocity_presc_vel_t[:,0]) = ", min(solid_checkpoint_solid_velocity_presc_vel_t[:,x])
+print "max(solid_checkpoint_solid_velocity_presc_vel_t[:,0]) = ", max(solid_checkpoint_solid_velocity_presc_vel_t[:,x])
+assert (min(solid_checkpoint_solid_velocity_presc_vel_t[:,x]) == 5.0)
+assert (max(solid_checkpoint_solid_velocity_presc_vel_t[:,x]) == 5.0)
+print "min(solid_checkpoint_solid_velocity_presc_vel_t[:,1]) = ", min(solid_checkpoint_solid_velocity_presc_vel_t[:,y])
+print "max(solid_checkpoint_solid_velocity_presc_vel_t[:,1]) = ", max(solid_checkpoint_solid_velocity_presc_vel_t[:,y])
+assert (min(solid_checkpoint_solid_velocity_presc_vel_t[:,y]) == 2.5)
+assert (max(solid_checkpoint_solid_velocity_presc_vel_t[:,y]) == 2.5)
+    </test>
+
+  </pass_tests>
+</testproblem>
+

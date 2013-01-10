@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">test-fsi_solid_prescribed_movement</string_value>
+    <string_value lines="1">test-fsi_solid_prescribed_velocity_t</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fsi</string_value>
@@ -415,7 +415,7 @@
   <mesh_adaptivity>
     <hr_adaptivity>
       <period_in_timesteps>
-        <integer_value rank="0">10</integer_value>
+        <integer_value rank="0">3</integer_value>
       </period_in_timesteps>
       <maximum_number_of_nodes>
         <integer_value rank="0">10000</integer_value>
@@ -493,13 +493,19 @@
             </continuous>
           </galerkin_projection>
         </inter_mesh_projection>
-        <vector_field name="SolidPosition" rank="1">
+        <vector_field name="SolidVelocity" rank="1">
           <prescribed>
             <mesh name="frontcylinder">
+              <time_variable_in_python>
+                <current_time/>
+              </time_variable_in_python>
               <python>
-                <string_value lines="20" type="code" language="python">def val(X,dt):
-  movement = (0.05, 0.025)
-  return movement</string_value>
+                <string_value lines="20" type="code" language="python">def val(X,t):
+  if (t&gt;=0.0):
+    vel = (5, 2.5)
+  else:
+    vel = (0.0, 0.0)
+  return vel</string_value>
               </python>
               <output/>
               <stat>
