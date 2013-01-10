@@ -41,7 +41,7 @@ subroutine triangle2vtu(filename, filename_len)
   integer :: stat
   type(vector_field), target :: positions
   type(scalar_field) :: mapA, mapB, regions
-
+  
   positions=read_triangle_files(filename, quad_degree=3, no_faces=.true.)
 
   ! For supermesh stuff.

@@ -145,6 +145,7 @@
           </value>
           <output/>
           <stat>
+            <manifold_transformation/>
             <include_in_stat/>
           </stat>
           <detectors>
@@ -195,16 +196,16 @@
           <from_streamfunction/>
         </initial_condition>
         <output/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <consistent_interpolation/>
+        <stat>
+          <manifold_transformation/>
+          <include_in_stat/>
+          <previous_time_step>
+            <exclude_from_stat/>
+          </previous_time_step>
+          <nonlinear_field>
+            <exclude_from_stat/>
+          </nonlinear_field>
+        </stat>
       </prognostic>
     </vector_field>
     <scalar_field name="LayerThickness" rank="0">
@@ -253,9 +254,12 @@
           <comment>gh_0 = 2.94e4
 g = 9.80616
 2998.1154702758267=2.94e4/9.80616</comment>
+          <reset_field_mean/>
         </mean_layer_thickness>
         <output/>
-        <stat/>
+        <stat>
+          <manifold_transformation/>
+        </stat>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
@@ -282,7 +286,9 @@ g = 9.80616
         <output>
           <exclude_from_vtu/>
         </output>
-        <stat/>
+        <stat>
+          <manifold_transformation/>
+        </stat>
         <debug/>
       </prognostic>
     </scalar_field>
@@ -324,7 +330,9 @@ g = 9.80616
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
         <output/>
-        <stat/>
+        <stat>
+          <manifold_transformation/>
+        </stat>
         <convergence>
           <include_in_convergence/>
         </convergence>
@@ -359,7 +367,9 @@ g = 9.80616
         </algorithm>
         <mesh name="VelocityMesh"/>
         <output/>
-        <stat/>
+        <stat>
+          <manifold_transformation/>
+        </stat>
         <convergence>
           <include_in_convergence/>
         </convergence>

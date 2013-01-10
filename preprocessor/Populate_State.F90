@@ -33,6 +33,7 @@ module populate_state_module
   use spud
   use mesh_files
   use vtk_cache_module
+  use vtk_interfaces
   use global_parameters, only: OPTION_PATH_LEN, is_active_process, pi, &
     no_active_processes, topology_mesh_name, adaptivity_mesh_name, &
     periodic_boundary_option_path, domain_bbox, domain_volume
@@ -263,6 +264,11 @@ contains
                     quad_degree=quad_degree, &
                     quad_family=quad_family, mdim=mdim, &
                     format=mesh_file_format)
+
+               call vtk_write_fields('InputCoordinates', position=position, &
+                    model=position%mesh, &
+                    vfields=(/position/))
+
             else
                position=read_mesh_files(trim(mesh_file_name), &
                     quad_degree=quad_degree, &

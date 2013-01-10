@@ -367,7 +367,6 @@
          call recompute_coordinate_field(state)
       end if
 
-
       !SET UP LOCAL VELOCITY
       !This needs an option to switch on as we don't always want to do it.
       !   !project velocity into div-conforming space
