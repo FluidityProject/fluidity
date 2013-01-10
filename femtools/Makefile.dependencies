@@ -1279,10 +1279,10 @@ ieee_arithmetic_dummy.o ../include/ieee_arithmetic.mod: \
 	@true
 
 python_state.o ../include/python_state.mod: python_state.F90 \
-   ../include/elements.mod ../include/fdebug.h ../include/fields.mod \
-   ../include/fldebug.mod ../include/global_parameters.mod \
-   ../include/python_utils.mod ../include/quadrature.mod \
-   ../include/state_module.mod
+   ../include/elements.mod ../include/fdebug.h ../include/field_options.mod \
+   ../include/fields.mod ../include/fldebug.mod \
+   ../include/global_parameters.mod ../include/python_utils.mod \
+   ../include/quadrature.mod ../include/state_module.mod
 
 ../include/python_utils.mod: python_utils.o
 	@true

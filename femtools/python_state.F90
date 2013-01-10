@@ -17,6 +17,7 @@ module python_state
   use quadrature
   use elements
   use fields
+  use field_options, only: find_linear_parent_mesh
   use global_parameters, only:FIELD_NAME_LEN, current_debug_level, OPTION_PATH_LEN, PYTHON_FUNC_LEN
   use state_module 
   use python_utils
@@ -291,24 +292,28 @@ module python_state
 
   subroutine python_add_mesh_directly(M,st)
     type(mesh_type) :: M
+    type(mesh_type), pointer :: parent
     type(state_type) :: st
-    integer :: snlen,slen,plen,oplen
+    integer :: snlen,slen,plen,oplen, stat
     integer, dimension(:), allocatable :: temp_region_ids
 
+    call find_linear_parent_mesh(st, M, parent, stat)
+    if ( stat /= 0 ) parent = M
     slen = len(trim(M%name))
-    plen = len(trim(M%parent_name))
+    plen = len(trim(parent%name))
     snlen = len(trim(st%name))
     oplen = len(trim(M%option_path))
-    
+
+    if ( trim(parent%name) == trim(M%name) ) plen = 0
     if(associated(M%region_ids)) then
       call python_add_mesh(M%ndglno,size(M%ndglno,1),M%elements,M%nodes,&
-        trim(M%name),slen,trim(M%parent_name),plen,M%option_path,oplen,&
+        trim(M%name),slen,trim(parent%name),plen,M%option_path,oplen,&
         M%continuity, M%region_ids, size(M%region_ids),&
         trim(st%name),snlen, M%refcount%id)
     else
       allocate(temp_region_ids(0))
       call python_add_mesh(M%ndglno,size(M%ndglno,1),M%elements,M%nodes,&
-        trim(M%name),slen,trim(M%parent_name),plen,M%option_path,oplen,&
+        trim(M%name),slen,trim(parent%name),plen,M%option_path,oplen,&
         M%continuity, temp_region_ids, size(temp_region_ids),&
         trim(st%name),snlen, M%refcount%id)
       deallocate(temp_region_ids)
