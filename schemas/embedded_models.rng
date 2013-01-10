@@ -84,7 +84,11 @@ based on the given 'movement'.
 
 The return vector of the python function is
 supposed to contain the distance a node of a 
-rigid body travels within the time interval dt.</a:documentation>
+rigid body travels within the time interval dt.
+
+The option time_variable_in_python determines
+whether the current time 't' or the current
+timestep 'dt' are passed to the python function.</a:documentation>
                     <attribute name="rank">
                       <value>1</value>
                     </attribute>
@@ -211,12 +215,13 @@ in the option 'time_variable_python_interface'.</a:documentation>
     <element name="python">
       <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
 
- def val(X, dt):
+ def val(X, t):
     # Function code
     return # Return value
 
 where X and the return value are tuples of length geometry dimension
-and dt is the timestep, not the current time.</a:documentation>
+and t is either the current time or the timestep, depending on what is set
+in the option 'time_variable_python_interface'.</a:documentation>
       <ref name="python_code"/>
     </element>
   </define>
@@ -300,8 +305,7 @@ coordinates are prescribed in the python function</a:documentation>
   </define>
   <define name="fsi_model_prescribed_solid_movement_mesh">
     <element name="prescribed">
-      <a:documentation>Prescribed Solid movement (distance travelled during timestep dt)
-via Python input</a:documentation>
+      <a:documentation>Prescribed Solid movement via Python input</a:documentation>
       <oneOrMore>
         <element name="mesh">
           <a:documentation>Set the name of the Solid Mesh which
@@ -310,6 +314,7 @@ travelled distance is prescribed in the python function</a:documentation>
             <data type="string"/>
           </attribute>
           <group>
+            <ref name="time_variable_python_interface"/>
             <ref name="fsi_model_input_real_dim_vector_solidmovement_python"/>
             <ref name="prescribed_output_options"/>
             <ref name="prescribed_vector_stat_options"/>

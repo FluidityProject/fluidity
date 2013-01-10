@@ -73,6 +73,10 @@ embedded_models =
                      ## The return vector of the python function is
                      ## supposed to contain the distance a node of a 
                      ## rigid body travels within the time interval dt.
+                     ##
+                     ## The option time_variable_in_python determines
+                     ## whether the current time 't' or the current
+                     ## timestep 'dt' are passed to the python function.
                      element vector_field {
                         attribute rank { "1" },
                         attribute name { "SolidMovement" },
@@ -171,12 +175,13 @@ fsi_model_input_real_dim_vector_solidposition_python =
 fsi_model_input_real_dim_vector_solidmovement_python =
     ## Python function prescribing dimensional vector input. Functions should be of the form:
     ##
-    ##  def val(X, dt):
+    ##  def val(X, t):
     ##     # Function code
     ##     return # Return value
     ##
     ## where X and the return value are tuples of length geometry dimension
-    ## and dt is the timestep, not the current time.
+    ## and t is either the current time or the timestep, depending on what is set
+    ## in the option 'time_variable_python_interface'.
     element python
     {
       python_code
@@ -250,14 +255,14 @@ fsi_model_diagnostic_solid_position_mesh =
     }
 
 fsi_model_prescribed_solid_movement_mesh =
-    ## Prescribed Solid movement (distance travelled during timestep dt)
-    ## via Python input
+    ## Prescribed Solid movement via Python input
     element prescribed {
         ## Set the name of the Solid Mesh which
         ## travelled distance is prescribed in the python function
         element mesh {
             attribute name { xsd:string },
             (
+              time_variable_python_interface,
               fsi_model_input_real_dim_vector_solidmovement_python,
               prescribed_output_options,
               prescribed_vector_stat_options,
