@@ -687,6 +687,7 @@
             
             ! If CV pressure then add in any dirichlet pressure BC integrals to the mom_rhs.
             if (cv_pressure) then
+!            if (cv_pressure.and.(.not.reduced_model)) then
                call add_pressure_dirichlet_bcs_cv(mom_rhs(istate), u, p, state(istate))
             end if
             
@@ -1168,13 +1169,12 @@
 
             call get_option('/timestepping/nonlinear_iterations', nonlinear_iterations, default=1)
             !!print*,'its = ', its, ' nonlinear_iterations = ', nonlinear_iterations
-
+            
             !enter reduced model process after the last nonliear_iteration
-           ! if(its==nonlinear_iterations)then
-               call profiler_tic("reduced_model_loop")
-
-               reduced_model_loop: do istate = 1, size(state)
-
+            ! if(its==nonlinear_iterations)then
+            call profiler_tic("reduced_model_loop")
+            
+            reduced_model_loop: do istate = 1, size(state)
                ! Get the velocity
                u => extract_vector_field(state(istate), "Velocity", stat)
                lump_mass_form = have_option(trim(u%option_path)//&
@@ -1190,31 +1190,31 @@
                if(.not.have_option(trim(u%option_path)//"/prognostic")) cycle
 
                if(have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
-                                       &"/continuous_galerkin").or.&
-                  have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
-                                       &"/discontinuous_galerkin")) then
-
-!!speedup version of reduced model
-
+                    &"/continuous_galerkin").or.&
+                    have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+                    &"/discontinuous_galerkin")) then
+                  
+                  !!speedup version of reduced model
+                  
                   ! Allocate the change in pressure field
                   call allocate(delta_p, p%mesh, "DeltaP")
                   delta_p%option_path = trim(p%option_path)
                   call zero(delta_p)
-
+                  
                   call allocate(delta_u, u%dim, u%mesh, "DeltaU")
                   delta_u%option_path = trim(u%option_path)
                   call zero(delta_u)
-
-
+                  
+                  
                   call get_option("/timestepping/timestep", dt)
-               
+                  
                   POD_velocity=>extract_vector_field(POD_state(1,1,istate), "Velocity")
                   POD_pressure=>extract_scalar_field(POD_state(1,2,istate), "Pressure")    
                   call allocate(pod_matrix, POD_velocity, POD_pressure)
                   call allocate(pod_matrix_mass, POD_velocity, POD_pressure)
                   call allocate(pod_matrix_adv, POD_velocity, POD_pressure)             
                   call allocate(pod_rhs, POD_velocity, POD_pressure)
-                   
+                  
                   allocate(pod_matrix_snapmean((u%dim+1)*size(POD_state,1),(u%dim+1)*size(POD_state,1)))
                   allocate(pod_matrix_adv_mean((u%dim+1)*size(POD_state,1),(u%dim+1)*size(POD_state,1)))
                   allocate(pod_rhs_snapmean((u%dim+1)*size(POD_state,1)))
@@ -1228,24 +1228,24 @@
 
                 
                   if (timestep==1)then
-                 	!!the ct_rhs for reduced model
-                 	 ct_rhs(istate)%val=ct_rhs(istate)%val/dt/theta_divergence
-
-                	 ! print*,'theta_pg',theta_pg
-               	 	 ! print*,'theta_div',theta_divergence
-                	 ! print*,'ct_rhs',ct_rhs(istate)%val(1:10)
-                 	  
-
+                     !!the ct_rhs for reduced model
+                     ct_rhs(istate)%val=ct_rhs(istate)%val/dt/theta_divergence
+                     
+                     ! print*,'theta_pg',theta_pg
+                     ! print*,'theta_div',theta_divergence
+                     ! print*,'ct_rhs',ct_rhs(istate)%val(1:10)
+                     
+                     
                      print*,has_boundary_condition(u,'free_surface')
                      !project to reduced matrix
                      if(has_boundary_condition(u,'free_surface'))then
-                         call project_reduced(big_m(istate), mom_rhs(istate), ct_m(istate)%ptr, ct_rhs(istate), pod_matrix, &
+                        call project_reduced(big_m(istate), mom_rhs(istate), ct_m(istate)%ptr, ct_rhs(istate), pod_matrix, &
                              pod_rhs, dt, POD_state(:,:,istate), fs_m=fs_m)
                      else
-                         call project_reduced(big_m(istate), mom_rhs(istate), ct_m(istate)%ptr, ct_rhs(istate), pod_matrix, &
+                        call project_reduced(big_m(istate), mom_rhs(istate), ct_m(istate)%ptr, ct_rhs(istate), pod_matrix, &
                              pod_rhs, dt, POD_state(:,:,istate))
                      endif
-
+                     
                      !save the pod_matrix and pod_rhs for snapmean state
                      if(snapmean)then
                         ewrite(1,*)'snapmean'
@@ -1253,10 +1253,10 @@
                         write(20,*)((pod_matrix%val(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
                         write(20,*)(pod_rhs%val(i),i=1,(u%dim+1)*size(POD_state,1))
                         close(20)
-                                  
-                         call zero(big_m_tmp(istate))
+                        
+                        call zero(big_m_tmp(istate))
                         pod_rhs%val=0.0
-                      !  pod_matrix%val=0.0
+                        !  pod_matrix%val=0.0
                         pod_matrix_mass%val=0.0
                         pod_matrix_adv%val=0.0
                         if(lump_mass_form) then
@@ -1267,21 +1267,21 @@
                                  !! we comment invert(inverse_masslump) in Momentum_CG
                                  !! here, big_m_tmp is tmp matrix
                                  call addto_diag(big_m_tmp(istate), dim, dim,i,inverse_masslump(istate)%val(i,dim) )
-                             !  print *,'inverse_masslump(istate)%val(i,dim)', inverse_masslump(istate)%val(i,dim)
-                                
+                                 !  print *,'inverse_masslump(istate)%val(i,dim)', inverse_masslump(istate)%val(i,dim)
+                                 
                               enddo
                            enddo
-                          call project_reduced(big_m_tmp(istate), mom_rhs(istate), ct_m(istate)%ptr, ct_rhs(istate), pod_matrix_mass, &
-                             pod_rhs, dt, POD_state(:,:,istate))
+                           call project_reduced(big_m_tmp(istate), mom_rhs(istate), ct_m(istate)%ptr, ct_rhs(istate), pod_matrix_mass, &
+                                pod_rhs, dt, POD_state(:,:,istate))
                            !  print *,'pod_matrix_mass', pod_matrix_mass%val
-                             
+                           
                         else
-                          ! print*,'mass'
+                           ! print*,'mass'
                            !call project_reduced(mass(istate), mom_rhs(istate), ct_m(istate)%ptr, ct_rhs(istate), pod_matrix, &
-                             !   pod_ct_m, pod_rhs, 1.0, POD_state(:,:,istate))
+                           !   pod_ct_m, pod_rhs, 1.0, POD_state(:,:,istate))
                         endif
-                       
-   			 !save the mass_matrix 
+                        
+                        !save the mass_matrix 
                         open(unit=20,file='mass_matrix')
                         write(20,*)((pod_matrix_mass%val(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
                         close(20)
@@ -1289,16 +1289,16 @@
                         !save the advection_matrix 
                         pod_matrix_adv%val(:,:)=pod_matrix%val(:,:)-pod_matrix_mass%val(:,:)
                         open(unit=21,file='advection_matrix_snapmean')
-                         write(21,*)((pod_matrix_adv%val(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
-                         close(21)
-                       !  open(unit=21,file='big_m')
-                       !  write(21,*)((pod_matrix%val(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
-                      !   close(21)
-        
-                      !  open(unit=20,file='ct_m_matrix')
-                       ! write(20,*) ((pod_ct_m(i,j),j=1,u%dim*size(POD_state,1)),i=1,size(POD_state,1))
-                      !  close(20)
-                     endif      
+                        write(21,*)((pod_matrix_adv%val(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
+                        close(21)
+                        !  open(unit=21,file='big_m')
+                        !  write(21,*)((pod_matrix%val(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
+                        !   close(21)
+                        
+                        !  open(unit=20,file='ct_m_matrix')
+                        ! write(20,*) ((pod_ct_m(i,j),j=1,u%dim*size(POD_state,1)),i=1,size(POD_state,1))
+                        !  close(20)
+                     endif
                      
                      if(eps.ne.0.0)then
                         pod_matrix_mass%val=0.0
@@ -1315,19 +1315,18 @@
 			pod_matrix_adv_perturbed(:,:)=(pod_matrix_adv%val(:,:)-pod_matrix_adv_mean(:,:))/eps
                         !save the advection_matrix 
                         ! open(unit=21,file='advection_matrix_perturbed')
-                         write(60,*)((pod_matrix_adv_perturbed(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
-                       !  close(21)
-                         
+                        write(60,*)((pod_matrix_adv_perturbed(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
+                        !  close(21)
+                        
                         ewrite(1,*)'perturbed'
                         print*,'perturbed'
                         open(unit=20,file='pod_matrix_snapmean')
                         read(20,*)((pod_matrix_snapmean(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
                         read(20,*)(pod_rhs_snapmean(i),i=1,(u%dim+1)*size(POD_state,1))
                         close(20)
-
-	                pod_matrix%val(:,:)=(pod_matrix%val(:,:)-pod_matrix_snapmean(:,:))/eps
+                        pod_matrix%val(:,:)=(pod_matrix%val(:,:)-pod_matrix_snapmean(:,:))/eps
                         pod_rhs%val(:)=(pod_rhs%val(:)-pod_rhs_snapmean(:))/eps
-                      
+                        
                         do i=1,size(POD_state,1)
                            POD_velocity=>extract_vector_field(POD_state(i,1,istate), "Velocity")
                            do j=1,u%dim
@@ -1336,11 +1335,11 @@
                            POD_pressure=>extract_scalar_field(POD_state(i,2,istate), "Pressure")
                            pod_coef(i+size(POD_state,1)*u%dim)=dot_product(POD_pressure,p)
                         enddo
-			call Matrix_vector_multiplication(size(pod_coef),pod_rhs_adv_perturbed, &
-						pod_matrix_adv_perturbed,pod_coef)
+                        call Matrix_vector_multiplication(size(pod_coef),pod_rhs_adv_perturbed, &
+                             pod_matrix_adv_perturbed,pod_coef)
 			
 			pod_rhs%val = pod_rhs%val + pod_rhs_adv_perturbed ! delete advection term in rhs
-
+   
                         !save pod_matrix and pod_rhs for perturbed state (related to POD_velocity%dim, size(POD_state,1))
                         write(30,*)((pod_matrix%val(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
                         write(50,*)(pod_rhs%val(i),i=1,(u%dim+1)*size(POD_state,1))! delete advection term in rhs
@@ -1348,7 +1347,7 @@
                      elseif(eps.eq.0.0 .and. .not.snapmean)then
                         !need to exclude snapmean
                         ewrite(1,*)'reduced'
-
+                        
                         !from initial condition
                         call solve(pod_matrix%val, pod_rhs%val)
                         pod_coef_dt(:)=pod_rhs%val
@@ -1386,19 +1385,16 @@
                         print*,pod_coef
                      endif
 
-                  else !timestep.lg.1
+                  else !timestep.gt.1
                      ewrite(1,*)'timestep=',timestep
-
+                     
                      POD_velocity=>extract_vector_field(POD_state(1,1,istate), "Velocity")
                      POD_pressure=>extract_scalar_field(POD_state(1,2,istate), "Pressure")
-                    ! call allocate(pod_matrix, POD_velocity, POD_pressure)
-                    ! call allocate(pod_rhs, POD_velocity, POD_pressure)
 
                      !pod_coef is from the previous timestep, argument?
                      open(40,file='pod_coef')
                      read(40,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state,1))
                      close(40)
-        ! if(.not.reduced_model) then
                      open(unit=20,file='pod_matrix_snapmean')
                      read(20,*)((pod_matrix_snapmean(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
                      read(20,*)(pod_rhs_snapmean(i),i=1,(u%dim+1)*size(POD_state,1))
@@ -1407,7 +1403,6 @@
                      pod_matrix%val=pod_matrix_snapmean(:,:)
                      pod_rhs%val=pod_rhs_snapmean(:)
 
-!goto 100
                      do k=1,size(POD_state,1)
                         do d=1, u%dim
 
@@ -1425,14 +1420,6 @@
                         pod_rhs%val=pod_rhs%val+pod_coef(k+u%dim*size(POD_state,1))*pod_rhs_perturbed(:)
                      enddo
 
-!100 continue
-                     open(51,file='pod_matrix_4000')
-                     write(51,*)(pod_matrix%val)
-                     close(51)
-                     open(52,file='pod_rhs_4000')
-                     write(52,*)(pod_rhs%val)
-                     close(52)
-               !  endif !.not.reduced_model
                        if(.not.reduced_model) then
                         pod_matrix%val=0.0
                         pod_matrix_mass%val=0.0
@@ -1466,249 +1453,231 @@
 	
                      enddo  !k=1,size(POD_state,1)
                      
-    		     open(51,file='pod_matrix_4000_2')
-                     write(51,*)(pod_matrix%val)
-                     close(51)
-                     open(52,file='pod_rhs_4000_2')
-                     write(52,*)(pod_rhs%val)
-                     close(52)
-                     !stop 45
                     endif
 
-                     if(petrov) then
-  print *,"before POD_u"
-    POD_u=>extract_vector_field(POD_state(1,1,istate), "Velocity")
-    print *,"before POD_u_scalar"
-    !POD_u_scalar=extract_scalar_field(POD_u,1)    !!need modify
-    POD_num=size(POD_state)
-    print *,"before allocate(X_val"
-    allocate(X_val(POD_u%dim,ele_loc(POD_u,ele)))
-    print *,"before allocate JJ"
-    allocate(JJ(POD_u%dim,mesh_dim(POD_u)))
-    !allocate(pod_coef(POD_u%dim*POD_num+POD_num))
-    pod_umesh => extract_mesh(POD_state(1,1,istate), "Mesh", stat)
-    TOTELE=pod_umesh%elements
-    NLOC=pod_umesh%shape%loc
-    NGI=pod_umesh%shape%ngi
-    print *,"before allocate rhs_old"
-   call allocate(pod_rhs_old, POD_u, POD_pressure)
-
-    xf_shape=>ele_shape(POD_u,1)
-    x_shape=>ele_shape(POD_u,1)
-     print *, "timestep,, 2+++"
-do j=1, POD_num
- !POD_u_scalar=>extract_scalar_field(POD_state(j), "PODPressure")
-       !POD_u_scalar=extract_scalar_field(POD_u,j)
-       X_val=ele_val(POD_u, j)
-       xf_shape=>ele_shape(Pod_u,j)  !!
-       x_shape=>ele_shape(POD_u,j)!!
-end do
-                        !!new added for petro-galerkin     
+                    !! Petrov-Galerkin POD
+                    if(petrov) then
+                       POD_u=>extract_vector_field(POD_state(1,1,istate), "Velocity")
+                       POD_num=size(POD_state)
+                       allocate(X_val(POD_u%dim,ele_loc(POD_u,ele)))
+                       allocate(JJ(POD_u%dim,mesh_dim(POD_u)))
+                       pod_umesh => extract_mesh(POD_state(1,1,istate), "Mesh", stat)
+                       TOTELE=pod_umesh%elements
+                       NLOC=pod_umesh%shape%loc
+                       NGI=pod_umesh%shape%ngi
+                       call allocate(pod_rhs_old, POD_u, POD_pressure)
+                       
+                       xf_shape=>ele_shape(POD_u,1)
+                       x_shape=>ele_shape(POD_u,1)
+                       do j=1, POD_num
+                          X_val=ele_val(POD_u, j)
+                          xf_shape=>ele_shape(Pod_u,j)  !!
+                          x_shape=>ele_shape(POD_u,j)!!
+                       end do
+                       !!new added for petro-galerkin     
        
-      
-       ! allocate(pod_sol_velocity(u_nodes,POD_velocity%dim))
-	 allocate(theta_pet(NGI))
-         allocate(leftsvd(TOTELE*NLOC+NLOC,nsvd))
-         allocate(leftsvd_gi(NGI,nsvd))
-         allocate(leftsvd_x_gi(NGI,nsvd))
-         allocate(smean_gi(NGI))
-         allocate(AMAT_pod(nsvd,nsvd))
-         allocate(KMAT_pod(nsvd,nsvd))
-         allocate(KB_pod(nsvd)) 
-         allocate(b_pod(nsvd)) 
-         allocate(PSI(TOTELE*NLOC+NLOC))
-         allocate(PSI_GI(NGI)) 
-         allocate(PSI_OLD_GI(NGI)) 
-         allocate(psi_old(TOTELE*NLOC+NLOC))
-         allocate(GRADX(NGI))
-         allocate(GRADT(NGI))
-         allocate(DIFFGI_pod(NGI))
-         allocate(detwei(NGI))
-         allocate(res(NGI))
-       !  noloc=x_shape%loc
-       !  nogas=x_shape%ngi
-       !  allocate(dshape(noloc,nogas,POD_u%dim))
-	 allocate(dshape(x_shape%loc,x_shape%ngi,POD_u%dim))  !number of nodes, NO. of gussian
+                       
+                       ! allocate(pod_sol_velocity(u_nodes,POD_velocity%dim))
+                       allocate(theta_pet(NGI))
+                       allocate(leftsvd(TOTELE*NLOC+NLOC,nsvd))
+                       allocate(leftsvd_gi(NGI,nsvd))
+                       allocate(leftsvd_x_gi(NGI,nsvd))
+                       allocate(smean_gi(NGI))
+                       allocate(AMAT_pod(nsvd,nsvd))
+                       allocate(KMAT_pod(nsvd,nsvd))
+                       allocate(KB_pod(nsvd)) 
+                       allocate(b_pod(nsvd)) 
+                       allocate(PSI(TOTELE*NLOC+NLOC))
+                       allocate(PSI_GI(NGI)) 
+                       allocate(PSI_OLD_GI(NGI)) 
+                       allocate(psi_old(TOTELE*NLOC+NLOC))
+                       allocate(GRADX(NGI))
+                       allocate(GRADT(NGI))
+                       allocate(DIFFGI_pod(NGI))
+                       allocate(detwei(NGI))
+                       allocate(res(NGI))
+                       allocate(dshape(x_shape%loc,x_shape%ngi,POD_u%dim))  !number of nodes, NO. of gussian
 	
 
-     ! new added for petro-galerkin Residual, see  Non-Linear Petrov-Galerkin Methods for
-     ! Hyperbolic Equations and Discontinuous Finite Element Methods .. eqn 102
-     ! get the result of Residual value"
-     
-     pod_rhs_old%val=pod_rhs%val 
-     call solve(pod_matrix%val, pod_rhs%val)
-    ! pod_coef=pod_rhs%val
-     pod_rhs%val=pod_rhs%val-pod_rhs_old%val
-     call SMLINN(pod_matrix%val,RES,pod_rhs%val,GI,GI) ! get the RES
+                       ! new added for petro-galerkin Residual, see  Non-Linear Petrov-Galerkin Methods for
+                       ! Hyperbolic Equations and Discontinuous Finite Element Methods .. eqn 102
+                       ! get the result of Residual value"
+                       
+                       pod_rhs_old%val=pod_rhs%val 
+                       call solve(pod_matrix%val, pod_rhs%val)
+                       ! pod_coef=pod_rhs%val
+                       pod_rhs%val=pod_rhs%val-pod_rhs_old%val
+                       call SMLINN(pod_matrix%val,RES,pod_rhs%val,GI,GI) ! get the RES
 
-           DO ELE=1,TOTELE
-           leftsvd_gi = 0.0
-           leftsvd_x_gi = 0.0
-           smean_gi =0.0
+                       DO ELE=1,TOTELE
+                          leftsvd_gi = 0.0
+                          leftsvd_x_gi = 0.0
+                          smean_gi =0.0
+                          
+                          call transform_to_physical(POD_u, ele,  ele_shape(POD_u,1), detwei=detwei, dshape=dshape)
+                          DO GI=1,NGI        ! guassian points' number
+                             DO JLOC=1,NLOC   ! NLOC points in one element
+                                GLOBJ=(ELE-1)*NLOC+JLOC
+                                
+                                do isvd =1,nsvd
+                                   leftsvd(GLOBJ,isvd)=POD_u%val(GLOBJ,isvd)
+                                   leftsvd_gi(GI,isvd)=leftsvd_gi(GI,isvd)+xf_shape%dn(isvd,GI,1)*leftsvd(GLOBJ,isvd) 
+                                   !N shape function, leftsvd: podbasis, N(JLOC,GI): ele_shape(nu, ele)
+                                   leftsvd_x_gi(GI,isvd)=leftsvd_gi(GI,isvd)+dshape(JLOC,GI,1)*leftsvd(GLOBJ,isvd)
+                                enddo
+                                !smean_gi(gi)=smean_gi(gi)+ 1SMLINN(A,X,B,NMX,N)*smean(GLOBJ)  !need modification
+                                !smean_gi(gi)=smean_gi(gi)+ 1*smean(GLOBJ)
+                             END DO
+                          END DO
+                       END DO
 
-          call transform_to_physical(POD_u, ele,  ele_shape(POD_u,1), detwei=detwei, dshape=dshape)
-	   DO GI=1,NGI        ! guassian points' number
-	     DO JLOC=1,NLOC   ! NLOC points in one element
-	       GLOBJ=(ELE-1)*NLOC+JLOC
-              
-               do isvd =1,nsvd
-                  leftsvd(GLOBJ,isvd)=POD_u%val(GLOBJ,isvd)
-                  leftsvd_gi(GI,isvd)=leftsvd_gi(GI,isvd)+xf_shape%dn(isvd,GI,1)*leftsvd(GLOBJ,isvd) 
-                      !N shape function, leftsvd: podbasis, N(JLOC,GI): ele_shape(nu, ele)
-                  leftsvd_x_gi(GI,isvd)=leftsvd_gi(GI,isvd)+dshape(JLOC,GI,1)*leftsvd(GLOBJ,isvd)
-               enddo
-                 !smean_gi(gi)=smean_gi(gi)+ 1SMLINN(A,X,B,NMX,N)*smean(GLOBJ)  !need modification
-                 !smean_gi(gi)=smean_gi(gi)+ 1*smean(GLOBJ)
-	     END DO
-	   END DO
-           END DO
+                       PSI_GI=0.0   !  quadrature point
+                       PSI_OLD_GI=0.0
+                       
+                       DO GI=1,NGI
+                          DO JLOC=1,NLOC   
+                             GLOBJ=(ELE-1)*NLOC+JLOC
+                             PSI_GI(GI)=PSI_GI(GI)+xf_shape%dn(isvd,GI,1)*PSI(GLOBJ)
+                             PSI_OLD_GI(GI)=PSI_OLD_GI(GI)+xf_shape%dn(isvd,GI,1)*PSI_OLD(GLOBJ)
+                          END DO
+                       END DO
+                       
+                       
+                       ! calculate the GRADX and GRADT    quadrature point
+                       GRADX=0.0
+                       GRADT=0.0
+                       DO GI=1,NGI      !   ?? NGI and NLOC need input 
+                          DO JLOC=1,NLOC
+                             GLOBJ=(ELE-1)*NLOC+JLOC
+                             PSI_theta=theta_pet(GI)*PSI(GLOBJ)+(1.-theta_pet(GI))*PSI_OLD(GLOBJ)
+                             
+                             GRADX(GI)=GRADX(GI)+dshape(JLOC,GI,1)*PSI_theta
+                             GRADT(GI)=GRADT(GI)+xf_shape%dn(isvd,GI,1)*(PSI(GLOBJ)-PSI_OLD(GLOBJ))/DT1
+                          END DO
+                       END DO
 
-	   PSI_GI=0.0   !  quadrature point
-	   PSI_OLD_GI=0.0
-	   
-	   DO GI=1,NGI
-	     DO JLOC=1,NLOC   
-	       GLOBJ=(ELE-1)*NLOC+JLOC
-	       PSI_GI(GI)=PSI_GI(GI)+xf_shape%dn(isvd,GI,1)*PSI(GLOBJ)
-	       PSI_OLD_GI(GI)=PSI_OLD_GI(GI)+xf_shape%dn(isvd,GI,1)*PSI_OLD(GLOBJ)
-	     END DO
-	   END DO
-        
+                       !  get the result of  AX_STAR cos P_STAR_POD need it 
+                       DO GI=1,NGI
+                          
+                          A_STAR_COEF=(GRADX(GI)+GRADT(GI)*1.) &
+                               /MAX(1.E-6,GRADX(GI)**2+1.*GRADT(GI)**2)
+                          !  AT_STAR=A_STAR_COEF*GRADT(GI)
+                          AX_STAR=A_STAR_COEF*GRADX(GI)
+                       enddo
+                       do gi =1,ngi
+                          do isvd = 1,nsvd
+                             if(isvd.eq.1) then
+                                P_STAR_POD = 0.25/abs(AX_STAR*leftsvd_x_gi(GI,isvd))
+                             else
+                                P_STAR_POD = 0.25/max(P_STAR_POD,abs(AX_STAR*leftsvd_x_gi(GI,isvd)))
+                             endif
+                          enddo
+                          DIFFGI_pod(GI) = 1.0e-4*P_STAR_POD*RES(GI)**2   &
+                               / MAX(1.E-6,GRADX(GI)**2+GRADT(GI)**2)!!v_pod (eqn.100)
+                       enddo
+                       
+                       do isvd =1,nsvd
+                          do jsvd=1,nsvd
+                             do gi =1,ngi
+                                KMAT_pod(isvd,jsvd) = KMAT_pod(isvd,jsvd) &
+                                     + detwei(GI)*leftsvd_x_gi(GI,isvd)*DIFFGI_pod(GI)*leftsvd_x_gi(GI,jsvd)
+                                ! (eqn.99 left side,leftsvd_x_gi:delta N)
+                             enddo
+                          enddo
+                       enddo
+                       
 
- ! calculate the GRADX and GRADT    quadrature point
-           GRADX=0.0
-           GRADT=0.0
-	   DO GI=1,NGI      !   ?? NGI and NLOC need input 
-	     DO JLOC=1,NLOC
-	       GLOBJ=(ELE-1)*NLOC+JLOC
-	       PSI_theta=theta_pet(GI)*PSI(GLOBJ)+(1.-theta_pet(GI))*PSI_OLD(GLOBJ)
-	    
-               GRADX(GI)=GRADX(GI)+dshape(JLOC,GI,1)*PSI_theta
-               GRADT(GI)=GRADT(GI)+xf_shape%dn(isvd,GI,1)*(PSI(GLOBJ)-PSI_OLD(GLOBJ))/DT1
-	     END DO
-	   END DO
-
-!  get the result of  AX_STAR cos P_STAR_POD need it 
-         DO GI=1,NGI
-
-             A_STAR_COEF=(GRADX(GI)+GRADT(GI)*1.) &
-                         /MAX(1.E-6,GRADX(GI)**2+1.*GRADT(GI)**2)
-            !  AT_STAR=A_STAR_COEF*GRADT(GI)
-             AX_STAR=A_STAR_COEF*GRADX(GI)
-           enddo
-         do gi =1,ngi
-             do isvd = 1,nsvd
-                if(isvd.eq.1) then
-                   P_STAR_POD = 0.25/abs(AX_STAR*leftsvd_x_gi(GI,isvd))
-                else
-                   P_STAR_POD = 0.25/max(P_STAR_POD,abs(AX_STAR*leftsvd_x_gi(GI,isvd)))
-                endif
-             enddo
-             DIFFGI_pod(GI) = 1.0e-4*P_STAR_POD*RES(GI)**2   &
-                            / MAX(1.E-6,GRADX(GI)**2+GRADT(GI)**2)!!v_pod (eqn.100)
-          enddo
-
-          do isvd =1,nsvd
-             do jsvd=1,nsvd
-                do gi =1,ngi
-                   KMAT_pod(isvd,jsvd) = KMAT_pod(isvd,jsvd) &
-                                       + detwei(GI)*leftsvd_x_gi(GI,isvd)*DIFFGI_pod(GI)*leftsvd_x_gi(GI,jsvd)
-                    ! (eqn.99 left side,leftsvd_x_gi:delta N)
-                enddo
-             enddo
-          enddo 
-
-
-!!call solver
- 
-
-   
-     !pod_rhs%val=0.001*pod_rhs%val
-     ! add K to (MT AM + K) fi *pod= MT b. 
-
-       do isvd =1,nsvd
-               do jsvd=1,nsvd
-                  pod_matrix%val(isvd,jsvd) = pod_matrix%val(isvd,jsvd)+KMAT_pod(isvd,jsvd)
-               enddo
-                  !b_pod(isvd) = b_pod(isvd)-KB_pod(isvd)
-            enddo
+                       !!call solver
+                       
+                       
+                       
+                       !pod_rhs%val=0.001*pod_rhs%val
+                       ! add K to (MT AM + K) fi *pod= MT b. 
+                       
+                       do isvd =1,nsvd
+                          do jsvd=1,nsvd
+                             pod_matrix%val(isvd,jsvd) = pod_matrix%val(isvd,jsvd)+KMAT_pod(isvd,jsvd)
+                          enddo
+                          !b_pod(isvd) = b_pod(isvd)-KB_pod(isvd)
+                       enddo
   
-       call solve(pod_matrix%val,pod_rhs_old%val) 
-       pod_rhs%val=pod_rhs_old%val
-          deallocate(theta_pet)
-          deallocate(leftsvd)
-          deallocate(leftsvd_gi)
-          deallocate(leftsvd_x_gi)
-          deallocate(smean_gi)
-          deallocate(AMAT_pod)
-          deallocate(KMAT_pod)
-          deallocate(KB_pod) 
-          deallocate(b_pod) 
-          deallocate(PSI)
-          deallocate(PSI_GI) 
-          deallocate(PSI_OLD_GI) 
-          deallocate(psi_old)
-          deallocate(GRADX)
-          deallocate(GRADT)
-          deallocate(DIFFGI_pod)
-          deallocate(detwei)
-          deallocate(res)
-          deallocate(dshape) 
-  else 
-       call solve(pod_matrix%val,pod_rhs%val)
-       
- endif ! end petrov 
+                       call solve(pod_matrix%val,pod_rhs_old%val) 
+                       pod_rhs%val=pod_rhs_old%val
+                       deallocate(theta_pet)
+                       deallocate(leftsvd)
+                       deallocate(leftsvd_gi)
+                       deallocate(leftsvd_x_gi)
+                       deallocate(smean_gi)
+                       deallocate(AMAT_pod)
+                       deallocate(KMAT_pod)
+                       deallocate(KB_pod) 
+                       deallocate(b_pod) 
+                       deallocate(PSI)
+                       deallocate(PSI_GI) 
+                       deallocate(PSI_OLD_GI) 
+                       deallocate(psi_old)
+                       deallocate(GRADX)
+                       deallocate(GRADT)
+                       deallocate(DIFFGI_pod)
+                       deallocate(detwei)
+                       deallocate(res)
+                       deallocate(dshape) 
+                    else 
+                       call solve(pod_matrix%val,pod_rhs%val)
+                       
+                    endif ! end petrov 
+
                     ! call solve(pod_matrix%val, pod_rhs%val)
-                     pod_coef_dt=0.0
-                     pod_coef_dt=pod_rhs%val
-                     pod_rhs%val=0.0
+                    pod_coef_dt=0.0
+                    pod_coef_dt=pod_rhs%val
+                    pod_rhs%val=0.0
+                    
+                    pod_coef(:)=pod_coef(:)+dt*pod_coef_dt(:)
+                    !pod_coef(:)=pod_coef_dt(:)
+                    
+                    !save pod_coef, rewrite every timestep
+                    open(40,file='pod_coef')
+                    write(40,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state,1))
+                    close(40)
+                    print*,pod_coef
 
-                     pod_coef(:)=pod_coef(:)+dt*pod_coef_dt(:)
-                     !pod_coef(:)=pod_coef_dt(:)
+                    call project_full(delta_u, delta_p, pod_sol_velocity, pod_sol_pressure, POD_state(:,:,istate), pod_coef)
+                    
+                    
+                 endif ! timestep          
+                 
+                 !1000 continue
+                 
+                 snapmean_velocity=>extract_vector_field(POD_state(1,1,istate),"SnapmeanVelocity")
+                 snapmean_pressure=>extract_Scalar_field(POD_state(1,2,istate),"SnapmeanPressure")
+                 !call addto(u, delta_u, dt)
+                 u%val=snapmean_velocity%val
+                 call addto(u, delta_u)
+                 p%val=snapmean_pressure%val
+                 call addto(p, delta_p)
+                 
+                 call deallocate(delta_p)
+                 call deallocate(delta_u)
+                 
+                 deallocate(pod_matrix_snapmean)
+                 deallocate(pod_rhs_snapmean)
+                 deallocate(pod_matrix_perturbed)
+                 deallocate(pod_matrix_adv_perturbed)
+                 deallocate(pod_rhs_perturbed)
+                 deallocate(pod_rhs_adv_perturbed)
+                 deallocate(pod_ct_m)
+                 call deallocate(pod_matrix)
+                 call deallocate(pod_matrix_mass)
+                 call deallocate(pod_rhs)
+                 
+                 
+              endif ! prognostic velocity
+              
+           enddo reduced_model_loop
+           call profiler_toc("reduced_model_loop")
 
-                     !save pod_coef, rewrite every timestep
-                     open(40,file='pod_coef')
-                     write(40,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state,1))
-                     close(40)
-                     print*,pod_coef
-
-                     call project_full(delta_u, delta_p, pod_sol_velocity, pod_sol_pressure, POD_state(:,:,istate), pod_coef)
-
-
-                  endif ! timestep          
-
-!1000 continue
-
-                  snapmean_velocity=>extract_vector_field(POD_state(1,1,istate),"SnapmeanVelocity")
-                  snapmean_pressure=>extract_Scalar_field(POD_state(1,2,istate),"SnapmeanPressure")
-                  !call addto(u, delta_u, dt)
-                  u%val=snapmean_velocity%val
-                  call addto(u, delta_u)
-                  p%val=snapmean_pressure%val
-                  call addto(p, delta_p)
-
-                  call deallocate(delta_p)
-                  call deallocate(delta_u)
-
-                  deallocate(pod_matrix_snapmean)
-                  deallocate(pod_rhs_snapmean)
-                  deallocate(pod_matrix_perturbed)
-                  deallocate(pod_matrix_adv_perturbed)
-                  deallocate(pod_rhs_perturbed)
-                  deallocate(pod_rhs_adv_perturbed)
-                  deallocate(pod_ct_m)
-                  call deallocate(pod_matrix)
-                  call deallocate(pod_matrix_mass)
-                  call deallocate(pod_rhs)
-
-
-               endif ! prognostic velocity
-
-            enddo reduced_model_loop
-            call profiler_toc("reduced_model_loop")
-
-          !  endif ! its=nonlinear_iterations
-         end if ! end of 'if .not.reduced_model'
+           !  endif ! its=nonlinear_iterations
+        end if ! end of 'if .not.reduced_model'
 
 
  	if(.not.reduced_model .or. (reduced_model .and. timestep_check))then
