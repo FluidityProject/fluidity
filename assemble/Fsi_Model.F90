@@ -115,7 +115,8 @@ module fsi_model
         ! and if so, move the solid mesh and update the new
         ! solid volume fractions as well
         if ( (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed") .or. &
-            & have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed")) &
+            & have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed") .or. &
+            & have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidMovement/prescribed")) &
             & .and. its == 1) then
             call fsi_update_solid_position_volume_fraction(state, solid_states)
             ! Some tests for fsi_interface
