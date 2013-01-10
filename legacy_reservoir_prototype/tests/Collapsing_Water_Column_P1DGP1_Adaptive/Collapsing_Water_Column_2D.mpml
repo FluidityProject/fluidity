@@ -281,7 +281,9 @@
         <equation name="LinearMomentum"/>
         <spatial_discretisation>
           <discontinuous_galerkin>
-            <mass_terms/>
+            <mass_terms>
+              <lump_mass_matrix/>
+            </mass_terms>
             <viscosity_scheme>
               <compact_discontinuous_galerkin/>
             </viscosity_scheme>
