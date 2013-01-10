@@ -151,7 +151,8 @@ module fsi_model
         ! Get number of solid meshes:
         num_solid_mesh = option_count('/embedded_models/fsi_model/geometry/mesh')
 
-        ! Loop over solid meshes again, to update global solid volume fraction field:
+        ! Loop over solid meshes, to set solid volume fraction, force and velocity based on iterated
+        ! values:
         solid_mesh_loop: do i=0, num_solid_mesh-1
 
             ! Get mesh name:
@@ -1592,13 +1593,13 @@ module fsi_model
           solidvelocity_mesh%option_path = 'solidtmp/'//trim(solidvelocity_mesh%option_path)
 
         end do solid_mesh_loop
-      
+
       end do state_loop
 
       ewrite(2,*) "leaving fsi_model_pre_adapt_cleanup"
 
     end subroutine fsi_model_pre_adapt_cleanup
-    
+
     !----------------------------------------------------------------------------
 
     subroutine fsi_post_adapt_operations(states, solid_states)
