@@ -98,7 +98,7 @@ contains
   end function do_checkpoint_simulation
 
   subroutine checkpoint_simulation(state, prefix, postfix, cp_no, protect_simulation_name, &
-    keep_initial_data, solid)
+    keep_initial_data, ignore_detectors, solid)
     !!< Checkpoint the whole simulation
     
     type(state_type), dimension(:), intent(in) :: state
@@ -114,10 +114,15 @@ contains
     !! checkpoint extruded meshes if the extrusion can be repeated using the initial sizing_function, 
     !! i.e. if this run has not been started with a checkpointed extruded mesh (extrude/checkpoint_from_file)
     logical, optional, intent(in) :: keep_initial_data
+    !! When using flredecomp to re-partition the domain, the detectors
+    !! are ignored since they are kept in one header and one data file,
+    !! not in a set of per-process files.  So flredecomp does not want to
+    !! checkpoint detectors.
+    logical, optional, intent(in) :: ignore_detectors
+    !! For solid checkpoints:
     logical, optional, intent(in) :: solid
 
     character(len = PREFIX_LEN) :: lpostfix, lprefix
-    character(len = FIELD_NAME_LEN) :: mesh_name
 
     ewrite(1, *) "Checkpointing simulation"
 
@@ -138,7 +143,8 @@ contains
 
     call checkpoint_state(state, lprefix, postfix = lpostfix, cp_no = cp_no, &
       keep_initial_data = keep_initial_data, solid=solid)
-    if(have_option("/io/detectors")) then
+    if(have_option("/io/detectors") &
+         .and. .not.present_and_true(ignore_detectors)) then
       call checkpoint_detectors(state, lprefix, postfix = lpostfix, cp_no = cp_no)
     end if
     if(getrank() == 0) then

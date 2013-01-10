@@ -363,7 +363,7 @@ contains
   type(state_type), intent(in):: state
   type(mesh_type), intent(in):: mesh
   type(vector_field), pointer :: positions
-    
+
     if (has_vector_field(state, trim(mesh%name)//"Coordinate")) then
        positions=>extract_vector_field(state, trim(mesh%name)//"Coordinate")
     elseif (has_vector_field(state, "IteratedCoordinate")) then

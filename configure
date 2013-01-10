@@ -1425,7 +1425,8 @@ Optional Features:
   --enable-dp=flag        compile with 64 bit floating point numbers (default)
   --enable-profiling      enable gprof profiling
   --enable-spatialindex-version
-                          Select required version of spatialindex library: 1.5
+                          Select required version of spatialindex library:
+                          1.8.0
   --enable-vtk            Only use to disable vtk
   --enable-2d-adaptivity  Link against 2D adaptivity library (GPL license)
   --enable-mba3d          Enabled libmba3d 3D adaptivity library
@@ -6752,9 +6753,9 @@ if test "${enable_cgal+set}" = set; then :
 fi
 
 if test "$enable_cgal" = "yes" ; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for cos in -lCGAL" >&5
-$as_echo_n "checking for cos in -lCGAL... " >&6; }
-if ${ac_cv_lib_CGAL_cos+:} false; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for _ZNK4CGAL6Random8get_seedEv in -lCGAL" >&5
+$as_echo_n "checking for _ZNK4CGAL6Random8get_seedEv in -lCGAL... " >&6; }
+if ${ac_cv_lib_CGAL__ZNK4CGAL6Random8get_seedEv+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
@@ -6768,7 +6769,7 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 #ifdef __cplusplus
 extern "C"
 #endif
-char cos ();
+char _ZNK4CGAL6Random8get_seedEv ();
 #ifdef F77_DUMMY_MAIN
 
 #  ifdef __cplusplus
@@ -6780,23 +6781,23 @@ char cos ();
 int
 main ()
 {
-return cos ();
+return _ZNK4CGAL6Random8get_seedEv ();
   ;
   return 0;
 }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_CGAL_cos=yes
+  ac_cv_lib_CGAL__ZNK4CGAL6Random8get_seedEv=yes
 else
-  ac_cv_lib_CGAL_cos=no
+  ac_cv_lib_CGAL__ZNK4CGAL6Random8get_seedEv=no
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_CGAL_cos" >&5
-$as_echo "$ac_cv_lib_CGAL_cos" >&6; }
-if test "x$ac_cv_lib_CGAL_cos" = xyes; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_CGAL__ZNK4CGAL6Random8get_seedEv" >&5
+$as_echo "$ac_cv_lib_CGAL__ZNK4CGAL6Random8get_seedEv" >&6; }
+if test "x$ac_cv_lib_CGAL__ZNK4CGAL6Random8get_seedEv" = xyes; then :
   HAVE_CGAL=yes
 else
   HAVE_CGAL=no
@@ -13875,8 +13876,8 @@ if test "x$enable_spatialindex_version" != "x"
 then
   SPATIALINDEXDIR="spatialindex-$enable_spatialindex_version"
 else
-  enable_spatialindex_version="1.5"
-  SPATIALINDEXDIR="spatialindex-1.5"
+  enable_spatialindex_version="1.8.0"
+  SPATIALINDEXDIR="spatialindex-1.8.0"
 fi
 
 

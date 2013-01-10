@@ -151,7 +151,7 @@ a boundary when solving the advection-diffusion equation.</a:documentation>
     <choice>
       <element name="solver">
         <a:documentation>Solver</a:documentation>
-        <ref name="linear_solver_options_asym"/>
+        <ref name="linear_solver_options_asym_scalar"/>
       </element>
       <element name="explicit">
         <a:documentation>Assume this field is being solved explicitly and skip the solver.
@@ -381,7 +381,11 @@ is used for the spatial discretisation.</a:documentation>
         <a:documentation>Velocity at which this substance sinks through the water column.
 
 This velocity is in the direction of gravity so if the substance
-floats or swims upwards, this field should be negative.</a:documentation>
+floats or swims upwards, this field should be negative.
+
+This should be on the same mesh as the velocity field unless you are 
+using a DG discretisation and projecting the velocity to contiuous, in 
+which case it should be on a continuous mesh.</a:documentation>
         <attribute name="name">
           <value>SinkingVelocity</value>
         </attribute>
@@ -390,9 +394,11 @@ floats or swims upwards, this field should be negative.</a:documentation>
         </attribute>
         <choice>
           <element name="prescribed">
+            <ref name="velocity_mesh_choice"/>
             <ref name="prescribed_scalar_field_no_adapt"/>
           </element>
           <element name="diagnostic">
+            <ref name="velocity_mesh_choice"/>
             <choice>
               <ref name="scalar_python_diagnostic_algorithm"/>
               <ref name="internal_algorithm"/>
@@ -1055,6 +1061,20 @@ twice.</a:documentation>
         <ref name="real"/>
       </element>
       <optional>
+        <element name="theta_pressure_gradient">
+          <a:documentation>Implicit/explicit control of pressure gradient temporal
+ discretisation, theta_pg
+ =0.  -- explicit
+ =0.5 -- Crank-Nicolson
+ =1.  -- implicit
+ Specification of this parameter will only affect
+ solution procedure when a free-surface is present or 
+ compressible projection is used. If left unspecified
+ the code defaults to theta_pg = theta.</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
         <element name="theta_divergence">
           <a:documentation>Implicit/explicit control of velocity-divergence temporal
  discretisation, theta_divergence
@@ -1079,10 +1099,10 @@ Specify the maximum courant number per subcycle.</a:documentation>
       </optional>
     </element>
     <optional>
-      <element name="reference_node">
+      <choice>
         <a:documentation>&lt;b&gt;ONLY MAKES SENSE WITH STOKES&lt;/b&gt;
 
-Reference node (Node at which all components of velocity = 0.)
+Reference node (Node at which specified components of velocity = 0.)
 
 Must be less than the total number of nodes.
 If parallel must be less than the total number of nodes of the first processor.
@@ -1096,12 +1116,65 @@ Note: it is also an option to remove the null-space of the residual vector. This
 option is available under solvers but only removes a single null space so will
 only work if your Stokes velocities are coupled in some way (not generally the 
 case unless using stress form viscosity and/or coriolis).</a:documentation>
-        <ref name="integer"/>
-      </element>
+        <element name="reference_node">
+          <ref name="integer"/>
+          <choice>
+            <element name="all_components">
+              <a:documentation>Apply this reference node to all components of velocity</a:documentation>
+              <empty/>
+            </element>
+            <element name="specify_components">
+              <a:documentation>Specify individual components of velocity to apply this reference node to</a:documentation>
+              <optional>
+                <element name="x_component">
+                  <empty/>
+                </element>
+              </optional>
+              <optional>
+                <element name="y_component">
+                  <empty/>
+                </element>
+              </optional>
+              <optional>
+                <element name="z_component">
+                  <empty/>
+                </element>
+              </optional>
+            </element>
+          </choice>
+        </element>
+        <element name="reference_coordinates">
+          <ref name="real_dim_vector"/>
+          <choice>
+            <element name="all_components">
+              <a:documentation>Apply this reference node to all components of velocity</a:documentation>
+              <empty/>
+            </element>
+            <element name="specify_components">
+              <a:documentation>Specify individual components of velocity to apply this reference node to</a:documentation>
+              <optional>
+                <element name="x_component">
+                  <empty/>
+                </element>
+              </optional>
+              <optional>
+                <element name="y_component">
+                  <empty/>
+                </element>
+              </optional>
+              <optional>
+                <element name="z_component">
+                  <empty/>
+                </element>
+              </optional>
+            </element>
+          </choice>
+        </element>
+      </choice>
     </optional>
     <element name="solver">
       <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_asym"/>
+      <ref name="linear_solver_options_asym_vector"/>
     </element>
     <oneOrMore>
       <choice>
@@ -1439,16 +1512,6 @@ If activated this means that the pressure gradient operator is not integrated by
             </element>
           </optional>
           <optional>
-            <element name="low_re_p_correction_fix">
-              <a:documentation>** UNDER DEVELOPMENT **
-
-Fix for low reynolds numbers by adding the viscous terms to the inversed lumped mass matrix for the pressure correction.
-
-** ONLY WORKS with continuous_galerkin Velocity and lumping the mass matrix and not with lumping on submesh.</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
             <element name="test_continuity_with_cv_dual">
               <a:documentation>Test the continuity equation with the control volume dual mesh of the finite element pressure mesh.
 Only works for incompressible flow. This will make the pressure matrix non symmetric which must be 
@@ -1560,7 +1623,7 @@ Doesn't really matter if you've lumped your mass or not but why would you if you
                     <value>FullMomentumMatrix</value>
                   </attribute>
                   <element name="solver">
-                    <ref name="linear_solver_options_asym"/>
+                    <ref name="linear_solver_options_asym_vector"/>
                   </element>
                 </element>
               </choice>
@@ -1938,7 +2001,7 @@ be valid for a continuous HydrostaticPressure.</a:documentation>
       <element name="solver">
         <a:documentation>Solver
 Only required for continuous_galerkin spatial_discretisations!</a:documentation>
-        <ref name="linear_solver_options_asym"/>
+        <ref name="linear_solver_options_asym_scalar"/>
       </element>
     </optional>
     <element name="exclude_from_checkpointing">
@@ -2082,283 +2145,13 @@ Only applicable to control volume spatial discretisations.</a:documentation>
     </optional>
   </define>
   <!--
-    free surface field, this is a copy of prognostic_scalar_field above
-    removing all options that don't apply (mainly advection related)
-  -->
-  <define name="prognostic_free_surface_field">
-    <element name="spatial_discretisation">
-      <a:documentation>Spatial discretisation options</a:documentation>
-      <optional>
-        <element name="free_surface_3D">
-          <a:documentation>Form a full 3D system for the free surface</a:documentation>
-          <empty/>
-        </element>
-      </optional>
-      <optional>
-        <element name="fourth_order_dissipation">
-          <empty/>
-        </element>
-      </optional>
-      <optional>
-        <element name="low_order_free_surface">
-          <a:documentation>low order (linear) free surface</a:documentation>
-          <empty/>
-        </element>
-      </optional>
-      <choice>
-        <element name="default_free_surface_filter">
-          <a:documentation>Select free surface filter
-
-With PN-PN we need some filter to supress spurious modes.</a:documentation>
-          <empty/>
-        </element>
-        <element name="user_specified_free_surface_filter">
-          <a:documentation>Select free surface filter
-
-With PN-PN we need some filter to supress spurious modes.</a:documentation>
-          <element name="non_linear_filter_coefficient">
-            <a:documentation>Default is to apply 0.01 and for wetting and drying cases 1.0</a:documentation>
-            <ref name="real"/>
-          </element>
-        </element>
-        <element name="switch_off_free_surface_filter">
-          <a:documentation>Switch off free surface filter, this is more efficient than setting the coefficient to 0.</a:documentation>
-          <empty/>
-        </element>
-      </choice>
-      <optional>
-        <element name="wetting_drying">
-          <a:documentation>Apply wetting and drying routines</a:documentation>
-          <empty/>
-        </element>
-      </optional>
-      <optional>
-        <element name="tidal_forcing">
-          <a:documentation>Tidal forcing options </a:documentation>
-          <optional>
-            <element name="M2">
-              <a:documentation>M2</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="S2">
-              <a:documentation>S2</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="N2">
-              <a:documentation>N2</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="K2">
-              <a:documentation>K2</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="K1">
-              <a:documentation>K1</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="O1">
-              <a:documentation>O1</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="P1">
-              <a:documentation>P1</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="Q1">
-              <a:documentation>Q1</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="all_tidal_components">
-              <a:documentation>Switch on all tidal components</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="love_number">
-              <a:documentation>Switches on a Love number of 0.3</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="static_tidal_force">
-              <a:documentation>Use static tidal force for testing</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-        </element>
-      </optional>
-    </element>
-    <!--
-      atheta, ctheta and fstheta (absorption, coriolis and free surface)
-      need to go in temporal discretisation
-      they are currently hard-coded however
-    -->
-    <element name="temporal_discretisation">
-      <element name="theta">
-        <a:documentation>Implicit/explicitness for the free surface.
-
-Suggested value 1.0 (should be at least bigger than 0.5).
- =0.  -- explicit
- =0.5 -- Crank-Nicolson
- =1.  -- implicit</a:documentation>
-        <ref name="real"/>
-      </element>
-      <optional>
-        <!-- Maybe this should go under a proper absorption field under free surface? -->
-        <element name="absorption_theta">
-          <a:documentation>Implicit/explicitness for absorption
-=0.  -- explicit (default)
-=0.5 -- Crank-Nicolson
-=1.  -- implicit</a:documentation>
-          <ref name="real"/>
-        </element>
-      </optional>
-    </element>
-    <element name="solver">
-      <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_sym"/>
-    </element>
-    <oneOrMore>
-      <choice>
-        <element name="initial_condition">
-          <a:documentation>Initial condition for WholeMesh
-
-Only specify one condition if not using mesh regions.
-Otherwise select other initial_condition option, specify region_ids
-and distinct names.  Then add extra intial conditions for other regions.</a:documentation>
-          <attribute name="name">
-            <value>WholeMesh</value>
-          </attribute>
-          <ref name="input_choice_initial_condition_real"/>
-        </element>
-        <element name="initial_condition">
-          <a:documentation>Multiple initial_conditions are allowed if specifying
-different values in different
-regions of the mesh (defined by region_ids).  In this case
-each initial_condition
-requires a distinct name for the options dictionary.</a:documentation>
-          <attribute name="name">
-            <data type="string" datatypeLibrary=""/>
-          </attribute>
-          <optional>
-            <ref name="region_ids"/>
-          </optional>
-          <ref name="input_choice_initial_condition_real"/>
-        </element>
-      </choice>
-    </oneOrMore>
-    <zeroOrMore>
-      <element name="boundary_conditions">
-        <a:documentation>Boundary conditions</a:documentation>
-        <attribute name="name">
-          <data type="string" datatypeLibrary=""/>
-        </attribute>
-        <element name="surface_ids">
-          <a:documentation>Surface id:</a:documentation>
-          <ref name="integer_vector"/>
-        </element>
-        <choice>
-          <a:documentation>Type</a:documentation>
-          <element name="type">
-            <attribute name="name">
-              <value>dirichlet</value>
-            </attribute>
-            <choice>
-              <ref name="input_choice_real_plus_field"/>
-              <element name="from_file">
-                <oneOrMore>
-                  <element name="tidal">
-                    <attribute name="file_name">
-                      <data type="string" datatypeLibrary=""/>
-                    </attribute>
-                    <attribute name="variable_name_amplitude">
-                      <data type="string" datatypeLibrary=""/>
-                    </attribute>
-                    <attribute name="variable_name_phase">
-                      <data type="string" datatypeLibrary=""/>
-                    </attribute>
-                    <attribute name="name">
-                      <a:documentation>See E.W. Schwiderski - Rev. Geophys. Space
-Phys. Vol. 18 No. 1 pp. 243--268, 1980
-for details of these constituent.</a:documentation>
-                      <choice>
-                        <value>M2</value>
-                        <value>S2</value>
-                        <value>N2</value>
-                        <value>K2</value>
-                        <value>K1</value>
-                        <value>O1</value>
-                        <value>P1</value>
-                        <value>Q1</value>
-                        <value>Mf</value>
-                        <value>Mm</value>
-                        <value>Ssa</value>
-                      </choice>
-                    </attribute>
-                  </element>
-                </oneOrMore>
-              </element>
-              <element name="NEMO_data">
-                <a:documentation>Set the boundary free-surface height from NEMO data.
-A prescribed NEMO pressure scalar field must be set to use this option.
-Set the name of the prescribed NEMO pressure scalar field below.</a:documentation>
-                <attribute name="field_name">
-                  <data type="string" datatypeLibrary=""/>
-                </attribute>
-              </element>
-            </choice>
-          </element>
-          <element name="type">
-            <attribute name="name">
-              <value>neumann</value>
-            </attribute>
-            <ref name="input_choice_real_plus_field"/>
-          </element>
-          <ref name="robin_bc_scalar"/>
-        </choice>
-      </element>
-    </zeroOrMore>
-    <!--
-      no Diffusivity for field
-      no source term
-      no Absorption term
-      no Adaptive timestepping option
-    -->
-    <ref name="prognostic_scalar_output_options"/>
-    <ref name="prognostic_scalar_stat_options"/>
-    <ref name="scalar_convergence_options"/>
-    <ref name="prognostic_detector_options"/>
-    <ref name="scalar_steady_state_options"/>
-    <ref name="adaptivity_options_prognostic_scalar_field"/>
-    <ref name="interpolation_algorithm_scalar"/>
-    <optional>
-      <ref name="discrete_properties_algorithm_scalar"/>
-    </optional>
-  </define>
-  <!--
     stream function, this is a copy of prognostic_scalar_field above
     removing all options that don't apply (mainly advection related)
   -->
   <define name="prognostic_stream_function_field">
     <element name="solver">
       <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_asym"/>
+      <ref name="linear_solver_options_asym_scalar"/>
     </element>
     <element name="exclude_from_checkpointing">
       <a:documentation>Disables checkpointing of this field</a:documentation>
@@ -2386,7 +2179,7 @@ Set the name of the prescribed NEMO pressure scalar field below.</a:documentatio
   <define name="prognostic_multipath_stream_function_field">
     <element name="solver">
       <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_asym"/>
+      <ref name="linear_solver_options_asym_scalar"/>
     </element>
     <element name="boundary_conditions">
       <a:documentation>Boundary conditions</a:documentation>

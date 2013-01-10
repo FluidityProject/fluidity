@@ -77,7 +77,6 @@ module fluids_module
   use fsi_model, only: fsi_modelling, fsi_model_compute_diagnostics, fsi_model_nonlinear_iteration_converged, fsi_ibm_all_alpha_projections, fsi_model_pre_adapt_cleanup, fsi_post_adapt_operations
   use momentum_equation
   use timeloop_utilities
-  use free_surface_module
   use field_priority_lists
   use boundary_conditions
   use spontaneous_potentials, only: calculate_electrical_potential
@@ -539,6 +538,10 @@ contains
           ! For the free surface this is dealt with within move_mesh_free_surface() below
           call set_vector_field_in_state(state(1), "OldCoordinate", "Coordinate")
        end if
+       ! if we're using an implicit (prognostic) viscous free surface then there will be a surface field stored
+       ! under the boundary condition _implicit_free_surface on the FreeSurface field that we need to update
+       ! - it has an old and a new timelevel and the old one needs to be set to the now old new values.
+       call update_implicit_scaled_free_surface(state)
 
        ! this may already have been done in populate_state, but now
        ! we evaluate at the correct "shifted" time level:
