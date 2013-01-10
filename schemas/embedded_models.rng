@@ -183,35 +183,7 @@ unity from the supermesh, to the fluid mesh.</a:documentation>
       </choice>
     </element>
   </define>
-  <define name="fsi_model_input_real_dim_vector_solidvelocity_python">
-    <element name="python">
-      <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
-
- def val(X, t):
-    # Function code
-    return # Return value
-
-where X and the return value are tuples of length geometry dimension
-and t is either the current time or the timestep, depending on what is set
-in the option 'time_variable_python_interface'.</a:documentation>
-      <ref name="python_code"/>
-    </element>
-  </define>
-  <define name="fsi_model_input_real_dim_vector_solidposition_python">
-    <element name="python">
-      <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
-
- def val(X, t):
-    # Function code
-    return # Return value
-
-where X and the return value are tuples of length geometry dimension
-and t is either the current time or the timestep, depending on what is set
-in the option 'time_variable_python_interface'.</a:documentation>
-      <ref name="python_code"/>
-    </element>
-  </define>
-  <define name="fsi_model_input_real_dim_vector_solidmovement_python">
+  <define name="fsi_model_input_real_dim_vector_python">
     <element name="python">
       <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
 
@@ -237,7 +209,7 @@ has a prescribed velocity</a:documentation>
           </attribute>
           <group>
             <ref name="time_variable_python_interface"/>
-            <ref name="fsi_model_input_real_dim_vector_solidvelocity_python"/>
+            <ref name="fsi_model_input_real_dim_vector_python"/>
             <ref name="prescribed_output_options"/>
             <ref name="prescribed_vector_stat_options"/>
             <ref name="prescribed_detector_options"/>
@@ -276,7 +248,7 @@ coordinates are prescribed in the python function</a:documentation>
           </attribute>
           <group>
             <ref name="time_variable_python_interface"/>
-            <ref name="fsi_model_input_real_dim_vector_solidposition_python"/>
+            <ref name="fsi_model_input_real_dim_vector_python"/>
             <ref name="prescribed_output_options"/>
             <ref name="prescribed_vector_stat_options"/>
             <ref name="prescribed_detector_options"/>
@@ -315,7 +287,7 @@ travelled distance is prescribed in the python function</a:documentation>
           </attribute>
           <group>
             <ref name="time_variable_python_interface"/>
-            <ref name="fsi_model_input_real_dim_vector_solidmovement_python"/>
+            <ref name="fsi_model_input_real_dim_vector_python"/>
             <ref name="prescribed_output_options"/>
             <ref name="prescribed_vector_stat_options"/>
             <ref name="prescribed_detector_options"/>
