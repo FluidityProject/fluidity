@@ -45,23 +45,6 @@ embedded_models =
                            fsi_model_diagnostic_solid_velocity_mesh
                         )
                      }?,
-                     ## Prescribed diagnostic Solid position vector.
-                     ## 
-                     ## This is more general than the above case. 
-                     ##
-                     ## The return vector of the python function is
-                     ## supposed to contain the new coordinates of 
-                     ## the rigid body.
-                     element vector_field {
-                        attribute rank { "1" },
-                        attribute name { "SolidPosition" },
-                        ## Field type
-                        (
-                           fsi_model_prescribed_solid_position_mesh
-                           |
-                           fsi_model_diagnostic_solid_position_mesh
-                        )
-                     }?,
                      ## Prescribed diagnostic Solid movement vector.
                      ## 
                      ## Here the travelled distance of a solid object is
@@ -174,47 +157,12 @@ fsi_model_prescribed_solid_velocity_mesh =
         }+
     }
 
-
 fsi_model_diagnostic_solid_velocity_mesh =
     ## For future use maybe
     element diagnostic
     {
         ## Set the name of the Solid Mesh that
         ## has a prescribed velocity
-        element mesh {
-            attribute name { xsd:string },
-            (
-               vector_python_diagnostic_algorithm,
-               diagnostic_vector_field
-            )
-        }+
-    }
-
-
-fsi_model_prescribed_solid_position_mesh =
-    ## Prescribed Solid position via Python input
-    element prescribed {
-        ## Set the name of the Solid Mesh which
-        ## coordinates are prescribed in the python function
-        element mesh {
-            attribute name { xsd:string },
-            (
-              time_variable_python_interface,
-              fsi_model_input_real_dim_vector_python,
-              prescribed_output_options,
-              prescribed_vector_stat_options,
-              prescribed_detector_options
-            )
-        }+
-    }
-
-
-fsi_model_diagnostic_solid_position_mesh =
-    ## For future use maybe
-    element diagnostic
-    {
-        ## Set the name of the Solid Mesh which
-        ## coordinates are prescribed in the python function
         element mesh {
             attribute name { xsd:string },
             (

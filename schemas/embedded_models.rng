@@ -52,28 +52,6 @@ current time t (or timestep dt) of the simulation.</a:documentation>
                 </optional>
                 <optional>
                   <element name="vector_field">
-                    <a:documentation>Prescribed diagnostic Solid position vector.
-
-This is more general than the above case. 
-
-The return vector of the python function is
-supposed to contain the new coordinates of 
-the rigid body.</a:documentation>
-                    <attribute name="rank">
-                      <value>1</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>SolidPosition</value>
-                    </attribute>
-                    <choice>
-                      <a:documentation>Field type</a:documentation>
-                      <ref name="fsi_model_prescribed_solid_position_mesh"/>
-                      <ref name="fsi_model_diagnostic_solid_position_mesh"/>
-                    </choice>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="vector_field">
                     <a:documentation>Prescribed diagnostic Solid movement vector.
 
 Here the travelled distance of a solid object is
@@ -225,45 +203,6 @@ has a prescribed velocity</a:documentation>
         <element name="mesh">
           <a:documentation>Set the name of the Solid Mesh that
 has a prescribed velocity</a:documentation>
-          <attribute name="name">
-            <data type="string"/>
-          </attribute>
-          <group>
-            <ref name="vector_python_diagnostic_algorithm"/>
-            <ref name="diagnostic_vector_field"/>
-          </group>
-        </element>
-      </oneOrMore>
-    </element>
-  </define>
-  <define name="fsi_model_prescribed_solid_position_mesh">
-    <element name="prescribed">
-      <a:documentation>Prescribed Solid position via Python input</a:documentation>
-      <oneOrMore>
-        <element name="mesh">
-          <a:documentation>Set the name of the Solid Mesh which
-coordinates are prescribed in the python function</a:documentation>
-          <attribute name="name">
-            <data type="string"/>
-          </attribute>
-          <group>
-            <ref name="time_variable_python_interface"/>
-            <ref name="fsi_model_input_real_dim_vector_python"/>
-            <ref name="prescribed_output_options"/>
-            <ref name="prescribed_vector_stat_options"/>
-            <ref name="prescribed_detector_options"/>
-          </group>
-        </element>
-      </oneOrMore>
-    </element>
-  </define>
-  <define name="fsi_model_diagnostic_solid_position_mesh">
-    <element name="diagnostic">
-      <a:documentation>For future use maybe</a:documentation>
-      <oneOrMore>
-        <element name="mesh">
-          <a:documentation>Set the name of the Solid Mesh which
-coordinates are prescribed in the python function</a:documentation>
           <attribute name="name">
             <data type="string"/>
           </attribute>
