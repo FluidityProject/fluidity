@@ -4270,6 +4270,11 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
         ewrite(-1,*) 'under vector_field "Veclotiy" in your options file'
       end if
 
+      if (.not. have_option('/material_phase['//int2str(i)//']/vector_field::Velocity/prognostic/vector_field::Source/diagnostic')) then
+        ewrite(-1,*) 'This models relies on an internal algorithm to compute the source term. Please enable the vector_field "Source"'
+        ewrite(-1,*) 'under vector_field "Veclotiy" in your options file'
+      end if
+
       if (.not. have_option('/material_phase['//int2str(i)//']/scalar_field::SolidConcentration/diagnostic')) then
         ewrite(-1,*) 'This models relies on an internal algorithm to compute the solid volume fraction on the fluid mesh.'
         ewrite(-1,*) 'Please enable the scalar_field "SolidConcentration" under "material_phase" in your options file'
