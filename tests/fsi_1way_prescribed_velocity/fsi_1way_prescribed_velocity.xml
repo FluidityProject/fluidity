@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <testproblem>
-  <name>2D 1way FSI model: Prescribed solid velocity/position/movement</name>
+  <name>2D 1way FSI model: Prescribed solid velocity</name>
   <owner userid="ffm10"/>
   <problem_definition length="short" nprocs="1">
     <command_line>fluidity fsi_1way_prescribed_velocity_dt.flml; fluidity fsi_1way_prescribed_velocity_t.flml;
