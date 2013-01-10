@@ -371,7 +371,8 @@ contains
        ! up to date coordinate.
        ! if the mesh is not moving this is just aliased to Coordinate anyway.
        positions=>extract_vector_field(state, "IteratedCoordinate")
-    elseif (has_vector_field(state, trim(mesh%name(1:len(trim(mesh%name))-4)))) then
+    elseif (trim(mesh%name(len(trim(mesh%name))-18:len(trim(mesh%name)))) &
+             & .eq. 'SolidCoordinateMesh') then
        ! the input mesh is a solid mesh
        positions=>extract_vector_field(state, trim(mesh%name(1:len(trim(mesh%name))-4)))
     else
