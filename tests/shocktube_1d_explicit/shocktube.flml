@@ -353,7 +353,7 @@
         <scalar_field name="AnalyticalPressure" rank="0">
             <diagnostic>
                 <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-                    <string_value lines="20" type="code" language="python">import numpy&#x0A;import shocktube&#x0A;x = state.vector_fields[&apos;DiagnosticCoordinate&apos;]&#x0A;time = state.scalar_fields[&apos;Time&apos;]&#x0A;t=time[0]&#x0A;for (i,xi) in enumerate(x.val):&#x0A;  sol=shocktube.solution(xi[0],t)&#x0A;  field.set(i, sol[0])</string_value>
+                    <string_value lines="20" type="code" language="python">import numpy&#x0A;import shocktube&#x0A;x = state.vector_fields[&apos;DiagnosticCoordinate&apos;]&#x0A;time = state.scalar_fields[&apos;Time&apos;]&#x0A;t=time.val[0]&#x0A;for (i,xi) in enumerate(x.val):&#x0A;  sol=shocktube.solution(xi[0],t)&#x0A;  field.set(i, sol[0])</string_value>
                 </algorithm>
                 <mesh name="PressureMesh"></mesh>
                 <output></output>
@@ -389,7 +389,7 @@
         <scalar_field name="AnalyticalDensity" rank="0">
             <diagnostic>
                 <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-                    <string_value lines="20" type="code" language="python">import numpy&#x0A;import shocktube&#x0A;x = state.vector_fields[&apos;DiagnosticCoordinate&apos;]&#x0A;time = state.scalar_fields[&apos;Time&apos;]&#x0A;t=time[0]&#x0A;for (i,xi) in enumerate(x.val):&#x0A;  sol=shocktube.solution(xi[0],t)&#x0A;  field.set(i, sol[2])</string_value>
+                    <string_value lines="20" type="code" language="python">import numpy&#x0A;import shocktube&#x0A;x = state.vector_fields[&apos;DiagnosticCoordinate&apos;]&#x0A;time = state.scalar_fields[&apos;Time&apos;]&#x0A;t=time.val[0]&#x0A;for (i,xi) in enumerate(x.val):&#x0A;  sol=shocktube.solution(xi[0],t)&#x0A;  field.set(i, sol[2])</string_value>
                 </algorithm>
                 <mesh name="PressureMesh"></mesh>
                 <output></output>
@@ -425,7 +425,7 @@
         <scalar_field name="AnalyticalInternalEnergy" rank="0">
             <diagnostic>
                 <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-                    <string_value lines="20" type="code" language="python">import numpy&#x0A;import shocktube&#x0A;x = state.vector_fields[&apos;Coordinate&apos;]&#x0A;time = state.scalar_fields[&apos;Time&apos;]&#x0A;t=time[0]&#x0A;for (i,xi) in enumerate(x.val):&#x0A;  sol=shocktube.solution(xi[0],t)&#x0A;  p=sol[0]; rho=sol[2]&#x0A;  field.set(i, p/rho/(shocktube.gamma-1.0))</string_value>
+                    <string_value lines="20" type="code" language="python">import numpy&#x0A;import shocktube&#x0A;x = state.vector_fields[&apos;Coordinate&apos;]&#x0A;time = state.scalar_fields[&apos;Time&apos;]&#x0A;t=time.val[0]&#x0A;for (i,xi) in enumerate(x.val):&#x0A;  sol=shocktube.solution(xi[0],t)&#x0A;  p=sol[0]; rho=sol[2]&#x0A;  field.set(i, p/rho/(shocktube.gamma-1.0))</string_value>
                 </algorithm>
                 <mesh name="CoordinateMesh"></mesh>
                 <output></output>
@@ -461,7 +461,7 @@
         <vector_field name="AnalyticalVelocity" rank="1">
             <diagnostic>
                 <algorithm name="vector_python_diagnostic" material_phase_support="single">
-                    <string_value lines="20" type="code" language="python">import numpy&#x0A;import shocktube&#x0A;x = state.vector_fields[&apos;Coordinate&apos;]&#x0A;time = state.scalar_fields[&apos;Time&apos;]&#x0A;t=time[0]&#x0A;for (i,xi) in enumerate(x.val):&#x0A;  sol=shocktube.solution(xi[0],t)&#x0A;  field.set(i, [sol[1]])</string_value>
+                    <string_value lines="20" type="code" language="python">import numpy&#x0A;import shocktube&#x0A;x = state.vector_fields[&apos;Coordinate&apos;]&#x0A;time = state.scalar_fields[&apos;Time&apos;]&#x0A;t=time.val[0]&#x0A;for (i,xi) in enumerate(x.val):&#x0A;  sol=shocktube.solution(xi[0],t)&#x0A;  field.set(i, [sol[1]])</string_value>
                 </algorithm>
                 <mesh name="CoordinateMesh"></mesh>
                 <output></output>
