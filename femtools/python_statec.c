@@ -232,10 +232,11 @@ void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type
   Py_DECREF(pft);
 #endif
 }
+enum valtype_t { CSR_REAL, CSR_INTEGER };
 
-void python_add_csr_matrix_(int *valSize, double val[], int ival[], int *col_indSize, int col_ind [], int *row_ptrSize,
-                            int row_ptr [], char *name, int *namelen, char *state, int *statelen, int *numCols,
-                            int *type)
+static void python_add_csr_matrix(int *valSize, void *val, int *col_indSize, int *col_ind, int *row_ptrSize,
+                                  int *row_ptr, char *name, int *namelen, char *state, int *statelen, int *numCols,
+                                  enum valtype_t valtype)
 {
 #ifdef HAVE_NUMPY
   // Add the Fortran csr matrix to the dictionary of the Python interpreter
@@ -250,10 +251,13 @@ void python_add_csr_matrix_(int *valSize, double val[], int ival[], int *col_ind
   PyDict_SetItemString(pDict,"numRows",pnumRows); 
   
   // Create the array
-  if (*type==0) // type=CSR_REAL
-    python_add_array_double_1d(val,valSize,"val");
-  else // type=CSR_INTEGER
-    python_add_array_integer_1d(ival,valSize,"val");
+  switch (valtype) {
+  case CSR_REAL:
+      python_add_array_double_1d((double *)val, valSize, "val");
+      break;
+  case CSR_INTEGER:
+      python_add_array_integer_1d((int *)val, valSize, "val");
+  }
   python_add_array_integer_1d(col_ind,col_indSize,"col_ind");
   python_add_array_integer_1d(row_ptr,row_ptrSize,"row_ptr");
 
@@ -280,6 +284,21 @@ void python_add_csr_matrix_(int *valSize, double val[], int ival[], int *col_ind
 #endif
 }
 
+void python_add_csr_matrix_real_(int *valSize, double val[], int *col_indSize, int col_ind [], int *row_ptrSize,
+                            int row_ptr [], char *name, int *namelen, char *state, int *statelen, int *numCols)
+{
+    python_add_csr_matrix(valSize, val, col_indSize, col_ind, row_ptrSize,
+                          row_ptr, name, namelen, state, statelen, numCols,
+                          CSR_REAL);
+}
+
+void python_add_csr_matrix_integer_(int *valSize, int ival[], int *col_indSize, int col_ind [], int *row_ptrSize,
+                                    int row_ptr [], char *name, int *namelen, char *state, int *statelen, int *numCols)
+{
+    python_add_csr_matrix(valSize, ival, col_indSize, col_ind, row_ptrSize,
+                          row_ptr, name, namelen, state, statelen, numCols,
+                          CSR_INTEGER);
+}
 
 
 void python_add_vector_(int *num_dim, int *s, 
