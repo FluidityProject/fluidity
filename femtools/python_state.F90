@@ -104,18 +104,28 @@ module python_state
       character(len=mesh_name_len) :: mesh_name
     end subroutine python_add_scalar
     
-    subroutine python_add_csr_matrix(valuesSize, values, ivalues, col_indSize, col_ind, row_ptrSize, &
-      row_ptr, name, namelen, state_name,snlen, numCols, valtype)
+    subroutine python_add_csr_matrix_real(valuesSize, values, col_indSize, col_ind, row_ptrSize, &
+      row_ptr, name, namelen, state_name,snlen, numCols)
       implicit none
-      integer :: valuesSize,col_indSize,row_ptrSize,namelen,snlen,numCols, valtype
+      integer :: valuesSize,col_indSize,row_ptrSize,namelen,snlen,numCols
       real, dimension(valuesSize) :: values
+      integer, dimension(col_indSize) :: col_ind
+      integer, dimension(row_ptrSize) :: row_ptr
+      character(len=namelen) :: name
+      character(len=snlen) :: state_name
+    end subroutine python_add_csr_matrix_real
+    
+    subroutine python_add_csr_matrix_integer(valuesSize, ivalues, col_indSize, col_ind, row_ptrSize, &
+      row_ptr, name, namelen, state_name,snlen, numCols)
+      implicit none
+      integer :: valuesSize,col_indSize,row_ptrSize,namelen,snlen,numCols
       integer, dimension(valuesSize) :: ivalues
       integer, dimension(col_indSize) :: col_ind
       integer, dimension(row_ptrSize) :: row_ptr
       character(len=namelen) :: name
       character(len=snlen) :: state_name
-    end subroutine python_add_csr_matrix
-    
+    end subroutine python_add_csr_matrix_integer
+
     subroutine python_add_vector(numdim,sx,x,&
       &name,nlen,field_type,option_path,oplen,state_name,snlen,&
       &mesh_name,mesh_name_len,uid)
@@ -256,8 +266,13 @@ module python_state
     nameLen = len(trim(csrMatrix%name))
     statenameLen = len(trim(st%name))
     numCols = csrSparsity%columns
-    call python_add_csr_matrix(valSize, values, ivalues, col_indSize, col_ind, row_ptrSize, row_ptr, &
-      trim(csrMatrix%name), nameLen, trim(st%name),statenameLen,numCols,valtype)
+    if ( valtype == CSR_REAL ) then
+       call python_add_csr_matrix_real(valSize, values, col_indSize, col_ind, row_ptrSize, row_ptr, &
+            trim(csrMatrix%name), nameLen, trim(st%name),statenameLen,numCols)
+    else
+       call python_add_csr_matrix_integer(valSize, ivalues, col_indSize, col_ind, row_ptrSize, row_ptr, &
+            trim(csrMatrix%name), nameLen, trim(st%name),statenameLen,numCols)
+    end if
   end subroutine python_add_csr_matrix_directly
 
   subroutine python_add_vector_directly(V,st)
