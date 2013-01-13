@@ -705,7 +705,7 @@ contains
           call ray_intersetion_distance(face_list(i), element_nodes, face_normal, face_node_val, face_t)
 
           ! The second condition is to ensure that we do not trace backwards
-          if (face_t < ele_t .and. detector%current_t < face_t .and. search_tolerance < face_t) then
+          if (face_t < ele_t .and. (detector%current_t+search_tolerance) < face_t .and. search_tolerance < face_t) then
              ele_t = face_t
              next_face = face_list(i)
           end if
@@ -729,9 +729,6 @@ contains
        if (ele_t < detector%target_distance + search_tolerance) then
           neigh_face = face_neigh(xfield, next_face)
 
-          ! Store current face, in case we need it for reflection
-          detector%current_face = next_face
-
           ! Record the elements along the path travelled
           ! and the distance travelled within them
           path_ele%ele = detector%element
@@ -741,11 +738,12 @@ contains
           else
              call elepath_list_create( detector%path_elements, path_ele )
           end if
-          detector%current_t = ele_t
+
 
           if (neigh_face /= next_face) then
              ! Recurse on the next element
              detector%element = face_ele(xfield, neigh_face)
+             detector%current_t = ele_t
 
           else
              ! If we're tracking on a periodic mesh...
@@ -781,6 +779,12 @@ contains
              if (element_owned(xfield,detector%element)) then
                 ! Detector is going outside domain
                 new_owner=-1
+
+                detector%current_t = ele_t
+
+                ! Store current face, in case we need it for reflection
+                detector%current_face = next_face
+
                 exit search_loop
              else
                 ! The current element is on a Halo, we need to send it to the owner.
@@ -789,6 +793,7 @@ contains
              end if
           end if
        else
+
           ! The arrival point is in this element, we're done
           path_ele%ele = detector%element
           path_ele%dist = detector%target_distance - detector%current_t
