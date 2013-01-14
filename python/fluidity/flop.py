@@ -237,6 +237,12 @@ class FieldCoefficient(Coefficient):
         return op2.Dat(self.node_set, self.value_shape, \
                 numpy.zeros(self.node_count), valuetype)
 
+    def __str__(self):
+      if hasattr(self, "name"):
+        return self.name
+      else:
+        return super(FieldCoefficient, self).__str__()
+
 class ScalarField(FieldCoefficient, fluidity_state.ScalarField):
 
     def __init__(self,n,v,ft,op,uid,mesh=None,element=None,count=None):
