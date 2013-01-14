@@ -2484,7 +2484,7 @@ contains
           call field_con_stats(sfield, oldsfield, change, &
                                convergence_norm, coordinates)
           if(acceleration) change = change/dt
-          ewrite(2, *) trim(sfield%name), change
+          ewrite(2, *) trim(state(phase)%name)//"::"//trim(sfield%name), change
           maxchange = max(maxchange, change)
 
           if(default_stat%write_steady_state_file .and. procno == 1) then
@@ -2509,7 +2509,7 @@ contains
          call field_con_stats(vfield, oldvfield, change, &
                               convergence_norm, coordinates)
          if(acceleration) change = change/dt
-         ewrite(2, *) trim(vfield%name), change
+         ewrite(2, *) trim(state(phase)%name)//"::"//trim(vfield%name), change
          maxchange = max(maxchange, change)
 
          if(default_stat%write_steady_state_file .and. procno == 1) then
@@ -2530,7 +2530,7 @@ contains
            call field_con_stats(vfield_comp, oldvfield_comp, change, &
                                 convergence_norm, coordinates)
            if(acceleration) change = change/dt
-           ewrite(2, *) trim(vfield%name), j, change
+           ewrite(2, *) trim(state(phase)%name)//"::"//trim(vfield%name), j,  change
            maxchange = max(maxchange, change)
 
            if(default_stat%write_steady_state_file .and. procno == 1) then

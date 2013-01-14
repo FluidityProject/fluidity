@@ -14,8 +14,8 @@ mpiexec fluidity -v1 -l flow_past_sphere_Re1000_flredecomp.flml</command_line>
     <variable name="time_average_xforce" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("flow_past_sphere_Re1000.stat")
-print s["0"]["Velocity"]["force%1"][-20:]
-time_average_xforce = sum(s["0"]["Velocity"]["force%1"][-20:])/20
+print s["0"]["Velocity"]["force_sphere%1"][-20:]
+time_average_xforce = sum(s["0"]["Velocity"]["force_sphere%1"][-20:])/20
 print time_average_xforce
     </variable>
     <variable name="exact_xforce" language="python">
