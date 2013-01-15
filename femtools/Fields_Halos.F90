@@ -376,6 +376,14 @@ contains
     deallocate(renumber)
     deallocate(new_surface_facets)
     new_mesh%name = numbering%mesh%name
+    ! grab references that old_mesh had
+    do i = 1, mesh%refcount%count - new_mesh%refcount%count
+       call incref(new_mesh)
+    end do
+    ! drop references from old_mesh
+    do i = 1, mesh%refcount%count-1
+       call decref(mesh)
+    end do
     call deallocate(numbering%mesh)
     numbering%mesh = new_mesh
     ! The faces are now invalid so re-establish them.
