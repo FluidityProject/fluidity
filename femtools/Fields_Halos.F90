@@ -262,7 +262,7 @@ contains
     !!< its meshes. Meshes should likewise be linear: the intended use case
     !!< is that numbering is on the periodic mesh while the meshes are the
     !!< non-periodic (or possibly periodic on fewer sides) alternatives. 
-    type(scalar_field), intent(in), target :: numbering
+    type(scalar_field), intent(inout), target :: numbering
     
     type(mesh_type), dimension(:), intent(inout), target, optional :: meshes
 
@@ -275,6 +275,8 @@ contains
     type(cell_type), pointer :: cell
     type(mesh_type), pointer :: mesh
     type(mesh_type) :: p0_mesh
+    type(mesh_type) :: new_mesh
+    integer, dimension(:), allocatable :: renumber, new_surface_facets
 
     assert(numbering%mesh%shape%degree==1)
 
@@ -330,10 +332,13 @@ contains
        mesh%ndglno((new_ele-1)*ndof+1:new_ele*ndof)&
             =ndglno((ele-1)*ndof+1:ele*ndof)
     end do
+    mesh%element_classes = p0_mesh%node_classes
+
     if (present(meshes)) then
        do m=1, size(meshes)
           mesh=>meshes(m)
           ndglno=mesh%ndglno
+          mesh%element_classes = p0_mesh%node_classes
           do ele=1,element_count(mesh)
              new_ele=p0_mesh%ndglno(ele)
              
@@ -352,8 +357,28 @@ contains
 
     call deallocate(p0_mesh)
 
-    ! The faces are now invalid so re-establish them.
     mesh=>numbering%mesh
+    new_mesh = make_mesh(model=mesh, shape=mesh%shape,&
+         continuity=mesh%continuity, name=trim(mesh%name)//'new',&
+         with_faces=.false.)
+
+    allocate(renumber(mesh%nodes))
+    do i = 1, mesh%elements * ndof
+       renumber(mesh%ndglno(i)) = new_mesh%ndglno(i)
+    end do
+    allocate(new_surface_facets(size(surface_facets)))
+    do i = 1, size(surface_facets)
+       new_surface_facets(i) = renumber(surface_facets(i))
+    end do
+
+    surface_facets = new_surface_facets
+
+    deallocate(renumber)
+    deallocate(new_surface_facets)
+    new_mesh%name = numbering%mesh%name
+    call deallocate(numbering%mesh)
+    numbering%mesh = new_mesh
+    ! The faces are now invalid so re-establish them.
     call deallocate_faces(mesh)
     ! Ordering is significant in the NElist and EElist.
     call remove_nelist(mesh) 
