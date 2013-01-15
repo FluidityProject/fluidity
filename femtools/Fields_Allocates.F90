@@ -995,6 +995,7 @@ contains
        mesh%region_ids=model%region_ids
     end if
 
+    mesh%element_classes = model%element_classes
     call make_global_numbering_new(mesh)
 
     if (associated(model%element_halos)) then
