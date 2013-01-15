@@ -3728,11 +3728,13 @@
                        SBUFEN,SBCVNGI,U_NLOC,U_SNLOC,NDIM,NPHASE,GOT_OTHER_ELE) 
 ! Calculate the between element diffusion coefficients for stabaization scheme UDIFF_SUF_STAB.
       use matrix_operations
-      implicit none
+      implicit none      
+      LOGICAL, PARAMETER :: FAST_AND_SIMP=.FALSE.
+! If FAST_AND_SIMP use a simple mean to calculate the between element diffusion.
       INTEGER, intent( in ) :: SBCVNGI,U_NLOC,U_SNLOC,NDIM,NPHASE
       LOGICAL, intent( in ) :: GOT_OTHER_ELE
       REAL, DIMENSION( NPHASE,SBCVNGI,NDIM,NDIM  ), intent( out ) :: UDIFF_SUF_STAB
-      REAL, DIMENSION( U_NLOC ), intent( in ) :: DIFF_FOR_BETWEEN_U_ELE,DIFF_FOR_BETWEEN_U_ELE2
+      REAL, DIMENSION( NPHASE,U_NLOC ), intent( in ) :: DIFF_FOR_BETWEEN_U_ELE,DIFF_FOR_BETWEEN_U_ELE2
       REAL, DIMENSION( U_NLOC,U_NLOC ), intent( in ) :: MAT_ELE, MAT_ELE2
       INTEGER, DIMENSION( U_SNLOC ), intent( in ) :: U_SLOC2LOC,U_ILOC_OTHER_SIDE
       REAL, DIMENSION( U_SNLOC,SBCVNGI ), intent( in ) :: SBUFEN
@@ -3746,8 +3748,44 @@
       INTEGER :: U_SILOC,U_ILOC,U_ILOC2,U_JLOC2,IGL,JGL,SGI,IPHASE,NLEN,IDIM
       LOGICAL :: GOTDEC
 
+
 ! initialize to zero to set the off diagonal terms to 0.0
       UDIFF_SUF_STAB=0.0
+
+      IF(FAST_AND_SIMP) THEN
+
+        IF(GOT_OTHER_ELE) THEN
+           DO IPHASE=1,NPHASE
+              DIFF_ADD_STAB( : )=0.0
+              DO U_SILOC = 1, U_SNLOC
+                 U_ILOC = U_SLOC2LOC( U_SILOC )
+                 U_ILOC2= U_ILOC_OTHER_SIDE( U_SILOC ) 
+! Calculate added stabilization diffusion DIFF_ADD_STAB( SGI,IDIM,IPHASE )
+            DIFF_ADD_STAB( : )=DIFF_ADD_STAB( : )+SBUFEN(U_SILOC,:) &
+       *0.5*(DIFF_FOR_BETWEEN_U_ELE(IPHASE,U_ILOC)+DIFF_FOR_BETWEEN_U_ELE2(IPHASE,U_ILOC2))
+              END DO
+              DIFF_ADD_STAB( : )=MAX(0.0,DIFF_ADD_STAB( : ))
+              DO IDIM=1,NDIM
+                 UDIFF_SUF_STAB(IPHASE,:,IDIM,IDIM)=DIFF_ADD_STAB( : )
+              END DO
+           END DO
+        ELSE
+           DO IPHASE=1,NPHASE
+              DIFF_ADD_STAB( : )=0.0
+              DO U_SILOC = 1, U_SNLOC
+                 U_ILOC = U_SLOC2LOC( U_SILOC )
+! Calculate added stabilization diffusion DIFF_ADD_STAB( SGI,IDIM,IPHASE )
+            DIFF_ADD_STAB( : )=DIFF_ADD_STAB( : )+SBUFEN(U_SILOC,:)*DIFF_FOR_BETWEEN_U_ELE(IPHASE,U_ILOC)
+              END DO
+              DIFF_ADD_STAB( : )=MAX(0.0,DIFF_ADD_STAB( : ))
+              DO IDIM=1,NDIM
+                 UDIFF_SUF_STAB(IPHASE,:,IDIM,IDIM)=DIFF_ADD_STAB( : )
+              END DO
+           END DO
+        ENDIF
+
+! ENDOF IF(FAST_AND_SIMP) THEN...
+      ELSE
 
       DO U_ILOC=1,U_NLOC
         GLOB_NO(U_ILOC)=U_ILOC
@@ -3801,12 +3839,12 @@
       DO IPHASE=1,NPHASE
 
          VECRHS_2ELES(:)   =0.0
-         VECRHS_2ELES(1:U_NLOC)=DIFF_FOR_BETWEEN_U_ELE(1:U_NLOC)
+         VECRHS_2ELES(1:U_NLOC)=DIFF_FOR_BETWEEN_U_ELE(IPHASE,1:U_NLOC)
          IF(GOT_OTHER_ELE) THEN
 
             DO U_ILOC2=1,U_NLOC 
                IGL=GLOB_NO(U_ILOC2+U_NLOC)
-               VECRHS_2ELES(IGL)=VECRHS_2ELES(IGL)+DIFF_FOR_BETWEEN_U_ELE2(U_ILOC2)
+               VECRHS_2ELES(IGL)=VECRHS_2ELES(IGL)+DIFF_FOR_BETWEEN_U_ELE2(IPHASE,U_ILOC2)
             END DO
          ENDIF
 
@@ -3831,6 +3869,9 @@
          END DO
 ! ENDOF DO IPHASE=1,NPHASE...
       END DO
+
+! ENDOF IF(FAST_AND_SIMP) THEN ELSE...
+      ENDIF
       
     END SUBROUTINE BETWEEN_ELE_SOLVE_DIF
 
