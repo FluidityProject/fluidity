@@ -1802,7 +1802,8 @@ module zoltan_integration
     integer, allocatable :: ndets_being_sent(:)
     real, allocatable :: send_buff(:,:), recv_buff(:,:)
     logical do_broadcast
-    type(element_type), pointer :: shape  
+    type(element_type), pointer :: shape
+    integer :: ind !ml805 dummy index for packing detectors
 
     ewrite(1,*) "In update_detector_list_element"
 
@@ -1866,7 +1867,8 @@ module zoltan_integration
     detector => detector_send_list%first
     do i=1,send_count
        ! Pack the detector information and delete from send_list (delete advances detector to detector%next)
-       call pack_detector(detector, send_buff(i, 1:zoltan_global_ndata_per_det), zoltan_global_ndims)
+       ind = 1
+       call pack_detector(detector, send_buff(i, 1:zoltan_global_ndata_per_det), ind, zoltan_global_ndims)
        call delete(detector, detector_send_list)
     end do
 
@@ -1882,7 +1884,7 @@ module zoltan_integration
           else
              ! Allocate memory to receive into
              allocate(recv_buff(ndets_being_sent(i),zoltan_global_ndata_per_det))
-             
+
              ! Receive broadcast
              ewrite(2,*) "Receiving ", ndets_being_sent(i), " detectors from process ", i
              call mpi_bcast(recv_buff,ndets_being_sent(i)*zoltan_global_ndata_per_det, getPREAL(), i-1, MPI_COMM_FEMTOOLS, ierr)
@@ -1890,11 +1892,11 @@ module zoltan_integration
 
              ! Unpack detector if you own it
              do j=1,ndets_being_sent(i)
-
+                ind = 1
                 ! Allocate and unpack the detector
-                shape=>ele_shape(zoltan_global_new_positions,1)                     
+                shape=>ele_shape(zoltan_global_new_positions,1)
                 call allocate(detector, zoltan_global_ndims, local_coord_count(shape))
-                call unpack_detector(detector, recv_buff(j, 1:zoltan_global_ndata_per_det), zoltan_global_ndims)
+                call unpack_detector(detector, recv_buff(j, 1:zoltan_global_ndata_per_det), ind, zoltan_global_ndims)
 
                 if (has_key(zoltan_global_uen_to_new_local_numbering, detector%element)) then 
                    new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, detector%element)

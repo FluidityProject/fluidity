@@ -312,9 +312,10 @@ contains
 
   end subroutine delete_all_detectors
 
-  function detector_buffer_size(ndims, list, tracking) result(buffer_size)
+  function detector_buffer_size(ndims, detector, list, tracking) result(buffer_size)
     ! Returns the number of reals we need to pack a detector
     integer, intent(in) :: ndims
+    type(detector_type), pointer, intent(inout), optional :: detector
     type(detector_linked_list), intent(in), optional :: list
     logical, intent(in), optional :: tracking
     integer :: buffer_size
@@ -359,110 +360,109 @@ contains
 
   end function detector_buffer_size
 
-  subroutine pack_detector(detector,buff,ndims, list, tracking)
+  subroutine pack_detector(detector, buffer, ind, dim, list, tracking)
     ! Packs (serialises) detector into buff
     ! Basic fields are: element, position, id_number and type
     ! If nstages is given, the detector is still moving
     ! and we also pack update_vector and k
-    type(detector_type), pointer, intent(in) :: detector
-    real, dimension(:), intent(out) :: buff
-    integer, intent(in) :: ndims
+    type(detector_type), pointer, intent(inout) :: detector
+    real, dimension(:), intent(inout) :: buffer
+    integer, intent(inout) :: ind, dim
     type(detector_linked_list), intent(in), optional :: list
     logical, intent(in), optional :: tracking
 
-    integer :: index, nvars
+    integer :: nvars
 
-    assert(size(detector%position)==ndims)
-    assert(size(buff)>=ndims+3)
+    assert(size(detector%position)==dim)
+    assert(size(buffer)>=dim+3)
 
-    ! Basic fields: ndims+3
-    buff(1:ndims) = detector%position
-    buff(ndims+1) = detector%element
-    buff(ndims+2) = detector%id_number
-    buff(ndims+3) = detector%type
-    index = ndims+4
+    ! Basic fields: dim+3
+    buffer(ind:ind+dim-1) = detector%position
+    ind = ind + dim
+    buffer(ind)   = real( detector%element )
+    buffer(ind+1) = real( detector%id_number )
+    buffer(ind+2) = real( detector%type )
+    ind = ind + 3
 
-    ! Lagrangian advection fields: (nstages+1)*ndims
+    ! Lagrangian advection fields: (nstages+1)*dim
     if (present(list)) then
 
        if (present_and_true(tracking)) then
           assert(allocated(detector%update_vector))
-          buff(index:index+ndims-1) = detector%update_vector
-          index = index + ndims
+          buffer(ind:ind+dim-1) = detector%update_vector
+          ind = ind + dim
 
           if (list%n_stages > 0) then
              assert(allocated(detector%k))
-             buff(index:index+list%n_stages*ndims-1) = reshape(detector%k,(/list%n_stages*ndims/))
-             index = index + list%n_stages*ndims
+             buffer(ind:ind+list%n_stages*dim-1) = reshape(detector%k,(/list%n_stages*dim/))
+             ind = ind + list%n_stages*dim
           end if
 
           if (list%tracking_method == GEOMETRIC_TRACKING) then
              ! Ray tracking: ray_o + ray_d
-             buff(index) = detector%target_distance
-             index = index+1
-             buff(index) = detector%current_t
-             index = index+1
-             buff(index:index+ndims-1) = detector%ray_o
-             index = index + ndims
-             buff(index:index+ndims-1) = detector%ray_d
-             index = index + ndims
+             buffer(ind) = detector%target_distance
+             ind = ind+1
+             buffer(ind) = detector%current_t
+             ind = ind+1
+             buffer(ind:ind+dim-1) = detector%ray_o
+             ind = ind + dim
+             buffer(ind:ind+dim-1) = detector%ray_d
+             ind = ind + dim
           end if
 
           if (list%tracking_method == PURE_GS) then
              ! GS tracking: ray_o 
-             buff(index:index+ndims-1) = detector%ray_o
-             index = index + ndims
+             buffer(ind:ind+dim-1) = detector%ray_o
+             ind = ind + dim
           end if
        end if
 
        ! LEBiology
        if (associated(list%fgroup)) then
           nvars = size(list%fgroup%variables)
-          buff(index:index+nvars-1) = detector%biology
-          index = index + nvars
+          buffer(ind:ind+nvars-1) = detector%biology
+          ind = ind + nvars
 
           if (size(list%fgroup%food_sets) > 0) then
              nvars = size(list%fgroup%food_sets(1)%varieties)
-             buff(index:index+nvars-1) = detector%food_requests
-             index = index + nvars
-             buff(index:index+nvars-1) = detector%food_ingests
-             index = index + nvars
-             buff(index:index+nvars-1) = detector%food_thresholds
-             index = index + nvars
+             buffer(ind:ind+nvars-1) = detector%food_requests
+             ind = ind + nvars
+             buffer(ind:ind+nvars-1) = detector%food_ingests
+             ind = ind + nvars
+             buffer(ind:ind+nvars-1) = detector%food_thresholds
+             ind = ind + nvars
           end if
        end if
 
     else
-       buff(index) = detector%list_id
-       index = index+1
+       buffer(ind) = detector%list_id
+       ind = ind+1
     end if
-    
+
   end subroutine pack_detector
 
-  subroutine unpack_detector(detector,buff,ndims,global_to_local,coordinates, list, tracking)
-    ! Unpacks the detector from buff and fills in the blanks
-    type(detector_type), pointer :: detector
-    real, dimension(:), intent(in) :: buff
-    integer, intent(in) :: ndims
+  subroutine unpack_detector(detector, buffer, ind, dim, global_to_local, coordinates, list, tracking)
+    ! Unpacks the detector from buffer and fills in the blanks
+    type(detector_type), pointer, intent(inout) :: detector
+    real, dimension(:), intent(inout) :: buffer
+    integer, intent(inout) :: ind, dim
     type(integer_hash_table), intent(in), optional :: global_to_local
     type(vector_field), intent(in), optional :: coordinates
     type(detector_linked_list), intent(in), optional :: list
     logical, intent(in), optional :: tracking
 
-    integer :: index, nvars
+    integer :: nvars
 
-    assert(size(buff)>=ndims+3)
+    assert(size(buffer)>=dim+3)
 
-    if (.not. allocated(detector%position)) then
-       allocate(detector%position(ndims))
-    end if
-
-    ! Basic fields: ndims+3
-    detector%position = reshape(buff(1:ndims),(/ndims/))
-    detector%element = buff(ndims+1)
-    detector%id_number = buff(ndims+2)
-    detector%type = buff(ndims+3)
-    index = ndims+4
+    ! Basic fields: dim+3
+    if (.not. allocated(detector%position)) allocate(detector%position(dim))
+    detector%position = buffer(ind:ind+dim-1)
+    ind = ind + dim
+    detector%element   = nint( buffer(ind) )
+    detector%id_number = nint( buffer(ind+1) )
+    detector%type      = nint( buffer(ind+2) )
+    ind = ind + 3
 
     ! Reconstruct element number if global-to-local mapping is given
     if (present(global_to_local)) then
@@ -478,43 +478,43 @@ contains
        end if
     end if
 
-    ! Lagrangian advection fields: (nstages+1)*ndims
+    ! Lagrangian advection fields: (nstages+1)*dim
     if (present(list)) then
 
        if (present_and_true(tracking)) then
           ! update_vector, dimension(ndim)
-          if (.not.allocated(detector%update_vector)) allocate(detector%update_vector(ndims))  
-          detector%update_vector = reshape(buff(index:index+ndims-1),(/ndims/))
-          index = index + ndims
+          if (.not.allocated(detector%update_vector)) allocate(detector%update_vector(dim))  
+          detector%update_vector = reshape(buffer(ind:ind+dim-1),(/dim/))
+          ind = ind + dim
 
           if (list%n_stages > 0) then
              ! k, dimension(nstages:ndim)
-             if (.not. allocated(detector%k)) allocate(detector%k(list%n_stages,ndims))
-             detector%k = reshape(buff(index:index+list%n_stages*ndims-1),(/list%n_stages,ndims/))
-             index = index + list%n_stages*ndims
+             if (.not. allocated(detector%k)) allocate(detector%k(list%n_stages,dim))
+             detector%k = reshape(buffer(ind:ind+list%n_stages*dim-1),(/list%n_stages,dim/))
+             ind = ind + list%n_stages*dim
           end if
 
           if (list%tracking_method == GEOMETRIC_TRACKING) then
              ! Ray tracking: ray_o + ray_d
-             detector%target_distance = buff(index)
-             index = index+1
-             detector%current_t = buff(index)
-             index = index+1
+             detector%target_distance = buffer(ind)
+             ind = ind+1
+             detector%current_t = buffer(ind)
+             ind = ind+1
 
-             if (.not.allocated(detector%ray_o)) allocate(detector%ray_o(ndims))
-             detector%ray_o = buff(index:index+ndims-1)
-             index = index + ndims
+             if (.not.allocated(detector%ray_o)) allocate(detector%ray_o(dim))
+             detector%ray_o = buffer(ind:ind+dim-1)
+             ind = ind + dim
 
-             if (.not. allocated(detector%ray_d)) allocate(detector%ray_d(ndims))
-             detector%ray_d = buff(index:index+ndims-1)
-             index = index + ndims
+             if (.not. allocated(detector%ray_d)) allocate(detector%ray_d(dim))
+             detector%ray_d = buffer(ind:ind+dim-1)
+             ind = ind + dim
           end if
 
           if (list%tracking_method == PURE_GS) then
              ! GS tracking: ray_o
-             if (.not.allocated(detector%ray_o)) allocate(detector%ray_o(ndims))
-             detector%ray_o = buff(index:index+ndims-1)
-             index = index + ndims
+             if (.not.allocated(detector%ray_o)) allocate(detector%ray_o(dim))
+             detector%ray_o = buffer(ind:ind+dim-1)
+             ind = ind + dim
 
              if (present(coordinates)) then  
                 detector%local_coords=local_coords(coordinates,detector%element,detector%ray_o)
@@ -526,31 +526,31 @@ contains
        if (associated(list%fgroup)) then
           nvars = size(list%fgroup%variables)
           if (.not.allocated(detector%biology)) allocate(detector%biology(nvars))
-          detector%biology = buff(index:index+nvars-1)
-          index = index + nvars
+          detector%biology = buffer(ind:ind+nvars-1)
+          ind = ind + nvars
 
           if (size(list%fgroup%food_sets) > 0) then
              nvars = size(list%fgroup%food_sets(1)%varieties)
 
              if (.not.allocated(detector%food_requests)) allocate(detector%food_requests(nvars))
-             detector%food_requests = buff(index:index+nvars-1)
-             index = index + nvars
+             detector%food_requests = buffer(ind:ind+nvars-1)
+             ind = ind + nvars
 
              if (.not.allocated(detector%food_ingests)) allocate(detector%food_ingests(nvars))
-             detector%food_ingests = buff(index:index+nvars-1)
-             index = index + nvars
+             detector%food_ingests = buffer(ind:ind+nvars-1)
+             ind = ind + nvars
 
              if (.not.allocated(detector%food_thresholds)) allocate(detector%food_thresholds(nvars))
-             detector%food_thresholds = buff(index:index+nvars-1)
-             index = index + nvars
+             detector%food_thresholds = buffer(ind:ind+nvars-1)
+             ind = ind + nvars
           end if
        end if
 
     else
-       detector%list_id = buff(index)
-       index = index+1
+       detector%list_id = buffer(ind)
+       ind = ind+1
     end if
-   
+
   end subroutine unpack_detector
 
   function detector_value_scalar(sfield, detector) result(value)

@@ -102,7 +102,7 @@ contains
 
   subroutine move_lagrangian_detectors(state, detector_list, dt, timestep)
     type(state_type), dimension(:), intent(in) :: state
-    type(detector_linked_list), intent(inout) :: detector_list
+    type(detector_linked_list), pointer, intent(inout) :: detector_list
     real, intent(in) :: dt
     integer, intent(in) :: timestep
 
@@ -421,7 +421,7 @@ contains
     !   This is done by computing the local coordinates of the target point,
     !   finding the local coordinate closest to -infinity
     !   and moving to the element through that face.
-    type(detector_linked_list), intent(inout) :: detector_list
+    type(detector_linked_list), pointer, intent(inout) :: detector_list
     type(vector_field), pointer, intent(in) :: xfield
     type(mesh_type), pointer, intent(in) :: periodic_mesh
 
@@ -1017,13 +1017,13 @@ contains
   end subroutine reflect_on_boundary
 
   subroutine auto_subcycle_random_walk(detector_list,dt,xfield,diff_field,grad_field,subcycle_field,periodic_mesh)
-    type(detector_linked_list), intent(inout) :: detector_list
+    type(detector_linked_list), pointer, intent(inout) :: detector_list
     real, intent(in) :: dt
     type(scalar_field), pointer, intent(in) :: diff_field, subcycle_field
     type(vector_field), pointer, intent(in) :: xfield, grad_field
     type(mesh_type), pointer, intent(in) :: periodic_mesh
 
-    type(detector_linked_list) :: subcycle_detector_list
+    type(detector_linked_list), pointer :: subcycle_detector_list
     type(detector_type), pointer :: detector, move_detector
     real, dimension(xfield%dim) :: rw_displacement
     real :: total_subsubcycle
@@ -1034,6 +1034,7 @@ contains
     total_subsubcycle = 0
 
     ! Setup our detector work list
+    allocate(subcycle_detector_list)
     subcycle_detector_list%search_tolerance = detector_list%search_tolerance
     subcycle_detector_list%reflect_on_boundary = detector_list%reflect_on_boundary
     subcycle_detector_list%tracking_method = detector_list%tracking_method
@@ -1102,6 +1103,7 @@ contains
 
        subsubcycle = subsubcycle + 1
     end do
+    deallocate(subcycle_detector_list)
 
     ! Update detectors after the final move
     call track_detectors(detector_list,xfield,periodic_mesh)

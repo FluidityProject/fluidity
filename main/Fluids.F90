@@ -103,6 +103,7 @@ module fluids_module
   use multiphase_module
   use lagrangian_biology
   use detectors
+  use detector_data_types
   use detector_parallel
   use detector_move_lagrangian
   use Profiler
@@ -177,6 +178,8 @@ contains
     logical::use_advdif=.true.  ! decide whether we enter advdif or not
 
     INTEGER :: adapt_count
+
+    type(detector_linked_list), pointer :: default_detector_list
 
     ! Absolute first thing: check that the options, if present, are valid.
     call check_options
@@ -865,7 +868,8 @@ contains
 
        ! Move lagrangian detectors
        if (timestep/=0) then
-          call move_lagrangian_detectors(state, default_stat%detector_list, dt, timestep)
+          default_detector_list => default_stat%detector_list
+          call move_lagrangian_detectors(state, default_detector_list, dt, timestep)
        end if
 
        ! Now output detectors

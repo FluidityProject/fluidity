@@ -1036,6 +1036,7 @@ contains
     type(vector_field), pointer :: vfield
     type(tensor_field), pointer :: tfield
     integer :: old_universal_element_number, old_local_element_number, dataSize
+    integer :: ind ! ml805: dummy index for packing/unpacking detectors
 
     type(detector_type), pointer :: detector => null(), detector_to_delete => null()    
 
@@ -1091,7 +1092,8 @@ contains
        do j=1,zoltan_global_ndets_in_ele(i)
 
           ! pack the detector
-          call pack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1), &
+          ind = 1
+          call pack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1), ind, &
                zoltan_global_ndims)
 
           ! keep a pointer to the detector to delete
@@ -1184,7 +1186,8 @@ contains
     integer :: ndetectors_in_ele, det, new_ele_owner, total_det_unpacked
     type(detector_type), pointer :: detector => null()
     type(element_type), pointer :: shape => null()
-    
+
+    integer :: ind ! ml805 dummy index for unpacking detectors
     ewrite(1,*) "In zoltan_cb_unpack_fields"
 
     total_det_unpacked=0
@@ -1256,7 +1259,8 @@ contains
              call allocate(detector, zoltan_global_ndims, local_coord_count(shape))
                    
              ! unpack detector information 
-             call unpack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1), zoltan_global_ndims, &
+             ind = 1
+             call unpack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1), ind, zoltan_global_ndims, &
                     global_to_local=zoltan_global_uen_to_new_local_numbering, coordinates=zoltan_global_new_positions)
 
              ! Make sure the unpacked detector is in this element

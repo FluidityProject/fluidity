@@ -70,7 +70,7 @@ module detector_data_types
   end type detector_list_ptr
 
   type detector_buffer
-    real, dimension(:,:), pointer :: ptr
+    real, dimension(:), pointer :: ptr
   end type detector_buffer
 
   !! Type for caching detector position and search information.
