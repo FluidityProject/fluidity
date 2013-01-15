@@ -69,7 +69,7 @@ contains
     type(mesh_type), pointer :: topology
     ! The universal identifier. Required for parallel.
     type(scalar_field), pointer :: uid
-    integer :: max_vertices, total_dofs
+    integer :: max_vertices, total_dofs, tmp
     logical :: have_facets, have_halos
 
     type(integer_set), dimension(:,:), allocatable :: entity_send_targets
@@ -122,17 +122,40 @@ contains
     allocate(entity_dof_starts(sum(entity_counts)))
     allocate(halo_entity_dof_starts(sum(entity_counts)))
 
+    ewrite(-1, *)'Making GN for ', trim(mesh%name)
     ! Number the topological entities.
     call number_topology
     call calculate_dofs_per_entity
     ! Extract halo information for each topological entity.
     if (have_halos) call create_topology_halos
+
+    ! Save core/non-core/l1/l2 distinction in mesh node_classes
+    if (have_halos) then
+       tmp = entity_counts(0)   ! number of vertices in topology mesh (-1?)
+       
+       ! Count core nodes (primary sort key -2)
+       mesh%node_classes(CORE_ENTITY) = count(entity_sort_list(1:tmp, 0) == -2)
+       ! Count non-core nodes (primary sort key -1)
+       mesh%node_classes(NON_CORE_ENTITY) = count(entity_sort_list(1:tmp, 0) == -1)
+       ! L1 halo (primary sort key \in [0, COMM_SIZE]) 
+       mesh%node_classes(EXEC_HALO_ENTITY) = count(entity_sort_list(1:tmp, 0) >= 0 .and. entity_sort_list(1:tmp, 0) <= getnprocs())
+       ! L2 halo (primary sort key \in [COMM_SIZE + 1, \infty))
+       mesh%node_classes(NON_EXEC_HALO_ENTITY) = count(entity_sort_list(1:tmp, 0) > getnprocs())
+
+    end if
+
     ! Determine the order in which topological entities should be numbered.
     call entity_order
     ! Associate dof numbers with each topological entity
     call topology_dofs
     ! Transpose dof numbers into the mesh object
     call populate_ndglno
+
+    ! Non-parallel case, only know the node count now.
+    if (.not.have_halos) then
+       mesh%node_classes = 0
+       mesh%node_classes(CORE_ENTITY) = node_count(mesh)
+    end if
 
     if (have_halos) then
        call create_halos(mesh, topology%halos)
@@ -348,7 +371,7 @@ contains
                end if
                
             end do
-         end do         
+         end do
       end do
 
       ! Next, loop over elements again to establish the level 2 halo.
@@ -500,7 +523,7 @@ contains
       integer, dimension(2) :: edge
       integer, dimension(:), pointer :: ele_dofs, topo_dofs, facets
 
-      ewrite(1,*) "Populating ndglno"
+      ewrite(-1,*) "Populating ndglno for ", trim(mesh%name)
 
       allocate(dof_to_halo_dof(total_dofs))
       dof_to_halo_dof = -666
