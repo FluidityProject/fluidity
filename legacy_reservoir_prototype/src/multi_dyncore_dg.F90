@@ -4142,7 +4142,7 @@ end if
                                    UOLD_NODJ_SGI_IPHASE, UOLD_NODI_SGI_IPHASE, &
                                    ELE,ELE2, SNORMXN,SNORMYN,SNORMZN,  &
                                    DUX_ELE,DUY_ELE,DUZ_ELE,DUOLDX_ELE,DUOLDY_ELE,DUOLDZ_ELE, &
-                                   SELE,STOTEL,WIC_U_BC,WIC_U_BC_DIRICHLET, U_OTHER_LOC,MAT_OTHER_LOC,CV_SLOC2LOC )
+                                   SELE,STOTEL,WIC_U_BC,WIC_U_BC_DIRICHLET, MAT_OTHER_LOC,MAT_OTHER_LOC,CV_SLOC2LOC )
                            ENDIF
                            IF(IDIM==2) THEN
                               CALL DIFFUS_CAL_COEFF_SURFACE(DIFF_COEF_DIVDX( SGI,IDIM,IPHASE ), &
@@ -4154,7 +4154,7 @@ end if
                                    VOLD_NODJ_SGI_IPHASE, VOLD_NODI_SGI_IPHASE, &
                                    ELE,ELE2, SNORMXN,SNORMYN,SNORMZN,  &
                                    DVX_ELE,DVY_ELE,DVZ_ELE,DVOLDX_ELE,DVOLDY_ELE,DVOLDZ_ELE, &
-                                   SELE,STOTEL,WIC_U_BC,WIC_U_BC_DIRICHLET, U_OTHER_LOC,MAT_OTHER_LOC,CV_SLOC2LOC )
+                                   SELE,STOTEL,WIC_U_BC,WIC_U_BC_DIRICHLET, MAT_OTHER_LOC,MAT_OTHER_LOC,CV_SLOC2LOC )
                            ENDIF
                            IF(IDIM==3) THEN
                               CALL DIFFUS_CAL_COEFF_SURFACE(DIFF_COEF_DIVDX( SGI,IDIM,IPHASE ), &
@@ -4166,7 +4166,7 @@ end if
                                    WOLD_NODJ_SGI_IPHASE, WOLD_NODI_SGI_IPHASE, &
                                    ELE,ELE2, SNORMXN,SNORMYN,SNORMZN,  &
                                    DWX_ELE,DWY_ELE,DWZ_ELE,DWOLDX_ELE,DWOLDY_ELE,DWOLDZ_ELE, &
-                                   SELE,STOTEL,WIC_U_BC,WIC_U_BC_DIRICHLET, U_OTHER_LOC,MAT_OTHER_LOC,CV_SLOC2LOC )
+                                   SELE,STOTEL,WIC_U_BC,WIC_U_BC_DIRICHLET, MAT_OTHER_LOC,MAT_OTHER_LOC,CV_SLOC2LOC )
                            ENDIF
                         ELSE ! IF(GOT_DIFFUS) THEN...
                            DIFF_COEF_DIVDX( SGI,IDIM,IPHASE )   =0.0
