@@ -49,6 +49,8 @@ module fields_data_types
   !! Available sources of data for fields:
   integer, public, parameter :: FIELD_TYPE_NORMAL=0, FIELD_TYPE_CONSTANT=1, FIELD_TYPE_PYTHON=2, FIELD_TYPE_DEFERRED=3
 
+  integer, public, parameter :: CORE_ENTITY = 1, NON_CORE_ENTITY = 2, EXEC_HALO_ENTITY = 3, NON_EXEC_HALO_ENTITY = 4
+
   type adjacency_cache
     type(csr_sparsity), pointer :: nnlist => null()
     type(csr_sparsity), pointer :: nelist => null()
@@ -63,6 +65,15 @@ module fields_data_types
      type(element_type) :: shape
      integer :: elements
      integer :: nodes
+     !! for pyop2 interoperability.  dofs and elements are sorted into:
+     !! core (owned and not in send halo)
+     !! non-core (owned and in send halo)
+     !! exec halo (in halo, but touch owned entity)
+     !! non-exec halo (in halo, touch exec halo entity but not owned entity)
+     !! these arrays record this information so we can expose it
+     !! appropriately to pyop2
+     integer, dimension(4) :: element_classes
+     integer, dimension(4) :: node_classes
      character(len=FIELD_NAME_LEN) :: name
      !! path to options in the options tree
 #ifdef DDEBUG
