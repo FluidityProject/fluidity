@@ -4144,7 +4144,7 @@
                ENDIF
             END DO
             DIFF_GI2(:,:) = max(0.0, DIFF_GI2(:,:) ) 
-            DIFF_GI2(:,:) = DIFF_GI2(:,:) + DIFF_GI_ADDED( 1:NDIM , 1:NDIM )
+            DIFF_GI2(1:NDIM , 1:NDIM) = DIFF_GI2(1:NDIM , 1:NDIM) + DIFF_GI_ADDED( 1:NDIM , 1:NDIM )
 
             DTDX_GI2 = 0.0
             DTDY_GI2 = 0.0
