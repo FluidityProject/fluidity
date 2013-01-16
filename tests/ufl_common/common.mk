@@ -1,4 +1,5 @@
 DEGREE ?= 1
+BACKEND ?= sequential
 
 .PHONY: cdisk clean flml unitsquare
 
@@ -16,10 +17,10 @@ cdisk:
 	../../bin/gmsh2triangle --2d MMS_D.msh
 
 flml:
-	sed -e 's/{MESH}/MMS_A/g' -e 's/{SIMULATION}/MMS_A/g' -e 's/{DEGREE}/$(DEGREE)/g' ufl_common/$(FLML) > MMS_A.flml
-	sed -e 's/{MESH}/MMS_B/g' -e 's/{SIMULATION}/MMS_B/g' -e 's/{DEGREE}/$(DEGREE)/g' ufl_common/$(FLML) > MMS_B.flml
-	sed -e 's/{MESH}/MMS_C/g' -e 's/{SIMULATION}/MMS_C/g' -e 's/{DEGREE}/$(DEGREE)/g' ufl_common/$(FLML) > MMS_C.flml
-	sed -e 's/{MESH}/MMS_D/g' -e 's/{SIMULATION}/MMS_D/g' -e 's/{DEGREE}/$(DEGREE)/g' ufl_common/$(FLML) > MMS_D.flml
+	sed -e 's/{MESH}/MMS_A/g' -e 's/{SIMULATION}/MMS_A/g' -e 's/{BACKEND}/$(BACKEND)/g' -e 's/{DEGREE}/$(DEGREE)/g' ufl_common/$(FLML) > MMS_A.flml
+	sed -e 's/{MESH}/MMS_B/g' -e 's/{SIMULATION}/MMS_B/g' -e 's/{BACKEND}/$(BACKEND)/g' -e 's/{DEGREE}/$(DEGREE)/g' ufl_common/$(FLML) > MMS_B.flml
+	sed -e 's/{MESH}/MMS_C/g' -e 's/{SIMULATION}/MMS_C/g' -e 's/{BACKEND}/$(BACKEND)/g' -e 's/{DEGREE}/$(DEGREE)/g' ufl_common/$(FLML) > MMS_C.flml
+	sed -e 's/{MESH}/MMS_D/g' -e 's/{SIMULATION}/MMS_D/g' -e 's/{BACKEND}/$(BACKEND)/g' -e 's/{DEGREE}/$(DEGREE)/g' ufl_common/$(FLML) > MMS_D.flml
 
 unitsquare:
 	ufl_common/generate_mesh MMS_A 30
