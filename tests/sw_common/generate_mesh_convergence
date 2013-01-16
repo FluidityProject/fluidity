@@ -9,12 +9,20 @@ optparser=OptionParser(usage='usage: %prog [options]',
                        description="""Generate the mesh files for a given"""+
 		       """number of layers of elements in the channel.""")
 
+optparser.add_option("--quads", help="make a quad mesh", action="store_const", const=True, dest="quads", default=False)
+
 (options, argv) = optparser.parse_args()
+print options.quads
+
 
 sys.path.append(".")
 
 import channel
 
 layerlist = [5,10,20,50,100]
-for layers in layerlist:
-    channel.generate_meshfile("channel"+str(layers),layers)
+if options.quads:
+    for layers in layerlist:
+        channel.generate_meshfile_quad("channel"+str(layers),layers)
+else:
+    for layers in layerlist:
+        channel.generate_meshfile("channel"+str(layers),layers)

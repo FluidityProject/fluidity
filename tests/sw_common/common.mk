@@ -10,6 +10,9 @@ fsphere_swml:
 channel_mesh_convergence:
 	sw_common/generate_mesh_convergence
 
+channel_mesh_convergence_quads:
+	sw_common/generate_mesh_convergence --quads
+
 rossby_swml:
 	sed -e 's/{SIMULATION}/$(SIMULATION)5/g' -e 's/{MESH}/channel5/g' -e 's/{PDEGREE}/$(PDEGREE)/g' -e 's/{UDEGREE}/$(UDEGREE)/g' -e 's/{VDEGREE}/$(VDEGREE)/g' -e 's/{CONSTRAINT}/$(CONSTRAINT)/g' sw_common/$(SWML) > $(SIMULATION)5.swml
 	sed -e 's/{SIMULATION}/$(SIMULATION)10/g' -e 's/{MESH}/channel10/g' -e 's/{PDEGREE}/$(PDEGREE)/g' -e 's/{UDEGREE}/$(UDEGREE)/g' -e 's/{VDEGREE}/$(VDEGREE)/g' -e 's/{CONSTRAINT}/$(CONSTRAINT)/g' sw_common/$(SWML) > $(SIMULATION)10.swml

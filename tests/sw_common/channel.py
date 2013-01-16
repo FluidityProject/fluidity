@@ -42,6 +42,23 @@ Physical Surface(1) = {6};
 Mesh.Optimize=1;
 '''
 
+meshtemplate_quad='''
+Point(1) = {0, 0, 0, <dx>};
+Extrude {0, 1, 0} {
+  Point{1};Layers{<layers>};Recombine;
+}
+Extrude {1, 0, 0} {
+  Line{1};Layers{<layers>};Recombine;
+}
+
+Physical Surface(1) = {5};
+Physical Line(1) = {1};
+Physical Line(2) = {2};
+Physical Line(3) = {4, 3};
+Mesh.Optimize=1;
+'''
+
+
 def generate_meshfile(name,layers):
 
 
@@ -49,7 +66,18 @@ def generate_meshfile(name,layers):
         meshtemplate.replace('<dx>',str(1./layers)
                  ).replace('<layers>',str(layers)))
 
-    os.system("gmsh -3 "+name+".geo")
+    os.system("gmsh -2 "+name+".geo")
+    os.system("../../tools/gmsh2triangle.py "+name+".msh")
+
+
+def generate_meshfile_quad(name,layers):
+
+
+    file(name+".geo",'w').write(
+        meshtemplate_quad.replace('<dx>',str(1./layers)
+                 ).replace('<layers>',str(layers)))
+
+    os.system("gmsh -2 "+name+".geo")
     os.system("../../tools/gmsh2triangle.py "+name+".msh")
 
 def generate_meshfile_rot(name,layers):
@@ -59,7 +87,7 @@ def generate_meshfile_rot(name,layers):
         meshtemplate_rot.replace('<dx>',str(1./layers)
                  ).replace('<layers>',str(layers)))
 
-    os.system("gmsh -3 "+name+".geo")
+    os.system("gmsh -2 "+name+".geo")
     os.system("../../scripts/gmsh2triangle "+name+".msh")
 
 def meshfile2tube(name):
