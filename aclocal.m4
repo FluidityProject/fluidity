@@ -401,7 +401,6 @@ dnl check for the required PETSc library
 dnl ----------------------------------------------------------------------------
 AC_DEFUN([ACX_PETSc], [
 AC_REQUIRE([ACX_BLAS])
-AC_REQUIRE([ACX_ParMetis])
 BLAS_LIBS="$BLAS_LIBS $FLIBS"
 AC_REQUIRE([ACX_LAPACK])
 LAPACK_LIBS="$LAPACK_LIBS $BLAS_LIBS"
@@ -583,37 +582,7 @@ AC_DEFINE(HAVE_PETSC,1,[Define if you have the PETSc library.])
 
 ])dnl ACX_PETSc
 
-AC_DEFUN([ACX_ParMetis], [
-# Set variables...
-AC_ARG_WITH(
-	[ParMetis],
-	[  --with-ParMetis=PFX        Prefix where ParMetis is installed],
-	[ParMetis="$withval"],
-    [])
-ParMetis_LIBS_PATH="$ParMetis/lib"
-
-# Check that the compiler uses the library we specified...
-if test -e $ParMetis_LIBS_PATH/libparmetis.a; then
-	echo "note: using $ParMetis_LIBS_PATH/libparmetis.a"
-fi 
-
-# Ensure the comiler finds the library...
-tmpLIBS=$LIBS
-tmpCPPFLAGS=$CPPFLAGS
-AC_LANG_SAVE
-AC_LANG_C
-LIBS="$tmpLIBS -L$ParMetis_LIBS_PATH -lparmetis -lmetis -lm $ZOLTAN_DEPS"
-AC_CHECK_LIB(
-	[parmetis],
-	[ParMETIS_V3_AdaptiveRepart],
-	[AC_DEFINE(HAVE_PARMETIS,1,[Define if you have ParMetis library.])],
-	[AC_MSG_ERROR( [Could not link in the ParMetis library... exiting] )] )
-tmpLIBS="$tmpLIBS -L$ParMetis_LIBS_PATH -lparmetis -lmetis"
-# Save variables...
-AC_LANG_RESTORE
-LIBS=$tmpLIBS
-CPPFLAGS=$tmpCPPFLAGS
-])dnl ACX_ParMetis
+m4_include(m4/ACX_lib_automagic.m4)
 
 dnl ----------------------------------------------------------------------------
 dnl check for the optional hypre library (linked in with PETSc)
