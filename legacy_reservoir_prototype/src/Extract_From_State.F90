@@ -1115,14 +1115,16 @@
       nstate = option_count('/material_phase')
       stotel = surface_element_count( cmesh )
 
+      option_path = '/material_phase[' // int2str( icomp - 1 ) // &
+           ']/scalar_field::ComponentMassFractionPhase' // &
+           int2str( iphase )
 
       Conditional_InitialisedFromFLML: if( initialised ) then
          field_prot = field % val
-
       else
-         option_path = '/material_phase[' // int2str( icomp - 1 ) // &
-              ']/scalar_field::ComponentMassFractionPhase' // &
-              int2str( iphase )
+         !option_path = '/material_phase[' // int2str( icomp - 1 ) // &
+         !     ']/scalar_field::ComponentMassFractionPhase' // &
+         !     int2str( iphase )
 
          Conditional_Composition_MassFraction: if ( have_option( trim( option_path ) // &
               '/prognostic/initial_condition::WholeMesh/constant' ) ) then

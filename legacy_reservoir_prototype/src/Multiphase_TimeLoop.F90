@@ -753,9 +753,8 @@ end if
                density_tmp = density
 
                ! make mid side nodes the average of the 2 corner nodes...
-
-               allocate( DEN_CV_NOD( CV_NLOC, NPHASE) ) 
                if ( cv_nloc==6 .or. cv_nloc==10 ) then ! P2 triangle or tet
+                  allocate( DEN_CV_NOD( CV_NLOC, NPHASE) ) 
 
                   DO ELE = 1, TOTELE
                      DO CV_ILOC = 1, CV_NLOC
@@ -785,8 +784,8 @@ end if
                      END DO
                   END DO
           
+                  deallocate( DEN_CV_NOD ) 
                end if
-               deallocate( DEN_CV_NOD ) 
 
                if ( (cv_nloc==6 .or. cv_nloc==10) .and. &
                     .not. have_option( '/material_phase[0]/multiphase_properties/relperm_type' ) &
@@ -800,6 +799,9 @@ end if
 
                ! calculate the viscosity for the momentum equation...
                call calculate_viscosity( state, ncomp, nphase, ndim, mat_nonods, mat_ndgln, Momentum_Diffusion  )
+
+! quick fix for collapsing water column...
+ScalarField_Source_Store=0.
 
                CALL FORCE_BAL_CTY_ASSEM_SOLVE( state, &
                     NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
@@ -1047,7 +1049,7 @@ end if
                      end do Loop_Phase_SourceTerm2
                   end do Loop_Phase_SourceTerm1
 
-                  ! For compressability
+                  ! For compressibility
                   DO IPHASE = 1, NPHASE
                      DO CV_NODI = 1, CV_NONODS
                         ScalarField_Source_Component( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) = &

@@ -1004,7 +1004,7 @@
       REAL, DIMENSION( IPLIKE_GRAD_SOU*CV_NONODS*NPHASE ), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
 
       ! Local Variables
-      LOGICAL, PARAMETER :: GLOBAL_SOLVE = .FALSE. 
+      LOGICAL, PARAMETER :: GLOBAL_SOLVE = .FALSE.
 
       REAL, DIMENSION( : ), allocatable :: ACV, CT, CT_RHS, DIAG_SCALE_PRES, &
            U_RHS, MCY_RHS, C, MCY, &
@@ -1068,9 +1068,9 @@
            NU, NV, NW, NUOLD, NVOLD, NWOLD, &
            V_DISOPT, V_DG_VEL_INT_OPT, V_THETA, &
            SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_P_BC, &
-           SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2,  &
-           SUF_W_BC_ROB1, SUF_W_BC_ROB2, &       
-           WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_P_BC,  &
+           SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2, &
+           SUF_W_BC_ROB1, SUF_W_BC_ROB2, &
+           WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_P_BC, &
            V_SOURCE, V_ABSORB, VOLFRA_PORE, &
            NCOLM, FINDM, COLM, MIDM, &
            XU_NLOC, XU_NDGLN, &
@@ -1141,6 +1141,13 @@
                  TOTELE, U_NLOC, U_NDGLN )
 
          ELSE
+
+
+            !ewrite(3,*) 'before velocity solve:'
+            !ewrite(3,*) 'up_vel', up_vel
+            !ewrite(3,*) 'u_rhs', u_rhs
+            !ewrite(3,*) 'cdp', cdp
+            !ewrite(3,*)  'dgm_pha', dgm_pha
 
             UP_VEL=0.0
             CALL SOLVER( DGM_PHA, UP_VEL, U_RHS_CDP, &
@@ -1219,7 +1226,7 @@
                   ewrite(3,*) 'count,CV_JNOD,cmc(count):',count,CV_JNOD,cmc(count)
                   if (cv_nod/=cv_jnod) rsum=rsum+abs(cmc(count))
                END DO
-               ewrite(3,*) 'off_diag, diag=',rsum,cmc(midcmc(cv_nod)) 
+               ewrite(3,*) 'off_diag, diag=',rsum,cmc(midcmc(cv_nod))
             END DO
             !stop 1244
          end if
@@ -1405,7 +1412,7 @@
             ewrite(3,*)'as a CV representation t:'
             CALL PRINT_CV_DIST(CV_NONODS,X_NONODS,TOTELE,CV_NLOC,X_NLOC,NPHASE, &
                  SATURA, X_NDGLN, CV_NDGLN, X) 
-            ewrite(3,*)'sumof phases:'
+            ewrite(3,*)'sum of phases:'
             do iphase=1,nphase
                do cv_nod=1,cv_nonods
                   ewrite(3,*)'cv_nod,sum:',cv_nod,SATURA(cv_nod)+SATURA(cv_nod+cv_nonods)
@@ -2660,6 +2667,7 @@
 
       !ewrite(3,*)'cvn:',cvn
       !ewrite(3,*)'cvn_short:',cvn_short
+      !ewrite(3,*)'SBCVFEN',SBCVFEN
       !stop 768
 
       ALLOCATE( FACE_ELE( NFACE, TOTELE ))
@@ -2668,7 +2676,7 @@
            NCOLELE, FINELE, COLELE, CV_NLOC, CV_SNLOC, CV_NONODS, CV_NDGLN, CV_SNDGLN, &
            CV_SLOCLIST, X_NLOC, X_NDGLN )
 
-      ewrite(3,*) 'got_diffus:', got_diffus
+      !ewrite(3,*) 'got_diffus:', got_diffus
 
       IF( GOT_DIFFUS ) THEN
          !  print *,'X_NLOC,U_NLOC,cv_nloc,XU_NLOC:',X_NLOC,U_NLOC,cv_nloc,XU_NLOC
@@ -2704,8 +2712,8 @@
          ! Adjust the volume according to the number of levels. 
          VOLUME=VOLUME/REAL(NLEV)
          MASS_ELE(ELE)=VOLUME
-         ewrite(3,*) 'Leaving detnlxr_plus_u'
-         ewrite(3,*)'volume=',volume
+         !ewrite(3,*) 'Leaving detnlxr_plus_u'
+         !ewrite(3,*)'volume=',volume
          !stop 2892
 
          UD = 0.0
@@ -3187,7 +3195,7 @@ end if
             END DO Loop_DGNods1
          END DO Loop_ilev_DGNods1
 
-         ewrite(3,*)'just after Loop_DGNods1'
+         !ewrite(3,*)'just after Loop_DGNods1'
 
          ! Add-in  surface contributions.
 
@@ -3283,7 +3291,7 @@ end if
             END DO Loop_U_ILOC1
          END DO Loop_ILEV1
 
-         ewrite(3,*)'just after Loop_U_ILOC1'
+         !ewrite(3,*)'just after Loop_U_ILOC1'
 
          IF((.not.firstst).and.(RESID_BASED_STAB_DIF.NE.0)) THEN
             !! *************************INNER ELEMENT STABILIZATION****************************************
@@ -4129,8 +4137,7 @@ end if
 
                         If_GOT_DIFFUS: IF(GOT_DIFFUS) THEN
                            ! These subs caculate the effective diffusion coefficient DIFF_COEF_DIVDX,DIFF_COEFOLD_DIVDX
-                           ! print *,'in forcebalance sub U_NODJ_IPHA,U_NODI_IPHA:', &
-                           !                              U_NODJ_IPHA,U_NODI_IPHA
+                           ! print *,'in forcebalance sub U_NODJ_IPHA,U_NODI_IPHA:', U_NODJ_IPHA,U_NODI_IPHA
 
                            IF(IDIM==1) THEN
                               CALL DIFFUS_CAL_COEFF_SURFACE(DIFF_COEF_DIVDX( SGI,IDIM,IPHASE ), &
@@ -4623,6 +4630,8 @@ end if
       DEALLOCATE( STAR_U_COEF, STAR_V_COEF, STAR_W_COEF )
       DEALLOCATE( P_STAR_U, P_STAR_V, P_STAR_W )
       DEALLOCATE( DIF_STAB_U, DIF_STAB_V, DIF_STAB_W )
+
+      DEALLOCATE( UDIFF_SUF_STAB )
 
       DEALLOCATE( VLK_UVW )
 
