@@ -5,7 +5,7 @@
   <owner userid="cjc"/>
   <tags>swml</tags>
   <problem_definition length="special" nprocs="1">
-    <command_line>shallow_water rossby5.swml; shallow_water rossby10.swml; shallow_water rossby20.swml; shallow_water rossby50.swml; shallow_water rossby100.swml;  
+    <command_line>shallow_water_mimetic rossby5.swml; shallow_water_mimetic rossby10.swml; shallow_water_mimetic rossby20.swml; shallow_water_mimetic rossby50.swml; shallow_water_mimetic rossby100.swml;  
 </command_line>
   </problem_definition>
   <variables>

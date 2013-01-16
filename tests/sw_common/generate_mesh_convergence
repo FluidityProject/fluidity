@@ -13,8 +13,8 @@ optparser=OptionParser(usage='usage: %prog [options]',
 
 sys.path.append(".")
 
-import channel_viscous
+import channel
 
 layerlist = [5,10,20,50,100]
 for layers in layerlist:
-    channel_viscous.generate_meshfile("channel"+str(layers),layers)
+    channel.generate_meshfile("channel"+str(layers),layers)
