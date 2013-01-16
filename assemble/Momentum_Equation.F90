@@ -797,11 +797,8 @@
                   end if
                end if
 
-               if (have_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed') .or. &
-                   have_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidMovement/prescribed')) then
-                  ewrite(2,*) "calling fsi_add_dalpha_solid_dt"
-                  call fsi_add_dalpha_solid_dt(state(istate), ct_rhs(istate))
-               end if
+               ! Modifying continuity equation for immersed solids:
+               call fsi_add_dalpha_solid_dt(state(istate), ct_rhs(istate))
 
                ! Add mass source-absorption for implicit solids.
                ! This needs to be done after ct_rhs has been formed

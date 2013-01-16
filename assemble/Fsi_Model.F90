@@ -114,15 +114,11 @@ module fsi_model
         ! First check if prescribed solid movement is enabled,
         ! and if so, move the solid mesh and update the new
         ! solid volume fractions as well
-        if ( (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed") .or. &
-            & have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidMovement/prescribed")) &
-            & .and. its == 1) then
-            call fsi_update_solid_position_volume_fraction(state, solid_states)
-            ! Some tests for fsi_interface
-            ! call set_fsi_interface(state, solid_states)
-            ! call set_fsi_interface_correction(state)
-            ! call set_fsi_interface_from_alpha(state)
-        end if
+        call fsi_apply_prescribed_solid_velocity(state, solid_states)
+        ! Some tests for fsi_interface
+        ! call set_fsi_interface(state, solid_states)
+        ! call set_fsi_interface_correction(state)
+        ! call set_fsi_interface_from_alpha(state)
 
         ! Set absorption term/sigma
         call compute_fluid_absorption(state)
@@ -226,7 +222,7 @@ module fsi_model
 
     !----------------------------------------------------------------------------
 
-    subroutine fsi_update_solid_position_volume_fraction(state, solid_states)
+    subroutine fsi_apply_prescribed_solid_velocity(state, solid_states)
     !! Subroutine that loops over all solid meshes that have a prescribed
     !! velocity or movement, applies solid movement and 
     !! updates the solid volume fraction fields afterwards
@@ -237,12 +233,12 @@ module fsi_model
         type(vector_field), pointer :: solid_velocity_mesh, solid_velocity_global
 
         character(len=OPTION_PATH_LEN) :: mesh_name
-        character(len=OPTION_PATH_LEN) :: fsi_path="/embedded_models/fsi_model/one_way_coupling/vector_field::"
+        character(len=OPTION_PATH_LEN) :: fsi_path="/embedded_models/fsi_model/"
         integer :: i, num_solid_mesh
 
         logical :: solid_moved
 
-        ewrite(2,*) "Inside fsi_update_solid_position_volume_fraction"
+        ewrite(2,*) "Inside fsi_apply_prescribed_solid_velocity"
 
         ! Set logical to false, as at this moment, no solid has moved yet:
         solid_moved = .false.
@@ -257,8 +253,7 @@ module fsi_model
             call get_option('/embedded_models/fsi_model/geometry/mesh['//int2str(i)//']/name', mesh_name)
 
             ! Check if the current mesh has a prescribed velocity/movement:
-            if (have_option(trim(fsi_path)//"SolidVelocity/prescribed/mesh::"//trim(mesh_name)) .or. &
-                have_option(trim(fsi_path)//"SolidMovement/prescribed/mesh::"//trim(mesh_name)) ) then
+            if (have_option(trim(fsi_path)//"solid_phase::"//trim(mesh_name)//"/vector_field::SolidVelocity/prescribed")) then
                 ! Move the mesh:
                 call fsi_move_solid_mesh(state, solid_states(i+1), mesh_name, solid_moved)
 
@@ -313,9 +308,9 @@ module fsi_model
         ! Set iterated global fields:
         call fsi_set_iterated_global_fields(state)
 
-        ewrite(2,*) "Leaving fsi_update_solid_position_volume_fraction"
+        ewrite(2,*) "Leaving fsi_apply_prescribed_solid_velocity"
 
-    end subroutine fsi_update_solid_position_volume_fraction
+    end subroutine fsi_apply_prescribed_solid_velocity
 
     !----------------------------------------------------------------------------
 
@@ -737,9 +732,7 @@ module fsi_model
           fluid_position => extract_vector_field(state, 'Coordinate')
           alpha_global => extract_scalar_field(state, 'SolidConcentration')
           solid_force => extract_vector_field(state, "SolidForce")
-          if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed")) then
-             solid_velocity => extract_vector_field(state, "SolidVelocity")
-          end if
+          solid_velocity => extract_vector_field(state, "SolidVelocity")
 
           ! figure out if we want to print out diagnostics and initialise files
           ! check for mutiple solids and get translation coordinates
@@ -775,7 +768,7 @@ module fsi_model
              call insert(state, solidforce_mesh, trim(solid_mesh%name)//"SolidForce")
              
              ! SolidVelocity per solid mesh:
-             if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed")) then
+             if (have_option("/embedded_models/fsi_model/solid_phase::"//trim(mesh_name)//"/vector_field::SolidVelocity/prescribed")) then
                 call allocate(solidvelocity_mesh, solid_velocity%dim, solid_velocity%mesh, trim(solid_mesh%name)//"SolidVelocity")
                 solidvelocity_mesh%option_path = solid_velocity%option_path
                 call zero(solidforce_mesh)
@@ -873,7 +866,7 @@ module fsi_model
       type(vector_field) :: solid_python_return_field, solid_movement_mesh
 
       character(len=PYTHON_FUNC_LEN) :: func
-      character(len=OPTION_PATH_LEN) :: fsi_path="/embedded_models/fsi_model/one_way_coupling/vector_field::"
+      character(len=OPTION_PATH_LEN) :: fsi_path="/embedded_models/fsi_model/"
       integer :: d
 
       ewrite(2,*) "inside move_solid_mesh"
@@ -893,10 +886,10 @@ module fsi_model
 
       ! 2nd get the python function for this solid mesh:
       ! Here we have to differentiate between the user using a prescribed 'SolidVelocity' and 'SolidMovement':
-      if (have_option(trim(fsi_path)//'SolidVelocity/prescribed/mesh::'//trim(mesh_name)//'/python')) then
-        call get_option(trim(fsi_path)//'SolidVelocity/prescribed/mesh::'//trim(mesh_name)//'/python', func)
-      else if (have_option(trim(fsi_path)//'SolidMovement/prescribed/mesh::'//trim(mesh_name)//'/python')) then
-        call get_option(trim(fsi_path)//'SolidMovement/prescribed/mesh::'//trim(mesh_name)//'/python', func)
+      if (have_option(trim(fsi_path)//'solid_phase::'//trim(mesh_name)//'/vector_field::SolidVelocity/prescribed/python_velocity')) then
+        call get_option(trim(fsi_path)//'solid_phase::'//trim(mesh_name)//'/vector_field::SolidVelocity/prescribed/python_velocity/python', func)
+      else if (have_option(trim(fsi_path)//'solid_phase::'//trim(mesh_name)//'/vector_field::SolidVelocity/prescribed/python_movement')) then
+        call get_option(trim(fsi_path)//'solid_phase::'//trim(mesh_name)//'/vector_field::SolidVelocity/prescribed/python_movement/python', func)
       end if
       ! 3rd Set the new coordinates from the python function:
       ! Here we have to differentiate between 'SolidVelocity' and 'SolidMovement' again:
@@ -905,19 +898,19 @@ module fsi_model
       ! This allows to easily set prescribed movement for different kinds of problems.
       ! Also, catch what was specified by the user to pass into the Python interface, either current_time or timestep (dt):
       ! First, for prescribed SolidVelocity do:
-      if (have_option(trim(fsi_path)//'SolidVelocity/prescribed/mesh::'//trim(mesh_name))) then
-        if (have_option(trim(fsi_path)//'SolidVelocity/prescribed/mesh::'//trim(mesh_name)//'/time_variable_in_python/current_time')) then
+      if (have_option(trim(fsi_path)//'solid_phase::'//trim(mesh_name)//'/vector_field::SolidVelocity/prescribed/python_velocity')) then
+        if (have_option(trim(fsi_path)//'solid_phase::'//trim(mesh_name)//'/vector_field::SolidVelocity/prescribed/python_velocity/time_variable_in_python/current_time')) then
           call set_from_python_function(solid_python_return_field, func, solid_position_mesh, current_time)
-        else if (have_option(trim(fsi_path)//'SolidVelocity/prescribed/mesh::'//trim(mesh_name)//'/time_variable_in_python/current_timestep')) then
+        else if (have_option(trim(fsi_path)//'solid_phase::'//trim(mesh_name)//'/vector_field::SolidVelocity/prescribed/python_velocity/time_variable_in_python/current_timestep')) then
           call set_from_python_function(solid_python_return_field, func, solid_position_mesh, dt)
         else
           FLAbort('Neither current_time nor current_timestep was enabled in the schema. This must not happen')
         end if
       ! For prescribed SolidMovement, do:
-      else if (have_option(trim(fsi_path)//'SolidMovement/prescribed/mesh::'//trim(mesh_name))) then
-        if (have_option(trim(fsi_path)//'SolidMovement/prescribed/mesh::'//trim(mesh_name)//'/time_variable_in_python/current_time')) then
+      else if (have_option(trim(fsi_path)//'solid_phase::'//trim(mesh_name)//'/vector_field::SolidVelocity/prescribed/python_movement')) then
+        if (have_option(trim(fsi_path)//'solid_phase::'//trim(mesh_name)//'/vector_field::SolidVelocity/prescribed/python_movement/time_variable_in_python/current_time')) then
           call set_from_python_function(solid_python_return_field, func, solid_position_mesh, current_time)
-        else if (have_option(trim(fsi_path)//'SolidMovement/prescribed/mesh::'//trim(mesh_name)//'/time_variable_in_python/current_timestep')) then
+        else if (have_option(trim(fsi_path)//'solid_phase::'//trim(mesh_name)//'/vector_field::SolidVelocity/prescribed/python_movement/time_variable_in_python/current_timestep')) then
           call set_from_python_function(solid_python_return_field, func, solid_position_mesh, dt)
         else
           FLAbort('Neither current_time nor current_timestep was enabled in the schema. This must not happen')
@@ -929,14 +922,11 @@ module fsi_model
       ! the solid did NOT move, if the return field from the python interface is zero,
       ! if a prescribed SolidVelocity or SolidMovement was set, the solid did NOT move, 
       ! if the difference of old position and new position is zero:
-      if (have_option(trim(fsi_path)//'SolidVelocity/prescribed/mesh::'//trim(mesh_name)) .or. &
-          have_option(trim(fsi_path)//'SolidMovement/prescribed/mesh::'//trim(mesh_name)) ) then
-        if (maxval(solid_python_return_field%val(:,:)) == 0.0 .and. &
-            minval(solid_python_return_field%val(:,:)) == 0.0) then
-          solid_moved = .false.
-        else
-          solid_moved = .true.
-        end if
+      if (maxval(solid_python_return_field%val(:,:)) == 0.0 .and. &
+          minval(solid_python_return_field%val(:,:)) == 0.0) then
+        solid_moved = .false.
+      else
+        solid_moved = .true.
       end if
 
 
@@ -944,7 +934,7 @@ module fsi_model
       if (solid_moved) then
         ! 4th Set the new coordinates and velocity of the solid:
         ! First for prescribed SolidVelocity:
-        if (have_option(trim(fsi_path)//'SolidVelocity/prescribed/mesh::'//trim(mesh_name))) then
+        if (have_option(trim(fsi_path)//'solid_phase::'//trim(mesh_name)//'/vector_field::SolidVelocity/prescribed/python_velocity')) then
             ! Set solid velocity:
             call set(solid_velocity_mesh, solid_python_return_field) ! Here solid_python_return_field is the solid velocity
             ! Compute the distance travelled within dt:
@@ -952,7 +942,7 @@ module fsi_model
             ! Set new coordinates:
             call addto(solid_position_mesh, solid_movement_mesh)
         ! Then for SolidMovement:
-        else if (have_option(trim(fsi_path)//'SolidMovement/prescribed/mesh::'//trim(mesh_name))) then
+        else if (have_option(trim(fsi_path)//'solid_phase::'//trim(mesh_name)//'/vector_field::SolidVelocity/prescribed/python_movement')) then
             ! Set solid velocity:
             call addto(solid_velocity_mesh, solid_python_return_field, 1.0/dt) ! Here solid_python_return_field is the travelled distance
             ! Set new coordinates:
@@ -983,46 +973,43 @@ module fsi_model
       
       ewrite(2,*) "Inside compute_source_term"
 
-      if (have_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed') .or. &
-          & have_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidMovement/prescribed')) then
+      fluid_velocity => extract_vector_field(state, "IteratedVelocity")
+      fluid_absorption => extract_vector_field(state, "IteratedVelocityAbsorption")
+      solid_velocity => extract_vector_field(state, "IteratedSolidVelocity")
+      alpha => extract_scalar_field(state, "IteratedSolidConcentration")
+      ! fsi_interface => extract_scalar_field(state, 'IteratedSolidPhase')
 
-         fluid_velocity => extract_vector_field(state, "IteratedVelocity")
-         fluid_absorption => extract_vector_field(state, "IteratedVelocityAbsorption")
-         solid_velocity => extract_vector_field(state, "IteratedSolidVelocity")
-         alpha => extract_scalar_field(state, "IteratedSolidConcentration")
-         ! fsi_interface => extract_scalar_field(state, 'IteratedSolidPhase')
+      ! Setting Iterated source term:
+      source_term_iter => extract_vector_field(state, "IteratedVelocitySource")
+      call zero(source_term_iter)
 
-         ! Setting Iterated source term:
-         source_term_iter => extract_vector_field(state, "IteratedVelocitySource")
-         call zero(source_term_iter)
+      ! (\rho_f \alpha_s / \Delta t) (\hat{u_f} or u) - F_s/ \Delta t
+      do ele = 1, ele_count(source_term_iter%mesh)
+          nodes => ele_nodes(source_term_iter%mesh, ele)
+          do i = 1, size(nodes)
+              if (node_val(alpha, nodes(i)) .gt. 0.0 .and. node_val(alpha, nodes(i)) .lt. 1) then
+!                if (node_val(fsi_interface, nodes(i)) == 1.0) then
+                  do j = 1, source_term_iter%dim
+                      ! Correct source term: u_s*sigma - sigma*(alpha*u_f + u_s), with sigma=1/dt
+                      call set(source_term_iter, j, nodes(i), (node_val(solid_velocity,j,nodes(i)) / dt) - &
+                        & (node_val(solid_velocity,j,nodes(i)) + &
+                        & node_val(fluid_velocity,j,nodes(i)) * node_val(alpha,nodes(i))) / dt )
+                      ! Source term based on: sigma*u_s^f - sigma*alpha*u_f^f, sigma=1/dt
+!                        call set(source_term_iter, j, nodes(i), (node_val(solid_velocity,j,nodes(i)) / dt) - &
+!                                 & ( (node_val(alpha, nodes(i)) / dt) * (node_val(fluid_velocity,j,nodes(i))) ) )
 
-         ! (\rho_f \alpha_s / \Delta t) (\hat{u_f} or u) - F_s/ \Delta t
-         do ele = 1, ele_count(source_term_iter%mesh)
-             nodes => ele_nodes(source_term_iter%mesh, ele)
-             do i = 1, size(nodes)
-                 if (node_val(alpha, nodes(i)) .gt. 0.0 .and. node_val(alpha, nodes(i)) .lt. 1) then
-!                 if (node_val(fsi_interface, nodes(i)) == 1.0) then
-                     do j = 1, source_term_iter%dim
-                         ! Correct source term: u_s*sigma - sigma*(alpha*u_f + u_s), with sigma=1/dt
-                         call set(source_term_iter, j, nodes(i), (node_val(solid_velocity,j,nodes(i)) / dt) - &
-                           & (node_val(solid_velocity,j,nodes(i)) + &
-                           & node_val(fluid_velocity,j,nodes(i)) * node_val(alpha,nodes(i))) / dt )
-                         ! Source term based on: sigma*u_s^f - sigma*alpha*u_f^f, sigma=1/dt
-!                         call set(source_term_iter, j, nodes(i), (node_val(solid_velocity,j,nodes(i)) / dt) - &
-!                                  & ( (node_val(alpha, nodes(i)) / dt) * (node_val(fluid_velocity,j,nodes(i))) ) )
+                      ! Trial (not correct):
+!                        call set(source_term_iter, j, nodes(i), (node_val(solid_velocity,j,nodes(i)) / dt) - (node_val(solid_velocity,j,nodes(i))+node_val(fluid_velocity,j,nodes(i))*node_val(alpha,nodes(i))) / dt )
+                  end do
+              end if
+          end do
+      end do
 
-                         ! Trial (not correct):
-!                         call set(source_term_iter, j, nodes(i), (node_val(solid_velocity,j,nodes(i)) / dt) - (node_val(solid_velocity,j,nodes(i))+node_val(fluid_velocity,j,nodes(i))*node_val(alpha,nodes(i))) / dt )
-                     end do
-                 end if
-             end do
-         end do
+      ! Setting source term:
+      source_term => extract_vector_field(state, "VelocitySource")
+      call set(source_term, source_term_iter)
 
-         ! Setting source term:
-         source_term => extract_vector_field(state, "VelocitySource")
-         call set(source_term, source_term_iter)
-
-      end if
+      !end if
 
     ewrite(2,*) "Leaving compute_source_term"
 
@@ -1060,7 +1047,7 @@ module fsi_model
          call add_ct_rhs_element_cg(ele, test_function, &
               p_shape, x, p, alpha, old_alpha, ct_rhs)
       end do
-      
+
       ewrite_minmax(ct_rhs)
 
     contains
@@ -1126,43 +1113,39 @@ module fsi_model
       ! solidvelocity doesn't have to be of that specific solid, but can be the global solidvelocity field,
       ! as for the computation of the solidforce (for a specific solid), only the elements where alpha>0.0
       ! are taken into account. Since alpha is solid-mesh specific, this works!
-      if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed") .or. &
-          & have_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidMovement/prescribed') ) then
-         !solid_velocity => extract_vector_field(state, "SolidVelocity")
-         solid_velocity => extract_vector_field(state, trim(mesh_name)//'SolidVelocity')
-      end if
+      solid_velocity => extract_vector_field(state, trim(mesh_name)//'SolidVelocity')
 
       ! 1-way coupling:
-      if (have_option('/embedded_models/fsi_model/one_way_coupling') &
-           & .and. (.not. (have_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed') .or. &
-           & have_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidMovement/prescribed') )) ) then
-
-          ! Looping over ele, looping over nodes:
-          call zero(solidforce)
-          do ele = 1, ele_count(solidforce%mesh)
-              nodes => ele_nodes(solidforce%mesh, ele)
-              do i = 1, size(nodes)
-                  if (node_val(alpha, nodes(i)) .gt. 0.0) then
-                      do j = 1, solidforce%dim
-                          call set(solidforce, j, nodes(i), (node_val(alpha, nodes(i)) / dt) * (node_val(fluid_velocity,j,nodes(i))) )
-                      end do
-                  end if
-              end do
-          end do
-
-          if (present(mesh_name)) then
-              ! Add the computed solid force to the field holding all the force-fields:
-              call addto(solidforce_global, solidforce)
-          end if !else solidforce points to the global field, e.g. only 1 solid mesh provided
-
-          ! computing the integral of the solidforce (x-component)
-          solid_force_diag = 0.0
-          solid_force_diag = field_integral(solidforce, fluid_coord)
-
+!      if (have_option('/embedded_models/fsi_model/one_way_coupling') &
+!           & .and. (.not. (have_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed') .or. &
+!           & have_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidMovement/prescribed') )) ) then
+!
+!          ! Looping over ele, looping over nodes:
+!          call zero(solidforce)
+!          do ele = 1, ele_count(solidforce%mesh)
+!              nodes => ele_nodes(solidforce%mesh, ele)
+!              do i = 1, size(nodes)
+!                  if (node_val(alpha, nodes(i)) .gt. 0.0) then
+!                      do j = 1, solidforce%dim
+!                          call set(solidforce, j, nodes(i), (node_val(alpha, nodes(i)) / dt) * (node_val(fluid_velocity,j,nodes(i))) )
+!                      end do
+!                  end if
+!              end do
+!          end do
+!
+!          if (present(mesh_name)) then
+!              ! Add the computed solid force to the field holding all the force-fields:
+!              call addto(solidforce_global, solidforce)
+!          end if !else solidforce points to the global field, e.g. only 1 solid mesh provided
+!
+!          ! computing the integral of the solidforce (x-component)
+!          solid_force_diag = 0.0
+!          solid_force_diag = field_integral(solidforce, fluid_coord)
+!
       ! 1-way coupling with prescribed movement:
-      else if (have_option('/embedded_models/fsi_model/one_way_coupling') &
-           & .and. (have_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed') .or. &
-           & have_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidMovement/prescribed') ) ) then
+      !else if (have_option('/embedded_models/fsi_model/one_way_coupling') &
+      !     & .and. (have_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed') .or. &
+      !     & have_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidMovement/prescribed') ) ) then
 
           ! Looping over ele, looping over nodes:
           call zero(solidforce)
@@ -1187,9 +1170,9 @@ module fsi_model
           solid_force_diag = field_integral(solidforce, fluid_coord)
 
       ! 2-way coupling
-      else if (have_option('/embedded_models/fsi_model/two_way_coupling')) then
-         ! Do nothing at this stage
-      end if
+      !else if (have_option('/embedded_models/fsi_model/two_way_coupling')) then
+      !   ! Do nothing at this stage
+      !end if
 
       ewrite(2, *) "leaving fsi_model_solid_force_computation"
 
@@ -1298,7 +1281,7 @@ module fsi_model
             ! when computing the force on the solid mesh, which should be done anyway!!!
             num_solid_mesh = option_count('/embedded_models/fsi_model/geometry/mesh')
             allocate(solid_force_diag(fluid_coord%dim))
-            
+
         ! Compute Force and volume of solids:
             solid_mesh_loop: do i=0, num_solid_mesh-1
 
@@ -1361,8 +1344,8 @@ module fsi_model
 !            end do pre_solid_pos_loop
 !
          end if
-      else if (have_option('/embedded_models/fsi_model/two_way_coupling')) then
-         ! Do nothing at this stage
+      ! else if (have_option('/embedded_models/fsi_model/two_way_coupling')) then
+      !   ! Do nothing at this stage
       end if
 
       ewrite(2, *) "leaving fsi_model_compute_diagnostics"
@@ -1407,10 +1390,7 @@ module fsi_model
       alpha_global => extract_scalar_field(state, "SolidConcentration")
       ! and the solid force field in state:
       solid_force => extract_vector_field(state, "SolidForce")
-      if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed")) then
-         ! and the solid velocity field in state:
-         solid_velocity => extract_vector_field(state, "SolidVelocity")
-      end if
+      solid_velocity => extract_vector_field(state, "SolidVelocity")
       
       ! figure out if we want to print out diagnostics and initialise files
       ! check for mutiple solids and get translation coordinates
@@ -1475,14 +1455,14 @@ module fsi_model
 !         call insert(global_fluid_state, solidforce_mesh, trim(solidforce_mesh%name))
          call deallocate(solidforce_mesh)
          
-         if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed")) then
+         !if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed")) then
             ! And the solidvelocity:
             call allocate(solidvelocity_mesh, solid_velocity%dim, solid_velocity%mesh, trim(solid_mesh%name)//"SolidVelocity")
             solidvelocity_mesh%option_path = solid_velocity%option_path
             call zero(solidvelocity_mesh)
             call insert(state, solidvelocity_mesh, trim(solid_mesh%name)//"SolidVelocity")
             call deallocate(solidvelocity_mesh)
-         end if
+         !end if
 
          ! Abort if dimensions of fluid and solid mesh don't add up
          !assert(fluid_position%dim == solid_position%dim)         

@@ -493,9 +493,29 @@
             </continuous>
           </galerkin_projection>
         </inter_mesh_projection>
-        <vector_field name="SolidMovement" rank="1">
+        <stat/>
+      </one_way_coupling>
+      <solid_phase name="frontcylinder">
+        <scalar_field name="SolidConcentration" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="SolidCoordinateMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <vector_field name="SolidVelocity" rank="1">
           <prescribed>
-            <mesh name="frontcylinder">
+            <python_movement>
               <time_variable_in_python>
                 <current_timestep/>
               </time_variable_in_python>
@@ -504,18 +524,24 @@
   movement = (dt*5, dt*2.5)
   return movement</string_value>
               </python>
-              <output/>
-              <stat>
-                <include_in_stat/>
-              </stat>
-              <detectors>
-                <exclude_from_detectors/>
-              </detectors>
-            </mesh>
+            </python_movement>
+            <mesh name="SolidCoordinateMesh"/>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
           </prescribed>
         </vector_field>
-        <stat/>
-      </one_way_coupling>
+      </solid_phase>
     </fsi_model>
   </embedded_models>
 </fluidity_options>
