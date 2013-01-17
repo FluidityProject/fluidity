@@ -28,7 +28,7 @@ import ufl
 from ufl.finiteelement import FiniteElement, VectorElement, TensorElement
 from bcs import BoundaryCondition, DirichletBC
 from pyop2 import op2, ffc_interface
-from libspud import get_option
+from libspud import get_option, have_option, SpudKeyError
 
 class LinearVariationalProblem(object):
 
@@ -221,14 +221,27 @@ def _la_solve(A, x, b, linear_solver=None, preconditioner=None):
 
     solver_path = "%s/prognostic/solver/iterative_method/name" % option_path
     preconditioner_path = "%s/prognostic/solver/preconditioner/name" % option_path
+    rtol_path = "%s/prognostic/solver/relative_error" % option_path
+    atol_path = "%s/prognostic/solver/absolute_error" % option_path
+    maxit_path = "%s/prognostic/solver/max_iterations" % option_path
+    ignore_failure_path = "%s/prognostic/solver/ignore_all_solver_failures" % option_path
+    monitor_conv_path = "%s/prognostic/solver/diagnostics/monitors/preconditioned_residual" % option_path
+    plot_conv_path = "%s/prognostic/solver/diagnostics/monitors/preconditioned_residual_graph" % option_path
     flml_solver = get_option(solver_path)
     flml_preconditioner = get_option(preconditioner_path)
    
     parameters = {}
     parameters['linear_solver']  = linear_solver  or flml_solver
     parameters['preconditioner'] = preconditioner or flml_preconditioner
-    solver = op2.Solver()
-    solver.parameters.update(parameters)
+    parameters['relative_tolerance'] = get_option(rtol_path)
+    if have_option(atol_path):
+        parameters['absolute_tolerance'] = get_option(atol_path)
+    parameters['maximum_iterations'] = get_option(maxit_path)
+    parameters['error_on_nonconvergence'] = not have_option(ignore_failure_path)
+    parameters['monitor_convergence'] = have_option(monitor_conv_path)
+    parameters['plot_convergence'] = have_option(plot_conv_path)
+    parameters['plot_prefix'] = get_option('/simulation_name')+'_'
+    solver = op2.Solver(parameters=parameters)
     solver.solve(A, x.dat, b)
     
 # Solve function handles both linear systems and variational problems
