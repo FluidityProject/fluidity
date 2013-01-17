@@ -3731,7 +3731,7 @@
 ! Calculate the between element diffusion coefficients for stabaization scheme UDIFF_SUF_STAB.
       use matrix_operations
       implicit none      
-      LOGICAL, PARAMETER :: FAST_AND_SIMP=.FALSE.
+      LOGICAL, PARAMETER :: FAST_AND_SIMP=.TRUE.
 ! If FAST_AND_SIMP use a simple mean to calculate the between element diffusion.
       INTEGER, intent( in ) :: SBCVNGI,U_NLOC,U_SNLOC,NDIM,NPHASE
       LOGICAL, intent( in ) :: GOT_OTHER_ELE
@@ -3755,7 +3755,7 @@
       UDIFF_SUF_STAB=0.0
 
       IF(FAST_AND_SIMP) THEN
-
+! use a simple average either side of the interface...
         IF(GOT_OTHER_ELE) THEN
            DO IPHASE=1,NPHASE
               DIFF_ADD_STAB( : )=0.0
