@@ -17,6 +17,7 @@ module python_state
   use quadrature
   use elements
   use fields
+  use halos, only: halo_type
   use field_options, only: find_linear_parent_mesh
   use global_parameters, only:FIELD_NAME_LEN, current_debug_level, OPTION_PATH_LEN, PYTHON_FUNC_LEN
   use state_module 
@@ -150,16 +151,27 @@ module python_state
       character(len=mesh_name_len) :: mesh_name
     end subroutine python_add_tensor
 
-    subroutine python_add_mesh(ndglno,sndglno,elements,nodes,name,nlen,parent_name,plen,&
-      &option_path,oplen,continuity,region_ids,sregion_ids,state_name,state_name_len,uid)
+    subroutine python_add_halo(name, name_len, nprocs,&
+         state_name, state_name_len, uid)
+      implicit none
+      integer :: name_len, nprocs, state_name_len, uid
+      character(len=name_len) :: name
+      character(len=state_name_len) :: state_name
+    end subroutine python_add_halo
+
+    subroutine python_add_mesh(ndglno,sndglno,elements,element_classes,nodes,node_classes,name,nlen,parent_name,plen,&
+      &option_path,oplen,continuity,region_ids,sregion_ids,state_name,state_name_len,halo_name,halo_name_len,element_halo_name,element_halo_name_len,uid)
       !! Add a mesh to the state called state_name
       implicit none
       integer, dimension(*) :: ndglno,region_ids    !! might cause a problem
-      integer :: sndglno, elements, nodes, nlen, plen, oplen, continuity, sregion_ids, state_name_len, uid
+      integer, dimension(4) :: element_classes, node_classes
+      integer :: sndglno, elements, nodes, nlen, plen, oplen, continuity, sregion_ids, state_name_len, uid, halo_name_len, element_halo_name_len
       character(len=nlen) :: name
       character(len=plen) :: parent_name
       character(len=oplen) :: option_path
       character(len=state_name_len) :: state_name
+      character(len=halo_name_len) :: halo_name
+      character(len=element_halo_name_len) :: element_halo_name
     end subroutine python_add_mesh
 
     subroutine python_add_faces(state_name, state_name_len, mesh_name, mesh_name_len, surface_mesh_name,&
@@ -305,13 +317,32 @@ module python_state
       trim(T%name),slen, T%field_type,T%option_path,oplen,trim(st%name),snlen,T%mesh%name,mesh_name_len,T%refcount%id)
   end subroutine python_add_tensor_directly
 
+  subroutine python_add_halo_directly(H, state)
+    type(halo_type) :: H
+    type(state_type) :: state
+    character(len=100) :: tmp_name
+    integer :: i
+
+    do i = 1, H%nprocs
+       write(tmp_name,'(a,i0)')'send', i
+       call python_add_array(H%sends(i)%ptr, trim(tmp_name))
+       write(tmp_name, '(a,i0)')'recv', i
+       call python_add_array(H%receives(i)%ptr, trim(tmp_name))
+    end do
+    call python_add_halo(trim(H%name), len(trim(H%name)), &
+         H%nprocs, &
+         trim(state%name), len(trim(state%name)), &
+         H%refcount%id)
+  end subroutine python_add_halo_directly
+
   subroutine python_add_mesh_directly(M,st)
     type(mesh_type) :: M
     type(mesh_type), pointer :: parent
     type(state_type) :: st
     integer :: snlen,slen,plen,oplen, stat
     integer, dimension(:), allocatable :: temp_region_ids
-
+    integer :: halo_name_len, element_halo_name_len
+    character(len=150) :: halo_name, element_halo_name
     call find_linear_parent_mesh(st, M, parent, stat)
     if ( stat /= 0 ) parent = M
     slen = len(trim(M%name))
@@ -319,18 +350,44 @@ module python_state
     snlen = len(trim(st%name))
     oplen = len(trim(M%option_path))
 
+    if (associated(M%element_halos)) then
+       call python_add_halo_directly(M%element_halos(halo_count(M)), st)
+       element_halo_name_len = len(trim(M%element_halos(halo_count(M))%name))
+       element_halo_name = trim(M%element_halos(halo_count(M))%name)
+    else
+       element_halo_name = ""
+       element_halo_name_len = 0
+    end if
+
+    if (associated(M%halos)) then
+       call python_add_halo_directly(M%halos(halo_count(M)), st)
+       halo_name_len = len(trim(M%halos(halo_count(M))%name))
+       halo_name = trim(M%halos(halo_count(M))%name)
+    else
+       halo_name = ""
+       halo_name_len = 0
+    end if
+
     if ( trim(parent%name) == trim(M%name) ) plen = 0
     if(associated(M%region_ids)) then
-      call python_add_mesh(M%ndglno,size(M%ndglno,1),M%elements,M%nodes,&
+      call python_add_mesh(M%ndglno,size(M%ndglno,1),M%elements,&
+        M%element_classes, M%nodes, M%node_classes,&
         trim(M%name),slen,trim(parent%name),plen,M%option_path,oplen,&
         M%continuity, M%region_ids, size(M%region_ids),&
-        trim(st%name),snlen, M%refcount%id)
+        trim(st%name),snlen, &
+        halo_name, halo_name_len,&
+        element_halo_name, element_halo_name_len,&
+        M%refcount%id)
     else
       allocate(temp_region_ids(0))
-      call python_add_mesh(M%ndglno,size(M%ndglno,1),M%elements,M%nodes,&
+      call python_add_mesh(M%ndglno,size(M%ndglno,1),M%elements,&
+        M%element_classes,M%nodes,M%node_classes,&
         trim(M%name),slen,trim(parent%name),plen,M%option_path,oplen,&
         M%continuity, temp_region_ids, size(temp_region_ids),&
-        trim(st%name),snlen, M%refcount%id)
+        trim(st%name),snlen, &
+        halo_name, halo_name_len,&
+        element_halo_name, element_halo_name_len,&
+        M%refcount%id)
       deallocate(temp_region_ids)
     end if
 

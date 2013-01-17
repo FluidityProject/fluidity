@@ -35,6 +35,7 @@ void python_init_(void){
 
   // Initialize Fluidity field caches
   PyRun_SimpleString("mesh_cache = {}");
+  PyRun_SimpleString("halos_cache = {}");
   PyRun_SimpleString("scalar_field_cache = {}");
   PyRun_SimpleString("vector_field_cache = {}");
   PyRun_SimpleString("tensor_field_cache = {}");
@@ -86,7 +87,7 @@ void python_reset_(void){
 #ifdef HAVE_PYTHON
   if(Py_IsInitialized()){
     // Create a list of items to be kept
-    PyRun_SimpleString("keep = ['keep', 'rem', '__builtins__', '__name__', '__doc__', 'string', 'numpy', 'persistent', 'mesh_cache', 'scalar_field_cache', 'vector_field_cache', 'tensor_field_cache']");
+    PyRun_SimpleString("keep = ['keep', 'rem', '__builtins__', '__name__', '__doc__', 'string', 'numpy', 'persistent', 'mesh_cache', 'halos_cache', 'scalar_field_cache', 'vector_field_cache', 'tensor_field_cache']");
 
     // Create a list of items to  be removed
     PyRun_SimpleString("rem = []");
@@ -410,10 +411,72 @@ void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int num_dim[],
 }
 
 
-void python_add_mesh_(int ndglno[],int *sndglno, int *elements, int *nodes, 
-  char *name, int *nlen, char *parent_name, int *plen, char *option_path, int *oplen, 
-  int *continuity, int region_ids[], int *sregion_ids,
-  char *state_name, int *state_name_len, int *uid){
+void python_add_halo_(char *name, int *name_len, int *nprocs,
+                      char *state_name, int *state_name_len, int *uid) {
+    PyObject *pMain = PyImport_AddModule("__main__");
+    PyObject *pDict = PyModule_GetDict(pMain);
+
+    char *c_name = fix_string(name, *name_len);
+    char *c_state_name = fix_string(state_name, *state_name_len);
+
+    char *t;
+    char *str;
+    int tmp = *nprocs;
+    int c_nprocs = *nprocs;
+    int digits = 0;
+    int maxlen;
+    int offset;
+    int i;
+    assert(tmp > 0);
+    while (tmp!=0) { tmp /= 10; ++digits; }
+
+    /* sends = (send1,...,sendN) */
+    maxlen = 11 + c_nprocs * (5 + digits);
+    t = malloc(maxlen);
+    offset = 0;
+    offset += snprintf(t, maxlen, "sends = (");
+    for ( i = 1; i < c_nprocs; i++ ) {
+        offset += snprintf(t + offset, maxlen - offset, "send%d,", i);
+    }
+    offset += snprintf(t + offset, maxlen - offset, "send%d)", c_nprocs);
+    PyRun_SimpleString(t);
+
+    /* recvs = (recv1,...,recvN) */
+    offset = 0;
+    offset += snprintf(t, maxlen, "recvs = (");
+    for ( i = 1; i < c_nprocs; i++ ) {
+        offset += snprintf(t + offset, maxlen - offset, "recv%d,", i);
+    }
+    offset += snprintf(t + offset, maxlen - offset, "recv%d)", c_nprocs);
+    PyRun_SimpleString(t);
+
+    i = 100 + strlen(c_state_name) + strlen(c_name);
+    str = malloc(i);
+    snprintf(str, i, "states['%s'].halos['%s'] = "
+        "halos_cache.setdefault(%d, Halo(%d,sends,recvs,%d))",
+        c_state_name, c_name, *uid, c_nprocs, *uid);
+    PyRun_SimpleString(str);
+    free(str);
+    PyRun_SimpleString("del sends, recvs");
+    for ( i = 1; i <= c_nprocs; i++ ) {
+        /* maxlen will always be long enough for this */
+        snprintf(t, maxlen, "del send%d,recv%d", i, i);
+        PyRun_SimpleString(t);
+    }
+    free(t);
+    free(c_name);
+    free(c_state_name);
+}
+void python_add_mesh_(int ndglno[],int *sndglno, int *elements,
+                      int *element_classes, int *nodes,
+                      int *node_classes, char *name, int *nlen,
+                      char *parent_name, int *plen, char *option_path,
+                      int *oplen, int *continuity, int region_ids[],
+                      int *sregion_ids,
+                      char *state_name, int *state_name_len,
+                      char *halo_name, int *halo_name_len,
+                      char *element_halo_name, int *element_halo_name_len,
+                      int *uid){
 #ifdef HAVE_NUMPY
   // Add the Mesh to the interpreter
   PyObject *pMain = PyImport_AddModule("__main__");
@@ -421,6 +484,7 @@ void python_add_mesh_(int ndglno[],int *sndglno, int *elements, int *nodes,
 
   // Fix the Fortran strings for C and Python
   char *namec = fix_string(name,*nlen);
+  char *tmp;
   char *pnamec = fix_string(parent_name,*plen);
   char *opc = fix_string(option_path,*oplen);
 
@@ -437,7 +501,7 @@ void python_add_mesh_(int ndglno[],int *sndglno, int *elements, int *nodes,
   PyRun_SimpleString("op = string.strip(op)");
 
   char *n = fix_string(state_name,*state_name_len);
-  int tlen=150 + *state_name_len;
+  int tlen=250 + *state_name_len;
   char t[tlen];
 
   if (*plen > 1) {
@@ -447,13 +511,37 @@ void python_add_mesh_(int ndglno[],int *sndglno, int *elements, int *nodes,
     snprintf(t, tlen, "m = None");
     PyRun_SimpleString(t);
   }
+  if (*halo_name_len > 0) {
+      tmp = fix_string(halo_name, *halo_name_len);
+      snprintf(t, tlen, "halo = states['%s'].halos.get('%s')", n, tmp);
+      PyRun_SimpleString(t);
+      free(tmp);
+  } else {
+      PyRun_SimpleString("halo = None");
+  }
+  if (*element_halo_name_len > 0 ) {
+      tmp = fix_string(element_halo_name, *element_halo_name_len);
+      snprintf(t, tlen, "element_halo = states['%s'].halos.get('%s')", n, tmp);
+      PyRun_SimpleString(t);
+      free(tmp);
+  } else {
+      PyRun_SimpleString("element_halo = None");
+  }
+  snprintf(t, tlen, "element_classes = (%d, %d, %d, %d)",
+           element_classes[0], element_classes[1],
+           element_classes[2], element_classes[3]);
+  PyRun_SimpleString(t);
+  snprintf(t, tlen, "node_classes = (%d, %d, %d, %d)",
+           node_classes[0], node_classes[1],
+           node_classes[2], node_classes[3]);
+  PyRun_SimpleString(t);
   snprintf(t, tlen,
-      "states['%s'].meshes['%s'] = mesh_cache.setdefault(%d, Mesh(mesh_array,%d,%d,%d,n,m,op,region_ids,%d))",
+      "states['%s'].meshes['%s'] = mesh_cache.setdefault(%d, Mesh(mesh_array,%d,element_classes,%d,node_classes,%d,n,m,op,region_ids,%d,node_halo=halo, element_halo=element_halo))",
       n, namec, *uid, *elements, *nodes, *continuity, *uid);
   PyRun_SimpleString(t);
 
   // Clean up
-  PyRun_SimpleString("del n; del op; del m");
+  PyRun_SimpleString("del n; del op; del m; del element_classes; del node_classes; del element_halo; del halo");
   free(namec); 
   free(pnamec); 
   free(n); 

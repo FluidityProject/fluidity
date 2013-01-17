@@ -16,6 +16,7 @@ class State:
     self.tensor_fields = {}
     self.csr_matrices = {}
     self.meshes = {}
+    self.halos = {}
     self.name = n
   def __repr__(self):
     return '(State) %s' % self.name
@@ -171,18 +172,34 @@ except ImportError:
     def __init__(self, *args, **kwargs):
       raise ImportError("No such module scipy.sparse")
 
+class Halo:
+  "A halo"
+  def __init__(self, nprocs, sends, receives, uid):
+    self.nprocs = nprocs
+    # tuple of numpy arrays one for each process
+    # e.g. ([], [1,2,3], [])
+    # no sends to proc 0, send 1,2,3 to proc 1, no sends to proc 2
+    # fix up Fortran->C numbering
+    self.sends = tuple(map(lambda x: x - 1, sends))
+    # same, but for receives
+    self.receives = tuple(map(lambda x: x - 1, receives))
+
 class Mesh:
   "A mesh"
-  def __init__(self,ndglno,elements,nodes,continuity,name,parent,option_path,region_ids,uid):
+  def __init__(self,ndglno,elements,element_classes,nodes,node_classes,continuity,name,parent,option_path,region_ids,uid,node_halo=None,element_halo=None):
     self.ndglno = ndglno
     self.element_count = elements
+    self.element_classes = element_classes
     self.node_count = nodes
+    self.node_classes = node_classes
     self.continuity = continuity
     self.name = name
     self.parent = parent
     self.option_path = option_path
     self.region_ids = region_ids
     self.shape = Element(0,0,0,0,[],[], [], 0,0,0,0, "unknown", "unknown")
+    self.node_halo = node_halo
+    self.element_halo = element_halo
     self.uid = uid
     self.coords = None
     self.faces = None
