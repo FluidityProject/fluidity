@@ -1359,13 +1359,19 @@
                         pod_matrix%val(:,:)=(pod_matrix%val(:,:)-pod_matrix_snapmean(:,:))/eps
                         pod_rhs%val(:)=(pod_rhs%val(:)-pod_rhs_snapmean(:))/eps
                         
+                         
+                         
+                        ! u%val=snapmean_velocity%val
                         do i=1,size(POD_state,1)
                            POD_velocity=>extract_vector_field(POD_state(i,1,istate), "Velocity")
+                           snapmean_velocity=>extract_vector_field(POD_state(i,1,istate),"SnapmeanVelocity")
+                           snapmean_pressure=>extract_Scalar_field(POD_state(i,2,istate),"SnapmeanPressure") 
                            do j=1,u%dim
-                              pod_coef(i+size(POD_state,1)*(j-1))=dot_product(POD_velocity%val(j,:),u%val(j,:))
+                              pod_coef(i+size(POD_state,1)*(j-1))=&
+                                      dot_product(POD_velocity%val(j,:),(u%val(j,:)-snapmean_velocity%val(j,:)))
                            enddo
                            POD_pressure=>extract_scalar_field(POD_state(i,2,istate), "Pressure")
-                           pod_coef(i+size(POD_state,1)*u%dim)=dot_product(POD_pressure,p)
+                           pod_coef(i+size(POD_state,1)*u%dim)=dot_product(POD_pressure%val,p%val-snapmean_pressure%val)
                         enddo
                         call Matrix_vector_multiplication(size(pod_coef),pod_rhs_adv_perturbed, &
                              pod_matrix_adv_perturbed,pod_coef)
@@ -1380,9 +1386,7 @@
                         !need to exclude snapmean
                         ewrite(1,*)'reduced'
                         
-                           if(deim) then 
-                           
-                         endif 
+                         
                         !from initial condition
                       
                        ! print *, 'size(pod_matrix%val,1)',size(pod_matrix%val,1)=36,size(pod_matrix%val,2)=36
@@ -1398,11 +1402,14 @@
 
                         do i=1,size(POD_state,1)
                            POD_velocity=>extract_vector_field(POD_state(i,1,istate), "Velocity")
+                           snapmean_velocity=>extract_vector_field(POD_state(i,1,istate),"SnapmeanVelocity")
+                           snapmean_pressure=>extract_Scalar_field(POD_state(i,2,istate),"SnapmeanPressure") 
                            do j=1,u%dim
-                              pod_coef(i+size(POD_state,1)*(j-1))=dot_product(POD_velocity%val(j,:),u%val(j,:))
+                              pod_coef(i+size(POD_state,1)*(j-1))=&
+                             dot_product(POD_velocity%val(j,:),u%val(j,:)-snapmean_velocity%val(j,:))
                            enddo
                            POD_pressure=>extract_scalar_field(POD_state(i,2,istate), "Pressure")
-                           pod_coef(i+size(POD_state,1)*u%dim)=dot_product(POD_pressure,p)
+                           pod_coef(i+size(POD_state,1)*u%dim)=dot_product(POD_pressure%val,p%val-snapmean_pressure%val)
                         enddo
 
                         

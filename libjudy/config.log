@@ -719,7 +719,7 @@ configure:5623: $? = 0
 configure:5623: result: yes
 configure:5629: checking for _doprnt
 configure:5629: gcc -o conftest -DJU_64BIT -g -O2   conftest.c  >&5
-/tmp/cc2RpmX6.o: In function `main':
+/tmp/cc49x8cH.o: In function `main':
 /data/dunhui/fluidity_enkf_reduced_res/libjudy/conftest.c:81: undefined reference to `_doprnt'
 collect2: ld returned 1 exit status
 configure:5629: $? = 1
@@ -827,7 +827,7 @@ configure:5643: result: yes
 configure:5643: checking for pow
 configure:5643: gcc -o conftest -DJU_64BIT -g -O2   conftest.c  >&5
 conftest.c:74:6: warning: conflicting types for built-in function 'pow' [enabled by default]
-/tmp/ccMRDwQj.o: In function `main':
+/tmp/cc8RCjN4.o: In function `main':
 /data/dunhui/fluidity_enkf_reduced_res/libjudy/conftest.c:85: undefined reference to `pow'
 collect2: ld returned 1 exit status
 configure:5643: $? = 1
