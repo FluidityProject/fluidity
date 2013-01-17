@@ -68,7 +68,7 @@
     public :: construct_momentum_cg, correct_masslumped_velocity, &
               correct_velocity_cg, assemble_masslumped_poisson_rhs, &
               add_kmk_matrix, add_kmk_rhs, assemble_kmk_matrix, &
-              deallocate_cg_mass, assemble_poisson_rhs
+              deallocate_cg_mass, assemble_poisson_rhs,deim
 
     ! are we lumping the mass, absorption or source
     logical :: lump_mass, lump_absorption, lump_source
@@ -152,6 +152,7 @@
 
     ! Are we running a multi-phase flow simulation?
     logical :: multiphase
+    logical :: deim
     logical :: reduced_model
   contains
 

@@ -37,14 +37,15 @@ module reduced_projection
   use fields
   use field_options
   use vector_tools
+ ! use momentum_equation
+!  use  reduced_model_runtime
   implicit none
   
 !  private
 
   public :: solve_momentum_reduced, solve_advection_diffusion_cg_reduced
   public :: project_reduced, project_reduced_t, project_full, project_full_t
-  public :: pod_matrix_type, pod_rhs_type, pod_matrix_t_type, pod_rhs_t_type
-
+  public :: pod_matrix_type, pod_rhs_type, pod_matrix_t_type, pod_rhs_t_type,phi,velo
  
 
   type pod_matrix_type
@@ -67,7 +68,7 @@ module reduced_projection
      integer :: t_nodes 
   end type pod_rhs_t_type
 
-
+  
   interface allocate
      module procedure allocate_pod_matrix, allocate_pod_rhs, allocate_pod_matrix_t, allocate_pod_rhs_t
   end interface
@@ -87,7 +88,11 @@ module reduced_projection
   interface addto_t
      module procedure addto_pod_matrix_t, addto_pod_rhs_t
   end interface
-
+    type(vector_field), pointer :: velo !,podvelo ! RMSE
+    real :: u_nodes ,nodesum !RMSE
+  real :: nodetemp(2),rmsetemp,coor(1500),fullnodesum,podnodesum,coor_xy,coor_x,coor_y , rmse(1500)
+  integer :: rmsestep =1,flag
+  integer, dimension(:), allocatable :: phi
 contains
 
  
@@ -179,7 +184,7 @@ contains
     type(scalar_field) :: fs_tmp
 
     ewrite(1,*)'in project_reduced'
-    print*,'in project_reduced'
+   ! print*,'in project_reduced'
 
     POD_u=>extract_vector_field(POD_state(1,1), "Velocity")
     POD_p=>extract_scalar_field(POD_state(1,2), "Pressure")
@@ -714,7 +719,7 @@ contains
         pod_sol_pressure=0.0
 
         POD_num=size(POD_state,1)
-
+        
         do i=1,POD_num
 !        do i=1,1
 
@@ -737,13 +742,104 @@ contains
            call set_all(delta_p, pod_sol_pressure(:))
 
         enddo
+        
+         !!! added for RMSE and correlation coeeficient                        
+                      
+                                        
+                            u_nodes=node_count(velo) 
+                          ! u_nodes=node_count(POD_velocity)
+                           nodesum=0
+                           fullnodesum=0
+                           podnodesum=0
+                        do i=1,u_nodes
+                           nodetemp=node_val(velo,i) 
+                         ! print *,'nodetemp(2)pod_sol_velocity(i,2)', nodetemp(2),pod_sol_velocity(i,2)                                      
+                           rmsetemp=(nodetemp(2)-pod_sol_velocity(i,2))**2
+                           nodesum=nodesum+rmsetemp
+                           fullnodesum= fullnodesum+nodetemp(2) !coor
+                           podnodesum=podnodesum+pod_sol_velocity(i,2)!coor
+                        enddo
+                           rmse(rmsestep)=SQRT(nodesum/u_nodes) 
+                            
+                           
+                      coor_xy=0 
+                      coor_x=0
+                      coor_y=0
+                do i=1,u_nodes
+                  nodetemp=node_val(velo,i)
+                  coor_xy=coor_xy+(nodetemp(1)-fullnodesum/u_nodes)*(pod_sol_velocity(i,1)-podnodesum/u_nodes)
+                  coor_x=coor_x+(nodetemp(1)-fullnodesum/u_nodes)*(nodetemp(1)-fullnodesum/u_nodes)
+                  coor_y=coor_y+(pod_sol_velocity(i,1)-podnodesum/u_nodes)*(pod_sol_velocity(i,1)-podnodesum/u_nodes)                        
+                enddo
+                coor(rmsestep)=coor_xy/(SQRT(coor_x)*SQRT(coor_y))
+                coor(rmsestep)=abs(coor(rmsestep))
 
+ 
         deallocate(pod_sol_velocity)
         deallocate(pod_sol_pressure)
 
 
       end subroutine project_full
+
+   subroutine project_full_deim(deim_rhs_u, deim_rhs_p, POD_state, pod_rhs)
+
+        type(vector_field), intent(inout) :: deim_rhs_u
+        type(scalar_field), intent(inout):: deim_rhs_p
+        real, dimension(:,:), allocatable :: pod_rhs_velocity
+        real, dimension(:),   allocatable :: pod_rhs_pressure
+        type(state_type), dimension(:,:), intent(in) :: POD_state
+        real, dimension(:), intent(in) :: pod_rhs
+
+        type(vector_field), pointer :: POD_velocity
+        type(scalar_field), pointer :: POD_pressure
+
+        integer :: d, POD_num, i, u_nodes, p_nodes, stat
+
+        type(mesh_type), pointer :: pod_umesh, pod_pmesh
+
+         POD_velocity=>extract_vector_field(POD_state(1,1), "Velocity")
+           POD_pressure=>extract_scalar_field(POD_state(1,2), "Pressure")
+
  
+        u_nodes=node_count(POD_velocity)
+        p_nodes=node_count(POD_pressure)
+
+        allocate(pod_rhs_velocity(u_nodes,POD_velocity%dim))  ! include pressure
+        allocate(pod_rhs_pressure(p_nodes))
+        pod_rhs_velocity=0.0
+        pod_rhs_pressure=0.0
+
+        POD_num=size(POD_state,1)
+
+        do i=1,POD_num
+!        do i=1,1
+
+           POD_velocity=>extract_vector_field(POD_state(i,1), "Velocity")
+           POD_pressure=>extract_scalar_field(POD_state(i,2), "Pressure")
+
+           do d=1,POD_velocity%dim
+              pod_rhs_velocity(:,d)=pod_rhs_velocity(:,d)+pod_rhs(i+(d-1)*POD_num)*POD_velocity%val(d,:)
+           enddo
+            !   pod_rhs_velocity(:,POD_velocity%dim+1)=0
+           pod_rhs_pressure(:)=pod_rhs_pressure(:)+pod_rhs(i+POD_velocity%dim*POD_num)*POD_pressure%val(:)
+
+           pod_umesh => extract_mesh(pod_state(1,1), "Mesh", stat)
+           pod_pmesh => extract_mesh(pod_state(1,2), "Mesh", stat)
+           !print *, 'pod_rhs_velocity', size(deim_rhs_u%val,2),size(deim_rhs_u%val,1),size(pod_rhs_velocity,1) !pod_rhs_velocity
+           do d=1, POD_velocity%dim
+               call set_all(deim_rhs_u, d, pod_rhs_velocity(:,d))
+             ! deim_rhs_u%val(d,:)= pod_rhs_velocity(:,d)
+           end do              
+            !  call set_all(deim_rhs_p, pod_rhs_pressure(:))
+
+        enddo
+
+        deallocate(pod_rhs_velocity)
+        deallocate(pod_rhs_pressure)
+
+
+      end subroutine project_full_deim
+
       subroutine project_full_t(delta_t, pod_sol_temperature, POD_state, pod_coef)
         type(scalar_field), intent(inout) :: delta_t
         real, dimension(:), intent(out), allocatable :: pod_sol_temperature

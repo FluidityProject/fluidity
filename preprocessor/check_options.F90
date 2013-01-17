@@ -14,6 +14,7 @@ subroutine check_options
   use hadapt_extrude, only: hadapt_extrude_check_options
   use gls, only: gls_check_options
   use diagnostic_fields_new, only: diagnostic_fields_new_check_options
+  use momentum_equation, only: momentum_equation_check_options
   use adapt_integration, only: adapt_integration_check_options
   use geostrophic_pressure, only: geostrophic_pressure_check_options
   use adaptivity_1d, only: adaptivity_1d_check_options
@@ -49,6 +50,7 @@ subroutine check_options
   call hadapt_extrude_check_options
   call gls_check_options
   call diagnostic_fields_new_check_options
+  call momentum_equation_check_options
   call adapt_integration_check_options
   call geostrophic_pressure_check_options
   call adaptivity_1d_check_options

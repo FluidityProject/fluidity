@@ -102,6 +102,7 @@ module fluids_module
   use hyperlight
 #endif
   use multiphase_module
+  use momentum_cg
   use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
 
   implicit none
@@ -135,8 +136,8 @@ contains
     !     System state wrapper.
     type(state_type), dimension(:), pointer :: state => null()
     type(state_type), dimension(:), pointer :: sub_state => null()
-    type(state_type), dimension(:,:,:), allocatable :: POD_state
-
+    type(state_type), dimension(:,:,:), allocatable :: POD_state!,POD_state_deim
+    type(state_type), dimension(:), allocatable :: POD_state_deim
     type(tensor_field) :: metric_tensor
     !     Dump index
     integer :: dump_no = 0
@@ -229,18 +230,35 @@ contains
 
     ! Read state from .flml file
     call populate_state(state)
-
+    deim=have_option("/reduced_model/discrete_empirical_interpolation_method")
+     
+    !call populate_state(deim_state)
+    call populate_state(deim_state_res)
+    !call populate_state(deim_state_resl)
+  
     ewrite(3,*)'before have_option test'
 
     if (have_option("/reduced_model/execute_reduced_model")) then
 	!do m = 1,size(state)
+              if (deim) then
+                    call read_input_states_deimres(deim_state_resl)
+                   ! call read_pod_basis_differntmesh(POD_state_deim, deim_state_Resl) 
+                    call read_pod_basis_deimres(POD_state_deim, deim_state_Resl) 
+            endif
        		call read_pod_basis_differntmesh(POD_state, state)
+              
 	!enddo
     else
        ! need something to pass into solve_momentum
        allocate(POD_state(1:0,1:0,1:0))
+       
     end if
-
+     if (deim .and. (have_option("/reduced_model/execute_reduced_model"))) then
+       ! call read_pod_basis_deimres(POD_state_deim, deim_state_Res)    
+    else        
+       allocate(POD_state_deim(1:0))!,1:0,1:0))
+       
+    end if
     ! Check the diagnostic field dependencies for circular dependencies
     call check_diagnostic_dependencies(state)
 
@@ -433,6 +451,9 @@ contains
          & .and. .not. have_option("/io/disable_dump_at_start") &
          & ) then
        call write_state(dump_no, state)
+           if (.not.deim .and. (have_option("/reduced_model/execute_reduced_model"))) then
+           call write_state(dump_no,deim_state_res)
+        endif
     end if
 
     call initialise_convergence(filename, state)
@@ -494,6 +515,10 @@ contains
              call checkpoint_simulation(state, cp_no = dump_no)
           end if
           call write_state(dump_no, state)
+            if (.not.deim .and. (have_option("/reduced_model/execute_reduced_model"))) then
+             call vtk_write_state(filename=trim(filename)//"DEIMRES", index=dump_no, state=deim_state_res)
+           
+           endif
        end if
 
        ewrite(2,*)'steady_state_tolerance,nonlinear_iterations:',steady_state_tolerance,nonlinear_iterations
@@ -764,16 +789,16 @@ contains
           if(use_sub_state()) then
              call update_subdomain_fields(state,sub_state)
              if(.not.have_option("/reduced_model/execute_reduced_model"))then
-                call solve_momentum(sub_state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state, snapmean=snapmean, eps=eps, its=its)
+                call solve_momentum(sub_state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state, POD_state_deim=POD_state_deim,snapmean=snapmean, eps=eps, its=its)
              else
-                call momentum_loop(sub_state, at_first_timestep=((timestep==1).and.(its==1)), timestep=timestep, POD_state=POD_state, its=its)
+                call momentum_loop(sub_state, at_first_timestep=((timestep==1).and.(its==1)), timestep=timestep, POD_state=POD_state,POD_state_deim=POD_state_deim, its=its)
              endif
              call sub_state_remap_to_full_mesh(state, sub_state)
           else
              if(.not.have_option("/reduced_model/execute_reduced_model"))then
-                call solve_momentum(state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state, snapmean=snapmean, eps=eps, its=its)
+                call solve_momentum(state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state, POD_state_deim=POD_state_deim,snapmean=snapmean, eps=eps, its=its)
              else
-                call momentum_loop(state,at_first_timestep=((timestep==1).and.(its==1)), timestep=timestep, POD_state=POD_state, its=its)
+                call momentum_loop(state,at_first_timestep=((timestep==1).and.(its==1)), timestep=timestep, POD_state=POD_state, POD_state_deim=POD_state_deim,its=its)
              endif
           end if
 
@@ -933,6 +958,9 @@ contains
     ! Dump at end, unless explicitly disabled
     if(.not. have_option("/io/disable_dump_at_end")) then
        call write_state(dump_no, state)
+        if (.not.deim .and. (have_option("/reduced_model/execute_reduced_model"))) then
+        call write_state(dump_no, deim_state_res)
+        endif
     end if
 
     ! cleanup GLS
@@ -983,7 +1011,16 @@ contains
           enddo
        end do
     end if
-
+   deallocate(pod_state_deim)
+    ! if (allocated(pod_state_deim)) then
+     !  do i=1, size(pod_state_deim,1)
+         ! do j=1,size(pod_state_deim,2)
+           !  do k=1,size(pod_state_deim,3)
+             !   call deallocate(pod_state_deim(i,j,k))
+            ! enddo
+          !enddo
+      ! end do
+   ! end if
     ! deallocate the pointer to the array of states and sub-state:
     deallocate(state)
     if(use_sub_state()) deallocate(sub_state)
@@ -1000,7 +1037,23 @@ contains
 #ifdef HAVE_MEMORY_STATS
     call print_current_memory_stats(0)
 #endif
+   ! if (flag==1) then ! if run pod then print 
+ if (have_option("/reduced_model/execute_reduced_model")) then
+  open(unit=60,file='rsme')
+  do i=1,timestep-3
+   print *, i, rmse(i)
+   write(60,*) i,rmse(i)
+  enddo 
+  close(60)
 
+  open(unit=61,file='coorelation')
+  do i=1,timestep-5
+    print *, i, coor(i)
+    write(61,*)i,coor(i)
+   enddo
+   close(61)
+  endif
+ 
   contains
 
     subroutine set_simulation_start_times()
@@ -1214,6 +1267,62 @@ contains
     end do
 
   end subroutine check_old_code_path
+    subroutine read_input_states_deimres(deim_state_resl)
+    !!< Read the input states from the vtu dumps of the forward run.
+    type(state_type), intent(out), dimension(:), allocatable :: deim_state_resl
+    character(len=1024) :: simulation_name, filename
+   
+    integer :: dump_sampling_period, quadrature_degree
+    integer :: i,j,k,total_dumps,stable_dumps
+     call get_option('/simulation_name',simulation_name)
+    call get_option('/reduced_model/pod_basis_formation/dump_sampling_period',dump_sampling_period)
+    call get_option('/geometry/quadrature/degree', quadrature_degree)
 
+    ewrite(3,*) 'dump_sampling_period',dump_sampling_period
+
+    !substract gyre_0.vtu
+    total_dumps=count_dumps(dump_sampling_period)-1
+    allocate(deim_state_resl(total_dumps))
+
+    do i=1, total_dumps
+
+       !! Note that this won't work in parallel. Have to look for the pvtu in that case.
+       if (deim) then
+         write(filename, '(a, i0, a)') trim(simulation_name)//'DEIMRES_', (i+1)*dump_sampling_period,".vtu"                  
+       endif 
+       call vtk_read_state(filename, deim_state_resl(i), quadrature_degree)
+       
+       !! Note that we might need code in here to clean out unneeded fields.
+     end do
+
+  end subroutine read_input_states_deimres
+
+    function count_dumps(dump_sampling_period) result (count)
+    !! Work out how many dumps we're going to read in.
+    integer :: count,dump_sampling_period
+
+    logical :: exists
+   character(len=1024) :: simulation_name, filename
+    call get_option('/simulation_name',simulation_name)
+   
+    count=1
+
+    do 
+       !! Note that this won't work in parallel. Have to look for the pvtu in that case.
+       write(filename, '(a, i0, a)') trim(simulation_name)//'DEIMRES_', (count+2)*dump_sampling_period,".vtu" 
+       inquire(file=trim(filename), exist=exists)
+       if (.not. exists) then
+          count=count -1
+          exit
+       end if
+
+       count=count+1
+    end do
+
+    if (count==0) then
+       FLExit("No .vtu files found!")
+    end if
+
+  end function count_dumps
   end module fluids_module
 

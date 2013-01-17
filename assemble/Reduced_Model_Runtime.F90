@@ -37,15 +37,16 @@ module reduced_model_runtime
   use fields
   use field_options
   use vector_tools
+  use reduced_projection
   implicit none
   
 !  private
 
-  public :: read_pod_basis, read_pod_basis_differntmesh
+  public :: read_pod_basis, read_pod_basis_differntmesh 
   type(state_type), dimension(:,:,:), allocatable, save :: POD_state
 
-
-
+  
+ 
 contains
 
   subroutine read_pod_basis(POD_state, state)
@@ -73,7 +74,7 @@ contains
 
     VelocityMesh=extract_velocity_mesh(state)
     PressureMesh=extract_pressure_mesh(state)
-
+    velo => extract_vector_field(state, "Velocity")
     do i=1, total_dumps
 
        !! Note that this won't work in parallel. Have to look for the pvtu in that case.
@@ -139,6 +140,107 @@ contains
     end function count_dumps    
 
   end subroutine read_pod_basis
+ subroutine read_pod_basis_deimres(POD_state_deim, deim_state_Res)
+    !! Read the pod basis from the set of vtu files.
+
+    character(len=1024) :: simulation_name, filename
+
+    integer :: dump_period, quadrature_degree
+    integer :: i,j,total_dumps
+
+    type(state_type), dimension(:), allocatable :: POD_state_deim
+    type(state_type), dimension(:) :: deim_state_Res
+    type(vector_field) :: podVelocity, newpodVelocity
+    type(scalar_field) :: podPressure, newpodPressure, podTemperature, newpodTemperature
+    type(mesh_type) :: VelocityMesh, PressureMesh, TemperatureMesh
+     
+    velo => extract_vector_field(deim_state_Res, "Velocity") 
+    call get_option('/simulation_name', simulation_name)
+    call get_option('/geometry/quadrature/degree', quadrature_degree)
+    
+    total_dumps=count_dumps(simulation_name)
+    allocate(POD_state_deim(total_dumps))
+    VelocityMesh=extract_velocity_mesh(deim_state_Res)
+    PressureMesh=extract_pressure_mesh(deim_state_Res)
+    flag=1
+    do i=1, total_dumps
+
+       !! Note that this won't work in parallel. Have to look for the pvtu in that case.
+       write(filename, '(a, i0, a)') trim(simulation_name)//'DEIMBasisRESVelocity_', i,".vtu" 
+
+       call vtk_read_state(filename, POD_state_deim(i), quadrature_degree)
+
+       !! Note that we might need code in here to clean out unneeded fields.
+
+       PODVelocity=extract_vector_field(POD_state_deim(i),"Velocity")
+
+       call allocate(newpodVelocity, podVelocity%dim, VelocityMesh, "PODVelocity")
+       call remap_field(from_field=podVelocity, to_field=newpodVelocity)
+       call insert(POD_state_deim(i), newpodVelocity, "PODVelocity")
+       call deallocate(newpodVelocity)
+
+      ! write(filename, '(a, i0, a)') trim(simulation_name)//'DEIMBasisRESPressure_', i,".vtu" 
+     !  call vtk_read_state(filename, POD_state_deim(i), quadrature_degree)
+     !  PODPressure=extract_scalar_field(POD_state_deim(i),"Pressure")
+
+     !  call allocate(newpodPressure, PressureMesh, "PODPressure")
+           !!!!!!!!!!!!!!!!!!!!!!!!!!test  rmse
+        
+                           ! pres => extract_scalar_field(state, "Pressure")           
+                             !  p_nodes=node_count(pres)
+                                 !u_nodes=node_count(velo)            
+   
+        
+     
+     !  call remap_field(from_field=podPressure, to_field=newpodPressure)
+      ! call insert(POD_state_deim(i), newpodPressure, "PODPressure")
+     !  call deallocate(newpodPressure)
+ 
+    end do 
+    
+    
+      allocate(phi(total_dumps*podVelocity%dim))  !actual is deim_number. need modificaiton later   
+   !  allocate(phi(2*podVelocity%dim))
+     open(unit=110,file='indices')
+     read(110,*)(phi(i), i=1,total_dumps*podVelocity%dim)  ! deim_number 
+   !  read(110,*)(phi(i), i=1,2*podVelocity%dim)   
+    close(110)
+ 
+    print *, ' phiphiphiphi', phi
+
+    
+   
+  contains
+
+    function count_dumps(simulation_name) result (count)
+      !! Work out how many dumps we're going to read in.
+      integer :: count
+      character(len=*), intent(in) :: simulation_name
+      
+      logical :: exists
+     
+      character(len=1024) :: filename
+      
+      count=0
+      
+      do 
+         !! Note that this won't work in parallel. Have to look for the pvtu in that case.
+         !write(filename, '(a, i0, a)') trim(simulation_name)//'BasisDEIM_', count+1,".vtu" 
+          write(filename, '(a, i0, a)') trim(simulation_name)//'DEIMBasisRESVelocity_', count+1,".vtu"                       
+         inquire(file=trim(filename), exist=exists)
+         if (.not. exists) then
+            exit
+         end if
+         
+         count=count+1
+      end do
+      
+      if (count==0) then
+         FLExit("No POD.vtu files found!")
+      end if
+    end function count_dumps    
+
+  end subroutine read_pod_basis_deimres
 
   subroutine read_pod_basis_differntmesh(POD_state, state)
     !! Read the pod basis from the set of vtu files.
@@ -156,7 +258,7 @@ contains
     type(vector_field), pointer :: v_field
     type(scalar_field), pointer :: s_field
 
-
+    velo => extract_vector_field(state, "Velocity")
     call get_option('/simulation_name', simulation_name)
     call get_option('/geometry/quadrature/degree', quadrature_degree)
     
@@ -166,7 +268,7 @@ contains
     nfield = vector_field_count( state(1) )+scalar_field_count( state(1) )
     allocate(pod_state(POD_num,nfield,size(state)))
     ifield = 0
-
+     flag=1
     
      do k =1, size(state)
        ! Vector field
@@ -179,7 +281,7 @@ contains
              VelocityMesh=extract_mesh(state(k),trim(v_field%mesh%name))
              do i = 1,POD_num
                 write(filename, '(a, i0, a)') trim(simulation_name)//"Basis"//trim(v_field%name)//"_",i,".vtu" 
-                print*,trim(filename)
+               ! print*,trim(filename)
                 call vtk_read_state(filename, pod_state(i,ifield,k),quadrature_degree)
 
                 !! Note that we might need code in here to clean out unneeded fields.

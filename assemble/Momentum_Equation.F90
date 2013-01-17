@@ -77,11 +77,11 @@
       use pressure_dirichlet_bcs_cv
       use reduced_projection
       use sparse_tools_petsc 
-
+      use global_parameters, only:theta
       implicit none
 
       private
-      public :: solve_momentum, momentum_equation_check_options
+      public :: solve_momentum, momentum_equation_check_options, deim_state, deim_state_res,deim_state_resl,deim_number!deim
 
       ! The timestep
       real :: dt
@@ -136,10 +136,17 @@
 
       ! Are we running a multi-phase simulation?
       logical :: multiphase
-
+      integer :: ii,jj,deim_number,udim
+      type(vector_field) :: deim_rhs_u
+      type(scalar_field) :: deim_rhs_p
+     ! real, dimension(:), allocatable :: pod_coef_deim
+      type(state_type), dimension(:), pointer :: deim_state => null()   !output state from full model
+      type(state_type), dimension(:), pointer :: deim_state_res => null()   !output state from reduced_model
+     ! type(state_type), dimension(:), pointer :: deim_state_resl => null() 
+       type(state_type), dimension(:), allocatable :: deim_state_resl
    contains
 
-      subroutine solve_momentum(state, at_first_timestep, timestep, POD_state, snapmean, eps, its)
+      subroutine solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim, snapmean, eps, its)
          !!< Construct and solve the momentum and continuity equations
          !!< using Chorin's projection method (Chorin, 1968)
 
@@ -149,6 +156,7 @@
          logical, intent(in) :: at_first_timestep
          integer, intent(in) :: timestep
          type(state_type), dimension(:,:,:), intent(inout) :: POD_state
+         type(state_type), dimension(:), intent(inout) :: POD_state_deim
 
          ! Counter iterating over each state
          integer :: istate 
@@ -198,7 +206,8 @@
          type(block_csr_matrix), dimension(1:size(state)):: inverse_mass
 
          ! Momentum RHS
-         type(vector_field), dimension(1:size(state)):: mom_rhs
+         type(vector_field), dimension(1:size(state)):: mom_rhs, rhs_deim, rhs_advec,rhs_deim_res
+         
          ! Projection RHS
          type(scalar_field) :: projec_rhs
          type(scalar_field), dimension(1:size(state)):: ct_rhs
@@ -223,7 +232,7 @@
          ! with free-surface or compressible pressure projection pressures 
          ! are at integer time levels and we apply a theta weighting to the
          ! pressure gradient term
-         real :: theta_pg,theta
+         real :: theta_pg
          ! in this case p_theta=theta_pg*p+(1-theta_pg)*old_p
          type(scalar_field), pointer :: old_p, p_theta
          ! With free-surface or compressible-projection the velocity divergence is
@@ -272,24 +281,27 @@
       !!for reduced model
       type(vector_field), pointer :: snapmean_velocity
       type(scalar_field), pointer :: snapmean_pressure
-      type(vector_field), pointer :: POD_velocity
+      type(vector_field), pointer :: POD_velocity, POD_velocity_deim, velocity_deim
       type(scalar_field), pointer :: POD_pressure
-!      type(vector_field) :: perturb_u
-!      type(scalar_field) :: perturb_p
-!      type(petsc_csr_matrix) :: pod_big_m_0, pod_big_m
-!      type(block_csr_matrix), pointer :: pod_ct_m_0, pod_ct_m
-!      type(vector_field) :: pod_mom_rhs_0, pod_mom_rhs
-!      type(scalar_field) :: pod_ct_rhs_0, pod_ct_rhs
+
       type(pod_matrix_type) :: pod_matrix, pod_matrix_mass, pod_matrix_adv 
       type(pod_rhs_type) :: pod_rhs
       real, dimension(:), allocatable :: pod_coef,pod_coef_dt
       real, dimension(:,:), allocatable :: pod_sol_velocity, pod_ct_m
       real, dimension(:), allocatable :: pod_sol_pressure
-      integer :: d, i, j, k,dim
+      integer :: d, i, j, k,dim,jd
       real, intent(in) :: eps
       logical, intent(in) :: snapmean
       logical :: timestep_check
       type(scalar_field) :: u_cpt
+
+   !   real, dimension(:,:), allocatable :: A_deim ,mom_rhs_deim  !() name change
+    !  real, dimension(:), allocatable :: b_deim,Ny
+        real, dimension(:,:), allocatable :: P_mn,Temp_pu,Temp_vu,Temp_vupu,mom_rhs_deim !A_deim,
+      real, dimension(:,:,:), allocatable :: V_kn,U_nm, U_mn
+      real, dimension(:), allocatable :: Ny ,b_deim
+       real, dimension(:,:), allocatable :: A_deim    !() name change
+      integer :: unodes,d1, AI,AJ,AM,AN,d2   
 
       !petro
       type(scalar_field), pointer :: POD_u_scalar  !petro
@@ -338,7 +350,9 @@
       
       ewrite(1,*) 'Entering solve_momentum'
       call get_option('/timestepping/nonlinear_iterations', nonlinear_iterations, default=1)
-
+      call get_option(&
+         '/reduced_model/pod_basis_formation/pod_basis_count', nsvd)
+      deim=have_option("/reduced_model/discrete_empirical_interpolation_method")
            if(timestep==1.and.its/=nonlinear_iterations) then
               reduced_model = .false.
            else
@@ -353,7 +367,9 @@
     	  else
      		timestep_check= .false.
       	endif
-
+         u => extract_vector_field(state(1), "Velocity", stat)
+         allocate(mom_rhs_deim(u%dim,node_count(u)))
+         mom_rhs_deim=0 
          petrov=have_option("/reduced_model/execute_reduced_model/petrov_galerkin")  
          DT1=0.1
          !! Get diagnostics (equations of state, etc) and assemble matrices
@@ -419,7 +435,7 @@
          allocate(ctp_m(size(state)))
          allocate(subcycle_m(size(state)))
          allocate(inner_m(size(state)))
-
+               
          nullify(cmc_global)
 
          ! Allocate arrays for phase-dependent options
@@ -448,7 +464,8 @@
             call get_phase_submaterials(state, istate, submaterials, submaterials_istate)
             call calculate_momentum_diagnostics(state, istate, submaterials, submaterials_istate)
             deallocate(submaterials)
-
+          
+                        
             call profiler_toc("momentum_diagnostics")
 
             ! Print out some statistics for the velocity
@@ -620,7 +637,14 @@
                                        diagonal=diagonal_big_m, name="BIG_m")
                call allocate(big_m_tmp(istate), u_sparsity, (/u%dim, u%dim/), &
                                        diagonal=diagonal_big_m, name="BIG_m")
-            end if
+                 call get_option('/reduced_model/pod_basis_formation/pod_basis_count', deim_number)
+                        ! print * , 'beforepod_rhspod_rhspod_rhspod_rhs',pod_rhs%val
+               !  allocate(A_deim(size(POD_state)*(u%dim),deim_number*(u%dim)))
+                ! allocate(b_deim(deim_number*(u%dim)))
+                ! allocate(Ny(size(POD_state,1)*(u%dim+1)))
+                        !  allocate(pod_coef_deim((u%dim+1)*size(POD_state)))
+               end if
+             !
 
             ! Initialise the big_m, ct_m and ctp_m matrices
             call zero(big_m(istate))
@@ -634,7 +658,15 @@
 
             ! Allocate the momentum RHS
             call allocate(mom_rhs(istate), u%dim, u%mesh, "MomentumRHS")
+           
+          !  print*,'sizeof mom_rhs', size(mom_rhs(istate)%val,1),  size(mom_rhs(istate)%val,2)
+            call allocate(rhs_deim(istate),u%dim, u%mesh, "Velocity") 
+           ! call allocate(rhs_deim_res(istate),u%dim, u%mesh, "Velocity")
+          !  call zero(rhs_deim_res(istate)) 
+                
+            call zero(rhs_deim(istate))
             call zero(mom_rhs(istate))
+            
             ! Allocate the ct RHS
             call allocate(ct_rhs(istate), p_mesh, "DivergenceRHS")
             call zero(ct_rhs(istate))
@@ -1234,7 +1266,7 @@
                      ! print*,'theta_pg',theta_pg
                      ! print*,'theta_div',theta_divergence
                      ! print*,'ct_rhs',ct_rhs(istate)%val(1:10)
-                     
+                     mom_rhs_deim =mom_rhs(istate)%val
                      
                      print*,has_boundary_condition(u,'free_surface')
                      !project to reduced matrix
@@ -1260,7 +1292,7 @@
                         pod_matrix_mass%val=0.0
                         pod_matrix_adv%val=0.0
                         if(lump_mass_form) then
-                           print*,'lump'
+                          ! print*,'lump'
                            do dim = 1, inverse_masslump(istate)%dim
                               do i = 1,size(inverse_masslump(istate)%val(:,1))
                                  !! inverse_masslump = masslump in reduced order modelling 
@@ -1319,7 +1351,7 @@
                         !  close(21)
                         
                         ewrite(1,*)'perturbed'
-                        print*,'perturbed'
+                       ! print*,'perturbed'
                         open(unit=20,file='pod_matrix_snapmean')
                         read(20,*)((pod_matrix_snapmean(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
                         read(20,*)(pod_rhs_snapmean(i),i=1,(u%dim+1)*size(POD_state,1))
@@ -1348,7 +1380,13 @@
                         !need to exclude snapmean
                         ewrite(1,*)'reduced'
                         
+                           if(deim) then 
+                           
+                         endif 
                         !from initial condition
+                      
+                       ! print *, 'size(pod_matrix%val,1)',size(pod_matrix%val,1)=36,size(pod_matrix%val,2)=36
+                         !podbasis=12, 2dim
                         call solve(pod_matrix%val, pod_rhs%val)
                         pod_coef_dt(:)=pod_rhs%val
                         pod_rhs%val=0.0
@@ -1374,15 +1412,15 @@
                         pod_coef(:)=pod_coef(:)+dt*pod_coef_dt(:)
                         !pod_coef(:)=pod_coef_dt(:)
                         !!print*,pod_coef(2)
-
+                        rmsestep=timestep
                         !save pod_coef for timestep 2
                         write(40,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state,1))
-			print *, size(POD_state,1),size(POD_state,2),size(POD_state,3)
+			!print *, size(POD_state,1),size(POD_state,2),size(POD_state,3)
                          call project_full(delta_u, delta_p, pod_sol_velocity, pod_sol_pressure,POD_state(:,:,istate), pod_coef)
                         !save u1 
 
-                        print*,'pod_coef at timestep1'
-                        print*,pod_coef
+                       ! print*,'pod_coef at timestep1'
+                      !  print*,pod_coef
                      endif
 
                   else !timestep.gt.1
@@ -1419,6 +1457,103 @@
                         pod_matrix%val=pod_matrix%val+pod_coef(k+u%dim*size(POD_state,1))*pod_matrix_perturbed(:,:)
                         pod_rhs%val=pod_rhs%val+pod_coef(k+u%dim*size(POD_state,1))*pod_rhs_perturbed(:)
                      enddo
+                  
+!100 continue
+                   ! do ii=1 ,size( pod_rhs%val)
+                   !   do jj=1,size(pod_rhs%val) 
+                     !   print *,'timestep', timestep     
+                     !   print *, 'before solve as follow,row and colomn', ii,jj
+                     !   print *, pod_matrix%val(ii,jj), pod_rhs%val(ii)
+                   !  enddo
+                   !  enddo
+                     
+                     if(deim) then 
+                        unodes=node_count(u)
+                                  ! deim_number=unodes-1000 ! test all deim points                                  
+                                    allocate(b_deim(deim_number)) 
+                       allocate(V_kn(u%dim,size(POD_state,1),node_count(u)))
+                       allocate(U_mn(u%dim, deim_number,node_count(u)))
+                       allocate(U_nm(u%dim, node_count(u),deim_number))
+                       allocate(P_mn(deim_number, node_count(u)))
+                       allocate(Temp_pu(deim_number,deim_number))
+                       allocate(Temp_vu(size(POD_state,1),deim_number))
+                       allocate(Ny(size(POD_state,1)*(u%dim+1)))
+ 
+                          
+                          P_mn=0
+                         
+                         do i=1, size(POD_state,1) !k 
+                          POD_velocity=>extract_vector_field(POD_state(i,1,istate), "Velocity")			     
+                           V_kn(:,i,:)=POD_velocity%val(:,:)                            
+                        !  print *, 'V_kn(:,i,:)=POD_velocity%val(:,:)', V_kn(1,i,6), POD_velocity%val(1,6)                
+                         enddo !do i=1, size(POD_state)
+                           open(41,file='V_T')
+                           write(41,*)(V_kn(2,:,:))
+                           close(41)
+  
+                         do i=1, size(POD_state,1) !k 
+                           POD_velocity_deim=>extract_vector_field(POD_state_deim(i), "Velocity") 
+                                U_mn(:,i,:)=POD_velocity_deim%val(:,:)
+                               ! U_nm(:,jd,i)=POD_velocity%val(:,jd)
+                         !  print *, 'U_mn(:,i,:)=POD_velocity_deim%val(:,:)', U_mn(2,i,6), POD_velocity_deim%val(2,6)
+                         enddo !do i=1, size(POD_state)
+                        !  velocity_deim=>extract_vector_field(deim_state_resl(i), "Velocity")
+
+                          do jd=1, deim_number 
+                             !print *, 'phi', phi(jd)                            
+			       P_mn(jd,phi(jd))=1
+                            ! P_mn(jd,jd)=1	 
+                            !  print *, 'P_mn',  P_mn(jd,phi(jd))                                               
+			  enddo
+                           open(43,file='P_T')
+                           write(43,*)(P_mn(:,:))
+                           close(43)	     
+                        
+                         do i=1, size(POD_state,1)
+                         velocity_deim=>extract_vector_field(deim_state_resl(i), "Velocity")
+                         do udim=1,POD_velocity%dim
+                             U_nm(udim,:,:)=TRANSPOSE(U_mn(udim,:,:))
+                             open(42,file='U')
+                             write(42,*)(U_nm(2,:,:))
+                             close(42)  
+                             Temp_pu=matmul(P_mn(:,:),U_nm(udim,:,:))  
+                              
+                             Temp_vu=matmul(V_kn(udim,:,:), U_nm(udim,:,:))
+                                 
+                             Temp_pu=inv(Temp_pu)
+                              
+			     Temp_vupu=matmul(Temp_vu,Temp_pu)
+                                
+                            do jd=1, deim_number 
+                             !  b_deim(jd)=rhs_deim(istate)%val(udim,phi(jd))                          
+			    !  print *, 'b_deim(jd)', b_deim                                                 
+			    enddo
+ 
+                           ! b_deim=matmul(P_mn,rhs_deim(istate)%val(udim,:))velocity_deim
+                            b_deim=matmul(P_mn,velocity_deim%val(udim,:)) 
+                            open(44,file='FP^TV_ky')
+                            write(44,*)(b_deim(:))
+                            close(44)
+                            Ny((udim-1)*size(POD_state,1)+1 :(udim)*size(POD_state,1))=matmul(Temp_vupu,b_deim)
+                             open(45,file='Ny')
+                            write(45,*)(Ny(:))
+                            close(45)
+                         enddo ! udim=1,POD_velocity%dim
+                         enddo ! do i=1, size(POD_state,1)
+                          Ny((u%dim)*size(POD_state,1)+1:(u%dim+1)*size(POD_state,1))=0
+                             
+                        !  print *, 'Ny' , Ny
+                            pod_rhs%val=pod_rhs%val-2*Ny
+                        
+                     	 deallocate(b_deim) 
+                    	 deallocate(V_kn)
+                      	 deallocate(U_nm)
+                     	 deallocate(P_mn)
+                     	 deallocate(Temp_pu)
+                    	 deallocate(Temp_vu)
+                    	 deallocate(Temp_vupu)      
+                         endif 
+!test 
 
                        if(.not.reduced_model) then
                         pod_matrix%val=0.0
@@ -1454,17 +1589,36 @@
                      enddo  !k=1,size(POD_state,1)
                      
                     endif
+                   if(.not.deim)then
+                       ! allocate(rhs_deim_res2(unodes,POD_velocity%dim))
+                        call allocate(rhs_deim_res(istate),u%dim, u%mesh, "Velocity")
+                        call zero(rhs_deim_res(istate))
+                        !   print *, 'rhs_deim_res', size(rhs_deim_res(istate)%val,2),   size(rhs_deim_res(istate)%val,1) 
+                       call project_full_deim(rhs_deim_res(istate), deim_rhs_p,POD_state(:,:,istate), pod_rhs%val) 
+                         !project pod_rhs to full space rhs_deim_res  
+                      !  print *,'size(mom_rhs(istate)', size(rhs_deim_res(istate)%val,1),size(mom_rhs(istate)%val,1)                  
+                     !  print*,'sizeof mom_rhs', size(mom_rhs(istate)%val,1),  size(mom_rhs(istate)%val,2)
+                       
+                       ! print *,'mom_rhs_d' ,  mom_rhs_deim
+                      rhs_deim_res(istate)%val=rhs_deim_res(istate)%val-mom_rhs_deim   !deim_rhs_u(istate)%val
+                     !  rhs_deim_res(istate)%val=rhs_deim_res(istate)%val!*10000
+                         print *, 'rhs_deim_res(istate)' , rhs_deim_res(istate)%val   
+                       call insert(deim_state_res(istate), rhs_deim_res(istate), name="Velocity")
+                       !deallocate(rhs_deim_res2)
+                       call deallocate(rhs_deim_res(istate)) 
+                    endif
 
                     !! Petrov-Galerkin POD
                     if(petrov) then
                        POD_u=>extract_vector_field(POD_state(1,1,istate), "Velocity")
-                       POD_num=size(POD_state)
+                       POD_num=size(POD_state,1)
                        allocate(X_val(POD_u%dim,ele_loc(POD_u,ele)))
                        allocate(JJ(POD_u%dim,mesh_dim(POD_u)))
                        pod_umesh => extract_mesh(POD_state(1,1,istate), "Mesh", stat)
                        TOTELE=pod_umesh%elements
                        NLOC=pod_umesh%shape%loc
                        NGI=pod_umesh%shape%ngi
+                       POD_pressure=>extract_scalar_field(POD_state(1,2,istate), "Pressure") 
                        call allocate(pod_rhs_old, POD_u, POD_pressure)
                        
                        xf_shape=>ele_shape(POD_u,1)
@@ -1504,6 +1658,7 @@
                        ! get the result of Residual value"
                        
                        pod_rhs_old%val=pod_rhs%val 
+                       
                        call solve(pod_matrix%val, pod_rhs%val)
                        ! pod_coef=pod_rhs%val
                        pod_rhs%val=pod_rhs%val-pod_rhs_old%val
@@ -1521,9 +1676,12 @@
                                 
                                 do isvd =1,nsvd
                                    leftsvd(GLOBJ,isvd)=POD_u%val(GLOBJ,isvd)
-                                   leftsvd_gi(GI,isvd)=leftsvd_gi(GI,isvd)+xf_shape%dn(isvd,GI,1)*leftsvd(GLOBJ,isvd) 
+                                    print *,'xf_shape%dn',size(xf_shape%dn,1),size(xf_shape%dn,2),size(xf_shape%dn,3)
+                                  ! leftsvd_gi(GI,isvd)=leftsvd_gi(GI,isvd)+xf_shape%dn(isvd,GI,1)*leftsvd(GLOBJ,isvd) 
+                                   !leftsvd_gi(GI,isvd)=leftsvd_gi(GI,isvd)+xf_shape%dn(isvd,GI,1)*leftsvd(GLOBJ,isvd)
                                    !N shape function, leftsvd: podbasis, N(JLOC,GI): ele_shape(nu, ele)
                                    leftsvd_x_gi(GI,isvd)=leftsvd_gi(GI,isvd)+dshape(JLOC,GI,1)*leftsvd(GLOBJ,isvd)
+                                   leftsvd_gi=leftsvd_x_gi
                                 enddo
                                 !smean_gi(gi)=smean_gi(gi)+ 1SMLINN(A,X,B,NMX,N)*smean(GLOBJ)  !need modification
                                 !smean_gi(gi)=smean_gi(gi)+ 1*smean(GLOBJ)
@@ -1549,8 +1707,7 @@
                        DO GI=1,NGI      !   ?? NGI and NLOC need input 
                           DO JLOC=1,NLOC
                              GLOBJ=(ELE-1)*NLOC+JLOC
-                             PSI_theta=theta_pet(GI)*PSI(GLOBJ)+(1.-theta_pet(GI))*PSI_OLD(GLOBJ)
-                             
+                             PSI_theta=theta_pet(GI)*PSI(GLOBJ)+(1.-theta_pet(GI))*PSI_OLD(GLOBJ)                             
                              GRADX(GI)=GRADX(GI)+dshape(JLOC,GI,1)*PSI_theta
                              GRADT(GI)=GRADT(GI)+xf_shape%dn(isvd,GI,1)*(PSI(GLOBJ)-PSI_OLD(GLOBJ))/DT1
                           END DO
@@ -1593,14 +1750,17 @@
                        
                        !pod_rhs%val=0.001*pod_rhs%val
                        ! add K to (MT AM + K) fi *pod= MT b. 
-                       
+                       do i=1, POD_u%dim
                        do isvd =1,nsvd
                           do jsvd=1,nsvd
-                             pod_matrix%val(isvd,jsvd) = pod_matrix%val(isvd,jsvd)+KMAT_pod(isvd,jsvd)
+                             pod_matrix%val(isvd+(i-1)*nsvd,jsvd+(i-1)*nsvd) =&
+                             pod_matrix%val(isvd+(i-1)*nsvd,jsvd+(i-1)*nsvd)+KMAT_pod(isvd,jsvd)
+                           print *,'podpod', KMAT_pod(isvd,jsvd)
                           enddo
                           !b_pod(isvd) = b_pod(isvd)-KB_pod(isvd)
+                       enddo 
                        enddo
-  
+                       
                        call solve(pod_matrix%val,pod_rhs_old%val) 
                        pod_rhs%val=pod_rhs_old%val
                        deallocate(theta_pet)
@@ -1623,11 +1783,13 @@
                        deallocate(res)
                        deallocate(dshape) 
                     else 
+                       
+                       
                        call solve(pod_matrix%val,pod_rhs%val)
                        
                     endif ! end petrov 
-
-                    ! call solve(pod_matrix%val, pod_rhs%val)
+                  
+                 
                     pod_coef_dt=0.0
                     pod_coef_dt=pod_rhs%val
                     pod_rhs%val=0.0
@@ -1639,8 +1801,8 @@
                     open(40,file='pod_coef')
                     write(40,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state,1))
                     close(40)
-                    print*,pod_coef
-
+                   ! print*,pod_coef
+                    rmsestep=timestep
                     call project_full(delta_u, delta_p, pod_sol_velocity, pod_sol_pressure, POD_state(:,:,istate), pod_coef)
                     
                     
@@ -1734,6 +1896,7 @@
          deallocate(lump_mass)
          deallocate(sphere_absorption)
 	endif
+          deallocate(mom_rhs_deim)
       end subroutine solve_momentum
 
 
@@ -2773,5 +2936,43 @@ SUBROUTINE SMLINN(A,X,B,NMX,N)
         enddo
         
       END SUBROUTINE Matrix_vector_multiplication
+ function inv(A) result(Ainv)
+  ! Returns the inverse of a matrix calculated by finding the LU
+! decomposition.  Depends on LAPACK.
+  real, dimension(:,:), intent(in) :: A
+  real, dimension(size(A,1),size(A,2)) :: Ainv
 
+  !real, dimension(size(A,1)) :: work  ! work array for LAPACK
+  real, dimension(:),allocatable :: work
+ !  integer, dimension(size(A,1)) :: ipiv   ! pivot indices
+  integer, dimension(:),allocatable :: ipiv      
+  integer :: n, info
+
+  ! External procedures defined in LAPACK
+  external DGETRF
+  external DGETRI
+  allocate(work(size(A,1)))
+  allocate(ipiv(size(A,1)))
+  ! Store A in Ainv to prevent it from being overwritten by LAPACK
+  Ainv = A
+  n = size(A,1)
+
+  ! DGETRF computes an LU factorization of a general M-by-N matrix A
+  ! using partial pivoting with row interchanges.
+  call DGETRF(n, n, Ainv, n, ipiv, info)
+
+  if (info /= 0) then
+     stop 'Matrix is numerically singular!'
+  end if
+
+  ! DGETRI computes the inverse of a matrix using the LU factorization
+  ! computed by DGETRF.
+  call DGETRI(n, Ainv, n, ipiv, work, n, info)
+
+  if (info /= 0) then
+     stop 'Matrix inversion failed!'
+  end if
+  deallocate(work)
+  deallocate(ipiv)
+end function inv
    end module momentum_equation

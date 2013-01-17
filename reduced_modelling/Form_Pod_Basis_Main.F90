@@ -43,16 +43,20 @@ program form_pod_basis
   use quadrature
   use diagnostic_fields_wrapper
   use field_options
+   use momentum_equation
+  use solvers 
+  use momentum_cg 
 !  use checkpoint
 
   implicit none
 #ifdef HAVE_PETSC
 #include "finclude/petsc.h"
 #endif
-  type(state_type), dimension(:), allocatable :: state,state_test
-  type(state_type), dimension(:,:), allocatable :: pod_state
+  integer, dimension(:), allocatable :: indices,indices_tmp
+  type(state_type), dimension(:), allocatable :: state,state_test,state_deim
+  type(state_type), dimension(:,:), allocatable :: pod_state, pod_deim_state
   type(state_type), dimension(:,:), allocatable :: pod_state_p
-
+  type(vector_field) , pointer :: position_deim
   integer :: timestep
   integer :: ierr
 
@@ -70,7 +74,7 @@ program form_pod_basis
   call read_command_line()
 
   call form_basis_different_mesh()
-
+  call form_basis()
 
   call deallocate(state)
   call deallocate_transform_cache()
@@ -89,49 +93,108 @@ contains
   subroutine form_basis()
     !!< Matrices containing the snapshots for arpack
     !      type(state_type), dimension(:), allocatable :: state
-
-    real, dimension(:,:,:), allocatable :: snapmatrix_velocity
-    real, dimension(:,:), allocatable :: snapmatrix_pressure
-    real, dimension(:,:,:), allocatable :: leftsvd_velocity
-    real, dimension(:,:), allocatable :: leftsvd_pressure
-    real, dimension(:,:), allocatable :: svdval_velocity
-    real, dimension(:), allocatable :: svdval_pressure
-    real, dimension(:,:), allocatable :: snapmean_velocity
-    real, dimension(:), allocatable :: snapmean_pressure
+    real, dimension(:,:,:), allocatable :: snapmatrix_velocity, snapmatrix_velocity_deim
+    real, dimension(:,:), allocatable :: snapmatrix_pressure, snapmatrix_pressure_deim
+    real, dimension(:,:,:), allocatable :: leftsvd_velocity, leftsvd_velocity_deim
+    real, dimension(:,:), allocatable :: leftsvd_pressure, leftsvd_pressure_deim
+    real, dimension(:,:), allocatable :: svdval_velocity, svdval_velocity_deim
+    real, dimension(:), allocatable :: svdval_pressure, svdval_pressure_deim
+    real, dimension(:,:), allocatable :: snapmean_velocity, snapmean_velocity_deim
+    real, dimension(:), allocatable :: snapmean_pressure, snapmean_pressure_deim
     integer :: snapshots, u_nodes, p_nodes, nsvd
-    integer :: i,dump_no, d, dim
+    integer :: i,dump_no, d, dim,j,k ,i2,i3
     integer :: stat
+
+    real, dimension(:,:), allocatable :: P !n*m (u_nodes*nsvd)
+   !  integer, dimension(:), allocatable :: phi
+    real, dimension(:,:), allocatable :: leftsvd_velocity_deim_uin
+    integer :: udim,deim_number_tmp  
+    type(vector_field), pointer :: velocityudim
+
     type(vector_field), pointer :: vfield
 
     call get_option(&
          '/reduced_model/pod_basis_formation/pod_basis_count', nsvd)
-    call get_option('/simulation_name',simulation_name)
-    call read_input_states(state)
-    call retrieve_snapshots(state, snapshots, u_nodes, p_nodes, snapmatrix_velocity, snapmatrix_pressure, &
-                            & snapmean_velocity, snapmean_pressure)
+    !call get_option('/simulation_name',simulation_name)
+  !  call read_input_states(state)
+  !  call retrieve_snapshots(state, snapshots, u_nodes, p_nodes, snapmatrix_velocity, snapmatrix_pressure, &
+                  !          & snapmean_velocity, snapmean_pressure)
 
     
-    call form_svd(snapmatrix_velocity, snapmatrix_pressure,&
-       & leftsvd_velocity, leftsvd_pressure, svdval_velocity, svdval_pressure, snapshots)
-    call form_podstate(state,pod_state,leftsvd_velocity,leftsvd_pressure, snapmean_velocity, snapmean_pressure)
+   ! call form_svd(snapmatrix_velocity, snapmatrix_pressure,&
+    !   & leftsvd_velocity, leftsvd_pressure, svdval_velocity, svdval_pressure, snapshots)
+    !call form_podstate(state,pod_state,leftsvd_velocity,leftsvd_pressure, snapmean_velocity, snapmean_pressure)
 
-    do i=1,nsvd
+    !do i=1,nsvd
 
-       dump_no=i
+     !  dump_no=i
 
-       call vtk_write_state(filename=trim(simulation_name)//"_PODBasis", index=dump_no, state=pod_state(i,:))
+     !  call vtk_write_state(filename=trim(simulation_name)//"_PODBasis", index=dump_no, state=pod_state(i,:))
 
-       call deallocate(pod_state(i,:))
+      ! call deallocate(pod_state(i,:))
 
-    enddo
+ !   enddo
 
     !! Produce updated flml file in which the execute_reduced_model
     !! option is set.
-    call add_option("/reduced_model/execute_reduced_model",stat)
-    call set_option('/simulation_name', trim(simulation_name)//'_POD') 
+   ! call add_option("/reduced_model/execute_reduced_model",stat)
+   ! call set_option('/simulation_name', trim(simulation_name)//'_POD') 
 !    call set_option('/timestepping/nonlinear_iterations',1)
-    call write_options(trim(simulation_name)//"_POD.flml")
+   ! call write_options(trim(simulation_name)//"_POD.flml")
+   deim=have_option("/reduced_model/discrete_empirical_interpolation_method")
+   if(deim) then
+       call get_option(&
+         '/reduced_model/pod_basis_formation/pod_basis_count', deim_number)
+      velocityudim => extract_vector_field(state(1), "Velocity")   
+      udim=velocityudim%dim
+      allocate(P(u_nodes,deim_number)) 
+      deim_number_tmp=deim_number!*40    
+      allocate(indices(udim*deim_number))  
+      allocate(indices_tmp(deim_number))
+      print *,'sizeofindice_tmp', size(indices_tmp,1)
+     ! allocate(leftsvd_velocity_deim_uin(u_nodes*udim,nsvd))     
+      
+       
+      !allocate(phi(nsvd))
+      call read_input_states_deim(state_deim) !deim
+      call retrieve_snapshots(state_deim, snapshots, u_nodes, p_nodes, snapmatrix_velocity_deim, snapmatrix_pressure_deim, &
+                            & snapmean_velocity_deim, snapmean_pressure_deim)                                                    !deim
+      call form_svd(snapmatrix_velocity_deim, snapmatrix_pressure_deim,&  
+                           & leftsvd_velocity_deim, leftsvd_pressure_deim, svdval_velocity_deim, svdval_pressure_deim, &
+                           &snapshots)                                !deim   leftsvd_velocity_deim  U
+      ! call form_podstate(state_deim,pod_deim_state,leftsvd_velocity_deim,leftsvd_pressure_deim, snapmean_velocity_deim, snapmean_pressure_deim) 
+       call form_podstate_writeout_allvariables_differentmesh(state_deim,pod_deim_state,leftsvd_velocity_deim,leftsvd_pressure_deim, snapmean_velocity_deim, snapmean_pressure_deim) 
+       print *, 'u_nodes', u_nodes   
+     ! do i=1,nsvd    ! deim_number  !need to change?
+      !   dump_no=i
+       !  call vtk_write_state(filename=trim(simulation_name)//"_PODBasisDEIM", index=dump_no, state=pod_deim_state(i,:))
+       !  call deallocate(pod_deim_state(i,:)) 
+     ! enddo
+     !  deallocate(phi)   
+    !  print *, 'sizeofleftsvd_velocity_deim_uin',size(leftsvd_velocity_deim_uin,1), size(leftsvd_velocity_deim_uin,2)
+     position_deim=>extract_vector_field(state(1),"Coordinate")
+     
+    do i=2,udim
+    ! print *, 'sizeofleftsvd_velocity_deim',size(leftsvd_velocity_deim,1), size(leftsvd_velocity_deim,2),size(leftsvd_velocity_deim,3) 
+                             !3213      24           2
+      indices_tmp = DEIMP(leftsvd_velocity_deim(:,:,i),u_nodes,deim_number)  !(u_nodes,nsvd,dim))  !redefine phi, and leftsvd_velocity()to 1 dimension
 
+      indices(1:deim_number)=indices_tmp
+      indices((i-1)*(deim_number)+1:(deim_number*i))=indices_tmp
+      do j=1, deim_number
+        print *, position_deim%val(1,indices_tmp(j)),',',position_deim%val(2,indices_tmp(j))        
+      enddo
+      
+      enddo
+     !P = DEIMP(leftsvd_velocity_deim_uin(:,:),u_nodes*udim,nsvd)   
+     print *, 'indices indices indices indices indices', indices
+     print *,'whole domain', position_deim%val(1,deim_number), position_deim%val(2,deim_number)
+     
+     
+      open(100,file='indices')
+      write(100,*)(indices(:))
+      close(100)
+     end if
   end subroutine form_basis
 
   subroutine form_basis_different_mesh()
@@ -317,21 +380,21 @@ contains
 
     do i = 1,POD_num
 
-    !   pod_mesh => extract_mesh(state(1), "Mesh")
+      ! pod_mesh => extract_mesh(state(1), "Mesh")
 
        all_meshes_same = .true.
 
-       pod_xmesh => extract_mesh(state(1), "CoordinateMesh", stat)
-       pod_umesh => extract_mesh(state(1), "VelocityMesh", stat)
+        pod_xmesh => extract_mesh(state(1), "CoordinateMesh", stat)
+        pod_umesh => extract_mesh(state(1), "VelocityMesh", stat)
        pod_pmesh => extract_mesh(state(1), "PressureMesh", stat)
-
+ 
        pod_positions => extract_vector_field(state(1), "Coordinate")
 
-!       call insert(pod_state(i,1), pod_xmesh, "Mesh")
-       call insert(pod_state(i,1), pod_xmesh, "CoordinateMesh")
-       call insert(pod_state(i,1), pod_umesh, "VelocityMesh")
-       call insert(pod_state(i,1), pod_pmesh, "PressureMesh")
-       call insert(pod_state(i,1), pod_positions, "Coordinate")
+        call insert(pod_state(i,1), pod_xmesh, "Mesh")
+        call insert(pod_state(i,1), pod_xmesh, "CoordinateMesh")
+        call insert(pod_state(i,1), pod_umesh, "VelocityMesh")
+        call insert(pod_state(i,1), pod_pmesh, "PressureMesh")
+        call insert(pod_state(i,1), pod_positions, "Coordinate")
 
        velocity => extract_vector_field(state(1), "Velocity")
 
@@ -460,8 +523,14 @@ contains
                 end do
                 call insert(pod_state(i,k), snapmean_velocity, name="SnapmeanVelocity")
                 call deallocate(snapmean_velocity)
+                deim=have_option("/reduced_model/discrete_empirical_interpolation_method")
+		if(deim)then
+		 call vtk_write_state(filename=trim(simulation_name)//"_PODDEIMBasisRES"//trim(v_field%name),  &
+                     index=i, model=trim(v_field%mesh%name), state=(/pod_state(i,k)/))
+		else
                 call vtk_write_state(filename=trim(simulation_name)//"_PODBasis"//trim(v_field%name),  &
                      index=i, model=trim(v_field%mesh%name), state=(/pod_state(i,k)/))
+		     endif 
              enddo
           endif
        end do !j = 1, size(state(i)%scalar_fields)
@@ -513,8 +582,13 @@ contains
                 call set_all(snapmean_pressure, snapmean_p(:))
                 call insert(pod_state(i,k), snapmean_pressure, name="SnapmeanPressure") 
                 call deallocate(snapmean_pressure)
+		if(deim) then 
+		call vtk_write_state(filename=trim(simulation_name)//"_PODDEIMBasisRES"//trim(s_field%name),  &
+                     index=i, model=trim(s_field%mesh%name), state=(/pod_state(i,k)/))
+		     else
                 call vtk_write_state(filename=trim(simulation_name)//"_PODBasis"//trim(s_field%name),  &
                      index=i, model=trim(s_field%mesh%name), state=(/pod_state(i,k)/))
+	       endif
              enddo
           endif
        end do !j = 1, size(state(i)%scalar_fields)
@@ -559,6 +633,40 @@ contains
 !    end do
  
   end subroutine read_input_states
+
+subroutine read_input_states_deim(state_deim)
+    !!< Read the input states from the vtu dumps of the forward run.
+    type(state_type), intent(out), dimension(:), allocatable :: state_deim
+    character(len=1024) :: filename
+
+    integer :: dump_sampling_period, quadrature_degree
+    integer :: i,j,k,total_dumps,stable_dumps
+
+    call get_option('/reduced_model/pod_basis_formation/dump_sampling_period',dump_sampling_period)
+    call get_option('/geometry/quadrature/degree', quadrature_degree)
+
+    ewrite(3,*) 'dump_sampling_period',dump_sampling_period
+
+    !substract gyre_0.vtu
+    total_dumps=count_dumps(dump_sampling_period)-1
+    allocate(state_deim(total_dumps))
+
+!    stable_dumps=total_dumps-10
+!    allocate(state(stable_dumps))
+
+    do i=1, total_dumps
+
+       !! Note that this won't work in parallel. Have to look for the pvtu in that case.
+     
+       ! write(filename, '(a, i0, a)') trim(simulation_name)//'_DEIM_', (i)*dump_sampling_period,".vtu" 
+       write(filename, '(a, i0, a)') trim(simulation_name)//'_PODDEIMRES_', (i+1)*dump_sampling_period,".vtu"                  
+     
+       call vtk_read_state(filename, state_deim(i), quadrature_degree)
+       
+       !! Note that we might need code in here to clean out unneeded fields.
+     end do
+
+  end subroutine read_input_states_deim
 
   function count_dumps(dump_sampling_period) result (count)
     !! Work out how many dumps we're going to read in.
@@ -992,5 +1100,101 @@ contains
     end subroutine update_initial_condition_options2
 
 
+function DEIMP(Uin,n,m) result(phi)
+ !This routine will produce a set of m EIM interpolation indices p for the input basis Uin
+
+ real, dimension(:,:), allocatable :: UC,P,PT,E,A!uIn !UC : changing dimension m(n*l)
+ !P:n*m(unodes_nsvd(Basis number of non-linear term )   Uin:n*m   m number of interpolation ,E: identity matrix 
+ 
+ real,dimension(:), allocatable :: uL,b,c,r   !phi store the location of maximum value
+ integer, dimension(:), allocatable :: phi
+ integer :: n,m,i,l,j
+ integer :: locu(1)
+ real :: uIn(n,m)
+ print * ,'sizeofuin', size(uIn,1),size(uIn,2),deim_number
+ !allocate(uIn(n,m))
+ allocate(PT(m,n))
+ allocate(UC(n,m))  
+ allocate(uL(n))
+ allocate(P(n,m)) 
+ allocate(A(m,m))
+ allocate(phi(m))
+ allocate(b(m))
+ allocate(c(m))
+ allocate(r(n))
+ allocate(E(n,n))
+ 
+
+ phi=0
+ locu= MAXLOC(abs(uIn(:,1)))    ! Rank of U should be paid attention to
+ phi(1)=locu(1)
+
+
+FORALL (i=1:n,j=1:n) 
+ E(i,j) = 0
+ END FORALL
+
+ FORALL (i=1:n) 
+ E(i,i) = 1
+ END FORALL
+
+ P(:, 1) = E(:, phi(1))  
+ UC(:, 1) = uIn(:, 1)
+ 
+ do l=2,m
+  uL(:) = Uin(:,l)    
+  
+ do i=1,n  ! transpose
+   do j=1,l-1
+     PT(j,i)=P(i,j)
+   enddo
+  enddo
+  j=l-1
+  A(1:j,1:j)=matmul(PT(1:j, :),UC(:, 1:j))
+  b(1:j)=matmul(PT(1:j, :),uL(:))
+  
+ call solve(A(1:j,1:j), b(1:j)) 
+ !call LEGS_POD(A,m,c,b) !A(m,m)*b(m) = c(m)
+ !!!! c = (P'*U)\P'*uL;  P' transpose matrix of P  . After solving, put the results to b.
+  
+ c(1:j)=b(1:j)  ! give the results of solver to c
+ 
+ r = uL - matmul(UC(:,1:j),c(1:j))  !!
+ locu= MAXLOC(abs(r))
+ print *, 'absresiduleabsresiduleabsresidule', maxval(abs(r))
+ phi(l)=locu(1)
+ UC(:, l) = uL(:)
+ P(:, l) = E(:, phi(l))
+ enddo 
+ !P = E(:, phi)
+  call selection_sort(phi,m)
+  
+  ! print *, 'phiphiphiphiphiphiphiphiphiphi', phi
+  !open(100,file='indices')
+  ! write(100,*)(phi(:))
+  !close(100)
+
+ end function DEIMP
+
+subroutine selection_sort(a,n)
+  implicit none
+  integer :: n,a(n)
+  integer i,j  ! loop counter
+  integer min  ! find a minimum value of one loop
+  integer temp ! 
+!sort
+  do i=1,n-1
+    min=a(i)     !  
+    do j=i+1,n
+      if ( min > a(j) ) then      
+        temp=a(j)          
+        a(j)=a(i)
+        a(i)=temp
+        min=a(i)
+      end if
+ end do
+  end do                             
+  return
+end subroutine 
 
 end program form_pod_basis

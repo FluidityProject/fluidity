@@ -16,7 +16,7 @@
 !    version 2.1 of the License.
 !
 !    This library is distributed in the hope that it will be useful,
-!    but WITHOUT ANY WARRANTY; without even the implied warranty of
+!    but WITHOUT ANY WARRANTY; without even the implied warranty pod_of
 !    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 !    Lesser General Public License for more details.
 !
@@ -45,7 +45,7 @@
 
   contains
 
-    subroutine momentum_loop(state, at_first_timestep, timestep, POD_state, its)
+    subroutine momentum_loop(state, at_first_timestep, timestep, POD_state, POD_state_deim,its)
       !!< Construct and solve the momentum and continuity equations using
       !!< a continuous galerkin discretisation.
 
@@ -54,6 +54,7 @@
       type(state_type), dimension(:), intent(inout) :: state
       logical, intent(in) :: at_first_timestep
       type(state_type), dimension(:,:,:) :: POD_state
+      type(state_type), dimension(:) :: POD_state_deim
       integer, intent(in) :: timestep
 
       type(vector_field), pointer :: u
@@ -125,7 +126,7 @@
 
            call profiler_tic("momentum_solve")
            if(.not.reduced_model)then
-              call solve_momentum(state, at_first_timestep, timestep, POD_state, snapmean, eps, its)
+              call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its)
            else
              !print*,'test'
              !call solve_momentum(state, istate, at_first_timestep, timestep, POD_state, snapmean, eps)
@@ -215,7 +216,7 @@
                     enddo
                  enddo
 
-                 call solve_momentum(state, at_first_timestep, timestep, POD_state, snapmean, eps, its)           
+                 call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its)           
                  
 !print*,'back from snapmean'
   
@@ -276,7 +277,7 @@
                        enddo
                        
                        !save pod_matrix and pod_rhs to file (totally size(POD_state)*POD_velocity%dim)
-                       call solve_momentum(state, at_first_timestep, timestep, POD_state, snapmean, eps, its)
+                       call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its)
                     enddo
 
                     call zero(perturb_basis_u)
@@ -306,7 +307,7 @@
                     enddo
 
                    !save pod_matrix and pod_rhs to file (totally size(POD_state))
-                    call solve_momentum(state, at_first_timestep, timestep, POD_state, snapmean, eps, its)
+                    call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its)
                  enddo
 
                  close(30)
@@ -329,7 +330,7 @@
                  open(40,file='pod_coef')
                  !save pod_coef for pod_matrix and pod_rhs at timestep 2
                  !the initial pod_matrix and pod_rhs
-                 call solve_momentum(state, at_first_timestep, timestep, POD_state, snapmean, eps, its)
+                 call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its)
                  close(40)
                  close(30)
                  close(50)
@@ -340,7 +341,7 @@
                  open(30,file='pod_matrix_perturbed')
                  open(50,file='pod_rhs_perturbed')
                  open(60,file='advection_matrix_perturbed')
-                 call solve_momentum(state, at_first_timestep, timestep, POD_state, snapmean, eps, its)
+                 call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its)
                  close(30)
                  close(50)
                  close(60)

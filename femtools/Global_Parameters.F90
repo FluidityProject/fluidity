@@ -152,5 +152,5 @@ module global_parameters
 
   real :: domain_volume
   logical :: running_adjoint = .false.
-
+  real theta 
 end module global_parameters
