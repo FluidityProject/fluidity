@@ -227,24 +227,21 @@ def _la_solve(A, x, b, linear_solver=None, preconditioner=None):
     ignore_failure_path = "%s/prognostic/solver/ignore_all_solver_failures" % option_path
     monitor_conv_path = "%s/prognostic/solver/diagnostics/monitors/preconditioned_residual" % option_path
     plot_conv_path = "%s/prognostic/solver/diagnostics/monitors/preconditioned_residual_graph" % option_path
-    flml_solver = get_option(solver_path)
-    flml_preconditioner = get_option(preconditioner_path)
    
-    parameters = {}
-    parameters['linear_solver']  = linear_solver  or flml_solver
-    parameters['preconditioner'] = preconditioner or flml_preconditioner
-    parameters['relative_tolerance'] = get_option(rtol_path)
+    parameters = {
+            'linear_solver': linear_solver  or get_option(solver_path),
+            'preconditioner': preconditioner or get_option(preconditioner_path),
+            'relative_tolerance': get_option(rtol_path),
+            'maximum_iterations': get_option(maxit_path),
+            'error_on_nonconvergence': not have_option(ignore_failure_path),
+            'monitor_convergence': have_option(monitor_conv_path),
+            'plot_convergence': have_option(plot_conv_path),
+            'plot_prefix': get_option('/simulation_name')+'_'
+            }
     if have_option(atol_path):
         parameters['absolute_tolerance'] = get_option(atol_path)
-    parameters['maximum_iterations'] = get_option(maxit_path)
-    parameters['error_on_nonconvergence'] = not have_option(ignore_failure_path)
-    parameters['monitor_convergence'] = have_option(monitor_conv_path)
-    parameters['plot_convergence'] = have_option(plot_conv_path)
-    parameters['plot_prefix'] = get_option('/simulation_name')+'_'
     solver = op2.Solver(parameters=parameters)
     solver.solve(A, x.dat, b)
-    
-# Solve function handles both linear systems and variational problems
 
 def solve(*args, **kwargs):
     """Solve linear system Ax = b or variational problem a == L or F == 0.
