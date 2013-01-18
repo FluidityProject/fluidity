@@ -2401,7 +2401,10 @@ Required in porous_media and multiphase problem types</a:documentation>
 Optional in multiphase problem types
 
 attribute material_phase_name associates this
-mass fraction with a particular phase</a:documentation>
+mass fraction with a particular phase
+
+Do not forget to set boundary conditions for the PhaseVolumeFraction
+even if the problem is one-phase</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
@@ -2439,7 +2442,10 @@ mass fraction with a particular phase</a:documentation>
 Optional in multiphase problem types
 
 attribute material_phase_name associates this
-mass fraction with a particular phase</a:documentation>
+mass fraction with a particular phase
+
+Do not forget to set boundary conditions for the PhaseVolumeFraction
+even if the problem is one-phase</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
@@ -2477,7 +2483,10 @@ mass fraction with a particular phase</a:documentation>
 Optional in multiphase problem types
 
 attribute material_phase_name associates this
-mass fraction with a particular phase</a:documentation>
+mass fraction with a particular phase
+
+Do not forget to set boundary conditions for the PhaseVolumeFraction
+even if the problem is one-phase</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>

@@ -399,13 +399,6 @@
            Temperature, Temperature_BC_Spatial, Temperature_BC, Temperature_Source, &
            Porosity, Permeability )
 
-
-!print *, Component_BC_Spatial
-!print *, '@@@@@'
-!print *, '1@@@@', Component_BC(1:stotel*cv_snloc)
-!print *, '2@@@@', Component_BC(1+stotel*cv_snloc:stotel*cv_snloc*ncomp)
-!stop 777
-
 !!$ Dummy field used in the scalar advection option:
       Dummy_PhaseVolumeFraction_FEMT = 1.
 

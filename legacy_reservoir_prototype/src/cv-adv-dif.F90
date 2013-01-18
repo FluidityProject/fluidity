@@ -382,7 +382,9 @@
       ewrite(3,*)'CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND, SECOND_THETA, GOT_DIFFUS:', &
            CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND, SECOND_THETA, GOT_DIFFUS
 
-      ewrite(3,*)'tdiffusion=', tdiffusion
+      !ewrite(3,*)'tdiffusion=', tdiffusion
+      !ewrite(3,*)'suf_t_bc=', suf_t_bc
+      !ewrite(3,*)'wic_t_bc=', wic_t_bc
 
       ndotq = 0. ; ndotqold = 0.
 
@@ -574,7 +576,7 @@
            FINDGPTS, COLGPTS, NCOLGPTS, &
            SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE )  
 
-      ewrite(3,*)'back in cv-adv-dif'
+      !ewrite(3,*)'back in cv-adv-dif'
       !do iphase = 1, nphase
       !   ewrite(3,*) 'Phase', iphase, ',', 'suf_t_bc:', &
       !        suf_t_bc( ( iphase - 1 ) * cv_snloc * stotel + 1 : iphase * cv_snloc * stotel )
@@ -1118,7 +1120,7 @@
                                    - FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX ! Diffusion contribution
                               IF(GET_GTHETA) THEN
                                  THETA_GDIFF( CV_NODI_IPHA ) =  THETA_GDIFF( CV_NODI_IPHA ) &
-                                      +  FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX * T(CV_NODJ_IPHA) ! Diffusion contribution
+                                      + FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX * T(CV_NODJ_IPHA) ! Diffusion contribution
                               ENDIF
                            ELSE IF(SELE/=0) THEN
                               IF(WIC_T_BC(SELE+(IPHASE-1)*STOTEL) == WIC_T_BC_DIRICHLET) THEN
@@ -1127,7 +1129,7 @@
                                       * SUF_T_BC(CV_SILOC+(SELE-1)*CV_SNLOC+(IPHASE-1)*STOTEL*CV_SNLOC)
                                  IF(GET_GTHETA) THEN
                                     THETA_GDIFF( CV_NODI_IPHA ) =  THETA_GDIFF( CV_NODI_IPHA ) &
-                                         + FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX  &
+                                         + FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX &
                                          * SUF_T_BC(CV_SILOC+(SELE-1)*CV_SNLOC+(IPHASE-1)*STOTEL*CV_SNLOC)
                                  ENDIF
                               ENDIF
@@ -3076,7 +3078,7 @@
          IF( COURAT > 0.0 ) THEN
             !TILDEUF = MIN( 1.0, max( UC / COURAT, XI * UC ))
             ! halve the slope for now...
-            TILDEUF = MIN( 1.0, max( UC / (1.0 * COURAT), XI * UC ))
+            TILDEUF = MIN( 1.0, max( UC / (2.0 * COURAT), XI * UC ))
          ELSE !For the normal limiting
             MAXUF = MAX( 0.0, UF )
             TILDEUF = MIN( 1.0, XI * UC, MAXUF )

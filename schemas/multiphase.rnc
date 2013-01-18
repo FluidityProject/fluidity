@@ -1974,6 +1974,9 @@ scalar_field_choice =
          ##
          ## attribute material_phase_name associates this
          ## mass fraction with a particular phase
+         ##
+         ## Do not forget to set boundary conditions for the PhaseVolumeFraction
+         ## even if the problem is one-phase
          element scalar_field {
             attribute rank { "0" },
             attribute name { "ComponentMassFractionPhase1" },
@@ -2002,6 +2005,9 @@ scalar_field_choice =
          ##
          ## attribute material_phase_name associates this
          ## mass fraction with a particular phase
+         ##
+         ## Do not forget to set boundary conditions for the PhaseVolumeFraction
+         ## even if the problem is one-phase
          element scalar_field {
             attribute rank { "0" },
             attribute name { "ComponentMassFractionPhase2" },
@@ -2030,6 +2036,9 @@ scalar_field_choice =
          ##
          ## attribute material_phase_name associates this
          ## mass fraction with a particular phase
+         ##
+         ## Do not forget to set boundary conditions for the PhaseVolumeFraction
+         ## even if the problem is one-phase
          element scalar_field {
             attribute rank { "0" },
             attribute name { "ComponentMassFractionPhase3" },
