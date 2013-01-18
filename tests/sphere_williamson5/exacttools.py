@@ -1,19 +1,17 @@
 import numpy
 
-def setexact(coords_filename,solution_filename,dim=3,tol=1.0e-8):
+def setexact(coords_filename,solution_filename,dim=3,tol=1.0e-5):
     #return down
     from numpy import fromfile, reshape, where
-    Coords = fromfile(coords_filename)
+    Coords = fromfile(coords_filename,sep=' ')
     Coords = reshape(Coords,(Coords.size/dim,dim))
-    Vals = fromfile(solution_filename)
-    print Coords.shape, Vals.size
+    Vals = fromfile(solution_filename,sep=' ')
     def val(X,t):
-        print X
         #Search amongst Coords for X
         B = ((Coords[:,0]-X[0])**2+
              (Coords[:,1]-X[1])**2+
              (Coords[:,2]-X[2])**2)**0.5
-        vals = where(B<tol,Vals)
+        vals = Vals[where(B<tol)]
         assert(vals.size==1)
         return vals[0]
     return val
@@ -32,10 +30,11 @@ def makecoordsfile(filename):
         assert(row.shape==(dim+1,))
         X[node,:] = row[1:dim+1]
     X.tofile(filename+'.dat',sep=' ')
+    return X
 
 def makedat(filename,dim=3):
     a = numpy.fromfile(filename+'.node',sep=' ')
     n = a.size
     a = numpy.reshape(a,(n/dim,dim))
-    a.tofile(filename+'.dat',sep=' ')
+    a[:,2].tofile(filename+'.dat',sep=' ')
     

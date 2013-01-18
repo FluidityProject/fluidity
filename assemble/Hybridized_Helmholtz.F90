@@ -212,6 +212,16 @@ contains
     end if
     ewrite(2,*) 'cjc U_res recalc', sum(newU%val), maxval(abs(U_res%val))
     ewrite(2,*) 'cjc D_res recalc', sum(newD%val), maxval(abs(D_res%val))
+
+    ! ( M    C  -L)(u)   (v)
+    ! ( -C^T N  0 )(h) = (j)
+    ! ( L^T  0  0 )(l)   (0)
+    ! 
+    ! (u)   (M    C)^{-1}(v)   (M    C)^{-1}(L)
+    ! (h) = (-C^T N)     (j) + (-C^T N)     (0)(l)
+    ! so
+    !        (M    C)^{-1}(L)         (M    C)^{-1}(v)
+    ! (L^T 0)(-C^T N)     (0)=-(L^T 0)(-C^T N)     (j)
        
     call mult(U_res2,Newton_continuity_mat,lambda)
     call addto(U_res,U_res2)
