@@ -1,4 +1,4 @@
-from numpy import cos, exp, matrix, pi, sqrt
+from numpy import sin, cos, exp, matrix, pi, sqrt
 
 def advection_diffusion(x, t):
     dx= (matrix(x)-matrix((0.45 + t,0.5)))
@@ -14,6 +14,13 @@ def helmholtz(X,t):
 def helmholtz_initial(X,t):
     n = 8
     lmbda = 1
-    coeff = -(lmbda+2*(n**2)*pi**2)
-    sins = cos(X[0]*pi*n)*cos(X[1]*pi*n)
-    return coeff*sins
+    return -(lmbda+2*(n**2)*pi**2) * cos(X[0]*pi*n)*cos(X[1]*pi*n)
+
+def helmholtz_sin(X,t):
+    n = 8
+    return -sin(X[0]*pi*n)*sin(X[1]*pi*n)
+
+def helmholtz_initial_sin(X,t):
+    n = 8
+    lmbda = 1
+    return -(lmbda+2*(n**2)*pi**2) * sin(X[0]*pi*n)*sin(X[1]*pi*n)
