@@ -402,7 +402,8 @@
 
 !print *, Component_BC_Spatial
 !print *, '@@@@@'
-!print *, Component_BC
+!print *, '1@@@@', Component_BC(1:stotel*cv_snloc)
+!print *, '2@@@@', Component_BC(1+stotel*cv_snloc:stotel*cv_snloc*ncomp)
 !stop 777
 
 !!$ Dummy field used in the scalar advection option:
@@ -985,8 +986,8 @@ ScalarField_Source_Store=0.
                           ug, vg, wg, &
                           Component( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods ), &
                           Component_Old( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods ), &
-                          DENSITY_COMPONENT(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS ), &
-                          DENSITY_COMPONENT_OLD(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS ), &
+                          DENSITY_COMPONENT( ( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS ), &
+                          DENSITY_COMPONENT_OLD( ( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS ), &
 !!$
                           MAT_NLOC, MAT_NDGLN, MAT_NONODS, Component_Diffusion, &
                           v_disopt, v_dg_vel_int_opt, dt, v_theta, v_beta, &
