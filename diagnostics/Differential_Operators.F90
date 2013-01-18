@@ -377,6 +377,12 @@ contains
     if(source_field%dim /= 2) then
       FLExit("Can only calculate 2D curl in 2D")
     end if
+
+    if(continuity(s_field)==-1 .and. continuity(source_field)==-1) then
+      ewrite(-1,*) "If you want to compute the 2d curl of a DG vector field, "// &
+        "the diagnostic field itself should be on a continuous mesh."
+      FLExit("Cannot compute 2D curl of DG field onto a DG mesh")
+    end if
     
     positions => extract_vector_field(state, "Coordinate")    
     path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
