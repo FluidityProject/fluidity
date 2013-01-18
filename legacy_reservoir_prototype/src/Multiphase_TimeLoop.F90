@@ -315,7 +315,7 @@
            ScalarField_Absorption( cv_nonods, nphase, nphase ), Component_Absorption( cv_nonods, nphase, nphase ), &
            Temperature_Absorption( cv_nonods, nphase, nphase ), &
            Momentum_Diffusion( mat_nonods, ndim, ndim, nphase ), &
-           ScalarAdvectionField_Diffusion( mat_nonods, ndim, ndim, nphase ), & 
+           ScalarAdvectionField_Diffusion( mat_nonods, ndim, ndim, nphase ), &
            Component_Diffusion( mat_nonods, ndim, ndim, nphase ), &
 !!$ Variables used in the diffusion-like term: capilarity and surface tension:
            plike_grad_sou_grad( cv_nonods * nphase ), &
@@ -561,68 +561,62 @@
                        * CV_NONODS ) / RSUM
                END DO
             END DO
+         END IF
 
 
+         if ( .false. .and. itime==1 ) then
+            allocate( DEN_CV_NOD( CV_NLOC, NPHASE) ) 
+            if ( cv_nloc==6 .or. cv_nloc==10 ) then ! P2 triangle or tet
 
-if ( .false. .and. itime==1 ) then
-               allocate( DEN_CV_NOD( CV_NLOC, NPHASE) ) 
-               if ( cv_nloc==6 .or. cv_nloc==10 ) then ! P2 triangle or tet
+               density_tmp = component
 
-                  density_tmp = component
-
-                  DO ELE = 1, TOTELE
-                     DO CV_ILOC = 1, CV_NLOC
-                        CV_NOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
-                        DO IPHASE = 1,NPHASE
-                           CV_NOD_PHA = CV_NOD +( IPHASE - 1) * CV_NONODS
-                           DEN_CV_NOD( CV_ILOC, IPHASE ) = density_tmp( CV_NOD_PHA )
-                        END DO
-                     END DO
-
-                     DEN_CV_NOD(2, :) = 0.5 * ( DEN_CV_NOD(1, :) + DEN_CV_NOD(3, :) )
-                     DEN_CV_NOD(4, :) = 0.5 * ( DEN_CV_NOD(1, :) + DEN_CV_NOD(6, :) )
-                     DEN_CV_NOD(5, :) = 0.5 * ( DEN_CV_NOD(3, :) + DEN_CV_NOD(6, :) )
-
-                     if ( cv_nloc==10 ) then
-                        DEN_CV_NOD(7, :) = 0.5 * ( DEN_CV_NOD(1, :) + DEN_CV_NOD(10, :) )
-                        DEN_CV_NOD(8, :) = 0.5 * ( DEN_CV_NOD(3, :) + DEN_CV_NOD(10, :) )
-                        DEN_CV_NOD(9, :) = 0.5 * ( DEN_CV_NOD(6, :) + DEN_CV_NOD(10, :) )
-                     end if
-
-                     DO CV_ILOC = 1, CV_NLOC
-                        CV_NOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
-                        DO IPHASE = 1, NPHASE
-                           CV_NOD_PHA = CV_NOD +( IPHASE - 1) * CV_NONODS
-                           component( CV_NOD_PHA ) = DEN_CV_NOD( CV_ILOC, IPHASE )
-                        END DO
+               DO ELE = 1, TOTELE
+                  DO CV_ILOC = 1, CV_NLOC
+                     CV_NOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
+                     DO IPHASE = 1,NPHASE
+                        CV_NOD_PHA = CV_NOD +( IPHASE - 1) * CV_NONODS
+                        DEN_CV_NOD( CV_ILOC, IPHASE ) = density_tmp( CV_NOD_PHA )
                      END DO
                   END DO
+
+                  DEN_CV_NOD(2, :) = 0.5 * ( DEN_CV_NOD(1, :) + DEN_CV_NOD(3, :) )
+                  DEN_CV_NOD(4, :) = 0.5 * ( DEN_CV_NOD(1, :) + DEN_CV_NOD(6, :) )
+                  DEN_CV_NOD(5, :) = 0.5 * ( DEN_CV_NOD(3, :) + DEN_CV_NOD(6, :) )
+
+                  if ( cv_nloc==10 ) then
+                     DEN_CV_NOD(7, :) = 0.5 * ( DEN_CV_NOD(1, :) + DEN_CV_NOD(10, :) )
+                     DEN_CV_NOD(8, :) = 0.5 * ( DEN_CV_NOD(3, :) + DEN_CV_NOD(10, :) )
+                     DEN_CV_NOD(9, :) = 0.5 * ( DEN_CV_NOD(6, :) + DEN_CV_NOD(10, :) )
+                  end if
+
+                  DO CV_ILOC = 1, CV_NLOC
+                     CV_NOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
+                     DO IPHASE = 1, NPHASE
+                        CV_NOD_PHA = CV_NOD +( IPHASE - 1) * CV_NONODS
+                        component( CV_NOD_PHA ) = DEN_CV_NOD( CV_ILOC, IPHASE )
+                     END DO
+                  END DO
+               END DO
           
-               end if
-               deallocate( DEN_CV_NOD ) 
+            end if
+            deallocate( DEN_CV_NOD ) 
 
-               component_old = component
+            component_old = component
 
-               do icomp = 1, ncomp
-                  do iphase = 1, nphase
-                     Component_State => extract_scalar_field( state( icomp + nphase ), & 
-                          'ComponentMassFractionPhase' // int2str( iphase ) )
-                     Component_State % val = component( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
-                          nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
+            do icomp = 1, ncomp
+               do iphase = 1, nphase
+                  Component_State => extract_scalar_field( state( icomp + nphase ), & 
+                       'ComponentMassFractionPhase' // int2str( iphase ) )
+                  Component_State % val = component( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
+                       nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
 
-
-                     Component_State => extract_scalar_field( state( icomp + nphase ), & 
-                          'ComponentMassFractionPhase' // int2str( iphase ) // 'Old' )
-                     Component_State % val = component_old( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
-                          nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
-
-                  end do
+                  Component_State => extract_scalar_field( state( icomp + nphase ), & 
+                       'ComponentMassFractionPhase' // int2str( iphase ) // 'Old' )
+                  Component_State % val = component_old( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
+                       nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
                end do
-            END IF
-
-end if
-
-
+            end do
+         end if
 
 
          Loop_NonLinearIteration: do its = 1, NonLinearIteration
@@ -842,7 +836,7 @@ ScalarField_Source_Store=0.
                     igot_theta_flux, scvngi_theta, volfra_use_theta_flux, &
                     sum_theta_flux, sum_one_m_theta_flux, &
                     in_ele_upwind, dg_ele_upwind, &
-!!$                    
+!!$
                     NOIT_DIM, & ! This need to be removed as it is already deprecated
 !!$
                     iplike_grad_sou, plike_grad_sou_coef, plike_grad_sou_grad, &
@@ -1133,6 +1127,63 @@ ScalarField_Source_Store=0.
 !!$               Conditional_Adapt_by_TimeStep: if( do_adapt_mesh( current_time, itime ) ) then
 !!$               Conditional_Adapt_by_TimeStep: if( do_adapt_mesh( current_time, timestep ) ) then
 
+                  ! linearise compositional fields...
+                  if ( .true. ) then
+                     allocate( DEN_CV_NOD( CV_NLOC, NPHASE) ) 
+                     if ( cv_nloc==6 .or. cv_nloc==10 ) then ! P2 triangle or tet
+
+                        density_tmp = component
+
+                        DO ELE = 1, TOTELE
+                           DO CV_ILOC = 1, CV_NLOC
+                              CV_NOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
+                              DO IPHASE = 1,NPHASE
+                                 CV_NOD_PHA = CV_NOD +( IPHASE - 1) * CV_NONODS
+                                 DEN_CV_NOD( CV_ILOC, IPHASE ) = density_tmp( CV_NOD_PHA )
+                              END DO
+                           END DO
+
+                           DEN_CV_NOD(2, :) = 0.5 * ( DEN_CV_NOD(1, :) + DEN_CV_NOD(3, :) )
+                           DEN_CV_NOD(4, :) = 0.5 * ( DEN_CV_NOD(1, :) + DEN_CV_NOD(6, :) )
+                           DEN_CV_NOD(5, :) = 0.5 * ( DEN_CV_NOD(3, :) + DEN_CV_NOD(6, :) )
+
+                           if ( cv_nloc==10 ) then
+                              DEN_CV_NOD(7, :) = 0.5 * ( DEN_CV_NOD(1, :) + DEN_CV_NOD(10, :) )
+                              DEN_CV_NOD(8, :) = 0.5 * ( DEN_CV_NOD(3, :) + DEN_CV_NOD(10, :) )
+                              DEN_CV_NOD(9, :) = 0.5 * ( DEN_CV_NOD(6, :) + DEN_CV_NOD(10, :) )
+                           end if
+
+                           DO CV_ILOC = 1, CV_NLOC
+                              CV_NOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
+                              DO IPHASE = 1, NPHASE
+                                 CV_NOD_PHA = CV_NOD +( IPHASE - 1) * CV_NONODS
+                                 component( CV_NOD_PHA ) = DEN_CV_NOD( CV_ILOC, IPHASE )
+                              END DO
+                           END DO
+                        END DO
+          
+                     end if
+                     deallocate( DEN_CV_NOD ) 
+
+                     !component_old = component
+
+                     do icomp = 1, ncomp
+                        do iphase = 1, nphase
+                           Component_State => extract_scalar_field( state( icomp + nphase ), & 
+                                'ComponentMassFractionPhase' // int2str( iphase ) )
+                           Component_State % val = component( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
+                          nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
+
+
+                           !Component_State => extract_scalar_field( state( icomp + nphase ), & 
+                           !     'ComponentMassFractionPhase' // int2str( iphase ) // 'Old' )
+                           !Component_State % val = component_old( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
+                           !     nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
+                        end do
+                     end do
+                  end if
+
+
                   call pre_adapt_tasks( sub_state )
 
                   call qmesh( state, metric_tensor )
@@ -1227,7 +1278,7 @@ ScalarField_Source_Store=0.
                  Component_Diffusion_Operator_Coefficient, &
                  Momentum_Diffusion, ScalarAdvectionField_Diffusion, &
                  Component_Diffusion, &
-                 theta_flux, one_m_theta_flux, sum_theta_flux, sum_one_m_theta_flux )
+                 theta_flux, one_m_theta_flux, sum_theta_flux, sum_one_m_theta_flux, density_tmp, density_old_tmp )
 
 !!$  Compute primary scalars used in most of the code
             call Get_Primary_Scalars( state, &         
@@ -1336,7 +1387,7 @@ ScalarField_Source_Store=0.
                  Porosity( totele ), &
                  PhaseVolumeFraction_FEMT( cv_nonods * nphase ), Temperature_FEMT( cv_nonods * nphase ), &
                  Density_FEMT( cv_nonods * nphase ), Component_FEMT( cv_nonods * nphase * ncomp ), &
-                 Mean_Pore_CV( cv_nonods ),  SumConc_FEMT( cv_nonods * ncomp ), &
+                 Mean_Pore_CV( cv_nonods ), SumConc_FEMT( cv_nonods * ncomp ), &
                  Dummy_PhaseVolumeFraction_FEMT( cv_nonods * nphase ), dummy_ele( totele ), mass_ele( totele ), &
 !!$
                  PhaseVolumeFraction_Source( cv_nonods * nphase ), Velocity_U_Source( u_nonods * nphase * ndim ), &
@@ -1414,6 +1465,9 @@ ScalarField_Source_Store=0.
 
 !!$ Dummy field used in the scalar advection option:
             Dummy_PhaseVolumeFraction_FEMT = 1.
+
+ allocate( density_tmp(cv_nonods) , density_old_tmp(cv_nonods) )
+ density_tmp=0. ; density_old_tmp=0.
 
 !!$
 !!$ Initialising Robin boundary conditions --  this still need to be defined in the schema:
@@ -1510,7 +1564,7 @@ ScalarField_Source_Store=0.
            Component_Diffusion_Operator_Coefficient, &
            Momentum_Diffusion, ScalarAdvectionField_Diffusion, &
            Component_Diffusion, &
-           theta_flux, one_m_theta_flux, sum_theta_flux, sum_one_m_theta_flux )
+           theta_flux, one_m_theta_flux, sum_theta_flux, sum_one_m_theta_flux, density_tmp, density_old_tmp )
 
       return
     end subroutine MultiFluids_SolveTimeLoop
