@@ -13,9 +13,9 @@ def readstat_3d(filename="random_walk_agents.detectors", prefix='Steve_', do_pad
                 padding = '0'
                 if(n<10):
                     padding ='00'
-        last_locations_error[0,i] = s[prefix+padding+str(n)]['position'][0][-1]
-        last_locations_error[1,i] = s[prefix+padding+str(n)]['position'][1][-1]
-        last_locations_error[2,i] = s[prefix+padding+str(n)]['position'][2][-1]
+        last_locations_error[0,i] = s[prefix+padding+str(n)]['position'][-1][0]
+        last_locations_error[1,i] = s[prefix+padding+str(n)]['position'][-1][1]
+        last_locations_error[2,i] = s[prefix+padding+str(n)]['position'][-1][2]
     X = fromfile('Xvals.txt',sep=' ')
     Y = fromfile('Yvals.txt',sep=' ')
     Z = 0.5*ones(shape(X))

@@ -523,8 +523,13 @@ for example:
               current_dict[statistic].append( row[field_column_map[field]] )
 
         for field in field_column_map.keys():
-          for d in self[field].keys():
-            self[field][d] = numpy.array( self[field][d] )
+          if field in self.keys():
+            for d in self[field].keys():
+              self[field][d] = numpy.array( self[field][d] )
+          else:
+            mphase = field_mphase_map[field]
+            for d in self[mphase][field].keys():
+              self[mphase][field][d] = numpy.array( self[mphase][field][d] )
 
 def test_steady(vals, error, test_count = 1):
   """
