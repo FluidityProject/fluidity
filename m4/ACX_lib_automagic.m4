@@ -13,26 +13,17 @@ $2();
                    ]])],
   [
     AC_MSG_RESULT([yes])
-    found="yes"
+    $3
   ],
   [
     AC_MSG_RESULT([no])
-    if test "x$found" = "xno" ; then
-      AC_CHECK_LIB(
-        [$1],
-        [$2],
-        [found="yes"],
-        [found="no"])
-    fi
+    AC_CHECK_LIB(
+      [$1],
+      [$2],
+      [$3
+       LIBS="-l$1 $LIBS"],
+      [$4])
   ])
-
-if test "x$found" = "xyes" ; then
-  true
-  $3
-elif test "x$found" = "xno" ; then
-  true
-  $4
-fi
 
 AC_LANG_POP([C])
 
