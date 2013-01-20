@@ -441,13 +441,11 @@ contains
 
   end subroutine pack_detector
 
-  subroutine unpack_detector(detector, buffer, ind, dim, global_to_local, coordinates, list, tracking)
+  subroutine unpack_detector(detector, buffer, ind, dim, list, tracking)
     ! Unpacks the detector from buffer and fills in the blanks
     type(detector_type), pointer, intent(inout) :: detector
     real, dimension(:), intent(inout) :: buffer
     integer, intent(inout) :: ind, dim
-    type(integer_hash_table), intent(in), optional :: global_to_local
-    type(vector_field), intent(in), optional :: coordinates
     type(detector_linked_list), intent(in), optional :: list
     logical, intent(in), optional :: tracking
 
@@ -463,20 +461,6 @@ contains
     detector%id_number = nint( buffer(ind+1) )
     detector%type      = nint( buffer(ind+2) )
     ind = ind + 3
-
-    ! Reconstruct element number if global-to-local mapping is given
-    if (present(global_to_local)) then
-       assert(has_key(global_to_local, detector%element))
-       detector%element=fetch(global_to_local,detector%element)
-
-       ! Update local coordinates if coordinate field is given
-       if (present(coordinates)) then
-          if (.not. allocated(detector%local_coords)) then
-             allocate(detector%local_coords(local_coord_count(ele_shape(coordinates,1))))
-          end if
-          detector%local_coords=local_coords(coordinates,detector%element,detector%position)
-       end if
-    end if
 
     ! Lagrangian advection fields: (nstages+1)*dim
     if (present(list)) then
@@ -515,10 +499,6 @@ contains
              if (.not.allocated(detector%ray_o)) allocate(detector%ray_o(dim))
              detector%ray_o = buffer(ind:ind+dim-1)
              ind = ind + dim
-
-             if (present(coordinates)) then  
-                detector%local_coords=local_coords(coordinates,detector%element,detector%ray_o)
-             end if
           end if
        end if
 

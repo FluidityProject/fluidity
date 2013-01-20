@@ -1260,8 +1260,16 @@ contains
                    
              ! unpack detector information 
              ind = 1
-             call unpack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1), ind, zoltan_global_ndims, &
-                    global_to_local=zoltan_global_uen_to_new_local_numbering, coordinates=zoltan_global_new_positions)
+             call unpack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1), ind, zoltan_global_ndims)
+
+             ! Revert uen back to local element number
+             assert( has_key(zoltan_global_uen_to_new_local_numbering, detector%element) )
+             detector%element = fetch(zoltan_global_uen_to_new_local_numbering, detector%element)
+
+             ! Establish local coordinates
+             if (.not. allocated(detector%local_coords)) allocate( detector%local_coords(zoltan_global_new_positions%dim+1) )
+             detector%local_coords = local_coords(zoltan_global_new_positions, detector%element, detector%position)
+
 
              ! Make sure the unpacked detector is in this element
              assert(new_local_element_number==detector%element)

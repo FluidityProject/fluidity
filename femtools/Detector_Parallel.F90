@@ -790,23 +790,18 @@ contains
     type(detector_linked_list), dimension(:), intent(inout) :: send_lists
     logical, intent(in) :: tracking  ! Do we need to send tracking information?
 
-    type(detector_buffer), dimension(:), allocatable :: send_buffer, recv_buffer
-    type(detector_type), pointer :: detector, detector_received
+    type(detector_linked_list), dimension(:), allocatable :: recv_lists
+    type(detector_type), pointer :: detector, detector_to_move
     type(halo_type), pointer :: ele_halo
     type(integer_hash_table) :: ele_numbering_inverse
-    integer, dimension(:), allocatable :: det_size_list
-    integer :: d, dim, ind, count, p, det_size, halo_level, nprocs, ierror, ndet_recv
-    integer, parameter ::TAG=12
-    integer, dimension(:), allocatable :: send_request, status
+    integer :: p, dim, nprocs, halo_level
 
     ewrite(2,*) "In exchange_detectors"
 
-    ! We want a sendlist for every processor
     nprocs=getnprocs()
     assert(size(send_lists)==nprocs)
-
-    dim=xfield%dim
-    allocate( send_request(nprocs) )
+    allocate(recv_lists(nprocs))
+    dim = xfield%dim
 
     ! Get the element halo
     halo_level = element_halo_count(xfield%mesh)
@@ -816,9 +811,81 @@ contains
        ewrite(-1,*) "In exchange_detectors: No element halo found to translate detector%element"
        FLAbort("Exchanging detectors requires halo_level > 0")
     end if
+    call get_universal_numbering_inverse(ele_halo, ele_numbering_inverse)
 
-    ! Get buffer size, depending on whether RK-GS parameters are still allocated
-    det_size=detector_buffer_size(dim, list=detector_list, tracking=tracking)
+    ! Prepare detectors for sending
+    do p=1, nprocs
+       if (send_lists(p)%length > 0) then
+          ewrite(2,*) " Sending", send_lists(p)%length, "detectors to process", p
+       end if
+
+       ! Translate detector elements to universal element numbers (uen)
+       detector => send_lists(p)%first
+       do while(associated(detector))
+          assert( detector%element > 0 )
+          detector%element = halo_universal_number(ele_halo, detector%element)
+          detector => detector%next
+       end do
+    end do
+
+    ! Exchange detectors via MPI
+    call detectors_send_all_to_all(detector_list, send_lists, recv_lists, dim, tracking=tracking)
+
+    ! Finalise detector transfer
+    do p=1, nprocs
+       if (recv_lists(p)%length > 0) then
+          ewrite(2,*) "Received "//int2str(recv_lists(p)%length)//" detectors from process "//int2str(p)
+       end if
+
+       detector => recv_lists(p)%first
+       do while(associated(detector))
+
+          ! Revert uen back to local element number
+          assert( has_key(ele_numbering_inverse, detector%element) )
+          detector%element = fetch(ele_numbering_inverse, detector%element)
+
+          ! Establish local coordinates
+          if (.not. allocated(detector%local_coords)) allocate( detector%local_coords(dim+1) )
+          detector%local_coords = local_coords(xfield, detector%element, detector%position)
+
+          ! If there is a list of detector names, use it, otherwise set ID as name
+          if (allocated(detector_list%detector_names)) then
+             detector%name=detector_list%detector_names(detector%id_number)
+          else
+             detector%name=int2str(detector%id_number)
+          end if
+
+          ! Move received detector back into parent list
+          detector_to_move => detector
+          detector => detector%next
+          call move(detector_to_move, recv_lists(p), detector_list)
+       end do
+       assert( recv_lists(p)%length == 0 )
+    end do
+
+    call deallocate(ele_numbering_inverse)
+    deallocate(recv_lists)
+
+    ewrite(2,*) "Exiting exchange_detectors"
+  end subroutine exchange_detectors
+
+  subroutine detectors_send_all_to_all(parent_list, send_lists, recv_lists, dim, tracking)
+    type(detector_linked_list), pointer, intent(inout) :: parent_list
+    type(detector_linked_list), dimension(:), intent(inout) :: send_lists, recv_lists
+    integer, intent(inout) :: dim
+    logical, intent(in) :: tracking  ! Do we need to send tracking information?
+
+    type(detector_buffer), dimension(:), allocatable :: send_buffer, recv_buffer
+    type(detector_type), pointer :: detector
+    integer, dimension(:), allocatable :: det_size_list
+    integer :: d, ind, count, p, halo_level, nprocs, ierror
+    integer, parameter ::TAG=12
+    integer, dimension(:), allocatable :: send_request, status
+
+    ! We want a sendlist for every processor
+    nprocs=getnprocs()
+    assert(size(send_lists)==nprocs)
+    allocate( send_request(nprocs) )
 
     ! Send to all procs
     allocate(send_buffer(nprocs))
@@ -828,25 +895,16 @@ contains
        allocate( det_size_list(send_lists(p)%length) )
        detector => send_lists(p)%first
        do d=1, send_lists(p)%length
-          det_size_list(d) = detector_buffer_size(dim, detector, detector_list, tracking=tracking)
+          det_size_list(d) = detector_buffer_size(dim, detector, parent_list, tracking=tracking)
           detector => detector%next
        end do
-
-       if (send_lists(p)%length > 0) then
-          ewrite(2,*) " Sending", send_lists(p)%length, "detectors to process", p
-       end if
 
        allocate( send_buffer(p)%ptr( sum(det_size_list) ) )
        detector => send_lists(p)%first
        ind = 1
        do d=1, send_lists(p)%length
 
-          ! translate detector element to universal element
-          assert( detector%element > 0 )
-          detector%element = halo_universal_number(ele_halo, detector%element)
-
-          call pack_detector(detector, send_buffer(p)%ptr, ind, dim, &
-               list=detector_list, tracking=tracking)
+          call pack_detector(detector, send_buffer(p)%ptr, ind, dim, list=parent_list, tracking=tracking)
 
           ! delete also advances detector
           call delete(detector, send_lists(p))
@@ -860,7 +918,6 @@ contains
     end do
 
     allocate( status(MPI_STATUS_SIZE) )
-    call get_universal_numbering_inverse(ele_halo, ele_numbering_inverse)
 
     ! Receive from all procs
     allocate(recv_buffer(nprocs))
@@ -876,7 +933,6 @@ contains
             TAG, MPI_COMM_FEMTOOLS, MPI_STATUS_IGNORE, ierror)
        assert(ierror == MPI_SUCCESS)
 
-       ndet_recv = 0
        ind = 1
        do while (ind < count)
 
@@ -885,22 +941,10 @@ contains
           nullify(detector)
           allocate(detector)
           call unpack_detector(detector,recv_buffer(p)%ptr, ind, dim,&
-                    global_to_local=ele_numbering_inverse,coordinates=xfield,list=detector_list, tracking=tracking)
+                    list=parent_list, tracking=tracking)
 
-          ! If there is a list of detector names, use it, otherwise set ID as name
-          if (allocated(detector_list%detector_names)) then
-             detector%name=detector_list%detector_names(detector%id_number)
-          else
-             detector%name=int2str(detector%id_number)
-          end if
-
-          call insert(detector, detector_list)
-          ndet_recv = ndet_recv + 1
+          call insert(detector, recv_lists(p))
        end do
-
-       if (ndet_recv > 0) then
-          ewrite(2,*) "Received "//int2str(ndet_recv)//" detectors from process "//int2str(p)
-       end if
     end do
 
     call MPI_WAITALL(nprocs, send_request, MPI_STATUSES_IGNORE, IERROR)
@@ -914,11 +958,7 @@ contains
     deallocate(send_buffer)
     deallocate(recv_buffer)
 
-    call deallocate(ele_numbering_inverse)
-
-    ewrite(2,*) "Exiting exchange_detectors"
-
-  end subroutine exchange_detectors
+  end subroutine detectors_send_all_to_all
 
   subroutine sync_detector_coordinates(state)
     ! Re-synchronise the physical and parametric coordinates 
