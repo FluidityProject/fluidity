@@ -14,6 +14,7 @@ to get a darcy equation the time, stress and advection terms are not included in
 
 the absorption term is included in the pressure correction (being a necessity as it is the only term in the matrix equation)</comment>
   </simulation_name>
+  <pyop2_backend>sequential</pyop2_backend>
   <problem_type>
     <string_value lines="1">fluids</string_value>
   </problem_type>

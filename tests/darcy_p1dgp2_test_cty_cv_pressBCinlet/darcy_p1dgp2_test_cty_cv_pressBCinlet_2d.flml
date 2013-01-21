@@ -24,6 +24,7 @@ the absorption term is included in the pressure correction (being a necessity as
 
 the geometry is 2d (although this is a 1d problem) and one time step is done (as nothing depends on time)</comment>
   </simulation_name>
+  <pyop2_backend>sequential</pyop2_backend>
   <problem_type>
     <string_value lines="1">fluids</string_value>
   </problem_type>

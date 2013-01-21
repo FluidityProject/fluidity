@@ -4,6 +4,7 @@
     <string_value lines="1">2material_column_under_gravity</string_value>
     <comment>replaces mmat-gravity-col test case</comment>
   </simulation_name>
+  <pyop2_backend>sequential</pyop2_backend>
   <problem_type>
     <string_value lines="1">fluids</string_value>
   </problem_type>

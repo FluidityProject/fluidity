@@ -3,6 +3,7 @@
   <simulation_name>
     <string_value lines="1">MonaiValley_C_p1p1_nu0.01_kmkstab_drag0.002_butcircularoundisland0.2</string_value>
   </simulation_name>
+  <pyop2_backend>sequential</pyop2_backend>
   <problem_type>
     <string_value lines="1">oceans</string_value>
   </problem_type>

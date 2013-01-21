@@ -3,6 +3,7 @@
   <simulation_name>
     <string_value lines="1">lagrangian_detectors</string_value>
   </simulation_name>
+  <pyop2_backend>sequential</pyop2_backend>
   <problem_type>
     <string_value lines="1">fluids</string_value>
   </problem_type>

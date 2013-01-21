@@ -4,6 +4,7 @@
     <string_value lines="1">gls-StationPapa-setup</string_value>
     <comment>Set up to provide a checkpoint after 5 days to use as input for other tests</comment>
   </simulation_name>
+  <pyop2_backend>sequential</pyop2_backend>
   <problem_type>
     <string_value lines="1">oceans</string_value>
   </problem_type>

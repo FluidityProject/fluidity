@@ -3,6 +3,7 @@
   <simulation_name>
     <string_value lines="1">Kato_Phillips-mld-gen-CB</string_value>
   </simulation_name>
+  <pyop2_backend>sequential</pyop2_backend>
   <problem_type>
     <string_value lines="1">oceans</string_value>
   </problem_type>

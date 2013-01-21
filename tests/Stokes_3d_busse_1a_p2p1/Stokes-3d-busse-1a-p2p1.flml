@@ -4,6 +4,7 @@
     <string_value lines="1">Busse_3D_C1</string_value>
     <comment>Benchmark Case 1a from Busse 1994</comment>
   </simulation_name>
+  <pyop2_backend>sequential</pyop2_backend>
   <problem_type>
     <string_value lines="1">stokes</string_value>
   </problem_type>
