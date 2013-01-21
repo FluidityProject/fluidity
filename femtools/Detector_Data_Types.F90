@@ -87,7 +87,7 @@ module detector_data_types
      integer :: type = STATIC_DETECTOR
      !! Identification number indicating the order in which the detectors are read
      integer :: id_number
-     !! ID of the parent list, needed for Zoltan to map the detector back
+     !! ID of the parent list, required for agent stage changes
      integer :: list_id
 
      !! RK timestepping stages (first index is stage no., second index is dim)
