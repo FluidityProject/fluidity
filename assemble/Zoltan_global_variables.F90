@@ -20,7 +20,6 @@ module zoltan_global_variables
 
   ! Needed for zoltan_cb_pack_field_size
   use state_module, only: state_type
-  use detector_data_types, only: detector_linked_list
 
   use global_parameters, only: OPTION_PATH_LEN
 
@@ -72,7 +71,7 @@ module zoltan_global_variables
 
 
   ! Needed for zoltan_cb_unpack_nodes
-  type(vector_field), save :: zoltan_global_new_positions
+  type(vector_field), target, save :: zoltan_global_new_positions
   integer, save :: zoltan_global_new_positions_mesh_nhalos
   type(mesh_type), save :: zoltan_global_zz_mesh
   type(integer_hash_table), save :: zoltan_global_nodes_we_are_sending ! in old local numbers
@@ -96,18 +95,11 @@ module zoltan_global_variables
   type(integer_hash_table), save :: zoltan_global_uen_to_old_local_numbering
   type(integer_hash_table), save :: zoltan_global_old_local_numbering_to_uen
 
-
   ! Needed for zoltan_cb_pack_field_sizes
   type(state_type), save, dimension(:), allocatable :: zoltan_global_source_states, zoltan_global_target_states
-  integer, save, dimension(:), allocatable :: zoltan_global_ndets_in_ele  
-  integer, save :: zoltan_global_ndata_per_det
-  type(detector_linked_list), dimension(:), allocatable, target, save :: zoltan_global_to_pack_detectors_list
 
   ! Needed for zoltan_cb_pack_fields
   integer, save :: zoltan_global_ndims
-
-  ! Needed for zoltan_cb_unpack_fields
-  type(detector_linked_list), target, save :: zoltan_global_unpacked_detectors_list
 
   ! Option path set based on whether being called from adaptivity or flredecomp
   character(len = OPTION_PATH_LEN), save :: zoltan_global_base_option_path

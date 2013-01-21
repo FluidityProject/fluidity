@@ -333,7 +333,7 @@ contains
 
     ! Make sure all local detectors are owned and distribute the ones that 
     ! stoppped moving in a halo element
-    call distribute_detectors(state(1), detector_list)
+    call distribute_detectors(detector_list, xfield)
 
     ! Deallocate update_vector and det%k after distribute_detectors 
     ! because the exchange routine serialises them if it finds the RK-GS option

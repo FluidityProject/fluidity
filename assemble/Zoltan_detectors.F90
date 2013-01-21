@@ -6,116 +6,155 @@ module zoltan_detectors
 #ifdef HAVE_ZOLTAN
 
   use zoltan, only: zoltan_int
-  use zoltan_global_variables, only: zoltan_global_uen_to_new_local_numbering, zoltan_global_old_local_numbering_to_uen, zoltan_global_new_positions
+  use zoltan_global_variables, only: zoltan_global_uen_to_new_local_numbering, &
+                                     zoltan_global_old_local_numbering_to_uen, &
+                                     zoltan_global_new_positions
   use data_structures, only: has_key, fetch
-
   use detector_data_types
   use detector_tools
   use detector_parallel
-
   use fields
 
   implicit none
 
-  public :: prepare_detectors_for_packing
+  public :: zoltan_detectors_migrate
+
   private
 
-  contains
+contains
 
-  subroutine prepare_detectors_for_packing(ndets_in_ele, to_pack_detector_lists, num_ids, global_ids)
-    ! Goes through all local detectors and moves the ones we want to send to the according
-    ! to_pack_detector_list for the element we found the detector in
-    integer, intent(out), dimension(:) :: ndets_in_ele
-    type(detector_linked_list), dimension(:), intent(inout), target :: to_pack_detector_lists
-    integer(zoltan_int), intent(in) :: num_ids 
-    integer(zoltan_int), intent(in), dimension(*) :: global_ids
-    
-    integer :: i, j, det_list, new_ele_owner, total_det_to_pack, detector_uen
-    integer :: new_local_element_number
-    
-    type(detector_list_ptr), dimension(:), pointer :: detector_list_array => null()
-    type(detector_type), pointer :: detector => null(), detector_to_move => null()
-    logical :: found_det_element
-    
-    ewrite(1,*) "In prepare_detectors_for_packing"    
-    
-    assert(num_ids == size(ndets_in_ele))
-    assert(num_ids == size(to_pack_detector_lists))
+  subroutine zoltan_detectors_migrate()
+    type(detector_list_ptr), dimension(:), pointer :: detector_lists
+    type(detector_linked_list), dimension(:), allocatable :: send_lists, recv_lists
+    type(vector_field), pointer :: xfield
+    integer :: l, nprocs, dim
 
-    ! loop through all registered detector lists
-    call get_registered_detector_lists(detector_list_array)
-    do det_list = 1, size(detector_list_array)
+    if (get_num_detector_lists() <= 0) return
 
-       ! search through all the local detectors in this list
-       detector => detector_list_array(det_list)%ptr%first
-       detector_loop: do while (associated(detector))
-          ! store the list ID with the detector, so we can map the detector back when receiving it
-          detector%list_id=det_list
+    nprocs = getnprocs()
+    allocate( send_lists(nprocs) )
+    allocate( recv_lists(nprocs) )
+    xfield => zoltan_global_new_positions
+    dim = xfield%dim
 
-          ! translate detector element to uen
-          if (.not. has_key(zoltan_global_old_local_numbering_to_uen, detector%element)) then
-             ewrite(-1,*) "No uen found in Zoltan for detector ", detector%id_number, " with local element number ", detector%element
-             FLAbort("No universal element number for detector found in Zoltan")
+    ! Migrate detectors from all lists
+    call get_registered_detector_lists(detector_lists)
+    do l=1, get_num_detector_lists()
+       
+       call zoltan_detectors_prepare_migration( detector_lists(l)%ptr, send_lists )
+
+       call detectors_send_all_to_all(detector_lists(l)%ptr, send_lists, recv_lists, dim, tracking=.false.)
+
+       call zoltan_detectors_finalise_migration( detector_lists(l)%ptr, recv_lists )
+
+       call distribute_detectors( detector_lists(l)%ptr, xfield )
+    end do
+    
+  end subroutine zoltan_detectors_migrate
+
+  subroutine zoltan_detectors_prepare_migration(detector_list, send_lists)
+    type(detector_linked_list), pointer, intent(inout) :: detector_list
+    type(detector_linked_list), dimension(:), intent(inout) :: send_lists
+
+    type(detector_type), pointer :: detector, detector_to_move
+    integer :: j, nprocs, local_ele, new_owner, detector_uen
+
+    ewrite(2,*) "Preparing detector migration for list: "//trim(detector_list%name)
+    ewrite(2,*) "Found "//int2str( detector_list%length )//" local and "//int2str( detector_list%total_num_det )//" global detectors"
+    nprocs = getnprocs()
+
+    detector => detector_list%first
+    do while(associated(detector))
+
+       ! Translate detector element to UEN
+       if (.not. has_key(zoltan_global_old_local_numbering_to_uen, detector%element)) then
+          ewrite(-1,*) "No uen found in Zoltan for detector ", detector%id_number, " with local element number ", detector%element
+          FLAbort("No universal element number for detector found before Zoltan migration")
+       end if
+       detector%element = fetch(zoltan_global_old_local_numbering_to_uen, detector%element)
+
+       if (has_key(zoltan_global_uen_to_new_local_numbering, detector%element)) then
+          local_ele = fetch(zoltan_global_uen_to_new_local_numbering, detector%element)
+          new_owner = element_owner(zoltan_global_new_positions%mesh, local_ele)
+
+          if (new_owner == getprocno()) then
+             ! Keep this detector
+             detector => detector%next
+          else
+             ! Move detector to send list
+             detector_to_move => detector
+             detector => detector%next
+             call move(detector_to_move, detector_list, send_lists(new_owner))
+             detector_to_move => null()
           end if
-          detector_uen = fetch(zoltan_global_old_local_numbering_to_uen, detector%element)
 
-          ! loop over all the elements we're interested in
-          found_det_element=.false.
-          element_loop: do j=1, num_ids
-
-             ! check whether detector is in this element
-             if (detector_uen == global_ids(j)) then
-                found_det_element=.true.
-
-                ! work out new owner
-                if (has_key(zoltan_global_uen_to_new_local_numbering, detector_uen)) then
-                   new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, detector_uen)
-                   new_ele_owner = element_owner(zoltan_global_new_positions%mesh, new_local_element_number)
-                else
-                   new_ele_owner = -1
-                end if
-
-                ! check whether old owner is new owner
-                if (new_ele_owner == getprocno()) then
-                   ndets_in_ele(j) = 0
-                   detector => detector%next
-                else
-                   ! If not, move detector to the pack_list for this element and
-                   ! increment the number of detectors in that element
-                   ndets_in_ele(j) = ndets_in_ele(j) + 1
-                
-                   detector_to_move => detector
-                   detector => detector%next
-
-                   ! Update detector%element to be universal element number
-                   ! so we can unpack to new element number
-                   detector_to_move%element = detector_uen
-               
-                   ! Move detector to list of detectors we need to pack
-                   call move(detector_to_move, detector_list_array(det_list)%ptr, to_pack_detector_lists(j))
-                   detector_to_move => null()
-                end if
-
-                ! We found the right element, so we can skip the others
-                exit element_loop
-             end if          
-          end do element_loop
-
-          ! If we didn't find an element for the detector, we have to advance it
-          if (.not.found_det_element) detector => detector%next
-       end do detector_loop
+       else
+          ! Can't determine destination, so flag detector for later broadcast
+          detector%element = -1
+          detector => detector%next
+       end if
     end do
 
-    ! Sanity checks and logging
-    total_det_to_pack=0
-    do i=1, num_ids
-       assert(ndets_in_ele(i) == to_pack_detector_lists(i)%length)
-       total_det_to_pack=total_det_to_pack+to_pack_detector_lists(i)%length
+  end subroutine zoltan_detectors_prepare_migration
+
+  subroutine zoltan_detectors_finalise_migration(detector_list, recv_lists)
+    type(detector_linked_list), pointer, intent(inout) :: detector_list
+    type(detector_linked_list), dimension(:), intent(inout) :: recv_lists
+
+    type(detector_type), pointer :: detector, detector_to_move
+    integer :: j, p, dim
+
+    dim = zoltan_global_new_positions%dim
+
+    ! First update the detectors we didn't send
+    detector => detector_list%first
+    do while(associated(detector))
+
+       if (detector%element > 0) then
+
+          ! Update the element number for the detector
+          if(has_key(zoltan_global_uen_to_new_local_numbering, detector%element)) then
+             detector%element = fetch(zoltan_global_uen_to_new_local_numbering, detector%element)
+          else
+             ewrite(-1,*) "No new local element found by Zoltan for retained detector ", detector%id_number, " with uen ", detector%element
+             FLAbort("No local element number for detector found after Zoltan migration")
+          end if
+       end if
+
+       detector => detector%next       
     end do
-    ewrite(2,*) "Moved", total_det_to_pack, "detectors to to_pack_detector_lists"
-    ewrite(1,*) "Exiting prepare_detectors_for_packing"
-    
-  end subroutine prepare_detectors_for_packing
+
+    do p=1, getnprocs()
+       detector => recv_lists(p)%first
+       do while(associated(detector))
+
+          ! Update the element number for the detector
+          if(has_key(zoltan_global_uen_to_new_local_numbering, detector%element)) then
+             detector%element = fetch(zoltan_global_uen_to_new_local_numbering, detector%element)
+          else
+             ewrite(-1,*) "No local element number found in Zoltan for detector ", detector%id_number, " with uen ", detector%element
+             FLAbort("No local element number for detector found after Zoltan migration")
+          end if
+
+          ! Establish local coordinates
+          if (.not. allocated(detector%local_coords)) allocate( detector%local_coords(dim+1) )
+          detector%local_coords = local_coords(zoltan_global_new_positions, detector%element, detector%position)
+
+          ! If there is a list of detector names, use it, otherwise set ID as name
+          if (allocated(detector_list%detector_names)) then
+             detector%name=detector_list%detector_names(detector%id_number)
+          else
+             detector%name=int2str(detector%id_number)
+          end if
+
+          ! Move received detector back into parent list
+          detector_to_move => detector
+          detector => detector%next       
+          call move(detector_to_move, recv_lists(p), detector_list)
+       end do
+    end do
+
+  end subroutine zoltan_detectors_finalise_migration
 
 #endif
   

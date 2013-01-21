@@ -47,7 +47,7 @@ module detector_parallel
 
   private
 
-  public :: distribute_detectors, exchange_detectors, &
+  public :: distribute_detectors, exchange_detectors, detectors_send_all_to_all, &
             register_detector_list, get_num_detector_lists, &
             get_registered_detector_lists, deallocate_detector_list_array, &
             create_single_detector, sync_detector_coordinates, &
@@ -599,16 +599,15 @@ contains
 
   end subroutine write_detectors
 
-  subroutine distribute_detectors(state, detector_list)
+  subroutine distribute_detectors(detector_list, xfield)
     ! Loop over all the detectors in the list and check that I own the element they are in. 
     ! If not, they need to be sent to the processor owner before adaptivity happens
-    type(state_type), intent(in) :: state
     type(detector_linked_list), pointer, intent(inout) :: detector_list
+    type(vector_field), pointer, intent(inout) :: xfield
 
     type(detector_linked_list), dimension(:), allocatable :: send_list_array
     type(detector_linked_list) :: detector_bcast_list, lost_detectors_list
     type(detector_type), pointer :: detector, node_to_send, bcast_detector
-    type(vector_field), pointer :: xfield
     integer :: i,j,k, nprocs, all_send_lists_empty, processor_owner, bcast_count, &
                ierr, ndata_per_det, bcast_rounds, round, accept_detector, ind
     integer, dimension(:), allocatable :: ndets_being_bcast
@@ -616,8 +615,6 @@ contains
     type(element_type), pointer :: shape
 
     ewrite(2,*) "In distribute_detectors"
-
-    xfield => extract_vector_field(state,"Coordinate")
 
     ! We allocate a point-to-point sendlist for every processor
     nprocs=getnprocs()
@@ -755,10 +752,16 @@ contains
                    ! Try to find the detector position locally
                    call picker_inquire(xfield, detector%position, detector%element, detector%local_coords, global=.false.)
                    if (detector%element>0) then 
-                      ! We found a new home...
-                      call insert(detector, detector_list)
-                      accept_detector = 1
-                      ewrite(2,*) "Accepted detector"
+                      if ( getprocno() == element_owner(xfield%mesh, detector%element) ) then
+                         ! We found a new home...
+                         call insert(detector, detector_list)
+                         accept_detector = 1
+                         ewrite(2,*) "Accepted detector"
+                      else
+                         call delete(detector)
+                         accept_detector = 0
+                         ewrite(2,*) "Rejected detector"
+                      end if
                    else
                       call delete(detector)
                       accept_detector = 0
@@ -988,7 +991,7 @@ contains
           else
              call search_for_detectors(detector_list_array(i)%ptr, coordinate_field)
 
-             call distribute_detectors(state, detector_list_array(i)%ptr)
+             call distribute_detectors(detector_list_array(i)%ptr, coordinate_field)
           end if
        end do
     end if
