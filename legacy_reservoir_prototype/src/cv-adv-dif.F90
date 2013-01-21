@@ -299,7 +299,7 @@
            UFEN, UFENLX, UFENLY, UFENLZ, SCVFEN, SCVFENSLX, SCVFENSLY, &
            SCVFENLX, SCVFENLY, SCVFENLZ, &
            SUFEN, SUFENSLX, SUFENSLY, SUFENLX, SUFENLY, SUFENLZ, &
-           SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
+           SBCVN,SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
            SBCVFENLX, SBCVFENLY, SBCVFENLZ, SBUFEN, SBUFENSLX, SBUFENSLY, &
            SBUFENLX, SBUFENLY, SBUFENLZ, &
            DUMMY_ZERO_NDIM_NDIM
@@ -451,6 +451,7 @@
       ALLOCATE( SRA( SCVNGI ))
       ALLOCATE( LOG_ON_BOUND(CV_NONODS))
 
+      ALLOCATE( SBCVN( CV_SNLOC, SBCVNGI ))
       ALLOCATE( SBCVFEN( CV_SNLOC, SBCVNGI ))
       ALLOCATE( SBCVFENSLX( CV_SNLOC, SBCVNGI ))
       ALLOCATE( SBCVFENSLY( CV_SNLOC, SBCVNGI ))
@@ -570,7 +571,7 @@
            SUFENLX, SUFENLY, SUFENLZ,  &
                                 ! Surface element shape funcs...
            U_ON_FACE, UFEM_ON_FACE, NFACE, & 
-           SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, SBCVFENLX, SBCVFENLY, SBCVFENLZ, &
+           SBCVNGI, SBCVN, SBCVFEN,SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, SBCVFENLX, SBCVFENLY, SBCVFENLZ, &
            SBUFEN, SBUFENSLX, SBUFENSLY, SBUFENLX, SBUFENLY, SBUFENLZ, &
            CV_SLOCLIST, U_SLOCLIST, CV_SNLOC, U_SNLOC, &
                                 ! Define the gauss points that lie on the surface of the CV...
@@ -4500,7 +4501,10 @@
                VOLDDGI = VOLDDGI + SUFEN( U_KLOC, GI ) * NVOLD( U_NODK_IPHA ) 
                WOLDDGI = WOLDDGI + SUFEN( U_KLOC, GI ) * NWOLD( U_NODK_IPHA ) 
             END DO
-! Multiply by a normalized siggma tensor so that we use the 
+! Here we assume that sigma_out/sigma_in is a diagonal matrix 
+! which effectively assumes that the anisotropy just inside the domain 
+! is the same as just outside the domain. 
+! Multiply by a normalized sigma tensor so that we use the 
 ! sigma from just outside the boundary:
 
             SUF_SIG_DIAGTEN_BC_GI=0.0

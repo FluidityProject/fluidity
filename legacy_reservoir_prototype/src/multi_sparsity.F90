@@ -1046,7 +1046,7 @@
            scvfen, scvfenslx, scvfensly, scvfenlx, scvfenly, scvfenlz, &
            ufen, ufenlx, ufenly, ufenlz, &
            sufen, sufenslx, sufensly, sufenlx, sufenly, sufenlz, &
-           sbcvfen, sbcvfenslx, sbcvfensly,sbcvfenlx, sbcvfenly, sbcvfenlz, &
+           sbcvn, sbcvfen, sbcvfenslx, sbcvfensly,sbcvfenlx, sbcvfenly, sbcvfenlz, &
            sbufen, sbufenslx, sbufensly, sbufenlx, sbufenly, sbufenlz
       logical :: integrat_at_gi
       integer :: scvngi, cv_ngi, cv_ngi_short, sbcvngi, nface, &
@@ -1095,6 +1095,8 @@
       allocate( sufenlz( u_nloc, scvngi ) )
       allocate( u_on_face( u_nloc, scvngi ) )
       allocate( ufem_on_face( u_nloc, scvngi ) )
+
+      allocate( sbcvn( cv_snloc, sbcvngi ) )
       allocate( sbcvfen( cv_snloc, sbcvngi ) )
       allocate( sbcvfenslx( cv_snloc, sbcvngi ) )
       allocate( sbcvfensly( cv_snloc, sbcvngi ) )
@@ -1134,7 +1136,7 @@
            sufenlx, sufenly, sufenlz, &
                                 ! Surface element shape funcs
            u_on_face,ufem_on_face, nface, &
-           sbcvngi, sbcvfen, sbcvfenslx, sbcvfensly, sbcvfeweigh, sbcvfenlx, sbcvfenly, sbcvfenlz, &
+           sbcvngi, sbcvn, sbcvfen, sbcvfenslx, sbcvfensly, sbcvfeweigh, sbcvfenlx, sbcvfenly, sbcvfenlz, &
            sbufen, sbufenslx, sbufensly, sbufenlx, sbufenly, sbufenlz, &
            cv_sloclist, u_sloclist, cv_snloc, u_snloc, &
                                 ! Define the gauss points that lie on the surface of the CV

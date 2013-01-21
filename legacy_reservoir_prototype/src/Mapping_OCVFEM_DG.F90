@@ -94,7 +94,7 @@ module mapping_for_ocvfem
          ufen, ufenlx, ufenly, ufenlz, scvfen, scvfenslx, scvfensly, matloc_cv_inv, &
          scvfenlx, scvfenly, scvfenlz, matloc,n, wdold,wd,vdold,vd, ud, udold,&
          sufen, sufenslx, sufensly, sufenlx, sufenly,sufenlz, nlx, nly, nlz, nx,ny,nz, matloc_cv, ufenx, ufeny, ufenz
-    real, dimension( : , : ), allocatable :: sbcvfen, sbcvfenslx, sbcvfensly, &
+    real, dimension( : , : ), allocatable :: sbcvn, sbcvfen, sbcvfenslx, sbcvfensly, &
          sbcvfenlx, sbcvfenly, sbcvfenlz, sbufen, sbufenslx, sbufensly, &
          sbufenlx, sbufenly, sbufenlz
     real, dimension( : ), allocatable :: cvweight,cvweight_short,scvfeweigh,sbcvfeweigh
@@ -222,6 +222,7 @@ module mapping_for_ocvfem
     allocate( sra( scvngi ))
     allocate( log_on_bound(cv_nonods))
 
+    allocate( sbcvn( cv_snloc, sbcvngi ))
     allocate( sbcvfen( cv_snloc, sbcvngi ))
     allocate( sbcvfenslx( cv_snloc, sbcvngi ))
     allocate( sbcvfensly( cv_snloc, sbcvngi ))
@@ -277,7 +278,7 @@ module mapping_for_ocvfem
          sufenlx, sufenly, sufenlz,  &
                                 ! surface element shape funcs...
          u_on_face, ufem_on_face, nface, & 
-         sbcvngi,sbcvfen, sbcvfenslx, sbcvfensly, sbcvfeweigh, sbcvfenlx, sbcvfenly, sbcvfenlz, &
+         sbcvngi,sbcvn, sbcvfen,sbcvfenslx, sbcvfensly, sbcvfeweigh, sbcvfenlx, sbcvfenly, sbcvfenlz, &
          sbufen, sbufenslx, sbufensly, sbufenlx, sbufenly, sbufenlz, &
          cv_sloclist, u_sloclist, cv_snloc, u_snloc, &
                                 ! define the gauss points that lie on the surface of the cv...

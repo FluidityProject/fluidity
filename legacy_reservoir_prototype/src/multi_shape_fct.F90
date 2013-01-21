@@ -1567,7 +1567,7 @@
          sufenlx, sufenly, sufenlz, &
                                 ! Surface element shape funcs
          u_on_face, ufem_on_face, nface, &
-         sbcvngi, sbcvfen, sbcvfenslx, sbcvfensly, sbcvfeweigh, sbcvfenlx, sbcvfenly, sbcvfenlz, &
+         sbcvngi, sbcvn, sbcvfen, sbcvfenslx, sbcvfensly, sbcvfeweigh, sbcvfenlx, sbcvfenly, sbcvfenlz, &
          sbufen, sbufenslx, sbufensly, sbufenlx, sbufenly, sbufenlz, &
          cv_sloclist, u_sloclist, cv_snloc, u_snloc, &
                                 ! Define the gauss points that lie on the surface of the CV
@@ -1599,6 +1599,7 @@
       integer, intent( in ) :: nface, sbcvngi
       logical, intent( in ) :: QUAD_OVER_WHOLE_ELE
       ! if QUAD_OVER_WHOLE_ELE then dont divide element into CV's to form quadrature.
+      real, dimension( cv_snloc, sbcvngi ), intent( inout ) :: sbcvn
       real, dimension( cv_snloc, sbcvngi ), intent( inout ) :: sbcvfen, sbcvfenslx, sbcvfensly
       real, dimension( sbcvngi ), intent( inout ) :: sbcvfeweigh
       real, dimension( cv_snloc, sbcvngi ), intent( inout ) :: sbcvfenlx, sbcvfenly, sbcvfenlz
@@ -2000,6 +2001,20 @@ ewrite(3,*)'lll:', option_path_len
               sbcvfenlz = 0.0 ; sbufensly = 0.0 ;sbufenlz = 0.0
 
       end if
+
+! calculate sbcvn from sbcvfen - Use the max scvfen at a quadrature pt and set to 1: 
+      SBCVN=0.0
+      DO SGI=1,SBCVNGI
+         RMAX=-100.0 ! Find max value of sbcvfen...
+         DO CV_SILOC=1,CV_SNLOC
+            IF(sbcvfen(CV_SILOC,SGI).GT.RMAX) THEN
+               RMAX=sbcvfen(CV_SILOC,SGI)
+               CV_SKLOC=CV_SILOC
+            ENDIF
+         END DO
+         SBCVN(CV_SKLOC,SGI)=1.0
+      END DO
+
 
       ewrite(3,*) 'cv_on_face: ', cv_on_face
       ewrite(3,*) 'u_on_face: ', u_on_face
