@@ -94,7 +94,7 @@ class TestHarness:
               prob_defn = p.findall("problem_definition")[0]
               prob_nprocs = int(prob_defn.attrib["nprocs"])                
               testprob = regressiontest.TestProblem(filename=os.path.join(subdir, xml_file),
-                           verbose=self.verbose, replace=self.modify_command_line(), no_pbs=no_pbs)
+                           verbose=self.verbose, replace=self.modify_command_line(prob_nprocs), no_pbs=no_pbs)
               self.tests.append((subdir, testprob))
               files.remove(xml_file)
           if files != []:
