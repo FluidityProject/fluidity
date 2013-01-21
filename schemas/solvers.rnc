@@ -4,7 +4,11 @@
 # is the order of cg and gmres. Not providing cg for _asym is
 # not possible as in some cases the asymmetric equation is in fact symmetric
 # (e.g. momentum with no advection or coriolis).
-linear_solver_options_asym =
+
+# _scalar version: only simple remove_null_space
+# _vector version: remove_null_space and multigrid_near_null_space with selection
+#   of components (TO BE MERGED). also, adds fieldsplit preconditioner option
+linear_solver_options_asym_scalar =
    (
       ## Iterative (Krylov) method to solve the linear discretised equation
       ## Given are the most frequently used methods. The solution is done
@@ -28,6 +32,36 @@ linear_solver_options_asym =
          pchypre_options|
          pcbjacobi_options|
          pcasm_options|
+         pcother_options
+      ),
+      generic_solver_options
+   )
+
+linear_solver_options_asym_vector =
+   (
+      ## Iterative (Krylov) method to solve the linear discretised equation
+      ## Given are the most frequently used methods. The solution is done
+      ## by the PETSc library. Many more methods are provided.
+      ##
+      (
+         kspgmres_options|
+         kspcg_options|
+         ksppreonly_options|
+         ksprichardson_options|
+         kspother_options
+      ),
+      ## Preconditioner to be used in combination with the iterative method.
+      (
+         pcsor_options|
+         pceisenstat_options|
+         pcilu_options|
+         pclu_options|
+         pcmg_options|
+         pcprometheus_options|
+         pchypre_options|
+         pcbjacobi_options|
+         pcasm_options|
+         pcfieldsplit_options|
          pcother_options
       ),
       generic_solver_options
@@ -182,7 +216,33 @@ pclu_options =
       ##
       ## This performs a complete, direct solve of the equation and should only be used in combination with preonly as iterative method.
       element preconditioner {
-         attribute name { "lu" }
+         attribute name { "lu" },
+         (
+           ## Package to use for the factorization - petsc.
+           element factorization_package {
+             attribute name { "petsc" },
+             empty
+           }|
+           ## Package to use for the factorization - umfpack.
+           ##
+           ## Useful for systems with a near zero pivot (if installed on system).
+           element factorization_package {
+             attribute name { "umfpack" },
+             empty
+           }|
+           ## Package to use for the factorization - mumps.
+           ##
+           ## Useful for parallel direct solves (if installed on system).
+           element factorization_package {
+             attribute name { "mumps" },
+             empty
+           }|
+           ## Package to use for the factorization - any valid package.
+           element factorization_package {
+             attribute name { xsd:string },
+             empty
+           }
+         )
      }
    )
 pcmg_options =
@@ -351,6 +411,28 @@ pc_ksp_solver_options =
       generic_solver_options
    )
 
+pcfieldsplit_options =
+   (
+      ## Uses fieldsplit preconditioner that seperately solves/preconditions 
+      ## the diagonal blocks associated with the different velocity components.
+      ## FIXME: maybe some hints what a useful setup is
+      element preconditioner {
+         attribute name { "fieldsplit" },
+         (
+            element fieldsplit_type {
+               attribute name { "multiplicative" }
+            }|
+            element fieldsplit_type {
+               attribute name { "additive" }
+            }|
+            element fieldsplit_type {
+               attribute name { "symmetric_multiplicative" }
+            }
+         ),
+         pc_ksp_solver_options
+      }
+   )
+
 # ####################################################################
 #
 # all the other solver options
@@ -384,10 +466,28 @@ generic_solver_options =
          empty
       }?,
       ## Remove Null-space from residual after applying preconditioner.
-      ## This often leads to better convergence rates, when compared to
-      ## imposing a reference_node to pin the solution.
       element remove_null_space {
-         empty
+         (
+           ## This nullspace applies to all components (or this field is scalar)
+           element all_components {
+             empty
+           }|
+           ## Specify individual components of a vector field that describes the null spaces
+           ## (each component selected will set up an independent null space)
+           ##
+           ## ONLY MAKES SENSE FOR VECTOR FIELDS
+           element specify_components {
+             element x_component {
+                empty
+             }?,
+             element y_component {
+                empty
+             }?,
+             element z_component {
+                empty
+             }?
+           }
+         )
       }?,
       (
          ## Solver failures are always treated as fatal errors. The

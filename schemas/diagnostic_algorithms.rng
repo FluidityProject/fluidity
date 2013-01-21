@@ -1080,7 +1080,10 @@ for material i and \nu^i is the viscosity of material i</a:documentation>
         <value>bulk_viscosity</value>
       </attribute>
       <attribute name="material_phase_support">
-        <value>multiple </value>
+        <value>multiple</value>
+      </attribute>
+      <attribute name="depends">
+        <value>MaterialViscosity</value>
       </attribute>
     </element>
   </define>
@@ -1094,25 +1097,6 @@ of the sediment fields and the zero concentration viscosity
 </a:documentation>
       <attribute name="name">
         <value>sediment_concentration_dependent_viscosity</value>
-      </attribute>
-      <attribute name="material_phase_support">
-        <value>single</value>
-      </attribute>
-    </element>
-  </define>
-  <define name="k_epsilon_diffusivity_algorithm">
-    <element name="algorithm">
-      <a:documentation>Set the diffusivity, D, to the sum of the background diffusivity, D_bg, and the eddy diffusivity calculated 
-by the k-epsilon turbulence model.
-
-D = D_bg + nu_t / Pr
-
-where: nu_t = turbulent viscosity
-       Pr = Prandtl or Schmidt number
-
-nu_t and Pr are set under prognostic/subgridscale_parameterisation(k-epsilon)</a:documentation>
-      <attribute name="name">
-        <value>k_epsilon_diffusivity</value>
       </attribute>
       <attribute name="material_phase_support">
         <value>single</value>

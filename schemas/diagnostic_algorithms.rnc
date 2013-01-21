@@ -803,7 +803,8 @@ bulk_viscosity_algorithm =
        ## for material i and \nu^i is the viscosity of material i
        element algorithm {
           attribute name { "bulk_viscosity" },
-          attribute material_phase_support { "multiple "}
+          attribute material_phase_support { "multiple" },
+          attribute depends { "MaterialViscosity" }
        }
    )
 sediment_concentration_dependent_viscosity_algorithm =
@@ -818,22 +819,6 @@ sediment_concentration_dependent_viscosity_algorithm =
           attribute name { "sediment_concentration_dependent_viscosity" },
           attribute material_phase_support { "single"}
        }
-   )
-k_epsilon_diffusivity_algorithm =
-   (
-      ## Set the diffusivity, D, to the sum of the background diffusivity, D_bg, and the eddy diffusivity calculated 
-      ## by the k-epsilon turbulence model.
-      ##
-      ## D = D_bg + nu_t / Pr
-      ##
-      ## where: nu_t = turbulent viscosity
-      ##        Pr = Prandtl or Schmidt number
-      ##
-      ## nu_t and Pr are set under prognostic/subgridscale_parameterisation(k-epsilon)
-      element algorithm {
-         attribute name { "k_epsilon_diffusivity" },
-         attribute material_phase_support { "single"}
-      }
    )
 imposed_material_velocity_source_algorithm =
    (

@@ -33,10 +33,11 @@ Field_Priority_Lists.o ../include/field_priority_lists.mod: \
 
 Initialise_Fields.o ../include/initialise_fields_module.mod: \
    Initialise_Fields.F90 ../include/climatology.mod ../include/coordinates.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/futils.mod \
-   ../include/global_parameters.mod ../include/load_netcdf_module.mod \
-   ../include/nemo_states_module.mod ../include/physics_from_options.mod \
-   ../include/spud.mod ../include/tictoc.mod ../include/vtk_cache_module.mod
+   ../include/fdebug.h ../include/fields.mod ../include/fluxes.mod \
+   ../include/futils.mod ../include/global_parameters.mod \
+   ../include/load_netcdf_module.mod ../include/nemo_states_module.mod \
+   ../include/physics_from_options.mod ../include/spud.mod \
+   ../include/tictoc.mod ../include/vtk_cache_module.mod
 
 ../include/physics_from_options.mod: Physics_From_Options.o
 	@true
@@ -57,13 +58,13 @@ Populate_State.o ../include/populate_state_module.mod: Populate_State.F90 \
    ../include/fldebug.mod ../include/global_parameters.mod \
    ../include/hadapt_extrude.mod ../include/hadapt_extrude_radially.mod \
    ../include/halos.mod ../include/initialise_fields_module.mod \
-   ../include/mesh_files.mod ../include/metric_tools.mod \
-   ../include/nemo_states_module.mod ../include/parallel_tools.mod \
-   ../include/profiler.mod ../include/read_triangle.mod \
-   ../include/reserve_state_module.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/surfacelabels.mod \
-   ../include/tictoc.mod ../include/transform_elements.mod \
-   ../include/vtk_cache_module.mod
+   ../include/initialise_ocean_forcing_module.mod ../include/mesh_files.mod \
+   ../include/metric_tools.mod ../include/nemo_states_module.mod \
+   ../include/parallel_tools.mod ../include/profiler.mod \
+   ../include/read_triangle.mod ../include/reserve_state_module.mod \
+   ../include/spud.mod ../include/state_module.mod \
+   ../include/surfacelabels.mod ../include/tictoc.mod \
+   ../include/transform_elements.mod ../include/vtk_cache_module.mod
 
 ../include/populate_sub_state_module.mod: Populate_Sub_State.o
 	@true
