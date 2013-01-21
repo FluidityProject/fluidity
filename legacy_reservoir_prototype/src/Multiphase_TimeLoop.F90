@@ -783,7 +783,7 @@
 !!$
                     Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
                     v_disopt, v_dg_vel_int_opt, v_theta, &
-                    PhaseVolumeFraction_BC, Density_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, Pressure_FEM_BC, &
+                    PhaseVolumeFraction_BC, Density_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, SUF_SIG_DIAGTEN_BC, Pressure_FEM_BC, &
                     suf_u_bc_rob1, suf_u_bc_rob2, suf_v_bc_rob1, suf_v_bc_rob2, &
                     suf_w_bc_rob1, suf_w_bc_rob2, &
                     PhaseVolumeFraction_BC_Spatial, Density_BC_Spatial, Velocity_U_BC_Spatial, Pressure_FEM_BC_Spatial, &
@@ -828,7 +828,7 @@
                     MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
 !!$
                     v_disopt, v_dg_vel_int_opt, dt, v_theta, v_beta, &
-                    PhaseVolumeFraction_BC, Density_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, &
+                    PhaseVolumeFraction_BC, Density_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, SUF_SIG_DIAGTEN_BC, &
                     PhaseVolumeFraction_BC_Spatial, Density_BC_Spatial, Velocity_U_BC_Spatial, &
                     DRhoDPressure, Pressure_FEM, &
                     ScalarField_Source_Store, ScalarField_Absorption, Porosity, &
@@ -952,7 +952,7 @@
                           MAT_NLOC, MAT_NDGLN, MAT_NONODS, Component_Diffusion, &
                           v_disopt, v_dg_vel_int_opt, dt, v_theta, v_beta, &
                           Component_BC( 1 + stotel * cv_snloc * nphase * ( icomp - 1 ) : stotel * cv_snloc * nphase * icomp ), &
-                          Density_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, &
+                          Density_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, SUF_SIG_DIAGTEN_BC,&
                           suf_comp_bc_rob1, suf_comp_bc_rob2, &
                           Component_BC_Spatial, Density_BC_Spatial, Velocity_U_BC_Spatial, &
                           DRhoDPressure, Pressure_FEM, &

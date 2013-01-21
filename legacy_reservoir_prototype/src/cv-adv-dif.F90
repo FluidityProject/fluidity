@@ -55,7 +55,7 @@
          T, TOLD, DEN, DENOLD, &
          MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
          CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, SECOND_THETA, CV_BETA, &
-         SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
+         SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
          SUF_T_BC_ROB1, SUF_T_BC_ROB2,  &
          WIC_T_BC, WIC_D_BC, WIC_U_BC, &
          DERIV, CV_P, &
@@ -239,6 +239,7 @@
       REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE ), intent( in ) :: SUF_T_BC, SUF_D_BC
       REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  ), intent( in ) :: SUF_T2_BC
       REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
+      REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE, NDIM ), intent( in ) :: SUF_SIG_DIAGTEN_BC
       REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE ), intent( in ) :: SUF_T_BC_ROB1, SUF_T_BC_ROB2
       REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE * IGOT_T2 ), intent( in ) :: SUF_T2_BC_ROB1, SUF_T2_BC_ROB2
       REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: DERIV
@@ -895,7 +896,7 @@
                                 CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
                                 CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
                                 SELE, U_SNLOC, STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC,WIC_U_BC, &
-                                WIC_U_BC_DIRICHLET, &
+                                SUF_SIG_DIAGTEN_BC,WIC_U_BC_DIRICHLET, &
                                 UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2, &
                                 ONE_PORE, CV_ELE_TYPE, CV_NLOC, CV_ILOC, CV_JLOC, SCVFEN, CV_NDGLN, CV_OTHER_LOC, &
                                 MASS_CV,OPT_VEL_UPWIND_COEFS,NOPT_VEL_UPWIND_COEFS, NDIM, MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
@@ -912,7 +913,7 @@
                                 CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
                                 CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
                                 SELE, U_SNLOC, STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC,WIC_U_BC, &
-                                WIC_U_BC_DIRICHLET, &
+                                SUF_SIG_DIAGTEN_BC,WIC_U_BC_DIRICHLET, &
                                 UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2, &
                                 ONE_PORE, CV_ELE_TYPE, CV_NLOC, CV_ILOC, CV_JLOC, SCVFEN, CV_NDGLN, CV_OTHER_LOC, &
                                 MASS_CV,OPT_VEL_UPWIND_COEFS,NOPT_VEL_UPWIND_COEFS, NDIM, MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
@@ -985,7 +986,7 @@
                                 CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
                                 CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
                                 SELE, U_SNLOC, STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC,WIC_U_BC, &
-                                WIC_U_BC_DIRICHLET, &
+                                UF_SIG_DIAGTEN_BC,WIC_U_BC_DIRICHLET, &
                                 UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2, &
                                 ONE_PORE, CV_ELE_TYPE, CV_NLOC, CV_ILOC, CV_JLOC, SCVFEN, CV_NDGLN, CV_OTHER_LOC, &
                                 MASS_CV,OPT_VEL_UPWIND_COEFS,NOPT_VEL_UPWIND_COEFS, NDIM, MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
@@ -1002,7 +1003,7 @@
                                 CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
                                 CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
                                 SELE, U_SNLOC, STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC,WIC_U_BC, &
-                                WIC_U_BC_DIRICHLET, &
+                                SUF_SIG_DIAGTEN_BC,WIC_U_BC_DIRICHLET, &
                                 UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2, &
                                 ONE_PORE, CV_ELE_TYPE, CV_NLOC, CV_ILOC, CV_JLOC, SCVFEN, CV_NDGLN, CV_OTHER_LOC, &
                                 MASS_CV,OPT_VEL_UPWIND_COEFS,NOPT_VEL_UPWIND_COEFS, NDIM, MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
@@ -4271,7 +4272,7 @@
          CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
          CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
          SELE, U_SNLOC,STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC, WIC_U_BC, &
-         WIC_U_BC_DIRICHLET, &
+         SUF_SIG_DIAGTEN_BC,WIC_U_BC_DIRICHLET, &
          UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2, &
          VOLFRA_PORE, CV_ELE_TYPE, CV_NLOC, CV_ILOC, CV_JLOC, SCVFEN, CV_NDGLN, CV_OTHER_LOC, &
          MASS_CV,OPT_VEL_UPWIND_COEFS,NOPT_VEL_UPWIND_COEFS, NDIM, MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
@@ -4299,6 +4300,7 @@
       REAL, DIMENSION( U_NONODS * NPHASE  ), intent( in ) :: U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD
       REAL, DIMENSION( SCVNGI ), intent( in ) :: CVNORMX, CVNORMY, CVNORMZ
       REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
+      REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE, NDIM ), intent( in ) :: SUF_SIG_DIAGTEN_BC
       REAL, DIMENSION( U_NLOC ), intent( inout ) :: UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
            UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2
       REAL, DIMENSION( TOTELE  ), intent( in ) :: VOLFRA_PORE
@@ -4330,7 +4332,7 @@
               CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
               CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
               SELE, U_SNLOC,STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC, WIC_U_BC, &
-              WIC_U_BC_DIRICHLET, &
+              SUF_SIG_DIAGTEN_BC,WIC_U_BC_DIRICHLET, &
               UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2, &
               VOLFRA_PORE, CV_ELE_TYPE, CV_NLOC, CV_ILOC, CV_JLOC, SCVFEN, CV_NDGLN, CV_OTHER_LOC, &
               MASS_CV,OPT_VEL_UPWIND_COEFS,NOPT_VEL_UPWIND_COEFS, NDIM, MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
@@ -4393,7 +4395,7 @@
          CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
          CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
          SELE, U_SNLOC,STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC, WIC_U_BC, &
-         WIC_U_BC_DIRICHLET, &
+         SUF_SIG_DIAGTEN_BC,WIC_U_BC_DIRICHLET, &
          UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2, &
          VOLFRA_PORE, CV_ELE_TYPE, CV_NLOC, CV_ILOC, CV_JLOC, SCVFEN, CV_NDGLN, CV_OTHER_LOC, &
          MASS_CV,OPT_VEL_UPWIND_COEFS,NOPT_VEL_UPWIND_COEFS, NDIM, MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
@@ -4423,6 +4425,7 @@
       REAL, DIMENSION( U_NONODS * NPHASE  ), intent( in ) :: NU, NV, NW, NUOLD, NVOLD, NWOLD
       REAL, DIMENSION( SCVNGI ), intent( in ) :: CVNORMX, CVNORMY, CVNORMZ
       REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
+      REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE, NDIM ), intent( in ) :: SUF_SIG_DIAGTEN_BC
       REAL, DIMENSION( U_NLOC ), intent( inout ) :: UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
            UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2
       REAL, DIMENSION( TOTELE  ), intent( in ) :: VOLFRA_PORE
@@ -4446,7 +4449,7 @@
            GRAD_ABS_CV_NODI_IPHA, GRAD_ABS_CV_NODJ_IPHA, V_NODI, G_NODI, V_NODJ, G_NODJ, &
            GEOMTOLDGI_IPHA, W_UPWIND, INCOME3, INCOME4, INCOMEOLD3, INCOMEOLD4, &
            LIMT3, LIMTOLD3, FEMTGI_IPHA, GEOMTGI_IPHA, UPWIND_FRAC
-      REAL :: NVEC(3)
+      REAL :: NVEC(3),SUF_SIG_DIAGTEN_BC_GI(3)
       INTEGER :: U_KLOC,U_NODK,U_NODK2_IPHA,U_NODK_IPHA,U_KLOC2,U_SKLOC, &
            U_SNODK,U_SNODK_IPHA, II,  &
            U_KLOC_LEV, U_NLOC_LEV, U_SKLOC_LEV, U_SNLOC_LEV, CV_KLOC, CV_KNOD, &
@@ -4487,22 +4490,42 @@
             UOLDDGI = 0.0
             VOLDDGI = 0.0
             WOLDDGI = 0.0
-            UGI_COEF_ELE=0.0
-            VGI_COEF_ELE=0.0
-            WGI_COEF_ELE=0.0 
             DO U_KLOC_LEV = 1, U_NLOC_LEV
                U_KLOC=(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV
                U_NODK_IPHA = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC ) +(IPHASE-1)*U_NONODS
                UDGI = UDGI + SUFEN( U_KLOC, GI ) * NU( U_NODK_IPHA )
                VDGI = VDGI + SUFEN( U_KLOC, GI ) * NV( U_NODK_IPHA )
                WDGI = WDGI + SUFEN( U_KLOC, GI ) * NW( U_NODK_IPHA )
-               UGI_COEF_ELE(U_KLOC)=UGI_COEF_ELE(U_KLOC)+1.0
-               VGI_COEF_ELE(U_KLOC)=VGI_COEF_ELE(U_KLOC)+1.0
-               WGI_COEF_ELE(U_KLOC)=WGI_COEF_ELE(U_KLOC)+1.0
                UOLDDGI = UOLDDGI + SUFEN( U_KLOC, GI ) * NUOLD( U_NODK_IPHA ) 
                VOLDDGI = VOLDDGI + SUFEN( U_KLOC, GI ) * NVOLD( U_NODK_IPHA ) 
                WOLDDGI = WOLDDGI + SUFEN( U_KLOC, GI ) * NWOLD( U_NODK_IPHA ) 
             END DO
+! Multiply by a normalized siggma tensor so that we use the 
+! sigma from just outside the boundary:
+
+            SUF_SIG_DIAGTEN_BC_GI=0.0
+            DO CV_SKLOC = 1, CV_SNLOC
+               CV_KLOC = CV_SLOC2LOC( CV_SKLOC )
+               IF(CV_KLOC==CV_ILOC) THEN
+                  CV_SNODK = ( SELE - 1 ) * CV_SNLOC + CV_SKLOC 
+                  CV_SNODK_IPHA = CV_SNODK + ( IPHASE - 1 ) * STOTEL*CV_SNLOC
+                  SUF_SIG_DIAGTEN_BC_GI(1:NDIM)=SUF_SIG_DIAGTEN_BC( CV_SNODK_IPHA,1:NDIM)
+               ENDIF
+            END DO
+
+            (/UDGI, VDGI, WDGI/)          = SUF_SIG_DIAGTEN_BC_GI(1:3)* (/UDGI, VDGI, WDGI/)
+            (/UOLDDGI, VOLDDGI, WOLDDGI/) = SUF_SIG_DIAGTEN_BC_GI(1:3)* (/UOLDDGI, VOLDDGI, WOLDDGI/)
+
+            UGI_COEF_ELE=0.0
+            VGI_COEF_ELE=0.0
+            WGI_COEF_ELE=0.0 
+            DO U_KLOC_LEV = 1, U_NLOC_LEV
+               U_KLOC=(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV
+               UGI_COEF_ELE(U_KLOC)=UGI_COEF_ELE(U_KLOC)+1.0*SUF_SIG_DIAGTEN_BC_GI(1)
+               VGI_COEF_ELE(U_KLOC)=VGI_COEF_ELE(U_KLOC)+1.0*SUF_SIG_DIAGTEN_BC_GI(2)
+               WGI_COEF_ELE(U_KLOC)=WGI_COEF_ELE(U_KLOC)+1.0*SUF_SIG_DIAGTEN_BC_GI(3)
+            END DO
+
          ELSE ! Specified vel bc.
             UDGI = 0.0
             VDGI = 0.0

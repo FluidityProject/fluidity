@@ -82,7 +82,7 @@
          DEN, DENOLD, &
          MAT_NLOC,MAT_NDGLN,MAT_NONODS, TDIFFUSION, &
          T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, T_BETA, &
-         SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
+         SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
          SUF_T_BC_ROB1, SUF_T_BC_ROB2,  &
          WIC_T_BC, WIC_D_BC, WIC_U_BC, &
          DERIV, P,  &
@@ -141,6 +141,7 @@
       REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE ), intent( in ) :: SUF_T_BC, SUF_D_BC
       REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  ), intent( in ) :: SUF_T2_BC
       REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
+      REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE, NDIM ), intent( in ) :: SUF_SIG_DIAGTEN_BC
       REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE ), intent( in ) :: SUF_T_BC_ROB1, SUF_T_BC_ROB2
       REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE * IGOT_T2 ), intent( in ) :: SUF_T2_BC_ROB1, SUF_T2_BC_ROB2
       REAL, DIMENSION( CV_NONODS*NPHASE ), intent( in ) :: DERIV
@@ -217,7 +218,7 @@
                  T, TOLD, DEN, DENOLD, &
                  MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
                  T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, SECOND_THETA, T_BETA, &
-                 SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
+                 SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
                  SUF_T_BC_ROB1, SUF_T_BC_ROB2,  &
                  WIC_T_BC, WIC_D_BC, WIC_U_BC, &
                  DERIV, P,  &
@@ -251,7 +252,7 @@
                  T, TOLD, DEN, DENOLD, &
                  MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
                  T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, SECOND_THETA, T_BETA, &
-                 SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
+                 SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
                  SUF_T_BC_ROB1, SUF_T_BC_ROB2,  &
                  WIC_T_BC, WIC_D_BC, WIC_U_BC, &
                  DERIV, P,  &
@@ -352,7 +353,7 @@
          T, TOLD, DEN, DENOLD, &
          MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
          T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, SECOND_THETA, T_BETA, &
-         SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
+         SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
          SUF_T_BC_ROB1, SUF_T_BC_ROB2,  &
          WIC_T_BC, WIC_D_BC, WIC_U_BC, &
          DERIV, P,  &
@@ -417,6 +418,7 @@
       REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE ), intent( in ) :: SUF_T_BC, SUF_D_BC
       REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  ), intent( in ) :: SUF_T2_BC
       REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
+      REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE, NDIM ), intent( in ) :: SUF_SIG_DIAGTEN_BC
       REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE ), intent( in ) :: SUF_T_BC_ROB1, SUF_T_BC_ROB2
       REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE * IGOT_T2 ), intent( in ) :: SUF_T2_BC_ROB1, SUF_T2_BC_ROB2
       REAL, DIMENSION( CV_NONODS*NPHASE ), intent( in ) :: DERIV
@@ -469,7 +471,7 @@
               T, TOLD, DEN, DENOLD, &
               MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
               T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, SECOND_THETA, T_BETA, &
-              SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
+              SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
               SUF_T_BC_ROB1, SUF_T_BC_ROB2,  &
               WIC_T_BC, WIC_D_BC, WIC_U_BC, &
               DERIV, P,  &
@@ -611,7 +613,7 @@
            DT, &
            ! added the next line...
            SUF_T_BC, SUF_T_BC, SUF_T_BC, &
-           SUF_U_BC, SUF_V_BC, SUF_W_BC, RZERO, &
+           SUF_U_BC, SUF_V_BC, SUF_W_BC, RZERO, RZERO, &
            SUF_T_BC_ROB1, SUF_T_BC_ROB2, RZERO, RZERO,  &
            RZERO, RZERO, &
            WIC_T_BC, WIC_U_BC, IZERO,  &
@@ -710,7 +712,7 @@
          NU, NV, NW, NUOLD, NVOLD, NWOLD, SATURA, SATURAOLD, DEN, DENOLD, &
          MAT_NLOC,MAT_NDGLN,MAT_NONODS, &
          V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
-         SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
+         SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
          WIC_VOL_BC, WIC_D_BC, WIC_U_BC, &
          DERIV, P,  &
          V_SOURCE, V_ABSORB, VOLFRA_PORE, &
@@ -760,6 +762,7 @@
       REAL, intent( inout ) :: V_BETA
       REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE ), intent( in ) :: SUF_VOL_BC, SUF_D_BC
       REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
+      REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE, NDIM ), intent( in ) :: SUF_SIG_DIAGTEN_BC
       REAL, DIMENSION( CV_NONODS*NPHASE ), intent( in ) :: DERIV
       REAL, DIMENSION( CV_NONODS ), intent( in ) :: P
       REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: V_SOURCE
@@ -841,7 +844,7 @@
               SATURA, SATURAOLD, DEN, DENOLD, &
               MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
               V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, SECOND_THETA, V_BETA, &
-              SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
+              SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
               SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2,  &
               WIC_VOL_BC, WIC_D_BC, WIC_U_BC, &
               DERIV, P, &
@@ -912,7 +915,7 @@
          CV_ELE_TYPE, &
          NU, NV, NW, NUOLD, NVOLD, NWOLD, &
          V_DISOPT, V_DG_VEL_INT_OPT, V_THETA, &
-         SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_P_BC, &
+         SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC,SUF_P_BC, &
          SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2,  &
          SUF_W_BC_ROB1, SUF_W_BC_ROB2, &       
          WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_P_BC,  &
@@ -964,6 +967,7 @@
       REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: DERIV
       REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE ), intent( in ) :: SUF_VOL_BC, SUF_D_BC
       REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
+      REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE, NDIM ), intent( in ) :: SUF_SIG_DIAGTEN_BC
       REAL, DIMENSION( STOTEL * P_SNLOC * NPHASE ), intent( in ) :: SUF_P_BC
       REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC_ROB1, SUF_U_BC_ROB2, &
            SUF_V_BC_ROB1, SUF_V_BC_ROB2, SUF_W_BC_ROB1, SUF_W_BC_ROB2
@@ -1067,7 +1071,7 @@
            CV_ELE_TYPE, &
            NU, NV, NW, NUOLD, NVOLD, NWOLD, &
            V_DISOPT, V_DG_VEL_INT_OPT, V_THETA, &
-           SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_P_BC, &
+           SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC,SUF_P_BC, &
            SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2, &
            SUF_W_BC_ROB1, SUF_W_BC_ROB2, &
            WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_P_BC, &
@@ -1496,7 +1500,7 @@
          CV_ELE_TYPE, &
          NU, NV, NW, NUOLD, NVOLD, NWOLD, &
          V_DISOPT, V_DG_VEL_INT_OPT, V_THETA, &
-         SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_P_BC, &
+         SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC,SUF_P_BC, &
          SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2,  &
          SUF_W_BC_ROB1, SUF_W_BC_ROB2, &       
          WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_P_BC,  &
@@ -1581,6 +1585,7 @@
       REAL, intent( in ) :: V_THETA
       REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE ), intent( in ) :: SUF_VOL_BC, SUF_D_BC
       REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
+      REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE, NDIM ), intent( in ) :: SUF_SIG_DIAGTEN_BC
       REAL, DIMENSION( STOTEL * P_SNLOC * NPHASE ), intent( in ) :: SUF_P_BC
       REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC_ROB1, SUF_U_BC_ROB2, &
            SUF_V_BC_ROB1, SUF_V_BC_ROB2, SUF_W_BC_ROB1, SUF_W_BC_ROB2
@@ -1627,7 +1632,7 @@
            CV_ELE_TYPE, &
            NU, NV, NW, NUOLD, NVOLD, NWOLD, &
            V_DISOPT, V_DG_VEL_INT_OPT, V_THETA, &
-           SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_P_BC, &
+           SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, SUF_P_BC, &
            SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2,  &
            SUF_W_BC_ROB1, SUF_W_BC_ROB2, &
            WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_P_BC,  &
@@ -1732,7 +1737,7 @@
          CV_ELE_TYPE, &
          NU, NV, NW, NUOLD, NVOLD, NWOLD, &
          V_DISOPT, V_DG_VEL_INT_OPT, V_THETA, &
-         SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_P_BC, &
+         SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, SUF_P_BC, &
          SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2,  & 
          SUF_W_BC_ROB1, SUF_W_BC_ROB2, &
          WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_P_BC,  &
@@ -1803,6 +1808,7 @@
       REAL, intent( in ) :: V_THETA
       REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE ), intent( in ) :: SUF_VOL_BC, SUF_D_BC
       REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
+      REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE, NDIM ), intent( in ) :: SUF_SIG_DIAGTEN_BC
       REAL, DIMENSION( STOTEL * P_SNLOC * NPHASE ), intent( in ) :: SUF_P_BC
       REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC_ROB1, SUF_U_BC_ROB2, &
            SUF_V_BC_ROB1, SUF_V_BC_ROB2, SUF_W_BC_ROB1, SUF_W_BC_ROB2
@@ -1936,7 +1942,7 @@
            SATURA, SATURAOLD, DEN_OR_ONE, DENOLD_OR_ONE, &
            MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
            V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, SECOND_THETA, V_BETA, &
-           SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
+           SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
            SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2,  &
            WIC_VOL_BC, WIC_D_BC, WIC_U_BC, &
            DERIV, CV_P,  &
