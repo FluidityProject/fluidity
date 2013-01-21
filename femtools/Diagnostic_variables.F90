@@ -494,7 +494,7 @@ contains
     character(len=*) :: filename
     type(state_type), dimension(:), intent(in) :: state
 
-    integer :: column, i, j, k, phase, stat
+    integer :: column, i, j, k, s, phase, stat
     integer, dimension(2) :: shape_option
     integer :: no_mixing_bins
     real, dimension(:), pointer :: mixing_bin_bounds
@@ -752,26 +752,29 @@ contains
 
            ! drag calculation
            if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/compute_body_forces_on_surfaces")) then
-             do j = 1, mesh_dim(vfield%mesh)
-               column = column + 1
-               buffer = field_tag(name=trim(vfield%name), column=column, statistic="force%" &
-               // int2str(j), material_phase_name=material_phase_name)
-               write(default_stat%diag_unit, '(a)') trim(buffer)
+             do s = 0, option_count(trim(complete_field_path(vfield%option_path, stat = stat)) // "/stat/compute_body_forces_on_surfaces") - 1
+               call get_option(trim(complete_field_path(vfield%option_path))//"/stat/compute_body_forces_on_surfaces[" // int2str(s) // "]/name", surface_integral_name)
+               do j = 1, mesh_dim(vfield%mesh)
+                 column = column + 1
+                 buffer = field_tag(name=trim(vfield%name), column=column, statistic="force_"//trim(surface_integral_name)//"%" &
+                 // int2str(j), material_phase_name=material_phase_name)
+                 write(default_stat%diag_unit, '(a)') trim(buffer)
+               end do
+               if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/compute_body_forces_on_surfaces[" // int2str(s) // "]/output_terms")) then
+                 do j = 1, mesh_dim(vfield%mesh)
+                   column = column + 1
+                   buffer = field_tag(name=trim(vfield%name), column=column, statistic="pressure_force_"//trim(surface_integral_name)//"%" &
+                   // int2str(j), material_phase_name=material_phase_name)
+                   write(default_stat%diag_unit, '(a)') trim(buffer)
+                 end do
+                 do j = 1, mesh_dim(vfield%mesh)
+                   column = column + 1
+                   buffer = field_tag(name=trim(vfield%name), column=column, statistic="viscous_force_"//trim(surface_integral_name)//"%" &
+                   // int2str(j), material_phase_name=material_phase_name)
+                   write(default_stat%diag_unit, '(a)') trim(buffer)
+                 end do
+               end if
              end do
-             if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/compute_body_forces_on_surfaces/output_terms")) then
-               do j = 1, mesh_dim(vfield%mesh)
-                 column = column + 1
-                 buffer = field_tag(name=trim(vfield%name), column=column, statistic="pressure_force%" &
-                 // int2str(j), material_phase_name=material_phase_name)
-                 write(default_stat%diag_unit, '(a)') trim(buffer)
-               end do
-               do j = 1, mesh_dim(vfield%mesh)
-                 column = column + 1
-                 buffer = field_tag(name=trim(vfield%name), column=column, statistic="viscous_force%" &
-                 // int2str(j), material_phase_name=material_phase_name)
-                 write(default_stat%diag_unit, '(a)') trim(buffer)
-               end do
-             end if
            end if
 
            if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/divergence_stats")) then
@@ -2170,41 +2173,46 @@ contains
       type(tensor_field), pointer :: viscosity
 
       logical :: have_viscosity      
-      integer :: i
+      integer :: i, s
       real :: force(vfield%dim), pressure_force(vfield%dim), viscous_force(vfield%dim)
+      character(len = FIELD_NAME_LEN) :: surface_integral_name
     
       viscosity=>extract_tensor_field(state, "Viscosity", stat)
       have_viscosity = stat == 0
 
-      if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/compute_body_forces_on_surfaces/output_terms")) then
-        if(have_viscosity) then
-          ! calculate the forces on the surface
-          call diagnostic_body_drag(state, force, pressure_force = pressure_force, viscous_force = viscous_force)
-        else   
-          call diagnostic_body_drag(state, force, pressure_force = pressure_force)   
-        end if
-        if(getprocno() == 1) then
-          do i=1, mesh_dim(vfield%mesh)
-            write(default_stat%diag_unit, trim(format), advance="no") force(i)
-          end do
-          do i=1, mesh_dim(vfield%mesh)
-            write(default_stat%diag_unit, trim(format), advance="no") pressure_force(i)
-          end do
+      do s = 0, option_count(trim(complete_field_path(vfield%option_path, stat = stat)) // "/stat/compute_body_forces_on_surfaces") - 1
+        call get_option(trim(complete_field_path(vfield%option_path))//"/stat/compute_body_forces_on_surfaces[" // int2str(s) // "]/name", surface_integral_name)
+
+        if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/compute_body_forces_on_surfaces[" // int2str(s) // "]/output_terms")) then
           if(have_viscosity) then
-            do i=1, mesh_dim(vfield%mesh)
-             write(default_stat%diag_unit, trim(format), advance="no") viscous_force(i)
-            end do
+            ! calculate the forces on the surface
+            call diagnostic_body_drag(state, force, surface_integral_name, pressure_force = pressure_force, viscous_force = viscous_force)
+          else
+            call diagnostic_body_drag(state, force, surface_integral_name, pressure_force = pressure_force)   
           end if
-        end if
-      else
-          ! calculate the forces on the surface
-          call diagnostic_body_drag(state, force) 
           if(getprocno() == 1) then
-           do i=1, mesh_dim(vfield%mesh)
+            do i=1, mesh_dim(vfield%mesh)
               write(default_stat%diag_unit, trim(format), advance="no") force(i)
-           end do
-          end if     
-      end if 
+            end do
+            do i=1, mesh_dim(vfield%mesh)
+              write(default_stat%diag_unit, trim(format), advance="no") pressure_force(i)
+            end do
+            if(have_viscosity) then
+              do i=1, mesh_dim(vfield%mesh)
+               write(default_stat%diag_unit, trim(format), advance="no") viscous_force(i)
+              end do
+            end if
+          end if
+        else
+            ! calculate the forces on the surface
+            call diagnostic_body_drag(state, force, surface_integral_name) 
+            if(getprocno() == 1) then
+             do i=1, mesh_dim(vfield%mesh)
+                write(default_stat%diag_unit, trim(format), advance="no") force(i)
+             end do
+            end if     
+        end if
+      end do
       
     end subroutine write_body_forces
 
@@ -2476,7 +2484,7 @@ contains
           call field_con_stats(sfield, oldsfield, change, &
                                convergence_norm, coordinates)
           if(acceleration) change = change/dt
-          ewrite(2, *) trim(sfield%name), change
+          ewrite(2, *) trim(state(phase)%name)//"::"//trim(sfield%name), change
           maxchange = max(maxchange, change)
 
           if(default_stat%write_steady_state_file .and. procno == 1) then
@@ -2501,7 +2509,7 @@ contains
          call field_con_stats(vfield, oldvfield, change, &
                               convergence_norm, coordinates)
          if(acceleration) change = change/dt
-         ewrite(2, *) trim(vfield%name), change
+         ewrite(2, *) trim(state(phase)%name)//"::"//trim(vfield%name), change
          maxchange = max(maxchange, change)
 
          if(default_stat%write_steady_state_file .and. procno == 1) then
@@ -2522,7 +2530,7 @@ contains
            call field_con_stats(vfield_comp, oldvfield_comp, change, &
                                 convergence_norm, coordinates)
            if(acceleration) change = change/dt
-           ewrite(2, *) trim(vfield%name), j, change
+           ewrite(2, *) trim(state(phase)%name)//"::"//trim(vfield%name), j,  change
            maxchange = max(maxchange, change)
 
            if(default_stat%write_steady_state_file .and. procno == 1) then

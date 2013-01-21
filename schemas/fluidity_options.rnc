@@ -1273,7 +1273,7 @@ start =
                         |
                         element use_consistent_mass_matrix { 
                            element solver {
-                              linear_solver_options_asym
+                              linear_solver_options_asym_scalar
                            }
                         }                     
                      )
@@ -1904,10 +1904,13 @@ sediment =
                ##
                ## As with the sinking velocity, this velocity is in the direction of gravity so if the substance
                ## floats upwards, this field should be negative.
+               ##
+               ## This should be on the same mesh as the associated SinkingVelocity field.
                element scalar_field {
                   attribute name { "UnhinderedSinkingVelocity" },
                   attribute rank { "0" },
                   element prescribed {
+                     velocity_mesh_choice,
                      prescribed_scalar_field
                   }
                }?,
@@ -2056,7 +2059,7 @@ prognostic_density_field =
       (
          ## Solver
          element solver {
-            linear_solver_options_asym
+            linear_solver_options_asym_scalar
          }|
          ## Assume this field is being solved explicitly and skip the solver.
          ##
@@ -2681,6 +2684,31 @@ velocity_boundary_conditions =
          element type {
            attribute name { "free_surface" },
            (
+              ## The default free_surface implements the physical boundary
+              ## condition p=0 (this is full pressure without subtracting the hydrostatic component)
+              ## For viscous fluids the correct boundary condition is a no normal
+              ## stress condition, which includes a viscosity term. When using
+              ## this option a prognostic FreeSurface field is required.
+              element no_normal_stress {
+                 ## Treat the free surface evolution equation separately from the momentum equation.  
+                 ## i.e. stagger the solves.
+                 ##
+                 ## Requires a prognostic FreeSurface field.
+                 element explicit {
+                   empty
+                 }?
+              }?,
+              ## When selected the density at the surface is calculated using the Density field.  Therefore
+              ## this requires a Density field!
+              element variable_density {
+                 empty
+              }?,
+              ## When selected a hydrostatic pressure distribution on the outside is assumed
+              ## using the specified density, i.e. instead of applying p=0 (resp.
+              ## normal_stress=0) we apply p=p_external (resp. normal_stress=p_external) where p_external is determined by dp_external/dz=external_density*g
+              element external_density {
+                 real
+              }?,
               ## This options adds a surface stabilisation term to the free surface. Works only for cg velocity so far. 
               ## Note: Once activated, the stabilisation term will occur in all free surface areas in the domain. 
               ## IN DEVELOPMENT
@@ -2813,6 +2841,23 @@ velocity_boundary_conditions =
          element type{
             attribute name { "log_law_of_wall" },
             element surface_roughness {real}
+         }|
+         ## Flux boundary condition. 
+         ##
+         ## Weakly enforces a flux across a boundary
+         element type {
+            attribute name { "flux" },
+            element align_bc_with_cartesian {
+               element x_component {
+                  input_choice_real_bc_component
+               }?,
+               element y_component {
+                  input_choice_real_bc_component
+               }?,
+               element z_component {
+                  input_choice_real_bc_component
+               }?
+            }
          }
       )
    )
@@ -3072,15 +3117,20 @@ prognostic_velocity_stat_options.stat &=
       element nonlinear_field {
          vector_field_stat_options_disabled_default
       },
-      ## What surface IDs do you want to do the calculation over?
       element compute_body_forces_on_surfaces {
-         ## Enable to output the pressure and viscous terms separately (as well
-         ## as the total force)
-         element output_terms {
-            comment
-         }?,
-         integer_vector
-      }?,
+        attribute name { xsd:string },
+        (
+          ## What surface IDs do you want to do the calculation over?
+          element surface_ids {
+            integer_vector
+          },
+          ## Enable to output the pressure and viscous terms separately (as well
+          ## as the total force)
+          element output_terms {
+             comment
+          }?
+        )
+      }*,
       ## Compute the divergence of this field at the Gauss points
       ## and return its stats.  This is a direct measure of the
       ## divergence at the gauss points rather than a discrete measure
@@ -3377,10 +3427,10 @@ scalar_field_choice =
             )
          }|
          ## Free Surface
-         ## NOTE: if you are using the free_surface boundary condition
-         ## applied to the Velocity field (recommended), you should not 
-         ## use the prognostic FreeSurface field. In this case you may 
-         ## (optionally) add a diagnostic FreeSurface field.
+         ## Use in combination with a free_surface boundary condition on velocity
+         ## Without the no_normal_stress option, this field should be diagnostic
+         ## and is optional. With the no_normal_stress option this field is required
+         ## and should be prognostic.
          element scalar_field {
             attribute rank { "0" },
             attribute name { "FreeSurface" },
@@ -3388,16 +3438,57 @@ scalar_field_choice =
                ## Free Surface
                ## NOTE: the diagnostic FreeSurface field only works in combination
                ## with the free_surface boundary condition applied to the Velocity
-               ## field. It gives you a 3D field (constant over the vertical)
+               ## field, without the no_normal_stress_option.
+               ## It gives you a full dimensional field (constant over the vertical)
                ## of the free surface elevation.
                element diagnostic {
                   internal_algorithm,
-                  # this is hard-coded on the PressureMesh as long as the Pressure is
-                  # if this is no longer true, it should be option-checked to be on the
-                  # same mesh as Pressure
                   ## Must be on the same mesh as Pressure
                   pressure_mesh_choice,
                   diagnostic_scalar_field
+               }|
+               ## Free Surface
+               ## NOTE: the prognostic FreeSurface field only works in combination
+               ## with the free_surface boundary condition applied to the Velocity
+               ## field in combination with the no_normal_stress_option.
+               ## It gives you a full dimensional field (constant over the vertical)
+               ## of the free surface elevation. Initial and boundary conditions
+               ## for free surface should be set on this field.
+               element prognostic {
+                  ## Must be on the same mesh as Pressure
+                  pressure_mesh_choice,
+                  (
+                     ## Initial condition for WholeMesh
+                     ##
+                     ## Only specify one condition if not using mesh regions.
+                     ## Otherwise select other initial_condition option, specify region_ids
+                     ## and distinct names.  Then add extra intial conditions for other regions.
+                     element initial_condition {
+                        attribute name { "WholeMesh" },
+                        input_choice_initial_condition_real
+                     }|
+                     ## Multiple initial_conditions are allowed if specifying
+                     ## different values in different
+                     ## regions of the mesh (defined by region_ids).  In this case
+                     ## each initial_condition
+                     ## requires a distinct name for the options dictionary.
+                     element initial_condition {
+                        attribute name { string },
+                        region_ids?,
+                        input_choice_initial_condition_real
+                     }
+                  )+,
+                  ## Solver - only necessary in combination with an explicit no_normal_stress free_surface bc under Velocity.
+                  element solver {
+                     linear_solver_options_sym
+                  },
+                  prognostic_scalar_output_options,
+                  prognostic_scalar_stat_options,
+                  scalar_convergence_options,
+                  prognostic_detector_options,
+                  scalar_steady_state_options,
+                  adaptivity_options_prognostic_scalar_field,
+                  interpolation_algorithm_scalar
                }
                
             )
@@ -5650,6 +5741,11 @@ tensor_field_choice =
                   mesh_choice,
                   prescribed_tensor_field
                }|
+               element diagnostic {
+                  mesh_choice,
+                  tensor_python_diagnostic_algorithm,
+                  diagnostic_tensor_field
+               }|
                element aliased {
                   generic_aliased_field
                }
@@ -6763,7 +6859,7 @@ prognostic_photosynthetic_radiation =
       (
          ## Solver
          element solver {
-            linear_solver_options_asym
+            linear_solver_options_asym_scalar
          }
       ),
       # Alas, no initial_condition either, so we'd better not checkpoint it...

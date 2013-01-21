@@ -95,7 +95,7 @@ Advection_Diffusion_DG.o ../include/advection_diffusion_dg.mod: \
    ../include/coordinates.mod ../include/dgtools.mod \
    ../include/diagnostic_fields.mod ../include/elements.mod \
    ../include/fdebug.h ../include/fefields.mod ../include/fetools.mod \
-   ../include/fields.mod ../include/fldebug.mod \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/petsc_solve_state_module.mod \
    ../include/porous_media.mod ../include/profiler.mod \
    ../include/shape_functions.mod ../include/slope_limiters_dg.mod \
@@ -316,13 +316,16 @@ Foam_Flow.o ../include/foam_flow_module.mod: Foam_Flow.F90 \
 	@true
 
 Free_Surface.o ../include/free_surface_module.mod: Free_Surface.F90 \
-   ../include/boundary_conditions.mod ../include/eventcounter.mod \
-   ../include/fdebug.h ../include/field_options.mod ../include/fields.mod \
+   ../include/boundary_conditions.mod ../include/data_structures.mod \
+   ../include/eventcounter.mod ../include/fdebug.h \
+   ../include/field_options.mod ../include/fields.mod \
    ../include/global_parameters.mod ../include/halos.mod \
    ../include/integer_set_module.mod ../include/parallel_tools.mod \
-   ../include/physics_from_options.mod ../include/sparse_matrices_fields.mod \
-   ../include/sparse_tools.mod ../include/spud.mod ../include/state_module.mod \
-   ../include/tidal_module.mod ../include/vertical_extrapolation_module.mod
+   ../include/physics_from_options.mod ../include/solvers.mod \
+   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
+   ../include/sparsity_patterns.mod ../include/sparsity_patterns_meshes.mod \
+   ../include/spud.mod ../include/state_module.mod ../include/tidal_module.mod \
+   ../include/vertical_extrapolation_module.mod
 
 ../include/full_projection.mod: Full_Projection.o
 	@true
@@ -525,14 +528,14 @@ Momentum_CG.o ../include/momentum_cg.mod: Momentum_CG.F90 \
    ../include/global_parameters.mod ../include/halos.mod \
    ../include/les_viscosity_module.mod ../include/metric_tools.mod \
    ../include/multiphase_module.mod ../include/petsc_solve_state_module.mod \
-   ../include/profiler.mod ../include/rotated_boundary_conditions.mod \
-   ../include/smoothing_module.mod ../include/solvers.mod \
-   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
-   ../include/sparse_tools_petsc.mod ../include/sparsity_patterns_meshes.mod \
-   ../include/spud.mod ../include/state_fields_module.mod \
-   ../include/state_matrices_module.mod ../include/state_module.mod \
-   ../include/transform_elements.mod ../include/upwind_stabilisation.mod \
-   ../include/vector_tools.mod
+   ../include/physics_from_options.mod ../include/profiler.mod \
+   ../include/rotated_boundary_conditions.mod ../include/smoothing_module.mod \
+   ../include/solvers.mod ../include/sparse_matrices_fields.mod \
+   ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
+   ../include/state_fields_module.mod ../include/state_matrices_module.mod \
+   ../include/state_module.mod ../include/transform_elements.mod \
+   ../include/upwind_stabilisation.mod ../include/vector_tools.mod
 
 ../include/momentum_dg.mod: Momentum_DG.o
 	@true
