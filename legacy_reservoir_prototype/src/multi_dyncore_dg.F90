@@ -2903,7 +2903,7 @@
          Loop_ilev_DGNods1: DO ILEV=1,NLEV
             Loop_DGNods1: DO U_ILOC = 1 +(ILEV-1)*U_NLOC2, ILEV*U_NLOC2
                GLOBI = U_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
-               GLOBI_CV = CV_NDGLN(( ELE - 1 ) * CV_NLOC + U_ILOC )
+               if (nlev==1 .and. lump_mass) GLOBI_CV = CV_NDGLN(( ELE - 1 ) * CV_NLOC + U_ILOC )
 
                ! put CV source in...
                Loop_CVNods2: DO CV_JLOC = 1 , CV_NLOC
