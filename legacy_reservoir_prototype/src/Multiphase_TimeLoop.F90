@@ -382,9 +382,9 @@
       plike_grad_sou_coef=0.
       iplike_grad_sou=0 
 
-! dummy densities for testing
- allocate( density_tmp(cv_nonods) , density_old_tmp(cv_nonods) )
- density_tmp=0. ; density_old_tmp=0.
+      ! dummy densities for testing
+      allocate( density_tmp(cv_nonods) , density_old_tmp(cv_nonods) )
+      density_tmp=0. ; density_old_tmp=0.
 
 !!$ Extracting Mesh Dependent Fields
       initialised = .false.
@@ -558,42 +558,9 @@
          END IF
 
 
-         if ( .false. .and. itime==1 ) then
-            allocate( DEN_CV_NOD( CV_NLOC, NPHASE) ) 
-            if ( cv_nloc==6 .or. cv_nloc==10 ) then ! P2 triangle or tet
-
-               density_tmp = component
-
-               DO ELE = 1, TOTELE
-                  DO CV_ILOC = 1, CV_NLOC
-                     CV_NOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
-                     DO IPHASE = 1,NPHASE
-                        CV_NOD_PHA = CV_NOD +( IPHASE - 1) * CV_NONODS
-                        DEN_CV_NOD( CV_ILOC, IPHASE ) = density_tmp( CV_NOD_PHA )
-                     END DO
-                  END DO
-
-                  DEN_CV_NOD(2, :) = 0.5 * ( DEN_CV_NOD(1, :) + DEN_CV_NOD(3, :) )
-                  DEN_CV_NOD(4, :) = 0.5 * ( DEN_CV_NOD(1, :) + DEN_CV_NOD(6, :) )
-                  DEN_CV_NOD(5, :) = 0.5 * ( DEN_CV_NOD(3, :) + DEN_CV_NOD(6, :) )
-
-                  if ( cv_nloc==10 ) then
-                     DEN_CV_NOD(7, :) = 0.5 * ( DEN_CV_NOD(1, :) + DEN_CV_NOD(10, :) )
-                     DEN_CV_NOD(8, :) = 0.5 * ( DEN_CV_NOD(3, :) + DEN_CV_NOD(10, :) )
-                     DEN_CV_NOD(9, :) = 0.5 * ( DEN_CV_NOD(6, :) + DEN_CV_NOD(10, :) )
-                  end if
-
-                  DO CV_ILOC = 1, CV_NLOC
-                     CV_NOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
-                     DO IPHASE = 1, NPHASE
-                        CV_NOD_PHA = CV_NOD +( IPHASE - 1) * CV_NONODS
-                        component( CV_NOD_PHA ) = DEN_CV_NOD( CV_ILOC, IPHASE )
-                     END DO
-                  END DO
-               END DO
-          
-            end if
-            deallocate( DEN_CV_NOD ) 
+         Conditional_Components_Linearisation: if ( .false. .and. itime == 1 ) then
+            call Updating_Linearised_Components( totele, nphase, ncomp, cv_nloc, cv_nonods, cv_ndgln, &
+                 component )
 
             component_old = component
 
@@ -610,7 +577,7 @@
                        nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
                end do
             end do
-         end if
+         end if Conditional_Components_Linearisation
 
 
          Loop_NonLinearIteration: do its = 1, NonLinearIteration
@@ -771,7 +738,7 @@
                         END DO
                      END DO
                   END DO
-          
+
                   deallocate( DEN_CV_NOD ) 
                end if
 
@@ -788,8 +755,8 @@
                ! calculate the viscosity for the momentum equation...
                call calculate_viscosity( state, ncomp, nphase, ndim, mat_nonods, mat_ndgln, Momentum_Diffusion  )
 
-! quick fix for collapsing water column...
-ScalarField_Source_Store=0.
+               ! quick fix for collapsing water column...
+               ScalarField_Source_Store=0.
 
                CALL FORCE_BAL_CTY_ASSEM_SOLVE( state, &
                     NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
@@ -1121,43 +1088,10 @@ ScalarField_Source_Store=0.
 !!$               Conditional_Adapt_by_TimeStep: if( do_adapt_mesh( current_time, itime ) ) then
 !!$               Conditional_Adapt_by_TimeStep: if( do_adapt_mesh( current_time, timestep ) ) then
 
-                  ! linearise compositional fields...
-                  if ( .true. ) then
-                     allocate( DEN_CV_NOD( CV_NLOC, NPHASE) ) 
-                     if ( cv_nloc==6 .or. cv_nloc==10 ) then ! P2 triangle or tet
-
-                        density_tmp = component
-
-                        DO ELE = 1, TOTELE
-                           DO CV_ILOC = 1, CV_NLOC
-                              CV_NOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
-                              DO IPHASE = 1,NPHASE
-                                 CV_NOD_PHA = CV_NOD +( IPHASE - 1) * CV_NONODS
-                                 DEN_CV_NOD( CV_ILOC, IPHASE ) = density_tmp( CV_NOD_PHA )
-                              END DO
-                           END DO
-
-                           DEN_CV_NOD(2, :) = 0.5 * ( DEN_CV_NOD(1, :) + DEN_CV_NOD(3, :) )
-                           DEN_CV_NOD(4, :) = 0.5 * ( DEN_CV_NOD(1, :) + DEN_CV_NOD(6, :) )
-                           DEN_CV_NOD(5, :) = 0.5 * ( DEN_CV_NOD(3, :) + DEN_CV_NOD(6, :) )
-
-                           if ( cv_nloc==10 ) then
-                              DEN_CV_NOD(7, :) = 0.5 * ( DEN_CV_NOD(1, :) + DEN_CV_NOD(10, :) )
-                              DEN_CV_NOD(8, :) = 0.5 * ( DEN_CV_NOD(3, :) + DEN_CV_NOD(10, :) )
-                              DEN_CV_NOD(9, :) = 0.5 * ( DEN_CV_NOD(6, :) + DEN_CV_NOD(10, :) )
-                           end if
-
-                           DO CV_ILOC = 1, CV_NLOC
-                              CV_NOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
-                              DO IPHASE = 1, NPHASE
-                                 CV_NOD_PHA = CV_NOD +( IPHASE - 1) * CV_NONODS
-                                 component( CV_NOD_PHA ) = DEN_CV_NOD( CV_ILOC, IPHASE )
-                              END DO
-                           END DO
-                        END DO
-          
-                     end if
-                     deallocate( DEN_CV_NOD ) 
+                  ! linearise compositional fields:
+                  Conditional_Components_Linearisation2: if ( ncomp > 1 ) then
+                     call Updating_Linearised_Components( totele, nphase, ncomp, cv_nloc, cv_nonods, cv_ndgln, &
+                          component )
 
                      !component_old = component
 
@@ -1166,7 +1100,7 @@ ScalarField_Source_Store=0.
                            Component_State => extract_scalar_field( state( icomp + nphase ), & 
                                 'ComponentMassFractionPhase' // int2str( iphase ) )
                            Component_State % val = component( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
-                          nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
+                                nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
 
 
                            !Component_State => extract_scalar_field( state( icomp + nphase ), & 
@@ -1175,7 +1109,7 @@ ScalarField_Source_Store=0.
                            !     nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
                         end do
                      end do
-                  end if
+                  end if Conditional_Components_Linearisation2
 
 
                   call pre_adapt_tasks( sub_state )
@@ -1460,8 +1394,8 @@ ScalarField_Source_Store=0.
 !!$ Dummy field used in the scalar advection option:
             Dummy_PhaseVolumeFraction_FEMT = 1.
 
- allocate( density_tmp(cv_nonods) , density_old_tmp(cv_nonods) )
- density_tmp=0. ; density_old_tmp=0.
+            allocate( density_tmp(cv_nonods) , density_old_tmp(cv_nonods) )
+            density_tmp=0. ; density_old_tmp=0.
 
 !!$
 !!$ Initialising Robin boundary conditions --  this still need to be defined in the schema:
@@ -1562,5 +1496,63 @@ ScalarField_Source_Store=0.
 
       return
     end subroutine MultiFluids_SolveTimeLoop
+
+
+
+    subroutine Updating_Linearised_Components( totele, nphase, ncomp, cv_nloc, cv_nonods, cv_ndgln, &
+         component )
+      implicit none
+      integer, intent( in ) :: totele, nphase, ncomp, cv_nloc, cv_nonods
+      integer, dimension( : ), intent( in ) :: cv_ndgln
+      real, dimension ( : ), intent( inout ) :: component
+!!$Local variables
+      integer :: ele, iphase, cv_iloc, cv_nod, cv_nod_pha
+      real, dimension( : ), allocatable :: density_tmp
+      real, dimension( :, : ), allocatable :: den_cv_nod
+
+      allocate( density_tmp( cv_nonods * nphase * max( 1, ncomp ) ), den_cv_nod( cv_nloc, nphase ) ) ; &
+           density_tmp = 0. ; den_cv_nod = 0.
+
+      Conditional_CV_Number: if( cv_nloc == 6 .or. cv_nloc == 10 ) then ! P2 triangle or tet
+         density_tmp = component
+         Loop_Elements: do ele = 1, totele
+            Loop_CV: do cv_iloc = 1, cv_nloc
+               cv_nod = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
+               do iphase = 1, nphase
+                  cv_nod_pha = cv_nod + ( iphase - 1 ) * cv_nonods
+                  den_cv_nod( cv_iloc, iphase ) = density_tmp( cv_nod_pha )
+               end do
+            end do Loop_CV
+
+            den_cv_nod( 2, : ) = 0.5 * ( den_cv_nod( 1, : ) + den_cv_nod( 3, : ) )
+            den_cv_nod( 4, : ) = 0.5 * ( den_cv_nod( 1, : ) + den_cv_nod( 6, : ) )
+            den_cv_nod( 5, : ) = 0.5 * ( den_cv_nod( 3, : ) + den_cv_nod( 6, : ) )
+            if( cv_nloc == 10 ) then
+               den_cv_nod( 7, : ) = 0.5 * ( den_cv_nod( 1, : ) + den_cv_nod( 10, : ) )
+               den_cv_nod( 8, : ) = 0.5 * ( den_cv_nod( 3, : ) + den_cv_nod( 10, : ) )
+               den_cv_nod( 9, : ) = 0.5 * ( den_cv_nod( 6, : ) + den_cv_nod( 10, : ) )
+            end if
+
+            Loop_CV2: do cv_iloc = 1, cv_nloc
+               cv_nod = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
+               do iphase = 1, nphase
+                  cv_nod_pha = cv_nod + ( iphase - 1 ) * cv_nonods
+                  component( cv_nod_pha ) = den_cv_nod( cv_iloc, iphase )
+               end do
+            end do Loop_CV2
+
+         end do Loop_Elements
+
+      else
+         FLAbort( 'Only working for cv_nloc == 6 or 10' )
+
+      end if Conditional_CV_Number
+
+      deallocate( density_tmp, den_cv_nod )
+
+      return
+    end subroutine Updating_Linearised_Components
+
+
 
   end module multiphase_time_loop

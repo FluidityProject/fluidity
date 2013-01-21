@@ -156,7 +156,7 @@
       REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( in ) :: OPT_VEL_UPWIND_COEFS
       INTEGER, INTENT( IN ) :: NOIT_DIM
       REAL, DIMENSION( CV_NONODS ), intent( inout ) :: MEAN_PORE_CV
-      character( len = option_path_len ), intent( in ), optional :: option_path
+      character( len = * ), intent( in ), optional :: option_path
       real, dimension( totele ), intent( inout ) :: mass_ele_transp
 
       ! Local variables
@@ -433,7 +433,7 @@
       INTEGER, INTENT( IN ) :: NOIT_DIM
       REAL, DIMENSION( CV_NONODS ), intent( inout ) :: MEAN_PORE_CV
       real, dimension( totele ), intent( inout ) :: mass_ele_transp
-      character( len = option_path_len ), intent( in ), optional :: option_path
+      character( len = * ), intent( in ), optional :: option_path
 
       ! Local variables
       LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE.
@@ -573,7 +573,7 @@
       INTEGER, DIMENSION( TOTELE + 1 ), intent( in ) :: FINELE
       INTEGER, DIMENSION( NCOLELE ), intent( in ) :: COLELE
       REAL, DIMENSION( MAT_NONODS, NDIM, NDIM, NPHASE ), intent( in ) :: TDIFFUSION 
-      character( len = option_path_len ), intent( in ), optional :: option_path
+      character( len = * ), intent( in ), optional :: option_path
       ! Local  variables... none
       REAL, DIMENSION ( : ), allocatable :: RZERO,RDUM
       INTEGER, DIMENSION ( : ), allocatable :: IDUM,IZERO
