@@ -4,7 +4,6 @@
     <string_value lines="1">biology_conservation_parallel</string_value>
     <comment>Check that without any settling velocity, biological quantities are preserved</comment>
   </simulation_name>
-  <pyop2_backend>sequential</pyop2_backend>
   <problem_type>
     <string_value lines="1">oceans</string_value>
   </problem_type>

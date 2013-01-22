@@ -30,7 +30,6 @@ For 2d and 3d a second approach is also done via solving a pressure poisson equa
 velocity diagnostically from this. This uses generic scalar and vector fields and python diagnostics. 
 The latter didnt work in 1d. The same vel-press element pair is used as the mixed projection formulation.</comment>
   </simulation_name>
-  <pyop2_backend>sequential</pyop2_backend>
   <problem_type>
     <string_value lines="1">fluids</string_value>
   </problem_type>

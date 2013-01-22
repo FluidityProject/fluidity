@@ -4,7 +4,6 @@
     <string_value lines="1">stokes-1e4-p2p1</string_value>
     <comment>This case compares to case 1(a) in the benchmark paper of Blankenbach et al. 1989.</comment>
   </simulation_name>
-  <pyop2_backend>sequential</pyop2_backend>
   <problem_type>
     <string_value lines="1">stokes</string_value>
   </problem_type>

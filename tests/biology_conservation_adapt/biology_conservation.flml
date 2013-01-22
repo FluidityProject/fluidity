@@ -4,7 +4,6 @@
     <string_value lines="1">biology_conservation</string_value>
     <comment>Check that biological quantities are preserved with a settling velocity, adapt in vertical, and the dodgy exclude advection option</comment>
   </simulation_name>
-  <pyop2_backend>sequential</pyop2_backend>
   <problem_type>
     <string_value lines="1">oceans</string_value>
   </problem_type>
