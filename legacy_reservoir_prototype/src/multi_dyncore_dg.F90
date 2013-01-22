@@ -612,8 +612,8 @@
            DEN, DENOLD, &
            DT, &
            ! added the next line...
-           SUF_T_BC, SUF_T_BC, SUF_T_BC, &
-           SUF_U_BC, SUF_V_BC, SUF_W_BC, RZERO, RZERO, &
+           SUF_T_BC, SUF_T_BC, SUF_T_BC, RZERO, &
+           SUF_U_BC, SUF_V_BC, SUF_W_BC, RZERO, &
            SUF_T_BC_ROB1, SUF_T_BC_ROB2, RZERO, RZERO,  &
            RZERO, RZERO, &
            WIC_T_BC, WIC_U_BC, IZERO,  &
@@ -1890,7 +1890,7 @@
            U, V, W, UOLD, VOLD, WOLD, &
            UDEN, UDENOLD, &
            DT, &
-           SUF_U_BC, SUF_V_BC, SUF_W_BC, &
+           SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
            SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_P_BC, &
            SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2,  &
            SUF_W_BC_ROB1, SUF_W_BC_ROB2, &
@@ -2135,7 +2135,7 @@
          NU, NV, NW, NUOLD, NVOLD, NWOLD, &
          UDEN, UDENOLD, &
          DT, &
-         SUF_U_BC, SUF_V_BC, SUF_W_BC, &
+         SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
          SUF_NU_BC, SUF_NV_BC, SUF_NW_BC, SUF_P_BC, &
          SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2,  &
          SUF_W_BC_ROB1, SUF_W_BC_ROB2, &
@@ -2168,8 +2168,8 @@
       INTEGER, DIMENSION( STOTEL * P_SNLOC ), intent( in )  :: P_SNDGLN
       INTEGER, DIMENSION( STOTEL * CV_SNLOC ), intent( in ) :: CV_SNDGLN 
       INTEGER, DIMENSION( STOTEL * NPHASE ), intent( in ) ::  WIC_U_BC, WIC_NU_BC, WIC_P_BC
-
       REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
+      REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE ), intent( in ) :: SUF_SIG_DIAGTEN_BC
       REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_NU_BC, SUF_NV_BC, SUF_NW_BC
       REAL, DIMENSION( STOTEL * P_SNLOC * NPHASE ), intent( in ) :: SUF_P_BC
       REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC_ROB1, SUF_U_BC_ROB2, &
@@ -5327,7 +5327,7 @@ end if
            SBCVN, SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
            SBCVFENLX, SBCVFENLY, SBCVFENLZ, SBUFEN, SBUFENSLX, SBUFENSLY, &
            SBUFENLX, SBUFENLY, SBUFENLZ, &
-           DUMMY_ZERO_NDIM_NDIM
+           DUMMY_ZERO_NDIM_NDIM, RZERO_DIAGTEN
       REAL, DIMENSION( : , : ), allocatable :: MASS, STORE_MASS
       REAL, DIMENSION( : , :, : ), allocatable :: DTX_ELE,DTY_ELE,DTZ_ELE, &
            SHARP_DTX_ELE,SHARP_DTY_ELE,SHARP_DTZ_ELE, &
@@ -5388,7 +5388,7 @@ end if
       LOGICAL :: GET_THETA_FLUX, USE_THETA_FLUX, THERMAL, LUMP_EQNS, &
            SIMPLE_LINEAR_SCHEME, GOTDEC, STRESS_FORM
 
-      INTEGER FEMT_CV_NOD(CV_NLOC)
+      REAL FEMT_CV_NOD(CV_NLOC)
 
       CHARACTER(LEN=OPTION_PATH_LEN) :: OPTION_PATH
       REAL, DIMENSION(TOTELE) :: DUMMY_ELE
@@ -5409,6 +5409,7 @@ end if
       ALLOCATE(RDUM(MAX(U_NLOC,CV_NLOC)*TOTELE)) ; RDUM = 0.0
       ALLOCATE(IDUM(MAX(U_NLOC,CV_NLOC)*TOTELE)) ; IDUM = 0
       ALLOCATE(RZERO(MAX(U_NLOC,CV_NLOC)*TOTELE)) ; RZERO=0.0 
+      ALLOCATE(RZERO_DIAGTEN(CV_SNLOC*STOTEL*NPHASE, NDIM)) ; RZERO_DIAGTEN=0.0 
       ALLOCATE(IZERO(MAX(U_NLOC,CV_NLOC)*TOTELE))  ; IZERO=0 
       ALLOCATE(CV_ONE(CV_NONODS)) ; CV_ONE=1.0
       ALLOCATE(CURVATURE(CV_NONODS))
@@ -6110,14 +6111,14 @@ end if
               RZERO,RZERO, &
               MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
               CV_DISOPT, CV_DG_VEL_INT_OPT, DT, T_THETA, T_BETA, &
-              RZERO, RZERO, RZERO, RZERO, RZERO, &
+              RZERO, RZERO, RZERO, RZERO, RZERO, RZERO_DIAGTEN, &
               RZERO, RZERO, &
               IDUM, IDUM, IDUM, &
               RZERO, RZERO, &
               RZERO, T_ABSORB, RZERO, &
               NDIM,  &
               NCOLM, FINDM, COLM, MIDM, &
-              XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE,  &
+              XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
               RDUM, NOPT_VEL_UPWIND_COEFS, &
               RDUM, CV_ONE, &
               IGOT_T2, CURVATURE, VOLUME_FRAC, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &

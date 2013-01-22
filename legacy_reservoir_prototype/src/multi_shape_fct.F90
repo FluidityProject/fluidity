@@ -1621,7 +1621,9 @@
       real, dimension( :, : ), allocatable :: M,MLX,MLY,MLZ, sm,SMLX,SMLY
       character( len = option_path_len ) :: overlapping_path, dummy_path, dummypath2 
       logical :: is_overlapping   
-      integer :: u_nloc2, ilev, ilev2, u_snloc2, u_ele_type2, gi, MLOC,SMLOC
+      integer :: u_nloc2, ilev, ilev2, u_snloc2, u_ele_type2, gi, MLOC, SMLOC
+      integer :: sgi, cv_siloc, cv_skloc
+      real :: rmax
 
       ewrite(3,*) 'in  cv_fem_shape_funs subrt'
 

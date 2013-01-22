@@ -167,7 +167,6 @@
            suf_t_bc_rob1, suf_t_bc_rob2, suf_vol_bc_rob1, suf_vol_bc_rob2, suf_comp_bc_rob1, suf_comp_bc_rob2, &
            theta_gdiff,  ScalarField_Source_Store, ScalarField_Source_Component, &
            mass_ele, dummy_ele, density_tmp, density_old_tmp
-
 !!$
       real, dimension( :, :, : ), allocatable :: Permeability, Material_Absorption, Material_Absorption_Stab, &
            Velocity_Absorption, ScalarField_Absorption, Component_Absorption, Temperature_Absorption, &
@@ -189,7 +188,7 @@
       integer :: stat, istate, iphase, jphase, icomp, its, its2, cv_nodi, adapt_time_steps, cv_inod
       real :: rsum
 
-      real, dimension(:, :), allocatable :: DEN_CV_NOD
+      real, dimension(:, :), allocatable :: DEN_CV_NOD, SUF_SIG_DIAGTEN_BC
       integer :: CV_NOD, CV_NOD_PHA, CV_ILOC, ELE
 
 !!$ Compute primary scalars used in most of the code
@@ -296,6 +295,7 @@
            suf_t_bc_rob1( stotel * cv_snloc * nphase ), suf_t_bc_rob2( stotel * cv_snloc * nphase ), &
            suf_vol_bc_rob1( stotel * cv_snloc * nphase ), suf_vol_bc_rob2( stotel * cv_snloc * nphase ), &
            suf_comp_bc_rob1( stotel * cv_snloc * nphase ), suf_comp_bc_rob2( stotel * cv_snloc * nphase ), &
+           suf_sig_diagten_bc( stotel * cv_snloc * nphase, ndim ), &
 !!$
            Porosity( totele ), &
            PhaseVolumeFraction_FEMT( cv_nonods * nphase ), Temperature_FEMT( cv_nonods * nphase ), &
@@ -319,7 +319,7 @@
            Component_Diffusion( mat_nonods, ndim, ndim, nphase ), &
 !!$ Variables used in the diffusion-like term: capilarity and surface tension:
            plike_grad_sou_grad( cv_nonods * nphase ), &
-           plike_grad_sou_coef( cv_nonods * nphase ) )    
+           plike_grad_sou_coef( cv_nonods * nphase ) )
 !!$
       xu=0. ; yu=0. ; zu=0.
       x=0. ; y=0. ; z=0.
@@ -356,6 +356,7 @@
       suf_t_bc_rob1=0. ; suf_t_bc_rob2=0.
       suf_vol_bc_rob1=0. ; suf_vol_bc_rob2=0.
       suf_comp_bc_rob1=0. ; suf_comp_bc_rob2=0.
+      suf_sig_diagten_bc=0.
 !!$
       Porosity=0.
       PhaseVolumeFraction_FEMT=0. ; Temperature_FEMT=0.
@@ -588,6 +589,21 @@
             if( its == 1 ) Density_Old = Density
 
 
+            if( solve_force_balance ) then
+               call Calculate_AbsorptionTerm( state, &
+                    cv_ndgln, mat_ndgln, &
+                    PhaseVolumeFraction, Permeability, &
+                    nopt_vel_upwind_coefs, opt_vel_upwind_coefs, Material_Absorption )
+
+            ! calculate SUF_SIG_DIAGTEN_BC this is \sigma_out \sigma_in^{-1}
+            ! \sigma_out and \sigma_in have the same anisotropy so SUF_SIG_DIAGTEN_BC
+            ! is diagonal
+
+
+            end if
+
+
+
 !!$ Solve advection of the scalar 'Temperature':
             Conditional_ScalarAdvectionField: if( have_temperature_field .and. &
                  have_option( '/material_phase[0]/scalar_field::Temperature/prognostic' ) ) then
@@ -603,7 +619,7 @@
                     NCOLCT, FINDCT, COLCT, &
                     CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
                     U_ELE_TYPE, CV_ELE_TYPE, CV_SELE_TYPE,  &
-                    NPHASE,  &
+                    NPHASE, &
                     CV_NLOC, U_NLOC, X_NLOC, &
                     CV_NDGLN, X_NDGLN, U_NDGLN, &
                     CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
@@ -617,7 +633,7 @@
                     MAT_NLOC, MAT_NDGLN, MAT_NONODS, ScalarAdvectionField_Diffusion, &
                     t_disopt, t_dg_vel_int_opt, dt, t_theta, t_beta, &
                     Temperature_BC, Density_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, &
-                    suf_t_bc_rob1, suf_t_bc_rob2, &
+                    suf_sig_diagten_bc, suf_t_bc_rob1, suf_t_bc_rob2, &
                     Temperature_BC_Spatial, Density_BC_Spatial, Velocity_U_BC_Spatial, &
                     DRhoDPressure, Pressure_CV, &
                     Temperature_Source, Temperature_Absorption, Porosity, &
@@ -653,13 +669,6 @@
                     Density, DRhoDPressure )
 
             end if Conditional_ScalarAdvectionField
-
-            if( solve_force_balance ) then
-               call Calculate_AbsorptionTerm( state, &
-                    cv_ndgln, mat_ndgln, &
-                    PhaseVolumeFraction, Permeability, &
-                    nopt_vel_upwind_coefs, opt_vel_upwind_coefs, Material_Absorption )
-            end if
 
 !!$ Diffusion-like term -- here used as part of the capillary pressure for porous media. It can also be 
 !!$ extended to surface tension -like term.
@@ -1198,6 +1207,7 @@
                  PhaseVolumeFraction_BC, Pressure_FEM_BC, &
                  Density_BC, Component_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, Temperature_BC, &
                  suf_u_bc_rob1, suf_v_bc_rob1, suf_w_bc_rob1, suf_u_bc_rob2, suf_v_bc_rob2, suf_w_bc_rob2, &
+                 suf_sig_diagten_bc, &
                  suf_t_bc_rob1, suf_t_bc_rob2, suf_vol_bc_rob1, suf_vol_bc_rob2, suf_comp_bc_rob1, suf_comp_bc_rob2, &
                  theta_gdiff,  ScalarField_Source_Store, ScalarField_Source_Component, &
                  mass_ele, dummy_ele, &
@@ -1247,7 +1257,7 @@
                  findc( u_nonods + 1 ), colc( mx_nc ), &
                  findcmc( cv_nonods + 1 ), colcmc( mx_ncolcmc ), midcmc( cv_nonods ), &
                  findm( cv_nonods + 1 ), colm( mx_ncolm ), midm( cv_nonods ) )
-            finacv = 0 ; colacv = 0 ; midacv = 0 ; finmcy = 0 ; colmcy = 0 ; midmcy = 0 ; finele = 0 ; &
+                 finacv = 0 ; colacv = 0 ; midacv = 0 ; finmcy = 0 ; colmcy = 0 ; midmcy = 0 ; finele = 0 ; &
                  colele = 0 ; midele = 0 ; findgm_pha = 0 ; coldgm_pha = 0 ; middgm_pha = 0 ; findct = 0 ; &
                  colct = 0 ; findc = 0 ; colc = 0 ; findcmc = 0 ; colcmc = 0 ; midcmc = 0 ; findm = 0 ; &
                  colm = 0 ; midm = 0
@@ -1311,6 +1321,7 @@
                  suf_t_bc_rob1( stotel * cv_snloc * nphase ), suf_t_bc_rob2( stotel * cv_snloc * nphase ), &
                  suf_vol_bc_rob1( stotel * cv_snloc * nphase ), suf_vol_bc_rob2( stotel * cv_snloc * nphase ), &
                  suf_comp_bc_rob1( stotel * cv_snloc * nphase ), suf_comp_bc_rob2( stotel * cv_snloc * nphase ), &
+                 suf_sig_diagten_bc( stotel * cv_snloc * nphase, ndim ), &
 !!$
                  Porosity( totele ), &
                  PhaseVolumeFraction_FEMT( cv_nonods * nphase ), Temperature_FEMT( cv_nonods * nphase ), &
@@ -1376,6 +1387,7 @@
             suf_v_bc_rob2=0. ; suf_w_bc_rob2=0. 
             suf_t_bc_rob1=0. ; suf_t_bc_rob2=0. 
             suf_vol_bc_rob1=0. ; suf_comp_bc_rob1=0. ; suf_comp_bc_rob2=0.
+            suf_sig_diagten_bc=0.
 !!$
 
 !!$ Extracting Mesh Dependent Fields
