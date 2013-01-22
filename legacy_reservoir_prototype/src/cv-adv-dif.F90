@@ -284,7 +284,7 @@
            TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, &
            TOLDMIN_2ND_MC, DENMAX_2ND_MC, DENMIN_2ND_MC, DENOLDMAX_2ND_MC, DENOLDMIN_2ND_MC, &
            CVNORMX, &
-           CVNORMY, CVNORMZ, MASS_CV, MASS_ELE, SNDOTQ, SNDOTQOLD,  &
+           CVNORMY, CVNORMZ, SCVRA, MASS_CV, MASS_ELE, SNDOTQ, SNDOTQOLD,  &
            FEMT, FEMTOLD, FEMT2, FEMT2OLD, FEMDEN, FEMDENOLD, XC_CV, YC_CV, ZC_CV, &
            SCVDETWEI, SRA, UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
            UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2,  &
@@ -298,6 +298,7 @@
            CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT,  &
            UFEN, UFENLX, UFENLY, UFENLZ, SCVFEN, SCVFENSLX, SCVFENSLY, &
            SCVFENLX, SCVFENLY, SCVFENLZ, &
+           SCVFENX, SCVFENY, SCVFENZ, &
            SUFEN, SUFENSLX, SUFENSLY, SUFENLX, SUFENLY, SUFENLZ, &
            SBCVN,SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
            SBCVFENLX, SBCVFENLY, SBCVFENLZ, SBUFEN, SBUFENSLX, SBUFENSLY, &
@@ -401,6 +402,7 @@
       ALLOCATE( CVNORMX( SCVNGI ))
       ALLOCATE( CVNORMY( SCVNGI ))
       ALLOCATE( CVNORMZ( SCVNGI ))
+      ALLOCATE( SCVRA( SCVNGI ))
       ALLOCATE( COLGPTS( CV_NLOC * SCVNGI )) !The size of this vector is over-estimated
       ALLOCATE( FINDGPTS( CV_NLOC + 1 ))
       ALLOCATE( SNDOTQ( SCVNGI ))
@@ -438,6 +440,9 @@
       ALLOCATE( SCVFENLX( CV_NLOC, SCVNGI ))
       ALLOCATE( SCVFENLY( CV_NLOC, SCVNGI ))
       ALLOCATE( SCVFENLZ( CV_NLOC, SCVNGI ))
+      ALLOCATE( SCVFENX( CV_NLOC, SCVNGI ))
+      ALLOCATE( SCVFENY( CV_NLOC, SCVNGI ))
+      ALLOCATE( SCVFENZ( CV_NLOC, SCVNGI ))
       ALLOCATE( SCVFEWEIGH( SCVNGI ))
 
       ALLOCATE( SUFEN( U_NLOC, SCVNGI ))
@@ -750,6 +755,14 @@
       ! into the matrix (ACV) and the RHS
       Loop_Elements: DO ELE = 1, TOTELE
 
+
+         ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
+         CALL DETNLXR( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
+              CV_NLOC, SCVNGI, &
+              SCVFEN, SCVFENLX, SCVFENLY, SCVFENLZ, SCVFEWEIGH, SCVDETWEI, SCVRA, VOLUME, D1, D3, DCYL, &
+              SCVFENX, SCVFENY, SCVFENZ) 
+
+
          Loop_CV_ILOC: DO CV_ILOC = 1, CV_NLOC ! Loop over the nodes of the element
 
             ! Global node number of the local node
@@ -943,7 +956,8 @@
                              T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, IGOT_T2, &
                              TMIN_2ND_MC, TOLDMIN_2ND_MC, T2MIN_2ND_MC, T2OLDMIN_2ND_MC, DENMIN_2ND_MC, DENOLDMIN_2ND_MC, &
                              TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, &
-                             LIMIT_USE_2ND, HDC, NDOTQ, NDOTQOLD, DT)
+                             LIMIT_USE_2ND, HDC, NDOTQ, NDOTQOLD, DT, &
+                             SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, INCOME, INCOMEOLD)
 
                         SUM_LIMT    = SUM_LIMT    + LIMT
                         SUM_LIMTOLD = SUM_LIMTOLD + LIMTOLD
@@ -1032,7 +1046,8 @@
                              T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, IGOT_T2, &
                              TMIN_2ND_MC, TOLDMIN_2ND_MC, T2MIN_2ND_MC, T2OLDMIN_2ND_MC, DENMIN_2ND_MC, DENOLDMIN_2ND_MC, &
                              TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, &
-                             LIMIT_USE_2ND, HDC, NDOTQ, NDOTQOLD, DT)
+                             LIMIT_USE_2ND, HDC, NDOTQ, NDOTQOLD, DT, &
+                             SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, INCOME, INCOMEOLD ) 
 
                      END DO
 
@@ -1511,6 +1526,9 @@
       DEALLOCATE( SCVFENLX )
       DEALLOCATE( SCVFENLY )
       DEALLOCATE( SCVFENLZ )
+      DEALLOCATE( SCVFENX )
+      DEALLOCATE( SCVFENY )
+      DEALLOCATE( SCVFENZ )
       DEALLOCATE( SCVFEWEIGH )
 
       DEALLOCATE( SUFEN )
@@ -3070,6 +3088,7 @@
       REAL :: UC, UF, COURAT
       ! Local variables
       REAL, PARAMETER :: XI = 2. ! XI = 1.
+      LOGICAL, PARAMETER :: DOWNWIND_EXTRAP = .TRUE.
       REAL :: TILDEUF, MAXUF
 
       ! For the region 0 < UC < 1 on the NVD, define the limiter
@@ -3078,9 +3097,15 @@
          !  limit is defined by XI, not the Hyper-C scheme.)
 
          IF( COURAT > 0.0 ) THEN
-            !TILDEUF = MIN( 1.0, max( UC / COURAT, XI * UC ))
-            ! halve the slope for now...
-            TILDEUF = MIN( 1.0, max( UC / (3.0 * COURAT), XI * UC ))
+            IF(DOWNWIND_EXTRAP) THEN
+! new method based on downwind extrapolation...
+               MAXUF = MAX( 0.0, UF )
+               TILDEUF = MIN( 1.0, UC/ (3.0 * COURAT), MAXUF )
+            ELSE
+               !TILDEUF = MIN( 1.0, max( UC / COURAT, XI * UC ))
+               ! halve the slope for now...
+               TILDEUF = MIN( 1.0, max( UC / (3.0 * COURAT), XI * UC ))
+            ENDIF
          ELSE !For the normal limiting
             MAXUF = MAX( 0.0, UF )
             TILDEUF = MIN( 1.0, XI * UC, MAXUF )
@@ -4519,12 +4544,16 @@
                   SUF_SIG_DIAGTEN_BC_GI(1:NDIM)=SUF_SIG_DIAGTEN_BC( CV_SNODK_IPHA,1:NDIM)
                ENDIF
             END DO
-
-            UGI_TMP = SUF_SIG_DIAGTEN_BC_GI(1:3) * (/UDGI, VDGI, WDGI/)
-            UDGI=UGI_TMP(1) ; VDGI=UGI_TMP(2) ; WDGI=UGI_TMP(3)
+! Only modify boundary velocity for incomming velocity...
+            IF(UDGI*CVNORMX(GI)+VDGI*CVNORMY(GI)+WDGI*CVNORMZ(GI).LT.0.0) THEN ! Incomming...
+               UGI_TMP = SUF_SIG_DIAGTEN_BC_GI(1:3) * (/UDGI, VDGI, WDGI/)
+               UDGI=UGI_TMP(1) ; VDGI=UGI_TMP(2) ; WDGI=UGI_TMP(3)
+            ENDIF
             
-            UGI_TMP = SUF_SIG_DIAGTEN_BC_GI(1:3) * (/UOLDDGI, VOLDDGI, WOLDDGI/)
-            UOLDDGI=UGI_TMP(1) ; VOLDDGI=UGI_TMP(2) ; WOLDDGI=UGI_TMP(3)
+            IF(UOLDDGI*CVNORMX(GI)+VOLDDGI*CVNORMY(GI)+WOLDDGI*CVNORMZ(GI).LT.0.0) THEN ! Incomming...
+               UGI_TMP = SUF_SIG_DIAGTEN_BC_GI(1:3) * (/UOLDDGI, VOLDDGI, WOLDDGI/)
+               UOLDDGI=UGI_TMP(1) ; VOLDDGI=UGI_TMP(2) ; WOLDDGI=UGI_TMP(3)
+            ENDIF
 
             UGI_COEF_ELE=0.0
             VGI_COEF_ELE=0.0
@@ -5569,14 +5598,15 @@
          T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, IGOT_T2, &
          TMIN_2ND_MC, TOLDMIN_2ND_MC, T2MIN_2ND_MC, T2OLDMIN_2ND_MC, DENMIN_2ND_MC, DENOLDMIN_2ND_MC, &
          TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, LIMIT_USE_2ND, &
-         HDC, NDOTQ, NDOTQOLD, DT)
+         HDC, NDOTQ, NDOTQOLD, DT, &
+         SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, INCOME, INCOMEOLD) 
       !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===============
       IMPLICIT NONE
       ! Calculate T and DEN on the CV face at quadrature point GI.
       REAL, intent( inout ) :: FVT,FVTOLD, FVT2, FVT2OLD,FVD,FVDOLD, LIMD,LIMT,LIMT2, &
            LIMDOLD,LIMTOLD,LIMT2OLD,LIMDT,LIMDTOLD,LIMDTT2,LIMDTT2OLD, &
            FEMDGI, FEMTGI, FEMT2GI, FEMDOLDGI, FEMTOLDGI, FEMT2OLDGI
-      REAL, intent( in ) :: INCOME,INCOMEOLD,HDC,NDOTQ,NDOTQOLD,DT
+      REAL, intent( in ) :: INCOME,INCOMEOLD,HDC,NDOTQ,NDOTQOLD,DT, INCOME, INCOMEOLD
       logical, intent( in ) :: LIMIT_USE_2ND
       INTEGER, intent( in ) :: CV_DISOPT,CV_NONODS,NPHASE,CV_NODI_IPHA,CV_NODJ_IPHA,ELE,ELE2,  &
            CV_NLOC,TOTELE,SCVNGI,GI,IPHASE,SELE,CV_SNLOC,STOTEL, &
@@ -5587,6 +5617,8 @@
       INTEGER, DIMENSION( STOTEL * NPHASE ), intent( in ) :: WIC_T_BC, WIC_D_BC
       INTEGER, DIMENSION( STOTEL * NPHASE * IGOT_T2 ), intent( in ) :: WIC_T2_BC
       REAL, DIMENSION( CV_NLOC, SCVNGI  ), intent( in ) :: SCVFEN
+      REAL, DIMENSION( CV_NLOC, SCVNGI  ), intent( in ) :: SCVFENX, SCVFENY, SCVFENZ
+      REAL, DIMENSION( SCVNGI  ), intent( in ) :: CVNORMX, CVNORMY, CVNORMZ
       REAL, DIMENSION( CV_NONODS * NPHASE  ), intent( in ) :: T, TOLD, DEN, DENOLD, FEMT, FEMTOLD,  &
            FEMDEN, FEMDENOLD
       REAL, DIMENSION( CV_NONODS * NPHASE  * IGOT_T2 ), intent( in ) :: T2, T2OLD, FEMT2, FEMT2OLD
@@ -5608,6 +5640,7 @@
       ! If HI_ORDER_HALF then use high order interpolation when around 
       ! a volume frac of 0.5 and gradually apply limiting near 0 and 1. 
       LOGICAL, PARAMETER :: UPWIND = .TRUE., HI_ORDER_HALF = .FALSE., LIM_VOL_ADJUST2 = .TRUE.
+      LOGICAL, PARAMETER :: DOWNWIND_EXTRAP = .TRUE. ! Extrapolate a downwind value for interface tracking.
       LOGICAL :: FIRSTORD, NOLIMI, RESET_STORE, LIM_VOL_ADJUST
       REAL :: RELAX, RELAXOLD, TMIN_STORE, TMAX_STORE, TOLDMIN_STORE, TOLDMAX_STORE, &
            T2MIN_STORE, T2MAX_STORE, T2OLDMIN_STORE, T2OLDMAX_STORE, &
@@ -5621,6 +5654,7 @@
       REAL :: T_AVE_EDGE, T_AVE_ELE, TOLD_AVE_EDGE, TOLD_AVE_ELE
       REAL :: T_MIDVAL, TOLD_MIDVAL
       REAL :: T_UPWIND,TOLD_UPWIND,TMIN_UPWIND,TMAX_UPWIND,TOLDMIN_UPWIND,TOLDMAX_UPWIND
+      REAL :: RSHAPE,RSHAPE_OLD,RGRAY
 
       ! The adjustment method is not ready for the LIMIT_USE_2ND - the new limiting method.
       LIM_VOL_ADJUST =LIM_VOL_ADJUST2.AND.(.NOT.LIMIT_USE_2ND)
@@ -5797,8 +5831,17 @@
             DO CV_KLOC = 1, CV_NLOC
                CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
                CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
+              IF(DOWNWIND_EXTRAP.AND.(courant_or_minus_one_new.GE.0.0)) THEN ! Extrapolate to the downwind value...
+               RGRAY=0.5*HDC*( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) &
+     &          + CVNORMY(GI)*SCVFENY( CV_KLOC, GI )+CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) )
+               RSHAPE    =SCVFEN( CV_KLOC, GI ) + 2.*(0.5-INCOME   )*RGRAY
+               RSHAPE_OLD=SCVFEN( CV_KLOC, GI ) + 2.*(0.5-INCOMEOLD)*RGRAY
+               FEMTGI    = FEMTGI     +  RSHAPE     * FEMT( CV_NODK_IPHA )
+               FEMTOLDGI = FEMTOLDGI  +  RSHAPE_OLD * FEMTOLD( CV_NODK_IPHA )
+              ELSE
                FEMTGI    = FEMTGI     +  SCVFEN( CV_KLOC, GI ) * FEMT( CV_NODK_IPHA )
                FEMTOLDGI = FEMTOLDGI  +  SCVFEN( CV_KLOC, GI ) * FEMTOLD( CV_NODK_IPHA )
+              ENDIF 
                FEMDGI    = FEMDGI     +  SCVFEN( CV_KLOC, GI ) * FEMDEN( CV_NODK_IPHA )
                FEMDOLDGI = FEMDOLDGI  +  SCVFEN( CV_KLOC, GI ) * FEMDENOLD( CV_NODK_IPHA )
                IF(IGOT_T2==1) THEN
