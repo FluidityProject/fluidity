@@ -49,7 +49,7 @@
     </mesh>
     <mesh name="InputMesh">
       <from_file file_name="src/sphere">
-        <format name="gmsh"/>
+        <format name="triangle"/>
         <stat>
           <exclude_from_stat/>
         </stat>
@@ -540,11 +540,7 @@
     </scalar_field>
     <scalar_field name="Frees_max" rank="0">
       <diagnostic>
-        <algorithm source_field_name="FreeSurface" source_field_type="scalar" material_phase_support="single" name="temporalmax" persistent="true">
-          <spin_up_time>
-            <real_value rank="0">72000.0</real_value>
-          </spin_up_time>
-        </algorithm>
+        <algorithm source_field_name="FreeSurface" source_field_type="scalar" material_phase_support="single" name="temporalmax_scalar" persistent="true"/>
         <mesh name="PressureMesh"/>
         <output>
           <exclude_from_vtu/>
@@ -692,7 +688,7 @@
     </scalar_field>
     <scalar_field name="S2amp" rank="0">
       <diagnostic>
-        <algorithm material_phase_support="single" depends="FreeSurfaceHistory" averageFSLevel="Calculate" target="Amplitude" name="tidal_harmonics">
+        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Amplitude">
           <constituent name="S2">
             <real_value shape="1" rank="0">2.31481315E-05</real_value>
           </constituent>
