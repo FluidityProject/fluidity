@@ -740,6 +740,16 @@
   <ocean_forcing>
     <tidal_forcing>
       <M2/>
+      <love_number>
+        <value>
+          <real_value rank="0">0.693</real_value>
+        </value>
+      </love_number>
+      <sal>
+        <beta>
+          <real_value rank="0">0.094</real_value>
+        </beta>
+      </sal>
     </tidal_forcing>
   </ocean_forcing>
 </fluidity_options>
