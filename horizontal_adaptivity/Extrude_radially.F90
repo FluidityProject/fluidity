@@ -306,7 +306,7 @@ module hadapt_extrude_radially
                              sizing_function, sizing_vector, number_sigma_layers)
     !!< Figure out at what depths to put the layers.
     type(vector_field), intent(out) :: r_mesh
-    real, intent(in):: depth
+    real, intent(inout):: depth
     real, intent(out):: r_shell
     real, dimension(:), intent(in):: xyz
     real, optional, intent(in):: sizing
@@ -368,6 +368,9 @@ module hadapt_extrude_radially
     r=r_shell
     node=2
     xyz_new(1:size(xyz))=xyz
+    if (depth+1 .eq. depth) then
+        depth = 1000.0
+    end if
     do
       if (present(sizing_vector)) then
         if (node-1<=list_size) then
