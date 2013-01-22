@@ -4525,9 +4525,7 @@
             
             UGI_TMP = SUF_SIG_DIAGTEN_BC_GI(1:3) * (/UOLDDGI, VOLDDGI, WOLDDGI/)
             UOLDDGI=UGI_TMP(1) ; VOLDDGI=UGI_TMP(2) ; WOLDDGI=UGI_TMP(3)
-            
-            
-            
+
             UGI_COEF_ELE=0.0
             VGI_COEF_ELE=0.0
             WGI_COEF_ELE=0.0 

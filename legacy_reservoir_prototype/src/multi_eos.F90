@@ -39,6 +39,9 @@
     use python_state
     use Copy_Outof_State
 
+    use shape_functions_Linear_Quadratic
+    use cv_advection
+
   contains
 
     subroutine Calculate_Phase_Component_Densities( state, &
@@ -563,7 +566,7 @@
            '/prescribed/value::WholeMesh/isotropic' ) ) then
          viscosity_ph1 => extract_tensor_field( state( 1 ), 'Viscosity' )
          viscosity_ph2 => extract_tensor_field( state( 2 ), 'Viscosity' )
-         Mobility =  viscosity_ph2%val( 1, 1, 1 ) / viscosity_ph1%val( 1, 1, 1 )  
+         Mobility =  viscosity_ph2%val( 1, 1, 1 ) / viscosity_ph1%val( 1, 1, 1 )
       elseif( nphase == 1 ) then
          Mobility = 0.
       end if
@@ -671,7 +674,7 @@
 
                         if (nphase==2) then
                            CALL relperm_corey( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
-                                INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(CV_NOD))), IPHASE)
+                                INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(CV_NOD))), IPHASE )
                         else
                            FLAbort('Attempting to use twophase relperm function with '// int2str(nphase)//' phase(s)')
                         endif
@@ -679,7 +682,7 @@
                      elseif (have_option("/material_phase["// int2str(iphase-1) //"]/multiphase_properties/relperm_type/Land")) then
                         if (nphase==2) then
                            CALL relperm_land( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
-                                INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(CV_NOD))), IPHASE)
+                                INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(CV_NOD))), IPHASE )
                         else
                            FLAbort('Attempting to use twophase relperm function with '//int2str(nphase)//' phase(s)')
                         endif
@@ -1010,8 +1013,6 @@
       type(scalar_field), pointer :: component, diffusivity
       integer, dimension(:), pointer :: st_nodes
 
-
-
       if ( have_option( '/physical_parameters/mobility' ) ) then
 
          ! if solving for porous media and mobility is calculated
@@ -1074,5 +1075,127 @@
       end if
 
     end subroutine calculate_viscosity
+
+    subroutine calculate_SUF_SIG_DIAGTEN_BC( suf_sig_diagten_bc, totele, stotel, cv_nloc, &
+         cv_snloc, nphase, ndim, nface, mat_nonods, cv_nonods, x_nloc, ncolele, cv_ele_type, &
+         finele, colele, cv_ndgln, cv_sndgln, x_ndgln, mat_ndgln, perm, material_absorption, &
+         wic_u_bc, wic_vol_bc, sat, state )
+
+      integer, intent(in) :: totele, stotel, cv_nloc, cv_snloc, nphase, ndim, nface, &
+           mat_nonods, cv_nonods, x_nloc, ncolele, cv_ele_type
+      integer, dimension( totele+1 ), intent( in ) :: finele
+      integer, dimension( ncolele ), intent( in ) :: colele
+      integer, dimension( totele * cv_nloc ), intent( in ) :: cv_ndgln
+      integer, dimension( stotel * cv_snloc ), intent( in ) :: cv_sndgln
+      integer, dimension( totele * x_nloc ), intent( in ) :: x_ndgln
+      integer, dimension( totele * cv_nloc ), intent( in ) :: mat_ndgln
+      integer, dimension( stotel * nphase ), intent( in ) :: wic_u_bc, wic_vol_bc
+      real, dimension( totele, ndim, ndim ), intent( in ) :: perm
+      real, dimension( mat_nonods, ndim*nphase, ndim*nphase ), intent( in ) :: material_absorption
+      real, dimension( stotel * cv_snloc * nphase ), intent( in ) :: sat
+      type(state_type), dimension( : ) :: state
+
+      real, dimension( stotel * cv_snloc * nphase, ndim ), intent( inout ) :: suf_sig_diagten_bc
+
+      ! local variables
+      type(tensor_field), pointer :: viscosity_ph1, viscosity_ph2
+      integer :: iphase, ele, sele, cv_siloc, cv_snodi, cv_snodi_ipha, iface, s, e, &
+           ele2, sele2, cv_iloc, idim, jdim, i, mat_nod
+      real :: mobility, satura_bc
+      real, dimension( ndim, ndim ) :: inv_perm, sigma_out, mat
+      integer, dimension( :, : ), allocatable :: cv_sloclist, face_ele
+      integer, dimension( cv_snloc ) :: cv_sloc2loc
+      integer, parameter :: WIC_BC_DIRICHLET = 1
+
+      if( have_option( '/physical_parameters/mobility' ) )then
+         call get_option( '/physical_parameters/mobility', Mobility )
+      elseif( have_option( '/material_phase[1]/vector_field::Velocity/prognostic/tensor_field::Viscosity' // &
+           '/prescribed/value::WholeMesh/isotropic' ) ) then
+         viscosity_ph1 => extract_tensor_field( state( 1 ), 'Viscosity' )
+         viscosity_ph2 => extract_tensor_field( state( 2 ), 'Viscosity' )
+         mobility =  viscosity_ph2%val( 1, 1, 1 ) / viscosity_ph1%val( 1, 1, 1 )
+      elseif( nphase == 1 ) then
+         mobility = 0.
+      end if
+
+      suf_sig_diagten_bc = 1.
+
+      allocate( cv_sloclist( nface, cv_snloc ) )
+      call determin_sloclist( cv_sloclist, cv_nloc, cv_snloc, nface,  &
+           ndim, cv_ele_type )
+
+      allocate( face_ele( nface, totele ) ) ; face_ele = 0
+      call calc_face_ele( face_ele, totele, stotel, nface, &
+           ncolele, finele, colele, cv_nloc, cv_snloc, cv_nonods, cv_ndgln, cv_sndgln, &
+           cv_sloclist, x_nloc, x_ndgln )
+
+
+      do iphase = 1, nphase
+
+         s=(iphase-1)*ndim+1
+         e=iphase*ndim
+
+         do ele = 1, totele
+
+            inv_perm = inverse( perm(ele, :, :) )
+
+            do iface = 1, nface
+
+               ele2  = face_ele( iface, ele )
+               sele2 = max( 0, - ele2 )
+               sele  = sele2
+
+               if ( sele > 0 ) then
+                  if ( wic_u_bc( sele + ( iphase - 1 ) * stotel ) /= WIC_BC_DIRICHLET .and. &
+                     wic_vol_bc( sele + ( iphase - 1 ) * stotel ) == WIC_BC_DIRICHLET ) then
+
+                     cv_sloc2loc( : ) = cv_sloclist( iface, : )
+
+                     do cv_siloc = 1, cv_snloc
+
+                        cv_iloc = cv_sloc2loc( cv_siloc )
+                        cv_snodi = ( sele - 1 ) * cv_snloc + cv_siloc
+                        cv_snodi_ipha = cv_snodi + ( iphase - 1 ) * stotel * cv_snloc
+                        mat_nod = mat_ndgln( (ele-1)*cv_nloc + cv_iloc  )
+
+                        ! this is the boundary condition
+                        ! of the first phase
+                        satura_bc = sat( cv_snodi ) 
+
+                        sigma_out=0.
+                        do idim = 1, ndim
+                           do jdim = 1, ndim
+                              if ( have_option("/material_phase["// int2str(iphase-1) //&
+                                   "]/multiphase_properties/relperm_type/Corey") ) then
+
+                                 call relperm_corey( sigma_out( idim, jdim ), mobility, &
+                                      inv_perm( idim, jdim ), satura_bc, iphase )
+
+                              elseif ( have_option("/material_phase["// int2str(iphase-1) //&
+                                   "]/multiphase_properties/relperm_type/Land") ) then
+
+                                 call relperm_land( sigma_out( idim, jdim ), mobility, &
+                                      inv_perm( idim, jdim ), satura_bc, iphase )
+
+                              end if
+                           end do
+                        end do
+
+                        mat = matmul( inverse( material_absorption( mat_nod, s : e, s : e ) ), sigma_out )
+                        suf_sig_diagten_bc( cv_snodi_ipha, 1 : ndim ) = (/ (mat(i, i), i = 1, ndim) /)
+
+                     end do
+
+                  end if
+               end if
+
+            end do
+         end do
+
+      end do
+
+      deallocate( face_ele, cv_sloclist )
+
+    end subroutine calculate_SUF_SIG_DIAGTEN_BC
 
   end module multiphase_EOS
