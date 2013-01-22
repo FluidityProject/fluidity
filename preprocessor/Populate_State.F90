@@ -169,6 +169,10 @@ contains
     call compute_domain_statistics(states)
 
     call allocate_and_insert_fields(states, solid_states=solid_states)
+    ! Also allocate fields on the solid mesh/in the solid states:
+    if (have_option("/embedded_models/fsi_model/")) then
+      call allocate_and_insert_solid_fields(solid_states)
+    end if
 
     call initialise_prognostic_fields(states, save_vtk_cache=.true., &
       initial_mesh=.true.)
@@ -1494,7 +1498,7 @@ contains
       fluid_phase_loop: do j=0, nstates-1
 
         solid_mesh_loop: do i=0, num_solid_mesh-1
-          
+
           mesh_path="/embedded_models/fsi_model/geometry/mesh["//int2str(i)//"]"
           call get_option(trim(mesh_path)//'/name', mesh_name)
 
@@ -1523,39 +1527,6 @@ contains
         end do solid_mesh_loop
 
       end do fluid_phase_loop
-
-      ! Now that the additional fields on the fluid mesh(es) are generated,
-      ! allocate fields on the solid mesh(es) and insert them in solid_states
-      solid_states_loop: do i=0, num_solid_mesh-1
-
-        mesh_path="/embedded_models/fsi_model/geometry/mesh["//int2str(i)//"]"
-        call get_option(trim(mesh_path)//'/name', mesh_name)
-
-        ! Get solid positions:
-        solid_position_mesh => extract_vector_field(solid_states(i+1), trim(mesh_name)//"SolidCoordinate")
-
-        ! Allocate field for volume fraction:
-        call allocate(alpha_solidmesh, solid_position_mesh%mesh, trim(mesh_name)//"SolidConcentration")
-        alpha_solidmesh%option_path = solid_position_mesh%option_path
-        call set(alpha_solidmesh, 1.0) ! solid volume fraction on solid mesh is unity by definition
-        call insert(solid_states(i+1), alpha_solidmesh, trim(mesh_name)//"SolidConcentration")
-        call deallocate(alpha_solidmesh)
-
-        ! And the solidforce:
-        call allocate(solidforce_mesh, solid_position_mesh%dim, solid_position_mesh%mesh, trim(mesh_name)//"SolidForce")
-        solidforce_mesh%option_path = solid_position_mesh%option_path
-        call zero(solidforce_mesh)
-        call insert(solid_states(i+1), solidforce_mesh, trim(mesh_name)//"SolidForce")
-        call deallocate(solidforce_mesh)
-
-        ! And the solidvelocity:
-        call allocate(solidvelocity_mesh, solid_position_mesh%dim, solid_position_mesh%mesh, trim(mesh_name)//"SolidVelocity")
-        solidvelocity_mesh%option_path = solid_position_mesh%option_path
-        call zero(solidvelocity_mesh)
-        call insert(solid_states(i+1), solidvelocity_mesh, trim(mesh_name)//"SolidVelocity")
-        call deallocate(solidvelocity_mesh)
-
-      end do solid_states_loop
 
     end if
 
@@ -1676,6 +1647,76 @@ contains
     end subroutine allocate_and_insert_irradiance
 
   end subroutine allocate_and_insert_fields
+
+  subroutine allocate_and_insert_solid_fields(solid_states)
+    !!< allocates and inserts all fields present in the options tree
+    !!< zeros field, but does not yet set initial conditions
+    !type(state_type), dimension(:), intent(inout):: states
+    type(state_type), dimension(:), intent(inout) :: solid_states
+    type(scalar_field), pointer :: tmp_scalar_field
+    !! If provided and true will not allocate a full value space
+    !! for those fields for which defer_allocation(option_path, mesh) is .true.
+    !! but instead allocate them as constant fields. This is used
+    !! for fields that are passed down to SAM in which case we want to be 
+    !! able to one by one allocate them as we get them back from SAM.
+
+    character(len=OPTION_PATH_LEN) :: field_name, mesh_path, mesh_name
+    integer :: i, stat ! counter
+    integer :: num_solid_mesh ! number of solid meshes
+    character(len=255) :: tmp, solid_state_path, test ! temporary string to make life a little easier
+
+    ewrite(2,*) "Inside allocate_and_insert_solid_fields"
+
+    tmp = "/embedded_models/fsi_model/solid_phase::"
+
+    ! Get number of solid meshes
+    num_solid_mesh = option_count('/embedded_models/fsi_model/geometry/mesh')
+
+    ! Allocate fields on the solid mesh(es) and insert them in solid_states
+    solid_states_loop: do i=0, num_solid_mesh-1
+      call get_option('/embedded_models/fsi_model/geometry/mesh['//int2str(i)//']/name', mesh_name)
+
+      ewrite(2,*) "Allocating and inserting fields for solid: "//trim(mesh_name)
+
+      solid_state_path = trim(tmp)//trim(mesh_name)
+
+      ! Allocate field for volume fraction:
+      if (have_option(trim(solid_state_path)//'/scalar_field::SolidConcentration')) then
+        !if (have_option(trim(solid_state_path)//'/scalar_field::SolidConcentration/diagnostic/mesh::SolidCoordinateMesh')) then
+        !  call set_option(trim(solid_state_path)//'/scalar_field::SolidConcentration/diagnostic/mesh', trim(mesh_name)//'SolidCoordinateMesh', stat)
+        !  if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
+        !    FLAbort("Failed to set value for mesh when using the option 'SolidCoordinateMesh'")
+        !  end if
+        !end if
+        ! Now allocate field and insert it into the solid state
+        call allocate_and_insert_scalar_field(trim(solid_state_path)//'/scalar_field::SolidConcentration', &
+                                               solid_states(i+1), &
+                                               field_name=trim(mesh_name)//'SolidConcentration')
+        ! By definition, set this field to one:
+        tmp_scalar_field => extract_scalar_field(solid_states(i+1), trim(mesh_name)//'SolidConcentration')
+        call set(tmp_scalar_field, 1.0)
+      end if
+
+      ! And the solidforce:
+      ! Allocate field for volume fraction:
+      if (have_option(trim(solid_state_path)//'/vector_field::SolidForce')) then
+        call allocate_and_insert_vector_field(trim(solid_state_path)//'/vector_field::SolidForce', &
+                                               solid_states(i+1), &
+                                               field_name=trim(mesh_name)//'SolidForce')
+      end if
+
+      ! And the solidvelocity:
+      if (have_option(trim(solid_state_path)//'/vector_field::SolidVelocity')) then
+        call allocate_and_insert_vector_field(trim(solid_state_path)//'/vector_field::SolidVelocity', &
+                                               solid_states(i+1), &
+                                               field_name=trim(mesh_name)//'SolidVelocity')
+      end if
+
+      end do solid_states_loop
+
+    ewrite(2,*) "Leaving allocate_and_insert_solid_fields"
+
+  end subroutine allocate_and_insert_solid_fields
 
   subroutine alias_fields(states)
     type(state_type), dimension(:), intent(inout) :: states

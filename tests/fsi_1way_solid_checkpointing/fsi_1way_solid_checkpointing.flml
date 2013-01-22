@@ -465,7 +465,7 @@
         <scalar_field name="SolidConcentration" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="SolidCoordinateMesh"/>
+            <mesh name="small_boxSolidCoordinateMesh"/>
             <output/>
             <stat/>
             <convergence>
@@ -479,6 +479,25 @@
             </steady_state>
           </diagnostic>
         </scalar_field>
+        <vector_field name="SolidVelocity" rank="1">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="small_boxSolidCoordinateMesh"/>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </vector_field>
       </solid_phase>
     </fsi_model>
   </embedded_models>

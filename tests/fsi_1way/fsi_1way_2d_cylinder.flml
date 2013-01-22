@@ -458,7 +458,7 @@
         <scalar_field name="SolidConcentration" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="SolidCoordinateMesh"/>
+            <mesh name="cylinderSolidCoordinateMesh"/>
             <output/>
             <stat/>
             <convergence>
