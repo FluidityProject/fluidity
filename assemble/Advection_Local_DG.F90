@@ -467,7 +467,6 @@ module advection_local_DG
           face2 = face
        end if
        floc = face_loc(upwindflux,face)
-
        call update_flux_face(&
             Flux,UpwindFlux,face,face2,&
             ele,ele2,Flux_mat(row:row+floc-1,:),&
@@ -480,17 +479,19 @@ module advection_local_DG
     !Integrate with test function over element
     ! <\phi,Div F>_E = <\phi, \Delta T>_E
 
-    grad_mat = shape_dshape(T_shape, flux_shape%dn,&
-         & T_shape%quadrature%weight)
-    delta_t_val = ele_val(delta_t,ele)
-    do i = 1, ele_loc(Delta_T,ele)-1
-       do dim1 = 1, flux%dim
-          Flux_mat(row,(dim1-1)*ele_loc(flux,ele)+1:dim1*ele_loc(flux,ele))&
-               &=grad_mat(dim1,i,:)
+    if(flux_constraint%n_grad_basis>0) then
+       grad_mat = shape_dshape(T_shape, flux_shape%dn,&
+            & T_shape%quadrature%weight)
+       delta_t_val = ele_val(delta_t,ele)
+       do i = 1, ele_loc(Delta_T,ele)-1
+          do dim1 = 1, flux%dim
+             Flux_mat(row,(dim1-1)*ele_loc(flux,ele)+1:dim1*ele_loc(flux,ele))&
+                  &=grad_mat(dim1,i,:)
+          end do
+          flux_rhs(row) = delta_t_val(i)
+          row = row + 1
        end do
-       flux_rhs(row) = delta_t_val(i)
-       row = row + 1
-    end do
+    end if
 
     !Then the curl basis
     !Adding in the curl terms
@@ -543,7 +544,10 @@ module advection_local_DG
                &flux_shape%dn(i,:,dim1)
        end do
     end do
+
+    delta_t_val = ele_val(delta_t,ele)
     div_flux_val = shape_rhs(T_shape,div_flux_gi*T_shape%quadrature%weight)
+
     residual = maxval(abs(div_flux_val-delta_T_val))/max(1.0&
          &,maxval(abs(delta_T_val)))/area
     assert(residual<1.0e-10)
@@ -584,6 +588,7 @@ module advection_local_DG
     detwei_f = weight*flux_face_shape%quadrature%weight
     face_mat = shape_shape_vector(&
          upwindflux_face_shape,flux_face_shape,detwei_f,n_local)
+
     !Equation is:
     ! <\phi,Flux.n> = <\phi,UpwindFlux> for all trace test functions \phi.
 

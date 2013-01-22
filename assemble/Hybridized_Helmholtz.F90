@@ -75,7 +75,7 @@ contains
     !
     type(vector_field), pointer :: X, U, down, U_cart, U_old
     type(scalar_field), pointer :: D,f, D_old
-    type(scalar_field) :: lambda, D_res, D_res2
+    type(scalar_field) :: lambda, D_res
     type(vector_field) :: U_res, U_res2
     type(scalar_field), target :: lambda_rhs, u_cpt
     type(csr_sparsity) :: lambda_sparsity, continuity_sparsity
@@ -115,7 +115,6 @@ contains
     call allocate(U_res,U%dim,U%mesh,"VelocityResidual")
     call allocate(D_res,D%mesh,"LayerThicknessResidual")
     call allocate(U_res2,U%dim,U%mesh,"VelocityResidual2")
-    call allocate(D_res2,D%mesh,"LayerThicknessResidual2")
 
     if(.not.newton_initialised) then
        !construct/extract sparsities
@@ -236,7 +235,6 @@ contains
     call deallocate(U_res)
     call deallocate(D_res)
     call deallocate(U_res2)
-    call deallocate(D_res2)
 
     ewrite(1,*) 'END solve_hybridised_timestep_residual(state)'
   
@@ -487,7 +485,6 @@ contains
     !D components are stored.
     uloc = ele_loc(U_res,ele)
     dloc = ele_loc(D_res,ele)
-    d_end = mesh_dim(U_res)*uloc+dloc
     mdim = mesh_dim(U)
     do dim1 = 1, mdim
        u_start(dim1) = uloc*(dim1-1)+1
@@ -537,7 +534,6 @@ contains
     !D components are stored.
     uloc = ele_loc(U_res,ele)
     dloc = ele_loc(D_res,ele)
-    d_end = mesh_dim(U_res)*uloc+dloc
     mdim = mesh_dim(U_res)
     do dim1 = 1, mdim
        u_start(dim1) = uloc*(dim1-1)+1

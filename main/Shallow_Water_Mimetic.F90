@@ -340,6 +340,7 @@
          
          call set(D,newD)
          call set(U,newU)
+         call project_to_constrained_space(state,U)
 
          call deallocate(newU)
          call deallocate(newD)
