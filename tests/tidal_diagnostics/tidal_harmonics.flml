@@ -165,11 +165,6 @@
       </constant>
     </dump_period>
     <output_mesh name="CoordinateMesh"/>
-    <checkpointing>
-      <checkpoint_period_in_dumps>
-        <integer_value rank="0">25</integer_value>
-      </checkpoint_period_in_dumps>
-    </checkpointing>
     <stat/>
   </io>
   <timestepping>
