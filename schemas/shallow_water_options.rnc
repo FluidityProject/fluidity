@@ -441,6 +441,13 @@ start =
                }?,
                element scalar_field {
                   attribute rank { "0" },
+                  attribute name { "ManifoldDivergence" },
+                  element diagnostic {
+                     pressure_mesh_choice
+                  }
+               }?,
+               element scalar_field {
+                  attribute rank { "0" },
                   attribute name { "InitialLayerThickness" },
                   element diagnostic {
                      pressure_mesh_choice
