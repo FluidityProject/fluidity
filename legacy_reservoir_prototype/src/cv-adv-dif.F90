@@ -4560,9 +4560,15 @@
             WGI_COEF_ELE=0.0 
             DO U_KLOC_LEV = 1, U_NLOC_LEV
                U_KLOC=(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV
-               UGI_COEF_ELE(U_KLOC)=UGI_COEF_ELE(U_KLOC)+1.0*SUF_SIG_DIAGTEN_BC_GI(1)
-               VGI_COEF_ELE(U_KLOC)=VGI_COEF_ELE(U_KLOC)+1.0*SUF_SIG_DIAGTEN_BC_GI(2)
-               WGI_COEF_ELE(U_KLOC)=WGI_COEF_ELE(U_KLOC)+1.0*SUF_SIG_DIAGTEN_BC_GI(3)
+               IF(UDGI*CVNORMX(GI)+VDGI*CVNORMY(GI)+WDGI*CVNORMZ(GI).LT.0.0) THEN ! Incomming...
+                  UGI_COEF_ELE(U_KLOC)=UGI_COEF_ELE(U_KLOC)+1.0*SUF_SIG_DIAGTEN_BC_GI(1)
+                  VGI_COEF_ELE(U_KLOC)=VGI_COEF_ELE(U_KLOC)+1.0*SUF_SIG_DIAGTEN_BC_GI(2)
+                  WGI_COEF_ELE(U_KLOC)=WGI_COEF_ELE(U_KLOC)+1.0*SUF_SIG_DIAGTEN_BC_GI(3)
+               ELSE 
+                  UGI_COEF_ELE(U_KLOC)=UGI_COEF_ELE(U_KLOC)+1.0
+                  VGI_COEF_ELE(U_KLOC)=VGI_COEF_ELE(U_KLOC)+1.0
+                  WGI_COEF_ELE(U_KLOC)=WGI_COEF_ELE(U_KLOC)+1.0
+               ENDIF 
             END DO
 
          ELSE ! Specified vel bc.

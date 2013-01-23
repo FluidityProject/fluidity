@@ -1137,7 +1137,6 @@
 
          do ele = 1, totele
 
-            inv_perm = inverse( perm(ele, :, :) )
 
             do iface = 1, nface
 
@@ -1148,6 +1147,8 @@
                if ( sele > 0 ) then
                   if ( wic_u_bc( sele + ( iphase - 1 ) * stotel ) /= WIC_BC_DIRICHLET .and. &
                      wic_vol_bc( sele + ( iphase - 1 ) * stotel ) == WIC_BC_DIRICHLET ) then
+
+                     if(iface==1) inv_perm = inverse( perm(ele, :, :) )
 
                      cv_sloc2loc( : ) = cv_sloclist( iface, : )
 
