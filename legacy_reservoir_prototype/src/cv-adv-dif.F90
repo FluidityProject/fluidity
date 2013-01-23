@@ -4568,7 +4568,7 @@
                   UGI_COEF_ELE(U_KLOC)=UGI_COEF_ELE(U_KLOC)+1.0
                   VGI_COEF_ELE(U_KLOC)=VGI_COEF_ELE(U_KLOC)+1.0
                   WGI_COEF_ELE(U_KLOC)=WGI_COEF_ELE(U_KLOC)+1.0
-               ENDIF 
+               ENDIF
             END DO
 
          ELSE ! Specified vel bc.
@@ -5837,17 +5837,17 @@
             DO CV_KLOC = 1, CV_NLOC
                CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
                CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
-              IF(DOWNWIND_EXTRAP.AND.(courant_or_minus_one_new.GE.0.0)) THEN ! Extrapolate to the downwind value...
-               RGRAY=0.5*HDC*( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) &
-     &          + CVNORMY(GI)*SCVFENY( CV_KLOC, GI )+CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) )
-               RSHAPE    =SCVFEN( CV_KLOC, GI ) + 2.*(0.5-INCOME   )*RGRAY
-               RSHAPE_OLD=SCVFEN( CV_KLOC, GI ) + 2.*(0.5-INCOMEOLD)*RGRAY
-               FEMTGI    = FEMTGI     +  RSHAPE     * FEMT( CV_NODK_IPHA )
-               FEMTOLDGI = FEMTOLDGI  +  RSHAPE_OLD * FEMTOLD( CV_NODK_IPHA )
-              ELSE
-               FEMTGI    = FEMTGI     +  SCVFEN( CV_KLOC, GI ) * FEMT( CV_NODK_IPHA )
-               FEMTOLDGI = FEMTOLDGI  +  SCVFEN( CV_KLOC, GI ) * FEMTOLD( CV_NODK_IPHA )
-              ENDIF 
+               IF(DOWNWIND_EXTRAP.AND.(courant_or_minus_one_new.GE.0.0)) THEN ! Extrapolate to the downwind value...
+                  RGRAY=0.5*HDC*( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) &
+                       + CVNORMY(GI)*SCVFENY( CV_KLOC, GI )+CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) )
+                  RSHAPE    =SCVFEN( CV_KLOC, GI ) + 2.*(0.5-INCOME   )*RGRAY
+                  RSHAPE_OLD=SCVFEN( CV_KLOC, GI ) + 2.*(0.5-INCOMEOLD)*RGRAY
+                  FEMTGI    = FEMTGI     +  RSHAPE     * FEMT( CV_NODK_IPHA )
+                  FEMTOLDGI = FEMTOLDGI  +  RSHAPE_OLD * FEMTOLD( CV_NODK_IPHA )
+               ELSE
+                  FEMTGI    = FEMTGI     +  SCVFEN( CV_KLOC, GI ) * FEMT( CV_NODK_IPHA )
+                  FEMTOLDGI = FEMTOLDGI  +  SCVFEN( CV_KLOC, GI ) * FEMTOLD( CV_NODK_IPHA )
+               ENDIF
                FEMDGI    = FEMDGI     +  SCVFEN( CV_KLOC, GI ) * FEMDEN( CV_NODK_IPHA )
                FEMDOLDGI = FEMDOLDGI  +  SCVFEN( CV_KLOC, GI ) * FEMDENOLD( CV_NODK_IPHA )
                IF(IGOT_T2==1) THEN

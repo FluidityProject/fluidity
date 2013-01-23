@@ -1132,23 +1132,22 @@
 
       do iphase = 1, nphase
 
-         s=(iphase-1)*ndim+1
-         e=iphase*ndim
+         s = ( iphase - 1 ) * ndim + 1
+         e = iphase * ndim
 
          do ele = 1, totele
-
 
             do iface = 1, nface
 
                ele2  = face_ele( iface, ele )
-               sele2 = max( 0, - ele2 )
+               sele2 = max( 0, -ele2 )
                sele  = sele2
 
                if ( sele > 0 ) then
                   if ( wic_u_bc( sele + ( iphase - 1 ) * stotel ) /= WIC_BC_DIRICHLET .and. &
                      wic_vol_bc( sele + ( iphase - 1 ) * stotel ) == WIC_BC_DIRICHLET ) then
 
-                     if(iface==1) inv_perm = inverse( perm(ele, :, :) )
+                     if ( iface == 1 ) inv_perm = inverse( perm(ele, :, :) )
 
                      cv_sloc2loc( : ) = cv_sloclist( iface, : )
 
@@ -1163,7 +1162,7 @@
                         ! of the first phase
                         satura_bc = sat( cv_snodi ) 
 
-                        sigma_out=0.
+                        sigma_out = 0.
                         do idim = 1, ndim
                            do jdim = 1, ndim
                               if ( have_option("/material_phase["// int2str(iphase-1) //&
