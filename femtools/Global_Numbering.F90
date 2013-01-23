@@ -308,7 +308,7 @@ contains
          do d=0, mesh_dim(mesh)
             do e=1,cell%entity_counts(d)
                if (d==0) then
-                  entity=vertices(e)
+                  entity=vertices(cell%entities(d,e)%vertices(1))
                else if (d==cell%dimension) then
                   entity=sum(entity_counts(:d-1))+ele
                else if (d==cell%dimension-1) then
