@@ -618,7 +618,7 @@ contains
       ! Temporarily point the uid until this is done properly below.
       allocate(output_positions%mesh%uid)
       output_positions%mesh%uid=universal_number_field(output_positions%mesh)
-      call order_elements(output_positions%mesh%uid)
+      call order_elements(output_positions%mesh%uid, output_positions)
       output_positions%mesh=output_positions%mesh%uid%mesh
 
               

@@ -399,7 +399,7 @@ contains
           canonical_numbering=universal_number_field(mesh)
           ! Temporarily point the uid until this is done properly below.
           canonical_numbering%mesh%uid=>canonical_numbering
-          call order_elements(canonical_numbering)
+          call order_elements(canonical_numbering, position)
           mesh=canonical_numbering%mesh
           position%mesh=mesh
           
@@ -781,7 +781,7 @@ contains
           uid%mesh%uid=>uid
           
           mesh_list=[ position%mesh ]
-          call order_elements(uid, mesh_list)
+          call order_elements(uid, position, mesh_list)
           ! Because we've fiddled with mesh faces, the copy of
           !  CoordinateMesh in state is out of date.
           position%mesh=mesh_list(1)

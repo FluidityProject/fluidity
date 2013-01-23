@@ -253,17 +253,21 @@ contains
     
   end function verify_consistent_local_element_numbering
   
-  subroutine order_elements(numbering, meshes)
+  subroutine order_elements(numbering, positions, meshes)
     !!< Given a universal numbering field, renumber the local elements of
     !!< its mesh into this order. This should only be called for linear meshes:
     !!< derive the other meshes from the linear one.
+    !!<
+    !!< In parallel, the nodes will be renumbered into a consistent
+    !!< trailing receives order. 
     !!<
     !!< If meshes is present, also reorder the local elements in each of
     !!< its meshes. Meshes should likewise be linear: the intended use case
     !!< is that numbering is on the periodic mesh while the meshes are the
     !!< non-periodic (or possibly periodic on fewer sides) alternatives. 
-    type(scalar_field), intent(in), target :: numbering
-    
+    type(scalar_field), intent(inout), target :: numbering
+    type(vector_field), intent(inout) :: positions
+
     type(mesh_type), dimension(:), intent(inout), target, optional :: meshes
 
     integer :: ele, m, i, face, ndof, facet_ndof, new_ele
@@ -275,6 +279,8 @@ contains
     type(cell_type), pointer :: cell
     type(mesh_type), pointer :: mesh
     type(mesh_type) :: p0_mesh
+    type(mesh_type) :: new_mesh
+    integer, dimension(:), allocatable :: renumber
 
     assert(numbering%mesh%shape%degree==1)
 
@@ -330,10 +336,13 @@ contains
        mesh%ndglno((new_ele-1)*ndof+1:new_ele*ndof)&
             =ndglno((ele-1)*ndof+1:ele*ndof)
     end do
+    mesh%element_classes = p0_mesh%node_classes
+
     if (present(meshes)) then
        do m=1, size(meshes)
           mesh=>meshes(m)
           ndglno=mesh%ndglno
+          mesh%element_classes = p0_mesh%node_classes
           do ele=1,element_count(mesh)
              new_ele=p0_mesh%ndglno(ele)
              
@@ -352,8 +361,39 @@ contains
 
     call deallocate(p0_mesh)
 
-    ! The faces are now invalid so re-establish them.
+    ! Now renumber the nodes into halo consistent order.
     mesh=>numbering%mesh
+    new_mesh = make_mesh(model=mesh, shape=mesh%shape,&
+         continuity=mesh%continuity, name=trim(mesh%name)//'new',&
+         with_faces=.false.)
+
+    allocate(renumber(mesh%nodes))
+    do i = 1, mesh%elements * ndof
+       renumber(mesh%ndglno(i)) = new_mesh%ndglno(i)
+    end do
+
+    ! Renumber the surface facets according to new node numbers.
+    surface_facets = renumber(surface_facets)
+    ! Renumber the universal numbering field according to new node numbers.
+    numbering%val(renumber) = numbering%val
+    ! Renumber the positions according to the new node numbers.
+    positions%val(:,renumber) = positions%val
+
+    deallocate(renumber)
+
+    new_mesh%name = numbering%mesh%name
+    new_mesh%option_path = numbering%mesh%option_path
+    ! grab references that old_mesh had
+    do i = 1, mesh%refcount%count - new_mesh%refcount%count
+       call incref(new_mesh)
+    end do
+    ! drop references from old_mesh
+    do i = 1, mesh%refcount%count-1
+       call decref(mesh)
+    end do
+    call deallocate(numbering%mesh)
+    numbering%mesh = new_mesh
+    ! The faces are now invalid so re-establish them.
     call deallocate_faces(mesh)
     ! Ordering is significant in the NElist and EElist.
     call remove_nelist(mesh) 
@@ -370,7 +410,7 @@ contains
             &               sndgln=surface_facets, &
             &               boundary_ids=boundary_id)
     end if
-    
+        
     ! Since we have renumbered the elements, the element halo is now
     !  invalid.
     if (associated(mesh%element_halos)) then

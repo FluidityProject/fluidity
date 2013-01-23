@@ -208,7 +208,7 @@ contains
     assert(.not.associated(lnew_positions%mesh%uid))
     canonical_numbering=universal_number_field(lnew_positions%mesh)
     canonical_numbering%mesh%uid=>canonical_numbering
-    call order_elements(canonical_numbering)
+    call order_elements(canonical_numbering, lnew_positions)
     call insert(states, canonical_numbering, name="CanonicalNumbering")
     ! order_elements mucks with the mesh, so we need a new copy of the
     !  mesh descriptor.
