@@ -62,7 +62,7 @@
           <regions name="WholeMesh">
             <bottom_depth>
               <constant>
-                <real_value rank="0">40000</real_value>
+                <real_value rank="0">20000</real_value>
                 <comment>Deep enough for the tidal bulge to travel around the world in 24 hours - should allow complete recovery of the input M2 amplitude</comment>
               </constant>
             </bottom_depth>
@@ -743,11 +743,11 @@
       <love_number>
         <value>
           <real_value rank="0">0.693</real_value>
-        </value>
+         </value>
       </love_number>
       <sal>
         <beta>
-          <real_value rank="0">0.094</real_value>
+          <real_value rank="0">0.093</real_value>
         </beta>
       </sal>
     </tidal_forcing>
