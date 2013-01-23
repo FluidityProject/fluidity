@@ -343,7 +343,11 @@ contains
     
     ! raise rhs to power of 2.39
     do i_node = 1, node_count(rhs)
-      call set(rhs, i_node, node_val(rhs, i_node)**2.39)
+       if (node_val(rhs, i_node) > 1e-3) then
+          call set(rhs, i_node, node_val(rhs, i_node)**2.39)
+       else
+          call set(rhs, i_node, 1e-3**2.39)
+       end if
     end do 
 
     do i_field=1, n_sediment_fields
