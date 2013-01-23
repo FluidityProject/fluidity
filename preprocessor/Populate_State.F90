@@ -1682,12 +1682,12 @@ contains
 
       ! Allocate field for volume fraction:
       if (have_option(trim(solid_state_path)//'/scalar_field::SolidConcentration')) then
-        !if (have_option(trim(solid_state_path)//'/scalar_field::SolidConcentration/diagnostic/mesh::SolidCoordinateMesh')) then
-        !  call set_option(trim(solid_state_path)//'/scalar_field::SolidConcentration/diagnostic/mesh', trim(mesh_name)//'SolidCoordinateMesh', stat)
-        !  if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
-        !    FLAbort("Failed to set value for mesh when using the option 'SolidCoordinateMesh'")
-        !  end if
-        !end if
+        if (have_option(trim(solid_state_path)//'/scalar_field::SolidConcentration/diagnostic/mesh::SolidCoordinateMesh')) then
+          call set_option(trim(solid_state_path)//'/scalar_field::SolidConcentration/diagnostic/mesh/name', trim(mesh_name)//'SolidCoordinateMesh', stat)
+          if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
+            FLAbort("Failed to set value for mesh when using the option 'SolidCoordinateMesh'")
+          end if
+        end if
         ! Now allocate field and insert it into the solid state
         call allocate_and_insert_scalar_field(trim(solid_state_path)//'/scalar_field::SolidConcentration', &
                                                solid_states(i+1), &
@@ -1700,6 +1700,12 @@ contains
       ! And the solidforce:
       ! Allocate field for volume fraction:
       if (have_option(trim(solid_state_path)//'/vector_field::SolidForce')) then
+        if (have_option(trim(solid_state_path)//'/vector_field::SolidForce/diagnostic/mesh::SolidCoordinateMesh')) then
+          call set_option(trim(solid_state_path)//'/vector_field::SolidForce/diagnostic/mesh/name', trim(mesh_name)//'SolidCoordinateMesh', stat)
+          if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
+            FLAbort("Failed to set value for mesh when using the option 'SolidCoordinateMesh'")
+          end if
+        end if
         call allocate_and_insert_vector_field(trim(solid_state_path)//'/vector_field::SolidForce', &
                                                solid_states(i+1), &
                                                field_name=trim(mesh_name)//'SolidForce')
@@ -1707,6 +1713,18 @@ contains
 
       ! And the solidvelocity:
       if (have_option(trim(solid_state_path)//'/vector_field::SolidVelocity')) then
+        if (have_option(trim(solid_state_path)//'/vector_field::SolidVelocity/diagnostic/mesh::SolidCoordinateMesh')) then
+          call set_option(trim(solid_state_path)//'/vector_field::SolidVelocity/diagnostic/mesh/name', trim(mesh_name)//'SolidCoordinateMesh', stat)
+          if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
+            FLAbort("Failed to set value for mesh when using the option 'SolidCoordinateMesh'")
+          end if
+        end if
+        if (have_option(trim(solid_state_path)//'/vector_field::SolidVelocity/prescribed/mesh::SolidCoordinateMesh')) then
+          call set_option(trim(solid_state_path)//'/vector_field::SolidVelocity/prescribed/mesh/name', trim(mesh_name)//'SolidCoordinateMesh', stat)
+          if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
+            FLAbort("Failed to set value for mesh when using the option 'SolidCoordinateMesh'")
+          end if
+        end if
         call allocate_and_insert_vector_field(trim(solid_state_path)//'/vector_field::SolidVelocity', &
                                                solid_states(i+1), &
                                                field_name=trim(mesh_name)//'SolidVelocity')
