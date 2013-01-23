@@ -1425,7 +1425,8 @@ Optional Features:
   --enable-dp=flag        compile with 64 bit floating point numbers (default)
   --enable-profiling      enable gprof profiling
   --enable-spatialindex-version
-                          Select required version of spatialindex library: 1.5
+                          Select required version of spatialindex library:
+                          1.8.0
   --enable-vtk            Only use to disable vtk
   --enable-2d-adaptivity  Link against 2D adaptivity library (GPL license)
   --enable-mba3d          Enabled libmba3d 3D adaptivity library
@@ -13744,8 +13745,8 @@ $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
         fi
     fi
     popd
-    BUILD_LIBADAPT="@cd libadaptivity; echo '    MAKE libadaptivity'; \$(MAKE) -s ; cp lib/libadaptivity.a ../lib/; cd .."
-    CLEAN_LIBADAPT="@cd libadaptivity; echo '    CLEAN libadaptivity'; \$(MAKE) -s clean;cd .."
+    BUILD_LIBADAPT="@echo '    MAKE libadaptivity'; \$(MAKE) -s -C libadaptivity && cp libadaptivity/lib/libadaptivity.a lib/"
+    CLEAN_LIBADAPT="@echo '    CLEAN libadaptivity'; \$(MAKE) -s -C libadaptivity clean"
 
 
 
@@ -13875,8 +13876,8 @@ if test "x$enable_spatialindex_version" != "x"
 then
   SPATIALINDEXDIR="spatialindex-$enable_spatialindex_version"
 else
-  enable_spatialindex_version="1.5"
-  SPATIALINDEXDIR="spatialindex-1.5"
+  enable_spatialindex_version="1.8.0"
+  SPATIALINDEXDIR="spatialindex-1.8.0"
 fi
 
 

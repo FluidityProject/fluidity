@@ -583,7 +583,7 @@ hr_adaptivity =
             (
               ## Solver
               element solver {
-                  linear_solver_options_asym
+                  linear_solver_options_asym_scalar
               }|
               ## Assume this field is being solved explicitly and skip the solver.
               ##
