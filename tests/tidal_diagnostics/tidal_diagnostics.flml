@@ -182,23 +182,6 @@
     <nonlinear_iterations>
       <integer_value rank="0">1</integer_value>
     </nonlinear_iterations>
-    <adaptive_timestep>
-      <requested_cfl>
-        <real_value rank="0">0.75</real_value>
-      </requested_cfl>
-      <courant_number name="CFLNumber">
-        <mesh name="VelocityMesh"/>
-      </courant_number>
-      <minimum_timestep>
-        <real_value rank="0">1.0</real_value>
-      </minimum_timestep>
-      <maximum_timestep>
-        <real_value rank="0">1200</real_value>
-      </maximum_timestep>
-      <increase_tolerance>
-        <real_value rank="0">1.75</real_value>
-      </increase_tolerance>
-    </adaptive_timestep>
   </timestepping>
   <physical_parameters>
     <gravity>
