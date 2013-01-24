@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<testproblem>
+  <name>Stokes-may-step-x</name>
+  <owner userid="rhodrid"/>
+  <tags>flml</tags>
+Stokes-may-solcx-stepx-mg.flml
+  <problem_definition length="medium" nprocs="1">
+    <command_line>fluidity -v2 -l Stokes-may-solcx-stepx-gamg.flml; mv fluidity.log-0 log_gamg; fluidity -v2 -l Stokes-may-solcx-stepx-fs.flml; mv fluidity.log-0 log_fs; fluidity -v2 -l Stokes-may-solcx-stepx-mg.flml; mv fluidity.log-0 log_mg; fluidity -v2 -l Stokes-may-solcx-stepx-sor.flml; mv fluidity.log-0 log_sor</command_line>
+  </problem_definition>
+
+<variables>  
+
+<variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+</variable>
+
+<variable name="DeltaU_iterations_GAMG" language="python">
+from check_iterations import *
+DeltaU_iterations_GAMG = check_velocity_iterations('log_gamg')
+</variable>
+
+<variable name="DeltaU_iterations_FS" language="python">
+from check_iterations import *
+DeltaU_iterations_FS = check_velocity_iterations('log_fs')
+</variable>
+
+<variable name="DeltaU_iterations_MG" language="python">
+from check_iterations import *
+DeltaU_iterations_MG = check_velocity_iterations('log_mg')
+</variable>
+
+<variable name="DeltaU_iterations_SOR" language="python">
+from check_iterations import *
+DeltaU_iterations_SOR = check_velocity_iterations('log_sor')
+</variable>
+
+</variables>
+
+<pass_tests>
+
+<test name="Solvers converged" language="python">
+assert(solvers_converged)
+</test>
+
+<test name="GAMG solver behaving as expected" language="python">
+assert((DeltaU_iterations_GAMG == 40))
+</test>
+
+<test name="Fieldsplit solver behaving as expected" language="python">
+assert((DeltaU_iterations_FS == 20))
+</test>
+
+<test name="MG solver behaving as expected" language="python">
+assert((DeltaU_iterations_MG == 108))
+</test>
+
+<test name="SOR solver behaving as expected" language="python">
+assert((DeltaU_iterations_SOR == 187))
+</test>
+
+</pass_tests>
+                                                                                                                                                                              
+<warn_tests>
+</warn_tests>
+
+</testproblem>
+
+
+
+
+
