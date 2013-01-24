@@ -1242,11 +1242,11 @@
 
 
 
-      if( .true. .and. getct) then
+      if( .false. .and. getct) then
          ewrite(3,*) 'after put_in_ct_rhs'
          ewrite(3,*) 'ct_rhs:', ct_rhs
       end if
-      IF( .true. .and. GETCV_DISC ) THEN
+      IF( .false. .and. GETCV_DISC ) THEN
          ewrite(3,*) 'after put_in_ct_rhs'
          ewrite(3,*) 'cv_rhs:', cv_rhs
       end if
@@ -1340,8 +1340,8 @@
             DO CV_NODI = 1, CV_NONODS
                CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
 
-               ewrite(3,*) 'MEAN_PORE_CV( CV_NODI ) , TOLD( CV_NODI_IPHA ) , DERIV( CV_NODI_IPHA ), DT , DENOLD( CV_NODI_IPHA ), CV_P( CV_NODI ) ', &
-                    MEAN_PORE_CV( CV_NODI ) , TOLD( CV_NODI_IPHA ) , DERIV( CV_NODI_IPHA ), DT , DENOLD( CV_NODI_IPHA ), CV_P( CV_NODI ) 
+               !ewrite(3,*) 'MEAN_PORE_CV( CV_NODI ) , TOLD( CV_NODI_IPHA ) , DERIV( CV_NODI_IPHA ), DT , DENOLD( CV_NODI_IPHA ), CV_P( CV_NODI ) ', &
+               !     MEAN_PORE_CV( CV_NODI ) , TOLD( CV_NODI_IPHA ) , DERIV( CV_NODI_IPHA ), DT , DENOLD( CV_NODI_IPHA ), CV_P( CV_NODI ) 
 
                if(.false.) then
                   CT_RHS( CV_NODI ) = CT_RHS( CV_NODI )  -  MEAN_PORE_CV( CV_NODI ) * MASS_CV( CV_NODI ) &
@@ -1391,8 +1391,8 @@
                     MEAN_PORE_CV( CV_NODI ) * T( CV_NODI_IPHA ) * DERIV( CV_NODI_IPHA )  &
                     / ( DT * DEN( CV_NODI_IPHA ) )
 
-               ewrite(3,*) 'MASS_CV( CV_NODI ), SOURCT( CV_NODI_IPHA ), ABSORBT( CV_NODI, :, : ), T( CV_NODI_IPHA ), DEN( CV_NODI_IPHA ) ', &
-                    MASS_CV( CV_NODI ), SOURCT( CV_NODI_IPHA ), ABSORBT( CV_NODI, :, : ), T( CV_NODI_IPHA ), DEN( CV_NODI_IPHA )
+               !ewrite(3,*) 'MASS_CV( CV_NODI ), SOURCT( CV_NODI_IPHA ), ABSORBT( CV_NODI, :, : ), T( CV_NODI_IPHA ), DEN( CV_NODI_IPHA ) ', &
+               !     MASS_CV( CV_NODI ), SOURCT( CV_NODI_IPHA ), ABSORBT( CV_NODI, :, : ), T( CV_NODI_IPHA ), DEN( CV_NODI_IPHA )
 
                CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + MASS_CV( CV_NODI ) * SOURCT( CV_NODI_IPHA ) / DEN( CV_NODI_IPHA )
                !CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + MASS_CV( CV_NODI ) * SOURCT2( CV_NODI_IPHA ) / DEN( CV_NODI_IPHA )
@@ -1439,10 +1439,10 @@
       DEN_FEMT = FEMDEN
 
       ewrite(3,*) '----------sub cv_assemb--------'
-      if( .true. .and. getct) then
+      if( .false. .and. getct) then
          ewrite(3,*) 'ct_rhs:', ct_rhs
       end if
-      if( .true. .and. GETCV_DISC ) then
+      if( .false. .and. GETCV_DISC ) then
          ewrite(3,*) 'cv_rhs:', cv_rhs
       end if
 
@@ -4390,7 +4390,7 @@
       NDOTQNEW=NDOTQ ! initialize it like this so that it contains the b.c's
       U_NLOC_LEV =U_NLOC /CV_NLOC
       DO U_KLOC = 1, U_NLOC
-               U_NODK_IPHA = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC ) +(IPHASE-1)*U_NONODS
+               U_NODK_IPHA = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC ) + (IPHASE-1)*U_NONODS
                NDOTQNEW=NDOTQNEW &
                + SUFEN( U_KLOC, GI ) * UGI_COEF_ELE(U_KLOC) * ( U( U_NODK_IPHA ) - NU( U_NODK_IPHA ) ) * CVNORMX(GI) &
                + SUFEN( U_KLOC, GI ) * VGI_COEF_ELE(U_KLOC) * ( V( U_NODK_IPHA ) - NV( U_NODK_IPHA ) ) * CVNORMY(GI) &
@@ -4523,13 +4523,13 @@
             WOLDDGI = 0.0
             DO U_KLOC_LEV = 1, U_NLOC_LEV
                U_KLOC=(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV
-               U_NODK_IPHA = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC ) +(IPHASE-1)*U_NONODS
+               U_NODK_IPHA = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC ) + (IPHASE-1)*U_NONODS
                UDGI = UDGI + SUFEN( U_KLOC, GI ) * NU( U_NODK_IPHA )
                VDGI = VDGI + SUFEN( U_KLOC, GI ) * NV( U_NODK_IPHA )
                WDGI = WDGI + SUFEN( U_KLOC, GI ) * NW( U_NODK_IPHA )
-               UOLDDGI = UOLDDGI + SUFEN( U_KLOC, GI ) * NUOLD( U_NODK_IPHA ) 
-               VOLDDGI = VOLDDGI + SUFEN( U_KLOC, GI ) * NVOLD( U_NODK_IPHA ) 
-               WOLDDGI = WOLDDGI + SUFEN( U_KLOC, GI ) * NWOLD( U_NODK_IPHA ) 
+               UOLDDGI = UOLDDGI + SUFEN( U_KLOC, GI ) * NUOLD( U_NODK_IPHA )
+               VOLDDGI = VOLDDGI + SUFEN( U_KLOC, GI ) * NVOLD( U_NODK_IPHA )
+               WOLDDGI = WOLDDGI + SUFEN( U_KLOC, GI ) * NWOLD( U_NODK_IPHA )
             END DO
 ! Here we assume that sigma_out/sigma_in is a diagonal matrix 
 ! which effectively assumes that the anisotropy just inside the domain 
@@ -4541,7 +4541,7 @@
             DO CV_SKLOC = 1, CV_SNLOC
                CV_KLOC = CV_SLOC2LOC( CV_SKLOC )
                IF(CV_KLOC==CV_ILOC) THEN
-                  CV_SNODK = ( SELE - 1 ) * CV_SNLOC + CV_SKLOC 
+                  CV_SNODK = ( SELE - 1 ) * CV_SNLOC + CV_SKLOC
                   CV_SNODK_IPHA = CV_SNODK + ( IPHASE - 1 ) * STOTEL*CV_SNLOC
                   SUF_SIG_DIAGTEN_BC_GI(1:NDIM)=SUF_SIG_DIAGTEN_BC( CV_SNODK_IPHA,1:NDIM)
                ENDIF
@@ -4559,14 +4559,14 @@
 
             UGI_COEF_ELE=0.0
             VGI_COEF_ELE=0.0
-            WGI_COEF_ELE=0.0 
+            WGI_COEF_ELE=0.0
             DO U_KLOC_LEV = 1, U_NLOC_LEV
                U_KLOC=(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV
                IF(UDGI*CVNORMX(GI)+VDGI*CVNORMY(GI)+WDGI*CVNORMZ(GI).LT.0.0) THEN ! Incomming...
                   UGI_COEF_ELE(U_KLOC)=UGI_COEF_ELE(U_KLOC)+1.0*SUF_SIG_DIAGTEN_BC_GI(1)
                   VGI_COEF_ELE(U_KLOC)=VGI_COEF_ELE(U_KLOC)+1.0*SUF_SIG_DIAGTEN_BC_GI(2)
                   WGI_COEF_ELE(U_KLOC)=WGI_COEF_ELE(U_KLOC)+1.0*SUF_SIG_DIAGTEN_BC_GI(3)
-               ELSE 
+               ELSE
                   UGI_COEF_ELE(U_KLOC)=UGI_COEF_ELE(U_KLOC)+1.0
                   VGI_COEF_ELE(U_KLOC)=VGI_COEF_ELE(U_KLOC)+1.0
                   WGI_COEF_ELE(U_KLOC)=WGI_COEF_ELE(U_KLOC)+1.0
@@ -5858,16 +5858,20 @@
         IF(NDIM.GE.3) WDGI=WDGI+SUFEN( U_KLOC, GI )*W(U_NODK_IPHA)
                   END DO
  
-                  RSCALE=ABS(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI) &
-                        /TOLFUN(UDGI**2+VDGI**2+WDGI**2)
+ !                 RSCALE=ABS(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI) &
+ !                       /TOLFUN(SQRT(UDGI**2+VDGI**2+WDGI**2))
+                  RSCALE=1.0 &
+                        /TOLFUN(SQRT(UDGI**2+VDGI**2+WDGI**2))
                ENDIF
             ENDIF
             DO CV_KLOC = 1, CV_NLOC
                CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
                CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
                IF(DOWNWIND_EXTRAP.AND.(courant_or_minus_one_new.GE.0.0)) THEN ! Extrapolate to the downwind value...
-                  RGRAY=RSCALE*0.5*HDC*( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) &
-                       + CVNORMY(GI)*SCVFENY( CV_KLOC, GI )+CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) )
+ !                 RGRAY=RSCALE*0.5*HDC*( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) &
+ !                      + CVNORMY(GI)*SCVFENY( CV_KLOC, GI )+CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) )
+                  RGRAY=RSCALE*0.5*HDC*( UDGI*SCVFENX( CV_KLOC, GI ) &
+                       + VDGI*SCVFENY( CV_KLOC, GI )+WDGI*SCVFENZ( CV_KLOC, GI ) )
                   RSHAPE    =SCVFEN( CV_KLOC, GI ) + 2.*(0.5-INCOME   )*RGRAY
                   RSHAPE_OLD=SCVFEN( CV_KLOC, GI ) + 2.*(0.5-INCOMEOLD)*RGRAY
                   FEMTGI    = FEMTGI     +  RSHAPE     * FEMT( CV_NODK_IPHA )

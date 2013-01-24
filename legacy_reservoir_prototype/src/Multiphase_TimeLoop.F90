@@ -560,7 +560,7 @@
 
 
          Conditional_Components_Linearisation: if ( .false. .and. itime == 1 ) then
-            call Updating_Linearised_Components( totele, nphase, ncomp, cv_nloc, cv_nonods, cv_ndgln, &
+            call Updating_Linearised_Components( totele, nphase, ncomp, ndim, cv_nloc, cv_nonods, cv_ndgln, &
                  component )
 
             component_old = component
@@ -717,7 +717,7 @@
                density_tmp = density
 
                ! make mid side nodes the average of the 2 corner nodes...
-               if ( cv_nloc==6 .or. cv_nloc==10 ) then ! P2 triangle or tet
+               if ( cv_nloc==6 .or. (cv_nloc==10 .and. ndim==3) ) then ! P2 triangle or tet
                   allocate( DEN_CV_NOD( CV_NLOC, NPHASE) ) 
 
                   DO ELE = 1, TOTELE
@@ -751,7 +751,7 @@
                   deallocate( DEN_CV_NOD ) 
                end if
 
-               if ( (cv_nloc==6 .or. cv_nloc==10) .and. &
+               if ( (cv_nloc==6 .or. (cv_nloc==10 .and. ndim==3) ) .and. &
                     .not. have_option( '/material_phase[0]/multiphase_properties/relperm_type' ) &
                     ) then
                   U_Density = Density_tmp
@@ -1099,7 +1099,7 @@
 
                   ! linearise compositional fields:
                   Conditional_Components_Linearisation2: if ( ncomp > 1 ) then
-                     call Updating_Linearised_Components( totele, nphase, ncomp, cv_nloc, cv_nonods, cv_ndgln, &
+                     call Updating_Linearised_Components( totele, nphase, ncomp, ndim, cv_nloc, cv_nonods, cv_ndgln, &
                           component )
 
                      !component_old = component
@@ -1511,10 +1511,10 @@
 
 
 
-    subroutine Updating_Linearised_Components( totele, nphase, ncomp, cv_nloc, cv_nonods, cv_ndgln, &
+    subroutine Updating_Linearised_Components( totele, nphase, ncomp, ndim, cv_nloc, cv_nonods, cv_ndgln, &
          component )
       implicit none
-      integer, intent( in ) :: totele, nphase, ncomp, cv_nloc, cv_nonods
+      integer, intent( in ) :: totele, nphase, ncomp, ndim, cv_nloc, cv_nonods
       integer, dimension( : ), intent( in ) :: cv_ndgln
       real, dimension ( : ), intent( inout ) :: component
 !!$Local variables
@@ -1525,7 +1525,7 @@
       allocate( density_tmp( cv_nonods * nphase * max( 1, ncomp ) ), den_cv_nod( cv_nloc, nphase ) ) ; &
            density_tmp = 0. ; den_cv_nod = 0.
 
-      Conditional_CV_Number: if( cv_nloc == 6 .or. cv_nloc == 10 ) then ! P2 triangle or tet
+      Conditional_CV_Number: if( cv_nloc == 6 .or. (cv_nloc == 10 .and. ndim==3) ) then ! P2 triangle or tet
          density_tmp = component
          Loop_Elements: do ele = 1, totele
             Loop_CV: do cv_iloc = 1, cv_nloc

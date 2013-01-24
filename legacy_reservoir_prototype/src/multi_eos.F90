@@ -1113,7 +1113,7 @@
            '/prescribed/value::WholeMesh/isotropic' ) ) then
          viscosity_ph1 => extract_tensor_field( state( 1 ), 'Viscosity' )
          viscosity_ph2 => extract_tensor_field( state( 2 ), 'Viscosity' )
-         mobility =  viscosity_ph2%val( 1, 1, 1 ) / viscosity_ph1%val( 1, 1, 1 )
+         mobility = viscosity_ph2%val( 1, 1, 1 ) / viscosity_ph1%val( 1, 1, 1 )
       elseif( nphase == 1 ) then
          mobility = 0.
       end if
@@ -1160,7 +1160,7 @@
 
                         ! this is the boundary condition
                         ! of the first phase
-                        satura_bc = sat( cv_snodi ) 
+                        satura_bc = sat( cv_snodi )
 
                         sigma_out = 0.
                         do idim = 1, ndim
@@ -1196,6 +1196,9 @@
 
       deallocate( face_ele, cv_sloclist )
 
+suf_sig_diagten_bc( cv_snodi_ipha, 1 : ndim ) = 1.
+
+      return
     end subroutine calculate_SUF_SIG_DIAGTEN_BC
 
   end module multiphase_EOS
