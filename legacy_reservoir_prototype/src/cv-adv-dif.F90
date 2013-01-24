@@ -957,7 +957,8 @@
                              TMIN_2ND_MC, TOLDMIN_2ND_MC, T2MIN_2ND_MC, T2OLDMIN_2ND_MC, DENMIN_2ND_MC, DENOLDMIN_2ND_MC, &
                              TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, &
                              LIMIT_USE_2ND, HDC, NDOTQ, NDOTQOLD, DT, &
-                             SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ )
+                             SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
+                             U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN ) 
 
                         SUM_LIMT    = SUM_LIMT    + LIMT
                         SUM_LIMTOLD = SUM_LIMTOLD + LIMTOLD
@@ -1047,7 +1048,8 @@
                              TMIN_2ND_MC, TOLDMIN_2ND_MC, T2MIN_2ND_MC, T2OLDMIN_2ND_MC, DENMIN_2ND_MC, DENOLDMIN_2ND_MC, &
                              TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, &
                              LIMIT_USE_2ND, HDC, NDOTQ, NDOTQOLD, DT, &
-                             SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ ) 
+                             SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
+                             U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN ) 
 
                      END DO
 
@@ -5605,7 +5607,8 @@
          TMIN_2ND_MC, TOLDMIN_2ND_MC, T2MIN_2ND_MC, T2OLDMIN_2ND_MC, DENMIN_2ND_MC, DENOLDMIN_2ND_MC, &
          TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, LIMIT_USE_2ND, &
          HDC, NDOTQ, NDOTQOLD, DT, &
-         SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ ) 
+         SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
+         U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN ) 
       !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===============
       IMPLICIT NONE
       ! Calculate T and DEN on the CV face at quadrature point GI.
@@ -5616,12 +5619,13 @@
       logical, intent( in ) :: LIMIT_USE_2ND
       INTEGER, intent( in ) :: CV_DISOPT,CV_NONODS,NPHASE,CV_NODI_IPHA,CV_NODJ_IPHA,ELE,ELE2,  &
            CV_NLOC,TOTELE,SCVNGI,GI,IPHASE,SELE,CV_SNLOC,STOTEL, &
-           WIC_T_BC_DIRICHLET,WIC_D_BC_DIRICHLET, IGOT_T2
+           WIC_T_BC_DIRICHLET,WIC_D_BC_DIRICHLET, IGOT_T2, U_NLOC,U_NONODS,NDIM
       INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
       INTEGER, DIMENSION( CV_NLOC ), intent( in ) :: CV_OTHER_LOC
       INTEGER, DIMENSION( CV_SNLOC ), intent( in ) :: CV_SLOC2LOC
       INTEGER, DIMENSION( STOTEL * NPHASE ), intent( in ) :: WIC_T_BC, WIC_D_BC
       INTEGER, DIMENSION( STOTEL * NPHASE * IGOT_T2 ), intent( in ) :: WIC_T2_BC
+      REAL, DIMENSION( U_NLOC, SCVNGI  ), intent( in ) :: SUFEN
       REAL, DIMENSION( CV_NLOC, SCVNGI  ), intent( in ) :: SCVFEN
       REAL, DIMENSION( CV_NLOC, SCVNGI  ), intent( in ) :: SCVFENX, SCVFENY, SCVFENZ
       REAL, DIMENSION( SCVNGI  ), intent( in ) :: CVNORMX, CVNORMY, CVNORMZ
@@ -5641,26 +5645,32 @@
       REAL, DIMENSION( CV_NONODS * NPHASE ), intent( inout ) :: TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC,  &
            DENMAX_2ND_MC, DENMIN_2ND_MC, DENOLDMAX_2ND_MC, DENOLDMIN_2ND_MC
       REAL, DIMENSION( CV_NONODS * NPHASE * IGOT_T2 ), intent( inout ) :: T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, T2OLDMIN_2ND_MC
+      REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: U, V, W
+      INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN
       ! Local variables
       ! If UPWIND then use upwind flux between elements else use central. 
       ! If HI_ORDER_HALF then use high order interpolation when around 
       ! a volume frac of 0.5 and gradually apply limiting near 0 and 1. 
       LOGICAL, PARAMETER :: UPWIND = .TRUE., HI_ORDER_HALF = .FALSE., LIM_VOL_ADJUST2 = .TRUE.
       LOGICAL, PARAMETER :: DOWNWIND_EXTRAP = .TRUE. ! Extrapolate a downwind value for interface tracking.
+      
+      ! Scaling to reduce the downwind bias(=1downwind, =0central)
+      LOGICAL, PARAMETER :: SCALE_DOWN_WIND = .true.
+
       LOGICAL :: FIRSTORD, NOLIMI, RESET_STORE, LIM_VOL_ADJUST
       REAL :: RELAX, RELAXOLD, TMIN_STORE, TMAX_STORE, TOLDMIN_STORE, TOLDMAX_STORE, &
            T2MIN_STORE, T2MAX_STORE, T2OLDMIN_STORE, T2OLDMAX_STORE, &
            DENMIN_STORE, DENMAX_STORE, DENOLDMIN_STORE, DENOLDMAX_STORE, &
            COURANT_OR_MINUS_ONE_NEW, COURANT_OR_MINUS_ONE_OLD
       INTEGER :: CV_KLOC, CV_NODK, CV_NODK_IPHA, CV_KLOC2, CV_NODK2, CV_NODK2_IPHA, CV_STAR_IPHA, &
-           CV_SKLOC, CV_SNODK, CV_SNODK_IPHA
+           CV_SKLOC, CV_SNODK, CV_SNODK_IPHA, U_KLOC,U_NODK,U_NODK_IPHA
 
       LOGICAL :: VOF_METHOD, VOF_INTER, VOF_INTER_OLD
       REAL :: T_BETWEEN_MIN, T_BETWEEN_MAX, TOLD_BETWEEN_MIN, TOLD_BETWEEN_MAX
       REAL :: T_AVE_EDGE, T_AVE_ELE, TOLD_AVE_EDGE, TOLD_AVE_ELE
       REAL :: T_MIDVAL, TOLD_MIDVAL
       REAL :: T_UPWIND,TOLD_UPWIND,TMIN_UPWIND,TMAX_UPWIND,TOLDMIN_UPWIND,TOLDMAX_UPWIND
-      REAL :: RSHAPE,RSHAPE_OLD,RGRAY
+      REAL :: RSHAPE,RSHAPE_OLD,RGRAY, UDGI,VDGI,WDGI, RSCALE
 
       ! The adjustment method is not ready for the LIMIT_USE_2ND - the new limiting method.
       LIM_VOL_ADJUST =LIM_VOL_ADJUST2.AND.(.NOT.LIMIT_USE_2ND)
@@ -5834,11 +5844,29 @@
             ENDIF
          ELSE IF( ( ELE2 == 0 ).OR.( ELE2 == ELE ) ) THEN
 
+            RSCALE=1.0 ! Scaling to reduce the downwind bias(=1downwind, =0central)
+            IF(SCALE_DOWN_WIND) THEN
+               IF(DOWNWIND_EXTRAP.AND.(courant_or_minus_one_new.GE.0.0)) THEN
+                  UDGI=0.0
+                  VDGI=0.0
+                  WDGI=0.0
+                  DO U_KLOC = 1, U_NLOC
+                      U_NODK = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC )
+                      U_NODK_IPHA = U_NODK + ( IPHASE - 1 ) * U_NONODS
+                      UDGI=UDGI+SUFEN( U_KLOC, GI )*U(U_NODK_IPHA)
+        IF(NDIM.GE.2) VDGI=VDGI+SUFEN( U_KLOC, GI )*V(U_NODK_IPHA)
+        IF(NDIM.GE.3) WDGI=WDGI+SUFEN( U_KLOC, GI )*W(U_NODK_IPHA)
+                  END DO
+ 
+                  RSCALE=ABS(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI) &
+                        /TOLFUN(UDGI**2+VDGI**2+WDGI**2)
+               ENDIF
+            ENDIF
             DO CV_KLOC = 1, CV_NLOC
                CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
                CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
                IF(DOWNWIND_EXTRAP.AND.(courant_or_minus_one_new.GE.0.0)) THEN ! Extrapolate to the downwind value...
-                  RGRAY=0.5*HDC*( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) &
+                  RGRAY=RSCALE*0.5*HDC*( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) &
                        + CVNORMY(GI)*SCVFENY( CV_KLOC, GI )+CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) )
                   RSHAPE    =SCVFEN( CV_KLOC, GI ) + 2.*(0.5-INCOME   )*RGRAY
                   RSHAPE_OLD=SCVFEN( CV_KLOC, GI ) + 2.*(0.5-INCOMEOLD)*RGRAY
