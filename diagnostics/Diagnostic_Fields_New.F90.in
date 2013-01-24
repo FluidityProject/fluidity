@@ -479,11 +479,11 @@ contains
         if(has_scalar_field(dep_states_mask(i), dep_s_field%name)) cycle
         
         ! Calculate dependencies
-        call calculate_dependencies(states, state_index, dep_s_field, &
+        call calculate_dependencies(states, i, dep_s_field, &
           & dep_states_mask = dep_states_mask, exclude_nonrecalculated = exclude_nonrecalculated)
         ! Calculate the diagnostic
         ewrite(2, *) "Calculating diagnostic field dependency: " // trim(dep_s_field%name)
-        call calculate_diagnostic_variable(states, state_index, dep_s_field)
+        call calculate_diagnostic_variable(states, i, dep_s_field)
       end do
       
       do j = 1, vector_field_count(dep_states(i))
@@ -495,11 +495,11 @@ contains
         if(has_vector_field(dep_states_mask(i), dep_v_field%name)) cycle
         
         ! Calculate dependencies
-        call calculate_dependencies(states, state_index, dep_v_field, &
+        call calculate_dependencies(states, i, dep_v_field, &
           & dep_states_mask = dep_states_mask, exclude_nonrecalculated = exclude_nonrecalculated)
         ! Calculate the diagnostic
         ewrite(2, *) "Calculating diagnostic field dependency: " // trim(dep_v_field%name)
-        call calculate_diagnostic_variable(states, state_index, dep_v_field)
+        call calculate_diagnostic_variable(states, i, dep_v_field)
       end do
       
       do j = 1, tensor_field_count(dep_states(i))
@@ -511,11 +511,11 @@ contains
         if(has_tensor_field(dep_states_mask(i), dep_t_field%name)) cycle
 
         ! Calculate dependencies
-        call calculate_dependencies(states, state_index, dep_t_field, &
+        call calculate_dependencies(states, i, dep_t_field, &
           & dep_states_mask = dep_states_mask, exclude_nonrecalculated = exclude_nonrecalculated)
         ! Calculate the diagnostic
         ewrite(2, *) "Calculating diagnostic field dependency: " // trim(dep_t_field%name)
-        call calculate_diagnostic_variable(states, state_index, dep_t_field)
+        call calculate_diagnostic_variable(states, i, dep_t_field)
       end do
     end do
     
