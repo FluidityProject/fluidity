@@ -186,7 +186,7 @@ def _assemble_tensor(f):
                 args.append(c.dat(c.element_node_map, op2.READ))
             op2.par_loop(*args)
         if domain_type == 'exterior_facet':
-            boundary = integral.measure().domain_id()
+            boundary = integral.measure().domain_id().subdomain_ids()[0]
             elem_node = test.mesh.faces.boundary_maps[boundary]
             if is_mat:
                 tensor_arg = tensor((elem_node[op2.i[0]], 
