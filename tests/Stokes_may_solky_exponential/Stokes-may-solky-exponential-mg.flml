@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">May_sinker_fs</string_value>
+    <string_value lines="1">May_Exponential_MG</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">stokes</string_value>
@@ -82,7 +82,7 @@
   <physical_parameters>
     <gravity>
       <magnitude>
-        <real_value rank="0">9.8</real_value>
+        <real_value rank="0">1.0</real_value>
       </magnitude>
       <vector_field name="GravityDirection" rank="1">
         <prescribed>
@@ -112,13 +112,12 @@
           </reference_density>
           <temperature_dependency>
             <reference_temperature>
-              <real_value rank="0">1.0</real_value>
+              <real_value rank="0">-1.0</real_value>
             </reference_temperature>
             <thermal_expansion_coefficient>
               <real_value rank="0">1.0</real_value>
             </thermal_expansion_coefficient>
           </temperature_dependency>
-          <subtract_out_hydrostatic_level/>
         </linear>
       </fluids>
     </equation_of_state>
@@ -146,6 +145,10 @@
                   <max_iterations>
                     <integer_value rank="0">10000</integer_value>
                   </max_iterations>
+                  <multigrid_near_null_space>
+                    <all_components/>
+                    <all_rotations/>
+                  </multigrid_near_null_space>
                   <never_ignore_solver_failures/>
                   <diagnostics>
                     <monitors/>
@@ -237,23 +240,7 @@
         </temporal_discretisation>
         <solver>
           <iterative_method name="cg"/>
-          <preconditioner name="fieldsplit">
-            <fieldsplit_type name="multiplicative"/>
-            <iterative_method name="preonly"/>
-            <preconditioner name="hypre">
-              <hypre_type name="boomeramg"/>
-            </preconditioner>
-            <relative_error>
-              <real_value rank="0">1.0e-10</real_value>
-            </relative_error>
-            <max_iterations>
-              <integer_value rank="0">1000</integer_value>
-            </max_iterations>
-            <never_ignore_solver_failures/>
-            <diagnostics>
-              <monitors/>
-            </diagnostics>
-          </preconditioner>
+          <preconditioner name="mg"/>
           <relative_error>
             <real_value rank="0">1.0e-10</real_value>
           </relative_error>
@@ -311,11 +298,8 @@
   import numpy
   visc = numpy.zeros((2,2))
   mu_ref = 1.0
-  delta_mu = 1e4
-  mu = mu_ref
-  if((X[0] &gt;= 0.4 and X[0] &lt;= 0.6)):
-    if((X[1] &gt;= 0.65 and X[1] &lt;= 0.85)):
-      mu = delta_mu
+  B = 5.0
+  mu = mu_ref*math.exp(2.0*B*X[1]) 
   for i in range(2):
     for j in range(2):
       visc[i,j] = mu
@@ -354,10 +338,8 @@
         <value name="WholeMesh">
           <python>
             <string_value lines="20" type="code" language="python">def val(X,t):
-  T = 1.
-  if((X[0] &gt;= 0.4 and X[0] &lt;= 0.6)):
-    if((X[1] &gt;= 0.65 and X[1] &lt;= 0.85)):
-      T = 0.
+  import math
+  T = math.sin(math.pi*X[1]) * math.cos(math.pi*X[0])
   return T</string_value>
           </python>
         </value>
