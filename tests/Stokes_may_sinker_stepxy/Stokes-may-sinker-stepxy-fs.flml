@@ -139,7 +139,23 @@
               <inner_matrix name="FullMomentumMatrix">
                 <solver>
                   <iterative_method name="cg"/>
-                  <preconditioner name="gamg"/>
+                  <preconditioner name="fieldsplit">
+                    <fieldsplit_type name="multiplicative"/>
+                    <iterative_method name="preonly"/>
+                    <preconditioner name="hypre">
+                      <hypre_type name="boomeramg"/>
+                    </preconditioner>
+                    <relative_error>
+                      <real_value rank="0">1.0e-10</real_value>
+                    </relative_error>
+                    <max_iterations>
+                      <integer_value rank="0">10000</integer_value>
+                    </max_iterations>
+                    <never_ignore_solver_failures/>
+                    <diagnostics>
+                      <monitors/>
+                    </diagnostics>
+                  </preconditioner>
                   <relative_error>
                     <real_value rank="0">1.0e-10</real_value>
                   </relative_error>
