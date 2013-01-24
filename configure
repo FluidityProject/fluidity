@@ -13755,8 +13755,8 @@ $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
         fi
     fi
     popd
-    BUILD_LIBADAPT="@cd libadaptivity; echo '    MAKE libadaptivity'; \$(MAKE) -s ; cp lib/libadaptivity.a ../lib/; cd .."
-    CLEAN_LIBADAPT="@cd libadaptivity; echo '    CLEAN libadaptivity'; \$(MAKE) -s clean;cd .."
+    BUILD_LIBADAPT="@echo '    MAKE libadaptivity'; \$(MAKE) -s -C libadaptivity && cp libadaptivity/lib/libadaptivity.a lib/"
+    CLEAN_LIBADAPT="@echo '    CLEAN libadaptivity'; \$(MAKE) -s -C libadaptivity clean"
 
 
 
