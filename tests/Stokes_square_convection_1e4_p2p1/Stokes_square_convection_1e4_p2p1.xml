@@ -16,9 +16,9 @@ files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
 </variable>
 
-<variable name="velocity_solver_iterations_correct" language="python">
+<variable name="DeltaU_iterations" language="python">
 from check_iterations import *
-velocity_solver_iterations_correct = check_velocity_iterations()
+DeltaU_iterations = check_velocity_iterations('fluidity.log-0')     
 </variable>
 
 <variable name="nu_top" language="python">
@@ -54,8 +54,8 @@ q_two = (-1.)*(stat("stokes-1e4-p2p1.detectors")["Fluid"]["TemperatureGradient"]
 assert(solvers_converged)
 </test>
 
-<test name="Velocity solver behaving as expected" language="python">
-assert(velocity_solver_iterations_correct)
+<test name="Fieldsplit velocity solver behaving as expected" language="python">
+assert(DeltaU_iterations == 8)
 </test>
 
 <test name="Surface Nusselt Number Validity: 4.8 .lt. Nu .lt. 5.0" language="python">
