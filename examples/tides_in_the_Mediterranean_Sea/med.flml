@@ -762,26 +762,12 @@
     </vector_field>
     <vector_field name="MaxBedShearStress" rank="1">
       <diagnostic>
-        <algorithm material_phase_support="single" source_field_type="vector" persistent="true" name="temporalmax_vector" source_field_name="BedShearStress">
-          <spin_up_time>
-            <real_value rank="0">7200.</real_value>
-          </spin_up_time>
-        </algorithm>
+        <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
-        <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
       </diagnostic>
+      <spin_up_time>
+        <real_value rank="0">7200</real_value>
+      </spin_up_time>
     </vector_field>
   </material_phase>
   <ocean_forcing>
