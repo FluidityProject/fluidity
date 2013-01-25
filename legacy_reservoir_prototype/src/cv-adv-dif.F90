@@ -5911,8 +5911,8 @@
 !                       + CVNORMY(GI)*SCVFENY( CV_KLOC, GI )+CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) )
                   RGRAY=RSCALE*ELE_LENGTH_SCALE*( UDGI*SCVFENX( CV_KLOC, GI ) &
                        + VDGI*SCVFENY( CV_KLOC, GI )+WDGI*SCVFENZ( CV_KLOC, GI ) )
-                  RSHAPE    =SCVFEN( CV_KLOC, GI ) + 2.*(0.5-INCOME   )*RGRAY
-                  RSHAPE_OLD=SCVFEN( CV_KLOC, GI ) + 2.*(0.5-INCOMEOLD)*RGRAY
+                  RSHAPE    =SCVFEN( CV_KLOC, GI ) + RGRAY
+                  RSHAPE_OLD=SCVFEN( CV_KLOC, GI ) + RGRAY
                   FEMTGI    = FEMTGI     +  RSHAPE     * FEMT( CV_NODK_IPHA )
                   FEMTOLDGI = FEMTOLDGI  +  RSHAPE_OLD * FEMTOLD( CV_NODK_IPHA )
                ELSE
