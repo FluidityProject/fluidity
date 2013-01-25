@@ -5897,6 +5897,8 @@
                   ELE_LENGTH_SCALE=0.5*SQRT( (UDGI**2+VDGI**2+WDGI**2)/TOLFUN( SUM( VEC_VEL2(1:NDIM)**2 ))  )
 !                  ELE_LENGTH_SCALE=1.0/TOLFUN( SQRT(SUM( VEC_VEL2(1:NDIM)**2 )) )  
 !                  ELE_LENGTH_SCALE=0.5*HDC
+! For discontinuous elements half the length scale...
+                  IF(U_NONODS==CV_NONODS) ELE_LENGTH_SCALE=0.5*ELE_LENGTH_SCALE
 
                ENDIF
             ENDIF
