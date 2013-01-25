@@ -598,10 +598,12 @@
                ! calculate SUF_SIG_DIAGTEN_BC this is \sigma_in^{-1} \sigma_out
                ! \sigma_in and \sigma_out have the same anisotropy so SUF_SIG_DIAGTEN_BC
                ! is diagonal
+              if(is_overlapping) then
                call calculate_SUF_SIG_DIAGTEN_BC( suf_sig_diagten_bc, totele, stotel, cv_nloc, &
                     cv_snloc, nphase, ndim, nface, mat_nonods, cv_nonods, x_nloc, ncolele, cv_ele_type, &
                     finele, colele, cv_ndgln, cv_sndgln, x_ndgln, mat_ndgln, permeability, material_absorption, &
                     Velocity_U_BC_Spatial, PhaseVolumeFraction_BC_Spatial,  PhaseVolumeFraction_BC, state )
+              endif
             end if
 
 !!$ Solve advection of the scalar 'Temperature':
