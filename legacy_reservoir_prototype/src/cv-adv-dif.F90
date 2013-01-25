@@ -5893,7 +5893,7 @@
 
 !                  ELE_LENGTH_SCALE=SQRT( (UDGI**2+VDGI**2+WDGI**2)/TOLFUN( SUM( VEC_VEL2(1:NDIM)**2 ))  )
                   ELE_LENGTH_SCALE=SQRT( (UDGI**2+VDGI**2+WDGI**2))/TOLFUN( SQRT(SUM( VEC_VEL2(1:NDIM)**2 )))  )
-!                  ELE_LENGTH_SCALE=HDC
+!                  ELE_LENGTH_SCALE=0.5*HDC
 
                ENDIF
             ENDIF
