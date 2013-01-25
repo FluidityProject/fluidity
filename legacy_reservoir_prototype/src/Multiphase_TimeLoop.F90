@@ -1557,9 +1557,6 @@
 
          end do Loop_Elements
 
-      else
-         FLAbort( 'Only working for cv_nloc == 6 or 10' )
-
       end if Conditional_CV_Number
 
       deallocate( density_tmp, den_cv_nod )
