@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <testproblem>
-  <name>Stokes-may-step-x</name>
+  <name>Stokes-may-exponential</name>
   <owner userid="rhodrid"/>
   <tags>flml petsc33</tags>
   <problem_definition length="medium" nprocs="1">
