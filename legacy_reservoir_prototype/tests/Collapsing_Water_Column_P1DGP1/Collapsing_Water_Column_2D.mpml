@@ -121,7 +121,7 @@
       <real_value rank="0">0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">5e-4</real_value>
+      <real_value rank="0">2e-3</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">10</real_value>
@@ -281,7 +281,9 @@
         <equation name="LinearMomentum"/>
         <spatial_discretisation>
           <discontinuous_galerkin>
-            <mass_terms/>
+            <mass_terms>
+              <lump_mass_matrix/>
+            </mass_terms>
             <viscosity_scheme>
               <compact_discontinuous_galerkin/>
             </viscosity_scheme>
@@ -293,7 +295,7 @@
             </advection_scheme>
             <stabilisation>
               <method>
-                <integer_value rank="0">2</integer_value>
+                <integer_value rank="0">3</integer_value>
               </method>
             </stabilisation>
           </discontinuous_galerkin>

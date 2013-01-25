@@ -306,6 +306,7 @@
            DUMMY_ZERO_NDIM_NDIM
       REAL, DIMENSION( : , :, : ), allocatable :: DTX_ELE,DTY_ELE,DTZ_ELE,  &
            DTOLDX_ELE,DTOLDY_ELE,DTOLDZ_ELE
+      REAL, DIMENSION( : , :, : ), allocatable :: INV_JAC
 
       !        ===> INTEGERS <===
       INTEGER :: CV_NGI, CV_NGI_SHORT, SCVNGI, SBCVNGI, COUNT, JCOUNT, &
@@ -486,6 +487,9 @@
       ! The procity mapped to the CV nodes
       ALLOCATE( SUM_CV( CV_NONODS ))
       ALLOCATE( UP_WIND_NOD( CV_NONODS * NPHASE ))
+
+      ALLOCATE( INV_JAC( NDIM, NDIM, SCVNGI ) )
+
       UP_WIND_NOD = 0.0
 
       ALLOCATE( ONE_PORE( TOTELE ))
@@ -757,10 +761,11 @@
 
 
          ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
-         CALL DETNLXR( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
+         CALL DETNLXR_INVJAC( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
               CV_NLOC, SCVNGI, &
               SCVFEN, SCVFENLX, SCVFENLY, SCVFENLZ, SCVFEWEIGH, SCVDETWEI, SCVRA, VOLUME, D1, D3, DCYL, &
-              SCVFENX, SCVFENY, SCVFENZ) 
+              SCVFENX, SCVFENY, SCVFENZ, &
+              NDIM, INV_JAC )
 
 
          Loop_CV_ILOC: DO CV_ILOC = 1, CV_NLOC ! Loop over the nodes of the element
@@ -958,7 +963,7 @@
                              TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, &
                              LIMIT_USE_2ND, HDC, NDOTQ, NDOTQOLD, DT, &
                              SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
-                             U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN ) 
+                             U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC ) 
 
                         SUM_LIMT    = SUM_LIMT    + LIMT
                         SUM_LIMTOLD = SUM_LIMTOLD + LIMTOLD
@@ -1049,7 +1054,7 @@
                              TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, &
                              LIMIT_USE_2ND, HDC, NDOTQ, NDOTQOLD, DT, &
                              SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
-                             U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN ) 
+                             U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC ) 
 
                      END DO
 
@@ -3101,8 +3106,10 @@
          IF( COURAT > 0.0 ) THEN
             IF(DOWNWIND_EXTRAP) THEN
 ! new method based on downwind extrapolation...
-               MAXUF = MAX( 0.0, UF )
-               TILDEUF = MIN( 1.0, UC/ (3.0 * COURAT), MAXUF )
+!               MAXUF = MAX( 0.0, UF )
+               MAXUF = MAX( 0.0, UF, uc )
+!               TILDEUF = MIN( 1.0, UC/ (3.0 * COURAT), MAXUF )
+               TILDEUF = MIN( 1.0, UC * 10.0, MAXUF )
             ELSE
                !TILDEUF = MIN( 1.0, max( UC / COURAT, XI * UC ))
                ! halve the slope for now...
@@ -5608,7 +5615,7 @@
          TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, LIMIT_USE_2ND, &
          HDC, NDOTQ, NDOTQOLD, DT, &
          SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
-         U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN ) 
+         U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC )
       !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===============
       IMPLICIT NONE
       ! Calculate T and DEN on the CV face at quadrature point GI.
@@ -5647,6 +5654,7 @@
       REAL, DIMENSION( CV_NONODS * NPHASE * IGOT_T2 ), intent( inout ) :: T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, T2OLDMIN_2ND_MC
       REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: U, V, W
       INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN
+      REAL, DIMENSION( NDIM, NDIM, SCVNGI ), intent( in ) :: INV_JAC
       ! Local variables
       ! If UPWIND then use upwind flux between elements else use central. 
       ! If HI_ORDER_HALF then use high order interpolation when around 
@@ -5663,14 +5671,15 @@
            DENMIN_STORE, DENMAX_STORE, DENOLDMIN_STORE, DENOLDMAX_STORE, &
            COURANT_OR_MINUS_ONE_NEW, COURANT_OR_MINUS_ONE_OLD
       INTEGER :: CV_KLOC, CV_NODK, CV_NODK_IPHA, CV_KLOC2, CV_NODK2, CV_NODK2_IPHA, CV_STAR_IPHA, &
-           CV_SKLOC, CV_SNODK, CV_SNODK_IPHA, U_KLOC,U_NODK,U_NODK_IPHA
+           CV_SKLOC, CV_SNODK, CV_SNODK_IPHA, U_KLOC,U_NODK,U_NODK_IPHA, IDIM
 
       LOGICAL :: VOF_METHOD, VOF_INTER, VOF_INTER_OLD
       REAL :: T_BETWEEN_MIN, T_BETWEEN_MAX, TOLD_BETWEEN_MIN, TOLD_BETWEEN_MAX
       REAL :: T_AVE_EDGE, T_AVE_ELE, TOLD_AVE_EDGE, TOLD_AVE_ELE
       REAL :: T_MIDVAL, TOLD_MIDVAL
       REAL :: T_UPWIND,TOLD_UPWIND,TMIN_UPWIND,TMAX_UPWIND,TOLDMIN_UPWIND,TOLDMAX_UPWIND
-      REAL :: RSHAPE,RSHAPE_OLD,RGRAY, UDGI,VDGI,WDGI, RSCALE
+      REAL :: RSHAPE,RSHAPE_OLD,RGRAY, UDGI,VDGI,WDGI, RSCALE, TXGI,TYGI,TZGI
+      REAL :: VEC_VEL(3), VEC_VEL2(3), ELE_LENGTH_SCALE
 
       ! The adjustment method is not ready for the LIMIT_USE_2ND - the new limiting method.
       LIM_VOL_ADJUST =LIM_VOL_ADJUST2.AND.(.NOT.LIMIT_USE_2ND)
@@ -5847,6 +5856,17 @@
             RSCALE=1.0 ! Scaling to reduce the downwind bias(=1downwind, =0central)
             IF(SCALE_DOWN_WIND) THEN
                IF(DOWNWIND_EXTRAP.AND.(courant_or_minus_one_new.GE.0.0)) THEN
+                  TXGI=0.0
+                  TYGI=0.0
+                  TZGI=0.0
+                  DO CV_KLOC = 1, CV_NLOC
+                    CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
+                    CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
+                    TXGI=TXGI+SCVFENX( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
+      IF(NDIM.GE.2) TYGI=TYGI+SCVFENY( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
+      IF(NDIM.GE.3) TZGI=TZGI+SCVFENZ( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
+                  END DO
+
                   UDGI=0.0
                   VDGI=0.0
                   WDGI=0.0
@@ -5858,19 +5878,32 @@
         IF(NDIM.GE.3) WDGI=WDGI+SUFEN( U_KLOC, GI )*W(U_NODK_IPHA)
                   END DO
  
- !                 RSCALE=ABS(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI) &
- !                       /TOLFUN(SQRT(UDGI**2+VDGI**2+WDGI**2))
-                  RSCALE=1.0 &
-                        /TOLFUN(SQRT(UDGI**2+VDGI**2+WDGI**2))
+!                  RSCALE=ABS(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI) &
+!                        /TOLFUN(UDGI**2+VDGI**2+WDGI**2)
+                  RSCALE=ABS(TXGI*UDGI+TYGI*VDGI+TZGI*WDGI) &
+                        /TOLFUN((UDGI**2+VDGI**2+WDGI**2)*SQRT(TXGI**2+TYGI**2+TZGI**2))
+
+                  VEC_VEL(1)=UDGI
+                  VEC_VEL(2)=VDGI
+                  VEC_VEL(3)=WDGI
+                  VEC_VEL2=0.0
+                  DO IDIM=1,NDIM
+                     VEC_VEL2(IDIM)=SUM( INV_JAC(IDIM,1:NDIM, GI)*VEC_VEL(1:NDIM) )
+                  END DO
+
+!                  ELE_LENGTH_SCALE=SQRT( (UDGI**2+VDGI**2+WDGI**2)/TOLFUN( SUM( VEC_VEL2(1:NDIM)**2 ))  )
+                  ELE_LENGTH_SCALE=SQRT( (UDGI**2+VDGI**2+WDGI**2))/TOLFUN( SQRT(SUM( VEC_VEL2(1:NDIM)**2 )))  )
+!                  ELE_LENGTH_SCALE=HDC
+
                ENDIF
             ENDIF
             DO CV_KLOC = 1, CV_NLOC
                CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
                CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
                IF(DOWNWIND_EXTRAP.AND.(courant_or_minus_one_new.GE.0.0)) THEN ! Extrapolate to the downwind value...
- !                 RGRAY=RSCALE*0.5*HDC*( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) &
- !                      + CVNORMY(GI)*SCVFENY( CV_KLOC, GI )+CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) )
-                  RGRAY=RSCALE*0.5*HDC*( UDGI*SCVFENX( CV_KLOC, GI ) &
+!                  RGRAY=RSCALE*ELE_LENGTH_SCALE*( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) &
+!                       + CVNORMY(GI)*SCVFENY( CV_KLOC, GI )+CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) )
+                  RGRAY=RSCALE*ELE_LENGTH_SCALE*( UDGI*SCVFENX( CV_KLOC, GI ) &
                        + VDGI*SCVFENY( CV_KLOC, GI )+WDGI*SCVFENZ( CV_KLOC, GI ) )
                   RSHAPE    =SCVFEN( CV_KLOC, GI ) + 2.*(0.5-INCOME   )*RGRAY
                   RSHAPE_OLD=SCVFEN( CV_KLOC, GI ) + 2.*(0.5-INCOMEOLD)*RGRAY
@@ -5890,6 +5923,9 @@
                   FEMT2OLDGI = 1.0
                ENDIF
             END DO
+
+
+
 
          ELSE  ! DG saturation across elements
 
