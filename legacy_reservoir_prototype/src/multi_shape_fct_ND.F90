@@ -1437,8 +1437,8 @@
             INV_JAC( 1,1, GI )= DGI /DETJ
             INV_JAC( 1,2, GI )= -BGI /DETJ
 
-            INV_JAC( 1,1, GI )= -CGI /DETJ
-            INV_JAC( 1,2, GI )= AGI /DETJ
+            INV_JAC( 2,1, GI )= -CGI /DETJ
+            INV_JAC( 2,2, GI )= AGI /DETJ
             !
          end do ! Was loop 1331
          ! ENDOF IF(D3) THEN ELSE...

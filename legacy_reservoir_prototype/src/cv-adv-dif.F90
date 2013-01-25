@@ -5889,6 +5889,7 @@
                   VEC_VEL2=0.0
                   DO IDIM=1,NDIM
                      VEC_VEL2(IDIM)=SUM( INV_JAC(IDIM, 1:NDIM, GI)*VEC_VEL(1:NDIM) )
+!                     print *,'idim,INV_JAC(IDIM, 1:NDIM, GI):',idim,INV_JAC(IDIM, 1:NDIM, GI)
                   END DO
 ! normalize the velocity in here: 
 !                  VEC_VEL2=VEC_VEL2/TOLFUN(SQRT( UDGI**2+VDGI**2+WDGI**2))
@@ -5899,7 +5900,7 @@
 
                ENDIF
             ENDIF
-          print *,'ele_length_scale=',ele_length_scale
+!          print *,'ele_length_scale=',ele_length_scale
             DO CV_KLOC = 1, CV_NLOC
                CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
                CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
