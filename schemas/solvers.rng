@@ -59,6 +59,7 @@ by the PETSc library. Many more methods are provided.
       <ref name="pchypre_options"/>
       <ref name="pcbjacobi_options"/>
       <ref name="pcasm_options"/>
+      <ref name="pcgamg_options"/>
       <ref name="pcfieldsplit_options"/>
       <ref name="pcother_options"/>
     </choice>
@@ -426,6 +427,17 @@ by the PETSc library. Many more methods are provided.
       <ref name="pcother_options"/>
     </choice>
     <ref name="generic_solver_options_scalar"/>
+  </define>
+  <define name="pcgamg_options">
+    <element name="preconditioner">
+      <a:documentation>GAMG preconditioner.
+
+Can be used in conjunction with multigrid near null_space to
+improve convergence. </a:documentation>
+      <attribute name="name">
+        <value>gamg</value>
+      </attribute>
+    </element>
   </define>
   <define name="pcfieldsplit_options">
     <element name="preconditioner">

@@ -59,6 +59,7 @@ linear_solver_options_asym_vector =
          pchypre_options|
          pcbjacobi_options|
          pcasm_options|
+         pcgamg_options|
          pcfieldsplit_options|
          pcother_options
       ),
@@ -407,6 +408,17 @@ pc_ksp_solver_options =
          pcother_options
       ),
       generic_solver_options_scalar
+   )
+
+pcgamg_options =
+   (
+      ## GAMG preconditioner.
+      ##
+      ## Can be used in conjunction with multigrid near null_space to
+      ## improve convergence. 
+      element preconditioner {
+         attribute name { "gamg" }
+      }
    )
 
 pcfieldsplit_options =
