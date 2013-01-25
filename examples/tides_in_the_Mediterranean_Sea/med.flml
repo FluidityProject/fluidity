@@ -665,11 +665,7 @@
     </scalar_field>
     <scalar_field name="Frees_max" rank="0">
       <diagnostic>
-        <algorithm source_field_name="FreeSurface" source_field_type="scalar" material_phase_support="single" name="temporalmax" persistent="true">
-          <spin_up_time>
-            <real_value rank="0">72000.0</real_value>
-          </spin_up_time>
-        </algorithm>
+        <algorithm source_field_name="FreeSurface" source_field_type="scalar" material_phase_support="single" name="temporalmax_scalar" persistent="true"/>
         <mesh name="PressureMesh"/>
         <output>
           <exclude_from_vtu/>
@@ -766,12 +762,26 @@
     </vector_field>
     <vector_field name="MaxBedShearStress" rank="1">
       <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
+        <algorithm material_phase_support="single" source_field_type="vector" persistent="true" name="temporalmax_vector" source_field_name="BedShearStress">
+          <spin_up_time>
+            <real_value rank="0">7200.</real_value>
+          </spin_up_time>
+        </algorithm>
         <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
       </diagnostic>
-      <spin_up_time>
-        <real_value rank="0">72000.0</real_value>
-      </spin_up_time>
     </vector_field>
   </material_phase>
   <ocean_forcing>
