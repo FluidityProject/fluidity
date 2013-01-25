@@ -1196,7 +1196,6 @@
 
       deallocate( face_ele, cv_sloclist )
 
-suf_sig_diagten_bc( cv_snodi_ipha, 1 : ndim ) = 1.
 
       return
     end subroutine calculate_SUF_SIG_DIAGTEN_BC
