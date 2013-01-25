@@ -5888,7 +5888,7 @@
                   VEC_VEL(3)=WDGI
                   VEC_VEL2=0.0
                   DO IDIM=1,NDIM
-                     VEC_VEL2(IDIM)=SUM( INV_JAC(1:NDIM, IDIM, GI)*VEC_VEL(1:NDIM) )
+                     VEC_VEL2(IDIM)=SUM( INV_JAC(IDIM, 1:NDIM, GI)*VEC_VEL(1:NDIM) )
                   END DO
 ! normalize the velocity in here: 
 !                  VEC_VEL2=VEC_VEL2/TOLFUN(SQRT( UDGI**2+VDGI**2+WDGI**2))
