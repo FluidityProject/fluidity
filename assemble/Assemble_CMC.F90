@@ -170,7 +170,7 @@ contains
 
     end subroutine assemble_diagonal_schur
 
-    subroutine assemble_scaled_pressure_mass_matrix(state,scaled_pressure_mass_matrix)
+    subroutine assemble_scaled_pressure_mass_matrix(state, scaled_pressure_mass_matrix, p_mesh, dt)
 
       ! This routine assembles the scaled_pressure_mass_matrix at the
       ! quadrature points. It is scaled by the inverse of viscosity.
@@ -178,8 +178,11 @@ contains
       type(state_type), intent(in) :: state   
       ! Scaled pressure mass matrix - already allocated in Momentum_Eq:
       type(csr_matrix), intent(inout) :: scaled_pressure_mass_matrix
-      ! Pressure field:
-      type(scalar_field), pointer :: pressure
+
+      ! Pressure mesh (for free surface this should be the extended pressure mesh)
+      type(mesh_type), intent(in) :: p_mesh
+      real, intent(in) :: dt
+
       ! Viscosity tensor:
       type(tensor_field), pointer :: viscosity     
       ! Viscosity component:
@@ -199,9 +202,6 @@ contains
       ! Positions:
       positions => extract_vector_field(state, "Coordinate")
 
-      ! Get the pressure field:
-      pressure=>extract_scalar_field(state, "Pressure")
- 
       ! Extract viscosity tensor from state:
       viscosity => extract_tensor_field(state,'Viscosity')
 
@@ -209,18 +209,18 @@ contains
       viscosity_component = extract_scalar_field(viscosity,1,1)
 
       ! Initialise and assemble scaled pressure mass matrix:
-      allocate(detwei(ele_ngi(pressure, 1)), &
-               mass_matrix(ele_loc(pressure, 1), ele_loc(pressure, 1)), &
+      allocate(detwei(ele_ngi(p_mesh, 1)), &
+               mass_matrix(ele_loc(p_mesh, 1), ele_loc(p_mesh, 1)), &
                mu_gi(ele_ngi(viscosity_component, 1)))
  
       call zero(scaled_pressure_mass_matrix)
-      do ele = 1, ele_count(pressure)
-        p_shape => ele_shape(pressure, ele)
+      do ele = 1, ele_count(p_mesh)
+        p_shape => ele_shape(p_mesh, ele)
         mu_gi = ele_val_at_quad(viscosity_component, ele)
         call transform_to_physical(positions, ele, detwei=detwei)
-        mass_matrix = shape_shape(p_shape, p_shape, detwei/mu_gi)
-        call addto(scaled_pressure_mass_matrix, ele_nodes(pressure, ele),&
-             ele_nodes(pressure, ele), mass_matrix)
+        mass_matrix = shape_shape(p_shape, p_shape, detwei/(mu_gi*dt))
+        call addto(scaled_pressure_mass_matrix, ele_nodes(p_mesh, ele),&
+             ele_nodes(p_mesh, ele), mass_matrix)
       end do
 
       ewrite_minmax(scaled_pressure_mass_matrix)
