@@ -281,16 +281,6 @@ contains
 
   end subroutine leonard_tensor
 
-  !subroutine les_viscosity_module_register_diagnostic
-
-  !  dynamic_les_coef, dynamic_eddy_visc, dynamic_strain, dynamic_t_strain, dynamic_filter
-
-  !  call register_diagnostic(dim=1, name="tensor", statistic="effectivestress", material_phase="Fluid")
-
-  !  call set_diagnostic(name, statistic, material_phase, value)
-
-  !end subroutine les_viscosity_module_register_diagnostic
-
   function les_strain_rate(du_t, nu)
     !! Computes the strain rate
     !! derivative of velocity shape function (nloc x ngi x dim)
