@@ -2052,22 +2052,34 @@
                     wale_coef_gi(gi)**3 * smagorinsky_coefficient**2 / &
                     max(les_coef_gi(gi)**5 + wale_coef_gi(gi)**2.5, 1.e-10)
             end do
-         ! 2nd order Smagorinsky model
+         ! Second order Smagorinsky model
          else if(les_second_order) then           
             les_coef_gi = les_viscosity_strength(du_t, nu_ele)
+            ! In Boussinesq simulations this density will be set to unity.
+            ! It's included here for compressible flow simulations.
             density_gi = ele_val_at_quad(density, ele)
             
             select case(length_scale_type)
                case("scalar")
+                  ! Length scale is the cube root of the element's volume in 3D.
+                  ! In 2D, it is the square root of the element's area.
                   les_scalar_gi = length_scale_scalar(x, ele)
                   do gi = 1, size(les_coef_gi)
+                     ! The factor of 4 arises here because the filter width separating resolved 
+                     ! and unresolved scales is assumed to be twice the local element size, 
+                     ! which is squared in the viscosity model.
                      les_tensor_gi(:,:,gi) = 4.0*les_scalar_gi(gi)*&
                         density_gi(gi)*les_coef_gi(gi)*(smagorinsky_coefficient**2)
                   end do
                case("tensor")
+                  ! This uses a tensor length scale metric from the adaptivity process
+                  ! to better handle anisotropic elements.
                   les_tensor_gi = length_scale_tensor(du_t, ele_shape(u, ele))
                   do gi = 1, size(les_coef_gi)
-                     les_tensor_gi(:,:,gi) = 4.*les_tensor_gi(:,:,gi)*&
+                     ! The factor of 4 arises here because the filter width separating resolved 
+                     ! and unresolved scales is assumed to be twice the local element size, 
+                     ! which is squared in the viscosity model.
+                     les_tensor_gi(:,:,gi) = 4.0*les_tensor_gi(:,:,gi)*&
                         density_gi(gi)*les_coef_gi(gi)*(smagorinsky_coefficient**2)
                   end do
                case default
@@ -2075,14 +2087,14 @@
             end select
             
             ! Eddy viscosity tensor field. Calling this subroutine works because
-            ! you can't have 2 different types of LES model for the same material phase.
+            ! you can't have 2 different types of LES model for the same material_phase.
             if(have_eddy_visc) then
               call les_assemble_diagnostic_fields(state, u, ele, detwei, &
                    les_tensor_gi, les_tensor_gi, les_tensor_gi, les_tensor_gi, &
                  have_eddy_visc, .false., .false., .false.)
             end if
 
-         ! 4th order Smagorinsky model
+         ! Fourth order Smagorinsky model
          else if (les_fourth_order) then
             les_tensor_gi=length_scale_tensor(du_t, ele_shape(u, ele))
             les_coef_gi=les_viscosity_strength(du_t, nu_ele)

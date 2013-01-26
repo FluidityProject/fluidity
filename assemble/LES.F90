@@ -158,7 +158,7 @@ contains
          lump_mass = have_option(trim(field%option_path)//"/diagnostic/mass_matrix"//&
             &"/use_lumped_mass_matrix")
          use_submesh = have_option(trim(field%option_path)//"/diagnostic/mass_matrix"//&
-            &"/use_lumped_mass_matrix/use_submesh")
+            &"/use_lumped_mass_matrix/use_submesh") ! For P2 meshes.
             
          if(lump_mass) then
             if(use_submesh) then

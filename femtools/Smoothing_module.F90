@@ -14,8 +14,8 @@ module smoothing_module
   private
   
   public :: smooth_scalar, smooth_vector
-  public :: anisotropic_smooth_scalar, anisotropic_smooth_vector
-  public :: anisotropic_smooth_tensor, length_scale_scalar, length_scale_tensor
+  public :: anisotropic_smooth_scalar, anisotropic_smooth_vector, anisotropic_smooth_tensor
+  public :: length_scale_scalar, length_scale_tensor
 
 contains
 
