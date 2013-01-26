@@ -15,6 +15,11 @@ done
 
 echo setting flml timestep values
 
+# Remember, we have to double the Smagorinsky
+# coefficient each time to compensate for the
+# halving of the element length. Otherwise,
+# the Source term will no longer be valid
+# as it always uses the element area from the MMS_A run.
 sed s/999.9/0.125/ MMS_A.flml.cp > MMS_A.flml.cp2
 sed s/888.8/0.1/ MMS_A.flml.cp2 > MMS_A.flml
 rm MMS_A.flml.cp*
