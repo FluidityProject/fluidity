@@ -151,7 +151,7 @@ a boundary when solving the advection-diffusion equation.</a:documentation>
     <choice>
       <element name="solver">
         <a:documentation>Solver</a:documentation>
-        <ref name="linear_solver_options_asym"/>
+        <ref name="linear_solver_options_asym_scalar"/>
       </element>
       <element name="explicit">
         <a:documentation>Assume this field is being solved explicitly and skip the solver.
@@ -1174,7 +1174,7 @@ case unless using stress form viscosity and/or coriolis).</a:documentation>
     </optional>
     <element name="solver">
       <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_asym"/>
+      <ref name="linear_solver_options_asym_vector"/>
     </element>
     <oneOrMore>
       <choice>
@@ -1563,7 +1563,7 @@ This is useful as a debugging tool if PETSc complains about zeros on the diagona
       <element name="atmospheric_pressure">
         <a:documentation>Atmospheric pressure
 
-Manual suggests 1.01325E+6</a:documentation>
+Manual suggests 1.01325e+5 Pa</a:documentation>
         <ref name="real"/>
       </element>
     </optional>
@@ -1623,7 +1623,7 @@ Doesn't really matter if you've lumped your mass or not but why would you if you
                     <value>FullMomentumMatrix</value>
                   </attribute>
                   <element name="solver">
-                    <ref name="linear_solver_options_asym"/>
+                    <ref name="linear_solver_options_asym_vector"/>
                   </element>
                 </element>
               </choice>
@@ -2001,7 +2001,7 @@ be valid for a continuous HydrostaticPressure.</a:documentation>
       <element name="solver">
         <a:documentation>Solver
 Only required for continuous_galerkin spatial_discretisations!</a:documentation>
-        <ref name="linear_solver_options_asym"/>
+        <ref name="linear_solver_options_asym_scalar"/>
       </element>
     </optional>
     <element name="exclude_from_checkpointing">
@@ -2151,7 +2151,7 @@ Only applicable to control volume spatial discretisations.</a:documentation>
   <define name="prognostic_stream_function_field">
     <element name="solver">
       <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_asym"/>
+      <ref name="linear_solver_options_asym_scalar"/>
     </element>
     <element name="exclude_from_checkpointing">
       <a:documentation>Disables checkpointing of this field</a:documentation>
@@ -2179,7 +2179,7 @@ Only applicable to control volume spatial discretisations.</a:documentation>
   <define name="prognostic_multipath_stream_function_field">
     <element name="solver">
       <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_asym"/>
+      <ref name="linear_solver_options_asym_scalar"/>
     </element>
     <element name="boundary_conditions">
       <a:documentation>Boundary conditions</a:documentation>

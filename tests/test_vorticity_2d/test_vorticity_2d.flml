@@ -12,7 +12,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="square">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -235,5 +235,117 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
+    <scalar_field name="P2VorticityOfDGVelocity" rank="0">
+      <diagnostic>
+        <algorithm material_phase_support="single" source_field_type="vector" source_field_name="VelocityDG" name="curl_2d">
+          <solver>
+            <iterative_method name="cg"/>
+            <preconditioner name="sor"/>
+            <relative_error>
+              <real_value rank="0">1e-12</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">200</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
+        </algorithm>
+        <mesh name="P2Mesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="P1VorticityOfDGVelocity" rank="0">
+      <diagnostic>
+        <algorithm source_field_type="vector" material_phase_support="single" name="curl_2d" source_field_name="VelocityDG">
+          <solver>
+            <iterative_method name="cg"/>
+            <preconditioner name="sor"/>
+            <relative_error>
+              <real_value rank="0">1e-12</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">200</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
+        </algorithm>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="P1LumpedVorticityOfDGVelocity" rank="0">
+      <diagnostic>
+        <algorithm source_field_type="vector" material_phase_support="single" name="curl_2d" source_field_name="VelocityDG">
+          <lump_mass/>
+        </algorithm>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <vector_field name="VelocityDG" rank="1">
+      <prescribed>
+        <mesh name="P1DGMesh"/>
+        <value name="Bottom">
+          <region_ids>
+            <integer_value shape="1" rank="1">1</integer_value>
+          </region_ids>
+          <python>
+            <string_value type="code" lines="20" language="python">def val(x, t):
+  return [0.0,x[0]]</string_value>
+          </python>
+        </value>
+        <value name="Top">
+          <region_ids>
+            <integer_value shape="1" rank="1">2</integer_value>
+          </region_ids>
+          <constant>
+            <real_value shape="2" dim1="dim" rank="1">1.0 0.0</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </vector_field>
   </material_phase>
 </fluidity_options>
