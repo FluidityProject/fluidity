@@ -145,9 +145,9 @@
     real :: nu_bar_scale = 1.0
     
     ! LES coefficients and options
-    real :: smagorinsky_coefficient, A_plus
+    real :: smagorinsky_coefficient
     character(len=OPTION_PATH_LEN) :: length_scale_type
-    logical :: have_lilly, have_eddy_visc, backscatter, have_van_driest_wall_damping
+    logical :: have_lilly, have_eddy_visc, backscatter
     logical :: have_strain, have_filtered_strain, have_filter_width
 
     ! Temperature dependent viscosity coefficients:
@@ -246,7 +246,6 @@
 
       ! for all LES models:
       character(len=OPTION_PATH_LEN) :: les_option_path
-      type(scalar_field), pointer :: distance_to_wall
       ! For 4th order:
       type(tensor_field):: grad_u
       ! For Germano Dynamic LES:
@@ -397,20 +396,6 @@
                  smagorinsky_coefficient)
                
             call get_option(trim(les_option_path)//"/second_order/length_scale_type", length_scale_type)
-            
-            ! van Driest wall damping. This modifies the Smagorinsky coefficient such that
-            ! the EddyViscosity is zero along the wall, and near zero nearby.
-            if(have_option(trim(les_option_path)//"/second_order/van_driest_wall_damping")) then
-               have_van_driest_wall_damping = .true.
-               call get_option(trim(les_option_path)//"/second_order/van_driest_wall_damping/A_plus", A_plus)
-               distance_to_wall => extract_scalar_field(state, "DistanceToWall", stat)
-               if (stat /= 0) then
-                  FLAbort("Need information about the distance to the wall - enable a DistanceToWall field")
-               end if
-            else
-               have_van_driest_wall_damping = .false.
-               distance_to_wall => null()
-            end if
 
             have_eddy_visc = have_option(trim(les_option_path)//"/second_order/tensor_field::EddyViscosity")
             if(have_eddy_visc) then
@@ -689,7 +674,7 @@
       element_loop: do nnid = 1, len
          ele = fetch(colours(clr), nnid)
          call construct_momentum_element_cg(state, ele, big_m, rhs, ct_m, mass, inverse_masslump, &
-              x, x_old, x_new, distance_to_wall, u, oldu, nu, ug, &
+              x, x_old, x_new, u, oldu, nu, ug, &
               density, ct_rhs, &
               source, absorption, buoyancy, gravity, &
               viscosity, grad_u, &
@@ -1126,7 +1111,7 @@
 
     subroutine construct_momentum_element_cg(state, ele, big_m, rhs, ct_m, &
                                             mass, masslump, &
-                                            x, x_old, x_new, distance_to_wall, u, oldu, nu, ug, &
+                                            x, x_old, x_new, u, oldu, nu, ug, &
                                             density, ct_rhs, &
                                             source, absorption, buoyancy, gravity, &
                                             viscosity, grad_u, &
@@ -1153,7 +1138,7 @@
 
       type(vector_field), intent(in) :: x, u, oldu, nu 
       type(vector_field), pointer :: x_old, x_new, ug
-      type(scalar_field), intent(in) :: density, buoyancy, distance_to_wall, ct_rhs
+      type(scalar_field), intent(in) :: density, buoyancy, ct_rhs
       type(vector_field), intent(in) :: source, absorption, gravity
       type(tensor_field), intent(in) :: viscosity, grad_u
 
@@ -1368,7 +1353,7 @@
 
       ! Viscous terms
       if(have_viscosity .or. have_les) then
-        call add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, distance_to_wall, viscosity, grad_u, &
+        call add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, viscosity, grad_u, &
            tnu, leonard, alpha, du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, density, nvfrac)
       end if
       
@@ -1984,16 +1969,15 @@
       
     end subroutine add_absorption_element_cg
       
-    subroutine add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, distance_to_wall, &
-        viscosity, grad_u, tnu, leonard, alpha, du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, &
-        density, nvfrac)
+    subroutine add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, viscosity, grad_u, &
+        tnu, leonard, alpha, &
+         du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, density, nvfrac)
       type(state_type), intent(inout) :: state
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
       type(vector_field), intent(in) :: u, nu
       real, dimension(:,:), intent(in) :: oldu_val
       type(vector_field), intent(in) :: x
-      type(scalar_field), intent(in) :: distance_to_wall
       type(tensor_field), intent(in) :: viscosity
       type(tensor_field), intent(in) :: grad_u
 
@@ -2023,7 +2007,7 @@
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele))                :: viscosity_mat
       real, dimension(x%dim, x%dim, ele_ngi(u, ele))                                 :: les_tensor_gi
       real, dimension(ele_ngi(u, ele))                                               :: les_scalar_gi
-      real, dimension(ele_ngi(u, ele))                                               :: les_coef_gi, wale_coef_gi, density_gi, Cs_gi
+      real, dimension(ele_ngi(u, ele))                                               :: les_coef_gi, wale_coef_gi, density_gi
       real, dimension(x%dim, ele_loc(u,ele), ele_loc(u,ele))                         :: div_les_viscosity
       real, dimension(x%dim, x%dim, ele_loc(u,ele))                                  :: grad_u_nodes
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim), intent(in)           :: du_t
@@ -2073,25 +2057,18 @@
             les_coef_gi = les_viscosity_strength(du_t, nu_ele)
             density_gi = ele_val_at_quad(density, ele)
             
-            if(have_van_driest_wall_damping) then
-               call van_driest_wall_damping(ele, u, nu_ele, du_t, density, viscosity, distance_to_wall, &
-                                            A_plus, smagorinsky_coefficient, Cs_gi)
-            else
-               Cs_gi = smagorinsky_coefficient
-            end if
-            
             select case(length_scale_type)
                case("scalar")
                   les_scalar_gi = length_scale_scalar(x, ele)
                   do gi = 1, size(les_coef_gi)
                      les_tensor_gi(:,:,gi) = 4.0*les_scalar_gi(gi)*&
-                        density_gi(gi)*les_coef_gi(gi)*(Cs_gi(gi)**2)
+                        density_gi(gi)*les_coef_gi(gi)*(smagorinsky_coefficient**2)
                   end do
                case("tensor")
                   les_tensor_gi = length_scale_tensor(du_t, ele_shape(u, ele))
                   do gi = 1, size(les_coef_gi)
                      les_tensor_gi(:,:,gi) = 4.*les_tensor_gi(:,:,gi)*&
-                        density_gi(gi)*les_coef_gi(gi)*(Cs_gi(gi)**2)
+                        density_gi(gi)*les_coef_gi(gi)*(smagorinsky_coefficient**2)
                   end do
                case default
                   FLExit("Unknown length scale type")

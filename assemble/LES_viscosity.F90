@@ -45,7 +45,6 @@ module les_viscosity_module
   public les_viscosity_strength, wale_viscosity_strength
   public les_init_diagnostic_fields, les_assemble_diagnostic_fields, les_solve_diagnostic_fields, &
          leonard_tensor, les_strain_rate
-  public van_driest_wall_damping
 
 contains
 
@@ -375,40 +374,5 @@ contains
     end do
 
   end function wale_viscosity_strength
-  
-  subroutine van_driest_wall_damping(ele, u, nu, du_t, density, viscosity, y, A_plus, Cs, Cs_damped)
-
-   integer, intent(in) :: ele
-   type(vector_field), intent(in) :: u
-   real, dimension(:,:), intent(in):: nu
-   real, dimension(:,:,:), intent(in) :: du_t
-   type(scalar_field), intent(in) :: y, density
-   type(tensor_field), intent(in) :: viscosity ! Note: This needs to be kinematic!
-   real, intent(in) :: Cs, A_plus
-   real, dimension(:), intent(inout) :: Cs_damped
-  
-   real, dimension(size(du_t,3),size(du_t,3)):: s
-   real, dimension(ele_ngi(u, ele)) :: y_plus, u_plus
-   real, dimension(ele_ngi(u, ele)) :: density_gi, y_gi
-   real, dimension(u%dim, u%dim, ele_ngi(u, ele)) :: viscosity_gi
-   integer gi, dim
-      
-   density_gi = ele_val_at_quad(density, ele)
-   y_gi = ele_val_at_quad(y, ele) ! y is the distance from the wall
-   viscosity_gi = ele_val_at_quad(viscosity, ele)
-
-   do gi = 1, ele_ngi(u, ele)
-      s = viscosity_gi(2,2,gi)*matmul( nu, du_t(:,gi,:) ) ! Shear: viscosity*grad(u). This assumes the shear is in the y direction for now.
-      if(s(2,2) < 0.0) then
-         ! Deal with negative shear in the y direction. (Should we be taking absolute values?)
-         s(2,2) = 0.0
-      end if
-      u_plus(gi) = sqrt(s(2,2)/density_gi(gi)) ! Frictional/shear velocity: sqrt(shear in the y direction divided by density)
-      y_plus(gi) = y_gi(gi)*u_plus(gi)/viscosity_gi(2,2,gi)
-   end do
-   
-   Cs_damped = Cs*(1.0 - exp(-y_plus/A_plus)**2.0)
-   
-  end subroutine van_driest_wall_damping
 
 end module les_viscosity_module

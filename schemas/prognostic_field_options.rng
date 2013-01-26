@@ -649,13 +649,6 @@ suggested value 0.1</a:documentation>
                     </choice>
                   </element>
                   <optional>
-                    <element name="van_driest_wall_damping">
-                      <element name="A_plus">
-                        <ref name="real"/>
-                      </element>
-                    </element>
-                  </optional>
-                  <optional>
                     <element name="tensor_field">
                       <a:documentation>eddy viscosity (turbulent diffusion of velocity).
 This is an anisotropic symmetric viscosity, added to normal viscosity field, that
@@ -684,21 +677,6 @@ carries the influence of turbulence onto the velocity field.</a:documentation>
                             </element>
                           </choice>
                         </element>
-                      </element>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="scalar_field">
-                      <a:documentation>Distance to wall</a:documentation>
-                      <attribute name="rank">
-                        <value>0</value>
-                      </attribute>
-                      <attribute name="name">
-                        <value>DistanceToWall</value>
-                      </attribute>
-                      <element name="prescribed">
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="prescribed_scalar_field"/>
                       </element>
                     </element>
                   </optional>
