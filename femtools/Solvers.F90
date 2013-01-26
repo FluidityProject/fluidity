@@ -1586,13 +1586,18 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     PetscErrorCode ierr
     MatNullSpace null_space ! Nullspace object
     
-    logical startfromzero, remove_null_space, multigrid_near_null_space
+    logical startfromzero, remove_null_space
     
     ewrite(1,*) "Inside setup_ksp_from_options"
     
-    ! do multigrid near null spaces before setting up the pc
-    multigrid_near_null_space = have_option(trim(solver_option_path)//"/multigrid_near_null_space")
-    if(multigrid_near_null_space) then
+    ! Do multigrid near null spaces before setting up the pc:
+    if(have_option(trim(solver_option_path)//"/multigrid_near_null_space")) then
+
+       ! Check that we are using the gamg preconditioner:
+       if(.not.(have_option(trim(solver_option_path)//"/preconditioner::gamg"))) then
+          FLExit("multigrid_near_null_space removal only valid when using gamg preconditioner")
+       end if
+
 #if PETSC_VERSION_MINOR<3
        FLExit("multigrid_near_null_space only available in petsc 3.3")
 #else
@@ -1615,7 +1620,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
        petsc_numbering=petsc_numbering, &
        prolongators=prolongators, surface_node_list=surface_node_list, &
        matrix_csr=matrix_csr, internal_smoothing_option=internal_smoothing_option, &
-       has_null_space=remove_null_space,removing_multigrid_near_null_space=multigrid_near_null_space)
+       has_null_space=remove_null_space)
     
     ! then ksp type
     ! =========================================================
@@ -1730,8 +1735,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     
   recursive subroutine setup_pc_from_options(pc, pmat, option_path, &
     petsc_numbering, prolongators, surface_node_list, matrix_csr, &
-    internal_smoothing_option, is_subpc, has_null_space, &
-    removing_multigrid_near_null_space)
+    internal_smoothing_option, is_subpc, has_null_space)
   PC, intent(inout):: pc
   Mat, intent(in):: pmat
   character(len=*), intent(in):: option_path
@@ -1746,8 +1750,6 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
   logical, optional, intent(in) :: is_subpc
   ! option to "mg" to tell it not to do a direct solve at the coarsest level
   logical, optional, intent(in) :: has_null_space
-  ! are we removing the multigrid near null space?
-  logical, optional, intent(in) :: removing_multigrid_near_null_space
     
     KSP:: subksp
     PC:: subpc
@@ -1756,10 +1758,6 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     PetscErrorCode:: ierr
     
     call get_option(trim(option_path)//'/name', pctype)
-
-    if(removing_multigrid_near_null_space .and. (pctype /= "gamg")) then
-       FLExit("multigrid_near_null_space removal only valid when using gamg preconditioner")
-    end if
 
     if (pctype==PCMG) then
       call SetupMultigrid(pc, pmat, ierr, &
