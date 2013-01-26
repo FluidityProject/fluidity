@@ -32,6 +32,7 @@ by the PETSc library. Many more methods are provided.
       <ref name="pchypre_options"/>
       <ref name="pcbjacobi_options"/>
       <ref name="pcasm_options"/>
+      <ref name="pcgamg_options"/>
       <ref name="pcother_options"/>
     </choice>
     <ref name="generic_solver_options_scalar"/>
@@ -431,9 +432,9 @@ by the PETSc library. Many more methods are provided.
   <define name="pcgamg_options">
     <element name="preconditioner">
       <a:documentation>GAMG preconditioner.
-
-Can be used in conjunction with multigrid near null_space to
-improve convergence. </a:documentation>
+For vector solves, this preconditioner should be used in conjunction 
+with the multigrid_near_null_space option to improve convergence. The
+near null-space option is not applicable for scalar solves.  </a:documentation>
       <attribute name="name">
         <value>gamg</value>
       </attribute>
