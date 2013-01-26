@@ -3122,6 +3122,7 @@ contains
     type(vector_field), pointer :: positions
     integer :: ele
     real :: vol
+    type(scalar_field) :: temp_s_field
 
     positions => extract_vector_field(states(1), "Coordinate")
     if (allocated(domain_bbox)) then
@@ -3146,8 +3147,11 @@ contains
 
     !If on-the-sphere, calculate the radius of the sphere.
     if (have_option("/geometry/spherical_earth/")) then
-      surface_radius = maxval(magnitude(positions))
+      temp_s_field = magnitude(positions)
+      surface_radius = maxval(temp_s_field)
       call allmax(surface_radius)
+      ! Need to deallocate the magnitude field create, or we get a leak
+      call deallocate(temp_s_field)
     end if
 
 
