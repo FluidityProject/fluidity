@@ -12,7 +12,7 @@ params = {'text.fontsize': 11,
 pylab.rcParams.update(params)
 
 # Maximum number of VTU files
-N = 77
+N = 240
 
 # Dimensions
 H = 0.04
@@ -48,7 +48,7 @@ t = vt.GetScalarField('Time')[0]
 xyz = vt.GetLocations()
 
 for i in range(0,len(X)):
-   data = vtktools.vtu.ProbeData(vt, numpy.array([[X[i], 0, 0]]), 'TimeAveragedVelocity')
+   data = vtktools.vtu.ProbeData(vt, numpy.array([[X[i], 0, 0]]), 'TimeAveragedVelocity30')
    u_bar[i] = data[0][0]
 
 # Plot the numerical results
@@ -62,7 +62,7 @@ t = vt.GetScalarField('Time')[0]
 xyz = vt.GetLocations()
 
 for i in range(0,len(X)):
-   data = vtktools.vtu.ProbeData(vt, numpy.array([[X[i], 0, 0]]), 'TimeAveragedVelocity')
+   data = vtktools.vtu.ProbeData(vt, numpy.array([[X[i], 0, 0]]), 'TimeAveragedVelocity30')
    u_bar[i] = data[0][0]
 
 # Plot the numerical results

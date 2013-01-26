@@ -6,7 +6,7 @@ preprocess:
 
 run:
 	@echo **********Running simulation
-	nohup mpiexec -n 2 ../../bin/fluidity flow_past_a_square.flml &
+	mpiexec -n 16 ../../bin/fluidity flow_past_a_square.flml
 
 input: clean preprocess
 

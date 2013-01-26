@@ -72,7 +72,8 @@ experimental_u_bar = [-0.18, -0.132, -0.091589, -0.006679, 0.0856,
 for i in range(0, len(experimental_X)):
    # We multiply by H here because the above experimental data points are normalised.
    probed_velocity = vtktools.vtu.ProbeData(vt, numpy.array([[experimental_X[i]*H, 0, 0]]), 'TimeAveragedVelocity30')
-   assert abs(probed_velocity/U - experimental_u_bar[i]) &lt; 0.25
+   print "Numerical velocity = %.3f, experimental velocity = %.3f, difference = %.3f" % (probed_velocity[0][0]/U, experimental_u_bar[i], probed_velocity[0][0]/U - experimental_u_bar[i])
+   assert abs(probed_velocity[0][0]/U - experimental_u_bar[i]) &lt; 0.26
    
     </test>
 

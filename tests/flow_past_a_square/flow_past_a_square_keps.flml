@@ -11,7 +11,7 @@
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="flow_past_a_square_keps">
+      <from_file file_name="flow_past_a_square">
         <format name="triangle"/>
         <stat>
           <include_in_stat/>
@@ -56,7 +56,7 @@
     </dump_format>
     <dump_period>
       <constant>
-        <real_value rank="0">0.2</real_value>
+        <real_value rank="0">0.25</real_value>
       </constant>
     </dump_period>
     <output_mesh name="VelocityMesh"/>
@@ -72,7 +72,7 @@
       <real_value rank="0">0.002</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">120.0</real_value>
+      <real_value rank="0">60.0</real_value>
     </finish_time>
     <wall_time_limit>
       <real_value rank="0">255600</real_value>
