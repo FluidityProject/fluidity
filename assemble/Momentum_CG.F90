@@ -2056,7 +2056,7 @@
          else if(les_second_order) then           
             les_coef_gi = les_viscosity_strength(du_t, nu_ele)
             ! In Boussinesq simulations this density will be set to unity.
-            ! It's included here for compressible flow simulations.
+            ! It's included here for LinearMomentum flow simulations.
             density_gi = ele_val_at_quad(density, ele)
             
             select case(length_scale_type)
