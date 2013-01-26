@@ -643,6 +643,9 @@ Suggested value: 0.1</a:documentation>
                     <ref name="real"/>
                   </element>
                   <element name="length_scale_type">
+                    <a:documentation>The 'scalar' length scale is the cube root of the element's volume in 3D. In 2D, it is the square root of the element's area. Using this will result in an isotropic eddy viscosity tensor.
+
+The 'tensor' length scale uses the metric from the adaptivity process. Using this will result in an anisotropic eddy viscosity tensor.</a:documentation>
                     <choice>
                       <value>scalar</value>
                       <value>tensor</value>
