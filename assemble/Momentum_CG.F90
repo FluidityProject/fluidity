@@ -50,7 +50,7 @@
     use vector_tools
     use fetools
     use upwind_stabilisation
-    use les_viscosity_module
+    use les_module
     use smoothing_module
     use metric_tools
     use field_derivatives

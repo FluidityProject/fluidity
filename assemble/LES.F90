@@ -26,7 +26,7 @@
 !    USA
 #include "fdebug.h"
 
-module les_viscosity_module
+module les_module
   !!< This module contains several subroutines and functions used to implement LES models
   use state_module
   use fields
@@ -86,8 +86,7 @@ contains
     type(vector_field), intent(in)                              :: nu
     integer, intent(in)                                         :: ele
     real, dimension(ele_ngi(nu,ele)), intent(in)                :: detwei
-    real, dimension(nu%dim,nu%dim,ele_ngi(nu,ele)),intent(in) &
-                                       & :: strain_gi, t_strain_gi, mesh_size_gi, les_tensor_gi
+    real, dimension(nu%dim,nu%dim,ele_ngi(nu,ele)),intent(in)   :: strain_gi, t_strain_gi, mesh_size_gi, les_tensor_gi
     logical, intent(in) :: have_eddy_visc, have_strain, have_filtered_strain, have_filter_width
     type(tensor_field), pointer                                 :: tensorfield
     real, dimension(nu%dim,nu%dim,ele_loc(nu,ele))              :: tensor_loc
@@ -129,8 +128,8 @@ contains
     
     type(vector_field), pointer :: u
     type(csr_matrix), pointer :: mass_matrix
-    type(scalar_field), pointer :: lumped_mass, lumped_mass_on_submesh
-    type(scalar_field) :: inv_lumped_mass, inv_lumped_mass_on_submesh
+    type(scalar_field), pointer :: lumped_mass
+    type(scalar_field) :: inv_lumped_mass
     type(tensor_field), pointer :: tensorfield
     logical :: lump_mass = .false.
     logical :: use_submesh = .false.
@@ -148,18 +147,14 @@ contains
           
       if(lump_mass) then
          if(use_submesh) then
-            lumped_mass_on_submesh => get_lumped_mass_on_submesh(state, tensorfield%mesh)
-            call allocate(inv_lumped_mass_on_submesh, tensorfield%mesh)
-            call invert(lumped_mass_on_submesh, inv_lumped_mass_on_submesh)
-            call scale(tensorfield, inv_lumped_mass_on_submesh)
-            call deallocate(inv_lumped_mass_on_submesh)
+            lumped_mass => get_lumped_mass_on_submesh(state, tensorfield%mesh)
          else
             lumped_mass => get_lumped_mass(state, tensorfield%mesh)
-            call allocate(inv_lumped_mass, tensorfield%mesh)
-            call invert(lumped_mass, inv_lumped_mass)
-            call scale(tensorfield, inv_lumped_mass)
-            call deallocate(inv_lumped_mass)
          end if
+         call allocate(inv_lumped_mass, tensorfield%mesh)
+         call invert(lumped_mass, inv_lumped_mass)
+         call scale(tensorfield, inv_lumped_mass)
+         call deallocate(inv_lumped_mass)
       else
          mass_matrix => get_mass_matrix(state, tensorfield%mesh)
          call petsc_solve(tensorfield, mass_matrix, tensorfield, option_path=u%option_path)
@@ -169,45 +164,75 @@ contains
     ! Strain rate field S1
     if(have_strain) then
       tensorfield => extract_tensor_field(state, "StrainRate")
+      
+      lump_mass = have_option(trim(tensorfield%option_path)//"/diagnostic/mass_matrix"//&
+          &"/use_lumped_mass_matrix")
+      use_submesh = have_option(trim(tensorfield%option_path)//"/diagnostic/mass_matrix"//&
+          &"/use_lumped_mass_matrix/use_submesh")
+          
       if(lump_mass) then
-        lumped_mass => get_lumped_mass(state, tensorfield%mesh)
-        call allocate(inv_lumped_mass, tensorfield%mesh)
-        call invert(lumped_mass, inv_lumped_mass)
-        call scale(tensorfield, inv_lumped_mass)
-        call deallocate(inv_lumped_mass)
+         if(use_submesh) then
+            lumped_mass => get_lumped_mass_on_submesh(state, tensorfield%mesh)
+         else
+            lumped_mass => get_lumped_mass(state, tensorfield%mesh)
+         end if
+         call allocate(inv_lumped_mass, tensorfield%mesh)
+         call invert(lumped_mass, inv_lumped_mass)
+         call scale(tensorfield, inv_lumped_mass)
+         call deallocate(inv_lumped_mass)
       else
-        mass_matrix => get_mass_matrix(state, tensorfield%mesh)
-        call petsc_solve(tensorfield, mass_matrix, tensorfield, option_path=u%option_path)
+         mass_matrix => get_mass_matrix(state, tensorfield%mesh)
+         call petsc_solve(tensorfield, mass_matrix, tensorfield, option_path=u%option_path)
       end if
     end if
 
     ! Filtered strain rate field S2
     if(have_filtered_strain) then
       tensorfield => extract_tensor_field(state, "FilteredStrainRate")
+
+      lump_mass = have_option(trim(tensorfield%option_path)//"/diagnostic/mass_matrix"//&
+          &"/use_lumped_mass_matrix")
+      use_submesh = have_option(trim(tensorfield%option_path)//"/diagnostic/mass_matrix"//&
+          &"/use_lumped_mass_matrix/use_submesh")
+          
       if(lump_mass) then
-        lumped_mass => get_lumped_mass(state, tensorfield%mesh)
-        call allocate(inv_lumped_mass, tensorfield%mesh)
-        call invert(lumped_mass, inv_lumped_mass)
-        call scale(tensorfield, inv_lumped_mass)
-        call deallocate(inv_lumped_mass)
+         if(use_submesh) then
+            lumped_mass => get_lumped_mass_on_submesh(state, tensorfield%mesh)
+         else
+            lumped_mass => get_lumped_mass(state, tensorfield%mesh)
+         end if
+         call allocate(inv_lumped_mass, tensorfield%mesh)
+         call invert(lumped_mass, inv_lumped_mass)
+         call scale(tensorfield, inv_lumped_mass)
+         call deallocate(inv_lumped_mass)
       else
-        mass_matrix => get_mass_matrix(state, tensorfield%mesh)
-        call petsc_solve(tensorfield, mass_matrix, tensorfield, option_path=u%option_path)
+         mass_matrix => get_mass_matrix(state, tensorfield%mesh)
+         call petsc_solve(tensorfield, mass_matrix, tensorfield, option_path=u%option_path)
       end if
     end if
 
     ! Filter width
     if(have_filter_width) then
       tensorfield => extract_tensor_field(state, "FilterWidth")
+
+      lump_mass = have_option(trim(tensorfield%option_path)//"/diagnostic/mass_matrix"//&
+          &"/use_lumped_mass_matrix")
+      use_submesh = have_option(trim(tensorfield%option_path)//"/diagnostic/mass_matrix"//&
+          &"/use_lumped_mass_matrix/use_submesh")
+          
       if(lump_mass) then
-        lumped_mass => get_lumped_mass(state, tensorfield%mesh)
-        call allocate(inv_lumped_mass, tensorfield%mesh)
-        call invert(lumped_mass, inv_lumped_mass)
-        call scale(tensorfield, inv_lumped_mass)
-        call deallocate(inv_lumped_mass)
+         if(use_submesh) then
+            lumped_mass => get_lumped_mass_on_submesh(state, tensorfield%mesh)
+         else
+            lumped_mass => get_lumped_mass(state, tensorfield%mesh)
+         end if
+         call allocate(inv_lumped_mass, tensorfield%mesh)
+         call invert(lumped_mass, inv_lumped_mass)
+         call scale(tensorfield, inv_lumped_mass)
+         call deallocate(inv_lumped_mass)
       else
-        mass_matrix => get_mass_matrix(state, tensorfield%mesh)
-        call petsc_solve(tensorfield, mass_matrix, tensorfield, option_path=u%option_path)
+         mass_matrix => get_mass_matrix(state, tensorfield%mesh)
+         call petsc_solve(tensorfield, mass_matrix, tensorfield, option_path=u%option_path)
       end if
     end if
     
@@ -365,4 +390,4 @@ contains
 
   end function wale_viscosity_strength
 
-end module les_viscosity_module
+end module les_module
