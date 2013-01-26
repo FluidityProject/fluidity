@@ -349,7 +349,7 @@
           FLExit("Internal smoothing not available for inner solve")
         end if
         call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
-          inner_solver_option_path, startfromzero_in=.true., &
+          inner_solver_option_path, petsc_numbering_u, startfromzero_in=.true., &
           prolongators=prolongators, null_space_array=null_space_array_u)
         do i=1, size(prolongators)
           call deallocate(prolongators(i))
@@ -357,7 +357,8 @@
         deallocate(prolongators)
       else
         call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
-          inner_solver_option_path, startfromzero_in=.true., null_space_array=null_space_array_u)
+          inner_solver_option_path, petsc_numbering_u, startfromzero_in=.true.,&
+          null_space_array=null_space_array_u)
       end if
       
       ! leaving out petsc_numbering and mesh, so "iteration_vtus" monitor won't work!
