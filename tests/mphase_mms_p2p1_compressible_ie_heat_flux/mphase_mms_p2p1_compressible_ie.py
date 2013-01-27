@@ -69,7 +69,7 @@ heat_flux_x2 = (k/Cv2)*vfrac2*diff(ie2,x)
 heat_flux_y2 = (k/Cv2)*vfrac2*diff(ie2,y)
 
 Sie1 = vfrac1*rho1*u1*diff(ie1, x) + vfrac1*rho1*v1*diff(ie1, y) + vfrac1*p*diff(u1, x) + vfrac1*p*diff(v1, y) - diff(heat_flux_x1, x) - diff(heat_flux_y1, y)
-Sie2 = vfrac2*rho2*u2*diff(ie2, x) + vfrac2*rho2*v2*diff(ie2, y) + vfrac2*p*diff(u2, x) + vfrac2*p*diff(v2, y) - diff(heat_flux_x2, x) - diff(heat_flux_y2, y)
+Sie2 = vfrac2*rho2*u2*diff(ie2, x) + vfrac2*rho2*v2*diff(ie2, y) - diff(heat_flux_x2, x) - diff(heat_flux_y2, y)
 
 print 'from math import sin, cos, tanh, pi'
 print ''

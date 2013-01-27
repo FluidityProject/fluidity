@@ -349,7 +349,6 @@
         <mesh name="PressureMesh"/>
         <equation name="InternalEnergy">
           <density name="Density"/>
-          <include_pressure_term/>
         </equation>
         <spatial_discretisation>
           <control_volumes>
@@ -648,7 +647,6 @@
         <mesh name="PressureMesh"/>
         <equation name="InternalEnergy">
           <density name="Density"/>
-          <include_pressure_term/>
         </equation>
         <spatial_discretisation>
           <control_volumes>

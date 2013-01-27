@@ -2329,9 +2329,6 @@ Uses a non-conservative time discretisation.</a:documentation>
           <value>InternalEnergy</value>
         </attribute>
         <ref name="equation_coefficients"/>
-        <optional>
-          <ref name="extra_internal_energy_terms"/>
-        </optional>
       </element>
       <element name="equation">
         <a:documentation>Option to solve for electrical potential from
@@ -2393,15 +2390,6 @@ Whatever field is selected must be present.</a:documentation>
         </optional>
       </element>
     </choice>
-  </define>
-  <define name="extra_internal_energy_terms">
-    <optional>
-      <element name="include_pressure_term">
-        <a:documentation>Adds the pressure term: -p*div(u)
-( or, for multiphase simulations, -vfrac*p*div(u) ).</a:documentation>
-        <empty/>
-      </element>
-    </optional>
   </define>
   <define name="coefficient_discretisation_options">
     <element name="discretisation_options">

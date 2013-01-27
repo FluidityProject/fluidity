@@ -344,7 +344,6 @@ u_ref = sqrt(p/rho_g)</comment>
         <mesh name="PressureMesh"/>
         <equation name="InternalEnergy">
           <density name="Density"/>
-          <include_pressure_term/>
         </equation>
         <spatial_discretisation>
           <continuous_galerkin>
@@ -665,7 +664,6 @@ The normalised mass concentration is 1.0 in the dusty gas region, so we divide 1
         <mesh name="PressureMesh"/>
         <equation name="InternalEnergy">
           <density name="Density"/>
-          <include_pressure_term/>
         </equation>
         <spatial_discretisation>
           <continuous_galerkin>

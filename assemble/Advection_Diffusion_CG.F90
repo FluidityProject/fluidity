@@ -118,8 +118,6 @@ module advection_diffusion_cg
   logical :: move_mesh
   ! Include porosity?
   logical :: include_porosity
-  ! Include the extra internal energy equation terms? (for InternalEnergy equation_type only)
-  logical :: include_pressure_term = .false.
   ! Is this material_phase compressible?
   logical :: compressible = .false.
   ! Are we running a multiphase flow simulation?
@@ -256,9 +254,6 @@ contains
 
     ! Porosity field
     type(scalar_field) :: porosity_theta
-    
-    ! For the heat flux term
-    real :: k, C_v
         
     !! Coloring  data structures for OpenMP parallization
     type(integer_set), dimension(:), pointer :: colours
@@ -528,22 +523,20 @@ contains
       olddensity=>extract_scalar_field(state, "Old"//trim(density_name))
       ewrite_minmax(olddensity)
       
-      if(.not.multiphase .or. have_option(trim(state%option_path)//'/equation_of_state/compressible')) then         
+      if(have_option(trim(state%option_path)//'/equation_of_state/compressible')) then         
          call get_option(trim(density%option_path)//"/prognostic/temporal_discretisation/theta", density_theta)
          compressible = .true.
+         
+         ! We always include the p*div(u) term if this is the compressible phase.
+         pressure=>extract_scalar_field(state, "Pressure")
+         ewrite_minmax(pressure)
       else
          ! Since the particle phase is always incompressible then its Density
          ! will not be prognostic. Just use a fixed theta value of 1.0.
          density_theta = 1.0
          compressible = .false.
-      end if
-
-      if(have_option(trim(t%option_path)//'/prognostic/equation[0]/include_pressure_term')) then
-         include_pressure_term = .true.
-         pressure=>extract_scalar_field(state, "Pressure")
-         ewrite_minmax(pressure)
-      else
-         include_pressure_term = .false.
+         
+         ! Don't include the p*div(u) term if this is the incompressible particle phase.
          pressure => dummydensity
       end if
 
@@ -614,7 +607,7 @@ contains
               positions, old_positions, new_positions, &
               velocity, grid_velocity, &
               source, absorption, diffusivity, &
-              density, olddensity, pressure, porosity_theta, k, C_v, nvfrac, &
+              density, olddensity, pressure, porosity_theta, nvfrac, &
               supg_element(thread_num+1))
       end do element_loop
       !$OMP END DO
@@ -730,7 +723,7 @@ contains
                                       positions, old_positions, new_positions, &
                                       velocity, grid_velocity, &
                                       source, absorption, diffusivity, &
-                                      density, olddensity, pressure, porosity_theta, k, C_v, nvfrac, supg_shape)
+                                      density, olddensity, pressure, porosity_theta, nvfrac, supg_shape)
     integer, intent(in) :: ele
     type(scalar_field), intent(in) :: t
     type(csr_matrix), intent(inout) :: matrix
@@ -746,7 +739,6 @@ contains
     type(scalar_field), intent(in) :: olddensity
     type(scalar_field), intent(in) :: pressure
     type(scalar_field), intent(in) :: porosity_theta
-    real :: k, C_v
     type(scalar_field), intent(in) :: nvfrac
     type(element_type), intent(inout) :: supg_shape
 
@@ -883,7 +875,7 @@ contains
     end if
     
     ! Pressure
-    if(equation_type==FIELD_EQUATION_INTERNALENERGY .and. compressible .and. include_pressure_term) then
+    if(equation_type==FIELD_EQUATION_INTERNALENERGY .and. compressible) then
        call add_pressurediv_element_cg(ele, test_function, t, velocity, pressure, nvfrac, du_t, detwei, rhs_addto)
     end if
                                                                                   

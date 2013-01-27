@@ -1192,7 +1192,7 @@ contains
         ! [\rho^{n+1}M + dt*A_m + dt*theta*D_m](T^{n+1}-T^{n})/dt = rhs - [A_m + D_m]*T^{n} - diff_rhs - (p+atm_p)*CT_m*u
 
         ! construct rhs
-        if(have_option(trim(tfield%option_path)//'/prognostic/equation[0]/include_pressure_term')) then
+        if(have_option(trim(state(1)%option_path)//'/equation_of_state/compressible')) then
            p=>extract_scalar_field(state(1), "Pressure")
            ewrite_minmax(p)
            assert(p%mesh==tfield%mesh)
