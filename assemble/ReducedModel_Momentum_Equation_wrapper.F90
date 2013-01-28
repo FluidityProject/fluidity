@@ -128,41 +128,10 @@
            if(.not.reduced_model)then
               call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its)
            else
-             !print*,'test'
-             !call solve_momentum(state, istate, at_first_timestep, timestep, POD_state, snapmean, eps)
-!    character(len=1024) :: simulation_name, filename
-!    integer :: dump_period, quadrature_degree
-!    integer :: i,j,total_dumps
-!    type(state_type), dimension(:), allocatable :: full_state
-!    type(vector_field) :: podVelocity, newpodVelocity
-!    type(scalar_field) :: podPressure, newpodPressure
-!    type(mesh_type) :: VelocityMesh, PressureMesh
-
-!    call get_option('/simulation_name', simulation_name)
-!    call get_option('/geometry/quadrature/degree', quadrature_degree)
-
-!    total_dumps=count_dumps(simulation_name)
-!    allocate(full_state)
-
-!    VelocityMesh=extract_velocity_mesh(state)
-!    PressureMesh=extract_pressure_mesh(state)
-
-!       write(filename, '(a, i0, a)') trim(simulation_name)//'_', timestep,".vtu"
-!       call vtk_read_state(filename, full_state(i), quadrature_degree)
-!       PODPressure=extract_scalar_field(full_state(i),"PODPressure")
-
-!       call allocate(newpodPressure, PressureMesh, "PODPressure")
-!       call remap_field(from_field=podPressure, to_field=newpodPressure)
-!       call insert(POD_state(i), newpodPressure, "PODPressure")
-!       call deallocate(newpodPressure)
               eps=0.0
               snapmean=.false.
 
               if(timestep==1)then 
-
-!test the initial pod_coef
-!              print*,'testing'
-!                 call solve_momentum(state, istate, at_first_timestep, timestep, POD_state, snapmean, eps)
 
 
                  nonlinear_velocity=>extract_vector_field(state(istate),"NonlinearVelocity")
@@ -218,7 +187,6 @@
 
                  call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its)           
                  
-!print*,'back from snapmean'
   
                  POD_velocity=>extract_vector_field(POD_state(1,1,istate), "Velocity")
                  POD_pressure=>extract_scalar_field(POD_state(1,2,istate), "Pressure")

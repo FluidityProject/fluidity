@@ -359,9 +359,6 @@
               reduced_model= have_option("/reduced_model/execute_reduced_model")
            endif
 
-!       reduced_model= have_option("/reduced_model/execute_reduced_model")
-
-    !  if(timestep==1)timestep_check=.true.
  	if(timestep==1)then 
          	timestep_check=.true.
     	  else
@@ -1260,12 +1257,15 @@
 
                 
                   if (timestep==1)then
+                     ! add -ct_m^T*p to mom_rhs
+                     !----------------------
+!                     call advance_velocity(state, istate, x, u, p_theta, big_m, ct_m, &
+!                                        mom_rhs, subcycle_m, inverse_mass)
+                                        
                      !!the ct_rhs for reduced model
-                     ct_rhs(istate)%val=ct_rhs(istate)%val/dt/theta_divergence
+!                     ct_rhs(istate)%val=ct_rhs(istate)%val/dt/theta_divergence
+                     ct_rhs(istate)%val=ct_rhs(istate)%val/theta_divergence
                      
-                     ! print*,'theta_pg',theta_pg
-                     ! print*,'theta_div',theta_divergence
-                     ! print*,'ct_rhs',ct_rhs(istate)%val(1:10)
                      mom_rhs_deim =mom_rhs(istate)%val
                      
                      print*,has_boundary_condition(u,'free_surface')
@@ -1320,6 +1320,9 @@
                         
                         !save the advection_matrix 
                         pod_matrix_adv%val(:,:)=pod_matrix%val(:,:)-pod_matrix_mass%val(:,:)
+                        !! clear the rest part in advection_matrix
+                        pod_matrix_adv%val(u%dim*size(POD_state,1)+1:(u%dim+1)*size(POD_state,1),:) =0.0
+                        pod_matrix_adv%val(1:u%dim*size(POD_state,1), u%dim*size(POD_state,1)+1:(u%dim+1)*size(POD_state,1)) = 0.0
                         open(unit=21,file='advection_matrix_snapmean')
                         write(21,*)((pod_matrix_adv%val(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
                         close(21)
@@ -1340,6 +1343,9 @@
                         read(20,*)((pod_matrix_mass%val(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
                         close(20)
                         pod_matrix_adv%val(:,:)=pod_matrix%val(:,:)-pod_matrix_mass%val(:,:)
+                        !! clear the rest part in advection_matrix
+                        pod_matrix_adv%val(u%dim*size(POD_state,1)+1:(u%dim+1)*size(POD_state,1),:) =0.0
+                        pod_matrix_adv%val(1:u%dim*size(POD_state,1), u%dim*size(POD_state,1)+1:(u%dim+1)*size(POD_state,1)) = 0.0
   
                         open(unit=20,file='advection_matrix_snapmean')
                         read(20,*)((pod_matrix_adv_mean(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
@@ -1376,7 +1382,7 @@
                         call Matrix_vector_multiplication(size(pod_coef),pod_rhs_adv_perturbed, &
                              pod_matrix_adv_perturbed,pod_coef)
 			
-			pod_rhs%val = pod_rhs%val + pod_rhs_adv_perturbed ! delete advection term in rhs
+			pod_rhs%val = pod_rhs%val + pod_rhs_adv_perturbed/(theta*dt) ! delete advection term in rhs
    
                         !save pod_matrix and pod_rhs for perturbed state (related to POD_velocity%dim, size(POD_state,1))
                         write(30,*)((pod_matrix%val(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
@@ -1391,6 +1397,123 @@
                       
                        ! print *, 'size(pod_matrix%val,1)',size(pod_matrix%val,1)=36,size(pod_matrix%val,2)=36
                          !podbasis=12, 2dim
+                           if(deim) then 
+                        unodes=node_count(u)
+                                  ! deim_number=unodes-1000 ! test all deim points                                  
+                                    allocate(b_deim(deim_number)) 
+                       allocate(V_kn(u%dim,size(POD_state,1),node_count(u)))
+                       allocate(U_mn(u%dim, deim_number,node_count(u)))
+                       allocate(U_nm(u%dim, node_count(u),deim_number))
+                       allocate(P_mn(deim_number, node_count(u)))
+                       allocate(Temp_pu(deim_number,deim_number))
+                       allocate(Temp_vu(size(POD_state,1),deim_number))
+                       allocate(Ny(size(POD_state,1)*(u%dim+1)))
+ 
+                          
+                          P_mn=0
+                         
+                         do i=1, size(POD_state,1) !k 
+                          POD_velocity=>extract_vector_field(POD_state(i,1,istate), "Velocity")			     
+                           V_kn(:,i,:)=POD_velocity%val(:,:)                            
+                        !  print *, 'V_kn(:,i,:)=POD_velocity%val(:,:)', V_kn(1,i,6), POD_velocity%val(1,6)                
+                         enddo !do i=1, size(POD_state)
+                           open(41,file='V_T')
+                           write(41,*)(V_kn(2,:,:))
+                           close(41)
+  
+                         do i=1, size(POD_state,1) !k 
+                           POD_velocity_deim=>extract_vector_field(POD_state_deim(i), "Velocity") 
+                                U_mn(:,i,:)=POD_velocity_deim%val(:,:)
+                               ! U_nm(:,jd,i)=POD_velocity%val(:,jd)
+                         !  print *, 'U_mn(:,i,:)=POD_velocity_deim%val(:,:)', U_mn(2,i,6), POD_velocity_deim%val(2,6)
+                         enddo !do i=1, size(POD_state)
+                        !  velocity_deim=>extract_vector_field(deim_state_resl(i), "Velocity")
+
+                          do jd=1, deim_number 
+                             !print *, 'phi', phi(jd)                            
+			       P_mn(jd,phi(jd))=1
+                            ! P_mn(jd,jd)=1	 
+                            !  print *, 'P_mn',  P_mn(jd,phi(jd))                                               
+			  enddo
+                           open(43,file='P_T')
+                           write(43,*)(P_mn(:,:))
+                           close(43)	     
+                        
+                         do i=1, size(POD_state,1)
+                         velocity_deim=>extract_vector_field(deim_state_resl(i), "Velocity")
+                         do udim=1,POD_velocity%dim
+                             U_nm(udim,:,:)=TRANSPOSE(U_mn(udim,:,:))
+                             open(42,file='U')
+                             write(42,*)(U_nm(2,:,:))
+                             close(42)  
+                             Temp_pu=matmul(P_mn(:,:),U_nm(udim,:,:))  
+                              
+                             Temp_vu=matmul(V_kn(udim,:,:), U_nm(udim,:,:))
+                                 
+                             Temp_pu=inv(Temp_pu)
+                              
+			     Temp_vupu=matmul(Temp_vu,Temp_pu)
+                                
+                            do jd=1, deim_number 
+                             !  b_deim(jd)=rhs_deim(istate)%val(udim,phi(jd))                          
+			    !  print *, 'b_deim(jd)', b_deim                                                 
+			    enddo
+ 
+                           ! b_deim=matmul(P_mn,rhs_deim(istate)%val(udim,:))velocity_deim
+                            b_deim=matmul(P_mn,velocity_deim%val(udim,:)) 
+                            open(44,file='FP^TV_ky')
+                            write(44,*)(b_deim(:))
+                            close(44)
+                            Ny((udim-1)*size(POD_state,1)+1 :(udim)*size(POD_state,1))=matmul(Temp_vupu,b_deim)
+                            
+                         enddo ! udim=1,POD_velocity%dim
+                         enddo ! do i=1, size(POD_state,1)
+                          Ny((u%dim)*size(POD_state,1)+1:(u%dim+1)*size(POD_state,1))=0
+                           open(45,file='Ny')
+                            write(45,*)(Ny(:))
+                            close(45)
+                             
+                               open(46,file='pod-rhs')
+                            write(46,*)(pod_rhs%val(:))
+                            close(46)
+                        !    stop 34
+                            pod_rhs%val=pod_rhs%val-2*Ny
+                          
+                     	 deallocate(b_deim) 
+                    	 deallocate(V_kn)
+                      	 deallocate(U_nm)
+                     	 deallocate(P_mn)
+                     	 deallocate(Temp_pu)
+                    	 deallocate(Temp_vu)
+                    	 deallocate(Temp_vupu)      
+                         endif 
+                         print*,'timestep', timestep
+                   if(.not.deim)then
+                       ! allocate(rhs_deim_res2(unodes,POD_velocity%dim))
+                        call allocate(rhs_deim_res(istate),u%dim, u%mesh, "Velocity")
+                        call zero(rhs_deim_res(istate))
+                        !   print *, 'rhs_deim_res', size(rhs_deim_res(istate)%val,2),   size(rhs_deim_res(istate)%val,1) 
+                        if(timestep.eq.1) then
+                           call project_full_deim(rhs_deim_res(istate), deim_rhs_p, POD_state(:,:,istate),pod_rhs, & 
+                                timestep,ct_m(istate)%ptr) 
+                        else
+
+                           call project_full_deim(rhs_deim_res(istate), deim_rhs_p, POD_state(:,:,istate),pod_rhs, & 
+                                timestep)
+                        endif
+                       !project pod_rhs to full space rhs_deim_res  
+                      !  print *,'size(mom_rhs(istate)', size(rhs_deim_res(istate)%val,1),size(mom_rhs(istate)%val,1)                  
+                     !  print*,'sizeof mom_rhs', size(mom_rhs(istate)%val,1),  size(mom_rhs(istate)%val,2)
+                       
+                       ! print *,'mom_rhs_d' ,  mom_rhs_deim
+                      rhs_deim_res(istate)%val=rhs_deim_res(istate)%val-mom_rhs_deim   !deim_rhs_u(istate)%val
+                     !  rhs_deim_res(istate)%val=rhs_deim_res(istate)%val!*10000
+                         print *, 'rhs_deim_res(istate)' , rhs_deim_res(istate)%val   
+                       call insert(deim_state_res(istate), rhs_deim_res(istate), name="Velocity")
+                       !deallocate(rhs_deim_res2)
+                       call deallocate(rhs_deim_res(istate)) 
+                    endif
+
                         call solve(pod_matrix%val, pod_rhs%val)
                         pod_coef_dt(:)=pod_rhs%val
                         pod_rhs%val=0.0
@@ -1410,13 +1533,21 @@
                            enddo
                            POD_pressure=>extract_scalar_field(POD_state(i,2,istate), "Pressure")
                            pod_coef(i+size(POD_state,1)*u%dim)=dot_product(POD_pressure%val,p%val-snapmean_pressure%val)
+    !                       pod_coef(i+size(POD_state,1)*u%dim)=0.0
                         enddo
 
                         
                         !!print*,'before add pod_coef_dt*dt to pod_coef_initial'
                         !!print*,pod_coef(2),pod_coef_dt(2)
                         !divided by the number of nonlinear_iterations???
-                        pod_coef(:)=pod_coef(:)+dt*pod_coef_dt(:)
+                        ! for  velocity, here we solved du/dt
+                        pod_coef(1:size(POD_state,1)*u%dim)=pod_coef(1:size(POD_state,1)*u%dim)+dt*pod_coef_dt(1:size(POD_state,1)*u%dim)
+                        ! for pressure, here we solve dp
+                        pod_coef(size(POD_state,1)*u%dim+1:size(POD_state,1)*(u%dim+1))=  &
+                             pod_coef(size(POD_state,1)*u%dim+1:size(POD_state,1)*(u%dim+1))+ &
+                             pod_coef_dt(size(POD_state,1)*u%dim+1:size(POD_state,1)*(u%dim+1))
+                        pod_coef(size(POD_state,1)*u%dim+1:size(POD_state,1)*(u%dim+1))=  &
+                             - pod_coef_dt(size(POD_state,1)*u%dim+1:size(POD_state,1)*(u%dim+1))
                         !pod_coef(:)=pod_coef_dt(:)
                         !!print*,pod_coef(2)
                         rmsestep=timestep
@@ -1447,6 +1578,8 @@
              
                      pod_matrix%val=pod_matrix_snapmean(:,:)
                      pod_rhs%val=pod_rhs_snapmean(:)
+                     pod_matrix_adv_perturbed =0.0
+                     pod_rhs_adv_perturbed =0.0
 
                      do k=1,size(POD_state,1)
                         do d=1, u%dim
@@ -1456,6 +1589,16 @@
 
                         pod_matrix%val=pod_matrix%val+pod_coef(k+(d-1)*size(POD_state,1))*pod_matrix_perturbed(:,:)
                         pod_rhs%val=pod_rhs%val+pod_coef(k+(d-1)*size(POD_state,1))*pod_rhs_perturbed(:)
+
+                        read(60,*)((pod_matrix_adv_perturbed(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
+!                        pod_matrix_adv_perturbed= pod_coef(k+(d-1)*size(POD_state,1))*pod_matrix_adv_perturbed(:,:)
+                        pod_matrix_perturbed= pod_coef(k+(d-1)*size(POD_state,1))*pod_matrix_perturbed(:,:)
+!                        call Matrix_vector_multiplication(size(pod_coef),pod_rhs_adv_perturbed, &
+!                             pod_matrix_adv_perturbed,pod_coef)
+                        call Matrix_vector_multiplication(size(pod_coef),pod_rhs_adv_perturbed, &
+                             pod_matrix_perturbed,pod_coef)
+                        pod_rhs%val = pod_rhs%val-pod_rhs_adv_perturbed/(theta*dt) ! add advection term in rhs
+
                         enddo
 
                         read(30,*)((pod_matrix_perturbed(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
@@ -1465,15 +1608,7 @@
                         pod_rhs%val=pod_rhs%val+pod_coef(k+u%dim*size(POD_state,1))*pod_rhs_perturbed(:)
                      enddo
                   
-!100 continue
-                   ! do ii=1 ,size( pod_rhs%val)
-                   !   do jj=1,size(pod_rhs%val) 
-                     !   print *,'timestep', timestep     
-                     !   print *, 'before solve as follow,row and colomn', ii,jj
-                     !   print *, pod_matrix%val(ii,jj), pod_rhs%val(ii)
-                   !  enddo
-                   !  enddo
-                     
+
                      if(deim) then 
                         unodes=node_count(u)
                                   ! deim_number=unodes-1000 ! test all deim points                                  
@@ -1548,6 +1683,14 @@
                          enddo ! udim=1,POD_velocity%dim
                          enddo ! do i=1, size(POD_state,1)
                           Ny((u%dim)*size(POD_state,1)+1:(u%dim+1)*size(POD_state,1))=0
+                           open(45,file='Ny')
+                            write(45,*)(Ny(:))
+                            close(45)
+                             
+                               open(46,file='pod-rhs')
+                            write(46,*)(pod_rhs%val(:))
+                            close(46)
+                        !    stop 34
                              
                         !  print *, 'Ny' , Ny
                             pod_rhs%val=pod_rhs%val-2*Ny
@@ -1560,49 +1703,19 @@
                     	 deallocate(Temp_vu)
                     	 deallocate(Temp_vupu)      
                          endif 
-!test 
-
-                       if(.not.reduced_model) then
-                        pod_matrix%val=0.0
-                        pod_matrix_mass%val=0.0
-                        pod_matrix_adv%val=0.0
-        		pod_matrix_adv_mean=0.0		
-                        open(unit=20,file='mass_matrix')
-                        read(20,*)((pod_matrix_mass%val(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
-                        close(20)
-                      
-                        open(unit=20,file='advection_matrix_snapmean')
-                        read(20,*)((pod_matrix_adv_mean(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
-                        close(20)
-			
-                          pod_matrix%val(:,:)=pod_matrix_mass%val(:,:)+ pod_matrix_adv_mean(:,:)
- 		     do k=1,size(POD_state,1)
-                        do d=1, u%dim
-
-                        read(60,*)((pod_matrix_adv_perturbed(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
-                         pod_matrix%val=pod_matrix%val+pod_coef(k+(d-1)*size(POD_state,1))*pod_matrix_adv_perturbed(:,:)
-
-			call Matrix_vector_multiplication(size(pod_coef),pod_rhs_adv_perturbed, &
-						pod_matrix_adv_perturbed,pod_coef)
-			pod_rhs%val=pod_rhs%val-pod_coef(k+(d-1)*size(POD_state,1))*pod_rhs_adv_perturbed(:)
-                        enddo
-
-                        read(60,*)((pod_matrix_adv_perturbed(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
-                         pod_matrix%val=pod_matrix%val+pod_coef(k+u%dim*size(POD_state,1))*pod_matrix_adv_perturbed(:,:)
-			 call Matrix_vector_multiplication(size(pod_coef),pod_rhs_adv_perturbed, &
-						pod_matrix_adv_perturbed,pod_coef)
-                         pod_rhs%val=pod_rhs%val-pod_coef(k+u%dim*size(POD_state,1))*pod_rhs_adv_perturbed(:)
-	
-                     enddo  !k=1,size(POD_state,1)
-                     
-                    endif
                    if(.not.deim)then
                        ! allocate(rhs_deim_res2(unodes,POD_velocity%dim))
                         call allocate(rhs_deim_res(istate),u%dim, u%mesh, "Velocity")
                         call zero(rhs_deim_res(istate))
                         !   print *, 'rhs_deim_res', size(rhs_deim_res(istate)%val,2),   size(rhs_deim_res(istate)%val,1) 
-                       call project_full_deim(rhs_deim_res(istate), deim_rhs_p,POD_state(:,:,istate), pod_rhs%val) 
-                         !project pod_rhs to full space rhs_deim_res  
+                        if(timestep.eq.1) then
+                           call project_full_deim(rhs_deim_res(istate), deim_rhs_p, POD_state(:,:,istate),pod_rhs, & 
+                                timestep,ct_m(istate)%ptr) 
+                        else
+                           call project_full_deim(rhs_deim_res(istate), deim_rhs_p, POD_state(:,:,istate),pod_rhs, & 
+                                timestep)
+                        endif
+                       !project pod_rhs to full space rhs_deim_res  
                       !  print *,'size(mom_rhs(istate)', size(rhs_deim_res(istate)%val,1),size(mom_rhs(istate)%val,1)                  
                      !  print*,'sizeof mom_rhs', size(mom_rhs(istate)%val,1),  size(mom_rhs(istate)%val,2)
                        
@@ -1800,8 +1913,15 @@
                     pod_coef_dt=0.0
                     pod_coef_dt=pod_rhs%val
                     pod_rhs%val=0.0
+                    ! for  velocity, here we solved du/dt
+                    pod_coef(1:size(POD_state,1)*u%dim)=pod_coef(1:size(POD_state,1)*u%dim)+dt*pod_coef_dt(1:size(POD_state,1)*u%dim)
+                    ! for pressure, here we solve dp
+                    pod_coef(size(POD_state,1)*u%dim+1:size(POD_state,1)*(u%dim+1))=  &
+                         pod_coef(size(POD_state,1)*u%dim+1:size(POD_state,1)*(u%dim+1))+ &
+                         pod_coef_dt(size(POD_state,1)*u%dim+1:size(POD_state,1)*(u%dim+1))
+                        pod_coef(size(POD_state,1)*u%dim+1:size(POD_state,1)*(u%dim+1))=  &
+                             -pod_coef_dt(size(POD_state,1)*u%dim+1:size(POD_state,1)*(u%dim+1))
                     
-                    pod_coef(:)=pod_coef(:)+dt*pod_coef_dt(:)
                     !pod_coef(:)=pod_coef_dt(:)
                     
                     !save pod_coef, rewrite every timestep
@@ -2161,8 +2281,11 @@
          ! Change in velocity
          type(vector_field) :: delta_u
 
+         logical :: reduced_model
+
          ewrite(1,*) 'Entering advance_velocity'
 
+         reduced_model= have_option("/reduced_model/execute_reduced_model")
 
          ! Allocate the momentum solution vector
          call profiler_tic(u, "assembly")
@@ -2170,7 +2293,7 @@
          delta_u%option_path = trim(u%option_path)
 
          ! Apply advection subcycling
-         if(subcycle(istate)) then
+         if(subcycle(istate).and..not.reduced_model) then
             call subcycle_momentum_dg(u, mom_rhs(istate), subcycle_m(istate), inverse_mass(istate), state(istate))
          end if
 
@@ -2203,22 +2326,24 @@
          ! Impose zero guess on change in u
          call zero(delta_u)
 
-         ! Impose any reference nodes on velocity
-         call impose_reference_velocity_node(big_m(istate), mom_rhs(istate), trim(u%option_path))
-
-         call profiler_toc(u, "assembly")
-
-         !! Solve for the change in velocity
-         call petsc_solve(delta_u, big_m(istate), mom_rhs(istate), state(istate))
-         ewrite_minmax(delta_u)
-
-         call profiler_tic(u, "assembly")
-         ! Apply change to velocity field (Note that this gets stored in state)
-         call addto(u, delta_u, dt)
-         ewrite_minmax(u)
-
-         call deallocate(delta_u)
-         call profiler_toc(u, "assembly")
+         if(.not.reduced_model) then
+            ! Impose any reference nodes on velocity
+            call impose_reference_velocity_node(big_m(istate), mom_rhs(istate), trim(u%option_path))
+            
+            call profiler_toc(u, "assembly")
+            
+            !! Solve for the change in velocity
+            call petsc_solve(delta_u, big_m(istate), mom_rhs(istate), state(istate))
+            ewrite_minmax(delta_u)
+            
+            call profiler_tic(u, "assembly")
+            ! Apply change to velocity field (Note that this gets stored in state)
+            call addto(u, delta_u, dt)
+            ewrite_minmax(u)
+            
+            call deallocate(delta_u)
+            call profiler_toc(u, "assembly")
+         endif
 
       end subroutine advance_velocity
 

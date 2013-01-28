@@ -104,7 +104,7 @@ clean:
 	rm -f *.o *.d *.mod
 
 # Special case mba dependencies
-ifeq (,yes)
+ifeq (yes,yes)
 Mba2d_Integration.o ../include/mba2d_integration.mod: \
 ../include/mba2d_module.mod
 endif
