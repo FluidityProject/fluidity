@@ -319,7 +319,7 @@
            JCOUNT_IPHA, IMID_IPHA, &
            NFACE, X_NODI,  &
            CV_INOD, MAT_NODI, FACE_ITS, NFACE_ITS, &
-           CVNOD, XNOD, COUNT2, NSMALL_COLM, NOD
+           CVNOD, XNOD, IANISOTROPIC, NSMALL_COLM, COUNT2, NOD
       !        ===>  REALS  <===
       REAL :: NDOTQ, NDOTQOLD,  &
            INCOME, INCOMEOLD, HDC, FVT, FVTOLD, FVT2, FVT2OLD, &
@@ -335,7 +335,7 @@
 
       REAL, PARAMETER :: W_SUM_ONE = 1.
 
-      integer :: cv_inod_ipha, IGETCT, U_NODK_IPHA, ANISOLIM
+      integer :: cv_inod_ipha, IGETCT, U_NODK_IPHA, IANISOLIM
       logical :: Have_Temperature_Fields, Have_VolumeFraction_Fields, Have_Components_Fields
       ! Functions...
       !REAL :: R2NORM, FACE_THETA  
@@ -348,8 +348,10 @@
            path_comp, path_spatial_discretisation
 
       integer, dimension(:), allocatable :: SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM
-      INTEGER :: IDUM
-      REAL :: RDUM
+      real, dimension(:), allocatable :: TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, &
+              DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT 
+      INTEGER :: IDUM(1)
+      REAL :: RDUM(1)
 
       IDUM = 0
       RDUM = 0.
@@ -710,10 +712,14 @@
            DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD )
 
 
-      ANISOLIM=1
-      IF (ANISOLIM==1) THEN
+      IANISOLIM=0
+      IF(CV_DISOPT.GE.8) IANISOLIM=1
+      IF (IANISOLIM==0) THEN
+         ALLOCATE(TUPWIND_MAT(1), TOLDUPWIND_MAT(1), DENUPWIND_MAT(1), DENOLDUPWIND_MAT(1))
+         ALLOCATE(T2UPWIND_MAT(1), T2OLDUPWIND_MAT(1))
+      ELSE ! IF (IANISOLIM==1) THEN
 ! Reduce matrix size...
-      COUNT2=0
+         COUNT2=0
       DO NOD=1,CV_NONODS
          DO COUNT=FINACV(NOD),FINACV(NOD+1)-1
             IF(COLACV(COUNT).LE.CV_NONODS) COUNT2=COUNT2+1
@@ -722,6 +728,8 @@
       NSMALL_COLM=COUNT2+1
 
       ALLOCATE(SMALL_FINDRM(CV_NONODS+1),SMALL_COLM(NSMALL_COLM),SMALL_CENTRM(CV_NONODS))
+      ALLOCATE(TUPWIND_MAT(NSMALL_COLM*NPHASE), TOLDUPWIND_MAT(NSMALL_COLM*NPHASE), DENUPWIND_MAT(NSMALL_COLM*NPHASE), DENOLDUPWIND_MAT(NSMALL_COLM*NPHASE))
+      ALLOCATE(T2UPWIND_MAT(NSMALL_COLM*NPHASE*IGOT_T2), T2OLDUPWIND_MAT(NSMALL_COLM*NPHASE*IGOT_T2))
 
       COUNT2=0
       DO NOD=1,CV_NONODS
@@ -747,8 +755,8 @@
 ! Store the upwind element for interpolation and its weights for 
 ! faster results...
            IDUM,RDUM, 0,  &
-           NPHASE*6,CV_NONODS,CV_NLOC,TOTELE,CV_NDGLN, &
-           TUPWIND,SMALL_FINDRM,SMALL_COLM,NSMALL_COLM, &
+           NPHASE*6,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, &
+           SMALL_FINDRM,SMALL_COLM,NSMALL_COLM, &
            X_NDGLN,X_NONODS,NDIM, &
            X,Y,Z, &
            .FALSE., .FALSE.)
@@ -760,19 +768,13 @@
 ! Store the upwind element for interpolation and its weights for 
 ! faster results...
            IDUM,RDUM, 0,  &
-           NPHASE*4,CV_NONODS,CV_NLOC,TOTELE,CV_NDGLN, &
-           TUPWIND,SMALL_FINDRM,SMALL_COLM,NSMALL_COLM, &
+           NPHASE*4,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, &
+           SMALL_FINDRM,SMALL_COLM,NSMALL_COLM, &
            X_NDGLN,X_NONODS,NDIM, &
            X,Y,Z, &
            .FALSE., .FALSE.)
         ENDIF
        ENDIF
-
-
-
-
-
-
 
 
 
@@ -1037,7 +1039,9 @@
                              TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, &
                              LIMIT_USE_2ND, HDC, NDOTQ, NDOTQOLD, DT, &
                              SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
-                             U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC ) 
+                             U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
+                             IANISOTROPIC, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
+                             TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT )
 
                         SUM_LIMT    = SUM_LIMT    + LIMT
                         SUM_LIMTOLD = SUM_LIMTOLD + LIMTOLD
@@ -1128,7 +1132,9 @@
                              TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, &
                              LIMIT_USE_2ND, HDC, NDOTQ, NDOTQOLD, DT, &
                              SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
-                             U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC ) 
+                             U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
+                             IANISOTROPIC, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
+                             TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT )
 
                      END DO
 
@@ -2650,7 +2656,8 @@
     SUBROUTINE ONVDLIM_ALL( TOTELE, &
          TDLIM, TDCEN, INCOME, PELE, PELEOT, &
          ETDNEW, TDMIN, TDMAX, &
-         TDMIN_2nd_mc, TDMAX_2nd_mc, FIRORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE)
+         TDMIN_2nd_mc, TDMAX_2nd_mc, FIRORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE, &
+         IANISOTROPIC, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, TUPWIND_MAT )
       implicit none 
       ! This sub calculates the limited face values TDADJ(1...SNGI) from the central 
       ! difference face values TDCEN(1...SNGI) using a NVD shceme.  
@@ -2682,7 +2689,18 @@
       REAL, DIMENSION( TOTELE ), intent( in ) :: ETDNEW, TDMIN, TDMAX, TDMIN_2nd_mc, TDMAX_2nd_mc
       LOGICAL, intent( in ) :: FIRORD, NOLIMI, LIMIT_USE_2ND
 
-      IF(LIMIT_USE_2ND) THEN ! limit based on 2 largest and 2 minima values of T:
+      INTEGER, intent( in ) :: IANISOTROPIC
+      INTEGER, intent( in ) :: NSMALL_COLM
+      INTEGER, DIMENSION( (TOTELE+1)*IANISOTROPIC ), intent( in ) :: SMALL_FINDRM
+      INTEGER, DIMENSION( NSMALL_COLM*IANISOTROPIC ), intent( in ) :: SMALL_COLM
+      REAL, DIMENSION( NSMALL_COLM*IANISOTROPIC), intent( in ) :: TUPWIND_MAT 
+
+      IF(IANISOTROPIC==1) THEN ! limit based on 2 largest and 2 minima values of T:
+         CALL ONVDLIM_ANO( TOTELE, &
+         TDLIM, TDCEN, INCOME, PELE, PELEOT, &
+         ETDNEW, TDMIN, TDMAX, FIRORD, NOLIMI, COURANT_OR_MINUS_ONE, &
+         SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, TUPWIND_MAT )
+      ELSE IF(LIMIT_USE_2ND) THEN ! limit based on 2 largest and 2 minima values of T:
          CALL ONVDLIM_2nd( TOTELE, &
          TDLIM, TDCEN, INCOME, PELE, PELEOT, &
          ETDNEW, TDMIN, TDMAX, TDMIN_2nd_mc, TDMAX_2nd_mc, FIRORD, NOLIMI )
@@ -2831,6 +2849,7 @@
 
 
 
+
     SUBROUTINE ONVDLIM( TOTELE, &
          TDLIM, TDCEN, INCOME, PELE, PELEOT, &
          ETDNEW, TDMIN, TDMAX, FIRORD, NOLIMI, COURANT_OR_MINUS_ONE )
@@ -2936,6 +2955,128 @@
       RETURN
 
     END SUBROUTINE ONVDLIM
+
+
+
+
+    SUBROUTINE ONVDLIM_ANO( TOTELE, &
+         TDLIM, TDCEN, INCOME, PELE, PELEOT, &
+         ETDNEW, TDMIN, TDMAX, FIRORD, NOLIMI, COURANT_OR_MINUS_ONE, &
+         SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, TUPWIND_MAT )
+      implicit none 
+      ! This sub calculates the limited face values TDADJ(1...SNGI) from the central 
+      ! difference face values TDCEN(1...SNGI) using a NVD shceme.  
+      ! INCOME(1...SNGI)=1 for incomming to element ELE  else =0.
+      ! LIBETA is the flux limiting parameter. 
+      ! TDMAX(PELE)=maximum of the surrounding 6 element values of element PELE.
+      ! TDMIN(PELE)=minimum of the surrounding 6 element values of element PELE.
+      ! PELEOT=element at other side of current face. 
+      ! ELEOT2=element at other side of the element ELEOTH. 
+      ! ELESID=element next to oposing current face. 
+      ! The elements are arranged in this order: ELEOT2,ELE, PELEOT, ELESID. 
+      ! This sub finds the neighbouring elements. Suppose that this is the face IFACE. 
+      !---------------------------------------------------
+      !|   ELEOT2   |   ELEOTH   |   ELE     |   ELESID   |  
+      !--------------------------------------------------- 
+      ! TAIN         THALF       TAOUT
+      !--------------------------------------------------- 
+      !>TEXTIN
+      !TEXOUT<
+      !--------------------------------------------------- 
+      INTEGER, intent( in ) :: TOTELE, NSMALL_COLM
+      REAL, intent( inout ) :: TDLIM  
+      REAL, intent( in ) :: TDCEN, INCOME, COURANT_OR_MINUS_ONE
+      INTEGER, intent( in ) :: PELE, PELEOT
+      REAL, DIMENSION( TOTELE ), intent( in ) :: ETDNEW, TDMIN, TDMAX
+      LOGICAL, intent( in ) :: FIRORD, NOLIMI
+      INTEGER, DIMENSION( TOTELE+1 ), intent( in ) :: SMALL_FINDRM
+      INTEGER, DIMENSION( NSMALL_COLM ), intent( in ) :: SMALL_COLM
+      REAL, DIMENSION( NSMALL_COLM ), intent( in ) :: TUPWIND_MAT 
+      ! Local variables   
+      REAL, PARAMETER :: TOLER=1.0E-10
+      REAL :: UCIN, UCOU, TUPWIN, TUPWI2, TDELE, DENOIN, CTILIN, DENOOU, &
+           CTILOU, FTILIN, FTILOU
+      INTEGER :: COUNT
+
+      IF( NOLIMI ) THEN
+         TDLIM = TDCEN
+         RETURN
+      ENDIF
+
+      Conditional_PELEOT: IF( PELEOT /= PELE ) THEN
+
+!         IF( ETDNEW( PELEOT ) > ETDNEW( PELE )) THEN
+!            TUPWIN = TDMAX( PELEOT )
+!            TUPWI2 = TDMIN( PELE )
+!         ELSE
+!            TUPWIN = TDMIN( PELEOT )
+!            TUPWI2 = TDMAX( PELE ) 
+!         ENDIF
+
+          DO COUNT=SMALL_FINDRM(PELEOT),SMALL_FINDRM(PELEOT+1)-1
+             IF(SMALL_COLM(COUNT)==PELE) TUPWIN = TUPWIND_MAT(COUNT)
+          END DO
+          DO COUNT=SMALL_FINDRM(PELE),SMALL_FINDRM(PELE+1)-1
+             IF(SMALL_COLM(COUNT)==PELEOT) TUPWI2 = TUPWIND_MAT(COUNT)
+          END DO
+
+
+         ! Calculate normalisation parameters for incomming velocities 
+         TDELE = ETDNEW( PELE )
+         !tdele = min( max( tdcen + 1.*( TDELE - tdcen ) , 0.) , 1. )
+         DENOIN = TDELE - TUPWIN 
+
+         IF( ABS( DENOIN ) < TOLER ) DENOIN = SIGN( TOLER, DENOIN )
+
+         UCIN = ETDNEW( PELEOT )
+         CTILIN = ( UCIN - TUPWIN ) / DENOIN
+
+         ! Calculate normalisation parameters for out going velocities 
+         TDELE = ETDNEW( PELEOT )
+         !tdele =  min( max( tdcen + 1.*( TDELE - tdcen ) , 0.) , 1. )
+         DENOOU = TDELE - TUPWI2
+
+         IF( ABS( DENOOU ) < TOLER) DENOOU = SIGN( TOLER, DENOOU )
+         UCOU = ETDNEW( PELE )
+         CTILOU = ( UCOU - TUPWI2 ) / DENOOU
+
+      ELSE
+
+         ! Calculate normalisation parameters for incomming velocities 
+         TUPWIN = ETDNEW( PELE )
+         UCIN = ETDNEW( PELE )
+         DENOIN = 1.
+         CTILIN = 0.
+
+         ! Calculate normalisation parameters for out going velocities 
+         TUPWI2 = ETDNEW( PELE )
+         UCOU = ETDNEW( PELE )
+         DENOOU = 1.
+         CTILOU = 0.
+
+      ENDIF Conditional_PELEOT
+
+      Conditional_FIRORD: IF( FIRORD ) THEN ! Velocity is pointing into element
+
+         ! Velocity is going out of element
+         TDLIM = INCOME * UCIN + ( 1.0 - INCOME ) * UCOU 
+
+      ELSE
+
+
+         FTILIN = ( TDCEN - TUPWIN ) / DENOIN
+         FTILOU = ( TDCEN - TUPWI2 ) / DENOOU
+
+         ! Velocity is going out of element
+         TDLIM= INCOME*( TUPWIN + NVDFUNNEW( FTILIN, CTILIN, COURANT_OR_MINUS_ONE ) * DENOIN ) &
+              + ( 1.0 - INCOME ) * ( TUPWI2 + NVDFUNNEW( FTILOU, CTILOU, COURANT_OR_MINUS_ONE ) &
+              * DENOOU )
+
+      ENDIF Conditional_FIRORD
+
+      RETURN
+
+    END SUBROUTINE ONVDLIM_ANO
 
 
 
@@ -5689,7 +5830,9 @@
          TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, LIMIT_USE_2ND, &
          HDC, NDOTQ, NDOTQOLD, DT, &
          SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
-         U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC )
+         U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
+         IANISOTROPIC, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
+         TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT )
       !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===============
       IMPLICIT NONE
       ! Calculate T and DEN on the CV face at quadrature point GI.
@@ -5729,6 +5872,13 @@
       REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: U, V, W
       INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN
       REAL, DIMENSION( NDIM, NDIM, SCVNGI ), intent( in ) :: INV_JAC
+
+      INTEGER, intent( in ) :: IANISOTROPIC
+      INTEGER, intent( in ) :: NSMALL_COLM
+      INTEGER, DIMENSION( (TOTELE+1)*IANISOTROPIC ), intent( in ) :: SMALL_FINDRM
+      INTEGER, DIMENSION( NSMALL_COLM*IANISOTROPIC ), intent( in ) :: SMALL_COLM
+      REAL, DIMENSION( NSMALL_COLM*NPHASE*IANISOTROPIC), intent( in ) :: TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT
+      REAL, DIMENSION( NSMALL_COLM*NPHASE*IANISOTROPIC*IGOT_T2), intent( in ) :: T2UPWIND_MAT, T2OLDUPWIND_MAT
       ! Local variables
       ! If UPWIND then use upwind flux between elements else use central. 
       ! If HI_ORDER_HALF then use high order interpolation when around 
@@ -6243,35 +6393,39 @@
          CALL ONVDLIM_ALL( CV_NONODS, &
               LIMT, FEMTGI, INCOME, CV_NODI_IPHA-(IPHASE-1)*CV_NONODS, CV_NODJ_IPHA-(IPHASE-1)*CV_NONODS, &
               T( CV_STAR_IPHA ), TMIN( CV_STAR_IPHA ), TMAX( CV_STAR_IPHA ), &
-              TMIN_2ND_MC( CV_STAR_IPHA ), TMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, .not.VOF_INTER, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_NEW )
-         !    TMIN_2ND_MC( CV_STAR_IPHA ), TMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, .true., LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_NEW )
+              TMIN_2ND_MC( CV_STAR_IPHA ), TMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, .not.VOF_INTER, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_NEW, &
+              IANISOTROPIC, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, TUPWIND_MAT(1+(IPHASE-1)*NSMALL_COLM*IANISOTROPIC) )
 
          CALL ONVDLIM_ALL( CV_NONODS, &
               LIMTOLD, FEMTOLDGI, INCOMEOLD, CV_NODI_IPHA-(IPHASE-1)*CV_NONODS, CV_NODJ_IPHA-(IPHASE-1)*CV_NONODS, &
               TOLD( CV_STAR_IPHA ), TOLDMIN( CV_STAR_IPHA ), TOLDMAX( CV_STAR_IPHA ), &
-              TOLDMIN_2ND_MC( CV_STAR_IPHA ), TOLDMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, .not.VOF_INTER_OLD, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_OLD )
-         !    TOLDMIN_2ND_MC( CV_STAR_IPHA ), TOLDMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, .true., LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_OLD )
+              TOLDMIN_2ND_MC( CV_STAR_IPHA ), TOLDMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, .not.VOF_INTER_OLD, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_OLD, &
+              IANISOTROPIC, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, TOLDUPWIND_MAT(1+(IPHASE-1)*NSMALL_COLM*IANISOTROPIC) )
 
          CALL ONVDLIM_ALL( CV_NONODS, &
               LIMD, FEMDGI, INCOME, CV_NODI_IPHA-(IPHASE-1)*CV_NONODS, CV_NODJ_IPHA-(IPHASE-1)*CV_NONODS, &
               DEN( CV_STAR_IPHA ), DENMIN( CV_STAR_IPHA ), DENMAX( CV_STAR_IPHA ), &
-              DENMIN_2ND_MC( CV_STAR_IPHA ), DENMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_NEW )
+              DENMIN_2ND_MC( CV_STAR_IPHA ), DENMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_NEW, &
+              IANISOTROPIC, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, DENUPWIND_MAT(1+(IPHASE-1)*NSMALL_COLM*IANISOTROPIC) )
 
          CALL ONVDLIM_ALL( CV_NONODS, &
               LIMDOLD,FEMDOLDGI, INCOMEOLD, CV_NODI_IPHA-(IPHASE-1)*CV_NONODS, CV_NODJ_IPHA-(IPHASE-1)*CV_NONODS, &
               DENOLD( CV_STAR_IPHA ), DENOLDMIN( CV_STAR_IPHA ), DENOLDMAX( CV_STAR_IPHA ), &
-              DENOLDMIN_2ND_MC( CV_STAR_IPHA ), DENOLDMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_OLD )
+              DENOLDMIN_2ND_MC( CV_STAR_IPHA ), DENOLDMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_OLD, &
+              IANISOTROPIC, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, DENOLDUPWIND_MAT(1+(IPHASE-1)*NSMALL_COLM*IANISOTROPIC) )
 
          IF(IGOT_T2==1) THEN
             CALL ONVDLIM_ALL( CV_NONODS, &
                  LIMT2, FEMT2GI, INCOME, CV_NODI_IPHA-(IPHASE-1)*CV_NONODS, CV_NODJ_IPHA-(IPHASE-1)*CV_NONODS, &
                  T2( CV_STAR_IPHA ), T2MIN( CV_STAR_IPHA ), T2MAX( CV_STAR_IPHA ), &
-                 T2MIN_2ND_MC( CV_STAR_IPHA ), T2MAX_2ND_MC( CV_STAR_IPHA ),FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_NEW )
+                 T2MIN_2ND_MC( CV_STAR_IPHA ), T2MAX_2ND_MC( CV_STAR_IPHA ),FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_NEW, &
+                 IANISOTROPIC, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, T2UPWIND_MAT(1+(IPHASE-1)*NSMALL_COLM*IANISOTROPIC) )
 
             CALL ONVDLIM_ALL( CV_NONODS, &
                  LIMT2OLD, FEMT2OLDGI, INCOMEOLD, CV_NODI_IPHA-(IPHASE-1)*CV_NONODS, CV_NODJ_IPHA-(IPHASE-1)*CV_NONODS, &
                  T2OLD( CV_STAR_IPHA ), T2OLDMIN( CV_STAR_IPHA ), T2OLDMAX( CV_STAR_IPHA ), &
-                 T2OLDMIN_2ND_MC( CV_STAR_IPHA ), T2OLDMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_OLD )
+                 T2OLDMIN_2ND_MC( CV_STAR_IPHA ), T2OLDMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_OLD, &
+                 IANISOTROPIC, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, T2OLDUPWIND_MAT(1+(IPHASE-1)*NSMALL_COLM*IANISOTROPIC) )
          ELSE
             LIMT2   =1.0
             LIMT2OLD=1.0
@@ -8163,7 +8317,7 @@
 ! Store the upwind element for interpolation and its weights for 
 ! faster results...
            ELEMATPSI,ELEMATWEI, IELEMATPSI,  &
-           NFIELD,NONODS,CV_NLOC,U_NLOC,TOTELE,CV_NDGLN, &
+           NFIELD,NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, &
            SMALL_FINDRM,SMALL_COLM,NSMALL_COLM, &
            XNDGLN,XNONOD,NDIM, &
            X,Y,Z, &
@@ -8171,15 +8325,17 @@
         ! For the anisotropic limiting scheme we find the upwind values
         ! by interpolation using the subroutine FINPTS or IFINPTS; the upwind
         ! value for each node pair is stored in the matrices TUPWIND AND
-      INTEGER :: NONODS,XNONOD,TOTELE,CV_NLOC, U_NLOC, NSMALL_COLM, NFIELD,NDIM
+      IMPLICIT NONE
+      INTEGER :: NONODS,XNONOD,TOTELE,CV_NLOC, X_NLOC, NSMALL_COLM, NFIELD,NDIM
        REAL, DIMENSION( NONODS*NFIELD ), intent( in ) :: T
-       REAL, DIMENSION( NSMALL_COLM*NFIELD ), intent( inout ) :: TUPWIND
-      INTEGER :: NDGLNO(TOTELE*U_NLOC),XNDGLN(TOTELE*U_NLOC), CV_NDGLN(TOTELE*CV_NLOC) 
+!       REAL, DIMENSION( NSMALL_COLM*NFIELD ), intent( inout ) :: TUPWIND
+       REAL, DIMENSION( NSMALL_COLM*NFIELD ) :: TUPWIND
+      INTEGER :: XNDGLN(TOTELE*X_NLOC), CV_NDGLN(TOTELE*CV_NLOC) 
       INTEGER :: SMALL_FINDRM(NONODS+1),SMALL_COLM(NSMALL_COLM),SMALL_CENTRM(NONODS)
       REAL    :: X(XNONOD),Y(XNONOD),Z(XNONOD)
 
       INTEGER :: ELEMATPSI( NSMALL_COLM * IELEMATPSI ), IELEMATPSI      
-      REAL :: ELEMATWEI( NSMALL_COLM * U_NLOC * IELEMATPSI )
+      REAL :: ELEMATWEI( NSMALL_COLM * CV_NLOC * IELEMATPSI )
       LOGICAL, INTENT(IN) :: STORE_ELE, RET_STORE_ELE
 
       LOGICAL :: D3,DCYL
@@ -8188,7 +8344,7 @@
       real, dimension( :, : ), allocatable :: UN, UNLX, UNLY, UNLZ, CVN
       real, dimension( : ), allocatable :: WEIGHT
       integer, dimension( : ), allocatable :: SUB_NDGLNO
-      INTEGER :: COUNT, COUNT2, NOD, CV_ELE_TYPE, SUB_TOTELE
+      INTEGER :: COUNT, COUNT2, NOD, CV_ELE_TYPE, SUB_TOTELE, NGI,NLOC
 
 ! **********************Calculate linear shape functions...
      IF(NDIM==1) THEN
@@ -8207,20 +8363,23 @@
      ALLOCATE(N(NLOC,NGI), NLX(NLOC,NGI), NLY(NLOC,NGI), NLZ(NLOC,NGI))
      ALLOCATE(UN(NLOC,NGI), UNLX(NLOC,NGI), UNLY(NLOC,NGI), UNLZ(NLOC,NGI))
      ALLOCATE(WEIGHT(NGI), CVN(NLOC,NGI))
+       print *,'--nloc,cv_nloc,x_nloc:',nloc,cv_nloc,x_nloc
 
      N=0. ; NLX=0. ; NLY=0. ; NLZ=0.
      UN=0. ; UNLX=0. ; UNLY=0. ; UNLZ=0.
      WEIGHT=0. ; CVN=0.
 
      call shape_cv_n( ndim, cv_ele_type, &
-         ngi, nloc, u_nloc, cvn, weight, &
+         ngi, nloc, nloc, cvn, weight, &
          n, nlx, nly, nlz, &
          un, unlx, unly, unlz )
 
+     
+       print *,'--nloc,cv_nloc,x_nloc:',nloc,cv_nloc,x_nloc
 
 ! ******************************************************************
 ! Calculate the sub elements for quadratic element SUB_NDGLNO ... 
-     IF(CV_LOC==NLOC) THEN 
+     IF(CV_NLOC==NLOC) THEN 
         SUB_TOTELE=TOTELE
      ELSE
         IF(NDIM==1) THEN
@@ -8234,15 +8393,19 @@
 
      ALLOCATE(SUB_NDGLNO(SUB_TOTELE*NLOC))
 
-     IF(CV_LOC==NLOC) THEN 
+      print *,'CV_nLOC,NLOC:',CV_NLOC,NLOC
+     IF(CV_NLOC==NLOC) THEN 
         SUB_NDGLNO=CV_NDGLN
      ELSE
+        stop 2921
         ! do something...
      ENDIF
 
 ! Calculate the sub elements for quadratic element SUB_NDGLNO ... 
 ! ******************************************************************
 
+       print *,'nloc,cv_nloc,x_nloc:',nloc,cv_nloc,x_nloc
+       print *,'SUB_NDGLNO:',SUB_NDGLNO
 
       CALL CALC_ANISOTROP_LIM_VALS2( &
 ! Caculate the upwind values stored in matrix form...
@@ -8279,6 +8442,7 @@
         ! For the anisotropic limiting scheme we find the upwind values
         ! by interpolation using the subroutine FINPTS or IFINPTS; the upwind
         ! value for each node pair is stored in the matrices TUPWIND AND
+      IMPLICIT NONE
       INTEGER :: NONODS,XNONOD,TOTELE,NLOC,NGI,NCOLM,NFIELD,NDIM
        REAL, DIMENSION( NONODS*NFIELD ), intent( in ) :: T
        REAL, DIMENSION( NCOLM*NFIELD ), intent( inout ) :: TUPWIND
@@ -8298,6 +8462,7 @@
       LOGICAL, PARAMETER :: BOUND   = .TRUE.,  REFLECT = .TRUE. ! limiting options
       INTEGER, DIMENSION( : ), allocatable :: NOD_FINDELE,NOD_COLELE, NLIST, INLIST, DUMMYINT
       REAL, DIMENSION( : ), allocatable :: DUMMYREAL
+      INTEGER MXNCOLEL,NCOLEL
 
         ! Over-estimate the size of the COLELE array
         MXNCOLEL=20*TOTELE+500
@@ -8362,6 +8527,7 @@
 ! use the stored interpolation coeffs to caclulate MATPSI.
 !     This sub finds the matrix values MATPSI for a given point on the 
 !     stencil 
+      IMPLICIT NONE
         REAL FRALINE
         LOGICAL BOUND
         PARAMETER(FRALINE=0.001)
@@ -8373,7 +8539,7 @@
         INTEGER ELEMATPSI(NCOLM)
         REAL ELEMATWEI(NCOLM*NLOC)
 !  LOCAL VARIABLES...
-        INTEGER NOD,COUNT,ELEWIC,ILOC,INOD
+        INTEGER NOD,COUNT,ELEWIC,ILOC,INOD,IFIELD
         INTEGER KNOD,COUNT2,JNOD
         REAL RMATPSI,RMATPSIOLD
         REAL, ALLOCATABLE, DIMENSION(:)::MINPSI
@@ -8434,6 +8600,7 @@
      &     MINPSI,MAXPSI)
 ! This sub calculates the max and min values of PSI in local vacinity of 
 ! an element. 
+      IMPLICIT NONE
         REAL FRALINE
         PARAMETER(FRALINE=0.001)
         INTEGER NFIELD,NONODS,NLOC,TOTELE,NDGLNO(TOTELE*NLOC)
@@ -8484,6 +8651,7 @@
 !     This sub finds the matrix values MATPSI for a given point on the 
 !     stencil 
 ! IF IGETSTOR=1 then get ELEMATPSI,ELEMATWEI.
+      IMPLICIT NONE
       LOGICAL BOUND,REFLECT
 ! IF REFLECT then use a reflection condition at boundary to 
 ! do limiting. 
@@ -8652,6 +8820,7 @@
 !     other side of the stencil if we had a linear variation and within 
 !     a single element.     
 ! IF BOUND then make locally bounded.
+      IMPLICIT NONE
       REAL INFINY,FRALINE
       LOGICAL REFLECT
 ! IF REFLECT then use a reflection condition at boundary to 
@@ -8675,7 +8844,7 @@
       REAL LOCCORDS(4)
       INTEGER LOCNODS(4),LOCNODSK(4)
       INTEGER NLOCNODS(4),NLOCNODSK(4)
-      INTEGER ELE,ILOC,KNOD,JNOD
+      INTEGER ELE,ILOC,KNOD,JNOD,IFIELD
       REAL MINCOR,MINCORK,SUM
       REAL VX,VY,VZ,T2X,T2Y,T2Z,T1X,T1Y,T1Z,DIST12,RN,RMATPSI
       REAL REFX,REFY,REFZ,REFX2,REFY2,REFZ2
@@ -8845,10 +9014,10 @@
       ! 
       ! Description                                   Programmer      Date
       ! ==================================================================
-      ! Original version..................................CCP     Unknown!
-      ! Comments and warning when out of bounds added.....GSC   2006-08-11
+      ! Original version..................................CCP   2013-28-01
       !
       !================================================================ 
+      IMPLICIT NONE
       INTEGER NONODS,FINDELE(NONODS+1)
       INTEGER NCOLEL,MXNCOLEL,COLELE(MXNCOLEL)
       INTEGER TOTELE,NLOC,NDGLNO(TOTELE*NLOC)
@@ -8864,6 +9033,8 @@
       ! NLIST is the number of elements each node belongs to...
       do ELE=1,TOTELE! Was loop 
       do ILOC=1,NLOC! Was loop 
+!          print *,'iloc,nloc,totele,ele:', iloc,nloc,totele,ele
+!          print *,'NDGLNO((ELE-1)*NLOC+ILOC):',NDGLNO((ELE-1)*NLOC+ILOC)
             INOD=NDGLNO((ELE-1)*NLOC+ILOC)
             NLIST(INOD)=NLIST(INOD)+1
          END DO
@@ -8906,6 +9077,7 @@
      &     X3,Y3,Z3, &
      &     X4,Y4,Z4  )
 
+      IMPLICIT NONE
       Real Xp, Yp, Zp
 
       Real N1, N2, N3, N4
@@ -8969,6 +9141,7 @@
 
 
 pure function tetvolume(x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3)
+      IMPLICIT NONE
    
      real, intent(in) :: x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3
      
@@ -8996,6 +9169,7 @@ pure function tetvolume(x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3)
      &     X2,Y2, &
      &     X3,Y3 )
 
+      IMPLICIT NONE
       Real Xp,Yp, &
      &     N1, N2, N3,  &
      &     X1,Y1, &
