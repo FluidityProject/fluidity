@@ -319,7 +319,7 @@
            JCOUNT_IPHA, IMID_IPHA, &
            NFACE, X_NODI,  &
            CV_INOD, MAT_NODI, FACE_ITS, NFACE_ITS, &
-           CVNOD, XNOD
+           CVNOD, XNOD, COUNT2, NSMALL_COLM, NOD
       !        ===>  REALS  <===
       REAL :: NDOTQ, NDOTQOLD,  &
            INCOME, INCOMEOLD, HDC, FVT, FVTOLD, FVT2, FVT2OLD, &
@@ -335,7 +335,7 @@
 
       REAL, PARAMETER :: W_SUM_ONE = 1.
 
-      integer :: cv_inod_ipha, IGETCT, U_NODK_IPHA
+      integer :: cv_inod_ipha, IGETCT, U_NODK_IPHA, ANISOLIM
       logical :: Have_Temperature_Fields, Have_VolumeFraction_Fields, Have_Components_Fields
       ! Functions...
       !REAL :: R2NORM, FACE_THETA  
@@ -346,6 +346,13 @@
 
       character( len = option_path_len ) :: option_path, option_path2, path_temp, path_volf, &
            path_comp, path_spatial_discretisation
+
+      integer, dimension(:), allocatable :: SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM
+      INTEGER :: IDUM
+      REAL :: RDUM
+
+      IDUM = 0
+      RDUM = 0.
 
       ewrite(3,*) 'In CV_ASSEMB'
 
@@ -701,6 +708,73 @@
            WIC_D_BC_DIRICHLET, MASS_CV, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, TOLDMAX_NOD, &
            T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, &
            DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD )
+
+
+      ANISOLIM=1
+      IF (ANISOLIM==1) THEN
+! Reduce matrix size...
+      COUNT2=0
+      DO NOD=1,CV_NONODS
+         DO COUNT=FINACV(NOD),FINACV(NOD+1)-1
+            IF(COLACV(COUNT).LE.CV_NONODS) COUNT2=COUNT2+1
+         END DO
+      END DO
+      NSMALL_COLM=COUNT2+1
+
+      ALLOCATE(SMALL_FINDRM(CV_NONODS+1),SMALL_COLM(NSMALL_COLM),SMALL_CENTRM(CV_NONODS))
+
+      COUNT2=0
+      DO NOD=1,CV_NONODS
+         SMALL_FINDRM(NOD)=COUNT2+1
+         DO COUNT=FINACV(NOD),FINACV(NOD+1)-1
+            IF(COLACV(COUNT).LE.CV_NONODS) THEN
+               COUNT2=COUNT2+1
+               SMALL_COLM(COUNT2)=COLACV(COUNT)
+               IF(SMALL_COLM(COUNT2)==NOD) SMALL_CENTRM(NOD)=COUNT2
+            ENDIF
+         END DO
+      END DO
+      SMALL_FINDRM(CV_NONODS+1)=COUNT2+1
+      NSMALL_COLM=COUNT2+1
+
+      ! Allocate memory and find upwind field values for limiting...
+       IF(IGOT_T2.NE.0) THEN
+! Obtain the weights
+       CALL CALC_ANISOTROP_LIM_VALS( &
+! Caculate the upwind values stored in matrix form...
+           (/T,TOLD,DEN,DENOLD,T2,T2OLD/), &
+           (/TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT/),  &
+! Store the upwind element for interpolation and its weights for 
+! faster results...
+           IDUM,RDUM, 0,  &
+           NPHASE*6,CV_NONODS,CV_NLOC,TOTELE,CV_NDGLN, &
+           TUPWIND,SMALL_FINDRM,SMALL_COLM,NSMALL_COLM, &
+           X_NDGLN,X_NONODS,NDIM, &
+           X,Y,Z, &
+           .FALSE., .FALSE.)
+        ELSE
+       CALL CALC_ANISOTROP_LIM_VALS( &
+! Caculate the upwind values stored in matrix form...
+           (/T,TOLD,DEN,DENOLD/),&
+           (/TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT/),  &
+! Store the upwind element for interpolation and its weights for 
+! faster results...
+           IDUM,RDUM, 0,  &
+           NPHASE*4,CV_NONODS,CV_NLOC,TOTELE,CV_NDGLN, &
+           TUPWIND,SMALL_FINDRM,SMALL_COLM,NSMALL_COLM, &
+           X_NDGLN,X_NONODS,NDIM, &
+           X,Y,Z, &
+           .FALSE., .FALSE.)
+        ENDIF
+       ENDIF
+
+
+
+
+
+
+
+
 
       ALLOCATE( FACE_ELE( NFACE, TOTELE ) ) ; FACE_ELE = 0
       ! Calculate FACE_ELE
@@ -3107,8 +3181,8 @@
             IF(DOWNWIND_EXTRAP) THEN
 ! new method based on downwind extrapolation...
 !               MAXUF = MAX( 0.0, UF )
-               MAXUF = MAX( 0.0, UF, uc )
-!               TILDEUF = MIN( 1.0, UC/ (3.0 * COURAT), MAXUF )
+               MAXUF = MAX( 0.0, UF, UC )
+!               TILDEUF = MIN( 1.0, UC/ (10.0 * COURAT), MAXUF )
                TILDEUF = MIN( 1.0, UC * 10.0, MAXUF )
             ELSE
                !TILDEUF = MIN( 1.0, max( UC / COURAT, XI * UC ))
@@ -5893,7 +5967,6 @@
                   VEC_VEL2=0.0
                   DO IDIM=1,NDIM
                      VEC_VEL2(IDIM)=SUM( INV_JAC(IDIM, 1:NDIM, GI)*VEC_VEL(1:NDIM) )
-!                     print *,'idim,INV_JAC(IDIM, 1:NDIM, GI):',idim,INV_JAC(IDIM, 1:NDIM, GI)
                   END DO
 ! normalize the velocity in here: 
 !                  VEC_VEL2=VEC_VEL2/TOLFUN(SQRT( UDGI**2+VDGI**2+WDGI**2))
@@ -8080,6 +8153,896 @@
     END SUBROUTINE ABS3P
 
 
+
+
+
+       SUBROUTINE CALC_ANISOTROP_LIM_VALS( &
+! Caculate the upwind values stored in matrix form...
+           T, &
+           TUPWIND,  &
+! Store the upwind element for interpolation and its weights for 
+! faster results...
+           ELEMATPSI,ELEMATWEI, IELEMATPSI,  &
+           NFIELD,NONODS,CV_NLOC,U_NLOC,TOTELE,CV_NDGLN, &
+           SMALL_FINDRM,SMALL_COLM,NSMALL_COLM, &
+           XNDGLN,XNONOD,NDIM, &
+           X,Y,Z, &
+           STORE_ELE, RET_STORE_ELE)
+        ! For the anisotropic limiting scheme we find the upwind values
+        ! by interpolation using the subroutine FINPTS or IFINPTS; the upwind
+        ! value for each node pair is stored in the matrices TUPWIND AND
+      INTEGER :: NONODS,XNONOD,TOTELE,CV_NLOC, U_NLOC, NSMALL_COLM, NFIELD,NDIM
+       REAL, DIMENSION( NONODS*NFIELD ), intent( in ) :: T
+       REAL, DIMENSION( NSMALL_COLM*NFIELD ), intent( inout ) :: TUPWIND
+      INTEGER :: NDGLNO(TOTELE*U_NLOC),XNDGLN(TOTELE*U_NLOC), CV_NDGLN(TOTELE*CV_NLOC) 
+      INTEGER :: SMALL_FINDRM(NONODS+1),SMALL_COLM(NSMALL_COLM),SMALL_CENTRM(NONODS)
+      REAL    :: X(XNONOD),Y(XNONOD),Z(XNONOD)
+
+      INTEGER :: ELEMATPSI( NSMALL_COLM * IELEMATPSI ), IELEMATPSI      
+      REAL :: ELEMATWEI( NSMALL_COLM * U_NLOC * IELEMATPSI )
+      LOGICAL, INTENT(IN) :: STORE_ELE, RET_STORE_ELE
+
+      LOGICAL :: D3,DCYL
+        ! Allocate memory for the interpolated upwind values
+      real, dimension( :, : ), allocatable :: N,NLX,NLY,NLZ
+      real, dimension( :, : ), allocatable :: UN, UNLX, UNLY, UNLZ, CVN
+      real, dimension( : ), allocatable :: WEIGHT
+      integer, dimension( : ), allocatable :: SUB_NDGLNO
+      INTEGER :: COUNT, COUNT2, NOD, CV_ELE_TYPE, SUB_TOTELE
+
+! **********************Calculate linear shape functions...
+     IF(NDIM==1) THEN
+        NLOC=1
+        NGI=2
+        CV_ELE_TYPE=1
+     ELSE IF(NDIM==2) THEN
+        NLOC=3
+        NGI=3
+        CV_ELE_TYPE=3
+     ELSE IF(NDIM==3) THEN 
+        NLOC=4
+        NGI=4
+        CV_ELE_TYPE=7
+     ENDIF
+     ALLOCATE(N(NLOC,NGI), NLX(NLOC,NGI), NLY(NLOC,NGI), NLZ(NLOC,NGI))
+     ALLOCATE(UN(NLOC,NGI), UNLX(NLOC,NGI), UNLY(NLOC,NGI), UNLZ(NLOC,NGI))
+     ALLOCATE(WEIGHT(NGI), CVN(NLOC,NGI))
+
+     N=0. ; NLX=0. ; NLY=0. ; NLZ=0.
+     UN=0. ; UNLX=0. ; UNLY=0. ; UNLZ=0.
+     WEIGHT=0. ; CVN=0.
+
+     call shape_cv_n( ndim, cv_ele_type, &
+         ngi, nloc, u_nloc, cvn, weight, &
+         n, nlx, nly, nlz, &
+         un, unlx, unly, unlz )
+
+
+! ******************************************************************
+! Calculate the sub elements for quadratic element SUB_NDGLNO ... 
+     IF(CV_LOC==NLOC) THEN 
+        SUB_TOTELE=TOTELE
+     ELSE
+        IF(NDIM==1) THEN
+           SUB_TOTELE=2*TOTELE
+        ELSE IF(NDIM==2) THEN
+           SUB_TOTELE=4*TOTELE
+        ELSE IF(NDIM==3) THEN 
+           SUB_TOTELE=10*TOTELE
+        ENDIF
+     ENDIF
+
+     ALLOCATE(SUB_NDGLNO(SUB_TOTELE*NLOC))
+
+     IF(CV_LOC==NLOC) THEN 
+        SUB_NDGLNO=CV_NDGLN
+     ELSE
+        ! do something...
+     ENDIF
+
+! Calculate the sub elements for quadratic element SUB_NDGLNO ... 
+! ******************************************************************
+
+
+      CALL CALC_ANISOTROP_LIM_VALS2( &
+! Caculate the upwind values stored in matrix form...
+           T, &
+           TUPWIND,  &
+! Store the upwind element for interpolation and its weights for 
+! faster results...
+           ELEMATPSI,ELEMATWEI, IELEMATPSI,  &
+           NFIELD,NONODS,NLOC,NGI,SUB_TOTELE,SUB_NDGLNO, &
+           SMALL_FINDRM,SMALL_COLM,NSMALL_COLM, &
+           XNDGLN,XNONOD,NDIM, &
+           X,Y,Z, &
+           N,NLX,NLY,NLZ, WEIGHT, &
+           STORE_ELE, RET_STORE_ELE)
+
+      RETURN
+      END SUBROUTINE CALC_ANISOTROP_LIM_VALS
+
+
+
+       SUBROUTINE CALC_ANISOTROP_LIM_VALS2( &
+! Caculate the upwind values stored in matrix form...
+           T, &
+           TUPWIND,  &
+! Store the upwind element for interpolation and its weights for 
+! faster results...
+           ELEMATPSI,ELEMATWEI, IELEMATPSI,  &
+           NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
+           FINDRM,COLM,NCOLM, &
+           XNDGLN,XNONOD,NDIM, &
+           X,Y,Z, &
+           N,NLX,NLY,NLZ, WEIGHT, &
+           STORE_ELE, RET_STORE_ELE)
+        ! For the anisotropic limiting scheme we find the upwind values
+        ! by interpolation using the subroutine FINPTS or IFINPTS; the upwind
+        ! value for each node pair is stored in the matrices TUPWIND AND
+      INTEGER :: NONODS,XNONOD,TOTELE,NLOC,NGI,NCOLM,NFIELD,NDIM
+       REAL, DIMENSION( NONODS*NFIELD ), intent( in ) :: T
+       REAL, DIMENSION( NCOLM*NFIELD ), intent( inout ) :: TUPWIND
+      INTEGER :: NDGLNO(TOTELE*NLOC),XNDGLN(TOTELE*NLOC)
+      INTEGER :: FINDRM(NONODS+1),COLM(NCOLM),CENTRM(NONODS)
+      INTEGER :: ELEMATPSI( NCOLM * IELEMATPSI ), IELEMATPSI      
+      REAL :: ELEMATWEI( NCOLM * NLOC * IELEMATPSI )
+
+      REAL    :: X(XNONOD),Y(XNONOD),Z(XNONOD)
+      REAL, INTENT(IN) :: N(NLOC,NGI),NLX(NLOC,NGI),NLY(NLOC,NGI),NLZ(NLOC,NGI)
+      REAL, INTENT(IN) :: WEIGHT(NGI) 
+      LOGICAL, INTENT(IN) :: STORE_ELE, RET_STORE_ELE
+
+
+      LOGICAL :: D3,DCYL
+        ! Allocate memory for the interpolated upwind values
+      LOGICAL, PARAMETER :: BOUND   = .TRUE.,  REFLECT = .TRUE. ! limiting options
+      INTEGER, DIMENSION( : ), allocatable :: NOD_FINDELE,NOD_COLELE, NLIST, INLIST, DUMMYINT
+      REAL, DIMENSION( : ), allocatable :: DUMMYREAL
+
+        ! Over-estimate the size of the COLELE array
+        MXNCOLEL=20*TOTELE+500
+
+        ALLOCATE( NOD_FINDELE(NONODS+1) )
+        ALLOCATE( NOD_COLELE(MXNCOLEL) )
+        
+        ALLOCATE(   NLIST(NONODS) )
+        ALLOCATE(  INLIST(NONODS) )
+        
+        ! Calculate node element list - moved from (I)FINPTS
+        CALL PHILNODELE(NONODS,NOD_FINDELE,NOD_COLELE, &
+                        NCOLEL,MXNCOLEL, &
+                        TOTELE,NLOC,NDGLNO, &
+                        NLIST,INLIST)
+
+        DEALLOCATE( NOD_FINDELE, NOD_COLELE, NLIST, INLIST )
+
+        
+        IF(STORE_ELE) THEN
+    
+          CALL FINPTSSTORE(T,NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
+                  TUPWIND,FINDRM,COLM,NCOLM,NDIM, &
+                  XNDGLN,XNONOD, &
+                  X,Y,Z, &
+                  N,NLX,NLY,NLZ, WEIGHT, &
+                  NOD_FINDELE,NOD_COLELE,NCOLEL, &
+                  ELEMATPSI,ELEMATWEI,1, &
+                  BOUND, REFLECT)
+    
+        ELSEIF(RET_STORE_ELE) THEN 
+! Find the weights for the interpolation
+! This does depend on the solns T when BOUND...
+          
+          CALL GETSTOREELEWEI(T,NFIELD,NONODS,NLOC,TOTELE,NDGLNO, &
+                    TUPWIND,FINDRM,COLM,NCOLM,BOUND, &
+                    ELEMATPSI,ELEMATWEI)
+    
+        ELSE ! assume we have not stored anything (elements or weights)...
+          ALLOCATE(DUMMYINT(NCOLM))
+          ALLOCATE(DUMMYREAL(NCOLM*NLOC))
+    
+          CALL FINPTSSTORE(T,NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
+                    TUPWIND,FINDRM,COLM,NCOLM,NDIM, &
+                    XNDGLN,XNONOD, &
+                    X,Y,Z, &
+                    N,NLX,NLY,NLZ, WEIGHT, &
+                    NOD_FINDELE,NOD_COLELE,NCOLEL, &
+                    DUMMYINT,DUMMYREAL,0, &
+                    BOUND, REFLECT)
+        ENDIF
+
+
+      END SUBROUTINE CALC_ANISOTROP_LIM_VALS2
+!
+!     
+!
+!
+        SUBROUTINE GETSTOREELEWEI(PSI,NFIELD,NONODS,NLOC,TOTELE,NDGLNO, &
+     &     MATPSI,FINDRM,COLM,NCOLM,BOUND,&
+     &     ELEMATPSI,ELEMATWEI)
+! use the stored interpolation coeffs to caclulate MATPSI.
+!     This sub finds the matrix values MATPSI for a given point on the 
+!     stencil 
+        REAL FRALINE
+        LOGICAL BOUND
+        PARAMETER(FRALINE=0.001)
+        INTEGER NFIELD,NONODS,NLOC,TOTELE,NDGLNO(TOTELE*NLOC)
+        REAL PSI(NONODS*NFIELD)
+        INTEGER NCOLM
+        INTEGER FINDRM(NONODS+1),COLM(NCOLM)
+        REAL MATPSI(NCOLM*NFIELD)
+        INTEGER ELEMATPSI(NCOLM)
+        REAL ELEMATWEI(NCOLM*NLOC)
+!  LOCAL VARIABLES...
+        INTEGER NOD,COUNT,ELEWIC,ILOC,INOD
+        INTEGER KNOD,COUNT2,JNOD
+        REAL RMATPSI,RMATPSIOLD
+        REAL, ALLOCATABLE, DIMENSION(:)::MINPSI
+        REAL, ALLOCATABLE, DIMENSION(:)::MAXPSI
+        
+        if(bound) then
+          ALLOCATE(MINPSI(TOTELE*NFIELD))
+          ALLOCATE(MAXPSI(TOTELE*NFIELD))
+        
+! find the max and min local to each element...
+        print *,'going into minmaxelewic'
+          CALL MINMAXELEWIC(PSI,NFIELD,NONODS,NLOC,TOTELE,NDGLNO, &
+     &     FINDRM,COLM,NCOLM,&
+     &     MINPSI,MAXPSI)
+        print *,'out of minmaxelewic'
+        endif
+        
+      do NOD=1,NONODS! Was loop 
+!         print *,'nod=',nod
+      do COUNT=FINDRM(NOD),FINDRM(NOD+1)-1! Was loop 
+!            print *,'count=',count
+            IF(NOD.NE.COLM(COUNT)) THEN
+              ELEWIC=ELEMATPSI(COUNT)
+!              print *,'elewic=',elewic
+              DO IFIELD=1,NFIELD
+                 RMATPSI=0.0
+                 RMATPSIOLD=0.0
+                 DO ILOC=1,NLOC! Was loop 
+                    INOD=NDGLNO((ELEWIC-1)*NLOC+ILOC)
+                    RMATPSI=RMATPSI+ELEMATWEI((COUNT-1)*NLOC+ILOC)*PSI(INOD+(IFIELD-1)*NONODS)
+                 END DO
+              
+                 RMATPSI   =PSI(NOD+(IFIELD-1)*NONODS)   &
+                      +(1./FRALINE)*(RMATPSI   -PSI(NOD+(IFIELD-1)*NONODS))
+
+! make locally bounded...
+                 if(bound) then
+                    MATPSI(COUNT+(IFIELD-1)*NCOLM)   &
+      =MAX(MIN(RMATPSI,   MAXPSI(ELEWIC+(IFIELD-1)*TOTELE)),   &
+     &                            MINPSI(ELEWIC+(IFIELD-1)*TOTELE))
+                 else
+                    MATPSI(COUNT+(IFIELD-1)*NCOLM)   =RMATPSI
+                 endif
+              END DO
+            ENDIF
+          END DO
+        END DO
+        RETURN
+        
+  end subroutine getstoreelewei
+        
+!
+!   
+!
+!
+        SUBROUTINE MINMAXELEWIC(PSI,NFIELD,NONODS,NLOC,TOTELE,NDGLNO, &
+     &     FINDRM,COLM,NCOLM,&
+     &     MINPSI,MAXPSI)
+! This sub calculates the max and min values of PSI in local vacinity of 
+! an element. 
+        REAL FRALINE
+        PARAMETER(FRALINE=0.001)
+        INTEGER NFIELD,NONODS,NLOC,TOTELE,NDGLNO(TOTELE*NLOC)
+        REAL PSI(NONODS*NFIELD)
+        INTEGER NCOLM
+        INTEGER FINDRM(NONODS+1),COLM(NCOLM)
+        REAL MINPSI(TOTELE*NFIELD),MAXPSI(TOTELE*NFIELD)
+!  LOCAL VARIABLES...
+        INTEGER NOD,COUNT,ELEWIC,ILOC,INOD,IFIELD
+        INTEGER KNOD,COUNT2,JNOD
+        REAL RMATPSI
+        
+        MINPSI   =1.E+20
+        MAXPSI   =-1.E+20
+! find the max and min local to each element...
+      do ELEWIC=1,TOTELE! Was loop 
+      do ILOC=1,NLOC! Was loop 
+              KNOD=NDGLNO((ELEWIC-1)*NLOC+ILOC)
+!     Search around node KNOD for max and min PSI...
+      do COUNT2=FINDRM(KNOD),FINDRM(KNOD+1)-1! Was loop 
+                  JNOD=COLM(COUNT2)
+                  DO IFIELD=1,NFIELD
+                     MINPSI(ELEWIC+(IFIELD-1)*TOTELE)  &
+        =MIN(PSI(JNOD+(IFIELD-1)*NONODS),   MINPSI(ELEWIC+(IFIELD-1)*TOTELE))
+                     MAXPSI(ELEWIC+(IFIELD-1)*TOTELE)  &
+        =MAX(PSI(JNOD+(IFIELD-1)*NONODS),   MAXPSI(ELEWIC+(IFIELD-1)*TOTELE))
+                  END DO
+              END DO
+           END DO
+        END DO
+        RETURN
+        
+  end subroutine minmaxelewic
+        
+!     
+!     
+!     
+!     
+      SUBROUTINE FINPTSSTORE(PSI,NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
+     &     MATPSI,FINDRM,COLM,NCOLM,NDIM, &
+     &     XNDGLN,XNONOD, &
+     &     X,Y,Z,&
+     &     N,NLX,NLY,NLZ, WEIGHT,&
+!     work space...
+     &     FINDELE,COLELE,NCOLEL,&
+     &     ELEMATPSI,ELEMATWEI,IGETSTOR,&
+     &     BOUND, REFLECT)
+!     This sub finds the matrix values MATPSI for a given point on the 
+!     stencil 
+! IF IGETSTOR=1 then get ELEMATPSI,ELEMATWEI.
+      LOGICAL BOUND,REFLECT
+! IF REFLECT then use a reflection condition at boundary to 
+! do limiting. 
+      INTEGER NFIELD,NONODS,NLOC,NGI,TOTELE,NDIM,NDGLNO(TOTELE*NLOC)
+      REAL PSI(NONODS*NFIELD)
+      INTEGER NCOLM,NCOLEL
+      INTEGER FINDRM(NONODS+1),COLM(NCOLM)
+      REAL MATPSI(NCOLM*NFIELD)
+      INTEGER XNDGLN(TOTELE*NLOC),XNONOD
+      REAL X(XNONOD),Y(XNONOD),Z(XNONOD)
+      REAL N(NLOC,NGI),NLX(NLOC,NGI),NLY(NLOC,NGI),NLZ(NLOC,NGI)
+      REAL WEIGHT(NGI)
+!     work space...
+      INTEGER FINDELE(NONODS+1),COLELE(NCOLEL)
+      INTEGER IGETSTOR
+      INTEGER ELEMATPSI(NCOLM*IGETSTOR)
+      REAL ELEMATWEI(NCOLM*NLOC*IGETSTOR)
+! ELEWIC is the element to do interpolation from
+! LOCCORDSK contains the weights. 
+!     Local variables...
+      INTEGER NOD,COUNT,NODI,NODJ,ILOC,GI,ELE
+      INTEGER ELEWIC,XNOD,XNODJ,IFIELD
+      REAL LOCCORDSK(NLOC)
+      REAL NORMX1,NORMY1,NORMZ1
+      REAL VOLUME,INVH,LENG
+!     work space...
+      REAL DETWEI(NGI),RA(NGI)
+      REAL NX(NLOC,NGI),NY(NLOC,NGI),NZ(NLOC,NGI)
+      REAL, ALLOCATABLE, DIMENSION(:)::NORMX
+      REAL, ALLOCATABLE, DIMENSION(:)::NORMY
+      REAL, ALLOCATABLE, DIMENSION(:)::NORMZ
+      REAL, ALLOCATABLE, DIMENSION(:)::MLUM
+        REAL, ALLOCATABLE, DIMENSION(:)::MINPSI
+        REAL, ALLOCATABLE, DIMENSION(:)::MAXPSI
+        INTEGER, ALLOCATABLE, DIMENSION(:)::NOD2XNOD
+        
+        NORMX1=0.0
+        NORMY1=0.0
+        NORMZ1=0.0
+      IF(REFLECT) THEN
+!     calculate normals...********************
+         ALLOCATE(NORMX(NONODS))
+         ALLOCATE(NORMY(NONODS))
+         ALLOCATE(NORMZ(NONODS))
+         ALLOCATE(MLUM(NONODS))
+         NORMX(1:NONODS) = 0.0
+         NORMY(1:NONODS) = 0.0
+         NORMZ(1:NONODS) = 0.0
+         MLUM(1:NONODS) = 0.0
+         DO ELE=1,TOTELE! Was loop 
+!     Calculate DETWEI,RA,NX,NY,NZ for element ELE
+            CALL DETNLXR(ELE, X,Y,Z, XNDGLN, TOTELE,XNONOD,NLOC,NGI, &
+     &        N,NLX,NLY,NLZ, WEIGHT, DETWEI,RA,VOLUME,NDIM==1,NDIM==3,.FALSE., &
+     &        NX,NY,NZ) 
+!     
+            DO ILOC=1,NLOC! Was loop 
+               NODI=NDGLNO((ELE-1)*NLOC+ILOC)
+               DO GI=1,NGI! Was loop 
+                  NORMX(NODI)=NORMX(NODI)+NX(ILOC,GI)*DETWEI(GI)
+                  NORMY(NODI)=NORMY(NODI)+NY(ILOC,GI)*DETWEI(GI)
+ IF(NDIM==3)NORMZ(NODI)=NORMZ(NODI)+NZ(ILOC,GI)*DETWEI(GI)
+                  MLUM(NODI) =MLUM(NODI) +N(ILOC,GI) *DETWEI(GI)
+               END DO
+            END DO
+         END DO
+!     Renormalise
+         DO NODI=1,NONODS! Was loop 
+            INVH=(ABS(NORMX(NODI))+ABS(NORMY(NODI))+ABS(NORMZ(NODI)))&
+     &          /MLUM(NODI)
+            IF(INVH.GT.1.E-5) THEN
+               LENG=SQRT(NORMX(NODI)**2+NORMY(NODI)**2+NORMZ(NODI)**2)
+               NORMX(NODI)=NORMX(NODI)/LENG
+               NORMY(NODI)=NORMY(NODI)/LENG
+               NORMZ(NODI)=NORMZ(NODI)/LENG
+            ELSE
+               NORMX(NODI)=0.0
+               NORMY(NODI)=0.0
+               NORMZ(NODI)=0.0
+            ENDIF
+         END DO
+! In parallel need to distribute NORMX,NORMY,NORMZ
+!     calculate normals...************************
+! ENDOF IF(REFLECT) THEN...    
+      ENDIF
+        
+      ALLOCATE(MINPSI(TOTELE*NFIELD))
+      ALLOCATE(MAXPSI(TOTELE*NFIELD))
+        
+      IF(BOUND) THEN
+! find the max and min local to each element...
+         CALL MINMAXELEWIC(PSI,NFIELD,NONODS,NLOC,TOTELE,NDGLNO, &
+     &     FINDRM,COLM,NCOLM,&
+     &     MINPSI,MAXPSI)
+      ENDIF
+      
+!     
+!     Calculate node element list. 
+
+      ALLOCATE(NOD2XNOD(NONODS))
+      DO ELE=1,TOTELE! Was loop 
+         DO ILOC=1,NLOC! Was loop 
+            NOD =NDGLNO((ELE-1)*NLOC+ILOC)
+            XNOD=XNDGLN((ELE-1)*NLOC+ILOC)
+            NOD2XNOD(NOD)=XNOD
+         END DO
+      END DO
+!     
+      DO NOD=1,NONODS! Was loop 10
+         XNOD=NOD2XNOD(NOD)
+!     
+         DO COUNT=FINDRM(NOD),FINDRM(NOD+1)-1! Was loop 20
+            NODJ=COLM(COUNT)
+            XNODJ=NOD2XNOD(NODJ)
+            DO IFIELD=1,NFIELD
+               MATPSI(COUNT+(IFIELD-1)*NCOLM)=0.
+            END DO
+!     
+            IF(NOD.NE.NODJ) THEN
+               IF(REFLECT) THEN
+                 NORMX1=NORMX(NOD)
+                 NORMY1=NORMY(NOD)
+                 NORMZ1=NORMZ(NOD)
+               ENDIF
+               CALL MATPTSSTORE(MATPSI,COUNT,NFIELD,NOD,&
+     &              PSI,NONODS,XNONOD,&
+     &              NLOC,TOTELE,XNDGLN,NDGLNO,&
+     &              FINDRM,COLM,NCOLM,&
+     &              X(XNOD),Y(XNOD),Z(XNOD),&
+     &              X(XNODJ),Y(XNODJ),Z(XNODJ),&
+     &              NORMX1,NORMY1,NORMZ1,&
+     &              X,Y,Z,&
+!     work space...
+     &              FINDELE,COLELE,NCOLEL, &
+     &              MINPSI,MAXPSI, &
+     &              ELEWIC,LOCCORDSK,BOUND,REFLECT,NDIM)
+               IF(IGETSTOR.EQ.1) THEN
+                  ELEMATPSI(COUNT)=ELEWIC
+                  DO ILOC=1,NLOC! Was loop 
+                     ELEMATWEI((COUNT-1)*NLOC+ILOC)=LOCCORDSK(ILOC)
+                  END DO
+               ENDIF
+            ENDIF
+
+         END DO ! Was loop 20
+      END DO ! Was loop 10
+      RETURN
+
+      end subroutine finptsstore
+!     
+!     
+!     
+!     
+      SUBROUTINE MATPTSSTORE(MATPSI,COUNT,NFIELD,NOD,&
+     &     PSI,NONODS,XNONOD,&
+     &     NLOC,TOTELE,XNDGLN,NDGLNO,&
+     &     FINDRM,COLM,NCOLM,&
+     &     X1,Y1,Z1,&
+     &     X2,Y2,Z2,&
+     &     NORMX1,NORMY1,NORMZ1,&
+     &     X,Y,Z,&
+!     work space...
+     &     FINDELE,COLELE,NCOLEL,&
+     &     MINPSI,MAXPSI,  &
+     &     ELEWIC,LOCCORDSK,BOUND,REFLECT,NDIM)
+!     This sub calculates the value of PSI that would be at the 
+!     other side of the stencil if we had a linear variation and within 
+!     a single element.     
+! IF BOUND then make locally bounded.
+      REAL INFINY,FRALINE
+      LOGICAL REFLECT
+! IF REFLECT then use a reflection condition at boundary to 
+! do limiting. 
+      PARAMETER(INFINY=1.E+20,FRALINE=0.001)
+      LOGICAL BOUND
+      INTEGER COUNT,NFIELD,NOD,NONODS,XNONOD,NLOC,TOTELE,NDIM
+      REAL MATPSI(NCOLM*NFIELD),PSI(NONODS*NFIELD)
+      INTEGER XNDGLN(NLOC*TOTELE),NDGLNO(NLOC*TOTELE)
+      INTEGER NCOLM,FINDRM(NONODS+1),COLM(NCOLM)
+      REAL X1,Y1,Z1,X2,Y2,Z2,NORMX1,NORMY1,NORMZ1
+      REAL X(XNONOD),Y(XNONOD),Z(XNONOD)
+      INTEGER NCOLEL
+      INTEGER FINDELE(NONODS+1),COLELE(NCOLEL)
+      REAL MINPSI(TOTELE*NFIELD),MAXPSI(TOTELE*NFIELD)
+      INTEGER ELEWIC
+      REAL LOCCORDSK(NLOC)
+!     
+!     Local variables...
+      REAL XC,YC,ZC
+      REAL LOCCORDS(4)
+      INTEGER LOCNODS(4),LOCNODSK(4)
+      INTEGER NLOCNODS(4),NLOCNODSK(4)
+      INTEGER ELE,ILOC,KNOD,JNOD
+      REAL MINCOR,MINCORK,SUM
+      REAL VX,VY,VZ,T2X,T2Y,T2Z,T1X,T1Y,T1Z,DIST12,RN,RMATPSI
+      REAL REFX,REFY,REFZ,REFX2,REFY2,REFZ2
+!     
+      XC=X1 - FRALINE*(X2-X1)
+      YC=Y1 - FRALINE*(Y2-Y1)
+      ZC=Z1 - FRALINE*(Z2-Z1)
+      
+      IF(REFLECT) THEN
+         IF(ABS(NORMX1)+ABS(NORMY1)+ABS(NORMZ1).NE.0.0) THEN
+!  if (XC,YC,ZC) is outside the domain
+!     The rotation matrix in 3-D is R=  
+!     NX    NY    NZ
+!     T1X   T1Y   T1Z
+!     T2X   T2Y   T2Z
+!     
+            VX=X1-X2
+            VY=Y1-Y2
+            VZ=Z1-Z2
+!     
+            CALL XPROD(T2X,T2Y,T2Z, NORMX1,NORMY1,NORMZ1, VX,VY,VZ)
+!     
+            DIST12=SQRT((X1-X2)**2+(Y1-Y2)**2+(Z1-Z2)**2)
+            RN=SQRT(T2X**2+T2Y**2+T2Z**2)
+            IF(RN.LT.(1.E-5)*DIST12) THEN
+!     Simply have VX,VY,VZ going in the opposite direction...
+               XC=X1 - VX*FRALINE
+               YC=Y1 - VY*FRALINE
+               ZC=Z1 - VZ*FRALINE
+            ELSE
+               T2X= T2X/RN
+               T2Y= T2Y/RN
+               T2Z= T2Z/RN
+!     T1=Nx (-T2)
+               CALL XPROD(T1X,T1Y,T1Z, NORMX1,NORMY1,NORMZ1, -T2X,-T2Y,-T2Z)
+!     
+               REFX2= NORMX1*VX + NORMY1*VY + NORMZ1*VZ
+               REFY2= T1X   *VX + T1Y   *VY + T1Z   *VZ
+               REFZ2= T2X   *VX + T2Y   *VY + T2Z   *VZ
+!     Reflect...
+               REFX2=-REFX2
+!     MAP BACK USING R^T
+               REFX = NORMX1*REFX2 + T1X*REFY2 + T2X*REFZ2
+               REFY = NORMY1*REFX2 + T1Y*REFY2 + T2Y*REFZ2
+               REFZ = NORMZ1*REFX2 + T1Z*REFY2 + T2Z*REFZ2
+!     
+!     (REFX,REFY,REFZ) is the reflected direction...
+               XC=X1 + REFX*FRALINE
+               YC=Y1 + REFY*FRALINE
+               ZC=Z1 + REFZ*FRALINE
+            ENDIF
+
+         ENDIF
+      ENDIF
+!     
+      MINCORK=-INFINY
+!     
+      DO COUNT=FINDELE(NOD),FINDELE(NOD+1)-1! Was loop 10
+         ELE=COLELE(COUNT)
+!     
+         NLOCNODS(1)=NDGLNO((ELE-1)*NLOC+1)
+         NLOCNODS(2)=NDGLNO((ELE-1)*NLOC+2)
+         NLOCNODS(3)=NDGLNO((ELE-1)*NLOC+3)
+         if(ndim==3) NLOCNODS(4)=NDGLNO((ELE-1)*NLOC+4)
+!     
+         LOCNODS(1)=XNDGLN((ELE-1)*NLOC+1)
+         LOCNODS(2)=XNDGLN((ELE-1)*NLOC+2)
+         LOCNODS(3)=XNDGLN((ELE-1)*NLOC+3)
+         if(ndim==3) LOCNODS(4)=XNDGLN((ELE-1)*NLOC+4)
+!     
+! Calculate the local coord but with 4th point replaced by INOD...
+! Find local coords LOCCORDS of point INOD corresponding to these nodes LOCNODS...
+ 
+         IF (NDIM==3) THEN
+         CALL TRILOCCORDS(XC,YC,ZC, &
+     &        LOCCORDS(1),LOCCORDS(2),LOCCORDS(3),LOCCORDS(4),&
+!     The 4 corners of the tet...
+     &        X(LOCNODS(1)),Y(LOCNODS(1)),Z(LOCNODS(1)),&
+     &        X(LOCNODS(2)),Y(LOCNODS(2)),Z(LOCNODS(2)),&
+     &        X(LOCNODS(3)),Y(LOCNODS(3)),Z(LOCNODS(3)),&
+     &        X(LOCNODS(4)),Y(LOCNODS(4)),Z(LOCNODS(4))  )
+         ELSE
+        CALL TRILOCCORDS2D(XC,YC, &
+     &        LOCCORDS(1),LOCCORDS(2),LOCCORDS(3),&
+!     The 3 corners of the tri...
+     &        X(LOCNODS(1)),Y(LOCNODS(1)),&
+     &        X(LOCNODS(2)),Y(LOCNODS(2)),&
+     &        X(LOCNODS(3)),Y(LOCNODS(3))  )
+
+         END IF
+
+!     
+!         MINCOR=MIN(LOCCORDS(1),LOCCORDS(2), LOCCORDS(3),LOCCORDS(4))
+         MINCOR=MINVAL( LOCCORDS(1:NLOC) )
+
+         IF(MINCOR.GT.MINCORK) THEN 
+            MINCORK=MINCOR
+            DO ILOC=1,NLOC! Was loop 
+               LOCCORDSK(ILOC)=LOCCORDS(ILOC)
+               LOCNODSK(ILOC)=LOCNODS(ILOC)
+               NLOCNODSK(ILOC)=NLOCNODS(ILOC)
+            END DO
+            ELEWIC=ELE
+         ENDIF
+      END DO ! Was loop 10
+
+!     Set all the negative basis to zero and re-normalise 
+!     to put on the face of an element...
+      SUM=0.0
+      DO ILOC=1,NLOC! Was loop 
+         LOCCORDSK(ILOC)=MAX(0.0,LOCCORDSK(ILOC))
+         SUM=SUM+LOCCORDSK(ILOC)
+      END DO
+      DO ILOC=1,NLOC! Was loop 
+         LOCCORDSK(ILOC)=LOCCORDSK(ILOC)/SUM
+      END DO
+      DO IFIELD=1,NFIELD
+         RMATPSI=0.0
+         DO ILOC=1,NLOC! Was loop 
+            RMATPSI   =RMATPSI  +LOCCORDSK(ILOC)*PSI(NLOCNODSK(ILOC)+(IFIELD-1)*NONODS)
+!         XC=XC+LOCCORDSK(ILOC)*X(LOCNODSK(ILOC))
+!         YC=YC+LOCCORDSK(ILOC)*Y(LOCNODSK(ILOC))
+!         ZC=ZC+LOCCORDSK(ILOC)*Z(LOCNODSK(ILOC))
+         END DO
+!     Exaduate difference by a factor of 100.
+         RMATPSI   =PSI(NOD+(IFIELD-1)*NONODS)  &
+         +(1./FRALINE)*(RMATPSI   -PSI(NOD+(IFIELD-1)*NONODS))
+
+!     Now correct to make sure that we get a bounded soln...
+         IF(BOUND) THEN
+           RMATPSI   =MAX(MIN(RMATPSI,   MAXPSI(ELEWIC+(IFIELD-1)*TOTELE)),   MINPSI(ELEWIC+(IFIELD-1)*TOTELE))
+         ENDIF
+         MATPSI(COUNT+(IFIELD-1)*NCOLM)   =RMATPSI
+      END DO
+!     
+      RETURN
+
+      end subroutine matptsstore
+!     
+!     
+!     
+!     
+      SUBROUTINE PHILNODELE(NONODS,FINDELE,COLELE, &
+     &     NCOLEL,MXNCOLEL, &
+     &     TOTELE,NLOC,NDGLNO, &
+     &     NLIST,INLIST)
+      !=================================================================
+      ! This sub calculates the node to element list FINDELE,COLELE
+      ! 
+      ! Note NLIST and INLIST are only used locally but are passed 
+      ! down from parent routine where they are dynamically allocated.
+      !
+      ! INPUTS:
+      ! ------
+      ! NDGLNO  - List of global node numbers
+      !
+      ! OUTPUTS: 
+      ! -------
+      ! COLELE  - This is a list of the element numbers that each node
+      !           belongs to.  So it lists all elements for node 1, then
+      !           all elements for node 2, and so on...
+      ! FINDELE - is the pointer to the place in COLELE that gives the 
+      !           first element associated with a given global node
+      ! 
+      ! Called from subroutines IFINPTS and FINPTS, which are
+      ! subroutines of CONSTRUCT_ADVECTION_DIFFUSION_CV
+      ! 
+      ! Description                                   Programmer      Date
+      ! ==================================================================
+      ! Original version..................................CCP     Unknown!
+      ! Comments and warning when out of bounds added.....GSC   2006-08-11
+      !
+      !================================================================ 
+      INTEGER NONODS,FINDELE(NONODS+1)
+      INTEGER NCOLEL,MXNCOLEL,COLELE(MXNCOLEL)
+      INTEGER TOTELE,NLOC,NDGLNO(TOTELE*NLOC)
+      INTEGER NLIST(NONODS),INLIST(NONODS)
+!     Local variables...
+      INTEGER NOD,ELE,ILOC,COUNT, INOD
+!     
+      do NOD=1,NONODS! Was loop 
+         NLIST(NOD)=0
+         INLIST(NOD)=0
+      END DO
+
+      ! NLIST is the number of elements each node belongs to...
+      do ELE=1,TOTELE! Was loop 
+      do ILOC=1,NLOC! Was loop 
+            INOD=NDGLNO((ELE-1)*NLOC+ILOC)
+            NLIST(INOD)=NLIST(INOD)+1
+         END DO
+      END DO
+
+      ! FINDELE is a pointer to the first element 
+      ! associated with a given global node (NOD)
+      COUNT=0
+      do NOD=1,NONODS! Was loop 
+         FINDELE(NOD)=COUNT+1
+         COUNT=COUNT+NLIST(NOD)
+      END DO
+      FINDELE(NONODS+1)=COUNT+1
+      NCOLEL=COUNT
+
+      ! COLELE is a list of the element numbers each node belongs
+      ! to stored in the order of the global nodes...
+      ! INLIST is the element number the node belongs to.
+      do ELE=1,TOTELE! Was loop 
+      do ILOC=1,NLOC! Was loop 
+            INOD=NDGLNO((ELE-1)*NLOC+ILOC)
+            INLIST(INOD)=INLIST(INOD)+1
+            IF (FINDELE(INOD)-1+INLIST(INOD).GT.MXNCOLEL) THEN
+               STOP 'COLELE ARRAY OUT OF BOUNDS--SUB:PHILNODELE'
+            ENDIF
+            COLELE(FINDELE(INOD)-1+INLIST(INOD))=ELE ! 
+         END DO
+      END DO
+      RETURN
+
+  end subroutine philnodele
+!     
+!     
+!     
+!     
+      Subroutine TRILOCCORDS(Xp,Yp,Zp, &
+     &     N1, N2, N3, N4, &
+     &     X1,Y1,Z1, &
+     &     X2,Y2,Z2, &
+     &     X3,Y3,Z3, &
+     &     X4,Y4,Z4  )
+
+      Real Xp, Yp, Zp
+
+      Real N1, N2, N3, N4
+      
+      Real X1,Y1,Z1
+      Real X2,Y2,Z2
+      Real X3,Y3,Z3
+      Real X4,Y4,Z4
+
+      Real Volume
+
+!     calculate element volume...
+
+      Volume = TetVolume(X1, Y1, Z1, &
+     &     X2, Y2, Z2, &
+     &     X3, Y3, Z3, &
+     &     X4, Y4, Z4)
+      
+      Volume = Volume /6.0
+
+
+!     vol coords...
+
+      N1 = TetVolume(Xp, Yp, Zp, &
+     &     X2, Y2, Z2, &
+     &     X3, Y3, Z3, &
+     &     X4, Y4, Z4) 
+
+      N1 = N1/(6.0*Volume)
+
+      
+
+      N2 = TetVolume(X1, Y1, Z1, &
+     &     Xp, Yp, Zp, &
+     &     X3, Y3, Z3, &
+     &     X4, Y4, Z4) 
+      
+      N2 = N2/(6.0*Volume)
+      
+
+
+      N3 = TetVolume(X1, Y1, Z1, &
+     &     X2, Y2, Z2, &
+     &     Xp, Yp, Zp, &
+     &     X4, Y4, Z4) 
+
+      N3 = N3/(6.0*Volume)
+
+      
+      N4 = TetVolume(X1, Y1, Z1, &
+     &     X2, Y2, Z2, &
+     &     X3, Y3, Z3, &
+     &     Xp, Yp, Zp) 
+
+      N4 = N4/(6.0*Volume)
+
+
+      Return
+
+  end subroutine triloccords
+
+
+pure function tetvolume(x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3)
+   
+     real, intent(in) :: x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3
+     
+     real :: tetvolume
+      
+     ! tetvolume = 1.0 / 6.0 * det |three tet edge vectors|
+     ! Chris' tets have a clockwise base, hence the sign change in the det
+     tetvolume = &
+       (  &
+         & - (x1 - x0) * ((y2 - y0) * (z3 - z0) - (y3 - y0) * (z2 - z0)) &
+         & + (y1 - y0) * ((x2 - x0) * (z3 - z0) - (x3 - x0) * (z2 - z0)) &
+         & - (z1 - z0) * ((x2 - x0) * (y3 - y0) - (x3 - x0) * (y2 - y0)) &
+       & ) / 6.0
+       
+   end function tetvolume
+
+ 
+!
+! 
+! 
+!     
+      Subroutine TRILOCCORDS2D(Xp,Yp, &
+     &     N1, N2, N3,  &
+     &     X1,Y1, &
+     &     X2,Y2, &
+     &     X3,Y3 )
+
+      Real Xp,Yp, &
+     &     N1, N2, N3,  &
+     &     X1,Y1, &
+     &     X2,Y2, &
+     &     X3,Y3 
+
+      Real AREA
+
+      AREA = TRIAREAF( X1, Y1, X2, Y2, X3, Y3)
+!     area coords...
+
+      N1 = TRIAREAF(Xp, Yp,  &
+     &     X2, Y2,  &
+     &     X3, Y3 ) 
+
+      N1 = N1/AREA
+
+      
+
+      N2 = TRIAREAF(X1, Y1, &
+     &     Xp, Yp,  &
+     &     X3, Y3 ) 
+      
+      N2 = N2/AREA
+      
+
+
+      N3 = TRIAREAF(X1, Y1,  &
+     &     X2, Y2,  &
+     &     Xp, Yp ) 
+
+      N3 = N3/AREA
+       
+
+      Return
+
+      end subroutine triloccords2d
+! 
+! 
+! 
+! 
+
+
+!
+!
+! 
+! 
 
 ! -----------------------------------------------------------------------------
 
