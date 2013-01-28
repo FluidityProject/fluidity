@@ -8478,9 +8478,6 @@
                         NCOLEL,MXNCOLEL, &
                         TOTELE,NLOC,NDGLNO, &
                         NLIST,INLIST)
-
-        DEALLOCATE( NOD_FINDELE, NOD_COLELE, NLIST, INLIST )
-
         
         IF(STORE_ELE) THEN
     
@@ -8502,9 +8499,9 @@
                     ELEMATPSI,ELEMATWEI)
     
         ELSE ! assume we have not stored anything (elements or weights)...
-          ALLOCATE(DUMMYINT(NCOLM))
-          ALLOCATE(DUMMYREAL(NCOLM*NLOC))
-    
+           ALLOCATE(DUMMYINT(NCOLM))
+           ALLOCATE(DUMMYREAL(NCOLM*NLOC))
+
           CALL FINPTSSTORE(T,NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
                     TUPWIND,FINDRM,COLM,NCOLM,NDIM, &
                     XNDGLN,XNONOD, &
@@ -8513,8 +8510,12 @@
                     NOD_FINDELE,NOD_COLELE,NCOLEL, &
                     DUMMYINT,DUMMYREAL,0, &
                     BOUND, REFLECT)
+ 
+          DEALLOCATE(DUMMYINT,DUMMYREAL) 
+
         ENDIF
 
+        DEALLOCATE( NOD_FINDELE, NOD_COLELE, NLIST, INLIST )
 
       END SUBROUTINE CALC_ANISOTROP_LIM_VALS2
 !
@@ -8639,167 +8640,170 @@
 !     
 !     
 !     
-      SUBROUTINE FINPTSSTORE(PSI,NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
-     &     MATPSI,FINDRM,COLM,NCOLM,NDIM, &
-     &     XNDGLN,XNONOD, &
-     &     X,Y,Z,&
-     &     N,NLX,NLY,NLZ, WEIGHT,&
-!     work space...
-     &     FINDELE,COLELE,NCOLEL,&
-     &     ELEMATPSI,ELEMATWEI,IGETSTOR,&
-     &     BOUND, REFLECT)
-!     This sub finds the matrix values MATPSI for a given point on the 
-!     stencil 
-! IF IGETSTOR=1 then get ELEMATPSI,ELEMATWEI.
-      IMPLICIT NONE
-      LOGICAL BOUND,REFLECT
-! IF REFLECT then use a reflection condition at boundary to 
-! do limiting. 
-      INTEGER NFIELD,NONODS,NLOC,NGI,TOTELE,NDIM,NDGLNO(TOTELE*NLOC)
-      REAL PSI(NONODS*NFIELD)
-      INTEGER NCOLM,NCOLEL
-      INTEGER FINDRM(NONODS+1),COLM(NCOLM)
-      REAL MATPSI(NCOLM*NFIELD)
-      INTEGER XNDGLN(TOTELE*NLOC),XNONOD
-      REAL X(XNONOD),Y(XNONOD),Z(XNONOD)
-      REAL N(NLOC,NGI),NLX(NLOC,NGI),NLY(NLOC,NGI),NLZ(NLOC,NGI)
-      REAL WEIGHT(NGI)
-!     work space...
-      INTEGER FINDELE(NONODS+1),COLELE(NCOLEL)
-      INTEGER IGETSTOR
-      INTEGER ELEMATPSI(NCOLM*IGETSTOR)
-      REAL ELEMATWEI(NCOLM*NLOC*IGETSTOR)
-! ELEWIC is the element to do interpolation from
-! LOCCORDSK contains the weights. 
-!     Local variables...
-      INTEGER NOD,COUNT,NODI,NODJ,ILOC,GI,ELE
-      INTEGER ELEWIC,XNOD,XNODJ,IFIELD
-      REAL LOCCORDSK(NLOC)
-      REAL NORMX1,NORMY1,NORMZ1
-      REAL VOLUME,INVH,LENG
-!     work space...
-      REAL DETWEI(NGI),RA(NGI)
-      REAL NX(NLOC,NGI),NY(NLOC,NGI),NZ(NLOC,NGI)
-      REAL, ALLOCATABLE, DIMENSION(:)::NORMX
-      REAL, ALLOCATABLE, DIMENSION(:)::NORMY
-      REAL, ALLOCATABLE, DIMENSION(:)::NORMZ
-      REAL, ALLOCATABLE, DIMENSION(:)::MLUM
-        REAL, ALLOCATABLE, DIMENSION(:)::MINPSI
-        REAL, ALLOCATABLE, DIMENSION(:)::MAXPSI
-        INTEGER, ALLOCATABLE, DIMENSION(:)::NOD2XNOD
-        
-        NORMX1=0.0
-        NORMY1=0.0
-        NORMZ1=0.0
-      IF(REFLECT) THEN
-!     calculate normals...********************
-         ALLOCATE(NORMX(NONODS))
-         ALLOCATE(NORMY(NONODS))
-         ALLOCATE(NORMZ(NONODS))
-         ALLOCATE(MLUM(NONODS))
-         NORMX(1:NONODS) = 0.0
-         NORMY(1:NONODS) = 0.0
-         NORMZ(1:NONODS) = 0.0
-         MLUM(1:NONODS) = 0.0
-         DO ELE=1,TOTELE! Was loop 
-!     Calculate DETWEI,RA,NX,NY,NZ for element ELE
-            CALL DETNLXR(ELE, X,Y,Z, XNDGLN, TOTELE,XNONOD,NLOC,NGI, &
-     &        N,NLX,NLY,NLZ, WEIGHT, DETWEI,RA,VOLUME,NDIM==1,NDIM==3,.FALSE., &
-     &        NX,NY,NZ) 
-!     
-            DO ILOC=1,NLOC! Was loop 
-               NODI=NDGLNO((ELE-1)*NLOC+ILOC)
-               DO GI=1,NGI! Was loop 
-                  NORMX(NODI)=NORMX(NODI)+NX(ILOC,GI)*DETWEI(GI)
-                  NORMY(NODI)=NORMY(NODI)+NY(ILOC,GI)*DETWEI(GI)
- IF(NDIM==3)NORMZ(NODI)=NORMZ(NODI)+NZ(ILOC,GI)*DETWEI(GI)
-                  MLUM(NODI) =MLUM(NODI) +N(ILOC,GI) *DETWEI(GI)
-               END DO
-            END DO
-         END DO
-!     Renormalise
-         DO NODI=1,NONODS! Was loop 
-            INVH=(ABS(NORMX(NODI))+ABS(NORMY(NODI))+ABS(NORMZ(NODI)))&
-     &          /MLUM(NODI)
-            IF(INVH.GT.1.E-5) THEN
-               LENG=SQRT(NORMX(NODI)**2+NORMY(NODI)**2+NORMZ(NODI)**2)
-               NORMX(NODI)=NORMX(NODI)/LENG
-               NORMY(NODI)=NORMY(NODI)/LENG
-               NORMZ(NODI)=NORMZ(NODI)/LENG
-            ELSE
-               NORMX(NODI)=0.0
-               NORMY(NODI)=0.0
-               NORMZ(NODI)=0.0
-            ENDIF
-         END DO
-! In parallel need to distribute NORMX,NORMY,NORMZ
-!     calculate normals...************************
-! ENDOF IF(REFLECT) THEN...    
-      ENDIF
-        
-      ALLOCATE(MINPSI(TOTELE*NFIELD))
-      ALLOCATE(MAXPSI(TOTELE*NFIELD))
-        
-      IF(BOUND) THEN
-! find the max and min local to each element...
-         CALL MINMAXELEWIC(PSI,NFIELD,NONODS,NLOC,TOTELE,NDGLNO, &
-     &     FINDRM,COLM,NCOLM,&
-     &     MINPSI,MAXPSI)
-      ENDIF
-      
-!     
-!     Calculate node element list. 
+  SUBROUTINE FINPTSSTORE(PSI,NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
+       &     MATPSI,FINDRM,COLM,NCOLM,NDIM, &
+       &     XNDGLN,XNONOD, &
+       &     X,Y,Z,&
+       &     N,NLX,NLY,NLZ, WEIGHT,&
+       !     work space...
+       &     FINDELE,COLELE,NCOLEL,&
+       &     ELEMATPSI,ELEMATWEI,IGETSTOR,&
+       &     BOUND, REFLECT)
+    !     This sub finds the matrix values MATPSI for a given point on the 
+    !     stencil 
+    ! IF IGETSTOR=1 then get ELEMATPSI,ELEMATWEI.
+    IMPLICIT NONE
+    LOGICAL BOUND,REFLECT
+    ! IF REFLECT then use a reflection condition at boundary to 
+    ! do limiting. 
+    INTEGER NFIELD,NONODS,NLOC,NGI,TOTELE,NDIM,NDGLNO(TOTELE*NLOC)
+    REAL PSI(NONODS*NFIELD)
+    INTEGER NCOLM,NCOLEL
+    INTEGER FINDRM(NONODS+1),COLM(NCOLM)
+    REAL MATPSI(NCOLM*NFIELD)
+    INTEGER XNDGLN(TOTELE*NLOC),XNONOD
+    REAL X(XNONOD),Y(XNONOD),Z(XNONOD)
+    REAL N(NLOC,NGI),NLX(NLOC,NGI),NLY(NLOC,NGI),NLZ(NLOC,NGI)
+    REAL WEIGHT(NGI)
+    !     work space...
+    INTEGER FINDELE(NONODS+1),COLELE(NCOLEL)
+    INTEGER IGETSTOR
+    INTEGER ELEMATPSI(NCOLM*IGETSTOR)
+    REAL ELEMATWEI(NCOLM*NLOC*IGETSTOR)
+    ! ELEWIC is the element to do interpolation from
+    ! LOCCORDSK contains the weights. 
+    !     Local variables...
+    INTEGER NOD,COUNT,NODI,NODJ,ILOC,GI,ELE
+    INTEGER ELEWIC,XNOD,XNODJ,IFIELD
+    REAL LOCCORDSK(NLOC)
+    REAL NORMX1,NORMY1,NORMZ1
+    REAL VOLUME,INVH,LENG
+    !     work space...
+    REAL DETWEI(NGI),RA(NGI)
+    REAL NX(NLOC,NGI),NY(NLOC,NGI),NZ(NLOC,NGI)
+    REAL, ALLOCATABLE, DIMENSION(:)::NORMX
+    REAL, ALLOCATABLE, DIMENSION(:)::NORMY
+    REAL, ALLOCATABLE, DIMENSION(:)::NORMZ
+    REAL, ALLOCATABLE, DIMENSION(:)::MLUM
+    REAL, ALLOCATABLE, DIMENSION(:)::MINPSI
+    REAL, ALLOCATABLE, DIMENSION(:)::MAXPSI
+    INTEGER, ALLOCATABLE, DIMENSION(:)::NOD2XNOD
 
-      ALLOCATE(NOD2XNOD(NONODS))
-      DO ELE=1,TOTELE! Was loop 
-         DO ILOC=1,NLOC! Was loop 
-            NOD =NDGLNO((ELE-1)*NLOC+ILOC)
-            XNOD=XNDGLN((ELE-1)*NLOC+ILOC)
-            NOD2XNOD(NOD)=XNOD
-         END DO
-      END DO
-!     
-      DO NOD=1,NONODS! Was loop 10
-         XNOD=NOD2XNOD(NOD)
-!     
-         DO COUNT=FINDRM(NOD),FINDRM(NOD+1)-1! Was loop 20
-            NODJ=COLM(COUNT)
-            XNODJ=NOD2XNOD(NODJ)
-            DO IFIELD=1,NFIELD
-               MATPSI(COUNT+(IFIELD-1)*NCOLM)=0.
-            END DO
-!     
-            IF(NOD.NE.NODJ) THEN
-               IF(REFLECT) THEN
-                 NORMX1=NORMX(NOD)
-                 NORMY1=NORMY(NOD)
-                 NORMZ1=NORMZ(NOD)
-               ENDIF
-               CALL MATPTSSTORE(MATPSI,COUNT,NFIELD,NOD,&
-     &              PSI,NONODS,XNONOD,&
-     &              NLOC,TOTELE,XNDGLN,NDGLNO,&
-     &              FINDRM,COLM,NCOLM,&
-     &              X(XNOD),Y(XNOD),Z(XNOD),&
-     &              X(XNODJ),Y(XNODJ),Z(XNODJ),&
-     &              NORMX1,NORMY1,NORMZ1,&
-     &              X,Y,Z,&
-!     work space...
-     &              FINDELE,COLELE,NCOLEL, &
-     &              MINPSI,MAXPSI, &
-     &              ELEWIC,LOCCORDSK,BOUND,REFLECT,NDIM)
-               IF(IGETSTOR.EQ.1) THEN
-                  ELEMATPSI(COUNT)=ELEWIC
-                  DO ILOC=1,NLOC! Was loop 
-                     ELEMATWEI((COUNT-1)*NLOC+ILOC)=LOCCORDSK(ILOC)
-                  END DO
-               ENDIF
-            ENDIF
+    NORMX1=0.0
+    NORMY1=0.0
+    NORMZ1=0.0
+    IF(REFLECT) THEN
+       !     calculate normals...********************
+       ALLOCATE(NORMX(NONODS))
+       ALLOCATE(NORMY(NONODS))
+       ALLOCATE(NORMZ(NONODS))
+       ALLOCATE(MLUM(NONODS))
+       NORMX(1:NONODS) = 0.0
+       NORMY(1:NONODS) = 0.0
+       NORMZ(1:NONODS) = 0.0
+       MLUM(1:NONODS) = 0.0
+       DO ELE=1,TOTELE! Was loop 
+          !     Calculate DETWEI,RA,NX,NY,NZ for element ELE
+          CALL DETNLXR(ELE, X,Y,Z, XNDGLN, TOTELE,XNONOD,NLOC,NGI, &
+               &        N,NLX,NLY,NLZ, WEIGHT, DETWEI,RA,VOLUME,NDIM==1,NDIM==3,.FALSE., &
+               &        NX,NY,NZ) 
+          !     
+          DO ILOC=1,NLOC! Was loop 
+             NODI=NDGLNO((ELE-1)*NLOC+ILOC)
+             DO GI=1,NGI! Was loop 
+                NORMX(NODI)=NORMX(NODI)+NX(ILOC,GI)*DETWEI(GI)
+                NORMY(NODI)=NORMY(NODI)+NY(ILOC,GI)*DETWEI(GI)
+                IF(NDIM==3)NORMZ(NODI)=NORMZ(NODI)+NZ(ILOC,GI)*DETWEI(GI)
+                MLUM(NODI) =MLUM(NODI) +N(ILOC,GI) *DETWEI(GI)
+             END DO
+          END DO
+       END DO
+       !     Renormalise
+       DO NODI=1,NONODS! Was loop 
+          INVH=(ABS(NORMX(NODI))+ABS(NORMY(NODI))+ABS(NORMZ(NODI)))&
+               &          /MLUM(NODI)
+          IF(INVH.GT.1.E-5) THEN
+             LENG=SQRT(NORMX(NODI)**2+NORMY(NODI)**2+NORMZ(NODI)**2)
+             NORMX(NODI)=NORMX(NODI)/LENG
+             NORMY(NODI)=NORMY(NODI)/LENG
+             NORMZ(NODI)=NORMZ(NODI)/LENG
+          ELSE
+             NORMX(NODI)=0.0
+             NORMY(NODI)=0.0
+             NORMZ(NODI)=0.0
+          ENDIF
+       END DO
+       ! In parallel need to distribute NORMX,NORMY,NORMZ
+       !     calculate normals...************************
+       ! ENDOF IF(REFLECT) THEN...    
+    ENDIF
 
-         END DO ! Was loop 20
-      END DO ! Was loop 10
-      RETURN
+    ALLOCATE(MINPSI(TOTELE*NFIELD))
+    ALLOCATE(MAXPSI(TOTELE*NFIELD))
 
-      end subroutine finptsstore
+    IF(BOUND) THEN
+       ! find the max and min local to each element...
+       CALL MINMAXELEWIC(PSI,NFIELD,NONODS,NLOC,TOTELE,NDGLNO, &
+            &     FINDRM,COLM,NCOLM,&
+            &     MINPSI,MAXPSI)
+    ENDIF
+
+    !     
+    !     Calculate node element list. 
+
+    ALLOCATE(NOD2XNOD(NONODS))
+    DO ELE=1,TOTELE! Was loop 
+       DO ILOC=1,NLOC! Was loop 
+          NOD =NDGLNO((ELE-1)*NLOC+ILOC)
+          XNOD=XNDGLN((ELE-1)*NLOC+ILOC)
+          NOD2XNOD(NOD)=XNOD
+       END DO
+    END DO
+    !     
+    DO NOD=1,NONODS! Was loop 10
+
+       XNOD=NOD2XNOD(NOD)
+       !     
+       DO COUNT=FINDRM(NOD),FINDRM(NOD+1)-1! Was loop 20
+
+          NODJ=COLM(COUNT)
+          XNODJ=NOD2XNOD(NODJ)
+          DO IFIELD=1,NFIELD
+             MATPSI(COUNT+(IFIELD-1)*NCOLM)=0.
+          END DO
+          !     
+          IF(NOD.NE.NODJ) THEN
+             IF(REFLECT) THEN
+                NORMX1=NORMX(NOD)
+                NORMY1=NORMY(NOD)
+                NORMZ1=NORMZ(NOD)
+             ENDIF
+             CALL MATPTSSTORE(MATPSI,COUNT,NFIELD,NOD,&
+                  &              PSI,NONODS,XNONOD,&
+                  &              NLOC,TOTELE,XNDGLN,NDGLNO,&
+                  &              FINDRM,COLM,NCOLM,&
+                  &              X(XNOD),Y(XNOD),Z(XNOD),&
+                  &              X(XNODJ),Y(XNODJ),Z(XNODJ),&
+                  &              NORMX1,NORMY1,NORMZ1,&
+                  &              X,Y,Z,&
+                  !     work space...
+                  &              FINDELE,COLELE,NCOLEL, &
+                  &              MINPSI,MAXPSI, &
+                  &              ELEWIC,LOCCORDSK,BOUND,REFLECT,NDIM)
+             IF(IGETSTOR.EQ.1) THEN
+                ELEMATPSI(COUNT)=ELEWIC
+                DO ILOC=1,NLOC! Was loop 
+                   ELEMATWEI((COUNT-1)*NLOC+ILOC)=LOCCORDSK(ILOC)
+                END DO
+             ENDIF
+          ENDIF
+
+       END DO ! Was loop 20
+    END DO ! Was loop 10
+
+    RETURN
+
+  end subroutine finptsstore
 !     
 !     
 !     
@@ -8836,7 +8840,7 @@
       INTEGER NCOLEL
       INTEGER FINDELE(NONODS+1),COLELE(NCOLEL)
       REAL MINPSI(TOTELE*NFIELD),MAXPSI(TOTELE*NFIELD)
-      INTEGER ELEWIC
+      INTEGER ELEWIC, COUNT2
       REAL LOCCORDSK(NLOC)
 !     
 !     Local variables...
@@ -8901,9 +8905,9 @@
       ENDIF
 !     
       MINCORK=-INFINY
-!     
-      DO COUNT=FINDELE(NOD),FINDELE(NOD+1)-1! Was loop 10
-         ELE=COLELE(COUNT)
+!
+      DO COUNT2=FINDELE(NOD),FINDELE(NOD+1)-1! Was loop 10
+         ELE=COLELE(COUNT2)
 !     
          NLOCNODS(1)=NDGLNO((ELE-1)*NLOC+1)
          NLOCNODS(2)=NDGLNO((ELE-1)*NLOC+2)
@@ -8979,7 +8983,7 @@
          ENDIF
          MATPSI(COUNT+(IFIELD-1)*NCOLM)   =RMATPSI
       END DO
-!     
+!
       RETURN
 
       end subroutine matptsstore
