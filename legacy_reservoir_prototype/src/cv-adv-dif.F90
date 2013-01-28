@@ -712,6 +712,7 @@
            DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD )
 
 
+! **********ANISOTROPIC LIMITING...*******************
       IANISOLIM=0
       IF(CV_DISOPT.GE.8) IANISOLIM=1
       IF (IANISOLIM==0) THEN
@@ -775,6 +776,8 @@
            .FALSE., .FALSE.)
         ENDIF
        ENDIF
+
+! **********...ANISOTROPIC LIMITING*******************
 
 
 
@@ -8344,36 +8347,29 @@
       real, dimension( :, : ), allocatable :: UN, UNLX, UNLY, UNLZ, CVN
       real, dimension( : ), allocatable :: WEIGHT
       integer, dimension( : ), allocatable :: SUB_NDGLNO
-      INTEGER :: COUNT, COUNT2, NOD, CV_ELE_TYPE, SUB_TOTELE, NGI,NLOC
+      INTEGER :: COUNT, COUNT2, NOD, SUB_TOTELE, NGI,NLOC
+     REAL L1(50),L2(50),L3(50),L4(50)
 
 ! **********************Calculate linear shape functions...
      IF(NDIM==1) THEN
         NLOC=1
         NGI=2
-        CV_ELE_TYPE=1
      ELSE IF(NDIM==2) THEN
         NLOC=3
         NGI=3
-        CV_ELE_TYPE=3
      ELSE IF(NDIM==3) THEN 
         NLOC=4
         NGI=4
-        CV_ELE_TYPE=7
      ENDIF
      ALLOCATE(N(NLOC,NGI), NLX(NLOC,NGI), NLY(NLOC,NGI), NLZ(NLOC,NGI))
-     ALLOCATE(UN(NLOC,NGI), UNLX(NLOC,NGI), UNLY(NLOC,NGI), UNLZ(NLOC,NGI))
-     ALLOCATE(WEIGHT(NGI), CVN(NLOC,NGI))
-       print *,'--nloc,cv_nloc,x_nloc:',nloc,cv_nloc,x_nloc
-
-     N=0. ; NLX=0. ; NLY=0. ; NLZ=0.
-     UN=0. ; UNLX=0. ; UNLY=0. ; UNLZ=0.
-     WEIGHT=0. ; CVN=0.
-
-     call shape_cv_n( ndim, cv_ele_type, &
-         ngi, nloc, nloc, cvn, weight, &
-         n, nlx, nly, nlz, &
-         un, unlx, unly, unlz )
-
+     ALLOCATE(WEIGHT(NGI))
+!
+! Shape functions for triangles and tets...
+     CALL TRIQUAold(L1, L2, L3, L4, WEIGHT, ndim==3,NGI)
+     ! Work out the shape functions and there derivatives...
+     CALL SHATRIold(L1, L2, L3, L4, WEIGHT, ndim==3,&
+          &              NLOC,NGI,&
+          &              N,NLX,NLY,NLZ)
      
        print *,'--nloc,cv_nloc,x_nloc:',nloc,cv_nloc,x_nloc
 
@@ -8840,7 +8836,7 @@
       INTEGER NCOLEL
       INTEGER FINDELE(NONODS+1),COLELE(NCOLEL)
       REAL MINPSI(TOTELE*NFIELD),MAXPSI(TOTELE*NFIELD)
-      INTEGER ELEWIC, COUNT2
+      INTEGER ELEWIC
       REAL LOCCORDSK(NLOC)
 !     
 !     Local variables...
@@ -8848,7 +8844,7 @@
       REAL LOCCORDS(4)
       INTEGER LOCNODS(4),LOCNODSK(4)
       INTEGER NLOCNODS(4),NLOCNODSK(4)
-      INTEGER ELE,ILOC,KNOD,JNOD,IFIELD
+      INTEGER ELE,ILOC,KNOD,JNOD,IFIELD, COUNT2
       REAL MINCOR,MINCORK,SUM
       REAL VX,VY,VZ,T2X,T2Y,T2Z,T1X,T1Y,T1Z,DIST12,RN,RMATPSI
       REAL REFX,REFY,REFZ,REFX2,REFY2,REFZ2
