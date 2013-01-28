@@ -8400,8 +8400,8 @@
 ! Calculate the sub elements for quadratic element SUB_NDGLNO ... 
 ! ******************************************************************
 
-       print *,'nloc,cv_nloc,x_nloc:',nloc,cv_nloc,x_nloc
-       print *,'SUB_NDGLNO:',SUB_NDGLNO
+!       print *,'nloc,cv_nloc,x_nloc:',nloc,cv_nloc,x_nloc
+!       print *,'SUB_NDGLNO:',SUB_NDGLNO
 
       CALL CALC_ANISOTROP_LIM_VALS2( &
 ! Caculate the upwind values stored in matrix form...
