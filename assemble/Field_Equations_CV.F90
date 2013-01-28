@@ -1949,7 +1949,7 @@ contains
               ghost_oldtdensity_ele_bdy=ele_val(tdensity_bc, sele) ! not considering time varying bcs yet
             else
               if(multiphase) then
-                 ghost_oldtdensity_ele_bdy=face_val(oldtdensity, sele)*face_val(nvfrac, sele)
+                 ghost_oldtdensity_ele_bdy=face_val(oldtdensity, sele)*face_val(oldvfrac, sele)
               else
                  ghost_oldtdensity_ele_bdy=face_val(oldtdensity, sele)
               end if
@@ -1960,7 +1960,7 @@ contains
             
             if(multiphase) then
                tdensity_ele_bdy=tdensity_ele_bdy*face_val(nvfrac, sele)
-               oldtdensity_ele_bdy=oldtdensity_ele_bdy*face_val(nvfrac, sele)
+               oldtdensity_ele_bdy=oldtdensity_ele_bdy*face_val(oldvfrac, sele)
             end if
           end if
         end if
