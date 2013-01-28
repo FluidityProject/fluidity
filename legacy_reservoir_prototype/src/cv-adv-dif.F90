@@ -319,7 +319,7 @@
            JCOUNT_IPHA, IMID_IPHA, &
            NFACE, X_NODI,  &
            CV_INOD, MAT_NODI, FACE_ITS, NFACE_ITS, &
-           CVNOD, XNOD, IANISOTROPIC, NSMALL_COLM, COUNT2, NOD
+           CVNOD, XNOD, NSMALL_COLM, COUNT2, NOD
       !        ===>  REALS  <===
       REAL :: NDOTQ, NDOTQOLD,  &
            INCOME, INCOMEOLD, HDC, FVT, FVTOLD, FVT2, FVT2OLD, &
@@ -1040,7 +1040,7 @@
                              LIMIT_USE_2ND, HDC, NDOTQ, NDOTQOLD, DT, &
                              SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
-                             IANISOTROPIC, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
+                             IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                              TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT )
 
                         SUM_LIMT    = SUM_LIMT    + LIMT
@@ -1133,7 +1133,7 @@
                              LIMIT_USE_2ND, HDC, NDOTQ, NDOTQOLD, DT, &
                              SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
-                             IANISOTROPIC, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
+                             IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                              TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT )
 
                      END DO
