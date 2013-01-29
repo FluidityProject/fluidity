@@ -781,8 +781,8 @@ if test "$with_netcdf" != "no" ; then
       LIBS="$LIBS -L$with_netcdf"
     fi
   fi
-  ACX_lib_automagic(netcdf, nc_create, [AC_DEFINE(HAVE_LIBNETCDF, [Define if we have libnetcdf])])
-  ACX_lib_automagic(netcdff, nc_create, [AC_DEFINE(HAVE_LIBNETCDFF, [Define if we have libnetcdff])])
+  ACX_lib_automagic(netcdf, nc_create, [AC_DEFINE(HAVE_LIBNETCDF, [1])])
+  ACX_lib_automagic(netcdff, nc_create, [AC_DEFINE(HAVE_LIBNETCDFF, [1])])
 fi
 
 # Exodus-II support
@@ -801,8 +801,8 @@ fi
 AC_SUBST(HAVE_EXODUSII)
 
 # Metis, ParMetis
-ACX_lib_automagic(metis, METIS_PartGraphKway, [AC_DEFINE(HAVE_LIBMETIS, [Define if we have libmetis.])], [])
-ACX_lib_automagic(parmetis, ParMETIS_V3_AdaptiveRepart, [AC_DEFINE(HAVE_LIBPARMETIS, [Define if we have libparmetis.])])
+ACX_lib_automagic(metis, METIS_PartGraphKway, [AC_DEFINE(HAVE_LIBMETIS, [1])])
+ACX_lib_automagic(parmetis, ParMETIS_V3_AdaptiveRepart, [AC_DEFINE(HAVE_LIBPARMETIS, [1])])
 
 AC_ARG_ENABLE(sam,
               [AC_HELP_STRING([--enable-sam],
@@ -811,7 +811,7 @@ if test "$enable_sam" = "yes"; then
   HAVE_ZOLTAN=no
 else
   ACX_lib_automagic(zoltan, Zoltan_Create, [
-                                            AC_DEFINE(HAVE_ZOLTAN, [Define if we have Zoltan.])
+                                            AC_DEFINE(HAVE_ZOLTAN, [1])
                                             HAVE_ZOLTAN=yes
                                             ])
 fi

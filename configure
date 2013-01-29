@@ -10977,7 +10977,7 @@ if ac_fn_c_try_link "$LINENO"; then :
 
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
-    $as_echo "#define HAVE_LIBNETCDF Define if we have libnetcdf" >>confdefs.h
+    $as_echo "#define HAVE_LIBNETCDF 1" >>confdefs.h
 
 
 else
@@ -11037,7 +11037,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_netcdf_nc_create" >&5
 $as_echo "$ac_cv_lib_netcdf_nc_create" >&6; }
 if test "x$ac_cv_lib_netcdf_nc_create" = xyes; then :
-  $as_echo "#define HAVE_LIBNETCDF Define if we have libnetcdf" >>confdefs.h
+  $as_echo "#define HAVE_LIBNETCDF 1" >>confdefs.h
 
        LIBS="-lnetcdf $LIBS"
 fi
@@ -11101,7 +11101,7 @@ if ac_fn_c_try_link "$LINENO"; then :
 
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
-    $as_echo "#define HAVE_LIBNETCDFF Define if we have libnetcdff" >>confdefs.h
+    $as_echo "#define HAVE_LIBNETCDFF 1" >>confdefs.h
 
 
 else
@@ -11161,7 +11161,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_netcdff_nc_create" >&5
 $as_echo "$ac_cv_lib_netcdff_nc_create" >&6; }
 if test "x$ac_cv_lib_netcdff_nc_create" = xyes; then :
-  $as_echo "#define HAVE_LIBNETCDFF Define if we have libnetcdff" >>confdefs.h
+  $as_echo "#define HAVE_LIBNETCDFF 1" >>confdefs.h
 
        LIBS="-lnetcdff $LIBS"
 fi
@@ -11372,7 +11372,7 @@ if ac_fn_c_try_link "$LINENO"; then :
 
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
-    $as_echo "#define HAVE_LIBMETIS Define if we have libmetis." >>confdefs.h
+    $as_echo "#define HAVE_LIBMETIS 1" >>confdefs.h
 
 
 else
@@ -11432,7 +11432,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_metis_METIS_PartGraphKway" >&5
 $as_echo "$ac_cv_lib_metis_METIS_PartGraphKway" >&6; }
 if test "x$ac_cv_lib_metis_METIS_PartGraphKway" = xyes; then :
-  $as_echo "#define HAVE_LIBMETIS Define if we have libmetis." >>confdefs.h
+  $as_echo "#define HAVE_LIBMETIS 1" >>confdefs.h
 
        LIBS="-lmetis $LIBS"
 fi
@@ -11496,7 +11496,7 @@ if ac_fn_c_try_link "$LINENO"; then :
 
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
-    $as_echo "#define HAVE_LIBPARMETIS Define if we have libparmetis." >>confdefs.h
+    $as_echo "#define HAVE_LIBPARMETIS 1" >>confdefs.h
 
 
 else
@@ -11556,7 +11556,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_parmetis_ParMETIS_V3_AdaptiveRepart" >&5
 $as_echo "$ac_cv_lib_parmetis_ParMETIS_V3_AdaptiveRepart" >&6; }
 if test "x$ac_cv_lib_parmetis_ParMETIS_V3_AdaptiveRepart" = xyes; then :
-  $as_echo "#define HAVE_LIBPARMETIS Define if we have libparmetis." >>confdefs.h
+  $as_echo "#define HAVE_LIBPARMETIS 1" >>confdefs.h
 
        LIBS="-lparmetis $LIBS"
 fi
@@ -11630,7 +11630,7 @@ if ac_fn_c_try_link "$LINENO"; then :
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
-                                            $as_echo "#define HAVE_ZOLTAN Define if we have Zoltan." >>confdefs.h
+                                            $as_echo "#define HAVE_ZOLTAN 1" >>confdefs.h
 
                                             HAVE_ZOLTAN=yes
 
@@ -11693,7 +11693,7 @@ fi
 $as_echo "$ac_cv_lib_zoltan_Zoltan_Create" >&6; }
 if test "x$ac_cv_lib_zoltan_Zoltan_Create" = xyes; then :
 
-                                            $as_echo "#define HAVE_ZOLTAN Define if we have Zoltan." >>confdefs.h
+                                            $as_echo "#define HAVE_ZOLTAN 1" >>confdefs.h
 
                                             HAVE_ZOLTAN=yes
 

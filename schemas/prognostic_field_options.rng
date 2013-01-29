@@ -1563,7 +1563,7 @@ This is useful as a debugging tool if PETSc complains about zeros on the diagona
       <element name="atmospheric_pressure">
         <a:documentation>Atmospheric pressure
 
-Manual suggests 1.01325E+6</a:documentation>
+Manual suggests 1.01325e+5 Pa</a:documentation>
         <ref name="real"/>
       </element>
     </optional>
