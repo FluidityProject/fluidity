@@ -172,7 +172,10 @@ class Faces(fluidity_state.Faces):
     
     def compute_boundaries(self, mesh):
         # Get face_list CSR data structures. It's not really a CSR matrix.
-        row_ptr = self.face_list.indptr
+        # Only consider elements up to and including those in the exec halo,
+        # for the ones in the non-exec halo we don't have all the
+        # necessary data (and don't need it)
+        row_ptr = self.face_list.indptr[:mesh.element_set.exec_size]
         col_idx = self.face_list.indices
         val     = self.face_list.data
         
