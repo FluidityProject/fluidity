@@ -720,7 +720,7 @@
          ALLOCATE(T2UPWIND_MAT(1), T2OLDUPWIND_MAT(1))
       ELSE ! IF (IANISOLIM==1) THEN
 ! Reduce matrix size...
-         COUNT2=0
+      COUNT2=0
       DO NOD=1,CV_NONODS
          DO COUNT=FINACV(NOD),FINACV(NOD+1)-1
             IF(COLACV(COUNT).LE.CV_NONODS) COUNT2=COUNT2+1
@@ -732,49 +732,19 @@
       ALLOCATE(TUPWIND_MAT(NSMALL_COLM*NPHASE), TOLDUPWIND_MAT(NSMALL_COLM*NPHASE), DENUPWIND_MAT(NSMALL_COLM*NPHASE), DENOLDUPWIND_MAT(NSMALL_COLM*NPHASE))
       ALLOCATE(T2UPWIND_MAT(NSMALL_COLM*NPHASE*IGOT_T2), T2OLDUPWIND_MAT(NSMALL_COLM*NPHASE*IGOT_T2))
 
-      COUNT2=0
-      DO NOD=1,CV_NONODS
-         SMALL_FINDRM(NOD)=COUNT2+1
-         DO COUNT=FINACV(NOD),FINACV(NOD+1)-1
-            IF(COLACV(COUNT).LE.CV_NONODS) THEN
-               COUNT2=COUNT2+1
-               SMALL_COLM(COUNT2)=COLACV(COUNT)
-               IF(SMALL_COLM(COUNT2)==NOD) SMALL_CENTRM(NOD)=COUNT2
-            ENDIF
-         END DO
-      END DO
-      SMALL_FINDRM(CV_NONODS+1)=COUNT2+1
-      NSMALL_COLM=COUNT2+1
-
-      ! Allocate memory and find upwind field values for limiting...
-       IF(IGOT_T2.NE.0) THEN
-! Obtain the weights
-       CALL CALC_ANISOTROP_LIM_VALS( &
+      CALL CALC_ANISOTROP_LIM(&
 ! Caculate the upwind values stored in matrix form...
-           (/T,TOLD,DEN,DENOLD,T2,T2OLD/), &
-           (/TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT/),  &
+           T,TOLD,DEN,DENOLD,T2,T2OLD, &
+           TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, &
+           T2UPWIND_MAT, T2OLDUPWIND_MAT, &
 ! Store the upwind element for interpolation and its weights for 
 ! faster results...
-           IDUM,RDUM, 0,  &
-           NPHASE*6,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, &
-           SMALL_FINDRM,SMALL_COLM,NSMALL_COLM, &
+           IGOT_T2,NPHASE,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, &
+           SMALL_FINDRM,SMALL_CENTRM,SMALL_COLM,NSMALL_COLM, &
            X_NDGLN,X_NONODS,NDIM, &
            X,Y,Z, &
-           .FALSE., .FALSE.)
-        ELSE
-       CALL CALC_ANISOTROP_LIM_VALS( &
-! Caculate the upwind values stored in matrix form...
-           (/T,TOLD,DEN,DENOLD/),&
-           (/TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT/),  &
-! Store the upwind element for interpolation and its weights for 
-! faster results...
-           IDUM,RDUM, 0,  &
-           NPHASE*4,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, &
-           SMALL_FINDRM,SMALL_COLM,NSMALL_COLM, &
-           X_NDGLN,X_NONODS,NDIM, &
-           X,Y,Z, &
-           .FALSE., .FALSE.)
-        ENDIF
+           FINACV,COLACV,NCOLACV) 
+! endof IF (IANISOLIM==0) THEN ELSE...
        ENDIF
 
 ! **********...ANISOTROPIC LIMITING*******************
@@ -8312,6 +8282,91 @@
 
 
 
+       SUBROUTINE CALC_ANISOTROP_LIM(&
+! Caculate the upwind values stored in matrix form...
+           T,TOLD,DEN,DENOLD,T2,T2OLD, &
+           TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, &
+           T2UPWIND_MAT, T2OLDUPWIND_MAT, &
+! Store the upwind element for interpolation and its weights for 
+! faster results...
+           IGOT_T2,NPHASE,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, &
+           SMALL_FINDRM,SMALL_CENTRM,SMALL_COLM,NSMALL_COLM, &
+           X_NDGLN,X_NONODS,NDIM, &
+           X,Y,Z, &
+           FINACV,COLACV,NCOLACV) 
+        ! For the anisotropic limiting scheme we find the upwind values
+        ! by interpolation using the subroutine FINPTS or IFINPTS; the upwind
+        ! value for each node pair is stored in the matrices TUPWIND AND
+      IMPLICIT NONE
+      INTEGER, intent( in ) :: CV_NONODS,X_NONODS,TOTELE,CV_NLOC, X_NLOC, &
+                NSMALL_COLM, NDIM,NCOLACV,IGOT_T2,NPHASE
+       REAL, DIMENSION( CV_NONODS*NPHASE ), intent( in ) :: T,TOLD,DEN,DENOLD
+       REAL, DIMENSION( CV_NONODS*NPHASE*IGOT_T2), intent( in ) :: T2,T2OLD
+       REAL, DIMENSION( NSMALL_COLM*NPHASE ), intent( inout ) :: TUPWIND_MAT, TOLDUPWIND_MAT, &
+                   DENUPWIND_MAT, DENOLDUPWIND_MAT
+       REAL, DIMENSION( NSMALL_COLM*NPHASE*IGOT_T2 ), intent( inout ) :: T2UPWIND_MAT, T2OLDUPWIND_MAT
+!       REAL, DIMENSION( NSMALL_COLM*NFIELD ) :: TUPWIND
+      INTEGER, DIMENSION( TOTELE*X_NLOC ), intent( in ) :: X_NDGLN
+      INTEGER, DIMENSION( TOTELE*CV_NLOC ), intent( in ) :: CV_NDGLN
+      INTEGER, DIMENSION( CV_NONODS+1 ), intent( inout ) :: SMALL_FINDRM
+      INTEGER, DIMENSION( NSMALL_COLM ), intent( inout ) :: SMALL_COLM
+      INTEGER, DIMENSION( CV_NONODS ), intent( inout ) :: SMALL_CENTRM
+      REAL, DIMENSION( X_NONODS ), intent( in ) :: X,Y,Z
+      INTEGER, DIMENSION( CV_NONODS*NPHASE+1 ), intent( in ) :: FINACV
+      INTEGER, DIMENSION( NCOLACV ), intent( in ) :: COLACV
+
+        ! Allocate memory 
+      INTEGER :: COUNT, COUNT2, CV_NOD
+      INTEGER :: IDUM(1)
+      REAL :: RDUM(1)
+
+      COUNT2=0
+      DO CV_NOD=1,CV_NONODS
+         SMALL_FINDRM(CV_NOD)=COUNT2+1
+         DO COUNT=FINACV(CV_NOD),FINACV(CV_NOD+1)-1
+            IF(COLACV(COUNT).LE.CV_NONODS) THEN
+               COUNT2=COUNT2+1
+               SMALL_COLM(COUNT2)=COLACV(COUNT)
+               IF(SMALL_COLM(COUNT2)==CV_NOD) SMALL_CENTRM(CV_NOD)=COUNT2
+            ENDIF
+         END DO
+      END DO
+      SMALL_FINDRM(CV_NONODS+1)=COUNT2+1
+
+      ! Allocate memory and find upwind field values for limiting...
+       IF(IGOT_T2.NE.0) THEN
+! Obtain the weights
+       CALL CALC_ANISOTROP_LIM_VALS( &
+! Caculate the upwind values stored in matrix form...
+           (/T,TOLD,DEN,DENOLD,T2,T2OLD/), &
+           (/TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT/),  &
+! Store the upwind element for interpolation and its weights for 
+! faster results...
+           IDUM,RDUM, 0,  &
+           NPHASE*6,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, &
+           SMALL_FINDRM,SMALL_COLM,NSMALL_COLM, &
+           X_NDGLN,X_NONODS,NDIM, &
+           X,Y,Z, &
+           .FALSE., .FALSE.)
+        ELSE
+       CALL CALC_ANISOTROP_LIM_VALS( &
+! Caculate the upwind values stored in matrix form...
+           (/T,TOLD,DEN,DENOLD/),&
+           (/TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT/),  &
+! Store the upwind element for interpolation and its weights for 
+! faster results...
+           IDUM,RDUM, 0,  &
+           NPHASE*4,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, &
+           SMALL_FINDRM,SMALL_COLM,NSMALL_COLM, &
+           X_NDGLN,X_NONODS,NDIM, &
+           X,Y,Z, &
+           .FALSE., .FALSE.)
+        ENDIF
+
+      END SUBROUTINE CALC_ANISOTROP_LIM
+
+
+
 
        SUBROUTINE CALC_ANISOTROP_LIM_VALS( &
 ! Caculate the upwind values stored in matrix form...
@@ -8322,20 +8377,20 @@
            ELEMATPSI,ELEMATWEI, IELEMATPSI,  &
            NFIELD,NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, &
            SMALL_FINDRM,SMALL_COLM,NSMALL_COLM, &
-           XNDGLN,XNONOD,NDIM, &
+           X_NDGLN,X_NONODS,NDIM, &
            X,Y,Z, &
            STORE_ELE, RET_STORE_ELE)
         ! For the anisotropic limiting scheme we find the upwind values
         ! by interpolation using the subroutine FINPTS or IFINPTS; the upwind
         ! value for each node pair is stored in the matrices TUPWIND AND
       IMPLICIT NONE
-      INTEGER :: NONODS,XNONOD,TOTELE,CV_NLOC, X_NLOC, NSMALL_COLM, NFIELD,NDIM
+      INTEGER :: NONODS,X_NONODS,TOTELE,CV_NLOC, X_NLOC, NSMALL_COLM, NFIELD,NDIM
        REAL, DIMENSION( NONODS*NFIELD ), intent( in ) :: T
 !       REAL, DIMENSION( NSMALL_COLM*NFIELD ), intent( inout ) :: TUPWIND
        REAL, DIMENSION( NSMALL_COLM*NFIELD ) :: TUPWIND
-      INTEGER :: XNDGLN(TOTELE*X_NLOC), CV_NDGLN(TOTELE*CV_NLOC) 
+      INTEGER :: X_NDGLN(TOTELE*X_NLOC), CV_NDGLN(TOTELE*CV_NLOC) 
       INTEGER :: SMALL_FINDRM(NONODS+1),SMALL_COLM(NSMALL_COLM),SMALL_CENTRM(NONODS)
-      REAL    :: X(XNONOD),Y(XNONOD),Z(XNONOD)
+      REAL    :: X(X_NONODS),Y(X_NONODS),Z(X_NONODS)
 
       INTEGER :: ELEMATPSI( NSMALL_COLM * IELEMATPSI ), IELEMATPSI      
       REAL :: ELEMATWEI( NSMALL_COLM * CV_NLOC * IELEMATPSI )
@@ -8412,7 +8467,7 @@
            ELEMATPSI,ELEMATWEI, IELEMATPSI,  &
            NFIELD,NONODS,NLOC,NGI,SUB_TOTELE,SUB_NDGLNO, &
            SMALL_FINDRM,SMALL_COLM,NSMALL_COLM, &
-           XNDGLN,XNONOD,NDIM, &
+           X_NDGLN,X_NONODS,NDIM, &
            X,Y,Z, &
            N,NLX,NLY,NLZ, WEIGHT, &
            STORE_ELE, RET_STORE_ELE)
@@ -8431,7 +8486,7 @@
            ELEMATPSI,ELEMATWEI, IELEMATPSI,  &
            NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
            FINDRM,COLM,NCOLM, &
-           XNDGLN,XNONOD,NDIM, &
+           X_NDGLN,X_NONODS,NDIM, &
            X,Y,Z, &
            N,NLX,NLY,NLZ, WEIGHT, &
            STORE_ELE, RET_STORE_ELE)
@@ -8439,15 +8494,15 @@
         ! by interpolation using the subroutine FINPTS or IFINPTS; the upwind
         ! value for each node pair is stored in the matrices TUPWIND AND
       IMPLICIT NONE
-      INTEGER :: NONODS,XNONOD,TOTELE,NLOC,NGI,NCOLM,NFIELD,NDIM
+      INTEGER :: NONODS,X_NONODS,TOTELE,NLOC,NGI,NCOLM,NFIELD,NDIM
        REAL, DIMENSION( NONODS*NFIELD ), intent( in ) :: T
        REAL, DIMENSION( NCOLM*NFIELD ), intent( inout ) :: TUPWIND
-      INTEGER :: NDGLNO(TOTELE*NLOC),XNDGLN(TOTELE*NLOC)
+      INTEGER :: NDGLNO(TOTELE*NLOC),X_NDGLN(TOTELE*NLOC)
       INTEGER :: FINDRM(NONODS+1),COLM(NCOLM),CENTRM(NONODS)
       INTEGER :: ELEMATPSI( NCOLM * IELEMATPSI ), IELEMATPSI      
       REAL :: ELEMATWEI( NCOLM * NLOC * IELEMATPSI )
 
-      REAL    :: X(XNONOD),Y(XNONOD),Z(XNONOD)
+      REAL    :: X(X_NONODS),Y(X_NONODS),Z(X_NONODS)
       REAL, INTENT(IN) :: N(NLOC,NGI),NLX(NLOC,NGI),NLY(NLOC,NGI),NLZ(NLOC,NGI)
       REAL, INTENT(IN) :: WEIGHT(NGI) 
       LOGICAL, INTENT(IN) :: STORE_ELE, RET_STORE_ELE
@@ -8479,7 +8534,7 @@
     
           CALL FINPTSSTORE(T,NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
                   TUPWIND,FINDRM,COLM,NCOLM,NDIM, &
-                  XNDGLN,XNONOD, &
+                  X_NDGLN,X_NONODS, &
                   X,Y,Z, &
                   N,NLX,NLY,NLZ, WEIGHT, &
                   NOD_FINDELE,NOD_COLELE,NCOLEL, &
@@ -8500,7 +8555,7 @@
 
           CALL FINPTSSTORE(T,NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
                     TUPWIND,FINDRM,COLM,NCOLM,NDIM, &
-                    XNDGLN,XNONOD, &
+                    X_NDGLN,X_NONODS, &
                     X,Y,Z, &
                     N,NLX,NLY,NLZ, WEIGHT, &
                     NOD_FINDELE,NOD_COLELE,NCOLEL, &
@@ -8638,7 +8693,7 @@
 !     
   SUBROUTINE FINPTSSTORE(PSI,NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
        &     MATPSI,FINDRM,COLM,NCOLM,NDIM, &
-       &     XNDGLN,XNONOD, &
+       &     X_NDGLN,X_NONODS, &
        &     X,Y,Z,&
        &     N,NLX,NLY,NLZ, WEIGHT,&
        !     work space...
@@ -8657,8 +8712,8 @@
     INTEGER NCOLM,NCOLEL
     INTEGER FINDRM(NONODS+1),COLM(NCOLM)
     REAL MATPSI(NCOLM*NFIELD)
-    INTEGER XNDGLN(TOTELE*NLOC),XNONOD
-    REAL X(XNONOD),Y(XNONOD),Z(XNONOD)
+    INTEGER X_NDGLN(TOTELE*NLOC),X_NONODS
+    REAL X(X_NONODS),Y(X_NONODS),Z(X_NONODS)
     REAL N(NLOC,NGI),NLX(NLOC,NGI),NLY(NLOC,NGI),NLZ(NLOC,NGI)
     REAL WEIGHT(NGI)
     !     work space...
@@ -8700,7 +8755,7 @@
        MLUM(1:NONODS) = 0.0
        DO ELE=1,TOTELE! Was loop 
           !     Calculate DETWEI,RA,NX,NY,NZ for element ELE
-          CALL DETNLXR(ELE, X,Y,Z, XNDGLN, TOTELE,XNONOD,NLOC,NGI, &
+          CALL DETNLXR(ELE, X,Y,Z, X_NDGLN, TOTELE,X_NONODS,NLOC,NGI, &
                &        N,NLX,NLY,NLZ, WEIGHT, DETWEI,RA,VOLUME,NDIM==1,NDIM==3,.FALSE., &
                &        NX,NY,NZ) 
           !     
@@ -8751,7 +8806,7 @@
     DO ELE=1,TOTELE! Was loop 
        DO ILOC=1,NLOC! Was loop 
           NOD =NDGLNO((ELE-1)*NLOC+ILOC)
-          XNOD=XNDGLN((ELE-1)*NLOC+ILOC)
+          XNOD=X_NDGLN((ELE-1)*NLOC+ILOC)
           NOD2XNOD(NOD)=XNOD
        END DO
     END DO
@@ -8775,8 +8830,8 @@
                 NORMZ1=NORMZ(NOD)
              ENDIF
              CALL MATPTSSTORE(MATPSI,COUNT,NFIELD,NOD,&
-                  &              PSI,NONODS,XNONOD,&
-                  &              NLOC,TOTELE,XNDGLN,NDGLNO,&
+                  &              PSI,NONODS,X_NONODS,&
+                  &              NLOC,TOTELE,X_NDGLN,NDGLNO,&
                   &              FINDRM,COLM,NCOLM,&
                   &              X(XNOD),Y(XNOD),Z(XNOD),&
                   &              X(XNODJ),Y(XNODJ),Z(XNODJ),&
@@ -8805,8 +8860,8 @@
 !     
 !     
       SUBROUTINE MATPTSSTORE(MATPSI,COUNT,NFIELD,NOD,&
-     &     PSI,NONODS,XNONOD,&
-     &     NLOC,TOTELE,XNDGLN,NDGLNO,&
+     &     PSI,NONODS,X_NONODS,&
+     &     NLOC,TOTELE,X_NDGLN,NDGLNO,&
      &     FINDRM,COLM,NCOLM,&
      &     X1,Y1,Z1,&
      &     X2,Y2,Z2,&
@@ -8827,12 +8882,12 @@
 ! do limiting. 
       PARAMETER(INFINY=1.E+20,FRALINE=0.001)
       LOGICAL BOUND
-      INTEGER COUNT,NFIELD,NOD,NONODS,XNONOD,NLOC,TOTELE,NDIM
+      INTEGER COUNT,NFIELD,NOD,NONODS,X_NONODS,NLOC,TOTELE,NDIM
       REAL MATPSI(NCOLM*NFIELD),PSI(NONODS*NFIELD)
-      INTEGER XNDGLN(NLOC*TOTELE),NDGLNO(NLOC*TOTELE)
+      INTEGER X_NDGLN(NLOC*TOTELE),NDGLNO(NLOC*TOTELE)
       INTEGER NCOLM,FINDRM(NONODS+1),COLM(NCOLM)
       REAL X1,Y1,Z1,X2,Y2,Z2,NORMX1,NORMY1,NORMZ1
-      REAL X(XNONOD),Y(XNONOD),Z(XNONOD)
+      REAL X(X_NONODS),Y(X_NONODS),Z(X_NONODS)
       INTEGER NCOLEL
       INTEGER FINDELE(NONODS+1),COLELE(NCOLEL)
       REAL MINPSI(TOTELE*NFIELD),MAXPSI(TOTELE*NFIELD)
@@ -8910,10 +8965,10 @@
          NLOCNODS(3)=NDGLNO((ELE-1)*NLOC+3)
          if(ndim==3) NLOCNODS(4)=NDGLNO((ELE-1)*NLOC+4)
 !     
-         LOCNODS(1)=XNDGLN((ELE-1)*NLOC+1)
-         LOCNODS(2)=XNDGLN((ELE-1)*NLOC+2)
-         LOCNODS(3)=XNDGLN((ELE-1)*NLOC+3)
-         if(ndim==3) LOCNODS(4)=XNDGLN((ELE-1)*NLOC+4)
+         LOCNODS(1)=X_NDGLN((ELE-1)*NLOC+1)
+         LOCNODS(2)=X_NDGLN((ELE-1)*NLOC+2)
+         LOCNODS(3)=X_NDGLN((ELE-1)*NLOC+3)
+         if(ndim==3) LOCNODS(4)=X_NDGLN((ELE-1)*NLOC+4)
 !     
 ! Calculate the local coord but with 4th point replaced by INOD...
 ! Find local coords LOCCORDS of point INOD corresponding to these nodes LOCNODS...
@@ -9018,10 +9073,12 @@
       !
       !================================================================ 
       IMPLICIT NONE
-      INTEGER NONODS,FINDELE(NONODS+1)
-      INTEGER NCOLEL,MXNCOLEL,COLELE(MXNCOLEL)
-      INTEGER TOTELE,NLOC,NDGLNO(TOTELE*NLOC)
-      INTEGER NLIST(NONODS),INLIST(NONODS)
+      integer, intent( in ) :: NONODS,MXNCOLEL,TOTELE,NLOC
+      integer, intent( inout ) :: NCOLEL
+      integer, dimension( NONODS+1 ), intent( inout ) :: FINDELE
+      integer, dimension( MXNCOLEL ), intent( inout ) :: COLELE
+      integer, dimension( TOTELE*NLOC ), intent( in ) :: NDGLNO
+      integer, dimension( NONODS ), intent( inout ) :: NLIST,INLIST
 !     Local variables...
       INTEGER NOD,ELE,ILOC,COUNT, INOD
 !     
