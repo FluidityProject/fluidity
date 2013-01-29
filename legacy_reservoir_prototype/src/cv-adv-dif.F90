@@ -8680,7 +8680,7 @@
      &     MINPSI,MAXPSI)
 ! This sub calculates the max and min values of PSI in local vacinity of 
 ! an element. 
-      IMPLICIT NONE
+        IMPLICIT NONE
         REAL FRALINE
         PARAMETER(FRALINE=0.001)
         INTEGER, intent(in) :: NFIELD,NONODS,NLOC,TOTELE,NDGLNO(TOTELE*NLOC)
@@ -8696,11 +8696,11 @@
         MINPSI   =1.E+20
         MAXPSI   =-1.E+20
 ! find the max and min local to each element...
-      do ELEWIC=1,TOTELE! Was loop 
-      do ILOC=1,NLOC! Was loop 
+        DO ELEWIC=1,TOTELE! Was loop 
+           DO ILOC=1,NLOC! Was loop 
               KNOD=NDGLNO((ELEWIC-1)*NLOC+ILOC)
 !     Search around node KNOD for max and min PSI...
-      do COUNT2=FINDRM(KNOD),FINDRM(KNOD+1)-1! Was loop 
+              DO COUNT2=FINDRM(KNOD),FINDRM(KNOD+1)-1! Was loop 
                   JNOD=COLM(COUNT2)
                   DO IFIELD=1,NFIELD
                      MINPSI(ELEWIC+(IFIELD-1)*TOTELE)  &
@@ -8713,7 +8713,7 @@
         END DO
         RETURN
         
-  end subroutine minmaxelewic
+        end subroutine minmaxelewic
         
 !     
 !     
