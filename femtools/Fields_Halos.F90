@@ -341,7 +341,6 @@ contains
        do m=1, size(meshes)
           mesh=>meshes(m)
           ndglno=mesh%ndglno
-          mesh%element_classes = p0_mesh%node_classes
           do ele=1,element_count(mesh)
              new_ele=p0_mesh%ndglno(ele)
              
@@ -428,6 +427,7 @@ contains
     if (present(meshes)) then
        do m=1, size(meshes)
           mesh=>meshes(m)
+          mesh%element_classes = new_mesh%element_classes
           call deallocate_faces(mesh)
           call remove_nelist(mesh) 
           call add_nelist(mesh) 
