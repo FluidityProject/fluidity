@@ -8413,7 +8413,7 @@
       ! by interpolation using the subroutine FINPTS or IFINPTS; the upwind
       ! value for each node pair is stored in the matrices TUPWIND AND
       IMPLICIT NONE
-      INTEGER :: NONODS,X_NONODS,TOTELE,CV_NLOC, X_NLOC, NSMALL_COLM, NFIELD,NDIM
+      INTEGER, intent(in) :: NONODS,X_NONODS,TOTELE,CV_NLOC, X_NLOC, NSMALL_COLM, NFIELD,NDIM
       REAL, DIMENSION( NONODS*NFIELD ), intent( in ) :: T
       REAL, DIMENSION( NSMALL_COLM*NFIELD ), intent( inout ) :: TUPWIND
       INTEGER :: X_NDGLN(TOTELE*X_NLOC), CV_NDGLN(TOTELE*CV_NLOC) 
@@ -8427,7 +8427,6 @@
       LOGICAL :: D3,DCYL
       ! Allocate memory for the interpolated upwind values
       real, dimension( :, : ), allocatable :: N,NLX,NLY,NLZ
-      real, dimension( :, : ), allocatable :: UN, UNLX, UNLY, UNLZ, CVN
       real, dimension( : ), allocatable :: WEIGHT
       integer, dimension( : ), allocatable :: SUB_NDGLNO
       INTEGER :: COUNT, COUNT2, NOD, SUB_TOTELE, NGI,NLOC
@@ -8495,6 +8494,9 @@
            X,Y,Z, &
            N,NLX,NLY,NLZ, WEIGHT, &
            STORE_ELE, RET_STORE_ELE)
+ 
+      DEALLOCATE( N, NLX, NLY, NLZ, &
+           WEIGHT, SUB_NDGLNO )
 
       RETURN
     END SUBROUTINE CALC_ANISOTROP_LIM_VALS
@@ -8518,7 +8520,7 @@
         ! by interpolation using the subroutine FINPTS or IFINPTS; the upwind
         ! value for each node pair is stored in the matrices TUPWIND AND
       IMPLICIT NONE
-      INTEGER :: NONODS,X_NONODS,TOTELE,NLOC,NGI,NCOLM,NFIELD,NDIM
+      INTEGER, intent(in) :: NONODS,X_NONODS,TOTELE,NLOC,NGI,NCOLM,NFIELD,NDIM
        REAL, DIMENSION( NONODS*NFIELD ), intent( in ) :: T
        REAL, DIMENSION( NCOLM*NFIELD ), intent( inout ) :: TUPWIND
       INTEGER :: NDGLNO(TOTELE*NLOC),X_NDGLN(TOTELE*NLOC)
