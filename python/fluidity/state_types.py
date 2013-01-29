@@ -173,16 +173,9 @@ except ImportError:
       raise ImportError("No such module scipy.sparse")
 
 class Halo:
-  "A halo"
-  def __init__(self, nprocs, sends, receives, uid):
-    self.nprocs = nprocs
-    # tuple of numpy arrays one for each process
-    # e.g. ([], [1,2,3], [])
-    # no sends to proc 0, send 1,2,3 to proc 1, no sends to proc 2
-    # fix up Fortran->C numbering
-    self.sends = tuple(map(lambda x: x - 1, sends))
-    # same, but for receives
-    self.receives = tuple(map(lambda x: x - 1, receives))
+  "A dummy halo"
+  def __init__(self, *args, **kwargs):
+    pass
 
 class Mesh:
   "A mesh"
