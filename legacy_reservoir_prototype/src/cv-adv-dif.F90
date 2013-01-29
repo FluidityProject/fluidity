@@ -8508,7 +8508,7 @@
            WEIGHT, SUB_NDGLNO )
 
       RETURN
-    END SUBROUTINE CALC_ANISOTROP_LIM_VALS
+      END SUBROUTINE CALC_ANISOTROP_LIM_VALS
 
 
 
@@ -8843,6 +8843,7 @@
        END DO
     END DO
     !     
+    MATPSI=0.
     DO NOD=1,NONODS! Was loop 10
 
        XNOD=NOD2XNOD(NOD)
@@ -8851,9 +8852,6 @@
 
           NODJ=COLM(COUNT)
           XNODJ=NOD2XNOD(NODJ)
-          DO IFIELD=1,NFIELD
-             MATPSI(COUNT+(IFIELD-1)*NCOLM)=0.
-          END DO
           !     
           IF(NOD.NE.NODJ) THEN
              IF(REFLECT) THEN
@@ -8886,7 +8884,7 @@
 
     RETURN
 
-  end subroutine finptsstore
+    end subroutine finptsstore
 !     
 !     
 !     
@@ -9139,8 +9137,8 @@
       ! COLELE is a list of the element numbers each node belongs
       ! to stored in the order of the global nodes...
       ! INLIST is the element number the node belongs to.
-      do ELE=1,TOTELE! Was loop 
-      do ILOC=1,NLOC! Was loop 
+      DO ELE=1,TOTELE! Was loop 
+         DO ILOC=1,NLOC! Was loop 
             INOD=NDGLNO((ELE-1)*NLOC+ILOC)
             INLIST(INOD)=INLIST(INOD)+1
             IF (FINDELE(INOD)-1+INLIST(INOD).GT.MXNCOLEL) THEN
@@ -9151,7 +9149,7 @@
       END DO
       RETURN
 
-  end subroutine philnodele
+      end subroutine philnodele
 !     
 !     
 !     
