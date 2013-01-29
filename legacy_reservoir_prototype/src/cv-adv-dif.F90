@@ -6088,11 +6088,11 @@
 !                  RSCALE=ABS(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI) &
 !                        /TOLFUN(UDGI**2+VDGI**2+WDGI**2)
 ! cosine rule:
-!                  RSCALE=ABS(TXGI*UDGI+TYGI*VDGI+TZGI*WDGI) &
-!                        /TOLFUN((UDGI**2+VDGI**2+WDGI**2)*SQRT(TXGI**2+TYGI**2+TZGI**2))
+                  RSCALE=ABS(TXGI*UDGI+TYGI*VDGI+TZGI*WDGI) &
+                        /TOLFUN((UDGI**2+VDGI**2+WDGI**2)*SQRT(TXGI**2+TYGI**2+TZGI**2))
 ! no cosine rule:
-                  RSCALE=1.0 &
-                        /TOLFUN(sqrt(UDGI**2+VDGI**2+WDGI**2))
+!                  RSCALE=1.0 &
+!                        /TOLFUN(sqrt(UDGI**2+VDGI**2+WDGI**2))
 
                   VEC_VEL(1)=UDGI
                   VEC_VEL(2)=VDGI
@@ -8546,7 +8546,7 @@
       LOGICAL :: D3,DCYL
         ! Allocate memory for the interpolated upwind values
       !LOGICAL, PARAMETER :: BOUND   = .TRUE.,  REFLECT = .TRUE. ! limiting options
-      LOGICAL, PARAMETER :: BOUND   = .FALSE.,  REFLECT = .TRUE. ! limiting options
+      LOGICAL, PARAMETER :: BOUND   = .FALSE.,  REFLECT = .FALSE. ! limiting options
       INTEGER, DIMENSION( : ), allocatable :: NOD_FINDELE,NOD_COLELE, NLIST, INLIST, DUMMYINT
       REAL, DIMENSION( : ), allocatable :: DUMMYREAL
       INTEGER MXNCOLEL,NCOLEL
