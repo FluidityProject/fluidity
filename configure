@@ -11629,7 +11629,11 @@ if ac_fn_c_try_link "$LINENO"; then :
 
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
-    HAVE_ZOLTAN=yes
+
+                                            $as_echo "#define HAVE_ZOLTAN Define if we have Zoltan." >>confdefs.h
+
+                                            HAVE_ZOLTAN=yes
+
 
 else
 
@@ -11688,7 +11692,11 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_zoltan_Zoltan_Create" >&5
 $as_echo "$ac_cv_lib_zoltan_Zoltan_Create" >&6; }
 if test "x$ac_cv_lib_zoltan_Zoltan_Create" = xyes; then :
-  HAVE_ZOLTAN=yes
+
+                                            $as_echo "#define HAVE_ZOLTAN Define if we have Zoltan." >>confdefs.h
+
+                                            HAVE_ZOLTAN=yes
+
        LIBS="-lzoltan $LIBS"
 fi
 
@@ -13453,8 +13461,8 @@ $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
         fi
     fi
     popd
-    BUILD_LIBADAPT="@cd libadaptivity; echo '    MAKE libadaptivity'; \$(MAKE) -s ; cp lib/libadaptivity.a ../lib/; cd .."
-    CLEAN_LIBADAPT="@cd libadaptivity; echo '    CLEAN libadaptivity'; \$(MAKE) -s clean;cd .."
+    BUILD_LIBADAPT="@echo '    MAKE libadaptivity'; \$(MAKE) -s -C libadaptivity && cp libadaptivity/lib/libadaptivity.a lib/"
+    CLEAN_LIBADAPT="@echo '    CLEAN libadaptivity'; \$(MAKE) -s -C libadaptivity clean"
 
 
 

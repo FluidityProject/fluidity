@@ -810,7 +810,10 @@ AC_ARG_ENABLE(sam,
 if test "$enable_sam" = "yes"; then
   HAVE_ZOLTAN=no
 else
-  ACX_lib_automagic(zoltan, Zoltan_Create, [HAVE_ZOLTAN=yes])
+  ACX_lib_automagic(zoltan, Zoltan_Create, [
+                                            AC_DEFINE(HAVE_ZOLTAN, [Define if we have Zoltan.])
+                                            HAVE_ZOLTAN=yes
+                                            ])
 fi
 AC_SUBST(HAVE_ZOLTAN)
 
@@ -1161,8 +1164,8 @@ if test -d libadaptivity ; then
         fi
     fi
     popd
-    BUILD_LIBADAPT="@cd libadaptivity; echo '    MAKE libadaptivity'; \$(MAKE) -s ; cp lib/libadaptivity.a ../lib/; cd .."
-    CLEAN_LIBADAPT="@cd libadaptivity; echo '    CLEAN libadaptivity'; \$(MAKE) -s clean;cd .."
+    BUILD_LIBADAPT="@echo '    MAKE libadaptivity'; \$(MAKE) -s -C libadaptivity && cp libadaptivity/lib/libadaptivity.a lib/"
+    CLEAN_LIBADAPT="@echo '    CLEAN libadaptivity'; \$(MAKE) -s -C libadaptivity clean"
     AC_SUBST(BUILD_LIBADAPT)
     AC_SUBST(CLEAN_LIBADAPT)
 
