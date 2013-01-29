@@ -349,7 +349,7 @@
 
       integer, dimension(:), allocatable :: SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM
       real, dimension(:), allocatable :: TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, &
-              DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT, sol
+              DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT
       INTEGER :: IDUM(1)
       REAL :: RDUM(1)
 
@@ -713,42 +713,49 @@
 
 
 ! **********ANISOTROPIC LIMITING...*******************
-
       IANISOLIM=0
       IF(CV_DISOPT.GE.8) IANISOLIM=1
       IF (IANISOLIM==0) THEN
          ALLOCATE(TUPWIND_MAT(1), TOLDUPWIND_MAT(1), DENUPWIND_MAT(1), DENOLDUPWIND_MAT(1))
          ALLOCATE(T2UPWIND_MAT(1), T2OLDUPWIND_MAT(1))
       ELSE ! IF (IANISOLIM==1) THEN
-! Reduce matrix size...
-      COUNT2=0
-      DO NOD=1,CV_NONODS
-         DO COUNT=FINACV(NOD),FINACV(NOD+1)-1
-            IF(COLACV(COUNT).LE.CV_NONODS) COUNT2=COUNT2+1
+         ! Reduce matrix size...
+         COUNT2=0
+         DO NOD=1,CV_NONODS
+            DO COUNT=FINACV(NOD),FINACV(NOD+1)-1
+               IF(COLACV(COUNT).LE.CV_NONODS) COUNT2=COUNT2+1
+            END DO
          END DO
-      END DO
-      NSMALL_COLM=COUNT2+1
+         NSMALL_COLM=COUNT2
 
-      ALLOCATE(SMALL_FINDRM(CV_NONODS+1),SMALL_COLM(NSMALL_COLM),SMALL_CENTRM(CV_NONODS))
-      ALLOCATE(TUPWIND_MAT(NSMALL_COLM*NPHASE), TOLDUPWIND_MAT(NSMALL_COLM*NPHASE), &
-           DENUPWIND_MAT(NSMALL_COLM*NPHASE), DENOLDUPWIND_MAT(NSMALL_COLM*NPHASE))
-      ALLOCATE(T2UPWIND_MAT(NSMALL_COLM*NPHASE*IGOT_T2), T2OLDUPWIND_MAT(NSMALL_COLM*NPHASE*IGOT_T2))
+         ALLOCATE(SMALL_FINDRM(CV_NONODS+1),SMALL_COLM(NSMALL_COLM),SMALL_CENTRM(CV_NONODS))
+         ALLOCATE(TUPWIND_MAT(NSMALL_COLM*NPHASE), TOLDUPWIND_MAT(NSMALL_COLM*NPHASE), &
+              DENUPWIND_MAT(NSMALL_COLM*NPHASE), DENOLDUPWIND_MAT(NSMALL_COLM*NPHASE))
+         ALLOCATE(T2UPWIND_MAT(NSMALL_COLM*NPHASE*IGOT_T2), T2OLDUPWIND_MAT(NSMALL_COLM*NPHASE*IGOT_T2))
 
-      CALL CALC_ANISOTROP_LIM(&
-! Caculate the upwind values stored in matrix form...
-           T,TOLD,DEN,DENOLD,T2,T2OLD, &
-           TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, &
-           T2UPWIND_MAT, T2OLDUPWIND_MAT, &
-! Store the upwind element for interpolation and its weights for 
-! faster results...
-           IGOT_T2,NPHASE,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, &
-           SMALL_FINDRM,SMALL_CENTRM,SMALL_COLM,NSMALL_COLM, &
-           X_NDGLN,X_NONODS,NDIM, &
-           X,Y,Z, &
-           FINACV,COLACV,NCOLACV) 
-! endof IF (IANISOLIM==0) THEN ELSE...
-       ENDIF
+         CALL CALC_ANISOTROP_LIM(&
+              ! Caculate the upwind values stored in matrix form...
+              T,TOLD,DEN,DENOLD,T2,T2OLD, &
+              TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, &
+              T2UPWIND_MAT, T2OLDUPWIND_MAT, &
+              ! Store the upwind element for interpolation and its weights for 
+              ! faster results...
+              IGOT_T2,NPHASE,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, &
+              SMALL_FINDRM,SMALL_CENTRM,SMALL_COLM,NSMALL_COLM, &
+              X_NDGLN,X_NONODS,NDIM, &
+              X,Y,Z, &
+              FINACV,COLACV,NCOLACV)
 
+         if ( .false. ) then
+            ewrite(3,*) 'TUPWIND_MAT', TUPWIND_MAT(1:nsmall_colm)
+            ewrite(3,*) 'TOLDUPWIND_MAT', TOLDUPWIND_MAT(1:nsmall_colm)
+            if (igot_t2==1)then
+               ewrite(3,*) 'T2UPWIND_MAT', T2UPWIND_MAT(1:nsmall_colm)
+               ewrite(3,*) 'T2OLDUPWIND_MAT', T2OLDUPWIND_MAT(1:nsmall_colm)
+            end if
+         end if
+
+      END IF
 ! **********...ANISOTROPIC LIMITING*******************
 
 
@@ -3286,7 +3293,7 @@
       REAL :: UC, UF, COURAT
       ! Local variables
       REAL, PARAMETER :: XI = 2. ! XI = 1.
-      LOGICAL, PARAMETER :: DOWNWIND_EXTRAP =.TRUE.
+      LOGICAL, PARAMETER :: DOWNWIND_EXTRAP = .TRUE.
       REAL :: TILDEUF, MAXUF
 
       ! For the region 0 < UC < 1 on the NVD, define the limiter
@@ -6081,11 +6088,11 @@
 !                  RSCALE=ABS(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI) &
 !                        /TOLFUN(UDGI**2+VDGI**2+WDGI**2)
 ! cosine rule:
-                  RSCALE=ABS(TXGI*UDGI+TYGI*VDGI+TZGI*WDGI) &
-                        /TOLFUN((UDGI**2+VDGI**2+WDGI**2)*SQRT(TXGI**2+TYGI**2+TZGI**2))
+!                  RSCALE=ABS(TXGI*UDGI+TYGI*VDGI+TZGI*WDGI) &
+!                        /TOLFUN((UDGI**2+VDGI**2+WDGI**2)*SQRT(TXGI**2+TYGI**2+TZGI**2))
 ! no cosine rule:
-!                  RSCALE=1.0 &
-!                        /TOLFUN(sqrt(UDGI**2+VDGI**2+WDGI**2))
+                  RSCALE=1.0 &
+                        /TOLFUN(sqrt(UDGI**2+VDGI**2+WDGI**2))
 
                   VEC_VEL(1)=UDGI
                   VEC_VEL(2)=VDGI
@@ -8538,7 +8545,8 @@
 
       LOGICAL :: D3,DCYL
         ! Allocate memory for the interpolated upwind values
-      LOGICAL, PARAMETER :: BOUND   = .TRUE.,  REFLECT = .TRUE. ! limiting options
+      !LOGICAL, PARAMETER :: BOUND   = .TRUE.,  REFLECT = .TRUE. ! limiting options
+      LOGICAL, PARAMETER :: BOUND   = .FALSE.,  REFLECT = .TRUE. ! limiting options
       INTEGER, DIMENSION( : ), allocatable :: NOD_FINDELE,NOD_COLELE, NLIST, INLIST, DUMMYINT
       REAL, DIMENSION( : ), allocatable :: DUMMYREAL
       INTEGER MXNCOLEL,NCOLEL
@@ -8621,52 +8629,47 @@
 !  LOCAL VARIABLES...
         INTEGER NOD,COUNT,ELEWIC,ILOC,INOD,IFIELD
         INTEGER KNOD,COUNT2,JNOD
-        REAL RMATPSI,RMATPSIOLD
+        REAL RMATPSI
         REAL, ALLOCATABLE, DIMENSION(:)::MINPSI
         REAL, ALLOCATABLE, DIMENSION(:)::MAXPSI
         
-        if(bound) then
-          ALLOCATE(MINPSI(TOTELE*NFIELD))
-          ALLOCATE(MAXPSI(TOTELE*NFIELD))
+        if ( bound ) then
+           ALLOCATE( MINPSI( TOTELE*NFIELD ) )
+           ALLOCATE( MAXPSI( TOTELE*NFIELD ) )
         
-! find the max and min local to each element...
-        !print *,'going into minmaxelewic'
-          CALL MINMAXELEWIC(PSI,NFIELD,NONODS,NLOC,TOTELE,NDGLNO, &
-     &     FINDRM,COLM,NCOLM,&
-     &     MINPSI,MAXPSI)
-        !print *,'out of minmaxelewic'
-        endif
+           ! find the max and min local to each element...
+           CALL MINMAXELEWIC( PSI,NFIELD,NONODS,NLOC,TOTELE,NDGLNO, &
+                &     FINDRM,COLM,NCOLM,&
+                &     MINPSI,MAXPSI )
+        end if
         
-      do NOD=1,NONODS! Was loop 
-!         print *,'nod=',nod
-      do COUNT=FINDRM(NOD),FINDRM(NOD+1)-1! Was loop 
-!            print *,'count=',count
-            IF(NOD.NE.COLM(COUNT)) THEN
-              ELEWIC=ELEMATPSI(COUNT)
-!              print *,'elewic=',elewic
-              DO IFIELD=1,NFIELD
-                 RMATPSI=0.0
-                 RMATPSIOLD=0.0
-                 DO ILOC=1,NLOC! Was loop 
-                    INOD=NDGLNO((ELEWIC-1)*NLOC+ILOC)
-                    RMATPSI=RMATPSI+ELEMATWEI((COUNT-1)*NLOC+ILOC)*PSI(INOD+(IFIELD-1)*NONODS)
-                 END DO
+        do NOD = 1, NONODS
+           do COUNT=FINDRM(NOD),FINDRM(NOD+1)-1
+              IF(NOD.NE.COLM(COUNT)) THEN
+                 ELEWIC = ELEMATPSI( COUNT )
+                 DO IFIELD = 1, NFIELD
+                    RMATPSI=0.0
+                    DO ILOC = 1, NLOC
+                       INOD = NDGLNO( (ELEWIC-1)*NLOC + ILOC )
+                       RMATPSI = RMATPSI + ELEMATWEI( (COUNT-1)*NLOC+ILOC) * PSI(INOD+(IFIELD-1)*NONODS)
+                    END DO
               
-                 RMATPSI   =PSI(NOD+(IFIELD-1)*NONODS)   &
-                      +(1./FRALINE)*(RMATPSI   -PSI(NOD+(IFIELD-1)*NONODS))
+                    RMATPSI   =PSI(NOD+(IFIELD-1)*NONODS)   &
+                         +(1./FRALINE)*(RMATPSI   -PSI(NOD+(IFIELD-1)*NONODS))
 
-! make locally bounded...
-                 if(bound) then
-                    MATPSI(COUNT+(IFIELD-1)*NCOLM)   &
-      =MAX(MIN(RMATPSI,   MAXPSI(ELEWIC+(IFIELD-1)*TOTELE)),   &
-     &                            MINPSI(ELEWIC+(IFIELD-1)*TOTELE))
-                 else
-                    MATPSI(COUNT+(IFIELD-1)*NCOLM)   =RMATPSI
-                 endif
-              END DO
-            ENDIF
-          END DO
+                    ! make locally bounded...
+                    if ( bound ) then
+                       MATPSI(COUNT+(IFIELD-1)*NCOLM)   &
+                            =MAX(MIN(RMATPSI,   MAXPSI(ELEWIC+(IFIELD-1)*TOTELE)),   &
+                            &                            MINPSI(ELEWIC+(IFIELD-1)*TOTELE))
+                    else
+                       MATPSI(COUNT+(IFIELD-1)*NCOLM)   =RMATPSI
+                    end if
+                 END DO
+              END IF
+           END DO
         END DO
+
         RETURN
         
   end subroutine getstoreelewei
@@ -8695,25 +8698,28 @@
         
         MINPSI   =1.E+20
         MAXPSI   =-1.E+20
-! find the max and min local to each element...
+        ! find the max and min local to each element...
         DO ELEWIC=1,TOTELE! Was loop 
            DO ILOC=1,NLOC! Was loop 
               KNOD=NDGLNO((ELEWIC-1)*NLOC+ILOC)
-!     Search around node KNOD for max and min PSI...
-              DO COUNT2=FINDRM(KNOD),FINDRM(KNOD+1)-1! Was loop 
-                  JNOD=COLM(COUNT2)
-                  DO IFIELD=1,NFIELD
-                     MINPSI(ELEWIC+(IFIELD-1)*TOTELE)  &
-        =MIN(PSI(JNOD+(IFIELD-1)*NONODS),   MINPSI(ELEWIC+(IFIELD-1)*TOTELE))
-                     MAXPSI(ELEWIC+(IFIELD-1)*TOTELE)  &
-        =MAX(PSI(JNOD+(IFIELD-1)*NONODS),   MAXPSI(ELEWIC+(IFIELD-1)*TOTELE))
-                  END DO
+              ! Search around node KNOD for max and min PSI...
+              DO COUNT2 = FINDRM(KNOD), FINDRM(KNOD+1)-1
+                 JNOD = COLM( COUNT2 )
+                 DO IFIELD = 1, NFIELD
+                    MINPSI( ELEWIC+(IFIELD-1)*TOTELE )  &
+                         = MIN( PSI(JNOD+(IFIELD-1)*NONODS), MINPSI(ELEWIC+(IFIELD-1)*TOTELE) )
+                    MAXPSI( ELEWIC+(IFIELD-1)*TOTELE )  &
+                         = MAX( PSI(JNOD+(IFIELD-1)*NONODS), MAXPSI(ELEWIC+(IFIELD-1)*TOTELE) )
+                 END DO
               END DO
            END DO
         END DO
+
+        !ewrite(3,*) '***M-m', MAXPSI-MINPSI
+
         RETURN
         
-        end subroutine minmaxelewic
+      end subroutine minmaxelewic
         
 !     
 !     
@@ -8811,11 +8817,8 @@
              NORMX(NODI)=0.0
              NORMY(NODI)=0.0
              NORMZ(NODI)=0.0
-          ENDIF
+          END IF
        END DO
-       ! In parallel need to distribute NORMX,NORMY,NORMZ
-       !     calculate normals...************************
-       ! ENDOF IF(REFLECT) THEN...    
     ENDIF
 
     ALLOCATE(MINPSI(TOTELE*NFIELD))
@@ -8906,7 +8909,7 @@
 ! IF BOUND then make locally bounded.
       IMPLICIT NONE
       REAL INFINY,FRALINE
-      LOGICAL REFLECT
+      LOGICAL, intent(in) :: REFLECT
 ! IF REFLECT then use a reflection condition at boundary to 
 ! do limiting. 
       PARAMETER(INFINY=1.E+20,FRALINE=0.001)
@@ -9004,25 +9007,22 @@
 ! Find local coords LOCCORDS of point INOD corresponding to these nodes LOCNODS...
  
          IF (NDIM==3) THEN
-         CALL TRILOCCORDS(XC,YC,ZC, &
-     &        LOCCORDS(1),LOCCORDS(2),LOCCORDS(3),LOCCORDS(4),&
-!     The 4 corners of the tet...
-     &        X(LOCNODS(1)),Y(LOCNODS(1)),Z(LOCNODS(1)),&
-     &        X(LOCNODS(2)),Y(LOCNODS(2)),Z(LOCNODS(2)),&
-     &        X(LOCNODS(3)),Y(LOCNODS(3)),Z(LOCNODS(3)),&
-     &        X(LOCNODS(4)),Y(LOCNODS(4)),Z(LOCNODS(4))  )
+            CALL TRILOCCORDS(XC,YC,ZC, &
+                 &        LOCCORDS(1),LOCCORDS(2),LOCCORDS(3),LOCCORDS(4),&
+                 !     The 4 corners of the tet...
+                 &        X(LOCNODS(1)),Y(LOCNODS(1)),Z(LOCNODS(1)),&
+                 &        X(LOCNODS(2)),Y(LOCNODS(2)),Z(LOCNODS(2)),&
+                 &        X(LOCNODS(3)),Y(LOCNODS(3)),Z(LOCNODS(3)),&
+                 &        X(LOCNODS(4)),Y(LOCNODS(4)),Z(LOCNODS(4)) )
          ELSE
-        CALL TRILOCCORDS2D(XC,YC, &
-     &        LOCCORDS(1),LOCCORDS(2),LOCCORDS(3),&
-!     The 3 corners of the tri...
-     &        X(LOCNODS(1)),Y(LOCNODS(1)),&
-     &        X(LOCNODS(2)),Y(LOCNODS(2)),&
-     &        X(LOCNODS(3)),Y(LOCNODS(3))  )
-
+            CALL TRILOCCORDS2D(XC,YC, &
+                 &        LOCCORDS(1),LOCCORDS(2),LOCCORDS(3),&
+                 !     The 3 corners of the tri...
+                 &        X(LOCNODS(1)),Y(LOCNODS(1)),&
+                 &        X(LOCNODS(2)),Y(LOCNODS(2)),&
+                 &        X(LOCNODS(3)),Y(LOCNODS(3)) )
          END IF
 
-!     
-!         MINCOR=MIN(LOCCORDS(1),LOCCORDS(2), LOCCORDS(3),LOCCORDS(4))
          MINCOR=MINVAL( LOCCORDS(1:NLOC) )
 
          IF(MINCOR.GT.MINCORK) THEN 
@@ -9035,6 +9035,7 @@
             ELEWIC=ELE
          ENDIF
       END DO ! Was loop 10
+
 
 !     Set all the negative basis to zero and re-normalise 
 !     to put on the face of an element...
@@ -9055,8 +9056,8 @@
 !         ZC=ZC+LOCCORDSK(ILOC)*Z(LOCNODSK(ILOC))
          END DO
 !     Exaduate difference by a factor of 100.
-         RMATPSI   =PSI(NOD+(IFIELD-1)*NONODS)  &
-         +(1./FRALINE)*(RMATPSI   -PSI(NOD+(IFIELD-1)*NONODS))
+         RMATPSI   = PSI( NOD + (IFIELD-1)*NONODS )  &
+         + (1./FRALINE) * ( RMATPSI - PSI( NOD + (IFIELD-1)*NONODS) )
 
 !     Now correct to make sure that we get a bounded soln...
          IF(BOUND) THEN
@@ -9112,10 +9113,8 @@
 !     Local variables...
       INTEGER NOD,ELE,ILOC,COUNT, INOD
 !     
-      do NOD=1,NONODS! Was loop 
-         NLIST(NOD)=0
-         INLIST(NOD)=0
-      END DO
+      NLIST=0
+      INLIST=0
 
       ! NLIST is the number of elements each node belongs to...
       do ELE=1,TOTELE! Was loop 
@@ -9147,7 +9146,7 @@
             IF (FINDELE(INOD)-1+INLIST(INOD).GT.MXNCOLEL) THEN
                STOP 'COLELE ARRAY OUT OF BOUNDS--SUB:PHILNODELE'
             ENDIF
-            COLELE(FINDELE(INOD)-1+INLIST(INOD))=ELE ! 
+            COLELE(FINDELE(INOD)-1+INLIST(INOD))=ELE
          END DO
       END DO
       RETURN
