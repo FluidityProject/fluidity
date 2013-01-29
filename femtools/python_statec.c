@@ -411,8 +411,9 @@ void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int num_dim[],
 }
 
 
-void python_add_halo_(char *name, int *name_len, int *nprocs,
-                      char *state_name, int *state_name_len, int *uid) {
+void python_add_halo_(char *name, int *name_len, int *nprocs, int *unn_offset,
+                      char *state_name, int *state_name_len, int *comm,
+                      int *uid) {
     PyObject *pMain = PyImport_AddModule("__main__");
     PyObject *pDict = PyModule_GetDict(pMain);
 
@@ -450,14 +451,14 @@ void python_add_halo_(char *name, int *name_len, int *nprocs,
     offset += snprintf(t + offset, maxlen - offset, "recv%d)", c_nprocs);
     PyRun_SimpleString(t);
 
-    i = 100 + strlen(c_state_name) + strlen(c_name);
+    i = 250 + strlen(c_state_name) + strlen(c_name);
     str = malloc(i);
     snprintf(str, i, "states['%s'].halos['%s'] = "
-        "halos_cache.setdefault(%d, Halo(%d,sends,recvs,%d))",
-        c_state_name, c_name, *uid, c_nprocs, *uid);
+        "halos_cache.setdefault(%d, Halo(sends=sends,receives=recvs,comm=%d, gnn2unn=receives_gnn2unn, unn_offset=%d))",
+             c_state_name, c_name, *uid, *comm, *unn_offset);
     PyRun_SimpleString(str);
     free(str);
-    PyRun_SimpleString("del sends, recvs");
+    PyRun_SimpleString("del sends, recvs, receives_gnn2unn");
     for ( i = 1; i <= c_nprocs; i++ ) {
         /* maxlen will always be long enough for this */
         snprintf(t, maxlen, "del send%d,recv%d", i, i);

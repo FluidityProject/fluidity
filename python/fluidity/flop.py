@@ -83,6 +83,28 @@ def ufl_element(field):
     e = field.fluidity_element
     return field2element[field.description](ufl_family(field), ufl_cell(e), e.degree)
 
+class Halo(fluidity_state.Halo):
+    def __init__(self, *args, **kwargs):
+        self._args = args
+        self._kwargs = kwargs
+
+    def op2_halo(self, classes):
+        gnn2unn = self._kwargs.get('gnn2unn')
+        offset = self._kwargs.get('unn_offset')
+        tmp = numpy.arange(0, classes[3],
+                           dtype=numpy.int32)
+        tmp[classes[1]:classes[2]] = gnn2unn[tmp[classes[1]:classes[2]] \
+                                             - classes[1]] - 1
+        tmp[:classes[1]] += offset
+        tmp[classes[2]:] = -1
+        sends = [numpy.copy(x) - 1 for x in self._kwargs.get('sends')]
+        receives = [numpy.copy(x) - 1 for x in self._kwargs.get('receives')]
+        self._kwargs['sends'] = sends
+        self._kwargs['receives'] = receives
+        self._kwargs['gnn2unn'] = tmp
+        self._kwargs.pop('unn_offset', None)
+        return op2.Halo(*self._args, **self._kwargs)
+
 class Mesh(fluidity_state.Mesh):
 
     def __init__(self, *args, **kwargs):
@@ -90,13 +112,31 @@ class Mesh(fluidity_state.Mesh):
         self._boundaries_computed = False
 
     @cached_property
+    def element_classes(self):
+        return tuple(numpy.cumsum(self._element_classes, dtype=numpy.int64))
+
+    @cached_property
+    def node_classes(self):
+        return tuple(numpy.cumsum(self._node_classes, dtype=numpy.int64))
+    
+    @cached_property
     def element_set(self):
+        if self.element_halo:
+            size = self.element_classes
+            halo = self.element_halo.op2_halo(size)
+        else:
+            size = self.element_count
+            halo = None
         return self.parent.element_set if self.parent else \
-                op2.Set(self.element_count, "%s_elements" % self.name)
+                op2.Set(size, "%s_elements" % self.name, halo=halo)
 
     @cached_property
     def node_set(self):
-        return op2.Set(self.node_count, "%s_nodes" % self.name)
+        if self.node_halo:
+            return op2.Set(self.node_classes, "%s_nodes" % self.name,
+                           halo=self.node_halo.op2_halo(self.node_classes))
+        else:
+            return op2.Set(self.node_count, "%s_nodes" % self.name)
 
     @cached_property
     def element_node_map(self):

@@ -182,9 +182,9 @@ class Mesh:
   def __init__(self,ndglno,elements,element_classes,nodes,node_classes,continuity,name,parent,option_path,region_ids,uid,node_halo=None,element_halo=None):
     self.ndglno = ndglno
     self.element_count = elements
-    self.element_classes = element_classes
+    self._element_classes = element_classes
     self.node_count = nodes
-    self.node_classes = node_classes
+    self._node_classes = node_classes
     self.continuity = continuity
     self.name = name
     self.parent = parent

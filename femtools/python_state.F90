@@ -151,10 +151,10 @@ module python_state
       character(len=mesh_name_len) :: mesh_name
     end subroutine python_add_tensor
 
-    subroutine python_add_halo(name, name_len, nprocs,&
-         state_name, state_name_len, uid)
+    subroutine python_add_halo(name, name_len, nprocs, unn_offset, &
+         state_name, state_name_len, comm, uid)
       implicit none
-      integer :: name_len, nprocs, state_name_len, uid
+      integer :: name_len, nprocs, state_name_len, uid, comm, unn_offset
       character(len=name_len) :: name
       character(len=state_name_len) :: state_name
     end subroutine python_add_halo
@@ -329,10 +329,11 @@ module python_state
        write(tmp_name, '(a,i0)')'recv', i
        call python_add_array(H%receives(i)%ptr, trim(tmp_name))
     end do
-    call python_add_halo(trim(H%name), len(trim(H%name)), &
-         H%nprocs, &
+    call python_add_array(H%receives_gnn_to_unn, 'receives_gnn2unn')
+    call python_add_halo(trim(H%name), len(trim(H%name)), H%nprocs, &
+         H%my_owned_nodes_unn_base, &
          trim(state%name), len(trim(state%name)), &
-         H%refcount%id)
+         H%communicator, H%refcount%id)
   end subroutine python_add_halo_directly
 
   subroutine python_add_mesh_directly(M,st)

@@ -32,8 +32,9 @@ void python_add_vector_(int *num_dim, int *s,
 void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int *num_dim,
   char *name,int *nlen, int *field_type, char *option_path, int *oplen, char *state,int *slen,char*,int*,int*); // Add a new tensor field to the state with name *state
 
-void python_add_halo_(char *name, int *name_len, int *nprocs,
-                      char *state_name, int *state_name_len, int *uid);
+void python_add_halo_(char *name, int *name_len, int *nprocs, int *unn_offset,
+                      char *state_name, int *state_name_len, int *comm,
+                      int *uid);
 void python_add_mesh_(int*,int*,int*, int*, int*,int*,
   char*,int*,char*,int*,char*,int*,int*,int*,int*,char*,int*,
   char *, int *, char *, int *,int*);
