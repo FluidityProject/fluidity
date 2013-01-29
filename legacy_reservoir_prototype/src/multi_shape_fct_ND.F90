@@ -4911,6 +4911,8 @@
       return
     end function tet_vol
 
+
+
     real function triareaf( x1, y1, x2, y2, x3, y3 )
       implicit none
       real :: x1, y1, x2, y2, x3, y3
@@ -4919,6 +4921,18 @@
 
       return
     end function triareaf
+
+
+    real function triareaf_SIGN( x1, y1, x2, y2, x3, y3 )
+      implicit none
+      real :: x1, y1, x2, y2, x3, y3
+
+      triareaf_SIGN = 0.5 * ( ( x2 * y3 - y2 * x3 ) - x1 * ( y3 - y2 ) + y1 * ( x3 - x2 ) )
+
+      return
+    end function triareaf_SIGN
+
+
 
     subroutine CrossProduct( n, cp, a, b )
       implicit none

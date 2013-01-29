@@ -351,10 +351,26 @@
       real, dimension(:), allocatable :: TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, &
               DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT
       INTEGER :: IDUM(1)
-      REAL :: RDUM(1)
+      REAL :: RDUM(1),n1,n2,n3
 
       IDUM = 0
       RDUM = 0.
+
+
+!       call TRILOCCORDS2D(Xp,Yp, &
+!     &     N1, N2, N3,  &
+!     &     X1,Y1, &
+!     &     X2,Y2, &
+!     &     X3,Y3 )
+
+!       call TRILOCCORDS2D(1.,1., &
+!     &     N1, N2, N3,  &
+!     &     0.,0., &
+!     &     1.0,0.0, &
+!     &     0.0,1.0 )
+
+!        print *,'n1,n2,n3:',n1,n2,n3
+!        stop 722
 
       ewrite(3,*) 'In CV_ASSEMB'
 
@@ -8545,8 +8561,9 @@
 
       LOGICAL :: D3,DCYL
         ! Allocate memory for the interpolated upwind values
+      LOGICAL, PARAMETER :: BOUND   = .TRUE.,  REFLECT = .FALSE. ! limiting options
       !LOGICAL, PARAMETER :: BOUND   = .TRUE.,  REFLECT = .TRUE. ! limiting options
-      LOGICAL, PARAMETER :: BOUND   = .FALSE.,  REFLECT = .FALSE. ! limiting options
+      !LOGICAL, PARAMETER :: BOUND   = .FALSE.,  REFLECT = .FALSE. ! limiting options
       INTEGER, DIMENSION( : ), allocatable :: NOD_FINDELE,NOD_COLELE, NLIST, INLIST, DUMMYINT
       REAL, DIMENSION( : ), allocatable :: DUMMYREAL
       INTEGER MXNCOLEL,NCOLEL
@@ -8881,6 +8898,7 @@
 
        END DO ! Was loop 20
     END DO ! Was loop 10
+!    stop 67
 
     RETURN
 
@@ -8931,7 +8949,7 @@
       INTEGER LOCNODS(4),LOCNODSK(4)
       INTEGER NLOCNODS(4),NLOCNODSK(4)
       INTEGER ELE,ILOC,KNOD,JNOD,IFIELD, COUNT2
-      REAL MINCOR,MINCORK,SUM
+      REAL MINCOR,MINCORK,RSUM
       REAL VX,VY,VZ,T2X,T2Y,T2Z,T1X,T1Y,T1Z,DIST12,RN,RMATPSI
       REAL REFX,REFY,REFZ,REFX2,REFY2,REFZ2
 !     
@@ -9022,6 +9040,7 @@
          END IF
 
          MINCOR=MINVAL( LOCCORDS(1:NLOC) )
+!          print *,'ele,LOCCORDS(1:NLOC):',ele,LOCCORDS(1:NLOC)
 
          IF(MINCOR.GT.MINCORK) THEN 
             MINCORK=MINCOR
@@ -9033,18 +9052,24 @@
             ELEWIC=ELE
          ENDIF
       END DO ! Was loop 10
+!        stop 677
 
 
 !     Set all the negative basis to zero and re-normalise 
 !     to put on the face of an element...
-      SUM=0.0
+      RSUM=0.0
       DO ILOC=1,NLOC! Was loop 
          LOCCORDSK(ILOC)=MAX(0.0,LOCCORDSK(ILOC))
-         SUM=SUM+LOCCORDSK(ILOC)
+         RSUM=RSUM+LOCCORDSK(ILOC)
       END DO
-      DO ILOC=1,NLOC! Was loop 
-         LOCCORDSK(ILOC)=LOCCORDSK(ILOC)/SUM
-      END DO
+      IF(RSUM.LT.1.E-5) THEN ! Just in case RSUM=0.0
+            LOCCORDSK(1:NLOC)=1.0/REAL(NLOC)
+      ELSE
+         DO ILOC=1,NLOC! Was loop 
+            LOCCORDSK(ILOC)=LOCCORDSK(ILOC)/RSUM
+         END DO
+      ENDIF
+!         print *,'nod,ELEWIC,LOCCORDSk(1:NLOC)=',nod,ELEWIC,LOCCORDSk(1:NLOC)
       DO IFIELD=1,NFIELD
          RMATPSI=0.0
          DO ILOC=1,NLOC! Was loop 
@@ -9262,10 +9287,10 @@ pure function tetvolume(x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3)
 
       Real AREA
 
-      AREA = TRIAREAF( X1, Y1, X2, Y2, X3, Y3)
+      AREA = TRIAREAF_SIGN( X1, Y1, X2, Y2, X3, Y3)
 !     area coords...
 
-      N1 = TRIAREAF(Xp, Yp,  &
+      N1 = TRIAREAF_SIGN(Xp, Yp,  &
      &     X2, Y2,  &
      &     X3, Y3 ) 
 
@@ -9273,7 +9298,7 @@ pure function tetvolume(x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3)
 
       
 
-      N2 = TRIAREAF(X1, Y1, &
+      N2 = TRIAREAF_SIGN(X1, Y1, &
      &     Xp, Yp,  &
      &     X3, Y3 ) 
       
@@ -9281,7 +9306,7 @@ pure function tetvolume(x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3)
       
 
 
-      N3 = TRIAREAF(X1, Y1,  &
+      N3 = TRIAREAF_SIGN(X1, Y1,  &
      &     X2, Y2,  &
      &     Xp, Yp ) 
 
