@@ -69,7 +69,7 @@ contains
     type(mesh_type), pointer :: topology
     ! The universal identifier. Required for parallel.
     type(scalar_field), pointer :: uid
-    integer :: max_vertices, total_dofs, tmp
+    integer :: max_vertices, total_dofs, start, finish, d
     logical :: have_facets, have_halos
 
     type(integer_set), dimension(:,:), allocatable :: entity_send_targets
@@ -131,17 +131,27 @@ contains
 
     ! Save core/non-core/l1/l2 distinction in mesh node_classes
     if (have_halos) then
-       tmp = entity_counts(0)   ! number of vertices in topology mesh (-1?)
        
-       ! Count core nodes (primary sort key -2)
-       mesh%node_classes(CORE_ENTITY) = count(entity_sort_list(1:tmp, 0) == -2)
-       ! Count non-core nodes (primary sort key -1)
-       mesh%node_classes(NON_CORE_ENTITY) = count(entity_sort_list(1:tmp, 0) == -1)
-       ! L1 halo (primary sort key \in [0, COMM_SIZE]) 
-       mesh%node_classes(EXEC_HALO_ENTITY) = count(entity_sort_list(1:tmp, 0) >= 0 .and. entity_sort_list(1:tmp, 0) <= getnprocs())
-       ! L2 halo (primary sort key \in [COMM_SIZE + 1, \infty))
-       mesh%node_classes(NON_EXEC_HALO_ENTITY) = count(entity_sort_list(1:tmp, 0) > getnprocs())
-
+       mesh%node_classes = 0
+       finish = 0
+       do d=0, mesh_dim(mesh)
+          start = finish + 1
+          finish = finish + entity_counts(d)
+          ! Count core nodes (primary sort key -2)
+          mesh%node_classes(CORE_ENTITY) = mesh%node_classes(CORE_ENTITY) + &
+               & count(entity_sort_list(start:finish, 0) == -2)*dofs_per(d)
+          ! Count non-core nodes (primary sort key -1)
+          mesh%node_classes(NON_CORE_ENTITY) = &
+               & mesh%node_classes(NON_CORE_ENTITY) + &
+               & count(entity_sort_list(start:finish, 0) == -1)*dofs_per(d)
+          ! L1 halo (primary sort key \in [0, COMM_SIZE]) 
+          mesh%node_classes(EXEC_HALO_ENTITY) = mesh%node_classes(EXEC_HALO_ENTITY) + &
+               & count(entity_sort_list(start:finish, 0) >= 0 .and. &
+               & entity_sort_list(start:finish, 0) <= getnprocs())*dofs_per(d)
+          ! L2 halo (primary sort key \in [COMM_SIZE + 1, \infty))
+          mesh%node_classes(NON_EXEC_HALO_ENTITY) = mesh%node_classes(NON_EXEC_HALO_ENTITY) + &
+               & count(entity_sort_list(start:finish, 0) > getnprocs())*dofs_per(d)
+       end do
     end if
 
     ! Determine the order in which topological entities should be numbered.

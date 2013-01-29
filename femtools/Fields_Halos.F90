@@ -336,7 +336,6 @@ contains
        mesh%ndglno((new_ele-1)*ndof+1:new_ele*ndof)&
             =ndglno((ele-1)*ndof+1:ele*ndof)
     end do
-    mesh%element_classes = p0_mesh%node_classes
 
     if (present(meshes)) then
        do m=1, size(meshes)
@@ -359,14 +358,14 @@ contains
        end do
     end if
 
-    call deallocate(p0_mesh)
 
     ! Now renumber the nodes into halo consistent order.
     mesh=>numbering%mesh
     new_mesh = make_mesh(model=mesh, shape=mesh%shape,&
          continuity=mesh%continuity, name=trim(mesh%name)//'new',&
          with_faces=.false.)
-
+    new_mesh%element_classes = p0_mesh%node_classes
+    call deallocate(p0_mesh)
     allocate(renumber(mesh%nodes))
     do i = 1, mesh%elements * ndof
        renumber(mesh%ndglno(i)) = new_mesh%ndglno(i)
