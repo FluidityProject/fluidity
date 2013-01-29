@@ -1174,8 +1174,8 @@
            ewrite(3,*)'ele,xc,yc:',ele,xc,yc
            do u_iloc=1,u_nloc
              u_nod=u_ndgln((ele-1)*U_nloc+u_iloc)
-             ewrite(3,*) 'u_iloc,u(u_nod),v(u_nod):',u_iloc,u(u_nod),v(u_nod)
-             ewrite(3,*) 'u_iloc,u(u_nod),v(u_nod):',u_iloc,U_RHS_CDP(u_nod),U_RHS_CDP(u_nod+u_nonods)
+             !ewrite(3,*) 'u_iloc,u(u_nod),v(u_nod):',u_iloc,u(u_nod),v(u_nod)
+             !ewrite(3,*) 'u_iloc,u(u_nod),v(u_nod):',u_iloc,U_RHS_CDP(u_nod),U_RHS_CDP(u_nod+u_nonods)
            end do
          end do
          
@@ -1204,8 +1204,8 @@
                CV_JNOD = COLCMC( COUNT )
                P_RHS( CV_NOD ) = P_RHS( CV_NOD ) &
                     - DIAG_SCALE_PRES( CV_NOD ) * MASS_MN_PRES( COUNT ) * P( CV_JNOD )
-               !ewrite(3,*) cv_nod, cv_jnod, count, P_RHS( CV_NOD ), &
-               !     DIAG_SCALE_PRES( CV_NOD ),  MASS_MN_PRES( COUNT ), P( CV_JNOD )    
+               ewrite(3,*) cv_nod, cv_jnod, count, P_RHS( CV_NOD ), &
+                    DIAG_SCALE_PRES( CV_NOD ),  MASS_MN_PRES( COUNT ), P( CV_JNOD )    
             END DO
          END DO
 
