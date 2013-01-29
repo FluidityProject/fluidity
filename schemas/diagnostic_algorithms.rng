@@ -539,12 +539,12 @@ this option to these these internal algorithms.</a:documentation>
     </element>
   </define>
   <!-- Time aggregated diagnostics -->
-  <!-- Temporal maximum diagnostic algorithm. -->
-  <define name="temporalmax_algorithm">
+  <!-- Temporal maximum diagnostic algorithm for scalar fields. -->
+  <define name="scalar_temporalmax_algorithm">
     <element name="algorithm">
-      <a:documentation>temporalmax (source field). Calculates the nodewise maximum over time. Note: Does not work with adaptive meshes!</a:documentation>
+      <a:documentation>temporalmax (scalar source field). Calculates the nodewise maximum over time. Note: Does not work with adaptive meshes!</a:documentation>
       <attribute name="name">
-        <value>temporalmax</value>
+        <value>temporalmax_scalar</value>
       </attribute>
       <attribute name="material_phase_support">
         <value>single</value>
@@ -553,6 +553,36 @@ this option to these these internal algorithms.</a:documentation>
         <value>true</value>
       </attribute>
       <ref name="scalar_source_field"/>
+      <optional>
+        <element name="spin_up_time">
+          <a:documentation>This sets a spinning up time.</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="initial_condition">
+          <a:documentation>Do not set an initial condition until you know what you are doing. Initial condition is mainly needed for checkpointing. </a:documentation>
+          <attribute name="name">
+            <value>WholeMesh</value>
+          </attribute>
+          <ref name="input_choice_initial_condition_real"/>
+        </element>
+      </optional>
+    </element>
+  </define>
+  <define name="vector_temporalmax_algorithm">
+    <element name="algorithm">
+      <a:documentation>temporalmax (vector source field). Calculates the nodewise maximum over time. Note: Does not work with adaptive meshes!</a:documentation>
+      <attribute name="name">
+        <value>temporalmax_vector</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <attribute name="persistent">
+        <value>true</value>
+      </attribute>
+      <ref name="vector_source_field"/>
       <optional>
         <element name="spin_up_time">
           <a:documentation>This sets a spinning up time.</a:documentation>
@@ -1370,6 +1400,15 @@ Implemented as a queue data structure.</a:documentation>
         </element>
       </optional>
       <optional>
+        <element name="calculation_period">
+          <a:documentation>How often to calculate the harmonics. Default is just before output dumps. You can set this
+variable to calculate the diagnostics more often if required. 0 would calculate every timestep
+Note: harmonic calaulations are quite expensive. The value below applies to all tidal harmonics
+in the simulation</a:documentation>
+          <ref name="integer"/>
+        </element>
+      </optional>
+      <optional>
         <element name="saved_snapshots_times">
           <a:documentation>Internal use only</a:documentation>
           <ref name="real_vector"/>
@@ -1872,7 +1911,7 @@ This field needs to be interpolated between adapts.</a:documentation>
     <ref name="temporalmin_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
-    <ref name="temporalmax_algorithm"/>
+    <ref name="scalar_temporalmax_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_time_averaged_algorithm"/>
@@ -1972,6 +2011,9 @@ This field needs to be interpolated between adapts.</a:documentation>
   </define>
   <define name="vector_diagnostic_algorithms">
     <ref name="vector_time_averaged_algorithm"/>
+  </define>
+  <define name="vector_diagnostic_algorithms" combine="choice">
+    <ref name="vector_temporalmax_algorithm"/>
   </define>
   <define name="vector_diagnostic_algorithms" combine="choice">
     <ref name="vector_sum_algorithm"/>

@@ -3310,6 +3310,7 @@ contains
       type(vector_field), intent(inout) :: max_bed_shear_stress
 
       type(vector_field), pointer :: bed_shear_stress
+      type(scalar_field) :: magnitude_max_bss, magnitude_bss
       real :: current_time, spin_up_time
       integer stat, i
 
@@ -3317,21 +3318,31 @@ contains
       call get_option("/timestepping/current_time", current_time)
 
       if(current_time>=spin_up_time) then
-
+         
          ! Use the value already calculated previously
          bed_shear_stress => extract_vector_field(state, "BedShearStress", stat)  
          if(stat /= 0) then  
-           ewrite(-1,*) "You need BedShearStress turned on to calculate MaxBedShearStress."
-           FLExit("Turn on BedShearStress")
+            ewrite(-1,*) "You need BedShearStress turned on to calculate MaxBedShearStress."
+            FLExit("Turn on BedShearStress")
          end if
 
-         do i=1, max_bed_shear_stress%dim
-            max_bed_shear_stress%val(i,:) = &
-                 max(max_bed_shear_stress%val(i,:), bed_shear_stress%val(i,:))
+         ! We actually care about the vector that causes the maximum magnitude
+         ! of bed shear stress, so check the magnitude and store if higher than
+         ! what we already have.
+         magnitude_max_bss = magnitude(max_bed_shear_stress)
+         magnitude_bss = magnitude(bed_shear_stress)
+
+         do i=1,node_count(magnitude_bss)
+            if (node_val(magnitude_bss,i) .gt. node_val(magnitude_max_bss,i)) then
+               call set(max_bed_shear_stress,i,node_val(bed_shear_stress,i))
+            end if
          end do
       else
         call zero(max_bed_shear_stress)
       end if
+
+      call deallocate(magnitude_max_bss)
+      call deallocate(magnitude_bss)
 
    end subroutine calculate_max_bed_shear_stress
 
