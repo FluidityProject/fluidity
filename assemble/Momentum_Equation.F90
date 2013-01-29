@@ -798,7 +798,9 @@
                end if
 
                ! Modifying continuity equation for immersed solids:
-               call fsi_add_dalpha_solid_dt(state(istate), ct_rhs(istate))
+               if (have_option("/embedded_models/fsi_model")) then
+                  call fsi_add_dalpha_solid_dt(state(istate), ct_rhs(istate))
+               end if
 
                ! Add mass source-absorption for implicit solids.
                ! This needs to be done after ct_rhs has been formed
