@@ -752,6 +752,7 @@
          CALL CALC_ANISOTROP_LIM(&
               ! Caculate the upwind values stored in matrix form...
               T,TOLD,DEN,DENOLD,T2,T2OLD, &
+              FEMT,FEMTOLD,FEMDEN,FEMDENOLD,FEMT2,FEMT2OLD, (CV_NONODS.NE.X_NONODS), &
               TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, &
               T2UPWIND_MAT, T2OLDUPWIND_MAT, &
               ! Store the upwind element for interpolation and its weights for 
@@ -8313,6 +8314,7 @@
     SUBROUTINE CALC_ANISOTROP_LIM(&
          ! Caculate the upwind values stored in matrix form...
          T,TOLD,DEN,DENOLD,T2,T2OLD, &
+         FEMT,FEMTOLD,FEMDEN,FEMDENOLD,FEMT2,FEMT2OLD, USE_FEMT, &
          TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, &
          T2UPWIND_MAT, T2OLDUPWIND_MAT, &
          ! Store the upwind element for interpolation and its weights for 
@@ -8330,6 +8332,9 @@
            NSMALL_COLM, NDIM,NCOLACV,IGOT_T2,NPHASE
       REAL, DIMENSION( CV_NONODS*NPHASE ), intent( in ) :: T,TOLD,DEN,DENOLD
       REAL, DIMENSION( CV_NONODS*NPHASE*IGOT_T2), intent( in ) :: T2,T2OLD
+      REAL, DIMENSION( CV_NONODS*NPHASE ), intent( in ) :: FEMT,FEMTOLD,FEMDEN,FEMDENOLD
+      REAL, DIMENSION( CV_NONODS*NPHASE*IGOT_T2), intent( in ) :: FEMT2,FEMT2OLD
+      LOGICAL, intent( in ) :: USE_FEMT ! Use the FEM solns rather than CV's when interpolating soln
       REAL, DIMENSION( NSMALL_COLM*NPHASE ), intent( inout ) :: TUPWIND_MAT, TOLDUPWIND_MAT, &
            DENUPWIND_MAT, DENOLDUPWIND_MAT
       REAL, DIMENSION( NSMALL_COLM*NPHASE*IGOT_T2 ), intent( inout ) :: T2UPWIND_MAT, T2OLDUPWIND_MAT
@@ -8372,6 +8377,7 @@
          CALL CALC_ANISOTROP_LIM_VALS( &
               ! Caculate the upwind values stored in matrix form...
               (/T,TOLD,DEN,DENOLD,T2,T2OLD/), &
+              (/FEMT,FEMTOLD,FEMDEN,FEMDENOLD,FEMT2,FEMT2OLD/), USE_FEMT, &
               SOL,  &
               ! Store the upwind element for interpolation and its weights for 
               ! faster results...
@@ -8399,6 +8405,7 @@
          CALL CALC_ANISOTROP_LIM_VALS( &
               ! Caculate the upwind values stored in matrix form...
               (/T,TOLD,DEN,DENOLD/),&
+              (/FEMT,FEMTOLD,FEMDEN,FEMDENOLD/), USE_FEMT, &
               SOL,  &
               ! Store the upwind element for interpolation and its weights for 
               ! faster results...
@@ -8426,6 +8433,7 @@
     SUBROUTINE CALC_ANISOTROP_LIM_VALS( &
          ! Caculate the upwind values stored in matrix form...
          T, &
+         FEMT, USE_FEMT, &
          TUPWIND,  &
          ! Store the upwind element for interpolation and its weights for 
          ! faster results...
@@ -8441,6 +8449,8 @@
       IMPLICIT NONE
       INTEGER, intent(in) :: NONODS,X_NONODS,TOTELE,CV_NLOC, X_NLOC, NSMALL_COLM, NFIELD,NDIM
       REAL, DIMENSION( NONODS*NFIELD ), intent( in ) :: T
+      REAL, DIMENSION( NONODS*NFIELD ), intent( in ) :: FEMT
+      LOGICAL, intent( in ) :: USE_FEMT
       REAL, DIMENSION( NSMALL_COLM*NFIELD ), intent( inout ) :: TUPWIND
       INTEGER, DIMENSION( TOTELE*X_NLOC  ), intent( in ) :: X_NDGLN
       INTEGER, DIMENSION( TOTELE*CV_NLOC  ), intent( in ) :: CV_NDGLN
@@ -8535,6 +8545,7 @@
       CALL CALC_ANISOTROP_LIM_VALS2( &
 ! Caculate the upwind values stored in matrix form...
            T, &
+           FEMT, USE_FEMT, &
            TUPWIND,  &
 ! Store the upwind element for interpolation and its weights for 
 ! faster results...
@@ -8558,6 +8569,7 @@
        SUBROUTINE CALC_ANISOTROP_LIM_VALS2( &
 ! Caculate the upwind values stored in matrix form...
            T, &
+           FEMT, USE_FEMT, &
            TUPWIND,  &
 ! Store the upwind element for interpolation and its weights for 
 ! faster results...
@@ -8573,7 +8585,9 @@
         ! value for each node pair is stored in the matrices TUPWIND AND
       IMPLICIT NONE
       INTEGER, intent(in) :: NONODS,X_NONODS,TOTELE,NLOC,NGI,NCOLM,NFIELD,NDIM
-       REAL, DIMENSION( NONODS*NFIELD ), intent( in ) :: T
+      REAL, DIMENSION( NONODS*NFIELD ), intent( in ) :: T
+      REAL, DIMENSION( NONODS*NFIELD ), intent( in ) :: FEMT
+      LOGICAL, intent( in ) :: USE_FEMT
        REAL, DIMENSION( NCOLM*NFIELD ), intent( inout ) :: TUPWIND
       INTEGER, INTENT(IN) :: NDGLNO(TOTELE*NLOC),X_NDGLN(TOTELE*NLOC)
       INTEGER, INTENT(IN) :: FINDRM(NONODS+1),COLM(NCOLM)
@@ -8611,7 +8625,7 @@
         
         IF(STORE_ELE) THEN
     
-          CALL FINPTSSTORE(T,NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
+          CALL FINPTSSTORE(T,FEMT,USE_FEMT,NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
                   TUPWIND,FINDRM,COLM,NCOLM,NDIM, &
                   X_NDGLN,X_NONODS, &
                   X,Y,Z, XC_CV, YC_CV, ZC_CV,&
@@ -8632,7 +8646,7 @@
            ALLOCATE(DUMMYINT(NCOLM))
            ALLOCATE(DUMMYREAL(NCOLM*NLOC))
 
-          CALL FINPTSSTORE(T,NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
+          CALL FINPTSSTORE(T,FEMT,USE_FEMT,NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
                     TUPWIND,FINDRM,COLM,NCOLM,NDIM, &
                     X_NDGLN,X_NONODS, &
                     X,Y,Z, XC_CV, YC_CV, ZC_CV,&
@@ -8727,8 +8741,6 @@
 ! This sub calculates the max and min values of PSI in local vacinity of 
 ! an element. 
         IMPLICIT NONE
-        REAL FRALINE
-        PARAMETER(FRALINE=0.001)
         INTEGER, intent(in) :: NFIELD,NONODS,NLOC,TOTELE,NDGLNO(TOTELE*NLOC)
         REAL, INTENT(IN) :: PSI(NONODS*NFIELD)
         INTEGER, INTENT(IN) :: NCOLM
@@ -8768,7 +8780,7 @@
 !     
 !     
 !     
-  SUBROUTINE FINPTSSTORE(PSI,NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
+  SUBROUTINE FINPTSSTORE(PSI,FEMPSI,USE_FEMPSI,NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
        &     MATPSI,FINDRM,COLM,NCOLM,NDIM, &
        &     X_NDGLN,X_NONODS, &
        &     X,Y,Z, XC_CV, YC_CV, ZC_CV,&
@@ -8787,12 +8799,14 @@
     INTEGER, intent(in) :: NFIELD,NONODS,NLOC,NGI,TOTELE,NDIM,X_NONODS
     INTEGER, intent(in) :: NDGLNO(TOTELE*NLOC)
     REAL, intent(in) :: PSI(NONODS*NFIELD)
+    REAL, intent(in) :: FEMPSI(NONODS*NFIELD)
+    LOGICAL, intent(in) :: USE_FEMPSI
     INTEGER, intent(in) :: NCOLM,NCOLEL
     INTEGER, intent(in) :: FINDRM(NONODS+1),COLM(NCOLM)
     REAL, intent(inout) :: MATPSI(NCOLM*NFIELD)
     INTEGER, intent(in) :: X_NDGLN(TOTELE*NLOC)
     REAL, intent(in) :: X(X_NONODS),Y(X_NONODS),Z(X_NONODS)
-      REAL, DIMENSION( NONODS ), intent( in ) :: XC_CV, YC_CV, ZC_CV
+    REAL, DIMENSION( NONODS ), intent( in ) :: XC_CV, YC_CV, ZC_CV
     REAL, intent(in) :: N(NLOC,NGI),NLX(NLOC,NGI),NLY(NLOC,NGI),NLZ(NLOC,NGI)
     REAL, intent(in) :: WEIGHT(NGI)
     !     work space...
@@ -8818,6 +8832,7 @@
     REAL, ALLOCATABLE, DIMENSION(:)::MINPSI
     REAL, ALLOCATABLE, DIMENSION(:)::MAXPSI
     INTEGER, ALLOCATABLE, DIMENSION(:)::NOD2XNOD
+    REAL :: X1,Y1,Z1, X2,Y2,Z2
 
     NORMX1=0.0
     NORMY1=0.0
@@ -8904,12 +8919,29 @@
                 NORMY1=NORMY(NOD)
                 NORMZ1=NORMZ(NOD)
              ENDIF
+             IF(NONODS.NE.X_NONODS) THEN ! Its a DG soln field...
+               X1=XC_CV(NOD)
+               Y1=YC_CV(NOD)
+               Z1=ZC_CV(NOD)
+
+               X2=XC_CV(NODJ)
+               Y2=YC_CV(NODJ)
+               Z2=ZC_CV(NODJ)
+             ELSE
+               X1=X(XNOD)
+               Y1=Y(XNOD)
+               Z1=Z(XNOD)
+
+               X2=X(XNODJ)
+               Y2=Y(XNODJ)
+               Z2=Z(XNODJ)
+             ENDIF
              CALL MATPTSSTORE(MATPSI,COUNT,NFIELD,NOD,&
-                  &              PSI,NONODS,X_NONODS,&
+                  &              PSI,FEMPSI,USE_FEMPSI,NONODS,X_NONODS,&
                   &              NLOC,TOTELE,X_NDGLN,NDGLNO,&
                   &              FINDRM,COLM,NCOLM,&
-                  &              X(XNOD),Y(XNOD),Z(XNOD),&
-                  &              X(XNODJ),Y(XNODJ),Z(XNODJ),&
+                  &              X1,Y1,Z1,&
+                  &              X2,Y2,Z2,&
                   &              NORMX1,NORMY1,NORMZ1,&
                   &              X,Y,Z,&
                   !     work space...
@@ -8936,7 +8968,7 @@
 !     
 !     
       SUBROUTINE MATPTSSTORE(MATPSI,COUNT,NFIELD,NOD,&
-     &     PSI,NONODS,X_NONODS,&
+     &     PSI,FEMPSI,USE_FEMPSI,NONODS,X_NONODS,&
      &     NLOC,TOTELE,X_NDGLN,NDGLNO,&
      &     FINDRM,COLM,NCOLM,&
      &     X1,Y1,Z1,&
@@ -8952,14 +8984,16 @@
 !     a single element.     
 ! IF BOUND then make locally bounded.
       IMPLICIT NONE
-      REAL INFINY,FRALINE
+      REAL INFINY,FRALINE2
       LOGICAL, intent(in) :: REFLECT
 ! IF REFLECT then use a reflection condition at boundary to 
 ! do limiting. 
-      PARAMETER(INFINY=1.E+20,FRALINE=0.001)
+      PARAMETER(INFINY=1.E+20,FRALINE2=0.001)
       LOGICAL, intent(in) :: BOUND
       INTEGER, intent(in) :: COUNT,NFIELD,NOD,NONODS,X_NONODS,NLOC,TOTELE,NDIM
       REAL, intent(in) :: PSI(NONODS*NFIELD)
+      REAL, intent(in) :: FEMPSI(NONODS*NFIELD)
+      LOGICAL, intent(in) :: USE_FEMPSI
       REAL, intent(inout) :: MATPSI(NCOLM*NFIELD)
       INTEGER, intent(in) :: X_NDGLN(NLOC*TOTELE),NDGLNO(NLOC*TOTELE)
       INTEGER, intent(in) :: NCOLM,FINDRM(NONODS+1),COLM(NCOLM)
@@ -8979,8 +9013,14 @@
       INTEGER ELE,ILOC,KNOD,JNOD,IFIELD, COUNT2
       REAL MINCOR,MINCORK,RSUM
       REAL VX,VY,VZ,T2X,T2Y,T2Z,T1X,T1Y,T1Z,DIST12,RN,RMATPSI
-      REAL REFX,REFY,REFZ,REFX2,REFY2,REFZ2
+      REAL REFX,REFY,REFZ,REFX2,REFY2,REFZ2, FRALINE
+      LOGICAL IS_DG
+
+      IS_DG=NONODS.NE.X_NONODS
 !     
+      FRALINE=FRALINE2
+      IF(IS_DG) FRALINE=1.0
+
       XC=X1 - FRALINE*(X2-X1)
       YC=Y1 - FRALINE*(Y2-Y1)
       ZC=Z1 - FRALINE*(Z2-Z1)
@@ -9101,14 +9141,23 @@
       DO IFIELD=1,NFIELD
          RMATPSI=0.0
          DO ILOC=1,NLOC! Was loop 
-            RMATPSI   =RMATPSI  +LOCCORDSK(ILOC)*PSI(NLOCNODSK(ILOC)+(IFIELD-1)*NONODS)
+            IF(USE_FEMPSI) THEN
+               RMATPSI   =RMATPSI  +LOCCORDSK(ILOC)*FEMPSI(NLOCNODSK(ILOC)+(IFIELD-1)*NONODS)
+            ELSE
+               RMATPSI   =RMATPSI  +LOCCORDSK(ILOC)*PSI(NLOCNODSK(ILOC)+(IFIELD-1)*NONODS)
+            ENDIF
 !         XC=XC+LOCCORDSK(ILOC)*X(LOCNODSK(ILOC))
 !         YC=YC+LOCCORDSK(ILOC)*Y(LOCNODSK(ILOC))
 !         ZC=ZC+LOCCORDSK(ILOC)*Z(LOCNODSK(ILOC))
          END DO
 !     Exaduate difference by a factor of 100.
-         RMATPSI   = PSI( NOD + (IFIELD-1)*NONODS )  &
+         IF(USE_FEMPSI) THEN
+            RMATPSI   = FEMPSI( NOD + (IFIELD-1)*NONODS )  &
+         + (1./FRALINE) * ( RMATPSI - FEMPSI( NOD + (IFIELD-1)*NONODS) )
+         ELSE
+            RMATPSI   = PSI( NOD + (IFIELD-1)*NONODS )  &
          + (1./FRALINE) * ( RMATPSI - PSI( NOD + (IFIELD-1)*NONODS) )
+         ENDIF
 
 !     Now correct to make sure that we get a bounded soln...
          IF(BOUND) THEN
