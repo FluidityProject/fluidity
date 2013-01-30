@@ -120,7 +120,8 @@ class LinearVariationalSolver(object):
                 domain_nodes = set()
                 for nodelist in mesh.faces.surface_elements_to_nodes_maps[domain].values:
                     for node in nodelist:
-                        domain_nodes.add(node)
+                        if node < mesh.node_classes[2]:
+                            domain_nodes.add(node)
                 domain_nodes = list(domain_nodes)
                 A.zero_rows(domain_nodes, 1.0)
                 # Apply BC on RHS
