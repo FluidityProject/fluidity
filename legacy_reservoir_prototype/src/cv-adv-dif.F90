@@ -6168,6 +6168,7 @@
          ELSE  ! DG saturation across elements
 
             IF(UPWIND) THEN
+
                DO CV_KLOC = 1, CV_NLOC
                   CV_KLOC2 = CV_OTHER_LOC( CV_KLOC )
                   IF(CV_KLOC2 /= 0 ) THEN
@@ -6175,6 +6176,26 @@
                      CV_NODK2_IPHA = CV_NODK2 + ( IPHASE - 1 ) * CV_NONODS
                      CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
                      CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
+               IF(DOWNWIND_EXTRAP.AND.(courant_or_minus_one_new.GE.0.0)) THEN ! Extrapolate to the downwind value...
+! USE DOWNWINDING...
+                     FEMTGI = FEMTGI +  SCVFEN( CV_KLOC, GI ) * ( FEMT( CV_NODK2_IPHA ) & 
+                          * (1.-INCOME) + FEMT( CV_NODK_IPHA ) * INCOME )
+                     FEMTOLDGI = FEMTOLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMTOLD( CV_NODK2_IPHA ) &
+                          * (1.-INCOMEOLD) + FEMTOLD( CV_NODK_IPHA ) * INCOMEOLD )
+                     FEMDGI = FEMDGI + SCVFEN( CV_KLOC, GI ) * ( FEMDEN( CV_NODK2_IPHA ) &
+                          * (1.-INCOME) + FEMDEN( CV_NODK_IPHA ) * INCOME )
+                     FEMDOLDGI = FEMDOLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMDENOLD( CV_NODK2_IPHA ) &
+                          * (1.-INCOMEOLD) + FEMDENOLD( CV_NODK_IPHA ) * INCOMEOLD )
+                     IF(IGOT_T2==1) THEN
+                        FEMT2GI = FEMT2GI +  SCVFEN( CV_KLOC, GI ) * ( FEMT2( CV_NODK2_IPHA ) & 
+                             * (1.-INCOME) + FEMT2( CV_NODK_IPHA ) * INCOME )
+                        FEMT2OLDGI = FEMT2OLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMT2OLD( CV_NODK2_IPHA ) &
+                             * (1.-INCOMEOLD) + FEMT2OLD( CV_NODK_IPHA ) * INCOMEOLD )
+                     ELSE
+                        FEMT2GI    = 1.0
+                        FEMT2OLDGI = 1.0
+                     ENDIF
+               ELSE
                      FEMTGI = FEMTGI +  SCVFEN( CV_KLOC, GI ) * ( FEMT( CV_NODK2_IPHA ) & 
                           * INCOME + FEMT( CV_NODK_IPHA ) * ( 1. -INCOME ))
                      FEMTOLDGI = FEMTOLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMTOLD( CV_NODK2_IPHA ) &
@@ -6192,6 +6213,8 @@
                         FEMT2GI    = 1.0
                         FEMT2OLDGI = 1.0
                      ENDIF
+                ENDIF
+
                   ENDIF
                END DO
             ELSE
