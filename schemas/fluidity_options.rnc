@@ -33,8 +33,8 @@ start =
          element pyop2_backend {
             element string_value {
                ("sequential" | "cuda" | "opencl")
-            },
-         },
+            }
+         }?,
          ## Option problem_type does not change the tree.  It is just used for options checking.
          element problem_type {
             element string_value {

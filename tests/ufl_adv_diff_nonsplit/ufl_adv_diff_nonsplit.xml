@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='utf-8'?>
 <testproblem>
-  <name>UFL Helmholtz MMS P1</name>
+  <name>UFL Advection-Diffusion Non-split</name>
   <owner userid="fr710"/>
   <tags>flml ufl</tags>
-  <problem_definition length="special" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>time fluidity MMS_A.flml; time fluidity MMS_B.flml; time fluidity MMS_C.flml; time fluidity MMS_D.flml</command_line>
   </problem_definition>
   <variables>
@@ -21,10 +21,10 @@ cd_convergence_gal_stat = convergence_gal_stat("MMS_C.stat", "MMS_D.stat")
     </variable>
   </variables>
   <pass_tests>
-    <test name="helmholtz_mms convergence order." language="python">
-assert ab_convergence_gal_stat[0] > 1.8
-assert bc_convergence_gal_stat[0] > 2.0
-assert cd_convergence_gal_stat[0] > 2.2
+    <test name="test_advection_diffusion advection order." language="python">
+assert ab_convergence_gal_stat[0] > 1.4
+assert bc_convergence_gal_stat[0] > 1.9
+assert cd_convergence_gal_stat[0] > 1.9
     </test>
   </pass_tests>
   <warn_tests/>

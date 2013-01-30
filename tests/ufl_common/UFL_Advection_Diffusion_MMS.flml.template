@@ -3,6 +3,7 @@
   <simulation_name>
     <string_value lines="1">{SIMULATION}</string_value>
   </simulation_name>
+  <pyop2_backend>{BACKEND}</pyop2_backend>
   <problem_type>
     <string_value lines="1">fluids</string_value>
   </problem_type>
@@ -21,6 +22,11 @@
     <mesh name="VelocityMesh">
       <from_mesh>
         <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">{DEGREE}</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
         <stat>
           <exclude_from_stat/>
         </stat>
@@ -60,10 +66,9 @@
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
-          <python>
-            <string_value lines="20" type="code" language="python">def val(x, t):
-    return (1.0, 0.0)</string_value>
-          </python>
+          <constant>
+            <real_value shape="2" dim1="dim" rank="1">1.0 0.0</real_value>
+          </constant>
         </value>
         <output/>
         <stat>
@@ -78,9 +83,8 @@
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="UFL">
-          <string_value lines="20" type="code" language="python">
-t=state.scalar_fields["Tracer"]
-u=state.vector_fields["Velocity"]
+          <string_value lines="20" type="code" language="python">t=state.scalar_fields["Tracer"]
+u=as_vector([1.0, 0.0])
 
 p=TrialFunction(t)
 q=TestFunction(t)
@@ -97,8 +101,7 @@ D=M-0.5*d
 diff_rhs=action(M+0.5*d,t)
 
 solve(M == adv_rhs, t)
-solve(D == diff_rhs, t)
-</string_value>
+solve(D == diff_rhs, t)</string_value>
         </equation>
         <spatial_discretisation>
           <continuous_galerkin>

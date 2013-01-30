@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='utf-8'?>
 <testproblem>
-  <name>UFL Helmholtz MMS P1</name>
+  <name>UFL Helmholtz MMS P1 with Dirichlet BC</name>
   <owner userid="fr710"/>
   <tags>flml ufl</tags>
-  <problem_definition length="special" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>time fluidity MMS_A.flml; time fluidity MMS_B.flml; time fluidity MMS_C.flml; time fluidity MMS_D.flml</command_line>
   </problem_definition>
   <variables>
