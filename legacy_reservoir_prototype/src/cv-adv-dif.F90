@@ -3308,7 +3308,7 @@
       ! 
       REAL :: UC, UF, COURAT
       ! Local variables
-      REAL, PARAMETER :: XI = 2. ! XI = 1.
+      REAL, PARAMETER :: XI = 2., TOLER=1.0E-10 ! XI = 1.
       LOGICAL, PARAMETER :: DOWNWIND_EXTRAP = .TRUE.
       REAL :: TILDEUF, MAXUF
 
@@ -3317,13 +3317,14 @@
          ! For the interface tracking scheme, use Hyper-C (NOTE: at high Courant numbers
          !  limit is defined by XI, not the Hyper-C scheme.)
 
-         IF( COURAT > 0.0 ) THEN
+         IF( COURAT > TOLER ) THEN
             IF(DOWNWIND_EXTRAP) THEN
 ! new method based on downwind extrapolation...
 !               MAXUF = MAX( 0.0, UF )
                MAXUF = MAX( 0.0, UF, UC )
 !               TILDEUF = MIN( 1.0, UC/ (2.0 * COURAT), MAXUF )
-               TILDEUF = MIN( 1.0, max(UC/ (2.0 * COURAT), XI * UC ), MAXUF )
+!               TILDEUF = MIN( 1.0, max(UC/ (2.0 * COURAT), XI * UC ), MAXUF )
+               TILDEUF = MIN( 1.0, max(UC/ (3.0 * COURAT), XI * UC ), MAXUF )
 !               TILDEUF = MIN( 1.0, UC * 10.0, MAXUF )
             ELSE
                !TILDEUF = MIN( 1.0, max( UC / COURAT, XI * UC ))
@@ -8486,11 +8487,16 @@
       ELSE
          IF(NDIM==1) THEN
             SUB_TOTELE=2*TOTELE
+            sub_lin_totele=2
          ELSE IF(NDIM==2) THEN
             SUB_TOTELE=4*TOTELE
+            sub_lin_totele=4
          ELSE IF(NDIM==3) THEN 
             SUB_TOTELE=10*TOTELE
+            sub_lin_totele=8
          ENDIF
+         call conv_quad_to_lin_tri_tet(ndgln_p2top1, nloc, cv_nloc, sub_lin_totele)
+         
       ENDIF
 
       ALLOCATE(SUB_NDGLNO(SUB_TOTELE*NLOC))
@@ -8499,6 +8505,19 @@
       IF(CV_NLOC==NLOC) THEN 
          SUB_NDGLNO=CV_NDGLN
       ELSE
+
+         SUB_ELE=0
+         DO ELE=1,TOTELE
+            DO LOC_ELE=1,SUB_LIN_TOT
+
+               SUB_ELE=SUB_ELE+1
+               DO IL_LOC=1,NLOC
+                  IQ_LOC=ndgln_p2top1((SUB_ELE-1)*NLOC + IL_LOC)
+               END DO
+
+            END DO
+         END DO
+
          stop 2921
          ! do something...
       ENDIF
@@ -9321,9 +9340,96 @@ pure function tetvolume(x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3)
 ! 
 ! 
 ! 
+     
+     subroutine conv_quad_to_lin_tri_tet(ndgln_p2top1, nloc_lin, cv_nloc, sub_lin_totele)
+! convert quadratic element into a series of linear elements...
+     integer, intent( in ) :: nloc_lin, cv_nloc, sub_lin_totele
+     integer, intent( in ) :: ndgln_p2top1(sub_lin_totele*nloc_lin)
+! local variables...
+     integer :: sub_ele
+
+     if(cv_nloc==6) then ! quadratic triangle...
+      sub_ele = 1
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 1
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 2
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 4
+
+      sub_ele = 2
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 2
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 4
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 5
+
+      sub_ele = 3
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 2
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 3
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 5
+
+      sub_ele = 4
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 4
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 5
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 6
 
 
-!
+     else if(cv_nloc==10) then ! quadratic triangle...
+
+      sub_ele = 1
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 7
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 8
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 9
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 4 ) = 10
+
+      sub_ele = 2
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 1
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 2
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 4
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 4 ) = 7
+
+      sub_ele = 3
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 2
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 7
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 8
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 4 ) = 4
+
+      sub_ele = 4
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 2
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 3
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 4
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 4 ) = 8
+
+      sub_ele = 5
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 3
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 5
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 4
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 4 ) = 8
+
+      sub_ele = 6
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 4
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 5
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 9
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 4 ) = 8
+
+      sub_ele = 7
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 5
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 6
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 4
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 4 ) = 9
+
+      sub_ele = 8
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 7
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 9
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 8
+      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 4 ) = 4
+
+     else 
+        print *,'not a viable option for calc_sub_lin_tri_tet
+     end 
+     return
+
+     end subroutine conv_quad_to_lin_tri_tet
+
+
+
+
 !
 ! 
 ! 

@@ -2661,7 +2661,7 @@
       case( 8 ) ! Quadratic Tetrahedra 
 
          totele = 8 ;  x_nonods = max_x_nonods ; x_nloc = 4
-         call  Make_QTets( totele, quad_cv_nloc, x_nloc, max_x_nonods, x_nonods, &
+         call Make_QTets( totele, quad_cv_nloc, x_nloc, max_x_nonods, x_nonods, &
               x_ndgln, lx, ly, lz, x, y, z, fem_nod, &
               x_ideal, y_ideal, z_ideal, x_ndgln_ideal )
 
