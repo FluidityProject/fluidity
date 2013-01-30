@@ -115,12 +115,14 @@ class LinearVariationalSolver(object):
             if not isinstance(bc, DirichletBC):
                 raise NotImplementedError("Only DirichletBCs supported")
             for domain in bc.domain_args:
-                # Get list of nodes in domain. #FIXME: get zero_rows to take a map
-                # so we don't mandate pulling data back and forth in the interface.
+                # Get list of nodes in domain.
+                # FIXME: get zero_rows to take a map
+                # so we don't mandate pulling data back and forth in
+                # the interface.
                 domain_nodes = set()
                 for nodelist in mesh.faces.surface_elements_to_nodes_maps[domain].values:
                     for node in nodelist:
-                        if node < mesh.node_classes[2]:
+                        if node < mesh.node_classes[1]:
                             domain_nodes.add(node)
                 domain_nodes = list(domain_nodes)
                 A.zero_rows(domain_nodes, 1.0)
