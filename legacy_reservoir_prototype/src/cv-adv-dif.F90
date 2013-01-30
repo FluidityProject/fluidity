@@ -6128,10 +6128,13 @@
 !                  ELE_LENGTH_SCALE=0.5*HDC
 ! For discontinuous elements half the length scale...
                   IF(U_NONODS==CV_NONODS) ELE_LENGTH_SCALE=0.5*ELE_LENGTH_SCALE
+! For quadratic elements...
+                  IF( ((NDIM==2).AND.(CV_NLOC==6)).or.((NDIM==3).AND.(CV_NLOC==10)) ) &
+                      ELE_LENGTH_SCALE=0.5*ELE_LENGTH_SCALE
 
                ENDIF
             ENDIF
-!          print *,'ele_length_scale=',ele_length_scale
+          print *,'ele_length_scale=',ele_length_scale
             DO CV_KLOC = 1, CV_NLOC
                CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
                CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
@@ -8611,16 +8614,16 @@
         ! Over-estimate the size of the COLELE array
         MXNCOLEL=20*TOTELE+500
 
-        ALLOCATE( NOD_FINDELE(NONODS+1) )
+        ALLOCATE( NOD_FINDELE(X_NONODS+1) )
         ALLOCATE( NOD_COLELE(MXNCOLEL) )
         
-        ALLOCATE(   NLIST(NONODS) )
-        ALLOCATE(  INLIST(NONODS) )
+        ALLOCATE(   NLIST(X_NONODS) )
+        ALLOCATE(  INLIST(X_NONODS) )
         
         ! Calculate node element list - moved from (I)FINPTS
-        CALL PHILNODELE(NONODS,NOD_FINDELE,NOD_COLELE, &
+        CALL PHILNODELE(X_NONODS,NOD_FINDELE,NOD_COLELE, &
                         NCOLEL,MXNCOLEL, &
-                        TOTELE,NLOC,NDGLNO, &
+                        TOTELE,NLOC,X_NDGLN, &
                         NLIST,INLIST)
         
         IF(STORE_ELE) THEN
@@ -8810,7 +8813,7 @@
     REAL, intent(in) :: N(NLOC,NGI),NLX(NLOC,NGI),NLY(NLOC,NGI),NLZ(NLOC,NGI)
     REAL, intent(in) :: WEIGHT(NGI)
     !     work space...
-    INTEGER, intent(in) :: FINDELE(NONODS+1),COLELE(NCOLEL)
+    INTEGER, intent(in) :: FINDELE(X_NONODS+1),COLELE(NCOLEL)
     INTEGER, intent(in) :: IGETSTOR
     INTEGER, intent(inout) :: ELEMATPSI(NCOLM*IGETSTOR)
     REAL, intent(inout) :: ELEMATWEI(NCOLM*NLOC*IGETSTOR)
@@ -8936,7 +8939,7 @@
                Y2=Y(XNODJ)
                Z2=Z(XNODJ)
              ENDIF
-             CALL MATPTSSTORE(MATPSI,COUNT,NFIELD,NOD,&
+             CALL MATPTSSTORE(MATPSI,COUNT,NFIELD,NOD,XNOD,&
                   &              PSI,FEMPSI,USE_FEMPSI,NONODS,X_NONODS,&
                   &              NLOC,TOTELE,X_NDGLN,NDGLNO,&
                   &              FINDRM,COLM,NCOLM,&
@@ -8967,7 +8970,7 @@
 !     
 !     
 !     
-      SUBROUTINE MATPTSSTORE(MATPSI,COUNT,NFIELD,NOD,&
+      SUBROUTINE MATPTSSTORE(MATPSI,COUNT,NFIELD,NOD,XNOD,&
      &     PSI,FEMPSI,USE_FEMPSI,NONODS,X_NONODS,&
      &     NLOC,TOTELE,X_NDGLN,NDGLNO,&
      &     FINDRM,COLM,NCOLM,&
@@ -8990,7 +8993,7 @@
 ! do limiting. 
       PARAMETER(INFINY=1.E+20,FRALINE2=0.001)
       LOGICAL, intent(in) :: BOUND
-      INTEGER, intent(in) :: COUNT,NFIELD,NOD,NONODS,X_NONODS,NLOC,TOTELE,NDIM
+      INTEGER, intent(in) :: COUNT,NFIELD,NOD,XNOD,NONODS,X_NONODS,NLOC,TOTELE,NDIM
       REAL, intent(in) :: PSI(NONODS*NFIELD)
       REAL, intent(in) :: FEMPSI(NONODS*NFIELD)
       LOGICAL, intent(in) :: USE_FEMPSI
@@ -9000,7 +9003,7 @@
       REAL, intent(in) :: X1,Y1,Z1,X2,Y2,Z2,NORMX1,NORMY1,NORMZ1
       REAL, intent(in) :: X(X_NONODS),Y(X_NONODS),Z(X_NONODS)
       INTEGER, intent(in) :: NCOLEL
-      INTEGER, intent(in) :: FINDELE(NONODS+1),COLELE(NCOLEL)
+      INTEGER, intent(in) :: FINDELE(X_NONODS+1),COLELE(NCOLEL)
       REAL, intent(in) :: MINPSI(TOTELE*NFIELD),MAXPSI(TOTELE*NFIELD)
       INTEGER, intent(inout) :: ELEWIC
       REAL, intent(inout) :: LOCCORDSK(NLOC)
@@ -9074,7 +9077,7 @@
 !     
       MINCORK=-INFINY
 !
-      DO COUNT2=FINDELE(NOD),FINDELE(NOD+1)-1! Was loop 10
+      DO COUNT2=FINDELE(XNOD),FINDELE(XNOD+1)-1! Was loop 10
          ELE=COLELE(COUNT2)
 !     
          NLOCNODS(1)=NDGLNO((ELE-1)*NLOC+1)
