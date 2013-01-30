@@ -197,7 +197,7 @@ class Faces(fluidity_state.Faces):
         boundary_faces = {}
         elem_node_mapping = {}
         for boundary in self.boundary_list:
-            element_count[boundary] = 0
+            element_count[boundary] = [0]*4
             boundary_faces[boundary] = []
             elem_node_mapping[boundary] = []
 
@@ -207,18 +207,22 @@ class Faces(fluidity_state.Faces):
             boundary = self.boundary_ids[surface_element]
             boundary_faces[boundary].append(local_facet)
             elem_node_mapping[boundary] += mesh.ele_nodes(element)
-            element_count[boundary] += 1
+            for i, cls in enumerate(mesh.element_classes):
+                if element < cls:
+                    element_count[boundary][i] += 1
 
         # Find the surface elements in each boundary and their global nodes
         surface_element_count = {}
         surface_elements = {}
         for boundary in self.boundary_list:
-            surface_element_count[boundary] = 0
+            surface_element_count[boundary] = [0]*4
             surface_elements[boundary] = []
         for surface_element, boundary in enumerate(mesh.faces.boundary_ids):
-            surface_element_count[boundary] += 1
+            for i, cls in enumerate(mesh.element_classes):
+                if surface_element < cls:
+                    surface_element_count[boundary][i] += 1
             surface_elements[boundary].append(surface_element)
-        
+
         surface_elements_to_nodes = {}
         for boundary, surface_elements in surface_elements.iteritems():
             surface_elements_to_nodes[boundary] = []
