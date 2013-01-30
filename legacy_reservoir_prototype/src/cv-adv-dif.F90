@@ -8455,8 +8455,9 @@
       ! Allocate memory for the interpolated upwind values
       real, dimension( :, : ), allocatable :: N,NLX,NLY,NLZ
       real, dimension( : ), allocatable :: WEIGHT
-      integer, dimension( : ), allocatable :: SUB_NDGLNO
-      INTEGER :: COUNT, COUNT2, NOD, SUB_TOTELE, NGI,NLOC
+      integer, dimension( : ), allocatable :: SUB_NDGLNO, SUB_XNDGLNO, ndgln_p2top1
+      INTEGER :: COUNT, COUNT2, NOD, SUB_TOTELE, NGI,NLOC, ELE, IL_LOC, IQ_LOC, &
+           LOC_ELE, SUB_ELE, SUB_LIN_TOTELE
       REAL L1(50),L2(50),L3(50),L4(50)
 
 ! **********************Calculate linear shape functions...
@@ -8486,41 +8487,43 @@
          SUB_TOTELE=TOTELE
       ELSE
          IF(NDIM==1) THEN
-            SUB_TOTELE=2*TOTELE
             sub_lin_totele=2
          ELSE IF(NDIM==2) THEN
-            SUB_TOTELE=4*TOTELE
             sub_lin_totele=4
          ELSE IF(NDIM==3) THEN 
-            SUB_TOTELE=10*TOTELE
             sub_lin_totele=8
          ENDIF
-         call conv_quad_to_lin_tri_tet(ndgln_p2top1, nloc, cv_nloc, sub_lin_totele)
+         SUB_TOTELE= sub_lin_totele * totele
+
+         allocate( ndgln_p2top1( sub_lin_totele*nloc ) ) ; ndgln_p2top1 = 0
+         call conv_quad_to_lin_tri_tet( ndgln_p2top1, nloc, cv_nloc, sub_lin_totele )
          
       ENDIF
 
-      ALLOCATE(SUB_NDGLNO(SUB_TOTELE*NLOC))
+      ALLOCATE( SUB_NDGLNO( SUB_TOTELE*NLOC ) )
+      ALLOCATE( SUB_XNDGLNO( SUB_TOTELE*NLOC ) )
 
-      !print *,'CV_nLOC,NLOC:',CV_NLOC,NLOC
-      IF(CV_NLOC==NLOC) THEN 
-         SUB_NDGLNO=CV_NDGLN
+      IF ( CV_NLOC==NLOC ) THEN
+         SUB_NDGLNO = CV_NDGLN
+         SUB_XNDGLNO = X_NDGLN
       ELSE
 
          SUB_ELE=0
-         DO ELE=1,TOTELE
-            DO LOC_ELE=1,SUB_LIN_TOT
+         DO ELE = 1, TOTELE
+            DO LOC_ELE = 1, SUB_LIN_TOTELE
 
-               SUB_ELE=SUB_ELE+1
-               DO IL_LOC=1,NLOC
-                  IQ_LOC=ndgln_p2top1((SUB_ELE-1)*NLOC + IL_LOC)
+               SUB_ELE = SUB_ELE + 1
+               DO IL_LOC = 1, NLOC
+                  IQ_LOC = ndgln_p2top1( (loc_ELE-1)*NLOC + IL_LOC )
+                  SUB_NDGLNO( (sub_ele-1)*nloc + il_loc ) = cv_ndgln( (ele-1)*cv_nloc + iq_loc )
                END DO
 
             END DO
          END DO
 
-         stop 2921
-         ! do something...
-      ENDIF
+         SUB_XNDGLNO = SUB_NDGLNO
+         deallocate( ndgln_p2top1 )
+      END IF
 
 ! Calculate the sub elements for quadratic element SUB_NDGLNO ... 
 ! ******************************************************************
@@ -8532,16 +8535,16 @@
            TUPWIND,  &
 ! Store the upwind element for interpolation and its weights for 
 ! faster results...
-           ELEMATPSI,ELEMATWEI, IELEMATPSI,  &
-           NFIELD,NONODS,NLOC,NGI,SUB_TOTELE,SUB_NDGLNO, &
-           SMALL_FINDRM,SMALL_COLM,NSMALL_COLM, &
-           X_NDGLN,X_NONODS,NDIM, &
-           X,Y,Z, &
-           N,NLX,NLY,NLZ, WEIGHT, &
+           ELEMATPSI, ELEMATWEI, IELEMATPSI,  &
+           NFIELD, NONODS, NLOC, NGI, SUB_TOTELE, SUB_NDGLNO, &
+           SMALL_FINDRM,SMALL_COLM, NSMALL_COLM, &
+           SUB_XNDGLNO, X_NONODS, NDIM, &
+           X, Y, Z, &
+           N, NLX, NLY, NLZ, WEIGHT, &
            STORE_ELE, RET_STORE_ELE)
  
       DEALLOCATE( N, NLX, NLY, NLZ, &
-           WEIGHT, SUB_NDGLNO )
+           WEIGHT, SUB_NDGLNO, SUB_XNDGLNO )
 
       RETURN
       END SUBROUTINE CALC_ANISOTROP_LIM_VALS
@@ -8581,9 +8584,7 @@
 
       LOGICAL :: D3,DCYL
         ! Allocate memory for the interpolated upwind values
-      LOGICAL, PARAMETER :: BOUND   = .TRUE.,  REFLECT = .FALSE. ! limiting options
-      !LOGICAL, PARAMETER :: BOUND   = .TRUE.,  REFLECT = .TRUE. ! limiting options
-      !LOGICAL, PARAMETER :: BOUND   = .FALSE.,  REFLECT = .FALSE. ! limiting options
+      LOGICAL, PARAMETER :: BOUND  = .TRUE., REFLECT = .FALSE. ! limiting options
       INTEGER, DIMENSION( : ), allocatable :: NOD_FINDELE,NOD_COLELE, NLIST, INLIST, DUMMYINT
       REAL, DIMENSION( : ), allocatable :: DUMMYREAL
       INTEGER MXNCOLEL,NCOLEL
@@ -8891,6 +8892,7 @@
           XNODJ=NOD2XNOD(NODJ)
           !     
           IF(NOD.NE.NODJ) THEN
+
              IF(REFLECT) THEN
                 NORMX1=NORMX(NOD)
                 NORMY1=NORMY(NOD)
@@ -9341,91 +9343,91 @@ pure function tetvolume(x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3)
 ! 
 ! 
      
-     subroutine conv_quad_to_lin_tri_tet(ndgln_p2top1, nloc_lin, cv_nloc, sub_lin_totele)
-! convert quadratic element into a series of linear elements...
-     integer, intent( in ) :: nloc_lin, cv_nloc, sub_lin_totele
-     integer, intent( in ) :: ndgln_p2top1(sub_lin_totele*nloc_lin)
-! local variables...
-     integer :: sub_ele
+      subroutine conv_quad_to_lin_tri_tet( ndgln_p2top1, nloc_lin, cv_nloc, sub_lin_totele )
+        ! convert quadratic element into a series of linear elements...
+        integer, intent( in ) :: nloc_lin, cv_nloc, sub_lin_totele
+        integer, intent( inout ) :: ndgln_p2top1(sub_lin_totele*nloc_lin)
+        ! local variables...
+        integer :: sub_ele
 
-     if(cv_nloc==6) then ! quadratic triangle...
-      sub_ele = 1
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 1
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 2
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 4
+        if(cv_nloc==6) then ! quadratic triangle...
+           sub_ele = 1
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 1
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 2
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 4
 
-      sub_ele = 2
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 2
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 4
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 5
+           sub_ele = 2
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 2
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 4
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 5
 
-      sub_ele = 3
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 2
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 3
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 5
+           sub_ele = 3
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 2
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 3
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 5
 
-      sub_ele = 4
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 4
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 5
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 6
+           sub_ele = 4
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 4
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 5
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 6
 
+        else if(cv_nloc==10) then ! quadratic triangle...
 
-     else if(cv_nloc==10) then ! quadratic triangle...
+           sub_ele = 1
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 7
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 8
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 9
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 4 ) = 10
 
-      sub_ele = 1
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 7
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 8
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 9
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 4 ) = 10
+           sub_ele = 2
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 1
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 2
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 4
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 4 ) = 7
 
-      sub_ele = 2
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 1
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 2
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 4
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 4 ) = 7
+           sub_ele = 3
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 2
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 7
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 8
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 4 ) = 4
 
-      sub_ele = 3
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 2
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 7
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 8
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 4 ) = 4
+           sub_ele = 4
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 2
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 3
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 4
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 4 ) = 8
 
-      sub_ele = 4
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 2
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 3
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 4
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 4 ) = 8
+           sub_ele = 5
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 3
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 5
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 4
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 4 ) = 8
 
-      sub_ele = 5
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 3
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 5
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 4
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 4 ) = 8
+           sub_ele = 6
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 4
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 5
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 9
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 4 ) = 8
 
-      sub_ele = 6
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 4
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 5
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 9
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 4 ) = 8
+           sub_ele = 7
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 5
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 6
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 4
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 4 ) = 9
 
-      sub_ele = 7
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 5
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 6
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 4
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 4 ) = 9
+           sub_ele = 8
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 7
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 9
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 8
+           ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 4 ) = 4
 
-      sub_ele = 8
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 1 ) = 7
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 2 ) = 9
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 3 ) = 8
-      ndgln_p2top1( ( sub_ele - 1 ) * nloc_lin + 4 ) = 4
+        else 
+           ewrite(3,*) 'not a viable option for calc_sub_lin_tri_tet'
+        end if
 
-     else 
-        print *,'not a viable option for calc_sub_lin_tri_tet
-     end 
-     return
+        return
 
-     end subroutine conv_quad_to_lin_tri_tet
+      end subroutine conv_quad_to_lin_tri_tet
 
 
 
