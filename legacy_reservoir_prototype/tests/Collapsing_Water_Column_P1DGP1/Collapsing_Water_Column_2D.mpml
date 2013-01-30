@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <multiphase_options>
   <simulation_name>
-    <string_value lines="1">cwc-c</string_value>
+    <string_value lines="1">cwc</string_value>
   </simulation_name>
   <geometry>
     <dimension>
@@ -39,7 +39,7 @@
         <mesh name="CoordinateMesh"/>
         <mesh_shape>
           <polynomial_degree>
-            <integer_value rank="0">1</integer_value>
+            <integer_value rank="0">2</integer_value>
           </polynomial_degree>
         </mesh_shape>
         <mesh_continuity>
@@ -87,7 +87,7 @@
         <mesh name="CoordinateMesh"/>
         <mesh_shape>
           <polynomial_degree>
-            <integer_value rank="0">1</integer_value>
+            <integer_value rank="0">2</integer_value>
           </polynomial_degree>
         </mesh_shape>
         <mesh_continuity>

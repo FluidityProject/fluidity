@@ -759,7 +759,7 @@
               IGOT_T2,NPHASE,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, &
               SMALL_FINDRM,SMALL_CENTRM,SMALL_COLM,NSMALL_COLM, &
               X_NDGLN,X_NONODS,NDIM, &
-              X,Y,Z, &
+              X,Y,Z, XC_CV, YC_CV, ZC_CV, &
               FINACV,COLACV,NCOLACV)
 
          if ( .false. ) then
@@ -8320,7 +8320,7 @@
          IGOT_T2,NPHASE,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, &
          SMALL_FINDRM,SMALL_CENTRM,SMALL_COLM,NSMALL_COLM, &
          X_NDGLN,X_NONODS,NDIM, &
-         X,Y,Z, &
+         X,Y,Z, XC_CV, YC_CV, ZC_CV, &
          FINACV,COLACV,NCOLACV) 
       ! For the anisotropic limiting scheme we find the upwind values
       ! by interpolation using the subroutine FINPTS or IFINPTS; the upwind
@@ -8339,6 +8339,7 @@
       INTEGER, DIMENSION( NSMALL_COLM ), intent( inout ) :: SMALL_COLM
       INTEGER, DIMENSION( CV_NONODS ), intent( inout ) :: SMALL_CENTRM
       REAL, DIMENSION( X_NONODS ), intent( in ) :: X,Y,Z
+      REAL, DIMENSION( CV_NONODS ), intent( in ) :: XC_CV, YC_CV, ZC_CV
       INTEGER, DIMENSION( CV_NONODS*NPHASE+1 ), intent( in ) :: FINACV
       INTEGER, DIMENSION( NCOLACV ), intent( in ) :: COLACV
       REAL, DIMENSION(:), ALLOCATABLE :: SOL
@@ -8378,7 +8379,7 @@
               NPHASE*6,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, &
               SMALL_FINDRM,SMALL_COLM,NSMALL_COLM, &
               X_NDGLN,X_NONODS,NDIM, &
-              X,Y,Z, &
+              X,Y,Z, XC_CV, YC_CV, ZC_CV, &
               .FALSE., .FALSE.)
 
          TUPWIND_MAT = sol( 1 : nsmall_colm*nphase )
@@ -8405,7 +8406,7 @@
               NPHASE*4,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, &
               SMALL_FINDRM,SMALL_COLM,NSMALL_COLM, &
               X_NDGLN,X_NONODS,NDIM, &
-              X,Y,Z, &
+              X,Y,Z, XC_CV, YC_CV, ZC_CV, &
               .FALSE., .FALSE.)
 
          TUPWIND_MAT = sol( 1 : nsmall_colm*nphase )
@@ -8432,7 +8433,7 @@
          NFIELD,NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, &
          SMALL_FINDRM,SMALL_COLM,NSMALL_COLM, &
          X_NDGLN,X_NONODS,NDIM, &
-         X,Y,Z, &
+         X,Y,Z, XC_CV, YC_CV, ZC_CV, &
          STORE_ELE, RET_STORE_ELE)
       ! For the anisotropic limiting scheme we find the upwind values
       ! by interpolation using the subroutine FINPTS or IFINPTS; the upwind
@@ -8446,6 +8447,8 @@
       INTEGER, DIMENSION( NONODS+1 ), intent( in ) :: SMALL_FINDRM
       INTEGER, DIMENSION( NSMALL_COLM ), intent( in ) :: SMALL_COLM
       REAL, DIMENSION( X_NONODS ), intent( in ) :: X,Y,Z
+      REAL, DIMENSION( NONODS ), intent( in ) :: XC_CV, YC_CV, ZC_CV
+! the centre of each CV is: XC_CV, YC_CV, ZC_CV
 
       INTEGER, intent(in) :: IELEMATPSI
       INTEGER, DIMENSION( NSMALL_COLM * IELEMATPSI  ), intent( inout ) :: ELEMATPSI
@@ -8539,7 +8542,7 @@
            NFIELD, NONODS, NLOC, NGI, SUB_TOTELE, SUB_NDGLNO, &
            SMALL_FINDRM,SMALL_COLM, NSMALL_COLM, &
            SUB_XNDGLNO, X_NONODS, NDIM, &
-           X, Y, Z, &
+           X, Y, Z, XC_CV, YC_CV, ZC_CV, &
            N, NLX, NLY, NLZ, WEIGHT, &
            STORE_ELE, RET_STORE_ELE)
  
@@ -8548,6 +8551,7 @@
 
       RETURN
       END SUBROUTINE CALC_ANISOTROP_LIM_VALS
+
 
 
 
@@ -8561,7 +8565,7 @@
            NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
            FINDRM,COLM,NCOLM, &
            X_NDGLN,X_NONODS,NDIM, &
-           X,Y,Z, &
+           X,Y,Z, XC_CV, YC_CV, ZC_CV, &
            N,NLX,NLY,NLZ, WEIGHT, &
            STORE_ELE, RET_STORE_ELE)
         ! For the anisotropic limiting scheme we find the upwind values
@@ -8578,6 +8582,7 @@
       REAL, DIMENSION( NCOLM * NLOC * IELEMATPSI  ), intent( inout ) :: ELEMATWEI
 
       REAL, DIMENSION(X_NONODS), intent( in ) :: X,Y,Z
+      REAL, DIMENSION( NONODS ), intent( in ) :: XC_CV, YC_CV, ZC_CV
       REAL, INTENT(IN) :: N(NLOC,NGI),NLX(NLOC,NGI),NLY(NLOC,NGI),NLZ(NLOC,NGI)
       REAL, INTENT(IN) :: WEIGHT(NGI) 
       LOGICAL, INTENT(IN) :: STORE_ELE, RET_STORE_ELE
@@ -8609,7 +8614,7 @@
           CALL FINPTSSTORE(T,NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
                   TUPWIND,FINDRM,COLM,NCOLM,NDIM, &
                   X_NDGLN,X_NONODS, &
-                  X,Y,Z, &
+                  X,Y,Z, XC_CV, YC_CV, ZC_CV,&
                   N,NLX,NLY,NLZ, WEIGHT, &
                   NOD_FINDELE,NOD_COLELE,NCOLEL, &
                   ELEMATPSI,ELEMATWEI,1, &
@@ -8630,7 +8635,7 @@
           CALL FINPTSSTORE(T,NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
                     TUPWIND,FINDRM,COLM,NCOLM,NDIM, &
                     X_NDGLN,X_NONODS, &
-                    X,Y,Z, &
+                    X,Y,Z, XC_CV, YC_CV, ZC_CV,&
                     N,NLX,NLY,NLZ, WEIGHT, &
                     NOD_FINDELE,NOD_COLELE,NCOLEL, &
                     DUMMYINT,DUMMYREAL,0, &
@@ -8766,7 +8771,7 @@
   SUBROUTINE FINPTSSTORE(PSI,NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
        &     MATPSI,FINDRM,COLM,NCOLM,NDIM, &
        &     X_NDGLN,X_NONODS, &
-       &     X,Y,Z,&
+       &     X,Y,Z, XC_CV, YC_CV, ZC_CV,&
        &     N,NLX,NLY,NLZ, WEIGHT,&
        !     work space...
        &     FINDELE,COLELE,NCOLEL,&
@@ -8787,6 +8792,7 @@
     REAL, intent(inout) :: MATPSI(NCOLM*NFIELD)
     INTEGER, intent(in) :: X_NDGLN(TOTELE*NLOC)
     REAL, intent(in) :: X(X_NONODS),Y(X_NONODS),Z(X_NONODS)
+      REAL, DIMENSION( NONODS ), intent( in ) :: XC_CV, YC_CV, ZC_CV
     REAL, intent(in) :: N(NLOC,NGI),NLX(NLOC,NGI),NLY(NLOC,NGI),NLZ(NLOC,NGI)
     REAL, intent(in) :: WEIGHT(NGI)
     !     work space...
