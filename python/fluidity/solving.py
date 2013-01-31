@@ -245,6 +245,8 @@ def _la_solve(A, x, b, linear_solver=None, preconditioner=None):
         parameters['absolute_tolerance'] = get_option(atol_path)
     solver = op2.Solver(parameters=parameters)
     solver.solve(A, x.dat, b)
+    x.dat.halo_exchange_begin()
+    x.dat.halo_exchange_end()
 
 def solve(*args, **kwargs):
     """Solve linear system Ax = b or variational problem a == L or F == 0.
