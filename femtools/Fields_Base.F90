@@ -330,6 +330,11 @@ module fields_base
     module procedure print_mesh_incompatibility, print_mesh_positions_incompatibility
   end interface
 
+  interface refresh_topology
+     module procedure refresh_topology_mesh, &
+          refresh_topology_vector_field
+  end interface refresh_topology
+  
   interface write_minmax
     module procedure write_minmax_scalar, write_minmax_vector, write_minmax_tensor
   end interface
@@ -3973,6 +3978,24 @@ contains
     assert(mesh%topology%shape%degree == 1)
     topology => mesh%topology
   end function mesh_topology
+
+  subroutine refresh_topology_mesh(mesh)
+    ! When new structures are added to meshes which are topologies,
+    ! the topology mesh descriptor becomes invalid.  This updates it.
+    type(mesh_type), intent(in) :: mesh
+    if (mesh%refcount%id == mesh%topology%refcount%id) then
+       mesh%topology = mesh
+    end if
+  end subroutine refresh_topology_mesh
+
+  subroutine refresh_topology_vector_field(field)
+    ! When new structures are added to meshes which are topologies,
+    ! the topology mesh descriptor becomes invalid.  This updates it.
+    type(vector_field), intent(in) :: field
+    
+    call refresh_topology(field%mesh)
+
+  end subroutine refresh_topology_vector_field
 
   subroutine write_minmax_scalar(sfield, field_expression)
     ! the scalar field to print its min and max of

@@ -143,11 +143,6 @@ implicit none
       remove_boundary_conditions_vector
   end interface remove_boundary_conditions
 
-  interface refresh_topology
-     module procedure refresh_topology_mesh, &
-          refresh_topology_vector_field
-  end interface refresh_topology
-  
 #include "Reference_count_interface_mesh_type.F90"
 #include "Reference_count_interface_scalar_field.F90"
 #include "Reference_count_interface_vector_field.F90"
@@ -222,24 +217,6 @@ contains
     mesh%topology=mesh
 
   end subroutine allocate_mesh
-
-  subroutine refresh_topology_mesh(mesh)
-    ! When new structures are added to meshes which are topologies,
-    ! the topology mesh descriptor becomes invalid.  This updates it.
-    type(mesh_type), intent(in) :: mesh
-    if (mesh%refcount%id == mesh%topology%refcount%id) then
-       mesh%topology = mesh
-    end if
-  end subroutine refresh_topology_mesh
-
-  subroutine refresh_topology_vector_field(field)
-    ! When new structures are added to meshes which are topologies,
-    ! the topology mesh descriptor becomes invalid.  This updates it.
-    type(vector_field), intent(in) :: field
-    
-    call refresh_topology(field%mesh)
-
-  end subroutine refresh_topology_vector_field
 
   subroutine allocate_scalar_field(field, mesh, name, field_type, py_func, py_positions)
     type(scalar_field), intent(out) :: field
