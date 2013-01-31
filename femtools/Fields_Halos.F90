@@ -424,6 +424,7 @@ contains
        call nullify(mesh%element_halos)
        call derive_element_halo_from_node_halo(mesh, &
             & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES, create_caches = .true.)
+       call refresh_topology(mesh)
     end if
 
     if (present(meshes)) then

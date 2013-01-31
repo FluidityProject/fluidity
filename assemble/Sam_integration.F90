@@ -610,6 +610,8 @@ module sam_integration
            & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES)
        end if
 
+       call refresh_topology(output_linear_mesh)
+
        deallocate(new_ndglno)
        deallocate(new_boundary_ids)
        deallocate(new_coplanar_ids)
@@ -1046,6 +1048,8 @@ module sam_integration
            allocate(linear_mesh%element_halos(0)) 
          end if
        end if
+
+       call refresh_topology(linear_mesh)
 
        ! Insert the positions and linear mesh into all states
        call insert(states, linear_mesh, trim(linear_mesh_name))

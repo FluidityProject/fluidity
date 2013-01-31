@@ -3059,7 +3059,9 @@ contains
       call create_global_to_universal_numbering(position%mesh%element_halos(j))
       call create_ownership(position%mesh%element_halos(j))
     end do
-    
+  
+    call refresh_topology(position%mesh)
+  
   end subroutine create_empty_halo
 
 

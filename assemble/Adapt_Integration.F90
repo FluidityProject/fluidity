@@ -598,7 +598,9 @@ contains
           & ordering_scheme = HALO_ORDER_GENERAL, create_caches = .false.)
         call renumber_positions_elements_trailing_receives(output_positions, permutation=renumber_permutation)
       end if
-      
+
+      call refresh_topology(output_mesh)
+
       if(have_option(base_path // "/preserve_mesh_regions")&
                 .or.present_and_true(force_preserve_regions)) then
         ! reorder the region_ids since all out elements have been jiggled about

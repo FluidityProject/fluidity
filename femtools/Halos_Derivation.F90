@@ -1088,7 +1088,9 @@ contains
     call renumber_positions_trailing_receives(new_positions)
     assert(halo_valid_for_communication(new_positions%mesh%halos(1)))
     assert(halo_valid_for_communication(new_positions%mesh%halos(2)))
-      
+    
+    call refresh_topology(new_positions%mesh)
+  
   end subroutine derive_nonperiodic_halos_from_periodic_halos
     
   function derive_sub_halo(halo, sub_nodes) result (sub_halo)

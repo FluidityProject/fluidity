@@ -190,6 +190,8 @@ contains
         & ordering_scheme = HALO_ORDER_GENERAL, create_caches = .true.)
     end if
 
+    call refresh_topology(mesh)
+
     ewrite(1, *) "Exiting read_halos_mesh"
 #else
     FLAbort("read_halos_mesh cannot be called without MPI support")
@@ -311,6 +313,8 @@ contains
         & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES, create_caches = .true.)
     end if
 
+    call refresh_topology(subdomain_mesh)
+    
   end subroutine generate_substate_halos
 
   subroutine write_halos(filename, mesh)

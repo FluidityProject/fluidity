@@ -1651,6 +1651,8 @@ module zoltan_integration
     assert(has_ownership(zoltan_global_new_positions%mesh%halos(2)))
     assert(has_ownership(zoltan_global_new_positions%mesh%halos(1)))
     
+    call refresh_topology(zoltan_global_new_positions)
+
     if(zoltan_global_preserve_mesh_regions) then
        old_new_region_ids = zoltan_global_new_positions%mesh%region_ids
     end if

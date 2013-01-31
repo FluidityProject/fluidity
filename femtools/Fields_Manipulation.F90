@@ -3556,6 +3556,8 @@ implicit none
       call incref(output_positions%mesh%element_halos(halo_num))
     end do
 
+    call refresh_topology(output_positions)
+
     output_positions%option_path = input_positions%option_path
 
     ewrite(1, *) "Exiting renumber_positions"
@@ -3657,6 +3659,7 @@ implicit none
 
     output_positions%option_path = input_positions%option_path
 
+    call refresh_topology(output_positions)
     ewrite(1, *) "Exiting renumber_positions_elements"
 
   end subroutine renumber_positions_elements
