@@ -56,7 +56,8 @@ implicit none
     & wrap_tensor_field
   public :: add_lists, extract_lists, add_nnlist, extract_nnlist, add_nelist, &
     & extract_nelist, add_eelist, extract_eelist, remove_lists, remove_nnlist, &
-    & remove_nelist, remove_eelist, extract_elements, remove_boundary_conditions
+    & remove_nelist, remove_eelist, extract_elements, remove_boundary_conditions, &
+    refresh_topology
 
   interface allocate
      module procedure allocate_scalar_field, allocate_vector_field,&
@@ -182,6 +183,8 @@ contains
     end do
     allocate(mesh%ndglno(elements*shape%ndof))
 
+    allocate(mesh%topology)
+    mesh%topology%topology => mesh%topology
 #ifdef _OPENMP
     ! Use first touch policy.
     !$OMP PARALLEL DO SCHEDULE(STATIC)
@@ -205,10 +208,24 @@ contains
     nullify(mesh%refcount) ! Hack for gfortran component initialisation
     !                         bug.
     mesh%periodic=.false.
-    
+
     call addref(mesh)
+    ! Meshes default to being topology meshes.  Caller should fix this
+    ! up later if this is not correct.
+    ! This can't use refresh_topology because the topology doesn't
+    ! point anywhere yet.
+    mesh%topology=mesh
 
   end subroutine allocate_mesh
+
+  subroutine refresh_topology(mesh)
+    ! When new structures are added to meshes which are topologies,
+    ! the topology mesh descriptor becomes invalid.  This updates it.
+    type(mesh_type), intent(in) :: mesh
+    if (mesh%refcount%id == mesh%topology%refcount%id) then
+       mesh%topology = mesh
+    end if
+  end subroutine refresh_topology
 
   subroutine allocate_scalar_field(field, mesh, name, field_type, py_func, py_positions)
     type(scalar_field), intent(out) :: field
@@ -543,6 +560,11 @@ contains
     end if
 
     call deallocate_faces(mesh)
+
+    if (associated(mesh%topology)) then
+       deallocate(mesh%topology)
+       nullify(mesh%topology)
+    end if
 
     if(associated(mesh%subdomain_mesh)) then
        call deallocate_subdomain_mesh(mesh)
@@ -979,7 +1001,7 @@ contains
        mesh%continuity=0
     end if
 
-    mesh%topology=>mesh_topology(model)
+    mesh%topology=mesh_topology(model)
     mesh%uid=>model%uid
 
     mesh%periodic=model%periodic
@@ -1099,7 +1121,7 @@ contains
     end if
 
     allocate(mesh%faces)
-    
+    call refresh_topology(mesh)
     ! only created in the first call to get_dg_surface_mesh()
     mesh%faces%dg_surface_mesh => null()
 
@@ -1310,6 +1332,7 @@ contains
        !    and the node numbering of the full mesh
        call create_surface_mesh(mesh%faces%surface_mesh, &
             mesh%faces%surface_node_list, mesh, name='Surface'//trim(mesh%name))
+       
 #ifdef HAVE_MEMORY_STATS
        call register_allocation("mesh_type", "integer", &
             size(mesh%faces%surface_node_list), name='Surface'//trim(mesh%name))
@@ -1810,7 +1833,7 @@ contains
     end if
     
     topology=>mesh_topology(mesh)
-    surface_mesh%topology=>topology%faces%surface_mesh
+    surface_mesh%topology=topology%faces%surface_mesh
 
   end subroutine create_surface_mesh
     

@@ -3969,14 +3969,9 @@ contains
     type(mesh_type), intent(in), target :: mesh
     type(mesh_type), pointer :: topology
 
-    if (associated(mesh%topology)) then
-       topology=>mesh%topology
-    else if (element_degree(mesh,1)==1) then
-       topology=>mesh
-    else
-       FLAbort("Failed to locate mesh topology")
-    end if
-
+    assert(associated(mesh%topology))
+    assert(mesh%topology%shape%degree == 1)
+    topology => mesh%topology
   end function mesh_topology
 
   subroutine write_minmax_scalar(sfield, field_expression)

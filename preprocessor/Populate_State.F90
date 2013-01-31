@@ -781,7 +781,7 @@ contains
           uid%mesh%uid=>uid
           
           mesh_list=[ position%mesh ]
-          call order_elements(uid, position, mesh_list)
+          call order_elements(uid, meshes=mesh_list)
           ! Because we've fiddled with mesh faces, the copy of
           !  CoordinateMesh in state is out of date.
           position%mesh=mesh_list(1)

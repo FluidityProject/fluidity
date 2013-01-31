@@ -266,7 +266,7 @@ contains
     !!< is that numbering is on the periodic mesh while the meshes are the
     !!< non-periodic (or possibly periodic on fewer sides) alternatives. 
     type(scalar_field), intent(inout), target :: numbering
-    type(vector_field), intent(inout) :: positions
+    type(vector_field), intent(inout), optional :: positions
 
     type(mesh_type), dimension(:), intent(inout), target, optional :: meshes
 
@@ -279,7 +279,7 @@ contains
     type(cell_type), pointer :: cell
     type(mesh_type), pointer :: mesh
     type(mesh_type) :: p0_mesh
-    type(mesh_type) :: new_mesh
+    type(mesh_type), target :: new_mesh
     integer, dimension(:), allocatable :: renumber
 
     assert(numbering%mesh%shape%degree==1)
@@ -326,7 +326,6 @@ contains
  
     ! Now re-order the elements.
     mesh=>numbering%mesh
-    
     p0_mesh=piecewise_constant_mesh(mesh,"ReorderMesh", with_faces=.false.)
     allocate(ndglno(size(mesh%ndglno)))
     ndglno=mesh%ndglno
@@ -374,8 +373,10 @@ contains
     surface_facets = renumber(surface_facets)
     ! Renumber the universal numbering field according to new node numbers.
     numbering%val(renumber) = numbering%val
-    ! Renumber the positions according to the new node numbers.
-    positions%val(:,renumber) = positions%val
+    if (present(positions)) then
+       ! Renumber the positions according to the new node numbers.
+       positions%val(:,renumber) = positions%val
+    end if
 
     deallocate(renumber)
 
@@ -391,6 +392,7 @@ contains
     end do
     call deallocate(numbering%mesh)
     numbering%mesh = new_mesh
+    new_mesh%topology=new_mesh
     ! The faces are now invalid so re-establish them.
     call deallocate_faces(mesh)
     ! Ordering is significant in the NElist and EElist.
@@ -427,7 +429,7 @@ contains
     if (present(meshes)) then
        do m=1, size(meshes)
           mesh=>meshes(m)
-          mesh%element_classes = new_mesh%element_classes
+          mesh%topology=mesh
           call deallocate_faces(mesh)
           call remove_nelist(mesh) 
           call add_nelist(mesh) 
