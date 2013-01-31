@@ -402,7 +402,8 @@ module hadapt_combine_meshes
     
     call create_global_to_universal_numbering(out_mesh%halos(2))
     call create_ownership(out_mesh%halos(2))    
-    
+
+    call refresh_topology(out_mesh)
   end subroutine derive_extruded_l2_node_halo
 
 
