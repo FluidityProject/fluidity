@@ -248,7 +248,8 @@ class Faces(fluidity_state.Faces):
                         surface_elements_to_nodes[boundary])
             self.boundary_facets[boundary] = \
                 op2.Dat(self.boundary_elem_sets[boundary], 1, 
-                        boundary_faces[boundary], numpy.uint32)
+                        boundary_faces[boundary], numpy.uint32,
+                        uid = self.surface_mesh.uid)
 
     def check_boundary(self, boundary):
         if boundary not in self.boundary_list:
@@ -271,8 +272,8 @@ class FieldCoefficient(Coefficient):
 
     @cached_property
     def dat(self):
-        return op2.Dat(self.node_set, self.value_shape, \
-                self.val, valuetype, self.name)
+        return op2.Dat(self.node_set, self.value_shape,
+                       self.val, valuetype, self.name, uid=self.uid)
 
     @cached_property
     def element_node_map(self):
@@ -281,8 +282,8 @@ class FieldCoefficient(Coefficient):
 
     @cached_property
     def temporary_dat(self):
-        return op2.Dat(self.node_set, self.value_shape, \
-                numpy.zeros(self.node_count), valuetype)
+        return op2.Dat(self.node_set, self.value_shape,
+                       numpy.zeros(self.node_count), valuetype, uid=self.uid)
 
     def __str__(self):
       if hasattr(self, "name"):
