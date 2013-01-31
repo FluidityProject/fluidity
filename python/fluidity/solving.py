@@ -120,10 +120,18 @@ class LinearVariationalSolver(object):
                 # so we don't mandate pulling data back and forth in
                 # the interface.
                 domain_nodes = set()
-                for nodelist in mesh.faces.surface_elements_to_nodes_maps[domain].values:
-                    for node in nodelist:
-                        if node < mesh.node_classes[1]:
-                            domain_nodes.add(node)
+                if domain not in mesh.faces.boundary_list:
+                    iterset = op2.Set(0)
+                    elem_map = op2.Map(iterset, mesh.node_set,
+                                       mesh.faces.surface_mesh.shape.loc,
+                                       numpy.zeros(0))
+                else:
+                    iterset = mesh.faces.surface_elem_sets[domain]
+                    elem_map = mesh.faces.surface_elements_to_nodes_maps[domain]
+                    for nodelist in mesh.faces.surface_elements_to_nodes_maps[domain].values:
+                        for node in nodelist:
+                            if node < mesh.node_classes[1]:
+                                domain_nodes.add(node)
                 domain_nodes = list(domain_nodes)
                 A.zero_rows(domain_nodes, 1.0)
                 # Apply BC on RHS
@@ -131,8 +139,8 @@ class LinearVariationalSolver(object):
                 # on the number of nodes and data dimension
                 dim = len(bc.function_arg)
                 value = op2.Global(dim, bc.function_arg)
-                op2.par_loop(_apply_dirichlet[dim], mesh.faces.surface_elem_sets[domain],
-                             b(mesh.faces.surface_elements_to_nodes_maps[domain], op2.WRITE),
+                op2.par_loop(_apply_dirichlet[dim], iterset,
+                             b(elem_map, op2.WRITE),
                              value(op2.READ))
 
         # FIXME: Parameters are not forced into solver a la Dolfin - only taken from FLML.
@@ -190,18 +198,30 @@ def _assemble_tensor(f):
             op2.par_loop(*args)
         if domain_type == 'exterior_facet':
             boundary = integral.measure().domain_id().subdomain_ids()[0]
-            elem_node = test.mesh.faces.boundary_maps[boundary]
+            if boundary not in test.mesh.faces.boundary_list:
+                iterset = op2.Set(0)
+                elem_node = op2.Map(iterset, test.mesh.node_set,
+                                    test.mesh.faces.surface_mesh.shape.loc,
+                                    numpy.zeros(0))
+                facet_dat = op2.Dat(iterset, 1, numpy.zeros(0),
+                                    numpy.uint32,
+                                    name='dummy_dat',
+                                    uid = test.mesh.faces.surface_mesh.uid)
+            else:
+                iterset = test.mesh.faces.boundary_elem_sets[boundary]
+                elem_node = test.mesh.faces.boundary_maps[boundary]
+                facet_dat = test.mesh.faces.boundary_facets[boundary]
             if is_mat:
                 tensor_arg = tensor((elem_node[op2.i[0]], 
                                      elem_node[op2.i[1]]), op2.INC)
             else:
                 tensor_arg = tensor(elem_node[op2.i[0]], op2.INC)
-            itspace = test.mesh.faces.boundary_elem_sets[boundary](*itspace_extents)
+            itspace = iterset(*itspace_extents)
             args = [kernel, itspace, tensor_arg,
                     coords.dat(elem_node, op2.READ)]
             for c in fd.coefficients:
                 args.append(c.dat(elem_node, op2.READ))
-            args.append(test.mesh.faces.boundary_facets[boundary](op2.IdentityMap, op2.READ))
+            args.append(facet_dat(op2.IdentityMap, op2.READ))
             op2.par_loop(*args)
         if domain_type == 'interior_facet':
             raise NotImplementedError("Unsupported interior_facet integral.")
