@@ -6104,9 +6104,10 @@
         IF(NDIM.GE.3) WDGI=WDGI+SUFEN( U_KLOC, GI )*W(U_NODK_IPHA)
                   END DO
  
+! cosine rule with velocity and normal:
 !                  RSCALE=ABS(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI) &
 !                        /TOLFUN(UDGI**2+VDGI**2+WDGI**2)
-! cosine rule:
+! cosine rule with velocity and concentration gradient:
 !                  RSCALE=ABS(TXGI*UDGI+TYGI*VDGI+TZGI*WDGI) &
 !                        /TOLFUN((UDGI**2+VDGI**2+WDGI**2)*SQRT(TXGI**2+TYGI**2+TZGI**2))
 ! no cosine rule:
