@@ -672,6 +672,8 @@ contains
       call deallocate(sends)
       call deallocate(receives)
 
+      call refresh_topology(mesh)
+
     end subroutine create_halos
     
   end subroutine make_global_numbering_new
