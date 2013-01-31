@@ -46,6 +46,7 @@ program form_pod_basis
    use momentum_equation
   use solvers 
   use momentum_cg 
+  use momentum_equation_reduced
 !  use checkpoint
 
   implicit none
@@ -286,6 +287,7 @@ contains
 !       snapmatrix_pressure(:,i)=field_val(pressure)
         snapmatrix_pressure(:,i)=pressure%val
     end do
+
 
     do i=1, snapshots
 

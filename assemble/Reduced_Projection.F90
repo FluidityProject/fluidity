@@ -43,7 +43,7 @@ module reduced_projection
   
 !  private
 
-  public :: solve_momentum_reduced, solve_advection_diffusion_cg_reduced
+  public :: solve_advection_diffusion_cg_reduced
   public :: project_reduced, project_reduced_t, project_full, project_full_t
   public :: pod_matrix_type, pod_rhs_type, pod_matrix_t_type, pod_rhs_t_type,phi,velo
  
@@ -96,7 +96,7 @@ module reduced_projection
 contains
 
  
-  subroutine solve_momentum_reduced(delta_u, delta_p, big_m, mom_rhs, ct_m, ct_rhs, timestep, dt, POD_state) 
+  subroutine solve_momentum_reduced2(delta_u, delta_p, big_m, mom_rhs, ct_m, ct_rhs, timestep, dt, POD_state) 
     !!< Solve the momentum equation in reduced space.
     type(vector_field), intent(inout) :: delta_u
     type(scalar_field), intent(inout) :: delta_p
@@ -152,7 +152,7 @@ contains
      call deallocate(pod_rhs)
      deallocate(pod_coef)
 
-  end subroutine solve_momentum_reduced
+  end subroutine solve_momentum_reduced2
 
 
   subroutine project_reduced(big_m, mom_rhs, ct_m, ct_rhs, pod_matrix, pod_rhs, dt, POD_state, fs_m)

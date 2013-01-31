@@ -230,21 +230,18 @@ contains
 
     ! Read state from .flml file
     call populate_state(state)
-    deim=have_option("/reduced_model/discrete_empirical_interpolation_method")
+!    deim=have_option("/reduced_model/discrete_empirical_interpolation_method")
      
-    !call populate_state(deim_state)
-    call populate_state(deim_state_res)
-    !call populate_state(deim_state_resl)
+!    call populate_state(deim_state_res)
   
     ewrite(3,*)'before have_option test'
 
     if (have_option("/reduced_model/execute_reduced_model")) then
 	!do m = 1,size(state)
-              if (deim) then
-                    call read_input_states_deimres(deim_state_resl)
-                   ! call read_pod_basis_differntmesh(POD_state_deim, deim_state_Resl) 
-                    call read_pod_basis_deimres(POD_state_deim, deim_state_Resl) 
-            endif
+!              if (deim) then
+!                    call read_input_states_deimres(deim_state_resl)
+!                    call read_pod_basis_deimres(POD_state_deim, deim_state_Resl) 
+!            endif
        		call read_pod_basis_differntmesh(POD_state, state)
               
 	!enddo
@@ -253,12 +250,12 @@ contains
        allocate(POD_state(1:0,1:0,1:0))
        
     end if
-     if (deim .and. (have_option("/reduced_model/execute_reduced_model"))) then
+!     if (deim .and. (have_option("/reduced_model/execute_reduced_model"))) then
        ! call read_pod_basis_deimres(POD_state_deim, deim_state_Res)    
-    else        
-       allocate(POD_state_deim(1:0))!,1:0,1:0))
+!    else        
+!       allocate(POD_state_deim(1:0))!,1:0,1:0))
        
-    end if
+!    end if
     ! Check the diagnostic field dependencies for circular dependencies
     call check_diagnostic_dependencies(state)
 
@@ -451,9 +448,9 @@ contains
          & .and. .not. have_option("/io/disable_dump_at_start") &
          & ) then
        call write_state(dump_no, state)
-           if (.not.deim .and. (have_option("/reduced_model/execute_reduced_model"))) then
-           call write_state(dump_no,deim_state_res)
-        endif
+!           if (.not.deim .and. (have_option("/reduced_model/execute_reduced_model"))) then
+!           call write_state(dump_no,deim_state_res)
+!        endif
     end if
 
     call initialise_convergence(filename, state)
@@ -515,10 +512,10 @@ contains
              call checkpoint_simulation(state, cp_no = dump_no)
           end if
           call write_state(dump_no, state)
-            if (.not.deim .and. (have_option("/reduced_model/execute_reduced_model"))) then
-             call vtk_write_state(filename=trim(filename)//"DEIMRES", index=dump_no, state=deim_state_res)
+!            if (.not.deim .and. (have_option("/reduced_model/execute_reduced_model"))) then
+!             call vtk_write_state(filename=trim(filename)//"DEIMRES", index=dump_no, state=deim_state_res)
            
-           endif
+!           endif
        end if
 
        ewrite(2,*)'steady_state_tolerance,nonlinear_iterations:',steady_state_tolerance,nonlinear_iterations
@@ -958,9 +955,9 @@ contains
     ! Dump at end, unless explicitly disabled
     if(.not. have_option("/io/disable_dump_at_end")) then
        call write_state(dump_no, state)
-        if (.not.deim .and. (have_option("/reduced_model/execute_reduced_model"))) then
-        call write_state(dump_no, deim_state_res)
-        endif
+!        if (.not.deim .and. (have_option("/reduced_model/execute_reduced_model"))) then
+!        call write_state(dump_no, deim_state_res)
+!        endif
     end if
 
     ! cleanup GLS
@@ -1011,7 +1008,7 @@ contains
           enddo
        end do
     end if
-   deallocate(pod_state_deim)
+!   deallocate(pod_state_deim)
     ! if (allocated(pod_state_deim)) then
      !  do i=1, size(pod_state_deim,1)
          ! do j=1,size(pod_state_deim,2)
@@ -1267,35 +1264,6 @@ contains
     end do
 
   end subroutine check_old_code_path
-    subroutine read_input_states_deimres(deim_state_resl)
-    !!< Read the input states from the vtu dumps of the forward run.
-    type(state_type), intent(out), dimension(:), allocatable :: deim_state_resl
-    character(len=1024) :: simulation_name, filename
-   
-    integer :: dump_sampling_period, quadrature_degree
-    integer :: i,j,k,total_dumps,stable_dumps
-     call get_option('/simulation_name',simulation_name)
-    call get_option('/reduced_model/pod_basis_formation/dump_sampling_period',dump_sampling_period)
-    call get_option('/geometry/quadrature/degree', quadrature_degree)
-
-    ewrite(3,*) 'dump_sampling_period',dump_sampling_period
-
-    !substract gyre_0.vtu
-    total_dumps=count_dumps(dump_sampling_period)-1
-    allocate(deim_state_resl(total_dumps))
-
-    do i=1, total_dumps
-
-       !! Note that this won't work in parallel. Have to look for the pvtu in that case.
-       if (deim) then
-         write(filename, '(a, i0, a)') trim(simulation_name)//'DEIMRES_', (i+1)*dump_sampling_period,".vtu"                  
-       endif 
-       call vtk_read_state(filename, deim_state_resl(i), quadrature_degree)
-       
-       !! Note that we might need code in here to clean out unneeded fields.
-     end do
-
-  end subroutine read_input_states_deimres
 
     function count_dumps(dump_sampling_period) result (count)
     !! Work out how many dumps we're going to read in.
