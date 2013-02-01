@@ -36,6 +36,7 @@ module ufl_module
   use python_utils
   use spud
   use state_module
+  use parallel_tools, only : MPI_COMM_FEMTOOLS
 
   implicit none
 
@@ -55,6 +56,7 @@ contains
 #ifdef HAVE_NUMPY    
     character(len = PYTHON_FUNC_LEN) :: pycode
     character(len = OPTION_PATH_LEN+1) :: option_path
+    character(len = 100) :: init_buf
     character(len = 30) :: buffer
     integer :: stat
 
@@ -73,7 +75,8 @@ contains
     end if
     write(option_path,*) s_field%option_path
     call python_run_string("option_path='"//trim(adjustl(option_path))//"'")
-    call python_run_string("flop._init(option_path)")
+    write(init_buf, '(a, i8, a)')"flop._init(option_path, comm=", MPI_COMM_FEMTOOLS, ")"
+    call python_run_string(init_buf)
     call python_run_string("coordinates = state.vector_fields['Coordinate']")
     call python_run_string("for mesh in state.meshes.itervalues(): mesh.coords = coordinates")
     write(buffer,*) current_time

@@ -14,14 +14,14 @@ solve = solving.solve
 
 valuetype = numpy.float64
 
-def _init(option_path):
+def _init(option_path, comm):
   if have_option("/pyop2_backend"):
       backend = get_option("/pyop2_backend")
   else:
       backend = "sequential"
 
   try:
-      op2.init(backend=backend)
+      op2.init(backend=backend, comm=comm)
   except:
       print "*** ERROR ***"
       print "Was unable to initialise requested backend (%s) from PyOP2" % backend
