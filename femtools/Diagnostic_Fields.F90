@@ -496,7 +496,7 @@ contains
     type(element_type), pointer :: GRN_shape
     type(tensor_field), pointer :: viscosity
     type(scalar_field), pointer :: density
-    logical :: include_density_field
+    logical :: include_density_field, use_stress_form
     
     U=>extract_vector_field(state, "Velocity")
     X=>extract_vector_field(state, "Coordinate")
@@ -513,6 +513,17 @@ contains
           FLExit('To include the Density field in the Grid Reynolds number calculation Density must exist in the material_phase state')
        end if
     end if
+
+    if (have_option(trim(U%option_path)//&
+            &"/prognostic/spatial_discretisation/continuous_galerkin"//&
+            &"/stress_terms/stress_form") .or. &
+            have_option(trim(U%option_path)//&
+            &"/prognostic/spatial_discretisation/continuous_galerkin"//&
+            &"/stress_terms/partial_stress_form")) then
+       use_stress_form = .true.
+    else
+       use_stress_form = .false.
+    end if
     
     do ele=1, element_count(GRN)
        ele_GRN=>ele_nodes(GRN, ele)
@@ -528,13 +539,7 @@ contains
 
        ! for full and partial stress form we need to set the off diagonal terms of the viscosity tensor to zero
        ! to be able to invert it 
-       if (have_option(trim(U%option_path)//&
-            &"/prognostic/spatial_discretisation/continuous_galerkin"//&
-            &"/stress_terms/stress_form") .or. &
-            have_option(trim(U%option_path)//&
-            &"/prognostic/spatial_discretisation/continuous_galerkin"//&
-            &"/stress_terms/partial_stress_form")) then
-
+       if (use_stress_form) then
           do a=1,size(vis_q,1)
              do b=1,size(vis_q,2)
                 if(a.eq.b) cycle
@@ -3305,6 +3310,7 @@ contains
       type(vector_field), intent(inout) :: max_bed_shear_stress
 
       type(vector_field), pointer :: bed_shear_stress
+      type(scalar_field) :: magnitude_max_bss, magnitude_bss
       real :: current_time, spin_up_time
       integer stat, i
 
@@ -3312,21 +3318,31 @@ contains
       call get_option("/timestepping/current_time", current_time)
 
       if(current_time>=spin_up_time) then
-
+         
          ! Use the value already calculated previously
          bed_shear_stress => extract_vector_field(state, "BedShearStress", stat)  
          if(stat /= 0) then  
-           ewrite(-1,*) "You need BedShearStress turned on to calculate MaxBedShearStress."
-           FLExit("Turn on BedShearStress")
+            ewrite(-1,*) "You need BedShearStress turned on to calculate MaxBedShearStress."
+            FLExit("Turn on BedShearStress")
          end if
 
-         do i=1, max_bed_shear_stress%dim
-            max_bed_shear_stress%val(i,:) = &
-                 max(max_bed_shear_stress%val(i,:), bed_shear_stress%val(i,:))
+         ! We actually care about the vector that causes the maximum magnitude
+         ! of bed shear stress, so check the magnitude and store if higher than
+         ! what we already have.
+         magnitude_max_bss = magnitude(max_bed_shear_stress)
+         magnitude_bss = magnitude(bed_shear_stress)
+
+         do i=1,node_count(magnitude_bss)
+            if (node_val(magnitude_bss,i) .gt. node_val(magnitude_max_bss,i)) then
+               call set(max_bed_shear_stress,i,node_val(bed_shear_stress,i))
+            end if
          end do
       else
         call zero(max_bed_shear_stress)
       end if
+
+      call deallocate(magnitude_max_bss)
+      call deallocate(magnitude_bss)
 
    end subroutine calculate_max_bed_shear_stress
 

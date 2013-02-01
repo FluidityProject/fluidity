@@ -62,6 +62,7 @@
     use Coordinates
     use multiphase_module
     use edge_length_module
+    use physics_from_options
     use colouring
     use Profiler
 #ifdef _OPENMP
@@ -100,8 +101,6 @@
     logical :: vel_lump_on_submesh, cmc_lump_on_submesh, abs_lump_on_submesh
     ! integrate the surface tension by parts
     logical :: integrate_surfacetension_by_parts
-    ! add viscous terms to inverse_masslump for low Re which is only used for pressure correction
-    logical :: low_re_p_correction_fix
 
     ! which terms do we have?
     logical :: have_source
@@ -127,8 +126,16 @@
     logical :: assemble_mass_matrix
     logical :: assemble_inverse_masslump
 
-    ! implicitness parameter, timestep, conservation parameter
-    real :: theta, dt, beta, gravity_magnitude
+    ! implicitness parameter, timestep, conservation parameter, nonlinear theta factor
+    real :: theta, dt, beta, gravity_magnitude, itheta
+
+    ! Boundary condition types for velocity, and pressure
+    ! the ids have to correspond to the order of the arguments in
+    ! the calls to get_entire_boundary_condition below
+    integer, parameter :: BC_TYPE_WEAKDIRICHLET = 1, BC_TYPE_NO_NORMAL_FLOW=2, &
+                          BC_TYPE_INTERNAL = 3, BC_TYPE_FREE_SURFACE = 4, &
+                          BC_TYPE_FLUX = 5
+    integer, parameter :: PRESSURE_BC_TYPE_WEAKDIRICHLET = 1, PRESSURE_BC_DIRICHLET = 2
 
     ! Stabilisation schemes.
     integer :: stabilisation_scheme
@@ -162,7 +169,7 @@
   contains
 
     subroutine construct_momentum_cg(u, p, density, x, &
-                                     big_m, rhs, ct_m, ct_rhs, mass, inverse_masslump, visc_inverse_masslump, &
+                                     big_m, rhs, ct_m, ct_rhs, mass, inverse_masslump, &
                                      state, assemble_ct_matrix_here, include_pressure_and_continuity_bcs)
       !!< Assembles the momentum matrix and rhs for the LinearMomentum,
       !!< Boussinesq and Drainage equation types such that
@@ -186,7 +193,7 @@
       type(petsc_csr_matrix), intent(inout) :: mass
       ! the lumped mass matrix (may vary per component as absorption could be included)
       ! NOTE: see the logical assemble_inverse_masslump below to see when this is actually assembled
-      type(vector_field), intent(inout) :: inverse_masslump, visc_inverse_masslump
+      type(vector_field), intent(inout) :: inverse_masslump
       ! NOTE: you have to call deallocate_cg_mass after you're done
       ! with mass and inverse_masslump
       
@@ -228,7 +235,7 @@
       ! bc arrays
       type(vector_field) :: velocity_bc
       type(scalar_field) :: pressure_bc
-      integer, dimension(:,:), allocatable :: velocity_bc_type, velocity_bc_number
+      integer, dimension(:,:), allocatable :: velocity_bc_type 
       integer, dimension(:), allocatable :: pressure_bc_type
 
       ! fields for the assembly of absorption when
@@ -464,7 +471,7 @@
         gp => dummyscalar
       end if
 
-      on_sphere = have_option('/geometry/spherical_earth/')
+      on_sphere = have_option('/geometry/spherical_earth')
 
 #ifdef _OPENMP
     num_threads = omp_get_max_threads()
@@ -479,6 +486,8 @@
                       theta)
       call get_option(trim(u%option_path)//"/prognostic/spatial_discretisation/&
            &conservative_advection", beta)
+      call get_option(trim(u%option_path)//"/prognostic/temporal_discretisation/relaxation", &
+                      itheta)
 
       lump_mass=have_option(trim(u%option_path)//&
           &"/prognostic/spatial_discretisation"//&
@@ -520,9 +529,6 @@
       integrate_continuity_by_parts=have_option(trim(p%option_path)//&
           &"/prognostic/spatial_discretisation/continuous_galerkin"//&
           &"/integrate_continuity_by_parts")
-      low_re_p_correction_fix=have_option(trim(p%option_path)//&
-          &"/prognostic/spatial_discretisation/continuous_galerkin"//&
-          &"/low_re_p_correction_fix")
       integrate_advection_by_parts = have_option(trim(u%option_path)//&
           &"/prognostic/spatial_discretisation"//&
           &"/continuous_galerkin/advection_terms/integrate_advection_by_parts")
@@ -632,13 +638,6 @@
         call allocate(alpha_u_field, u%mesh, "alpha_u")
         call remap_field(wettingdrying_alpha, alpha_u_field)
       end if
-      
-      ! For Low Reynolds number fix
-      if (low_re_p_correction_fix) then
-        ! construct the inverse of the lumped mass matrix
-        call allocate( visc_inverse_masslump, u%dim, u%mesh, "ViscousInverseLumpedMass")
-        call zero(visc_inverse_masslump)
-      end if
 
       call get_mesh_colouring(state, u%mesh, COLOURING_CG1, colours)
       ! ----- Volume integrals over elements -------------
@@ -662,14 +661,14 @@
       !$OMP DO SCHEDULE(STATIC)
       element_loop: do nnid = 1, len
          ele = fetch(colours(clr), nnid)
-         call construct_momentum_element_cg(state, ele, big_m, rhs, ct_m, mass, inverse_masslump, visc_inverse_masslump, &
+         call construct_momentum_element_cg(state, ele, big_m, rhs, ct_m, mass, inverse_masslump, &
               x, x_old, x_new, u, oldu, nu, ug, &
-              density, p, &
+              density, ct_rhs, &
               source, absorption, buoyancy, gravity, &
               viscosity, grad_u, &
               nu_f1, nu_f2, lnd, stp, alpha, gamma, &
               gp, surfacetension, &
-              assemble_ct_matrix_here, on_sphere, depth, &
+              assemble_ct_matrix_here, depth, &
               alpha_u_field, abs_wd, temperature, nvfrac, &
               supg_element(thread_num+1))
       end do element_loop
@@ -689,15 +688,15 @@
       if((integrate_advection_by_parts.and.(.not.exclude_advection)).or.&
            (integrate_continuity_by_parts)) then
          allocate(velocity_bc_type(u%dim, surface_element_count(u)))
-         allocate(velocity_bc_number(u%dim, surface_element_count(u)))
          call get_entire_boundary_condition(u, &
            & (/ &
-             "weakdirichlet      ", &
-             "no_normal_flow     ", &
-             "internal           ", &
-             "free_surface       " &
-           & /), velocity_bc, velocity_bc_type, velocity_bc_number)
-           
+             "weakdirichlet ", &
+             "no_normal_flow", &
+             "internal      ", &
+             "free_surface  ", &
+             "flux          " &
+           & /), velocity_bc, velocity_bc_type)
+
          allocate(pressure_bc_type(surface_element_count(p)))
          call get_entire_boundary_condition(p, &
            & (/ &
@@ -715,14 +714,15 @@
             
             ! if no_normal flow and no other condition in the tangential directions, or if periodic
             ! but not if there's a pressure bc
-            if(((velocity_bc_type(1,sele)==2 .and. sum(velocity_bc_type(:,sele))==2) &
-                 .or. any(velocity_bc_type(:,sele)==3)) &
-                 .and. pressure_bc_type(sele)==0) cycle
+            if(((velocity_bc_type(1,sele)==BC_TYPE_NO_NORMAL_FLOW &
+                    .and. sum(velocity_bc_type(:,sele))==BC_TYPE_NO_NORMAL_FLOW) &
+                 .or. any(velocity_bc_type(:,sele)==BC_TYPE_INTERNAL)) &
+              .and. pressure_bc_type(sele)==0) cycle
             
             ele = face_ele(x, sele)
             
             call construct_momentum_surface_element_cg(sele, big_m, rhs, ct_m, ct_rhs, &
-                 inverse_masslump, x, u, nu, ug, density, p, gravity, &
+                 inverse_masslump, x, u, nu, ug, density, gravity, &
                  velocity_bc, velocity_bc_type, &
                  pressure_bc, pressure_bc_type, &
                  assemble_ct_matrix_here, include_pressure_and_continuity_bcs, oldu, nvfrac)
@@ -788,42 +788,12 @@
           end if
         end if
         
-        if (low_re_p_correction_fix .and. timestep/=1) then
-          ewrite(2,*) "****************************************"
-          ewrite(2,*) "Using low_re_p_correction_fix"
-          ewrite(2,*) "In Momentum_CG, construct_momentum_cg"
-          ! Add viscous terms (stored in visc_inverse_masslump)
-          ! to inverse_masslump (and store it in visc_inverse_masslump):
-          ewrite(2,*) "The viscous_terms are:"
-          ewrite_minmax(visc_inverse_masslump)
-          ! Add the viscous terms to the lumped mass matrix
-          call addto(visc_inverse_masslump, inverse_masslump)
-          ewrite(2,*) "For comparison only:"
-          ewrite(2,*) "The orig inverse_masslump is:"
-          ewrite_minmax(inverse_masslump)
-          ewrite(2,*) "The new visc_inverse_masslump is:"
-          ewrite_minmax(visc_inverse_masslump)
-          ! invert the visc_inverse_masslump:
-          call invert(visc_inverse_masslump)
-          ! apply boundary conditions (zeroing out strong dirichl. rows)
-          call apply_dirichlet_conditions_inverse_mass(visc_inverse_masslump, u)
-          
-          ewrite(2,*) "Inverted new visc_inverse_masslump and boundary conditions is:"
-          ewrite_minmax(visc_inverse_masslump)
-          
-          ! Now invert the original inverse_masslump, apply dirichlet conditions:
-          call invert(inverse_masslump)
-          call apply_dirichlet_conditions_inverse_mass(inverse_masslump, u)
-          ewrite_minmax(inverse_masslump)
-          ewrite(2,*) "****************************************"
-        else 
-          ! thus far we have just assembled the lumped mass in inverse_masslump
-          ! now invert it:
-          call invert(inverse_masslump)
-          ! apply boundary conditions (zeroing out strong dirichl. rows)
-          call apply_dirichlet_conditions_inverse_mass(inverse_masslump, u)
-          ewrite_minmax(inverse_masslump)
-        endif
+        ! thus far we have just assembled the lumped mass in inverse_masslump
+        ! now invert it:
+        call invert(inverse_masslump)
+        ! apply boundary conditions (zeroing out strong dirichl. rows)
+        call apply_dirichlet_conditions_inverse_mass(inverse_masslump, u)
+        ewrite_minmax(inverse_masslump)
       end if
       
       if (assemble_mass_matrix) then
@@ -906,7 +876,7 @@
     end subroutine construct_momentum_cg
 
     subroutine construct_momentum_surface_element_cg(sele, big_m, rhs, ct_m, ct_rhs, &
-                                                     masslump, x, u, nu, ug, density, p, gravity, &
+                                                     masslump, x, u, nu, ug, density, gravity, &
                                                      velocity_bc, velocity_bc_type, &
                                                      pressure_bc, pressure_bc_type, &
                                                      assemble_ct_matrix_here, include_pressure_and_continuity_bcs,&
@@ -925,7 +895,7 @@
       type(vector_field), intent(in) :: x, oldu
       type(vector_field), intent(in) :: u, nu
       type(vector_field), pointer :: ug
-      type(scalar_field), intent(in) :: density, p
+      type(scalar_field), intent(in) :: density
       type(vector_field), pointer, intent(in) :: gravity 
 
       type(vector_field), intent(in) :: velocity_bc
@@ -943,12 +913,12 @@
       integer :: dim, dim2, i
 
       integer, dimension(face_loc(u, sele)) :: u_nodes_bdy
-      integer, dimension(face_loc(p, sele)) :: p_nodes_bdy
+      integer, dimension(face_loc(ct_rhs, sele)) :: p_nodes_bdy
       type(element_type), pointer :: u_shape, p_shape
 
       real, dimension(face_ngi(u, sele)) :: detwei_bdy
       real, dimension(u%dim, face_ngi(u, sele)) :: normal_bdy, upwards_gi
-      real, dimension(u%dim, face_loc(p, sele), face_loc(u, sele)) :: ct_mat_bdy
+      real, dimension(u%dim, face_loc(ct_rhs, sele), face_loc(u, sele)) :: ct_mat_bdy
       real, dimension(u%dim, face_loc(u, sele), face_loc(u, sele)) :: fs_surfacestab
       real, dimension(u%dim, u%dim, face_loc(u, sele), face_loc(u, sele)) :: fs_surfacestab_sphere
       real, dimension(u%dim, u%dim, face_ngi(u, sele)) :: fs_stab_gi_sphere
@@ -962,10 +932,10 @@
       real, dimension(u%dim, face_ngi(u, sele)) :: ndotk_k
 
       u_shape=> face_shape(u, sele)
-      p_shape=> face_shape(p, sele)
+      p_shape=> face_shape(ct_rhs, sele)
 
       u_nodes_bdy = face_global_nodes(u, sele)
-      p_nodes_bdy = face_global_nodes(p, sele)
+      p_nodes_bdy = face_global_nodes(ct_rhs, sele)
 
       oldu_val = face_val(oldu, sele)
 
@@ -976,8 +946,8 @@
             
       ! first the advection (dirichlet) bcs:
       
-      ! if no no_normal_flow or free_surface
-      if (velocity_bc_type(1,sele)/=2) then
+      ! if no no_normal_flow
+      if (velocity_bc_type(1,sele)/=BC_TYPE_NO_NORMAL_FLOW) then
          if(integrate_advection_by_parts.and.(.not.exclude_advection)) then
             
             relu_gi = face_val_at_quad(nu, sele)
@@ -997,7 +967,7 @@
 
             do dim = 1, u%dim
                
-               if(velocity_bc_type(dim, sele)==1) then
+               if(velocity_bc_type(dim, sele)==BC_TYPE_WEAKDIRICHLET) then
 
                   call addto(rhs, dim, u_nodes_bdy, -matmul(adv_mat_bdy, &
                        ele_val(velocity_bc, dim, sele)))
@@ -1016,7 +986,7 @@
       ! now do surface integrals for divergence/pressure gradient matrix
       if(integrate_continuity_by_parts.and. (assemble_ct_matrix_here .or. include_pressure_and_continuity_bcs)) then
          
-        if (velocity_bc_type(1,sele)/=2 .and. velocity_bc_type(1,sele)/=4) then
+        if (velocity_bc_type(1,sele)/=BC_TYPE_NO_NORMAL_FLOW .and. velocity_bc_type(1,sele)/=BC_TYPE_FREE_SURFACE) then
 
           if(multiphase) then
             ct_mat_bdy = shape_shape_vector(p_shape, u_shape, detwei_bdy*face_val_at_quad(nvfrac, sele), normal_bdy)
@@ -1029,6 +999,8 @@
                 call addto(ct_rhs, p_nodes_bdy, &
                      -matmul(ct_mat_bdy(dim,:,:), ele_val(velocity_bc, dim, sele)))
              else if (assemble_ct_matrix_here) then
+                ! for open boundaries add in the boundary integral from integrating by parts - for 
+                ! other bcs leaving this out enforces a dirichlet-type restriction in the normal direction
                 call addto(ct_m, 1, dim, p_nodes_bdy, u_nodes_bdy, ct_mat_bdy(dim,:,:))
              end if
              if(pressure_bc_type(sele)>0) then
@@ -1046,7 +1018,7 @@
 
       ! Add free surface stabilisation.
 
-      if (velocity_bc_type(1,sele)==4 .and. have_surface_fs_stabilisation) then
+      if (velocity_bc_type(1,sele)==BC_TYPE_FREE_SURFACE .and. have_surface_fs_stabilisation) then
         if (on_sphere) then
           upwards_gi=-sphere_inward_normal_at_quad_face(x, sele)
         else
@@ -1111,24 +1083,33 @@
             if (assemble_inverse_masslump.and.(.not.(abs_lump_on_submesh))) then
               call addto(masslump, u_nodes_bdy, dt*theta*lumped_fs_surfacestab)
             else
-              FLExit("Error?") 
+              FLAbort("Error?") 
             end if
           end if
         end if
 
       end if
 
+      if (any(velocity_bc_type(:,sele)==BC_TYPE_FLUX)) then
+        do dim = 1, u%dim
+          if(velocity_bc_type(dim,sele)==BC_TYPE_FLUX) then
+            call addto(rhs, dim, u_nodes_bdy, shape_rhs(u_shape, ele_val_at_quad(velocity_bc, sele, dim)*detwei_bdy))
+          end if
+        end do
+      end if
+
+
     end subroutine construct_momentum_surface_element_cg
 
     subroutine construct_momentum_element_cg(state, ele, big_m, rhs, ct_m, &
-                                            mass, masslump, visc_masslump, &
+                                            mass, masslump, &
                                             x, x_old, x_new, u, oldu, nu, ug, &
-                                            density, p, &
+                                            density, ct_rhs, &
                                             source, absorption, buoyancy, gravity, &
                                             viscosity, grad_u, &
                                             nu_f1, nu_f2, lnd, stp, alpha, gamma, &
                                             gp, surfacetension, &
-                                            assemble_ct_matrix_here, on_sphere, depth, &
+                                            assemble_ct_matrix_here, depth, &
                                             alpha_u_field, abs_wd, temperature, nvfrac, supg_shape)
 
       !!< Assembles the local element matrix contributions and places them in big_m
@@ -1146,13 +1127,11 @@
       ! above we supply inverse_masslump, but we start assembling the non-inverted
       ! lumped mass matrix in it:
       type(vector_field), intent(inout) :: masslump
-      ! low Re fix for pressure correction:
-      type(vector_field), intent(inout) :: visc_masslump
 
       type(vector_field), intent(in) :: x, u, oldu
       type(vector_field), intent(inout) :: nu
       type(vector_field), pointer :: x_old, x_new, ug
-      type(scalar_field), intent(in) :: density, p, buoyancy
+      type(scalar_field), intent(in) :: density, buoyancy, ct_rhs
       type(vector_field), intent(in) :: source, absorption, gravity
       type(tensor_field), intent(in) :: viscosity, grad_u
 
@@ -1164,7 +1143,7 @@
       type(scalar_field), intent(in) :: gp
       type(tensor_field), intent(in) :: surfacetension
 
-      logical, intent(in) :: assemble_ct_matrix_here, on_sphere
+      logical, intent(in) :: assemble_ct_matrix_here
 
       ! Wetting and Drying
       type(scalar_field), intent(in) :: depth
@@ -1190,10 +1169,10 @@
       real, dimension(u%dim, u%dim, ele_ngi(u,ele)) :: J_mat, diff_q
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim) :: du_t
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim) :: dug_t
-      real, dimension(ele_loc(p, ele), ele_ngi(p, ele), u%dim) :: dp_t
+      real, dimension(ele_loc(ct_rhs, ele), ele_ngi(ct_rhs, ele), u%dim) :: dp_t
 
       real, dimension(u%dim, ele_ngi(u, ele)) :: relu_gi
-      real, dimension(u%dim, ele_loc(p, ele), ele_loc(u, ele)) :: grad_p_u_mat
+      real, dimension(u%dim, ele_loc(ct_rhs, ele), ele_loc(u, ele)) :: grad_p_u_mat
       
       ! What we will be adding to the matrix and RHS - assemble these as we
       ! go, so that we only do the calculations we really need
@@ -1228,8 +1207,8 @@
       u_ele=>ele_nodes(u, ele)
       u_shape=>ele_shape(u, ele)
 
-      p_ele=>ele_nodes(p, ele)
-      p_shape=>ele_shape(p, ele)
+      p_ele=>ele_nodes(ct_rhs, ele)
+      p_shape=>ele_shape(ct_rhs, ele)
 
       oldu_val = ele_val(oldu, ele)
       ! Step 1: Transform
@@ -1349,7 +1328,7 @@
       
       ! Buoyancy terms
       if(have_gravity) then
-        call add_buoyancy_element_cg(x, ele, test_function, u, buoyancy, gravity, nvfrac, on_sphere, detwei, rhs_addto)
+        call add_buoyancy_element_cg(x, ele, test_function, u, buoyancy, gravity, nvfrac, detwei, rhs_addto)
       end if
       
       ! Surface tension
@@ -1370,12 +1349,6 @@
         call add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, density, viscosity, grad_u, &
            nu_f1, nu_f2, lnd, stp, alpha, gamma, &
            du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, nvfrac)
-      end if
-      
-      ! Get only the viscous terms
-      if(low_re_p_correction_fix .and. assemble_inverse_masslump .and. (have_viscosity .or. have_les) .and. timestep/=1) then
-        call get_viscous_terms_element_cg(ele, u, nu, x, viscosity, &
-         du_t, detwei, visc_masslump)
       end if
       
       ! Coriolis terms
@@ -1682,7 +1655,7 @@
       
     end subroutine add_sources_element_cg
     
-    subroutine add_buoyancy_element_cg(positions, ele, test_function, u, buoyancy, gravity, nvfrac, on_sphere, detwei, rhs_addto)
+    subroutine add_buoyancy_element_cg(positions, ele, test_function, u, buoyancy, gravity, nvfrac, detwei, rhs_addto)
       type(vector_field), intent(in) :: positions
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
@@ -1692,7 +1665,6 @@
       type(scalar_field), intent(in) :: nvfrac
       real, dimension(ele_ngi(u, ele)), intent(in) :: detwei
       real, dimension(u%dim, ele_loc(u, ele)), intent(inout) :: rhs_addto
-      logical, intent(in) :: on_sphere
       
       real, dimension(ele_ngi(u, ele)) :: nvfrac_gi
       real, dimension(ele_ngi(u, ele)) :: coefficient_detwei
@@ -2278,84 +2250,7 @@
       !ewrite(2,*) viscosity_mat(:,:,1,1)
 
     end subroutine add_viscosity_element_cg
-    
-    subroutine get_viscous_terms_element_cg(ele, u, nu, x, viscosity, &
-         du_t, detwei, visc_inverse_masslump)
-      integer, intent(in) :: ele
-      type(vector_field), intent(in) :: u, nu
-      type(vector_field), intent(in) :: x
-      type(tensor_field), intent(in) :: viscosity
-      real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim), intent(in) :: du_t
-      real, dimension(ele_ngi(u, ele)), intent(in) :: detwei
-      type(vector_field), intent(inout) :: visc_inverse_masslump
-    
-      integer :: i, dim, gi
-      real, dimension(u%dim, u%dim, ele_ngi(u, ele)) :: viscosity_gi
-      real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)) :: viscosity_mat
-      integer, dimension(:), pointer :: nodes
-      real, dimension(x%dim, x%dim, ele_ngi(u,ele)) :: les_tensor_gi
-      real, dimension(ele_ngi(u, ele)) :: les_coef_gi
 
-      if (have_viscosity) then
-         viscosity_gi = ele_val_at_quad(viscosity, ele)
-      else
-         ! if we don't have viscosity but maybe LES
-         viscosity_gi = 0.0
-      end if
-      
-      if (have_les) then
-         ! add in LES viscosity
-         les_tensor_gi=length_scale_tensor(du_t, ele_shape(u, ele))
-         les_coef_gi=les_viscosity_strength(du_t, ele_val(nu, ele))
-         do gi=1, size(les_coef_gi)
-            les_tensor_gi(:,:,gi)=les_coef_gi(gi)*les_tensor_gi(:,:,gi)* &
-                 smagorinsky_coefficient**2
-         end do
-         viscosity_gi=viscosity_gi+les_tensor_gi
-      end if
-      
-      ! element viscosity matrix - tensor form
-      !  /
-      !  | gradN_A^T viscosity gradN_B dV
-      !  /
-      ! only valid when incompressible and viscosity tensor is isotropic
-      viscosity_mat = 0.0
-      if(stress_form.or.partial_stress_form) then
-        ! add in the stress form entries of the element viscosity matrix
-        !  /
-        !  | B_A^T C B_B dV
-        !  /
-        viscosity_mat = stiffness_matrix(du_t, viscosity_gi, du_t, detwei)
-      else
-        if(isotropic_viscosity .and. .not. have_les) then
-          assert(u%dim > 0)
-          viscosity_mat(1, 1, :, :) = dshape_dot_dshape(du_t, du_t, detwei * viscosity_gi(1, 1, :))
-          do dim = 2, u%dim
-            viscosity_mat(dim, dim, :, :) = viscosity_mat(1, 1, :, :)
-          end do
-        else if(diagonal_viscosity .and. .not. have_les) then
-          assert(u%dim > 0)
-          viscosity_mat(1, 1, :, :) = dshape_diagtensor_dshape(du_t, viscosity_gi, du_t, detwei)
-          do dim = 2, u%dim
-            viscosity_mat(dim, dim, :, :) = viscosity_mat(1, 1, :, :)
-          end do
-        else
-          do dim = 1, u%dim
-            viscosity_mat(dim, dim, :, :) = &
-                        dshape_tensor_dshape(du_t, viscosity_gi, du_t, detwei)
-          end do
-        end if
-      end if
-
-      nodes => ele_nodes(u,ele)
-      do dim = 1, u%dim
-        do i = 1, ele_loc(u,ele)
-          call addto(visc_inverse_masslump, dim, nodes(i), dt*theta*viscosity_mat(dim,dim,i,i))
-        end do
-      end do
-
-    end subroutine get_viscous_terms_element_cg
-    
     subroutine add_coriolis_element_cg(ele, test_function, x, u, oldu_val, density, detwei, big_m_tensor_addto, rhs_addto)
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function

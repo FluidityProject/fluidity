@@ -365,67 +365,7 @@ void ParseArguments(int argc, char** argv){
     print_options();
   }
 
-  // Environmental stuff -- this needs to me moved out of here and
-  // into populate state.
-  if(have_option("/timestepping/current_time/time_units")){
-    string option;
-    get_option("/timestepping/current_time/time_units/date", option);
-
-    FluxesReader_global.SetSimulationTimeUnits(option.c_str());
-    ClimateReader_global.SetSimulationTimeUnits(option.c_str());
-    NEMOReader_v2_global.SetSimulationTimeUnits(option.c_str());
-  }
-  if(have_option("/environmental_data/climatology/file_name")){
-    string option;
-    get_option("/environmental_data/climatology/file_name", option);
-
-    ClimateReader_global.SetClimatology(option);
-  }
-  if(have_option("/ocean_forcing/bulk_formulae/input_file")) {
-    string option;
-    get_option("/ocean_forcing/bulk_formulae/input_file/file_name", option);
-    string dataset = "ERA40"; //default
-    if(have_option("/ocean_forcing/bulk_formulae/file_type")) {
-        get_option("/ocean_forcing/bulk_formulae/file_type/filetype/name", dataset);
-    }
-    if (dataset == "ERA40") {
-        FluxesReader_global.RegisterDataFile(option);
-        // field from NetCDF file                         Index |   Physical meaning
-        FluxesReader_global.AddFieldOfInterest("u10");  //  0   | 10 metre U wind component
-        FluxesReader_global.AddFieldOfInterest("v10");  //  1   | 10 metre V wind component
-        FluxesReader_global.AddFieldOfInterest("ssrd"); //  2   | Surface solar radiation
-        FluxesReader_global.AddFieldOfInterest("strd"); //  3   | Surface thermal radiation 
-        FluxesReader_global.AddFieldOfInterest("ro");   //  4   | Runoff
-        FluxesReader_global.AddFieldOfInterest("tp");   //  5   | Total precipitation
-        FluxesReader_global.AddFieldOfInterest("d2m");  //  6   | Dew point temp at 2m
-        FluxesReader_global.AddFieldOfInterest("t2m");  //  7   | Air temp at 2m 
-        FluxesReader_global.AddFieldOfInterest("msl");  //  8   | Mean sea level pressure
-    } else {
-        cerr<<"ERROR: unsupported bulk formula input file type. Choose ERA40\n";
-        exit(-1);
-    }
-
-  }
-
-  if(have_option("/ocean_biology/lagrangian_ensemble/hyperlight")) {
-    FluxesReader_global.AddFieldOfInterest("tcc");  // Total cloud cover 
-  }
-
-  if(have_option("/ocean_forcing/external_data_boundary_conditions")) {
-    string option;
-    get_option("/ocean_forcing/external_data_boundary_conditions/input_file/file_name", option);
-
-    if(verbosity >= 3)
-      cout << "Registering external data forcing file: " << option << endl;
-
-    NEMOReader_v2_global.RegisterDataFile(option);
-
-    NEMOReader_v2_global.AddFieldOfInterest("temperature");  //  0   | Sea temperature
-    NEMOReader_v2_global.AddFieldOfInterest("salinity");     //  1   | Salinity
-    NEMOReader_v2_global.AddFieldOfInterest("u");            //  2   | Azimuthal velocity
-    NEMOReader_v2_global.AddFieldOfInterest("v");            //  3   | Meridional velocity
-    NEMOReader_v2_global.AddFieldOfInterest("ssh");          //  4   | Sea surface height
-  }
+  // Environmental stuff is now in populate_state_module (Populate_State.F90)
 
   return;
 }

@@ -562,12 +562,12 @@ The length scale is alpha*local element width (a scalar)</a:documentation>
     </element>
   </define>
   <!-- Time aggregated diagnostics -->
-  <!-- Temporal maximum diagnostic algorithm. -->
-  <define name="temporalmax_algorithm">
+  <!-- Temporal maximum diagnostic algorithm for scalar fields. -->
+  <define name="scalar_temporalmax_algorithm">
     <element name="algorithm">
-      <a:documentation>temporalmax (source field). Calculates the nodewise maximum over time. Note: Does not work with adaptive meshes!</a:documentation>
+      <a:documentation>temporalmax (scalar source field). Calculates the nodewise maximum over time. Note: Does not work with adaptive meshes!</a:documentation>
       <attribute name="name">
-        <value>temporalmax</value>
+        <value>temporalmax_scalar</value>
       </attribute>
       <attribute name="material_phase_support">
         <value>single</value>
@@ -576,6 +576,36 @@ The length scale is alpha*local element width (a scalar)</a:documentation>
         <value>true</value>
       </attribute>
       <ref name="scalar_source_field"/>
+      <optional>
+        <element name="spin_up_time">
+          <a:documentation>This sets a spinning up time.</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="initial_condition">
+          <a:documentation>Do not set an initial condition until you know what you are doing. Initial condition is mainly needed for checkpointing. </a:documentation>
+          <attribute name="name">
+            <value>WholeMesh</value>
+          </attribute>
+          <ref name="input_choice_initial_condition_real"/>
+        </element>
+      </optional>
+    </element>
+  </define>
+  <define name="vector_temporalmax_algorithm">
+    <element name="algorithm">
+      <a:documentation>temporalmax (vector source field). Calculates the nodewise maximum over time. Note: Does not work with adaptive meshes!</a:documentation>
+      <attribute name="name">
+        <value>temporalmax_vector</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <attribute name="persistent">
+        <value>true</value>
+      </attribute>
+      <ref name="vector_source_field"/>
       <optional>
         <element name="spin_up_time">
           <a:documentation>This sets a spinning up time.</a:documentation>
@@ -1118,23 +1148,23 @@ for material i and \nu^i is the viscosity of material i</a:documentation>
         <value>bulk_viscosity</value>
       </attribute>
       <attribute name="material_phase_support">
-        <value>multiple </value>
+        <value>multiple</value>
+      </attribute>
+      <attribute name="depends">
+        <value>MaterialViscosity</value>
       </attribute>
     </element>
   </define>
-  <define name="k_epsilon_diffusivity_algorithm">
+  <define name="sediment_concentration_dependent_viscosity_algorithm">
     <element name="algorithm">
-      <a:documentation>Set the diffusivity, D, to the sum of the background diffusivity, D_bg, and the eddy diffusivity calculated 
-by the k-epsilon turbulence model.
+      <a:documentation>Effective viscosity is affected by sediment concentration. This 
+algorithm computes the viscosity based upon the combined concentrations
+of the sediment fields and the zero concentration viscosity
 
-D = D_bg + nu_t / Pr
-
-where: nu_t = turbulent viscosity
-       Pr = Prandtl or Schmidt number
-
-nu_t and Pr are set under prognostic/subgridscale_parameterisation(k-epsilon)</a:documentation>
+  \nu = \nu_0(1-c/0.65)^{-1.625}
+</a:documentation>
       <attribute name="name">
-        <value>k_epsilon_diffusivity</value>
+        <value>sediment_concentration_dependent_viscosity</value>
       </attribute>
       <attribute name="material_phase_support">
         <value>single</value>
@@ -1405,6 +1435,15 @@ Implemented as a queue data structure.</a:documentation>
         <element name="spin_up_time">
           <a:documentation>spin_up time: Default value: 0</a:documentation>
           <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="calculation_period">
+          <a:documentation>How often to calculate the harmonics. Default is just before output dumps. You can set this
+variable to calculate the diagnostics more often if required. 0 would calculate every timestep
+Note: harmonic calaulations are quite expensive. The value below applies to all tidal harmonics
+in the simulation</a:documentation>
+          <ref name="integer"/>
         </element>
       </optional>
       <optional>
@@ -1910,7 +1949,7 @@ This field needs to be interpolated between adapts.</a:documentation>
     <ref name="temporalmin_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
-    <ref name="temporalmax_algorithm"/>
+    <ref name="scalar_temporalmax_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_time_averaged_algorithm"/>
@@ -2013,6 +2052,9 @@ This field needs to be interpolated between adapts.</a:documentation>
   </define>
   <define name="vector_diagnostic_algorithms">
     <ref name="vector_time_averaged_algorithm"/>
+  </define>
+  <define name="vector_diagnostic_algorithms" combine="choice">
+    <ref name="vector_temporalmax_algorithm"/>
   </define>
   <define name="vector_diagnostic_algorithms" combine="choice">
     <ref name="vector_sum_algorithm"/>

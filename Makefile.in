@@ -91,7 +91,7 @@ endif
 THREADS=1
 
 EXCLUDE_TAGS =
-ifneq (@ZOLTAN@,yes)
+ifneq (@HAVE_ZOLTAN@,yes)
 	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e zoltan
 else
 	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e nozoltan
@@ -104,6 +104,9 @@ ifneq (@ALGENCAN@,yes)
 endif
 ifneq (@MBA2D@,yes)
 	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e 2dadapt
+endif
+ifneq (@HAVE_EXODUSII@,yes)
+	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e exodusii
 endif
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a
@@ -120,19 +123,19 @@ sub_system: $(LIBMBA2D) $(LIBMBA3D) $(LIBALGENCAN)  @LIB_FEMDEM@ \
 
 lib/libjudy.a:
 	@echo '    MKDIR lib'; mkdir -p lib
-	@cd libjudy; echo '    MAKE libjudy'; $(MAKE) > make.log ; $(MAKE) install >> make.log ; cd ..
+	echo '    MAKE libjudy'; $(MAKE) -C libjudy > make.log && $(MAKE) -C libjudy install >> make.log
 
 lib/libmba2d.a:
 	@echo '    MKDIR lib'; mkdir -p lib
-	@cd libmba2d; echo '    MAKE libmba2d'; $(MAKE) ; cd ..
+	echo '    MAKE libmba2d'; $(MAKE) -C libmba2d
 
 lib/libmba3d.a:
 	@echo '    MKDIR lib'; mkdir -p lib
-	@cd libmba3d; echo '    MAKE libmba3d'; $(MAKE) ; cd ..
+	echo '    MAKE libmba3d'; $(MAKE) -C libmba3d
 
 lib/libalgencan.a:
 	@echo '    MKDIR lib'; mkdir -p lib
-	@cd libalgencan; echo '    MAKE libalgencan'; $(MAKE) ; cd ..
+	echo '    MAKE libalgencan'; $(MAKE) -C libalgencan
 
 lib/libadaptivity.a:
 	@echo '    MKDIR lib'; mkdir -p lib
@@ -140,31 +143,31 @@ lib/libadaptivity.a:
 
 lib/libvtkfortran.a:
 	@echo '    MKDIR lib'; mkdir -p lib
-	@cd libvtkfortran; echo '    MAKE libvtkfortran'; $(MAKE) 2>make.log 2>&1 ; cp libvtkfortran.a ../lib/; cp *.mod ../include/; cd ..
+	echo '    MAKE libvtkfortran'; $(MAKE) -C libvtkfortran 2>make.log 2>&1 && cp libvtkfortran/libvtkfortran.a lib/ && cp libvtkfortran/*.mod include/
 
 lib/libspatialindex.a:
 	@echo '    MKDIR lib'; mkdir -p lib
-	@cd @SPATIALINDEXDIR@ ; echo '    MAKE libspatialindex'; $(MAKE); $(MAKE) install >> make.log 2>&1
+	echo '    MAKE libspatialindex'; $(MAKE) -C @SPATIALINDEXDIR@ && $(MAKE) -C @SPATIALINDEXDIR@ install >> make.log 2>&1
 
 lib/libspud.a:
 	@echo '    MKDIR lib'; mkdir -p lib
 ifeq (@SPUD_ONLY@,yes)
-	@cd libspud;  echo '    MAKE libspud'; $(MAKE) ; $(MAKE) install-libspud
+	echo '    MAKE libspud'; $(MAKE) -C libspud && $(MAKE) -C libspud install-libspud
 else
-	@cd libspud;  echo '    MAKE libspud'; $(MAKE) ; $(MAKE) install-libspud; cd python; python setup.py build; cd ../..; cp libspud/python/build/lib*/libspud.so python/
+	echo '    MAKE libspud'; $(MAKE) -C libspud &&  $(MAKE) -C libspud install-libspud && cd libspud/python && python setup.py build && cd ../.. && cp libspud/python/build/lib*/libspud.so python/
 endif
 
 libfemtools: sub_system
 	@echo '    MKDIR lib'; mkdir -p lib
 	@echo '    MAKE debug'
-	@cd debug; $(MAKE)
+	@$(MAKE) -C debug
 	@echo '    MAKE libwm'
-	@cd libwm; $(MAKE)
-	@cd femtools; echo '    MAKE libfemtools'; $(MAKE) libfemtools ; cp libfemtools.a ../lib/; cd ..
+	@$(MAKE) -C libwm
+	echo '    MAKE libfemtools'; $(MAKE) -C femtools libfemtools && cp femtools/libfemtools.a lib/
 ifeq (@FEMDEM@,yes)
 @LIB_FEMDEM@:
 	@echo '    MAKE 3dfemdem library'
-	@cd @FLFEMDEM_PATH@;$(MAKE)
+	@$(MAKE) -C @FLFEMDEM_PATH@
 endif
 
 include/spud.h: lib/libspud.a
@@ -423,7 +426,7 @@ endif
 	@cd adjoint; $(MAKE) clean
 	@echo "    CLEAN main"
 	@cd main; $(MAKE) clean
-	@rm -fr bin/* lib
+	@rm -fr bin lib
 
 clean: clean-light clean-test python_clean clean-debian
 	@echo "    CLEAN libvtkfortran"
@@ -445,7 +448,7 @@ clean: clean-light clean-test python_clean clean-debian
 	@echo "    CLEAN manual"
 	@cd manual; $(MAKE) clean
 	@CLEAN_LIBADAPT@
-	@rm -fr include/*.mod *.cache core *.o config.status
+	@rm -fr lib*/configure.lineno include/*.mod *.cache core *.o config.status
 	@find ./ \( -name work.pc \) -exec rm {} \;
 	@find ./ \( -name work.pcl \) -exec rm {} \;
 
@@ -458,9 +461,17 @@ clean-test:
 	@cd tests; PYTHONPATH=../python ../tools/testharness.py --clean >/dev/null
 	@cd tests/data; $(MAKE) clean
 
+clean-all-tests: clean-test     
+	@echo "    CLEAN parallel/special/long tests"
+	@PYTHONPATH=python tools/testharness.py --parallelism=parallel --clean >/dev/null
+	@PYTHONPATH=python tools/testharness.py --length=special --clean >/dev/null
+	@PYTHONPATH=python tools/testharness.py --length=special --parallelism=parallel --clean >/dev/null
+	@PYTHONPATH=python tools/testharness.py --length=long --clean >/dev/null
+	@PYTHONPATH=python tools/testharness.py --length=long --parallelism=parallel --clean >/dev/null
+
 distclean: clean
 	@echo "    DISTCLEAN"
-	@cd spatialindex-1.5 ; make distclean > /dev/null ; rm -rf	\
+	@cd @SPATIALINDEXDIR@ ; make distclean > /dev/null ; rm -rf	\
 	 make.log regressiontest/mvrtree/.deps				\
 	 regressiontest/rtree/.deps regressiontest/tprtree/.deps >	\
 	 /dev/null
@@ -469,6 +480,7 @@ distclean: clean
 	@cd libvtkfortran ; make distclean > /dev/null
 	@cd libspud ; make distclean > /dev/null ; rm -rf		\
 	 libspud.so.0 libtool diamond/build python/build > /dev/null
+	@cd tools ; make distclean > /dev/null
 	@rm -fr `find ./ -name config.status` `find ./ -name		\
 	 config.log` share include/Judy.h include/Wm4Command.h		\
 	 include/Wm4FoundationLIB.h include/Wm4FoundationPCH.h		\

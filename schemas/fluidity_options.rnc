@@ -681,6 +681,13 @@ start =
                         element prescribed {
                            mesh_choice,
                            prescribed_tensor_field
+                        }|
+                        element diagnostic {
+                           mesh_choice,
+                           (
+                              sediment_concentration_dependent_viscosity_algorithm
+                           ),
+                           diagnostic_tensor_field
                         }
                      )
                   },                  
@@ -1091,6 +1098,13 @@ start =
                         element prescribed {
                            velocity_mesh_choice,
                            prescribed_tensor_field
+                        }|
+                        element diagnostic {
+                           velocity_mesh_choice,
+                           (
+                              sediment_concentration_dependent_viscosity_algorithm
+                           ),
+                           diagnostic_tensor_field
                         }
                      )
                   },
@@ -1243,35 +1257,49 @@ start =
                   ## for thermal fields. This is used to calculate the turbulent buoyancy term.
                   ## Recommended value (default): 1.0.
                   element sigma_p {real},
-                  ## Implicit source term - lump production term into absorbtion so that it is calculated 
-                  ## implicitly
-                  element implicit_source { empty }?,
-                  ## Implicit buoyancy term - lump buoyancy term into absorbtion so that it is calculated 
-                  ## implicitly
-                  element implicit_buoyancy { empty }?,
-                  ## Explicit absorbtion term - lump absorbtion term into source so that it is calculated 
-                  ## explicitly
-                  element explicit_absorbtion { empty }?,
-                  element mass_lumping_in_diagnostics {  
+                  ## Time discretisation of the source terms in the k and epsilon equations and also
+                  ## of the eddy viscosity
+                  element time_discretisation {  
+                     ## Implicit/explicit control (THETA) of source terms and eddy viscosity in
+                     ## the k-epsilon model
+                     ##  = 0.  -- explicit
+                     ##  = 0.5 -- Crank-Nicolson
+                     ##  = 1.  -- implicit
+                     element theta {real},
+                     ## Each term in the k and epsilon equations can be implemented as either a 
+                     ## source or as an absorbtion term. See the manual under 
+                     ## 'Parameterisations/Turbulent flow modelling and simulation/Reynolds Averaged Navier Stokes (RANS) Modelling/Standard k − ε Turbulence Model/Time Discretisation and Coupling' 
+                     ## for more information.
+                     element source_term_implementation { 
+                        element production_term { 'source'|'absorbtion' },
+                        element destruction_term { 'source'|'absorbtion' },
+                        element buoyancy_term { 'source'|'absorbtion' }
+                     }
+                  },
+                  ## The source terms in the k-epsilon model are calculated before the field is 
+                  ## solved. The process requires inversion of a mass matrix. This element contains
+                  ## options for defining how this is done. For P1 meshes mass lumping can be used,
+                  ## for other discretisations the mass matrix can not be easily inverted and so a 
+                  ## solve must be carried out, with solver options specified.
+                  element mass_terms {  
                      (
                         element lump_mass { empty }
                         |
-                        element solve_using_mass_matrix { 
+                        element use_consistent_mass_matrix { 
                            element solver {
-                              linear_solver_options_asym
+                              linear_solver_options_asym_scalar
                            }
                         }                     
                      )
                   },
-                  ## produce vtu output of individual kk and eps source terms and set prescribed source terms
-                  ## for k and epsilon fields (for mms tests)
+                  ## produce vtu output of individual kk and eps source terms and set prescribed 
+                  ## source terms for k and epsilon fields (for mms tests)
                   element debugging_options{
-                     ## output fields for each of the source and absorbtion terms in the k-epsilon 
-                     ## model
+                     ## output fields for each of the source terms in the k-epsilon model
                      element source_term_output_fields{
                         element scalar_field {
                            attribute rank { "0" },
-                           attribute name { "TurbulentKineticEnergyProduction" },
+                           attribute name { "TurbulentKineticEnergy_production_term" },
                            element diagnostic {
                               internal_algorithm,
                               velocity_mesh_choice,
@@ -1280,7 +1308,7 @@ start =
                         }?,
                         element scalar_field {
                            attribute rank { "0" },
-                           attribute name { "TurbulentKineticEnergyBuoyancyTerm" },
+                           attribute name { "TurbulentKineticEnergy_destruction_term" },
                            element diagnostic {
                               internal_algorithm,
                               velocity_mesh_choice,
@@ -1289,7 +1317,7 @@ start =
                         }?,
                         element scalar_field {
                            attribute rank { "0" },
-                           attribute name { "TurbulentKineticEnergyDestruction" },
+                           attribute name { "TurbulentKineticEnergy_buoyancy_term" },
                            element diagnostic {
                               internal_algorithm,
                               velocity_mesh_choice,
@@ -1298,7 +1326,7 @@ start =
                         }?,
                         element scalar_field {
                            attribute rank { "0" },
-                           attribute name { "TurbulentDissipationProduction" },
+                           attribute name { "TurbulentDissipation_production_term" },
                            element diagnostic {
                               internal_algorithm,
                               velocity_mesh_choice,
@@ -1307,7 +1335,7 @@ start =
                         }?,
                         element scalar_field {
                            attribute rank { "0" },
-                           attribute name { "TurbulentDissipationBuoyancyTerm" },
+                           attribute name { "TurbulentDissipation_destruction_term" },
                            element diagnostic {
                               internal_algorithm,
                               velocity_mesh_choice,
@@ -1316,7 +1344,7 @@ start =
                         }?,
                         element scalar_field {
                            attribute rank { "0" },
-                           attribute name { "TurbulentDissipationDestruction" },
+                           attribute name { "TurbulentDissipation_buoyancy_term" },
                            element diagnostic {
                               internal_algorithm,
                               velocity_mesh_choice,
@@ -1345,11 +1373,11 @@ start =
                         }?
                      },
                      ## enabling this option disables the production term in the k and epsilon equations
-                     element disable_production{ empty }?,
+                     element disable_production_term{ empty }?,
                      ## enabling this option disables the destruction term in the k and epsilon equation
-                     element disable_destruction{ empty }?,
+                     element disable_destruction_term{ empty }?,
                      ## enabling this option disables the bouyancy term in the k and epsilon equation
-                     element disable_buoyancy{ empty }?,
+                     element disable_buoyancy_term{ empty }?,
                      ## enabling this option enables the low-Re number damping functions regardless of whether there is
                      ## a low-Re boundary condition
                      element enable_lowRe_damping{ empty }?,
@@ -1788,125 +1816,206 @@ start =
 
 sediment = 
    (
-      ## A simple sediment model in which different classes of sediment fall 
-      ## and diffuse at different rates.
+      ## A sediment model. See the manual for details on how to use this model.
       element sediment {
-         ## This field is the basis for all sediment fields. Each
-         ## sediment class has a sediment field with name
-         ## SedimentClassName where ClassName is the name of the
-         ## class.
+         ## A single sediment field with discrete characteristics
+         ## 
+         ## Notes: 
          ##
-         ## By default, all sediment classes have exactly the same
-         ## characteristics, however each class can be given its own
-         ## settling velocity, diffusivity and initial condition under
-         ## the sediment_class element and this will override the
-         ## default specified here.
+         ## - a sinking velocity is required for sediment fields, this can be set for each
+         ## sediment field under prognostic/SinkingVelocity
+         ##
+         ## - continuity must be the same for all fields. i.e. use the same mesh for all fields
+         ##
+         ## - rentrainment bc's can be used to allow sediment to be picked up from the bed
+         ## due to turbulence. This must be set on the same boundaries as the SedimentDepositon
+         ## field
+         ## 
+         ## - see the manual for more details on how to use this model 
          element scalar_field {
             attribute rank { "0" },
-            attribute name { "SedimentTemplate" },
+            attribute name { string },
             ## Field type
             element prognostic {
                velocity_mesh_choice,
-               prognostic_scalar_field
-            },
-            ## This is the density of this sediment. It will be used
-            ## with the sediment concentration in the equation of state.
-            ## Density must be specified here or for each sediment class.
-            element density {
-               real
-            }?,
-            ## This is the diameter of the grain in mm.
-            ## Diameter must be specified here or under each sediment class.
-            element diameter {
-               real
-            }?,
-            ## Set porosity to use. Default is 0.3. 1.0 is a sold material.
-            element porosity {
-               real
-            }?,
-            ## Erodability of the sediment grain. A value of one means that only the
-            ## critical shear stress is used to determine if a grain can be put into 
-            ## suspension. A value of zero means these grains can never be resuspended.
-            ## Default is 1.
-            element erodability {
-                real
-            }?,
-            ## Critical shear stress of a grain. If not switched on a value
-            ## will be computed according to the particle Reynolds number and Shield's
-            ## criterion. Otherwise inoput a value in Nm-1
-            element critical_shear_stress {
-               real
-            }?
-         },
-         ## This field is the template for the sediment flux
-         ## diagnostic which records the flux of sediment through the
-         ## domain boundary.
+               prognostic_scalar_field,
+               ## Sediment bedload diagnostic which records the sediment 
+               ## deposited through the prescribed boundary.
+               ##
+               ## The units are in unit distances as a depth of sediment.
+               ##
+               ## - The equation type must be set to SedimentBedload
+               ##
+               ## - Spatial discretisation should be as the parent sediment class
+               ##
+               ## - Initial conditions can be set as normal
+               ##
+               ## - Most other settings are irrelevant
+               ##     - No solver settings are required as the sediment model only works
+               ##       for p1 discretisations where the mass matrix can be easily inverted.
+               ##     - The bedload is always calculated completely explicitly
+               ##     - You cannot apply Source or Absorbtion terms to the bedload
+               ##     - There is no diffusion of the bedload
+               element scalar_field {
+                  attribute rank { "0" },
+                  attribute name { "Bedload" },
+                  ## Field type
+                  (
+                     element prognostic {
+                        ## Surface ids over which to calculate the bedload:
+                        element surface_ids {
+                           integer_vector
+                        },
+                        prognostic_scalar_field,
+                        ## Disables calculation of change to bedload due to 
+                        ## erosion/deposition (generally only used for mms testing):
+                        element disable_calculation { empty }?
+                     }
+                  )
+               },
+               ## Sediment bedload diagnostic which records the sediment 
+               ## deposited through the prescribed boundary.
+               ##
+               ## The units are in unit distances/second.
+               element scalar_field {
+                  attribute rank { "0" },
+                  attribute name { "BedloadVolumeFraction" },
+                  ## Field type
+                  element diagnostic {
+                     diagnostic_scalar_field
+                  }
+               },
+               ## Sediment bedload deposit rate diagnostic.
+               ##
+               ## The units are in unit distances/second.
+               element scalar_field {
+                  attribute rank { "0" },
+                  attribute name { "BedloadDepositRate" },
+                  ## Field type
+                  element diagnostic {
+                     diagnostic_scalar_field
+                  }
+               }?,
+               ## Sediment bedload erosion rate diagnostic.
+               ##
+               ## The units are in unit distances as a depth of sediment.
+               element scalar_field {
+                  attribute rank { "0" },
+                  attribute name { "BedloadErosionRate" },
+                  ## Field type
+                  element diagnostic {
+                     diagnostic_scalar_field
+                  }
+               }?,
+               ## This is the unhindered sinking velocity of the sediment particles. 
+               ## 
+               ## With the sinking velocity field set to diagnostic, this field is used, along with the sediment 
+               ## concentration, to calculate the hindered sinking velocity of sediment particles. 
+               ##
+               ## This uses the equation developed by Richardson and Zaki [1954]. 
+               ##
+               ## If the 'SinkingVelocity' is not set to diagnostic, this field will not be used.
+               ##
+               ## As with the sinking velocity, this velocity is in the direction of gravity so if the substance
+               ## floats upwards, this field should be negative.
+               ##
+               ## This should be on the same mesh as the associated SinkingVelocity field.
+               element scalar_field {
+                  attribute name { "UnhinderedSinkingVelocity" },
+                  attribute rank { "0" },
+                  element prescribed {
+                     velocity_mesh_choice,
+                     prescribed_scalar_field
+                  }
+               }?,
+               ## This is the submerged specific gravity, R, of this sediment. 
+               ## It will be used with the sediment concentration in the equation
+               ## of state, as well as in erosion algorithms.
+               ## 
+               ## R = (rho_s - rho_a)/(rho_a)
+               ##
+               ## Where: rho_s is the sediment density and rho_a is the ambient fluid density
+               element submerged_specific_gravity {
+                  real
+               },
+               ## This is the diameter of the grain.
+               ## Diameter must be specified here or under each sediment class.
+               element diameter {
+                  real
+               }?,
+               ## Set porosity to use. Default is 0.3. 1.0 is a sold material.
+               element bed_porosity {
+                  real
+               }?,
+               ## Erodability of the sediment grain. A value of one means that only the
+               ## critical shear stress is used to determine if a grain can be put into 
+               ## suspension. A value of zero means these grains can never be resuspended.
+               ## Default is 1.
+               element erodability {
+                  real
+               }?,
+               ## Critical shear stress of a grain. If not switched on a value
+               ## will be computed according to the particle Reynolds number and Shield's
+               ## criterion.
+               element critical_shear_stress {
+                  real
+               }?
+            }
+         }*,
+         ## The median sediment diameter in the active layer of the bed. 
+         ## Required for some reentrainment algorithms.
          element scalar_field {
             attribute rank { "0" },
-            attribute name { "SedimentFluxTemplate" },
-            ## Field type
-            element diagnostic {
-               ## Surface ids over which to calculate the flux:
-               element surface_ids {
-                  integer_vector
-               },
-               velocity_mesh_choice,
-               diagnostic_scalar_field
-            }
-         },
-         element sediment_class {
-            attribute name { xsd:string },
-            initial_condition_scalar*,
-            scalar_boundary_conditions*,
-            ## Diffusivity for sediment class
-            element tensor_field {
-               attribute name { "Diffusivity" },
-               attribute rank { "2" },
-               (
-                  element prescribed {
-                     mesh_choice?,
-                     prescribed_tensor_field_no_adapt
-                  }|
-                  element diagnostic {
-                    tensor_python_diagnostic_algorithm,
-                    diagnostic_tensor_field
-                  }
-               )
-            }?,
-            ## Velocity at which this sediment sinks through the water column.
-            ## 
-            ## This velocity is in the direction of gravity so if the substance
-            ## floats upwards, this field should be negative.
-            element scalar_field {
-               attribute name { "SinkingVelocity" },
-               attribute rank { "0" },
-               element prescribed {
-                  prescribed_scalar_field_no_adapt
+            attribute name { "SedimentBedActiveLayerD50" },
+            (
+               element diagnostic {
+                  ## Surface ids over which to calculate the bedload:
+                  element surface_ids {
+                     integer_vector
+                  },
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
                }
-            }?,
-            ## This is the density of this sediment. It will be used
-            ## with the sediment concentration in the equation of state.
-            element density {
-               real
-            }?,
-            ## This is the diamter of the grain in mm
-            element diameter {
-               real
-            }?,
-            ## Erodability of the sediment grain. A value of one means that only the
-            ## critical shear stress is used to determine if a grain can be put into 
-            ## suspension. A value of zero means these grains can never be resuspended.
-            ## Default is 1.
-            element erodability {
-                real
-            }?,
-            ## Critical shear stress of a grain. If not switched on a value
-            ## will be computed according to the particle Reynolds number and Shield's
-            ## criterion. Otherwise inoput a value in Nm-1
-            element critical_shear_stress {
-               real
-            }?
-         }+
+            )
+         },
+         ## The standard deviation of sediment in the active layer of the
+         ## bed. Required for some reentrainment algorithms
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "SedimentBedActiveLayerSigma" },
+            (
+               element diagnostic {
+                  ## Surface ids over which to calculate the bedload:
+                  element surface_ids {
+                     integer_vector
+                  },
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            )
+         },
+         ## ZeroSedimentConcentrationViscosity field:
+         ##
+         ## Field for the viscosity of this a fluid with zero 
+         ## concentration of sediment.
+         ## Required if using a diagnostic viscosity
+         ## in a sediment problem where sediment concentration
+         ## dependent viscosity is required.
+         element tensor_field {
+            attribute rank { "2" },
+            attribute name { "ZeroSedimentConcentrationViscosity" },
+            (
+               element prescribed {
+                  velocity_mesh_choice,
+                  prescribed_tensor_field
+               }|
+               element aliased {
+                  generic_aliased_field
+               }
+            )
+         }?
       }
    )
 
@@ -1964,7 +2073,7 @@ prognostic_density_field =
       (
          ## Solver
          element solver {
-            linear_solver_options_asym
+            linear_solver_options_asym_scalar
          }|
          ## Assume this field is being solved explicitly and skip the solver.
          ##
@@ -2589,6 +2698,31 @@ velocity_boundary_conditions =
          element type {
            attribute name { "free_surface" },
            (
+              ## The default free_surface implements the physical boundary
+              ## condition p=0 (this is full pressure without subtracting the hydrostatic component)
+              ## For viscous fluids the correct boundary condition is a no normal
+              ## stress condition, which includes a viscosity term. When using
+              ## this option a prognostic FreeSurface field is required.
+              element no_normal_stress {
+                 ## Treat the free surface evolution equation separately from the momentum equation.  
+                 ## i.e. stagger the solves.
+                 ##
+                 ## Requires a prognostic FreeSurface field.
+                 element explicit {
+                   empty
+                 }?
+              }?,
+              ## When selected the density at the surface is calculated using the Density field.  Therefore
+              ## this requires a Density field!
+              element variable_density {
+                 empty
+              }?,
+              ## When selected a hydrostatic pressure distribution on the outside is assumed
+              ## using the specified density, i.e. instead of applying p=0 (resp.
+              ## normal_stress=0) we apply p=p_external (resp. normal_stress=p_external) where p_external is determined by dp_external/dz=external_density*g
+              element external_density {
+                 real
+              }?,
               ## This options adds a surface stabilisation term to the free surface. Works only for cg velocity so far. 
               ## Note: Once activated, the stabilisation term will occur in all free surface areas in the domain. 
               ## IN DEVELOPMENT
@@ -2721,6 +2855,23 @@ velocity_boundary_conditions =
          element type{
             attribute name { "log_law_of_wall" },
             element surface_roughness {real}
+         }|
+         ## Flux boundary condition. 
+         ##
+         ## Weakly enforces a flux across a boundary
+         element type {
+            attribute name { "flux" },
+            element align_bc_with_cartesian {
+               element x_component {
+                  input_choice_real_bc_component
+               }?,
+               element y_component {
+                  input_choice_real_bc_component
+               }?,
+               element z_component {
+                  input_choice_real_bc_component
+               }?
+            }
          }
       )
    )
@@ -2980,15 +3131,20 @@ prognostic_velocity_stat_options.stat &=
       element nonlinear_field {
          vector_field_stat_options_disabled_default
       },
-      ## What surface IDs do you want to do the calculation over?
       element compute_body_forces_on_surfaces {
-         ## Enable to output the pressure and viscous terms separately (as well
-         ## as the total force)
-         element output_terms {
-            comment
-         }?,
-         integer_vector
-      }?,
+        attribute name { xsd:string },
+        (
+          ## What surface IDs do you want to do the calculation over?
+          element surface_ids {
+            integer_vector
+          },
+          ## Enable to output the pressure and viscous terms separately (as well
+          ## as the total force)
+          element output_terms {
+             comment
+          }?
+        )
+      }*,
       ## Compute the divergence of this field at the Gauss points
       ## and return its stats.  This is a direct measure of the
       ## divergence at the gauss points rather than a discrete measure
@@ -3285,10 +3441,10 @@ scalar_field_choice =
             )
          }|
          ## Free Surface
-         ## NOTE: if you are using the free_surface boundary condition
-         ## applied to the Velocity field (recommended), you should not 
-         ## use the prognostic FreeSurface field. In this case you may 
-         ## (optionally) add a diagnostic FreeSurface field.
+         ## Use in combination with a free_surface boundary condition on velocity
+         ## Without the no_normal_stress option, this field should be diagnostic
+         ## and is optional. With the no_normal_stress option this field is required
+         ## and should be prognostic.
          element scalar_field {
             attribute rank { "0" },
             attribute name { "FreeSurface" },
@@ -3296,16 +3452,57 @@ scalar_field_choice =
                ## Free Surface
                ## NOTE: the diagnostic FreeSurface field only works in combination
                ## with the free_surface boundary condition applied to the Velocity
-               ## field. It gives you a 3D field (constant over the vertical)
+               ## field, without the no_normal_stress_option.
+               ## It gives you a full dimensional field (constant over the vertical)
                ## of the free surface elevation.
                element diagnostic {
                   internal_algorithm,
-                  # this is hard-coded on the PressureMesh as long as the Pressure is
-                  # if this is no longer true, it should be option-checked to be on the
-                  # same mesh as Pressure
                   ## Must be on the same mesh as Pressure
                   pressure_mesh_choice,
                   diagnostic_scalar_field
+               }|
+               ## Free Surface
+               ## NOTE: the prognostic FreeSurface field only works in combination
+               ## with the free_surface boundary condition applied to the Velocity
+               ## field in combination with the no_normal_stress_option.
+               ## It gives you a full dimensional field (constant over the vertical)
+               ## of the free surface elevation. Initial and boundary conditions
+               ## for free surface should be set on this field.
+               element prognostic {
+                  ## Must be on the same mesh as Pressure
+                  pressure_mesh_choice,
+                  (
+                     ## Initial condition for WholeMesh
+                     ##
+                     ## Only specify one condition if not using mesh regions.
+                     ## Otherwise select other initial_condition option, specify region_ids
+                     ## and distinct names.  Then add extra intial conditions for other regions.
+                     element initial_condition {
+                        attribute name { "WholeMesh" },
+                        input_choice_initial_condition_real
+                     }|
+                     ## Multiple initial_conditions are allowed if specifying
+                     ## different values in different
+                     ## regions of the mesh (defined by region_ids).  In this case
+                     ## each initial_condition
+                     ## requires a distinct name for the options dictionary.
+                     element initial_condition {
+                        attribute name { string },
+                        region_ids?,
+                        input_choice_initial_condition_real
+                     }
+                  )+,
+                  ## Solver - only necessary in combination with an explicit no_normal_stress free_surface bc under Velocity.
+                  element solver {
+                     linear_solver_options_sym
+                  },
+                  prognostic_scalar_output_options,
+                  prognostic_scalar_stat_options,
+                  scalar_convergence_options,
+                  prognostic_detector_options,
+                  scalar_steady_state_options,
+                  adaptivity_options_prognostic_scalar_field,
+                  interpolation_algorithm_scalar
                }
                
             )
@@ -4109,6 +4306,28 @@ scalar_field_choice =
                   internal_algorithm,
                   velocity_mesh_choice,
                   porosity_include_dg_and_cg_cfl,
+                  diagnostic_scalar_field
+               }|
+               element aliased {
+                  generic_aliased_field
+               }
+            )
+         }|
+         ## Buoyancy Adjustment diffusivity
+         ##
+         ## The element-wise diffusion applied
+         ## in the buoyancy adjustment by vertical mixing
+         ## scheme available for tracer fields.
+         ##
+         ## This is an element-wise P0 field, so it is best
+         ## calculated in a discontinuous function space.
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "BuoyancyAdjustmentDiffusivity" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
                   diagnostic_scalar_field
                }|
                element aliased {
@@ -5536,6 +5755,11 @@ tensor_field_choice =
                   mesh_choice,
                   prescribed_tensor_field
                }|
+               element diagnostic {
+                  mesh_choice,
+                  tensor_python_diagnostic_algorithm,
+                  diagnostic_tensor_field
+               }|
                element aliased {
                   generic_aliased_field
                }
@@ -6494,7 +6718,64 @@ forcing =
         element tidal_forcing {
                ## M2
                element M2 {
-                 empty
+                 ## Ancient frequencies:
+                 ##
+                 ## Ma     Frequency
+                 ##
+                 ## 0        1.405e-4
+                 ##
+                 ## 10      1.408e-4
+                 ##
+                 ## 50      1.416e-4
+                 ##
+                 ## 100    1.423e-4
+                 ##
+                 ## 200    1.428e-4
+                 ##
+                 ## 300    1.431e-4
+                 ##
+                 ## 350    1.434e-4
+                 ##
+                 ## 400    1.436e-4
+                 ##
+                 ## 450    1.441e-4
+                 ##
+                 ## 500    1.451e-4
+                 ##
+                 ## 570    1.469e-4
+                 ##
+                 ## From Poliakow,2005
+                 element frequency {
+                    real
+                  }?,
+                 ## Ma     Amplitude
+                 ##
+                 ## 0        0.2423
+                 ##
+                 ## 10      0.2428
+                 ##
+                 ## 50      0.2446
+                 ##
+                 ## 100    0.2460
+                 ##
+                 ## 200    0.2471
+                 ##
+                 ## 300    0.2477
+                 ##
+                 ## 350    0.2485
+                 ##
+                 ## 400    0.2489
+                 ##
+                 ## 450    0.2499
+                 ##
+                 ## 500    0.2521
+                 ##
+                 ## 570    0.2560
+                 ##
+                 ## From Poliakow,2005
+                 element amplitude {
+                    real
+                 }?
                }?,
                ## S2
                element S2 {
@@ -6541,11 +6822,24 @@ forcing =
                   empty
                }?,
                ## Sets a user defined Love number. If not active a value of 1.0 is used.
+               ## Recommended value is 0.693
                element love_number {
                   element value {
                      real
                   }
-               }?
+               }?,
+               ## Self attraction and loading term (SAL). This is a simple implementation
+               ## that uses a constant beta value
+               element sal {
+                element beta {
+                    real
+                }
+              }?,
+              ## Add the CHI term to the harmonics. You probably only want to do this is you're simulating a specific time
+              element chi {
+                empty
+              }?
+
         }?
     }
   )
@@ -6649,7 +6943,7 @@ prognostic_photosynthetic_radiation =
       (
          ## Solver
          element solver {
-            linear_solver_options_asym
+            linear_solver_options_asym_scalar
          }
       ),
       # Alas, no initial_condition either, so we'd better not checkpoint it...

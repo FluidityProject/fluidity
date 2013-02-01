@@ -5,7 +5,7 @@
   <owner userid="jhill1"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>mpiexec -n 2 ../../bin/fluidity -v1 -l column-parallel.flml </command_line>
+    <command_line>mpiexec -n 2 ../../bin/fluidity -v1 -l column-parallel_flredecomp.flml </command_line>
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">

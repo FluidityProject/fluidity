@@ -667,7 +667,7 @@ higher order solution is pivotted.
           <choice>
             <element name="solver">
               <a:documentation>Solver</a:documentation>
-              <ref name="linear_solver_options_asym"/>
+              <ref name="linear_solver_options_asym_scalar"/>
             </element>
             <element name="explicit">
               <a:documentation>Assume this field is being solved explicitly and skip the solver.
@@ -1140,6 +1140,26 @@ additional_adapt_iterations calls to adaptivity. Additional calls over adapt ite
 are only allowed if Zoltan returns a minimum element quality below the element quality
 cut off. Default is 0. </a:documentation>
               <ref name="integer"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="field_weighted_partitions">
+              <element name="scalar_field">
+                <a:documentation>Field weighted partitions: turning on this option allows one to 
+weight mesh partitions, based upon a prescribed scalar field. 
+Note that the field should have a minimum value of 0 and a maximum
+value of 1 (no normalisation is done within the code).</a:documentation>
+                <attribute name="rank">
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>FieldWeightedPartitionValues</value>
+                </attribute>
+                <element name="prescribed">
+                  <ref name="coordinate_mesh_choice"/>
+                  <ref name="prescribed_scalar_field"/>
+                </element>
+              </element>
             </element>
           </optional>
           <optional>

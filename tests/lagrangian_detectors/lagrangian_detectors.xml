@@ -6,7 +6,7 @@
   <tags>flml parallel nozoltan</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
-mpirun -n 4 ../../bin/fluidity -v3 -l lagrangian_detectors_rk.flml
+mpirun -n 4 ../../bin/fluidity -v3 -l lagrangian_detectors_rk_flredecomp.flml
     </command_line>
   </problem_definition>
   <variables>
