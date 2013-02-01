@@ -250,9 +250,11 @@ def plusvelo(filelist,profiles,yarray):
 
   ##### Velocity gradient at wall at x=19
   x1 = numpy.array([[20.0,2.0,0.0]])
-  graduz = abs(datafile.ProbeData(x1, "Grad_Velocity")[:,2,0])
-  visc  = datafile.ProbeData(x1, "Viscosity")[0,0,0]
-  print "graduz from vtu: ", graduz
+  #graduz = abs(datafile.ProbeData(x1, "Grad_Velocity")[:,2,0])
+  #visc  = datafile.ProbeData(x1, "Viscosity")[0,0,0]
+  #print "graduz from vtu: ", graduz
+  # Viscosity isn't output to vtu in all sims.
+  visc = 3.e-4
 
   u1 = abs(datafile.ProbeData(x1, "AverageVelocity")[:,0])
   x2 = numpy.array([[20.0,2.0,0.1]])
@@ -611,7 +613,7 @@ def plot_reynolds_stresses2(Re,type,mesh,rprofiles,xarray,zarray,yarray):
     tick.label1.set_fontsize(size)
   pylab.setp(dx.get_yticklabels(), visible=False)
 
-  pylab.axis([-0.1, 0.19, 0., 3.])
+  pylab.axis([0., 0.19, 0., 3.])
   bx.set_xlabel('Normalised Reynolds stresses vs. Le&Moin data', fontsize=20)
   ax.set_ylabel('y/h', fontsize=24)
 

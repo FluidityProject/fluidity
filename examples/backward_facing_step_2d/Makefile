@@ -13,7 +13,7 @@ preprocess:
 run:
 	@if [ "x" == "x${TYPE}" ]; then echo "**********ERROR: Commandline should be make run TYPE=type, where type is reference or kepsilon"; false; fi;
 	@echo **********Running the $(TYPE) simulation:
-	cd $(TYPE) &&  $(BIN)/fluidity -v2 -l backward_facing_step_2d_kim_$(TYPE).flml &&  cd ..
+	cd $(TYPE) &&  $(BIN)/fluidity -v2 -l backward_facing_step_2d-$(TYPE).flml &&  cd ..
 
 postprocess:
 	@if [ "x" == "x${TYPE}" ]; then echo "**********ERROR: Commandline should be make postprocess TYPE=type, where type is reference or kepsilon"; false; fi;
@@ -31,5 +31,7 @@ clean:
 
 space:
 	@$(foreach N,1 2 3 4 5 6 7 8 9, \
-		rm $(TYPE)/*_*$(N).vtu; \
+		rm $(TYPE)/*_*$(N).*vtu; \
+		rm -r $(TYPE)/*_*$(N); \
+		rm $(TYPE)/fluidity.*; \
 	)

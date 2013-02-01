@@ -5,26 +5,26 @@
   <owner userid="jbull"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>fluidity -v2 -l MMS_A_structured.flml &amp;&amp; fluidity MMS_B_structured.flml &amp;&amp; fluidity MMS_C_structured.flml &amp;&amp; fluidity MMS_D_structured.flml &amp;&amp; fluidity MMS_E_structured.flml</command_line>
+    <command_line>fluidity -v2 -l MMS_A_unstructured.flml &amp;&amp; fluidity MMS_B_unstructured.flml &amp;&amp; fluidity MMS_C_unstructured.flml &amp;&amp; fluidity MMS_D_unstructured.flml &amp;&amp; fluidity MMS_E_unstructured.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="ab_convergence_vel_f" language="python">
 #
 from fluidity_tools import stat_parser as stat
 from math import log
-output=open('errorconv_structured.log','w')
-errorlog=open('error_structured.log','w')
+output=open('errorconv_unstructured.log','w')
+errorlog=open('error_unstructured.log','w')
 
-a_error_x = stat("MMS_A_structured.stat")["NS"]["AnisoFilterDifference%1"]["l2norm"][-1]
-b_error_x = stat("MMS_B_structured.stat")["NS"]["AnisoFilterDifference%1"]["l2norm"][-1]
-a_error_y = stat("MMS_A_structured.stat")["NS"]["AnisoFilterDifference%2"]["l2norm"][-1]
-b_error_y = stat("MMS_B_structured.stat")["NS"]["AnisoFilterDifference%2"]["l2norm"][-1]
-a_error_norm = stat("MMS_A_structured.stat")["NS"]["AnisoFilterDifference%magnitude"]["l2norm"][-1]
+a_error_x = stat("MMS_A_unstructured.stat")["NS"]["AnisoFilterDifference%1"]["l2norm"][-1]
+b_error_x = stat("MMS_B_unstructured.stat")["NS"]["AnisoFilterDifference%1"]["l2norm"][-1]
+a_error_y = stat("MMS_A_unstructured.stat")["NS"]["AnisoFilterDifference%2"]["l2norm"][-1]
+b_error_y = stat("MMS_B_unstructured.stat")["NS"]["AnisoFilterDifference%2"]["l2norm"][-1]
+a_error_norm = stat("MMS_A_unstructured.stat")["NS"]["AnisoFilterDifference%magnitude"]["l2norm"][-1]
 
-a_error_inf_x = stat("MMS_A_structured.stat")["NS"]["AnisoFilterDifference%1"]["max"][-1]
-b_error_inf_x = stat("MMS_B_structured.stat")["NS"]["AnisoFilterDifference%1"]["max"][-1]
-a_error_inf_y = stat("MMS_A_structured.stat")["NS"]["AnisoFilterDifference%2"]["max"][-1]
-b_error_inf_y = stat("MMS_B_structured.stat")["NS"]["AnisoFilterDifference%2"]["max"][-1]
+a_error_inf_x = stat("MMS_A_unstructured.stat")["NS"]["AnisoFilterDifference%1"]["max"][-1]
+b_error_inf_x = stat("MMS_B_unstructured.stat")["NS"]["AnisoFilterDifference%1"]["max"][-1]
+a_error_inf_y = stat("MMS_A_unstructured.stat")["NS"]["AnisoFilterDifference%2"]["max"][-1]
+b_error_inf_y = stat("MMS_B_unstructured.stat")["NS"]["AnisoFilterDifference%2"]["max"][-1]
 
 ab_ratio_x = a_error_x / b_error_x
 ab_ratio_y = a_error_y / b_error_y
@@ -42,19 +42,19 @@ ab_convergence_vel_f = [[log(ab_ratio_x, 2), log(ab_ratio_inf_x, 2)], [log(ab_ra
     <variable name="ab_convergence_vel_if" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
-output=open('errorconv_structured.log','a')
-errorlog=open('error_structured.log','a')
+output=open('errorconv_unstructured.log','a')
+errorlog=open('error_unstructured.log','a')
 
-a_error_x = stat("MMS_A_structured.stat")["NS"]["IsoFilterDifference%1"]["l2norm"][-1]
-b_error_x = stat("MMS_B_structured.stat")["NS"]["IsoFilterDifference%1"]["l2norm"][-1]
-a_error_y = stat("MMS_A_structured.stat")["NS"]["IsoFilterDifference%2"]["l2norm"][-1]
-b_error_y = stat("MMS_B_structured.stat")["NS"]["IsoFilterDifference%2"]["l2norm"][-1]
-a_error_norm = stat("MMS_A_structured.stat")["NS"]["IsoFilterDifference%magnitude"]["l2norm"][-1]
+a_error_x = stat("MMS_A_unstructured.stat")["NS"]["IsoFilterDifference%1"]["l2norm"][-1]
+b_error_x = stat("MMS_B_unstructured.stat")["NS"]["IsoFilterDifference%1"]["l2norm"][-1]
+a_error_y = stat("MMS_A_unstructured.stat")["NS"]["IsoFilterDifference%2"]["l2norm"][-1]
+b_error_y = stat("MMS_B_unstructured.stat")["NS"]["IsoFilterDifference%2"]["l2norm"][-1]
+a_error_norm = stat("MMS_A_unstructured.stat")["NS"]["IsoFilterDifference%magnitude"]["l2norm"][-1]
 
-a_error_inf_x = stat("MMS_A_structured.stat")["NS"]["IsoFilterDifference%1"]["max"][-1]
-b_error_inf_x = stat("MMS_B_structured.stat")["NS"]["IsoFilterDifference%1"]["max"][-1]
-a_error_inf_y = stat("MMS_A_structured.stat")["NS"]["IsoFilterDifference%2"]["max"][-1]
-b_error_inf_y = stat("MMS_B_structured.stat")["NS"]["IsoFilterDifference%2"]["max"][-1]
+a_error_inf_x = stat("MMS_A_unstructured.stat")["NS"]["IsoFilterDifference%1"]["max"][-1]
+b_error_inf_x = stat("MMS_B_unstructured.stat")["NS"]["IsoFilterDifference%1"]["max"][-1]
+a_error_inf_y = stat("MMS_A_unstructured.stat")["NS"]["IsoFilterDifference%2"]["max"][-1]
+b_error_inf_y = stat("MMS_B_unstructured.stat")["NS"]["IsoFilterDifference%2"]["max"][-1]
 
 ab_ratio_x = a_error_x / b_error_x
 ab_ratio_y = a_error_y / b_error_y
@@ -71,19 +71,19 @@ ab_convergence_vel_if = [[log(ab_ratio_x, 2), log(ab_ratio_inf_x, 2)], [log(ab_r
     <variable name="ab_convergence_vel_mlf" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
-output=open('errorconv_structured.log','a')
-errorlog=open('error_structured.log','a')
+output=open('errorconv_unstructured.log','a')
+errorlog=open('error_unstructured.log','a')
 
-a_error_x = stat("MMS_A_structured.stat")["NS"]["MLFilterDifference%1"]["l2norm"][-1]
-b_error_x = stat("MMS_B_structured.stat")["NS"]["MLFilterDifference%1"]["l2norm"][-1]
-a_error_y = stat("MMS_A_structured.stat")["NS"]["MLFilterDifference%2"]["l2norm"][-1]
-b_error_y = stat("MMS_B_structured.stat")["NS"]["MLFilterDifference%2"]["l2norm"][-1]
-a_error_norm = stat("MMS_A_structured.stat")["NS"]["MLFilterDifference%magnitude"]["l2norm"][-1]
+a_error_x = stat("MMS_A_unstructured.stat")["NS"]["MLFilterDifference%1"]["l2norm"][-1]
+b_error_x = stat("MMS_B_unstructured.stat")["NS"]["MLFilterDifference%1"]["l2norm"][-1]
+a_error_y = stat("MMS_A_unstructured.stat")["NS"]["MLFilterDifference%2"]["l2norm"][-1]
+b_error_y = stat("MMS_B_unstructured.stat")["NS"]["MLFilterDifference%2"]["l2norm"][-1]
+a_error_norm = stat("MMS_A_unstructured.stat")["NS"]["MLFilterDifference%magnitude"]["l2norm"][-1]
 
-a_error_inf_x = stat("MMS_A_structured.stat")["NS"]["MLFilterDifference%1"]["max"][-1]
-b_error_inf_x = stat("MMS_B_structured.stat")["NS"]["MLFilterDifference%1"]["max"][-1]
-a_error_inf_y = stat("MMS_A_structured.stat")["NS"]["MLFilterDifference%2"]["max"][-1]
-b_error_inf_y = stat("MMS_B_structured.stat")["NS"]["MLFilterDifference%2"]["max"][-1]
+a_error_inf_x = stat("MMS_A_unstructured.stat")["NS"]["MLFilterDifference%1"]["max"][-1]
+b_error_inf_x = stat("MMS_B_unstructured.stat")["NS"]["MLFilterDifference%1"]["max"][-1]
+a_error_inf_y = stat("MMS_A_unstructured.stat")["NS"]["MLFilterDifference%2"]["max"][-1]
+b_error_inf_y = stat("MMS_B_unstructured.stat")["NS"]["MLFilterDifference%2"]["max"][-1]
 
 ab_ratio_x = a_error_x / b_error_x
 ab_ratio_y = a_error_y / b_error_y
@@ -100,19 +100,19 @@ ab_convergence_vel_mlf = [[log(ab_ratio_x, 2), log(ab_ratio_inf_x, 2)], [log(ab_
     <variable name="ab_convergence_vel" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
-output=open('errorconv_structured.log','a')
-errorlog=open('error_structured.log','a')
+output=open('errorconv_unstructured.log','a')
+errorlog=open('error_unstructured.log','a')
 
-a_error_x = stat("MMS_A_structured.stat")["NS"]["AnalyticalDifference%1"]["l2norm"][-1]
-b_error_x = stat("MMS_B_structured.stat")["NS"]["AnalyticalDifference%1"]["l2norm"][-1]
-a_error_y = stat("MMS_A_structured.stat")["NS"]["AnalyticalDifference%2"]["l2norm"][-1]
-b_error_y = stat("MMS_B_structured.stat")["NS"]["AnalyticalDifference%2"]["l2norm"][-1]
-a_error_norm = stat("MMS_A_structured.stat")["NS"]["AnalyticalDifference%magnitude"]["l2norm"][-1]
+a_error_x = stat("MMS_A_unstructured.stat")["NS"]["AnalyticalDifference%1"]["l2norm"][-1]
+b_error_x = stat("MMS_B_unstructured.stat")["NS"]["AnalyticalDifference%1"]["l2norm"][-1]
+a_error_y = stat("MMS_A_unstructured.stat")["NS"]["AnalyticalDifference%2"]["l2norm"][-1]
+b_error_y = stat("MMS_B_unstructured.stat")["NS"]["AnalyticalDifference%2"]["l2norm"][-1]
+a_error_norm = stat("MMS_A_unstructured.stat")["NS"]["AnalyticalDifference%magnitude"]["l2norm"][-1]
 
-a_error_inf_x = stat("MMS_A_structured.stat")["NS"]["AnalyticalDifference%1"]["max"][-1]
-b_error_inf_x = stat("MMS_B_structured.stat")["NS"]["AnalyticalDifference%1"]["max"][-1]
-a_error_inf_y = stat("MMS_A_structured.stat")["NS"]["AnalyticalDifference%2"]["max"][-1]
-b_error_inf_y = stat("MMS_B_structured.stat")["NS"]["AnalyticalDifference%2"]["max"][-1]
+a_error_inf_x = stat("MMS_A_unstructured.stat")["NS"]["AnalyticalDifference%1"]["max"][-1]
+b_error_inf_x = stat("MMS_B_unstructured.stat")["NS"]["AnalyticalDifference%1"]["max"][-1]
+a_error_inf_y = stat("MMS_A_unstructured.stat")["NS"]["AnalyticalDifference%2"]["max"][-1]
+b_error_inf_y = stat("MMS_B_unstructured.stat")["NS"]["AnalyticalDifference%2"]["max"][-1]
 
 ab_ratio_x = a_error_x / b_error_x
 ab_ratio_y = a_error_y / b_error_y
@@ -129,19 +129,19 @@ ab_convergence_vel = [[log(ab_ratio_x, 2), log(ab_ratio_inf_x, 2)], [log(ab_rati
     <variable name="bc_convergence_vel_f" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
-output=open('errorconv_structured.log','a')
-errorlog=open('error_structured.log','a')
+output=open('errorconv_unstructured.log','a')
+errorlog=open('error_unstructured.log','a')
 
-a_error_x = stat("MMS_B_structured.stat")["NS"]["AnisoFilterDifference%1"]["l2norm"][-1]
-b_error_x = stat("MMS_C_structured.stat")["NS"]["AnisoFilterDifference%1"]["l2norm"][-1]
-a_error_y = stat("MMS_B_structured.stat")["NS"]["AnisoFilterDifference%2"]["l2norm"][-1]
-b_error_y = stat("MMS_C_structured.stat")["NS"]["AnisoFilterDifference%2"]["l2norm"][-1]
-a_error_norm = stat("MMS_B_structured.stat")["NS"]["AnisoFilterDifference%magnitude"]["l2norm"][-1]
+a_error_x = stat("MMS_B_unstructured.stat")["NS"]["AnisoFilterDifference%1"]["l2norm"][-1]
+b_error_x = stat("MMS_C_unstructured.stat")["NS"]["AnisoFilterDifference%1"]["l2norm"][-1]
+a_error_y = stat("MMS_B_unstructured.stat")["NS"]["AnisoFilterDifference%2"]["l2norm"][-1]
+b_error_y = stat("MMS_C_unstructured.stat")["NS"]["AnisoFilterDifference%2"]["l2norm"][-1]
+a_error_norm = stat("MMS_B_unstructured.stat")["NS"]["AnisoFilterDifference%magnitude"]["l2norm"][-1]
 
-a_error_inf_x = stat("MMS_B_structured.stat")["NS"]["AnisoFilterDifference%1"]["max"][-1]
-b_error_inf_x = stat("MMS_C_structured.stat")["NS"]["AnisoFilterDifference%1"]["max"][-1]
-a_error_inf_y = stat("MMS_B_structured.stat")["NS"]["AnisoFilterDifference%2"]["max"][-1]
-b_error_inf_y = stat("MMS_C_structured.stat")["NS"]["AnisoFilterDifference%2"]["max"][-1]
+a_error_inf_x = stat("MMS_B_unstructured.stat")["NS"]["AnisoFilterDifference%1"]["max"][-1]
+b_error_inf_x = stat("MMS_C_unstructured.stat")["NS"]["AnisoFilterDifference%1"]["max"][-1]
+a_error_inf_y = stat("MMS_B_unstructured.stat")["NS"]["AnisoFilterDifference%2"]["max"][-1]
+b_error_inf_y = stat("MMS_C_unstructured.stat")["NS"]["AnisoFilterDifference%2"]["max"][-1]
 
 ab_ratio_x = a_error_x / b_error_x
 ab_ratio_y = a_error_y / b_error_y
@@ -158,19 +158,19 @@ bc_convergence_vel_f = [[log(ab_ratio_x, 2), log(ab_ratio_inf_x, 2)], [log(ab_ra
     <variable name="bc_convergence_vel_if" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
-output=open('errorconv_structured.log','a')
-errorlog=open('error_structured.log','a')
+output=open('errorconv_unstructured.log','a')
+errorlog=open('error_unstructured.log','a')
 
-a_error_x = stat("MMS_B_structured.stat")["NS"]["IsoFilterDifference%1"]["l2norm"][-1]
-b_error_x = stat("MMS_C_structured.stat")["NS"]["IsoFilterDifference%1"]["l2norm"][-1]
-a_error_y = stat("MMS_B_structured.stat")["NS"]["IsoFilterDifference%2"]["l2norm"][-1]
-b_error_y = stat("MMS_C_structured.stat")["NS"]["IsoFilterDifference%2"]["l2norm"][-1]
-a_error_norm = stat("MMS_B_structured.stat")["NS"]["IsoFilterDifference%magnitude"]["l2norm"][-1]
+a_error_x = stat("MMS_B_unstructured.stat")["NS"]["IsoFilterDifference%1"]["l2norm"][-1]
+b_error_x = stat("MMS_C_unstructured.stat")["NS"]["IsoFilterDifference%1"]["l2norm"][-1]
+a_error_y = stat("MMS_B_unstructured.stat")["NS"]["IsoFilterDifference%2"]["l2norm"][-1]
+b_error_y = stat("MMS_C_unstructured.stat")["NS"]["IsoFilterDifference%2"]["l2norm"][-1]
+a_error_norm = stat("MMS_B_unstructured.stat")["NS"]["IsoFilterDifference%magnitude"]["l2norm"][-1]
 
-a_error_inf_x = stat("MMS_B_structured.stat")["NS"]["IsoFilterDifference%1"]["max"][-1]
-b_error_inf_x = stat("MMS_C_structured.stat")["NS"]["IsoFilterDifference%1"]["max"][-1]
-a_error_inf_y = stat("MMS_B_structured.stat")["NS"]["IsoFilterDifference%2"]["max"][-1]
-b_error_inf_y = stat("MMS_C_structured.stat")["NS"]["IsoFilterDifference%2"]["max"][-1]
+a_error_inf_x = stat("MMS_B_unstructured.stat")["NS"]["IsoFilterDifference%1"]["max"][-1]
+b_error_inf_x = stat("MMS_C_unstructured.stat")["NS"]["IsoFilterDifference%1"]["max"][-1]
+a_error_inf_y = stat("MMS_B_unstructured.stat")["NS"]["IsoFilterDifference%2"]["max"][-1]
+b_error_inf_y = stat("MMS_C_unstructured.stat")["NS"]["IsoFilterDifference%2"]["max"][-1]
 
 ab_ratio_x = a_error_x / b_error_x
 ab_ratio_y = a_error_y / b_error_y
@@ -187,19 +187,19 @@ bc_convergence_vel_if = [[log(ab_ratio_x, 2), log(ab_ratio_inf_x, 2)], [log(ab_r
     <variable name="bc_convergence_vel_mlf" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
-output=open('errorconv_structured.log','a')
-errorlog=open('error_structured.log','a')
+output=open('errorconv_unstructured.log','a')
+errorlog=open('error_unstructured.log','a')
 
-a_error_x = stat("MMS_B_structured.stat")["NS"]["MLFilterDifference%1"]["l2norm"][-1]
-b_error_x = stat("MMS_C_structured.stat")["NS"]["MLFilterDifference%1"]["l2norm"][-1]
-a_error_y = stat("MMS_B_structured.stat")["NS"]["MLFilterDifference%2"]["l2norm"][-1]
-b_error_y = stat("MMS_C_structured.stat")["NS"]["MLFilterDifference%2"]["l2norm"][-1]
-a_error_norm = stat("MMS_B_structured.stat")["NS"]["MLFilterDifference%magnitude"]["l2norm"][-1]
+a_error_x = stat("MMS_B_unstructured.stat")["NS"]["MLFilterDifference%1"]["l2norm"][-1]
+b_error_x = stat("MMS_C_unstructured.stat")["NS"]["MLFilterDifference%1"]["l2norm"][-1]
+a_error_y = stat("MMS_B_unstructured.stat")["NS"]["MLFilterDifference%2"]["l2norm"][-1]
+b_error_y = stat("MMS_C_unstructured.stat")["NS"]["MLFilterDifference%2"]["l2norm"][-1]
+a_error_norm = stat("MMS_B_unstructured.stat")["NS"]["MLFilterDifference%magnitude"]["l2norm"][-1]
 
-a_error_inf_x = stat("MMS_B_structured.stat")["NS"]["MLFilterDifference%1"]["max"][-1]
-b_error_inf_x = stat("MMS_C_structured.stat")["NS"]["MLFilterDifference%1"]["max"][-1]
-a_error_inf_y = stat("MMS_B_structured.stat")["NS"]["MLFilterDifference%2"]["max"][-1]
-b_error_inf_y = stat("MMS_C_structured.stat")["NS"]["MLFilterDifference%2"]["max"][-1]
+a_error_inf_x = stat("MMS_B_unstructured.stat")["NS"]["MLFilterDifference%1"]["max"][-1]
+b_error_inf_x = stat("MMS_C_unstructured.stat")["NS"]["MLFilterDifference%1"]["max"][-1]
+a_error_inf_y = stat("MMS_B_unstructured.stat")["NS"]["MLFilterDifference%2"]["max"][-1]
+b_error_inf_y = stat("MMS_C_unstructured.stat")["NS"]["MLFilterDifference%2"]["max"][-1]
 
 ab_ratio_x = a_error_x / b_error_x
 ab_ratio_y = a_error_y / b_error_y
@@ -216,19 +216,19 @@ bc_convergence_vel_mlf = [[log(ab_ratio_x, 2), log(ab_ratio_inf_x, 2)], [log(ab_
    <variable name="bc_convergence_vel" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
-output=open('errorconv_structured.log','a')
-errorlog=open('error_structured.log','a')
+output=open('errorconv_unstructured.log','a')
+errorlog=open('error_unstructured.log','a')
 
-a_error_x = stat("MMS_B_structured.stat")["NS"]["AnalyticalDifference%1"]["l2norm"][-1]
-b_error_x = stat("MMS_C_structured.stat")["NS"]["AnalyticalDifference%1"]["l2norm"][-1]
-a_error_y = stat("MMS_B_structured.stat")["NS"]["AnalyticalDifference%2"]["l2norm"][-1]
-b_error_y = stat("MMS_C_structured.stat")["NS"]["AnalyticalDifference%2"]["l2norm"][-1]
-a_error_norm = stat("MMS_B_structured.stat")["NS"]["AnalyticalDifference%magnitude"]["l2norm"][-1]
+a_error_x = stat("MMS_B_unstructured.stat")["NS"]["AnalyticalDifference%1"]["l2norm"][-1]
+b_error_x = stat("MMS_C_unstructured.stat")["NS"]["AnalyticalDifference%1"]["l2norm"][-1]
+a_error_y = stat("MMS_B_unstructured.stat")["NS"]["AnalyticalDifference%2"]["l2norm"][-1]
+b_error_y = stat("MMS_C_unstructured.stat")["NS"]["AnalyticalDifference%2"]["l2norm"][-1]
+a_error_norm = stat("MMS_B_unstructured.stat")["NS"]["AnalyticalDifference%magnitude"]["l2norm"][-1]
 
-a_error_inf_x = stat("MMS_B_structured.stat")["NS"]["AnalyticalDifference%1"]["max"][-1]
-b_error_inf_x = stat("MMS_C_structured.stat")["NS"]["AnalyticalDifference%1"]["max"][-1]
-a_error_inf_y = stat("MMS_B_structured.stat")["NS"]["AnalyticalDifference%2"]["max"][-1]
-b_error_inf_y = stat("MMS_C_structured.stat")["NS"]["AnalyticalDifference%2"]["max"][-1]
+a_error_inf_x = stat("MMS_B_unstructured.stat")["NS"]["AnalyticalDifference%1"]["max"][-1]
+b_error_inf_x = stat("MMS_C_unstructured.stat")["NS"]["AnalyticalDifference%1"]["max"][-1]
+a_error_inf_y = stat("MMS_B_unstructured.stat")["NS"]["AnalyticalDifference%2"]["max"][-1]
+b_error_inf_y = stat("MMS_C_unstructured.stat")["NS"]["AnalyticalDifference%2"]["max"][-1]
 
 ab_ratio_x = a_error_x / b_error_x
 ab_ratio_y = a_error_y / b_error_y
@@ -245,19 +245,19 @@ bc_convergence_vel = [[log(ab_ratio_x, 2), log(ab_ratio_inf_x, 2)], [log(ab_rati
     <variable name="cd_convergence_vel_f" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
-output=open('errorconv_structured.log','a')
-errorlog=open('error_structured.log','a')
+output=open('errorconv_unstructured.log','a')
+errorlog=open('error_unstructured.log','a')
 
-a_error_x = stat("MMS_C_structured.stat")["NS"]["AnisoFilterDifference%1"]["l2norm"][-1]
-b_error_x = stat("MMS_D_structured.stat")["NS"]["AnisoFilterDifference%1"]["l2norm"][-1]
-a_error_y = stat("MMS_C_structured.stat")["NS"]["AnisoFilterDifference%2"]["l2norm"][-1]
-b_error_y = stat("MMS_D_structured.stat")["NS"]["AnisoFilterDifference%2"]["l2norm"][-1]
-a_error_norm = stat("MMS_C_structured.stat")["NS"]["AnisoFilterDifference%magnitude"]["l2norm"][-1]
+a_error_x = stat("MMS_C_unstructured.stat")["NS"]["AnisoFilterDifference%1"]["l2norm"][-1]
+b_error_x = stat("MMS_D_unstructured.stat")["NS"]["AnisoFilterDifference%1"]["l2norm"][-1]
+a_error_y = stat("MMS_C_unstructured.stat")["NS"]["AnisoFilterDifference%2"]["l2norm"][-1]
+b_error_y = stat("MMS_D_unstructured.stat")["NS"]["AnisoFilterDifference%2"]["l2norm"][-1]
+a_error_norm = stat("MMS_C_unstructured.stat")["NS"]["AnisoFilterDifference%magnitude"]["l2norm"][-1]
 
-a_error_inf_x = stat("MMS_C_structured.stat")["NS"]["AnisoFilterDifference%1"]["max"][-1]
-b_error_inf_x = stat("MMS_D_structured.stat")["NS"]["AnisoFilterDifference%1"]["max"][-1]
-a_error_inf_y = stat("MMS_C_structured.stat")["NS"]["AnisoFilterDifference%2"]["max"][-1]
-b_error_inf_y = stat("MMS_D_structured.stat")["NS"]["AnisoFilterDifference%2"]["max"][-1]
+a_error_inf_x = stat("MMS_C_unstructured.stat")["NS"]["AnisoFilterDifference%1"]["max"][-1]
+b_error_inf_x = stat("MMS_D_unstructured.stat")["NS"]["AnisoFilterDifference%1"]["max"][-1]
+a_error_inf_y = stat("MMS_C_unstructured.stat")["NS"]["AnisoFilterDifference%2"]["max"][-1]
+b_error_inf_y = stat("MMS_D_unstructured.stat")["NS"]["AnisoFilterDifference%2"]["max"][-1]
 
 ab_ratio_x = a_error_x / b_error_x
 ab_ratio_y = a_error_y / b_error_y
@@ -274,19 +274,19 @@ cd_convergence_vel_f = [[log(ab_ratio_x, 2), log(ab_ratio_inf_x, 2)], [log(ab_ra
     <variable name="cd_convergence_vel_if" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
-output=open('errorconv_structured.log','a')
-errorlog=open('error_structured.log','a')
+output=open('errorconv_unstructured.log','a')
+errorlog=open('error_unstructured.log','a')
 
-a_error_x = stat("MMS_C_structured.stat")["NS"]["IsoFilterDifference%1"]["l2norm"][-1]
-b_error_x = stat("MMS_D_structured.stat")["NS"]["IsoFilterDifference%1"]["l2norm"][-1]
-a_error_y = stat("MMS_C_structured.stat")["NS"]["IsoFilterDifference%2"]["l2norm"][-1]
-b_error_y = stat("MMS_D_structured.stat")["NS"]["IsoFilterDifference%2"]["l2norm"][-1]
-a_error_norm = stat("MMS_C_structured.stat")["NS"]["IsoFilterDifference%magnitude"]["l2norm"][-1]
+a_error_x = stat("MMS_C_unstructured.stat")["NS"]["IsoFilterDifference%1"]["l2norm"][-1]
+b_error_x = stat("MMS_D_unstructured.stat")["NS"]["IsoFilterDifference%1"]["l2norm"][-1]
+a_error_y = stat("MMS_C_unstructured.stat")["NS"]["IsoFilterDifference%2"]["l2norm"][-1]
+b_error_y = stat("MMS_D_unstructured.stat")["NS"]["IsoFilterDifference%2"]["l2norm"][-1]
+a_error_norm = stat("MMS_C_unstructured.stat")["NS"]["IsoFilterDifference%magnitude"]["l2norm"][-1]
 
-a_error_inf_x = stat("MMS_C_structured.stat")["NS"]["IsoFilterDifference%1"]["max"][-1]
-b_error_inf_x = stat("MMS_D_structured.stat")["NS"]["IsoFilterDifference%1"]["max"][-1]
-a_error_inf_y = stat("MMS_C_structured.stat")["NS"]["IsoFilterDifference%2"]["max"][-1]
-b_error_inf_y = stat("MMS_D_structured.stat")["NS"]["IsoFilterDifference%2"]["max"][-1]
+a_error_inf_x = stat("MMS_C_unstructured.stat")["NS"]["IsoFilterDifference%1"]["max"][-1]
+b_error_inf_x = stat("MMS_D_unstructured.stat")["NS"]["IsoFilterDifference%1"]["max"][-1]
+a_error_inf_y = stat("MMS_C_unstructured.stat")["NS"]["IsoFilterDifference%2"]["max"][-1]
+b_error_inf_y = stat("MMS_D_unstructured.stat")["NS"]["IsoFilterDifference%2"]["max"][-1]
 
 ab_ratio_x = a_error_x / b_error_x
 ab_ratio_y = a_error_y / b_error_y
@@ -303,19 +303,19 @@ cd_convergence_vel_if = [[log(ab_ratio_x, 2), log(ab_ratio_inf_x, 2)], [log(ab_r
     <variable name="cd_convergence_vel_mlf" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
-output=open('errorconv_structured.log','a')
-errorlog=open('error_structured.log','a')
+output=open('errorconv_unstructured.log','a')
+errorlog=open('error_unstructured.log','a')
 
-a_error_x = stat("MMS_C_structured.stat")["NS"]["MLFilterDifference%1"]["l2norm"][-1]
-b_error_x = stat("MMS_D_structured.stat")["NS"]["MLFilterDifference%1"]["l2norm"][-1]
-a_error_y = stat("MMS_C_structured.stat")["NS"]["MLFilterDifference%2"]["l2norm"][-1]
-b_error_y = stat("MMS_D_structured.stat")["NS"]["MLFilterDifference%2"]["l2norm"][-1]
-a_error_norm = stat("MMS_C_structured.stat")["NS"]["MLFilterDifference%magnitude"]["l2norm"][-1]
+a_error_x = stat("MMS_C_unstructured.stat")["NS"]["MLFilterDifference%1"]["l2norm"][-1]
+b_error_x = stat("MMS_D_unstructured.stat")["NS"]["MLFilterDifference%1"]["l2norm"][-1]
+a_error_y = stat("MMS_C_unstructured.stat")["NS"]["MLFilterDifference%2"]["l2norm"][-1]
+b_error_y = stat("MMS_D_unstructured.stat")["NS"]["MLFilterDifference%2"]["l2norm"][-1]
+a_error_norm = stat("MMS_C_unstructured.stat")["NS"]["MLFilterDifference%magnitude"]["l2norm"][-1]
 
-a_error_inf_x = stat("MMS_C_structured.stat")["NS"]["MLFilterDifference%1"]["max"][-1]
-b_error_inf_x = stat("MMS_D_structured.stat")["NS"]["MLFilterDifference%1"]["max"][-1]
-a_error_inf_y = stat("MMS_C_structured.stat")["NS"]["MLFilterDifference%2"]["max"][-1]
-b_error_inf_y = stat("MMS_D_structured.stat")["NS"]["MLFilterDifference%2"]["max"][-1]
+a_error_inf_x = stat("MMS_C_unstructured.stat")["NS"]["MLFilterDifference%1"]["max"][-1]
+b_error_inf_x = stat("MMS_D_unstructured.stat")["NS"]["MLFilterDifference%1"]["max"][-1]
+a_error_inf_y = stat("MMS_C_unstructured.stat")["NS"]["MLFilterDifference%2"]["max"][-1]
+b_error_inf_y = stat("MMS_D_unstructured.stat")["NS"]["MLFilterDifference%2"]["max"][-1]
 
 ab_ratio_x = a_error_x / b_error_x
 ab_ratio_y = a_error_y / b_error_y
@@ -332,19 +332,19 @@ cd_convergence_vel_mlf = [[log(ab_ratio_x, 2), log(ab_ratio_inf_x, 2)], [log(ab_
     <variable name="cd_convergence_vel" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
-output=open('errorconv_structured.log','a')
-errorlog=open('error_structured.log','a')
+output=open('errorconv_unstructured.log','a')
+errorlog=open('error_unstructured.log','a')
 
-a_error_x = stat("MMS_C_structured.stat")["NS"]["AnalyticalDifference%1"]["l2norm"][-1]
-b_error_x = stat("MMS_D_structured.stat")["NS"]["AnalyticalDifference%1"]["l2norm"][-1]
-a_error_y = stat("MMS_C_structured.stat")["NS"]["AnalyticalDifference%2"]["l2norm"][-1]
-b_error_y = stat("MMS_D_structured.stat")["NS"]["AnalyticalDifference%2"]["l2norm"][-1]
-a_error_norm = stat("MMS_C_structured.stat")["NS"]["AnalyticalDifference%magnitude"]["l2norm"][-1]
+a_error_x = stat("MMS_C_unstructured.stat")["NS"]["AnalyticalDifference%1"]["l2norm"][-1]
+b_error_x = stat("MMS_D_unstructured.stat")["NS"]["AnalyticalDifference%1"]["l2norm"][-1]
+a_error_y = stat("MMS_C_unstructured.stat")["NS"]["AnalyticalDifference%2"]["l2norm"][-1]
+b_error_y = stat("MMS_D_unstructured.stat")["NS"]["AnalyticalDifference%2"]["l2norm"][-1]
+a_error_norm = stat("MMS_C_unstructured.stat")["NS"]["AnalyticalDifference%magnitude"]["l2norm"][-1]
 
-a_error_inf_x = stat("MMS_C_structured.stat")["NS"]["AnalyticalDifference%1"]["max"][-1]
-b_error_inf_x = stat("MMS_D_structured.stat")["NS"]["AnalyticalDifference%1"]["max"][-1]
-a_error_inf_y = stat("MMS_C_structured.stat")["NS"]["AnalyticalDifference%2"]["max"][-1]
-b_error_inf_y = stat("MMS_D_structured.stat")["NS"]["AnalyticalDifference%2"]["max"][-1]
+a_error_inf_x = stat("MMS_C_unstructured.stat")["NS"]["AnalyticalDifference%1"]["max"][-1]
+b_error_inf_x = stat("MMS_D_unstructured.stat")["NS"]["AnalyticalDifference%1"]["max"][-1]
+a_error_inf_y = stat("MMS_C_unstructured.stat")["NS"]["AnalyticalDifference%2"]["max"][-1]
+b_error_inf_y = stat("MMS_D_unstructured.stat")["NS"]["AnalyticalDifference%2"]["max"][-1]
 
 ab_ratio_x = a_error_x / b_error_x
 ab_ratio_y = a_error_y / b_error_y
@@ -361,19 +361,19 @@ cd_convergence_vel = [[log(ab_ratio_x, 2), log(ab_ratio_inf_x, 2)], [log(ab_rati
     <variable name="de_convergence_vel_f" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
-output=open('errorconv_structured.log','a')
-errorlog=open('error_structured.log','a')
+output=open('errorconv_unstructured.log','a')
+errorlog=open('error_unstructured.log','a')
 
-a_error_x = stat("MMS_D_structured.stat")["NS"]["AnisoFilterDifference%1"]["l2norm"][-1]
-b_error_x = stat("MMS_E_structured.stat")["NS"]["AnisoFilterDifference%1"]["l2norm"][-1]
-a_error_y = stat("MMS_D_structured.stat")["NS"]["AnisoFilterDifference%2"]["l2norm"][-1]
-b_error_y = stat("MMS_E_structured.stat")["NS"]["AnisoFilterDifference%2"]["l2norm"][-1]
-a_error_norm = stat("MMS_D_structured.stat")["NS"]["AnisoFilterDifference%magnitude"]["l2norm"][-1]
+a_error_x = stat("MMS_D_unstructured.stat")["NS"]["AnisoFilterDifference%1"]["l2norm"][-1]
+b_error_x = stat("MMS_E_unstructured.stat")["NS"]["AnisoFilterDifference%1"]["l2norm"][-1]
+a_error_y = stat("MMS_D_unstructured.stat")["NS"]["AnisoFilterDifference%2"]["l2norm"][-1]
+b_error_y = stat("MMS_E_unstructured.stat")["NS"]["AnisoFilterDifference%2"]["l2norm"][-1]
+a_error_norm = stat("MMS_D_unstructured.stat")["NS"]["AnisoFilterDifference%magnitude"]["l2norm"][-1]
 
-a_error_inf_x = stat("MMS_D_structured.stat")["NS"]["AnisoFilterDifference%1"]["max"][-1]
-b_error_inf_x = stat("MMS_E_structured.stat")["NS"]["AnisoFilterDifference%1"]["max"][-1]
-a_error_inf_y = stat("MMS_D_structured.stat")["NS"]["AnisoFilterDifference%2"]["max"][-1]
-b_error_inf_y = stat("MMS_E_structured.stat")["NS"]["AnisoFilterDifference%2"]["max"][-1]
+a_error_inf_x = stat("MMS_D_unstructured.stat")["NS"]["AnisoFilterDifference%1"]["max"][-1]
+b_error_inf_x = stat("MMS_E_unstructured.stat")["NS"]["AnisoFilterDifference%1"]["max"][-1]
+a_error_inf_y = stat("MMS_D_unstructured.stat")["NS"]["AnisoFilterDifference%2"]["max"][-1]
+b_error_inf_y = stat("MMS_E_unstructured.stat")["NS"]["AnisoFilterDifference%2"]["max"][-1]
 
 ab_ratio_x = a_error_x / b_error_x
 ab_ratio_y = a_error_y / b_error_y
@@ -390,19 +390,19 @@ de_convergence_vel_f = [[log(ab_ratio_x, 2), log(ab_ratio_inf_x, 2)], [log(ab_ra
     <variable name="de_convergence_vel_if" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
-output=open('errorconv_structured.log','a')
-errorlog=open('error_structured.log','a')
+output=open('errorconv_unstructured.log','a')
+errorlog=open('error_unstructured.log','a')
 
-a_error_x = stat("MMS_D_structured.stat")["NS"]["IsoFilterDifference%1"]["l2norm"][-1]
-b_error_x = stat("MMS_E_structured.stat")["NS"]["IsoFilterDifference%1"]["l2norm"][-1]
-a_error_y = stat("MMS_D_structured.stat")["NS"]["IsoFilterDifference%2"]["l2norm"][-1]
-b_error_y = stat("MMS_E_structured.stat")["NS"]["IsoFilterDifference%2"]["l2norm"][-1]
-a_error_norm = stat("MMS_D_structured.stat")["NS"]["IsoFilterDifference%magnitude"]["l2norm"][-1]
+a_error_x = stat("MMS_D_unstructured.stat")["NS"]["IsoFilterDifference%1"]["l2norm"][-1]
+b_error_x = stat("MMS_E_unstructured.stat")["NS"]["IsoFilterDifference%1"]["l2norm"][-1]
+a_error_y = stat("MMS_D_unstructured.stat")["NS"]["IsoFilterDifference%2"]["l2norm"][-1]
+b_error_y = stat("MMS_E_unstructured.stat")["NS"]["IsoFilterDifference%2"]["l2norm"][-1]
+a_error_norm = stat("MMS_D_unstructured.stat")["NS"]["IsoFilterDifference%magnitude"]["l2norm"][-1]
 
-a_error_inf_x = stat("MMS_D_structured.stat")["NS"]["IsoFilterDifference%1"]["max"][-1]
-b_error_inf_x = stat("MMS_E_structured.stat")["NS"]["IsoFilterDifference%1"]["max"][-1]
-a_error_inf_y = stat("MMS_D_structured.stat")["NS"]["IsoFilterDifference%2"]["max"][-1]
-b_error_inf_y = stat("MMS_E_structured.stat")["NS"]["IsoFilterDifference%2"]["max"][-1]
+a_error_inf_x = stat("MMS_D_unstructured.stat")["NS"]["IsoFilterDifference%1"]["max"][-1]
+b_error_inf_x = stat("MMS_E_unstructured.stat")["NS"]["IsoFilterDifference%1"]["max"][-1]
+a_error_inf_y = stat("MMS_D_unstructured.stat")["NS"]["IsoFilterDifference%2"]["max"][-1]
+b_error_inf_y = stat("MMS_E_unstructured.stat")["NS"]["IsoFilterDifference%2"]["max"][-1]
 
 ab_ratio_x = a_error_x / b_error_x
 ab_ratio_y = a_error_y / b_error_y
@@ -419,19 +419,19 @@ de_convergence_vel_if = [[log(ab_ratio_x, 2), log(ab_ratio_inf_x, 2)], [log(ab_r
     <variable name="de_convergence_vel_mlf" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
-output=open('errorconv_structured.log','a')
-errorlog=open('error_structured.log','a')
+output=open('errorconv_unstructured.log','a')
+errorlog=open('error_unstructured.log','a')
 
-a_error_x = stat("MMS_D_structured.stat")["NS"]["MLFilterDifference%1"]["l2norm"][-1]
-b_error_x = stat("MMS_E_structured.stat")["NS"]["MLFilterDifference%1"]["l2norm"][-1]
-a_error_y = stat("MMS_D_structured.stat")["NS"]["MLFilterDifference%2"]["l2norm"][-1]
-b_error_y = stat("MMS_E_structured.stat")["NS"]["MLFilterDifference%2"]["l2norm"][-1]
-a_error_norm = stat("MMS_D_structured.stat")["NS"]["MLFilterDifference%magnitude"]["l2norm"][-1]
+a_error_x = stat("MMS_D_unstructured.stat")["NS"]["MLFilterDifference%1"]["l2norm"][-1]
+b_error_x = stat("MMS_E_unstructured.stat")["NS"]["MLFilterDifference%1"]["l2norm"][-1]
+a_error_y = stat("MMS_D_unstructured.stat")["NS"]["MLFilterDifference%2"]["l2norm"][-1]
+b_error_y = stat("MMS_E_unstructured.stat")["NS"]["MLFilterDifference%2"]["l2norm"][-1]
+a_error_norm = stat("MMS_D_unstructured.stat")["NS"]["MLFilterDifference%magnitude"]["l2norm"][-1]
 
-a_error_inf_x = stat("MMS_D_structured.stat")["NS"]["MLFilterDifference%1"]["max"][-1]
-b_error_inf_x = stat("MMS_E_structured.stat")["NS"]["MLFilterDifference%1"]["max"][-1]
-a_error_inf_y = stat("MMS_D_structured.stat")["NS"]["MLFilterDifference%2"]["max"][-1]
-b_error_inf_y = stat("MMS_E_structured.stat")["NS"]["MLFilterDifference%2"]["max"][-1]
+a_error_inf_x = stat("MMS_D_unstructured.stat")["NS"]["MLFilterDifference%1"]["max"][-1]
+b_error_inf_x = stat("MMS_E_unstructured.stat")["NS"]["MLFilterDifference%1"]["max"][-1]
+a_error_inf_y = stat("MMS_D_unstructured.stat")["NS"]["MLFilterDifference%2"]["max"][-1]
+b_error_inf_y = stat("MMS_E_unstructured.stat")["NS"]["MLFilterDifference%2"]["max"][-1]
 
 ab_ratio_x = a_error_x / b_error_x
 ab_ratio_y = a_error_y / b_error_y
@@ -448,23 +448,23 @@ de_convergence_vel_mlf = [[log(ab_ratio_x, 2), log(ab_ratio_inf_x, 2)], [log(ab_
     <variable name="de_convergence_vel" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
-output=open('errorconv_structured.log','a')
-errorlog=open('error_structured.log','a')
+output=open('errorconv_unstructured.log','a')
+errorlog=open('error_unstructured.log','a')
 
-a_error_x = stat("MMS_D_structured.stat")["NS"]["AnalyticalDifference%1"]["l2norm"][-1]
-b_error_x = stat("MMS_E_structured.stat")["NS"]["AnalyticalDifference%1"]["l2norm"][-1]
-a_error_y = stat("MMS_D_structured.stat")["NS"]["AnalyticalDifference%2"]["l2norm"][-1]
-b_error_y = stat("MMS_E_structured.stat")["NS"]["AnalyticalDifference%2"]["l2norm"][-1]
-a_error_norm = stat("MMS_D_structured.stat")["NS"]["AnalyticalDifference%magnitude"]["l2norm"][-1]
+a_error_x = stat("MMS_D_unstructured.stat")["NS"]["AnalyticalDifference%1"]["l2norm"][-1]
+b_error_x = stat("MMS_E_unstructured.stat")["NS"]["AnalyticalDifference%1"]["l2norm"][-1]
+a_error_y = stat("MMS_D_unstructured.stat")["NS"]["AnalyticalDifference%2"]["l2norm"][-1]
+b_error_y = stat("MMS_E_unstructured.stat")["NS"]["AnalyticalDifference%2"]["l2norm"][-1]
+a_error_norm = stat("MMS_D_unstructured.stat")["NS"]["AnalyticalDifference%magnitude"]["l2norm"][-1]
 
-a_error_inf_x = stat("MMS_D_structured.stat")["NS"]["AnalyticalDifference%1"]["max"][-1]
-b_error_inf_x = stat("MMS_E_structured.stat")["NS"]["AnalyticalDifference%1"]["max"][-1]
-a_error_inf_y = stat("MMS_D_structured.stat")["NS"]["AnalyticalDifference%2"]["max"][-1]
-b_error_inf_y = stat("MMS_E_structured.stat")["NS"]["AnalyticalDifference%2"]["max"][-1]
-b_error_norm = stat("MMS_E_structured.stat")["NS"]["AnalyticalDifference%magnitude"]["l2norm"][-1]
-b1_error_norm = stat("MMS_E_structured.stat")["NS"]["MLFilterDifference%magnitude"]["l2norm"][-1]
-b2_error_norm = stat("MMS_E_structured.stat")["NS"]["IsoFilterDifference%magnitude"]["l2norm"][-1]
-b3_error_norm = stat("MMS_E_structured.stat")["NS"]["AnisoFilterDifference%magnitude"]["l2norm"][-1]
+a_error_inf_x = stat("MMS_D_unstructured.stat")["NS"]["AnalyticalDifference%1"]["max"][-1]
+b_error_inf_x = stat("MMS_E_unstructured.stat")["NS"]["AnalyticalDifference%1"]["max"][-1]
+a_error_inf_y = stat("MMS_D_unstructured.stat")["NS"]["AnalyticalDifference%2"]["max"][-1]
+b_error_inf_y = stat("MMS_E_unstructured.stat")["NS"]["AnalyticalDifference%2"]["max"][-1]
+b_error_norm = stat("MMS_E_unstructured.stat")["NS"]["AnalyticalDifference%magnitude"]["l2norm"][-1]
+b1_error_norm = stat("MMS_E_unstructured.stat")["NS"]["MLFilterDifference%magnitude"]["l2norm"][-1]
+b2_error_norm = stat("MMS_E_unstructured.stat")["NS"]["IsoFilterDifference%magnitude"]["l2norm"][-1]
+b3_error_norm = stat("MMS_E_unstructured.stat")["NS"]["AnisoFilterDifference%magnitude"]["l2norm"][-1]
 
 ab_ratio_x = a_error_x / b_error_x
 ab_ratio_y = a_error_y / b_error_y
@@ -485,13 +485,13 @@ de_convergence_vel = [[log(ab_ratio_x, 2), log(ab_ratio_inf_x, 2)], [log(ab_rati
     <variable name="ab_convergence_isocomm" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
-convlog=open('commconv_structured.log','w')
-commlog=open('commerror_structured.log','w')
+convlog=open('commconv_unstructured.log','w')
+commlog=open('commerror_unstructured.log','w')
 
-a_error_norm = stat("MMS_A_structured.stat")["NS"]["IsoCommError%magnitude"]["l2norm"][-1]
-b_error_norm = stat("MMS_B_structured.stat")["NS"]["IsoCommError%magnitude"]["l2norm"][-1]
-a_error_inf = stat("MMS_A_structured.stat")["NS"]["IsoCommError%magnitude"]["max"][-1]
-b_error_inf = stat("MMS_B_structured.stat")["NS"]["IsoCommError%magnitude"]["max"][-1]
+a_error_norm = stat("MMS_A_unstructured.stat")["NS"]["IsoCommError%magnitude"]["l2norm"][-1]
+b_error_norm = stat("MMS_B_unstructured.stat")["NS"]["IsoCommError%magnitude"]["l2norm"][-1]
+a_error_inf = stat("MMS_A_unstructured.stat")["NS"]["IsoCommError%magnitude"]["max"][-1]
+b_error_inf = stat("MMS_B_unstructured.stat")["NS"]["IsoCommError%magnitude"]["max"][-1]
 
 ab_ratio_norm = a_error_norm / b_error_norm
 ab_ratio_inf = a_error_inf / b_error_inf
@@ -505,13 +505,13 @@ ab_convergence_isocomm = [[log(ab_ratio_norm, 2), log(ab_ratio_inf, 2)]]
     <variable name="ab_convergence_anisocomm" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
-convlog=open('commconv_structured.log','a')
-commlog=open('commerror_structured.log','a')
+convlog=open('commconv_unstructured.log','a')
+commlog=open('commerror_unstructured.log','a')
 
-a_error_norm = stat("MMS_A_structured.stat")["NS"]["AnisoCommError%magnitude"]["l2norm"][-1]
-b_error_norm = stat("MMS_B_structured.stat")["NS"]["AnisoCommError%magnitude"]["l2norm"][-1]
-a_error_inf = stat("MMS_A_structured.stat")["NS"]["AnisoCommError%magnitude"]["max"][-1]
-b_error_inf = stat("MMS_B_structured.stat")["NS"]["AnisoCommError%magnitude"]["max"][-1]
+a_error_norm = stat("MMS_A_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["l2norm"][-1]
+b_error_norm = stat("MMS_B_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["l2norm"][-1]
+a_error_inf = stat("MMS_A_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["max"][-1]
+b_error_inf = stat("MMS_B_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["max"][-1]
 
 ab_ratio_norm = a_error_norm / b_error_norm
 ab_ratio_inf = a_error_inf / b_error_inf
@@ -525,13 +525,13 @@ ab_convergence_anisocomm = [[log(ab_ratio_norm, 2), log(ab_ratio_inf, 2)]]
     <variable name="bc_convergence_isocomm" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
-convlog=open('commconv_structured.log','a')
-commlog=open('commerror_structured.log','a')
+convlog=open('commconv_unstructured.log','a')
+commlog=open('commerror_unstructured.log','a')
 
-a_error_norm = stat("MMS_B_structured.stat")["NS"]["IsoCommError%magnitude"]["l2norm"][-1]
-b_error_norm = stat("MMS_C_structured.stat")["NS"]["IsoCommError%magnitude"]["l2norm"][-1]
-a_error_inf = stat("MMS_B_structured.stat")["NS"]["IsoCommError%magnitude"]["max"][-1]
-b_error_inf = stat("MMS_C_structured.stat")["NS"]["IsoCommError%magnitude"]["max"][-1]
+a_error_norm = stat("MMS_B_unstructured.stat")["NS"]["IsoCommError%magnitude"]["l2norm"][-1]
+b_error_norm = stat("MMS_C_unstructured.stat")["NS"]["IsoCommError%magnitude"]["l2norm"][-1]
+a_error_inf = stat("MMS_B_unstructured.stat")["NS"]["IsoCommError%magnitude"]["max"][-1]
+b_error_inf = stat("MMS_C_unstructured.stat")["NS"]["IsoCommError%magnitude"]["max"][-1]
 
 ab_ratio_norm = a_error_norm / b_error_norm
 ab_ratio_inf = a_error_inf / b_error_inf
@@ -545,13 +545,13 @@ bc_convergence_isocomm = [[log(ab_ratio_norm, 2), log(ab_ratio_inf, 2)]]
     <variable name="bc_convergence_anisocomm" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
-convlog=open('commconv_structured.log','a')
-commlog=open('commerror_structured.log','a')
+convlog=open('commconv_unstructured.log','a')
+commlog=open('commerror_unstructured.log','a')
 
-a_error_norm = stat("MMS_B_structured.stat")["NS"]["AnisoCommError%magnitude"]["l2norm"][-1]
-b_error_norm = stat("MMS_C_structured.stat")["NS"]["AnisoCommError%magnitude"]["l2norm"][-1]
-a_error_inf = stat("MMS_B_structured.stat")["NS"]["AnisoCommError%magnitude"]["max"][-1]
-b_error_inf = stat("MMS_C_structured.stat")["NS"]["AnisoCommError%magnitude"]["max"][-1]
+a_error_norm = stat("MMS_B_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["l2norm"][-1]
+b_error_norm = stat("MMS_C_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["l2norm"][-1]
+a_error_inf = stat("MMS_B_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["max"][-1]
+b_error_inf = stat("MMS_C_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["max"][-1]
 
 ab_ratio_norm = a_error_norm / b_error_norm
 ab_ratio_inf = a_error_inf / b_error_inf
@@ -565,13 +565,13 @@ bc_convergence_anisocomm = [[log(ab_ratio_norm, 2), log(ab_ratio_inf, 2)]]
     <variable name="cd_convergence_isocomm" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
-convlog=open('commconv_structured.log','a')
-commlog=open('commerror_structured.log','a')
+convlog=open('commconv_unstructured.log','a')
+commlog=open('commerror_unstructured.log','a')
 
-a_error_norm = stat("MMS_C_structured.stat")["NS"]["IsoCommError%magnitude"]["l2norm"][-1]
-b_error_norm = stat("MMS_D_structured.stat")["NS"]["IsoCommError%magnitude"]["l2norm"][-1]
-a_error_inf = stat("MMS_C_structured.stat")["NS"]["IsoCommError%magnitude"]["max"][-1]
-b_error_inf = stat("MMS_D_structured.stat")["NS"]["IsoCommError%magnitude"]["max"][-1]
+a_error_norm = stat("MMS_C_unstructured.stat")["NS"]["IsoCommError%magnitude"]["l2norm"][-1]
+b_error_norm = stat("MMS_D_unstructured.stat")["NS"]["IsoCommError%magnitude"]["l2norm"][-1]
+a_error_inf = stat("MMS_C_unstructured.stat")["NS"]["IsoCommError%magnitude"]["max"][-1]
+b_error_inf = stat("MMS_D_unstructured.stat")["NS"]["IsoCommError%magnitude"]["max"][-1]
 
 ab_ratio_norm = a_error_norm / b_error_norm
 ab_ratio_inf = a_error_inf / b_error_inf
@@ -585,13 +585,13 @@ cd_convergence_isocomm = [[log(ab_ratio_norm, 2), log(ab_ratio_inf, 2)]]
     <variable name="cd_convergence_anisocomm" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
-convlog=open('commconv_structured.log','a')
-commlog=open('commerror_structured.log','a')
+convlog=open('commconv_unstructured.log','a')
+commlog=open('commerror_unstructured.log','a')
 
-a_error_norm = stat("MMS_C_structured.stat")["NS"]["AnisoCommError%magnitude"]["l2norm"][-1]
-b_error_norm = stat("MMS_D_structured.stat")["NS"]["AnisoCommError%magnitude"]["l2norm"][-1]
-a_error_inf = stat("MMS_C_structured.stat")["NS"]["AnisoCommError%magnitude"]["max"][-1]
-b_error_inf = stat("MMS_D_structured.stat")["NS"]["AnisoCommError%magnitude"]["max"][-1]
+a_error_norm = stat("MMS_C_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["l2norm"][-1]
+b_error_norm = stat("MMS_D_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["l2norm"][-1]
+a_error_inf = stat("MMS_C_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["max"][-1]
+b_error_inf = stat("MMS_D_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["max"][-1]
 
 ab_ratio_norm = a_error_norm / b_error_norm
 ab_ratio_inf = a_error_inf / b_error_inf
@@ -605,13 +605,13 @@ cd_convergence_anisocomm = [[log(ab_ratio_norm, 2), log(ab_ratio_inf, 2)]]
     <variable name="de_convergence_isocomm" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
-convlog=open('commconv_structured.log','a')
-commlog=open('commerror_structured.log','a')
+convlog=open('commconv_unstructured.log','a')
+commlog=open('commerror_unstructured.log','a')
 
-a_error_norm = stat("MMS_D_structured.stat")["NS"]["IsoCommError%magnitude"]["l2norm"][-1]
-b_error_norm = stat("MMS_E_structured.stat")["NS"]["IsoCommError%magnitude"]["l2norm"][-1]
-a_error_inf = stat("MMS_D_structured.stat")["NS"]["IsoCommError%magnitude"]["max"][-1]
-b_error_inf = stat("MMS_E_structured.stat")["NS"]["IsoCommError%magnitude"]["max"][-1]
+a_error_norm = stat("MMS_D_unstructured.stat")["NS"]["IsoCommError%magnitude"]["l2norm"][-1]
+b_error_norm = stat("MMS_E_unstructured.stat")["NS"]["IsoCommError%magnitude"]["l2norm"][-1]
+a_error_inf = stat("MMS_D_unstructured.stat")["NS"]["IsoCommError%magnitude"]["max"][-1]
+b_error_inf = stat("MMS_E_unstructured.stat")["NS"]["IsoCommError%magnitude"]["max"][-1]
 
 ab_ratio_norm = a_error_norm / b_error_norm
 ab_ratio_inf = a_error_inf / b_error_inf
@@ -625,15 +625,15 @@ de_convergence_isocomm = [[log(ab_ratio_norm, 2), log(ab_ratio_inf, 2)]]
     <variable name="de_convergence_anisocomm" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
-convlog=open('commconv_structured.log','a')
-commlog=open('commerror_structured.log','a')
+convlog=open('commconv_unstructured.log','a')
+commlog=open('commerror_unstructured.log','a')
 
-a_error_norm = stat("MMS_D_structured.stat")["NS"]["AnisoCommError%magnitude"]["l2norm"][-1]
-b_error_norm = stat("MMS_E_structured.stat")["NS"]["AnisoCommError%magnitude"]["l2norm"][-1]
-a_error_inf = stat("MMS_D_structured.stat")["NS"]["AnisoCommError%magnitude"]["max"][-1]
-b_error_inf = stat("MMS_E_structured.stat")["NS"]["AnisoCommError%magnitude"]["max"][-1]
-b2_error_norm = stat("MMS_E_structured.stat")["NS"]["IsoCommError%magnitude"]["l2norm"][-1]
-b2_error_inf = stat("MMS_E_structured.stat")["NS"]["IsoCommError%magnitude"]["max"][-1]
+a_error_norm = stat("MMS_D_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["l2norm"][-1]
+b_error_norm = stat("MMS_E_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["l2norm"][-1]
+a_error_inf = stat("MMS_D_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["max"][-1]
+b_error_inf = stat("MMS_E_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["max"][-1]
+b2_error_norm = stat("MMS_E_unstructured.stat")["NS"]["IsoCommError%magnitude"]["l2norm"][-1]
+b2_error_inf = stat("MMS_E_unstructured.stat")["NS"]["IsoCommError%magnitude"]["max"][-1]
 
 ab_ratio_norm = a_error_norm / b_error_norm
 ab_ratio_inf = a_error_inf / b_error_inf
@@ -648,43 +648,43 @@ de_convergence_anisocomm = [[log(ab_ratio_norm, 2), log(ab_ratio_inf, 2)]]
     </variable>
    <variable name="a_div" language="python">
 from fluidity_tools import stat_parser as stat
-a_div = max(max(abs(stat("MMS_A_structured.stat")["NS"]["ControlVolumeDivergence"]["max"])), max(abs(stat("MMS_A_structured.stat")["NS"]["ControlVolumeDivergence"]["min"])))
+a_div = max(max(abs(stat("MMS_A_unstructured.stat")["NS"]["ControlVolumeDivergence"]["max"])), max(abs(stat("MMS_A_unstructured.stat")["NS"]["ControlVolumeDivergence"]["min"])))
     </variable>
     <variable name="b_div" language="python">
 from fluidity_tools import stat_parser as stat
-b_div = max(max(abs(stat("MMS_B_structured.stat")["NS"]["ControlVolumeDivergence"]["max"])), max(abs(stat("MMS_B_structured.stat")["NS"]["ControlVolumeDivergence"]["min"])))
+b_div = max(max(abs(stat("MMS_B_unstructured.stat")["NS"]["ControlVolumeDivergence"]["max"])), max(abs(stat("MMS_B_unstructured.stat")["NS"]["ControlVolumeDivergence"]["min"])))
     </variable>
     <variable name="c_div" language="python">
 from fluidity_tools import stat_parser as stat
-c_div = max(max(abs(stat("MMS_C_structured.stat")["NS"]["ControlVolumeDivergence"]["max"])), max(abs(stat("MMS_C_structured.stat")["NS"]["ControlVolumeDivergence"]["min"])))
+c_div = max(max(abs(stat("MMS_C_unstructured.stat")["NS"]["ControlVolumeDivergence"]["max"])), max(abs(stat("MMS_C_unstructured.stat")["NS"]["ControlVolumeDivergence"]["min"])))
     </variable>
     <variable name="d_div" language="python">
 from fluidity_tools import stat_parser as stat
-d_div = max(max(abs(stat("MMS_D_structured.stat")["NS"]["ControlVolumeDivergence"]["max"])), max(abs(stat("MMS_D_structured.stat")["NS"]["ControlVolumeDivergence"]["min"])))
+d_div = max(max(abs(stat("MMS_D_unstructured.stat")["NS"]["ControlVolumeDivergence"]["max"])), max(abs(stat("MMS_D_unstructured.stat")["NS"]["ControlVolumeDivergence"]["min"])))
     </variable>
     <variable name="e_div" language="python">
 from fluidity_tools import stat_parser as stat
-e_div = max(max(abs(stat("MMS_E_structured.stat")["NS"]["ControlVolumeDivergence"]["max"])), max(abs(stat("MMS_E_structured.stat")["NS"]["ControlVolumeDivergence"]["min"])))
+e_div = max(max(abs(stat("MMS_E_unstructured.stat")["NS"]["ControlVolumeDivergence"]["max"])), max(abs(stat("MMS_E_unstructured.stat")["NS"]["ControlVolumeDivergence"]["min"])))
     </variable>
    <variable name="a_zdiff" language="python">
 from fluidity_tools import stat_parser as stat
-a_zdiff = stat("MMS_A_structured.stat")["NS"]["ZeroFilterDifference%magnitude"]["l2norm"][-1]
+a_zdiff = stat("MMS_A_unstructured.stat")["NS"]["ZeroFilterDifference%magnitude"]["l2norm"][-1]
     </variable>
    <variable name="b_zdiff" language="python">
 from fluidity_tools import stat_parser as stat
-b_zdiff = stat("MMS_B_structured.stat")["NS"]["ZeroFilterDifference%magnitude"]["l2norm"][-1]
+b_zdiff = stat("MMS_B_unstructured.stat")["NS"]["ZeroFilterDifference%magnitude"]["l2norm"][-1]
     </variable>
    <variable name="c_zdiff" language="python">
 from fluidity_tools import stat_parser as stat
-c_zdiff = stat("MMS_C_structured.stat")["NS"]["ZeroFilterDifference%magnitude"]["l2norm"][-1]
+c_zdiff = stat("MMS_C_unstructured.stat")["NS"]["ZeroFilterDifference%magnitude"]["l2norm"][-1]
     </variable>
    <variable name="d_zdiff" language="python">
 from fluidity_tools import stat_parser as stat
-d_zdiff = stat("MMS_D_structured.stat")["NS"]["ZeroFilterDifference%magnitude"]["l2norm"][-1]
+d_zdiff = stat("MMS_D_unstructured.stat")["NS"]["ZeroFilterDifference%magnitude"]["l2norm"][-1]
     </variable>
    <variable name="e_zdiff" language="python">
 from fluidity_tools import stat_parser as stat
-e_zdiff = stat("MMS_E_structured.stat")["NS"]["ZeroFilterDifference%magnitude"]["l2norm"][-1]
+e_zdiff = stat("MMS_E_unstructured.stat")["NS"]["ZeroFilterDifference%magnitude"]["l2norm"][-1]
     </variable>
   </variables>
   <pass_tests>
