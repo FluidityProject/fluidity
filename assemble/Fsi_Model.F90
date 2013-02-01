@@ -114,14 +114,18 @@ module fsi_model
         ! First check if prescribed solid movement is enabled,
         ! and if so, move the solid mesh and update the new
         ! solid volume fractions as well
-        call fsi_apply_prescribed_solid_velocity(state, solid_states)
+        if (its == 1) then
+            call fsi_apply_prescribed_solid_velocity(state, solid_states)
+        end if
         ! Some tests for fsi_interface
         ! call set_fsi_interface(state, solid_states)
         ! call set_fsi_interface_correction(state)
         ! call set_fsi_interface_from_alpha(state)
 
         ! Set absorption term/sigma
-        call compute_fluid_absorption(state)
+        if (its == 1) then
+            call compute_fluid_absorption(state)
+        end if
         ! Always set source term:
         call compute_source_term(state)
 
