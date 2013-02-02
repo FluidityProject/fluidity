@@ -67,7 +67,7 @@ void print_version(ostream& stream){
       <<"no\n"
 #endif
       <<"CGAL support\t\t\t"
-#ifdef HAVE_CGAL
+#ifdef HAVE_LIBCGAL
       <<"yes\n"
 #else
       <<"no\n"
@@ -91,7 +91,7 @@ void print_version(ostream& stream){
       <<"no\n"
 #endif
       <<"NetCDF support\t\t\t"
-#ifdef HAVE_NETCDF   
+#ifdef HAVE_LIBNETCDF   
       <<"yes\n"
 #else
       <<"no\n"
