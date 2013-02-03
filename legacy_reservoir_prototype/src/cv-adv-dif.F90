@@ -5890,6 +5890,11 @@
       
       ! Scaling to reduce the downwind bias(=1downwind, =0central)
       LOGICAL, PARAMETER :: SCALE_DOWN_WIND = .true.
+! Non-linear Petrov-Galerkin option for interface tracking...
+! =4 is anisotropic downwind diffusion based on a projected 1D system (1st recommend)
+! =0 is anisotropic downwind diffusion based on a velocity projection like SUPG (2nd recommend)
+! =2 is isotropic downwind diffusion  (3rd recommend)
+      INTEGER, PARAMETER :: NON_LIN_PETROV_INTERFACE = 4
 
       LOGICAL :: FIRSTORD, NOLIMI, RESET_STORE, LIM_VOL_ADJUST
       REAL :: RELAX, RELAXOLD, TMIN_STORE, TMAX_STORE, TOLDMIN_STORE, TOLDMAX_STORE, &
@@ -5906,6 +5911,8 @@
       REAL :: T_UPWIND,TOLD_UPWIND,TMIN_UPWIND,TMAX_UPWIND,TOLDMIN_UPWIND,TOLDMAX_UPWIND
       REAL :: RSHAPE,RSHAPE_OLD,RGRAY, UDGI,VDGI,WDGI, RSCALE, TXGI,TYGI,TZGI
       REAL :: VEC_VEL(3), VEC_VEL2(3), ELE_LENGTH_SCALE
+      REAL :: TGI,TOLDGI,TDTGI, U_DOT_GRADT_GI, COEF, A_STAR_T, A_STAR_X, A_STAR_Y, A_STAR_Z
+      REAL :: RESIDGI, P_STAR, DIFF_COEF, COEF2
 
       ! The adjustment method is not ready for the LIMIT_USE_2ND - the new limiting method.
       LIM_VOL_ADJUST =LIM_VOL_ADJUST2.AND.(.NOT.LIMIT_USE_2ND)
@@ -6082,6 +6089,7 @@
             RSCALE=1.0 ! Scaling to reduce the downwind bias(=1downwind, =0central)
             IF(SCALE_DOWN_WIND) THEN
                IF(DOWNWIND_EXTRAP.AND.(courant_or_minus_one_new.GE.0.0)) THEN
+                IF(NON_LIN_PETROV_INTERFACE==0) THEN ! NOT non-linear Petrov-Galerkin Interface
                   TXGI=0.0
                   TYGI=0.0
                   TZGI=0.0
@@ -6132,18 +6140,94 @@
 ! For quadratic elements...
                   IF( ((NDIM==2).AND.(CV_NLOC==6)).or.((NDIM==3).AND.(CV_NLOC==10)) ) &
                       ELE_LENGTH_SCALE=0.5*ELE_LENGTH_SCALE
+                ELSE ! Petrov-Galerkin end of IF(NON_LIN_PETROV_INTERFACE==0) THEN 
+               
+                  TXGI=0.0
+                  TYGI=0.0
+                  TZGI=0.0
+                  TGI=0.0
+                  TOLDGI=0.0
+                  DO CV_KLOC = 1, CV_NLOC
+                    CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
+                    CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
+                    TXGI=TXGI+SCVFENX( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
+      IF(NDIM.GE.2) TYGI=TYGI+SCVFENY( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
+      IF(NDIM.GE.3) TZGI=TZGI+SCVFENZ( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
+                    TGI=TGI+SCVFEN( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
+                    TOLDGI=TOLDGI+SCVFEN( CV_KLOC, GI )*FEMTOLD(CV_NODK_IPHA)
+                  END DO
 
+                  TDTGI=(TGI-TOLDGI)/DT
+                  TDTGI=0.0
+
+                  UDGI=0.0
+                  VDGI=0.0
+                  WDGI=0.0
+                  DO U_KLOC = 1, U_NLOC
+                      U_NODK = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC )
+                      U_NODK_IPHA = U_NODK + ( IPHASE - 1 ) * U_NONODS
+                      UDGI=UDGI+SUFEN( U_KLOC, GI )*U(U_NODK_IPHA)
+        IF(NDIM.GE.2) VDGI=VDGI+SUFEN( U_KLOC, GI )*V(U_NODK_IPHA)
+        IF(NDIM.GE.3) WDGI=WDGI+SUFEN( U_KLOC, GI )*W(U_NODK_IPHA)
+                  END DO
+
+                  U_DOT_GRADT_GI=TDTGI + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
+
+                  COEF=U_DOT_GRADT_GI/TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 )
+                  A_STAR_T=COEF*TDTGI
+                  A_STAR_X=COEF*TXGI
+                  A_STAR_Y=COEF*TYGI
+                  A_STAR_Z=COEF*TZGI
+! residual based does not work so well...
+!                  RESIDGI=(TGI-TOLDGI)/DT + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
+                  RESIDGI=TDTGI + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
+ 
+                  VEC_VEL(1)=A_STAR_X
+                  VEC_VEL(2)=A_STAR_Y
+                  VEC_VEL(3)=A_STAR_Z
+                  VEC_VEL2=0.0
+                  DO IDIM=1,NDIM
+                     VEC_VEL2(IDIM)=SUM( INV_JAC(IDIM, 1:NDIM, GI)*VEC_VEL(1:NDIM) )
+                  END DO
+                  P_STAR=0.5/TOLFUN( SQRT(SUM( VEC_VEL2(1:NDIM)**2 )) )
+! For discontinuous elements half the length scale...
+                  IF(U_NONODS==CV_NONODS) P_STAR=0.5*P_STAR 
+! For quadratic elements...
+                  IF( ((NDIM==2).AND.(CV_NLOC==6)).or.((NDIM==3).AND.(CV_NLOC==10)) ) &
+                      P_STAR=0.5*P_STAR
+
+                  IF(NON_LIN_PETROV_INTERFACE==1) THEN
+                     DIFF_COEF=COEF*P_STAR*RESIDGI  ! standard approach
+                  ELSE IF(NON_LIN_PETROV_INTERFACE==2) THEN
+                     DIFF_COEF=MAX(0.0, COEF*P_STAR*RESIDGI) ! standard approach making it +ve
+                  ELSE IF(NON_LIN_PETROV_INTERFACE==3) THEN ! residual squared approach
+                     DIFF_COEF=P_STAR*RESIDGI**2/TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 ) 
+                  ELSE ! anisotropic diffusion in the A* direction.
+                     COEF2= CVNORMX(GI)*A_STAR_X+CVNORMY(GI)*A_STAR_Y+CVNORMZ(GI)*A_STAR_Z
+                  ENDIF
+! Make the diffusion coefficient negative (compressive)
+                  DIFF_COEF=-DIFF_COEF
+                  RSCALE=1./TOLFUN(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI) 
+                ENDIF ! Petrov-Galerkin end of IF(NON_LIN_PETROV_INTERFACE==0) THEN 
                ENDIF
             ENDIF
-          print *,'ele_length_scale=',ele_length_scale
+!          print *,'ele_length_scale=',ele_length_scale
             DO CV_KLOC = 1, CV_NLOC
                CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
                CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
                IF(DOWNWIND_EXTRAP.AND.(courant_or_minus_one_new.GE.0.0)) THEN ! Extrapolate to the downwind value...
-!                  RGRAY=RSCALE*ELE_LENGTH_SCALE*( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) &
-!                       + CVNORMY(GI)*SCVFENY( CV_KLOC, GI )+CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) )
-                  RGRAY=RSCALE*ELE_LENGTH_SCALE*( UDGI*SCVFENX( CV_KLOC, GI ) &
+                  IF(NON_LIN_PETROV_INTERFACE.NE.0) THEN 
+                     IF(NON_LIN_PETROV_INTERFACE==4) THEN ! anisotropic diffusion...
+                        RGRAY=RSCALE*COEF2*P_STAR*( UDGI*SCVFENX( CV_KLOC, GI ) &
+                             + VDGI*SCVFENY( CV_KLOC, GI )+WDGI*SCVFENZ( CV_KLOC, GI ) )
+                     ELSE
+                        RGRAY=-DIFF_COEF*RSCALE*( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) &
+                       + CVNORMY(GI)*SCVFENY( CV_KLOC, GI )+CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) )
+                     ENDIF
+                  ELSE
+                     RGRAY=RSCALE*ELE_LENGTH_SCALE*( UDGI*SCVFENX( CV_KLOC, GI ) &
                        + VDGI*SCVFENY( CV_KLOC, GI )+WDGI*SCVFENZ( CV_KLOC, GI ) )
+                  ENDIF
                   RSHAPE    =SCVFEN( CV_KLOC, GI ) + RGRAY
                   RSHAPE_OLD=SCVFEN( CV_KLOC, GI ) + RGRAY
                   FEMTGI    = FEMTGI     +  RSHAPE     * FEMT( CV_NODK_IPHA )
