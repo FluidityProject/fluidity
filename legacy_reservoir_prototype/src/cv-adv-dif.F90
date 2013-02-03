@@ -5892,8 +5892,9 @@
       LOGICAL, PARAMETER :: SCALE_DOWN_WIND = .true.
 ! Non-linear Petrov-Galerkin option for interface tracking...
 ! =4 is anisotropic downwind diffusion based on a projected 1D system (1st recommend)
-! =0 is anisotropic downwind diffusion based on a velocity projection like SUPG (2nd recommend)
-! =2 is isotropic downwind diffusion  (3rd recommend)
+! =0 is anisotropic downwind diffusion based on a velocity projection like SUPG 
+! (2nd recommend, most compressive)
+! =2 is isotropic downwind diffusion  (3rd recommend,least compressive)
       INTEGER, PARAMETER :: NON_LIN_PETROV_INTERFACE = 4
 
       LOGICAL :: FIRSTORD, NOLIMI, RESET_STORE, LIM_VOL_ADJUST
