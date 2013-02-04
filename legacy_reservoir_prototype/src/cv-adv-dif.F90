@@ -5896,6 +5896,7 @@
 ! =0 is anisotropic downwind diffusion based on a velocity projection like SUPG 
 ! (2nd recommend, most compressive)
 ! =2 is isotropic downwind diffusion  (3rd recommend,least compressive)
+! In tests they all produce similar results.
       INTEGER, PARAMETER :: NON_LIN_PETROV_INTERFACE = 4
 
       LOGICAL :: FIRSTORD, NOLIMI, RESET_STORE, LIM_VOL_ADJUST
