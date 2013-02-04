@@ -796,7 +796,10 @@ if test "$with_exodusii" = "yes" ; then
     if test -d "$with_exodusii" ; then
       LIBS="$LIBS -L$with_exodusii/lib"
     fi
-    ACX_lib_automagic(exoIIv2c, ex_close, [HAVE_EXODUSII=yes])
+    ACX_lib_automagic(exoIIv2c, ex_close, [
+                                           AC_DEFINE(HAVE_LIBEXOIIV2C, [1])
+                                           HAVE_EXODUSII=yes
+                                           ])
 fi
 AC_SUBST(HAVE_EXODUSII)
 

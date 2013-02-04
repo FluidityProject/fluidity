@@ -11246,7 +11246,11 @@ if ac_fn_c_try_link "$LINENO"; then :
 
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
-    HAVE_EXODUSII=yes
+
+                                           $as_echo "#define HAVE_LIBEXOIIV2C 1" >>confdefs.h
+
+                                           HAVE_EXODUSII=yes
+
 
 else
 
@@ -11305,7 +11309,11 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_exoIIv2c_ex_close" >&5
 $as_echo "$ac_cv_lib_exoIIv2c_ex_close" >&6; }
 if test "x$ac_cv_lib_exoIIv2c_ex_close" = xyes; then :
-  HAVE_EXODUSII=yes
+
+                                           $as_echo "#define HAVE_LIBEXOIIV2C 1" >>confdefs.h
+
+                                           HAVE_EXODUSII=yes
+
        LIBS="-lexoIIv2c $LIBS"
 fi
 
