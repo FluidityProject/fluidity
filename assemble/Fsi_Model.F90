@@ -123,9 +123,7 @@ module fsi_model
         ! call set_fsi_interface_from_alpha(state)
 
         ! Set absorption term/sigma
-        if (its == 1) then
-            call compute_fluid_absorption(state)
-        end if
+        call compute_fluid_absorption(state)
         ! Always set source term:
         call compute_source_term(state)
 
