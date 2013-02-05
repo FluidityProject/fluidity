@@ -733,11 +733,15 @@
         <real_value rank="0">10.</real_value>
       </alpha_beta>
       <KComp_Sigmoid>
-        <k_comp>
+        <K_Comp>
           <real_value rank="0">4.5</real_value>
-        </k_comp>
+        </K_Comp>
       </KComp_Sigmoid>
-      <Comp_Sum2One/>
+      <Comp_Sum2One>
+        <Relaxation_Coefficient>
+          <real_value rank="0">1.</real_value>
+        </Relaxation_Coefficient>
+      </Comp_Sum2One>
     </is_multiphase_component>
     <vector_field name="Velocity" rank="1">
       <aliased material_phase_name="phase1" field_name="Velocity"/>
@@ -884,11 +888,15 @@
         <real_value rank="0">10.</real_value>
       </alpha_beta>
       <KComp_Sigmoid>
-        <k_comp>
-          <real_value rank="0">.2</real_value>
-        </k_comp>
+        <K_Comp>
+          <real_value rank="0">0.2</real_value>
+        </K_Comp>
       </KComp_Sigmoid>
-      <Comp_Sum2One/>
+      <Comp_Sum2One>
+        <Relaxation_Coefficient>
+          <real_value rank="0">1.</real_value>
+        </Relaxation_Coefficient>
+      </Comp_Sum2One>
     </is_multiphase_component>
     <vector_field name="Velocity" rank="1">
       <aliased material_phase_name="phase2" field_name="Velocity"/>
