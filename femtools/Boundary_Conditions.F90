@@ -26,6 +26,7 @@
 !    USA
 #include "fdebug.h"
 module boundary_conditions
+use shape_functions
 use fields_data_types
 use fields
 use sparse_tools

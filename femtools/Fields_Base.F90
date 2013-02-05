@@ -3982,7 +3982,7 @@ contains
   subroutine refresh_topology_mesh(mesh)
     ! When new structures are added to meshes which are topologies,
     ! the topology mesh descriptor becomes invalid.  This updates it.
-    type(mesh_type), intent(in) :: mesh
+    type(mesh_type), intent(inout) :: mesh
     if (mesh%refcount%id == mesh%topology%refcount%id) then
        mesh%topology = mesh
     end if
@@ -3991,7 +3991,7 @@ contains
   subroutine refresh_topology_vector_field(field)
     ! When new structures are added to meshes which are topologies,
     ! the topology mesh descriptor becomes invalid.  This updates it.
-    type(vector_field), intent(in) :: field
+    type(vector_field), intent(inout) :: field
     
     call refresh_topology(field%mesh)
 
