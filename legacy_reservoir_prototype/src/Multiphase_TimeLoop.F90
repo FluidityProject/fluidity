@@ -384,7 +384,7 @@
       iplike_grad_sou=0 
 
       ! dummy densities for testing
-      allocate( density_tmp(cv_nonods) , density_old_tmp(cv_nonods) )
+      allocate( density_tmp(cv_nonods*nphase) , density_old_tmp(cv_nonods*nphase) )
       density_tmp=0. ; density_old_tmp=0.
 
 !!$ Extracting Mesh Dependent Fields
