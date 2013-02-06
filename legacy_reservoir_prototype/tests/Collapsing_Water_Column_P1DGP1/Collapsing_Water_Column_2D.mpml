@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <multiphase_options>
   <simulation_name>
-    <string_value lines="1">cwc-pet2</string_value>
+    <string_value lines="1">cwc-pet5</string_value>
   </simulation_name>
   <geometry>
     <dimension>

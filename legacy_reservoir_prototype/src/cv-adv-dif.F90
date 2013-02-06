@@ -5896,8 +5896,9 @@
 ! =0 is anisotropic downwind diffusion based on a velocity projection like SUPG 
 ! (2nd recommend, most compressive)
 ! =2 is isotropic downwind diffusion  (3rd recommend,least compressive)
+! =5 is isotropic downwind diffusion with magnitude of =0 option. 
 ! In tests they all produce similar results.
-      INTEGER, PARAMETER :: NON_LIN_PETROV_INTERFACE = 4
+      INTEGER, PARAMETER :: NON_LIN_PETROV_INTERFACE = 5
 
       LOGICAL :: FIRSTORD, NOLIMI, RESET_STORE, LIM_VOL_ADJUST
       REAL :: RELAX, RELAXOLD, TMIN_STORE, TMAX_STORE, TOLDMIN_STORE, TOLDMAX_STORE, &
@@ -6177,6 +6178,11 @@
                   U_DOT_GRADT_GI=TDTGI + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
 
                   COEF=U_DOT_GRADT_GI/TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 )
+                  IF(NON_LIN_PETROV_INTERFACE==5) THEN 
+                     COEF=1.0/TOLFUN(SQRT( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2) )
+                  ELSE
+                     COEF=U_DOT_GRADT_GI/TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 )
+                  ENDIF 
                   A_STAR_T=COEF*TDTGI
                   A_STAR_X=COEF*TXGI
                   A_STAR_Y=COEF*TYGI
@@ -6205,8 +6211,10 @@
                      DIFF_COEF=MAX(0.0, COEF*P_STAR*RESIDGI) ! standard approach making it +ve
                   ELSE IF(NON_LIN_PETROV_INTERFACE==3) THEN ! residual squared approach
                      DIFF_COEF=P_STAR*RESIDGI**2/TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 ) 
-                  ELSE ! anisotropic diffusion in the A* direction.
+                  ELSE IF(NON_LIN_PETROV_INTERFACE==4) THEN! anisotropic diffusion in the A* direction.
                      COEF2= CVNORMX(GI)*A_STAR_X+CVNORMY(GI)*A_STAR_Y+CVNORMZ(GI)*A_STAR_Z
+                  ELSE ! isotropic diffusion WITH u magnitide
+                     DIFF_COEF=SQRT(UDGI**2 + VDGI**2 + WDGI**2)*P_STAR
                   ENDIF
 ! Make the diffusion coefficient negative (compressive)
                   DIFF_COEF=-DIFF_COEF
