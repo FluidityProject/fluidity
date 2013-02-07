@@ -25,10 +25,10 @@
           <polynomial_degree>
             <integer_value rank="0">{UDEGREE}</integer_value>
           </polynomial_degree>
+          <element_type>
+            <string_value>discontinuous lagrangian</string_value>
+          </element_type>
         </mesh_shape>
-        <mesh_continuity>
-          <string_value>discontinuous</string_value>
-        </mesh_continuity>
         <constraint_type>
           <string_value>{CONSTRAINT}</string_value>
           <solver>
@@ -58,10 +58,10 @@
           <polynomial_degree>
             <integer_value rank="0">{PDEGREE}</integer_value>
           </polynomial_degree>
+          <element_type>
+            <string_value>discontinuous lagrangian</string_value>
+          </element_type>
         </mesh_shape>
-        <mesh_continuity>
-          <string_value>discontinuous</string_value>
-        </mesh_continuity>
         <stat>
           <exclude_from_stat/>
         </stat>
@@ -74,6 +74,9 @@
           <polynomial_degree>
             <integer_value rank="0">{VDEGREE}</integer_value>
           </polynomial_degree>
+          <element_type>
+            <string_value>lagrangian</string_value>
+          </element_type>
         </mesh_shape>
         <stat>
           <exclude_from_stat/>
@@ -169,7 +172,9 @@ val=spherical_down()</string_value>
         </temporal_discretisation>
         <solver>
           <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
+          <preconditioner name="lu">
+            <factorization_package name="petsc"/>
+          </preconditioner>
           <relative_error>
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
@@ -213,7 +218,9 @@ val=spherical_down()</string_value>
         <temporal_discretisation/>
         <solver>
           <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
+          <preconditioner name="lu">
+            <factorization_package name="petsc"/>
+          </preconditioner>
           <relative_error>
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
