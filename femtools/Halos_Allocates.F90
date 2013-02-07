@@ -59,7 +59,7 @@ module halos_allocates
   end interface deallocate
   
   interface nullify
-    module procedure nullify_halo
+    module procedure nullify_halo, nullify_halo_vector
   end interface nullify
   
 #include "Reference_count_interface_halo_type.F90"
@@ -317,5 +317,17 @@ contains
     halo = null_halo
     
   end subroutine nullify_halo
+
+  subroutine nullify_halo_vector(halo)
+    !!< Return a halo type to its uninitialised state
+    type(halo_type), dimension(:), intent(inout) :: halo
+    
+    integer :: i
+
+    do i=1,size(halo)
+       call nullify(halo(i))
+    end do
+    
+  end subroutine nullify_halo_vector
 
 end module halos_allocates

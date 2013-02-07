@@ -34,6 +34,7 @@ module fields_data_types
   use spud
   use reference_counting
   use halo_data_types
+  use data_structures, only : integer_set_vector
   implicit none
 
   private
@@ -47,6 +48,8 @@ module fields_data_types
   integer, public, parameter :: HALO_TYPES=2
   !! Available sources of data for fields:
   integer, public, parameter :: FIELD_TYPE_NORMAL=0, FIELD_TYPE_CONSTANT=1, FIELD_TYPE_PYTHON=2, FIELD_TYPE_DEFERRED=3
+
+  integer, public, parameter :: CORE_ENTITY = 1, NON_CORE_ENTITY = 2, EXEC_HALO_ENTITY = 3, NON_EXEC_HALO_ENTITY = 4
 
   type adjacency_cache
     type(csr_sparsity), pointer :: nnlist => null()
@@ -62,6 +65,15 @@ module fields_data_types
      type(element_type) :: shape
      integer :: elements
      integer :: nodes
+     !! for pyop2 interoperability.  dofs and elements are sorted into:
+     !! core (owned and not in send halo)
+     !! non-core (owned and in send halo)
+     !! exec halo (in halo, but touch owned entity)
+     !! non-exec halo (in halo, touch exec halo entity but not owned entity)
+     !! these arrays record this information so we can expose it
+     !! appropriately to pyop2
+     integer, dimension(4) :: element_classes
+     integer, dimension(4) :: node_classes
      character(len=FIELD_NAME_LEN) :: name
      !! path to options in the options tree
 #ifdef DDEBUG
@@ -90,10 +102,17 @@ module fields_data_types
      !! Halo information for parallel simulations.
      type(halo_type), dimension(:), pointer :: halos=>null()
      type(halo_type), dimension(:), pointer :: element_halos=>null()
+     type(integer_set_vector), dimension(:), pointer :: colourings=>null()
      !! A logical indicating if this mesh is periodic or not
      !! (does not tell you how periodic it is... i.e. true if
      !! any surface is periodic)
      logical :: periodic=.false.
+     !! A pointer to the topology for this mesh. That is, the linear mesh
+     !!  from which this mesh is directly or indirectly derived. If this
+     !!  mesh is its own topology, this pointer should be null.
+     type(mesh_type), pointer :: topology=>null()
+     !! A pointer to the vertex unique id field for this mesh. 
+     type(scalar_field), pointer :: uid=>null()
   end type mesh_type
 
   type mesh_faces
@@ -105,19 +124,21 @@ module fields_data_types
      integer, dimension(:), pointer :: face_lno
      !! A mesh consisting of all faces on the surface of the domain,
      !! it uses its own internal surface node numbering:
-     type(mesh_type) surface_mesh
+     type(mesh_type) :: surface_mesh
      !! A list of the nodes on the surface, thus forming a map between
      !! internal surface node numbering and global node numbering:
      integer, dimension(:), pointer :: surface_node_list
      !! The element with which each face is associated
      integer, dimension(:), pointer :: face_element_list
+     !! The local face number of each face in its containing element.
+     integer, dimension(:), pointer :: local_face_number
      !! A list of ids marking different parts of the surface mesh
      !! so that boundary conditions can be associated with it.
      integer, dimension(:), pointer :: boundary_ids
      !! list of ids to identify coplanar patches of the surface:
      integer, dimension(:), pointer :: coplanar_ids => null()
      !! a DG version of the surface mesh, useful for storing bc values
-     type(mesh_type), pointer:: dg_surface_mesh => null()
+     type(mesh_type), pointer :: dg_surface_mesh => null()
      !! A logical indicating if this mesh has internal boundaries
      !! This means that element owners need to be written when writing out this mesh
      logical :: has_internal_boundaries=.false.

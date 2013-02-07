@@ -610,6 +610,8 @@ module sam_integration
            & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES)
        end if
 
+       call refresh_topology(output_linear_mesh)
+
        deallocate(new_ndglno)
        deallocate(new_boundary_ids)
        deallocate(new_coplanar_ids)
@@ -828,8 +830,8 @@ module sam_integration
        dim = old_positions%dim
        linear_shape = ele_shape(old_linear_mesh, 1)
 
-       nloc = old_linear_mesh%shape%loc
-       snloc = old_linear_mesh%faces%surface_mesh%shape%loc
+       nloc = old_linear_mesh%shape%ndof
+       snloc = old_linear_mesh%faces%surface_mesh%shape%ndof
        call incref(linear_shape)
 
        call allocate(linear_s, old_linear_mesh, "LinearScalarField")
@@ -1047,6 +1049,8 @@ module sam_integration
          end if
        end if
 
+       call refresh_topology(linear_mesh)
+
        ! Insert the positions and linear mesh into all states
        call insert(states, linear_mesh, trim(linear_mesh_name))
        call insert(states, new_positions, trim(linear_coordinate_field_name))
@@ -1260,8 +1264,8 @@ module sam_integration
        nonods = node_count(mesh)
        totele = ele_count(mesh)
        stotel = surface_element_count(mesh)
-       nloc = mesh%shape%loc
-       snloc = mesh%faces%surface_mesh%shape%loc
+       nloc = mesh%shape%ndof
+       snloc = mesh%faces%surface_mesh%shape%ndof
        ndglno => mesh%ndglno
        allocate(sndgln(stotel * snloc))
        call getsndgln(mesh, sndgln)

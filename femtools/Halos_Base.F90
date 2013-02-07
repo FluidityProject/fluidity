@@ -681,7 +681,7 @@ contains
     
   end function min_halo_node
   
-  function max_halo_send_node(halo) result(max_node)
+  pure function max_halo_send_node(halo) result(max_node)
     !!< Return the maximum send node stored in the supplied halo
     
     type(halo_type), intent(in) :: halo
@@ -692,12 +692,12 @@ contains
     
     max_node = -huge(0)
     do i = 1, halo_proc_count(halo)
-      max_node = max(max_node, maxval(halo_sends(halo, i)))
+      max_node = max(max_node, maxval(halo%sends(i)%ptr))
     end do
     
   end function max_halo_send_node
   
-  function max_halo_receive_node(halo) result(max_node)
+  pure function max_halo_receive_node(halo) result(max_node)
     !!< Return the maximum receive node stored in the supplied halo
     
     type(halo_type), intent(in) :: halo
@@ -708,19 +708,19 @@ contains
     
     max_node = -huge(0)
     do i = 1, halo_proc_count(halo)
-      max_node = max(max_node, maxval(halo_receives(halo, i)))
+      max_node = max(max_node, maxval(halo%receives(i)%ptr))
     end do
     
   end function max_halo_receive_node
 
-  function max_halo_node(halo) result(max_node)
+  pure function max_halo_node(halo) result(max_node)
     !!< Return the maximum node stored in the supplied halo
     
     type(halo_type), intent(in) :: halo
     
     integer :: max_node
     
-    max_node = max_halo_send_node(halo)
+    max_node = max(halo%nowned_nodes, max_halo_send_node(halo))
     max_node = max(max_node, max_halo_receive_node(halo))
     
   end function max_halo_node

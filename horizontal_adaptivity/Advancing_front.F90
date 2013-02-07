@@ -557,6 +557,8 @@ module hadapt_advancing_front
     assert(halo_valid_for_communication(out_mesh%element_halos(1)))
     assert(halo_valid_for_communication(out_mesh%element_halos(2)))
     
+    call refresh_topology(out_mesh)
+
   end subroutine derive_other_extruded_halos
   
 end module hadapt_advancing_front

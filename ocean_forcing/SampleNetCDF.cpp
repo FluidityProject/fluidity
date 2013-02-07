@@ -151,12 +151,12 @@ double SampleNetCDF::GetValue(double longitude, double latitude) const{
     if(j0==j1){
       return z00;
     }else{
-      return z00 - (y1-latitude)*(z01-z00)/(y1-y0);
+      return z01 - (y1-latitude)*(z01-z00)/(y1-y0);
     }
   }else if(j0==j1){ // No interpolation along latitude
     if(verbose)
       cout<<"Case 2\n";
-    return z00 - (x1-longitude)*(z01-z00)/(x1-x0);
+    return z11 - (x1-longitude)*(z11-z10)/(x1-x0);
   }
   //else{ // Bi-linear interpolation
   if(verbose)

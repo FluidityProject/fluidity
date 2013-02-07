@@ -32,6 +32,7 @@ module transform_elements
   use quadrature
   use elements
   use vector_tools
+  use parallel_tools, only: abort_if_in_parallel_region
   use fields_base
   use cv_faces, only: cv_faces_type
   use eventcounter
@@ -60,9 +61,10 @@ module transform_elements
   private
   public :: transform_to_physical, transform_facet_to_physical, &
             transform_cvsurf_to_physical, transform_cvsurf_facet_to_physical, &
-            transform_superconvergent_to_physical, transform_horizontal_to_physical, &
+            transform_horizontal_to_physical, &
             compute_jacobian, compute_inverse_jacobian, element_volume,&
-            cache_transform_elements, deallocate_transform_cache
+            cache_transform_elements, deallocate_transform_cache, &
+            prepopulate_transform_cache
   
   integer, parameter :: cyc3(1:5)=(/ 1, 2, 3, 1, 2 /)  
 
@@ -167,6 +169,51 @@ contains
     
   end function retrieve_cached_transform_det
 
+  function prepopulate_transform_cache(X) result(cache_valid)
+    !!< Prepopulate the caches for transform_to_physical and
+    !!< transform_face_to_physical
+    !!
+    !!< If you're going to call transform_to_physical on a coordinate
+    !!< field inside a threaded region, you need to call this on the
+    !!< same field before entering the region.
+    type(vector_field), intent(in) :: X
+    logical :: cache_valid
+    logical :: face_cache_valid
+    cache_valid=.true.
+    face_cache_valid=.true.
+    ! Although the caches are thread safe, the code that assembles the
+    ! caches is not so we want a simple way to construct them if
+    ! appropriate before entering a threaded region.
+    if (X%refcount%id /= position_id) then
+       cache_valid=.false.
+       if (X%name/="Coordinate") then
+          !!< If Someone is not calling this on the main Coordinate field
+          !!< then we're screwed anyway.
+          return
+       end if
+    else if (eventcount(EVENT_MESH_MOVEMENT) /= last_mesh_movement) then
+       cache_valid=.false.
+    end if
+
+    if (X%refcount%id /= face_position_id) then
+       face_cache_valid=.false.
+    else if (eventcount(EVENT_MESH_MOVEMENT) /= face_last_mesh_movement) then
+       face_cache_valid = .false.
+    end if
+
+    if (.not.cache_valid) then
+       call construct_cache(X)
+       cache_valid=.true.
+    end if
+
+    if (.not.face_cache_valid) then
+       call construct_face_cache(X)
+       face_cache_valid=.true.
+    end if
+
+    cache_valid = cache_valid .and. face_cache_valid
+
+  end function prepopulate_transform_cache
 
   subroutine construct_cache(X)
     !!< The cache is invalid so make a new one.
@@ -178,6 +225,8 @@ contains
     type(element_type), pointer :: X_shape
 
 !    ewrite(1,*) "Reconstructing element geometry cache."
+
+    call abort_if_in_parallel_region
 
     position_id=X%refcount%id
     last_mesh_movement=eventcount(EVENT_MESH_MOVEMENT)
@@ -304,6 +353,8 @@ contains
     integer, dimension(:), pointer :: neigh
     
 !    ewrite(1,*) "Reconstructing element geometry cache."
+
+    call abort_if_in_parallel_region
 
     face_position_id=X%refcount%id
     face_last_mesh_movement=eventcount(EVENT_MESH_MOVEMENT)
@@ -498,7 +549,7 @@ contains
     !! This is mostly useful for control volumes.
     type(element_type), intent(in), optional, target :: X_shape
     
-    !! Column n of X is the position of the nth node. (dim x x_shape%loc)
+    !! Column n of X is the position of the nth node. (dim x x_shape%ndof)
     !! only need position of n nodes since Jacobian is only calculated once
     real, dimension(X%dim,ele_loc(X,ele)) :: X_val
     !! Shape function to be used for coordinate interpolation.
@@ -533,7 +584,7 @@ contains
        assert(size(detwei)==lx_shape%ngi)
     end if
     !if (present(dshape)) then
-       assert(size(dshape,1)==shape%loc)
+       assert(size(dshape,1)==shape%ndof)
        assert(size(dshape,2)==shape%ngi)
        assert(size(dshape,3)==dim)
     !end if
@@ -629,7 +680,7 @@ contains
        ! If both space and the derivatives are linear then we only need
        ! to do this once.
        if (x_nonlinear.or.m_nonlinear.or.gi==1) then
-          do i=1,shape%loc
+          do i=1,shape%ndof
              dshape(i,gi,:)=matmul(invJ_local, shape%dn(i,gi,:))
           end do
        else
@@ -668,7 +719,7 @@ contains
 
     !! Shape function used for coordinate interpolation
     type(element_type), pointer :: x_shape
-    !! Column n of X is the position of the nth node. (dim x x_shape%loc)
+    !! Column n of X is the position of the nth node. (dim x x_shape%ndof)
     !! only need position of n nodes since Jacobian is only calculated once
     real, dimension(X%dim,ele_loc(X,ele)) :: X_val
 
@@ -781,7 +832,7 @@ contains
   subroutine compute_inverse_jacobian(X, x_shape, invJ, detwei, detJ)
     !!< Fast version of transform_to_physical that only calculates detwei and invJ
       
-    !! Column n of X is the position of the nth node. (dim x x_shape%loc)
+    !! Column n of X is the position of the nth node. (dim x x_shape%ndof)
     !! only need position of n nodes since Jacobian is only calculated once
     real, dimension(:,:), intent(in) :: X
     !! Shape function used for coordinate interpolation
@@ -805,7 +856,7 @@ contains
     
     dim=size(X,1)
 
-    assert(size(X,2)==x_shape%loc)
+    assert(size(X,2)==x_shape%ndof)
     if (present(detwei)) then
       assert(size(detwei)==x_shape%ngi)
     end if
@@ -893,7 +944,7 @@ contains
   subroutine compute_jacobian(X, x_shape, J, detwei, detJ)
     !!< Fast version of transform_to_physical that only calculates detwei and J
       
-    !! Column n of X is the position of the nth node. (dim x x_shape%loc)
+    !! Column n of X is the position of the nth node. (dim x x_shape%ndof)
     !! only need position of n nodes since Jacobian is only calculated once
     real, dimension(:,:), intent(in) :: X
     !! Shape function used for coordinate interpolation
@@ -916,7 +967,7 @@ contains
     dim=size(X,1) ! dimension of space
     ldim=x_shape%dim ! dimension of element
 
-    assert(size(X,2)==x_shape%loc)
+    assert(size(X,2)==x_shape%ndof)
     if (present(detwei)) then
       assert(size(detwei)==x_shape%ngi)
     end if
@@ -1498,7 +1549,7 @@ contains
 
     dim=size(X,1)
     assert(size(X_f,1)==dim)
-    assert(size(X_f,2)==x_shape_f%loc)
+    assert(size(X_f,2)==x_shape_f%ndof)
 
     assert(size(normal,1)==dim)
 
@@ -1611,76 +1662,6 @@ contains
     end function cross_product
     
   end subroutine transform_cvsurf_facet_to_physical
-
-  subroutine transform_superconvergent_to_physical(X, x_shape, n_shape, dnsp_t) 
-    !!< Given a positions shape function and node positions return the
-    !!< return the transformed derivatives of X at the superconvergent
-    !!< points. 
-    !! Column n of X is the position of the nth node. (dim x x_shape%loc)
-    !! only need position of n nodes since Jacobian is only calculated once
-    real, dimension(:,:), intent(in) :: X
-    !! Shape function used for coordinate interpolation
-    type(element_type), intent(in) :: x_shape, n_shape
-    !! Derivatives at superconvergent points in physical coordinates. 
-    !! (x_shape%loc x x_shape%superconvergence%nsp x dim)
-    real, dimension(:,:,:), intent(out) ::  dnsp_t
-    
-    ! Jacobian matrix and its inverse. (dim x dim)
-    real :: detJ
-    real, dimension(size(X,1),size(X,1)) :: J, invJ
-
-    integer :: sp, i, k, dim
-
-    dim=size(X,1)
-
-    assert(size(X,2)==x_shape%loc)
-    assert(size(dnsp_t,1)==n_shape%loc)
-    assert(size(dnsp_t,2)==n_shape%superconvergence%nsp)
-    assert(size(dnsp_t,3)==dim)
-
-    ! Loop over superconvergent points.
-    super_point_loop: do sp=1,n_shape%superconvergence%nsp
-
-       if ((sp==1).or.(x_shape%degree>1)) then
-         !     |- dx  dx  dx  -|
-         !     |  dL1 dL2 dL3  |
-         !     |               |
-         !     |  dy  dy  dy   |
-         ! J = |  dL1 dL2 dL3  |
-         !     |               |
-         !     |  dz  dz  dz   |
-         !     |- dL1 dL2 dL3 -|
-  
-         ! Form Jacobian.
-         J=transpose(matmul(X, x_shape%superconvergence%dn(:, sp, :)))
-  
-         select case (dim)
-         case(1)
-            invJ=1.0
-         case(2)
-            invJ=reshape((/J(2,2),-J(2,1),-J(1,2),J(1,1)/),(/2,2/))
-         case(3)
-            ! Calculate (scaled) inverse using recursive determinants.
-            forall (i=1:dim,k=1:dim) 
-               invJ(k,i)=J(cyc3(i+1),cyc3(k+1))*J(cyc3(i+2),cyc3(k+2)) &
-                    -J(cyc3(i+2),cyc3(k+1))*J(cyc3(i+1),cyc3(k+2))
-            end forall
-         case default
-            FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")   
-         end select
-         
-         detJ=dot_product(J(1,:),invJ(:,1))
-         invJ=invJ/detJ
-       end if
-
-       ! Evaluate derivatives in physical space.
-       do i=1,n_shape%loc
-          dnsp_t(i,sp,:)=matmul(invJ, n_shape%superconvergence%dn(i,sp,:))
-       end do
-       
-    end do super_point_loop
-       
-  end subroutine transform_superconvergent_to_physical
     
   subroutine transform_horizontal_to_physical(X_f, X_face_shape, vertical_normal, &
     m_f, dm_hor, detwei_hor)

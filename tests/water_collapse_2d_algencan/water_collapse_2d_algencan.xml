@@ -7,6 +7,11 @@
     <command_line>fluidity -v2 -l water_collapse.flml</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="finishtime" language="python">from fluidity_tools import stat_parser as stat
 finishtime= stat("water_collapse.stat")["ElapsedTime"]["value"][-1]</variable>
     <variable name="mindivergence" language="python">from fluidity_tools import stat_parser as stat
@@ -134,6 +139,9 @@ upper_contour_bounds= get_head_pos(get_last_dump())</variable>
 insidecolumn= min(stat("water_collapse.detectors")["Dense"]["MaterialVolumeFraction"]["WaterColumn"])</variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="check finish time reached" language="python">assert finishtime &gt;= 0.11768586779393897</test>
     <test name="check water was conserved" language="python">print 'mass loss = ', abs(vfracintend-vfracintstart)
 assert abs(vfracintend-vfracintstart) &lt; max(maxdivergence, mindivergence)</test>

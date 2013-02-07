@@ -35,6 +35,7 @@ module adjacency_lists
   use fields_data_types
   use element_numbering
   use futils
+  use integer_set_module
   implicit none
 
   interface MakeLists
@@ -733,7 +734,7 @@ END SUBROUTINE NODELE
 
     nonods = mesh%nodes
     totele = mesh%elements
-    nloc   = mesh%shape%loc
+    nloc   = mesh%shape%ndof
     ndglno => mesh%ndglno
     d3     = (mesh%shape%dim == 3)
 
@@ -808,7 +809,7 @@ END SUBROUTINE NODELE
 #endif
     
     ! Number of element boundaries.
-    noboundaries=mesh%shape%numbering%boundaries
+    noboundaries=mesh%shape%numbering%facets
     if (mesh%elements<=0) then 
       call allocate(EEList, rows=0, columns=0, entries=0, name='EEListSparsity')
       return
@@ -827,7 +828,7 @@ END SUBROUTINE NODELE
           ! fill in element on the other side of face j:
           call find_adjacent_element(ele, adj_ele, NEList, &
                nodes=mesh%ndglno((ele-1)*nloc+ &
-               boundary_numbering(mesh%shape%numbering, j) &
+               facet_dofs(mesh%shape, j) &
                )  )
 #ifdef DDEBUG
           if(adj_ele >= 0) then
@@ -837,19 +838,19 @@ END SUBROUTINE NODELE
 #ifdef DDEBUG
           else
              ! Encountered an error
-             ewrite(-1, *) "For element ", ele, " with boundary ", mesh%ndglno((ele - 1) * nloc + &
-               & boundary_numbering(mesh%shape%numbering, j))
+             ewrite(-1, *) "For element ", ele, " with facet ", mesh%ndglno((ele - 1) * nloc + &
+               & facet_dofs(mesh%shape, j))
              allocate(debug_common_elements(0))
              call findcommonelements(debug_common_elements, no_found, nelist, &
                & nodes = mesh%ndglno((ele - 1) * nloc + &
-               & boundary_numbering(mesh%shape%numbering, j) &
+               & facet_dofs(mesh%shape, j) &
                & ))
              ewrite(-1, *) "Number of common elements: ", no_found
              deallocate(debug_common_elements)
              allocate(debug_common_elements(no_found))
              call findcommonelements(debug_common_elements, no_found, nelist, &
                & nodes = mesh%ndglno((ele - 1) * nloc + &
-               & boundary_numbering(mesh%shape%numbering, j) &
+               & facet_dofs(mesh%shape, j) &
                & ))
              ewrite(-1, *) "Common elements: ", debug_common_elements
              deallocate(debug_common_elements)
@@ -890,7 +891,7 @@ END SUBROUTINE NODELE
       ! (if the boundary nodes are not on the domain boundary) one will be the
       ! adjacent element.
       elements1 => row_m_ptr(nelist, nodes(1))
-      ! Cache the elements connected to nodes(2:). ele and (if the boundary
+      ! Cache the elements connected to nodes(2:). ele and (if the facet
       ! nodes are not on the domain boundary) the adjacent element will appear
       ! in all of these.
       do i = 2, size(nodes)
@@ -903,7 +904,7 @@ END SUBROUTINE NODELE
          if(candidate_ele == ele) cycle ele_loop  ! Ignore the query element
          ! See if this element borders all other nodes
          do j = 2, size(nodes)
-           ! If candidate_ele is not in all row_idx, nodes are not boundary
+           ! If candidate_ele is not in all row_idx, nodes are not facet
            ! nodes for candidate_ele, and it isn't the adjacent element.
            if(.not. any(row_idx(j - 1)%ptr == candidate_ele)) cycle ele_loop
          end do
@@ -967,6 +968,56 @@ END SUBROUTINE NODELE
     end do ele_loop
 
   end subroutine FindCommonElements
+
+  function make_edge_list(topology) result (edge_list)
+    ! Given a topology mesh (ie linear, continuous), return the set of
+    !  edges in that mesh.
+    
+    type(mesh_type), intent(in) :: topology
+    type(csr_sparsity) :: edge_list
+
+    type(integer_set), dimension(:), allocatable :: edge_sets
+    type(cell_type), pointer :: cell
+    integer, dimension(2) :: edge_vertices
+    integer, dimension(:), pointer :: ele_vertices, edge_row
+    integer :: ele, edge, vertex
+
+    assert(topology%shape%degree==1)
+
+    allocate(edge_sets(node_count(topology)))
+    call allocate(edge_sets)
+    
+    cell=>topology%shape%cell
+    do ele=1,element_count(topology)
+       ele_vertices => ele_nodes(topology, ele)
+
+       do edge=1, cell%entity_counts(1)
+          edge_vertices=ele_vertices(entity_vertices(cell,[1,edge]))
+          
+          call insert(edge_sets(edge_vertices(1)), edge_vertices(2))
+          call insert(edge_sets(edge_vertices(2)), edge_vertices(1))
+
+       end do
+    end do
+
+    call allocate(edge_list, rows=node_count(topology), &
+         columns=node_count(topology), entries=sum(key_count(edge_sets)), &
+         name="EdgeList")
+
+    edge_list%findrm=1
+    do vertex=1,node_count(topology)
+       edge_list%findrm(vertex+1)=&
+            edge_list%findrm(vertex)+key_count(edge_sets(vertex))
+
+       edge_row=>row_m_ptr(edge_list,vertex)
+       
+       edge_row=set2vector(edge_sets(vertex))
+    end do
+
+    call deallocate(edge_sets)
+    deallocate(edge_sets)
+
+  end function make_edge_list
 
 end module adjacency_lists
 

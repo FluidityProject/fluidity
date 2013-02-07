@@ -33,6 +33,7 @@ module python_diagnostics
   use fldebug
   use global_parameters, only : PYTHON_FUNC_LEN, OPTION_PATH_LEN
   use python_state
+  use python_utils
   use spud
   use state_module
 

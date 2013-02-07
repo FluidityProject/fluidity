@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8" ?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">shocktube</string_value>
@@ -64,7 +64,7 @@
         </stiffened_gas>
       </compressible>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
+n    <scalar_field name="Pressure" rank="0">
       <prognostic>
         <mesh name="CoordinateMesh"/>
         <spatial_discretisation>
@@ -92,7 +92,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   if X[0]&lt;=0.0:
     return 1.0
   else:
@@ -135,7 +135,7 @@
         </temporal_discretisation>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   if X[0]&lt;=0.0:
     return 1.0
   else:
@@ -333,11 +333,11 @@
     <scalar_field name="AnalyticalPressure" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">import numpy
+          <string_value lines="20" type="code" language="python">import numpy
 import shocktube
 x = state.vector_fields['Coordinate']
 time = state.scalar_fields['Time']
-t=time[0]
+t=time.node_val(0)
 for (i,xi) in enumerate(x.val):
   sol=shocktube.solution(xi[0],t)
   field.set(i, sol[0])</string_value>
@@ -376,11 +376,11 @@ for (i,xi) in enumerate(x.val):
     <scalar_field name="AnalyticalDensity" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">import numpy
+          <string_value lines="20" type="code" language="python">import numpy
 import shocktube
 x = state.vector_fields['Coordinate']
 time = state.scalar_fields['Time']
-t=time[0]
+t=time.node_val(0)
 for (i,xi) in enumerate(x.val):
   sol=shocktube.solution(xi[0],t)
   field.set(i, sol[2])</string_value>
@@ -419,11 +419,11 @@ for (i,xi) in enumerate(x.val):
     <scalar_field name="AnalyticalInternalEnergy" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">import numpy
+          <string_value lines="20" type="code" language="python">import numpy
 import shocktube
 x = state.vector_fields['Coordinate']
 time = state.scalar_fields['Time']
-t=time[0]
+t=time.node_val(0)
 for (i,xi) in enumerate(x.val):
   sol=shocktube.solution(xi[0],t)
   p=sol[0]; rho=sol[2]
@@ -463,11 +463,11 @@ for (i,xi) in enumerate(x.val):
     <vector_field name="AnalyticalVelocity" rank="1">
       <diagnostic>
         <algorithm name="vector_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">import numpy
+          <string_value lines="20" type="code" language="python">import numpy
 import shocktube
 x = state.vector_fields['Coordinate']
 time = state.scalar_fields['Time']
-t=time[0]
+t=time.node_val(0)
 for (i,xi) in enumerate(x.val):
   sol=shocktube.solution(xi[0],t)
   field.set(i, [sol[1]])</string_value>

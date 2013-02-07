@@ -20,15 +20,24 @@ void init_vars(void);
 
 void python_add_statec_(char *name,int *len); // Add a new state object to the Python environment, if a state with the same name already exists it will overwrite that state; also the last added state will be accessible as 'state', all others in the 'states' dictionary
 
-void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type, char *option_path, int *oplen, char *state,int *slen,char*,int*);  // Add a new scalar field to the state with name *state
+void python_add_csr_matrix_real_(int *valSize, double val[], int *col_indSize, int col_ind [], int *row_ptrSize,
+                                 int row_ptr [], char *name, int *namelen, char *state, int *statelen, int *numCols);
+void python_add_csr_matrix_integer_(int *valSize, int ival[], int *col_indSize, int col_ind [], int *row_ptrSize,
+                                    int row_ptr [], char *name, int *namelen, char *state, int *statelen, int *numCols);
+
+void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type, char *option_path, int *oplen, char *state,int *slen,char*,int*,int*);  // Add a new scalar field to the state with name *state
 void python_add_vector_(int *num_dim, int *s, 
   double x[],
-  char *name,int *nlen, int *field_type, char *option_path, int *oplen, char *state,int *slen,char*,int*); // Add a new vector field to the state with name *state
+  char *name,int *nlen, int *field_type, char *option_path, int *oplen, char *state,int *slen,char*,int*,int*); // Add a new vector field to the state with name *state
 void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int *num_dim,
-  char *name,int *nlen, int *field_type, char *option_path, int *oplen, char *state,int *slen,char*,int*); // Add a new tensor field to the state with name *state
+  char *name,int *nlen, int *field_type, char *option_path, int *oplen, char *state,int *slen,char*,int*,int*); // Add a new tensor field to the state with name *state
 
-void python_add_mesh_(int*,int*,int*,int*,
-  char*,int*,char*,int*,int*,int*,int*,char*,int*);
+void python_add_halo_(char *name, int *name_len, int *nprocs, int *unn_offset,
+                      char *state_name, int *state_name_len, int *comm,
+                      int *uid);
+void python_add_mesh_(int*,int*,int*, int*, int*,int*,
+  char*,int*,char*,int*,char*,int*,int*,int*,int*,char*,int*,
+  char *, int *, char *, int *,int*);
 
 // Procedures to add an element
 void python_add_element_(int *dim, int *loc, int *ngi, int *degree,

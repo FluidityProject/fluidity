@@ -16,6 +16,7 @@ class State:
     self.tensor_fields = {}
     self.csr_matrices = {}
     self.meshes = {}
+    self.halos = {}
     self.name = n
   def __repr__(self):
     return '(State) %s' % self.name
@@ -24,11 +25,14 @@ class State:
     self.tensor_fields,"\ncsr_matrices:", self.csr_matrices
 
 class Field:
-  def __init__(self,n,ft,op,description):
+  def __init__(self,n,ft,op,description,uid,mesh=None):
     self.name = n
     self.field_type = ft
     self.option_path = op
     self.description = description
+    self.uid = uid
+    if mesh:
+        self.set_mesh(mesh)
 
   def __repr__(self):
     return '(%s) %s' % (self.description,self.name)
@@ -82,13 +86,13 @@ class Field:
     self.set(node, val)
      
   def node_val(self,node):
-    return self.val[node]
-
-  def __getitem__(self, node):
     if node != int(node):
       raise TypeError
     if node > self.node_count:
       raise IndexError
+    return self.val[node]
+
+  def __getitem__(self, node):
     return self.node_val(node)
 
   def ele_val(self,ele_number):
@@ -126,8 +130,8 @@ class Field:
 class ScalarField(Field):
   "A scalar field"  
   description = "ScalarField"
-  def __init__(self,n,v,ft,op):
-    Field.__init__(self,n,ft,op,self.description)
+  def __init__(self,n,v,ft,op,uid,mesh=None):
+    Field.__init__(self,n,ft,op,self.description,uid,mesh)
     self.val = v
     self.node_count = self.val.shape[0]
 
@@ -135,8 +139,8 @@ class ScalarField(Field):
 class VectorField(Field):
   "A vector field"
   description = "VectorField"
-  def __init__(self,n,v,ft,op,dim):
-    Field.__init__(self,n,ft,op,self.description)
+  def __init__(self,n,v,ft,op,dim,uid,mesh=None):
+    Field.__init__(self,n,ft,op,self.description,uid,mesh)
     self.val = v
     self.dimension = dim
     self.node_count=self.val.shape[0]
@@ -144,8 +148,8 @@ class VectorField(Field):
 class TensorField(Field):
   "A tensor field"
   description = "VectorField"
-  def __init__(self,n,v,ft,op,dim0,dim1):
-    Field.__init__(self,n,ft,op,self.description)
+  def __init__(self,n,v,ft,op,dim0,dim1,uid,mesh=None):
+    Field.__init__(self,n,ft,op,self.description,uid,mesh)
     self.val = v
     self.dimension = numpy.array([dim0,dim1])
     self.node_count=self.val.shape[0]
@@ -168,17 +172,30 @@ except ImportError:
     def __init__(self, *args, **kwargs):
       raise ImportError("No such module scipy.sparse")
 
+class Halo:
+  "A dummy halo"
+  def __init__(self, *args, **kwargs):
+    pass
+
 class Mesh:
   "A mesh"
-  def __init__(self,ndglno,elements,nodes,continuity,name,option_path,region_ids):
+  def __init__(self,ndglno,elements,element_classes,nodes,node_classes,continuity,name,parent,option_path,region_ids,uid,node_halo=None,element_halo=None):
     self.ndglno = ndglno
     self.element_count = elements
+    self._element_classes = element_classes
     self.node_count = nodes
+    self._node_classes = node_classes
     self.continuity = continuity
     self.name = name
+    self.parent = parent
     self.option_path = option_path
     self.region_ids = region_ids
     self.shape = Element(0,0,0,0,[],[], [], 0,0,0,0, "unknown", "unknown")
+    self.node_halo = node_halo
+    self.element_halo = element_halo
+    self.uid = uid
+    self.coords = None
+    self.faces = None
 
   def __repr__(self):
     return '(Mesh) %s' % self.name
@@ -200,9 +217,19 @@ class Mesh:
       nodes.append(self.ndglno[base+i]-1)
     return nodes
 
-  def ele_region_id(ele_number):
+  def ele_region_id(self, ele_number):
     # Return the region_id of element ele_number
-    return self.mesh.region_ids[ele_number]
+    return self.region_ids[ele_number]
+
+class Faces:
+  "Mesh faces"
+  def __init__(self, surface_node_list, face_element_list, boundary_ids):
+    self.surface_node_list = surface_node_list
+    self.face_element_list = face_element_list
+    self.boundary_ids = boundary_ids
+    self.boundaries = {}
+    self.face_list = None
+    self.surface_mesh = None
 
 class Element:
   "An element"

@@ -47,7 +47,7 @@ implicit none
 
   private
 
-  public :: addto, zero, set_from_function, set, set_all, &
+  public :: addto, set_from_function, set, set_all, &
     & set_from_python_function, remap_field, remap_field_to_surface, &
     & set_to_submesh, set_from_submesh, scale, bound, invert, &
     & absolute_value, inner_product, cross_prod, clone_header
@@ -76,11 +76,6 @@ implicit none
           real_addto_real, vector_field_addto_field_scale_field
   end interface
 
-  interface zero
-     module procedure zero_scalar, zero_vector, zero_tensor, &
-          zero_vector_dim, zero_tensor_dim_dim
-  end interface
-
   interface set_from_function
      module procedure set_from_function_scalar, set_from_function_vector,&
           & set_from_function_tensor 
@@ -91,7 +86,8 @@ implicit none
                    & set_vector_field_node, set_vector_field, &
                    & set_vector_field_node_dim, set_vector_field_dim, &
                    & set_tensor_field_node, set_tensor_field, &
-                   & set_scalar_field_nodes, set_tensor_field_node_dim, &
+                   & set_scalar_field_nodes, set_scalar_field_constant_nodes, &
+                   & set_tensor_field_node_dim, &
                    & set_vector_field_nodes, &
                    & set_vector_field_nodes_dim, &
                    & set_tensor_field_nodes, &
@@ -233,96 +229,6 @@ implicit none
       call deallocate(t_field_local)
                
   end subroutine tensor_second_invariant
-
-  subroutine zero_scalar(field)
-    !!< Set all entries in the field provided to 0.0
-    type(scalar_field), intent(inout) :: field
-
-    assert(field%field_type/=FIELD_TYPE_PYTHON)
-    field%val=0.0
-
-  end subroutine zero_scalar
-
-  subroutine zero_vector(field)
-    !!< Set all entries in the field provided to 0.0
-    type(vector_field), intent(inout) :: field
-
-    integer :: i
-
-    assert(field%field_type/=FIELD_TYPE_PYTHON)
-    do i=1,field%dim
-       field%val(i,:)=0.0
-    end do
-
-  end subroutine zero_vector
-
-  subroutine zero_vector_dim(field, dim)
-    !!< Set all entries in dimension dim of the field provided to 0.0
-    type(vector_field), intent(inout) :: field
-    integer, intent(in) :: dim
-
-    assert(field%field_type/=FIELD_TYPE_PYTHON)
-    field%val(dim,:)=0.0
-
-  end subroutine zero_vector_dim
-
-  subroutine zero_tensor(field)
-    !!< Set all entries in the field provided to 0.0
-    type(tensor_field), intent(inout) :: field
-
-    assert(field%field_type/=FIELD_TYPE_PYTHON)
-    field%val=0.0
-
-  end subroutine zero_tensor  
-
-  subroutine zero_tensor_dim_dim(field, dim1, dim2)
-    !!< Set all entries in the component indicated of field to 0.0
-    type(tensor_field), intent(inout) :: field
-    integer, intent(in) :: dim1, dim2
-
-    assert(field%field_type/=FIELD_TYPE_PYTHON)
-    field%val(dim1,dim2,:)=0.0
-
-  end subroutine zero_tensor_dim_dim
-
-  subroutine zero_scalar_field_nodes(field, node_numbers)
-    !!< Zeroes the scalar field at the specified node_numbers
-    !!< Does not work for constant fields
-    type(scalar_field), intent(inout) :: field
-    integer, dimension(:), intent(in) :: node_numbers
-
-    assert(field%field_type==FIELD_TYPE_NORMAL)
-    
-    field%val(node_numbers) = 0.0
-    
-  end subroutine zero_scalar_field_nodes
-  
-  subroutine zero_vector_field_nodes(field, node_numbers)
-    !!< Zeroes the vector field at the specified nodes
-    !!< Does not work for constant fields
-    type(vector_field), intent(inout) :: field
-    integer, dimension(:), intent(in) :: node_numbers
-    integer :: i
-
-    assert(field%field_type==FIELD_TYPE_NORMAL)
-    
-    do i=1,field%dim
-      field%val(i,node_numbers) = 0.0
-    end do
-    
-  end subroutine zero_vector_field_nodes
-
-  subroutine zero_tensor_field_nodes(field, node_numbers)
-    !!< Zeroes the tensor field at the specified nodes
-    !!< Does not work for constant fields
-    type(tensor_field), intent(inout) :: field
-    integer, dimension(:), intent(in) :: node_numbers
-
-    assert(field%field_type==FIELD_TYPE_NORMAL)
-
-    field%val(:, :, node_numbers) = 0.0
-    
-  end subroutine zero_tensor_field_nodes
   
   subroutine scalar_field_vaddto(field, node_numbers, val)
     !!< Add val to the field%val(node_numbers) for a vector of
@@ -944,10 +850,25 @@ implicit none
     real, dimension(:), intent(in) :: val
 
     assert(field%field_type==FIELD_TYPE_NORMAL)
-    
+    assert(size(node_numbers)==size(val))
+
     field%val(node_numbers) = val
     
   end subroutine set_scalar_field_nodes
+  
+  subroutine set_scalar_field_constant_nodes(field, node_numbers, val)
+    !!< Set the scalar field at the specified node_numbers
+    !!< to a constant value
+    !!< Does not work for constant fields
+    type(scalar_field), intent(inout) :: field
+    integer, dimension(:), intent(in) :: node_numbers
+    real, intent(in) :: val
+
+    assert(field%field_type==FIELD_TYPE_NORMAL)
+
+    field%val(node_numbers) = val
+    
+  end subroutine set_scalar_field_constant_nodes
   
   subroutine set_scalar_field(field, val)
     !!< Set the scalar field with a constant value
@@ -1904,7 +1825,7 @@ implicit none
     type(scalar_field), intent(inout) :: to_field
     integer, intent(out), optional :: stat
 
-    real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc) :: locweight
+    real, dimension(to_field%mesh%shape%ndof, from_field%mesh%shape%ndof) :: locweight
 
     integer :: fromloc, toloc, ele
     integer, dimension(:), pointer :: from_ele, to_ele
@@ -1958,11 +1879,11 @@ implicit none
     type(scalar_field), intent(in) :: from_field
     type(scalar_field), intent(inout) :: to_field
     integer, dimension(:), intent(in) :: elements
-    real, dimension(size(elements), to_field%mesh%shape%loc), intent(out) :: output
+    real, dimension(size(elements), to_field%mesh%shape%ndof), intent(out) :: output
     integer, intent(out), optional:: stat
 
-    real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc), optional :: locweight
-    real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc) :: llocweight
+    real, dimension(to_field%mesh%shape%ndof, from_field%mesh%shape%ndof), optional :: locweight
+    real, dimension(to_field%mesh%shape%ndof, from_field%mesh%shape%ndof) :: llocweight
 
     integer :: fromloc, toloc, ele, i
 
@@ -2003,7 +1924,7 @@ implicit none
     type(vector_field), intent(inout) :: to_field
     integer, intent(out), optional :: stat
 
-    real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc) :: locweight
+    real, dimension(to_field%mesh%shape%ndof, from_field%mesh%shape%ndof) :: locweight
 
     integer :: fromloc, toloc, ele, i
     integer, dimension(:), pointer :: from_ele, to_ele
@@ -2104,11 +2025,11 @@ implicit none
     type(vector_field), intent(in) :: from_field
     type(vector_field), intent(inout) :: to_field
     integer, dimension(:), intent(in) :: elements
-    real, dimension(size(elements), to_field%dim, to_field%mesh%shape%loc), intent(out) :: output
+    real, dimension(size(elements), to_field%dim, to_field%mesh%shape%ndof), intent(out) :: output
     integer, intent(out), optional:: stat
 
-    real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc), optional :: locweight
-    real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc) :: llocweight
+    real, dimension(to_field%mesh%shape%ndof, from_field%mesh%shape%ndof), optional :: locweight
+    real, dimension(to_field%mesh%shape%ndof, from_field%mesh%shape%ndof) :: llocweight
 
     integer :: fromloc, toloc, ele, i, j
 
@@ -2158,7 +2079,7 @@ implicit none
     type(tensor_field), intent(inout) :: to_field
     integer, intent(inout), optional :: stat
 
-    real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc) :: locweight
+    real, dimension(to_field%mesh%shape%ndof, from_field%mesh%shape%ndof) :: locweight
 
     integer :: fromloc, toloc, ele, i, j
     integer, dimension(:), pointer :: from_ele, to_ele
@@ -2327,21 +2248,23 @@ implicit none
 
   end subroutine remap_vector_field_to_surface
 
-  function piecewise_constant_mesh(in_mesh, name) result(new_mesh)
+  function piecewise_constant_mesh(in_mesh, name, with_faces) result(new_mesh)
     !!< From a given mesh, return a scalar field
     !!< allocated on the mesh that's topologically the same
     !!< but has piecewise constant basis functions.
     !!< This is for the definition of elementwise quantities.
     type(mesh_type), intent(in) :: in_mesh
+    character(len=*), intent(in) :: name
+    logical, intent(in), optional :: with_faces
+
     type(mesh_type) :: new_mesh
     type(element_type) :: shape, old_shape
-    character(len=*), intent(in) :: name
 
     old_shape = in_mesh%shape
 
-    shape = make_element_shape(vertices=old_shape%loc, dim=old_shape%dim, degree=0, quad=old_shape%quadrature)
-    new_mesh = make_mesh(model=in_mesh, shape=shape, continuity=-1)
-    new_mesh%name=name
+    shape = make_element_shape(vertices=old_shape%ndof, dim=old_shape%dim, degree=0, quad=old_shape%quadrature)
+    new_mesh = make_mesh(model=in_mesh, shape=shape, continuity=-1, &
+         name=name, with_faces=with_faces)
     call deallocate(shape)
     
   end function piecewise_constant_mesh
@@ -2359,7 +2282,7 @@ implicit none
 
     old_shape = in_mesh%shape
 
-    shape = make_element_shape(vertices=old_shape%loc, dim=old_shape%dim, degree=0, quad=old_shape%quadrature)
+    shape = make_element_shape(vertices=old_shape%ndof, dim=old_shape%dim, degree=0, quad=old_shape%quadrature)
     new_mesh = make_mesh(model=in_mesh, shape=shape, continuity=-1)
     call allocate(field, new_mesh, name)
     call zero(field)
@@ -3201,7 +3124,7 @@ implicit none
       FLExit("set_to_submesh_scalar only works for simplex elements")
     end select
 
-    allocate(from_vals(from_field%mesh%shape%loc))
+    allocate(from_vals(from_field%mesh%shape%ndof))
 
     to_ele = 0
     do from_ele = 1, element_count(from_field)
@@ -3287,7 +3210,7 @@ implicit none
       FLExit("set_to_submesh_vector only works for simplex elements")
     end select
 
-    allocate(from_vals(from_field%dim, from_field%mesh%shape%loc))
+    allocate(from_vals(from_field%dim, from_field%mesh%shape%ndof))
 
     to_ele = 0
     do from_ele = 1, element_count(from_field)
@@ -3373,7 +3296,7 @@ implicit none
       FLAbort("set_from_submesh_vector only works for simplex elements")
     end select
 
-    allocate(from_vals(from_field%mesh%shape%loc))
+    allocate(from_vals(from_field%mesh%shape%ndof))
 
     from_ele = 0
     do to_ele = 1, element_count(to_field)
@@ -3462,7 +3385,7 @@ implicit none
       FLAbort("set_from_submesh_vector only works for simplex elements")
     end select
 
-    allocate(from_vals(from_field%dim, from_field%mesh%shape%loc))
+    allocate(from_vals(from_field%dim, from_field%mesh%shape%ndof))
 
     from_ele = 0
     do to_ele = 1, element_count(to_field)
@@ -3488,8 +3411,8 @@ implicit none
 
     assert(size(nodes) == ele_loc(mesh, ele))
 
-    mesh%ndglno(mesh%shape%loc*(ele-1)+1:&
-                &mesh%shape%loc*ele) = nodes
+    mesh%ndglno(mesh%shape%ndof*(ele-1)+1:&
+                &mesh%shape%ndof*ele) = nodes
   end subroutine set_ele_nodes
 
   subroutine renumber_positions_trailing_receives(positions, permutation)
@@ -3610,6 +3533,8 @@ implicit none
       output_mesh%faces%surface_node_list = permutation(input_positions%mesh%faces%surface_node_list)
       allocate(output_mesh%faces%face_element_list(size(input_positions%mesh%faces%face_element_list)))
       output_mesh%faces%face_element_list = input_positions%mesh%faces%face_element_list
+      allocate(output_mesh%faces%local_face_number(size(input_positions%mesh%faces%local_face_number)))
+      output_mesh%faces%local_face_number = input_positions%mesh%faces%local_face_number
       allocate(output_mesh%faces%boundary_ids(size(input_positions%mesh%faces%boundary_ids)))
       output_mesh%faces%boundary_ids = input_positions%mesh%faces%boundary_ids
       if(associated(input_positions%mesh%faces%coplanar_ids)) then
@@ -3658,6 +3583,8 @@ implicit none
       output_positions%mesh%element_halos(halo_num) = input_positions%mesh%element_halos(halo_num)
       call incref(output_positions%mesh%element_halos(halo_num))
     end do
+
+    call refresh_topology(output_positions)
 
     output_positions%option_path = input_positions%option_path
 
@@ -3760,6 +3687,7 @@ implicit none
 
     output_positions%option_path = input_positions%option_path
 
+    call refresh_topology(output_positions)
     ewrite(1, *) "Exiting renumber_positions_elements"
 
   end subroutine renumber_positions_elements

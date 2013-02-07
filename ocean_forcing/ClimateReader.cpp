@@ -27,10 +27,10 @@
 */
 
 #include "ClimateReader.h"
+#include "global_parameters.h"
 using namespace std;
 
 ClimateReader::ClimateReader(){
-  earth_radius=6378000.0;
   pi = 4.0*atan(1.0);
   rad_to_deg = 180.0/pi;
   deg_to_rad = pi/180;
@@ -127,7 +127,7 @@ int ClimateReader::Cartesian2Spherical(double x, double y, double z, double &lon
   
   double r = sqrt(x*x+y*y+z*z);
   
-  depth = r - earth_radius;
+  depth = r - get_surface_radius();
   
   longitude = rad_to_deg*atan2(y, x);
   

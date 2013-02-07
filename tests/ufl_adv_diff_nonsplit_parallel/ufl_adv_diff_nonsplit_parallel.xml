@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>UFL Advection-Diffusion Non-split</name>
+  <owner userid="fr710"/>
+  <tags>flml ufl</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>time mpiexec -n 3 fluidity MMS_A.flml; time mpiexec -n 3 fluidity MMS_B.flml; time mpiexec -n 3 fluidity MMS_C.flml; time mpiexec -n 3 fluidity MMS_D.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="ab_convergence_gal_stat" language="python">
+from ufl_common import convergence_gal_stat
+ab_convergence_gal_stat = convergence_gal_stat("MMS_A.stat", "MMS_B.stat")
+    </variable>
+    <variable name="bc_convergence_gal_stat" language="python">
+from ufl_common import convergence_gal_stat
+bc_convergence_gal_stat = convergence_gal_stat("MMS_B.stat", "MMS_C.stat")
+    </variable>
+    <variable name="cd_convergence_gal_stat" language="python">
+from ufl_common import convergence_gal_stat
+cd_convergence_gal_stat = convergence_gal_stat("MMS_C.stat", "MMS_D.stat")
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="test_advection_diffusion advection order." language="python">
+assert ab_convergence_gal_stat[0] > 1.4
+assert bc_convergence_gal_stat[0] > 1.9
+assert cd_convergence_gal_stat[0] > 1.9
+    </test>
+  </pass_tests>
+  <warn_tests/>
+</testproblem>

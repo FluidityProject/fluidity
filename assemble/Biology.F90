@@ -38,6 +38,7 @@ module biology
   use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, PYTHON_FUNC_LEN
   use solvers
   use python_state
+  use python_utils
   use sparsity_patterns_meshes
   use fefields
   use field_options

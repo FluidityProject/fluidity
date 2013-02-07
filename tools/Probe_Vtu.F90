@@ -27,7 +27,8 @@
 
 #include "fdebug.h"
 
-subroutine probe_vtu(vtu_filename, vtu_filename_len, fieldname, fieldname_len, x, y, z, dim)
+subroutine probe_vtu(vtu_filename_, vtu_filename_len, fieldname_, &
+    & fieldname_len, x, y, z, dim) bind(c)
 
   use fields
   use fldebug
@@ -36,21 +37,18 @@ subroutine probe_vtu(vtu_filename, vtu_filename_len, fieldname, fieldname_len, x
   use reference_counting
   use state_module
   use vtk_interfaces
+  use iso_c_binding
   
   implicit none
   
-  integer, intent(in) :: vtu_filename_len
-  integer, intent(in) :: fieldname_len
   
-  character(len = vtu_filename_len), intent(in) :: vtu_filename
-  character(len = fieldname_len), intent(in) :: fieldname
-  real, intent(in) :: x
-  real, intent(in) :: y
-  real, intent(in) :: z
-  integer, intent(in) :: dim
-  
+  character(kind=c_char, len=1) :: vtu_filename_(*)
+  character(kind=c_char, len=1) :: fieldname_(*)
+  integer(kind=c_int), value :: dim, vtu_filename_len, fieldname_len
+  real(kind=c_double), value :: x, y, z
+
   character(len = 1 + 1 + real_format_len(padding = 1) + 1) :: format
-  integer :: ele, stat
+  integer :: ele, stat, i
   logical :: allocated
   real :: s_val
   real, dimension(dim) :: coord, v_val
@@ -60,8 +58,20 @@ subroutine probe_vtu(vtu_filename, vtu_filename_len, fieldname, fieldname_len, x
   type(vector_field), pointer :: positions, v_field
   type(state_type) :: state
   type(tensor_field), pointer :: t_field
+  character(len=vtu_filename_len) :: vtu_filename
+  character(len=fieldname_len) :: fieldname
+
   
   ewrite(1, *) "In probe_vtu"
+
+  do i=1, vtu_filename_len
+    vtu_filename(i:i)=vtu_filename_(i)
+  end do
+  do i=1, fieldname_len
+    fieldname(i:i)=fieldname_(i)
+  end do
+
+  
   
   call vtk_read_state(vtu_filename, state = state)
   

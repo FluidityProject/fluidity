@@ -613,7 +613,7 @@ contains
     
     integer :: ele_owner
     
-    ele_owner = minval(halo_node_owners(node_halo, ele_nodes(mesh, ele)))
+    ele_owner = maxval(halo_node_owners(node_halo, ele_nodes(mesh, ele)))
     assert(ele_owner > 0)
    
   end function ele_owner
@@ -683,7 +683,7 @@ contains
     
     assert(valid_halo_node_counts(element_halo))
     
-    loc = mesh%shape%loc
+    loc = mesh%shape%ndof
     
     allocate(receives_uenlist(nprocs))
     do i = 1, nprocs
@@ -1088,7 +1088,9 @@ contains
     call renumber_positions_trailing_receives(new_positions)
     assert(halo_valid_for_communication(new_positions%mesh%halos(1)))
     assert(halo_valid_for_communication(new_positions%mesh%halos(2)))
-      
+    
+    call refresh_topology(new_positions%mesh)
+  
   end subroutine derive_nonperiodic_halos_from_periodic_halos
     
   function derive_sub_halo(halo, sub_nodes) result (sub_halo)

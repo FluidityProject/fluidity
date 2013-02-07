@@ -1,18 +1,9 @@
-!! This module provides the functionality to call Python code
-!! from Fortran:
-!!  python_run_string(string::s)
-!!  python_run_file(string::filename)
-
-!! Most importantly states can be added to the dictionary via:
+!! Python states can be added to the dictionary via:
 !!  python_add_state(State::S)
 !! The last added state will be available as 'state', while all states added 
 !! are accessible via the 'states' dictionary.
 !! Adding a state twice will result in overwriting the information. All states 
 !! are uniquely identified by their name attribute. 
-
-!! These should be called once (either from C or Fortran) before and after anything else of this module is used:
-!! python_init() initializes the Python interpreter; 
-!! python_end() finalizes 
 
 !! Files belonging to this module:
 !! python_state.F90
@@ -26,51 +17,27 @@ module python_state
   use quadrature
   use elements
   use fields
+  use halos, only: halo_type
+  use field_options, only: find_linear_parent_mesh
   use global_parameters, only:FIELD_NAME_LEN, current_debug_level, OPTION_PATH_LEN, PYTHON_FUNC_LEN
   use state_module 
+  use python_utils
    
   implicit none
   
   private
   
-  public :: python_init, python_reset
   public :: python_add_array, python_add_field
   public :: python_add_state, python_add_states, python_add_states_time
-  public :: python_run_string, python_run_file
   public :: python_shell
-  public :: python_fetch_real
 
   interface
-    !! Python init and end
-    subroutine python_init()
-    end subroutine python_init
-    subroutine python_reset()
-    end subroutine python_reset
-    subroutine python_end()
-    end subroutine python_end
-
     !! Add a state_type object into the Python interpreter
     subroutine python_add_statec(name,nlen)
       implicit none
       integer :: nlen
       character(len=nlen) :: name
     end subroutine python_add_statec
-
-    !! Run a python string and file
-    subroutine python_run_stringc(s, slen, stat)
-      implicit none
-      integer, intent(in) :: slen
-      character(len = slen), intent(in) :: s
-      integer, intent(out) :: stat
-    end subroutine python_run_stringc
-    
-    subroutine python_run_filec(s, slen, stat)
-      implicit none
-      integer, intent(in) :: slen
-      character(len = slen), intent(in) :: s
-      integer, intent(out) :: stat
-    end subroutine python_run_filec
-
   end interface
 
   interface python_shell
@@ -129,9 +96,9 @@ module python_state
   !! Add a field to a State (these are for the C-interface, python_add_field_directly() is what you want probably)
   interface python_add_field
     subroutine python_add_scalar(sx,x,name,nlen,field_type,option_path,oplen,state_name,snlen,&
-      &mesh_name,mesh_name_len)
+      &mesh_name,mesh_name_len,uid)
       implicit none
-      integer :: sx,nlen,field_type,oplen,snlen,mesh_name_len
+      integer :: sx,nlen,field_type,oplen,snlen,mesh_name_len,uid
       real, dimension(sx) :: x
       character(len=nlen) :: name
       character(len=snlen) :: state_name
@@ -139,7 +106,7 @@ module python_state
       character(len=mesh_name_len) :: mesh_name
     end subroutine python_add_scalar
     
-    subroutine python_add_csr_matrix(valuesSize, values, col_indSize, col_ind, row_ptrSize, &
+    subroutine python_add_csr_matrix_real(valuesSize, values, col_indSize, col_ind, row_ptrSize, &
       row_ptr, name, namelen, state_name,snlen, numCols)
       implicit none
       integer :: valuesSize,col_indSize,row_ptrSize,namelen,snlen,numCols
@@ -148,13 +115,24 @@ module python_state
       integer, dimension(row_ptrSize) :: row_ptr
       character(len=namelen) :: name
       character(len=snlen) :: state_name
-    end subroutine python_add_csr_matrix
+    end subroutine python_add_csr_matrix_real
     
+    subroutine python_add_csr_matrix_integer(valuesSize, ivalues, col_indSize, col_ind, row_ptrSize, &
+      row_ptr, name, namelen, state_name,snlen, numCols)
+      implicit none
+      integer :: valuesSize,col_indSize,row_ptrSize,namelen,snlen,numCols
+      integer, dimension(valuesSize) :: ivalues
+      integer, dimension(col_indSize) :: col_ind
+      integer, dimension(row_ptrSize) :: row_ptr
+      character(len=namelen) :: name
+      character(len=snlen) :: state_name
+    end subroutine python_add_csr_matrix_integer
+
     subroutine python_add_vector(numdim,sx,x,&
       &name,nlen,field_type,option_path,oplen,state_name,snlen,&
-      &mesh_name,mesh_name_len)
+      &mesh_name,mesh_name_len,uid)
       implicit none
-      integer :: sx,numdim,nlen,field_type,oplen,snlen,mesh_name_len
+      integer :: sx,numdim,nlen,field_type,oplen,snlen,mesh_name_len,uid
       real, dimension(sx) :: x
       character(len=nlen) :: name
       character(len=snlen) :: state_name
@@ -162,9 +140,9 @@ module python_state
       character(len=mesh_name_len) :: mesh_name
     end subroutine python_add_vector
     subroutine python_add_tensor(sx,sy,sz,x,numdim,name,nlen,field_type,option_path,oplen,state_name,snlen,&
-      &mesh_name,mesh_name_len)
+      &mesh_name,mesh_name_len,uid)
       implicit none
-      integer :: sx,sy,sz,nlen,field_type,oplen,snlen,mesh_name_len
+      integer :: sx,sy,sz,nlen,field_type,oplen,snlen,mesh_name_len,uid
       integer, dimension(2) :: numdim
       real, dimension(sx,sy,sz) :: x
       character(len=nlen) :: name
@@ -173,16 +151,41 @@ module python_state
       character(len=mesh_name_len) :: mesh_name
     end subroutine python_add_tensor
 
-    subroutine python_add_mesh(ndglno,sndglno,elements,nodes,name,nlen,option_path,oplen,&
-      &continuity,region_ids,sregion_ids,state_name,state_name_len)
+    subroutine python_add_halo(name, name_len, nprocs, unn_offset, &
+         state_name, state_name_len, comm, uid)
+      implicit none
+      integer :: name_len, nprocs, state_name_len, uid, comm, unn_offset
+      character(len=name_len) :: name
+      character(len=state_name_len) :: state_name
+    end subroutine python_add_halo
+
+    subroutine python_add_mesh(ndglno,sndglno,elements,element_classes,nodes,node_classes,name,nlen,parent_name,plen,&
+      &option_path,oplen,continuity,region_ids,sregion_ids,state_name,state_name_len,halo_name,halo_name_len,element_halo_name,element_halo_name_len,uid)
       !! Add a mesh to the state called state_name
       implicit none
       integer, dimension(*) :: ndglno,region_ids    !! might cause a problem
-      integer :: sndglno, elements, nodes, nlen, oplen, continuity, sregion_ids, state_name_len
+      integer, dimension(4) :: element_classes, node_classes
+      integer :: sndglno, elements, nodes, nlen, plen, oplen, continuity, sregion_ids, state_name_len, uid, halo_name_len, element_halo_name_len
       character(len=nlen) :: name
+      character(len=plen) :: parent_name
       character(len=oplen) :: option_path
       character(len=state_name_len) :: state_name
+      character(len=halo_name_len) :: halo_name
+      character(len=element_halo_name_len) :: element_halo_name
     end subroutine python_add_mesh
+
+    subroutine python_add_faces(state_name, state_name_len, mesh_name, mesh_name_len, surface_mesh_name,&
+      &surface_mesh_name_len, surface_node_list, ssurface_node_list, face_element_list,&
+      &sface_element_list, boundary_ids, sboundary_ids)
+      !! Add a faces to the mesh called mesh_name in state state_name
+      implicit none
+      integer :: state_name_len, mesh_name_len, surface_mesh_name_len
+      character(len=state_name_len) :: state_name
+      character(len=mesh_name_len) :: mesh_name
+      character(len=surface_mesh_name_len) :: surface_mesh_name
+      integer, dimension(*) :: surface_node_list, face_element_list, boundary_ids
+      integer :: ssurface_node_list, sface_element_list, sboundary_ids
+    end subroutine python_add_faces
 
     subroutine python_add_element(dim,loc,ngi,degree,stname,slen,mname,mlen,n,nx,ny,dn,dnx,dny,dnz,&
       &size_spoly_x,size_spoly_y,size_dspoly_x,size_dspoly_y, family_name, family_name_len, &
@@ -231,10 +234,6 @@ module python_state
   end interface
 
 
-
-
-
-
   !! The function versions called in Fortran, mainly simplified arguments, then 
   !! unwrapped and called to the interface to C
  contains
@@ -248,21 +247,31 @@ module python_state
     oplen = len(trim(S%option_path))
     mesh_name_len = len(trim(S%mesh%name))
     call python_add_scalar(size(S%val,1),S%val,&
-      trim(S%name),slen, S%field_type,S%option_path,oplen,trim(st%name),snlen,S%mesh%name,mesh_name_len)
+      trim(S%name),slen, S%field_type,S%option_path,oplen,trim(st%name),snlen,S%mesh%name,mesh_name_len,S%refcount%id)
   end subroutine python_add_scalar_directly
   
   subroutine python_add_csr_matrix_directly(csrMatrix,st)
     type(csr_matrix) :: csrMatrix
     type(state_type) :: st
-    integer :: valSize, col_indSize, row_ptrSize, nameLen, statenameLen,numCols
+    integer :: valSize, col_indSize, row_ptrSize, nameLen, statenameLen,numCols, valtype
     type(csr_sparsity) :: csrSparsity
     real, dimension(:), pointer :: values
+    integer, dimension(:), pointer :: ivalues
     integer, dimension(:), pointer :: col_ind
     integer, dimension(:), pointer :: row_ptr
     
     csrSparsity = csrMatrix%sparsity 
     values => csrMatrix%val
-    valSize = size(csrMatrix%val,1)
+    ivalues => csrMatrix%ival
+
+    if (associated(values)) then
+      valtype = CSR_REAL
+      valSize = size(csrMatrix%val,1)
+    else
+      valtype = CSR_INTEGER
+      valSize = size(csrMatrix%ival,1)
+    end if
+
     col_ind => csrSparsity%colm
     col_indSize = valSize
     row_ptr => csrSparsity%findrm
@@ -270,8 +279,13 @@ module python_state
     nameLen = len(trim(csrMatrix%name))
     statenameLen = len(trim(st%name))
     numCols = csrSparsity%columns
-    call python_add_csr_matrix(valSize, values, col_indSize, col_ind, row_ptrSize, row_ptr, &
-      trim(csrMatrix%name), nameLen, trim(st%name),statenameLen,numCols)
+    if ( valtype == CSR_REAL ) then
+       call python_add_csr_matrix_real(valSize, values, col_indSize, col_ind, row_ptrSize, row_ptr, &
+            trim(csrMatrix%name), nameLen, trim(st%name),statenameLen,numCols)
+    else
+       call python_add_csr_matrix_integer(valSize, ivalues, col_indSize, col_ind, row_ptrSize, row_ptr, &
+            trim(csrMatrix%name), nameLen, trim(st%name),statenameLen,numCols)
+    end if
   end subroutine python_add_csr_matrix_directly
 
   subroutine python_add_vector_directly(V,st)
@@ -287,7 +301,7 @@ module python_state
     
     assert(v%dim==size(v%val,1))
     call python_add_vector(V%dim, size(V%val,2), V%val, &
-      trim(V%name), slen, V%field_type, V%option_path, oplen,trim(st%name),snlen,V%mesh%name,mesh_name_len)
+      trim(V%name), slen, V%field_type, V%option_path, oplen,trim(st%name),snlen,V%mesh%name,mesh_name_len,V%refcount%id)
     
   end subroutine python_add_vector_directly
 
@@ -300,33 +314,117 @@ module python_state
     oplen = len(trim(T%option_path))
     mesh_name_len = len(trim(T%mesh%name))
     call python_add_tensor(size(T%val,1),size(T%val,2),size(T%val,3),T%val, T%dim,&
-      trim(T%name),slen, T%field_type,T%option_path,oplen,trim(st%name),snlen,T%mesh%name,mesh_name_len)
+      trim(T%name),slen, T%field_type,T%option_path,oplen,trim(st%name),snlen,T%mesh%name,mesh_name_len,T%refcount%id)
   end subroutine python_add_tensor_directly
+
+  subroutine python_add_halo_directly(H, state)
+    type(halo_type) :: H
+    type(state_type) :: state
+    character(len=100) :: tmp_name
+    integer :: i
+
+    do i = 1, H%nprocs
+       write(tmp_name,'(a,i0)')'send', i
+       call python_add_array(H%sends(i)%ptr, trim(tmp_name))
+       write(tmp_name, '(a,i0)')'recv', i
+       call python_add_array(H%receives(i)%ptr, trim(tmp_name))
+    end do
+    call python_add_array(H%receives_gnn_to_unn, 'receives_gnn2unn')
+    call python_add_halo(trim(H%name), len(trim(H%name)), H%nprocs, &
+         H%my_owned_nodes_unn_base, &
+         trim(state%name), len(trim(state%name)), &
+         H%communicator, H%refcount%id)
+  end subroutine python_add_halo_directly
 
   subroutine python_add_mesh_directly(M,st)
     type(mesh_type) :: M
+    type(mesh_type), pointer :: parent
     type(state_type) :: st
-    integer :: snlen,slen,oplen
+    integer :: snlen,slen,plen,oplen, stat
     integer, dimension(:), allocatable :: temp_region_ids
-
+    integer :: halo_name_len, element_halo_name_len
+    character(len=150) :: halo_name, element_halo_name
+    call find_linear_parent_mesh(st, M, parent, stat)
+    if ( stat /= 0 ) parent = M
     slen = len(trim(M%name))
+    plen = len(trim(parent%name))
     snlen = len(trim(st%name))
     oplen = len(trim(M%option_path))
-    
+
+    if (associated(M%element_halos)) then
+       call python_add_halo_directly(M%element_halos(halo_count(M)), st)
+       element_halo_name_len = len(trim(M%element_halos(halo_count(M))%name))
+       element_halo_name = trim(M%element_halos(halo_count(M))%name)
+    else
+       element_halo_name = ""
+       element_halo_name_len = 0
+    end if
+
+    if (associated(M%halos)) then
+       call python_add_halo_directly(M%halos(halo_count(M)), st)
+       halo_name_len = len(trim(M%halos(halo_count(M))%name))
+       halo_name = trim(M%halos(halo_count(M))%name)
+    else
+       halo_name = ""
+       halo_name_len = 0
+    end if
+
+    if ( trim(parent%name) == trim(M%name) ) plen = 0
     if(associated(M%region_ids)) then
-      call python_add_mesh(M%ndglno,size(M%ndglno,1),M%elements,M%nodes,&
-        trim(M%name),slen,M%option_path,oplen,&
+      call python_add_mesh(M%ndglno,size(M%ndglno,1),M%elements,&
+        M%element_classes, M%nodes, M%node_classes,&
+        trim(M%name),slen,trim(parent%name),plen,M%option_path,oplen,&
         M%continuity, M%region_ids, size(M%region_ids),&
-        trim(st%name),snlen)
+        trim(st%name),snlen, &
+        halo_name, halo_name_len,&
+        element_halo_name, element_halo_name_len,&
+        M%refcount%id)
     else
       allocate(temp_region_ids(0))
-      call python_add_mesh(M%ndglno,size(M%ndglno,1),M%elements,M%nodes,&
-        trim(M%name),slen,M%option_path,oplen,&
+      call python_add_mesh(M%ndglno,size(M%ndglno,1),M%elements,&
+        M%element_classes,M%nodes,M%node_classes,&
+        trim(M%name),slen,trim(parent%name),plen,M%option_path,oplen,&
         M%continuity, temp_region_ids, size(temp_region_ids),&
-        trim(st%name),snlen)
+        trim(st%name),snlen, &
+        halo_name, halo_name_len,&
+        element_halo_name, element_halo_name_len,&
+        M%refcount%id)
       deallocate(temp_region_ids)
     end if
+
+    if(associated(M%faces)) then
+      call python_add_faces_directly(M%faces, M, st)
+    end if
+
   end subroutine python_add_mesh_directly
+
+  subroutine python_add_faces_directly(F,M,st)
+    type(mesh_faces) :: F
+    type(mesh_type) :: M
+    type(state_type) :: st
+    integer :: mlen, snlen, smlen
+
+    mlen = len(trim(M%name))
+    snlen = len(trim(st%name))
+    smlen = len(trim(F%surface_mesh%name))
+
+    call python_add_mesh_directly(F%surface_mesh, st)
+    call python_add_element_directly(F%surface_mesh%shape,F%surface_mesh,st)
+
+    call python_add_faces(trim(st%name), snlen, trim(M%name), mlen, &
+                             & trim(F%surface_mesh%name), smlen, &
+                             & F%surface_node_list, size(F%surface_node_list), &
+                             & F%face_element_list, size(F%face_element_list), &
+                             & F%boundary_ids, size(F%boundary_ids))
+
+    call python_add_csr_matrix_directly(F%face_list, st)
+
+    call python_run_string("states['" // trim(st%name) // "'].meshes['" // trim(M%name) // &
+                         & "'].faces.face_list = states['"// trim(st%name) // &
+                         & "'].csr_matrices['" // trim(M%faces%face_list%name) // &
+                         & "']")
+
+  end subroutine python_add_faces_directly
 
   subroutine python_add_element_directly(E,M,st)
     !! Add an element to the mesh M, by adding first the element and then its 
@@ -338,7 +436,7 @@ module python_state
     type(element_type) :: E
     type(mesh_type) :: M
     type(state_type) :: st
-    real, dimension(E%loc, size(E%numbering%number2count, 1)) :: coords
+    real, dimension(E%ndof, size(E%numbering%number2count, 1)) :: coords
     integer :: snlen,mlen
     integer :: i, j
     character(len=20) :: family_name, type_name
@@ -363,11 +461,11 @@ module python_state
       type_name = "nonconforming"
     end if
 
-    do l=1,E%loc
+    do l=1,E%ndof
       coords(l,:) = local_coords(l, E)
     end do
 
-    call python_add_element(E%dim, E%loc, E%ngi, E%degree,&   
+    call python_add_element(E%dim, E%ndof, E%ngi, E%degree,&   
       &trim(st%name),snlen,trim(M%name),mlen,&
       &E%n,size(E%n,1), size(E%n,2),E%dn, size(E%dn,1), size(E%dn,2), size(E%dn,3),&
       &size(E%spoly,1),size(E%spoly,2),size(E%dspoly,1),size(E%dspoly,2), family_name, len_trim(family_name), &
@@ -571,58 +669,5 @@ module python_state
     name_len = len(var_name)
     call python_add_array_integer_3d(arr,sizex,sizey,sizez,var_name,name_len)
   end subroutine python_add_array_i_3d_directly
-
-  subroutine python_run_string(s, stat)
-    !!< Wrapper for function for python_run_stringc
-    
-    character(len = *), intent(in) :: s
-    integer, optional, intent(out) :: stat
-    
-    integer :: lstat
-        
-    if(present(stat)) stat = 0
-        
-    call python_run_stringc(s, len_trim(s), lstat)
-    if(lstat /= 0) then
-      if(present(stat)) then
-        stat = lstat
-      else
-        ewrite(-1, *) "Python error, Python string was:"
-        ewrite(-1, *) trim(s)
-        FLExit("Dying")
-      end if
-    end if
-    
-  end subroutine python_run_string
-  
-  subroutine python_run_file(s, stat)
-    !!< Wrapper for function for python_run_filec
-    
-    character(len = *), intent(in) :: s
-    integer, optional, intent(out) :: stat
-    
-    integer :: lstat
-
-    if(present(stat)) stat = 0
-
-    call python_run_filec(s, len_trim(s), lstat)
-    if(lstat /= 0) then
-      if(present(stat)) then
-        stat = lstat
-      else
-        ewrite(-1, *) "Python error, Python file was:"
-        ewrite(-1, *) trim(s)
-        FLExit("Dying")
-      end if
-    end if
-    
-  end subroutine python_run_file
-
-  function python_fetch_real(name) result(output)
-    character(len=*), intent(in) :: name
-    real :: output
-
-    call python_fetch_real_c(name, len(name), output)
-  end function python_fetch_real
 
 end module python_state

@@ -189,9 +189,9 @@ contains
     else if(.not. receive_nodes_unique(halo)) then
       ewrite(1, *) "Receive nodes are not unique"
       consistent = .false.
-    else if(max_halo_receive_node(halo) /= node_count(halo)) then
-      ewrite(1, *) "Not all non-owned nodes are receive nodes"
-      consistent = .false.
+!!$    else if(max_halo_receive_node(halo) /= node_count(halo)) then
+!!$      ewrite(1, *) "Not all non-owned nodes are receive nodes"
+!!$      consistent = .false.
     else
       consistent = .true.
     end if

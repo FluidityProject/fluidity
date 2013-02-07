@@ -1,0 +1,523 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<shallow_water_options>
+    <simulation_name>
+        <string_value lines="1">wave_template</string_value>
+    </simulation_name>
+    <geometry>
+        <dimension>
+            <integer_value rank="0">3</integer_value>
+        </dimension>
+        <mesh name="CoordinateMesh">
+            <from_file file_name="src/mesh_template">
+                <format name="triangle"></format>
+                <dimension>
+                    <integer_value rank="0">2</integer_value>
+                </dimension>
+                <stat>
+                    <include_in_stat></include_in_stat>
+                </stat>
+            </from_file>
+        </mesh>
+        <mesh name="VelocityMesh">
+            <from_mesh>
+                <mesh name="PeriodicMesh"></mesh>
+                <stat>
+                    <exclude_from_stat></exclude_from_stat>
+                </stat>
+                <mesh_shape>
+                    <element_type>
+                        <string_value>discontinuous lagrangian</string_value>
+                    </element_type>
+                </mesh_shape>
+            </from_mesh>
+        </mesh>
+        <mesh name="PressureMesh">
+            <from_mesh>
+                <mesh name="PeriodicMesh"></mesh>
+                <mesh_shape>
+                    <polynomial_degree>
+                        <integer_value rank="0">2</integer_value>
+                    </polynomial_degree>
+                </mesh_shape>
+                <stat>
+                    <exclude_from_stat></exclude_from_stat>
+                </stat>
+            </from_mesh>
+        </mesh>
+        <mesh name="PeriodicMesh">
+            <from_mesh>
+                <mesh name="CoordinateMesh"></mesh>
+                <periodic_boundary_conditions name="periodic_x">
+                    <physical_boundary_ids>
+                        <integer_value rank="1" shape="1">10</integer_value>
+                    </physical_boundary_ids>
+                    <aliased_boundary_ids>
+                        <integer_value rank="1" shape="1">8</integer_value>
+                    </aliased_boundary_ids>
+                    <coordinate_map>
+                        <string_value lines="20" type="code" language="python">def val(X,t):&#x0A;  result = list(X)&#x0A;  result[0]=result[0]-1.0&#x0A;  return result</string_value>
+                    </coordinate_map>
+                </periodic_boundary_conditions>
+                <periodic_boundary_conditions name="periodic_y">
+                    <physical_boundary_ids>
+                        <integer_value rank="1" shape="1">7</integer_value>
+                    </physical_boundary_ids>
+                    <aliased_boundary_ids>
+                        <integer_value rank="1" shape="1">9</integer_value>
+                    </aliased_boundary_ids>
+                    <coordinate_map>
+                        <string_value lines="20" type="code" language="python">def val(X,t):&#x0A;  result = list(X)&#x0A;  result[1]=result[1]-1.0&#x0A;  return result</string_value>
+                    </coordinate_map>
+                </periodic_boundary_conditions>
+                <stat>
+                    <exclude_from_stat></exclude_from_stat>
+                </stat>
+            </from_mesh>
+        </mesh>
+        <quadrature>
+            <degree>
+                <integer_value rank="0">4</integer_value>
+            </degree>
+        </quadrature>
+    </geometry>
+    <io>
+        <dump_format>
+            <string_value>vtk</string_value>
+        </dump_format>
+        <dump_period_in_timesteps>
+            <constant>
+                <integer_value rank="0">1</integer_value>
+            </constant>
+        </dump_period_in_timesteps>
+        <output_mesh name="CoordinateMesh"></output_mesh>
+    </io>
+    <timestepping>
+        <current_time>
+            <real_value rank="0">0</real_value>
+        </current_time>
+        <timestep>
+            <real_value rank="0">0.5</real_value>
+        </timestep>
+        <nonlinear_iterations>
+            <integer_value rank="0">1</integer_value>
+        </nonlinear_iterations>
+        <finish_time>
+            <real_value rank="0">2</real_value>
+        </finish_time>
+    </timestepping>
+    <physical_parameters>
+        <gravity>
+            <magnitude>
+                <real_value rank="0">0.8</real_value>
+            </magnitude>
+            <vector_field name="GravityDirection" rank="1">
+                <prescribed>
+                    <mesh name="CoordinateMesh"></mesh>
+                    <value name="WholeMesh">
+                        <constant>
+                            <real_value rank="1" shape="3" dim1="dim">0 0 -1</real_value>
+                        </constant>
+                    </value>
+                    <output></output>
+                    <stat>
+                        <include_in_stat></include_in_stat>
+                    </stat>
+                    <detectors>
+                        <exclude_from_detectors></exclude_from_detectors>
+                    </detectors>
+                    <adjoint_storage>
+                        <exists_in_forward></exists_in_forward>
+                    </adjoint_storage>
+                </prescribed>
+            </vector_field>
+        </gravity>
+        <coriolis>
+            <string_value lines="20" type="code" language="python">def val(X,t):&#x0A;  return 1.0</string_value>
+        </coriolis>
+    </physical_parameters>
+    <material_phase name="Fluid">
+        <vector_field name="Velocity" rank="1">
+            <prognostic>
+                <mesh name="VelocityMesh"></mesh>
+                <equation name="ShallowWater"></equation>
+                <spatial_discretisation>
+                    <discontinuous_galerkin>
+                        <advection_scheme>
+                            <none></none>
+                        </advection_scheme>
+                    </discontinuous_galerkin>
+                    <conservative_advection>
+                        <real_value rank="0">0</real_value>
+                    </conservative_advection>
+                </spatial_discretisation>
+                <solver>
+                    <iterative_method name="preonly"></iterative_method>
+                    <preconditioner name="lu">
+                        <factorization_package name="petsc"></factorization_package>
+                    </preconditioner>
+                    <relative_error>
+                        <real_value rank="0">1e-12</real_value>
+                    </relative_error>
+                    <max_iterations>
+                        <integer_value rank="0">500</integer_value>
+                    </max_iterations>
+                    <never_ignore_solver_failures></never_ignore_solver_failures>
+                    <diagnostics>
+                        <monitors></monitors>
+                    </diagnostics>
+                </solver>
+                <initial_condition name="WholeMesh">
+                    <python>
+                        <string_value lines="20" type="code" language="python">def val(X, t):&#x0A;  import constants_func_eval_2d&#x0A;  return constants_func_eval_2d.u_exact(X, t)</string_value>
+                    </python>
+                </initial_condition>
+                <vector_field name="Source" rank="1">
+                    <prescribed>
+                        <value name="WholeMesh">
+                            <python>
+                                <string_value lines="20" type="code" language="python">def val(X, t):&#x0A;  import constants_func_eval_2d&#x0A;  return constants_func_eval_2d.u_src(X, t)</string_value>
+                            </python>
+                        </value>
+                        <output></output>
+                        <stat>
+                            <include_in_stat></include_in_stat>
+                        </stat>
+                        <detectors>
+                            <exclude_from_detectors></exclude_from_detectors>
+                        </detectors>
+                        <adjoint_storage>
+                            <exists_in_forward></exists_in_forward>
+                        </adjoint_storage>
+                    </prescribed>
+                </vector_field>
+                <output></output>
+                <stat>
+                    <include_in_stat></include_in_stat>
+                    <previous_time_step>
+                        <exclude_from_stat></exclude_from_stat>
+                    </previous_time_step>
+                    <nonlinear_field>
+                        <exclude_from_stat></exclude_from_stat>
+                    </nonlinear_field>
+                </stat>
+                <convergence>
+                    <include_in_convergence></include_in_convergence>
+                </convergence>
+                <detectors>
+                    <include_in_detectors></include_in_detectors>
+                </detectors>
+                <steady_state>
+                    <include_in_steady_state></include_in_steady_state>
+                </steady_state>
+                <consistent_interpolation></consistent_interpolation>
+            </prognostic>
+        </vector_field>
+        <scalar_field name="LayerThickness" rank="0">
+            <prognostic>
+                <mesh name="PressureMesh"></mesh>
+                <spatial_discretisation>
+                    <continuous_galerkin>
+                        <advection_terms>
+                            <exclude_advection_terms></exclude_advection_terms>
+                        </advection_terms>
+                    </continuous_galerkin>
+                    <conservative_advection>
+                        <real_value rank="0">0</real_value>
+                    </conservative_advection>
+                </spatial_discretisation>
+                <temporal_discretisation>
+                    <theta>
+                        <real_value rank="0">0.5</real_value>
+                    </theta>
+                    <relaxation>
+                        <real_value rank="0">1</real_value>
+                    </relaxation>
+                </temporal_discretisation>
+                <solver>
+                    <iterative_method name="preonly"></iterative_method>
+                    <preconditioner name="lu">
+                        <factorization_package name="petsc"></factorization_package>
+                    </preconditioner>
+                    <relative_error>
+                        <real_value rank="0">1e-12</real_value>
+                    </relative_error>
+                    <max_iterations>
+                        <integer_value rank="0">500</integer_value>
+                    </max_iterations>
+                    <never_ignore_solver_failures></never_ignore_solver_failures>
+                    <cache_solver_context></cache_solver_context>
+                    <diagnostics>
+                        <monitors></monitors>
+                    </diagnostics>
+                </solver>
+                <initial_condition name="WholeMesh">
+                    <python>
+                        <string_value lines="20" type="code" language="python">def val(X, t):&#x0A;  import constants_func_eval_2d&#x0A;  return constants_func_eval_2d.eta_exact(X, t)</string_value>
+                    </python>
+                </initial_condition>
+                <mean_layer_thickness>
+                    <real_value rank="0">0.9</real_value>
+                </mean_layer_thickness>
+                <scalar_field name="Source">
+                    <prescribed>
+                        <value name="WholeMesh">
+                            <python>
+                                <string_value lines="20" type="code" language="python">def val(X, t):&#x0A;  import constants_func_eval_2d&#x0A;  return constants_func_eval_2d.eta_src(X, t)</string_value>
+                            </python>
+                        </value>
+                        <output></output>
+                        <stat></stat>
+                        <detectors>
+                            <exclude_from_detectors></exclude_from_detectors>
+                        </detectors>
+                        <adjoint_storage>
+                            <exists_in_forward></exists_in_forward>
+                        </adjoint_storage>
+                    </prescribed>
+                </scalar_field>
+                <output></output>
+                <stat></stat>
+                <consistent_interpolation></consistent_interpolation>
+            </prognostic>
+        </scalar_field>
+        <scalar_field name="AnalyticalLayerThickness" rank="0">
+            <prescribed>
+                <mesh name="PressureMesh"></mesh>
+                <value name="WholeMesh">
+                    <python>
+                        <string_value lines="20" type="code" language="python">def val(X,t):&#x0A; import constants_func_eval_2d&#x0A; return constants_func_eval_2d.eta_exact(X, t)</string_value>
+                    </python>
+                </value>
+                <output></output>
+                <stat></stat>
+                <detectors>
+                    <exclude_from_detectors></exclude_from_detectors>
+                </detectors>
+                <adjoint_storage>
+                    <exists_in_forward></exists_in_forward>
+                </adjoint_storage>
+            </prescribed>
+        </scalar_field>
+        <scalar_field name="LayerThicknessError" rank="0">
+            <diagnostic>
+                <algorithm name="scalar_difference" source_field_2_type="scalar" source_field_1_name="LayerThickness" source_field_2_name="AnalyticalLayerThickness" material_phase_support="single" source_field_1_type="scalar">
+                    <absolute_difference></absolute_difference>
+                </algorithm>
+                <mesh name="PressureMesh"></mesh>
+                <output></output>
+                <stat></stat>
+                <convergence>
+                    <include_in_convergence></include_in_convergence>
+                </convergence>
+                <detectors>
+                    <include_in_detectors></include_in_detectors>
+                </detectors>
+                <steady_state>
+                    <include_in_steady_state></include_in_steady_state>
+                </steady_state>
+                <adjoint_storage>
+                    <exists_in_forward></exists_in_forward>
+                </adjoint_storage>
+            </diagnostic>
+        </scalar_field>
+        <scalar_field name="LayerThicknessSource" rank="0">
+            <diagnostic>
+                <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+                    <string_value lines="20" type="code" language="python">import constants_func_eval_2d&#x0A;import numpy, numpy.linalg &#x0A;&#x0A;coord  = state.vector_fields[&quot;Coordinate&quot;]&#x0A;eta_mesh = state.meshes[&quot;PressureMesh&quot;]&#x0A;u_mesh = state.meshes[&quot;VelocityMesh&quot;]&#x0A;coriolis = state.scalar_fields[&quot;Coriolis&quot;]&#x0A;gravity = state.vector_fields[&quot;GravityDirection&quot;]&#x0A;timeprime = time + constants_func_eval_2d.theta*dt&#x0A;&#x0A;field.val[:] = 0.0&#x0A;&#x0A;for ele in range(coord.ele_count):&#x0A;  t = Transform(ele, coord)&#x0A;  shape = field.ele_shape(ele)&#x0A;  eta_mass = t.shape_shape(shape, shape)&#x0A;  u_shape = u_mesh.shape&#x0A;  u_mass = t.shape_shape(u_shape, u_shape)&#x0A;&#x0A;  l_mat = t.shape_shape(u_shape, u_shape, coeff=coriolis.ele_val_at_quad(ele))&#x0A;  &#x0A;  if time == 0.0:&#x0A;    source = numpy.dot(eta_mass, [constants_func_eval_2d.eta_exact(x, 0.0) for x in coord.remap_ele(ele, field.mesh)])&#x0A;  else:&#x0A;    # First, the eta source term contribution&#x0A;    source = numpy.dot(eta_mass, [constants_func_eval_2d.eta_src(x, timeprime)*abs(dt) for x in coord.remap_ele(ele, field.mesh)])&#x0A;    &#x0A;    xdim = 3&#x0A;    loc = u_mass.shape[0]&#x0A;    big_mat = numpy.zeros((xdim * loc, xdim * loc))&#x0A;    for i in range(xdim):&#x0A;      big_mat[i*loc : (i+1)*loc, i*loc : (i+1)*loc] = u_mass&#x0A;    # now add in the coriolis term; here we&apos;ve hardcoded what we know about the up direction&#x0A;    big_mat[0:loc, loc:2*loc] = -1 * l_mat&#x0A;    big_mat[loc:2*loc, 0:loc] = +1 * l_mat&#x0A;    &#x0A;    # Now, the u source term contribution&#x0A;    Mu_src = numpy.dot(u_mass, [constants_func_eval_2d.u_src(x, timeprime) for x in coord.remap_ele(ele, u_mesh)])&#x0A;    reshaped_Mu_src = numpy.zeros(loc*xdim)&#x0A;    assert(Mu_src.shape[1] == xdim)&#x0A;    for i in range(Mu_src.shape[1]):&#x0A;       reshaped_Mu_src[i*loc:(i+1)*loc] = Mu_src[:,i]&#x0A;    &#x0A;    Linv_Mu_src = numpy.dot(numpy.linalg.inv(big_mat), reshaped_Mu_src)&#x0A;&#x0A;    reshaped_Linv_src = numpy.zeros((loc, xdim))&#x0A;    assert(Mu_src.shape[1] == xdim)&#x0A;    for i in range(xdim):&#x0A;      reshaped_Linv_src[:,i] = Linv_Mu_src[i*loc:(i+1)*loc]&#x0A;&#x0A;    u_dshape = t.grad(u_mesh.shape)&#x0A;    cT = t.shape_dshape(shape, u_dshape)&#x0A;    for dim in range(cT.shape[2]):&#x0A;      source += numpy.dot(cT[:,:,dim], reshaped_Linv_src[:,dim]) * (dt**2 * constants_func_eval_2d.d0 * constants_func_eval_2d.theta)&#x0A;  field.addto(field.ele_nodes(ele), source)</string_value>
+                </algorithm>
+                <mesh name="PressureMesh"></mesh>
+                <output></output>
+                <stat></stat>
+                <convergence>
+                    <include_in_convergence></include_in_convergence>
+                </convergence>
+                <detectors>
+                    <include_in_detectors></include_in_detectors>
+                </detectors>
+                <steady_state>
+                    <include_in_steady_state></include_in_steady_state>
+                </steady_state>
+                <adjoint_storage>
+                    <exists_in_adjoint></exists_in_adjoint>
+                </adjoint_storage>
+            </diagnostic>
+        </scalar_field>
+        <scalar_field name="adj_J" rank="0">
+            <diagnostic>
+                <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+                    <string_value lines="20" type="code" language="python">import fluidity.state_types&#x0A;import numpy&#x0A;&#x0A;eta_src = state.scalar_fields[&quot;LayerThicknessSource&quot;]&#x0A;u_src = state.vector_fields[&quot;VelocitySource&quot;]&#x0A;&#x0A;if time == 0.0:&#x0A;  adj_eta = state.scalar_fields[&quot;AdjointLayerThickness&quot;]&#x0A;  adj_u = state.vector_fields[&quot;AdjointVelocity&quot;]&#x0A;  J = numpy.dot(adj_eta.val, eta_src.val) &#x0A;  for dim in range(adj_u.dimension):&#x0A;    J = J + numpy.dot([component[dim] for component in adj_u.val], [component[dim] for component in u_src.val])&#x0A;else:&#x0A;  adj_eta_delta = state.scalar_fields[&quot;AdjointLayerThicknessDelta&quot;]&#x0A;  adj_u_delta = state.vector_fields[&quot;AdjointLocalVelocityDelta&quot;]&#x0A;  J = numpy.dot(adj_eta_delta.val, eta_src.val) &#x0A;  if u_src.val.any() != 0.0:&#x0A;     print &quot;Error: The -1.0* trick for the velocity source term does not work in 2d. If you need it, you will have to implement the manifold projection in python!&quot; &#x0A;  #J = J + numpy.dot([-1.0*component[0] for component in adj_u_delta.val], [component[0] for component in u_src.val]) &#x0A;    &#x0A;field.val[:] = J</string_value>
+                    <depends>
+                        <string_value lines="1">LayerThicknessSource,VelocitySource</string_value>
+                    </depends>
+                </algorithm>
+                <mesh name="VelocityMesh"></mesh>
+                <output></output>
+                <stat></stat>
+                <convergence>
+                    <include_in_convergence></include_in_convergence>
+                </convergence>
+                <detectors>
+                    <include_in_detectors></include_in_detectors>
+                </detectors>
+                <steady_state>
+                    <include_in_steady_state></include_in_steady_state>
+                </steady_state>
+                <adjoint_storage>
+                    <exists_in_adjoint></exists_in_adjoint>
+                </adjoint_storage>
+            </diagnostic>
+        </scalar_field>
+        <scalar_field name="J" rank="0">
+            <diagnostic>
+                <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+                    <string_value lines="20" type="code" language="python">import fluidity.state_types&#x0A;import numpy&#x0A;&#x0A;coord = state.vector_fields[&quot;Coordinate&quot;]&#x0A;eta = state.scalar_fields[&quot;LayerThickness&quot;]&#x0A;u = state.vector_fields[&quot;Velocity&quot;]&#x0A;functional_vector_eta = state.scalar_fields[&quot;FunctionalVectorEta&quot;]&#x0A;functional_vector_u = state.vector_fields[&quot;FunctionalVectorVelocity&quot;]&#x0A;J = numpy.dot(functional_vector_eta.val, eta.val)&#x0A;for dim in range(u.dimension):&#x0A;  J = J + numpy.dot([component[dim] for component in functional_vector_u.val], [component[dim] for component in u.val])&#x0A;&#x0A;field.val[:] = J</string_value>
+                    <depends>
+                        <string_value lines="1">VelocitySource,LayerThicknessSource,FunctionalVectorVelocity,FunctionalVectorEta</string_value>
+                    </depends>
+                </algorithm>
+                <mesh name="VelocityMesh"></mesh>
+                <output></output>
+                <stat></stat>
+                <convergence>
+                    <include_in_convergence></include_in_convergence>
+                </convergence>
+                <detectors>
+                    <include_in_detectors></include_in_detectors>
+                </detectors>
+                <steady_state>
+                    <include_in_steady_state></include_in_steady_state>
+                </steady_state>
+                <adjoint_storage>
+                    <exists_in_forward></exists_in_forward>
+                </adjoint_storage>
+            </diagnostic>
+        </scalar_field>
+        <scalar_field name="FunctionalVectorEta" rank="0">
+            <diagnostic>
+                <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+                    <string_value lines="20" type="code" language="python">import constants_func_eval_2d&#x0A;import numpy&#x0A;coord = state.vector_fields[&quot;Coordinate&quot;]&#x0A;field.val[:] = 0.0&#x0A;&#x0A;for ele in range(field.element_count):&#x0A;  t = Transform(ele, coord)&#x0A;  newfield = [constants_func_eval_2d.functional_vector_eta(x, time) for x in coord.remap_ele(ele, field.mesh)]&#x0A;  mass = t.shape_shape(field.ele_shape(ele), field.ele_shape(ele))&#x0A;  field.addto(field.ele_nodes(ele), numpy.dot(mass, newfield))</string_value>
+                </algorithm>
+                <mesh name="PressureMesh"></mesh>
+                <output></output>
+                <stat></stat>
+                <convergence>
+                    <include_in_convergence></include_in_convergence>
+                </convergence>
+                <detectors>
+                    <include_in_detectors></include_in_detectors>
+                </detectors>
+                <steady_state>
+                    <include_in_steady_state></include_in_steady_state>
+                </steady_state>
+                <adjoint_storage>
+                    <exists_in_both></exists_in_both>
+                </adjoint_storage>
+            </diagnostic>
+        </scalar_field>
+        <vector_field name="AnalyticalVelocity" rank="1">
+            <prescribed>
+                <mesh name="VelocityMesh"></mesh>
+                <value name="WholeMesh">
+                    <python>
+                        <string_value lines="20" type="code" language="python">def val(X,t):&#x0A; import constants_func_eval_2d&#x0A; return constants_func_eval_2d.u_exact(X, t)</string_value>
+                    </python>
+                </value>
+                <output></output>
+                <stat>
+                    <include_in_stat></include_in_stat>
+                </stat>
+                <detectors>
+                    <exclude_from_detectors></exclude_from_detectors>
+                </detectors>
+                <adjoint_storage>
+                    <exists_in_forward></exists_in_forward>
+                </adjoint_storage>
+            </prescribed>
+        </vector_field>
+        <vector_field name="VelocityError" rank="1">
+            <diagnostic>
+                <algorithm name="vector_difference" source_field_2_type="vector" source_field_1_name="Velocity" source_field_2_name="AnalyticalVelocity" material_phase_support="single" source_field_1_type="vector">
+                    <absolute_difference></absolute_difference>
+                </algorithm>
+                <mesh name="VelocityMesh"></mesh>
+                <output></output>
+                <stat>
+                    <include_in_stat></include_in_stat>
+                </stat>
+                <convergence>
+                    <include_in_convergence></include_in_convergence>
+                </convergence>
+                <detectors>
+                    <include_in_detectors></include_in_detectors>
+                </detectors>
+                <steady_state>
+                    <include_in_steady_state></include_in_steady_state>
+                </steady_state>
+                <adjoint_storage>
+                    <exists_in_forward></exists_in_forward>
+                </adjoint_storage>
+            </diagnostic>
+        </vector_field>
+        <vector_field name="VelocitySource" rank="1">
+            <diagnostic>
+                <algorithm name="vector_python_diagnostic" material_phase_support="single">
+                    <string_value lines="20" type="code" language="python">import constants_func_eval_2d&#x0A;import numpy, numpy.linalg&#x0A;&#x0A;coord  = state.vector_fields[&quot;Coordinate&quot;]&#x0A;u_mesh = state.meshes[&quot;VelocityMesh&quot;]&#x0A;timeprime = time + constants_func_eval_2d.theta*dt&#x0A;&#x0A;field.val[:] = 0.0&#x0A;&#x0A;for ele in range(coord.ele_count):&#x0A;  t = Transform(ele, coord)&#x0A;  u_shape = u_mesh.shape&#x0A;  u_mass = t.shape_shape(u_shape, u_shape)&#x0A;&#x0A;  if time == 0.0:&#x0A;    source = numpy.dot(u_mass, [constants_func_eval_2d.u_exact(x, 0.0) for x in coord.remap_ele(ele, field.mesh)])&#x0A;  else:&#x0A;    # Add the u source term contribution&#x0A;    source = numpy.dot(u_mass, [constants_func_eval_2d.u_src(x, timeprime)*abs(dt) for x in coord.remap_ele(ele, field.mesh)])&#x0A;    #print &quot;Final u_src: &quot;, source&#x0A;  field.addto(field.ele_nodes(ele), source)</string_value>
+                </algorithm>
+                <mesh name="VelocityMesh"></mesh>
+                <output></output>
+                <stat>
+                    <include_in_stat></include_in_stat>
+                </stat>
+                <convergence>
+                    <include_in_convergence></include_in_convergence>
+                </convergence>
+                <detectors>
+                    <include_in_detectors></include_in_detectors>
+                </detectors>
+                <steady_state>
+                    <include_in_steady_state></include_in_steady_state>
+                </steady_state>
+                <adjoint_storage>
+                    <exists_in_adjoint></exists_in_adjoint>
+                </adjoint_storage>
+            </diagnostic>
+        </vector_field>
+        <vector_field name="FunctionalVectorVelocity" rank="1">
+            <prescribed>
+                <mesh name="VelocityMesh"></mesh>
+                <value name="WholeMesh">
+                    <python>
+                        <string_value lines="20" type="code" language="python">def val(X, t):&#x0A;  import constants_func_eval_2d&#x0A;  return constants_func_eval_2d.functional_vector_u(X,t)</string_value>
+                    </python>
+                </value>
+                <output></output>
+                <stat>
+                    <include_in_stat></include_in_stat>
+                </stat>
+                <detectors>
+                    <exclude_from_detectors></exclude_from_detectors>
+                </detectors>
+                <adjoint_storage>
+                    <exists_in_both></exists_in_both>
+                </adjoint_storage>
+            </prescribed>
+        </vector_field>
+    </material_phase>
+    <adjoint>
+        <functional name="integral_eta_t1">
+            <functional_derivative>
+                <algorithm name="functional_derivative">
+                    <string_value lines="20" type="code" language="python">import numpy&#x0A;derivative.val[:] = 0.0&#x0A;if derivative.name == &quot;Fluid::LayerThickness&quot;:&#x0A;  functional_vector = states[n][&quot;Fluid&quot;].scalar_fields[&quot;FunctionalVectorEta&quot;]&#x0A;  assert(len(derivative.val[:]) == len(functional_vector.val[:]))&#x0A;  derivative.val[:] = functional_vector.val[:]&#x0A;elif derivative.name == &quot;Fluid::Velocity&quot;:&#x0A;  functional_vector = states[n][&quot;Fluid&quot;].vector_fields[&quot;FunctionalVectorVelocity&quot;]&#x0A;  assert(len(derivative.val[:]) == len(functional_vector.val[:]))&#x0A;  derivative.val[:] = functional_vector.val[:]</string_value>
+                </algorithm>
+            </functional_derivative>
+            <functional_dependencies>
+                <algorithm name="functional_dependencies">
+                    <string_value lines="20" type="code" language="python">def dependencies(times, timestep):&#x0A;  return { &quot;Fluid::LayerThickness&quot;: [timestep], &quot;Fluid::FunctionalVectorEta&quot;: [timestep], &quot;Fluid::Velocity&quot;: [timestep], &quot;Fluid::FunctionalVectorVelocity&quot;: [timestep]}</string_value>
+                </algorithm>
+            </functional_dependencies>
+        </functional>
+        <debug>
+            <check_action_transposes></check_action_transposes>
+        </debug>
+    </adjoint>
+</shallow_water_options>

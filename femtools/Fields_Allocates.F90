@@ -30,32 +30,34 @@ use elements
 use fields_data_types
 use fields_base
 use shape_functions, only: make_element_shape
-use global_parameters, only: PYTHON_FUNC_LEN, empty_path, empty_name
+use global_parameters, only: PYTHON_FUNC_LEN, empty_path, empty_name, &
+     topology_mesh_name, NUM_COLOURINGS
 use halo_data_types
 use halos_allocates
 use halos_repair
 use pickers_deallocates
 use adjacency_lists
-use global_numbering, only: make_global_numbering, make_global_numbering_dg,&
-     &make_global_numbering_trace
+use global_numbering
 use memory_diagnostics
 use ieee_arithmetic
 use data_structures
 use parallel_tools
+use python_utils
 
 implicit none
 
   private
   
   public :: allocate, deallocate, incref, decref, has_references, add_faces, &
-    & deallocate_faces
+    & deallocate_faces, zero
   public :: make_element_shape, make_mesh, make_mesh_periodic, make_submesh, &
-    & create_surface_mesh, make_fake_mesh_linearnonconforming
+    & create_surface_mesh
   public :: extract_scalar_field, wrap_mesh, wrap_scalar_field, &
     & wrap_tensor_field
   public :: add_lists, extract_lists, add_nnlist, extract_nnlist, add_nelist, &
     & extract_nelist, add_eelist, extract_eelist, remove_lists, remove_nnlist, &
-    & remove_nelist, remove_eelist, extract_elements, remove_boundary_conditions
+    & remove_nelist, remove_eelist, extract_elements, remove_boundary_conditions, &
+    refresh_topology
 
   interface allocate
      module procedure allocate_scalar_field, allocate_vector_field,&
@@ -69,6 +71,11 @@ implicit none
           & deallocate_vector_field, deallocate_tensor_field, &
           & deallocate_scalar_boundary_condition, &
           & deallocate_vector_boundary_condition
+  end interface
+
+  interface zero
+     module procedure zero_scalar, zero_vector, zero_tensor, &
+          zero_vector_dim, zero_tensor_dim_dim
   end interface
 
   interface deallocate_faces
@@ -135,7 +142,7 @@ implicit none
     module procedure remove_boundary_conditions_scalar, &
       remove_boundary_conditions_vector
   end interface remove_boundary_conditions
-  
+
 #include "Reference_count_interface_mesh_type.F90"
 #include "Reference_count_interface_scalar_field.F90"
 #include "Reference_count_interface_vector_field.F90"
@@ -148,7 +155,8 @@ contains
     integer, intent(in) :: nodes, elements
     type(element_type), target, intent(in) :: shape
     character(len=*), intent(in), optional :: name
-        
+    integer :: i, j
+    
     mesh%nodes=nodes
 
     mesh%elements=elements
@@ -168,11 +176,28 @@ contains
     nullify(mesh%faces)
     nullify(mesh%columns)
     nullify(mesh%element_columns)
-    
-    allocate(mesh%ndglno(elements*shape%loc))
+
+    allocate(mesh%colourings(NUM_COLOURINGS))
+    do i = 1, NUM_COLOURINGS
+       nullify(mesh%colourings(i)%sets)
+    end do
+    allocate(mesh%ndglno(elements*shape%ndof))
+
+    allocate(mesh%topology)
+    mesh%topology%topology => mesh%topology
+#ifdef _OPENMP
+    ! Use first touch policy.
+    !$OMP PARALLEL DO SCHEDULE(STATIC)
+    do i=1, mesh%elements
+       do j=1, shape%loc
+          mesh%ndglno((i-1)*shape%loc+j)=0
+       end do
+    end do
+    !$OMP END PARALLEL DO
+#endif
 
 #ifdef HAVE_MEMORY_STATS
-    call register_allocation("mesh_type", "integer", elements*shape%loc,&
+    call register_allocation("mesh_type", "integer", elements*shape%ndof,&
          & name=mesh%name)
 #endif
 
@@ -183,8 +208,13 @@ contains
     nullify(mesh%refcount) ! Hack for gfortran component initialisation
     !                         bug.
     mesh%periodic=.false.
-    
+
     call addref(mesh)
+    ! Meshes default to being topology meshes.  Caller should fix this
+    ! up later if this is not correct.
+    ! This can't use refresh_topology because the topology doesn't
+    ! point anywhere yet.
+    mesh%topology=mesh
 
   end subroutine allocate_mesh
 
@@ -261,7 +291,7 @@ contains
         field%py_positions_same_mesh = .true.
       else
         field%py_positions_same_mesh = .false.
-        allocate(field%py_locweight(mesh%shape%loc, py_positions%mesh%shape%loc))
+        allocate(field%py_locweight(mesh%shape%ndof, py_positions%mesh%shape%ndof))
         do toloc=1,size(field%py_locweight,1)
           do fromloc=1,size(field%py_locweight,2)
             field%py_locweight(toloc,fromloc)=eval_shape(py_positions%mesh%shape, fromloc, &
@@ -280,6 +310,8 @@ contains
     nullify(field%refcount) ! Hacks for gfortran component initialisation
     !                         bug.
     call addref(field)
+
+    call zero(field)
     
   end subroutine allocate_scalar_field
 
@@ -337,6 +369,8 @@ contains
     allocate(field%picker)
     
     call addref(field)
+
+    call zero(field)
 
   end subroutine allocate_vector_field
 
@@ -396,6 +430,8 @@ contains
     !                         bug.
     call addref(field)
 
+    call zero(field)
+
   end subroutine allocate_tensor_field
   
   subroutine deallocate_subdomain_mesh(mesh)
@@ -429,6 +465,12 @@ contains
          name=mesh%name)
 #endif
     deallocate(mesh%faces%face_element_list)
+#ifdef HAVE_MEMORY_STATS
+    call register_deallocation("mesh_type", "integer", &
+         size(mesh%faces%local_face_number), &
+         name=mesh%name)
+#endif
+    deallocate(mesh%faces%local_face_number)
 
     call deallocate(mesh%faces%shape%quadrature)
     call deallocate(mesh%faces%shape)
@@ -466,12 +508,19 @@ contains
     !!< Deallocate the components of mesh. Shape functions are not
     !!< deallocated here.
     type(mesh_type), intent(inout) :: mesh
-    
+    integer :: i, uid
+      
+    ! Save the uid
+    uid = mesh%refcount%id
+
     call decref(mesh)
     if (has_references(mesh)) then
        ! There are still references to this mesh so we don't deallocate.
        return
     end if
+
+    call python_remove_from_cache("mesh", uid)
+
     call deallocate(mesh%shape)
     
     if (.not.mesh%wrapped) then
@@ -503,6 +552,11 @@ contains
 
     call deallocate_faces(mesh)
 
+    if (associated(mesh%topology)) then
+       deallocate(mesh%topology)
+       nullify(mesh%topology)
+    end if
+
     if(associated(mesh%subdomain_mesh)) then
        call deallocate_subdomain_mesh(mesh)
     end if
@@ -514,7 +568,16 @@ contains
     if(associated(mesh%element_columns)) then
       deallocate(mesh%element_columns)
     end if
-    
+
+    if(associated(mesh%colourings)) then
+       do i = 1, NUM_COLOURINGS
+          if(associated(mesh%colourings(i)%sets)) then
+             call deallocate(mesh%colourings(i)%sets)
+             deallocate(mesh%colourings(i)%sets)
+          end if
+       end do
+       deallocate(mesh%colourings)
+    end if
   end subroutine deallocate_mesh
 
   recursive subroutine deallocate_scalar_field(field)
@@ -522,12 +585,19 @@ contains
     !!< is called on the mesh which will delete one reference to it and
     !!< deallocate it if the count drops to zero.
     type(scalar_field), intent(inout) :: field
+
+    integer uid
       
+    ! Save the uid
+    uid = field%refcount%id
+
     call decref(field)
     if (has_references(field)) then
        ! There are still references to this field so we don't deallocate.
        return
     end if
+
+    call python_remove_from_cache("scalar_field", uid)
 
     select case(field%field_type)
     case(FIELD_TYPE_NORMAL)
@@ -590,11 +660,18 @@ contains
     !!< deallocate it if the count drops to zero.
     type(vector_field), intent(inout) :: field
     
+    integer uid
+      
+    ! Save the uid
+    uid = field%refcount%id
+
     call decref(field)
     if (has_references(field)) then
        ! There are still references to this field so we don't deallocate.
        return
     end if
+
+    call python_remove_from_cache("vector_field", uid)
 
     if (.not.field%wrapped) then
       select case(field%field_type)
@@ -645,11 +722,18 @@ contains
     !!< deallocate it if the count drops to zero.
     type(tensor_field), intent(inout) :: field
     
+    integer uid
+      
+    ! Save the uid
+    uid = field%refcount%id
+
     call decref(field)
     if (has_references(field)) then
        ! There are still references to this field so we don't deallocate.
        return
     end if
+
+    call python_remove_from_cache("tensor_field", uid)
 
     if (.not.field%wrapped) then
       select case(field%field_type)
@@ -792,7 +876,7 @@ contains
 
     mesh%name=name
     
-    mesh%elements=size(ndglno)/shape%loc
+    mesh%elements=size(ndglno)/shape%ndof
 
     allocate(mesh%adj_lists)
     mesh%wrapped=.true.
@@ -860,48 +944,63 @@ contains
 
   end function wrap_tensor_field
 
-  function make_mesh (model, shape, continuity, name) &
+  function make_mesh (model, shape, continuity, name, with_faces) &
        result (mesh)
     !!< Produce a mesh based on an old mesh but with a different shape and/or continuity.
     type(mesh_type) :: mesh
 
-    type(mesh_type), intent(in) :: model
+    type(mesh_type), intent(in), target :: model
     type(element_type), target, intent(in), optional :: shape
     integer, intent(in), optional :: continuity
     character(len=*), intent(in), optional :: name
-    
+    logical, intent(in), optional :: with_faces
+
     integer, dimension(:), allocatable :: ndglno
     real, dimension(:), pointer :: val
-    integer :: i, input_nodes, n_faces
-
-    if (present(continuity)) then
-       mesh%continuity=continuity
-    else
-       mesh%continuity=model%continuity
-    end if
-
-    allocate(mesh%adj_lists)
-    mesh%elements=model%elements
-    mesh%periodic=model%periodic
-    mesh%wrapped=.false.
+    integer :: i, j, input_nodes, n_faces
+    type(element_type), pointer :: inshape
+    type(element_type) :: lshape
 
     if (present(shape)) then
-       mesh%shape=shape
+       inshape=>shape
     else
-       mesh%shape=model%shape
+       inshape=>model%shape
     end if
-    call incref(mesh%shape)
+    
+    if (present(continuity)) then
+       if (continuity<0.and.inshape%type==ELEMENT_LAGRANGIAN) then
+          lshape = make_element_shape(inshape, type=ELEMENT_DISCONTINUOUS_LAGRANGIAN)
+       else
+          lshape=inshape
+          call incref(lshape)
+       end if
+    else
+       lshape=inshape
+       call incref(lshape)
+    end if
 
+    call allocate_mesh(mesh, &
+         nodes=0, & ! We'll fix this later.
+         elements=model%elements, &
+         shape=lshape, &
+         name=name)
+
+    if (any(lshape%type==(/ELEMENT_TRACE, &
+         ELEMENT_DISCONTINUOUS_LAGRANGIAN/))) then
+       mesh%continuity=-1
+    else
+       mesh%continuity=0
+    end if
+
+    mesh%topology=mesh_topology(model)
+    mesh%uid=>model%uid
+
+    mesh%periodic=model%periodic
+   
     ! You can't have a CG degree 0 mesh!
     if(mesh%shape%degree==0.and.mesh%continuity>=0.and.mesh%shape&
          &%numbering%type/=ELEMENT_TRACE) then
       FLExit("For a P0 mesh, the 'mesh_continuity' must be Discontinuous.")
-    end if
-
-    if (present(name)) then
-       mesh%name=name
-    else
-       mesh%name=empty_name
     end if
 
     if (associated(model%region_ids)) then
@@ -909,89 +1008,21 @@ contains
        mesh%region_ids=model%region_ids
     end if
 
-    if (mesh%continuity>=0) then
-       ! Make a continuous field.
-       if (model%continuity<0) then
-          FLExit("Unable to derive a continuous mesh from a discontinuous mesh")
-       end if
+    mesh%element_classes = model%element_classes
+    call make_global_numbering_new(mesh)
 
-       allocate(ndglno(mesh%shape%numbering%vertices*model%elements), &
-            mesh%ndglno(mesh%shape%loc*model%elements))
-#ifdef HAVE_MEMORY_STATS
-       call register_allocation("mesh_type", "integer", &
-            size(mesh%ndglno), name=name)
-#endif
+    if (associated(model%element_halos)) then
+       assert(element_halo_count(model) > 0)
 
-       if(model%shape%degree==1 .or. ele_count(model) == 0) then
-          ndglno=model%ndglno
-          input_nodes = node_count(model)
-       else
-          ndglno=mesh_connectivity(model)
-          input_nodes = maxval(ndglno)
-       end if
-       
-       if (associated(model%halos)) then
-          assert(element_halo_count(model) > 0)
-          allocate(mesh%halos(size(model%halos)))
+       allocate(mesh%element_halos(size(model%element_halos)))
+       do i=1,size(mesh%element_halos)
+          mesh%element_halos(i)=model%element_halos(i)
+          call incref(mesh%element_halos(i))
+       end do
 
-          call make_global_numbering &
-               (mesh%nodes, mesh%ndglno, input_nodes, mesh%elements, &
-               ndglno, mesh%shape, model%halos, model%element_halos(1), &
-               mesh%halos)
-
-          allocate(mesh%element_halos(size(model%element_halos)))
-          do i=1,size(mesh%element_halos)
-             mesh%element_halos(i)=model%element_halos(i)
-             call incref(mesh%element_halos(i))
-          end do
-
-          do i=1,size(mesh%halos)
-             call reorder_halo_from_element_halo(mesh%halos(i), mesh&
-                  &%element_halos(1), mesh)
-          end do
-
-       else
-          
-          call make_global_numbering &
-               (mesh%nodes, mesh%ndglno, max(maxval(ndglno), 0), mesh%elements, &
-               ndglno, mesh%shape)
-       end if
-
-    else
-       !trace fields have continuity -1 but aren't like DG
-       if(mesh%shape%numbering%type/=ELEMENT_TRACE) then
-          ! Make a discontinuous field.
-          allocate(mesh%ndglno(mesh%shape%loc*model%elements))
-#ifdef HAVE_MEMORY_STATS
-          call register_allocation("mesh_type", "integer", &
-               size(mesh%ndglno), name=name)
-#endif
-          if (associated(model%halos)) then
-             assert(associated(model%element_halos))
-             allocate(mesh%halos(size(model%halos)))
-             
-             
-             call make_global_numbering_DG(mesh%nodes, mesh%ndglno, &
-                  mesh%elements, mesh%shape, model%element_halos, &
-                  mesh%halos)
-             
-             allocate(mesh%element_halos(size(model%element_halos)))
-             do i=1,size(mesh%element_halos)
-                mesh%element_halos(i)=model%element_halos(i)
-                call incref(mesh%element_halos(i))
-             end do
-             
-          else
-             
-             call make_global_numbering_DG(mesh%nodes, mesh%ndglno, &
-                  mesh%elements, mesh%shape)
-             
-          end if
-       end if
     end if
 
-    nullify(mesh%refcount) ! Hack for gfortran component initialisation
-    !                         bug.
+    call deallocate(lshape)
     
     ! Transfer the eelist from model to mesh
     assert(associated(model%adj_lists))
@@ -1002,29 +1033,11 @@ contains
       call incref(mesh%adj_lists%eelist)
     end if
     
-    if(has_faces(model)) then
+    call refresh_topology(mesh)
+
+    if(has_faces(model).and..not.present_and_false(with_faces)) then
       call add_faces(mesh, model)
     end if
-
-    if (mesh%shape%numbering%type==ELEMENT_TRACE) then
-       select case(mesh%shape%numbering%family)
-       case(FAMILY_SIMPLEX)          
-          n_faces = mesh%shape%dim + 1
-       case(FAMILY_CUBE)
-          n_faces = 2**mesh%shape%dim
-       case default
-          FLExit('Element family not supported for trace elements')
-       end select
-       allocate(mesh%ndglno(mesh%elements*n_faces*mesh%faces%shape%loc))
-       call make_global_numbering_trace(mesh)
-       call create_surface_mesh(mesh%faces%surface_mesh, &
-            mesh%faces%surface_node_list, mesh, name='Surface'//trim(mesh%name))
-#ifdef HAVE_MEMORY_STATS
-       call register_allocation("mesh_type", "integer", &
-            size(mesh%faces%surface_node_list), name='Surface'//trim(mesh%name))
-#endif
-    end if
-    call addref(mesh)
 
   end function make_mesh
 
@@ -1078,9 +1091,10 @@ contains
     type(element_type), pointer :: element
     type(quadrature_type) :: quad_face
     integer, dimension(:), pointer :: faces, neigh, model_ele_glno, model_ele_glno2
-    integer, dimension(1:mesh%shape%numbering%vertices) :: vertices, &
-         ele_boundary, ele_boundary2 ! these last two are actually smaller    
+    integer, dimension(1:mesh%shape%cell%entity_counts(0)) :: vertices, &
+         ele_facet, ele_facet2 ! these last two are actually smaller    
     integer :: face_count, ele, j, snloc, m, n, p, face2
+    integer, dimension(2) :: local_facet
 
     if (present(stat)) then
       stat = 0
@@ -1100,7 +1114,7 @@ contains
     end if
 
     allocate(mesh%faces)
-    
+    call refresh_topology(mesh)
     ! only created in the first call to get_dg_surface_mesh()
     mesh%faces%dg_surface_mesh => null()
 
@@ -1108,9 +1122,9 @@ contains
 
        ! create mesh%faces%face_list an integer csr matrix storing the
        !     face number between each (directed) pair of adjacent elements
-       !     note that this is an assymetric matrix A
-       !     where A_ij gives the boundary of element i facing element j
-       !       and A_ji the boundary of element j facing element i
+       !     note that this is an asymmetric matrix A
+       !     where A_ij gives the facet of element i facing element j
+       !       and A_ji the facet of element j facing element i
        !       (i.e. there are 2 opposite faces between two elements)
        ! and mesh%faces%face_element_list  storing the element adjacent to
        !     each face
@@ -1180,6 +1194,15 @@ contains
            trim(mesh%name)//" face_element_list.")
 #endif
 
+      ! local_face_number is a pure copy of that of the model
+      allocate( mesh%faces%local_face_number(1:size(model%faces%local_face_number)) )
+      mesh%faces%local_face_number=model%faces%local_face_number
+#ifdef HAVE_MEMORY_STATS
+      call register_allocation("mesh_type", "integer", &
+           size(mesh%faces%local_face_number), &
+           trim(mesh%name)//" local_face_number.")
+#endif
+
       ! boundary_ids is a pure copy of that of model
       allocate( mesh%faces%boundary_ids(1:size(model%faces%boundary_ids)) )
       mesh%faces%boundary_ids=model%faces%boundary_ids
@@ -1220,8 +1243,9 @@ contains
     mesh%faces%shape = make_element_shape(vertices=face_vertices(element), &
          & dim=mesh_dim(mesh)-1, degree=element%degree, quad=quad_face)
 
+!FIXME THIS IS COPIED FROM THE TRUNK AND IS ALMOST CERTAINLY NOW WRONG
     face_count=entries(mesh%faces%face_list)
-    snloc=mesh%faces%shape%loc
+    snloc=mesh%faces%shape%ndof
     allocate(mesh%faces%face_lno( face_count*snloc ))
 #ifdef HAVE_MEMORY_STATS
     call register_allocation("mesh_type", "integer", &
@@ -1250,8 +1274,8 @@ contains
                 do n=1,size(vertices)
                    if (model_ele_glno(vertices(m))==model_ele_glno2(vertices(n))) then
                       p=p+1
-                      ele_boundary(p)=m
-                      ele_boundary2(p)=n
+                      ele_facet(p)=m
+                      ele_facet2(p)=n
                    end if
                 end do
              end do
@@ -1262,19 +1286,21 @@ contains
              ! face, but in that case the next few lines are wrong as well)
 
              mesh%faces%face_lno((faces(j)-1)*snloc+1:faces(j)*snloc)= &
-                  boundary_local_num(ele_boundary(1:p), mesh%shape%numbering)
+                  sorted_facet(mesh%shape, j, ele_facet(1:p))
 
              face2=ival(mesh%faces%face_list, neigh(j), ele)
 
+             local_facet=vertices_entity(mesh%shape%cell,&
+                  & sorted(ele_facet2(1:p)))
+
              mesh%faces%face_lno((face2-1)*snloc+1:face2*snloc)= &
-                  boundary_local_num(ele_boundary2(1:p), mesh%shape%numbering)
+                  sorted_facet(mesh%shape, local_facet(2), ele_facet2(1:p))
 
           else if (neigh(j)<0) then
 
              ! boundary face:
              mesh%faces%face_lno((faces(j)-1)*snloc+1:faces(j)*snloc)= &
-                  & boundary_numbering(ele_shape(mesh, ele), j)
-                  
+                  & mesh%shape%facet2dofs(j)%dofs
              
           end if
 
@@ -1282,11 +1308,11 @@ contains
     end do eleloop
     
     if (present(periodic_face_map)) then  
-      call fix_periodic_face_orientation(model, mesh, periodic_face_map)
+       !call fix_periodic_face_orientation(model, mesh, periodic_face_map)
     else if (present(model)) then
       if (model%periodic .and. .not. mesh%periodic) then
         nullify(mesh%faces%surface_node_list)
-        call fix_periodic_face_orientation(mesh, model, lperiodic_face_map)
+        !call fix_periodic_face_orientation(mesh, model, lperiodic_face_map)
         call deallocate(lperiodic_face_map)
       end if
     end if
@@ -1299,6 +1325,7 @@ contains
        !    and the node numbering of the full mesh
        call create_surface_mesh(mesh%faces%surface_mesh, &
             mesh%faces%surface_node_list, mesh, name='Surface'//trim(mesh%name))
+       
 #ifdef HAVE_MEMORY_STATS
        call register_allocation("mesh_type", "integer", &
             size(mesh%faces%surface_node_list), name='Surface'//trim(mesh%name))
@@ -1337,7 +1364,7 @@ contains
     assert(continuity(mesh)>=0)
 
     mesh_shape=>ele_shape(mesh, 1)
-    nloc=mesh_shape%loc
+    nloc=mesh_shape%ndof
 
     ! Calculate the node-to-element list.
     ! Calculate the element adjacency list.
@@ -1352,6 +1379,11 @@ contains
 #ifdef HAVE_MEMORY_STATS
     call register_allocation("mesh_type", "integer", no_faces, &
          trim(mesh%name)//" face_element_list")
+#endif
+    allocate(mesh%faces%local_face_number(no_faces))
+#ifdef HAVE_MEMORY_STATS
+    call register_allocation("mesh_type", "integer", no_faces, &
+         trim(mesh%name)//" local_face_number")
 #endif
 
     mesh%faces%has_internal_boundaries = present(element_owner)
@@ -1392,16 +1424,15 @@ contains
         faces=>row_ival_ptr(mesh%faces%face_list, ele)
 
         ! find the matching boundary of this element
-        do j=1, mesh%shape%numbering%boundaries
-          if (neigh(j)<=0 .or. internal_face) then
-            if (SetContains(snodes, mesh%ndglno( (ele-1)*nloc+ &
-                                  boundary_numbering(mesh%shape%numbering, j) &
-                                            ))) exit
-          end if
+        do j=1, mesh%shape%numbering%facets
+           if (neigh(j)<=0 .or. internal_face) then
+              if (SetContains(snodes, mesh%ndglno( (ele-1)*nloc+ &
+                   facet_dofs(mesh%shape, j)))) exit
+           end if
         end do
           
-        if (j>mesh%shape%numbering%boundaries) then
-          ! not found a matching boundary, something's wrong
+        if (j>mesh%shape%numbering%facets) then
+          ! not found a matching facet, something's wrong
           FLAbort("Something wrong with the mesh, sndgln, or mesh%nelist")
           
         else if (neigh(j)/=0 .and. .not. internal_face) then
@@ -1415,7 +1446,7 @@ contains
         ! register the surface element in face_list
         faces(j)=sele
         if (.not. internal_face) then
-          neigh(j)=-j ! negative number indicates exterior boundary
+          neigh(j)=-j ! negative number indicates exterior facet
         else
           ! if all went well neigh(j) should have the right value:
           assert( neigh(j)==minval(common_elements, mask=common_elements/=ele) )
@@ -1448,7 +1479,7 @@ contains
               
               bdry_count=bdry_count+1
               faces(j)=bdry_count
-              neigh(j)=-j ! negative number indicates exterior boundary
+              neigh(j)=-j ! negative number indicates exterior facet
               
               surface_elements_added=.true.
               
@@ -1499,6 +1530,7 @@ contains
             neigh(j)=-j ! negative number indicates exterior boundary
             
           end if
+          mesh%faces%local_face_number(faces(j))=j
        end do
        
        ! Record the element number of each face.
@@ -1622,17 +1654,17 @@ contains
           ele1_nodes => ele_nodes(mesh, ele1)
           ele2_nodes => ele_nodes(mesh, ele2)
           if (SetContains( &
-             ele1_nodes(boundary_numbering(ele_shape(mesh, ele1), lface1)), &
-             ele2_nodes(boundary_numbering(ele_shape(mesh, ele2), lface2)))) then
+             ele1_nodes(facet_dofs(ele_shape(mesh, ele1), lface1)), &
+             ele2_nodes(facet_dofs(ele_shape(mesh, ele2), lface2)))) then
              ! apparently these faces are still connected
              ! (not currently supported)
              if (present(stat)) then
                stat = 1
              else
                ewrite(-1,*) "Face: ", face, "; element: ", ele1
-               ewrite(-1,*) "face_global_nodes(mesh, face): ", ele1_nodes(boundary_numbering(ele_shape(mesh, ele1), lface1))
+               ewrite(-1,*) "face_global_nodes(mesh, face): ", ele1_nodes(facet_dofs(ele_shape(mesh, ele1), lface1))
                ewrite(-1,*) "Opposing face: ", face2, "; element: ", ele2
-               ewrite(-1,*) "face_global_nodes(mesh, face2): ", ele2_nodes(boundary_numbering(ele_shape(mesh, ele2), lface2))
+               ewrite(-1,*) "face_global_nodes(mesh, face2): ", ele2_nodes(facet_dofs(ele_shape(mesh, ele2), lface2))
                FLAbort("Left-over internal faces in removing periodic bcs.")
              end if
          end if
@@ -1649,65 +1681,65 @@ contains
      end do
 
   end subroutine add_faces_face_list_non_periodic_from_periodic_model
-    
-  subroutine fix_periodic_face_orientation(nonperiodic, periodic, periodic_face_map)
-    !!< Fixes, i.e. overwrites the face local node numbering of non-periodic nonperiodic
-    !!< in periodic faces to make it consistent with the periodic 'mesh'
-    !!< Assumes the shape functions of elements and faces in mesh and nonperiodic are the same!!
-    type(mesh_type), intent(in):: nonperiodic
-    type(mesh_type), intent(in):: periodic
-    type(integer_hash_table), intent(in):: periodic_face_map
-    
-    type(mesh_faces), pointer:: nonperiodic_faces
-    integer:: i, face1, face2
-    
-    ewrite(1,*) "Inside fix_periodic_face_orientation"
-
-    if (.not. periodic%faces%shape==nonperiodic%faces%shape) then
-      ewrite(-1,*) "When deriving the faces structure of a periodic mesh from a non-periodic mesh"
-      ewrite(-1,*) "Its shape functions have to be the same"
-      FLAbort("Different shape functions in non-periodic nonperiodic mesh")
-    end if
-    
-    do i=1, key_count(periodic_face_map)
-       call fetch_pair(periodic_face_map, i, face1, face2)
-       call fix_periodic_face_orientation_face(face1)
-       call fix_periodic_face_orientation_face(face2)
-    end do
-
-    ! when deriving a non-periodic mesh from a periodic model,
-    ! we don't have the surface mesh yet, so no need to fix it:
-    if (.not. associated(nonperiodic%faces%surface_node_list)) return
-    
-    nonperiodic_faces => nonperiodic%faces
-    call deallocate(nonperiodic_faces%surface_mesh)
-#ifdef HAVE_MEMORY_STATS
-    call register_deallocation("mesh_type", "integer", &
-         size(nonperiodic_faces%surface_node_list), name='Surface'//trim(nonperiodic%name))
-#endif
-    deallocate(nonperiodic_faces%surface_node_list)
-    call create_surface_mesh(nonperiodic_faces%surface_mesh, &
-       nonperiodic_faces%surface_node_list, nonperiodic, name='Surface'//trim(nonperiodic%name))
-#ifdef HAVE_MEMORY_STATS
-    call register_allocation("mesh_type", "integer", &
-         size(nonperiodic_faces%surface_node_list), name='Surface'//trim(nonperiodic%name))
-#endif
-      
-    contains
-    
-    subroutine fix_periodic_face_orientation_face(face)
-    integer, intent(in):: face
-    
-      integer, dimension(:), pointer:: mesh_face_local_nodes, nonperiodic_face_local_nodes
-      
-      mesh_face_local_nodes => face_local_nodes(periodic, face)
-      nonperiodic_face_local_nodes => face_local_nodes(nonperiodic, face)
-      
-      nonperiodic_face_local_nodes=mesh_face_local_nodes
-      
-    end subroutine fix_periodic_face_orientation_face
-    
-  end subroutine fix_periodic_face_orientation
+  
+!!$  subroutine fix_periodic_face_orientation(nonperiodic, periodic, periodic_face_map)
+!!$    !!< Fixes, i.e. overwrites the face local node numbering of non-periodic nonperiodic
+!!$    !!< in periodic faces to make it consistent with the periodic 'mesh'
+!!$    !!< Assumes the shape functions of elements and faces in mesh and nonperiodic are the same!!
+!!$    type(mesh_type), intent(in):: nonperiodic
+!!$    type(mesh_type), intent(in):: periodic
+!!$    type(integer_hash_table), intent(in):: periodic_face_map
+!!$    
+!!$    type(mesh_faces), pointer:: nonperiodic_faces
+!!$    integer:: i, face1, face2
+!!$    
+!!$    ewrite(1,*) "Inside fix_periodic_face_orientation"
+!!$
+!!$    if (.not. periodic%faces%shape==nonperiodic%faces%shape) then
+!!$      ewrite(-1,*) "When deriving the faces structure of a periodic mesh from a non-periodic mesh"
+!!$      ewrite(-1,*) "Its shape functions have to be the same"
+!!$      FLAbort("Different shape functions in non-periodic nonperiodic mesh")
+!!$    end if
+!!$    
+!!$    do i=1, key_count(periodic_face_map)
+!!$       call fetch_pair(periodic_face_map, i, face1, face2)
+!!$       call fix_periodic_face_orientation_face(face1)
+!!$       call fix_periodic_face_orientation_face(face2)
+!!$    end do
+!!$
+!!$    ! when deriving a non-periodic mesh from a periodic model,
+!!$    ! we don't have the surface mesh yet, so no need to fix it:
+!!$    if (.not. associated(nonperiodic%faces%surface_node_list)) return
+!!$    
+!!$    nonperiodic_faces => nonperiodic%faces
+!!$    call deallocate(nonperiodic_faces%surface_mesh)
+!!$#ifdef HAVE_MEMORY_STATS
+!!$    call register_deallocation("mesh_type", "integer", &
+!!$         size(nonperiodic_faces%surface_node_list), name='Surface'//trim(nonperiodic%name))
+!!$#endif
+!!$    deallocate(nonperiodic_faces%surface_node_list)
+!!$    call create_surface_mesh(nonperiodic_faces%surface_mesh, &
+!!$       nonperiodic_faces%surface_node_list, nonperiodic, name='Surface'//trim(nonperiodic%name))
+!!$#ifdef HAVE_MEMORY_STATS
+!!$    call register_allocation("mesh_type", "integer", &
+!!$         size(nonperiodic_faces%surface_node_list), name='Surface'//trim(nonperiodic%name))
+!!$#endif
+!!$      
+!!$    contains
+!!$    
+!!$    subroutine fix_periodic_face_orientation_face(face)
+!!$    integer, intent(in):: face
+!!$    
+!!$      integer, dimension(:), pointer:: mesh_face_local_nodes, nonperiodic_face_local_nodes
+!!$      
+!!$      mesh_face_local_nodes => face_local_nodes(periodic, face)
+!!$      nonperiodic_face_local_nodes => face_local_nodes(nonperiodic, face)
+!!$      
+!!$      nonperiodic_face_local_nodes=mesh_face_local_nodes
+!!$      
+!!$    end subroutine fix_periodic_face_orientation_face
+!!$    
+!!$  end subroutine fix_periodic_face_orientation
 
   subroutine create_surface_mesh(surface_mesh, surface_nodes, &
     mesh, surface_elements, name)
@@ -1729,10 +1761,11 @@ contains
     integer, dimension(:), pointer:: lsurface_elements
     integer, dimension(:), pointer:: suf_ndglno
     integer, dimension(:), allocatable:: nod2sufnod
-    integer, dimension(mesh%faces%shape%loc):: glnodes
+    integer, dimension(mesh%faces%shape%ndof):: glnodes
     integer i, j, sele, sufnod, snloc
-    
-    snloc=mesh%faces%shape%loc
+    type(mesh_type), pointer :: topology
+
+    snloc=mesh%faces%shape%ndof
     
     if (present(surface_elements)) then
        lsurface_elements => surface_elements
@@ -1791,7 +1824,10 @@ contains
     if (.not. present(surface_elements)) then
        deallocate(lsurface_elements)
     end if
-  
+    
+    topology=>mesh_topology(mesh)
+    surface_mesh%topology=topology%faces%surface_mesh
+
   end subroutine create_surface_mesh
     
   logical function SetContains(a, b)
@@ -1851,18 +1887,9 @@ contains
           z => positions%val(3,:)
        end if
     end if
-
+    call allocate(mesh, 0, model%elements, model%shape, name=name)
     !copy over all the mesh parameters
-    allocate(mesh%adj_lists)
     mesh%continuity=model%continuity
-    mesh%elements=model%elements
-    mesh%shape=model%shape
-    call incref(mesh%shape)
-    if (present(name)) then
-       mesh%name=name
-    else
-       mesh%name=empty_name
-    end if
     mesh%wrapped=.false.
     mesh%periodic=.true.
     
@@ -1873,8 +1900,8 @@ contains
 
     !allocate memory for temporary place to hold old connectivity,
     !and memory for periodic connectivity
-    allocate(ndglno(mesh%shape%numbering%vertices*model%elements), &
-         mesh%ndglno(mesh%shape%loc*model%elements))
+    allocate(ndglno(mesh%shape%cell%entity_counts(0)*model%elements), &
+         mesh%ndglno(mesh%shape%ndof*model%elements))
 #ifdef HAVE_MEMORY_STATS
     call register_allocation("mesh_type", "integer", size(mesh%ndglno), &
       name=mesh%name)
@@ -1882,10 +1909,6 @@ contains
 
     !get old connectivity
     ndglno=model%ndglno
-    
-    nullify(mesh%refcount) ! Hack for gfortran component initialisation
-    !                         bug.
-    call addref(mesh)
     
     !mapping_list is mapping from coordinates to periodic node number
     !mapped takes value 1 if node is aliased
@@ -2087,88 +2110,6 @@ contains
 
   end function make_mesh_periodic
 
-  function make_fake_mesh_linearnonconforming(model, name) result (mesh)
-    !!< Produce a mesh based on a piecewise linear continuous model mesh but 
-    !!< converted to have edge centred nonconforming nodes.
-    type(mesh_type) :: mesh
-
-    type(mesh_type), intent(in) :: model
-    character(len=*), intent(in), optional :: name
-    
-    integer :: number_facets, vertices, n, ele, ele2, face2, local_face2, facet_count
-    integer, dimension(:), pointer :: ele2_nodes, neigh
-    
-    type(element_type) :: shape
-      
-    ewrite(1,*) 'entering make_mesh_linearnonconforming'
-    
-    number_facets = (face_count(model)-surface_element_count(model))/2 &
-                   + surface_element_count(model)
-
-    vertices = model%shape%quadrature%vertices
-    
-    ! create a dummy linear shape function to put into the mesh
-    ! FIXME: I'm Lagrange when I should be NC - do not use for anything other
-    !        than the number of nodes per element
-    shape = make_element_shape(vertices = vertices, dim = mesh_dim(model), &
-                               degree = 1, quad = model%shape%quadrature)
-    
-    call allocate(mesh, nodes=number_facets, elements=element_count(model), &
-                        shape=shape, name=name)
-    call deallocate(shape)
-    
-    ! Transfer the eelist from model to mesh
-    assert(associated(model%adj_lists))
-    if(associated(model%adj_lists%eelist)) then
-      ewrite(2, *) "Transferring element-element list to mesh " // trim(mesh%name)
-      allocate(mesh%adj_lists%eelist)
-      mesh%adj_lists%eelist = model%adj_lists%eelist
-      call incref(mesh%adj_lists%eelist)
-    end if
-    
-    mesh%continuity=-1
-    
-    assert(has_faces(model))
-    mesh%ndglno = -1
-    facet_count = 0
-    do ele = 1, element_count(mesh)
-       ! let's build up the ndglno by looping
-       ! around the faces (and neighbouring elements)
-       ! of this element
-       neigh => ele_neigh(model, ele)
-       do n = 1, size(neigh)
-          ele2 = neigh(n)
-          if((ele2>0).and.(ele2<ele)) then
-            ! already visited this face (and it's internal)
-            ! 1. find the global face number of the face associated with
-            !    the neighbouring model element
-            face2 = ele_face(model, ele2, ele)
-            ! 2. find the local face number of that face
-            local_face2 = local_face_number(model, face2)
-            ! 3. find the global node numbers of the new mesh in
-            !    the neighbouring element (these should exist as
-            !    we've already visited ele2)
-            ele2_nodes => ele_nodes(mesh, ele2)
-            ! 4. now, since we've been adding nodes to mesh consistently 
-            !    with the local face numbering we should be able to retrieve
-            !    the global node number of the node on this face
-            mesh%ndglno(mesh%shape%loc*(ele-1)+n) = ele2_nodes(local_face2)
-          else
-            ! we're adding a new edge so increment
-            facet_count = facet_count + 1
-            mesh%ndglno(mesh%shape%loc*(ele-1)+n) = facet_count
-          end if
-       end do
-    end do
-    assert(facet_count==number_facets)
-    assert(all(mesh%ndglno > 0))
-    
-    call addref(mesh)
-    
-    ewrite(1,*) 'exiting make_mesh_linearnonconforming'
-  
-  end function make_fake_mesh_linearnonconforming
-
   function make_submesh (model, name) &
        result (mesh)
     !!< Produce a mesh based on an old mesh but divided into piecewise linear.
@@ -2270,7 +2211,7 @@ contains
       regions = .true.
     end if
 
-    allocate(mesh%ndglno(mesh%shape%loc*mesh%elements))
+    allocate(mesh%ndglno(mesh%shape%ndof*mesh%elements))
 #ifdef HAVE_MEMORY_STATS
     call register_allocation("mesh_type", "integer", size(mesh%ndglno), &
       name=mesh%name)
@@ -2284,7 +2225,7 @@ contains
 
       do l_ele = 1, size(permutation,1)
         sub_ele = sub_ele+1
-        mesh%ndglno(mesh%shape%loc*(sub_ele-1)+1:mesh%shape%loc*sub_ele) = model_nodes(permutation(l_ele,:))
+        mesh%ndglno(mesh%shape%ndof*(sub_ele-1)+1:mesh%shape%ndof*sub_ele) = model_nodes(permutation(l_ele,:))
       end do
 
     end do
@@ -2849,6 +2790,163 @@ contains
     end if
     
   end subroutine remove_eelist_mesh
+
+  
+  subroutine zero_scalar(field)
+    !!< Set all entries in the field provided to 0.0
+    type(scalar_field), intent(inout) :: field
+#ifdef _OPENMP
+    integer :: i
+#endif
+    
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+    
+#ifdef _OPENMP
+    ! Use first touch policy.
+    !$OMP PARALLEL DO SCHEDULE(STATIC)
+    do i=1, size(field%val)
+       field%val(i)=0.0
+    end do
+    !$OMP END PARALLEL DO
+#else
+    field%val=0.0
+#endif
+
+  end subroutine zero_scalar
+
+  subroutine zero_vector(field)
+    !!< Set all entries in the field provided to 0.0
+    type(vector_field), intent(inout) :: field
+
+#ifdef _OPENMP
+    integer :: i
+#endif
+
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+    
+#ifdef _OPENMP
+    ! Use first touch policy.
+    !$OMP PARALLEL DO SCHEDULE(STATIC)
+    do i=1, size(field%val, 2)
+       field%val(:,i)=0.0
+    end do
+    !$OMP END PARALLEL DO
+#else
+       field%val=0.0
+#endif
+
+  end subroutine zero_vector
+
+  subroutine zero_vector_dim(field, dim)
+    !!< Set all entries in dimension dim of the field provided to 0.0
+    type(vector_field), intent(inout) :: field
+    integer, intent(in) :: dim
+
+#ifdef _OPENMP
+    integer :: j
+#endif
+
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+
+#ifdef _OPENMP
+       ! Use first touch policy.
+       !$OMP PARALLEL DO SCHEDULE(STATIC)
+       do j=1, size(field%val, 2)
+          field%val(dim,j)=0.0
+       end do
+       !$OMP END PARALLEL DO
+#else
+       field%val(dim,:)=0.0
+#endif
+
+  end subroutine zero_vector_dim
+
+  subroutine zero_tensor(field)
+    !!< Set all entries in the field provided to 0.0
+    type(tensor_field), intent(inout) :: field
+
+#ifdef _OPENMP
+    integer :: j
+#endif
+
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+    
+#ifdef _OPENMP
+    ! Use first touch policy.
+    !$OMP PARALLEL DO SCHEDULE(STATIC)
+    do j=1, size(field%val, 3)
+       field%val(:,:,j)=0.0
+    end do
+    !$OMP END PARALLEL DO
+#else
+    field%val=0.0
+#endif
+
+  end subroutine zero_tensor  
+
+  subroutine zero_tensor_dim_dim(field, dim1, dim2)
+    !!< Set all entries in the component indicated of field to 0.0
+    type(tensor_field), intent(inout) :: field
+    integer, intent(in) :: dim1, dim2
+
+#ifdef _OPENMP
+    integer :: j
+#endif
+
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+
+#ifdef _OPENMP
+    ! Use first touch policy.
+    !$OMP PARALLEL DO SCHEDULE(STATIC)
+    do j=1, size(field%val, 3)
+       field%val(dim1,dim2,j)=0.0
+    end do
+    !$OMP END PARALLEL DO
+#else
+    field%val(dim1,dim2,:)=0.0
+#endif
+    
+  end subroutine zero_tensor_dim_dim
+
+  subroutine zero_scalar_field_nodes(field, node_numbers)
+    !!< Zeroes the scalar field at the specified node_numbers
+    !!< Does not work for constant fields
+    type(scalar_field), intent(inout) :: field
+    integer, dimension(:), intent(in) :: node_numbers
+
+    assert(field%field_type==FIELD_TYPE_NORMAL)
+    
+    field%val(node_numbers) = 0.0
+    
+  end subroutine zero_scalar_field_nodes
+  
+  subroutine zero_vector_field_nodes(field, node_numbers)
+    !!< Zeroes the vector field at the specified nodes
+    !!< Does not work for constant fields
+    type(vector_field), intent(inout) :: field
+    integer, dimension(:), intent(in) :: node_numbers
+    integer :: i
+
+    assert(field%field_type==FIELD_TYPE_NORMAL)
+    
+    do i=1,field%dim
+      field%val(i,node_numbers) = 0.0
+    end do
+    
+  end subroutine zero_vector_field_nodes
+
+  subroutine zero_tensor_field_nodes(field, node_numbers)
+    !!< Zeroes the tensor field at the specified nodes
+    !!< Does not work for constant fields
+    type(tensor_field), intent(inout) :: field
+    integer, dimension(:), intent(in) :: node_numbers
+
+    assert(field%field_type==FIELD_TYPE_NORMAL)
+
+    field%val(:, :, node_numbers) = 0.0
+    
+  end subroutine zero_tensor_field_nodes
+
     
 #include "Reference_count_mesh_type.F90"
 #include "Reference_count_scalar_field.F90"

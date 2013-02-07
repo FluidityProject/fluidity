@@ -325,11 +325,11 @@
          ewrite(2,*) L%mesh%shape%numbering%number2count(i,:)
       end do
       ewrite(2,*) 'D local coordinates'
-      do i = 1, D%mesh%shape%loc
+      do i = 1, D%mesh%shape%ndof
          ewrite(2,*) i,local_coords(i, D%mesh%shape)
       end do
       ewrite(2,*) 'L local coordinates'
-      do i = 1, L%mesh%shape%loc
+      do i = 1, L%mesh%shape%ndof
          ewrite(2,*) i,local_coords(i, L%mesh%shape)
       end do
     end subroutine test_local_coords

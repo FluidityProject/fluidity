@@ -182,7 +182,33 @@ pclu_options =
       ##
       ## This performs a complete, direct solve of the equation and should only be used in combination with preonly as iterative method.
       element preconditioner {
-         attribute name { "lu" }
+         attribute name { "lu" },
+         (
+           ## Package to use for the factorization - petsc.
+           element factorization_package {
+             attribute name { "petsc" },
+             empty
+           }|
+           ## Package to use for the factorization - umfpack.
+           ##
+           ## Useful for systems with a near zero pivot (if installed on system).
+           element factorization_package {
+             attribute name { "umfpack" },
+             empty
+           }|
+           ## Package to use for the factorization - mumps.
+           ##
+           ## Useful for parallel direct solves (if installed on system).
+           element factorization_package {
+             attribute name { "mumps" },
+             empty
+           }|
+           ## Package to use for the factorization - any valid package.
+           element factorization_package {
+             attribute name { xsd:string },
+             empty
+           }
+         )
      }
    )
 pcmg_options =

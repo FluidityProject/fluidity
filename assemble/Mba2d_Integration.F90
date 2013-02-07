@@ -507,6 +507,8 @@ module mba2d_integration
         call renumber_positions_elements_trailing_receives(output_positions, permutation=renumber_permutation)
       end if
       
+      call refresh_topology(output_positions)
+
       if(have_option("/mesh_adaptivity/hr_adaptivity/preserve_mesh_regions")&
                                 .or.present_and_true(force_preserve_regions)) then
         ! reorder the region_ids since all out elements have been jiggled about

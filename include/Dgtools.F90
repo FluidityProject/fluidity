@@ -11,44 +11,44 @@ contains
   function local_node_map(m, m_f, bdy, bdy_2) result(local_glno)
     ! Fill in the number map for the DG double element.
     type(element_type), intent(in) :: m, m_f
-    integer, dimension(m_f%loc) :: bdy, bdy_2
-    integer, dimension(m%loc,2) :: local_glno
+    integer, dimension(m_f%ndof) :: bdy, bdy_2
+    integer, dimension(m%ndof,2) :: local_glno
 
     integer :: i,j
 
     local_glno=0
 
-    ! First m_f%loc places are for the bdy between the elements.
-    forall(i=1:m_f%loc)
+    ! First m_f%ndof places are for the bdy between the elements.
+    forall(i=1:m_f%ndof)
        local_glno(bdy(i),1)=i
     end forall
 
     ! Remaining spots go to elements. 
-    j=m_f%loc
-    do i=1, m%loc
+    j=m_f%ndof
+    do i=1, m%ndof
        if(local_glno(i,1)==0) then
           j=j+1
           local_glno(i,1)=j
        end if
     end do
 
-    ASSERT(j==m%loc)
+    ASSERT(j==m%ndof)
 
-    ! First m_f%loc places are for the bdy between the elements.
-    forall(i=1:m_f%loc)
+    ! First m_f%ndof places are for the bdy between the elements.
+    forall(i=1:m_f%ndof)
        local_glno(bdy_2(i),2)=i
     end forall
 
     ! Remaining spots go to elements. 
-    j=m%loc
-    do i=1, m%loc
+    j=m%ndof
+    do i=1, m%ndof
        if(local_glno(i,2)==0) then
           j=j+1
           local_glno(i,2)=j
        end if
     end do
 
-    ASSERT(j==2*m%loc-m_f%loc)
+    ASSERT(j==2*m%ndof-m_f%ndof)
 
   end function local_node_map
 
@@ -60,10 +60,10 @@ contains
     ! higher order elements require deeper thinking
 
     type(element_type) :: nu, nh_f   ! Shape Functions
-    integer, dimension(nh_f%loc), intent(in) :: b_seg, b_seg_2
+    integer, dimension(nh_f%ndof), intent(in) :: b_seg, b_seg_2
     integer, dimension(:), intent(in) :: u_ele, u_ele_2
-    integer, dimension(nu%loc,2), intent(out) :: local_glno
-    integer, dimension(2*nu%loc-1), intent(out) :: local2global_glno
+    integer, dimension(nu%ndof,2), intent(out) :: local_glno
+    integer, dimension(2*nu%ndof-1), intent(out) :: local2global_glno
 
     integer :: i,j
 

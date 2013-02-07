@@ -1,0 +1,46 @@
+#!/usr/bin/env python
+from argparse import ArgumentParser
+import sys
+from subprocess import check_call
+
+meshtemplate='''
+Point(1) = {0, 0, 0, %(dx)f};
+Extrude {1, 0, 0} {
+  Point{1}; Layers{%(layers)d};
+}
+Extrude {0, 1, 0} {
+  Line{1}; Layers{%(layers)d};
+}
+//Line Loop (1) = {1, 2, 3, 4};
+//Plane Surface (1) = {1};
+Physical Surface (5) = {5};
+// bottom
+Physical Line(1) = {1};
+// top
+Physical Line(2) = {2};
+// left
+Physical Line(3) = {3};
+// right
+Physical Line(4) = {4};
+'''
+
+def generate_meshfile(name,layers):
+
+
+    with open(name+".geo",'w') as f:
+        f.write(meshtemplate % {'dx': 1./layers, 'layers': layers})
+
+    check_call("gmsh -2 "+name+".geo", shell=True)
+    check_call("../../bin/gmsh2triangle --2d "+name+".msh", shell=True)
+
+#####################################################################
+# Script starts here.
+desc = "Generate the mesh files for a given number of layers of elements in the channel."
+parser=ArgumentParser(add_help=True, description=desc)
+parser.add_argument("name", type=str, help="Base name of the output file (.geo will be appended)")
+parser.add_argument("layers", type=int, help="Number of layers per side of the unit square")
+args = parser.parse_args()
+
+sys.path.append(".")
+
+generate_meshfile(args.name, args.layers)

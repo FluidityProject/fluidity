@@ -1,6 +1,8 @@
 #define ALLOW_IMPORT_ARRAY
 #include "python_statec.h"
 
+int python_initialised = 0;
+
 void python_init_(void){
 #ifdef HAVE_PYTHON
   // Initialize the Python interpreter
@@ -31,29 +33,49 @@ void python_init_(void){
   // Initialize a persistent dictionary
   PyRun_SimpleString("persistent = {}");
 
+  // Initialize Fluidity field caches
+  PyRun_SimpleString("mesh_cache = {}");
+  PyRun_SimpleString("halos_cache = {}");
+  PyRun_SimpleString("scalar_field_cache = {}");
+  PyRun_SimpleString("vector_field_cache = {}");
+  PyRun_SimpleString("tensor_field_cache = {}");
+
   // Add the working directory to the module search path.
   PyRun_SimpleString("import sys");
   PyRun_SimpleString("sys.path.append('.')");
   
   init_vars();
 #endif
+  
+  python_initialised = 1;
 }
 
 
 void init_vars(void){
 #ifdef HAVE_PYTHON
-  // Import the types and setup the states dictionary
-  // This is called every time the data is reset
-  if(PyRun_SimpleString("from fluidity.state_types import *") == -1){
-    fprintf(stderr, "Warning: The 'state_types.py' module could not be loaded. Make sure the PYTHONPATH environment variable is set.\n");
-    fprintf(stderr, "This is a problem if you have ocean biology or Python diagnostic fields.\n");
+  // Try importing the Fluidity OP2 state interface
+  if(PyRun_SimpleString("from fluidity.flop import *") == -1){
+    fprintf(stderr, "Warning: The 'flop.py' module could not be loaded. Make sure the PYTHONPATH environment variable is set.\n");
+    fprintf(stderr, "This is a problem if you want to use OP2/UFL equations.\n");
     fprintf(stderr, "It will not otherwise affect the running of Fluidity.\n");
     PyErr_Clear();
-  }
-  else{
+    // Import the types and setup the states dictionary
+    // This is called every time the data is reset
+    if(PyRun_SimpleString("from fluidity.state_types import *") == -1){
+      fprintf(stderr, "Warning: The 'state_types.py' module could not be loaded. Make sure the PYTHONPATH environment variable is set.\n");
+      fprintf(stderr, "This is a problem if you have ocean biology or Python diagnostic fields.\n");
+      fprintf(stderr, "It will not otherwise affect the running of Fluidity.\n");
+      PyErr_Clear();
+    } else {
+      if (get_global_debug_level_() > 1) {
+        printf("fluidity.state_types imported successfully; location: \n");
+        PyRun_SimpleString("import fluidity.state_types; print fluidity.state_types.__file__");
+      }
+    }
+  } else {
     if (get_global_debug_level_() > 1) {
-      printf("fluidity.state_types imported successfully; location: \n");
-      PyRun_SimpleString("import fluidity.state_types; print fluidity.state_types.__file__");
+      printf("fluidity.flop imported successfully; location: \n");
+      PyRun_SimpleString("import fluidity.flop; print fluidity.flop.__file__");
     }
   }
   PyRun_SimpleString("states = dict()");
@@ -65,7 +87,7 @@ void python_reset_(void){
 #ifdef HAVE_PYTHON
   if(Py_IsInitialized()){
     // Create a list of items to be kept
-    PyRun_SimpleString("keep = [];keep.append('keep');keep.append('rem');keep.append('__builtins__');keep.append('__name__'); keep.append('__doc__');keep.append('string');keep.append('numpy');keep.append('persistent')");
+    PyRun_SimpleString("keep = ['keep', 'rem', '__builtins__', '__name__', '__doc__', 'string', 'numpy', 'persistent', 'mesh_cache', 'halos_cache', 'scalar_field_cache', 'vector_field_cache', 'tensor_field_cache']");
 
     // Create a list of items to  be removed
     PyRun_SimpleString("rem = []");
@@ -99,6 +121,10 @@ void python_end_(void){
 
 void python_run_stringc_(char *s,int *slen, int *stat){
 #ifdef HAVE_PYTHON
+  
+  if (!python_initialised)
+    python_init_();
+  
   // Run a python command from Fortran
   char *c = fix_string(s,*slen);
   int tlen=8+*slen;
@@ -140,12 +166,6 @@ char* fix_string(char *s,int len){
 }
 
 
-
-
-
-
-
-
 // Functions to add a state and fields: scalar, vector, tensor, mesh, quadrature, polynomial
 
 
@@ -169,7 +189,7 @@ void python_add_statec_(char *name,int *len){
 
 void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type, 
   char *option_path, int *oplen, char *state,int *slen,
-  char *mesh_name, int *mesh_name_len){
+  char *mesh_name, int *mesh_name_len, int *uid){
 #ifdef HAVE_NUMPY
   // Add the Fortran scalar field to the dictionary of the Python interpreter
   PyObject *pMain = PyImport_AddModule("__main__");
@@ -193,13 +213,13 @@ void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type
   PyRun_SimpleString("op = string.strip(op)");
 
   char *n = fix_string(state,*slen);
-  int tlen=150+*slen+*mesh_name_len;
+  int tlen=140+2**slen+*nlen+*mesh_name_len;
   char t[tlen];
-  snprintf(t, tlen, "field = ScalarField(n,s,ft,op); states['%s'].scalar_fields['%s'] = field",n,namec);
+  snprintf(t, tlen,
+      "field = scalar_field_cache.setdefault(%d, ScalarField(n,s,ft,op,%d,states['%s'].meshes['%s']))",
+      *uid, *uid, n, meshc);
   PyRun_SimpleString(t);
-
-  // Set the mesh for this field
-  snprintf(t, tlen, "field.set_mesh(states['%s'].meshes['%s'])",n,meshc);
+  snprintf(t, tlen, "states['%s'].scalar_fields['%s'] = field",n,namec);
   PyRun_SimpleString(t);
 
   // Clean up
@@ -213,9 +233,11 @@ void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type
   Py_DECREF(pft);
 #endif
 }
+enum valtype_t { CSR_REAL, CSR_INTEGER };
 
-void python_add_csr_matrix_(int *valSize, double val[], int *col_indSize, int col_ind [], int *row_ptrSize, \
-                            int row_ptr [], char *name, int *namelen, char *state, int *statelen, int *numCols)
+static void python_add_csr_matrix(int *valSize, void *val, int *col_indSize, int *col_ind, int *row_ptrSize,
+                                  int *row_ptr, char *name, int *namelen, char *state, int *statelen, int *numCols,
+                                  enum valtype_t valtype)
 {
 #ifdef HAVE_NUMPY
   // Add the Fortran csr matrix to the dictionary of the Python interpreter
@@ -230,7 +252,13 @@ void python_add_csr_matrix_(int *valSize, double val[], int *col_indSize, int co
   PyDict_SetItemString(pDict,"numRows",pnumRows); 
   
   // Create the array
-  python_add_array_double_1d(val,valSize,"val");
+  switch (valtype) {
+  case CSR_REAL:
+      python_add_array_double_1d((double *)val, valSize, "val");
+      break;
+  case CSR_INTEGER:
+      python_add_array_integer_1d((int *)val, valSize, "val");
+  }
   python_add_array_integer_1d(col_ind,col_indSize,"col_ind");
   python_add_array_integer_1d(row_ptr,row_ptrSize,"row_ptr");
 
@@ -257,12 +285,27 @@ void python_add_csr_matrix_(int *valSize, double val[], int *col_indSize, int co
 #endif
 }
 
+void python_add_csr_matrix_real_(int *valSize, double val[], int *col_indSize, int col_ind [], int *row_ptrSize,
+                            int row_ptr [], char *name, int *namelen, char *state, int *statelen, int *numCols)
+{
+    python_add_csr_matrix(valSize, val, col_indSize, col_ind, row_ptrSize,
+                          row_ptr, name, namelen, state, statelen, numCols,
+                          CSR_REAL);
+}
+
+void python_add_csr_matrix_integer_(int *valSize, int ival[], int *col_indSize, int col_ind [], int *row_ptrSize,
+                                    int row_ptr [], char *name, int *namelen, char *state, int *statelen, int *numCols)
+{
+    python_add_csr_matrix(valSize, ival, col_indSize, col_ind, row_ptrSize,
+                          row_ptr, name, namelen, state, statelen, numCols,
+                          CSR_INTEGER);
+}
 
 
 void python_add_vector_(int *num_dim, int *s, 
   double x[], 
   char *name,int *nlen, int *field_type, char *option_path, int *oplen, char *state,int *slen,
-  char *mesh_name, int *mesh_name_len){
+  char *mesh_name, int *mesh_name_len, int *uid){
 #ifdef HAVE_NUMPY
   // Make the Fortran vector field availabe to the Python interpreter
   PyObject *pMain = PyImport_AddModule("__main__");
@@ -289,13 +332,13 @@ void python_add_vector_(int *num_dim, int *s,
   PyRun_SimpleString("op = string.strip(op)");
 
   char *n = fix_string(state,*slen);
-  int tlen=150+*slen+*mesh_name_len;
+  int tlen=150+2**slen+*nlen+*mesh_name_len;
   char t[tlen];
-  snprintf(t, tlen, "field = VectorField(n,vector,ft,op,nd); states[\"%s\"].vector_fields['%s'] = field",n,namec);
+  snprintf(t, tlen,
+      "field = vector_field_cache.setdefault(%d, VectorField(n,vector,ft,op,nd,%d,states['%s'].meshes['%s']))",
+      *uid, *uid, n, meshc);
   PyRun_SimpleString(t);
-
-  // Set the mesh for this field
-  snprintf(t, tlen, "field.set_mesh(states['%s'].meshes['%s'])",n,meshc);
+  snprintf(t, tlen, "states['%s'].vector_fields['%s'] = field", n, namec);
   PyRun_SimpleString(t);
 
   // Clean up
@@ -315,7 +358,7 @@ void python_add_vector_(int *num_dim, int *s,
 
 void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int num_dim[],
   char *name,int *nlen, int *field_type, char *option_path, int *oplen, char *state,int *slen,
-  char *mesh_name, int *mesh_name_len){
+  char *mesh_name, int *mesh_name_len, int *uid){
 #ifdef HAVE_NUMPY
   // Expose a Fortran tensor field to the Python interpreter
   PyObject *pMain = PyImport_AddModule("__main__");
@@ -345,14 +388,12 @@ void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int num_dim[],
   PyRun_SimpleString("op = string.strip(op)");
 
   char *n = fix_string(state,*slen);
-  int tlen=150+*slen+*mesh_name_len;
+  int tlen=160+2**slen+*nlen+*mesh_name_len;
   char t[tlen];
-  snprintf(t, tlen, "field = TensorField(n,val,ft,op,nd0,nd1); states[\"%s\"].tensor_fields['%s'] = field",n,namec);
+  snprintf(t, tlen, "field = tensor_field_cache.setdefault(%d, TensorField(n,val,ft,op,nd0,nd1,%d,states['%s'].meshes['%s']))", *uid, *uid, n, meshc);
   PyRun_SimpleString(t);  
-
-  // Set the mesh for this field
-  snprintf(t, tlen, "field.set_mesh(states['%s'].meshes['%s'])",n,meshc);
-  PyRun_SimpleString(t);
+  snprintf(t, tlen, "states['%s'].tensor_fields['%s'] = field", n, namec);
+  PyRun_SimpleString(t);  
 
   // Clean up
   PyRun_SimpleString("del n; del op; del val; del field");
@@ -370,10 +411,73 @@ void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int num_dim[],
 }
 
 
-void python_add_mesh_(int ndglno[],int *sndglno, int *elements, int *nodes, 
-  char *name,int *nlen, char *option_path, int *oplen, 
-  int *continuity, int region_ids[], int *sregion_ids,
-  char *state_name, int *state_name_len){
+void python_add_halo_(char *name, int *name_len, int *nprocs, int *unn_offset,
+                      char *state_name, int *state_name_len, int *comm,
+                      int *uid) {
+    PyObject *pMain = PyImport_AddModule("__main__");
+    PyObject *pDict = PyModule_GetDict(pMain);
+
+    char *c_name = fix_string(name, *name_len);
+    char *c_state_name = fix_string(state_name, *state_name_len);
+
+    char *t;
+    char *str;
+    int tmp = *nprocs;
+    int c_nprocs = *nprocs;
+    int digits = 0;
+    int maxlen;
+    int offset;
+    int i;
+    assert(tmp > 0);
+    while (tmp!=0) { tmp /= 10; ++digits; }
+
+    /* sends = (send1,...,sendN) */
+    maxlen = 11 + c_nprocs * (5 + digits);
+    t = malloc(maxlen);
+    offset = 0;
+    offset += snprintf(t, maxlen, "sends = (");
+    for ( i = 1; i < c_nprocs; i++ ) {
+        offset += snprintf(t + offset, maxlen - offset, "send%d,", i);
+    }
+    offset += snprintf(t + offset, maxlen - offset, "send%d)", c_nprocs);
+    PyRun_SimpleString(t);
+
+    /* recvs = (recv1,...,recvN) */
+    offset = 0;
+    offset += snprintf(t, maxlen, "recvs = (");
+    for ( i = 1; i < c_nprocs; i++ ) {
+        offset += snprintf(t + offset, maxlen - offset, "recv%d,", i);
+    }
+    offset += snprintf(t + offset, maxlen - offset, "recv%d)", c_nprocs);
+    PyRun_SimpleString(t);
+
+    i = 250 + strlen(c_state_name) + strlen(c_name);
+    str = malloc(i);
+    snprintf(str, i, "states['%s'].halos['%s'] = "
+        "halos_cache.setdefault(%d, Halo(sends=sends,receives=recvs,comm=%d, gnn2unn=receives_gnn2unn, unn_offset=%d))",
+             c_state_name, c_name, *uid, *comm, *unn_offset);
+    PyRun_SimpleString(str);
+    free(str);
+    PyRun_SimpleString("del sends, recvs, receives_gnn2unn");
+    for ( i = 1; i <= c_nprocs; i++ ) {
+        /* maxlen will always be long enough for this */
+        snprintf(t, maxlen, "del send%d,recv%d", i, i);
+        PyRun_SimpleString(t);
+    }
+    free(t);
+    free(c_name);
+    free(c_state_name);
+}
+void python_add_mesh_(int ndglno[],int *sndglno, int *elements,
+                      int *element_classes, int *nodes,
+                      int *node_classes, char *name, int *nlen,
+                      char *parent_name, int *plen, char *option_path,
+                      int *oplen, int *continuity, int region_ids[],
+                      int *sregion_ids,
+                      char *state_name, int *state_name_len,
+                      char *halo_name, int *halo_name_len,
+                      char *element_halo_name, int *element_halo_name_len,
+                      int *uid){
 #ifdef HAVE_NUMPY
   // Add the Mesh to the interpreter
   PyObject *pMain = PyImport_AddModule("__main__");
@@ -381,6 +485,8 @@ void python_add_mesh_(int ndglno[],int *sndglno, int *elements, int *nodes,
 
   // Fix the Fortran strings for C and Python
   char *namec = fix_string(name,*nlen);
+  char *tmp;
+  char *pnamec = fix_string(parent_name,*plen);
   char *opc = fix_string(option_path,*oplen);
 
   python_add_array_integer_1d(ndglno, sndglno,"mesh_array");
@@ -396,22 +502,81 @@ void python_add_mesh_(int ndglno[],int *sndglno, int *elements, int *nodes,
   PyRun_SimpleString("op = string.strip(op)");
 
   char *n = fix_string(state_name,*state_name_len);
-  int tlen=150 + *state_name_len;
+  int tlen=250 + *state_name_len;
   char t[tlen];
 
-  snprintf(t, tlen, "states[\"%s\"].meshes[\"%s\"] = Mesh(mesh_array,%d,%d,%d,n,op,region_ids)",n,namec,*elements,*nodes,*continuity);
+  if (*plen > 1) {
+    snprintf(t, tlen, "m = states['%s'].meshes.get('%s')", n, pnamec);
+    PyRun_SimpleString(t);
+  } else {
+    snprintf(t, tlen, "m = None");
+    PyRun_SimpleString(t);
+  }
+  if (*halo_name_len > 0) {
+      tmp = fix_string(halo_name, *halo_name_len);
+      snprintf(t, tlen, "halo = states['%s'].halos.get('%s')", n, tmp);
+      PyRun_SimpleString(t);
+      free(tmp);
+  } else {
+      PyRun_SimpleString("halo = None");
+  }
+  if (*element_halo_name_len > 0 ) {
+      tmp = fix_string(element_halo_name, *element_halo_name_len);
+      snprintf(t, tlen, "element_halo = states['%s'].halos.get('%s')", n, tmp);
+      PyRun_SimpleString(t);
+      free(tmp);
+  } else {
+      PyRun_SimpleString("element_halo = None");
+  }
+  snprintf(t, tlen, "element_classes = (%d, %d, %d, %d)",
+           element_classes[0], element_classes[1],
+           element_classes[2], element_classes[3]);
   PyRun_SimpleString(t);
-  snprintf(t, tlen, "m = states[\"%s\"].meshes[\"%s\"]",n,namec);
+  snprintf(t, tlen, "node_classes = (%d, %d, %d, %d)",
+           node_classes[0], node_classes[1],
+           node_classes[2], node_classes[3]);
+  PyRun_SimpleString(t);
+  snprintf(t, tlen,
+      "states['%s'].meshes['%s'] = mesh_cache.setdefault(%d, Mesh(mesh_array,%d,element_classes,%d,node_classes,%d,n,m,op,region_ids,%d,node_halo=halo, element_halo=element_halo))",
+      n, namec, *uid, *elements, *nodes, *continuity, *uid);
   PyRun_SimpleString(t);
 
   // Clean up
-  PyRun_SimpleString("del n; del op; del m");
+  PyRun_SimpleString("del n; del op; del m; del element_classes; del node_classes; del element_halo; del halo");
   free(namec); 
+  free(pnamec); 
   free(n); 
   free(opc);
 
   Py_DECREF(pname);
   Py_DECREF(poptionp);
+#endif
+}
+
+
+void python_add_faces_(char *state_name, int *state_name_len,
+                       char *mesh_name,  int *mesh_name_len,
+                       char *surface_mesh_name, int *surface_mesh_name_len,
+                       int surface_node_list[], int *ssurface_node_list,
+                       int face_element_list[], int *sface_element_list,
+                       int boundary_ids[], int *sboundary_ids)
+{
+#ifdef HAVE_NUMPY
+  char *meshc = fix_string(mesh_name,*mesh_name_len);
+  char *statec = fix_string(state_name,*state_name_len);
+  char *surface_meshc = fix_string(surface_mesh_name,*surface_mesh_name_len);
+  int tlen = 200+*mesh_name_len+*state_name_len+*surface_mesh_name_len;
+  char t[tlen];
+
+  python_add_array_integer_1d(surface_node_list, ssurface_node_list, "surface_node_list_array");
+  python_add_array_integer_1d(face_element_list, sface_element_list, "face_element_list_array");
+  python_add_array_integer_1d(boundary_ids, sboundary_ids, "boundary_ids_array");
+
+  snprintf(t, tlen, "faces = Faces(surface_node_list_array, face_element_list_array, boundary_ids_array); states['%s'].meshes['%s'].faces = faces; faces.surface_mesh = states['%s'].meshes['%s']",
+           statec, meshc, statec, surface_meshc);
+  PyRun_SimpleString(t);
+
+  PyRun_SimpleString("del surface_node_list_array; del face_element_list_array; del boundary_ids_array");
 #endif
 }
 

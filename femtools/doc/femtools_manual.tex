@@ -1152,6 +1152,79 @@ following weights and positions:
   \end{tabular}
 \end{center}
 
+\chapter{Cells}
+
+Finite element basis functions are defined over individual topological cells. Femtools currently
+supports interval cells in 1D, triangle and quadrialateral (quad) cells in
+2D, and tetrahedral (tet) and hexahedral (hex) cells in 3D. For the purposes
+of numbering conventions and the like, these are split into the simplex
+family (intervals, triangles and tets) and the hypercube family (quads and
+hexes). The inclusion of the interval in the simplex family is arbitrary as
+the interval is both the 1-simplex and the 1-hypercube.
+
+\begin{figure}[ht]
+  \centering
+  \input{interval_numbering.pdftex_t}
+  \caption{The reference interval.}
+  \label{fig:ref_interval}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \input{triangle_numbering.pdftex_t}
+  \caption{The reference triangle.}
+  \label{fig:ref_triangle}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \input{quad_numbering.pdftex_t}
+  \caption{The reference quadrilateral.}
+  \label{fig:ref_quad}
+\end{figure}
+
+
+\begin{figure}
+  \centering
+  \input{tet_numbering.pdftex_t}
+  \caption{The reference tetrahedron.}
+  \label{fig:ref_tet}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \input{hex_numbering.pdftex_t}
+  \caption{The reference hexahedron.}
+  \label{fig:ref_hex}
+\end{figure}
+
+% \section{Changing local coordinates}
+
+% Suppose we have a facet, given by an ordered tuple of cell vertices
+% $(v^f_1\ldots\v^f_n)$ and we wish to express the local coordinates of the cells
+% on that facet with respect to the local coordinates of the cell. In other
+% words, we wish to be able to write:
+% \begin{equation}
+%   \vecxi^f=g(\vecxi^c)
+% \end{equation}
+% Note that $(v^f_1\ldots\v^f_n)$ are in consistent ordering for the facet
+% considered as a cell on its own, which is not the same ordering or orientation as the facet
+% considered has in the cell. The point of the change of coordinates is to
+% cater for this change of orientation in numbering.
+
+% The change of coordinates formula is given by:
+% \begin{equation}
+%   \vecxi^f=\mat{A}\left(\vecxi^c-\vecxi^c(v^f_1)\right)
+% \end{equation}
+% where:
+% \begin{equation}
+%   \mat(A)^\mathrm{T}=
+%   \begin{bmatrix}
+%     \vecxi^c(v^f_2)-\vecxi^c(v^f_1)&|&\vecxi^c(v^f_3)-\vecxi^c(v^f_1)
+%   \end{bmatrix}
+
+% \end{equation}
+
 \chapter{Elements}
 
 The \elementtype\ data structure holds shape function information for a
@@ -1183,7 +1256,6 @@ following matrix:
 
 
 \section{Changing coordinates}
-
 
 
 
@@ -1416,6 +1488,57 @@ in the third dimension. In this case, the topological dimension of the mesh
 would be 2 but we might require all 3 components of the Velocity field in
 order to calculate the Coriolis term in the plane in which we are actually
 solving the equations.
+
+
+\section{Changing coordinates and bases}
+A number of routines have been implemented in \lstinline{femtools/Coordinates.F90}
+that can be used for coordinate transformations and vector/tensor change of basis.
+The transformations available allow expression of tensor fields in three coordinate
+systems:
+\begin{enumerate}
+\item{\emph{Cartesian coordinates:}} The coordinate-set used in Fluidity. In an
+ocean modelling context the origin of the axes is placed at the centre of the planet,
+the $x$--axis goes through the $0^\circ$ East, $0^\circ$ North point on the surface,
+the $y$--axis goes through the $90^\circ$ East, $0^\circ$ North point on the surface
+and the $z$--axis runs though the planet's poles (spherical planet assumed).
+\item{\emph{Spherical-polar coordinates:}} The position vector is specified in terms
+of $\left[ r \ \theta \ \phi \right]^T$, where $r$ is the distance from the axes origin,
+$\theta$ is the polar angle and $\phi$ is the azimuthal angle, also shown in the left
+panel of figure \ref{fig:polarCoordinates}. The vector basis is $\left[ \hat{e}_r \ \hat{e}_\theta \ \hat{e}_\phi \right]^T$, also shown in figure \ref{fig:polarCoordinates}.
+\item{\emph{longitude--latitude coordinates:}} The position vector is specified in terms of $\left[ \lambda \ \delta \ r \right]^T$, where $\lambda$ is the longitude $\delta$ is the latitude and $r$ is the distance from the axes origin, as shown in the right panel of figure \ref{fig:polarCoordinates}. The vector basis is $\left[ \hat{e}_\lambda \ \hat{e}_\delta \ \hat{e}_r \right]^T$, also shown in figure \ref{fig:polarCoordinates}.
+\end{enumerate}
+\begin{figure}[ht]
+  \centering
+  \scalebox{0.55}{\includegraphics{coordinate_transformations.png}}
+  \caption{Polar coordinates. Left: Spherical-polar coordinates where $\phi$ is the azimuthal angle and $\theta$ is the polar angle. Right: Longitude-latitude coordinates where $\lambda$ denotes longitude and $\delta$ denotes latitude.}
+  \label{fig:polarCoordinates}
+\end{figure}
+\par
+The transformation routines also feature C-interoperable routines so that the
+tansformations can also be called from C/C++ code. The C function prototypes are
+located in \lstinline{include/coordinates.h}.
+\par
+The following lists the availabe transformations:
+\begin{itemize}
+\item{\textbf{Spherical-polar to Cartesian}}\\
+Fortran routine: \lstinline{spherical_polar_2_cartesian}\\
+Fortran routine unit-test: \lstinline{femtools/tests/test_spherical_polar_2_cartesian.F90}\\
+C-inter-operable wrapper: \lstinline{spherical_polar_2_cartesian_c}\\
+C-inter-operable wrapper unit-test: \lstinline{femtools/tests/test_spherical_polar_2_cartesian_c.F90}\\
+Interface: describe routine interface, state that angles are expected in radians\\
+Short description.
+
+\item{\textbf{Cartesian to Spherical-polar}}\\
+Fortran routine: \lstinline{cartesian_2_spherical_polar}\\
+Fortran routine unit-test: \lstinline{femtools/tests/test_cartesian_2_spherical_polar.F90}\\
+C-inter-operable wrapper: \lstinline{cartesian_2_spherical_polar_c}\\
+C-inter-operable wrapper unit-test: \lstinline{femtools/tests/test_cartesian_2_spherical_polar_c.F90}\\
+Interface: describe routine interface, state that angles are returned in radians\\
+Short description.
+\end{itemize}
+\par
+Write about the python version of the transformation routines. Module available as \lstinline{python/GFD_basisChange_tools.py}. Example of use in \lstinline{tests/data/on_sphere_rotations/construct_fields.py}, where the dataset used in the unit-tests is constructed.
+
 
 
 \chapter{State dictionaries}\targetlabel{chap:state}
@@ -3420,7 +3543,7 @@ function shape_vector_rhs(shape, vector, detwei)
   real, dimension(:,:), intent(in) :: vector
   real, dimension(shape1%ngi), intent(in) :: detwei
 
-  real, dimension(shape%loc, vector_dim(vector)) :: shape_vector_rhs
+  real, dimension(vector_dim(vector), shape%loc) :: shape_vector_rhs
 \end{lstlisting}
 
 This routine constructs the following matrix:
@@ -3440,7 +3563,7 @@ function shape_tensor_rhs(shape, tensor, detwei)
   real, dimension(:,:,:), intent(in) :: tensor
   real, dimension(shape1%ngi), intent(in) :: detwei
 
-  real, dimension(shape%loc, tensor_dim(tensor,1), tensor_dim(tensor,2)) &
+  real, dimension(tensor_dim(tensor,1), tensor_dim(tensor,2), shape%loc) &
        & :: shape_tensor_rhs
 \end{lstlisting}
 

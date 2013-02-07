@@ -151,7 +151,7 @@ module unify_meshes_module
     ele_accum = 1
     node_accum = 1
     do ele=1,ele_count(lposA)
-      new_nodes = (/ (i, i=posA%mesh%shape%loc * (ele_accum-1)+1,posA%mesh%shape%loc*ele_accum) /)
+      new_nodes = (/ (i, i=posA%mesh%shape%ndof * (ele_accum-1)+1,posA%mesh%shape%ndof*ele_accum) /)
       call set_ele_nodes(meshC, ele_accum, new_nodes)
 
       old_nodes => ele_nodes(lposA, ele)
@@ -162,7 +162,7 @@ module unify_meshes_module
       ele_accum = ele_accum + 1
     end do
     do ele=1,ele_count(lposB)
-      new_nodes = (/ (i, i=posA%mesh%shape%loc * (ele_accum-1)+1,posA%mesh%shape%loc*ele_accum) /)
+      new_nodes = (/ (i, i=posA%mesh%shape%ndof * (ele_accum-1)+1,posA%mesh%shape%ndof*ele_accum) /)
       call set_ele_nodes(meshC, ele_accum, new_nodes)
 
       old_nodes => ele_nodes(lposB, ele)

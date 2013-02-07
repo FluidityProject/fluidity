@@ -30,6 +30,16 @@ surface or region IDs.</a:documentation>
             </attribute>
             <ref name="comment"/>
           </element>
+          <element name="format">
+            <a:documentation>ExodusII mesh format.
+
+&lt;b&gt;Note: Only works for serial mesh files and 
+Checkpoints are dumped in the GMSH file format.&lt;/b&gt;</a:documentation>
+            <attribute name="name">
+              <value>exodusii</value>
+            </attribute>
+            <ref name="comment"/>
+          </element>
         </choice>
         <attribute name="file_name">
           <data type="string"/>
@@ -56,13 +66,15 @@ surface or region IDs.</a:documentation>
               <element name="element_type">
                 <element name="string_value">
                   <a:documentation>Select the element type. "lagrangian" means the usual
-Pn element type. "bubble" adds bubble functions that
+Pn element type. "discontinuous lagrangian" is the corresponding DG element. 
+"bubble" adds bubble functions that
 vanish on the element boundaries, and
 trace defines an element that is only defined on faces
 and is undefined on the element interior (used for 
 enforcing continuity by Lagrange multipliers).</a:documentation>
                   <choice>
                     <value>lagrangian</value>
+                    <value>discontinuous lagrangian</value>
                     <value>bubble</value>
                     <value>trace</value>
                   </choice>
@@ -76,16 +88,6 @@ breaks interpolation.</a:documentation>
                 </optional>
               </element>
             </optional>
-          </element>
-        </optional>
-        <optional>
-          <element name="mesh_continuity">
-            <element name="string_value">
-              <choice>
-                <value>continuous</value>
-                <value>discontinuous</value>
-              </choice>
-            </element>
           </element>
         </optional>
         <optional>

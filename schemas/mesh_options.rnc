@@ -21,6 +21,14 @@ mesh_info =
             element format {
                attribute name { "gmsh" },
                comment
+            }|
+            ## ExodusII mesh format.
+            ##
+            ##<b>Note: Only works for serial mesh files and 
+            ## Checkpoints are dumped in the GMSH file format.</b>
+            element format {
+               attribute name { "exodusii" },
+               comment
             }
          ),
          attribute file_name { xsd:string },
@@ -39,13 +47,14 @@ mesh_info =
             }?,
             element element_type {
                ## Select the element type. "lagrangian" means the usual
-               ## Pn element type. "bubble" adds bubble functions that
+               ## Pn element type. "discontinuous lagrangian" is the corresponding DG element. 
+               ## "bubble" adds bubble functions that
                ## vanish on the element boundaries, and
                ## trace defines an element that is only defined on faces
                ## and is undefined on the element interior (used for 
                ## enforcing continuity by Lagrange multipliers).
               element string_value{
-                 "lagrangian" | "bubble" | "trace"
+                 "lagrangian" | "discontinuous lagrangian" | "bubble" | "trace"
               },
               ## Make the basis nodal. Useful for bubble spaces, 
               ## breaks interpolation.
@@ -53,11 +62,6 @@ mesh_info =
                  empty
               }?
             }?
-         }?,
-         element mesh_continuity {
-            element string_value{
-               "continuous" | "discontinuous"
-            }
          }?,
          ## Constraint type.  
          ## Apply additional constraints to the polynomial representation

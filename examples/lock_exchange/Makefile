@@ -1,16 +1,18 @@
-preprocess: 
+include envcheck.mk
+
+preprocess: envcheck
 	@echo **********Generating the mesh using gmsh in 2d:
 	gmsh -2 -v 0 channel_2d.geo
 	@echo **********Converting the gmsh mesh to triangle format:
-	../../bin/gmsh2triangle -2 channel_2d.msh 
+	${BINPREFIX}gmsh2triangle -2 channel_2d.msh 
 
-run:
+run: envcheck
 	@echo **********Calling fluidity with least verbose log output enabled:
-	../../bin/fluidity -v0 -l lock_exchange.flml
+	${BINPREFIX}fluidity -v0 -l lock_exchange.flml
 
-postprocess:
+postprocess: envcheck
 	@echo **********Calling the data extraction and plotting python script:
-	python ./plot_data.py
+	PYTHONPATH=${PWD}/../../python:$$PYTHONPATH python ./plot_data.py
 
 input: clean preprocess
 

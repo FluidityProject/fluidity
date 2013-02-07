@@ -603,6 +603,16 @@ contains
 
     end do
 
+    if ((quad%vertices==4.and.quad%dim==2).or.(quad%vertices==8.and.quad&
+         &%dim==3)) then
+       ! The quadrature rules for quad and hex elements in the encyclopedia
+       ! are written for local coordinates in the interval [-1,1], however
+       ! we wish to use local coordinates in the interval [0,1]. This
+       ! requires us to change coordinates but also to scale the weights.
+       quad%l=0.5*(quad%l+1)
+       quad%weight=quad%weight/2**quad%dim
+    end if
+
   end subroutine expand_quadrature_template
 
   !------------------------------------------------------------------------

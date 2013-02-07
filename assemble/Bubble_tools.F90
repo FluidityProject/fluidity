@@ -92,7 +92,7 @@
       if(p2b_field%mesh%shape%dim.ne.2) then
          FLAbort('Only works for 2d meshes')
       end if
-      if(p2b_field%mesh%shape%loc.ne.7) then
+      if(p2b_field%mesh%shape%ndof.ne.7) then
          FLAbort('Expected p2 bubble mesh')
       end if
 
@@ -162,7 +162,7 @@
       if(field_projected%mesh%shape%dim.ne.2) then
          FLAbort('Only works for 2d meshes')
       end if
-      if(field_projected%mesh%shape%loc.ne.7) then
+      if(field_projected%mesh%shape%ndof.ne.7) then
          FLAbort('Expected p2 bubble mesh')
       end if
       X=>extract_vector_field(state, "Coordinate")
