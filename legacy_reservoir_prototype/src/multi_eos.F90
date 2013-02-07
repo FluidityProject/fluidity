@@ -1181,7 +1181,7 @@
                            end do
                         end do
 
-                        mat = matmul( inverse( material_absorption( mat_nod, s : e, s : e ) ), sigma_out )
+                        mat = matmul( sigma_out, inverse( material_absorption( mat_nod, s : e, s : e ) ) )
                         suf_sig_diagten_bc( cv_snodi_ipha, 1 : ndim ) = (/ (mat(i, i), i = 1, ndim) /)
 
                      end do
