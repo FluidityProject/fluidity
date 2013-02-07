@@ -47,7 +47,7 @@ module burgers_adjoint_callbacks
 
     private
 
-    public :: register_burgers_operator_callbacks
+    public :: register_burgers_operator_callbacks, burgers_equation_forward_source
 
     contains
 

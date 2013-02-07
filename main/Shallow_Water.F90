@@ -163,7 +163,7 @@
     call register_functional_callbacks()
     if (.not. adjoint) then
       ! disable the adjointer
-      ierr = adj_set_option(adjointer, ADJ_ACTIVITY, ADJ_ACTIVITY_NOTHING)
+      ierr = adj_deactivate_adjointer(adjointer) 
       call adj_chkierr(ierr)
     end if
 #endif

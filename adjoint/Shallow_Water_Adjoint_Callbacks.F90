@@ -46,7 +46,7 @@ module shallow_water_adjoint_callbacks
 
     private
 
-    public :: register_sw_operator_callbacks
+    public :: register_sw_operator_callbacks, shallow_water_forward_source
 
     contains
 
