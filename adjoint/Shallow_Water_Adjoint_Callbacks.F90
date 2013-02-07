@@ -87,9 +87,6 @@ module shallow_water_adjoint_callbacks
       call adj_chkierr(ierr)
       ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "MassCartesianProjection", c_funloc(cartesian_projection_action_callback))
       call adj_chkierr(ierr)
-
-      ierr = adj_register_forward_source_callback(adjointer, c_funloc(shallow_water_forward_source))
-      call adj_chkierr(ierr)
     end subroutine register_sw_operator_callbacks
 
     subroutine cartesian_velocity_mass_assembly_callback(nvar, variables, dependencies, hermitian, coefficient, context, output, rhs) bind(c)

@@ -1025,7 +1025,7 @@ AC_LANG_SAVE
 AC_LANG_C
 AC_CHECK_LIB(
 	[adjoint],
-	[adj_register_forward_source_callback],
+	[adj_get_adjoint_equation],
 	[AC_DEFINE(HAVE_ADJOINT,1,[Define if you have libadjoint.])HAVE_ADJOINT=yes],
 	[AC_MSG_WARN( [Could not link in libadjoint ... ] );HAVE_ADJOINT=no;LIBS=$bakLIBS] )
 # Save variables...

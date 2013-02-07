@@ -692,6 +692,8 @@
       call adj_chkierr(ierr)
       ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
       call adj_chkierr(ierr)
+      ierr = adj_equation_set_rhs_callback(equation, c_funloc(burgers_equation_forward_source))
+      call adj_chkierr(ierr)
 
       ierr = adj_register_equation(adjointer, equation)
       call adj_chkierr(ierr)
@@ -806,6 +808,8 @@
                                             & targets=(/previous_u, u/), equation=equation)
         call adj_chkierr(ierr)
         ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
+        call adj_chkierr(ierr)
+        ierr = adj_equation_set_rhs_callback(equation, c_funloc(burgers_equation_forward_source))
         call adj_chkierr(ierr)
 
         ierr = adj_register_equation(adjointer, equation)

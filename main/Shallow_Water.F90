@@ -992,6 +992,8 @@
 
       ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
       call adj_chkierr(ierr)
+      ierr = adj_equation_set_rhs_callback(equation, c_funloc(shallow_water_forward_source))
+      call adj_chkierr(ierr)
       ierr = adj_register_equation(adjointer, equation)
       call adj_chkierr(ierr)
 
@@ -1052,6 +1054,8 @@
 
         ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
         call adj_chkierr(ierr)
+        ierr = adj_equation_set_rhs_callback(equation, c_funloc(shallow_water_forward_source))
+        call adj_chkierr(ierr)
         ierr = adj_register_equation(adjointer, equation)
         call adj_chkierr(ierr)
 
@@ -1076,6 +1080,8 @@
         call adj_chkierr(ierr)
 
         ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
+        call adj_chkierr(ierr)
+        ierr = adj_equation_set_rhs_callback(equation, c_funloc(shallow_water_forward_source))
         call adj_chkierr(ierr)
         ierr = adj_register_equation(adjointer, equation)
         call adj_chkierr(ierr)
@@ -1106,6 +1112,8 @@
 
         ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
         call adj_chkierr(ierr)
+        ierr = adj_equation_set_rhs_callback(equation, c_funloc(shallow_water_forward_source))
+        call adj_chkierr(ierr)
         ierr = adj_register_equation(adjointer, equation)
         call adj_chkierr(ierr)
 
@@ -1132,6 +1140,8 @@
         call adj_chkierr(ierr)
 
         ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
+        call adj_chkierr(ierr)
+        ierr = adj_equation_set_rhs_callback(equation, c_funloc(shallow_water_forward_source))
         call adj_chkierr(ierr)
         ierr = adj_register_equation(adjointer, equation)
         call adj_chkierr(ierr)
@@ -1270,6 +1280,8 @@
       call adj_chkierr(ierr)
       ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
       call adj_chkierr(ierr)
+      ierr = adj_equation_set_rhs_callback(equation, c_funloc(shallow_water_forward_source))
+      call adj_chkierr(ierr)
       ierr = adj_register_equation(adjointer, equation)
       call adj_chkierr(ierr)
       ierr = adj_destroy_equation(equation)
@@ -1279,6 +1291,8 @@
                                     & targets=(/previous_eta, delta_eta, eta/), equation=equation)
       call adj_chkierr(ierr)
       ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
+      call adj_chkierr(ierr)
+      ierr = adj_equation_set_rhs_callback(equation, c_funloc(shallow_water_forward_source))
       call adj_chkierr(ierr)
       ierr = adj_register_equation(adjointer, equation)
       call adj_chkierr(ierr)
@@ -1290,6 +1304,8 @@
       call adj_chkierr(ierr)
       ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
       call adj_chkierr(ierr)
+      ierr = adj_equation_set_rhs_callback(equation, c_funloc(shallow_water_forward_source))
+      call adj_chkierr(ierr)
       ierr = adj_register_equation(adjointer, equation)
       call adj_chkierr(ierr)
       ierr = adj_destroy_equation(equation)
@@ -1300,6 +1316,8 @@
       call adj_chkierr(ierr)
       ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
       call adj_chkierr(ierr)
+      ierr = adj_equation_set_rhs_callback(equation, c_funloc(shallow_water_forward_source))
+      call adj_chkierr(ierr)
       ierr = adj_register_equation(adjointer, equation)
       call adj_chkierr(ierr)
       ierr = adj_destroy_equation(equation)
@@ -1309,6 +1327,8 @@
                                     & targets=(/u, cartesian_u/), equation=equation)
       call adj_chkierr(ierr)
       ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
+      call adj_chkierr(ierr)
+      ierr = adj_equation_set_rhs_callback(equation, c_funloc(shallow_water_forward_source))
       call adj_chkierr(ierr)
       ierr = adj_register_equation(adjointer, equation)
       call adj_chkierr(ierr)

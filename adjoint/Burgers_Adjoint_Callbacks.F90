@@ -70,9 +70,6 @@ module burgers_adjoint_callbacks
 
       ierr = adj_register_operator_callback(adjointer, ADJ_NBLOCK_ACTION_CB, "AdvectionOperator", c_funloc(advection_action_proc))
       call adj_chkierr(ierr)
-
-      ierr = adj_register_forward_source_callback(adjointer, c_funloc(burgers_equation_forward_source))
-      call adj_chkierr(ierr)
     end subroutine register_burgers_operator_callbacks
 
     subroutine velocity_identity_assembly_callback(nvar, variables, dependencies, hermitian, coefficient, context, output, rhs) bind(c)
