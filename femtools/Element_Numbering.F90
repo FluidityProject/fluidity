@@ -2401,6 +2401,9 @@ contains
     
     integer, dimension(size(ele_num%number2count, 1)) :: count_coords
     integer :: i
+    integer, allocatable, dimension(:) :: boundary2element,&
+         &boundary2count_component
+    real, allocatable, dimension(:) :: boundary2local_coordinate
 
     select case(ele_num%type)
     case (ELEMENT_LAGRANGIAN)
@@ -2478,7 +2481,67 @@ contains
              coords(n) = 0.0
           end if
        case (FAMILY_CUBE)
-          FLAbort('I *thought* this wasn''t needed.')
+
+          !for trace elements, the first count coordinate is the 
+          !boundary number.
+          !The other coordinates are the count coordinates on the 
+          !boundary.
+
+          if(ele_num%dimension==2) then
+             !special case for quads because the boundary element 
+             !type is simplex, not cubes
+
+             !the mapping from boundary count coordinates to 
+             !element count
+             !coordinates is done in ascending component order
+             coords = 0.
+             count_coords=ele_num%number2count(:,n)
+
+             !numbering is
+             !       4
+             !   3      4
+             !  1        2
+             !   1      2
+             !       3
+             
+             !local coordinates are
+             !  0,1 -- 1,1
+             !   |      |
+             !  0,0 -- 1,0
+
+             allocate(boundary2element(4),boundary2count_component(4),&
+                  &boundary2local_coordinate(4))
+             !boundary2element(i) is the element count coordinate
+             !component corresponding to boundary element component i
+             boundary2element = (/2,2,1,1/)
+             !boundary2count_component is the component of the 
+             !element local coordinates that is held constant on 
+             !this boundary
+             boundary2count_component = (/1,1,2,2/)
+             !boundary2local_coordinate is the value of the 
+             !local coordinate on that boundary
+             boundary2local_coordinate = (/-1.,1.,-1.,1./)
+             
+             i = boundary2element(count_coords(1))
+             if(ele_num%degree>0) then
+                !count_coords(3) increases with increasing element count
+                !coordinate component boundar2element(count_coords(1))
+                coords(i)=&
+                     &2.*count_coords(3)/real(ele_num%degree)-1.
+             else
+                !special case for degree 0 trace space,
+                !a single node in the middle of the face
+                coords(i)=0.
+             end if
+             i = boundary2count_component(count_coords(1))
+             coords(i)=&
+                  &boundary2local_coordinate(count_coords(1))
+
+             deallocate(boundary2element,boundary2count_component,&
+                  &boundary2local_coordinate)
+          else 
+             FLAbort('Haven''t implemented the dimension yet.')
+          end if
 
        case default
           
