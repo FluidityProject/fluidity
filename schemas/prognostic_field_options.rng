@@ -632,21 +632,32 @@ where N_a and N_b are shape functions of the ath and bth node respectively and m
           </element>
           <optional>
             <element name="les_model">
-              <a:documentation>large-eddy simulation models (currently restricted to use in incompressible flow cases, where the discrete velocity is divergence-free and the eddy viscosity tensor is traceless)</a:documentation>
+              <a:documentation>Large-eddy simulation (LES) models. Currently restricted to use in incompressible flow cases, where the discrete velocity is divergence-free and the eddy viscosity tensor is traceless.</a:documentation>
               <choice>
                 <element name="second_order">
-                  <a:documentation>similar to the original Smag model</a:documentation>
+                  <a:documentation>Similar to the original Smagorinsky model</a:documentation>
                   <element name="smagorinsky_coefficient">
-                    <a:documentation>literature symbol: Cs
+                    <a:documentation>Literature symbol: Cs
 
-suggested value 0.1</a:documentation>
+Suggested value: 0.1</a:documentation>
                     <ref name="real"/>
+                  </element>
+                  <element name="length_scale_type">
+                    <a:documentation>The 'scalar' length scale is the cube root of the element's volume in 3D. In 2D, it is the square root of the element's area. Using this will result in an isotropic eddy viscosity tensor.
+
+The 'tensor' length scale uses the metric from the adaptivity process. Using this will result in an anisotropic eddy viscosity tensor.</a:documentation>
+                    <choice>
+                      <value>scalar</value>
+                      <value>tensor</value>
+                    </choice>
                   </element>
                   <optional>
                     <element name="tensor_field">
-                      <a:documentation>eddy viscosity (turbulent diffusion of velocity).
-This is an anisotropic symmetric viscosity, added to normal viscosity field, that
-carries the influence of turbulence onto the velocity field.</a:documentation>
+                      <a:documentation>Eddy viscosity diagnostic field (turbulent diffusion of velocity).
+This is a symmetric viscosity, added to normal viscosity field, that
+carries the influence of turbulence onto the velocity field. It will
+be anisotropic if the 'tensor' length scale is chosen. Otherwise, it
+will be isotropic.</a:documentation>
                       <attribute name="rank">
                         <value>2</value>
                       </attribute>
@@ -657,6 +668,20 @@ carries the influence of turbulence onto the velocity field.</a:documentation>
                         <ref name="internal_algorithm"/>
                         <ref name="velocity_mesh_choice"/>
                         <ref name="diagnostic_tensor_field"/>
+                        <element name="mass_matrix">
+                          <choice>
+                            <element name="use_lumped_mass_matrix">
+                              <optional>
+                                <element name="use_submesh">
+                                  <empty/>
+                                </element>
+                              </optional>
+                            </element>
+                            <element name="use_consistent_mass_matrix">
+                              <empty/>
+                            </element>
+                          </choice>
+                        </element>
                       </element>
                     </element>
                   </optional>
@@ -731,7 +756,7 @@ with the test filter - see manual.</a:documentation>
                       <element name="diagnostic">
                         <ref name="internal_algorithm"/>
                         <ref name="velocity_mesh_choice"/>
-                        <ref name="diagnostic_vector_field"/>
+                        <ref name="diagnostic_tensor_field"/>
                       </element>
                     </element>
                   </optional>
@@ -748,6 +773,20 @@ with the test filter - see manual.</a:documentation>
                         <ref name="internal_algorithm"/>
                         <ref name="velocity_mesh_choice"/>
                         <ref name="diagnostic_tensor_field"/>
+                        <element name="mass_matrix">
+                          <choice>
+                            <element name="use_lumped_mass_matrix">
+                              <optional>
+                                <element name="use_submesh">
+                                  <empty/>
+                                </element>
+                              </optional>
+                            </element>
+                            <element name="use_consistent_mass_matrix">
+                              <empty/>
+                            </element>
+                          </choice>
+                        </element>
                       </element>
                     </element>
                   </optional>
@@ -764,6 +803,20 @@ with the test filter - see manual.</a:documentation>
                         <ref name="internal_algorithm"/>
                         <ref name="velocity_mesh_choice"/>
                         <ref name="diagnostic_tensor_field"/>
+                        <element name="mass_matrix">
+                          <choice>
+                            <element name="use_lumped_mass_matrix">
+                              <optional>
+                                <element name="use_submesh">
+                                  <empty/>
+                                </element>
+                              </optional>
+                            </element>
+                            <element name="use_consistent_mass_matrix">
+                              <empty/>
+                            </element>
+                          </choice>
+                        </element>
                       </element>
                     </element>
                   </optional>
@@ -780,6 +833,20 @@ with the test filter - see manual.</a:documentation>
                         <ref name="internal_algorithm"/>
                         <ref name="velocity_mesh_choice"/>
                         <ref name="diagnostic_tensor_field"/>
+                        <element name="mass_matrix">
+                          <choice>
+                            <element name="use_lumped_mass_matrix">
+                              <optional>
+                                <element name="use_submesh">
+                                  <empty/>
+                                </element>
+                              </optional>
+                            </element>
+                            <element name="use_consistent_mass_matrix">
+                              <empty/>
+                            </element>
+                          </choice>
+                        </element>
                       </element>
                     </element>
                   </optional>
@@ -798,6 +865,20 @@ carries the influence of turbulence onto the velocity field.</a:documentation>
                         <ref name="internal_algorithm"/>
                         <ref name="velocity_mesh_choice"/>
                         <ref name="diagnostic_tensor_field"/>
+                        <element name="mass_matrix">
+                          <choice>
+                            <element name="use_lumped_mass_matrix">
+                              <optional>
+                                <element name="use_submesh">
+                                  <empty/>
+                                </element>
+                              </optional>
+                            </element>
+                            <element name="use_consistent_mass_matrix">
+                              <empty/>
+                            </element>
+                          </choice>
+                        </element>
                       </element>
                     </element>
                   </optional>

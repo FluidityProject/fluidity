@@ -91,7 +91,7 @@ endif
 THREADS=1
 
 EXCLUDE_TAGS =
-ifneq (@ZOLTAN@,yes)
+ifneq (@HAVE_ZOLTAN@,yes)
 	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e zoltan
 else
 	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e nozoltan

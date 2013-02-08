@@ -446,14 +446,15 @@ Interpolation_manager.o ../include/interpolation_manager.mod: \
    ../include/state_module.mod ../include/supermesh_construction.mod \
    ../include/tictoc.mod ../include/vtk_interfaces.mod
 
-../include/les_viscosity_module.mod: LES_viscosity.o
+../include/les_module.mod: LES.o
 	@true
 
-LES_viscosity.o ../include/les_viscosity_module.mod: LES_viscosity.F90 \
-   ../include/fdebug.h ../include/fetools.mod ../include/field_options.mod \
-   ../include/fields.mod ../include/global_parameters.mod \
-   ../include/smoothing_module.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/vector_tools.mod
+LES.o ../include/les_module.mod: LES.F90 ../include/fdebug.h \
+   ../include/fetools.mod ../include/field_options.mod ../include/fields.mod \
+   ../include/global_parameters.mod ../include/smoothing_module.mod \
+   ../include/solvers.mod ../include/spud.mod \
+   ../include/state_fields_module.mod ../include/state_module.mod \
+   ../include/vector_tools.mod
 
 ../include/linear_shallow_water.mod: Linear_Shallow_Water.o
 	@true
@@ -527,7 +528,7 @@ Momentum_CG.o ../include/momentum_cg.mod: Momentum_CG.F90 \
    ../include/field_derivatives.mod ../include/field_options.mod \
    ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/halos.mod \
-   ../include/les_viscosity_module.mod ../include/metric_tools.mod \
+   ../include/les_module.mod ../include/metric_tools.mod \
    ../include/multiphase_module.mod ../include/petsc_solve_state_module.mod \
    ../include/physics_from_options.mod ../include/profiler.mod \
    ../include/rotated_boundary_conditions.mod ../include/smoothing_module.mod \
