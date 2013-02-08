@@ -11778,9 +11778,9 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for adj_register_forward_source_callback in -ladjoint" >&5
-$as_echo_n "checking for adj_register_forward_source_callback in -ladjoint... " >&6; }
-if ${ac_cv_lib_adjoint_adj_register_forward_source_callback+:} false; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for adj_get_adjoint_equation in -ladjoint" >&5
+$as_echo_n "checking for adj_get_adjoint_equation in -ladjoint... " >&6; }
+if ${ac_cv_lib_adjoint_adj_get_adjoint_equation+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
@@ -11794,7 +11794,7 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 #ifdef __cplusplus
 extern "C"
 #endif
-char adj_register_forward_source_callback ();
+char adj_get_adjoint_equation ();
 #ifdef F77_DUMMY_MAIN
 
 #  ifdef __cplusplus
@@ -11814,23 +11814,23 @@ char adj_register_forward_source_callback ();
 int
 main ()
 {
-return adj_register_forward_source_callback ();
+return adj_get_adjoint_equation ();
   ;
   return 0;
 }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_adjoint_adj_register_forward_source_callback=yes
+  ac_cv_lib_adjoint_adj_get_adjoint_equation=yes
 else
-  ac_cv_lib_adjoint_adj_register_forward_source_callback=no
+  ac_cv_lib_adjoint_adj_get_adjoint_equation=no
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_adjoint_adj_register_forward_source_callback" >&5
-$as_echo "$ac_cv_lib_adjoint_adj_register_forward_source_callback" >&6; }
-if test "x$ac_cv_lib_adjoint_adj_register_forward_source_callback" = xyes; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_adjoint_adj_get_adjoint_equation" >&5
+$as_echo "$ac_cv_lib_adjoint_adj_get_adjoint_equation" >&6; }
+if test "x$ac_cv_lib_adjoint_adj_get_adjoint_equation" = xyes; then :
 
 $as_echo "#define HAVE_ADJOINT 1" >>confdefs.h
 HAVE_ADJOINT=yes
