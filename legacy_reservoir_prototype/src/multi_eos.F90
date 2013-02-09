@@ -545,7 +545,7 @@
       integer :: nphase, nstate, ncomp, totele, ndim, stotel, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, x_nloc_p1, p_nloc, mat_nloc, x_snloc, cv_snloc, u_snloc, &
            p_snloc, cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, x_nonods_p1, p_nonods, &
-           ele, imat, icv, iphase, cv_iloc, idim, jdim, ij
+           ele, imat, icv, iphase, cv_iloc, idim, jdim, ij,i
       real :: Mobility, pert
       real, dimension( :, :, : ), allocatable :: u_absorb2
       real, dimension( : ), allocatable :: satura2
@@ -611,6 +611,20 @@
 
       deallocate( u_absorb2, satura2 )
       ewrite(3,*) 'Leaving calculate_absorption'
+
+
+    if(.false.) then
+      u_absorb( :, 1:ndim, 1:ndim ) = u_absorb( :, 1+ndim:2*ndim, 1+ndim:nphase * ndim )
+       u_absorb=0.0
+       do i=1,ndim*nphase
+         if(i.le.ndim) then
+         u_absorb( :, i, i ) = 1000.0
+!         u_absorb( :, i, i ) = 1.0
+         else
+         u_absorb( :, i, i ) = 1.0
+         endif
+       end do
+     endif
 
       RETURN
 
@@ -1079,10 +1093,10 @@
     subroutine calculate_SUF_SIG_DIAGTEN_BC( suf_sig_diagten_bc, totele, stotel, cv_nloc, &
          cv_snloc, nphase, ndim, nface, mat_nonods, cv_nonods, x_nloc, ncolele, cv_ele_type, &
          finele, colele, cv_ndgln, cv_sndgln, x_ndgln, mat_ndgln, perm, material_absorption, &
-         wic_u_bc, wic_vol_bc, sat, state )
+         wic_u_bc, wic_vol_bc, sat, vol, state, x_nonods, x,y,z )
 
       integer, intent(in) :: totele, stotel, cv_nloc, cv_snloc, nphase, ndim, nface, &
-           mat_nonods, cv_nonods, x_nloc, ncolele, cv_ele_type
+           mat_nonods, cv_nonods, x_nloc, ncolele, cv_ele_type, x_nonods
       integer, dimension( totele+1 ), intent( in ) :: finele
       integer, dimension( ncolele ), intent( in ) :: colele
       integer, dimension( totele * cv_nloc ), intent( in ) :: cv_ndgln
@@ -1091,8 +1105,10 @@
       integer, dimension( totele * cv_nloc ), intent( in ) :: mat_ndgln
       integer, dimension( stotel * nphase ), intent( in ) :: wic_u_bc, wic_vol_bc
       real, dimension( totele, ndim, ndim ), intent( in ) :: perm
-      real, dimension( mat_nonods, ndim*nphase, ndim*nphase ), intent( in ) :: material_absorption
+      real, dimension( mat_nonods, ndim*nphase, ndim*nphase ), intent( inout ) :: material_absorption
       real, dimension( stotel * cv_snloc * nphase ), intent( in ) :: sat
+      real, dimension( cv_nonods * nphase ), intent( in ) :: vol
+      real, dimension( x_nonods ), intent( in ) :: x,y,z
       type(state_type), dimension( : ) :: state
 
       real, dimension( stotel * cv_snloc * nphase, ndim ), intent( inout ) :: suf_sig_diagten_bc
@@ -1104,6 +1120,7 @@
       real :: mobility, satura_bc
       real, dimension( ndim, ndim ) :: inv_perm, sigma_out, mat
       integer, dimension( :, : ), allocatable :: cv_sloclist, face_ele
+      integer, dimension( : ), allocatable :: idone
       integer, dimension( cv_snloc ) :: cv_sloc2loc
       integer, parameter :: WIC_BC_DIRICHLET = 1
 
@@ -1120,6 +1137,8 @@
 
       suf_sig_diagten_bc = 1.
 
+      allocate( idone( mat_nonods*nphase) )
+      idone=0
       allocate( cv_sloclist( nface, cv_snloc ) )
       call determin_sloclist( cv_sloclist, cv_nloc, cv_snloc, nface,  &
            ndim, cv_ele_type )
@@ -1183,6 +1202,13 @@
 
                         mat = matmul( sigma_out, inverse( material_absorption( mat_nod, s : e, s : e ) ) )
                         suf_sig_diagten_bc( cv_snodi_ipha, 1 : ndim ) = (/ (mat(i, i), i = 1, ndim) /)
+                        suf_sig_diagten_bc( cv_snodi_ipha, 1 : ndim ) =1. ! dont use as it's bugged. 
+
+                        if(idone(mat_nod+(iphase-1)*mat_nonods).eq.0) then
+                           material_absorption( mat_nod, s : e, s : e  )&
+                               =matmul(mat, material_absorption( mat_nod, s : e, s : e ) )
+                           idone(mat_nod+(iphase-1)*mat_nonods) =1
+                        endif
 
                      end do
 
@@ -1196,6 +1222,9 @@
 
       deallocate( face_ele, cv_sloclist )
 
+!suf_sig_diagten_bc=1000.0
+!suf_sig_diagten_bc=1.0
+!suf_sig_diagten_bc=100.0
 
       return
     end subroutine calculate_SUF_SIG_DIAGTEN_BC

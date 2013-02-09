@@ -602,7 +602,8 @@
                call calculate_SUF_SIG_DIAGTEN_BC( suf_sig_diagten_bc, totele, stotel, cv_nloc, &
                     cv_snloc, nphase, ndim, nface, mat_nonods, cv_nonods, x_nloc, ncolele, cv_ele_type, &
                     finele, colele, cv_ndgln, cv_sndgln, x_ndgln, mat_ndgln, permeability, material_absorption, &
-                    Velocity_U_BC_Spatial, PhaseVolumeFraction_BC_Spatial,  PhaseVolumeFraction_BC, state )
+                    Velocity_U_BC_Spatial, PhaseVolumeFraction_BC_Spatial,  PhaseVolumeFraction_BC, PhaseVolumeFraction, &
+                    state, x_nonods, x,y,z )
               endif
             end if
 
@@ -768,6 +769,10 @@
 
                ! quick fix for collapsing water column...
                ScalarField_Source_Store=0.
+!       if(sum(Velocity_u)==0.0) Velocity_u=1.e-8
+!       if(sum(Velocity_nu)==0.0) Velocity_nu=1.e-8
+!       if(sum(Velocity_u_old)==0.0) Velocity_u_old=1.e-8
+!       if(sum(Velocity_nu_old)==0.0) Velocity_nu_old=1.e-8
 
                CALL FORCE_BAL_CTY_ASSEM_SOLVE( state, &
                     NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &

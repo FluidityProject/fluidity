@@ -1238,6 +1238,15 @@
          ewrite(3,*)'b4 pressure solve P_RHS:', P_RHS
          DP = 0.
          if(.true.) then
+            
+!            do cv_nod=1,cv_nonods
+!              if(x(cv_nod).lt.0.01) then ! have a b.c on pressure using lifting
+!                 cmc(midcmc(cv_nod))=1.e+7
+!                 p_rhs(cv_nod)=(1.e+7)*10.0
+!              end if
+!            end do
+
+
             if( cv_nonods==x_nonods ) then ! a continuous pressure:
                CALL SOLVER( CMC, DP, P_RHS, &
                     FINDCMC, COLCMC, &
@@ -2671,6 +2680,8 @@
                                 ! Define the gauss points that lie on the surface of the CV...
            FINDGPTS, COLGPTS, NCOLGPTS, &
            SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE ) 
+
+!        SELE_OVERLAP_SCALE=0.5*SELE_OVERLAP_SCALE
 
       !ewrite(3,*)'cvn:',cvn
       !ewrite(3,*)'cvn_short:',cvn_short

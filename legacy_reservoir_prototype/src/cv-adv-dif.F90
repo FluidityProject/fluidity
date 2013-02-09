@@ -353,6 +353,7 @@
       INTEGER :: IDUM(1)
       REAL :: RDUM(1),n1,n2,n3
 
+
       IDUM = 0
       RDUM = 0.
 
@@ -1204,6 +1205,11 @@
                              UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2, &
                              NDOTQNEW, NDOTQOLD, LIMDT, LIMDTOLD, FTHETA_T2, ONE_M_FTHETA_T2OLD )
 
+                    !   if((sele.ne.0).and.(iphase==2).and.(cvnormx(gi).lt.-0.5)) then
+                    !      print *,'sele,UGI_COEF_ELE:',sele,UGI_COEF_ELE
+                    !      print *,'VGI_COEF_ELE:',VGI_COEF_ELE
+                    !      print *,'limdt,cvnormx(gi):',limdt,cvnormx(gi)
+                    !   endif
 
                      ENDIF Conditional_GETCT2
 
@@ -1530,10 +1536,16 @@
          ewrite(3,*) 'cv_rhs:', cv_rhs
       end if
 
-      !if( .false. .and. getct) then
-      !   ewrite(3,*)'ct(1:ncolct);',ct(1:ncolct)
-      !   ewrite(3,*)'ct(1+ncolct:2*ncolct);',ct(1+ncolct:2*ncolct)
-      !end if
+      if( .false. .and. getct) then
+         print *,'******'
+         do CV_NODI=1,cv_nonods
+            print *,'cv_nodi,ct:',cv_nodi,(ct(count),count=findct(cv_nodi),findct(cv_nodi+1)-1)
+         end do
+!         print *,'ct(1:ncolct);',ct(1:ncolct)
+!          stop 1761
+!         ewrite(3,*)'ct(1:ncolct);',ct(1:ncolct)
+!         ewrite(3,*)'ct(1+ncolct:2*ncolct);',ct(1+ncolct:2*ncolct)
+      end if
 
       if (.false. .and. getcv_disc) then
 
@@ -4613,6 +4625,7 @@
 
       ! Calculate NDOTQNEW from NDOTQ
       NDOTQNEW=NDOTQ ! initialize it like this so that it contains the b.c's
+!     if(.true.) then
       U_NLOC_LEV =U_NLOC /CV_NLOC
       DO U_KLOC = 1, U_NLOC
                U_NODK_IPHA = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC ) + (IPHASE-1)*U_NONODS
@@ -4621,8 +4634,10 @@
                + SUFEN( U_KLOC, GI ) * VGI_COEF_ELE(U_KLOC) * ( V( U_NODK_IPHA ) - NV( U_NODK_IPHA ) ) * CVNORMY(GI) &
                + SUFEN( U_KLOC, GI ) * WGI_COEF_ELE(U_KLOC) * ( W( U_NODK_IPHA ) - NW( U_NODK_IPHA ) ) * CVNORMZ(GI)
       END DO
+!     endif
 
       IF((ELE2 /= 0).AND.(ELE2 /= ELE)) THEN
+!           stop 373
          ! We have a discontinuity between elements so integrate along the face...
          DO U_KLOC = 1, U_NLOC
             U_KLOC2=U_OTHER_LOC(U_KLOC)
@@ -4771,23 +4786,15 @@
                   SUF_SIG_DIAGTEN_BC_GI(1:NDIM)=SUF_SIG_DIAGTEN_BC( CV_SNODK_IPHA,1:NDIM)
                ENDIF
             END DO
-! Only modify boundary velocity for incomming velocity...
-            IF(UDGI*CVNORMX(GI)+VDGI*CVNORMY(GI)+WDGI*CVNORMZ(GI).LT.0.0) THEN ! Incomming...
-               UGI_TMP = SUF_SIG_DIAGTEN_BC_GI(1:3) * (/UDGI, VDGI, WDGI/)
-               UDGI=UGI_TMP(1) ; VDGI=UGI_TMP(2) ; WDGI=UGI_TMP(3)
-            ENDIF
-            
-            IF(UOLDDGI*CVNORMX(GI)+VOLDDGI*CVNORMY(GI)+WOLDDGI*CVNORMZ(GI).LT.0.0) THEN ! Incomming...
-               UGI_TMP = SUF_SIG_DIAGTEN_BC_GI(1:3) * (/UOLDDGI, VOLDDGI, WOLDDGI/)
-               UOLDDGI=UGI_TMP(1) ; VOLDDGI=UGI_TMP(2) ; WOLDDGI=UGI_TMP(3)
-            ENDIF
 
+! Only modify boundary velocity for incomming velocity...
             UGI_COEF_ELE=0.0
             VGI_COEF_ELE=0.0
             WGI_COEF_ELE=0.0
             DO U_KLOC_LEV = 1, U_NLOC_LEV
                U_KLOC=(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV
                IF(UDGI*CVNORMX(GI)+VDGI*CVNORMY(GI)+WDGI*CVNORMZ(GI).LT.0.0) THEN ! Incomming...
+!               IF(.true.) THEN ! Incomming...
                   UGI_COEF_ELE(U_KLOC)=UGI_COEF_ELE(U_KLOC)+1.0*SUF_SIG_DIAGTEN_BC_GI(1)
                   VGI_COEF_ELE(U_KLOC)=VGI_COEF_ELE(U_KLOC)+1.0*SUF_SIG_DIAGTEN_BC_GI(2)
                   WGI_COEF_ELE(U_KLOC)=WGI_COEF_ELE(U_KLOC)+1.0*SUF_SIG_DIAGTEN_BC_GI(3)
@@ -4797,6 +4804,18 @@
                   WGI_COEF_ELE(U_KLOC)=WGI_COEF_ELE(U_KLOC)+1.0
                ENDIF
             END DO
+
+            IF(UDGI*CVNORMX(GI)+VDGI*CVNORMY(GI)+WDGI*CVNORMZ(GI).LT.0.0) THEN ! Incomming...
+!            IF(.true.) THEN ! Incomming...
+               UGI_TMP = SUF_SIG_DIAGTEN_BC_GI(1:3) * (/UDGI, VDGI, WDGI/)
+               UDGI=UGI_TMP(1) ; VDGI=UGI_TMP(2) ; WDGI=UGI_TMP(3)
+            ENDIF
+            
+            IF(UOLDDGI*CVNORMX(GI)+VOLDDGI*CVNORMY(GI)+WOLDDGI*CVNORMZ(GI).LT.0.0) THEN ! Incomming...
+!            IF(.true.) THEN ! Incomming...
+               UGI_TMP = SUF_SIG_DIAGTEN_BC_GI(1:3) * (/UOLDDGI, VOLDDGI, WOLDDGI/)
+               UOLDDGI=UGI_TMP(1) ; VOLDDGI=UGI_TMP(2) ; WOLDDGI=UGI_TMP(3)
+            ENDIF
 
          ELSE ! Specified vel bc.
             UDGI = 0.0
@@ -5533,9 +5552,12 @@
       ! Define whether flux is incoming or outgoing, depending on direction of flow
       INCOME = 1.
       IF( NDOTQ >= 0. ) INCOME = 0.
+!      IF( NDOTQ > 0. ) INCOME = 0.
 
       INCOMEOLD = 1.
       IF( NDOTQOLD >= 0. ) INCOMEOLD = 0.
+!      IF( NDOTQOLD > 0. ) INCOMEOLD = 0.
+
 
       RETURN  
 
@@ -5969,7 +5991,9 @@
                ENDIF
             END DO
             FVT    = INCOME * SUF_T_BC(CV_SNODK_IPHA) + ( 1. - INCOME ) * T( CV_NODI_IPHA )
-            FVTOLD = INCOMEOLD * SUF_T_BC(CV_SNODK_IPHA) + ( 1. - INCOMEOLD ) * TOLD( CV_NODI_IPHA )
+            FVTOLD = INCOMEOLD * SUF_T_BC(CV_SNODK_IPHA) + ( 1. - INCOMEOLD ) * TOLD( CV_NODI_IPHA ) 
+!            FVT    = SUF_T_BC(CV_SNODK_IPHA) 
+!            FVTOLD = SUF_T_BC(CV_SNODK_IPHA) 
 
             FVD    = INCOME * SUF_D_BC(CV_SNODK_IPHA) + ( 1. - INCOME ) * DEN( CV_NODI_IPHA )
             FVDOLD = INCOMEOLD * SUF_D_BC(CV_SNODK_IPHA) +  (1. - INCOMEOLD ) * DENOLD( CV_NODI_IPHA )
@@ -6054,6 +6078,7 @@
                   CV_SNODK_IPHA = CV_SNODK + ( IPHASE - 1 ) * STOTEL*CV_SNLOC
                   FEMTGI = FEMTGI +  SCVFEN( CV_KLOC, GI ) * ( SUF_T_BC( CV_SNODK_IPHA ) & 
                        * INCOME + FEMT( CV_NODK_IPHA ) * ( 1. -INCOME ))
+!                  FEMTGI = FEMTGI +  SCVFEN( CV_KLOC, GI ) *  SUF_T_BC( CV_SNODK_IPHA ) 
                   FEMTOLDGI = FEMTOLDGI + SCVFEN( CV_KLOC, GI ) * ( SUF_T_BC( CV_SNODK_IPHA ) &
                        * INCOMEOLD + FEMTOLD( CV_NODK_IPHA ) * ( 1. - INCOMEOLD ))
                   IF(IGOT_T2==1) THEN
@@ -6140,7 +6165,7 @@
 !                  ELE_LENGTH_SCALE=1.0/TOLFUN( SQRT(SUM( VEC_VEL2(1:NDIM)**2 )) )  
 !                  ELE_LENGTH_SCALE=0.5*HDC
 ! For discontinuous elements half the length scale...
-                  IF(U_NONODS==CV_NONODS) ELE_LENGTH_SCALE=0.5*ELE_LENGTH_SCALE
+!                  IF(U_NONODS==CV_NONODS) ELE_LENGTH_SCALE=0.5*ELE_LENGTH_SCALE
 ! For quadratic elements...
                   IF( ((NDIM==2).AND.(CV_NLOC==6)).or.((NDIM==3).AND.(CV_NLOC==10)) ) &
                       ELE_LENGTH_SCALE=0.5*ELE_LENGTH_SCALE
@@ -6200,7 +6225,7 @@
                   END DO
                   P_STAR=0.5/TOLFUN( SQRT(SUM( VEC_VEL2(1:NDIM)**2 )) )
 ! For discontinuous elements half the length scale...
-                  IF(U_NONODS==CV_NONODS) P_STAR=0.5*P_STAR 
+!                  IF(U_NONODS==CV_NONODS) P_STAR=0.5*P_STAR 
 ! For quadratic elements...
                   IF( ((NDIM==2).AND.(CV_NLOC==6)).or.((NDIM==3).AND.(CV_NLOC==10)) ) &
                       P_STAR=0.5*P_STAR
@@ -6615,6 +6640,27 @@
          !relaxold=0.
          LIMTOLD=RELAXOLD*LIMTOLD+(1.-RELAXOLD)*FEMTOLDGI
       ENDIF
+
+       if(.false.) then
+          if(iphase==1) then
+           if((sele.ne.0).and.(cvnormx(gi).lt.-0.5)) then
+                LIMD=1.0
+                LIMT=0.58
+!                LIMT=1.
+                LIMDOLD=1.0
+                LIMTOLD=0.58
+!                LIMTOLD=1.
+           end if
+          endif
+          if(iphase==2) then
+           if((sele.ne.0).and.(cvnormx(gi).lt.-0.5)) then
+                LIMD=1.0
+                LIMT=0.
+                LIMDOLD=1
+                LIMTOLD=0.
+           end if
+          endif
+      endif
 
       LIMDT = LIMD * LIMT
       LIMDTOLD = LIMDOLD * LIMTOLD
