@@ -340,9 +340,10 @@
       ! Functions...
       !REAL :: R2NORM, FACE_THETA  
       !        ===>  LOGICALS  <===
+      character( len = option_path_len ) :: overlapping_path 
       LOGICAL :: GETMAT, LIMIT_USE_2ND, &
            D1, D3, DCYL, GOT_DIFFUS, INTEGRAT_AT_GI, &
-           NORMALISE, SUM2ONE, GET_GTHETA, QUAD_OVER_WHOLE_ELE
+           NORMALISE, SUM2ONE, GET_GTHETA, QUAD_OVER_WHOLE_ELE,is_overlapping
 
       character( len = option_path_len ) :: option_path, option_path2, path_temp, path_volf, &
            path_comp, path_spatial_discretisation
@@ -405,6 +406,12 @@
          if ( have_option( trim( option_path ) // '/limiter::Extrema' ) ) &
               limit_use_2nd = .true.
       end if
+
+      is_overlapping = .false.
+      call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
+           overlapping_path )
+      if( trim( overlapping_path ) == 'overlapping' ) is_overlapping = .true.
+
 
       GOT_DIFFUS = ( R2NORM( TDIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0 )
 
@@ -628,6 +635,7 @@
       !ewrite(3,*)'iloc, cvfem_on_face:', cv_iloc, &
       !( cvfem_on_face( cv_iloc, gi ), gi = 1, scvngi )
       !end do
+
 
 
       ! Determine FEMT (finite element wise) etc from T (control volume wise)
@@ -1192,6 +1200,20 @@
                            ROBIN2=SUF_T_BC_ROB2((SELE-1)*CV_SNLOC+CV_SILOC +(IPHASE-1)*STOTEL*CV_SNLOC)
                         ENDIF
                      ENDIF
+
+! ********FOR RELATIVE PERM B.C WHEN SPECIFYING PRESSURE*********
+      IF( is_overlapping ) THEN ! still bugs in the original better code but this is ok...
+
+              !       RBC_OUT(1:NDIM)=1.0
+              !       IF(SELE.NE.0) RBC_OUT(1:NDIM) &
+              ! =SUF_SIG_DIAGTEN_BC(( SELE - 1 ) * CV_SNLOC + 1 +( IPHASE - 1 ) * STOTEL*CV_SNLOC,1:NDIM)
+
+                     IF((SELE.NE.0).AND.(NDOTQ.LE.0.0))  &
+!                     IF(SELE.NE.0)  &
+                   SCVDETWEI( GI )=SCVDETWEI( GI ) &
+               *SUF_SIG_DIAGTEN_BC(( SELE - 1 ) * CV_SNLOC + 1 +( IPHASE - 1 ) * STOTEL*CV_SNLOC,1)
+      ENDIF
+! ********FOR RELATIVE PERM B.C WHEN SPECIFYING PRESSURE*********
 
                      !====================== ACV AND RHS ASSEMBLY ===================
                      Conditional_GETCT2 : IF( GETCT ) THEN ! Obtain the CV discretised CT eqations plus RHS
@@ -4793,8 +4815,8 @@
             WGI_COEF_ELE=0.0
             DO U_KLOC_LEV = 1, U_NLOC_LEV
                U_KLOC=(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV
-               IF(UDGI*CVNORMX(GI)+VDGI*CVNORMY(GI)+WDGI*CVNORMZ(GI).LT.0.0) THEN ! Incomming...
-!               IF(.true.) THEN ! Incomming...
+!               IF(UDGI*CVNORMX(GI)+VDGI*CVNORMY(GI)+WDGI*CVNORMZ(GI).LT.0.0) THEN ! Incomming...
+               IF(.false.) THEN ! Incomming...
                   UGI_COEF_ELE(U_KLOC)=UGI_COEF_ELE(U_KLOC)+1.0*SUF_SIG_DIAGTEN_BC_GI(1)
                   VGI_COEF_ELE(U_KLOC)=VGI_COEF_ELE(U_KLOC)+1.0*SUF_SIG_DIAGTEN_BC_GI(2)
                   WGI_COEF_ELE(U_KLOC)=WGI_COEF_ELE(U_KLOC)+1.0*SUF_SIG_DIAGTEN_BC_GI(3)
@@ -4805,14 +4827,14 @@
                ENDIF
             END DO
 
-            IF(UDGI*CVNORMX(GI)+VDGI*CVNORMY(GI)+WDGI*CVNORMZ(GI).LT.0.0) THEN ! Incomming...
-!            IF(.true.) THEN ! Incomming...
+!            IF(UDGI*CVNORMX(GI)+VDGI*CVNORMY(GI)+WDGI*CVNORMZ(GI).LT.0.0) THEN ! Incomming...
+            IF(.false.) THEN ! Incomming...
                UGI_TMP = SUF_SIG_DIAGTEN_BC_GI(1:3) * (/UDGI, VDGI, WDGI/)
                UDGI=UGI_TMP(1) ; VDGI=UGI_TMP(2) ; WDGI=UGI_TMP(3)
             ENDIF
             
-            IF(UOLDDGI*CVNORMX(GI)+VOLDDGI*CVNORMY(GI)+WOLDDGI*CVNORMZ(GI).LT.0.0) THEN ! Incomming...
-!            IF(.true.) THEN ! Incomming...
+!            IF(UOLDDGI*CVNORMX(GI)+VOLDDGI*CVNORMY(GI)+WOLDDGI*CVNORMZ(GI).LT.0.0) THEN ! Incomming...
+            IF(.false.) THEN ! Incomming...
                UGI_TMP = SUF_SIG_DIAGTEN_BC_GI(1:3) * (/UOLDDGI, VOLDDGI, WOLDDGI/)
                UOLDDGI=UGI_TMP(1) ; VOLDDGI=UGI_TMP(2) ; WOLDDGI=UGI_TMP(3)
             ENDIF

@@ -1118,11 +1118,14 @@
       integer :: iphase, ele, sele, cv_siloc, cv_snodi, cv_snodi_ipha, iface, s, e, &
            ele2, sele2, cv_iloc, idim, jdim, i, mat_nod
       real :: mobility, satura_bc
-      real, dimension( ndim, ndim ) :: inv_perm, sigma_out, mat
+      real, dimension( ndim, ndim ) :: inv_perm, sigma_out, mat, mat_inv
       integer, dimension( :, : ), allocatable :: cv_sloclist, face_ele
       integer, dimension( : ), allocatable :: idone
       integer, dimension( cv_snloc ) :: cv_sloc2loc
       integer, parameter :: WIC_BC_DIRICHLET = 1
+! for the pressure b.c and overlapping method 
+! make the material property change just inside the domain else on the surface only...
+      logical, parameter :: mat_change_inside = .true.
 
       if( have_option( '/physical_parameters/mobility' ) )then
          call get_option( '/physical_parameters/mobility', Mobility )
@@ -1201,13 +1204,17 @@
                         end do
 
                         mat = matmul( sigma_out, inverse( material_absorption( mat_nod, s : e, s : e ) ) )
-                        suf_sig_diagten_bc( cv_snodi_ipha, 1 : ndim ) = (/ (mat(i, i), i = 1, ndim) /)
-                        suf_sig_diagten_bc( cv_snodi_ipha, 1 : ndim ) =1. ! dont use as it's bugged. 
+                        mat_inv =     inverse(mat)
+                        suf_sig_diagten_bc( cv_snodi_ipha, 1 : ndim ) = (/ (mat_inv(i, i), i = 1, ndim) /)
 
-                        if(idone(mat_nod+(iphase-1)*mat_nonods).eq.0) then
-                           material_absorption( mat_nod, s : e, s : e  )&
-                               =matmul(mat, material_absorption( mat_nod, s : e, s : e ) )
-                           idone(mat_nod+(iphase-1)*mat_nonods) =1
+                        if(mat_change_inside) then
+                           suf_sig_diagten_bc( cv_snodi_ipha, 1 : ndim ) =1. ! dont use as it's bugged. 
+
+                           if(idone(mat_nod+(iphase-1)*mat_nonods).eq.0) then
+                              material_absorption( mat_nod, s : e, s : e  )&
+                                 =matmul(mat, material_absorption( mat_nod, s : e, s : e ) )
+                              idone(mat_nod+(iphase-1)*mat_nonods) =1
+                           endif
                         endif
 
                      end do
