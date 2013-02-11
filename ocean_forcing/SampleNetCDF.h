@@ -28,7 +28,7 @@
 #include <vector>
 
 #include <string.h>
-#ifdef HAVE_NETCDF
+#ifdef HAVE_LIBNETCDF
 extern "C" {
 #include <netcdf.h>
 }

@@ -815,6 +815,8 @@ module zoltan_integration
 
        ! calculate how many owned nodes we'd have after doing the planned load balancing
        num_nodes_after_balance = num_nodes + p1_num_import - p1_num_export
+       ewrite(0, *) "num_nodes, p1_num_import, p1_num_export = ", num_nodes,p1_num_import, p1_num_export
+
 
        ! calculate total number of owned nodes after the load balance
        call mpi_allreduce(num_nodes_after_balance, total_num_nodes_after_balance, 1, getPINTEGER(), &
