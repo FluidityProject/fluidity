@@ -89,6 +89,7 @@ program Adjoint_main
  fszero=0.0
  valfun=0.0
  linconver= .true.
+ !call system 
  call  mainfl_forward() 
  !call populate_state(state) 
  call get_option(&
