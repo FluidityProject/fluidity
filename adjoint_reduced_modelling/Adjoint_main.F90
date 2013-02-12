@@ -32,7 +32,12 @@ program Adjoint_main
   use state_module
   use write_state_module
   use timeloop_utilities
-  use global_parameters, only: option_path_len, current_time, dt, FIELD_NAME_LEN
+  use global_parameters, only: option_path_len, current_time, dt, FIELD_NAME_LEN ,&
+                               timestep, OPTION_PATH_LEN, &
+                               simulation_start_time, &
+                               simulation_start_cpu_time, &
+                               simulation_start_wall_time, &
+                               topology_mesh_name
   use FLDebug
   use snapsvd_module
   use vtk_interfaces
@@ -46,38 +51,98 @@ program Adjoint_main
   use signals
   use spud
   use tictoc
-#ifdef HAVE_ZOLTAN
+  use fldebug
+  use fluids_module
+  !use reduced_fluids_module
+  use signals
+  use spud
+  use tictoc
+!#ifdef HAVE_ZOLTAN
   use zoltan
-#endif
+  use nonlinear_conjugate_gradient
+  use momentum_equation
+  use momentum_equation_reduced_adjoint
+  use momentum_equation_reduced
+  use reduced_model_runtime
+!#endif
 
   implicit none
 #ifdef HAVE_PETSC
 #include "finclude/petsc.h"
-#endif
-
-  type(state_type), dimension(:), pointer :: state
-  type(state_type), dimension(:), allocatable :: state_adj
-
-  integer :: timestep
-  integer :: ierr,stat
-
-
+#endif 
+  type(state_type), dimension(:), pointer :: state=> null()
+  ! type(state_type), dimension(:), allocatable :: state_adj
+ ! type(state_type), dimension(:,:,:), allocatable :: POD_state
+  
+  integer :: ierr,stat,i
   character(len = OPTION_PATH_LEN) :: simulation_name
-!==============================================================================
-!Initialize 
-!==============================================================================
+  integer :: gloits,nocva,linits,nsvd
+  real :: valfun, fszero
+  real, dimension(:), allocatable :: cva,cvaold,g,gold,d
+  logical :: linconver
+  INTEGER,PARAMETER ::NGLOITS=4
+  REAL,PARAMETER ::GOLDR = 5.0
+  integer :: total_timestep
+  real :: finish_time
+  type(vector_field), pointer :: u ,POD_velocity
+  type(scalar_field), pointer :: POD_pressure
+ fszero=0.0
+ valfun=0.0
+ linconver= .true.
+ call  mainfl_forward() 
+ !call populate_state(state) 
+ call get_option(&
+         '/reduced_model/pod_basis_formation/pod_basis_count', nsvd)
+ call get_option('/simulation_name', simulation_name)
+ !call read_pod_basis_differntmesh(POD_state, state)
+ nocva=(u%dim+1)*size(POD_state)
+ allocate(cva((u%dim+1)*size(POD_state,1)))
+ allocate(pod_coef_all_o((u%dim+1)*size(POD_state,1)))
+ allocate(d((u%dim+1)*size(POD_state,1)))
+ allocate(cvaold((u%dim+1)*size(POD_state,1)))
+ allocate(gold((u%dim+1)*size(POD_state,1)))
+ allocate(g((u%dim+1)*size(POD_state,1)))
+ gold=0
+ d=0
 
+  	
+ global_loop:DO gloits = 1,NGLOITS
+ LINITS =1 
+ !get g
+ open(unit=2,file='adjoint_g')
+ read(2,*)(g(i),i=1, (u%dim+1)*size(POD_state,1))
+ close(2)
+ !call solve_momentum_reduced_adjoint(state, at_first_timestep, timestep, POD_state, POD_state_deim, snapmean, eps,g,its)
+ linear_search_loop: do   !need control the loop
+                     call  mainfl_forward() !get the func run simulation_name_POD.flml run forward ROM 
+                     valfun=value_cost_function()
+                     call  NONLINCG(gloits,linits,valfun,cva,g,goldr,linconver,nocva,gold,d,cvaold,fszero)
+                     pod_coef_all_o = cva  !the variables need to be modified
+ !print  costfunction 
+ open(10,file='cost_function',ACTION='WRITE')
+ write(10,*) valfun
+ close(10)                 
+ enddo linear_search_loop
+  ! print adjoint g 
+ open(11,file='adjoint_g',ACTION='WRITE')
+ write(11,*)(g(i),i=1,(u%dim+1)*size(POD_state,1))
+ close(11)
+ 
+ ! print  costfunction
+ open(10,file='cost_function',ACTION='WRITE')
+ write(10,*) valfun
+ close(10)
+ enddo global_loop
+ call  mainfl_forward()
 !--------------------------------------------------------------------------
 !Initialize the L-BFGS optimization and Gradient generation
 !--------------------------------------------------------------------------
 
-  call mainfl_forward()
-
 !  call python_init()
 !  call read_command_line()
-  !!state includes the fields i.c., b.c.and mesh info in flml file
+!  state includes the fields i.c., b.c.and mesh info in flml file
 !  call populate_state(state)
-!  call get_option('/simulation_name',simulation_name)
+!  
 
 !--------------------------------------------------------------------------
 !Initial conditions to purturbation to generate observations
@@ -203,42 +268,11 @@ contains
 subroutine mainfl_forward() bind(C)
   !!< This program solves the Navier-Stokes, radiation, and/or
   !!< advection-diffusion types of equations
+
+#ifdef HAVE_ZOLTAN
+  use zoltan
+#endif
   
-  use AuxilaryOptions
-  use MeshDiagnostics
-  use signal_vars
-  use spud
-  use equation_of_state
-  use timers
-  use adapt_state_module
-  use adapt_state_prescribed_module
-  use FLDebug
-  use sparse_tools
-  use elements
-  use fields
-  use boundary_conditions_from_options
-  use populate_state_module
-  use populate_sub_state_module
-  use reserve_state_module
-  use vtk_interfaces
-  use Diagnostic_variables
-  use diagnostic_fields_new, only : &
-    & calculate_diagnostic_variables_new => calculate_diagnostic_variables, &
-    & check_diagnostic_dependencies
-  use diagnostic_fields_wrapper
-  use diagnostic_children
-  use advection_diffusion_cg
-  use advection_diffusion_DG
-  use advection_diffusion_FV
-  use field_equations_cv, only: solve_field_eqn_cv, initialise_advection_convergence, coupled_cv_field_eqn
-  use vertical_extrapolation_module
-  use qmesh_module
-  use checkpoint
-  use write_state_module
-  use synthetic_bc
-  use goals
-  use adaptive_timestepping
-  use conformity_measurement
   implicit none
 
   ! We need to do this here because the fortran Zoltan initialisation
@@ -281,7 +315,6 @@ subroutine mainfl_forward() bind(C)
   if(SIG_INT) then
     FLExit("Interrupt signal received")
   end if
-
 end subroutine mainfl_forward
 
 subroutine mainfl_adj() bind(C)
@@ -442,5 +475,68 @@ end subroutine mainfl_adj
     write (0,*) "-v n sets the verbosity of debugging"
   end subroutine usage
 
+ function value_cost_function() result (FUNCT)
+     real :: FUNCT
+     integer :: i,d,k,unodes,ii,kk
+     type(vector_field), pointer :: u_obv,u_comp
+     real, dimension(:,:), allocatable :: pod_coef_all_obv,pod_coef_all_comp,ifhaveobs  !might up  
+     integer POD_num
+     call get_option('/reduced_model/pod_basis_formation/pod_basis_count', POD_num)  
+     FUNCT = 0.0
+    
+     call get_option("/timestepping/current_time", current_time)
+     call get_option("/timestepping/finish_time",  finish_time)
+     call get_option("/timestepping/timestep", dt)       
+     total_timestep=(finish_time-current_time)/dt
+     u => extract_vector_field(state(1), "Velocity", stat)
+     u_obv=> extract_vector_field(POD_state(1,1,1), "Velocity")
+     u_comp=>extract_vector_field(POD_state(1,1,1), "Velocity")
+     call zero(u_obv)
+     call zero(u_comp)
+     unodes=node_count(u)
+     allocate(pod_coef_all_obv(total_timestep,((u%dim+1)*size(POD_state,1))))
+     allocate(pod_coef_all_comp(total_timestep,((u%dim+1)*size(POD_state,1))))
+     allocate(ifhaveobs(total_timestep,unodes))
+     ifhaveobs=1
+     open(30,file=trim(simulation_name)//'coef_all_obv')
+     open(31,file=trim(simulation_name)//'coef_all')
+       DO k = 0, total_timestep
+          read(30,*)(pod_coef_all_obv(k,ii),ii=1,(u%dim+1)*size(POD_state,1))
+          read(31,*)(pod_coef_all_comp(k,ii),ii=1,(u%dim+1)*size(POD_state,1))
+        ! IF(ifhaveobs(k,:).eq.1) THEN   ! if has obv, iflagobs=1, else=0.
+         do i=1,POD_num
+           POD_velocity=>extract_vector_field(POD_state(i,1,1), "Velocity")
+           POD_pressure=>extract_scalar_field(POD_state(i,2,1), "Pressure") 
+	 do d=1, u%dim
+                u_obv%val(d,:) =u_obv%val(d,:)+pod_coef_all_obv(k,i+(d-1)*POD_num)*POD_velocity%val(d,:)
+                u_comp%val(d,:)=u_comp%val(d,:)+pod_coef_all_comp(k,i+(d-1)*POD_num)*POD_velocity%val(d,:)
+	          !0.5*(U_num-U_obs)**2+0.5*(V_num-V_obs)**2
+	 enddo
+          do ii=1, unodes
+           FUNCT =FUNCT+0.5*(u_comp%val(d,ii)-u_obv%val(d,ii))**2
+          enddo
+         enddo
+      ! ENDIF  ! IF(ifhaveobs
+       ENDDO  ! end timestep 
+     close(30)
+     close(31)
+     deallocate(ifhaveobs) 
+  end function value_cost_function
 
+!===================================================================================
+! steps to get observation value from fluidity:
+!    checkpoint5(initial condition),  
+!1.  run checkpoint9(perturbated initial condition) 
+!2.  form podbasis. change the final timestep +time(checkpoint_9-checkpoint_7)
+!3.  run pod from initial condition (checkpoint5)
+! ==================================================================================
+! steps to get computational value: 
+!  run pod from perturbated initial condition(checkpoint_9)
+!=======================================================================================
+!
+ 
+ !deallocate(gold)
+ !deallocate(g)
+ !deallocate(cvaold)
+ !deallocate(cva)
 end program Adjoint_main

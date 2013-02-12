@@ -287,8 +287,8 @@
       logical :: timestep_check
       type(scalar_field) :: u_cpt
 
-   !   real, dimension(:,:), allocatable :: A_deim ,mom_rhs_deim  !() name change
-    !  real, dimension(:), allocatable :: b_deim,Ny
+     !   real, dimension(:,:), allocatable :: A_deim ,mom_rhs_deim  !() name change
+     !  real, dimension(:), allocatable :: b_deim,Ny
         real, dimension(:,:), allocatable :: P_mn,Temp_pu,Temp_vu,Temp_vupu,mom_rhs_deim !A_deim,
       real, dimension(:,:,:), allocatable :: V_kn,U_nm, U_mn
       real, dimension(:), allocatable :: Ny ,b_deim
@@ -338,13 +338,12 @@
       logical :: lump_mass_form
 
       ! Adjoint model
-      logical adjoint_reduced
+      logical :: adjoint_reduced
       type(pod_rhs_type) :: pod_rhs_adjoint
+      real, dimension(:,:), allocatable :: pod_coef_all_obv
+      real :: finish_time,current_time
+      integer :: total_timestep
 
-      
-     
-
-      
       ewrite(1,*) 'Entering solve_momentum'
       call get_option('/timestepping/nonlinear_iterations', nonlinear_iterations, default=1)
            if(timestep==1.and.its/=nonlinear_iterations) then
@@ -1184,6 +1183,31 @@
                end if
 
             end if ! prognostic pressure
+
+           
+               call get_option("/timestepping/current_time", current_time)
+       	       call get_option("/timestepping/finish_time", finish_time)
+               call get_option("/timestepping/timestep", dt)       
+      	       total_timestep=(finish_time-current_time)/dt
+              ! allocate(pod_coef_all_obv(total_timestep,((u%dim+1)*size(POD_state,1))))
+              ! if(its==nonlinear_iterations) then
+                 ! do i=1,size(POD_state,1)
+                        !  POD_velocity=>extract_vector_field(POD_state(i,1,istate), "Velocity")
+                          ! snapmean_velocity=>extract_vector_field(POD_state(i,1,istate),"SnapmeanVelocity")
+                          !  snapmean_pressure=>extract_Scalar_field(POD_state(i,2,istate),"SnapmeanPressure") 
+                           ! do j=1,u%dim
+                          !  pod_coef_all_obv(timestep,i+size(POD_state,1)*(j-1))=&
+                           !            dot_product(POD_velocity%val(j,:),(u%val(j,:)-snapmean_velocity%val(j,:)))
+                          !  enddo
+                           ! POD_pressure=>extract_scalar_field(POD_state(i,2,istate), "Pressure")
+                           ! pod_coef_all_obv(timestep,i+size(POD_state,1)*u%dim)= &
+                         !              dot_product(POD_pressure%val(:),(p%val(:)-snapmean_pressure%val(:)))
+                        ! enddo
+                              !write(40,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state,1))
+                !  open(101,file='coef_pod_all_obv',position='append',ACTION='WRITE')
+                ! write(101,*)(pod_coef_all_obv(timestep,i),i=1,(u%dim+1)*size(POD_state,1))
+                ! close(101)
+            !  endif
 
          else !! Reduced model version
             

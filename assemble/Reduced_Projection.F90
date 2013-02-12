@@ -850,8 +850,8 @@ contains
          !!! added for RMSE and correlation coeeficient                        
                       
                                         
-                            u_nodes=node_count(velo) 
-                          ! u_nodes=node_count(POD_velocity)
+                           u_nodes=node_count(velo) 
+                           !u_nodes=node_count(POD_velocity)
                            nodesum=0
                            fullnodesum=0
                            podnodesum=0

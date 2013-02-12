@@ -46,7 +46,7 @@ ARFLAGS = cr
 
 LIB = ../lib/lib$(FLUIDITY).a
 
-OBJS    = Adjoint_main.o
+OBJS    =  nonlinear_conjugate_gradient.o Adjoint_main.o 
 #        ******.o
 
 .SUFFIXES: .F90 .c .o .a

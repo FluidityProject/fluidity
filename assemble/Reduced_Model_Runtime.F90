@@ -62,7 +62,7 @@ contains
     type(vector_field) :: podVelocity, newpodVelocity
     type(scalar_field) :: podPressure, newpodPressure, podTemperature, newpodTemperature
     type(mesh_type) :: VelocityMesh, PressureMesh, TemperatureMesh
-
+    
 
     call get_option('/simulation_name', simulation_name)
     call get_option('/geometry/quadrature/degree', quadrature_degree)
@@ -188,10 +188,7 @@ contains
         
                            ! pres => extract_scalar_field(state, "Pressure")           
                              !  p_nodes=node_count(pres)
-                                 !u_nodes=node_count(velo)            
-   
-        
-     
+                                 !u_nodes=node_count(velo) 
      !  call remap_field(from_field=podPressure, to_field=newpodPressure)
       ! call insert(POD_state_deim(i), newpodPressure, "PODPressure")
      !  call deallocate(newpodPressure)
@@ -204,7 +201,7 @@ contains
      open(unit=110,file='indices')
      read(110,*)(phi(i), i=1,total_dumps*podVelocity%dim)  ! deim_number 
    !  read(110,*)(phi(i), i=1,2*podVelocity%dim)   
-    close(110)
+     close(110)
  
     print *, ' phiphiphiphi', phi
 
@@ -244,9 +241,9 @@ contains
 
   subroutine read_pod_basis_differntmesh(POD_state, state)
     !! Read the pod basis from the set of vtu files.
-
+    
     character(len=1024) :: simulation_name, filename
-
+    logical :: adjoint_reduced
     integer :: dump_period, quadrature_degree,istate
     integer :: i,j,k,total_dumps,nfield,POD_num,ifield
 
@@ -261,7 +258,7 @@ contains
     velo => extract_vector_field(state, "Velocity")
     call get_option('/simulation_name', simulation_name)
     call get_option('/geometry/quadrature/degree', quadrature_degree)
-    
+    adjoint_reduced= have_option("/reduced_model/adjoint")
     call get_option(&
          "/reduced_model/pod_basis_formation/pod_basis_count", POD_num) 
 
@@ -269,7 +266,7 @@ contains
     allocate(pod_state(POD_num,nfield,size(state)))
     ifield = 0
      flag=1
-    
+     
      do k =1, size(state)
        ! Vector field
        !-------------
@@ -280,7 +277,11 @@ contains
           ifield = ifield + 1
              VelocityMesh=extract_mesh(state(k),trim(v_field%mesh%name))
              do i = 1,POD_num
+               if(adjoint_reduced)then
+                 write(filename, '(a, i0, a)') trim(simulation_name)//"_checkpoint_POD"//"Basis"//trim(v_field%name)//"_",i,".vtu" 
+                else
                 write(filename, '(a, i0, a)') trim(simulation_name)//"Basis"//trim(v_field%name)//"_",i,".vtu" 
+                   endif
                ! print*,trim(filename)
                 call vtk_read_state(filename, pod_state(i,ifield,k),quadrature_degree)
 
@@ -310,8 +311,9 @@ contains
 !             call nullify(pod_state(:,k))
              PressureMesh=extract_mesh(state(k),trim(s_field%mesh%name))
              do i = 1,POD_num
+                
                 write(filename, '(a, i0, a)') trim(simulation_name)//"Basis"//trim(s_field%name)//"_",i,".vtu" 
-
+             
                 call vtk_read_state(filename, pod_state(i,ifield,k),quadrature_degree)
 
                 !! Note that we might need code in here to clean out unneeded fields.

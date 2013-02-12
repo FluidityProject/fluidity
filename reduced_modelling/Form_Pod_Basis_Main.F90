@@ -107,7 +107,7 @@ contains
     integer :: stat
 
     real, dimension(:,:), allocatable :: P !n*m (u_nodes*nsvd)
-   !  integer, dimension(:), allocatable :: phi
+    !integer, dimension(:), allocatable :: phi
     real, dimension(:,:), allocatable :: leftsvd_velocity_deim_uin
     integer :: udim,deim_number_tmp  
     type(vector_field), pointer :: velocityudim
@@ -116,7 +116,7 @@ contains
 
     call get_option(&
          '/reduced_model/pod_basis_formation/pod_basis_count', nsvd)
-    !call get_option('/simulation_name',simulation_name)
+  !  call get_option('/simulation_name',simulation_name)
   !  call read_input_states(state)
   !  call retrieve_snapshots(state, snapshots, u_nodes, p_nodes, snapmatrix_velocity, snapmatrix_pressure, &
                   !          & snapmean_velocity, snapmean_pressure)

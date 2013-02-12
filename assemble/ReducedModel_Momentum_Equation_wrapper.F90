@@ -56,7 +56,7 @@
       type(state_type), dimension(:,:,:) :: POD_state
       type(state_type), dimension(:) :: POD_state_deim
       integer, intent(in) :: timestep
-
+      real :: dt
       type(vector_field), pointer :: u
       integer :: istate, stat
 
@@ -74,7 +74,7 @@
       logical :: snapmean
       integer, dimension(:), pointer :: surface_node_list
       type(vector_field), pointer :: surface_field_velocity
-      type(scalar_field), pointer :: surface_field_pressure
+      type(scalar_field), pointer :: surface_field_pressure,p
       integer :: b, node
       !nonlinear_iteration_loop
       integer :: nonlinear_iterations
@@ -84,7 +84,9 @@
       type(state_type), dimension(:), pointer :: submaterials
       ! The index of the current phase (i.e. state(istate)) in the submaterials array
       integer :: submaterials_istate
-
+      real, dimension(:,:), allocatable :: pod_coef_all_obv
+      real :: finish_time,current_time
+      integer :: total_timestep
 
 
       ewrite(1,*) 'Entering momentum_loop'
@@ -96,6 +98,7 @@
 
         ! get the velocity
         u=>extract_vector_field(state(istate), "Velocity", stat)
+        p=> extract_scalar_field(state(1), "Pressure")
         ! if there's no velocity then cycle
         if(stat/=0) cycle
         ! if this is an aliased velocity then cycle
@@ -127,13 +130,34 @@
            call profiler_tic("momentum_solve")
            if(.not.reduced_model)then
               call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its)
+              call get_option("/timestepping/current_time", current_time)
+       	      call get_option("/timestepping/finish_time", finish_time)
+              call get_option("/timestepping/timestep", dt)       
+      	      total_timestep=(finish_time-current_time)/dt
+              allocate(pod_coef_all_obv(total_timestep,((u%dim+1)*size(POD_state,1))))
+              if(its==nonlinear_iterations) then
+                 do i=1,size(POD_state,1)
+                           POD_velocity=>extract_vector_field(POD_state(i,1,istate), "Velocity")
+                           snapmean_velocity=>extract_vector_field(POD_state(i,1,istate),"SnapmeanVelocity")
+                           snapmean_pressure=>extract_Scalar_field(POD_state(i,2,istate),"SnapmeanPressure") 
+                           do j=1,u%dim
+                           pod_coef_all_obv(timestep,i+size(POD_state,1)*(j-1))=&
+                                      dot_product(POD_velocity%val(j,:),(u%val(j,:)-snapmean_velocity%val(j,:)))
+                           enddo
+                           POD_pressure=>extract_scalar_field(POD_state(i,2,istate), "Pressure")
+                           pod_coef_all_obv(timestep,i+size(POD_state,1)*u%dim)= &
+                                      dot_product(POD_pressure%val(:),(p%val(:)-snapmean_pressure%val(:)))
+                        enddo
+                        !write(40,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state,1))
+                open(101,file='coef_pod_all_obv',position='append',ACTION='WRITE')
+                write(101,*)(pod_coef_all_obv(timestep,i),i=1,(u%dim+1)*size(POD_state,1))
+                close(101)
+              endif
            else
               eps=0.0
               snapmean=.false.
 
               if(timestep==1)then 
-
-
                  nonlinear_velocity=>extract_vector_field(state(istate),"NonlinearVelocity")
                  pressure=>extract_scalar_field(state(istate),"Pressure")
                  velocity=>extract_vector_field(state(istate),"Velocity")

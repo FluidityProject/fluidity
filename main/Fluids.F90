@@ -132,7 +132,7 @@ contains
 
     real:: nonlinear_iteration_tolerance
     logical, optional :: adjoint
-
+    logical :: adjoint_reduced
     !     System state wrapper.
     type(state_type), dimension(:), pointer :: state => null()
     type(state_type), dimension(:), pointer :: sub_state => null()
@@ -235,7 +235,7 @@ contains
 !    call populate_state(deim_state_res)
   
     ewrite(3,*)'before have_option test'
-
+    
     if (have_option("/reduced_model/execute_reduced_model")) then
 	!do m = 1,size(state)
 !              if (deim) then
@@ -243,9 +243,12 @@ contains
 !                    call read_pod_basis_deimres(POD_state_deim, deim_state_Resl) 
 !            endif
        		call read_pod_basis_differntmesh(POD_state, state)
-              
+               
 	!enddo
     else
+        if(adjoint_reduced)then
+              ! call read_pod_basis_differntmesh(POD_state, state)
+         endif
        ! need something to pass into solve_momentum
        allocate(POD_state(1:0,1:0,1:0))
        
