@@ -1206,6 +1206,7 @@
                         mat = matmul( sigma_out, inverse( material_absorption( mat_nod, s : e, s : e ) ) )
                         mat_inv =     inverse(mat)
                         suf_sig_diagten_bc( cv_snodi_ipha, 1 : ndim ) = (/ (mat_inv(i, i), i = 1, ndim) /)
+!                        suf_sig_diagten_bc( cv_snodi_ipha, 1 : ndim ) = (/ (.9*mat_inv(i, i)+0., i = 1, ndim) /)
 
                         if(mat_change_inside) then
                            suf_sig_diagten_bc( cv_snodi_ipha, 1 : ndim ) =1. ! dont use as it's bugged. 
@@ -1213,6 +1214,8 @@
                            if(idone(mat_nod+(iphase-1)*mat_nonods).eq.0) then
                               material_absorption( mat_nod, s : e, s : e  )&
                                  =matmul(mat, material_absorption( mat_nod, s : e, s : e ) )
+!                                 =2.0*matmul(mat, material_absorption( mat_nod, s : e, s : e ) ) &
+!                                 +0.*material_absorption( mat_nod, s : e, s : e )
                               idone(mat_nod+(iphase-1)*mat_nonods) =1
                            endif
                         endif

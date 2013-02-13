@@ -6323,7 +6323,7 @@
                IF(DOWNWIND_EXTRAP.AND.(courant_or_minus_one_new.GE.0.0)) THEN
 
                 ELE_DOWN=ELE
-                IF(INCOME.GT.0.5) ELE_DOWN=ELE2
+                IF(INCOME.LT.0.5) ELE_DOWN=ELE2
 
                 IF(NON_LIN_PETROV_INTERFACE==0) THEN ! NOT non-linear Petrov-Galerkin Interface
                   TXGI=0.0
