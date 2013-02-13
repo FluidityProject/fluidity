@@ -120,7 +120,6 @@
       integer :: ele
       integer :: iloc, jloc
 
-
       L=>extract_scalar_field(state, "LagrangeMultiplier")
 
       do ele = 1, ele_count(L)
@@ -220,18 +219,11 @@
       type(csr_sparsity) :: L_mass_sparsity
       type(csr_matrix) :: L_mass_mat
       integer :: i, ele
-      D=>extract_scalar_field(state, "LayerThickness")
 
-      do iloc = 1, 4
-         do jloc = 1,4 
-            if(iloc.ne.jloc) then
-               ewrite(1,*) iloc,jloc,boundary_local_num((/iloc,jloc/),D%mesh%shape&
-                    &%numbering)
-            end if
-         end do
-      end do
+      D=>extract_scalar_field(state, "LayerThickness")
       L=>extract_scalar_field(state, "LagrangeMultiplier")
       X=>extract_vector_field(state, "Coordinate")
+
       call allocate(L_projected,L%mesh, "ProjectedLagrangeMultiplier")
       L_projected%option_path = L%option_path
       call allocate(L_projected_rhs,L%mesh,&
@@ -291,7 +283,7 @@
       type(vector_field), intent(inout) :: X
       type(csr_matrix), intent(inout) :: L_mass_mat
       !
-      real, dimension(face_loc(D,face),face_loc(D,face)) :: L_mass_mat_face
+      real, dimension(face_loc(L_projected_rhs,face),face_loc(L_projected_rhs,face)) :: L_mass_mat_face
       real, dimension(face_loc(D,face)) :: L_rhs
       real, dimension(face_ngi(D,face)) :: D_face_quad, detwei
       type(element_type), pointer :: shape
@@ -304,7 +296,7 @@
          &                          detwei_f=detwei)
       L_rhs = shape_rhs(shape,D_face_quad*detwei)
       L_mass_mat_face = shape_shape(shape,shape,detwei)
-      
+
       call addto(L_projected_rhs, l_face, l_rhs)
       call addto(L_mass_mat, l_face, l_face, L_mass_mat_face)
 
@@ -320,17 +312,17 @@
       integer :: i
       D=>extract_scalar_field(state, "LayerThickness")
       L=>extract_scalar_field(state, "LagrangeMultiplier")
-      ewrite(2,*) 'L number2count'
+      print*, 'L number2count'
       do i = 1, size(L%mesh%shape%numbering%number2count,1)
-         ewrite(2,*) L%mesh%shape%numbering%number2count(i,:)
+         print*, L%mesh%shape%numbering%number2count(i,:)
       end do
-      ewrite(2,*) 'D local coordinates'
+      print*, 'D local coordinates'
       do i = 1, D%mesh%shape%ndof
-         ewrite(2,*) i,local_coords(i, D%mesh%shape)
+         print*, i,local_coords(i, D%mesh%shape)
       end do
-      ewrite(2,*) 'L local coordinates'
+      print*,  'L local coordinates'
       do i = 1, L%mesh%shape%ndof
-         ewrite(2,*) i,local_coords(i, L%mesh%shape)
+         print*, i,local_coords(i, L%mesh%shape)
       end do
     end subroutine test_local_coords
 
@@ -387,10 +379,10 @@
       D_face = face_val(D,face)
       L_face = face_val(L,face)
 
-      !print *, "face_nodes D", face_local_nodes(D,face)
-      !print *, "face_nodes L", face_local_nodes(L,face)
-      !print *, "D_face", D_face
-      !print *, "L_face", L_face
+      print *, "face_nodes D", face_local_nodes(D,face)
+      print *, "face_nodes L", face_local_nodes(L,face)
+      print *, "D_face", D_face
+      print *, "L_face", L_face
       !if(any(abs(D_face-L_face)>1.0e-10)) then
       !   print *, 'BAD'
       !   !FLExit('Test Trace Values Failed')

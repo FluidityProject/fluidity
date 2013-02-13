@@ -974,27 +974,27 @@ contains
     !edge need to have the same value.
 
     !DOFS    FACES
-    ! 3   4   2
-    !        3 4
-    ! 1   2   1
+    ! 3   4   1
+    !        3 2
+    ! 1   2   4
 
     !constraint equations are:
-    ! (u_1 - u_2).n_1 = 0
-    ! (u_3 - u_4).n_2 = 0    
+    ! (u_3 - u_4).n_1 = 0
+    ! (u_2 - u_4).n_2 = 0    
     ! (u_1 - u_3).n_3 = 0
-    ! (u_2 - u_4).n_4 = 0
+    ! (u_1 - u_2).n_4 = 0
 
     !face local nodes to element local nodes
-    face_loc(1,:) = (/ 2,1 /)
-    face_loc(2,:) = (/ 3,4 /)
+    face_loc(1,:) = (/ 3,4 /)
+    face_loc(2,:) = (/ 2,4 /)
     face_loc(3,:) = (/ 1,3 /)
-    face_loc(4,:) = (/ 4,2 /)
+    face_loc(4,:) = (/ 1,2 /)
 
     !normals
-    n(1,:) = (/ -1.,  0. /)
+    n(1,:) = (/  0.,  1. /)
     n(2,:) = (/  1.,  0. /)
-    n(3,:) = (/  0., -1. /)
-    n(4,:) = (/  0.,  1. /)
+    n(3,:) = (/ -1.,  0. /)
+    n(4,:) = (/  0., -1. /)
 
     !constraint%orthogonal(i,loc,dim1) stores the coefficient 
     !for basis function loc, dimension dim1 in equation i.
@@ -1035,17 +1035,17 @@ contains
     !at each end.
 
     !DOFS    FACES
-    ! 7 8 9    2
-    ! 4 5 6   3 4
-    ! 1 2 3    1
+    ! 7 8 9    1
+    ! 4 5 6   3 2
+    ! 1 2 3    4
 
     !constraint equations are:
     ! (0.5u_1 - u_2 + 0.5u_3).n_1 = 0
     ! (0.5u_4 - u_5 + 0.5u_6).n_1 = 0
     ! (0.5u_7 - u_8 + 0.5u_9).n_1 = 0
-    ! (0.5u_1 - u_4 + 0.5u_7).n_3 = 0
-    ! (0.5u_2 - u_5 + 0.5u_8).n_3 = 0
-    ! (0.5u_3 - u_6 + 0.5u_9).n_3 = 0
+    ! (0.5u_1 - u_4 + 0.5u_7).n_2 = 0
+    ! (0.5u_2 - u_5 + 0.5u_8).n_2 = 0
+    ! (0.5u_3 - u_6 + 0.5u_9).n_2 = 0
 
     loc(1,:) = (/ 1,2,3 /)
     loc(2,:) = (/ 4,5,6 /)
@@ -1055,8 +1055,8 @@ contains
     loc(6,:) = (/ 3,6,9 /)
 
     !normals
-    n(1,:) = (/ 1.,  0. /)
-    n(2,:) = (/ 0.,  1. /)
+    n(1,:) = (/ 0.,  1. /)
+    n(2,:) = (/ 1.,  0. /)
 
     !constraint%orthogonal(i,loc,dim1) stores the coefficient 
     !for basis function loc, dimension dim1 in equation i.

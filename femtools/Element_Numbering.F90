@@ -921,12 +921,13 @@ contains
     type(ele_numbering_type), pointer :: ele
 
     quad_numbering_trace%faces=1
-    quad_numbering_trace%vertices=4
+    quad_numbering_trace%vertices=0
     quad_numbering_trace%edges=4
     quad_numbering_trace%dimension=2
     quad_numbering_trace%facets=4
     quad_numbering_trace%family=FAMILY_CUBE
     quad_numbering_trace%type=ELEMENT_TRACE
+
 
     ! Degree 0 elements are a special case.
     ele=>quad_numbering_trace(0)
@@ -935,6 +936,11 @@ contains
     degree_loop: do i=0,QUAD_MAX_DEGREE
        ele=>quad_numbering_trace(i)
        ele%degree=i 
+       
+       ele%nodes_per(0)=0
+       ele%nodes_per(1)=i+1
+       ele%nodes_per(2)=0
+       ele%nodes_per(3)=0
 
        ! Allocate mappings:
 
@@ -949,9 +955,6 @@ contains
        ele%count2number=0
        ele%number2count=0
 
-       l=0
-       l(1)=ele%degree
-       
        cnt=0
        
        facet_loop: do ll=1,2*ele%dimension
@@ -1435,6 +1438,7 @@ contains
     integer, intent(out), optional :: stat
 
     integer, dimension(4) :: l
+    integer :: i, c
 
     if (present(stat)) then
        stat=0
@@ -1462,8 +1466,27 @@ contains
        ! Calculate the local count coordinate.
        select case(ele_num%type)
        case(ELEMENT_LAGRANGIAN)
-         l=0
-         l(svertex_num)=ele_num%degree
+          select case (ele_num%family)
+          case (FAMILY_SIMPLEX)
+             l=0
+             l(svertex_num)=ele_num%degree
+          case (FAMILY_CUBE)
+             l=0
+             c=1 ! coordinate counter
+             do i=1, svertex_num
+                do c=1, 2
+                   if (l(c)==0) then
+                      l(c)=ele_num%degree
+                      exit
+                   else
+                      ! switch back to 0, continue with next binary digit
+                      l(c)=0
+                   end if
+                end do
+             end do
+          case default
+             FLAbort('Unknown element shape.')
+          end select
        case(ELEMENT_BUBBLE)
          l=0
          l(svertex_num)=ele_num%degree*(ele_num%dimension+1)
@@ -1832,18 +1855,29 @@ contains
           l=0
           k=1 ! bit mask
           j=0
-          do i=ele_num%dimension, 1, -1
+          do i=1,ele_num%dimension
              ! compute ith 'count' coordinate
-             l(i) = iand(vertices(nodes(1))-1, k)/k
+             l(i) = iand(nodes(1)-1, k)/k
              
              ! increment to go from node 1 to node 2: 0, -1 or +1
-             inc_l = iand(vertices(nodes(2))-1, k)/k-l(i)
+             inc_l = iand(nodes(2)-1, k)/k-l(i)
              ! remember the coordinate in which node 1 and 2 differ:
              if (inc_l/=0)  then
                 j = i
                 inc = inc_l
              end if
              k=k*2
+          end do
+
+          if (j==0) then
+            FLAbort("The same node appears more than once in edge_local_num.")
+          end if
+            
+          ! instead of between 0 and 1, between 0 and degree
+          l=l*ele_num%degree
+          do i=1, ele_num%degree-1
+             l(j)=l(j)+inc
+             edge_local_num(i)=ele_num%count2number(l(1), l(2), l(3))
           end do
           
       case default
@@ -1915,12 +1949,12 @@ contains
          !facet_coord = (0,0,1,1)
          !facet_val = (0,1,0,1)
          !numbering is
-         !       4
+         !       1
          !   3      4
-         !  1        2
+         !  3        2
          !   1      2
-         !       3
-         sum2face = (/0,0,3,1,0,2,4/)
+         !       4
+         sum2face = (/0,0,4,3,0,2,1/)
          if(sum(nodes)>7) then
             FLAbort('bad vertex numbers')
          end if
@@ -2498,11 +2532,11 @@ contains
              count_coords=ele_num%number2count(:,n)
 
              !numbering is
-             !       4
+             !       1
              !   3      4
-             !  1        2
+             !  3        2
              !   1      2
-             !       3
+             !       4
              
              !local coordinates are
              !  0,1 -- 1,1
@@ -2513,26 +2547,26 @@ contains
                   &boundary2local_coordinate(4))
              !boundary2element(i) is the element count coordinate
              !component corresponding to boundary element component i
-             boundary2element = (/2,2,1,1/)
+             boundary2element = (/1,2,2,1/)
              !boundary2count_component is the component of the 
              !element local coordinates that is held constant on 
              !this boundary
-             boundary2count_component = (/1,1,2,2/)
+             boundary2count_component = (/2,1,1,2/)
              !boundary2local_coordinate is the value of the 
              !local coordinate on that boundary
-             boundary2local_coordinate = (/-1.,1.,-1.,1./)
+             boundary2local_coordinate = (/1.,1.,0.,0./)
              
              i = boundary2element(count_coords(1))
              if(ele_num%degree>0) then
                 !count_coords(3) increases with increasing element count
                 !coordinate component boundar2element(count_coords(1))
-                coords(i)=&
-                     &2.*count_coords(3)/real(ele_num%degree)-1.
+                coords(i)=count_coords(3)/real(ele_num%degree)
              else
                 !special case for degree 0 trace space,
                 !a single node in the middle of the face
-                coords(i)=0.
+                coords(i)=0.5
              end if
+
              i = boundary2count_component(count_coords(1))
              coords(i)=&
                   &boundary2local_coordinate(count_coords(1))

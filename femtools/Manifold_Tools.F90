@@ -610,13 +610,13 @@ module manifold_tools
     case (FAMILY_CUBE)
        if(U%dim==2) then
           if(face==1) then
-             forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/-1.,0./)
+             forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/0.,1./)
           else if(face==2) then
              forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/ 1.,0./)
           else if(face==3) then
-             forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/0.,-1./)
+             forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/-1.,0./)
           else if(face==4) then
-             forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/0.,1./)
+             forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/0.,-1./)
           else
              FLAbort('Funny face?')
           end if
