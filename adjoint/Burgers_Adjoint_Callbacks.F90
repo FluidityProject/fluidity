@@ -47,7 +47,7 @@ module burgers_adjoint_callbacks
 
     private
 
-    public :: register_burgers_operator_callbacks
+    public :: register_burgers_operator_callbacks, burgers_equation_forward_source
 
     contains
 
@@ -69,9 +69,6 @@ module burgers_adjoint_callbacks
       call adj_chkierr(ierr)
 
       ierr = adj_register_operator_callback(adjointer, ADJ_NBLOCK_ACTION_CB, "AdvectionOperator", c_funloc(advection_action_proc))
-      call adj_chkierr(ierr)
-
-      ierr = adj_register_forward_source_callback(adjointer, c_funloc(burgers_equation_forward_source))
       call adj_chkierr(ierr)
     end subroutine register_burgers_operator_callbacks
 

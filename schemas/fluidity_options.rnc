@@ -6704,7 +6704,64 @@ forcing =
         element tidal_forcing {
                ## M2
                element M2 {
-                 empty
+                 ## Ancient frequencies:
+                 ##
+                 ## Ma     Frequency
+                 ##
+                 ## 0        1.405e-4
+                 ##
+                 ## 10      1.408e-4
+                 ##
+                 ## 50      1.416e-4
+                 ##
+                 ## 100    1.423e-4
+                 ##
+                 ## 200    1.428e-4
+                 ##
+                 ## 300    1.431e-4
+                 ##
+                 ## 350    1.434e-4
+                 ##
+                 ## 400    1.436e-4
+                 ##
+                 ## 450    1.441e-4
+                 ##
+                 ## 500    1.451e-4
+                 ##
+                 ## 570    1.469e-4
+                 ##
+                 ## From Poliakow,2005
+                 element frequency {
+                    real
+                  }?,
+                 ## Ma     Amplitude
+                 ##
+                 ## 0        0.2423
+                 ##
+                 ## 10      0.2428
+                 ##
+                 ## 50      0.2446
+                 ##
+                 ## 100    0.2460
+                 ##
+                 ## 200    0.2471
+                 ##
+                 ## 300    0.2477
+                 ##
+                 ## 350    0.2485
+                 ##
+                 ## 400    0.2489
+                 ##
+                 ## 450    0.2499
+                 ##
+                 ## 500    0.2521
+                 ##
+                 ## 570    0.2560
+                 ##
+                 ## From Poliakow,2005
+                 element amplitude {
+                    real
+                 }?
                }?,
                ## S2
                element S2 {
@@ -6751,11 +6808,24 @@ forcing =
                   empty
                }?,
                ## Sets a user defined Love number. If not active a value of 1.0 is used.
+               ## Recommended value is 0.693
                element love_number {
                   element value {
                      real
                   }
-               }?
+               }?,
+               ## Self attraction and loading term (SAL). This is a simple implementation
+               ## that uses a constant beta value
+               element sal {
+                element beta {
+                    real
+                }
+              }?,
+              ## Add the CHI term to the harmonics. You probably only want to do this is you're simulating a specific time
+              element chi {
+                empty
+              }?
+
         }?
     }
   )
