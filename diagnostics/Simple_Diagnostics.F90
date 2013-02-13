@@ -50,7 +50,7 @@ module simple_diagnostics
 
   private
 
-  public :: calculate_temporalmax, calculate_temporalmin, calculate_l2norm, &
+  public :: calculate_temporalmax_scalar, calculate_temporalmax_vector, calculate_temporalmin, calculate_l2norm, &
             calculate_time_averaged_scalar, calculate_time_averaged_vector, &
             calculate_time_averaged_scalar_squared, &
             calculate_time_averaged_vector_times_scalar, calculate_period_averaged_scalar
@@ -60,7 +60,7 @@ module simple_diagnostics
   integer, save :: n_times_added
   
 contains
-  subroutine calculate_temporalmax(state, s_field)
+  subroutine calculate_temporalmax_scalar(state, s_field)
     type(state_type), intent(in) :: state
     type(scalar_field), intent(inout) :: s_field
     type(scalar_field), pointer :: source_field
@@ -91,7 +91,54 @@ contains
        val = max(node_val(s_field,i),node_val(source_field,i))
        call set(s_field,i,val)
     end do
-  end subroutine calculate_temporalmax
+  end subroutine calculate_temporalmax_scalar
+
+  subroutine calculate_temporalmax_vector(state, v_field)
+    type(state_type), intent(in) :: state
+    type(vector_field), intent(inout) :: v_field
+    type(vector_field), pointer :: source_field
+    type(vector_field), pointer :: position
+    type(scalar_field) :: magnitude_max_vel, magnitude_vel
+    character(len = OPTION_PATH_LEN) :: path
+    integer :: i, d
+    real :: current_time, spin_up_time
+    source_field => vector_source_field(state, v_field)
+    assert(node_count(v_field) == node_count(source_field))
+    position => extract_vector_field(state, "Coordinate")
+
+    if(timestep==0) then
+       path=trim(complete_field_path(v_field%option_path)) // "/algorithm/initial_condition"
+       if (have_option(trim(path))) then
+          call zero(v_field)
+          call initialise_field_over_regions(v_field, path, position)
+       else
+          call set(v_field,source_field)
+       end if
+       return
+    end if
+    if(have_option(trim(complete_field_path(v_field%option_path)) // "/algorithm/spin_up_time")) then
+       call get_option("/timestepping/current_time", current_time)
+       call get_option(trim(complete_field_path(v_field%option_path)) // "/algorithm/spin_up_time", spin_up_time)
+       if (current_time<spin_up_time) return
+    end if
+
+    ! We actually care about the vector that causes the maximum magnitude
+    ! of velocity, so check the magnitude and store if higher than
+    ! what we already have.
+    magnitude_max_vel = magnitude(v_field)
+    magnitude_vel = magnitude(source_field)
+
+    do i=1,node_count(magnitude_vel)
+        if (node_val(magnitude_vel,i) .gt. node_val(magnitude_max_vel,i)) then
+            call set(v_field,i,node_val(source_field,i))
+        end if
+    end do
+
+    call deallocate(magnitude_max_vel)
+    call deallocate(magnitude_vel)
+
+  end subroutine calculate_temporalmax_vector
+
 
   subroutine calculate_temporalmin(state, s_field)
     type(state_type), intent(in) :: state

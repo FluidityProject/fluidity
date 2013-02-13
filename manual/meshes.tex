@@ -1,6 +1,8 @@
 \chapter{Meshes in \fluidity}\label{chap:meshes}
 \index{mesh!generation}
 \index{grid|see{mesh}}
+\index{exodusii}
+\index{Cubit|see{exodusii}}
 
 In each run of \fluidity\ an input mesh needs to 
 be provided. Even in adaptive mesh runs an initial mesh is needed
@@ -28,13 +30,21 @@ such as Ubuntu. This is the recommended file format.
 a .ele file and a .face (3D) or .edge (2D) or .bound (1D) file. This file format
 is mainly supported for special purposes, like 1D meshes, and some offline 
 tools.
+\item ExodusII: ExodusII is a model developed by Sandia National Laboratories 
+which can be used for pre- and postprocessing of finite element analyses. 
+In Fluidity we currently only read in the mesh from an ExodusII file which 
+can be created using \href{http://cubit.sandia.gov/}{Cubit}. Cubit should 
+preferably be used when dealing with complex engineering geometries, e.g.~a 
+turbine.
 \end{enumerate}
 
-For a detailed, technical description of the two mesh file formats see 
+For a detailed, technical description of the three mesh file formats see 
 appendix~\ref{chap:mesh_formats}. In addition, instructions on how
 to generate a mesh using Gmsh in simple geometries as well as complex
 ocean domains can be found in the Gmsh tutorial available at
-\url{http://amcg.ese.ic.ac.uk/files/amcg-gmsh-tutorial.pdf}
+\url{http://amcg.ese.ic.ac.uk/files/amcg-gmsh-tutorial.pdf}. Tutorials 
+on how to use Cubit a documentation can be found at 
+\url{http://cubit.sandia.gov/tutorials.html}.
 
 \section{Surface and regions ids}
 \label{sec:surface_and_region_ids}
@@ -57,6 +67,9 @@ boundary are marked with a surface id. Region ids are optional. They can be used
 to instruct the adaptivity library to strictly maintain the interface between 
 different regions of the domain. They are also useful to set different constant 
 field values in the regions.
+
+In ExodusII/Cubit region ids and surface ids are defined by block ids and 
+sideset ids respectively. 
 
 \section{Meshes and function spaces}
 \label{sec:meshes_and_function_spaces}
@@ -211,22 +224,10 @@ single block. This section outlines how to decompose a mesh with \fluidity\ tool
   \label{fig:NACA0025_mesh_with_partitions}
 \end{figure}
 
-\subsubsection{fldecomp}
-\index{mesh!meshing tools!fldecomp}
-\label{mesh!meshing tools!fldecomp}
-
-\lstinline[language=bash]+fldecomp+ can be used to decompose a mesh. For example, if your mesh
-file is \lstinline[language=bash]+foo.msh+ and you want to decompose into four parts, type:
-\begin{lstlisting}[language = Bash]
-`\fluiditysourcepath'/bin/fldecomp -n 4 -m gmsh foo
-\end{lstlisting}
-See section \ref{sec:fldecomp} for more details.
-
 \subsubsection{flredecomp}
 \index{mesh!meshing tools!flredecomp}
 \label{mesh!meshing tools!flredecomp}
-\lstinline[language=bash]+flredecomp+ is a tool similar to \lstinline[language=bash]+fldecomp+ but runs in parallel. 
-It performs a re-decomposition of a Fluidity checkpoint.
+\lstinline[language=bash]+flredecomp+ can be used to perform the initial decomposition of a mesh, or to perform a re-decomposition of a \fluidity\ checkpoint. \lstinline[language=bash]+flredecomp+ runs in parallel. 
 For example, to decompose the serial file \lstinline+foo.flml+
 into four parts, running on 4 processors type:
 
@@ -236,9 +237,48 @@ mpiexec -n 4 `\fluiditysourcepath'/bin/flredecomp \
 \end{lstlisting}
 
 The output of running flredecomp is a series of mesh and vtu files as well
-as the new flml; in this case \lstinline+foo_flredecomp.flml+. 
+as the new flml to be used in the subsequent run of \fluidity.  In the example above, this file is \lstinline+foo_flredecomp.flml+. 
 Note that \lstinline[language=bash]+flredecomp+ must be run on a number of processors equal to the larger number of processors between input and output.
-More information can be found in section~\ref{sec:flredecomp}.
+
+When using flredecomp, it is possible to partition the mesh based upon a user defined weighting. 
+This is achieved by prescribing a scalar field, bounded between values of 0 and 1, under 
+\option{/flredecomp/field\_weighted\_partitions}. Flredecomp will then try to ensure that the sum 
+of weights on each partition is approximately equal.
+
+Further information on flredecomp can be found in section~\ref{sec:flredecomp}.
+
+\subsubsection{fldecomp}
+\index{mesh!meshing tools!fldecomp}
+\label{mesh!meshing tools!fldecomp}
+
+{\bf \lstinline[language=bash]+fldecomp+ will be removed in a future release of Fluidity.}
+
+\lstinline[language=bash]+fldecomp+ is a tool similar to \lstinline[language=bash]+flredecomp+ but runs in serial. \lstinline[language=bash]+flredecomp+ is the recommended tool for mesh decomposition.
+
+Here is an example of how to convert from using \lstinline[language=bash]+fldecomp+ to using \lstinline[language=bash]+flredecomp+.  For a \fluidity\ input file called \lstinline[language=bash]+simulation.flml+ referring to a mesh file with basename \lstinline[language=bash]+mesh+, the \lstinline[language=bash]+fldecomp+ workflow would be
+
+\begin{lstlisting}[language=bash]
+<generate mesh>
+fldecomp -n <nparts> <other options> mesh
+mpiexec -n <nparts> fluidity <other options> simulation.flml
+\end{lstlisting}
+
+To use \lstinline[language=bash]+flredecomp+, the workflow becomes
+
+\begin{lstlisting}[language=bash]
+<generate mesh>
+mpiexec -n <nparts> flredecomp -i 1 -o <nparts> \
+    simulation simulation_flredecomp
+mpiexec -n <nparts> fluidity <other options> simulation_flredecomp.flml
+\end{lstlisting}
+
+\lstinline[language=bash]+fldecomp+ is retained only to decompose Terreno meshes (section~\ref{sec:Terreno}), which \lstinline[language=bash]+flredecomp+ cannot process.
+
+For example, if your Terreno mesh files have the base name \lstinline[language=bash]+foo+ and you want to decompose the mesh into four parts, type:
+\begin{lstlisting}[language = Bash]
+`\fluiditysourcepath'/bin/fldecomp -n 4 -t foo
+\end{lstlisting}
+See section \ref{sec:fldecomp} for more details.
 
 \subsection{Decomposing a periodic mesh}
 \index{mesh!meshing tools!periodise}
@@ -280,6 +320,7 @@ two of the tools commonly used.
 \subsection{Terreno}
 \index{mesh!meshing tools!Terreno}
 \index{Terreno}
+\label{sec:Terreno}
 
 Terreno uses a 2D anisotropic mesh optimisation algorithm to explicitly optimise for 
 element quality and bathymetric approximation while minimising the number of mesh

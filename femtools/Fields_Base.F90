@@ -177,9 +177,9 @@ module fields_base
 
   interface face_val_at_quad
      module procedure face_val_at_quad_scalar, face_val_at_quad_vector, &
-          & face_val_at_quad_tensor, face_val_at_quad_vector_dim, &
-          & face_val_at_shape_quad_scalar, face_val_at_shape_quad_vector, &
-          & face_val_at_shape_quad_tensor
+          & face_val_at_quad_tensor, face_val_at_quad_vector_dim,&
+          & face_val_at_quad_tensor_dim_dim, face_val_at_shape_quad_scalar,&
+          & face_val_at_shape_quad_vector, face_val_at_shape_quad_tensor
   end interface
 
   interface ele_grad_at_quad
@@ -2382,6 +2382,21 @@ contains
     quad_val=tensormul(face_val(field, face_number), shape%n)
 
   end function face_val_at_quad_tensor
+  
+  function face_val_at_quad_tensor_dim_dim(field, face_number, dim1, dim2) result (quad_val)
+    ! Return the values of field at the quadrature points of face_number.
+    type(tensor_field),intent(in) :: field
+    integer, intent(in) :: face_number
+    real, dimension(face_ngi(field, face_number)) :: quad_val
+    integer, intent(in) :: dim1, dim2
+    
+    type(element_type), pointer :: shape
+
+    shape=>face_shape(field,face_number)
+
+    quad_val=matmul(face_val(field, dim1, dim2, face_number), shape%n)
+
+  end function face_val_at_quad_tensor_dim_dim
 
   function face_val_at_shape_quad_scalar(field, face_number, shape) result (quad_val)
     ! Return the values of field at the quadrature points of shape in face_number.

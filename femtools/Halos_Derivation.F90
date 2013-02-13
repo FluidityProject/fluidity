@@ -53,7 +53,7 @@ module halos_derivation
 
   public :: derive_l1_from_l2_halo, derive_element_halo_from_node_halo, &
     & derive_maximal_surface_element_halo, derive_nonperiodic_halos_from_periodic_halos, derive_sub_halo
-  public :: invert_comms_sizes, ele_owner
+  public :: invert_comms_sizes, ele_owner, combine_halos, create_combined_numbering_trailing_receives
   
   interface derive_l1_from_l2_halo
     module procedure derive_l1_from_l2_halo_mesh
@@ -1297,5 +1297,154 @@ contains
     deallocate(sub_nsends)
 
   end function derive_sub_halo
+
+  function combine_halos(halos, node_maps, name) result (halo_out)
+    !!< Combine two or more halos of a number of subproblems into a single
+    !!< halo, where the numbering of the dofs (nodes) of each subproblem is
+    !!< combined into one single contiguous numbering of the dofs in the combined
+    !!< system. This is useful to combine the linear solve of two or more coupled
+    !!< problem into a single system (which can then be passed to petsc_solve e.g.)
+    !!< The numbering of the combined system should be provided by node_maps(:) 
+    !!< which for each of the sub-problems, provides a map from the sub-problem
+    !!< dof-numbering to the dof-numbering of the combined system. If you need
+    !!< the combined halo to be in trailing receive order, you need to choose
+    !!< the new numbering accordingly for which the function
+    !!< create_combined_numbering_trailing_receives() below can be used.
+    type(halo_type) :: halo_out
+    type(halo_type), dimension(:), intent(in):: halos
+    type(integer_vector), dimension(:), intent(in):: node_maps
+    character(len=*), intent(in):: name ! name for the halo
+
+    integer, dimension(halo_proc_count(halos(1))):: nsends, nreceives, combined_nsends, combined_nreceives, &
+      send_count, receive_count
+    integer:: data_type, communicator, nprocs
+    integer:: combined_nowned_nodes
+    integer:: ihalo, jproc, k, new_node_no
+
+    communicator = halo_communicator(halos(1))
+    data_type = halo_data_type(halos(1))
+    nprocs = halo_proc_count(halos(1))
+#ifdef DDEBUG
+    do ihalo=2, size(halos)
+      assert(communicator==halo_communicator(halos(ihalo)))
+      assert(data_type==halo_data_type(halos(ihalo)))
+      assert(nprocs==halo_proc_count(halos(ihalo)))
+    end do
+#endif
+    assert( size(node_maps)==size(halos) )
+    
+
+    combined_nsends = 0
+    combined_nreceives =0
+    combined_nowned_nodes =0
+
+    do ihalo=1, size(halos)
+      call halo_send_counts(halos(ihalo), nsends)
+      combined_nsends = combined_nsends + nsends
+      call halo_receive_counts(halos(ihalo), nreceives)
+      combined_nreceives = combined_nreceives + nreceives
+      combined_nowned_nodes = combined_nowned_nodes + halo_nowned_nodes(halos(ihalo))
+    end do
+
+    call allocate(halo_out, combined_nsends, combined_nreceives, name=name, &
+      communicator=communicator, data_type=data_type, nowned_nodes=combined_nowned_nodes)
+
+    send_count = 0
+    receive_count = 0
+
+    do ihalo=1, size(halos)
+
+      do jproc=1, nprocs
+
+        do k=1, halo_send_count(halos(ihalo), jproc)
+          new_node_no = node_maps(ihalo)%ptr(halo_send(halos(ihalo), jproc, k))
+          call set_halo_send(halo_out, jproc, send_count(jproc)+k, new_node_no)
+        end do
+        send_count(jproc) = send_count(jproc) + halo_send_count(halos(ihalo), jproc)
+
+        do k=1, halo_receive_count(halos(ihalo), jproc)
+          new_node_no = node_maps(ihalo)%ptr(halo_receive(halos(ihalo), jproc, k))
+          call set_halo_receive(halo_out, jproc, receive_count(jproc)+k, new_node_no)
+        end do
+        receive_count(jproc) = receive_count(jproc) + halo_receive_count(halos(ihalo), jproc)
+      end do
+
+    end do
+
+    assert( all(receive_count==combined_nreceives) )
+    assert( all(send_count==combined_nsends) )
+
+  end function combine_halos
+
+  function create_combined_numbering_trailing_receives(halos1, halos2) result (node_maps)
+    !!< Combine the node numbering of one of more subproblems into a single
+    !!< contiguous numbering in such a way that we fulfill all requirements
+    !!< of trailing_receives_consistent(). This means we first number all
+    !!< owned nodes (first of subsystem 1, then of subsystem2, etc.), followed
+    !!< by the receive nodes. We assume here that halos1 and halos2 are based
+    !!< on the same numbering of the subsystems, and that the receive
+    !!< nodes of halos1 are a subset of those in halos2.
+    !!< In order to adhere to the following requirement:
+    !!<   max_halo_receive_node(halo) == node_count(halo)
+    !!< for both halos1 and halos2, we need to then number the receive nodes
+    !!< of halos1 first (for all subsystems), followed by any receive nodes
+    !!< that are only in halos2.
+    type(halo_type), dimension(:), intent(in):: halos1, halos2
+    !! we return an array of node_maps that maps the numbering of each subsystem
+    !! to that of the combined system
+    type(integer_vector), dimension(size(halos1)):: node_maps
+
+    integer, dimension(:), allocatable :: all_recvs
+    integer :: new_node
+    integer :: i, j
+
+    ! some rudimentary checks to see the halos adhere to the above
+    assert(size(halos1)==size(halos2))
+    do i=1, size(halos1)
+      assert(halo_nowned_nodes(halos1(i))==halo_nowned_nodes(halos2(i)))
+      assert(node_count(halos1(i))<=node_count(halos2(i)))
+    end do
+
+    do i=1, size(node_maps)
+      allocate(node_maps(i)%ptr(node_count(halos2(i))))
+      node_maps(i)%ptr = 0
+    end do
+
+    new_node = 1 ! keeps track of the next new node number in the combined numbering
+    
+    ! owned nodes
+    do i=1, size(halos1)
+      do j=1, halo_nowned_nodes(halos1(i))
+        node_maps(i)%ptr(j) = new_node
+        new_node = new_node + 1
+      end do
+    end do
+
+    ! receive nodes of halos1
+    do i=1, size(halos1)
+      allocate(all_recvs(1:halo_all_receives_count(halos1(i))))
+      call extract_all_halo_receives(halos1(i), all_recvs)
+      do j=1, size(all_recvs)
+        node_maps(i)%ptr(all_recvs(j)) = new_node
+        new_node = new_node + 1
+      end do
+      deallocate(all_recvs)
+    end do
+
+    ! receive nodes of halos2
+    do i=1, size(halos2)
+      allocate(all_recvs(1:halo_all_receives_count(halos2(i))))
+      call extract_all_halo_receives(halos2(i), all_recvs)
+      do j=1, size(all_recvs)
+        if (node_maps(i)%ptr(all_recvs(j))==0) then
+          ! only include those that weren't recv nodes of halos1 already
+          node_maps(i)%ptr(all_recvs(j)) = new_node
+          new_node = new_node + 1
+        end if
+      end do
+      deallocate(all_recvs)
+    end do
+
+  end function create_combined_numbering_trailing_receives
 
 end module halos_derivation
