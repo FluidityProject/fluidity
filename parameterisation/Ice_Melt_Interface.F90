@@ -330,10 +330,12 @@ contains
         P = node_val(re_pressure,the_node)
         speed = sqrt(sum(vel**2))
 
-        if (speed .lt. 0.001) then
-            speed = 0.001
-            !TODO: Use a maxval here instead
-        endif
+!!! Spin up velocity
+!        if (speed .lt. 0.001) then
+!            speed = 0.001
+!            !TODO: Use a maxval here instead
+!        endif
+
         ! constant = -7.53e-8 [C Pa^(-1)] comes from Holland and Jenkins Table 1
         ! TODO: Define as a constant explicitly, i.e. real, parameter :: topo = -7.53e-8
         topo = -7.53e-8*P
