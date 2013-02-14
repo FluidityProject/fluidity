@@ -6,7 +6,7 @@ input:	clean
 	gmsh -2  -algo frontal -o MMS_E_unstructured.msh src/MMS_E_unstructured.geo
 
 clean:
-	#rm *.vtu *.msh *.node *.edge *.ele *.stat
+	rm -f *.vtu *.msh *.stat fluidity.log-0 fluidity.err-0
 
 flmls:
 	@$(foreach M,B C D E, \

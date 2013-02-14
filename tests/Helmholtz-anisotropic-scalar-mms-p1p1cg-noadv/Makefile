@@ -7,7 +7,7 @@ input:	clean
 	gmsh -2 -optimize -algo frontal -o MMS_E_$(MESH).msh src/MMS_E_$(MESH).geo
 
 clean:
-	rm *.msh
+	#rm *.msh
 
 flmls:
 	@$(foreach M,B C D E, \
