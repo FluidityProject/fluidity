@@ -451,7 +451,6 @@
       U_ELE_TYPE = CV_ELE_TYPE
       path='/material_phase[0]/scalar_field::Temperature/prognostic/temporal_discretisation/control_volumes/second_theta'
       call get_option( path, second_theta, stat )
-      !SECOND_THETA = 0.0
       CV_METHOD = .FALSE.
 
       IF(CV_METHOD) THEN ! cv method...
@@ -824,7 +823,6 @@
            'control_volumes/'
       call get_option( trim( path ) // 'second_theta', second_theta, stat )
       call get_option( trim( path ) // 'number_advection_iterations', nits_flux_lim, default = 1 )
-
 
       ! THIS DOES NOT WORK FOR NITS_FLUX_LIM>1 (NOBODY KNOWS WHY)
       Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, 1 !nits_flux_lim

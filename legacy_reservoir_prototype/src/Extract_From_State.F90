@@ -458,7 +458,7 @@
 
       Conditional_TDISOPT: if( have_option( trim( option_path2 ) ) ) then
          if( have_option( trim( option_path2 ) // '/control_volumes/face_value::FiniteElement/limit_face_value/' // &
-              'limiter::Extrema' ) ) then
+              'limiter::CompressiveAdvection' ) ) then
             t_disopt = 9
          else
             if( have_option( trim( option_path2 ) // '/control_volumes/face_value::FiniteElement/limit_face_value' ) ) &
@@ -514,10 +514,10 @@
 
 !!$ IN/DG_ELE_UPWIND are options for optimisation of upwinding across faces in the overlapping
 !!$ formulation. The data structure and options for this formulation need to be added later. 
-      in_ele_upwind =  3 ; dg_ele_upwind = 3
+      in_ele_upwind = 3 ; dg_ele_upwind = 3
 
       ! simplify things...
-      !in_ele_upwind =  1 ; dg_ele_upwind = 1
+      !in_ele_upwind = 1 ; dg_ele_upwind = 1
       !u_dg_vel_int_opt = 1
       !v_dg_vel_int_opt = 1
       !v_disopt = 0
@@ -1237,7 +1237,7 @@
       integer, dimension(:), allocatable :: sufid_bc, face_nodes
       character( len = option_path_len ) :: option_path, field_name
       integer :: ndim, stotel, snloc, snloc2, nonods, nobcs, bc_type, j, k, kk, l, &
-           shape_option( 2 ), count
+           shape_option( 2 ), count, u_nonods
       real, dimension( : ), allocatable :: initial_constant
       logical :: have_source, have_absorption
       character(len=8192) :: func
@@ -1253,7 +1253,10 @@
       if ( is_overlapping ) snloc = snloc2 * ele_loc( pmesh, 1)
       nonods = node_count( field )
       field_name = trim( field % name )
+      u_nonods = nonods
+      if ( is_overlapping ) u_nonods = nonods * ele_loc( pmesh, 1)
 
+      ! this code is bugged for overlapping models...
 
       Conditional_InitialisationFromFLML: if( initialised ) then
          field_u_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = field % val( 1, : )
@@ -1297,7 +1300,7 @@
 
       ! set nu to u
       field_nu_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = &
-           field_u_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods )            
+           field_u_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods )
       if( ndim > 1 ) field_nv_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = &
            field_v_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods )
       if( ndim > 2 ) field_nw_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = &

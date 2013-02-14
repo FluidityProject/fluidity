@@ -1095,6 +1095,8 @@
          finele, colele, cv_ndgln, cv_sndgln, x_ndgln, mat_ndgln, perm, material_absorption, &
          wic_u_bc, wic_vol_bc, sat, vol, state, x_nonods, x,y,z )
 
+      implicit none
+
       integer, intent(in) :: totele, stotel, cv_nloc, cv_snloc, nphase, ndim, nface, &
            mat_nonods, cv_nonods, x_nloc, ncolele, cv_ele_type, x_nonods
       integer, dimension( totele+1 ), intent( in ) :: finele
@@ -1123,12 +1125,12 @@
       integer, dimension( : ), allocatable :: idone
       integer, dimension( cv_snloc ) :: cv_sloc2loc
       integer, parameter :: WIC_BC_DIRICHLET = 1
-! for the pressure b.c and overlapping method 
-! make the material property change just inside the domain else on the surface only...
+!!$ for the pressure b.c. and overlapping method 
+!!$ make the material property change just inside the domain else on the surface only...
       logical, parameter :: mat_change_inside = .true.
 
       if( have_option( '/physical_parameters/mobility' ) )then
-         call get_option( '/physical_parameters/mobility', Mobility )
+         call get_option( '/physical_parameters/mobility', mobility )
       elseif( have_option( '/material_phase[1]/vector_field::Velocity/prognostic/tensor_field::Viscosity' // &
            '/prescribed/value::WholeMesh/isotropic' ) ) then
          viscosity_ph1 => extract_tensor_field( state( 1 ), 'Viscosity' )
@@ -1140,8 +1142,7 @@
 
       suf_sig_diagten_bc = 1.
 
-      allocate( idone( mat_nonods*nphase) )
-      idone=0
+      allocate( idone( mat_nonods*nphase ) ) ; idone=0
       allocate( cv_sloclist( nface, cv_snloc ) )
       call determin_sloclist( cv_sloclist, cv_nloc, cv_snloc, nface,  &
            ndim, cv_ele_type )
@@ -1204,21 +1205,18 @@
                         end do
 
                         mat = matmul( sigma_out, inverse( material_absorption( mat_nod, s : e, s : e ) ) )
-                        mat_inv =     inverse(mat)
+                        mat_inv = inverse( mat )
                         suf_sig_diagten_bc( cv_snodi_ipha, 1 : ndim ) = (/ (mat_inv(i, i), i = 1, ndim) /)
-!                        suf_sig_diagten_bc( cv_snodi_ipha, 1 : ndim ) = (/ (.9*mat_inv(i, i)+0., i = 1, ndim) /)
 
-                        if(mat_change_inside) then
-                           suf_sig_diagten_bc( cv_snodi_ipha, 1 : ndim ) =1. ! dont use as it's bugged. 
+                        if( mat_change_inside ) then
+                           suf_sig_diagten_bc( cv_snodi_ipha, 1 : ndim ) = 1.
 
-                           if(idone(mat_nod+(iphase-1)*mat_nonods).eq.0) then
-                              material_absorption( mat_nod, s : e, s : e  )&
-                                 =matmul(mat, material_absorption( mat_nod, s : e, s : e ) )
-!                                 =2.0*matmul(mat, material_absorption( mat_nod, s : e, s : e ) ) &
-!                                 +0.*material_absorption( mat_nod, s : e, s : e )
-                              idone(mat_nod+(iphase-1)*mat_nonods) =1
-                           endif
-                        endif
+                           if( idone( mat_nod+(iphase-1)*mat_nonods ) == 0 ) then
+                              material_absorption( mat_nod, s : e, s : e  ) &
+                                 = matmul( mat, material_absorption( mat_nod, s : e, s : e ) )
+                              idone( mat_nod+(iphase-1)*mat_nonods ) = 1
+                           end if
+                        end if
 
                      end do
 
@@ -1232,11 +1230,72 @@
 
       deallocate( face_ele, cv_sloclist )
 
-!suf_sig_diagten_bc=1000.0
-!suf_sig_diagten_bc=1.0
-!suf_sig_diagten_bc=100.0
-
       return
     end subroutine calculate_SUF_SIG_DIAGTEN_BC
+
+
+    subroutine calculate_u_abs_stab( Material_Absorption_Stab, Material_Absorption, &
+         opt_vel_upwind_coefs, nphase, ndim, totele, cv_nloc, mat_nloc, mat_nonods, mat_ndgln )
+
+      implicit none
+
+      real, dimension( mat_nonods, ndim * nphase, ndim * nphase ), intent( inout ) :: Material_Absorption_Stab
+      real, dimension( mat_nonods, ndim * nphase, ndim * nphase ), intent( in ) :: Material_Absorption
+      real, dimension( mat_nonods * nphase * ndim * ndim * 2 ), intent( in ) :: opt_vel_upwind_coefs
+      integer, intent( in ) :: nphase, ndim, totele, cv_nloc, mat_nloc, mat_nonods
+      integer, dimension( totele * mat_nloc ), intent( in ) :: mat_ndgln
+
+      logical :: use_mat_stab_stab
+      integer :: apply_dim, idim, jdim, ipha_idim, iphase, ele, cv_iloc, ij, imat
+      real :: factor
+
+      Material_Absorption_Stab = 0.
+
+      use_mat_stab_stab = .false.
+
+      if ( use_mat_stab_stab ) then
+
+         apply_dim = 2
+
+         if ( .true. ) then
+
+            factor = 100.
+
+            do iphase = 1, nphase
+               do idim = 1, ndim
+                  ipha_idim = ( iphase - 1 ) * ndim + idim
+                  if ( idim == apply_dim ) then
+                     Material_Absorption_Stab( :, ipha_idim, ipha_idim ) = &
+                          ( factor / 10. )**2 * Material_Absorption( :, ipha_idim, ipha_idim )
+                  end if
+               end do
+            end do
+
+         else
+
+            do ele = 1, totele
+               do cv_iloc = 1, cv_nloc
+                  imat = mat_ndgln( ( ele - 1 ) * mat_nloc + cv_iloc )
+                  do iphase = 1, nphase
+                     do idim = 1, ndim
+                        do jdim = 1, ndim
+                           if ( idim == apply_dim .and. jdim == apply_dim ) then
+                              ij = ( iphase - 1 ) * mat_nonods * ndim * ndim + ( imat - 1 ) * ndim * ndim + &
+                                   ( idim - 1 ) * ndim + jdim
+                              ipha_idim = ( iphase - 1 ) * ndim + idim
+                              Material_Absorption_Stab( imat, ipha_idim, ipha_idim ) = &
+                                   abs( opt_vel_upwind_coefs( ij + nphase * mat_nonods * ndim * ndim ) )
+                           end if
+                        end do
+                     end do
+                  end do
+               end do
+            end do
+
+         end if
+      end if ! use_mat_stab_stab
+
+    end subroutine calculate_u_abs_stab
+
 
   end module multiphase_EOS

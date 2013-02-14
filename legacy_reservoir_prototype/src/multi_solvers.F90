@@ -241,9 +241,9 @@ contains
 
        if (gl_its>2) then
 
-          if (.true.) then
+          if (.false.) then
              call set_solver_options(path, &
-                  !ksptype = "gmres", &
+                  ksptype = "gmres", &
                   pctype = "jacobi", & ! use this for P1DGP1DG
                   !pctype = "none", &   ! use this for P1DGP2DG
                   rtol = 1.e-10, &
@@ -264,7 +264,7 @@ contains
              ewrite(3,*)'after solving:',p
           end if
 
-          if (.false.) then
+          if (.true.) then
              CALL SOLVER( CMC, P, RHS, &
                   FINDCMC, COLCMC, &
                   option_path = '/material_phase[0]/scalar_field::Pressure' )

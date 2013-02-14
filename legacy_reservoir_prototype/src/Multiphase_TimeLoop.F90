@@ -191,6 +191,7 @@
       real, dimension(:, :), allocatable :: DEN_CV_NOD, SUF_SIG_DIAGTEN_BC
       integer :: CV_NOD, CV_NOD_PHA, CV_ILOC, ELE
 
+
 !!$ Compute primary scalars used in most of the code
       call Get_Primary_Scalars( state, &         
            nphase, nstate, ncomp, totele, ndim, stotel, &
@@ -615,7 +616,7 @@
 
                Velocity_NU = Velocity_U ; Velocity_NV = Velocity_V ; Velocity_NW = Velocity_W
 
-               call calculate_diffusivity( state, ncomp, nphase, ndim, cv_nonods, mat_nonods, ScalarAdvectionField_Diffusion  )
+               call calculate_diffusivity( state, ncomp, nphase, ndim, cv_nonods, mat_nonods, ScalarAdvectionField_Diffusion )
 
                call INTENERGE_ASSEM_SOLVE( state, &
                     NCOLACV, FINACV, COLACV, MIDACV, & 
@@ -769,10 +770,9 @@
 
                ! quick fix for collapsing water column...
                ScalarField_Source_Store=0.
-!       if(sum(Velocity_u)==0.0) Velocity_u=1.e-8
-!       if(sum(Velocity_nu)==0.0) Velocity_nu=1.e-8
-!       if(sum(Velocity_u_old)==0.0) Velocity_u_old=1.e-8
-!       if(sum(Velocity_nu_old)==0.0) Velocity_nu_old=1.e-8
+
+               call calculate_u_abs_stab( Material_Absorption_Stab, Material_Absorption, &
+                    opt_vel_upwind_coefs, nphase, ndim, totele, cv_nloc, mat_nloc, mat_nonods, mat_ndgln )
 
                CALL FORCE_BAL_CTY_ASSEM_SOLVE( state, &
                     NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
@@ -830,8 +830,8 @@
                     NCOLACV, FINACV, COLACV, MIDACV, &
                     NCOLCT, FINDCT, COLCT, &
                     CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
-                    CV_ELE_TYPE,  &
-                    NPHASE,  &
+                    CV_ELE_TYPE, &
+                    NPHASE, &
                     CV_NLOC, U_NLOC, X_NLOC,  &
                     CV_NDGLN, X_NDGLN, U_NDGLN, &
                     CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
@@ -1413,7 +1413,7 @@
 !!$ Dummy field used in the scalar advection option:
             Dummy_PhaseVolumeFraction_FEMT = 1.
 
-            allocate( density_tmp(cv_nonods) , density_old_tmp(cv_nonods) )
+            allocate( density_tmp(cv_nonods*nphase) , density_old_tmp(cv_nonods*nphase) )
             density_tmp=0. ; density_old_tmp=0.
 
 !!$
