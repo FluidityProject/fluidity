@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <shallow_water_options>
   <simulation_name>
-    <string_value lines="1">{SIMULATION}</string_value>
+    <string_value lines="1">fsphere</string_value>
   </simulation_name>
   <geometry>
     <dimension>

@@ -7,4 +7,4 @@ CONSTRAINT=BDM
 
 include sw_common/common.mk
 
-input: clean mesh swml
+input: clean sphere_mesh fsphere_swml

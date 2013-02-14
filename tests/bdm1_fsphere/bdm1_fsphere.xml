@@ -9,21 +9,14 @@
     <!-- shallow water test case on a f-sphere-->
   </problem_definition>
   <variables>
-    <variable name="maxdh" language="python">
+    <variable name="maxdiffs" language="python">
 from vtktools import VtuDiff, vtu
 vtu1=vtu('fsphere_0.vtu')
 vtu2=vtu('fsphere_1.vtu')
 diff=VtuDiff(vtu1,vtu2)
 dh=diff.GetField('LayerThickness')
 maxdh=max(abs(dh.min()),abs(dh.max()))
-    </variable>
-    <variable name="maxdu" language="python">
-from vtktools import VtuDiff, vtu
-vtu1=vtu('fsphere_0.vtu')
-vtu2=vtu('fsphere_10.vtu')
-diff=VtuDiff(vtu1,vtu2)
-du=diff.GetField('Velocity')
-maxdu=max(abs(du.min()),abs(du.max()))
+maxdiffs=[maxdu,maxdh]
     </variable>
   </variables>
   <pass_tests>
