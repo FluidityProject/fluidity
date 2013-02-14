@@ -1340,7 +1340,7 @@
 
 !Sigma term
       if(have_wd) then
-        call add_shallow_element_cg(state, ele, test_function, x, u, oldu_val, detwei, detwei_old, detwei_new, big_m_diag_addto, big_m_tensor_addto, rhs_addto,mass, masslump,visc_masslump)
+        call add_shallow_element_cg(state, ele, test_function, x, u, oldu_val, detwei, detwei_old, detwei_new, big_m_diag_addto, big_m_tensor_addto, rhs_addto,mass, masslump)
       end if 
       
       ! Advection terms
@@ -1541,7 +1541,7 @@
       !end do  
     end subroutine add_mass_element_cg
     
-    subroutine add_shallow_element_cg(state, ele, test_function, x, u, oldu_val, detwei, detwei_old, detwei_new, big_m_diag_addto, big_m_tensor_addto, rhs_addto,mass, masslump,visc_inverse_masslump)
+    subroutine add_shallow_element_cg(state, ele, test_function, x, u, oldu_val, detwei, detwei_old, detwei_new, big_m_diag_addto, big_m_tensor_addto, rhs_addto,mass, masslump)
     !This subroutine only works in this case: 1)3-dimentiona, 2)z direction in the same direction as gravity, 3)mesh element is triangle.
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
@@ -1557,7 +1557,7 @@
       integer, parameter:: xloc=2
       integer :: a
       integer ::i,j
-      type(vector_field), intent(inout) :: visc_inverse_masslump
+     ! type(vector_field), intent(inout) :: visc_inverse_masslump
       type(petsc_csr_matrix), intent(inout) :: mass
       type(vector_field), intent(inout) :: masslump
       real, dimension(ele_loc(u, ele)) :: sigma_lump
@@ -1604,7 +1604,8 @@
       dz_ele = max(x_ele(3,1),x_ele(3,2), x_ele(3,3) )-min(x_ele(3,1), x_ele(3,2), x_ele(3,3))
       print * , "dz=",dz_ele
       print * , "dx=",dx_ele
-      sigma_ele = dx_ele**2/dt/a**2/dz_ele**2
+      !sigma = dx_ele**2/(a**2*dt*dz_ele**2).But when we add it to mass and other terms, we need to multiply dt, so here we get the result after multiplying dt.
+      sigma_ele = dx_ele**2/(a**2*dz_ele**2)
       deallocate(x_ele)
       deallocate(z_ele)     
       if(move_mesh) then
@@ -1614,14 +1615,7 @@
          coefficient_detwei = sigma_ele*detwei
          sigma_mat = shape_shape(test_function, u_shape, coefficient_detwei)  
       end if
-      call addto(mass,3,3,u_ele, u_ele, sigma_mat)
-      sigma_lump = sum(sigma_mat, 2)
-      print *, "sigma matrix:"
-      do i=1, ele_loc(u, ele)
-        do j=1,ele_loc(u, ele)
-         ! print *, sigma_mat(i,j)
-        end do
-      end do 
+      sigma_lump = sum(sigma_mat, 2) 
       
       if(have_wd) then
         if(lump_mass) then
@@ -1633,6 +1627,7 @@
       end if
       if(assemble_mass_matrix) then
         call addto(masslump, 3, u_ele, sigma_lump)
+        call addto(mass,3,3,u_ele, u_ele, sigma_mat)
       end if
           
       if(move_mesh) then
@@ -1644,10 +1639,10 @@
         rhs_addto(3,:) = rhs_addto(3,:)+matmul(sigma_mat, oldu_val(3,:))/dt 
       end if
       
-      nodes => ele_nodes(u,ele)
-       do i = 1, ele_loc(u,ele)
-          call addto(visc_inverse_masslump, 3, nodes(i), dt*sigma_mat(i,i))
-        end do
+     !nodes => ele_nodes(u,ele)
+       !do i = 1, ele_loc(u,ele)
+         ! call addto(visc_inverse_masslump, 3, nodes(i), sigma_mat(i,i))
+      ! end do
       print *, "rhs_addto matrix:"
       do i=1, u%dim
         do j=1,ele_loc(u, ele)
@@ -1655,8 +1650,7 @@
         end do
       end do
 
-      
-    end subroutine add_shallow_element_cg
+      end subroutine add_shallow_element_cg
     
     subroutine add_advection_element_cg(ele, test_function, u, oldu_val, nu, ug,  density, viscosity, nvfrac, du_t, dug_t, dnvfrac_t, detwei, J_mat, big_m_tensor_addto, rhs_addto)
       integer, intent(in) :: ele
