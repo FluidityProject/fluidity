@@ -86,7 +86,7 @@
       </from_mesh>
     </mesh>
     <mesh name="InputMesh">
-      <from_file file_name="cube">
+      <from_file file_name="small_sphere">
         <format name="triangle"/>
         <dimension>
           <integer_value rank="0">2</integer_value>
