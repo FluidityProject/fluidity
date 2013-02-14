@@ -108,7 +108,7 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">0</integer_value>
+        <integer_value rank="0">60</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <output_mesh name="VelocityMesh"/>
@@ -127,8 +127,8 @@
       <integer_value rank="0">1</integer_value>
     </nonlinear_iterations>
     <finish_time>
-      <real_value rank="0">84600.0</real_value>
-      <comment>24*60*60*10=846000</comment>
+      <real_value rank="0">259200.0</real_value>
+      <comment>24*60*60*3=259200</comment>
     </finish_time>
   </timestepping>
   <physical_parameters>
