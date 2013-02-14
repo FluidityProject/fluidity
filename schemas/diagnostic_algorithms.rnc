@@ -402,6 +402,21 @@ vector_difference_algorithm =
          }?
       }
    )
+tensor_difference_algorithm =
+   (
+      ## Difference between two tensor fields, field 1 - field 2
+      element algorithm {
+         attribute name { "tensor_difference" },
+         attribute material_phase_support { "single" },
+         tensor_source_field_1,
+         tensor_source_field_2,
+         ## If enabled, the absolute value of the difference is taken
+         element absolute_difference {
+            comment
+         }?
+      }
+   ) 
+   
 
 # Time aggregated diagnostics
 
@@ -1476,3 +1491,4 @@ tensor_diagnostic_algorithms |= hessian_algorithm
 tensor_diagnostic_algorithms |= helmholtz_anisotropic_smoothed_tensor_algorithm
 tensor_diagnostic_algorithms |= field_tolerance_algorithm
 tensor_diagnostic_algorithms |= tensor_python_diagnostic_algorithm
+tensor_diagnostic_algorithms |= tensor_difference_algorithm

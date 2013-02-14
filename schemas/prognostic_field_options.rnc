@@ -525,19 +525,25 @@ prognostic_velocity_field =
                     }
                   )
                },
-               ## large-eddy simulation models (currently restricted to use in incompressible flow cases, where the discrete velocity is divergence-free and the eddy viscosity tensor is traceless)
+               ## Large-eddy simulation (LES) models. Currently restricted to use in incompressible flow cases, where the discrete velocity is divergence-free and the eddy viscosity tensor is traceless.
                element les_model {
-                  ## similar to the original Smag model
+                  ## Similar to the original Smagorinsky model
                   element second_order {
-                     ## literature symbol: Cs
+                     ## Literature symbol: Cs
                      ##
-                     ## suggested value 0.1
+                     ## Suggested value: 0.1
                      element smagorinsky_coefficient {
                         real
                      },
-                     ## eddy viscosity (turbulent diffusion of velocity).
-                     ## This is an anisotropic symmetric viscosity, added to normal viscosity field, that
-                     ## carries the influence of turbulence onto the velocity field.
+                     ## The 'scalar' length scale is the cube root of the element's volume in 3D. In 2D, it is the square root of the element's area. Using this will result in an isotropic eddy viscosity tensor.
+                     ##
+                     ## The 'tensor' length scale uses the metric from the adaptivity process. Using this will result in an anisotropic eddy viscosity tensor.
+                     element length_scale_type { 'scalar'|'tensor' },
+                     ## Eddy viscosity diagnostic field (turbulent diffusion of velocity).
+                     ## This is a symmetric viscosity, added to normal viscosity field, that
+                     ## carries the influence of turbulence onto the velocity field. It will
+                     ## be anisotropic if the 'tensor' length scale is chosen. Otherwise, it
+                     ## will be isotropic.
                      element tensor_field {
                         attribute rank { "2" },
                         attribute name { "EddyViscosity" },
@@ -545,7 +551,14 @@ prognostic_velocity_field =
                            element diagnostic {
                               internal_algorithm,
                               velocity_mesh_choice,
-                              diagnostic_tensor_field
+                              diagnostic_tensor_field,
+                              element mass_matrix {  
+                              (
+                                    element use_lumped_mass_matrix { element use_submesh { empty }? }
+                                    |
+                                    element use_consistent_mass_matrix { empty }
+                                 )
+                              }
                            }
                         )
                      }?
@@ -615,7 +628,7 @@ prognostic_velocity_field =
                            element diagnostic {
                               internal_algorithm,
                               velocity_mesh_choice,
-                              diagnostic_vector_field
+                              diagnostic_tensor_field
                            }
                         )
                      }?,
@@ -627,7 +640,14 @@ prognostic_velocity_field =
                            element diagnostic {
                               internal_algorithm,
                               velocity_mesh_choice,
-                              diagnostic_tensor_field
+                              diagnostic_tensor_field,
+                              element mass_matrix {  
+                              (
+                                    element use_lumped_mass_matrix { element use_submesh { empty }? }
+                                    |
+                                    element use_consistent_mass_matrix { empty }
+                                 )
+                              }
                            }
                         )
                      }?,
@@ -639,7 +659,14 @@ prognostic_velocity_field =
                            element diagnostic {
                               internal_algorithm,
                               velocity_mesh_choice,
-                              diagnostic_tensor_field
+                              diagnostic_tensor_field,
+                              element mass_matrix {  
+                              (
+                                    element use_lumped_mass_matrix { element use_submesh { empty }? }
+                                    |
+                                    element use_consistent_mass_matrix { empty }
+                                 )
+                              }
                            }
                         )
                      }?,
@@ -651,7 +678,14 @@ prognostic_velocity_field =
                            element diagnostic {
                               internal_algorithm,
                               velocity_mesh_choice,
-                              diagnostic_tensor_field
+                              diagnostic_tensor_field,
+                              element mass_matrix {  
+                              (
+                                    element use_lumped_mass_matrix { element use_submesh { empty }? }
+                                    |
+                                    element use_consistent_mass_matrix { empty }
+                                 )
+                              }
                            }
                         )
                      }?,
@@ -665,7 +699,14 @@ prognostic_velocity_field =
                            element diagnostic {
                               internal_algorithm,
                               velocity_mesh_choice,
-                              diagnostic_tensor_field
+                              diagnostic_tensor_field,
+                              element mass_matrix {  
+                              (
+                                    element use_lumped_mass_matrix { element use_submesh { empty }? }
+                                    |
+                                    element use_consistent_mass_matrix { empty }
+                                 )
+                              }
                            }
                         )
                      }?

@@ -670,9 +670,17 @@ with the anisotropic tensorial eddy viscosity:
 \nu_{jk} = 4C_s^2 \left | \mathcal{\overline{S}} \right | \mathcal{M}^{-1},
 \end{equation}
 where $\mathcal{M}$ is the length-scale metric from the adaptivity process (see \citet{pain2001}),
-used here to relate eddy viscosity to the local grid size. The factor of 4 arises because the filter
-width separating resolved and unresolved scales is assumed to be twice the local element size, which is squared in
-the viscosity model.
+used here to relate eddy viscosity to the local grid size. The factor of 4 arises in both of the above formula because the filter width separating resolved and unresolved scales is assumed to be twice the local element size, which is squared in the viscosity model.
+
+There is also a scalar (rather than tensorial) length scale metric available, defined by
+\begin{equation}
+ l = 2V^{\frac{1}{n}},
+\end{equation}
+where $n$ is the dimension of the problem, and $V$ is the volume (if $n=3$) or area (if $n=2$) of the element. Using this yields an isotropic eddy viscosity tensor:
+\begin{equation}
+ \nu_{jk} = 4C_s^2 \left | \mathcal{\overline{S}} \right |V^{\frac{1}{n}}.
+\end{equation}
+
 \par
 The options for this model are available under the spud path 
 \lstinline+.../les_model/second_order+. The following options are available to the user:
@@ -682,6 +690,8 @@ The options for this model are available under the spud path
       However, many researchers have carried out calibration studies for particular flows and mesh
       resolutions, for example see \cite{deardorff1971}, \cite{nicoud1999}, \cite{germano1991} and
       \cite{canuto_cheng1997}.
+\item \lstinline+.../les_model/second_order/length_scale_type+\ : (Compulsory) The user can select between
+      the scalar or tensor length scales, described above.
 \item \lstinline+.../les_model/second_order/tensor_field::EddyViscosity+\ : (Optional) When this
       option is active the eddy viscocity is calculated as a diagnostic field. Further sub-options
       allow the user to store this field for later visualisation and post-processing.

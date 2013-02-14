@@ -66,7 +66,7 @@ y0 = 90
 # Might not work - might not be a vertex there
 depths_p3 = []
 for i in range(0,len(dtb)):
-    if (abs(coords[i,0] - x0) &lt; 0.1 and abs(coords[i,1] - y0) &lt; 0.1):
+    if (abs(coords[i,0] - x0) &lt; 0.5 and abs(coords[i,1] - y0) &lt; 0.5):
         depths_p3.append(dtb[i]) # should be depth, but could also grab dtb    
     </variable>
   </variables>

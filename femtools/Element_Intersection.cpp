@@ -435,7 +435,7 @@ void ElementIntersector::SetInput(double*& positionsA, double*& positionsB, cons
 
 ElementIntersectorCGAL2D::ElementIntersectorCGAL2D()
 {
-#ifdef HAVE_CGAL
+#ifdef HAVE_LIBCGAL
   triangulation = NULL;
 #endif
   exactness = 1;
@@ -443,7 +443,7 @@ ElementIntersectorCGAL2D::ElementIntersectorCGAL2D()
 
 ElementIntersectorCGAL2D::~ElementIntersectorCGAL2D()
 {
-#ifdef HAVE_CGAL
+#ifdef HAVE_LIBCGAL
   if(triangulation)
   {
     delete triangulation;
@@ -454,7 +454,7 @@ ElementIntersectorCGAL2D::~ElementIntersectorCGAL2D()
 
 void ElementIntersectorCGAL2D::Intersect()
 {
-#ifdef HAVE_CGAL
+#ifdef HAVE_LIBCGAL
   assert(positionsA);
   assert(positionsB);
 
@@ -509,7 +509,7 @@ void ElementIntersectorCGAL2D::Intersect()
 
 void ElementIntersectorCGAL2D::QueryOutput(int& nnodes, int& nelms) const
 {
-#ifdef HAVE_CGAL
+#ifdef HAVE_LIBCGAL
   assert(triangulation);
   nnodes = triangulation->number_of_vertices();
   nelms = triangulation->number_of_faces();
@@ -523,7 +523,7 @@ void ElementIntersectorCGAL2D::QueryOutput(int& nnodes, int& nelms) const
 
 void ElementIntersectorCGAL2D::GetOutput(double*& positions, int*& enlist) const
 {
-#ifdef HAVE_CGAL
+#ifdef HAVE_LIBCGAL
   assert(triangulation);
   
   map<Point_2, size_t> coordToId;
@@ -553,7 +553,7 @@ void ElementIntersectorCGAL2D::GetOutput(double*& positions, int*& enlist) const
 
 ElementIntersectorCGAL3D::ElementIntersectorCGAL3D()
 {
-#ifdef HAVE_CGAL
+#ifdef HAVE_LIBCGAL
   triangulation = NULL;
 #endif
   exactness = 1;
@@ -561,7 +561,7 @@ ElementIntersectorCGAL3D::ElementIntersectorCGAL3D()
 
 ElementIntersectorCGAL3D::~ElementIntersectorCGAL3D()
 {
-#ifdef HAVE_CGAL
+#ifdef HAVE_LIBCGAL
   if(triangulation)
   {
     delete triangulation;
@@ -572,7 +572,7 @@ ElementIntersectorCGAL3D::~ElementIntersectorCGAL3D()
 
 void ElementIntersectorCGAL3D::Intersect()
 {
-#ifdef HAVE_CGAL
+#ifdef HAVE_LIBCGAL
   assert(positionsA);
   assert(positionsB);
   
@@ -618,7 +618,7 @@ void ElementIntersectorCGAL3D::Intersect()
 
 void ElementIntersectorCGAL3D::QueryOutput(int& nnodes, int& nelms) const
 {
-#ifdef HAVE_CGAL
+#ifdef HAVE_LIBCGAL
   assert(triangulation);
 
   nnodes = triangulation->number_of_vertices();
@@ -634,7 +634,7 @@ void ElementIntersectorCGAL3D::QueryOutput(int& nnodes, int& nelms) const
 
 void ElementIntersectorCGAL3D::GetOutput(double*& positions, int*& enlist) const
 {
-#ifdef HAVE_CGAL
+#ifdef HAVE_LIBCGAL
   assert(triangulation);
   
   map<Point_3, size_t> coordToId;

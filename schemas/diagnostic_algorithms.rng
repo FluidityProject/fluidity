@@ -538,6 +538,25 @@ this option to these these internal algorithms.</a:documentation>
       </optional>
     </element>
   </define>
+  <define name="tensor_difference_algorithm">
+    <element name="algorithm">
+      <a:documentation>Difference between two tensor fields, field 1 - field 2</a:documentation>
+      <attribute name="name">
+        <value>tensor_difference</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="tensor_source_field_1"/>
+      <ref name="tensor_source_field_2"/>
+      <optional>
+        <element name="absolute_difference">
+          <a:documentation>If enabled, the absolute value of the difference is taken</a:documentation>
+          <ref name="comment"/>
+        </element>
+      </optional>
+    </element>
+  </define>
   <!-- Time aggregated diagnostics -->
   <!-- Temporal maximum diagnostic algorithm for scalar fields. -->
   <define name="scalar_temporalmax_algorithm">
@@ -2086,5 +2105,8 @@ This field needs to be interpolated between adapts.</a:documentation>
   </define>
   <define name="tensor_diagnostic_algorithms" combine="choice">
     <ref name="tensor_python_diagnostic_algorithm"/>
+  </define>
+  <define name="tensor_diagnostic_algorithms" combine="choice">
+    <ref name="tensor_difference_algorithm"/>
   </define>
 </grammar>
