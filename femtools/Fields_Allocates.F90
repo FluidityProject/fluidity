@@ -482,7 +482,9 @@ contains
     call register_deallocation("mesh_type", "integer", &
          size(mesh%faces%surface_node_list), name=trim(mesh%name)//" surface_nodes")
 #endif
-    deallocate(mesh%faces%surface_node_list)
+    if (associated(mesh%faces%surface_node_list)) then
+       deallocate(mesh%faces%surface_node_list)
+    end if
     
 #ifdef HAVE_MEMORY_STATS
     call register_deallocation("mesh_type", "integer", &
@@ -1037,6 +1039,14 @@ contains
 
     if(has_faces(model).and..not.present_and_false(with_faces)) then
       call add_faces(mesh, model)
+    end if
+    if (mesh%shape%numbering%type==ELEMENT_TRACE) then
+       call create_surface_mesh(mesh%faces%surface_mesh, &
+            mesh%faces%surface_node_list, mesh, name='Surface'//trim(mesh%name))
+#ifdef HAVE_MEMORY_STATS
+       call register_allocation("mesh_type", "integer", &
+            size(mesh%faces%surface_node_list), name='Surface'//trim(mesh%name))
+#endif
     end if
 
   end function make_mesh
