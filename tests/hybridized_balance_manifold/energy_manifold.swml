@@ -25,15 +25,17 @@
           <polynomial_degree>
             <integer_value rank="0">2</integer_value>
           </polynomial_degree>
+          <element_type>
+            <string_value>discontinuous lagrangian</string_value>
+          </element_type>
         </mesh_shape>
-        <mesh_continuity>
-          <string_value>discontinuous</string_value>
-        </mesh_continuity>
         <constraint_type>
           <string_value>BDFM</string_value>
           <solver>
             <iterative_method name="preonly"/>
-            <preconditioner name="lu"/>
+            <preconditioner name="lu">
+              <factorization_package name="petsc"/>
+            </preconditioner>
             <relative_error>
               <real_value rank="0">1.0e-12</real_value>
             </relative_error>
@@ -59,10 +61,10 @@
           <polynomial_degree>
             <integer_value rank="0">1</integer_value>
           </polynomial_degree>
+          <element_type>
+            <string_value>discontinuous lagrangian</string_value>
+          </element_type>
         </mesh_shape>
-        <mesh_continuity>
-          <string_value>discontinuous</string_value>
-        </mesh_continuity>
         <stat>
           <exclude_from_stat/>
         </stat>
@@ -95,9 +97,6 @@
             <string_value>trace</string_value>
           </element_type>
         </mesh_shape>
-        <mesh_continuity>
-          <string_value>discontinuous</string_value>
-        </mesh_continuity>
         <stat>
           <exclude_from_stat/>
         </stat>
@@ -111,9 +110,6 @@
             <integer_value rank="0">2</integer_value>
           </polynomial_degree>
         </mesh_shape>
-        <mesh_continuity>
-          <string_value>continuous</string_value>
-        </mesh_continuity>
         <stat>
           <exclude_from_stat/>
         </stat>
@@ -170,6 +166,7 @@
           </value>
           <output/>
           <stat>
+            <manifold_transformation/>
             <include_in_stat/>
           </stat>
           <detectors>
@@ -232,7 +229,9 @@
           <balanced>
             <solver>
               <iterative_method name="preonly"/>
-              <preconditioner name="lu"/>
+              <preconditioner name="lu">
+                <factorization_package name="petsc"/>
+              </preconditioner>
               <relative_error>
                 <real_value rank="0">1.0e-12</real_value>
               </relative_error>
@@ -248,16 +247,16 @@
           </balanced>
         </initial_condition>
         <output/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <consistent_interpolation/>
+        <stat>
+          <manifold_transformation/>
+          <include_in_stat/>
+          <previous_time_step>
+            <exclude_from_stat/>
+          </previous_time_step>
+          <nonlinear_field>
+            <exclude_from_stat/>
+          </nonlinear_field>
+        </stat>
       </prognostic>
     </vector_field>
     <scalar_field name="LayerThickness" rank="0">
@@ -299,9 +298,12 @@
         </initial_condition>
         <mean_layer_thickness>
           <real_value rank="0">5.0</real_value>
+          <reset_field_mean/>
         </mean_layer_thickness>
         <output/>
-        <stat/>
+        <stat>
+          <manifold_transformation/>
+        </stat>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
