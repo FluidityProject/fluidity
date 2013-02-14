@@ -360,11 +360,11 @@ endif
 	@echo "    MAKE enkf"
 	@cd enkf;          $(MAKE)
 	@echo "    MAKE adjoint_reduced_modelling"
+	@echo "    MAKE main"
+	@cd main; $(MAKE)
 	@cd adjoint_reduced_modelling;  $(MAKE)
 	@echo "    MAKE adjoint"
 	@cd adjoint; $(MAKE)
-	@echo "    MAKE main"
-	@cd main; $(MAKE)
 	@echo "    MAKE options_check"
 	@./tools/make_check_options.py
 	@cd preprocessor; $(MAKE) check_options.o
