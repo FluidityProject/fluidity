@@ -420,7 +420,7 @@ int NEMOReader::Read(int time_index){
     exit(-1);
   }
   
-#ifdef HAVE_NETCDF
+#ifdef HAVE_LIBNETCDF
   for(deque<string>::iterator ifield=fields_of_interest.begin(); ifield!=fields_of_interest.end(); ifield++){
     // Check if we already have a copy of this field
     if(fields.find(time_index)!=fields.end())
@@ -477,7 +477,7 @@ int NEMOReader::Read(int time_index){
 
 // Returns 0 on success, negitive if error.
 int NEMOReader::RegisterDataFile(string file){
-#ifdef HAVE_NETCDF
+#ifdef HAVE_LIBNETCDF
   if(verbose)
     cout<<"int NEMOReader::RegisterDataFile("<<file<<")\n";
   

@@ -348,7 +348,7 @@ this option to these these internal algorithms.</a:documentation>
   </define>
   <define name="helmholtz_smoothed_scalar_algorithm">
     <element name="algorithm">
-      <a:documentation>Smooth a scalar field by inverting a Helmholtz operator.</a:documentation>
+      <a:documentation>Smooth a scalar field by inverting a Helmholtz operator based on a scalar lengthscale.</a:documentation>
       <attribute name="name">
         <value>helmholtz_smoothed_scalar</value>
       </attribute>
@@ -369,7 +369,7 @@ The length scale is alpha*local element width (a scalar)</a:documentation>
   </define>
   <define name="helmholtz_smoothed_vector_algorithm">
     <element name="algorithm">
-      <a:documentation>Smooth a vector field by inverting a Helmholtz operator.</a:documentation>
+      <a:documentation>Smooth a vector field by inverting a Helmholtz operator based on a scalar lengthscale.</a:documentation>
       <attribute name="name">
         <value>helmholtz_smoothed_vector</value>
       </attribute>
@@ -390,7 +390,7 @@ The length scale is alpha*local element width (a scalar)</a:documentation>
   </define>
   <define name="helmholtz_smoothed_tensor_algorithm">
     <element name="algorithm">
-      <a:documentation>Smooth a tensor field by inverting a Helmholtz operator.</a:documentation>
+      <a:documentation>Smooth a tensor field by inverting a Helmholtz operator based on a scalar lengthscale.</a:documentation>
       <attribute name="name">
         <value>helmholtz_smoothed_tensor</value>
       </attribute>
@@ -411,7 +411,8 @@ The length scale is alpha*local element width (a scalar)</a:documentation>
   </define>
   <define name="helmholtz_anisotropic_smoothed_scalar_algorithm">
     <element name="algorithm">
-      <a:documentation>Smooth a scalar field by inverting a Helmholtz operator.</a:documentation>
+      <a:documentation>Smooth a scalar field by inverting a Helmholtz operator based on a tensor lengthscale.
+Dirichlet boundary conditions from the source field are applied to the filtered field.</a:documentation>
       <attribute name="name">
         <value>helmholtz_anisotropic_smoothed_scalar</value>
       </attribute>
@@ -432,7 +433,8 @@ The length scale is alpha*local element width (a scalar)</a:documentation>
   </define>
   <define name="helmholtz_anisotropic_smoothed_vector_algorithm">
     <element name="algorithm">
-      <a:documentation>Smooth a vector field by inverting a Helmholtz operator.</a:documentation>
+      <a:documentation>Smooth a vector field by inverting a Helmholtz operator based on a tensor lengthscale.
+Dirichlet boundary conditions from the source field are applied to the filtered field.</a:documentation>
       <attribute name="name">
         <value>helmholtz_anisotropic_smoothed_vector</value>
       </attribute>
@@ -453,7 +455,8 @@ The length scale is alpha*local element width (a scalar)</a:documentation>
   </define>
   <define name="helmholtz_anisotropic_smoothed_tensor_algorithm">
     <element name="algorithm">
-      <a:documentation>Smooth a tensor field by inverting a Helmholtz operator.</a:documentation>
+      <a:documentation>Smooth a tensor field by inverting a Helmholtz operator based on a tensor lengthscale.
+Dirichlet boundary conditions are not applied to the filtered field.</a:documentation>
       <attribute name="name">
         <value>helmholtz_anisotropic_smoothed_tensor</value>
       </attribute>
@@ -553,6 +556,25 @@ The length scale is alpha*local element width (a scalar)</a:documentation>
       </attribute>
       <ref name="vector_source_field_1"/>
       <ref name="vector_source_field_2"/>
+      <optional>
+        <element name="absolute_difference">
+          <a:documentation>If enabled, the absolute value of the difference is taken</a:documentation>
+          <ref name="comment"/>
+        </element>
+      </optional>
+    </element>
+  </define>
+  <define name="tensor_difference_algorithm">
+    <element name="algorithm">
+      <a:documentation>Difference between two tensor fields, field 1 - field 2</a:documentation>
+      <attribute name="name">
+        <value>tensor_difference</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="tensor_source_field_1"/>
+      <ref name="tensor_source_field_2"/>
       <optional>
         <element name="absolute_difference">
           <a:documentation>If enabled, the absolute value of the difference is taken</a:documentation>
@@ -2130,5 +2152,8 @@ This field needs to be interpolated between adapts.</a:documentation>
   </define>
   <define name="tensor_diagnostic_algorithms" combine="choice">
     <ref name="tensor_python_diagnostic_algorithm"/>
+  </define>
+  <define name="tensor_diagnostic_algorithms" combine="choice">
+    <ref name="tensor_difference_algorithm"/>
   </define>
 </grammar>

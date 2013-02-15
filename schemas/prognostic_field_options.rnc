@@ -61,6 +61,7 @@ scalar_boundary_conditions =
                ## sediment reentrainment. 
                element viscosity { real }?
             }|
+            ## [UNDER DEVELOPMENT - DOES NOT WORK YET]
             ## Special type of Dirichlet boundary condition for the k-epsilon
             ## turbulence model. Can be used on TurbulentKineticEnergy (k)
             ## and/or TurbulentDissipation (epsilon) fields.
@@ -524,19 +525,25 @@ prognostic_velocity_field =
                     }
                   )
                },
-               ## large-eddy simulation models (currently restricted to use in incompressible flow cases, where the discrete velocity is divergence-free and the eddy viscosity tensor is traceless)
+               ## Large-eddy simulation (LES) models. Currently restricted to use in incompressible flow cases, where the discrete velocity is divergence-free and the eddy viscosity tensor is traceless.
                element les_model {
-                  ## similar to the original Smag model
+                  ## Similar to the original Smagorinsky model
                   element second_order {
-                     ## literature symbol: Cs
+                     ## Literature symbol: Cs
                      ##
-                     ## suggested value 0.1
+                     ## Suggested value: 0.1
                      element smagorinsky_coefficient {
                         real
                      },
-                     ## eddy viscosity (turbulent diffusion of velocity).
-                     ## This is an anisotropic symmetric viscosity, added to normal viscosity field, that
-                     ## carries the influence of turbulence onto the velocity field.
+                     ## The 'scalar' length scale is the cube root of the element's volume in 3D. In 2D, it is the square root of the element's area. Using this will result in an isotropic eddy viscosity tensor.
+                     ##
+                     ## The 'tensor' length scale uses the metric from the adaptivity process. Using this will result in an anisotropic eddy viscosity tensor.
+                     element length_scale_type { 'scalar'|'tensor' },
+                     ## Eddy viscosity diagnostic field (turbulent diffusion of velocity).
+                     ## This is a symmetric viscosity, added to normal viscosity field, that
+                     ## carries the influence of turbulence onto the velocity field. It will
+                     ## be anisotropic if the 'tensor' length scale is chosen. Otherwise, it
+                     ## will be isotropic.
                      element tensor_field {
                         attribute rank { "2" },
                         attribute name { "EddyViscosity" },
@@ -544,40 +551,14 @@ prognostic_velocity_field =
                            element diagnostic {
                               internal_algorithm,
                               velocity_mesh_choice,
-                              diagnostic_tensor_field
-                           }
-                        )
-                     },
-                     ## Use Bentham's anisotropic viscosity SGS model in the dynamic framework (see manual).
-                     ## The anisotropy is derived from using a tensorial filter width definition.
-                     ## If isotropic, a scalar filter width definition is used
-                     ## and the original scalar Smagorinsky model is used in the dynamic framework.
-                     ## Both definitions preserve the volume of the tetrahedral element.
-                     ##
-                     element anisotropic_viscosity {
-                        empty
-                     }?,
-                     ## Scalar filter width
-                     element scalar_field {
-                        attribute name { "ScalarFirstFilterWidth" },
-                        attribute rank { "1" },
-                        (
-                           element diagnostic {
-                              internal_algorithm,
-                              velocity_mesh_choice,
-                              diagnostic_scalar_field
-                           }
-                        )
-                     }?,
-                     ## Filter width tensor.
-                     element tensor_field {
-                        attribute rank { "2" },
-                        attribute name { "TensorFirstFilterWidth" },
-                        (
-                           element diagnostic {
-                              internal_algorithm,
-                              velocity_mesh_choice,
-                              diagnostic_tensor_field
+                              diagnostic_tensor_field,
+                              element mass_matrix {  
+                              (
+                                    element use_lumped_mass_matrix { element use_submesh { empty }? }
+                                    |
+                                    element use_consistent_mass_matrix { empty }
+                                 )
+                              }
                            }
                         )
                      }?
@@ -595,20 +576,6 @@ prognostic_velocity_field =
                      ## suggested value 0.1
                      element smagorinsky_coefficient {
                         real
-                     },
-                     ## eddy viscosity (turbulent diffusion of velocity).
-                     ## This is an anisotropic symmetric viscosity, added to normal viscosity field, that
-                     ## carries the influence of turbulence onto the velocity field.
-                     element tensor_field {
-                        attribute rank { "2" },
-                        attribute name { "EddyViscosity" },
-                        (
-                           element diagnostic {
-                              internal_algorithm,
-                              velocity_mesh_choice,
-                              diagnostic_tensor_field
-                           }
-                        )
                      }
                   }
                |
@@ -619,13 +586,54 @@ prognostic_velocity_field =
                      ## suggested value 0.1
                      element smagorinsky_coefficient {
                         real
+                     }
+                  }
+               |
+                  ## The dynamic LES method (See Lilly 1991, Pope)
+                  ## accounts for turbulent flow anisotropy by implementing the Smagorinsky model
+                  ## with a spatially varying coefficient. At its heart is the difference between turbulent
+                  ##  stress tensors calculated from the velocity field filtered at 2 filter widths,
+                  ## first filter G_f and test filter G_t.
+                  ## See the manual for further details.
+                  element dynamic_les {
+                     ## Filtering scale factor alpha: the ratio between the mesh size and first filter width G_f.
+                     ## First filtering is achieved by applying the inverse Helmholtz operator:
+                     ## u_f = (1-alpha^2/24*M*L)^-1 * u, where M is the mesh size squared (a tensor) and L is the Laplacian.
+                     ## Lower values will result in less information being filtered out of the velocity.
+                     ##
+                     ## default value: 2.0
+                     element alpha {
+                        real
                      },
-                     ## eddy viscosity (turbulent diffusion of velocity).
-                     ## This is an anisotropic symmetric viscosity, added to normal viscosity field, that
-                     ## carries the influence of turbulence onto the velocity field.
-                     element tensor_field {
+                     ## Filtering scale factor gamma: the ratio between the first filter G_f and test filter G_t.
+                     ## Test filtering is achieved by applying the inverse Helmholtz operator:
+                     ## u_t = (1-gamma^2*alpha^2/24*M*L)^-1 * u_f, where M is the mesh size squared (a tensor) and L is the Laplacian.
+                     ## Lower values will result in less information being filtered out of the first filtered velocity.
+                     ##
+                     ## default value: 2.0
+                     element gamma {
+                        real
+                     },
+                     ## The 'scalar' length scale is the cube root of the element's volume in 3D. In 2D, it is the square root of the element's area. Using this will result in an isotropic eddy viscosity tensor.
+                     ##
+                     ## The 'tensor' length scale uses the metric from the adaptivity process. Using this will result in an anisotropic eddy viscosity tensor.
+                     element length_scale_type { 'scalar'|'tensor' },
+                     ## Allow negative eddy viscosity, i.e. backscatter of energy from subgrid to resolved scales.
+                     ## If enabled, the sum (viscosity + eddy viscosity) is constrained to be non-negative.
+                     ## If disabled, eddy viscosity is constrained to be non-negative.
+                     ## 
+                     element enable_backscatter {
+                        empty
+                     }?,
+                     ## Solver options are required for calculation of Helmholtz-smoothed velocity.
+                     element solver {
+                        linear_solver_options_sym
+                     },
+                     ## First filtered velocity (diagnostic). This is the Velocity field filtered
+                     ## with the first filter - see manual.
+                     element vector_field {
                         attribute rank { "2" },
-                        attribute name { "EddyViscosity" },
+                        attribute name { "FirstFilteredVelocity" },
                         (
                            element diagnostic {
                               internal_algorithm,
@@ -633,58 +641,39 @@ prognostic_velocity_field =
                               diagnostic_tensor_field
                            }
                         )
-                     }
-                  }
-               |
-                  ## [UNDER DEVELOPMENT] The Germano dynamic method (See Germano 1991, Lilly 1991, Pope)
-                  ## accounts for turbulent flow anisotropy by implementing the Smagorinsky model
-                  ## with a spatially varying coefficient. At its heart is the difference between turbulent
-                  ## stress tensors calculated from the velocity field filtered at 2 filter widths, G_1 and G_2.
-                  ## Options for filtering with different filter widths are available.
-                  ## See the manual for further details.
-                  element dynamic_les {
-                     ## Filtering scale factor alpha: the ratio between the first filter width and mesh size.
-                     ## The first filter G_1 = G_m*alpha, where G_m is the
-                     ## width associated with the local mesh size (either isotropic or tensorial anisotropic).
-                     ##
-                     ## default/recommended value: 2.0
-                     element alpha {
-                        real
-                     },
-                     ## Filtering scale factor gamma: the ratio between the second filter and first filter widths.
-                     ## The test filter G_2 = G_1*gamma, where G_1 is the first filter width.
-                     ##
-                     ## default/recommended value: 2.0
-                     element gamma {
-                        real
-                     },
-                     ## Option to set an upper limit on the Smagorinsky coefficient.
-                     ## The dynamic model is known to give unbounded values which may
-                     ## affect model stability. C<0.04 is consistent with empirical data from
-                     ## turbulent channel flow.
-                     ##
-                     element limit_coefficient {
-                        real
                      }?,
-                     ## Solver options are required for calculation of Helmholtz-smoothed velocity.
-                     element solver {
-                        linear_solver_options_sym
-                     },
-                     ## Use Bentham's anisotropic viscosity SGS model in the dynamic framework (see manual).
-                     ## The anisotropy is derived from using a tensorial filter width definition.
-                     ## If isotropic, a scalar filter width definition is used
-                     ## and the original scalar Smagorinsky model is used in the dynamic framework.
-                     ## Both definitions preserve the volume of the tetrahedral element.
-                     ##
-                     element anisotropic_viscosity {
-                        empty
+                     ## Test filtered velocity (diagnostic). This is the first filtered velocity field filtered
+                     ## again with the test filter - see manual.
+                     element vector_field {
+                        attribute rank { "2" },
+                        attribute name { "TestFilteredVelocity" },
+                        (
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_tensor_field
+                           }
+                        )
                      }?,
-                     ## Is the first-filtered velocity implicitly filtered (i.e. equal to the simulated velocity)
-                     ## or explicitly filtered (i.e. perform an inverse Helmholtz filtering on the simulated velocity)?
-                     ##
-                     element first_filter_type {
-                     "implicit"|"explicit"
-                     },
+                     ## First filter width tensor (diagnostic): G_f = meshsize^2*alpha^2.
+                     element tensor_field {
+                        attribute rank { "2" },
+                        attribute name { "FilterWidth" },
+                        (
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_tensor_field,
+                              element mass_matrix {  
+                              (
+                                    element use_lumped_mass_matrix { element use_submesh { empty }? }
+                                    |
+                                    element use_consistent_mass_matrix { empty }
+                                 )
+                              }
+                           }
+                        )
+                     }?,
                      ## Dynamic eddy viscosity (turbulent diffusion of velocity).
                      ## This is an anisotropic viscosity, added to normal viscosity field, that
                      ## carries the influence of turbulence onto the velocity field.
@@ -695,149 +684,18 @@ prognostic_velocity_field =
                            element diagnostic {
                               internal_algorithm,
                               velocity_mesh_choice,
-                              diagnostic_tensor_field
-                           }
-                        )
-                     },
-                     ## Spatially varying Smagorinsky coefficient.
-                     ## As diagnostic quantities are computed elementwise,
-                     ## nodal values are averages of the surrounding elements.
-                     element scalar_field {
-                        attribute name { "SmagorinskyCoefficient" },
-                        attribute rank { "1" },
-                        (
-                           element diagnostic {
-                              internal_algorithm,
-                              velocity_mesh_choice,
-                              diagnostic_scalar_field
-                           }
-                        )
-                     }?,
-                     ## Spatially varying scalar first filter width
-                     element scalar_field {
-                        attribute name { "ScalarFirstFilterWidth" },
-                        attribute rank { "1" },
-                        (
-                           element diagnostic {
-                              internal_algorithm,
-                              velocity_mesh_choice,
-                              diagnostic_scalar_field
-                           }
-                        )
-                     }?,
-                     ## Spatially varying scalar second filter width
-                     element scalar_field {
-                        attribute name { "ScalarSecondFilterWidth" },
-                        attribute rank { "1" },
-                        (
-                           element diagnostic {
-                              internal_algorithm,
-                              velocity_mesh_choice,
-                              diagnostic_scalar_field
-                           }
-                        )
-                     }?,
-                     ## First Filtered velocity (diagnostic). This is the Velocity field filtered
-                     ## with the first filter - see manual.
-                     element vector_field {
-                        attribute rank { "2" },
-                        attribute name { "FirstFilteredVelocity" },
-                        (
-                           element diagnostic {
-                              internal_algorithm,
-                              velocity_mesh_choice,
-                              diagnostic_vector_field
-                           }
-                        )
-                     }?,
-                     ## Second Filtered velocity (diagnostic). This is the Velocity field filtered
-                     ## with the first and then the second filter - see manual.
-                     element vector_field {
-                        attribute rank { "2" },
-                        attribute name { "SecondFilteredVelocity" },
-                        (
-                           element diagnostic {
-                              internal_algorithm,
-                              velocity_mesh_choice,
-                              diagnostic_vector_field
-                           }
-                        )
-                     }?,
-                     ## First filter width tensor (diagnostic).
-                     element tensor_field {
-                        attribute rank { "2" },
-                        attribute name { "TensorFirstFilterWidth" },
-                        (
-                           element diagnostic {
-                              internal_algorithm,
-                              velocity_mesh_choice,
-                              diagnostic_tensor_field
-                           }
-                        )
-                     }?,
-                     ## Second filter width tensor (diagnostic).
-                     element tensor_field {
-                        attribute rank { "2" },
-                        attribute name { "TensorSecondFilterWidth" },
-                        (
-                           element diagnostic {
-                              internal_algorithm,
-                              velocity_mesh_choice,
-                              diagnostic_tensor_field
-                           }
-                        )
-                     }?,
-                     ## Strain rate S1: the test filter applied to the strain rate of the mesh-filtered velocity.
-                     element tensor_field {
-                        attribute rank { "2" },
-                        attribute name { "FirstFilteredStrainRate" },
-                        (
-                           element diagnostic {
-                              internal_algorithm,
-                              velocity_mesh_choice,
-                              diagnostic_tensor_field
-                           }
-                        )
-                     }?,
-                     ## Strain rate S2: the strain rate of the test-filtered velocity.
-                     element tensor_field {
-                        attribute rank { "2" },
-                        attribute name { "SecondFilteredStrainRate" },
-                        (
-                           element diagnostic {
-                              internal_algorithm,
-                              velocity_mesh_choice,
-                              diagnostic_tensor_field
+                              diagnostic_tensor_field,
+                              element mass_matrix {  
+                              (
+                                    element use_lumped_mass_matrix { element use_submesh { empty }? }
+                                    |
+                                    element use_consistent_mass_matrix { empty }
+                                 )
+                              }
                            }
                         )
                      }?
                   }
-               }?,
-               ## A diagnostic field for all LES models
-               ## which calculates the amount of subgrid-scale kinetic energy
-               ## supplied by the model by solving an evolution equation.
-               ## Will be used in goal-based adaptivity to determine correct resolution for LES.
-               ##
-               ## Experimental.
-               ##
-               ## Requires tensor eddy viscosity field to be switched on
-               ## (hard coded for all turbulence models).
-               ##
-               ## Turn on diffusivity, source and absorption fields
-               ## and set to diagnostic/internal.
-               element scalar_field {
-                  attribute rank { "0" },
-                  attribute name { "SubgridKineticEnergy" },
-                  (
-                     element prognostic {
-                        velocity_mesh_choice,
-                        prognostic_scalar_field
-                     }|
-                     element prescribed {
-                        velocity_mesh_choice,
-                        prescribed_scalar_field
-                     }
-                  )
                }?,
                ## A gauss point viscosity, calculated in such a way that it depends
                ## upon temperature. This is only valid when you have a temperature field.

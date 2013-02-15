@@ -689,7 +689,7 @@ subroutine keps_eddyvisc(state, advdif)
         allocate(rhs_addto(size(nodes_ev)))
         do i=1, size(nodes_ev)
           patch = get_patch_ele(scalar_eddy_visc%mesh, nodes_ev(i))
-          rhs_addto(i) = sqrt(length_scale(X, ele))/patch%count
+          rhs_addto(i) = sqrt(length_scale_scalar(X, ele))/patch%count
           deallocate(patch%elements)
         end do
         call addto(delta, nodes_ev, rhs_addto)

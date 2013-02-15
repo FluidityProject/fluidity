@@ -249,7 +249,7 @@ vector_galerkin_projection_algorithm =
    )
 helmholtz_smoothed_scalar_algorithm =
    (
-      ## Smooth a scalar field by inverting a Helmholtz operator.
+      ## Smooth a scalar field by inverting a Helmholtz operator based on a scalar lengthscale.
       element algorithm {
          attribute name { "helmholtz_smoothed_scalar" },
          attribute material_phase_support { "single" },
@@ -267,7 +267,7 @@ helmholtz_smoothed_scalar_algorithm =
    )
 helmholtz_smoothed_vector_algorithm =
    (
-      ## Smooth a vector field by inverting a Helmholtz operator.
+      ## Smooth a vector field by inverting a Helmholtz operator based on a scalar lengthscale.
       element algorithm {
          attribute name { "helmholtz_smoothed_vector" },
          attribute material_phase_support { "single" },
@@ -285,7 +285,7 @@ helmholtz_smoothed_vector_algorithm =
    )
 helmholtz_smoothed_tensor_algorithm =
    (
-      ## Smooth a tensor field by inverting a Helmholtz operator.
+      ## Smooth a tensor field by inverting a Helmholtz operator based on a scalar lengthscale.
       element algorithm {
          attribute name { "helmholtz_smoothed_tensor" },
          attribute material_phase_support { "single" },
@@ -303,7 +303,8 @@ helmholtz_smoothed_tensor_algorithm =
    )
 helmholtz_anisotropic_smoothed_scalar_algorithm =
    (
-      ## Smooth a scalar field by inverting a Helmholtz operator.
+      ## Smooth a scalar field by inverting a Helmholtz operator based on a tensor lengthscale.
+      ## Dirichlet boundary conditions from the source field are applied to the filtered field.
       element algorithm {
          attribute name { "helmholtz_anisotropic_smoothed_scalar" },
          attribute material_phase_support { "single" },
@@ -321,7 +322,8 @@ helmholtz_anisotropic_smoothed_scalar_algorithm =
    )
 helmholtz_anisotropic_smoothed_vector_algorithm =
    (
-      ## Smooth a vector field by inverting a Helmholtz operator.
+      ## Smooth a vector field by inverting a Helmholtz operator based on a tensor lengthscale.
+      ## Dirichlet boundary conditions from the source field are applied to the filtered field.
       element algorithm {
          attribute name { "helmholtz_anisotropic_smoothed_vector" },
          attribute material_phase_support { "single" },
@@ -339,7 +341,8 @@ helmholtz_anisotropic_smoothed_vector_algorithm =
    )
 helmholtz_anisotropic_smoothed_tensor_algorithm =
    (
-      ## Smooth a tensor field by inverting a Helmholtz operator.
+      ## Smooth a tensor field by inverting a Helmholtz operator based on a tensor lengthscale.
+      ## Dirichlet boundary conditions are not applied to the filtered field.
       element algorithm {
          attribute name { "helmholtz_anisotropic_smoothed_tensor" },
          attribute material_phase_support { "single" },
@@ -422,6 +425,21 @@ vector_difference_algorithm =
          }?
       }
    )
+tensor_difference_algorithm =
+   (
+      ## Difference between two tensor fields, field 1 - field 2
+      element algorithm {
+         attribute name { "tensor_difference" },
+         attribute material_phase_support { "single" },
+         tensor_source_field_1,
+         tensor_source_field_2,
+         ## If enabled, the absolute value of the difference is taken
+         element absolute_difference {
+            comment
+         }?
+      }
+   ) 
+   
 
 # Time aggregated diagnostics
 
@@ -1510,3 +1528,4 @@ tensor_diagnostic_algorithms |= helmholtz_smoothed_tensor_algorithm
 tensor_diagnostic_algorithms |= helmholtz_anisotropic_smoothed_tensor_algorithm
 tensor_diagnostic_algorithms |= field_tolerance_algorithm
 tensor_diagnostic_algorithms |= tensor_python_diagnostic_algorithm
+tensor_diagnostic_algorithms |= tensor_difference_algorithm

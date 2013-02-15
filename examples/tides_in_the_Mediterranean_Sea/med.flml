@@ -341,6 +341,7 @@
                 <smagorinsky_coefficient>
                   <real_value rank="0">1.0</real_value>
                 </smagorinsky_coefficient>
+                <length_scale_type>tensor</length_scale_type>
               </second_order>
             </les_model>
           </continuous_galerkin>

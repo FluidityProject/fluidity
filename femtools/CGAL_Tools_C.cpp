@@ -7,7 +7,7 @@ extern "C"
 
 void F77_FUNC_(convex_hull_area_3d,CONVEX_HULL_AREA_3D)(real* nodes, int* nonods, real* area)
 {
-#ifdef HAVE_CGAL
+#ifdef HAVE_LIBCGAL
   /* We want to compute the surface area of the convex hull of a set of points.
      This is done by creating the Delaunay triangulation of the points,
      looping over the infinite cells, and computing the surface area of their
