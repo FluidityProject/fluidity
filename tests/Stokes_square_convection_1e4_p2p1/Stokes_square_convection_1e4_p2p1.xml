@@ -55,7 +55,7 @@ assert(solvers_converged)
 </test>
 
 <test name="Fieldsplit velocity solver behaving as expected" language="python">
-assert(DeltaU_iterations == 8)
+assert(abs(DeltaU_iterations-8) &lt; 2)
 </test>
 
 <test name="Surface Nusselt Number Validity: 4.8 .lt. Nu .lt. 5.0" language="python">
