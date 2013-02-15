@@ -400,7 +400,7 @@
              allocate(pod_coef_dt((u%dim+1)*size(POD_state,1)))
              allocate(pod_ct_m(size(POD_state,1),u%dim*size(POD_state,1)))
              
-             if(reduced_adjoint) then
+             if(have_option("/reduced_model/adjoint")) then
   		!========================================================================
 		! ADJOINT MODEL
 		!========================================================================
@@ -544,24 +544,9 @@
                       if(reduced_adjoint) then
                          pod_coef=pod_coef_all_o !need modification
                       else
-                         u%val=snapmean_velocity%val
-                         do i=1,size(POD_state,1)
-                            POD_velocity=>extract_vector_field(POD_state(i,1,istate), "Velocity")
-                            snapmean_velocity=>extract_vector_field(POD_state(i,1,istate),"SnapmeanVelocity")
-                            snapmean_pressure=>extract_Scalar_field(POD_state(i,2,istate),"SnapmeanPressure") 
-                            do j=1,u%dim
-                               pod_coef(i+size(POD_state,1)*(j-1))=&
-                                    dot_product(POD_velocity%val(j,:),(u%val(j,:)-snapmean_velocity%val(j,:)))
-                            enddo
-                            POD_pressure=>extract_scalar_field(POD_state(i,2,istate), "Pressure")
-                            pod_coef(i+size(POD_state,1)*u%dim)=dot_product(POD_pressure%val,p%val-snapmean_pressure%val)
-                         enddo
+                         call project_from_full_to_pod(istate,  pod_state, state, pod_coef)
                       endif ! if(reduced_adjoint)
-                      
-                      open(100,file=trim(simulation_name)//'_coef_all',ACTION='WRITE')
-                      
-                      write(100,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state,1))
-                      close(100)
+
                       call Matrix_vector_multiplication(size(pod_coef),pod_rhs_adv_perturbed, &
                            pod_matrix_adv_perturbed,pod_coef)
                       
@@ -586,18 +571,10 @@
                       if(reduced_adjoint) then
                          pod_coef=pod_coef_all_o
                       else
-                         do i=1,size(POD_state,1)
-                            POD_velocity=>extract_vector_field(POD_state(i,1,istate), "Velocity")
-                            snapmean_velocity=>extract_vector_field(POD_state(i,1,istate),"SnapmeanVelocity")
-                            snapmean_pressure=>extract_Scalar_field(POD_state(i,2,istate),"SnapmeanPressure") 
-                            do j=1,u%dim
-                               pod_coef(i+size(POD_state,1)*(j-1))=&
-                                    dot_product(POD_velocity%val(j,:),u%val(j,:)-snapmean_velocity%val(j,:))
-                            enddo
-                            POD_pressure=>extract_scalar_field(POD_state(i,2,istate), "Pressure")
-                            pod_coef(i+size(POD_state,1)*u%dim)=dot_product(POD_pressure%val,p%val-snapmean_pressure%val)
-                            !                       pod_coef(i+size(POD_state,1)*u%dim)=0.0
-                         enddo
+                         call project_from_full_to_pod(istate,  pod_state, state, pod_coef)
+                         open(101,file='coef_pod_all')
+                         write(101,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state,1))
+                         close(101)
                       endif ! if(reduced_adjoint)
                       
                       !!print*,'before add pod_coef_dt*dt to pod_coef_initial'
@@ -617,11 +594,11 @@
                       !save pod_coef for timestep 2
                       write(40,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state,1))
                       ! save pod_coef for all the time levels
-                      call get_option('/simulation_name',simulation_name)
-                      open(100,file=trim(simulation_name)//'_coef_all',ACTION='WRITE')
-                      write(100,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state,1))
-                      close(100)
-                      
+                     
+                      open(101,file='coef_pod_all', position='append',ACTION='WRITE')
+                      write(101,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state,1))
+                      close(101)
+
                       call project_full(delta_u, delta_p, pod_sol_velocity, pod_sol_pressure,POD_state(:,:,istate), pod_coef)
                       !save u1 
                       
@@ -699,11 +676,11 @@
                    write(40,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state,1))
                    close(40)
                    ! save pod_coef for all the time levels
-                   call get_option('/simulation_name',simulation_name)
-                   open(100,file=trim(simulation_name)//'_coef_all', position='append',ACTION='WRITE')
-                   write(100,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state,1))
-                   close(40)
-                   close(100)
+
+                   open(101,file='coef_pod_all', position='append',ACTION='WRITE')
+                   write(101,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state,1))
+                   close(101)
+
                    rmsestep=timestep
                    call project_full(delta_u, delta_p, pod_sol_velocity, pod_sol_pressure, POD_state(:,:,istate), pod_coef)
                    

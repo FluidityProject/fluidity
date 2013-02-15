@@ -1049,14 +1049,14 @@ contains
  if (have_option("/reduced_model/execute_reduced_model")) then
   open(unit=60,file='rsme')
   do i=1,timestep-3
-   print *, i, rmse(i)
+!   print *, i, rmse(i)
    write(60,*) i,rmse(i)
   enddo 
   close(60)
 
   open(unit=61,file='coorelation')
   do i=1,timestep-5
-    print *, i, coor(i)
+!    print *, i, coor(i)
     write(61,*)i,coor(i)
    enddo
    close(61)

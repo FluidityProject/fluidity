@@ -138,7 +138,7 @@
              pod_coef_obv = 0.0
              if(timestep==1.and.its==1) then  ! calculate and save the intitial pod_coef at t=0
                 call project_from_full_to_pod(istate,  pod_state, state, pod_coef_obv)
-                open(101,file='coef_pod_all_obv',position='append',ACTION='WRITE')
+                open(101,file='coef_pod_all_obv')
                 write(101,*)(pod_coef_obv(i),i=1,(u%dim+1)*size(POD_state,1))
                 close(101)
              endif
