@@ -989,7 +989,45 @@ contains
 
   end subroutine form_podstate_solution 
 
+  subroutine project_from_full_to_pod(istate,  pod_state, state, pod_coef)
 
+    type(state_type), intent(in), dimension(:,:,:) :: pod_state
+    type(state_type), intent(in), dimension(:):: state
+    integer, intent(in) :: istate
+    real,dimension(:), intent(inout) :: pod_coef
+
+    type(vector_field), pointer :: u
+    type(scalar_field), pointer :: p
+
+    type(mesh_type), pointer :: pod_xmesh, pod_umesh, pod_pmesh, pod_mesh
+    type(vector_field), pointer :: pod_velocity
+    type(scalar_field), pointer :: pod_pressure
+
+    type(vector_field), pointer :: snapmean_velocity
+    type(scalar_field), pointer :: snapmean_pressure
+
+    integer :: quadrature_degree, nonods
+    integer :: u_nodes, p_nodes, POD_num
+    integer :: i,j,k,total_dumps,stat,dim,d
+    logical :: all_meshes_same
+
+    u=>extract_vector_field(state(istate), "Velocity", stat)
+    p=> extract_scalar_field(state(1), "Pressure")
+
+    do i=1,size(POD_state,1)
+       pod_velocity=>extract_vector_field(POD_state(i,1,istate), "Velocity")
+       snapmean_velocity=>extract_vector_field(POD_state(i,1,istate),"SnapmeanVelocity")
+       snapmean_pressure=>extract_Scalar_field(POD_state(i,2,istate),"SnapmeanPressure") 
+       do j=1,u%dim
+          pod_coef(i+size(POD_state,1)*(j-1))=&
+               dot_product(POD_velocity%val(j,:),(u%val(j,:)-snapmean_velocity%val(j,:)))
+       enddo
+       POD_pressure=>extract_scalar_field(POD_state(i,2,istate), "Pressure")
+       pod_coef(i+size(POD_state,1)*u%dim)= &
+            dot_product(POD_pressure%val(:),(p%val(:)-snapmean_pressure%val(:)))
+    enddo
+
+  end subroutine project_from_full_to_pod
 
 end module reduced_projection
 

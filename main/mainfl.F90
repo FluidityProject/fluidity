@@ -36,6 +36,7 @@ subroutine mainfl() bind(C)
   use signals
   use spud
   use tictoc
+  use Adjoint_ROM_main_module
 #ifdef HAVE_ZOLTAN
   use zoltan
 #endif
@@ -57,14 +58,14 @@ subroutine mainfl() bind(C)
   call initialise_signals()
 
   call tictoc_reset()
- 
-  if(have_option("/model/fluids/pod")) then
+
+  if(have_option("/reduced_model/adjoint").and. have_option("/reduced_model/execute_reduced_model")) then
      !######################################################
      !       Reduced Fluidity Model
      !######################################################
-  
-     FLExit("POD is disabled")      
-     !call reducedfluids(filename, filename_len)
+    ewrite(1, *) 'entry adjoint model'
+
+    call Adjoint_ROM_main()
   else
      !######################################################
      !      Normal Fluidity Model

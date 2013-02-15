@@ -246,7 +246,7 @@ contains
     logical :: adjoint_reduced
     integer :: dump_period, quadrature_degree,istate
     integer :: i,j,k,total_dumps,nfield,POD_num,ifield
-
+    
     type(state_type), dimension(:,:,:), allocatable :: POD_state
     type(state_type), dimension(:) :: state
     type(vector_field) :: podVelocity, newpodVelocity
@@ -254,55 +254,54 @@ contains
     type(mesh_type) :: VelocityMesh, PressureMesh, TemperatureMesh
     type(vector_field), pointer :: v_field
     type(scalar_field), pointer :: s_field
-
+    
     velo => extract_vector_field(state, "Velocity")
     call get_option('/simulation_name', simulation_name)
     call get_option('/geometry/quadrature/degree', quadrature_degree)
     adjoint_reduced= have_option("/reduced_model/adjoint")
     call get_option(&
          "/reduced_model/pod_basis_formation/pod_basis_count", POD_num) 
-
     nfield = vector_field_count( state(1) )+scalar_field_count( state(1) )
     allocate(pod_state(POD_num,nfield,size(state)))
     ifield = 0
-     flag=1
-     
-     do k =1, size(state)
+    flag=1
+    
+    do k =1, size(state)
        ! Vector field
        !-------------
        nfield = vector_field_count( state(1) )
        do j = 1, nfield
           v_field => state(k)%vector_fields(j)%ptr              
           if(have_option(trim(v_field%option_path) // "/prognostic")) then
-          ifield = ifield + 1
+             ifield = ifield + 1
              VelocityMesh=extract_mesh(state(k),trim(v_field%mesh%name))
              do i = 1,POD_num
-               if(adjoint_reduced)then
-                 write(filename, '(a, i0, a)') trim(simulation_name)//"_checkpoint_POD"//"Basis"//trim(v_field%name)//"_",i,".vtu" 
+                if(have_option("/reduced_model/adjoint").and. .not.have_option("/reduced_model/execute_reduced_model")) then
+                   write(filename, '(a, i0, a)') trim(simulation_name)//"_POD"//"Basis"//trim(v_field%name)//"_",i,".vtu" 
                 else
-                write(filename, '(a, i0, a)') trim(simulation_name)//"Basis"//trim(v_field%name)//"_",i,".vtu" 
-                   endif
+                   write(filename, '(a, i0, a)') trim(simulation_name)//"Basis"//trim(v_field%name)//"_",i,".vtu" 
+                endif
                ! print*,trim(filename)
                 call vtk_read_state(filename, pod_state(i,ifield,k),quadrature_degree)
-
+                 
                 !! Note that we might need code in here to clean out unneeded fields.
-
-                PODVelocity=extract_vector_field(pod_state(i,ifield,k),trim(v_field%name))
-
-                call allocate(newpodVelocity, podVelocity%dim, VelocityMesh, trim(v_field%name))
-                !podVelocity%mesh%name = newpodVelocity%mesh%name
-                if(newpodVelocity%mesh%periodic) then
-                   podVelocity%mesh%periodic = .true.
-                endif
-                call remap_field(from_field=podVelocity, to_field=newpodVelocity)
-                call insert(POD_state(i,ifield,k), newpodVelocity, trim(v_field%name))
-                call deallocate(newpodVelocity)
+                 
+                 PODVelocity=extract_vector_field(pod_state(i,ifield,k),trim(v_field%name))
+                 
+                 call allocate(newpodVelocity, podVelocity%dim, VelocityMesh, trim(v_field%name))
+                 !podVelocity%mesh%name = newpodVelocity%mesh%name
+                 if(newpodVelocity%mesh%periodic) then
+                    podVelocity%mesh%periodic = .true.
+                 endif
+                 call remap_field(from_field=podVelocity, to_field=newpodVelocity)
+                 call insert(POD_state(i,ifield,k), newpodVelocity, trim(v_field%name))
+                 call deallocate(newpodVelocity)
              enddo
           endif
        end do !j = 1, size(state(i)%vetor_fields)
        ! scaler field
        !-------------
-
+       
        nfield = scalar_field_count( state(1) )
        do j = 1, nfield
           s_field => state(k)%scalar_fields(j)%ptr              
@@ -312,8 +311,12 @@ contains
              PressureMesh=extract_mesh(state(k),trim(s_field%mesh%name))
              do i = 1,POD_num
                 
-                write(filename, '(a, i0, a)') trim(simulation_name)//"Basis"//trim(s_field%name)//"_",i,".vtu" 
-             
+                if(have_option("/reduced_model/adjoint").and. .not.have_option("/reduced_model/execute_reduced_model")) then
+                   write(filename, '(a, i0, a)') trim(simulation_name)//"_POD"//"Basis"//trim(s_field%name)//"_",i,".vtu" 
+                else
+                   write(filename, '(a, i0, a)') trim(simulation_name)//"Basis"//trim(s_field%name)//"_",i,".vtu" 
+                endif
+
                 call vtk_read_state(filename, pod_state(i,ifield,k),quadrature_degree)
 
                 !! Note that we might need code in here to clean out unneeded fields.

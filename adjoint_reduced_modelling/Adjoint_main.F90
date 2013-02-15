@@ -52,7 +52,7 @@ program Adjoint_main
   use spud
   use tictoc
   use fldebug
-  use fluids_module
+!  use fluids_module
   !use reduced_fluids_module
   use signals
   use spud
@@ -306,7 +306,7 @@ subroutine mainfl_forward() bind(C)
      
      call tic(TICTOC_ID_SIMULATION)
      ewrite(1, *) "Calling fluids from mainfl"
-     call fluids()
+  !   call fluids()
      ewrite(1, *) "Exited fluids"
      call toc(TICTOC_ID_SIMULATION)
      call tictoc_report(2, TICTOC_ID_SIMULATION)
@@ -404,7 +404,7 @@ subroutine mainfl_adj() bind(C)
 !     call get_option(&
 !          '/reduced_model/pod_basis_formation/pod_basis_count', nsvd)
      if (have_option("/reduced_model/execute_reduced_model")) adjoint = .true.
-     call fluids(adjoint)
+ !    call fluids(adjoint)
      ewrite(1, *) "Exited fluids"
      call toc(TICTOC_ID_SIMULATION)
      call tictoc_report(2, TICTOC_ID_SIMULATION)

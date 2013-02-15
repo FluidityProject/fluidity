@@ -242,16 +242,16 @@ contains
 !                    call read_input_states_deimres(deim_state_resl)
 !                    call read_pod_basis_deimres(POD_state_deim, deim_state_Resl) 
 !            endif
-       		call read_pod_basis_differntmesh(POD_state, state)
-               
-	!enddo
+       call read_pod_basis_differntmesh(POD_state, state)
+       !enddo
     else
-        if(adjoint_reduced)then
-              ! call read_pod_basis_differntmesh(POD_state, state)
-         endif
-       ! need something to pass into solve_momentum
-       allocate(POD_state(1:0,1:0,1:0))
-       
+       if(have_option("/reduced_model/adjoint"))then
+          call read_pod_basis_differntmesh(POD_state, state)
+       else
+          ! need something to pass into solve_momentum
+          allocate(POD_state(1:0,1:0,1:0))
+       endif
+      
     end if
 !     if (deim .and. (have_option("/reduced_model/execute_reduced_model"))) then
        ! call read_pod_basis_deimres(POD_state_deim, deim_state_Res)    
@@ -789,14 +789,22 @@ contains
           if(use_sub_state()) then
              call update_subdomain_fields(state,sub_state)
              if(.not.have_option("/reduced_model/execute_reduced_model"))then
-                call solve_momentum(sub_state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state, POD_state_deim=POD_state_deim,snapmean=snapmean, eps=eps, its=its)
+                if(have_option("/reduced_model/adjoint")) then
+                   call momentum_loop(sub_state, at_first_timestep=((timestep==1).and.(its==1)), timestep=timestep, POD_state=POD_state,POD_state_deim=POD_state_deim, its=its)
+                else
+                   call solve_momentum(sub_state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state, POD_state_deim=POD_state_deim,snapmean=snapmean, eps=eps, its=its)
+                endif
              else
                 call momentum_loop(sub_state, at_first_timestep=((timestep==1).and.(its==1)), timestep=timestep, POD_state=POD_state,POD_state_deim=POD_state_deim, its=its)
              endif
              call sub_state_remap_to_full_mesh(state, sub_state)
           else
              if(.not.have_option("/reduced_model/execute_reduced_model"))then
-                call solve_momentum(state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state, POD_state_deim=POD_state_deim,snapmean=snapmean, eps=eps, its=its)
+                if(have_option("/reduced_model/adjoint")) then
+                   call momentum_loop(state,at_first_timestep=((timestep==1).and.(its==1)), timestep=timestep, POD_state=POD_state, POD_state_deim=POD_state_deim,its=its)
+                else
+                   call solve_momentum(state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state, POD_state_deim=POD_state_deim,snapmean=snapmean, eps=eps, its=its)               
+                endif
              else
                 call momentum_loop(state,at_first_timestep=((timestep==1).and.(its==1)), timestep=timestep, POD_state=POD_state, POD_state_deim=POD_state_deim,its=its)
              endif

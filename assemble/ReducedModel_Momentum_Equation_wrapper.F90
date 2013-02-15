@@ -36,6 +36,7 @@
     use reduced_model_runtime
     use momentum_equation
     use multiphase_module
+    use reduced_projection
 !    use vtk_interfaces
 
     implicit none
@@ -84,7 +85,7 @@
       type(state_type), dimension(:), pointer :: submaterials
       ! The index of the current phase (i.e. state(istate)) in the submaterials array
       integer :: submaterials_istate
-      real, dimension(:,:), allocatable :: pod_coef_all_obv
+      real, dimension(:), allocatable :: pod_coef_obv
       real :: finish_time,current_time
       integer :: total_timestep
 
@@ -128,79 +129,78 @@
            endif
 
            call profiler_tic("momentum_solve")
-           if(.not.reduced_model)then
-              call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its)
+           if(.not.have_option("/reduced_model/execute_reduced_model")) then
               call get_option("/timestepping/current_time", current_time)
        	      call get_option("/timestepping/finish_time", finish_time)
               call get_option("/timestepping/timestep", dt)       
-      	      total_timestep=(finish_time-current_time)/dt
-              allocate(pod_coef_all_obv(total_timestep,((u%dim+1)*size(POD_state,1))))
-              if(its==nonlinear_iterations) then
-                 do i=1,size(POD_state,1)
-                           POD_velocity=>extract_vector_field(POD_state(i,1,istate), "Velocity")
-                           snapmean_velocity=>extract_vector_field(POD_state(i,1,istate),"SnapmeanVelocity")
-                           snapmean_pressure=>extract_Scalar_field(POD_state(i,2,istate),"SnapmeanPressure") 
-                           do j=1,u%dim
-                           pod_coef_all_obv(timestep,i+size(POD_state,1)*(j-1))=&
-                                      dot_product(POD_velocity%val(j,:),(u%val(j,:)-snapmean_velocity%val(j,:)))
-                           enddo
-                           POD_pressure=>extract_scalar_field(POD_state(i,2,istate), "Pressure")
-                           pod_coef_all_obv(timestep,i+size(POD_state,1)*u%dim)= &
-                                      dot_product(POD_pressure%val(:),(p%val(:)-snapmean_pressure%val(:)))
-                        enddo
-                        !write(40,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state,1))
+      	      total_timestep=int((finish_time-current_time)/dt)+1
+             allocate(pod_coef_obv(((u%dim+1)*size(POD_state,1))))
+             pod_coef_obv = 0.0
+             if(timestep==1.and.its==1) then  ! calculate and save the intitial pod_coef at t=0
+                call project_from_full_to_pod(istate,  pod_state, state, pod_coef_obv)
                 open(101,file='coef_pod_all_obv',position='append',ACTION='WRITE')
-                write(101,*)(pod_coef_all_obv(timestep,i),i=1,(u%dim+1)*size(POD_state,1))
+                write(101,*)(pod_coef_obv(i),i=1,(u%dim+1)*size(POD_state,1))
                 close(101)
-              endif
-           else
-              eps=0.0
-              snapmean=.false.
+             endif
 
-              if(timestep==1)then 
-                 nonlinear_velocity=>extract_vector_field(state(istate),"NonlinearVelocity")
-                 pressure=>extract_scalar_field(state(istate),"Pressure")
-                 velocity=>extract_vector_field(state(istate),"Velocity")
-                 old_velocity=>extract_vector_field(state(istate),"OldVelocity")
+             call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its)
 
-                 call allocate(velocity_backup, nonlinear_velocity%dim, nonlinear_velocity%mesh, "Velocity")
-                 call zero(velocity_backup)
-                 call set(velocity_backup, nonlinear_velocity)
-                 call allocate(pressure_backup, pressure%mesh, "Pressure")
-                 call zero(pressure_backup)
-                 call set(pressure_backup, pressure)
-                 snapmean=.true.
-                 snapmean_velocity=>extract_vector_field(POD_state(1,1,istate),"SnapmeanVelocity")
-                 snapmean_pressure=>extract_scalar_field(POD_state(1,2,istate),"SnapmeanPressure")
-                 call set(nonlinear_velocity, snapmean_velocity) 
-                 call set(pressure, snapmean_pressure)
+             if(its==nonlinear_iterations) then
+                call project_from_full_to_pod(istate,  pod_state, state, pod_coef_obv)
+                open(101,file='coef_pod_all_obv',position='append',ACTION='WRITE')
+                write(101,*)(pod_coef_obv(i),i=1,(u%dim+1)*size(POD_state,1))
+                close(101)
+             endif
+          else if(have_option("/reduced_model/adjoint")) then               
+             call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its)
+          else
+             eps=0.0
+             snapmean=.false.
 
-                 call set(velocity, snapmean_velocity)
-                 call set(old_velocity, snapmean_velocity)
+             if(timestep==1)then 
+                nonlinear_velocity=>extract_vector_field(state(istate),"NonlinearVelocity")
+                pressure=>extract_scalar_field(state(istate),"Pressure")
+                velocity=>extract_vector_field(state(istate),"Velocity")
+                old_velocity=>extract_vector_field(state(istate),"OldVelocity")
 
-                 do b=1, get_boundary_condition_count(velocity_backup)
-                    surface_field_velocity => extract_surface_field(velocity_backup, b, 'value')  
-                    call get_boundary_condition(velocity_backup, b, surface_node_list=surface_node_list) 
-                    do i=1, size(surface_node_list)
-                       call set(nonlinear_velocity, surface_node_list(i), node_val(surface_field_velocity, i))
-                    enddo
-                 enddo
-                 do b=1, get_boundary_condition_count(velocity_backup)
-                    surface_field_velocity => extract_surface_field(velocity_backup, b, 'value')
-                    call get_boundary_condition(velocity_backup, b, surface_node_list=surface_node_list)
-                    do i=1, size(surface_node_list)
-                       call set(velocity, surface_node_list(i), node_val(surface_field_velocity, i))
-                    enddo
-                 enddo
-                 do b=1, get_boundary_condition_count(velocity_backup)
-                    surface_field_velocity => extract_surface_field(velocity_backup, b, 'value')
-                    call get_boundary_condition(velocity_backup, b, surface_node_list=surface_node_list)
+                call allocate(velocity_backup, nonlinear_velocity%dim, nonlinear_velocity%mesh, "Velocity")
+                call zero(velocity_backup)
+                call set(velocity_backup, nonlinear_velocity)
+                call allocate(pressure_backup, pressure%mesh, "Pressure")
+                call zero(pressure_backup)
+                call set(pressure_backup, pressure)
+                snapmean=.true.
+                snapmean_velocity=>extract_vector_field(POD_state(1,1,istate),"SnapmeanVelocity")
+                snapmean_pressure=>extract_scalar_field(POD_state(1,2,istate),"SnapmeanPressure")
+                call set(nonlinear_velocity, snapmean_velocity) 
+                call set(pressure, snapmean_pressure)
+
+                call set(velocity, snapmean_velocity)
+                call set(old_velocity, snapmean_velocity)
+                
+                do b=1, get_boundary_condition_count(velocity_backup)
+                   surface_field_velocity => extract_surface_field(velocity_backup, b, 'value')  
+                   call get_boundary_condition(velocity_backup, b, surface_node_list=surface_node_list) 
+                   do i=1, size(surface_node_list)
+                      call set(nonlinear_velocity, surface_node_list(i), node_val(surface_field_velocity, i))
+                   enddo
+                enddo
+                do b=1, get_boundary_condition_count(velocity_backup)
+                   surface_field_velocity => extract_surface_field(velocity_backup, b, 'value')
+                   call get_boundary_condition(velocity_backup, b, surface_node_list=surface_node_list)
+                   do i=1, size(surface_node_list)
+                      call set(velocity, surface_node_list(i), node_val(surface_field_velocity, i))
+                   enddo
+                enddo
+                do b=1, get_boundary_condition_count(velocity_backup)
+                   surface_field_velocity => extract_surface_field(velocity_backup, b, 'value')
+                   call get_boundary_condition(velocity_backup, b, surface_node_list=surface_node_list)
                     do i=1, size(surface_node_list)
                        call set(old_velocity, surface_node_list(i), node_val(surface_field_velocity, i))
                     enddo
                  enddo
-
-
+                 
+                 
                  do b=1, get_boundary_condition_count(pressure_backup)
                     surface_field_pressure => extract_surface_field(pressure_backup, b, 'value')
                     call get_boundary_condition(pressure_backup, b, surface_node_list=surface_node_list)
@@ -208,7 +208,7 @@
                        call set(pressure, surface_node_list(i), node_val(surface_field_pressure, i))
                     enddo
                  enddo
-
+                 
                  call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its)           
                  
   
@@ -346,8 +346,10 @@
       end do state_loop
       call profiler_toc("momentum_loop")
 
-      reduced_model= have_option("/reduced_model/execute_reduced_model")
-
+   !   reduced_model= have_option("/reduced_model/execute_reduced_model")
+      if(.not.have_option("/reduced_model/execute_reduced_model")) then 
+         deallocate(pod_coef_obv)
+      endif
     end subroutine momentum_loop
 
    end module reducedmodel_momentum_equation_wrapper
