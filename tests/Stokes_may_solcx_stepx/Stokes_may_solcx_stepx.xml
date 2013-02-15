@@ -49,7 +49,7 @@ assert((DeltaU_iterations_GAMG == 40))
 </test>
 
 <test name="Fieldsplit solver behaving as expected" language="python">
-assert((DeltaU_iterations_FS == 20))
+assert((DeltaU_iterations_FS == 11))
 </test>
 
 <test name="MG solver behaving as expected" language="python">
