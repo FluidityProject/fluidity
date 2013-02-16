@@ -19,7 +19,7 @@ module cgal_tools
   function convex_hull_area(positions) result(area)
     type(vector_field), intent(in) :: positions
     real :: area
-#ifndef HAVE_CGAL
+#ifndef HAVE_LIBCGAL
     FLAbort("Called a routine which depends on CGAL without CGAL")  
     area = 0.0 * positions%dim
 #else
