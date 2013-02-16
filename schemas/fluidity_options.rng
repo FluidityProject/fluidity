@@ -8491,7 +8491,68 @@ These &lt;b&gt;must&lt;/b&gt; be on the velocity mesh</a:documentation>
           <optional>
             <element name="M2">
               <a:documentation>M2</a:documentation>
-              <empty/>
+              <optional>
+                <element name="frequency">
+                  <a:documentation>Ancient frequencies:
+
+Ma     Frequency
+
+0        1.405e-4
+
+10      1.408e-4
+
+50      1.416e-4
+
+100    1.423e-4
+
+200    1.428e-4
+
+300    1.431e-4
+
+350    1.434e-4
+
+400    1.436e-4
+
+450    1.441e-4
+
+500    1.451e-4
+
+570    1.469e-4
+
+From Poliakow,2005</a:documentation>
+                  <ref name="real"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="amplitude">
+                  <a:documentation>Ma     Amplitude
+
+0        0.2423
+
+10      0.2428
+
+50      0.2446
+
+100    0.2460
+
+200    0.2471
+
+300    0.2477
+
+350    0.2485
+
+400    0.2489
+
+450    0.2499
+
+500    0.2521
+
+570    0.2560
+
+From Poliakow,2005</a:documentation>
+                  <ref name="real"/>
+                </element>
+              </optional>
             </element>
           </optional>
           <optional>
@@ -8562,10 +8623,26 @@ These &lt;b&gt;must&lt;/b&gt; be on the velocity mesh</a:documentation>
           </optional>
           <optional>
             <element name="love_number">
-              <a:documentation>Sets a user defined Love number. If not active a value of 1.0 is used.</a:documentation>
+              <a:documentation>Sets a user defined Love number. If not active a value of 1.0 is used.
+Recommended value is 0.693</a:documentation>
               <element name="value">
                 <ref name="real"/>
               </element>
+            </element>
+          </optional>
+          <optional>
+            <element name="sal">
+              <a:documentation>Self attraction and loading term (SAL). This is a simple implementation
+that uses a constant beta value</a:documentation>
+              <element name="beta">
+                <ref name="real"/>
+              </element>
+            </element>
+          </optional>
+          <optional>
+            <element name="chi">
+              <a:documentation>Add the CHI term to the harmonics. You probably only want to do this is you're simulating a specific time</a:documentation>
+              <empty/>
             </element>
           </optional>
         </element>
