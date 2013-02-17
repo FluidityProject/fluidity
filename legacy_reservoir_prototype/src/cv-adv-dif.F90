@@ -5964,7 +5964,7 @@
       REAL :: RSHAPE,RSHAPE_OLD,RGRAY, UDGI,VDGI,WDGI, RSCALE, TXGI,TYGI,TZGI
       REAL :: VEC_VEL(3), VEC_VEL2(3), ELE_LENGTH_SCALE
       REAL :: TGI,TOLDGI,TDTGI, U_DOT_GRADT_GI, COEF, A_STAR_T, A_STAR_X, A_STAR_Y, A_STAR_Z
-      REAL :: RESIDGI, P_STAR, DIFF_COEF, COEF2
+      REAL :: RESIDGI, P_STAR, DIFF_COEF, COEF2, FEMTGI_DDG, FEMTOLDGI_DDG
 
       ! The adjustment method is not ready for the LIMIT_USE_2ND - the new limiting method.
       LIM_VOL_ADJUST =LIM_VOL_ADJUST2.AND.(.NOT.LIMIT_USE_2ND)
@@ -6488,13 +6488,15 @@
                ENDIF
             END DO
 
-             IF(.FALSE.) THEN ! Downwinding for DG...
-                     FEMTGI = 0.0
-                     FEMTOLDGI = 0.0
-                     FEMDGI = 0.0
-                     FEMDOLDGI = 0.0
-                        FEMT2GI = 0.0
-                        FEMT2OLDGI =0.0
+             IF(.true.) THEN ! Downwinding for DG...
+                     FEMTGI_DDG = 0.0
+                     FEMTOLDGI_DDG = 0.0
+!                     FEMTGI = 0.0
+!                     FEMTOLDGI = 0.0
+!                     FEMDGI = 0.0
+!                     FEMDOLDGI = 0.0
+!                        FEMT2GI = 0.0
+!                        FEMT2OLDGI =0.0
                DO CV_KLOC = 1, CV_NLOC
                   CV_KLOC2 = CV_OTHER_LOC( CV_KLOC )
                   IF(CV_KLOC2 /= 0 ) THEN
@@ -6504,6 +6506,11 @@
                      CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
 ! Extrapolate to the downwind value...
 ! USE DOWNWINDING...
+                     FEMTGI_DDG = FEMTGI_DDG +  SCVFEN( CV_KLOC, GI ) * ( FEMT( CV_NODK2_IPHA ) & 
+                          * (1.-INCOME) + FEMT( CV_NODK_IPHA ) * INCOME )
+                     FEMTOLDGI_DDG = FEMTOLDGI_DDG + SCVFEN( CV_KLOC, GI ) * ( FEMTOLD( CV_NODK2_IPHA ) &
+                          * (1.-INCOMEOLD) + FEMTOLD( CV_NODK_IPHA ) * INCOMEOLD )
+                  if(.false.) then
                      FEMTGI = FEMTGI +  SCVFEN( CV_KLOC, GI ) * ( FEMT( CV_NODK2_IPHA ) & 
                           * (1.-INCOME) + FEMT( CV_NODK_IPHA ) * INCOME )
                      FEMTOLDGI = FEMTOLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMTOLD( CV_NODK2_IPHA ) &
@@ -6521,9 +6528,14 @@
                         FEMT2GI    = 1.0
                         FEMT2OLDGI = 1.0
                      ENDIF
+                   endif
 
                   ENDIF
                END DO
+! use the method with the max difference like ENO but opposit...
+               IF(ABS(FEMTGI_DDG-FVT)      .GT.ABS(FEMTGI-FVT))       FEMTGI   =FEMTGI_DDG
+               IF(ABS(FEMTOLDGI_DDG-FVTOLD).GT.ABS(FEMTOLDGI-FVTOLD)) FEMTOLDGI=FEMTOLDGI_DDG
+
                ENDIF ! ENDOF DOWNWINDING FOR DG
 ! END OF IF(DOWNWIND_EXTRAP.AND.(courant_or_minus_one_new.GE.0.0)) THEN ...
                ELSE ! Standard DG upwinding...
