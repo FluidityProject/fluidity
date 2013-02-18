@@ -247,7 +247,7 @@ subroutine petsc_solve_scalar_multiple(x, matrix, rhs, option_path)
   
 end subroutine petsc_solve_scalar_multiple
 
-subroutine petsc_solve_vector(x, matrix, rhs, option_path, deallocate_matrix, positions)
+subroutine petsc_solve_vector(x, matrix, rhs, option_path, deallocate_matrix)
   !!< Solve a linear system the nice way. Options for this
   !!< come via the options mechanism. 
   type(vector_field), intent(inout) :: x
@@ -256,8 +256,6 @@ subroutine petsc_solve_vector(x, matrix, rhs, option_path, deallocate_matrix, po
   character(len=*), optional, intent(in) :: option_path
   !! deallocate the matrix after it's been copied
   logical, intent(in), optional :: deallocate_matrix
-  !! positions field is only used with remove_null_space/ with rotational components
-  type(vector_field), intent(in), optional :: positions
 
   KSP ksp
   Mat A
