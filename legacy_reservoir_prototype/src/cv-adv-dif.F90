@@ -6193,7 +6193,7 @@
 !                  ELE_LENGTH_SCALE=1.0/TOLFUN( SQRT(SUM( VEC_VEL2(1:NDIM)**2 )) )  
 !                  ELE_LENGTH_SCALE=0.5*HDC
 ! For discontinuous elements half the length scale...
-!                  IF(U_NONODS==CV_NONODS) ELE_LENGTH_SCALE=0.5*ELE_LENGTH_SCALE
+                  IF(U_NONODS==CV_NONODS) ELE_LENGTH_SCALE=0.5*ELE_LENGTH_SCALE
 ! For quadratic elements...
                   IF( ((NDIM==2).AND.(CV_NLOC==6)).or.((NDIM==3).AND.(CV_NLOC==10)) ) &
                       ELE_LENGTH_SCALE=0.5*ELE_LENGTH_SCALE
@@ -6253,7 +6253,7 @@
                   END DO
                   P_STAR=0.5/TOLFUN( SQRT(SUM( VEC_VEL2(1:NDIM)**2 )) )
 ! For discontinuous elements half the length scale...
-!                  IF(U_NONODS==CV_NONODS) P_STAR=0.5*P_STAR 
+                  IF(U_NONODS==CV_NONODS) P_STAR=0.5*P_STAR 
 ! For quadratic elements...
                   IF( ((NDIM==2).AND.(CV_NLOC==6)).or.((NDIM==3).AND.(CV_NLOC==10)) ) &
                       P_STAR=0.5*P_STAR
@@ -6369,7 +6369,7 @@
 !                  ELE_LENGTH_SCALE=1.0/TOLFUN( SQRT(SUM( VEC_VEL2(1:NDIM)**2 )) )  
 !                  ELE_LENGTH_SCALE=0.5*HDC
 ! For discontinuous elements half the length scale...
-!                  IF(U_NONODS==CV_NONODS) ELE_LENGTH_SCALE=0.5*ELE_LENGTH_SCALE
+                  IF(U_NONODS==CV_NONODS) ELE_LENGTH_SCALE=0.5*ELE_LENGTH_SCALE
 ! For quadratic elements...
                   IF( ((NDIM==2).AND.(CV_NLOC==6)).or.((NDIM==3).AND.(CV_NLOC==10)) ) &
                       ELE_LENGTH_SCALE=0.5*ELE_LENGTH_SCALE
@@ -6429,7 +6429,7 @@
                   END DO
                   P_STAR=0.5/TOLFUN( SQRT(SUM( VEC_VEL2(1:NDIM)**2 )) )
 ! For discontinuous elements half the length scale...
-!                  IF(U_NONODS==CV_NONODS) P_STAR=0.5*P_STAR 
+                  IF(U_NONODS==CV_NONODS) P_STAR=0.5*P_STAR 
 ! For quadratic elements...
                   IF( ((NDIM==2).AND.(CV_NLOC==6)).or.((NDIM==3).AND.(CV_NLOC==10)) ) &
                       P_STAR=0.5*P_STAR
@@ -6533,10 +6533,10 @@
                   ENDIF
                END DO
 ! use the method with the max difference like ENO but opposit...
-!               IF(ABS(FEMTGI_DDG-FVT)      .GT.ABS(FEMTGI-FVT))       FEMTGI   =FEMTGI_DDG
-               FEMTGI   =FEMTGI_DDG
-!               IF(ABS(FEMTOLDGI_DDG-FVTOLD).GT.ABS(FEMTOLDGI-FVTOLD)) FEMTOLDGI=FEMTOLDGI_DDG
-               FEMTOLDGI=FEMTOLDGI_DDG
+               IF(ABS(FEMTGI_DDG-FVT)      .GT.ABS(FEMTGI-FVT))       FEMTGI   =FEMTGI_DDG
+!               FEMTGI   =FEMTGI_DDG
+               IF(ABS(FEMTOLDGI_DDG-FVTOLD).GT.ABS(FEMTOLDGI-FVTOLD)) FEMTOLDGI=FEMTOLDGI_DDG
+!               FEMTOLDGI=FEMTOLDGI_DDG
 
                ENDIF ! ENDOF DOWNWINDING FOR DG
 ! END OF IF(DOWNWIND_EXTRAP.AND.(courant_or_minus_one_new.GE.0.0)) THEN ...
