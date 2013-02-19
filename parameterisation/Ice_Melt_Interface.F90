@@ -327,7 +327,7 @@ contains
         speed = sqrt(sum(vel**2))
 
         if (speed .lt. 0.0001) then
-            speed = 0.001
+            speed = 0.0001
             
         endif
         ! constant = -7.53e-8 [C Pa^(-1)] comes from Holland and Jenkins Table 1
