@@ -66,7 +66,7 @@ module momentum_DG
   use omp_lib
 #endif
   use multiphase_module
-
+  use sigma_d0
 
   implicit none
 
@@ -135,6 +135,7 @@ module momentum_DG
   logical :: have_advection
   logical :: move_mesh
   logical :: have_pressure_bc
+  logical:: have_wd
   
   real :: gravity_magnitude
 
@@ -662,7 +663,7 @@ contains
             & inverse_masslump=inverse_masslump, &
             & mass=mass, subcycle_m=subcycle_m)
       end do element_loop
-      !$OMP END DO
+      !$OMP END DO	
 
     end do colour_loop
     !$OMP END PARALLEL
@@ -1089,6 +1090,12 @@ contains
       end if
     end if
     
+     !sigma
+    have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
+    if(have_wd) then
+        call add_sigma_element_dg(ele, u_shape, x, u, u_val, detwei, detwei_old, detwei_new, big_m_diag_addto, big_m_tensor_addto, rhs_addto,mass, l_masslump)
+    end if 
+      
     if(have_coriolis.and.(rhs%dim>1).and.assemble_element) then
       Coriolis_q=coriolis(ele_val_at_quad(X,ele))
     

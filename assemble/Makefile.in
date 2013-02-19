@@ -46,6 +46,7 @@ ARFLAGS = @ARFLAGS@
 
 LIB = ../lib/lib$(FLUIDITY).a
 OBJS    = Momentum_Diagnostic_Fields.o \
+         sigma_d0.o \
 	Momentum_Equation.o Momentum_CG.o \
 	qmesh.o \
 	OceanSurfaceForcing.o \
