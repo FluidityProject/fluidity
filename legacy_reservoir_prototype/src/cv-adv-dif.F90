@@ -5946,7 +5946,8 @@
 ! =2 is isotropic downwind diffusion  (3rd recommend,least compressive)
 ! =5 is isotropic downwind diffusion with magnitude of =0 option. 
 ! In tests they all produce similar results.
-      INTEGER, PARAMETER :: NON_LIN_PETROV_INTERFACE = 5
+!      INTEGER, PARAMETER :: NON_LIN_PETROV_INTERFACE = 5
+      INTEGER, PARAMETER :: NON_LIN_PETROV_INTERFACE = 3
 
       LOGICAL :: FIRSTORD, NOLIMI, RESET_STORE, LIM_VOL_ADJUST
       REAL :: RELAX, RELAXOLD, TMIN_STORE, TMAX_STORE, TOLDMIN_STORE, TOLDMAX_STORE, &
@@ -6230,7 +6231,7 @@
 
                   U_DOT_GRADT_GI=TDTGI + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
 
-                  COEF=U_DOT_GRADT_GI/TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 )
+!                  COEF=U_DOT_GRADT_GI/TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 )
                   IF(NON_LIN_PETROV_INTERFACE==5) THEN 
                      COEF=1.0/TOLFUN(SQRT( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2) )
                   ELSE
@@ -6241,8 +6242,11 @@
                   A_STAR_Y=COEF*TYGI
                   A_STAR_Z=COEF*TZGI
 ! residual based does not work so well...
-!                  RESIDGI=(TGI-TOLDGI)/DT + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
-                  RESIDGI=TDTGI + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
+                  RESIDGI=(TGI-TOLDGI)/DT + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
+!                  RESIDGI=TDTGI + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
+! these are the residuals we are aiming for...
+!                  RESIDGI=0.5/DT
+                  RESIDGI=0.5*courant_or_minus_one_new/DT
  
                   VEC_VEL(1)=A_STAR_X
                   VEC_VEL(2)=A_STAR_Y
