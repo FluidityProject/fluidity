@@ -6041,6 +6041,8 @@
 
       ! By default do not use first-order upwinding
       FIRSTORD = .FALSE.
+!         print *,'CV_DISOPT / 2:',CV_DISOPT / 2
+!       stop 27
 
       ! No limiting if CV_DISOPT is 6 or 7  (why not just define limt=femt and skip to assembly?)
       NOLIMI = ( INT( CV_DISOPT / 2 ) == 3 ) 
@@ -6147,6 +6149,8 @@
             RSCALE=1.0 ! Scaling to reduce the downwind bias(=1downwind, =0central)
             IF(SCALE_DOWN_WIND) THEN
                IF(DOWNWIND_EXTRAP.AND.(courant_or_minus_one_new.GE.0.0)) THEN
+!                  print *,'NON_LIN_PETROV_INTERFACE:',NON_LIN_PETROV_INTERFACE
+!                  stop 3832
                 IF(NON_LIN_PETROV_INTERFACE==0) THEN ! NOT non-linear Petrov-Galerkin Interface
                   TXGI=0.0
                   TYGI=0.0
@@ -6242,11 +6246,13 @@
                   A_STAR_Y=COEF*TYGI
                   A_STAR_Z=COEF*TZGI
 ! residual based does not work so well...
-                  RESIDGI=(TGI-TOLDGI)/DT + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
+!                  RESIDGI=(TGI-TOLDGI)/DT + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
 !                  RESIDGI=TDTGI + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
 ! these are the residuals we are aiming for...
 !                  RESIDGI=0.5/DT
-                  RESIDGI=0.5*courant_or_minus_one_new/DT
+!                  RESIDGI=0.5*courant_or_minus_one_new/DT
+                  RESIDGI=2.0*courant_or_minus_one_new/DT
+!                  stop 272
  
                   VEC_VEL(1)=A_STAR_X
                   VEC_VEL(2)=A_STAR_Y
@@ -6422,7 +6428,12 @@
                   A_STAR_Z=COEF*TZGI
 ! residual based does not work so well...
 !                  RESIDGI=(TGI-TOLDGI)/DT + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
-                  RESIDGI=TDTGI + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
+!                  RESIDGI=TDTGI + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
+! these are the residuals we are aiming for...
+!                  RESIDGI=0.5/DT
+!                  RESIDGI=0.5*courant_or_minus_one_new/DT
+                  RESIDGI=2.0*courant_or_minus_one_new/DT
+!                  RESIDGI=4.0*courant_or_minus_one_new/DT
  
                   VEC_VEL(1)=A_STAR_X
                   VEC_VEL(2)=A_STAR_Y
