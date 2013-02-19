@@ -326,7 +326,7 @@ contains
         P = node_val(re_pressure,the_node)
         speed = sqrt(sum(vel**2))
 
-        if (speed .lt. 0.001) then
+        if (speed .lt. 0.0001) then
             speed = 0.001
             
         endif

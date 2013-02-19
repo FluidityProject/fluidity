@@ -1,13 +1,15 @@
+include envcheck.mk
+
 # Default number of processes:
 NPROCS=1
-# directory locations:
-BIN=../../bin/
-SCRIPTS=../../bin/
 
-preprocess:
-	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi
+preprocess: envcheck
+ifeq ("x","x${NPROCS}")
+	@echo "**********ERROR: Please define NPROCS to set the number of processors to use"
+	@exit 1
+endif
 	@echo **********Converting the gmsh mesh to triangle format:
-	$(SCRIPTS)gmsh2triangle unit_sphere.msh
+	${BINPREFIX}gmsh2triangle unit_sphere.msh
 ifneq ($(NPROCS),8)
 	@echo **********WARNING: This simulation is best run on 8 processors
 endif
@@ -15,23 +17,21 @@ ifeq ($(NPROCS),1)
 	@echo **********Serial run: not decomposing mesh
 	@echo **********WARNING: This is a large simulation and will take a very long time in serial. Find a handy supercomputer.
 else
-# exit if no fltools and print warning
-	@if [ ! -e $(BIN)fldecomp ] ; then echo "ERROR: You must build Fluidity parallel tools, using the command 'make fltools' in the Fluidity directory, prior to running this test in parallel."; false; fi
 	@echo **********Decomposing the mesh into $(NPROCS) parts for parallel run:
-	$(BIN)fldecomp -n $(NPROCS) -f unit_sphere
+	${BINPREFIX}fldecomp -n $(NPROCS) -f unit_sphere
 endif
 
-run:
+run: envcheck
 ifneq ($(NPROCS),8)
 	@echo **********WARNING: This simulation is best run on 8 processors
 endif
 ifeq ($(NPROCS),1)
 	@echo **********WARNING: This is a large simulation and will take a very long time in serial. Find a handy supercomputer.
 	@echo **********Calling fluidity in serial with verbose log output enabled:
-	$(BIN)fluidity -v2 -l flow_past_sphere_Re100.flml
+	${BINPREFIX}fluidity -v2 -l flow_past_sphere_Re100.flml
 else
 	@echo **********Calling fluidity in parallel with verbose log output enabled:
-	mpiexec -n $(NPROCS) $(BIN)fluidity -v2 -l flow_past_sphere_Re100.flml
+	mpiexec -n $(NPROCS) ${BINPREFIX}fluidity -v2 -l flow_past_sphere_Re100.flml
 endif
 
 postprocess:

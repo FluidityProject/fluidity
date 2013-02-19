@@ -1369,7 +1369,10 @@ contains
     assert(xfield%dim+1==local_coord_count(shape))
 
     ! Determine element and local_coords from position
-    call picker_inquire(xfield,position,element,local_coord=lcoords,global=.false.)
+    ! In parallel, global=.false. can often work because there will be
+    ! a halo of non-owned elements in your process and so you can work out
+    ! ownership without communication.  But in general it won't work.
+    call picker_inquire(xfield,position,element,local_coord=lcoords,global=.true.)
 
     ! If we're in parallel and don't own the element, skip this detector
     if (isparallel()) then
@@ -1568,26 +1571,24 @@ contains
           else
 
              ! Reading from a binary file where the user has placed the detector positions
-             if (getprocno() == 1) then
-                 default_stat%detector_file_unit=free_unit()
-                 call get_option("/io/detectors/detector_array/from_file/file_name",detector_file_filename)
+             default_stat%detector_file_unit=free_unit()
+             call get_option("/io/detectors/detector_array/from_file/file_name",detector_file_filename)
 
 #ifdef STREAM_IO
-                 open(unit = default_stat%detector_file_unit, file = trim(detector_file_filename), &
-                      & action = "read", access = "stream", form = "unformatted")
+             open(unit = default_stat%detector_file_unit, file = trim(detector_file_filename), &
+                  & action = "read", access = "stream", form = "unformatted")
 #else
-                 FLAbort("No stream I/O support")
+             FLAbort("No stream I/O support")
 #endif
-       
-                 do j=1,ndete
-                    write(detector_name, fmt) trim(funcnam)//"_", j
-                    default_stat%detector_list%detector_names(k)=trim(detector_name)
-                    read(default_stat%detector_file_unit) detector_location
-                    call create_single_detector(default_stat%detector_list, xfield, &
-                          detector_location, k, type_det, trim(detector_name))
-                    k=k+1          
-                 end do
-              end if                
+   
+             do j=1,ndete
+                write(detector_name, fmt) trim(funcnam)//"_", j
+                default_stat%detector_list%detector_names(k)=trim(detector_name)
+                read(default_stat%detector_file_unit) detector_location
+                call create_single_detector(default_stat%detector_list, xfield, &
+                      detector_location, k, type_det, trim(detector_name))
+                k=k+1          
+             end do
           end if
        end do      
     else 
