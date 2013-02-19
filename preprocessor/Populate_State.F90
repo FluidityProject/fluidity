@@ -977,12 +977,22 @@ contains
 
           if (is_active_process) then
             select case (mesh_file_format)
-            case ("triangle", "gmsh")
+            case ("triangle", "gmsh", "exodusii")
               ! Read mesh
               solid_position=read_mesh_files(trim(mesh_file_name), &
                   quad_degree=quad_degree, &
                   format=mesh_file_format, &
                   solid=1)
+              ! After successfully reading in an ExodusII mesh, change the option
+              ! mesh file format to "gmsh", as the write routines for ExodusII are currently
+              ! not implemented. Thus, checkpoints etc are dumped as gmsh mesh files
+              if (trim(mesh_file_format)=="exodusii") then
+                 mesh_file_format = "gmsh"
+                 call set_option_attribute(trim(from_file_path)//"/format/name", trim(mesh_file_format), stat=stat)
+                 if (stat /= SPUD_NO_ERROR) then
+                    FLAbort("Failed to set the mesh format to gmsh (required for checkpointing). Spud error code is: "//int2str(stat))
+                 end if
+              end if
               mesh=solid_position%mesh
             case ("vtu") ! this is untested
               solid_position_ptr => vtk_cache_read_positions_field(mesh_file_name)
