@@ -6251,7 +6251,8 @@
 ! these are the residuals we are aiming for...
 !                  RESIDGI=0.5/DT
 !                  RESIDGI=0.5*courant_or_minus_one_new/DT
-                  RESIDGI=2.0*courant_or_minus_one_new/DT
+!                  RESIDGI=2.0*courant_or_minus_one_new/DT
+                  RESIDGI=max( abs(TGI-TOLDGI)/DT,2.*courant_or_minus_one_new/DT)
 !                  stop 272
  
                   VEC_VEL(1)=A_STAR_X
@@ -6434,6 +6435,8 @@
 !                  RESIDGI=0.5*courant_or_minus_one_new/DT
                   RESIDGI=2.0*courant_or_minus_one_new/DT
 !                  RESIDGI=4.0*courant_or_minus_one_new/DT
+!                  RESIDGI=(TGI-TOLDGI)/DT
+                  RESIDGI=max( abs(TGI-TOLDGI)/DT,2.*courant_or_minus_one_new/DT)
  
                   VEC_VEL(1)=A_STAR_X
                   VEC_VEL(2)=A_STAR_Y
