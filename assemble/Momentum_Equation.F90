@@ -2142,8 +2142,9 @@
                
                bc_loop: do bc = 0, nbc - 1               
 
-                  if(have_option("/material_phase["//int2str(i)//"]/vector_field::Velocity/prognostic&
-                                 &/boundary_conditions["//int2str(bc)//"]/type::free_surface")) then
+                  if(have_option("/material_phase["//int2str(i)//&
+                                 &"]/vector_field::Velocity/prognostic/boundary_conditions["&
+                                 &//int2str(bc)//"]/type::free_surface")) then
                      ewrite(-1,*) "Cannot have free_surface BC for Velocity of phase ",i+1
                      ewrite(-1,*) "when using a CG pressure with a CV tested continuity equation"
                      FLExit("For CG Pressure cannot test the continuity equation with CV when Velocity has a free_surface BC")
