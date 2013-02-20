@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testproblem>
+  <name>rename_checkpoint</name>
+  <owner userid="jhill1"/>
+  <tags>tool</tags>
+  <problem_definition length="short" nprocs="1">
+      <command_line>fluidity rename_cp.flml; 
+                    fluidity rename_cp_all.flml; 
+                    fluidity rename_checkpoint_5_checkpoint.flml;
+                    rename_checkpoint rename_checkpoint 5 -s;</command_line>
+    <!-- Checks the the rename_checkpoint script performs correctly -->
+  </problem_definition>
+  <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+    <variable name="final_vel" language="python">
+import fluidity_tools
+final_vel = fluidity_tools.stat_parser("rename_checkpoint_all.stat")["Fluid"]['Velocity%magnitude']['max'][-1]
+    </variable>
+    <variable name="final_vel_check" language="python">
+import fluidity_tools
+final_vel_check = fluidity_tools.stat_parser("rename_checkpoint.stat")["Fluid"]['Velocity%magnitude']['max'][-1]
+    </variable>
+    <variable name="statfile_len" language="python">
+import fluidity_tools
+statfile_len = len(fluidity_tools.stat_parser("rename_checkpoint.stat")["Fluid"]['Velocity%magnitude']['max'])
+    </variable>
+    <variable name="final_time" language="python">
+import fluidity_tools
+final_time = fluidity_tools.stat_parser("rename_checkpoint.stat")['ElapsedTime']['value'][-1]
+    </variable>
+    <variable name="num_vtus" language="python">
+import glob
+num_vtus = len(glob.glob("rename_checkpoint_[0-9].vtu"))
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
+    <test name="Correct velocity" language="python">
+        assert(abs(final_vel - final_vel_check) &lt; 1e-10)
+    </test>
+    <test name="Correct final time" language="python">
+        assert(abs(final_time - 1) &lt; 1e-10)
+    </test>
+    <test name="Correct number of timesteps" language="python">
+        assert(statfile_len == 10)
+    </test>
+    <test name="Correct number of vtus" language="python">
+        assert(num_vtus == 10)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

@@ -509,78 +509,10 @@
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="IsoFilteredGradTracerProjection" rank="1">
-      <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="IsoFilteredGradTracer">
-          <solver>
-            <iterative_method name="cg"/>
-            <preconditioner name="sor"/>
-            <relative_error>
-              <real_value rank="0">1.e-10</real_value>
-            </relative_error>
-            <max_iterations>
-              <integer_value rank="0">1000</integer_value>
-            </max_iterations>
-            <never_ignore_solver_failures/>
-            <diagnostics>
-              <monitors/>
-            </diagnostics>
-          </solver>
-        </algorithm>
-        <mesh name="ErrorMesh"/>
-        <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </vector_field>
     <vector_field name="GradIsoFilteredTracer" rank="1">
       <diagnostic>
         <algorithm source_field_type="scalar" material_phase_support="single" name="grad" source_field_name="IsoFilteredTracer"/>
         <mesh name="VelocityMesh"/>
-        <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </vector_field>
-    <vector_field name="GradIsoFilteredTracerProjection" rank="1">
-      <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="GradIsoFilteredTracer">
-          <solver>
-            <iterative_method name="cg"/>
-            <preconditioner name="sor"/>
-            <relative_error>
-              <real_value rank="0">1.e-10</real_value>
-            </relative_error>
-            <max_iterations>
-              <integer_value rank="0">1000</integer_value>
-            </max_iterations>
-            <never_ignore_solver_failures/>
-            <diagnostics>
-              <monitors/>
-            </diagnostics>
-          </solver>
-        </algorithm>
-        <mesh name="ErrorMesh"/>
         <output/>
         <stat>
           <include_in_stat/>
@@ -654,78 +586,10 @@
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="AnisoFilteredGradTracerProjection" rank="1">
-      <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="AnisoFilteredGradTracer">
-          <solver>
-            <iterative_method name="cg"/>
-            <preconditioner name="sor"/>
-            <relative_error>
-              <real_value rank="0">1.e-10</real_value>
-            </relative_error>
-            <max_iterations>
-              <integer_value rank="0">1000</integer_value>
-            </max_iterations>
-            <never_ignore_solver_failures/>
-            <diagnostics>
-              <monitors/>
-            </diagnostics>
-          </solver>
-        </algorithm>
-        <mesh name="ErrorMesh"/>
-        <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </vector_field>
     <vector_field name="GradAnisoFilteredTracer" rank="1">
       <diagnostic>
         <algorithm source_field_type="scalar" material_phase_support="single" name="grad" source_field_name="AnisoFilteredTracer"/>
         <mesh name="VelocityMesh"/>
-        <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </vector_field>
-    <vector_field name="GradAnisoFilteredTracerProjection" rank="1">
-      <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="GradAnisoFilteredTracer">
-          <solver>
-            <iterative_method name="cg"/>
-            <preconditioner name="sor"/>
-            <relative_error>
-              <real_value rank="0">1.e-10</real_value>
-            </relative_error>
-            <max_iterations>
-              <integer_value rank="0">1000</integer_value>
-            </max_iterations>
-            <never_ignore_solver_failures/>
-            <diagnostics>
-              <monitors/>
-            </diagnostics>
-          </solver>
-        </algorithm>
-        <mesh name="ErrorMesh"/>
         <output/>
         <stat>
           <include_in_stat/>
@@ -781,78 +645,10 @@
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="MLFilteredGradTracerProjection" rank="1">
-      <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="MLFilteredGradTracer">
-          <solver>
-            <iterative_method name="cg"/>
-            <preconditioner name="sor"/>
-            <relative_error>
-              <real_value rank="0">1.e-10</real_value>
-            </relative_error>
-            <max_iterations>
-              <integer_value rank="0">1000</integer_value>
-            </max_iterations>
-            <never_ignore_solver_failures/>
-            <diagnostics>
-              <monitors/>
-            </diagnostics>
-          </solver>
-        </algorithm>
-        <mesh name="ErrorMesh"/>
-        <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </vector_field>
     <vector_field name="GradMLFilteredTracer" rank="1">
       <diagnostic>
         <algorithm source_field_type="scalar" material_phase_support="single" name="grad" source_field_name="MLFilteredTracer"/>
         <mesh name="VelocityMesh"/>
-        <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </vector_field>
-    <vector_field name="GradMLFilteredTracerProjection" rank="1">
-      <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="GradMLFilteredTracer">
-          <solver>
-            <iterative_method name="cg"/>
-            <preconditioner name="sor"/>
-            <relative_error>
-              <real_value rank="0">1.e-10</real_value>
-            </relative_error>
-            <max_iterations>
-              <integer_value rank="0">1000</integer_value>
-            </max_iterations>
-            <never_ignore_solver_failures/>
-            <diagnostics>
-              <monitors/>
-            </diagnostics>
-          </solver>
-        </algorithm>
-        <mesh name="ErrorMesh"/>
         <output/>
         <stat>
           <include_in_stat/>
