@@ -1212,8 +1212,7 @@ contains
     diffusivity_gi = ele_val_at_quad(diffusivity, ele)
 
     if(isotropic_diffusivity) then
-      assert(size(diffusivity_gi, 1) > 0)    
-          
+      assert(size(diffusivity_gi, 1) > 0)
       if(multiphase .and. equation_type==FIELD_EQUATION_INTERNALENERGY) then
          ! This allows us to use the Diffusivity term as the heat flux term
          ! in the multiphase InternalEnergy equation: div( (k/Cv) * vfrac * grad(ie) ).
@@ -1229,7 +1228,7 @@ contains
     else
       diffusivity_mat = dshape_tensor_dshape(dt_t, diffusivity_gi, dt_t, detwei)
     end if
-    
+
     if(abs(dt_theta) > epsilon(0.0)) matrix_addto = matrix_addto + dt_theta * diffusivity_mat
     
     rhs_addto = rhs_addto - matmul(diffusivity_mat, ele_val(t, ele))
