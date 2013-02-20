@@ -470,7 +470,7 @@ subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path, &
   character(len=*), optional, intent(in) :: option_path
   !! prolongators to be used at the first levels of 'mg'
   type(petsc_csr_matrix), dimension(:), optional, intent(in) :: prolongators
-  !! positions field is only used with remove_null_space/ with rotational components
+  !! positions field is only used with remove_null_space/ or multigrid_near_null_space/ with rotational components
   type(vector_field), intent(in), optional :: positions
 
 
@@ -674,7 +674,7 @@ type(petsc_csr_matrix), dimension(:), optional, intent(in) :: prolongators
 !! Stuff needed for internal smoother
 integer, dimension(:), optional, intent(in) :: surface_node_list
 integer, optional, intent(in) :: internal_smoothing_option
-!! positions field is only used with remove_null_space/ with rotational components
+!! positions field is only used with remove_null_space/ or multigrid_near_null_space/ with rotational components
 type(vector_field), intent(in), optional :: positions
 
   logical, dimension(:), pointer:: inactive_mask
@@ -969,7 +969,7 @@ logical, optional, intent(in):: startfromzero_in
 type(petsc_csr_matrix), dimension(:), optional, intent(in) :: prolongators
 !! Stuff needed for internal smoother
 integer, dimension(:), optional, intent(in) :: surface_node_list
-!! positions field is only used with remove_null_space/ with rotational components
+!! positions field is only used with remove_null_space/ or multigrid_near_null_space/ with rotational components
 type(vector_field), intent(in), optional :: positions
 
 
@@ -1528,7 +1528,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     integer, dimension(:), optional, intent(in) :: surface_node_list
     type(csr_matrix), optional, intent(in) :: matrix_csr
     integer, optional, intent(in) :: internal_smoothing_option
-    ! positions field is only used with remove_null_space/ with rotational components
+    ! positions field is only used with remove_null_space/ or multigrid_near_null_space/ with rotational components
     type(vector_field), intent(in), optional :: positions
     
     PetscErrorCode ierr
@@ -1571,7 +1571,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     integer, dimension(:), optional, intent(in) :: surface_node_list
     type(csr_matrix), optional, intent(in) :: matrix_csr
     integer, optional, intent(in) :: internal_smoothing_option
-    ! positions field is only used with remove_null_space/ with rotational components
+    ! positions field is only used with remove_null_space/ or multigrid_near_null_space/ with rotational components
     type(vector_field), intent(in), optional :: positions
     
     ! hack to satisfy interface for MatNullSpaceCreate
