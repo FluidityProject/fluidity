@@ -222,9 +222,9 @@
     <scalar_field name="IsoFilteredTracer" rank="0">
       <diagnostic>
         <algorithm source_field_type="component" material_phase_support="single" name="helmholtz_smoothed_scalar" source_field_name="Tracer">
-          <smoothing_length_scale>
-            <real_value rank="0">1.</real_value>
-          </smoothing_length_scale>
+          <smoothing_scale_factor>
+            <real_value rank="0">2.0</real_value>
+          </smoothing_scale_factor>
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -306,9 +306,9 @@
     <scalar_field name="AnisoFilteredTracer" rank="0">
       <diagnostic>
         <algorithm source_field_type="scalar" material_phase_support="single" name="helmholtz_anisotropic_smoothed_scalar" source_field_name="Tracer">
-          <smoothing_length_scale>
-            <real_value rank="0">1.</real_value>
-          </smoothing_length_scale>
+          <smoothing_scale_factor>
+            <real_value rank="0">2.0</real_value>
+          </smoothing_scale_factor>
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -475,9 +475,9 @@
     <vector_field name="IsoFilteredGradTracer" rank="1">
       <diagnostic>
         <algorithm source_field_type="vector" material_phase_support="single" name="helmholtz_smoothed_vector" source_field_name="GradTracer">
-          <smoothing_length_scale>
-            <real_value rank="0">1.</real_value>
-          </smoothing_length_scale>
+          <smoothing_scale_factor>
+            <real_value rank="0">2.0</real_value>
+          </smoothing_scale_factor>
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -511,7 +511,7 @@
     </vector_field>
     <vector_field name="IsoFilteredGradTracerProjection" rank="1">
       <diagnostic>
-        <algorithm material_phase_support="single" source_field_type="vector" source_field_name="IsoFilteredGradTracer" name="vector_galerkin_projection">
+        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="IsoFilteredGradTracer">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -564,7 +564,7 @@
     </vector_field>
     <vector_field name="GradIsoFilteredTracerProjection" rank="1">
       <diagnostic>
-        <algorithm material_phase_support="single" source_field_type="vector" source_field_name="GradIsoFilteredTracer" name="vector_galerkin_projection">
+        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="GradIsoFilteredTracer">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -598,7 +598,7 @@
     </vector_field>
     <vector_field name="IsoCommError" rank="1">
       <diagnostic>
-        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="IsoFilteredGradTracerProjection" source_field_2_name="GradIsoFilteredTracerProjection" material_phase_support="single" source_field_1_type="vector">
+        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="IsoFilteredGradTracer" source_field_2_name="GradIsoFilteredTracer" material_phase_support="single" source_field_1_type="vector">
           <absolute_difference/>
         </algorithm>
         <mesh name="ErrorMesh"/>
@@ -620,9 +620,9 @@
     <vector_field name="AnisoFilteredGradTracer" rank="1">
       <diagnostic>
         <algorithm source_field_type="vector" material_phase_support="single" name="helmholtz_anisotropic_smoothed_vector" source_field_name="GradTracer">
-          <smoothing_length_scale>
-            <real_value rank="0">1.</real_value>
-          </smoothing_length_scale>
+          <smoothing_scale_factor>
+            <real_value rank="0">2.0</real_value>
+          </smoothing_scale_factor>
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -656,7 +656,7 @@
     </vector_field>
     <vector_field name="AnisoFilteredGradTracerProjection" rank="1">
       <diagnostic>
-        <algorithm material_phase_support="single" source_field_type="vector" source_field_name="AnisoFilteredGradTracer" name="vector_galerkin_projection">
+        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="AnisoFilteredGradTracer">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -709,7 +709,7 @@
     </vector_field>
     <vector_field name="GradAnisoFilteredTracerProjection" rank="1">
       <diagnostic>
-        <algorithm material_phase_support="single" source_field_type="vector" source_field_name="GradAnisoFilteredTracer" name="vector_galerkin_projection">
+        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="GradAnisoFilteredTracer">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -743,7 +743,7 @@
     </vector_field>
     <vector_field name="AnisoCommError" rank="1">
       <diagnostic>
-        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="AnisoFilteredGradTracerProjection" source_field_2_name="GradAnisoFilteredTracerProjection" material_phase_support="single" source_field_1_type="vector">
+        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="AnisoFilteredGradTracer" source_field_2_name="GradAnisoFilteredTracer" material_phase_support="single" source_field_1_type="vector">
           <absolute_difference/>
         </algorithm>
         <mesh name="ErrorMesh"/>
@@ -783,7 +783,7 @@
     </vector_field>
     <vector_field name="MLFilteredGradTracerProjection" rank="1">
       <diagnostic>
-        <algorithm material_phase_support="single" source_field_type="vector" source_field_name="MLFilteredGradTracer" name="vector_galerkin_projection">
+        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="MLFilteredGradTracer">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -836,7 +836,7 @@
     </vector_field>
     <vector_field name="GradMLFilteredTracerProjection" rank="1">
       <diagnostic>
-        <algorithm material_phase_support="single" source_field_type="vector" source_field_name="GradMLFilteredTracer" name="vector_galerkin_projection">
+        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="GradMLFilteredTracer">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -870,7 +870,7 @@
     </vector_field>
     <vector_field name="MLCommError" rank="1">
       <diagnostic>
-        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="MLFilteredGradTracerProjection" source_field_2_name="GradMLFilteredTracerProjection" material_phase_support="single" source_field_1_type="vector">
+        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="MLFilteredGradTracer" source_field_2_name="GradMLFilteredTracer" material_phase_support="single" source_field_1_type="vector">
           <absolute_difference/>
         </algorithm>
         <mesh name="ErrorMesh"/>

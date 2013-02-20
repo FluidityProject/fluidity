@@ -250,13 +250,15 @@ vector_galerkin_projection_algorithm =
 helmholtz_smoothed_scalar_algorithm =
    (
       ## Smooth a scalar field by inverting a Helmholtz operator based on a scalar lengthscale.
+      ## Dirichlet boundary conditions from the source field are applied to the filtered field.
       element algorithm {
          attribute name { "helmholtz_smoothed_scalar" },
          attribute material_phase_support { "single" },
          component_source_field,
          ## The characteristic scale factor alpha used by the smoother.
          ## The length scale is alpha*local element width (a scalar)
-         element smoothing_length_scale {
+         ## 2 is recommended.
+         element smoothing_scale_factor {
              real
          },
          ## Solver options.
@@ -268,13 +270,15 @@ helmholtz_smoothed_scalar_algorithm =
 helmholtz_smoothed_vector_algorithm =
    (
       ## Smooth a vector field by inverting a Helmholtz operator based on a scalar lengthscale.
+      ## Dirichlet boundary conditions from the source field are applied to the filtered field.
       element algorithm {
          attribute name { "helmholtz_smoothed_vector" },
          attribute material_phase_support { "single" },
          vector_source_field,
          ## The characteristic scale factor alpha used by the smoother.
          ## The length scale is alpha*local element width (a scalar)
-         element smoothing_length_scale {
+         ## 2 is recommended.
+         element smoothing_scale_factor {
              real
          },
          ## Solver options.
@@ -286,13 +290,15 @@ helmholtz_smoothed_vector_algorithm =
 helmholtz_smoothed_tensor_algorithm =
    (
       ## Smooth a tensor field by inverting a Helmholtz operator based on a scalar lengthscale.
+      ## Dirichlet boundary conditions are not applied to the filtered field.
       element algorithm {
          attribute name { "helmholtz_smoothed_tensor" },
          attribute material_phase_support { "single" },
          tensor_source_field,
          ## The characteristic scale factor alpha used by the smoother.
          ## The length scale is alpha*local element width (a scalar)
-         element smoothing_length_scale {
+         ## 2 is recommended.
+         element smoothing_scale_factor {
              real
          },
          ## Solver options.
@@ -309,9 +315,10 @@ helmholtz_anisotropic_smoothed_scalar_algorithm =
          attribute name { "helmholtz_anisotropic_smoothed_scalar" },
          attribute material_phase_support { "single" },
          scalar_source_field,
-         ## The scale factor used by the smoother, applied to the mesh size tensor.
+         ## The characteristic scale factor alpha used by the smoother.
+         ## The length scale is alpha*local element size (a tensor).
          ## 2 is recommended.
-         element smoothing_length_scale {
+         element smoothing_scale_factor {
              real
          },
          ## Solver options.
@@ -328,9 +335,10 @@ helmholtz_anisotropic_smoothed_vector_algorithm =
          attribute name { "helmholtz_anisotropic_smoothed_vector" },
          attribute material_phase_support { "single" },
          vector_source_field,
-         ## The scale factor used by the smoother, applied to the mesh size tensor.
+         ## The characteristic scale factor alpha used by the smoother.
+         ## The length scale is alpha*local element size (a tensor).
          ## 2 is recommended.
-         element smoothing_length_scale {
+         element smoothing_scale_factor {
              real
          },
          ## Solver options.
@@ -347,9 +355,10 @@ helmholtz_anisotropic_smoothed_tensor_algorithm =
          attribute name { "helmholtz_anisotropic_smoothed_tensor" },
          attribute material_phase_support { "single" },
          tensor_source_field,
-         ## The scale factor used by the smoother, applied to the mesh size tensor.
+         ## The characteristic scale factor alpha used by the smoother.
+         ## The length scale is alpha*local element size (a tensor).
          ## 2 is recommended.
-         element smoothing_length_scale {
+         element smoothing_scale_factor {
              real
          },
          ## Solver options.

@@ -394,7 +394,7 @@ contains
     positions => extract_vector_field(state, "Coordinate")
     
     path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
-    call get_option(trim(path) // "/smoothing_length_scale", alpha)
+    call get_option(trim(path) // "/smoothing_scale_factor", alpha)
     ewrite(2, *) "alpha = ", alpha
     
     ewrite_minmax(source_field)
@@ -421,7 +421,7 @@ contains
     positions => extract_vector_field(state, "Coordinate")
     
     path = trim(complete_field_path(v_field%option_path)) // "/algorithm"
-    call get_option(trim(path) // "/smoothing_length_scale", alpha)
+    call get_option(trim(path) // "/smoothing_scale_factor", alpha)
     ewrite(2, *) "alpha = ", alpha
     
     call smooth_vector(source_field, positions, v_field, alpha, path)
@@ -447,7 +447,7 @@ contains
     source_field => tensor_source_field(state, t_field)
 
     path = trim(complete_field_path(t_field%option_path)) // "/algorithm"
-    call get_option(trim(path) // "/smoothing_length_scale", alpha)
+    call get_option(trim(path) // "/smoothing_scale_factor", alpha)
     ewrite(2, *) "alpha = ", alpha
     call smooth_tensor(source_field, positions, t_field, alpha, path)
 
@@ -474,7 +474,7 @@ contains
     source_field => scalar_source_field(state, s_field, allocated = allocated)
 
     path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
-    call get_option(trim(path) // "/smoothing_length_scale", alpha)
+    call get_option(trim(path) // "/smoothing_scale_factor", alpha)
     ewrite(2, *) "alpha = ", alpha
     call anisotropic_smooth_scalar(source_field, positions, s_field, alpha, path)
 
@@ -501,7 +501,7 @@ contains
     source_field => vector_source_field(state, v_field)
 
     path = trim(complete_field_path(v_field%option_path)) // "/algorithm"
-    call get_option(trim(path) // "/smoothing_length_scale", alpha)
+    call get_option(trim(path) // "/smoothing_scale_factor", alpha)
     ewrite(2, *) "alpha = ", alpha
     call anisotropic_smooth_vector(source_field, positions, v_field, alpha, path)
 
@@ -527,7 +527,7 @@ contains
     source_field => tensor_source_field(state, t_field)
 
     path = trim(complete_field_path(t_field%option_path)) // "/algorithm"
-    call get_option(trim(path) // "/smoothing_length_scale", alpha)
+    call get_option(trim(path) // "/smoothing_scale_factor", alpha)
     ewrite(2, *) "alpha = ", alpha
     call anisotropic_smooth_tensor(source_field, positions, t_field, alpha, path)
 
