@@ -999,9 +999,12 @@ module fsi_model
                   do j = 1, source_term_iter%dim
 !                      ! Originally used, and theorhetically correct:
 !                      ! Originally used this source term: u_s*sigma - sigma*(alpha*u_f + u_s), with sigma=1/dt
-                      call set(source_term_iter, j, nodes(i), (node_val(solid_velocity,j,nodes(i)) / dt) - &
-                        & (node_val(solid_velocity,j,nodes(i)) + &
-                        & node_val(fluid_velocity,j,nodes(i)) ) / dt )
+!                      call set(source_term_iter, j, nodes(i), (node_val(solid_velocity,j,nodes(i)) / dt) - &
+!                        & (node_val(solid_velocity,j,nodes(i)) + &
+!                        & node_val(fluid_velocity,j,nodes(i)) ) / dt )
+                      call set(source_term_iter, j, nodes(i), ( (node_val(solid_velocity,j,nodes(i)) + &
+                        & node_val(fluid_velocity,j,nodes(i)) ) / dt ) - &
+                        & (node_val(solid_velocity,j,nodes(i)) / dt) )
                       ! Below was used before, which is the same as above but with alpha:
                       !  & node_val(fluid_velocity,j,nodes(i)) * node_val(alpha,nodes(i))) / dt )
 
