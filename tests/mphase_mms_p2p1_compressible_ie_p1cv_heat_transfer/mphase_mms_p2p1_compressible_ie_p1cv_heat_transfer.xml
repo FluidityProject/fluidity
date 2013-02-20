@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>mphase_mms_p2p1_compressible_ie_p1cv_heat_transfer</name>
+  <owner userid="ctj10"/>
+  <tags>flml</tags>
+  <problem_definition length="special" nprocs="1">
+    <command_line>fluidity -v3 MMS_A.flml &gt; MMS_A.log; fluidity -v3 MMS_B.flml &gt; MMS_B.log; fluidity -v3 MMS_C.flml &gt; MMS_C.log; fluidity -v3 MMS_D.flml &gt; MMS_D.log</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="convergence" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+import numpy as np
+
+meshes = [['A','B']]#, ['B','C']]
+
+convergence = np.ones(5) * 1e10
+
+print ''
+print 'ORDER OF CONVERGENCE'
+print '-------------------------------------------'
+
+print 'VelocityError:'
+print '-------------------------------------------'
+
+for i, mesh in enumerate(meshes):
+
+    a_error_x = stat("MMS_"+str(mesh[0])+".stat")["Fluid"]["VelocityError%1"]["l2norm"][-1]
+    b_error_x = stat("MMS_"+str(mesh[1])+".stat")["Fluid"]["VelocityError%1"]["l2norm"][-1]
+    a_error_y = stat("MMS_"+str(mesh[0])+".stat")["Fluid"]["VelocityError%2"]["l2norm"][-1]
+    b_error_y = stat("MMS_"+str(mesh[1])+".stat")["Fluid"]["VelocityError%2"]["l2norm"][-1]
+
+    ratio_x = a_error_x / b_error_x
+    ratio_y = a_error_y / b_error_y
+
+    print mesh[0] + '->' + mesh[1] + ': ', [log(ratio_x, 2), log(ratio_y, 2)]
+
+    convergence[0] = min(log(ratio_x, 2), log(ratio_y, 2), convergence[0])
+
+print '-------------------------------------------'
+
+fields = [
+          'PressureError',
+          'InternalEnergyError',
+          'DensityError',
+          ]
+
+for i, field in enumerate(fields):
+    print field
+    print '-------------------------------------------'
+
+    for j, mesh in enumerate(meshes):
+        
+        a_error = stat("MMS_"+str(mesh[0])+".stat")["Fluid"][field]["l2norm"][-1]
+        b_error = stat("MMS_"+str(mesh[1])+".stat")["Fluid"][field]["l2norm"][-1]
+        
+        ratio = a_error / b_error
+        
+        print mesh[0] + '->' + mesh[1] + ': ', log(ratio, 2)
+
+        convergence[i+1] = min(log(ratio, 2), convergence[i+1])
+    
+    print '-------------------------------------------'
+
+print ''
+
+
+fields = [
+          'ScalarAbsoluteDifference',
+          ]
+
+for i, field in enumerate(fields):
+    print field
+    print '-------------------------------------------'
+
+    for j, mesh in enumerate(meshes):
+        
+        a_error = stat("MMS_"+str(mesh[0])+".stat")["Particle"][field]["l2norm"][-1]
+        b_error = stat("MMS_"+str(mesh[1])+".stat")["Particle"][field]["l2norm"][-1]
+        
+        ratio = a_error / b_error
+        
+        print mesh[0] + '->' + mesh[1] + ': ', log(ratio, 2)
+
+        convergence[i+4] = min(log(ratio, 2), convergence[i+1])
+    
+    print '-------------------------------------------'
+
+print ''
+
+    </variable>
+    <variable name="a_finish_time" language="python">
+from fluidity_tools import stat_parser as stat
+a_finish_time = stat("MMS_A.stat")["ElapsedTime"]["value"][-1]
+    </variable>
+    <variable name="b_finish_time" language="python">
+from fluidity_tools import stat_parser as stat
+b_finish_time = stat("MMS_B.stat")["ElapsedTime"]["value"][-1]
+    </variable>
+    <variable name="c_finish_time" language="python">
+from fluidity_tools import stat_parser as stat
+c_finish_time = stat("MMS_C.stat")["ElapsedTime"]["value"][-1]
+    </variable>
+    <variable name="d_finish_time" language="python">
+from fluidity_tools import stat_parser as stat
+d_finish_time = stat("MMS_D.stat")["ElapsedTime"]["value"][-1]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="velocity convergence order > 2.8" language="python">
+assert(convergence[0] &gt; 2.8)
+    </test>
+    <test name="pressure convergence order > 1.9" language="python">
+assert(convergence[1] &gt; 1.9)
+    </test>
+    <test name="ie (phase 1) convergence order > 1.9" language="python">
+assert(convergence[2] &gt; 1.9)
+    </test>
+    <test name="density (phase 1) convergence order > 1.9" language="python">
+assert(convergence[3] &gt; 1.9)
+    </test>
+    <test name="ie (phase 2) convergence order > 1.9" language="python">
+assert(convergence[4] &gt; 1.9)
+    </test>
+    <test name="checking A finished in less than 100 seconds" language="python">
+assert(a_finish_time-100.0 &lt; 1.E-10)
+    </test>
+    <test name="checking B finished in less than 100 seconds" language="python">
+assert(b_finish_time-100.0 &lt; 1.E-10)
+    </test>
+    <test name="checking C finished in less than 100 seconds" language="python">
+assert(c_finish_time-100.0 &lt; 1.E-10)
+    </test>
+    <test name="checking D finished in less than 100 seconds" language="python">
+assert(d_finish_time-100.0 &lt; 1.E-10)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
+
