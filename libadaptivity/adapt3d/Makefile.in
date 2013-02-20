@@ -84,7 +84,7 @@ include/fdebug_adapt.h: include/confdefs.h include/ewrite.h
 
 Debug.o: include/fdebug_adapt.h write_log.o
 
-adapt1.o :	adapt1.F write_log.o include/blknew.i include/blkbig.i include/blkorg.i include/blknxt.i include/blkerr.i include/blktim.i
+adapt1.o :	adapt1.F AdaptProgress.o write_log.o include/blknew.i include/blkbig.i include/blkorg.i include/blknxt.i include/blkerr.i include/blktim.i
 
 addedg.o :	addedg.F include/blknew.i include/blkbig.i include/blkerr.i
 
@@ -96,7 +96,7 @@ addnd.o :	addnd.F include/blknew.i include/blkbig.i include/blkorg.i include/blk
 
 adfrnd.o :	adfrnd.F include/blknew.i include/blkbig.i include/blkerr.i
 
-adptvy.o :	adptvy.F write_log.o include/blkprm.i include/blknew.i include/blkerr.i
+adptvy.o :	adptvy.F AdaptProgress.o write_log.o include/blkprm.i include/blknew.i include/blkerr.i
 
 angedg.o :	angedg.F include/blknew.i include/blkbig.i include/blkerr.i
 
