@@ -81,7 +81,7 @@ contains
 
   end function complete_cv_field_path
 
-  subroutine orientate_cvsurf_normgi(normgi_f, X, X_f, normgi)
+  function orientate_cvsurf_normgi(X, X_f, normgi) result(normgi_f)
     ! This subroutine corrects the orientation of a cv face normal
     ! relative to a set of nodal coordinates so that it points away from
     ! that node
@@ -92,7 +92,7 @@ contains
     ! unorientated normal
     real, dimension(:) :: normgi
     ! result
-    real, dimension(:), intent(inout) :: normgi_f
+    real, dimension(size(normgi)) :: normgi_f
     ! node and gauss pt. locations respectively.
     real, dimension (:), intent(in) :: X, X_f
     ! Outward pointing not necessarily normal vector.
@@ -113,7 +113,7 @@ contains
     ! normalise
     normgi_f=normgi/sqrt(sum(normgi**2))
 
-  end subroutine orientate_cvsurf_normgi
+  end function orientate_cvsurf_normgi
   
   subroutine clean_deferred_deletion_single_state(state)
     type(state_type), intent(inout) :: state

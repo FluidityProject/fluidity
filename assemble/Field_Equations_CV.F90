@@ -1591,7 +1591,7 @@ contains
                   notvisited(ggi)=.false.
 
                   ! correct the orientation of the normal so it points away from iloc
-                  call orientate_cvsurf_normgi(normgi, node_val(x_tfield, x_nodes(iloc)),x_f(:,ggi),normal(:,ggi))
+                  normgi=orientate_cvsurf_normgi(node_val(x_tfield, x_nodes(iloc)),x_f(:,ggi),normal(:,ggi))
 
                   if(include_advection) then
                     ! calculate u.n
@@ -3052,7 +3052,7 @@ contains
                   notvisited(ggi)=.false.
 
                   ! correct the orientation of the normal so it points away from iloc
-                  call orientate_cvsurf_normgi(normgi, node_val(x_tfield, x_nodes(iloc)),x_f(:,ggi),normal(:,ggi))
+                  normgi=orientate_cvsurf_normgi(node_val(x_tfield, x_nodes(iloc)),x_f(:,ggi),normal(:,ggi))
 
                   ! calculate u.n
                   udotn=dot_product(u_f(:,ggi), normgi(:))
