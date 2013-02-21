@@ -5,7 +5,7 @@
   <owner userid="jemma"/>
   <tags>swml mimetic quads</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>shallow_water_mimetic rt0_projection_quads.swml
+    <command_line>shallow_water_mimetic rt0_projection_quads.swml &gt; sw.log
 </command_line>
   </problem_definition>
   <variables>
@@ -14,10 +14,41 @@ import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
     </variable>
+    <variable name = "continuity_checks" language = "python">
+f=open('sw.log','r')
+continuity_checks=True
+for line in f:
+  if 'Continuity matrix tolerance failure' in line:
+    continuity_checks=False
+  if 'stopping because of jumps' in line:
+    continuity_checks=False
+    </variable>
+    <variable name = "normal_velocity_on_boundaries" language = "python">
+from vtktools import vtu
+from numpy import ones
+f=vtu('rt0_projection_quads_0.vtu')
+xyz=f.GetLocations()
+u=f.GetVectorField('Velocity')
+normal_velocity_on_boundaries=ones((4,10))
+# x-component of velocity on boundary x=0
+normal_velocity_on_boundaries[0]=abs(u[:,0].compress(xyz[:,0]&lt;1e-5))
+# x-component of velocity on boundary x=1
+normal_velocity_on_boundaries[1]=abs(u[:,0].compress(xyz[:,0]&gt;1.0-1e-5))
+# y-component of velocity on boundary y=0
+normal_velocity_on_boundaries[2]=abs(u[:,1].compress(xyz[:,1]&lt;1e-5))
+# y-component of velocity on boundary y=1
+normal_velocity_on_boundaries[3]=abs(u[:,1].compress(xyz[:,1]&gt;1.0-1e-5))
+    </variable>
   </variables>
   <pass_tests>
     <test name = "Solvers converged" language = "python">
 assert(solvers_converged)
+    </test>
+    <test name = "Continuity checks passed" language = "python">
+assert(continuity_checks)
+    </test>
+    <test name = "Zero normal velocity on boundaries" language = "python">
+assert ((normal_velocity_on_boundaries &lt; 1e-14).all())
     </test>
   </pass_tests>
   <warn_tests>
