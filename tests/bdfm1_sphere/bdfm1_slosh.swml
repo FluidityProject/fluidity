@@ -125,7 +125,7 @@
     </dump_format>
     <dump_period>
       <constant>
-        <real_value rank="0">86399.9999</real_value>
+        <real_value rank="0">863.999999</real_value>
       </constant>
     </dump_period>
     <output_mesh name="VelocityMesh"/>
@@ -135,7 +135,7 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">1800.0</real_value>
+      <real_value rank="0">18.0</real_value>
       <comment>1 hour</comment>
     </timestep>
     <theta>
@@ -145,7 +145,7 @@
       <integer_value rank="0">4</integer_value>
     </nonlinear_iterations>
     <finish_time>
-      <real_value rank="0">4320000.0</real_value>
+      <real_value rank="0">43200.0</real_value>
       <comment>Williamson 5 runs for 50 days = 60*60*24*50 = 4320000.0s</comment>
     </finish_time>
   </timestepping>
@@ -293,70 +293,9 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="PotentialVorticity" rank="0">
-      <prognostic>
-        <mesh name="VorticityMesh"/>
-        <spatial_discretisation>
-          <continuous_galerkin>
-            <streamline_upwinding>
-              <alpha>
-                <real_value rank="0">0.3</real_value>
-              </alpha>
-              <tol>
-                <real_value rank="0">1.0e-10</real_value>
-              </tol>
-            </streamline_upwinding>
-          </continuous_galerkin>
-        </spatial_discretisation>
-        <solver>
-          <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
-          <relative_error>
-            <real_value rank="0">1.0e-8</real_value>
-          </relative_error>
-          <max_iterations>
-            <integer_value rank="0">1000</integer_value>
-          </max_iterations>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
-        <output>
-          <exclude_from_vtu/>
-        </output>
-        <stat>
-          <manifold_transformation/>
-          <exclude_from_stat/>
-        </stat>
-        <debug/>
-      </prognostic>
-    </scalar_field>
     <scalar_field name="DG_CourantNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat>
-          <manifold_transformation/>
-        </stat>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <adjoint_storage>
-          <exists_in_forward/>
-        </adjoint_storage>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="LayerHeight" rank="0">
-      <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_sum" source_field_1_name="LayerThickness" source_field_2_name="Orography" material_phase_support="single" source_field_1_type="scalar"/>
         <mesh name="PressureMesh"/>
         <output/>
         <stat>

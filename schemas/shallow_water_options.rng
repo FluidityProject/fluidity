@@ -1233,69 +1233,19 @@ requires a distinct name for the options dictionary.</a:documentation>
   <define name="prognostic_layerthickness_field">
     <element name="spatial_discretisation">
       <a:documentation>Spatial discretisation options</a:documentation>
-      <choice>
-        <element name="continuous_galerkin">
-          <a:documentation>Development continuous Galerkin formulation.</a:documentation>
-          <element name="advection_terms">
-            <a:documentation>Discretisation options for the advection terms.</a:documentation>
-            <optional>
-              <element name="exclude_advection_terms">
-                <a:documentation>Remove the advection terms from the equation.
-This overrides any other advection term options (including
-conservative_advection below).</a:documentation>
-                <ref name="comment"/>
-              </element>
-            </optional>
+      <element name="discontinuous_galerkin">
+        <a:documentation>Discontinuous Galerkin formulation.</a:documentation>
+        <optional>
+          <a:documentation>Discretisation options for the advection terms.
+use a slope limiter for advection</a:documentation>
+          <element name="slope_limiter">
+            <attribute name="name">
+              <value>Vertex_Based</value>
+            </attribute>
           </element>
-          <ref name="comment"/>
-        </element>
-        <element name="discontinuous_galerkin">
-          <a:documentation>Discontinuous Galerkin formulation.</a:documentation>
-          <element name="wave_equation">
-            <a:documentation>Discretisation options for wave equation solver</a:documentation>
-            <optional>
-              <element name="pullback">
-                <a:documentation>Apply the pullback formula for area forms
-(Makes a difference when higher-order
-representation of curved surfaces is used).</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-          </element>
-          <element name="advection_terms">
-            <a:documentation>Discretisation options for the advection terms.</a:documentation>
-            <optional>
-              <element name="exclude_advection_terms">
-                <a:documentation>Remove the advection terms from the equation.
-This overrides any other advection term options (including
-conservative_advection below).</a:documentation>
-                <ref name="comment"/>
-              </element>
-            </optional>
-          </element>
-          <optional>
-            <choice>
-              <a:documentation>use a slope limiter for advection</a:documentation>
-              <element name="slope_limiter">
-                <attribute name="name">
-                  <value>Vertex_Based</value>
-                </attribute>
-              </element>
-              <element name="slope_limiter">
-                <attribute name="name">
-                  <value>Edge_Based</value>
-                </attribute>
-              </element>
-              <element name="slope_limiter">
-                <attribute name="name">
-                  <value>Barth_Jespersen</value>
-                </attribute>
-              </element>
-            </choice>
-          </optional>
-          <ref name="comment"/>
-        </element>
-      </choice>
+        </optional>
+        <ref name="comment"/>
+      </element>
       <element name="conservative_advection">
         <a:documentation>Conservative discretisation of field advection equation
  TBETA=1. -- conservative (divergence form)
@@ -1311,14 +1261,22 @@ conservative_advection below).</a:documentation>
     </element>
     <element name="temporal_discretisation">
       <a:documentation>Temporal discretisation options</a:documentation>
-      <optional>
-        <ref name="temporal_discontinuous_galerkin_options"/>
-      </optional>
-      <optional>
-        <element name="maximum_number_subcycles">
-          <ref name="real"/>
+      <element name="discontinuous_galerkin">
+        <a:documentation>This enables DG-specific timestepping options, such as
+explicit advection subcycling. </a:documentation>
+        <element name="number_advection_subcycles">
+          <a:documentation>Use timestep subcycling to solve this equation.
+Specify the number of subcycles.</a:documentation>
+          <ref name="integer"/>
         </element>
-      </optional>
+        <element name="SSPRK_order">
+          <a:documentation>Choose the order of an explicit SSPRK method.
+Order 1 is unstable for P1, 
+Order 2 is unstable for P2.
+Recommended value: 3</a:documentation>
+          <ref name="integer"/>
+        </element>
+      </element>
     </element>
     <element name="solver">
       <a:documentation>Solver</a:documentation>

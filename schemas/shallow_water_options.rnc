@@ -993,51 +993,15 @@ prognostic_layerthickness_field =
       element spatial_discretisation {
          (
             (
-               ## Development continuous Galerkin formulation.
-               element continuous_galerkin {
-                  ## Discretisation options for the advection terms.
-                  element advection_terms {
-                     ## Remove the advection terms from the equation.
-                     ## This overrides any other advection term options (including
-                     ## conservative_advection below).
-                     element exclude_advection_terms {
-                        comment
-                     }?
-                  },
-                  comment
-               }|
                ## Discontinuous Galerkin formulation.
                element discontinuous_galerkin {
-                  ## Discretisation options for wave equation solver
-                  element wave_equation {
-                     ## Apply the pullback formula for area forms
-                     ## (Makes a difference when higher-order
-                     ## representation of curved surfaces is used).
-                     element pullback {
-                        empty
-                     }?
-                  },
                   ## Discretisation options for the advection terms.
-                  element advection_terms {
-                     ## Remove the advection terms from the equation.
-                     ## This overrides any other advection term options (including
-                     ## conservative_advection below).
-                     element exclude_advection_terms {
-                        comment
-                     }?
-                  },
                   ## use a slope limiter for advection
                   (
                      element slope_limiter {
                         attribute name {"Vertex_Based"}
-                     }|
-                     element slope_limiter {
-                        attribute name {"Edge_Based"}
-                     }|
-                     element slope_limiter {
-                        attribute name {"Barth_Jespersen"}
-                     }
-                  )?,
+                     }?
+                  ),
                   comment
                }
             ),
@@ -1055,10 +1019,22 @@ prognostic_layerthickness_field =
       },
       ## Temporal discretisation options
       element temporal_discretisation {
-         temporal_discontinuous_galerkin_options?,
-	 element maximum_number_subcycles {
-            real
-         }?
+         ## This enables DG-specific timestepping options, such as
+         ## explicit advection subcycling. 
+         element discontinuous_galerkin {
+            ## Use timestep subcycling to solve this equation.
+            ## Specify the number of subcycles.
+            element number_advection_subcycles {
+               integer
+            },
+            ## Choose the order of an explicit SSPRK method.
+            ## Order 1 is unstable for P1, 
+            ## Order 2 is unstable for P2.
+            ## Recommended value: 3
+            element SSPRK_order {
+               integer
+            }
+         }
       },
       ## Solver
       element solver {
