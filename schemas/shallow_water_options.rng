@@ -663,19 +663,29 @@ does not apply any upwinding</a:documentation>
     <optional>
       <element name="discontinuity_capturing">
         <a:documentation>Use discontinuity capturing similar to that used in
-J.-L. Guermond, A. Marra, L. Quartapelle, Subgrid stabilized
-projection method for 2D unsteady flows at high Reynolds
-numbers, Computer Methods in Applied Mechanics and Engineering,
-Volume 195, Issues 44–47, 15 September 2006, Pages 5857-5876,
-ISSN 0045-7825, 10.1016/j.cma.2005.08.016.
+A Local Projection Stabilization method with shock capturing
+and diagonal mass matrix for solving non-stationary transport
+dominated problems, Schieweck and Skrzpacz
 
+Requires a discontinuity indicator diagnostic field
 The discontinuity indicator uses the pressure space for 
 the local projection filter.
 
 The scaling coefficient controls the strength of the
 discontinuity capturing and is proportional to the solution
 magnitude</a:documentation>
+        <attribute name="discontinuity_indicator_name">
+          <a:documentation>Field to use as discontinuity indicator</a:documentation>
+          <data type="string"/>
+        </attribute>
         <element name="scaling_coefficient">
+          <a:documentation>Constant scaling factor for discontinuity capturing term</a:documentation>
+          <ref name="real"/>
+        </element>
+        <element name="filter_ratio">
+          <a:documentation>Filter ratio (filter is switched on in cells whose ratio
+of discontinuity indicator to the maximum value exceed
+this value)</a:documentation>
           <ref name="real"/>
         </element>
       </element>

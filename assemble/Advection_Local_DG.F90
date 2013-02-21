@@ -57,6 +57,7 @@ module advection_local_DG
   use bubble_tools
   use diagnostic_fields, only: calculate_diagnostic_variable
   use global_parameters, only : FIELD_NAME_LEN
+  use shallow_water_diagnostics
 
   implicit none
 
@@ -232,12 +233,12 @@ module advection_local_DG
        call allmax(subcycles)
        ewrite(2,*) 'Number of subcycles for tracer eqn: ', subcycles
     end if
-
+    !/material_phase::Fluid/scalar_field::LayerThickness/prognostic/spatial_discretisation/discontinuous_galerkin/slope_limiter::Vertex_Based
     limit_slope=.false.
     if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
          &discontinuous_galerkin/slope_limiter")) then
        limit_slope=.true.
-
+       
        call get_option(trim(T%option_path)//"/prognostic/spatial_discretisation/discontinuous_galerkin/slope_limiter/name",limiter_name)
 
        select case(trim(limiter_name))
@@ -1100,7 +1101,9 @@ module advection_local_DG
     type(vector_field), pointer :: X, down
     type(scalar_field), pointer :: Q_old
     integer :: ele
-    real :: dt, t_theta, residual
+    real :: dt, t_theta, residual, disc_max
+    type(scalar_field), pointer :: discontinuity_detector_field
+    character(len = OPTION_PATH_LEN) :: discontinuity_detector_name
 
     ewrite(1,*) '  subroutine solve_advection_cg_tracer('
 
@@ -1108,7 +1111,7 @@ module advection_local_DG
     down=>extract_vector_field(state, "GravityDirection")
     Q_old=>extract_scalar_field(state, "Old"//trim(Q%name))
     call get_option('/timestepping/timestep',dt)
-    call get_option('/timestepping/theta',t_theta)
+    call get_option(trim(Q%option_path)//'/prognostic/timestepping/theta',t_theta)
     
     !set up matrix and rhs
     Q_sparsity => get_csr_sparsity_firstorder(state, Q%mesh, Q%mesh)
@@ -1119,9 +1122,21 @@ module advection_local_DG
     call zero(Q_rhs)
     call zero(QF)
 
+    if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
+         &continuous_galerkin/discontinuity_capturing')) then
+       call get_option(trim(Q%option_path)//'/prognostic/spatial_discretisati&
+            &on/continuous_galerkin/discontinuity_capturing/discontinuity_in&
+            &dicator_name',discontinuity_detector_name)
+
+       discontinuity_detector_field => extract_scalar_field(&
+            &state,trim(discontinuity_detector_name))
+       disc_max = maxval(discontinuity_detector_field%val)
+    end if
+
     do ele = 1, ele_count(Q)
-       call construct_advection_cg_tracer_ele(Q_rhs,adv_mat,Q,D,D_old,Flux&
-            &,X,down,U_nl,dt,t_theta,ele)
+       call construct_advection_cg_tracer_ele(Q_rhs,adv_mat,Q,D,D_old,&
+            &Discontinuity_detector_field,Flux&
+            &,X,down,U_nl,dt,t_theta,disc_max,ele)
     end do
 
     ewrite(2,*) 'Q_RHS', maxval(abs(Q_rhs%val))
@@ -1130,8 +1145,9 @@ module advection_local_DG
 
     !! Compute the PV flux to pass to velocity equation
     do ele = 1, ele_count(Q)
-       call construct_pv_flux_ele(QF,Q,Q_old,D,D_old,Flux,&
-            X,down,U_nl,t_theta,ele)
+       call construct_pv_flux_ele(QF,Q,Q_old,D,D_old,&
+            &Discontinuity_detector_field,Flux,&
+            &X,down,U_nl,t_theta,disc_max,ele)
     end do
 
     if(have_option('/material_phase::Fluid/scalar_field::PotentialVorticity/&
@@ -1158,18 +1174,25 @@ module advection_local_DG
     call deallocate(adv_mat)
     call deallocate(Q_rhs)
 
+    if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
+         &continuous_galerkin/discontinuity_capturing')) then
+       call calculate_discontinuity_detector(state,&
+            discontinuity_detector_field)
+    end if
+
     ewrite(1,*) 'END  subroutine solve_advection_cg_tracer('
 
   end subroutine solve_advection_cg_tracer
   
-  subroutine construct_advection_cg_tracer_ele(Q_rhs,adv_mat,Q,D,D_old,Flux,&
-       & X,down,U_nl,dt,t_theta,ele)
-    type(scalar_field), intent(in) :: D,D_old,Q
+  subroutine construct_advection_cg_tracer_ele(Q_rhs,adv_mat,Q,D,D_old,&
+       Discontinuity_detector_field,Flux,&
+       & X,down,U_nl,dt,t_theta,disc_max,ele)
+    type(scalar_field), intent(in) :: D,D_old,Q, Discontinuity_detector_field
     type(scalar_field), intent(inout) :: Q_rhs
     type(csr_matrix), intent(inout) :: Adv_mat
     type(vector_field), intent(in) :: X, Flux, down,U_nl
     integer, intent(in) :: ele
-    real, intent(in) :: dt, t_theta
+    real, intent(in) :: dt, t_theta,disc_max
     !
     real, dimension(ele_loc(Q,ele),ele_loc(Q,ele)) :: l_adv_mat,tmp_mat
     real, dimension(ele_loc(Q,ele)) :: l_rhs
@@ -1179,14 +1202,15 @@ module advection_local_DG
     real, dimension(Flux%dim,FLux%dim,ele_ngi(Flux,ele)) :: Grad_Flux_gi,&
          & tensor_gi
     real, dimension(ele_ngi(X,ele)) :: detwei, Q_gi, D_gi, &
-         & D_old_gi,div_flux_gi, detwei_l, detJ
+         & D_old_gi,div_flux_gi, detwei_l, detJ, DI_gi
     real, dimension(ele_loc(D,ele)) :: D_val
     real, dimension(ele_loc(Q,ele)) :: Q_val
     real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
     type(element_type), pointer :: Q_shape, Flux_shape
     integer :: loc,dim1,dim2,gi
-    real :: tau, alpha, tol, area, h,c_sc,disc_indicator
-    real, dimension(ele_ngi(X,ele),ele_ngi(X,ele)) :: Metric, MetricT
+    real :: tau, alpha, tol, area, h,c_sc,ratio
+    real, dimension(mesh_dim(U_nl), mesh_dim(U_nl), ele_ngi(Q,ele)) &
+         :: MetricT
     real, dimension(mesh_dim(X),ele_ngi(X,ele)) :: gradQ
     type(element_type), pointer :: D_shape
     !
@@ -1302,26 +1326,51 @@ module advection_local_DG
     !Discontinuity capturing options
     if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
          &continuous_galerkin/discontinuity_capturing')) then
-       ! call have_option(&
-       !      &trim(Q%option_path)//'/prognostic/spatial_discretisation/&
-       !      &continuous_galerkin/discontinuity_capturing/&
-       !      &scaling_coefficient',c_sc)
 
-       ! do gi=1,ele_ngi(Q,ele)
-       !    Metric(:,:,gi)=matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)
-       ! end do
-       ! MetricT(1,1,:) = MetricT(2,2,:)
-       ! MetricT(2,2,:) = MetricT(1,1,:)
-       ! MetricT(1,2,:) =-MetricT(2,1,:)
-       ! MetricT(2,1,:) =-MetricT(1,2,:)
+       call get_option(trim(Q%option_path)//'/prognostic/&
+            &spatial_discretisation/&
+            &continuous_galerkin/discontinuity_capturing/&
+            &scaling_coefficient',c_sc)
+       call get_option(trim(Q%option_path)//'/prognostic/&
+            &spatial_discretisation/&
+            &continuous_galerkin/discontinuity_capturing/&
+            &filter_ratio',ratio)
 
-       ! area = sum(detwei)
-       ! D_gi = ele_val_at_quad(D_old,ele)
-       ! tmp_mat = dshape_tensor_dshape(Q_shape%dn, &
-       !      area*D_gi*MetricT, Q_shape%dn,&
-       !      Q_shape%quadrature%weight)
-       ! l_rhs = l_rhs - dt*c_sc*matmul(tmp_mat,Q_val)
-       FLAbort('not ready yet')
+       !need to work out diffusion term in physical coordinates
+
+       ! grad perp psi = J\hat{grad}^\perp\hat{\psi}/det J
+
+       ! grad perp gamma . grad perp psi det J
+       ! = (-gamma_2)^T(M_11 M_12)(-psi_2)
+       ! = ( gamma_1)  (M_21 M_22)( psi_1)
+       !
+       ! = (gamma_2)^T( M_11 -M_12)( psi_2)
+       ! = (gamma_1)  (-M_21  M_22)( psi_1)
+
+       ! = (gamma_1)^T( M_22 -M_21)( psi_1)
+       ! = (gamma_2)  (-M_12  M_11)( psi_2)
+       
+       do gi=1,ele_ngi(Q,ele)
+          MetricT(:,:,gi)=matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)**2
+       end do
+       MetricT(1,1,:) = MetricT(2,2,:)
+       MetricT(2,2,:) = MetricT(1,1,:)
+       MetricT(1,2,:) =-MetricT(2,1,:)
+       MetricT(2,1,:) =-MetricT(1,2,:)
+
+       area = sum(detwei)
+       h = sqrt(4*area/sqrt(3.))
+       !D_gi = 0.5*(ele_val_at_quad(D_old,ele) + &
+       !     ele_val_at_quad(D,ele))
+       DI_gi = ele_val_at_quad(discontinuity_detector_field,ele)
+       if(DI_gi(1)<ratio*disc_max) then
+          DI_gi = 0.
+       end if
+       tmp_mat = dshape_tensor_dshape(Q_shape%dn, &
+            MetricT, Q_shape%dn,&
+            h*D_gi*DI_gi*Q_shape%quadrature%weight)
+       l_adv_mat = l_adv_mat + dt*t_theta*tmp_mat
+       l_rhs = l_rhs - (1-t_theta)*dt*matmul(tmp_mat,Q_val)
     end if
 
     call addto(Q_rhs,ele_nodes(Q_rhs,ele),l_rhs)
@@ -1331,17 +1380,18 @@ module advection_local_DG
   end subroutine construct_advection_cg_tracer_ele
 
   subroutine construct_pv_flux_ele(QFlux,Q,Q_old,D,D_old,&
-       Flux,X,down,U_nl,t_theta,ele)
-    type(scalar_field), intent(in) :: Q,Q_old,D,D_old
+       Discontinuity_detector_field,Flux,X,down,U_nl,t_theta,disc_max,ele)
+    type(scalar_field), intent(in) :: Q,Q_old,D,D_old,&
+         & Discontinuity_detector_field
     type(vector_field), intent(inout) :: QFlux
     type(vector_field), intent(in) :: X, Flux, Down, U_nl
     integer, intent(in) :: ele
-    real, intent(in) :: t_theta
+    real, intent(in) :: t_theta,disc_max
     !
     real, dimension(mesh_dim(X),ele_loc(QFlux,ele)) :: QFlux_perp_rhs
     real, dimension(Flux%dim,ele_ngi(Flux,ele)) :: Flux_gi, Flux_perp_gi,&
          QFlux_gi
-    real, dimension(ele_ngi(X,ele)) :: Q_gi,Q_old_gi,D_gi,D_old_gi,Qbar_gi
+    real, dimension(ele_ngi(X,ele)) :: Q_gi,Q_old_gi,D_gi,D_old_gi,DI_gi,Qbar_gi
     real, dimension(ele_loc(D,ele)) :: D_val
     real, dimension(X%dim, ele_ngi(Q, ele)) :: up_gi
     real, dimension(mesh_dim(QFlux),mesh_dim(QFlux),ele_loc(QFlux,ele)&
@@ -1360,9 +1410,29 @@ module advection_local_DG
     real, dimension(Flux%dim,FLux%dim,ele_ngi(Flux,ele)) :: Grad_Flux_gi
     real, dimension(U_nl%dim,ele_ngi(U_nl,ele)) :: U_nl_gi
     real, dimension(X%dim,ele_ngi(U_nl,ele)) :: U_cart_gi
-    real :: residual, alpha, tol, tau, area, h
+    real, dimension(mesh_dim(U_nl), mesh_dim(U_nl), ele_ngi(Q,ele)) &
+         :: MetricT
+    real :: residual, alpha, tol, tau, area, h, c_sc, ratio
     type(element_type), pointer :: D_shape
     !
+
+    !! How this works is the following. We want to find F in the DG space
+    !! such that 
+    !! 
+    !! d/dt<-grad gamma, u> = <grad gamma, F>
+    !! = \sum_E \int_E grad gamma.F dx 
+    !! = \sum_E \int_{\hat{E}} \hat{grad}\hat{gamma}\cdot\hat{F}dx
+    !! = \sum_E \sum_g (\hat{grad}\hat{\gamma})_g\cdot\hat{F}_g w_g
+    !! for all test functions \gamma.
+    !! All of these are exact identities by the pullback formula
+    
+    !! So, if we have a flux term of the form
+    !! = \sum_E \sum_g (\hat{grad}\hat{\gamma})_g\cdot N_g w_g
+    !! where N_g are arbitrary flux values defined at quadrature points
+    !! then we can define \hat{F}_g via
+    !! \sum_E  \sum_g v_g\cdot\hat{F}_g w_g = \sum_E\sum_g v_g\cdot N_g w_g
+    !! For all dg test functions v (and therefore v=\hat{\grad}\hat{\gamma}
+    !! as a special case).
 
     D_shape => ele_shape(D,ele)
 
@@ -1409,6 +1479,8 @@ module advection_local_DG
     do gi  = 1, ele_ngi(QFlux,ele)
        QFlux_gi(:,gi) = Flux_gi(:,gi)*Qbar_gi(gi)
     end do
+
+    !------------------------------------------------
 
     !! Additional dissipative terms.
     !! They all take the form
@@ -1465,7 +1537,8 @@ module advection_local_DG
        !! can do locally because of pullback formula
        !! = <grad gamma, tau u (F.grad\bar{Q} + \bar{Q} div F)/det J>_{Ehat}
        !! minus sign because of definition of vorticity
-
+       !! Contains factor of dt
+       
        GradQ_gi = t_theta*ele_grad_at_quad(Q,ele,Q_shape%dn) + &
             (1-t_theta)*ele_grad_at_quad(Q_old,ele,Q_shape%dn)
 
@@ -1475,11 +1548,63 @@ module advection_local_DG
                & div_flux_gi(gi)*Qbar_gi(gi))/detJ(gi)
        end do
     end if
+
+    !------------------------------------------------
+
     !Discontinuity capturing options
     if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
          &continuous_galerkin/discontinuity_capturing')) then
-       FLExit('Discontinuity capturing not coded yet.')
+
+       call get_option(trim(Q%option_path)//'/prognostic/&
+            &spatial_discretisation/&
+            &continuous_galerkin/discontinuity_capturing/&
+            &scaling_coefficient',c_sc)
+       call get_option(trim(Q%option_path)//'/prognostic/&
+            &spatial_discretisation/&
+            &continuous_galerkin/discontinuity_capturing/&
+            &filter_ratio',ratio)
+              
+       do gi=1,ele_ngi(Q,ele)
+          MetricT(:,:,gi)=matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)**2
+       end do
+       MetricT(1,1,:) = MetricT(2,2,:)
+       MetricT(2,2,:) = MetricT(1,1,:)
+       MetricT(1,2,:) =-MetricT(2,1,:)
+       MetricT(2,1,:) =-MetricT(1,2,:)
+
+       area = sum(detwei)
+       h = sqrt(4*area/sqrt(3.))
+       DI_gi = ele_val_at_quad(discontinuity_detector_field,ele)
+
+       if(DI_gi(1)<ratio*disc_max) then
+          DI_gi = 0.
+       end if
+       GradQ_gi = t_theta*ele_grad_at_quad(Q,ele,Q_shape%dn) + &
+            (1-t_theta)*ele_grad_at_quad(Q_old,ele,Q_shape%dn)
+
+       !! Some notes to sort out the sign:
+       !! Vorticity update is
+       !! <gamma, zeta^{n+1}> = <gamma, zeta^n> 
+       !!                        - dt*<grad gamma,eta D grad q>
+       !! so
+       !! <-grad^\perp gamma,Delta u> = dt*<-grad^\perp gamma, eta D grad^
+       !! \perp q>
+       !! <w,Delta u> = dt*<w,eta D grad^perp q>
+       
+       !tmp_mat = dshape_tensor_dshape(Q_shape%dn, &
+       !     MetricT, Q_shape%dn,&
+       !     h*D_gi*DI_gi*Q_shape%quadrature%weight)
+
+       do gi = 1, ele_ngi(Q,ele)
+          QFlux_gi(:,gi) = QFlux_gi(:,gi) + dt*h*D_gi(gi)*DI_gi(gi)* &
+               matmul(MetricT(:,:,gi),GradQ_gi(:,gi))
+       end do       
+       
     end if
+
+    !------------------------------------------------
+
+    !! Putting it all together:
 
     !! Evaluate 
     !! < w, F^\perp > in local coordinates
