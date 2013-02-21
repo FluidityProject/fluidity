@@ -41,7 +41,7 @@ subroutine test_trace_space
   
   integer :: degree, ele, node
   integer, parameter :: min_degree = 1, max_degree = 4
-  logical :: fail
+  logical :: fail, fail2
   real, dimension(:, :), allocatable :: l_coords, quad_l_coords
   type(quadrature_type) :: quad
   type(element_type) :: trace_shape, derived_shape
@@ -49,11 +49,10 @@ subroutine test_trace_space
   type(mesh_type) :: trace_mesh, derived_mesh
   type(mesh_type), pointer :: base_mesh
   type(vector_field), target :: positions
-  type(vector_field) :: trace_positions, X
+  type(vector_field) :: trace_positions
   type(scalar_field) :: D, L
-  character(len=255) :: path = "/prognostic/solver"
   
-  positions = read_triangle_files("quad_grid", quad_degree = 4)
+  positions = read_triangle_files("data/quad_grid", quad_degree = 4)
   base_mesh => positions%mesh
   base_shape => ele_shape(base_mesh, 1)
   call report_test("[Linear quad input mesh]", &
@@ -88,7 +87,9 @@ subroutine test_trace_space
         do node = 1, size(l_coords, 2)
            l_coords(:, node) = local_coords(node, trace_shape%numbering)
         end do
+
         fail = fnequals(l_coords, quad_l_coords, tol = 1.0e3 * epsilon(0.0))
+
         if(fail) then
            do node = 1, size(l_coords, 2)
               print *, node, l_coords(:, node)
@@ -96,16 +97,22 @@ subroutine test_trace_space
            end do
            exit ele_loop
         end if
+
      end do ele_loop
+
      deallocate(l_coords)
      deallocate(quad_l_coords)
+
      call report_test("[Derived mesh numbering]", fail, .false., "Invalid derived mesh numbering, failed on element " // int2str(ele))
 
-     ! setup field on quad mesh and on trace mesh
-     derived_shape = make_element_shape(base_shape, degree = degree, quad = quad)
-     derived_mesh = make_mesh(base_mesh, derived_shape)
+     ! Setup D field on quad mesh and on L field on trace mesh
+     ! These are set from the same function.
+     ! D field
+     derived_shape=make_element_shape(base_shape, degree = degree, quad = quad)
+     derived_mesh=make_mesh(base_mesh, derived_shape)
      call allocate(D, derived_mesh, 'D')
      call set_from_python_function(D, "def val(X,t): return X[0]+X[1]", positions, 0.0)
+     ! L field, needs solver options for test_trace_projection
      call allocate(L, trace_mesh, 'L')
      call set_solver_options(L, ksptype='gmres', pctype='sor', rtol=1.0e-7, max_its=10000)
      call allocate(trace_positions, positions%dim, trace_mesh, "TraceCoordinate")
@@ -113,22 +120,25 @@ subroutine test_trace_space
      call set_from_python_function(L, "def val(X,t): return X[0]+X[1]", trace_positions, 0.0)
 
      ! test face local nodes
-     call test_face_local_nodes(L)
-
-     ! test face local numbering
-
-
+     fail=.false.
+     fail2=.false.
+     call test_face_local_nodes(L, fail, fail2)
+     call report_test('[Global node numbers on faces]', fail, .false., 'Global node numbers don''t agree on face')
+      call report_test('[Face global node numbers]', fail2, .false., 'Face global nodes doesn''t match global numbers')
 
      ! test trace values
+     fail=.false.
+     call test_trace_values(D,L,fail)
 
      ! test projection
-     call allocate(X, positions%dim, derived_mesh, 'X')
-     call remap_field(positions, X)
-     call test_trace_projection(D,L,X)
+     fail=.false.
+     call test_trace_projection(D,L,positions,fail)
+     call report_test('[Trace values]', fail, .false., "Trace values disagree")
 
+
+     ! tidy up
      call deallocate(D)
      call deallocate(L)
-     call deallocate(X)
      call deallocate(trace_positions)
      call deallocate(trace_shape)
      call deallocate(trace_mesh)
@@ -184,22 +194,24 @@ contains
     
   end function quad_local_coords
 
-    subroutine test_face_local_nodes(L)
+    subroutine test_face_local_nodes(L, fail1, fail2)
       implicit none
       type(scalar_field), intent(in) :: L
-
+      logical, intent(inout) :: fail1, fail2
+      
       integer :: ele
 
       do ele = 1, ele_count(L)
-         call test_face_local_nodes_ele(L,ele)
+         call test_face_local_nodes_ele(L,ele,fail1,fail2)
       end do
       
     end subroutine test_face_local_nodes
 
-    subroutine test_face_local_nodes_ele(L,ele)
+    subroutine test_face_local_nodes_ele(L,ele,fail1,fail2)
       implicit none
       type(scalar_field), intent(in) :: L
       integer, intent(in) :: ele
+      logical, intent(inout) :: fail1, fail2
       !
       integer, dimension(:), pointer :: neigh
       integer :: ni,ele2,face,face2
@@ -213,14 +225,15 @@ contains
          else
             face2 = -1
          end if
-         call test_face_local_nodes_face(L,ele,face,face2)
+         call test_face_local_nodes_face(L,ele,face,face2,fail1,fail2)
       end do
     end subroutine test_face_local_nodes_ele
 
-    subroutine test_face_local_nodes_face(L,ele,face,face2)
+    subroutine test_face_local_nodes_face(L,ele,face,face2,fail1,fail2)
       implicit none
       type(scalar_field), intent(in) :: L
       integer, intent(in) :: ele,face,face2
+      logical, intent(inout) :: fail1, fail2
       !
       integer, dimension(face_loc(L,face)) :: nods1, nods2, nods3, nods_loc
       integer, dimension(:), pointer :: L_ele
@@ -234,16 +247,22 @@ contains
       nods3 = L_ele(nods_loc)
 
       if(face2>0) then
-         call report_test('[Global node numbers on face]', any(nods1/=nods2), .false., 'Global node numbers don''t agree on face')
+         if(any(nods1/=nods2)) then
+            fail1=.true.
+         end if
       end if
-      call report_test('[Face global node numbers]', any(nods1/=nods3), .false., 'Face global nodes doesn''t match global numbers')
+      if(any(nods1/=nods3)) then
+         fail2=.true.
+      end if
+
     end subroutine test_face_local_nodes_face
 
-    subroutine test_trace_projection(D,L,X)
+    subroutine test_trace_projection(D,L,X,fail)
       implicit none
       !
       type(scalar_field), intent(inout) :: D,L
       type(vector_field), intent(inout) :: X
+      logical, intent(inout) :: fail
       type(scalar_field) :: L_projected, L_projected_rhs
       type(csr_sparsity) :: L_mass_sparsity
       type(csr_matrix) :: L_mass_mat
@@ -267,12 +286,7 @@ contains
       call petsc_solve(L_projected, L_mass_mat,&
            &L_projected_rhs)
       if(maxval(abs(L_projected%val-L%val))>1.0e-5) then
-         do ele = 1, element_count(L)
-            print*, ele_val(L,ele)
-            print*, ele_val(L_projected,ele)
-         end do
-         print*, 'degree', degree
-         FLExit('Projection to trace space looks funky.')
+         fail=.true.
       end if
 
       call deallocate(L_mass_sparsity)
@@ -331,5 +345,59 @@ contains
       call addto(L_mass_mat, l_face, l_face, L_mass_mat_face)
 
     end subroutine assemble_trace_projection_face
+
+    subroutine test_trace_values(D,L,fail)
+      implicit none
+      !This subroutine assumes that the layer thickness 
+      !is initialised from the same field as the lagrange
+      !multiplier and compares values
+      type(scalar_field), intent(inout) :: D,L
+      logical, intent(inout) :: fail
+      ! 
+      integer :: ele
+      
+      do ele = 1, element_count(D)
+         call test_trace_values_ele(D,L,ele,fail)
+      end do
+
+    end subroutine test_trace_values
+
+    subroutine test_trace_values_ele(D,L,ele,fail)
+      implicit none
+      type(scalar_field), intent(inout) :: D,L
+      integer, intent(in) :: ele
+      logical, intent(inout) :: fail
+      !
+      integer, pointer, dimension(:) :: neigh
+      integer :: ni,ele_2,face
+      real, pointer, dimension(:) :: D_face, L_face
+
+      
+      neigh => ele_neigh(D,ele)
+      do ni = 1, size(neigh)
+         ele_2 = neigh(ni)
+         face = ele_face(D,ele,ele_2)
+         
+         call test_trace_values_face(D,L,face,fail)
+      end do
+    end subroutine test_trace_values_ele
+
+    subroutine test_trace_values_face(D,L,face,fail)
+      implicit none
+      type(scalar_field), intent(inout) :: D,L
+      integer, intent(in) :: face
+      logical, intent(inout) :: fail
+      !
+      real, dimension(face_loc(D,face)) :: D_face
+      real, dimension(face_loc(L,face)) :: L_face
+
+      D_face = face_val(D,face)
+      L_face = face_val(L,face)
+
+      if(any(abs(D_face-L_face)>1.0e-10)) then
+         fail=.true.
+      end if
+
+    end subroutine test_trace_values_face
 
 end subroutine test_trace_space
