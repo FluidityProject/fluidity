@@ -142,7 +142,7 @@
 
    contains
 
-      subroutine solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim, snapmean, eps, its)
+      subroutine solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim, snapmean, eps, its, total_timestep)
          !!< Construct and solve the momentum and continuity equations
          !!< using Chorin's projection method (Chorin, 1968)
 
@@ -329,6 +329,7 @@
       !nonlinear_iteration_loop
       integer :: nonlinear_iterations
       integer, intent(in) :: its
+      integer, intent(in),optional ::total_timestep
 
       !free surface matrix
       type(csr_matrix) :: fs_m
@@ -342,7 +343,6 @@
       type(pod_rhs_type) :: pod_rhs_adjoint
       real, dimension(:,:), allocatable :: pod_coef_all_obv
       real :: finish_time,current_time
-      integer :: total_timestep
 
       ewrite(1,*) 'Entering solve_momentum'
       call get_option('/timestepping/nonlinear_iterations', nonlinear_iterations, default=1)
@@ -1188,7 +1188,6 @@
                call get_option("/timestepping/current_time", current_time)
        	       call get_option("/timestepping/finish_time", finish_time)
                call get_option("/timestepping/timestep", dt)       
-      	       total_timestep=(finish_time-current_time)/dt
               ! allocate(pod_coef_all_obv(total_timestep,((u%dim+1)*size(POD_state,1))))
               ! if(its==nonlinear_iterations) then
                  ! do i=1,size(POD_state,1)
@@ -1212,7 +1211,7 @@
          else !! Reduced model version
             
             call solve_momentum_reduced(state, u,p,big_m, ct_m, mom_rhs, ct_rhs, inverse_masslump, &
-                 at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its)           
+                 at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its, total_timestep)           
          end if ! end of 'if .not.reduced_model'
 
 

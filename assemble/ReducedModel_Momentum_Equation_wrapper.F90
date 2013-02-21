@@ -46,7 +46,7 @@
 
   contains
 
-    subroutine momentum_loop(state, at_first_timestep, timestep, POD_state, POD_state_deim,its)
+    subroutine momentum_loop(state, at_first_timestep, timestep, total_timestep, POD_state, POD_state_deim,its)
       !!< Construct and solve the momentum and continuity equations using
       !!< a continuous galerkin discretisation.
 
@@ -56,7 +56,7 @@
       logical, intent(in) :: at_first_timestep
       type(state_type), dimension(:,:,:) :: POD_state
       type(state_type), dimension(:) :: POD_state_deim
-      integer, intent(in) :: timestep
+      integer, intent(in) :: timestep, total_timestep
       real :: dt
       type(vector_field), pointer :: u
       integer :: istate, stat
@@ -87,7 +87,6 @@
       integer :: submaterials_istate
       real, dimension(:), allocatable :: pod_coef_obv
       real :: finish_time,current_time
-      integer :: total_timestep
 
 
       ewrite(1,*) 'Entering momentum_loop'
@@ -133,7 +132,6 @@
               call get_option("/timestepping/current_time", current_time)
        	      call get_option("/timestepping/finish_time", finish_time)
               call get_option("/timestepping/timestep", dt)       
-      	      total_timestep=int((finish_time-current_time)/dt)+1
              allocate(pod_coef_obv(((u%dim+1)*size(POD_state,1))))
              pod_coef_obv = 0.0
              if(timestep==1.and.its==1) then  ! calculate and save the intitial pod_coef at t=0
@@ -152,7 +150,7 @@
                 close(101)
              endif
           else if(have_option("/reduced_model/adjoint")) then               
-             call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its)
+             call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its,total_timestep)
           else
              eps=0.0
              snapmean=.false.
@@ -209,7 +207,7 @@
                     enddo
                  enddo
                  
-                 call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its)           
+                 call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its,total_timestep)           
                  
   
                  POD_velocity=>extract_vector_field(POD_state(1,1,istate), "Velocity")
@@ -269,7 +267,7 @@
                        enddo
                        
                        !save pod_matrix and pod_rhs to file (totally size(POD_state)*POD_velocity%dim)
-                       call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its)
+                       call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its, total_timestep)
                     enddo
 
                     call zero(perturb_basis_u)
@@ -299,7 +297,7 @@
                     enddo
 
                    !save pod_matrix and pod_rhs to file (totally size(POD_state))
-                    call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its)
+                    call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its, total_timestep)
                  enddo
 
                  close(30)
@@ -322,7 +320,7 @@
                  open(40,file='pod_coef')
                  !save pod_coef for pod_matrix and pod_rhs at timestep 2
                  !the initial pod_matrix and pod_rhs
-                 call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its)
+                 call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its, total_timestep)
                  close(40)
                  close(30)
                  close(50)
@@ -333,7 +331,7 @@
                  open(30,file='pod_matrix_perturbed')
                  open(50,file='pod_rhs_perturbed')
                  open(60,file='advection_matrix_perturbed')
-                 call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its)
+                 call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its, total_timestep)
                  close(30)
                  close(50)
                  close(60)

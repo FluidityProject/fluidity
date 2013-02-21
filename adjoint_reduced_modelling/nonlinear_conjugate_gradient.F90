@@ -92,9 +92,9 @@ SUBROUTINE NONLINCG(GLOITS,LINITS,VALFUN,CVA,G,       &
   REAL    ::SQG,SQGOLD,SQG1,BATA
   REAL    ::NUVAL,MAXCVA,MAXD,INISTEP,MAXCD
   REAL    ::LINERR,CVAFREE
-!*  REAL,PARAMETER ::LINERR0=0.2
+  REAL,PARAMETER ::LINERR0=4.0
 !  REAL,PARAMETER ::LINERR0=0.00001
-  REAL,PARAMETER ::LINERR0=0.5e-17
+!  REAL,PARAMETER ::LINERR0=0.5e-17
   REAL,PARAMETER ::RELAXP=0.5
   REAL METHOD ! METHOD =1.0, Polak-Ribiere; 2.0, Positive Polak-Ribiere
   !	SAVE GOLD,D,CVAOLD
@@ -231,7 +231,7 @@ SUBROUTINE NONLINCG(GLOITS,LINITS,VALFUN,CVA,G,       &
   ! Do we start another line search along the new search direction?
   ! if not, continue the linear search
 !**
-  IF(linits.eq.30) LINCONVER=.true.
+  IF(linits.eq.100) LINCONVER=.true.
 
   IF (LINCONVER) THEN
      ! Start line search along the new search direction
