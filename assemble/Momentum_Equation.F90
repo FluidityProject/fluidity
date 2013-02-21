@@ -217,10 +217,11 @@
 
          ! Pressure and density
          type(scalar_field), pointer :: p, density
-         ! this is the mesh on which the pressure projection is performed
-         ! usually just p%mesh, but in case of a no_normal_stress free_surface
-         ! (and in future hydrostatic projection) these are different
-         type(mesh_type), pointer :: p_mesh
+         ! this is the mesh on which the pressure projection is assembled
+         ! usually just p%mesh, but in case of a no_normal_stress free_surface,
+         ! it is the extended pressure mesh. For the hydrostatic pressure, the projection is first assembled
+         ! on the normal p%mesh, and only lumped afterwards.
+         type(mesh_type), pointer :: p_assembly_mesh
          ! Velocity and space
          type(vector_field), pointer :: u, x
          ! with a no_normal_stress free_surface we use a prognostic free surface
@@ -317,7 +318,7 @@
            dummypressure%option_path = ""
 
            p => dummypressure
-           p_mesh => u%mesh
+           p_assembly_mesh => u%mesh
            old_p => dummypressure
            free_surface => dummypressure
 
@@ -328,7 +329,7 @@
 
          else
 
-           p_mesh => p%mesh
+           p_assembly_mesh => p%mesh
            nullify(dummypressure)
            old_p => extract_scalar_field(state, "OldPressure", stat)
            if(stat/=0) then
@@ -352,7 +353,7 @@
            end if
 
            if (implicit_prognostic_fs) then
-             p_mesh => get_extended_pressure_mesh_for_viscous_free_surface(state(istate), &
+             p_assembly_mesh => get_extended_pressure_mesh_for_viscous_free_surface(state(istate), &
                 p%mesh, free_surface)
            end if
 
@@ -424,7 +425,7 @@
                ! Get the pressure gradient matrix (i.e. the divergence matrix)
                ! reassemble_ct_m is set to true if it does not already exist in state(i) 
                if (implicit_prognostic_fs) then
-                 ct_m(istate)%ptr => get_extended_velocity_divergence_matrix(state(istate), u, free_surface, p_mesh, get_ct=reassemble_ct_m) 
+                 ct_m(istate)%ptr => get_extended_velocity_divergence_matrix(state(istate), u, free_surface, p_assembly_mesh, get_ct=reassemble_ct_m) 
                else
                  ct_m(istate)%ptr => get_velocity_divergence_matrix(state(istate), get_ct=reassemble_ct_m) 
                end if
@@ -447,7 +448,7 @@
                        surface_p, surface_old_p, &
                        cmc_m, reassemble_cmc_m=reassemble_cmc_m)
                else if (implicit_prognostic_fs) then
-                 cmc_m => get_extended_pressure_poisson_matrix(state(istate), ct_m(istate)%ptr, p_mesh, get_cmc=reassemble_cmc_m)
+                 cmc_m => get_extended_pressure_poisson_matrix(state(istate), ct_m(istate)%ptr, p_assembly_mesh, get_cmc=reassemble_cmc_m)
                else
                  cmc_m => get_pressure_poisson_matrix(state(istate), get_cmc=reassemble_cmc_m)
                end if
@@ -578,12 +579,12 @@
             if (implicit_prognostic_fs) then
                allocate(p_theta)
                ! allocate p_theta on the extended mesh:
-               call allocate(p_theta, p_mesh, "PressureAndFreeSurfaceTheta")
+               call allocate(p_theta, p_assembly_mesh, "PressureAndFreeSurfaceTheta")
                p_theta%option_path=p%option_path ! Use p's solver options
                call copy_to_extended_p(p, free_surface, theta_pg, p_theta)
             else if (use_theta_pg) then
                allocate(p_theta)
-               call allocate(p_theta, p_mesh, "PressureTheta")
+               call allocate(p_theta, p%mesh, "PressureTheta")
 
                ! p_theta = theta*p + (1-theta)*old_p
                call set(p_theta, p, old_p, theta_pg)
@@ -631,7 +632,7 @@
             call allocate(mom_rhs(istate), u%dim, u%mesh, "MomentumRHS")
             call zero(mom_rhs(istate))
             ! Allocate the ct RHS
-            call allocate(ct_rhs(istate), p_mesh, "DivergenceRHS")
+            call allocate(ct_rhs(istate), p_assembly_mesh, "DivergenceRHS")
             call zero(ct_rhs(istate))
             call profiler_toc(u, "assembly")
 
@@ -737,16 +738,16 @@
             ! or cg_pressure_cv_test_continuity is formed for a second time later below.
             if(dg(istate) .and. .not. cv_pressure) then
                call assemble_divergence_matrix_cg(ct_m(istate)%ptr, state(istate), ct_rhs=ct_rhs(istate), &
-                 test_mesh=p_theta%mesh, field=u, get_ct=reassemble_ct_m)
+                 test_mesh=p_assembly_mesh, field=u, get_ct=reassemble_ct_m)
             end if
             if (implicit_prognostic_fs .and. reassemble_ct_m) then
               call add_implicit_viscous_free_surface_integrals(state(istate), &
-                ct_m(istate)%ptr, u, p_mesh, free_surface)
+                ct_m(istate)%ptr, u, p_assembly_mesh, free_surface)
             end if
             if (explicit_prognostic_fs) then
               call add_explicit_viscous_free_surface_integrals(state(istate), &
                 mom_rhs(istate), ct_m(istate)%ptr, reassemble_ct_m, &
-                u, p_mesh, free_surface)
+                u, p_assembly_mesh, free_surface)
             end if
 
             call profiler_toc(p, "assembly")
@@ -859,8 +860,8 @@
                ewrite_minmax(ct_rhs(istate))
 
                ! Decide whether or not to form KMK stabilisation matrix:
-               apply_kmk = (continuity(p_mesh) >= 0 .and. p_mesh%shape%degree == 1 &
-                     & .and. p_mesh%shape%numbering%family == FAMILY_SIMPLEX &
+               apply_kmk = (continuity(p_assembly_mesh) >= 0 .and. p_assembly_mesh%shape%degree == 1 &
+                     & .and. p_assembly_mesh%shape%numbering%family == FAMILY_SIMPLEX &
                      & .and. continuity(u%mesh) >= 0 .and. u%mesh%shape%degree == 1 &
                      & .and. u%mesh%shape%numbering%family == FAMILY_SIMPLEX &
                      & .and. .not. have_option(trim(p%option_path) // &
@@ -878,9 +879,9 @@
                   ewrite(2,*) "Assembling P1-P1 stabilisation"
                   if (use_hydrostatic_projection) then
                     FLAbort("FIXME") ! x needs to be a surface x:
-                    call assemble_kmk_matrix(state(istate), p_mesh, x, theta_pg)
+                    call assemble_kmk_matrix(state(istate), p_assembly_mesh, x, theta_pg)
                   else
-                    call assemble_kmk_matrix(state(istate), p_mesh, x, theta_pg)
+                    call assemble_kmk_matrix(state(istate), p_assembly_mesh, x, theta_pg)
                   end if
                end if
 
@@ -899,9 +900,9 @@
                      ewrite(2,*) "Assembling auxiliary matrix for full_projection solve"
                      if (implicit_prognostic_fs) then
                        schur_auxiliary_matrix_sparsity => get_extended_schur_auxillary_sparsity(state(istate), &
-                         ct_m(istate)%ptr,  p_mesh)
+                         ct_m(istate)%ptr,  p_assembly_mesh)
                      else
-                       schur_auxiliary_matrix_sparsity => get_csr_sparsity_secondorder(state(istate), p_mesh, u%mesh)
+                       schur_auxiliary_matrix_sparsity => get_csr_sparsity_secondorder(state(istate), p_assembly_mesh, u%mesh)
                      end if
                      call allocate(schur_auxiliary_matrix, schur_auxiliary_matrix_sparsity,&
                           name="schur_auxiliary_matrix")
@@ -969,13 +970,13 @@
                   ewrite(2,*) "Assembling scaled pressure mass matrix preconditioner"
                   if (implicit_prognostic_fs) then
                     scaled_pressure_mass_matrix_sparsity => get_extended_schur_auxillary_sparsity(state(istate), &
-                      ct_m(istate)%ptr, p_mesh)
+                      ct_m(istate)%ptr, p_assembly_mesh)
                   else
-                    scaled_pressure_mass_matrix_sparsity => get_csr_sparsity_firstorder(state(istate), p_mesh, p%mesh)
+                    scaled_pressure_mass_matrix_sparsity => get_csr_sparsity_firstorder(state(istate), p_assembly_mesh, p%mesh)
                   end if
                   call allocate(scaled_pressure_mass_matrix, scaled_pressure_mass_matrix_sparsity,&
                            name="scaled_pressure_mass_matrix")
-                  call assemble_scaled_pressure_mass_matrix(state(istate),scaled_pressure_mass_matrix, p_mesh, dt)
+                  call assemble_scaled_pressure_mass_matrix(state(istate),scaled_pressure_mass_matrix, p_assembly_mesh, dt)
                   if (implicit_prognostic_fs) then
                     call add_implicit_viscous_free_surface_scaled_mass_integrals(state(istate), scaled_pressure_mass_matrix, u, p, free_surface, dt)
                   end if
@@ -1038,7 +1039,7 @@
 
 
             ! Allocate RHS for pressure correction step
-            call allocate(projec_rhs, p_mesh, "ProjectionRHS")
+            call allocate(projec_rhs, p_theta%mesh, "ProjectionRHS")
             call zero(projec_rhs)
 
             call profiler_toc(p, "assembly")
@@ -1234,7 +1235,7 @@
                                        &"/discontinuous_galerkin")) then
 
                   ! Allocate the change in pressure field
-                  call allocate(delta_p, p_mesh, "DeltaP")
+                  call allocate(delta_p, p%mesh, "DeltaP")
                   delta_p%option_path = trim(p%option_path)
                   call zero(delta_p)
 
