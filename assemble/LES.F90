@@ -136,7 +136,6 @@ contains
     diagnostic_field_loop: do i = 1, size(diagnostic_field_names)
       if(have_diagnostic_field(i)) then
          field => extract_tensor_field(state, diagnostic_field_names(i))
-
          lump_mass = have_option(trim(field%option_path)//"/diagnostic/mass_matrix"//&
             &"/use_lumped_mass_matrix")
          use_submesh = have_option(trim(field%option_path)//"/diagnostic/mass_matrix"//&
@@ -156,7 +155,6 @@ contains
             mass_matrix => get_mass_matrix(state, field%mesh)
             call petsc_solve(field, mass_matrix, field, option_path=u%option_path)
          end if
-         
       end if
     end do diagnostic_field_loop
     

@@ -2000,9 +2000,10 @@
       real, intent(in)                  :: alpha, gamma
 
       ! Local quantities specific to Germano Dynamic LES Model
-      real, dimension(x%dim, x%dim, ele_ngi(u,ele))  :: t_strain_gi, strainprod_gi
+      real, dimension(x%dim, x%dim, ele_ngi(u,ele))  :: strain_gi, t_strain_gi, strainprod_gi
       real, dimension(x%dim, x%dim, ele_ngi(u,ele))  :: mesh_size_gi, leonard_gi
       real, dimension(x%dim, x%dim, ele_ngi(u,ele))  :: f_tensor, t_tensor
+      real, dimension(x%dim, x%dim)                  :: mij
       real, dimension(ele_ngi(u, ele))               :: strain_mod, t_strain_mod
       real, dimension(ele_ngi(u, ele))               :: f_scalar, t_scalar
       type(element_type)                             :: shape_nu
@@ -2126,6 +2127,8 @@
             nodes_nu => ele_nodes(nu, ele)
             les_tensor_gi=0.0
 
+            ! Get strain S1 for first-filtered velocity
+            strain_gi = les_strain_rate(du_t, ele_val(fnu, ele))
             ! Get strain S2 for test-filtered velocity
             t_strain_gi = les_strain_rate(du_t, ele_val(tnu, ele))
             ! Mesh size (units length^2)
@@ -2135,6 +2138,8 @@
             strainprod_gi = ele_val_at_quad(strainprod, ele)
 
             do gi=1, ele_ngi(nu, ele)
+               ! Get strain modulus |S1| for first-filtered velocity
+               strain_mod(gi) = sqrt( 2*sum(strain_gi(:,:,gi)*strain_gi(:,:,gi) ) )
                ! Get strain modulus |S2| for test-filtered velocity
                t_strain_mod(gi) = sqrt( 2*sum(t_strain_gi(:,:,gi)*t_strain_gi(:,:,gi) ) )
             end do
@@ -2148,11 +2153,9 @@
 
                   do gi=1, ele_ngi(nu, ele)
                     ! Tensor M_ij = (|S2|*S2)G2 - ((|S1|S1)^f2)G1
-                    les_tensor_gi(:,:,gi) = t_strain_mod(gi)*t_strain_gi(:,:,gi)*t_scalar(gi) - strainprod_gi(:,:,gi)*f_scalar(gi)
-
+                    mij = t_strain_mod(gi)*t_strain_gi(:,:,gi)*t_scalar(gi) - strainprod_gi(:,:,gi)*f_scalar(gi)
                     ! Model coeff C = -(L_ij M_ij) / 2(M_ij M_ij)
-                    les_coef_gi(gi) = -0.5*sum(leonard_gi(:,:,gi)*les_tensor_gi(:,:,gi)) / sum(les_tensor_gi(:,:,gi)*les_tensor_gi(:,:,gi))
-
+                    les_coef_gi(gi) = -0.5*sum(leonard_gi(:,:,gi)*mij) / sum(mij*mij)
                     ! Isotropic tensor dynamic eddy viscosity m_ij = -2C|S1|.alpha^2.G1
                     les_tensor_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*strain_mod(gi)*f_scalar(gi)
                   end do
@@ -2167,11 +2170,9 @@
                     !f2_gi(:,:,gi) = f2_gi(:,:,gi)*f2_mod(gi)/norm2(f2_gi(:,:,gi))
 
                     ! Tensor M_ij = (|S2|*S2).G2 - ((|S1|S1)^f2).G1
-                    les_tensor_gi(:,:,gi) = t_strain_mod(gi)*t_strain_gi(:,:,gi)*t_tensor(:,:,gi) - strainprod_gi(:,:,gi)*f_tensor(:,:,gi)
-
+                    mij = t_strain_mod(gi)*t_strain_gi(:,:,gi)*t_tensor(:,:,gi) - strainprod_gi(:,:,gi)*f_tensor(:,:,gi)
                     ! Model coeff C = -(L_ij M_ij) / 2(M_ij M_ij)
-                    les_coef_gi(gi) = -0.5*sum(leonard_gi(:,:,gi)*les_tensor_gi(:,:,gi)) / sum(les_tensor_gi(:,:,gi)*les_tensor_gi(:,:,gi))
-
+                    les_coef_gi(gi) = -0.5*sum(leonard_gi(:,:,gi)*mij) / sum(mij*mij)
                     ! Anisotropic tensor dynamic eddy viscosity m_ij = -2C|S1|.alpha^2.G1
                     les_tensor_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*strain_mod(gi)*f_tensor(:,:,gi)
                   end do
