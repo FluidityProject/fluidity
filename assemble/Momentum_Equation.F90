@@ -445,7 +445,7 @@
                  ! Pressure and OldPressure remapped to them
                  call prepare_hydrostatic_projection(state(istate), &
                        surface_p, surface_old_p, &
-                       cmc_m, get_cmc_m=reassemble_cmc_m)
+                       cmc_m, reassemble_cmc_m=reassemble_cmc_m)
                else if (implicit_prognostic_fs) then
                  cmc_m => get_extended_pressure_poisson_matrix(state(istate), ct_m(istate)%ptr, p_mesh, get_cmc=reassemble_cmc_m)
                else
