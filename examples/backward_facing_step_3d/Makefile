@@ -1,94 +1,36 @@
-BIN=../../../bin
-RE=5100
-JOB=DNS-stress-sem-adapt
-NN=0.125
-preprocess:
-	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
-	@$(foreach NN,0.125 , \
-		echo **********Installing directory $(RE)-$(JOB)-$(NN):; \
-		install -d $(RE)-$(JOB)-$(NN); \
-		cd $(RE)-$(JOB)-$(NN); \
-		pwd; \
-		echo **********Generating mesh...; \
-		gmsh -3 -o step3d-$(NN).msh ../src/step3d-$(NN).geo; \
-		$(BIN)/gmsh2triangle step3d-$(NN).msh; \
-		echo **********copying flml: _facing_step_3d-$(RE)-$(JOB)-$(NN).flml:; \
-		ln -s ../flmls/backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml .; \
-		echo **********Decomposing the mesh into $(NPROCS) parts for parallel run:; \
-		$(BIN)/fldecomp -n $(NPROCS) -f step3d-$(NN); \
-		cd ..; \
-	)
+include envcheck.mk
 
-preprocess-periodic:
-	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
-	@$(foreach NN,med, \
-		install -d $(RE)-$(JOB)-$(NN); \
-		cd $(RE)-$(JOB)-$(NN); \
-		pwd; \
-		echo **********copying flml: backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml:; \
-		ln -s ../backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml .; \
-		echo **********Generating mesh...; \
-		gmsh -3 -o step3d-$(NN)-periodic.msh ../src/step3d-$(NN)-periodic.geo; \
-		$(BIN)/gmsh2triangle step3d-$(NN)-periodic.msh; \
-		echo $(BIN)/periodise backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml;\
-		$(BIN)/periodise backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml;\
-		echo **********Decomposing the mesh into $(NPROCS) parts for parallel run:; \
-		mpiexec -np $(NPROCS) $(BIN)/flredecomp -i 1 -o $(NPROCS) backward_facing_step_3d-$(RE)-$(JOB)-$(NN)_periodised $(RE)-$(JOB)-$(NN)-$(NPROCS)p;\
-		cd ..; \
-	)
+preprocess: envcheck
+	@echo **********Generating the mesh using gmsh in 3d:
+	gmsh -3 -optimize -o step3d.msh src/step3d.geo
+	@echo **********Converting the gmsh mesh to triangle format:
+	${BINPREFIX}gmsh2triangle step3d.msh
 
-run:
-	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
-	@$(foreach NN,coarse , \
-		echo Running $(NN) case; \
-		cd $(RE)-$(JOB)-$(NN); \
-		echo **********Running simulation $(RE)-$(JOB)-$(NN); \
-		mpiexec -np $(NPROCS) $(BIN)/fluidity -v2 -l backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml; \
-		cd ..; \
-	)
+run: envcheck
+	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi
+ifneq ($(NPROCS),8)
+	@echo **********WARNING: This simulation is best run on 8 processors
+endif
+ifeq ($(NPROCS),1)
+	@echo **********WARNING: This is a large simulation and will take a very long time in serial. Find a handy supercomputer.
+	@echo **********Calling fluidity in serial with verbose log output enabled:
+	${BINPREFIX}fluidity -v2 -l backward_facing_step_3d.flml
+else
+	@echo **********Calling flredecomp in parallel with verbose log output enabled:
+	mpiexec -n $(NPROCS) ${BINPREFIX}flredecomp -i 1 -o $(NPROCS) -v -l backward_facing_step_3d backward_facing_step_3d_flredecomp
+	@echo **********Calling fluidity in parallel with verbose log output enabled:
+	mpiexec -n $(NPROCS) ${BINPREFIX}fluidity -v2 -l backward_facing_step_3d_flredecomp.flml
+endif
 
-run-periodic:
-	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
-	@$(foreach NN,coarse , \
-		echo Running $(NN) case; \
-		cd $(RE)-$(JOB)-$(NN); \
-		echo **********Running simulation $(RE)-$(JOB)-$(NN); \
-		mpiexec -np $(NPROCS) $(BIN)/fluidity -v2 -l $(RE)-$(JOB)-$(NN)-$(NPROCS)p.flml; \
-		cd ..; \
-	)
-
-postprocess:
+postprocess: envcheck
 	@echo **********Calling the velocity data extraction and plotting python script:
-	@$(foreach NN, 0.125, \
-		cd $(RE)-$(JOB)-$(NN); \
-		ln -s ../postprocessor_3d.py .; \
-		./postprocessor_3d.py $(RE) $(JOB) $(NN); \
-		cd ..; \
-	)
-
-postprocess-les:
-	@echo **********Calling the LES velocity data extraction and plotting python script:
-	@$(foreach JOB, LES-sem-adapt, \
-		cd $(RE)-$(JOB)-$(NN); \
-		ln -s ../postprocessor_3d_les.py .; \
-		./postprocessor_3d_les.py $(RE) $(JOB) $(NN); \
-		cd ..; \
-	)
-#dynles-lilly-sem-periodic dynles-lilly-aniso-sem-periodic dynles-lilly-a1-sem-periodic dynles-lilly-nolimc-sem-periodic dynles-lilly-aniso-nolimc-sem-periodic dynles-lilly-ex-sem-periodic dynles-lilly-ex-aniso-sem-periodic
-#dynles-lilly-sem-adapt dynles-lilly-a1-sem-adapt dynles-lilly-aniso-sem-adapt dynles-lilly-aniso-a1-sem-adapt dynles-lilly-a1b1-sem-adapt dynles-lilly-aniso-a1b1-sem-adapt dynles-lilly-nolimc-sem-adapt dynles-lilly-aniso-nolimc-sem-adapt dynles-lilly-nolimc-a1-sem-adapt dynles-lilly-aniso-nolimc-a1-sem-adapt dynles-lilly-ex-sem-adapt dynles-lilly-ex-aniso-sem-adapt dynles-lilly-ex-a1-sem-adapt dynles-lilly-ex-aniso-a1-sem-adapt dynles-lilly-aniso-sem-adaptfine 
-post-postprocess:
-	./post_postprocessor_3d_les.py
+	@mkdir -p numpy_data 
+	./postprocessor_3d.py
 
 input: clean
 	$(MAKE) preprocess NPROCS=8
 
 clean:
-	@$(foreach NN,coarse, \
-		rm -r $(RE)-$(JOB)-$(NN); \
-
-space:
-	@$(foreach N,1 2 3 4 5 6 7 8 9, \
-		rm -r $(RE)-$(JOB)-$(NN)/backward_facing_step_3d*_*$(N); \
-		rm $(RE)-$(JOB)-$(NN)/backward_facing_step_3d*_*$(N).pvtu; \
-	)
-
+	@echo **********Cleaning the output from previous fluidity runs:
+	rm -rf *.stat *.msh *.node *.face *.ele backward_facing_step_3d_*.pvtu backward_facing_step_3d_* *.log-* *.err-* matrixdump* *.halo
+	rm -rf *flredecomp*
