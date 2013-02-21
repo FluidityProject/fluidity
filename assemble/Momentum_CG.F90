@@ -147,7 +147,7 @@
     ! LES coefficients and options
     real :: smagorinsky_coefficient
     character(len=OPTION_PATH_LEN) :: length_scale_type
-    logical :: have_eddy_visc, backscatter, have_filter_width
+    logical :: have_eddy_visc, have_filter_width, have_coeff
 
     ! Temperature dependent viscosity coefficients:
     real :: reference_viscosity
@@ -381,7 +381,7 @@
          &"/continuous_galerkin/les_model")
       if (have_les) then
          ! Set everything to false initially, then set to true if present
-         have_eddy_visc=.false.; backscatter=.false.; have_filter_width=.false.
+         have_eddy_visc=.false.; have_filter_width=.false.; have_coeff=.false.
 
          les_option_path=(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
                  &"/continuous_galerkin/les_model")
@@ -399,7 +399,7 @@
             if(have_eddy_visc) then
                ! Initialise the eddy viscosity field. Calling this subroutine works because
                ! you can't have 2 different types of LES model for the same material phase.
-               call les_init_diagnostic_fields(state, have_eddy_visc, .false.)
+               call les_init_diagnostic_fields(state, have_eddy_visc, .false., .false.)
             end if
          end if
          if (les_fourth_order) then
@@ -413,14 +413,13 @@
                  smagorinsky_coefficient)
          end if
          if(dynamic_les) then
-           ! Whether or not to allow backscatter (negative eddy viscosity)
-           backscatter = have_option(trim(les_option_path)//"/dynamic_les/enable_backscatter")
            ! Scalar or tensor filter width
            call get_option(trim(les_option_path)//"/dynamic_les/length_scale_type", length_scale_type)
            ! Initialise optional diagnostic fields
            have_eddy_visc = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::EddyViscosity")
            have_filter_width = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::FilterWidth")
-           call les_init_diagnostic_fields(state, have_eddy_visc, have_filter_width)
+           have_coeff = have_option(trim(les_option_path)//"/dynamic_les/scalar_field::SmagorinskyCoefficient")
+           call les_init_diagnostic_fields(state, have_eddy_visc, have_filter_width, have_coeff)
 
            ! Initialise necessary local fields.
            ewrite(2,*) "Initialising compulsory dynamic LES fields"
@@ -824,7 +823,7 @@
       ewrite_minmax(rhs)
       
       if(les_second_order .or. dynamic_les) then
-         call les_solve_diagnostic_fields(state, have_eddy_visc, have_filter_width)
+         call les_solve_diagnostic_fields(state, have_eddy_visc, have_filter_width, have_coeff)
       end if
 
       if (les_fourth_order) then
@@ -2105,8 +2104,8 @@
             ! you can't have 2 different types of LES model for the same material_phase.
             if(have_eddy_visc) then
               call les_assemble_diagnostic_fields(state, u, ele, detwei, &
-                   les_tensor_gi, les_tensor_gi, &
-                 have_eddy_visc, .false.)
+                   les_tensor_gi, les_tensor_gi, les_coef_gi, &
+                 have_eddy_visc, .false., .false.)
             end if
 
          ! Fourth order Smagorinsky model
@@ -2146,23 +2145,25 @@
 
             select case(length_scale_type)
                case("scalar")
-                  ! Scalar first filter width G_f
+                  ! Scalar first filter width G1 = alpha^2*meshsize (units length^2)
                   f_scalar = alpha**2*length_scale_scalar(x, ele)
-                  ! Combined width =(1+gamma^2)*alpha^2*
+                  ! Combined width G2 = (1+gamma^2)*G1
                   t_scalar = (1.0+gamma**2)*f_scalar
 
                   do gi=1, ele_ngi(nu, ele)
                     ! Tensor M_ij = (|S2|*S2)G2 - ((|S1|S1)^f2)G1
                     mij = t_strain_mod(gi)*t_strain_gi(:,:,gi)*t_scalar(gi) - strainprod_gi(:,:,gi)*f_scalar(gi)
-                    ! Model coeff C = -(L_ij M_ij) / 2(M_ij M_ij)
+                    ! Model coeff C_S = -(L_ij M_ij) / 2(M_ij M_ij)
                     les_coef_gi(gi) = -0.5*sum(leonard_gi(:,:,gi)*mij) / sum(mij*mij)
-                    ! Isotropic tensor dynamic eddy viscosity m_ij = -2C|S1|.alpha^2.G1
+                    ! Constrain C_S to be between 0 and 0.04.
+                    les_coef_gi(gi) = min(max(les_coef_gi(gi),0.0), 0.04)
+                    ! Isotropic tensor dynamic eddy viscosity = -2C_S|S1|.alpha^2.G1
                     les_tensor_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*strain_mod(gi)*f_scalar(gi)
                   end do
                case("tensor")
-                  ! First filter width G1=alpha^2*mesh size (units length^2)
+                  ! First filter width G1 = alpha^2*mesh size (units length^2)
                   f_tensor = alpha**2*mesh_size_gi
-                  ! Combined width G2=(1+gamma^2)*G1
+                  ! Combined width G2 = (1+gamma^2)*G1
                   t_tensor = (1.0+gamma**2)*f_tensor
                   do gi=1, ele_ngi(nu, ele)
                     ! Normalise tensor filter width so that volume equals that of scalar filter width definition
@@ -2171,28 +2172,19 @@
 
                     ! Tensor M_ij = (|S2|*S2).G2 - ((|S1|S1)^f2).G1
                     mij = t_strain_mod(gi)*t_strain_gi(:,:,gi)*t_tensor(:,:,gi) - strainprod_gi(:,:,gi)*f_tensor(:,:,gi)
-                    ! Model coeff C = -(L_ij M_ij) / 2(M_ij M_ij)
+                    ! Model coeff C_S = -(L_ij M_ij) / 2(M_ij M_ij)
                     les_coef_gi(gi) = -0.5*sum(leonard_gi(:,:,gi)*mij) / sum(mij*mij)
-                    ! Anisotropic tensor dynamic eddy viscosity m_ij = -2C|S1|.alpha^2.G1
+                    ! Constrain C_S to be between 0 and 0.04.
+                    les_coef_gi(gi) = min(max(les_coef_gi(gi),0.0), 0.04)
+                    ! Anisotropic tensor dynamic eddy viscosity m_ij = -2C_S|S1|.alpha^2.G1
                     les_tensor_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*strain_mod(gi)*f_tensor(:,:,gi)
                   end do
             end select
-            ! Whether or not to allow negative eddy viscosity (backscattering)
-            ! but do not allow (viscosity+eddy_viscosity) < 0.
-            do gi=1, ele_ngi(nu, ele)
-               if(any(les_tensor_gi(:,:,gi) < 0.0)) then
-                  if(backscatter) then
-                     les_tensor_gi(:,:,gi) = max(les_tensor_gi(:,:,gi), epsilon(0.0) - viscosity_gi(:,:,gi))
-                  else
-                     les_tensor_gi(:,:,gi) = max(les_tensor_gi(:,:,gi),0.0)
-                  end if
-               end if
-            end do
 
             ! Assemble diagnostic fields
             call les_assemble_diagnostic_fields(state, nu, ele, detwei, &
-                 mesh_size_gi, les_tensor_gi, &
-                 have_eddy_visc, have_filter_width)
+                 mesh_size_gi, les_tensor_gi, les_coef_gi, &
+                 have_eddy_visc, have_filter_width, have_coeff)
 
          else
             FLAbort("Unknown LES model")

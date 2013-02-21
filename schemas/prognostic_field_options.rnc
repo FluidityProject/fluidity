@@ -618,17 +618,22 @@ prognostic_velocity_field =
                      ##
                      ## The 'tensor' length scale uses the metric from the adaptivity process. Using this will result in an anisotropic eddy viscosity tensor.
                      element length_scale_type { 'scalar'|'tensor' },
-                     ## Allow negative eddy viscosity, i.e. backscatter of energy from subgrid to resolved scales.
-                     ## If enabled, the sum (viscosity + eddy viscosity) is constrained to be non-negative.
-                     ## If disabled, eddy viscosity is constrained to be non-negative.
-                     ## 
-                     element enable_backscatter {
-                        empty
-                     }?,
                      ## Solver options are required for calculation of Helmholtz-smoothed velocity.
                      element solver {
                         linear_solver_options_sym
                      },
+                     ## Spatially varying Smagorinsky coefficient.
+                     element scalar_field {
+                        attribute name { "SmagorinskyCoefficient" },
+                        attribute rank { "1" },
+                        (
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_scalar_field
+                           }
+                        )
+                     }?,
                      ## First filtered velocity (diagnostic). This is the Velocity field filtered
                      ## with the first filter - see manual.
                      element vector_field {

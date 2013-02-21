@@ -743,19 +743,26 @@ The 'tensor' length scale uses the metric from the adaptivity process. Using thi
                       <value>tensor</value>
                     </choice>
                   </element>
-                  <optional>
-                    <element name="enable_backscatter">
-                      <a:documentation>Allow negative eddy viscosity, i.e. backscatter of energy from subgrid to resolved scales.
-If enabled, the sum (viscosity + eddy viscosity) is constrained to be non-negative.
-If disabled, eddy viscosity is constrained to be non-negative.
-</a:documentation>
-                      <empty/>
-                    </element>
-                  </optional>
                   <element name="solver">
                     <a:documentation>Solver options are required for calculation of Helmholtz-smoothed velocity.</a:documentation>
                     <ref name="linear_solver_options_sym"/>
                   </element>
+                  <optional>
+                    <element name="scalar_field">
+                      <a:documentation>Spatially varying Smagorinsky coefficient.</a:documentation>
+                      <attribute name="name">
+                        <value>SmagorinskyCoefficient</value>
+                      </attribute>
+                      <attribute name="rank">
+                        <value>1</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_scalar_field"/>
+                      </element>
+                    </element>
+                  </optional>
                   <optional>
                     <element name="vector_field">
                       <a:documentation>First filtered velocity (diagnostic). This is the Velocity field filtered
