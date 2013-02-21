@@ -1,0 +1,50 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+   <name>Backward-facing step 2D example</name>
+   <!--Runs a reference and kepsilon 2D backward-facing step problems.-->
+  <owner userid="asc"/>
+  <tags>flml</tags>
+  <!-- uses flml -->
+  <problem_definition length="long" nprocs="8">
+    <command_line>cd reference &amp;&amp; mpiexec flredecomp -i 1 -o 8 -v -l backward_facing_step_2d_kim_reference backward_facing_step_2d_kim_reference_flredecomp &amp;&amp; mpiexec fluidity -v2 -l backward_facing_step_2d_kim_reference_flredecomp.flml &amp;&amp; cd .. &amp;&amp; cd kepsilon &amp;&amp; mpiexec flredecomp -i 1 -o 8 -v -l backward_facing_step_2d_kim_kepsilon backward_facing_step_2d_kim_kepsilon_flredecomp &amp;&amp; mpiexec fluidity -v2 -l backward_facing_step_2d_kim_kepsilon_flredecomp.flml &amp;&amp; cd ..</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="reference_finishtime" language="python">from fluidity_tools import stat_parser as stat
+reference_finishtime= stat("reference/backward_facing_step_2d_kim_reference.stat")["ElapsedTime"]["value"][-1]</variable>
+    <variable name="kepsilon_finishtime" language="python">from fluidity_tools import stat_parser as stat
+kepsilon_finishtime= stat("kepsilon/backward_facing_step_2d_kim_kepsilon.stat")["ElapsedTime"]["value"][-1]</variable>
+    <variable name="reference_reattachment_length" language="python">
+from postprocessor_2d import reattachment_length, get_filelist
+import numpy, os
+os.chdir('./reference/')
+yarray = numpy.array([0.1, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 3.9])
+exclude_initial_results = 45
+filelist = get_filelist(20, 40)
+reference_reattachment_length = numpy.array(reattachment_length(filelist))
+os.chdir('../')
+    </variable>
+    <variable name="kepsilon_reattachment_length" language="python">
+from postprocessor_2d import reattachment_length, get_filelist
+import numpy, os
+os.chdir('./kepsilon/')
+yarray = numpy.array([0.1, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 3.9])
+exclude_initial_results = 45
+filelist = get_filelist(20, 40)
+kepsilon_reattachment_length = numpy.array(reattachment_length(filelist))
+os.chdir('../')
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="reference_finish_time" language="python">assert reference_finishtime &gt; 50.0</test>
+    <test name="kepsilon_finish_time" language="python">assert kepsilon_finishtime &gt; 50.0</test>
+    <test name="reference reattachment length does not change by more than 20%" language="python">
+        print ( ( max(reference_reattachment_length[:,0]) - min(reference_reattachment_length[:,0]) ) / min(reference_reattachment_length[:,0]) )
+assert( ( max(reference_reattachment_length[:,0]) - min(reference_reattachment_length[:,0]) ) / min(reference_reattachment_length[:,0]) &lt; 0.2)
+    </test>
+    <test name="kepsilon reattachment length does not change by more than 20%" language="python">
+        print ( ( max(kepsilon_reattachment_length[:,0]) - min(kepsilon_reattachment_length[:,0]) ) / min(kepsilon_reattachment_length[:,0]) )
+assert( ( max(kepsilon_reattachment_length[:,0]) - min(kepsilon_reattachment_length[:,0]) ) / min(kepsilon_reattachment_length[:,0]) &lt; 0.2)
+    </test>
+  </pass_tests>
+  <warn_tests/>
+</testproblem>

@@ -137,8 +137,7 @@
       <real_value rank="0">1</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">18000</real_value>
-      <comment>36000</comment>
+      <real_value rank="0">36000</real_value>
     </finish_time>
     <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
@@ -976,7 +975,9 @@
           <max_iterations>
             <integer_value rank="0">5000</integer_value>
           </max_iterations>
-          <remove_null_space/>
+          <remove_null_space>
+            <all_components/>
+          </remove_null_space>
           <never_ignore_solver_failures/>
           <diagnostics>
             <monitors/>

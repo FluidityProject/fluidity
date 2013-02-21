@@ -7,6 +7,11 @@
     <command_line>mpiexec -np 1 fluidity -v2 test_no_source_absorption.flml &gt; test_no_source_absorption.log &amp;&amp; mpiexec -np 1 fluidity -v2 test_source_absorption.flml &gt; test_source_absorption.log</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="ElapsedTime_no" language="python">from fluidity_tools import stat_parser
 ElapsedTime_no = stat_parser("test_no_source_absorption.stat")["ElapsedTime"]["value"][-1]
     </variable>
@@ -27,6 +32,9 @@ umax = stat_parser("test_source_absorption.stat")["fluid"]["Velocity%magnitude"]
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
   <test name="End time is correct." language="python">
 assert(abs(ElapsedTime_no - 1e-6) &lt; 4e-5)
 </test>

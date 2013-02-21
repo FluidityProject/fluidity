@@ -9,11 +9,12 @@ In this chapter we define the domain we are solving over as $\Omega$. The bounda
 $\Omega$ is defined as $\dOmega$
 %(NB. $\Gamma$ is another common symbol for a boundary) 
 and can be split into different sections, e.g.
-$\partial\Omega = \dOmega^{N}\cup \dOmega^{D}$
+$\partial\Omega = \dOmega^{N}\cup \dOmega^{R}\cup \dOmega^{D}$
 where $\dOmega^{N}$ is that part of the boundary over
-which Neumann conditions are applied and $\dOmega^{D}$ is that part of the boundary over
+which Neumann conditions are applied, $\dOmega^{R}$ is the part of the 
+boundary over which Robin conditions are applied and $\dOmega^{D}$ is that part of the boundary over
 which Dirichlet conditions are applied. For clarity a subscript showing the field in question will
-be given on the $N$ and $D$ characters.
+be given on the $N$, $R$ and $D$ characters.
 
 The unit vector \vec{n} is always assumed to be the
 outward facing normal vector to the domain.
@@ -30,10 +31,11 @@ is given in conservative form by
 \end{equation}
 
 We now define a partition of the boundary such that
-$\partial\Omega = \dOmega^{N}\cup \dOmega^{D}$, and impose boundary conditions on $c$:
+$\partial\Omega = \dOmega^{N}\cup \dOmega^{R}\cup \dOmega^{D}$, and impose boundary conditions on $c$:
 \begin{gather}
   \label{eq:cboundary}
   \vec{n}\cdot\tensor{\kappa}\cdot\grad c=g_{N_c} \quad\textrm{on}\quad \dOmega^{N_c},\\
+  -\vec{n}\cdot\tensor{\kappa}\cdot\grad c=h(c-c_{a})\quad\textrm{on}\quad \dOmega^{R_c},\\
   c=g_{D_c} \quad\textrm{on}\quad \dOmega^{D_c}.
 \end{gather}
 
@@ -41,7 +43,7 @@ $\partial\Omega = \dOmega^{N}\cup \dOmega^{D}$, and impose boundary conditions o
 \label{sec:ND_advection_diffusion_CG}
 
 The Continuous Galerkin method (often abbreviated to CG, 
-not to be confused with Conjugate Gradients) method,
+not to be confused with Conjugate Gradient methods),
 is a widely used finite element method in which 
 the solution fields are constrained to be
 continuous between elements. 
@@ -369,7 +371,7 @@ and the \emph{doubly-asymptotic} approximation \citep{DoneaBook}:
 
 The SUPG implementation in \fluidity\ does not modify the test function derivatives
 or the face test functions. Hence the SUPG implementation is only consistent
-for degree one elements with no non-zero Neumann or weak Dirichlet boundary
+for degree one elements with no non-zero Neumann, Robin or weak Dirichlet boundary
 conditions.
 
 SUPG is considered ready for production use for scalar advection-diffusion
@@ -432,6 +434,25 @@ weakly. This is done in the same way as the weak form of the advection-diffusion
 Thus \eqref{eq:weak_neumann} can be used to replace the missing
 boundary term \eqref{eq:missing_boundary_term} with an integral of $\phi~g_N$
 over the boundary.
+
+The Robin boundary condition
+\begin{equation*}
+  -\vec{n}\cdot\tensor{\kappa}\cdot\grad c=h(c-c_{a}),
+\end{equation*}
+where $h$ and $c_{a}$ can be any prescribed function on the boundary $\partial\Omega$, is also imposed 
+weakly. As for the Neumann boundary condition, weighting the Robin boundary condition with a test function 
+and integrating over the relevant domain boundary gives the weak form:
+\begin{equation}\label{eq:weak_robin}
+  - \int_{\partial\Omega} \phi~\vec{n}\cdot\tensor{\kappa}\cdot\grad c=
+    \int_{\partial\Omega} \phi~h(c-c_{a}), \quad \text{for all }\phi.
+\end{equation}
+Thus \eqref{eq:weak_robin} can be used to replace the missing
+boundary term \eqref{eq:missing_boundary_term} with an integral of $\phi~h(c-c_{a})$
+over the relevant part of the boundary. The two terms within the integral can be treated slightly differently. 
+The term $\phi~hc_{a}$ is always included in the right hand side of the linear system. 
+The term $\phi~hc$ is effectively a surface absorption term where any implicit contributions 
+are included in the left had side matrix, while any explicit contributions are included into the 
+right hand side of the linear system.
 
 \index{boundary conditions!Dirichlet!weakly imposed}
 In a similar way, a weakly imposed Dirichlet boundary condition can be related to an
@@ -2001,14 +2022,18 @@ of a space for $\dvec p_b$.
 
 \section{Free surface}\label{sec:free_surface}
 \index{free surface!weak form}
-
-Using the fact that the pressure is zero on the free surface and therefore $p=g\eta$, the weak form of the free surface kinematic boundary \eqref{freesurf3} condition is written:
+Assuming that the atmospheric pressure is zero, the pressure boundary condition
+\eqref{freesurfacepressure} simplifies to $p=g\eta$. Here, and elsewhere in
+this section we assume $p$ is the pressure that is solved for, which in this
+case is the perturbation pressure p'. By substitution of this equation into the
+kinematic boundary condition, this condition can be enforce, weakly, as a
+normal flow condition related to the time derivative of pressure:
 
 \begin{equation}\label{weakfreesurf3}
 \frac{1}{g} \int_{\Omega_{fs}} {\psi_i }\frac{\partial p}{\partial t}\vec z \cdot \vec n=\int_{\Omega_{fs}} \psi_i {n \cdot \bmu} \quad
   \forall \psi_i,
 \end{equation}
-and $\Omega_{fs}$ is the boundary where the free surface is to be applied. This condition is now incorporated into the boundary integrals of the continuity equation \eqref{continuity_byparts}, taking the continuity test functions to be the same as the pressure basis functions, giving:
+and $\Omega_{fs}$ is the boundary where the free surface condition is to be applied. This condition is now incorporated into the boundary integrals of the continuity equation \eqref{continuity_byparts}, taking the continuity test functions to be the same as the pressure basis functions, giving:
 
 \begin{equation}\label{continuity_byparts_withfs}
   -\int_\Omega \grad\psi_i \cdot \vec u
@@ -2029,6 +2054,14 @@ Repeating the steps from section \ref{sec:pressure_correction}, the pressure cor
 \begin{equation}
 \left(\theta C^T(\frac{M_u}{\Delta t})^{-1} \theta C + \frac{M_s}{g(\Delta t)^2}\right)\Delta \hat p = -\frac{\theta C^T u_*^{n+1} + (1-\theta)C^Tu^n}{\Delta t}-\frac{M_s}{g(\Delta t)^2}(\hat p_*^{n+1}-\hat p^n)
 \end{equation}
+In the approach above, we have completely eliminated $\eta$ as a variable from
+the equations that we solve for. The free surface value can however be obtained
+, diagnostically, via the relation $p=\rho_0g\eta$ at the free surface. In case
+the stress term is included and the normal stress condition \eqref{normalstressfreesurface} is applied, 
+we need to maintain the values of the free surface elevation $\eta_i$ at the
+nodes on the surface of the mesh, as seperate variables. The equations can
+however still be combined in a single pressure projection step. Details of this
+method can be found in \citet{kramer2012}.
 
 \section{Wetting and drying}\label{sec:wetting_and_drying}
 The discretisation of free surface boundary condition with wetting and drying is very similar to the derivation in section \ref{sec:free_surface}, 

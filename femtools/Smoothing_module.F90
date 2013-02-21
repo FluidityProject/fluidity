@@ -14,8 +14,8 @@ module smoothing_module
   private
   
   public :: smooth_scalar, smooth_vector
-  public :: anisotropic_smooth_scalar, anisotropic_smooth_vector
-  public :: anisotropic_smooth_tensor, length_scale_tensor
+  public :: anisotropic_smooth_scalar, anisotropic_smooth_vector, anisotropic_smooth_tensor
+  public :: length_scale_scalar, length_scale_tensor
 
 contains
 
@@ -490,6 +490,21 @@ contains
 
   end subroutine assemble_anisotropic_smooth_tensor
 
+  function length_scale_scalar(positions, ele) result(s)
+    ! Computes a scalar length scale for LES models
+    ! Preserves element volume. (units are in length^2)
+    type(vector_field), intent(in) :: positions
+    real :: s
+    integer, intent(in) :: ele
+    integer :: dim
+    dim=positions%dim
+
+    ! filter is a square/cube (width=side length) a la Deardorff:
+    s=element_volume(positions, ele)
+    s=s**(2./dim)
+
+  end function length_scale_scalar
+  
   function length_scale_tensor(du_t, shape) result(t)
     !! Computes a length scale tensor to be used in LES (units are in length^2)
     !! derivative of velocity shape function (nloc x ngi x dim)

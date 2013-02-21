@@ -6,6 +6,11 @@
     <command_line>fluidity turbine_flux_penalty_2d.flml; fluidity onedomain_2d.flml</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="ElapsedTime_Turbine" language="python">from fluidity_tools import stat_parser
 s = stat_parser("turbine_flux_penalty_2d.detectors")
 ElapsedTime_Turbine=s["ElapsedTime"]["value"]</variable>
@@ -24,6 +29,9 @@ Detectors_Turbine = stat_parser("turbine_flux_penalty_2d.detectors")</variable>
 Detectors_Onedomain = stat_parser("onedomain_2d.detectors")</variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="ElapsedTimeComparison" language="python">assert(len(ElapsedTime_Turbine)==len(ElapsedTime_Onedomain))
 assert(all(ElapsedTime_Turbine-ElapsedTime_Onedomain==0.0))</test>
     <test name="DetectorArray_Comparison" language="python">assert(len(DetectorArray_Turbine)-len(DetectorArray_Onedomain)==0)
@@ -50,7 +58,7 @@ assert(maxerr&lt;tol)<comment>This calculates the absolute error over all timest
     <test name="DetectorArray_RelativeComparison" language="python">assert(len(DetectorArray_Turbine)-len(DetectorArray_Onedomain)==0)
 maxerr=-1.0
 maxerrkey=""
-tol=0.015
+tol=0.02
 lind=len(Detectors_Onedomain["dt"]["value"])-1
 
 for key in DetectorArray_Turbine.iterkeys():

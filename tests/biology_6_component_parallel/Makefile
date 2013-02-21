@@ -1,6 +1,6 @@
 input: clean
 	../../bin/create_aligned_mesh box 50 50 -- -50 10 10 10
-	../../bin/fldecomp -n 2 box
+	mpiexec -n 2 ../../bin/flredecomp -i 1 -o 2 -v -l biology_conservation_parallel biology_conservation_parallel_flredecomp
 
 clean:
 	# serial
@@ -9,4 +9,6 @@ clean:
 	rm -f fluidity.*
 	# parallel
 	rm -rf biology_conservation_parallel_*
-	rm -rf *.halo
+	rm -rf *.halo \
+	matrixdump matrixdump.info
+	rm -rf *flredecomp*

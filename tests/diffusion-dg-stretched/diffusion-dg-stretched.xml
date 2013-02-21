@@ -6,6 +6,11 @@
     <command_line>for layer in 5 10 20 30; do ./generate_mesh $layer 1000; fluidity diffusion-dg-stretched.flml; cp diffusion-dg-stretched.stat stretched-$layer.stat; cp diffusion-dg-stretched_1.vtu stretched-$layer.vtu; done</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="convergenceBR" language="python">import numpy
 from fluidity_tools import stat_parser
 layers = numpy.array([5,10,20,30])
@@ -34,6 +39,9 @@ print errorCDG
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="CDGConvergesToSecondOrder" language="python">
 import numpy
 assert(numpy.all(convergenceCDG &gt;1.9))

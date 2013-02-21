@@ -79,7 +79,7 @@ contains
     ! Miscellaneous information about the data or methods used to produce it.     
     character(len=*), optional, intent(in)::comment
 
-#ifdef HAVE_NETCDF
+#ifdef HAVE_LIBNETCDF
     include 'netcdf.inc'
 
     character(len=256)::conventions="CF-1.4"
@@ -222,7 +222,7 @@ contains
     implicit none
     character(len=*), intent(in)::name, long_name, units
     real, intent(in)::variable(:,:,:)
-#ifdef HAVE_NETCDF
+#ifdef HAVE_LIBNETCDF
     integer varid
 
     ! dimension IDs

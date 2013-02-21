@@ -583,7 +583,7 @@ hr_adaptivity =
             (
               ## Solver
               element solver {
-                  linear_solver_options_asym
+                  linear_solver_options_asym_scalar
               }|
               ## Assume this field is being solved explicitly and skip the solver.
               ##
@@ -973,6 +973,20 @@ hr_adaptivity =
             ## cut off. Default is 0. 
             element additional_adapt_iterations {
                 integer
+            }?,
+            element field_weighted_partitions {
+            ## Field weighted partitions: turning on this option allows one to 
+            ## weight mesh partitions, based upon a prescribed scalar field. 
+            ## Note that the field should have a minimum value of 0 and a maximum
+            ## value of 1 (no normalisation is done within the code).
+	        element scalar_field {
+                  attribute rank { "0" },
+                  attribute name { "FieldWeightedPartitionValues" },
+                  element prescribed {
+                     coordinate_mesh_choice,
+                     prescribed_scalar_field
+                  }
+               }
             }?,
             ## Zoltan Debugging
             ## 

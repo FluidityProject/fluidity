@@ -250,18 +250,6 @@ contains
     type(mesh_type), intent(inout) :: subdomain_mesh
     integer, dimension(:) :: node_list, inverse_node_list 
 
-    type(integer_set), dimension(:), allocatable :: subdomain_mesh_sends_indices
-    type(integer_set), dimension(:), allocatable :: subdomain_mesh_receives_indices
-
-    integer, dimension(:), allocatable :: subdomain_mesh_nreceives, subdomain_mesh_nsends
-    integer, dimension(:), allocatable :: subdomain_mesh_receives, subdomain_mesh_sends
-
-    integer, dimension(:), allocatable :: external_mesh_nreceives, external_mesh_nsends
-    integer, dimension(:), allocatable :: external_mesh_receives, external_mesh_sends
-
-    integer, dimension(:), allocatable :: external_mesh_sends_indices 
-    integer, dimension(:), allocatable :: external_mesh_receives_indices
-
     integer :: nhalos, communicator, nprocs, procno, ihalo, inode, iproc, nowned_nodes
 
     ewrite(1, *) "In generate_substate_halos"

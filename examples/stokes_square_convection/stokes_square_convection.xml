@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<testproblem>
+  <name>Stokes-square-convection</name>
+  <owner userid="rhodrid"/>
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>fluidity -v2 -l stokes-square-convection-24.flml; fluidity -v2 -l stokes-square-convection-48.flml </command_line>
+  </problem_definition>
+<variables>  
+
+<variable name="nu_24" language="python"> 
+from fluidity_tools import stat_parser as stat
+nu_24 = -stat("stokes-sc-Ra1e5-24.stat")["Fluid"]["Temperature"]["surface_integral%Top"][-1]
+</variable>
+
+<variable name="nu_48" language="python">
+from fluidity_tools import stat_parser as stat
+nu_48 = -stat("stokes-sc-Ra1e5-48.stat")["Fluid"]["Temperature"]["surface_integral%Top"][-1]
+</variable>
+
+<variable name="RMS_24" language="python">
+from fluidity_tools import stat_parser as stat
+RMS_24 = stat("stokes-sc-Ra1e5-24.stat")["Fluid"]["Velocity%magnitude"]["l2norm"][-1]
+</variable>
+
+<variable name="RMS_48" language="python"> 
+from fluidity_tools import stat_parser as stat
+RMS_48 = stat("stokes-sc-Ra1e5-48.stat")["Fluid"]["Velocity%magnitude"]["l2norm"][-1]
+</variable>
+
+</variables>
+
+<pass_tests>
+
+<test name="Nusselt Number Validity 24x24: 9.0 .lt. Nu_24 .lt. 10.5" language="python">
+assert(abs(nu_24-9.75) &lt; 0.75)
+</test>
+
+<test name="RMS Velocity Validity 24x24: 193.0 .lt. RMS_24 .lt. 195.0" language="python">
+assert(abs(RMS_24-194.0) &lt; 1.0)
+</test>
+
+<test name="Nusselt Number Validity 48x48: 10.0 .lt. Nu_48 .lt. 10.5" language="python">
+assert(abs(nu_48-10.25) &lt; 0.25)
+</test>
+
+<test name="RMS Velocity Validity 48x48: 192.0 .lt. RMS_48 .lt. 194.0" language="python">
+assert(abs(RMS_48-193.0) &lt; 1.0)
+</test>
+
+</pass_tests>                                                                                                                                                                                                
+<warn_tests> </warn_tests>
+
+</testproblem>
+
+
+
+
+

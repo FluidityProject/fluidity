@@ -154,7 +154,7 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">600</real_value>
+      <real_value rank="0">500</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">99600</real_value>
@@ -219,7 +219,9 @@
         </scheme>
         <solver>
           <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
+          <preconditioner name="lu">
+            <factorization_package name="petsc"/>
+          </preconditioner>
           <relative_error>
             <real_value rank="0">1.0e-10</real_value>
           </relative_error>
@@ -312,7 +314,9 @@
         </temporal_discretisation>
         <solver>
           <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
+          <preconditioner name="lu">
+            <factorization_package name="petsc"/>
+          </preconditioner>
           <relative_error>
             <real_value rank="0">1.0e-10</real_value>
           </relative_error>
