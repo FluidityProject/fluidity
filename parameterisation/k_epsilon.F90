@@ -30,10 +30,10 @@
 module k_epsilon
   use quadrature
   use elements
-  use field_derivatives
   use fields
-  use field_options
   use state_module
+  use field_derivatives
+  use field_options
   use spud
   use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, timestep, current_time
   use state_fields_module

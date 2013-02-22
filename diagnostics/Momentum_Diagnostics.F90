@@ -29,12 +29,13 @@
 
 module momentum_diagnostics
 
+  use fields
+  use state_module
   use boundary_conditions
   use coriolis_module, only : two_omega => coriolis
   use diagnostic_source_fields
   use field_derivatives
   use field_options
-  use fields
   use fldebug
   use geostrophic_pressure
   use global_parameters, only : OPTION_PATH_LEN
@@ -43,7 +44,7 @@ module momentum_diagnostics
   use sparsity_patterns_meshes
   use spud
   use state_fields_module
-  use state_module
+
   use sediment, only : get_n_sediment_fields, get_sediment_item
   
   implicit none
