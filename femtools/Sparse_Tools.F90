@@ -4728,6 +4728,7 @@ contains
     if(.not.present(model)) then
        sparsity = csr_sparsity_matmul_atb(A%sparsity, B%sparsity)         
        call allocate(C, sparsity, blocks=B%blocks)
+       call deallocate(sparsity)
     else
        call allocate(C, model, blocks=B%blocks)
     end if
