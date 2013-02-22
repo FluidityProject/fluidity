@@ -68,7 +68,7 @@ contains
     type(vector_field) :: prescribed_source
     type(tensor_field), pointer :: tfield
     
-    integer :: stat
+    integer :: stat, i
     logical :: gravity, diagnostic
     
     ewrite(1,*) 'Entering calculate_momentum_diagnostics'
@@ -126,6 +126,17 @@ contains
         end if
       end if
     end if
+
+    do i = 1, size(state) ! really we should be looping over submaterials here but we need to pass state into
+                          ! calculate_diagnostic_variable and there's no way to relate the index in submaterials 
+                          ! to the one in state
+      tfield => extract_tensor_field(state(i),'MaterialViscosity',stat)
+      if (stat==0) then
+        if(have_option(trim(tfield%option_path) // "/diagnostic/algorithm::tensor_python_diagnostic")) then
+          call calculate_diagnostic_variable(state, i, tfield)
+        end if
+      end if
+    end do
 
     tfield => extract_tensor_field(submaterials(submaterials_istate),'Viscosity',stat)
     if (stat==0) then

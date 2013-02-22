@@ -1,6 +1,7 @@
 include envcheck.mk
+NPROCS=1
 
-preprocess: envcheck 
+preprocess: envcheck
 	@if [ "x" == "x${TYPE}" ]; then echo "**********ERROR: Commandline should be make preprocess TYPE=type, where type is reference or kepsilon"; false; fi;
 	echo **********Installing directory for $(TYPE) run:
 	install -d $(TYPE); \
@@ -24,9 +25,11 @@ postprocess: envcheck
 	./postprocessor_2d.py $(TYPE); \
 	cd ..
 
-input: clean preprocess
+input: clean
+	$(MAKE) preprocess TYPE=reference
+	$(MAKE) preprocess TYPE=kepsilon
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs
-	rm -r kepsilon reference *.pdf
+	rm -rf kepsilon reference *.pdf *flredecomp*
 

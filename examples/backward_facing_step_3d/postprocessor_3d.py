@@ -5,7 +5,6 @@ import sys
 import os
 import vtktools
 import numpy
-import pylab
 import re
 from math import log
 
@@ -190,6 +189,7 @@ def velo(filelist,xarray,zarray,yarray):
 #########################################################################
 
 def plot_length(reattachment_length):
+  import pylab
   ##### Plot time series of reattachment length using pylab(matplotlib)
 
   Lemoinkim = numpy.zeros([len(reattachment_length[:,1])])
@@ -209,6 +209,7 @@ def plot_length(reattachment_length):
 
 def plot_velo(vprofiles,xarray,yarray):
 
+  import pylab
   # get profiles from ERCOFTAC data
   datafile = open('Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC360-table.dat', 'r')
   print "reading in data from file: BFS-SEM-ERCOFTAC360-table.dat"

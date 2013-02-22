@@ -1194,6 +1194,7 @@ for n in range(field.node_count):
           </scalar_field>
           <scalar_field name="SinkingVelocity" rank="0">
             <diagnostic>
+              <mesh name="VelocityMesh"/>
               <algorithm name="Internal" material_phase_support="multiple"/>
               <output/>
               <stat/>
@@ -1327,6 +1328,7 @@ for n in range(field.node_count):
           </scalar_field>
           <scalar_field name="UnhinderedSinkingVelocity" rank="0">
             <prescribed>
+              <mesh name="VelocityMesh"/>
               <value name="WholeMesh">
                 <constant>
                   <real_value rank="0">0.33</real_value>
@@ -1450,6 +1452,7 @@ for n in range(field.node_count):
           </scalar_field>
           <scalar_field name="SinkingVelocity" rank="0">
             <diagnostic>
+              <mesh name="VelocityMesh"/>
               <algorithm name="Internal" material_phase_support="multiple"/>
               <output/>
               <stat/>
@@ -1583,6 +1586,7 @@ for n in range(field.node_count):
           </scalar_field>
           <scalar_field name="UnhinderedSinkingVelocity" rank="0">
             <prescribed>
+              <mesh name="VelocityMesh"/>
               <value name="WholeMesh">
                 <constant>
                   <real_value rank="0">0.66</real_value>

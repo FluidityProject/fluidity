@@ -9,11 +9,17 @@
   </problem_definition>
 
 <variables>  
-  <variable name="solvers_converged" language="python">
+
+<variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
-  </variable>
+</variable>
+
+<variable name="velocity_solver_iterations_correct" language="python">
+from check_iterations import *
+velocity_solver_iterations_correct = check_velocity_iterations()
+</variable>
 
 <variable name="nu_top" language="python">
 from fluidity_tools import stat_parser as stat
@@ -43,9 +49,14 @@ q_two = (-1.)*(stat("stokes-1e4-p2p1.detectors")["Fluid"]["TemperatureGradient"]
 </variables>
 
 <pass_tests>
-  <test name="Solvers converged" language="python">
-    assert(solvers_converged)
-  </test>
+
+<test name="Solvers converged" language="python">
+assert(solvers_converged)
+</test>
+
+<test name="Velocity solver behaving as expected" language="python">
+assert(velocity_solver_iterations_correct)
+</test>
 
 <test name="Surface Nusselt Number Validity: 4.8 .lt. Nu .lt. 5.0" language="python">
 assert(abs(nu_top-4.9) &lt; 0.10)
