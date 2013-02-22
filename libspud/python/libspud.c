@@ -318,7 +318,7 @@ spud_get_option_aux_list_doubles(const char *key, int key_len, int type, int ran
         return NULL;
     }
     for (j = 0; j < size; j++){
-        PyObject* element = Py_BuildValue("f", val[j]);
+        PyObject* element = Py_BuildValue("d", val[j]);
         PyList_SetItem(pylist, j, element);
     }
 
@@ -656,7 +656,7 @@ set_option_aux_scalar(PyObject *pyscalar, const char *key, int key_len, int type
 
     if (type == SPUD_DOUBLE){ //scalar is double
         double val;
-        PyArg_Parse(pyscalar, "f", &val);
+        PyArg_Parse(pyscalar, "d", &val);
         outcomeSetOption = spud_set_option(key, key_len, &val, type, rank, shape);
     }
     else if (type == SPUD_INT){
@@ -684,7 +684,7 @@ libspud_set_option(PyObject *self, PyObject *args)
         PyErr_SetString(SpudError,"Error: set_option takes exactly 2 arguments.");
         return NULL;
     }
-
+    
     firstArg = PyTuple_GetItem(args, 0);
     secondArg = PyTuple_GetItem(args, 1);
     PyArg_Parse(firstArg, "s", &key);
@@ -694,7 +694,7 @@ libspud_set_option(PyObject *self, PyObject *args)
         int outcomeAddOption = spud_add_option(key, key_len);
         error_checking(outcomeAddOption, "set option");
     } 
-    
+  
     if (PyInt_Check(secondArg)){ //just an int
         type = SPUD_INT;
         rank = 0;

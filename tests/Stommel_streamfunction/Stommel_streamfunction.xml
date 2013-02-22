@@ -10,6 +10,11 @@
     <command_line>fluidity -v3 Stommel_gyre_A.flml &gt; Stommel_gyre_A.log 2&gt;&amp;1; fluidity -v3 Stommel_gyre_adapt_A.flml &gt; Stommel_gyre_adapt_A.log 2&gt;&amp;1;</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="Fixed_error_norm" language="python">
 from numpy import sqrt,pi,exp,sin,array,size,abs,max,amax,dot,zeros,reshape,transpose,arange
 import vtktools
@@ -124,6 +129,9 @@ Adapt_node_count = ug.ugrid.GetNumberOfPoints()
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="Check that the L2 norm of the error on the fixed mesh is less than 5e-5." language="python">
 print Fixed_error_norm
 assert(Fixed_error_norm &lt; 5e-5)
