@@ -12,7 +12,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="channel">
-        <format name="gmsh"/>
+        <format name="triangle"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -148,7 +148,9 @@
           <max_iterations>
             <integer_value rank="0">10000</integer_value>
           </max_iterations>
-          <remove_null_space/>
+          <remove_null_space>
+            <all_components/>
+          </remove_null_space>
           <never_ignore_solver_failures/>
           <diagnostics>
             <monitors/>

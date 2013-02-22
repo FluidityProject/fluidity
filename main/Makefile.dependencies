@@ -34,7 +34,7 @@ Fluids.o ../include/fluids_module.mod: Fluids.F90 \
    ../include/auxilaryoptions.mod ../include/biology.mod \
    ../include/boundary_conditions.mod \
    ../include/boundary_conditions_from_options.mod ../include/checkpoint.mod \
-   ../include/conformity_measurement.mod \
+   ../include/conformity_measurement.mod ../include/detector_data_types.mod \
    ../include/detector_move_lagrangian.mod ../include/detector_parallel.mod \
    ../include/detectors.mod ../include/diagnostic_children.mod \
    ../include/diagnostic_fields_new.mod \
@@ -50,11 +50,13 @@ Fluids.o ../include/fluids_module.mod: Fluids.F90 \
    ../include/iceshelf_meltrate_surf_normal.mod ../include/implicit_solids.mod \
    ../include/k_epsilon.mod ../include/lagrangian_biology.mod \
    ../include/memory_diagnostics.mod ../include/meshdiagnostics.mod \
-   ../include/meshmovement.mod ../include/momentum_equation.mod \
-   ../include/multimaterial_module.mod ../include/multiphase_module.mod \
-   ../include/parallel_tools.mod ../include/populate_state_module.mod \
-   ../include/populate_sub_state_module.mod ../include/qmesh_module.mod \
-   ../include/reduced_model_runtime.mod ../include/reserve_state_module.mod \
+   ../include/meshmovement.mod ../include/momentum_diagnostic_fields.mod \
+   ../include/momentum_equation.mod ../include/multimaterial_module.mod \
+   ../include/multiphase_module.mod ../include/parallel_tools.mod \
+   ../include/populate_state_module.mod \
+   ../include/populate_sub_state_module.mod ../include/profiler.mod \
+   ../include/qmesh_module.mod ../include/reduced_model_runtime.mod \
+   ../include/reserve_state_module.mod \
    ../include/saturation_distribution_search_hookejeeves.mod \
    ../include/sediment.mod ../include/signal_vars.mod \
    ../include/solidconfiguration.mod ../include/sparse_tools.mod \

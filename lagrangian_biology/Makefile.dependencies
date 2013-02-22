@@ -5,11 +5,11 @@
 Detector_Move_Lagrangian.o ../include/detector_move_lagrangian.mod: \
    Detector_Move_Lagrangian.F90 ../include/detector_data_types.mod \
    ../include/detector_parallel.mod ../include/detector_tools.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/global_parameters.mod \
-   ../include/halo_data_types.mod ../include/halos_base.mod \
-   ../include/ieee_arithmetic.mod ../include/integer_hash_table_module.mod \
-   ../include/lebiology_python.mod ../include/linked_lists.mod \
-   ../include/parallel_fields.mod ../include/pickers.mod \
+   ../include/element_path_list.mod ../include/fdebug.h ../include/fields.mod \
+   ../include/global_parameters.mod ../include/ieee_arithmetic.mod \
+   ../include/integer_hash_table_module.mod ../include/lebiology_python.mod \
+   ../include/linked_lists.mod ../include/parallel_fields.mod \
+   ../include/path_element_module.mod ../include/pickers.mod \
    ../include/profiler.mod ../include/spud.mod ../include/state_module.mod \
    ../include/transform_elements.mod
 
@@ -18,8 +18,9 @@ Detector_Move_Lagrangian.o ../include/detector_move_lagrangian.mod: \
 
 LEBiology_Python.o ../include/lebiology_python.mod: LEBiology_Python.F90 \
    ../include/detector_data_types.mod ../include/detector_parallel.mod \
-   ../include/detector_tools.mod ../include/fdebug.h ../include/fields.mod \
-   ../include/fldebug.mod ../include/ieee_arithmetic.mod
+   ../include/detector_tools.mod ../include/element_path_list.mod \
+   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
+   ../include/ieee_arithmetic.mod
 
 ../include/lagrangian_biology.mod: Lagrangian_Biology.o
 	@true
@@ -28,8 +29,9 @@ Lagrangian_Biology.o ../include/lagrangian_biology.mod: Lagrangian_Biology.F90 \
    ../include/detector_data_types.mod ../include/detector_move_lagrangian.mod \
    ../include/detector_parallel.mod ../include/detector_tools.mod \
    ../include/detectors.mod ../include/diagnostic_fields.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
-   ../include/futils.mod ../include/global_parameters.mod \
+   ../include/element_path_list.mod ../include/fdebug.h ../include/fields.mod \
+   ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/halo_data_types.mod \
    ../include/integer_hash_table_module.mod \
    ../include/lagrangian_biology_pm.mod ../include/lebiology_python.mod \
    ../include/mpi_interfaces.mod ../include/parallel_tools.mod \

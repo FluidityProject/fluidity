@@ -10,6 +10,7 @@
 extern "C" {
   void iscopyindices_(IS *is, PetscInt *iarray,PetscErrorCode *ierr);
   void petscobjectreference_(PetscObject obj, int *__ierr );
+  void pcfieldsplitgetsubksp_(PC *pc, KSP subksps[], int *__ierr);
 }
 
 // our own version of IsGetIndices, that just does a copy
@@ -55,4 +56,18 @@ extern void PetscRmPointer(void*);
 void petscobjectreference_(PetscObject obj, int *__ierr ){
 *__ierr = PetscObjectReference(
    (PetscObject)PetscToPointer((obj) ));
+}
+
+// PCFieldSplitGetSubKSP()
+// Again, missing from petsc fortrarn interface (sigh)
+// Also, work around clumsy allocated subksps array that is returned
+// by assuming we know how many ksp there are
+void pcfieldsplitgetsubksp_(PC *pc, KSP subksps[], int *__ierr){
+  KSP *temp_subksps;
+  PetscInt nsubksps;
+  *__ierr = PCFieldSplitGetSubKSP(*pc, &nsubksps, &temp_subksps);
+  for (int i=0; i<nsubksps; i++) {
+    subksps[i]=temp_subksps[i];
+  }
+  PetscFree(temp_subksps);
 }
