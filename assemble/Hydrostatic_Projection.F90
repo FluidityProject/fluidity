@@ -83,7 +83,6 @@ contains
       
       call create_surface_mesh(local_surface_p_mesh, surface_nodes, p_mesh, surface_element_list, &
         name="Lumped"//trim(p_mesh%name))
-      call add_faces(local_surface_p_mesh)
       call insert(state, local_surface_p_mesh, local_surface_p_mesh%name)
       call deallocate(local_surface_p_mesh)
       surface_p_mesh => extract_mesh(state, "Lumped"//trim(p_mesh%name))
@@ -290,7 +289,6 @@ contains
       ! next element above
       real, dimension(:), intent(inout):: facet_rhs
 
-      integer, dimension(face_loc(l_mesh,sele)):: fnodes
       type(integer_set):: top_lpnodes
       type(real_vector), dimension(u%dim):: rowvals
       real, dimension(face_ngi(u,sele)):: detwei_f
