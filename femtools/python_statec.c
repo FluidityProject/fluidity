@@ -52,7 +52,7 @@ void init_vars(void){
   }
   else{
     if (get_global_debug_level_() > 1) {
-      printf("fluidity.state_types imported successfully; location: \n");
+      //printf("fluidity.state_types imported successfully; location: \n");
       PyRun_SimpleString("import fluidity.state_types; print fluidity.state_types.__file__");
     }
   }

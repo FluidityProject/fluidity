@@ -7,6 +7,7 @@ module lebiology_python
   use detector_tools
   use detector_parallel
   use ieee_arithmetic, only: ieee_is_nan
+  use iso_c_binding
   use element_path_list, only: elepath_list => linked_list, &
                                elepath_list_next => list_next
 
@@ -32,59 +33,53 @@ module lebiology_python
       integer(c_int), intent(in), value :: dim
     end subroutine lebiology_init_module
 
-    subroutine lebiology_add_fg_varname(fg, fglen, var, varlen, stat) &
+    subroutine lebiology_add_fg_varname(fg, var, stat) &
            bind(c, name='lebiology_add_fg_varname_c')
       use :: iso_c_binding
       implicit none
-      integer(c_int), intent(in), value :: fglen, varlen
-      character(kind=c_char), dimension(fglen), intent(in) :: fg
-      character(kind=c_char), dimension(varlen), intent(in) :: var
+      character(kind=c_char), dimension(*), intent(in) :: fg
+      character(kind=c_char), dimension(*), intent(in) :: var
       integer(c_int), intent(out) :: stat
     end subroutine lebiology_add_fg_varname
 
-    subroutine lebiology_add_fg_envname(fg, fglen, env, envlen, stat) &
+    subroutine lebiology_add_fg_envname(fg, env, stat) &
            bind(c, name='lebiology_add_fg_envname_c')
       use :: iso_c_binding
       implicit none
-      integer(c_int), intent(in), value :: fglen, envlen
-      character(kind=c_char), dimension(fglen), intent(in) :: fg
-      character(kind=c_char), dimension(envlen), intent(in) :: env
+      character(kind=c_char), dimension(*), intent(in) :: fg
+      character(kind=c_char), dimension(*), intent(in) :: env
       integer(c_int), intent(out) :: stat
     end subroutine lebiology_add_fg_envname
 
-    subroutine lebiology_add_fg_foodname(fg, fglen, food, foodlen, variety, varietylen, stat) &
+    subroutine lebiology_add_fg_foodname(fg, food, variety, stat) &
            bind(c, name='lebiology_add_fg_foodname_c')
       use :: iso_c_binding
       implicit none
-      integer(c_int), intent(in), value :: fglen, foodlen, varietylen
-      character(kind=c_char), dimension(fglen), intent(in) :: fg
-      character(kind=c_char), dimension(foodlen), intent(in) :: food
-      character(kind=c_char), dimension(varietylen), intent(in) :: variety
+      character(kind=c_char), dimension(*), intent(in) :: fg
+      character(kind=c_char), dimension(*), intent(in) :: food
+      character(kind=c_char), dimension(*), intent(in) :: variety
       integer(c_int), intent(out) :: stat
     end subroutine lebiology_add_fg_foodname
 
-    subroutine lebiology_add_fg_stage_id(fg, fglen, stage, stagelen, id, stat) &
+    subroutine lebiology_add_fg_stage_id(fg, stage, id, stat) &
            bind(c, name='lebiology_add_fg_stage_id_c')
       use :: iso_c_binding
       implicit none
-      integer(c_int), intent(in), value :: fglen, stagelen
-      character(kind=c_char), dimension(fglen), intent(in) :: fg
-      character(kind=c_char), dimension(stagelen), intent(in) :: stage
+      character(kind=c_char), dimension(*), intent(in) :: fg
+      character(kind=c_char), dimension(*), intent(in) :: stage
       real(c_double), intent(in) :: id
       integer(c_int), intent(out) :: stat
     end subroutine lebiology_add_fg_stage_id
 
-    subroutine lebiology_fg_kernel_load(fg, fglen, key, keylen, &
-         module, modulelen, kernel, kernellen, param, paramlen, stat) &
+    subroutine lebiology_fg_kernel_load(fg, key, module, kernel, param, stat) &
          bind(c, name='lebiology_fg_kernel_load_c')
       use :: iso_c_binding
       implicit none
-      integer(c_int), intent(in), value :: fglen, keylen, modulelen, kernellen, paramlen
-      character(kind=c_char), dimension(fglen), intent(in) :: fg
-      character(kind=c_char), dimension(keylen), intent(in) :: key
-      character(kind=c_char), dimension(modulelen), intent(in) :: module
-      character(kind=c_char), dimension(kernellen), intent(in) :: kernel
-      character(kind=c_char), dimension(paramlen), intent(in) :: param
+      character(kind=c_char), dimension(*), intent(in) :: fg
+      character(kind=c_char), dimension(*), intent(in) :: key
+      character(kind=c_char), dimension(*), intent(in) :: module
+      character(kind=c_char), dimension(*), intent(in) :: kernel
+      character(kind=c_char), dimension(*), intent(in) :: param
       integer(c_int), intent(out) :: stat
     end subroutine lebiology_fg_kernel_load
 
@@ -94,39 +89,37 @@ module lebiology_python
       implicit none
     end subroutine lebiology_reload_persistent
 
-    subroutine lebiology_compile_function(fg, fglen, key, keylen, func, funclen, stat) &
+    subroutine lebiology_compile_function(fg, key, func, stat) &
            bind(c, name='lebiology_compile_function_c')
       use :: iso_c_binding
       implicit none
-      integer(c_int), intent(in), value :: fglen, keylen, funclen
-      character(kind=c_char), dimension(fglen), intent(in) :: fg
-      character(kind=c_char), dimension(keylen), intent(in) :: key
-      character(kind=c_char), dimension(funclen), intent(in) :: func
+      character(kind=c_char), dimension(*), intent(in) :: fg
+      character(kind=c_char), dimension(*), intent(in) :: key
+      character(kind=c_char), dimension(*), intent(in) :: func
       integer(c_int), intent(out) :: stat
     end subroutine lebiology_compile_function
 
-    subroutine lebiology_agent_init(fg, fglen, key, keylen, vars, n_vars, stat) &
+    subroutine lebiology_agent_init(fg, key, vars, n_vars, stat) &
            bind(c, name='lebiology_agent_init_c')
       use :: iso_c_binding
       implicit none
-      integer(c_int), intent(in), value :: fglen, keylen, n_vars
-      character(kind=c_char), dimension(fglen), intent(in) :: fg
-      character(kind=c_char), dimension(keylen), intent(in) :: key
+      integer(c_int), intent(in), value :: n_vars
+      character(kind=c_char), dimension(*), intent(in) :: fg
+      character(kind=c_char), dimension(*), intent(in) :: key
       real(c_double), dimension(n_vars), intent(inout) :: vars
       integer(c_int), intent(out) :: stat
     end subroutine lebiology_agent_init
 
-    subroutine lebiology_parallel_prepare(fg, fglen, key, keylen, food, foodlen, &
-           vars, n_vars, envvals, n_envvals, fvariety, fingest, n_fvariety, &
-           agent_id, dt, persistent, stat) &
-           bind(c, name='lebiology_parallel_prepare_c')
+    subroutine lebiology_parallel_prepare(fg, key, food, vars, n_vars, &
+         envvals, n_envvals, fvariety, fingest, n_fvariety, &
+         agent_id, dt, persistent, stat) &
+         bind(c, name='lebiology_parallel_prepare_c')
       use :: iso_c_binding
       implicit none
-      integer(c_int), intent(in), value :: fglen, keylen, foodlen
       integer(c_int), intent(in), value :: n_vars, n_envvals, n_fvariety
-      character(kind=c_char), dimension(fglen), intent(in) :: fg
-      character(kind=c_char), dimension(keylen), intent(in) :: key
-      character(kind=c_char), dimension(foodlen), intent(in) :: food
+      character(kind=c_char), dimension(*), intent(in) :: fg
+      character(kind=c_char), dimension(*), intent(in) :: key
+      character(kind=c_char), dimension(*), intent(in) :: food
       real(c_double), dimension(n_vars), intent(inout) :: vars
       real(c_double), dimension(n_envvals), intent(inout) :: envvals
       real(c_double), dimension(n_fvariety), intent(inout) :: fvariety, fingest
@@ -135,32 +128,30 @@ module lebiology_python
       integer(c_int), intent(out) :: stat
     end subroutine lebiology_parallel_prepare
 
-    subroutine lebiology_parallel_finish(fg, fglen, food, foodlen, &
-           vars, n_vars, frequest, fthreshold, n_fvariety, agent_id, stat) &
-           bind(c, name='lebiology_parallel_finish_c')
+    subroutine lebiology_parallel_finish(fg, food, vars, n_vars, &
+         frequest, fthreshold, n_fvariety, agent_id, stat) &
+         bind(c, name='lebiology_parallel_finish_c')
       use :: iso_c_binding
       implicit none
-      integer(c_int), intent(in), value :: fglen, foodlen
       integer(c_int), intent(in), value :: n_vars, n_fvariety
-      character(kind=c_char), dimension(fglen), intent(in) :: fg
-      character(kind=c_char), dimension(foodlen), intent(in) :: food
+      character(kind=c_char), dimension(*), intent(in) :: fg
+      character(kind=c_char), dimension(*), intent(in) :: food
       real(c_double), dimension(n_vars), intent(inout) :: vars
       real(c_double), dimension(n_fvariety), intent(inout) :: frequest, fthreshold
       integer(c_int), intent(in), value :: agent_id
       integer(c_int), intent(out) :: stat
     end subroutine lebiology_parallel_finish
 
-    subroutine lebiology_kernel_update(fg, fglen, key, keylen, food, foodlen, &
-           vars, n_vars, envvals, n_envvals, fvariety, frequest, fthreshold, fingest, &
-           n_fvariety, dt, persistent, stat) &
-           bind(c, name='lebiology_kernel_update_c')
+    subroutine lebiology_kernel_update(fg, key, food, vars, n_vars, &
+         envvals, n_envvals, fvariety, frequest, fthreshold, fingest, &
+         n_fvariety, dt, persistent, stat) &
+         bind(c, name='lebiology_kernel_update_c')
       use :: iso_c_binding
       implicit none
-      integer(c_int), intent(in), value :: fglen, keylen, foodlen
       integer(c_int), intent(in), value :: n_vars, n_envvals, n_fvariety
-      character(kind=c_char), dimension(fglen), intent(in) :: fg
-      character(kind=c_char), dimension(keylen), intent(in) :: key
-      character(kind=c_char), dimension(foodlen), intent(in) :: food
+      character(kind=c_char), dimension(*), intent(in) :: fg
+      character(kind=c_char), dimension(*), intent(in) :: key
+      character(kind=c_char), dimension(*), intent(in) :: food
       real(c_double), dimension(n_vars), intent(inout) :: vars
       real(c_double), dimension(n_envvals), intent(inout) :: envvals
       real(c_double), dimension(n_fvariety), intent(inout) :: fvariety, frequest, fingest, fthreshold
@@ -169,17 +160,15 @@ module lebiology_python
       integer(c_int), intent(out) :: stat
     end subroutine lebiology_kernel_update
 
-    subroutine lebiology_agent_update(fg, fglen, key, keylen, food, foodlen, &
-           vars, n_vars, envvals, n_envvals, fvariety, frequest, fthreshold, fingest, &
-           n_fvariety, dt, stat) &
-           bind(c, name='lebiology_agent_update_c')
+    subroutine lebiology_agent_update(fg, key, food, vars, n_vars, envvals, n_envvals, &
+         fvariety, frequest, fthreshold, fingest, n_fvariety, dt, stat) &
+         bind(c, name='lebiology_agent_update_c')
       use :: iso_c_binding
       implicit none
-      integer(c_int), intent(in), value :: fglen, keylen, foodlen
       integer(c_int), intent(in), value :: n_vars, n_envvals, n_fvariety
-      character(kind=c_char), dimension(fglen), intent(in) :: fg
-      character(kind=c_char), dimension(keylen), intent(in) :: key
-      character(kind=c_char), dimension(foodlen), intent(in) :: food
+      character(kind=c_char), dimension(*), intent(in) :: fg
+      character(kind=c_char), dimension(*), intent(in) :: key
+      character(kind=c_char), dimension(*), intent(in) :: food
       real(c_double), dimension(n_vars), intent(inout) :: vars
       real(c_double), dimension(n_envvals), intent(inout) :: envvals
       real(c_double), dimension(n_fvariety), intent(inout) :: fvariety, frequest, fingest, fthreshold
@@ -187,14 +176,14 @@ module lebiology_python
       integer(c_int), intent(out) :: stat
     end subroutine lebiology_agent_update
 
-    subroutine lebiology_agent_move(fg, fglen, key, keylen, pos, n_pos, &
+    subroutine lebiology_agent_move(fg, key, pos, n_pos, &
            vars, n_vars, var_inds, dt, vector, stat) &
            bind(c, name='lebiology_agent_move_c')
       use :: iso_c_binding
       implicit none
-      integer(c_int), intent(in), value :: fglen, keylen, n_pos, n_vars
-      character(kind=c_char), dimension(fglen), intent(in) :: fg
-      character(kind=c_char), dimension(keylen), intent(in) :: key
+      integer(c_int), intent(in), value ::n_pos, n_vars
+      character(kind=c_char), dimension(*), intent(in) :: fg
+      character(kind=c_char), dimension(*), intent(in) :: key
       real(c_double), dimension(n_pos), intent(inout) :: pos
       real(c_double), dimension(n_vars), intent(inout) :: vars
       integer(c_int), dimension(n_vars), intent(inout) :: var_inds
@@ -219,8 +208,8 @@ contains
 
     stat=0
     do v=1, size(fgroup%variables)
-       call lebiology_add_fg_varname(trim(fgroup%name), len_trim(fgroup%name), &
-             trim(fgroup%variables(v)%name), len_trim(fgroup%variables(v)%name), stat)
+       call lebiology_add_fg_varname(trim(fgroup%name)//C_NULL_CHAR, &
+             trim(fgroup%variables(v)%name)//C_NULL_CHAR, stat)
     end do
 
     if (stat < 0) then
@@ -235,8 +224,8 @@ contains
 
     stat=0
     do f=1, size(fgroup%envfield_names)
-       call lebiology_add_fg_envname(trim(fgroup%name), len_trim(fgroup%name), &
-             trim(fgroup%envfield_names(f)), len_trim(fgroup%envfield_names(f)), stat)
+       call lebiology_add_fg_envname(trim(fgroup%name)//C_NULL_CHAR, &
+             trim(fgroup%envfield_names(f))//C_NULL_CHAR, stat)
     end do
 
     if (stat < 0) then
@@ -254,9 +243,8 @@ contains
     do f=1, size(fgroup%food_sets)
        fset = fgroup%food_sets(f)
        do s=1, size(fset%varieties)
-          call lebiology_add_fg_foodname(trim(fgroup%name), len_trim(fgroup%name), &
-                 trim(fset%name), len_trim(fset%name), trim(fset%varieties(s)%name), &
-                 len_trim(fset%varieties(s)%name), stat)
+          call lebiology_add_fg_foodname(trim(fgroup%name)//C_NULL_CHAR, &
+                 trim(fset%name)//C_NULL_CHAR, trim(fset%varieties(s)%name)//C_NULL_CHAR, stat)
        end do
     end do
 
@@ -273,8 +261,8 @@ contains
     integer :: s, stat
 
     stat=0
-    call lebiology_add_fg_stage_id(trim(fgroup%name), len_trim(fgroup%name), &
-             trim(stage_name), len_trim(stage_name), id, stat)
+    call lebiology_add_fg_stage_id(trim(fgroup%name)//C_NULL_CHAR, &
+             trim(stage_name)//C_NULL_CHAR, id, stat)
 
     if (stat < 0) then
        ewrite(-1, *) "Error setting stage ID for FG::"//trim(fgroup%name)
@@ -288,9 +276,9 @@ contains
     integer :: stat
 
     stat=0
-    call lebiology_fg_kernel_load(trim(fgroup%name), len_trim(fgroup%name), &
-             trim(key), len_trim(key), trim(module), len_trim(module), &
-             trim(kernel), len_trim(kernel), trim(paramset), len_trim(paramset), stat)
+    call lebiology_fg_kernel_load(trim(fgroup%name)//C_NULL_CHAR, &
+             trim(key)//C_NULL_CHAR, trim(module)//C_NULL_CHAR, &
+             trim(kernel)//C_NULL_CHAR, trim(paramset)//C_NULL_CHAR, stat)
 
     if (stat < 0) then
        ewrite(-1, *) "Error loading kernel for FG::"//trim(fgroup%name)
@@ -305,8 +293,8 @@ contains
     integer :: stat
 
     stat=0
-    call lebiology_compile_function(trim(fgroup%name), len_trim(fgroup%name), &
-             trim(key), len_trim(key), trim(func), len_trim(func), stat)
+    call lebiology_compile_function(trim(fgroup%name)//C_NULL_CHAR, &
+             trim(key)//C_NULL_CHAR, trim(func)//C_NULL_CHAR, stat)
 
     if (stat < 0) then
        ewrite(-1, *) "Error compiling for FG::"//trim(fgroup%name)
@@ -321,8 +309,8 @@ contains
     integer :: stat
 
     stat=0
-    call lebiology_agent_init(trim(fgroup%name), len_trim(fgroup%name), &
-             trim(key), len_trim(key), agent%biology, size(agent%biology), stat)
+    call lebiology_agent_init(trim(fgroup%name)//C_NULL_CHAR, &
+             trim(key)//C_NULL_CHAR, agent%biology, size(agent%biology), stat)
 
     if (stat < 0) then
        ewrite(-1, *) "Error initialising agent for FG::"//trim(fgroup%name)
@@ -347,8 +335,8 @@ contains
     end if
 
     stat=0
-    call lebiology_agent_move(trim(fgroup%name), len_trim(fgroup%name), &
-            trim(key), len_trim(key), agent%update_vector, size(agent%update_vector), &
+    call lebiology_agent_move(trim(fgroup%name)//C_NULL_CHAR, trim(key)//C_NULL_CHAR, &
+            agent%update_vector, size(agent%update_vector), &
             state_vars, size(state_vars), fgroup%motion_var_inds, dt, vector, stat) 
 
     if (size(fgroup%motion_var_inds) > 0) then
@@ -440,14 +428,14 @@ contains
        else
           persistent = 0
        end if
-       call lebiology_kernel_update(trim(fgroup%name), len_trim(fgroup%name), &
-             trim(key), len_trim(key), trim(foodname), len_trim(foodname), &
+       call lebiology_kernel_update(trim(fgroup%name)//C_NULL_CHAR, &
+             trim(key)//C_NULL_CHAR, trim(foodname)//C_NULL_CHAR, &
              agent%biology, size(agent%biology), envfield_vals, size(envfield_vals), &
              foodfield_vals, agent%food_requests, agent%food_thresholds, agent%food_ingests, &
              size(foodfield_vals), dt, persistent, stat)
     else
-       call lebiology_agent_update(trim(fgroup%name), len_trim(fgroup%name), &
-             trim(key), len_trim(key), trim(foodname), len_trim(foodname), &
+       call lebiology_agent_update(trim(fgroup%name)//C_NULL_CHAR, &
+             trim(key)//C_NULL_CHAR, trim(foodname)//C_NULL_CHAR, &
              agent%biology, size(agent%biology), envfield_vals, size(envfield_vals), &
              foodfield_vals, agent%food_requests, agent%food_thresholds, agent%food_ingests, &
              size(foodfield_vals), dt, stat)
@@ -515,8 +503,8 @@ contains
     else
        persistent = 0
     end if
-    call lebiology_parallel_prepare(trim(fgroup%name), len_trim(fgroup%name), &
-         trim(key), len_trim(key), trim(foodname), len_trim(foodname), &
+    call lebiology_parallel_prepare(trim(fgroup%name)//C_NULL_CHAR, &
+         trim(key)//C_NULL_CHAR, trim(foodname)//C_NULL_CHAR, &
          agent%biology, size(agent%biology), envfield_vals, size(envfield_vals), &
          foodfield_vals, agent%food_ingests, size(foodfield_vals), agent%id_number, dt, &
          persistent, stat)
@@ -532,8 +520,8 @@ contains
     integer stat
 
     stat = 0
-    call lebiology_parallel_finish(trim(fgroup%name), len_trim(fgroup%name), &
-         trim(foodname), len_trim(foodname), agent%biology, size(agent%biology), &
+    call lebiology_parallel_finish(trim(fgroup%name)//C_NULL_CHAR, &
+         trim(foodname)//C_NULL_CHAR, agent%biology, size(agent%biology), &
          agent%food_requests, agent%food_thresholds, size(foodfields), agent%id_number, stat)
 
     if (stat < 0) then

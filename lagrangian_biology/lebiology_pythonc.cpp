@@ -27,58 +27,42 @@ PyMODINIT_FUNC initlebiology(int dim)
  * Kernel initialisation
  ****************************/
 
-void lebiology_fg_kernel_load_c(char *fg, int fglen, 
-				char *key, int keylen, 
-                                char *module, int modulelen, 
-				char *kernel, int kernellen, 
-				char *param, int paramlen, int *stat)
+void lebiology_fg_kernel_load_c(char *fg, char *key, char *module, char *kernel,
+				char *param, int *stat)
 {
 #ifdef HAVE_PYTHON
-  char *fg_key = fix_string(fg, fglen);
-  char *keystr = fix_string(key, keylen);
-  char *mod_name = fix_string(module, modulelen);
-  char *k_name = fix_string(kernel, kernellen);
-  char *p_name = fix_string(param, paramlen);
-
   // Load the provided module
-  PyImport_ImportModule(mod_name);
-  PyObject *pModule = PyImport_AddModule(mod_name);
+  PyImport_ImportModule(module);
+  PyObject *pModule = PyImport_AddModule(module);
   PyObject *pModuleDict = PyModule_GetDict(pModule);
 
   // Store the kernel function object
-  PyObject *pKernelMap = PyDict_GetItemString(pFGKernelFunc, fg_key);
+  PyObject *pKernelMap = PyDict_GetItemString(pFGKernelFunc, fg);
   if (!pKernelMap) {
      pKernelMap = PyDict_New();
-     *stat = PyDict_SetItemString(pFGKernelFunc, fg_key, pKernelMap);
+     *stat = PyDict_SetItemString(pFGKernelFunc, fg, pKernelMap);
      if (*stat<0) {
         PyErr_Print();
         return;
      }
      Py_DECREF(pKernelMap);
   }
-  PyObject *pModuleKernel = PyDict_GetItemString(pModuleDict, k_name);
-  *stat = PyDict_SetItemString(pKernelMap, keystr, pModuleKernel);
+  PyObject *pModuleKernel = PyDict_GetItemString(pModuleDict, kernel);
+  *stat = PyDict_SetItemString(pKernelMap, key, pModuleKernel);
 
   // Store the kernel's associated parameter map
-  PyObject *pParamMap = PyDict_GetItemString(pFGParamDicts, fg_key);
+  PyObject *pParamMap = PyDict_GetItemString(pFGParamDicts, fg);
   if (!pParamMap) {
      pParamMap = PyDict_New();
-     *stat = PyDict_SetItemString(pFGParamDicts, fg_key, pParamMap);
+     *stat = PyDict_SetItemString(pFGParamDicts, fg, pParamMap);
      if (*stat<0) {
         PyErr_Print();
         return;
      }
      Py_DECREF(pParamMap);
   }
-  PyObject *pKernelParams = PyDict_GetItemString(pModuleDict, p_name);
-  *stat = PyDict_SetItemString(pParamMap, keystr, pKernelParams);
-
-  free(fg_key);
-  free(keystr);
-  free(mod_name); 
-  free(k_name); 
-  free(p_name); 
-  return;
+  PyObject *pKernelParams = PyDict_GetItemString(pModuleDict, param);
+  *stat = PyDict_SetItemString(pParamMap, key, pKernelParams);
 #endif
 }
 
@@ -103,16 +87,14 @@ void lebiology_reload_persistent_c()
  ****************************/
 
 /* Add a variable name to the array under pFGVarNames['fg'] */
-void lebiology_add_fg_varname_c(char *fg, int fglen, 
-                                char *var, int varlen, int *stat)
+void lebiology_add_fg_varname_c(char *fg, char *var, int *stat)
 {
 #ifdef HAVE_PYTHON
   //Get pFGVarNames['fg'] or create if it doesn't exist
-  char *fg_key = fix_string(fg, fglen);
-  PyObject *pVarList = PyDict_GetItemString(pFGVarNames, fg_key);
+  PyObject *pVarList = PyDict_GetItemString(pFGVarNames, fg);
   if (!pVarList) {
      pVarList = PyList_New(0);
-     *stat = PyDict_SetItemString(pFGVarNames, fg_key, pVarList);
+     *stat = PyDict_SetItemString(pFGVarNames, fg, pVarList);
      if (*stat<0) {
         PyErr_Print();
         return;
@@ -121,28 +103,21 @@ void lebiology_add_fg_varname_c(char *fg, int fglen,
   }
 
   // Append the variable name
-  char *varname = fix_string(var, varlen);
-  PyObject *pVarName = PyString_FromString(varname);
+  PyObject *pVarName = PyString_FromString(var);
   *stat = PyList_Append(pVarList, pVarName);
-
   Py_DECREF(pVarName);
-  free(fg_key);
-  free(varname); 
-  return;
 #endif
 }
 
 /* Add an environment name to the array under pFGEnvNames['fg'] */
-void lebiology_add_fg_envname_c(char *fg, int fglen, 
-                                char *env, int envlen, int *stat)
+void lebiology_add_fg_envname_c(char *fg, char *env, int *stat)
 {
 #ifdef HAVE_PYTHON
   //Get pFGVarNames['fg'] or create if it doesn't exist
-  char *fg_key = fix_string(fg, fglen);
-  PyObject *pEnvList = PyDict_GetItemString(pFGEnvNames, fg_key);
+  PyObject *pEnvList = PyDict_GetItemString(pFGEnvNames, fg);
   if (!pEnvList) {
      pEnvList = PyList_New(0);
-     *stat = PyDict_SetItemString(pFGEnvNames, fg_key, pEnvList);
+     *stat = PyDict_SetItemString(pFGEnvNames, fg, pEnvList);
      if (*stat<0) {
         PyErr_Print();
         return;
@@ -151,29 +126,21 @@ void lebiology_add_fg_envname_c(char *fg, int fglen,
   }
 
   // Append the environment name
-  char *envname = fix_string(env, envlen);
-  PyObject *pEnvName = PyString_FromString(envname);
+  PyObject *pEnvName = PyString_FromString(env);
   *stat = PyList_Append(pEnvList, pEnvName);
-
   Py_DECREF(pEnvName);
-  free(fg_key);
-  free(envname);
-  return;
 #endif
 }
 
 /* Add a food variety name to the array under pFGFoodNames['fg']['food'] */
-void lebiology_add_fg_foodname_c(char *fg, int fglen, 
-                                 char *food, int foodlen,
-                                 char *variety, int varietylen, int *stat)
+void lebiology_add_fg_foodname_c(char *fg, char *food, char *variety, int *stat)
 {
 #ifdef HAVE_PYTHON
   // Get pFGFoodNames['fg'] or create if it doesn't exist
-  char *fg_key = fix_string(fg, fglen);
-  PyObject *pFoodDict = PyDict_GetItemString(pFGFoodNames, fg_key);
+  PyObject *pFoodDict = PyDict_GetItemString(pFGFoodNames, fg);
   if (!pFoodDict) {
      pFoodDict = PyDict_New();
-     *stat = PyDict_SetItemString(pFGFoodNames, fg_key, pFoodDict);
+     *stat = PyDict_SetItemString(pFGFoodNames, fg, pFoodDict);
      if (*stat<0) {
         PyErr_Print();
         return;
@@ -182,11 +149,10 @@ void lebiology_add_fg_foodname_c(char *fg, int fglen,
   }  
 
   // Get pFGFoodNames['fg']['food'] or create if it doesn't exist
-  char *foodname = fix_string(food, foodlen);
-  PyObject *pVarietyList = PyDict_GetItemString(pFoodDict, foodname);
+  PyObject *pVarietyList = PyDict_GetItemString(pFoodDict, food);
   if (!pVarietyList) {
      pVarietyList = PyList_New(0);
-     *stat = PyDict_SetItemString(pFoodDict, foodname, pVarietyList);
+     *stat = PyDict_SetItemString(pFoodDict, food, pVarietyList);
      if (*stat<0) {
         PyErr_Print();
         return;
@@ -195,30 +161,21 @@ void lebiology_add_fg_foodname_c(char *fg, int fglen,
   }
 
   // Append variety name
-  char *varietyname = fix_string(variety, varietylen);
-  PyObject *pVarietyName = PyString_FromString(varietyname);
+  PyObject *pVarietyName = PyString_FromString(variety);
   *stat = PyList_Append(pVarietyList, pVarietyName);
-
   Py_DECREF(pVarietyName);
-  free(fg_key);
-  free(foodname);
-  free(varietyname);
-  return;
 #endif
 }
 
 /* Add a stage ID to pFGStageID['fg'] */
-void lebiology_add_fg_stage_id_c(char *fg, int fglen, 
-                                char *stage, int stagelen, 
-                                double *id, int *stat)
+void lebiology_add_fg_stage_id_c(char *fg, char *stage, double *id, int *stat)
 {
 #ifdef HAVE_PYTHON
   //Get pFGStageID['fg'] or create if it doesn't exist
-  char *fg_key = fix_string(fg, fglen);
-  PyObject *pStageID = PyDict_GetItemString(pFGStageID, fg_key);
+  PyObject *pStageID = PyDict_GetItemString(pFGStageID, fg);
   if (!pStageID) {
      pStageID = PyDict_New();
-     *stat = PyDict_SetItemString(pFGStageID, fg_key, pStageID);
+     *stat = PyDict_SetItemString(pFGStageID, fg, pStageID);
      if (*stat<0) {
         PyErr_Print();
         return;
@@ -227,14 +184,9 @@ void lebiology_add_fg_stage_id_c(char *fg, int fglen,
   }
 
   // Insert the stage ID
-  char *stagename = fix_string(stage, stagelen);
   PyObject *pID = PyFloat_FromDouble(*id);
-  *stat = PyDict_SetItemString(pStageID, stagename, pID);
-
+  *stat = PyDict_SetItemString(pStageID, stage, pID);
   Py_DECREF(pID);
-  free(fg_key);
-  free(stagename); 
-  return;
 #endif
 }
 
@@ -246,22 +198,14 @@ void lebiology_add_fg_stage_id_c(char *fg, int fglen,
  * from the schema and stores the local namespace under pFGNamespace['fg'].
  * The compiled function object for can be retrieved from the namespace
  * and applied over agents with different arguments. */
-void lebiology_compile_function_c(char *fg, int fglen, 
-                                  char *key, int keylen, 
-                                  char *func, int funclen, 
-                                  int *stat)
+void lebiology_compile_function_c(char *fg, char *key, char *func, int *stat)
 {
 #ifdef HAVE_PYTHON
-  char *c = fix_string(func,funclen);
-  int tlen=8+funclen;
-  char t[tlen];
-  snprintf(t, tlen, "%s\n",c);
-
   // Runc function with global and local namespace
   PyObject *pMain = PyImport_AddModule("__main__");
   PyObject *pGlobals = PyModule_GetDict(pMain);
   PyObject *pLocals = PyDict_New();
-  PyObject *pCode = PyRun_String(t, Py_file_input, pGlobals, pLocals);
+  PyObject *pCode = PyRun_String(func, Py_file_input, pGlobals, pLocals);
 
   if(!pCode){
     PyErr_Print();
@@ -270,11 +214,10 @@ void lebiology_compile_function_c(char *fg, int fglen,
   }
 
   // Get pFGLocalsDict['fg'] or create if it doesn't exist
-  char *fg_key = fix_string(fg, fglen);
-  PyObject *pLocalsDict = PyDict_GetItemString(pFGLocalsDict, fg_key);
+  PyObject *pLocalsDict = PyDict_GetItemString(pFGLocalsDict, fg);
   if (!pLocalsDict) {
      pLocalsDict = PyDict_New();
-     *stat = PyDict_SetItemString(pFGLocalsDict, fg_key, pLocalsDict);
+     *stat = PyDict_SetItemString(pFGLocalsDict, fg, pLocalsDict);
      if (*stat<0) {
         PyErr_Print();
         return;
@@ -283,8 +226,7 @@ void lebiology_compile_function_c(char *fg, int fglen,
   }
 
   // Add local namespace under 'key'
-  char *keystr = fix_string(key,keylen);
-  PyDict_SetItemString(pLocalsDict, keystr, pLocals);
+  PyDict_SetItemString(pLocalsDict, key, pLocals);
 
   // Check for exceptions
   if (PyErr_Occurred()){
@@ -295,27 +237,18 @@ void lebiology_compile_function_c(char *fg, int fglen,
 
   Py_DECREF(pCode);
   Py_DECREF(pLocals);
-  free(c);
-  free(fg_key);
-  free(keystr);
-  return;
 #endif
 }
 
-void lebiology_agent_init_c(char *fg, int fglen, 
-                            char *key, int keylen, 
-                            double vars[], int n_vars, 
-                            int *stat)
+void lebiology_agent_init_c(char *fg, char *key, double vars[], int n_vars, int *stat)
 {
 #ifdef HAVE_PYTHON
   // Get variable names and local namespace
-  char *fg_key = fix_string(fg, fglen);
-  PyObject *pLocalsDict = PyDict_GetItemString(pFGLocalsDict, fg_key);
-  PyObject *pVarNames = PyDict_GetItemString(pFGVarNames, fg_key);
+  PyObject *pLocalsDict = PyDict_GetItemString(pFGLocalsDict, fg);
+  PyObject *pVarNames = PyDict_GetItemString(pFGVarNames, fg);
 
   // Get compiled code object from local namespace
-  char *keystr = fix_string(key,keylen);
-  PyObject *pLocals = PyDict_GetItemString(pLocalsDict, keystr);
+  PyObject *pLocals = PyDict_GetItemString(pLocalsDict, key);
   PyObject *pFunc = PyDict_GetItemString(pLocals, "val");
   PyObject *pFuncCode = PyObject_GetAttrString(pFunc, "func_code");
 
@@ -358,8 +291,6 @@ void lebiology_agent_init_c(char *fg, int fglen,
   Py_DECREF(pFuncCode);
   Py_DECREF(pResult);
   free(pArgs);
-  free(fg_key);
-  free(keystr);
 #endif
 }
 
@@ -450,9 +381,7 @@ void convert_food_variety(PyObject *pResult, char *fg_key, char *food_name,
 }
 #endif
 
-void lebiology_parallel_prepare_c(char *fg, int fglen, 
-				  char *key, int keylen, 
-				  char *food, int foodlen, 
+void lebiology_parallel_prepare_c(char *fg, char *key, char *food, 
 				  double vars[], int n_vars, 
 				  double envvals[], int n_envvals, 
 				  double fvariety[], double fingest[], 
@@ -461,28 +390,25 @@ void lebiology_parallel_prepare_c(char *fg, int fglen,
 {
 #ifdef HAVE_PYTHON
   // Get variable names
-  char *fg_key = fix_string(fg, fglen);
-  PyObject *pVarNames = PyDict_GetItemString(pFGVarNames, fg_key);
-  PyObject *pEnvNames = PyDict_GetItemString(pFGEnvNames, fg_key);
+  PyObject *pVarNames = PyDict_GetItemString(pFGVarNames, fg);
+  PyObject *pEnvNames = PyDict_GetItemString(pFGEnvNames, fg);
 
   // Create agent and environment dict
   PyObject *pAgent = create_dict(pVarNames, vars, n_vars);
   PyObject *pEnvironment = create_dict(pEnvNames, envvals, n_envvals);
 
-  char *food_name = fix_string(food, foodlen);
   if (n_fvariety > 0) {
-    add_food_variety(pAgent, pEnvironment, fg_key, food_name, n_fvariety, fvariety, fingest);
+    add_food_variety(pAgent, pEnvironment, fg, food, n_fvariety, fvariety, fingest);
   }
 
   // Create dt argument
   PyObject *pDt = PyFloat_FromDouble(*dt);
 
   // Get kernel and parameter set, pack arguments and execute
-  char *keystr = fix_string(key,keylen);
-  PyObject *pKernelMap = PyDict_GetItemString(pFGKernelFunc, fg_key);
-  PyObject *pKernel = PyDict_GetItemString(pKernelMap, keystr);
-  PyObject *pParamMap = PyDict_GetItemString(pFGParamDicts, fg_key);
-  PyObject *pParams = PyDict_GetItemString(pParamMap, keystr);
+  PyObject *pKernelMap = PyDict_GetItemString(pFGKernelFunc, fg);
+  PyObject *pKernel = PyDict_GetItemString(pKernelMap, key);
+  PyObject *pParamMap = PyDict_GetItemString(pFGParamDicts, fg);
+  PyObject *pParams = PyDict_GetItemString(pParamMap, key);
   
   PyObject *pArgsTuple;
   if (persistent > 0) {
@@ -502,23 +428,16 @@ void lebiology_parallel_prepare_c(char *fg, int fglen,
   Py_DECREF(pDt);
   Py_DECREF(pArgsTuple);
   Py_DECREF(pJob);
-  free(fg_key);
-  free(keystr); 
-  free(food_name);
 #endif
 }
 
-void lebiology_parallel_finish_c(char *fg, int fglen, 
-				 char *food, int foodlen, 
-				 double vars[], int n_vars, 
+void lebiology_parallel_finish_c(char *fg, char *food, double vars[], int n_vars, 
 				 double frequest[], double fthreshold[], int n_fvariety, 
 				 int agent_id, int *stat)
 {
 #ifdef HAVE_PYTHON
   // Get variable names
-  char *fg_key = fix_string(fg, fglen);
-  char *food_name = fix_string(food, foodlen);
-  PyObject *pVarNames = PyDict_GetItemString(pFGVarNames, fg_key);
+  PyObject *pVarNames = PyDict_GetItemString(pFGVarNames, fg);
 
   PyObject *pJob = PyDict_GetItem(pJobDict, PyInt_FromSize_t(agent_id));
   PyObject *pResult = PyObject_CallObject(pJob, NULL);
@@ -536,52 +455,43 @@ void lebiology_parallel_finish_c(char *fg, int fglen,
   }
 
   if (n_fvariety > 0) {
-    convert_food_variety(pResult, fg_key, food_name, n_fvariety, frequest, fthreshold);
+    convert_food_variety(pResult, fg, food, n_fvariety, frequest, fthreshold);
   }
 
   // Check for exceptions
   if (PyErr_Occurred()){
     PyErr_Print(); *stat=-1; return;
   }
-
   Py_DECREF(pResult);
-  free(fg_key);
-  free(food_name);
 #endif
 }
 
-void lebiology_kernel_update_c(char *fg, int fglen, 
-                              char *key, int keylen, 
-                              char *food, int foodlen, 
-                              double vars[], int n_vars, 
-                              double envvals[], int n_envvals, 
-                              double fvariety[], double frequest[], double fthreshold[], double fingest[], int n_fvariety, 
-			      double *dt, int persistent, int *stat)
+void lebiology_kernel_update_c(char *fg, char *key, char *food, double vars[], int n_vars, 
+			       double envvals[], int n_envvals, double fvariety[], double frequest[], 
+			       double fthreshold[], double fingest[], int n_fvariety, 
+			       double *dt, int persistent, int *stat)
 {
 #ifdef HAVE_PYTHON
   // Get variable names
-  char *fg_key = fix_string(fg, fglen);
-  PyObject *pVarNames = PyDict_GetItemString(pFGVarNames, fg_key);
-  PyObject *pEnvNames = PyDict_GetItemString(pFGEnvNames, fg_key);
+  PyObject *pVarNames = PyDict_GetItemString(pFGVarNames, fg);
+  PyObject *pEnvNames = PyDict_GetItemString(pFGEnvNames, fg);
 
   // Create agent and environment dict
   PyObject *pAgent = create_dict(pVarNames, vars, n_vars);
   PyObject *pEnvironment = create_dict(pEnvNames, envvals, n_envvals);
 
-  char *food_name = fix_string(food, foodlen);
   if (n_fvariety > 0) {
-    add_food_variety(pAgent, pEnvironment, fg_key, food_name, n_fvariety, fvariety, fingest);
+    add_food_variety(pAgent, pEnvironment, fg, food, n_fvariety, fvariety, fingest);
   }
 
   // Create dt argument
   PyObject *pDt = PyFloat_FromDouble(*dt);
 
   // Get kernel and parameter set, pack arguments and execute
-  char *keystr = fix_string(key,keylen);
-  PyObject *pKernelMap = PyDict_GetItemString(pFGKernelFunc, fg_key);
-  PyObject *pKernel = PyDict_GetItemString(pKernelMap, keystr);
-  PyObject *pParamMap = PyDict_GetItemString(pFGParamDicts, fg_key);
-  PyObject *pParams = PyDict_GetItemString(pParamMap, keystr);
+  PyObject *pKernelMap = PyDict_GetItemString(pFGKernelFunc, fg);
+  PyObject *pKernel = PyDict_GetItemString(pKernelMap, key);
+  PyObject *pParamMap = PyDict_GetItemString(pFGParamDicts, fg);
+  PyObject *pParams = PyDict_GetItemString(pParamMap, key);
   
   PyObject *pArgsTuple;
   if (persistent > 0) {
@@ -605,7 +515,7 @@ void lebiology_kernel_update_c(char *fg, int fglen,
   }
 
   if (n_fvariety > 0) {
-    convert_food_variety(pResult, fg_key, food_name, n_fvariety, frequest, fthreshold);
+    convert_food_variety(pResult, fg, food, n_fvariety, frequest, fthreshold);
   }
 
   // Check for exceptions
@@ -618,30 +528,22 @@ void lebiology_kernel_update_c(char *fg, int fglen,
   Py_DECREF(pDt);
   Py_DECREF(pArgsTuple);
   Py_DECREF(pResult);
-  free(fg_key);
-  free(keystr); 
-  free(food_name);
 #endif
 }
 
-void lebiology_agent_update_c(char *fg, int fglen, 
-                              char *key, int keylen, 
-                              char *food, int foodlen, 
-                              double vars[], int n_vars, 
-                              double envvals[], int n_envvals, 
+void lebiology_agent_update_c(char *fg, char *key, char *food, 
+                              double vars[], int n_vars, double envvals[], int n_envvals, 
                               double fvariety[], double frequest[], double fthreshold[], double fingest[], int n_fvariety, 
                               double *dt, int *stat)
 {
 #ifdef HAVE_PYTHON
   // Get variable names and local namespace
-  char *fg_key = fix_string(fg, fglen);
-  PyObject *pLocalsDict = PyDict_GetItemString(pFGLocalsDict, fg_key);
-  PyObject *pVarNames = PyDict_GetItemString(pFGVarNames, fg_key);
-  PyObject *pEnvNames = PyDict_GetItemString(pFGEnvNames, fg_key);
+  PyObject *pLocalsDict = PyDict_GetItemString(pFGLocalsDict, fg);
+  PyObject *pVarNames = PyDict_GetItemString(pFGVarNames, fg);
+  PyObject *pEnvNames = PyDict_GetItemString(pFGEnvNames, fg);
 
   // Get compiled code object from local namespace
-  char *keystr = fix_string(key,keylen);
-  PyObject *pLocals = PyDict_GetItemString(pLocalsDict, keystr);
+  PyObject *pLocals = PyDict_GetItemString(pLocalsDict, key);
   PyObject *pFunc = PyDict_GetItemString(pLocals, "val");
   PyObject *pFuncCode = PyObject_GetAttrString(pFunc, "func_code");
   int i;
@@ -650,9 +552,8 @@ void lebiology_agent_update_c(char *fg, int fglen,
   PyObject *pAgent = create_dict(pVarNames, vars, n_vars);
   PyObject *pEnvironment = create_dict(pEnvNames, envvals, n_envvals);
 
-  char *food_name = fix_string(food, foodlen);
   if (n_fvariety > 0) {
-    add_food_variety(pAgent, pEnvironment, fg_key, food_name, n_fvariety, fvariety, fingest);
+    add_food_variety(pAgent, pEnvironment, fg, food, n_fvariety, fvariety, fingest);
   }
 
   // Create dt argument
@@ -678,7 +579,7 @@ void lebiology_agent_update_c(char *fg, int fglen,
   }
 
   if (n_fvariety > 0) {
-    convert_food_variety(pResult, fg_key, food_name, n_fvariety, frequest, fthreshold);
+    convert_food_variety(pResult, fg, food, n_fvariety, frequest, fthreshold);
   }
 
   // Check for exceptions
@@ -692,28 +593,21 @@ void lebiology_agent_update_c(char *fg, int fglen,
   Py_DECREF(pFuncCode);
   Py_DECREF(pResult);
   free(pArgs);
-  free(fg_key);
-  free(keystr); 
-  free(food_name);
 #endif
 }
 
 // Note: Disbaled until dependencies are sorted out
 
-void lebiology_agent_move_c(char *fg, int fglen, 
-                            char *key, int keylen, 
-                            double pos[], int n_pos, 
+void lebiology_agent_move_c(char *fg, char *key, double pos[], int n_pos, 
                             double vars[], int n_vars, int var_inds[],
                             double *dt, double vector[], int *stat)
 {
 #ifdef HAVE_PYTHON
   // Get variable names and local namespace
-  char *fg_key = fix_string(fg, fglen);
-  PyObject *pLocalsDict = PyDict_GetItemString(pFGLocalsDict, fg_key);
+  PyObject *pLocalsDict = PyDict_GetItemString(pFGLocalsDict, fg);
 
   // Get compiled code object from local namespace
-  char *keystr = fix_string(key,keylen);
-  PyObject *pLocals = PyDict_GetItemString(pLocalsDict, keystr);
+  PyObject *pLocals = PyDict_GetItemString(pLocalsDict, key);
   PyObject *pFunc = PyDict_GetItemString(pLocals, "val");
   PyObject *pFuncCode = PyObject_GetAttrString(pFunc, "func_code");
 
@@ -729,7 +623,7 @@ void lebiology_agent_move_c(char *fg, int fglen,
   PyObject *pVariables = PyDict_New();
   if(n_vars > 0){
     // Grab variable names from persistent dict
-    pVarNames = PyDict_GetItemString(pFGVarNames, fg_key);
+    pVarNames = PyDict_GetItemString(pFGVarNames, fg);
 
     for(i=0; i<n_vars; i++){
       pVarVal = PyFloat_FromDouble(vars[i]);
@@ -793,8 +687,6 @@ void lebiology_agent_move_c(char *fg, int fglen,
   Py_DECREF(pFuncCode);
   Py_DECREF(pResult);
   free(pArgs);
-  free(fg_key);
-  free(keystr);
 #endif
 }
 
@@ -899,9 +791,3 @@ static PyObject *lebiology_add_agent(PyObject *self, PyObject *args)
 #endif
 }
 
-char* fix_string(char *s,int len){
-  char *ns = (char *)malloc(len+3);
-  memcpy( ns, s, len );
-  ns[len] = 0;
-  return ns;
-}

@@ -28,45 +28,44 @@ static PyObject *pJobDict;      // Dict holding the task objects associated with
 
 extern "C" {
 /* Load the kernel fucntion and associated paramter set from the module provided and store in pFGKernelFunc and pFGParamDicts */
-void lebiology_fg_kernel_load_c(char *fg, int fglen, char *key, int keylen, char *module, int modulelen, char *kernel, int kernellen, char *param, int paramlen, int *stat);
+void lebiology_fg_kernel_load_c(char *fg, char *key, char *module, char *kernel, char *param, int *stat);
 
 /* Reload the static referecen to the persisten dictionary */
 void lebiology_reload_persistent_c();
 
 /* Add a variable name to the array under pFGVarNames['fg'] */
-void lebiology_add_fg_varname_c(char *fg, int fglen, char *var, int varlen, int *stat);
+void lebiology_add_fg_varname_c(char *fg, char *var, int *stat);
 
 /* Add an environment name to the array under pFGEnvNames['fg'] */
-void lebiology_add_fg_envname_c(char *fg, int fglen, char *env, int envlen, int *stat);
+void lebiology_add_fg_envname_c(char *fg, char *env, int *stat);
 
 /* Add a food variety name to the array under pFGFoodNames['fg']['food'] */
-void lebiology_add_fg_foodname_c(char *fg, int fglen, char *food, int foodlen, char *variety, int varietylen, int *stat);
+void lebiology_add_fg_foodname_c(char *fg, char *food, char *variety, int *stat);
 
 /* Add a stage ID to pFGStageID['fg'] */
-void lebiology_add_fg_stage_id_c(char *fg, int fglen, char *stage, int stagelen, double *id, int *stat);
+void lebiology_add_fg_stage_id_c(char *fg, char *stage, double *id, int *stat);
 
 /* The main compile function runs the outer Python code and stores the local namespace, 
  * including the compiled function object for 'val', in pFGLocalsDict 
  */
-void lebiology_compile_function_c(char *fg, int fglen, char *key, int keylen, char *func, int funclen, int *stat);
+void lebiology_compile_function_c(char *fg, char *key, char *func, int *stat);
 
 /* Initialise agent biology from a Python function
  * Usage: def val(agent):
  *          agent['var'] = value
  *          return agent
  */
-void lebiology_agent_init_c(char *fg, int fglen, char *key, int keylen, double vars[], int n_vars, int *stat);
+void lebiology_agent_init_c(char *fg, char *key, double vars[], int n_vars, int *stat);
 
-void lebiology_kernel_update_c(char *fg, int fglen, char *key, int keylen, char *food, int foodlen, 
-			       double vars[], int n_vars, double envvals[], int n_envvals, 
+void lebiology_kernel_update_c(char *fg, char *key, char *food, double vars[], int n_vars, double envvals[], int n_envvals, 
 			       double fvariety[], double frequest[], double fthreshold[], double fingest[], int n_fvariety, 
 			       double *dt, int persistent, int *stat);
 
-void lebiology_parallel_prepare_c(char *fg, int fglen, char *key, int keylen, char *food, int foodlen, double vars[], int n_vars, 
+void lebiology_parallel_prepare_c(char *fg, char *key, char *food, double vars[], int n_vars, 
 				  double envvals[], int n_envvals, double fvariety[], double fingest[], int n_fvariety, int agent_id, 
 				  double *dt, int persistent, int *stat);
 
-void lebiology_parallel_finish_c(char *fg, int fglen, char *food, int foodlen, double vars[], int n_vars, double frequest[], 
+void lebiology_parallel_finish_c(char *fg, char *food, double vars[], int n_vars, double frequest[], 
 				 double fthreshold[], int n_fvariety, int agent_id, int *stat);
 
 /* Update agent biology from a Python function
@@ -74,8 +73,7 @@ void lebiology_parallel_finish_c(char *fg, int fglen, char *food, int foodlen, d
  *          agent['var'] = f( env['field'], dt )
  *          return agent
  */
-void lebiology_agent_update_c(char *fg, int fglen, char *key, int keylen, char *food, int foodlen, 
-                              double vars[], int n_vars, double envvals[], int n_envvals, 
+void lebiology_agent_update_c(char *fg, char *key, char *food, double vars[], int n_vars, double envvals[], int n_envvals, 
                               double fvariety[], double frequest[], double fthreshold[], double fingest[], int n_fvariety, 
                               double *dt, int *stat);
 
@@ -85,7 +83,7 @@ void lebiology_agent_update_c(char *fg, int fglen, char *key, int keylen, char *
  *          return vector
  */
 // Note: Disabled until dependencies are sorted
-void lebiology_agent_move_c(char *fg, int fglen, char *key, int keylen, double pos[], int n_pos, double vars[], int n_vars, int var_inds[], double *dt, double vector[], int *stat);
+void lebiology_agent_move_c(char *fg, char *key, double pos[], int n_pos, double vars[], int n_vars, int var_inds[], double *dt, double vector[], int *stat);
 
 /* Wrapper for Fortran function to add converted new agents to the system */
 void fl_add_agent_c(double vars[], int *n_vars, double pos[], int *n_pos);
