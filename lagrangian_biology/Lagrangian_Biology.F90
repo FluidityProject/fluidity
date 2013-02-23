@@ -838,26 +838,10 @@ contains
                    agent%food_thresholds = 0.0
                 end if
 
-#ifdef _OPENMP
-                call lebiology_parallel_submit(fgroup, trim(agent_array%stage_name)//"_Update", &
-                          trim(foodname), agent, xfield, env_fields, food_fields, dt, &
-                          use_kernel_function, use_persistent)
-                agent=>agent%next
-             end do
-
-             ! Worker threads doing the work
-             ! Ideally we want to suspend here after releasing the Python GIL
-
-             agent=>agent_array%first
-             do while (associated(agent))
-                call lebiology_parallel_retrieve(fgroup, trim(foodname), agent, food_fields)
-
-#else
                 ! Update agent via the Python module
                 call lebiology_update_agent(fgroup, trim(agent_array%stage_name)//"_Update", &
                           trim(foodname), agent, xfield, env_fields, food_fields, dt, &
                           use_kernel_function, use_persistent)
-#endif
 
                 ! Reset Ingested variables
                 do v=1, size(fgroup%variables)

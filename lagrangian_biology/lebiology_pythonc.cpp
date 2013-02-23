@@ -20,22 +20,6 @@ PyMODINIT_FUNC initlebiology(int dim)
 
   pPersistent = NULL;
 
-#ifdef _OPENMP
-  PyImport_ImportModule("pp");
-  PyObject *pPP = PyImport_AddModule("pp");
-  PyObject *pPPDict = PyModule_GetDict(pPP);
-  PyObject *pPPServer = PyDict_GetItemString(pPPDict, "Server");
-
-  PyObject *pArgTuple = PyTuple_Pack(2, PyInt_FromSize_t(4), PyTuple_New(0), Py_True);
-  pJobServer = PyObject_CallObject(pPPServer, pArgTuple);
-  pJobDict = PyDict_New();
-
-  printf("LEBiology: Initialised 'Parallel Python' job server\n");
-  printf("LEBiology: Number of concurrent worker threads: ");
-  PyObject_Print(PyObject_CallMethod(pJobServer, "get_ncpus", NULL), stdout, Py_PRINT_RAW);
-  printf("\n");
-#endif
-
 #endif
 }
 
