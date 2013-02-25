@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "confdefs.h"
-#ifdef HAVE_NETCDF
+#ifdef HAVE_LIBNETCDF
 #include "netcdf.h"
 #endif
 #ifdef HAVE_LIBEXOIIV2C

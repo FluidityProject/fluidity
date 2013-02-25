@@ -1447,7 +1447,7 @@ prognostic_pressure_field =
       }?,
       ## Atmospheric pressure
       ##
-      ## Manual suggests 1.01325E+6
+      ## Manual suggests 1.01325e+5 Pa
       element atmospheric_pressure {
          real
       }?,

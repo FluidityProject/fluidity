@@ -1,5 +1,5 @@
 ## Makefile.am -- Process this file with automake to produce Makefile.in
-SUBDIRS = src . test include
+SUBDIRS = src . include
 
 lib_LTLIBRARIES = libspatialindex.la libspatialindex_c.la
 
