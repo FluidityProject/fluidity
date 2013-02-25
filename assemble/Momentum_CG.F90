@@ -2149,7 +2149,6 @@
                   f_scalar = alpha**2*length_scale_scalar(x, ele)
                   ! Combined width G2 = (1+gamma^2)*G1
                   t_scalar = (1.0+gamma**2)*f_scalar
-
                   do gi=1, ele_ngi(nu, ele)
                     ! Tensor M_ij = (|S2|*S2)G2 - ((|S1|S1)^f2)G1
                     mij = t_strain_mod(gi)*t_strain_gi(:,:,gi)*t_scalar(gi) - strainprod_gi(:,:,gi)*f_scalar(gi)
@@ -2166,10 +2165,6 @@
                   ! Combined width G2 = (1+gamma^2)*G1
                   t_tensor = (1.0+gamma**2)*f_tensor
                   do gi=1, ele_ngi(nu, ele)
-                    ! Normalise tensor filter width so that volume equals that of scalar filter width definition
-                    !f1_gi(:,:,gi) = f1_gi(:,:,gi)*f1_mod(gi)/norm2(f1_gi(:,:,gi))
-                    !f2_gi(:,:,gi) = f2_gi(:,:,gi)*f2_mod(gi)/norm2(f2_gi(:,:,gi))
-
                     ! Tensor M_ij = (|S2|*S2).G2 - ((|S1|S1)^f2).G1
                     mij = t_strain_mod(gi)*t_strain_gi(:,:,gi)*t_tensor(:,:,gi) - strainprod_gi(:,:,gi)*f_tensor(:,:,gi)
                     ! Model coeff C_S = -(L_ij M_ij) / 2(M_ij M_ij)
