@@ -33,30 +33,39 @@ subroutine test_length_scale_tensor
    use read_triangle
    use fields
    use smoothing_module
+   use global_parameters, only : pi
    implicit none
    
    type(vector_field) :: positions
    type(element_type) :: shape
+   real :: edge
    real, dimension(:,:,:), allocatable :: dshape
    real, dimension(:), allocatable :: detwei
-   real, dimension(:,:,:), allocatable :: expected_result, computed_result
+   real, dimension(:,:,:), allocatable :: computed_result
+   real, dimension(:,:), allocatable :: expected_result
    logical :: fail
    
    positions = read_triangle_files("data/structured", quad_degree=3)
+   ! Edge length in mesh
+   edge = pi/8.
 
    shape = ele_shape(positions,1)
    allocate(computed_result(positions%dim, positions%dim, ele_ngi(positions, 1)))
-   allocate(expected_result(positions%dim, positions%dim, ele_ngi(positions, 1)))
+   allocate(expected_result(positions%dim, positions%dim))
    allocate(detwei(ele_ngi(positions, 1)))
    allocate(dshape(ele_loc(positions, 1), ele_ngi(positions, 1), positions%dim))
 
    call transform_to_physical(positions, 1, shape, dshape=dshape, detwei=detwei)
-   ewrite(0,*) "dshape ", dshape
    ! We'll just choose the first element here - each of them should have the same area
    computed_result = length_scale_tensor(dshape, shape)
-   expected_result = 0.0
-   ewrite(0,*) "tensor ", computed_result(:,:,1)
-   fail = .not.fequals(computed_result(1,1,1), expected_result(1,1,1), 1.0e-9)
+
+   ! This is only correct for regular right-angled triangles
+   edge = edge**2/4.
+   expected_result = reshape(&
+               (/ edge*5., -edge,&
+               & -edge, edge*5. /),(/2,2/))
+
+   fail = .not.fequals(computed_result(:,:,1), expected_result, 1.0e-9)
    call report_test("[length_scale_tensor]", fail, .false., "Result from length_scale_tensor is incorrect.")
    
    deallocate(computed_result)
