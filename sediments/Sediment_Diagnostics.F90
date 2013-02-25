@@ -55,19 +55,21 @@ contains
   subroutine calculate_sediment_flux(state)
     !!< Calculate the advected flux of the sediment through the surfaces of
     !!< the domain.
-    !!< Since we don't actually know what the advection scheme was, this is
-    !!< only an estimate based on the value at the end of the timestep.
+    !!< This is determined based upon a fixed theta of 0.5
+    !!< Currently erosion is based on the previous timestep. This is wrong!! 
+    !!< but erosion doesn't work anyway
     type(state_type), intent(inout)                        :: state
     type(mesh_type), dimension(:), allocatable             :: surface_mesh
     type surface_nodes_array
        integer, dimension(:), pointer                      :: nodes
     end type surface_nodes_array
     type(surface_nodes_array), dimension(:), allocatable   :: surface_nodes
-    type(vector_field), pointer                            :: X, U, gravity
+    type(vector_field), pointer                            :: X, old_U, new_U, gravity
     type(scalar_field), dimension(:), allocatable          :: deposited_sediment, erosion
     type(scalar_field), pointer                            :: erosion_flux, bedload_field&
-         &, sediment_field, sink_U, diagnostic_field
-    type(scalar_field)                                     :: masslump
+         &, old_sediment_field, new_sediment_field, sink_U, diagnostic_field
+    type(vector_field)                                     :: U
+    type(scalar_field)                                     :: masslump, sediment_field
     integer                                                :: n_sediment_fields,&
          & i_field, i_bcs, i_node, ele, n_bcs, stat
     integer, dimension(2)                                  :: surface_id_count
@@ -77,16 +79,21 @@ contains
     character(len=FIELD_NAME_LEN)                          :: bc_name, bc_type
     character(len=OPTION_PATH_LEN)                         :: bc_path
 
-    ! check if this is before the first timestep (no deposited sediment)
-    if (timestep == 0) return
-
     ewrite(1,*) "In calculate_sediment_bedload"
 
     ! obtain some required model variables
     n_sediment_fields = get_n_sediment_fields()
+    if (n_sediment_fields == 0) return
+
     X => extract_vector_field(state, "Coordinate")
-    U => extract_vector_field(state, "Velocity")
     gravity => extract_vector_field(state, "GravityDirection")
+
+    new_U => extract_vector_field(state, "Velocity")
+    old_U => extract_vector_field(state, "OldVelocity")
+    call allocate(U, new_U%dim, new_U%mesh, name="CNVelocity")
+    call zero(U)
+    call addto(U, old_U, 0.5)
+    call addto(U, new_U, 0.5)
     
     ! allocate space for erosion and deposit field arrays
     allocate(erosion(n_sediment_fields))
@@ -99,7 +106,7 @@ contains
     erosion_fields_loop: do i_field=1, n_sediment_fields 
 
        ! obtain scalar fields for this sediment class
-       call get_sediment_item(state, i_field, sediment_field)
+       call get_sediment_item(state, i_field, new_sediment_field)
        call get_sediment_item(state, i_field, "Bedload", bedload_field)
 
        ! generate a surface mesh for this field
@@ -112,7 +119,7 @@ contains
        call zero(erosion(i_field))
        
        ! get boundary condition path and number of boundary conditions
-       bc_path = trim(sediment_field%option_path)//'/prognostic/boundary_conditions'
+       bc_path = trim(new_sediment_field%option_path)//'/prognostic/boundary_conditions'
        n_bcs = option_count(bc_path)
 
        ! Loop over boundary conditions for field
@@ -126,11 +133,11 @@ contains
           if ((trim(bc_type) .eq. "sediment_reentrainment")) then
 
              ! get boundary condition info
-             call get_boundary_condition(sediment_field, name=bc_name, type=bc_type, &
+             call get_boundary_condition(new_sediment_field, name=bc_name, type=bc_type, &
                surface_element_list=surface_element_list)
 
              ! get erosion flux
-             erosion_flux => extract_surface_field(sediment_field, bc_name=bc_name,&
+             erosion_flux => extract_surface_field(new_sediment_field, bc_name=bc_name,&
                   & name="value")
              
              ! set erosion field values
@@ -157,7 +164,12 @@ contains
     deposit_fields_loop: do i_field=1, n_sediment_fields
 
        ! obtain scalar fields for this sediment class
-       call get_sediment_item(state, i_field, sediment_field)
+       call get_sediment_item(state, i_field, old_sediment_field)
+       call get_sediment_item(state, i_field, new_sediment_field)
+       call allocate(sediment_field, new_sediment_field%mesh, name="CNSedimentField")
+       call zero(sediment_field)
+       call addto(sediment_field, old_sediment_field, 0.5)
+       call addto(sediment_field, new_sediment_field, 0.5)
        call get_sediment_item(state, i_field, "Bedload", bedload_field)
        call get_sediment_item(state, i_field, "SinkingVelocity", sink_U) 
        
@@ -217,6 +229,8 @@ contains
           call scale(diagnostic_field, 1./dt)
        end if
 
+       call deallocate(sediment_field)
+
     end do deposit_fields_loop
     
     ! third loop to calculate net flux of sediment for this timestep
@@ -252,6 +266,7 @@ contains
 
     end do net_flux_loop
 
+    call deallocate(U)
     deallocate(deposited_sediment)
     deallocate(erosion)
     deallocate(surface_mesh)
@@ -264,8 +279,8 @@ contains
 
     integer, intent(in) :: ele, i_field
     type(scalar_field), dimension(:), intent(inout) :: deposited_sediment
-    type(vector_field), pointer, intent(in) :: X, U, gravity
-    type(scalar_field), pointer, intent(in) :: sink_U, sediment_field
+    type(vector_field), intent(in) :: X, U, gravity
+    type(scalar_field), intent(in) :: sink_U, sediment_field
     type(scalar_field), intent(inout) :: masslump
 
     integer, dimension(:), pointer :: s_ele
@@ -292,13 +307,7 @@ contains
     
     U_normal_detwei=sum(face_val_at_quad(U,ele)*normal,1)*detwei
     G_normal_detwei=sum(face_val_at_quad(gravity,ele)*normal,1)*detwei
-
-    if(associated(sink_U)) then
-       U_sink_detwei=G_normal_detwei&
-            *face_val_at_quad(sink_U,ele)          
-    else
-       U_sink_detwei=0.0
-    end if
+    U_sink_detwei=G_normal_detwei*face_val_at_quad(sink_U,ele)  
 
     flux=dt*shape_rhs(s_shape, &
          face_val_at_quad(sediment_field, ele)*&
