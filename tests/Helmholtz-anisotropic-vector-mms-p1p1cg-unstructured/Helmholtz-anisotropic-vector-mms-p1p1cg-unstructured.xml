@@ -575,7 +575,7 @@ assert(bc_convergence_isocomm[0][0] &gt; 1.0)
     <test name="bc_convergence_anisocomm: L2 order > 0.8" language="python">
 assert(bc_convergence_anisocomm[0][0] &gt; 0.8)
     </test>
-    <test name="cd_convergence_isocomm: L2 order > 0.6" language="python">
+    <test name="cd_convergence_isocomm: L2 order > 0.5" language="python">
 assert(cd_convergence_isocomm[0][0] &gt; 0.6)
     </test>
     <test name="cd_convergence_anisocomm: L2 order > 1.0" language="python">
