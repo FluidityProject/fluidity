@@ -416,6 +416,8 @@ module fsi_model
         alpha_solid_fluidmesh => extract_scalar_field(state, trim(mesh_name)//'SolidConcentration')
         ! And the solid volume fraction field (on solid mesh):
 !        alpha_solid_solidmesh => extract_scalar_field(solid_states, trim(mesh_name)//'SolidConcentration')
+        ! And the solid velocity field on the fluid mesh:
+        solid_velocity_fluidmesh => extract_vector_field(state, trim(mesh_name)//'SolidVelocity')
 
         ! Allocate temp solid volume fraction field for the projection:
         call allocate(alpha_tmp, alpha_solid_fluidmesh%mesh, 'TMPSolidConcentration')
@@ -429,7 +431,7 @@ module fsi_model
                 ! Get pointer to the solid velocity
                 solid_velocity_mesh => extract_vector_field(solid_states, trim(mesh_name)//"SolidVelocity")
                 ! Allocate temp solid velocity field (on fluid mesh) for the projection:
-                call allocate(solid_velocity_fluidmesh_tmp, fluid_position%dim, fluid_position%mesh, 'TMP'//trim(mesh_name)//'SolidVelocity')
+                call allocate(solid_velocity_fluidmesh_tmp, solid_velocity_fluidmesh%dim, solid_velocity_fluidmesh%mesh, 'TMP'//trim(mesh_name)//'SolidVelocity')
                 call zero(solid_velocity_fluidmesh_tmp)
                 ! Computing alpha_s^f by projecting unity and the u_s^f by projection u_s^s from the solid mesh to the fluid mesh:
                 call fsi_one_way_galerkin_projection(fluid_velocity, fluid_position, solid_position_mesh, alpha_tmp, solid_velocity_mesh, solid_velocity_fluidmesh_tmp)
@@ -451,7 +453,6 @@ module fsi_model
         ! After projection, set the solid volume fraction of the current solid:
         call set(alpha_solid_fluidmesh, alpha_tmp)
         ! And solid velocity (on fluid mesh), IFF it was projected (thus IFF d(s_solid)/dt /= 0 or in other words u_solid /= 0)
-        solid_velocity_fluidmesh => extract_vector_field(state, trim(mesh_name)//'SolidVelocity')
         if (present_and_true(project_solid_velocity)) then
             call set(solid_velocity_fluidmesh, solid_velocity_fluidmesh_tmp)
         else
