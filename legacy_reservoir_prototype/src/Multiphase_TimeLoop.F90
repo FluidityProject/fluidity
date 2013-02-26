@@ -662,7 +662,7 @@
                     Mean_Pore_CV, &
                     option_path = '/material_phase[0]/scalar_field::Temperature', &
                     mass_ele_transp = dummy_ele, &
-                    thermal = .false. ) !.true. )
+                    thermal = have_option( '/material_phase[0]/scalar_field::Temperature/prognostic/equation::InternalEnergy') )
 
 !!$ Update state memory
                do iphase = 1, nphase
