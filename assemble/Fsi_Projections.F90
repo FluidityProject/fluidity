@@ -263,11 +263,12 @@ module fsi_projections
     ! Set solver options for the interpolations:
     tmp = alpha_sf%option_path
     ! Here we have to differ between CG and DG projection:
-    if (have_option("/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/continuous")) then
-        alpha_sf%option_path = "/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/continuous"
-    else if (have_option("/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/discontinuous")) then
-        alpha_sf%option_path = "/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/discontinuous"
-    end if
+    alpha_sf%option_path = "/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/continuous"
+    !if (have_option("/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/continuous")) then
+    !    alpha_sf%option_path = "/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/continuous"
+    !else if (have_option("/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/discontinuous")) then
+    !    alpha_sf%option_path = "/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/discontinuous"
+    !end if
 
     ! Project alpha to the fluid mesh:
     call petsc_solve(alpha_sf, mass_matrix_fluid, rhs_alpha_sf)
@@ -279,11 +280,12 @@ module fsi_projections
     if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
         tmp = solid_velocity_sf%option_path
         ! Here we have to differ between CG and DG projection:
-        if (have_option("/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/continuous")) then
-            solid_velocity_sf%option_path = "/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/continuous"
-        else if (have_option("/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/discontinuous")) then
-            solid_velocity_sf%option_path = "/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/discontinuous"
-        end if
+        solid_velocity_sf%option_path = "/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/continuous"
+        !if (have_option("/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/continuous")) then
+        !    solid_velocity_sf%option_path = "/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/continuous"
+        !else if (have_option("/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/discontinuous")) then
+        !    solid_velocity_sf%option_path = "/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/discontinuous"
+        !end if
 
         ! Project solid velocity to the fluid mesh:
         call petsc_solve(solid_velocity_sf, mass_matrix_fluid, rhs_fluid)
