@@ -1895,6 +1895,10 @@ mesh_adaptivity_options =
                  ## Specifies the d0 value which is the waterlevel kept in dry areas.
                  element d0 {
                       real
+                 }, 
+                 ## Specifies the a value which is the tolerable aspect ratio of the element length scales. The recommended range of value is 1-10, and 7 is a specific recommended value.
+                 element a {
+                      real
                  },
                  ## Specifies the amount of absorption in dry areas. If a pressure corrected absorption term is desired, please add a pressure corrected absorption under Velocity (of magnitude 0).
                  ## Note: If you double d0, this value has to be doubled as well to achieve the same amount of absorption.
