@@ -243,12 +243,24 @@ contains
 
           if (.false.) then
              call set_solver_options(path, &
-                  ksptype = "gmres", &
+                  !ksptype = "gmres", &
                   pctype = "jacobi", & ! use this for P1DGP1DG
                   !pctype = "none", &   ! use this for P1DGP2DG
                   rtol = 1.e-10, &
                   atol = 1.e-15, &
                   max_its = 25)
+
+             !call set_solver_options(path, &
+             !     ksptype = "gmres", &
+             !     pctype = "hypre", &
+             !     rtol = 1.e-10, &
+             !     atol = 0., &
+             !     max_its = 25)
+             !call add_option( &
+             !     trim(path)//"/solver/preconditioner[0]/hypre_type[0]/name", stat)
+             !call set_option( &
+             !     trim(path)//"/solver/preconditioner[0]/hypre_type[0]/name", "boomeramg")
+
              ! ignore solver failures...
              call add_option( &
                   trim(path)//"/solver/ignore_all_solver_failures", stat)

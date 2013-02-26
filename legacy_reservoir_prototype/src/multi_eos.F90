@@ -188,7 +188,7 @@
       character( len = option_path_len ) :: option_path_comp, option_path_incomp, option_path_python, &
            option_path_component, option_path, buffer, eos_option_path_tmp
       character( len = python_func_len ) :: pycode
-      integer :: nstates, istate, istate2, ncomp, ncoef
+      integer :: nstates, istate, istate2, ncoef
       logical, save :: initialised = .false.
       logical :: have_temperature_field, have_component_field
       real, parameter :: toler = 1.0E-10
@@ -196,6 +196,7 @@
       real, dimension( : ), allocatable :: Density_Field, DRho_DPressure, eos_coefs, perturbation_pressure, &
            DensityPlus, DensityMinus, pressure_back_up, density_back_up, temperature_local
       real :: dt, current_time
+      integer :: nphase, ncomp, i
 
 !!$ Den = c1 * ( P + c2 ) / T           :: Stiffened EOS
 !!$ Den = c1 * P + c2                   :: Linear_1 EOS
@@ -241,11 +242,30 @@
             end if
          end if
 
-         option_path_comp   = trim( '/material_phase['  // int2str( istate2 - 1 ) // ']/equation_of_state/compressible' )
-         option_path_incomp = trim( '/material_phase['  // int2str( istate2 - 1 ) // ']/equation_of_state/incompressible' )
-         option_path_python = trim( '/material_phase['  // int2str( istate2 - 1 ) // ']/equation_of_state/python_state/algorithm' )
-         eos_option_path_tmp = trim( eos_option_path( istate2 ) )
+         if ( present_and_true( single_component ) ) then
 
+            ncomp = 0
+            do i = 1, size( state )
+               if( have_option( '/material_phase[' // int2str( i - 1) // ']/is_multiphase_component' ) )then
+                  ncomp = ncomp + 1
+               end if
+            end do
+            nphase = size( state ) - ncomp
+
+            option_path_comp   = trim( '/material_phase['  // int2str( nphase + nstate_init - 1 ) // ']/equation_of_state/compressible' )
+            option_path_incomp = trim( '/material_phase['  // int2str( nphase + nstate_init  - 1 ) // ']/equation_of_state/incompressible' )
+            option_path_python = trim( '/material_phase['  // int2str( nphase + nstate_init - 1 ) // ']/equation_of_state/python_state/algorithm' )
+
+            eos_option_path_tmp = trim( eos_option_path( 1 ) )
+
+         else
+
+            option_path_comp   = trim( '/material_phase['  // int2str( istate2 - 1 ) // ']/equation_of_state/compressible' )
+            option_path_incomp = trim( '/material_phase['  // int2str( istate2 - 1 ) // ']/equation_of_state/incompressible' )
+            option_path_python = trim( '/material_phase['  // int2str( istate2 - 1 ) // ']/equation_of_state/python_state/algorithm' )
+            eos_option_path_tmp = trim( eos_option_path( istate2 ) )
+
+         end if
 
          Conditional_EOS_Option: if( trim( eos_option_path_tmp ) == trim( option_path_comp ) // '/stiffened_gas' ) then
 !!$ Den = C0 / T * ( P - C1 )
@@ -440,15 +460,21 @@
             FLAbort( 'No option given for choice of EOS' )
          end if Conditional_EOS_Option
 
-         !if ( present_and_true( single_component ) ) return
+         if ( present_and_true( single_component ) ) then
 
-         if( have_component_field ) then
-            DensityComponent_Field = DensityComponent_Field + Density_Field * component % val
-            Derivative_DensityComponent_Pressure = Derivative_DensityComponent_Pressure + &
-                 DRho_DPressure * component % val
-         else
             DensityComponent_Field = Density_Field
-            Derivative_DensityComponent_Pressure = DRho_DPressure
+
+         else
+
+            if( have_component_field ) then
+               DensityComponent_Field = DensityComponent_Field + Density_Field * component % val
+               Derivative_DensityComponent_Pressure = Derivative_DensityComponent_Pressure + &
+                    DRho_DPressure * component % val
+            else
+               DensityComponent_Field = Density_Field
+               Derivative_DensityComponent_Pressure = DRho_DPressure
+            end if
+
          end if
 
       end do Loop_Over_States
@@ -475,7 +501,8 @@
 
 
 
-    SUBROUTINE CAL_CPDEN( NPHASE, CV_NONODS, CV_PHA_NONODS, CPDEN, DEN, NCP_COEFS, CP_COEFS, CP_OPTION, STOTEL, CV_SNLOC, SUF_CPD_BCU, SUF_D_BCU ) 
+    SUBROUTINE CAL_CPDEN( NPHASE, CV_NONODS, CV_PHA_NONODS, CPDEN, DEN, NCP_COEFS, &
+         CP_COEFS, CP_OPTION, STOTEL, CV_SNLOC, SUF_CPD_BCU, SUF_D_BCU ) 
 
       ! This sub calculates the CPDEN ie. CP*DEN
       IMPLICIT NONE
@@ -574,7 +601,6 @@
       allocate( u_absorb2( mat_nonods, nphase * ndim, nphase * ndim ), satura2( cv_nonods * nphase ) )
       u_absorb2 = 0. ; satura2 = 0.
 
-      !    ewrite(3,*)'b4 in calculate_absorption2, SATURA0',size(SATURA),SATURA
       CALL calculate_absorption2( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA, TOTELE, CV_NLOC, MAT_NLOC, &
            CV_NDGLN, MAT_NDGLN, &
            U_ABSORB, PERM, MOBILITY)
@@ -601,8 +627,8 @@
                      ! This is the gradient...
                      OPT_VEL_UPWIND_COEFS( IJ + NPHASE * MAT_NONODS * NDIM * NDIM ) &
                           = ( U_ABSORB2( IMAT, IDIM + ( IPHASE - 1 ) * NDIM, JDIM + ( IPHASE - 1 ) * NDIM ) &
-                          -U_ABSORB( IMAT, IDIM + ( IPHASE - 1 ) * NDIM, JDIM + ( IPHASE - 1 ) * NDIM ))  &
-                          / (SATURA2( ICV + ( IPHASE - 1 ) * CV_NONODS ) - SATURA( ICV + ( IPHASE - 1 ) * CV_NONODS )) 
+                          - U_ABSORB( IMAT, IDIM + ( IPHASE - 1 ) * NDIM, JDIM + ( IPHASE - 1 ) * NDIM ) )  &
+                          / ( SATURA2( ICV + ( IPHASE - 1 ) * CV_NONODS ) - SATURA( ICV + ( IPHASE - 1 ) * CV_NONODS ) ) 
                   END DO
                END DO
             END DO
@@ -611,20 +637,6 @@
 
       deallocate( u_absorb2, satura2 )
       ewrite(3,*) 'Leaving calculate_absorption'
-
-
-    if(.false.) then
-      u_absorb( :, 1:ndim, 1:ndim ) = u_absorb( :, 1+ndim:2*ndim, 1+ndim:nphase * ndim )
-       u_absorb=0.0
-       do i=1,ndim*nphase
-         if(i.le.ndim) then
-         u_absorb( :, i, i ) = 1000.0
-!         u_absorb( :, i, i ) = 1.0
-         else
-         u_absorb( :, i, i ) = 1.0
-         endif
-       end do
-     endif
 
       RETURN
 
@@ -968,14 +980,18 @@
 
     end subroutine calculate_u_source_cv
 
-    subroutine calculate_diffusivity(state, ncomp, nphase, ndim, cv_nonods, mat_nonods, ScalarAdvectionField_Diffusion )
+    subroutine calculate_diffusivity(state, ncomp, nphase, ndim, cv_nonods, mat_nonods, &
+         mat_nloc, totele, mat_ndgln, ScalarAdvectionField_Diffusion )
 
       type(state_type), dimension(:), intent(in) :: state
-      integer, intent(in) :: ncomp, nphase, ndim, cv_nonods, mat_nonods
+      integer, intent(in) :: ncomp, nphase, ndim, cv_nonods, mat_nonods, mat_nloc, totele
+      integer, dimension(totele * mat_nloc), intent(in) :: mat_ndgln 
       real, dimension(mat_nonods, ndim, ndim, nphase), intent(inout) :: ScalarAdvectionField_Diffusion
 
-      type(scalar_field), pointer :: component, diffusivity
-      integer :: icomp, iphase, idim, stat
+      type(scalar_field), pointer :: component
+      type(tensor_field), pointer :: diffusivity
+      integer, dimension(:), pointer :: element_nodes
+      integer :: icomp, iphase, idim, stat, ele
 
       ScalarAdvectionField_Diffusion = 0.
 
@@ -984,13 +1000,26 @@
          do icomp = 1, ncomp
             do iphase = 1, nphase
 
-               component => extract_scalar_field( state(nphase+icomp), 'ComponentMassFractionPhase' // int2str(iphase)   )
-               diffusivity => extract_scalar_field( state(nphase+icomp), 'ComponentMassFractionPhase' // int2str(iphase) // 'Diffusivity', stat )
+               component => extract_scalar_field( state(nphase+icomp), 'ComponentMassFractionPhase' // int2str(iphase) )
+               diffusivity => extract_tensor_field( state(nphase+icomp), 'ComponentMassFractionPhase' // int2str(iphase) // 'Diffusivity', stat )
 
                if ( stat == 0 ) then
-                  do idim = 1, ndim
-                     ScalarAdvectionField_Diffusion(:, idim, idim, iphase) = ScalarAdvectionField_Diffusion( :, idim, idim, iphase ) + &
-                          component%val * node_val( diffusivity, 1 )
+
+                  do ele = 1, totele
+
+                     element_nodes => ele_nodes( component, ele )
+
+                     do iloc = 1, mat_nloc
+                        mat_iloc = mat_ndgln( (ele-1)*mat_nloc + iloc )
+
+                        do idim = 1, ndim
+
+                           ScalarAdvectionField_Diffusion( mat_iloc, idim, idim, iphase ) = &
+                                ScalarAdvectionField_Diffusion( mat_iloc, idim, idim, iphase ) + &
+                                node_val( component, element_nodes(iloc) ) * node_val( diffusivity, idim, idim, element_nodes(iloc) )
+
+                        end do
+                     end do
                   end do
                end if
 
@@ -1000,17 +1029,18 @@
       else
 
          do iphase = 1, nphase
-            diffusivity => extract_scalar_field( state(iphase), 'Diffusivity', stat )
+            diffusivity => extract_tensor_field( state(iphase), 'Diffusivity', stat )
 
             if ( stat == 0 ) then
                do idim = 1, ndim
-                  ScalarAdvectionField_Diffusion(:, idim, idim, iphase) = node_val( diffusivity, 1 )
+                  ScalarAdvectionField_Diffusion(:, idim, idim, iphase) = node_val( diffusivity, idim, idim, 1 )
                end do
             end if
          end do
 
       end if
 
+      return
     end subroutine calculate_diffusivity
 
     subroutine calculate_viscosity( state, ncomp, nphase, ndim, mat_nonods, mat_ndgln, Momentum_Diffusion  )
@@ -1044,29 +1074,26 @@
 
                cv_nloc = ele_loc( t_field, ele )
 
-!!$               do icomp = 1, ncomp
-!!$                  do iphase = 1, nphase
-!!$
-!!$                     component => extract_scalar_field( state(nphase + icomp), 'ComponentMassFractionPhase' // int2str(iphase)   )
-!!$                     t_field => extract_tensor_field( state( nphase + icomp ), ' ComponentMassFractionPhase' // int2str( iphase ) // 'Viscosity' )
-!!$            
-!!$                     do ele = 1, ele_count( t_field )
-!!$                        do iloc = 1, cv_nloc
-!!$
-!!$                           mat_nod = mat_ndgln( (ele-1)*cv_nloc+iloc )
-!!$
-!!$                           st_nodes => ele_nodes( t_field, ele ) 
-!!$                           momentum_diffusion( mat_nod, :, :, iphase ) =  momentum_diffusion( mat_nod, :, :, iphase ) + &
-!!$                                node_val( t_field, st_nodes(iloc) ) * node_val( component, st_nodes(iloc) )
-!!$                        end do
-!!$                     end do
-!!$
-!!$                  end do
-!!$               end do
+               do icomp = 1, ncomp
+                  do iphase = 1, nphase
 
-               ! *** NOTE dpavlidis
-               ! debug this subroutine and remove this line...
-               momentum_diffusion=0.
+                     component => extract_scalar_field( state(nphase + icomp), 'ComponentMassFractionPhase' // int2str(iphase) )
+                     t_field => extract_tensor_field( state( nphase + icomp ), 'Viscosity' )
+
+                     do ele = 1, ele_count( t_field )
+
+                        st_nodes => ele_nodes( t_field, ele )
+
+                        do iloc = 1, cv_nloc
+                           mat_nod = mat_ndgln( (ele-1)*cv_nloc + iloc )
+
+                           momentum_diffusion( mat_nod, :, :, iphase ) =  momentum_diffusion( mat_nod, :, :, iphase ) + &
+                                node_val( t_field, st_nodes(iloc) ) * node_val( component, st_nodes(iloc) )
+                        end do
+                     end do
+
+                  end do
+               end do
 
             else
 
@@ -1088,6 +1115,7 @@
 
       end if
 
+      return
     end subroutine calculate_viscosity
 
     subroutine calculate_SUF_SIG_DIAGTEN_BC( suf_sig_diagten_bc, totele, stotel, cv_nloc, &
@@ -1263,8 +1291,8 @@
 
             do iphase = 1, nphase
                do idim = 1, ndim
-                  ipha_idim = ( iphase - 1 ) * ndim + idim
                   if ( idim == apply_dim ) then
+                     ipha_idim = ( iphase - 1 ) * ndim + idim
                      Material_Absorption_Stab( :, ipha_idim, ipha_idim ) = &
                           ( factor / 10. )**2 * Material_Absorption( :, ipha_idim, ipha_idim )
                   end if
@@ -1295,6 +1323,7 @@
          end if
       end if ! use_mat_stab_stab
 
+      return
     end subroutine calculate_u_abs_stab
 
 

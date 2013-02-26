@@ -188,7 +188,7 @@
            cv_sndgln, p_sndgln, u_sndgln
 !!$ Local variables 
       integer, dimension( : ), allocatable :: u_sndgln2
-      integer :: u_nloc2, u_snloc2, sele, u_siloc2, ilev, u_siloc, ele, inod_remain
+      integer :: u_nloc2, u_snloc2, sele, u_siloc2, ilev, u_siloc, ele, inod_remain, i
 
 !!$ Linear mesh coordinate
       positions => extract_vector_field( state( 1 ), 'Coordinate' )
@@ -201,7 +201,8 @@
 !!$ Pressure, control volume and material
       pressure => extract_scalar_field( state( 1 ), 'Pressure' )
       call Get_Ndgln( cv_ndgln, pressure )
-      p_ndgln = cv_ndgln ; mat_ndgln = cv_ndgln
+      p_ndgln = cv_ndgln
+      mat_ndgln = (/ (i, i = 1, totele * cv_nloc ) /)
 
 !!$ Velocities
       velocity => extract_vector_field( state( 1 ), 'Velocity' )
@@ -880,18 +881,17 @@
 !!$
 !!$ Extracting Temperature Field:
 !!$
-      do istate = 1, nstate
-         Conditional_Temperature: if( have_option( '/material_phase[' // int2str( istate - 1 ) // &
+      do iphase = 1, nphase
+         Conditional_Temperature: if( have_option( '/material_phase[' // int2str( iphase - 1 ) // &
               ']/scalar_field::Temperature' ) ) then
-            scalarfield => extract_scalar_field( state( istate ), 'Temperature' )
-            knod = ( istate - 1 ) * node_count( scalarfield )
-            call Get_ScalarFields_Outof_State( state, initialised, istate, scalarfield, &
+            scalarfield => extract_scalar_field( state( iphase ), 'Temperature' )
+            knod = ( iphase - 1 ) * node_count( scalarfield )
+            call Get_ScalarFields_Outof_State( state, initialised, iphase, scalarfield, &
                  Temperature( knod + 1 : knod + node_count( scalarfield ) ), &
                  Temperature_BC_Spatial, Temperature_BC, &
                  field_prot_source = Temperature_Source( knod + 1 : knod + node_count( scalarfield ) ) )          
          end if Conditional_Temperature
       end do
-
 
 !!$
 !!$ Extracting Porosity field (assuming for now that porosity is constant
@@ -966,9 +966,10 @@
       have_source = .false. ; have_absorption = .false.
 
       Conditional_SourceField: if( present( field_prot_source ) ) then
-         field_source => extract_scalar_field( state( iphase ), field_name // 'Source', stat )
+         field_source => extract_scalar_field( state( iphase ), trim(field_name) // 'Source', stat )
          have_source = ( stat == 0 )
-         if ( have_source ) then
+ 
+        if ( have_source ) then
             do j = 1, node_count( field_source )
                field_prot_source( ( iphase - 1 ) * node_count( field_source ) + j ) = &
                     field_source % val( j )
@@ -977,7 +978,7 @@
       end if Conditional_SourceField
 
       Conditional_AbsorptionField: if( present( field_prot_absorption ) ) then
-         field_absorption => extract_scalar_field( state( iphase ), field_name // 'Absorption', stat )
+         field_absorption => extract_scalar_field( state( iphase ), trim(field_name) // 'Absorption', stat )
          have_absorption = ( stat == 0 )
          if ( have_absorption ) then
             do j = 1, node_count( field_absorption )

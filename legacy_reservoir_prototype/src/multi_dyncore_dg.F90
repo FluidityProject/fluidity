@@ -1992,8 +1992,6 @@
     END SUBROUTINE CV_ASSEMB_FORCE_CTY
 
 
-
-
     SUBROUTINE PUT_MOM_C_IN_GLOB_MAT( NPHASE, NDIM, &
          NCOLDGM_PHA, DGM_PHA, FINDGM_PHA, &
          NLENMCY, NCOLMCY, MCY, FINMCY, &
@@ -2016,7 +2014,7 @@
 
       MCY = 0.0
       ! Put moment matrix DGM_PHA into global matrix MCY
-      DO U_NOD_PHA = 1, U_NONODS * NPHASE
+      DO U_NOD_PHA = 1, U_NONODS  * NDIM * NPHASE
          IWID = FINDGM_PHA( U_NOD_PHA + 1 ) - FINDGM_PHA( U_NOD_PHA )
 
          DO I = 1, IWID
@@ -2026,36 +2024,24 @@
       END DO
 
       ! Put C matrix into global matrix MCY
-      Loop_UNOD: DO U_NOD = 1, U_NONODS
 
-         Loop_IPHASE: DO IPHASE = 1, NPHASE
+      Loop_IPHASE: DO IPHASE = 1, NPHASE
 
-            Loop_IDIM: DO IDIM = 1, NDIM
+         Loop_IDIM: DO IDIM = 1, NDIM
+            Loop_UNOD: DO U_NOD = 1, U_NONODS
+
                U_NOD_PHA_I = U_NOD + ( IDIM - 1 ) * U_NONODS + ( IPHASE - 1 ) * U_NONODS * NDIM 
                IWID = FINDC( U_NOD + 1 ) - FINDC( U_NOD )
 
                DO I = 1, IWID 
                   COUNT2 = FINMCY( U_NOD_PHA_I + 1 ) - I
-                  COUNT = FINDC( U_NOD + 1 ) - I + ( IPHASE - 1 ) * NCOLC * NDIM
-
-                  SELECT CASE( IDIM )
-                  CASE( 1 ) 
-                     MCY( COUNT2 ) = C( COUNT )
-                  CASE( 2 ) 
-                     MCY( COUNT2 ) = C( COUNT + NCOLC )
-                  CASE( 3 ) 
-                     MCY( COUNT2 ) = C( COUNT + 2 * NCOLC )
-                  CASE DEFAULT 
-                     FLExit("Invalid integer for for problem dimension")
-                  END SELECT
-
+                  COUNT = FINDC( U_NOD + 1 ) - I + ( IDIM - 1 ) * NCOLC + ( IPHASE - 1 ) * NCOLC * NDIM
+                  MCY( COUNT2 ) = C( COUNT )
                END DO
 
-            END DO Loop_IDIM
-
-         END DO Loop_IPHASE
-
-      END DO Loop_UNOD
+            END DO Loop_UNOD
+         END DO Loop_IDIM
+      END DO Loop_IPHASE
 
       ewrite(3,*) 'Leaving PUT_MOM_C_IN_GLOB_MAT'
 
@@ -2081,18 +2067,18 @@
       REAL, DIMENSION( NCOLCMC ), intent( in ) :: MASS_MN_PRES
       ! Local variables...
       INTEGER CV_NOD, IWID, COUNT, IPHASE, COUNT_MCY1, &
-           COUNT_MCY, COUNT_CMC, COUNT_TAKE, IDIM
+           COUNT_MCY, COUNT_CMC, COUNT_TAKE, IDIM, I
 
       ewrite(3,*) 'In PUT_CT_IN_GLOB_MAT'
 
       Loop_CVNOD: DO CV_NOD = 1, CV_NONODS
          IWID = FINDCT( CV_NOD + 1 ) - FINDCT( CV_NOD )
 
-         Loop_COUNT: DO COUNT = FINDCT( CV_NOD ), FINDCT( CV_NOD + 1 ) - 1, 1
+         Loop_COUNT: DO COUNT = FINDCT( CV_NOD ), FINDCT( CV_NOD + 1 ) - 1
 
             Loop_PHASE: DO IPHASE = 1, NPHASE
                Loop_DIM: DO IDIM = 1, NDIM
-                  COUNT_MCY1 = FINMCY( U_NONODS * NPHASE + CV_NOD ) - 1 + (COUNT - FINDCT( CV_NOD ) +1) &
+                  COUNT_MCY1 = FINMCY( U_NONODS * NPHASE * NDIM + CV_NOD ) - 1 + (COUNT - FINDCT( CV_NOD ) +1) &
                        + ( IPHASE - 1 ) * IWID * NDIM &
                        + IWID*(IDIM-1)
                   MCY( COUNT_MCY1 ) = CT( COUNT + ( IPHASE - 1 ) * NDIM * NCOLCT + (IDIM-1)*NCOLCT ) 
@@ -2105,9 +2091,10 @@
       END DO Loop_CVNOD
 
       DO CV_NOD = 1, CV_NONODS
-         DO COUNT_CMC = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
-            COUNT_TAKE = - ( (FINDCMC( CV_NOD + 1 ) - 1) - COUNT_CMC ) 
-            COUNT_MCY = FINMCY( NDIM * NPHASE * U_NONODS + CV_NOD + 1 ) - 1  +  COUNT_TAKE
+         IWID = FINDCMC( CV_NOD + 1 )- FINDCMC( CV_NOD ) 
+         DO I = 1, IWID 
+            COUNT_CMC = FINDCMC( CV_NOD + 1) - I
+            COUNT_MCY = FINMCY( NDIM * NPHASE * U_NONODS + CV_NOD + 1 ) - I 
             MCY( COUNT_MCY ) = DIAG_SCALE_PRES( CV_NOD ) * MASS_MN_PRES( COUNT_CMC )
          END DO
       END DO
@@ -2117,10 +2104,6 @@
       RETURN
 
     END SUBROUTINE PUT_CT_IN_GLOB_MAT
-
-
-
-
 
     SUBROUTINE ASSEMB_FORCE_CTY( state, &
          NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
@@ -2204,7 +2187,7 @@
       INTEGER, PARAMETER :: WIC_U_BC_DIRICHLET = 1, WIC_U_BC_ROBIN = 2, WIC_U_BC_DIRI_ADV_AND_ROBIN = 3
       INTEGER, PARAMETER :: WIC_P_BC_DIRICHLET = 1
       LOGICAL, PARAMETER :: VOL_ELE_INT_PRES = .TRUE., STRESS_FORM=.FALSE., STAB_VISC_WITH_ABS=.FALSE.
-! if STAB_VISC_WITH_ABS then stabilize (in the projection mehtod) the viscocity using absorption.
+! if STAB_VISC_WITH_ABS then stabilize (in the projection mehtod) the viscosity using absorption.
       REAL, PARAMETER :: WITH_NONLIN = 1.0, TOLER = 1.E-10, ZERO_OR_TWO_THIRDS=2.0/3.0
 
       INTEGER, DIMENSION( :, : ), allocatable :: CV_SLOCLIST, U_SLOCLIST, CV_NEILOC, FACE_ELE
@@ -2689,12 +2672,6 @@
       !ewrite(3,*) 'got_diffus:', got_diffus
 
       IF( GOT_DIFFUS ) THEN
-         !  print *,'X_NLOC,U_NLOC,cv_nloc,XU_NLOC:',X_NLOC,U_NLOC,cv_nloc,XU_NLOC
-         !  stop 821
-         ! Calculate all the 1st order derivatives for the diffusion term.
-         ! print *,'-***CVFENLX:', CVFENLX
-         ! print *,'-***CVFENLY:', CVFENLY
-         !   stop 674
          CALL DG_DERIVS_UVW( U, UOLD, V, VOLD, W, WOLD, &
               DUX_ELE, DUY_ELE, DUZ_ELE, DUOLDX_ELE, DUOLDY_ELE, DUOLDZ_ELE, &
               DVX_ELE, DVY_ELE, DVZ_ELE, DVOLDX_ELE, DVOLDY_ELE, DVOLDZ_ELE, &
@@ -2775,10 +2752,6 @@
             END DO
          END DO
 
-!         print *,'before'
-!         print *,'DENGI',dengi
-
-!         print *,'DENGIold',dengiold
 
 ! ********************start filtering density
 !         FILT_DEN=1
@@ -2840,11 +2813,7 @@
                END DO
             END DO
          ENDIF 
-!         print *,'before cv_nloc,u_nloc',cv_nloc,u_nloc
-!         print *,'DENGI',dengi
 
-!         print *,'DENGIold',dengiold
-!         stop 933
 ! ********************end filtering density
 ! not good to have -ve density at quadature pt...
          DENGI=max(0.0,DENGI)
@@ -2858,14 +2827,11 @@
                DO IPHA_IDIM = 1, NDIM_VEL * NPHASE
                   DO JPHA_JDIM = 1, NDIM_VEL * NPHASE
                      SIGMAGI( GI, IPHA_IDIM, JPHA_JDIM ) = SIGMAGI( GI, IPHA_IDIM, JPHA_JDIM ) &
-                          !+ CVfen( MAT_ILOC, GI ) * U_ABSORB( MAT_NODI, IPHA_IDIM, JPHA_JDIM )
+                          !+ CVFEN( MAT_ILOC, GI ) * U_ABSORB( MAT_NODI, IPHA_IDIM, JPHA_JDIM )
                           + CVN( MAT_ILOC, GI ) * U_ABSORB( MAT_NODI, IPHA_IDIM, JPHA_JDIM ) 
                      SIGMAGI_STAB( GI, IPHA_IDIM, JPHA_JDIM ) = SIGMAGI_STAB( GI, IPHA_IDIM, JPHA_JDIM ) &
-                          !+ CVfen( MAT_ILOC, GI ) * U_ABS_STAB( MAT_NODI, IPHA_IDIM, JPHA_JDIM )
+                          !+ CVFEN( MAT_ILOC, GI ) * U_ABS_STAB( MAT_NODI, IPHA_IDIM, JPHA_JDIM )
                           + CVN( MAT_ILOC, GI ) * U_ABS_STAB( MAT_NODI, IPHA_IDIM, JPHA_JDIM )
-                     !        + max(CVN( MAT_ILOC, GI ),CVfen( MAT_ILOC, GI )) * U_ABSORB( MAT_NODI, IPHA_IDIM, JPHA_JDIM )
-                     !      ewrite(3,*)'ele,gi,IPHA_IDIM, JPHA_JDIM,SIGMAGI( GI, IPHA_IDIM, JPHA_JDIM ):', &
-                     !               ele,gi,IPHA_IDIM, JPHA_JDIM,SIGMAGI( GI, IPHA_IDIM, JPHA_JDIM )
                   END DO
                END DO
             END DO
@@ -2975,7 +2941,7 @@ end if
 
                      Loop_IPHASE: DO IPHASE = 1, NPHASE ! Diffusion tensor
 
-                        IF(STRESS_FORM) THEN ! stress form of viscocity...
+                        IF(STRESS_FORM) THEN ! stress form of viscosity...
                            CALL CALC_STRESS_TEN(STRESS_IJ(IPHASE,:,:), ZERO_OR_TWO_THIRDS, NDIM, &
                            UFENX( U_ILOC, GI ),UFENY( U_ILOC, GI ),UFENZ( U_ILOC, GI ), &
                            UFENX( U_JLOC, GI ),UFENY( U_JLOC, GI ),UFENZ( U_JLOC, GI ), &
@@ -3042,7 +3008,7 @@ end if
                                 SIGMAGI_STAB( GI, IPHA_IDIM, JPHA_JDIM ) * DETWEI( GI )
                         END DO
                         END DO 
-! Stabilization for viscocity...
+! Stabilization for viscosity...
                         IF(STAB_VISC_WITH_ABS) THEN
                            IF(STRESS_FORM) THEN
                               IF(IDIM==1) THEN
@@ -4195,7 +4161,7 @@ end if
                            U_KLOC2=U_ILOC_OTHER_SIDE( U_SKLOC )
                            U_NODK2=U_NDGLN((ELE2-1)*U_NLOC+U_KLOC2)
                         ENDIF
-                        ! print *,'ele,ele2,u_kloc,u_kloc2:',ele,ele2,u_kloc,u_kloc2
+
                         U_NODK_PHA =U_NODK +(IPHASE-1)*U_NONODS
                         U_NODK2_PHA=U_NODK2+(IPHASE-1)*U_NONODS
 
@@ -4249,7 +4215,6 @@ end if
                    IF(.NOT.STRESS_FORM) THEN
                         If_GOT_DIFFUS: IF(GOT_DIFFUS) THEN
                            ! These subs caculate the effective diffusion coefficient DIFF_COEF_DIVDX,DIFF_COEFOLD_DIVDX
-                           ! print *,'in forcebalance sub U_NODJ_IPHA,U_NODI_IPHA:', U_NODJ_IPHA,U_NODI_IPHA
 
                            IF(IDIM==1) THEN
                               CALL DIFFUS_CAL_COEFF_SURFACE(DIFF_COEF_DIVDX( SGI,IDIM,IPHASE ), &
@@ -4382,7 +4347,7 @@ end if
                                  DGM_PHA( COUNT )  =  DGM_PHA( COUNT )  - NN_SNDOTQ_IN
                                  DGM_PHA( COUNT2 ) =  DGM_PHA( COUNT2 ) + NN_SNDOTQ_IN
                               ENDIF
-! viscocity...
+! viscosity...
 
 !                                 PIVIT_MAT(ELE, I, J) = PIVIT_MAT(ELE, I, J) +  VLM_NEW 
 !                                 PIVIT_MAT(ELE, I, I) = PIVIT_MAT(ELE, I, I) +  MAX(0.0, VLM_NEW )
@@ -4443,7 +4408,7 @@ end if
                                          * WOLD( JU_NOD2_PHA )
                                  ENDIF
                               ENDIF
-! Viscocity...
+! Viscosity...
                                  IF(IDIM == 1) THEN
                                     U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) -VLM_OLD * UOLD( JU_NOD_PHA )
                                     U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) +VLM_OLD * UOLD( JU_NOD2_PHA )
@@ -5741,12 +5706,7 @@ end if
         DO ELE=1,TOTELE
           DO CV_ILOC=1,CV_NLOC
             FEMT_CV_NOD(CV_ILOC)=SHARP_FEMT(CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC))
-!            print *,'cv_iloc,x,y:',cv_iloc,x(x_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)), &
-!                                           y(X_NDGLN((ELE-1)*CV_NLOC+CV_ILOC))
-!            print *,'cv_iloc,x,y:',cv_iloc,x(cv_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)), &
-!                                           y(cv_NDGLN((ELE-1)*CV_NLOC+CV_ILOC))
           END DO
-!          stop 382
           FEMT_CV_NOD(2)=0.5*(FEMT_CV_NOD(1)+FEMT_CV_NOD(3))
           FEMT_CV_NOD(4)=0.5*(FEMT_CV_NOD(1)+FEMT_CV_NOD(6))
           FEMT_CV_NOD(5)=0.5*(FEMT_CV_NOD(3)+FEMT_CV_NOD(6))

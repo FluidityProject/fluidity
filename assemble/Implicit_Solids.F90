@@ -145,7 +145,7 @@ module implicit_solids
   public:: solids, implicit_solids_nonlinear_iteration_converged, &
        &   remove_dummy_field, add_mass_source_absorption, &
        &   implicit_solids_register_diagnostic, implicit_solids_update, &
-       &   implicit_solids_check_options
+       &   implicit_solids_check_options, interpolation_galerkin_femdem
 
 contains
 

@@ -425,6 +425,8 @@
       !ewrite(3,*)'nu=', nu
       !ewrite(3,*)'nv=', nv
       !ewrite(3,*)'nw=', w
+      !ewrite(3,*)'den=', den
+      !ewrite(3,*)'denold=', denold
 
       ndotq = 0. ; ndotqold = 0.
 
@@ -677,12 +679,6 @@
            X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM, &
            IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC )
 
-!         femt=t
-!         femtold=told
-!         FEMT2=t2
-!         FEMT2OLD=t2old
-
-
       MASS_ELE_TRANSP = MASS_ELE
 
       NORMALISE = .false.
@@ -740,7 +736,6 @@
            T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, &
            DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD )
 
-
 ! **********ANISOTROPIC LIMITING...*******************
       IANISOLIM=0
       IF(CV_DISOPT.GE.8) IANISOLIM=1
@@ -789,7 +784,6 @@
       END IF
 ! **********...ANISOTROPIC LIMITING*******************
 
-
       ALLOCATE( FACE_ELE( NFACE, TOTELE ) ) ; FACE_ELE = 0
       ! Calculate FACE_ELE
       CALL CALC_FACE_ELE( FACE_ELE, TOTELE, STOTEL, NFACE, &
@@ -836,12 +830,12 @@
          IF( GET_THETA_FLUX ) THEN
             THETA_FLUX = 0.0
             ONE_M_THETA_FLUX = 0.0
-            GET_GTHETA = .TRUE.
-            THETA_GDIFF = 0.0
+            IF( IGOT_T2 == 1 ) THEN
+               GET_GTHETA = .TRUE.
+               THETA_GDIFF = 0.0
+            END IF
          ENDIF
       ENDIF
-      !ewrite(1,*)'8 midacv:', midacv( 1 : cv_nonods * nphase )
-      !stop 9823
 
       ! Now we begin the loop over elements to assemble the advection terms
       ! into the matrix (ACV) and the RHS
@@ -1228,17 +1222,10 @@
                              UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2, &
                              NDOTQNEW, NDOTQOLD, LIMDT, LIMDTOLD, FTHETA_T2, ONE_M_FTHETA_T2OLD )
 
-                    !   if((sele.ne.0).and.(iphase==2).and.(cvnormx(gi).lt.-0.5)) then
-                    !      print *,'sele,UGI_COEF_ELE:',sele,UGI_COEF_ELE
-                    !      print *,'VGI_COEF_ELE:',VGI_COEF_ELE
-                    !      print *,'limdt,cvnormx(gi):',limdt,cvnormx(gi)
-                    !   endif
-
                      ENDIF Conditional_GETCT2
 
                      Conditional_GETCV_DISC: IF(GETCV_DISC) THEN 
                         ! Obtain the CV discretised advection/diffusion equations
-
                         IF(GETMAT) THEN
                            ! - Calculate the integration of the limited, high-order flux over a face  
                            ! Conservative discretisation. The matrix (PIVOT ON LOW ORDER SOLN)
@@ -1361,7 +1348,7 @@
       IF( .false. .and. GETCV_DISC ) THEN
          ewrite(3,*) 'after put_in_ct_rhs'
          ewrite(3,*) 'cv_rhs1:', cv_rhs(1:cv_nonods)
-         ewrite(3,*) 'cv_rhs2:', cv_rhs(1+cv_nonods:2*cv_nonods)
+         !ewrite(3,*) 'cv_rhs2:', cv_rhs(1+cv_nonods:2*cv_nonods)
       end if
 
       IF(GET_GTHETA) THEN
@@ -1453,9 +1440,6 @@
          DO IPHASE = 1, NPHASE
             DO CV_NODI = 1, CV_NONODS
                CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
-
-               !ewrite(3,*) 'MEAN_PORE_CV( CV_NODI ) , TOLD( CV_NODI_IPHA ) , DERIV( CV_NODI_IPHA ), DT , DENOLD( CV_NODI_IPHA ), CV_P( CV_NODI ) ', &
-               !     MEAN_PORE_CV( CV_NODI ) , TOLD( CV_NODI_IPHA ) , DERIV( CV_NODI_IPHA ), DT , DENOLD( CV_NODI_IPHA ), CV_P( CV_NODI ) 
 
                if(.false.) then
                   CT_RHS( CV_NODI ) = CT_RHS( CV_NODI )  -  MEAN_PORE_CV( CV_NODI ) * MASS_CV( CV_NODI ) &
@@ -4142,7 +4126,7 @@
             END DO
          ENDIF
 
-            ! Solve MAT_LOC_2ELES *DIFF = VECRHS_2ELES  
+         ! Solve MAT_LOC_2ELES *DIFF = VECRHS_2ELES  
          ! MAT is overwritten by decomposition
          CALL SMLINNGOT( MAT, DIFF, VECRHS_2ELES, NLEN, NLEN, GOTDEC)
          GOTDEC =.TRUE.
@@ -6851,9 +6835,9 @@
 
 !                  COEF=U_DOT_GRADT_GI/TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 )
                   IF(NON_LIN_PETROV_INTERFACE==5) THEN 
-                     COEF=1.0/TOLFUN(SQRT( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2) )
+                     COEF=1.0 / TOLFUN( SQRT( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 ) )
                   ELSE
-                     COEF=U_DOT_GRADT_GI/TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 )
+                     COEF=U_DOT_GRADT_GI / TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 )
                   ENDIF 
                   A_STAR_T=COEF*TDTGI
                   A_STAR_X=COEF*TXGI

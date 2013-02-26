@@ -63,7 +63,7 @@
     use Compositional_Terms
     use Copy_Outof_State
     use Copy_BackTo_State
-
+    use multiphase_fractures
 
     !use mapping_for_ocvfem
     !use matrix_operations
@@ -166,7 +166,7 @@
            suf_u_bc_rob1, suf_v_bc_rob1, suf_w_bc_rob1, suf_u_bc_rob2, suf_v_bc_rob2, suf_w_bc_rob2, &
            suf_t_bc_rob1, suf_t_bc_rob2, suf_vol_bc_rob1, suf_vol_bc_rob2, suf_comp_bc_rob1, suf_comp_bc_rob2, &
            theta_gdiff,  ScalarField_Source_Store, ScalarField_Source_Component, &
-           mass_ele, dummy_ele, density_tmp, density_old_tmp
+           mass_ele, dummy_ele, density_tmp, density_old_tmp, densityc_tmp, drhodpressurec_tmp
 !!$
       real, dimension( :, :, : ), allocatable :: Permeability, Material_Absorption, Material_Absorption_Stab, &
            Velocity_Absorption, ScalarField_Absorption, Component_Absorption, Temperature_Absorption, &
@@ -184,12 +184,13 @@
 !!$ Component_Diffusion = comp_diffusion
 
       type( tensor_field ), pointer :: t_field
-      character( len = option_path_len ) :: option_path
+      character( len = option_path_len ) :: option_path,  eos_option_path( 1 )
+
       integer :: stat, istate, iphase, jphase, icomp, its, its2, cv_nodi, adapt_time_steps, cv_inod
       real :: rsum
 
       real, dimension(:, :), allocatable :: DEN_CV_NOD, SUF_SIG_DIAGTEN_BC
-      integer :: CV_NOD, CV_NOD_PHA, CV_ILOC, ELE
+      integer :: CV_NOD, CV_NOD_PHA, CV_ILOC, ELE, s, e
 
 
 !!$ Compute primary scalars used in most of the code
@@ -589,7 +590,6 @@
 
             if( its == 1 ) Density_Old = Density
 
-
             if( solve_force_balance ) then
                call Calculate_AbsorptionTerm( state, &
                     cv_ndgln, mat_ndgln, &
@@ -616,7 +616,8 @@
 
                Velocity_NU = Velocity_U ; Velocity_NV = Velocity_V ; Velocity_NW = Velocity_W
 
-               call calculate_diffusivity( state, ncomp, nphase, ndim, cv_nonods, mat_nonods, ScalarAdvectionField_Diffusion )
+               call calculate_diffusivity( state, ncomp, nphase, ndim, cv_nonods, mat_nonods, &
+                                           mat_nloc, totele, mat_ndgln, ScalarAdvectionField_Diffusion )
 
                call INTENERGE_ASSEM_SOLVE( state, &
                     NCOLACV, FINACV, COLACV, MIDACV, & 
@@ -649,7 +650,7 @@
 !!$
                     opt_vel_upwind_coefs, nopt_vel_upwind_coefs, &
                     Temperature_FEMT, Dummy_PhaseVolumeFraction_FEMT, &
-                    igot_t2, Temperature, Temperature_Old, igot_theta_flux, scvngi_theta, &
+                    0, Temperature, Temperature_Old, 0, scvngi_theta, &
                     t_get_theta_flux, t_use_theta_flux, &
                     Temperature, Temperature, Temperature, &
                     Temperature_BC, suf_t_bc_rob1, suf_t_bc_rob2, Temperature_BC_Spatial, &
@@ -661,7 +662,7 @@
                     Mean_Pore_CV, &
                     option_path = '/material_phase[0]/scalar_field::Temperature', &
                     mass_ele_transp = dummy_ele, &
-                    thermal = .true. )
+                    thermal = .false. ) !.true. )
 
 !!$ Update state memory
                do iphase = 1, nphase
@@ -766,7 +767,7 @@
                call calculate_u_source_cv( state, cv_nonods, ndim, nphase, density_tmp, Velocity_U_Source_CV )
 
                ! calculate the viscosity for the momentum equation...
-               call calculate_viscosity( state, ncomp, nphase, ndim, mat_nonods, mat_ndgln, Momentum_Diffusion  )
+               call calculate_viscosity( state, ncomp, nphase, ndim, mat_nonods, mat_ndgln, Momentum_Diffusion )
 
                ! quick fix for collapsing water column...
                ScalarField_Source_Store=0.
@@ -873,46 +874,22 @@
             Conditional_Components: if( have_component_field ) then
                Loop_Components: do icomp = 1, ncomp
 
-                  ! NEEDS GENERALIZING *********************************
-                  IF(ICOMP==1) THEN
-                     DENSITY_COMPONENT(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS )=1000.0
-                     DENSITY_COMPONENT_OLD(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS )=1000.0
-                  ELSE
-                     DENSITY_COMPONENT(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS )=1.0
-                     DENSITY_COMPONENT_OLD(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS )=1.0
-                  ENDIF
-                  ! NEEDS GENERALIZING *********************************
-
-
-
-!!$ generalisation for above... i.e. calc DENSITY_COMPONENT
-!!$
-!!$           allocate( Density_tmp( cv_nonods ), DRhoDPressure_tmp( cv_nonods ) )
-!!$           Density_tmp=0. ; DRhoDPressure_tmp=0.
-!!$
-!!$
-!!$      do iphase = 1, nphase
-!!$
-!!$         eos_option_path = trim( '/material_phase[' // int2str( icomp + nphase - 1 ) // ']/equation_of_state' )
-!!$
-!!$              call Assign_Equation_of_State( eos_option_path )
-!!$
-!!$
-!!$                  call Computing_Perturbation_Density( state, &
-!!$                       iphase, icomp, icomp, eos_option_path, &
-!!$                       Density_tmp, &
-!!$                       DRhoDPressure_tmp, .true. )
-!!$
-!!$                Density_Component( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods ) = Density_tmp
-!!$                Density_Component_Old( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods ) = Density_tmp
-!!$         
-!!$         ( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1 :    icomp * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods
-!!$
-!!$
-!!$     end do
-!!$    deallocate( Density_tmp, DRhoDPressure_tmp )
-!!$
-
+                  ! Calculate Density_Component
+                  allocate( DensityC_tmp( cv_nonods ), DRhoDPressureC_tmp( cv_nonods ) )
+                  do iphase = 1, nphase
+                     s = ( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1
+                     e = ( icomp - 1 ) * nphase * cv_nonods + iphase * cv_nonods
+                     eos_option_path = trim( '/material_phase[' // int2str( icomp + nphase - 1 ) // ']/equation_of_state' )
+                     call Assign_Equation_of_State( eos_option_path( 1 ) )
+                     DensityC_tmp=0. ; DRhoDPressureC_tmp=0.
+                     call Computing_Perturbation_Density( state, &
+                          iphase, icomp, icomp, eos_option_path, &
+                          DensityC_tmp, &
+                          DRhoDPressureC_tmp, .true. )
+                     Density_Component( s : e ) = DensityC_tmp
+                     if ( its == 1 ) Density_Component_Old( s : e ) = Density_Component( s : e )
+                  end do
+                  deallocate( DensityC_tmp, DRhoDPressureC_tmp )
 
 !!$ Computing the absorption term for the multi-components equation
                   call Calculate_ComponentAbsorptionTerm( state, &
@@ -1071,11 +1048,13 @@
               Density, Component, &
               ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
 
-         Conditional_TimeDump: if( ( mod( itime, dump_period_in_timesteps ) == 0 ) .or. ( itime == 1 ) ) then
-            call get_option( '/timestepping/current_time', current_time ) ! Find the current time 
-!!$ Calculate diagnostic fields and write into the stat file
+!!$ Calculate diagnostic fields
             call calculate_diagnostic_variables( state, exclude_nonrecalculated = .true. )
             call calculate_diagnostic_variables_new( state, exclude_nonrecalculated = .true. )
+
+         Conditional_TimeDump: if( ( mod( itime, dump_period_in_timesteps ) == 0 ) .or. ( itime == 1 ) ) then
+            call get_option( '/timestepping/current_time', current_time ) ! Find the current time 
+!!$ Write stat file
             call write_diagnostics( state, current_time, dt, itime )
             not_to_move_det_yet = .false. ; dump_no = itime ! Sync dump_no with itime
             call write_state( dump_no, state ) ! Now writing into the vtu files

@@ -463,6 +463,7 @@
       return
     end subroutine exten_sparse_multi_phase
 
+
     subroutine exten_sparse_mom_cty( ndim, finmcy2, colmcy2, nlenmcy2, nmcy2, mxnct, &
          cv_nonods, findct, colct, &
          u_nonods, ncolc, mx_ncolmcy, &
@@ -488,28 +489,30 @@
       integer, dimension( cv_nonods + 1 ), intent( in ) :: findcmc
       integer, dimension( ncolcmc ), intent( in ) :: colcmc
       ! Local variables
-      integer :: count, count2, iphase, jphase, u_nod, u_pha_nod, cv_nod, icol, jdim
+      integer :: count, count2, iphase, jphase, u_nod, u_pha_nod, cv_nod, icol, idim, jdim, i
 
       ewrite(3,*) 'In exten_sparse_mom_cty subrt.'
 
-      count2 = 0 ; count = 0
-      Loop_Phase1: do iphase = 1, nphase ! Add the pressure part in
+      count2 = 0 
+      Loop_Phase1: do iphase = 1, nphase
+      Loop_Dim1: do idim= 1, ndim
          Loop_Nod1: do u_nod = 1, u_nonods
-            u_pha_nod = u_nod + ( iphase - 1 ) * u_nonods
+            u_pha_nod = u_nod + ( idim - 1 ) * u_nonods + ( iphase - 1 ) * u_nonods*ndim
             finmcy( u_pha_nod ) = count2 + 1
             Loop_Count1a: do count = finmcy2( u_pha_nod ), finmcy2( u_pha_nod + 1 ) - 1
                count2 = count2 + 1
                colmcy( count2 ) = colmcy2( count )
             end do Loop_Count1a
-            Loop_Count2: do count = findc( u_nod ), findc( u_nod + 1 ) - 1
+            Loop_Count2: do count = findc( u_nod ), findc( u_nod + 1 ) - 1 ! Add the pressure part in
                count2 = count2 + 1
-               colmcy( count2 ) = colc( count ) + u_nonods * nphase
+               colmcy( count2 ) = colc( count ) + u_nonods * nphase*ndim
             end do Loop_Count2
          end do Loop_Nod1
-      end do Loop_Phase1
+      end do Loop_Dim1
+   end do Loop_Phase1
 
       Loop_Nod2a: do cv_nod = 1, cv_nonods ! Add continuity part in
-         u_pha_nod = cv_nod + u_nonods * nphase
+         u_pha_nod = cv_nod + u_nonods*nphase*ndim
          finmcy( u_pha_nod ) = count2 + 1
 
          Loop_Phase2: do jphase = 1, nphase
@@ -527,14 +530,20 @@
          ! but non-zero for compressible
          Loop_Nod2c: do count = findcmc( cv_nod ), findcmc( cv_nod + 1 ) - 1
             count2 = count2 + 1
-            icol = colcmc( count ) + u_nonods * ndim * nphase
+            icol = colcmc( count ) + u_nonods * nphase * ndim
             colmcy( count2 ) = icol
-            if( u_pha_nod == icol ) midmcy( u_pha_nod ) = count2
          end do Loop_Nod2c
 
       end do Loop_Nod2a
       ncolmcy = count2
-      finmcy( u_nonods * nphase + cv_nonods + 1 ) = count2 + 1
+      finmcy( u_nonods * nphase*ndim + cv_nonods + 1 ) = count2 + 1
+
+      ! calculate the diagonal pointers...
+      do i=1,cv_nonods + ndim*nphase*u_nonods
+         do count=finmcy(i), finmcy(i+1)-1
+            if(colmcy(count)==i) midmcy(i)=count
+         end do
+      end do
 
       ewrite(3,*) 'Leaving exten_sparse_mom_cty subrt.'
 
