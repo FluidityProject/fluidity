@@ -473,6 +473,25 @@
           </diagnostic>
         </scalar_field>
       </solid_phase>
+      <solid_phase name="cylinder">
+        <scalar_field name="SolidConcentration" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="SolidCoordinateMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+      </solid_phase>
     </fsi_model>
   </embedded_models>
 </fluidity_options>
