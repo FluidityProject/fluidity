@@ -45,7 +45,7 @@ fluidity_tools.compare_variable(IntegralSolidConcentration, a, 1.0e-4)
     </test>
     <test name = "DeltaP: front and back of cylinder" language = "python">
 import fluidity_tools
-fluidity_tools.compare_variable(DeltaP, 2.2723148737915171, 1.0e-7)
+fluidity_tools.compare_variable(DeltaP, 0.0334407, 1.0e-7)
     </test>
   </pass_tests>
 </testproblem>
