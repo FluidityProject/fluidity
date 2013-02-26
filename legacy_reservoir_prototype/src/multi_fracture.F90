@@ -72,7 +72,7 @@
 #endif
 
     private
-    public :: fractures 
+    public :: fractures
 
   contains
 
@@ -230,7 +230,7 @@
 
       path = "/tmp"
 
-      p0_fl_mesh =>  extract_mesh( states(1), "P0Mesh" )      
+      p0_fl_mesh => extract_mesh( states(1), "P0Mesh" )
 
       ! this is the permeability on the fluidity mesh
       call allocate( field_fl_p11, p0_fl_mesh, "Permeability11" )
