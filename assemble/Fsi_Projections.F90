@@ -41,7 +41,7 @@ module fsi_projections
 
   interface bound_projection
     module procedure bound_projection_scalars, bound_projection_vectors
-  end interface  
+  end interface
 
   public :: fsi_one_way_galerkin_projection, fsi_one_way_grandy_interpolation, fsi_get_interface
 

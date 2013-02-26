@@ -989,23 +989,30 @@ module fsi_model
       do ele = 1, ele_count(source_term_iter%mesh)
           nodes => ele_nodes(source_term_iter%mesh, ele)
           do i = 1, size(nodes)
-              if (node_val(alpha, nodes(i)) .gt. 0.0 .and. node_val(alpha, nodes(i)) .lt. 1) then
-!                if (node_val(fsi_interface, nodes(i)) == 1.0) then
+              ! Originally:
+              ! The if statement below causes instability for the source term on a DG mesh:
+!              if (node_val(alpha, nodes(i)) .gt. 0.0 .and. node_val(alpha, nodes(i)) .lt. 1.0) then
+              ! Source term should be at the FSI interface, so cap short before inside the solid volume
+              ! here and for now by comparing against the value of alpha, must be in interval [0, 0.999]:
+              if (node_val(alpha, nodes(i)) .gt. 0.0 .and. node_val(alpha, nodes(i)) .lt. 0.9999) then
+          !    if (node_val(alpha, nodes(i)) .gt. 0.0) then
                   do j = 1, source_term_iter%dim
-                      ! Correct source term: u_s*sigma - sigma*(alpha*u_f + u_s), with sigma=1/dt
-                      call set(source_term_iter, j, nodes(i), (node_val(solid_velocity,j,nodes(i)) / dt) - &
-                        & (node_val(solid_velocity,j,nodes(i)) + &
-                        & node_val(fluid_velocity,j,nodes(i)) * node_val(alpha,nodes(i))) / dt )
-                      ! Source term based on: sigma*u_s^f - sigma*alpha*u_f^f, sigma=1/dt
-!                        call set(source_term_iter, j, nodes(i), (node_val(solid_velocity,j,nodes(i)) / dt) - &
-!                                 & ( (node_val(alpha, nodes(i)) / dt) * (node_val(fluid_velocity,j,nodes(i))) ) )
+!                      ! Originally used, and theorhetically correct:
+!                      ! Originally used this source term: u_s*sigma - sigma*(alpha*u_f + u_s), with sigma=1/dt
+!                      call set(source_term_iter, j, nodes(i), (node_val(solid_velocity,j,nodes(i)) / dt) - &
+!                        & (node_val(solid_velocity,j,nodes(i)) + &
+!                        & node_val(fluid_velocity,j,nodes(i)) ) / dt )
+                      call set(source_term_iter, j, nodes(i), ( (node_val(solid_velocity,j,nodes(i)) + &
+                        & node_val(fluid_velocity,j,nodes(i)) ) / dt ) - &
+                        & (node_val(solid_velocity,j,nodes(i)) / dt) )
+                      ! Below was used before, which is the same as above but with alpha:
+                      !  & node_val(fluid_velocity,j,nodes(i)) * node_val(alpha,nodes(i))) / dt )
 
-                      ! Trial (not correct):
-!                        call set(source_term_iter, j, nodes(i), (node_val(solid_velocity,j,nodes(i)) / dt) - (node_val(solid_velocity,j,nodes(i))+node_val(fluid_velocity,j,nodes(i))*node_val(alpha,nodes(i))) / dt )
                   end do
               end if
           end do
       end do
+
 
       ! Setting source term:
       source_term => extract_vector_field(state, "VelocitySource")
@@ -1156,7 +1163,12 @@ module fsi_model
               do i = 1, size(nodes)
                   if (node_val(alpha, nodes(i)) .gt. 0.0) then
                       do j = 1, solidforce%dim
-                          call set(solidforce, j, nodes(i), (node_val(alpha, nodes(i)) / dt) * (node_val(fluid_velocity,j,nodes(i)) - (node_val(solid_velocity,j,nodes(i))) ) )
+                          ! With multiplying by alpha:
+                          !call set(solidforce, j, nodes(i), (node_val(alpha, nodes(i)) / dt) * (node_val(fluid_velocity,j,nodes(i)) - &
+                          !         & (node_val(solid_velocity,j,nodes(i))) ) )
+                          ! Without multiplying by alpha:
+                          call set(solidforce, j, nodes(i), (1.0 / dt) * (node_val(fluid_velocity,j,nodes(i)) - &
+                                   & (node_val(solid_velocity,j,nodes(i))) ) )
                       end do
                   end if
               end do
