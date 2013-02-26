@@ -1947,14 +1947,12 @@ scalar_equation_choice =
             attribute name { "ReducedConservationOfMass" },
             equation_coefficients
          }|
-         ## ***UNDER TESTING***
-         ##
          ## Select the equation used to solve for this field.
          ## Internal Energy equation - requires the selection of a Density field.
-         ## ONLY WORKS FOR CONTROL VOLUME DISCRETISATIONS
+         ## ONLY WORKS FOR CG and CV DISCRETISATIONS
          ## Solve the internal energy equation for this field.
          ## Requires pressure and velocity fields to be present.
-         ## Uses a nonconservative time discretisation.
+         ## Uses a non-conservative time discretisation.
          element equation {
             attribute name { "InternalEnergy" },
             equation_coefficients
@@ -2002,7 +2000,7 @@ equation_coefficients =
         coefficient_discretisation_options?
       }
    )
-
+   
 coefficient_discretisation_options =
   (
     ## Provide discretisation options for the coefficient density field.
