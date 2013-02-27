@@ -504,7 +504,9 @@
     <scalar_field name="Temperature" rank="0">
       <prognostic>
         <mesh name="PressureMesh"/>
-        <equation name="AdvectionDiffusion"/>
+        <equation name="InternalEnergy">
+          <density name="MaterialDensity"/>
+        </equation>
         <spatial_discretisation>
           <control_volumes>
             <face_value name="FiniteElement">
