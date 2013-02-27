@@ -1033,21 +1033,42 @@ module fsi_model
       type(scalar_field), intent(inout) :: ct_rhs
 
       type(scalar_field), pointer :: alpha, old_alpha
+      type(scalar_field) :: alpha_projected, old_alpha_projected
+      type(scalar_field) :: alpha_pmesh, old_alpha_pmesh
       type(scalar_field), pointer :: p
       type(vector_field), pointer :: x
       type(element_type), pointer :: p_shape 
       type(element_type) :: test_function
       integer :: ele
-      
+
       ewrite(2,*) "Inside fsi_add_dalpha_solid_dt"
 
       alpha => extract_scalar_field(state, "IteratedSolidConcentration")
       old_alpha => extract_scalar_field(state, "OldSolidConcentration")
       x => extract_vector_field(state, "Coordinate")
       p => extract_scalar_field(state, "IteratedPressure")
-      
+
+      ! Now project alpha to the cg coordinate mesh, then remap to the pressure mesh:
+      ! First for alpha:
+      call allocate(alpha_projected, x%mesh, 'SolidConcentrationCoordinateMesh')
+      call allocate(alpha_pmesh, p%mesh, 'SolidConcentrationPressureMesh')
+      call zero(alpha_projected)
+      call zero(alpha_pmesh)
+      call project_field(alpha, alpha_projected, x)
+      call remap_field(alpha_projected, alpha_pmesh)
+      ! And for old solid position (old_alpha):
+      call allocate(old_alpha_projected, x%mesh, 'OldSolidConcentrationCoordinateMesh')
+      call allocate(old_alpha_pmesh, p%mesh, 'OldSolidConcentrationPressureMesh')
+      call zero(old_alpha_projected)
+      call zero(old_alpha_pmesh)
+      call project_field(old_alpha, old_alpha_projected, x)
+      call remap_field(old_alpha_projected, old_alpha_pmesh)
+
       ewrite_minmax(alpha)
       ewrite_minmax(old_alpha)
+      ewrite_minmax(alpha_pmesh)
+      ewrite_minmax(old_alpha_pmesh)
+      ewrite_minmax(p)
       ewrite_minmax(ct_rhs)
 
       do ele = 1, element_count(p)
@@ -1055,10 +1076,15 @@ module fsi_model
          test_function = p_shape
 
          call add_ct_rhs_element_cg(ele, test_function, &
-              p_shape, x, p, alpha, old_alpha, ct_rhs)
+              p_shape, x, p, alpha_pmesh, old_alpha_pmesh, ct_rhs)
       end do
 
       ewrite_minmax(ct_rhs)
+
+      call deallocate(alpha_projected)
+      call deallocate(old_alpha_projected)
+      call deallocate(alpha_pmesh)
+      call deallocate(old_alpha_pmesh)
 
     contains
 
