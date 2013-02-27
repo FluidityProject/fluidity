@@ -36,8 +36,6 @@
     use global_parameters, only: option_path_len, field_name_len
     use futils, only: int2str
     use solvers
-
-    use Copy_Outof_State
     use fldebug
     use implicit_solids
 
@@ -112,7 +110,7 @@
       integer :: quad_degree
       type(mesh_type) :: mesh
 
-      call get_option( "/fractures/mesh/file_name", external_mesh_name )
+      call get_option( '/porous_media/Permeability_from_femdem/name', external_mesh_name )
       call get_option( "/geometry/quadrature/degree", quad_degree )
 
       call y2d_allocate_femdem( trim( external_mesh_name )//char(0), &

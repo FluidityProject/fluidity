@@ -772,6 +772,9 @@ start =
                      velocity_mesh_choice,
                      prescribed_tensor_field
                   }
+               }|
+               element Permeability_from_femdem {
+                  attribute name { xsd:string }
                }
             )
          }?

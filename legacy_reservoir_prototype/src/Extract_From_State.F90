@@ -47,6 +47,8 @@
     use fefields
     use boundary_conditions
     use futils, only: int2str
+    use multiphase_fractures
+
     !use printout
     !use quicksort
 
@@ -908,6 +910,7 @@
 !!$
       Permeability = 0.
       Conditional_PermeabilityField: if( have_option( '/porous_media/scalar_field::Permeability' ) ) then
+
          scalarfield => extract_scalar_field( state( 1 ), 'Permeability' )
          do ele = 1, element_count( scalarfield ) 
             element_nodes => ele_nodes( scalarfield, ele )
@@ -915,14 +918,23 @@
          end do
 
       elseif( have_option( '/porous_media/tensor_field::Permeability' ) ) then
+
          tensorfield => extract_tensor_field( state( 1 ), 'Permeability' )
          option_path =  '/porous_media/tensor_field::Permeability'
          call Extract_TensorFields_Outof_State( state, 1, &
               tensorfield, option_path, &
               Permeability )
 
+      elseif( have_option( '/porous_media/Permeability_from_femdem' ) ) then
+
+#ifdef USING_FEMDEM
+         call fractures( state, totele, ndim, permeability )
+#else
+         FLAbort( 'You forgot to compile with FEMDEM...' )
+#endif
+
       elseif( have_option( '/porous_media/vector_field::Permeability' ) ) then
-         FLAbort( 'Permeability Vector Field is not defined yet.' ) 
+         FLAbort( 'Permeability Vector Field is not defined yet.' )
 
       end if Conditional_PermeabilityField
 

@@ -45,7 +45,7 @@ LIB = ../lib/lib@FLUIDITY@.a
 
 VPATH = ./:./src
 
-OBJS = Extract_From_State.o Copy_Into_State.o multi_fracture.o multi_matrix_operations.o Multi_MakeCVTetrahedra.o \
+OBJS = multi_fracture.o Extract_From_State.o Copy_Into_State.o multi_matrix_operations.o Multi_MakeCVTetrahedra.o \
 multi_shape_fct_ND.o multi_shape_fct.o multi_sparsity.o multi_eos.o cv-adv-dif.o multi_solvers.o \
 multi_compositional.o multi_dyncore_dg.o Mapping_OCVFEM_DG.o Multiphase_TimeLoop.o \
 Multiphase_Prototype_Wrapper.o multi_IO.o 
@@ -83,11 +83,11 @@ Mapping_OCVFEM_DG.o: multi_solvers.o multi_shape_fct.o multi_shape_fct_ND.o \
 multi_matrix_operations.o multi_IO.o
 multi_dyncore_dg.o: Extract_From_State.o multi_matrix_operations.o Mapping_OCVFEM_DG.o multi_shape_fct.o multi_solvers.o cv-adv-dif.o multi_IO.o
 multi_IO.o: 
-multi_solvers.o: Extract_From_State.o multi_shape_fct.o multi_shape_fct_ND.o multi_matrix_operations.o
+multi_solvers.o: Extract_From_State.o multi_shape_fct.o multi_shape_fct_ND.o multi_matrix_operations.o multi_fracture.o
 multi_sparsity.o: Extract_From_State.o multi_shape_fct.o multi_shape_fct_ND.o cv-adv-dif.o
 multi_shape_fct.o: Extract_From_State.o multi_shape_fct_ND.o
 multi_shape_fct_ND.o: Multi_MakeCVTetrahedra.o
-Multiphase_TimeLoop.o: multi_dyncore_dg.o multi_eos.o multi_IO.o Copy_Into_State.o Extract_From_State.o multi_fracture.o\
+Multiphase_TimeLoop.o: multi_dyncore_dg.o multi_eos.o multi_IO.o Copy_Into_State.o Extract_From_State.o \
 multi_sparsity.o Mapping_OCVFEM_DG.o multi_compositional.o multi_shape_fct_ND.o 
 Multiphase_Prototype_Wrapper.o: Multiphase_TimeLoop.o
 

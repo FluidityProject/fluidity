@@ -967,6 +967,11 @@ Pc = c * S_w ** a</a:documentation>
                 <ref name="prescribed_tensor_field"/>
               </element>
             </element>
+            <element name="Permeability_from_femdem">
+              <attribute name="name">
+                <data type="string"/>
+              </attribute>
+            </element>
           </choice>
         </element>
       </optional>

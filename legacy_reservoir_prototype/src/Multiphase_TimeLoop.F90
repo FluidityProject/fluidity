@@ -63,7 +63,6 @@
     use Compositional_Terms
     use Copy_Outof_State
     use Copy_BackTo_State
-    use multiphase_fractures
 
     !use mapping_for_ocvfem
     !use matrix_operations

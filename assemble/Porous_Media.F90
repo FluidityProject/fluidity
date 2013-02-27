@@ -240,6 +240,8 @@ module porous_media
       ! TENSOR PERMEABILITY
       t_permeability => extract_tensor_field(state(1), "Permeability", stat)
       ewrite(1,*) 'Tensor permeability! Absorption is always a vector_field'
+    elseif (have_option("/porous_media/Permeability_from_femdem")) then
+      ! do nothing here...
     else
       FLExit("Porous media problems require a permeability field.")
     end if
