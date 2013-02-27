@@ -54,7 +54,7 @@
 
     interface
        subroutine y2d_populate_femdem( ele1, ele2 ,ele3, &
-            face1, face2, face3, xs, ys, p1, p2, p3, p4 )
+            face1, face2, xs, ys, p1, p2, p3, p4 )
          integer, dimension( * ), intent( out ) :: ele1, ele2, ele3
          integer, dimension( * ), intent( out ) :: face1, face2
          real, dimension( * ), intent( out ) :: xs, ys, p1, p2, p3, p4
