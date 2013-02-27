@@ -51,15 +51,17 @@ contains
   subroutine les_init_diagnostic_fields(state, have_eddy_visc, have_filter_width, have_coeff)
 
     ! Arguments
-    type(state_type), intent(inout) :: state
-    logical, intent(in) :: have_eddy_visc, have_filter_width, have_coeff
+    type(state_type), intent(inout)             :: state
+    logical, intent(in)                         :: have_eddy_visc, have_filter_width, have_coeff
     
     ! Local variables
-    logical, dimension(2) :: have_diagnostic_tfield
+    logical, dimension(2)                       :: have_diagnostic_tfield
+    logical, dimension(1)                       :: have_diagnostic_sfield
     character(len=FIELD_NAME_LEN), dimension(2) :: diagnostic_tfield_names
-    type(tensor_field), pointer :: tfield
-    type(scalar_field), pointer :: sfield
-    integer :: i
+    character(len=FIELD_NAME_LEN), dimension(1) :: diagnostic_sfield_names
+    type(tensor_field), pointer                 :: tfield
+    type(scalar_field), pointer                 :: sfield
+    integer                                     :: i
 
     ewrite(2,*) "Initialising optional LES diagnostic fields"
     
@@ -67,17 +69,22 @@ contains
     diagnostic_tfield_names(1) = "EddyViscosity"
     diagnostic_tfield_names(2) = "FilterWidth"
     
-    diagnostic_field_loop: do i = 1, size(diagnostic_tfield_names)
+    diagnostic_tfield_loop: do i = 1, size(diagnostic_tfield_names)
       if(have_diagnostic_tfield(i)) then
          tfield => extract_tensor_field(state, diagnostic_tfield_names(i))
          call zero(tfield)
       end if
-    end do diagnostic_field_loop
+    end do diagnostic_tfield_loop
 
-    if(have_coeff) then
-       sfield => extract_scalar_field(state, "SmagorinskyCoefficient")
-       call zero(sfield)
-    end if
+    have_diagnostic_sfield = (/have_coeff/)
+    diagnostic_sfield_names(1) = "SmagorinskyCoefficient"
+
+    diagnostic_sfield_loop: do i = 1, size(diagnostic_sfield_names)
+      if(have_diagnostic_sfield(i)) then
+         sfield => extract_scalar_field(state, diagnostic_sfield_names(i))
+         call zero(sfield)
+      end if
+    end do diagnostic_sfield_loop
 
   end subroutine les_init_diagnostic_fields
 
@@ -130,7 +137,9 @@ contains
     
     ! Local variables
     logical, dimension(2)                       :: have_diagnostic_tfield
+    logical, dimension(1)                       :: have_diagnostic_sfield
     character(len=FIELD_NAME_LEN), dimension(2) :: diagnostic_tfield_names
+    character(len=FIELD_NAME_LEN), dimension(1) :: diagnostic_sfield_names
     type(tensor_field), pointer                 :: tfield
     type(scalar_field), pointer                 :: sfield
     integer                                     :: i
@@ -149,7 +158,7 @@ contains
     diagnostic_tfield_names(1) = "EddyViscosity"
     diagnostic_tfield_names(2) = "FilterWidth"
     
-    diagnostic_field_loop: do i = 1, size(diagnostic_tfield_names)
+    diagnostic_tfield_loop: do i = 1, size(diagnostic_tfield_names)
       if(have_diagnostic_tfield(i)) then
          tfield => extract_tensor_field(state, diagnostic_tfield_names(i))
          lump_mass = have_option(trim(tfield%option_path)//"/diagnostic/mass_matrix"//&
@@ -172,30 +181,35 @@ contains
             call petsc_solve(tfield, mass_matrix, tfield, option_path=u%option_path)
          end if
       end if
-    end do diagnostic_field_loop
+    end do diagnostic_tfield_loop
     
-    if(have_coeff) then
-       sfield => extract_scalar_field(state, "SmagorinskyCoefficient")
-       lump_mass = have_option(trim(sfield%option_path)//"/diagnostic/mass_matrix"//&
-          &"/use_lumped_mass_matrix")
-       use_submesh = have_option(trim(sfield%option_path)//"/diagnostic/mass_matrix"//&
-          &"/use_lumped_mass_matrix/use_submesh") ! For P2 meshes.
+    have_diagnostic_sfield = (/have_coeff/)
+    diagnostic_sfield_names(1) = "SmagorinskyCoefficient"
+    
+    diagnostic_sfield_loop: do i = 1, size(diagnostic_sfield_names)
+      if(have_diagnostic_sfield(i)) then
+         sfield => extract_scalar_field(state, diagnostic_sfield_names(i))
+         lump_mass = have_option(trim(sfield%option_path)//"/diagnostic/mass_matrix"//&
+            &"/use_lumped_mass_matrix")
+         use_submesh = have_option(trim(sfield%option_path)//"/diagnostic/mass_matrix"//&
+            &"/use_lumped_mass_matrix/use_submesh") ! For P2 meshes.
             
-       if(lump_mass) then
-          if(use_submesh) then
-             lumped_mass => get_lumped_mass_on_submesh(state, sfield%mesh)
-          else
-             lumped_mass => get_lumped_mass(state, sfield%mesh)
-          end if
-          call allocate(inv_lumped_mass, sfield%mesh)
-          call invert(lumped_mass, inv_lumped_mass)
-          call scale(sfield, inv_lumped_mass)
-          call deallocate(inv_lumped_mass)
-       else
-          mass_matrix => get_mass_matrix(state, sfield%mesh)
-          call petsc_solve(sfield, mass_matrix, sfield, option_path=u%option_path)
-       end if
-    end if
+         if(lump_mass) then
+            if(use_submesh) then
+               lumped_mass => get_lumped_mass_on_submesh(state, sfield%mesh)
+            else
+               lumped_mass => get_lumped_mass(state, sfield%mesh)
+            end if
+            call allocate(inv_lumped_mass, sfield%mesh)
+            call invert(lumped_mass, inv_lumped_mass)
+            call scale(sfield, inv_lumped_mass)
+            call deallocate(inv_lumped_mass)
+         else
+            mass_matrix => get_mass_matrix(state, sfield%mesh)
+            call petsc_solve(sfield, mass_matrix, sfield, option_path=u%option_path)
+         end if
+      end if
+    end do diagnostic_sfield_loop
 
   end subroutine les_solve_diagnostic_fields
   
