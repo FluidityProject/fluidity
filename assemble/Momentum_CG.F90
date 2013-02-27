@@ -1327,7 +1327,7 @@
 
       !Sigma term
       if(have_wd) then
-        call add_sigma_element_cg(state, ele, test_function, x, u, oldu_val, detwei, detwei_old, detwei_new, big_m_diag_addto, big_m_tensor_addto, rhs_addto,mass, masslump)
+        call add_sigma_element_cg( ele, x, u, oldu_val, detwei, detwei_old, detwei_new,big_m_diag_addto, big_m_tensor_addto, rhs_addto, mass, masslump,dt, move_mesh,lump_mass,assemble_mass_matrix, assemble_inverse_masslump ,exclude_mass,have_wd)
       end if 
       
       ! Advection terms

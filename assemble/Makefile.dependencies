@@ -206,8 +206,9 @@ Diagnostic_fields_wrapper.o ../include/diagnostic_fields_wrapper.mod: \
    ../include/momentum_diagnostic_fields.mod \
    ../include/multimaterial_module.mod ../include/multiphase_module.mod \
    ../include/parallel_tools.mod ../include/sediment_diagnostics.mod \
-   ../include/sparse_matrices_fields.mod ../include/spontaneous_potentials.mod \
-   ../include/spud.mod ../include/state_module.mod ../include/tidal_module.mod \
+   ../include/sigma_d0.mod ../include/sparse_matrices_fields.mod \
+   ../include/spontaneous_potentials.mod ../include/spud.mod \
+   ../include/state_module.mod ../include/tidal_module.mod \
    ../include/vorticity_diagnostics.mod
 
 ../include/discrete_properties_module.mod: Discrete_Properties.o
@@ -531,14 +532,14 @@ Momentum_CG.o ../include/momentum_cg.mod: Momentum_CG.F90 \
    ../include/les_module.mod ../include/metric_tools.mod \
    ../include/multiphase_module.mod ../include/petsc_solve_state_module.mod \
    ../include/physics_from_options.mod ../include/profiler.mod \
-   ../include/rotated_boundary_conditions.mod \
-   ../include/sigma_d0.mod ../include/smoothing_module.mod \
-   ../include/solvers.mod ../include/sparse_matrices_fields.mod \
-   ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
-   ../include/state_fields_module.mod ../include/state_matrices_module.mod \
-   ../include/state_module.mod ../include/transform_elements.mod \
-   ../include/upwind_stabilisation.mod ../include/vector_tools.mod
+   ../include/rotated_boundary_conditions.mod ../include/sigma_d0.mod \
+   ../include/smoothing_module.mod ../include/solvers.mod \
+   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
+   ../include/sparse_tools_petsc.mod ../include/sparsity_patterns_meshes.mod \
+   ../include/spud.mod ../include/state_fields_module.mod \
+   ../include/state_matrices_module.mod ../include/state_module.mod \
+   ../include/transform_elements.mod ../include/upwind_stabilisation.mod \
+   ../include/vector_tools.mod
 
 ../include/momentum_dg.mod: Momentum_DG.o
 	@true
@@ -917,16 +918,15 @@ sigma_d0.o ../include/sigma_d0.mod: sigma_d0.F90 \
    ../include/edge_length_module.mod ../include/elements.mod \
    ../include/fdebug.h ../include/fefields.mod ../include/fetools.mod \
    ../include/field_derivatives.mod ../include/field_options.mod \
-   ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/halos.mod \
-   ../include/metric_tools.mod \
-   ../include/multiphase_module.mod ../include/petsc_solve_state_module.mod \
-   ../include/profiler.mod ../include/rotated_boundary_conditions.mod \
-   ../include/smoothing_module.mod ../include/solvers.mod \
-   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
-   ../include/sparse_tools_petsc.mod ../include/sparsity_patterns_meshes.mod \
-   ../include/spud.mod ../include/state_fields_module.mod \
-   ../include/state_matrices_module.mod ../include/state_module.mod \
-   ../include/transform_elements.mod \
+   ../include/fields.mod ../include/fields_manipulation.mod \
+   ../include/fldebug.mod ../include/global_parameters.mod \
+   ../include/halos.mod ../include/metric_tools.mod \
+   ../include/petsc_solve_state_module.mod ../include/profiler.mod \
+   ../include/rotated_boundary_conditions.mod ../include/smoothing_module.mod \
+   ../include/solvers.mod ../include/sparse_matrices_fields.mod \
+   ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
+   ../include/state_fields_module.mod ../include/state_matrices_module.mod \
+   ../include/state_module.mod ../include/transform_elements.mod \
    ../include/vector_tools.mod
 

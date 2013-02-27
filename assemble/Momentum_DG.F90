@@ -82,8 +82,13 @@ module momentum_DG
   ! Module private variables for model options. This prevents us having to
   ! do dictionary lookups for every element (or element face!)
   real :: dt, theta
-  logical :: lump_mass, lump_abs, lump_source, subcycle
-
+  logical :: lump_abs, lump_source, subcycle
+  !change for the sigma_d0
+  logical :: lump_mass
+  logical :: assemble_mass_matrix
+  logical :: assemble_inverse_masslump
+  logical :: exclude_mass
+  logical::cmc_lump_mass
   ! Whether the advection term is only integrated by parts once.
   logical :: integrate_by_parts_once=.false.
   ! Whether the conservation term is integrated by parts or not
@@ -1092,8 +1097,19 @@ contains
     
      !sigma
     have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
+    exclude_mass = have_option(trim(u%option_path)//&
+          &"/prognostic/spatial_discretisation"//&
+          &"/continuous_galerkin/mass_terms/exclude_mass_terms")
+    cmc_lump_mass = have_option(trim(p%option_path)//&
+          &"/prognostic/scheme"//&
+          &"/use_projection_method/full_schur_complement"//&
+          &"/preconditioner_matrix::LumpedSchurComplement")
+    assemble_inverse_masslump = lump_mass .or. cmc_lump_mass
+    assemble_mass_matrix = have_option(trim(p%option_path)//&
+          &"/prognostic/scheme/use_projection_method"//&
+          &"/full_schur_complement/inner_matrix::FullMassMatrix")
     if(have_wd) then
-        call add_sigma_element_dg(ele, u_shape, x, u, u_val, detwei, detwei_old, detwei_new, big_m_diag_addto, big_m_tensor_addto, rhs_addto,mass, l_masslump)
+        call add_sigma_element_dg(ele, x, u, u_val, detwei, detwei_old, detwei_new, big_m_diag_addto, big_m_tensor_addto, rhs_addto,mass, l_masslump,dt, move_mesh,lump_mass,assemble_mass_matrix, assemble_inverse_masslump ,exclude_mass,have_wd)
     end if 
       
     if(have_coriolis.and.(rhs%dim>1).and.assemble_element) then
