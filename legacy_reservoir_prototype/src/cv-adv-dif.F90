@@ -6851,7 +6851,7 @@
 !                  RESIDGI=0.5*courant_or_minus_one_new/DT
 !                  RESIDGI=2.0*courant_or_minus_one_new/DT
 !                  RESIDGI=max( abs(TGI-TOLDGI)/DT,2.*courant_or_minus_one_new/DT)
-                  RESIDGI=max( abs(TGI-TOLDGI)/DT,sqrt(udgi**2+vdgi**2+wdgi**2)/hdc)
+                  RESIDGI=max( abs(TGI-TOLDGI)/DT,2.*sqrt(udgi**2+vdgi**2+wdgi**2)/hdc)
 !                  stop 272
  
                   VEC_VEL(1)=A_STAR_X
@@ -7038,7 +7038,7 @@
 !                  RESIDGI=4.0*courant_or_minus_one_new/DT
 !                  RESIDGI=(TGI-TOLDGI)/DT
 !                  RESIDGI=max( abs(TGI-TOLDGI)/DT,2.*courant_or_minus_one_new/DT)
-                  RESIDGI=max( abs(TGI-TOLDGI)/DT,sqrt(udgi**2+vdgi**2+wdgi**2)/hdc)
+                  RESIDGI=max( abs(TGI-TOLDGI)/DT,2.*sqrt(udgi**2+vdgi**2+wdgi**2)/hdc)
 !                  RESIDGI=max( abs(TGI-TOLDGI)/DT,(abs(udgi)+abs(vdgi)+abs(wdgi))/hdc)
  
                   VEC_VEL(1)=A_STAR_X
@@ -7157,8 +7157,10 @@
                END DO
 ! use the method with the max difference like ENO but opposit...
                IF(ABS(FEMTGI_DDG-FVT)      .GT.ABS(FEMTGI-FVT))       FEMTGI   =FEMTGI_DDG
+               FEMTGI   =0.5*(FEMTGI_DDG + FEMTGI)  
 !               FEMTGI   =FEMTGI_DDG
-               IF(ABS(FEMTOLDGI_DDG-FVTOLD).GT.ABS(FEMTOLDGI-FVTOLD)) FEMTOLDGI=FEMTOLDGI_DDG
+!               IF(ABS(FEMTOLDGI_DDG-FVTOLD).GT.ABS(FEMTOLDGI-FVTOLD)) FEMTOLDGI=FEMTOLDGI_DDG
+               FEMTOLDGI=0.5*(FEMTOLDGI_DDG + FEMTOLDGI)
 !               FEMTOLDGI=FEMTOLDGI_DDG
 
                ENDIF ! ENDOF DOWNWINDING FOR DG
