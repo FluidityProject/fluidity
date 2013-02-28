@@ -130,9 +130,11 @@ contains
     end if
     
     if(present(postfix)) then
-      lpostfix = postfix
+       lpostfix = postfix
+    else if(have_option("/reduced_model/adjoint").and.have_option("/reduced_model/execute_reduced_model")) then
+       lpostfix = "checkpoint_adjoint"
     else
-      lpostfix = "checkpoint"
+       lpostfix = "checkpoint"
     end if
 
     call checkpoint_state(state, lprefix, postfix = lpostfix, cp_no = cp_no, &

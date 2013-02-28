@@ -118,7 +118,7 @@ module fluids_module
 
 contains
 
-  SUBROUTINE FLUIDS(adjoint)
+  SUBROUTINE FLUIDS(valfun,if_optimal)
     character(len = OPTION_PATH_LEN) :: filename
 
     INTEGER :: &
@@ -131,7 +131,10 @@ contains
          & steady_state_tolerance
 
     real:: nonlinear_iteration_tolerance
-    logical, optional :: adjoint
+    logical, optional :: if_optimal
+    real, optional :: valfun
+    integer :: nocva
+    type(vector_field), pointer :: u
     logical :: adjoint_reduced
     !     System state wrapper.
     type(state_type), dimension(:), pointer :: state => null()
@@ -249,6 +252,7 @@ contains
        call get_option("/timestepping/finish_time", finish_time)       
        call get_option("/timestepping/timestep", dt)
        total_timestep=int((finish_time-current_time)/dt)
+       dump_no = 0
        call read_pod_basis_differntmesh(POD_state, state)
        !enddo
     else
@@ -807,8 +811,13 @@ contains
                         POD_state=POD_state, POD_state_deim=POD_state_deim,snapmean=snapmean, eps=eps, its=its)
                 endif
              else
-                call momentum_loop(sub_state, at_first_timestep=((timestep==1).and.(its==1)), timestep=timestep, &
+                if(present(if_optimal)) then
+                   call momentum_loop(sub_state, at_first_timestep=((timestep==1).and.(its==1)), timestep=timestep, &
+                     POD_state=POD_state,POD_state_deim=POD_state_deim, its=its, total_timestep=total_timestep,if_optimal=if_optimal)
+                else
+                   call momentum_loop(sub_state, at_first_timestep=((timestep==1).and.(its==1)), timestep=timestep, &
                      POD_state=POD_state,POD_state_deim=POD_state_deim, its=its, total_timestep=total_timestep)
+                endif
              endif
              call sub_state_remap_to_full_mesh(state, sub_state)
           else
@@ -821,8 +830,13 @@ contains
                         POD_state=POD_state, POD_state_deim=POD_state_deim,snapmean=snapmean, eps=eps, its=its, total_timestep=total_timestep)               
                 endif
              else
+                if(present(if_optimal)) then
                 call momentum_loop(state,at_first_timestep=((timestep==1).and.(its==1)), timestep=timestep, &
-                     POD_state=POD_state, POD_state_deim=POD_state_deim,its=its, total_timestep=total_timestep)
+                     POD_state=POD_state, POD_state_deim=POD_state_deim,its=its, total_timestep=total_timestep,if_optimal=if_optimal)
+                else
+                   call momentum_loop(state,at_first_timestep=((timestep==1).and.(its==1)), timestep=timestep, &
+                        POD_state=POD_state, POD_state_deim=POD_state_deim,its=its, total_timestep=total_timestep)
+                endif
              endif
           end if
 
@@ -975,6 +989,7 @@ contains
     ! *** END OF TIMESTEP LOOP ***
     ! ****************************
 
+
     ! Checkpoint at end, if enabled
     if(have_option("/io/checkpointing/checkpoint_at_end")) then
        call checkpoint_simulation(state, cp_no = dump_no)
@@ -982,11 +997,19 @@ contains
     ! Dump at end, unless explicitly disabled
     if(.not. have_option("/io/disable_dump_at_end")) then
        call write_state(dump_no, state)
-!        if (.not.deim .and. (have_option("/reduced_model/execute_reduced_model"))) then
-!        call write_state(dump_no, deim_state_res)
-!        endif
+       !        if (.not.deim .and. (have_option("/reduced_model/execute_reduced_model"))) then
+       !        call write_state(dump_no, deim_state_res)
+       !        endif
     end if
-
+    
+    ! calculate cost function
+    if(present(if_optimal)) then
+       if(if_optimal.and.have_option("/reduced_model/execute_reduced_model") ) then
+          u => extract_vector_field(POD_state(1,1,1), "Velocity")
+          nocva=(u%dim+1)*size(POD_state,1)
+          valfun=value_cost_function(nocva, pod_state,state)
+       endif
+    endif
     ! cleanup GLS
     if (have_option('/material_phase[0]/subgridscale_parameterisations/GLS/')) then
         call gls_cleanup()
@@ -1319,5 +1342,89 @@ contains
     end if
 
   end function count_dumps
+
+
+  function value_cost_function(nocva, pod_state,state) result (FUNCT)
+    !use fluids_module
+    !use reduced_fluids_module
+    !use signals
+    !use spud
+    !use reduced_model_runtime
+    
+    type(state_type), dimension(:,:,:), intent(in) :: POD_state
+    type(state_type), dimension(:), intent(in)  :: state
+    real :: FUNCT
+    integer, intent(in) :: nocva
+    integer :: i,d,j,k,unodes,ii,kk
+    type(vector_field), pointer :: u_obv
+    real, dimension(:,:), allocatable :: pod_coef_all_obv,pod_coef_all_comp,ifhaveobs,u_comp   !might up 
+    
+    integer POD_num, total_timestep
+    real finish_time
+    type(scalar_field), pointer :: POD_pressure
+    type(vector_field), pointer :: POD_velocity
+    character(len = OPTION_PATH_LEN) :: simulation_name
+
+    call get_option('/reduced_model/pod_basis_formation/pod_basis_count', POD_num)  
+    FUNCT = 0.0
+    
+    !  call read_pod_basis_differntmesh(POD_state, state) !! if adaptive meshes, it may take a lot of CPU, fix it later
+    
+    call get_option("/timestepping/current_time", current_time)
+    call get_option("/timestepping/finish_time",  finish_time)
+    call get_option("/timestepping/timestep", dt)       
+    total_timestep=int((finish_time-current_time)/dt)
+
+ 
+    !  u => extract_vector_field(state(1), "Velocity", stat)
+    u_obv=> extract_vector_field(state(1), "Velocity")
+
+
+    call zero(u_obv)
+    unodes=node_count(u_obv)
+    allocate(pod_coef_all_obv(0:total_timestep, nocva) )
+    allocate(pod_coef_all_comp(0:total_timestep,nocva) )
+    allocate(ifhaveobs(total_timestep,unodes))
+    allocate(u_comp(u_obv%dim,unodes))
+    ifhaveobs=1
+    open(30,file='coef_pod_all_obv')
+    open(31,file='coef_pod_all')
+    print*,'total_timestep',total_timestep
+    DO k = 0, total_timestep
+       print*,'time=',k
+       if(2*int(k/2).eq.k) then
+          
+          read(30,*)(pod_coef_all_obv(k,ii),ii=1,nocva)
+          read(31,*)(pod_coef_all_comp(k,ii),ii=1,nocva)
+          !IF(ifhaveobs(k,:).eq.1) THEN   ! if has obv, iflagobs=1, else=0.
+          u_obv%val = 0.0
+          u_comp = 0.0
+          do i=1,POD_num
+             POD_velocity=>extract_vector_field(POD_state(i,1,1), "Velocity")
+             POD_pressure=>extract_scalar_field(POD_state(i,2,1), "Pressure") 
+             do d=1, u_obv%dim
+                u_obv%val(d,:) =pod_coef_all_obv(k,i+(d-1)*POD_num)*POD_velocity%val(d,:)
+                u_comp(d,:)=pod_coef_all_comp(k,i+(d-1)*POD_num)*POD_velocity%val(d,:)
+                !0.5*(U_num-U_obs)**2+0.5*(V_num-V_obs)**2
+             enddo
+          enddo
+          do d =1, u_obv%dim
+             do j =1,unodes
+                FUNCT =FUNCT+0.5*(u_comp(d,j)-u_obv%val(d,j))**2
+             enddo
+          enddo
+          print*,'FUNCT=',k, FUNCT
+       endif
+       !ENDIF  ! IF(ifhaveobs
+    ENDDO  ! end timestep 
+    print*,FUNCT
+    close(30)
+    close(31)
+    deallocate(pod_coef_all_obv)
+    deallocate(pod_coef_all_comp)
+    deallocate(ifhaveobs)
+    deallocate(u_comp)
+  end function value_cost_function
+
   end module fluids_module
 

@@ -200,15 +200,27 @@ contains
     type(state_type), dimension(:), intent(inout) :: state
     logical, intent(in), optional :: adjoint
 
-    character(len = OPTION_PATH_LEN) :: dump_filename, dump_format
+    character(len = OPTION_PATH_LEN) :: dump_filename, dump_format,simulation_name1
     integer :: max_dump_no, stat
     integer :: increment
 
     ewrite(1, *) "In write_state"
     call profiler_tic("I/O")
 
-    call get_option("/simulation_name", dump_filename)
+    call get_option("/simulation_name", simulation_name1)
+    if(have_option("/reduced_model/adjoint").and.have_option("/reduced_model/execute_reduced_model")) then
+       write(dump_filename, '(a, i0, a)') trim(simulation_name1)//'_adjoint' 
+    else
+       call get_option("/simulation_name", dump_filename)
+    endif
+
     call get_option("/io/max_dump_file_count", max_dump_no, stat, default = huge(0))
+
+    if(have_option("/reduced_model/adjoint").and.have_option("/reduced_model/execute_reduced_model")) then
+       if(dump_no==0) then
+          dump_no = max_dump_no
+       endif
+    endif
 
     dump_no = modulo(dump_no, max_dump_no)
 
@@ -222,10 +234,13 @@ contains
     end select
 
     if (present_and_true(adjoint)) then
-      increment = -1
+       increment = -1
+!    else if(have_option("/reduced_model/adjoint").and.have_option("/reduced_model/execute_reduced_model")) then
+!       increment = -1
     else
-      increment = 1
+       increment = 1
     end if
+
 
     dump_no = modulo(dump_no + increment, max_dump_no)
     call update_dump_times

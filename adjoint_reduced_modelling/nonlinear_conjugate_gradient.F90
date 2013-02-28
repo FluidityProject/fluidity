@@ -92,7 +92,7 @@ SUBROUTINE NONLINCG(GLOITS,LINITS,VALFUN,CVA,G,       &
   REAL    ::SQG,SQGOLD,SQG1,BATA
   REAL    ::NUVAL,MAXCVA,MAXD,INISTEP,MAXCD
   REAL    ::LINERR,CVAFREE
-  REAL,PARAMETER ::LINERR0=4.0
+  REAL,PARAMETER ::LINERR0=0.2
 !  REAL,PARAMETER ::LINERR0=0.00001
 !  REAL,PARAMETER ::LINERR0=0.5e-17
   REAL,PARAMETER ::RELAXP=0.5
@@ -109,10 +109,10 @@ SUBROUTINE NONLINCG(GLOITS,LINITS,VALFUN,CVA,G,       &
   
   LINERR = LINERR0
   IF(GLOITS.GT.3) THEN
-     LINERR = LINERR0/10.0
+     LINERR = LINERR0/1.0
   ELSE
      IF(GLOITS.GT.6) THEN
-        LINERR = LINERR0/100.0
+        LINERR = LINERR0/10.0
      ENDIF
   ENDIF
   
@@ -126,26 +126,12 @@ SUBROUTINE NONLINCG(GLOITS,LINITS,VALFUN,CVA,G,       &
      IF (GLOITS.EQ.1) THEN
         !         IF( (GLOITS.EQ.1).OR.( ABS(MOD(GLOITS,5)-0.0).LT.1.0E-6) ) THEN
         !*****
-        if(.true.) then
-           !*********
            DO I =1,NOCVA
               D(I) = -G(I)
               CVAOLD(I) = CVA(I)
               GOLD(I) = G(I)
            END DO
-           !*****
-        else
-           
-           open(1,file='d1.dat')
-           read(1,*) (d(i),i=1,nocva)
-           close(1)
-            DO I =1,NOCVA
-          CVAOLD(I) = CVA(I)
-           G(I) = -D(I)
-           GOLD(I) = G(I)
-           END DO
-        endif
-        !********
+       !********
         
      ELSE	
         ! SQG --- the sum of G(I)^2
@@ -175,9 +161,13 @@ SUBROUTINE NONLINCG(GLOITS,LINITS,VALFUN,CVA,G,       &
            if(G(I).NE.0.0) then
               print *, 'I,BATA,G(I),D(I)222',I,BATA,G(I),D(I)
            endif
+        !-----DELETE Later
+           D(I) = -G(I)
+        !---
            CVAOLD(I) = CVA(I)
            GOLD(I) = G(I)
         END DO
+        
      ENDIF ! end IF(GLOITS.EQ.1) 
      
   ENDIF
@@ -214,14 +204,15 @@ SUBROUTINE NONLINCG(GLOITS,LINITS,VALFUN,CVA,G,       &
 !**clyde     INISTEP = -0.01
 !**work gyre percoef=0.1     	  INISTEP = -0.06*MAXCVA/MAXD
      	  INISTEP = -0.01*MAXCVA/MAXD
-     !	  INISTEP = 0.001 ! for healdland
-     !	  INISTEP = 0.00000000001
   ELSE
      INISTEP = 0.01*MAXCVA/MAXD
      !**	  INISTEP = 0.05*MAXCVA/MAXD
      !**headland	  INISTEP = 0.1*MAXCVA/MAXD
   ENDIF
         
+print*,MAXCVA,MAXD,INISTEP
+!stop 36
+
   ! CALL the line search subroutine
   print *,'LINITS=',LINITS
   CALL LINESEARCH(LINITS,VALFUN,NUVAL,GOLDR,    &
@@ -267,10 +258,11 @@ SUBROUTINE NONLINCG(GLOITS,LINITS,VALFUN,CVA,G,       &
            write (2,*) 'the previous nuval is too larger, reduced to', NUVAL
            GOTO 10
         endif
-        
-        close(2)
-        
+                
      endif
+     close(2)
+        
+
      !************
      DO I = 1,NOCVA
         CVA(I) = CVAOLD(I)+RELAXP*NUVAL*D(I)
@@ -288,7 +280,7 @@ SUBROUTINE NONLINCG(GLOITS,LINITS,VALFUN,CVA,G,       &
   write(1,*) 'RELAXP,NUVAL',RELAXP,NUVAL
   write(1,*) (cva(i),i=1,nocva)
   close(1)
-  
+!  stop 49
 200 CONTINUE
   
   IF (LINCONVER) THEN

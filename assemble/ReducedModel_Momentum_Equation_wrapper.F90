@@ -46,7 +46,7 @@
 
   contains
 
-    subroutine momentum_loop(state, at_first_timestep, timestep, total_timestep, POD_state, POD_state_deim,its)
+    subroutine momentum_loop(state, at_first_timestep, timestep, total_timestep, POD_state, POD_state_deim,its,if_optimal)
       !!< Construct and solve the momentum and continuity equations using
       !!< a continuous galerkin discretisation.
 
@@ -54,6 +54,7 @@
       ! the whole array is needed for the sake of multimaterial assembly
       type(state_type), dimension(:), intent(inout) :: state
       logical, intent(in) :: at_first_timestep
+      logical, optional, intent(in):: if_optimal
       type(state_type), dimension(:,:,:) :: POD_state
       type(state_type), dimension(:) :: POD_state_deim
       integer, intent(in) :: timestep, total_timestep
@@ -151,6 +152,15 @@
              endif
           else if(have_option("/reduced_model/adjoint")) then               
              call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its,total_timestep)
+          else if(present(if_optimal)) then
+             open(30,file='pod_matrix_perturbed')
+             open(50,file='pod_rhs_perturbed')
+             open(60,file='advection_matrix_perturbed')
+             call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its, total_timestep, &
+                  if_optimal=if_optimal)
+             close(30)
+             close(50)
+             close(60)
           else
              eps=0.0
              snapmean=.false.
