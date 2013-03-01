@@ -46,7 +46,7 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">20</integer_value>
+        <integer_value rank="0">25</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <output_mesh name="CoordinateMesh"/>
@@ -60,14 +60,14 @@
       <real_value rank="0">0.05</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">75.0</real_value>
+      <real_value rank="0">150.0</real_value>
     </finish_time>
     <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
     </nonlinear_iterations>
     <adaptive_timestep>
       <requested_cfl>
-        <real_value rank="0">1.</real_value>
+        <real_value rank="0">2.0</real_value>
       </requested_cfl>
       <courant_number name="CFLNumber">
         <mesh name="VelocityMesh"/>
@@ -91,7 +91,7 @@
           <iterative_method name="cg"/>
           <preconditioner name="mg"/>
           <relative_error>
-            <real_value rank="0">1.0e-5</real_value>
+            <real_value rank="0">1.0e-7</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
@@ -173,7 +173,7 @@
           </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.0e-5</real_value>
+            <real_value rank="0">1.0e-7</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
@@ -370,6 +370,48 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
+    <vector_field name="AverageVelocity" rank="1">
+      <diagnostic>
+        <algorithm source_field_type="vector" material_phase_support="single" name="time_averaged_vector" source_field_name="Velocity">
+          <spin_up_time>
+            <real_value rank="0">50</real_value>
+          </spin_up_time>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+    <vector_field name="FluctuatingVelocity" rank="1">
+      <diagnostic>
+        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="Velocity" source_field_2_name="AverageVelocity" material_phase_support="single" source_field_1_type="vector"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <exclude_from_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
   </material_phase>
   <mesh_adaptivity>
     <hr_adaptivity>
