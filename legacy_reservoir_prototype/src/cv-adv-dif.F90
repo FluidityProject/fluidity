@@ -6810,11 +6810,20 @@
                   DO CV_KLOC = 1, CV_NLOC
                     CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
                     CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
+                   if(cv_nonods==u_nonods) then ! DG
                     TXGI=TXGI+SCVFENX( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
       IF(NDIM.GE.2) TYGI=TYGI+SCVFENY( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
       IF(NDIM.GE.3) TZGI=TZGI+SCVFENZ( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
                     TGI=TGI+SCVFEN( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
                     TOLDGI=TOLDGI+SCVFEN( CV_KLOC, GI )*FEMTOLD(CV_NODK_IPHA)
+                   else
+
+                    TXGI=TXGI+SCVFENX( CV_KLOC, GI )*T(CV_NODK_IPHA)
+      IF(NDIM.GE.2) TYGI=TYGI+SCVFENY( CV_KLOC, GI )*T(CV_NODK_IPHA)
+      IF(NDIM.GE.3) TZGI=TZGI+SCVFENZ( CV_KLOC, GI )*T(CV_NODK_IPHA)
+                    TGI=TGI+SCVFEN( CV_KLOC, GI )*T(CV_NODK_IPHA)
+                    TOLDGI=TOLDGI+SCVFEN( CV_KLOC, GI )*TOLD(CV_NODK_IPHA)
+                   endif
                   END DO
 
                   TDTGI=(TGI-TOLDGI)/DT
@@ -7157,11 +7166,11 @@
                END DO
 ! use the method with the max difference like ENO but opposit...
                IF(ABS(FEMTGI_DDG-FVT)      .GT.ABS(FEMTGI-FVT))       FEMTGI   =FEMTGI_DDG
-               FEMTGI   =0.5*(FEMTGI_DDG + FEMTGI)  
-!               FEMTGI   =FEMTGI_DDG
+!               FEMTGI   =0.5*(FEMTGI_DDG + FEMTGI)  
+               FEMTGI   =FEMTGI_DDG
 !               IF(ABS(FEMTOLDGI_DDG-FVTOLD).GT.ABS(FEMTOLDGI-FVTOLD)) FEMTOLDGI=FEMTOLDGI_DDG
-               FEMTOLDGI=0.5*(FEMTOLDGI_DDG + FEMTOLDGI)
-!               FEMTOLDGI=FEMTOLDGI_DDG
+!               FEMTOLDGI=0.5*(FEMTOLDGI_DDG + FEMTOLDGI)
+               FEMTOLDGI=FEMTOLDGI_DDG
 
                ENDIF ! ENDOF DOWNWINDING FOR DG
 ! END OF IF(DOWNWIND_EXTRAP.AND.(courant_or_minus_one_new.GE.0.0)) THEN ...
