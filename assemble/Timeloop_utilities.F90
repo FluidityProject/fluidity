@@ -245,16 +245,27 @@ contains
 
     !For projecting velocity to continuous 
     type(vector_field) :: U_nl, pvelocity, X
-    type(vector_field), pointer :: velocity
+    type(vector_field), pointer :: velocity, momentum
 
     do s=1,size(state)
 
        velocity=>extract_vector_field(state(s), "Velocity", stat)
        if(stat==0) then
-         call get_option(trim(velocity%option_path)//"/prognostic&
+          if (have_option(trim(velocity%option_path)//"/prognostic")) then
+             call get_option(trim(velocity%option_path)//"/prognostic&
                         &/temporal_discretisation/relaxation", itheta, default=0.5)
+          else
+             momentum => extract_vector_field(state(s), "Momentum", stat)
+
+             if (have_option(trim(momentum%option_path)//"/prognostic")) then
+                call get_option(trim(momentum%option_path)//"/prognostic&
+                      &/temporal_discretisation/relaxation", itheta, default=0.5)
+             else
+                itheta=0.5
+             end if
+          end if
        else
-         itheta = 0.5
+          itheta = 0.5
        end if
 
        do f=1,scalar_field_count(state(s))
