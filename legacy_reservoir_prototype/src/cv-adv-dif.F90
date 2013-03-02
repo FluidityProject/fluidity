@@ -6810,7 +6810,8 @@
                   DO CV_KLOC = 1, CV_NLOC
                     CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
                     CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
-                   if(cv_nonods==u_nonods) then ! DG
+!                   if(cv_nonods==u_nonods) then ! DG
+                   if(.true.) then 
                     TXGI=TXGI+SCVFENX( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
       IF(NDIM.GE.2) TYGI=TYGI+SCVFENY( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
       IF(NDIM.GE.3) TZGI=TZGI+SCVFENZ( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
@@ -6901,6 +6902,16 @@
                CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
                IF(DOWNWIND_EXTRAP.AND.(courant_or_minus_one_new.GE.0.0)) THEN ! Extrapolate to the downwind value...
                   IF(NON_LIN_PETROV_INTERFACE.NE.0) THEN 
+                 if(.true.) then
+!                        RGRAY=2.0*(udgi**2+vdgi**2+wdgi**2)* &
+! ( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) + CVNORMY(GI)*SCVFENY( CV_KLOC, GI )+CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) ) &
+!          /tolfun( hdc*sqrt(A_STAR_X**2+A_STAR_Y**2+A_STAR_Z**2)*(TXGI**2 + TYGI**2 + TZGI**2 )   &
+!                       *(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI)  )
+                        RGRAY=2.0*(udgi**2+vdgi**2+wdgi**2)* &
+ ( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) + CVNORMY(GI)*SCVFENY( CV_KLOC, GI )+CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) ) &
+          /tolfun( hdc*abs(u_dot_gradt_gi)*sqrt(TXGI**2 + TYGI**2 + TZGI**2 )   &
+                       *(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI)  )
+                 else
                      IF(NON_LIN_PETROV_INTERFACE==4) THEN ! anisotropic diffusion...
                         RGRAY=RSCALE*COEF2*P_STAR*( UDGI*SCVFENX( CV_KLOC, GI ) &
                              + VDGI*SCVFENY( CV_KLOC, GI )+WDGI*SCVFENZ( CV_KLOC, GI ) )
@@ -6908,6 +6919,7 @@
                         RGRAY=-1.*DIFF_COEF*RSCALE*( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) &
                        + CVNORMY(GI)*SCVFENY( CV_KLOC, GI )+CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) )
                      ENDIF
+                endif
                   ELSE
                      RGRAY=RSCALE*ELE_LENGTH_SCALE*( UDGI*SCVFENX( CV_KLOC, GI ) &
                        + VDGI*SCVFENY( CV_KLOC, GI )+WDGI*SCVFENZ( CV_KLOC, GI ) )
