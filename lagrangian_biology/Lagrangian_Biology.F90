@@ -65,6 +65,9 @@ implicit none
 
   character(len=FIELD_NAME_LEN), dimension(:), pointer :: uptake_field_names, release_field_names
 
+  character(len=FIELD_NAME_LEN), dimension(:), pointer :: python_post_fields
+  character(len=PYTHON_FUNC_LEN) :: python_post_kernel
+
   integer, parameter :: BIOFIELD_NONE=0, BIOFIELD_DIAG=1, BIOFIELD_UPTAKE=2, BIOFIELD_RELEASE=3, BIOFIELD_INGESTED=4, &
                         BIOFIELD_FOOD_REQUEST=5, BIOFIELD_FOOD_INGEST=6
   integer, parameter :: BIOVAR_STAGE=1, BIOVAR_SIZE=2
@@ -348,7 +351,29 @@ contains
 
     ewrite(1,*) "Lagrangian biology: Initialised agents"
 
+    call init_python_states(state)
+
   end subroutine initialise_lagrangian_biology_agents
+
+  subroutine init_python_states(state)
+    type(state_type), dimension(:), intent(inout) :: state
+    character(len=OPTION_PATH_LEN) :: pypost_path, field_alias
+    type(vector_field), pointer :: xfield
+    type(scalar_field), pointer :: field
+    integer :: f, n_fields
+
+    pypost_path = "/embedded_models/lagrangian_ensemble_biology/python_post_process"
+    if (have_option( trim(pypost_path) )) then
+       n_fields = option_count( trim(pypost_path)//"/field_alias" )
+       allocate(python_post_fields(n_fields))
+       call get_option(trim(pypost_path), python_post_kernel)
+
+       do f=1, n_fields
+          write(field_alias, "(a,i0,a)") trim(pypost_path)//"/field_alias[",f-1,"]"
+          call get_option( trim(field_alias)//"/name", python_post_fields(f))
+       end do
+    end if
+  end subroutine init_python_states
 
   subroutine read_functional_group(fgroup, fg_path) 
     type(functional_group), pointer, intent(inout) :: fgroup
@@ -700,6 +725,10 @@ contains
        deallocate(release_field_names)
     end if
 
+    if (associated(python_post_fields)) then
+       deallocate(python_post_fields)
+    end if
+
     call delete_id_counter()
 
   end subroutine lagrangian_biology_cleanup
@@ -715,7 +744,7 @@ contains
     type(detector_type), pointer :: agent, agent_to_move
     type(vector_field), pointer :: xfield
     type(scalar_field_pointer), dimension(:), pointer :: env_fields, food_fields
-    type(scalar_field), pointer :: exchange_field
+    type(scalar_field), pointer :: exchange_field, pypost_field
     character(len=FIELD_NAME_LEN) :: foodname
     character(len=OPTION_PATH_LEN) :: le_options
     type(food_set) :: fset
@@ -957,6 +986,23 @@ contains
        ! Derive pool, ingested and biomass diagnostics
        call derive_primary_diagnostics(state(1), fgroup) 
     end do
+
+    ! Execute python post-processing for coupled models
+    if (associated(python_post_fields)) then
+       call profiler_tic("/update_lagrangian_biology::python_post_process")
+       call python_reset()
+       call python_add_statec(trim(state(1)%name), len_trim(state(1)%name))
+       call python_add_field(xfield, state(1))
+
+       do f=1, size(python_post_fields)
+          pypost_field => extract_scalar_field(state(1), trim(python_post_fields(f)))
+          call python_add_field(pypost_field, state(1))
+       end do
+
+       call python_run_string( trim(python_post_kernel) )    
+       call profiler_toc("/update_lagrangian_biology::python_post_process")
+    end if
+
 
     call profiler_toc("/update_lagrangian_biology")
 

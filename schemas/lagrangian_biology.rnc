@@ -241,7 +241,19 @@ lagrangian_biology =
                   }
                )
             }
-         )*
+         )*,
+         (
+            ## Python state invocation used for coupling models. 
+            ## For performance reasons only the specified fields are accessible.
+            element python_post_process {
+               python_code,
+               (
+                  element field_alias {
+                     attribute name { xsd:string }
+                  }
+               )*
+            }?
+         )
       }
    )
 
