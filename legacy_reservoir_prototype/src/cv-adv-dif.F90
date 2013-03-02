@@ -6907,7 +6907,8 @@
 ! ( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) + CVNORMY(GI)*SCVFENY( CV_KLOC, GI )+CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) ) &
 !          /tolfun( hdc*sqrt(A_STAR_X**2+A_STAR_Y**2+A_STAR_Z**2)*(TXGI**2 + TYGI**2 + TZGI**2 )   &
 !                       *(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI)  )
-                        RGRAY=8.0*(udgi**2+vdgi**2+wdgi**2)* &
+!                        RGRAY=8.0*(udgi**2+vdgi**2+wdgi**2)* &
+                        RGRAY=32.0*(udgi**2+vdgi**2+wdgi**2)* &
  ( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) + CVNORMY(GI)*SCVFENY( CV_KLOC, GI )+CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) ) &
           /tolfun( hdc*abs(u_dot_gradt_gi)*sqrt(TXGI**2 + TYGI**2 + TZGI**2 )   &
                        *(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI)  )
