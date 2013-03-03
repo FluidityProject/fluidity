@@ -501,12 +501,12 @@ contains
         call calculate_diagnostic_velocity_cg_ele(proj_rhs, ele)
       end do
 
-      if (have_option(trim(momentum%option_path)//"/diagnostic/solver")) then
+      if (have_option(trim(momentum%option_path)//"/prognostic/solver")) then
         mass_sparsity => get_csr_sparsity_firstorder(state, u%mesh, u%mesh)
         call allocate(mass, mass_sparsity, name="DiagnosticVelocityMass")
         call compute_mass(positions, u%mesh, mass)
  
-        call petsc_solve(u, mass, proj_rhs)
+        call petsc_solve(u, mass, proj_rhs, option_path=trim(momentum%option_path)//"/prognostic/")
 
         call deallocate(mass)
       else
