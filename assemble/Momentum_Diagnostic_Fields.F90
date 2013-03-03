@@ -504,7 +504,7 @@ contains
       if (have_option(trim(momentum%option_path)//"/diagnostic/solver")) then
         mass_sparsity => get_csr_sparsity_firstorder(state, u%mesh, u%mesh)
         call allocate(mass, mass_sparsity, name="DiagnosticVelocityMass")
-        call compute_mass(positions, u%mesh, mass, density=density)
+        call compute_mass(positions, u%mesh, mass)
  
         call petsc_solve(u, mass, proj_rhs)
 
@@ -549,7 +549,7 @@ contains
       call transform_to_physical(positions, ele, detwei)
       call addto(proj_rhs, ele_nodes(proj_rhs, ele), &
           shape_vector_rhs(ele_shape(proj_rhs, ele), &
-              ele_val_at_quad(momentum, ele), detwei))
+              ele_val_at_quad(momentum, ele), detwei/ele_val_at_quad(density,ele)))
 
     end subroutine calculate_diagnostic_velocity_cg_ele
 

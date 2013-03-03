@@ -1739,7 +1739,7 @@
 
          cmc_m => extract_csr_matrix(state(istate), "PressurePoissonMatrix", stat)
          
-         if(compressible_eos .and. have_option(trim(state(istate)%option_path)//'/equation_of_state/compressible')) then
+         if(compressible_eos) then
             call allocate(compress_projec_rhs, p_theta%mesh, "CompressibleProjectionRHS")
 
             ! if have_prognostic_momentum, we could potentially reuse
