@@ -6563,7 +6563,7 @@
       REAL :: RSHAPE,RSHAPE_OLD,RGRAY, UDGI,VDGI,WDGI, RSCALE, TXGI,TYGI,TZGI
       REAL :: VEC_VEL(3), VEC_VEL2(3), ELE_LENGTH_SCALE
       REAL :: TGI,TOLDGI,TDTGI, U_DOT_GRADT_GI, COEF, A_STAR_T, A_STAR_X, A_STAR_Y, A_STAR_Z
-      REAL :: RESIDGI, P_STAR, DIFF_COEF, COEF2, FEMTGI_DDG, FEMTOLDGI_DDG
+      REAL :: RESIDGI, P_STAR, DIFF_COEF, COEF2, FEMTGI_DDG, FEMTOLDGI_DDG, income2, INCOMEOLD2
 
       ! The adjustment method is not ready for the LIMIT_USE_2ND - the new limiting method.
       LIM_VOL_ADJUST =LIM_VOL_ADJUST2.AND.(.NOT.LIMIT_USE_2ND)
@@ -7062,7 +7062,7 @@
 !                  RESIDGI=4.0*courant_or_minus_one_new/DT
 !                  RESIDGI=(TGI-TOLDGI)/DT
 !                  RESIDGI=max( abs(TGI-TOLDGI)/DT,2.*courant_or_minus_one_new/DT)
-                  RESIDGI=max( abs(TGI-TOLDGI)/DT,2.*sqrt(udgi**2+vdgi**2+wdgi**2)/hdc)
+                  RESIDGI=max( abs(TGI-TOLDGI)/DT,1.*sqrt(udgi**2+vdgi**2+wdgi**2)/hdc)
 !                  RESIDGI=max( abs(TGI-TOLDGI)/DT,(abs(udgi)+abs(vdgi)+abs(wdgi))/hdc)
  
                   VEC_VEL(1)=A_STAR_X
@@ -7424,15 +7424,28 @@
                     CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOMEOLD )
             ENDIF
          ENDIF
+         
+         if(COURANT_OR_MINUS_ONE_NEW.gt.0.0) then ! interface tracking...
+           if(CVNORMX(GI)*A_STAR_X+CVNORMY(GI)*A_STAR_Y+CVNORMZ(GI)*A_STAR_Z.gt.0.0) then
+            income2   =0.0
+            INCOMEOLD2=0.0
+           else
+            income2   =1.0
+            INCOMEOLD2=1.0
+           endif
+         else
+            income2=INCOME
+            INCOMEOLD2=INCOMEOLD
+         endif
 
          CALL ONVDLIM_ALL( CV_NONODS, &
-              LIMT, FEMTGI, INCOME, CV_NODI_IPHA-(IPHASE-1)*CV_NONODS, CV_NODJ_IPHA-(IPHASE-1)*CV_NONODS, &
+              LIMT, FEMTGI, INCOME2, CV_NODI_IPHA-(IPHASE-1)*CV_NONODS, CV_NODJ_IPHA-(IPHASE-1)*CV_NONODS, &
               T( CV_STAR_IPHA ), TMIN( CV_STAR_IPHA ), TMAX( CV_STAR_IPHA ), &
               TMIN_2ND_MC( CV_STAR_IPHA ), TMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, .not.VOF_INTER, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_NEW, &
               IANISOTROPIC, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, TUPWIND_MAT(1+(IPHASE-1)*NSMALL_COLM*IANISOTROPIC) )
 
          CALL ONVDLIM_ALL( CV_NONODS, &
-              LIMTOLD, FEMTOLDGI, INCOMEOLD, CV_NODI_IPHA-(IPHASE-1)*CV_NONODS, CV_NODJ_IPHA-(IPHASE-1)*CV_NONODS, &
+              LIMTOLD, FEMTOLDGI, INCOMEOLD2, CV_NODI_IPHA-(IPHASE-1)*CV_NONODS, CV_NODJ_IPHA-(IPHASE-1)*CV_NONODS, &
               TOLD( CV_STAR_IPHA ), TOLDMIN( CV_STAR_IPHA ), TOLDMAX( CV_STAR_IPHA ), &
               TOLDMIN_2ND_MC( CV_STAR_IPHA ), TOLDMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, .not.VOF_INTER_OLD, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_OLD, &
               IANISOTROPIC, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, TOLDUPWIND_MAT(1+(IPHASE-1)*NSMALL_COLM*IANISOTROPIC) )
