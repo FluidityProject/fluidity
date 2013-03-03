@@ -6861,7 +6861,7 @@
 !                  RESIDGI=0.5*courant_or_minus_one_new/DT
 !                  RESIDGI=2.0*courant_or_minus_one_new/DT
 !                  RESIDGI=max( abs(TGI-TOLDGI)/DT,2.*courant_or_minus_one_new/DT)
-                  RESIDGI=max( abs(TGI-TOLDGI)/DT,2.*sqrt(udgi**2+vdgi**2+wdgi**2)/hdc)
+                  RESIDGI=max( abs(TGI-TOLDGI)/DT,1.*sqrt(udgi**2+vdgi**2+wdgi**2)/hdc)
 !                  stop 272
  
                   VEC_VEL(1)=A_STAR_X
@@ -6902,13 +6902,15 @@
                CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
                IF(DOWNWIND_EXTRAP.AND.(courant_or_minus_one_new.GE.0.0)) THEN ! Extrapolate to the downwind value...
                   IF(NON_LIN_PETROV_INTERFACE.NE.0) THEN 
-                 if(.true.) then
+                 if(.false.) then
 !                        RGRAY=2.0*(udgi**2+vdgi**2+wdgi**2)* &
 ! ( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) + CVNORMY(GI)*SCVFENY( CV_KLOC, GI )+CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) ) &
 !          /tolfun( hdc*sqrt(A_STAR_X**2+A_STAR_Y**2+A_STAR_Z**2)*(TXGI**2 + TYGI**2 + TZGI**2 )   &
 !                       *(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI)  )
 !                        RGRAY=8.0*(udgi**2+vdgi**2+wdgi**2)* &
-                        RGRAY=32.0*(udgi**2+vdgi**2+wdgi**2)* &
+!                        RGRAY=32.0*(udgi**2+vdgi**2+wdgi**2)* &
+!                        RGRAY=2.0*(udgi**2+vdgi**2+wdgi**2)* &
+                        RGRAY=0.5*(udgi**2+vdgi**2+wdgi**2)* &
  ( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) + CVNORMY(GI)*SCVFENY( CV_KLOC, GI )+CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) ) &
           /tolfun( hdc*abs(u_dot_gradt_gi)*sqrt(TXGI**2 + TYGI**2 + TZGI**2 )   &
                        *(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI)  )
