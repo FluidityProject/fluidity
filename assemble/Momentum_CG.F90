@@ -158,7 +158,7 @@
     logical :: have_wd_abs
 
     ! scale factor for the absorption
-    real :: vvr_sf
+    real :: vvr_sf 
     ! scale factor for the free surface stabilisation
     real :: fs_sf
     ! min vertical density gradient for implicit buoyancy
@@ -229,7 +229,7 @@
       type(tensor_field), pointer :: dummytensor
 
       ! single component of lumped mass
-      type(scalar_field) :: masslump_component
+      type(scalar_field) :: masslump_component        
       ! sparsity for mass matrices
       type(csr_sparsity), pointer :: u_sparsity
 
@@ -288,7 +288,7 @@
       assert(continuity(u)>=0)
 
       nu=>extract_vector_field(state, "NonlinearVelocity")
-      oldu=>extract_vector_field(state, "Old"//trim(u%name))
+      oldu=>extract_vector_field(state, "OldVelocity")
 
       allocate(dummyscalar)
       call allocate(dummyscalar, u%mesh, "DummyScalar", field_type=FIELD_TYPE_CONSTANT)
@@ -305,12 +305,12 @@
       call zero(dummytensor)
       dummytensor%option_path=""
 
-      source=>extract_vector_field(state, trim(u%name)//"Source", stat)
+      source=>extract_vector_field(state, "VelocitySource", stat)
       have_source = stat == 0
       if(.not. have_source) source=>dummyvector
       ewrite_minmax(source)
 
-      absorption=>extract_vector_field(state, trim(u%name)//"Absorption", stat)
+      absorption=>extract_vector_field(state, "VelocityAbsorption", stat)
       have_absorption = stat == 0
       if(.not. have_absorption) absorption=>dummyvector
       ewrite_minmax(absorption)
@@ -318,7 +318,7 @@
       have_wd_abs=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/dry_absorption")
       ! Absorption term in dry zones for wetting and drying
       if (have_wd_abs) then
-       call allocate(abs_wd, u%dim, u%mesh, trim(u%name)//"Absorption_WettingDrying", FIELD_TYPE_CONSTANT)
+       call allocate(abs_wd, u%dim, u%mesh, "VelocityAbsorption_WettingDrying", FIELD_TYPE_CONSTANT)
        call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/dry_absorption", abs_wd_const)
        call set(abs_wd, abs_wd_const)
       end if
@@ -352,7 +352,7 @@
           stat=stat)
       have_gravity = stat == 0
       if(have_gravity) then
-        buoyancy=>extract_scalar_field(state, trim(u%name)//"BuoyancyDensity")
+        buoyancy=>extract_scalar_field(state, "VelocityBuoyancyDensity")
         gravity=>extract_vector_field(state, "GravityDirection", stat)
       else
         buoyancy=>dummyscalar
@@ -369,7 +369,7 @@
         ewrite_minmax(viscosity)
       end if
       
-      surfacetension=>extract_tensor_field(state, trim(u%name)//"SurfaceTension", stat)
+      surfacetension=>extract_tensor_field(state, "VelocitySurfaceTension", stat)
       have_surfacetension = stat == 0
       if(.not. have_surfacetension) then
          surfacetension=>dummytensor
@@ -407,7 +407,7 @@
          if (les_fourth_order) then
             call get_option(trim(les_option_path)//"/fourth_order/smagorinsky_coefficient", &
                  smagorinsky_coefficient)
-            call allocate( grad_u, u%mesh, trim(u%name)//"Gradient")
+            call allocate( grad_u, u%mesh, "VelocityGradient")
             call differentiate_field_lumped( nu, x, grad_u)
          end if
          if (wale) then
@@ -591,9 +591,8 @@
           &"/diagnostic/integrate_by_parts")
           
       ! Are we running a multi-phase simulation?
-      multiphase = (option_count("/material_phase/vector_field::Velocity/prognostic") > 1) &
-         .or. (option_count("/material_phase/vector_field::Momentum/prognostic") > 1)
-      if (multiphase) then
+      if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
+         multiphase = .true.
 
          vfrac => extract_scalar_field(state, "PhaseVolumeFraction")
          call allocate(nvfrac, vfrac%mesh, "NonlinearPhaseVolumeFraction")
@@ -602,6 +601,7 @@
 
          ewrite_minmax(nvfrac)
       else
+         multiphase = .false.
          nullify(vfrac)
       end if
 
@@ -771,7 +771,7 @@
         
         call scale(abslump, oldu)
         call addto(rhs, abslump, -1.0)
-
+          
         call deallocate(abslump)
       end if
 
@@ -949,14 +949,13 @@
 
       call transform_facet_to_physical(X, sele, &
            detwei_f=detwei_bdy, normal=normal_bdy)
-
+                                     
       ! Note that with SUPG the surface element test function is not modified
-
+            
       ! first the advection (dirichlet) bcs:
       
       ! if no no_normal_flow
       if (velocity_bc_type(1,sele)/=BC_TYPE_NO_NORMAL_FLOW) then
-
          if(integrate_advection_by_parts.and.(.not.exclude_advection)) then
             
             relu_gi = face_val_at_quad(nu, sele)

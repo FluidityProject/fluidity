@@ -20,8 +20,6 @@ for folder in folders:
   u=uvw[:,0]
   rho=vt.GetScalarField('Density')
   ie=vt.GetScalarField('InternalEnergy')
-  mom=rho*u
-  mflux=mom*u+p
   
   pylab.figure(1)
   pylab.plot( x0, p,'.', label=folder)
@@ -34,20 +32,12 @@ for folder in folders:
   
   pylab.figure(4)
   pylab.plot( x, ie,'.', label=folder)
-
-  pylab.figure(5)
-  pylab.plot( x, mom, '.', label=folder)
-  
-  pylab.figure(6)
-  pylab.plot( x, mflux, '.', label=folder)
   
 sol=numpy.array([shocktube.solution(xi,t) for xi in x])
 p=sol[:,0]
 u=sol[:,1]
 rho=sol[:,2]
 ie=p/rho/(shocktube.gamma-1.0)
-mom=rho*u
-mflux=mom*u+p
   
 pylab.figure(1)
 pylab.plot( x, p,'-', label='analytical')
@@ -67,16 +57,6 @@ pylab.legend()
 pylab.figure(4)
 pylab.plot( x, ie,'-', label='analytical')
 pylab.title('Internal Energy')
-pylab.legend()
-
-pylab.figure(5)
-pylab.plot( x, mom,'-', label='analytical')
-pylab.title('Momentum')
-pylab.legend()
-
-pylab.figure(6)
-pylab.plot( x, mflux,'-', label='analytical')
-pylab.title('Momentum Flux')
 pylab.legend()
 
 pylab.show()

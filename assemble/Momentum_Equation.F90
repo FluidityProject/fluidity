@@ -39,7 +39,7 @@
       use momentum_dg
       use assemble_cmc
       use field_priority_lists
-      use momentum_diagnostic_fields
+      use momentum_diagnostic_fields, only: calculate_momentum_diagnostics
       use field_options
       use compressible_projection
       use boundary_conditions
@@ -157,7 +157,7 @@
          ! The pressure projection matrix (extracted from state)
          type(csr_matrix), pointer :: cmc_m
 
-         ! logical to indicate whether ct_m and cmc_m need (re)assembling
+         ! logical to indicate whether ct_m and cmc_m need reassembling
          ! (used for each state within the assembly loop)
          logical :: reassemble_ct_m, reassemble_cmc_m
          ! is there a pressure in state?
@@ -237,12 +237,6 @@
          ! without a free surface, or with a free surface and theta==1
          ! use_theta_pg .eqv. .false. and p_theta => p
 
-         ! when solving for momentum instead of velocity, we have
-         ! a diagnostic velocity
-         type(vector_field), pointer :: momentum 
-         logical, dimension(:), allocatable :: have_prognostic_momentum
-         integer :: mstat
-
          ! What is the equation type?
          character(len=FIELD_NAME_LEN) :: equation_type, poisson_scheme, schur_scheme, pressure_pmat
 
@@ -285,8 +279,7 @@
          reduced_model = have_option("/reduced_model/execute_reduced_model")
 
          ! Are we running a multi-phase simulation?
-         prognostic_count = option_count("/material_phase/vector_field::Velocity/prognostic") &
-               + option_count("/material_phase/vector_field::Momentum/prognostic")
+         prognostic_count = option_count("/material_phase/vector_field::Velocity/prognostic")
          if(prognostic_count == 0) then
             return ! We don't have a velocity field to solve for, so exit.
          else if(prognostic_count > 1) then
@@ -374,44 +367,14 @@
          allocate(subcycle(size(state)))
          allocate(lump_mass(size(state)))
          allocate(sphere_absorption(size(state)))
-         allocate(have_prognostic_momentum(size(state)))
-         have_prognostic_momentum=.false.
 
          call profiler_tic("assembly_loop")
          assembly_loop: do istate = 1, size(state)
 
             ! Get the velocity u^{n}
             u => extract_vector_field(state(istate), "Velocity", stat)
-            ! also try to see if there's a momentum field
-            momentum => extract_vector_field(state(istate), "Momentum", mstat)
-            ! If there's no velocity (or momentum) then cycle
-            if(stat/=0 .and. mstat/=0) cycle
-
-            if (mstat==0) then
-               have_prognostic_momentum(istate) = have_option(trim(momentum%option_path)//"/prognostic")
-               if(have_prognostic_momentum(istate)) then
-                  if (stat==0) then
-                    ! we also have a diagnostic velocity (checked for in options check)
-                     if (.not. u%mesh==momentum%mesh) then
-                        ! this is a temp. measure as long as I haven't got the logic of 
-                        ! get_velocity_mesh/divergence_matrix etc. sorted
-                        FLExit("Prognostic Momentum and diagnostic Velocity need to be on the same mesh")
-                     end if
-                  else
-                     ! should have been catched in options check already
-                     FLAbort("Need a diagnostic Velocity in combination with prognostic Momentum")
-                  end if
-
-                  ! in all of the below u will actually point to momentum
-                  ! and where we say velocity in the comments, this actually means momentum
-                  ! except inside any if(have_prognostic_momentum(istate)) blocks
-                  u => momentum
-                  ! in the else case (.not. prognostic) we'll hit the cycle a few lines further
-               end if
-            else
-               have_prognostic_momentum(istate)=.false.
-            end if
-
+            ! If there's no velocity then cycle
+            if(stat/=0) cycle
             ! If this is an aliased velocity then cycle
             if(aliased(u)) cycle
             ! If the velocity isn't prognostic then cycle
@@ -422,8 +385,8 @@
 
             ! This sets up an array of the submaterials of a phase.
             ! NB: The submaterials array includes the current state itself, at index submaterials_istate.
-            call get_phase_submaterials(state, istate, submaterials, u%name, submaterials_istate)
-            call calculate_momentum_diagnostics(state, istate, submaterials, submaterials_istate, u%name)
+            call get_phase_submaterials(state, istate, submaterials, submaterials_istate)
+            call calculate_momentum_diagnostics(state, istate, submaterials, submaterials_istate)
             deallocate(submaterials)
 
             call profiler_toc("momentum_diagnostics")
@@ -490,19 +453,7 @@
             ! Depending on the equation type, extract the density or set it to some dummy field allocated above
             call get_option(trim(u%option_path)//"/prognostic/equation[0]/name", &
                            equation_type)
-            
-            if (have_prognostic_momentum(istate)) then
-               select case(equation_type)
-               case("LinearMomentum")
-                  ! prognostic mom. only has "LinearMomentum" as eqn. type
-                  density => dummydensity
-                  reassemble_cmc_m = .true.
-               case default
-                  ! developer error... out of sync options input and code
-                  FLAbort("Unknown equation type for velocity")
-               end select
-            else
-               select case(equation_type)
+            select case(equation_type)
                case("LinearMomentum")
                   density=>extract_scalar_field(state(istate), "Density")
                   reassemble_cmc_m = reassemble_cmc_m .or. .not.constant_field(density)
@@ -513,8 +464,7 @@
                case default
                   ! developer error... out of sync options input and code
                   FLAbort("Unknown equation type for velocity")
-               end select
-            end if
+            end select
             ewrite_minmax(density)
 
             if(full_schur) then
@@ -802,10 +752,11 @@
                
                ! Set up the left C matrix in CMC
                
-               if(compressible_eos .and. .not. have_prognostic_momentum(istate)) then
+               if(compressible_eos) then
                   ! Note: If we are running a compressible multiphase simulation then the C^T matrix for each phase becomes:
                   ! rho*div(vfrac*u) for each incompressible phase
                   ! rho*div(vfrac*u) + vfrac*u*grad(rho) for the single compressible phase.
+
                   allocate(ctp_m(istate)%ptr)
                   call allocate(ctp_m(istate)%ptr, ct_m(istate)%ptr%sparsity, (/1, u%dim/), name="CTP_m")
                   ! NOTE that this is not optimal in that the ct_rhs
@@ -1023,7 +974,7 @@
             end select
 
             ! If desired, assemble Poisson pressure equation and get an initial guess at the pressure
-            if(poisson_p) then
+            if(poisson_p) then   
                call solve_poisson_pressure(state, prognostic_p_istate, x, u, p, old_p, p_theta, theta_pg, &
                                            ct_m, ctp_m, mom_rhs, ct_rhs, inner_m, inverse_mass, &
                                            inverse_masslump, cmc_m, full_projection_preconditioner, schur_auxiliary_matrix)
@@ -1045,17 +996,11 @@
             call profiler_tic("velocity_solve_loop")
             velocity_solve_loop: do istate = 1, size(state)
 
-               if (have_prognostic_momentum(istate)) then
-                  ! Get the momentum u^{n}
-                  u => extract_vector_field(state(istate), "Momentum", stat)
-               else
-                  ! Get the velocity u^{n}
-                  u => extract_vector_field(state(istate), "Velocity", stat)
-               end if
+               ! Get the velocity u^{n}
+               u => extract_vector_field(state(istate), "Velocity", stat)
 
-               ! If there's no velocity (or momentum) then cycle
+               ! If there's no velocity then cycle
                if(stat/=0) cycle
-
                ! If this is an aliased velocity then cycle
                if(aliased(u)) cycle
                ! If the velocity isn't prognostic then cycle
@@ -1070,13 +1015,13 @@
 
                   if(use_theta_divergence) then
                      ! old_u is only used if use_theta_divergence, i.e. if theta_divergence/=1.0
-                     old_u => extract_vector_field(state(istate), "Old"//trim(u%name))
+                     old_u => extract_vector_field(state(istate), "OldVelocity")
                      if (old_u%aliased) then
                         ! in the case of one non-linear iteration, there is no OldVelocity,
                         ! it's just aliased to Velocity, therefore we make temp. version
                         allocate(old_u)
                         ! give it a distinct name, so we know to deallocate it
-                        call allocate(old_u, u%dim, u%mesh, "TempOld"//trim(u%name))
+                        call allocate(old_u, u%dim, u%mesh, "TempOldVelocity")
                         call set(old_u, u)
                      end if
                   end if
@@ -1085,14 +1030,13 @@
                                         mom_rhs, subcycle_m, inverse_mass)
 
                   if(prognostic_p) then
-                     call assemble_projection(state, istate, u, old_u, p, cmc_m, cmc_global, ctp_m, &
-                                              reassemble_cmc_m, have_prognostic_momentum(istate), &
+                     call assemble_projection(state, istate, u, old_u, p, cmc_m, reassemble_cmc_m, cmc_global, ctp_m, &
                                               ct_rhs, projec_rhs, p_theta, theta_pg, theta_divergence)
                   end if
 
                   ! Deallocate the old velocity field
                   if(use_theta_divergence) then
-                     if (old_u%name(1:4) == "Temp") then
+                     if (old_u%name == "TempOldVelocity") then
                         call deallocate(old_u)
                         deallocate(old_u)
                      else if (have_rotated_bcs(u)) then
@@ -1111,7 +1055,6 @@
 
                end if ! end of prognostic velocity
 
-
             end do velocity_solve_loop
             call profiler_toc("velocity_solve_loop")
 
@@ -1120,14 +1063,8 @@
             if(prognostic_p) then
                call profiler_tic(p, "assembly")
 
-               if (have_prognostic_momentum(prognostic_p_istate)) then
-                  ! Get the intermediate momentum u^{*}
-                  u=>extract_vector_field(state(prognostic_p_istate), "Momentum", stat)
-               else
-                  ! Get the intermediate velocity u^{*}
-                  u=>extract_vector_field(state(prognostic_p_istate), "Velocity", stat)
-               end if
-
+               ! Get the intermediate velocity u^{*} and the coordinate vector field
+               u=>extract_vector_field(state(prognostic_p_istate), "Velocity", stat)
                x=>extract_vector_field(state(prognostic_p_istate), "Coordinate")
 
                if(multiphase) then
@@ -1150,13 +1087,8 @@
                call profiler_tic("velocity_correction_loop")
                velocity_correction_loop: do istate = 1, size(state)
 
-                  if (have_prognostic_momentum(istate)) then
-                     ! Get the momentum u^{*}
-                     u => extract_vector_field(state(istate), "Momentum", stat)
-                  else
-                     ! Get the velocity u^{*}
-                     u => extract_vector_field(state(istate), "Velocity", stat)
-                  end if
+                  ! Get the velocity u^{*}
+                  u => extract_vector_field(state(istate), "Velocity", stat)
 
                   ! If there's no velocity then cycle
                   if(stat/=0) cycle
@@ -1191,7 +1123,7 @@
 
                      call profiler_toc(u, "assembly")
 
-                     if(compressible_eos .and. .not. have_prognostic_momentum(istate)) then
+                     if(compressible_eos) then
                         call deallocate(ctp_m(istate)%ptr)
                         deallocate(ctp_m(istate)%ptr)
                      end if
@@ -1215,15 +1147,6 @@
                end if
 
             end if ! prognostic pressure
-
-            ! finally update diagnostic velocities for phases with prognostic momentum
-            diagnostic_velocity_loop: do istate=1, size(state)
-               if (have_prognostic_momentum(istate)) then
-                 ! we've checked above that velocity is diagnostic (TODO: should move to options check)
-                 u => extract_vector_field(state(istate), "Velocity")
-                 call calculate_diagnostic_velocity(state(istate), u)
-               end if
-            end do diagnostic_velocity_loop
 
          else !! Reduced model version
 
@@ -1288,13 +1211,8 @@
          call profiler_tic("finalisation_loop")
          finalisation_loop: do istate = 1, size(state)
 
-            if (have_prognostic_momentum(istate)) then   
-               ! Get the momentum u^{n+1}
-               u => extract_vector_field(state(istate), "Momentum", stat)
-            else
-               ! Get the velocity u^{n+1}
-               u => extract_vector_field(state(istate), "Velocity", stat)
-            end if
+            ! Get the velocity u^{n+1}
+            u => extract_vector_field(state(istate), "Velocity", stat)
 
             ! If there's no velocity then cycle
             if(stat/=0) cycle
@@ -1349,9 +1267,12 @@
          ! An array of buckets full of fields
          type(state_type), dimension(:), intent(inout) :: state
          integer, intent(in) :: istate
+
          type(vector_field), pointer :: u
 
          ! Local variables
+         integer :: stat
+         type(vector_field), pointer :: dummy_absorption
          logical :: have_viscosity, have_les, stress_form, partial_stress_form, have_coriolis
          logical :: on_sphere, have_absorption, have_vertical_stabilization
 
@@ -1398,7 +1319,8 @@
 
          ! Do we want to rotate our equations to include absorption in a spherical geometry? 
          on_sphere = have_option('/geometry/spherical_earth/')
-         have_absorption = has_vector_field(state(istate), trim(u%name)//"Absorption")
+         dummy_absorption => extract_vector_field(state(istate), "VelocityAbsorption", stat)
+         have_absorption = stat == 0
          have_vertical_stabilization = have_option(trim(u%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation").or. &
                                     have_option(trim(u%option_path)//"/prognostic/vertical_stabilization/implicit_buoyancy")
          sphere_absorption(istate) = on_sphere.and.(have_absorption.or.have_vertical_stabilization)
@@ -1427,6 +1349,11 @@
                      "/prognostic/output/debugging_vtus")
          if (pressure_debugging_vtus) then
             pdv_count = pdv_count+1
+         end if
+
+         ! If we are using the reduced model then there is no pressure projection.
+         if (reduced_model) then
+            reassemble_all_cmc_m=.false.
          end if
 
          get_diag_schur = .false.
@@ -1590,6 +1517,7 @@
 
          ewrite(1,*) 'Entering advance_velocity'
 
+
          ! Allocate the momentum solution vector
          call profiler_tic(u, "assembly")
          call allocate(delta_u, u%dim, u%mesh, "DeltaU")
@@ -1609,7 +1537,7 @@
             ! contribution
             if (have_option('/ocean_forcing/tidal_forcing') .or. &
                &have_option('/ocean_forcing/shelf')) then
-               ewrite(1,*) "shelf: Entering compute_pressure_and_tidal_gradient"
+            ewrite(1,*) "shelf: Entering compute_pressure_and_tidal_gradient"
                call compute_pressure_and_tidal_gradient(state(istate), delta_u, ct_m(istate)%ptr, p_theta, x)
             else
                call mult_T(delta_u, ct_m(istate)%ptr, p_theta)
@@ -1650,8 +1578,7 @@
       end subroutine advance_velocity
 
 
-      subroutine assemble_projection(state, istate, u, old_u, p, cmc_m, cmc_global, ctp_m, &
-                                     reassemble_cmc_m, have_prognostic_momentum, &
+      subroutine assemble_projection(state, istate, u, old_u, p, cmc_m, reassemble_cmc_m, cmc_global, ctp_m, &
                                      ct_rhs, projec_rhs, p_theta, theta_pg, theta_divergence)
          !!< Assembles the RHS for the projection solve step and, if required, the 'global' CMC matrix for multi-phase simulations.
          !!< Note that in the case of multi-phase simulations, projec_rhs contains the sum of ct_m*u over each prognostic velocity field,
@@ -1668,8 +1595,7 @@
          type(block_csr_matrix_pointer), dimension(:), intent(inout) :: ctp_m
          ! The pressure projection matrix (extracted from state)
          type(csr_matrix), pointer :: cmc_m, cmc_global
-         logical, intent(in) :: reassemble_cmc_m ! is cmc being reassembled?
-         logical, intent(in) :: have_prognostic_momentum
+         logical, intent(in) :: reassemble_cmc_m
 
          type(scalar_field), dimension(:), intent(inout) :: ct_rhs
          type(scalar_field), intent(inout) :: projec_rhs
@@ -1680,7 +1606,6 @@
          ! Local variables
          type(scalar_field) :: kmk_rhs, temp_projec_rhs, compress_projec_rhs
          type(vector_field) :: delta_u
-         logical :: reuse_cmc_m
          integer :: stat
 
          ewrite(1,*) 'Entering assemble_projection'
@@ -1703,7 +1628,7 @@
          else
             ! Evaluate continuity at n+theta_divergence
             ! compute theta_divergence*u+(1-theta_divergence)*old_u
-            call allocate(delta_u, u%dim, u%mesh, trim(u%name)//"Theta")
+            call allocate(delta_u, u%dim, u%mesh, "VelocityTheta")
             if (have_rotated_bcs(u)) then
                if (dg(istate)) then
                   call zero_non_owned(old_u)
@@ -1742,20 +1667,12 @@
          if(compressible_eos .and. have_option(trim(state(istate)%option_path)//'/equation_of_state/compressible')) then
             call allocate(compress_projec_rhs, p_theta%mesh, "CompressibleProjectionRHS")
 
-            ! if have_prognostic_momentum, we could potentially reuse
-            ! div-grad terms of cmc - provided there is no mesh_movement,
-            ! assemble_cmc will be .false. after the first nonlinear iteration
-            ! and cmc will be reused by first subtracting the mass term from the
-            ! previous iteration before adding the new one
-            reuse_cmc_m = have_prognostic_momentum
-            reuse_cmc_m = .false.
-
             if(cv_pressure) then
                call assemble_compressible_projection_cv(state, cmc_m, compress_projec_rhs, dt, &
-                                                      theta_pg, theta_divergence, reassemble_cmc_m, reuse_cmc_m)
+                                                      theta_pg, theta_divergence, reassemble_cmc_m)
             else
                call assemble_compressible_projection_cg(state, istate, cmc_m, compress_projec_rhs, dt, &
-                                                      theta_pg, theta_divergence, reassemble_cmc_m, reuse_cmc_m)
+                                                      theta_pg, theta_divergence, reassemble_cmc_m)
             end if
 
             ewrite_minmax(compress_projec_rhs)
@@ -1988,9 +1905,6 @@
          character(len=FIELD_NAME_LEN) :: schur_preconditioner
          character(len=FIELD_NAME_LEN) :: pressure_mesh
          character(len=FIELD_NAME_LEN) :: pressure_mesh_element_type
-         character(len=OPTION_PATH_LEN) :: phase_path, prognostic_velocity_path, &
-               prognostic_pressure_path
-         logical :: prognostic_momentum
 
          ewrite(1,*) 'Checking momentum discretisation options'
 
@@ -1998,28 +1912,11 @@
 
          do i = 0, nmat-1
 
-            phase_path="/material_phase["//int2str(i)//"]"
-            prognostic_pressure_path=trim(phase_path)//"/scalar_field::Pressure/prognostic"
-            prognostic_velocity_path=trim(phase_path)//"/vector_field::Velocity/prognostic"
-            if (.not. have_option(prognostic_velocity_path)) then
-               ! try prognostic momentum instead
-               prognostic_velocity_path=trim(phase_path)//"/vector_field::Momentum/prognostic"
-            else if (have_option(trim(phase_path)//"/vector_field::Momentum/prognostic")) then
-               FLExit("Can't have both a prognostic Velocity and prognostic Momentum")
-            else 
-              prognostic_momentum = .false.
-            end if
-            if (.not. have_option(prognostic_velocity_path)) cycle
-
-            if (prognostic_momentum) then
-               if (.not. have_option(trim(phase_path)//"/vector_field::Velocity/diagnostic/algorithm::Internal")) then
-                 ewrite(-1,*) "With a prognostic Momentum field Velocity has to be diagnostic"
-                 ewrite(-1,*) "and its diagnostic algorithm set to Internal"
-                 FLExit("With a prognostic Momentum field you also need a diagnostic Velocity field")
-               end if
-            end if
-            if(have_option(trim(prognostic_pressure_path)//"/reference_node").and.&
-               have_option(trim(prognostic_pressure_path)//&
+            if(have_option("/material_phase["//int2str(i)//&
+                                 &"]/scalar_field::Pressure/prognostic"//&
+                                 &"/reference_node").and.&
+            have_option("/material_phase["//int2str(i)//&
+                                 &"]/scalar_field::Pressure/prognostic"//&
                                  &"/solver/remove_null_space")) then
                FLExit("Can't set a pressure reference node and remove the null space.")
             end if
@@ -2032,7 +1929,7 @@
                                  &"/spatial_discretisation/continuous_galerkin")) then
               FLExit("With discontinuous galerkin Pressure you need a continuous Velocity")
             end if
-
+ 
             if(have_option("/material_phase["//int2str(i)//&
                         &"]/vector_field::Velocity/prognostic/reference_node")) then
                if((.not.(have_option("/material_phase["//int2str(i)//&

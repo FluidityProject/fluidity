@@ -624,7 +624,7 @@ contains
                    ! solve. Calling calculate_densities here is a work-around for this problem.  
                    sfield => extract_scalar_field(state, 'VelocityBuoyancyDensity')
                    if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then 
-                      call get_phase_submaterials(state, i, submaterials, "Velocity")
+                      call get_phase_submaterials(state, i, submaterials)
                       call calculate_densities(submaterials, buoyancy_density=sfield)
                       deallocate(submaterials)
                    else
