@@ -1450,16 +1450,7 @@ start =
                         internal_algorithm|
                         vector_python_diagnostic_algorithm
                      ),
-                     diagnostic_vector_field,
-                     ## Boundary conditions
-                     element boundary_conditions {
-                        attribute name { string },
-                        ## Surface id:
-                        element surface_ids {
-                           integer_vector
-                        },
-                        velocity_boundary_conditions
-                     }*
+                     diagnostic_vector_field
                   }|                  
                   element aliased {
                      attribute material_phase_name { xsd:string },

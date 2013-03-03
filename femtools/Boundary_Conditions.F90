@@ -1763,6 +1763,7 @@ contains
        do f = 1, nfields
           vfield => extract_vector_field(states(p+1), f)
           field_path=vfield%option_path
+          if (.not. have_option(trim(field_path)//'/prognostic')) cycle
 
           ! only prognostic fields from here:
           call set_dirichlet_consistent_vector(vfield)

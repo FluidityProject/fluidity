@@ -1922,19 +1922,6 @@ via a compressible equation of state.</a:documentation>
                   <ref name="vector_python_diagnostic_algorithm"/>
                 </choice>
                 <ref name="diagnostic_vector_field"/>
-                <zeroOrMore>
-                  <element name="boundary_conditions">
-                    <a:documentation>Boundary conditions</a:documentation>
-                    <attribute name="name">
-                      <data type="string" datatypeLibrary=""/>
-                    </attribute>
-                    <element name="surface_ids">
-                      <a:documentation>Surface id:</a:documentation>
-                      <ref name="integer_vector"/>
-                    </element>
-                    <ref name="velocity_boundary_conditions"/>
-                  </element>
-                </zeroOrMore>
               </element>
               <element name="aliased">
                 <attribute name="material_phase_name">
