@@ -60,7 +60,7 @@ contains
     !!< Currently erosion bc is calculated explicitly and the value is consistent here
     type(state_type), intent(inout)                        :: state
     type(mesh_type), dimension(:), allocatable             :: surface_mesh
-    type(mesh_type), allocatable                           :: project_mesh, project_mesh_X
+    type(mesh_type)                                        :: project_mesh, project_mesh_X
     type surface_nodes_array
        integer, dimension(:), pointer                      :: nodes
     end type surface_nodes_array
