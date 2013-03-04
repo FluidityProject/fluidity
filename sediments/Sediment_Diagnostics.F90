@@ -247,6 +247,9 @@ contains
              ! remove eroded sediment
              call addto(bedload_field, surface_nodes(i_field)%nodes(i_node), &
                   & -1.0 * node_val(erosion(i_field), i_node))
+
+             if (node_val(bedload_field, i_node) > 1.0) call set(bedload_field, i_node, 1.0)
+             if (node_val(bedload_field, i_node) < -0.1) call set(bedload_field, i_node, -0.1)
            end do
        end if
 
