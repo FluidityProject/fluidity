@@ -2585,59 +2585,11 @@ The units are in unit distances as a depth of sediment.
               <group>
                 <a:documentation>Field type</a:documentation>
                 <element name="prognostic">
-                  <ref name="velocity_mesh_choice"/>
                   <element name="surface_ids">
                     <a:documentation>Surface ids over which to calculate the bedload:</a:documentation>
                     <ref name="integer_vector"/>
                   </element>
                   <ref name="prognostic_scalar_field"/>
-                  <element name="scalar_field">
-                    <a:documentation>Required for reentrainment calculation with multiple sediment classes.</a:documentation>
-                    <attribute name="rank">
-                      <value>0</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>VolumeFraction</value>
-                    </attribute>
-                    <element name="diagnostic">
-                      <a:documentation>Field type</a:documentation>
-                      <ref name="diagnostic_scalar_field"/>
-                    </element>
-                  </element>
-                  <optional>
-                    <element name="scalar_field">
-                      <a:documentation>Sediment bedload deposit rate diagnostic.
-
-The units are in unit distances/second.</a:documentation>
-                      <attribute name="rank">
-                        <value>0</value>
-                      </attribute>
-                      <attribute name="name">
-                        <value>DepositRate</value>
-                      </attribute>
-                      <element name="diagnostic">
-                        <a:documentation>Field type</a:documentation>
-                        <ref name="diagnostic_scalar_field"/>
-                      </element>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="scalar_field">
-                      <a:documentation>Sediment bedload erosion rate diagnostic.
-
-The units are in unit distances as a depth of sediment.</a:documentation>
-                      <attribute name="rank">
-                        <value>0</value>
-                      </attribute>
-                      <attribute name="name">
-                        <value>ErosionRate</value>
-                      </attribute>
-                      <element name="diagnostic">
-                        <a:documentation>Field type</a:documentation>
-                        <ref name="diagnostic_scalar_field"/>
-                      </element>
-                    </element>
-                  </optional>
                   <optional>
                     <element name="disable_calculation">
                       <a:documentation>Disables calculation of change to bedload due to 
@@ -2648,6 +2600,56 @@ erosion/deposition (generally only used for mms testing):</a:documentation>
                 </element>
               </group>
             </element>
+            <element name="scalar_field">
+              <a:documentation>Sediment bedload diagnostic which records the sediment 
+deposited through the prescribed boundary.
+
+The units are in unit distances/second.</a:documentation>
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <attribute name="name">
+                <value>BedloadVolumeFraction</value>
+              </attribute>
+              <element name="diagnostic">
+                <a:documentation>Field type</a:documentation>
+                <ref name="diagnostic_scalar_field"/>
+              </element>
+            </element>
+            <optional>
+              <element name="scalar_field">
+                <a:documentation>Sediment bedload deposit rate diagnostic.
+
+The units are in unit distances/second.</a:documentation>
+                <attribute name="rank">
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>BedloadDepositRate</value>
+                </attribute>
+                <element name="diagnostic">
+                  <a:documentation>Field type</a:documentation>
+                  <ref name="diagnostic_scalar_field"/>
+                </element>
+              </element>
+            </optional>
+            <optional>
+              <element name="scalar_field">
+                <a:documentation>Sediment bedload erosion rate diagnostic.
+
+The units are in unit distances as a depth of sediment.</a:documentation>
+                <attribute name="rank">
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>BedloadErosionRate</value>
+                </attribute>
+                <element name="diagnostic">
+                  <a:documentation>Field type</a:documentation>
+                  <ref name="diagnostic_scalar_field"/>
+                </element>
+              </element>
+            </optional>
             <optional>
               <element name="scalar_field">
                 <a:documentation>This is the unhindered sinking velocity of the sediment particles. 
@@ -2771,10 +2773,15 @@ dependent viscosity is required.</a:documentation>
           <attribute name="name">
             <value>ZeroSedimentConcentrationViscosity</value>
           </attribute>
-          <element name="prescribed">
-            <ref name="velocity_mesh_choice"/>
-            <ref name="prescribed_tensor_field"/>
-          </element>
+          <choice>
+            <element name="prescribed">
+              <ref name="velocity_mesh_choice"/>
+              <ref name="prescribed_tensor_field"/>
+            </element>
+            <element name="aliased">
+              <ref name="generic_aliased_field"/>
+            </element>
+          </choice>
         </element>
       </optional>
     </element>
@@ -3295,22 +3302,7 @@ This is calculated at all boundaries</a:documentation>
           <a:documentation>velocity_gradient - nu * grad(u)
 This uses the velocity gradient at the boundaries to calculate the 
 bed shear stress. Valid for non parameterised velocity boundaries</a:documentation>
-          <optional>
-            <element name="tensor_field">
-              <a:documentation>output calculated gradient of dg field as a diagnostic (only works for dg velocity fields)</a:documentation>
-              <attribute name="rank">
-                <value>2</value>
-              </attribute>
-              <attribute name="name">
-                <value>DGVelocityGradient</value>
-              </attribute>
-              <element name="diagnostic">
-                <ref name="internal_algorithm"/>
-                <ref name="velocity_mesh_choice"/>
-                <ref name="diagnostic_tensor_field"/>
-              </element>
-            </element>
-          </optional>
+          <empty/>
         </element>
         <element name="wall_treatment">
           <a:documentation>This diagnostic can only be used in conjunction with a near-wall treatment

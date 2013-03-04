@@ -1217,7 +1217,6 @@ for n in range(field.node_count):
           <consistent_interpolation/>
           <scalar_field name="Bedload" rank="0">
             <prognostic>
-              <mesh name="VelocityMesh"/>
               <surface_ids>
                 <integer_value shape="1" rank="1">2</integer_value>
               </surface_ids>
@@ -1279,53 +1278,53 @@ for n in range(field.node_count):
                 <include_in_steady_state/>
               </steady_state>
               <consistent_interpolation/>
-              <scalar_field name="VolumeFraction" rank="0">
-                <diagnostic>
-                  <output/>
-                  <stat/>
-                  <convergence>
-                    <include_in_convergence/>
-                  </convergence>
-                  <detectors>
-                    <include_in_detectors/>
-                  </detectors>
-                  <steady_state>
-                    <include_in_steady_state/>
-                  </steady_state>
-                </diagnostic>
-              </scalar_field>
-              <scalar_field name="DepositRate" rank="0">
-                <diagnostic>
-                  <output/>
-                  <stat/>
-                  <convergence>
-                    <include_in_convergence/>
-                  </convergence>
-                  <detectors>
-                    <include_in_detectors/>
-                  </detectors>
-                  <steady_state>
-                    <include_in_steady_state/>
-                  </steady_state>
-                </diagnostic>
-              </scalar_field>
-              <scalar_field name="ErosionRate" rank="0">
-                <diagnostic>
-                  <output/>
-                  <stat/>
-                  <convergence>
-                    <include_in_convergence/>
-                  </convergence>
-                  <detectors>
-                    <include_in_detectors/>
-                  </detectors>
-                  <steady_state>
-                    <include_in_steady_state/>
-                  </steady_state>
-                </diagnostic>
-              </scalar_field>
               <disable_calculation/>
             </prognostic>
+          </scalar_field>
+          <scalar_field name="BedloadVolumeFraction" rank="0">
+            <diagnostic>
+              <output/>
+              <stat/>
+              <convergence>
+                <include_in_convergence/>
+              </convergence>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+              <steady_state>
+                <exclude_from_steady_state/>
+              </steady_state>
+            </diagnostic>
+          </scalar_field>
+          <scalar_field name="BedloadDepositRate" rank="0">
+            <diagnostic>
+              <output/>
+              <stat/>
+              <convergence>
+                <include_in_convergence/>
+              </convergence>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+              <steady_state>
+                <exclude_from_steady_state/>
+              </steady_state>
+            </diagnostic>
+          </scalar_field>
+          <scalar_field name="BedloadErosionRate" rank="0">
+            <diagnostic>
+              <output/>
+              <stat/>
+              <convergence>
+                <include_in_convergence/>
+              </convergence>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+              <steady_state>
+                <exclude_from_steady_state/>
+              </steady_state>
+            </diagnostic>
           </scalar_field>
           <scalar_field name="UnhinderedSinkingVelocity" rank="0">
             <prescribed>
@@ -1476,7 +1475,6 @@ for n in range(field.node_count):
           <consistent_interpolation/>
           <scalar_field name="Bedload" rank="0">
             <prognostic>
-              <mesh name="VelocityMesh"/>
               <surface_ids>
                 <integer_value shape="1" rank="1">2</integer_value>
               </surface_ids>
@@ -1538,53 +1536,53 @@ for n in range(field.node_count):
                 <include_in_steady_state/>
               </steady_state>
               <consistent_interpolation/>
-              <scalar_field name="VolumeFraction" rank="0">
-                <diagnostic>
-                  <output/>
-                  <stat/>
-                  <convergence>
-                    <include_in_convergence/>
-                  </convergence>
-                  <detectors>
-                    <include_in_detectors/>
-                  </detectors>
-                  <steady_state>
-                    <include_in_steady_state/>
-                  </steady_state>
-                </diagnostic>
-              </scalar_field>
-              <scalar_field name="DepositRate" rank="0">
-                <diagnostic>
-                  <output/>
-                  <stat/>
-                  <convergence>
-                    <include_in_convergence/>
-                  </convergence>
-                  <detectors>
-                    <include_in_detectors/>
-                  </detectors>
-                  <steady_state>
-                    <include_in_steady_state/>
-                  </steady_state>
-                </diagnostic>
-              </scalar_field>
-              <scalar_field name="ErosionRate" rank="0">
-                <diagnostic>
-                  <output/>
-                  <stat/>
-                  <convergence>
-                    <include_in_convergence/>
-                  </convergence>
-                  <detectors>
-                    <include_in_detectors/>
-                  </detectors>
-                  <steady_state>
-                    <include_in_steady_state/>
-                  </steady_state>
-                </diagnostic>
-              </scalar_field>
               <disable_calculation/>
             </prognostic>
+          </scalar_field>
+          <scalar_field name="BedloadVolumeFraction" rank="0">
+            <diagnostic>
+              <output/>
+              <stat/>
+              <convergence>
+                <include_in_convergence/>
+              </convergence>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+              <steady_state>
+                <exclude_from_steady_state/>
+              </steady_state>
+            </diagnostic>
+          </scalar_field>
+          <scalar_field name="BedloadDepositRate" rank="0">
+            <diagnostic>
+              <output/>
+              <stat/>
+              <convergence>
+                <include_in_convergence/>
+              </convergence>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+              <steady_state>
+                <exclude_from_steady_state/>
+              </steady_state>
+            </diagnostic>
+          </scalar_field>
+          <scalar_field name="BedloadErosionRate" rank="0">
+            <diagnostic>
+              <output/>
+              <stat/>
+              <convergence>
+                <include_in_convergence/>
+              </convergence>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+              <steady_state>
+                <exclude_from_steady_state/>
+              </steady_state>
+            </diagnostic>
           </scalar_field>
           <scalar_field name="UnhinderedSinkingVelocity" rank="0">
             <prescribed>
