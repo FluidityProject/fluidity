@@ -56,8 +56,7 @@ contains
     !!< Calculate the advected flux of the sediment through the surfaces of
     !!< the domain.
     !!< This is determined based upon a fixed theta of 0.5
-    !!< Currently erosion is based on the previous timestep. This is wrong!! 
-    !!< but erosion doesn't work anyway
+    !!< Currently erosion bc is calculated explicitly and the value is consistent here
     type(state_type), intent(inout)                        :: state
     type(mesh_type), dimension(:), allocatable             :: surface_mesh
     type surface_nodes_array
@@ -164,7 +163,7 @@ contains
     deposit_fields_loop: do i_field=1, n_sediment_fields
 
        ! obtain scalar fields for this sediment class
-       call get_sediment_item(state, i_field, old_sediment_field)
+       call get_sediment_item(state, i_field, old_sediment_field, old = .true.)
        call get_sediment_item(state, i_field, new_sediment_field)
        call allocate(sediment_field, new_sediment_field%mesh, name="CNSedimentField")
        call zero(sediment_field)
@@ -248,12 +247,7 @@ contains
              ! remove eroded sediment
              call addto(bedload_field, surface_nodes(i_field)%nodes(i_node), &
                   & -1.0 * node_val(erosion(i_field), i_node))
-             
-             ! make sure bedload is positive
-             if (node_val(bedload_field, surface_nodes(i_field)%nodes(i_node)) < 0.0) then
-                call set(bedload_field, surface_nodes(i_field)%nodes(i_node), 0.0)
-             end if
-          end do
+           end do
        end if
 
        ewrite_minmax(deposited_sediment(i_field)) 
@@ -288,7 +282,7 @@ contains
          & ele_loc(deposited_sediment(i_field), ele)) :: invmass
     real, dimension(ele_loc(deposited_sediment(i_field), ele)) :: flux
     real, dimension(ele_ngi(deposited_sediment(i_field), ele)) :: detwei,&
-         & U_normal_detwei, G_normal_detwei, U_sink_detwei
+         & G_normal_detwei, U_sink_detwei
     real, dimension(U%dim, ele_ngi(deposited_sediment(i_field), ele)) :: normal
     type(element_type), pointer :: s_shape
 
@@ -305,13 +299,11 @@ contains
        invmass=inverse(shape_shape(s_shape, s_shape, detwei))
     end if
     
-    U_normal_detwei=sum(face_val_at_quad(U,ele)*normal,1)*detwei
     G_normal_detwei=sum(face_val_at_quad(gravity,ele)*normal,1)*detwei
     U_sink_detwei=G_normal_detwei*face_val_at_quad(sink_U,ele)  
 
     flux=dt*shape_rhs(s_shape, &
-         face_val_at_quad(sediment_field, ele)*&
-         (U_normal_detwei+U_sink_detwei))
+         face_val_at_quad(sediment_field, ele)*U_sink_detwei)
 
     if(continuity(deposited_sediment(i_field))<0) then
        ! DG case.
