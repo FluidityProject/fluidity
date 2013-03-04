@@ -29,11 +29,12 @@
 
 module sediment_diagnostics 
 
-  ! these 5 need to be on top and in this order, so as not to confuse silly old intel compiler
+  ! these 6 need to be on top and in this order, so as not to confuse silly old intel compiler
   use quadrature
   use elements
   use sparse_tools
   use fields
+  use fefields
   use state_module
 
   use fefields
@@ -59,18 +60,22 @@ contains
     !!< Currently erosion bc is calculated explicitly and the value is consistent here
     type(state_type), intent(inout)                        :: state
     type(mesh_type), dimension(:), allocatable             :: surface_mesh
+    type(mesh_type), allocatable                           :: project_mesh, project_mesh_X
     type surface_nodes_array
        integer, dimension(:), pointer                      :: nodes
     end type surface_nodes_array
     type(surface_nodes_array), dimension(:), allocatable   :: surface_nodes
-    type(vector_field), pointer                            :: X, old_U, new_U, gravity
+    integer, dimension(:), pointer                         :: project_nodes
+    type(vector_field), pointer                            :: X, gravity
     type(scalar_field), dimension(:), allocatable          :: deposited_sediment, erosion
-    type(scalar_field), pointer                            :: erosion_flux, bedload_field&
-         &, old_sediment_field, new_sediment_field, sink_U, diagnostic_field
-    type(vector_field)                                     :: U
-    type(scalar_field)                                     :: masslump, sediment_field
-    integer                                                :: n_sediment_fields,&
-         & i_field, i_bcs, i_node, ele, n_bcs, stat
+    type(scalar_field), pointer                            :: erosion_flux, bedload_field, &
+         old_sediment_field, new_sediment_field, sink_U, diagnostic_field, sediment_ptr
+    type(scalar_field)                                     :: masslump
+    type(vector_field)                                     :: project_X
+    type(scalar_field), target                             :: project_field_1, project_field_2, &
+         sediment_field
+    integer                                                :: n_sediment_fields, &
+         i_field, i_bcs, i_node, ele, n_bcs, stat
     integer, dimension(2)                                  :: surface_id_count
     integer, dimension(:), allocatable                     :: surface_ids
     integer, dimension(:), pointer                         :: to_nodes, surface_element_list
@@ -86,13 +91,6 @@ contains
 
     X => extract_vector_field(state, "Coordinate")
     gravity => extract_vector_field(state, "GravityDirection")
-
-    new_U => extract_vector_field(state, "Velocity")
-    old_U => extract_vector_field(state, "OldVelocity")
-    call allocate(U, new_U%dim, new_U%mesh, name="CNVelocity")
-    call zero(U)
-    call addto(U, old_U, 0.5)
-    call addto(U, new_U, 0.5)
     
     ! allocate space for erosion and deposit field arrays
     allocate(erosion(n_sediment_fields))
@@ -138,16 +136,40 @@ contains
              ! get erosion flux
              erosion_flux => extract_surface_field(new_sediment_field, bc_name=bc_name,&
                   & name="value")
+
+             if (.not. (bedload_field%mesh==new_sediment_field%mesh)) then
+               ! project erosion to deposit mesh
+               call create_surface_mesh(project_mesh, project_nodes, &
+                    mesh=bedload_field%mesh, surface_elements=surface_element_list, &
+                    name='SurfaceProjectionMesh')  
+               call allocate(project_field_1, project_mesh, "ErosionProjection")
+               call create_surface_mesh(project_mesh_X, project_nodes, &
+                    mesh=X%mesh, surface_elements=surface_element_list, &
+                    name='SurfaceProjectionMeshX')  
+               call allocate(project_X, X%dim, project_mesh_X, "CoordinateProjection")
+               call remap_field_to_surface(X, project_X, surface_element_list)
+               call project_field(erosion_flux, project_field_1, project_X)
+
+               erosion_flux => project_field_1
+             end if
              
              ! set erosion field values
              allocate(values(erosion(i_field)%mesh%shape%loc))             
              do ele=1,ele_count(erosion_flux)
                 to_nodes => ele_nodes(erosion(i_field), surface_element_list(ele))
-                values = ele_val(erosion_flux,ele)
+                values = ele_val(erosion_flux, ele)
                 do i_node=1,size(to_nodes)
                    call set(erosion(i_field),to_nodes(i_node),values(i_node))
                 end do
              end do
+
+             if (.not. (bedload_field%mesh==new_sediment_field%mesh)) then
+               ! deallocate projection fields/meshes
+               call deallocate(project_mesh)
+               call deallocate(project_field_1)
+               call deallocate(project_mesh_X)
+               call deallocate(project_X)
+             end if
 
              call scale(erosion(i_field),dt)
              deallocate(values)
@@ -171,6 +193,22 @@ contains
        call addto(sediment_field, new_sediment_field, 0.5)
        call get_sediment_item(state, i_field, "Bedload", bedload_field)
        call get_sediment_item(state, i_field, "SinkingVelocity", sink_U) 
+
+       if (.not. (bedload_field%mesh==sink_U%mesh)) then
+         ! project sinking velocity to deposit mesh
+         call allocate(project_field_2, bedload_field%mesh, name="SinkingVelocityProjection")
+         call project_field(sink_u, project_field_2, X)
+         sink_U => project_field_2
+       end if
+
+       if (.not. (bedload_field%mesh==new_sediment_field%mesh)) then
+         ! project sediment field to deposit mesh
+         call allocate(project_field_1, bedload_field%mesh, name="SedimentProjection")
+         call project_field(sediment_field, project_field_1, X)
+         sediment_ptr => project_field_1
+       else
+         sediment_ptr => sediment_field
+       end if
        
        ! allocate surface field that will contain the calculated deposited sediment for
        ! this timestep
@@ -202,7 +240,7 @@ contains
 
           ! assemble bedload element
           call assemble_sediment_flux_ele(ele, deposited_sediment,&
-               & sediment_field, X, U, sink_U, gravity, masslump, i_field)
+               & sediment_ptr, X, sink_U, gravity, masslump, i_field)
 
        end do elements
 
@@ -218,7 +256,7 @@ contains
        end if
 
        ! get erosion rate diagnostic field
-       call get_sediment_item(state, i_field, "BedloadDepositRate", diagnostic_field, stat)
+       call get_sediment_item(state, i_field, "DepositRate", diagnostic_field, stat)
        if (stat == 0) then
           call zero(diagnostic_field)
           do i_node = 1, node_count(surface_mesh(i_field))
@@ -228,6 +266,14 @@ contains
           call scale(diagnostic_field, 1./dt)
        end if
 
+       ! deallocate
+       if (.not. (bedload_field%mesh==sink_U%mesh)) then
+         ! project sinking velocity to deposit mesh
+         call deallocate(project_field_2)
+       end if
+       if (.not. (bedload_field%mesh==new_sediment_field%mesh)) then
+         call deallocate(project_field_1)
+       end if     
        call deallocate(sediment_field)
 
     end do deposit_fields_loop
@@ -260,7 +306,6 @@ contains
 
     end do net_flux_loop
 
-    call deallocate(U)
     deallocate(deposited_sediment)
     deallocate(erosion)
     deallocate(surface_mesh)
@@ -269,11 +314,11 @@ contains
   end subroutine calculate_sediment_flux
 
   subroutine assemble_sediment_flux_ele(ele, deposited_sediment, sediment_field,&
-       & X, U, sink_U, gravity, masslump, i_field)
+       & X, sink_U, gravity, masslump, i_field)
 
     integer, intent(in) :: ele, i_field
     type(scalar_field), dimension(:), intent(inout) :: deposited_sediment
-    type(vector_field), intent(in) :: X, U, gravity
+    type(vector_field), intent(in) :: X, gravity
     type(scalar_field), intent(in) :: sink_U, sediment_field
     type(scalar_field), intent(inout) :: masslump
 
@@ -283,7 +328,7 @@ contains
     real, dimension(ele_loc(deposited_sediment(i_field), ele)) :: flux
     real, dimension(ele_ngi(deposited_sediment(i_field), ele)) :: detwei,&
          & G_normal_detwei, U_sink_detwei
-    real, dimension(U%dim, ele_ngi(deposited_sediment(i_field), ele)) :: normal
+    real, dimension(X%dim, ele_ngi(deposited_sediment(i_field), ele)) :: normal
     type(element_type), pointer :: s_shape
 
     s_ele=>ele_nodes(deposited_sediment(i_field), ele)
@@ -666,7 +711,7 @@ contains
 
        ! get sediment bedload and volume fraction fields
        call get_sediment_item(state, i_field, 'Bedload', bedload) 
-       call get_sediment_item(state, i_field, 'BedloadVolumeFraction', volume_fraction)  
+       call get_sediment_item(state, i_field, 'VolumeFraction', volume_fraction)  
 
        ! generate surface_mesh for calculation of volume fraction and create surface field
        call create_surface_mesh(surface_mesh, surface_node_list, & 

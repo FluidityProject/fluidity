@@ -33,6 +33,7 @@ module sediment
   use elements
   use field_derivatives
   use fields
+  use fefields
   use sparse_matrices_fields
   use state_module
   use spud
@@ -148,10 +149,24 @@ contains
     integer, intent(out), optional              :: stat
     
     character(len=FIELD_NAME_LEN)               :: field_name
+    character(len=FIELD_NAME_LEN), dimension(3) :: bedload_fields = &
+         (/ &
+         "VolumeFraction", &
+         "DepositRate   ", &
+         "ErosionRate   " &
+         /)
+    integer :: i
 
-    ! had to remove trim(state%option_path)// as this didn't work with flredecomp
     call get_option('/material_phase[0]/sediment/scalar_field['//int2str(i_field -&
          & 1)//']/name', field_name) 
+
+    do i = 1, size(bedload_fields)
+      if (trim(bedload_fields(i)) == trim(option)) then
+        field_name = trim(field_name)//'Bedload'
+        exit
+      end if
+    end do
+
     item => extract_scalar_field(state, trim(field_name)//option, stat)
 
   end subroutine get_sediment_option_scalar_field
@@ -204,12 +219,16 @@ contains
     type(state_type), intent(in)              :: state
     type(scalar_field), intent(in), pointer   :: sediment_field
     type(scalar_field), pointer               :: reentrainment, bedload, sink_U, d50,&
-         & sigma, volume_fraction, diagnostic_field, old_diagnostic_field
+         & sigma, volume_fraction, diagnostic_field, old_diagnostic_field, erosion
     type(scalar_field)                        :: masslump, bedload_remap
     type(tensor_field), pointer               :: viscosity_pointer
     type(tensor_field), target                :: viscosity
     type(vector_field), pointer               :: x, shear_stress
+    type(vector_field)                        :: project_X
+    type(scalar_field), target                :: project_field_s
     type(mesh_type), pointer                  :: surface_mesh
+    type(mesh_type), allocatable              :: project_mesh, project_mesh_X
+    integer, dimension(:), pointer            :: project_nodes
     character(len = FIELD_NAME_LEN)           :: bc_name, bc_path, algorithm
     integer                                   :: stat, i_ele, i_field, i_node, i_face, i, j
     integer, dimension(:), pointer            :: surface_element_list
@@ -222,12 +241,9 @@ contains
     ! get boundary condition info
     call get_boundary_condition(sediment_field, name=bc_name,&
          & surface_mesh=surface_mesh, surface_element_list=surface_element_list)
-
-    ! get bedload field
-    call get_sediment_item(state, i_field, 'Bedload', bedload)
     
     ! get volume fraction
-    call get_sediment_item(state, i_field, 'BedloadVolumeFraction', volume_fraction)
+    call get_sediment_item(state, i_field, 'VolumeFraction', volume_fraction)
 
     ! get sinking velocity
     call get_sediment_item(state, i_field, 'SinkingVelocity', sink_U)
@@ -300,7 +316,16 @@ contains
        end where
        call scale(reentrainment, masslump)
        call deallocate(masslump)
-    end if   
+    end if  
+
+    ! get bedload field
+    call get_sediment_item(state, i_field, 'Bedload', bedload)
+    if (.not. (bedload%mesh==sediment_field%mesh)) then
+      ! project bedload to sediment field mesh
+      call allocate(project_field_s, sediment_field%mesh, name="BedloadProjection")
+      call project_field(bedload, project_field_s, x)
+      bedload => project_field_s
+    end if 
 
     ! check bound of entrainment so that it does not exceed the available sediment in the
     ! bed and is larger than zero.
@@ -315,14 +340,33 @@ contains
        end if
     end do nodes
     
-    ! store erosion rate in diagnositc field
-    call get_sediment_item(state, i_field, "BedloadErosionRate", diagnostic_field, stat)
+    ! store erosion rate in diagnostic field
+    call get_sediment_item(state, i_field, "ErosionRate", diagnostic_field, stat)
     if (stat == 0 .and. dt > 1e-15) then
        call zero(diagnostic_field)
+
+       if (.not. (bedload%mesh==sediment_field%mesh)) then
+         ! project erosion to deposit mesh
+         call create_surface_mesh(project_mesh, project_nodes, &
+              mesh=bedload%mesh, surface_elements=surface_element_list, &
+              name='SurfaceProjectionMesh')  
+         call allocate(project_field_s, project_mesh, "ErosionProjection")
+         call create_surface_mesh(project_mesh_x, project_nodes, &
+              mesh=x%mesh, surface_elements=surface_element_list, &
+              name='SurfaceProjectionMeshX')  
+         call allocate(project_x, x%dim, project_mesh_x, "CoordinateProjection")
+         call remap_field_to_surface(x, project_x, surface_element_list)
+         call project_field(reentrainment, project_field_s, project_x)
+
+         erosion => project_field_s
+       else
+         erosion => reentrainment
+       end if
+
        do i_ele = 1, ele_count(reentrainment)
           i_face=surface_element_list(i_ele)
           call set(diagnostic_field, face_global_nodes(diagnostic_field, i_face), &
-               & ele_val(reentrainment, i_ele))
+               & ele_val(erosion, i_ele))
        end do
        ! I also need to set the old field value otherwise this get overwritten with zero straight away
        ! This is a bit messy but the important thing is that at the end of the timestep we have recorded 
@@ -330,6 +374,14 @@ contains
        old_diagnostic_field => extract_scalar_field(state, "Old"//trim(diagnostic_field%name), stat)
        if (stat == 0) then 
           call set(old_diagnostic_field, diagnostic_field)
+       end if
+
+       if (.not. (bedload%mesh==sediment_field%mesh)) then
+         ! deallocate projection fields/meshes
+         call deallocate(project_mesh)
+         call deallocate(project_field_s)
+         call deallocate(project_mesh_x)
+         call deallocate(project_x)
        end if
     end if
 
