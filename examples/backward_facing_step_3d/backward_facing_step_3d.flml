@@ -46,7 +46,7 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">25</integer_value>
+        <integer_value rank="0">100</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <output_mesh name="CoordinateMesh"/>
@@ -112,27 +112,6 @@
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
-        <adaptivity_options>
-          <relative_measure>
-            <scalar_field name="InterpolationErrorBound" rank="0">
-              <prescribed>
-                <value name="WholeMesh">
-                  <constant>
-                    <real_value rank="0">0.1</real_value>
-                  </constant>
-                </value>
-                <output/>
-                <stat/>
-                <detectors>
-                  <exclude_from_detectors/>
-                </detectors>
-              </prescribed>
-            </scalar_field>
-            <tolerance>
-              <real_value rank="0">1.e-10</real_value>
-            </tolerance>
-          </relative_measure>
-        </adaptivity_options>
         <no_interpolation/>
       </prognostic>
     </scalar_field>
@@ -336,7 +315,7 @@
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
-                    <real_value shape="3" dim1="dim" rank="1">0.05 0.05 0.05</real_value>
+                    <real_value shape="3" dim1="dim" rank="1">0.01 0.01 0.01</real_value>
                   </constant>
                 </value>
                 <output/>
@@ -353,23 +332,6 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="CFLNumber" rank="0">
-      <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
     <vector_field name="AverageVelocity" rank="1">
       <diagnostic>
         <algorithm source_field_type="vector" material_phase_support="single" name="time_averaged_vector" source_field_name="Velocity">
@@ -416,7 +378,7 @@
   <mesh_adaptivity>
     <hr_adaptivity>
       <period_in_timesteps>
-        <integer_value rank="0">20</integer_value>
+        <integer_value rank="0">25</integer_value>
       </period_in_timesteps>
       <maximum_number_of_nodes>
         <integer_value rank="0">100000</integer_value>
@@ -429,14 +391,14 @@
       <tensor_field name="MinimumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">0.05 0. 0. 0. 0.05 0. 0. 0. 0.05</real_value>
+            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">0.025 0. 0. 0. 0.025 0. 0. 0. 0.025</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
       <tensor_field name="MaximumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">1. 0. 0. 0. 1. 0. 0. 0. 1.</real_value>
+            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">0.5 0. 0. 0. 0.5 0. 0. 0. 0.5</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
