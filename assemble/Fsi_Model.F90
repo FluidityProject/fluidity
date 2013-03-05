@@ -426,7 +426,7 @@ module fsi_model
         ! Distinguish between different projection methods:
 
         ! Galerkin projection via supermesh:
-        if (have_option("/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection")) then
+        if (have_option("/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection")) then
             if (present_and_true(project_solid_velocity)) then
                 ! Get pointer to the solid velocity
                 solid_velocity_mesh => extract_vector_field(solid_states, trim(mesh_name)//"SolidVelocity")
@@ -440,7 +440,7 @@ module fsi_model
                 call fsi_one_way_galerkin_projection(fluid_velocity, fluid_position, solid_position_mesh, alpha_tmp)
             end if
 
-        else if (have_option("/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/grandy_interpolation")) then
+        else if (have_option("/embedded_models/fsi_model/inter_mesh_projection/grandy_interpolation")) then
             ! Grandy interpolation:
             call fsi_one_way_grandy_interpolation(fluid_position, solid_position_mesh, alpha_tmp)
 
@@ -841,8 +841,8 @@ module fsi_model
             end do
         end do
 
-        if (have_option('/embedded_models/fsi_model/one_way_coupling/beta')) then
-            call get_option('/embedded_models/fsi_model/one_way_coupling/beta', beta)
+        if (have_option('/embedded_models/fsi_model/beta')) then
+            call get_option('/embedded_models/fsi_model/beta', beta)
             call scale(absorption_iter, beta)
         end if
 
@@ -1210,11 +1210,6 @@ module fsi_model
           solid_force_diag = 0.0
           solid_force_diag = field_integral(solidforce, fluid_coord)
 
-      ! 2-way coupling
-      !else if (have_option('/embedded_models/fsi_model/two_way_coupling')) then
-      !   ! Do nothing at this stage
-      !end if
-
       ewrite(2, *) "leaving fsi_model_solid_force_computation"
 
     ! The following subroutine is an alternative way of computing it and left here for possible future use:
@@ -1311,10 +1306,10 @@ module fsi_model
       call zero(solidforce)
 
       ! For 1-way coupling:
-      if (have_option('/embedded_models/fsi_model/one_way_coupling')) then
+      if (have_option('/embedded_models/fsi_model')) then
 
          ! Compute diagnostic variables, e.g. Force on solid and prescribed Solid Velocity
-         if (.not. have_option('/embedded_models/fsi_model/one_way_coupling/stat/exclude_in_stat')) then 
+         if (.not. have_option('/embedded_models/fsi_model/stat/exclude_in_stat')) then 
 
             ! Currently wrong, as the force over the whole fluid domain would be computed,
             ! thus it would be the sum of all forces on all solids,
@@ -1385,8 +1380,7 @@ module fsi_model
 !            end do pre_solid_pos_loop
 !
          end if
-      ! else if (have_option('/embedded_models/fsi_model/two_way_coupling')) then
-      !   ! Do nothing at this stage
+
       end if
 
       ewrite(2, *) "leaving fsi_model_compute_diagnostics"
@@ -1400,10 +1394,8 @@ module fsi_model
     !! If a tolerance for nonlinear iterations has been set, this subroutine is called
     !! once the tolerance has been reached, so that the FSI diagnostics are being computed
       if (do_adapt_mesh(current_time, timestep)) then
-         if (have_option('/embedded_models/fsi_model/one_way_coupling')) then
+         if (have_option('/embedded_models/fsi_model')) then
              call fsi_model_compute_diagnostics(state)
-         else if (have_option('/embedded_models/fsi_model/two_way_coupling')) then
-            ! Do nothing
          end if
          adapt_at_previous_dt = .true.
       end if
@@ -1537,7 +1529,7 @@ module fsi_model
             call get_option('/embedded_models/fsi_model/geometry/mesh['//int2str(i)//']/name', mesh_name)
 
             ! register Force acting on Solid if stat is enabled:
-            if (.not. have_option('/embedded_models/fsi_model/one_way_coupling/stat/exclude_in_stat')) then
+            if (.not. have_option('/embedded_models/fsi_model/stat/exclude_in_stat')) then
                call register_diagnostic(dim=ndimension, name='ForceOnSolid_'//trim(mesh_name), statistic='Value')
                call register_diagnostic(dim=1, name='VolumeOfSolid_'//trim(mesh_name), statistic='Value')
             end if

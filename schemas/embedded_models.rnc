@@ -12,70 +12,23 @@ embedded_models =
             ## Solid Geometry
             element geometry
             {
-               fsi_model_input_mesh+,
-               element quadrature
-               {
-                  element degree {integer}
-               }
+               fsi_model_input_mesh+
             },
+            ## The projection between solid and fluid mesh. It is
+            ## recommended to use a Galerkin projection via supermeshing,
+            ## which should be bounded.
             (
-               ## 1-way coupling: Stationary solid, or
-               ## solid with prescribed movement
-               element one_way_coupling
-               {
-                  (
-                     (
-                        fsi_model_projection
-                     ),
-#                     ## Prescribed diagnostic Velocity vector for a solid.
-#                     ## 
-#                     ## Use this if want a solid body to move with a 
-#                     ## prescribed velocity.
-#                     ##
-#                     ## The return vector of the python function is
-#                     ## supposed to be the solid velocity based on the
-#                     ## current time t (or timestep dt) of the simulation.
-#                     element vector_field {
-#                        attribute rank { "1" },
-#                        attribute name { "SolidVelocity" },
-#                        ## Field type
-#                        fsi_model_prescribed_solid_velocity_mesh
-#                     }?,
-#                     ## Prescribed diagnostic Solid movement vector.
-#                     ## 
-#                     ## Here the travelled distance of a solid object is
-#                     ## computed, rather than the new coordinates. In some
-#                     ## cases this might be more convenient. The velocity
-#                     ## and new coordinates are then computed internally
-#                     ## based on the given 'movement'.
-#                     ##
-#                     ## The return vector of the python function is
-#                     ## supposed to contain the distance a node of a 
-#                     ## rigid body travels within the time interval dt.
-#                     ##
-#                     ## The option time_variable_in_python determines
-#                     ## whether the current time 't' or the current
-#                     ## timestep 'dt' are passed to the python function.
-#                     element vector_field {
-#                        attribute rank { "1" },
-#                        attribute name { "SolidMovement" },
-#                        ## Field type
-#                        fsi_model_prescribed_solid_movement_mesh
-#                     }?,
-                     ## Beta is a scaling factor to improve the 
-                     ## relaxation of the fluid within a solid body. 
-                     ## Useful for thin structures, e.g. turbine blades.
-                     element beta {real}?,
-                     ## Specify what is added to .stat files
-                     element stat {
-                        ## Exclude all FSI modelling output fields?
-                        element exclude_in_stat { empty }?
-                     }
-                  )
-               }|
-               ## For future use maybe.
-               element two_way_coupled {empty}
-            )?,
+               fsi_model_projection
+            ),
+            ## Beta is a scaling factor to improve the 
+            ## relaxation of the fluid within a solid body. 
+            ## Useful for thin structures, e.g. turbine blades.
+            element beta {real}?,
+            ## Specify what is added to .stat files
+            element stat {
+               ## Exclude all FSI modelling output fields?
+               element exclude_in_stat { empty }?
+            },
             fsi_solid_phases
          }?
       }

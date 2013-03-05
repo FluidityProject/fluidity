@@ -15,79 +15,30 @@ Immersed Solids</a:documentation>
             <oneOrMore>
               <ref name="fsi_model_input_mesh"/>
             </oneOrMore>
-            <element name="quadrature">
-              <element name="degree">
-                <ref name="integer"/>
-              </element>
-            </element>
           </element>
+          <group>
+            <a:documentation>The projection between solid and fluid mesh. It is
+recommended to use a Galerkin projection via supermeshing,
+which should be bounded.</a:documentation>
+            <ref name="fsi_model_projection"/>
+          </group>
           <optional>
-            <choice>
-              <element name="one_way_coupling">
-                <a:documentation>1-way coupling: Stationary solid, or
-solid with prescribed movement</a:documentation>
-                <ref name="fsi_model_projection"/>
-                <optional>
-                  <!--
-                                        ## Prescribed diagnostic Velocity vector for a solid.
-                                        ## 
-                                        ## Use this if want a solid body to move with a 
-                                        ## prescribed velocity.
-                                        ##
-                                        ## The return vector of the python function is
-                                        ## supposed to be the solid velocity based on the
-                                        ## current time t (or timestep dt) of the simulation.
-                                        element vector_field {
-                                           attribute rank { "1" },
-                                           attribute name { "SolidVelocity" },
-                                           ## Field type
-                                           fsi_model_prescribed_solid_velocity_mesh
-                                        }?,
-                                        ## Prescribed diagnostic Solid movement vector.
-                                        ## 
-                                        ## Here the travelled distance of a solid object is
-                                        ## computed, rather than the new coordinates. In some
-                                        ## cases this might be more convenient. The velocity
-                                        ## and new coordinates are then computed internally
-                                        ## based on the given 'movement'.
-                                        ##
-                                        ## The return vector of the python function is
-                                        ## supposed to contain the distance a node of a 
-                                        ## rigid body travels within the time interval dt.
-                                        ##
-                                        ## The option time_variable_in_python determines
-                                        ## whether the current time 't' or the current
-                                        ## timestep 'dt' are passed to the python function.
-                                        element vector_field {
-                                           attribute rank { "1" },
-                                           attribute name { "SolidMovement" },
-                                           ## Field type
-                                           fsi_model_prescribed_solid_movement_mesh
-                                        }?,
-                  -->
-                  <element name="beta">
-                    <a:documentation>Beta is a scaling factor to improve the 
+            <element name="beta">
+              <a:documentation>Beta is a scaling factor to improve the 
 relaxation of the fluid within a solid body. 
 Useful for thin structures, e.g. turbine blades.</a:documentation>
-                    <ref name="real"/>
-                  </element>
-                </optional>
-                <element name="stat">
-                  <a:documentation>Specify what is added to .stat files</a:documentation>
-                  <optional>
-                    <element name="exclude_in_stat">
-                      <a:documentation>Exclude all FSI modelling output fields?</a:documentation>
-                      <empty/>
-                    </element>
-                  </optional>
-                </element>
-              </element>
-              <element name="two_way_coupled">
-                <a:documentation>For future use maybe.</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
+          <element name="stat">
+            <a:documentation>Specify what is added to .stat files</a:documentation>
+            <optional>
+              <element name="exclude_in_stat">
+                <a:documentation>Exclude all FSI modelling output fields?</a:documentation>
                 <empty/>
               </element>
-            </choice>
-          </optional>
+            </optional>
+          </element>
           <ref name="fsi_solid_phases"/>
         </element>
       </optional>
