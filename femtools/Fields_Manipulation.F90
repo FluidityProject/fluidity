@@ -2232,7 +2232,7 @@ implicit none
 
     old_shape = in_mesh%shape
 
-    shape = make_element_shape(vertices=old_shape%loc, dim=old_shape%dim, degree=0, quad=old_shape%quadrature)
+    shape = make_element_shape(vertices=old_shape%numbering%vertices, dim=old_shape%dim, degree=0, quad=old_shape%quadrature)
     new_mesh = make_mesh(model=in_mesh, shape=shape, continuity=-1)
     new_mesh%name=name
     call deallocate(shape)
