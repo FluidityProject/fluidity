@@ -1556,8 +1556,10 @@ contains
           else if(T_val(node)<Tbar*(1.0-sign(1.0e-12,Tbar))) then
              alpha = min(alpha,(T_val_min(node)-Tbar)/(T_val(node)-Tbar))
           end if
-       end do
-
+          
+          !assert((Tbar + alpha*T_val_slope(node)).le.T_val_max(node)+1.0e-12)
+          !assert((Tbar + alpha*T_val_slope(node)).ge.T_val_min(node)-1.0e-12)
+       end do       
        call set(T_limit, T_ele, Tbar + alpha*T_val_slope)
     end do
 

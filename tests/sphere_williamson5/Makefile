@@ -14,7 +14,7 @@ input: clean
 	sed -i s/sphere_ico4/sphere_ico5/ williamson5_5.swml
 	sed -i s/sphere_ico4/sphere_ico6/ williamson5_6.swml
 
-	spud-set williamson5_6.swml /timestepping/timestep 300.0
+	#spud-set williamson5_6.swml /timestepping/timestep 900.0
 
 sw2_convergence_runs: input
 	../../bin/shallow_water_mimetic -v 1 williamson5_3.swml &> 3.out &

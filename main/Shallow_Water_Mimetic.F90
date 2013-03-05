@@ -211,6 +211,7 @@
       logical :: have_pv_tracer, &
            & have_PV=.false., have_PV_old=.false.
       real :: theta
+      real :: total_divergence
 
       call get_option("/timestepping/nonlinear_iterations"&
            &,nonlinear_iterations)
@@ -237,6 +238,10 @@
          have_pv_tracer = .false.
       end if
       advecting_u=>extract_vector_field(state, "NonlinearVelocity")
+
+      total_divergence = 0.
+      call get_total_divergence(total_divergence,state)
+      ewrite(2,*) 'TOTAL DIVERGENCE = ', total_divergence
 
       !Set up old values
       call set(U_old,U)
@@ -340,6 +345,7 @@
          
          call set(D,newD)
          call set(U,newU)
+
          call project_to_constrained_space(state,U)
 
          call deallocate(newU)
@@ -367,7 +373,6 @@
            &ield/python')) then
          call recompute_coordinate_field(state)
       end if
-
 
       !SET UP LOCAL VELOCITY
       !This needs an option to switch on as we don't always want to do it.
@@ -778,7 +783,54 @@
 
     end subroutine set_velocity_from_streamfunction_ele
 
-    subroutine apply_dg_mass(s_field,state)
+    subroutine get_total_divergence(total_divergence,state)
+      real, intent(inout) :: total_divergence
+      type(state_type), intent(in) :: state
+      !
+      type(vector_field), pointer :: U
+      type(scalar_field), pointer :: D
+      integer :: ele
+
+      U => extract_vector_field(state, "LocalVelocity")
+      D => extract_scalar_field(state, "LayerThickness")
+
+      do ele = 1, ele_count(U)
+         call get_total_divergence_ele(total_divergence,U,D,ele)
+      end do
+    end subroutine get_total_divergence
+    subroutine get_total_divergence_ele(total_divergence,U,D,ele)
+      type(vector_field), intent(in) :: U
+      type(scalar_field), intent(in) :: D
+      integer, intent(in) :: ele
+      real, intent(inout) :: total_divergence
+      !
+      real, dimension(mesh_dim(U),ele_loc(U,ele)) ::&
+           & U_vals
+      real, dimension(mesh_dim(U),ele_loc(U,ele),ele_loc(D,ele)) ::&
+           & l_div_mat
+      
+      type(element_type), pointer :: u_shape,d_shape
+      integer :: dim1, i, j
+      
+      U_vals = ele_val(U,ele)
+      u_shape => ele_shape(U,ele)
+      d_shape => ele_shape(D,ele)
+
+      l_div_mat = dshape_shape(u_shape%dn,d_shape,D_shape%quadrature%weight)      
+      !real, dimension(mesh_dim(U),ele_loc(U,ele),ele_loc(D,ele)) ::&
+      !     & l_div_mat
+      
+      do dim1 = 1, mesh_dim(U)
+         do i = 1, ele_loc(U,ele)
+            do j = 1, ele_loc(D,ele)
+               total_divergence = total_divergence + &
+                    & l_div_mat(dim1,i,j)*U_vals(dim1,i)
+            end do
+         end do
+      end do
+    end subroutine get_total_divergence_ele
+       
+       subroutine apply_dg_mass(s_field,state)
       type(state_type), intent(inout) :: state
       type(scalar_field), intent(inout) :: s_field
       !

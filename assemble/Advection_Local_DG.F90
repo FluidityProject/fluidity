@@ -64,11 +64,8 @@ module advection_local_DG
   character(len=255), private :: message
 
   private
-  public solve_advection_dg_subcycle, solve_vector_advection_dg_subcycle,&
+  public solve_advection_dg_subcycle, &
        & solve_advection_cg_tracer, compute_U_residual, get_pv
-
-  !parameters specifying vector upwind options
-  integer, parameter :: VECTOR_UPWIND_EDGE=1, VECTOR_UPWIND_SPHERE=2
 
   ! Local private control parameters. These are module-global parameters
   ! because it would be expensive and/or inconvenient to re-evaluate them
@@ -77,6 +74,12 @@ module advection_local_DG
 
   ! Whether to include various terms
   logical :: include_advection
+
+  ! parameters for SSPRK schemes
+  real, dimension(1), target :: alpha1 = (/ 0.0 /)
+  real, dimension(2), target :: alpha2 = (/ 0.0, 0.5 /)
+  real, dimension(3), target :: alpha3 = (/ 0.0, 0.75, 0.3333333333333333 /)
+
   contains
 
     subroutine solve_advection_dg_subcycle(field_name, state, velocity_name,&
@@ -105,7 +108,7 @@ module advection_local_DG
     type(vector_field) :: U_nl_cartesian
 
     !! Change in T over one timestep.
-    type(scalar_field) :: delta_T, delta_T_total
+    type(scalar_field) :: delta_T, delta_T_total, Tstage
 
     !! Sparsity of advection matrix.    
     type(csr_sparsity), pointer :: sparsity
@@ -131,18 +134,22 @@ module advection_local_DG
     !! Flux reconstruction stuff:
     !! Upwind fluxes trace variable
     type(scalar_field) :: UpwindFlux
+    type(vector_field) :: tmpflux
     !! Mesh where UpwindFlux lives
     type(mesh_type), pointer :: lambda_mesh
     !! Upwind Flux matrix
     type(csr_matrix) :: UpwindFluxMatrix
 
     character(len=FIELD_NAME_LEN) :: limiter_name
-    integer :: i, ele
-    real :: meancheck
+    integer :: i, k, ele, nstages
+    real :: meancheck, ldt
+    real, dimension(:), pointer :: alpha
+
     ewrite(1,*) 'subroutine solve_advection_dg_subcycle'
 
 
     T=>extract_scalar_field(state, field_name)
+    call allocate(Tstage,T%mesh,"Stage"//field_name)
     T_old=>extract_scalar_field(state, "Old"//field_name)
     X=>extract_vector_field(state, "Coordinate")
     U_nl=>extract_vector_field(state, velocity_name)
@@ -153,6 +160,8 @@ module advection_local_DG
     call set(T, T_old)
     if(present(Flux)) then
        call zero(Flux)
+       call allocate(tmpflux,flux%dim,flux%mesh, "TmpFlux")
+       call zero(tmpflux)
     end if
 
     sparsity => get_csr_sparsity_firstorder(state, T%mesh, T%mesh)
@@ -245,73 +254,113 @@ module advection_local_DG
 
     end if
 
+    !! Tmpflux comes from the initial limiting step and gets added on
+    !! at the end.
     if (limit_slope) then
        ! Filter wiggles from T
        call limit_vb_manifold(state,T,delta_T)
        if(present(flux)) then
           call zero(upwindflux)
           call mult(delta_T_total, mass, delta_T)
-          call update_flux(Flux, Delta_T_total, UpwindFlux, Mass)
+          call update_flux(flux, Delta_T_total, UpwindFlux, Mass)
        end if
    end if
 
-    do i=1, subcycles
-       ewrite(1,*) 'SUBCYCLE', i
+   call get_option(trim(T%option_path)//'/prognostic/temporal_discretisation&
+        &/discontinuous_galerkin/SSPRK_order',nstages)
+   select case(nstages)
+   case (1)
+      alpha => alpha1
+   case (2)
+      alpha => alpha2
+   case (3)
+      alpha => alpha3
+   case default
+      FLAbort('Number of stages not supported.')
+   end select
 
-       ! dT = Advection * T
-       call mult(delta_T, matrix, T)
-       ! dT = dT + RHS
-       call addto(delta_T, RHS, -1.0)
-       if(present(Flux)) then
-          if(maxval(abs(RHS%val))>1.0e-8) then
-             FLAbort('Flux reconstruction doesn''t work if diffusion/bcs present at the moment')
-          end if
-       end if
-       call scale(delta_T, -dt/subcycles)
-       ! dT = M^(-1) dT
-       if(present(flux)) then
-          call mult(UpwindFlux, upwindfluxmatrix, T)
-          call scale(UpwindFlux,-dt/subcycles)
-          call update_flux(Flux, Delta_T, UpwindFlux, Mass)
-       end if
-       ! T = T + dt/s * dT
-       call dg_apply_mass(inv_mass, delta_T)
-       ewrite(2,*) 'Delta_T', maxval(abs(delta_T%val))
-       call addto(T, delta_T)
-       !Probably need to halo_update(Flux) as well       
-       call halo_update(T)
+   ldt = dt/subcycles
+   subcycle_loop: do i=1, subcycles
+      ewrite(1,*) 'SUBCYCLE', i
 
-       if (limit_slope) then
-          ! Filter wiggles from T
-          call limit_vb_manifold(state,T,delta_T)
-          if(present(flux)) then
-             call mult(delta_t_total, mass, delta_t)
-             call zero(UpwindFlux)
-             call update_flux(Flux, Delta_T_total, UpwindFlux, Mass)
-          end if
-       end if
-    end do
+      if(present(flux)) then
+         call set(tmpflux,flux)
+      end if
 
-    if(present(Flux)) then
-       if(have_option('/material_phase::Fluid/scalar_field::LayerThickness/p&
-            &rognostic/spatial_discretisation/debug')) then
-          do ele = 1, ele_count(Flux)
-             call check_flux(Flux,T,T_old,X,mass,ele)
-          end do
-       end if
-       call deallocate(UpwindFlux)
-       call deallocate(UpwindFluxMatrix)
-       call deallocate(delta_T_total)
-    end if
+      call set(Tstage,T)
 
-    call deallocate(delta_T)
-    call deallocate(matrix)
-    call deallocate(mass)
-    call deallocate(inv_mass)
-    call deallocate(mass_sparsity)
-    call deallocate(rhs)
+      RKstage_loop: do k = 1, nstages
 
-  end subroutine solve_advection_dg_subcycle
+         ! dT = Advection * T
+         call mult(delta_T, matrix, Tstage)
+         ! dT = dT + RHS
+         call addto(delta_T, RHS, -1.0)
+         if(present(Flux)) then
+            if(maxval(abs(RHS%val))>1.0e-8) then
+               FLAbort('Flux reconstruction doesn''t work if diffusion/bcs pres&
+                    &ent at the moment')
+            end if
+         end if
+         call scale(delta_T, -ldt)
+         ! dT = M^(-1) dT
+         if(present(flux)) then
+            call mult(UpwindFlux, upwindfluxmatrix, Tstage)
+            call scale(UpwindFlux,-ldt)
+            call update_flux(Flux, Delta_T, UpwindFlux, Mass)
+            call scale(Flux, 1-alpha(k))
+            call addto(Flux, tmpflux, alpha(k))
+         end if
+         ! T = T + dt/s * dT
+         call dg_apply_mass(inv_mass, delta_T)
+         ewrite(2,*) 'Delta_T', maxval(abs(delta_T%val))
+         call addto(Tstage, delta_T)
+         call scale(Tstage, 1-alpha(k))
+         call addto(Tstage,T,alpha(k))
+         !Probably need to halo_update(Flux) as well       
+         call halo_update(Tstage)
+         
+         if (limit_slope) then
+            ! Filter wiggles from T
+            call limit_vb_manifold(state,Tstage,delta_T)
+            if(present(flux)) then
+               call mult(delta_t_total, mass, delta_t)
+               call zero(UpwindFlux)
+               call update_flux(Flux, Delta_T_total, UpwindFlux, Mass)
+            end if
+         end if
+      end do RKstage_loop
+
+      call set(T,Tstage)
+      if(present(flux)) then
+         !! Add on the initial flux due to the first slope limiter
+         call addto(Flux,tmpflux)
+      end if
+
+   end do subcycle_loop
+
+   if(present(Flux)) then
+      !! Debugging checks
+      if(have_option('/material_phase::Fluid/scalar_field::LayerThickness/p&
+           &rognostic/spatial_discretisation/debug')) then
+         do ele = 1, ele_count(Flux)
+            call check_flux(Flux,T,T_old,X,mass,ele)
+         end do
+      end if
+      call deallocate(UpwindFlux)
+      call deallocate(UpwindFluxMatrix)
+      call deallocate(delta_T_total)
+      call deallocate(tmpflux)
+   end if
+   
+   call deallocate(tstage)
+   call deallocate(delta_T)
+   call deallocate(matrix)
+   call deallocate(mass)
+   call deallocate(inv_mass)
+   call deallocate(mass_sparsity)
+   call deallocate(rhs)
+   
+ end subroutine solve_advection_dg_subcycle
 
   subroutine check_flux(Flux,T,T_old,X,mass,ele)
     type(vector_field), intent(in) :: Flux, X
@@ -327,6 +376,10 @@ module advection_local_DG
     real, dimension(ele_ngi(X,ele)) :: detwei
     real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J_mat
     real :: residual
+    !
+
+    !! Check that T-T_{old} = div(F)
+
     Delta_T_gi = ele_val_at_quad(T,ele)-ele_val_at_quad(T_old,ele)
     T_gi = ele_val_at_quad(T,ele)
     Flux_vals = ele_val(Flux,ele)
@@ -1813,731 +1866,5 @@ module advection_local_DG
     call set(UResidual,ele_nodes(UResidual,ele),UR_rhs)
 
   end subroutine compute_U_residual_ele
-
-  subroutine solve_vector_advection_dg_subcycle(field_name, state, velocity_name)
-    !!< Construct and solve the advection equation for the given
-    !!< field using discontinuous elements.
-    
-    !! Name of the field to be solved for.
-    character(len=*), intent(in) :: field_name
-    !! Collection of fields defining system state.
-    type(state_type), intent(inout) :: state
-    !! Optional velocity name
-    character(len = *), intent(in) :: velocity_name
-
-    !! Velocity to be solved for.
-    type(vector_field), pointer :: U, U_old, U_cartesian
-
-    !! Coordinate and advecting velocity fields
-    type(vector_field), pointer :: X, U_nl, down
-
-    !! Temporary velocity fields
-    type(vector_field) :: U_tmp, U_cartesian_tmp
-
-    !! Velocity components Cartesian coordinates for slope limiter
-    type(scalar_field) :: U_component
-
-    !! Change in U over one timestep.
-    type(vector_field) :: delta_U, delta_U_tmp
-
-    !! DG Courant number field
-    type(scalar_field), pointer :: s_field
-
-    !! Sparsity of advection matrix.    
-    type(csr_sparsity), pointer :: sparsity
-    
-    !! System matrices.
-    type(block_csr_matrix) :: A, L, mass_local, inv_mass_local, &
-         inv_mass_cartesian
-
-    !! Sparsity of mass matrix.
-    type(csr_sparsity) :: mass_sparsity
-
-    !! Right hand side vector.
-    type(vector_field) :: rhs
-
-    !! Whether to invoke the slope limiter
-    logical :: limit_slope
-    !! Which limiter to use
-    integer :: limiter
-
-    !! Number of advection subcycles.
-    integer :: subcycles
-    real :: max_courant_number
-
-    character(len=FIELD_NAME_LEN) :: limiter_name
-    integer :: i, j, dim, ele, dim1
-    integer :: upwinding_option
-
-    if(have_option('/material_phase::Fluid/vector_field::Velocity/prognostic&
-         &/spatial_discretisation/discontinuous_galerkin/advection_scheme/ed&
-         &ge_coordinates_upwind')) then
-       upwinding_option = VECTOR_UPWIND_EDGE
-    else
-       if(have_option('/material_phase::Fluid/vector_field::Velocity/prognostic&
-            &/spatial_discretisation/discontinuous_galerkin/advection_scheme/sphere_coordinates_upwind')) then
-          upwinding_option = VECTOR_UPWIND_SPHERE
-       else
-          FLAbort('Unknown upwinding option')
-       end if
-    end if
-
-    U=>extract_vector_field(state, field_name)
-    U_old=>extract_vector_field(state, "Old"//field_name)
-    X=>extract_vector_field(state, "Coordinate")
-    U_cartesian=>extract_vector_field(state, "Velocity")
-    down=>extract_vector_field(state, "GravityDirection")
-
-    dim=mesh_dim(U)
-
-    ! Reset U to value at the beginning of the timestep.
-    call set(U, U_old)
-
-    sparsity => get_csr_sparsity_firstorder(state, U%mesh, U%mesh)
-
-    ! Add data space to the sparsity pattern.
-    call allocate(A, sparsity, (/dim,X%dim/))
-    call zero(A)
-    call allocate(L, sparsity, (/dim,X%dim/))
-    call zero(L)
-
-    mass_sparsity=make_sparsity_dg_mass(U%mesh)
-    call allocate(mass_local, mass_sparsity, (/dim,dim/))
-    call zero(mass_local)
-    call allocate(inv_mass_local, mass_sparsity, (/dim,dim/))
-    call zero(inv_mass_local)
-    call allocate(inv_mass_cartesian, mass_sparsity, (/X%dim,X%dim/))
-    call zero(inv_mass_cartesian)
-
-    ! Ensure delta_U inherits options from U.
-    call allocate(delta_U, U%dim, U%mesh, "delta_U")
-    call zero(delta_U)
-    call allocate(delta_U_tmp, U%dim, U%mesh, "delta_U")
-    call zero(delta_U_tmp)
-    delta_U%option_path = U_cartesian%option_path
-    call allocate(rhs, U%dim, U%mesh, trim(field_name)//" RHS")
-    call zero(rhs)
-
-    ! allocate temp velocity fields
-    call allocate(U_tmp, U%dim, U%mesh, 'tmpU')
-    call zero(U_tmp)
-    call allocate(U_cartesian_tmp, U_cartesian%dim, U_cartesian%mesh, 'tmpUcartesian')
-    call zero(U_cartesian_tmp)
-   
-    call construct_vector_advection_dg(A, L, mass_local, &
-         inv_mass_local, inv_mass_cartesian,&
-         rhs, field_name, state, upwinding_option, down, &
-         velocity_name=velocity_name)
-    
-    ! Note that since dt is module global, these lines have to
-    ! come after construct_advection_diffusion_dg.
-    call get_option("/timestepping/timestep", dt)
-    
-    if(have_option(trim(U_cartesian%option_path)//&
-         &"/prognostic/temporal_discretisation/discontinuous_galerkin/&
-         &/number_advection_subcycles")) then
-       call get_option(trim(U_cartesian%option_path)//&
-            &"/prognostic/temporal_discretisation/discontinuous_galerkin/&
-            &/number_advection_subcycles", subcycles)
-    else
-       call get_option(trim(U_cartesian%option_path)//&
-            &"/prognostic/temporal_discretisation/discontinuous_galerkin/&
-            &/maximum_courant_number_per_subcycle", Max_Courant_number)
-       
-       s_field => extract_scalar_field(state, "DG_CourantNumber")
-       call calculate_diagnostic_variable(state, "DG_CourantNumber_Local", &
-            & s_field)
-       ewrite_minmax(s_field)
-       
-       subcycles = ceiling( maxval(s_field%val)/Max_Courant_number)
-       call allmax(subcycles)
-       ewrite(2,*) 'Number of subcycles for velocity eqn: ', subcycles
-    end if
-
-    limit_slope=.false.
-    if (have_option(trim(U_cartesian%option_path)//&
-         "/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/slope_limiter")) then
-       limit_slope=.true.
-       
-       ! Note unsafe for mixed element meshes
-       if (element_degree(U,1)==0) then
-          FLExit("Slope limiters make no sense for degree 0 fields")
-       end if
-
-    end if
-
-    do i=1, subcycles
-       call mult_t(U_cartesian_tmp, L, U)
-       call mult(U_cartesian, inv_mass_cartesian, U_cartesian_tmp)
-        ! dU = Advection * U
-       ! A maps from cartesian to local
-       call mult(delta_U_tmp, A, U_cartesian)
-       ! dU = dU + RHS
-       !------------------------------------------
-       !Is there anything in RHS?
-       call addto(delta_U_tmp, RHS, -1.0)
-       !------------------------------------------
-       ! dU = M^(-1) dU
-       call mult(delta_U, inv_mass_local, delta_U_tmp)
-       !------------------------------------------
-       !Do we need the below?
-       call mult_t(U_cartesian_tmp, L, delta_U)
-       call mult(U_cartesian, inv_mass_cartesian, U_cartesian_tmp)
-       !------------------------------------------
-
-       ! U = U + dt/s * dU
-       call addto(U, delta_U, scale=-dt/subcycles)
-       call halo_update(U)
-
-       if (limit_slope) then
-
-          call mult_t(U_cartesian_tmp, L, U)
-          call mult(U_cartesian, inv_mass_cartesian, U_cartesian_tmp)
-
-          !Really crap limiter
-          !Just limit each cartesian component
-          do dim1 = 1, U_cartesian%dim
-             u_component = extract_scalar_field(U_cartesian, dim1)
-             call limit_vb(state, U_component)
-          end do
-          !limiter=VECTOR_LIMITER_VB
-          !call limit_slope_dg(U_cartesian, state, limiter)
-
-          call mult(U_tmp, L, U_cartesian)
-          call mult(U, inv_mass_local, U_tmp)
-       end if
-
-    end do
-
-    call deallocate(delta_U)
-    call deallocate(A)
-    call deallocate(L)
-    call deallocate(mass_local)
-    call deallocate(inv_mass_local)
-    call deallocate(inv_mass_cartesian)
-    call deallocate(mass_sparsity)
-    call deallocate(rhs)
-
-  end subroutine solve_vector_advection_dg_subcycle
-
-  subroutine construct_vector_advection_dg(A, L, mass_local, inv_mass_local,&
-       & inv_mass_cartesian, rhs, field_name, &
-       & state, upwinding_option, down, velocity_name) 
-    !!< Construct the advection equation for discontinuous elements in
-    !!< acceleration form.
-    !!< 
-    !!< If mass is provided then the mass matrix is not added into big_m or
-    !!< rhs. It is instead returned as mass. This may be useful for testing
-    !!< or for solving equations otherwise than in acceleration form.
-
-    !! Main advection matrix.    
-    type(block_csr_matrix), intent(inout) :: A, L
-    !! Mass matrices.
-    type(block_csr_matrix), intent(inout) :: mass_local, inv_mass_local, &
-         inv_mass_cartesian
-    !! Right hand side vector.
-    type(vector_field), intent(inout) :: rhs
-    type(vector_field), intent(in) :: down
-    !! Name of the field to be advected.
-    character(len=*), intent(in) :: field_name
-    !! Collection of fields defining system state.
-    type(state_type), intent(inout) :: state
-    integer, intent(in) :: upwinding_option
-
-    !! Optional velocity name
-    character(len = *), intent(in), optional :: velocity_name
-
-    !! Position, velocity and advecting velocity fields.
-    type(vector_field) :: X, U, U_nl
-
-    !! Local velocity name
-    character(len = FIELD_NAME_LEN) :: lvelocity_name
-
-    !! Element index
-    integer :: ele
-
-    !! Status variable for field extraction.
-    integer :: stat
-
-    ewrite(1,*) "Writing advection equation for "&
-         &//trim(field_name)
-
-    ! These names are based on the CGNS SIDS.
-    U=extract_vector_field(state, field_name)
-    X=extract_vector_field(state, "Coordinate")
-
-    if(present(velocity_name)) then
-      lvelocity_name = velocity_name
-    else
-      lvelocity_name = "NonlinearVelocity"
-    end if
-
-    U_nl=extract_vector_field(state, lvelocity_name)
-    call incref(U_nl)
-
-    assert(has_faces(X%mesh))
-    assert(has_faces(U%mesh))
-    
-    call zero(A)
-    call zero(RHS)
-    call zero(mass_local)
-
-    element_loop: do ele=1,element_count(U)
-       
-       call construct_vector_adv_element_dg(ele, A, L,&
-            & mass_local, inv_mass_local, inv_mass_cartesian, rhs,&
-            & X, U, U_nl, upwinding_option, down)
-       
-    end do element_loop
-    
-    ! Drop any extra field references.
-
-    call deallocate(U_nl)
-
-  end subroutine construct_vector_advection_dg
-
-  subroutine construct_vector_adv_element_dg(ele, A, L,&
-       & mass_local, inv_mass_local, inv_mass_cartesian, rhs,&
-       & X, U, U_nl, upwinding_option, down)
-    !!< Construct the advection_diffusion equation for discontinuous elements in
-    !!< acceleration form.
-    implicit none
-    !! Index of current element
-    integer :: ele
-    !! Main advection matrix.
-    type(block_csr_matrix), intent(inout) :: A
-    !! Transformation matrix
-    type(block_csr_matrix), intent(inout) :: L
-    !! Mass matrices.
-    type(block_csr_matrix), intent(inout) :: mass_local, inv_mass_local, &
-         inv_mass_cartesian
-    !! Right hand side vector.
-    type(vector_field), intent(inout) :: rhs
-    
-    !! Position, velocity and advecting velocity.
-    type(vector_field), intent(in) :: X, U, U_nl, down
-
-    !! Upwinding option
-    integer, intent(in) :: upwinding_option
-
-    ! Bilinear forms.
-    real, dimension(mesh_dim(U),mesh_dim(U),ele_loc(U,ele),ele_loc(U,ele)) :: local_mass_mat
-    real, dimension(mesh_dim(U),X%dim,ele_loc(U,ele),ele_loc(U,ele)) :: l_mat
-    real, dimension(ele_loc(U,ele),ele_loc(U,ele)) :: cartesian_mass_mat
-    real, dimension(mesh_dim(U),X%dim,ele_loc(U,ele),ele_loc(U,ele)) :: &
-         Advection_mat
-
-    ! Local assembly matrices.
-    real, dimension(mesh_dim(U)*ele_loc(U,ele), mesh_dim(U)*ele_loc(U,ele)) :: l_mass, l_mass_cartesian
-
-    ! Local variables.
-    
-    ! Neighbour element, face and neighbour face.
-    integer :: ele_2, face, face_2
-    ! Loops over faces.
-    integer :: ni
-    
-    ! Transform from local to physical coordinates.
-    real, dimension(ele_ngi(X,ele)) :: detwei, detJ
-    real, dimension(mesh_dim(U), X%dim, ele_ngi(X,ele)) :: J, J_scaled
-    real, dimension(X%dim, mesh_dim(U), ele_ngi(X,ele)) :: pinvJ
-    real, dimension(ele_loc(U,ele), ele_ngi(X,ele), X%dim) :: dshape
-    real, dimension(mesh_dim(U), mesh_dim(U), ele_ngi(X,ele)) :: G
-
-    ! Different velocities at quad points.
-    real, dimension(U_nl%dim, ele_ngi(U_nl, ele)) :: U_nl_q
-    real, dimension(X%dim, ele_ngi(U_nl, ele)) :: U_cartesian_q
-    real, dimension(ele_ngi(U_nl, ele)) :: U_nl_div_q
-
-    ! Node and shape pointers.
-    integer, dimension(:), pointer :: U_ele
-    type(element_type), pointer :: U_shape, U_nl_shape
-    ! Neighbours of this element.
-    integer, dimension(:), pointer :: neigh
-
-    integer :: i, gi, dim, dim1, dim2, nloc, k
-
-    dim=mesh_dim(U)
-
-    !----------------------------------------------------------------------
-    ! Establish local node lists
-    !----------------------------------------------------------------------
-    
-    U_ele=>ele_nodes(U,ele)  ! Velocity node numbers
-
-    !----------------------------------------------------------------------
-    ! Establish local shape functions
-    !----------------------------------------------------------------------
-
-    U_shape=>ele_shape(U, ele)
-    U_nl_shape=>ele_shape(U_nl, ele)
-
-    !==========================
-    ! Coordinates
-    !==========================
-
-    ! Get J and detJ
-    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei=detwei, J=J, detJ=detJ)
-
-    !----------------------------------------------------------------------
-    ! Construct bilinear forms.
-    !----------------------------------------------------------------------
-
-    ! Element mass matrix.
-    !  /
-    !  | W G U  dV
-    !  / 
-    do gi=1,ele_ngi(X,ele)
-       G(:,:,gi)=matmul(J(:,:,gi),transpose(J(:,:,gi)))/detJ(gi)
-       J_scaled(:,:,gi)=J(:,:,gi)/detJ(gi)
-    end do
-
-    local_mass_mat=shape_shape_tensor(u_shape, u_shape, &
-         u_shape%quadrature%weight, G)
-
-    cartesian_mass_mat=shape_shape(u_shape, u_shape, detwei)
-
-    ! Transformation matrix
-    l_mat=shape_shape_tensor(u_shape, u_shape, u_shape%quadrature%weight, J)
-
-    ! Advecting velocity at quadrature points.
-    U_nl_q=ele_val_at_quad(U_nl,ele)
-    U_nl_div_q=ele_div_at_quad(U_nl, ele, U_shape%dn)
-
-    ! WE HAVE INTEGRATED BY PARTS TWICE
-    ! Element advection matrix
-    !    / 
-    !    | w . div (\bar{U} \tensor u )dV
-    !    / 
-    
-    ! becomes
-    
-    !    /
-    !    | \phi_i (dx/d\xi)^T.\div_L (\bar{U}_L \tensor \phi_j)dV_L
-    !    /
-    ! underscore U indicates local coordinates
-
-    ! split into two terms
-
-    !    /
-    !    | \phi_i (dx/d\xi)^T(\div_L \bar{U}_L)\phi_j dV_L
-    !    /
-
-    ! and 
-
-    !    /
-    !    | \phi_i (dx/d\xi)^T\bar{U}_L . grad_L \phi_j dV_L
-    !    /
-
-
-    U_cartesian_q=0.
-    do gi=1,ele_ngi(X,ele)
-       U_cartesian_q(:,gi)=matmul(transpose(J(:,:,gi)),U_nl_q(:,gi))
-       U_cartesian_q(:,gi)=U_cartesian_q(:,gi)/detJ(gi)
-    end do
-    Advection_mat = shape_vector_dot_dshape_tensor(U_shape, U_nl_q, U_shape&
-         &%dn, J_scaled, U_shape%quadrature%weight)
-
-   !----------------------------------------------------------------------
-   ! Perform global assembly.
-   !----------------------------------------------------------------------
-
-   ! Assemble matrices.
-
-   ! Return local mass separately.
-   do dim1 = 1,dim
-      do dim2 = 1,dim
-         call addto(mass_local, dim1, dim2, U_ele, U_ele, &
-              local_mass_mat(dim1,dim2,:,:))
-      end do
-   end do
-
-   ! calculate inverse_mass_local
-   nloc=ele_loc(U,ele)
-   do dim1 = 1,dim
-      do dim2 = 1,dim
-         l_mass(nloc*(dim1-1)+1:nloc*dim1, nloc*(dim2-1)+1:nloc*dim2)=&
-              local_mass_mat(dim1,dim2,:,:)
-      end do
-   end do
-
-   call invert(l_mass)
-
-   do dim1 = 1,dim
-      do dim2 = 1,dim
-         call addto(inv_mass_local, dim1, dim2, U_ele, U_ele, &
-              l_mass(nloc*(dim1-1)+1:nloc*dim1,nloc*(dim2-1)+1:nloc*dim2))
-      end do
-   end do
-
-   ! calculate inverse_mass_cartesian
-   call invert(cartesian_mass_mat)
-
-   do dim1 = 1,X%dim
-         call addto(inv_mass_cartesian, dim1, dim1, U_ele, U_ele, cartesian_mass_mat)
-   end do
-
-   ! advection matrix
-   do dim1 = 1,dim
-      do dim2 = 1,X%dim
-         call addto(A, dim1, dim2, U_ele, U_ele, Advection_mat(dim1,dim2,:,:))
-      end do
-   end do
-
-   ! transformation matrix
-   do dim1 = 1,dim
-      do dim2 = 1,X%dim
-         call addto(L, dim1, dim2, U_ele, U_ele, l_mat(dim1,dim2,:,:))
-      end do
-   end do
-
-   !-------------------------------------------------------------------
-   ! Interface integrals
-   !-------------------------------------------------------------------
-    
-   neigh=>ele_neigh(U, ele)
-
-   neighbourloop: do ni=1,size(neigh)
-
-      !----------------------------------------------------------------------
-      ! Find the relevant faces.
-      !----------------------------------------------------------------------
-       
-      ! These finding routines are outside the inner loop so as to allow
-      ! for local stack variables of the right size in
-      ! construct_add_diff_interface_dg.
-
-      ele_2=neigh(ni)
-       
-      ! Note that although face is calculated on field U, it is in fact
-      ! applicable to any field which shares the same mesh topology.
-      face=ele_face(U, ele, ele_2)
-    
-      if (ele_2>0) then
-         ! Internal faces.
-         face_2=ele_face(U, ele_2, ele)
-      else
-         ! External face.
-         face_2=face
-      end if
-
-      call construct_vector_adv_interface_dg(ele, ele_2, face, face_2,&
-           & A, rhs, X, U, U_nl, upwinding_option, down)
-
-   end do neighbourloop
-    
- end subroutine construct_vector_adv_element_dg
-  
-  subroutine construct_vector_adv_interface_dg(ele, ele_2, face, face_2, &
-       & A, rhs, X, U, U_nl, upwinding_option, down)
-
-    !!< Construct the DG element boundary integrals on the ni-th face of
-    !!< element ele.
-    implicit none
-
-    integer, intent(in) :: ele, ele_2, face, face_2
-    type(block_csr_matrix), intent(inout) :: A
-    type(vector_field), intent(inout) :: rhs
-    ! We pass these additional fields to save on state lookups.
-    type(vector_field), intent(in) :: X, U, U_nl, down
-    integer, intent(in) :: upwinding_option
-
-    ! Face objects and numberings.
-    type(element_type), pointer :: U_shape, U_shape_2
-    integer, dimension(face_loc(U,face)) :: U_face, U_face_l
-    integer, dimension(face_loc(U,face_2)) :: U_face_2
-    integer, dimension(face_loc(U_nl,face)) :: U_nl_face
-    integer, dimension(face_loc(U_nl,face_2)) :: U_nl_face_2
-
-    ! Note that both sides of the face can be assumed to have the same
-    ! number of quadrature points.
-    real, dimension(U_nl%dim, face_ngi(U_nl, face)) :: n1_l, n2_l, U_nl_q,&
-         & U_nl_f_q, U_nl_f2_q
-    logical, dimension(face_ngi(U_nl, face)) :: inflow
-    real, dimension(face_ngi(U_nl, face)) :: U_nl_q_dotn1_l, U_nl_q_dotn2_l, U_nl_q_dotn_l, income
-    real, dimension(X%dim, face_ngi(X,face)) :: n1, n2, t11, t12, t21,t22,&
-         & pole_axis
-    real, dimension(X%dim, ele_ngi(X,ele)) :: up_gi, up_gi2
-    real, dimension(X%dim, face_ngI(X,face)) :: X_quad
-    real, dimension(X%dim, X%dim, face_ngi(X,face)) :: Btmp
-    real, dimension(mesh_dim(U), X%dim, face_ngi(X,face)) :: B
-    ! Variable transform times quadrature weights.
-    real, dimension(ele_ngi(X,ele)) :: detwei, detJ
-    real, dimension(face_ngi(X,face)) :: detwei_f, detJ_f
-    real, dimension(mesh_dim(U), X%dim, ele_ngi(X,ele)) :: J
-    real, dimension(mesh_dim(U), X%dim, face_ngi(X,face)) :: J_scaled
-    real, dimension(face_ngi(X,face)) :: inner_advection_integral, outer_advection_integral
-
-    ! Bilinear forms
-    real, dimension(mesh_dim(U),X%dim,face_loc(U,face),face_loc(U,face)) :: nnAdvection_out
-    real, dimension(mesh_dim(U),X%dim,face_loc(U,face),face_loc(U,face_2)) :: nnAdvection_in
-
-    ! normal weights
-    real :: w1, w2
-    integer :: dim, dim1, dim2, gi, i, k
-
-    dim=mesh_dim(U)
-
-    U_face=face_global_nodes(U, face)
-    U_shape=>face_shape(U, face)
-    X_quad = face_val_at_quad(X, face)
-
-    U_face_2=face_global_nodes(U, face_2)
-    U_shape_2=>face_shape(U, face_2)
-    
-    !Unambiguously calculate the normal using the face with the higher
-    !face number. This is so that the normal is identical on both sides.
-
-    call get_local_normal(n1_l, w1, U, local_face_number(U%mesh,face))
-    call get_local_normal(n2_l, w2, U, local_face_number(U%mesh,face_2))
-    
-    !----------------------------------------------------------------------
-    ! Construct element-wise quantities.
-    !----------------------------------------------------------------------
-
-    ! Advecting velocity at quadrature points.
-    U_nl_f_q = face_val_at_quad(U_nl, face)
-    U_nl_f2_q = face_val_at_quad(U_nl, face_2)
-
-    u_nl_q_dotn1_l = sum(U_nl_f_q*w1*n1_l,1)
-    u_nl_q_dotn2_l = -sum(U_nl_f2_q*w2*n2_l,1)
-    U_nl_q_dotn_l=0.5*(u_nl_q_dotn1_l+u_nl_q_dotn2_l)
-
-    ! Inflow is true if the flow at this gauss point is directed
-    ! into this element.
-    inflow = u_nl_q_dotn_l<0.0
-    income = merge(1.0,0.0,inflow)
-
-    ! Calculate tensor on face
-    if(ele_loc(X,ele).ne.3) then
-       ewrite(1,*) 'Nloc=',ele_loc(X,ele)
-       FLAbort('Hard coded for linear elements at the moment')
-    end if
-    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei=detwei, J=J, detJ=detJ)
-    forall(gi=1:face_ngi(X,face))
-       J_scaled(:,:,gi)=J(:,:,1)/detJ(1)
-    end forall
-
-    select case(upwinding_option)
-    case (VECTOR_UPWIND_EDGE)
-       ! Get outward pointing normals in physical space for face1
-       ! inward pointing normals in physical space for face2
-       n1=get_face_normal_manifold(X, ele, face)
-       !needs checking
-       if(ele_2<0) then
-          ! external boundary
-          n2=n1
-       else
-          n2=-get_face_normal_manifold(X, ele_2, face_2)
-       end if
-       ! Form 'bending' tensor
-       ! This rotates the normal to face 2 into -normal from face 1
-       ! u_b = t(t.u_b) + n_b(n_b.u_b)
-       ! u_a = t(t.u_b) + n_a(n_b.u_b)
-       !     = u_b - n_b(n_b.u_b) + n_a(n_b.u_b)
-       !     = (I + (n_a-n_b)n_b^T)u_b == B u_b
-       forall(gi=1:face_ngi(X,face))
-          Btmp(:,:,gi)=outer_product(n1(:,gi)-n2(:,gi),n2(:,gi))
-          forall(i=1:size(Btmp,1)) Btmp(i,i,gi)=Btmp(i,i,gi)+1.0
-          B(:,:,gi)=matmul(J_scaled(:,:,gi),Btmp(:,:,gi))
-       end forall
-    case (VECTOR_UPWIND_SPHERE)
-       if(mesh_dim(X).ne.2) then
-          FLExit('Assumes 2d surface. Surface of the sphere, in fact.')
-       end if
-       !Get element normal
-       up_gi = -ele_val_at_quad(down,ele)
-       call get_up_gi(X,ele,up_gi)
-       up_gi2 = -ele_val_at_quad(down,ele_2)
-       call get_up_gi(X,ele_2,up_gi2)
-       ! Form 'bending' tensor
-       ! Coordinate system is:
-       ! t1: normal to local normal and (0,0,1)
-       ! t2: normal to t1 and local normal
-       ! u2 = t21(t21.u2) + t22(t22.u2)
-       ! u1 = t11(t21.u2) + t12(t22.u2)
-       !    = (t11 t21^T + t12 t22^T)u2
-
-       pole_axis = 0.
-       pole_axis(3,:) = 1.
-       btmp = 0.
-       do gi = 1, face_ngi(X,face)
-          t11(:,gi) = cross_product(pole_axis(:,gi),up_gi(:,1))
-          t11(:,gi) = t11(:,gi)/sqrt(sum(t11(:,gi)**2))
-          t12(:,gi) = cross_product(up_gi(:,1),t11(:,gi))
-          t21(:,gi) = cross_product(pole_axis(:,gi),up_gi2(:,1))
-          t21(:,gi) = t21(:,gi)/sqrt(sum(t21(:,gi)**2))
-          t22(:,gi) = cross_product(up_gi2(:,1),t21(:,gi))
-          
-          forall(i=1:3,k=1:3)
-             Btmp(i,k,gi) = t11(i,gi)*t21(k,gi) + t12(i,gi)*t22(k,gi)
-          end forall
-          B(:,:,gi)=matmul(J_scaled(:,:,gi),Btmp(:,:,gi))
-       end do
-    case default
-       FLAbort('Unknown vector upwinding option')
-    end select
-
-    !----------------------------------------------------------------------
-    ! Construct bilinear forms.
-    !----------------------------------------------------------------------
-       
-    ! Calculate outflow boundary integral.
-    ! can anyone think of a way of optimising this more to avoid
-    ! superfluous operations (i.e. multiplying things by 0 or 1)?
-
-    ! first the integral around the inside of the element
-    ! (this is the flux *out* of the element)
-    inner_advection_integral = -income*u_nl_q_dotn_l
-    nnAdvection_out=shape_shape_tensor(U_shape, U_shape,  &
-         &inner_advection_integral*U_shape%quadrature%weight, J_scaled)
-    
-    ! now the integral around the outside of the element
-    ! (this is the flux *in* to the element)
-    outer_advection_integral = income*u_nl_q_dotn_l
-    nnAdvection_in=shape_shape_tensor(U_shape, U_shape_2, &
-         &outer_advection_integral*U_shape%quadrature%weight, B)
-       
-    !----------------------------------------------------------------------
-    ! Perform global assembly.
-    !----------------------------------------------------------------------
-
-    ! Insert advection in matrix.
-
-    ! Outflow boundary integral.
-    do dim1 = 1, dim
-       do dim2 = 1, X%dim
-          call addto(A, dim1, dim2, U_face, U_face, nnAdvection_out(dim1,dim2,:,:))
-       end do
-    end do
-
-    ! Inflow boundary integral.
-    do dim1 = 1, dim
-       do dim2 = 1, X%dim
-          call addto(A, dim1, dim2, U_face, U_face_2, nnAdvection_in(dim1,dim2,:,:))
-        end do
-    end do
-
-    contains
-
-      ! copy of outer_product in vector tools, but now as function
-      pure function outer_product(x, y) result (M)
-        !!< Give two column vectors x, y
-        !!< compute the matrix xy*
-
-        real, dimension(:), intent(in) :: x, y
-        real, dimension(size(x), size(y)) :: M
-        integer :: i, j
-
-        forall (i=1:size(x))
-           forall (j=1:size(y))
-              M(i, j) = x(i) * y(j)
-           end forall
-        end forall
-      
-      end function outer_product
-    
-  end subroutine construct_vector_adv_interface_dg
 
 end module advection_local_DG

@@ -33,6 +33,7 @@ module populate_state_module
   use spud
   use mesh_files
   use vtk_cache_module
+  use vtk_interfaces
   use global_parameters, only: OPTION_PATH_LEN, is_active_process, pi, &
     no_active_processes, topology_mesh_name, adaptivity_mesh_name, &
     periodic_boundary_option_path, domain_bbox, domain_volume, surface_radius
@@ -350,7 +351,61 @@ contains
             deallocate(quad)
             deallocate(shape)
 
-          end if
+         else if(trim(mesh_file_format)=="triangle" &
+              .or. trim(mesh_file_format)=="gmsh") then
+            ! Get mesh dimension if present
+            call get_option(trim(mesh_path)//"/from_file/dimension", mdim, stat)
+            ! Read mesh
+            if(stat==0) then
+               position=read_mesh_files(trim(mesh_file_name), &
+                    quad_degree=quad_degree, &
+                    quad_family=quad_family, mdim=mdim, &
+                    format=mesh_file_format)
+
+               call vtk_write_fields('InputCoordinates', position=position, &
+                    model=position%mesh, &
+                    vfields=(/position/))
+
+            else
+               position=read_mesh_files(trim(mesh_file_name), &
+                    quad_degree=quad_degree, &
+                    quad_family=quad_family, &
+                    format=mesh_file_format)
+            end if
+            mesh=position%mesh
+         else if(trim(mesh_file_format) == "vtu") then
+            position_ptr => vtk_cache_read_positions_field(mesh_file_name)
+            ! No hybrid mesh support here
+            assert(ele_count(position_ptr) > 0)
+            dim = position_ptr%dim
+            loc = ele_loc(position_ptr, 1)
+
+            ! Generate a copy, and swap the quadrature degree
+            ! Note: Even if positions_ptr has the correct quadrature degree, it
+            ! won't have any faces and hence a copy is still required (as
+            ! add_faces is a construction routine only)
+            allocate(quad)
+            allocate(shape)
+            quad = make_quadrature(loc, dim, degree = quad_degree, family=quad_family)
+            shape = make_element_shape(loc, dim, 1, quad)
+            call allocate(mesh, nodes = node_count(position_ptr), elements = ele_count(position_ptr), shape = shape, name = position_ptr%mesh%name)
+            do j = 1, ele_count(mesh)
+               call set_ele_nodes(mesh, j, ele_nodes(position_ptr%mesh, j))
+            end do
+            call add_faces(mesh)
+            call allocate(position, dim, mesh, position_ptr%name)
+            call set(position, position_ptr)
+            call deallocate(mesh)
+            call deallocate(shape)
+            call deallocate(quad)
+            deallocate(quad)
+            deallocate(shape)
+
+            mesh = position%mesh
+         else
+            ewrite(-1,*) trim(mesh_file_format), " is not a valid format for a mesh file"
+            FLAbort("Invalid format for mesh file")
+         end if
 
           ! if there is a derived mesh which specifies periodic bcs 
           ! to be *removed*, we assume the external mesh is periodic

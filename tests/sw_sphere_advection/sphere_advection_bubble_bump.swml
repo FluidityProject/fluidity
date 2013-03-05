@@ -131,7 +131,7 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">0.01</real_value>
+      <real_value rank="0">0.003</real_value>
       <comment>1 hour</comment>
     </timestep>
     <theta>
@@ -164,6 +164,7 @@
           </value>
           <output/>
           <stat>
+            <manifold_transformation/>
             <include_in_stat/>
           </stat>
           <detectors>
@@ -228,29 +229,23 @@
           </galerkin_projection>
         </initial_condition>
         <output/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <consistent_interpolation/>
+        <stat>
+          <manifold_transformation/>
+          <include_in_stat/>
+          <previous_time_step>
+            <exclude_from_stat/>
+          </previous_time_step>
+          <nonlinear_field>
+            <exclude_from_stat/>
+          </nonlinear_field>
+        </stat>
       </prognostic>
     </vector_field>
     <scalar_field name="LayerThickness" rank="0">
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
-          <discontinuous_galerkin>
-            <wave_equation/>
-            <advection_terms>
-              <exclude_advection_terms/>
-            </advection_terms>
-            <slope_limiter name="Vertex_Based"/>
-          </discontinuous_galerkin>
+          <discontinuous_galerkin/>
           <conservative_advection>
             <real_value rank="0">0.</real_value>
           </conservative_advection>
@@ -258,9 +253,12 @@
         </spatial_discretisation>
         <temporal_discretisation>
           <discontinuous_galerkin>
-            <maximum_courant_number_per_subcycle>
-              <real_value rank="0">0.1</real_value>
-            </maximum_courant_number_per_subcycle>
+            <number_advection_subcycles>
+              <integer_value rank="0">1</integer_value>
+            </number_advection_subcycles>
+            <SSPRK_order>
+              <integer_value rank="0">3</integer_value>
+            </SSPRK_order>
           </discontinuous_galerkin>
         </temporal_discretisation>
         <solver>
@@ -287,9 +285,12 @@
           <comment>gh_0 = 2.94e4
 g = 9.80616
 2998.1154702758267=2.94e4/9.80616</comment>
+          <reset_this_value/>
         </mean_layer_thickness>
         <output/>
-        <stat/>
+        <stat>
+          <manifold_transformation/>
+        </stat>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
@@ -346,34 +347,20 @@ g = 9.80616
         </solver>
         <mesh name="VorticityMesh"/>
         <output/>
-        <stat/>
+        <stat>
+          <manifold_transformation/>
+        </stat>
         <debug/>
       </prognostic>
-    </scalar_field>
-    <scalar_field name="Streamfunction" rank="0">
-      <prescribed>
-        <value>
-          <python>
-            <string_value type="code" lines="20" language="python">def val(X,t): 
-  from math import pi
-  x = X[0]
-  y = X[1]
-  z = X[2]
-  R0 = 6.37122e6
-  u0 = 2*pi*R0/(12.*60.*60.*24)
-  return -u0*z</string_value>
-          </python>
-        </value>
-        <mesh name="VorticityMesh"/>
-        <output/>
-      </prescribed>
     </scalar_field>
     <scalar_field name="DG_CourantNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
         <output/>
-        <stat/>
+        <stat>
+          <manifold_transformation/>
+        </stat>
         <convergence>
           <include_in_convergence/>
         </convergence>
