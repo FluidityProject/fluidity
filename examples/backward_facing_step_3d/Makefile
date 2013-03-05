@@ -3,8 +3,6 @@ include envcheck.mk
 preprocess: envcheck
 	@echo **********Generating the mesh using gmsh in 3d:
 	gmsh -3 -optimize -o step3d.msh src/step3d.geo
-	@echo **********Converting the gmsh mesh to triangle format:
-	${BINPREFIX}gmsh2triangle step3d.msh
 
 run: envcheck
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi
@@ -32,5 +30,5 @@ input: clean
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:
-	rm -rf *.stat *.msh *.node *.face *.ele backward_facing_step_3d_*.pvtu backward_facing_step_3d_* *.log-* *.err-* matrixdump* *.halo
+	rm -rf *.stat *.msh backward_facing_step_3d_*.pvtu backward_facing_step_3d_* *.log-* *.err-* matrixdump* *.halo
 	rm -rf *flredecomp*
