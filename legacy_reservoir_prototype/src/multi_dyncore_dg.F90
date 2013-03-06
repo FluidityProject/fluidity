@@ -179,22 +179,27 @@
       ALLOCATE( CT_RHS( CV_NONODS ))
       ALLOCATE( CT( NCOLCT *NDIM * NPHASE ))
 
-      SECOND_THETA = 1.0
-      path='/material_phase[0]/scalar_field::Temperature/prognostic/temporal_discretisation' // &
-           '/control_volumes/second_theta'
-      call get_option( path, second_theta, stat )
-
       if( present( option_path ) ) then
+
          if( trim( option_path ) == '/material_phase[0]/scalar_field::Temperature' ) then
             call get_option( '/material_phase[0]/scalar_field::Temperature/prognostic/temporal_discretisation/' // &
                  'control_volumes/number_advection_iterations', nits_flux_lim, default = 3 )
-         else
-            call get_option( '/material_phase[' // int2str( nphase ) // ']/scalar_field::ComponentMassFractionPhase1/' // &
-                 'temporal_discretisation/control_volumes/number_advection_iterations', nits_flux_lim, default = 1 )
          end if
+
+         path='/material_phase[0]/scalar_field::Temperature/prognostic/temporal_discretisation' // &
+              '/control_volumes/second_theta'
+         call get_option( path, second_theta, default=1. )
+
       else
-           nits_flux_lim = 1
-!!$ This is just a quick bug fix -- number of iterations must be set up from the schema.
+
+         call get_option( '/material_phase[' // int2str( nphase ) // ']/scalar_field::ComponentMassFractionPhase1/' // &
+              'prognostic/temporal_discretisation/control_volumes/number_advection_iterations', nits_flux_lim, default = 1 )
+
+         path= '/material_phase[' // int2str( nphase ) // ']/scalar_field::ComponentMassFractionPhase1/' // &
+              'prognostic/temporal_discretisation/control_volumes/second_theta'
+
+         call get_option( path, second_theta, default=1. )
+
       end if
 
       lump_eqns = have_option( '/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
@@ -1926,7 +1931,7 @@
       END IF
 
       ! unused at this stage
-      second_theta = 1.0
+      second_theta = 0.0
 
       ! Form CT & MASS_MN_PRES matrix...
       CALL CV_ASSEMB( state, &
@@ -2312,7 +2317,7 @@
       !ewrite(3,*)'UDENOLD=',udenold
       !ewrite(3,*)'u_absorb=',u_absorb
       !ewrite(3,*)'u_abs_stab=',u_abs_stab
-      !      stop 2921
+      !stop 2921
 
       is_overlapping = .false.
       call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &

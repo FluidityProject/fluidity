@@ -766,6 +766,7 @@
                call calculate_u_source_cv( state, cv_nonods, ndim, nphase, density_tmp, Velocity_U_Source_CV )
 
                ! calculate the viscosity for the momentum equation...
+               if ( its == 1 ) &
                call calculate_viscosity( state, ncomp, nphase, ndim, mat_nonods, mat_ndgln, Momentum_Diffusion )
 
                ! quick fix for collapsing water column...

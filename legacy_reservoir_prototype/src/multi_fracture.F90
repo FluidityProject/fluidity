@@ -29,20 +29,20 @@
 
   module multiphase_fractures
 
-    use state_module
+    use quadrature
+    use elements
+    use sparse_tools
     use fields
-    use field_options
+    use state_module
+
     use spud
     use global_parameters, only: option_path_len, field_name_len
     use futils, only: int2str
     use solvers
-    use fldebug
     use implicit_solids
+    use FLDebug
 
     implicit none
-
-    type( vector_field ), save :: external_positions
-    type( tensor_field ), save :: permeability
 
 #ifdef USING_FEMDEM
     interface
@@ -69,6 +69,9 @@
     end interface
 #endif
 
+    type( vector_field ), save :: fracture_positions
+    type( tensor_field ), save :: permeability
+
     private
     public :: fractures
 
@@ -80,13 +83,17 @@
       type( state_type ), dimension( : ), intent( in ) :: states
       real, dimension( totele, ndim, ndim ), intent( inout ) :: perm
 
-      ! define: 1. external_positions and 2. permeability
+      ewrite(3,*) 'inside fractures'
+
+      ! define: 1. fracture_positions and 2. permeability
       call initialise_fractures( states )
 
       ! interpolate conservatively permeability from
       ! the fracture mesh to the prototype mesh
       ! that is interpolate "permeability" to "perm"
       call interpolate_fractures( states, totele, ndim, perm )
+
+      ewrite(3,*) 'leaving fractures'
 
       return
     end subroutine fractures
@@ -97,8 +104,7 @@
 
       type( state_type ), dimension( : ), intent( in ) :: states
 
-      character( len = FIELD_NAME_LEN ) :: external_mesh_name
-      type( vector_field ) :: external_positions
+      character( len = FIELD_NAME_LEN ) :: fracture_mesh_name
       integer :: i, loc, sloc
       integer :: ndim, nodes, elements, edges
       integer, dimension( : ), allocatable :: ele1, ele2, ele3
@@ -108,12 +114,25 @@
       type( element_type ) :: shape
       integer, dimension( : ), allocatable :: sndglno, boundary_ids
       integer :: quad_degree
-      type(mesh_type) :: mesh
+      type( mesh_type ) :: mesh
 
-      call get_option( '/porous_media/Permeability_from_femdem/name', external_mesh_name )
+      ewrite(3,*) 'inside initialise_fractures'
+
+      call get_option( '/porous_media/Permeability_from_femdem/name', fracture_mesh_name )
       call get_option( "/geometry/quadrature/degree", quad_degree )
+      call get_option( "/geometry/dimension", ndim )
 
-      call y2d_allocate_femdem( trim( external_mesh_name )//char(0), &
+      if ( ndim ==2 ) then
+         loc = 3
+         sloc= 2
+      else if ( ndim == 3 ) then
+         loc = 4
+         sloc= 3
+      else
+         FLAbort("Fracture modelling is supported for 2 and 3D only.")
+      end if
+
+      call y2d_allocate_femdem( trim( fracture_mesh_name )//char(0), &
            nodes, elements, edges )
 
       allocate( ele1( elements ) ) ; allocate( ele2( elements ) )
@@ -127,30 +146,18 @@
 
       call y2d_populate_femdem( ele1, ele2, ele3, &
            face1, face2, xs, ys, p1, p2, p3, p4 )
-
-      call get_option( "/geometry/dimension", ndim )
-
-      if ( ndim ==2 ) then
-         loc = 3
-         sloc= 2
-      else if (ndim == 3 ) then
-         loc = 3
-         sloc= 2
-      else
-         FLAbort("Fracture modelling is supported for 2 and 3D only.")
-      end if
-
+  
       quad = make_quadrature( loc, ndim, degree = quad_degree )
       shape = make_element_shape( loc, ndim, 1, quad )
 
-      call allocate( mesh, nodes, elements, shape, name = "CoordinateMesh" )
-      call allocate( external_positions, ndim, mesh, name = "Coordinate" )
+      call allocate( mesh, nodes, elements, shape, name="CoordinateMesh" )
+      call allocate( fracture_positions, ndim, mesh, name="Coordinate" )
 
-      external_positions%val( 1, : ) = xs
-      external_positions%val( 2, : ) = ys
+      fracture_positions%val( 1, : ) = xs
+      fracture_positions%val( 2, : ) = ys
 
       do i = 1, elements
-         external_positions%mesh%ndglno( (i-1)*loc+1 : i*loc ) = &
+         fracture_positions%mesh%ndglno( (i-1)*loc+1 : i*loc ) = &
               (/ ele1(i)+1, ele2(i)+1, ele3(i)+1 /)
       end do
 
@@ -162,11 +169,11 @@
               (/ face1(i)+1, face2(i)+1 /)
       end do
 
-      call add_faces( external_positions%mesh, &
+      call add_faces( fracture_positions%mesh, &
            sndgln = sndglno, &
            boundary_ids = boundary_ids )
 
-      external_positions%dim = ndim
+      fracture_positions%dim = ndim
 
       deallocate( sndglno, boundary_ids )
       call deallocate( mesh )
@@ -174,7 +181,7 @@
       call deallocate( quad )
 
       ! store permeability
-      call allocate( permeability, external_positions%mesh, name = "Permeability" )
+      call allocate( permeability, fracture_positions%mesh, name = "Permeability" )
       call zero( permeability )
 
       call set_all( permeability, 1, 1, p1 )
@@ -184,8 +191,9 @@
 
       deallocate( ele1, ele2, ele3, face1, face2, xs, ys, p1, p2, p3, p4 )
 
-      return
+      ewrite(3,*) 'leaving initialise_fractures'
 
+      return
     end subroutine initialise_fractures
 
 
@@ -208,10 +216,12 @@
       character( len = OPTION_PATH_LEN ) :: &
            path = "/tmp/galerkin_projection/continuous"
 
+      ewrite(3,*) 'inside interpolate_fractures'
+
       pressure => extract_scalar_field( states(1), "Pressure" )
 
-      call insert( alg_ext, external_positions%mesh, "Mesh" )
-      call insert( alg_ext, external_positions, "Coordinate" )
+      call insert( alg_ext, fracture_positions%mesh, "Mesh" )
+      call insert( alg_ext, fracture_positions, "Coordinate" )
 
       fl_mesh => extract_mesh( states(1), "CoordinateMesh" )
       fl_positions = extract_vector_field( states(1), "Coordinate" )
@@ -229,6 +239,8 @@
       path = "/tmp"
 
       p0_fl_mesh => extract_mesh( states(1), "P0Mesh" )
+
+      ewrite(3,*) '...generating multiphase state'
 
       ! this is the permeability on the fluidity mesh
       call allocate( field_fl_p11, p0_fl_mesh, "Permeability11" )
@@ -251,6 +263,8 @@
       call insert( alg_fl, field_fl_p22, "Permeability22" )
       field_fl_p22%option_path = path
 
+      ewrite(3,*) '...generating femdem state'
+
       ! this is the permeability on the solid mesh
       field_ext_p11 = extract_scalar_field( permeability, 1, 1 )
       call insert( alg_ext, field_ext_p11, "Permeability11" )
@@ -267,6 +281,8 @@
       ! dummy field needed for the interpolation
       call allocate( dummy, pressure%mesh, "Dummy" )
       call zero( dummy )
+
+      ewrite(3,*) '...interpolating'
 
       ! interpolate
       call interpolation_galerkin_femdem( alg_ext, alg_fl, field = dummy )
@@ -294,13 +310,15 @@
       call deallocate( alg_fl )
       call deallocate( alg_ext )
 
+      ewrite(3,*) 'leaving interpolate_fractures'
+
       return
     end subroutine interpolate_fractures
 
 
     subroutine deallocate_fractures
 
-      call deallocate( external_positions )
+      call deallocate( fracture_positions )
       call deallocate( permeability )
 
       return
