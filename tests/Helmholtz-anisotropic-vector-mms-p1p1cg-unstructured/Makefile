@@ -5,7 +5,7 @@ input:	clean
 	gmsh -2 -algo front2d -o MMS_D_unstructured.msh src/MMS_D_unstructured.geo
 
 clean:
-	rm -f *.vtu *.msh *.stat fluidity.log-0 fluidity.err-0
+	rm -f *.vtu *.msh *.stat *.log fluidity.log-0 fluidity.err-0
 
 flmls:
 	@$(foreach M,B C D, \

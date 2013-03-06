@@ -5,7 +5,7 @@ input:	clean
 	gmsh -2 -o MMS_D_structured.msh src/MMS_D_structured.geo
 
 clean:
-	rm -f *.vtu *.msh *.stat fluidity.err-0 fluidity.log-0
+	rm -f *.vtu *.msh *.stat *.log fluidity.err-0 fluidity.log-0
 
 flmls:
 	@$(foreach M,B C D, \
