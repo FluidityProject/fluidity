@@ -258,7 +258,7 @@
             <value name="WholeMesh">
               <isotropic>
                 <constant>
-                  <real_value rank="0">1.e-2</real_value>
+                  <real_value rank="0">1.e-3</real_value>
                 </constant>
               </isotropic>
             </value>
@@ -336,7 +336,7 @@
       <diagnostic>
         <algorithm source_field_type="vector" material_phase_support="single" name="time_averaged_vector" source_field_name="Velocity">
           <spin_up_time>
-            <real_value rank="0">50</real_value>
+            <real_value rank="0">100</real_value>
           </spin_up_time>
         </algorithm>
         <mesh name="VelocityMesh"/>
@@ -378,7 +378,7 @@
   <mesh_adaptivity>
     <hr_adaptivity>
       <period_in_timesteps>
-        <integer_value rank="0">25</integer_value>
+        <integer_value rank="0">50</integer_value>
       </period_in_timesteps>
       <maximum_number_of_nodes>
         <integer_value rank="0">100000</integer_value>
