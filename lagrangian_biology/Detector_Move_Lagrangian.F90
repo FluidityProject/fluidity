@@ -684,6 +684,7 @@ contains
     real :: face_t, ele_t
     integer :: i, neigh_face, next_face, boundary_id, py_map_index
     integer, dimension(:), pointer :: face_list, element_nodes
+    integer, dimension(xfield%mesh%faces%shape%loc) :: face_nodes
     real, dimension(xfield%dim,1):: old_position, new_position
     real, dimension(xfield%dim) :: face_normal, face_node_val
     type(path_element) :: path_ele
@@ -702,7 +703,7 @@ contains
        face_list => ele_faces(xfield,detector%element)
        element_nodes => ele_nodes(xfield,detector%element)
        do i=1, size(face_list)
-          call ray_intersetion_distance(face_list(i), element_nodes, face_normal, face_node_val, face_t)
+          call ray_intersetion_distance(face_list(i), element_nodes, face_t)
 
           ! The second condition is to ensure that we do not trace backwards
           if (face_t < ele_t .and. (detector%current_t+search_tolerance) < face_t .and. search_tolerance < face_t) then
@@ -719,7 +720,7 @@ contains
 
           ele_t = detector%current_t
           do i=1, size(face_list)
-            call ray_intersetion_distance(face_list(i), element_nodes, face_normal, face_node_val, face_t)
+            call ray_intersetion_distance(face_list(i), element_nodes, face_t)
             if (abs(face_t) < search_tolerance) then
                next_face = face_list(i)
             end if
@@ -811,17 +812,14 @@ contains
     
   contains
 
-    subroutine ray_intersetion_distance(face, ele_nodes, face_normal, face_node_val, t)
+    subroutine ray_intersetion_distance(face, ele_nodes, t)
       ! Calculate the distance t of the intersection 
       ! between the face and our ray (r_o, r_d)
       integer, intent(in) :: face
       integer, dimension(:), pointer :: ele_nodes 
-      ! Alocate these outside to increase performance
-      real, dimension(:), intent(inout) :: face_normal, face_node_val
       real, intent(out) :: t
 
       real :: d, v_n, v_d, detJ
-      integer, dimension(face_loc(xfield, face)) :: face_nodes
       logical :: face_cache_valid
 
       ! Get face normal
