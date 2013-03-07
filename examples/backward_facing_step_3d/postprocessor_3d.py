@@ -111,7 +111,7 @@ def reatt_length(filelist, zarray):
     pts = numpy.array(pts)
 
     ##### Get x-velocity on bottom boundary
-    uvw = datafile.ProbeData(pts, "Velocity")
+    uvw = datafile.ProbeData(pts, "AverageVelocity")
     u = uvw[:,0]
     u = u.reshape([x2array.size,zarray.size])
     pts=pts.reshape([x2array.size,zarray.size,3])
@@ -173,7 +173,7 @@ def velo(filelist,xarray,zarray,yarray):
   print file, ', elapsed time = ', t
 
   ##### Get x-velocity
-  uvw = datafile.ProbeData(pts, "Velocity")
+  uvw = datafile.ProbeData(pts, "AverageVelocity")
   umax = 1.55
   u = uvw[:,0]/umax
   u = u.reshape([xarray.size,zarray.size,yarray.size])

@@ -72,6 +72,9 @@
       <courant_number name="CFLNumber">
         <mesh name="VelocityMesh"/>
       </courant_number>
+      <minimum_timestep>
+        <real_value rank="0">0.001</real_value>
+      </minimum_timestep>
     </adaptive_timestep>
   </timestepping>
   <material_phase name="Fluid">
@@ -380,6 +383,7 @@
       <period_in_timesteps>
         <integer_value rank="0">50</integer_value>
       </period_in_timesteps>
+      <adaptive_timestep_at_adapt/>
       <maximum_number_of_nodes>
         <integer_value rank="0">100000</integer_value>
       </maximum_number_of_nodes>
