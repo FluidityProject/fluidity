@@ -419,17 +419,32 @@
                 snapmean_velocity=>extract_vector_field(POD_state(1,1,istate),"SnapmeanVelocity")
                 snapmean_pressure=>extract_Scalar_field(POD_state(1,2,istate),"SnapmeanPressure")
                 !call addto(u, delta_u, dt)
-!                u%val=snapmean_velocity%val
-!                call addto(u, delta_u)
-!                p%val=snapmean_pressure%val
-!                call addto(p, delta_p)
+                !if(timestep==total_timestep) then
+                   u%val=snapmean_velocity%val
+                   call addto(u, delta_u)
+                   p%val=snapmean_pressure%val
+                   call addto(p, delta_p)
+                !endif
                 
                 deallocate(pod_coef_adjoint)
              else
                 if(present(if_optimal)) then
                    timestep_tmp = timestep+1
                 else
-                   timestep_tmp = timestep
+                   if(timestep==1.and. eps.eq.0.0 .and. .not.snapmean)then
+                      !get the initial velocity
+                      u=>extract_vector_field(state(istate), "Velocity")
+                      !get the initial pressure
+                      p=>extract_scalar_field(state(istate), "Pressure")
+                      call project_from_full_to_pod(istate,  pod_state, state, pod_coef)
+                      ! save the initial coeficient
+                      open(101,file='coef_pod_all')
+                      write(101,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state,1))
+                      close(101)
+                      timestep_tmp = timestep+1
+                   else
+                      timestep_tmp = timestep
+                   endif
                 endif
                 !========================================================================
 		! FORWARD MODEL

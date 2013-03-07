@@ -203,9 +203,12 @@ SUBROUTINE NONLINCG(GLOITS,LINITS,VALFUN,CVA,G,       &
      !          INISTEP = 0.05*MAXCD          
 !**clyde     INISTEP = -0.01
 !**work gyre percoef=0.1     	  INISTEP = -0.06*MAXCVA/MAXD
-     	  INISTEP = -0.01*MAXCVA/MAXD
+! orignal     	  INISTEP = -0.01*MAXCVA/MAXD
+!     	  INISTEP = -0.00001*MAXCVA/MAXD
+     INISTEP = 0.5
   ELSE
-     INISTEP = 0.01*MAXCVA/MAXD
+!original     INISTEP = 0.01*MAXCVA/MAXD
+     INISTEP = 0.5
      !**	  INISTEP = 0.05*MAXCVA/MAXD
      !**headland	  INISTEP = 0.1*MAXCVA/MAXD
   ENDIF
