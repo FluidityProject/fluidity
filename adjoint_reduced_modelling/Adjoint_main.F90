@@ -78,7 +78,7 @@ program Adjoint_main
   character(len = OPTION_PATH_LEN) :: simulation_name
   integer :: gloits,nocva,linits,nsvd
   real :: valfun, fszero
-  real, dimension(:), allocatable :: cva,cvaold,g,gold,d
+  real, dimension(:), allocatable :: cva,cvaold,g,gold,d,pod_coef_all_o1
   logical :: linconver
   INTEGER,PARAMETER ::NGLOITS=4
   REAL,PARAMETER ::GOLDR = 5.0
@@ -98,7 +98,7 @@ program Adjoint_main
  !call read_pod_basis_differntmesh(POD_state, state)
  nocva=(u%dim+1)*size(POD_state)
  allocate(cva((u%dim+1)*size(POD_state,1)))
- allocate(pod_coef_all_o((u%dim+1)*size(POD_state,1)))
+ allocate(pod_coef_all_o1((u%dim+1)*size(POD_state,1)))
  allocate(d((u%dim+1)*size(POD_state,1)))
  allocate(cvaold((u%dim+1)*size(POD_state,1)))
  allocate(gold((u%dim+1)*size(POD_state,1)))
@@ -118,7 +118,7 @@ program Adjoint_main
                      call  mainfl_forward() !get the func run simulation_name_POD.flml run forward ROM 
                      valfun=value_cost_function()
                      call  NONLINCG(gloits,linits,valfun,cva,g,goldr,linconver,nocva,gold,d,cvaold,fszero)
-                     pod_coef_all_o = cva  !the variables need to be modified
+                     pod_coef_all_o1 = cva  !the variables need to be modified
  !print  costfunction 
  open(10,file='cost_function',ACTION='WRITE')
  write(10,*) valfun
