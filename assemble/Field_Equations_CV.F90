@@ -274,7 +274,7 @@ contains
          oldvfrac => extract_scalar_field(state(istate), "OldPhaseVolumeFraction")
       else
          multiphase = .false.
-         nullify(oldvfrac)
+         oldvfrac => dummyscalar
       end if
 
       ! find out equation type and hence if density is needed or not
