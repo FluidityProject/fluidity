@@ -1,15 +1,11 @@
 input:	clean
-	gmsh -2 -algo front2d -o MMS_A_unstructured.msh src/MMS_A_unstructured.geo
-	gmsh -2 -algo front2d -o MMS_B_unstructured.msh src/MMS_B_unstructured.geo
-	gmsh -2 -algo front2d -o MMS_C_unstructured.msh src/MMS_C_unstructured.geo
-	gmsh -2 -algo front2d -o MMS_D_unstructured.msh src/MMS_D_unstructured.geo
 	../../bin/gmsh2triangle -2 MMS_A_unstructured.msh
 	../../bin/gmsh2triangle -2 MMS_B_unstructured.msh
 	../../bin/gmsh2triangle -2 MMS_C_unstructured.msh
 	../../bin/gmsh2triangle -2 MMS_D_unstructured.msh
 
 clean:
-	rm -f *.vtu *.msh *.ele *.node *.edge *.stat fluidity.err-0 fluidity.log-0
+	rm -f *.vtu *.ele *.node *.edge *.stat fluidity.err-0 fluidity.log-0
 
 flmls:
 	@$(foreach M,B C D, \
