@@ -118,6 +118,8 @@ module advection_diffusion_cg
   logical :: move_mesh
   ! Include porosity?
   logical :: include_porosity
+  ! Is this material_phase compressible?
+  logical :: compressible = .false.
   ! Are we running a multiphase flow simulation?
   logical :: multiphase
 
@@ -151,8 +153,9 @@ contains
     
     ! Note: the assembly of the heat transfer term is done here to avoid 
     ! passing in the whole state array to assemble_advection_diffusion_cg.
-    if(have_option("/multiphase_interaction/heat_transfer")) then
-       call add_heat_transfer(state, istate, t, matrix, rhs)
+    if(have_option("/multiphase_interaction/heat_transfer") .and. &
+       equation_type_index(trim(t%option_path)) == FIELD_EQUATION_INTERNALENERGY) then
+      call add_heat_transfer(state, istate, t, matrix, rhs)
     end if
     call profiler_toc(t, "assembly")
     
@@ -520,18 +523,22 @@ contains
       olddensity=>extract_scalar_field(state, "Old"//trim(density_name))
       ewrite_minmax(olddensity)
       
-      if(.not.multiphase .or. have_option('/material_phase::'//trim(state%name)//&
-         &'/equation_of_state/compressible')) then         
-         call get_option(trim(density%option_path)//"/prognostic/temporal_discretisation/theta", &
-                        density_theta)
+      if(have_option(trim(state%option_path)//'/equation_of_state/compressible')) then         
+         call get_option(trim(density%option_path)//"/prognostic/temporal_discretisation/theta", density_theta)
+         compressible = .true.
+         
+         ! We always include the p*div(u) term if this is the compressible phase.
+         pressure=>extract_scalar_field(state, "Pressure")
+         ewrite_minmax(pressure)
       else
          ! Since the particle phase is always incompressible then its Density
          ! will not be prognostic. Just use a fixed theta value of 1.0.
          density_theta = 1.0
+         compressible = .false.
+         
+         ! Don't include the p*div(u) term if this is the incompressible particle phase.
+         pressure => dummydensity
       end if
-                      
-      pressure=>extract_scalar_field(state, "Pressure")
-      ewrite_minmax(pressure)
 
     case(FIELD_EQUATION_KEPSILON)
       ewrite(2,*) "Solving k-epsilon equation"
@@ -860,7 +867,7 @@ contains
     if(have_absorption) call add_absorption_element_cg(ele, test_function, t, absorption, detwei, matrix_addto, rhs_addto)
     
     ! Diffusivity
-    if(have_diffusivity) call add_diffusivity_element_cg(ele, t, diffusivity, dt_t, detwei, matrix_addto, rhs_addto)
+    if(have_diffusivity) call add_diffusivity_element_cg(ele, t, diffusivity, dt_t, nvfrac, detwei, matrix_addto, rhs_addto)
     
     ! Source
     if(have_source .and. (.not. add_src_directly_to_rhs)) then 
@@ -868,9 +875,10 @@ contains
     end if
     
     ! Pressure
-    if(equation_type==FIELD_EQUATION_INTERNALENERGY) call add_pressurediv_element_cg(ele, test_function, t, &
-                                                                                  velocity, pressure, nvfrac, &
-                                                                                  du_t, dnvfrac_t, detwei, rhs_addto)
+    if(equation_type==FIELD_EQUATION_INTERNALENERGY .and. compressible) then
+       call add_pressurediv_element_cg(ele, test_function, t, velocity, pressure, nvfrac, du_t, detwei, rhs_addto)
+    end if
+                                                                                  
     
     ! Step 4: Insertion
             
@@ -1187,9 +1195,9 @@ contains
     
   end subroutine add_absorption_element_cg
   
-  subroutine add_diffusivity_element_cg(ele, t, diffusivity, dt_t, detwei, matrix_addto, rhs_addto)
+  subroutine add_diffusivity_element_cg(ele, t, diffusivity, dt_t, nvfrac, detwei, matrix_addto, rhs_addto)
     integer, intent(in) :: ele
-    type(scalar_field), intent(in) :: t
+    type(scalar_field), intent(in) :: t, nvfrac
     type(tensor_field), intent(in) :: diffusivity
     real, dimension(ele_loc(t, ele), ele_ngi(t, ele), mesh_dim(t)), intent(in) :: dt_t
     real, dimension(ele_ngi(t, ele)), intent(in) :: detwei
@@ -1202,20 +1210,32 @@ contains
     assert(have_diffusivity)
     
     diffusivity_gi = ele_val_at_quad(diffusivity, ele)
+
     if(isotropic_diffusivity) then
       assert(size(diffusivity_gi, 1) > 0)
-      diffusivity_mat = dshape_dot_dshape(dt_t, dt_t, detwei * diffusivity_gi(1, 1, :))
+      if(multiphase .and. equation_type==FIELD_EQUATION_INTERNALENERGY) then
+         ! This allows us to use the Diffusivity term as the heat flux term
+         ! in the multiphase InternalEnergy equation: div( (k/Cv) * vfrac * grad(ie) ).
+         ! The user needs to input k/Cv for the prescribed diffusivity,
+         ! where k is the effective conductivity and Cv is the specific heat
+         ! at constant volume. We've assumed this will always be isotropic here.
+         ! The division by Cv is needed because the heat flux
+         ! is defined in terms of temperature T = ie/Cv.
+         diffusivity_mat = dshape_dot_dshape(dt_t, dt_t, detwei * diffusivity_gi(1, 1, :) * ele_val_at_quad(nvfrac, ele))
+      else
+         diffusivity_mat = dshape_dot_dshape(dt_t, dt_t, detwei * diffusivity_gi(1, 1, :))
+      end if
     else
       diffusivity_mat = dshape_tensor_dshape(dt_t, diffusivity_gi, dt_t, detwei)
     end if
-    
+
     if(abs(dt_theta) > epsilon(0.0)) matrix_addto = matrix_addto + dt_theta * diffusivity_mat
     
     rhs_addto = rhs_addto - matmul(diffusivity_mat, ele_val(t, ele))
     
   end subroutine add_diffusivity_element_cg
   
-  subroutine add_pressurediv_element_cg(ele, test_function, t, velocity, pressure, nvfrac, du_t, dnvfrac_t, detwei, rhs_addto)
+  subroutine add_pressurediv_element_cg(ele, test_function, t, velocity, pressure, nvfrac, du_t, detwei, rhs_addto)
   
     integer, intent(in) :: ele
     type(element_type), intent(in) :: test_function
@@ -1224,23 +1244,15 @@ contains
     type(scalar_field), intent(in) :: pressure
     type(scalar_field), intent(in) :: nvfrac
     real, dimension(ele_loc(velocity, ele), ele_ngi(velocity, ele), mesh_dim(t)), intent(in) :: du_t
-    real, dimension(:, :, :), intent(in) :: dnvfrac_t
     real, dimension(ele_ngi(t, ele)), intent(in) :: detwei
     real, dimension(ele_loc(t, ele)), intent(inout) :: rhs_addto
-    
-    real, dimension(velocity%dim, ele_ngi(t, ele)) :: nvfracgrad_at_quad
-    real, dimension(ele_ngi(t, ele)) :: udotgradnvfrac_at_quad
     
     assert(equation_type==FIELD_EQUATION_INTERNALENERGY)
     assert(ele_ngi(pressure, ele)==ele_ngi(t, ele))
     
     if(multiphase) then
-       ! -p * (div(vfrac*nu)) 
-       nvfracgrad_at_quad = ele_grad_at_quad(nvfrac, ele, dnvfrac_t)
-       udotgradnvfrac_at_quad = sum(nvfracgrad_at_quad*ele_val_at_quad(velocity, ele), 1)
-             
-       rhs_addto = rhs_addto - ( shape_rhs(test_function, ele_div_at_quad(velocity, ele, du_t) * ele_val_at_quad(nvfrac, ele) * ele_val_at_quad(pressure, ele) * detwei) &
-                                 + shape_rhs(test_function, udotgradnvfrac_at_quad * ele_val_at_quad(pressure, ele) * detwei) )
+       ! -p * vfrac * div(nu)
+       rhs_addto = rhs_addto - shape_rhs(test_function, ele_div_at_quad(velocity, ele, du_t) * ele_val_at_quad(pressure, ele) * detwei * ele_val_at_quad(nvfrac, ele))
     else
        rhs_addto = rhs_addto - shape_rhs(test_function, ele_div_at_quad(velocity, ele, du_t) * ele_val_at_quad(pressure, ele) * detwei)
     end if
@@ -1431,7 +1443,7 @@ contains
   subroutine advection_diffusion_cg_check_options
     !!< Check CG advection-diffusion specific options
     
-    character(len = FIELD_NAME_LEN) :: field_name, state_name
+    character(len = FIELD_NAME_LEN) :: field_name, state_name, mesh_0, mesh_1
     character(len = OPTION_PATH_LEN) :: path
     integer :: i, j, stat
     real :: beta, l_theta
@@ -1504,7 +1516,20 @@ contains
               call field_error(state_name, field_name, &
                 & "Weak Dirichlet boundary conditions with diffusivity are not supported by CG advection-diffusion")
             end if
-            
+                 
+            if (have_option(trim(path) // "/scalar_field::SinkingVelocity")) then
+               call get_option(trim(complete_field_path(trim(path) // &
+                    "/scalar_field::SinkingVelocity"))//"/mesh[0]/name", &
+                    mesh_0, stat)
+               if(stat == SPUD_NO_ERROR) then
+                  call get_option(trim(complete_field_path("/material_phase[" // int2str(i) // &
+                       "]/vector_field::Velocity")) // "/mesh[0]/name", mesh_1)
+                  if(trim(mesh_0) /= trim(mesh_1)) then
+                     call field_warning(state_name, field_name, &
+                          & "SinkingVelocity is on a different mesh to the Velocity field. This could cause problems")
+                  end if
+               end if
+            end if
             if(have_option(trim(path) // "/spatial_discretisation/continuous_galerkin/advection_terms/exclude_advection_terms")) then
               if(have_option(trim(path) // "/scalar_field::SinkingVelocity")) then
                 call field_warning(state_name, field_name, &

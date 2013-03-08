@@ -42,7 +42,7 @@ module surface_diagnostics
   
   private
   
-  public :: calculate_grad_normal, calculate_boundary_distance_normal
+  public :: calculate_grad_normal
   
 contains
   
@@ -76,23 +76,4 @@ contains
     
   end subroutine calculate_grad_normal
   
-  subroutine calculate_boundary_distance_normal(state, s_field)
-    type(state_type), intent(in) :: state
-    ! s_field can be P0 only
-    type(scalar_field), intent(inout) :: s_field
-    type(vector_field), pointer :: positions
-    integer :: ele, sele
-    real :: h
-        
-    positions => extract_vector_field(state, "Coordinate")
-
-    call zero(s_field)
-    do sele = 1, surface_element_count(s_field)
-      ele  = face_ele(s_field, sele)
-      h = surface_normal_distance_sele(positions, sele, ele)
-      call set(s_field, ele, h)
-    end do
-
-  end subroutine calculate_boundary_distance_normal
-
 end module surface_diagnostics

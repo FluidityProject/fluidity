@@ -214,7 +214,7 @@ material_phase =
                      element remove_time_term { empty }?
                   }?,
                   element solver {
-                     linear_solver_options_asym
+                     linear_solver_options_asym_vector
                   },
                   ## If activated, the advection term is removed from the equation.
                   element remove_advection_term { empty }?,

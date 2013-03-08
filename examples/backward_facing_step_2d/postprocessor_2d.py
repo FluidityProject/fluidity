@@ -146,38 +146,12 @@ def meanvelo(file,x,y):
 
   ##### Get x-velocity
   uvw = datafile.ProbeData(pts, "AverageVelocity")
-  umax = 2.3
-  u = uvw[:,0]/umax
+  u = uvw[:,0]
   u=u.reshape([x.size,y.size])
-  profiles[:,:] = u
-
-  print "\n...Finished writing data files.\n"
-  return profiles
-
-#########################################################################
-
-# TKE profiles:
-def tke(file,x,y):
-
-  print "\nRunning TKE profile script on files at times...\n"
-
-  ##### create array of points. Correct for origin not at step.
-  pts=[]
   for i in range(len(x)):
-    for j in range(len(y)):
-      pts.append([x[i]+5.0, y[j], 0.0])
-
-  pts=numpy.array(pts)
-  profiles=numpy.zeros([x.size, y.size], float)
-
-  datafile = vtktools.vtu(file)
-
-  ##### Get x-velocity
-  k = datafile.ProbeData(pts, "TurbulentKineticEnergy")
-  kmax = max(k)
-  k = k/kmax
-  k=k.reshape([x.size,y.size])
-  profiles[:,:] = k
+    umax = max(u[i,:])
+    u[i,:] = u[i,:]/umax
+  profiles[:,:] = u
 
   print "\n...Finished writing data files.\n"
   return profiles
@@ -350,65 +324,6 @@ def plot_meanvelo(type,profiles,xarray,yarray):
 
 #########################################################################
 
-def plot_tke(type, profiles, xarray, yarray):
-  plot1 = pylab.figure(figsize = (8, 16))
-  pylab.suptitle("TKE profile: Re=132000, "+str(type), fontsize=20)
-
-  size = 15
-  ax = pylab.subplot(411)
-  leg_end = []
-
-  ax.plot(yarray,profiles[0,:], linestyle="solid",color='blue', marker = 'o', markerfacecolor='white', markersize=8, markeredgecolor='black')
-
-  leg_end.append("Fluidity")
-  pylab.legend((leg_end), loc="best")
-  leg = pylab.gca().get_legend()
-  ltext = leg.get_texts()
-  pylab.setp(ltext, fontsize = 18, color = 'black')
-  frame=leg.get_frame()
-  frame.set_fill(False)
-  frame.set_visible(False)
-  pylab.setp(ax.get_xticklabels(), visible=False)
-  ax.set_title('(a) x/h='+str(xarray[0]), fontsize=16)
-  ax.set_ylabel(r'$k/k_{\max}$', fontsize=24)
-
-  bx = pylab.subplot(412, sharex=ax, sharey=ax)
-  bx.plot(yarray,profiles[1,:], linestyle="solid",color='blue', marker = 'o', markerfacecolor='white', markersize=8, markeredgecolor='black')
-  bx.set_title('(b) x/h='+str(xarray[1]), fontsize=16)
-  for tick in bx.xaxis.get_major_ticks():
-    tick.label1.set_fontsize(size)
-  pylab.setp(bx.get_xticklabels(), visible=False)
-  bx.set_ylabel(r'$k/k_{\max}$', fontsize=24)
-
-  cx = pylab.subplot(413, sharex=ax, sharey=ax)
-  cx.plot(yarray,profiles[2,:], linestyle="solid",color='blue', marker = 'o', markerfacecolor='white', markersize=8, markeredgecolor='black')
-  cx.set_title('(c) x/h='+str(xarray[2]), fontsize=16)
-  for tick in cx.xaxis.get_major_ticks():
-    tick.label1.set_fontsize(size)
-  pylab.setp(cx.get_xticklabels(), visible=False)
-  cx.set_ylabel(r'$k/k_{\max}$', fontsize=24)
-
-  dx = pylab.subplot(414, sharex=ax, sharey=ax)
-  dx.plot(yarray,profiles[3,:], linestyle="solid",color='blue', marker = 'o', markerfacecolor='white', markersize=8, markeredgecolor='black')
-  dx.set_title('(d) x/h='+str(xarray[3]), fontsize=16)
-  for tick in dx.xaxis.get_major_ticks():
-    tick.label1.set_fontsize(size)
-
-  #pylab.axis([-0.25, 1.05, 0., 3.])
-  dx.set_ylabel(r'$k/k_{\max}$', fontsize=24)
-  dx.set_xlabel('y', fontsize=24)
-
-  for tick in dx.xaxis.get_major_ticks():
-    tick.label1.set_fontsize(size)
-  for tick in dx.yaxis.get_major_ticks():
-    tick.label1.set_fontsize(size)
-
-  pylab.savefig("../tke_profiles_kim_"+str(type)+".pdf")
-
-  return
-
-#########################################################################
-
 def main():
     ##### Which run is being processed?
     type = sys.argv[1]
@@ -432,13 +347,6 @@ def main():
     profiles = meanvelo(filelist[-1], xarray, yarray)
     numpy.save("velocity_profiles_kim_"+str(type), profiles)
     plot_meanvelo(type,profiles,xarray,yarray)
-
-    xarray = numpy.array([1.,2.3,7.6,10.3])
-
-    profiles = tke(filelist[-1], xarray, yarray)
-    numpy.save("tke_profiles_kim_"+str(type), profiles)
-    plot_tke(type,profiles,xarray,yarray)
-
     pylab.show()
 
     print "\nAll done.\n"

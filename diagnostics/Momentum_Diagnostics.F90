@@ -44,16 +44,17 @@ module momentum_diagnostics
   use spud
   use state_fields_module
   use state_module
+  use sediment, only : get_n_sediment_fields, get_sediment_item
   
   implicit none
   
   private
   
-  public :: calculate_strain_rate, calculate_bulk_viscosity, calculate_buoyancy, calculate_coriolis, &
-            calculate_tensor_second_invariant, calculate_imposed_material_velocity_source, &
-            calculate_imposed_material_velocity_absorption, &
+  public :: calculate_strain_rate, calculate_bulk_viscosity, calculate_sediment_concentration_dependent_viscosity, &
+            calculate_buoyancy, calculate_coriolis, calculate_tensor_second_invariant, &
+            calculate_imposed_material_velocity_source, calculate_imposed_material_velocity_absorption, &
             calculate_scalar_potential, calculate_projection_scalar_potential, &
-            calculate_geostrophic_velocity, calculate_k_epsilon_diffusivity
+            calculate_geostrophic_velocity
            
   
 contains
@@ -73,76 +74,59 @@ contains
     call strain_rate(source_field, positions, t_field)
 
   end subroutine calculate_strain_rate
- 
-  subroutine calculate_k_epsilon_diffusivity(state, t_field)
-    ! calculates scalar field diffusivity based upon eddy viscosity and background
-    !  diffusivity
-    type(state_type), intent(inout)   :: state
+
+  subroutine calculate_sediment_concentration_dependent_viscosity(state, t_field)
+    ! calculates viscosity based upon total sediment concentration
+    type(state_type), intent(inout) :: state
     type(tensor_field), intent(inout) :: t_field
-    character(len = OPTION_PATH_LEN)  :: parent_path
-    integer                           :: slash_location, i, stat
-    real                              :: sigma_p, local_background_diffusivity
-    type(scalar_field)                :: local_background_diffusivity_field
-    type(scalar_field), pointer       :: scalar_eddy_viscosity
-    type(tensor_field), pointer       :: global_background_diffusivity
-    type(tensor_field)                :: background_diffusivity
+    
+    type(scalar_field_pointer), dimension(:), allocatable :: sediment_concs
+    type(tensor_field), pointer :: zero_conc_viscosity
+    type(scalar_field) :: rhs
+    integer :: sediment_classes, i
+    character(len = FIELD_NAME_LEN) :: field_name
+    
+    ewrite(1,*) 'In calculate_sediment_concentration_dependent_viscosity'
 
-    ewrite(1,*) 'In calculate_k_epsilon_diffusivity'
+    sediment_classes = get_n_sediment_fields()
 
-    ! get parent scalar field path
-    slash_location = scan(t_field%option_path, '/', .true.)
-    parent_path = t_field%option_path(1:slash_location-1)
+    if (sediment_classes > 0) then
+        allocate(sediment_concs(sediment_classes))
+        
+        call get_sediment_item(state, 1, sediment_concs(1)%ptr)
+        
+        call allocate(rhs, sediment_concs(1)%ptr%mesh, name="Rhs")
+        call set(rhs, 1.0)
+        
+        ! get sediment concentrations and remove c/0.65 from rhs
+        do i=1, sediment_classes
+           call get_sediment_item(state, i, sediment_concs(i)%ptr)
+           call addto(rhs, sediment_concs(i)%ptr, scale=-(1.0/0.65))
+        end do
+        
+        ! raise rhs to power of -1.625
+        do i = 1, node_count(rhs)
+           call set(rhs, i, node_val(rhs, i)**(-1.625))
+        end do
+        
+        ! check for presence of ZeroSedimentConcentrationViscosity field
+        if (.not. has_tensor_field(state, "ZeroSedimentConcentrationViscosity")) then
+           FLExit("You must specify an zero sediment concentration viscosity to be able &
+                &to calculate sediment concentration dependent viscosity field values")
+        endif
+        zero_conc_viscosity => extract_tensor_field(state, 'ZeroSedimentConcentrationViscosity')
+        
+        call set(t_field, zero_conc_viscosity)
+        call scale(t_field, rhs)
+        ewrite_minmax(t_field) 
 
-    ! check options
-    if (.not.(have_option(trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon')))&
-         & then
-       FLExit('you must have /subgridscale_parameterisations/k-epsilon to be able to calculate diffusivity based upon the k-epsilon model')
-    end if
-
-    ! get sigma_p number
-    call get_option(trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/sigma_p', sigma_p)
-
-    ! allocate and zero required fields
-    call allocate(background_diffusivity, t_field%mesh, name="background_diff&
-         &usivity")
-    call zero(background_diffusivity)
-    call allocate(local_background_diffusivity_field, t_field%mesh, name="local_backgro&
-         &und_diffusivity_field")
-    call zero(local_background_diffusivity_field)
-
-    ! set background_diffusivity (local takes precendence over global)
-    call get_option(trim(parent_path)//'/subgridscale_parameterisation::k-epsilon/backg&
-            &round_diffusivity', local_background_diffusivity, stat=stat)
-    if (stat == 0) then 
-       ! set local isotropic background diffusivity
-       call addto(local_background_diffusivity_field, local_background_diffusivity)
-       do i = 1, background_diffusivity%dim(1)
-          call set(background_diffusivity, i, i, local_background_diffusivity_field)
-       end do
+        deallocate(sediment_concs)
+        call deallocate(rhs)
     else
-       global_background_diffusivity => extract_tensor_field(state, 'BackgroundDiffusivity', stat=stat)
-       if (stat == 0) then 
-          call set(background_diffusivity, global_background_diffusivity)
-       end if
-    end if
-
-    ! get eddy viscosity
-    scalar_eddy_viscosity => extract_scalar_field(state, 'ScalarEddyViscosity', stat)
-    if (stat /= 0) then 
-       FLExit("No ScalarEddyViscosity field was found. Check the k-epsilon model is turned on and you have a valid flml input file.")
-    end if
-
-    call zero(t_field)
-    call addto(t_field, background_diffusivity)
-    do i = 1, t_field%dim(1)
-       call addto(t_field, i, i, scalar_eddy_viscosity, 1.0/sigma_p)
-    end do
-
-    call deallocate(background_diffusivity)
-    call deallocate(local_background_diffusivity_field)
-
-  end subroutine calculate_k_epsilon_diffusivity
-
+        ewrite(1,*) 'No sediment in problem definition'
+    end if  
+  end subroutine calculate_sediment_concentration_dependent_viscosity
+  
   subroutine calculate_tensor_second_invariant(state, s_field)
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(inout) :: s_field

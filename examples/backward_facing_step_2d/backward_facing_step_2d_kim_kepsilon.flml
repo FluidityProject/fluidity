@@ -46,7 +46,7 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">25</integer_value>
+        <integer_value rank="0">50</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <output_mesh name="CoordinateMesh"/>
@@ -60,14 +60,14 @@
       <real_value rank="0">0.01</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">300.0</real_value>
+      <real_value rank="0">200.0</real_value>
     </finish_time>
     <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
     </nonlinear_iterations>
     <adaptive_timestep>
       <requested_cfl>
-        <real_value rank="0">1.0</real_value>
+        <real_value rank="0">2.0</real_value>
       </requested_cfl>
       <courant_number name="CFLNumber">
         <mesh name="VelocityMesh"/>
@@ -75,7 +75,7 @@
     </adaptive_timestep>
     <steady_state>
       <tolerance>
-        <real_value rank="0">1.e-4</real_value>
+        <real_value rank="0">1.e-5</real_value>
         <infinity_norm/>
       </tolerance>
       <steady_state_file>
@@ -111,7 +111,7 @@
             </spatial_discretisation>
             <temporal_discretisation>
               <theta>
-                <real_value rank="0">1.0</real_value>
+                <real_value rank="0">0.5</real_value>
               </theta>
               <control_volumes>
                 <number_advection_iterations>
@@ -138,7 +138,7 @@
             </solver>
             <initial_condition name="WholeMesh">
               <constant>
-                <real_value rank="0">0.</real_value>
+                <real_value rank="0">1.e-4</real_value>
               </constant>
             </initial_condition>
             <boundary_conditions name="inflow">
@@ -147,7 +147,7 @@
               </surface_ids>
               <type name="dirichlet">
                 <constant>
-                  <real_value rank="0">0.</real_value>
+                  <real_value rank="0">1.e-4</real_value>
                 </constant>
               </type>
             </boundary_conditions>
@@ -227,7 +227,7 @@
             </spatial_discretisation>
             <temporal_discretisation>
               <theta>
-                <real_value rank="0">1.0</real_value>
+                <real_value rank="0">0.5</real_value>
               </theta>
               <control_volumes>
                 <number_advection_iterations>
@@ -254,7 +254,7 @@
             </solver>
             <initial_condition name="WholeMesh">
               <constant>
-                <real_value rank="0">0.</real_value>
+                <real_value rank="0">1.e-5</real_value>
               </constant>
             </initial_condition>
             <boundary_conditions name="inflow">
@@ -263,7 +263,7 @@
               </surface_ids>
               <type name="dirichlet">
                 <constant>
-                  <real_value rank="0">0.</real_value>
+                  <real_value rank="0">1.e-5</real_value>
                 </constant>
               </type>
             </boundary_conditions>
@@ -447,9 +447,19 @@
         <sigma_p>
           <real_value rank="0">1.0</real_value>
         </sigma_p>
-        <mass_lumping_in_diagnostics>
+        <time_discretisation>
+          <theta>
+            <real_value rank="0">0.5</real_value>
+          </theta>
+          <source_term_implementation>
+            <production_term>source</production_term>
+            <destruction_term>absorbtion</destruction_term>
+            <buoyancy_term>source</buoyancy_term>
+          </source_term_implementation>
+        </time_discretisation>
+        <mass_terms>
           <lump_mass/>
-        </mass_lumping_in_diagnostics>
+        </mass_terms>
       </k-epsilon>
     </subgridscale_parameterisations>
     <scalar_field name="Pressure" rank="0">
@@ -489,7 +499,7 @@
           <exclude_from_detectors/>
         </detectors>
         <steady_state>
-          <include_in_steady_state/>
+          <exclude_from_steady_state/>
         </steady_state>
         <no_interpolation/>
       </prognostic>
@@ -619,13 +629,13 @@
               <exclude_from_stat/>
             </stat>
             <convergence>
-              <include_in_convergence/>
+              <exclude_from_convergence/>
             </convergence>
             <detectors>
-              <include_in_detectors/>
+              <exclude_from_detectors/>
             </detectors>
             <steady_state>
-              <include_in_steady_state/>
+              <exclude_from_steady_state/>
             </steady_state>
           </diagnostic>
         </vector_field>
@@ -658,7 +668,7 @@
         <output/>
         <stat/>
         <convergence>
-          <include_in_convergence/>
+          <exclude_from_convergence/>
         </convergence>
         <detectors>
           <include_in_detectors/>
@@ -696,13 +706,13 @@
         <output/>
         <stat/>
         <convergence>
-          <include_in_convergence/>
+          <exclude_from_convergence/>
         </convergence>
         <detectors>
           <include_in_detectors/>
         </detectors>
         <steady_state>
-          <include_in_steady_state/>
+          <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
@@ -738,13 +748,13 @@
           <include_in_stat/>
         </stat>
         <convergence>
-          <include_in_convergence/>
+          <exclude_from_convergence/>
         </convergence>
         <detectors>
           <include_in_detectors/>
         </detectors>
         <steady_state>
-          <include_in_steady_state/>
+          <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </vector_field>

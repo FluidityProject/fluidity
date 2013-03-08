@@ -54,7 +54,6 @@ module diagnostic_fields_wrapper
   use momentum_diagnostic_fields
   use spontaneous_potentials, only: calculate_formation_conductivity
   use sediment_diagnostics
-  use k_epsilon
   use geostrophic_pressure
   use multiphase_module
   
@@ -79,8 +78,6 @@ contains
 
     ! An array of submaterials of the current phase in state(istate).
     type(state_type), dimension(:), pointer :: submaterials
-    ! Needed for k-epsilon diagnostic fields (explained below).
-    type(scalar_field), pointer :: buoyancy_density
     
     ewrite(1, *) "In calculate_diagnostic_variables"
  
@@ -559,7 +556,11 @@ contains
 
        ! Start of sediment diagnostics.
        if (have_option("/material_phase[0]/sediment")) then
+          call calculate_sediment_sinking_velocity(state(i))
           call calculate_sediment_flux(state(i))
+          call calculate_sediment_active_layer_d50(state(i))
+          call calculate_sediment_active_layer_sigma(state(i))
+          call calculate_sediment_active_layer_volume_fractions(state(i))
        end if
        ! End of sediment diagnostics.
 
@@ -636,27 +637,6 @@ contains
          if(recalculate(trim(v_field%option_path))) then
            call calculate_diagnostic_variable(state(i), "AbsoluteDifference", v_field)  
          end if
-       end if
-       
-       ! k-epsilon diagnostics
-       ! Note: only call this after all other diagnostic fields
-       ! have been computed, so that we know that the Density field
-       ! has been calculated first.
-       if(have_option(trim(state(i)%option_path)//'/subgridscale_parameterisations/k-epsilon/')) then
-         if(timestep == 0 .and. have_option('/physical_parameters/gravity')) then
-            ! The very first time k-epsilon is called, VelocityBuoyancyDensity
-            ! is set to zero until calculate_densities is called in the momentum equation
-            ! solve. Calling calculate_densities here is a work-around for this problem.  
-            buoyancy_density => extract_scalar_field(state, 'VelocityBuoyancyDensity')
-            if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then 
-              call get_phase_submaterials(state, i, submaterials)
-              call calculate_densities(submaterials, buoyancy_density=buoyancy_density)
-              deallocate(submaterials)
-            else
-              call calculate_densities(state, buoyancy_density=buoyancy_density)
-            end if
-         end if
-         call keps_diagnostics(state(i))
        end if
 
     end do

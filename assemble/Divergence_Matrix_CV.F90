@@ -57,7 +57,7 @@ contains
     !************************************************************************
     subroutine assemble_divergence_matrix_cv(CT_m, state, ct_rhs, & 
                                              test_mesh, field, &
-                                             get_ct, exclude_boundaries)
+                                             get_ct, exclude_boundaries, include_vfrac)
 
       ! inputs/outputs
       ! bucket full of fields
@@ -74,6 +74,7 @@ contains
       
       logical, intent(in), optional :: get_ct
       logical, intent(in), optional :: exclude_boundaries
+      logical, intent(in), optional :: include_vfrac
 
       ! local
       ! degree of quadrature over cv faces
@@ -109,7 +110,7 @@ contains
       real, dimension(:,:,:), allocatable :: ct_mat_local, ct_mat_local_bdy
       real, dimension(:,:), allocatable :: ct_rhs_local
 
-      logical :: l_get_ct
+      logical :: l_get_ct, l_include_vfrac
 
       !! Multiphase variables
       logical :: multiphase
@@ -138,6 +139,17 @@ contains
       else
         l_get_ct = .true.
       end if
+      
+      ! In some cases we might not want to include the PhaseVolumeFraction
+      ! field in the divergence matrix, even though we are running a multiphase
+      ! flow simulation.
+      ! For example, in the InternalEnergy equation we just want
+      ! div(u), not div(vfrac*u).
+      if(present(include_vfrac)) then
+        l_include_vfrac = include_vfrac
+      else
+        l_include_vfrac = .true.
+      end if
 
       x=>extract_vector_field(state, "Coordinate")
       allocate(x_ele(x%dim,x%mesh%shape%loc))
@@ -154,7 +166,7 @@ contains
                             quaddegree=quaddegree)
 
       ! Check if we need to multiply through by the non-linear volume fraction
-      if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
+      if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1 .and. l_include_vfrac) then
          multiphase = .true.
 
          vfrac => extract_scalar_field(state, "PhaseVolumeFraction")
@@ -231,7 +243,7 @@ contains
                   if(notvisited(ggi)) then
                     notvisited(ggi)=.false.
   
-                    call orientate_cvsurf_normgi(normgi, node_val(x_test, x_test_nodes(iloc)),x_f(:,ggi),normal(:,ggi))
+                    normgi=orientate_cvsurf_normgi(node_val(x_test, x_test_nodes(iloc)),x_f(:,ggi),normal(:,ggi))
   
                     nodal_loop_j: do jloc = 1, field%mesh%shape%loc
   
@@ -667,7 +679,7 @@ contains
                 if(notvisited(ggi)) then
                   notvisited(ggi)=.false.
 
-                  call orientate_cvsurf_normgi(normgi, node_val(x_p, x_nodes(iloc)),x_f(:,ggi),normal(:,ggi))
+                  normgi=orientate_cvsurf_normgi(node_val(x_p, x_nodes(iloc)),x_f(:,ggi),normal(:,ggi))
 
                   udotn=dot_product(u_f(:,ggi), normgi(:))
 
@@ -1210,7 +1222,7 @@ contains
                     if(visited(ggi)==0) then
                       visited(ggi)=1
 
-                      call orientate_cvsurf_normgi(normgi, x_ele(:,iloc),x_f(:,ggi),normal(:,ggi))
+                      normgi=orientate_cvsurf_normgi(x_ele(:,iloc),x_f(:,ggi),normal(:,ggi))
 
                       udotn=dot_product(u_f(:,ggi), normgi(:))
 

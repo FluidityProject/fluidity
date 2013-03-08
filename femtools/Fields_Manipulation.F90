@@ -86,7 +86,8 @@ implicit none
                    & set_vector_field_node, set_vector_field, &
                    & set_vector_field_node_dim, set_vector_field_dim, &
                    & set_tensor_field_node, set_tensor_field, &
-                   & set_scalar_field_nodes, set_tensor_field_node_dim, &
+                   & set_scalar_field_nodes, set_scalar_field_constant_nodes, &
+                   & set_tensor_field_node_dim, &
                    & set_vector_field_nodes, &
                    & set_vector_field_nodes_dim, &
                    & set_tensor_field_nodes, &
@@ -849,10 +850,25 @@ implicit none
     real, dimension(:), intent(in) :: val
 
     assert(field%field_type==FIELD_TYPE_NORMAL)
-    
+    assert(size(node_numbers)==size(val))
+
     field%val(node_numbers) = val
     
   end subroutine set_scalar_field_nodes
+  
+  subroutine set_scalar_field_constant_nodes(field, node_numbers, val)
+    !!< Set the scalar field at the specified node_numbers
+    !!< to a constant value
+    !!< Does not work for constant fields
+    type(scalar_field), intent(inout) :: field
+    integer, dimension(:), intent(in) :: node_numbers
+    real, intent(in) :: val
+
+    assert(field%field_type==FIELD_TYPE_NORMAL)
+
+    field%val(node_numbers) = val
+    
+  end subroutine set_scalar_field_constant_nodes
   
   subroutine set_scalar_field(field, val)
     !!< Set the scalar field with a constant value
@@ -2216,7 +2232,7 @@ implicit none
 
     old_shape = in_mesh%shape
 
-    shape = make_element_shape(vertices=old_shape%loc, dim=old_shape%dim, degree=0, quad=old_shape%quadrature)
+    shape = make_element_shape(vertices=old_shape%numbering%vertices, dim=old_shape%dim, degree=0, quad=old_shape%quadrature)
     new_mesh = make_mesh(model=in_mesh, shape=shape, continuity=-1)
     new_mesh%name=name
     call deallocate(shape)
@@ -2256,18 +2272,23 @@ implicit none
 
   end subroutine scalar_scale
 
-  subroutine vector_scale(field, factor)
+  subroutine vector_scale(field, factor, dim)
     !!< Multiply vector field with factor
     type(vector_field), intent(inout) :: field
     real, intent(in) :: factor
+    integer, intent(in), optional :: dim
 
     integer :: i
 
     assert(field%field_type/=FIELD_TYPE_PYTHON)
     
-    do i=1,field%dim
-      field%val(i,:) = field%val(i,:) * factor
-    end do
+    if (present(dim)) then
+      field%val(dim,:) = field%val(dim,:) * factor
+    else
+      do i=1,field%dim
+        field%val(i,:) = field%val(i,:) * factor
+      end do
+    end if
       
   end subroutine vector_scale
 

@@ -2,7 +2,7 @@
 <testproblem>
   <name>buoyancy_adjustment_two_element_generic_linear_eos</name>
   <owner userid="btollit"/>
-  <tags>flml</tags>
+  <tags>flml buoyancyadjustment</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
 fluidity -v1 -l mix.flml

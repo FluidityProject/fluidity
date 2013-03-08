@@ -50,7 +50,7 @@
     use vector_tools
     use fetools
     use upwind_stabilisation
-    use les_viscosity_module
+    use les_module
     use smoothing_module
     use metric_tools
     use field_derivatives
@@ -62,6 +62,7 @@
     use Coordinates
     use multiphase_module
     use edge_length_module
+    use physics_from_options
     use colouring
     use Profiler
 #ifdef _OPENMP
@@ -100,8 +101,6 @@
     logical :: vel_lump_on_submesh, cmc_lump_on_submesh, abs_lump_on_submesh
     ! integrate the surface tension by parts
     logical :: integrate_surfacetension_by_parts
-    ! add viscous terms to inverse_masslump for low Re which is only used for pressure correction
-    logical :: low_re_p_correction_fix
 
     ! which terms do we have?
     logical :: have_source
@@ -111,7 +110,6 @@
     logical :: have_implicit_buoyancy
     logical :: have_vertical_velocity_relaxation
     logical :: have_viscosity
-    logical :: have_eddyviscosity
     logical :: have_surfacetension
     logical :: have_coriolis
     logical :: have_geostrophic_pressure
@@ -127,8 +125,16 @@
     logical :: assemble_mass_matrix
     logical :: assemble_inverse_masslump
 
-    ! implicitness parameter, timestep, conservation parameter
-    real :: theta, dt, beta, gravity_magnitude
+    ! implicitness parameter, timestep, conservation parameter, nonlinear theta factor
+    real :: theta, dt, beta, gravity_magnitude, itheta
+
+    ! Boundary condition types for velocity, and pressure
+    ! the ids have to correspond to the order of the arguments in
+    ! the calls to get_entire_boundary_condition below
+    integer, parameter :: BC_TYPE_WEAKDIRICHLET = 1, BC_TYPE_NO_NORMAL_FLOW=2, &
+                          BC_TYPE_INTERNAL = 3, BC_TYPE_FREE_SURFACE = 4, &
+                          BC_TYPE_FLUX = 5
+    integer, parameter :: PRESSURE_BC_TYPE_WEAKDIRICHLET = 1, PRESSURE_BC_DIRICHLET = 2
 
     ! Stabilisation schemes.
     integer :: stabilisation_scheme
@@ -140,7 +146,8 @@
     
     ! LES coefficients and options
     real :: smagorinsky_coefficient
-    logical :: have_anisotropy
+    character(len=OPTION_PATH_LEN) :: length_scale_type
+    logical :: have_eddy_visc, have_filter_width, have_coeff
 
     ! Temperature dependent viscosity coefficients:
     real :: reference_viscosity
@@ -162,7 +169,7 @@
   contains
 
     subroutine construct_momentum_cg(u, p, density, x, &
-                                     big_m, rhs, ct_m, ct_rhs, mass, inverse_masslump, visc_inverse_masslump, &
+                                     big_m, rhs, ct_m, ct_rhs, mass, inverse_masslump, &
                                      state, assemble_ct_matrix_here, include_pressure_and_continuity_bcs)
       !!< Assembles the momentum matrix and rhs for the LinearMomentum,
       !!< Boussinesq and Drainage equation types such that
@@ -186,7 +193,7 @@
       type(petsc_csr_matrix), intent(inout) :: mass
       ! the lumped mass matrix (may vary per component as absorption could be included)
       ! NOTE: see the logical assemble_inverse_masslump below to see when this is actually assembled
-      type(vector_field), intent(inout) :: inverse_masslump, visc_inverse_masslump
+      type(vector_field), intent(inout) :: inverse_masslump
       ! NOTE: you have to call deallocate_cg_mass after you're done
       ! with mass and inverse_masslump
       
@@ -211,7 +218,7 @@
       type(scalar_field), pointer :: gp
       type(vector_field), pointer :: gravity
       type(vector_field), pointer :: oldu, nu, ug, source, absorption
-      type(tensor_field), pointer :: viscosity, eddyviscosity
+      type(tensor_field), pointer :: viscosity
       type(tensor_field), pointer :: surfacetension
       type(vector_field), pointer :: x_old, x_new
 
@@ -228,7 +235,7 @@
       ! bc arrays
       type(vector_field) :: velocity_bc
       type(scalar_field) :: pressure_bc
-      integer, dimension(:,:), allocatable :: velocity_bc_type, velocity_bc_number
+      integer, dimension(:,:), allocatable :: velocity_bc_type 
       integer, dimension(:), allocatable :: pressure_bc_type
 
       ! fields for the assembly of absorption when
@@ -240,9 +247,9 @@
       character(len=OPTION_PATH_LEN) :: les_option_path
       ! For 4th order:
       type(tensor_field):: grad_u
-      ! Filtered fields for Germano Dynamic LES (short names to keep variable lists manageable):
-      type(vector_field), pointer :: nu_f1, nu_f2
-      type(tensor_field), pointer :: lnd, stp, tfield
+      ! For Germano Dynamic LES:
+      type(vector_field), pointer :: fnu, tnu
+      type(tensor_field), pointer :: leonard, strainprod
       real                        :: alpha, gamma
 
       ! for temperature dependent viscosity :
@@ -361,14 +368,6 @@
         ewrite_minmax(viscosity)
       end if
       
-      eddyviscosity=>extract_tensor_field(state, "EddyViscosity", stat)
-      have_eddyviscosity = stat == 0
-      if(.not. have_eddyviscosity) then
-         eddyviscosity=>dummytensor
-      else
-        ewrite_minmax(eddyviscosity)
-      end if
-
       surfacetension=>extract_tensor_field(state, "VelocitySurfaceTension", stat)
       have_surfacetension = stat == 0
       if(.not. have_surfacetension) then
@@ -380,25 +379,28 @@
       have_coriolis = have_option("/physical_parameters/coriolis")
       have_les = have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
          &"/continuous_galerkin/les_model")
-      have_anisotropy=.false.
-
-      ! Large Eddy Simulation options
       if (have_les) then
+         ! Set everything to false initially, then set to true if present
+         have_eddy_visc=.false.; have_filter_width=.false.; have_coeff=.false.
+
          les_option_path=(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
                  &"/continuous_galerkin/les_model")
          les_second_order=have_option(trim(les_option_path)//"/second_order")
          les_fourth_order=have_option(trim(les_option_path)//"/fourth_order")
          wale=have_option(trim(les_option_path)//"/wale")
          dynamic_les=have_option(trim(les_option_path)//"/dynamic_les")
-
-         ! zero the diagnostic fields.
-         call les_zero_diagnostic_fields(state)
-
          if (les_second_order) then
             call get_option(trim(les_option_path)//"/second_order/smagorinsky_coefficient", &
                  smagorinsky_coefficient)
-           ! Do we want anisotropic eddy viscosity?
-           have_anisotropy = have_option(trim(les_option_path)//"/second_order/anisotropic_viscosity")
+               
+            call get_option(trim(les_option_path)//"/second_order/length_scale_type", length_scale_type)
+
+            have_eddy_visc = have_option(trim(les_option_path)//"/second_order/tensor_field::EddyViscosity")
+            if(have_eddy_visc) then
+               ! Initialise the eddy viscosity field. Calling this subroutine works because
+               ! you can't have 2 different types of LES model for the same material phase.
+               call les_init_diagnostic_fields(state, have_eddy_visc, .false., .false.)
+            end if
          end if
          if (les_fourth_order) then
             call get_option(trim(les_option_path)//"/fourth_order/smagorinsky_coefficient", &
@@ -411,35 +413,60 @@
                  smagorinsky_coefficient)
          end if
          if(dynamic_les) then
-           ! Do we want anisotropic eddy viscosity?
-           have_anisotropy = have_option(trim(les_option_path)//"/dynamic_les/anisotropic_viscosity")
-
-           ! Option to cap the Smagorinsky coefficient.
-           if(have_option(trim(les_option_path)//"/dynamic_les/limit_coefficient")) then
-             call get_option(trim(les_option_path)//"/dynamic_les/limit_coefficient", smagorinsky_coefficient)
-           else
-             smagorinsky_coefficient = infinity
-           end if 
-           
+           ! Scalar or tensor filter width
+           call get_option(trim(les_option_path)//"/dynamic_les/length_scale_type", length_scale_type)
            ! Initialise optional diagnostic fields
-           ewrite(2,*) "Initialising LES diagnostic fields"
-           call dynamic_les_init_fields(state, nu, nu_f1, nu_f2, lnd, stp)
+           have_eddy_visc = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::EddyViscosity")
+           have_filter_width = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::FilterWidth")
+           have_coeff = have_option(trim(les_option_path)//"/dynamic_les/scalar_field::SmagorinskyCoefficient")
+           call les_init_diagnostic_fields(state, have_eddy_visc, have_filter_width, have_coeff)
 
-           ! Get filter1/mesh size ratio alpha and filter2/filter1 size ratio gamma. Default values are both 2.
+           ! Initialise necessary local fields.
+           ewrite(2,*) "Initialising compulsory dynamic LES fields"
+           if(have_option(trim(les_option_path)//"/dynamic_les/vector_field::FirstFilteredVelocity")) then
+             fnu => extract_vector_field(state, "FirstFilteredVelocity")
+           else
+             allocate(fnu)
+             call allocate(fnu, u%dim, u%mesh, "FirstFilteredVelocity")
+           end if
+           call zero(fnu)
+           if(have_option(trim(les_option_path)//"/dynamic_les/vector_field::TestFilteredVelocity")) then
+             tnu => extract_vector_field(state, "TestFilteredVelocity")
+           else
+             allocate(tnu)
+             call allocate(tnu, u%dim, u%mesh, "TestFilteredVelocity")
+           end if
+           call zero(tnu)
+           allocate(leonard)
+           call allocate(leonard, u%mesh, "LeonardTensor")
+           call zero(leonard)
+           allocate(strainprod)
+           call allocate(strainprod, u%mesh, "StrainProduct")
+           call zero(strainprod)
+
+           ! Get (first filter)/(mesh size) ratio alpha. Default value is 2.
            call get_option(trim(les_option_path)//"/dynamic_les/alpha", alpha, default=2.0)
-           call get_option(trim(les_option_path)//"/dynamic_les/gamma", gamma, default=2.0)
+           ! Get (test filter)/(first filter) size ratio alpha. Default value is 2.
+           call get_option(trim(les_option_path)//"/dynamic_les/gama", gamma, default=2.0)
 
-           ! Calculate test-filtered velocity, Leonard tensor and filtered strain product fields.
-           ewrite(2,*) "Calculating test-filtered velocity, Leonard tensor and strain product"
-           call dynamic_les_filtered_fields(state, u, nu, x, nu_f1, nu_f2, lnd, stp, alpha, gamma, les_option_path, have_anisotropy)
+           ! Calculate test-filtered velocity field and Leonard tensor field.
+           ewrite(2,*) "Calculating test-filtered velocity and Leonard tensor"
+           call leonard_tensor(nu, x, fnu, tnu, leonard, strainprod, alpha, gamma, les_option_path)
 
+           ewrite_minmax(leonard)
+           ewrite_minmax(strainprod)
+         else
+            fnu => dummyvector
+            tnu => dummyvector
+            leonard => dummytensor
+            strainprod => dummytensor
          end if
       else
          les_second_order=.false.; les_fourth_order=.false.; wale=.false.; dynamic_les=.false.
-         nu_f1 => dummyvector; nu_f2 => dummyvector
-         lnd => dummytensor; stp => dummytensor
+         fnu => dummyvector; tnu => dummyvector; leonard => dummytensor; strainprod => dummytensor
       end if
       
+
       have_temperature_dependent_viscosity = have_option(trim(u%option_path)//"/prognostic"//&
          &"/spatial_discretisation/continuous_galerkin/temperature_dependent_viscosity")
       if (have_temperature_dependent_viscosity) then
@@ -464,7 +491,7 @@
         gp => dummyscalar
       end if
 
-      on_sphere = have_option('/geometry/spherical_earth/')
+      on_sphere = have_option('/geometry/spherical_earth')
 
 #ifdef _OPENMP
     num_threads = omp_get_max_threads()
@@ -479,6 +506,8 @@
                       theta)
       call get_option(trim(u%option_path)//"/prognostic/spatial_discretisation/&
            &conservative_advection", beta)
+      call get_option(trim(u%option_path)//"/prognostic/temporal_discretisation/relaxation", &
+                      itheta)
 
       lump_mass=have_option(trim(u%option_path)//&
           &"/prognostic/spatial_discretisation"//&
@@ -520,9 +549,6 @@
       integrate_continuity_by_parts=have_option(trim(p%option_path)//&
           &"/prognostic/spatial_discretisation/continuous_galerkin"//&
           &"/integrate_continuity_by_parts")
-      low_re_p_correction_fix=have_option(trim(p%option_path)//&
-          &"/prognostic/spatial_discretisation/continuous_galerkin"//&
-          &"/low_re_p_correction_fix")
       integrate_advection_by_parts = have_option(trim(u%option_path)//&
           &"/prognostic/spatial_discretisation"//&
           &"/continuous_galerkin/advection_terms/integrate_advection_by_parts")
@@ -632,13 +658,6 @@
         call allocate(alpha_u_field, u%mesh, "alpha_u")
         call remap_field(wettingdrying_alpha, alpha_u_field)
       end if
-      
-      ! For Low Reynolds number fix
-      if (low_re_p_correction_fix) then
-        ! construct the inverse of the lumped mass matrix
-        call allocate( visc_inverse_masslump, u%dim, u%mesh, "ViscousInverseLumpedMass")
-        call zero(visc_inverse_masslump)
-      end if
 
       call get_mesh_colouring(state, u%mesh, COLOURING_CG1, colours)
       ! ----- Volume integrals over elements -------------
@@ -662,14 +681,14 @@
       !$OMP DO SCHEDULE(STATIC)
       element_loop: do nnid = 1, len
          ele = fetch(colours(clr), nnid)
-         call construct_momentum_element_cg(state, ele, big_m, rhs, ct_m, mass, inverse_masslump, visc_inverse_masslump, &
+         call construct_momentum_element_cg(state, ele, big_m, rhs, ct_m, mass, inverse_masslump, &
               x, x_old, x_new, u, oldu, nu, ug, &
-              density, p, &
+              density, ct_rhs, &
               source, absorption, buoyancy, gravity, &
               viscosity, grad_u, &
-              nu_f1, nu_f2, lnd, stp, alpha, gamma, &
+              fnu, tnu, leonard, strainprod, alpha, gamma, &
               gp, surfacetension, &
-              assemble_ct_matrix_here, on_sphere, depth, &
+              assemble_ct_matrix_here, depth, &
               alpha_u_field, abs_wd, temperature, nvfrac, &
               supg_element(thread_num+1))
       end do element_loop
@@ -689,15 +708,15 @@
       if((integrate_advection_by_parts.and.(.not.exclude_advection)).or.&
            (integrate_continuity_by_parts)) then
          allocate(velocity_bc_type(u%dim, surface_element_count(u)))
-         allocate(velocity_bc_number(u%dim, surface_element_count(u)))
          call get_entire_boundary_condition(u, &
            & (/ &
-             "weakdirichlet      ", &
-             "no_normal_flow     ", &
-             "internal           ", &
-             "free_surface       " &
-           & /), velocity_bc, velocity_bc_type, velocity_bc_number)
-           
+             "weakdirichlet ", &
+             "no_normal_flow", &
+             "internal      ", &
+             "free_surface  ", &
+             "flux          " &
+           & /), velocity_bc, velocity_bc_type)
+
          allocate(pressure_bc_type(surface_element_count(p)))
          call get_entire_boundary_condition(p, &
            & (/ &
@@ -715,14 +734,15 @@
             
             ! if no_normal flow and no other condition in the tangential directions, or if periodic
             ! but not if there's a pressure bc
-            if(((velocity_bc_type(1,sele)==2 .and. sum(velocity_bc_type(:,sele))==2) &
-                 .or. any(velocity_bc_type(:,sele)==3)) &
-                 .and. pressure_bc_type(sele)==0) cycle
+            if(((velocity_bc_type(1,sele)==BC_TYPE_NO_NORMAL_FLOW &
+                    .and. sum(velocity_bc_type(:,sele))==BC_TYPE_NO_NORMAL_FLOW) &
+                 .or. any(velocity_bc_type(:,sele)==BC_TYPE_INTERNAL)) &
+              .and. pressure_bc_type(sele)==0) cycle
             
             ele = face_ele(x, sele)
             
             call construct_momentum_surface_element_cg(sele, big_m, rhs, ct_m, ct_rhs, &
-                 inverse_masslump, x, u, nu, ug, density, p, gravity, &
+                 inverse_masslump, x, u, nu, ug, density, gravity, &
                  velocity_bc, velocity_bc_type, &
                  pressure_bc, pressure_bc_type, &
                  assemble_ct_matrix_here, include_pressure_and_continuity_bcs, oldu, nvfrac)
@@ -788,42 +808,12 @@
           end if
         end if
         
-        if (low_re_p_correction_fix .and. timestep/=1) then
-          ewrite(2,*) "****************************************"
-          ewrite(2,*) "Using low_re_p_correction_fix"
-          ewrite(2,*) "In Momentum_CG, construct_momentum_cg"
-          ! Add viscous terms (stored in visc_inverse_masslump)
-          ! to inverse_masslump (and store it in visc_inverse_masslump):
-          ewrite(2,*) "The viscous_terms are:"
-          ewrite_minmax(visc_inverse_masslump)
-          ! Add the viscous terms to the lumped mass matrix
-          call addto(visc_inverse_masslump, inverse_masslump)
-          ewrite(2,*) "For comparison only:"
-          ewrite(2,*) "The orig inverse_masslump is:"
-          ewrite_minmax(inverse_masslump)
-          ewrite(2,*) "The new visc_inverse_masslump is:"
-          ewrite_minmax(visc_inverse_masslump)
-          ! invert the visc_inverse_masslump:
-          call invert(visc_inverse_masslump)
-          ! apply boundary conditions (zeroing out strong dirichl. rows)
-          call apply_dirichlet_conditions_inverse_mass(visc_inverse_masslump, u)
-          
-          ewrite(2,*) "Inverted new visc_inverse_masslump and boundary conditions is:"
-          ewrite_minmax(visc_inverse_masslump)
-          
-          ! Now invert the original inverse_masslump, apply dirichlet conditions:
-          call invert(inverse_masslump)
-          call apply_dirichlet_conditions_inverse_mass(inverse_masslump, u)
-          ewrite_minmax(inverse_masslump)
-          ewrite(2,*) "****************************************"
-        else 
-          ! thus far we have just assembled the lumped mass in inverse_masslump
-          ! now invert it:
-          call invert(inverse_masslump)
-          ! apply boundary conditions (zeroing out strong dirichl. rows)
-          call apply_dirichlet_conditions_inverse_mass(inverse_masslump, u)
-          ewrite_minmax(inverse_masslump)
-        endif
+        ! thus far we have just assembled the lumped mass in inverse_masslump
+        ! now invert it:
+        call invert(inverse_masslump)
+        ! apply boundary conditions (zeroing out strong dirichl. rows)
+        call apply_dirichlet_conditions_inverse_mass(inverse_masslump, u)
+        ewrite_minmax(inverse_masslump)
       end if
       
       if (assemble_mass_matrix) then
@@ -831,6 +821,25 @@
       end if
             
       ewrite_minmax(rhs)
+      
+      if(les_second_order .or. dynamic_les) then
+         call les_solve_diagnostic_fields(state, have_eddy_visc, have_filter_width, have_coeff)
+      end if
+
+      if (les_fourth_order) then
+        call deallocate(grad_u)
+      end if
+
+      if (dynamic_les) then
+        if(.not. have_option(trim(les_option_path)//"/dynamic_les/vector_field::FirstFilteredVelocity")) then
+          call deallocate(tnu); deallocate(tnu)
+        end if
+        if(.not. have_option(trim(les_option_path)//"/dynamic_les/vector_field::TestFilteredVelocity")) then
+          call deallocate(fnu); deallocate(fnu)
+        end if
+        call deallocate(leonard); deallocate(leonard)
+        call deallocate(strainprod); deallocate(strainprod)
+      end if
 
       call deallocate(dummytensor)
       deallocate(dummytensor)
@@ -838,25 +847,6 @@
       deallocate(dummyvector)
       call deallocate(dummyscalar)
       deallocate(dummyscalar)
-
-      if (les_fourth_order) then
-        call deallocate(grad_u)
-      end if
-
-      if(dynamic_les) then
-        ewrite_minmax(stp)
-        ewrite_minmax(lnd)
-        ewrite_minmax(nu_f1)
-        ewrite_minmax(nu_f2)
-        call deallocate(lnd); deallocate(lnd)
-        call deallocate(stp); deallocate(stp)
-        if(.not. have_option(trim(les_option_path)//"/dynamic_les/vector_field::FirstFilteredVelocity")) then
-          call deallocate(nu_f1); deallocate(nu_f1)
-        end if
-        if(.not. have_option(trim(les_option_path)//"/dynamic_les/vector_field::SecondFilteredVelocity")) then
-          call deallocate(nu_f2); deallocate(nu_f2)
-        end if
-      end if
 
       if(multiphase) then
          call deallocate(nvfrac)
@@ -906,7 +896,7 @@
     end subroutine construct_momentum_cg
 
     subroutine construct_momentum_surface_element_cg(sele, big_m, rhs, ct_m, ct_rhs, &
-                                                     masslump, x, u, nu, ug, density, p, gravity, &
+                                                     masslump, x, u, nu, ug, density, gravity, &
                                                      velocity_bc, velocity_bc_type, &
                                                      pressure_bc, pressure_bc_type, &
                                                      assemble_ct_matrix_here, include_pressure_and_continuity_bcs,&
@@ -925,7 +915,7 @@
       type(vector_field), intent(in) :: x, oldu
       type(vector_field), intent(in) :: u, nu
       type(vector_field), pointer :: ug
-      type(scalar_field), intent(in) :: density, p
+      type(scalar_field), intent(in) :: density
       type(vector_field), pointer, intent(in) :: gravity 
 
       type(vector_field), intent(in) :: velocity_bc
@@ -943,12 +933,12 @@
       integer :: dim, dim2, i
 
       integer, dimension(face_loc(u, sele)) :: u_nodes_bdy
-      integer, dimension(face_loc(p, sele)) :: p_nodes_bdy
+      integer, dimension(face_loc(ct_rhs, sele)) :: p_nodes_bdy
       type(element_type), pointer :: u_shape, p_shape
 
       real, dimension(face_ngi(u, sele)) :: detwei_bdy
       real, dimension(u%dim, face_ngi(u, sele)) :: normal_bdy, upwards_gi
-      real, dimension(u%dim, face_loc(p, sele), face_loc(u, sele)) :: ct_mat_bdy
+      real, dimension(u%dim, face_loc(ct_rhs, sele), face_loc(u, sele)) :: ct_mat_bdy
       real, dimension(u%dim, face_loc(u, sele), face_loc(u, sele)) :: fs_surfacestab
       real, dimension(u%dim, u%dim, face_loc(u, sele), face_loc(u, sele)) :: fs_surfacestab_sphere
       real, dimension(u%dim, u%dim, face_ngi(u, sele)) :: fs_stab_gi_sphere
@@ -962,10 +952,10 @@
       real, dimension(u%dim, face_ngi(u, sele)) :: ndotk_k
 
       u_shape=> face_shape(u, sele)
-      p_shape=> face_shape(p, sele)
+      p_shape=> face_shape(ct_rhs, sele)
 
       u_nodes_bdy = face_global_nodes(u, sele)
-      p_nodes_bdy = face_global_nodes(p, sele)
+      p_nodes_bdy = face_global_nodes(ct_rhs, sele)
 
       oldu_val = face_val(oldu, sele)
 
@@ -976,8 +966,8 @@
             
       ! first the advection (dirichlet) bcs:
       
-      ! if no no_normal_flow or free_surface
-      if (velocity_bc_type(1,sele)/=2) then
+      ! if no no_normal_flow
+      if (velocity_bc_type(1,sele)/=BC_TYPE_NO_NORMAL_FLOW) then
          if(integrate_advection_by_parts.and.(.not.exclude_advection)) then
             
             relu_gi = face_val_at_quad(nu, sele)
@@ -997,7 +987,7 @@
 
             do dim = 1, u%dim
                
-               if(velocity_bc_type(dim, sele)==1) then
+               if(velocity_bc_type(dim, sele)==BC_TYPE_WEAKDIRICHLET) then
 
                   call addto(rhs, dim, u_nodes_bdy, -matmul(adv_mat_bdy, &
                        ele_val(velocity_bc, dim, sele)))
@@ -1016,7 +1006,7 @@
       ! now do surface integrals for divergence/pressure gradient matrix
       if(integrate_continuity_by_parts.and. (assemble_ct_matrix_here .or. include_pressure_and_continuity_bcs)) then
          
-        if (velocity_bc_type(1,sele)/=2 .and. velocity_bc_type(1,sele)/=4) then
+        if (velocity_bc_type(1,sele)/=BC_TYPE_NO_NORMAL_FLOW .and. velocity_bc_type(1,sele)/=BC_TYPE_FREE_SURFACE) then
 
           if(multiphase) then
             ct_mat_bdy = shape_shape_vector(p_shape, u_shape, detwei_bdy*face_val_at_quad(nvfrac, sele), normal_bdy)
@@ -1029,6 +1019,8 @@
                 call addto(ct_rhs, p_nodes_bdy, &
                      -matmul(ct_mat_bdy(dim,:,:), ele_val(velocity_bc, dim, sele)))
              else if (assemble_ct_matrix_here) then
+                ! for open boundaries add in the boundary integral from integrating by parts - for 
+                ! other bcs leaving this out enforces a dirichlet-type restriction in the normal direction
                 call addto(ct_m, 1, dim, p_nodes_bdy, u_nodes_bdy, ct_mat_bdy(dim,:,:))
              end if
              if(pressure_bc_type(sele)>0) then
@@ -1046,7 +1038,7 @@
 
       ! Add free surface stabilisation.
 
-      if (velocity_bc_type(1,sele)==4 .and. have_surface_fs_stabilisation) then
+      if (velocity_bc_type(1,sele)==BC_TYPE_FREE_SURFACE .and. have_surface_fs_stabilisation) then
         if (on_sphere) then
           upwards_gi=-sphere_inward_normal_at_quad_face(x, sele)
         else
@@ -1111,24 +1103,33 @@
             if (assemble_inverse_masslump.and.(.not.(abs_lump_on_submesh))) then
               call addto(masslump, u_nodes_bdy, dt*theta*lumped_fs_surfacestab)
             else
-              FLExit("Error?") 
+              FLAbort("Error?") 
             end if
           end if
         end if
 
       end if
 
+      if (any(velocity_bc_type(:,sele)==BC_TYPE_FLUX)) then
+        do dim = 1, u%dim
+          if(velocity_bc_type(dim,sele)==BC_TYPE_FLUX) then
+            call addto(rhs, dim, u_nodes_bdy, shape_rhs(u_shape, ele_val_at_quad(velocity_bc, sele, dim)*detwei_bdy))
+          end if
+        end do
+      end if
+
+
     end subroutine construct_momentum_surface_element_cg
 
     subroutine construct_momentum_element_cg(state, ele, big_m, rhs, ct_m, &
-                                            mass, masslump, visc_masslump, &
+                                            mass, masslump, &
                                             x, x_old, x_new, u, oldu, nu, ug, &
-                                            density, p, &
+                                            density, ct_rhs, &
                                             source, absorption, buoyancy, gravity, &
                                             viscosity, grad_u, &
-                                            nu_f1, nu_f2, lnd, stp, alpha, gamma, &
+                                            fnu, tnu, leonard, strainprod, alpha, gamma, &
                                             gp, surfacetension, &
-                                            assemble_ct_matrix_here, on_sphere, depth, &
+                                            assemble_ct_matrix_here, depth, &
                                             alpha_u_field, abs_wd, temperature, nvfrac, supg_shape)
 
       !!< Assembles the local element matrix contributions and places them in big_m
@@ -1146,25 +1147,22 @@
       ! above we supply inverse_masslump, but we start assembling the non-inverted
       ! lumped mass matrix in it:
       type(vector_field), intent(inout) :: masslump
-      ! low Re fix for pressure correction:
-      type(vector_field), intent(inout) :: visc_masslump
 
-      type(vector_field), intent(in) :: x, u, oldu
-      type(vector_field), intent(inout) :: nu
+      type(vector_field), intent(in) :: x, u, oldu, nu 
       type(vector_field), pointer :: x_old, x_new, ug
-      type(scalar_field), intent(in) :: density, p, buoyancy
+      type(scalar_field), intent(in) :: density, buoyancy, ct_rhs
       type(vector_field), intent(in) :: source, absorption, gravity
       type(tensor_field), intent(in) :: viscosity, grad_u
 
       ! Fields for Germano Dynamic LES Model
-      type(vector_field), intent(in)    :: nu_f1, nu_f2
-      type(tensor_field), intent(in)    :: lnd, stp
+      type(vector_field), intent(in)    :: fnu, tnu
+      type(tensor_field), intent(in)    :: leonard, strainprod
       real, intent(in)                  :: alpha, gamma
 
       type(scalar_field), intent(in) :: gp
       type(tensor_field), intent(in) :: surfacetension
 
-      logical, intent(in) :: assemble_ct_matrix_here, on_sphere
+      logical, intent(in) :: assemble_ct_matrix_here
 
       ! Wetting and Drying
       type(scalar_field), intent(in) :: depth
@@ -1190,10 +1188,10 @@
       real, dimension(u%dim, u%dim, ele_ngi(u,ele)) :: J_mat, diff_q
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim) :: du_t
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim) :: dug_t
-      real, dimension(ele_loc(p, ele), ele_ngi(p, ele), u%dim) :: dp_t
+      real, dimension(ele_loc(ct_rhs, ele), ele_ngi(ct_rhs, ele), u%dim) :: dp_t
 
       real, dimension(u%dim, ele_ngi(u, ele)) :: relu_gi
-      real, dimension(u%dim, ele_loc(p, ele), ele_loc(u, ele)) :: grad_p_u_mat
+      real, dimension(u%dim, ele_loc(ct_rhs, ele), ele_loc(u, ele)) :: grad_p_u_mat
       
       ! What we will be adding to the matrix and RHS - assemble these as we
       ! go, so that we only do the calculations we really need
@@ -1228,8 +1226,8 @@
       u_ele=>ele_nodes(u, ele)
       u_shape=>ele_shape(u, ele)
 
-      p_ele=>ele_nodes(p, ele)
-      p_shape=>ele_shape(p, ele)
+      p_ele=>ele_nodes(ct_rhs, ele)
+      p_shape=>ele_shape(ct_rhs, ele)
 
       oldu_val = ele_val(oldu, ele)
       ! Step 1: Transform
@@ -1267,7 +1265,7 @@
       end if
       
       ! Step 2: Set up test function
-
+    
       select case(stabilisation_scheme)
         case(STABILISATION_SUPG)
           relu_gi = ele_val_at_quad(nu, ele)
@@ -1349,7 +1347,7 @@
       
       ! Buoyancy terms
       if(have_gravity) then
-        call add_buoyancy_element_cg(x, ele, test_function, u, buoyancy, gravity, nvfrac, on_sphere, detwei, rhs_addto)
+        call add_buoyancy_element_cg(x, ele, test_function, u, buoyancy, gravity, nvfrac, detwei, rhs_addto)
       end if
       
       ! Surface tension
@@ -1367,15 +1365,8 @@
 
       ! Viscous terms
       if(have_viscosity .or. have_les) then
-        call add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, density, viscosity, grad_u, &
-           nu_f1, nu_f2, lnd, stp, alpha, gamma, &
-           du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, nvfrac)
-      end if
-      
-      ! Get only the viscous terms
-      if(low_re_p_correction_fix .and. assemble_inverse_masslump .and. (have_viscosity .or. have_les) .and. timestep/=1) then
-        call get_viscous_terms_element_cg(ele, u, nu, x, viscosity, &
-         du_t, detwei, visc_masslump)
+        call add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, viscosity, grad_u, &
+           fnu, tnu, leonard, strainprod, alpha, gamma, du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, density, nvfrac)
       end if
       
       ! Coriolis terms
@@ -1682,7 +1673,7 @@
       
     end subroutine add_sources_element_cg
     
-    subroutine add_buoyancy_element_cg(positions, ele, test_function, u, buoyancy, gravity, nvfrac, on_sphere, detwei, rhs_addto)
+    subroutine add_buoyancy_element_cg(positions, ele, test_function, u, buoyancy, gravity, nvfrac, detwei, rhs_addto)
       type(vector_field), intent(in) :: positions
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
@@ -1692,7 +1683,6 @@
       type(scalar_field), intent(in) :: nvfrac
       real, dimension(ele_ngi(u, ele)), intent(in) :: detwei
       real, dimension(u%dim, ele_loc(u, ele)), intent(inout) :: rhs_addto
-      logical, intent(in) :: on_sphere
       
       real, dimension(ele_ngi(u, ele)) :: nvfrac_gi
       real, dimension(ele_ngi(u, ele)) :: coefficient_detwei
@@ -1991,52 +1981,54 @@
       
     end subroutine add_absorption_element_cg
       
-    subroutine add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, density, viscosity, grad_u, &
-        nu_f1, nu_f2, lnd, stp, alpha, gamma, &
-         du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, nvfrac)
+    subroutine add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, viscosity, grad_u, &
+        fnu, tnu, leonard, strainprod, alpha, gamma, &
+         du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, density, nvfrac)
       type(state_type), intent(inout) :: state
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
-      type(vector_field), intent(in) :: u
-      type(vector_field), intent(inout) :: nu
+      type(vector_field), intent(in) :: u, nu
       real, dimension(:,:), intent(in) :: oldu_val
       type(vector_field), intent(in) :: x
-      type(scalar_field), intent(in) :: density
       type(tensor_field), intent(in) :: viscosity
       type(tensor_field), intent(in) :: grad_u
 
       ! Fields for Germano Dynamic LES Model
-      type(vector_field), intent(in)    :: nu_f1, nu_f2
-      type(tensor_field), intent(in)    :: lnd, stp
+      type(vector_field), intent(in)    :: fnu, tnu
+      type(tensor_field), intent(in)    :: leonard, strainprod
       real, intent(in)                  :: alpha, gamma
-      real, dimension(u%dim, u%dim) :: v1
-      real, dimension(u%dim) :: a1
 
       ! Local quantities specific to Germano Dynamic LES Model
-      real, dimension(x%dim, x%dim, ele_ngi(u,ele))  :: strain1_gi, strain2_gi, strain_prod_gi
-      real, dimension(x%dim, x%dim, ele_ngi(u,ele))  :: f1_gi, leonard_gi, tensor_gi, f2_gi
-      real, dimension(ele_ngi(u, ele))               :: strain1_mod, strain2_mod, f1_mod, f2_mod
+      real, dimension(x%dim, x%dim, ele_ngi(u,ele))  :: strain_gi, t_strain_gi, strainprod_gi
+      real, dimension(x%dim, x%dim, ele_ngi(u,ele))  :: mesh_size_gi, leonard_gi
+      real, dimension(x%dim, x%dim, ele_ngi(u,ele))  :: f_tensor, t_tensor
+      real, dimension(x%dim, x%dim)                  :: mij
+      real, dimension(ele_ngi(u, ele))               :: strain_mod, t_strain_mod
+      real, dimension(ele_ngi(u, ele))               :: f_scalar, t_scalar
       type(element_type)                             :: shape_nu
       integer, dimension(:), pointer                 :: nodes_nu
 
       ! Temperature dependent viscosity:
       type(scalar_field), intent(in) :: temperature
-    
+      ! Density field
+      type(scalar_field), intent(in) :: density
       ! Non-linear PhaseVolumeFraction
       type(scalar_field), intent(in) :: nvfrac
 
-      integer                                                                        :: dim, dimj, gi, iloc, i, j
-      real, dimension(u%dim, ele_loc(u, ele))                                        :: nu_ele, nu_f1_ele, nu_f2_ele
+      integer                                                                        :: dim, dimj, gi, iloc
+      real, dimension(u%dim, ele_loc(u, ele))                                        :: nu_ele
       real, dimension(u%dim, u%dim, ele_ngi(u, ele))                                 :: viscosity_gi
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele))                :: viscosity_mat
       real, dimension(x%dim, x%dim, ele_ngi(u, ele))                                 :: les_tensor_gi
-      real, dimension(ele_ngi(u, ele))                                               :: les_coef_gi, wale_coef_gi, les_scalar_gi
+      real, dimension(ele_ngi(u, ele))                                               :: les_scalar_gi
+      real, dimension(ele_ngi(u, ele))                                               :: les_coef_gi, wale_coef_gi, density_gi
       real, dimension(x%dim, ele_loc(u,ele), ele_loc(u,ele))                         :: div_les_viscosity
       real, dimension(x%dim, x%dim, ele_loc(u,ele))                                  :: grad_u_nodes
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim), intent(in)           :: du_t
       real, dimension(ele_ngi(u, ele)), intent(in)                                   :: detwei
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)), intent(inout) :: big_m_tensor_addto
       real, dimension(u%dim, ele_loc(u, ele)), intent(inout)                         :: rhs_addto
+
 
       if (have_viscosity .AND. .not.(have_temperature_dependent_viscosity)) then
          viscosity_gi = ele_val_at_quad(viscosity, ele)
@@ -2061,6 +2053,8 @@
       ! add in LES viscosity
       if (have_les) then
          nu_ele = ele_val(nu, ele)
+         les_tensor_gi = 0.0
+         les_scalar_gi = 0.0
 
          ! WALE model
          if (wale) then
@@ -2072,38 +2066,49 @@
                     wale_coef_gi(gi)**3 * smagorinsky_coefficient**2 / &
                     max(les_coef_gi(gi)**5 + wale_coef_gi(gi)**2.5, 1.e-10)
             end do
+         ! Second order Smagorinsky model
+         else if(les_second_order) then           
+            les_coef_gi = les_viscosity_strength(du_t, nu_ele)
+            ! In Boussinesq simulations this density will be set to unity.
+            ! It's included here for LinearMomentum flow simulations.
+            density_gi = ele_val_at_quad(density, ele)
+            
+            select case(length_scale_type)
+               case("scalar")
+                  ! Length scale is the cube root of the element's volume in 3D.
+                  ! In 2D, it is the square root of the element's area.
+                  les_scalar_gi = length_scale_scalar(x, ele)
+                  do gi = 1, size(les_coef_gi)
+                     ! The factor of 4 arises here because the filter width separating resolved 
+                     ! and unresolved scales is assumed to be twice the local element size, 
+                     ! which is squared in the viscosity model.
+                     les_tensor_gi(:,:,gi) = 4.0*les_scalar_gi(gi)*&
+                        density_gi(gi)*les_coef_gi(gi)*(smagorinsky_coefficient**2)
+                  end do
+               case("tensor")
+                  ! This uses a tensor length scale metric from the adaptivity process
+                  ! to better handle anisotropic elements.
+                  les_tensor_gi = length_scale_tensor(du_t, ele_shape(u, ele))
+                  do gi = 1, size(les_coef_gi)
+                     ! The factor of 4 arises here because the filter width separating resolved 
+                     ! and unresolved scales is assumed to be twice the local element size, 
+                     ! which is squared in the viscosity model.
+                     les_tensor_gi(:,:,gi) = 4.0*les_tensor_gi(:,:,gi)*&
+                        density_gi(gi)*les_coef_gi(gi)*(smagorinsky_coefficient**2)
+                  end do
+               case default
+                  FLExit("Unknown length scale type")
+            end select
+            
             ! Eddy viscosity tensor field. Calling this subroutine works because
-            ! you can't have 2 different types of LES model for the same material phase.
-            call les_set_diagnostic_fields(state, nu, density, ele, detwei, eddy_visc_gi=les_tensor_gi)
-
-         ! 2nd order Smagorinsky model
-         else if(les_second_order) then
-            les_coef_gi=les_viscosity_strength(du_t, nu_ele)
-            if(.not. have_anisotropy) then
-              ! Isotropic filter/viscosity case
-              f1_gi = 4.*length_scale_tensor_isotropic(du_t, ele_shape(nu, ele))
-              do gi=1, size(les_coef_gi)
-                ! Scalar eddy viscosity is eigenvalue of isotropic tensor viscosity
-                call eigendecomposition_symmetric(f1_gi(:,:,gi), v1, a1)
-                f1_mod(gi) = a1(1)
-                les_tensor_gi(:,:,gi) = les_coef_gi(gi)*f1_gi(:,:,gi)*smagorinsky_coefficient**2
-              end do
-            else
-              ! Anisotropic filter/viscosity case
-              f1_gi = 4.*length_scale_tensor(du_t, ele_shape(u, ele))
-              do gi=1, size(les_coef_gi)
-                ! Normalise tensor filter width so that volume equals that of scalar filter width definition
-                !f1_gi(:,:,gi) = f1_gi(:,:,gi)*f1_mod(gi)/norm2(f1_gi(:,:,gi))
-                les_tensor_gi(:,:,gi) = les_coef_gi(gi)*f1_gi(:,:,gi)*smagorinsky_coefficient**2
-                ! Scalar eddy viscosity is average of eigenvalues of tensor viscosity
-                call eigendecomposition_symmetric(f1_gi(:,:,gi), v1, a1)
-                f1_mod(gi) = equivalent_radius_ellipsoid(u%dim, a1)
-              end do
+            ! you can't have 2 different types of LES model for the same material_phase.
+            if(have_eddy_visc) then
+              call les_assemble_diagnostic_fields(state, u, ele, detwei, &
+                   les_tensor_gi, les_tensor_gi, les_coef_gi, &
+                 have_eddy_visc, .false., .false.)
             end if
-            call les_set_diagnostic_fields(state, nu, density, ele, detwei, eddy_visc_gi=les_tensor_gi, &
-                 t1_width_gi=f1_gi, s1_width_gi=f1_mod)
 
-         ! 4th order Smagorinsky model
+         ! Fourth order Smagorinsky model
          else if (les_fourth_order) then
             les_tensor_gi=length_scale_tensor(du_t, ele_shape(u, ele))
             les_coef_gi=les_viscosity_strength(du_t, nu_ele)
@@ -2115,96 +2120,73 @@
                        sum(div_les_viscosity(:,:,iloc)*grad_u_nodes(:,dim,:))
                end do
             end do
-            call les_set_diagnostic_fields(state, nu, density, ele, detwei, eddy_visc_gi=les_tensor_gi)
-
          ! Germano dynamic model
          else if (dynamic_les) then
             shape_nu = ele_shape(nu, ele)
             nodes_nu => ele_nodes(nu, ele)
-            nu_f1_ele = ele_val(nu_f1, ele)
-            nu_f2_ele = ele_val(nu_f2, ele)
             les_tensor_gi=0.0
 
-            ! Second-filtered strain product (|S1|*S1)^f2 (dim,dim,ngi)
-            strain_prod_gi = ele_val_at_quad(stp,ele)
-            ! Leonard tensor L at gi
-            leonard_gi = ele_val_at_quad(lnd, ele)
-            ! strain S1 for first-filtered velocity (dim,dim,ngi)
-            strain1_gi = les_strain_rate(du_t, nu_f1_ele)
-            ! strain S2 for test-filtered velocity (dim,dim,ngi)
-            strain2_gi = les_strain_rate(du_t, nu_f2_ele)
-            ! strain modulus |S1| for first-filtered velocity (ngi)
-            strain1_mod = les_viscosity_strength(du_t, nu_f1_ele)
-            ! strain modulus |S2| for second-filtered velocity (ngi)
-            strain2_mod = les_viscosity_strength(du_t, nu_f2_ele)
+            ! Get strain S1 for first-filtered velocity
+            strain_gi = les_strain_rate(du_t, ele_val(fnu, ele))
+            ! Get strain S2 for test-filtered velocity
+            t_strain_gi = les_strain_rate(du_t, ele_val(tnu, ele))
+            ! Mesh size (units length^2)
+            mesh_size_gi = length_scale_tensor(du_t, ele_shape(u, ele))
+            ! Leonard tensor and strain product at Gauss points
+            leonard_gi = ele_val_at_quad(leonard, ele)
+            strainprod_gi = ele_val_at_quad(strainprod, ele)
 
-            ! If sum of strain components = 0, don't use dynamic LES model
-            !if(abs(sum(strain1_gi(:,:,:))) < epsilon(0.0)) then
-            !  les_tensor_gi = 0.0
-            !else
-              ! Isotropic filter/viscosity case
-              if(.not. have_anisotropy) then
-                ! First filter width G1=alpha^2*mesh size (units length^2)
-                f1_gi = alpha**2*length_scale_tensor_isotropic(du_t, ele_shape(nu, ele))
-                ! Combined width G2=(1+gamma^2)*G1
-                f2_gi = (1.0+gamma**2)*f1_gi
+            do gi=1, ele_ngi(nu, ele)
+               ! Get strain modulus |S1| for first-filtered velocity
+               strain_mod(gi) = sqrt( 2*sum(strain_gi(:,:,gi)*strain_gi(:,:,gi) ) )
+               ! Get strain modulus |S2| for test-filtered velocity
+               t_strain_mod(gi) = sqrt( 2*sum(t_strain_gi(:,:,gi)*t_strain_gi(:,:,gi) ) )
+            end do
 
-                do gi=1, ele_ngi(nu, ele)
-                  call eigendecomposition_symmetric(f1_gi(:,:,gi), v1, a1)
-                  f1_mod(gi) = a1(1)
-                  f2_mod(gi) = (1.0+gamma**2)*f1_mod(gi)
-                  ! Tensor M_ij = (|S2|*S2)G2 - ((|S1|S1)^f2)G1
-                  !tensor_gi(:,:,gi) = strain2_mod(gi)*strain2_gi(:,:,gi)*f2_mod(gi) - strain_prod_gi(:,:,gi)*f1_mod(gi)
-                  tensor_gi(:,:,gi) = strain2_mod(gi)*strain2_gi(:,:,gi)*f2_gi(:,:,gi) - strain_prod_gi(:,:,gi)*f1_gi(:,:,gi)
+            select case(length_scale_type)
+               case("scalar")
+                  ! Scalar first filter width G1 = alpha^2*meshsize (units length^2)
+                  f_scalar = alpha**2*length_scale_scalar(x, ele)
+                  ! Combined width G2 = (1+gamma^2)*G1
+                  t_scalar = (1.0+gamma**2)*f_scalar
+                  do gi=1, ele_ngi(nu, ele)
+                    ! Tensor M_ij = (|S2|*S2)G2 - ((|S1|S1)^f2)G1
+                    mij = t_strain_mod(gi)*t_strain_gi(:,:,gi)*t_scalar(gi) - strainprod_gi(:,:,gi)*f_scalar(gi)
+                    ! Model coeff C_S = -(L_ij M_ij) / 2(M_ij M_ij)
+                    les_coef_gi(gi) = -0.5*sum(leonard_gi(:,:,gi)*mij) / sum(mij*mij)
+                    ! Constrain C_S to be between 0 and 0.04.
+                    les_coef_gi(gi) = min(max(les_coef_gi(gi),0.0), 0.04)
+                    ! Isotropic tensor dynamic eddy viscosity = -2C_S|S1|.alpha^2.G1
+                    les_tensor_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*strain_mod(gi)*f_scalar(gi)
+                  end do
+               case("tensor")
+                  ! First filter width G1 = alpha^2*mesh size (units length^2)
+                  f_tensor = alpha**2*mesh_size_gi
+                  ! Combined width G2 = (1+gamma^2)*G1
+                  t_tensor = (1.0+gamma**2)*f_tensor
+                  do gi=1, ele_ngi(nu, ele)
+                    ! Tensor M_ij = (|S2|*S2).G2 - ((|S1|S1)^f2).G1
+                    mij = t_strain_mod(gi)*t_strain_gi(:,:,gi)*t_tensor(:,:,gi) - strainprod_gi(:,:,gi)*f_tensor(:,:,gi)
+                    ! Model coeff C_S = -(L_ij M_ij) / 2(M_ij M_ij)
+                    les_coef_gi(gi) = -0.5*sum(leonard_gi(:,:,gi)*mij) / sum(mij*mij)
+                    ! Constrain C_S to be between 0 and 0.04.
+                    les_coef_gi(gi) = min(max(les_coef_gi(gi),0.0), 0.04)
+                    ! Anisotropic tensor dynamic eddy viscosity m_ij = -2C_S|S1|.alpha^2.G1
+                    les_tensor_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*strain_mod(gi)*f_tensor(:,:,gi)
+                  end do
+            end select
 
-                  ! Model coeff C = -(L_ij M_ij) / 2(M_ij M_ij)
-                  les_coef_gi(gi) = -0.5*sum(leonard_gi(:,:,gi)*tensor_gi(:,:,gi)) / sum(tensor_gi(:,:,gi)*tensor_gi(:,:,gi))
-
-                  ! Clip at zero and (optional) maxval.
-                  les_coef_gi(gi) = min(max(les_coef_gi(gi),0.0), smagorinsky_coefficient)
-
-                  ! Isotropic tensor dynamic eddy viscosity m_ij = -2C|S1|.alpha^2.G1
-                  !les_tensor_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*strain1_mod(gi)*f1_gi(gi)
-                  les_tensor_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*strain1_mod(gi)*f1_gi(:,:,gi)
-                end do
-              else
-              ! Anisotropic filter/viscosity case
-                ! First filter width G1=alpha^2*mesh size (units length^2)
-                f1_gi = alpha**2*length_scale_tensor(du_t, ele_shape(nu, ele))
-                ! Combined width G2=(1+gamma^2)*G1
-                f2_gi = (1.0+gamma**2)*f1_gi
-                do gi=1, ele_ngi(nu, ele)
-                  call eigendecomposition_symmetric(f1_gi(:,:,gi), v1, a1)
-                  f1_mod(gi) = equivalent_radius_ellipsoid(u%dim, a1)
-                  f2_mod(gi) = (1.0+gamma**2)*f1_mod(gi)
-                  ! Normalise tensor filter width so that volume equals that of scalar filter width definition
-                  !f1_gi(:,:,gi) = f1_gi(:,:,gi)*f1_mod(gi)/norm2(f1_gi(:,:,gi))
-                  !f2_gi(:,:,gi) = f2_gi(:,:,gi)*f2_mod(gi)/norm2(f2_gi(:,:,gi))
-
-                  ! Tensor M_ij = (|S2|*S2).G2 - ((|S1|S1)^f2).G1
-                  tensor_gi(:,:,gi) = strain2_mod(gi)*strain2_gi(:,:,gi)*f2_gi(:,:,gi) - strain_prod_gi(:,:,gi)*f1_gi(:,:,gi)
-
-                  ! Model coeff C = -(L_ij M_ij) / 2(M_ij M_ij)
-                  les_coef_gi(gi) = -0.5*sum(leonard_gi(:,:,gi)*tensor_gi(:,:,gi)) / sum(tensor_gi(:,:,gi)*tensor_gi(:,:,gi))
-
-                  ! Clip at zero and (optional) maxval.
-                  les_coef_gi(gi) = min(max(les_coef_gi(gi),0.0), smagorinsky_coefficient)
-
-                  ! Anisotropic tensor dynamic eddy viscosity m_ij = -2C|S1|.alpha^2.G1
-                  les_tensor_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*strain1_mod(gi)*f1_gi(:,:,gi)
-                end do
-              end if
-            !end if
-
-            ! Set diagnostic fields
-            call les_set_diagnostic_fields(state, nu, density, ele, detwei, eddy_visc_gi=les_tensor_gi, &
-                 visc_gi=viscosity_gi, strain1_gi=strain1_gi, strain2_gi=strain2_gi, les_coef_gi=les_coef_gi, &
-                 t1_width_gi=f1_gi, s1_width_gi=f1_mod, t2_width_gi=f2_gi, s2_width_gi=f2_mod)
+            ! Assemble diagnostic fields
+            call les_assemble_diagnostic_fields(state, nu, ele, detwei, &
+                 mesh_size_gi, les_tensor_gi, les_coef_gi, &
+                 have_eddy_visc, have_filter_width, have_coeff)
 
          else
             FLAbort("Unknown LES model")
          end if
+         
          viscosity_gi=viscosity_gi+les_tensor_gi
+         
       end if
       ! element viscosity matrix - tensor form
       !  /
@@ -2240,6 +2222,7 @@
           end do
         else if(diagonal_viscosity .and. .not. have_les) then
           assert(u%dim > 0)
+          
           if(multiphase) then
              viscosity_mat(1, 1, :, :) = dshape_diagtensor_dshape(du_t, viscosity_gi, du_t, detwei*&
                                          ele_val_at_quad(nvfrac, ele))
@@ -2252,12 +2235,16 @@
           end do
         else
           do dim = 1, u%dim
-            viscosity_mat(dim, dim, :, :) = &
-                        dshape_tensor_dshape(du_t, viscosity_gi, du_t, detwei)
+            if(multiphase) then
+               viscosity_mat(dim, dim, :, :) = dshape_tensor_dshape(du_t, viscosity_gi, du_t, detwei*&
+                                               ele_val_at_quad(nvfrac, ele))
+            else
+               viscosity_mat(dim, dim, :, :) = dshape_tensor_dshape(du_t, viscosity_gi, du_t, detwei)
+            end if
           end do
         end if
       end if
-
+      
       big_m_tensor_addto = big_m_tensor_addto + dt*theta*viscosity_mat
       
       do dim = 1, u%dim
@@ -2274,88 +2261,8 @@
         end if
       end do
       
-      !ewrite(2,*) 'viscosity_mat'
-      !ewrite(2,*) viscosity_mat(:,:,1,1)
-
     end subroutine add_viscosity_element_cg
-    
-    subroutine get_viscous_terms_element_cg(ele, u, nu, x, viscosity, &
-         du_t, detwei, visc_inverse_masslump)
-      integer, intent(in) :: ele
-      type(vector_field), intent(in) :: u, nu
-      type(vector_field), intent(in) :: x
-      type(tensor_field), intent(in) :: viscosity
-      real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim), intent(in) :: du_t
-      real, dimension(ele_ngi(u, ele)), intent(in) :: detwei
-      type(vector_field), intent(inout) :: visc_inverse_masslump
-    
-      integer :: i, dim, gi
-      real, dimension(u%dim, u%dim, ele_ngi(u, ele)) :: viscosity_gi
-      real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)) :: viscosity_mat
-      integer, dimension(:), pointer :: nodes
-      real, dimension(x%dim, x%dim, ele_ngi(u,ele)) :: les_tensor_gi
-      real, dimension(ele_ngi(u, ele)) :: les_coef_gi
 
-      if (have_viscosity) then
-         viscosity_gi = ele_val_at_quad(viscosity, ele)
-      else
-         ! if we don't have viscosity but maybe LES
-         viscosity_gi = 0.0
-      end if
-      
-      if (have_les) then
-         ! add in LES viscosity
-         les_tensor_gi=length_scale_tensor(du_t, ele_shape(u, ele))
-         les_coef_gi=les_viscosity_strength(du_t, ele_val(nu, ele))
-         do gi=1, size(les_coef_gi)
-            les_tensor_gi(:,:,gi)=les_coef_gi(gi)*les_tensor_gi(:,:,gi)* &
-                 smagorinsky_coefficient**2
-         end do
-         viscosity_gi=viscosity_gi+les_tensor_gi
-      end if
-      
-      ! element viscosity matrix - tensor form
-      !  /
-      !  | gradN_A^T viscosity gradN_B dV
-      !  /
-      ! only valid when incompressible and viscosity tensor is isotropic
-      viscosity_mat = 0.0
-      if(stress_form.or.partial_stress_form) then
-        ! add in the stress form entries of the element viscosity matrix
-        !  /
-        !  | B_A^T C B_B dV
-        !  /
-        viscosity_mat = stiffness_matrix(du_t, viscosity_gi, du_t, detwei)
-      else
-        if(isotropic_viscosity .and. .not. have_les) then
-          assert(u%dim > 0)
-          viscosity_mat(1, 1, :, :) = dshape_dot_dshape(du_t, du_t, detwei * viscosity_gi(1, 1, :))
-          do dim = 2, u%dim
-            viscosity_mat(dim, dim, :, :) = viscosity_mat(1, 1, :, :)
-          end do
-        else if(diagonal_viscosity .and. .not. have_les) then
-          assert(u%dim > 0)
-          viscosity_mat(1, 1, :, :) = dshape_diagtensor_dshape(du_t, viscosity_gi, du_t, detwei)
-          do dim = 2, u%dim
-            viscosity_mat(dim, dim, :, :) = viscosity_mat(1, 1, :, :)
-          end do
-        else
-          do dim = 1, u%dim
-            viscosity_mat(dim, dim, :, :) = &
-                        dshape_tensor_dshape(du_t, viscosity_gi, du_t, detwei)
-          end do
-        end if
-      end if
-
-      nodes => ele_nodes(u,ele)
-      do dim = 1, u%dim
-        do i = 1, ele_loc(u,ele)
-          call addto(visc_inverse_masslump, dim, nodes(i), dt*theta*viscosity_mat(dim,dim,i,i))
-        end do
-      end do
-
-    end subroutine get_viscous_terms_element_cg
-    
     subroutine add_coriolis_element_cg(ele, test_function, x, u, oldu_val, density, detwei, big_m_tensor_addto, rhs_addto)
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
