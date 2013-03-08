@@ -5,7 +5,7 @@ input:	clean
 	../../bin/gmsh2triangle -2 MMS_D_unstructured.msh
 
 clean:
-	rm -f *.vtu *.ele *.node *.edge *.stat fluidity.err-0 fluidity.log-0
+	rm -f *.vtu *.ele *.node *.edge *.stat *.log fluidity.err-0 fluidity.log-0
 
 flmls:
 	@$(foreach M,B C D, \
