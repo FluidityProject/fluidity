@@ -148,7 +148,8 @@ void set_scalar_field_from_python(char *function, int *function_len, int *dim,
     Py_DECREF(pCode);  
 
   // Force a garbage collection
-  PyGC_Collect();
+  //ml805: Bad idea, this really hits performance!
+  //PyGC_Collect();
 
 
   *stat=0;
