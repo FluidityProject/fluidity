@@ -1467,15 +1467,15 @@
 
                else
 
-                  W_SUM_ONE1 = 1.0 ! =1 Applies constraint to T (if ==1.0)
-                  W_SUM_ONE2 = 0.0 ! =1 Applies constraint to Told (if ==1.0)
+                  W_SUM_ONE1 = 1.0 ! Applies constraint to T (if ==1.0)
+                  W_SUM_ONE2 = 0.0 ! Applies constraint to Told (if ==1.0)
                   ! the original working code used W_SUM_ONE1 = 1, W_SUM_ONE2 = 1
                   CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - MASS_CV( CV_NODI ) * MEAN_PORE_CV( CV_NODI ) *( &
-                       (1.0-W_SUM_ONE1) *  T( CV_NODI_IPHA ) / DT &
-                       -(1.0-W_SUM_ONE2) *  TOLD( CV_NODI_IPHA ) / DT  &
-                       +TOLD( CV_NODI_IPHA ) * (DEN( CV_NODI_IPHA )-DENOLD( CV_NODI_IPHA )) / ( DT * DEN( CV_NODI_IPHA ) ) - &
-                       DERIV( CV_NODI_IPHA ) * CV_P( CV_NODI ) * T( CV_NODI_IPHA ) / ( DT * DEN( CV_NODI_IPHA ) ) &
-                       )
+                       (1.0-W_SUM_ONE1) * T( CV_NODI_IPHA ) / DT &
+                       -(1.0-W_SUM_ONE2) * TOLD( CV_NODI_IPHA ) / DT  &
+                       +TOLD( CV_NODI_IPHA ) * ( DEN( CV_NODI_IPHA )-DENOLD( CV_NODI_IPHA ) ) / ( DT * DEN( CV_NODI_IPHA ) ) - &
+                       DERIV( CV_NODI_IPHA ) * CV_P( CV_NODI ) * T( CV_NODI_IPHA ) / ( DT * DEN( CV_NODI_IPHA ) ) )
+
                   IF(IPHASE==1) THEN ! Add constraint to force sum of volume fracts to be unity... 
                      ! W_SUM_ONE==1 applies the constraint
                      ! W_SUM_ONE==0 does NOT apply the constraint

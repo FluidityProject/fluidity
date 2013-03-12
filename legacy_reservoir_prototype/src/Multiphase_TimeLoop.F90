@@ -170,7 +170,7 @@
       real, dimension( :, :, : ), allocatable :: Permeability, Material_Absorption, Material_Absorption_Stab, &
            Velocity_Absorption, ScalarField_Absorption, Component_Absorption, Temperature_Absorption, &
 !!$
-           Component_Diffusion_Operator_Coefficient, Momentum_Diffusion_tmp
+           Component_Diffusion_Operator_Coefficient
       real, dimension( :, :, :, : ), allocatable :: Momentum_Diffusion, ScalarAdvectionField_Diffusion, &
            Component_Diffusion, &
            theta_flux, one_m_theta_flux, sum_theta_flux, sum_one_m_theta_flux
@@ -182,8 +182,7 @@
 !!$ Momentum_Diffusion = udiffusion; ScalarAdvectionField_Diffusion = tdiffusion, 
 !!$ Component_Diffusion = comp_diffusion
 
-      type( tensor_field ), pointer :: t_field
-      character( len = option_path_len ) :: option_path,  eos_option_path( 1 )
+      character( len = option_path_len ) :: eos_option_path( 1 )
 
       integer :: stat, istate, iphase, jphase, icomp, its, its2, cv_nodi, adapt_time_steps, cv_inod
       real :: rsum
@@ -272,13 +271,13 @@
 !!$
            Pressure_FEM( cv_nonods ), Pressure_CV( cv_nonods ), &
            Temperature( nphase * cv_nonods ), Density( nphase * cv_nonods ), &
-           Density_Component(nphase * cv_nonods * ncomp), &
+           Density_Component( nphase * cv_nonods * ncomp ), &
            PhaseVolumeFraction( nphase * cv_nonods ), Component( nphase * cv_nonods * ncomp ), &
            U_Density( nphase * cv_nonods ), DRhoDPressure( nphase * cv_nonods ), &
 !!$
            Pressure_FEM_Old( cv_nonods ), Pressure_CV_Old( cv_nonods ), &
            Temperature_Old( nphase * cv_nonods ), Density_Old( nphase * cv_nonods ), &
-           Density_Component_Old(nphase * cv_nonods * ncomp), &
+           Density_Component_Old( nphase * cv_nonods * ncomp ), &
            PhaseVolumeFraction_Old( nphase * cv_nonods ), Component_Old( nphase * cv_nonods * ncomp ), &
            U_Density_Old( nphase * cv_nonods ), &
 !!$
@@ -521,7 +520,7 @@
          Velocity_NU_Old = Velocity_U ; Velocity_NV_Old = Velocity_V ; Velocity_NW_Old = Velocity_W
          Density_Old = Density ; Pressure_FEM_Old = Pressure_FEM ; Pressure_CV_Old = Pressure_CV
          PhaseVolumeFraction_Old = PhaseVolumeFraction ; Temperature_Old = Temperature ; Component_Old = Component
-         Density_Old_tmp = Density_tmp
+         Density_Old_tmp = Density_tmp ; Density_Component_Old = Density_Component
 
 !!$ Update state memory
 !!$         if ( have_temperature_field ) then
@@ -558,7 +557,6 @@
                END DO
             END DO
          END IF
-
 
          Conditional_Components_Linearisation: if ( .false. .and. itime == 1 ) then
             call Updating_Linearised_Components( totele, nphase, ncomp, ndim, cv_nloc, cv_nonods, cv_ndgln, &
@@ -674,39 +672,41 @@
 
             end if Conditional_ScalarAdvectionField
 
-!!$ Diffusion-like term -- here used as part of the capillary pressure for porous media. It can also be 
-!!$ extended to surface tension -like term.
-            iplike_grad_sou = 0
-            if( have_option( '/material_phase[0]/multiphase_properties/capillary_pressure' ) )then
-               iplike_grad_sou = 1
-               call calculate_capillary_pressure( state, cv_nonods, nphase, plike_grad_sou_grad, &
-                    PhaseVolumeFraction )
-            end if
+!!$ Calculate Density_Component and DRhoDPressure for compositional
+            if( have_component_field ) then
 
-            CALL CALCULATE_SURFACE_TENSION( state, nphase, ncomp, &
-                 PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, IPLIKE_GRAD_SOU, &
-                 Velocity_U_Source_CV, Velocity_U_Source, Component, &
-                 NCOLACV, FINACV, COLACV, MIDACV, &
-                 NCOLCT, FINDCT, COLCT, &
-                 CV_NONODS, U_NONODS, X_NONODS, TOTELE, STOTEL, &
-                 CV_ELE_TYPE, CV_SELE_TYPE, U_ELE_TYPE, &
-                 CV_NLOC, U_NLOC, X_NLOC, CV_SNLOC, U_SNLOC, &
-                 CV_NDGLN, CV_SNDGLN, X_NDGLN, U_NDGLN, U_SNDGLN, &
-                 X, Y, Z, &
-                 MAT_NLOC, MAT_NDGLN, MAT_NONODS,  &
-                 NDIM,  &
-                 NCOLM, FINDM, COLM, MIDM, &
-                 XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
-                 Component_BC_Spatial, Component_BC )
+               DRhoDPressure = 0.
+
+               do icomp = 1, ncomp
+
+                  allocate( DensityC_tmp( cv_nonods ), DRhoDPressureC_tmp( cv_nonods ) )
+                  do iphase = 1, nphase
+                     s = ( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1
+                     e = ( icomp - 1 ) * nphase * cv_nonods + iphase * cv_nonods
+                     eos_option_path = trim( '/material_phase[' // int2str( icomp + nphase - 1 ) // ']/equation_of_state' )
+                     call Assign_Equation_of_State( eos_option_path( 1 ) )
+                     DensityC_tmp=0. ; DRhoDPressureC_tmp=0.
+                     call Computing_Perturbation_Density( state, &
+                          iphase, icomp, icomp, eos_option_path, &
+                          DensityC_tmp, &
+                          DRhoDPressureC_tmp, .true. )
+
+                     Density_Component( s : e ) = DensityC_tmp
+                     if ( its == 1 ) Density_Component_Old( s : e ) = Density_Component( s : e )
+
+                     DRhoDPressure( ( iphase - 1 ) * cv_nonods + 1 : iphase * cv_nonods ) = &
+                          DRhoDPressure( ( iphase - 1 ) * cv_nonods + 1 : iphase * cv_nonods ) + &
+                          DRhoDPressureC_tmp * Component( s : e )
+
+                  end do ! iphase
+                  deallocate( DensityC_tmp, DRhoDPressureC_tmp )
+               end do ! icomp
+            end if ! have_component_field
 
             ScalarField_Source_Store = ScalarField_Source + ScalarField_Source_Component
+
             volfra_use_theta_flux = .true.
             if( ncomp <= 1 ) volfra_use_theta_flux = .false.
-
-            U_Density = 0. ; U_Density_Old = 0.
-            if( .not. have_option( '/material_phase[0]/multiphase_properties/relperm_type' ) )then
-               U_Density = Density ; U_Density_Old = Density_Old
-            end if
 
 !!$ Now solving the Momentum Equation ( = Force Balance Equation )
             Conditional_ForceBalanceEquation: if ( solve_force_balance ) then
@@ -715,12 +715,40 @@
                Velocity_NU = Velocity_U ; Velocity_NV = Velocity_V ; Velocity_NW = Velocity_W 
                Velocity_NU_Old = Velocity_U_Old ; Velocity_NV_Old = Velocity_V_Old ; Velocity_NW_Old = Velocity_W_Old
 
-!!$ This calculates u_source_cv = ScalarField_Source_CV -- ie, the buoyancy term and as the name
-!!$ suggests it's a CV source term for the velocity field
+!!$ Diffusion-like term -- here used as part of the capillary pressure for porous media. It can also be 
+!!$ extended to surface tension -like term.
+               iplike_grad_sou = 0
+               if( have_option( '/material_phase[0]/multiphase_properties/capillary_pressure' ) )then
+                  iplike_grad_sou = 1
+                  call calculate_capillary_pressure( state, cv_nonods, nphase, plike_grad_sou_grad, &
+                       PhaseVolumeFraction )
+               end if
 
+               CALL CALCULATE_SURFACE_TENSION( state, nphase, ncomp, &
+                    PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, IPLIKE_GRAD_SOU, &
+                    Velocity_U_Source_CV, Velocity_U_Source, Component, &
+                    NCOLACV, FINACV, COLACV, MIDACV, &
+                    NCOLCT, FINDCT, COLCT, &
+                    CV_NONODS, U_NONODS, X_NONODS, TOTELE, STOTEL, &
+                    CV_ELE_TYPE, CV_SELE_TYPE, U_ELE_TYPE, &
+                    CV_NLOC, U_NLOC, X_NLOC, CV_SNLOC, U_SNLOC, &
+                    CV_NDGLN, CV_SNDGLN, X_NDGLN, U_NDGLN, U_SNDGLN, &
+                    X, Y, Z, &
+                    MAT_NLOC, MAT_NDGLN, MAT_NONODS,  &
+                    NDIM,  &
+                    NCOLM, FINDM, COLM, MIDM, &
+                    XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
+                    Component_BC_Spatial, Component_BC )
+
+!!$ Set U_Density
+               U_Density = 0. ; U_Density_Old = 0.
+               if( .not. have_option( '/material_phase[0]/multiphase_properties/relperm_type' ) )then
+                  U_Density = Density ; U_Density_Old = Density_Old
+               end if
+
+!!$ Make mid side nodes the average of the 2 corner nodes...
                density_tmp = density
 
-               ! make mid side nodes the average of the 2 corner nodes...
                if ( cv_nloc==6 .or. (cv_nloc==10 .and. ndim==3) ) then ! P2 triangle or tet
                   allocate( DEN_CV_NOD( CV_NLOC, NPHASE) ) 
 
@@ -763,15 +791,15 @@
                   if ( its == 1 ) U_Density_Old = Density_tmp
                end if
 
+!!$ This calculates u_source_cv = ScalarField_Source_CV -- ie, the buoyancy term and as the name
+!!$ suggests it's a CV source term for the velocity field
                call calculate_u_source_cv( state, cv_nonods, ndim, nphase, density_tmp, Velocity_U_Source_CV )
 
                ! calculate the viscosity for the momentum equation...
                if ( its == 1 ) &
-               call calculate_viscosity( state, ncomp, nphase, ndim, mat_nonods, mat_ndgln, Momentum_Diffusion )
+                    call calculate_viscosity( state, ncomp, nphase, ndim, mat_nonods, mat_ndgln, Momentum_Diffusion )
 
-               ! quick fix for collapsing water column...
-               ScalarField_Source_Store=0.
-
+               ! stabilisation for high aspect ratio problems - switched off
                call calculate_u_abs_stab( Material_Absorption_Stab, Material_Absorption, &
                     opt_vel_upwind_coefs, nphase, ndim, totele, cv_nloc, mat_nloc, mat_nonods, mat_ndgln )
 
@@ -873,23 +901,6 @@
 
             Conditional_Components: if( have_component_field ) then
                Loop_Components: do icomp = 1, ncomp
-
-                  ! Calculate Density_Component
-                  allocate( DensityC_tmp( cv_nonods ), DRhoDPressureC_tmp( cv_nonods ) )
-                  do iphase = 1, nphase
-                     s = ( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1
-                     e = ( icomp - 1 ) * nphase * cv_nonods + iphase * cv_nonods
-                     eos_option_path = trim( '/material_phase[' // int2str( icomp + nphase - 1 ) // ']/equation_of_state' )
-                     call Assign_Equation_of_State( eos_option_path( 1 ) )
-                     DensityC_tmp=0. ; DRhoDPressureC_tmp=0.
-                     call Computing_Perturbation_Density( state, &
-                          iphase, icomp, icomp, eos_option_path, &
-                          DensityC_tmp, &
-                          DRhoDPressureC_tmp, .true. )
-                     Density_Component( s : e ) = DensityC_tmp
-                     if ( its == 1 ) Density_Component_Old( s : e ) = Density_Component( s : e )
-                  end do
-                  deallocate( DensityC_tmp, DRhoDPressureC_tmp )
 
 !!$ Computing the absorption term for the multi-components equation
                   call Calculate_ComponentAbsorptionTerm( state, &
@@ -1002,15 +1013,15 @@
                      DO CV_NODI = 1, CV_NONODS
                         ScalarField_Source_Component( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) = &
                              ScalarField_Source_Component( CV_NODI + ( IPHASE - 1 ) * CV_NONODS )  &
-                             + Mean_Pore_CV(CV_NODI)* Component( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + &
-                             ( ICOMP - 1 ) * NPHASE * CV_NONODS ) &
+                             + Mean_Pore_CV( CV_NODI ) * Component_Old( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + &
+                             ( ICOMP - 1 ) * NPHASE * CV_NONODS )  &
                              * ( DENSITY_COMPONENT_OLD( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + &
                              ( ICOMP - 1 ) * NPHASE * CV_NONODS ) &
-                             -DENSITY_COMPONENT( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + &
-                             ( ICOMP - 1 ) * NPHASE * CV_NONODS )   ) &
-                             *PhaseVolumeFraction_Old(CV_NODI + ( IPHASE - 1 ) * CV_NONODS) &
-                             / DENSITY_COMPONENT( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + &
-                             ( ICOMP - 1 ) * NPHASE * CV_NONODS )
+                             - DENSITY_COMPONENT( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + &
+                             ( ICOMP - 1 ) * NPHASE * CV_NONODS ) ) &
+                             * PhaseVolumeFraction_Old( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
+                             / ( DENSITY_COMPONENT( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + &
+                             ( ICOMP - 1 ) * NPHASE * CV_NONODS ) * DT )
                      END DO
                   END DO
 
@@ -1020,7 +1031,7 @@
                     ']/is_multiphase_component/Comp_Sum2One' ) .and. ( ncomp > 1 ) ) then
                   call Cal_Comp_Sum2One_Sou( ScalarField_Source_Component, cv_nonods, nphase, ncomp, dt, its, &
                        NonLinearIteration, &
-                       Porosity, PhaseVolumeFraction, PhaseVolumeFraction_Old, Density_Component, Density_Component_Old, &
+                       Mean_Pore_CV, PhaseVolumeFraction, PhaseVolumeFraction_Old, Density_Component, Density_Component_Old, &
                        Component, Component_Old )
                end if
 
@@ -1283,13 +1294,13 @@
 !!$
                  Pressure_FEM( cv_nonods ), Pressure_CV( cv_nonods ), &
                  Temperature( nphase * cv_nonods ), Density( nphase * cv_nonods ), &
-                 Density_Component(nphase * cv_nonods * ncomp), &
+                 Density_Component( nphase * cv_nonods * ncomp ), &
                  PhaseVolumeFraction( nphase * cv_nonods ), Component( nphase * cv_nonods * ncomp ), &
                  U_Density( nphase * cv_nonods ), DRhoDPressure( nphase * cv_nonods ), &
 !!$
                  Pressure_FEM_Old( cv_nonods ), Pressure_CV_Old( cv_nonods ), &
                  Temperature_Old( nphase * cv_nonods ), Density_Old( nphase * cv_nonods ), &
-                 Density_Component_Old(nphase * cv_nonods * ncomp), &
+                 Density_Component_Old( nphase * cv_nonods * ncomp ), &
                  PhaseVolumeFraction_Old( nphase * cv_nonods ), Component_Old( nphase * cv_nonods * ncomp ), &
                  U_Density_Old( nphase * cv_nonods ), &
 !!$

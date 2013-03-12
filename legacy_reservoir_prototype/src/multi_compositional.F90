@@ -749,29 +749,22 @@
 
 
     SUBROUTINE CAL_COMP_SUM2ONE_SOU( V_SOURCE_COMP, CV_NONODS, NPHASE, NCOMP2, DT, ITS, NITS, &  
-         MEAN_PORE_CV, SATURA, SATURAOLD, DEN_COMP, DENOLD_COMP, COMP, COMPOLD ) 
+         MEAN_PORE_CV, SATURA, SATURAOLD, DEN_COMP, DENOLD_COMP, COMP, COMPOLD )
       ! make sure the composition sums to 1.0 
       use futils
       implicit none
-      integer, intent( in ) :: cv_nonods, nphase, ncomp2, ITS, NITS
-      REAL, INTENT( IN ) :: DT
+      integer, intent( in ) :: cv_nonods, nphase, ncomp2, its, nits
+      real, intent( in ) :: dt
       real, dimension( cv_nonods * nphase ), intent( inout ) :: V_SOURCE_COMP
       real, dimension( cv_nonods ), intent( in ) :: MEAN_PORE_CV
       real, dimension( cv_nonods * nphase ), intent( in ) :: SATURA, SATURAOLD
       real, dimension( cv_nonods * nphase * ncomp2 ), intent( in ) :: COMP, COMPOLD, DEN_COMP, DENOLD_COMP
 
-      ! the relaxing E.G. 0.5 is to help convergence. 
+      ! the relaxing (sum2one_relax) is to help convergence. 
       ! =1 is full adjustment to make sure we have sum to 1. 
       ! =0 is no adjustment. 
-      ! Local variables...
-      !    REAL, PARAMETER :: SUM2ONE_RELAX = 0.25
-      !REAL, PARAMETER :: SUM2ONE_RELAX = 0.99
-      !REAL, PARAMETER :: SUM2ONE_RELAX = 1.0
-      !REAL, PARAMETER :: SUM2ONE_RELAX = 0.1
-      !REAL, PARAMETER :: SUM2ONE_RELAX = 0.99
-      real :: sum2one_relax, COMP_SUM
+      real :: sum2one_relax, comp_sum
       integer :: iphase, cv_nodi, icomp
-
 
       do icomp = nphase + 1, ncomp2
          if( have_option( '/material_phase[' // int2str( icomp - 1 ) // &
@@ -779,53 +772,28 @@
             call get_option( '/material_phase[' // int2str( icomp - 1 ) // & 
                  ']/is_multiphase_component/Comp_Sum2One/Relaxation_Coefficient', &
                  sum2one_relax )
-            ewrite(3,*)'path:', '/material_phase[' // int2str( icomp - 1 ) // & 
-                 ']/is_multiphase_component/Comp_Sum2One/Relaxation_Coefficient'
+            !ewrite(3,*)'path:', '/material_phase[' // int2str( icomp - 1 ) // & 
+            !     ']/is_multiphase_component/Comp_Sum2One/Relaxation_Coefficient'
          else
             FLAbort( 'Please define the relaxation coefficient for components mass conservation constraint.' )
          end if
       end do
-
       ewrite(3,*) 'sum2one_relax', sum2one_relax
-      !stop 91
-
 
       DO IPHASE = 1, NPHASE
-
          DO CV_NODI = 1, CV_NONODS
 
-            IF( ( ITS == NITS ) .or. .true. ) THEN
+            COMP_SUM=0.
+            DO ICOMP = 1, NCOMP2
+               COMP_SUM = COMP_SUM + &
+                    COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + ( ICOMP - 1 ) * NPHASE * CV_NONODS )
+            END DO
+            !ewrite(3,*)'IPHASE,CV_NODI,S,COMP_SUM:',IPHASE,CV_NODI,SATURA( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ),COMP_SUM
 
-               COMP_SUM=0.0
-               DO ICOMP = 1, NCOMP2
-                  COMP_SUM=COMP_SUM+COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS &
-                       + ( ICOMP - 1 ) * NPHASE * CV_NONODS )
-               END DO
-               ewrite(3,*)'IPHASE,CV_NODI,S,COMP_SUM:',IPHASE,CV_NODI,SATURA( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ),COMP_SUM
-
-               V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
-                    = V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) & 
-                    - SUM2ONE_RELAX * MEAN_PORE_CV( CV_NODI ) * SATURA( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
-                     *(1.0 - COMP_SUM)/ DT
-
-            ELSE
-
-               COMP_SUM=0.0
-               DO ICOMP = 1, NCOMP2
-                  COMP_SUM=COMP_SUM+COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS &
-                       + ( ICOMP - 1 ) * NPHASE * CV_NONODS )
-               END DO
-               ewrite(3,*)'IPHASE,CV_NODI,S,COMP_SUM:',IPHASE,CV_NODI,SATURA( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ),COMP_SUM
-
-               V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
-                    = V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) & 
-                    - SUM2ONE_RELAX * MEAN_PORE_CV( CV_NODI ) * SATURA( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
-                     *(1.0 - COMP_SUM)/ DT
-
-            ENDIF
+            V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) = V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) & 
+                 - SUM2ONE_RELAX * MEAN_PORE_CV( CV_NODI ) * SATURA( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) * ( 1. - COMP_SUM ) / DT
 
          END DO
-
       END DO
 
       RETURN

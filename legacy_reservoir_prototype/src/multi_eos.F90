@@ -463,6 +463,7 @@
          if ( present_and_true( single_component ) ) then
 
             DensityComponent_Field = Density_Field
+            Derivative_DensityComponent_Pressure = DRho_DPressure / DensityComponent_Field
 
          else
 
