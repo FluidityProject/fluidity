@@ -765,6 +765,7 @@
       ! =0 is no adjustment. 
       real :: sum2one_relax, comp_sum
       integer :: iphase, cv_nodi, icomp
+      logical :: ensure_positive
 
       do icomp = nphase + 1, ncomp2
          if( have_option( '/material_phase[' // int2str( icomp - 1 ) // &
@@ -772,13 +773,14 @@
             call get_option( '/material_phase[' // int2str( icomp - 1 ) // & 
                  ']/is_multiphase_component/Comp_Sum2One/Relaxation_Coefficient', &
                  sum2one_relax )
-            !ewrite(3,*)'path:', '/material_phase[' // int2str( icomp - 1 ) // & 
-            !     ']/is_multiphase_component/Comp_Sum2One/Relaxation_Coefficient'
+
+            ensure_positive = have_option( '/material_phase[' // int2str( icomp - 1 ) // & 
+                 ']/is_multiphase_component/Comp_Sum2One/Ensure_Positive' )
          else
             FLAbort( 'Please define the relaxation coefficient for components mass conservation constraint.' )
          end if
       end do
-      ewrite(3,*) 'sum2one_relax', sum2one_relax
+      ewrite(3,*) 'sum2one_relax, ensure_positive', sum2one_relax, ensure_positive
 
       DO IPHASE = 1, NPHASE
          DO CV_NODI = 1, CV_NONODS
@@ -790,8 +792,13 @@
             END DO
             !ewrite(3,*)'IPHASE,CV_NODI,S,COMP_SUM:',IPHASE,CV_NODI,SATURA( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ),COMP_SUM
 
-            V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) = V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) & 
-                 - SUM2ONE_RELAX * MEAN_PORE_CV( CV_NODI ) * SATURA( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) * ( 1. - COMP_SUM ) / DT
+            IF ( ENSURE_POSITIVE ) THEN
+               V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) = V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) & 
+                    - SUM2ONE_RELAX * MEAN_PORE_CV( CV_NODI ) * SATURA( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) * MAX( ( 1. - COMP_SUM ), 0. ) / DT
+            ELSE
+               V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) = V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) & 
+                    - SUM2ONE_RELAX * MEAN_PORE_CV( CV_NODI ) * SATURA( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) * ( 1. - COMP_SUM ) / DT
+            END IF
 
          END DO
       END DO

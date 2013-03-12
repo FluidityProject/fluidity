@@ -528,6 +528,12 @@ to sum to 1 by adding constraint into compositional source term.</a:documentatio
 --&gt; 0: under-relaxation ; --&gt; 1: over-relaxation</a:documentation>
                     <ref name="real"/>
                   </element>
+                  <optional>
+                    <element name="Ensure_Positive">
+                      <a:documentation>Ensure that this constraint acts only as a positive absorption term</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
                 </element>
               </optional>
               <optional>

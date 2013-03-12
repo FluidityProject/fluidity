@@ -445,7 +445,9 @@ start =
                      (
                         ## Relaxation coefficient to summation constraint [0,1]. 
                         ## --> 0: under-relaxation ; --> 1: over-relaxation
-                        element Relaxation_Coefficient { real }
+                        element Relaxation_Coefficient { real },
+                        ## Ensure that this constraint acts only as a positive absorption term
+                        element Ensure_Positive { empty }?
                      )
                   }?,
                   ## Surface tension
