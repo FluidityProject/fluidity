@@ -380,6 +380,7 @@
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
+        <consistent_interpolation/>
       </diagnostic>
     </vector_field>
   </material_phase>

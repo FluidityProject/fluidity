@@ -209,7 +209,7 @@ def plot_length(rl):
   pylab.plot(rl[:,1], rl[:,0], marker = 'o', markerfacecolor='white', markersize=6, markeredgecolor='black', linestyle="solid")
   pylab.plot(rl[:,1], Lemoinkim, linestyle="dashed")
   pylab.legend(("Fluidity","Le-Moin-Kim DNS"), loc="best")
-  pylab.axis([min(rl[:,1]),max(rl[:,1]),min(rl[:,0]),max(rl[:,0])])
+  pylab.axis([min(rl[:,1]),max(rl[:,1]),min(rl[:,0])-0.5,max(rl[:,0])+0.5])
   pylab.savefig("reatt_len_3d.pdf")
   return
 
