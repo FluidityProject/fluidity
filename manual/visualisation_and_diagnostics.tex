@@ -481,6 +481,7 @@ the \fluidity\ trunk. The programs generated can then be found in the
 	interval				& \ref{sec:interval} 			\\
 	linear\_interpolation			& \ref{sec:scripts_linear_interpolation} \\	
 	mean\_flow				& \ref{sec:mean_flow}			\\
+	meshconv                & \ref{sec:meshconv} \\
 	mms\_tracer\_error			& \ref{sec:mms_tracer_error}		\\
 	nodecount				& \ref{sec:nodecount}			\\
 	periodise				& \ref{sec:periodise}			\\
@@ -926,6 +927,25 @@ The options include specification of an area of the domain to sample and the num
    	verbose output
 \end{lstlisting}
 The option \lstinline[language = Bash]+-h+ provides further information on how to use these.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% MESHCONV %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{meshconv}
+\label{sec:meshconv}
+meshconv converts an input mesh file into another mesh format. It is run from the command line:
+\begin{lstlisting}[language = Bash]
+meshconv [OPTIONS] ... name
+\end{lstlisting}
+where \texttt{name} refers to the filename of the input mesh. It options are:
+\begin{lstlisting}[language = Bash]
+-h   displays help
+-i   gmsh/triangle/exodusii
+     input mesh format
+-o   gmsh/triangle
+     output mesh format (must not be exodusii)
+-l   output to log file
+-v   verbose output
+\end{lstlisting}
+Note that the mesh format \texttt{exodusii} is only supported as an input mesh format.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% MMS TRACER ERROR %%%%%%%%%%%%%%%%%%%%%%%
 
