@@ -1,0 +1,73 @@
+#!/usr/bin/env python
+
+# This script generates pvd files for time series in paraview
+import vtk
+import glob
+import re
+
+
+def generate_pvd(pvdfilename, list_vtu_filenames, list_time):
+    """ This function writes a simple xml pvd file that can be
+        loaded in paraview to display time series correctly
+        with irregular timesteps
+    """
+    if (len(list_vtu_filenames) != len(list_time)):
+        print "Error, list of filenames and time are of unequal length. Exiting!"
+        exit()
+    pvdfile = open(pvdfilename, "w")
+    # Write header:
+    pvdfile.write('<?xml version="1.0"?>\n<VTKFile type="Collection" version="0.1" byte_order="LittleEndian">\n<Collection>\n')
+    # Now write the information for the time series:
+    for i in range(len(list_time)):
+        pvdfile.write('    <DataSet timestep="'+str(list_time[i])+'" group="" part="0" file="'+list_vtu_filenames[i]+'"/>\n')
+    # Write closing statements in the file and close it:
+    pvdfile.write('</Collection>\n</VTKFile>')
+    pvdfile.close()
+
+
+# Function taken from:
+# http://stackoverflow.com/questions/2669059/how-to-sort-alpha-numeric-set-in-python
+def sorted_nicely(l):
+    """ Sort the given iterable in the way that humans expect."""
+    convert = lambda text: int(text) if text.isdigit() else text
+    alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ]
+    return sorted(l, key = alphanum_key)
+
+
+# Find all vtu/pvtu files for fluid vtus in this folder:
+fluid_vtus = []
+for file in sorted_nicely(glob.glob('*vtu')):
+    if (not ('checkpoint' in file)):
+        fluid_vtus.append(file)
+
+
+# Loop over all the fluid vtus found and collect time data from them to assemble the pvd file:
+time = []
+for filename in fluid_vtus:
+    print "Processing file: ", filename
+    if ('.pvtu' in filename):
+        filebasename = filename.replace('.pvtu','')
+        filename = filebasename+'/'+filebasename+'_0.vtu'
+
+    # Get the unstructured mesh:
+    vtkfile = vtk.vtkXMLUnstructuredGridReader()
+    vtkfile.SetFileName(filename)
+    vtkfile.Update()
+    ug = vtkfile.GetOutput()
+
+    # Only process the first node in the mesh, as the time is constant over the whole mesh:
+    n0 = ug.GetCell(0).GetPointId(0)
+    t = ug.GetPointData().GetArray("Time").GetTuple(n0)
+    time.append(t[0])
+
+
+# Get basename of the simulation from command line or assemble it on your own:
+try:
+    simulation_basename = sys.argv[1]
+except:
+    simulation_basename = '_'.join('.'.join(fluid_vtus[0].split('.')[0:-1]).split('_')[0:-1])
+
+# Generate fluid pvd file:
+generate_pvd(simulation_basename+'.pvd', fluid_vtus, time)
+
+print "Program exited without errors."
