@@ -1458,6 +1458,7 @@ start =
             scalar_field_choice*,
             vector_field_choice*,
             tensor_field_choice*,
+            population_balance*,
             ## Parameters required to model spontaneous electrical potentials in porous media.
             element electrical_properties {
                (
@@ -1799,6 +1800,359 @@ start =
          multiphase_interaction?
       }
    )      
+
+population_balance = 
+   (
+      ##
+      element population_balance {
+         (
+            ## Determine initial weighted_abscissa and weights using the PD algorithm and the 
+            ## initial conditions set in the diagnostic moment fields.
+            ## 
+            ## In this case it does not matter what is set in the weighted_abscissa and weights
+            ## fields initial conditions option
+            element calculate_initial_conditions_from_moments {
+               empty
+            }|
+            ## Use initial conditions set in the weighted_abscissa and weights prognostic
+            ## fields
+            ## 
+            ## In this case it does not matter what is set in the moment field initial conditions 
+            ## options
+            element use_prognostic_field_initial_conditions {
+               empty
+            }
+         ),
+         attribute name { xsd:string },
+         element abscissa {
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Abscissa_0" },
+               ## Field type
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Abscissa_1" },
+               ## Field type
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { xsd:string },
+               ## Field type
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            }*
+         },
+         element weights {
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Weight_0" },
+               ## Field type
+               element prognostic {
+                  velocity_mesh_choice,
+                  prognostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Weight_1" },
+               ## Field type
+               element prognostic {
+                  velocity_mesh_choice,
+                  prognostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { xsd:string },
+               ## Field type
+               element prognostic {
+                  velocity_mesh_choice,
+                  prognostic_scalar_field
+               }
+            }*
+         },
+         element weighted_abscissa {
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "WeightedAbscissa_0" },
+               ## Field type
+               element prognostic {
+                  velocity_mesh_choice,
+                  prognostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "WeightedAbscissa_1" },
+               ## Field type
+               element prognostic {
+                  velocity_mesh_choice,
+                  prognostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { xsd:string },
+               ## Field type
+               element prognostic {
+                  velocity_mesh_choice,
+                  prognostic_scalar_field
+               }
+            }*
+         },
+         element moments {
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Moment_0" },
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  (
+                     ## Initial condition for WholeMesh
+                     ##
+                     ## Only specify one condition if not using mesh regions.
+                     ## Otherwise select other initial_condition option, specify region_ids
+                     ## and distinct names.  Then add extra intial conditions for other regions.
+                     element initial_condition {
+                        attribute name { "WholeMesh" },
+                        input_choice_initial_condition_real
+                     }|
+                     ## Multiple initial_conditions are allowed if specifying
+                     ## different values in different
+                     ## regions of the mesh (defined by region_ids).  In this case
+                     ## each initial_condition
+                     ## requires a distinct name for the options dictionary.
+                     element initial_condition {
+                        attribute name { string },
+                        region_ids?,
+                        input_choice_initial_condition_real
+                     }
+                  )+,
+                  diagnostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Moment_1" },
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  (
+                     ## Initial condition for WholeMesh
+                     ##
+                     ## Only specify one condition if not using mesh regions.
+                     ## Otherwise select other initial_condition option, specify region_ids
+                     ## and distinct names.  Then add extra intial conditions for other regions.
+                     element initial_condition {
+                        attribute name { "WholeMesh" },
+                        input_choice_initial_condition_real
+                     }|
+                     ## Multiple initial_conditions are allowed if specifying
+                     ## different values in different
+                     ## regions of the mesh (defined by region_ids).  In this case
+                     ## each initial_condition
+                     ## requires a distinct name for the options dictionary.
+                     element initial_condition {
+                        attribute name { string },
+                        region_ids?,
+                        input_choice_initial_condition_real
+                     }
+                  )+,
+                  diagnostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Moment_2" },
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  (
+                     ## Initial condition for WholeMesh
+                     ##
+                     ## Only specify one condition if not using mesh regions.
+                     ## Otherwise select other initial_condition option, specify region_ids
+                     ## and distinct names.  Then add extra intial conditions for other regions.
+                     element initial_condition {
+                        attribute name { "WholeMesh" },
+                        input_choice_initial_condition_real
+                     }|
+                     ## Multiple initial_conditions are allowed if specifying
+                     ## different values in different
+                     ## regions of the mesh (defined by region_ids).  In this case
+                     ## each initial_condition
+                     ## requires a distinct name for the options dictionary.
+                     element initial_condition {
+                        attribute name { string },
+                        region_ids?,
+                        input_choice_initial_condition_real
+                     }
+                  )+,
+                  diagnostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Moment_3" },
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  (
+                     ## Initial condition for WholeMesh
+                     ##
+                     ## Only specify one condition if not using mesh regions.
+                     ## Otherwise select other initial_condition option, specify region_ids
+                     ## and distinct names.  Then add extra intial conditions for other regions.
+                     element initial_condition {
+                        attribute name { "WholeMesh" },
+                        input_choice_initial_condition_real
+                     }|
+                     ## Multiple initial_conditions are allowed if specifying
+                     ## different values in different
+                     ## regions of the mesh (defined by region_ids).  In this case
+                     ## each initial_condition
+                     ## requires a distinct name for the options dictionary.
+                     element initial_condition {
+                        attribute name { string },
+                        region_ids?,
+                        input_choice_initial_condition_real
+                     }
+                  )+,
+                  diagnostic_scalar_field
+               }
+            },
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { xsd:string },
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  (
+                     ## Initial condition for WholeMesh
+                     ##
+                     ## Only specify one condition if not using mesh regions.
+                     ## Otherwise select other initial_condition option, specify region_ids
+                     ## and distinct names.  Then add extra intial conditions for other regions.
+                     element initial_condition {
+                        attribute name { "WholeMesh" },
+                        input_choice_initial_condition_real
+                     }|
+                     ## Multiple initial_conditions are allowed if specifying
+                     ## different values in different
+                     ## regions of the mesh (defined by region_ids).  In this case
+                     ## each initial_condition
+                     ## requires a distinct name for the options dictionary.
+                     element initial_condition {
+                        attribute name { string },
+                        region_ids?,
+                        input_choice_initial_condition_real
+                     }
+                  )+,
+                  diagnostic_scalar_field
+               }
+            }*
+         },
+         element statistics {
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Mean" },
+               ## Field type
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            }?,
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "StandardDeviation" },
+               ## Field type
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            }?,
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "Skew" },
+               ## Field type
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            }?
+         },   
+         ## At each vertex a linear system is solved to determine source terms
+         ## for the abscissa and weight transport equations. This requires inversion
+         ## of a matrix that has terms that are a function of the weighted abscissa.
+         ## If any two abscissa happen to lie very close to one another this can cause
+         ## this matrix to be ill-conditioned which can cause large errors or solver
+         ## failures when attempting to invert the matrix. There several options for 
+         ## evading this problem:
+         ##
+         ## (a) Set the abscissa and weight source terms to zero at the offending vertex.
+         ## (b) Perturbate the weighted absciss used to construct the matrix until the 
+         ## matrix is no longer ill conditioned and can be inverted.
+         ## (c) Use the source terms of neighbouring cells (not implemented)
+         element ill_conditioned_matrices {
+            ## The required condition number of the matrix. Recommended value of 1e-12
+            element required_condition_number{ real },
+            (
+               ## This is a better option when much of the domain has a minimum 0'th moment
+               element set_source_to_zero { empty }|
+               element perturbate{
+                  ## The amount to perturbate the weighted abscissa. The values are 
+                  ## iteratively perturbated by rand(-1,1)*perturbation until the matrix
+                  ## exceeds the required condition number. Too low a value can cause
+                  ## very long run times but a higher value will lead to larger errors.
+                  ## After every ten perturbations at any one grid location a message is 
+                  ## printed to the log file noting the difficulties in solving the linear 
+                  ## system.
+                  ## Recommended value of 1e-7
+                  element perturbation{ real }
+               }
+            )
+         },
+         ## weights of zero can cause instabilities. It is recommended that a minimum
+         ## weight of approx 1e-10 is used.
+         element minimum_weight{ real },
+         ## This is the submerged specific gravity, R, of this population balance
+         ## as a function of internal coordinate, Z. 
+         ## It will be used in the equation of state.
+         ## 
+         ## R(Z) = (rho_c(Z) - rho_a)/(rho_a)
+         ## 
+         ## Where: rho_c(Z) is the density of the dispersed phase and rho_a is 
+         ## the ambient fluid density
+         ##
+         ## Must be given as a python function in the form:
+         ## 
+         ##  def R(Z): 
+         ##     # Function code
+         ##     return # Return value of R
+         element submerged_specific_gravity {
+            python_code
+         }?,
+         element output_abscissa_and_weights{ empty }?,
+         element output_sources{ empty }?
+      }
+   )
 
 sediment = 
    (

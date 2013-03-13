@@ -102,6 +102,7 @@ module fluids_module
   use multiphase_module
   use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
   use momentum_diagnostic_fields, only: calculate_densities
+  use DQMOM ! gb812
 
   implicit none
 
@@ -175,6 +176,8 @@ contains
     logical::use_advdif=.true.  ! decide whether we enter advdif or not
 
     INTEGER :: adapt_count
+
+!    real :: temp_dt   ! dummy variable ! gb812 3-dec-2012
 
     ! Absolute first thing: check that the options, if present, are valid.
     call check_options
@@ -297,6 +300,9 @@ contains
     if(use_sub_state()) then
        call populate_sub_state(state,sub_state)
     end if
+
+    ! set population balance initial conditions sdb gb812
+    call DQMOM_init(state)
 
     ! Calculate the number of scalar fields to solve for and their correct
     ! solve order taking into account dependencies.
@@ -444,6 +450,21 @@ contains
     timestep_loop: do
        timestep = timestep + 1
 
+
+       !!!!!-------CAUTION-------OVERRIDES TIMESTEP SET IN DIAMOND OPTIONS!! 
+       ! makes the time step small in the beginning to take care of perturbations in singular matrices  --  gb812 3-dec-2012
+!       if (timestep==1) then
+!          print*, "timestep number in caution = ",timestep
+!          temp_dt = dt
+!          dt = 1.0e-4   ! this small timestep should be calculated based on the condition number (of the perturbed matrix) or specified in diamond with a default value
+!          call set_option("/timestepping/timestep", dt)
+!       else if (timestep >50) then   ! the number of timesteps should either be specified in diamond with default values or decided by the condition number and time coupling relation (to be worked on later)
+!          dt = temp_dt       
+!          call set_option("/timestepping/timestep", dt) 
+!       end if
+       !!!!!------END CAUTION---------------------------
+
+
        ewrite(1, *) "********************"
        ewrite(1, *) "*** NEW TIMESTEP ***"
        ewrite(1, *) "********************"
@@ -569,6 +590,9 @@ contains
           end if
 
           call compute_goals(state)
+
+          ! Calculate source terms for populations ------ sdp 28-05-2012 gb812
+          call dqmom_calculate_source_terms(state, ITS)
 
           !------------------------------------------------
           ! Addition for calculating drag force ------ jem 05-06-2008
@@ -749,6 +773,7 @@ contains
             end if
           end do 
 
+
           ! This is where the non-legacy momentum stuff happens
           ! a loop over state (hence over phases) is incorporated into this subroutine call
           ! hence this lives outside the phase_loop
@@ -760,6 +785,13 @@ contains
           else
              call solve_momentum(state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state)
           end if
+
+
+          ! calculate abscissa for populations ----- sdp 28-05-2012 gb812
+          ! this must be done at the end of each non-linear iteration
+          call dqmom_calculate_abscissa(state)
+
+
 
           if(nonlinear_iterations > 1) then
              ! Check for convergence between non linear iteration loops
