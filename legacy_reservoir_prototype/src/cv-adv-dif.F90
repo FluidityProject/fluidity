@@ -1149,14 +1149,14 @@
 
                      ! Define face value of theta
                      IF(IGOT_T2==1) THEN
-                        FTHETA=FACE_THETA( DT, CV_THETA, HDC, NDOTQ, LIMDTT2, DIFF_COEF_DIVDX, &
+                        FTHETA=FACE_THETA( DT, CV_THETA, ( cv_disopt>=8 ),HDC, NDOTQ, LIMDTT2, DIFF_COEF_DIVDX, &
                              T(CV_NODJ_IPHA)*DEN(CV_NODJ_IPHA)*T2(CV_NODJ_IPHA), &
                              T(CV_NODI_IPHA)*DEN(CV_NODI_IPHA)*T2(CV_NODI_IPHA), &
                              NDOTQOLD, LIMDTT2OLD, DIFF_COEFOLD_DIVDX, &
                              TOLD(CV_NODJ_IPHA)*DENOLD(CV_NODJ_IPHA)*T2OLD(CV_NODJ_IPHA), &
                              TOLD(CV_NODI_IPHA)*DENOLD(CV_NODI_IPHA)*T2OLD(CV_NODI_IPHA) )
                      ELSE
-                        FTHETA=FACE_THETA( DT, CV_THETA, HDC, NDOTQ, LIMDTT2, DIFF_COEF_DIVDX, &
+                        FTHETA=FACE_THETA( DT, CV_THETA, ( cv_disopt>=8 ),HDC, NDOTQ, LIMDTT2, DIFF_COEF_DIVDX, &
                              T(CV_NODJ_IPHA)*DEN(CV_NODJ_IPHA), &
                              T(CV_NODI_IPHA)*DEN(CV_NODI_IPHA), &
                              NDOTQOLD, LIMDTT2OLD, DIFF_COEFOLD_DIVDX, &
@@ -1466,16 +1466,19 @@
                   ENDIF
 
                else
+!                  print *,'den=',den
+!                  stop 578
 
-                  W_SUM_ONE1 = 1.0 ! Applies constraint to T (if ==1.0)
-                  W_SUM_ONE2 = 0.0 ! Applies constraint to Told (if ==1.0)
+                  W_SUM_ONE1 = 1.0 ! =1 Applies constraint to T (if ==1.0)
+!                  W_SUM_ONE1 = 0.0 ! =1 Applies constraint to T (if ==1.0)
+                  W_SUM_ONE2 = 0.0 ! =1 Applies constraint to Told (if ==1.0)
                   ! the original working code used W_SUM_ONE1 = 1, W_SUM_ONE2 = 1
                   CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - MASS_CV( CV_NODI ) * MEAN_PORE_CV( CV_NODI ) *( &
-                       (1.0-W_SUM_ONE1) * T( CV_NODI_IPHA ) / DT &
-                       -(1.0-W_SUM_ONE2) * TOLD( CV_NODI_IPHA ) / DT  &
-                       +TOLD( CV_NODI_IPHA ) * ( DEN( CV_NODI_IPHA )-DENOLD( CV_NODI_IPHA ) ) / ( DT * DEN( CV_NODI_IPHA ) ) - &
-                       DERIV( CV_NODI_IPHA ) * CV_P( CV_NODI ) * T( CV_NODI_IPHA ) / ( DT * DEN( CV_NODI_IPHA ) ) )
-
+                       (1.0-W_SUM_ONE1) *  T( CV_NODI_IPHA ) / DT &
+                       -(1.0-W_SUM_ONE2) *  TOLD( CV_NODI_IPHA ) / DT  &
+                       +TOLD( CV_NODI_IPHA ) * (DEN( CV_NODI_IPHA )-DENOLD( CV_NODI_IPHA )) / ( DT * DEN( CV_NODI_IPHA ) ) &
+                       -DERIV( CV_NODI_IPHA ) * CV_P( CV_NODI ) * T( CV_NODI_IPHA ) / ( DT * DEN( CV_NODI_IPHA ) ) &
+                       )
                   IF(IPHASE==1) THEN ! Add constraint to force sum of volume fracts to be unity... 
                      ! W_SUM_ONE==1 applies the constraint
                      ! W_SUM_ONE==0 does NOT apply the constraint
@@ -7664,13 +7667,14 @@
 
 
 
-    REAL FUNCTION FACE_THETA( DT, CV_THETA, HDC, NDOTQ, LIMDT, DIFF_COEF_DIVDX, &
+    REAL FUNCTION FACE_THETA( DT, CV_THETA, INTERFACE_TRACK, HDC, NDOTQ, LIMDT, DIFF_COEF_DIVDX, &
          T_NODJ_IPHA, T_NODI_IPHA,  &
          NDOTQOLD, LIMDTOLD, DIFF_COEFOLD_DIVDX, TOLD_NODJ_IPHA, TOLD_NODI_IPHA )
       IMPLICIT NONE
       ! Define face value of theta
       REAL :: DT, CV_THETA, HDC, NDOTQ, LIMDT, DIFF_COEF_DIVDX, T_NODJ_IPHA, T_NODI_IPHA,  &
            NDOTQOLD, LIMDTOLD, DIFF_COEFOLD_DIVDX, TOLD_NODJ_IPHA, TOLD_NODI_IPHA
+      LOGICAL INTERFACE_TRACK
       ! Local variables
       REAL :: FTHETA, HF, HFOLD, GF, PINVTH, QINVTH
 
@@ -7685,7 +7689,11 @@
          ! 0.5 is the original value. 
          !       FTHETA = MAX( 0.5, 1. - 0.5 * MIN( ABS( PINVTH ), ABS( QINVTH ))) 
          !       FTHETA = MAX( 0.5, 1. - 0.25 * MIN( ABS( PINVTH ), ABS( QINVTH ))) 
-         FTHETA = MAX( 0.5, 1. - 0.125 * MIN( ABS( PINVTH ), ABS( QINVTH ))) 
+         IF(INTERFACE_TRACK) THEN ! For interface tracking use forward Euler as much as possible...
+            FTHETA = MAX( 0.0, 1. - 0.125 * MIN( ABS( PINVTH ), ABS( QINVTH ))) 
+         ELSE ! for Crank Nickolson time stepping base scheme... 
+            FTHETA = MAX( 0.5, 1. - 0.125 * MIN( ABS( PINVTH ), ABS( QINVTH ))) 
+         ENDIF
       ENDIF
 
       FACE_THETA = FTHETA
