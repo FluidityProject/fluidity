@@ -7690,7 +7690,8 @@
          !       FTHETA = MAX( 0.5, 1. - 0.5 * MIN( ABS( PINVTH ), ABS( QINVTH ))) 
          !       FTHETA = MAX( 0.5, 1. - 0.25 * MIN( ABS( PINVTH ), ABS( QINVTH ))) 
          IF(INTERFACE_TRACK) THEN ! For interface tracking use forward Euler as much as possible...
-            FTHETA = MAX( 0.0, 1. - 0.125 * MIN( ABS( PINVTH ), ABS( QINVTH ))) 
+!            FTHETA = MAX( 0.0, 1. - 0.125 * MIN( ABS( PINVTH ), ABS( QINVTH ))) 
+            FTHETA = MAX( 0.0, 1. - 0.5 * MIN( ABS( PINVTH ), ABS( QINVTH ))) 
          ELSE ! for Crank Nickolson time stepping base scheme... 
             FTHETA = MAX( 0.5, 1. - 0.125 * MIN( ABS( PINVTH ), ABS( QINVTH ))) 
          ENDIF
