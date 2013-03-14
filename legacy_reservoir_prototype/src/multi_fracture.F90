@@ -113,8 +113,8 @@
       type( quadrature_type ) :: quad
       type( element_type ) :: shape
       integer, dimension( : ), allocatable :: sndglno, boundary_ids
-      integer :: quad_degree
-      type( mesh_type ) :: mesh
+      integer :: quad_degree, poly_degree, continuity
+      type( mesh_type ) :: mesh, p0_mesh
 
       ewrite(3,*) 'inside initialise_fractures'
 
@@ -178,10 +178,18 @@
       deallocate( boundary_ids, sndglno )
       call deallocate( mesh )
       call deallocate_element( shape )
+
+      ! now create the p0 mesh
+      poly_degree = 0
+      continuity = -1
+      shape = make_element_shape( loc, ndim, poly_degree, quad )
+      p0_mesh = make_mesh( fracture_positions%mesh, shape, continuity, "P0Mesh" )
+
+      call deallocate_element( shape )
       call deallocate( quad )
 
       ! store permeability
-      call allocate( permeability, fracture_positions%mesh, name = "Permeability" )
+      call allocate( permeability, p0_mesh, name = "Permeability" )
       call zero( permeability )
 
       call set_all( permeability, 1, 1, p1 )
