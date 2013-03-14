@@ -534,6 +534,12 @@ to sum to 1 by adding constraint into compositional source term.</a:documentatio
                       <empty/>
                     </element>
                   </optional>
+                  <optional>
+                    <element name="Enforce_Comp_Sum2One">
+                      <a:documentation>Explicitly enforce components to sum to one</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
                 </element>
               </optional>
               <optional>

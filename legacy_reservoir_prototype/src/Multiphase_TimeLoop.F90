@@ -185,10 +185,10 @@
       character( len = option_path_len ) :: eos_option_path( 1 )
 
       integer :: stat, istate, iphase, jphase, icomp, its, its2, cv_nodi, adapt_time_steps, cv_inod
-      real :: rsum
+      real, dimension( : ), allocatable :: rsum
 
       real, dimension(:, :), allocatable :: DEN_CV_NOD, SUF_SIG_DIAGTEN_BC
-      integer :: CV_NOD, CV_NOD_PHA, CV_ILOC, ELE, s, e
+      integer :: CV_NOD, CV_NOD_PHA, CV_ILOC, ELE, s, e, i
 
 
 !!$ Compute primary scalars used in most of the code
@@ -437,7 +437,6 @@
       sum_theta_flux = 1. ; sum_one_m_theta_flux = 0.
       ScalarField_Source_Store=0. ; ScalarField_Source_Component=0.
 
-
 !!$ Defining discretisation options
       call Get_Discretisation_Options( state, is_overlapping, &
            t_disopt, v_disopt, t_beta, v_beta, t_theta, v_theta, u_theta, &
@@ -522,70 +521,42 @@
          PhaseVolumeFraction_Old = PhaseVolumeFraction ; Temperature_Old = Temperature ; Component_Old = Component
          Density_Old_tmp = Density_tmp ; Density_Component_Old = Density_Component
 
-!!$ Update state memory
-!!$         if ( have_temperature_field ) then
-!!$            do iphase = 1, nphase
-!!$               Temperature_State => extract_scalar_field( state( iphase ), 'Temperature' )
-!!$               Temperature_State % val = Temperature( 1 + ( iphase - 1 ) * cv_nonods : iphase * cv_nonods )
-!!$            end do
-!!$         end if
-!!$         Pressure_State => extract_scalar_field( state( 1 ), 'Pressure' )
-!!$         Pressure_State % val = Pressure_CV
-!!$         do icomp = 1, ncomp
-!!$            do iphase = 1, nphase
-!!$               Component_State => extract_scalar_field( state( icomp + nphase ), & 
-!!$                    'ComponentMassFractionPhase' // int2str( iphase ) )
-!!$               Component_State % val = component( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
-!!$                    nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
-!!$            end do
-!!$         end do
-
          ! evaluate prescribed fields at time = current_time+dt
          call set_prescribed_field_values( state, exclude_interpolated = .true., &
               exclude_nonreprescribed = .true., time = acctim )
 
-         IF( .false. ) THEN
-            ! Make sure the FEM representation sums to unity so we don't get surprising results...
-            DO CV_INOD = 1, CV_NONODS
-               RSUM = 0.0
-               DO IPHASE = 1, NCOMP
-                  RSUM = RSUM + COMPONENT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
-               END DO
-               DO IPHASE = 1, NPHASE
-                  COMPONENT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = COMPONENT( CV_INOD + ( IPHASE - 1 ) &
-                       * CV_NONODS ) / RSUM
-               END DO
-            END DO
-         END IF
-
-         Conditional_Components_Linearisation: if ( .false. .and. itime == 1 ) then
-            call Updating_Linearised_Components( totele, nphase, ncomp, ndim, cv_nloc, cv_nonods, cv_ndgln, &
-                 component )
-
-            component_old = component
-
-            do icomp = 1, ncomp
-               do iphase = 1, nphase
-                  Component_State => extract_scalar_field( state( icomp + nphase ), & 
-                       'ComponentMassFractionPhase' // int2str( iphase ) )
-                  Component_State % val = component( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
-                       nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
-
-                  Component_State => extract_scalar_field( state( icomp + nphase ), & 
-                       'ComponentMassFractionPhase' // int2str( iphase ) // 'Old' )
-                  Component_State % val = component_old( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
-                       nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
-               end do
-            end do
-         end if Conditional_Components_Linearisation
-
-
+!!$ Start non-linear loop
          Loop_NonLinearIteration: do its = 1, NonLinearIteration
 
             call Calculate_Phase_Component_Densities( state, &
                  Density, DRhoDPressure )
 
             if( its == 1 ) Density_Old = Density
+
+!!$ Calculate Density_Component_Old for compositional
+            if( have_component_field .and. its ==1 ) then
+
+               do icomp = 1, ncomp
+
+                  allocate( DensityC_tmp( cv_nonods ), DRhoDPressureC_tmp( cv_nonods ) )
+                  do iphase = 1, nphase
+                     s = ( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1
+                     e = ( icomp - 1 ) * nphase * cv_nonods + iphase * cv_nonods
+                     eos_option_path = trim( '/material_phase[' // int2str( icomp + nphase - 1 ) // ']/equation_of_state' )
+                     call Assign_Equation_of_State( eos_option_path( 1 ) )
+                     DensityC_tmp=0. ; DRhoDPressureC_tmp=0.
+                     call Computing_Perturbation_Density( state, &
+                          iphase, icomp, icomp, eos_option_path, &
+                          DensityC_tmp, &
+                          DRhoDPressureC_tmp, .true. )
+
+                     Density_Component( s : e ) = DensityC_tmp
+                     Density_Component_Old( s : e ) = Density_Component( s : e )
+
+                  end do ! iphase
+                  deallocate( DensityC_tmp, DRhoDPressureC_tmp )
+               end do ! icomp
+            end if ! have_component_field
 
             if( solve_force_balance ) then
                call Calculate_AbsorptionTerm( state, &
@@ -601,7 +572,7 @@
                     cv_snloc, nphase, ndim, nface, mat_nonods, cv_nonods, x_nloc, ncolele, cv_ele_type, &
                     finele, colele, cv_ndgln, cv_sndgln, x_ndgln, mat_ndgln, permeability, material_absorption, &
                     Velocity_U_BC_Spatial, PhaseVolumeFraction_BC_Spatial,  PhaseVolumeFraction_BC, PhaseVolumeFraction, &
-                    state, x_nonods, x,y,z )
+                    state, x_nonods, x, y, z )
               endif
             end if
 
@@ -692,7 +663,6 @@
                           DRhoDPressureC_tmp, .true. )
 
                      Density_Component( s : e ) = DensityC_tmp
-                     if ( its == 1 ) Density_Component_Old( s : e ) = Density_Component( s : e )
 
                      DRhoDPressure( ( iphase - 1 ) * cv_nonods + 1 : iphase * cv_nonods ) = &
                           DRhoDPressure( ( iphase - 1 ) * cv_nonods + 1 : iphase * cv_nonods ) + &
@@ -851,6 +821,30 @@
                Pressure_State => extract_scalar_field( state( 1 ), 'Pressure' )
                Pressure_State % val = Pressure_CV
 
+!!$ Calculate Density_Component for compositional
+               if( have_component_field ) then
+
+                  do icomp = 1, ncomp
+
+                     allocate( DensityC_tmp( cv_nonods ), DRhoDPressureC_tmp( cv_nonods ) )
+                     do iphase = 1, nphase
+                        s = ( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1
+                        e = ( icomp - 1 ) * nphase * cv_nonods + iphase * cv_nonods
+                        eos_option_path = trim( '/material_phase[' // int2str( icomp + nphase - 1 ) // ']/equation_of_state' )
+                        call Assign_Equation_of_State( eos_option_path( 1 ) )
+                        DensityC_tmp=0. ; DRhoDPressureC_tmp=0.
+                        call Computing_Perturbation_Density( state, &
+                             iphase, icomp, icomp, eos_option_path, &
+                             DensityC_tmp, &
+                             DRhoDPressureC_tmp, .true. )
+
+                        Density_Component( s : e ) = DensityC_tmp
+
+                     end do ! iphase
+                     deallocate( DensityC_tmp, DRhoDPressureC_tmp )
+                  end do ! icomp
+               end if ! have_component_field
+
             end if Conditional_ForceBalanceEquation
 
             Conditional_PhaseVolumeFraction: if ( solve_PhaseVolumeFraction ) then
@@ -994,6 +988,44 @@
 !!!!! We have divided through by density 
                   ScalarField_Source_Component = ScalarField_Source_Component + THETA_GDIFF
 
+               end do Loop_Components
+
+               if( have_option( '/material_phase[' // int2str( nstate - ncomp ) // & 
+                    ']/is_multiphase_component/Comp_Sum2One' ) .and. ( ncomp > 1 ) ) then
+                  call Cal_Comp_Sum2One_Sou( ScalarField_Source_Component, cv_nonods, nphase, ncomp, dt, its, &
+                       NonLinearIteration, &
+                       Mean_Pore_CV, PhaseVolumeFraction, PhaseVolumeFraction_Old, Density_Component, Density_Component_Old, &
+                       Component, Component_Old )
+               end if
+
+               if( have_option( '/material_phase[' // int2str( nstate - ncomp ) // & 
+                    ']/is_multiphase_component/Comp_Sum2One/Enforce_Comp_Sum2One' ) ) then
+                  ! Initially clip and then ensure the components sum to unity so we don't get surprising results...
+                  DO I = 1, CV_NONODS * NPHASE * NCOMP
+                     COMPONENT( I ) = MIN( MAX( COMPONENT( I ), 0. ), 1. )
+                  END DO
+
+                  ALLOCATE( RSUM( NPHASE ) )
+                  DO CV_INOD = 1, CV_NONODS
+                     RSUM = 0.0
+                     DO IPHASE = 1, NPHASE
+                        DO ICOMP = 1, NCOMP
+                           RSUM( IPHASE ) = RSUM( IPHASE ) + &
+                                COMPONENT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS + ( ICOMP - 1 ) * NPHASE * CV_NONODS )
+                        END DO
+                     END DO
+                     DO IPHASE = 1, NPHASE
+                        DO ICOMP = 1, NCOMP
+                           COMPONENT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS + ( ICOMP - 1 ) * NPHASE * CV_NONODS ) = &
+                                COMPONENT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS + ( ICOMP - 1 ) * NPHASE * CV_NONODS ) / RSUM( IPHASE )
+                        END DO
+                     END DO
+                  END DO
+                  DEALLOCATE( RSUM )
+               end if
+
+               DO ICOMP = 1, NCOMP
+
                   Loop_Phase_SourceTerm1: do iphase = 1, nphase
                      Loop_Phase_SourceTerm2: do jphase = 1, nphase
                         DO CV_NODI = 1, CV_NONODS
@@ -1025,15 +1057,7 @@
                      END DO
                   END DO
 
-               end do Loop_Components
-
-               if( have_option( '/material_phase[' // int2str( nstate - ncomp ) // & 
-                    ']/is_multiphase_component/Comp_Sum2One' ) .and. ( ncomp > 1 ) ) then
-                  call Cal_Comp_Sum2One_Sou( ScalarField_Source_Component, cv_nonods, nphase, ncomp, dt, its, &
-                       NonLinearIteration, &
-                       Mean_Pore_CV, PhaseVolumeFraction, PhaseVolumeFraction_Old, Density_Component, Density_Component_Old, &
-                       Component, Component_Old )
-               end if
+               END DO
 
                ! Update state memory
                do icomp = 1, ncomp

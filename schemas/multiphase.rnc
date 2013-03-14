@@ -447,7 +447,9 @@ start =
                         ## --> 0: under-relaxation ; --> 1: over-relaxation
                         element Relaxation_Coefficient { real },
                         ## Ensure that this constraint acts only as a positive absorption term
-                        element Ensure_Positive { empty }?
+                        element Ensure_Positive { empty }?,
+                        ## Explicitly enforce components to sum to one
+                        element Enforce_Comp_Sum2One { empty }?			
                      )
                   }?,
                   ## Surface tension
