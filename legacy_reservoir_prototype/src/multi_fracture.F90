@@ -146,7 +146,7 @@
 
       call y2d_populate_femdem( ele1, ele2, ele3, &
            face1, face2, xs, ys, p1, p2, p3, p4 )
-  
+
       quad = make_quadrature( loc, ndim, degree = quad_degree )
       shape = make_element_shape( loc, ndim, 1, quad )
 
@@ -175,7 +175,7 @@
 
       fracture_positions%dim = ndim
 
-      deallocate( sndglno, boundary_ids )
+      deallocate( boundary_ids, sndglno )
       call deallocate( mesh )
       call deallocate_element( shape )
       call deallocate( quad )
