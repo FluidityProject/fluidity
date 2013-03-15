@@ -180,10 +180,9 @@
       call deallocate_element( shape )
 
       ! now create the p0 mesh
-      poly_degree = 0
-      continuity = -1
+      poly_degree = 0 ; continuity = -1
       shape = make_element_shape( loc, ndim, poly_degree, quad )
-      p0_mesh = make_mesh( fracture_positions%mesh, shape, continuity, "P0Mesh" )
+      p0_mesh = make_mesh( fracture_positions%mesh, shape, continuity, "P0DG" )
 
       call deallocate_element( shape )
       call deallocate( quad )
@@ -246,7 +245,7 @@
 
       path = "/tmp"
 
-      p0_fl_mesh => extract_mesh( states(1), "P0Mesh" )
+      p0_fl_mesh => extract_mesh( states(1), "P0DG" )
 
       ewrite(3,*) '...generating multiphase state'
 
@@ -304,11 +303,6 @@
 
       ! now deallocate
       call deallocate( dummy )
-
-      call deallocate( field_ext_p22 )
-      call deallocate( field_ext_p21 )
-      call deallocate( field_ext_p12 )
-      call deallocate( field_ext_p11 )
 
       call deallocate( field_fl_p22 )
       call deallocate( field_fl_p21 )
