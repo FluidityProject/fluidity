@@ -778,7 +778,8 @@ start =
                   }
                }|
                element Permeability_from_femdem {
-                  attribute name { xsd:string }
+                  attribute name { xsd:string },
+                  element background_permeability { real }
                }
             )
          }?

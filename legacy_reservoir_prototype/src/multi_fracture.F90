@@ -118,7 +118,7 @@
 
       ewrite(3,*) 'inside initialise_fractures'
 
-      call get_option( '/porous_media/Permeability_from_femdem/name', fracture_mesh_name )
+      call get_option( "/porous_media/Permeability_from_femdem/name", fracture_mesh_name )
       call get_option( "/geometry/quadrature/degree", quad_degree )
       call get_option( "/geometry/dimension", ndim )
 
@@ -220,6 +220,9 @@
       type( scalar_field ) :: field_fl_p11, field_fl_p12, field_fl_p21, field_fl_p22
       type( scalar_field ) :: field_ext_p11, field_ext_p12, field_ext_p21, field_ext_p22
 
+      real :: bgp
+      real, dimension( :, :, : ), allocatable :: perm_bg
+
       character( len = OPTION_PATH_LEN ) :: &
            path = "/tmp/galerkin_projection/continuous"
 
@@ -295,13 +298,22 @@
       call interpolation_galerkin_femdem( alg_ext, alg_fl, field = dummy )
 
       ! copy memory to prototype
-      perm = 0.
-      perm( :, 1, 1 ) = field_fl_p11 % val
-      perm( :, 1, 2 ) = field_fl_p12 % val
-      perm( :, 2, 1 ) = field_fl_p21 % val
-      perm( :, 2, 2 ) = field_fl_p22 % val
+      call get_option(  "/porous_media/Permeability_from_femdem/background_permeability", bgp )
+
+      allocate( perm_bg( totele, ndim, ndim ) )
+      perm_bg( :, 1, 1 ) = bgp
+      perm_bg( :, 1, 2 ) = 0.
+      perm_bg( :, 2, 1 ) = 0.
+      perm_bg( :, 2, 2 ) = bgp
+
+      perm( :, 1, 1 ) = perm_bg( :, 1, 1 ) + field_fl_p11 % val
+      perm( :, 1, 2 ) = perm_bg( :, 1, 2 ) + field_fl_p12 % val
+      perm( :, 2, 1 ) = perm_bg( :, 2, 1 ) + field_fl_p21 % val
+      perm( :, 2, 2 ) = perm_bg( :, 2, 2 ) + field_fl_p22 % val
 
       ! now deallocate
+      deallocate( perm_bg )
+
       call deallocate( dummy )
 
       call deallocate( field_fl_p22 )

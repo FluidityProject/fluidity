@@ -983,6 +983,9 @@ Pc = c * S_w ** a</a:documentation>
               <attribute name="name">
                 <data type="string"/>
               </attribute>
+              <element name="background_permeability">
+                <ref name="real"/>
+              </element>
             </element>
           </choice>
         </element>
