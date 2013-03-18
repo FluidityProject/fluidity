@@ -298,7 +298,7 @@
       call interpolation_galerkin_femdem( alg_ext, alg_fl, field = dummy )
 
       ! copy memory to prototype
-      call get_option(  "/porous_media/Permeability_from_femdem/background_permeability", bgp )
+      call get_option( "/porous_media/Permeability_from_femdem/background_permeability", bgp )
 
       allocate( perm_bg( totele, ndim, ndim ) )
       perm_bg( :, 1, 1 ) = bgp
