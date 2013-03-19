@@ -371,7 +371,7 @@ contains
     real, dimension(ele_ngi(reentrainment, i_ele))   :: shear, lambda_m
     real, dimension(shear_stress%dim, &
          & ele_ngi(reentrainment, i_ele))            :: shear_quad
-    integer                                          :: i_gi
+    integer                                          :: i_gi, stat
 
     A = 1.3*10.0**(-7.0)
     
@@ -400,7 +400,8 @@ contains
     end where 
     
     ! calculate u_star (shear velocity)
-    call get_option(trim(shear_stress%option_path)//"/diagnostic/density", density)
+    call get_option(trim(shear_stress%option_path)//"/diagnostic/density", density, stat)
+    if (stat /= 0) density = 1.0
     ! calculate magnitude of shear stress at quadrature points
     shear_quad = face_val_at_quad(shear_stress, surface_element_list(i_ele))
     do i_gi = 1, ele_ngi(reentrainment, i_ele)
