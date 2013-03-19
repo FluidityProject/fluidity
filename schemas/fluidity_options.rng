@@ -7090,6 +7090,10 @@ interior nodes will have zero value.</a:documentation>
             <ref name="velocity_mesh_choice"/>
             <ref name="diagnostic_vector_field_bed_shear_stress"/>
           </element>
+          <element name="prescribed">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prescribed_vector_field_no_adapt"/>
+          </element>
           <element name="aliased">
             <ref name="generic_aliased_field"/>
           </element>

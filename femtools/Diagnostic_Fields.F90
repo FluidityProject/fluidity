@@ -3152,6 +3152,11 @@ contains
       
       ewrite(2,*) 'in calculate bed_shear_stress'
 
+      if (have_option(trim(bed_shear_stress%option_path)//"/prescribed")) then
+        ewrite(2,*) 'prescribed bed_shear_stress - not calculating'
+        return
+      end if
+
       ! assumes constant density
       call get_option(trim(bed_shear_stress%option_path)//"/diagnostic/density", density)
 

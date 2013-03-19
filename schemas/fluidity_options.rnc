@@ -5585,6 +5585,10 @@ vector_field_choice =
                    velocity_mesh_choice,
                    diagnostic_vector_field_bed_shear_stress
                 }|
+                element prescribed {
+                   velocity_mesh_choice,
+                   prescribed_vector_field_no_adapt
+                }|
                 element aliased {
                    generic_aliased_field
                 }
