@@ -303,11 +303,15 @@ contains
     type(scalar_field), dimension(:), allocatable :: r_abscissa, r_weight
     type(tensor_field), pointer :: D
     type(vector_field), pointer :: X
-    real :: theta, cond
+    real :: theta, cond, growth_r, internal_dispersion_coeff, aggregation_freq_const, breakage_freq_const, breakage_freq_degree
     integer :: i_pop, N, i, j, stat
     character(len=OPTION_PATH_LEN) :: option_path 
-    character(len=FIELD_NAME_LEN) :: type, field_name
+    character(len=FIELD_NAME_LEN) :: type, field_name, growth_type, aggregation_freq_type, breakage_freq_type, breakage_dist_type
     logical :: have_D = .false.
+    logical :: have_growth = .FALSE.
+    logical :: have_internal_dispersion = .FALSE.
+    logical :: have_aggregation = .FALSE.
+    logical :: have_breakage = .FALSE.
 
     call get_pop_option_path(state, i_pop, option_path)
     N = option_count(trim(option_path)//'/abscissa/scalar_field')
@@ -356,14 +360,68 @@ contains
        have_D = .true.
     end if
 
+    ! check for growth term
+    if (have_option(trim(option_path)//'/population_balance_source_terms/growth')) then
+       have_growth = .TRUE.
+       if (have_option(trim(option_path)//'/population_balance_source_terms/growth/power_law_growth')) then
+          growth_type = 'power_law_growth';
+          call get_option(trim(option_path)//'/population_balance_source_terms/growth/power_law_growth', growth_r)
+       end if
+    else
+       have_growth = .FALSE.
+    end if
+
+    ! check for internal dispersion term
+    if (have_option(trim(option_path)//'/population_balance_source_terms/internal_dispersion')) then
+       have_internal_dispersion = .TRUE.
+       call get_option(trim(option_path)//'/population_balance_source_terms/internal_dispersion', internal_dispersion_coeff)
+    else
+       have_internal_dispersion = .FALSE.
+    end if
+
+    ! check for aggregation term
+    if (have_option(trim(option_path)//'/population_balance_source_terms/aggregation')) then
+       have_aggregation = .TRUE.
+       if (have_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/constant_aggregation')) then
+          aggregation_freq_type = 'constant_aggregation';
+          call get_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/constant_aggregation', aggregation_freq_const)
+       else if (have_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/hydrodynamic_aggregation')) then
+          aggregation_freq_type = 'hydrodynamic_aggregation';
+       end if
+    else
+       have_aggregation = .FALSE.
+    end if
+
+    ! check for breakage term
+    if (have_option(trim(option_path)//'/population_balance_source_terms/breakage')) then
+       have_breakage = .TRUE.
+       if (have_option(trim(option_path)//'/population_balance_source_terms/breakage/breakage_frequency/constant_breakage')) then
+          breakage_freq_type = 'constant_breakage';
+          call get_option(trim(option_path)//'/population_balance_source_terms/breakage/breakage_frequency/constant_breakage', breakage_freq_const)
+       else if (have_option(trim(option_path)//'/population_balance_source_terms/breakage/breakage_frequency/power_law_breakage')) then
+          breakage_freq_type = 'power_law_breakage';
+          call get_option(trim(option_path)//'/population_balance_source_terms/breakage/breakage_frequency/power_law_breakage/coefficient', breakage_freq_const)
+          call get_option(trim(option_path)//'/population_balance_source_terms/breakage/breakage_frequency/power_law_breakage/degree', breakage_freq_degree)
+       end if
+
+       if (have_option(trim(option_path)//'/population_balance_source_terms/breakage/distribution_function/symmetric_fragmentation')) then
+          breakage_dist_type = 'symmetric_fragmentation';
+       end if
+   
+    else
+       have_breakage = .FALSE.
+    end if
+
     ! get ill-conditioned matrix settings
     call get_option(trim(option_path)//'/ill_conditioned_matrices/required_condition_number', cond)
 
     X => extract_vector_field(state, 'Coordinate')
     ! assembly loop
     do i = 1, ele_count(r_abscissa(1))
-       call dqmom_calculate_source_term_ele(r_abscissa, r_weight, s_weighted_abscissa, &
-            s_weight, D, have_D, X, cond, i)       
+       call dqmom_calculate_source_term_ele(r_abscissa, r_weight, s_weighted_abscissa, s_weight, &
+                &D, have_D, have_growth, growth_type, growth_r, have_internal_dispersion, internal_dispersion_coeff, &
+                &have_aggregation, aggregation_freq_type, aggregation_freq_const, &
+                &have_breakage, breakage_freq_type, breakage_freq_const, breakage_freq_degree, breakage_dist_type, X, cond, i)       
     end do
 
     ! for non-DG we apply inverse mass globally
@@ -388,24 +446,26 @@ contains
 
   end subroutine dqmom_calculate_source_term_pop
 
-  subroutine dqmom_calculate_source_term_ele(abscissa, weight, &
-       s_weighted_abscissa, s_weight, D, have_D, X, cond, ele)
+  subroutine dqmom_calculate_source_term_ele(abscissa, weight, s_weighted_abscissa, s_weight, &
+                 &D, have_D, have_growth, growth_type, growth_r, have_internal_dispersion, internal_dispersion_coeff, &
+                 &have_aggregation, aggregation_freq_type, aggregation_freq_const, &
+                 &have_breakage, breakage_freq_type, breakage_freq_const, breakage_freq_degree, breakage_dist_type, X, cond, ele)
 
     type(scalar_field), dimension(:), intent(in) :: abscissa, weight
     type(scalar_field_pointer), dimension(:), intent(inout) :: s_weighted_abscissa, s_weight
     type(tensor_field), pointer, intent(in) :: D
     type(vector_field), pointer, intent(in) :: X
     integer, intent(in) :: ele
-    real, intent(in) :: cond
-    logical, intent(in) :: have_D
-        
+    real, intent(in) :: cond, growth_r, internal_dispersion_coeff, aggregation_freq_const, breakage_freq_const, breakage_freq_degree
+    logical, intent(in) :: have_D, have_growth, have_internal_dispersion, have_aggregation, have_breakage
+    character(len=FIELD_NAME_LEN), intent(in) :: growth_type, aggregation_freq_type, breakage_freq_type, breakage_dist_type
+
     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)) :: abscissa_val_at_quad
     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)*2, size(abscissa)*2) :: A
     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)*2, size(abscissa)) :: A_3
     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)) :: C
     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)*2) :: S_rhs  ! source term (includes growth, breakage and coalescence term): gb 15-11-2012
     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)*2, size(abscissa)) :: moment_daughter_dist_func
-    real, dimension(size(abscissa)) :: Diffusion_internal   ! Diffusion term in internal state space (internal coordinates)
     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)) :: break_freq
     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa), size(abscissa)) :: aggregation_freq   ! at present it is not dependent on space coordinate, but can be dependent and will have to be a scalar fields
     real, dimension(size(abscissa)*2, 1) :: b
@@ -423,8 +483,6 @@ contains
     real, dimension(size(abscissa)*2, size(abscissa)*2) :: svd_tmp1, svd_tmp2
     real, dimension(size(abscissa)*2) :: SV
     integer :: stat, N, i, j, k
-    integer :: r    !! power law Growth coefficient    
-    logical :: internal_growth_present, internal_dispersion_present, breakage_present, aggregation_present
     real :: curr_time
     real, dimension(size(abscissa)) :: perturb
     integer :: p_num
@@ -525,44 +583,49 @@ contains
     S_rhs = 0.0
 
     ! construct S vector (rhs pt.3) for GROWTH term
-    r=-1.0   !! power law Growth coefficient
-    ! internal_growth_present will be taken from flml
-    internal_growth_present = .FALSE.
-    if (internal_growth_present) then
-       do i = 1, 2*N
-          do j = 1, N
-             S_rhs(:,i) = S_rhs(:,i) + (i-1)*ele_val_at_quad(weight(j), ele)*(ele_val_at_quad(abscissa(j), ele)**(i-2))*(ele_val_at_quad(abscissa(j), ele)**r)
+    if (have_growth) then
+       if (growth_type=='power_law_growth') then
+          do i = 1, 2*N
+             do j = 1, N
+                S_rhs(:,i) = S_rhs(:,i) + (i-1)*ele_val_at_quad(weight(j), ele)*(ele_val_at_quad(abscissa(j), ele)**(i-2))*(ele_val_at_quad(abscissa(j), ele)**growth_r)
+             end do 
           end do 
-       end do 
+       end if
     end if
     
-    Diffusion_internal = 1.0   
-    ! internal_dispersion_present will be taken from flml
-    internal_dispersion_present = .FALSE.
-    if (internal_dispersion_present) then
+    if (have_internal_dispersion) then
        do i = 1, 2*N
           do j = 1, N
 !             S_rhs(:,i) = S_rhs(:,i) + (i-1)*(i-2)*ele_val_at_quad(weight(j), ele)*(ele_val_at_quad(abscissa(j), ele)**(i-3))*Diffusion_internal(j)
-             S_rhs(:,i) = S_rhs(:,i) + (i-1)*(i-2)*ele_val_at_quad(weight(j), ele)*(abscissa_val_at_quad(:,j)**(i-3))*Diffusion_internal(j)   ! abscissa_val_at_quad() takes care of the perturbed abscissas
+             S_rhs(:,i) = S_rhs(:,i) + (i-1)*(i-2)*ele_val_at_quad(weight(j), ele)*(abscissa_val_at_quad(:,j)**(i-3))*internal_dispersion_coeff   ! abscissa_val_at_quad() takes care of the perturbed abscissas
           end do
        end do
     end if
 
     !!! construct S vector for BREAKAGE
-    break_freq = 0.02   ! should be taken from diamond, this is constant breakage
-    ! power law breakage
 !    do i = 1, N
 !       break_freq(:,i) = 0.02*abscissa_val_at_quad(:,i)**3
 !    end do
-    ! symmetric fragmentation
-    do i = 1, 2*N
-       do j = 1, N
-          moment_daughter_dist_func(:,i,j) = (2.0**(((3-(i-1))/3.0)))*(abscissa_val_at_quad(:,j)**(i-1))   ! should be taken from diamond
-!          moment_daughter_dist_func(:,i,j) = (2.0**(((3-(i-1))/3.0)))*(ele_val_at_quad(abscissa(j), ele)**(i-1))
-       end do
-    end do
-    breakage_present = .FALSE.   ! it will later be taken from flml
-    if (breakage_present) then
+    
+    if (have_breakage) then
+
+       if (breakage_freq_type=='constant_breakage') then
+          break_freq = breakage_freq_const
+       else if (breakage_freq_type=='power_law_breakage') then
+          do i = 1, N
+             break_freq(:,i) = breakage_freq_const*abscissa_val_at_quad(:,i)**breakage_freq_degree
+          end do
+       end if
+
+       if (breakage_dist_type=='symmetric_fragmentation') then
+          do i = 1, 2*N
+             do j = 1, N
+                moment_daughter_dist_func(:,i,j) = (2.0**(((3-(i-1))/3.0)))*(abscissa_val_at_quad(:,j)**(i-1))   
+!                moment_daughter_dist_func(:,i,j) = (2.0**(((3-(i-1))/3.0)))*(ele_val_at_quad(abscissa(j), ele)**(i-1))
+             end do
+          end do
+       end if
+
        do i = 1, 2*N 
           do j = 1, N
              ! birth term due to breakage
@@ -576,16 +639,17 @@ contains
 
     
     !!! construct S vector for AGGREGATION
-    aggregation_freq = 1.0   ! should be taken from diamond, this is constant aggregation
-!    ! hydrodynamic aggregation
-!    do i = 1, N
-!       do j = 1, N
-!          aggregation_freq(:,i,j) = abscissa_val_at_quad(:,i)**3 + abscissa_val_at_quad(:,j)**3
-!       end do
-!    end do
-
-    aggregation_present = .FALSE.   ! it will later be taken from flml
-    if (aggregation_present) then
+    if (have_aggregation) then
+       if (aggregation_freq_type=='constant_aggregation') then
+          aggregation_freq = aggregation_freq_const
+       else if (aggregation_freq_type=='hydrodynamic_aggregation') then
+          do i = 1, N
+             do j = 1, N
+                aggregation_freq(:,i,j) = abscissa_val_at_quad(:,i)**3 + abscissa_val_at_quad(:,j)**3
+             end do
+          end do
+       end if
+    
        do i = 1, 2*N
           do j = 1, N
              do k = 1, N

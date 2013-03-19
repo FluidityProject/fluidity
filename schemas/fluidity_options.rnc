@@ -2098,6 +2098,48 @@ population_balance =
                }
             }?
          },   
+
+         ## Source terms for the population balance equation like growth, 
+         ## breakage, aggegation and internal dispersion
+         element population_balance_source_terms {
+            ## Growth term in the internal coordinate space
+            element growth{ 
+               ## Enter the growth degree (r) for the power-law growth G(\xi)=\xi^{r}
+               element power_law_growth{ real }
+            }?,
+            ## Dispersion coefficient D. Currently it only works for constant dispersion and can't handle dispersion varying with internal coordinate
+            element internal_dispersion{ real }?,
+            ##
+            element aggregation{
+               ##
+               element aggregation_frequency{
+                  ##
+                  element constant_aggregation{ real }|
+                  ## aggregation frequency is given by \beta_{alpha gamma} = \xi_{alpha}^3 + \xi_{gamma}^3
+                  element hydrodynamic_aggregation{ empty }
+               }
+            }?,
+            ##
+            element breakage{
+               ##
+               element breakage_frequency{
+                  ##
+                  element constant_breakage{ real }|
+                  ## breakage frequency is given by a_{alpha} = p * \xi_{alpha}^r
+                  element power_law_breakage{
+                     ## coefficient p in breakage frequency a_{alpha} = p * \xi_{alpha}^r
+                     element coefficient{ real },
+                     ## degree r in breakage frequency a_{alpha} = p * \xi_{alpha}^r
+                     element degree{ real }
+                  }
+               },
+               element distribution_function{
+                  ##
+                  element symmetric_fragmentation{ empty }
+               }
+            }?
+         },
+
          ## At each vertex a linear system is solved to determine source terms
          ## for the abscissa and weight transport equations. This requires inversion
          ## of a matrix that has terms that are a function of the weighted abscissa.
