@@ -24,7 +24,6 @@ def generate_pvd(pvdfilename, list_vtu_filenames, list_time):
     pvdfile.write('</Collection>\n</VTKFile>')
     pvdfile.close()
 
-
 # Function taken from:
 # http://stackoverflow.com/questions/2669059/how-to-sort-alpha-numeric-set-in-python
 def sorted_nicely(l):
@@ -33,13 +32,11 @@ def sorted_nicely(l):
     alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ]
     return sorted(l, key = alphanum_key)
 
-
 # Find all vtu/pvtu files for fluid vtus in this folder:
 fluid_vtus = []
 for file in sorted_nicely(glob.glob('*vtu')):
     if (not ('checkpoint' in file)):
         fluid_vtus.append(file)
-
 
 # Loop over all the fluid vtus found and collect time data from them to assemble the pvd file:
 time = []
@@ -60,7 +57,6 @@ for filename in fluid_vtus:
     t = ug.GetPointData().GetArray("Time").GetTuple(n0)
     time.append(t[0])
 
-
 # Get basename of the simulation from command line or assemble it on your own:
 try:
     simulation_basename = sys.argv[1]
@@ -70,4 +66,9 @@ except:
 # Generate fluid pvd file:
 generate_pvd(simulation_basename+'.pvd', fluid_vtus, time)
 
+print "============================================="
 print "Program exited without errors."
+print "Open the file"
+print "  "+simulation_basename+".pvd"
+print "in Paraview."
+print "============================================="

@@ -34,7 +34,6 @@ if (pvd_generated):
     pvd_correct = True
     </variable>
   </variables>
-  </variables>
   <pass_tests>
     <test name = "Solvers converged" language = "python">
 assert(solvers_converged)
