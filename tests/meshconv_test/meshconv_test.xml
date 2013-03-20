@@ -5,8 +5,8 @@
   <tags>exodusii</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>../../bin/meshconv -i exodusii -o gmsh rectangle; fluidity meshconv_exo2gmsh.flml;
-    ../../bin/meshconv -i exodusii -o triangle rectangle; fluidity meshconv_exo2triangle.flml;
-    ../../bin/meshconv -i gmsh -o triangle rectangle; fluidity meshconv_gmsh2triangle.flml;
+    ../../bin/meshconv -i exodusii -o triangle rectangle; fluidity meshconv_exo2triangle.flml; rm *.node *.ele *.edge;
+    ../../bin/meshconv -i gmsh -o triangle rectangle; fluidity meshconv_gmsh2triangle.flml; rm *.msh;
     ../../bin/meshconv -i triangle -o gmsh rectangle; fluidity meshconv_triangle2gmsh.flml;
     </command_line>
   </problem_definition>
