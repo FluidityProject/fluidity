@@ -2911,6 +2911,21 @@
 
 if ( lump_mass ) then
 
+                  if ( cv_nloc==6 .or. (cv_nloc==10 .and. ndim==3) ) then 
+
+                     if ( cv_jloc==1 .or. cv_jloc==3 .or. cv_jloc==6 .or. cv_jloc==10 ) then
+                        DO IDIM = 1, NDIM_VEL
+                           DO IPHASE = 1, NPHASE
+                              U_RHS( GLOBI + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM_VEL*U_NONODS ) =   &
+                                   U_RHS( GLOBI + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM_VEL*U_NONODS )     &
+                                   + NM * U_SOURCE_CV( GLOBI_CV + (IDIM-1)*CV_NONODS + ( IPHASE - 1 ) * NDIM_VEL*CV_NONODS )
+      !                            + NM * U_SOURCE_CV( GLOBJ + (IDIM-1)*CV_NONODS + ( IPHASE - 1 ) * NDIM_VEL*CV_NONODS )
+                           END DO
+                        END DO
+                     end if
+
+                  else
+
                   DO IDIM = 1, NDIM_VEL
                      DO IPHASE = 1, NPHASE
                         U_RHS( GLOBI + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM_VEL*U_NONODS ) =   &
@@ -2919,6 +2934,8 @@ if ( lump_mass ) then
  !                            + NM * U_SOURCE_CV( GLOBJ + (IDIM-1)*CV_NONODS + ( IPHASE - 1 ) * NDIM_VEL*CV_NONODS )
                      END DO
                   END DO
+
+                  end if
 
 else
 

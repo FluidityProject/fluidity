@@ -5032,7 +5032,8 @@
       !        ===>  REALS  <===
       ! DIFF_MIN_FRAC is the fraction of the standard diffusion coefficient to use 
       ! in the non-linear diffusion scheme. DIFF_MAX_FRAC is the maximum fraction. 
-      REAL, PARAMETER :: DIFF_MIN_FRAC = 0.05, DIFF_MAX_FRAC = 20.0
+      !REAL, PARAMETER :: DIFF_MIN_FRAC = 0.05, DIFF_MAX_FRAC = 20.0
+      REAL, PARAMETER :: DIFF_MIN_FRAC = 1., DIFF_MAX_FRAC = 1.
       REAL, DIMENSION( : , : ), allocatable :: DIFF_GI,DIFF_GI2
       REAL :: DTDX_GI,DTDY_GI,DTDZ_GI,DTOLDDX_GI,DTOLDDY_GI,DTOLDDZ_GI, &
            DTDX_GI2,DTDY_GI2,DTDZ_GI2,DTOLDDX_GI2,DTOLDDY_GI2,DTOLDDZ_GI2, &

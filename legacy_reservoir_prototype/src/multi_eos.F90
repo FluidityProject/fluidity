@@ -289,9 +289,9 @@
             call get_option( trim( eos_option_path_tmp ) // '/coefficient_B', eos_coefs( 2 ) )
             Density_Field = eos_coefs( 1 ) * pressure % val + eos_coefs( 2 )
             perturbation_pressure = 1.
-            DensityPlus = eos_coefs( 1 ) * ( pressure % val + perturbation_pressure ) + eos_coefs( 2 )
-            DensityMinus = eos_coefs( 1 ) * ( pressure % val - perturbation_pressure ) + eos_coefs( 2 )
-            DRho_DPressure = 0.5 * ( DensityPlus - DensityMinus ) / perturbation_pressure
+            !DensityPlus = eos_coefs( 1 ) * ( pressure % val + perturbation_pressure ) + eos_coefs( 2 )
+            !DensityMinus = eos_coefs( 1 ) * ( pressure % val - perturbation_pressure ) + eos_coefs( 2 )
+            DRho_DPressure = eos_coefs( 1 ) !0.5 * ( DensityPlus - DensityMinus ) / perturbation_pressure
             deallocate( eos_coefs )
 
          elseif( trim( eos_option_path_tmp ) == trim( option_path_comp ) // '/linear_in_pressure/include_internal_energy' ) then
@@ -302,11 +302,11 @@
             call get_option( trim( option_path_comp ) // '/linear_in_pressure/coefficient_B', eos_coefs( 2 ) )
             Density_Field = eos_coefs( 1 ) * pressure % val / temperature % val + eos_coefs( 2 )
             perturbation_pressure = 1.
-            DensityPlus = eos_coefs( 1 ) * ( pressure % val + perturbation_pressure ) / &
-                 ( max( toler, temperature % val ) ) + eos_coefs( 2 )
-            DensityMinus = eos_coefs( 1 ) * ( pressure % val - perturbation_pressure ) / &
-                 ( max( toler, temperature % val ) ) + eos_coefs( 2 )
-            DRho_DPressure = 0.5 * ( DensityPlus - DensityMinus ) / perturbation_pressure
+            !DensityPlus = eos_coefs( 1 ) * ( pressure % val + perturbation_pressure ) / &
+            !     ( max( toler, temperature % val ) ) + eos_coefs( 2 )
+            !DensityMinus = eos_coefs( 1 ) * ( pressure % val - perturbation_pressure ) / &
+            !     ( max( toler, temperature % val ) ) + eos_coefs( 2 )
+            DRho_DPressure =  eos_coefs( 1 ) / temperature % val !0.5 * ( DensityPlus - DensityMinus ) / perturbation_pressure
             deallocate( eos_coefs )
 
          elseif( trim( eos_option_path_tmp ) == trim( option_path_comp ) // '/exponential_oil_gas' ) then
@@ -404,7 +404,7 @@
 
             ! Calculating d(den) / dP
             ! redefine p as p+pert and p-pert and then run python state again to get the d(den) / d P...
-            perturbation_pressure = 1.
+            perturbation_pressure = 1.e-5
 
             pressure % val = pressure % val + perturbation_pressure
             call zero( density )
