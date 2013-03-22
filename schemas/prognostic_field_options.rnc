@@ -1332,12 +1332,10 @@ prognostic_pressure_field =
       }?,
       ## scheme
       element scheme {
-         ## Use a poisson pressure equation to calculate a first guess at pressure.
-         ## This does not necessarily satisfy continuity.
-         ##   = 1 -- use a poisson guess at every timestep
-         ##   = 0 -- never use a poisson guess
-         ##   =-1 -- use a poisson guess at the first timestep only
-         ## Manual suggests -1
+         ## Use a poisson pressure equation to calculate a first guess at pressure
+         ## before the first momentum solve (in addition to the usual 
+         ## pressure correction after the momentum solve). Recommended in most
+         ## runs to ensure correct results.
          element poisson_pressure_solution {
             (
                element string_value{
