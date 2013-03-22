@@ -263,11 +263,11 @@ module fsi_projections
     ! Set solver options for the interpolations:
     tmp = alpha_sf%option_path
     ! Here we have to differ between CG and DG projection:
-    alpha_sf%option_path = "/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/continuous"
-    !if (have_option("/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/continuous")) then
-    !    alpha_sf%option_path = "/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/continuous"
-    !else if (have_option("/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/discontinuous")) then
-    !    alpha_sf%option_path = "/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/discontinuous"
+    alpha_sf%option_path = "/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/continuous"
+    !if (have_option("/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/continuous")) then
+    !    alpha_sf%option_path = "/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/continuous"
+    !else if (have_option("/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/discontinuous")) then
+    !    alpha_sf%option_path = "/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/discontinuous"
     !end if
 
     ! Project alpha to the fluid mesh:
@@ -280,11 +280,11 @@ module fsi_projections
     if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
         tmp = solid_velocity_sf%option_path
         ! Here we have to differ between CG and DG projection:
-        solid_velocity_sf%option_path = "/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/continuous"
-        !if (have_option("/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/continuous")) then
-        !    solid_velocity_sf%option_path = "/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/continuous"
-        !else if (have_option("/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/discontinuous")) then
-        !    solid_velocity_sf%option_path = "/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/discontinuous"
+        solid_velocity_sf%option_path = "/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/continuous"
+        !if (have_option("/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/continuous")) then
+        !    solid_velocity_sf%option_path = "/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/continuous"
+        !else if (have_option("/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/discontinuous")) then
+        !    solid_velocity_sf%option_path = "/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/discontinuous"
         !end if
 
         ! Project solid velocity to the fluid mesh:
@@ -294,7 +294,7 @@ module fsi_projections
     end if
 
     ! Get options from option tree if projection is bounded or not:
-    if (have_option('/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/continuous/bounded[0]')) then
+    if (have_option('/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/continuous/bounded[0]')) then
         call bound_projection(alpha_sf, rhs_alpha_sf, mass_matrix_fluid, &
                               lumped_mass_matrix_fluid, lumped_inverse_mass_matrix_fluid, &
                               positionsF)
