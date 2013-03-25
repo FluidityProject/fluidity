@@ -4339,49 +4339,55 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
 
   subroutine check_fsi_model_options
     integer :: i, ndim, nfmat
+    
+    if (.not. have_option('/embedded_models/fsi_model')) then 
+      ewrite(-1,*) 'Error: Problem type is set as "FSI", but the fsi model was not enabled.'
+      FLExit('If you want to run a FSI problem, enable the option "/embedded_models/fsi_model"')
+    end if
+
     ! Get dimension:
     call get_option('/geometry/dimension', ndim)
     nfmat = option_count('/material_phase')
     ! Check options for FSI modelling:
-    if (have_option('/embedded_models/fsi_model/one_way_coupling') .and. ndim==1) then 
-      ewrite(-1,*) 'Error: The 1-way Fluid-Structure Interactions are not supported for 1D simulations via the FSI Model'
-      FLExit('Use a 2D or 3D set-up when using a 1-way coupled simulation')
+    if (have_option('/embedded_models/fsi_model') .and. ndim==1) then 
+      ewrite(-1,*) 'Error: Fluid-Structure Interactions are not supported for 1D simulations via the FSI Model'
+      FLExit('Use a 2D or 3D set-up when using a FSI simulation')
     end if
 
     ! Loop for material phases (fluid):
     do i = 0, nfmat-1
       if (.not. have_option('/material_phase['//int2str(i)//']/vector_field::Velocity/prognostic/vector_field::Absorption/diagnostic')) then
-        ewrite(-1,*) 'This models relies on an internal algorithm to compute the absorption. Please enable the vector_field "Absorption"'
-        ewrite(-1,*) 'under vector_field "Veclotiy" in your options file'
+        ewrite(-1,*) 'This models relies on an internal algorithm to compute the absorption.'
+        FLExit('Please enable the vector_field "Absorption" under vector_field "Veclotiy" in your options file')
       end if
 
       if (.not. have_option('/material_phase['//int2str(i)//']/vector_field::Velocity/prognostic/vector_field::Source/diagnostic')) then
-        ewrite(-1,*) 'This models relies on an internal algorithm to compute the source term. Please enable the vector_field "Source"'
-        ewrite(-1,*) 'under vector_field "Veclotiy" in your options file'
+        ewrite(-1,*) 'This models relies on an internal algorithm to compute the source term.'
+        FLExit('Please enable the vector_field "Source" under vector_field "Veclotiy" in your options file')
       end if
 
       if (.not. have_option('/material_phase['//int2str(i)//']/scalar_field::SolidConcentration/diagnostic')) then
         ewrite(-1,*) 'This models relies on an internal algorithm to compute the solid volume fraction on the fluid mesh.'
-        ewrite(-1,*) 'Please enable the scalar_field "SolidConcentration" under "material_phase" in your options file'
+        FLExit('Please enable the scalar_field "SolidConcentration" under "material_phase" in your options file')
       end if
 
       if (.not. have_option('/material_phase['//int2str(i)//']/vector_field::SolidForce')) then
         ewrite(-1,*) 'This models relies on an internal algorithm to compute the force acting on the solid body.'
-        ewrite(-1,*) 'Please enable the vector_field "SolidForce" under "material_phase" in your options file'
+        FLExit('Please enable the vector_field "SolidForce" under "material_phase" in your options file')
       end if
 
       if (.not. have_option('/material_phase['//int2str(i)//']/vector_field::SolidVelocity')) then
         ewrite(-1,*) 'This models relies on an internal algorithm to compute the force acting on the solid body.'
-        ewrite(-1,*) 'Please enable the vector_field "SolidForce" under "material_phase" in your options file'
+        FLExit('Please enable the vector_field "SolidForce" under "material_phase" in your options file')
       end if
 
+      if (.not. have_option('/material_phase['//int2str(i)//']/vector_field::FSIFluidVelocity')) then
+        ewrite(-1,*) 'This models relies on an internal algorithm to plot the Fluid Velocity instead of the bulk velocity'
+        ewrite(-1,*) 'which is contained in the vector field "Velocity".'
+        FLExit('Please enable the vector_field "FSIFluidVelocity" under "material_phase" in your options file')
+      end if
     end do
 
-    if (have_option('/embedded_models/fsi_model/two_way_coupled')) then
-      ewrite(-1,*) 'Error: The FSI Model does not support 2-way Fluid-Solid coupling'
-      ewrite(-1,*) 'Use the Fluidity/FEMDEM approach for 2-way coupling instead'
-      FLExit('2-way coupling of Fluids and Solids is not supported here. Use the Fluidity/FEMDEM approach for 2-way coupling instead (implicit_solids in the schema)')
-    end if
   end subroutine check_fsi_model_options
 
 end module populate_state_module
