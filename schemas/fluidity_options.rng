@@ -6879,6 +6879,22 @@ Field must be in this material_phase.</a:documentation>
         </choice>
       </element>
       <element name="vector_field">
+        <a:documentation>In case of running the FSI model, this field represents the
+Fluid Velocity only, whereas "Velocity" is the bulk velocity
+of the fluid and solid.</a:documentation>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>FSIFluidVelocity</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="internal_algorithm"/>
+          <ref name="mesh_choice"/>
+          <ref name="diagnostic_vector_field"/>
+        </element>
+      </element>
+      <element name="vector_field">
         <a:documentation>Solid Velocity field.  Used to generate the momentum source </a:documentation>
         <attribute name="rank">
           <value>1</value>

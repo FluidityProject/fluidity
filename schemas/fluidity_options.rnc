@@ -5412,6 +5412,20 @@ vector_field_choice =
                }
             )
          }|
+         ## In case of running the FSI model, this field represents the
+         ## Fluid Velocity only, whereas "Velocity" is the bulk velocity
+         ## of the fluid and solid.
+         element vector_field {
+            attribute rank { "1" },
+            attribute name { "FSIFluidVelocity" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  mesh_choice,
+                  diagnostic_vector_field
+               }
+            )
+         }|
          ## Solid Velocity field.  Used to generate the momentum source 
          element vector_field {
             attribute rank { "1" },

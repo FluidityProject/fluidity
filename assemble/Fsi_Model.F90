@@ -126,6 +126,8 @@ module fsi_model
         call compute_fluid_absorption(state)
         ! Always set source term:
         call compute_source_term(state)
+        ! Set the fluid velocity (only) field:
+        call set_fsi_fluidvelocity(state)
 
         ewrite(2, *) 'leaving fsi_modelling'
 
@@ -143,7 +145,7 @@ module fsi_model
         type(vector_field), pointer :: sforce, iter_sforce
         character(len=OPTION_PATH_LEN) :: mesh_name
         integer :: i, num_solid_mesh
-        
+
         ewrite(2,*) "Inside fsi_set_from_iterated_fields"
 
         ! Get number of solid meshes:
@@ -973,6 +975,7 @@ module fsi_model
 
       integer, dimension(:), pointer :: nodes
       integer :: i, j, ele
+      real :: beta
       
       ewrite(2,*) "Inside compute_source_term"
 
@@ -986,34 +989,55 @@ module fsi_model
       source_term_iter => extract_vector_field(state, "IteratedVelocitySource")
       call zero(source_term_iter)
 
-      ! (\rho_f \alpha_s / \Delta t) (\hat{u_f} or u) - F_s/ \Delta t
+      ! beta:
+      if (have_option('/embedded_models/fsi_model/beta')) then
+          call get_option('/embedded_models/fsi_model/beta', beta)
+      else
+          beta = 1
+      end if
+
+!      ! (\rho_f \alpha_s / \Delta t) (\hat{u_f} or u) - F_s/ \Delta t
+!      do ele = 1, ele_count(source_term_iter%mesh)
+!          nodes => ele_nodes(source_term_iter%mesh, ele)
+!          do i = 1, size(nodes)
+!              ! Originally:
+!              ! The if statement below causes instability for the source term on a DG mesh:
+!!              if (node_val(alpha, nodes(i)) .gt. 0.0 .and. node_val(alpha, nodes(i)) .lt. 1.0) then
+!              ! Source term should be at the FSI interface, so cap short before inside the solid volume
+!              ! here and for now by comparing against the value of alpha, must be in interval [0, 0.999]:
+!              if (node_val(alpha, nodes(i)) .gt. 0.0 .and. node_val(alpha, nodes(i)) .lt. 0.9999) then
+!          !    if (node_val(alpha, nodes(i)) .gt. 0.0) then
+!                  do j = 1, source_term_iter%dim
+!!                      ! Originally used, and theorhetically correct:
+!!                      ! Originally used this source term: u_s*sigma - sigma*(alpha*u_f + u_s), with sigma=1/dt
+!!                      call set(source_term_iter, j, nodes(i), (node_val(solid_velocity,j,nodes(i)) / dt) - &
+!!                        & (node_val(solid_velocity,j,nodes(i)) + &
+!!                        & node_val(fluid_velocity,j,nodes(i)) ) / dt )
+!                      call set(source_term_iter, j, nodes(i), ( (node_val(solid_velocity,j,nodes(i)) + &
+!                        & node_val(fluid_velocity,j,nodes(i)) ) / dt ) - &
+!                        & (node_val(solid_velocity,j,nodes(i)) / dt) )
+!                      ! Below was used before, which is the same as above but with alpha:
+!                      !  & node_val(fluid_velocity,j,nodes(i)) * node_val(alpha,nodes(i))) / dt )
+!
+!                  end do
+!              end if
+!          end do
+!      end do
+
       do ele = 1, ele_count(source_term_iter%mesh)
           nodes => ele_nodes(source_term_iter%mesh, ele)
           do i = 1, size(nodes)
-              ! Originally:
-              ! The if statement below causes instability for the source term on a DG mesh:
-!              if (node_val(alpha, nodes(i)) .gt. 0.0 .and. node_val(alpha, nodes(i)) .lt. 1.0) then
-              ! Source term should be at the FSI interface, so cap short before inside the solid volume
-              ! here and for now by comparing against the value of alpha, must be in interval [0, 0.999]:
-              if (node_val(alpha, nodes(i)) .gt. 0.0 .and. node_val(alpha, nodes(i)) .lt. 0.9999) then
-          !    if (node_val(alpha, nodes(i)) .gt. 0.0) then
+              !if (node_val(alpha, nodes(i)) .gt. 0.0 .and. node_val(alpha, nodes(i)) .lt. 0.9999) then
+              if (node_val(alpha, nodes(i)) .gt. 0.0) then
                   do j = 1, source_term_iter%dim
-!                      ! Originally used, and theorhetically correct:
-!                      ! Originally used this source term: u_s*sigma - sigma*(alpha*u_f + u_s), with sigma=1/dt
-!                      call set(source_term_iter, j, nodes(i), (node_val(solid_velocity,j,nodes(i)) / dt) - &
-!                        & (node_val(solid_velocity,j,nodes(i)) + &
-!                        & node_val(fluid_velocity,j,nodes(i)) ) / dt )
-                      call set(source_term_iter, j, nodes(i), ( (node_val(solid_velocity,j,nodes(i)) + &
-                        & node_val(fluid_velocity,j,nodes(i)) ) / dt ) - &
-                        & (node_val(solid_velocity,j,nodes(i)) / dt) )
-                      ! Below was used before, which is the same as above but with alpha:
-                      !  & node_val(fluid_velocity,j,nodes(i)) * node_val(alpha,nodes(i))) / dt )
-
+                      call set(source_term_iter, j, nodes(i), ( (node_val(solid_velocity,j,nodes(i))*(beta/dt) ) + &
+                        & node_val(fluid_velocity,j,nodes(i)) ) )
+                        !& 0.0 )
+                        !& (node_val(solid_velocity,j,nodes(i)) ) )
                   end do
               end if
           end do
       end do
-
 
       ! Setting source term:
       source_term => extract_vector_field(state, "VelocitySource")
@@ -1024,6 +1048,32 @@ module fsi_model
     ewrite(2,*) "Leaving compute_source_term"
 
     end subroutine compute_source_term
+
+    !----------------------------------------------------------------------------
+
+    subroutine set_fsi_fluidvelocity(state)
+      type(state_type), intent(inout) :: state
+
+      type(vector_field), pointer :: fsifluidvelocity_iter, fsifluidvelocity
+      type(vector_field), pointer :: bulk_velocity, solid_velocity
+
+
+      ewrite(2,*) "Inside set_fsi_fluidvelocity"
+
+      fsifluidvelocity_iter => extract_vector_field(state, 'IteratedFSIFluidVelocity')
+      fsifluidvelocity => extract_vector_field(state, 'FSIFluidVelocity')
+      bulk_velocity => extract_vector_field(state, 'IteratedVelocity')
+      solid_velocity => extract_vector_field(state, 'IteratedSolidVelocity')
+
+      call zero(fsifluidvelocity)
+      call zero(fsifluidvelocity_iter)
+
+      call set(fsifluidvelocity_iter, bulk_velocity)
+      call addto(fsifluidvelocity_iter, solid_velocity, -1.0)
+      call set(fsifluidvelocity, fsifluidvelocity_iter)
+
+      ewrite(2,*) "Leaving set_fsi_fluidvelocity"
+    end subroutine set_fsi_fluidvelocity
 
     !----------------------------------------------------------------------------
 
