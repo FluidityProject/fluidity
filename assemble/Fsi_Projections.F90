@@ -61,7 +61,7 @@ module fsi_projections
     type(vector_field), intent(inout), optional :: solid_velocity_sf
 
     ! this is for using the advancing front algorithm, therefore commented for now:
-    !type(ilist), dimension(ele_count(positionsS)) :: map_SF 
+    type(ilist), dimension(ele_count(positionsS)) :: map_SF 
     integer :: ele_F, ele_S
 
     type(quadrature_type) :: supermesh_quad
@@ -86,7 +86,7 @@ module fsi_projections
     integer :: dim, max_degree
 
     ! Variables for ilist when using rtree intersection finder:
-    type(ilist) :: map_SF_rtree
+    !type(ilist) :: map_SF_rtree
     integer :: nele_fs, j, maplen, ntests
 
     character(len=OPTION_PATH_LEN) :: tmp
@@ -116,10 +116,9 @@ module fsi_projections
     ! (more work needs to be done to make this work in parallel for fsi-modelling)
     ! with the more robust rtree_intersection_finder:
     ! advancing_front:
-    !map_SF = intersection_finder(positionsS, positionsF)
+    map_SF = intersection_finder(positionsS, positionsF)
     ! rtree:
-    call rtree_intersection_finder_set_input(positionsF)
-
+    !call rtree_intersection_finder_set_input(positionsF)
 
     sparsity_fluid = make_sparsity(fieldF%mesh, fieldF%mesh, "FluidMassMatrixSparsity")
     call allocate(mass_matrix_fluid, sparsity_fluid, name="FluidMassMatrix")
@@ -160,33 +159,37 @@ module fsi_projections
       ! work in parallel for fluid-solid interaction modelling
       ! Via RTREE, find intersection of solid element 'ele_S' with the
       ! input mesh (=fluid mesh 'positionsF'):
-      call rtree_intersection_finder_find(positionsS, ele_S)
+      !call rtree_intersection_finder_find(positionsS, ele_S)
       ! Fetch output, the number of intersections of this solid element
       ! with the fluid mesh (= positionsF):
-      call rtree_intersection_finder_query_output(nele_fs)
+      !call rtree_intersection_finder_query_output(nele_fs)
       ! Generate an ilist of elements in positionsF that intersect with ele_S:
-      do j=1, nele_fs
-        ! Get the donor (fluid) element which intersects with ele_S
-        call rtree_intersection_finder_get_output(ele_F, j)
-        ! insert_ascending works, but maybe is not necessary
-        !call insert_ascending(map_SF_rtree, ele_F)
-        call insert(map_SF_rtree, ele_F)
-      end do
+      !do j=1, nele_fs
+      !  ! Get the donor (fluid) element which intersects with ele_S
+      !  call rtree_intersection_finder_get_output(ele_F, j)
+      !  ! insert_ascending works, but maybe is not necessary
+      !  !call insert_ascending(map_SF_rtree, ele_F)
+      !  call insert(map_SF_rtree, ele_F)
+      !end do
       ! =====================================================================================================
 
       ! get the matrix for the coordinates of (solid) mesh S:
       call local_coords_matrix(positionsS, ele_S, inversion_matrix_S)
       ! Construct the supermesh associated with ele_S. (For advancing front algorithm, uncomment the following line:)
-      !call construct_supermesh(positionsS, ele_S, positionsF, map_SF(ele_S), supermesh_positions_shape, supermesh)
+      call construct_supermesh(positionsS, ele_S, positionsF, map_SF(ele_S), supermesh_positions_shape, supermesh, stat=stat)
+      ! if no intersection for proc x was found, no supermesh was created, then stat/=0
+      if (stat /= 0) then ! should not happen, as we catch that event above, but doesn't hurt double checking
+        cycle
+      end if
       ! =====================================================================================================
       ! When using the rtree intersection finder:
-      if (map_SF_rtree%length > 0) then
-        stat = 0
-        call construct_supermesh(positionsS, ele_S, positionsF, map_SF_rtree, supermesh_positions_shape, supermesh, stat=stat)
-        ! if no intersection for proc x was found, no supermesh was created, then stat/=0
-        if (stat /= 0) then
-          cycle
-        end if
+      !if (map_SF_rtree%length > 0) then
+      !  stat = 0
+      !  call construct_supermesh(positionsS, ele_S, positionsF, map_SF_rtree, supermesh_positions_shape, supermesh, stat=stat)
+      !  ! if no intersection for proc x was found, no supermesh was created, then stat/=0
+      !  if (stat /= 0) then
+      !    cycle
+      !  end if
         ! =====================================================================================================
 
         ! At this point, a portion of the supermesh is constructed, which refines the dimensional space
@@ -237,23 +240,23 @@ module fsi_projections
         if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
           call deallocate(solid_velocity_on_supermesh)
         end if
-      end if
+      !end if
       ! Flush ilist of intersecting elements (when using the rtree intersection finder):
       !call flush_list(map_SF_rtree)
-      call deallocate(map_SF_rtree)
+      !call deallocate(map_SF_rtree)
     end do
 
     call deallocate(supermesh_quad)
     call deallocate(supermesh_positions_shape)
     call deallocate(supermesh_field_shape)
     ! Because of using the rtree intersection finder:
-    call rtree_intersection_finder_reset(ntests)
+    !call rtree_intersection_finder_reset(ntests)
     !call deallocate(map_SF_rtree)
     ! =====================================================================================================
     ! the following is commented because of using rtree instead of the advancing front algorithm:
-    !do ele_S=1,ele_count(positionsS)
-    !  call deallocate(map_SF(ele_S))
-    !end do
+    do ele_S=1,ele_count(positionsS)
+      call deallocate(map_SF(ele_S))
+    end do
     ! =====================================================================================================
 
     ! 3rd step: Project alpha from the supermesh to the fluid and solid mesh:
