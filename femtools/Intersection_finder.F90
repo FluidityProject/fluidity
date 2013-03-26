@@ -726,8 +726,7 @@ contains
     end do
 
     if (map%length == 0) then
-      !FLAbort("Should never get here -- it has to intersect /something/!")
-      ewrite(0,*) "WARNING: Unless running a FSI model, it should never get here -- it has to intersect /something/!"
+      FLAbort("Should never get here -- it has to intersect /something/!")
     end if
   end function brute_force_search
 
