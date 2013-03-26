@@ -1027,13 +1027,10 @@ module fsi_model
       do ele = 1, ele_count(source_term_iter%mesh)
           nodes => ele_nodes(source_term_iter%mesh, ele)
           do i = 1, size(nodes)
-              !if (node_val(alpha, nodes(i)) .gt. 0.0 .and. node_val(alpha, nodes(i)) .lt. 0.9999) then
               if (node_val(alpha, nodes(i)) .gt. 0.0) then
                   do j = 1, source_term_iter%dim
                       call set(source_term_iter, j, nodes(i), ( (node_val(solid_velocity,j,nodes(i))*(beta/dt) ) + &
                         & node_val(fluid_velocity,j,nodes(i)) ) )
-                        !& 0.0 )
-                        !& (node_val(solid_velocity,j,nodes(i)) ) )
                   end do
               end if
           end do
