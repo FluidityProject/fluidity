@@ -629,7 +629,7 @@ module divergence_matrix_cg
                ! If the field and nvfrac meshes are different, then we need to
                ! compute the derivatives of the nvfrac shape functions.
                if(.not.(nvfrac%mesh == field%mesh)) then
-                  nvfrac_shape => ele_shape(nvfrac%mesh, ele)
+                  nvfrac_shape => ele_shape(nvfrac, ele)
                   call transform_to_physical(coordinate, ele, nvfrac_shape, dshape=dnvfrac_t)
                else
                   dnvfrac_t = dfield_t
