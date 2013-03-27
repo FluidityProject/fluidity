@@ -1693,9 +1693,15 @@ contains
       ! Allocate field for volume fraction:
       if (have_option(trim(solid_state_path)//'/scalar_field::SolidConcentration')) then
         if (have_option(trim(solid_state_path)//'/scalar_field::SolidConcentration/diagnostic/mesh::SolidCoordinateMesh')) then
-          call set_option(trim(solid_state_path)//'/scalar_field::SolidConcentration/diagnostic/mesh/name', trim(mesh_name)//'SolidCoordinateMesh', stat)
-          if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
-            FLAbort("Failed to set value for mesh when using the option 'SolidCoordinateMesh'")
+          ! Delete this option, and add a new option with the correct solid name:
+          call delete_option(trim(solid_state_path)//'/scalar_field::SolidConcentration/diagnostic/mesh::SolidCoordinateMesh', stat)
+          if(stat == SPUD_KEY_ERROR) then
+            FLAbort("Failed to delete the option 'mesh::SolidCoordinateMesh' for solid field SolidConcentration.")
+          end if
+          ! And add the option with the correct SolidCoordinateMesh name:
+          call add_option(trim(solid_state_path)//'/scalar_field::SolidConcentration/diagnostic/mesh::'//trim(mesh_name)//'SolidCoordinateMesh', stat)
+          if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING) then
+            FLAbort("Failed to add the option 'mesh::"//trim(mesh_name)//"SolidCoordinateMesh' for solid field SolidConcentration.")
           end if
         end if
         ! Now allocate field and insert it into the solid state
@@ -1711,9 +1717,15 @@ contains
       ! Allocate field for volume fraction:
       if (have_option(trim(solid_state_path)//'/vector_field::SolidForce')) then
         if (have_option(trim(solid_state_path)//'/vector_field::SolidForce/diagnostic/mesh::SolidCoordinateMesh')) then
-          call set_option(trim(solid_state_path)//'/vector_field::SolidForce/diagnostic/mesh/name', trim(mesh_name)//'SolidCoordinateMesh', stat)
-          if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
-            FLAbort("Failed to set value for mesh when using the option 'SolidCoordinateMesh'")
+          ! Delete this option, and add a new option with the correct solid name:
+          call delete_option(trim(solid_state_path)//'/vector_field::SolidForce/diagnostic/mesh::SolidCoordinateMesh', stat)
+          if(stat == SPUD_KEY_ERROR) then
+            FLAbort("Failed to delete the option 'mesh::SolidCoordinateMesh' for solid field SolidForce.")
+          end if
+          ! And add the option with the correct SolidCoordinateMesh name:
+          call add_option(trim(solid_state_path)//'/vector_field::SolidForce/diagnostic/mesh::'//trim(mesh_name)//'SolidCoordinateMesh', stat)
+          if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING) then
+            FLAbort("Failed to add the option 'mesh::"//trim(mesh_name)//"SolidCoordinateMesh' for solid field SolidForce.")
           end if
         end if
         call allocate_and_insert_vector_field(trim(solid_state_path)//'/vector_field::SolidForce', &
@@ -1724,15 +1736,27 @@ contains
       ! And the solidvelocity:
       if (have_option(trim(solid_state_path)//'/vector_field::SolidVelocity')) then
         if (have_option(trim(solid_state_path)//'/vector_field::SolidVelocity/diagnostic/mesh::SolidCoordinateMesh')) then
-          call set_option(trim(solid_state_path)//'/vector_field::SolidVelocity/diagnostic/mesh/name', trim(mesh_name)//'SolidCoordinateMesh', stat)
-          if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
-            FLAbort("Failed to set value for mesh when using the option 'SolidCoordinateMesh'")
+          ! Delete this option, and add a new option with the correct solid name:
+          call delete_option(trim(solid_state_path)//'/vector_field::SolidVelocity/diagnostic/mesh::SolidCoordinateMesh', stat)
+          if(stat == SPUD_KEY_ERROR) then
+            FLAbort("Failed to delete the option 'mesh::SolidCoordinateMesh' for solid field SolidVelocity.")
+          end if
+          ! And add the option with the correct SolidCoordinateMesh name:
+          call add_option(trim(solid_state_path)//'/vector_field::SolidVelocity/diagnostic/mesh::'//trim(mesh_name)//'SolidCoordinateMesh', stat)
+          if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING) then
+            FLAbort("Failed to add the option 'mesh::"//trim(mesh_name)//"SolidCoordinateMesh' for solid field SolidVelocity.")
           end if
         end if
         if (have_option(trim(solid_state_path)//'/vector_field::SolidVelocity/prescribed/mesh::SolidCoordinateMesh')) then
-          call set_option(trim(solid_state_path)//'/vector_field::SolidVelocity/prescribed/mesh/name', trim(mesh_name)//'SolidCoordinateMesh', stat)
-          if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
-            FLAbort("Failed to set value for mesh when using the option 'SolidCoordinateMesh'")
+          ! Delete this option, and add a new option with the correct solid name:
+          call delete_option(trim(solid_state_path)//'/vector_field::SolidVelocity/prescribed/mesh::SolidCoordinateMesh', stat)
+          if(stat == SPUD_KEY_ERROR) then
+            FLAbort("Failed to delete the option 'mesh::SolidCoordinateMesh' for solid field SolidVelocity.")
+          end if
+          ! And add the option with the correct SolidCoordinateMesh name:
+          call add_option(trim(solid_state_path)//'/vector_field::SolidVelocity/prescribed/mesh::'//trim(mesh_name)//'SolidCoordinateMesh', stat)
+          if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING) then
+            FLAbort("Failed to add the option 'mesh::"//trim(mesh_name)//"SolidCoordinateMesh' for solid field SolidVelocity.")
           end if
         end if
         call allocate_and_insert_vector_field(trim(solid_state_path)//'/vector_field::SolidVelocity', &
