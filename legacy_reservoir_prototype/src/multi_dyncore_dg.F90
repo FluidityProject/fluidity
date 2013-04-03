@@ -3513,7 +3513,7 @@ end if
             U_DT=0.0; V_DT=0.0; W_DT=0.0
             U_DT( :, : )=(UD( :, : )-UDOLD( :, : ))/DT
             IF(NDIM_VEL.GE.2) V_DT( :, : )=(VD( :, : )-VDOLD( :, : ))/DT
-            IF(NDIM_VEL.GE.2) W_DT( :, : )=(WD( :, : )-WDOLD( :, : ))/DT
+            IF(NDIM_VEL.GE.3) W_DT( :, : )=(WD( :, : )-WDOLD( :, : ))/DT
 
 
             RESID=0.0
@@ -3633,9 +3633,9 @@ end if
                        *WITH_NONLIN +DENGI(GI, IPHASE)* W_DT(GI, IPHASE) + P_DZ(GI) * RNO_P_IN_A_DOT
 
 
-                  STAR_U_COEF( GI, IPHASE )= A_DOT_U( GI, IPHASE )/U_GRAD_NORM2( GI, IPHASE )
-                  STAR_V_COEF( GI, IPHASE )= A_DOT_V( GI, IPHASE )/V_GRAD_NORM2( GI, IPHASE )
-                  STAR_W_COEF( GI, IPHASE )= A_DOT_W( GI, IPHASE )/W_GRAD_NORM2( GI, IPHASE )
+                  STAR_U_COEF( GI, IPHASE ) = A_DOT_U( GI, IPHASE )/U_GRAD_NORM2( GI, IPHASE )
+                  STAR_V_COEF( GI, IPHASE ) = A_DOT_V( GI, IPHASE )/V_GRAD_NORM2( GI, IPHASE )
+                  STAR_W_COEF( GI, IPHASE ) = A_DOT_W( GI, IPHASE )/W_GRAD_NORM2( GI, IPHASE )
 
 
                   JTT_INV=2./DT 
@@ -3791,7 +3791,7 @@ end if
 
       DISC_PRES = ( CV_NONODS == TOTELE * CV_NLOC )
 
-      Loop_Elements2: DO ELE=1,TOTELE
+      Loop_Elements2: DO ELE = 1, TOTELE
 
          Between_Elements_And_Boundary: DO IFACE = 1, NFACE
             ELE2  = FACE_ELE( IFACE, ELE )
