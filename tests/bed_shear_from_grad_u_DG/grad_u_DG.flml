@@ -138,6 +138,23 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
+    <scalar_field name="tracer" rank="0">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value type="code" lines="20" language="python">def val(X, t):
+    
+    return X[0]*X[1]</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
     <vector_field name="BedShearStress" rank="1">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
@@ -166,6 +183,25 @@ for n in range(field.node_count):
         <detectors>
           <include_in_detectors/>
         </detectors>
+      </diagnostic>
+    </vector_field>
+    <vector_field name="grad_tracer" rank="1">
+      <diagnostic>
+        <algorithm material_phase_support="single" source_field_type="scalar" source_field_name="tracer" name="grad"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
       </diagnostic>
     </vector_field>
     <tensor_field name="DGVelocityGradient2" rank="2">

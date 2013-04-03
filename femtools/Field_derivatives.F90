@@ -1402,8 +1402,6 @@ module field_derivatives
       ! inverse mass
       real, dimension(ele_loc(infield, ele), ele_loc(infield, ele)) :: inv_mass
 
-      character(len=200) :: msg
-
       ! In parallel, we only construct the equations on elements we own, or
       ! those in the L1 halo.
       if (.not.(element_owned(infield, ele).or.element_neighbour_owned(infield, ele))) then
@@ -1441,9 +1439,9 @@ module field_derivatives
       ! multiply by inverse of mass matrix
       inv_mass = inverse(shape_shape(shape, shape, detwei))
       do i = 1, positions%dim
-        rhs(i, :) = matmul(inv_mass, rhs(i, :))
+        rhs(i,:) = matmul(inv_mass, rhs(i,:))
         if (derivatives(i)) then
-          call addto(pardiff(i), ele_nodes(pardiff(i), ele), rhs(i,:))
+          call set(pardiff(i), ele_nodes(pardiff(i), ele), rhs(i,:))
         end if
       end do
 
