@@ -74,8 +74,6 @@ contains
     
     positions => extract_vector_field(state, "Coordinate")
     
-    call check_source_mesh_derivative(source_field, "grad")
-    
     call grad(source_field, positions, v_field)
     
   end subroutine calculate_grad
@@ -89,8 +87,6 @@ contains
 
     positions => extract_vector_field(state, "Coordinate")
     source_field => vector_source_field(state, t_field)
-
-    call check_source_mesh_derivative(source_field, "grad_vector")
 
     call grad(source_field, positions, t_field)
 
