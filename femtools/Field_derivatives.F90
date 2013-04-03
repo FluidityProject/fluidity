@@ -240,6 +240,9 @@ module field_derivatives
 
       call differentiate_field(infield, positions, derivatives, pardiff, bc_value, bc_type)
 
+      call deallocate(bc_value)
+      deallocate(bc_type)
+
     end subroutine grad_scalar
 
     subroutine grad_vector(infield, positions, gradient)
