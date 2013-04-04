@@ -1528,11 +1528,21 @@ contains
 
       if (tfield_options%facevalue==CV_FACEVALUE_ENO_CPAIN) then
          if (tfield_options%weno_parameter<0) then
-            call k_one_ENO_select(tfield,x_tfield,tENO,gnew)
-            call k_one_ENO_select(oldtfield,x_tfield,oldtENO,gold)
+            if(tfield_options%eno_directional) then
+               call k_one_ENO_select(tfield,x_tfield,tENO,gnew,advu)
+               call k_one_ENO_select(oldtfield,x_tfield,oldtENO,gold,advu)
+            else
+               call k_one_ENO_select(tfield,x_tfield,tENO,gnew)
+               call k_one_ENO_select(oldtfield,x_tfield,oldtENO,gold)
+            end if
          else
-            call k_one_WENO_select(tfield,x_tfield,tENO,gnew,tfield_options%weno_parameter)
-            call k_one_WENO_select(oldtfield,x_tfield,oldtENO,gold,tfield_options%weno_parameter)
+            if(tfield_options%eno_directional) then
+               call k_one_WENO_select(tfield,x_tfield,tENO,gnew,tfield_options%weno_parameter,advu)
+               call k_one_WENO_select(oldtfield,x_tfield,oldtENO,gold,tfield_options%weno_parameter,advu)
+            else
+               call k_one_WENO_select(tfield,x_tfield,tENO,gnew,tfield_options%weno_parameter)
+               call k_one_WENO_select(oldtfield,x_tfield,oldtENO,gold,tfield_options%weno_parameter)
+            end if
          end if
       end if
 

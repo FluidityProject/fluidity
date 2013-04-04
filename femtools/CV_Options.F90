@@ -91,6 +91,7 @@ module cv_options
       integer :: upwind_scheme
       ! norm for the modified WENO algorithm
       integer :: weno_parameter
+      logical :: eno_directional
 
    end type cv_options_type
 
@@ -209,6 +210,9 @@ contains
 
     call get_option(trim(complete_cv_field_path(option_path))//&
                     '/face_value[0]/WENO_norm',cv_options%weno_parameter, default=-1)
+
+    cv_options%eno_directional= have_option(trim(complete_cv_field_path(option_path))//&
+                    '/face_value[0]/directional')
 
   end function get_cv_options
 

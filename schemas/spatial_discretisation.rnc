@@ -601,7 +601,10 @@ standard_control_volume_options =
         attribute name { "ModifiedENO" },
       	element WENO_norm {
             integer
-         }?
+         }?,	
+	 element directional {
+	    empty
+	 }?
       }
    )
    

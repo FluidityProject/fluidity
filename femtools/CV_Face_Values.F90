@@ -607,10 +607,11 @@ contains
   end function
 
 
-  subroutine k_one_ENO_select(field,positions,val, gradient)
+  subroutine k_one_ENO_select(field,positions,val, gradient,advu)
 
-    type(scalar_field), intent(inout) :: field
+    type(scalar_field), intent(inout)  :: field
     type(vector_field),  intent(inout) :: positions
+    type(vector_field), intent(in), optional :: advu
     type(scalar_field), intent(inout)  :: val
     type(vector_field), intent(inout)  :: gradient
 
@@ -634,9 +635,19 @@ contains
        call reconstruct(ele,field,fele,egrad)
        nodes=>ele_nodes(field,ele)
        do iloc=1,ele_loc(field,ele)
-          if (smoothness_test(egrad,node_val(gradient,nodes(iloc)))) then
-             call set(val,nodes(iloc),fele(iloc))
-             call set(gradient,nodes(iloc),egrad)
+          if (present(advu)) then
+             if (smoothness_test_with_velocity(egrad,&
+                  node_val(gradient,nodes(iloc)),&
+                  node_val(advu,nodes(iloc)))) then
+                call set(val,nodes(iloc),fele(iloc))
+                call set(gradient,nodes(iloc),egrad)
+             end if
+          else
+             if (smoothness_test(egrad,&
+                  node_val(gradient,nodes(iloc)))) then
+                call set(val,nodes(iloc),fele(iloc))
+                call set(gradient,nodes(iloc),egrad)
+             end if
           end if
        end do
     end do
@@ -644,10 +655,15 @@ contains
     contains
 
       logical function smoothness_test(lg,g) result(smoothness)
-        real, dimension(:) :: lg, g
+        real, dimension(:) :: lg, g 
         smoothness=(sum(lg**2)-sum(g**2)<0.0)
-
       end function smoothness_test
+
+      logical function smoothness_test_with_velocity(lg,g,u) result(smoothness)
+        real, dimension(:) :: lg, g ,u
+        smoothness=(sum(u*lg)**2-sum(u*g)**2<0.0)
+
+      end function smoothness_test_with_velocity
     
       subroutine reconstruct(lele,f,v,g)
 
@@ -670,13 +686,14 @@ contains
     end subroutine k_one_ENO_select
 
 
-  subroutine k_one_WENO_select(field,positions,val, gradient,r)
+  subroutine k_one_WENO_select(field,positions,val, gradient,r,advu)
 
     type(scalar_field), intent(inout) :: field
     type(vector_field),  intent(inout) :: positions
     type(scalar_field), intent(inout)  :: val
     type(vector_field), intent(inout)  :: gradient
     integer, intent(in) :: r 
+    type(vector_field), intent(in), optional :: advu
 
     real :: lweight
     type(scalar_field) :: weights
@@ -685,7 +702,7 @@ contains
     integer, dimension(:), pointer :: nodes
     type(element_type), pointer :: fshape
     real, dimension(ele_loc(field,1)) :: fele
-    real, dimension(mesh_dim(field)) :: egrad
+    real, dimension(mesh_dim(field)) :: egrad, u
 
     call allocate(gradient,positions%dim,field%mesh,"WENOGradients")
     call allocate(weights,field%mesh,"WENOweights")
@@ -700,10 +717,17 @@ contains
        fshape=>ele_shape(field,ele)
        call reconstruct(ele,field,fele,egrad)
        nodes=>ele_nodes(field,ele)
-       lweight=(1.0d-6+sum(egrad**2))**(-r)
-       call addto(val,nodes,lweight*fele)
-       call addto(gradient,nodes,spread(lweight*egrad,2,size(fele)))
-       call addto(weights,nodes,spread(lweight,1,size(fele)))
+       do iloc=1,ele_loc(field,ele)
+          if (present(advu)) then
+             u=node_val(advu,nodes(iloc))
+             lweight=(1.0d-6+sum(u*egrad)**2)**(-r)
+          else
+             lweight=(1.0d-6+sum(egrad**2))**(-r)
+          end if
+          call addto(val,nodes(iloc),lweight*fele(iloc))
+          call addto(gradient,nodes(iloc),lweight*egrad)
+          call addto(weights,nodes(iloc),lweight)
+       end do
     end do
 
     call invert(weights)
@@ -714,12 +738,6 @@ contains
     call deallocate(weights)
     
     contains
-
-      logical function smoothness_test(lg,g) result(smoothness)
-        real, dimension(:) :: lg, g
-        smoothness=(sum(lg**2)-sum(g**2)<0.0)
-
-      end function smoothness_test
     
       subroutine reconstruct(lele,f,v,g)
 
