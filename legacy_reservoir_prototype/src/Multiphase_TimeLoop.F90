@@ -397,7 +397,7 @@
            Component, Component_BC_Spatial, Component_BC, Component_Source, &
            Velocity_U, Velocity_V, Velocity_W, Velocity_NU, Velocity_NV, Velocity_NW, &
            Velocity_U_BC_Spatial, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, Velocity_U_Source, Velocity_Absorption, &
-           Temperature, Temperature_BC_Spatial, Temperature_BC, Temperature_Source, &
+           Temperature, Temperature_BC_Spatial, Temperature_BC, Temperature_Source, suf_t_bc_rob1, suf_t_bc_rob2, &
            Porosity, Permeability )
 
 !!$ Dummy field used in the scalar advection option:
@@ -1423,7 +1423,7 @@
                  Component, Component_BC_Spatial, Component_BC, Component_Source, &
                  Velocity_U, Velocity_V, Velocity_W, Velocity_NU, Velocity_NV, Velocity_NW, &
                  Velocity_U_BC_Spatial, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, Velocity_U_Source, Velocity_Absorption, &
-                 Temperature, Temperature_BC_Spatial, Temperature_BC, Temperature_Source, &
+                 Temperature, Temperature_BC_Spatial, Temperature_BC, Temperature_Source, suf_t_bc_rob1, suf_t_bc_rob2, &
                  Porosity, Permeability )
 
 !!$ Dummy field used in the scalar advection option:

@@ -738,7 +738,7 @@
          Component, Component_BC_Spatial, Component_BC, Component_Source, &
          Velocity_U, Velocity_V, Velocity_W, Velocity_NU, Velocity_NV, Velocity_NW, &
          Velocity_U_BC_Spatial, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, Velocity_U_Source, Velocity_Absorption, &
-         Temperature, Temperature_BC_Spatial, Temperature_BC, Temperature_Source, &
+         Temperature, Temperature_BC_Spatial, Temperature_BC, Temperature_Source, suf_t_bc_rob1, suf_t_bc_rob2, &
          Porosity, Permeability  )
       implicit none
       type( state_type ), dimension( : ), intent( inout ) :: state
@@ -752,7 +752,7 @@
            Component, Component_BC, Component_Source, &
            Velocity_U, Velocity_V, Velocity_W, Velocity_NU, Velocity_NV, Velocity_NW, &
            Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, Velocity_U_Source, &
-           Temperature, Temperature_BC, Temperature_Source, &
+           Temperature, Temperature_BC, Temperature_Source, suf_t_bc_rob1, suf_t_bc_rob2, &
            Porosity
       real, dimension( :, :, : ), intent( inout ) :: Velocity_Absorption, Permeability
 
@@ -788,8 +788,8 @@
            xu_ndgln( totele * xu_nloc ), cv_sndgln( stotel * cv_snloc ), p_sndgln( stotel * p_snloc ), &
            u_sndgln( stotel * u_snloc ) )
 
-      x_ndgln_p1 = 0 ; x_ndgln = 0 ; cv_ndgln = 0 ; p_ndgln = 0 ; mat_ndgln = 0 ; u_ndgln = 0 ; &
-           xu_ndgln = 0 ; cv_sndgln = 0 ; p_sndgln = 0 ; u_sndgln = 0
+      x_ndgln_p1 = 0 ; x_ndgln = 0 ; cv_ndgln = 0 ; p_ndgln = 0 ; mat_ndgln = 0
+      u_ndgln = 0 ;  xu_ndgln = 0 ; cv_sndgln = 0 ; p_sndgln = 0 ; u_sndgln = 0
 
       call Compute_Node_Global_Numbers( state, &
            is_overlapping, totele, stotel, x_nloc, x_nloc_p1, cv_nloc, p_nloc, u_nloc, xu_nloc, &
@@ -891,7 +891,9 @@
             call Get_ScalarFields_Outof_State( state, initialised, iphase, scalarfield, &
                  Temperature( knod + 1 : knod + node_count( scalarfield ) ), &
                  Temperature_BC_Spatial, Temperature_BC, &
-                 field_prot_source = Temperature_Source( knod + 1 : knod + node_count( scalarfield ) ) )          
+                 field_prot_source = Temperature_Source( knod + 1 : knod + node_count( scalarfield ) ), &
+                 suf_bc_rob1 = suf_t_bc_rob1( stotel * cv_snloc * ( iphase - 1 ) + 1 : stotel * cv_snloc * iphase ), &
+                 suf_bc_rob2 = suf_t_bc_rob2( stotel * cv_snloc * ( iphase - 1 ) + 1 : stotel * cv_snloc * iphase ) )
          end if Conditional_Temperature
       end do
 
@@ -948,14 +950,14 @@
 
 
     subroutine Get_ScalarFields_Outof_State( state, initialised, iphase, field, &
-         field_prot, wic_bc, suf_bc, field_prot_source, field_prot_absorption )
+         field_prot, wic_bc, suf_bc, field_prot_source, field_prot_absorption, suf_bc_rob1, suf_bc_rob2 )
       implicit none
       type( state_type ), dimension( : ), intent( in ) :: state
       logical, intent( in ) :: initialised
       integer, intent( in ) :: iphase
       type( scalar_field ), pointer :: field, field_prot_bc, field_prot_bc1, field_prot_bc2
       real, dimension( : ), intent( inout ) :: field_prot
-      real, dimension( : ), intent( inout ), optional :: field_prot_source, field_prot_absorption
+      real, dimension( : ), intent( inout ), optional :: field_prot_source, field_prot_absorption, suf_bc_rob1, suf_bc_rob2
       integer, dimension( : ), intent( inout ) :: wic_bc
       real, dimension( : ), intent( inout ) :: suf_bc
 
@@ -1091,10 +1093,10 @@
                   wic_bc( j + ( iphase - 1 ) * stotel ) = BC_Type
                   face_nodes = ele_nodes( field_prot_bc, sele )
                   do kk = 1, snloc
-!                     suf_bc_rob1( ( iphase - 1 ) * stotel * snloc + ( j - 1 ) * snloc + kk ) = &
-!                          field_prot_bc1 % val( face_nodes( 1 ) )
-!                     suf_bc_rob2( ( iphase - 1 ) * stotel * snloc + ( j - 1 ) * snloc + kk ) = &
-!                          field_prot_bc2 % val( face_nodes( 1 ) )
+                     suf_bc_rob1( ( iphase - 1 ) * stotel * snloc + ( j - 1 ) * snloc + kk ) = &
+                          field_prot_bc1 % val( face_nodes( 1 ) )
+                     suf_bc_rob2( ( iphase - 1 ) * stotel * snloc + ( j - 1 ) * snloc + kk ) = &
+                          field_prot_bc2 % val( face_nodes( 1 ) )
                   end do
                   sele = sele + 1
                end if
