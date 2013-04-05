@@ -3304,7 +3304,9 @@ This uses the velocity gradient at the boundaries to calculate the
 bed shear stress. Valid for non parameterised velocity boundaries</a:documentation>
           <optional>
             <element name="tensor_field">
-              <a:documentation>output calculated gradient of dg field as a diagnostic (only works for dg velocity fields)</a:documentation>
+              <a:documentation>The velocity gradient is calculated for the entire domain when calculating the bed 
+shear stress in DG. If you want to use this gradient in other diagnostics or wish to 
+output the gradient to vtu files enable the field below.</a:documentation>
               <attribute name="rank">
                 <value>2</value>
               </attribute>

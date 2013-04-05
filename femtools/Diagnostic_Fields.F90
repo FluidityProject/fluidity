@@ -3134,15 +3134,10 @@ contains
       real :: speed,density,drag_coefficient
 
       !! for DG
-      !! Field over the entire surface mesh containing bc values:
-      type(vector_field) :: bc_value
       !! Field that holds the gradient of velocity in boundary elements
       type(tensor_field), target :: grad_U, dummy_visc
       type(tensor_field), pointer :: grad_U_ptr
       integer :: grad_u_stat, visc_stat
-      !! Integer array of all surface elements indicating bc type
-      !! (see below call to get_entire_boundary_condition):
-      integer, dimension(:,:), allocatable :: bc_type
       !! surface mesh, element and node list
       type(mesh_type), pointer :: surface_mesh
       integer, dimension(:), allocatable :: surface_element_list
@@ -3231,40 +3226,21 @@ contains
             call scale(bed_shear_stress, masslump)
             call deallocate(masslump)
          else
-            ! we do DG differently. First the gradient of the velocity field is calculated
-            ! using:
-            ! N_i N_j grad_u = N_i delta u_h - 
-            !                  ({N_i} (u_h^-n^- + u_h^+n^+)) on internal faces -
-            !                  (N_i (u_h - u_b) n) on dirichlet boundaries
-            ! where: {x} = average of x over face
-            !        u_h = value of u in element
-            !        u_b = dirichlet boundary value
-            ! (see Bassi et. al. 2005 - Discontinuous Galerkin solution of the Reynolds-averaged
-            ! Navier–Stokes and k–x turbulence model equations, pg. 517
-            !
-            ! then we use this value to determine the bed shear stress using:
+            ! We do DG differently. First the gradient of the velocity field is calculated   
+            ! using the field_derivatives code.
+            ! Then we use this field to determine the bed shear stress using:
             ! N_i N_j tau_b = N_i nu grad_u . |n|
 
-            ! Enquire about boundary conditions we're interested in
-            ! Returns an integer array bc_type over the surface elements
-            ! that indicates the bc type (in the order we specified, i.e.
-            ! BCTYPE_WEAKDIRICHLET=1)
-
-            allocate( bc_type(U%dim, 1:surface_element_count(U)) )
-            call get_entire_boundary_condition(U, (/"weakdirichlet"/), bc_value, bc_type)
-
+            ! If a DGVelocityGradient field exists in the schema then use that, otherwise
+            ! create a field to store the gradient on
             grad_U_ptr => extract_tensor_field(state, "DGVelocityGradient", grad_u_stat)
             if (grad_u_stat /= 0) then
                call allocate(grad_U, bed_shear_stress%mesh, 'grad_U')
                grad_U_ptr => grad_U
             end if
             call zero(grad_U_ptr)
-            
-            ! calculate velocity gradient in boundary elements
-            do ele = 1, ele_count(bed_shear_stress)
-               call calculate_grad_u_ele_dg(grad_U_ptr, ele, X, U,&
-                    & bc_value, bc_type)
-            end do
+            ! calculate gradient of velocity
+            call grad(U, X, grad_U_ptr)
 
             allocate(surface_element_list(surface_element_count(bed_shear_stress)))
             ! generate list of surface elements
@@ -3300,8 +3276,6 @@ contains
             end if
             call deallocate(grad_u_surface)
             call deallocate(visc_surface)
-            call deallocate(bc_value)
-            deallocate(bc_type)
          end if
 
          if (visc_stat /= 0) then
@@ -3458,148 +3432,6 @@ contains
      call addto(bss, ele_nodes(bss,ele), rhs)
           
    end subroutine calculate_bed_shear_stress_ele_dg
-
-   subroutine calculate_grad_u_ele_dg(grad_u, ele, X, U, bc_value, bc_type)
-
-     type(tensor_field), intent(inout) :: grad_u
-     type(vector_field), intent(in), pointer :: X, U
-     integer, intent(in) :: ele
-     type(vector_field), intent(in) :: bc_value
-     integer, dimension(:,:), intent(in) :: bc_type
-     
-     ! variables for interior integral
-     type(element_type), pointer :: shape
-     real, dimension(ele_loc(U, ele), ele_ngi(U, ele), U%dim) :: dshape
-     real, dimension(ele_ngi(U, ele)) :: detwei
-     real, dimension(U%dim, U%dim, ele_ngi(U, ele)) :: grad_Uh_gi
-     real, dimension(U%dim, U%dim, ele_loc(U, ele)) :: rhs
-     
-     ! variables for surface integral
-     integer :: ni, ele_2, face, face_2, i, j
-     integer, dimension(:), pointer :: neigh
-
-     ! inverse mass
-     real, dimension(ele_loc(grad_u, ele), ele_loc(grad_u, ele)) :: inv_mass
-
-     character(len=200) :: msg
-
-     ! In parallel, we only construct the equations on elements we own, or
-     ! those in the L1 halo.
-     if (.not.(element_owned(grad_U, ele).or.element_neighbour_owned(grad_U, ele))) then
-        return
-     end if
-
-     shape => ele_shape(U, ele) 
-     call transform_to_physical(X, ele, shape, dshape, detwei)
-
-     ! Calculate grad of U_h within the element
-     grad_Uh_gi = ele_grad_at_quad(U, ele, dshape)
-
-     ! Assemble interior contributions to rhs
-     rhs = shape_tensor_rhs(shape, grad_Uh_gi, detwei)
-
-     ! Interface integrals
-     neigh=>ele_neigh(U, ele)
-     do ni=1,size(neigh)
-        ! Find the relevant faces.
-        ele_2 = neigh(ni)
-        face = ele_face(U, ele, ele_2)
-
-        if (ele_2>0) then
-           ! Internal faces.
-           face_2=ele_face(U, ele_2, ele)
-        else
-           ! External face.
-           face_2=face
-        end if
-
-        call calculate_grad_u_ele_dg_interface(ele, face, face_2, ni, &
-             & rhs, X, U, bc_value, bc_type)
-     end do
-
-     ! multiply by inverse of mass matrix
-     inv_mass = inverse(shape_shape(shape, shape, detwei))
-     do i = 1, U%dim
-        do j = 1, U%dim
-           rhs(i, j, :) = matmul(inv_mass, rhs(i, j, :))
-        end do
-     end do
-
-     call addto(grad_u, ele_nodes(grad_u, ele), rhs)
-
-   end subroutine calculate_grad_u_ele_dg
-  
-   subroutine calculate_grad_u_ele_dg_interface(ele, face, face_2, &
-        ni, rhs, X, U, bc_value, bc_type)
-
-     !!< Construct the DG element boundary integrals on the ni-th face of
-     !!< element ele.
-     integer, intent(in) :: ele, face, face_2, ni
-     type(vector_field), intent(in) :: X, U
-     type(vector_field), intent(in) :: bc_value
-     integer, dimension(:,:), intent(in) :: bc_type
-     real, dimension(U%dim, U%dim, ele_loc(U, ele)), intent(inout) :: rhs
-
-     ! Face objects and numberings.
-     type(element_type), pointer :: shape
-     real, dimension(U%dim, face_ngi(U, face)) :: normal, U_q, U_q_2, U_bc_q
-     real, dimension(face_ngi(U, face)) :: detwei
-     real, dimension(U%dim, U%dim, face_ngi(U, face)) :: tensor
-     real, dimension(U%dim, U%dim, face_loc(U, face)) :: face_rhs
-     real, dimension(ele_loc(U, ele)) :: elenodes
-     real, dimension(face_loc(U, face)) :: facenodes
-
-     integer :: i, j
-
-     face_rhs = 0.0
-     tensor = 0.0
-
-     ! shape and detwei are the same for both faces, normal+ = - normal-
-     shape => face_shape(U, face)
-     call transform_facet_to_physical(X, face, detwei_f=detwei, normal=normal)
-
-     if (face==face_2) then  
-        ! boundary faces - need to apply weak dirichlet bc's
-        ! = - int_ v_h \cdot (u - u^b) n 
-        ! first check for weak-dirichlet bc
-        if (any(bc_type(:,face) == 1)) then  
-           U_q = face_val_at_quad(U, face)
-           U_bc_q = ele_val_at_quad(bc_value, face)
-
-           do i=1, mesh_dim(U)
-              if (bc_type(i, face) == 1) then
-                 do j=1, mesh_dim(U)
-                    tensor(i,j,:) = -1.0*(U_q(i,:) - U_bc_q(i,:))*normal(j,:)
-                 end do
-              end if
-           end do
-           face_rhs = shape_tensor_rhs(shape, tensor, detwei) 
-        end if
-     else    
-        ! internal face
-        ! = int_ {v_h} \cdot J(x)  
-        U_q = face_val_at_quad(U, face)
-        U_q_2 = face_val_at_quad(U, face_2)
-        
-        do i=1, mesh_dim(U)
-           do j=1, mesh_dim(U)
-              tensor(i,j,:) = -0.5*(U_q(i,:) - U_q_2(i,:))*normal(j,:)
-           end do
-        end do
-        face_rhs = shape_tensor_rhs(shape, tensor, detwei) 
-     end if
-
-     elenodes = ele_nodes(U, ele)
-     facenodes = face_global_nodes(U, face)
-     do i=1, face_loc(U, face)
-        do j=1, ele_loc(U, face)
-           if (facenodes(i) == elenodes(j)) then
-              rhs(:, :, j) = rhs(:, :, j) + face_rhs(:, :, i)
-           end if
-        end do
-     end do
-
-   end subroutine calculate_grad_u_ele_dg_interface
 
    subroutine calculate_max_bed_shear_stress(state, max_bed_shear_stress)
 !

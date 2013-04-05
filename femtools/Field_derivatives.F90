@@ -1348,6 +1348,16 @@ module field_derivatives
     end subroutine differentiate_field
 
     subroutine differentiate_discontinuous_field(infield, positions, derivatives, pardiff, bc_value, bc_type)
+      ! calculated using:
+      ! N_i N_j grad_u = N_i delta u_h - 
+      !                  ({N_i} (u_h^-n^- + u_h^+n^+)) on internal faces -
+      !                  (N_i (u_h - u_b) n) on weak dirichlet boundaries
+      ! where: {x} = average of x over face
+      !        u_h = value of u in element
+      !        u_b = dirichlet boundary value
+      ! (see Bassi et. al. 2005 - Discontinuous Galerkin solution of the Reynolds-averaged
+      ! Navier–Stokes and k–x turbulence model equations, pg. 517
+
       type(scalar_field), intent(in), target :: infield
       type(vector_field), intent(in) :: positions
       logical, dimension(:), intent(in) :: derivatives
