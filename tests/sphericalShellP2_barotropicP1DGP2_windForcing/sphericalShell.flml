@@ -164,7 +164,7 @@
     </dump_format>
     <dump_period>
       <constant>
-        <real_value rank="0">0</real_value>
+        <real_value rank="0">525600.0</real_value>
       </constant>
     </dump_period>
     <output_mesh name="VelocityMesh"/>
@@ -429,9 +429,9 @@
     c = X[2]
     from math import sqrt, sin, cos, atan2, acos
     r=sqrt(a**2+b**2+c**2)
-    A1=1000.0
+    A1=2000.0
     A2=A1
-    A3=1.0e-1
+    A3=1.0
     phi=atan2(b,a)
     theta=acos(c/r)
     T11=A1*sin(phi)**2+A2*cos(theta)**2*cos(phi)**2+A3*sin(theta)**2*cos(phi)**2
