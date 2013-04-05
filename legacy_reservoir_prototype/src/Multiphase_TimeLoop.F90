@@ -1435,9 +1435,9 @@
 !!$
 !!$ Initialising Robin boundary conditions --  this still need to be defined in the schema:
 !!$
-            suf_u_bc_rob1 = 0. ; suf_v_bc_rob1 = 0. ; suf_w_bc_rob1 = 0. ; suf_u_bc_rob2 = 0. ; suf_v_bc_rob2 = 0. ; &
-                 suf_w_bc_rob2 = 0. ; suf_t_bc_rob1 = 0. ; suf_t_bc_rob2 = 0. ; suf_vol_bc_rob1 = 0. ; suf_vol_bc_rob2 = 0. ; &
-                 suf_comp_bc_rob1 = 0. ; suf_comp_bc_rob2 = 0.
+            suf_u_bc_rob1 = 0. ; suf_v_bc_rob1 = 0. ; suf_w_bc_rob1 = 0. ; suf_u_bc_rob2 = 0. ; suf_v_bc_rob2 = 0.
+            suf_w_bc_rob2 = 0. ; suf_t_bc_rob1 = 0. ; suf_t_bc_rob2 = 0. ; suf_vol_bc_rob1 = 0. ; suf_vol_bc_rob2 = 0.
+            suf_comp_bc_rob1 = 0. ; suf_comp_bc_rob2 = 0.
 
 !!$
 !!$ Initialising Absorption terms that do not appear in the schema

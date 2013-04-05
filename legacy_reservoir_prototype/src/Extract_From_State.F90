@@ -953,7 +953,7 @@
       type( state_type ), dimension( : ), intent( in ) :: state
       logical, intent( in ) :: initialised
       integer, intent( in ) :: iphase
-      type( scalar_field ), pointer :: field, field_prot_bc
+      type( scalar_field ), pointer :: field, field_prot_bc, field_prot_bc1, field_prot_bc2
       real, dimension( : ), intent( inout ) :: field_prot
       real, dimension( : ), intent( inout ), optional :: field_prot_source, field_prot_absorption
       integer, dimension( : ), intent( inout ) :: wic_bc
@@ -1048,18 +1048,23 @@
          end if
       end if Conditional_InitialisationFromFLML
 
-      Conditional_Field_BC: if( have_option( trim( option_path ) // &
-           '/prognostic/boundary_conditions[0]/type::dirichlet' ) ) then
-         BC_Type = 1 ;  nobcs = get_boundary_condition_count( field )
-         option_path2 = trim( option_path ) // '/prognostic/boundary_conditions['
+!!$ Boundary conditions
+      option_path2 = trim( option_path ) // '/prognostic/boundary_conditions['
+      nobcs = get_boundary_condition_count( field )
+      Loop_BC: do k = 1, nobcs
 
-         Loop_BC: do k = 1, nobcs
-            option_path = trim( option_path2 ) // int2str( k - 1 ) // ']/surface_ids'
+         option_path = trim( option_path2 ) // int2str( k - 1 ) // ']/surface_ids'
+         shape_option = option_shape( trim( option_path ) )
+         allocate( SufID_BC( 1 : shape_option( 1 ) ) )
+         call get_option( trim( option_path ), SufID_BC )
+         allocate( face_nodes( face_loc( field, 1) ) )
+
+         option_path = trim( option_path2 ) // int2str( k - 1 ) // ']/'
+
+         Conditional_Field_BC: if( have_option( trim( option_path ) // 'type::dirichlet' ) ) then
+
+            BC_Type = 1
             field_prot_bc => extract_surface_field( field, k, 'value' )
-            shape_option = option_shape( trim( option_path ) )
-            allocate( SufID_BC( 1 : shape_option( 1 ) ) )
-            call get_option( trim( option_path ), SufID_BC )
-            allocate( face_nodes( face_loc( field, 1) ) )
 
             sele = 1
             do j = 1, stotel
@@ -1074,12 +1079,32 @@
                end if
             end do
 
-            deallocate( face_nodes, sufid_bc )
+         else if( have_option( trim( option_path ) // 'type::robin' ) ) then
 
-         end do Loop_BC
+            BC_Type = 3
+            field_prot_bc1 => extract_surface_field( field, k, 'order_zero_coefficient' )
+            field_prot_bc2 => extract_surface_field( field, k, 'order_one_coefficient' )
 
-      end if Conditional_Field_BC
+            sele = 1
+            do j = 1, stotel
+               if( any ( SufID_BC == pmesh % faces % boundary_ids( j ) ) ) then
+                  wic_bc( j + ( iphase - 1 ) * stotel ) = BC_Type
+                  face_nodes = ele_nodes( field_prot_bc, sele )
+                  do kk = 1, snloc
+!                     suf_bc_rob1( ( iphase - 1 ) * stotel * snloc + ( j - 1 ) * snloc + kk ) = &
+!                          field_prot_bc1 % val( face_nodes( 1 ) )
+!                     suf_bc_rob2( ( iphase - 1 ) * stotel * snloc + ( j - 1 ) * snloc + kk ) = &
+!                          field_prot_bc2 % val( face_nodes( 1 ) )
+                  end do
+                  sele = sele + 1
+               end if
+            end do
 
+         end if Conditional_Field_BC
+
+         deallocate( face_nodes, sufid_bc )
+
+      end do Loop_BC
 
       return
     end subroutine Get_ScalarFields_Outof_State
