@@ -8,7 +8,7 @@ sys.stdout.write("Creating uncompressed file...")
 #Calculate hours from 1900-01-01 00:00:0.0 to 1987-01-01 00:00:0.0
 start_hour = (date(1987,01,01) - date(1900,01,01)).days*24
 #Calculate hours from 1900-01-01 00:00:0.0 to 1988-01-01 00:00:0.0
-end_hour = (date(1988,01,01) - date(1900,01,01)).days*24
+end_hour = (date(2018,01,01) - date(1900,01,01)).days*24
 
 file = NetCDF.NetCDFFile("test_forcing_I.nc", 'w')
 
@@ -41,7 +41,7 @@ setattr(u10,'FillValue',-32767)
 setattr(u10,'missing_value',-32767)
 u10_array = numpy.zeros((1461,73,144))
 for lat_index in range(0,len(lat)):
- u10_array[:,lat_index,:] = -1.0*numpy.cos(lat[lat_index])
+ u10_array[:,lat_index,:] = -1.0e-2*numpy.cos(lat[lat_index])
 u10[:,:,:] = list(u10_array)
 
 v10 = file.createVariable("v10",'f',('time', 'latitude', 'longitude'))
