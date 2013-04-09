@@ -1083,7 +1083,7 @@
 
          else if( have_option( trim( option_path ) // 'type::robin' ) ) then
 
-            BC_Type = 3
+            BC_Type = 2
             field_prot_bc1 => extract_surface_field( field, k, 'order_zero_coefficient' )
             field_prot_bc2 => extract_surface_field( field, k, 'order_one_coefficient' )
 
@@ -1091,7 +1091,7 @@
             do j = 1, stotel
                if( any ( SufID_BC == pmesh % faces % boundary_ids( j ) ) ) then
                   wic_bc( j + ( iphase - 1 ) * stotel ) = BC_Type
-                  face_nodes = ele_nodes( field_prot_bc, sele )
+                  face_nodes = ele_nodes( field_prot_bc1, sele )
                   do kk = 1, snloc
                      suf_bc_rob1( ( iphase - 1 ) * stotel * snloc + ( j - 1 ) * snloc + kk ) = &
                           field_prot_bc1 % val( face_nodes( 1 ) )
