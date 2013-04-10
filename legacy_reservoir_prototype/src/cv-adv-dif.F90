@@ -337,6 +337,7 @@
 
       integer :: cv_inod_ipha, IGETCT, U_NODK_IPHA, IANISOLIM
       logical :: Have_Temperature_Fields, Have_VolumeFraction_Fields, Have_Components_Fields
+      logical :: overlapping 
       ! Functions...
       !REAL :: R2NORM, FACE_THETA  
       !        ===>  LOGICALS  <===
@@ -353,6 +354,11 @@
               DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT
       INTEGER :: IDUM(1)
       REAL :: RDUM(1),n1,n2,n3
+
+      overlapping = .false.
+      call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
+           overlapping_path )
+      if( trim( overlapping_path ) == 'overlapping' ) overlapping = .true.
 
 
       IDUM = 0
@@ -1003,7 +1009,8 @@
                                 1, LIMT2, LIMT2OLD, FEMDGI, FEMT2GI, FEMDOLDGI, FEMT2OLDGI, UP_WIND_NOD, &
                                 T2MIN, T2MAX, T2OLDMIN, T2OLDMAX, T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
-                                T2MIN_2ND_MC, T2OLDMIN_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, LIMIT_USE_2ND)
+                                T2MIN_2ND_MC, T2OLDMIN_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, LIMIT_USE_2ND,&
+                                overlapping)
                         ELSE
                            CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
                                 HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
@@ -1019,7 +1026,8 @@
                                 1, LIMT, LIMTOLD, FEMDGI, FEMTGI, FEMDOLDGI, FEMTOLDGI, UP_WIND_NOD, &
                                 TMIN, TMAX, TOLDMIN, TOLDMAX, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, TOLDMAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
-                                TMIN_2ND_MC, TOLDMIN_2ND_MC, TMAX_2ND_MC, TOLDMAX_2ND_MC, LIMIT_USE_2ND)
+                                TMIN_2ND_MC, TOLDMIN_2ND_MC, TMAX_2ND_MC, TOLDMAX_2ND_MC, LIMIT_USE_2ND,&
+                                overlapping)
                         ENDIF
 
 
@@ -1095,7 +1103,8 @@
                                 FACE_ITS, LIMT2, LIMT2OLD, FEMDGI, FEMT2GI, FEMDOLDGI, FEMT2OLDGI, UP_WIND_NOD, &
                                 T2MIN, T2MAX, T2OLDMIN, T2OLDMAX, T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
-                                T2MIN_2ND_MC, T2OLDMIN_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, LIMIT_USE_2ND)
+                                T2MIN_2ND_MC, T2OLDMIN_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, LIMIT_USE_2ND,&
+                                overlapping)
                         ELSE
                            CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
                                 HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
@@ -1111,7 +1120,8 @@
                                 FACE_ITS, LIMT, LIMTOLD, FEMDGI, FEMTGI, FEMDOLDGI, FEMTOLDGI, UP_WIND_NOD, &
                                 TMIN, TMAX, TOLDMIN, TOLDMAX, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, TOLDMAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
-                                TMIN_2ND_MC, TOLDMIN_2ND_MC, TMAX_2ND_MC, TOLDMAX_2ND_MC, LIMIT_USE_2ND)
+                                TMIN_2ND_MC, TOLDMIN_2ND_MC, TMAX_2ND_MC, TOLDMAX_2ND_MC, LIMIT_USE_2ND,&
+                           OVERLAPPING)
                         ENDIF
 
                         !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===============
@@ -5209,7 +5219,8 @@
          FACE_ITS, LIMT, LIMTOLD, FEMDGI, FEMTGI, FEMDOLDGI, FEMTOLDGI, UP_WIND_NOD, &
          TMIN, TMAX, TOLDMIN, TOLDMAX, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, TOLDMAX_NOD, &
          IN_ELE_UPWIND, DG_ELE_UPWIND, &
-         TMIN_2ND_MC, TOLDMIN_2ND_MC, TMAX_2ND_MC, TOLDMAX_2ND_MC,  LIMIT_USE_2ND)
+         TMIN_2ND_MC, TOLDMIN_2ND_MC, TMAX_2ND_MC, TOLDMAX_2ND_MC,  LIMIT_USE_2ND,&
+         is_overlapping)
       ! Calculate NDOTQ and INCOME on the CV boundary at quadrature pt GI. 
       IMPLICIT NONE
       INTEGER, intent( in ) :: NPHASE, GI, IPHASE, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, &
@@ -5246,14 +5257,8 @@
       logical, intent( in ) :: LIMIT_USE_2ND
       REAL, DIMENSION( CV_NONODS * NPHASE ), intent( inout ) :: TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC
       ! local variables
-      character( len = option_path_len ) :: overlapping_path 
-      logical :: is_overlapping   
+      logical, INTENT (IN) :: is_overlapping   
       INTEGER :: U_NLOC_LEV,U_KLOC_LEV,U_KLOC,U_NODK_IPHA, U_KLOC2, U_NODK2_IPHA
-
-      is_overlapping = .false.
-      call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
-           overlapping_path )
-      if( trim( overlapping_path ) == 'overlapping' ) is_overlapping = .true.
 
       IF( is_overlapping ) THEN
          ! For overlapping basis function approach.
