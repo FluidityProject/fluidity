@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
 # This script generates pvd files for time series in paraview
-import vtk
+import vtktools as vtk
 import glob
 import re
+import sys
 
 
 def generate_pvd(pvdfilename, list_vtu_filenames, list_time):
@@ -32,9 +33,17 @@ def sorted_nicely(l):
     alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ]
     return sorted(l, key = alphanum_key)
 
+# Get basename of the simulation from command line or assemble it on your own:
+try:
+    simulation_basename = sys.argv[1]
+except:
+    print "ERROR: You have to give genpvd the basename of the considered vtu files."
+    print "Program will exit..."
+    exit()
+
 # Find all vtu/pvtu files for fluid vtus in this folder:
 fluid_vtus = []
-for file in sorted_nicely(glob.glob('*vtu')):
+for file in sorted_nicely(glob.glob(simulation_basename+'_[0-9]*vtu')):
     if (not ('checkpoint' in file)):
         fluid_vtus.append(file)
 
@@ -42,26 +51,12 @@ for file in sorted_nicely(glob.glob('*vtu')):
 time = []
 for filename in fluid_vtus:
     print "Processing file: ", filename
-    if ('.pvtu' in filename):
-        filebasename = filename.replace('.pvtu','')
-        filename = filebasename+'/'+filebasename+'_0.vtu'
-
     # Get the unstructured mesh:
-    vtkfile = vtk.vtkXMLUnstructuredGridReader()
-    vtkfile.SetFileName(filename)
-    vtkfile.Update()
-    ug = vtkfile.GetOutput()
-
+    data = vtk.vtu(filename)
     # Only process the first node in the mesh, as the time is constant over the whole mesh:
-    n0 = ug.GetCell(0).GetPointId(0)
-    t = ug.GetPointData().GetArray("Time").GetTuple(n0)
+    n0 = data.ugrid.GetCell(0).GetPointId(0)
+    t = data.ugrid.GetPointData().GetArray("Time").GetTuple(n0)
     time.append(t[0])
-
-# Get basename of the simulation from command line or assemble it on your own:
-try:
-    simulation_basename = sys.argv[1]
-except:
-    simulation_basename = '_'.join('.'.join(fluid_vtus[0].split('.')[0:-1]).split('_')[0:-1])
 
 # Generate fluid pvd file:
 generate_pvd(simulation_basename+'.pvd', fluid_vtus, time)
