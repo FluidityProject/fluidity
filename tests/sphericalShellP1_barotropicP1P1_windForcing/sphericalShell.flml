@@ -164,8 +164,8 @@
     </dump_format>
     <dump_period>
       <constant>
-        <real_value rank="0">2592000.0</real_value>
-        <comment>2592000 seconds = 30 days</comment>
+        <real_value rank="0">7776000.0</real_value>
+        <comment>7776000 seconds = 90 days</comment>
       </constant>
     </dump_period>
     <output_mesh name="VelocityMesh"/>
