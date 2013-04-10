@@ -254,7 +254,7 @@
 
             option_path_comp   = trim( '/material_phase['  // int2str( nphase + nstate_init - 1 ) // ']/equation_of_state/compressible' )
             option_path_incomp = trim( '/material_phase['  // int2str( nphase + nstate_init  - 1 ) // ']/equation_of_state/incompressible' )
-            option_path_python = trim( '/material_phase['  // int2str( nphase + nstate_init - 1 ) // ']/equation_of_state/python_state/algorithm' )
+            option_path_python = trim( '/material_phase['  // int2str( nphase + nstate_init - 1 ) // ']/equation_of_state/python_state' )
 
             eos_option_path_tmp = trim( eos_option_path( 1 ) )
 
@@ -262,7 +262,7 @@
 
             option_path_comp   = trim( '/material_phase['  // int2str( istate2 - 1 ) // ']/equation_of_state/compressible' )
             option_path_incomp = trim( '/material_phase['  // int2str( istate2 - 1 ) // ']/equation_of_state/incompressible' )
-            option_path_python = trim( '/material_phase['  // int2str( istate2 - 1 ) // ']/equation_of_state/python_state/algorithm' )
+            option_path_python = trim( '/material_phase['  // int2str( istate2 - 1 ) // ']/equation_of_state/python_state' )
             eos_option_path_tmp = trim( eos_option_path( istate2 ) )
 
          end if
@@ -371,13 +371,13 @@
             FLAbort("Python eos requires NumPy, which cannot be located.")
 #endif
 
-            density => extract_scalar_field( state( istate2 ), "Density" )         
+            density => extract_scalar_field( state( iphase ), "Density" )         
             call zero( density )
 
             call python_reset()
-            call python_add_state( state( istate2 ) )
+            call python_add_state( state( iphase ) )
 
-            call python_run_string("field = state.scalar_fields[Density]")
+            call python_run_string("field = state.scalar_fields['Density']")
             call get_option("/timestepping/current_time", current_time)
             write(buffer,*) current_time
             call python_run_string("time="//trim(buffer))
@@ -386,7 +386,7 @@
             call python_run_string("dt="//trim(buffer))  
 
             ! Get the code
-            call get_option( trim( option_path_python ), pycode )
+            call get_option( trim( option_path_python ) // '/algorithm', pycode )
 
             ! Run the code
             call python_run_string( trim( pycode ) )
@@ -410,9 +410,9 @@
             call zero( density )
 
             call python_reset()
-            call python_add_state( state( istate2 ) )
+            call python_add_state( state( iphase ) )
 
-            call python_run_string("field = state.scalar_fields[Density]")
+            call python_run_string("field = state.scalar_fields['Density']")
 
             call get_option("/timestepping/current_time", current_time)
             write(buffer,*) current_time
@@ -431,9 +431,9 @@
             call zero( density )
 
             call python_reset()
-            call python_add_state( state( istate2 ) )
+            call python_add_state( state( iphase ) )
 
-            call python_run_string("field = state.scalar_fields[Density]")
+            call python_run_string("field = state.scalar_fields['Density']")
 
             call get_option("/timestepping/current_time", current_time)
             write(buffer,*) current_time

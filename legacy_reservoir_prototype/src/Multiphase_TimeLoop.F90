@@ -525,6 +525,11 @@
          call set_prescribed_field_values( state, exclude_interpolated = .true., &
               exclude_nonreprescribed = .true., time = acctim )
 
+         ! time varying boundary conditions for Temperature
+         if( have_temperature_field ) &
+              call update_boundary_conditions( state, stotel, cv_snloc, nphase, & 
+              Temperature_BC, suf_t_bc_rob1, suf_t_bc_rob2 )
+
 !!$ Start non-linear loop
          Loop_NonLinearIteration: do its = 1, NonLinearIteration
 

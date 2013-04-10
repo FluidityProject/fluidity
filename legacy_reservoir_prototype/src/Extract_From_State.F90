@@ -48,6 +48,7 @@
     use boundary_conditions
     use futils, only: int2str
     use multiphase_fractures
+    use boundary_conditions_from_options
 
     !use printout
     !use quicksort
@@ -60,7 +61,7 @@
     public :: Get_Primary_Scalars, Compute_Node_Global_Numbers, Extracting_MeshDependentFields_From_State, &
          Get_ScalarFields_Outof_State, Get_CompositionFields_Outof_State, Get_VectorFields_Outof_State, &
          Extract_TensorFields_Outof_State, Extract_Position_Field, xp1_2_xp2, Get_Ele_Type, Get_Discretisation_Options, &
-         print_from_state
+         print_from_state, update_boundary_conditions
 
     interface Get_Ndgln
        module procedure Get_Scalar_Ndgln, Get_Vector_Ndgln, Get_Mesh_Ndgln
@@ -892,8 +893,7 @@
                  Temperature( knod + 1 : knod + node_count( scalarfield ) ), &
                  Temperature_BC_Spatial, Temperature_BC, &
                  field_prot_source = Temperature_Source( knod + 1 : knod + node_count( scalarfield ) ), &
-                 suf_bc_rob1 = suf_t_bc_rob1( stotel * cv_snloc * ( iphase - 1 ) + 1 : stotel * cv_snloc * iphase ), &
-                 suf_bc_rob2 = suf_t_bc_rob2( stotel * cv_snloc * ( iphase - 1 ) + 1 : stotel * cv_snloc * iphase ) )
+                 suf_bc_rob1 = suf_t_bc_rob1, suf_bc_rob2 = suf_t_bc_rob2 )
          end if Conditional_Temperature
       end do
 
@@ -1197,7 +1197,7 @@
       Conditional_Composition_BC: if ( have_option( trim( option_path ) // &
            '/prognostic/boundary_conditions[0]/type::dirichlet' )) then
 
-         bc_type = 1
+         BC_Type = 1
          nobcs = get_boundary_condition_count( field )
 
          Loop_Over_BC: do k = 1, nobcs
@@ -1819,6 +1819,96 @@
 
       return
     end subroutine print_from_state
+
+
+    subroutine update_boundary_conditions( state, stotel, cv_snloc, nphase, & 
+         &                                                    suf_t_bc, suf_t_bc_rob1, suf_t_bc_rob2 )
+      implicit none
+      type( state_type ), dimension( : ), intent( in ) :: state
+      integer, intent( in ) :: stotel, cv_snloc, nphase
+      real, dimension( stotel * cv_snloc * nphase ), intent( inout ) :: suf_t_bc, suf_t_bc_rob1, suf_t_bc_rob2
+      !
+      character( len = option_path_len ) :: option_path, option_path2, field_name
+      integer :: shape_option(2), iphase, nobcs, kk, k, j , sele
+      integer, dimension(:), allocatable :: face_nodes, SufID_BC
+
+      type( scalar_field ), pointer :: field, field_prot_bc, field_prot_bc1, field_prot_bc2
+      type( mesh_type ), pointer :: pmesh
+
+      suf_t_bc = 0. ; suf_t_bc_rob1 = 0. ; suf_t_bc_rob2 = 0. 
+
+      call set_boundary_conditions_values( state, shift_time = .true. )
+     
+      pmesh => extract_mesh( state, 'PressureMesh' )
+
+      do iphase = 1, nphase
+
+         field_name = 'Temperature'
+         field => extract_scalar_field( state( iphase ), trim( field_name ) )
+
+         option_path = '/material_phase['//int2str( iphase - 1 )//']/scalar_field::'//trim( field_name )
+         option_path2 = trim( option_path ) // '/prognostic/boundary_conditions['
+
+         nobcs = get_boundary_condition_count( field )
+
+         Loop_BC: do k = 1, nobcs
+
+            option_path = trim( option_path2 ) // int2str( k - 1 ) // ']/surface_ids'
+            shape_option = option_shape( trim( option_path ) )
+            allocate( SufID_BC( 1 : shape_option( 1 ) ) )
+            call get_option( trim( option_path ), SufID_BC )
+            allocate( face_nodes( face_loc( field, 1) ) )
+
+            option_path = trim( option_path2 ) // int2str( k - 1 ) // ']/'
+
+            Conditional_Field_BC: if( have_option( trim( option_path ) // 'type::dirichlet' ) ) then
+
+               !BC_Type = 1
+               field_prot_bc => extract_surface_field( field, k, 'value' )
+
+               sele = 1
+               do j = 1, stotel
+                  if( any ( SufID_BC == pmesh % faces % boundary_ids( j ) ) ) then
+                     !wic_bc( j + ( iphase - 1 ) * stotel ) = BC_Type
+                     face_nodes = ele_nodes( field_prot_bc, sele )
+                     do kk = 1, cv_snloc
+                        suf_t_bc( ( iphase - 1 ) * stotel * cv_snloc + ( j - 1 ) * cv_snloc + kk ) = &
+                             field_prot_bc % val( face_nodes( 1 ) )
+                     end do
+                     sele = sele + 1
+                  end if
+               end do
+
+            else if( have_option( trim( option_path ) // 'type::robin' ) ) then
+
+               !BC_Type = 2
+               field_prot_bc1 => extract_surface_field( field, k, 'order_zero_coefficient' )
+               field_prot_bc2 => extract_surface_field( field, k, 'order_one_coefficient' )
+
+               sele = 1
+               do j = 1, stotel
+                  if( any ( SufID_BC == pmesh % faces % boundary_ids( j ) ) ) then
+                     !wic_bc( j + ( iphase - 1 ) * stotel ) = BC_Type
+                     face_nodes = ele_nodes( field_prot_bc1, sele )
+                     do kk = 1, cv_snloc
+                        suf_t_bc_rob1( ( iphase - 1 ) * stotel * cv_snloc + ( j - 1 ) * cv_snloc + kk ) = &
+                             field_prot_bc1 % val( face_nodes( 1 ) )
+                        suf_t_bc_rob2( ( iphase - 1 ) * stotel * cv_snloc + ( j - 1 ) * cv_snloc + kk ) = &
+                             field_prot_bc2 % val( face_nodes( 1 ) )
+                     end do
+                     sele = sele + 1
+                  end if
+               end do
+
+            end if Conditional_Field_BC
+
+            deallocate( face_nodes, SufID_BC )
+
+         end do Loop_BC
+
+      end do
+
+    end subroutine update_boundary_conditions
 
   end module Copy_Outof_State
 
