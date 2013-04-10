@@ -2302,6 +2302,7 @@
       REAL :: FEN_TEN_YX, FEN_TEN_YY,FEN_TEN_YZ
       REAL :: FEN_TEN_ZX, FEN_TEN_ZY,FEN_TEN_ZZ
       REAL :: MASS_U(U_NLOC,U_NLOC),STORE_MASS_U(U_NLOC,U_NLOC),MASS_U_CV(U_NLOC,CV_NLOC)
+      integer :: IPIV(U_NLOC)
       REAL :: RHS_U_CV(U_NLOC),RHS_U_CV_OLD(U_NLOC),UDEN_VFILT(NPHASE*U_NLOC),UDENOLD_VFILT(NPHASE*U_NLOC)
 
       ewrite(3,*) 'In ASSEMB_FORCE_CTY'
@@ -2819,9 +2820,9 @@
                      RHS_U_CV_OLD(U_ILOC)=RHS_U_CV_OLD(U_ILOC)+MASS_U_CV(U_ILOC,CV_JLOC)*UDENOLD(CV_NOD_PHA)
                   END DO
                END DO
-               CALL SMLINNGOT( STORE_MASS_U, UDEN_VFILT((IPHASE-1)*U_NLOC +1:(IPHASE-1)*U_NLOC +U_NLOC ), RHS_U_CV, U_NLOC, U_NLOC, GOTDEC)
+               CALL SMLINNGOT( STORE_MASS_U, UDEN_VFILT((IPHASE-1)*U_NLOC +1:(IPHASE-1)*U_NLOC +U_NLOC ), RHS_U_CV, U_NLOC, U_NLOC,IPIV, GOTDEC)
                GOTDEC =.TRUE.
-               CALL SMLINNGOT( STORE_MASS_U, UDENOLD_VFILT((IPHASE-1)*U_NLOC +1:(IPHASE-1)*U_NLOC +U_NLOC ), RHS_U_CV_OLD, U_NLOC, U_NLOC, GOTDEC)
+               CALL SMLINNGOT( STORE_MASS_U, UDENOLD_VFILT((IPHASE-1)*U_NLOC +1:(IPHASE-1)*U_NLOC +U_NLOC ), RHS_U_CV_OLD, U_NLOC, U_NLOC,IPIV,GOTDEC)
             END DO
 
             DO U_ILOC=1,U_NLOC
@@ -5646,6 +5647,7 @@ end if
            SBUFENLX, SBUFENLY, SBUFENLZ, &
            DUMMY_ZERO_NDIM_NDIM, RZERO_DIAGTEN
       REAL, DIMENSION( : , : ), allocatable :: MASS, STORE_MASS
+      integer, dimension(:), allocatable :: IPIV
       REAL, DIMENSION( : , :, : ), allocatable :: DTX_ELE,DTY_ELE,DTZ_ELE, &
            SHARP_DTX_ELE,SHARP_DTY_ELE,SHARP_DTZ_ELE, &
            DTOLDX_ELE,DTOLDY_ELE,DTOLDZ_ELE, TDIFFUSION
@@ -6610,6 +6612,7 @@ end if
             ! Convert force to velocity space...
             ALLOCATE(MASS(U_NLOC,U_NLOC))
             ALLOCATE(STORE_MASS(U_NLOC,U_NLOC))
+            ALLOCATE(IPIV(U_NLOC))
             ALLOCATE(B_CV_X(CV_NLOC), B_CV_Y(CV_NLOC), B_CV_Z(CV_NLOC))
             ALLOCATE(RHS_U_SHORT_X(U_NLOC), RHS_U_SHORT_Y(U_NLOC), RHS_U_SHORT_Z(U_NLOC))
             ALLOCATE(U_SOL_X(U_NLOC), U_SOL_Y(U_NLOC), U_SOL_Z(U_NLOC))
@@ -6659,10 +6662,10 @@ end if
                ! STORE_MASS is overwritten by lu decomposition which used after the 1st solve. 
                STORE_MASS=MASS
                GOTDEC = .FALSE.
-               CALL SMLINNGOT( STORE_MASS, U_SOL_X, RHS_U_SHORT_X, U_NLOC, U_NLOC, GOTDEC)
+               CALL SMLINNGOT( STORE_MASS, U_SOL_X, RHS_U_SHORT_X, U_NLOC, U_NLOC, IPIV,GOTDEC)
                GOTDEC =.TRUE.
-               IF(NDIM.GE.2) CALL SMLINNGOT( STORE_MASS, U_SOL_Y, RHS_U_SHORT_Y, U_NLOC, U_NLOC, GOTDEC)
-               IF(NDIM.GE.3) CALL SMLINNGOT( STORE_MASS, U_SOL_Z, RHS_U_SHORT_Z, U_NLOC, U_NLOC, GOTDEC)
+               IF(NDIM.GE.2) CALL SMLINNGOT( STORE_MASS, U_SOL_Y, RHS_U_SHORT_Y, U_NLOC, U_NLOC, IPIV,GOTDEC)
+               IF(NDIM.GE.3) CALL SMLINNGOT( STORE_MASS, U_SOL_Z, RHS_U_SHORT_Z, U_NLOC, U_NLOC, IPIV,GOTDEC)
 
                ! Solve mass matrix systems...
                DO U_ILOC=1,U_NLOC
@@ -6675,7 +6678,7 @@ end if
 
             DEALLOCATE( MASS, STORE_MASS, B_CV_X, B_CV_Y, B_CV_Z, &
                  RHS_U_SHORT_X, RHS_U_SHORT_Y, RHS_U_SHORT_Z, &
-                 U_SOL_X, U_SOL_Y, U_SOL_Z, DETWEI, RA )
+                 U_SOL_X, U_SOL_Y, U_SOL_Z, DETWEI, RA, IPIV)
 
          end if
 

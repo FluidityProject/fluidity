@@ -128,6 +128,7 @@
       REAL, DIMENSION( N ), intent( inout ) :: X, B
       ! Local variables
       INTEGER :: ICOL, IM, JM
+      INTEGER , DIMENSION(N,N) :: IPIV
 
       Loop_Boolean: IF( .true. ) THEN
          ! Solve MAT XL=BX (NB BDIAG is overwritten)
@@ -135,17 +136,9 @@
          B( 1 : N ) = 0.
          B( ICOL ) = 1.
 
-         DO IM = 1, N
+         MAT = A( 1:N,1:N )
 
-            DO JM = 1, N
-
-               MAT( IM, JM ) = A( IM, JM )
-
-            END DO
-
-         END DO
-
-         CALL SMLINNGOT( MAT, X, B, N, N, .FALSE. ) ! X contains the column ICOL of inverse
+         CALL SMLINNGOT( MAT, X, B, N, N,IPIV, .FALSE. ) ! X contains the column ICOL of inverse
 
          DO IM = 1, N
             MAT2( IM, ICOL ) = X( IM )
@@ -155,7 +148,7 @@
             B = 0.
             B( ICOL ) = 1.0 ! Solve MAT X=B (NB MAT is overwritten).  
 
-            CALL SMLINNGOT( MAT, X, B, N, N, .TRUE. ) ! X contains the column ICOL of inverse
+            CALL SMLINNGOT( MAT, X, B, N, N,IPIV, .TRUE. ) ! X contains the column ICOL of inverse
 
             DO IM = 1, N
                MAT2( IM, ICOL ) = X( IM )
@@ -288,7 +281,7 @@
     END SUBROUTINE SMLINN
     !     
 
-    SUBROUTINE SMLINNGOT( A, X, B, NMX, N, GOTDEC )
+    SUBROUTINE SMLINNGOT( A, X, B, NMX, N, IPIV, GOTDEC )
       IMPLICIT NONE
       INTEGER :: NMX, N
       REAL, DIMENSION( NMX, NMX ), intent( inout ) :: A
@@ -298,54 +291,26 @@
       ! Local     
       REAL :: R
       INTEGER :: K, I, J
+      INTEGER , DIMENSION(NMX,NMX), intent(inout) :: IPIV
+      INTEGER :: INFO
+
+      real, DIMENSION( NMX,1 ) :: Bloc
+
+      external dgetrf, dgetrs
 
       ! IF GOTDEC then assume we have already got the LU decomposition in A
       ! Form X = A^{-1} B ;  Useful subroutine for inverse
       ! This sub overwrites the matrix A. 
 
-      Cond_LUDecomp: IF( .NOT. GOTDEC ) THEN
+     Cond_LUDecomp: IF( .NOT. GOTDEC ) THEN
 
-         DO K = 1, N - 1
-
-            DO I = K + 1, N, 1
-               A( I, K ) = A( I, K ) / A( K, K )
-            END DO
-
-            DO J = K + 1, N, 1
-
-               DO I = K + 1, N, 1
-                  A( I, J ) = A( I, J ) - A( I, K ) * A( K, J )
-               END DO
-
-            END DO
-
-         END DO
+         call dgetrf(NMX,NMX,A,NMX,IPIV,INFO)
 
       ENDIF Cond_LUDecomp
-      !     
-      ! Solve L_1 x=b
-      DO I = 1, N
-         R = 0.
 
-         DO J = 1, I - 1
-            R = R + A( I, J ) * X( J )
-         END DO
-
-         X( I ) = B( I ) - R
-
-      END DO
-      !     
-      ! Solve U x=y
-      DO I = N, 1, -1
-         R = 0.
-
-         DO J = I + 1, N, 1
-            R = R + A( I, J ) * X( J )
-         END DO
-
-         X( I ) = ( X( I ) - R ) / A( I, I )
-
-      END DO
+      Bloc(:,1)=B
+      call dgetrs('N',NMX,1,A, NMX,IPIV, Bloc, NMX, INFO)
+      X=Bloc(:,1)
 
       RETURN
     END SUBROUTINE SMLINNGOT
@@ -667,12 +632,13 @@
       INTEGER, intent( in )  :: U_NONODS, NDIM, NPHASE, TOTELE, U_NLOC
       INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) ::  U_NDGLN
       REAL, DIMENSION( U_NONODS * NDIM * NPHASE ), intent( inout ) :: U
-      REAL, DIMENSION( TOTELE, U_NLOC * NDIM * NPHASE, U_NLOC * NDIM * NPHASE ), intent( in ) :: BLOCK_MAT
+      REAL, DIMENSION( TOTELE, U_NLOC * NDIM * NPHASE, U_NLOC * NDIM * NPHASE ), intent( in ), target :: BLOCK_MAT
       REAL, DIMENSION( U_NONODS * NDIM * NPHASE ), intent( in ) :: CDP
       ! Local 
       INTEGER :: ELE, U_ILOC, U_INOD, IDIM, IPHASE, I, U_JLOC, U_JNOD, JDIM, JPHASE, J, II, JJ
 
       U = 0.0 
+
 
       Loop_Elements: DO ELE = 1, TOTELE
 
@@ -709,6 +675,7 @@
          END DO Loop_VelocNodsI
 
       END DO Loop_Elements
+
 
       RETURN
 
