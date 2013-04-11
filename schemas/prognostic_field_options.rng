@@ -109,12 +109,26 @@ e.g. use a Dirichlet BC on inlets and k_epsilon on walls.</a:documentation>
       <element name="order_zero_coefficient">
         <a:documentation> The order zero coefficient represented as C0 in
  C1*T + n.(k*grad(T)) = C0</a:documentation>
-        <ref name="input_choice_real"/>
+        <choice>
+          <ref name="input_choice_real"/>
+          <element name="from_field">
+            <attribute name="name">
+              <data type="string" datatypeLibrary=""/>
+            </attribute>
+          </element>
+        </choice>
       </element>
       <element name="order_one_coefficient">
         <a:documentation> The order one coefficient represented as C1 in
  C1*T + n.(k*grad(T)) = C0</a:documentation>
-        <ref name="input_choice_real"/>
+        <choice>
+          <ref name="input_choice_real"/>
+          <element name="from_field">
+            <attribute name="name">
+              <data type="string" datatypeLibrary=""/>
+            </attribute>
+          </element>
+        </choice>
       </element>
     </element>
   </define>

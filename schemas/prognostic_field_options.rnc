@@ -88,12 +88,12 @@ robin_bc_scalar =
          ##  The order zero coefficient represented as C0 in
          ##  C1*T + n.(k*grad(T)) = C0
          element order_zero_coefficient {
-            input_choice_real
+            input_choice_real | element from_field { attribute name {string } }
          },
          ##  The order one coefficient represented as C1 in
          ##  C1*T + n.(k*grad(T)) = C0
          element order_one_coefficient {
-            input_choice_real
+            input_choice_real | element from_field { attribute name {string } }
          }
       }      
    )

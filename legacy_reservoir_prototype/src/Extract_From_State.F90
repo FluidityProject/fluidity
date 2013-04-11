@@ -982,8 +982,8 @@
       Conditional_SourceField: if( present( field_prot_source ) ) then
          field_source => extract_scalar_field( state( iphase ), trim(field_name) // 'Source', stat )
          have_source = ( stat == 0 )
- 
-        if ( have_source ) then
+
+         if ( have_source ) then
             do j = 1, node_count( field_source )
                field_prot_source( ( iphase - 1 ) * node_count( field_source ) + j ) = &
                     field_source % val( j )
@@ -1084,23 +1084,16 @@
          else if( have_option( trim( option_path ) // 'type::robin' ) ) then
 
             BC_Type = 2
-            field_prot_bc1 => extract_surface_field( field, k, 'order_zero_coefficient' )
-            field_prot_bc2 => extract_surface_field( field, k, 'order_one_coefficient' )
 
-            sele = 1
             do j = 1, stotel
                if( any ( SufID_BC == pmesh % faces % boundary_ids( j ) ) ) then
                   wic_bc( j + ( iphase - 1 ) * stotel ) = BC_Type
-                  face_nodes = ele_nodes( field_prot_bc1, sele )
-                  do kk = 1, snloc
-                     suf_bc_rob1( ( iphase - 1 ) * stotel * snloc + ( j - 1 ) * snloc + kk ) = &
-                          field_prot_bc1 % val( face_nodes( 1 ) )
-                     suf_bc_rob2( ( iphase - 1 ) * stotel * snloc + ( j - 1 ) * snloc + kk ) = &
-                          field_prot_bc2 % val( face_nodes( 1 ) )
-                  end do
-                  sele = sele + 1
                end if
             end do
+
+            ! calculate this later on...
+            suf_bc_rob1 = 0.
+            suf_bc_rob2 = 0.
 
          end if Conditional_Field_BC
 
@@ -1828,12 +1821,15 @@
       integer, intent( in ) :: stotel, cv_snloc, nphase
       real, dimension( stotel * cv_snloc * nphase ), intent( inout ) :: suf_t_bc, suf_t_bc_rob1, suf_t_bc_rob2
       !
-      character( len = option_path_len ) :: option_path, option_path2, field_name
-      integer :: shape_option(2), iphase, nobcs, kk, k, j , sele
-      integer, dimension(:), allocatable :: face_nodes, SufID_BC
+      character( len = option_path_len ) :: option_path, option_path2, field_name, name
+      integer :: shape_option(2), iphase, nobcs, kk, k, j , sele, stat
+      integer, dimension( : ), allocatable :: face_nodes, SufID_BC
+      integer, dimension( : ), pointer:: surface_element_list
 
-      type( scalar_field ), pointer :: field, field_prot_bc, field_prot_bc1, field_prot_bc2
-      type( mesh_type ), pointer :: pmesh
+      type( scalar_field ), pointer :: field, field_prot_bc, field_prot1, field_prot2
+      type( scalar_field ), pointer :: field_prot_bc1, field_prot_bc2
+      type( scalar_field ) :: field_prot_bc1f, field_prot_bc2f
+      type( mesh_type ), pointer :: pmesh, surface_mesh
 
       suf_t_bc = 0. ; suf_t_bc_rob1 = 0. ; suf_t_bc_rob2 = 0. 
 
@@ -1882,23 +1878,65 @@
             else if( have_option( trim( option_path ) // 'type::robin' ) ) then
 
                !BC_Type = 2
-               field_prot_bc1 => extract_surface_field( field, k, 'order_zero_coefficient' )
-               field_prot_bc2 => extract_surface_field( field, k, 'order_one_coefficient' )
+               if( have_option( trim( option_path ) // 'type::robin/order_zero_coefficient/from_field' ) ) then
+             
+                  call get_boundary_condition( field, k, surface_mesh = surface_mesh, &
+                       surface_element_list = surface_element_list )
 
-               sele = 1
-               do j = 1, stotel
-                  if( any ( SufID_BC == pmesh % faces % boundary_ids( j ) ) ) then
-                     !wic_bc( j + ( iphase - 1 ) * stotel ) = BC_Type
-                     face_nodes = ele_nodes( field_prot_bc1, sele )
-                     do kk = 1, cv_snloc
-                        suf_t_bc_rob1( ( iphase - 1 ) * stotel * cv_snloc + ( j - 1 ) * cv_snloc + kk ) = &
-                             field_prot_bc1 % val( face_nodes( 1 ) )
-                        suf_t_bc_rob2( ( iphase - 1 ) * stotel * cv_snloc + ( j - 1 ) * cv_snloc + kk ) = &
-                             field_prot_bc2 % val( face_nodes( 1 ) )
-                     end do
-                     sele = sele + 1
-                  end if
-               end do
+                  call allocate( field_prot_bc1f, surface_mesh, "Robin1" )
+                  call allocate( field_prot_bc2f, surface_mesh, "Robin2" )
+
+                  call get_option( trim( option_path ) // "type::robin/order_zero_coefficient/from_field/name", name )
+                  field_prot1 => extract_scalar_field( state( iphase ), name, stat )
+                  if(stat /= 0) FLExit( "Could not extract parent field 1. Check options file?" )
+
+                  call get_option( trim( option_path ) // "type::robin/order_one_coefficient/from_field/name", name )
+                  field_prot2 => extract_scalar_field( state( iphase ), name, stat )
+                  if(stat /= 0) FLExit( "Could not extract parent field 2. Check options file?" )
+
+                  call remap_field_to_surface( field_prot1, field_prot_bc1f, surface_element_list )
+                  call remap_field_to_surface( field_prot2, field_prot_bc2f, surface_element_list )
+
+                  ! copy back memory
+                  sele = 1
+                  do j = 1, stotel
+                     if( any ( SufID_BC == pmesh % faces % boundary_ids( j ) ) ) then
+                        !wic_bc( j + ( iphase - 1 ) * stotel ) = BC_Type
+                        face_nodes = ele_nodes( field_prot_bc1f, sele )
+                        do kk = 1, cv_snloc
+                           suf_t_bc_rob1( ( iphase - 1 ) * stotel * cv_snloc + ( j - 1 ) * cv_snloc + kk ) = &
+                                field_prot_bc1f % val( face_nodes( 1 ) )
+                           suf_t_bc_rob2( ( iphase - 1 ) * stotel * cv_snloc + ( j - 1 ) * cv_snloc + kk ) = &
+                                field_prot_bc2f % val( face_nodes( 1 ) )
+                        end do
+                        sele = sele + 1
+                     end if
+                  end do
+
+                  call deallocate( field_prot_bc1f )
+                  call deallocate( field_prot_bc2f )
+
+               else
+
+                  field_prot_bc1 => extract_surface_field( field, k, 'order_zero_coefficient' )
+                  field_prot_bc2 => extract_surface_field( field, k, 'order_one_coefficient' )
+
+                  sele = 1
+                  do j = 1, stotel
+                     if( any ( SufID_BC == pmesh % faces % boundary_ids( j ) ) ) then
+                        !wic_bc( j + ( iphase - 1 ) * stotel ) = BC_Type
+                        face_nodes = ele_nodes( field_prot_bc1, sele )
+                        do kk = 1, cv_snloc
+                           suf_t_bc_rob1( ( iphase - 1 ) * stotel * cv_snloc + ( j - 1 ) * cv_snloc + kk ) = &
+                                field_prot_bc1 % val( face_nodes( 1 ) )
+                           suf_t_bc_rob2( ( iphase - 1 ) * stotel * cv_snloc + ( j - 1 ) * cv_snloc + kk ) = &
+                                field_prot_bc2 % val( face_nodes( 1 ) )
+                        end do
+                        sele = sele + 1
+                     end if
+                  end do
+
+               end if
 
             end if Conditional_Field_BC
 

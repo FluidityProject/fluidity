@@ -400,6 +400,10 @@
            Temperature, Temperature_BC_Spatial, Temperature_BC, Temperature_Source, suf_t_bc_rob1, suf_t_bc_rob2, &
            Porosity, Permeability )
 
+!!$ Calculate diagnostic fields
+      call calculate_diagnostic_variables( state, exclude_nonrecalculated = .true. )
+      call calculate_diagnostic_variables_new( state, exclude_nonrecalculated = .true. )
+
 !!$ Dummy field used in the scalar advection option:
       Dummy_PhaseVolumeFraction_FEMT = 1.
 

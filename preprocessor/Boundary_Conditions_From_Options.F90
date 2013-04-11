@@ -782,14 +782,18 @@ contains
 
        case("robin")
 
-          bc_type_path=trim(bc_path_i)//"/type[0]/order_zero_coefficient"
-          surface_field => extract_surface_field(field, bc_name, name="order_zero_coefficient")
-          call initialise_field(surface_field, bc_type_path, bc_position)
+          if ( have_option( trim(bc_path_i)//"/type[0]/order_zero_coefficient/from_field" ) ) then
+	    ! do nothing here
+          else
+            bc_type_path=trim(bc_path_i)//"/type[0]/order_zero_coefficient"
+            surface_field => extract_surface_field(field, bc_name, name="order_zero_coefficient")
+            call initialise_field(surface_field, bc_type_path, bc_position)
 
-          bc_type_path=trim(bc_path_i)//"/type[0]/order_one_coefficient"
-          surface_field => extract_surface_field(field, bc_name, name="order_one_coefficient")
-          call initialise_field(surface_field, bc_type_path, bc_position)
-          
+            bc_type_path=trim(bc_path_i)//"/type[0]/order_one_coefficient"
+            surface_field => extract_surface_field(field, bc_name, name="order_one_coefficient")
+            call initialise_field(surface_field, bc_type_path, bc_position)
+          end if
+
        case( "buoyancy")
 
           bc_type_path=trim(bc_path_i)//"/type::buoyancy/scalar_field/prognostic/initial_condition"
