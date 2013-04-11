@@ -946,7 +946,7 @@ meshconv converts an input mesh file into another mesh format. It is run from th
 \begin{lstlisting}[language = Bash]
 meshconv [OPTIONS] ... name
 \end{lstlisting}
-where \texttt{name} refers to the filename of the input mesh. It options are:
+where \texttt{name} refers to the basename of the input mesh. It options are:
 \begin{lstlisting}[language = Bash]
 -h   displays help
 -i   gmsh/triangle/exodusii
@@ -956,7 +956,12 @@ where \texttt{name} refers to the filename of the input mesh. It options are:
 -l   output to log file
 -v   verbose output
 \end{lstlisting}
-Note that the mesh format \texttt{exodusii} is only supported as an input mesh format.
+It can be run in serial as well as in parallel. However, there are two restriction, which only apply to the ExodusII mesh format:
+\begin{itemize}
+ \item the mesh format \texttt{exodusii} is only supported as an input mesh format, and
+ \item the mesh format \texttt{exodusii} can only be run in serial.
+\end{itemize}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% MMS TRACER ERROR %%%%%%%%%%%%%%%%%%%%%%%
 
