@@ -13,8 +13,8 @@ def generate_pvd(pvdfilename, list_vtu_filenames, list_time):
         with irregular timesteps
     """
     if (len(list_vtu_filenames) != len(list_time)):
-        print "Error, list of filenames and time are of unequal length. Exiting!"
-        exit()
+        sys.stderr.write("Error, list of filenames and time are of unequal length.\n")
+        raise SystemExit("Something went rather badly.")
     pvdfile = open(pvdfilename, "w")
     # Write header:
     pvdfile.write('<?xml version="1.0"?>\n<VTKFile type="Collection" version="0.1" byte_order="LittleEndian">\n<Collection>\n')
@@ -37,9 +37,9 @@ def sorted_nicely(l):
 try:
     simulation_basename = sys.argv[1]
 except:
-    print "ERROR: You have to give genpvd the basename of the considered vtu files."
-    print "Program will exit..."
-    exit()
+    errmsg = "ERROR: You have to give 'genpvd' the basename of the considered vtu files.\nProgram will exit...\n"
+    sys.stderr.write(errmsg)
+    raise SystemExit("Simulation basename is required.")
 
 # Find all vtu/pvtu files for fluid vtus in this folder:
 fluid_vtus = []
@@ -47,10 +47,16 @@ for file in sorted_nicely(glob.glob(simulation_basename+'_[0-9]*vtu')):
     if (not ('checkpoint' in file)):
         fluid_vtus.append(file)
 
+# Give an error if the list of vtu files is empty:
+if (len(fluid_vtus) == 0):
+    errmsg = "ERROR: No vtu files with basename "+simulation_basename+" were found.\nIs the basename correct?\n"
+    sys.stderr.write(errmsg)
+    raise SystemExit("No vtu files found. Exit")
+
 # Loop over all the fluid vtus found and collect time data from them to assemble the pvd file:
 time = []
 for filename in fluid_vtus:
-    print "Processing file: ", filename
+    sys.stdout.write("Processing file: "+filename+"\n")
     # Get the unstructured mesh:
     data = vtk.vtu(filename)
     # Only process the first node in the mesh, as the time is constant over the whole mesh:
@@ -61,9 +67,9 @@ for filename in fluid_vtus:
 # Generate fluid pvd file:
 generate_pvd(simulation_basename+'.pvd', fluid_vtus, time)
 
-print "============================================="
-print "Program exited without errors."
-print "Open the file"
-print "  "+simulation_basename+".pvd"
-print "in Paraview."
-print "============================================="
+sys.stdout.write("=============================================\n")
+sys.stdout.write("Program exited without errors.\n")
+sys.stdout.write("Open the file\n")
+sys.stdout.write("  "+simulation_basename+".pvd\n")
+sys.stdout.write("in Paraview.\n")
+sys.stdout.write("=============================================\n")
