@@ -474,6 +474,7 @@ the \fluidity\ trunk. The programs generated can then be found in the
 	fldecomp				& \ref{sec:fldecomp}			\\
 	fldiagnostics				& \ref{sec:fldiagnostics}		\\
 	flredecomp				& \ref{sec:flredecomp}			\\
+	genpvd					& \ref{sec:genpvd} \\
 	genpvtu					& \ref{sec:genpvtu}			\\
 	gen\_square\_meshes			& \ref{sec:gen_square_meshes} 		\\
 	gmsh2triangle				& \ref{sec:gmsh2triangle}		\\
@@ -802,6 +803,16 @@ mpiexec -n 4 flredecomp \
 The output of running flredecomp is a series of mesh and vtu files as well
 as the new flml; in this case \lstinline+foo_flredecomp.flml+.
 Note that flredecomp must be run on a number of processors equal to the larger number of processors between input and output.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% GENPVD %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{genpvd}
+\label{sec:genpvd}
+\texttt{genpvd} creates a pvd file from a base set of vtu files. It can be loaded by paraview and enables it to play the vtus in realtime. It is run from the command line:
+\begin{lstlisting}[language = Bash]
+genpvd basename
+\end{lstlisting}
+where \texttt{basename} is a required command line argument specifying the corresponding simulation basename of the input (p)vtu files as well as the filename of the pvd file.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% GENPVTU %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
