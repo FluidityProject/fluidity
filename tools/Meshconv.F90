@@ -33,7 +33,6 @@ subroutine Meshconv(c_input_basename, input_basename_len, c_input_mesh_format, i
   !!< Converts a mesh file of a given mesh format into the specified output mesh format.
 
   use global_parameters, only: OPTION_PATH_LEN, is_active_process, no_active_processes, topology_mesh_name
-  use populate_state_module
   use fields
   use mesh_files
   use state_module
@@ -53,12 +52,12 @@ subroutine Meshconv(c_input_basename, input_basename_len, c_input_mesh_format, i
   character(len=output_mesh_format_len):: output_mesh_format
 
   integer :: nprocs
-  type(state_type), pointer :: state
+  type(state_type) :: state
   type(mesh_type) :: mesh
   type(vector_field) :: position
 
-  integer :: quad_degree!, quad_family
-  integer :: i!, stat
+  integer :: quad_degree
+  integer :: i
 
   ewrite(1, *) "In Meshconv"
 
@@ -76,10 +75,6 @@ subroutine Meshconv(c_input_basename, input_basename_len, c_input_mesh_format, i
   do i=1, output_mesh_format_len
     output_mesh_format(i:i)=c_output_mesh_format(i)
   end do
-
-  ! Creating state:
-  allocate(state)
-  call nullify(state)
 
   ewrite(1,*) "Reading in mesh file: "//trim(input_basename)
   ewrite(1,*) "input_mesh_format: "//trim(input_mesh_format)
