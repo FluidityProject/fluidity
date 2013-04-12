@@ -919,10 +919,11 @@
          CV_ELE_TYPE, &
          NU, NV, NW, NUOLD, NVOLD, NWOLD, &
          V_DISOPT, V_DG_VEL_INT_OPT, V_THETA, &
-         SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC,SUF_P_BC, &
-         SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2,  &
-         SUF_W_BC_ROB1, SUF_W_BC_ROB2, &       
-         WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_P_BC,  &
+         SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
+         SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC, SUF_P_BC, &
+         SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2, &
+         SUF_W_BC_ROB1, SUF_W_BC_ROB2, &
+         WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_MOMU_BC, WIC_P_BC, &
          V_SOURCE, V_ABSORB, VOLFRA_PORE, &
          NCOLM, FINDM, COLM, MIDM, & ! Sparsity for the CV-FEM
          XU_NLOC, XU_NDGLN, &
@@ -957,7 +958,7 @@
 
       INTEGER, DIMENSION( STOTEL * CV_SNLOC ), intent( in ) :: CV_SNDGLN
       INTEGER, DIMENSION( TOTELE * XU_NLOC ), intent( in ) :: XU_NDGLN
-      INTEGER, DIMENSION( STOTEL * NPHASE ), intent( in ) ::  WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_P_BC
+      INTEGER, DIMENSION( STOTEL * NPHASE ), intent( in ) ::  WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_MOMU_BC, WIC_P_BC
       REAL, DIMENSION( X_NONODS ), intent( in ) :: X, Y, Z
       REAL, DIMENSION( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ), intent( in ) :: U_ABS_STAB
       REAL, DIMENSION( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ), intent( in ) :: U_ABSORB
@@ -971,6 +972,7 @@
       REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: DERIV
       REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE ), intent( in ) :: SUF_VOL_BC, SUF_D_BC
       REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
+      REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC
       REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE, NDIM ), intent( in ) :: SUF_SIG_DIAGTEN_BC
       REAL, DIMENSION( STOTEL * P_SNLOC * NPHASE ), intent( in ) :: SUF_P_BC
       REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC_ROB1, SUF_U_BC_ROB2, &
@@ -1075,10 +1077,11 @@
            CV_ELE_TYPE, &
            NU, NV, NW, NUOLD, NVOLD, NWOLD, &
            V_DISOPT, V_DG_VEL_INT_OPT, V_THETA, &
-           SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC,SUF_P_BC, &
+           SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
+           SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC, SUF_P_BC, &
            SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2, &
            SUF_W_BC_ROB1, SUF_W_BC_ROB2, &
-           WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_P_BC, &
+           WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_MOMU_BC, WIC_P_BC, &
            V_SOURCE, V_ABSORB, VOLFRA_PORE, &
            NCOLM, FINDM, COLM, MIDM, &
            XU_NLOC, XU_NDGLN, &
@@ -1506,10 +1509,11 @@
          CV_ELE_TYPE, &
          NU, NV, NW, NUOLD, NVOLD, NWOLD, &
          V_DISOPT, V_DG_VEL_INT_OPT, V_THETA, &
-         SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC,SUF_P_BC, &
+         SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
+         SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC,SUF_P_BC, &
          SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2,  &
          SUF_W_BC_ROB1, SUF_W_BC_ROB2, &       
-         WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_P_BC,  &
+         WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_MOMU_BC, WIC_P_BC,  &
          V_SOURCE, V_ABSORB, VOLFRA_PORE, &
          NCOLM, FINDM, COLM, MIDM, &
          XU_NLOC, XU_NDGLN, &
@@ -1548,7 +1552,7 @@
 
       INTEGER, DIMENSION( STOTEL * CV_SNLOC ), intent( in ) :: CV_SNDGLN
       INTEGER, DIMENSION( TOTELE * XU_NLOC ), intent( in ) :: XU_NDGLN
-      INTEGER, DIMENSION( STOTEL * NPHASE ), intent( in ) ::  WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_P_BC
+      INTEGER, DIMENSION( STOTEL * NPHASE ), intent( in ) ::  WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_MOMU_BC, WIC_P_BC
       REAL, DIMENSION( X_NONODS ), intent( in ) :: X, Y, Z
       REAL, DIMENSION( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ), intent( in ) :: U_ABS_STAB
       REAL, DIMENSION( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ), intent( in ) :: U_ABSORB
@@ -1591,6 +1595,7 @@
       REAL, intent( in ) :: V_THETA
       REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE ), intent( in ) :: SUF_VOL_BC, SUF_D_BC
       REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
+      REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC
       REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE, NDIM ), intent( in ) :: SUF_SIG_DIAGTEN_BC
       REAL, DIMENSION( STOTEL * P_SNLOC * NPHASE ), intent( in ) :: SUF_P_BC
       REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC_ROB1, SUF_U_BC_ROB2, &
@@ -1638,10 +1643,11 @@
            CV_ELE_TYPE, &
            NU, NV, NW, NUOLD, NVOLD, NWOLD, &
            V_DISOPT, V_DG_VEL_INT_OPT, V_THETA, &
-           SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, SUF_P_BC, &
-           SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2,  &
+           SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
+           SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC, SUF_P_BC, &
+           SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2, &
            SUF_W_BC_ROB1, SUF_W_BC_ROB2, &
-           WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_P_BC,  &
+           WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_MOMU_BC, WIC_P_BC, &
            V_SOURCE, V_ABSORB, VOLFRA_PORE, &
            NCOLM, FINDM, COLM, MIDM, &
            XU_NLOC, XU_NDGLN, &
@@ -1743,10 +1749,11 @@
          CV_ELE_TYPE, &
          NU, NV, NW, NUOLD, NVOLD, NWOLD, &
          V_DISOPT, V_DG_VEL_INT_OPT, V_THETA, &
-         SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, SUF_P_BC, &
+         SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
+         SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC, SUF_P_BC, &
          SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2,  & 
          SUF_W_BC_ROB1, SUF_W_BC_ROB2, &
-         WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_P_BC,  &
+         WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_MOMU_BC, WIC_P_BC,  &
          V_SOURCE, V_ABSORB, VOLFRA_PORE, &
          NCOLM, FINDM, COLM, MIDM, &
          XU_NLOC, XU_NDGLN, &
@@ -1814,11 +1821,12 @@
       REAL, intent( in ) :: V_THETA
       REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE ), intent( in ) :: SUF_VOL_BC, SUF_D_BC
       REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
+      REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC
       REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE, NDIM ), intent( in ) :: SUF_SIG_DIAGTEN_BC
       REAL, DIMENSION( STOTEL * P_SNLOC * NPHASE ), intent( in ) :: SUF_P_BC
       REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC_ROB1, SUF_U_BC_ROB2, &
            SUF_V_BC_ROB1, SUF_V_BC_ROB2, SUF_W_BC_ROB1, SUF_W_BC_ROB2
-      INTEGER, DIMENSION( STOTEL * NPHASE ), intent( in ) :: WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_P_BC
+      INTEGER, DIMENSION( STOTEL * NPHASE ), intent( in ) :: WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_MOMU_BC, WIC_P_BC
       REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: V_SOURCE
       REAL, DIMENSION( CV_NONODS, NPHASE, NPHASE ), intent( in ) :: V_ABSORB
       REAL, DIMENSION( TOTELE ), intent( in ) :: VOLFRA_PORE
@@ -1897,11 +1905,11 @@
            UDEN, UDENOLD, &
            DT, &
            SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
-           SUF_U_BC, SUF_V_BC, SUF_W_BC, &
+           SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC, &
            SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_P_BC, &
            SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2,  &
            SUF_W_BC_ROB1, SUF_W_BC_ROB2, &
-           WIC_U_BC, WIC_U_BC, WIC_U_BC, WIC_P_BC,  &
+           WIC_U_BC, WIC_MOMU_BC, WIC_U_BC, WIC_P_BC,  &
            U_RHS, &
            C, NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn 
            DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparsity

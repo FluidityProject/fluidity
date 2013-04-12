@@ -1359,6 +1359,15 @@ velocity_boundary_conditions =
          ## When activated wall treatment is not applied on the wall-outflow edge.
          element type{
             attribute name { "outflow" }
+         }|
+         ## Momentun BC
+         ##
+         ## Should be used in combination with the near_wall_treatment condition.
+         ## When activated wall treatment is not applied on the wall-outflow edge.
+         element type{
+            attribute name { "momentum" },
+            velocity_components_choice,
+            element boundary { ( "incoming" | "open" ) }
          }
       )
    )

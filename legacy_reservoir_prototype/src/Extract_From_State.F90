@@ -738,23 +738,25 @@
          Density, Density_BC_Spatial, Density_BC, &
          Component, Component_BC_Spatial, Component_BC, Component_Source, &
          Velocity_U, Velocity_V, Velocity_W, Velocity_NU, Velocity_NV, Velocity_NW, &
-         Velocity_U_BC_Spatial, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, Velocity_U_Source, Velocity_Absorption, &
+         Velocity_U_BC_Spatial,  wic_momu_bc, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, &
+         suf_momu_bc, suf_momv_bc, suf_momw_bc, Velocity_U_Source, Velocity_Absorption, &
          Temperature, Temperature_BC_Spatial, Temperature_BC, Temperature_Source, suf_t_bc_rob1, suf_t_bc_rob2, &
          Porosity, Permeability  )
       implicit none
       type( state_type ), dimension( : ), intent( inout ) :: state
       logical, intent( in ) :: initialised
       integer, dimension( : ), intent( inout ) :: PhaseVolumeFraction_BC_Spatial, Pressure_FEM_BC_Spatial, &
-           Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, Temperature_BC_Spatial
+           Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, Temperature_BC_Spatial, &
+           wic_momu_bc
       real, dimension( : ), intent( inout ) :: xu, yu, zu, x, y, z, &
            PhaseVolumeFraction, PhaseVolumeFraction_BC, PhaseVolumeFraction_Source, &
            Pressure_CV, Pressure_FEM, Pressure_FEM_BC, &
            Density, Density_BC, &
            Component, Component_BC, Component_Source, &
            Velocity_U, Velocity_V, Velocity_W, Velocity_NU, Velocity_NV, Velocity_NW, &
-           Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, Velocity_U_Source, &
+           Velocity_U_BC,  Velocity_V_BC, Velocity_W_BC, Velocity_U_Source, &
            Temperature, Temperature_BC, Temperature_Source, suf_t_bc_rob1, suf_t_bc_rob2, &
-           Porosity
+           Porosity, suf_momu_bc, suf_momv_bc, suf_momw_bc
       real, dimension( :, :, : ), intent( inout ) :: Velocity_Absorption, Permeability
 
 !!$ Local variables

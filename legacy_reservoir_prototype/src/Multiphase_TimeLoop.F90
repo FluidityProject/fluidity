@@ -150,7 +150,8 @@
 
 !!$ Working arrays:
       integer, dimension( : ), allocatable :: PhaseVolumeFraction_BC_Spatial, Pressure_FEM_BC_Spatial, &
-           Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, Temperature_BC_Spatial
+           Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, Temperature_BC_Spatial, &
+           wic_momu_bc
       real, dimension( : ), allocatable :: xu, yu, zu, x, y, z, ug, vg, wg, &
            Velocity_U, Velocity_V, Velocity_W, Velocity_U_Old, Velocity_V_Old, Velocity_W_Old, &
            Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
@@ -165,7 +166,8 @@
            suf_u_bc_rob1, suf_v_bc_rob1, suf_w_bc_rob1, suf_u_bc_rob2, suf_v_bc_rob2, suf_w_bc_rob2, &
            suf_t_bc_rob1, suf_t_bc_rob2, suf_vol_bc_rob1, suf_vol_bc_rob2, suf_comp_bc_rob1, suf_comp_bc_rob2, &
            theta_gdiff,  ScalarField_Source_Store, ScalarField_Source_Component, &
-           mass_ele, dummy_ele, density_tmp, density_old_tmp, densityc_tmp, drhodpressurec_tmp
+           mass_ele, dummy_ele, density_tmp, density_old_tmp, densityc_tmp, drhodpressurec_tmp, &
+           suf_momu_bc, suf_momv_bc, suf_momw_bc
 !!$
       real, dimension( :, :, : ), allocatable :: Permeability, Material_Absorption, Material_Absorption_Stab, &
            Velocity_Absorption, ScalarField_Absorption, Component_Absorption, Temperature_Absorption, &
@@ -283,7 +285,7 @@
 !!$
            PhaseVolumeFraction_BC_Spatial( stotel * nphase ), Pressure_FEM_BC_Spatial( stotel * nphase ), &
            Density_BC_Spatial( stotel * nphase ), Component_BC_Spatial( stotel * nphase ), &
-           Velocity_U_BC_Spatial( stotel * nphase ), Temperature_BC_Spatial( stotel * nphase ), &
+           Velocity_U_BC_Spatial( stotel * nphase ), wic_momu_bc( stotel * nphase ), Temperature_BC_Spatial( stotel * nphase ), &
            PhaseVolumeFraction_BC( stotel * cv_snloc * nphase ), Pressure_FEM_BC( stotel * p_snloc * nphase ), &
            Density_BC( stotel * cv_snloc * nphase ), Temperature_BC( stotel * cv_snloc * nphase ), &
            Component_BC( stotel * cv_snloc * nphase * ncomp ), &
@@ -296,6 +298,7 @@
            suf_vol_bc_rob1( stotel * cv_snloc * nphase ), suf_vol_bc_rob2( stotel * cv_snloc * nphase ), &
            suf_comp_bc_rob1( stotel * cv_snloc * nphase ), suf_comp_bc_rob2( stotel * cv_snloc * nphase ), &
            suf_sig_diagten_bc( stotel * cv_snloc * nphase, ndim ), &
+           suf_momu_bc( stotel * u_snloc * nphase ), suf_momv_bc( stotel * u_snloc * nphase ), suf_momw_bc( stotel * u_snloc * nphase ), &
 !!$
            Porosity( totele ), &
            PhaseVolumeFraction_FEMT( cv_nonods * nphase ), Temperature_FEMT( cv_nonods * nphase ), &
@@ -357,6 +360,8 @@
       suf_vol_bc_rob1=0. ; suf_vol_bc_rob2=0.
       suf_comp_bc_rob1=0. ; suf_comp_bc_rob2=0.
       suf_sig_diagten_bc=0.
+      suf_momu_bc=0. ; suf_momv_bc=0. ; suf_momv_bc=0.
+      wic_momu_bc=0
 !!$
       Porosity=0.
       PhaseVolumeFraction_FEMT=0. ; Temperature_FEMT=0.
@@ -396,7 +401,8 @@
            Density, Density_BC_Spatial, Density_BC, &
            Component, Component_BC_Spatial, Component_BC, Component_Source, &
            Velocity_U, Velocity_V, Velocity_W, Velocity_NU, Velocity_NV, Velocity_NW, &
-           Velocity_U_BC_Spatial, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, Velocity_U_Source, Velocity_Absorption, &
+           Velocity_U_BC_Spatial, wic_momu_bc, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, &
+           suf_momu_bc, suf_momv_bc, suf_momw_bc, Velocity_U_Source, Velocity_Absorption, &
            Temperature, Temperature_BC_Spatial, Temperature_BC, Temperature_Source, suf_t_bc_rob1, suf_t_bc_rob2, &
            Porosity, Permeability )
 
@@ -809,10 +815,11 @@
 !!$
                     Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
                     v_disopt, v_dg_vel_int_opt, v_theta, &
-                    PhaseVolumeFraction_BC, Density_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, SUF_SIG_DIAGTEN_BC, Pressure_FEM_BC, &
+                    PhaseVolumeFraction_BC, Density_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, SUF_SIG_DIAGTEN_BC, &
+                    SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC, Pressure_FEM_BC, &
                     suf_u_bc_rob1, suf_u_bc_rob2, suf_v_bc_rob1, suf_v_bc_rob2, &
                     suf_w_bc_rob1, suf_w_bc_rob2, &
-                    PhaseVolumeFraction_BC_Spatial, Density_BC_Spatial, Velocity_U_BC_Spatial, Pressure_FEM_BC_Spatial, &
+                    PhaseVolumeFraction_BC_Spatial, Density_BC_Spatial, Velocity_U_BC_Spatial, WIC_MOMU_BC, Pressure_FEM_BC_Spatial, &
                     ScalarField_Source_Store, ScalarField_Absorption, Porosity, &
 !!$
                     NCOLM, FINDM, COLM, MIDM, & ! Sparsity for the CV-FEM
@@ -1224,7 +1231,7 @@
                  plike_grad_sou_grad, plike_grad_sou_coef, &
 !!$ Working arrays
                  PhaseVolumeFraction_BC_Spatial, Pressure_FEM_BC_Spatial, &
-                 Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, Temperature_BC_Spatial, &
+                 Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, wic_momu_bc, Temperature_BC_Spatial, &
                  xu, yu, zu, x, y, z, ug, vg, wg, &
                  Velocity_U, Velocity_V, Velocity_W, Velocity_U_Old, Velocity_V_Old, Velocity_W_Old, &
                  Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
@@ -1239,7 +1246,7 @@
                  PhaseVolumeFraction_BC, Pressure_FEM_BC, &
                  Density_BC, Component_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, Temperature_BC, &
                  suf_u_bc_rob1, suf_v_bc_rob1, suf_w_bc_rob1, suf_u_bc_rob2, suf_v_bc_rob2, suf_w_bc_rob2, &
-                 suf_sig_diagten_bc, &
+                 suf_sig_diagten_bc, suf_momu_bc, suf_momv_bc, suf_momw_bc, &
                  suf_t_bc_rob1, suf_t_bc_rob2, suf_vol_bc_rob1, suf_vol_bc_rob2, suf_comp_bc_rob1, suf_comp_bc_rob2, &
                  theta_gdiff,  ScalarField_Source_Store, ScalarField_Source_Component, &
                  mass_ele, dummy_ele, &
@@ -1341,7 +1348,7 @@
 !!$
                  PhaseVolumeFraction_BC_Spatial( stotel * nphase ), Pressure_FEM_BC_Spatial( stotel * nphase ), &
                  Density_BC_Spatial( stotel * nphase ), Component_BC_Spatial( stotel * nphase ), &
-                 Velocity_U_BC_Spatial( stotel * nphase ), Temperature_BC_Spatial( stotel * nphase ), &
+                 Velocity_U_BC_Spatial( stotel * nphase ), wic_momu_bc( stotel * nphase ), Temperature_BC_Spatial( stotel * nphase ), &
                  PhaseVolumeFraction_BC( stotel * cv_snloc * nphase ), Pressure_FEM_BC( stotel * p_snloc * nphase ), &
                  Density_BC( stotel * cv_snloc * nphase ), Temperature_BC( stotel * cv_snloc * nphase ), &
                  Component_BC( stotel * cv_snloc * nphase * ncomp ), &
@@ -1354,6 +1361,7 @@
                  suf_vol_bc_rob1( stotel * cv_snloc * nphase ), suf_vol_bc_rob2( stotel * cv_snloc * nphase ), &
                  suf_comp_bc_rob1( stotel * cv_snloc * nphase ), suf_comp_bc_rob2( stotel * cv_snloc * nphase ), &
                  suf_sig_diagten_bc( stotel * cv_snloc * nphase, ndim ), &
+                 suf_momu_bc( stotel * u_snloc * nphase ), suf_momv_bc( stotel * u_snloc * nphase ), suf_momw_bc( stotel * u_snloc * nphase ), &
 !!$
                  Porosity( totele ), &
                  PhaseVolumeFraction_FEMT( cv_nonods * nphase ), Temperature_FEMT( cv_nonods * nphase ), &
@@ -1420,6 +1428,8 @@
             suf_t_bc_rob1=0. ; suf_t_bc_rob2=0. 
             suf_vol_bc_rob1=0. ; suf_comp_bc_rob1=0. ; suf_comp_bc_rob2=0.
             suf_sig_diagten_bc=0.
+            suf_momu_bc=0. ; suf_momv_bc=0. ; suf_momv_bc=0.
+            wic_momu_bc=0
 !!$
 
 !!$ Extracting Mesh Dependent Fields
@@ -1431,7 +1441,8 @@
                  Density, Density_BC_Spatial, Density_BC, &
                  Component, Component_BC_Spatial, Component_BC, Component_Source, &
                  Velocity_U, Velocity_V, Velocity_W, Velocity_NU, Velocity_NV, Velocity_NW, &
-                 Velocity_U_BC_Spatial, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, Velocity_U_Source, Velocity_Absorption, &
+                 Velocity_U_BC_Spatial, wic_momu_bc, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC,&
+                 suf_momu_bc, suf_momv_bc, suf_momw_bc, Velocity_U_Source, Velocity_Absorption, &
                  Temperature, Temperature_BC_Spatial, Temperature_BC, Temperature_Source, suf_t_bc_rob1, suf_t_bc_rob2, &
                  Porosity, Permeability )
 

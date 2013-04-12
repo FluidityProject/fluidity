@@ -1716,6 +1716,22 @@ When activated wall treatment is not applied on the wall-outflow edge.</a:docume
           <value>outflow</value>
         </attribute>
       </element>
+      <element name="type">
+        <a:documentation>Momentun BC
+
+Should be used in combination with the near_wall_treatment condition.
+When activated wall treatment is not applied on the wall-outflow edge.</a:documentation>
+        <attribute name="name">
+          <value>momentum</value>
+        </attribute>
+        <ref name="velocity_components_choice"/>
+        <element name="boundary">
+          <choice>
+            <value>incoming</value>
+            <value>open</value>
+          </choice>
+        </element>
+      </element>
     </choice>
   </define>
   <!-- Output options for prognostic fields -->
