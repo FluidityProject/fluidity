@@ -1,5 +1,5 @@
 input:
-	cp src/*.exo .
+	cp src/rectangle.exo src/prectangle* .
 
 clean:
-	rm -f *.vtu *.stat matrixdump* meshconv_test_* *.exo *.msh *.node *.ele *.edge
+	rm -rf *.vtu *.pvtu *.stat matrixdump* meshconv_test_* rectangle* prectangle* meshconv.log* meshconv.err*
