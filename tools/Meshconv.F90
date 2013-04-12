@@ -114,7 +114,6 @@ subroutine Meshconv(c_input_basename, input_basename_len, c_input_mesh_format, i
   ewrite(1,*) "Mesh file was successfully read in"
 
   ! Writing mesh file:
-  assert(associated(state))
   ewrite(1,*) "**********************************"
   ewrite(1,*) "Writing mesh file of format: "//trim(output_mesh_format)
   ! If this runs in parallel, write mesh and halos:
