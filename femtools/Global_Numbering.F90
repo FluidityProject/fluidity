@@ -605,8 +605,9 @@ contains
                       
                       if (any(this_send_targets%length/=0)) then
                          do i=1,size(ndglno_pos)
-                            call copy(new_send_targets(new_ndglno(ndglno_pos(i)),:) &
-                                 ,this_send_targets)
+                           call deallocate(new_send_targets(new_ndglno(ndglno_pos(i)),:))
+                           call copy(new_send_targets(new_ndglno(ndglno_pos(i)),:) &
+                                ,this_send_targets)
                          end do
                       end if
                    end if
