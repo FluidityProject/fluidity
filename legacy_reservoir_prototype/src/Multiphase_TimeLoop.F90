@@ -360,7 +360,7 @@
       suf_vol_bc_rob1=0. ; suf_vol_bc_rob2=0.
       suf_comp_bc_rob1=0. ; suf_comp_bc_rob2=0.
       suf_sig_diagten_bc=0.
-      suf_momu_bc=0. ; suf_momv_bc=0. ; suf_momv_bc=0.
+      suf_momu_bc=0. ; suf_momv_bc=0. ; suf_momw_bc=0.
       wic_momu_bc=0
 !!$
       Porosity=0.
@@ -1428,7 +1428,7 @@
             suf_t_bc_rob1=0. ; suf_t_bc_rob2=0. 
             suf_vol_bc_rob1=0. ; suf_comp_bc_rob1=0. ; suf_comp_bc_rob2=0.
             suf_sig_diagten_bc=0.
-            suf_momu_bc=0. ; suf_momv_bc=0. ; suf_momv_bc=0.
+            suf_momu_bc=0. ; suf_momv_bc=0. ; suf_momw_bc=0.
             wic_momu_bc=0
 !!$
 

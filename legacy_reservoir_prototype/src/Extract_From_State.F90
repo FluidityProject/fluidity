@@ -879,7 +879,9 @@
          vectorfield => extract_vector_field( state( iphase ), 'Velocity' )
          call Get_VectorFields_Outof_State( state, initialised, iphase, vectorfield, &
               Velocity_U, Velocity_V, Velocity_W, Velocity_NU, Velocity_NV, Velocity_NW, &
-              Velocity_U_BC_Spatial, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, &
+              Velocity_U_BC_Spatial, wic_momu_bc, &
+              Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, &
+              suf_momu_bc, suf_momv_bc, suf_momw_bc, &
               Velocity_U_Source, Velocity_Absorption, is_overlapping )
       end do Loop_Velocity
 
@@ -1250,7 +1252,9 @@
 
     subroutine Get_VectorFields_Outof_State( state, initialised, iphase, field, &
          field_u_prot, field_v_prot, field_w_prot, field_nu_prot, field_nv_prot, field_nw_prot, &
-         wic_bc, suf_u_bc, suf_v_bc, suf_w_bc, field_prot_source, field_prot_absorption, is_overlapping )
+         wic_bc, wic_momu_bc, suf_u_bc, suf_v_bc, suf_w_bc, &
+         suf_momu_bc, suf_momv_bc, suf_momw_bc, &
+         field_prot_source, field_prot_absorption, is_overlapping )
       implicit none
       type( state_type ), dimension( : ), intent( in ) :: state
       logical, intent( in ) :: initialised
@@ -1261,8 +1265,9 @@
            field_nu_prot, field_nv_prot, field_nw_prot
       real, dimension( : ), intent( inout ), optional :: field_prot_source
       real, dimension( : , :, : ), intent( inout ), optional :: field_prot_absorption
-      integer, dimension( : ), intent( inout ) :: wic_bc
+      integer, dimension( : ), intent( inout ) :: wic_bc, wic_momu_bc 
       real, dimension( : ), intent( inout ) :: suf_u_bc, suf_v_bc, suf_w_bc
+      real, dimension( : ), intent( inout ) :: suf_momu_bc, suf_momv_bc, suf_momw_bc
 
       ! Local variables
       type( mesh_type ), pointer :: pmesh, cmesh
@@ -1270,7 +1275,7 @@
       type(vector_field), pointer :: positions
       type(scalar_field), pointer :: pressure, field_source, field_absorption
       integer, dimension(:), allocatable :: sufid_bc, face_nodes
-      character( len = option_path_len ) :: option_path, field_name
+      character( len = option_path_len ) :: option_path, option_path2, field_name, bct
       integer :: ndim, stotel, snloc, snloc2, nonods, nobcs, bc_type, j, k, kk, l, &
            shape_option( 2 ), count, u_nonods
       real, dimension( : ), allocatable :: initial_constant
@@ -1341,17 +1346,26 @@
       if( ndim > 2 ) field_nw_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = &
            field_w_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods )
 
-      option_path = '/material_phase[' // int2str( iphase - 1 ) // ']/vector_field::' // trim( field_name ) // &
-           '/prognostic/boundary_conditions'
-      Conditional_Field_BC: if( have_option( trim( option_path ) // '[0]/type::dirichlet' ) ) then
-         BC_Type = 1
-         nobcs = get_boundary_condition_count( field )
-         Loop_BC: do k = 1, nobcs
-            field_prot_bc => extract_surface_field( field, k, 'value' )
-            shape_option = option_shape( trim( option_path ) // '[' // int2str( k - 1 ) // ']/surface_ids' )
-            allocate( sufid_bc( 1 : shape_option( 1 ) ) )
-            call get_option( trim( option_path ) // '[' // int2str( k - 1 ) // ']/surface_ids', SufID_BC )
-            allocate( face_nodes( face_loc( field, 1 ) ) )
+      option_path = '/material_phase[' // int2str( iphase - 1 )// ']/vector_field::' // trim( field_name )
+      option_path2 = trim( option_path ) // '/prognostic/boundary_conditions['
+
+      nobcs = get_boundary_condition_count( field )
+      Loop_BC: do k = 1, nobcs
+
+         field_prot_bc => extract_surface_field( field, k, 'value' )
+
+         option_path = trim( option_path2 ) // int2str( k - 1 ) // ']/surface_ids'
+         shape_option = option_shape( trim( option_path ) )
+         allocate( SufID_BC( 1 : shape_option( 1 ) ) )
+         call get_option( trim( option_path ), SufID_BC )
+         allocate( face_nodes( face_loc( field, 1) ) )
+
+         option_path = trim( option_path2 ) // int2str( k - 1 ) // ']/'
+
+         Conditional_Field_BC: if( have_option( trim( option_path ) // 'type::dirichlet' ) ) then
+
+            BC_Type = 1
+
             face_nodes = (/ ( l, l = 1, snloc2 ) /)
             do j = 1, stotel
                if( any ( sufid_bc == field % mesh % faces % boundary_ids( j ) ) ) then 
@@ -1371,11 +1385,41 @@
                end if
             end do
 
-            deallocate( face_nodes, sufid_bc )
+         else if( have_option( trim( option_path ) // 'type::momentum' ) ) then
 
-         end do Loop_BC ! End of BC Loop 
+            call get_option( trim( option_path ) // 'type::momentum/boundary/', bct )
+            if ( trim( bct ) == "incoming") then
+               BC_Type = 1
+            else if ( trim( bct ) == "open") then
+               BC_Type = 5
+            else
+               FLAbort( 'Wrong momentum boundary condition in diamond.' )
+            end if
 
-      endif Conditional_Field_BC
+            face_nodes = (/ ( l, l = 1, snloc2 ) /)
+            do j = 1, stotel
+               if( any ( sufid_bc == field % mesh % faces % boundary_ids( j ) ) ) then 
+                  wic_momu_bc( j  + ( iphase - 1 ) * stotel ) = BC_Type
+                  count = 1
+                  do kk = 1, snloc
+                     suf_momu_bc( ( iphase - 1 ) * stotel * snloc + ( j - 1 ) * snloc + kk ) = &
+                          field_prot_bc % val( 1, face_nodes( count ) )
+                     if( ndim > 1 ) suf_momv_bc( ( iphase - 1 ) * stotel * snloc + & 
+                          ( j - 1 ) * snloc + kk ) = field_prot_bc % val( 2, face_nodes( count ) )
+                     if( ndim > 2 ) suf_momw_bc( ( iphase - 1 ) * stotel * snloc + &
+                          ( j - 1 ) * snloc + kk ) = field_prot_bc % val( 3, face_nodes( count ) )
+                     count = count + 1
+                     if ( mod( kk, snloc2 ) == 0. ) count = 1
+                  end do
+                  face_nodes = face_nodes + snloc2
+               end if
+            end do
+
+         end if Conditional_Field_BC
+
+         deallocate( face_nodes, SufID_BC )
+
+      end do Loop_BC
 
       return
     end subroutine Get_VectorFields_Outof_State

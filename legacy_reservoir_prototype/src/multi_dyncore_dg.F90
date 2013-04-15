@@ -4593,7 +4593,7 @@ end if
 
                               ENDIF
 ! BC for incoming momentum...
-                              IF( WIC_MOMU_BC(SELE2+(IPHASE-1)*STOTEL) == WIC_U_BC_DIRICHLET) THEN 
+                              IF( WIC_MOMU_BC(SELE2+(IPHASE-1)*STOTEL) == WIC_U_BC_DIRICHLET ) THEN 
 
                                  IF(MOM_CONSERV) THEN
 
@@ -4666,7 +4666,7 @@ end if
                                  ENDIF
 
 ! BC for incoming and outgoing momentum (NO leaking of momentum into or out of domain for example)...
-                              ELSE IF( WIC_MOMU_BC(SELE2+(IPHASE-1)*STOTEL) == WIC_U_BC_DIRICHLET_INOUT) THEN 
+                              ELSE IF( WIC_MOMU_BC(SELE2+(IPHASE-1)*STOTEL) == WIC_U_BC_DIRICHLET_INOUT ) THEN 
 
                                  IF(MOM_CONSERV) THEN
 
