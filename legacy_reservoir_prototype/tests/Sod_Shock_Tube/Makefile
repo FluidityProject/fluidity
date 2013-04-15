@@ -1,10 +1,14 @@
 SHELL = sh
 
-SIM = BL_test_10elements_2d
+SIM = Sod_Shock_Tube_2D
 
-input:
-	gmsh -2 src/2d_mesh.geo
-	../../../scripts/gmsh2triangle --2d src/2d_mesh.msh
+input: clean
+
+	gmsh -2 src/2d_mesh_40layers.geo
+	gmsh -2 src/2d_mesh_80layers.geo
+
+	../../../scripts/gmsh2triangle --2d src/2d_mesh_40layers.msh
+	../../../scripts/gmsh2triangle --2d src/2d_mesh_80layers.msh
 
 clean:
 	rm -f *.d.* fluidity.* ocvn
@@ -13,3 +17,4 @@ clean:
 	rm -f mirror_new.dat matrixdump matrixdump.info
 	rm -f *.ele *.bound *.face *.node *.edge
 	rm -f src/*.msh
+	rm -f *_80layers.mpml
