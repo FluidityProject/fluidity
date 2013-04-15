@@ -1492,6 +1492,8 @@ contains
     ! Coordinate field to compute Jacobian for element means
     type(vector_field), pointer :: X
 
+    ewrite(1,*) 'subroutine limit_vb_manifold(state, t, delta_t)'
+
     X=>extract_vector_field(state, "Coordinate")
 
     if (.not. element_degree(T%mesh, 1)==1 .or. continuity(T%mesh)>=0) then
@@ -1576,6 +1578,8 @@ contains
     call deallocate(T_limit)
     call deallocate(T_max)
     call deallocate(T_min)    
+
+    ewrite(1,*) 'END subroutine limit_vb_manifold(state, t, delta_t)'
 
   end subroutine limit_vb_manifold
 

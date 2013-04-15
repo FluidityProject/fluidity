@@ -273,7 +273,6 @@
          call allocate(newD,D%mesh,"NewLayerThickness")
          call set(newD,D)
          call set(newU,U)
-
          
          if(have_option('/material_phase::Fluid/vector_field::Velocity/prognostic/wave_equation/just_wave_equation_step')) then
             !Just solve the linear equations

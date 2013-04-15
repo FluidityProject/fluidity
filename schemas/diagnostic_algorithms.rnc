@@ -1383,6 +1383,19 @@ vector_scalar_time_averaged_algorithm =
       }
    )
 
+# Manifolds diagnostics (used in shallow_water_mimetic)
+discontinuity_detector_algorithm =
+   (
+      ## Algorithm for detecting discontinuities for use in 
+      ## discontinuity capturing schemes
+      element algorithm {
+         attribute name { "discontinuity_detector" },
+         attribute material_phase_support { "single" },
+         scalar_source_field
+      }
+   )
+
+
 scalar_diagnostic_algorithms = universal_numbering_diagnostic_algorithm
 scalar_diagnostic_algorithms |= universal_column_id_algorithm
 scalar_diagnostic_algorithms |= tidal_harmonic_algorithm
@@ -1415,6 +1428,7 @@ scalar_diagnostic_algorithms |= element_universal_numbering_algorithm
 scalar_diagnostic_algorithms |= element_ownership_algorithm
 scalar_diagnostic_algorithms |= element_halo_diagnostic_algorithm
 scalar_diagnostic_algorithms |= div_algorithm
+scalar_diagnostic_algorithms |= discontinuity_detector_algorithm
 scalar_diagnostic_algorithms |= curl_2d_algorithm
 scalar_diagnostic_algorithms |= column_id_algorithm
 scalar_diagnostic_algorithms |= finite_element_lumped_mass_matrix

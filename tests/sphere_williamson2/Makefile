@@ -1,5 +1,5 @@
 input: clean
-	tar -xzvf ../bdfm1_sphere/src/sphere.tgz
+	tar -xzvf ../sw_common/sphere.tgz
 	cp sphere_williamson2_new.swml sphere_williamson2_new3.swml
 	cp sphere_williamson2_new.swml sphere_williamson2_new4.swml
 	cp sphere_williamson2_new.swml sphere_williamson2_new5.swml
