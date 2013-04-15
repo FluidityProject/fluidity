@@ -566,6 +566,7 @@ module advection_local_DG
     end do
 
     !Then the constraints
+    print*, row, size(flux_mat,1), size(flux_mat,2)
     do i = 1, flux_constraint%n_constraints
        do dim1 = 1, mesh_dim(flux)
           flux_mat(&

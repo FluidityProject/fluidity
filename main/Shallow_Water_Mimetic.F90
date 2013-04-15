@@ -257,6 +257,9 @@
          call allocate(PVFlux,mesh_dim(U),u%mesh,'PVFlux')
          call zero(massFlux)
          call zero(PVFlux)
+         ! no flux for now - just testing advection (jemma 7/3/13)
+!         call solve_advection_dg_subcycle("LayerThickness", state, &
+!              "NonlinearVelocity",continuity=.true.)
          call solve_advection_dg_subcycle("LayerThickness", state, &
               "NonlinearVelocity",continuity=.true.,Flux=MassFlux)
          if(have_pv_tracer) then
