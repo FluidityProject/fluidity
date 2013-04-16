@@ -153,6 +153,8 @@ module zoltan_integration
     load_imbalance_tolerance = get_load_imbalance_tolerance(final_adapt_iteration)
     call set_zoltan_parameters(final_adapt_iteration, flredecomp, flredecomp_target_procs, load_imbalance_tolerance, zz)
 
+    ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", "1.03"); assert(ierr == ZOLTAN_OK)
+
     zoltan_global_calculated_local_min_quality = .false.
 
     call zoltan_load_balance(zz, changes, num_gid_entries, num_lid_entries, &
@@ -805,12 +807,20 @@ module zoltan_integration
        call mpi_allreduce(num_nodes, total_num_nodes_before_balance, 1, getPINTEGER(), &
           & MPI_SUM, MPI_COMM_FEMTOOLS, ierr)
 
+       ierr = Zoltan_Set_Param(zz, "LB_METHOD", "HYPERGRAPH"); assert(ierr == ZOLTAN_OK)
+       ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
+       ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", "1.03"); assert(ierr == ZOLTAN_OK)
+
+
        ! Need to use Zoltan_LB_Partition when flredecomping as NUM_LOCAL_PART and NUM_GLOBAL_PART are
        ! meant to be invalid for Zoltan_LB_Balance (actually appear to be valid even then but better
        ! to follow the doc)
        ierr = Zoltan_LB_Partition(zz, changes, num_gid_entries, num_lid_entries, p1_num_import, p1_import_global_ids, &
           & p1_import_local_ids, p1_import_procs, import_to_part, p1_num_export, p1_export_global_ids,  &
           & p1_export_local_ids, p1_export_procs, export_to_part)
+       if (ierr /= ZOLTAN_OK) then
+         write(0, *) "ERROR: Zoltan_LB_Partition failed with ierr = ", ierr
+       end if
        assert(ierr == ZOLTAN_OK)
 
        ! calculate how many owned nodes we'd have after doing the planned load balancing
@@ -870,14 +880,14 @@ module zoltan_integration
           
           if (min_num_nodes_after_balance == 0) then
              ewrite(2,*) 'Empty partion would be created with load_imbalance_tolerance of', load_imbalance_tolerance
-             load_imbalance_tolerance = 0.95 * load_imbalance_tolerance
-             if (load_imbalance_tolerance < 1.075) then
+             load_imbalance_tolerance = load_imbalance_tolerance - 0.01
+             if (load_imbalance_tolerance < 1.01) then
 
                 ewrite(1,*) 'Could not prevent empty partions by tightening load_imbalance_tolerance.'
                 ewrite(1,*) 'Attempting to load balance with no edge-weights.'
                 
                 ! Reset the load_imbalance_tolerance
-                ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", "1.075"); assert(ierr == ZOLTAN_OK)
+                ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", "1.03"); assert(ierr == ZOLTAN_OK)
                 ! Turn off the edge-weight calculation
                 zoltan_global_calculate_edge_weights = .false.
                 
