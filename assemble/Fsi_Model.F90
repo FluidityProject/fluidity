@@ -980,7 +980,7 @@ module fsi_model
       ewrite(2,*) "Inside compute_source_term"
 
       fluid_velocity => extract_vector_field(state, "IteratedVelocity")
-      fluid_absorption => extract_vector_field(state, "IteratedVelocityAbsorption")
+      !fluid_absorption => extract_vector_field(state, "IteratedVelocityAbsorption")
       solid_velocity => extract_vector_field(state, "IteratedSolidVelocity")
       alpha => extract_scalar_field(state, "IteratedSolidConcentration")
       ! fsi_interface => extract_scalar_field(state, 'IteratedSolidPhase')
@@ -1029,7 +1029,7 @@ module fsi_model
           do i = 1, size(nodes)
               if (node_val(alpha, nodes(i)) .gt. 0.0) then
                   do j = 1, source_term_iter%dim
-                      call set(source_term_iter, j, nodes(i), ( (node_val(solid_velocity,j,nodes(i))*(beta/dt) ) + &
+                      call set(source_term_iter, j, nodes(i), ( (node_val(solid_velocity,j,nodes(i))*(beta/dt) ) - &
                         & node_val(fluid_velocity,j,nodes(i)) ) )
                   end do
               end if
@@ -1178,8 +1178,16 @@ module fsi_model
       type(scalar_field), pointer :: alpha
       integer :: i, j, ele
       integer, dimension(:), pointer :: nodes
+      real :: beta
 
       ewrite(2, *) "inside fsi_model_solid_force_computation"
+
+      ! beta:
+      if (have_option('/embedded_models/fsi_model/beta')) then
+          call get_option('/embedded_models/fsi_model/beta', beta)
+      else
+          beta = 1
+      end if
 
       ! Get relevant quantities from state
       fluid_velocity => extract_vector_field(state, "Velocity")
@@ -1241,7 +1249,7 @@ module fsi_model
                           !call set(solidforce, j, nodes(i), (node_val(alpha, nodes(i)) / dt) * (node_val(fluid_velocity,j,nodes(i)) - &
                           !         & (node_val(solid_velocity,j,nodes(i))) ) )
                           ! Without multiplying by alpha:
-                          call set(solidforce, j, nodes(i), (1.0 / dt) * (node_val(fluid_velocity,j,nodes(i)) - &
+                          call set(solidforce, j, nodes(i), (beta/dt) * (node_val(fluid_velocity,j,nodes(i)) - &
                                    & (node_val(solid_velocity,j,nodes(i))) ) )
                       end do
                   end if
@@ -1253,7 +1261,7 @@ module fsi_model
               call addto(solidforce_global, solidforce)
           end if !else solidforce points to the global field, e.g. only 1 solid mesh provided
 
-          ! computing the integral of the solidforce (x-component)
+          ! computing the integral of the solidforce
           solid_force_diag = 0.0
           solid_force_diag = field_integral(solidforce, fluid_coord)
 
@@ -1358,10 +1366,6 @@ module fsi_model
          ! Compute diagnostic variables, e.g. Force on solid and prescribed Solid Velocity
          if (.not. have_option('/embedded_models/fsi_model/stat/exclude_in_stat')) then 
 
-            ! Currently wrong, as the force over the whole fluid domain would be computed,
-            ! thus it would be the sum of all forces on all solids,
-            ! but it works when only one solid mesh is present and
-            ! when computing the force on the solid mesh, which should be done anyway!!!
             num_solid_mesh = option_count('/embedded_models/fsi_model/geometry/mesh')
             allocate(solid_force_diag(fluid_coord%dim))
 

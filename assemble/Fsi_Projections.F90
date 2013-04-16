@@ -167,7 +167,7 @@ module fsi_projections
       do j=1, nele_fs
         ! Get the donor (fluid) element which intersects with ele_S
         call rtree_intersection_finder_get_output(ele_F, j)
-        ! insert_ascending works, but maybe is not necessary
+        ! insert_ascending works, but maybe it's not necessary
         !call insert_ascending(map_SF_rtree, ele_F)
         call insert(map_SF_rtree, ele_F)
       end do
