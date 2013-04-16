@@ -1296,12 +1296,17 @@
       u_nonods = nonods
       if ( is_overlapping ) u_nonods = nonods * ele_loc( pmesh, 1)
 
-      ! this code is bugged for overlapping models...
-
       Conditional_InitialisationFromFLML: if( initialised ) then
-         field_u_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = field % val( 1, : )
-         if( ndim > 1 ) field_v_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = field % val( 2, : )
-         if( ndim > 2 ) field_w_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = field % val( 3, : )
+
+         if ( is_overlapping ) then
+            field_u_prot = 0.
+            field_v_prot = 0.
+            field_w_prot = 0.
+         else
+            field_u_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = field % val( 1, : )
+            if( ndim > 1 ) field_v_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = field % val( 2, : )
+            if( ndim > 2 ) field_w_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = field % val( 3, : )
+         end if
 
       else
          option_path = '/material_phase[' // int2str( iphase - 1 ) // ']/vector_field::' // trim( field_name ) // &
