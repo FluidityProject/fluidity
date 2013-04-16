@@ -42,6 +42,21 @@
     use shape_functions_Linear_Quadratic
     use cv_advection
 
+
+    type corey_options
+       REAL :: S_GC
+       real :: S_OR
+       real :: c
+       real :: s_gi
+       real :: cs_gi
+       real :: kr1_max
+       real :: kr2_max
+       real :: kr1_exp
+       real :: kr2_exp
+       logical :: boost_at_zero_saturation
+              
+    end type corey_options
+
   contains
 
     subroutine Calculate_Phase_Component_Densities( state, &
@@ -644,6 +659,8 @@
     END SUBROUTINE Calculate_AbsorptionTerm
 
 
+
+
     SUBROUTINE calculate_absorption2( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA, TOTELE, CV_NLOC, MAT_NLOC, &
          CV_NDGLN, MAT_NDGLN, &
          U_ABSORB, PERM2, MOBILITY) 
@@ -666,6 +683,8 @@
       REAL :: SATURATION
       !    real :: abs_sum
       REAL, DIMENSION( :, :, :), allocatable :: INV_PERM, PERM
+      type(corey_options) :: options
+      logical :: is_corey, is_land
 
       ewrite(3,*) 'In calculate_absorption2'
       ALLOCATE( INV_PERM( TOTELE, NDIM, NDIM ))
@@ -676,7 +695,29 @@
          inv_perm(ele, :, :)=inverse(perm(ele, :, :))
       end do
 
+
       U_ABSORB = 0.0
+
+      Loop_NPHASE: DO IPHASE = 1, NPHASE
+
+         is_Corey=.false.
+         is_Land=.false.
+         if (have_option("/material_phase["// int2str(iphase-1) //&
+              "]/multiphase_properties/relperm_type/Corey")) then
+            if (nphase==2) then
+               is_Corey=.true.
+               call get_corey_options(options)
+            else
+               FLAbort('Attempting to use twophase relperm function with '//int2str(nphase)//' phase(s)')
+            end if
+         elseif (have_option("/material_phase["// int2str(iphase-1) //"]/multiphase_properties/relperm_type/Land")) then
+            if (nphase==2) then
+               is_Land=.true.
+               call get_land_options(options)
+            else
+               FLAbort('Attempting to use twophase relperm function with '//int2str(nphase)//' phase(s)')
+            end if
+         end if
 
       Loop_ELE: DO ELE = 1, TOTELE
 
@@ -685,34 +726,24 @@
             MAT_NOD = MAT_NDGLN(( ELE - 1 ) * MAT_NLOC + CV_ILOC)
             CV_NOD = CV_NDGLN(( ELE - 1) * CV_NLOC + CV_ILOC )
 
-            Loop_NPHASE: DO IPHASE = 1, NPHASE
-               CV_PHA_NOD = CV_NOD + ( IPHASE - 1 ) * CV_NONODS
-
                Loop_DimensionsI: DO IDIM = 1, NDIM
 
                   Loop_DimensionsJ: DO JDIM = 1, NDIM
 
+                     CV_PHA_NOD = CV_NOD + ( IPHASE - 1 ) * CV_NONODS
                      SATURATION = SATURA( CV_PHA_NOD ) 
                      IPHA_IDIM = ( IPHASE - 1 ) * NDIM + IDIM 
                      JPHA_JDIM = ( IPHASE - 1 ) * NDIM + JDIM 
 
-                     if (have_option("/material_phase["// int2str(iphase-1) //&
-                          "]/multiphase_properties/relperm_type/Corey")) then
 
-                        if (nphase==2) then
-                           CALL relperm_corey( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
-                                INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(CV_NOD))), IPHASE )
-                        else
-                           FLAbort('Attempting to use twophase relperm function with '// int2str(nphase)//' phase(s)')
-                        endif
-
-                     elseif (have_option("/material_phase["// int2str(iphase-1) //"]/multiphase_properties/relperm_type/Land")) then
-                        if (nphase==2) then
-                           CALL relperm_land( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
-                                INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(CV_NOD))), IPHASE )
-                        else
-                           FLAbort('Attempting to use twophase relperm function with '//int2str(nphase)//' phase(s)')
-                        endif
+                     if (is_corey) then
+                        CALL relperm_corey( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
+                             INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(CV_NOD))), IPHASE,&
+                             options)
+                     else if (is_land) then
+                        CALL relperm_land( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
+                             INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(CV_NOD))), IPHASE,&
+                             options)
                      else
                         U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ) = 0.0
 
@@ -738,16 +769,15 @@
                         !                            ABS_SUM = ABS_SUM + UABS_COEFS( IPHASE, II) * SATURATION** (II - 1 )
                         !                         U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ) = ABS_SUM
                      endif
-
                   END DO Loop_DimensionsJ
 
                END DO Loop_DimensionsI
 
-            END DO Loop_NPHASE
+            END DO Loop_CVNLOC
 
-         END DO Loop_CVNLOC
+         END DO Loop_ELE
 
-      END DO Loop_ELE
+      END DO Loop_NPHASE
 
       DEALLOCATE( PERM, INV_PERM )
 
@@ -757,31 +787,63 @@
 
     END SUBROUTINE calculate_absorption2
 
+    subroutine get_corey_options(options)
+      type(corey_options) :: options
+      !    S_GC = 0.1
+      call get_option("/material_phase[0]/multiphase_properties/immobile_fraction", &
+           options%s_gc, default=0.1)
+      !    S_OR = 0.3
+      call get_option("/material_phase[1]/multiphase_properties/immobile_fraction", &
+           options%s_or, default=0.3)
+      call get_option("/material_phase[0]/multiphase_properties/relperm_type/Corey/relperm_max", &
+           options%kr1_max, default=1.0)
+      call get_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/relperm_max", &
+           options%kr2_max, default=1.0)
+      call get_option("/material_phase[0]/multiphase_properties/relperm_type/Corey/relperm_exponent", &
+           options%kr1_exp, default=2.0)
+      call get_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/relperm_exponent", &
+           options%kr2_exp, default=2.0)
+      options%boost_at_zero_saturation=have_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/boost_at_zero_saturation")
+    end subroutine get_corey_options
 
-    SUBROUTINE relperm_corey( ABSP, MOBILITY, INV_PERM, SAT, IPHASE )
+    subroutine get_land_options(options)
+      type(corey_options) :: options
+      !    S_GC = 0.1
+      call get_option("/material_phase[0]/multiphase_properties/s_gi", &
+           options%s_gi, default=0.1)
+      !    S_OR = 0.3
+      call get_option("/material_phase[1]/multiphase_properties/cs_gi", &
+           options%cs_gi, default=0.3)
+      call get_option("/material_phase[1]/multiphase_properties/c", options%c, default=0.3)
+      call get_option("/material_phase[0]/multiphase_properties/relperm_type/Corey/relperm_max", &
+           options%kr1_max, default=1.0)
+      call get_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/relperm_max", &
+           options%kr2_max, default=1.0)
+      call get_option("/material_phase[0]/multiphase_properties/relperm_type/Corey/relperm_exponent", &
+           options%kr1_exp, default=2.0)
+      call get_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/relperm_exponent", &
+           options%kr2_exp, default=2.0)
+    end subroutine get_land_options
+
+    SUBROUTINE relperm_corey( ABSP, MOBILITY, INV_PERM, SAT, IPHASE,options )
       IMPLICIT NONE
       REAL, intent( inout ) :: ABSP
       REAL, intent( in ) :: MOBILITY, SAT, INV_PERM
       INTEGER, intent( in ) :: IPHASE
+      type(corey_options), intent(in) :: options
       ! Local variables...
       REAL :: S_GC, S_OR, &
            KR1, KR2, KR, VISC, SATURATION, ABS_SUM, SAT2, &
            kr1_max, kr2_max, kr1_exp, kr2_exp
 
-      !    S_GC = 0.1
-      call get_option("/material_phase[0]/multiphase_properties/immobile_fraction", &
-           s_gc, default=0.1)
-      !    S_OR = 0.3
-      call get_option("/material_phase[1]/multiphase_properties/immobile_fraction", &
-           s_or, default=0.3)
-      call get_option("/material_phase[0]/multiphase_properties/relperm_type/Corey/relperm_max", &
-           kr1_max, default=1.0)
-      call get_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/relperm_max", &
-           kr2_max, default=1.0)
-      call get_option("/material_phase[0]/multiphase_properties/relperm_type/Corey/relperm_exponent", &
-           kr1_exp, default=2.0)
-      call get_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/relperm_exponent", &
-           kr2_exp, default=2.0)
+
+
+      s_gc=options%s_gc
+      s_or=options%s_or
+      kr1_max=options%kr1_max
+      kr2_max=options%kr2_max
+      kr1_exp=options%kr1_exp
+      kr2_exp=options%kr2_exp       
 
       SATURATION = SAT
       IF( IPHASE == 2 ) SATURATION = 1. - SAT
@@ -821,7 +883,7 @@
             ABSP = ( 1. + max( 100. * ( s_gc - saturation ), 0.0 )) * ABSP
          endif
       else
-         if (have_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/boost_at_zero_saturation")) then
+         if (options%boost_at_zero_saturation) then
             ABSP = min( 4.0e+5, ABSP)
             if(saturation < s_or) then
                ABSP = (1. + max( 100. * ( s_or - saturation ), 0.0 )) * ABSP
@@ -840,7 +902,7 @@
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! CHRIS BAKER EDIT
-    SUBROUTINE relperm_land( ABSP, MOBILITY, INV_PERM, SAT, IPHASE )
+    SUBROUTINE relperm_land( ABSP, MOBILITY, INV_PERM, SAT, IPHASE,options )
       IMPLICIT NONE
       REAL, intent( inout ) :: ABSP
       REAL, intent( in ) :: MOBILITY, SAT, INV_PERM
@@ -850,16 +912,12 @@
       REAL :: S_GC, S_OR, &
            KR1, KR2, KR, VISC, SATURATION, ABS_SUM, SAT2, &
            kr1_max, kr2_max, kr1_exp, kr2_exp
+      type(corey_options) options
 
-      !    S_GC = 0.1
-      call get_option("/material_phase[0]/multiphase_properties/s_gi", s_gi, default=0.1)
-      !    S_OR = 0.3
-      call get_option("/material_phase[1]/multiphase_properties/cs_gi", cs_gi, default=0.3)
-      call get_option("/material_phase[1]/multiphase_properties/c", c, default=0.3)
-      call get_option("/material_phase[0]/multiphase_properties/relperm_type/Corey/relperm_max", kr1_max, default=1.0)
-      call get_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/relperm_max", kr2_max, default=1.0)
-      call get_option("/material_phase[0]/multiphase_properties/relperm_type/Corey/relperm_exponent", kr1_exp, default=2.0)
-      call get_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/relperm_exponent", kr2_exp, default=2.0)
+
+      s_gi=options%s_gi
+      cs_gi=options%cs_gi
+      c=options%c
 
       SATURATION = SAT
       IF( IPHASE == 2 ) SATURATION = 1. - SAT
@@ -1157,6 +1215,9 @@
 !!$ for the pressure b.c. and overlapping method 
 !!$ make the material property change just inside the domain else on the surface only...
       logical, parameter :: mat_change_inside = .true.
+      logical :: is_land, is_corey
+
+      type(corey_options) :: options
 
       if( have_option( '/physical_parameters/mobility' ) )then
          call get_option( '/physical_parameters/mobility', mobility )
@@ -1186,6 +1247,19 @@
 
          s = ( iphase - 1 ) * ndim + 1
          e = iphase * ndim
+
+         is_corey=.false.
+         is_land=.false.
+
+         if ( have_option("/material_phase["// int2str(iphase-1) //&
+              "]/multiphase_properties/relperm_type/Corey") ) then
+            is_corey=.true.
+            call get_corey_options(options)
+         elseif ( have_option("/material_phase["// int2str(iphase-1) //&
+                                   "]/multiphase_properties/relperm_type/Land") ) then
+            is_land=.true.
+            call get_land_options(options)
+         end if
 
          do ele = 1, totele
 
@@ -1217,17 +1291,14 @@
                         sigma_out = 0.
                         do idim = 1, ndim
                            do jdim = 1, ndim
-                              if ( have_option("/material_phase["// int2str(iphase-1) //&
-                                   "]/multiphase_properties/relperm_type/Corey") ) then
-
+                              if (is_corey) then
                                  call relperm_corey( sigma_out( idim, jdim ), mobility, &
-                                      inv_perm( idim, jdim ), satura_bc, iphase )
+                                      inv_perm( idim, jdim ), satura_bc, iphase,options)
 
-                              elseif ( have_option("/material_phase["// int2str(iphase-1) //&
-                                   "]/multiphase_properties/relperm_type/Land") ) then
+                              elseif (is_land) then
 
                                  call relperm_land( sigma_out( idim, jdim ), mobility, &
-                                      inv_perm( idim, jdim ), satura_bc, iphase )
+                                      inv_perm( idim, jdim ), satura_bc, iphase,options )
 
                               end if
                            end do
