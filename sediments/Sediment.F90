@@ -569,6 +569,11 @@ contains
           nbcs=option_count(trim(field_option_path)//'/boundary_conditions')
           ! Loop over boundary conditions for field
           boundary_conditions: do i_bc=0, nbcs-1
+          
+             ! Get name and type of boundary condition
+             call get_option(trim(field_option_path)//&
+                  '/boundary_conditions['//int2str(i_bc)//&
+                  ']/type[0]/name', bc_type)
 
              ! check whether this is a reentrainment boundary
              if (.not. (trim(bc_type) .eq. "sediment_reentrainment")) then
