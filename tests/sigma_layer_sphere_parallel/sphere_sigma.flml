@@ -46,13 +46,12 @@
           <regions name="WholeMesh">
             <bottom_depth>
               <python>
-                <string_value type="code" lines="20" language="python">def val(X,t):
+                <string_value lines="20" type="code" language="python">def val(X,t):
   z = X[2]
   # make the depth a linear function of Z (which shows little
   # change over the NP, but X and Y do)
   # This should vary from 4000-ish to 1000-ish
-  return (z-6.331010e+06) / 10
-  </string_value>
+  return (z-6.331010e+06) / 10</string_value>
               </python>
             </bottom_depth>
             <sizing_function>

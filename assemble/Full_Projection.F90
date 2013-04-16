@@ -66,8 +66,7 @@
     
 !--------------------------------------------------------------------------------------------------------------------
     subroutine petsc_solve_full_projection(x,ctp_m,inner_m,ct_m,rhs,pmat,&
-      state, inner_field, auxiliary_matrix)
-
+      state, inner_mesh, auxiliary_matrix)
 !--------------------------------------------------------------------------------------------------------------------
 
       ! Solve Schur complement problem the nice way (using petsc) !!
@@ -82,9 +81,9 @@
       ! momentum matrix. If preconditioner is set to ScaledPressureMassMatrix, this comes in as the pressure mass matrix,
       ! scaled by the inverse of viscosity.
       type(csr_matrix), intent(inout) :: pmat
-      ! state, and inner_field are used to setup mg preconditioner of inner solve
+      ! state, and inner_mesh are used to setup mg preconditioner of inner solve
       type(state_type), intent(in):: state
-      type(vector_field), intent(in):: inner_field
+      type(mesh_type), intent(in):: inner_mesh
       ! p1-p1 stabilization matrix or free surface terms:
       type(csr_matrix), optional, intent(in) :: auxiliary_matrix
 
@@ -110,7 +109,7 @@
       ewrite(2,*) 'Entering PETSc setup for Full Projection Solve'
       call petsc_solve_setup_full_projection(y,A,b,ksp,petsc_numbering,name,solver_option_path, &
            lstartfromzero,inner_m,ctp_m,ct_m,x%option_path,pmat, &
-           rhs, state, inner_field, auxiliary_matrix)
+           rhs, state, inner_mesh, auxiliary_matrix)
 
       ewrite(2,*) 'Create RHS and solution Vectors in PETSc Format'
       ! create PETSc vec for rhs using above numbering:
@@ -143,7 +142,7 @@
 !--------------------------------------------------------------------------------------------------------
     subroutine petsc_solve_setup_full_projection(y,A,b,ksp,petsc_numbering_p,name,solver_option_path, &
          lstartfromzero,inner_m,div_matrix_comp, div_matrix_incomp,option_path,preconditioner_matrix,rhs, &
-         state, inner_field, auxiliary_matrix)
+         state, inner_mesh, auxiliary_matrix)
          
 !--------------------------------------------------------------------------------------------------------
 
@@ -181,11 +180,11 @@
       type(csr_matrix), optional, intent(in) :: auxiliary_matrix
       ! Option path:
       character(len=*), intent(in):: option_path
-      ! state, and inner_field are used to setup mg preconditioner of inner solve
+      ! state, and inner_mesh are used to setup mg preconditioner of inner solve
       type(state_type), intent(in):: state
-      type(vector_field), intent(in):: inner_field
+      type(mesh_type), intent(in):: inner_mesh
       ! Positions:
-      type(vector_field), pointer :: positions
+      type(vector_field), pointer :: positions, mesh_positions
 
       ! Additional arrays used internally:
       ! Additional numbering types:
@@ -212,8 +211,6 @@
       logical parallel, have_auxiliary_matrix, have_preconditioner_matrix
 
       logical :: apply_reference_node, apply_reference_node_from_coordinates, reference_node_owned
-
-      Vec, dimension(:), allocatable :: null_space_array_u
 
       ! Sort option paths etc...
       solver_option_path=complete_solver_option_path(option_path)
@@ -340,27 +337,39 @@
       ! Set ksp for M block solver inside the Schur Complement (the inner, inner solve!). 
       call MatSchurComplementGetKSP(A,ksp_schur,ierr)
       call petsc_solve_state_setup(inner_solver_option_path, prolongators, surface_nodes, &
-        state, inner_field%mesh, blocks(div_matrix_comp,2), inner_option_path, .false.)
-
-      call create_null_space_array(inner_solver_option_path, petsc_numbering_u, null_space_array_u, vfield=inner_field)
-
+        state, inner_mesh, blocks(div_matrix_comp,2), inner_option_path, matrix_has_solver_cache=.false., &
+        mesh_positions=mesh_positions)
       if (associated(prolongators)) then
         if (associated(surface_nodes)) then
           FLExit("Internal smoothing not available for inner solve")
         end if
-        call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
-          inner_solver_option_path, petsc_numbering_u, startfromzero_in=.true., &
-          prolongators=prolongators, null_space_array=null_space_array_u)
+        if (associated(mesh_positions)) then
+          call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
+            inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true., &
+            prolongators=prolongators, positions=mesh_positions)
+        else
+          call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
+            inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true., &
+            prolongators=prolongators)
+        end if
         do i=1, size(prolongators)
           call deallocate(prolongators(i))
         end do
         deallocate(prolongators)
+      else if (associated(mesh_positions)) then
+        call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
+          inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true., &
+          positions=mesh_positions)
       else
         call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
-          inner_solver_option_path, petsc_numbering_u, startfromzero_in=.true.,&
-          null_space_array=null_space_array_u)
+          inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true.)
       end if
       
+      if (associated(mesh_positions)) then
+        call deallocate(mesh_positions)
+        deallocate(mesh_positions)
+      end if
+       
       ! leaving out petsc_numbering and mesh, so "iteration_vtus" monitor won't work!
 
       ! Assemble preconditioner matrix in petsc format (if required):
@@ -399,12 +408,7 @@
       call MatDestroy(G, ierr) ! Destroy Gradient Operator (i.e. transpose of incompressible div).
       if(have_preconditioner_matrix) call MatDestroy(pmat,ierr) ! Destroy preconditioning matrix.
       if(have_auxiliary_matrix) call MatDestroy(S,ierr) ! Destroy stabilization matrix
-
-      do i = 1, size(null_space_array_u)
-        call VecDestroy(null_space_array_u(i), ierr)
-      end do
-      deallocate(null_space_array_u)
-
+      
       call deallocate( petsc_numbering_u )
       ! petsc_numbering_p is passed back and destroyed there      
 
