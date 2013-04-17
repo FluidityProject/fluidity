@@ -1,0 +1,448 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>p2p1-cg inverse Helmholtz filter convergence test</name>
+  <owner userid="jbull"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -v2 -l MMS_A_unstructured.flml &amp;&amp; fluidity MMS_B_unstructured.flml &amp;&amp; fluidity MMS_C_unstructured.flml &amp;&amp; fluidity MMS_D_unstructured.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="ab_convergence_f" language="python">
+#
+from fluidity_tools import stat_parser as stat
+from math import log
+output=open('output_unstructured.log','w')
+
+a_error = stat("MMS_A_unstructured.stat")["NS"]["AnisoFilterDifference"]["l2norm"][-1]
+b_error = stat("MMS_B_unstructured.stat")["NS"]["AnisoFilterDifference"]["l2norm"][-1]
+
+a_error_inf = stat("MMS_A_unstructured.stat")["NS"]["AnisoFilterDifference"]["max"][-1]
+b_error_inf = stat("MMS_B_unstructured.stat")["NS"]["AnisoFilterDifference"]["max"][-1]
+
+ab_ratio = a_error / b_error
+ab_ratio_inf = a_error_inf / b_error_inf
+
+output.write('ab_convergence_f '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
+output.close()
+
+ab_convergence_f = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+    </variable>
+    <variable name="ab_convergence_if" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output=open('output_unstructured.log','a')
+
+a_error = stat("MMS_A_unstructured.stat")["NS"]["IsoFilterDifference"]["l2norm"][-1]
+b_error = stat("MMS_B_unstructured.stat")["NS"]["IsoFilterDifference"]["l2norm"][-1]
+
+a_error_inf = stat("MMS_A_unstructured.stat")["NS"]["IsoFilterDifference"]["max"][-1]
+b_error_inf = stat("MMS_B_unstructured.stat")["NS"]["IsoFilterDifference"]["max"][-1]
+
+ab_ratio = a_error / b_error
+ab_ratio_inf = a_error_inf / b_error_inf
+
+output.write('ab_convergence_if '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
+output.close()
+
+ab_convergence_if = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+    </variable>
+    <variable name="ab_convergence_mlf" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output=open('output_unstructured.log','a')
+
+a_error = stat("MMS_A_unstructured.stat")["NS"]["MLFilterDifference"]["l2norm"][-1]
+b_error = stat("MMS_B_unstructured.stat")["NS"]["MLFilterDifference"]["l2norm"][-1]
+
+a_error_inf = stat("MMS_A_unstructured.stat")["NS"]["MLFilterDifference"]["max"][-1]
+b_error_inf = stat("MMS_B_unstructured.stat")["NS"]["MLFilterDifference"]["max"][-1]
+
+ab_ratio = a_error / b_error
+ab_ratio_inf = a_error_inf / b_error_inf
+
+output.write('ab_convergence_mlf '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
+output.close()
+
+ab_convergence_mlf = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+    </variable>
+    <variable name="bc_convergence_f" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output=open('output_unstructured.log','a')
+
+a_error = stat("MMS_B_unstructured.stat")["NS"]["AnisoFilterDifference"]["l2norm"][-1]
+b_error = stat("MMS_C_unstructured.stat")["NS"]["AnisoFilterDifference"]["l2norm"][-1]
+
+a_error_inf = stat("MMS_B_unstructured.stat")["NS"]["AnisoFilterDifference"]["max"][-1]
+b_error_inf = stat("MMS_C_unstructured.stat")["NS"]["AnisoFilterDifference"]["max"][-1]
+
+ab_ratio = a_error / b_error
+ab_ratio_inf = a_error_inf / b_error_inf
+
+output.write('bc_convergence_f '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
+output.close()
+
+bc_convergence_f = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+    </variable>
+    <variable name="bc_convergence_if" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output=open('output_unstructured.log','a')
+
+a_error = stat("MMS_B_unstructured.stat")["NS"]["IsoFilterDifference"]["l2norm"][-1]
+b_error = stat("MMS_C_unstructured.stat")["NS"]["IsoFilterDifference"]["l2norm"][-1]
+
+a_error_inf = stat("MMS_B_unstructured.stat")["NS"]["IsoFilterDifference"]["max"][-1]
+b_error_inf = stat("MMS_C_unstructured.stat")["NS"]["IsoFilterDifference"]["max"][-1]
+
+ab_ratio = a_error / b_error
+ab_ratio_inf = a_error_inf / b_error_inf
+
+output.write('bc_convergence_if '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
+output.close()
+
+bc_convergence_if = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+    </variable>
+    <variable name="bc_convergence_mlf" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output=open('output_unstructured.log','a')
+
+a_error = stat("MMS_B_unstructured.stat")["NS"]["MLFilterDifference"]["l2norm"][-1]
+b_error = stat("MMS_C_unstructured.stat")["NS"]["MLFilterDifference"]["l2norm"][-1]
+
+a_error_inf = stat("MMS_B_unstructured.stat")["NS"]["MLFilterDifference"]["max"][-1]
+b_error_inf = stat("MMS_C_unstructured.stat")["NS"]["MLFilterDifference"]["max"][-1]
+
+ab_ratio = a_error / b_error
+ab_ratio_inf = a_error_inf / b_error_inf
+
+output.write('bc_convergence_mlf '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
+output.close()
+
+bc_convergence_mlf = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+    </variable>
+    <variable name="cd_convergence_f" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output=open('output_unstructured.log','a')
+
+a_error = stat("MMS_C_unstructured.stat")["NS"]["AnisoFilterDifference"]["l2norm"][-1]
+b_error = stat("MMS_D_unstructured.stat")["NS"]["AnisoFilterDifference"]["l2norm"][-1]
+
+a_error_inf = stat("MMS_C_unstructured.stat")["NS"]["AnisoFilterDifference"]["max"][-1]
+b_error_inf = stat("MMS_D_unstructured.stat")["NS"]["AnisoFilterDifference"]["max"][-1]
+
+ab_ratio = a_error / b_error
+ab_ratio_inf = a_error_inf / b_error_inf
+
+output.write('cd_convergence_f '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
+output.close()
+
+cd_convergence_f = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+    </variable>
+    <variable name="cd_convergence_if" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output=open('output_unstructured.log','a')
+
+a_error = stat("MMS_C_unstructured.stat")["NS"]["IsoFilterDifference"]["l2norm"][-1]
+b_error = stat("MMS_D_unstructured.stat")["NS"]["IsoFilterDifference"]["l2norm"][-1]
+
+a_error_inf = stat("MMS_C_unstructured.stat")["NS"]["IsoFilterDifference"]["max"][-1]
+b_error_inf = stat("MMS_D_unstructured.stat")["NS"]["IsoFilterDifference"]["max"][-1]
+
+ab_ratio = a_error / b_error
+ab_ratio_inf = a_error_inf / b_error_inf
+
+output.write('cd_convergence_if '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
+output.close()
+
+cd_convergence_if = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+    </variable>
+    <variable name="cd_convergence_mlf" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output=open('output_unstructured.log','a')
+
+a_error = stat("MMS_C_unstructured.stat")["NS"]["MLFilterDifference"]["l2norm"][-1]
+b_error = stat("MMS_D_unstructured.stat")["NS"]["MLFilterDifference"]["l2norm"][-1]
+
+a_error_inf = stat("MMS_C_unstructured.stat")["NS"]["MLFilterDifference"]["max"][-1]
+b_error_inf = stat("MMS_D_unstructured.stat")["NS"]["MLFilterDifference"]["max"][-1]
+
+ab_ratio = a_error / b_error
+ab_ratio_inf = a_error_inf / b_error_inf
+
+output.write('cd_convergence_mlf '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
+output.close()
+
+cd_convergence_mlf = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+    </variable>
+    <variable name="ab_convergence_isocomm" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output1=open('commconv_unstructured.log','w')
+output2=open('commerror_unstructured.log','w')
+
+a_error = stat("MMS_A_unstructured.stat")["NS"]["IsoCommError%magnitude"]["l2norm"][-1]
+b_error = stat("MMS_B_unstructured.stat")["NS"]["IsoCommError%magnitude"]["l2norm"][-1]
+
+a_error_inf = stat("MMS_A_unstructured.stat")["NS"]["IsoCommError%magnitude"]["max"][-1]
+b_error_inf = stat("MMS_B_unstructured.stat")["NS"]["IsoCommError%magnitude"]["max"][-1]
+
+ab_ratio = a_error / b_error
+ab_ratio_inf = a_error_inf / b_error_inf
+
+output1.write('AB_convergence_isocomm '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
+output2.write('A_isocommerror '+str(a_error)+' '+str(a_error_inf)+'\n')
+output1.close()
+output2.close()
+
+ab_convergence_isocomm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+    </variable>
+    <variable name="ab_convergence_anisocomm" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output1=open('commconv_unstructured.log','a')
+output2=open('commerror_unstructured.log','a')
+
+a_error = stat("MMS_A_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["l2norm"][-1]
+b_error = stat("MMS_B_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["l2norm"][-1]
+
+a_error_inf = stat("MMS_A_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["max"][-1]
+b_error_inf = stat("MMS_B_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["max"][-1]
+
+ab_ratio = a_error / b_error
+ab_ratio_inf = a_error_inf / b_error_inf
+
+output1.write('AB_convergence_anisocomm '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
+output2.write('A_anisocommerror '+str(a_error)+' '+str(a_error_inf)+'\n')
+output1.close()
+output2.close()
+
+ab_convergence_anisocomm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+    </variable>
+    <variable name="ab_convergence_mlcomm" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output1=open('commconv_unstructured.log','a')
+output2=open('commerror_unstructured.log','a')
+
+a_error = stat("MMS_A_unstructured.stat")["NS"]["MLCommError%magnitude"]["l2norm"][-1]
+b_error = stat("MMS_B_unstructured.stat")["NS"]["MLCommError%magnitude"]["l2norm"][-1]
+
+a_error_inf = stat("MMS_A_unstructured.stat")["NS"]["MLCommError%magnitude"]["max"][-1]
+b_error_inf = stat("MMS_B_unstructured.stat")["NS"]["MLCommError%magnitude"]["max"][-1]
+
+ab_ratio = a_error / b_error
+ab_ratio_inf = a_error_inf / b_error_inf
+
+output1.write('AB_convergence_mlcomm '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
+output2.write('A_mlcommerror '+str(a_error)+' '+str(a_error_inf)+'\n')
+output1.close()
+output2.close()
+
+ab_convergence_mlcomm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+    </variable>
+    <variable name="bc_convergence_isocomm" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output1=open('commconv_unstructured.log','a')
+output2=open('commerror_unstructured.log','a')
+
+a_error = stat("MMS_B_unstructured.stat")["NS"]["IsoCommError%magnitude"]["l2norm"][-1]
+b_error = stat("MMS_C_unstructured.stat")["NS"]["IsoCommError%magnitude"]["l2norm"][-1]
+
+a_error_inf = stat("MMS_B_unstructured.stat")["NS"]["IsoCommError%magnitude"]["max"][-1]
+b_error_inf = stat("MMS_C_unstructured.stat")["NS"]["IsoCommError%magnitude"]["max"][-1]
+
+ab_ratio = a_error / b_error
+ab_ratio_inf = a_error_inf / b_error_inf
+
+output1.write('BC_convergence_isocomm '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
+output2.write('B_isocommerror '+str(a_error)+' '+str(a_error_inf)+'\n')
+output1.close()
+output2.close()
+
+bc_convergence_isocomm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+    </variable>
+    <variable name="bc_convergence_anisocomm" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output1=open('commconv_unstructured.log','a')
+output2=open('commerror_unstructured.log','a')
+
+a_error = stat("MMS_B_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["l2norm"][-1]
+b_error = stat("MMS_C_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["l2norm"][-1]
+
+a_error_inf = stat("MMS_B_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["max"][-1]
+b_error_inf = stat("MMS_C_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["max"][-1]
+
+ab_ratio = a_error / b_error
+ab_ratio_inf = a_error_inf / b_error_inf
+
+output1.write('BC_convergence_anisocomm '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
+output2.write('B_anisocommerror '+str(a_error)+' '+str(a_error_inf)+'\n')
+output1.close()
+output2.close()
+
+bc_convergence_anisocomm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+    </variable>
+    <variable name="bc_convergence_mlcomm" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output1=open('commconv_unstructured.log','a')
+output2=open('commerror_unstructured.log','a')
+
+a_error = stat("MMS_B_unstructured.stat")["NS"]["MLCommError%magnitude"]["l2norm"][-1]
+b_error = stat("MMS_C_unstructured.stat")["NS"]["MLCommError%magnitude"]["l2norm"][-1]
+
+a_error_inf = stat("MMS_B_unstructured.stat")["NS"]["MLCommError%magnitude"]["max"][-1]
+b_error_inf = stat("MMS_C_unstructured.stat")["NS"]["MLCommError%magnitude"]["max"][-1]
+
+ab_ratio = a_error / b_error
+ab_ratio_inf = a_error_inf / b_error_inf
+
+output1.write('BC_convergence_mlcomm '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
+output2.write('B_mlcommerror '+str(a_error)+' '+str(a_error_inf)+'\n')
+output1.close()
+output2.close()
+
+bc_convergence_mlcomm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+    </variable>
+    <variable name="cd_convergence_isocomm" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output1=open('commconv_unstructured.log','a')
+output2=open('commerror_unstructured.log','a')
+
+a_error = stat("MMS_C_unstructured.stat")["NS"]["IsoCommError%magnitude"]["l2norm"][-1]
+b_error = stat("MMS_D_unstructured.stat")["NS"]["IsoCommError%magnitude"]["l2norm"][-1]
+
+a_error_inf = stat("MMS_C_unstructured.stat")["NS"]["IsoCommError%magnitude"]["max"][-1]
+b_error_inf = stat("MMS_D_unstructured.stat")["NS"]["IsoCommError%magnitude"]["max"][-1]
+
+ab_ratio = a_error / b_error
+ab_ratio_inf = a_error_inf / b_error_inf
+
+output1.write('CD_convergence_isocomm '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
+output2.write('C_isocommerror '+str(a_error)+' '+str(a_error_inf)+'\n')
+output1.close()
+output2.close()
+
+cd_convergence_isocomm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+    </variable>
+    <variable name="cd_convergence_anisocomm" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output1=open('commconv_unstructured.log','a')
+output2=open('commerror_unstructured.log','a')
+
+a_error = stat("MMS_C_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["l2norm"][-1]
+b_error = stat("MMS_D_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["l2norm"][-1]
+
+a_error_inf = stat("MMS_C_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["max"][-1]
+b_error_inf = stat("MMS_D_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["max"][-1]
+
+ab_ratio = a_error / b_error
+ab_ratio_inf = a_error_inf / b_error_inf
+
+output1.write('CD_convergence_anisocomm '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
+output2.write('C_anisocommerror '+str(a_error)+' '+str(a_error_inf)+'\n')
+output1.close()
+output2.close()
+
+cd_convergence_anisocomm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+    </variable>
+    <variable name="cd_convergence_mlcomm" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output1=open('commconv_unstructured.log','a')
+output2=open('commerror_unstructured.log','a')
+
+a_error = stat("MMS_C_unstructured.stat")["NS"]["MLCommError%magnitude"]["l2norm"][-1]
+b_error = stat("MMS_D_unstructured.stat")["NS"]["MLCommError%magnitude"]["l2norm"][-1]
+b2_error = stat("MMS_D_unstructured.stat")["NS"]["IsoCommError%magnitude"]["l2norm"][-1]
+b3_error = stat("MMS_D_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["l2norm"][-1]
+
+a_error_inf = stat("MMS_C_unstructured.stat")["NS"]["MLCommError%magnitude"]["max"][-1]
+b_error_inf = stat("MMS_D_unstructured.stat")["NS"]["MLCommError%magnitude"]["max"][-1]
+b2_error_inf = stat("MMS_D_unstructured.stat")["NS"]["IsoCommError%magnitude"]["max"][-1]
+b3_error_inf = stat("MMS_D_unstructured.stat")["NS"]["AnisoCommError%magnitude"]["max"][-1]
+
+ab_ratio = a_error / b_error
+ab_ratio_inf = a_error_inf / b_error_inf
+
+output1.write('CD_convergence_mlcomm '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
+output2.write('C_mlcommerror '+str(a_error)+' '+str(a_error_inf)+'\n')
+output2.write('D_isocommerror '+str(b2_error)+' '+str(b2_error_inf)+'\n')
+output2.write('D_anisocommerror '+str(b3_error)+' '+str(b3_error_inf)+'\n')
+output2.write('D_mlcommerror '+str(b_error)+' '+str(b_error_inf)+'\n')
+output1.close()
+output2.close()
+
+cd_convergence_mlcomm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="ab_convergence_f: L2 order > 1.6" language="python">
+assert(ab_convergence_f[0] &gt; 1.6)
+    </test>
+    <test name="bc_convergence_f: L2 order > 1.9" language="python">
+assert(bc_convergence_f[0] &gt; 1.9)
+    </test>
+    <test name="cd_convergence_f: L2 order > 1.9" language="python">
+assert(cd_convergence_f[0] &gt; 1.9)
+    </test>
+    <test name="ab_convergence_if: L2 order > 1.7" language="python">
+assert(ab_convergence_if[0] &gt; 1.7)
+    </test>
+    <test name="bc_convergence_if: L2 order > 1.9" language="python">
+assert(bc_convergence_if[0] &gt; 1.9)
+    </test>
+    <test name="cd_convergence_if: L2 order > 1.9" language="python">
+assert(cd_convergence_if[0] &gt; 1.9)
+    </test>
+    <test name="ab_convergence_mlf: L2 order > 1.7" language="python">
+assert(ab_convergence_mlf[0] &gt; 1.7)
+    </test>
+    <test name="bc_convergence_mlf: L2 order > 1.9" language="python">
+assert(bc_convergence_mlf[0] &gt; 1.9)
+    </test>
+    <test name="cd_convergence_mlf: L2 order > 1.9" language="python">
+assert(cd_convergence_mlf[0] &gt; 1.9)
+    </test>
+    <test name="ab_convergence_isocomm: L2 order > 1.3" language="python">
+assert(ab_convergence_isocomm[0] &gt; 1.3)
+    </test>
+    <test name="bc_convergence_isocomm: L2 order > 0.3" language="python">
+assert(bc_convergence_isocomm[0] &gt; 0.3)
+    </test>
+    <test name="cd_convergence_isocomm: L2 order > 1.3" language="python">
+assert(cd_convergence_isocomm[0] &gt; 1.3)
+    </test>
+    <test name="ab_convergence_anisocomm: L2 order > 1.4" language="python">
+assert(ab_convergence_anisocomm[0] &gt; 1.4)
+    </test>
+    <test name="bc_convergence_anisocomm: L2 order > 0.0" language="python">
+assert(bc_convergence_anisocomm[0] &gt; 0.0)
+    </test>
+    <test name="cd_convergence_anisocomm: L2 order > 1.3" language="python">
+assert(cd_convergence_anisocomm[0] &gt; 1.3)
+    </test>
+    <test name="ab_convergence_mlcomm: L2 order > 0.9" language="python">
+assert(ab_convergence_mlcomm[0] &gt; 0.9)
+    </test>
+    <test name="bc_convergence_mlcomm: L2 order > 0.6" language="python">
+assert(bc_convergence_mlcomm[0] &gt; 0.6)
+    </test>
+    <test name="cd_convergence_mlcomm: L2 order > 0.6" language="python">
+assert(cd_convergence_mlcomm[0] &gt; 0.6)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
+
