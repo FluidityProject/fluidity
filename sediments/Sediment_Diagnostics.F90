@@ -561,6 +561,7 @@ contains
     deallocate(diameter) 
     call deallocate(sigma_surface)
     call deallocate(surface_mesh)
+    deallocate(surface_node_list)
     deallocate(surface_ids)
     
   end subroutine calculate_sediment_active_layer_sigma
@@ -724,6 +725,7 @@ contains
 
        call deallocate(volume_fraction_surface)
        call deallocate(surface_mesh)
+       deallocate(surface_node_list)
        deallocate(surface_ids)
        
     end do calculation_loop
