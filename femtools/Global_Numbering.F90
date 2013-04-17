@@ -1244,6 +1244,8 @@ contains
             proc-1, tag, communicator, requests(proc), ierr)
        assert(ierr == MPI_SUCCESS)
 
+       deallocate(send_lists(proc)%ptr)
+
     end do
 
     allocate(visible_elements(nprocs))
