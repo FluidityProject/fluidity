@@ -123,6 +123,12 @@ interpolated for VTK output.</a:documentation>
             </attribute>
           </element>
         </choice>
+        <optional>
+          <element name="output_scalars_fem">
+            <a:documentation>Output FE representation of scalar fields instead of the CV one.</a:documentation>
+            <empty/>
+          </element>
+        </optional>
         <element name="stat">
           <a:documentation>Diagnostic output (.stat file) options</a:documentation>
           <optional>

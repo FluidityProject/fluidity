@@ -1,14 +1,14 @@
 <?xml version='1.0' encoding='utf-8'?>
 <multiphase_options>
   <simulation_name>
-    <string_value lines="1">SodShockTube_P1DGP2_40layers</string_value>
+    <string_value lines="1">SodShockTube_P1DGP2_20layers</string_value>
   </simulation_name>
   <geometry>
     <dimension>
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="2d_mesh_40layers">
+      <from_file file_name="2d_mesh_20layers">
         <format name="triangle"/>
         <stat>
           <include_in_stat/>
@@ -553,7 +553,7 @@
           <python>
             <string_value lines="20" type="code" language="python">def val(X, t):
  if (t&lt;0.24): return 0.
- f = open('sod_shock_tube_40layers.dat', 'r')
+ f = open('sod_shock_tube.dat', 'r')
  for line in f:
   d = line.split()
   d = [float(i) for i in d]
@@ -668,7 +668,7 @@
     </scalar_field>
     <scalar_field name="Speed" rank="0">
       <diagnostic>
-        <algorithm material_phase_support="single" source_field_type="vector" source_field_name="Velocity" name="l2norm"/>
+        <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat/>
@@ -688,7 +688,7 @@
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value type="code" lines="20" language="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
  if (t&lt;0.24): return 0.
  f = open('sod_shock_tube.dat', 'r')
  for line in f:
@@ -706,7 +706,7 @@
     </scalar_field>
     <scalar_field name="SpeedDifference" rank="0">
       <diagnostic>
-        <algorithm name="scalar_difference" source_field_1_name="Speed" source_field_2_name="SpeedReference" source_field_2_type="scalar" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="Speed" source_field_2_name="SpeedReference" material_phase_support="single" source_field_1_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="VelocityMesh"/>

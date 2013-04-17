@@ -1097,20 +1097,29 @@
 !!$ Copying fields back to state:
          call copy_into_state( state, & ! Copying main fields into state
               PhaseVolumeFraction, Temperature, Pressure_CV, Velocity_U, Velocity_V, Velocity_W, &
-!!$              PhaseVolumeFraction, Temperature, Pressure_FEM, Velocity_U, Velocity_V, Velocity_W, &
-              Density, Component, &
-              ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
+              Density, Component, ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
 
 !!$ Calculate diagnostic fields
             call calculate_diagnostic_variables( state, exclude_nonrecalculated = .true. )
             call calculate_diagnostic_variables_new( state, exclude_nonrecalculated = .true. )
 
          Conditional_TimeDump: if( ( mod( itime, dump_period_in_timesteps ) == 0 ) .or. ( itime == 1 ) ) then
+
+            if ( have_option( "/io/output_scalars_fem" ) ) &
+                 call copy_into_state( state, & ! Copying main fields into state
+                 PhaseVolumeFraction_FEMT, Temperature_FEMT, Pressure_FEM, Velocity_U, Velocity_V, Velocity_W, &
+                 Density, Component_FEMT, ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
+
             call get_option( '/timestepping/current_time', current_time ) ! Find the current time 
-!!$ Write stat file
-            call write_diagnostics( state, current_time, dt, itime )
+            call write_diagnostics( state, current_time, dt, itime ) ! Write stat file
             not_to_move_det_yet = .false. ; dump_no = itime ! Sync dump_no with itime
             call write_state( dump_no, state ) ! Now writing into the vtu files
+
+            if ( have_option( "/io/output_scalars_fem" ) ) &
+                 call copy_into_state( state, & ! Copying main fields into state
+                 PhaseVolumeFraction, Temperature, Pressure_CV, Velocity_U, Velocity_V, Velocity_W, &
+                 Density, Component, ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
+
          end if Conditional_TimeDump
 
 !!$! ******************

@@ -4,10 +4,10 @@ SIM = Sod_Shock_Tube_2D
 
 input: clean
 
-	gmsh -2 src/2d_mesh_40layers.geo
+	gmsh -2 src/2d_mesh_20layers.geo
 	gmsh -2 src/2d_mesh_80layers.geo
 
-	../../../scripts/gmsh2triangle --2d src/2d_mesh_40layers.msh
+	../../../scripts/gmsh2triangle --2d src/2d_mesh_20layers.msh
 	../../../scripts/gmsh2triangle --2d src/2d_mesh_80layers.msh
 
 clean:

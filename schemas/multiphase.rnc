@@ -110,6 +110,10 @@ start =
                   attribute name { xsd:string }
                }
             ),
+            ## Output FE representation of scalar fields instead of the CV one.
+            element output_scalars_fem {
+               empty
+            }?,
             ## Diagnostic output (.stat file) options
             element stat {
                ## Enable to write diagnostic output at simulation start
