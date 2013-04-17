@@ -260,7 +260,7 @@ contains
        call deallocate(deposited_sediment(i_field))
        call deallocate(erosion(i_field))
        call deallocate(surface_mesh(i_field))
-       deallocate(surface_nodes(i_field))
+       deallocate(surface_nodes(i_field)%nodes)
 
     end do net_flux_loop
 
