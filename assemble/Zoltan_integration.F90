@@ -153,8 +153,6 @@ module zoltan_integration
     load_imbalance_tolerance = get_load_imbalance_tolerance(final_adapt_iteration)
     call set_zoltan_parameters(final_adapt_iteration, flredecomp, flredecomp_target_procs, load_imbalance_tolerance, zz)
 
-    ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", "1.03"); assert(ierr == ZOLTAN_OK)
-
     zoltan_global_calculated_local_min_quality = .false.
 
     call zoltan_load_balance(zz, changes, num_gid_entries, num_lid_entries, &
