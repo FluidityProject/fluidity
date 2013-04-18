@@ -204,6 +204,7 @@ contains
     
     my_num_edges = sum(num_edges(1:num_obj))
     
+    ewrite(2,*) 'zoltan_global_calculate_edge_weights? ', zoltan_global_calculate_edge_weights
     if (.NOT. zoltan_global_calculate_edge_weights) then
        
        ! Three reasons why we might not want to use edge-weighting:
