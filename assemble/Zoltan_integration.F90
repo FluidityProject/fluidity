@@ -795,6 +795,7 @@ module zoltan_integration
     character (len = 10) :: string_load_imbalance_tolerance
 
     ewrite(1,*) 'in zoltan_load_balance'
+    ewrite(2,*) 'imbalance tolerance set to: ', load_imbalance_tolerance
 
     num_nodes = zoltan_global_zz_halo%nowned_nodes
 
