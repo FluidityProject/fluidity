@@ -1244,8 +1244,6 @@ contains
             proc-1, tag, communicator, requests(proc), ierr)
        assert(ierr == MPI_SUCCESS)
 
-       deallocate(send_lists(proc)%ptr)
-
     end do
 
     allocate(visible_elements(nprocs))
@@ -1309,6 +1307,10 @@ contains
     end do
 
     call flush_lists(visible_elements)
+
+    do proc=1, nprocs
+       deallocate(send_lists(proc)%ptr)
+    end do
 #else
     FLAbort("Communicating halo visibility makes no sense without MPI.")
 #endif
