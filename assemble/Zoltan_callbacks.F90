@@ -203,8 +203,7 @@ contains
     assert(count == num_obj)
     
     my_num_edges = sum(num_edges(1:num_obj))
-    ewgts = 3456789.
-
+    
     ewrite(2,*) 'zoltan_global_calculate_edge_weights? ', zoltan_global_calculate_edge_weights
     if (.NOT. zoltan_global_calculate_edge_weights) then
        
@@ -354,9 +353,9 @@ contains
     if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/dump_edge_weights")) then
        write(filename, '(A,I0,A)') 'edge_weights_', getrank(),'.dat'
        open(666, file = filename)
-       ! do i=1,head-1
-       write(666,*) ewgts
-       ! end do
+       do i=1,head-1
+          write(666,*) ewgts(i)
+       end do
        close(666)
     end if
 
