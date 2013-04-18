@@ -915,6 +915,10 @@ module zoltan_integration
                 ewrite(2,*) 'Tightened load_imbalance_tolerance to ', load_imbalance_tolerance
              end if
           end if
+
+          ierr = Zoltan_LB_Eval(zz, .TRUE.)
+          assert(ierr == ZOLTAN_OK)
+
        end do
     end if
    

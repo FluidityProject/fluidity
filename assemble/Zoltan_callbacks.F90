@@ -328,7 +328,7 @@ contains
     call MPI_ALLREDUCE(my_min_weight,min_weight,1,MPI_REAL,MPI_MIN, MPI_COMM_FEMTOOLS,err)
 
     ! calculate the local 90th percentile edge weight   
-    ninety_weight = max_weight * 0.90
+    ninety_weight = max_weight * 0.60
     
     ! don't want to adjust the weights if all the elements are of a similar quality
     if (min_weight < ninety_weight) then
