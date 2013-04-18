@@ -314,6 +314,30 @@ elements when buoyancy is a discontinuous field.</a:documentation>
     </optional>
     <optional>
       <element name="scalar_field">
+        <a:documentation>Specific heat capacity for compositional field</a:documentation>
+        <attribute name="name">
+          <value>HeatCapacity</value>
+        </attribute>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <choice>
+          <element name="prescribed">
+            <ref name="prescribed_scalar_field_no_adapt"/>
+          </element>
+          <element name="diagnostic">
+            <a:documentation>This only works for traffic modelling</a:documentation>
+            <choice>
+              <ref name="scalar_python_diagnostic_algorithm"/>
+              <ref name="internal_algorithm"/>
+            </choice>
+            <ref name="diagnostic_scalar_field_no_adapt"/>
+          </element>
+        </choice>
+      </element>
+    </optional>
+    <optional>
+      <element name="scalar_field">
         <a:documentation>source term</a:documentation>
         <attribute name="name">
           <value>Source</value>

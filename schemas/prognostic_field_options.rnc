@@ -234,6 +234,24 @@ prognostic_scalar_field =
             }
          )
       }?,
+      ## Specific heat capacity for compositional field
+      element scalar_field {
+         attribute name { "HeatCapacity" },
+         attribute rank { "0" },
+         (
+            element prescribed {
+               prescribed_scalar_field_no_adapt
+            }|
+            ## This only works for traffic modelling
+            element diagnostic {
+               (
+                  scalar_python_diagnostic_algorithm |
+                  internal_algorithm
+               ),
+               diagnostic_scalar_field_no_adapt
+            } 
+         )
+      }?,
       ## source term
       element scalar_field {
          attribute name { "Source" },

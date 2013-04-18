@@ -199,17 +199,17 @@
       real, dimension( : ), intent( inout ) :: DensityComponent_Field, Derivative_DensityComponent_Pressure
       logical, optional :: Single_Component
 !!$ Local variables
-      type( scalar_field ), pointer :: pressure, temperature, density, component
+      type( scalar_field ), pointer :: pressure, temperature, density, component, cp_s
       character( len = option_path_len ) :: option_path_comp, option_path_incomp, option_path_python, &
            option_path_component, option_path, buffer, eos_option_path_tmp
       character( len = python_func_len ) :: pycode
-      integer :: nstates, istate, istate2, ncoef
+      integer :: nstates, istate, istate2, ncoef, stat
       logical, save :: initialised = .false.
       logical :: have_temperature_field, have_component_field
       real, parameter :: toler = 1.0E-10
       real, dimension( : ), allocatable, save :: reference_pressure
       real, dimension( : ), allocatable :: Density_Field, DRho_DPressure, eos_coefs, perturbation_pressure, &
-           DensityPlus, DensityMinus, pressure_back_up, density_back_up, temperature_local
+           DensityPlus, DensityMinus, pressure_back_up, density_back_up, temperature_local, cp
       real :: dt, current_time
       integer :: nphase, ncomp, i
 
@@ -483,9 +483,19 @@
          else
 
             if( have_component_field ) then
-               DensityComponent_Field = DensityComponent_Field + Density_Field * component % val
+
+               cp_s => extract_scalar_field( state( istate2 ), &
+                    'ComponentMassFractionPhase' // int2str( iphase ) // 'HeatCapacity', stat  )
+
+               allocate( cp( node_count( pressure ) ) ) ; cp = 1.
+               if( stat == 0 ) cp = cp_s % val
+
+               DensityComponent_Field = DensityComponent_Field + Density_Field * component % val * cp
                Derivative_DensityComponent_Pressure = Derivative_DensityComponent_Pressure + &
                     DRho_DPressure * component % val
+
+               deallocate( cp )
+
             else
                DensityComponent_Field = Density_Field
                Derivative_DensityComponent_Pressure = DRho_DPressure
