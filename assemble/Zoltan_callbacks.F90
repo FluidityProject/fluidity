@@ -328,14 +328,14 @@ contains
     call MPI_ALLREDUCE(my_min_weight,min_weight,1,MPI_REAL,MPI_MIN, MPI_COMM_FEMTOOLS,err)
 
     ! calculate the local 90th percentile edge weight   
-    ninety_weight = max_weight * 0.60
+    ninety_weight = max_weight * 0.90
     
     ! don't want to adjust the weights if all the elements are of a similar quality
     if (min_weight < ninety_weight) then
        ! make the worst 10% of elements uncuttable
        do i=1,head-1
           if (ewgts(i) .GT. ninety_weight) then
-             ewgts(i) = total_num_edges + 1
+             ewgts(i) = (total_num_edges + 1)
           end if
        end do
     end if
