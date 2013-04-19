@@ -1567,6 +1567,24 @@ Elias et al 2007: "Simple finite element-based computation of distance functions
                       </element>
                     </element>
                   </optional>
+                  <optional>
+                    <element name="scalar_field">
+                      <a:documentation>VLES Filter function (diagnostic).
+Run a VLES by switching this option on.
+If so then filtering is applied to the eddy viscosity.</a:documentation>
+                      <attribute name="rank">
+                        <value>0</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>VLESFilter</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_scalar_field"/>
+                      </element>
+                    </element>
+                  </optional>
                   <element name="C_mu">
                     <a:documentation>Eddy-viscosity coefficient: nu_T = density * C_mu * k**2 / epsilon.
 Recommended value (default): 0.09.</a:documentation>
