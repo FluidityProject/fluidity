@@ -77,11 +77,12 @@
 
   contains
 
-    subroutine fractures( states, totele, ndim, perm )
+    subroutine fractures( states, totele, ndim, perm, porosity )
 
       integer, intent( in ) :: totele, ndim
       type( state_type ), dimension( : ), intent( in ) :: states
       real, dimension( totele, ndim, ndim ), intent( inout ) :: perm
+      real, dimension( totele ), intent( inout ) :: porosity
 
       ewrite(3,*) 'inside fractures'
 
@@ -91,7 +92,8 @@
       ! interpolate conservatively permeability from
       ! the fracture mesh to the prototype mesh
       ! that is interpolate "permeability" to "perm"
-      call interpolate_fractures( states, totele, ndim, perm )
+      ! and also adjust porosity
+      call interpolate_fractures( states, totele, ndim, perm, porosity )
 
       ewrite(3,*) 'leaving fractures'
 
@@ -204,11 +206,12 @@
     end subroutine initialise_fractures
 
 
-    subroutine interpolate_fractures( states, totele, ndim, perm )
+    subroutine interpolate_fractures( states, totele, ndim, perm, porosity )
 
       integer, intent( in ) :: totele, ndim
       type( state_type ), dimension( : ), intent( in ) :: states
       real, dimension( totele, ndim, ndim ), intent( inout ) :: perm
+      real, dimension( totele ), intent( inout ) :: porosity
 
       type( state_type ) :: alg_ext, alg_fl
       type( mesh_type ), pointer :: fl_mesh, p0_fl_mesh

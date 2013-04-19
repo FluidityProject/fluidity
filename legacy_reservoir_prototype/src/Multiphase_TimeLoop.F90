@@ -192,6 +192,8 @@
       real, dimension(:, :), allocatable :: DEN_CV_NOD, SUF_SIG_DIAGTEN_BC
       integer :: CV_NOD, CV_NOD_PHA, CV_ILOC, ELE, s, e, i
 
+      type( scalar_field ), pointer :: cfl
+      real :: c, rc
 
 !!$ Compute primary scalars used in most of the code
       call Get_Primary_Scalars( state, &         
@@ -507,6 +509,7 @@
       Loop_Time: do
 !!$
          itime = itime + 1
+         call get_option( '/timestepping/timestep', dt )
          acctim = acctim + dt
          call set_option( '/timestepping/current_time', acctim )
 
@@ -1511,6 +1514,19 @@
 !!$            !$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
          end if Conditional_ReallocatingFields
+
+!!$ Simple adaptive time stepping algorithm
+         if ( have_option( '/timestepping/adaptive_timestep' ) ) then
+            call get_option( '/timestepping/adaptive_timestep/requested_cfl', rc )
+            c = -66.6
+            do iphase = 1, nphase
+               cfl => extract_scalar_field( state( iphase), 'CFLNumber' )
+               c = max ( c, maxval( cfl % val ) )
+            end do
+            call get_option( '/timestepping/timestep', dt )
+            dt = dt * rc / c
+            call set_option( '/timestepping/timestep', dt )
+         end if
 
       end do Loop_Time
 

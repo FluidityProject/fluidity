@@ -934,7 +934,7 @@
       elseif( have_option( '/porous_media/Permeability_from_femdem' ) ) then
 
 #ifdef USING_FEMDEM
-         call fractures( state, totele, ndim, permeability )
+         call fractures( state, totele, ndim, permeability, porosity )
 #else
          FLAbort( 'You forgot to compile with FEMDEM...' )
 #endif
