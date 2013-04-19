@@ -193,7 +193,7 @@
       integer :: CV_NOD, CV_NOD_PHA, CV_ILOC, ELE, s, e, i
 
       type( scalar_field ), pointer :: cfl
-      real :: c, rc
+      real :: c, rc, maxc
 
 !!$ Compute primary scalars used in most of the code
       call Get_Primary_Scalars( state, &         
@@ -1517,14 +1517,15 @@
 
 !!$ Simple adaptive time stepping algorithm
          if ( have_option( '/timestepping/adaptive_timestep' ) ) then
+            c = -66.6 ; maxc = 66.e6
             call get_option( '/timestepping/adaptive_timestep/requested_cfl', rc )
-            c = -66.6
+            call get_option( '/timestepping/adaptive_timestep/maximum_timestep', maxc, stat )
             do iphase = 1, nphase
                cfl => extract_scalar_field( state( iphase), 'CFLNumber' )
                c = max ( c, maxval( cfl % val ) )
             end do
             call get_option( '/timestepping/timestep', dt )
-            dt = dt * rc / c
+            dt = min( dt * rc / c, maxc )
             call set_option( '/timestepping/timestep', dt )
          end if
 
