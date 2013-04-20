@@ -4,7 +4,7 @@
   <name>p1p1-cg unstructured-mesh inverse Helmholtz filter convergence test</name>
   <owner userid="jbull"/>
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="medium" nprocs="1">
     <command_line>fluidity -v2 -l MMS_A_unstructured.flml &amp;&amp; fluidity MMS_B_unstructured.flml &amp;&amp; fluidity MMS_C_unstructured.flml &amp;&amp; fluidity MMS_D_unstructured.flml</command_line>
   </problem_definition>
   <variables>
