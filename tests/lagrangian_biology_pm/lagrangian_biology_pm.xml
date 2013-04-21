@@ -13,42 +13,42 @@
   <variables>
     <variable name="agent_count_split" language="python">
 from fluidity_tools import stat_parser
-agent_count_split = stat_parser("lagrangian_biology.stat")['Water']['LayeredAgentsSplit']['integral']
+agent_count_split = stat_parser("lagrangian_biology.stat")['Water']['LayeredSplitAgentsStage']['integral']
     </variable>
     <variable name="biomass_split" language="python">
 from fluidity_tools import stat_parser
-biomass_split = stat_parser("lagrangian_biology.stat")['Water']['LayeredEnsembleSizeSplit']['integral']
+biomass_split = stat_parser("lagrangian_biology.stat")['Water']['LayeredSplitEnsembleSize']['integral']
     </variable>
     <variable name="nutrients_split" language="python">
 from fluidity_tools import stat_parser
-nutrients_split = stat_parser("lagrangian_biology.stat")['Water']['LayeredParticulateNutrientSplit']['integral']
+nutrients_split = stat_parser("lagrangian_biology.stat")['Water']['LayeredSplitParticulateNutrient']['integral']
     </variable>
     <variable name="final_agent_sizes_split" language="python">
 from fluidity_tools import stat_parser
 from numpy import array
-s = stat_parser("LayeredSplit.detectors")
-final_agent_sizes_split = array([ s[agent]['Size'][0][-1] for agent in s.keys() ])
+s = stat_parser("LayeredSplitStage.detectors")
+final_agent_sizes_split = array([ s['Size'][agent][-1] for agent in s['Size'].keys() ])
     </variable>
     <variable name="agent_count_merge" language="python">
 from fluidity_tools import stat_parser
-agent_count_merge = stat_parser("lagrangian_biology.stat")['Water']['LayeredAgentsMerge']['integral']
+agent_count_merge = stat_parser("lagrangian_biology.stat")['Water']['LayeredMergeAgentsStage']['integral']
     </variable>
     <variable name="biomass_merge" language="python">
 from fluidity_tools import stat_parser
-biomass_merge = stat_parser("lagrangian_biology.stat")['Water']['LayeredEnsembleSizeMerge']['integral']
+biomass_merge = stat_parser("lagrangian_biology.stat")['Water']['LayeredMergeEnsembleSizeStage']['integral']
     </variable>
     <variable name="nutrients_merge" language="python">
 from fluidity_tools import stat_parser
-nutrients_merge = stat_parser("lagrangian_biology.stat")['Water']['LayeredParticulateNutrientMerge']['integral']
+nutrients_merge = stat_parser("lagrangian_biology.stat")['Water']['LayeredMergeParticulateNutrient']['integral']
     </variable>
     <variable name="final_agent_sizes_merge" language="python">
 from fluidity_tools import stat_parser
 from numpy import array, isnan
-s = stat_parser("LayeredMerge.detectors")
+s = stat_parser("LayeredMergeStage.detectors")
 final_agent_sizes_merge = []
-for agent in s.keys():
-  if not isnan(s[agent]['Size'][0][-1]):
-    final_agent_sizes_merge.append(s[agent]['Size'][0][-1])
+for agent in s['Size'].keys():
+  if not isnan(s['Size'][agent][-1]):
+    final_agent_sizes_merge.append(s['Size'][agent][-1])
 final_agent_sizes_merge=array(final_agent_sizes_merge)  
     </variable>
     <variable name="agent_count_stage_change_start" language="python">
@@ -65,11 +65,11 @@ agent_count_delayed = stat_parser("lagrangian_biology.stat")['Water']['DelayedAg
     </variable>
     <variable name="agent_count_python_split" language="python">
 from fluidity_tools import stat_parser
-agent_count_python_split = stat_parser("lagrangian_biology.stat")['Water']['LayeredPythonAgentsSplit']['integral']
+agent_count_python_split = stat_parser("lagrangian_biology.stat")['Water']['LayeredPythonSplitAgentsStage']['integral']
     </variable>
     <variable name="agent_count_python_merge" language="python">
 from fluidity_tools import stat_parser
-agent_count_python_merge = stat_parser("lagrangian_biology.stat")['Water']['LayeredPythonAgentsMerge']['integral']
+agent_count_python_merge = stat_parser("lagrangian_biology.stat")['Water']['LayeredPythonMergeAgentsStage']['integral']
     </variable>
   </variables>
   <pass_tests>
@@ -104,10 +104,10 @@ assert abs(agent_count_stage_change_start[-1]) &lt; 1.0e-6
 assert abs(agent_count_stage_change_finish[-1] - 50.0) &lt; 1.0e-6
     </test>
     <test name="delayed_final_agent_count" language="python">
-assert abs(agent_count_delayed[-1] - 50.0) &lt; 1.0e-6
+assert abs(agent_count_delayed[-1] - 200.0) &lt; 1.0e-6
     </test>
     <test name="delayed_middle_agent_count" language="python">
-assert abs(agent_count_delayed[-2] - 250.0) &lt; 1.0e-6
+assert abs(agent_count_delayed[-2] ) &lt; 1.0e-6
     </test>
     <test name="final_agent_count_python_split" language="python">
 assert abs(agent_count_python_split[-1] - 75.0).all() &lt; 1.0e-6

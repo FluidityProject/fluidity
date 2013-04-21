@@ -26,6 +26,22 @@
         </stat>
       </from_mesh>
     </mesh>
+    <mesh name="LEBiologyMesh">
+      <from_mesh>
+        <mesh name="VelocityMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">0</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <mesh_continuity>
+          <string_value>discontinuous</string_value>
+        </mesh_continuity>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
     <mesh name="DGMesh">
       <from_mesh>
         <mesh name="VelocityMesh"/>
@@ -90,160 +106,6 @@
       <random_seed>
         <integer_value rank="0">123456789</integer_value>
       </random_seed>
-      <functional_group name="Layered">
-        <variables>
-          <state_variable name="Stage"/>
-          <state_variable name="Size">
-            <scalar_field name="Ensemble">
-              <diagnostic>
-                <algorithm name="Internal" material_phase_support="multiple"/>
-                <output/>
-                <stat/>
-                <detectors>
-                  <include_in_detectors/>
-                </detectors>
-              </diagnostic>
-            </scalar_field>
-            <include_in_io/>
-          </state_variable>
-          <chemical_variable name="Nutrient">
-            <scalar_field name="Particulate">
-              <diagnostic>
-                <algorithm name="Internal" material_phase_support="multiple"/>
-                <output/>
-                <stat/>
-                <detectors>
-                  <include_in_detectors/>
-                </detectors>
-              </diagnostic>
-              <stage_aggregate/>
-            </scalar_field>
-            <include_in_io/>
-          </chemical_variable>
-        </variables>
-        <environment/>
-        <stages>
-          <stage name="Split">
-            <id>
-              <real_value rank="0">1.0</real_value>
-            </id>
-            <initial_state>
-              <number_of_agents>
-                <integer_value rank="0">50</integer_value>
-              </number_of_agents>
-              <position>
-                <string_value lines="20" type="python">def val(t):
-  from numpy import arange
-  # 50 agents, evenly spaced every 2m
-  positions = arange(-99.5,0.,2.).reshape(50,1)
-  return positions</string_value>
-              </position>
-              <biology>
-                <string_value lines="20" type="python">def val(variables):
-  variables['Size'] = 100.0
-  variables['Nutrient'] = 1.0
-  return variables</string_value>
-              </biology>
-            </initial_state>
-            <movement>
-              <subcycles>
-                <integer_value rank="0">1</integer_value>
-              </subcycles>
-              <search_tolerance>
-                <real_value rank="0">1.0e-10</real_value>
-              </search_tolerance>
-              <reflect_on_boundary/>
-            </movement>
-            <biology>
-              <python>
-                <string_value lines="20" type="python">def val(biovars, env, dt):
-  return biovars</string_value>
-              </python>
-            </biology>
-            <particle_management>
-              <period_in_timesteps>
-                <integer_value rank="0">1</integer_value>
-              </period_in_timesteps>
-              <minimum>
-                <constant>
-                  <real_value rank="0">4</real_value>
-                </constant>
-              </minimum>
-              <maximum>
-                <constant>
-                  <real_value rank="0">4</real_value>
-                </constant>
-              </maximum>
-            </particle_management>
-          </stage>
-          <stage name="Merge">
-            <id>
-              <real_value rank="0">2.0</real_value>
-            </id>
-            <initial_state>
-              <number_of_agents>
-                <integer_value rank="0">200</integer_value>
-              </number_of_agents>
-              <position>
-                <string_value lines="20" type="python">def val(t):
-  from numpy import arange, concatenate
-  # 200 agents, 4 per element, evenly spaced every 2m
-  positions = arange(-99.5,0.,2.)#.reshape(50,1)
-  positions = concatenate((positions, arange(-99.5,0.,2.)), axis=0)
-  positions = concatenate((positions, arange(-99.5,0.,2.)), axis=0)
-  positions = concatenate((positions, arange(-99.5,0.,2.)), axis=0)
-  return positions.reshape(200,1)</string_value>
-              </position>
-              <biology>
-                <string_value lines="20" type="python">def val(variables):
-  variables['Size'] = 25.0
-  variables['Nutrient'] = 1.0
-  return variables</string_value>
-              </biology>
-            </initial_state>
-            <movement>
-              <subcycles>
-                <integer_value rank="0">1</integer_value>
-              </subcycles>
-              <search_tolerance>
-                <real_value rank="0">1.0e-10</real_value>
-              </search_tolerance>
-              <reflect_on_boundary/>
-            </movement>
-            <biology>
-              <python>
-                <string_value lines="20" type="python">def val(biovars, env, dt):
-  return biovars</string_value>
-              </python>
-            </biology>
-            <particle_management>
-              <period_in_timesteps>
-                <integer_value rank="0">1</integer_value>
-              </period_in_timesteps>
-              <minimum>
-                <constant>
-                  <real_value rank="0">1</real_value>
-                </constant>
-              </minimum>
-              <maximum>
-                <constant>
-                  <real_value rank="0">1</real_value>
-                </constant>
-              </maximum>
-            </particle_management>
-          </stage>
-        </stages>
-        <scalar_field name="Agents">
-          <diagnostic>
-            <algorithm name="Internal" material_phase_support="multiple"/>
-            <output/>
-            <stat/>
-            <detectors>
-              <include_in_detectors/>
-            </detectors>
-          </diagnostic>
-        </scalar_field>
-      </functional_group>
       <functional_group name="StageChange">
         <variables>
           <state_variable name="Stage"/>
@@ -251,98 +113,82 @@
             <scalar_field name="Ensemble">
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="LEBiologyMesh"/>
                 <output/>
                 <stat/>
-                <detectors>
-                  <include_in_detectors/>
-                </detectors>
+                <do_not_recalculate/>
+                <galerkin_projection>
+                  <discontinuous/>
+                </galerkin_projection>
               </diagnostic>
+              <stage_diagnostic/>
             </scalar_field>
           </state_variable>
         </variables>
-        <environment/>
-        <stages>
-          <stage name="Start">
-            <id>
-              <real_value rank="0">3.0</real_value>
-            </id>
-            <initial_state>
-              <number_of_agents>
-                <integer_value rank="0">50</integer_value>
-              </number_of_agents>
-              <position>
-                <string_value lines="20" type="python">def val(t):
+        <initial_state>
+          <number_of_agents>
+            <integer_value rank="0">50</integer_value>
+          </number_of_agents>
+          <position>
+            <string_value lines="20" type="code" language="python">def val(t):
   from numpy import arange
   # 50 agents, evenly spaced every 2m
   positions = arange(-99.5,0.,2.).reshape(50,1)
   return positions</string_value>
-              </position>
-              <biology>
-                <string_value lines="20" type="python">def val(variables):
+          </position>
+          <biology>
+            <string_value lines="20" type="code" language="python">from lebiology import stage_id
+
+def val(variables):
+  variables['Stage'] = stage_id('StageChange', 'Start')
   variables['Size'] = 100.0
   return variables</string_value>
-              </biology>
-            </initial_state>
-            <movement>
-              <subcycles>
-                <integer_value rank="0">1</integer_value>
-              </subcycles>
-              <search_tolerance>
-                <real_value rank="0">1.0e-10</real_value>
-              </search_tolerance>
-              <reflect_on_boundary/>
-            </movement>
+          </biology>
+        </initial_state>
+        <movement>
+          <subcycles>
+            <integer_value rank="0">1</integer_value>
+          </subcycles>
+          <search_tolerance>
+            <real_value rank="0">1.0e-10</real_value>
+          </search_tolerance>
+          <reflect_on_boundary/>
+          <parametric_guided_search/>
+        </movement>
+        <environment/>
+        <stages>
+          <stage name="Start">
             <biology>
               <python>
-                <string_value lines="20" type="python">def val(biovars, env, dt):
-  biovars['Stage'] = 4.0
-  return biovars</string_value>
+                <string_value lines="20" type="code" language="python">from lebiology import stage_id
+
+def val(agent, env, dt):
+  agent['Stage'] = stage_id('StageChange', 'Finish')
+  return agent</string_value>
               </python>
             </biology>
+            <disable_io/>
           </stage>
           <stage name="Finish">
-            <id>
-              <real_value rank="0">4.0</real_value>
-            </id>
-            <initial_state>
-              <number_of_agents>
-                <integer_value rank="0">0</integer_value>
-              </number_of_agents>
-              <position>
-                <string_value lines="20" type="python">def val(t):
-  return []</string_value>
-              </position>
-              <biology>
-                <string_value lines="20" type="python">def val(variables):
-  variables['Size'] = 100.0
-  return variables</string_value>
-              </biology>
-            </initial_state>
-            <movement>
-              <subcycles>
-                <integer_value rank="0">1</integer_value>
-              </subcycles>
-              <search_tolerance>
-                <real_value rank="0">1.0e-10</real_value>
-              </search_tolerance>
-              <reflect_on_boundary/>
-            </movement>
             <biology>
               <python>
-                <string_value lines="20" type="python">def val(biovars, env, dt):
+                <string_value lines="20" type="code" language="python">def val(biovars, env, dt):
   return biovars</string_value>
               </python>
             </biology>
+            <disable_io/>
           </stage>
         </stages>
         <scalar_field name="Agents">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="LEBiologyMesh"/>
             <output/>
             <stat/>
-            <detectors>
-              <include_in_detectors/>
-            </detectors>
+            <do_not_recalculate/>
+            <galerkin_projection>
+              <discontinuous/>
+            </galerkin_projection>
           </diagnostic>
         </scalar_field>
       </functional_group>
@@ -353,28 +199,25 @@
             <scalar_field name="Ensemble">
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="LEBiologyMesh"/>
                 <output/>
                 <stat/>
-                <detectors>
-                  <include_in_detectors/>
-                </detectors>
+                <do_not_recalculate/>
+                <galerkin_projection>
+                  <discontinuous/>
+                </galerkin_projection>
               </diagnostic>
+              <stage_diagnostic/>
             </scalar_field>
           </state_variable>
           <state_variable name="ChangeControl"/>
         </variables>
-        <environment/>
-        <stages>
-          <stage name="Source">
-            <id>
-              <real_value rank="0">5.0</real_value>
-            </id>
-            <initial_state>
-              <number_of_agents>
-                <integer_value rank="0">200</integer_value>
-              </number_of_agents>
-              <position>
-                <string_value lines="20" type="python">def val(t):
+        <initial_state>
+          <number_of_agents>
+            <integer_value rank="0">200</integer_value>
+          </number_of_agents>
+          <position>
+            <string_value lines="20" type="code" language="python">def val(t):
   from numpy import arange, concatenate
   # 200 agents, 4 per element, evenly spaced every 2m
   positions = arange(-99.5,0.,2.)#.reshape(50,1)
@@ -382,69 +225,49 @@
   positions = concatenate((positions, arange(-99.5,0.,2.)), axis=0)
   positions = concatenate((positions, arange(-99.5,0.,2.)), axis=0)
   return positions.reshape(200,1)</string_value>
-              </position>
-              <biology>
-                <string_value lines="20" type="python">def val(variables):
+          </position>
+          <biology>
+            <string_value lines="20" type="code" language="python">from lebiology import stage_id
+
+def val(variables):
+  variables['Stage'] = stage_id('Delayed', 'Source')
   variables['Size'] = 100.0
   variables['ChangeControl'] = 0.0
   return variables</string_value>
-              </biology>
-            </initial_state>
-            <movement>
-              <subcycles>
-                <integer_value rank="0">1</integer_value>
-              </subcycles>
-              <search_tolerance>
-                <real_value rank="0">1.0e-10</real_value>
-              </search_tolerance>
-              <reflect_on_boundary/>
-            </movement>
+          </biology>
+        </initial_state>
+        <movement>
+          <subcycles>
+            <integer_value rank="0">1</integer_value>
+          </subcycles>
+          <search_tolerance>
+            <real_value rank="0">1.0e-10</real_value>
+          </search_tolerance>
+          <reflect_on_boundary/>
+          <parametric_guided_search/>
+        </movement>
+        <environment/>
+        <stages>
+          <stage name="Source">
             <biology>
               <python>
-                <string_value lines="20" type="python">def val(variables, env, dt):
+                <string_value lines="20" type="code" language="python">from lebiology import stage_id
+
+def val(variables, env, dt):
   variables['Size'] = 100.0
-  variables['ChangeControl'] = variables['ChangeControl'] + 1.0
+  variables['ChangeControl'] += 1.0
   # during the second timestep, switch to stage 'Target'
-  if variables['ChangeControl'] == 2.0:
-    variables['Stage'] = 6.0 
+  if variables['ChangeControl'] == 3.0:
+    variables['Stage'] = stage_id('Delayed', 'Target') 
   return variables</string_value>
               </python>
             </biology>
+            <disable_io/>
           </stage>
           <stage name="Target">
-            <id>
-              <real_value rank="0">6.0</real_value>
-            </id>
-            <initial_state>
-              <number_of_agents>
-                <integer_value rank="0">50</integer_value>
-              </number_of_agents>
-              <position>
-                <string_value lines="20" type="python">def val(t):
-  from numpy import arange
-  # 50 agents, evenly spaced every 2m
-  positions = arange(-99.5,0.,2.).reshape(50,1)
-  return positions</string_value>
-              </position>
-              <biology>
-                <string_value lines="20" type="python">def val(variables):
-  variables['Size'] = 100.0
-  variables['ChangeControl'] = 0.0
-  return variables</string_value>
-              </biology>
-            </initial_state>
-            <movement>
-              <subcycles>
-                <integer_value rank="0">1</integer_value>
-              </subcycles>
-              <search_tolerance>
-                <real_value rank="0">1.0e-10</real_value>
-              </search_tolerance>
-              <reflect_on_boundary/>
-            </movement>
             <biology>
               <python>
-                <string_value lines="20" type="python">def val(variables, env, dt):
+                <string_value lines="20" type="code" language="python">def val(variables, env, dt):
   return variables</string_value>
               </python>
             </biology>
@@ -452,116 +275,192 @@
               <period_in_timesteps>
                 <integer_value rank="0">3</integer_value>
               </period_in_timesteps>
-              <minimum>
-                <constant>
-                  <real_value rank="0">1</real_value>
-                </constant>
-              </minimum>
-              <maximum>
-                <constant>
-                  <real_value rank="0">1</real_value>
-                </constant>
-              </maximum>
             </particle_management>
+            <disable_io/>
           </stage>
         </stages>
         <scalar_field name="Agents">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="LEBiologyMesh"/>
             <output/>
             <stat/>
-            <detectors>
-              <include_in_detectors/>
-            </detectors>
+            <do_not_recalculate/>
+            <galerkin_projection>
+              <discontinuous/>
+            </galerkin_projection>
           </diagnostic>
         </scalar_field>
       </functional_group>
-      <functional_group name="LayeredPython">
+      <functional_group name="LayeredSplit">
         <variables>
           <state_variable name="Stage"/>
           <state_variable name="Size">
             <scalar_field name="Ensemble">
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="LEBiologyMesh"/>
                 <output/>
                 <stat/>
-                <detectors>
-                  <include_in_detectors/>
-                </detectors>
+                <do_not_recalculate/>
+                <galerkin_projection>
+                  <discontinuous/>
+                </galerkin_projection>
+              </diagnostic>
+              <stage_diagnostic/>
+            </scalar_field>
+            <include_in_io/>
+          </state_variable>
+          <chemical_variable name="Nutrient">
+            <scalar_field name="Particulate">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="LEBiologyMesh"/>
+                <output/>
+                <stat/>
+                <do_not_recalculate/>
+                <galerkin_projection>
+                  <discontinuous/>
+                </galerkin_projection>
               </diagnostic>
             </scalar_field>
-          </state_variable>
+            <include_in_io/>
+          </chemical_variable>
         </variables>
-        <environment/>
-        <stages>
-          <stage name="Split">
-            <id>
-              <real_value rank="0">7.0</real_value>
-            </id>
-            <initial_state>
-              <number_of_agents>
-                <integer_value rank="0">50</integer_value>
-              </number_of_agents>
-              <position>
-                <string_value lines="20" type="python">def val(t):
+        <initial_state>
+          <number_of_agents>
+            <integer_value rank="0">50</integer_value>
+          </number_of_agents>
+          <position>
+            <string_value lines="20" type="code" language="python">def val(t):
   from numpy import arange
   # 50 agents, evenly spaced every 2m
   positions = arange(-99.5,0.,2.).reshape(50,1)
   return positions</string_value>
-              </position>
-              <biology>
-                <string_value lines="20" type="python">def val(variables):
-  variables['Size'] = 100.0
-  variables['Nutrient'] = 1.0
-  return variables</string_value>
-              </biology>
-            </initial_state>
-            <movement>
-              <subcycles>
-                <integer_value rank="0">1</integer_value>
-              </subcycles>
-              <search_tolerance>
-                <real_value rank="0">1.0e-10</real_value>
-              </search_tolerance>
-              <reflect_on_boundary/>
-            </movement>
+          </position>
+          <biology>
+            <string_value lines="20" type="code" language="python">from lebiology import stage_id
+
+def val(agent):
+  agent['Stage'] = stage_id('LayeredSplit', 'Stage')
+  agent['Size'] = 100.0
+  agent['Nutrient'] = 1.0
+  return agent</string_value>
+          </biology>
+        </initial_state>
+        <movement>
+          <subcycles>
+            <integer_value rank="0">1</integer_value>
+          </subcycles>
+          <search_tolerance>
+            <real_value rank="0">1.0e-10</real_value>
+          </search_tolerance>
+          <reflect_on_boundary/>
+          <parametric_guided_search/>
+        </movement>
+        <environment/>
+        <stages>
+          <stage name="Stage">
             <biology>
               <python>
-                <string_value type="python" lines="20">def val(variables, env, dt):
-  return variables</string_value>
+                <string_value lines="20" type="code" language="python">def val(agent, env, dt):
+  return agent</string_value>
               </python>
             </biology>
             <particle_management>
               <period_in_timesteps>
                 <integer_value rank="0">1</integer_value>
               </period_in_timesteps>
-              <minimum>
-                <python>
-                  <string_value type="python" lines="20">from __builtin__ import abs
-def val(X):
-  minimum = 1
-  if (abs(X[0]) &gt; 50.):
-    minimum = 2
-  return minimum</string_value>
-                </python>
-              </minimum>
-              <maximum>
-                <constant>
-                  <real_value rank="0">2</real_value>
-                </constant>
-              </maximum>
+              <scalar_field name="AgentsMin">
+                <prescribed>
+                  <mesh name="LEBiologyMesh"/>
+                  <value name="WholeMesh">
+                    <constant>
+                      <real_value rank="0">4</real_value>
+                    </constant>
+                  </value>
+                  <output/>
+                  <stat/>
+                  <detectors>
+                    <exclude_from_detectors/>
+                  </detectors>
+                </prescribed>
+              </scalar_field>
+              <scalar_field name="AgentsMax">
+                <prescribed>
+                  <mesh name="LEBiologyMesh"/>
+                  <value name="WholeMesh">
+                    <constant>
+                      <real_value rank="0">4</real_value>
+                    </constant>
+                  </value>
+                  <output/>
+                  <stat/>
+                  <detectors>
+                    <exclude_from_detectors/>
+                  </detectors>
+                </prescribed>
+              </scalar_field>
             </particle_management>
+            <io_period>
+              <real_value rank="0">1</real_value>
+            </io_period>
           </stage>
-          <stage name="Merge">
-            <id>
-              <real_value rank="0">8.0</real_value>
-            </id>
-            <initial_state>
-              <number_of_agents>
-                <integer_value rank="0">200</integer_value>
-              </number_of_agents>
-              <position>
-                <string_value lines="20" type="python">def val(t):
+        </stages>
+        <scalar_field name="Agents">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="LEBiologyMesh"/>
+            <output/>
+            <stat/>
+            <do_not_recalculate/>
+            <galerkin_projection>
+              <discontinuous/>
+            </galerkin_projection>
+          </diagnostic>
+        </scalar_field>
+      </functional_group>
+      <functional_group name="LayeredMerge">
+        <variables>
+          <state_variable name="Stage"/>
+          <state_variable name="Size">
+            <scalar_field name="Ensemble">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="LEBiologyMesh"/>
+                <output/>
+                <stat/>
+                <do_not_recalculate/>
+                <galerkin_projection>
+                  <discontinuous/>
+                </galerkin_projection>
+              </diagnostic>
+              <stage_diagnostic/>
+            </scalar_field>
+            <include_in_io/>
+          </state_variable>
+          <chemical_variable name="Nutrient">
+            <scalar_field name="Particulate">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="LEBiologyMesh"/>
+                <output/>
+                <stat/>
+                <do_not_recalculate/>
+                <galerkin_projection>
+                  <discontinuous/>
+                </galerkin_projection>
+              </diagnostic>
+            </scalar_field>
+            <include_in_io/>
+          </chemical_variable>
+        </variables>
+        <initial_state>
+          <number_of_agents>
+            <integer_value rank="0">200</integer_value>
+          </number_of_agents>
+          <position>
+            <string_value lines="20" type="code" language="python">def val(t):
   from numpy import arange, concatenate
   # 200 agents, 4 per element, evenly spaced every 2m
   positions = arange(-99.5,0.,2.)#.reshape(50,1)
@@ -569,59 +468,321 @@ def val(X):
   positions = concatenate((positions, arange(-99.5,0.,2.)), axis=0)
   positions = concatenate((positions, arange(-99.5,0.,2.)), axis=0)
   return positions.reshape(200,1)</string_value>
-              </position>
-              <biology>
-                <string_value lines="20" type="python">def val(variables):
-  variables['Size'] = 25.0
-  variables['Nutrient'] = 1.0
-  return variables</string_value>
-              </biology>
-            </initial_state>
-            <movement>
-              <subcycles>
-                <integer_value rank="0">1</integer_value>
-              </subcycles>
-              <search_tolerance>
-                <real_value rank="0">1.0e-10</real_value>
-              </search_tolerance>
-              <reflect_on_boundary/>
-            </movement>
+          </position>
+          <biology>
+            <string_value lines="20" type="code" language="python">from lebiology import stage_id
+
+def val(agent):
+  agent['Stage'] = stage_id('LayeredMerge', 'Stage')
+  agent['Size'] = 25.0
+  agent['Nutrient'] = 1.0
+  return agent</string_value>
+          </biology>
+        </initial_state>
+        <movement>
+          <subcycles>
+            <integer_value rank="0">1</integer_value>
+          </subcycles>
+          <search_tolerance>
+            <real_value rank="0">1.0e-10</real_value>
+          </search_tolerance>
+          <reflect_on_boundary/>
+          <parametric_guided_search/>
+        </movement>
+        <environment/>
+        <stages>
+          <stage name="Stage">
             <biology>
               <python>
-                <string_value type="python" lines="20">def val(variables, env, dt):
-  return variables</string_value>
+                <string_value lines="20" type="code" language="python">def val(agent, env, dt):
+  return agent</string_value>
               </python>
             </biology>
             <particle_management>
               <period_in_timesteps>
                 <integer_value rank="0">1</integer_value>
               </period_in_timesteps>
-              <minimum>
-                <constant>
-                  <real_value rank="0">1</real_value>
-                </constant>
-              </minimum>
-              <maximum>
-                <python>
-                  <string_value type="python" lines="20">from __builtin__ import abs
-def val(X):
-  maximum = 4
-  if (abs(X[0]) &gt; 50.):
-    maximum = 1
-  return maximum</string_value>
-                </python>
-              </maximum>
+              <scalar_field name="AgentsMin">
+                <prescribed>
+                  <mesh name="LEBiologyMesh"/>
+                  <value name="WholeMesh">
+                    <constant>
+                      <real_value rank="0">1</real_value>
+                    </constant>
+                  </value>
+                  <output/>
+                  <stat/>
+                  <detectors>
+                    <exclude_from_detectors/>
+                  </detectors>
+                </prescribed>
+              </scalar_field>
+              <scalar_field name="AgentsMax">
+                <prescribed>
+                  <mesh name="LEBiologyMesh"/>
+                  <value name="WholeMesh">
+                    <constant>
+                      <real_value rank="0">1</real_value>
+                    </constant>
+                  </value>
+                  <output/>
+                  <stat/>
+                  <detectors>
+                    <exclude_from_detectors/>
+                  </detectors>
+                </prescribed>
+              </scalar_field>
             </particle_management>
+            <io_period>
+              <real_value rank="0">1</real_value>
+            </io_period>
           </stage>
         </stages>
         <scalar_field name="Agents">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="LEBiologyMesh"/>
             <output/>
             <stat/>
-            <detectors>
-              <include_in_detectors/>
-            </detectors>
+            <do_not_recalculate/>
+            <galerkin_projection>
+              <discontinuous/>
+            </galerkin_projection>
+          </diagnostic>
+        </scalar_field>
+      </functional_group>
+      <functional_group name="LayeredPythonSplit">
+        <variables>
+          <state_variable name="Stage"/>
+          <state_variable name="Size">
+            <scalar_field name="Ensemble">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="LEBiologyMesh"/>
+                <output/>
+                <stat/>
+                <do_not_recalculate/>
+                <galerkin_projection>
+                  <discontinuous/>
+                </galerkin_projection>
+              </diagnostic>
+              <stage_diagnostic/>
+            </scalar_field>
+          </state_variable>
+        </variables>
+        <initial_state>
+          <number_of_agents>
+            <integer_value rank="0">50</integer_value>
+          </number_of_agents>
+          <position>
+            <string_value lines="20" type="code" language="python">def val(t):
+  from numpy import arange
+  # 50 agents, evenly spaced every 2m
+  positions = arange(-99.5,0.,2.).reshape(50,1)
+  return positions</string_value>
+          </position>
+          <biology>
+            <string_value lines="20" type="code" language="python">from lebiology import stage_id
+
+def val(agent):
+  agent['Stage'] = stage_id('LayeredPythonSplit', 'Stage')
+  agent['Size'] = 100.0
+  agent['Nutrient'] = 1.0
+  return agent</string_value>
+          </biology>
+        </initial_state>
+        <movement>
+          <subcycles>
+            <integer_value rank="0">1</integer_value>
+          </subcycles>
+          <search_tolerance>
+            <real_value rank="0">1.0e-10</real_value>
+          </search_tolerance>
+          <reflect_on_boundary/>
+          <parametric_guided_search/>
+        </movement>
+        <environment/>
+        <stages>
+          <stage name="Stage">
+            <biology>
+              <python>
+                <string_value lines="20" type="code" language="python">def val(agent, env, dt):
+  return agent</string_value>
+              </python>
+            </biology>
+            <particle_management>
+              <period_in_timesteps>
+                <integer_value rank="0">1</integer_value>
+              </period_in_timesteps>
+              <scalar_field name="AgentsMin">
+                <prescribed>
+                  <mesh name="LEBiologyMesh"/>
+                  <value name="WholeMesh">
+                    <python>
+                      <string_value lines="20" type="code" language="python">from __builtin__ import abs
+def val(X,t):
+  minimum = 1
+  if (abs(X[0]) &gt; 50.):
+    minimum = 2
+  return minimum</string_value>
+                    </python>
+                  </value>
+                  <output/>
+                  <stat/>
+                  <detectors>
+                    <exclude_from_detectors/>
+                  </detectors>
+                </prescribed>
+              </scalar_field>
+              <scalar_field name="AgentsMax">
+                <prescribed>
+                  <mesh name="LEBiologyMesh"/>
+                  <value name="WholeMesh">
+                    <constant>
+                      <real_value rank="0">2</real_value>
+                    </constant>
+                  </value>
+                  <output/>
+                  <stat/>
+                  <detectors>
+                    <exclude_from_detectors/>
+                  </detectors>
+                </prescribed>
+              </scalar_field>
+            </particle_management>
+            <io_period>
+              <real_value rank="0">1</real_value>
+            </io_period>
+          </stage>
+        </stages>
+        <scalar_field name="Agents">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="LEBiologyMesh"/>
+            <output/>
+            <stat/>
+            <do_not_recalculate/>
+            <galerkin_projection>
+              <discontinuous/>
+            </galerkin_projection>
+          </diagnostic>
+        </scalar_field>
+      </functional_group>
+      <functional_group name="LayeredPythonMerge">
+        <variables>
+          <state_variable name="Stage"/>
+          <state_variable name="Size">
+            <scalar_field name="Ensemble">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="LEBiologyMesh"/>
+                <output/>
+                <stat/>
+                <do_not_recalculate/>
+                <galerkin_projection>
+                  <discontinuous/>
+                </galerkin_projection>
+              </diagnostic>
+              <stage_diagnostic/>
+            </scalar_field>
+          </state_variable>
+        </variables>
+        <initial_state>
+          <number_of_agents>
+            <integer_value rank="0">200</integer_value>
+          </number_of_agents>
+          <position>
+            <string_value lines="20" type="code" language="python">def val(t):
+  from numpy import arange, concatenate
+  # 200 agents, 4 per element, evenly spaced every 2m
+  positions = arange(-99.5,0.,2.)#.reshape(50,1)
+  positions = concatenate((positions, arange(-99.5,0.,2.)), axis=0)
+  positions = concatenate((positions, arange(-99.5,0.,2.)), axis=0)
+  positions = concatenate((positions, arange(-99.5,0.,2.)), axis=0)
+  return positions.reshape(200,1)</string_value>
+          </position>
+          <biology>
+            <string_value lines="20" type="code" language="python">from lebiology import stage_id
+
+def val(agent):
+  agent['Stage'] = stage_id('LayeredPythonMerge', 'Stage')
+  agent['Size'] = 25.0
+  agent['Nutrient'] = 1.0
+  return agent</string_value>
+          </biology>
+        </initial_state>
+        <movement>
+          <subcycles>
+            <integer_value rank="0">1</integer_value>
+          </subcycles>
+          <search_tolerance>
+            <real_value rank="0">1.0e-10</real_value>
+          </search_tolerance>
+          <reflect_on_boundary/>
+          <parametric_guided_search/>
+        </movement>
+        <environment/>
+        <stages>
+          <stage name="Stage">
+            <biology>
+              <python>
+                <string_value lines="20" type="code" language="python">def val(agent, env, dt):
+  return agent</string_value>
+              </python>
+            </biology>
+            <particle_management>
+              <period_in_timesteps>
+                <integer_value rank="0">1</integer_value>
+              </period_in_timesteps>
+              <scalar_field name="AgentsMin">
+                <prescribed>
+                  <mesh name="LEBiologyMesh"/>
+                  <value name="WholeMesh">
+                    <constant>
+                      <real_value rank="0">1</real_value>
+                    </constant>
+                  </value>
+                  <output/>
+                  <stat/>
+                  <detectors>
+                    <exclude_from_detectors/>
+                  </detectors>
+                </prescribed>
+              </scalar_field>
+              <scalar_field name="AgentsMax">
+                <prescribed>
+                  <mesh name="LEBiologyMesh"/>
+                  <value name="WholeMesh">
+                    <python>
+                      <string_value lines="20" type="code" language="python">from __builtin__ import abs
+def val(X,t):
+  maximum = 4
+  if (abs(X[0]) &gt; 50.):
+    maximum = 1
+  return maximum</string_value>
+                    </python>
+                  </value>
+                  <output/>
+                  <stat/>
+                  <detectors>
+                    <exclude_from_detectors/>
+                  </detectors>
+                </prescribed>
+              </scalar_field>
+            </particle_management>
+            <disable_io/>
+          </stage>
+        </stages>
+        <scalar_field name="Agents">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="LEBiologyMesh"/>
+            <output/>
+            <stat/>
+            <do_not_recalculate/>
+            <galerkin_projection>
+              <discontinuous/>
+            </galerkin_projection>
           </diagnostic>
         </scalar_field>
       </functional_group>
