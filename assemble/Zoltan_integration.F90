@@ -683,7 +683,7 @@ module zoltan_integration
     ! this value is only used if parmetis is enabled
     ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", trim(parmetis_method)); assert(ierr == ZOLTAN_OK)
     ! this defines the partitioning scheme
-    ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
+    ierr = Zoltan_Set_Param(zz, "LB_APPROACH", trim(lb_approach)); assert(ierr == ZOLTAN_OK)
 
     ierr = Zoltan_Set_Param(zz, "NUM_GID_ENTRIES", "1"); assert(ierr == ZOLTAN_OK)
     ierr = Zoltan_Set_Param(zz, "NUM_LID_ENTRIES", "1"); assert(ierr == ZOLTAN_OK)
