@@ -1068,6 +1068,19 @@ and can produce non-contiguous partitions for certain problems.</a:documentation
                   </element>
                 </element>
               </choice>
+              <optional>
+                <element name="lb_approach">
+                  <a:documentation>Choose whether to repartition or partition the mesh at each adapt iteration.
+Repartitioning results in a smaller amount of data migration between processes
+and hence is cheaper, but this can result in locked-nodes. The default option is
+to repartition the mesh each iteration and then full ypartition the mesh on the 
+final iteration to create a well balanced mesh.</a:documentation>
+                  <choice>
+                    <value>repartition</value>
+                    <value>partition</value>
+                  </choice>
+                </element>
+              </optional>
             </element>
           </optional>
           <optional>
@@ -1099,6 +1112,19 @@ and can produce non-contiguous partitions for certain problems.</a:documentation
                   </element>
                 </element>
               </choice>
+              <optional>
+                <element name="lb_approach">
+                  <a:documentation>Choose whether to repartition or partition the mesh at each the final adapt iteration.
+Repartitioning results in a smaller amount of data migration between processes
+and hence is cheaper, but this can result in locked-nodes. The default option is
+to repartition the mesh each iteration and then full ypartition the mesh on the 
+final iteration to create a well balanced mesh.</a:documentation>
+                  <choice>
+                    <value>partition</value>
+                    <value>repartition</value>
+                  </choice>
+                </element>
+              </optional>
             </element>
           </optional>
           <optional>
@@ -1122,7 +1148,17 @@ A high value for this parameter (~1.5) could see Zoltan produce poorer partition
 but be able to move the partition boundaries easier to allow adaption. For some 
 problems where the partitioner creates empty partitions lowering this (~1.075) will
 force Zoltan to create more evenly balanced partitions (no empty ones) but may
-require more adapt iterations to produce a fully adapted final mesh.</a:documentation>
+require more adapt iterations to produce a fully adapted final mesh. The default value is 1.5.</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="final_partition_load_imbalance_tolerance">
+              <a:documentation>Load imbalance tolerance.
+The amount of load imbalance the partitioning algorithm should deem acceptable on the 
+final adapt iteration. It is assumed that the mesh is well adapted by the final partition
+and hence we no longer worry about locked nodes. The aim is to achieve a well balanced partition.
+A low value is recommended. The default value is 1.03.</a:documentation>
               <ref name="real"/>
             </element>
           </optional>
@@ -1230,6 +1266,14 @@ Here we dump the size calculated by zoltan_cb_pack_field_sizes for each
 owned node.
 Dump is to the current directory, in a file called field_sizes_*.dat
 One dump file is created for each rank.</a:documentation>
+                  <empty/>
+                </element>
+              </optional>
+              <optional>
+                <element name="lb_eval">
+                  <a:documentation>Call LB_EVAL and print output.
+This prints statistics such on the load balance achieved, and the sum of cut edges
+and weighted cut edges. It also details the settings used by the partitioner.</a:documentation>
                   <empty/>
                 </element>
               </optional>

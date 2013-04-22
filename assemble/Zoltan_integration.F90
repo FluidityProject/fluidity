@@ -491,24 +491,24 @@ module zoltan_integration
   end subroutine setup_quality_module_variables
 
   function get_load_imbalance_tolerance(final_adapt_iteration) result(load_imbalance_tolerance)
-    logical, intent(in) :: final_adapt_iteration    
- 
-    real, parameter :: default_load_imbalance_tolerance = 1.5  
-    real, parameter :: final_iteration_load_imbalance_tolerance = 1.075
+    logical, intent(in) :: final_adapt_iteration     
     real :: load_imbalance_tolerance
 
     if (.NOT. final_adapt_iteration) then
-       ! if user has passed us the option then use the load imbalance tolerance they supplied,
-       ! else use the default load imbalance tolerance
-       call get_option(trim(zoltan_global_base_option_path) // "/load_imbalance_tolerance", load_imbalance_tolerance, &
-          & default = default_load_imbalance_tolerance)
-       
-       ! check the value is reasonable
-       if (load_imbalance_tolerance < 1.0) then
-          FLExit("load_imbalance_tolerance should be greater than or equal to 1. Default is 1.5")
-       end if
+      ! if user has passed us the option then use the load imbalance tolerance they supplied,
+      ! else use the default load imbalance tolerance
+      call get_option(trim(zoltan_global_base_option_path) // "/load_imbalance_tolerance", &
+           load_imbalance_tolerance, default = 1.5)
     else
-       load_imbalance_tolerance = final_iteration_load_imbalance_tolerance
+      ! if user has passed us the option then use the load imbalance tolerance they supplied,
+      ! else use the default load imbalance tolerance
+      call get_option(trim(zoltan_global_base_option_path) // "/final_partition_load_imbalance_tolerance", &
+           load_imbalance_tolerance, default = 1.03)
+    end if
+
+    ! check the value is reasonable
+    if (load_imbalance_tolerance < 1.0) then
+      FLExit("load_imbalance_tolerance should be greater than or equal to 1")
     end if
 
   end function get_load_imbalance_tolerance
@@ -522,8 +522,9 @@ module zoltan_integration
     type(zoltan_struct), pointer, intent(in) :: zz    
 
     integer(zoltan_int) :: ierr
-    character (len = FIELD_NAME_LEN) :: method, graph_checking_level
+    character (len = FIELD_NAME_LEN) :: method, graph_checking_level, lb_approach, parmetis_method
     character (len = 10) :: string_load_imbalance_tolerance
+    character (len = OPTION_PATH_LEN) :: partitioner_path
 
     if (debug_level()>1) then
        ierr = Zoltan_Set_Param(zz, "DEBUG_LEVEL", "1"); assert(ierr == ZOLTAN_OK)
@@ -653,27 +654,36 @@ module zoltan_integration
     end if
 
     ! Choose the appropriate partitioning method based on the current adapt iteration
-    ! Idea is to do repartitioning on intermediate adapts but a clean partition on the last
+    ! Default is to do repartitioning on intermediate adapts but a clean partition on the last
     ! iteration to produce a load balanced partitioning
+
+    ! default values
     if (final_adapt_iteration) then
-       ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
-       ewrite(3,*) "Setting partitioning approach to PARTITION."
-       if (have_option(trim(zoltan_global_base_option_path) // "/final_partitioner/metis") .OR. &
-          & (.NOT.(have_option(trim(zoltan_global_base_option_path) // "/final_partitioner")))) then
-          ! chosen to match what Sam uses
-          ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", "PartKway"); assert(ierr == ZOLTAN_OK)
-          ewrite(3,*) "Setting ParMETIS method to PartKway."
-       end if
+      lb_approach = "PARTITION"
+      parmetis_method = "PartKway"
+      partitioner_path = trim(zoltan_global_base_option_path) // "/final_partitioner"
     else
-       ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "REPARTITION"); assert(ierr == ZOLTAN_OK)
-       ewrite(3,*) "Setting partitioning approach to REPARTITION."
-       if (have_option(trim(zoltan_global_base_option_path) // "/partitioner/metis"))  then
-          ! chosen to match what Sam uses
-          ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", "AdaptiveRepart"); assert(ierr == ZOLTAN_OK)
-          ewrite(3,*) "Setting ParMETIS method to AdaptiveRepart."
-          ierr = Zoltan_Set_Param(zz, "PARMETIS_ITR", "100000.0"); assert(ierr == ZOLTAN_OK)
-       end if
+      lb_approach = "REPARTITION"
+      parmetis_method = "AdaptiveRepart"
+      partitioner_path = trim(zoltan_global_base_option_path) // "/partitioner"
     end if
+
+    ! custom options
+    if (have_option(trim(partitioner_path) // "/lb_approach/partition")) then
+      lb_approach = "PARTITION"
+      parmetis_method = "PartKway"
+    else if (have_option(trim(partitioner_path) // "/lb_approach/repartition")) then
+      lb_approach = "REPARTITION"
+      parmetis_method = "AdaptiveRepart"
+    end if
+      
+    ! this value is only used with AdaptiveRepart - 100000.0 is a very high value and should emphasize 
+    ! reducing the edge cut over reducing the movement of edge boundaries
+    ierr = Zoltan_Set_Param(zz, "PARMETIS_ITR", "100000.0"); assert(ierr == ZOLTAN_OK)
+    ! this value is only used if parmetis is enabled
+    ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", trim(parmetis_method)); assert(ierr == ZOLTAN_OK)
+    ! this defines the partitioning scheme
+    ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
 
     ierr = Zoltan_Set_Param(zz, "NUM_GID_ENTRIES", "1"); assert(ierr == ZOLTAN_OK)
     ierr = Zoltan_Set_Param(zz, "NUM_LID_ENTRIES", "1"); assert(ierr == ZOLTAN_OK)
@@ -916,8 +926,10 @@ module zoltan_integration
              end if
           end if
 
-          ierr = Zoltan_LB_Eval(zz, .TRUE.)
-          assert(ierr == ZOLTAN_OK)
+          if (have_option('/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/lb_eval')) then
+            ierr = Zoltan_LB_Eval(zz, .TRUE.)
+            assert(ierr == ZOLTAN_OK)
+          end if
 
        end do
     end if

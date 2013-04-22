@@ -896,48 +896,68 @@ hr_adaptivity =
             ## PHG hypergraph partitoner is also available.
             ## Default is the Zoltan PHG graph partitioner.
             element partitioner {
-                ## Use the ParMETIS graph partitioner. ParMETIS setup to match as
-                ## closely as possible the setup used previously by Sam.
-                element metis {
-                    empty
-                }|
-                ## Use the PT-Scotch graph partitioner.
-                element scotch {
-                    empty
-                }|
-                ## Use the Zoltan PHG partitioner.
-                element zoltan {
-                    ## Select the partitioning method you would like used by Zoltan PHG.
-                    ## Currently hypergraph partitioning is the simplest implementation
-                    ## and can produce non-contiguous partitions for certain problems.
-                    element method {
-                    "graph"|"hypergraph"
-                    }
-                }
+               (
+                  ## Use the ParMETIS graph partitioner. ParMETIS setup to match as
+                  ## closely as possible the setup used previously by Sam.
+                  element metis {
+                     empty
+                  }|
+                  ## Use the PT-Scotch graph partitioner.
+                  element scotch {
+                     empty
+                  }|
+                  ## Use the Zoltan PHG partitioner.
+                  element zoltan {
+                     ## Select the partitioning method you would like used by Zoltan PHG.
+                     ## Currently hypergraph partitioning is the simplest implementation
+                     ## and can produce non-contiguous partitions for certain problems.
+                     element method {
+                        "graph"|"hypergraph"
+                     }
+                  }
+               ),
+               ## Choose whether to repartition or partition the mesh at each adapt iteration.
+               ## Repartitioning results in a smaller amount of data migration between processes
+               ## and hence is cheaper, but this can result in locked-nodes. The default option is
+               ## to repartition the mesh each iteration and then full ypartition the mesh on the 
+               ## final iteration to create a well balanced mesh.
+               element lb_approach {
+                  "repartition"|"partition"
+               }?
             }?,
             ## Select which partitioner to use after the final adapt iteration.
             ## Graph partitioners available are ParMETIS and Zoltan PHG. The 
             ## Zoltan PHG hypergraph partitoner is also available.
             ## Default is the ParMETIS graph partitioner.
             element final_partitioner {
-                ## Use the ParMETIS graph partitioner. ParMETIS setup to match as
-                ## closely as possible the setup used previously by Sam.
-                element metis {
-                    empty
-                }|
-                ## Use the PT-Scotch graph partitioner.
-                element scotch {
-                    empty
-                }|
-                ## Use the Zoltan PHG partitioner.
-                element zoltan {
-                    ## Select the partitioning method you would like used by Zoltan PHG.
-                    ## Currently hypergraph partitioning is the simplest implementation
-                    ## and can produce non-contiguous partitions for certain problems.
-                    element method {
-                    "graph"|"hypergraph"
-                    }
-                }
+               (
+                  ## Use the ParMETIS graph partitioner. ParMETIS setup to match as
+                  ## closely as possible the setup used previously by Sam.
+                  element metis {
+                     empty
+                  }|
+                  ## Use the PT-Scotch graph partitioner.
+                  element scotch {
+                     empty
+                  }|
+                  ## Use the Zoltan PHG partitioner.
+                  element zoltan {
+                     ## Select the partitioning method you would like used by Zoltan PHG.
+                     ## Currently hypergraph partitioning is the simplest implementation
+                     ## and can produce non-contiguous partitions for certain problems.
+                     element method {
+                        "graph"|"hypergraph"
+                     }
+                  }
+               ),
+               ## Choose whether to repartition or partition the mesh at each the final adapt iteration.
+               ## Repartitioning results in a smaller amount of data migration between processes
+                ## and hence is cheaper, but this can result in locked-nodes. The default option is
+               ## to repartition the mesh each iteration and then full ypartition the mesh on the 
+               ## final iteration to create a well balanced mesh.
+               element lb_approach {
+                  "partition"|"repartition"
+               }?
             }?,
             ## Element quality cut off. 
             ## Elements with a quality greater than this will be liable to be
@@ -956,8 +976,16 @@ hr_adaptivity =
             ## but be able to move the partition boundaries easier to allow adaption. For some 
             ## problems where the partitioner creates empty partitions lowering this (~1.075) will
             ## force Zoltan to create more evenly balanced partitions (no empty ones) but may
-            ## require more adapt iterations to produce a fully adapted final mesh.
+            ## require more adapt iterations to produce a fully adapted final mesh. The default value is 1.5.
             element load_imbalance_tolerance {
+                real
+            }?,
+            ## Load imbalance tolerance.
+            ## The amount of load imbalance the partitioning algorithm should deem acceptable on the 
+            ## final adapt iteration. It is assumed that the mesh is well adapted by the final partition
+            ## and hence we no longer worry about locked nodes. The aim is to achieve a well balanced partition.
+            ## A low value is recommended. The default value is 1.03.
+            element final_partition_load_imbalance_tolerance {
                 real
             }?,
             ## Additional adapt iterations.
@@ -974,7 +1002,7 @@ hr_adaptivity =
             ## weight mesh partitions, based upon a prescribed scalar field. 
             ## Note that the field should have a minimum value of 0 and a maximum
             ## value of 1 (no normalisation is done within the code).
-	        element scalar_field {
+               element scalar_field {
                   attribute rank { "0" },
                   attribute name { "FieldWeightedPartitionValues" },
                   element prescribed {
@@ -1041,6 +1069,12 @@ hr_adaptivity =
                ## Dump is to the current directory, in a file called field_sizes_*.dat
                ## One dump file is created for each rank.
                element dump_field_sizes {
+                  empty
+               }?,
+               ## Call LB_EVAL and print output.
+               ## This prints statistics such on the load balance achieved, and the sum of cut edges
+               ## and weighted cut edges. It also details the settings used by the partitioner.
+               element lb_eval {
                   empty
                }?
             }?
