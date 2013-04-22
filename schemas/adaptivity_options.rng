@@ -1076,8 +1076,8 @@ and hence is cheaper, but this can result in locked-nodes. The default option is
 to repartition the mesh each iteration and then full ypartition the mesh on the 
 final iteration to create a well balanced mesh.</a:documentation>
                   <choice>
-                    <value>repartition</value>
-                    <value>partition</value>
+                    <value>REPARTITION</value>
+                    <value>PARTITION</value>
                   </choice>
                 </element>
               </optional>
@@ -1120,8 +1120,8 @@ and hence is cheaper, but this can result in locked-nodes. The default option is
 to repartition the mesh each iteration and then full ypartition the mesh on the 
 final iteration to create a well balanced mesh.</a:documentation>
                   <choice>
-                    <value>partition</value>
-                    <value>repartition</value>
+                    <value>PARTITION</value>
+                    <value>REPARTITION</value>
                   </choice>
                 </element>
               </optional>

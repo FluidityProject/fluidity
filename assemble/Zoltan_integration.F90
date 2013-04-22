@@ -667,12 +667,13 @@ module zoltan_integration
     end if
 
     ! set correspoding parmetis options
-    if (lb_approach == "PARTITION") then
+    if (trim(lb_approach) == "PARTITION") then
       parmetis_method = "PartKway"
-    else if (lb_approach == "REPARTITION") then
+    else if (trim(lb_approach) == "REPARTITION") then
       parmetis_method = "AdaptiveRepart"
     else
-      FLAbort('I do not recognise the lb method')
+      ewrite(0,*) 'lb approach is:', trim(lb_approach)
+      FLAbort('I do not recognise the lb approach')
     end if
       
     ! this value is only used with AdaptiveRepart - 100000.0 is a very high value and should emphasize 

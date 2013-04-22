@@ -922,7 +922,7 @@ hr_adaptivity =
                ## to repartition the mesh each iteration and then full ypartition the mesh on the 
                ## final iteration to create a well balanced mesh.
                element lb_approach {
-                  "repartition"|"partition"
+                  "REPARTITION"|"PARTITION"
                }?
             }?,
             ## Select which partitioner to use after the final adapt iteration.
@@ -956,7 +956,7 @@ hr_adaptivity =
                ## to repartition the mesh each iteration and then full ypartition the mesh on the 
                ## final iteration to create a well balanced mesh.
                element lb_approach {
-                  "partition"|"repartition"
+                  "PARTITION"|"REPARTITION"
                }?
             }?,
             ## Element quality cut off. 
