@@ -60,6 +60,7 @@ module lagrangian_biology_pm
        proxy_list_insert => list_insert, &
        proxy_list_next => list_next, &
        proxy_list_count => list_count, &
+       proxy_list_remove => list_delete_element, &
        proxy_list_destroy => list_destroy
 
 implicit none
@@ -108,12 +109,13 @@ contains
     ! After the element-wise split/merges are done,
     ! we check for global agent maxima and enforce them
     if (have_option(trim(agent_list%stage_options)//"/particle_management/local_maximum")) then
+       FLExit("local_maximum merging is temporarily disabled")
        ewrite(2,*) "Particle Management: Enforcing local maximum"
        call get_option(trim(agent_list%stage_options)//"/particle_management/local_maximum", local_maximum)
 
        ! For now we are simply enforcing a local maximum here
        ! Ideally we would enforce one global maximum across all procs
-       call pm_merge_list(xfield, agent_list, local_maximum)
+       !call pm_merge_list(xfield, agent_list, local_maximum)
     end if
 
     call profiler_toc(trim(agent_list%name)//"::particle_management")
@@ -131,7 +133,7 @@ contains
     type(integer_hash_table) :: split_index_mapping, element_minima
     type(ilist) :: elements_split_list
     integer, dimension(:), allocatable :: elements_split
-    integer :: i, ele, index, element_minimum, proxy_length
+    integer :: i, ele, index, element_minimum
     real :: agent_minimum, agent_total
 
     ewrite(2,*) "Particle Management: Splitting agents per element"
@@ -183,17 +185,15 @@ contains
     ! Each proxy array represents all agents in one element.
     do i=1, size(proxy_lists)
        element_minimum = fetch(element_minima, elements_split(i))
-
-       proxy_length = proxy_list_count(proxy_lists(i)%ptr)
        call pm_split_list(proxy_lists(i)%ptr, element_minimum, agent_list)
        call proxy_list_destroy(proxy_lists(i)%ptr)
     end do
 
     call deallocate(split_index_mapping)
+    deallocate(proxy_lists)
     deallocate(elements_split)
     call flush_list(elements_split_list)
     call deallocate(element_minima)
-
   end subroutine pm_split_by_element
 
   subroutine pm_split_list(split_list, minimum, agent_list)
@@ -257,7 +257,8 @@ contains
     type(detector_linked_list), intent(inout) :: agent_list
 
     type(detector_type), pointer :: agent, agent_to_move, merge_target, agent_to_merge
-    type(detector_linked_list), dimension(:), allocatable :: merge_lists
+    type(proxy_list_ptr), dimension(:), allocatable :: proxy_lists
+    type(proxy_agent) :: proxy
     type(integer_hash_table) :: element_maxima, merge_index_mapping
     type(ilist) :: elements_split_list, elements_merge_list
     integer, dimension(:), allocatable :: elements_merge
@@ -288,92 +289,96 @@ contains
        call insert(merge_index_mapping, elements_merge(i), i)
     end do
 
-    ! Put agents into temporary agent lists for each element to split/merge
-    allocate(merge_lists(size(elements_merge)))
+    ! Create agent proxiess in temporary proxy lists for each element to split/merge
+    allocate(proxy_lists(size(elements_merge)))
     agent=>agent_list%first
     do while(associated(agent))
-       ! Move agent to merge list
        if (has_key(merge_index_mapping, agent%element)) then
           index = fetch(merge_index_mapping,agent%element)
-          agent_to_move=>agent
-          agent=>agent%next
-          call move(agent_to_move, agent_list, merge_lists(index))
-       else
-          agent=>agent%next
+
+          proxy%agent => agent
+          proxy%id = agent%id_number
+          proxy%size = agent%biology(BIOVAR_SIZE)
+
+          if (associated(proxy_lists(index)%ptr)) then
+             call proxy_list_insert( proxy_lists(index)%ptr, proxy )
+          else
+             call proxy_list_create( proxy_lists(index)%ptr, proxy )
+          end if
        end if
+       agent=>agent%next
     end do 
 
     ! Perform merges over the temporary agent arrays
-    do i=1, size(merge_lists)
+    do i=1, size(proxy_lists)
        element_maximum = fetch(element_maxima, elements_merge(i))
-
-       call pm_merge_list(xfield, merge_lists(i), element_maximum)
-    end do
-
-    ! Copy all agents back to the original list
-    do i=1, size(merge_lists)
-       call move_all(merge_lists(i), agent_list)
+       call pm_merge_list(xfield, proxy_lists(i)%ptr, element_maximum, agent_list)
+       call proxy_list_destroy(proxy_lists(i)%ptr)
     end do
 
     call deallocate(merge_index_mapping)
-    deallocate(merge_lists)
+    deallocate(proxy_lists)
     deallocate(elements_merge)
     call flush_list(elements_merge_list)
     call deallocate(element_maxima)
 
   end subroutine pm_merge_by_element
 
-  subroutine pm_merge_list(xfield, agent_list, maximum)
+  subroutine pm_merge_list(xfield, merge_list, maximum, agent_list)
     type(vector_field), pointer, intent(inout) :: xfield
+    type(proxy_list), pointer, intent(inout) :: merge_list
     type(detector_linked_list), intent(inout) :: agent_list
     integer, intent(in) :: maximum
 
-    type(detector_type), pointer :: agent, merge_target, agent_to_merge
+    type(detector_type), pointer :: agent
+    type(proxy_list), pointer :: proxy, merge_target
     integer, dimension(:), allocatable :: xsmallest_ids
     real, dimension(:), allocatable :: xsmallest_sizes
     integer :: index, merges_wanted, found_agent
 
     ! Original VEW merge-x-smallest algorithm
-    do while(agent_list%length > maximum .and. agent_list%length > 1)
+    do while(proxy_list_count(merge_list) > maximum .and. proxy_list_count(merge_list) > 1)
        ! 1) Find x, the number of merges we want
-       merges_wanted = agent_list%length - maximum
+       merges_wanted = proxy_list_count(merge_list) - maximum
        ! We need to make sure we don't have more merge requests than agent pairs
-       merges_wanted = floor(min(real(merges_wanted), real(agent_list%length) / 2.0))
+       merges_wanted = floor(min(real(merges_wanted), real(proxy_list_count(merge_list)) / 2.0))
 
        ! 2) Get the 2*x smallest agents (x pairs)
        allocate(xsmallest_ids(2*merges_wanted))
        allocate(xsmallest_sizes(2*merges_wanted))
        xsmallest_sizes = huge(1.0)
 
-       agent=>agent_list%first
-       do while(associated(agent))
-          if (maxval(xsmallest_sizes) >= agent%biology(BIOVAR_SIZE)) then
+       proxy => merge_list
+       do while(associated(proxy))
+          if (maxval(xsmallest_sizes) >= proxy%data%size) then
              index = minval(maxloc(xsmallest_sizes))
-             xsmallest_ids(index) = agent%id_number 
-             xsmallest_sizes(index) = agent%biology(BIOVAR_SIZE)
+             xsmallest_ids(index) = proxy%data%id
+             xsmallest_sizes(index) = proxy%data%size
           end if
-
-          agent=>agent%next
+          proxy => proxy_list_next(proxy)
        end do
 
        ! 3) Merge pairwise...
        ! Note: We don't sort, but select merge pairs as we find them
        merge_target=>null()
-       agent=>agent_list%first
-       do while(associated(agent))
-          found_agent = find(xsmallest_ids, agent%id_number)
+       proxy => merge_list
+       do while(associated(proxy))
+          found_agent = find(xsmallest_ids, proxy%data%id)
           ! First hit is the target...
           if (found_agent > 0 .and. .not.associated(merge_target)) then
-             merge_target=>agent
-             agent=>agent%next
+             merge_target => proxy
+             proxy => proxy_list_next(proxy)
           ! ... second hit; we merge and reset the target
           elseif (found_agent > 0 .and. associated(merge_target)) then
-             agent_to_merge=>agent
-             agent=>agent%next
-             call pm_merge(xfield, merge_target, agent_to_merge, agent_list)
+             call pm_merge(xfield, proxy%data%agent, merge_target%data%agent, agent_list)
+
+             ! Merge proxies
+             proxy%data%size = proxy%data%size + merge_target%data%size
+             call proxy_list_remove(merge_list, merge_target)
              merge_target=>null()
+             proxy => proxy_list_next(proxy)
           else
-             agent=>agent%next
+             proxy => proxy_list_next(proxy)
           end if
        end do
 
