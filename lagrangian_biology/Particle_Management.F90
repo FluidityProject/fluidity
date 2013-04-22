@@ -26,6 +26,21 @@
 !    USA
 #include "fdebug.h"
 
+module proxy_agent_module
+  use detector_data_types
+  type proxy_agent
+     type(detector_type), pointer :: agent
+     integer :: id
+     real :: size
+  end type proxy_agent
+end module proxy_agent_module
+
+module proxy_agent_list
+  use proxy_agent_module, LIST_DATA => proxy_agent
+
+  include "../flibs/linkedlist.f90"
+end module proxy_agent_list
+
 module lagrangian_biology_pm
   use fldebug
   use spud
@@ -38,6 +53,14 @@ module lagrangian_biology_pm
   use integer_hash_table_module
   use pickers
   use Profiler
+  use proxy_agent_module
+  use proxy_agent_list, only: &
+       proxy_list => linked_list, &
+       proxy_list_create => list_create, &
+       proxy_list_insert => list_insert, &
+       proxy_list_next => list_next, &
+       proxy_list_count => list_count, &
+       proxy_list_destroy => list_destroy
 
 implicit none
 
@@ -46,6 +69,10 @@ implicit none
   public :: particle_management, pm_strip_insignificant
 
   integer, parameter :: BIOVAR_STAGE=1, BIOVAR_SIZE=2
+
+  type proxy_list_ptr
+     type(proxy_list), pointer :: ptr => null()
+  end type proxy_list_ptr
 
 contains
 
@@ -98,12 +125,13 @@ contains
     type(scalar_field), pointer, intent(inout) :: agent_field, agent_min_field
     type(detector_linked_list), intent(inout) :: agent_list
 
-    type(detector_type), pointer :: agent, agent_to_move
-    type(detector_linked_list), dimension(:), allocatable :: split_lists
+    type(detector_type), pointer :: agent
+    type(proxy_list_ptr), dimension(:), allocatable :: proxy_lists
+    type(proxy_agent) :: proxy
     type(integer_hash_table) :: split_index_mapping, element_minima
     type(ilist) :: elements_split_list
     integer, dimension(:), allocatable :: elements_split
-    integer :: i, ele, index, element_minimum
+    integer :: i, ele, index, element_minimum, proxy_length
     real :: agent_minimum, agent_total
 
     ewrite(2,*) "Particle Management: Splitting agents per element"
@@ -131,81 +159,90 @@ contains
        call insert(split_index_mapping, elements_split(i), i)
     end do
 
-    ! Put agents into temporary agent lists for each element to split/merge
-    allocate(split_lists(size(elements_split)))
+    ! Create proxy agents in temporary proxy lists for each element to split/merge
+    allocate(proxy_lists(size(elements_split)))
     agent=>agent_list%first
     do while(associated(agent))
-       ! Move agent to split list
        if (has_key(split_index_mapping, agent%element)) then
           index = fetch(split_index_mapping,agent%element)
-          agent_to_move=>agent
-          agent=>agent%next
-          call move(agent_to_move, agent_list, split_lists(index))
-       else
-          agent=>agent%next
+
+          proxy%agent => agent
+          proxy%id = agent%id_number
+          proxy%size = agent%biology(BIOVAR_SIZE)
+
+          if (associated(proxy_lists(index)%ptr)) then
+             call proxy_list_insert( proxy_lists(index)%ptr, proxy )
+          else
+             call proxy_list_create( proxy_lists(index)%ptr, proxy )
+          end if
        end if
+       agent=>agent%next
     end do 
 
-    ! Perform splits over the temporary agent arrays
-    ! Each array now represents all agents in one element
-    ! the according element number is stored in elements_split(i)
-    do i=1, size(split_lists)
+    ! Perform splits over the temporary proxy agents.
+    ! Each proxy array represents all agents in one element.
+    do i=1, size(proxy_lists)
        element_minimum = fetch(element_minima, elements_split(i))
 
-       call pm_split_list(split_lists(i), element_minimum)
-    end do
-
-    ! Copy all agents back to the original list
-    do i=1, size(split_lists)
-       call move_all(split_lists(i), agent_list)
+       proxy_length = proxy_list_count(proxy_lists(i)%ptr)
+       call pm_split_list(proxy_lists(i)%ptr, element_minimum, agent_list)
+       call proxy_list_destroy(proxy_lists(i)%ptr)
     end do
 
     call deallocate(split_index_mapping)
-    deallocate(split_lists)
     deallocate(elements_split)
     call flush_list(elements_split_list)
     call deallocate(element_minima)
 
   end subroutine pm_split_by_element
 
-  subroutine pm_split_list(agent_list, minimum)
+  subroutine pm_split_list(split_list, minimum, agent_list)
+    type(proxy_list), pointer, intent(inout) :: split_list
     type(detector_linked_list), intent(inout) :: agent_list
     integer, intent(in) :: minimum
 
     type(detector_type), pointer :: agent
+    type(proxy_list), pointer :: proxy
+    type(proxy_agent) :: new_proxy
     integer, dimension(:), allocatable :: xbiggest_ids
     real, dimension(:), allocatable :: xbiggest_sizes
     integer :: index, splits_wanted
 
     ! Original VEW split-x-biggest algorithm
-    do while(agent_list%length < minimum)
+    do while(proxy_list_count(split_list) < minimum)
        ! 1) Find x, the number of splits we want
-       splits_wanted = minimum - agent_list%length
-       splits_wanted = min(splits_wanted, agent_list%length)
+       splits_wanted = minimum - proxy_list_count(split_list) !agent_list%length
+       splits_wanted = min(splits_wanted, proxy_list_count(split_list)) !agent_list%length)
 
        ! 2) Get the x biggest agents
        allocate(xbiggest_ids(splits_wanted))
        allocate(xbiggest_sizes(splits_wanted))
        xbiggest_sizes = 0.0
 
-       agent=>agent_list%first
-       do while(associated(agent))
-          if (minval(xbiggest_sizes) <= agent%biology(BIOVAR_SIZE)) then
+       proxy => split_list
+       do while(associated(proxy))
+          if (minval(xbiggest_sizes) <= proxy%data%size) then
              index = minval(minloc(xbiggest_sizes))
-             xbiggest_ids(index) = agent%id_number 
-             xbiggest_sizes(index) = agent%biology(BIOVAR_SIZE)
+             xbiggest_ids(index) = proxy%data%id 
+             xbiggest_sizes(index) = proxy%data%size  !agent%biology(BIOVAR_SIZE)
           end if
 
-          agent=>agent%next
+          proxy => proxy_list_next(proxy)
        end do
 
        ! 3) Split each of the x agents...
-       agent=>agent_list%first
-       do while(associated(agent))
-          if (find(xbiggest_ids, agent%id_number) > 0) then
-             call pm_split(agent, agent_list)
+       proxy => split_list
+       do while(associated(proxy))
+          if (find(xbiggest_ids, proxy%data%id) > 0) then
+             call pm_split(proxy%data%agent, agent_list)
+             
+             ! Add new proxy to list
+             new_proxy%agent => agent_list%last
+             new_proxy%id = agent_list%last%id_number
+             new_proxy%size = agent_list%last%biology(BIOVAR_SIZE)
+             call proxy_list_insert( proxy, new_proxy )             
           end if
-          agent=>agent%next
+          proxy => proxy_list_next(proxy)
        end do
 
        ! ...and recurse
