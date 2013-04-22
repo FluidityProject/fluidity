@@ -657,24 +657,22 @@ module zoltan_integration
     ! Default is to do repartitioning on intermediate adapts but a clean partition on the last
     ! iteration to produce a load balanced partitioning
 
-    ! default values
+    ! set values from options
     if (final_adapt_iteration) then
-      lb_approach = "PARTITION"
-      parmetis_method = "PartKway"
-      partitioner_path = trim(zoltan_global_base_option_path) // "/final_partitioner"
+      call get_option(trim(zoltan_global_base_option_path) // "/final_partitioner/lb_approach", &
+           lb_approach, default="PARTITION")
     else
-      lb_approach = "REPARTITION"
-      parmetis_method = "AdaptiveRepart"
-      partitioner_path = trim(zoltan_global_base_option_path) // "/partitioner"
+      call get_option(trim(zoltan_global_base_option_path) // "/final_partitioner/lb_approach", &
+           lb_approach, default="REPARTITION")
     end if
 
-    ! custom options
-    if (have_option(trim(partitioner_path) // "/lb_approach/partition")) then
-      lb_approach = "PARTITION"
+    ! set correspoding parmetis options
+    if (lb_approach == "PARTITION") then
       parmetis_method = "PartKway"
-    else if (have_option(trim(partitioner_path) // "/lb_approach/repartition")) then
-      lb_approach = "REPARTITION"
+    else if (lb_approach == "REPARTITION") then
       parmetis_method = "AdaptiveRepart"
+    else
+      FLAbort('I do not recognise the lb method')
     end if
       
     ! this value is only used with AdaptiveRepart - 100000.0 is a very high value and should emphasize 
