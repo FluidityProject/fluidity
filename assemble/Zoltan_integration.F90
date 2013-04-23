@@ -802,6 +802,8 @@ module zoltan_integration
     integer :: min_num_nodes_after_balance, total_num_nodes_before_balance, total_num_nodes_after_balance
     integer :: num_empty_partitions, empty_partition
     character (len = 10) :: string_load_imbalance_tolerance
+    
+    real :: min_l, max_l
 
     ewrite(1,*) 'in zoltan_load_balance'
     ewrite(2,*) 'imbalance tolerance set to: ', load_imbalance_tolerance
@@ -871,66 +873,64 @@ module zoltan_integration
 
     else
 
-       min_num_nodes_after_balance = 0
-       do while (min_num_nodes_after_balance == 0)
-          
-          ierr = Zoltan_LB_Balance(zz, changes, num_gid_entries, num_lid_entries, p1_num_import, p1_import_global_ids, &
-             &    p1_import_local_ids, p1_import_procs, p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
-          assert(ierr == ZOLTAN_OK)
-          
-          ! calculate how many owned nodes we'd have after doing the planned load balancing
-          num_nodes_after_balance = num_nodes + p1_num_import - p1_num_export
-          
-          ! find the minimum number of owned nodes any process would have after doing the planned load balancing
-          call mpi_allreduce(num_nodes_after_balance, min_num_nodes_after_balance, 1, getPINTEGER(), &
-             & MPI_MIN, MPI_COMM_FEMTOOLS, ierr)
-          assert(ierr == MPI_SUCCESS)
-          
-          if (min_num_nodes_after_balance == 0) then
-             ewrite(2,*) 'Empty partion would be created with load_imbalance_tolerance of', load_imbalance_tolerance
-             load_imbalance_tolerance = load_imbalance_tolerance - 0.01
-             if (load_imbalance_tolerance < 1.01) then
+      if (.not. balance_and_check()) then
 
-                ewrite(1,*) 'Could not prevent empty partions by tightening load_imbalance_tolerance.'
-                ewrite(1,*) 'Attempting to load balance with no edge-weights.'
-                
-                ! Reset the load_imbalance_tolerance
-                ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", "1.03"); assert(ierr == ZOLTAN_OK)
-                ! Turn off the edge-weight calculation
-                zoltan_global_calculate_edge_weights = .false.
-                
-                ierr = Zoltan_LB_Balance(zz, changes, num_gid_entries, num_lid_entries, p1_num_import, p1_import_global_ids, &
-                   &    p1_import_local_ids, p1_import_procs, p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
-                assert(ierr == ZOLTAN_OK)
-                
-                ! calculate how many owned nodes we'd have after doing the planned load balancing
-                num_nodes_after_balance = num_nodes + p1_num_import - p1_num_export
-                
-                ! find the minimum number of owned nodes any process would have after doing the planned load balancing
-                call mpi_allreduce(num_nodes_after_balance, min_num_nodes_after_balance, 1, getPINTEGER(), &
-                   & MPI_MIN, MPI_COMM_FEMTOOLS, ierr)
-                assert(ierr == MPI_SUCCESS)
-                
-                if (min_num_nodes_after_balance == 0) then
-                   FLAbort("Could not stop Zoltan creating empty partitions.")
-                else
-                   ewrite(-1,*) 'Load balancing was carried out without edge-weighting being applied. Mesh may not be of expected quality.'
-                end if
-             else
-                ! convert load_imbalance_tolerance to a string for setting the option in Zoltan
-                write(string_load_imbalance_tolerance, '(f6.3)' ) load_imbalance_tolerance
-                ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", string_load_imbalance_tolerance); assert(ierr == ZOLTAN_OK)
-                
-                ewrite(2,*) 'Tightened load_imbalance_tolerance to ', load_imbalance_tolerance
-             end if
+        ewrite(2,*) 'Empty partion would be created with load_imbalance_tolerance of', &
+             load_imbalance_tolerance
+        ewrite(2,*) 'Performing search for highest imbalance tolerance that will not '//&
+             'create an empty partition'
+
+        min_l = 1.00
+        min_check: do while (.true.)
+
+          max_check: do while (.not. balance_and_check())
+
+            max_l = load_imbalance_tolerance
+            load_imbalance_tolerance = (max_l - min_l)/2.0 + min_l
+
+            ! Check for failure and try without edge weights if failed
+            if (load_imbalance_tolerance < 1.01) then
+              ewrite(1,*) 'Could not prevent empty partions by tightening load_imbalance_tolerance.'
+              ewrite(1,*) 'Attempting to load balance with no edge-weights.'
+              
+              ! Set the load_imbalance_tolerance
+              ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", "1.01"); assert(ierr == ZOLTAN_OK)
+              ! Turn off the edge-weight calculation
+              zoltan_global_calculate_edge_weights = .false.
+              
+              if (.not. balance_and_check()) then
+                FLAbort("Could not stop Zoltan creating empty partitions.")
+              else
+                ewrite(-1,*) 'Load balancing was carried out without edge-weighting being applied. '//&
+                     'Mesh may not be of expected quality.'
+                exit min_check
+              end if
+            end if
+
+            ewrite(2,*) 'Trying load_imbalance_tolerance of: ', load_imbalance_tolerance
+
+          end do max_check
+
+          ! check if we have found max value within a given tolerance
+          if ((load_imbalance_tolerance - min_l) < 0.1) then
+            ewrite(2,*) 'Partitioning successfully achieved with load_imbalance_tolerance: ', &
+                 load_imbalance_tolerance
+            exit min_check
           end if
 
-          if (have_option('/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/lb_eval')) then
-            ierr = Zoltan_LB_Eval(zz, .TRUE.)
-            assert(ierr == ZOLTAN_OK)
-          end if
+          ! reset min and max values
+          load_imbalance_tolerance = (load_imbalance_tolerance - min_l)*2.0 + min_l
+          min_l = load_imbalance_tolerance
 
-       end do
+        end do min_check
+
+      end if
+      
+      if (have_option('/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/lb_eval')) then
+        ierr = Zoltan_LB_Eval(zz, .TRUE.)
+        assert(ierr == ZOLTAN_OK)
+      end if
+
     end if
    
     do i=1,p1_num_export
@@ -939,6 +939,25 @@ module zoltan_integration
     end do
 
     ewrite(1,*) 'exiting zoltan_load_balance'
+    
+    contains
+      
+      function balance_and_check() result(no_empty_partitions)
+        logical :: no_empty_partitions
+
+        ierr = Zoltan_LB_Balance(zz, changes, num_gid_entries, num_lid_entries, p1_num_import, &
+             p1_import_global_ids, p1_import_local_ids, p1_import_procs, p1_num_export, &
+             p1_export_global_ids, p1_export_local_ids, p1_export_procs)
+        assert(ierr == ZOLTAN_OK)
+        
+        num_nodes_after_balance = num_nodes + p1_num_import - p1_num_export
+        call mpi_allreduce(num_nodes_after_balance, min_num_nodes_after_balance, 1, getPINTEGER(), &
+             & MPI_MIN, MPI_COMM_FEMTOOLS, ierr)
+        assert(ierr == MPI_SUCCESS)
+        
+        no_empty_partitions = (min_num_nodes_after_balance > 0)
+
+      end function balance_and_check
 
   end subroutine zoltan_load_balance
 
