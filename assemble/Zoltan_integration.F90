@@ -855,7 +855,8 @@ module zoltan_integration
         FLExit("load_imbalance_tolerance should be greater than or equal to 1")
       end if
 
-      ewrite(2,*) 'Initial imbalance tolerance set to: ', load_imbalance_tolerance
+      write(string_load_imbalance_tolerance, '(f6.3)' ) load_imbalance_tolerance
+      ewrite(2,*) 'Initial imbalance tolerance set to: '// string_load_imbalance_tolerance
 
       if (.not. balance_and_check()) then
 
@@ -896,15 +897,16 @@ module zoltan_integration
           end do max_check
 
           ! check if we have found max value within a given tolerance
-          if ((load_imbalance_tolerance - min_l) < 0.1) then
-            ewrite(2,*) 'Partitioning successfully achieved with load_imbalance_tolerance: ', &
-                 load_imbalance_tolerance
+          if ((load_imbalance_tolerance - min_l) < 0.01) then
+            write(string_load_imbalance_tolerance, '(f6.3)' ) load_imbalance_tolerance
+            ewrite(2,*) 'Partitioning successfully achieved with load_imbalance_tolerance of: '// &
+                 string_load_imbalance_tolerance
             exit min_check
           end if
 
           ! reset min and max values
-          load_imbalance_tolerance = (load_imbalance_tolerance - min_l)*2.0 + min_l
           min_l = load_imbalance_tolerance
+          load_imbalance_tolerance = (load_imbalance_tolerance - min_l)*2.0 + min_l
 
         end do min_check
 
