@@ -20,8 +20,7 @@ module lebiology_python
             lebiology_add_variables, lebiology_add_envfields, &
             lebiology_add_foods, lebiology_prepare_pyfunc, &
             lebiology_initialise_agent, lebiology_move_agent, &
-            lebiology_update_agent, get_new_agent_list, &
-            lebiology_parallel_submit, lebiology_parallel_retrieve
+            lebiology_update_agent, get_new_agent_list
 
   type(detector_linked_list), target, save :: new_agent_list
 
@@ -468,68 +467,6 @@ contains
        FLExit("Python error in LE-Biology")
     end if
   end subroutine lebiology_update_agent
-
-  subroutine lebiology_parallel_submit(fgroup, key, foodname, agent, xfield, envfields, &
-       foodfields, dt, use_kernel_func, use_persistent)
-    type(functional_group), intent(inout) :: fgroup
-    character(len=*), intent(in) :: key
-    character(len=*), intent(in) :: foodname
-    type(detector_type), intent(inout) :: agent
-    type(vector_field), pointer, intent(inout) :: xfield
-    type(scalar_field_pointer), dimension(:), pointer, intent(inout) :: envfields
-    type(scalar_field_pointer), dimension(:), pointer, intent(inout) :: foodfields
-    real, intent(in) :: dt
-    logical, intent(in) :: use_kernel_func, use_persistent
-
-    real, dimension(size(envfields)) :: envfield_vals
-    real, dimension(size(foodfields)) :: foodfield_vals
-    logical, dimension(size(foodfields)) :: food_integrate
-    real :: path_total, ele_integral, ele_volume
-    real, dimension(size(agent%biology)) :: agent_state_copy
-    type(elepath_list), pointer :: path_ele
-    integer :: f, v, e, persistent, stat
-
-    agent_state_copy = agent%biology
-
-    call lebiology_sample_environment(agent, xfield, envfields, fgroup%envfield_integrate, envfield_vals)
-
-    food_integrate(:) = fgroup%food_sets(1)%path_integrate
-    call lebiology_sample_environment(agent, xfield, foodfields, food_integrate, foodfield_vals)
-
-    stat=0
-    
-    if (use_persistent) then
-       persistent = 1
-    else
-       persistent = 0
-    end if
-    call lebiology_parallel_prepare(trim(fgroup%name)//C_NULL_CHAR, &
-         trim(key)//C_NULL_CHAR, trim(foodname)//C_NULL_CHAR, &
-         agent%biology, size(agent%biology), envfield_vals, size(envfield_vals), &
-         foodfield_vals, agent%food_ingests, size(foodfield_vals), agent%id_number, dt, &
-         persistent, stat)
-
-  end subroutine lebiology_parallel_submit
-
-  subroutine lebiology_parallel_retrieve(fgroup, foodname, agent, foodfields)
-    type(functional_group), intent(inout) :: fgroup
-    character(len=*), intent(in) :: foodname
-    type(scalar_field_pointer), dimension(:), pointer, intent(inout) :: foodfields
-    type(detector_type), intent(inout) :: agent
-    
-    integer stat
-
-    stat = 0
-    call lebiology_parallel_finish(trim(fgroup%name)//C_NULL_CHAR, &
-         trim(foodname)//C_NULL_CHAR, agent%biology, size(agent%biology), &
-         agent%food_requests, agent%food_thresholds, size(foodfields), agent%id_number, stat)
-
-    if (stat < 0) then
-       ewrite(-1, *) "Error updating agent "//int2str(agent%id_number)//" for FG::"//trim(fgroup%name)
-       FLExit("Python error in LE-Biology")
-    end if
-  end subroutine lebiology_parallel_retrieve
-
 
   subroutine fl_add_agent(vars, n_vars, pos, n_pos) &
          bind(c, name='fl_add_agent_c')
