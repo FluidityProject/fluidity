@@ -854,10 +854,7 @@ module zoltan_integration
       if (load_imbalance_tolerance < 1.0) then
         FLExit("load_imbalance_tolerance should be greater than or equal to 1")
       end if
-
-      write(string_load_imbalance_tolerance, '(f6.3)' ) load_imbalance_tolerance
-      ewrite(2,*) 'Initial imbalance tolerance set to: '// string_load_imbalance_tolerance
-
+      
       if (.not. balance_and_check()) then
 
         ewrite(2,*) 'Empty partion would be created with load_imbalance_tolerance of', &
@@ -877,12 +874,12 @@ module zoltan_integration
             if (load_imbalance_tolerance < 1.01) then
               ewrite(1,*) 'Could not prevent empty partions by tightening load_imbalance_tolerance.'
               ewrite(1,*) 'Attempting to load balance with no edge-weights.'
-              
+
               ! Set the load_imbalance_tolerance
               ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", "1.01"); assert(ierr == ZOLTAN_OK)
               ! Turn off the edge-weight calculation
               zoltan_global_calculate_edge_weights = .false.
-              
+
               if (.not. balance_and_check()) then
                 FLAbort("Could not stop Zoltan creating empty partitions.")
               else
@@ -892,12 +889,12 @@ module zoltan_integration
               end if
             end if
 
-            ewrite(2,*) 'Trying load_imbalance_tolerance of: ', load_imbalance_tolerance
+            ewrite(2,*) 'Reducing load_imbalance_tolerance to: ', load_imbalance_tolerance
 
           end do max_check
 
           ! check if we have found max value within a given tolerance
-          if ((load_imbalance_tolerance - min_l) < 0.01) then
+          if (abs(load_imbalance_tolerance - min_l) < 0.01) then
             write(string_load_imbalance_tolerance, '(f6.3)' ) load_imbalance_tolerance
             ewrite(2,*) 'Partitioning successfully achieved with load_imbalance_tolerance of: '// &
                  string_load_imbalance_tolerance
@@ -905,13 +902,14 @@ module zoltan_integration
           end if
 
           ! reset min and max values
+          max_l = (load_imbalance_tolerance - min_l)*2.0 + min_l
           min_l = load_imbalance_tolerance
-          load_imbalance_tolerance = (load_imbalance_tolerance - min_l)*2.0 + min_l
+          load_imbalance_tolerance = max_l
 
         end do min_check
 
       end if
-      
+
       if (have_option('/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/lb_eval')) then
         ierr = Zoltan_LB_Eval(zz, .TRUE.)
         assert(ierr == ZOLTAN_OK)
@@ -932,6 +930,8 @@ module zoltan_integration
         logical :: no_empty_partitions
 
         write(string_load_imbalance_tolerance, '(f6.3)' ) load_imbalance_tolerance
+        ewrite(2,*) 'Load balancing with imbalance tolerance of: '// string_load_imbalance_tolerance
+
         ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", string_load_imbalance_tolerance); assert(ierr == ZOLTAN_OK)
 
         ierr = Zoltan_LB_Balance(zz, changes, num_gid_entries, num_lid_entries, p1_num_import, &
