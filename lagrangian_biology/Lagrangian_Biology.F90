@@ -149,14 +149,16 @@ contains
        if (have_option(trim(fg_buffer)//"/environment")) then
           n_env_fields = option_count(trim(fg_buffer)//"/environment/field")
           allocate(fgroup%envfield_names(n_env_fields))
-          allocate(fgroup%envfield_integrate(n_env_fields))
+          allocate(fgroup%envfield_sampling(n_env_fields))
           do j=1, n_env_fields
              write(env_field_buffer, "(a,i0,a)") trim(fg_buffer)//"/environment/field[",j-1,"]"
              call get_option(trim(env_field_buffer)//"/name", fgroup%envfield_names(j))
              if (have_option(trim(env_field_buffer)//"/integrate_along_path")) then
-                fgroup%envfield_integrate(j) = .true.
+                fgroup%envfield_sampling(j) = VARSMPL_INTZ
+             elseif (have_option(trim(env_field_buffer)//"/old_position")) then
+                fgroup%envfield_sampling(j) = VARSMPL_OLDZ
              else
-                fgroup%envfield_integrate(j) = .false.
+                fgroup%envfield_sampling(j) = VARSMPL_NEWZ
              end if
           end do
 
@@ -312,6 +314,10 @@ contains
                    allocate(agent%food_thresholds( size(fgroup%food_sets(1)%varieties) ))
                    agent%food_thresholds = 0.0
                 end if
+
+                ! Allocate position buffer
+                allocate(agent%old_lcoord(size(agent%local_coords)))
+
                 agent => agent%next
              end do
           end if
@@ -609,7 +615,7 @@ contains
        call get_option(trim(food_buffer)//"/functional_group", fgroup%food_sets(i)%target_fgroup)
 
        if (have_option(trim(food_buffer)//"/integrate_along_path")) then
-          fgroup%food_sets(i)%path_integrate = .true.
+          fgroup%food_sets(i)%sampling = VARSMPL_INTZ
        end if
 
        n_food_types = option_count(trim(food_buffer)//"/food_type")

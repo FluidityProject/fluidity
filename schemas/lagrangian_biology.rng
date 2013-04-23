@@ -126,9 +126,14 @@ The local values of fields listed here will be presented in a dictionary 'enviro
                     <data type="string"/>
                   </attribute>
                   <optional>
-                    <element name="integrate_along_path">
-                      <empty/>
-                    </element>
+                    <choice>
+                      <element name="integrate_along_path">
+                        <empty/>
+                      </element>
+                      <element name="old_position">
+                        <empty/>
+                      </element>
+                    </choice>
                   </optional>
                 </element>
               </zeroOrMore>

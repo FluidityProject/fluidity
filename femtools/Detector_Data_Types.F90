@@ -54,10 +54,12 @@ module detector_data_types
   public :: detector_type, detector_linked_list, detector_list_ptr, stringlist, detector_buffer, &
             random_walk, le_variable, functional_group, food_set, food_variety, &
             STATIC_DETECTOR, LAGRANGIAN_DETECTOR, &
-            GUIDED_SEARCH_TRACKING, GEOMETRIC_TRACKING, PURE_GS
+            GUIDED_SEARCH_TRACKING, GEOMETRIC_TRACKING, PURE_GS, &
+            VARSMPL_NEWZ, VARSMPL_INTZ, VARSMPL_OLDZ
 
   integer, parameter :: STATIC_DETECTOR=1, LAGRANGIAN_DETECTOR=2
   integer, parameter :: GUIDED_SEARCH_TRACKING=1, RTREE_TRACKING=2, GEOMETRIC_TRACKING=3, PURE_GS=4
+  integer, parameter :: VARSMPL_NEWZ=1, VARSMPL_INTZ=2, VARSMPL_OLDZ=3
 
   type stringlist
      !!< Container type for a list of strings.
@@ -108,6 +110,9 @@ module detector_data_types
      !! Biology variables
      real, dimension(:), allocatable :: biology
      real, dimension(:), allocatable :: food_requests, food_ingests, food_thresholds
+
+     !! Buffering previous location for LE agents
+     real, dimension(:), allocatable :: old_lcoord
 
      !! Counter for internal Random Walk sub-cycling
      integer :: rw_subsubcycles = 1
@@ -189,7 +194,7 @@ module detector_data_types
     ! Variable indices of the chemical pools to ingest
     integer, dimension(:), allocatable :: ingest_chem_inds
 
-    logical :: path_integrate = .false.
+    integer :: sampling = VARSMPL_NEWZ
   end type food_set
 
   type detector_linked_list
@@ -280,7 +285,7 @@ module detector_data_types
 
     ! List of environment fields to sample before the agent update
     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: envfield_names
-    logical, dimension(:), allocatable :: envfield_integrate
+    integer, dimension(:), allocatable :: envfield_sampling
 
     integer, dimension(:), allocatable :: ivars_uptake, ivars_release
 

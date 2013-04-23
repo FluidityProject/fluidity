@@ -106,9 +106,14 @@ lagrangian_biology =
                      ## Environment field whose ambient value will be presented to the update code in the 'environment' dictionary.
                      element field {
                         attribute name { xsd:string },
-                        element integrate_along_path {
-                           empty
-                        }?
+                        (
+                           element integrate_along_path {
+                              empty
+                           }|
+                           element old_position {
+                              empty
+                           }
+                        )?
                      }*
                   }
                ),

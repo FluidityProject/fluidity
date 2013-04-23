@@ -353,11 +353,12 @@ contains
     end if
   end subroutine lebiology_move_agent
 
-  subroutine lebiology_sample_environment(agent, xfield, fields, integrate, fieldvals)
+  subroutine lebiology_sample_environment(agent, xfield, fields, sampling, fieldvals)
     type(detector_type), intent(inout) :: agent
     type(vector_field), pointer, intent(inout) :: xfield
     type(scalar_field_pointer), dimension(:), pointer, intent(inout) :: fields
-    logical, dimension(size(fields)), intent(inout) :: integrate
+    ! Sampling method to use for each field
+    integer, dimension(size(fields)), intent(inout) :: sampling
     real, dimension(size(fields)), intent(inout) :: fieldvals
 
     type(elepath_list), pointer :: path_ele
@@ -366,7 +367,7 @@ contains
 
     ! Sample environment fields
     do f=1, size(fields)
-       if (integrate(f) .and. associated(agent%path_elements)) then
+       if (sampling(f) == VARSMPL_INTZ .and. associated(agent%path_elements)) then
           fieldvals(f) = 0.0
           path_total = 0.0
           path_ele => agent%path_elements
@@ -384,9 +385,18 @@ contains
           else
              fieldvals(f) = integral_element(fields(f)%ptr, xfield, agent%element) / element_volume(xfield, agent%element)
           end if
-       else
-          ! Evaluate at detector position
+       elseif (sampling(f) == VARSMPL_OLDZ .and. associated(agent%path_elements)) then
+          ! Evaluate at agent position from beginning of timestep
+          path_ele => agent%path_elements
+          do while( associated(path_ele%next) )
+              path_ele => elepath_list_next(path_ele)
+          end do
+          fieldvals(f) = eval_field(path_ele%data%ele, fields(f)%ptr, agent%old_lcoord)
+       elseif (sampling(f) == VARSMPL_NEWZ) then
+          ! Evaluate at current agent position
           fieldvals(f) = eval_field(agent%element, fields(f)%ptr, agent%local_coords)
+       else
+          FLExit("Sampling error: Have you used the right tracking scheme?")
        end if
     end do
   end subroutine lebiology_sample_environment
@@ -405,7 +415,7 @@ contains
 
     real, dimension(size(envfields)) :: envfield_vals
     real, dimension(size(foodfields)) :: foodfield_vals
-    logical, dimension(size(foodfields)) :: food_integrate
+    integer, dimension(size(foodfields)) :: food_sampling
     real :: path_total, ele_integral, ele_volume
     real, dimension(size(agent%biology)) :: agent_state_copy
     type(elepath_list), pointer :: path_ele
@@ -413,11 +423,11 @@ contains
 
     agent_state_copy = agent%biology
 
-    call lebiology_sample_environment(agent, xfield, envfields, fgroup%envfield_integrate, envfield_vals)
+    call lebiology_sample_environment(agent, xfield, envfields, fgroup%envfield_sampling, envfield_vals)
 
     if (size(fgroup%food_sets) > 0) then
-       food_integrate(:) = fgroup%food_sets(1)%path_integrate
-       call lebiology_sample_environment(agent, xfield, foodfields, food_integrate, foodfield_vals)
+       food_sampling(:) = fgroup%food_sets(1)%sampling
+       call lebiology_sample_environment(agent, xfield, foodfields, food_sampling, foodfield_vals)
     end if
 
     stat=0

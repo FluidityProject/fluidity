@@ -149,6 +149,9 @@ contains
        if(allocated(detector%food_ingests)) then
           deallocate(detector%food_ingests)
        end if
+       if(allocated(detector%old_lcoord)) then
+          deallocate(detector%old_lcoord)
+       end if
        if(allocated(detector%ray_o)) then
           deallocate(detector%ray_o)
        end if
