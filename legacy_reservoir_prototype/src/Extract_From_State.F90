@@ -1874,8 +1874,8 @@
       !
       character( len = option_path_len ) :: option_path, option_path2, field_name, name
       integer :: shape_option(2), iphase, nobcs, kk, k, j , sele, stat
-      integer, dimension( : ), allocatable :: face_nodes, SufID_BC
-      integer, dimension( : ), pointer:: surface_element_list
+      integer, dimension( : ), allocatable :: SufID_BC
+      integer, dimension( : ), pointer:: surface_element_list, face_nodes
 
       type( scalar_field ), pointer :: field, field_prot_bc, field_prot1, field_prot2
       type( scalar_field ), pointer :: field_prot_bc1, field_prot_bc2
@@ -1904,7 +1904,6 @@
             shape_option = option_shape( trim( option_path ) )
             allocate( SufID_BC( 1 : shape_option( 1 ) ) )
             call get_option( trim( option_path ), SufID_BC )
-            allocate( face_nodes( face_loc( field, 1) ) )
 
             option_path = trim( option_path2 ) // int2str( k - 1 ) // ']/'
 
@@ -1917,7 +1916,7 @@
                do j = 1, stotel
                   if( any ( SufID_BC == pmesh % faces % boundary_ids( j ) ) ) then
                      !wic_bc( j + ( iphase - 1 ) * stotel ) = BC_Type
-                     face_nodes = ele_nodes( field_prot_bc, sele )
+                     face_nodes => ele_nodes( field_prot_bc, sele )
                      do kk = 1, cv_snloc
                         suf_t_bc( ( iphase - 1 ) * stotel * cv_snloc + ( j - 1 ) * cv_snloc + kk ) = &
                              field_prot_bc % val( face_nodes( 1 ) )
@@ -1953,7 +1952,7 @@
                   do j = 1, stotel
                      if( any ( SufID_BC == pmesh % faces % boundary_ids( j ) ) ) then
                         !wic_bc( j + ( iphase - 1 ) * stotel ) = BC_Type
-                        face_nodes = ele_nodes( field_prot_bc1f, sele )
+                        face_nodes => ele_nodes( field_prot_bc1f, sele )
                         do kk = 1, cv_snloc
                            suf_t_bc_rob1( ( iphase - 1 ) * stotel * cv_snloc + ( j - 1 ) * cv_snloc + kk ) = &
                                 field_prot_bc1f % val( face_nodes( 1 ) )
@@ -1976,7 +1975,7 @@
                   do j = 1, stotel
                      if( any ( SufID_BC == pmesh % faces % boundary_ids( j ) ) ) then
                         !wic_bc( j + ( iphase - 1 ) * stotel ) = BC_Type
-                        face_nodes = ele_nodes( field_prot_bc1, sele )
+                        face_nodes => ele_nodes( field_prot_bc1, sele )
                         do kk = 1, cv_snloc
                            suf_t_bc_rob1( ( iphase - 1 ) * stotel * cv_snloc + ( j - 1 ) * cv_snloc + kk ) = &
                                 field_prot_bc1 % val( face_nodes( 1 ) )
@@ -1991,7 +1990,7 @@
 
             end if Conditional_Field_BC
 
-            deallocate( face_nodes, SufID_BC )
+            deallocate( SufID_BC )
 
          end do Loop_BC
 
