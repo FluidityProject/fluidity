@@ -71,6 +71,4 @@ typedef Intersector1<double> Intersector1d;
 
 }
 
-#include "Wm4Intersector1.cpp"
-
 #endif
