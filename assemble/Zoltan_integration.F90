@@ -894,10 +894,10 @@ module zoltan_integration
 
           end do max_check
 
-          write(string_load_imbalance_tolerance, '(f6.3)' ) max_l
+          write(string_load_imbalance_tolerance, '(f6.3)' ) load_imbalance_tolerance
           ewrite(2,*) 'Load balanced at load_imbalance_tolerance of: ', string_load_imbalance_tolerance
           ! check if we have found max value within a given tolerance
-          if (abs(load_imbalance_tolerance - min_l) < 0.01) then
+          if (abs(load_imbalance_tolerance - min_l) < 0.02) then
             write(string_load_imbalance_tolerance, '(f6.3)' ) load_imbalance_tolerance
             ewrite(2,*) 'Partitioning successfully achieved with load_imbalance_tolerance of: '// &
                  string_load_imbalance_tolerance
