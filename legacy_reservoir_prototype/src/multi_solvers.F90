@@ -171,10 +171,10 @@ contains
 
     integer, dimension( : ), allocatable :: findcmc_small, colcmc_small, midcmc_small, &
          MAP_DG2CTY
-    real, dimension( : ), allocatable :: cmc_small, resid_dg, resid_cty, &
+    real, dimension( : ), allocatable :: cmc_small, resid_dg, resid_dg2, resid_cty, &
          nods_sourou, DP_DG, DP_SMALL, USTEP
     integer :: ele,cv_iloc, dg_nod, cty_nod, jcolcmc, jcolcmc_small
-    integer :: mx_ncmc_small, ncmc_small, count, count2, count3, GL_ITS
+    integer :: mx_ncmc_small, ncmc_small, count, count2, count3, GL_ITS, col
     real :: OPT_STEP
 
     character(len=OPTION_PATH_LEN) :: path = "/tmp/pressure"
@@ -246,8 +246,8 @@ contains
           if (.true.) then
              call set_solver_options(path, &
                   ksptype = "gmres", &
-                  pctype = "sor", &
                   !pctype = "jacobi", & ! use this for P1DGP1DG
+                  pctype = "sor", & ! use this for P1DGP1DG
                   !pctype = "none", &   ! use this for P1DGP2DG
                   rtol = 1.e-10, &
                   atol = 1.e-15, &
@@ -264,16 +264,40 @@ contains
              !call set_option( &
              !     trim(path)//"/solver/preconditioner[0]/hypre_type[0]/name", "boomeramg")
 
+             ! ignore solver failures...
+
              ustep=p
 
-             ! ignore solver failures...
              call add_option( &
                   trim(path)//"/solver/ignore_all_solver_failures", stat)
              CALL SOLVER( CMC, P, RHS, &
                   FINDCMC, COLCMC, &
                   option_path = path )
 
-             p = 0.5 * ( ustep + p )
+
+   if(.true.) then
+       DP_DG=p-ustep
+       p=ustep
+
+       resid_dg = rhs
+       ustep = 0.0
+       do dg_nod = 1, cv_nonods
+          DO COUNT = FINDCMC(dg_NOD), FINDCMC(dg_NOD+1) - 1
+             col=COLCMC(COUNT)
+             resid_dg(dg_nod) = resid_dg(dg_nod) - cmc(count) * P(Col)
+             ustep(dg_nod) = ustep(dg_nod) + cmc(count) * dP_DG(COL)
+          END DO
+       end do
+
+       OPT_STEP=-SUM(-USTEP(:)*RESID_DG(:))/MAX(1.E-15, SUM(USTEP(:)*USTEP(:)))
+! Make sure the step length is between [0,1]
+       OPT_STEP=MIN(1.0,MAX(0.,OPT_STEP))
+
+       P = P + DP_DG * OPT_STEP
+    endif
+
+
+
           end if
 
           if (.false.) then
@@ -291,12 +315,6 @@ contains
 
        end if
 
-       resid_dg = rhs
-       do dg_nod = 1, cv_nonods
-          DO COUNT = FINDCMC(dg_NOD), FINDCMC(dg_NOD+1) - 1
-             resid_dg(dg_nod) = resid_dg(dg_nod) - cmc(count) * P(COLCMC(COUNT))
-          END DO
-       end do
 
        ! Map resid_dg to resid_cty as well as the solution:
        resid_cty=0.
@@ -332,7 +350,7 @@ contains
        end do
        OPT_STEP=-SUM(-USTEP(:)*RESID_DG(:))/MAX(1.E-15, SUM(USTEP(:)*USTEP(:)))
 ! Make sure the step length is between [0,1]
-       OPT_STEP=MIN(1.0,MAX(0.0,OPT_STEP))
+       OPT_STEP=MIN(1.0,MAX(0.,OPT_STEP))
 
        P = P + DP_DG * OPT_STEP
 
