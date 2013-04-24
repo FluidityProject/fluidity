@@ -7156,11 +7156,11 @@
                         FEMT2GI = 0.0
                         FEMT2OLDGI =0.0
             DO CV_KLOC = 1, CV_NLOC
-               CV_KLOC2 = CV_OTHER_LOC( CV_KLOC )
+!               CV_KLOC2 = CV_OTHER_LOC( CV_KLOC )
                CV_NODK = CV_NDGLN(( ELE_DOWN - 1 ) * CV_NLOC + CV_KLOC )
                CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
-                     CV_NODK2 = CV_NDGLN(( ELE2 - 1 ) * CV_NLOC + CV_KLOC2 )
-                     CV_NODK2_IPHA = CV_NODK2 + ( IPHASE - 1 ) * CV_NONODS
+!                     CV_NODK2 = CV_NDGLN(( ELE2 - 1 ) * CV_NLOC + CV_KLOC2 )
+!                     CV_NODK2_IPHA = CV_NODK2 + ( IPHASE - 1 ) * CV_NONODS
 ! Extrapolate to the downwind value...
                   IF(NON_LIN_PETROV_INTERFACE.NE.0) THEN 
                      IF(NON_LIN_PETROV_INTERFACE==4) THEN ! anisotropic diffusion...
@@ -7177,13 +7177,13 @@
                   RSHAPE    =SCVFEN( CV_KLOC, GI ) + RGRAY
                   RSHAPE_OLD=SCVFEN( CV_KLOC, GI ) + RGRAY
 
-               IF(NON_LIN_PETROV_INTERFACE.NE.0) THEN 
-                  FEMTGI    = FEMTGI     +  RSHAPE     * 0.5*(FEMT( CV_NODK_IPHA ) +FEMT( CV_NODK2_IPHA ))
-                  FEMTOLDGI = FEMTOLDGI  +  RSHAPE_OLD * 0.5*(FEMTOLD( CV_NODK_IPHA )+FEMTOLD( CV_NODK2_IPHA ))
-               ELSE
+!               IF(NON_LIN_PETROV_INTERFACE.NE.0) THEN 
+!                  FEMTGI    = FEMTGI     +  RSHAPE     * 0.5*(FEMT( CV_NODK_IPHA ) +FEMT( CV_NODK2_IPHA ))
+!                  FEMTOLDGI = FEMTOLDGI  +  RSHAPE_OLD * 0.5*(FEMTOLD( CV_NODK_IPHA )+FEMTOLD( CV_NODK2_IPHA ))
+!               ELSE
                   FEMTGI    = FEMTGI     +  RSHAPE     * FEMT( CV_NODK_IPHA )
                   FEMTOLDGI = FEMTOLDGI  +  RSHAPE_OLD * FEMTOLD( CV_NODK_IPHA )
-               ENDIF
+!               ENDIF
 
                FEMDGI    = FEMDGI     +  SCVFEN( CV_KLOC, GI ) * FEMDEN( CV_NODK_IPHA )
                FEMDOLDGI = FEMDOLDGI  +  SCVFEN( CV_KLOC, GI ) * FEMDENOLD( CV_NODK_IPHA )
@@ -7214,10 +7214,15 @@
                      CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
 ! Extrapolate to the downwind value...
 ! USE DOWNWINDING...
+!                     FEMTGI_DDG = FEMTGI_DDG +  SCVFEN( CV_KLOC, GI ) * ( FEMT( CV_NODK2_IPHA ) & 
+!                          * (1.-INCOME) + FEMT( CV_NODK_IPHA ) * INCOME )
+!                     FEMTOLDGI_DDG = FEMTOLDGI_DDG + SCVFEN( CV_KLOC, GI ) * ( FEMTOLD( CV_NODK2_IPHA ) &
+!                          * (1.-INCOMEOLD) + FEMTOLD( CV_NODK_IPHA ) * INCOMEOLD )
+! central...
                      FEMTGI_DDG = FEMTGI_DDG +  SCVFEN( CV_KLOC, GI ) * ( FEMT( CV_NODK2_IPHA ) & 
-                          * (1.-INCOME) + FEMT( CV_NODK_IPHA ) * INCOME )
+                          * 0.5 + FEMT( CV_NODK_IPHA ) * 0.5 )
                      FEMTOLDGI_DDG = FEMTOLDGI_DDG + SCVFEN( CV_KLOC, GI ) * ( FEMTOLD( CV_NODK2_IPHA ) &
-                          * (1.-INCOMEOLD) + FEMTOLD( CV_NODK_IPHA ) * INCOMEOLD )
+                          * 0.5 + FEMTOLD( CV_NODK_IPHA ) * 0.5 )
                   if(.false.) then
                      FEMTGI = FEMTGI +  SCVFEN( CV_KLOC, GI ) * ( FEMT( CV_NODK2_IPHA ) & 
                           * (1.-INCOME) + FEMT( CV_NODK_IPHA ) * INCOME )
