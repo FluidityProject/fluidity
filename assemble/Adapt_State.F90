@@ -91,7 +91,7 @@ module adapt_state_module
     module procedure adapt_state_single, adapt_state_multiple
   end interface adapt_state
 
-  real, save :: previous_global_min_quality
+  real, save :: previous_global_min_quality = 0.0
   integer, save :: locked_counter = 0
 
 contains
@@ -1249,7 +1249,6 @@ contains
         else
 
           if (zoltan_additional_adapt_iterations .gt. 0) then
-             previous_global_min_quality = global_min_quality
              call zoltan_drive(states, final_adapt_iteration, global_min_quality = global_min_quality, metric = metric)
              if (previous_global_min_quality >= global_min_quality) then
                locked_counter = locked_counter + 1
@@ -1266,6 +1265,7 @@ contains
                end if
              else
                locked_counter = 0
+               previous_global_min_quality = global_min_quality
              end if
           else
              call zoltan_drive(states, final_adapt_iteration, metric = metric)
@@ -1314,7 +1314,7 @@ contains
       if (final_adapt_iteration) then
          ewrite(2,*) "Finished adapting."
          finished_adapting = .true.
-         previous_global_min_quality = 1.0
+         previous_global_min_quality = 0.0
          locked_counter = 0
       else
          ! check whether the next iteration should be the last iteration
