@@ -172,9 +172,10 @@ contains
     integer, dimension( : ), allocatable :: findcmc_small, colcmc_small, midcmc_small, &
          MAP_DG2CTY
     real, dimension( : ), allocatable :: cmc_small, resid_dg, resid_cty, &
-         nods_sourou, DP_DG, DP_SMALL
+         nods_sourou, DP_DG, DP_SMALL, USTEP
     integer :: ele,cv_iloc, dg_nod, cty_nod, jcolcmc, jcolcmc_small
     integer :: mx_ncmc_small, ncmc_small, count, count2, count3, GL_ITS
+    real :: OPT_STEP
 
     character(len=OPTION_PATH_LEN) :: path = "/tmp/pressure"
     integer :: stat
@@ -209,6 +210,7 @@ contains
     allocate( resid_cty(x_nonods) )
     allocate( dp_small(x_nonods) )
     allocate( dp_dg(cv_nonods) )
+    allocate( USTEP(cv_nonods) )
     allocate( nods_sourou(x_nonods) )
 
     ewrite(3,*)'***forming cmc_small:'
@@ -241,7 +243,7 @@ contains
 
        if (gl_its>2) then
 
-          if (.false.) then
+          if (.true.) then
              call set_solver_options(path, &
                   !ksptype = "gmres", &
                   pctype = "jacobi", & ! use this for P1DGP1DG
@@ -276,7 +278,7 @@ contains
              ewrite(3,*)'after solving:',p
           end if
 
-          if (.true.) then
+          if (.false.) then
              CALL SOLVER( CMC, P, RHS, &
                   FINDCMC, COLCMC, &
                   option_path = '/material_phase[0]/scalar_field::Pressure' )
@@ -316,7 +318,18 @@ contains
           DP_DG(DG_NOD) = DP_SMALL(CTY_NOD)
        END DO
 
-       P = P + DP_DG
+! Determine optimal step length...
+       USTEP=0.0
+       do dg_nod = 1, cv_nonods
+          DO COUNT = FINDCMC(dg_NOD), FINDCMC(dg_NOD+1) - 1
+             USTEP(dg_nod) = USTEP(dg_nod) + cmc(count) * DP_DG(COLCMC(COUNT))
+          END DO
+       end do
+       OPT_STEP=-SUM(-USTEP(:)*RESID_DG(:))/MAX(1.E-15, SUM(USTEP(:)*USTEP(:)))
+! Make sure the step length is between [0,1]
+       OPT_STEP=MIN(1.0,MAX(0.0,OPT_STEP))
+
+       P = P + DP_DG * OPT_STEP
 
     END DO
 
