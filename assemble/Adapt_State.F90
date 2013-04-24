@@ -1250,7 +1250,7 @@ contains
 
           if (zoltan_additional_adapt_iterations .gt. 0) then
              call zoltan_drive(states, final_adapt_iteration, global_min_quality = global_min_quality, metric = metric)
-             if (previous_global_min_quality >= global_min_quality) then
+             if (previous_global_min_quality - global_min_quality >= -1e-5) then
                locked_counter = locked_counter + 1
                if (locked_counter > 5) then
                  ewrite(0,*) 'elements locked for more than 5 iterations - lowering quality tolerance'
