@@ -6911,7 +6911,8 @@
 !                  RESIDGI=0.5*courant_or_minus_one_new/DT
 !                  RESIDGI=2.0*courant_or_minus_one_new/DT
 !                  RESIDGI=max( abs(TGI-TOLDGI)/DT,2.*courant_or_minus_one_new/DT)
-                  RESIDGI=max( abs(TGI-TOLDGI)/DT,1.*sqrt(udgi**2+vdgi**2+wdgi**2)/hdc)
+!                  RESIDGI=max( abs(TGI-TOLDGI)/DT,1.*sqrt(udgi**2+vdgi**2+wdgi**2)/hdc)
+                  RESIDGI=sqrt(udgi**2+vdgi**2+wdgi**2)/hdc
 !                  stop 272
  
                   VEC_VEL(1)=A_STAR_X
@@ -7112,7 +7113,8 @@
 !                  RESIDGI=4.0*courant_or_minus_one_new/DT
 !                  RESIDGI=(TGI-TOLDGI)/DT
 !                  RESIDGI=max( abs(TGI-TOLDGI)/DT,2.*courant_or_minus_one_new/DT)
-                  RESIDGI=max( abs(TGI-TOLDGI)/DT,1.*sqrt(udgi**2+vdgi**2+wdgi**2)/hdc)
+!                  RESIDGI=max( abs(TGI-TOLDGI)/DT,1.*sqrt(udgi**2+vdgi**2+wdgi**2)/hdc)
+                  RESIDGI=sqrt(udgi**2+vdgi**2+wdgi**2)/hdc
 !                  RESIDGI=max( abs(TGI-TOLDGI)/DT,(abs(udgi)+abs(vdgi)+abs(wdgi))/hdc)
  
                   VEC_VEL(1)=A_STAR_X
@@ -7154,8 +7156,11 @@
                         FEMT2GI = 0.0
                         FEMT2OLDGI =0.0
             DO CV_KLOC = 1, CV_NLOC
+               CV_KLOC2 = CV_OTHER_LOC( CV_KLOC )
                CV_NODK = CV_NDGLN(( ELE_DOWN - 1 ) * CV_NLOC + CV_KLOC )
                CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
+                     CV_NODK2 = CV_NDGLN(( ELE2 - 1 ) * CV_NLOC + CV_KLOC2 )
+                     CV_NODK2_IPHA = CV_NODK2 + ( IPHASE - 1 ) * CV_NONODS
 ! Extrapolate to the downwind value...
                   IF(NON_LIN_PETROV_INTERFACE.NE.0) THEN 
                      IF(NON_LIN_PETROV_INTERFACE==4) THEN ! anisotropic diffusion...
@@ -7171,8 +7176,14 @@
                   ENDIF
                   RSHAPE    =SCVFEN( CV_KLOC, GI ) + RGRAY
                   RSHAPE_OLD=SCVFEN( CV_KLOC, GI ) + RGRAY
+
+               IF(NON_LIN_PETROV_INTERFACE.NE.0) THEN 
+                  FEMTGI    = FEMTGI     +  RSHAPE     * 0.5*(FEMT( CV_NODK_IPHA ) +FEMT( CV_NODK2_IPHA ))
+                  FEMTOLDGI = FEMTOLDGI  +  RSHAPE_OLD * 0.5*(FEMTOLD( CV_NODK_IPHA )+FEMTOLD( CV_NODK2_IPHA ))
+               ELSE
                   FEMTGI    = FEMTGI     +  RSHAPE     * FEMT( CV_NODK_IPHA )
                   FEMTOLDGI = FEMTOLDGI  +  RSHAPE_OLD * FEMTOLD( CV_NODK_IPHA )
+               ENDIF
 
                FEMDGI    = FEMDGI     +  SCVFEN( CV_KLOC, GI ) * FEMDEN( CV_NODK_IPHA )
                FEMDOLDGI = FEMDOLDGI  +  SCVFEN( CV_KLOC, GI ) * FEMDENOLD( CV_NODK_IPHA )

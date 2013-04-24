@@ -327,7 +327,7 @@ contains
        end do
        OPT_STEP=-SUM(-USTEP(:)*RESID_DG(:))/MAX(1.E-15, SUM(USTEP(:)*USTEP(:)))
 ! Make sure the step length is between [0,1]
-       OPT_STEP=MIN(1.0,MAX(0.0,OPT_STEP))
+       OPT_STEP=MIN(1.0,MAX(0.,OPT_STEP))
 
        P = P + DP_DG * OPT_STEP
 
