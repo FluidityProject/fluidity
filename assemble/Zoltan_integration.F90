@@ -857,8 +857,9 @@ module zoltan_integration
       
       if (.not. balance_and_check()) then
 
+        write(string_load_imbalance_tolerance, '(f6.3)' ) load_imbalance_tolerance
         ewrite(2,*) 'Empty partion would be created with load_imbalance_tolerance of', &
-             load_imbalance_tolerance
+             string_load_imbalance_tolerance
         ewrite(2,*) 'Performing search for highest imbalance tolerance that will not '//&
              'create an empty partition'
 
@@ -893,6 +894,8 @@ module zoltan_integration
 
           end do max_check
 
+          write(string_load_imbalance_tolerance, '(f6.3)' ) max_l
+          ewrite(2,*) 'Load balanced at load_imbalance_tolerance of: ', string_load_imbalance_tolerance
           ! check if we have found max value within a given tolerance
           if (abs(load_imbalance_tolerance - min_l) < 0.01) then
             write(string_load_imbalance_tolerance, '(f6.3)' ) load_imbalance_tolerance
@@ -905,6 +908,14 @@ module zoltan_integration
           max_l = (load_imbalance_tolerance - min_l)*2.0 + min_l
           min_l = load_imbalance_tolerance
           load_imbalance_tolerance = max_l
+
+          write(string_load_imbalance_tolerance, '(f6.3)' ) max_l
+          ewrite(2,*) 'max load_imbalance_tolerance set to: '// &
+               string_load_imbalance_tolerance
+          write(string_load_imbalance_tolerance, '(f6.3)' ) min_l
+          ewrite(2,*) 'min load_imbalance_tolerance set to: '// &
+               string_load_imbalance_tolerance
+          ewrite(2,*) 'search continues...'
 
         end do min_check
 
