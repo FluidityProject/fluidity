@@ -1251,13 +1251,13 @@ contains
           if (zoltan_additional_adapt_iterations .gt. 0) then
              previous_global_min_quality = global_min_quality
              call zoltan_drive(states, final_adapt_iteration, global_min_quality = global_min_quality, metric = metric)
-             if (previous_global_min_quality == global_min_quality) then
+             if (previous_global_min_quality >= global_min_quality) then
                locked_counter = locked_counter + 1
                if (locked_counter > 5) then
                  ewrite(0,*) 'elements locked for more than 5 iterations - lowering quality tolerance'
                  if (global_min_quality > quality_tolerance * (1.0 - locked_counter/50.0)) then
                    ewrite(0,*) 'WARNING: mesh passed with element quality tolerance of :'
-                   ewrite(0,*) quality_tolerance * (1.0 - locked_counter/100.0)
+                   ewrite(0,*) quality_tolerance * (1.0 - locked_counter/50.0)
                    ewrite(0,*) 'due to locked nodes - mesh may not be of desired quality'
                    global_min_quality = 1.0
                  else
