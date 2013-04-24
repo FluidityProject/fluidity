@@ -56,6 +56,7 @@ module diagnostic_fields_wrapper
   use sediment_diagnostics
   use geostrophic_pressure
   use multiphase_module
+  use wetting_and_drying_stabilisation, only:calculate_wetdry_vertical_absorption
   
   implicit none
 
@@ -481,6 +482,13 @@ contains
        if(stat == 0) then
          if(recalculate(trim(s_field%option_path))) then
            call calculate_diagnostic_wettingdrying_alpha(state(i), s_field)
+         end if
+       end if
+
+       s_field => extract_scalar_field(state(i), "WetDryVerticalAbsorption", stat)
+       if(stat == 0) then
+         if(recalculate(trim(s_field%option_path))) then
+           call calculate_wetdry_vertical_absorption(state(i), s_field)
          end if
        end if
 

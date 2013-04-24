@@ -65,6 +65,7 @@
     use physics_from_options
     use colouring
     use Profiler
+    use wetting_and_drying_stabilisation, only:calculate_wetdry_vertical_absorption
 #ifdef _OPENMP
     use omp_lib
 #endif
@@ -124,7 +125,7 @@
     ! assemble mass or inverse lumped mass?
     logical :: assemble_mass_matrix
     logical :: assemble_inverse_masslump
-
+    logical :: have_wetdry_optimum_aspect_ratio
     ! implicitness parameter, timestep, conservation parameter, nonlinear theta factor
     real :: theta, dt, beta, gravity_magnitude, itheta
 
@@ -162,6 +163,7 @@
     real :: fs_sf
     ! min vertical density gradient for implicit buoyancy
     real :: ib_min_grad
+    real :: wetdry_optimum_aspect_ratio
 
     ! Are we running a multi-phase flow simulation?
     logical :: multiphase
@@ -332,6 +334,8 @@
       if (have_vertical_velocity_relaxation) then
         call get_option(trim(u%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation/scale_factor", vvr_sf)
         ewrite(2,*) "vertical velocity relaxation scale_factor= ", vvr_sf
+      end if
+      if (have_vertical_velocity_relaxation .or. have_wetdry_optimum_aspect_ratio) then
         dtt => extract_scalar_field(state, "DistanceToTop")
         dtb => extract_scalar_field(state, "DistanceToBottom")
         call allocate(depth, dtt%mesh, "Depth")
@@ -676,6 +680,16 @@
 #else
     thread_num = 0
 #endif
+   
+    have_wetdry_optimum_aspect_ratio=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio")
+    if(have_wetdry_optimum_aspect_ratio) then
+      call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio", wetdry_optimum_aspect_ratio)
+      ewrite(3,*) "Appling vertical absorption stabilisation to the wetting and drying approach"
+
+      if (on_sphere) then
+        FLExit('The sigma_d0 scheme currently not implemented on the sphere')	 
+      end if
+    end if
     colour_loop: do clr = 1, size(colours)
       len = key_count(colours(clr))
       !$OMP DO SCHEDULE(STATIC)
@@ -1356,7 +1370,7 @@
       end if
 
       ! Absorption terms (sponges) and WettingDrying absorption
-      if (have_absorption .or. have_vertical_stabilization .or. have_wd_abs) then
+      if (have_absorption .or. have_vertical_stabilization .or. have_wd_abs .or.have_wetdry_optimum_aspect_ratio) then
        call add_absorption_element_cg(x, ele, test_function, u, oldu_val, density, &
                                       absorption, detwei, big_m_diag_addto, big_m_tensor_addto, rhs_addto, &
                                       masslump, mass, depth, gravity, buoyancy, &
@@ -1784,7 +1798,8 @@
       real, dimension(ele_ngi(u,ele)) :: drho_dz
 
       real, dimension(ele_ngi(u,ele)) :: alpha_u_quad
-      
+      real, dimension(u%dim,ele_ngi(u,ele)) :: sigma_d0_diag
+      real, dimension(ele_ngi(u,ele)) :: sigma_ngi
       density_gi=ele_val_at_quad(density, ele)
       absorption_gi=0.0
       tensor_absorption_gi=0.0
@@ -1863,7 +1878,17 @@
           end if
         end if
 
-        ! Add any vertical stabilization to the absorption term
+        ! Wetting and drying vertical absorption for thin layers
+        sigma_ngi=0.0
+        sigma_d0_diag=0.0
+        if(have_wetdry_optimum_aspect_ratio) then
+          call calculate_wetdry_vertical_absorption(ele, positions, u, sigma_ngi, wetdry_optimum_aspect_ratio,dt,depth)
+          do i=1, ele_ngi(u,ele)
+            sigma_d0_diag(:,i) = sigma_ngi(i)*grav_at_quads(:,i)
+          end do
+        end if
+   
+        ! Add any vertical stabilization to the absorption term. Here vvr_abs_diag, ib_abs_diag, sigma_d0_diag are all negative.
         if (on_sphere) then
           tensor_absorption_gi=tensor_absorption_gi-vvr_abs-ib_abs
           absorption_gi=absorption_gi-vvr_abs_diag-ib_abs_diag
