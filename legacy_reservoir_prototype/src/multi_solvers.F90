@@ -245,8 +245,9 @@ contains
 
           if (.true.) then
              call set_solver_options(path, &
-                  !ksptype = "gmres", &
-                  pctype = "jacobi", & ! use this for P1DGP1DG
+                  ksptype = "gmres", &
+                  pctype = "sor", &
+                  !pctype = "jacobi", & ! use this for P1DGP1DG
                   !pctype = "none", &   ! use this for P1DGP2DG
                   rtol = 1.e-10, &
                   atol = 1.e-15, &
@@ -263,12 +264,16 @@ contains
              !call set_option( &
              !     trim(path)//"/solver/preconditioner[0]/hypre_type[0]/name", "boomeramg")
 
+             ustep=p
+
              ! ignore solver failures...
              call add_option( &
                   trim(path)//"/solver/ignore_all_solver_failures", stat)
              CALL SOLVER( CMC, P, RHS, &
                   FINDCMC, COLCMC, &
                   option_path = path )
+
+             p = 0.5 * ( ustep + p )
           end if
 
           if (.false.) then
@@ -327,7 +332,7 @@ contains
        end do
        OPT_STEP=-SUM(-USTEP(:)*RESID_DG(:))/MAX(1.E-15, SUM(USTEP(:)*USTEP(:)))
 ! Make sure the step length is between [0,1]
-       OPT_STEP=MIN(1.0,MAX(0.,OPT_STEP))
+       OPT_STEP=MIN(1.0,MAX(0.0,OPT_STEP))
 
        P = P + DP_DG * OPT_STEP
 
