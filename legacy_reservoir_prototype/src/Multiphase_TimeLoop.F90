@@ -37,7 +37,7 @@
          check_diagnostic_dependencies
     use global_parameters, only: timestep, simulation_start_time, simulation_start_cpu_time, &
                                simulation_start_wall_time, &
-                               topology_mesh_name
+                               topology_mesh_name, current_time
     use fldebug
     use state_module
     use fields
@@ -118,7 +118,7 @@
 !!$ Defining time- and nonlinear interations-loops variables
       integer :: itime, dump_period_in_timesteps, final_timestep, &
            NonLinearIteration, NonLinearIteration_Components
-      real :: acctim, finish_time, current_time
+      real :: acctim, finish_time
 
 !!$ Defining problem that will be solved
       logical :: have_temperature_field, have_component_field, have_extra_DiffusionLikeTerm, &
@@ -1094,6 +1094,8 @@
          call set_option( '/timestepping/current_time', acctim )
          call set_option( '/timestepping/timestep', dt)
 
+         current_time=acctim
+
 !!$ Copying fields back to state:
          call copy_into_state( state, & ! Copying main fields into state
               PhaseVolumeFraction, Temperature, Pressure_CV, Velocity_U, Velocity_V, Velocity_W, &
@@ -1105,11 +1107,11 @@
             call calculate_diagnostic_variables( state, exclude_nonrecalculated = .true. )
             call calculate_diagnostic_variables_new( state, exclude_nonrecalculated = .true. )
 
-         Conditional_TimeDump: if( ( mod( itime, dump_period_in_timesteps ) == 0 ) .or. ( itime == 1 ) ) then
+         Conditional_TimeDump: if( ( mod( itime, dump_period_in_timesteps ) == 0 ) ) then
             call get_option( '/timestepping/current_time', current_time ) ! Find the current time 
 !!$ Write stat file
             call write_diagnostics( state, current_time, dt, itime )
-            not_to_move_det_yet = .false. ; dump_no = itime ! Sync dump_no with itime
+            not_to_move_det_yet = .false. ; dump_no = itime/dump_period_in_timesteps ! Sync dump_no with itime
             call write_state( dump_no, state ) ! Now writing into the vtu files
          end if Conditional_TimeDump
 
