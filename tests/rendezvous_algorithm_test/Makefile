@@ -2,7 +2,7 @@ input:
 	cp src/*.msh .
 
 inputbox:
-	cp src/box_*.msh src/box_*.halo .
+	cp src/box.msh .
 inputushape:
 	cp src/ushape.msh .
 inputucircle:
