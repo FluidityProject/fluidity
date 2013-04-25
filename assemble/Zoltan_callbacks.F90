@@ -182,10 +182,10 @@ contains
     character (len = OPTION_PATH_LEN) :: filename    
     
     ! variables for recording various element quality functional values 
-    real :: quality, min_quality, my_min_quality
+    real :: quality, min_quality, my_min_quality, nocut_edge_fraction
     
     ! variables for recording the local maximum/minimum edge weights and local 90th percentile edge weight
-    real(zoltan_float) :: min_weight, max_weight, ninety_weight, my_max_weight, my_min_weight
+    real(zoltan_float) :: min_weight, max_weight, nocut_weight, my_max_weight, my_min_weight
     
     integer, dimension(:), pointer :: my_nelist, nbor_nelist
     
@@ -327,17 +327,21 @@ contains
     ! calculate global minimum edge weight
     call MPI_ALLREDUCE(my_min_weight,min_weight,1,MPI_REAL,MPI_MIN, MPI_COMM_FEMTOOLS,err)
 
-    ! calculate the local 90th percentile edge weight   
-    ninety_weight = max_weight * 0.90
-    
     ! don't want to adjust the weights if all the elements are of a similar quality
-    if (min_weight < ninety_weight) then
-       ! make the worst 10% of elements uncuttable
-       do i=1,head-1
-          if (ewgts(i) .GT. ninety_weight) then
-             ewgts(i) = (total_num_edges + 1)
-          end if
-       end do
+    if (min_weight < max_weight * 0.9) then
+
+      ! calculate the nth percentile edge weight
+      call get_option(trim(zoltan_global_base_option_path)//"/uncuttable_edge_fraction", &
+           nocut_edge_fraction, default=0.1)
+      nocut_weight = (max_weight - min_weight)*(1.0 - nocut_edge_fraction) + min_weight
+    
+      ! make poor elements uncuttable
+      do i=1,head-1
+        if (ewgts(i) .GT. nocut_weight) then
+          ewgts(i) = (total_num_edges + 1)
+        end if
+      end do
+
     end if
     
     if (zoltan_global_output_edge_weights) then

@@ -980,12 +980,21 @@ hr_adaptivity =
             element load_imbalance_tolerance {
                 real
             }?,
-            ## Load imbalance tolerance.
+            ## Final load imbalance tolerance.
             ## The amount of load imbalance the partitioning algorithm should deem acceptable on the 
             ## final adapt iteration. It is assumed that the mesh is well adapted by the final partition
             ## and hence we no longer worry about locked nodes. The aim is to achieve a well balanced partition.
             ## A low value is recommended. The default value is 1.03.
             element final_partition_load_imbalance_tolerance {
+                real
+            }?,
+            ## Uncuttable edge fraction.
+            ## The fraction of edges that are marked as uncuttable when partitioning with edge weighting. i.e. 
+            ## all but the final adapt. Uncuttable elements are marked to allow elements with low element 
+            ## qualities, when measured against the metric, to adapt. Marking more elements may allow the mesh 
+            ## to improve more quickly if Zoltan is capable of avoiding all of the edges, but could cause 
+            ## Zoltan to lock edges for many adapts due to too many elements being uncuttable. The default value is 0.10
+            element uncuttable_edge_fraction {
                 real
             }?,
             ## Additional adapt iterations.
