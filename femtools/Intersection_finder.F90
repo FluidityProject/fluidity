@@ -186,8 +186,29 @@ contains
 #endif
 
   end subroutine reset_intersection_tests_counter
-      
-  function intersection_finder(positionsA, positionsB) result(map_AB)
+
+  function intersection_finder(positionsA, positionsB, matching_domain) result(map_AB)
+    !!< A simple wrapper to select an intersection finder
+    
+    ! The positions and meshes of A and B
+    type(vector_field), intent(in), target :: positionsA, positionsB
+    logical, optional, intent(in) :: matching_domain
+    ! for each element in A, the intersecting elements in B
+    type(ilist), dimension(ele_count(positionsA)) :: map_AB
+
+    ewrite(1, *) "In intersection_finder"
+
+    if (.not. present_and_true(matching_domain)) then
+        map_AB = matching_domain_intersection_finder(positionsA, positionsB)
+    else
+        map_AB = nonmatching_domains_intersection_finder(positionsA, positionsB)
+    end if
+
+    ewrite(1, *) "Exiting intersection_finder"
+
+  end function intersection_finder
+
+  function matching_domain_intersection_finder(positionsA, positionsB) result(map_AB)
     !!< A simple wrapper to select an intersection finder
     
     ! The positions and meshes of A and B
@@ -200,7 +221,7 @@ contains
     type(inode), pointer :: node
     type(ilist), dimension(:), allocatable :: sub_map_AB
     
-    ewrite(1, *) "In intersection_finder"
+    ewrite(1, *) "In matching_domain_intersection_finder"
 
     ! We cannot assume connectedness, so we may have to run the
     ! advancing front more than once (once per connected sub-domain)
@@ -224,9 +245,9 @@ contains
     deallocate(sub_map_AB)
     call deallocate(seeds)
 
-    ewrite(1, *) "Exiting intersection_finder"
+    ewrite(1, *) "Exiting matching_domain_intersection_finder"
   
-  end function intersection_finder
+  end function matching_domain_intersection_finder
   
   function connected(positions)
     !!< Return whether the supplied coordinate field is connected. Uses a simple
@@ -781,5 +802,48 @@ contains
 !!      FLAbort("Should never get here -- it has to intersect /something/!")
 !    end if
   end function clueful_search
+
+
+
+  function nonmatching_domains_intersection_finder(positionsA, positionsB) result(map_AB)
+    !!< A simple wrapper to select an intersection finder
+    
+    ! The positions and meshes of A and B
+    type(vector_field), intent(in), target :: positionsA, positionsB
+    ! for each element in A, the intersecting elements in B
+    type(ilist), dimension(ele_count(positionsA)) :: map_AB
+    
+    integer :: i
+    type(ilist) :: seeds
+    type(inode), pointer :: node
+    type(ilist), dimension(:), allocatable :: sub_map_AB
+    
+    ewrite(1, *) "In nonmatching_domains_intersection_finder"
+
+    ! We cannot assume connectedness, so we may have to run the
+    ! advancing front more than once (once per connected sub-domain)
+  
+    seeds = advancing_front_intersection_finder_seeds(positionsA)
+
+    allocate(sub_map_AB(size(map_AB)))
+    node => seeds%firstnode
+    do while(associated(node))
+      sub_map_AB = advancing_front_intersection_finder(positionsA, positionsB, seed = node%value)
+      do i = 1, size(sub_map_AB)
+        if(sub_map_AB(i)%length > 0) then
+          assert(map_AB(i)%length == 0)
+          map_AB(i) = sub_map_AB(i)
+        end if
+      end do
+    
+      node => node%next
+    end do
+    
+    deallocate(sub_map_AB)
+    call deallocate(seeds)
+
+    ewrite(1, *) "Exiting nonmatching_domains_intersection_finder"
+  
+  end function nonmatching_domains_intersection_finder
 
 end module

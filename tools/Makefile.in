@@ -55,6 +55,7 @@ FLDIAGNOSTICS = ../bin/fldiagnostics
 STREAMFUNCTION_2D = ../bin/streamfunction_2d
 FLREDECOMP = ../bin/flredecomp
 MESHCONV = ../bin/meshconv
+NONMATCHING_DOMAIN_INTERPOLATION = ../bin/nonmatching_domain_interpolation
 TEST_LAPLACIAN= ../bin/test_laplacian
 TEST_LAPLACIAN_VECTOR= ../bin/test_laplacian_vector
 VISUALISE_ELEMENTS= ../bin/visualise_elements
@@ -84,7 +85,7 @@ BINARIES = $(DRAWTIMNEW) $(MAKTIMUNIFORM) $(VTKDIAGNOSTIC)		\
   $(VERTICAL_INTEGRATION) $(EVMERGE) $(FLADAPT) $(CHECKMESH)		\
   $(PROJECT_VTU) $(PROBE_VTU) $(SUPERMESH_DIFFERENCE)			\
   $(DIFFERENTIATE_VTU) $(VTU_BINS) $(TRIANGLE2VTU)			\
-  $(PROJECT_TO_CONTINUOUS) $(MESHCONV)				\
+  $(PROJECT_TO_CONTINUOUS) $(MESHCONV) $(NONMATCHING_DOMAIN_INTERPOLATION) \
   $(TEST_PRESSURE_SOLVE) $(UNIFIEDMESH) $(VTKPROJECTION) $(PERIODISE)	\
   $(TEST_TRACE_SPACE) $(STREAMFUNCTION_2D) $(TEST_TRACE_SPACE)		\
   $(TEST_LAPLACIAN) 
@@ -189,6 +190,9 @@ $(FLREDECOMP): Flredecomp.o Flredecomp_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(MESHCONV): Meshconv.o Meshconv_main.o lib/
+	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+
+$(NONMATCHING_DOMAIN_INTERPOLATION): Nonmatching_domain_interpolation.o Nonmatching_domain_interpolation_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(CHECKMESH): Checkmesh.o Checkmesh_main.o lib/
