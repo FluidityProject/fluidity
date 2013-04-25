@@ -1,0 +1,68 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Testing intersection finder algorithms by doing a Galerking projection between non-matching domains (in parallel)</name>
+  <owner userid="ffm10"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>make test2;
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="area_ushape" language="python">
+area_ushape = 4.0
+    </variable>
+    <variable name="area_circle" language="python">from math import pi
+# actual geometric area: area_circle = 0.5**2*pi
+area_circle = 0.78492949333856643 # expected discritized area!
+    </variable>
+    <variable name="alpha_int_test1" language="python">from fluidity_tools import stat_parser
+#s = stat_parser("diag_test1.stat")
+#a_src = s["Alpha_Source_Integral"]["Value"]
+#a_trg = s["Alpha_Target_Integral"]["Value"]
+#alpha_int_test1 = [a_src, a_trg]
+alpha_int_test1 = [0, 0]
+    </variable>
+    <variable name="alpha_int_test2" language="python">from fluidity_tools import stat_parser
+s = stat_parser("diag_test2.stat")
+a_src = s["Alpha_Source_Integral"]["Value"]
+a_trg = s["Alpha_Target_Integral"]["Value"]
+alpha_int_test2 = [a_src, a_trg]
+    </variable>
+    <variable name="alpha_int_test3" language="python">from fluidity_tools import stat_parser
+#s = stat_parser("diag_test3.stat")
+#a_src = s["Alpha_Source_Integral"]["Value"]
+#a_trg = s["Alpha_Target_Integral"]["Value"]
+#alpha_int_test3 = [a_src, a_trg]
+alpha_int_test3 = [0, 0]
+    </variable>
+    <variable name="alpha_int_test4" language="python">from fluidity_tools import stat_parser
+#s = stat_parser("diag_test4.stat")
+#a_src = s["Alpha_Source_Integral"]["Value"]
+#a_trg = s["Alpha_Target_Integral"]["Value"]
+#alpha_int_test4 = [a_src, a_trg]
+alpha_int_test4 = [0, 0]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name = "Checking volume fractions of the ushape, with f=1 (test1)" language = "python">
+import fluidity_tools
+fluidity_tools.compare_variable(alpha_int_test1[0], area_ushape, 1.0e-7)
+fluidity_tools.compare_variable(alpha_int_test1[1], area_ushape, 1.0e-7)
+    </test>
+    <test name = "Checking volume fractions of the ushape, with f=0 (test2)" language = "python">
+import fluidity_tools
+fluidity_tools.compare_variable(alpha_int_test2[0], area_ushape, 1.0e-7)
+fluidity_tools.compare_variable(alpha_int_test2[1], area_ushape, 1.0e-7)
+    </test>
+    <test name = "Checking volume fractions of the circle, with f=1 (test3)" language = "python">
+import fluidity_tools
+fluidity_tools.compare_variable(alpha_int_test3[0], area_circle, 1.0e-7)
+fluidity_tools.compare_variable(alpha_int_test3[1], area_circle, 1.0e-7)
+    </test>
+    <test name = "Checking volume fractions of the circle, with f=0 (test4)" language = "python">
+import fluidity_tools
+fluidity_tools.compare_variable(alpha_int_test4[0], area_circle, 1.0e-7)
+fluidity_tools.compare_variable(alpha_int_test4[1], area_circle, 1.0e-7)
+    </test>
+  </pass_tests>
+</testproblem>
+

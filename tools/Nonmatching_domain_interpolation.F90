@@ -97,7 +97,7 @@ subroutine Nonmatching_domain_interpolation(c_input_basename_1, input_basename_1
 
   nprocs = getnprocs()
   if (nprocs > 1 .and. input_mesh_format == 'exodusii') then
-    FLExit("Nonmatching_domain_interpolation must be run in serial!")
+    FLExit("Nonmatching_domain_interpolation must be run in serial when reading in an ExodusII mesh!")
   end if
   ! now turn into proper fortran strings (is there an easier way to do this?)
   do i=1, input_basename_1_len
@@ -132,6 +132,21 @@ subroutine Nonmatching_domain_interpolation(c_input_basename_1, input_basename_1
   position1=read_mesh_files(trim(input_basename_1), &
                       quad_degree=quad_degree, &
                       format=input_mesh_format)
+  ! If reading in a decomposed mesh, read in halos as well:
+  if(isparallel()) then
+    call read_halos(trim(input_basename_1), position1)
+    ! Local element ordering needs to be consistent between processes, otherwise
+    ! code in Halos_Repair (used in halo construction of derived meshes) will fail
+    if (.not. verify_consistent_local_element_numbering(position1%mesh)) then
+      ewrite(-1,*) "The local element ordering is not the same between processes"
+      ewrite(-1,*) "that see the same element. This is a necessary condition on the"
+      ewrite(-1,*) "decomposed input meshes for fluidity. The fact that you've"
+      ewrite(-1,*) "obtained such meshes is likely a bug in fldecomp or the"
+      ewrite(-1,*) "checkpointing code. Please report to the fluidity mailing"
+      ewrite(-1,*) "list and state exactly how you've obtained your input files."
+      FLAbort("Inconsistent local element ordering")
+    end if
+  end if
   mesh1=position1%mesh
 
   ! Insert mesh and position field into state and
@@ -153,6 +168,21 @@ subroutine Nonmatching_domain_interpolation(c_input_basename_1, input_basename_1
   position2=read_mesh_files(trim(input_basename_2), &
                       quad_degree=quad_degree, &
                       format=input_mesh_format)
+  ! If reading in a decomposed mesh, read in halos as well:
+  !if(isparallel()) then
+  !  call read_halos(trim(input_basename_2), position2)
+  !  ! Local element ordering needs to be consistent between processes, otherwise
+  !  ! code in Halos_Repair (used in halo construction of derived meshes) will fail
+  !  if (.not. verify_consistent_local_element_numbering(position2%mesh)) then
+  !    ewrite(-1,*) "The local element ordering is not the same between processes"
+  !    ewrite(-1,*) "that see the same element. This is a necessary condition on the"
+  !    ewrite(-1,*) "decomposed input meshes for fluidity. The fact that you've"
+  !    ewrite(-1,*) "obtained such meshes is likely a bug in fldecomp or the"
+  !    ewrite(-1,*) "checkpointing code. Please report to the fluidity mailing"
+  !    ewrite(-1,*) "list and state exactly how you've obtained your input files."
+  !    FLAbort("Inconsistent local element ordering")
+  !  end if
+  !end if
   mesh2=position2%mesh
 
   ! Insert mesh and position field into state and
