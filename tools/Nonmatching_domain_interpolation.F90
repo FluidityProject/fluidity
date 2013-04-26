@@ -273,8 +273,10 @@ subroutine Nonmatching_domain_interpolation(c_input_basename_1, input_basename_1
     ewrite(1,*) "my_bbox_trg(d,min) = ", my_bbox_trg(i,1)
     ewrite(1,*) "my_bbox_trg(d,max) = ", my_bbox_trg(i,2)
   end do
-
-
+  ! Now computing bboxes of other mesh partitions:
+  ewrite(1,*) "nprocs = ", nprocs
+  allocate(bboxes(nprocs, dim, 2, nprocs))
+  
 
 
   ! Compute integrals of alpha on both meshes:
@@ -295,8 +297,12 @@ subroutine Nonmatching_domain_interpolation(c_input_basename_1, input_basename_1
   call calculate_diagnostic_variables_new(states)
   call write_diagnostics(states, 0.0, 0.1, 1, not_to_move_det_yet=.true.)
 
-  ! We are done here, deallocating state:
+  ! We are done here, deallocating stuff:
   call deallocate(states)
+  deallocate(bboxes)
+  deallocate(my_bbox_src)
+  deallocate(my_bbox_trg)
+  
 
   ewrite(1, *) "Exiting Nonmatching_domain_interpolation"
 
