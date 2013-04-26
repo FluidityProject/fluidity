@@ -8,11 +8,18 @@ inputushape:
 inputucircle:
 	cp src/circle.msh .
 
-clean:
-	rm -rf *.vtu *.pvtu *.stat matrixdump* *.msh *.exo *.log* *.err*
+clean:clean-light
+	rm -rf *.vtu *.pvtu *.stat
 
 clean-light:
-	rm -rf *.msh *.exo *.log* *.err*
+	rm -rf *.msh *.exo *.log* *.err* box_*_VolumeFraction ushape_*_VolumeFraction circle_*_VolumeFraction
+
+# nonmatching_domain_interpolation option -f:
+# * 0 (rtree intersection finder).
+# * 1 (advancing front for matching domains)
+# * 2 (advancing front for non-matching domains)
+# * 3 (advancing front for non-matching domains with brute force search when no clues available)
+# * 4 (advancing front for non-matching domains with boundary bboxes search).
 
 test1:clean-light inputbox inputushape
 	../../bin/nonmatching_domain_interpolation -v 3 -l -f 1 -m gmsh box ushape

@@ -42,23 +42,23 @@ alpha_int_test4 = [a_src, a_trg]
   <pass_tests>
     <test name = "Checking volume fractions of the ushape, with f=1 (test1)" language = "python">
 import fluidity_tools
-fluidity_tools.compare_variable(alpha_int_test1[0], area_ushape, 1.0e-7)
-fluidity_tools.compare_variable(alpha_int_test1[1], area_ushape, 1.0e-7)
+fluidity_tools.compare_variable(alpha_int_test1[0], area_ushape, 1.0e-9)
+fluidity_tools.compare_variable(alpha_int_test1[1], area_ushape, 1.0e-9)
     </test>
     <test name = "Checking volume fractions of the ushape, with f=0 (test2)" language = "python">
 import fluidity_tools
-fluidity_tools.compare_variable(alpha_int_test2[0], area_ushape, 1.0e-7)
-fluidity_tools.compare_variable(alpha_int_test2[1], area_ushape, 1.0e-7)
+fluidity_tools.compare_variable(alpha_int_test2[0], area_ushape, 1.0e-9)
+fluidity_tools.compare_variable(alpha_int_test2[1], area_ushape, 1.0e-9)
     </test>
     <test name = "Checking volume fractions of the circle, with f=1 (test3)" language = "python">
 import fluidity_tools
-fluidity_tools.compare_variable(alpha_int_test3[0], area_circle, 1.0e-7)
-fluidity_tools.compare_variable(alpha_int_test3[1], area_circle, 1.0e-7)
+fluidity_tools.compare_variable(alpha_int_test3[0], area_circle, 1.0e-9)
+fluidity_tools.compare_variable(alpha_int_test3[1], area_circle, 1.0e-9)
     </test>
     <test name = "Checking volume fractions of the circle, with f=0 (test4)" language = "python">
 import fluidity_tools
-fluidity_tools.compare_variable(alpha_int_test4[0], area_circle, 1.0e-7)
-fluidity_tools.compare_variable(alpha_int_test4[1], area_circle, 1.0e-7)
+fluidity_tools.compare_variable(alpha_int_test4[0], area_circle, 1.0e-9)
+fluidity_tools.compare_variable(alpha_int_test4[1], area_circle, 1.0e-9)
     </test>
   </pass_tests>
 </testproblem>
