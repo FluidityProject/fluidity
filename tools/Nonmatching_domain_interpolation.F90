@@ -61,7 +61,6 @@ subroutine Nonmatching_domain_interpolation(c_input_basename_1, input_basename_1
   use petsc
   use vtk_interfaces
 
-
   implicit none
 
   character(kind=c_char, len=1) :: c_input_basename_1(*)
@@ -77,7 +76,6 @@ subroutine Nonmatching_domain_interpolation(c_input_basename_1, input_basename_1
   character(len=input_basename_2_len):: input_basename_2
   character(len=input_mesh_format_len):: input_mesh_format
 
-
   integer :: nprocs
   type(state_type), dimension(:), pointer :: states
   type(mesh_type) :: mesh1, mesh2
@@ -87,13 +85,27 @@ subroutine Nonmatching_domain_interpolation(c_input_basename_1, input_basename_1
 
   real :: alpha_source_int, alpha_target_int
 
+  ! Rendezvous bboxes:
+  ! partitions x dim x 2 x nprocs ! 2 because of min/max value of the box in each dimension
+  real, dimension(:, :, :, :), allocatable :: bboxes
+  real, dimension(:, :), allocatable :: my_bbox, my_bbox_src, my_bbox_trg
+  integer :: dim
+  character(len=255) :: rank_str
+  integer :: rank, rank_digits
+
   integer :: quad_degree
   integer :: i, nstates
   integer :: sstat
-  
+
   logical :: advfront, matching_domain
 
   ewrite(1, *) "In Nonmatching_domain_interpolation"
+
+  ! Get ranks and nprocesses
+  rank = getrank()
+  ! printing out stuff is infuriating in fortran. I don't want 30 spaces ..
+  rank_digits = max(floor(log10(float(rank))) + 1, 1)
+  rank_str(1:rank_digits) = int2str(rank)
 
   nprocs = getnprocs()
   if (nprocs > 1 .and. input_mesh_format == 'exodusii') then
@@ -235,6 +247,35 @@ subroutine Nonmatching_domain_interpolation(c_input_basename_1, input_basename_1
                         & advfrontfinder=advfront, matching_domain=matching_domain)
 
   ewrite_minmax(alpha_target)
+  
+  ! RENDEZVOUS TESTING:
+  ewrite(1,*) "=================================================================================="
+  ewrite(1,*) "This is rank "//rank_str(1:rank_digits)//"."
+  ! Let's have find us a rendezvous:
+  ! First, computing bounding boxes of each mesh-partition
+  dim = pos_source%dim
+  !allocate(my_bbox(dim, 2))
+  allocate(my_bbox_src(dim, 2))
+  allocate(my_bbox_trg(dim, 2))
+  my_bbox_src = compute_bbox(pos_source)
+  my_bbox_trg = compute_bbox(pos_target)
+  ewrite(1,*) "++++++++++++++++++++++++"
+  ewrite(1,*) "SOURCE MESH"
+  do i=1,pos_source%dim
+    ewrite(1,*) "dim = ", i
+    ewrite(1,*) "my_bbox_src(d,min) = ", my_bbox_src(i,1)
+    ewrite(1,*) "my_bbox_src(d,max) = ", my_bbox_src(i,2)
+  end do
+  ewrite(1,*) "++++++++++++++++++++++++"
+  ewrite(1,*) "TARGET MESH"
+  do i=1,pos_target%dim
+    ewrite(1,*) "dim = ", i
+    ewrite(1,*) "my_bbox_trg(d,min) = ", my_bbox_trg(i,1)
+    ewrite(1,*) "my_bbox_trg(d,max) = ", my_bbox_trg(i,2)
+  end do
+
+
+
 
   ! Compute integrals of alpha on both meshes:
   alpha_source_int = field_integral(alpha_source, pos_source)
@@ -260,6 +301,20 @@ subroutine Nonmatching_domain_interpolation(c_input_basename_1, input_basename_1
   ewrite(1, *) "Exiting Nonmatching_domain_interpolation"
 
   contains
+
+
+    function compute_bbox(positions) result(bbox)
+      ! Computes the bbox of an entire mesh/partition
+      type(vector_field), intent(in) :: positions
+      real, dimension(positions%dim, 2) :: bbox
+      integer :: i
+
+      do i=1,positions%dim
+        bbox(i, 1) = minval(positions%val(i,:))
+        bbox(i, 2) = maxval(positions%val(i,:))
+      end do
+    end function compute_bbox
+
 
     subroutine nonmatching_domain_galerkin_projection(fieldA, positionsA, positionsB, alpha_AB, advfrontfinder, matching_domain)
       !! Return the volume fraction scalar field by projecting unity from the supermesh to the fluid mesh
