@@ -1019,14 +1019,14 @@
       REAL, DIMENSION( : ), allocatable :: ACV, CT, CT_RHS, DIAG_SCALE_PRES, &
            U_RHS, MCY_RHS, C, MCY, &
            CMC, MASS_MN_PRES, MASS_CV, P_RHS, UP, U_RHS_CDP, DP, &
-           CDP, DU_VEL, UP_VEL, DU, DV, DW, DGM_PHA
+           CDP, DU_VEL, UP_VEL, DU, DV, DW, DGM_PHA, DIAG_P_SQRT
       ! this is the pivit matrix to use in the projection method...
       REAL, DIMENSION( :, :, : ), allocatable :: PIVIT_MAT, INV_PIVIT_MAT
       INTEGER :: CV_NOD, COUNT, CV_JNOD, IPHASE, ele, x_nod1, x_nod2, x_nod3, cv_iloc,&
            cv_nod1, cv_nod2, cv_nod3, mat_nod1, u_iloc, u_nod, u_nod_pha, u_nloc_lev, n_nloc_lev, &
            ndpset
       REAL :: der1, der2, der3, uabs, rsum,xc,yc
-      LOGICAL :: JUST_BL_DIAG_MAT,NO_MATRIX_STORE
+      LOGICAL :: JUST_BL_DIAG_MAT, NO_MATRIX_STORE, SCALE_P_MATRIX
 
       ewrite(3,*) 'In FORCE_BAL_CTY_ASSEM_SOLVE'
 
@@ -1225,7 +1225,7 @@
          !ewrite(3,*) 'P_RHS2::', p_rhs
          !ewrite(3,*) 'CT_RHS::', ct_rhs
 
-         ! solve for pressure correction DP that is solve CMC *DP=P_RHS...
+         ! solve for pressure correction DP that is solve CMC*DP=P_RHS...
          ewrite(3,*)'about to solve for pressure'
 
          ! Print cmc
@@ -1246,7 +1246,30 @@
 
          ewrite(3,*)'b4 pressure solve P_RHS:', P_RHS
          DP = 0.
-         if(.true.) then
+         if( .true. ) then ! solve for pressure
+
+            SCALE_P_MATRIX = .false. !.true.
+            ALLOCATE( DIAG_P_SQRT( CV_NONODS ) )
+
+            IF( SCALE_P_MATRIX ) THEN
+               DO CV_NOD = 1, CV_NONODS
+                  CMC( MIDCMC(CV_NOD ))= MAX(1.E-7, CMC( MIDCMC(CV_NOD )) ) ! doggy
+                  RSUM = 0.0
+                  DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
+                     RSUM = RSUM + ABS( CMC( COUNT ) )
+                  END DO
+                  DIAG_P_SQRT( CV_NOD ) = SQRT( RSUM )
+               END DO
+               ! Scale matrix...
+               DO CV_NOD = 1, CV_NONODS
+                  DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
+                     CV_JNOD = COLCMC( COUNT )
+                     CMC( COUNT ) = CMC( COUNT ) / ( DIAG_P_SQRT( CV_NOD ) * DIAG_P_SQRT( CV_JNOD ) )
+                  END DO
+                  P_RHS( CV_NOD ) = P_RHS( CV_NOD ) / DIAG_P_SQRT( CV_NOD )
+               END DO
+            END IF
+
             if( cv_nonods==x_nonods ) then ! a continuous pressure:
                CALL SOLVER( CMC, DP, P_RHS, &
                     FINDCMC, COLCMC, &
@@ -1256,10 +1279,17 @@
                     NCOLCMC, cv_NONODS, FINDCMC, COLCMC, MIDCMC, &
                     totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln )
             end if
+
+            IF( SCALE_P_MATRIX ) THEN
+               DO CV_NOD = 1, CV_NONODS
+                  DP( CV_NOD ) = DP( CV_NOD ) / DIAG_P_SQRT( CV_NOD )
+               END DO
+               DEALLOCATE( DIAG_P_SQRT )
+            END IF
+        
          end if
 
-         ewrite(3,*)'after pressure solve DP:',DP
-         !stop 1245
+         ewrite(3,*) 'after pressure solve DP:', DP
 
          P = P + DP
 
