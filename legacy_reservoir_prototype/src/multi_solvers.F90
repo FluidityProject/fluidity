@@ -134,15 +134,17 @@ contains
 
 
 
-  SUBROUTINE PRES_DG_MULTIGRID(CMC, P, RHS, &
+  SUBROUTINE PRES_DG_MULTIGRID(CMC, CMC_PRECON, IGOT_CMC_PRECON, P, RHS, &
        NCOLCMC, CV_NONODS, FINDCMC, COLCMC, MIDCMC, &
        totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln )
     !
     ! Solve CMC * P = RHS for RHS.
     ! form a discontinuous pressure mesh for pressure...
     implicit none
-    INTEGER, intent( in ) ::  NCOLCMC, CV_NONODS, totele, cv_nloc, x_nonods
+    INTEGER, intent( in ) ::  NCOLCMC, CV_NONODS, totele, cv_nloc, x_nonods, IGOT_CMC_PRECON
+! IGOT_CMC_PRECON=1 or 0 (1 if we have a preconditioning matrix)
     REAL, DIMENSION( NCOLCMC ), intent( in ) ::  CMC
+    REAL, DIMENSION( NCOLCMC*IGOT_CMC_PRECON), intent( in ) ::  CMC_PRECON
     REAL, DIMENSION( CV_NONODS ), intent( inout ) ::  P
     REAL, DIMENSION( CV_NONODS ), intent( in ) :: RHS
     INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCMC
@@ -231,17 +233,13 @@ contains
              ewrite(3,*)'could not find coln'
              stop 3282
           end if
-          CMC_SMALL(COUNT2) = CMC_SMALL(COUNT2) + CMC(COUNT)              
+          IF(IGOT_CMC_PRECON==0) THEN
+             CMC_SMALL(COUNT2) = CMC_SMALL(COUNT2) + CMC(COUNT)  
+          ELSE
+             CMC_SMALL(COUNT2) = CMC_SMALL(COUNT2) + CMC_PRECON(COUNT)  
+          ENDIF            
        END DO
     END DO
-
-    DO GL_ITS = 1, NGL_ITS
-
-       EWRITE(3,*)'GL_ITS=', GL_ITS
-       ! SSOR smoother for the multi-grid method...
-       ewrite(3,*)'before solving:',p
-
-       if (gl_its>2) then
 
           if (.true.) then
              call set_solver_options(path, &
@@ -252,6 +250,18 @@ contains
                   rtol = 1.e-10, &
                   atol = 1.e-15, &
                   max_its = 25)
+          endif
+
+
+    DO GL_ITS = 1, NGL_ITS
+
+       EWRITE(3,*)'GL_ITS=', GL_ITS
+       ! SSOR smoother for the multi-grid method...
+       ewrite(3,*)'before solving:',p
+
+       if (gl_its>2) then
+
+          if (.true.) then
 
              !call set_solver_options(path, &
              !     ksptype = "gmres", &
@@ -276,6 +286,7 @@ contains
 
 
    if(.true.) then
+! optimize smoother contribution to solution...
        DP_DG=p-ustep
        p=ustep
 

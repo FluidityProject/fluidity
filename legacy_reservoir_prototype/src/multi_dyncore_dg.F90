@@ -1018,17 +1018,20 @@
 
       REAL, DIMENSION( : ), allocatable :: ACV, CT, CT_RHS, DIAG_SCALE_PRES, &
            U_RHS, MCY_RHS, C, MCY, &
-           CMC, MASS_MN_PRES, MASS_CV, P_RHS, UP, U_RHS_CDP, DP, &
+           CMC, CMC_PRECON, MASS_MN_PRES, MASS_CV, P_RHS, UP, U_RHS_CDP, DP, &
            CDP, DU_VEL, UP_VEL, DU, DV, DW, DGM_PHA, DIAG_P_SQRT
       ! this is the pivit matrix to use in the projection method...
       REAL, DIMENSION( :, :, : ), allocatable :: PIVIT_MAT, INV_PIVIT_MAT
       INTEGER :: CV_NOD, COUNT, CV_JNOD, IPHASE, ele, x_nod1, x_nod2, x_nod3, cv_iloc,&
            cv_nod1, cv_nod2, cv_nod3, mat_nod1, u_iloc, u_nod, u_nod_pha, u_nloc_lev, n_nloc_lev, &
-           ndpset
+           ndpset, IGOT_CMC_PRECON
       REAL :: der1, der2, der3, uabs, rsum,xc,yc
       LOGICAL :: JUST_BL_DIAG_MAT, NO_MATRIX_STORE, SCALE_P_MATRIX
 
       ewrite(3,*) 'In FORCE_BAL_CTY_ASSEM_SOLVE'
+
+! If IGOT_CMC_PRECON=1 use a sym matrix as pressure preconditioner,=0 else CMC as preconditioner as well.
+      IGOT_CMC_PRECON=0
 
       ALLOCATE( ACV( NCOLACV )) ; ACV=0.
       ALLOCATE( CT( NCOLCT * NDIM * NPHASE )) ; CT=0.
@@ -1039,6 +1042,7 @@
       ALLOCATE( C( NCOLC * NDIM * NPHASE )) ; C=0.
       ALLOCATE( MCY( NCOLMCY )) ; MCY=0.
       ALLOCATE( CMC( NCOLCMC )) ; CMC=0.
+      ALLOCATE( CMC_PRECON( NCOLCMC*IGOT_CMC_PRECON)) ; IF(IGOT_CMC_PRECON.NE.0) CMC_PRECON=0.
       ALLOCATE( MASS_MN_PRES( NCOLCMC )) ;MASS_MN_PRES=0.
       ALLOCATE( MASS_CV( CV_NONODS )) ; MASS_CV=0.
       ALLOCATE( P_RHS( CV_NONODS )) ; P_RHS=0.
@@ -1087,7 +1091,7 @@
            XU_NLOC, XU_NDGLN, &
            U_RHS, MCY_RHS, C, CT, CT_RHS, DIAG_SCALE_PRES, GLOBAL_SOLVE, &
            NLENMCY, NCOLMCY,MCY,FINMCY, &
-           CMC,PIVIT_MAT, JUST_BL_DIAG_MAT, &
+           CMC, CMC_PRECON, IGOT_CMC_PRECON, PIVIT_MAT, JUST_BL_DIAG_MAT, &
            UDEN, UDENOLD, UDIFFUSION, &
            OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
            IGOT_THETA_FLUX, SCVNGI_THETA, USE_THETA_FLUX, &
@@ -1246,6 +1250,7 @@
 
          ewrite(3,*)'b4 pressure solve P_RHS:', P_RHS
          DP = 0.
+
          if( .true. ) then ! solve for pressure
 
             SCALE_P_MATRIX = .false. !.true.
@@ -1271,11 +1276,13 @@
             END IF
 
             if( cv_nonods==x_nonods ) then ! a continuous pressure:
+! James feed CMC_PRECON into this sub and use as the preconditioner matrix...
+! CMC_PRECON has length CMC_PRECON(NCOLCMC*IGOT_CMC_PRECON) 
                CALL SOLVER( CMC, DP, P_RHS, &
                     FINDCMC, COLCMC, &
                     option_path = '/material_phase[0]/scalar_field::Pressure' )
             else ! a discontinuous pressure multi-grid solver:
-               CALL PRES_DG_MULTIGRID(CMC, DP, P_RHS, &
+               CALL PRES_DG_MULTIGRID(CMC, CMC_PRECON, IGOT_CMC_PRECON, DP, P_RHS, &
                     NCOLCMC, cv_NONODS, FINDCMC, COLCMC, MIDCMC, &
                     totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln )
             end if
@@ -1549,7 +1556,7 @@
          XU_NLOC, XU_NDGLN, &
          U_RHS, MCY_RHS, C, CT, CT_RHS, DIAG_SCALE_PRES, GLOBAL_SOLVE, &
          NLENMCY, NCOLMCY,MCY,FINMCY, &
-         CMC, PIVIT_MAT, JUST_BL_DIAG_MAT, &
+         CMC, CMC_PRECON, IGOT_CMC_PRECON, PIVIT_MAT, JUST_BL_DIAG_MAT, &
          UDEN, UDENOLD, UDIFFUSION, &
          OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
          IGOT_THETA_FLUX, SCVNGI_THETA, USE_THETA_FLUX, &
@@ -1570,7 +1577,7 @@
            NCOLC, NCOLDGM_PHA, NCOLELE, NCOLCMC, NCOLACV, NLENMCY, NCOLMCY, NCOLCT, &
            CV_ELE_TYPE, V_DISOPT, V_DG_VEL_INT_OPT, NCOLM, XU_NLOC, &
            NOPT_VEL_UPWIND_COEFS, IGOT_THETA_FLUX, SCVNGI_THETA,IN_ELE_UPWIND, DG_ELE_UPWIND, & 
-           IPLIKE_GRAD_SOU
+           IPLIKE_GRAD_SOU, IGOT_CMC_PRECON
       LOGICAL, intent( in ) :: GLOBAL_SOLVE, USE_THETA_FLUX,scale_momentum_by_volume_fraction
       INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN 
       INTEGER, DIMENSION( TOTELE * P_NLOC ), intent( in ) :: P_NDGLN
@@ -1612,6 +1619,7 @@
       INTEGER, DIMENSION( NCOLCMC ), intent( in ) :: COLCMC
 
       REAL, DIMENSION( NCOLCMC ), intent( inout ) :: CMC, MASS_MN_PRES
+      REAL, DIMENSION( NCOLCMC *IGOT_CMC_PRECON ), intent( inout ) :: CMC_PRECON
       INTEGER, DIMENSION( CV_NONODS * NPHASE + 1 ), intent( in ) :: FINACV
       INTEGER, DIMENSION( NCOLACV ), intent( in ) :: COLACV
       INTEGER, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: MIDACV 
@@ -1699,7 +1707,7 @@
               PIVIT_MAT,  &
               TOTELE, U_NLOC, U_NDGLN, &
               CT, NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, MASS_MN_PRES, &
-              NCOLCMC, FINDCMC, COLCMC, CMC )
+              NCOLCMC, FINDCMC, COLCMC, CMC, CMC_PRECON, IGOT_CMC_PRECON )
       ENDIF
 
       DEALLOCATE( ACV )
@@ -1717,12 +1725,12 @@
          PIVIT_MAT,  &
          TOTELE, U_NLOC, U_NDGLN, &
          CT, NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, MASS_MN_PRES, &
-         NCOLCMC, FINDCMC, COLCMC, CMC ) 
+         NCOLCMC, FINDCMC, COLCMC, CMC, CMC_PRECON, IGOT_CMC_PRECON ) 
       implicit none
 
       ! Form pressure eqn only if .not. GLOBAL_SOLVE ready for using a projection method. 
       INTEGER, intent( in ) :: CV_NONODS, U_NONODS,  &
-           NDIM, NPHASE, NCOLC, TOTELE, U_NLOC, NCOLCT, NCOLCMC
+           NDIM, NPHASE, NCOLC, TOTELE, U_NLOC, NCOLCT, NCOLCMC, IGOT_CMC_PRECON
       INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN 
       REAL, DIMENSION( NCOLC * NDIM * NPHASE ), intent( in ) :: C
       INTEGER, DIMENSION( U_NONODS + 1 ), intent( in ) :: FINDC
@@ -1735,6 +1743,7 @@
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCMC
       INTEGER, DIMENSION( NCOLCMC ), intent( in ) :: COLCMC
       REAL, DIMENSION( NCOLCMC ), intent( inout ) :: CMC, MASS_MN_PRES
+      REAL, DIMENSION( NCOLCMC*IGOT_CMC_PRECON), intent( inout ) :: CMC_PRECON
 
       ! Local variables
       REAL, DIMENSION( :, :, : ), allocatable :: INV_PIVIT_MAT
@@ -1747,7 +1756,7 @@
            INV_PIVIT_MAT,  &
            TOTELE, U_NLOC, U_NDGLN, &
            NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, &
-           CMC, NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, &
+           CMC, CMC_PRECON, IGOT_CMC_PRECON, NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, &
            C, CT )
 
       DEALLOCATE( INV_PIVIT_MAT )

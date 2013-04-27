@@ -354,14 +354,14 @@
          INV_PIVIT_MAT,  &
          TOTELE, U_NLOC, U_NDGLN, &
          NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, &
-         CMC, NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, &
+         CMC, CMC_PRECON, IGOT_CMC_PRECON, NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, &
          C, CT )
       !use multiphase_1D_engine
 
       implicit none
       ! form pressure matrix CMC using a colouring approach
       INTEGER, intent( in ) :: CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLC, &
-           TOTELE, U_NLOC, NCOLCT, NCOLCMC
+           TOTELE, U_NLOC, NCOLCT, NCOLCMC, IGOT_CMC_PRECON
       INTEGER, DIMENSION( U_NONODS + 1 ), intent( in ) ::FINDC
       INTEGER, DIMENSION( NCOLC ), intent( in ) :: COLC
       REAL, DIMENSION( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM ), intent( in ) :: INV_PIVIT_MAT
@@ -370,6 +370,7 @@
       INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
       REAL, DIMENSION( CV_NONODS ), intent( in ) :: DIAG_SCALE_PRES
       REAL, DIMENSION( NCOLCMC ), intent( inout ) :: CMC
+      REAL, DIMENSION( NCOLCMC*IGOT_CMC_PRECON ), intent( inout ) :: CMC_PRECON
       REAL, DIMENSION( NCOLCMC ), intent( in ) :: MASS_MN_PRES
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCMC
       INTEGER, DIMENSION( NCOLCMC ), intent( in ) :: COLCMC
@@ -380,11 +381,11 @@
       INTEGER, PARAMETER :: MX_NCOLOR = 1000
       REAL, PARAMETER :: INFINY = 1.0E+10
       LOGICAL :: DONE
-      REAL, DIMENSION( :), allocatable :: NEED_COLOR, COLOR_VEC, CMC_COLOR_VEC
+      REAL, DIMENSION( :), allocatable :: NEED_COLOR, COLOR_VEC, CMC_COLOR_VEC, CMC_COLOR_VEC2
       REAL, DIMENSION( :), allocatable :: CDP, DU, DV, DW, DU_LONG
       INTEGER :: NCOLOR, CV_NOD, CV_JNOD, COUNT, COUNT2, IDIM, IPHASE, CV_COLJ, U_JNOD, CV_JNOD2
       INTEGER :: I, ELE,u_inod,u_nod, ndpset
-      REAL :: SUM
+      REAL :: RSUM
 
       call get_option( '/material_phase[0]/scalar_field::Pressure/' // &
            'prognostic/reference_node', ndpset, default = 0 )
@@ -397,8 +398,10 @@
       ALLOCATE( DV( U_NONODS * NPHASE ))
       ALLOCATE( DW( U_NONODS * NPHASE ))
       ALLOCATE( CMC_COLOR_VEC( CV_NONODS )) 
+      ALLOCATE( CMC_COLOR_VEC2( CV_NONODS )) 
 
       CMC = 0.0
+      IF(IGOT_CMC_PRECON.NE.0) CMC_PRECON = 0.0
 
       NEED_COLOR = 1.0
       NCOLOR = 0
@@ -412,17 +415,17 @@
          Loop_CVNOD: DO CV_NOD = 1, CV_NONODS
             IF( ABS(NEED_COLOR( CV_NOD )) > 0.5 ) THEN 
 
-               SUM = 0.0
+               RSUM = 0.0
                ! use a distance-2 colouring...
                Loop_Row: DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                   CV_JNOD = COLCMC( COUNT )
                   Loop_Row2: DO COUNT2 = FINDCMC( CV_JNOD ), FINDCMC( CV_JNOD + 1 ) - 1
                      CV_JNOD2 = COLCMC( COUNT2 )
-                     SUM = SUM + COLOR_VEC( CV_JNOD2 ) * NEED_COLOR( CV_JNOD2 )
+                     RSUM = RSUM + COLOR_VEC( CV_JNOD2 ) * NEED_COLOR( CV_JNOD2 )
                   END DO Loop_Row2
                END DO Loop_Row
 
-               IF( ABS(SUM) < 0.5 ) THEN
+               IF( ABS(RSUM) < 0.5 ) THEN
                   COLOR_VEC( CV_NOD ) = 1.0
                   !NEED_COLOR( CV_NOD ) = 0.0
                ENDIF
@@ -479,17 +482,29 @@
          endif
          CALL CT_MULT( CMC_COLOR_VEC, DU, DV, DW, CV_NONODS, U_NONODS, NDIM, NPHASE, &
               CT, NCOLCT, FINDCT, COLCT )
+      IF(IGOT_CMC_PRECON.NE.0) THEN
+         CALL CT_MULT_WITH_C( CMC_COLOR_VEC2, DU_LONG, CV_NONODS, U_NONODS, NDIM, NPHASE, &
+                C, NCOLC, FINDC, COLC )
+!         CALL CT_MULT( CMC_COLOR_VEC2, DU, DV, DW, CV_NONODS, U_NONODS, NDIM, NPHASE, &
+!              *****CT, NCOLCT, FINDCT, COLCT )
+      ENDIF
 
          ! Matrix vector involving the mass diagonal term
          DO CV_NOD = 1, CV_NONODS
             !ewrite(3,*) 'cv_nod=',cv_nod
+            RSUM=0.0
             DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                CV_JNOD = COLCMC( COUNT )
                !ewrite(3,*) 'CV_JNOD, diag:', CV_JNOD, &
                !     DIAG_SCALE_PRES(CV_NOD), MASS_MN_PRES(COUNT), COLOR_VEC(CV_JNOD)
                CMC_COLOR_VEC(CV_NOD) = CMC_COLOR_VEC(CV_NOD) &
                     +  DIAG_SCALE_PRES(CV_NOD) * MASS_MN_PRES(COUNT) * COLOR_VEC(CV_JNOD)
+               RSUM=RSUM+MASS_MN_PRES(COUNT)
             END DO
+            IF(IGOT_CMC_PRECON.NE.0) THEN ! Use lumping of MASS_MN_PRES...
+               CMC_COLOR_VEC2(CV_NOD) = CMC_COLOR_VEC2(CV_NOD) &
+                    +  DIAG_SCALE_PRES(CV_NOD) * RSUM * COLOR_VEC(CV_NOD)
+            ENDIF
          END DO
          !IF(NDPSET /= 0) THEN
          !   CV_NOD=NDPSET
@@ -502,18 +517,21 @@
             DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                CV_JNOD = COLCMC( COUNT )
                CMC( COUNT ) = CMC( COUNT ) + CMC_COLOR_VEC( CV_NOD ) * COLOR_VEC( CV_JNOD )
+               IF(IGOT_CMC_PRECON.NE.0) THEN 
+                  CMC_PRECON( COUNT ) = CMC_PRECON( COUNT ) + CMC_COLOR_VEC2( CV_NOD ) * COLOR_VEC( CV_JNOD )
+               ENDIF
                !ewrite(3,*) cv_nod, count, CV_JNOD, CMC_COLOR_VEC( CV_NOD ), COLOR_VEC( CV_JNOD )
             END DO
          END DO
          !stop 383
 
-         SUM = 0.0
+         RSUM = 0.0
          DO CV_NOD = 1, CV_NONODS
-            SUM = SUM + NEED_COLOR( CV_NOD )
+            RSUM = RSUM + NEED_COLOR( CV_NOD )
          END DO
-         DONE = ( ABS(SUM) < 0.5 )
+         DONE = ( ABS(RSUM) < 0.5 )
 
-         ewrite(3,*)'************ sum,done,NCOLOR=',sum,done,NCOLOR
+         ewrite(3,*)'************ rsum,done,NCOLOR=',rsum,done,NCOLOR
 
       END DO Loop_while
 
@@ -571,9 +589,13 @@
             CV_JNOD = COLCMC( COUNT )
             if(cv_jnod/=cv_nod) then
                cmc(count)=0.0 ! not the diagonal
+               IF(IGOT_CMC_PRECON.NE.0) cmc_PRECON(count)=0.0
                DO COUNT2 = FINDCMC( CV_jNOD ), FINDCMC( CV_jNOD + 1 ) - 1
                   CV_JNOD2 = COLCMC( COUNT2 )
                   if(cv_jnod2==cv_nod) cmc(count2)=0.0 ! not the diagonal
+                  IF(IGOT_CMC_PRECON.NE.0) THEN
+                     if(cv_jnod2==cv_nod) cmc_PRECON(count2)=0.0
+                  ENDIF
                END DO
             endif
          END DO
@@ -761,6 +783,50 @@
       RETURN
 
     END SUBROUTINE C_MULT
+
+
+
+
+    SUBROUTINE Ct_MULT_WITH_C( DP, U_LONG, CV_NONODS, U_NONODS, NDIM, NPHASE, &
+         C, NCOLC, FINDC, COLC ) 
+      implicit none
+      ! DP= (C)^T U_LONG
+      INTEGER, intent( in ) :: CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLC
+      REAL, DIMENSION( U_NONODS * NDIM * NPHASE ), intent( in ) :: U_LONG
+      REAL, DIMENSION( CV_NONODS ), intent( inout )  :: DP
+      REAL, DIMENSION( NCOLC * NDIM * NPHASE ), intent( in ) :: C
+      INTEGER, DIMENSION( U_NONODS + 1 ), intent( in ) ::FINDC
+      INTEGER, DIMENSION( NCOLC ), intent( in ) :: COLC
+      ! Local variables
+      INTEGER :: U_INOD, COUNT, P_JNOD, IPHASE, I1, IDIM, COUNT_DIM_PHA
+
+!      CDP = 0.0
+      DP = 0.0
+
+      Loop_VelNodes: DO U_INOD = 1, U_NONODS
+
+         Loop_Crow: DO COUNT = FINDC( U_INOD ), FINDC( U_INOD + 1 ) - 1, 1
+            P_JNOD = COLC( COUNT )
+
+            Loop_Phase: DO IPHASE = 1, NPHASE
+               Loop_Dim: DO IDIM = 1, NDIM
+                  COUNT_DIM_PHA = COUNT + NCOLC*(IDIM-1) + NCOLC*NDIM*(IPHASE-1)
+                  I1 = U_INOD + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM * U_NONODS
+!                  CDP( I1 ) = CDP( I1 ) + C( COUNT_DIM_PHA ) * DP( P_JNOD )
+              DP( P_JNOD ) = DP( P_JNOD ) + C( COUNT_DIM_PHA ) * U_LONG( I1 )
+               END DO Loop_Dim
+            END DO Loop_Phase
+
+         END DO Loop_Crow
+
+      END DO Loop_VelNodes
+
+      RETURN
+
+    END SUBROUTINE CT_MULT_WITH_C
+
+
+
 
 
 
