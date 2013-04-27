@@ -6913,6 +6913,7 @@
 !                  RESIDGI=max( abs(TGI-TOLDGI)/DT,2.*courant_or_minus_one_new/DT)
 !                  RESIDGI=max( abs(TGI-TOLDGI)/DT,1.*sqrt(udgi**2+vdgi**2+wdgi**2)/hdc)
                   RESIDGI=sqrt(udgi**2+vdgi**2+wdgi**2)/hdc
+!                  RESIDGI=sqrt(A_STAR_X**2+A_STAR_Y**2+A_STAR_Z**2)/hdc
 !                  stop 272
  
                   VEC_VEL(1)=A_STAR_X
@@ -7114,7 +7115,8 @@
 !                  RESIDGI=(TGI-TOLDGI)/DT
 !                  RESIDGI=max( abs(TGI-TOLDGI)/DT,2.*courant_or_minus_one_new/DT)
 !                  RESIDGI=max( abs(TGI-TOLDGI)/DT,1.*sqrt(udgi**2+vdgi**2+wdgi**2)/hdc)
-                  RESIDGI=sqrt(udgi**2+vdgi**2+wdgi**2)/hdc
+!                  RESIDGI=sqrt(udgi**2+vdgi**2+wdgi**2)/hdc
+                  RESIDGI=sqrt(A_STAR_X**2+A_STAR_Y**2+A_STAR_Z**2)/hdc
 !                  RESIDGI=max( abs(TGI-TOLDGI)/DT,(abs(udgi)+abs(vdgi)+abs(wdgi))/hdc)
  
                   VEC_VEL(1)=A_STAR_X
