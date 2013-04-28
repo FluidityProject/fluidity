@@ -110,9 +110,9 @@ module detector_data_types
      !! Biology variables
      real, dimension(:), allocatable :: biology
      real, dimension(:), allocatable :: food_requests, food_ingests, food_thresholds
-
-     !! Buffering previous location for LE agents
-     real, dimension(:), allocatable :: old_lcoord
+     !! Buffer for sampling environment variables before movement
+     !! This is required to mirror VEW behaviour
+     real, dimension(:), allocatable :: env_samples 
 
      !! Counter for internal Random Walk sub-cycling
      integer :: rw_subsubcycles = 1

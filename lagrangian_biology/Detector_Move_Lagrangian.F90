@@ -233,11 +233,6 @@ contains
              allocate(detector%ray_d(xfield%dim))
           end if
 
-          ! Buffer old position
-          if (allocated(detector%old_lcoord)) then
-             detector%old_lcoord(:) = detector%local_coords(:)
-          end if
-
        end if
        detector => detector%next
     end do

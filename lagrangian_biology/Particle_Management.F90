@@ -416,8 +416,9 @@ contains
        new_agent%biology(i)=agent%biology(i)
     end do
 
-    allocate(new_agent%old_lcoord(size(agent%old_lcoord)))
-    new_agent%old_lcoord=agent%old_lcoord
+    if (allocated(agent%env_samples)) then
+       allocate(new_agent%env_samples(size(agent%env_samples)))
+    end if
 
     ! Distribute biomass
     agent%biology(BIOVAR_SIZE)=agent%biology(BIOVAR_SIZE) / 2.0

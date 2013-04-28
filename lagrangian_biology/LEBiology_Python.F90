@@ -20,7 +20,8 @@ module lebiology_python
             lebiology_add_variables, lebiology_add_envfields, &
             lebiology_add_foods, lebiology_prepare_pyfunc, &
             lebiology_initialise_agent, lebiology_move_agent, &
-            lebiology_update_agent, get_new_agent_list
+            lebiology_update_agent, get_new_agent_list, &
+            lebiology_pre_sample_environment
 
   type(detector_linked_list), target, save :: new_agent_list
 
@@ -353,6 +354,24 @@ contains
     end if
   end subroutine lebiology_move_agent
 
+  subroutine lebiology_pre_sample_environment(agent, fields, sampling)
+    type(detector_type), intent(inout) :: agent
+    type(scalar_field_pointer), dimension(:), pointer, intent(inout) :: fields
+    ! Sampling method to use for each field
+    integer, dimension(size(fields)), intent(inout) :: sampling
+
+    integer :: f, i_env
+
+    ! Sample environment fields
+    i_env = 1
+    do f=1, size(fields)
+       if (sampling(f) == VARSMPL_OLDZ) then
+          agent%env_samples(i_env) = eval_field(agent%element, fields(f)%ptr, agent%local_coords)
+          i_env = i_env + 1
+       end if
+    end do
+  end subroutine lebiology_pre_sample_environment
+
   subroutine lebiology_sample_environment(agent, xfield, fields, sampling, fieldvals)
     type(detector_type), intent(inout) :: agent
     type(vector_field), pointer, intent(inout) :: xfield
@@ -363,9 +382,10 @@ contains
 
     type(elepath_list), pointer :: path_ele
     real :: path_total, ele_integral, ele_volume
-    integer :: f
+    integer :: f, i_env
 
     ! Sample environment fields
+    i_env = 1
     do f=1, size(fields)
        if (sampling(f) == VARSMPL_INTZ .and. associated(agent%path_elements)) then
           fieldvals(f) = 0.0
@@ -386,12 +406,9 @@ contains
              fieldvals(f) = integral_element(fields(f)%ptr, xfield, agent%element) / element_volume(xfield, agent%element)
           end if
        elseif (sampling(f) == VARSMPL_OLDZ .and. associated(agent%path_elements)) then
-          ! Evaluate at agent position from beginning of timestep
-          path_ele => agent%path_elements
-          do while( associated(path_ele%next) )
-              path_ele => elepath_list_next(path_ele)
-          end do
-          fieldvals(f) = eval_field(path_ele%data%ele, fields(f)%ptr, agent%old_lcoord)
+          ! Use buffered field value from beginning of timestep
+          fieldvals(f) = agent%env_samples(i_env)
+          i_env = i_env + 1
        elseif (sampling(f) == VARSMPL_NEWZ) then
           ! Evaluate at current agent position
           fieldvals(f) = eval_field(agent%element, fields(f)%ptr, agent%local_coords)

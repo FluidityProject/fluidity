@@ -133,6 +133,7 @@ contains
     do fg=1, n_fgroups
        fgroup => functional_groups(fg)
        write(fg_buffer, "(a,i0,a)") "/embedded_models/lagrangian_ensemble_biology/functional_group[",fg-1,"]"
+       fgroup%option_path = trim(fg_buffer)
 
        ! Get biology meta-data
        if (have_option(trim(fg_buffer)//"/variables")) then
@@ -254,7 +255,7 @@ contains
     character(len=OPTION_PATH_LEN) :: stage_buffer
     real, allocatable, dimension(:,:) :: coords
     real:: current_time
-    integer :: ag, fg, stage, dim, n_agents, stat
+    integer :: ag, fg, stage, dim, n_agents, stat, n_env_buffer
 
     if (.not.have_option("/embedded_models/lagrangian_ensemble_biology")) return
 
@@ -282,6 +283,9 @@ contains
        fgroup => get_functional_group(fg)
 
        if (fgroup%is_external) cycle
+
+       ! Figure out how many env variables need to be buffered
+       n_env_buffer = option_count(trim(fgroup%option_path)//"/environment/field/old_position")
 
        ! Create agents and insert into list
        call get_option(trim(fgroup%init_options)//"/number_of_agents", n_agents)
@@ -315,8 +319,10 @@ contains
                    agent%food_thresholds = 0.0
                 end if
 
-                ! Allocate position buffer
-                allocate(agent%old_lcoord(size(agent%local_coords)))
+                ! Allocate environment variable sample buffer
+                if (n_env_buffer > 0) then
+                   allocate(agent%env_samples(n_env_buffer))
+                end if
 
                 agent => agent%next
              end do
@@ -833,6 +839,17 @@ contains
                 agent=>agent%next
              end do
           end if
+
+          ! Pre-sample environment variables
+          if (associated(agent_array%first)) then
+             if (allocated(agent_array%first%env_samples)) then
+                agent=>agent_array%first
+                do while (associated(agent))
+                   call lebiology_pre_sample_environment(agent, env_fields, fgroup%envfield_sampling)
+                   agent=>agent%next                
+                end do
+             end if
+          end if          
 
           ! Move lagrangian detectors
           if (check_any_lagrangian(agent_array)) then
