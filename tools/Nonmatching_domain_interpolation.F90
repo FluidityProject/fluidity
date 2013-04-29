@@ -86,15 +86,15 @@ subroutine Nonmatching_domain_interpolation(c_input_basename_1, input_basename_1
   real :: alpha_source_int, alpha_target_int
 
   ! Rendezvous bboxes:
-  ! partitions x dim x 2 x nprocs ! 2 because of min/max value of the box in each dimension
-  real, dimension(:, :, :, :), allocatable :: bboxes
+  ! dim x 2 x nprocs (or number of partitions) ! 2 because of min/max value of the box in each dimension
+  real, dimension(:, :, :), allocatable :: bboxes_src, bboxes_trg
   real, dimension(:, :), allocatable :: my_bbox, my_bbox_src, my_bbox_trg
   integer :: dim
   character(len=255) :: rank_str
   integer :: rank, rank_digits
 
   integer :: quad_degree
-  integer :: i, nstates
+  integer :: i, j, nstates
   integer :: sstat
 
   logical :: advfront, matching_domain
@@ -254,28 +254,45 @@ subroutine Nonmatching_domain_interpolation(c_input_basename_1, input_basename_1
   ! Let's have find us a rendezvous:
   ! First, computing bounding boxes of each mesh-partition
   dim = pos_source%dim
-  !allocate(my_bbox(dim, 2))
   allocate(my_bbox_src(dim, 2))
   allocate(my_bbox_trg(dim, 2))
   my_bbox_src = compute_bbox(pos_source)
   my_bbox_trg = compute_bbox(pos_target)
-  ewrite(1,*) "++++++++++++++++++++++++"
-  ewrite(1,*) "SOURCE MESH"
-  do i=1,pos_source%dim
-    ewrite(1,*) "dim = ", i
-    ewrite(1,*) "my_bbox_src(d,min) = ", my_bbox_src(i,1)
-    ewrite(1,*) "my_bbox_src(d,max) = ", my_bbox_src(i,2)
-  end do
-  ewrite(1,*) "++++++++++++++++++++++++"
-  ewrite(1,*) "TARGET MESH"
-  do i=1,pos_target%dim
-    ewrite(1,*) "dim = ", i
-    ewrite(1,*) "my_bbox_trg(d,min) = ", my_bbox_trg(i,1)
-    ewrite(1,*) "my_bbox_trg(d,max) = ", my_bbox_trg(i,2)
-  end do
+!  ewrite(1,*) "++++++++++++++++++++++++"
+!  ewrite(1,*) "SOURCE MESH"
+!  do i=1,pos_source%dim
+!    ewrite(1,*) "dim = ", i
+!    ewrite(1,*) "my_bbox_src(d,min) = ", my_bbox_src(i,1)
+!    ewrite(1,*) "my_bbox_src(d,max) = ", my_bbox_src(i,2)
+!  end do
+!  ewrite(1,*) "++++++++++++++++++++++++"
+!  ewrite(1,*) "TARGET MESH"
+!  do i=1,pos_target%dim
+!    ewrite(1,*) "dim = ", i
+!    ewrite(1,*) "my_bbox_trg(d,min) = ", my_bbox_trg(i,1)
+!    ewrite(1,*) "my_bbox_trg(d,max) = ", my_bbox_trg(i,2)
+!  end do
   ! Now computing bboxes of other mesh partitions:
   ewrite(1,*) "nprocs = ", nprocs
-  allocate(bboxes(nprocs, dim, 2, nprocs))
+  allocate(bboxes_src(dim, 2, nprocs))
+  allocate(bboxes_trg(dim, 2, nprocs))
+  ! Compute bboxes:
+  call compute_bboxes(nprocs, bboxes_src, pos_source)
+  call compute_bboxes(nprocs, bboxes_trg, pos_target)
+  ! TESTING:
+  ewrite(1,*) "==========================================================="
+  ewrite(1,*) "checking bboxes_src:"
+  ewrite(1,*) "rank = ", rank
+  do i=1,nprocs
+    ewrite(1,*) "----------------------------"
+    ewrite(1,*) "nproc = ", i
+    do j=1,dim
+      ewrite(1,*) "+++++++++"
+      ewrite(1,*) "d = ", j
+      ewrite(1,*) "bboxes(d,min,rank) = ", bboxes_src(j,1,i)
+      ewrite(1,*) "bboxes(d,max,rank) = ", bboxes_src(j,2,i)
+    end do
+  end do
   
 
 
@@ -299,7 +316,8 @@ subroutine Nonmatching_domain_interpolation(c_input_basename_1, input_basename_1
 
   ! We are done here, deallocating stuff:
   call deallocate(states)
-  deallocate(bboxes)
+  deallocate(bboxes_src)
+  deallocate(bboxes_trg)
   deallocate(my_bbox_src)
   deallocate(my_bbox_trg)
   
@@ -320,6 +338,33 @@ subroutine Nonmatching_domain_interpolation(c_input_basename_1, input_basename_1
         bbox(i, 2) = maxval(positions%val(i,:))
       end do
     end function compute_bbox
+
+
+    subroutine compute_bboxes(nprocs, bboxes, positions)
+      integer, intent(in) :: nprocs
+      real, dimension(:, :, :), intent(inout) :: bboxes
+      type(vector_field), intent(in) :: positions
+      real, dimension(size(bboxes, 2), size(bboxes, 3)) :: my_bboxes
+      integer :: rank
+      integer :: i
+      integer :: ierr
+
+      ewrite(1,*) "Inside compute_bboxes"
+
+      my_bboxes(:, :) = compute_bbox(positions)
+      ! Communicate all bboxes to rank 0:
+      call mpi_gather(my_bboxes, size(my_bboxes), getpreal(), &
+                      bboxes, size(my_bboxes), getpreal(), &
+                      0, MPI_COMM_FEMTOOLS, ierr)
+      assert(ierr == 0)
+
+      ! Broadcast assembles array of bboxes to everyone.
+      call mpi_bcast(bboxes, size(bboxes), getpreal(), 0, MPI_COMM_FEMTOOLS, ierr)
+      assert(ierr == 0)
+
+      ewrite(1,*) "Leaving compute_bboxes"
+
+    end subroutine compute_bboxes
 
 
     subroutine nonmatching_domain_galerkin_projection(fieldA, positionsA, positionsB, alpha_AB, advfrontfinder, matching_domain)
