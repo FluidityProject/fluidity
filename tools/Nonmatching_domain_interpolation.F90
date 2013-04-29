@@ -278,14 +278,14 @@ subroutine Nonmatching_domain_interpolation(c_input_basename_1, input_basename_1
 !  end do
   ! Now computing bboxes of other mesh partitions:
   ewrite(1,*) "nprocs = ", nprocs
-  allocate(bboxes_src(dim, 2, nprocs))
+  !allocate(bboxes_src(dim, 2, nprocs))
   allocate(bboxes_trg(dim, 2, nprocs))
   ! Compute bboxes:
-  call compute_bboxes(nprocs, bboxes_src, pos_source)
+  !call compute_bboxes(nprocs, bboxes_src, pos_source)
   call compute_bboxes(nprocs, bboxes_trg, pos_target)
   ! TESTING:
   ewrite(1,*) "==========================================================="
-  ewrite(1,*) "checking bboxes_src:"
+  ewrite(1,*) "checking bboxes_trg:"
   ewrite(1,*) "rank = ", rank
   do i=1,nprocs
     ewrite(1,*) "----------------------------"
@@ -293,12 +293,12 @@ subroutine Nonmatching_domain_interpolation(c_input_basename_1, input_basename_1
     do j=1,dim
       ewrite(1,*) "+++++++++"
       ewrite(1,*) "d = ", j
-      ewrite(1,*) "bboxes(d,min,rank) = ", bboxes_src(j,1,i)
-      ewrite(1,*) "bboxes(d,max,rank) = ", bboxes_src(j,2,i)
+      ewrite(1,*) "bboxes(d,min,rank) = ", bboxes_trg(j,1,i)
+      ewrite(1,*) "bboxes(d,max,rank) = ", bboxes_trg(j,2,i)
     end do
   end do
   ! Find intersecting partitions:
-  call get_intersecting_subdomains(bboxes_src(:, :, :), my_bbox_trg, intersecting_subdomains)
+  call get_intersecting_subdomains(bboxes_trg(:, :, :), my_bbox_src, intersecting_subdomains)
   ewrite(1,*) "Source mesh, partition "//int2str(rank)//" has the following intersections with the target mesh:"
   if (size(intersecting_subdomains) .gt. 0) then
     do i=1,size(intersecting_subdomains)
@@ -327,14 +327,15 @@ subroutine Nonmatching_domain_interpolation(c_input_basename_1, input_basename_1
   call calculate_diagnostic_variables(states)
   call calculate_diagnostic_variables_new(states)
   call write_diagnostics(states, 0.0, 0.1, 1, not_to_move_det_yet=.true.)
+  
 
   ! We are done here, deallocating stuff:
   call deallocate(states)
-  deallocate(bboxes_src)
+  !deallocate(bboxes_src)
   deallocate(bboxes_trg)
   deallocate(my_bbox_src)
   deallocate(my_bbox_trg)
-  
+
 
   ewrite(1, *) "Exiting Nonmatching_domain_interpolation"
 
@@ -358,7 +359,7 @@ subroutine Nonmatching_domain_interpolation(c_input_basename_1, input_basename_1
       integer, intent(in) :: nprocs
       real, dimension(:, :, :), intent(inout) :: bboxes
       type(vector_field), intent(in) :: positions
-      real, dimension(size(bboxes, 2), size(bboxes, 3)) :: my_bboxes
+      real, dimension(size(bboxes, 1), size(bboxes, 2)) :: my_bboxes
       integer :: rank
       integer :: i
       integer :: ierr
