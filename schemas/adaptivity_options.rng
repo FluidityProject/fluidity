@@ -462,20 +462,15 @@ Source: Fluidity/ICOM manual draft version 1.2</a:documentation>
     <element name="hr_adaptivity">
       <a:documentation>Anisotropic mesh hr-adaptivity</a:documentation>
       <choice>
-        <element name="period">
+        <element name="period_in_timesteps">
           <a:documentation>Time interval (in simulation time) when mesh adaptivity performed.
 
-DO NOT SET THIS EQUAL TO OR LESS THAN ONE TIME-STEP SMALLER
-THAN YOUR DUMP PERIOD BECAUSE ALL YOUR DIAGNOSTIC FIELDS WILL
-APPEAR AS ZERO OR JUNK
-DIAGNOSTIC FIELDS GET ZEROED AFTER AN ADAPT
-
 Usually set to 10-20 times the timestep.</a:documentation>
-          <ref name="real"/>
-        </element>
-        <element name="period_in_timesteps">
-          <a:documentation>Adapt period in timesteps.</a:documentation>
           <ref name="integer"/>
+        </element>
+        <element name="period">
+          <a:documentation>Specify the period in simulation time units</a:documentation>
+          <ref name="real"/>
         </element>
       </choice>
       <optional>

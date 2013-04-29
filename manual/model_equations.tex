@@ -831,7 +831,7 @@ For an incompressible multiphase flow, the continuity equation and momentum equa
 \nabla\cdot\left(\alpha_i\tautens_i\right) +
 \mathbf{F}_i,
 \end{equation}
-where $\mathbf{u}_i$, $\rho_i$, $\tautens_i$ and $\alpha_i$ are the velocity, density, viscous stress tensor and volume fraction of phase $i$ respectively, and $\mathbf{F}_i$ represents the forces imposed on phase $i$ by the other $N-1$ phases. Details of momentum transfer terms are given in Chapter \ref{chap:configuration}.
+where $\mathbf{u}_i$, $\rho_i$, $\tautens_i$ and $\alpha_i$ are the velocity, density, viscous stress tensor and volume fraction of phase $i$ respectively, and $\mathbf{F}_i$ represents the forces imposed on phase $i$ by the other $N-1$ phases. Details of momentum transfer terms are given in Chapter \ref{chap:configuration}. For more information about the incompressible multiphase flow model implemented in Fluidity, see the paper by \cite{Jacobs_etal_2013}.
 
 \subsubsection{Compressible flow}
 Fluidity currently only supports the case where the continuous phase is compressible. All other phases (the dispersed phases) are incompressible. The momentum equation is the same as the one given above, but the continuity equation becomes:
@@ -842,9 +842,9 @@ where the compressible phase has an index of $i=1$ here.
 
 An internal energy equation may also need to be solved depending on the equation of state used for the compressible phase. This is given by:
 \begin{equation}
-\alpha_i\rho_i\frac{\partial e_i}{\partial t} + \alpha_i\rho_i\mathbf{u}_i\cdot\nabla e_i = -p\nabla\cdot\left(\alpha_i\mathbf{u}_i\right) + Q_i
+\alpha_i\rho_i\frac{\partial e_i}{\partial t} + \alpha_i\rho_i\mathbf{u}_i\cdot\nabla e_i = -\alpha_i p\nabla\cdot\mathbf{u}_i + \nabla\cdot\left(\alpha_i\frac{k_i}{C_{v,i}}\nabla e_i\right) + Q_i
 \end{equation}
-where $e_i$ is the internal energy and $Q_i$ is an inter-phase energy transfer term described in Chapter \ref{chap:configuration}.
+where $e_i$ is the internal energy, $k_i$ is the effective conductivity, $C_{v,i}$ is the specific heat (at constant volume), and $Q_i$ is an inter-phase energy transfer term described in Chapter \ref{chap:configuration}. Note that, in Fluidity, the pressure term is always neglected in the (incompressible) particle phase's internal energy equation.
 
 \subsection{Porous Media Darcy Flow}
 \label{sec:porous_media_darcy_flow_equations}

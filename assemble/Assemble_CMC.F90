@@ -214,6 +214,7 @@ contains
                mu_gi(ele_ngi(viscosity_component, 1)))
  
       call zero(scaled_pressure_mass_matrix)
+
       do ele = 1, ele_count(p_mesh)
         p_shape => ele_shape(p_mesh, ele)
         mu_gi = ele_val_at_quad(viscosity_component, ele)
