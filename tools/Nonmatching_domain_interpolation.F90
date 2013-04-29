@@ -51,6 +51,7 @@ subroutine Nonmatching_domain_interpolation(c_input_basename_1, input_basename_1
   ! For projection routine:
   use supermesh_construction
   use supermesh_assembly
+  !use interpolation_module
   use solvers
   use global_parameters, only: OPTION_PATH_LEN
   use linked_lists
@@ -92,6 +93,9 @@ subroutine Nonmatching_domain_interpolation(c_input_basename_1, input_basename_1
   integer :: dim
   character(len=255) :: rank_str
   integer :: rank, rank_digits
+
+  integer, dimension(:), allocatable :: intersecting_subdomains
+  integer :: intersecting_subdomain
 
   integer :: quad_degree
   integer :: i, j, nstates
@@ -293,6 +297,16 @@ subroutine Nonmatching_domain_interpolation(c_input_basename_1, input_basename_1
       ewrite(1,*) "bboxes(d,max,rank) = ", bboxes_src(j,2,i)
     end do
   end do
+  ! Find intersecting partitions:
+  call get_intersecting_subdomains(bboxes_src(:, :, :), my_bbox_trg, intersecting_subdomains)
+  ewrite(1,*) "Source mesh, partition "//int2str(rank)//" has the following intersections with the target mesh:"
+  if (size(intersecting_subdomains) .gt. 0) then
+    do i=1,size(intersecting_subdomains)
+      ewrite(1,*) "target mesh partition: "//int2str(intersecting_subdomains(i))
+    end do
+  else
+    ewrite(1,*) "This partition of target mesh has NO intersections with the source mesh"
+  end if
   
 
 
@@ -365,6 +379,34 @@ subroutine Nonmatching_domain_interpolation(c_input_basename_1, input_basename_1
       ewrite(1,*) "Leaving compute_bboxes"
 
     end subroutine compute_bboxes
+
+
+    subroutine get_intersecting_subdomains(bboxes, my_bbox, intersecting_subdomains)
+      use intersection_finder_module
+      real, dimension(:, :, :), intent(in) :: bboxes
+      real, dimension(:, :), intent(in) :: my_bbox
+      integer, dimension(:), allocatable, intent(out) :: intersecting_subdomains
+
+      integer :: nprocs
+      integer :: i
+      integer, dimension(:), allocatable :: tmp_array
+      integer :: array_sz
+
+      array_sz = 0
+      nprocs = size(bboxes, 3)
+      allocate(tmp_array(nprocs))
+
+      do i=1,nprocs
+        if (bbox_predicate(bboxes(:, :, i), my_bbox)) then
+          array_sz = array_sz + 1
+          tmp_array(array_sz) = i
+        end if
+      end do
+
+      allocate(intersecting_subdomains(array_sz))
+      intersecting_subdomains(1:array_sz) = tmp_array(1:array_sz)
+      deallocate(tmp_array)
+    end subroutine get_intersecting_subdomains
 
 
     subroutine nonmatching_domain_galerkin_projection(fieldA, positionsA, positionsB, alpha_AB, advfrontfinder, matching_domain)
