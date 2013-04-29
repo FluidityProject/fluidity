@@ -8,6 +8,20 @@ inputushape:
 inputucircle:
 	cp src/circle_*.msh src/circle_*.halo .
 
+inputbox3:
+	cp src/box3_*.msh src/box3_*.halo .
+inputushape3:
+	cp src/ushape3_*.msh src/ushape3_*.halo .
+inputucircle3:
+	cp src/circle3_*.msh src/circle3_*.halo .
+
+inputbox4:
+	cp src/box4_*.msh src/box4_*.halo .
+inputushape4:
+	cp src/ushape4_*.msh src/ushape4_*.halo .
+inputucircle4:
+	cp src/circle4_*.msh src/circle4_*.halo .
+
 clean:clean-light
 	rm -rf *.vtu *.pvtu *.stat
 
@@ -39,6 +53,7 @@ test4:clean-light inputbox inputucircle
 
 
 
+
 test5:clean-light inputbox inputushape
 	cp src/rendezvous-advfront-alg-test-fluidbox.exo src/ushape.exo .
 	mpiexec -n 2 ../../bin/nonmatching_domain_interpolation -v 3 -l -f 1 -m exodusii box ushape
@@ -47,3 +62,20 @@ test5:clean-light inputbox inputushape
 test6:clean-light inputbox inputushape
 	mpiexec -n 2 ../../bin/nonmatching_domain_interpolation -v 3 -l -f 1 -m gmsh ushape box
 	mv diagnostics.stat diag_test6.stat;
+
+
+test7:clean-light inputbox3 inputushape3
+	mpiexec -n 3 ../../bin/nonmatching_domain_interpolation -v 3 -l -f 0 -m gmsh box3 ushape3
+	mv diagnostics.stat diag_test7.stat;
+
+test8:clean-light inputbox3 inputucircle3
+	mpiexec -n 3 ../../bin/nonmatching_domain_interpolation -v 3 -l -f 0 -m gmsh box3 circle3
+	mv diagnostics.stat diag_test8.stat;
+
+test9:clean-light inputbox4 inputushape4
+	mpiexec -n 4 ../../bin/nonmatching_domain_interpolation -v 3 -l -f 0 -m gmsh box4 ushape4
+	mv diagnostics.stat diag_test9.stat;
+
+test10:clean-light inputbox4 inputucircle4
+	mpiexec -n 4 ../../bin/nonmatching_domain_interpolation -v 3 -l -f 0 -m gmsh box4 circle4
+	mv diagnostics.stat diag_test10.stat;

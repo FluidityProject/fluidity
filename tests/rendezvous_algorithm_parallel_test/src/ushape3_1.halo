@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<halos process="1" nprocs="3">
+    <halo level="1" n_private_nodes="188">
+        <halo_data process="0">
+            <send>42 48 49 50 52 54 58 59 </send>
+            <receive>193 194 195 196 197 198 199 203 </receive>
+        </halo_data>
+        <halo_data process="1">
+            <send></send>
+            <receive></receive>
+        </halo_data>
+        <halo_data process="2">
+            <send>16 20 116 117 119 122 175 177 </send>
+            <receive>189 190 191 192 200 201 202 204 </receive>
+        </halo_data>
+    </halo>
+    <halo level="2" n_private_nodes="188">
+        <halo_data process="0">
+            <send>39 42 43 48 49 50 51 52 53 54 56 58 59 62 142 143 145 186 188 </send>
+            <receive>205 206 193 194 212 195 196 197 198 213 199 217 203 218 219 220 </receive>
+        </halo_data>
+        <halo_data process="1">
+            <send></send>
+            <receive></receive>
+        </halo_data>
+        <halo_data process="2">
+            <send>15 16 18 19 20 33 34 114 116 117 118 119 120 122 173 174 175 176 177 </send>
+            <receive>189 190 191 192 207 208 209 210 211 200 214 215 201 202 216 204 </receive>
+        </halo_data>
+    </halo>
+</halos>

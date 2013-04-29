@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<halos process="0" nprocs="4">
+    <halo level="1" n_private_nodes="263">
+        <halo_data process="0">
+            <send></send>
+            <receive></receive>
+        </halo_data>
+        <halo_data process="1">
+            <send>19 47 49 107 113 114 116 158 165 166 167 182 183 189 205 213 225 231 232 236 </send>
+            <receive>266 267 268 270 271 272 278 279 280 281 284 285 286 287 288 290 292 293 296 298 </receive>
+        </halo_data>
+        <halo_data process="2">
+            <send>158 159 233 258 260 </send>
+            <receive>282 299 300 304 </receive>
+        </halo_data>
+        <halo_data process="3">
+            <send>4 37 38 90 91 104 112 131 179 181 197 210 218 229 238 253 258 259 </send>
+            <receive>264 265 269 273 274 275 276 277 283 289 291 294 295 297 301 302 303 305 </receive>
+        </halo_data>
+    </halo>
+    <halo level="2" n_private_nodes="263">
+        <halo_data process="0">
+            <send></send>
+            <receive></receive>
+        </halo_data>
+        <halo_data process="1">
+            <send>11 12 19 34 35 47 48 49 51 92 107 113 114 116 132 154 158 159 165 166 167 174 182 183 186 187 189 194 205 206 213 219 225 231 232 236 237 247 250 257 </send>
+            <receive>266 267 309 268 310 270 312 271 313 272 316 317 318 319 320 321 322 323 278 279 324 280 281 329 330 284 285 286 332 333 287 288 290 292 293 335 337 338 339 341 296 298 </receive>
+        </halo_data>
+        <halo_data process="2">
+            <send>158 159 231 233 234 247 256 258 259 260 261 262 </send>
+            <receive>282 331 340 343 345 346 299 348 300 349 304 </receive>
+        </halo_data>
+        <halo_data process="3">
+            <send>4 16 17 37 38 39 88 89 90 91 104 112 127 131 142 170 171 178 179 181 193 197 199 210 212 218 223 229 235 238 246 253 256 258 259 260 261 263 </send>
+            <receive>264 265 306 307 308 311 269 273 274 314 315 275 276 277 325 326 327 328 283 289 291 334 294 336 295 342 297 344 347 301 350 302 303 351 352 305 </receive>
+        </halo_data>
+    </halo>
+</halos>
