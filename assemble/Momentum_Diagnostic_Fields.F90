@@ -127,6 +127,15 @@ contains
       end if
     end if
 
+    ! In certain cases, there is a need to update the second invariant of strain-rate tensor
+    ! before updating the viscosity (e.g. Non-Newtonian Stokes flow simulations) - do that here:
+    sfield => extract_scalar_field(submaterials(submaterials_istate),'strain_rate_second_invariant',stat)
+    if (stat == 0) then
+        if(have_option(trim(sfield%option_path) // "/diagnostic/algorithm::strain_rate_second_invariant")) then
+          call calculate_diagnostic_variable(state, istate, sfield)
+       end if
+    end if
+
     do i = 1, size(state) ! really we should be looping over submaterials here but we need to pass state into
                           ! calculate_diagnostic_variable and there's no way to relate the index in submaterials 
                           ! to the one in state
