@@ -66,7 +66,8 @@ assert abs(biomass_a - 10000.0).all() &lt; 1.0e-6
 assert abs(biomass_b - 10000.0).all() &lt; 1.0e-6
     </test>
     <test name="nutrient_conservation" language="python">
-assert abs(nutrients_dissolved + nutrients_agent_a + nutrients_agent_b - 500.0).all() &lt; 1.0e-6
+for i in range(1, len(nutrients_dissolved)):
+  assert abs(nutrients_dissolved[i-1] + nutrients_agent_a[i] + nutrients_agent_b[i] - 500.0) &lt; 1.0e-6
     </test>
     <test name="all_nutrients_absorbed" language="python">
 assert abs(nutrients_dissolved[-1]) &lt; 1.0e-6
