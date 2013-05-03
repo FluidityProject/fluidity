@@ -26,6 +26,8 @@ static PyObject *pPersistent;   // Pointer to the current "persistent" dictionar
 static PyObject *pJobServer;    // PP job server for threaded agent processing
 static PyObject *pJobDict;      // Dict holding the task objects associated with each agent
 
+static bool dropout_agent = false;
+
 extern "C" {
 /* Load the kernel fucntion and associated paramter set from the module provided and store in pFGKernelFunc and pFGParamDicts */
 void lebiology_fg_kernel_load_c(char *fg, char *key, char *module, char *kernel, char *param, int *stat);
@@ -75,7 +77,7 @@ void lebiology_parallel_finish_c(char *fg, char *food, double vars[], int n_vars
  */
 void lebiology_agent_update_c(char *fg, char *key, char *food, double vars[], int n_vars, double envvals[], int n_envvals, 
                               double fvariety[], double frequest[], double fthreshold[], double fingest[], int n_fvariety, 
-                              double *dt, int *stat);
+                              double *dt, int *dropout, int *stat);
 
 /* Agent motion interface:
  * Usage: def val(position, vars, dt):
@@ -92,6 +94,9 @@ void fl_add_agent_c(double vars[], int *n_vars, double pos[], int *n_pos);
 /* Callback function to add new agents to the system from inside the embedded Python biology update */
 static PyObject *lebiology_add_agent(PyObject *self, PyObject *args);
 
+/* Callback function to mark the current agent as a dropout to be removed at the end of the timestep */
+static PyObject *lebiology_dropout_agent(PyObject *self, PyObject *args);
+
 /* Callback function to translate stage names to internal IDs */
 static PyObject *lebiology_stage_id(PyObject *self, PyObject *args);
 
@@ -99,6 +104,8 @@ static PyObject *lebiology_stage_id(PyObject *self, PyObject *args);
 static PyMethodDef LEBiologyMethods[] = {
   {"add_agent",  lebiology_add_agent, METH_VARARGS,
    "Add a new agent to the system"},
+  {"dropout_agent",  lebiology_dropout_agent, METH_VARARGS,
+   "Mark the current agent to be removed from the system"},
   {"stage_id",  lebiology_stage_id, METH_VARARGS,
    "Add a new agent to the system"},
   {NULL, NULL, 0, NULL}        /* Sentinel */

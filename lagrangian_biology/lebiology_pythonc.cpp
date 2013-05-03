@@ -534,7 +534,7 @@ void lebiology_kernel_update_c(char *fg, char *key, char *food, double vars[], i
 void lebiology_agent_update_c(char *fg, char *key, char *food, 
                               double vars[], int n_vars, double envvals[], int n_envvals, 
                               double fvariety[], double frequest[], double fthreshold[], double fingest[], int n_fvariety, 
-                              double *dt, int *stat)
+                              double *dt, int *dropout, int *stat)
 {
 #ifdef HAVE_PYTHON
   // Get variable names and local namespace
@@ -580,6 +580,12 @@ void lebiology_agent_update_c(char *fg, char *key, char *food,
 
   if (n_fvariety > 0) {
     convert_food_variety(pResult, fg, food, n_fvariety, frequest, fthreshold);
+  }
+
+  // Check for dropout
+  if (dropout_agent){
+    *dropout = 1;
+    dropout_agent = false;
   }
 
   // Check for exceptions
@@ -791,3 +797,13 @@ static PyObject *lebiology_add_agent(PyObject *self, PyObject *args)
 #endif
 }
 
+static PyObject *lebiology_dropout_agent(PyObject *self, PyObject *args)
+{
+#ifdef HAVE_PYTHON
+  /* Schedule the removal of the currently processed agent */
+  dropout_agent = true;
+
+  Py_INCREF(Py_None);
+  return Py_None;
+#endif
+}

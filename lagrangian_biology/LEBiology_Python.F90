@@ -161,7 +161,7 @@ module lebiology_python
     end subroutine lebiology_kernel_update
 
     subroutine lebiology_agent_update(fg, key, food, vars, n_vars, envvals, n_envvals, &
-         fvariety, frequest, fthreshold, fingest, n_fvariety, dt, stat) &
+         fvariety, frequest, fthreshold, fingest, n_fvariety, dt, dropout, stat) &
          bind(c, name='lebiology_agent_update_c')
       use :: iso_c_binding
       implicit none
@@ -173,7 +173,7 @@ module lebiology_python
       real(c_double), dimension(n_envvals), intent(inout) :: envvals
       real(c_double), dimension(n_fvariety), intent(inout) :: fvariety, frequest, fingest, fthreshold
       real(c_double), intent(in) :: dt
-      integer(c_int), intent(out) :: stat
+      integer(c_int), intent(out) :: dropout, stat
     end subroutine lebiology_agent_update
 
     subroutine lebiology_agent_move(fg, key, pos, n_pos, &
@@ -436,7 +436,7 @@ contains
     real :: path_total, ele_integral, ele_volume
     real, dimension(size(agent%biology)) :: agent_state_copy
     type(elepath_list), pointer :: path_ele
-    integer :: f, v, e, persistent, stat
+    integer :: f, v, e, persistent, dropout_agent, stat
 
     agent_state_copy = agent%biology
 
@@ -464,7 +464,7 @@ contains
              trim(key)//C_NULL_CHAR, trim(foodname)//C_NULL_CHAR, &
              agent%biology, size(agent%biology), envfield_vals, size(envfield_vals), &
              foodfield_vals, agent%food_requests, agent%food_thresholds, agent%food_ingests, &
-             size(foodfield_vals), dt, stat)
+             size(foodfield_vals), dt, dropout_agent, stat)
     end if
 
     do v=1, size(agent%biology)
@@ -488,6 +488,10 @@ contains
           FLExit('NaN agent food ingest detected in '//trim(fgroup%name)//"::"//trim(key))
        end if
     end do
+
+    if (dropout_agent > 0) then
+       agent%dropout = .true.
+    end if
 
     if (stat < 0) then
        ewrite(-1, *) "Error updating agent "//int2str(agent%id_number)//" for FG::"//trim(fgroup%name)

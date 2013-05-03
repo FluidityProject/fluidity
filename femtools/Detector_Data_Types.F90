@@ -117,6 +117,9 @@ module detector_data_types
      !! Counter for internal Random Walk sub-cycling
      integer :: rw_subsubcycles = 1
 
+     !! Flag to remove the agent at the end of the current timestep
+     logical :: dropout = .false.
+
      !! Pointers for detector linked lists
      TYPE (detector_type), POINTER :: next=> null()
      TYPE (detector_type), POINTER :: previous=> null() 

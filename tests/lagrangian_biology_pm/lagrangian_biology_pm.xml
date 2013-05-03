@@ -71,6 +71,14 @@ agent_count_python_split = stat_parser("lagrangian_biology.stat")['Water']['Laye
 from fluidity_tools import stat_parser
 agent_count_python_merge = stat_parser("lagrangian_biology.stat")['Water']['LayeredPythonMergeAgentsStage']['integral']
     </variable>
+    <variable name="agent_count_dropout" language="python">
+from fluidity_tools import stat_parser
+agent_count_dropout = stat_parser("lagrangian_biology.stat")['Water']['DropoutAgentsStage']['integral']
+    </variable>
+    <variable name="dropout_tracer_integral" language="python">
+from fluidity_tools import stat_parser
+dropout_tracer_integral = stat_parser("lagrangian_biology.stat")['Water']['DropoutTracer']['integral']
+    </variable>
   </variables>
   <pass_tests>
     <test name="constant_biomass_split" language="python">
@@ -110,10 +118,16 @@ assert abs(agent_count_delayed[-1] - 200.0) &lt; 1.0e-6
 assert abs(agent_count_delayed[-2] ) &lt; 1.0e-6
     </test>
     <test name="final_agent_count_python_split" language="python">
-assert abs(agent_count_python_split[-1] - 75.0).all() &lt; 1.0e-6
+assert abs(agent_count_python_split[-1] - 75.0) &lt; 1.0e-6
     </test>
     <test name="final_agent_count_python_merge" language="python">
-assert abs(agent_count_python_merge[-1] - 125.0).all() &lt; 1.0e-6
+assert abs(agent_count_python_merge[-1] - 125.0) &lt; 1.0e-6
+    </test>
+    <test name="final_agent_count_dropout" language="python">
+assert abs(agent_count_dropout[-1]) &lt; 1.0e-6
+    </test>
+    <test name="final_dropout_tracer_integral" language="python">
+assert abs(dropout_tracer_integral[-1] - 5.0) &lt; 1.0e-6
     </test>
   </pass_tests>
   <warn_tests>

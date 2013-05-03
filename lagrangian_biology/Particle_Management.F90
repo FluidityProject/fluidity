@@ -67,7 +67,7 @@ implicit none
 
   private
 
-  public :: particle_management, pm_strip_insignificant
+  public :: particle_management, pm_strip_insignificant, pm_strip_dropout
 
   integer, parameter :: BIOVAR_STAGE=1, BIOVAR_SIZE=2
 
@@ -470,6 +470,30 @@ contains
     end function wtavg
 
   end subroutine pm_merge
+
+  subroutine pm_strip_dropout(agent_list)
+    type(detector_linked_list), intent(inout) :: agent_list
+
+    type(detector_type), pointer :: agent, agent_to_delete
+    integer :: kill_count
+
+    kill_count = 0
+    agent=>agent_list%first
+    do while(associated(agent))
+       if (agent%dropout) then
+          agent_to_delete => agent
+          agent => agent%next
+          call delete(agent_to_delete, agent_list)
+          kill_count = kill_count + 1
+       else
+          agent => agent%next
+       end if
+    end do 
+
+    if (kill_count > 0) then
+       ewrite(2,*) "Lagrangian biology: Stripped", kill_count, " dropout agents"
+    end if
+  end subroutine pm_strip_dropout
 
   subroutine pm_strip_insignificant(agent_list)
     type(detector_linked_list), intent(inout) :: agent_list

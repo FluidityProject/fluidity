@@ -984,6 +984,9 @@ contains
        do stage=1, size(fgroup%agent_arrays)
           agent_array => fgroup%agent_arrays(stage)
 
+          ! Remove dropout agents after their pools have been added to chem release
+          call pm_strip_dropout(agent_array)
+
           ! Remove all agent with zero biomass to avoid div-by-zero errors
           call pm_strip_insignificant(agent_array)
           
@@ -1253,7 +1256,7 @@ contains
     type(scalar_field_pointer), dimension(size(uptake_field_names)) :: uptake_fields
     type(scalar_field_pointer), dimension(size(release_field_names)) :: release_fields
     type(le_variable), pointer :: var
-    real :: ele_volume
+    real :: ele_volume, quantity
     integer :: f, v, fg, stage, ivar
 
     type(mesh_type), pointer :: lebio_mesh
@@ -1324,12 +1327,20 @@ contains
              end do
 
              do v=1, size(fgroup%ivars_release)
-                ivar = fgroup%ivars_release(v)
+                ! Special case: If the agent is about to be removed, 
+                ! we release all remaining chemical quantities in the pool
+                if (agent%dropout) then
+                   ivar = fgroup%variables( fgroup%ivars_release(v) )%pool_index
+                else
+                   ivar = fgroup%ivars_release(v)
+                end if
+
+                quantity = agent%biology(ivar)
                 if (fgroup%variables(ivar)%path_integration .and. associated(agent%path_elements)) then
-                   call integrate_along_path(release_diagfields(v)%ptr, xfield, agent, agent%biology(ivar) )
+                   call integrate_along_path(release_diagfields(v)%ptr, xfield, agent, quantity )
                 else
                    ele_volume = element_volume(xfield, agent%element)
-                   call addto(release_diagfields(v)%ptr, agent%element, agent%biology(ivar)*agent%biology(BIOVAR_SIZE) / ele_volume)
+                   call addto(release_diagfields(v)%ptr, agent%element, quantity*agent%biology(BIOVAR_SIZE) / ele_volume)
                 end if
              end do
 
