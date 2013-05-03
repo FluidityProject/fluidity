@@ -628,7 +628,7 @@ module zoltan_integration
       call get_option(trim(zoltan_global_base_option_path) // "/final_partitioner/lb_approach", &
            lb_approach, default="PARTITION")
     else
-      call get_option(trim(zoltan_global_base_option_path) // "/final_partitioner/lb_approach", &
+      call get_option(trim(zoltan_global_base_option_path) // "/partitioner/lb_approach", &
            lb_approach, default="REPARTITION")
     end if
 
