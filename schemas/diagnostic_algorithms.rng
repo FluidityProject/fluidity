@@ -945,8 +945,6 @@ boundaries.</a:documentation>
   <define name="strain_rate_second_invariant_algorithm">
     <element name="algorithm">
       <a:documentation>Algorithm for the second invariant of the strain_rate tensor field.
-This field is updated as part of the momeuntum diagnostics (i.e. 
-at the start of each momentum solve - within non-linear iterations.)
 Note that the strain rate tensor is calculated automatically as a part
 of this algorithm and, hence, a separate tensor field is not required.</a:documentation>
       <attribute name="name">

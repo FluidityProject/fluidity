@@ -702,8 +702,6 @@ tensor_second_invariant_algorithm =
 strain_rate_second_invariant_algorithm =
    (
       ## Algorithm for the second invariant of the strain_rate tensor field.
-      ## This field is updated as part of the momeuntum diagnostics (i.e. 
-      ## at the start of each momentum solve - within non-linear iterations.)
       ## Note that the strain rate tensor is calculated automatically as a part
       ## of this algorithm and, hence, a separate tensor field is not required.
        element algorithm {
