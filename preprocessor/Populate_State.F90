@@ -1547,6 +1547,12 @@ contains
          call allocate_and_insert_scalar_field(trim(variable%field_path), &
                 state, field_name=trim(variable%chemfield)//"Release", embed_field=.true., &
                 dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+
+         if (variable%record_total) then
+            call allocate_and_insert_scalar_field(trim(variable%total_field_path), &
+                 state, field_name=trim(variable%chemfield)//"ReleaseTotal", embed_field=.true., &
+                 dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+         end if
       end if
 
       ! Allocate depletion for food requests

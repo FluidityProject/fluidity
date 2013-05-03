@@ -369,6 +369,14 @@ chemical_variable =
                   diagnostic_scalar_field_lebiology
                }
             },
+            ## Optional field to accumulate total chemical release over time.
+            element scalar_field {
+               attribute name { "ReleaseTotal" },
+               element diagnostic {
+                  internal_algorithm,
+                  diagnostic_scalar_field_lebiology
+               }
+            }?,
             element integrate_along_path {
                empty
             }?,

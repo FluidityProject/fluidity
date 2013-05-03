@@ -469,6 +469,18 @@ The scaled release quantity will then get added to the according source field of
             </element>
           </element>
           <optional>
+            <element name="scalar_field">
+              <a:documentation>Optional field to accumulate total chemical release over time.</a:documentation>
+              <attribute name="name">
+                <value>ReleaseTotal</value>
+              </attribute>
+              <element name="diagnostic">
+                <ref name="internal_algorithm"/>
+                <ref name="diagnostic_scalar_field_lebiology"/>
+              </element>
+            </element>
+          </optional>
+          <optional>
             <element name="integrate_along_path">
               <empty/>
             </element>

@@ -160,6 +160,9 @@ module detector_data_types
     ! Name of chemical field associated with uptake/release variables
     character(len=FIELD_NAME_LEN) :: chemfield
     integer :: i_chemfield
+    ! Option path for an optional field for adding the total exchanged quantity (Release only)
+    character(len=OPTION_PATH_LEN) :: total_field_path
+    logical :: record_total = .false.
 
     ! Flag indicating whether this variables gets written to the output file
     logical :: write_to_file = .false.

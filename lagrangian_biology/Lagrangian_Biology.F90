@@ -582,6 +582,11 @@ contains
           call get_option(trim(var_buffer)//"/release/target_field/name", fgroup%variables(var_index)%chemfield)
           fgroup%variables(var_index)%i_chemfield = insert_global_release_field(fgroup%variables(var_index)%chemfield)
 
+          if (have_option(trim(var_buffer)//"/release/scalar_field::ReleaseTotal")) then
+             fgroup%variables(var_index)%record_total = .true.
+             fgroup%variables(var_index)%total_field_path = trim(var_buffer)//"/release/scalar_field::ReleaseTotal"
+          end if
+
           if (have_option(trim(var_buffer)//"/release/integrate_along_path")) then
              fgroup%variables(var_index)%path_integration = .true.
           end if
@@ -1260,6 +1265,7 @@ contains
     integer :: f, v, fg, stage, ivar
 
     type(mesh_type), pointer :: lebio_mesh
+    type(scalar_field), pointer :: release_total_field
     type(halo_type), pointer :: ele_halo
     integer :: halo_level
 
@@ -1365,6 +1371,14 @@ contains
 
           if (halo_level > 0) then
              call halo_update(ele_halo, release_diagfields(v)%ptr)
+          end if
+
+          if (var%record_total) then
+             release_total_field => extract_scalar_field(state, trim(var%chemfield)//"ReleaseTotal")
+             call addto(release_total_field, release_diagfields(v)%ptr)
+             if (halo_level > 0) then
+                call halo_update(ele_halo, release_total_field)
+             end if
           end if
        end do
        deallocate(release_diagfields)
