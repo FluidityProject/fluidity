@@ -586,6 +586,8 @@ void lebiology_agent_update_c(char *fg, char *key, char *food,
   if (dropout_agent){
     *dropout = 1;
     dropout_agent = false;
+  } else {
+    *dropout = 0;
   }
 
   // Check for exceptions
