@@ -47,7 +47,7 @@ module mba2d_integration
 
     type(mesh_type), pointer :: xmesh
 
-    integer :: nonods, mxnods, orig_stotel, stotel, mxface, totele, maxele
+    integer :: nonods, mxnods, orig_stotel, stotel, mxface, totele, maxele, stotel_external
     real, dimension(:, :), allocatable :: pos
     integer, dimension(:, :), allocatable :: ipf
     integer, dimension(:, :), allocatable :: ipe
@@ -57,7 +57,7 @@ module mba2d_integration
     integer, dimension(:), allocatable :: iFnc
     integer, dimension(:), allocatable :: lbE
     real, dimension(:, :), allocatable :: tmp_metric
-    integer :: i, j, k, partition_surface_id, face
+    integer :: i, j, k, partition_surface_id, face, face2
     real :: quality, rQuality
     integer :: iPrint, ierr, maxWr, maxWi
     real, dimension(:), allocatable :: rW
@@ -144,6 +144,7 @@ module mba2d_integration
     ipf = 0
     partition_surface_id = maxval(surface_ids) + 1
     stotel = 0
+    stotel_external = 0
 
     call allocate(input_face_numbering_to_mba2d_numbering)
     do i=1,totele
@@ -156,14 +157,36 @@ module mba2d_integration
           call insert(input_face_numbering_to_mba2d_numbering, face, stotel)
           ipf(1:2, stotel) = face_global_nodes(xmesh, face)
           ipf(3, stotel) = 0
-          if (face <= orig_stotel) then ! if face is genuinely external, i.e. on the domain exterior
+          if (face <= orig_stotel) then ! if facet is genuinely external, i.e. on the domain exterior
             ipf(4, stotel) = surface_ids(face)
+            stotel_external = stotel_external + 1
           else
             ipf(4, stotel) = partition_surface_id
           end if
         end if
       end do
     end do
+
+    if (stotel_external<orig_stotel) then
+      ! not all facets in the surface mesh are external apparently
+      do face=1, orig_stotel
+        face2 = face_neigh(xmesh, face)
+        if (face>face2) then
+          ! if face==face2 it's an external facet that's dealt with already
+          ! we check face>face2 to ensure we only copy one of the two coinciding facets
+          stotel = stotel +1
+          ! not sure this will work with lock_faces:
+          call insert(input_face_numbering_to_mba2d_numbering, face, stotel)
+          ipf(1:2, stotel) = face_global_nodes(xmesh, face)
+          ipf(3, stotel) = 0
+          ipf(4, stotel) = surface_ids(face)
+          if (surface_ids(face)/=surface_ids(face2)) then
+            FLExit("Adaptivity with internal boundaries only works if the surface id is single valued")
+          end if
+        end if                
+      end do
+
+    end if
 
     if (.not. present(lock_faces)) then
       nfv = 0
