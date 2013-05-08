@@ -282,60 +282,71 @@ contains
   type(vector_field), intent(in):: positions
   integer, dimension(:), pointer:: coplanar_ids
     type(mesh_type), pointer:: surface_mesh
-    type(mesh_type):: new_surface_mesh
-    type(csr_sparsity), pointer :: eelist
     type(ilist) front
-    real, allocatable, dimension(:,:):: normals
-    integer, allocatable, dimension(:):: map_to_new_facets, new_coplanar_ids
+    real, allocatable, dimension(:,:):: normalgi, normals
+    real, allocatable, dimension(:):: detwei_f
     real coplanar
-    integer, dimension(:), pointer:: neigh
-    integer current_id
-    integer j, k, sele, pos
+    integer, dimension(:), pointer:: neigh, nodes
+    integer current_id, sngi, stotel
+    integer j, k, sele, sele2, pos, ele
     
+    ewrite(1,*) "Inside get_coplanar_ids"
+
     if (.not. has_faces(mesh)) then
        call add_faces(mesh)
     end if
     
-    surface_mesh => mesh%faces%surface_mesh
-    
+    stotel = surface_element_count(mesh)
+
     if (.not. associated(mesh%faces%coplanar_ids)) then
-       allocate(mesh%faces%coplanar_ids(1:element_count(surface_mesh)))
+       allocate(mesh%faces%coplanar_ids(1:stotel))
        coplanar_ids => mesh%faces%coplanar_ids
     else
        ! we assume they have been calculated already:
        coplanar_ids => mesh%faces%coplanar_ids
-       assert( size(coplanar_ids)==element_count(surface_mesh) )
        return
     end if
 
-    if (size(coplanar_ids)==0) return
+    if(stotel == 0) return
+
+    sngi = face_ngi(mesh, 1)
+    surface_mesh => mesh%faces%surface_mesh
+
+    allocate(normalgi(positions%dim,sngi), detwei_f(sngi)) 
        
-    ! construct a new surface mesh and gather normals
-    call construct_valid_surface_mesh(positions, mesh, surface_mesh, &
-      new_surface_mesh, normals, map_to_new_facets)
+    ! Calculate element normals for all surface elements
+    allocate(normals(positions%dim, stotel))
+    do sele=1, stotel
+       ele=face_ele(mesh, sele)
+       call transform_facet_to_physical( &
+          positions, sele, detwei_f, normalgi)
+       ! average over gauss points:
+       normals(:,sele)=matmul(normalgi, detwei_f)/sum(detwei_f)
+    end do
+    deallocate(normalgi, detwei_f)
     
-    ! create element-element list for surface mesh
-    eelist => extract_eelist(new_surface_mesh)
-
-    allocate(new_coplanar_ids(1:element_count(new_surface_mesh)))
-    new_coplanar_ids = 0
-
+    ! create node-element list for surface mesh
+    ! (Note that we can't always construct an eelist, which would have been
+    ! more useful, because the surface mesh may split (for instance where an
+    ! external boundary meets an internal boundary) in which case multiple
+    ! surface elements can be connected via the same edge (facet of the surface element))
+    call add_nelist(surface_mesh)
+    
+    coplanar_ids = 0
     current_id = 1
     pos = 1
     do while (.true.)
-       ! Create a new starting point
-       do sele=pos, size(new_coplanar_ids)
-          if(new_coplanar_ids(sele)==0) then
-             ! This is the first element in the new patch
-             pos = sele
-             new_coplanar_ids(pos) = current_id
-             exit
-          end if
+       ! Create a new starting point by finding a surface element without coplanar id
+       do sele=pos, stotel
+          if(coplanar_ids(sele)==0) exit
        end do
           
        ! Jump out of this while loop if we are finished
-       if (sele>size(new_coplanar_ids)) exit
+       if (sele>stotel) exit
           
+       ! This is the first element in the new patch
+       pos = sele
+       coplanar_ids(pos) = current_id
        ! Initialise the front
        call insert_ascending(front, pos)
           
@@ -344,90 +355,38 @@ contains
           sele = pop(front)
           
           ! surrounding surface elements:
-          neigh => row_m_ptr(eelist, sele)
-          do j=1, size(neigh)
-             k = neigh(j)
-             if (k>0) then
-                if(new_coplanar_ids(k)==0) then
-                   coplanar = abs(dot_product(normals(:,pos), normals(:,k)))
+          ! note that we not only consider directly adjacent surface elements,
+          ! but also surface elements that only connect via one other node, as
+          ! long as they have a normal in the same direction however they should
+          ! be on the same plane
+          nodes => ele_nodes(surface_mesh, sele)
+          do j=1, size(nodes)
+             ! loop over surface elements connected to nodes(j)
+             neigh => node_neigh(surface_mesh, nodes(j))
+             do k=1, size(neigh)
+                sele2 = neigh(k)
+                if(coplanar_ids(sele2)==0) then
+                   coplanar = abs(dot_product(normals(:,pos), normals(:,sele2)))
                    if(coplanar>=COPLANAR_MAGIC_NUMBER) then
                    
-                      call insert_ascending(front, k)
-                      new_coplanar_ids(k) = current_id
+                      call insert_ascending(front, sele2)
+                      coplanar_ids(sele2) = current_id
                    end if
                 end if
-            end if
+             end do
           end do
        end do
          
        current_id = current_id + 1
        pos = pos + 1
     end do
-   
-    ! map result to all facets (including duplicate internal facets)
-    coplanar_ids = new_coplanar_ids(map_to_new_facets)
-
-    deallocate(normals, new_coplanar_ids, map_to_new_facets)
-    call deallocate(new_surface_mesh)
+    deallocate(normals)
     
-    ! in parallel merge surface ids of coplanes shared by multiple processes
+    ewrite(2,*) "Before merge_surface_ids, n/o local coplanes:", current_id-1
+
     call merge_surface_ids(mesh, coplanar_ids, max_id = current_id - 1)
 
   end subroutine get_coplanar_ids
-
-  subroutine construct_valid_surface_mesh(positions, mesh, surface_mesh, new_surface_mesh, &
-      normals, map_to_new_facets)
-    ! Construct a "new" surface mesh that keeps only a single copy of the duplicate facets
-    ! of the internal boundary. This is necessary because duplicate facets prevent the calculation
-    ! of an element-element list on the surface mesh.
-    type(vector_field), intent(in):: positions
-    type(mesh_type), intent(in):: mesh, surface_mesh
-    ! the new surface mesh:
-    type(mesh_type), intent(out):: new_surface_mesh
-    ! for each element (facet) of the new mesh a normal vector (xdim x element_count(new_surface_mesh))
-    real, dimension(:,:), allocatable:: normals
-    ! map from element numbers in surface_mesh to elements in the new_surface_mesh
-    integer, dimension(:), allocatable:: map_to_new_facets
-
-    real, dimension(face_ngi(mesh,1)):: detwei_f
-    real, dimension(positions%dim, face_ngi(mesh,1)):: normalgi
-    integer:: face, face2, new_element_count
-
-    new_element_count = 0
-    do face=1, surface_element_count(mesh)
-      face2 = face_neigh(mesh, face)
-      ! for external facets we have face==face2
-      ! for internal facets we only count one of the the pair (face,face2)
-      if (face>=face2) new_element_count = new_element_count +1
-    end do
-
-    call allocate(new_surface_mesh, node_count(surface_mesh), new_element_count, &
-      ele_shape(surface_mesh, 1), name="SurfaceMeshDuplicatesRemoved")
-    allocate(normals(positions%dim, new_element_count))
-
-    new_element_count = 0
-    do face=1, surface_element_count(mesh)
-      face2 = face_neigh(mesh, face)
-      ! for external facets we have face==face2
-      ! for internal facets we only count one of the the pair (face,face2)
-      if (face>=face2) then
-        new_element_count = new_element_count + 1
-        call set_ele_nodes(new_surface_mesh, new_element_count, ele_nodes(surface_mesh, face))
-        ! get normal vectors at the gauss points
-        call transform_facet_to_physical( &
-            positions, face, detwei_f, normalgi)
-        ! take cell average, integrate first:
-        normals(:,new_element_count) = matmul(normalgi, detwei_f)
-        ! then normalize (don't just divide by area because of curved elements)
-        normals(:,new_element_count) = normals(:,new_element_count) / sqrt(sum(normals(:,new_element_count)**2))
-        map_to_new_facets(face) = new_element_count
-        map_to_new_facets(face2) = new_element_count
-      end if
-    end do
-
-    assert( new_element_count==element_count(new_surface_mesh) )
-
-  end subroutine construct_valid_surface_mesh
   
   subroutine vtk_write_coplanar_ids(filename, positions, coplanar_ids)
     character(len = *), intent(in) :: filename
