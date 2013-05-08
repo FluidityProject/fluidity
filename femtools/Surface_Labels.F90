@@ -307,9 +307,11 @@ contains
        return
     end if
 
-    if(stotel == 0) return
-
-    sngi = face_ngi(mesh, 1)
+    if(stotel == 0) then
+      sngi = 0
+    else
+      sngi = face_ngi(mesh, 1)
+    end if
     surface_mesh => mesh%faces%surface_mesh
 
     allocate(normalgi(positions%dim,sngi), detwei_f(sngi)) 
