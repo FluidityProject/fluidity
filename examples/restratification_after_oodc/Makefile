@@ -9,16 +9,6 @@ preprocess: envcheck
 	gmsh -2 circle.geo 
 	@echo **********Converting the gmsh mesh to triangle format:
 	${BINPREFIX}gmsh2triangle --2d circle.msh; 
-ifneq ($(NPROCS),64)
-	@echo **********WARNING: This simulation is best run on 64 processors
-endif
-ifeq ($(NPROCS),1)
-	@echo **********Serial run: not decomposing mesh
-	@echo **********WARNING: This is a large simulation and will take a very long time in serial. Find a handy supercomputer.
-else
-	@echo **********Decomposing the mesh into $(NPROCS) parts for parallel run:
-	${BINPREFIX}fldecomp -n $(NPROCS) -f circle
-endif
 
 run: envcheck
 ifneq ($(NPROCS),64)
@@ -29,10 +19,12 @@ ifeq ($(NPROCS),1)
 	@echo **********Calling fluidity in serial with verbose log output enabled:
 	${BINPREFIX}fluidity -v2 -l restratification_after_oodc.flml
 else
+	@echo **********Calling flredecomp in parallel with verbose log output enabled:
+	mpiexec -n $(NPROCS) ${BINPREFIX}flredecomp -i 1 -o $(NPROCS) -v -l restratification_after_oodc restratification_after_oodc_flredecomp
 	@echo **********Calling fluidity in parallel with verbose log output enabled:
-	mpiexec -n $(NPROCS) ${BINPREFIX}fluidity -v2 -l restratification_after_oodc.flml
+	mpiexec -n $(NPROCS) ${BINPREFIX}fluidity -v2 -l restratification_after_oodc_flredecomp.flml
 endif
-        
+
 postprocess:
 	@echo **********No postprocessing needed
 
@@ -41,8 +33,9 @@ input: clean
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:
-	rm -f *.ele *.edge *.face *.node *.halo *.poly *.vtu *.pvtu *.stat *.log-0 *.err-0 */matrixdump*
+	rm -f *.geo *.msh *.ele *.edge *.face *.node *.halo *.poly *.vtu *.pvtu *.stat *.log-* *.err-* */matrixdump*
 	rm -rf restratification_after_oodc_? restratification_after_oodc_??
+	rm -rf *flredecomp*
 
 realclean: clean
 	@echo **********Cleaning the output and checkpoints from previous fluidity runs:

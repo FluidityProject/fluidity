@@ -101,6 +101,10 @@ module Petsc_Tools
   interface petsc2field
     module procedure Petsc2VectorFields, Petsc2ScalarFields, Petsc2VectorField, Petsc2ScalarField
   end interface
+
+  interface petsc_numbering_create_is
+    module procedure petsc_numbering_create_is_dim
+  end interface
     
 #include "Reference_count_interface_petsc_numbering_type.F90"
 
@@ -108,7 +112,7 @@ module Petsc_Tools
 
   public reorder, DumpMatrixEquation, Initialize_Petsc
   public csr2petsc, petsc2csr, block_csr2petsc, petsc2array, array2petsc
-  public field2petsc, petsc2field
+  public field2petsc, petsc2field, petsc_numbering_create_is
   public petsc_numbering_type, PetscNumberingCreateVec, allocate, deallocate
   public csr2petsc_CreateSeqAIJ, csr2petsc_CreateMPIAIJ
   public addup_global_assembly
@@ -562,6 +566,26 @@ contains
     call VecSetOption(vec, VEC_IGNORE_OFF_PROC_ENTRIES, PETSC_TRUE, ierr)
 
   end function PetscNumberingCreateVec
+
+  function petsc_numbering_create_is_dim(petsc_numbering, dim) result (index_set)
+    IS:: index_set
+    type(petsc_numbering_type), intent(in):: petsc_numbering
+    integer, intent(in):: dim
+
+    PetscErrorCode:: ierr
+    integer:: nnodp
+
+    nnodp = petsc_numbering%nprivatenodes
+
+#if PETSC_VERSION_MINOR>=2
+    call ISCreateGeneral(MPI_COMM_FEMTOOLS, nnodp, petsc_numbering%gnn2unn(:,dim), &
+         PETSC_COPY_VALUES, index_set, ierr)
+#else
+    call ISCreateGeneral(MPI_COMM_FEMTOOLS, nnodp, petsc_numbering%gnn2unn(:,dim), &
+         index_set, ierr)
+#endif
+       
+  end function petsc_numbering_create_is_dim
   
   subroutine Petsc2Array(vec, petsc_numbering, array)
     !!< Copies the values of a PETSc Vec into an array. The PETSc Vec

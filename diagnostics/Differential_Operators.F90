@@ -377,17 +377,21 @@ contains
     if(source_field%dim /= 2) then
       FLExit("Can only calculate 2D curl in 2D")
     end if
-    
-    call check_source_mesh_derivative(source_field, "curl_2d")
+
+    if(continuity(s_field)==-1 .and. continuity(source_field)==-1) then
+      ewrite(-1,*) "If you want to compute the 2d curl of a DG vector field, "// &
+        "the diagnostic field itself should be on a continuous mesh."
+      FLExit("Cannot compute 2D curl of DG field onto a DG mesh")
+    end if
     
     positions => extract_vector_field(state, "Coordinate")    
     path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
     if(have_option(trim(path) // "/lump_mass")) then
       masslump => get_lumped_mass(state, s_field%mesh)
+
       call zero(s_field)
-      do i = 1, ele_count(s_field)
-        call assemble_curl_ele(i, positions, source_field, s_field)
-      end do
+      call assemble_rhs(positions, source_field, s_field)
+
       s_field%val = s_field%val / masslump%val
     else
       select case(continuity(s_field))
@@ -398,9 +402,10 @@ contains
           mass => get_mass_matrix(state, s_field%mesh)
           call allocate(rhs, s_field%mesh, "CurlRHS")
           call zero(rhs)
-          do i = 1, ele_count(rhs)
-            call assemble_curl_ele(i, positions, source_field, rhs)
-          end do
+          call assemble_rhs(positions, source_field, rhs)
+
+          call zero(s_field)
+
           call petsc_solve(s_field, mass, rhs, option_path = path)
           call deallocate(rhs)
         case(-1)
@@ -419,6 +424,31 @@ contains
     
   contains
   
+    subroutine assemble_rhs(positions, source, rhs)
+      type(vector_field), intent(in) :: positions, source
+      type(scalar_field), intent(inout) :: rhs
+
+      integer :: ele, sele
+
+      select case (continuity(source))
+      case (0)
+        do ele = 1, ele_count(rhs)
+          call assemble_curl_ele(ele, positions, source, rhs)
+        end do
+      case (-1)
+        do ele = 1, ele_count(rhs)
+          call assemble_curl_ele_dg(ele, positions, source, rhs)
+        end do
+        do sele = 1, surface_element_count(rhs)
+          call assemble_curl_sele_dg(sele, positions, source, rhs)
+        end do
+      case default
+        ewrite(-1, *) "For mesh continuity: ", continuity(source)
+        FLAbort("Unrecognised mesh continuity")
+      end select
+
+    end subroutine assemble_rhs
+
     subroutine assemble_curl_ele(ele, positions, source, rhs)
       integer, intent(in) :: ele
       type(vector_field), intent(in) :: positions
@@ -437,6 +467,46 @@ contains
     
     end subroutine assemble_curl_ele
     
+    subroutine assemble_curl_ele_dg(ele, positions, source, rhs)
+      integer, intent(in) :: ele
+      type(vector_field), intent(in) :: positions
+      type(vector_field), intent(in) :: source
+      type(scalar_field), intent(inout) :: rhs
+      
+      real, dimension(ele_ngi(positions, ele)) :: detwei
+      real, dimension(ele_loc(rhs, ele), ele_ngi(rhs, ele), positions%dim) :: dshape, skew_dshape
+      
+      call transform_to_physical(positions, ele, ele_shape(rhs, ele), &
+        & dshape = dshape, detwei = detwei)
+
+      ! this computes *minus* the skew, as we integrate by parts
+      skew_dshape(:,:,1) = dshape(:,:,2)
+      skew_dshape(:,:,2) = -dshape(:,:,1)
+      
+      call addto(rhs, ele_nodes(rhs, ele), &
+        & dshape_dot_vector_rhs(skew_dshape, ele_val_at_quad(source, ele) , detwei))
+    
+    end subroutine assemble_curl_ele_dg
+
+    subroutine assemble_curl_sele_dg(sele, positions, source, rhs)
+      integer, intent(in) :: sele
+      type(vector_field), intent(in) :: positions
+      type(vector_field), intent(in) :: source
+      type(scalar_field), intent(inout) :: rhs
+
+      real, dimension(face_ngi(positions,sele)) :: detwei
+      real, dimension(positions%dim, size(detwei)) :: face_normals, face_tangents
+
+      call transform_facet_to_physical(positions, sele, detwei, face_normals)
+      face_tangents(1,:) = -face_normals(2,:)
+      face_tangents(2,:) = face_normals(1,:)
+
+      call addto(rhs, face_global_nodes(rhs, sele), &
+        & shape_rhs(face_shape(rhs, sele), detwei* &
+        &   sum(face_tangents*face_val_at_quad(source, sele), dim=1)))
+
+    end subroutine assemble_curl_sele_dg
+
     subroutine solve_curl_ele(ele, positions, source, curl)
       integer, intent(in) :: ele
       type(vector_field), intent(in) :: positions
