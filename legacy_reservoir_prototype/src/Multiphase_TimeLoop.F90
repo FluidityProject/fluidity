@@ -609,8 +609,6 @@
                call calculate_diffusivity( state, ncomp, nphase, ndim, cv_nonods, mat_nonods, &
                                            mat_nloc, totele, mat_ndgln, ScalarAdvectionField_Diffusion )
 
-print *, 'k=', minval( ScalarAdvectionField_Diffusion ),  maxval( ScalarAdvectionField_Diffusion )
-
                call INTENERGE_ASSEM_SOLVE( state, &
                     NCOLACV, FINACV, COLACV, MIDACV, & 
                     NCOLCT, FINDCT, COLCT, &
@@ -784,8 +782,6 @@ print *, 'k=', minval( ScalarAdvectionField_Diffusion ),  maxval( ScalarAdvectio
                   U_Density_Old = Density_Old_tmp
                   if ( its == 1 ) U_Density_Old = Density_tmp
                end if
-
-print *, itime, its, minval( U_Density ), maxval( U_Density ), minval( Density ), maxval( Density )
 
 !!$ This calculates u_source_cv = ScalarField_Source_CV -- ie, the buoyancy term and as the name
 !!$ suggests it's a CV source term for the velocity field
