@@ -60,10 +60,11 @@
   contains
 
     subroutine Calculate_Phase_Component_Densities( state, &
-         Density, Derivative )
+         Density, Derivative, Density_Cp )
       implicit none
       type( state_type ), dimension( : ), intent( in ) :: state
-      real, dimension( : ), intent( inout ) :: Density, Derivative
+      real, dimension( : ), intent( inout ) :: Density, Derivative, Density_Cp
+
 !!$ Local variables
       type( scalar_field ), pointer :: pressure
       type( vector_field ), pointer :: positions
@@ -74,7 +75,7 @@
       ewrite(3,*) 'In Calculate_Phase_Component_Densities'
 
 !!$ Initialise
-      Density = 0. ; Derivative = 0.
+      Density = 0. ; Derivative = 0. ; Density_Cp = 0. 
 
 !!$ Defining number of states from the schema (nstates)
       nstates = option_count( '/material_phase' )
@@ -128,7 +129,8 @@
          call Computing_Perturbation_Density( state, &
               iphase, nstate_init, nstate_final, eos_option_path, &
               Density( ( iphase - 1 ) * cv_nonods + 1 : iphase * cv_nonods ), &
-              Derivative( ( iphase - 1 ) * cv_nonods + 1 : iphase * cv_nonods ) )
+              Derivative( ( iphase - 1 ) * cv_nonods + 1 : iphase * cv_nonods ), &
+              DensityCpComponent_Field = Density_Cp( ( iphase - 1 ) * cv_nonods + 1 : iphase * cv_nonods ) )
       end do Loop_Over_Phases
 
       ewrite(3,*) 'Leaving Calculate_Phase_Component_Densities'
@@ -191,13 +193,14 @@
          iphase, nstate_init, nstate_final, eos_option_path, &
          DensityComponent_Field, &
          Derivative_DensityComponent_Pressure, &
-         Single_Component )
+         Single_Component, DensityCpComponent_Field )
       implicit none
       type( state_type ), dimension( : ), intent( in ) :: state
       integer, intent( in ) :: iphase, nstate_init, nstate_final
       character( len = option_path_len ), dimension( : ), intent( in ) :: eos_option_path
       real, dimension( : ), intent( inout ) :: DensityComponent_Field, Derivative_DensityComponent_Pressure
       logical, optional :: Single_Component
+      real, dimension( : ), intent( inout ), optional :: DensityCpComponent_Field
 !!$ Local variables
       type( scalar_field ), pointer :: pressure, temperature, density, component, cp_s
       character( len = option_path_len ) :: option_path_comp, option_path_incomp, option_path_python, &
@@ -490,7 +493,11 @@
                allocate( cp( node_count( pressure ) ) ) ; cp = 1.
                if( stat == 0 ) cp = cp_s % val
 
-               DensityComponent_Field = DensityComponent_Field + Density_Field * component % val * cp
+               DensityComponent_Field = DensityComponent_Field + Density_Field * component % val
+
+               if ( present( DensityCpComponent_Field ) ) &
+                    DensityCpComponent_Field = DensityCpComponent_Field + Density_Field * component % val * cp
+
                Derivative_DensityComponent_Pressure = Derivative_DensityComponent_Pressure + &
                     DRho_DPressure * component % val
 

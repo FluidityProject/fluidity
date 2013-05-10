@@ -155,8 +155,8 @@
       real, dimension( : ), allocatable :: xu, yu, zu, x, y, z, ug, vg, wg, &
            Velocity_U, Velocity_V, Velocity_W, Velocity_U_Old, Velocity_V_Old, Velocity_W_Old, &
            Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
-           Pressure_FEM, Pressure_CV, Temperature, Density, Density_Component, PhaseVolumeFraction, &
-           Component, U_Density, Pressure_FEM_Old, Pressure_CV_Old, Temperature_Old, Density_Old, &
+           Pressure_FEM, Pressure_CV, Temperature, Density, Density_Cp, Density_Component, PhaseVolumeFraction, &
+           Component, U_Density, Pressure_FEM_Old, Pressure_CV_Old, Temperature_Old, Density_Old, Density_Cp_Old, &
            Density_Component_Old, PhaseVolumeFraction_Old, Component_Old, U_Density_Old, DRhoDPressure, &
            Porosity, &
            Velocity_U_Source, Velocity_U_Source_CV, Temperature_Source, PhaseVolumeFraction_Source, &
@@ -274,13 +274,13 @@
            Velocity_NU_Old( u_nonods * nphase ), Velocity_NV_Old( u_nonods * nphase ), Velocity_NW_Old( u_nonods * nphase ), &
 !!$
            Pressure_FEM( cv_nonods ), Pressure_CV( cv_nonods ), &
-           Temperature( nphase * cv_nonods ), Density( nphase * cv_nonods ), &
+           Temperature( nphase * cv_nonods ), Density( nphase * cv_nonods ),  Density_Cp( nphase * cv_nonods ), &
            Density_Component( nphase * cv_nonods * ncomp ), &
            PhaseVolumeFraction( nphase * cv_nonods ), Component( nphase * cv_nonods * ncomp ), &
            U_Density( nphase * cv_nonods ), DRhoDPressure( nphase * cv_nonods ), &
 !!$
            Pressure_FEM_Old( cv_nonods ), Pressure_CV_Old( cv_nonods ), &
-           Temperature_Old( nphase * cv_nonods ), Density_Old( nphase * cv_nonods ), &
+           Temperature_Old( nphase * cv_nonods ), Density_Old( nphase * cv_nonods ), Density_Cp_Old( nphase * cv_nonods ), &
            Density_Component_Old( nphase * cv_nonods * ncomp ), &
            PhaseVolumeFraction_Old( nphase * cv_nonods ), Component_Old( nphase * cv_nonods * ncomp ), &
            U_Density_Old( nphase * cv_nonods ), &
@@ -336,13 +336,13 @@
       Velocity_NU_Old=0. ; Velocity_NV_Old=0. ; Velocity_NW_Old=0.
 !!$
       Pressure_FEM=0. ; Pressure_CV=0.
-      Temperature=0. ; Density=0.
+      Temperature=0. ; Density=0. ; Density_Cp=0.
       Density_Component=0.
       PhaseVolumeFraction=0. ; Component=0.
       U_Density=0. ; DRhoDPressure=0.
 !!$
       Pressure_FEM_Old=0. ; Pressure_CV_Old=0.
-      Temperature_Old=0. ; Density_Old=0.
+      Temperature_Old=0. ; Density_Old=0. ; Density_Cp_Old=0.
       Density_Component_Old=0.
       PhaseVolumeFraction_Old=0. ; Component_Old=0.
       U_Density_Old=0.
@@ -530,7 +530,7 @@
          Velocity_U_Old = Velocity_U ; Velocity_V_Old = Velocity_V ; Velocity_W_Old = Velocity_W
          Velocity_NU = Velocity_U ; Velocity_NV = Velocity_V ; Velocity_NW = Velocity_W
          Velocity_NU_Old = Velocity_U ; Velocity_NV_Old = Velocity_V ; Velocity_NW_Old = Velocity_W
-         Density_Old = Density ; Pressure_FEM_Old = Pressure_FEM ; Pressure_CV_Old = Pressure_CV
+         Density_Old = Density ;  Density_Cp_Old = Density_Cp ; Pressure_FEM_Old = Pressure_FEM ; Pressure_CV_Old = Pressure_CV
          PhaseVolumeFraction_Old = PhaseVolumeFraction ; Temperature_Old = Temperature ; Component_Old = Component
          Density_Old_tmp = Density_tmp ; Density_Component_Old = Density_Component
 
@@ -547,9 +547,12 @@
          Loop_NonLinearIteration: do its = 1, NonLinearIteration
 
             call Calculate_Phase_Component_Densities( state, &
-                 Density, DRhoDPressure )
+                 Density, DRhoDPressure, Density_Cp )
 
-            if( its == 1 ) Density_Old = Density
+            if( its == 1 ) then
+               Density_Old = Density
+               Density_Cp_Old = Density_Cp
+            end if
 
 !!$ Calculate Density_Component_Old for compositional
             if( have_component_field .and. its ==1 ) then
@@ -606,6 +609,8 @@
                call calculate_diffusivity( state, ncomp, nphase, ndim, cv_nonods, mat_nonods, &
                                            mat_nloc, totele, mat_ndgln, ScalarAdvectionField_Diffusion )
 
+print *, 'k=', minval( ScalarAdvectionField_Diffusion ),  maxval( ScalarAdvectionField_Diffusion )
+
                call INTENERGE_ASSEM_SOLVE( state, &
                     NCOLACV, FINACV, COLACV, MIDACV, & 
                     NCOLCT, FINDCT, COLCT, &
@@ -620,7 +625,7 @@
                     Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
                     ug, vg, wg, &
                     Temperature, Temperature_Old, &
-                    Density, Density_Old, &
+                    Density_Cp, Density_Cp_Old, &
 !!$
                     MAT_NLOC, MAT_NDGLN, MAT_NONODS, ScalarAdvectionField_Diffusion, &
                     t_disopt, t_dg_vel_int_opt, dt, t_theta, t_beta, &
@@ -658,7 +663,7 @@
                end do
 
                call Calculate_Phase_Component_Densities( state, &
-                    Density, DRhoDPressure )
+                    Density, DRhoDPressure, Density_Cp )
 
             end if Conditional_ScalarAdvectionField
 
@@ -780,6 +785,7 @@
                   if ( its == 1 ) U_Density_Old = Density_tmp
                end if
 
+print *, itime, its, minval( U_Density ), maxval( U_Density ), minval( Density ), maxval( Density )
 
 !!$ This calculates u_source_cv = ScalarField_Source_CV -- ie, the buoyancy term and as the name
 !!$ suggests it's a CV source term for the velocity field
@@ -1250,9 +1256,9 @@
                  xu, yu, zu, x, y, z, ug, vg, wg, &
                  Velocity_U, Velocity_V, Velocity_W, Velocity_U_Old, Velocity_V_Old, Velocity_W_Old, &
                  Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
-                 Pressure_FEM, Pressure_CV, Temperature, Density, Density_Component, PhaseVolumeFraction, &
+                 Pressure_FEM, Pressure_CV, Temperature, Density, Density_Cp, Density_Component, PhaseVolumeFraction, &
                  Component, U_Density, &
-                 Pressure_FEM_Old, Pressure_CV_Old, Temperature_Old, Density_Old, Density_Component_Old, &
+                 Pressure_FEM_Old, Pressure_CV_Old, Temperature_Old, Density_Old, Density_Cp_Old, Density_Component_Old, &
                  PhaseVolumeFraction_Old, Component_Old, &
                  U_Density_Old, DRhoDPressure, &
                  Porosity, &
@@ -1350,13 +1356,13 @@
                  Velocity_NU_Old( u_nonods * nphase ), Velocity_NV_Old( u_nonods * nphase ), Velocity_NW_Old( u_nonods * nphase ), &
 !!$
                  Pressure_FEM( cv_nonods ), Pressure_CV( cv_nonods ), &
-                 Temperature( nphase * cv_nonods ), Density( nphase * cv_nonods ), &
+                 Temperature( nphase * cv_nonods ), Density( nphase * cv_nonods ), Density_Cp( nphase * cv_nonods ), &
                  Density_Component( nphase * cv_nonods * ncomp ), &
                  PhaseVolumeFraction( nphase * cv_nonods ), Component( nphase * cv_nonods * ncomp ), &
                  U_Density( nphase * cv_nonods ), DRhoDPressure( nphase * cv_nonods ), &
 !!$
                  Pressure_FEM_Old( cv_nonods ), Pressure_CV_Old( cv_nonods ), &
-                 Temperature_Old( nphase * cv_nonods ), Density_Old( nphase * cv_nonods ), &
+                 Temperature_Old( nphase * cv_nonods ), Density_Old( nphase * cv_nonods ), Density_Cp_Old( nphase * cv_nonods ), &
                  Density_Component_Old( nphase * cv_nonods * ncomp ), &
                  PhaseVolumeFraction_Old( nphase * cv_nonods ), Component_Old( nphase * cv_nonods * ncomp ), &
                  U_Density_Old( nphase * cv_nonods ), &
@@ -1428,7 +1434,7 @@
             PhaseVolumeFraction_FEMT=0. ; Dummy_PhaseVolumeFraction_FEMT=0.
 !!$
             Density=0. ; Density_Old=0. ; Density_BC_Spatial=0 ; Density_BC=0.
-            U_Density=0. ; U_Density_Old=0.
+            U_Density=0. ; U_Density_Old=0. ; Density_Cp=0. ; Density_Cp_Old=0.
 !!$
             ScalarAdvectionField_Diffusion=0. ; ScalarField_Absorption=0.
             ScalarField_Source=0. ; ScalarAdvectionField_Source=0.
@@ -1560,9 +1566,9 @@
            xu, yu, zu, x, y, z, ug, vg, wg, &
            Velocity_U, Velocity_V, Velocity_W, Velocity_U_Old, Velocity_V_Old, Velocity_W_Old, &
            Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
-           Pressure_FEM, Pressure_CV, Temperature, Density, Density_Component, PhaseVolumeFraction, &
+           Pressure_FEM, Pressure_CV, Temperature, Density, Density_Cp, Density_Component, PhaseVolumeFraction, &
            Component, U_Density, &
-           Pressure_FEM_Old, Pressure_CV_Old, Temperature_Old, Density_Old, Density_Component_Old, &
+           Pressure_FEM_Old, Pressure_CV_Old, Temperature_Old, Density_Old, Density_Cp_Old, Density_Component_Old, &
            PhaseVolumeFraction_Old, Component_Old, &
            U_Density_Old, DRhoDPressure, &
            Porosity, &
