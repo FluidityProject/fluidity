@@ -405,11 +405,12 @@ contains
           else
              fieldvals(f) = integral_element(fields(f)%ptr, xfield, agent%element) / element_volume(xfield, agent%element)
           end if
-       elseif (sampling(f) == VARSMPL_OLDZ .and. associated(agent%path_elements)) then
+       elseif (sampling(f) == VARSMPL_OLDZ) then
           ! Use buffered field value from beginning of timestep
           fieldvals(f) = agent%env_samples(i_env)
           i_env = i_env + 1
-       elseif (sampling(f) == VARSMPL_NEWZ) then
+       elseif (sampling(f) == VARSMPL_NEWZ .or. &
+            sampling(f) == VARSMPL_INTZ .and. .not. associated(agent%path_elements)) then
           ! Evaluate at current agent position
           fieldvals(f) = eval_field(agent%element, fields(f)%ptr, agent%local_coords)
        else
