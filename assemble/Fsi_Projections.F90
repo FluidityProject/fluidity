@@ -31,7 +31,7 @@ module fsi_projections
 
   use supermesh_construction
   use solvers
-  use global_parameters, only: OPTION_PATH_LEN
+  use global_parameters, only: OPTION_PATH_LEN, dt
   use linked_lists
   use bound_field_module
   use fefields, only: compute_lumped_mass, project_field
@@ -47,18 +47,19 @@ module fsi_projections
 
   contains
 
-  subroutine fsi_one_way_galerkin_projection(fieldF, positionsF, positionsS, alpha_sf, solid_velocity_on_solid, solid_velocity_sf)
+  subroutine fsi_one_way_galerkin_projection(positionsF, positionsS, alpha_sf, velocityF, solid_velocity_on_solid, solid_velocity_sf, fsi_force)
     !! Return the volume fraction scalar field by projecting unity from the supermesh to the fluid mesh
     !! and, iff given, the solid velocity from the solid (via the supermesh) to the fluid mesh.
     !! Since positionsF and positionsS are different, we need to supermesh!
     !! positionsF and positionsS are the coordinate fields of the fluid and solid mesh respectively
 
     ! F stands for fluid, S for solid, C for the supermesh in this case:
-    type(vector_field), intent(inout) :: fieldF
     type(vector_field), intent(inout) :: positionsF, positionsS
     type(scalar_field), intent(inout) :: alpha_sf
+    type(vector_field), intent(inout) :: velocityF
     type(vector_field), intent(in), optional :: solid_velocity_on_solid
     type(vector_field), intent(inout), optional :: solid_velocity_sf
+    type(vector_field), intent(inout), optional :: fsi_force
 
     ! this is for using the advancing front algorithm, therefore commented for now:
     !type(ilist), dimension(ele_count(positionsS)) :: map_SF 
@@ -75,11 +76,14 @@ module fsi_projections
     type(scalar_field) :: alpha_sf_on_supermesh
     ! Vector fields for solid velocity:
     type(vector_field) :: solid_velocity_on_supermesh
+    type(vector_field) :: fsi_force_on_supermesh
 
     type(csr_sparsity) :: sparsity_fluid
     type(csr_matrix) :: mass_matrix_fluid
     type(scalar_field) :: rhs_alpha_sf
     type(vector_field) :: rhs_fluid
+    
+    real :: beta
 
     real, dimension(ele_loc(positionsS, 1), ele_loc(positionsS, 1)) :: inversion_matrix_S
     real, dimension(ele_loc(positionsS, 1), ele_loc(positionsS, 1), ele_count(positionsF)) :: inversion_matrices_F
@@ -88,6 +92,8 @@ module fsi_projections
     ! Variables for ilist when using rtree intersection finder:
     type(ilist) :: map_SF_rtree
     integer :: nele_fs, j, maplen, ntests
+
+    logical :: solid_vel_present, fsi_force_present
 
     character(len=OPTION_PATH_LEN) :: tmp
 
@@ -102,11 +108,14 @@ module fsi_projections
 
     ewrite(2,*) "inside fsi_one_way_galerkin_projection"
 
+    ! Get beta, scaling factor for the absorption, which we need to compute the force:
+    call get_option('/embedded_models/fsi_model/beta', beta, default=1.0)
+
     dim = mesh_dim(positionsS)
     call intersector_set_dimension(dim)
 
     ! Define polynomial degree and quadrature of the supermesh:
-    max_degree = max(element_degree(fieldF, 1), element_degree(positionsS, 1))
+    max_degree = max(element_degree(velocityF, 1), element_degree(positionsS, 1))
     supermesh_quad = make_quadrature(vertices=ele_loc(positionsS, 1), dim=dim, degree=2*max_degree)
     ! Define the shape function of the supermesh:
     supermesh_positions_shape = make_element_shape(vertices=ele_loc(positionsS, 1), dim=dim, degree=1, quad=supermesh_quad)
@@ -120,35 +129,55 @@ module fsi_projections
     ! rtree:
     call rtree_intersection_finder_set_input(positionsF)
 
-    sparsity_fluid = make_sparsity(fieldF%mesh, fieldF%mesh, "FluidMassMatrixSparsity")
+    sparsity_fluid = make_sparsity(velocityF%mesh, velocityF%mesh, "FluidMassMatrixSparsity")
     call allocate(mass_matrix_fluid, sparsity_fluid, name="FluidMassMatrix")
     call zero(mass_matrix_fluid)
     call deallocate(sparsity_fluid)
 
     ! Allocate lumped versions of the mass matrices:
-    call allocate(lumped_mass_matrix_fluid, fieldF%mesh, "FluidLumpedMassMatrix")
+    call allocate(lumped_mass_matrix_fluid, velocityF%mesh, "FluidLumpedMassMatrix")
     call zero(lumped_mass_matrix_fluid)
     call compute_lumped_mass(positionsF, lumped_mass_matrix_fluid)
-    call allocate(lumped_inverse_mass_matrix_fluid, fieldF%mesh, "FluidLumpedInverseMass")
+    call allocate(lumped_inverse_mass_matrix_fluid, velocityF%mesh, "FluidLumpedInverseMass")
     call invert(lumped_mass_matrix_fluid, lumped_inverse_mass_matrix_fluid)
 
     ! get the matrix for the coordinates of (fluid) mesh F:
     do ele_F=1,ele_count(positionsF)
       call local_coords_matrix(positionsF, ele_F, inversion_matrices_F(:, :, ele_F))
-      call assemble_mass_matrix(mass_matrix_fluid, fieldF, positionsF, ele_F)
+      call assemble_mass_matrix(mass_matrix_fluid, velocityF, positionsF, ele_F)
     end do
+
+    ! Before starting the loop, let's set some logicals:
+    if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
+      solid_vel_present = .true.
+    else
+      solid_vel_present = .false.
+    end if
+    ! The following should *only* happen, iff the user enabled a certain option in the option tree, that says
+    ! they want to compute the force on the supermesh, in which case fsi_force_present is .true., 
+    ! and moreover, this subroutine is called at the *end* of the timestep, at which time we do *not* need
+    ! to project alpha and the solid velocity anymore, thus if "fsi_force_present" is .true., only the force
+    ! should be projected, nothing else. However, due to constructing the supermesh and assembling
+    ! necessary fields twice per timestep when this option is enabled, the user is warned in the schema, that this
+    ! should only happen to check if the forces (on supermesh and fluid mesh) are equal.
+    if (present(solid_velocity_on_solid) .and. present(fsi_force) .and. (.not. present(solid_velocity_sf))) then
+      fsi_force_present = .true.
+    else
+      fsi_force_present = .false.
+    end if
 
     ! Fields for Alpha:
     call allocate(alpha_sf_on_solid, positionsS%mesh, "AlphaSSSolidMesh")
     ! alpha_sf on the solid mesh is unity by definition:
     call set(alpha_sf_on_solid, 1.0)
-    call allocate(rhs_alpha_sf, fieldF%mesh, "AlphaSFOnFluidRHS")
+    ! Always:
+    call allocate(rhs_alpha_sf, velocityF%mesh, "AlphaSFOnFluidRHS")
     call zero(rhs_alpha_sf)
-    ! and for the solid velocity, IFF corresponding files were given:
-    if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
-        call allocate(rhs_fluid, fieldF%dim, fieldF%mesh, "FluidRHS")
+    ! and for the solid velocity (or force on supermesh), IFF corresponding arguments were given:
+    if (solid_vel_present .or. fsi_force_present) then
+        call allocate(rhs_fluid, velocityF%dim, velocityF%mesh, "FluidRHS")
         call zero(rhs_fluid)
-    end if 
+    end if
 
     ! Looping over all the elements of (solid) mesh S:
     do ele_S=1,ele_count(positionsS)
@@ -200,22 +229,32 @@ module fsi_projections
 
         ! Allocate field for alpha on the supermesh:
         supermesh_field_mesh = make_mesh(supermesh%mesh, supermesh_field_shape, -1, "SupermeshFieldMesh")
-        call allocate(alpha_sf_on_supermesh, supermesh_field_mesh, "AlphaSFOnSupermesh")
-        call zero(alpha_sf_on_supermesh)
-        ! Same for solid velocity (IFF it was given):
-        if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
+         call allocate(alpha_sf_on_supermesh, supermesh_field_mesh, "AlphaSFOnSupermesh")
+         call zero(alpha_sf_on_supermesh)
+         if (solid_vel_present) then
             call allocate(solid_velocity_on_supermesh, solid_velocity_on_solid%dim, supermesh_field_mesh, "SolidVelocityOnSupermesh")
             call zero(solid_velocity_on_supermesh)
-        end if
+         end if
+         if (fsi_force_present) then
+            ! Same for the force computed on the supermesh (IFF it was given):
+            call allocate(fsi_force_on_supermesh, velocityF%dim, supermesh_field_mesh, "FSIForceOnSupermesh")
+            call zero(fsi_force_on_supermesh)
+         end if
 
-        ! Get alpha for this portion of the supermesh:
-        if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
-          call compute_alpha_on_supermesh(supermesh_field_shape, positionsS, ele_S, ele_val(alpha_sf_on_solid, ele_S), &
-                                          supermesh, inversion_matrix_S, alpha_sf_on_supermesh, &
-                                          ele_val(solid_velocity_on_solid, ele_S), solid_velocity_on_supermesh)
+        ! Get certain fields on the supermesh (for this portion of the supermesh):
+        if (fsi_force_present) then
+          call compute_fields_on_supermesh(supermesh_field_shape, positionsS, ele_S, supermesh, inversion_matrix_S, &
+                        & ele_val(alpha_sf_on_solid, ele_S), alpha_sf_on_supermesh, &
+                        & solid_velocity_ele_value=ele_val(solid_velocity_on_solid, ele_S), &
+                        & fluid_velocity_ele_value=ele_val(velocityF, ele_S), &
+                        & fsi_force_on_supermesh=fsi_force_on_supermesh, beta=beta)
+        else if (solid_vel_present) then
+          call compute_fields_on_supermesh(supermesh_field_shape, positionsS, ele_S, supermesh, inversion_matrix_S, &
+                        & ele_val(alpha_sf_on_solid, ele_S), alpha_sf_on_supermesh, &
+                        & ele_val(solid_velocity_on_solid, ele_S), solid_velocity_on_supermesh)
         else
-          call compute_alpha_on_supermesh(supermesh_field_shape, positionsS, ele_S, ele_val(alpha_sf_on_solid, ele_S), &
-                                          supermesh, inversion_matrix_S, alpha_sf_on_supermesh)
+          call compute_fields_on_supermesh(supermesh_field_shape, positionsS, ele_S, supermesh, inversion_matrix_S, &
+                        & ele_val(alpha_sf_on_solid, ele_S), alpha_sf_on_supermesh)
         end if
 
         ! 2nd step: Compute the RHS of the Galerkin projection:
@@ -224,21 +263,28 @@ module fsi_projections
         ! M_f * alpha_f = M_{f,sup} * alpha_{sup}
         ! and afterwards, the supermesh can be deleted as it is no longer needed,
         ! remember, (M_{f,sup} * alpha_{sup}) lives on the fluid mesh, not the supermesh.
-        if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
+        if (fsi_force_present) then
           call compute_rhs_galerkin_projection_oneway_fsi(ele_S, positionsF, positionsS, supermesh, inversion_matrices_F, &
-                                                          rhs_alpha_sf, alpha_sf_on_supermesh, &
-                                                          rhs_fluid, solid_velocity_on_supermesh)
+                        & rhs_alpha_sf, alpha_sf_on_supermesh, &
+                        & rhs_fluid=rhs_fluid, fsi_force_on_supermesh=fsi_force_on_supermesh)
+        else if (solid_vel_present) then
+          call compute_rhs_galerkin_projection_oneway_fsi(ele_S, positionsF, positionsS, supermesh, inversion_matrices_F, &
+                        & rhs_alpha_sf, alpha_sf_on_supermesh=alpha_sf_on_supermesh, &
+                        & rhs_fluid=rhs_fluid, solid_velocity_on_supermesh=solid_velocity_on_supermesh)
         else
           call compute_rhs_galerkin_projection_oneway_fsi(ele_S, positionsF, positionsS, supermesh, inversion_matrices_F, &
-                                                          rhs_alpha_sf, alpha_sf_on_supermesh)
+                        & rhs_alpha_sf, alpha_sf_on_supermesh=alpha_sf_on_supermesh)
         end if
 
         ! Portion of supermesh no longer needed
         call deallocate(supermesh)
         call deallocate(supermesh_field_mesh)
-        call deallocate(alpha_sf_on_supermesh)
-        if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
+           call deallocate(alpha_sf_on_supermesh)
+        if (solid_vel_present .and. (.not. fsi_force_present)) then
           call deallocate(solid_velocity_on_supermesh)
+        end if
+        if (fsi_force_present) then
+          call deallocate(fsi_force_on_supermesh)
         end if
       end if
       ! Flush ilist of intersecting elements (when using the rtree intersection finder):
@@ -274,13 +320,15 @@ module fsi_projections
     !end if
 
     ! Project alpha to the fluid mesh:
-    call petsc_solve(alpha_sf, mass_matrix_fluid, rhs_alpha_sf)
+    if (.not. fsi_force_present) then
+       call petsc_solve(alpha_sf, mass_matrix_fluid, rhs_alpha_sf)
+    end if
 
     ! Resetting option path for alpha_sf:
     alpha_sf%option_path = trim(tmp)
 
     ! Same for solid velocity, IFF it was given:
-    if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
+    if (solid_vel_present .and. .not.(fsi_force_present)) then
         tmp = solid_velocity_sf%option_path
         ! Here we have to differ between CG and DG projection:
         solid_velocity_sf%option_path = "/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/continuous"
@@ -295,24 +343,43 @@ module fsi_projections
         ! Resetting option path for solid_velocity_sf:
         solid_velocity_sf%option_path = trim(tmp)
     end if
+    ! Same for the fsi_force if present:    
+    if (fsi_force_present) then
+        tmp = fsi_force%option_path
+        fsi_force%option_path = "/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/continuous"
+        ! Project computed force from the supermesh to the fluid mesh:
+        call petsc_solve(fsi_force, mass_matrix_fluid, rhs_fluid)
+!        call petsc_solve(fsi_force, mass_matrix_fluid, rhs_fluid_fsi_force)
+        ! Resetting option path for solid_velocity_sf:
+        fsi_force%option_path = trim(tmp)
+    end if
 
     ! Get options from option tree if projection is bounded or not:
     if (have_option('/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/continuous/bounded[0]')) then
         call bound_projection(alpha_sf, rhs_alpha_sf, mass_matrix_fluid, &
-                              lumped_mass_matrix_fluid, lumped_inverse_mass_matrix_fluid, &
-                              positionsF)
+                              & lumped_mass_matrix_fluid, lumped_inverse_mass_matrix_fluid, &
+                              & positionsF)
         ! IFF solid velocity was given, bound that vector field as well:
-        if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
+        if (solid_vel_present) then
             call bound_projection(solid_velocity_sf, rhs_fluid, mass_matrix_fluid, &
-                                  lumped_mass_matrix_fluid, lumped_inverse_mass_matrix_fluid, &
-                                  positionsF)
+                                  & lumped_mass_matrix_fluid, lumped_inverse_mass_matrix_fluid, &
+                                  & positionsF)
+        end if
+        if (fsi_force_present) then
+            call bound_projection(fsi_force, rhs_fluid, mass_matrix_fluid, &
+                                  & lumped_mass_matrix_fluid, lumped_inverse_mass_matrix_fluid, &
+                                  & positionsF)
         end if
     end if
 
     call deallocate(mass_matrix_fluid)
-    call deallocate(alpha_sf_on_solid)
+    if (.not. fsi_force_present) then
+       call deallocate(alpha_sf_on_solid)
+    end if
+    ! Always, as it is required for declaration in one of the subroutines:
     call deallocate(rhs_alpha_sf)
-    if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
+
+    if (solid_vel_present .or. fsi_force_present) then
       call deallocate(rhs_fluid)
     end if
     call deallocate(lumped_mass_matrix_fluid)
@@ -322,18 +389,24 @@ module fsi_projections
 
   end subroutine fsi_one_way_galerkin_projection
 
-  subroutine compute_alpha_on_supermesh(supermesh_field_shape, solid_positions, ele_B, alpha_sf_ele_value, &
-                                        supermesh, inversion_matrix_B, alpha_sf_on_supermesh, solid_velocity_ele_value, solid_velocity_on_supermesh)
+  subroutine compute_fields_on_supermesh(supermesh_field_shape, solid_positions, ele_B, supermesh, &
+                                         & inversion_matrix_B, alpha_sf_ele_value, alpha_sf_on_supermesh, &
+                                         & solid_velocity_ele_value, solid_velocity_on_supermesh, &
+                                         & fluid_velocity_ele_value, fsi_force_on_supermesh, beta)
     ! F stands for fluid, S for solid, C for the supermesh in this case:
     type(vector_field), intent(in) :: solid_positions, supermesh
     type(element_type), intent(in), target :: supermesh_field_shape
     integer, intent(in) :: ele_B
-    real, dimension(:), intent(in) :: alpha_sf_ele_value
     real, dimension(:, :), intent(in) :: inversion_matrix_B
 
+    real, dimension(:), intent(in) :: alpha_sf_ele_value
     type(scalar_field), intent(inout) :: alpha_sf_on_supermesh
     real, dimension(:, :), intent(in), optional :: solid_velocity_ele_value
     type(vector_field), intent(inout), optional :: solid_velocity_on_supermesh
+    
+    real, dimension(:, :), intent(in), optional :: fluid_velocity_ele_value
+    type(vector_field), intent(inout), optional :: fsi_force_on_supermesh
+    real, intent(in), optional :: beta
 
     type(mesh_type) :: supermesh_field_mesh
 
@@ -344,7 +417,8 @@ module fsi_projections
     integer :: ele_A
     real, dimension(ele_loc(solid_positions, ele_B)) :: local_coords
     integer :: dim
-    real :: val
+    real :: val, val2, val3, sigma
+    logical :: solid_vel_present, fsi_force_present
     type(vector_field) :: supermesh_positions_remapped
 
     dim = solid_positions%dim
@@ -352,6 +426,20 @@ module fsi_projections
     supermesh_field_mesh = make_mesh(supermesh%mesh, supermesh_field_shape, -1, "SupermeshFieldMesh")
     call allocate(supermesh_positions_remapped, dim, supermesh_field_mesh, "SupermeshPositionsRemapped")
     call remap_field(supermesh, supermesh_positions_remapped)
+
+    ! Before we start looping, set logicals:
+    if (present(solid_velocity_ele_value) .and. present(solid_velocity_on_supermesh)) then
+      solid_vel_present = .true.
+    else
+      solid_vel_present = .false.
+    end if
+    if (present(solid_velocity_ele_value) .and. present(fluid_velocity_ele_value) &
+        & .and. present(fsi_force_on_supermesh) .and. present(beta)) then
+      fsi_force_present = .true.
+      sigma = beta/dt;
+    else
+      fsi_force_present = .false.
+    end if
 
     ! Looping over all the elements of the portion of the supermesh:
     do ele_C=1,ele_count(supermesh)
@@ -361,7 +449,6 @@ module fsi_projections
       ! one element of mesh A with one element of mesh B; the supermesh being the supermesh of all 
       ! the intersections of element 'ele_B' with mesh A.
       ! store the inverted matrix with the coordinates of mesh region 'ele_A' in inversion_matrix_A:
-
       ! Loop over the nodes of ele_C:
       do i=1,size(nodes)
         ! node_C = global node number of the i-th node of element ele_C:
@@ -377,9 +464,19 @@ module fsi_projections
           val = val + eval_shape(supermesh_field_shape, j, local_coords) * alpha_sf_ele_value(j)
         end do
         call set(alpha_sf_on_supermesh, node_C, val)
-        
-        ! Now the same for the solid velocity (IFF it is given):
-        if (present(solid_velocity_ele_value) .and. present(solid_velocity_on_supermesh)) then
+
+        ! Now the same for the fsi force and solid velocity (IFF they are given):
+        if (fsi_force_present) then
+          do k=1,solid_positions%dim ! obviously it must be the same dimension as fluid velocity and fsi force
+            val = 0.0; val2 = 0.0; val3 = 0.0;
+            do j=1,supermesh_field_shape%loc
+              val = val + eval_shape(supermesh_field_shape, j, local_coords) * solid_velocity_ele_value(k, j)
+              val2 = val2 + eval_shape(supermesh_field_shape, j, local_coords) * fluid_velocity_ele_value(k, j)
+              val3 = val3 + eval_shape(supermesh_field_shape, j, local_coords) * ((sigma)*(val2-val))
+            end do
+            call set(fsi_force_on_supermesh, k, node_C, val3)
+          end do
+        else if (solid_vel_present) then
           do k=1,solid_positions%dim
             val = 0.0
             do j=1,supermesh_field_shape%loc
@@ -397,11 +494,11 @@ module fsi_projections
     call deallocate(supermesh_positions_remapped)
     call deallocate(supermesh_field_mesh)
 
-  end subroutine compute_alpha_on_supermesh
+  end subroutine compute_fields_on_supermesh
 
   subroutine compute_rhs_galerkin_projection_oneway_fsi(ele_B, positionsA, positionsB, supermesh, inversion_matrices_A, &
-                                                         rhs_alpha_sf, alpha_sf_on_supermesh, &
-                                                         rhs_fluid, solid_velocity_on_supermesh)
+                                  & rhs_alpha_sf, alpha_sf_on_supermesh, rhs_fluid, &
+                                  & solid_velocity_on_supermesh, fsi_force_on_supermesh)
 
     ! FSI: fluid-solid interactions
     integer, intent(in) :: ele_B
@@ -409,43 +506,65 @@ module fsi_projections
     type(vector_field), intent(in) :: supermesh
     real, dimension(:, :, :), intent(in) :: inversion_matrices_A
     type(scalar_field), intent(inout) :: rhs_alpha_sf
-    type(scalar_field), intent(in) :: alpha_sf_on_supermesh
+    type(scalar_field), intent(in), optional :: alpha_sf_on_supermesh
     type(vector_field), intent(inout), optional :: rhs_fluid
     type(vector_field), intent(in), optional :: solid_velocity_on_supermesh
+    type(vector_field), intent(in), optional :: fsi_force_on_supermesh
 
+    logical :: solid_vel_present, fsi_force_present
     integer :: ele_A, ele_C
 
-    if (present(rhs_fluid) .and. present(solid_velocity_on_supermesh)) then
+    if (present(solid_velocity_on_supermesh) .and. present(rhs_fluid)) then
+      solid_vel_present = .true.
+    else
+      solid_vel_present = .false.
+    end if
+    if ((.not. solid_vel_present) .and. present(rhs_fluid) .and. present(fsi_force_on_supermesh)) then
+      fsi_force_present = .true.
+    else
+      fsi_force_present = .false.
+    end if
+
+    if (fsi_force_present) then
       do ele_C=1,ele_count(supermesh)
         ele_A = ele_region_id(supermesh, ele_C) ! get the parent fluid element
         call compute_rhs_galerkin_projection_oneway_fsi_ele(positionsA, positionsB, supermesh, &
-                                                            inversion_matrices_A(:, :, ele_A), ele_A, ele_B, ele_C, &
-                                                            rhs_alpha_sf, alpha_sf_on_supermesh, &
-                                                            rhs_fluid, solid_velocity_on_supermesh)
+                        & inversion_matrices_A(:, :, ele_A), ele_A, ele_B, ele_C, rhs_alpha_sf, &
+                        & rhs_fluid=rhs_fluid, fsi_force_on_supermesh=fsi_force_on_supermesh)
+      end do
+    else if (solid_vel_present) then
+      do ele_C=1,ele_count(supermesh)
+        ele_A = ele_region_id(supermesh, ele_C) ! get the parent fluid element
+        call compute_rhs_galerkin_projection_oneway_fsi_ele(positionsA, positionsB, supermesh, &
+                        & inversion_matrices_A(:, :, ele_A), ele_A, ele_B, ele_C, rhs_alpha_sf, &
+                        & alpha_sf_on_supermesh=alpha_sf_on_supermesh, &
+                        & rhs_fluid=rhs_fluid, solid_velocity_on_supermesh=solid_velocity_on_supermesh)
       end do
     else ! without solid velocity projection:
       do ele_C=1,ele_count(supermesh)
         ele_A = ele_region_id(supermesh, ele_C) ! get the parent fluid element
         call compute_rhs_galerkin_projection_oneway_fsi_ele(positionsA, positionsB, supermesh, &
-                                                            inversion_matrices_A(:, :, ele_A), ele_A, ele_B, ele_C, &
-                                                            rhs_alpha_sf, alpha_sf_on_supermesh)
+                        & inversion_matrices_A(:, :, ele_A), ele_A, ele_B, ele_C, rhs_alpha_sf, &
+                        & alpha_sf_on_supermesh=alpha_sf_on_supermesh)
       end do
     end if
   end subroutine compute_rhs_galerkin_projection_oneway_fsi
 
   subroutine compute_rhs_galerkin_projection_oneway_fsi_ele(positionsA, positionsB, supermesh, &
-                                                             inversion_matrix_A, ele_A, ele_B, ele_C, &
-                                                             rhs_alpha_sf, alpha_sf_on_supermesh, &
-                                                             rhs_fluid, solid_velocity_on_supermesh)
+                                    & inversion_matrix_A, ele_A, ele_B, ele_C, &
+                                    & rhs_alpha_sf, alpha_sf_on_supermesh, &
+                                    & rhs_fluid, solid_velocity_on_supermesh, &
+                                    & fsi_force_on_supermesh)
 
     type(vector_field), intent(in) :: positionsA, positionsB
     type(vector_field), intent(in) :: supermesh
     real, dimension(:, :), intent(in) :: inversion_matrix_A
     integer, intent(in) :: ele_A, ele_B, ele_C
     type(scalar_field), intent(inout) :: rhs_alpha_sf
-    type(scalar_field), intent(in) :: alpha_sf_on_supermesh
+    type(scalar_field), intent(in), optional :: alpha_sf_on_supermesh
     type(vector_field), intent(inout), optional :: rhs_fluid
     type(vector_field), intent(in), optional :: solid_velocity_on_supermesh
+    type(vector_field), intent(in), optional :: fsi_force_on_supermesh
 
     real, dimension(ele_ngi(supermesh, ele_C)) :: detwei_C
     real, dimension(positionsA%dim+1, ele_ngi(supermesh, ele_C)) :: local_coord_at_quad_fluid
@@ -455,12 +574,27 @@ module fsi_projections
     real, dimension(ele_loc(rhs_alpha_sf, ele_A), ele_ngi(supermesh, ele_C)) :: basis_at_quad_fluid
     real, dimension(ele_loc(rhs_alpha_sf, ele_C), ele_ngi(supermesh, ele_C)) :: basis_at_quad_supermesh
 
-    real, dimension(ele_loc(rhs_alpha_sf, ele_A), ele_loc(alpha_sf_on_supermesh, ele_C)) :: mat_fluid
+    !real, dimension(ele_loc(rhs_alpha_sf, ele_A), ele_loc(alpha_sf_on_supermesh, ele_C)) :: mat_fluid
+    real, dimension(ele_loc(rhs_alpha_sf, ele_A), ele_loc(supermesh, ele_C)) :: mat_fluid
 
     real, dimension(ele_loc(supermesh, ele_C)) :: supermesh_alpha_sf_val
     real, dimension(positionsB%dim, ele_loc(supermesh, ele_C)) :: supermesh_solid_velocity_val
+    real, dimension(positionsB%dim, ele_loc(supermesh, ele_C)) :: supermesh_fsi_force_val
+
+    logical :: solid_vel_present, fsi_force_present
 
     integer :: j, k, l, dim
+
+    if (present(solid_velocity_on_supermesh) .and. present(rhs_fluid)) then
+      solid_vel_present = .true.
+    else
+      solid_vel_present = .false.
+    end if
+    if ((.not. solid_vel_present) .and. present(rhs_fluid) .and. present(fsi_force_on_supermesh)) then
+      fsi_force_present = .true.
+    else
+      fsi_force_present = .false.
+    end if
 
     ! Compute the local coordinates of the fluid and solid meshes.
     global_coord_at_quad(1:supermesh%dim, :) = ele_val_at_quad(supermesh, ele_C)
@@ -469,7 +603,8 @@ module fsi_projections
 
     ! Compute the basis functions of the fluid, solid and supermesh force fields at these local coordinates.
     basis_at_quad_fluid = basis_at_quad(ele_shape(rhs_alpha_sf, ele_A), local_coord_at_quad_fluid)
-    basis_at_quad_supermesh = basis_at_quad(ele_shape(alpha_sf_on_supermesh, ele_C), alpha_sf_on_supermesh%mesh%shape%n)
+    !basis_at_quad_supermesh = basis_at_quad(ele_shape(alpha_sf_on_supermesh, ele_C), alpha_sf_on_supermesh%mesh%shape%n)
+    basis_at_quad_supermesh = basis_at_quad(ele_shape(supermesh, ele_C), supermesh%mesh%shape%n)
 
     ! We need to integrate over the supermesh element, so get detwei_C
     call transform_to_physical(supermesh, ele_C, detwei=detwei_C)
@@ -478,21 +613,32 @@ module fsi_projections
     mat_fluid = 0.0
     !mat_solid = 0.0
     do j=1,ele_ngi(supermesh, ele_C)
-      forall (k=1:ele_loc(rhs_alpha_sf, ele_A),l=1:ele_loc(alpha_sf_on_supermesh, ele_C))
+      !forall (k=1:ele_loc(rhs_alpha_sf, ele_A),l=1:ele_loc(alpha_sf_on_supermesh, ele_C))
+      forall (k=1:ele_loc(rhs_alpha_sf, ele_A),l=1:ele_loc(supermesh, ele_C))
         mat_fluid(k, l) = mat_fluid(k, l) + detwei_C(j) * basis_at_quad_fluid(k, j) * basis_at_quad_supermesh(l, j)
       end forall
     end do
 
-    ! Now compute the rhs contribution for a vector field:
-    if (present(rhs_fluid) .and. present(solid_velocity_on_supermesh)) then
+    ! Now compute the rhs contribution for the fsi force on the fluid mesh:
+    if (fsi_force_present) then
+      supermesh_fsi_force_val = ele_val(fsi_force_on_supermesh, ele_C)
+      do dim=1,fsi_force_on_supermesh%dim
+        call addto(rhs_fluid, dim, ele_nodes(rhs_fluid, ele_A), &
+                   & matmul(mat_fluid, supermesh_fsi_force_val(dim, :)))
+      end do
+    ! And the rhs contribution for the solid velocity (only) on the fluid mesh:
+    else if (solid_vel_present) then
       supermesh_solid_velocity_val = ele_val(solid_velocity_on_supermesh, ele_C)
       do dim=1,solid_velocity_on_supermesh%dim
         call addto(rhs_fluid, dim, ele_nodes(rhs_fluid, ele_A), matmul(mat_fluid, supermesh_solid_velocity_val(dim, :)))
       end do
     end if
-    ! Now compute the rhs contribution for alpha (scalar field):
-    supermesh_alpha_sf_val = ele_val(alpha_sf_on_supermesh, ele_C)
-    call addto(rhs_alpha_sf, ele_nodes(rhs_alpha_sf, ele_A), matmul(mat_fluid, supermesh_alpha_sf_val))
+
+    ! Now compute the rhs contribution for alpha (scalar field), only needed when projecting alpha:
+    if (.not. fsi_force_present) then
+       supermesh_alpha_sf_val = ele_val(alpha_sf_on_supermesh, ele_C)
+       call addto(rhs_alpha_sf, ele_nodes(rhs_alpha_sf, ele_A), matmul(mat_fluid, supermesh_alpha_sf_val))
+    end if
 
   end subroutine compute_rhs_galerkin_projection_oneway_fsi_ele
 
@@ -601,18 +747,18 @@ module fsi_projections
     do node_B = 1,node_count(sfield%mesh)
       patch => row_m_ptr(nnlist, node_B)
       call set(max_bound, node_B, max(min(maxval(bounded_soln%val(patch)), &
-                                                   node_val(max_bound, node_B)), &
-                                                   lower_bound))
+                                                   & node_val(max_bound, node_B)), &
+                                                   & lower_bound))
       call set(min_bound, node_B, max(min(minval(bounded_soln%val(patch)), &
-                                                   node_val(max_bound, node_B)), &
-                                                   lower_bound))
+                                                   & node_val(max_bound, node_B)), &
+                                                   & lower_bound))
     end do
 
     call halo_update(max_bound)
     call halo_update(min_bound)
 
     call bound_field(sfield, max_bound, min_bound, mass_matrix, lumped_mass_matrix, &
-                     inverse_mass_matrix_lumped, bounded_soln, positions)
+                     & inverse_mass_matrix_lumped, bounded_soln, positions)
 
     call deallocate(max_bound)
     call deallocate(min_bound)

@@ -27,7 +27,14 @@ embedded_models =
             ## Specify what is added to .stat files
             element stat {
                ## Exclude all FSI modelling output fields?
-               element exclude_in_stat { empty }?
+               element exclude_in_stat { empty }?,
+               ## Output force computed on supermesh?
+               ##
+               ## Careful, switching this option on will slow down the
+               ## simulation, and hence should only be switched on for
+               ## checking if the force on the supermesh equals the
+               ## force computed on the fluid mesh.
+               element force_on_supermesh_stat { empty }?
             },
             fsi_solid_phases
          }?

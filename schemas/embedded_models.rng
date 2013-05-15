@@ -38,6 +38,17 @@ Useful for thin structures, e.g. turbine blades.</a:documentation>
                 <empty/>
               </element>
             </optional>
+            <optional>
+              <element name="force_on_supermesh_stat">
+                <a:documentation>Output force computed on supermesh?
+
+Careful, switching this option on will slow down the
+simulation, and hence should only be switched on for
+checking if the force on the supermesh equals the
+force computed on the fluid mesh.</a:documentation>
+                <empty/>
+              </element>
+            </optional>
           </element>
           <ref name="fsi_solid_phases"/>
         </element>

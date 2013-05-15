@@ -832,7 +832,7 @@ contains
           end if
 
           if (have_option("/embedded_models/fsi_model")) then
-             call fsi_model_compute_diagnostics(state(1))
+             call fsi_model_compute_diagnostics(state(1), solid_state)
           end if
 
           if(have_solids) then
@@ -857,7 +857,7 @@ contains
        if (have_option("/embedded_models/fsi_model")) then
           if (have_option("/timestepping/nonlinear_iterations/tolerance")) then
              if ((its < nonlinear_iterations .and. change < abs(nonlinear_iteration_tolerance))) then
-                call fsi_model_nonlinear_iteration_converged(state(1))
+                call fsi_model_nonlinear_iteration_converged(state(1), solid_state)
              end if
           end if
        end if

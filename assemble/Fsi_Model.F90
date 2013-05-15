@@ -84,6 +84,7 @@ module fsi_model
   logical, save :: adapt_at_previous_dt
 !  logical, save :: have_prescribed_solid_movement
   type(state_type), save :: global_fluid_state, global_solid_state
+  integer, save :: number=0
 
   private
 
@@ -248,15 +249,15 @@ module fsi_model
         solid_moved = .false.
 
         ! Get number of solid meshes:
-        num_solid_mesh = option_count('/embedded_models/fsi_model/geometry/mesh')
+        num_solid_mesh = option_count(trim(fsi_path)//'geometry/mesh')
 
         ! Loop over number of solid meshes defined:
         solid_mesh_position_loop: do i=0, num_solid_mesh-1
 
             ! Get mesh name:
-            call get_option('/embedded_models/fsi_model/geometry/mesh['//int2str(i)//']/name', mesh_name)
+            call get_option(trim(fsi_path)//'geometry/mesh['//int2str(i)//']/name', mesh_name)
 
-            ! Check if the current mesh has a prescribed velocity/movement:
+            ! Check if the current mesh has a prescribed velocity:
             if (have_option(trim(fsi_path)//"solid_phase::"//trim(mesh_name)//"/vector_field::SolidVelocity/prescribed")) then
                 ! Move the mesh:
                 call fsi_move_solid_mesh(state, solid_states(i+1), mesh_name, solid_moved)
@@ -264,7 +265,7 @@ module fsi_model
                 if (solid_moved) then
                   ewrite(1,*) "moved solid mesh: ", trim(mesh_name)
                 else
-                  ewrite(1,*) "solid mesh "//trim(mesh_name)//" did not move this timestep, although it has a prescribed velocity/position/movement."
+                  ewrite(1,*) "solid mesh "//trim(mesh_name)//" did not move this timestep, although it has a prescribed velocity."
                 end if
             end if
 
@@ -289,7 +290,7 @@ module fsi_model
         solid_mesh_addto_global_fields_loop: do i=0, num_solid_mesh-1
 
             ! Get mesh name:
-            call get_option('/embedded_models/fsi_model/geometry/mesh['//int2str(i)//']/name', mesh_name)
+            call get_option(trim(fsi_path)//'geometry/mesh['//int2str(i)//']/name', mesh_name)
 
             ! Get solid volume fraction field of this mesh:
             solid_alpha_mesh => extract_scalar_field(state, trim(mesh_name)//'SolidConcentration')
@@ -391,11 +392,12 @@ module fsi_model
 
     !----------------------------------------------------------------------------
 
-    subroutine fsi_ibm_projections_mesh(state, solid_states, mesh_name, project_solid_velocity)
+    subroutine fsi_ibm_projections_mesh(state, solid_states, mesh_name, project_solid_velocity, force_on_supermesh)
         type(state_type), intent(inout) :: state
         type(state_type), intent(inout), dimension(:) :: solid_states
         character(len=OPTION_PATH_LEN), intent(in) :: mesh_name
         logical, intent(in), optional :: project_solid_velocity
+        logical, intent(in), optional :: force_on_supermesh
 
         type(vector_field), pointer :: fluid_position, fluid_velocity
         type(scalar_field), pointer :: alpha_solid_fluidmesh
@@ -405,6 +407,7 @@ module fsi_model
         type(vector_field), pointer :: solid_velocity_fluidmesh ! these live on the FLUID mesh
         type(scalar_field) :: alpha_tmp ! these live on the FLUID mesh
         type(vector_field) :: solid_velocity_fluidmesh_tmp ! these live on the FLUID mesh
+        type(vector_field) :: force_from_supermesh ! Force computed on supermesh
 
         ewrite(2,*) "inside fsi_ibm_projections_mesh"
 
@@ -436,10 +439,10 @@ module fsi_model
                 call allocate(solid_velocity_fluidmesh_tmp, solid_velocity_fluidmesh%dim, solid_velocity_fluidmesh%mesh, 'TMP'//trim(mesh_name)//'SolidVelocity')
                 call zero(solid_velocity_fluidmesh_tmp)
                 ! Computing alpha_s^f by projecting unity and the u_s^f by projection u_s^s from the solid mesh to the fluid mesh:
-                call fsi_one_way_galerkin_projection(fluid_velocity, fluid_position, solid_position_mesh, alpha_tmp, solid_velocity_mesh, solid_velocity_fluidmesh_tmp)
+                call fsi_one_way_galerkin_projection(fluid_position, solid_position_mesh, alpha_tmp, fluid_velocity, solid_velocity_mesh, solid_velocity_fluidmesh_tmp)
             else
                 ! Computing /alpha_s^f by projecting unity from the solid mesh to the fluid mesh:
-                call fsi_one_way_galerkin_projection(fluid_velocity, fluid_position, solid_position_mesh, alpha_tmp)
+                call fsi_one_way_galerkin_projection(fluid_position, solid_position_mesh, alpha_tmp, fluid_velocity)
             end if
 
         else if (have_option("/embedded_models/fsi_model/inter_mesh_projection/grandy_interpolation")) then
@@ -976,7 +979,7 @@ module fsi_model
       integer, dimension(:), pointer :: nodes
       integer :: i, j, ele
       real :: beta
-      
+
       ewrite(2,*) "Inside compute_source_term"
 
       fluid_velocity => extract_vector_field(state, "IteratedVelocity")
@@ -1341,39 +1344,52 @@ module fsi_model
 
     !----------------------------------------------------------------------------
 
-    subroutine fsi_model_compute_diagnostics(state)
+    subroutine fsi_model_compute_diagnostics(state, solid_states)
     !! Compute all sorts of FSI diagnostics
       type(state_type), intent(inout) :: state
-      type(vector_field), pointer :: fluid_coord
+      type(state_type), intent(inout), dimension(:) :: solid_states
+      type(vector_field), pointer :: fluid_coord, solid_coord
+      type(vector_field), pointer :: fluid_velocity, solid_velocity_mesh
       type(vector_field), pointer :: solidforce
+      type(vector_field) :: solidforce_supermesh, solid_velocity
+      type(scalar_field) :: alpha_tmp
+      type(scalar_field), pointer :: alpha_global
 
       real, dimension(:), allocatable :: solid_force_diag, pre_solid_vel
       real :: solid_volume_diag
       integer :: num_solid_mesh, num_pre_solid_vel, num_pre_solid_pos
       character(len=OPTION_PATH_LEN) :: mesh_name
-      integer :: i
+      character(len=OPTION_PATH_LEN) :: fsi_path="/embedded_models/fsi_model/"
+      integer :: i, j, k, ele
+      integer, dimension(:), pointer :: nodes
 
       ewrite(2, *) "inside fsi_model_compute_diagnostics"
 
       fluid_coord => extract_vector_field(state, "Coordinate")
+      fluid_velocity => extract_vector_field(state, "Velocity")
       ! Get solid force (global) field and set it to zero as it is being recomputed below:
       solidforce => extract_vector_field(state, "SolidForce")
       call zero(solidforce)
+      if (have_option(trim(fsi_path)//'stat/force_on_supermesh_stat')) then
+         call allocate(solidforce_supermesh, solidforce%dim, solidforce%mesh, 'SolidForceFromSupermesh')
+         call allocate(alpha_tmp, solidforce%mesh, 'TMPAlpha')
+         alpha_global => extract_scalar_field(state, 'SolidConcentration')
+      end if
 
       ! For 1-way coupling:
-      if (have_option('/embedded_models/fsi_model')) then
+      if (have_option(trim(fsi_path))) then
 
          ! Compute diagnostic variables, e.g. Force on solid and prescribed Solid Velocity
-         if (.not. have_option('/embedded_models/fsi_model/stat/exclude_in_stat')) then 
+         if (.not. have_option(trim(fsi_path)//'stat/exclude_in_stat')) then 
 
-            num_solid_mesh = option_count('/embedded_models/fsi_model/geometry/mesh')
+            num_solid_mesh = option_count(trim(fsi_path)//'geometry/mesh')
             allocate(solid_force_diag(fluid_coord%dim))
 
         ! Compute Force and volume of solids:
             solid_mesh_loop: do i=0, num_solid_mesh-1
 
                ! Get mesh name:
-               call get_option('/embedded_models/fsi_model/geometry/mesh['//int2str(i)//']/name', mesh_name)
+               call get_option(trim(fsi_path)//'geometry/mesh['//int2str(i)//']/name', mesh_name)
 
                ! Resetting force and volume:
                solid_force_diag = 0.0; solid_volume_diag = 0.0
@@ -1386,6 +1402,50 @@ module fsi_model
                call set_diagnostic(name='ForceOnSolid_'//trim(mesh_name), statistic='Value', value=(/ solid_force_diag /))
                ! Set the volume of the solid with name 'mesh_name'
                call set_diagnostic(name='VolumeOfSolid_'//trim(mesh_name), statistic='Value', value=(/ solid_volume_diag /))
+               
+               ! Check if we also want to compute the force computed on the supermesh in the stat file:
+               if (have_option(trim(fsi_path)//'stat/force_on_supermesh_stat')) then
+                   ! Then, we first have to compute the force on the supermesh, and project it to the fluid mesh, where we then
+                   ! will compute the integral of it:
+                   solid_coord => extract_vector_field(solid_states, trim(mesh_name)//'SolidCoordinate')
+                   if (have_option(trim(fsi_path)//"solid_phase::"//trim(mesh_name)//"/vector_field::SolidVelocity/prescribed")) then
+                      solid_velocity_mesh => extract_vector_field(solid_states, trim(mesh_name)//'SolidVelocity')
+                      call allocate(solid_velocity, solid_velocity_mesh%dim, solid_velocity_mesh%mesh, 'TMP'//trim(mesh_name)//'SolidVelocity')
+                      call set(solid_velocity, solid_velocity_mesh)
+                   else
+                      call allocate(solid_velocity, solid_coord%dim, solid_coord%mesh, 'TMP'//trim(mesh_name)//'SolidVelocity')
+                      call zero(solid_velocity)
+                   end if
+                   call zero(alpha_tmp)
+                   call zero(solidforce_supermesh)
+                   call fsi_one_way_galerkin_projection(fluid_coord, solid_coord, alpha_tmp, fluid_velocity, &
+                                       & solid_velocity_on_solid=solid_velocity, fsi_force=solidforce_supermesh)
+                   ! Compute integral of projected force:
+                   solid_force_diag = 0.0
+                   solid_force_diag = field_integral(solidforce_supermesh, fluid_coord)
+                   ! Modify force from supermesh:
+                   do ele = 1, ele_count(solidforce_supermesh%mesh)
+                      nodes => ele_nodes(solidforce_supermesh%mesh, ele)
+                      do j = 1, size(nodes)
+                         if (node_val(alpha_global, nodes(j)) .gt. 0.0 .and. node_val(alpha_global, nodes(j)) .lt. 1.0) then
+                            do k = 1, solidforce_supermesh%dim
+                               call set(solidforce_supermesh, k, nodes(j), node_val(solidforce_supermesh,k,nodes(j)) )
+                            end do
+                         else
+                            do k = 1, solidforce_supermesh%dim
+                               call set(solidforce_supermesh, k, nodes(j), 0.0 )
+                            end do
+                         end if
+                      end do
+                   end do
+                   call set_diagnostic(name='ForceFromSupermeshOnSolid_'//trim(mesh_name), statistic='Value', value=(/ solid_force_diag /))
+
+                   !number = number + 1
+                   !call vtk_write_fields("ForceFromSupermeshOnSolid_"//trim(int2str(number)), position=fluid_coord, model=fluid_coord%mesh, &
+                                    ! & vfields=(/solidforce_supermesh/))
+                   ! deallocate ForceOnSupermesh:
+                   call deallocate(solidforce_supermesh)
+               end if
 
             end do solid_mesh_loop
             deallocate(solid_force_diag)
@@ -1440,13 +1500,14 @@ module fsi_model
 
     !----------------------------------------------------------------------------
 
-    subroutine fsi_model_nonlinear_iteration_converged(state)
+    subroutine fsi_model_nonlinear_iteration_converged(state, solid_states)
       type(state_type), intent(inout) :: state
+      type(state_type), intent(inout), dimension(:) :: solid_states
     !! If a tolerance for nonlinear iterations has been set, this subroutine is called
     !! once the tolerance has been reached, so that the FSI diagnostics are being computed
       if (do_adapt_mesh(current_time, timestep)) then
          if (have_option('/embedded_models/fsi_model')) then
-             call fsi_model_compute_diagnostics(state)
+             call fsi_model_compute_diagnostics(state, solid_states)
          end if
          adapt_at_previous_dt = .true.
       end if
@@ -1583,6 +1644,9 @@ module fsi_model
             if (.not. have_option('/embedded_models/fsi_model/stat/exclude_in_stat')) then
                call register_diagnostic(dim=ndimension, name='ForceOnSolid_'//trim(mesh_name), statistic='Value')
                call register_diagnostic(dim=1, name='VolumeOfSolid_'//trim(mesh_name), statistic='Value')
+               if (have_option('/embedded_models/fsi_model/stat/force_on_supermesh_stat')) then
+                  call register_diagnostic(dim=ndimension, name='ForceFromSupermeshOnSolid_'//trim(mesh_name), statistic='Value')
+               end if
             end if
 
          end do solid_mesh_loop
