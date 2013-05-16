@@ -498,7 +498,7 @@ contains
     ! construct A matrices (lhs knowns)
     do i = 1, N
        abscissa_val_at_quad(:,i) = ele_val_at_quad(abscissa(i), ele)       
-       print*, "abscissa = ", abscissa_val_at_quad(1,i)
+!!       print*, "abscissa = ", abscissa_val_at_quad(1,i)
     end do
     A = A_matrix(abscissa_val_at_quad)
 
@@ -512,31 +512,33 @@ contains
     ! check for ill-conditioned matrices
     do i = 1, ele_ngi(abscissa(1), ele)
        call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
-       print*, "condition number=", (SV(size(SV))/SV(1))
-!       if (SV(size(SV))/SV(1) < cond) then
-       p_num = 1
+!!       print*, "condition number=", (SV(size(SV))/SV(1))
+       if (SV(size(SV))/SV(1) < cond) then
+         print*, "SINGULAR MATRIX"
+       end if
+!!       p_num = 1
 
 
-       do j = 1, N
-          absc_init(j) = abscissa_val_at_quad(i,j)
-       end do
+!!       do j = 1, N
+!!          absc_init(j) = abscissa_val_at_quad(i,j)
+!!       end do
 
-       do while (SV(size(SV))/SV(1) < cond)
+!!       do while (SV(size(SV))/SV(1) < cond)
 !          call get_option("/timestepping/current_time", curr_time)   ! get the current simulation time
           !! a better check for the first timestep instead of small value of the current time
  !         if (curr_time < 1e-7) then   ! this block perturbates the abscissas in A matrix if current time is 0
-             print*, "perturbing %g \n", p_num
-             do j = 1, N
+!!             print*, "perturbing %g \n", p_num
+!!             do j = 1, N
                 !! perturbation coefficient should be taken from diamond options with a check for default value
-                call random_number(perturb(1))
-                abscissa_val_at_quad(i,j) = absc_init(j) + perturb(1)
+!!                call random_number(perturb(1))
+!!                abscissa_val_at_quad(i,j) = absc_init(j) + perturb(1)
 !                abscissa_val_at_quad(:,j) = abscissa_val_at_quad(:,j) + (2-j)*(0.1) 
-                print*, "abscissa", j, " = ", abscissa_val_at_quad(i,j)
-             end do
-             A = A_matrix(abscissa_val_at_quad)
-             call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
-             print*, "condition number=", (SV(size(SV))/SV(1))
-             p_num = p_num+1
+!!                print*, "abscissa", j, " = ", abscissa_val_at_quad(i,j)
+!!             end do
+!!             A = A_matrix(abscissa_val_at_quad)
+!!             call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
+!!             print*, "condition number=", (SV(size(SV))/SV(1))
+!!             p_num = p_num+1
 !             print*, "perturbed condition number=", (SV(size(SV))/SV(1))
 !             if (SV(size(SV))/SV(1) < cond) then
 !                print*, "perturbing does not help"
@@ -552,7 +554,7 @@ contains
 !             end do
 !          end if
 !       end if
-       end do
+!!       end do
     end do
 
 
