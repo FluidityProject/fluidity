@@ -1273,17 +1273,17 @@ module advection_local_DG
 
     !Laplacian filter options
     if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
-         &continuous_galerkin/laplacian_filter')) then
+         &continuous_galerkin/theta_method/laplacian_filter')) then
        FLExit('Laplacian filter not coded yet.')
     end if
     !Streamline upwinding options
     if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
-         &continuous_galerkin/streamline_upwinding')) then
+         &continuous_galerkin/theta_method/streamline_upwinding')) then
        !! Replace test function \gamma with \gamma + \tau u\cdot\nabla\gamma
        call get_option(trim(Q%option_path)//'/prognostic/spatial_discretisat&
-            &ion/continuous_galerkin/streamline_upwinding/alpha',alpha)
+            &ion/continuous_galerkin/theta_method/streamline_upwinding/alpha',alpha)
        call get_option(trim(Q%option_path)//'/prognostic/spatial_discretisat&
-            &ion/continuous_galerkin/streamline_upwinding/tol',tol)
+            &ion/continuous_galerkin/theta_method/streamline_upwinding/tol',tol)
 
        !Gradients of fluxes
        Grad_flux_gi = ele_grad_at_quad(Flux,ele,Flux_shape%dn)
@@ -1495,17 +1495,17 @@ module advection_local_DG
 
     !Laplacian filter options
     if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
-         &continuous_galerkin/laplacian_filter')) then
+         &continuous_galerkin/theta_method/laplacian_filter')) then
        FLExit('Laplacian filter not coded yet.')
     end if
     !Streamline upwinding options
     if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
-         &continuous_galerkin/streamline_upwinding')) then
+         &continuous_galerkin/theta_method/streamline_upwinding')) then
        !! Replace test function \gamma with \gamma + \tau u\cdot\nabla\gamma
        call get_option(trim(Q%option_path)//'/prognostic/spatial_discretisat&
-            &ion/continuous_galerkin/streamline_upwinding/alpha',alpha)
+            &ion/continuous_galerkin/theta_method/streamline_upwinding/alpha',alpha)
        call get_option(trim(Q%option_path)//'/prognostic/spatial_discretisat&
-            &ion/continuous_galerkin/streamline_upwinding/tol',tol)
+            &ion/continuous_galerkin/theta_method/streamline_upwinding/tol',tol)
 
        !Gradients of fluxes
        Grad_flux_gi = ele_grad_at_quad(Flux,ele,Flux_shape%dn)
