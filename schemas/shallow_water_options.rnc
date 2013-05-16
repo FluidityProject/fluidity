@@ -508,15 +508,26 @@ pv_advection_options_options =
                empty
             }?
          }|
-         ## Use the \bar{T}(2,3) two step Taylor-Galerkin timestepping
-         ## scheme of Safjan and Oden, 1995, (with positive sign).
-         element two_step_taylor_galerkin {
-            ## Stability parameter.  Unconditional stability is achieved
-            ## with eta>0.473.  For eta<0.473, stable for sufficiently
-            ## small Courant number.
+         ## Use the multistage Taylor-Galerkin timestepping
+         ## schemes of Safjan and Oden, 1995.
+         element taylor_galerkin {
+            ## Stability parameter.
             element eta {
                real
-            }
+            },
+            ## Choice of particular scheme
+            (
+               ## The \bar{T}(2,3) 2-stage
+               ## 3rd order scheme 
+               ## (with positive sign)
+               ## unconditionally stable for 
+               ## eta>0.473ish
+               ## stable for small enough Courant
+               ## number otherwise
+               element Tbar2_3_scheme{
+                  empty
+               }
+            )
          }
       ),
       ## Use discontinuity capturing similar to that used in

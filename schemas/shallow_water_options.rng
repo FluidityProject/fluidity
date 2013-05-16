@@ -665,15 +665,26 @@ does not apply any upwinding</a:documentation>
           </element>
         </optional>
       </element>
-      <element name="two_step_taylor_galerkin">
-        <a:documentation>Use the \bar{T}(2,3) two step Taylor-Galerkin timestepping
-scheme of Safjan and Oden, 1995, (with positive sign).</a:documentation>
+      <element name="taylor_galerkin">
+        <a:documentation>Use the multistage Taylor-Galerkin timestepping
+schemes of Safjan and Oden, 1995.</a:documentation>
         <element name="eta">
-          <a:documentation>Stability parameter.  Unconditional stability is achieved
-with eta&gt;0.473.  For eta&lt;0.473, stable for sufficiently
-small Courant number.</a:documentation>
+          <a:documentation>Stability parameter.</a:documentation>
           <ref name="real"/>
         </element>
+        <group>
+          <a:documentation>Choice of particular scheme</a:documentation>
+          <element name="Tbar2_3_scheme">
+            <a:documentation>The \bar{T}(2,3) 2-stage
+3rd order scheme 
+(with positive sign)
+unconditionally stable for 
+eta&gt;0.473ish
+stable for small enough Courant
+number otherwise</a:documentation>
+            <empty/>
+          </element>
+        </group>
       </element>
     </choice>
     <optional>

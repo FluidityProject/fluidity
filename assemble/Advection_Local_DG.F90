@@ -1107,9 +1107,10 @@ module advection_local_DG
     type(vector_field), pointer :: X, down
     type(scalar_field), pointer :: Q_old
     integer :: ele
-    real :: dt, t_theta, residual, disc_max
+    real :: dt, t_theta, residual, disc_max, c1
     type(scalar_field), pointer :: discontinuity_detector_field
     character(len = OPTION_PATH_LEN) :: discontinuity_detector_name
+    type(scalar_field), dimension(:), pointer :: Qstages
 
     ewrite(1,*) '  subroutine solve_advection_cg_tracer('
 
@@ -1155,7 +1156,30 @@ module advection_local_DG
                &Discontinuity_detector_field,Flux,&
                &X,down,U_nl,t_theta,disc_max,ele)
        end do
-    else
+    else if (have_option(trim(Q%option_path)//'/prognostic/spatial_discretis&
+         &ation/continuous_galerkin/taylor_galerkin')) then
+
+       call get_option(trim(Q%option_path)//'/prognostic/spatial_discretis&
+            &ation/continuous_galerkin/taylor_galerkin/eta',eta)
+       
+       !Set up stage coefficients
+       if (have_option(trim(Q%option_path)//'/prognostic/spatial_discretis&
+         &ation/continuous_galerkin/taylor_galerkin/Tbar2_3_scheme')) then
+          !! Use the \bar{T}(2,3) scheme with positive sign
+          n_stages = 2
+          
+          c1 = 0.5*(1 + (-1./3.+8*eta)**0.5)
+          mcoeffs(1,:) = (/ c1, 0 /)
+          mcoeffs(2,:) = (/ 0.5*(3-1./c1), 0.5*(1./c1-1) /)
+          ncoeffs(1,:) = (/ 0.5*c1**2-eta, 0.0 /)
+          ncoeffs(2,:) = (/ 0.25*(3*c1-1)-eta, 0.25*(1-c1) /)
+       else
+          FLAbort('Unknown choice of TG scheme')
+       end if
+       call construct_taylor_galerkin_stage_ele(&
+            & Q_rhs,adv_mat,Q_stages,D,D_old,Flux,X,&
+            & dt,ele)
+       call petsc_solve(Q_stages
        FLAbort('this is where TG option goes')
     end if
 
@@ -1167,7 +1191,7 @@ module advection_local_DG
        call zero(Qtest2)
        do ele = 1, ele_count(Q)
           call test_pv_flux_ele(Qtest1,Qtest2,QF,Q,Q_old,D,D_old,&
-               Flux,X,down,t_theta,ele)
+               Flux,X,t_theta,ele)
        end do
        ewrite(2,*) 'Error = ', maxval(abs(Qtest2%val)), maxval(abs(Qtest1%val))
        ewrite(2,*) 'Error = ', maxval(abs(Qtest1%val-Qtest2%val)), maxval(Qtest1%val)
