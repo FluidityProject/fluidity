@@ -1106,11 +1106,12 @@ module advection_local_DG
     type(scalar_field) :: Q_rhs, Qtest1,Qtest2
     type(vector_field), pointer :: X, down
     type(scalar_field), pointer :: Q_old
-    integer :: ele
-    real :: dt, t_theta, residual, disc_max, c1
+    integer :: ele, stage
+    real :: dt, t_theta, residual, disc_max, c1, eta
     type(scalar_field), pointer :: discontinuity_detector_field
     character(len = OPTION_PATH_LEN) :: discontinuity_detector_name
-    type(scalar_field), dimension(:), pointer :: Qstages
+    type(scalar_field_pointer), dimension(:), allocatable :: Q_stages
+    real, dimension(:,:), allocatable :: mcoeffs, ncoeffs
 
     ewrite(1,*) '  subroutine solve_advection_cg_tracer('
 
@@ -1169,6 +1170,7 @@ module advection_local_DG
           n_stages = 2
           
           c1 = 0.5*(1 + (-1./3.+8*eta)**0.5)
+          allocate(mcoeffs(2,2),ncoeffs(2,2))
           mcoeffs(1,:) = (/ c1, 0 /)
           mcoeffs(2,:) = (/ 0.5*(3-1./c1), 0.5*(1./c1-1) /)
           ncoeffs(1,:) = (/ 0.5*c1**2-eta, 0.0 /)
@@ -1176,10 +1178,38 @@ module advection_local_DG
        else
           FLAbort('Unknown choice of TG scheme')
        end if
-       call construct_taylor_galerkin_stage_ele(&
-            & Q_rhs,adv_mat,Q_stages,D,D_old,Flux,X,&
-            & dt,ele)
-       call petsc_solve(Q_stages
+
+       !!Set up memory for the stages
+       allocate(Q_stages(n_stages+1))
+       Q_stages(1) => Q_old
+       if(n_stages>1) then
+          do stage = 1, n_stages-1
+             call allocate(Q_stages(stage+1),Q%mesh, trim(Q%name)//"stage")
+          end do
+       end if
+       Q_stage(n_stages+1) => Q
+
+       !!Compute the stages themselves
+       do stage = 1, n_stages
+          call construct_taylor_galerkin_stage_ele(&
+               & Q_rhs,adv_mat,Q_stages,D,D_old,Flux,X,&
+               & eta,mcoeffs(stage,:),ncoeffs(stage,:),&
+               & n_stages,stage,dt,ele)
+          call petsc_solve(Q_stages(stage+1),adv_mat,Q_rhs)
+       end do
+
+       !!Compute the PV flux
+       do ele = 1, ele_count(Q)
+          call construct_pv_flux_TG_ele(QF,Q_stages,D,D_old,&
+               & Flux,X,eta,mcoeffs(n_stages,:),&
+               & ncoeffs(n_stages,:),n_stages,dt,ele)
+       end do
+
+       !! Clean up memory for stages
+       do stage = 1, nstages-1
+          call deallocate(Q_stages(nstage+1))
+       end do
+       deallocate(Q_stages)
        FLAbort('this is where TG option goes')
     end if
 

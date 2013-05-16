@@ -263,16 +263,11 @@ g = 9.80616
         <mesh name="VorticityMesh"/>
         <spatial_discretisation>
           <continuous_galerkin>
-            <theta_method>
-              <streamline_upwinding>
-                <alpha>
-                  <real_value rank="0">0.26</real_value>
-                </alpha>
-                <tol>
-                  <real_value rank="0">1.0e-9</real_value>
-                </tol>
-              </streamline_upwinding>
-            </theta_method>
+            <two_step_taylor_galerkin>
+              <eta>
+                <real_value rank="0"/>
+              </eta>
+            </two_step_taylor_galerkin>
           </continuous_galerkin>
         </spatial_discretisation>
         <solver>
