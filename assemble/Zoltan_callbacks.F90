@@ -273,40 +273,54 @@ contains
           end if
        end do
        
-       ! loop over all neighbouring nodes
-       do j=1,size(neighbours)
-          
-          min_quality = my_min_quality
-          
-          ! get elements associated with neighbour node
-          nbor_nelist => row_m_ptr(zoltan_global_zz_nelist, neighbours(j))
-          
-          ! loop over all the elements of the neighbour node
-          do i=1, size(nbor_nelist)
+       if (have_option(trim(zoltan_global_base_option_path) // "/dont_extend_uncuttable_region")) then
+
+         do j=1,size(neighbours)
+           ewgts(head + j - 1) = (1.0 - my_min_quality) * 20
+         end do
+
+         if(min_quality .LT. zoltan_global_local_min_quality) then
+           zoltan_global_local_min_quality = my_min_quality
+         end if
+
+       else
+
+         ! loop over all neighbouring nodes
+         do j=1,size(neighbours)
+
+           min_quality = my_min_quality
+
+           ! get elements associated with neighbour node
+           nbor_nelist => row_m_ptr(zoltan_global_zz_nelist, neighbours(j))
+
+           ! loop over all the elements of the neighbour node
+           do i=1, size(nbor_nelist)
              ! determine the quality of the element
              quality = minval(ele_val(zoltan_global_element_quality, nbor_nelist(i)))
-             
+
              ! store the element quality if it's less (worse) than any previous elements
              if (quality .LT. min_quality) then
-                min_quality = quality
+               min_quality = quality
              end if
-          end do
+           end do
 
-          ! Keep track of the lowest quality element of all those we've looked at
-          ! Will be used in zoltan_drive to calculate a global minimum element quality
-          if(min_quality .LT. zoltan_global_local_min_quality) then
+           ! Keep track of the lowest quality element of all those we've looked at
+           ! Will be used in zoltan_drive to calculate a global minimum element quality
+           if(min_quality .LT. zoltan_global_local_min_quality) then
              zoltan_global_local_min_quality = min_quality
-          end if
+           end if
 
-          ! check if the quality is within the tolerance         
-          if (min_quality .GT. zoltan_global_quality_tolerance) then
+           ! check if the quality is within the tolerance         
+           if (min_quality .GT. zoltan_global_quality_tolerance) then
              ! if it is
              ewgts(head + j - 1) = 1.0
-          else
+           else
              ! if it's not
-             ewgts(head + j - 1) = ceiling((1.0 - min_quality) * 20)
-          end if
-       end do
+             ewgts(head + j - 1) = (1.0 - min_quality) * 20
+           end if
+         end do
+
+       end if
        
        head = head + size(neighbours)
     end do
@@ -345,6 +359,7 @@ contains
     end if
     
     if (zoltan_global_output_edge_weights) then
+       call zero(zoltan_global_max_edge_weight_on_node)
        head = 1
        do node=1,count
           neighbours => row_m_ptr(zoltan_global_zz_sparsity_one, local_ids(node))
