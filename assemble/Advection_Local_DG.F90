@@ -1139,22 +1139,25 @@ module advection_local_DG
        disc_max = maxval(discontinuity_detector_field%val)
     end if
 
-    do ele = 1, ele_count(Q)
-       call construct_advection_cg_tracer_ele(Q_rhs,adv_mat,Q,D,D_old,&
-            &Discontinuity_detector_field,Flux&
-            &,X,down,U_nl,dt,t_theta,disc_max,ele)
-    end do
-
-    ewrite(2,*) 'Q_RHS', maxval(abs(Q_rhs%val))
-
-    call petsc_solve(Q,adv_mat,Q_rhs)
-
-    !! Compute the PV flux to pass to velocity equation
-    do ele = 1, ele_count(Q)
-       call construct_pv_flux_ele(QF,Q,Q_old,D,D_old,&
-            &Discontinuity_detector_field,Flux,&
-            &X,down,U_nl,t_theta,disc_max,ele)
-    end do
+    if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
+         &continuous_galerkin/theta_method')) then
+       !! Use theta method to integrate q
+       do ele = 1, ele_count(Q)
+          call construct_advection_cg_tracer_theta_ele(Q_rhs,adv_mat,Q,D,D_old,&
+               &Discontinuity_detector_field,Flux&
+               &,X,down,U_nl,dt,t_theta,disc_max,ele)
+       end do
+       ewrite(2,*) 'Q_RHS', maxval(abs(Q_rhs%val))
+       call petsc_solve(Q,adv_mat,Q_rhs)
+       !! Compute the PV flux to pass to velocity equation
+       do ele = 1, ele_count(Q)
+          call construct_pv_flux_theta_ele(QF,Q,Q_old,D,D_old,&
+               &Discontinuity_detector_field,Flux,&
+               &X,down,U_nl,t_theta,disc_max,ele)
+       end do
+    else
+       FLAbort('this is where TG option goes')
+    end if
 
     if(have_option('/material_phase::Fluid/scalar_field::PotentialVorticity/&
          &prognostic/debug')) then
@@ -1190,7 +1193,7 @@ module advection_local_DG
 
   end subroutine solve_advection_cg_tracer
   
-  subroutine construct_advection_cg_tracer_ele(Q_rhs,adv_mat,Q,D,D_old,&
+  subroutine construct_advection_cg_tracer_theta_ele(Q_rhs,adv_mat,Q,D,D_old,&
        Discontinuity_detector_field,Flux,&
        & X,down,U_nl,dt,t_theta,disc_max,ele)
     type(scalar_field), intent(in) :: D,D_old,Q, Discontinuity_detector_field
@@ -1383,9 +1386,9 @@ module advection_local_DG
     call addto(adv_mat,ele_nodes(Q_rhs,ele),ele_nodes(Q_rhs,ele),&
          l_adv_mat)    
 
-  end subroutine construct_advection_cg_tracer_ele
+  end subroutine construct_advection_cg_tracer_theta_ele
 
-  subroutine construct_pv_flux_ele(QFlux,Q,Q_old,D,D_old,&
+  subroutine construct_pv_flux_theta_ele(QFlux,Q,Q_old,D,D_old,&
        Discontinuity_detector_field,Flux,X,down,U_nl,t_theta,disc_max,ele)
     type(scalar_field), intent(in) :: Q,Q_old,D,D_old,&
          & Discontinuity_detector_field
@@ -1623,7 +1626,7 @@ module advection_local_DG
 
     call set(QFlux,ele_nodes(QFlux,ele),QFlux_perp_rhs)
 
-  end subroutine construct_pv_flux_ele
+  end subroutine construct_pv_flux_theta_ele
 
   subroutine test_pv_flux_ele(Qtest1,Qtest2,QFlux,Q,Q_old,D,D_old,&
        Flux,X,down,t_theta,ele)

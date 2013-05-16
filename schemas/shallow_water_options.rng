@@ -676,8 +676,9 @@ small Courant number.</a:documentation>
         </element>
       </element>
     </choice>
-    <element name="discontinuity_capturing">
-      <a:documentation>Use discontinuity capturing similar to that used in
+    <optional>
+      <element name="discontinuity_capturing">
+        <a:documentation>Use discontinuity capturing similar to that used in
 A Local Projection Stabilization method with shock capturing
 and diagonal mass matrix for solving non-stationary transport
 dominated problems, Schieweck and Skrzpacz
@@ -689,21 +690,22 @@ the local projection filter.
 The scaling coefficient controls the strength of the
 discontinuity capturing and is proportional to the solution
 magnitude</a:documentation>
-      <attribute name="discontinuity_indicator_name">
-        <a:documentation>Field to use as discontinuity indicator</a:documentation>
-        <data type="string"/>
-      </attribute>
-      <element name="scaling_coefficient">
-        <a:documentation>Constant scaling factor for discontinuity capturing term</a:documentation>
-        <ref name="real"/>
-      </element>
-      <element name="filter_ratio">
-        <a:documentation>Filter ratio (filter is switched on in cells whose ratio
+        <attribute name="discontinuity_indicator_name">
+          <a:documentation>Field to use as discontinuity indicator</a:documentation>
+          <data type="string"/>
+        </attribute>
+        <element name="scaling_coefficient">
+          <a:documentation>Constant scaling factor for discontinuity capturing term</a:documentation>
+          <ref name="real"/>
+        </element>
+        <element name="filter_ratio">
+          <a:documentation>Filter ratio (filter is switched on in cells whose ratio
 of discontinuity indicator to the maximum value exceed
 this value)</a:documentation>
-        <ref name="real"/>
+          <ref name="real"/>
+        </element>
       </element>
-    </element>
+    </optional>
   </define>
   <define name="scalar_field_choice">
     <!--
