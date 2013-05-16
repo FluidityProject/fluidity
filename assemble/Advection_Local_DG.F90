@@ -1106,7 +1106,7 @@ module advection_local_DG
     type(scalar_field) :: Q_rhs, Qtest1,Qtest2
     type(vector_field), pointer :: X, down
     type(scalar_field), pointer :: Q_old
-    integer :: ele, stage
+    integer :: ele, stage, n_stages
     real :: dt, t_theta, residual, disc_max, c1, eta
     type(scalar_field), pointer :: discontinuity_detector_field
     character(len = OPTION_PATH_LEN) :: discontinuity_detector_name
@@ -1171,7 +1171,7 @@ module advection_local_DG
           
           c1 = 0.5*(1 + (-1./3.+8*eta)**0.5)
           allocate(mcoeffs(2,2),ncoeffs(2,2))
-          mcoeffs(1,:) = (/ c1, 0 /)
+          mcoeffs(1,:) = (/ c1, 0. /)
           mcoeffs(2,:) = (/ 0.5*(3-1./c1), 0.5*(1./c1-1) /)
           ncoeffs(1,:) = (/ 0.5*c1**2-eta, 0.0 /)
           ncoeffs(2,:) = (/ 0.25*(3*c1-1)-eta, 0.25*(1-c1) /)
@@ -1181,13 +1181,13 @@ module advection_local_DG
 
        !!Set up memory for the stages
        allocate(Q_stages(n_stages+1))
-       Q_stages(1) => Q_old
+       Q_stages(1)%ptr => Q_old
        if(n_stages>1) then
           do stage = 1, n_stages-1
-             call allocate(Q_stages(stage+1),Q%mesh, trim(Q%name)//"stage")
+             call allocate(Q_stages(stage+1)%ptr,Q%mesh, trim(Q%name)//"stage")
           end do
        end if
-       Q_stage(n_stages+1) => Q
+       Q_stages(n_stages+1)%ptr => Q
 
        !!Compute the stages themselves
        do stage = 1, n_stages
@@ -1195,7 +1195,7 @@ module advection_local_DG
                & Q_rhs,adv_mat,Q_stages,D,D_old,Flux,X,&
                & eta,mcoeffs(stage,:),ncoeffs(stage,:),&
                & n_stages,stage,dt,ele)
-          call petsc_solve(Q_stages(stage+1),adv_mat,Q_rhs)
+          call petsc_solve(Q_stages(stage+1)%ptr,adv_mat,Q_rhs)
        end do
 
        !!Compute the PV flux
@@ -1206,8 +1206,8 @@ module advection_local_DG
        end do
 
        !! Clean up memory for stages
-       do stage = 1, nstages-1
-          call deallocate(Q_stages(nstage+1))
+       do stage = 1, n_stages-1
+          call deallocate(Q_stages(n_stages+1)%ptr)
        end do
        deallocate(Q_stages)
        FLAbort('this is where TG option goes')
@@ -1221,7 +1221,7 @@ module advection_local_DG
        call zero(Qtest2)
        do ele = 1, ele_count(Q)
           call test_pv_flux_ele(Qtest1,Qtest2,QF,Q,Q_old,D,D_old,&
-               Flux,X,t_theta,ele)
+               Flux,X,down,t_theta,ele)
        end do
        ewrite(2,*) 'Error = ', maxval(abs(Qtest2%val)), maxval(abs(Qtest1%val))
        ewrite(2,*) 'Error = ', maxval(abs(Qtest1%val-Qtest2%val)), maxval(Qtest1%val)
@@ -1246,6 +1246,35 @@ module advection_local_DG
     ewrite(1,*) 'END  subroutine solve_advection_cg_tracer('
 
   end subroutine solve_advection_cg_tracer
+
+  subroutine construct_taylor_galerkin_stage_ele(&
+       & Q_rhs,adv_mat,Q_stages,D,D_old,Flux,X,&
+       & eta,mcoeffs,ncoeffs,&
+       & n_stages,stage,dt,ele)
+    type(scalar_field), intent(inout) :: Q_rhs
+    type(scalar_field), intent(in) :: D,D_old
+    type(scalar_field_pointer), dimension(n_stages), intent(inout) ::&
+         & Q_stages
+    type(csr_matrix), intent(inout) :: Adv_mat
+    type(vector_field), intent(in) :: X, Flux
+    real, intent(in) :: eta, mcoeffs(n_stages), ncoeffs(n_stages),dt
+    integer, intent(in) :: stage,n_stages,ele
+    !
+    FLAbort('asdf')
+  end subroutine construct_taylor_galerkin_stage_ele
+
+  subroutine construct_pv_flux_TG_ele(QF,Q_stages,D,D_old,&
+       & Flux,X,eta,mcoeffs,ncoeffs,n_stages,dt,ele)
+    type(scalar_field), intent(in) :: D,D_old
+    type(scalar_field_pointer), dimension(n_stages), intent(in) ::&
+         & Q_stages
+    type(vector_field), intent(inout) :: QF
+    type(vector_field), intent(in) :: X, Flux
+    real, intent(in) :: eta, mcoeffs(n_stages), ncoeffs(n_stages),dt
+    integer, intent(in) :: n_stages,ele
+    !
+    FLAbort('asdf')
+  end subroutine construct_pv_flux_TG_ele
   
   subroutine construct_advection_cg_tracer_theta_ele(Q_rhs,adv_mat,Q,D,D_old,&
        Discontinuity_detector_field,Flux,&
