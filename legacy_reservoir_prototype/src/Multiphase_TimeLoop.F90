@@ -179,7 +179,7 @@
 
 !!$ Material_Absorption_Stab = u_abs_stab; Material_Absorption = u_absorb; ScalarField_Absorption = v_absorb
 !!$ Component_Absorption = comp_absorb; ScalarAdvectionField_Absorption = t_absorb
-!!$ Velocity_U_Source = u_source, ScalarField_Source = v_source, Component_Source = comp_source, #
+!!$ Velocity_U_Source = u_source, ScalarField_Source = v_source, Component_Source = comp_source,
 !!$ ScalarAdvectionField_Source = Temperature_Source = t_source; Component_Diffusion_Operator_Coefficient = comp_diff_coef
 !!$ Momentum_Diffusion = udiffusion; ScalarAdvectionField_Diffusion = tdiffusion, 
 !!$ Component_Diffusion = comp_diffusion
@@ -315,7 +315,7 @@
            Permeability( totele, ndim, ndim ), &
 !!$
            Material_Absorption( mat_nonods, ndim * nphase, ndim * nphase ), &
-           Velocity_Absorption( u_nloc * totele, ndim * nphase, ndim * nphase ), &
+           Velocity_Absorption( mat_nonods, ndim * nphase, ndim * nphase ), &
            Material_Absorption_Stab( mat_nonods, ndim * nphase, ndim * nphase ), & 
            ScalarField_Absorption( cv_nonods, nphase, nphase ), Component_Absorption( cv_nonods, nphase, nphase ), &
            Temperature_Absorption( cv_nonods, nphase, nphase ), &
@@ -803,7 +803,7 @@
                     STOTEL, CV_SNDGLN, U_SNDGLN, P_SNDGLN, &
                     U_SNLOC, P_SNLOC, CV_SNLOC, &
 !!$
-                    x, y, z, Material_Absorption_Stab, Material_Absorption, Velocity_U_Source, Velocity_U_Source_CV, &
+                    x, y, z, Material_Absorption_Stab, Material_Absorption+Velocity_Absorption, Velocity_U_Source, Velocity_U_Source_CV, &
                     Velocity_U, Velocity_V, Velocity_W, Velocity_U_Old, Velocity_V_Old, Velocity_W_Old, &
                     Pressure_FEM, Pressure_CV, Density, Density_Old, PhaseVolumeFraction, PhaseVolumeFraction_Old, & 
                     DRhoDPressure, &
@@ -1393,7 +1393,7 @@
                  Permeability( totele, ndim, ndim ), &
 !!$
                  Material_Absorption( mat_nonods, ndim * nphase, ndim * nphase ), &
-                 Velocity_Absorption( u_nloc * totele, ndim * nphase, ndim * nphase ), &
+                 Velocity_Absorption( mat_nonods, ndim * nphase, ndim * nphase ), &
                  Material_Absorption_Stab( mat_nonods, ndim * nphase, ndim * nphase ), & 
                  ScalarField_Absorption( cv_nonods, nphase, nphase ), Component_Absorption( cv_nonods, nphase, nphase ), &
                  Temperature_Absorption( cv_nonods, nphase, nphase ), &

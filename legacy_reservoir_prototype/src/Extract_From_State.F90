@@ -882,7 +882,8 @@
               Velocity_U_BC_Spatial, wic_momu_bc, &
               Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, &
               suf_momu_bc, suf_momv_bc, suf_momw_bc, &
-              Velocity_U_Source, Velocity_Absorption, is_overlapping )
+              field_prot_source=Velocity_U_Source, field_prot_absorption=Velocity_Absorption, &
+              is_overlapping=is_overlapping )
       end do Loop_Velocity
 
 !!$
@@ -1272,12 +1273,12 @@
       ! Local variables
       type( mesh_type ), pointer :: pmesh, cmesh
       type(vector_field) :: dummy
-      type(vector_field), pointer :: positions
-      type(scalar_field), pointer :: pressure, field_source, field_absorption
+      type(vector_field), pointer :: positions, field_source, field_absorption
+      type(scalar_field), pointer :: pressure
       integer, dimension(:), allocatable :: sufid_bc, face_nodes
       character( len = option_path_len ) :: option_path, option_path2, field_name, bct
       integer :: ndim, stotel, snloc, snloc2, nonods, nobcs, bc_type, j, k, kk, l, &
-           shape_option( 2 ), count, u_nonods
+           shape_option( 2 ), count, u_nonods, idim, stat
       real, dimension( : ), allocatable :: initial_constant
       logical :: have_source, have_absorption
       character(len=8192) :: func
@@ -1295,6 +1296,18 @@
       field_name = trim( field % name )
       u_nonods = nonods
       if ( is_overlapping ) u_nonods = nonods * ele_loc( pmesh, 1)
+
+      have_absorption = .false.
+      Conditional_AbsorptionField: if( present( field_prot_absorption ) ) then
+         field_absorption => extract_vector_field( state( iphase ), trim(field_name) // 'Absorption', stat )
+         have_absorption = ( stat == 0 )
+         if ( have_absorption ) then
+            do idim = 1, ndim
+               field_prot_absorption( :, idim + (iphase-1)*ndim, idim + (iphase-1)*ndim ) =  &
+                    field_absorption % val( idim, : )
+            end do
+         end if
+      end if Conditional_AbsorptionField
 
       Conditional_InitialisationFromFLML: if( initialised ) then
 
