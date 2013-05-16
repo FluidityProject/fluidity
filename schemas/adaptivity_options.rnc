@@ -990,12 +990,18 @@ hr_adaptivity =
             }?,
             ## Uncuttable edge fraction.
             ## The fraction of edges that are marked as uncuttable when partitioning with edge weighting. i.e. 
-            ## all but the final adapt. Uncuttable elements are marked to allow elements with low element 
-            ## qualities, when measured against the metric, to adapt. Marking more elements may allow the mesh 
+            ## all but the final adapt. This value determines the range of edge weight values that are defined as being uncuttable, as a percentage of the worst value.
+            ## Uncuttable elements are marked to allow elements with low element 
+            ## qualities, when measured against the metric, to adapt. Marking more elements uncuttable may allow the mesh 
             ## to improve more quickly if Zoltan is capable of avoiding all of the edges, but could cause 
             ## Zoltan to lock edges for many adapts due to too many elements being uncuttable. The default value is 0.10
             element uncuttable_edge_fraction {
                 real
+            }?,
+            ## Don't extend uncuttable region.
+            ## If enabled only the poor elements will be marked as uncuttable. Otherwise the region is extended to uncuttable elements and neighbouring elements.
+            element dont_extend_uncuttable_region {
+                empty
             }?,
             ## Additional adapt iterations.
             ## Zoltan returns the minimum element quality to adaptivity. By setting additional adapt
@@ -1677,7 +1683,8 @@ galerkin_projection_vector =
       continuous_discontinuous_projection,
       supermesh_free?,
       supermesh_conservation?,
-      galerkin_projection_honour_strong_bcs?
+      galerkin_projection_honour_strong_bcs?,
+      surface_projection?
     )
 
 galerkin_projection_scalar =
@@ -1685,7 +1692,8 @@ galerkin_projection_scalar =
       continuous_discontinuous_projection,
       supermesh_free?,
       supermesh_conservation?,
-      galerkin_projection_honour_strong_bcs?
+      galerkin_projection_honour_strong_bcs?,
+      surface_projection?
     )
 
 continuous_projection =
@@ -1901,6 +1909,16 @@ supermesh_conservation =
             real
           }
         }?
+      }
+
+surface_projection =
+      ## Remap this field to the boundary surfaces before projecting. This is only intended for fields 
+      ## where values are non-zero only on the surfaces and you want this to remain so during projection. 
+      ## Any interior values will become zero. This will also only work if the boundaries do not move.
+      element surface_projection {
+         element surface_ids {
+            integer_vector
+         }?
       }
 
 mesh_adaptivity_options =

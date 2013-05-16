@@ -1166,11 +1166,19 @@ A low value is recommended. The default value is 1.03.</a:documentation>
             <element name="uncuttable_edge_fraction">
               <a:documentation>Uncuttable edge fraction.
 The fraction of edges that are marked as uncuttable when partitioning with edge weighting. i.e. 
-all but the final adapt. Uncuttable elements are marked to allow elements with low element 
-qualities, when measured against the metric, to adapt. Marking more elements may allow the mesh 
+all but the final adapt. This value determines the range of edge weight values that are defined as being uncuttable, as a percentage of the worst value.
+Uncuttable elements are marked to allow elements with low element 
+qualities, when measured against the metric, to adapt. Marking more elements uncuttable may allow the mesh 
 to improve more quickly if Zoltan is capable of avoiding all of the edges, but could cause 
 Zoltan to lock edges for many adapts due to too many elements being uncuttable. The default value is 0.10</a:documentation>
               <ref name="real"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="dont_extend_uncuttable_region">
+              <a:documentation>Don't extend uncuttable region.
+If enabled only the poor elements will be marked as uncuttable. Otherwise the region is extended to uncuttable elements and neighbouring elements.</a:documentation>
+              <empty/>
             </element>
           </optional>
           <optional>
@@ -1989,6 +1997,9 @@ potential and pressure, while still being balance preserving.</a:documentation>
     <optional>
       <ref name="galerkin_projection_honour_strong_bcs"/>
     </optional>
+    <optional>
+      <ref name="surface_projection"/>
+    </optional>
   </define>
   <define name="galerkin_projection_scalar">
     <ref name="continuous_discontinuous_projection"/>
@@ -2000,6 +2011,9 @@ potential and pressure, while still being balance preserving.</a:documentation>
     </optional>
     <optional>
       <ref name="galerkin_projection_honour_strong_bcs"/>
+    </optional>
+    <optional>
+      <ref name="surface_projection"/>
     </optional>
   </define>
   <define name="continuous_projection">
@@ -2267,6 +2281,18 @@ integral.  If the conservation fails this tolerance a warning is issued
 (level 0 verbosity) and vtus containing the field are output.</a:documentation>
             <ref name="real"/>
           </element>
+        </element>
+      </optional>
+    </element>
+  </define>
+  <define name="surface_projection">
+    <element name="surface_projection">
+      <a:documentation>Remap this field to the boundary surfaces before projecting. This is only intended for fields 
+where values are non-zero only on the surfaces and you want this to remain so during projection. 
+Any interior values will become zero. This will also only work if the boundaries do not move.</a:documentation>
+      <optional>
+        <element name="surface_ids">
+          <ref name="integer_vector"/>
         </element>
       </optional>
     </element>
