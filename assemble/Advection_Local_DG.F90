@@ -1260,23 +1260,18 @@ module advection_local_DG
     real, intent(in) :: eta, mcoeffs(n_stages), ncoeffs(n_stages),dt
     integer, intent(in) :: stage,n_stages,ele
     !
-    real, dimension(ele_loc(Q,ele),ele_loc(Q,ele)) :: l_adv_mat,tmp_mat
-    real, dimension(ele_loc(Q,ele)) :: l_rhs
-    real, dimension(U_nl%dim,ele_ngi(U_nl,ele)) :: U_nl_gi
-    real, dimension(X%dim, ele_ngi(U_nl,ele)) :: U_cart_gi
+    real, dimension(ele_loc(Q_rhs,ele),ele_loc(q_rhs,ele)) :: l_adv_mat,tmp_mat
+    real, dimension(ele_loc(q_rhs,ele)) :: l_rhs
     real, dimension(Flux%dim,ele_ngi(Flux,ele)) :: Flux_gi
-    real, dimension(Flux%dim,FLux%dim,ele_ngi(Flux,ele)) :: Grad_Flux_gi,&
-         & tensor_gi
     real, dimension(ele_ngi(X,ele)) :: detwei, Q_gi, D_gi, &
          & D_old_gi,div_flux_gi, detwei_l, detJ, DI_gi
     real, dimension(ele_loc(D,ele)) :: D_val
-    real, dimension(ele_loc(Q,ele)) :: Q_val
+    real, dimension(ele_loc(q_rhs,ele)) :: Q_val
     real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
     type(element_type), pointer :: Q_shape, Flux_shape
-    integer :: loc,dim1,dim2,gi
+    integer :: loc,dim1,dim2,gi,istage
     real :: tau, alpha, tol, area, h,c_sc,ratio
-    real, dimension(mesh_dim(U_nl), mesh_dim(U_nl), ele_ngi(Q,ele)) &
-         :: MetricT
+
     real, dimension(mesh_dim(X),ele_ngi(X,ele)) :: gradQ
     type(element_type), pointer :: D_shape
 
@@ -1285,18 +1280,27 @@ module advection_local_DG
          &=detwei, J=J, detJ=detJ)
 
     D_shape => ele_shape(D,ele)
-    Q_shape => ele_shape(Q,ele)
+    Q_shape => ele_shape(q_rhs,ele)
     Flux_shape => ele_shape(Flux,ele)
     D_val = invert_pi_ele(ele_val(D,ele),D_shape,detwei)
     D_gi = matmul(transpose(D_shape%n),D_val)
     D_val = invert_pi_ele(ele_val(D_old,ele),D_shape,detwei)
     D_old_gi = matmul(transpose(D_shape%n),D_val)
-    Q_gi = ele_val_at_quad(Q,ele)
+    Q_gi = ele_val_at_quad(q_rhs,ele)
     Flux_gi = ele_val_at_quad(Flux,ele)
-    U_nl_gi = ele_val_at_quad(U_nl,ele)
-    Q_val = ele_val(Q,ele)
+    Q_val = ele_val(q_rhs,ele)
 
-    FLAbort('asdf')
+    !Mass term
+    
+    !stage loop
+    do istage = 1, stages
+       !Advection term
+       
+       !Diffusive term
+    end do
+
+    FLAbort('not coded')
+
   end subroutine construct_taylor_galerkin_stage_ele
 
   subroutine construct_pv_flux_TG_ele(QF,Q_stages,D,D_old,&
