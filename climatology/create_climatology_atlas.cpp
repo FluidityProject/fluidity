@@ -89,7 +89,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef HAVE_NETCDF
+#ifdef HAVE_LIBNETCDF
 #include <netcdf.h>
 #endif
 
@@ -279,7 +279,7 @@ int diffuse_boundaries(deque< deque< vector<float> > > &dat, float minv, int ite
 
 int write_netcdf_variable(int ncid, const int* dimids, const char* name, const char* long_name, const char *units,
         deque< deque< vector<float> > >& variable){
-#ifdef HAVE_NETCDF
+#ifdef HAVE_LIBNETCDF
 
   float max_v, min_v;
   killworth_correction(variable, max_v, min_v);
@@ -339,7 +339,7 @@ int write_netcdf_variable(int ncid, const int* dimids, const char* name, const c
 }
 
 int main(){
-#ifdef HAVE_NETCDF
+#ifdef HAVE_LIBNETCDF
   // Start to write the climatology data
   int ncid = nccreate("climatology.nc", NC_CLOBBER);
   

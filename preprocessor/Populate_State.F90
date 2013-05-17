@@ -97,7 +97,7 @@ module populate_state_module
        
   !! A list of relative paths under /material_phase[i]
   !! that are searched for additional fields to be added.
-  character(len=OPTION_PATH_LEN), dimension(9) :: additional_fields_relative=&
+  character(len=OPTION_PATH_LEN), dimension(10) :: additional_fields_relative=&
        (/ &
        "/subgridscale_parameterisations/Mellor_Yamada                                                       ", &
        "/subgridscale_parameterisations/prescribed_diffusivity                                              ", &
@@ -105,9 +105,10 @@ module populate_state_module
        "/subgridscale_parameterisations/k-epsilon                                                           ", &
        "/subgridscale_parameterisations/k-epsilon/debugging_options/source_term_output_fields               ", &
        "/subgridscale_parameterisations/k-epsilon/debugging_options/prescribed_source_terms                 ", &
-       "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/dynamic_les ", &
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/second_order", &
-       "/equation_of_state/compressible/shallow_water                                                       "  &
+       "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/fourth_order", &
+       "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/wale        ", &
+       "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/dynamic_les " &
        /)
 
   !! Relative paths under a field that are searched for grandchildren
@@ -3123,6 +3124,7 @@ contains
     type(vector_field), pointer :: positions
     integer :: ele
     real :: vol
+    type(scalar_field) :: temp_s_field
 
     positions => extract_vector_field(states(1), "Coordinate")
     if (allocated(domain_bbox)) then
@@ -3147,8 +3149,11 @@ contains
 
     !If on-the-sphere, calculate the radius of the sphere.
     if (have_option("/geometry/spherical_earth/")) then
-      surface_radius = maxval(magnitude(positions))
+      temp_s_field = magnitude(positions)
+      surface_radius = maxval(temp_s_field)
       call allmax(surface_radius)
+      ! Need to deallocate the magnitude field create, or we get a leak
+      call deallocate(temp_s_field)
     end if
 
 
