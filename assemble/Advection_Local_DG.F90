@@ -1191,6 +1191,7 @@ module advection_local_DG
 
        !!Compute the stages themselves
        do stage = 1, n_stages
+          call zero(Q_rhs)
           call construct_taylor_galerkin_stage_ele(&
                & Q_rhs,adv_mat,Q_stages,D,D_old,Flux,X,&
                & eta,mcoeffs(stage,:),ncoeffs(stage,:),&
@@ -1278,6 +1279,7 @@ module advection_local_DG
     ! Get J and detwei
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei&
          &=detwei, J=J, detJ=detJ)
+    detwei_l = Q_shape%quadrature%weight
 
     D_shape => ele_shape(D,ele)
     Q_shape => ele_shape(q_rhs,ele)
@@ -1290,8 +1292,20 @@ module advection_local_DG
     Flux_gi = ele_val_at_quad(Flux,ele)
     Q_val = ele_val(q_rhs,ele)
 
-    !Mass term
-    
+    !! Only assemble matrix if first stage
+    if(stage==1) then
+       l_adv_mat = 0.0
+       !Mass term
+       l_adv_mat = shape_shape(ele_shape(Q,ele),ele_shape(Q,ele),D_gi&
+            &*detwei_l)
+       
+       !Diffusive term
+       FLAbort('had to stop coding here')
+       tmp_mat = dshape_tensor_dshape(Q_shape%dn, &
+            MetricT, Q_shape%dn,&
+            h*D_gi*DI_gi*Q_shape%quadrature%weight)
+    end if
+
     !stage loop
     do istage = 1, stages
        !Advection term
