@@ -1261,11 +1261,15 @@ module advection_local_DG
     real, intent(in) :: eta, mcoeffs(n_stages), ncoeffs(n_stages),dt
     integer, intent(in) :: stage,n_stages,ele
     !
-    real, dimension(ele_loc(Q_rhs,ele),ele_loc(q_rhs,ele)) :: l_adv_mat,tmp_mat
+    real, dimension(ele_loc(Q_rhs,ele),ele_loc(q_rhs,ele)) :: l_adv_mat,&
+         & d_mat, k_mat, m_mat
     real, dimension(ele_loc(q_rhs,ele)) :: l_rhs
     real, dimension(Flux%dim,ele_ngi(Flux,ele)) :: Flux_gi
     real, dimension(ele_ngi(X,ele)) :: detwei, Q_gi, D_gi, &
          & D_old_gi,div_flux_gi, detwei_l, detJ, DI_gi
+    real, dimension(mesh_dim(flux), mesh_dim(flux), ele_ngi(Q_rhs,ele)) &
+         :: Metric
+
     real, dimension(ele_loc(D,ele)) :: D_val
     real, dimension(ele_loc(q_rhs,ele)) :: Q_val
     real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
@@ -1284,36 +1288,55 @@ module advection_local_DG
     D_shape => ele_shape(D,ele)
     Q_shape => ele_shape(q_rhs,ele)
     Flux_shape => ele_shape(Flux,ele)
+    !D_gi, D_old_gi contains factor of det(J) (projected)
     D_val = invert_pi_ele(ele_val(D,ele),D_shape,detwei)
     D_gi = matmul(transpose(D_shape%n),D_val)
     D_val = invert_pi_ele(ele_val(D_old,ele),D_shape,detwei)
     D_old_gi = matmul(transpose(D_shape%n),D_val)
-    Q_gi = ele_val_at_quad(q_rhs,ele)
     Flux_gi = ele_val_at_quad(Flux,ele)
-    Q_val = ele_val(q_rhs,ele)
+
+    !! grad operator
+    d_mat = -dshape_dot_vector_shape(q_shape%dn,flux_gi,q_shape,detwei_l)
+    !! streamwise diffusion operator
+    do dim1 = 1, mesh_dim(D)
+       do dim2 = 1, mesh_dim(D)
+          Metric(dim1,dim2,:) = Flux_gi(dim1,:)*Flux_gi(dim2,:)
+       end do
+    end do
+    k_mat = dshape_tensor_dshape(Q_shape%dn, &
+         Metric, Q_shape%dn,&
+         detwei_l/(0.5*(D_gi+D_old_gi)*detJ))
 
     !! Only assemble matrix if first stage
     if(stage==1) then
-       l_adv_mat = 0.0
-       !Mass term
-       l_adv_mat = shape_shape(ele_shape(Q,ele),ele_shape(Q,ele),D_gi&
+       !! mass operator
+       m_mat = shape_shape(Q_shape,Q_shape,D_gi&
             &*detwei_l)
+
+       l_adv_mat = m_mat + dt*dt*k_mat
        
-       !Diffusive term
-       FLAbort('had to stop coding here')
-       tmp_mat = dshape_tensor_dshape(Q_shape%dn, &
-            MetricT, Q_shape%dn,&
-            h*D_gi*DI_gi*Q_shape%quadrature%weight)
+       call addto(adv_mat,ele_nodes(Q_rhs,ele), &
+            ele_nodes(Q_rhs,ele), l_adv_mat)
     end if
 
-    !stage loop
-    do istage = 1, stages
-       !Advection term
-       
-       !Diffusive term
-    end do
+    !! RHS
+    !mass term
+    m_mat = shape_shape(Q_shape,Q_shape,D_old_gi&
+         &*detwei_l)    
+    Q_val = ele_val(q_stages(1)%ptr,ele)
+    call addto(q_rhs,ele_nodes(q_rhs,ele), &
+         & matmul(m_mat,q_val))
 
-    FLAbort('not coded')
+    !stage loop
+    do istage = 1, stage
+       Q_val = ele_val(q_stages(istage)%ptr,ele)
+       !Advection term
+       call addto(q_rhs, ele_nodes(Q_rhs,ele), &
+            dt*mcoeffs(istage)*matmul(d_mat,q_val))
+       !Diffusive term
+       call addto(q_rhs, ele_nodes(Q_rhs,ele), &
+            -dt*dt*ncoeffs(istage)*matmul(k_mat,q_val))
+    end do
 
   end subroutine construct_taylor_galerkin_stage_ele
 
