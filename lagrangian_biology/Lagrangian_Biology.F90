@@ -163,6 +163,9 @@ contains
              end if
           end do
 
+          ! Figure out how many env variables need to be buffered
+          fgroup%n_env_buffer = option_count(trim(fgroup%option_path)//"/environment/field/old_position")
+
           ! Add field names to the Python module
           call lebiology_add_envfields(fgroup)
        else
@@ -255,7 +258,7 @@ contains
     character(len=OPTION_PATH_LEN) :: stage_buffer
     real, allocatable, dimension(:,:) :: coords
     real:: current_time
-    integer :: ag, fg, stage, dim, n_agents, stat, n_env_buffer
+    integer :: ag, fg, stage, dim, n_agents, stat
 
     if (.not.have_option("/embedded_models/lagrangian_ensemble_biology")) return
 
@@ -283,9 +286,6 @@ contains
        fgroup => get_functional_group(fg)
 
        if (fgroup%is_external) cycle
-
-       ! Figure out how many env variables need to be buffered
-       n_env_buffer = option_count(trim(fgroup%option_path)//"/environment/field/old_position")
 
        ! Create agents and insert into list
        call get_option(trim(fgroup%init_options)//"/number_of_agents", n_agents)
@@ -320,8 +320,8 @@ contains
                 end if
 
                 ! Allocate environment variable sample buffer
-                if (n_env_buffer > 0) then
-                   allocate(agent%env_samples(n_env_buffer))
+                if (fgroup%n_env_buffer > 0) then
+                   allocate(agent%env_samples(fgroup%n_env_buffer))
                 end if
 
                 agent => agent%next
@@ -959,6 +959,10 @@ contains
                 allocate(agent%food_thresholds(size(fgroup%food_sets(1)%varieties)))
                 agent%food_thresholds = 0.0
              end if
+          end if
+
+          if (fgroup%n_env_buffer > 0) then 
+             allocate(agent%env_samples(fgroup%n_env_buffer))
           end if
 
           agent=>agent%next

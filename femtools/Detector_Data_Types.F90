@@ -292,6 +292,8 @@ module detector_data_types
     ! List of environment fields to sample before the agent update
     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: envfield_names
     integer, dimension(:), allocatable :: envfield_sampling
+    ! Number of environment sampling values buffered during the timestep
+    integer :: n_env_buffer
 
     integer, dimension(:), allocatable :: ivars_uptake, ivars_release
 
