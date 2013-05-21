@@ -319,6 +319,21 @@ For performance reasons only the specified fields are accessible.</a:documentati
           </zeroOrMore>
         </element>
       </optional>
+      <optional>
+        <element name="python_ingest_hook">
+          <a:documentation>Python state invocation executed after deriving ingestion requests.
+This is a hack to emulate the VEW algorithm for agent-agent predation.
+For performance reasons only the specified fields are accessible.</a:documentation>
+          <ref name="python_code"/>
+          <zeroOrMore>
+            <element name="field_alias">
+              <attribute name="name">
+                <data type="string"/>
+              </attribute>
+            </element>
+          </zeroOrMore>
+        </element>
+      </optional>
     </element>
   </define>
   <define name="state_variable">

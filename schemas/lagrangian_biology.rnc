@@ -258,6 +258,19 @@ lagrangian_biology =
                   }
                )*
             }?
+         ),
+         (
+            ## Python state invocation executed after deriving ingestion requests.
+	    ## This is a hack to emulate the VEW algorithm for agent-agent predation.
+            ## For performance reasons only the specified fields are accessible.
+            element python_ingest_hook {
+               python_code,
+               (
+                  element field_alias {
+                     attribute name { xsd:string }
+                  }
+               )*
+            }?
          )
       }
    )

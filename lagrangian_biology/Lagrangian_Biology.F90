@@ -65,8 +65,8 @@ implicit none
 
   character(len=FIELD_NAME_LEN), dimension(:), pointer :: uptake_field_names, release_field_names
 
-  character(len=FIELD_NAME_LEN), dimension(:), pointer :: python_post_fields
-  character(len=PYTHON_FUNC_LEN) :: python_post_kernel
+  character(len=FIELD_NAME_LEN), dimension(:), pointer :: python_post_fields, python_ingest_fields
+  character(len=PYTHON_FUNC_LEN) :: python_post_kernel, python_ingest_kernel
 
   integer, parameter :: BIOFIELD_NONE=0, BIOFIELD_DIAG=1, BIOFIELD_UPTAKE=2, BIOFIELD_RELEASE=3, BIOFIELD_INGESTED=4, &
                         BIOFIELD_FOOD_REQUEST=5, BIOFIELD_FOOD_INGEST=6
@@ -369,7 +369,7 @@ contains
 
   subroutine init_python_states(state)
     type(state_type), dimension(:), intent(inout) :: state
-    character(len=OPTION_PATH_LEN) :: pypost_path, field_alias
+    character(len=OPTION_PATH_LEN) :: pypost_path, pyingest_path, field_alias
     type(vector_field), pointer :: xfield
     type(scalar_field), pointer :: field
     integer :: f, n_fields
@@ -385,6 +385,19 @@ contains
           call get_option( trim(field_alias)//"/name", python_post_fields(f))
        end do
     end if
+
+    pyingest_path = "/embedded_models/lagrangian_ensemble_biology/python_ingest_hook"
+    if (have_option( trim(pyingest_path) )) then
+       n_fields = option_count( trim(pyingest_path)//"/field_alias" )
+       allocate(python_ingest_fields(n_fields))
+       call get_option(trim(pyingest_path), python_ingest_kernel)
+
+       do f=1, n_fields
+          write(field_alias, "(a,i0,a)") trim(pyingest_path)//"/field_alias[",f-1,"]"
+          call get_option( trim(field_alias)//"/name", python_ingest_fields(f))
+       end do
+    end if
+
   end subroutine init_python_states
 
   subroutine read_functional_group(fgroup, fg_path) 
@@ -744,6 +757,10 @@ contains
 
     if (associated(python_post_fields)) then
        deallocate(python_post_fields)
+    end if
+
+    if (associated(python_ingest_fields)) then
+       deallocate(python_ingest_fields)
     end if
 
     call delete_id_counter()
@@ -1579,7 +1596,7 @@ contains
 
     type(functional_group), pointer :: fgroup, target_fg
     type(detector_linked_list), pointer :: agent_array
-    type(scalar_field), pointer :: conc_field, request_field, depletion_field, ing_cells_field
+    type(scalar_field), pointer :: conc_field, request_field, depletion_field, ing_cells_field, pyingest_field
     type(scalar_field_pointer), dimension(:), allocatable :: prey_chem_fields
     type(scalar_field_pointer), dimension(:), allocatable :: fgroup_ing_fields
     type(vector_field), pointer :: xfield
@@ -1591,7 +1608,7 @@ contains
     real :: ele_volume, cells_ing, target_chem, absorbed_chem
     real, dimension(1) :: depletion
     type(elepath_list), pointer :: path_ele
-    integer :: i, c, fs, fg, fv, t, ele, ingest_ind, stage
+    integer :: i, c, fs, fg, fv, t, ele, ingest_ind, stage, f
 
     ewrite(2,*) "Lagrangian_biology: Handling ingestion"
 
@@ -1605,6 +1622,31 @@ contains
           if (size(fgroup%food_sets) > 0) then
              call ingestion_derive_requests(state, fgroup)
           end if
+       end if
+    end do
+
+    ! Before processing the derived requests, 
+    ! we execute some Python code to hack and fiddle with it
+    ! This is bad !!!, but requried to re-create the VEW algorithm
+    if (associated(python_ingest_fields)) then
+       call profiler_tic("/update_lagrangian_biology::python_ingest_hook")
+       call python_reset()
+       call python_add_statec(trim(state%name), len_trim(state%name))
+       call python_add_field(xfield, state)
+
+       do f=1, size(python_ingest_fields)
+          pyingest_field => extract_scalar_field(state, trim(python_ingest_fields(f)))
+          call python_add_field(pyingest_field, state)
+       end do
+
+       call python_run_string( trim(python_ingest_kernel) )    
+       call profiler_toc("/update_lagrangian_biology::python_ingest_hook")
+    end if
+
+
+    do fg=1, get_num_functional_groups()
+       fgroup => get_functional_group(fg)
+       if (allocated(fgroup%food_sets)) then
 
           do fs=1, size(fgroup%food_sets)
              fset => fgroup%food_sets(fs)
