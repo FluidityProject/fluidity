@@ -506,6 +506,7 @@
             else
                DensityComponent_Field = Density_Field
                Derivative_DensityComponent_Pressure = DRho_DPressure
+               if ( present( DensityCpComponent_Field ) ) DensityCpComponent_Field = Density_Field
             end if
 
          end if
