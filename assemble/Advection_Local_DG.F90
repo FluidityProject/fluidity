@@ -1360,11 +1360,10 @@ module advection_local_DG
     real, dimension(ele_loc(q_stages(1)%ptr,ele)) :: l_rhs
     real, dimension(Flux%dim,ele_ngi(Flux,ele)) :: Flux_gi,flux_perp_gi, &
          Qflux_gi
-    real, dimension(FLux%dim,ele_ngi(Flux,ele)) :: Grad_q_gi
     real, dimension(ele_ngi(X,ele)) :: detwei, D_gi, &
          & D_old_gi,div_flux_gi, detwei_l, detJ, DI_gi
-    real, dimension(:,:) :: Q_stages_gi
-    real, dimension(:,:,:) :: grad_Q_stages_gi
+    real, dimension(:,:), allocatable :: Q_stages_gi
+    real, dimension(:,:,:), allocatable :: grad_Q_stages_gi
     real, dimension(mesh_dim(flux), mesh_dim(flux), &
          ele_ngi(Q_stages(1)%ptr,ele)) &
          :: Metric
@@ -1374,7 +1373,7 @@ module advection_local_DG
     real, dimension(mesh_dim(X),ele_loc(QF,ele)) :: QFlux_perp_rhs
     type(element_type), pointer :: Q_shape, Flux_shape,d_shape
     real, dimension(X%dim, ele_ngi(X, ele)) :: up_gi
-    integer :: loc,dim1,dim2,istage,orientation
+    integer :: loc,dim1,dim2,istage,orientation,gi
 
     D_shape => ele_shape(D,ele)
     Q_shape => ele_shape(q_stages(1)%ptr,ele)
@@ -1421,27 +1420,33 @@ module advection_local_DG
     
     !! Putting it all together:
     q_stages_gi = 0.
-    allocate(q_stages_gi(n_stages,ele_ngi(QF,ele)), &
-         grad_q_stages_gi(n_stages,mesh_dim(QF),ele_ngi(QF,ele)))
-    do istage = 1, n_stages
+    allocate(q_stages_gi(n_stages+1,ele_ngi(QF,ele)), &
+         grad_q_stages_gi(n_stages+1,mesh_dim(QF),ele_ngi(QF,ele)))
+    do istage = 1, n_stages+1
        Q_stages_gi(istage,:) = ele_val_at_quad(Q_stages(istage)%ptr,ele)
-       Grad_q_gi(istage,:,:) = ele_grad_at_quad(Q_stages(istage)%ptr,ele,&
+       Grad_q_stages_gi(istage,:,:) = &
+            ele_grad_at_quad(Q_stages(istage)%ptr,ele,&
             Q_shape%dn)
     end do
 
     !Stage loop
-    QFlux_gi = 0.
     do istage = 1, n_stages
        !1st derivative
-       QFlux_gi = QFlux_gi + dt*mcoeffs(n_stages,istage)*&
+       QFlux_gi = QFlux_gi + dt*mcoeffs(istage)*&
             Flux_gi*Q_stages_gi
        !2nd derivative
-       do dim1 = 1, mesh_dim(Flux)
-          QFlux_gi = QFLux_gi - dt*dt*ncoeffs(n_stages,istage)*&
-               Metric(:,dim1,:)*grad_q_gi(istage,dim1,:)
-       end do
+       forall(gi = 1:ele_ngi(Flux,ele))
+          QFlux_gi(:,gi) = QFlux_gi(:,gi) - dt*dt*ncoeffs(istage)*&
+               &matmul(Metric(:,:,gi),grad_q_stages_gi(istage,:,gi))/&
+               &(0.5*(D_gi(gi)+D_old_gi(gi))*detJ(gi))
+       end forall
     end do
-    FLAbort('whoah')
+    !Diffusion term from final stage
+    forall(gi=1:ele_ngi(Flux,ele))
+       QFlux_gi(:,gi) = QFlux_gi(:,gi) - eta*dt*dt*&
+            &matmul(Metric(:,:,gi),grad_q_stages_gi(n_stages+1,:,gi))/&
+            &(0.5*(D_gi(gi)+D_old_gi(gi))*detJ(gi))
+    end forall
 
     !! Evaluate 
     !! < w, F^\perp > in local coordinates
