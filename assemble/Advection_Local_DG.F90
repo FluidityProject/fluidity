@@ -1357,14 +1357,14 @@ module advection_local_DG
     real, intent(in) :: eta, mcoeffs(n_stages), ncoeffs(n_stages),dt
     integer, intent(in) :: n_stages,ele
     !
-    real, dimension(ele_loc(Q_stages(1)%ptr,ele),&
-         ele_loc(q_stages(1)%ptr,ele)) :: l_adv_mat,&
-         & dt_mat, dt2_mat, m_mat
     real, dimension(ele_loc(q_stages(1)%ptr,ele)) :: l_rhs
     real, dimension(Flux%dim,ele_ngi(Flux,ele)) :: Flux_gi,flux_perp_gi, &
          Qflux_gi
-    real, dimension(ele_ngi(X,ele)) :: detwei, Q_gi, D_gi, &
+    real, dimension(FLux%dim,ele_ngi(Flux,ele)) :: Grad_q_gi
+    real, dimension(ele_ngi(X,ele)) :: detwei, D_gi, &
          & D_old_gi,div_flux_gi, detwei_l, detJ, DI_gi
+    real, dimension(:,:) :: Q_stages_gi
+    real, dimension(:,:,:) :: grad_Q_stages_gi
     real, dimension(mesh_dim(flux), mesh_dim(flux), &
          ele_ngi(Q_stages(1)%ptr,ele)) &
          :: Metric
@@ -1413,11 +1413,35 @@ module advection_local_DG
     !                        +dt*dt*\eta<-\nabla\gamma,F/D(F.\nabla q^{s+1})>
     !------------------------------------------------
 
-    !! Putting it all together:
-    !Stage loop
-    do istage = 1, n_stages
-       FLAbort('whoah')
+    do dim1 = 1, mesh_dim(D)
+       do dim2 = 1, mesh_dim(D)
+          Metric(dim1,dim2,:) = Flux_gi(dim1,:)*Flux_gi(dim2,:)
+       end do
     end do
+    
+    !! Putting it all together:
+    q_stages_gi = 0.
+    allocate(q_stages_gi(n_stages,ele_ngi(QF,ele)), &
+         grad_q_stages_gi(n_stages,mesh_dim(QF),ele_ngi(QF,ele)))
+    do istage = 1, n_stages
+       Q_stages_gi(istage,:) = ele_val_at_quad(Q_stages(istage)%ptr,ele)
+       Grad_q_gi(istage,:,:) = ele_grad_at_quad(Q_stages(istage)%ptr,ele,&
+            Q_shape%dn)
+    end do
+
+    !Stage loop
+    QFlux_gi = 0.
+    do istage = 1, n_stages
+       !1st derivative
+       QFlux_gi = QFlux_gi + dt*mcoeffs(n_stages,istage)*&
+            Flux_gi*Q_stages_gi
+       !2nd derivative
+       do dim1 = 1, mesh_dim(Flux)
+          QFlux_gi = QFLux_gi - dt*dt*ncoeffs(n_stages,istage)*&
+               Metric(:,dim1,:)*grad_q_gi(istage,dim1,:)
+       end do
+    end do
+    FLAbort('whoah')
 
     !! Evaluate 
     !! < w, F^\perp > in local coordinates
@@ -1425,8 +1449,7 @@ module advection_local_DG
     Flux_perp_gi(1,:) = -orientation*QFlux_gi(2,:)
     Flux_perp_gi(2,:) =  orientation*QFlux_gi(1,:)
 
-    QFlux_perp_rhs = shape_vector_rhs(Q_shape,Flux_perp_gi,&
-         & Flux_shape%quadrature%weight)
+    QFlux_perp_rhs = shape_vector_rhs(Q_shape,Flux_perp_gi,detwei_l)
 
     call set(QF,ele_nodes(QF,ele),QFlux_perp_rhs)
 
