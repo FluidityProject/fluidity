@@ -1817,10 +1817,6 @@ contains
      end if !have_viscosity
     
     end if !dg.and.(have_viscosity.or.have_advection)
-
-    do dim = 1, u%dim
-      rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(shape_shape(u_shape, u_shape, detwei), u_val(dim, :))
-    end do
     
     !----------------------------------------------------------------------
     ! Perform global assembly.

@@ -741,9 +741,13 @@ prognostic_velocity_field =
                      }|
                      ## Classical scheme from Bassi and Rebay 
                      ## (JCP 131 267-179 1997)
+                     ## Partial stress form is available for inhomogenous isotropic viscosities
                      element bassi_rebay {
                      (
+                       ## solves the viscosity term in the form:  d/dx_j K du_i/dx_j
                        element tensor_form { empty }|
+                       ## solves the viscosity term in the form:  d/dx_j k (du_i/dx_j + du_j/dx_j)
+                       ## note that the viscosity, k, must be isoptropic
                        element partial_stress_form { empty }
                      )
                      }|

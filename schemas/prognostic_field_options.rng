@@ -912,12 +912,16 @@ scaled by C_0</a:documentation>
               </element>
               <element name="bassi_rebay">
                 <a:documentation>Classical scheme from Bassi and Rebay 
-(JCP 131 267-179 1997)</a:documentation>
+(JCP 131 267-179 1997)
+Partial stress form is available for inhomogenous isotropic viscosities</a:documentation>
                 <choice>
                   <element name="tensor_form">
+                    <a:documentation>solves the viscosity term in the form:  d/dx_j K du_i/dx_j</a:documentation>
                     <empty/>
                   </element>
                   <element name="partial_stress_form">
+                    <a:documentation>solves the viscosity term in the form:  d/dx_j k (du_i/dx_j + du_j/dx_j)
+note that the viscosity, k, must be isoptropic</a:documentation>
                     <empty/>
                   </element>
                 </choice>
