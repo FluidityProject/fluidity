@@ -194,7 +194,7 @@ module advection_local_DG
     delta_T%option_path = T%option_path
     if(present(Flux)) then
        call allocate(delta_T_total, T%mesh, "deltaT_total")
-       call zero(delta_T_total)
+      call zero(delta_T_total)
     end if
     call allocate(rhs, T%mesh, trim(field_name)//" RHS")
     call zero(rhs)
@@ -291,6 +291,7 @@ module advection_local_DG
       call set(Tstage,T)
 
       RKstage_loop: do k = 1, nstages
+         ewrite(1,*) 'RKstage', k
 
          ! dT = Advection * T
          call mult(delta_T, matrix, Tstage)
@@ -567,7 +568,6 @@ module advection_local_DG
     end do
 
     !Then the constraints
-    print*, row, size(flux_mat,1), size(flux_mat,2)
     do i = 1, flux_constraint%n_constraints
        do dim1 = 1, mesh_dim(flux)
           flux_mat(&
