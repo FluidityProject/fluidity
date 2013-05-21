@@ -2,7 +2,7 @@ SHELL = sh
 
 SIM = Sloshing_Water_Tank
 
-input: clean
+input:  clean
 
 	gmsh -2 src/2d_mesh.geo
 
