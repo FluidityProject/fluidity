@@ -1147,7 +1147,7 @@ module advection_local_DG
        do ele = 1, ele_count(Q)
           call construct_advection_cg_tracer_theta_ele(Q_rhs,adv_mat,Q,D,D_old,&
                &Discontinuity_detector_field,Flux&
-               &,X,down,U_nl,dt,t_theta,disc_max,ele)
+               &,X,U_nl,dt,t_theta,disc_max,ele)
        end do
        ewrite(2,*) 'Q_RHS', maxval(abs(Q_rhs%val))
        call petsc_solve(Q,adv_mat,Q_rhs)
@@ -1202,7 +1202,7 @@ module advection_local_DG
        !!Compute the PV flux
        do ele = 1, ele_count(Q)
           call construct_pv_flux_TG_ele(QF,Q_stages,D,D_old,&
-               & Flux,X,eta,mcoeffs(n_stages,:),&
+               & Flux,X,down,eta,mcoeffs(n_stages,:),&
                & ncoeffs(n_stages,:),n_stages,dt,ele)
        end do
 
@@ -1262,28 +1262,21 @@ module advection_local_DG
     integer, intent(in) :: stage,n_stages,ele
     !
     real, dimension(ele_loc(Q_rhs,ele),ele_loc(q_rhs,ele)) :: l_adv_mat,&
-         & d_mat, k_mat, m_mat
+         & dt_mat, dt2_mat, m_mat
     real, dimension(ele_loc(q_rhs,ele)) :: l_rhs
     real, dimension(Flux%dim,ele_ngi(Flux,ele)) :: Flux_gi
     real, dimension(ele_ngi(X,ele)) :: detwei, Q_gi, D_gi, &
          & D_old_gi,div_flux_gi, detwei_l, detJ, DI_gi
     real, dimension(mesh_dim(flux), mesh_dim(flux), ele_ngi(Q_rhs,ele)) &
          :: Metric
-
     real, dimension(ele_loc(D,ele)) :: D_val
     real, dimension(ele_loc(q_rhs,ele)) :: Q_val
     real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
     type(element_type), pointer :: Q_shape, Flux_shape
-    integer :: loc,dim1,dim2,gi,istage
-    real :: tau, alpha, tol, area, h,c_sc,ratio
+    integer :: loc,dim1,dim2,istage
 
     real, dimension(mesh_dim(X),ele_ngi(X,ele)) :: gradQ
     type(element_type), pointer :: D_shape
-
-    ! Get J and detwei
-    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei&
-         &=detwei, J=J, detJ=detJ)
-    detwei_l = Q_shape%quadrature%weight
 
     D_shape => ele_shape(D,ele)
     Q_shape => ele_shape(q_rhs,ele)
@@ -1295,15 +1288,29 @@ module advection_local_DG
     D_old_gi = matmul(transpose(D_shape%n),D_val)
     Flux_gi = ele_val_at_quad(Flux,ele)
 
-    !! grad operator
-    d_mat = -dshape_dot_vector_shape(q_shape%dn,flux_gi,q_shape,detwei_l)
-    !! streamwise diffusion operator
+    ! Get J and detwei
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei&
+         &=detwei, J=J, detJ=detJ)
+    detwei_l = Q_shape%quadrature%weight
+
+    !! Remember, we are solving
+    !! (qD)_t = div(Fq)
+    !! I don't know why I gave F the negative sign but I'm not fixing it
+    !! now!!
+
+    !! The operators below have been given signs
+    !! consistent with the fact that we are replacing
+    !! time operators with space operators
+
+    !! grad operator (minus sign because integrated by parts)
+    dt_mat = -dshape_dot_vector_shape(q_shape%dn,flux_gi,q_shape,detwei_l)
+    !! streamwise diffusion operator (minus sign because integrated by parts)
     do dim1 = 1, mesh_dim(D)
        do dim2 = 1, mesh_dim(D)
           Metric(dim1,dim2,:) = Flux_gi(dim1,:)*Flux_gi(dim2,:)
        end do
     end do
-    k_mat = dshape_tensor_dshape(Q_shape%dn, &
+    dt2_mat = -dshape_tensor_dshape(Q_shape%dn, &
          Metric, Q_shape%dn,&
          detwei_l/(0.5*(D_gi+D_old_gi)*detJ))
 
@@ -1313,7 +1320,7 @@ module advection_local_DG
        m_mat = shape_shape(Q_shape,Q_shape,D_gi&
             &*detwei_l)
 
-       l_adv_mat = m_mat + dt*dt*k_mat
+       l_adv_mat = m_mat - eta*dt*dt*dt2_mat
        
        call addto(adv_mat,ele_nodes(Q_rhs,ele), &
             ele_nodes(Q_rhs,ele), l_adv_mat)
@@ -1332,34 +1339,106 @@ module advection_local_DG
        Q_val = ele_val(q_stages(istage)%ptr,ele)
        !Advection term
        call addto(q_rhs, ele_nodes(Q_rhs,ele), &
-            dt*mcoeffs(istage)*matmul(d_mat,q_val))
+            dt*mcoeffs(istage)*matmul(dt_mat,q_val))
        !Diffusive term
        call addto(q_rhs, ele_nodes(Q_rhs,ele), &
-            -dt*dt*ncoeffs(istage)*matmul(k_mat,q_val))
+            dt*dt*ncoeffs(istage)*matmul(dt2_mat,q_val))
     end do
 
   end subroutine construct_taylor_galerkin_stage_ele
 
   subroutine construct_pv_flux_TG_ele(QF,Q_stages,D,D_old,&
-       & Flux,X,eta,mcoeffs,ncoeffs,n_stages,dt,ele)
+       & Flux,X,down,eta,mcoeffs,ncoeffs,n_stages,dt,ele)
     type(scalar_field), intent(in) :: D,D_old
     type(scalar_field_pointer), dimension(n_stages), intent(in) ::&
          & Q_stages
     type(vector_field), intent(inout) :: QF
-    type(vector_field), intent(in) :: X, Flux
+    type(vector_field), intent(in) :: X, Flux,down
     real, intent(in) :: eta, mcoeffs(n_stages), ncoeffs(n_stages),dt
     integer, intent(in) :: n_stages,ele
     !
-    FLAbort('asdf')
+    real, dimension(ele_loc(Q_stages(1)%ptr,ele),&
+         ele_loc(q_stages(1)%ptr,ele)) :: l_adv_mat,&
+         & dt_mat, dt2_mat, m_mat
+    real, dimension(ele_loc(q_stages(1)%ptr,ele)) :: l_rhs
+    real, dimension(Flux%dim,ele_ngi(Flux,ele)) :: Flux_gi,flux_perp_gi, &
+         Qflux_gi
+    real, dimension(ele_ngi(X,ele)) :: detwei, Q_gi, D_gi, &
+         & D_old_gi,div_flux_gi, detwei_l, detJ, DI_gi
+    real, dimension(mesh_dim(flux), mesh_dim(flux), &
+         ele_ngi(Q_stages(1)%ptr,ele)) &
+         :: Metric
+    real, dimension(ele_loc(D,ele)) :: D_val
+    real, dimension(ele_loc(q_stages(1)%ptr,ele)) :: Q_val
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+    real, dimension(mesh_dim(X),ele_loc(QF,ele)) :: QFlux_perp_rhs
+    type(element_type), pointer :: Q_shape, Flux_shape,d_shape
+    real, dimension(X%dim, ele_ngi(X, ele)) :: up_gi
+    integer :: loc,dim1,dim2,istage,orientation
+
+    D_shape => ele_shape(D,ele)
+    Q_shape => ele_shape(q_stages(1)%ptr,ele)
+    Flux_shape => ele_shape(Flux,ele)
+    !D_gi, D_old_gi contains factor of det(J) (projected)
+    D_val = invert_pi_ele(ele_val(D,ele),D_shape,detwei)
+    D_gi = matmul(transpose(D_shape%n),D_val)
+    D_val = invert_pi_ele(ele_val(D_old,ele),D_shape,detwei)
+    D_old_gi = matmul(transpose(D_shape%n),D_val)
+    Flux_gi = ele_val_at_quad(Flux,ele)
+    up_gi = -ele_val_at_quad(down,ele)
+    call get_up_gi(X,ele,up_gi,orientation)
+
+    ! Get J and detwei
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei&
+         &=detwei, J=J, detJ=detJ)
+    detwei_l = Q_shape%quadrature%weight
+
+    !Find flux QF such that
+    ! <\gamma, (qD)^{n+1}> = <\gamma, (qD)^n> - <\nabla\gamma, QF>
+    ! Substituting vorticity definition:
+    ! <-\nabla^\perp\gamma, u^n> = <-\nabla^\perp\gamma, u^{n+1}> 
+    !                                    +<-\nabla\gamma^\perp, QF^\perp>
+    ! taking w = -\nabla^\perp\gamma:
+    ! <w,u^{n+1}>=<w,u^n> + <w,QF^\perp>
+    ! We actually store the inner product with test function (FQ_rhs)
+    ! (avoids having to do a solve)
+
+    !------------------------------------------------
+    !Taylor Galerkin stages
+
+    !TG update equation is
+    !<\gamma, \Delta \zeta> = \sum_{j=1}^{s}<-\nabla\gamma,m_{nj}*dt*F*q^j>
+    !                        +\sum_{j=1}^{s}<-\nabla\gamma,n_{nj}*dt*dt*
+    !                                                    F/D(F.\nabla q^j)>
+    !                        +dt*dt*\eta<-\nabla\gamma,F/D(F.\nabla q^{s+1})>
+    !------------------------------------------------
+
+    !! Putting it all together:
+    !Stage loop
+    do istage = 1, n_stages
+       FLAbort('whoah')
+    end do
+
+    !! Evaluate 
+    !! < w, F^\perp > in local coordinates
+
+    Flux_perp_gi(1,:) = -orientation*QFlux_gi(2,:)
+    Flux_perp_gi(2,:) =  orientation*QFlux_gi(1,:)
+
+    QFlux_perp_rhs = shape_vector_rhs(Q_shape,Flux_perp_gi,&
+         & Flux_shape%quadrature%weight)
+
+    call set(QF,ele_nodes(QF,ele),QFlux_perp_rhs)
+
   end subroutine construct_pv_flux_TG_ele
   
   subroutine construct_advection_cg_tracer_theta_ele(Q_rhs,adv_mat,Q,D,D_old,&
        Discontinuity_detector_field,Flux,&
-       & X,down,U_nl,dt,t_theta,disc_max,ele)
+       & X,U_nl,dt,t_theta,disc_max,ele)
     type(scalar_field), intent(in) :: D,D_old,Q, Discontinuity_detector_field
     type(scalar_field), intent(inout) :: Q_rhs
     type(csr_matrix), intent(inout) :: Adv_mat
-    type(vector_field), intent(in) :: X, Flux, down,U_nl
+    type(vector_field), intent(in) :: X, Flux,U_nl
     integer, intent(in) :: ele
     real, intent(in) :: dt, t_theta,disc_max
     !
