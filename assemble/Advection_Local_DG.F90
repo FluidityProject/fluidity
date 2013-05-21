@@ -1180,24 +1180,32 @@ module advection_local_DG
        end if
 
        !!Set up memory for the stages
+       ewrite(2,*) 'Allocating memory for Q_stages'
        allocate(Q_stages(n_stages+1))
        Q_stages(1)%ptr => Q_old
        if(n_stages>1) then
           do stage = 1, n_stages-1
+             allocate(Q_stages(stage+1)%ptr)
              call allocate(Q_stages(stage+1)%ptr,Q%mesh, trim(Q%name)//"stage")
+             q_stages(stage+1)%ptr%option_path = Q%option_path
           end do
        end if
        Q_stages(n_stages+1)%ptr => Q
 
        !!Compute the stages themselves
        do stage = 1, n_stages
+          ewrite(2,*) 'stage', stage
           call zero(Q_rhs)
-          call construct_taylor_galerkin_stage_ele(&
-               & Q_rhs,adv_mat,Q_stages,D,D_old,Flux,X,&
-               & eta,mcoeffs(stage,:),ncoeffs(stage,:),&
-               & n_stages,stage,dt,ele)
+          do ele = 1, ele_count(D)
+             call construct_taylor_galerkin_stage_ele(&
+                  & Q_rhs,adv_mat,Q_stages,D,D_old,Flux,X,&
+                  & eta,mcoeffs(stage,:),ncoeffs(stage,:),&
+                  & n_stages,stage,dt,ele)
+          end do
           call petsc_solve(Q_stages(stage+1)%ptr,adv_mat,Q_rhs)
        end do
+
+       ewrite(2,*) 'Computing PV flux'
 
        !!Compute the PV flux
        do ele = 1, ele_count(Q)
@@ -1494,7 +1502,7 @@ module advection_local_DG
     ! Get J and detwei
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei&
          &=detwei, J=J, detJ=detJ)
-
+    
     D_shape => ele_shape(D,ele)
     Q_shape => ele_shape(Q,ele)
     Flux_shape => ele_shape(Flux,ele)
