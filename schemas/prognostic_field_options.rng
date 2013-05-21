@@ -913,7 +913,14 @@ scaled by C_0</a:documentation>
               <element name="bassi_rebay">
                 <a:documentation>Classical scheme from Bassi and Rebay 
 (JCP 131 267-179 1997)</a:documentation>
-                <empty/>
+                <choice>
+                  <element name="tensor_form">
+                    <empty/>
+                  </element>
+                  <element name="partial_stress_form">
+                    <empty/>
+                  </element>
+                </choice>
               </element>
               <element name="arbitrary_upwind">
                 <a:documentation>Scheme in which upwinding is applied in

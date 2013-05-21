@@ -1,0 +1,19 @@
+CREATING mms_p1dgp2_stressform_rb_sp_tools.py:
+
+edit mms_p1dgp2_stressform_rb_sp.sage as required
+in the terminal, run:
+sage mms_p1dgp2_stressform_rb_sp.sage > mms_p1dgp2_stressform_rb_sp_tools.py
+
+EDITING MMS_X.flml and MMS_X.geo (copyscript):
+
+These are copied to MMS_A, MMS_B, MMS_C, MMS_D cases by copyscript
+DO NOT CHANGE - timestep or references to MMS_X in MMS_X.flml
+DO NOT CHANGE - n = XX in MMS_X.geo
+
+FUNCTION PRINTER
+
+run using:
+python function_printer.py AA BB CC DD .. n_rows
+where:
+	AA, BB, CC, DD are names of functions in mms_p1dgp2_stressform_rb_sp_tools.py (any number can be entered)
+	n_rows is the number of rows to display the functions on

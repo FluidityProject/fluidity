@@ -742,7 +742,10 @@ prognostic_velocity_field =
                      ## Classical scheme from Bassi and Rebay 
                      ## (JCP 131 267-179 1997)
                      element bassi_rebay {
-                        empty
+                     (
+                       element tensor_form { empty }|
+                       element partial_stress_form { empty }
+                     )
                      }|
                      ## Scheme in which upwinding is applied in
                      ## alternating directions. Devised by C.Pain.
