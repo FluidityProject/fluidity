@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 from pylab import *
-from math import atan2, pi
 import argparse
 import vtktools
 
@@ -31,23 +30,21 @@ for vtu in range(size(args.input_vtu)):
     vtu_object = vtktools.vtu(vtu_name)
     print "Done importing ", vtu_name
 
+    pos = vtu_object.GetLocations()
+    radius = sqrt(sum(pos**2, axis=1))
     if args.earth_radius is None:
-      rearth = sqrt(sum((vtu_object.GetLocations())**2,axis=1).max())
-      print "Earth radius = ", rearth
+      rearth = radius.max()
     else:
       rearth = args.earth_radius
+    print "Earth radius = ", rearth
 
-    npoints = vtu_object.ugrid.GetNumberOfPoints()
-    for i in range(npoints):
-        x,y,z = vtu_object.ugrid.GetPoint(i)
-        radius = sqrt( x**2 + y**2 + z**2 )
-        theta = arccos(z/radius)
-        theta = pi/2.0 - theta
-        phi = atan2(y,x)
-        new_x = phi*deg2rad
-        new_y = theta*deg2rad
-        new_z = (radius-rearth)/args.depth_scale
-        vtu_object.ugrid.GetPoints().SetPoint(i,new_x,new_y,new_z)
+    theta = arccos(pos[:,2]/radius)
+    theta = pi/2.0 - theta
+    phi = arctan2(pos[:,1],pos[:,0])
+    new_pos = array([phi*deg2rad, theta*deg2rad, (radius-rearth)/args.depth_scale]).T
+
+    for i in range(len(new_pos)):
+        vtu_object.ugrid.GetPoints().SetPoint(i,new_pos[i])
 
     if output_filename.endswith('.pvtu'):
         output_filename = output_filename[:-4]+'vtu'
