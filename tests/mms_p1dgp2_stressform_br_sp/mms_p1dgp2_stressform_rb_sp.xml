@@ -62,18 +62,6 @@ d_finish_time = stat("MMS_D.stat")["ElapsedTime"]["value"][-1]
     <test name="velocity convergence order > 1.9" language="python">
 assert(convergence[0] &gt; 1.9)
     </test>
-    <test name="checking A finished in less than 100 seconds" language="python">
-assert(a_finish_time-100.0 &lt; 1.E-10)
-    </test>
-    <test name="checking B finished in less than 100 seconds" language="python">
-assert(b_finish_time-100.0 &lt; 1.E-10)
-    </test>
-    <test name="checking C finished in less than 100 seconds" language="python">
-assert(c_finish_time-100.0 &lt; 1.E-10)
-    </test>
-    <test name="checking D finished in less than 100 seconds" language="python">
-assert(d_finish_time-100.0 &lt; 1.E-10)
-    </test>
   </pass_tests>
   <warn_tests>
   </warn_tests>

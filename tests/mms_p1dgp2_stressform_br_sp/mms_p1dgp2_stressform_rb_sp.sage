@@ -11,29 +11,20 @@ def function(phi_0, phi_x, phi_y, phi_xy,
     f = f_0 + f_x + f_y + f_xy
     return f
 
-f = 2.0
-u = cos(f*y) 
 u = function(0.0, 1.0, 1.0, 0.0, 
              0.0, 1.0, 0.0, 1.0, 0.5, 0.0,
              1.0, 1.0, 2.0)
-p = 0#function(-0.10, 0.06, 0.10, 0.0,
-              #1.0, 0.0, 0.0, 1.0, 1.0, 0.0,
-              #1.0, 1.0, 1.0)
+v = integral(-diff(u,x),y) # divergence free 
 nu = function(4.0, 1.2, 1.4, -1.2, 
               1.0, 0.0, 0.0, 1.0, 1.0, 0.0,
-              1.7, 1.1, 0.3)
-v = cos(f*x)
-v = integral(-diff(u,x),y) # divergence free  
-
-# nu = 1.0
+              1.7, 1.1, 0.3) 
 
 tau_xx = 2*nu*diff(u,x)            
 tau_xy = nu*(diff(u,y) + diff(v,x))
 tau_yy = 2*nu*diff(v,y)            
 tau_yx = nu*(diff(u,y) + diff(v,x))  
 
-# Su = u*diff(u,x) + v*diff(u,y) - diff(tau_xx, x) - diff(tau_xy, y) + diff(p,x)  
-# Sv = u*diff(v,x) + v*diff(v,y) - diff(tau_yx, x) - diff(tau_yy, y) + diff(p,y)   
+# Helmholtz problem  
 Su = - (diff(tau_xx, x) + diff(tau_xy, y)) + u
 Sv = - (diff(tau_yx, x) + diff(tau_yy, y)) + v
   
@@ -45,9 +36,6 @@ print ''
 print 'def v(X):'
 print '    return', str(v).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''  
-print 'def p(X):'
-print '    return', str(p).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
-print '' 
 print 'def nu(X):'
 print '    return', str(nu).replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''

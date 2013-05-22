@@ -6,9 +6,6 @@ def u(X):
 def v(X):
     return X[1]*sin(X[0])
 
-def p(X):
-    return 0
-
 def nu(X):
     return -1.20*sin(0.300*X[0]*X[1]) + 1.20*sin(1.70*X[0]) + 1.40*cos(1.10*X[1]) + 4.00
 
