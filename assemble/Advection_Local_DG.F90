@@ -1186,6 +1186,7 @@ module advection_local_DG
        if(n_stages>1) then
           do stage = 2, n_stages
              call allocate(Q_stages(stage),Q%mesh, trim(Q%name)//"stage")
+             call zero(Q_stages(stage))
              q_stages(stage)%option_path = Q%option_path
           end do
        end if
@@ -1201,7 +1202,13 @@ module advection_local_DG
                   & eta,mcoeffs(stage,:),ncoeffs(stage,:),&
                   & n_stages,stage,dt,ele)
           end do
+
+          ewrite(2,*) maxval(abs(Q_rhs%val)), 'RHS'
+
           call petsc_solve(Q_stages(stage+1),adv_mat,Q_rhs)
+          
+          ewrite(2,*) maxval(abs(Q_stages(stage+1)%val)), 'soln'
+
        end do
 
        ewrite(2,*) 'Computing PV flux'
@@ -1212,6 +1219,10 @@ module advection_local_DG
                & Flux,X,down,eta,mcoeffs(n_stages,:),&
                & ncoeffs(n_stages,:),n_stages,dt,ele)
        end do
+
+       call set(Q,Q_stages(stage+1))
+
+       ewrite(2,*) 'Deallocating memory'
 
        !! Clean up memory for stages
        do stage = 1, n_stages-1
@@ -1277,13 +1288,17 @@ module advection_local_DG
     real, dimension(mesh_dim(flux), mesh_dim(flux), ele_ngi(Q_rhs,ele)) &
          :: Metric
     real, dimension(ele_loc(D,ele)) :: D_val
-    real, dimension(ele_loc(q_rhs,ele)) :: Q_val
+    real, dimension(ele_loc(q_rhs,ele)) :: Q_val, q_rhs_val
     real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
     type(element_type), pointer :: Q_shape, Flux_shape
     integer :: loc,dim1,dim2,istage
 
     real, dimension(mesh_dim(X),ele_ngi(X,ele)) :: gradQ
     type(element_type), pointer :: D_shape
+
+    ! Get J and detwei
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei&
+         &=detwei, J=J, detJ=detJ)
 
     D_shape => ele_shape(D,ele)
     Q_shape => ele_shape(q_rhs,ele)
@@ -1295,9 +1310,6 @@ module advection_local_DG
     D_old_gi = matmul(transpose(D_shape%n),D_val)
     Flux_gi = ele_val_at_quad(Flux,ele)
 
-    ! Get J and detwei
-    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei&
-         &=detwei, J=J, detJ=detJ)
     detwei_l = Q_shape%quadrature%weight
 
     !! Remember, we are solving
@@ -1324,40 +1336,43 @@ module advection_local_DG
     !! Only assemble matrix if first stage
     if(stage==1) then
        !! mass operator
-       m_mat = shape_shape(Q_shape,Q_shape,D_gi&
-            &*detwei_l)
+       ewrite(2,*) 'cjc d_gi,detwei_l',maxval(abs(d_gi)),maxval(abs(detwei_l))
+       m_mat = shape_shape(Q_shape,Q_shape,D_gi*detwei_l)
 
        l_adv_mat = m_mat - eta*dt*dt*dt2_mat
        
+       ewrite(2,*) 'cjc l_adv_mat', maxval(abs(m_mat)), maxval(abs(l_adv_mat))
+
        call addto(adv_mat,ele_nodes(Q_rhs,ele), &
             ele_nodes(Q_rhs,ele), l_adv_mat)
     end if
+
+    q_rhs_val = 0.
 
     !! RHS
     !mass term
     m_mat = shape_shape(Q_shape,Q_shape,D_old_gi&
          &*detwei_l)    
     Q_val = ele_val(q_stages(1),ele)
-    call addto(q_rhs,ele_nodes(q_rhs,ele), &
-         & matmul(m_mat,q_val))
+    q_rhs_val = matmul(m_mat,q_val)
 
     !stage loop
     do istage = 1, stage
        Q_val = ele_val(q_stages(istage),ele)
        !Advection term
-       call addto(q_rhs, ele_nodes(Q_rhs,ele), &
-            dt*mcoeffs(istage)*matmul(dt_mat,q_val))
+       q_rhs_val = q_rhs_val + dt*mcoeffs(istage)*matmul(dt_mat,q_val)
        !Diffusive term
-       call addto(q_rhs, ele_nodes(Q_rhs,ele), &
-            dt*dt*ncoeffs(istage)*matmul(dt2_mat,q_val))
+       q_rhs_val = q_rhs_val + dt*dt*ncoeffs(istage)*matmul(dt2_mat,q_val)
     end do
+
+    call addto(q_rhs,ele_nodes(q_rhs,ele),q_val)
 
   end subroutine construct_taylor_galerkin_stage_ele
 
   subroutine construct_pv_flux_TG_ele(QF,Q_stages,D,D_old,&
        & Flux,X,down,eta,mcoeffs,ncoeffs,n_stages,dt,ele)
     type(scalar_field), intent(in) :: D,D_old
-    type(scalar_field), dimension(n_stages), intent(in) :: Q_stages
+    type(scalar_field), dimension(n_stages+1), intent(in) :: Q_stages
     type(vector_field), intent(inout) :: QF
     type(vector_field), intent(in) :: X, Flux,down
     real, intent(in) :: eta, mcoeffs(n_stages), ncoeffs(n_stages),dt
@@ -1399,14 +1414,14 @@ module advection_local_DG
     detwei_l = Q_shape%quadrature%weight
 
     !Find flux QF such that
-    ! <\gamma, (qD)^{n+1}> = <\gamma, (qD)^n> - <\nabla\gamma, QF>
-    ! Substituting vorticity definition:
-    ! <-\nabla^\perp\gamma, u^n> = <-\nabla^\perp\gamma, u^{n+1}> 
-    !                                    +<-\nabla\gamma^\perp, QF^\perp>
-    ! taking w = -\nabla^\perp\gamma:
-    ! <w,u^{n+1}>=<w,u^n> + <w,QF^\perp>
-    ! We actually store the inner product with test function (FQ_rhs)
-    ! (avoids having to do a solve)
+    !<\gamma, (qD)^{n+1}> = <\gamma, (qD)^n> - <\nabla\gamma, QF>
+    !Substituting vorticity definition:
+    !<-\nabla^\perp\gamma, u^n> = <-\nabla^\perp\gamma, u^{n+1}> 
+    !                                   +<-\nabla\gamma^\perp, QF^\perp>
+    !taking w = -\nabla^\perp\gamma:
+    !<w,u^{n+1}>=<w,u^n> + <w,QF^\perp>
+    !We actually store the inner product with test function (FQ_rhs)
+    !(avoids having to do a solve)
 
     !------------------------------------------------
     !Taylor Galerkin stages
@@ -1424,45 +1439,59 @@ module advection_local_DG
        end do
     end do
     
-    !! Putting it all together:
-    q_stages_gi = 0.
-    allocate(q_stages_gi(n_stages+1,ele_ngi(QF,ele)), &
-         grad_q_stages_gi(n_stages+1,mesh_dim(QF),ele_ngi(QF,ele)))
-    do istage = 1, n_stages+1
-       Q_stages_gi(istage,:) = ele_val_at_quad(Q_stages(istage),ele)
-       Grad_q_stages_gi(istage,:,:) = &
-            ele_grad_at_quad(Q_stages(istage),ele,&
-            Q_shape%dn)
-    end do
+    ! !! Putting it all together:
+     allocate(q_stages_gi(n_stages+1,ele_ngi(QF,ele)), &
+          grad_q_stages_gi(n_stages+1,mesh_dim(QF),ele_ngi(QF,ele)))
+     q_stages_gi = 0.
+     do istage = 1, n_stages+1
+        Q_stages_gi(istage,:) = ele_val_at_quad(Q_stages(istage),ele)
+        Grad_q_stages_gi(istage,:,:) = &
+             ele_grad_at_quad(Q_stages(istage),ele,&
+             Q_shape%dn)
+     end do
 
-    !Stage loop
-    do istage = 1, n_stages
-       !1st derivative
-       QFlux_gi = QFlux_gi + dt*mcoeffs(istage)*&
-            Flux_gi*Q_stages_gi
-       !2nd derivative
-       forall(gi = 1:ele_ngi(Flux,ele))
-          QFlux_gi(:,gi) = QFlux_gi(:,gi) - dt*dt*ncoeffs(istage)*&
-               &matmul(Metric(:,:,gi),grad_q_stages_gi(istage,:,gi))/&
-               &(0.5*(D_gi(gi)+D_old_gi(gi))*detJ(gi))
-       end forall
+     ewrite(2,*) 'q_stages_gi',q_stages_gi
+     ewrite(2,*) 'grad_q_stages_gi',grad_q_stages_gi
+
+     QFlux_gi = 0.
+
+     !Stage loop
+     do istage = 1, n_stages
+        !1st derivative
+        forall(dim1=1:mesh_dim(Flux))
+           QFlux_gi(dim1,:) = QFlux_gi(dim1,:) + dt*mcoeffs(istage)*&
+                Flux_gi(dim1,:)*Q_stages_gi(istage,:)
+        end forall
+        ewrite(2,*), 'stage', istage, QFlux_gi
+        !2nd derivative
+        forall(gi = 1:ele_ngi(Flux,ele))
+           QFlux_gi(:,gi) = QFlux_gi(:,gi) - dt*dt*ncoeffs(istage)*&
+                &matmul(Metric(:,:,gi),grad_q_stages_gi(istage,:,gi))/&
+                &(0.5*(D_gi(gi)+D_old_gi(gi))*detJ(gi))
+        end forall
+        ewrite(2,*), '2nd deriv stage', istage, QFlux_gi
     end do
-    !Diffusion term from final stage
+    ! !Diffusion term from final stage
     forall(gi=1:ele_ngi(Flux,ele))
        QFlux_gi(:,gi) = QFlux_gi(:,gi) - eta*dt*dt*&
             &matmul(Metric(:,:,gi),grad_q_stages_gi(n_stages+1,:,gi))/&
             &(0.5*(D_gi(gi)+D_old_gi(gi))*detJ(gi))
     end forall
+    ewrite(2,*), 'diff', QFlux_gi
 
-    !! Evaluate 
-    !! < w, F^\perp > in local coordinates
+    ! !! Evaluate 
+    ! !! < w, F^\perp > in local coordinates
 
     Flux_perp_gi(1,:) = -orientation*QFlux_gi(2,:)
     Flux_perp_gi(2,:) =  orientation*QFlux_gi(1,:)
 
+    ewrite(2,*) Flux_perp_gi,'Flux_perp_gi'
+    ewrite(2,*) detwei_l,'detwei_l'
     QFlux_perp_rhs = shape_vector_rhs(Q_shape,Flux_perp_gi,detwei_l)
 
-    call set(QF,ele_nodes(QF,ele),QFlux_perp_rhs)
+    ! call set(QF,ele_nodes(QF,ele),QFlux_perp_rhs)
+
+    ewrite(2,*) 'arf'
 
   end subroutine construct_pv_flux_TG_ele
   
