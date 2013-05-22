@@ -1149,7 +1149,7 @@ module advection_local_DG
                &Discontinuity_detector_field,Flux&
                &,X,U_nl,dt,t_theta,disc_max,ele)
        end do
-       ewrite(2,*) 'Q_RHS', maxval(abs(Q_rhs%val))
+       ewrite(2,*) 'cjc Q_RHS', maxval(abs(Q_rhs%val))
        call petsc_solve(Q,adv_mat,Q_rhs)
        !! Compute the PV flux to pass to velocity equation
        do ele = 1, ele_count(Q)
@@ -1182,7 +1182,8 @@ module advection_local_DG
        !!Set up memory for the stages
        ewrite(2,*) 'Allocating memory for Q_stages'
        allocate(Q_stages(n_stages+1))
-       Q_stages(1) = Q_old
+       Q_stages(1) = Q
+       ewrite(2,*) 'cjc q_stages(1), q_old', maxval(abs(Q_stages(1)%val)),maxval(abs(Q_old%val))
        if(n_stages>1) then
           do stage = 2, n_stages
              call allocate(Q_stages(stage),Q%mesh, trim(Q%name)//"stage")
@@ -1203,11 +1204,11 @@ module advection_local_DG
                   & n_stages,stage,dt,ele)
           end do
 
-          ewrite(2,*) maxval(abs(Q_rhs%val)), 'RHS'
+          ewrite(2,*) maxval(abs(Q_rhs%val)), 'cjc RHS'
 
           call petsc_solve(Q_stages(stage+1),adv_mat,Q_rhs)
           
-          ewrite(2,*) maxval(abs(Q_stages(stage+1)%val)), 'soln'
+          ewrite(2,*) maxval(abs(Q_stages(stage+1)%val)), 'cjc soln'
 
        end do
 
@@ -1220,7 +1221,7 @@ module advection_local_DG
                & ncoeffs(n_stages,:),n_stages,dt,ele)
        end do
 
-       call set(Q,Q_stages(stage+1))
+       !call set(Q,Q_stages(stage+1))
 
        ewrite(2,*) 'Deallocating memory'
 
@@ -1229,8 +1230,11 @@ module advection_local_DG
           call deallocate(Q_stages(n_stages+1))
        end do
        deallocate(Q_stages)
-       FLAbort('this is where TG option goes')
     end if
+    EWRITE(2,*) 'deallocating adv_mat cjc'
+    call deallocate(adv_mat)
+    EWRITE(2,*) 'deallocating q_rhs cjc'
+    call deallocate(Q_rhs)
 
     if(have_option('/material_phase::Fluid/scalar_field::PotentialVorticity/&
          &prognostic/debug')) then
@@ -1252,9 +1256,6 @@ module advection_local_DG
        call deallocate(Qtest1)
        call deallocate(Qtest2)
     end if
-
-    call deallocate(adv_mat)
-    call deallocate(Q_rhs)
 
     if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
          &continuous_galerkin/discontinuity_capturing')) then
@@ -1336,13 +1337,10 @@ module advection_local_DG
     !! Only assemble matrix if first stage
     if(stage==1) then
        !! mass operator
-       ewrite(2,*) 'cjc d_gi,detwei_l',maxval(abs(d_gi)),maxval(abs(detwei_l))
        m_mat = shape_shape(Q_shape,Q_shape,D_gi*detwei_l)
 
        l_adv_mat = m_mat - eta*dt*dt*dt2_mat
        
-       ewrite(2,*) 'cjc l_adv_mat', maxval(abs(m_mat)), maxval(abs(l_adv_mat))
-
        call addto(adv_mat,ele_nodes(Q_rhs,ele), &
             ele_nodes(Q_rhs,ele), l_adv_mat)
     end if
@@ -1396,21 +1394,23 @@ module advection_local_DG
     real, dimension(X%dim, ele_ngi(X, ele)) :: up_gi
     integer :: loc,dim1,dim2,istage,orientation,gi
 
+    ! Get J and detwei
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei&
+         &=detwei, J=J, detJ=detJ)
+
     D_shape => ele_shape(D,ele)
     Q_shape => ele_shape(q_stages(1),ele)
     Flux_shape => ele_shape(Flux,ele)
     !D_gi, D_old_gi contains factor of det(J) (projected)
     D_val = invert_pi_ele(ele_val(D,ele),D_shape,detwei)
     D_gi = matmul(transpose(D_shape%n),D_val)
+    ewrite(2,*) 'cjc d_val d_gi', maxval(abs(d_val)),maxval(abs(d_gi))
     D_val = invert_pi_ele(ele_val(D_old,ele),D_shape,detwei)
     D_old_gi = matmul(transpose(D_shape%n),D_val)
     Flux_gi = ele_val_at_quad(Flux,ele)
     up_gi = -ele_val_at_quad(down,ele)
     call get_up_gi(X,ele,up_gi,orientation)
 
-    ! Get J and detwei
-    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei&
-         &=detwei, J=J, detJ=detJ)
     detwei_l = Q_shape%quadrature%weight
 
     !Find flux QF such that
@@ -1450,8 +1450,8 @@ module advection_local_DG
              Q_shape%dn)
      end do
 
-     ewrite(2,*) 'q_stages_gi',q_stages_gi
-     ewrite(2,*) 'grad_q_stages_gi',grad_q_stages_gi
+     !ewrite(2,*) 'q_stages_gi',q_stages_gi
+     !ewrite(2,*) 'grad_q_stages_gi',grad_q_stages_gi
 
      QFlux_gi = 0.
 
@@ -1462,14 +1462,15 @@ module advection_local_DG
            QFlux_gi(dim1,:) = QFlux_gi(dim1,:) + dt*mcoeffs(istage)*&
                 Flux_gi(dim1,:)*Q_stages_gi(istage,:)
         end forall
-        ewrite(2,*), 'stage', istage, QFlux_gi
+        ewrite(2,*), 'cjc stage', istage, maxval(abs(QFlux_gi))
         !2nd derivative
+        ewrite(2,*) 'cjc d_gi', maxval(abs(D_gi)),maxval(abs(D_old_gi)),maxval(abs(detJ))
         forall(gi = 1:ele_ngi(Flux,ele))
            QFlux_gi(:,gi) = QFlux_gi(:,gi) - dt*dt*ncoeffs(istage)*&
                 &matmul(Metric(:,:,gi),grad_q_stages_gi(istage,:,gi))/&
                 &(0.5*(D_gi(gi)+D_old_gi(gi))*detJ(gi))
         end forall
-        ewrite(2,*), '2nd deriv stage', istage, QFlux_gi
+        ewrite(2,*), '2nd deriv stage', istage, maxval(abs(QFlux_gi))
     end do
     ! !Diffusion term from final stage
     forall(gi=1:ele_ngi(Flux,ele))
@@ -1477,7 +1478,7 @@ module advection_local_DG
             &matmul(Metric(:,:,gi),grad_q_stages_gi(n_stages+1,:,gi))/&
             &(0.5*(D_gi(gi)+D_old_gi(gi))*detJ(gi))
     end forall
-    ewrite(2,*), 'diff', QFlux_gi
+    ewrite(2,*), 'cjc diff', maxval(abs(QFlux_gi))
 
     ! !! Evaluate 
     ! !! < w, F^\perp > in local coordinates
@@ -1485,13 +1486,11 @@ module advection_local_DG
     Flux_perp_gi(1,:) = -orientation*QFlux_gi(2,:)
     Flux_perp_gi(2,:) =  orientation*QFlux_gi(1,:)
 
-    ewrite(2,*) Flux_perp_gi,'Flux_perp_gi'
-    ewrite(2,*) detwei_l,'detwei_l'
-    QFlux_perp_rhs = shape_vector_rhs(Q_shape,Flux_perp_gi,detwei_l)
-
-    ! call set(QF,ele_nodes(QF,ele),QFlux_perp_rhs)
-
-    ewrite(2,*) 'arf'
+    ewrite(2,*) maxval(abs(Flux_perp_gi)),'cjc Flux_perp_gi'
+    ewrite(2,*) maxval(abs(detwei_l)),ele,'cjc detwei_l'
+    QFlux_perp_rhs = shape_vector_rhs(Flux_shape,Flux_perp_gi,detwei_l)
+    
+    !call set(QF,ele_nodes(QF,ele),QFlux_perp_rhs)
 
   end subroutine construct_pv_flux_TG_ele
   
