@@ -1516,11 +1516,11 @@ contains
           do dim = 1, u%dim
              if(multiphase) then
                ! Viscosity matrix is \int{grad(N_A)*viscosity*vfrac*grad(N_B)} for multiphase.
-               Viscosity_mat(dim1,dim1,:loc,:loc) = &
+               Viscosity_mat(dim,dim,:loc,:loc) = &
                     dshape_tensor_dshape(du_t, ele_val_at_quad(Viscosity,ele), &
                     &                    du_t, detwei*nvfrac_gi)
              else
-               Viscosity_mat(dim1,dim1,:loc,:loc) = &
+               Viscosity_mat(dim,dim,:loc,:loc) = &
                     dshape_tensor_dshape(du_t, ele_val_at_quad(Viscosity,ele), &
                     &                    du_t, detwei)
              end if
