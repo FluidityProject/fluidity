@@ -165,7 +165,7 @@ module supermesh_construction
     type(element_type), intent(in) :: supermesh_shape
     type(vector_field), intent(out) :: supermesh
     integer, intent(out), optional :: stat
-    
+
     integer :: ele_A
     type(inode), pointer :: llnode
     type(vector_field), dimension(map_BA%length) :: intersection
