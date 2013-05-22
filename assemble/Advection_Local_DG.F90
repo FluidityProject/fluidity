@@ -1110,7 +1110,7 @@ module advection_local_DG
     real :: dt, t_theta, residual, disc_max, c1, eta
     type(scalar_field), pointer :: discontinuity_detector_field
     character(len = OPTION_PATH_LEN) :: discontinuity_detector_name
-    type(scalar_field_pointer), dimension(:), allocatable :: Q_stages
+    type(scalar_field), dimension(:), allocatable :: Q_stages
     real, dimension(:,:), allocatable :: mcoeffs, ncoeffs
 
     ewrite(1,*) '  subroutine solve_advection_cg_tracer('
@@ -1182,15 +1182,14 @@ module advection_local_DG
        !!Set up memory for the stages
        ewrite(2,*) 'Allocating memory for Q_stages'
        allocate(Q_stages(n_stages+1))
-       Q_stages(1)%ptr => Q_old
+       Q_stages(1) = Q_old
        if(n_stages>1) then
-          do stage = 1, n_stages-1
-             allocate(Q_stages(stage+1)%ptr)
-             call allocate(Q_stages(stage+1)%ptr,Q%mesh, trim(Q%name)//"stage")
-             q_stages(stage+1)%ptr%option_path = Q%option_path
+          do stage = 2, n_stages
+             call allocate(Q_stages(stage),Q%mesh, trim(Q%name)//"stage")
+             q_stages(stage)%option_path = Q%option_path
           end do
        end if
-       Q_stages(n_stages+1)%ptr => Q
+       Q_stages(n_stages+1) = Q
 
        !!Compute the stages themselves
        do stage = 1, n_stages
@@ -1202,7 +1201,7 @@ module advection_local_DG
                   & eta,mcoeffs(stage,:),ncoeffs(stage,:),&
                   & n_stages,stage,dt,ele)
           end do
-          call petsc_solve(Q_stages(stage+1)%ptr,adv_mat,Q_rhs)
+          call petsc_solve(Q_stages(stage+1),adv_mat,Q_rhs)
        end do
 
        ewrite(2,*) 'Computing PV flux'
@@ -1216,7 +1215,7 @@ module advection_local_DG
 
        !! Clean up memory for stages
        do stage = 1, n_stages-1
-          call deallocate(Q_stages(n_stages+1)%ptr)
+          call deallocate(Q_stages(n_stages+1))
        end do
        deallocate(Q_stages)
        FLAbort('this is where TG option goes')
@@ -1262,7 +1261,7 @@ module advection_local_DG
        & n_stages,stage,dt,ele)
     type(scalar_field), intent(inout) :: Q_rhs
     type(scalar_field), intent(in) :: D,D_old
-    type(scalar_field_pointer), dimension(n_stages), intent(inout) ::&
+    type(scalar_field), dimension(n_stages+1), intent(inout) ::&
          & Q_stages
     type(csr_matrix), intent(inout) :: Adv_mat
     type(vector_field), intent(in) :: X, Flux
@@ -1338,13 +1337,13 @@ module advection_local_DG
     !mass term
     m_mat = shape_shape(Q_shape,Q_shape,D_old_gi&
          &*detwei_l)    
-    Q_val = ele_val(q_stages(1)%ptr,ele)
+    Q_val = ele_val(q_stages(1),ele)
     call addto(q_rhs,ele_nodes(q_rhs,ele), &
          & matmul(m_mat,q_val))
 
     !stage loop
     do istage = 1, stage
-       Q_val = ele_val(q_stages(istage)%ptr,ele)
+       Q_val = ele_val(q_stages(istage),ele)
        !Advection term
        call addto(q_rhs, ele_nodes(Q_rhs,ele), &
             dt*mcoeffs(istage)*matmul(dt_mat,q_val))
@@ -1358,14 +1357,13 @@ module advection_local_DG
   subroutine construct_pv_flux_TG_ele(QF,Q_stages,D,D_old,&
        & Flux,X,down,eta,mcoeffs,ncoeffs,n_stages,dt,ele)
     type(scalar_field), intent(in) :: D,D_old
-    type(scalar_field_pointer), dimension(n_stages), intent(in) ::&
-         & Q_stages
+    type(scalar_field), dimension(n_stages), intent(in) :: Q_stages
     type(vector_field), intent(inout) :: QF
     type(vector_field), intent(in) :: X, Flux,down
     real, intent(in) :: eta, mcoeffs(n_stages), ncoeffs(n_stages),dt
     integer, intent(in) :: n_stages,ele
     !
-    real, dimension(ele_loc(q_stages(1)%ptr,ele)) :: l_rhs
+    real, dimension(ele_loc(q_stages(1),ele)) :: l_rhs
     real, dimension(Flux%dim,ele_ngi(Flux,ele)) :: Flux_gi,flux_perp_gi, &
          Qflux_gi
     real, dimension(ele_ngi(X,ele)) :: detwei, D_gi, &
@@ -1373,10 +1371,10 @@ module advection_local_DG
     real, dimension(:,:), allocatable :: Q_stages_gi
     real, dimension(:,:,:), allocatable :: grad_Q_stages_gi
     real, dimension(mesh_dim(flux), mesh_dim(flux), &
-         ele_ngi(Q_stages(1)%ptr,ele)) &
+         ele_ngi(Q_stages(1),ele)) &
          :: Metric
     real, dimension(ele_loc(D,ele)) :: D_val
-    real, dimension(ele_loc(q_stages(1)%ptr,ele)) :: Q_val
+    real, dimension(ele_loc(q_stages(1),ele)) :: Q_val
     real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
     real, dimension(mesh_dim(X),ele_loc(QF,ele)) :: QFlux_perp_rhs
     type(element_type), pointer :: Q_shape, Flux_shape,d_shape
@@ -1384,7 +1382,7 @@ module advection_local_DG
     integer :: loc,dim1,dim2,istage,orientation,gi
 
     D_shape => ele_shape(D,ele)
-    Q_shape => ele_shape(q_stages(1)%ptr,ele)
+    Q_shape => ele_shape(q_stages(1),ele)
     Flux_shape => ele_shape(Flux,ele)
     !D_gi, D_old_gi contains factor of det(J) (projected)
     D_val = invert_pi_ele(ele_val(D,ele),D_shape,detwei)
@@ -1431,9 +1429,9 @@ module advection_local_DG
     allocate(q_stages_gi(n_stages+1,ele_ngi(QF,ele)), &
          grad_q_stages_gi(n_stages+1,mesh_dim(QF),ele_ngi(QF,ele)))
     do istage = 1, n_stages+1
-       Q_stages_gi(istage,:) = ele_val_at_quad(Q_stages(istage)%ptr,ele)
+       Q_stages_gi(istage,:) = ele_val_at_quad(Q_stages(istage),ele)
        Grad_q_stages_gi(istage,:,:) = &
-            ele_grad_at_quad(Q_stages(istage)%ptr,ele,&
+            ele_grad_at_quad(Q_stages(istage),ele,&
             Q_shape%dn)
     end do
 
