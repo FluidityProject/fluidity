@@ -226,10 +226,6 @@ module field_derivatives
       !! Integer array of all surface elements indicating bc type::
       integer, dimension(:), allocatable :: bc_type
 
-      !! required for dg gradient calculation
-      allocate(bc_type(1:surface_element_count(infield)))
-      call get_entire_boundary_condition(infield, (/"weakdirichlet"/), bc_value, bc_type)
-
       dim = gradient%dim
       do i=1,dim
         pardiff(i) = extract_scalar_field(gradient, i)
@@ -238,10 +234,18 @@ module field_derivatives
       ! we need all derivatives
       derivatives = .true.
 
-      call differentiate_field(infield, positions, derivatives, pardiff, bc_value, bc_type)
-
-      call deallocate(bc_value)
-      deallocate(bc_type)
+      if (infield%mesh%continuity<0) then
+        !! required for dg gradient calculation
+        allocate(bc_type(1:surface_element_count(infield)))
+        call get_entire_boundary_condition(infield, (/"weakdirichlet"/), bc_value, bc_type)
+        
+        call differentiate_field(infield, positions, derivatives, pardiff, bc_value, bc_type)
+        
+        call deallocate(bc_value)
+        deallocate(bc_type)
+      else
+        call differentiate_field(infield, positions, derivatives, pardiff)
+      end if
 
     end subroutine grad_scalar
 
@@ -262,10 +266,12 @@ module field_derivatives
       integer, dimension(:,:), allocatable :: bc_type
       integer, dimension(:), allocatable :: bc_component_type
 
-      !! required for dg gradient calculation
-      allocate(bc_type(infield%dim, 1:surface_element_count(infield)))
-      allocate(bc_component_type(1:surface_element_count(infield)))
-      call get_entire_boundary_condition(infield, (/"weakdirichlet"/), bc_value, bc_type)
+      if (infield%mesh%continuity<0) then
+        !! required for dg gradient calculation
+        allocate(bc_type(infield%dim, 1:surface_element_count(infield)))
+        allocate(bc_component_type(1:surface_element_count(infield)))
+        call get_entire_boundary_condition(infield, (/"weakdirichlet"/), bc_value, bc_type)
+      end if
 
       dim = gradient(1)%dim
 
@@ -281,11 +287,17 @@ module field_derivatives
 
         derivatives = .true.
 
-        call differentiate_field(component, positions, derivatives, pardiff, bc_component_value, bc_component_type)
+        if (infield%mesh%continuity<0) then
+          call differentiate_field(component, positions, derivatives, pardiff, bc_component_value, bc_component_type)
+        else
+          call differentiate_field(component, positions, derivatives, pardiff)
+        end if
       end do
 
-      call deallocate(bc_value)
-      deallocate(bc_type, bc_component_type)
+      if (infield%mesh%continuity<0) then
+        call deallocate(bc_value)
+        deallocate(bc_type, bc_component_type)
+      end if
 
     end subroutine grad_vector
 
@@ -310,10 +322,12 @@ module field_derivatives
       integer, dimension(:,:), allocatable :: bc_type
       integer, dimension(:), allocatable :: bc_component_type
 
-      !! required for dg gradient calculation
-      allocate(bc_type(infield%dim, 1:surface_element_count(infield)))
-      allocate(bc_component_type(1:surface_element_count(infield)))
-      call get_entire_boundary_condition(infield, (/"weakdirichlet"/), bc_value, bc_type)
+      if (infield%mesh%continuity<0) then
+        !! required for dg gradient calculation
+        allocate(bc_type(infield%dim, 1:surface_element_count(infield)))
+        allocate(bc_component_type(1:surface_element_count(infield)))
+        call get_entire_boundary_condition(infield, (/"weakdirichlet"/), bc_value, bc_type)
+      end if
 
       do j=1,infield%dim
 
@@ -327,12 +341,18 @@ module field_derivatives
 
         derivatives = .true.
 
-        call differentiate_field(component, positions, derivatives, pardiff, bc_component_value, bc_component_type)
+        if (infield%mesh%continuity<0) then
+          call differentiate_field(component, positions, derivatives, pardiff, bc_component_value, bc_component_type)
+        else
+          call differentiate_field(component, positions, derivatives, pardiff)
+        end if
 
       end do
 
-      call deallocate(bc_value)
-      deallocate(bc_type, bc_component_type)
+      if (infield%mesh%continuity<0) then
+        call deallocate(bc_value)
+        deallocate(bc_type, bc_component_type)
+      end if
  
     end subroutine grad_vector_tensor
 
