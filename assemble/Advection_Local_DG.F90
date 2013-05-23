@@ -1175,6 +1175,14 @@ module advection_local_DG
           mcoeffs(2,:) = (/ 0.5*(3-1./c1), 0.5*(1./c1-1) /)
           ncoeffs(1,:) = (/ 0.5*c1**2-eta, 0.0 /)
           ncoeffs(2,:) = (/ 0.25*(3*c1-1)-eta, 0.25*(1-c1) /)
+       else if (have_option(trim(Q%option_path)//'/prognostic/spatial_discre&
+            &tisation/continuous_galerkin/taylor_galerkin/T1_2_scheme')) then
+          !! use the T(1,2) scheme
+          ewrite(1,*) 'Using the T(1,2) scheme'
+          n_stages = 1 
+          allocate(mcoeffs(1,1),ncoeffs(1,1))
+          mcoeffs(1,1) = 0
+          ncoeffs(1,1) = 0!1-eta
        else
           FLAbort('Unknown choice of TG scheme')
        end if
@@ -1213,8 +1221,8 @@ module advection_local_DG
        end do
 
        ewrite(2,*) 'Computing PV flux'
-
-       !!Compute the PV flux
+       
+       !Compute the PV flux
        do ele = 1, ele_count(Q)
           call construct_pv_flux_TG_ele(QF,Q_stages,D,D_old,&
                & Flux,X,down,eta,mcoeffs(n_stages,:),&
@@ -1222,12 +1230,12 @@ module advection_local_DG
        end do
 
        !call set(Q,Q_stages(stage+1))
-
+       
        ewrite(2,*) 'Deallocating memory'
 
        !! Clean up memory for stages
-       do stage = 1, n_stages-1
-          call deallocate(Q_stages(n_stages+1))
+       do stage = 2, n_stages
+          call deallocate(Q_stages(stage))
        end do
        deallocate(Q_stages)
     end if
@@ -1245,6 +1253,8 @@ module advection_local_DG
           call test_pv_flux_ele(Qtest1,Qtest2,QF,Q,Q_old,D,D_old,&
                Flux,X,down,t_theta,ele)
        end do
+       !Qtest1 contains divergence of flux, 
+       !Qtest2 contains \Delta (qD).
        ewrite(2,*) 'Error = ', maxval(abs(Qtest2%val)), maxval(abs(Qtest1%val))
        ewrite(2,*) 'Error = ', maxval(abs(Qtest1%val-Qtest2%val)), maxval(Qtest1%val)
        residual = maxval(abs(Qtest1%val-Qtest2%val))/max(1.0&

@@ -526,6 +526,11 @@ pv_advection_options_options =
                ## number otherwise
                element Tbar2_3_scheme{
                   empty
+               }|
+               ## Standard one-step TG(1,2) scheme
+               ## Unconditionally stable for eta>0.5
+               element T1_2_scheme{
+                  empty
                }
             )
          }

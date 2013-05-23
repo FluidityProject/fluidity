@@ -672,7 +672,7 @@ schemes of Safjan and Oden, 1995.</a:documentation>
           <a:documentation>Stability parameter.</a:documentation>
           <ref name="real"/>
         </element>
-        <group>
+        <choice>
           <a:documentation>Choice of particular scheme</a:documentation>
           <element name="Tbar2_3_scheme">
             <a:documentation>The \bar{T}(2,3) 2-stage
@@ -684,7 +684,12 @@ stable for small enough Courant
 number otherwise</a:documentation>
             <empty/>
           </element>
-        </group>
+          <element name="T1_2_scheme">
+            <a:documentation>Standard one-step TG(1,2) scheme
+Unconditionally stable for eta&gt;0.5</a:documentation>
+            <empty/>
+          </element>
+        </choice>
       </element>
     </choice>
     <optional>
