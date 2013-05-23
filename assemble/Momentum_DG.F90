@@ -1933,7 +1933,7 @@ contains
       ! off diagonal terms define the coupling between the velocity components
 
       real, dimension(size(Q_inv,1), size(Q_inv,2)) :: Q_visc
-      real, dimension(ele_ngi(u, ele)) :: isotropic_visc
+      real, dimension(ele_loc(u, ele)) :: isotropic_visc
 
       dim = Viscosity%dim(1)
       isotropic_visc = Viscosity_ele(1,1,:)
@@ -1971,14 +1971,38 @@ contains
     end subroutine add_diagonal_to_tensor
 
     subroutine les_viscosity(isotropic_visc)
-      real, dimension(ele_ngi(u, ele)), intent(inout) :: isotropic_visc
+      real, dimension(ele_loc(u,ele)), intent(inout) :: isotropic_visc
 
-      real, dimension(ele_ngi(u, ele)) :: les_filter_width_gi
-      real, dimension(ele_ngi(u, ele)) :: les_scalar_viscosity
+      real :: les_filter_width
+      real, dimension(mesh_dim(u), mesh_dim(u), ele_loc(u,ele)) :: g_nl
+      real, dimension(mesh_dim(u), mesh_dim(u)) :: s
+      real, dimension(ele_loc(u,ele)) :: s_mod
+      real, dimension(ele_loc(u,ele)) :: les_scalar_viscosity
 
-      les_scalar_gi = length_scale_scalar(X, ele)
+      ! Compute filter width
+      les_filter_width = length_scale_scalar(X, ele)
       
+      ! Compute gradient of non-linear velocity
+      do dim1=1,mesh_dim(u)
+        do dim2=1,mesh_dim(u)
+          g_nl(dim1,dim2,:)=0.5*matmul(grad_U_mat_q(dim2,:,:), node_val(u_nl,dim1,local_glno))
+        end do
+      end do
 
+      ! Compute modulus of strain rate
+      do iloc=1,ele_loc(u,ele)
+        s=g_nl(:,:,iloc)+transpose(g_nl(:,:,iloc))
+        ! Calculate modulus of strain rate
+        s_mod(iloc)=sqrt(2*sum(s**2))
+      end do
+
+      ! Calculate eddy-viscosity
+      les_scalar_viscosity = 4.0*les_filter_width*&
+                        s_mod*(smagorinsky_coefficient**2)
+
+      ! Add to molecular viscosity
+      isotropic_visc = isotropic_visc + les_scalar_viscosity
+      
     end subroutine les_viscosity
 
   end subroutine construct_momentum_element_dg
