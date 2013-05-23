@@ -92,9 +92,7 @@ E=state.tensor_fields["DGVelocityGradient"]
 for n in range(field.node_count):
     field.set(n,0.0)
     for i in range(2):
-        field.addto(n,E.node_val(n)[i,i])
-    # print E.node_val(n) 
-    # print field.node_val(n)</string_value>
+        field.addto(n,E.node_val(n)[i,i])</string_value>
         </algorithm>
         <mesh name="VelocityMesh"/>
         <output/>
