@@ -1933,9 +1933,12 @@ contains
       ! off diagonal terms define the coupling between the velocity components
 
       real, dimension(size(Q_inv,1), size(Q_inv,2)) :: Q_visc
+      real, dimension(ele_ngi(u, ele)) :: isotropic_visc
 
       dim = Viscosity%dim(1)
-      Q_visc = mat_diag_mat(Q_inv, Viscosity_ele(1,1,:))
+      isotropic_visc = Viscosity_ele(1,1,:)
+
+      Q_visc = mat_diag_mat(Q_inv, iso_visc)
 
       do dim1=1,u%dim
         do dim2=1,u%dim
@@ -1966,6 +1969,17 @@ contains
       end forall
       
     end subroutine add_diagonal_to_tensor
+
+    subroutine les_viscosity(isotropic_visc)
+      real, dimension(ele_ngi(u, ele)), intent(inout) :: isotropic_visc
+
+      real, dimension(ele_ngi(u, ele)) :: les_filter_width_gi
+      real, dimension(ele_ngi(u, ele)) :: les_scalar_viscosity
+
+      les_scalar_gi = length_scale_scalar(X, ele)
+      
+
+    end subroutine les_viscosity
 
   end subroutine construct_momentum_element_dg
 
