@@ -249,14 +249,17 @@ vector_galerkin_projection_algorithm =
    )
 helmholtz_smoothed_scalar_algorithm =
    (
-      ## Smooth a scalar field by inverting a Helmholtz operator.
+      ## Smooth a scalar field by inverting a Helmholtz operator based on a scalar lengthscale.
+      ## Dirichlet boundary conditions from the source field are applied to the filtered field.
       element algorithm {
          attribute name { "helmholtz_smoothed_scalar" },
          attribute material_phase_support { "single" },
          component_source_field,
-         ## The characteristic length scale used by the smoother.
-         element smoothing_length_scale {
-             real_dim_symmetric_tensor
+         ## The characteristic scale factor alpha used by the smoother.
+         ## The length scale is alpha*local element width (a scalar)
+         ## 2 is recommended.
+         element smoothing_scale_factor {
+             real
          },
          ## Solver options.
          element solver {
@@ -266,14 +269,37 @@ helmholtz_smoothed_scalar_algorithm =
    )
 helmholtz_smoothed_vector_algorithm =
    (
-      ## Smooth a vector field by inverting a Helmholtz operator.
+      ## Smooth a vector field by inverting a Helmholtz operator based on a scalar lengthscale.
+      ## Dirichlet boundary conditions from the source field are applied to the filtered field.
       element algorithm {
          attribute name { "helmholtz_smoothed_vector" },
          attribute material_phase_support { "single" },
          vector_source_field,
-         ## The characteristic length scale used by the smoother.
-         element smoothing_length_scale {
-             real_dim_symmetric_tensor
+         ## The characteristic scale factor alpha used by the smoother.
+         ## The length scale is alpha*local element width (a scalar)
+         ## 2 is recommended.
+         element smoothing_scale_factor {
+             real
+         },
+         ## Solver options.
+         element solver {
+            linear_solver_options_sym
+         }
+      }
+   )
+helmholtz_smoothed_tensor_algorithm =
+   (
+      ## Smooth a tensor field by inverting a Helmholtz operator based on a scalar lengthscale.
+      ## Dirichlet boundary conditions are not applied to the filtered field.
+      element algorithm {
+         attribute name { "helmholtz_smoothed_tensor" },
+         attribute material_phase_support { "single" },
+         tensor_source_field,
+         ## The characteristic scale factor alpha used by the smoother.
+         ## The length scale is alpha*local element width (a scalar)
+         ## 2 is recommended.
+         element smoothing_scale_factor {
+             real
          },
          ## Solver options.
          element solver {
@@ -283,14 +309,16 @@ helmholtz_smoothed_vector_algorithm =
    )
 helmholtz_anisotropic_smoothed_scalar_algorithm =
    (
-      ## Smooth a scalar field by inverting a Helmholtz operator.
+      ## Smooth a scalar field by inverting a Helmholtz operator based on a tensor lengthscale.
+      ## Dirichlet boundary conditions from the source field are applied to the filtered field.
       element algorithm {
          attribute name { "helmholtz_anisotropic_smoothed_scalar" },
          attribute material_phase_support { "single" },
          scalar_source_field,
-         ## The scale factor used by the smoother, applied to the mesh size tensor.
+         ## The characteristic scale factor alpha used by the smoother.
+         ## The length scale is alpha*local element size (a tensor).
          ## 2 is recommended.
-         element smoothing_length_scale {
+         element smoothing_scale_factor {
              real
          },
          ## Solver options.
@@ -301,14 +329,16 @@ helmholtz_anisotropic_smoothed_scalar_algorithm =
    )
 helmholtz_anisotropic_smoothed_vector_algorithm =
    (
-      ## Smooth a vector field by inverting a Helmholtz operator.
+      ## Smooth a vector field by inverting a Helmholtz operator based on a tensor lengthscale.
+      ## Dirichlet boundary conditions from the source field are applied to the filtered field.
       element algorithm {
          attribute name { "helmholtz_anisotropic_smoothed_vector" },
          attribute material_phase_support { "single" },
          vector_source_field,
-         ## The scale factor used by the smoother, applied to the mesh size tensor.
+         ## The characteristic scale factor alpha used by the smoother.
+         ## The length scale is alpha*local element size (a tensor).
          ## 2 is recommended.
-         element smoothing_length_scale {
+         element smoothing_scale_factor {
              real
          },
          ## Solver options.
@@ -319,14 +349,16 @@ helmholtz_anisotropic_smoothed_vector_algorithm =
    )
 helmholtz_anisotropic_smoothed_tensor_algorithm =
    (
-      ## Smooth a tensor field by inverting a Helmholtz operator.
+      ## Smooth a tensor field by inverting a Helmholtz operator based on a tensor lengthscale.
+      ## Dirichlet boundary conditions are not applied to the filtered field.
       element algorithm {
          attribute name { "helmholtz_anisotropic_smoothed_tensor" },
          attribute material_phase_support { "single" },
          tensor_source_field,
-         ## The scale factor used by the smoother, applied to the mesh size tensor.
+         ## The characteristic scale factor alpha used by the smoother.
+         ## The length scale is alpha*local element size (a tensor).
          ## 2 is recommended.
-         element smoothing_length_scale {
+         element smoothing_scale_factor {
              real
          },
          ## Solver options.
@@ -696,7 +728,6 @@ grad_normal_algorithm =
          }?
       }
    )
-
 # Momentum diagnostics
 buoyancy_algorithm =
    (
@@ -1488,6 +1519,7 @@ tensor_diagnostic_algorithms = tensor_copy_algorithm
 tensor_diagnostic_algorithms |= grad_vector_algorithm
 tensor_diagnostic_algorithms |= strain_rate_algorithm
 tensor_diagnostic_algorithms |= hessian_algorithm
+tensor_diagnostic_algorithms |= helmholtz_smoothed_tensor_algorithm
 tensor_diagnostic_algorithms |= helmholtz_anisotropic_smoothed_tensor_algorithm
 tensor_diagnostic_algorithms |= field_tolerance_algorithm
 tensor_diagnostic_algorithms |= tensor_python_diagnostic_algorithm
