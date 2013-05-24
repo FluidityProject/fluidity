@@ -1103,6 +1103,33 @@ twice.</a:documentation>
               </element>
             </optional>
           </element>
+          <optional>
+            <element name="les_model">
+              <a:documentation>Large-eddy simulation (LES) models. Currently restricted to use in incompressible flow cases, where the discrete velocity is divergence-free and the eddy viscosity tensor is traceless.
+Also restricted to the Bassi-Rebay viscosity scheme which must be in partial stress form</a:documentation>
+              <element name="smagorinsky_coefficient">
+                <a:documentation>literature symbol: Cs
+
+suggested value 0.1</a:documentation>
+                <ref name="real"/>
+              </element>
+              <optional>
+                <element name="scalar_field">
+                  <a:documentation>In adaptive simulations you may want to prescribe a filter width to use throught the domain</a:documentation>
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>FilterWidth</value>
+                  </attribute>
+                  <element name="prescribed">
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="prescribed_scalar_field"/>
+                  </element>
+                </element>
+              </optional>
+            </element>
+          </optional>
         </element>
       </choice>
       <element name="conservative_advection">

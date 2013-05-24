@@ -264,6 +264,11 @@ contains
     ! Partial stress - sp911
     logical :: partial_stress = .false.
 
+    ! LES - sp911
+    logical :: have_les = .false.
+    real :: smagorinsky_coefficient
+    type(scalar_field), pointer :: eddy_visc, prescribed_filter_width
+
     ewrite(1, *) "In construct_momentum_dg"
 
     call profiler_tic("construct_momentum_dg")
@@ -279,12 +284,12 @@ contains
     end if
     
     ! These names are based on the CGNS SIDS.
+    U_nl=extract_vector_field(state, "NonlinearVelocity")
+    call incref(U_nl)
+
     if (.not.have_option(trim(U%option_path)//"/prognostic"//&
          &"/spatial_discretisation/discontinuous_galerkin"//&
          &"/advection_scheme/none")) then
-       U_nl=extract_vector_field(state, "NonlinearVelocity")
-       call incref(U_nl)
-
        if(have_option(trim(U%option_path)//"/prognostic"//&
             &"/spatial_discretisation/discontinuous_galerkin"//&
             &"/advection_scheme/project_velocity_to_continuous")) then
@@ -315,10 +320,6 @@ contains
        end if
        have_advection = .true.
     else
-       ! Forcing a zero NonlinearVelocity will disable advection.
-       call allocate(U_nl, U%dim,  U%mesh, "NonlinearVelocity", &
-            FIELD_TYPE_CONSTANT)
-       call zero(U_nl)
        have_advection=.false.
        advecting_velocity => U_nl
     end if
@@ -556,6 +557,26 @@ contains
          &"/discontinuous_galerkin/viscosity_scheme"//&
          &"/bassi_rebay/partial_stress_form")) then
       partial_stress = .true.
+      
+      ! if we have stress form then we may be doing LES modelling
+      if (have_option(trim(u%option_path)//&
+         &"/prognostic/spatial_discretisation"//&
+         &"/discontinuous_galerkin/les_model")) then
+        have_les = .true.
+        call get_option(trim(u%option_path)//&
+             &"/prognostic/spatial_discretisation"//&
+             &"/discontinuous_galerkin/les_model"//&
+             &"/smagorinsky_coefficient", &
+             smagorinsky_coefficient)
+        eddy_visc => extract_scalar_field(state, "DGLESScalarEddyViscosity", stat=stat)   
+        if (stat/=0) then
+          nullify(eddy_visc)
+        end if
+        prescribed_filter_width => extract_scalar_field(state, "FilterWidth", stat=stat)  
+        if (stat/=0) then
+          nullify(prescribed_filter_width)
+        end if
+      end if
     end if
     ewrite(2,*) 'partial stress? ', partial_stress
 
@@ -671,7 +692,9 @@ contains
             & alpha_u_field, Abs_wd, vvr_sf, ib_min_grad, nvfrac, &
             & inverse_mass=inverse_mass, &
             & inverse_masslump=inverse_masslump, &
-            & mass=mass, subcycle_m=subcycle_m, partial_stress=partial_stress)
+            & mass=mass, subcycle_m=subcycle_m, partial_stress=partial_stress, &
+            & have_les=have_les, smagorinsky_coefficient=smagorinsky_coefficient, &
+            & eddy_visc=eddy_visc, prescribed_filter_width=prescribed_filter_width)
       end do element_loop
       !$OMP END DO
 
@@ -726,7 +749,8 @@ contains
        &pressure_bc, pressure_bc_type, &
        &turbine_conn_mesh, on_sphere, depth, have_wd_abs, alpha_u_field, Abs_wd, &
        &vvr_sf, ib_min_grad, nvfrac, &
-       &inverse_mass, inverse_masslump, mass, subcycle_m, partial_stress)
+       &inverse_mass, inverse_masslump, mass, subcycle_m, partial_stress, &
+       &have_les, smagorinsky_coefficient, eddy_visc, prescribed_filter_width)
 
     !!< Construct the momentum equation for discontinuous elements in
     !!< acceleration form.
@@ -913,6 +937,11 @@ contains
 
     ! added for partial stress form (sp911)
     logical, intent(in) :: partial_stress
+
+    ! LES - sp911
+    logical :: have_les
+    real :: smagorinsky_coefficient
+    type(scalar_field), pointer, intent(inout) :: eddy_visc, prescribed_filter_width
 
     dg=continuity(U)<0
     p0=(element_degree(u,ele)==0)
@@ -1937,8 +1966,10 @@ contains
 
       dim = Viscosity%dim(1)
       isotropic_visc = Viscosity_ele(1,1,:)
-
-      Q_visc = mat_diag_mat(Q_inv, iso_visc)
+      if (have_les) then
+        call les_viscosity(isotropic_visc)
+      end if
+      Q_visc = mat_diag_mat(Q_inv, isotropic_visc)
 
       do dim1=1,u%dim
         do dim2=1,u%dim
@@ -1973,38 +2004,185 @@ contains
     subroutine les_viscosity(isotropic_visc)
       real, dimension(ele_loc(u,ele)), intent(inout) :: isotropic_visc
 
-      real :: les_filter_width
+      real, dimension(ele_loc(u,ele)) :: les_filter_width
       real, dimension(mesh_dim(u), mesh_dim(u), ele_loc(u,ele)) :: g_nl
       real, dimension(mesh_dim(u), mesh_dim(u)) :: s
       real, dimension(ele_loc(u,ele)) :: s_mod
       real, dimension(ele_loc(u,ele)) :: les_scalar_viscosity
-
-      ! Compute filter width
-      les_filter_width = length_scale_scalar(X, ele)
       
-      ! Compute gradient of non-linear velocity
-      do dim1=1,mesh_dim(u)
-        do dim2=1,mesh_dim(u)
-          g_nl(dim1,dim2,:)=0.5*matmul(grad_U_mat_q(dim2,:,:), node_val(u_nl,dim1,local_glno))
-        end do
-      end do
+      ! ! Compute gradient of non-linear velocity
+      ! do dim1=1,mesh_dim(u)
+      !   do dim2=1,mesh_dim(u)
+      !     ! interior contribution
+      !     g_nl(dim1,dim2,:)=matmul(grad_U_mat_q(dim2,:,:loc), ele_val(u_nl,dim1,ele))
+
+      !     ! boundary comtributions (have to be done seperately as we need to apply bc's at boundaries)
+      !     ! local node map counter.
+      !     start=loc+1
+      !     do ni=1,size(neigh)
+      !       ! get neighbour ele, corresponding faces, and complete local node map
+      !       ele_2=neigh(ni)
+
+      !       if (ele_2>0) then
+      !         ! obtain corresponding faces, and complete local node map
+      !         face=ele_face(U, ele_2, ele)
+      !         finish=start+face_loc(U, face)-1  
+      !         ! for interior faces we use the face values  
+      !         g_nl(dim1,dim2,:)=g_nl(dim1,dim2,:)+matmul(grad_U_mat_q(dim2,:,start:finish), face_val(u_nl,dim1,face))
+      !       else
+      !         ! obtain corresponding faces, and complete local node map
+      !         face=ele_face(U, ele, ele_2)
+      !         finish=start+face_loc(U, face)-1 
+      !         ! for boundary faces the value we use depends upon if a weak bc is applied
+      !         if (velocity_bc_type(dim1,face)==1) then
+      !           ! weak bc! use the bc value
+      !           g_nl(dim1,dim2,:)=g_nl(dim1,dim2,:)+matmul(grad_U_mat_q(dim2,:,start:finish), ele_val(velocity_bc,dim1,face))
+      !         else
+      !           ! no weak bc, use node values on internal face
+      !           g_nl(dim1,dim2,:)=g_nl(dim1,dim2,:)+matmul(grad_U_mat_q(dim2,:,start:finish), face_val(u_nl,dim1,face))
+      !         end if
+      !       end if
+
+      !       ! update node map counter
+      !       start=start+face_loc(U, face)
+      !     end do
+
+      !     ! apply inverse mass
+      !     g_nl(dim1,dim2,:)=matmul(M_inv, g_nl(dim1,dim2,:))
+      !   end do
+      ! end do
+
+      call calculate_les_grad_u(g_nl)
 
       ! Compute modulus of strain rate
-      do iloc=1,ele_loc(u,ele)
-        s=g_nl(:,:,iloc)+transpose(g_nl(:,:,iloc))
+      do i=1,ele_loc(u,ele)
+        s=0.5*(g_nl(:,:,i)+transpose(g_nl(:,:,i)))
         ! Calculate modulus of strain rate
-        s_mod(iloc)=sqrt(2*sum(s**2))
+        s_mod(i)=sqrt(2*sum(s**2))
       end do
 
-      ! Calculate eddy-viscosity
+      ! Compute filter width
+      if (associated(prescribed_filter_width)) then
+        les_filter_width = ele_val(prescribed_filter_width, ele)
+      else
+        les_filter_width = length_scale_scalar(X, ele)
+      end if
+
       les_scalar_viscosity = 4.0*les_filter_width*&
-                        s_mod*(smagorinsky_coefficient**2)
+           s_mod*(smagorinsky_coefficient**2)
+
+      if (associated(eddy_visc)) then
+        call set(eddy_visc, ele_nodes(eddy_visc, ele), les_scalar_viscosity)
+      end if
 
       ! Add to molecular viscosity
       isotropic_visc = isotropic_visc + les_scalar_viscosity
       
     end subroutine les_viscosity
 
+    subroutine calculate_les_grad_u(g_nl)
+
+      real, dimension(mesh_dim(u), mesh_dim(u), ele_loc(u,ele)), intent(inout) :: g_nl
+      
+      real, dimension(ele_loc(u,ele), ele_loc(u,ele)) :: M_inv
+      integer :: face_1, face_2
+      
+      ! interior contribution
+      g_nl = shape_tensor_rhs(u_shape, ele_grad_at_quad(u_nl, ele, dq_t), detwei)
+      
+      ! interface contribution
+      start=loc+1 ! local node map counter
+      do ni=1,size(neigh)
+        ! Find the relevant faces.
+        ele_2 = neigh(ni)
+        face_1 = ele_face(u_nl, ele, ele_2)
+        if (ele_2>0) then
+          ! Internal faces.
+          face_2=ele_face(u_nl, ele_2, ele)
+        else
+          ! External face.
+          face_2=face_1
+        end if
+        ! complete node map
+        finish=start+face_loc(u_nl, face_2)-1
+        
+        ! call calculate_les_grad_u_interface(g_nl, face_1, face_2)
+        
+        ! update node map counter
+        start=start+face_loc(u_nl, face)
+      end do
+      
+      ! get inverse mass
+      M_inv = shape_shape(u_shape, u_shape, detwei)
+      call invert(M_inv)
+      
+      do dim1=1,mesh_dim(u)
+        do dim2=1,mesh_dim(u)
+          g_nl(dim1,dim2,:)=matmul(M_inv, g_nl(dim1,dim2,:))
+        end do
+      end do
+
+    end subroutine calculate_les_grad_u
+
+    subroutine calculate_les_grad_u_interface(g_nl, face_1, face_2)
+
+      real, dimension(mesh_dim(u), mesh_dim(u), ele_loc(u,ele)), intent(inout) :: g_nl
+      integer, intent(in) :: face_1, face_2
+      
+      type(element_type), pointer :: f_shape
+      real, dimension(x%dim, face_ngi(u_nl, face_1)) :: normal
+      real, dimension(face_ngi(u_nl, face_1)) :: f_detwei, in_q, in_q_2, in_bc_q
+      real, dimension(mesh_dim(u), mesh_dim(u), face_ngi(u_nl,face_1)) :: g_nl_int_gi
+      real, dimension(mesh_dim(u), mesh_dim(u), face_loc(u_nl,face_1)) :: g_nl_int
+      real, dimension(ele_loc(u_nl, ele)) :: elenodes
+      real, dimension(face_loc(u_nl, face)) :: facenodes
+
+      integer :: i, j
+      
+      ! shape and detwei are the same for both faces, normal+ = - normal-
+      f_shape => face_shape(u_nl, face_1)
+      call transform_facet_to_physical(x, face_1, detwei_f=f_detwei, normal=normal)
+      
+      if (face_1==face_2) then  
+        ! boundary faces - may need to apply weak dirichlet bc's
+        ! = - int_ v_h \cdot (u - u^b) n 
+        do dim1=1,mesh_dim(u)
+          if (velocity_bc_type(dim1,face_1)==1) then  
+            in_q = face_val_at_quad(u_nl,face_1,dim1)
+            in_bc_q = ele_val_at_quad(velocity_bc,face_1,dim1)
+            do dim2=1,mesh_dim(u)
+              g_nl_int_gi(dim1,dim2,:) = -1.0*(in_q - in_bc_q)*normal(dim2,:)
+            end do
+          end if
+        end do
+      else
+        ! internal face
+        ! = int_ {v_h} \cdot J(x) 
+        do dim1=1,mesh_dim(u)
+          in_q = face_val_at_quad(u_nl,face_1,dim1)
+          in_q_2 = face_val_at_quad(u_nl,face_2,dim1)
+          do dim2=1,mesh_dim(u)
+            g_nl_int_gi(dim1,dim2,:) = -0.5*(in_q - in_q_2)*normal(dim2,:)
+          end do
+        end do
+      end if
+      
+      ! integrate
+      g_nl_int = shape_tensor_rhs(f_shape, g_nl_int_gi, f_detwei)
+
+      ! add contributions to gradient
+      elenodes = ele_nodes(u_nl, ele)
+      facenodes = face_global_nodes(u_nl, face)
+      do i=1, face_loc(u_nl, face)
+        do j=1, ele_loc(u_nl, face)
+          if (facenodes(i) == elenodes(j)) then
+            g_nl(:, :, j) = g_nl(:, :, j) + g_nl_int(:, :, i)
+          end if
+        end do
+      end do
+      
+    end subroutine calculate_les_grad_u_interface
+    
   end subroutine construct_momentum_element_dg
 
   subroutine construct_momentum_interface_dg(ele, face, face_2, ni, &

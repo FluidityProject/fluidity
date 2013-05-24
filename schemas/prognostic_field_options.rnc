@@ -907,7 +907,28 @@ prognostic_velocity_field =
                   element integrate_conservation_term_by_parts {
                     empty
                   }?
-               }
+               },
+               ## Large-eddy simulation (LES) models. Currently restricted to use in incompressible flow cases, where the discrete velocity is divergence-free and the eddy viscosity tensor is traceless.
+               ## Also restricted to the Bassi-Rebay viscosity scheme which must be in partial stress form
+               element les_model{
+                  ## literature symbol: Cs
+                  ##
+                  ## suggested value 0.1
+                  element smagorinsky_coefficient {
+                    real
+                  },
+                  ## In adaptive simulations you may want to prescribe a filter width to use throught the domain
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "FilterWidth" },
+                     (
+                        element prescribed {
+                           velocity_mesh_choice,
+                           prescribed_scalar_field
+                        }
+                     )
+                  }?
+               }?
             }
          ),
          ## Conservative discretisation of momentum equations
