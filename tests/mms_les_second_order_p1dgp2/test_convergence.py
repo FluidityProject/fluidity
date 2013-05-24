@@ -5,7 +5,7 @@ from vtktools import *
 from math import log
 import numpy as np
 
-meshes = [['A','B'], ['B','C'], ['C','D']]
+meshes = [['A','B'], ['B','C']]#, ['C','D']]
 
 convergence = np.ones(2) * 1e10
 

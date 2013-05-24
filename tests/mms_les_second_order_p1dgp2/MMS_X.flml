@@ -110,6 +110,16 @@
     <finish_time>
       <real_value rank="0">1000.0</real_value>
     </finish_time>
+    <final_timestep>
+      <integer_value rank="0">1</integer_value>
+    </final_timestep>
+    <nonlinear_iterations>
+      <integer_value rank="0">999</integer_value>
+      <tolerance>
+        <real_value rank="0">1.0e-9</real_value>
+        <infinity_norm/>
+      </tolerance>
+    </nonlinear_iterations>
   </timestepping>
   <material_phase name="NS">
     <scalar_field name="Pressure" rank="0">
