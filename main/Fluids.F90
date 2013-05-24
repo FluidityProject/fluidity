@@ -789,6 +789,11 @@ contains
 
           ! calculate abscissa for populations ----- sdp 28-05-2012 gb812
           ! this must be done at the end of each non-linear iteration
+!          !BEING EDITED
+!          do i=1, option_count("/material_phase")
+!            option_path="/material_phase["//int2str(i-1)//"]/scalar_field::FoamVelocityPotential"          
+!
+!          end do 
           call dqmom_calculate_abscissa(state)
 
 
