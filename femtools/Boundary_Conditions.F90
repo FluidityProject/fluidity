@@ -33,6 +33,7 @@ use sparse_tools_petsc
 use state_module
 use spud
 use global_parameters, only: OPTION_PATH_LEN
+use data_structures
 implicit none
     
   interface add_boundary_condition
@@ -2060,8 +2061,13 @@ contains
     logical, dimension(field%dim):: applies
     character(len=FIELD_NAME_LEN):: bctype
     type(vector_field), pointer:: surface_field
+    type(integer_set), dimension(field%dim):: boundary_row_set
     integer, dimension(:), pointer:: surface_node_list
     integer :: i,j,k
+
+    do k=1, field%dim 
+      call allocate(boundary_row_set(k))
+    end do
 
     bcloop: do i=1, get_boundary_condition_count(field)
        call get_boundary_condition(field, i, type=bctype, &
@@ -2080,35 +2086,30 @@ contains
                 bccomponent = extract_scalar_field_from_vector_field(surface_field, k)
 
                 if(present(dt)) then
-                  ! this is an addto because petsc_csr matrices can only
-                  ! addto at the moment... hence with time varying bc we
-                  ! end up with an average of the bcs at any node with two
-                  ! (or more) set (i.e. corner nodes with inconsistent bc
-                  ! on the sides)
-                  call addto(rhscomponent, &
+                  call set(rhscomponent, &
                             surface_node_list(j), &
-                            ((node_val(bccomponent,j)&
+                            (node_val(bccomponent,j)&
                               -node_val(field, k, surface_node_list(j)) &
-                              ) /dt)*INFINITY)
+                            )/dt)
                 else
-                  ! this is an addto because petsc_csr matrices can only
-                  ! addto at the moment... hence with time varying bc we
-                  ! end up with an average of the bcs at any node with two
-                  ! (or more) set (i.e. corner nodes with inconsistent bc
-                  ! on the sides)
-                  call addto(rhscomponent, &
+                  call set(rhscomponent, &
                             surface_node_list(j), &
-                            node_val(bccomponent,j)*INFINITY)
+                            node_val(bccomponent,j))
                 end if
+                call insert(boundary_row_set(k), surface_node_list(j))
               end if
 
-              call addto(matrix, k, k, surface_node_list(j), &
-                surface_node_list(j), INFINITY)
             end if
           end do
        end do
 
     end do bcloop
+
+    call lift_boundary_conditions(matrix, boundary_row_set, rhs=rhs)
+
+    do k=1, field%dim
+      call deallocate(boundary_row_set(k))
+    end do
 
   end subroutine apply_dirichlet_conditions_vector_petsc_csr
   

@@ -751,7 +751,7 @@
                end if
             end if
 
-            call apply_dirichlet_conditions(big_m(istate), mom_rhs(istate), u, dt)
+            !call apply_dirichlet_conditions(big_m(istate), mom_rhs(istate), u, dt)
             call profiler_toc(u, "assembly")
 
             if (associated(ct_m(istate)%ptr)) then
@@ -1614,6 +1614,7 @@
          ! Impose any reference nodes on velocity
          positions => extract_vector_field(state(istate), "Coordinate")
          call impose_reference_velocity_node(big_m(istate), mom_rhs(istate), trim(u%option_path), positions)
+         call apply_dirichlet_conditions(big_m(istate), mom_rhs(istate), u, dt)
 
          call profiler_toc(u, "assembly")
 

@@ -32,6 +32,7 @@ module sparse_tools_petsc
   use FLDebug
   use Sparse_Tools
   use Reference_Counting
+  use data_structures
   use parallel_tools
   use halo_data_types
   use halos_allocates
@@ -136,7 +137,7 @@ module sparse_tools_petsc
      size, block_size, blocks, entries, &
      zero, addto, addto_diag, scale, &
      extract_diagonal, assemble, incref_petsc_csr_matrix, &
-     ptap, mult, mult_T, dump_matrix, &
+     ptap, mult, mult_T, lift_boundary_conditions, dump_matrix, &
      csr2petsc_csr, dump_petsc_csr_matrix
 
 contains
@@ -1100,6 +1101,69 @@ contains
     call VecDestroy(xvec, ierr)
     
   end subroutine petsc_csr_mult_T_scalar_to_vector
+
+  subroutine lift_boundary_conditions(A, boundary_nodes, rhs)
+    use fields_allocates
+    type(petsc_csr_matrix), intent(inout):: A
+    type(integer_set), dimension(:):: boundary_nodes
+    type(vector_field), intent(inout), optional:: rhs
+
+    Vec:: bvec, xvec
+    PetscInt, dimension(:), allocatable:: node_list
+    PetscScalar:: diag
+    PetscErrorCode:: ierr
+    integer:: i, n
+
+    assert( blocks(A,1)==size(boundary_nodes) )
+
+    call assemble(A)
+
+    diag = 1.0
+
+    n = 0
+    do i=1, size(boundary_nodes)
+      n = n + key_count(boundary_nodes(i))
+    end do
+
+    allocate(node_list(1:n))
+    n = 1
+    do i=1, size(boundary_nodes)
+      node_list(n: n+key_count(boundary_nodes(i))-1) = A%row_numbering%gnn2unn(set2vector(boundary_nodes(i)), i)
+      n = n + key_count(boundary_nodes(i))
+    end do
+
+    if (present(rhs)) then
+
+      assert( blocks(A,1)==rhs%dim )
+      assert( block_size(A,1)==node_count(rhs) )
+
+      bvec=PetscNumberingCreateVec(A%row_numbering)
+      call field2petsc(rhs, A%row_numbering, bvec)
+
+      ! make a copy xvec - the boundary values are taken from xvec
+      ! I suspect supplying bvec twice to MatZeroRowsColumns wouldn't give the 
+      ! right answer as the entry associated with a boundary node might be modified 
+      ! before being used as boundary value
+      call VecDuplicate(bvec, xvec, ierr)
+      call VecCopy(bvec, xvec, ierr)
+
+    else
+
+      xvec = PETSC_NULL_OBJECT
+      bvec = PETSC_NULL_OBJECT
+
+    end if
+
+    call MatZeroRowsColumns(A%M, size(node_list), node_list, &
+      diag, xvec, bvec, ierr)
+
+    if (present(rhs)) then
+      call petsc2field(bvec, A%row_numbering, rhs)
+      call VecDestroy(xvec, ierr)
+      call VecDestroy(bvec, ierr)
+    end if
+
+  end subroutine lift_boundary_conditions
   
   subroutine dump_matrix(name,A)
     character(len=*), intent(in):: name
