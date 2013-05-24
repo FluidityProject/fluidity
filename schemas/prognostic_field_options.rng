@@ -2399,6 +2399,7 @@ Note: Only works for continuous galerkin or control volume discretisations.</a:d
         <attribute name="name">
           <value>KEpsilon</value>
         </attribute>
+        <ref name="equation_coefficients"/>
       </element>
       <element name="equation">
         <a:documentation>Equation type for the sediment bedload fields.
