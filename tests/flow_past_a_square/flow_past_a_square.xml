@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+   
+  <name>flow_past_a_square</name>
+  <owner userid="ctj10"/>
+  <tags>flml</tags>
+  
+  <problem_definition length="long" nprocs="16">
+    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 16 -v -l flow_past_a_square flow_past_a_square_flredecomp &amp;&amp;
+mpiexec ../../bin/fluidity flow_past_a_square_flredecomp.flml</command_line>
+    <!-- This is a 2D simulation of the flow past a "square cylinder". -->
+    <!-- LES is used to model the turbulence. -->
+    <!-- The numerical results are compared against the experimental results of Lyn and Rodi (1994). -->
+  </problem_definition>
+  
+  <variables>
+    <variable name="time" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("flow_past_a_square.stat")
+time=s["ElapsedTime"]["value"]
+    </variable>
+    
+    <variable name="positions" language="python">
+import vtktools
+# The 240th dump corresponds to 60 seconds of simulation time.
+file = vtktools.vtu('flow_past_a_square_240.pvtu')
+file.GetFieldNames()
+p = file.GetLocations()
+positions = p[:,0]
+    </variable>
+    
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+  </variables>
+    
+  <pass_tests>
+    <test name="Final time is 60 seconds" language="python">
+assert abs(time[-1]-60.0) &lt; 1.0e-7
+    </test>
+    
+    <test name="After 60 seconds, normalised stream-wise time-averaged velocity agrees with experimental results." language="python">
+import vtktools
+import numpy
+
+# The 240th dump corresponds to 60 seconds of simulation time.
+filename='flow_past_a_square_240.pvtu'
+vt=vtktools.vtu(filename)
+
+# Dimensions
+H = 0.04
+U = 0.535
+h = 7*H
+
+# Experimental data from Lyn and Rodi (1994).
+experimental_X = [0.981, 1.0888, 1.233, 1.3397, 1.5188,
+1.6256, 1.73, 1.83799, 2.02, 2.128, 2.1989,
+2.34, 2.489, 2.598, 2.7075, 2.852, 2.998,
+3.217, 3.472, 3.726, 3.982, 4.201, 4.456,
+4.7118, 5.0, 5.22, 5.478, 5.733, 5.952, 6.389,
+6.75456, 7.156, 7.557, 7.9589]
+
+experimental_u_bar = [-0.18, -0.132, -0.091589, -0.006679, 0.0856,
+0.159477, 0.288667, 0.34, 0.3515, 0.3884, 0.451,
+0.48, 0.4955, 0.503, 0.5141, 0.5547, 0.5474,
+0.5401, 0.5623, 0.5956, 0.5847, 0.581, 0.5959,
+0.596, 0.607, 0.5962, 0.5963, 0.6, 0.5964, 0.62618,
+0.6263, 0.62646, 0.63399, 0.626759]
+
+for i in range(0, len(experimental_X)):
+   # We multiply by H here because the above experimental data points are normalised.
+   probed_velocity = vtktools.vtu.ProbeData(vt, numpy.array([[experimental_X[i]*H, 0, 0]]), 'TimeAveragedVelocity30')
+   print "Numerical velocity = %.3f, experimental velocity = %.3f, difference = %.3f" % (probed_velocity[0][0]/U, experimental_u_bar[i], probed_velocity[0][0]/U - experimental_u_bar[i])
+   assert abs(probed_velocity[0][0]/U - experimental_u_bar[i]) &lt; 0.26
+   
+    </test>
+
+    <test name="Solvers converged" language="python">
+assert(solvers_converged)
+    </test>
+  </pass_tests>
+  
+  <warn_tests>
+  </warn_tests>
+  
+</testproblem>
