@@ -83,6 +83,9 @@ contains
 
     type(scalar_field), pointer :: agent_field, agent_min_field, agent_max_field
     type(vector_field), pointer :: xfield
+    type(detector_type), pointer :: agent
+    type(proxy_list), pointer :: proxy_list
+    type(proxy_agent) :: proxy
     integer :: local_maximum
 
     call profiler_tic(trim(agent_list%name)//"::particle_management")
@@ -109,13 +112,28 @@ contains
     ! After the element-wise split/merges are done,
     ! we check for global agent maxima and enforce them
     if (have_option(trim(agent_list%stage_options)//"/particle_management/local_maximum")) then
-       FLExit("local_maximum merging is temporarily disabled")
        ewrite(2,*) "Particle Management: Enforcing local maximum"
        call get_option(trim(agent_list%stage_options)//"/particle_management/local_maximum", local_maximum)
 
+       ! Create proxy agents in temporary proxy lists for each element to split/merge
+       agent=>agent_list%first
+       proxy_list => null()
+       do while(associated(agent))
+          proxy%agent => agent
+          proxy%id = agent%id_number
+          proxy%size = agent%biology(BIOVAR_SIZE)
+
+          if (associated(proxy_list)) then
+             call proxy_list_insert( proxy_list, proxy )
+          else
+             call proxy_list_create( proxy_list, proxy )
+          end if
+          agent=>agent%next
+       end do
+
        ! For now we are simply enforcing a local maximum here
        ! Ideally we would enforce one global maximum across all procs
-       !call pm_merge_list(xfield, agent_list, local_maximum)
+       call pm_merge_list(xfield, proxy_list, local_maximum, agent_list)
     end if
 
     call profiler_toc(trim(agent_list%name)//"::particle_management")
