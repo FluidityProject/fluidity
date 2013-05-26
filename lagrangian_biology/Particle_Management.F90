@@ -134,6 +134,7 @@ contains
        ! For now we are simply enforcing a local maximum here
        ! Ideally we would enforce one global maximum across all procs
        call pm_merge_list(xfield, proxy_list, local_maximum, agent_list)
+       call proxy_list_destroy(proxy_list)
     end if
 
     call profiler_toc(trim(agent_list%name)//"::particle_management")
