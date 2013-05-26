@@ -1044,6 +1044,10 @@ contains
        call profiler_tic("/update_lagrangian_biology::python_post_process")
        call python_reset()
        call python_add_statec(trim(state(1)%name), len_trim(state(1)%name))
+       do i=1,(size(state(1)%meshes))
+          call python_add_mesh_directly(state(1)%meshes(i)%ptr,state(1))
+          call python_add_element_directly(state(1)%meshes(i)%ptr%shape,state(1)%meshes(i)%ptr,state(1))
+       end do
        call python_add_field(xfield, state(1))
 
        do f=1, size(python_post_fields)

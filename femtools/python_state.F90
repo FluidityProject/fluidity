@@ -40,6 +40,7 @@ module python_state
   public :: python_run_string, python_run_file
   public :: python_shell
   public :: python_fetch_real
+  public :: python_add_mesh_directly, python_add_element_directly
 
   interface
     !! Python init and end
