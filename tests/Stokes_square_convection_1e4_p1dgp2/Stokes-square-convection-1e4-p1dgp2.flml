@@ -240,7 +240,9 @@
               <exclude_mass_terms/>
             </mass_terms>
             <viscosity_scheme>
-              <bassi_rebay/>
+              <bassi_rebay>
+                <tensor_form/>
+              </bassi_rebay>
             </viscosity_scheme>
             <advection_scheme>
               <none/>

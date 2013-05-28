@@ -188,7 +188,9 @@
         <spatial_discretisation>
           <discontinuous_galerkin>
             <viscosity_scheme>
-              <bassi_rebay/>
+              <bassi_rebay>
+                <tensor_form/>
+              </bassi_rebay>
             </viscosity_scheme>
             <advection_scheme>
               <upwind/>
