@@ -278,8 +278,6 @@ module field_derivatives
       do j=1,infield%dim
 
         component = extract_scalar_field(infield, j)
-        bc_component_value = extract_scalar_field(bc_value, j)
-        bc_component_type = bc_type(j,:)
 
         do i=1,dim
           pardiff(i) = extract_scalar_field(gradient(j), i)
@@ -288,6 +286,8 @@ module field_derivatives
         derivatives = .true.
 
         if (infield%mesh%continuity<0) then
+          bc_component_value = extract_scalar_field(bc_value, j)
+          bc_component_type = bc_type(j,:)
           call differentiate_field(component, positions, derivatives, pardiff, bc_component_value, bc_component_type)
         else
           call differentiate_field(component, positions, derivatives, pardiff)
@@ -332,8 +332,6 @@ module field_derivatives
       do j=1,infield%dim
 
         component = extract_scalar_field(infield, j)
-        bc_component_value = extract_scalar_field(bc_value, j)
-        bc_component_type = bc_type(j,:)
 
         do i=1,infield%dim
           pardiff(i) = extract_scalar_field(t_field,i,j)
@@ -342,6 +340,8 @@ module field_derivatives
         derivatives = .true.
 
         if (infield%mesh%continuity<0) then
+          bc_component_value = extract_scalar_field(bc_value, j)
+          bc_component_type = bc_type(j,:)
           call differentiate_field(component, positions, derivatives, pardiff, bc_component_value, bc_component_type)
         else
           call differentiate_field(component, positions, derivatives, pardiff)
