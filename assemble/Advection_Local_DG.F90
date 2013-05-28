@@ -146,7 +146,7 @@ module advection_local_DG
     real :: meancheck, ldt
     real, dimension(:), pointer :: alpha
 
-    ewrite(1,*) 'subroutine solve_advection_dg_subcycle'
+    ewrite(1,*) 'cjc subroutine solve_advection_dg_subcycle'
 
 
     T=>extract_scalar_field(state, field_name)
@@ -1113,7 +1113,7 @@ module advection_local_DG
     type(scalar_field), dimension(:), allocatable :: Q_stages
     real, dimension(:,:), allocatable :: mcoeffs, ncoeffs
 
-    ewrite(1,*) '  subroutine solve_advection_cg_tracer('
+    ewrite(1,*) 'cjc  subroutine solve_advection_cg_tracer('
 
     X=>extract_vector_field(state, "Coordinate")
     down=>extract_vector_field(state, "GravityDirection")
@@ -1181,8 +1181,8 @@ module advection_local_DG
           ewrite(1,*) 'Using the T(1,2) scheme'
           n_stages = 1 
           allocate(mcoeffs(1,1),ncoeffs(1,1))
-          mcoeffs(1,1) = 0
-          ncoeffs(1,1) = 0!1-eta
+          mcoeffs(1,1) = 1
+          ncoeffs(1,1) = 0.5-eta
        else
           FLAbort('Unknown choice of TG scheme')
        end if
@@ -1201,9 +1201,11 @@ module advection_local_DG
        end if
        Q_stages(n_stages+1) = Q
 
+       ewrite(2,*) maxval(abs(Q_stages(1)%val)), 'cjc start'
+
        !!Compute the stages themselves
        do stage = 1, n_stages
-          ewrite(2,*) 'stage', stage
+          ewrite(2,*) 'cjc TG stage', stage
           call zero(Q_rhs)
           do ele = 1, ele_count(D)
              call construct_taylor_galerkin_stage_ele(&
@@ -1220,6 +1222,9 @@ module advection_local_DG
 
        end do
 
+       call mult(Q_rhs,adv_mat,Q)
+       ewrite(2,*) maxval(abs(Q_Rhs%val)), 'cjc RHS after'
+
        ewrite(2,*) 'Computing PV flux'
        
        !Compute the PV flux
@@ -1229,15 +1234,19 @@ module advection_local_DG
                & ncoeffs(n_stages,:),n_stages,dt,ele)
        end do
 
-       !call set(Q,Q_stages(stage+1))
+       ewrite(2,*) 'cjc testing pointers', maxval(abs(Q%val-Q_stages(n_stages+1)%val))
+       call set(Q,Q_stages(n_stages+1))
        
        ewrite(2,*) 'Deallocating memory'
 
        !! Clean up memory for stages
-       do stage = 2, n_stages
-          call deallocate(Q_stages(stage))
-       end do
-       deallocate(Q_stages)
+       if(n_stages>1) then
+          do stage = 2, n_stages
+             call deallocate(Q_stages(stage))
+          end do
+          deallocate(Q_stages)
+       end if
+
     end if
     EWRITE(2,*) 'deallocating adv_mat cjc'
     call deallocate(adv_mat)
@@ -1245,6 +1254,7 @@ module advection_local_DG
     call deallocate(Q_rhs)
 
     if(have_option(trim(Q%option_path)//'/prognostic/debug')) then
+       ewrite(2,*) 'running diagnostic cjc'
        call allocate(Qtest1,Q%mesh,trim(Q%name)//"test1")
        call zero(Qtest1)
        call allocate(Qtest2,Q%mesh,trim(Q%name)//"test2")
@@ -1268,11 +1278,12 @@ module advection_local_DG
 
     if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
          &continuous_galerkin/discontinuity_capturing')) then
+       ewrite(2,*) 'cjc computing discontinuity detector'
        call calculate_discontinuity_detector(state,&
             discontinuity_detector_field)
     end if
 
-    ewrite(1,*) 'END  subroutine solve_advection_cg_tracer('
+    ewrite(1,*) 'cjc END  subroutine solve_advection_cg_tracer('
 
   end subroutine solve_advection_cg_tracer
 
@@ -1370,7 +1381,7 @@ module advection_local_DG
        q_rhs_val = q_rhs_val + dt*dt*ncoeffs(istage)*matmul(dt2_mat,q_val)
     end do
 
-    call addto(q_rhs,ele_nodes(q_rhs,ele),q_val)
+    call addto(q_rhs,ele_nodes(q_rhs,ele),q_rhs_val)
 
   end subroutine construct_taylor_galerkin_stage_ele
 
@@ -1411,7 +1422,6 @@ module advection_local_DG
     !D_gi, D_old_gi contains factor of det(J) (projected)
     D_val = invert_pi_ele(ele_val(D,ele),D_shape,detwei)
     D_gi = matmul(transpose(D_shape%n),D_val)
-    ewrite(2,*) 'cjc d_val d_gi', maxval(abs(d_val)),maxval(abs(d_gi))
     D_val = invert_pi_ele(ele_val(D_old,ele),D_shape,detwei)
     D_old_gi = matmul(transpose(D_shape%n),D_val)
     Flux_gi = ele_val_at_quad(Flux,ele)
@@ -1486,8 +1496,6 @@ module advection_local_DG
     Flux_perp_gi(1,:) = -orientation*QFlux_gi(2,:)
     Flux_perp_gi(2,:) =  orientation*QFlux_gi(1,:)
 
-    ewrite(2,*) maxval(abs(Flux_perp_gi)),'cjc Flux_perp_gi'
-    ewrite(2,*) maxval(abs(detwei_l)),ele,'cjc detwei_l'
     QFlux_perp_rhs = shape_vector_rhs(Flux_shape,Flux_perp_gi,detwei_l)
     
     call set(QF,ele_nodes(QF,ele),QFlux_perp_rhs)

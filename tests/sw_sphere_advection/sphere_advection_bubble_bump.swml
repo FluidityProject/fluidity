@@ -333,12 +333,10 @@ g = 9.80616
           </theta>
         </timestepping>
         <solver>
-          <iterative_method name="preonly"/>
-          <preconditioner name="lu">
-            <factorization_package name="petsc"/>
-          </preconditioner>
+          <iterative_method name="cg"/>
+          <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.0e-50</real_value>
+            <real_value rank="0">1.0e-6</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
@@ -353,51 +351,8 @@ g = 9.80616
         <stat>
           <manifold_transformation/>
         </stat>
+        <debug/>
       </prognostic>
-    </scalar_field>
-    <scalar_field name="DG_CourantNumber" rank="0">
-      <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat>
-          <manifold_transformation/>
-        </stat>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <adjoint_storage>
-          <exists_in_forward/>
-        </adjoint_storage>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="PVDiscontinuityDetector" rank="0">
-      <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="discontinuity_detector" source_field_name="PotentialVorticityTracer"/>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat>
-          <manifold_transformation/>
-        </stat>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <adjoint_storage>
-          <exists_in_forward/>
-        </adjoint_storage>
-      </diagnostic>
     </scalar_field>
   </material_phase>
   <debug>

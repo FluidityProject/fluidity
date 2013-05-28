@@ -205,7 +205,7 @@
            & PV_old
       type(vector_field) :: newU, MassFlux, PVFlux, UResidual
       type(scalar_field) :: newD, DResidual
-      type(scalar_field), pointer :: PVtracer
+      type(scalar_field), pointer :: PVtracer, pvtracer_old
 
       integer :: nonlinear_iterations, nits, stat
       logical :: have_pv_tracer, &
@@ -234,6 +234,8 @@
       PVtracer => extract_scalar_field(state, "PotentialVorticityTracer",stat)
       if(stat==0) then
          have_pv_tracer = .true.
+         pvtracer_old => extract_scalar_field(state, &
+              "OldPotentialVorticityTracer")
       else
          have_pv_tracer = .false.
       end if
@@ -262,6 +264,7 @@
 !              "NonlinearVelocity",continuity=.true.)
          call solve_advection_dg_subcycle("LayerThickness", state, &
               "NonlinearVelocity",continuity=.true.,Flux=MassFlux)
+         call set(pvtracer_old,pvtracer)
          if(have_pv_tracer) then
             call solve_advection_cg_tracer(PVtracer,D,&
                  d_old,MassFlux,advecting_u,PVFlux,state)
