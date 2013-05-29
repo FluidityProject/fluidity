@@ -3135,15 +3135,14 @@ contains
 
       !! for DG
       !! Field that holds the gradient of velocity in boundary elements
-      type(tensor_field), target :: grad_U, dummy_visc
-      type(tensor_field), pointer :: grad_U_ptr
+      type(tensor_field), target :: dummy_visc
       integer :: grad_u_stat, visc_stat
       !! surface mesh, element and node list
       type(mesh_type), pointer :: surface_mesh
       integer, dimension(:), allocatable :: surface_element_list
       !! surface fields
       type(vector_field) :: bed_shear_stress_surface
-      type(tensor_field) :: visc_surface, grad_u_surface
+      type(tensor_field) :: grad_U, visc_surface, grad_u_surface
       
       ewrite(2,*) 'in calculate bed_shear_stress'
 
@@ -3231,16 +3230,11 @@ contains
             ! Then we use this field to determine the bed shear stress using:
             ! N_i N_j tau_b = N_i nu grad_u . |n|
 
-            ! If a DGVelocityGradient field exists in the schema then use that, otherwise
             ! create a field to store the gradient on
-            grad_U_ptr => extract_tensor_field(state, "DGVelocityGradient", grad_u_stat)
-            if (grad_u_stat /= 0) then
-               call allocate(grad_U, bed_shear_stress%mesh, 'grad_U')
-               grad_U_ptr => grad_U
-            end if
-            call zero(grad_U_ptr)
+            call allocate(grad_U, bed_shear_stress%mesh, 'grad_U')
+            call zero(grad_U)
             ! calculate gradient of velocity
-            call grad(U, X, grad_U_ptr)
+            call grad(U, X, grad_U)
 
             allocate(surface_element_list(surface_element_count(bed_shear_stress)))
             ! generate list of surface elements
@@ -3253,8 +3247,8 @@ contains
             call allocate(bed_shear_stress_surface, bed_shear_stress%dim, surface_mesh)
 
             ! remap required fields to the boundary surfaces
-            call allocate(grad_u_surface, surface_mesh, dim=grad_u_ptr%dim)
-            call remap_field_to_surface(grad_u_ptr, grad_u_surface, surface_element_list)
+            call allocate(grad_u_surface, surface_mesh, dim=grad_u%dim)
+            call remap_field_to_surface(grad_u, grad_u_surface, surface_element_list)
             call allocate(visc_surface, surface_mesh, dim=visc%dim)
             call remap_field_to_surface(visc, visc_surface, surface_element_list)
 
@@ -3271,9 +3265,7 @@ contains
             end do
 
             call deallocate(bed_shear_stress_surface)
-            if (grad_u_stat /= 0) then
-               call deallocate(grad_u)
-            end if
+            call deallocate(grad_u)
             call deallocate(grad_u_surface)
             call deallocate(visc_surface)
          end if

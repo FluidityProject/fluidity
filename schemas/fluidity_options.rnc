@@ -2439,24 +2439,11 @@ diagnostic_vector_field_bed_shear_stress =
             element drag_coefficient {
                real
             }|
-            ## velocity_gradient - nu * grad(u)
+            ## nu * (grad(u) + grad(u).T)
             ## This uses the velocity gradient at the boundaries to calculate the 
-            ## bed shear stress. Valid for non parameterised velocity boundaries
-            element velocity_gradient {              
-               ## The velocity gradient is calculated for the entire domain when calculating the bed 
-               ## shear stress in DG. If you want to use this gradient in other diagnostics or wish to 
-               ## output the gradient to vtu files enable the field below.
-               element tensor_field {
-                  attribute rank { "2" },
-                  attribute name { "DGVelocityGradient" },
-                  (
-                     element diagnostic {
-                        internal_algorithm,
-                        velocity_mesh_choice,
-                        diagnostic_tensor_field
-                     }
-                  )
-               }?
+            ## bed shear stress. Valid for non parameterised velocity boundaries.
+            element velocity_gradient {    
+               empty
             }|
             ## This diagnostic can only be used in conjunction with a near-wall treatment
             ## velocity boundary condition. It is calculated at the same time as that boundary condition.
@@ -5587,9 +5574,8 @@ vector_field_choice =
             )
          }|
          
-         ## Bed Shear Stress = density*drag_coeff*|u|*u
-         ##
-         ## at the moment this assumes the density and drag coefficients are constants.
+         ## Bed Shear Stress
+         ## 
          ## This diagnostic vector field is only calculated over surface elements/nodes, 
          ## interior nodes will have zero value.
          element vector_field {

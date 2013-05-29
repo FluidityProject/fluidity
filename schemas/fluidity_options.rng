@@ -3317,27 +3317,10 @@ This is calculated at all boundaries</a:documentation>
           <ref name="real"/>
         </element>
         <element name="velocity_gradient">
-          <a:documentation>velocity_gradient - nu * grad(u)
+          <a:documentation>nu * (grad(u) + grad(u).T)
 This uses the velocity gradient at the boundaries to calculate the 
-bed shear stress. Valid for non parameterised velocity boundaries</a:documentation>
-          <optional>
-            <element name="tensor_field">
-              <a:documentation>The velocity gradient is calculated for the entire domain when calculating the bed 
-shear stress in DG. If you want to use this gradient in other diagnostics or wish to 
-output the gradient to vtu files enable the field below.</a:documentation>
-              <attribute name="rank">
-                <value>2</value>
-              </attribute>
-              <attribute name="name">
-                <value>DGVelocityGradient</value>
-              </attribute>
-              <element name="diagnostic">
-                <ref name="internal_algorithm"/>
-                <ref name="velocity_mesh_choice"/>
-                <ref name="diagnostic_tensor_field"/>
-              </element>
-            </element>
-          </optional>
+bed shear stress. Valid for non parameterised velocity boundaries.</a:documentation>
+          <empty/>
         </element>
         <element name="wall_treatment">
           <a:documentation>This diagnostic can only be used in conjunction with a near-wall treatment
@@ -7093,9 +7076,8 @@ Assumes both fields are on the same mesh as the AbsoluteDifference field.</a:doc
         </choice>
       </element>
       <element name="vector_field">
-        <a:documentation>Bed Shear Stress = density*drag_coeff*|u|*u
+        <a:documentation>Bed Shear Stress
 
-at the moment this assumes the density and drag coefficients are constants.
 This diagnostic vector field is only calculated over surface elements/nodes, 
 interior nodes will have zero value.</a:documentation>
         <attribute name="rank">

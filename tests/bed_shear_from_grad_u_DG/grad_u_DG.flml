@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">bed_shear_from_grad_u_DG</string_value>
+    <string_value lines="1">grad_u_DG</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>
@@ -108,35 +108,15 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="BedShearStress" rank="1">
+    <tensor_field name="DGVelocityGradient" rank="2">
       <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
+        <algorithm source_field_type="vector" material_phase_support="single " name="grad_vector" source_field_name="Velocity"/>
         <mesh name="VelocityMesh"/>
-        <density>
-          <real_value rank="0">1</real_value>
-        </density>
-        <calculation_method>
-          <velocity_gradient>
-            <tensor_field name="DGVelocityGradient" rank="2">
-              <diagnostic>
-                <algorithm name="Internal" material_phase_support="multiple"/>
-                <mesh name="VelocityMesh"/>
-                <output/>
-                <stat>
-                  <include_in_stat/>
-                </stat>
-              </diagnostic>
-            </tensor_field>
-          </velocity_gradient>
-        </calculation_method>
         <output/>
         <stat>
           <include_in_stat/>
         </stat>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
       </diagnostic>
-    </vector_field>
+    </tensor_field>
   </material_phase>
 </fluidity_options>

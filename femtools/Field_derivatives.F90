@@ -1330,6 +1330,7 @@ module field_derivatives
       logical, dimension(:), intent(in) :: derivatives
       type(scalar_field), dimension(:), intent(inout) :: pardiff
 
+      ! weak bc's are rquired to calculated gradient of dg fields
       type(scalar_field), intent(in), optional :: bc_value
       integer, dimension(:), intent(in), optional :: bc_type
 

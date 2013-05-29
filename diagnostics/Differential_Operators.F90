@@ -71,6 +71,16 @@ contains
     type(vector_field), pointer :: positions
     
     source_field => scalar_source_field(state, v_field)
+    if (source_field%mesh%continuity<0 .and. .not. (v_field%mesh%continuity<0)) then
+      ewrite(-1,*) "For diagnostic algorithm (grad)"
+      ewrite(-1,*) "You are trying to take the derivative of field: ", trim(source_field%name)
+      ewrite(-1,*) "which is on a discontinuous mesh. and store it on: ", trim(v_field%name)
+      ewrite(-1,*) "which is continuous. The code does not support this."
+      ewrite(-1,*) "Please change the diagnostic field discretisation to discontinuous"
+      ewrite(-1,*) "or use a galerkin_projection first to derive a continuous approximation"
+      ewrite(-1,*) "of the source field."
+      FLExit("Diagnostic algorithm does not support taking continuous gradients of discontinuous fields")
+    end if
     
     positions => extract_vector_field(state, "Coordinate")
     
@@ -87,6 +97,16 @@ contains
 
     positions => extract_vector_field(state, "Coordinate")
     source_field => vector_source_field(state, t_field)
+    if (source_field%mesh%continuity<0 .and. .not. (t_field%mesh%continuity<0)) then
+      ewrite(-1,*) "For diagnostic algorithm (grad)"
+      ewrite(-1,*) "You are trying to take the derivative of field: ", trim(source_field%name)
+      ewrite(-1,*) "which is on a discontinuous mesh. and store it on: ", trim(t_field%name)
+      ewrite(-1,*) "which is continuous. The code does not support this."
+      ewrite(-1,*) "Please change the diagnostic field discretisation to discontinuous"
+      ewrite(-1,*) "or use a galerkin_projection first to derive a continuous approximation"
+      ewrite(-1,*) "of the source field."
+      FLExit("Diagnostic algorithm does not support taking continuous gradients of discontinuous fields")
+    end if
 
     call grad(source_field, positions, t_field)
 
