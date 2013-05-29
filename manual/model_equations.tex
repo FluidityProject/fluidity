@@ -349,7 +349,7 @@ If the flow is incompressible, $\nabla\cdot\bmu=0$. It is now possible to simpli
 
 If the flow is incompressible, and the viscosity is homogeneous:
 \begin{equation}
-\nabla\cdot\mu\left(\nabla\bmu + (\nabla\bmu)^T\right) = \frac{\partial_i}{\partial x_j} \mu \left(\frac{\partial \bmu_i}{\partial x_j} + \frac{\bmu_j}{\partial x_i}\right) = \mu \left(\frac{\partial_i}{\partial x_j}\frac{\partial \bmu_i}{\partial x_j} + \frac{\partial_i}{\partial x_j}\frac{\bmu_j}{\partial x_i}\right) = \mu \left(\frac{\partial_i}{\partial x_j}\frac{\partial \bmu_i}{\partial x_j}\right) = \nabla\cdot\mu\nabla\bmu
+\nabla\cdot\mu\left(\nabla\bmu + (\nabla\bmu)^T\right) = \frac{\partial}{\partial x_j} \mu \left(\frac{\partial \bmu_i}{\partial x_j} + \frac{\partial \bmu_j}{\partial x_i}\right) = \mu \left(\frac{\partial}{\partial x_j}\frac{\partial \bmu_i}{\partial x_j} + \frac{\partial}{\partial x_j}\frac{\partial \bmu_j}{\partial x_i}\right) = \mu \left(\frac{\partial}{\partial x_j}\frac{\partial \bmu_i}{\partial x_j}\right) = \nabla\cdot\mu\nabla\bmu
 \end{equation}
 the stress tensor can then be further simplified to obtain the '\emph{tensor form}':
 \begin{equation}
