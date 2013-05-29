@@ -130,7 +130,7 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">0.001</real_value>
+      <real_value rank="0">0.005</real_value>
       <comment>1 hour</comment>
     </timestep>
     <theta>
@@ -305,7 +305,7 @@ g = 9.80616
               <eta>
                 <real_value rank="0">0.5</real_value>
               </eta>
-              <Tbar2_3_scheme/>
+              <T1_2_scheme/>
             </taylor_galerkin>
           </continuous_galerkin>
         </spatial_discretisation>
@@ -333,8 +333,10 @@ g = 9.80616
           </theta>
         </timestepping>
         <solver>
-          <iterative_method name="cg"/>
-          <preconditioner name="sor"/>
+          <iterative_method name="preonly"/>
+          <preconditioner name="lu">
+            <factorization_package name="petsc"/>
+          </preconditioner>
           <relative_error>
             <real_value rank="0">1.0e-6</real_value>
           </relative_error>
@@ -351,8 +353,29 @@ g = 9.80616
         <stat>
           <manifold_transformation/>
         </stat>
-        <debug/>
       </prognostic>
+    </scalar_field>
+    <scalar_field name="DG_CourantNumber" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <manifold_transformation/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </diagnostic>
     </scalar_field>
   </material_phase>
   <debug>

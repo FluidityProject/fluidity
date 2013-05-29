@@ -1337,6 +1337,8 @@ module advection_local_DG
     !! (qD)_t = div(Fq)
     !! I don't know why I gave F the negative sign but I'm not fixing it
     !! now!!
+    !! Also, F has a factor of dt in it. So actually solving
+    !! (qD)_t = div(Fq)/dt
 
     !! The operators below have been given signs
     !! consistent with the fact that we are replacing
@@ -1351,14 +1353,14 @@ module advection_local_DG
        end do
     end do
     dt2_mat = -dshape_tensor_dshape(Q_shape%dn, &
-         Metric, Q_shape%dn,detwei_l/(0.5*(D_gi+D_old_gi)*detJ))
+         Metric, Q_shape%dn,detwei_l/(0.5*(D_gi+D_old_gi)))
 
     !! Only assemble matrix if first stage
     if(stage==1) then
        !! mass operator
        m_mat = shape_shape(Q_shape,Q_shape,D_gi*detwei_l)
 
-       l_adv_mat = m_mat - eta*dt*dt*dt2_mat
+       l_adv_mat = m_mat - eta*dt2_mat
        
        call addto(adv_mat,ele_nodes(Q_rhs,ele), &
             ele_nodes(Q_rhs,ele), l_adv_mat)
@@ -1376,9 +1378,9 @@ module advection_local_DG
     do istage = 1, stage
        Q_val = ele_val(q_stages(istage),ele)
        !Advection term
-       q_rhs_val = q_rhs_val + dt*mcoeffs(istage)*matmul(dt_mat,q_val)
+       q_rhs_val = q_rhs_val + mcoeffs(istage)*matmul(dt_mat,q_val)
        !Diffusive term
-       q_rhs_val = q_rhs_val + dt*dt*ncoeffs(istage)*matmul(dt2_mat,q_val)
+       q_rhs_val = q_rhs_val + ncoeffs(istage)*matmul(dt2_mat,q_val)
     end do
 
     call addto(q_rhs,ele_nodes(q_rhs,ele),q_rhs_val)
@@ -1473,21 +1475,21 @@ module advection_local_DG
      do istage = 1, n_stages
         !1st derivative
         forall(dim1=1:mesh_dim(Flux))
-           QFlux_gi(dim1,:) = QFlux_gi(dim1,:) + dt*mcoeffs(istage)*&
+           QFlux_gi(dim1,:) = QFlux_gi(dim1,:) + mcoeffs(istage)*&
                 Flux_gi(dim1,:)*Q_stages_gi(istage,:)
         end forall
         !2nd derivative
         forall(gi = 1:ele_ngi(Flux,ele))
-           QFlux_gi(:,gi) = QFlux_gi(:,gi) - dt*dt*ncoeffs(istage)*&
+           QFlux_gi(:,gi) = QFlux_gi(:,gi) - ncoeffs(istage)*&
                 &matmul(Metric(:,:,gi),grad_q_stages_gi(istage,:,gi))/&
-                &(0.5*(D_gi(gi)+D_old_gi(gi))*detJ(gi))
+                &(0.5*(D_gi(gi)+D_old_gi(gi)))
         end forall
     end do
     ! !Diffusion term from final stage
     forall(gi=1:ele_ngi(Flux,ele))
-       QFlux_gi(:,gi) = QFlux_gi(:,gi) - eta*dt*dt*&
+       QFlux_gi(:,gi) = QFlux_gi(:,gi) - eta*&
             &matmul(Metric(:,:,gi),grad_q_stages_gi(n_stages+1,:,gi))/&
-            &(0.5*(D_gi(gi)+D_old_gi(gi))*detJ(gi))
+            &(0.5*(D_gi(gi)+D_old_gi(gi)))
     end forall
 
     ! !! Evaluate 
