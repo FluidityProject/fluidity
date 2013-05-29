@@ -914,17 +914,7 @@ scaled by C_0</a:documentation>
                 <a:documentation>Classical scheme from Bassi and Rebay 
 (JCP 131 267-179 1997)
 Partial stress form is available for inhomogenous isotropic viscosities</a:documentation>
-                <choice>
-                  <element name="tensor_form">
-                    <a:documentation>solves the viscosity term in the form:  d/dx_j K du_i/dx_j</a:documentation>
-                    <empty/>
-                  </element>
-                  <element name="partial_stress_form">
-                    <a:documentation>solves the viscosity term in the form:  d/dx_j k (du_i/dx_j + du_j/dx_j)
-note that the viscosity, k, must be isoptropic</a:documentation>
-                    <empty/>
-                  </element>
-                </choice>
+                <empty/>
               </element>
               <element name="arbitrary_upwind">
                 <a:documentation>Scheme in which upwinding is applied in
@@ -995,6 +985,19 @@ Int grad u.kappa.grad v dV</a:documentation>
                     </optional>
                   </element>
                 </optional>
+              </element>
+            </choice>
+            <choice>
+              <element name="tensor_form">
+                <a:documentation>solves the viscosity term in the form:  d/dx_j K du_i/dx_j</a:documentation>
+                <empty/>
+              </element>
+              <element name="partial_stress_form">
+                <a:documentation>solves the viscosity term in the form:  d/dx_j k (du_i/dx_j + du_j/dx_j)
+note that the viscosity, k, must be isoptropic
+
+only implemented for the bassi-rebay viscosity scheme</a:documentation>
+                <empty/>
               </element>
             </choice>
           </element>

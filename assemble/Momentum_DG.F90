@@ -262,7 +262,7 @@ contains
     type(scalar_field) :: nvfrac ! Non-linear approximation to the PhaseVolumeFraction
 
     ! Partial stress - sp911
-    logical :: partial_stress = .false.
+    logical :: partial_stress 
 
     ewrite(1, *) "In construct_momentum_dg"
 
@@ -551,12 +551,10 @@ contains
        FLAbort("Unknown viscosity scheme - Options tree corrupted?")
     end if
 
-    if (have_option(trim(u%option_path)//&
+    partial_stress = have_option(trim(u%option_path)//&
          &"/prognostic/spatial_discretisation"//&
          &"/discontinuous_galerkin/viscosity_scheme"//&
-         &"/bassi_rebay/partial_stress_form")) then
-      partial_stress = .true.
-    end if
+         &"/partial_stress_form")
     ewrite(2,*) 'partial stress? ', partial_stress
 
     integrate_surfacetension_by_parts = have_option(trim(u%option_path)//&
@@ -1930,11 +1928,12 @@ contains
       !   M_v_rs = G^T_m A_rmsn Q^{-1} G_n
       ! where A is a dim x dim x dim x dim linear operator:
       !   A_rmsn = \partial ( \nu ( u_{r,m} + u_{m,r} ) ) / \partial u_{s,n}
+      !   where a_{b,c} = \partial a_b / \partial x_c
       ! off diagonal terms define the coupling between the velocity components
 
       real, dimension(size(Q_inv,1), size(Q_inv,2)) :: Q_visc
 
-      dim = Viscosity%dim(1)
+      ! isotropic viscosity (just take the first component as scalar value)
       Q_visc = mat_diag_mat(Q_inv, Viscosity_ele(1,1,:))
 
       do dim1=1,u%dim
@@ -3381,7 +3380,6 @@ contains
                 &"/vector_field::Velocity"
              ewrite(0,*) "which is probably an asymmetric matrix"
           end if
-    
        end if
 
        if (((have_option(trim(velocity_path)//"vertical_stabilization/vertical_velocity_relaxation") .or. &
@@ -3391,6 +3389,11 @@ contains
          ewrite(0,*) "Warning: You have selected a vertical stabilization but have not set"
          ewrite(0,*) "include_pressure_correction under your absorption field."
          ewrite(0,*) "This option will now be turned on by default."
+       end if
+
+       if (have_option(trim(dg_path)//"/viscosity_scheme/partial_stress_form") .and. .not. &
+            have_option(trim(dg_path)//"/viscosity_scheme/bassi_rebay")) then
+         FLAbort("partial stress form is only implemented for the bassi-rebay viscosity scheme in DG")
        end if
 
     end do state_loop
