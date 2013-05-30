@@ -59,7 +59,10 @@ scalar_boundary_conditions =
                ## Viscosity value to use within this algorithm. This allows the user to override 
                ## use of the material viscosity used for the rest of the simulation for calculating 
                ## sediment reentrainment. 
-               element viscosity { real }?
+               element viscosity { real }?,
+               # Only for debugging purposes - sets Neumann boundary to zero (diagnostic fields are
+               # still set)
+               element set_to_zero { empty }?
             }|
             ## [UNDER DEVELOPMENT - DOES NOT WORK YET]
             ## Special type of Dirichlet boundary condition for the k-epsilon
