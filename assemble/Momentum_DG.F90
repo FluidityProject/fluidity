@@ -3126,7 +3126,7 @@ contains
     partial_stress = have_option(trim(u%option_path)//&
          &"/prognostic/spatial_discretisation"//&
          &"/discontinuous_galerkin/viscosity_scheme"//&
-         &"/bassi_rebay/partial_stress_form")
+         &"/partial_stress_form")
 
     ! It would be enough to set this variable to true only if there is a flux turbine. 
     ! However, for performance reasons, this is done whenever a turbine model is in use.
