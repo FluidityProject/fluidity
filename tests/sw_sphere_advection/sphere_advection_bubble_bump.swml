@@ -305,7 +305,7 @@ g = 9.80616
               <eta>
                 <real_value rank="0">0.0</real_value>
               </eta>
-              <T1_2_scheme/>
+              <Tbar2_3_scheme/>
             </taylor_galerkin>
           </continuous_galerkin>
         </spatial_discretisation>
