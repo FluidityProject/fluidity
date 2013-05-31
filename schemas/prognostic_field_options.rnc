@@ -744,8 +744,9 @@ prognostic_velocity_field =
                      }|
                      ## Classical scheme from Bassi and Rebay 
                      ## (JCP 131 267-179 1997)
+                     ## Partial stress form is available for inhomogenous isotropic viscosities
                      element bassi_rebay {
-                        empty
+                       empty
                      }|
                      ## Scheme in which upwinding is applied in
                      ## alternating directions. Devised by C.Pain.
@@ -807,6 +808,15 @@ prognostic_velocity_field =
                            }?
                         }?
                      }
+                  ),
+                  (
+                     ## solves the viscosity term in the form:  d/dx_j K du_i/dx_j
+                     element tensor_form { empty }|
+                     ## solves the viscosity term in the form:  d/dx_j k (du_i/dx_j + du_j/dx_j)
+                     ## note that the viscosity, k, must be isoptropic
+                     ##
+                     ## only implemented for the bassi-rebay viscosity scheme
+                     element partial_stress_form { empty }
                   )
                },
                element advection_scheme {
