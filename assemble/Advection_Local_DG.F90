@@ -1190,7 +1190,7 @@ module advection_local_DG
        !!Set up memory for the stages
        ewrite(2,*) 'Allocating memory for Q_stages'
        allocate(Q_stages(n_stages+1))
-       Q_stages(1) = Q
+       Q_stages(1) = Q_old
        ewrite(2,*) 'cjc q_stages(1), q_old', maxval(abs(Q_stages(1)%val)),maxval(abs(Q_old%val))
        if(n_stages>1) then
           do stage = 2, n_stages

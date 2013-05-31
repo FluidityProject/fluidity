@@ -303,7 +303,7 @@ g = 9.80616
           <continuous_galerkin>
             <taylor_galerkin>
               <eta>
-                <real_value rank="0">0.5</real_value>
+                <real_value rank="0">0.0</real_value>
               </eta>
               <T1_2_scheme/>
             </taylor_galerkin>
@@ -353,6 +353,7 @@ g = 9.80616
         <stat>
           <manifold_transformation/>
         </stat>
+        <debug/>
       </prognostic>
     </scalar_field>
     <scalar_field name="DG_CourantNumber" rank="0">
