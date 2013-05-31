@@ -531,6 +531,11 @@ pv_advection_options_options =
                ## Unconditionally stable for eta>0.5
                element T1_2_scheme{
                   empty
+               }|
+               ## Unstable one-step TG(1,1) scheme
+               ## Only useful for testing.
+               element T1_1_scheme{
+                  empty
                }
             )
          }

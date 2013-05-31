@@ -689,6 +689,11 @@ number otherwise</a:documentation>
 Unconditionally stable for eta&gt;0.5</a:documentation>
             <empty/>
           </element>
+          <element name="T1_1_scheme">
+            <a:documentation>Unstable one-step TG(1,1) scheme
+Only useful for testing.</a:documentation>
+            <empty/>
+          </element>
         </choice>
       </element>
     </choice>

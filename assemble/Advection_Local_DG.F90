@@ -1183,6 +1183,16 @@ module advection_local_DG
           allocate(mcoeffs(1,1),ncoeffs(1,1))
           mcoeffs(1,1) = 1
           ncoeffs(1,1) = 0.5-eta
+       else if (have_option(trim(Q%option_path)//'/prognostic/spatial_discre&
+            &tisation/continuous_galerkin/taylor_galerkin/T1_1_scheme'))&
+            & then
+          !! Use unstable T(1,1) scheme for testing fluxes
+          ewrite(1,*) 'Using the T(1,1) scheme'
+          n_stages = 1
+          eta =0.
+          allocate(mcoeffs(1,1),ncoeffs(1,1))
+          mcoeffs(1,1) = 1
+          ncoeffs(1,1) = 0
        else
           FLAbort('Unknown choice of TG scheme')
        end if
@@ -1446,7 +1456,7 @@ module advection_local_DG
     !Taylor Galerkin stages
 
     !TG update equation is
-    !<\gamma, \Delta \zeta> = \sum_{j=1}^{s}<-\nabla\gamma,m_{nj}*dt*F*q^j>
+    !<\gamma, \Delta \zeta> = \sum_{j=1}^{s}<\nabla\gamma,m_{nj}*dt*F*q^j>
     !                        +\sum_{j=1}^{s}<-\nabla\gamma,n_{nj}*dt*dt*
     !                                                    F/D(F.\nabla q^j)>
     !                        +dt*dt*\eta<-\nabla\gamma,F/D(F.\nabla q^{s+1})>
@@ -1465,8 +1475,7 @@ module advection_local_DG
      do istage = 1, n_stages+1
         Q_stages_gi(istage,:) = ele_val_at_quad(Q_stages(istage),ele)
         Grad_q_stages_gi(istage,:,:) = &
-             ele_grad_at_quad(Q_stages(istage),ele,&
-             Q_shape%dn)
+             ele_grad_at_quad(Q_stages(istage),ele,Q_shape%dn)
      end do
 
      QFlux_gi = 0.
@@ -1479,8 +1488,10 @@ module advection_local_DG
                 Flux_gi(dim1,:)*Q_stages_gi(istage,:)
         end forall
         !2nd derivative
+        !dt2_mat = -dshape_tensor_dshape(Q_shape%dn, &
+        !     Metric, Q_shape%dn,detwei_l/(0.5*(D_gi+D_old_gi)))
         forall(gi = 1:ele_ngi(Flux,ele))
-           QFlux_gi(:,gi) = QFlux_gi(:,gi) - ncoeffs(istage)*&
+           QFlux_gi(:,gi) = QFlux_gi(:,gi) + ncoeffs(istage)*&
                 &matmul(Metric(:,:,gi),grad_q_stages_gi(istage,:,gi))/&
                 &(0.5*(D_gi(gi)+D_old_gi(gi)))
         end forall
