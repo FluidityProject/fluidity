@@ -140,7 +140,7 @@
       <integer_value rank="0">1</integer_value>
     </nonlinear_iterations>
     <finish_time>
-      <real_value rank="0">0.5</real_value>
+      <real_value rank="0">6.283185307179586</real_value>
     </finish_time>
   </timestepping>
   <physical_parameters>
@@ -172,6 +172,7 @@
           <adjoint_storage>
             <exists_in_forward/>
           </adjoint_storage>
+          <do_not_recalculate/>
         </prescribed>
       </vector_field>
     </gravity>
@@ -303,7 +304,7 @@ g = 9.80616
           <continuous_galerkin>
             <taylor_galerkin>
               <eta>
-                <real_value rank="0">0.0</real_value>
+                <real_value rank="0">0.5</real_value>
               </eta>
               <Tbar2_3_scheme/>
             </taylor_galerkin>

@@ -1498,7 +1498,7 @@ module advection_local_DG
     end do
     ! !Diffusion term from final stage
     forall(gi=1:ele_ngi(Flux,ele))
-       QFlux_gi(:,gi) = QFlux_gi(:,gi) - eta*&
+       QFlux_gi(:,gi) = QFlux_gi(:,gi) + eta*&
             &matmul(Metric(:,:,gi),grad_q_stages_gi(n_stages+1,:,gi))/&
             &(0.5*(D_gi(gi)+D_old_gi(gi)))
     end forall
@@ -2021,6 +2021,7 @@ module advection_local_DG
             = QFlux_perp_rhs(dim1,:)
     end do
     call solve(solve_mat,solve_rhs)
+
     !Don't need to include constraints since u eqn is
     ! <w,Q^\perp> + <<[w],\lambda>> + \sum_i C_i\cdot w \Gamma_i = RHS
     ! but if w=-\nabla^\perp\gamma then [w]=0 and C_i\cdot w=0.

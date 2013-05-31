@@ -288,7 +288,23 @@ start =
          },
          ## The physical parameters
          element physical_parameters {
-            gravity_options,
+               ## Set a gravity to be included in the buoyancy term.
+            element gravity {
+               ## Acceleration due to gravity. 9.8 m/s^2 on earth.
+               element magnitude {
+                  real
+               },
+               ## The direction of the gravity vector.
+               element vector_field {
+                  attribute name { "GravityDirection" },
+                  attribute rank { "1" },
+                  element prescribed {
+                     coordinate_mesh_choice,
+                     prescribed_vector_field_no_adapt,
+                     recalculation_options
+                  }
+               }
+            },
 	    ## Use this option to create a Coriolis parameter field if 
 	    ## if isn't present as a field in state.
             element coriolis {

@@ -2405,6 +2405,8 @@ contains
              
              position => get_external_coordinate_field(states(p+1), sfield%mesh)
              
+             ewrite(2,*) 'cjc setting field', sfield%name
+
              call zero(sfield)
              call initialise_field_over_regions(sfield, &
                 trim(sfield%option_path)//'/prescribed/value', &
@@ -2426,6 +2428,8 @@ contains
                      
              position => get_external_coordinate_field(states(p+1), vfield%mesh)
              
+             ewrite(2,*) 'cjc setting vfield', vfield%name
+
              call zero(vfield)
              call initialise_field_over_regions(vfield, &
                 trim(vfield%option_path)//'/prescribed/value', &
@@ -2447,6 +2451,8 @@ contains
                      
              position => get_external_coordinate_field(states(p+1), tfield%mesh)
 
+             ewrite(2,*) 'cjc setting tfield', tfield%name
+
              call zero(tfield)
              call initialise_field_over_regions(tfield, &
                 trim(tfield%option_path)//'/prescribed/value', &
@@ -2463,7 +2469,12 @@ contains
     endif
       
     ! flush the cache
+
+    ewrite(2,*) 'Flushing vtk cache'
+
     call vtk_cache_finalise()
+
+    ewrite(1,*) "Out set_prescribed_field_values"
 
   end subroutine set_prescribed_field_values
   
