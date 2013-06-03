@@ -368,7 +368,7 @@
         </tensor_field>
         <vector_field name="Absorption" rank="1">
           <diagnostic>
-            <mesh name="PressureMesh"/>
+            <mesh name="PressureMesh_Discontinuous"/>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <output/>
             <stat>
@@ -520,7 +520,7 @@
     </scalar_field>
     <scalar_field name="PhaseVolumeFractionProj" rank="0">
       <diagnostic>
-        <algorithm material_phase_support="single" source_field_type="scalar" source_field_name="PhaseVolumeFraction" name="scalar_galerkin_projection"/>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="PhaseVolumeFraction"/>
         <mesh name="PressureMesh_Discontinuous"/>
         <output/>
         <stat/>
@@ -756,7 +756,7 @@ for i in range( field.node_count ):
         </tensor_field>
         <vector_field name="Absorption" rank="1">
           <diagnostic>
-            <mesh name="PressureMesh"/>
+            <mesh name="PressureMesh_Discontinuous"/>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <output/>
             <stat>
