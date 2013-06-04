@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>Sloshing Water TAnk</name>
+  <owner userid="jrper"/>
+  <tags>mpml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>
+
+../../../bin/multiphase_prototype Sloshing_Water_Tank_P1DGP1.mpml
+../../../bin/multiphase_prototype Sloshing_Water_Tank_P1DGP2.mpml
+
+    </command_line>
+    <!-- Two-dimensionaldensity driven interface. Two element pairs-->
+  </problem_definition>
+  <variables>
+    <variable name="contour_check_P1DGP1" language="python">
+import script
+contour_check_P1DGP1=script.TestContour(('P1DGP1',))
+    </variable>
+    <variable name="contour_check_P1DGP2" language="python">
+import script
+contour_check_P1DGP2=script.TestContour(('P1DGP2',))
+    </variable>
+    <variable name="max_C1_P1DGP1" language="python">
+from fluidity_tools import stat_parser as stat
+max_C1_P1DGP1 = stat("Sloshing_Water_Tank_P1DGP1.stat")["Component1"]["ComponentMassFractionPhase1"]["max"]
+    </variable>
+    <variable name="min_C1_P1DGP1" language="python">
+from fluidity_tools import stat_parser as stat
+min_C1_P1DGP1 = stat("Sloshing_Water_Tank_P1DGP1.stat")["Component1"]["ComponentMassFractionPhase1"]["min"]
+    </variable>
+    <variable name="max_C2_P1DGP1" language="python">
+from fluidity_tools import stat_parser as stat
+max_C2_P1DGP1 = stat("Sloshing_Water_Tank_P1DGP1.stat")["Component2"]["ComponentMassFractionPhase1"]["max"]
+    </variable>
+    <variable name="min_C2_P1DGP1" language="python">
+from fluidity_tools import stat_parser as stat
+min_C2_P1DGP1= stat("Sloshing_Water_Tank_P1DGP1.stat")["Component2"]["ComponentMassFractionPhase1"]["min"]
+    </variable>
+    <variable name="max_C1_P1DGP2" language="python">
+from fluidity_tools import stat_parser as stat
+max_C1_P1DGP2 = stat("Sloshing_Water_Tank_P1DGP2.stat")["Component1"]["ComponentMassFractionPhase1"]["max"][:]
+    </variable>
+    <variable name="min_C1_P1DGP2" language="python">
+from fluidity_tools import stat_parser as stat
+min_C1_P1DGP2 = stat("Sloshing_Water_Tank_P1DGP2.stat")["Component1"]["ComponentMassFractionPhase1"]["min"]
+    </variable>
+    <variable name="max_C2_P1DGP2" language="python">
+from fluidity_tools import stat_parser as stat
+max_C2_P1DGP2 = stat("Sloshing_Water_Tank_P1DGP2.stat")["Component2"]["ComponentMassFractionPhase1"]["max"]
+    </variable>
+    <variable name="min_C2_P1DGP2" language="python">
+from fluidity_tools import stat_parser as stat
+min_C2_P1DGP2= stat("Sloshing_Water_Tank_P1DGP2.stat")["Component2"]["ComponentMassFractionPhase1"]["min"]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="P1DGP1 contours unchanged" language="python">
+assert all(contour_check_P1DGP1)
+    </test>
+    <test name="P1DGP1 bounded" language="python">
+from numpy import concatenate
+ok=lambda x,a : abs(x-a) &lt; 1.0e-6
+assert all(concatenate((ok(max_C1_P1DGP1,1.0),ok(max_C2_P1DGP1,1.0),ok(min_C1_P1DGP1,0.0),ok(min_C2_P1DGP1,0.0)),))
+    </test>
+    <test name="P1DGP2 contours unchanged" language="python">
+assert all(contour_check_P1DGP2)
+    </test>
+    <test name="P1DGP1 bounded" language="python">
+from numpy import concatenate
+ok=lambda x,a : abs(x-a) &lt; 1.0e-6
+assert all(concatenate((ok(max_C1_P1DGP2,1.0),ok(max_C2_P1DGP2,1.0),ok(min_C1_P1DGP2,0.0),ok(min_C2_P1DGP2,0.0)),))
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
