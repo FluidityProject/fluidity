@@ -406,7 +406,13 @@ module fsi_model
         type(scalar_field) :: alpha_tmp ! these live on the FLUID mesh
         type(vector_field) :: solid_velocity_fluidmesh_tmp ! these live on the FLUID mesh
 
+        character(len=OPTION_PATH_LEN) :: proj_path, proj_type='no_interpolation'
+        character(len=OPTION_PATH_LEN) :: proj_solver_path
+
         ewrite(2,*) "inside fsi_ibm_projections_mesh"
+
+        ! Assemble path to the projection settings in the schema:
+        proj_path = '/embedded_models/fsi_model/solid_phase::'//trim(mesh_name)//'/fsi_projection'
 
         ! Get relevant fields:
         fluid_velocity => extract_vector_field(state, "Velocity")
@@ -425,31 +431,49 @@ module fsi_model
         call allocate(alpha_tmp, alpha_solid_fluidmesh%mesh, 'TMPSolidConcentration')
         call zero(alpha_tmp)
 
+
         ! Distinguish between different projection methods:
+        if (have_option(trim(proj_path)//'/galerkin_projection')) then
+            proj_type = 'galerkin_projection'
+        else if (have_option(trim(proj_path)//'/grandy_interpolation')) then
+            proj_type = 'grandy_interpolation'
+        else if (have_option(trim(proj_path)//'/consistent_interpolation')) then
+            proj_type = 'consistent_interpolation'
+        end if
+
 
         ! Galerkin projection via supermesh:
-        if (have_option("/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection")) then
-            if (present_and_true(project_solid_velocity)) then
-                ! Get pointer to the solid velocity
-                solid_velocity_mesh => extract_vector_field(solid_states, trim(mesh_name)//"SolidVelocity")
-                ! Allocate temp solid velocity field (on fluid mesh) for the projection:
-                call allocate(solid_velocity_fluidmesh_tmp, solid_velocity_fluidmesh%dim, solid_velocity_fluidmesh%mesh, 'TMP'//trim(mesh_name)//'SolidVelocity')
-                call zero(solid_velocity_fluidmesh_tmp)
-                ! Computing alpha_s^f by projecting unity and the u_s^f by projection u_s^s from the solid mesh to the fluid mesh:
-                call fsi_one_way_galerkin_projection(fluid_velocity, fluid_position, solid_position_mesh, alpha_tmp, solid_velocity_mesh, solid_velocity_fluidmesh_tmp)
-            else
-                ! Computing /alpha_s^f by projecting unity from the solid mesh to the fluid mesh:
-                call fsi_one_way_galerkin_projection(fluid_velocity, fluid_position, solid_position_mesh, alpha_tmp)
-            end if
+        select case (proj_type)
+            case ('galerkin_projection')
+                proj_solver_path = trim(proj_path)//'/'//trim(proj_type)//'/continuous'
+                if (present_and_true(project_solid_velocity)) then
+                    ! Get pointer to the solid velocity
+                    solid_velocity_mesh => extract_vector_field(solid_states, trim(mesh_name)//"SolidVelocity")
+                    ! Allocate temp solid velocity field (on fluid mesh) for the projection:
+                    call allocate(solid_velocity_fluidmesh_tmp, solid_velocity_fluidmesh%dim, solid_velocity_fluidmesh%mesh, 'TMP'//trim(mesh_name)//'SolidVelocity')
+                    call zero(solid_velocity_fluidmesh_tmp)
+                    ! Computing alpha_s^f by projecting unity and the u_s^f by projection u_s^s from the solid mesh to the fluid mesh:
+                    call fsi_one_way_galerkin_projection(fluid_velocity, fluid_position, solid_position_mesh, &
+                              & alpha_tmp, proj_solver_path, &
+                              & solid_velocity_mesh, solid_velocity_fluidmesh_tmp)
+                else
+                    ! Computing /alpha_s^f by projecting unity from the solid mesh to the fluid mesh:
+                    call fsi_one_way_galerkin_projection(fluid_velocity, fluid_position, solid_position_mesh, &
+                              & alpha_tmp, proj_solver_path)
+                end if
 
-        else if (have_option("/embedded_models/fsi_model/inter_mesh_projection/grandy_interpolation")) then
-            ! Grandy interpolation:
-            call fsi_one_way_grandy_interpolation(fluid_position, solid_position_mesh, alpha_tmp)
+            case ('grandy_interpolation')
+                ! Grandy interpolation:
+                call fsi_one_way_grandy_interpolation(fluid_position, solid_position_mesh, alpha_tmp)
 
-        !else
+            !case ('consistent_interpolation')
+            !    ! Do nothing for now:
+
             ! Add more interpolations here
 
-        end if
+            case default
+                FLAbort("Unrecognised interpolation algorithm")
+        end select
 
 
         ! After projection, set the solid volume fraction of the current solid:
@@ -778,6 +802,13 @@ module fsi_model
                 solidvelocity_mesh%option_path = solid_velocity%option_path
                 call zero(solidforce_mesh)
                 call insert(state, solidvelocity_mesh, trim(solid_mesh%name)//"SolidVelocity")
+             end if
+             
+             ! Deallocate:
+             call deallocate(alpha_solidmesh)
+             call deallocate(solidforce_mesh)
+             if (have_option("/embedded_models/fsi_model/solid_phase::"//trim(mesh_name)//"/vector_field::SolidVelocity/prescribed")) then
+               call deallocate(solidvelocity_mesh)
              end if
 
           end do solid_mesh_loop

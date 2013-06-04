@@ -47,7 +47,7 @@ module fsi_projections
 
   contains
 
-  subroutine fsi_one_way_galerkin_projection(fieldF, positionsF, positionsS, alpha_sf, solid_velocity_on_solid, solid_velocity_sf)
+  subroutine fsi_one_way_galerkin_projection(fieldF, positionsF, positionsS, alpha_sf, solver_option_path, solid_velocity_on_solid, solid_velocity_sf)
     !! Return the volume fraction scalar field by projecting unity from the supermesh to the fluid mesh
     !! and, iff given, the solid velocity from the solid (via the supermesh) to the fluid mesh.
     !! Since positionsF and positionsS are different, we need to supermesh!
@@ -57,6 +57,7 @@ module fsi_projections
     type(vector_field), intent(inout) :: fieldF
     type(vector_field), intent(inout) :: positionsF, positionsS
     type(scalar_field), intent(inout) :: alpha_sf
+    character(len=OPTION_PATH_LEN), intent(in) :: solver_option_path
     type(vector_field), intent(in), optional :: solid_velocity_on_solid
     type(vector_field), intent(inout), optional :: solid_velocity_sf
 
@@ -263,41 +264,18 @@ module fsi_projections
     ! loop over fluid and solid elements and solve the last equation, which will
     ! project alpha from the supermesh to the fluid mesh
 
-    ! Set solver options for the interpolations:
-    tmp = alpha_sf%option_path
-    ! Here we have to differ between CG and DG projection:
-    alpha_sf%option_path = "/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/continuous"
-    !if (have_option("/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/continuous")) then
-    !    alpha_sf%option_path = "/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/continuous"
-    !else if (have_option("/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/discontinuous")) then
-    !    alpha_sf%option_path = "/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/discontinuous"
-    !end if
 
     ! Project alpha to the fluid mesh:
-    call petsc_solve(alpha_sf, mass_matrix_fluid, rhs_alpha_sf)
-
-    ! Resetting option path for alpha_sf:
-    alpha_sf%option_path = trim(tmp)
+    call petsc_solve(alpha_sf, mass_matrix_fluid, rhs_alpha_sf, option_path=trim(solver_option_path))
 
     ! Same for solid velocity, IFF it was given:
     if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
-        tmp = solid_velocity_sf%option_path
-        ! Here we have to differ between CG and DG projection:
-        solid_velocity_sf%option_path = "/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/continuous"
-        !if (have_option("/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/continuous")) then
-        !    solid_velocity_sf%option_path = "/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/continuous"
-        !else if (have_option("/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/discontinuous")) then
-        !    solid_velocity_sf%option_path = "/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/discontinuous"
-        !end if
-
         ! Project solid velocity to the fluid mesh:
-        call petsc_solve(solid_velocity_sf, mass_matrix_fluid, rhs_fluid)
-        ! Resetting option path for solid_velocity_sf:
-        solid_velocity_sf%option_path = trim(tmp)
+        call petsc_solve(solid_velocity_sf, mass_matrix_fluid, rhs_fluid, option_path=trim(solver_option_path))
     end if
 
     ! Get options from option tree if projection is bounded or not:
-    if (have_option('/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/continuous/bounded[0]')) then
+    if (have_option(trim(solver_option_path)//'/bounded[0]')) then
         call bound_projection(alpha_sf, rhs_alpha_sf, mass_matrix_fluid, &
                               lumped_mass_matrix_fluid, lumped_inverse_mass_matrix_fluid, &
                               positionsF)

@@ -14,12 +14,6 @@ embedded_models =
             {
                fsi_model_input_mesh+
             },
-            ## The projection between solid and fluid mesh. It is
-            ## recommended to use a Galerkin projection via supermeshing,
-            ## which should be bounded.
-            (
-               fsi_model_projection
-            ),
             ## Beta is a scaling factor to improve the 
             ## relaxation of the fluid within a solid body. 
             ## Useful for thin structures, e.g. turbine blades.
@@ -77,7 +71,9 @@ fsi_solid_phases =
          (
             fsi_model_solid_force_mesh
          )
-      }?
+      }?,
+#      fsi_model_type,
+      fsi_model_projection
    }+
 )
 
@@ -101,15 +97,42 @@ fsi_model_input_mesh =
    ## Specify the solid mesh
    element mesh {
       attribute name { xsd:string },
-      mesh_info
+      mesh_info,
+      ## Optimized FSI Projection for this solid mesh?
+      ## The optimized FSI projection is basically a Galerkin
+      ## projection via supermeshing for the relevant elements
+      ## of both, the fluid and solid mesh, and a conservative
+      ## projection for the rest of the elements, where accuracy
+      ## and conservation is not important, e.g. elements sufficiently
+      ## far away from the solid boundary.
+      element optimized_fsi_projection {
+          ## Set the surface ID of the geometric constraint
+          ## for this mesh.
+          ## Note: This is required when using the optimized
+          ## FSI projection.
+          element mesh_surface_id {integer}
+      }?
    }
 
+
+fsi_model_type =
+(
+    ## Specify how this solid phase should be modelled.
+    ## Currently you have the options:
+    ## 
+    ##  * immersed
+    element fsi_type
+    {
+        element immersed {empty}
+    }
+)
+
+
 fsi_model_projection =
+(
     ## Specify the method to be use for projections
-    ## of fields between fluid and solid mesh
-    ## Currently only the Galerkin Projection via 
-    ## supermeshing is supported.
-    element inter_mesh_projection
+    ## of fields between fluid and solid mesh.
+    element fsi_projection
     {
         ## Construction of a supermesh for the part of 
         ## the fluid mesh which is occupied by the solid mesh.
@@ -119,8 +142,15 @@ fsi_model_projection =
            continuous_discontinuous_projection,
            supermesh_conservation?
         }|
+        ##  Grandy interpolation. Conservative, but highly diffusive.
+        ## See doi:10.1006/jcph.1998.6125 .
         element grandy_interpolation{empty}
+        |
+        ## Basis function interpolation. The standard algorithm.
+        ## It is quick and bounded, but non-conservative and dissipative.
+        element consistent_interpolation{empty}
     }
+)
 
 
 fsi_model_input_real_dim_vector_python =

@@ -16,12 +16,6 @@ Immersed Solids</a:documentation>
               <ref name="fsi_model_input_mesh"/>
             </oneOrMore>
           </element>
-          <group>
-            <a:documentation>The projection between solid and fluid mesh. It is
-recommended to use a Galerkin projection via supermeshing,
-which should be bounded.</a:documentation>
-            <ref name="fsi_model_projection"/>
-          </group>
           <optional>
             <element name="beta">
               <a:documentation>Beta is a scaling factor to improve the 
@@ -104,6 +98,8 @@ and is computed internally.</a:documentation>
             </group>
           </element>
         </optional>
+        <!--      fsi_model_type, -->
+        <ref name="fsi_model_projection"/>
       </element>
     </oneOrMore>
   </define>
@@ -135,14 +131,41 @@ coordinate mesh for this solid phase is chosen.</a:documentation>
         <data type="string"/>
       </attribute>
       <ref name="mesh_info"/>
+      <optional>
+        <element name="optimized_fsi_projection">
+          <a:documentation>Optimized FSI Projection for this solid mesh?
+The optimized FSI projection is basically a Galerkin
+projection via supermeshing for the relevant elements
+of both, the fluid and solid mesh, and a conservative
+projection for the rest of the elements, where accuracy
+and conservation is not important, e.g. elements sufficiently
+far away from the solid boundary.</a:documentation>
+          <element name="mesh_surface_id">
+            <a:documentation>Set the surface ID of the geometric constraint
+for this mesh.
+Note: This is required when using the optimized
+FSI projection.</a:documentation>
+            <ref name="integer"/>
+          </element>
+        </element>
+      </optional>
+    </element>
+  </define>
+  <define name="fsi_model_type">
+    <element name="fsi_type">
+      <a:documentation>Specify how this solid phase should be modelled.
+Currently you have the options:
+
+ * immersed</a:documentation>
+      <element name="immersed">
+        <empty/>
+      </element>
     </element>
   </define>
   <define name="fsi_model_projection">
-    <element name="inter_mesh_projection">
+    <element name="fsi_projection">
       <a:documentation>Specify the method to be use for projections
-of fields between fluid and solid mesh
-Currently only the Galerkin Projection via 
-supermeshing is supported.</a:documentation>
+of fields between fluid and solid mesh.</a:documentation>
       <choice>
         <element name="galerkin_projection">
           <a:documentation>Construction of a supermesh for the part of 
@@ -155,6 +178,13 @@ unity from the supermesh, to the fluid mesh.</a:documentation>
           </optional>
         </element>
         <element name="grandy_interpolation">
+          <a:documentation> Grandy interpolation. Conservative, but highly diffusive.
+See doi:10.1006/jcph.1998.6125 .</a:documentation>
+          <empty/>
+        </element>
+        <element name="consistent_interpolation">
+          <a:documentation>Basis function interpolation. The standard algorithm.
+It is quick and bounded, but non-conservative and dissipative.</a:documentation>
           <empty/>
         </element>
       </choice>

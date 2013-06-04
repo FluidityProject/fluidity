@@ -443,35 +443,6 @@
           </from_file>
         </mesh>
       </geometry>
-      <inter_mesh_projection>
-        <galerkin_projection>
-          <continuous>
-            <bounded name="Diffuse">
-              <boundedness_iterations>
-                <integer_value rank="0">5000</integer_value>
-              </boundedness_iterations>
-            </bounded>
-            <solver>
-              <iterative_method name="gmres">
-                <restart>
-                  <integer_value rank="0">100</integer_value>
-                </restart>
-              </iterative_method>
-              <preconditioner name="mg"/>
-              <relative_error>
-                <real_value rank="0">1e-7</real_value>
-              </relative_error>
-              <max_iterations>
-                <integer_value rank="0">2000</integer_value>
-              </max_iterations>
-              <never_ignore_solver_failures/>
-              <diagnostics>
-                <monitors/>
-              </diagnostics>
-            </solver>
-          </continuous>
-        </galerkin_projection>
-      </inter_mesh_projection>
       <stat/>
       <solid_phase name="small_box">
         <scalar_field name="SolidConcentration" rank="0">
@@ -510,6 +481,35 @@
             </steady_state>
           </diagnostic>
         </vector_field>
+        <fsi_projection>
+          <galerkin_projection>
+            <continuous>
+              <bounded name="Diffuse">
+                <boundedness_iterations>
+                  <integer_value rank="0">5000</integer_value>
+                </boundedness_iterations>
+              </bounded>
+              <solver>
+                <iterative_method name="gmres">
+                  <restart>
+                    <integer_value rank="0">100</integer_value>
+                  </restart>
+                </iterative_method>
+                <preconditioner name="mg"/>
+                <relative_error>
+                  <real_value rank="0">1e-7</real_value>
+                </relative_error>
+                <max_iterations>
+                  <integer_value rank="0">2000</integer_value>
+                </max_iterations>
+                <never_ignore_solver_failures/>
+                <diagnostics>
+                  <monitors/>
+                </diagnostics>
+              </solver>
+            </continuous>
+          </galerkin_projection>
+        </fsi_projection>
       </solid_phase>
     </fsi_model>
   </embedded_models>
