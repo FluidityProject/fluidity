@@ -470,154 +470,7 @@ start =
             ## Scale the momentum equation by the volume fraction for when some problems are not well poised.
             element scale_momentum_by_volume_fraction {empty}?,
             ## The equation of state
-            element equation_of_state {
-               (
-                  (
-                     ## Equations of state
-                     element incompressible {
-                        (
-                           ## Incompressible linear equation of state
-                           ## 
-                           ## (DEN = EOS_COEFS( 1 ) + EOS_COEFS( 2 ) * P + EOS_COEFS( 3 ) * T + EOS_COEFS( 4 ) * P * T
-                           ## + EOS_COEFS( 5 ) * ( P **2 )     + EOS_COEFS( 6 ) * ( T **2 ) + EOS_COEFS( 7 ) * ( P **2 ) * T 
-                           ## + EOS_COEFS( 8 ) * P * ( T **2 ) + EOS_COEFS( 9 ) * (( P * T ) **2 )
-                           element linear {
-                              (
-                                 ## All eos_coefficients equal as in most of
-                                 ## the test cases (=1)
-                                 element all_equal {
-                                    real
-                                 }|
-                                 ## Specify the coefficients separately
-                                 ## There should probably be at least 9
-                                 ## see multi_eos.F90 lines 132-140
-                                 element specify_all {
-                                       element number_of_ccefficients{ real },
-                                       element coefficients{ real_vector }
-                                 }
-                              ),
-                              ## The reference or background density
-                              element reference_density {
-                                 real
-                              }?,
-                              ## Enable to add temperature dependency
-                              ## to the equation of state.
-                              element temperature_dependency {
-                                 ## The reference or background
-                                 ## temperature (actual temperature =
-                                 ## calculated temperature plus this
-                                 ## value).
-                                 element reference_temperature {
-                                    real
-                                 },
-                                 ## The thermal expansion coefficient
-                                 element thermal_expansion_coefficient {
-                                    real
-                                 }
-                              }?,
-                              ## Enable to add salinity dependency to
-                              ## the equation of state.
-                              element salinity_dependency {
-                                 ## The reference or background
-                                 ## salinity (actual salinity =
-                                 ## calculated salinity plus this
-                                 ## value).
-                                 element reference_salinity {
-                                    real
-                                 },
-                                 ## The haline contraction coefficient
-                                 element saline_contraction_coefficient {
-                                    real
-                                 }
-                              }?,
-                              ## Enable this option to subtract out
-                              ## the hydrostatic level
-                              element subtract_out_hydrostatic_level {
-                                 empty
-                              }?
-                           }
-                        )
-                     }|
-                     ## Equations of state for compressible applications
-                     element compressible {
-                        ## Stiffened Gas EoS
-                        ##
-                        ## Used with compressible simulations
-                        ##
-                        ## DEN = ( P + EOS_COEFS( 1 )) * EOS_COEFS( 2 ) / T
-                        element stiffened_gas {
-                           element eos_option1 { real },
-                           element eos_option2 { real },
-                           ## reference uncompressed density
-                           ##
-                           ## if activated then either Liquid EoS or
-                           ## full Stiffened Gas EoS
-                           element reference_density {
-                              real
-                           }?,
-                           ## Ratio of specific heats at constant
-                           ## pressure to that at constant volume
-                           ##
-                           ## Requires an energy field.
-                           ## If activated then a full Stiffened Gas EoS 
-                           element ratio_specific_heats {
-                              real
-                           }?,
-                           ## bulk_sound_speed_squared = isothermal_bulk_modulus/reference_density
-                           ##
-                           ## if activated then either full or partial Liquid EoS or full
-                           ## Stiffened Gas EoS
-                           element bulk_sound_speed_squared {
-                              real
-                           }?
-                        }|
-                        ## Exponential EOS (SPE 102542)
-                        ##
-                        ## DEN = DEN_REF * EXP( COMPRES_FACTOR * ( P_oil * P_oil_ref ))
-                        ##
-                        element exponential_oil_gas {
-                           element compressibility { 
-                              real 
-                           }?,
-                           element reference_density {
-                              real
-                           }?
-                        }|
-                        ## Linear in Pressure EOS 
-                        ##
-                        ## DEN = A * P + B
-                        ##
-                        element linear_in_pressure {
-                           element coefficient_A { 
-                              real 
-                           },
-                           element coefficient_B {
-                              real
-                           },
-                           ## If chosen: DEN = A * P / T + B
-                           element include_internal_energy {
-                              empty
-                           }?
-                        }|
-                        ## Exponential in Pressure EOS 
-                        ##
-                        ## DEN = A * P ^ B
-                        ##
-                        element exponential_in_pressure {
-                           element coefficient_A { 
-                              real 
-                           },
-                           element coefficient_B {
-                              real
-                           }
-                        }
-                     }|
-                     element python_state{
-                       scalar_python_diagnostic_algorithm
-                     }
-                  )
-               )
-            }?,
+            equation_of_state?,
             ## Pressure
             element scalar_field {
                attribute rank { "0" },
@@ -737,6 +590,55 @@ start =
                element immobile_fraction {real}?
             }?
          }+,
+
+         ## The component options
+         element component {
+            attribute name { xsd:string },
+
+             element compositional_options {
+               (
+                  ## Specify the weighting for the component equation
+                  ## between 0 and 1. Test cases have 1.
+                  element alpha_beta { real },
+                  ## Enable this option to use sigmoid method for finding equilibrium
+                  element KComp_Sigmoid {
+                     (
+                        ## KComp value for this component
+                        element K_Comp { real }
+                     )
+                  }?,
+                  ## Enable this option to force component mass fractions
+                  ## to sum to 1 by adding constraint into compositional source term.
+                  element Comp_Sum2One { 
+                     (
+                        ## Relaxation coefficient to summation constraint [0,1]. 
+                        ## --> 0: under-relaxation ; --> 1: over-relaxation
+                        element Relaxation_Coefficient { real },
+                        ## Ensure that this constraint acts only as a positive absorption term
+                        element Ensure_Positive { empty }?,
+                        ## Explicitly enforce components to sum to one
+                        element Enforce_Comp_Sum2One { empty }?			
+                     )
+                  }?
+               ) 
+             },
+
+            element material_phase {
+               attribute name { xsd:string },
+	       equation_of_state,
+               ## Surface tension
+               element surface_tension { 
+                  (
+                     ## Surface tension coefficient. 
+                     element coefficient { real },
+                     ##  Smoothing.
+                    element smooth { empty } ?
+                  )
+               }?,
+               prognostic_scalar_field
+             }+
+         }*,
+
          mesh_adaptivity_options?,
          ## Porous Media
          element porous_media {
@@ -3678,3 +3580,155 @@ represcribe_before_interpolation =
     element represcribe_before_interpolation {
       empty
     } 
+
+equation_of_state =
+               (
+                  (
+
+element equation_of_state{
+
+                     ## Equations of state
+                     element incompressible {
+                        (
+                           ## Incompressible linear equation of state
+                           ## 
+                           ## (DEN = EOS_COEFS( 1 ) + EOS_COEFS( 2 ) * P + EOS_COEFS( 3 ) * T + EOS_COEFS( 4 ) * P * T
+                           ## + EOS_COEFS( 5 ) * ( P **2 )     + EOS_COEFS( 6 ) * ( T **2 ) + EOS_COEFS( 7 ) * ( P **2 ) * T 
+                           ## + EOS_COEFS( 8 ) * P * ( T **2 ) + EOS_COEFS( 9 ) * (( P * T ) **2 )
+                           element linear {
+                              (
+                                 ## All eos_coefficients equal as in most of
+                                 ## the test cases (=1)
+                                 element all_equal {
+                                    real
+                                 }|
+                                 ## Specify the coefficients separately
+                                 ## There should probably be at least 9
+                                 ## see multi_eos.F90 lines 132-140
+                                 element specify_all {
+                                       element number_of_ccefficients{ real },
+                                       element coefficients{ real_vector }
+                                 }
+                              ),
+                              ## The reference or background density
+                              element reference_density {
+                                 real
+                              }?,
+                              ## Enable to add temperature dependency
+                              ## to the equation of state.
+                              element temperature_dependency {
+                                 ## The reference or background
+                                 ## temperature (actual temperature =
+                                 ## calculated temperature plus this
+                                 ## value).
+                                 element reference_temperature {
+                                    real
+                                 },
+                                 ## The thermal expansion coefficient
+                                 element thermal_expansion_coefficient {
+                                    real
+                                 }
+                              }?,
+                              ## Enable to add salinity dependency to
+                              ## the equation of state.
+                              element salinity_dependency {
+                                 ## The reference or background
+                                 ## salinity (actual salinity =
+                                 ## calculated salinity plus this
+                                 ## value).
+                                 element reference_salinity {
+                                    real
+                                 },
+                                 ## The haline contraction coefficient
+                                 element saline_contraction_coefficient {
+                                    real
+                                 }
+                              }?,
+                              ## Enable this option to subtract out
+                              ## the hydrostatic level
+                              element subtract_out_hydrostatic_level {
+                                 empty
+                              }?
+                           }
+                        )
+                     }|
+                     ## Equations of state for compressible applications
+                     element compressible {
+                        ## Stiffened Gas EoS
+                        ##
+                        ## Used with compressible simulations
+                        ##
+                        ## DEN = ( P + EOS_COEFS( 1 )) * EOS_COEFS( 2 ) / T
+                        element stiffened_gas {
+                           element eos_option1 { real },
+                           element eos_option2 { real },
+                           ## reference uncompressed density
+                           ##
+                           ## if activated then either Liquid EoS or
+                           ## full Stiffened Gas EoS
+                           element reference_density {
+                              real
+                           }?,
+                           ## Ratio of specific heats at constant
+                           ## pressure to that at constant volume
+                           ##
+                           ## Requires an energy field.
+                           ## If activated then a full Stiffened Gas EoS 
+                           element ratio_specific_heats {
+                              real
+                           }?,
+                           ## bulk_sound_speed_squared = isothermal_bulk_modulus/reference_density
+                           ##
+                           ## if activated then either full or partial Liquid EoS or full
+                           ## Stiffened Gas EoS
+                           element bulk_sound_speed_squared {
+                              real
+                           }?
+                        }|
+                        ## Exponential EOS (SPE 102542)
+                        ##
+                        ## DEN = DEN_REF * EXP( COMPRES_FACTOR * ( P_oil * P_oil_ref ))
+                        ##
+                        element exponential_oil_gas {
+                           element compressibility { 
+                              real 
+                           }?,
+                           element reference_density {
+                              real
+                           }?
+                        }|
+                        ## Linear in Pressure EOS 
+                        ##
+                        ## DEN = A * P + B
+                        ##
+                        element linear_in_pressure {
+                           element coefficient_A { 
+                              real 
+                           },
+                           element coefficient_B {
+                              real
+                           },
+                           ## If chosen: DEN = A * P / T + B
+                           element include_internal_energy {
+                              empty
+                           }?
+                        }|
+                        ## Exponential in Pressure EOS 
+                        ##
+                        ## DEN = A * P ^ B
+                        ##
+                        element exponential_in_pressure {
+                           element coefficient_A { 
+                              real 
+                           },
+                           element coefficient_B {
+                              real
+                           }
+                        }
+                     }|
+                     element python_state{
+                       scalar_python_diagnostic_algorithm
+                     }
+}
+                  )
+               )

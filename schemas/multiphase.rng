@@ -572,181 +572,9 @@ to sum to 1 by adding constraint into compositional source term.</a:documentatio
             </element>
           </optional>
           <optional>
-            <element name="equation_of_state">
+            <ref name="equation_of_state">
               <a:documentation>The equation of state</a:documentation>
-              <choice>
-                <element name="incompressible">
-                  <a:documentation>Equations of state</a:documentation>
-                  <element name="linear">
-                    <a:documentation>Incompressible linear equation of state
-
-(DEN = EOS_COEFS( 1 ) + EOS_COEFS( 2 ) * P + EOS_COEFS( 3 ) * T + EOS_COEFS( 4 ) * P * T
-+ EOS_COEFS( 5 ) * ( P **2 )     + EOS_COEFS( 6 ) * ( T **2 ) + EOS_COEFS( 7 ) * ( P **2 ) * T 
-+ EOS_COEFS( 8 ) * P * ( T **2 ) + EOS_COEFS( 9 ) * (( P * T ) **2 )</a:documentation>
-                    <choice>
-                      <element name="all_equal">
-                        <a:documentation>All eos_coefficients equal as in most of
-the test cases (=1)</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="specify_all">
-                        <a:documentation>Specify the coefficients separately
-There should probably be at least 9
-see multi_eos.F90 lines 132-140</a:documentation>
-                        <element name="number_of_ccefficients">
-                          <ref name="real"/>
-                        </element>
-                        <element name="coefficients">
-                          <ref name="real_vector"/>
-                        </element>
-                      </element>
-                    </choice>
-                    <optional>
-                      <element name="reference_density">
-                        <a:documentation>The reference or background density</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                    </optional>
-                    <optional>
-                      <element name="temperature_dependency">
-                        <a:documentation>Enable to add temperature dependency
-to the equation of state.</a:documentation>
-                        <element name="reference_temperature">
-                          <a:documentation>The reference or background
-temperature (actual temperature =
-calculated temperature plus this
-value).</a:documentation>
-                          <ref name="real"/>
-                        </element>
-                        <element name="thermal_expansion_coefficient">
-                          <a:documentation>The thermal expansion coefficient</a:documentation>
-                          <ref name="real"/>
-                        </element>
-                      </element>
-                    </optional>
-                    <optional>
-                      <element name="salinity_dependency">
-                        <a:documentation>Enable to add salinity dependency to
-the equation of state.</a:documentation>
-                        <element name="reference_salinity">
-                          <a:documentation>The reference or background
-salinity (actual salinity =
-calculated salinity plus this
-value).</a:documentation>
-                          <ref name="real"/>
-                        </element>
-                        <element name="saline_contraction_coefficient">
-                          <a:documentation>The haline contraction coefficient</a:documentation>
-                          <ref name="real"/>
-                        </element>
-                      </element>
-                    </optional>
-                    <optional>
-                      <element name="subtract_out_hydrostatic_level">
-                        <a:documentation>Enable this option to subtract out
-the hydrostatic level</a:documentation>
-                        <empty/>
-                      </element>
-                    </optional>
-                  </element>
-                </element>
-                <element name="compressible">
-                  <a:documentation>Equations of state for compressible applications</a:documentation>
-                  <choice>
-                    <element name="stiffened_gas">
-                      <a:documentation>Stiffened Gas EoS
-
-Used with compressible simulations
-
-DEN = ( P + EOS_COEFS( 1 )) * EOS_COEFS( 2 ) / T</a:documentation>
-                      <element name="eos_option1">
-                        <ref name="real"/>
-                      </element>
-                      <element name="eos_option2">
-                        <ref name="real"/>
-                      </element>
-                      <optional>
-                        <element name="reference_density">
-                          <a:documentation>reference uncompressed density
-
-if activated then either Liquid EoS or
-full Stiffened Gas EoS</a:documentation>
-                          <ref name="real"/>
-                        </element>
-                      </optional>
-                      <optional>
-                        <element name="ratio_specific_heats">
-                          <a:documentation>Ratio of specific heats at constant
-pressure to that at constant volume
-
-Requires an energy field.
-If activated then a full Stiffened Gas EoS </a:documentation>
-                          <ref name="real"/>
-                        </element>
-                      </optional>
-                      <optional>
-                        <element name="bulk_sound_speed_squared">
-                          <a:documentation>bulk_sound_speed_squared = isothermal_bulk_modulus/reference_density
-
-if activated then either full or partial Liquid EoS or full
-Stiffened Gas EoS</a:documentation>
-                          <ref name="real"/>
-                        </element>
-                      </optional>
-                    </element>
-                    <element name="exponential_oil_gas">
-                      <a:documentation>Exponential EOS (SPE 102542)
-
-DEN = DEN_REF * EXP( COMPRES_FACTOR * ( P_oil * P_oil_ref ))
-</a:documentation>
-                      <optional>
-                        <element name="compressibility">
-                          <ref name="real"/>
-                        </element>
-                      </optional>
-                      <optional>
-                        <element name="reference_density">
-                          <ref name="real"/>
-                        </element>
-                      </optional>
-                    </element>
-                    <element name="linear_in_pressure">
-                      <a:documentation>Linear in Pressure EOS 
-
-DEN = A * P + B
-</a:documentation>
-                      <element name="coefficient_A">
-                        <ref name="real"/>
-                      </element>
-                      <element name="coefficient_B">
-                        <ref name="real"/>
-                      </element>
-                      <optional>
-                        <element name="include_internal_energy">
-                          <a:documentation>If chosen: DEN = A * P / T + B</a:documentation>
-                          <empty/>
-                        </element>
-                      </optional>
-                    </element>
-                    <element name="exponential_in_pressure">
-                      <a:documentation>Exponential in Pressure EOS 
-
-DEN = A * P ^ B
-</a:documentation>
-                      <element name="coefficient_A">
-                        <ref name="real"/>
-                      </element>
-                      <element name="coefficient_B">
-                        <ref name="real"/>
-                      </element>
-                    </element>
-                  </choice>
-                </element>
-                <element name="python_state">
-                  <ref name="scalar_python_diagnostic_algorithm"/>
-                </element>
-              </choice>
-            </element>
+            </ref>
           </optional>
           <optional>
             <element name="scalar_field">
@@ -930,6 +758,77 @@ Pc = c * S_w ** a</a:documentation>
           </optional>
         </element>
       </oneOrMore>
+      <zeroOrMore>
+        <element name="component">
+          <a:documentation>The component options</a:documentation>
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+          <element name="compositional_options">
+            <element name="alpha_beta">
+              <a:documentation>Specify the weighting for the component equation
+between 0 and 1. Test cases have 1.</a:documentation>
+              <ref name="real"/>
+            </element>
+            <optional>
+              <element name="KComp_Sigmoid">
+                <a:documentation>Enable this option to use sigmoid method for finding equilibrium</a:documentation>
+                <element name="K_Comp">
+                  <a:documentation>KComp value for this component</a:documentation>
+                  <ref name="real"/>
+                </element>
+              </element>
+            </optional>
+            <optional>
+              <element name="Comp_Sum2One">
+                <a:documentation>Enable this option to force component mass fractions
+to sum to 1 by adding constraint into compositional source term.</a:documentation>
+                <element name="Relaxation_Coefficient">
+                  <a:documentation>Relaxation coefficient to summation constraint [0,1]. 
+--&gt; 0: under-relaxation ; --&gt; 1: over-relaxation</a:documentation>
+                  <ref name="real"/>
+                </element>
+                <optional>
+                  <element name="Ensure_Positive">
+                    <a:documentation>Ensure that this constraint acts only as a positive absorption term</a:documentation>
+                    <empty/>
+                  </element>
+                </optional>
+                <optional>
+                  <element name="Enforce_Comp_Sum2One">
+                    <a:documentation>Explicitly enforce components to sum to one</a:documentation>
+                    <empty/>
+                  </element>
+                </optional>
+              </element>
+            </optional>
+          </element>
+          <oneOrMore>
+            <element name="material_phase">
+              <attribute name="name">
+                <data type="string"/>
+              </attribute>
+              <ref name="equation_of_state"/>
+              <optional>
+                <element name="surface_tension">
+                  <a:documentation>Surface tension</a:documentation>
+                  <element name="coefficient">
+                    <a:documentation>Surface tension coefficient. </a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <optional>
+                    <element name="smooth">
+                      <a:documentation> Smoothing.</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
+                </element>
+              </optional>
+              <ref name="prognostic_scalar_field"/>
+            </element>
+          </oneOrMore>
+        </element>
+      </zeroOrMore>
       <optional>
         <ref name="mesh_adaptivity_options"/>
       </optional>
@@ -4480,6 +4379,182 @@ This method requires the inversion of a projection matrix.</a:documentation>
 
 This means the interpolation will not be conservative from the previous mesh so be careful what you're trying to achieve!</a:documentation>
       <empty/>
+    </element>
+  </define>
+  <define name="equation_of_state">
+    <element name="equation_of_state">
+      <choice>
+        <element name="incompressible">
+          <a:documentation>Equations of state</a:documentation>
+          <element name="linear">
+            <a:documentation>Incompressible linear equation of state
+
+(DEN = EOS_COEFS( 1 ) + EOS_COEFS( 2 ) * P + EOS_COEFS( 3 ) * T + EOS_COEFS( 4 ) * P * T
++ EOS_COEFS( 5 ) * ( P **2 )     + EOS_COEFS( 6 ) * ( T **2 ) + EOS_COEFS( 7 ) * ( P **2 ) * T 
++ EOS_COEFS( 8 ) * P * ( T **2 ) + EOS_COEFS( 9 ) * (( P * T ) **2 )</a:documentation>
+            <choice>
+              <element name="all_equal">
+                <a:documentation>All eos_coefficients equal as in most of
+the test cases (=1)</a:documentation>
+                <ref name="real"/>
+              </element>
+              <element name="specify_all">
+                <a:documentation>Specify the coefficients separately
+There should probably be at least 9
+see multi_eos.F90 lines 132-140</a:documentation>
+                <element name="number_of_ccefficients">
+                  <ref name="real"/>
+                </element>
+                <element name="coefficients">
+                  <ref name="real_vector"/>
+                </element>
+              </element>
+            </choice>
+            <optional>
+              <element name="reference_density">
+                <a:documentation>The reference or background density</a:documentation>
+                <ref name="real"/>
+              </element>
+            </optional>
+            <optional>
+              <element name="temperature_dependency">
+                <a:documentation>Enable to add temperature dependency
+to the equation of state.</a:documentation>
+                <element name="reference_temperature">
+                  <a:documentation>The reference or background
+temperature (actual temperature =
+calculated temperature plus this
+value).</a:documentation>
+                  <ref name="real"/>
+                </element>
+                <element name="thermal_expansion_coefficient">
+                  <a:documentation>The thermal expansion coefficient</a:documentation>
+                  <ref name="real"/>
+                </element>
+              </element>
+            </optional>
+            <optional>
+              <element name="salinity_dependency">
+                <a:documentation>Enable to add salinity dependency to
+the equation of state.</a:documentation>
+                <element name="reference_salinity">
+                  <a:documentation>The reference or background
+salinity (actual salinity =
+calculated salinity plus this
+value).</a:documentation>
+                  <ref name="real"/>
+                </element>
+                <element name="saline_contraction_coefficient">
+                  <a:documentation>The haline contraction coefficient</a:documentation>
+                  <ref name="real"/>
+                </element>
+              </element>
+            </optional>
+            <optional>
+              <element name="subtract_out_hydrostatic_level">
+                <a:documentation>Enable this option to subtract out
+the hydrostatic level</a:documentation>
+                <empty/>
+              </element>
+            </optional>
+          </element>
+        </element>
+        <element name="compressible">
+          <a:documentation>Equations of state for compressible applications</a:documentation>
+          <choice>
+            <element name="stiffened_gas">
+              <a:documentation>Stiffened Gas EoS
+
+Used with compressible simulations
+
+DEN = ( P + EOS_COEFS( 1 )) * EOS_COEFS( 2 ) / T</a:documentation>
+              <element name="eos_option1">
+                <ref name="real"/>
+              </element>
+              <element name="eos_option2">
+                <ref name="real"/>
+              </element>
+              <optional>
+                <element name="reference_density">
+                  <a:documentation>reference uncompressed density
+
+if activated then either Liquid EoS or
+full Stiffened Gas EoS</a:documentation>
+                  <ref name="real"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="ratio_specific_heats">
+                  <a:documentation>Ratio of specific heats at constant
+pressure to that at constant volume
+
+Requires an energy field.
+If activated then a full Stiffened Gas EoS </a:documentation>
+                  <ref name="real"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="bulk_sound_speed_squared">
+                  <a:documentation>bulk_sound_speed_squared = isothermal_bulk_modulus/reference_density
+
+if activated then either full or partial Liquid EoS or full
+Stiffened Gas EoS</a:documentation>
+                  <ref name="real"/>
+                </element>
+              </optional>
+            </element>
+            <element name="exponential_oil_gas">
+              <a:documentation>Exponential EOS (SPE 102542)
+
+DEN = DEN_REF * EXP( COMPRES_FACTOR * ( P_oil * P_oil_ref ))
+</a:documentation>
+              <optional>
+                <element name="compressibility">
+                  <ref name="real"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="reference_density">
+                  <ref name="real"/>
+                </element>
+              </optional>
+            </element>
+            <element name="linear_in_pressure">
+              <a:documentation>Linear in Pressure EOS 
+
+DEN = A * P + B
+</a:documentation>
+              <element name="coefficient_A">
+                <ref name="real"/>
+              </element>
+              <element name="coefficient_B">
+                <ref name="real"/>
+              </element>
+              <optional>
+                <element name="include_internal_energy">
+                  <a:documentation>If chosen: DEN = A * P / T + B</a:documentation>
+                  <empty/>
+                </element>
+              </optional>
+            </element>
+            <element name="exponential_in_pressure">
+              <a:documentation>Exponential in Pressure EOS 
+
+DEN = A * P ^ B
+</a:documentation>
+              <element name="coefficient_A">
+                <ref name="real"/>
+              </element>
+              <element name="coefficient_B">
+                <ref name="real"/>
+              </element>
+            </element>
+          </choice>
+        </element>
+        <element name="python_state">
+          <ref name="scalar_python_diagnostic_algorithm"/>
+        </element>
+      </choice>
     </element>
   </define>
 </grammar>
