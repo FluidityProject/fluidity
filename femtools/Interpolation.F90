@@ -170,12 +170,13 @@ module interpolation_module
     
   end subroutine quadratic_interpolation_eqf
 
-  subroutine linear_interpolation_scalar(old_field, old_position, new_field, new_position, map)
+  subroutine linear_interpolation_scalar(old_field, old_position, new_field, new_position, map, different_domains)
     type(scalar_field), intent(in) :: old_field
     type(vector_field), intent(in) :: old_position
     type(scalar_field), intent(inout) :: new_field
     type(vector_field), intent(in) :: new_position
     integer, dimension(:), optional, intent(in) :: map
+    logical, optional, intent(in) :: different_domains
 
     type(state_type) :: old_state, new_state
 
@@ -188,18 +189,20 @@ module interpolation_module
     call insert(old_state, old_field%mesh, "Mesh")
     call insert(new_state, new_field%mesh, "Mesh")
 
-    call linear_interpolation_state(old_state, new_state, map = map)
+    call linear_interpolation_state(old_state, new_state, map = map, different_domains=different_domains)
+
     call deallocate(old_state)
     call deallocate(new_state)
 
   end subroutine linear_interpolation_scalar
   
-  subroutine linear_interpolation_scalars(old_fields, old_position, new_fields, new_position, map)
+  subroutine linear_interpolation_scalars(old_fields, old_position, new_fields, new_position, map, different_domains)
     type(scalar_field), dimension(:), intent(in) :: old_fields
     type(vector_field), intent(in) :: old_position
     type(scalar_field), dimension(:), intent(inout) :: new_fields
     type(vector_field), intent(in) :: new_position
     integer, dimension(:), optional, intent(in) :: map
+    logical, optional, intent(in) :: different_domains
 
     type(state_type) :: old_state, new_state
     integer :: field, field_count
@@ -217,18 +220,19 @@ module interpolation_module
     call insert(old_state, old_fields(1)%mesh, "Mesh")
     call insert(new_state, new_fields(1)%mesh, "Mesh")
 
-    call linear_interpolation_state(old_state, new_state, map = map)
+    call linear_interpolation_state(old_state, new_state, map = map, different_domains=different_domains)
     call deallocate(old_state)
     call deallocate(new_state)
 
   end subroutine linear_interpolation_scalars
   
-  subroutine linear_interpolation_vector(old_field, old_position, new_field, new_position, map)
+  subroutine linear_interpolation_vector(old_field, old_position, new_field, new_position, map, different_domains)
     type(vector_field), intent(in) :: old_field
     type(vector_field), intent(in) :: old_position
     type(vector_field), intent(inout) :: new_field
     type(vector_field), intent(in) :: new_position
     integer, dimension(:), optional, intent(in) :: map
+    logical, optional, intent(in) :: different_domains
 
     type(state_type) :: old_state, new_state
 
@@ -241,17 +245,19 @@ module interpolation_module
     call insert(old_state, old_field%mesh, "Mesh")
     call insert(new_state, new_field%mesh, "Mesh")
 
-    call linear_interpolation_state(old_state, new_state, map = map)
+    call linear_interpolation_state(old_state, new_state, map = map, different_domains=different_domains)
     call deallocate(old_state)
     call deallocate(new_state)
 
   end subroutine linear_interpolation_vector
   
-  subroutine linear_interpolation_vectors(old_fields, old_position, new_fields, new_position)
+  subroutine linear_interpolation_vectors(old_fields, old_position, new_fields, new_position, map, different_domains)
     type(vector_field), dimension(:), intent(in) :: old_fields
     type(vector_field), intent(in) :: old_position
     type(vector_field), dimension(:), intent(inout) :: new_fields
     type(vector_field), intent(in) :: new_position
+    integer, dimension(:), optional, intent(in) :: map
+    logical, optional, intent(in) :: different_domains
 
     type(state_type) :: old_state, new_state
     integer :: field, field_count
@@ -269,17 +275,19 @@ module interpolation_module
     call insert(old_state, old_fields(1)%mesh, "Mesh")
     call insert(new_state, new_fields(1)%mesh, "Mesh")
 
-    call linear_interpolation_state(old_state, new_state)
+    call linear_interpolation_state(old_state, new_state, map=map, different_domains=different_domains)
     call deallocate(old_state)
     call deallocate(new_state)
 
   end subroutine linear_interpolation_vectors
   
-  subroutine linear_interpolation_tensors(old_fields, old_position, new_fields, new_position)
+  subroutine linear_interpolation_tensors(old_fields, old_position, new_fields, new_position, map, different_domains)
     type(tensor_field), dimension(:), intent(in) :: old_fields
     type(vector_field), intent(in) :: old_position
     type(tensor_field), dimension(:), intent(inout) :: new_fields
     type(vector_field), intent(in) :: new_position
+    integer, dimension(:), optional, intent(in) :: map
+    logical, optional, intent(in) :: different_domains
 
     type(state_type) :: old_state, new_state
     integer :: field, field_count
@@ -297,24 +305,26 @@ module interpolation_module
     call insert(old_state, old_fields(1)%mesh, "Mesh")
     call insert(new_state, new_fields(1)%mesh, "Mesh")
 
-    call linear_interpolation_state(old_state, new_state)
+    call linear_interpolation_state(old_state, new_state, map=map, different_domains=different_domains)
     call deallocate(old_state)
     call deallocate(new_state)
 
   end subroutine linear_interpolation_tensors
   
-  subroutine linear_interpolation_tensor(old_field, old_position, new_field, new_position)
+  subroutine linear_interpolation_tensor(old_field, old_position, new_field, new_position, map, different_domains)
     type(tensor_field), intent(in) :: old_field
     type(vector_field), intent(in) :: old_position
     type(tensor_field), intent(inout) :: new_field
     type(vector_field), intent(in) :: new_position
+    integer, dimension(:), optional, intent(in) :: map
+    logical, optional, intent(in) :: different_domains
 
     type(tensor_field), dimension(1) :: new_field_array, old_field_array
     
     new_field_array(1) = new_field
     old_field_array(1) = old_field
     
-    call linear_interpolation(old_field_array, old_position, new_field_array, new_position)
+    call linear_interpolation(old_field_array, old_position, new_field_array, new_position, map=map, different_domains=different_domains)
 
   end subroutine linear_interpolation_tensor
     
