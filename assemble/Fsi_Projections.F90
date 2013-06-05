@@ -35,6 +35,7 @@ module fsi_projections
   use linked_lists
   use bound_field_module
   use fefields, only: compute_lumped_mass, project_field
+  use intersection_finder_module
   use tetrahedron_intersection_module
 
   implicit none
@@ -61,8 +62,7 @@ module fsi_projections
     type(vector_field), intent(in), optional :: solid_velocity_on_solid
     type(vector_field), intent(inout), optional :: solid_velocity_sf
 
-    ! this is for using the advancing front algorithm, therefore commented for now:
-    !type(ilist), dimension(ele_count(positionsS)) :: map_SF 
+    type(ilist), dimension(ele_count(positionsS)) :: map_SF
     integer :: ele_F, ele_S
 
     type(quadrature_type) :: supermesh_quad
@@ -85,10 +85,6 @@ module fsi_projections
     real, dimension(ele_loc(positionsS, 1), ele_loc(positionsS, 1)) :: inversion_matrix_S
     real, dimension(ele_loc(positionsS, 1), ele_loc(positionsS, 1), ele_count(positionsF)) :: inversion_matrices_F
     integer :: dim, max_degree
-
-    ! Variables for ilist when using rtree intersection finder:
-    type(ilist) :: map_SF_rtree
-    integer :: nele_fs, j, maplen, ntests
 
     character(len=OPTION_PATH_LEN) :: tmp
 
@@ -119,7 +115,7 @@ module fsi_projections
     ! advancing_front:
     !map_SF = intersection_finder(positionsS, positionsF)
     ! rtree:
-    call rtree_intersection_finder_set_input(positionsF)
+    map_SF = rtree_intersection_finder(positionsS, positionsF)
 
     sparsity_fluid = make_sparsity(fieldF%mesh, fieldF%mesh, "FluidMassMatrixSparsity")
     call allocate(mass_matrix_fluid, sparsity_fluid, name="FluidMassMatrix")
@@ -154,116 +150,80 @@ module fsi_projections
     ! Looping over all the elements of (solid) mesh S:
     do ele_S=1,ele_count(positionsS)
 
-      ! =====================================================================================================
-      ! The following is obviously only required when using the rtree intersection finder:
-      ! This will be replaced by code using the advancing front algorithm, once this has been modified to
-      ! work in parallel for fluid-solid interaction modelling
-      ! Via RTREE, find intersection of solid element 'ele_S' with the
-      ! input mesh (=fluid mesh 'positionsF'):
-      call rtree_intersection_finder_find(positionsS, ele_S)
-      ! Fetch output, the number of intersections of this solid element
-      ! with the fluid mesh (= positionsF):
-      call rtree_intersection_finder_query_output(nele_fs)
-      ! Generate an ilist of elements in positionsF that intersect with ele_S:
-      do j=1, nele_fs
-        ! Get the donor (fluid) element which intersects with ele_S
-        call rtree_intersection_finder_get_output(ele_F, j)
-        ! insert_ascending works, but maybe it's not necessary
-        !call insert_ascending(map_SF_rtree, ele_F)
-        call insert(map_SF_rtree, ele_F)
-      end do
-      ! =====================================================================================================
-
+      ! Only continue if the element ele_S has an intersection with the other mesh:
+      if (.not. map_SF(ele_S)%length > 0) then
+        cycle ! no intersection found for this ele_S
+      end if
       ! get the matrix for the coordinates of (solid) mesh S:
       call local_coords_matrix(positionsS, ele_S, inversion_matrix_S)
       ! Construct the supermesh associated with ele_S. (For advancing front algorithm, uncomment the following line:)
-      !call construct_supermesh(positionsS, ele_S, positionsF, map_SF(ele_S), supermesh_positions_shape, supermesh, stat=stat)
+      call construct_supermesh(positionsS, ele_S, positionsF, map_SF(ele_S), supermesh_positions_shape, supermesh, stat=stat)
       ! if no intersection for proc x was found, no supermesh was created, then stat/=0
-      !if (stat /= 0) then ! should not happen, as we catch that event above, but doesn't hurt double checking
-      !  cycle
-      !end if
-      ! =====================================================================================================
-      ! When using the rtree intersection finder:
-      if (map_SF_rtree%length > 0) then
-        stat = 0
-        call construct_supermesh(positionsS, ele_S, positionsF, map_SF_rtree, supermesh_positions_shape, supermesh, stat=stat)
-        ! if no intersection for proc x was found, no supermesh was created, then stat/=0
-        if (stat /= 0) then
-          cycle
-        end if
-        ! =====================================================================================================
-
-        ! At this point, a portion of the supermesh is constructed, which refines the dimensional space
-        ! of the intersection of ele_S with mesh F.
-        ! This portion of the supermesh is stored in 'supermesh'
-
-        ! 1st step: Compute the project unity from the solid mesh to the supermesh:
-
-        ! Allocate field for alpha on the supermesh:
-        supermesh_field_mesh = make_mesh(supermesh%mesh, supermesh_field_shape, -1, "SupermeshFieldMesh")
-        call allocate(alpha_sf_on_supermesh, supermesh_field_mesh, "AlphaSFOnSupermesh")
-        call zero(alpha_sf_on_supermesh)
-        ! Same for solid velocity (IFF it was given):
-        if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
-            call allocate(solid_velocity_on_supermesh, solid_velocity_on_solid%dim, supermesh_field_mesh, "SolidVelocityOnSupermesh")
-            call zero(solid_velocity_on_supermesh)
-        end if
-
-        ! Get alpha for this portion of the supermesh:
-        if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
-          call compute_alpha_on_supermesh(supermesh_field_shape, positionsS, ele_S, ele_val(alpha_sf_on_solid, ele_S), &
-                                          supermesh, inversion_matrix_S, alpha_sf_on_supermesh, &
-                                          ele_val(solid_velocity_on_solid, ele_S), solid_velocity_on_supermesh)
-        else
-          call compute_alpha_on_supermesh(supermesh_field_shape, positionsS, ele_S, ele_val(alpha_sf_on_solid, ele_S), &
-                                          supermesh, inversion_matrix_S, alpha_sf_on_supermesh)
-        end if
-
-        ! 2nd step: Compute the RHS of the Galerkin projection:
-        ! Elemental Values of alpha of this part of the supermesh are now computed.
-        ! Compute the RHS of 
-        ! M_f * alpha_f = M_{f,sup} * alpha_{sup}
-        ! and afterwards, the supermesh can be deleted as it is no longer needed,
-        ! remember, (M_{f,sup} * alpha_{sup}) lives on the fluid mesh, not the supermesh.
-        if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
-          call compute_rhs_galerkin_projection_oneway_fsi(ele_S, positionsF, positionsS, supermesh, inversion_matrices_F, &
-                                                          rhs_alpha_sf, alpha_sf_on_supermesh, &
-                                                          rhs_fluid, solid_velocity_on_supermesh)
-        else
-          call compute_rhs_galerkin_projection_oneway_fsi(ele_S, positionsF, positionsS, supermesh, inversion_matrices_F, &
-                                                          rhs_alpha_sf, alpha_sf_on_supermesh)
-        end if
-
-        ! Portion of supermesh no longer needed
-        call deallocate(supermesh)
-        call deallocate(supermesh_field_mesh)
-        call deallocate(alpha_sf_on_supermesh)
-        if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
-          call deallocate(solid_velocity_on_supermesh)
-        end if
+      if (stat /= 0) then ! should not happen, as we catch that event above, but doesn't hurt double checking
+        FLAbort('Error: Could not construct supermesh in fsi_projections')
       end if
-      ! Flush ilist of intersecting elements (when using the rtree intersection finder):
-      !call flush_list(map_SF_rtree)
-      call deallocate(map_SF_rtree)
+
+      ! At this point, a portion of the supermesh is constructed, which refines the dimensional space
+      ! of the intersection of ele_S with mesh F.
+      ! This portion of the supermesh is stored in 'supermesh'
+
+      ! 1st step: Compute the project unity from the solid mesh to the supermesh:
+
+      ! Allocate field for alpha on the supermesh:
+      supermesh_field_mesh = make_mesh(supermesh%mesh, supermesh_field_shape, -1, "SupermeshFieldMesh")
+      call allocate(alpha_sf_on_supermesh, supermesh_field_mesh, "AlphaSFOnSupermesh")
+      call zero(alpha_sf_on_supermesh)
+      ! Same for solid velocity (IFF it was given):
+      if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
+          call allocate(solid_velocity_on_supermesh, solid_velocity_on_solid%dim, supermesh_field_mesh, "SolidVelocityOnSupermesh")
+          call zero(solid_velocity_on_supermesh)
+      end if
+
+      ! Get alpha for this portion of the supermesh:
+      if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
+        call compute_alpha_on_supermesh(supermesh_field_shape, positionsS, ele_S, ele_val(alpha_sf_on_solid, ele_S), &
+                                        supermesh, inversion_matrix_S, alpha_sf_on_supermesh, &
+                                        ele_val(solid_velocity_on_solid, ele_S), solid_velocity_on_supermesh)
+      else
+        call compute_alpha_on_supermesh(supermesh_field_shape, positionsS, ele_S, ele_val(alpha_sf_on_solid, ele_S), &
+                                        supermesh, inversion_matrix_S, alpha_sf_on_supermesh)
+      end if
+
+      ! 2nd step: Compute the RHS of the Galerkin projection:
+      ! Elemental Values of alpha of this part of the supermesh are now computed.
+      ! Compute the RHS of 
+      ! M_f * alpha_f = M_{f,sup} * alpha_{sup}
+      ! and afterwards, the supermesh can be deleted as it is no longer needed,
+      ! remember, (M_{f,sup} * alpha_{sup}) lives on the fluid mesh, not the supermesh.
+      if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
+        call compute_rhs_galerkin_projection_oneway_fsi(ele_S, positionsF, positionsS, supermesh, inversion_matrices_F, &
+                                                        rhs_alpha_sf, alpha_sf_on_supermesh, &
+                                                        rhs_fluid, solid_velocity_on_supermesh)
+      else
+        call compute_rhs_galerkin_projection_oneway_fsi(ele_S, positionsF, positionsS, supermesh, inversion_matrices_F, &
+                                                        rhs_alpha_sf, alpha_sf_on_supermesh)
+      end if
+
+      ! Portion of supermesh no longer needed
+      call deallocate(supermesh)
+      call deallocate(supermesh_field_mesh)
+      call deallocate(alpha_sf_on_supermesh)
+      if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
+        call deallocate(solid_velocity_on_supermesh)
+      end if
     end do
 
     call deallocate(supermesh_quad)
     call deallocate(supermesh_positions_shape)
     call deallocate(supermesh_field_shape)
-    ! Because of using the rtree intersection finder:
-    call rtree_intersection_finder_reset(ntests)
-    !call deallocate(map_SF_rtree)
-    ! =====================================================================================================
-    ! the following is commented because of using rtree instead of the advancing front algorithm:
-    !do ele_S=1,ele_count(positionsS)
-    !  call deallocate(map_SF(ele_S))
-    !end do
-    ! =====================================================================================================
+    ! deallocating the intersection map:
+    do ele_S=1,ele_count(positionsS)
+      call deallocate(map_SF(ele_S))
+    end do
 
     ! 3rd step: Project alpha from the supermesh to the fluid and solid mesh:
     ! loop over fluid and solid elements and solve the last equation, which will
     ! project alpha from the supermesh to the fluid mesh
-
 
     ! Project alpha to the fluid mesh:
     call petsc_solve(alpha_sf, mass_matrix_fluid, rhs_alpha_sf, option_path=trim(solver_option_path))
