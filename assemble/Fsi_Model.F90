@@ -398,13 +398,15 @@ module fsi_model
         logical, intent(in), optional :: project_solid_velocity
 
         type(vector_field), pointer :: fluid_position, fluid_velocity
-        type(scalar_field), pointer :: alpha_solid_fluidmesh
+        type(scalar_field), pointer :: alpha_solid_fluidmesh, alpha_solid_solidmesh
         !type(scalar_field), pointer :: alpha_solid_solidmesh
         type(vector_field) :: solid_position_mesh ! these live on the SOLID mesh
         type(vector_field), pointer :: solid_velocity_mesh ! these live on the SOLID mesh
         type(vector_field), pointer :: solid_velocity_fluidmesh ! these live on the FLUID mesh
         type(scalar_field) :: alpha_tmp ! these live on the FLUID mesh
         type(vector_field) :: solid_velocity_fluidmesh_tmp ! these live on the FLUID mesh
+
+        integer, dimension(:), allocatable :: map
 
         character(len=OPTION_PATH_LEN) :: proj_path, proj_type='no_interpolation'
         character(len=OPTION_PATH_LEN) :: proj_solver_path
@@ -423,7 +425,7 @@ module fsi_model
         ! Also the solid volume fraction field (on fluid mesh):
         alpha_solid_fluidmesh => extract_scalar_field(state, trim(mesh_name)//'SolidConcentration')
         ! And the solid volume fraction field (on solid mesh):
-!        alpha_solid_solidmesh => extract_scalar_field(solid_states, trim(mesh_name)//'SolidConcentration')
+        alpha_solid_solidmesh => extract_scalar_field(solid_states, trim(mesh_name)//'SolidConcentration')
         ! And the solid velocity field on the fluid mesh:
         solid_velocity_fluidmesh => extract_vector_field(state, trim(mesh_name)//'SolidVelocity')
 
@@ -466,8 +468,20 @@ module fsi_model
                 ! Grandy interpolation:
                 call fsi_one_way_grandy_interpolation(fluid_position, solid_position_mesh, alpha_tmp)
 
-            !case ('consistent_interpolation')
-            !    ! Do nothing for now:
+            case ('consistent_interpolation')
+                ! get the map of node/element ownerships:
+                allocate(map(node_count(fluid_position)))
+                call find_node_ownership(solid_position_mesh, fluid_position, map)
+                ! Then do the linear interpolation:
+                call linear_interpolation(alpha_solid_solidmesh, solid_position_mesh, &
+                              & alpha_tmp, fluid_position, map=map, different_domains=.true.)
+                ! And for the velocity as well:
+                if (present_and_true(project_solid_velocity)) then
+                    call linear_interpolation(solid_velocity_mesh, solid_position_mesh, &
+                              & solid_velocity_fluidmesh_tmp, fluid_position, map=map, different_domains=.true.)
+                end if
+                ! deallocating the node/element map:
+                deallocate(map)
 
             ! Add more interpolations here
 
