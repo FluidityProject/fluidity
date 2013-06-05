@@ -6914,8 +6914,13 @@
 !                  RESIDGI=max( abs(TGI-TOLDGI)/DT,1.*sqrt(udgi**2+vdgi**2+wdgi**2)/hdc)
                   RESIDGI=sqrt(udgi**2+vdgi**2+wdgi**2)/hdc
 ! Zh*******
+!  Spread over 4 elements:
 !                  RESIDGI=  max(0., min(1. , -1. + 0.5/tolfun(abs(T(CV_NODI_IPHA) - T(CV_NODj_IPHA)))   )) &
 !                        * sqrt(udgi**2+vdgi**2+wdgi**2)/hdc
+!  Spread over 20 elements:
+!                  RESIDGI=  max(0., min(1. , -1. + 0.1/tolfun(abs(T(CV_NODI_IPHA) - T(CV_NODj_IPHA)))   )) &
+!                        * sqrt(udgi**2+vdgi**2+wdgi**2)/hdc
+!
 !                  RESIDGI=sqrt(A_STAR_X**2+A_STAR_Y**2+A_STAR_Z**2)/hdc
 !                  stop 272
  
