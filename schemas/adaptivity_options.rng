@@ -2250,7 +2250,7 @@ geometry.</a:documentation>
                     <ref name="real"/>
                   </element>
                   <optional>
-                    <element name="optimum_aspect_ratio">
+                    <element name="a">
                       <a:documentation>Wetting and drying vertical absorption for thin layers.
 
 The optimum element aspect ratio to aim for.

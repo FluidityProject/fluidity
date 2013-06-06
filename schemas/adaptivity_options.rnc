@@ -1895,7 +1895,7 @@ mesh_adaptivity_options =
                  ##
                  ## The optimum element aspect ratio to aim for.
                  ## This should be kept close to 1.0, and 7.0 is the suggested value to try.
-                 element optimum_aspect_ratio {
+                 element a {
                       real
                  }?,
                  ## Specifies the amount of absorption in dry areas. If a pressure corrected absorption term is desired, please add a pressure corrected absorption under Velocity (of magnitude 0).

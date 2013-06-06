@@ -1374,7 +1374,7 @@ contains
       	 FLExit('The sigma_d0 scheme currently not implemented on the sphere')
         else
         !call calculate_wetdry_vertical_absorption(ele, X, U, sigma_ngi, d0_a,dt,depth)
-        !call calculate_wetdry_vertical_absorption(ele, X, U, sigma_ele, d0_a,dt)
+        call calculate_wetdry_vertical_absorption(ele, X, U, sigma_ele, d0_a,dt)
          
         do i=1, ele_ngi(U,ele)
           !sigma_d0_diag(:,i)=sigma_ngi(i)*grav_at_quads(:,i)
