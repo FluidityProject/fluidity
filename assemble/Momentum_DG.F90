@@ -371,6 +371,11 @@ contains
       call get_option(trim(U%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation/scale_factor", vvr_sf)
     end if
     if (have_vertical_velocity_relaxation .or. have_wetdry_optimum_aspect_ratio) then
+      if (have_wetdry_optimum_aspect_ratio .and. on_sphere) FLExit('Wetting and drying optimum aspect ratio scheme currently not implemented on the sphere')
+      if (have_wetdry_optimum_aspect_ratio) then
+        call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio", wetdry_optimum_aspect_ratio)
+        ewrite(4,*) "Wetting and drying optimum aspect ratio scheme applied to the wetting and drying approach"
+      end if
       dtt => extract_scalar_field(state, "DistanceToTop")
       dtb => extract_scalar_field(state, "DistanceToBottom")
       call allocate(depth, dtt%mesh, "Depth")
@@ -653,13 +658,13 @@ contains
     !$OMP PARALLEL DEFAULT(SHARED) &
     !$OMP PRIVATE(clr, nnid, ele, len)
     
-    if(has_scalar_field(state, "Sigma_d0")) then
-      if(have_wetdry_optimum_aspect_ratio) then
-        call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio", wetdry_optimum_aspect_ratio)
-      else
-        FLExit("When Sigma_d0 is switched on,'/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio' needs to be set. ")
-     end if
-    end if
+    !if(has_scalar_field(state, "Sigma_d0")) then
+    !  if(have_wetdry_optimum_aspect_ratio) then
+    !    call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio", wetdry_optimum_aspect_ratio)
+    !  else
+    !    FLExit("When Sigma_d0 is switched on,'/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio' needs to be set. ")
+    ! end if
+    !end if
     
     exclude_mass = have_option(trim(u%option_path)//&
           &"/prognostic/spatial_discretisation"//&
@@ -928,8 +933,8 @@ contains
 
     real, dimension(ele_ngi(u,ele)) :: alpha_u_quad
     real, dimension(u%dim,ele_ngi(u,ele)) :: sigma_d0_diag
-    real, dimension(ele_ngi(u,ele))::sigma_ngi
-    real::sigma_ele
+    !real, dimension(ele_ngi(u,ele))::sigma_ngi
+    real :: sigma_ele
 
     dg=continuity(U)<0
     p0=(element_degree(u,ele)==0)
@@ -1119,7 +1124,7 @@ contains
         end if
       end if
     end if
-      
+    
     if(have_coriolis.and.(rhs%dim>1).and.assemble_element) then
       Coriolis_q=coriolis(ele_val_at_quad(X,ele))
     
@@ -1293,7 +1298,7 @@ contains
     end if
 
     if((have_absorption.or.have_vertical_stabilization.or.have_wd_abs .or. have_wetdry_optimum_aspect_ratio) .and. &
-         (assemble_element .or. pressure_corrected_absorption .or. have_wetdry_optimum_aspect_ratio))  then
+         (assemble_element .or. pressure_corrected_absorption)) then
 
       absorption_gi=0.0
       tensor_absorption_gi=0.0
@@ -1358,17 +1363,12 @@ contains
         end if
      
       end if
-      
-      !Sigma term
-     
-      sigma_ngi=0.0
+
+      !sigma_ngi=0.0
       sigma_ele=0.0
       sigma_d0_diag=0.0
-      if(have_wetdry_optimum_aspect_ratio .and.have_wetdry_optimum_aspect_ratio) then
-      grav_at_quads=ele_val_at_quad(gravity, ele)
-      	if (on_sphere) then
-      	 FLExit('The sigma_d0 scheme currently not implemented on the sphere')
-        else
+      if(have_wetdry_optimum_aspect_ratio) then
+        grav_at_quads=ele_val_at_quad(gravity, ele)
         !call calculate_wetdry_vertical_absorption(ele, X, U, sigma_ngi, wetdry_optimum_aspect_ratio,dt,depth)
         call calculate_wetdry_vertical_absorption(ele, X, U, sigma_ele, wetdry_optimum_aspect_ratio,dt)
          
@@ -1377,14 +1377,13 @@ contains
           sigma_d0_diag(:,i)=sigma_ele*grav_at_quads(:,i)
         end do
          
-        end if
      end if
       
       ! Add any vertical stabilization to the absorption term
       if (on_sphere) then
         tensor_absorption_gi=tensor_absorption_gi-vvr_abs-ib_abs
       end if
-      absorption_gi=absorption_gi-vvr_abs_diag-ib_abs_diag-sigma_d0_diag
+      absorption_gi = absorption_gi - vvr_abs_diag - ib_abs_diag - sigma_d0_diag
 
       ! If on the sphere then use 'tensor' absorption. Note that using tensor absorption means that, currently,
       ! the absorption cannot be used in the pressure correction. 
