@@ -151,7 +151,6 @@ module momentum_DG
 
   ! Are we running a multi-phase flow simulation?
   logical :: multiphase
-  logical::have_sigma
   
 contains
 
@@ -454,7 +453,7 @@ contains
        theta=1.0
        dt=1.0
     end if
-    have_sigma=has_scalar_field(state, "Sigma_d0")
+    have_wetdry_optimum_aspect_ratio=has_scalar_field(state, "Sigma_d0")
     have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
     have_wetdry_optimum_aspect_ratio=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio")
 
@@ -469,7 +468,7 @@ contains
          &"/lump_absorption")
     pressure_corrected_absorption=have_option(trim(u%option_path)//&
         &"/prognostic/vector_field::Absorption"//&
-        &"/include_pressure_correction") .or. (have_vertical_stabilization).or. (have_sigma)
+        &"/include_pressure_correction") .or. (have_vertical_stabilization).or. (have_wetdry_optimum_aspect_ratio)
         
     if (pressure_corrected_absorption) then
        ! as we add the absorption into the mass matrix
@@ -1295,7 +1294,7 @@ contains
       end if
     end if
 
-    if((have_absorption.or.have_vertical_stabilization.or.have_wd_abs .or. have_sigma) .and. &
+    if((have_absorption.or.have_vertical_stabilization.or.have_wd_abs .or. have_wetdry_optimum_aspect_ratio) .and. &
          (assemble_element .or. pressure_corrected_absorption .or. have_wd))  then
 
       absorption_gi=0.0
@@ -1367,7 +1366,7 @@ contains
       sigma_ngi=0.0
       sigma_ele=0.0
       sigma_d0_diag=0.0
-      if(have_wd .and.have_sigma) then
+      if(have_wd .and.have_wetdry_optimum_aspect_ratio) then
       grav_at_quads=ele_val_at_quad(gravity, ele)
       	if (on_sphere) then
       	 FLExit('The sigma_d0 scheme currently not implemented on the sphere')
@@ -1527,7 +1526,7 @@ contains
 
     end if
       
-    if ((((.not.have_absorption).and.(.not.have_vertical_stabilization).and.(.not.have_wd_abs)) .or. (.not.pressure_corrected_absorption)).and.(have_mass).and. (.not. have_sigma)) then
+    if ((((.not.have_absorption).and.(.not.have_vertical_stabilization).and.(.not.have_wd_abs)) .or. (.not.pressure_corrected_absorption)).and.(have_mass).and. (.not. have_wetdry_optimum_aspect_ratio)) then
       ! no absorption: all mass matrix components are the same
       if (present(inverse_mass) .and. .not. lump_mass) then
         inverse_mass_mat=inverse(rho_mat)
