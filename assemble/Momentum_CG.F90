@@ -125,7 +125,9 @@
     ! assemble mass or inverse lumped mass?
     logical :: assemble_mass_matrix
     logical :: assemble_inverse_masslump
+    ! Wetting and Drying optimum aspect ratio 
     logical :: have_wetdry_optimum_aspect_ratio
+    real :: wetdry_optimum_aspect_ratio
     ! implicitness parameter, timestep, conservation parameter, nonlinear theta factor
     real :: theta, dt, beta, gravity_magnitude, itheta
 
@@ -163,7 +165,6 @@
     real :: fs_sf
     ! min vertical density gradient for implicit buoyancy
     real :: ib_min_grad
-    real :: wetdry_optimum_aspect_ratio
 
     ! Are we running a multi-phase flow simulation?
     logical :: multiphase
@@ -683,12 +684,9 @@
    
     have_wetdry_optimum_aspect_ratio=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio")
     if(have_wetdry_optimum_aspect_ratio) then
+      if (have_wetdry_optimum_aspect_ratio .and. on_sphere) FLExit('Wetting and drying optimum aspect ratio scheme currently not implemented on the sphere')
       call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio", wetdry_optimum_aspect_ratio)
-      ewrite(3,*) "Appling vertical absorption stabilisation to the wetting and drying approach"
-
-      if (on_sphere) then
-        FLExit('The sigma_d0 scheme currently not implemented on the sphere')	 
-      end if
+      ewrite(4,*) "Wetting and drying optimum aspect ratio scheme applied to the wetting and drying approach"
     end if
     colour_loop: do clr = 1, size(colours)
       len = key_count(colours(clr))
@@ -1799,8 +1797,8 @@
 
       real, dimension(ele_ngi(u,ele)) :: alpha_u_quad
       real, dimension(u%dim,ele_ngi(u,ele)) :: sigma_d0_diag
-      real, dimension(ele_ngi(u,ele)) :: sigma_ngi
       real::sigma_ele
+      ! real, dimension(ele_ngi(u,ele)) :: sigma_ngi
       density_gi=ele_val_at_quad(density, ele)
       absorption_gi=0.0
       tensor_absorption_gi=0.0
@@ -1880,25 +1878,22 @@
         end if
 
         ! Wetting and drying vertical absorption for thin layers
-        sigma_ngi=0.0
-      sigma_ele=0.0
         sigma_d0_diag=0.0
         if(have_wetdry_optimum_aspect_ratio) then
-          !call calculate_wetdry_vertical_absorption(ele, positions, u, sigma_ngi, wetdry_optimum_aspect_ratio,dt,depth)
+          ! sigma_ngi=0.0
+          sigma_ele=0.0
           call calculate_wetdry_vertical_absorption(ele, positions, u, sigma_ele, wetdry_optimum_aspect_ratio,dt)
+          ! call calculate_wetdry_vertical_absorption(ele, positions, u, sigma_ngi, wetdry_optimum_aspect_ratio,dt,depth)
           do i=1, ele_ngi(u,ele)
-            !sigma_d0_diag(:,i) = sigma_ngi(i)*grav_at_quads(:,i)
-            sigma_d0_diag(:,i)=sigma_ele*grav_at_quads(:,i)
+            sigma_d0_diag(:,i) = sigma_ele * grav_at_quads(:,i)
+          !   sigma_d0_diag(:,i) = sigma_ngi(i)*grav_at_quads(:,i)
           end do
         end if
    
-        ! Add any vertical stabilization to the absorption term. Here vvr_abs_diag, ib_abs_diag, sigma_d0_diag are all negative.
         if (on_sphere) then
-          tensor_absorption_gi=tensor_absorption_gi-vvr_abs-ib_abs
-          absorption_gi=absorption_gi-vvr_abs_diag-ib_abs_diag
-        else
-          absorption_gi=absorption_gi-vvr_abs_diag-ib_abs_diag
+          tensor_absorption_gi = tensor_absorption_gi - vvr_abs-ib_abs
         end if
+        absorption_gi = absorption_gi - vvr_abs_diag - ib_abs_diag - sigma_d0_diag
 
       end if
       

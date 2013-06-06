@@ -35,12 +35,12 @@ contains
    real, intent(inout):: sigma_ele
    !real, dimension(ele_ngi(u,ele)), intent(inout):: sigma_ngi
    integer, dimension(:), pointer:: u_ele
-   real ::length1, length2, length3,length4,length5,length6,dx_ele
+   real :: length1, length2, length3,length4,length5,length6,dx_ele
    real :: dz_ele
    real, intent(in)::dt
    !real, dimension(ele_ngi(u,ele)) :: depth_at_quads
    integer::i
-   ewrite(6,*) 'Calculating wetting and drying vertical absorption stabilisation'
+   ewrite(6,*) 'Calculating wetting and drying optimum aspect ratio vertical absorption, optimum aspect ratio =', optimum_aspect_ratio
       allocate(x_ele(x%dim,ele_loc(u,ele)))
       !get the nodes cordinate of element
       x_ele = ele_val(x, ele) 
@@ -79,14 +79,19 @@ contains
     real, dimension(:),allocatable:: sigma_ele
     integer, parameter:: dim=3
     real :: optimum_aspect_ratio,dt
-   real, dimension(:,:), allocatable :: x_ele
-   real :: dz_ele
-   real ::length1, length2, length3,length4,length5,length6, dx_ele
-   type(scalar_field), pointer :: dtt, dtb
-   type(scalar_field) :: depth
-   real,dimension(:),allocatable::depth_ele
-   integer,dimension(:),pointer::sigma_nodes
-   integer :: node,i 
+    real, dimension(:,:), allocatable :: x_ele
+    real :: dz_ele
+    real ::length1, length2, length3,length4,length5,length6, dx_ele
+    type(scalar_field), pointer :: dtt, dtb
+    type(scalar_field) :: depth
+    real,dimension(:),allocatable::depth_ele
+    integer,dimension(:),pointer::sigma_nodes
+    integer :: node,i 
+    logical :: have_optimum_aspect_ratio
+
+    have_optimum_aspect_ratio = have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio")
+    if(.not. have_optimum_aspect_ratio) FLExit("Please provide an optimum_aspect_ratio.")
+    call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio", optimum_aspect_ratio)
 
     call zero(sigma)  
     U = extract_vector_field(state, "Velocity")
@@ -94,8 +99,9 @@ contains
     dtt => extract_scalar_field(state, "DistanceToTop")
     dtb => extract_scalar_field(state, "DistanceToBottom")
     call allocate(depth, dtt%mesh, "Depth")
-    do node=1,node_count(dtt)
-       call set(depth, node, node_val(dtt, node)+node_val(dtb, node))
+
+    do node = 1, node_count(dtt)
+       call set(depth, node, node_val(dtt, node) + node_val(dtb, node))
     end do
     call get_option("/timestepping/timestep", dt)
     call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio", optimum_aspect_ratio)
@@ -127,7 +133,7 @@ contains
 
       dx_ele = max(length1,length2,length3)
       dz_ele = max(x_ele(3,1),x_ele(3,2), x_ele(3,3) )-min(x_ele(3,1), x_ele(3,2), x_ele(3,3))
-      call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/a", optimum_aspect_ratio)
+      call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio", optimum_aspect_ratio)
       !sigma = dx_ele**2/(a**2*dt*dz_ele**2).But when we add it to mass and other terms, we need to multiply dt, so here we get the result after multiplying dt.
       sigma_node =dx_ele**2/(optimum_aspect_ratio**2*dz_ele**2)
       call set(sigma,ele_sigma,sigma_node)
