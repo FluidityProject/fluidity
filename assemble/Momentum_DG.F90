@@ -82,13 +82,14 @@ module momentum_DG
   ! Module private variables for model options. This prevents us having to
   ! do dictionary lookups for every element (or element face!)
   real :: dt, theta
-  logical :: lump_abs, lump_source, subcycle
-  !change for the sigma_d0
-  logical :: lump_mass
+  logical :: lump_mass, lump_abs, lump_source, subcycle
+  ! Wetting and Drying optimum aspect ratio 
+  logical :: have_wetdry_optimum_aspect_ratio
+  real :: wetdry_optimum_aspect_ratio
   logical :: assemble_mass_matrix
   logical :: assemble_inverse_masslump
   logical :: exclude_mass
-  logical::cmc_lump_mass
+  logical :: cmc_lump_mass
   ! Whether the advection term is only integrated by parts once.
   logical :: integrate_by_parts_once=.false.
   ! Whether the conservation term is integrated by parts or not
@@ -143,7 +144,6 @@ module momentum_DG
   logical:: have_wd
   
   real :: gravity_magnitude
-  real :: wetdry_optimum_aspect_ratio
   ! CDG stuff
   real, dimension(3) :: switch_g
   logical :: CDG_penalty
@@ -152,7 +152,6 @@ module momentum_DG
   ! Are we running a multi-phase flow simulation?
   logical :: multiphase
   logical::have_sigma
-  logical::have_a
   
 contains
 
@@ -457,7 +456,7 @@ contains
     end if
     have_sigma=has_scalar_field(state, "Sigma_d0")
     have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
-    have_a=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio")
+    have_wetdry_optimum_aspect_ratio=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio")
 
     have_mass = .not. have_option(trim(u%option_path)//&
         &"/prognostic/spatial_discretisation"//&
@@ -659,7 +658,7 @@ contains
     !$OMP PRIVATE(clr, nnid, ele, len)
     
     if(has_scalar_field(state, "Sigma_d0")) then
-      if(have_a) then
+      if(have_wetdry_optimum_aspect_ratio) then
         call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio", wetdry_optimum_aspect_ratio)
       else
         FLExit("When Sigma_d0 is switched on,'/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio' needs to be set. ")
