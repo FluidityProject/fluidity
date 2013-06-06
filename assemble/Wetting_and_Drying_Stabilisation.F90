@@ -51,10 +51,17 @@ contains
       length5 = sqrt((x_ele(2,4)-x_ele(2,2))**2+(x_ele(1,4)-x_ele(1,2))**2)
       length6 = sqrt((x_ele(2,4)-x_ele(2,3))**2+(x_ele(1,4)-x_ele(1,3))**2)
       dx_ele = max(length1,length2,length3,length4,length5,length6)
-     ! sigma = dx_ele**2/(a**2*dt*dz_ele**2).
-     do i=1, ele_ngi(u,ele)
-        sigma_ngi(i) = dx_ele**2/(optimum_aspect_ratio**2*dt*depth_at_quads(i)**2)
-     end do
+      ! sigma = dx_ele**2/(a**2*dt*dz_ele**2).
+
+
+      dx_ele = max(length1,length2,length3)
+      dz_ele = max(x_ele(3,1),x_ele(3,2), x_ele(3,3) )-min(x_ele(3,1), x_ele(3,2), x_ele(3,3))
+      ! sigma = dx_ele**2/(a**2*dt*dz_ele**2).But when we add it to mass and other terms, we need to multiply dt, so here we get the result after multiplying dt.
+      sigma_ele = dx_ele**2/(d0_a**2*dt*dz_ele**2)
+
+      !do i=1, ele_ngi(u,ele)
+      !   sigma_ngi(i) = dx_ele**2/(optimum_aspect_ratio**2*dt*depth_at_quads(i)**2)
+      !end do
       deallocate(x_ele)    
 
    end subroutine calculate_wetdry_vertical_absorption_element
@@ -104,13 +111,20 @@ contains
       length5 = sqrt((x_ele(2,4)-x_ele(2,2))**2+(x_ele(1,4)-x_ele(1,2))**2)
       length6 = sqrt((x_ele(2,4)-x_ele(2,3))**2+(x_ele(1,4)-x_ele(1,3))**2)
       
-      dx_ele = max(length1,length2,length3,length4,length5,length6)
+      !dx_ele = max(length1,length2,length3,length4,length5,length6)
       
-     !sigma = dx_ele**2/(a**2*dt*dz_ele**2).
-      do i=1, size(sigma_nodes)
-        sigma_ele(i) = dx_ele**2/ (optimum_aspect_ratio**2 * dt * maxval(depth_ele) **2) 
-      end do
-      call set(sigma,sigma_nodes,sigma_ele)
+      !sigma = dx_ele**2/(a**2*dt*dz_ele**2).
+      !do i=1, size(sigma_nodes)
+      !  sigma_ele(i) = dx_ele**2/ (optimum_aspect_ratio**2 * dt * maxval(depth_ele) **2) 
+      !end do
+      !call set(sigma,sigma_nodes,sigma_ele)
+
+      dx_ele = max(length1,length2,length3)
+      dz_ele = max(x_ele(3,1),x_ele(3,2), x_ele(3,3) )-min(x_ele(3,1), x_ele(3,2), x_ele(3,3))
+      call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/a", d0_a)
+      !sigma = dx_ele**2/(a**2*dt*dz_ele**2).But when we add it to mass and other terms, we need to multiply dt, so here we get the result after multiplying dt.
+      sigma_node =dx_ele**2/(d0_a**2*dz_ele**2)
+      call set(sigma,ele_sigma,sigma_node)
       
       deallocate(x_ele)
       deallocate(sigma_ele) 
