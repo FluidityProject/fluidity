@@ -456,6 +456,7 @@ contains
        dt=1.0
     end if
     have_sigma=has_scalar_field(state, "Sigma_d0")
+    have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
     have_a=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/a")
 
     have_mass = .not. have_option(trim(u%option_path)//&
@@ -932,6 +933,7 @@ contains
     real, dimension(ele_ngi(u,ele)) :: alpha_u_quad
     real, dimension(u%dim,ele_ngi(u,ele)) :: sigma_d0_diag
     real, dimension(ele_ngi(u,ele))::sigma_ngi
+    real::sigma_ele
 
     dg=continuity(U)<0
     p0=(element_degree(u,ele)==0)
@@ -1364,16 +1366,19 @@ contains
       !Sigma term
      
       sigma_ngi=0.0
+      sigma_ele=0.0
       sigma_d0_diag=0.0
       if(have_wd .and.have_sigma) then
       grav_at_quads=ele_val_at_quad(gravity, ele)
       	if (on_sphere) then
       	 FLExit('The sigma_d0 scheme currently not implemented on the sphere')
         else
-        call calculate_wetdry_vertical_absorption(ele, X, U, sigma_ngi, d0_a,dt,depth)
+        !call calculate_wetdry_vertical_absorption(ele, X, U, sigma_ngi, d0_a,dt,depth)
+        !call calculate_wetdry_vertical_absorption(ele, X, U, sigma_ele, d0_a,dt)
          
         do i=1, ele_ngi(U,ele)
-           sigma_d0_diag(:,i)=sigma_ngi(i)*grav_at_quads(:,i)
+          !sigma_d0_diag(:,i)=sigma_ngi(i)*grav_at_quads(:,i)
+          sigma_d0_diag(:,i)=sigma_ele*grav_at_quads(:,i)
         end do
          
         end if

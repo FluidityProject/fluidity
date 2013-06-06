@@ -24,25 +24,28 @@
     
 contains
 
-  subroutine calculate_wetdry_vertical_absorption_element(ele, x, u, sigma_ngi, optimum_aspect_ratio,dt,depth)
+  !subroutine calculate_wetdry_vertical_absorption_element(ele, x, u, sigma_ngi, optimum_aspect_ratio,dt,depth)
+  subroutine calculate_wetdry_vertical_absorption_element(ele, x, u, sigma_ele, optimum_aspect_ratio, dt)
    integer, intent(in) :: ele
    type(vector_field), intent(in) :: u, x
-   type(scalar_field),intent(in) :: depth
+   !type(scalar_field),intent(in) :: depth
    integer, parameter:: dim=3
    real,intent(in) :: optimum_aspect_ratio
    real, dimension(:,:), allocatable :: x_ele
-   real, dimension(ele_ngi(u,ele)), intent(inout):: sigma_ngi
+   real, intent(inout):: sigma_ele
+   !real, dimension(ele_ngi(u,ele)), intent(inout):: sigma_ngi
    integer, dimension(:), pointer:: u_ele
    real ::length1, length2, length3,length4,length5,length6,dx_ele
+   real :: dz_ele
    real, intent(in)::dt
-   real, dimension(ele_ngi(u,ele)) :: depth_at_quads
+   !real, dimension(ele_ngi(u,ele)) :: depth_at_quads
    integer::i
    ewrite(6,*) 'Calculating wetting and drying vertical absorption stabilisation'
       allocate(x_ele(x%dim,ele_loc(u,ele)))
       !get the nodes cordinate of element
       x_ele = ele_val(x, ele) 
       u_ele => ele_nodes(u, ele)
-      depth_at_quads=ele_val_at_quad(depth, ele)
+      !depth_at_quads=ele_val_at_quad(depth, ele)
       !calculate the lateral lenghth of element's projection to horizontal surface
       length1 = sqrt((x_ele(2,2)-x_ele(2,1))**2+(x_ele(1,2)-x_ele(1,1))**2)
       length2 = sqrt((x_ele(2,3)-x_ele(2,1))**2+(x_ele(1,3)-x_ele(1,1))**2)
@@ -57,7 +60,7 @@ contains
       dx_ele = max(length1,length2,length3)
       dz_ele = max(x_ele(3,1),x_ele(3,2), x_ele(3,3) )-min(x_ele(3,1), x_ele(3,2), x_ele(3,3))
       ! sigma = dx_ele**2/(a**2*dt*dz_ele**2).But when we add it to mass and other terms, we need to multiply dt, so here we get the result after multiplying dt.
-      sigma_ele = dx_ele**2/(d0_a**2*dt*dz_ele**2)
+      sigma_ele = dx_ele**2/(optimum_aspect_ratio**2*dt*dz_ele**2)
 
       !do i=1, ele_ngi(u,ele)
       !   sigma_ngi(i) = dx_ele**2/(optimum_aspect_ratio**2*dt*depth_at_quads(i)**2)
@@ -70,12 +73,14 @@ contains
     type(state_type),intent(in) :: state
     integer :: ele
     type(scalar_field), intent(inout) :: sigma
-   
+    integer, dimension(ele_loc(sigma, 1)) ::ele_sigma
+    real,dimension(ele_loc(sigma, 1)) ::sigma_node 
     type(vector_field) :: U, X
     real, dimension(:),allocatable:: sigma_ele
     integer, parameter:: dim=3
     real :: optimum_aspect_ratio,dt
    real, dimension(:,:), allocatable :: x_ele
+   real :: dz_ele
    real ::length1, length2, length3,length4,length5,length6, dx_ele
    type(scalar_field), pointer :: dtt, dtb
    type(scalar_field) :: depth
@@ -96,6 +101,7 @@ contains
     call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio", optimum_aspect_ratio)
 
     do ele=1,element_count(sigma)
+      ele_sigma=ele_nodes(sigma,ele)
       allocate(x_ele(x%dim,ele_loc(x,ele)))
       allocate(sigma_ele(ele_loc(sigma,ele)))
       allocate(depth_ele(ele_loc(x,ele)))
@@ -121,9 +127,9 @@ contains
 
       dx_ele = max(length1,length2,length3)
       dz_ele = max(x_ele(3,1),x_ele(3,2), x_ele(3,3) )-min(x_ele(3,1), x_ele(3,2), x_ele(3,3))
-      call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/a", d0_a)
+      call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/a", optimum_aspect_ratio)
       !sigma = dx_ele**2/(a**2*dt*dz_ele**2).But when we add it to mass and other terms, we need to multiply dt, so here we get the result after multiplying dt.
-      sigma_node =dx_ele**2/(d0_a**2*dz_ele**2)
+      sigma_node =dx_ele**2/(optimum_aspect_ratio**2*dz_ele**2)
       call set(sigma,ele_sigma,sigma_node)
       
       deallocate(x_ele)

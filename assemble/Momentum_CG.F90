@@ -1800,6 +1800,7 @@
       real, dimension(ele_ngi(u,ele)) :: alpha_u_quad
       real, dimension(u%dim,ele_ngi(u,ele)) :: sigma_d0_diag
       real, dimension(ele_ngi(u,ele)) :: sigma_ngi
+      real::sigma_ele
       density_gi=ele_val_at_quad(density, ele)
       absorption_gi=0.0
       tensor_absorption_gi=0.0
@@ -1880,11 +1881,14 @@
 
         ! Wetting and drying vertical absorption for thin layers
         sigma_ngi=0.0
+      sigma_ele=0.0
         sigma_d0_diag=0.0
         if(have_wetdry_optimum_aspect_ratio) then
-          call calculate_wetdry_vertical_absorption(ele, positions, u, sigma_ngi, wetdry_optimum_aspect_ratio,dt,depth)
+          !call calculate_wetdry_vertical_absorption(ele, positions, u, sigma_ngi, wetdry_optimum_aspect_ratio,dt,depth)
+          call calculate_wetdry_vertical_absorption(ele, positions, u, sigma_ele, wetdry_optimum_aspect_ratio,dt)
           do i=1, ele_ngi(u,ele)
-            sigma_d0_diag(:,i) = sigma_ngi(i)*grav_at_quads(:,i)
+            !sigma_d0_diag(:,i) = sigma_ngi(i)*grav_at_quads(:,i)
+            sigma_d0_diag(:,i)=sigma_ele*grav_at_quads(:,i)
           end do
         end if
    
