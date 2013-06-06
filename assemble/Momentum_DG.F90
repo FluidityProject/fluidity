@@ -141,9 +141,9 @@ module momentum_DG
   logical :: have_advection
   logical :: move_mesh
   logical :: have_pressure_bc
-  logical:: have_wd
   
   real :: gravity_magnitude
+
   ! CDG stuff
   real, dimension(3) :: switch_g
   logical :: CDG_penalty
@@ -151,7 +151,7 @@ module momentum_DG
 
   ! Are we running a multi-phase flow simulation?
   logical :: multiphase
-  
+
 contains
 
   subroutine construct_momentum_dg(u, p, rho, x, &
@@ -365,12 +365,12 @@ contains
 
     ! If we have vertical velocity relaxation set then grab the required fields
     ! sigma = n_z*g*dt*_rho_o/depth
-    have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
+    have_wetdry_optimum_aspect_ratio = have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio")
     have_vertical_velocity_relaxation=have_option(trim(U%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation")
     if (have_vertical_velocity_relaxation) then
       call get_option(trim(U%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation/scale_factor", vvr_sf)
     end if
-    if (have_vertical_velocity_relaxation .or. have_wd) then
+    if (have_vertical_velocity_relaxation .or. have_wetdry_optimum_aspect_ratio) then
       dtt => extract_scalar_field(state, "DistanceToTop")
       dtb => extract_scalar_field(state, "DistanceToBottom")
       call allocate(depth, dtt%mesh, "Depth")
@@ -453,9 +453,6 @@ contains
        theta=1.0
        dt=1.0
     end if
-    have_wetdry_optimum_aspect_ratio=has_scalar_field(state, "Sigma_d0")
-    have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
-    have_wetdry_optimum_aspect_ratio=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio")
 
     have_mass = .not. have_option(trim(u%option_path)//&
         &"/prognostic/spatial_discretisation"//&
@@ -662,7 +659,7 @@ contains
       else
         FLExit("When Sigma_d0 is switched on,'/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio' needs to be set. ")
      end if
-   end if
+    end if
     
     exclude_mass = have_option(trim(u%option_path)//&
           &"/prognostic/spatial_discretisation"//&
@@ -677,6 +674,7 @@ contains
           &"/full_schur_complement/inner_matrix::FullMassMatrix")
     colour_loop: do clr = 1, size(colours) 
       len = key_count(colours(clr))
+
       !$OMP DO SCHEDULE(STATIC)
       element_loop: do nnid = 1, len
        ele = fetch(colours(clr), nnid)
@@ -692,7 +690,7 @@ contains
             & inverse_masslump=inverse_masslump, &
             & mass=mass, subcycle_m=subcycle_m)
       end do element_loop
-      !$OMP END DO	
+      !$OMP END DO
 
     end do colour_loop
     !$OMP END PARALLEL
@@ -1295,7 +1293,7 @@ contains
     end if
 
     if((have_absorption.or.have_vertical_stabilization.or.have_wd_abs .or. have_wetdry_optimum_aspect_ratio) .and. &
-         (assemble_element .or. pressure_corrected_absorption .or. have_wd))  then
+         (assemble_element .or. pressure_corrected_absorption .or. have_wetdry_optimum_aspect_ratio))  then
 
       absorption_gi=0.0
       tensor_absorption_gi=0.0
@@ -1366,7 +1364,7 @@ contains
       sigma_ngi=0.0
       sigma_ele=0.0
       sigma_d0_diag=0.0
-      if(have_wd .and.have_wetdry_optimum_aspect_ratio) then
+      if(have_wetdry_optimum_aspect_ratio .and.have_wetdry_optimum_aspect_ratio) then
       grav_at_quads=ele_val_at_quad(gravity, ele)
       	if (on_sphere) then
       	 FLExit('The sigma_d0 scheme currently not implemented on the sphere')
