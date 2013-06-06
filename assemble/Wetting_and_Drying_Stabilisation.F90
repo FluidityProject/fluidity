@@ -37,7 +37,7 @@ contains
    real, intent(in)::dt
    real, dimension(ele_ngi(u,ele)) :: depth_at_quads
    integer::i
-   ewrite(3,*) 'Calculating wetting and drying vertical absorption stabilisation'
+   ewrite(6,*) 'Calculating wetting and drying vertical absorption stabilisation'
       allocate(x_ele(x%dim,ele_loc(u,ele)))
       !get the nodes cordinate of element
       x_ele = ele_val(x, ele) 
