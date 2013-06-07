@@ -106,10 +106,10 @@ module populate_state_module
        "/subgridscale_parameterisations/k-epsilon/debugging_options/source_term_output_fields               ", &
        "/subgridscale_parameterisations/k-epsilon/debugging_options/prescribed_source_terms                 ", &
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/second_order", &
-       "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/second_order", &
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/fourth_order", &
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/wale        ", &
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/dynamic_les ", &
+       "/vector_field::BedShearStress/diagnostic/calculation_method/velocity_gradient                       ", &
        "/population_balance[#]/abscissa/                                                                    ", &
        "/population_balance[#]/weights/                                                                     ", &
        "/population_balance[#]/weighted_abscissa/                                                           ", &
