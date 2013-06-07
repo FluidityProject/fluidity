@@ -126,6 +126,8 @@
     logical :: assemble_mass_matrix
     logical :: assemble_inverse_masslump
     logical :: have_wd
+    logical::have_sigma
+    logical :: have_a
     ! implicitness parameter, timestep, conservation parameter, nonlinear theta factor
     real :: theta, dt, beta, gravity_magnitude, itheta
 
@@ -164,6 +166,7 @@
     real :: fs_sf
     ! min vertical density gradient for implicit buoyancy
     real :: ib_min_grad
+    real::d0_a,d0
 
     ! Are we running a multi-phase flow simulation?
     logical :: multiphase
@@ -281,7 +284,6 @@
       !! Did we successfully prepopulate the transform_to_physical_cache?
       logical :: cache_valid
 
-
       type(element_type), dimension(:), allocatable :: supg_element
 
       ewrite(1,*) 'Entering construct_momentum_cg'
@@ -327,12 +329,14 @@
       ! Check if we have either implicit absorption term
       have_vertical_stabilization=have_option(trim(u%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation").or. &
                                   have_option(trim(u%option_path)//"/prognostic/vertical_stabilization/implicit_buoyancy")
-
+      have_sigma=has_scalar_field(state, "Sigma_d0")
       ! If we have vertical velocity relaxation set then grab the required fields
       ! sigma = n_z*g*dt*_rho_o/depth
       have_vertical_velocity_relaxation=have_option(trim(u%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation")
-      if (have_vertical_velocity_relaxation) then
-        call get_option(trim(u%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation/scale_factor", vvr_sf)
+     if (have_vertical_velocity_relaxation) then
+      call get_option(trim(U%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation/scale_factor", vvr_sf)
+     end if
+     if (have_vertical_velocity_relaxation .or. have_sigma) then
         ewrite(2,*) "vertical velocity relaxation scale_factor= ", vvr_sf
         dtt => extract_scalar_field(state, "DistanceToTop")
         dtb => extract_scalar_field(state, "DistanceToBottom")
@@ -513,7 +517,7 @@
           &"/lump_absorption/use_submesh")
       pressure_corrected_absorption=have_option(trim(u%option_path)//&
           &"/prognostic/vector_field::Absorption"//&
-          &"/include_pressure_correction") .or. (have_vertical_stabilization)
+          &"/include_pressure_correction") .or. (have_vertical_stabilization) .or. (have_sigma)
       if (pressure_corrected_absorption) then
          ! as we add the absorption into the mass matrix
          ! lump_absorption needs to match lump_mass
@@ -668,7 +672,19 @@
     thread_num = omp_get_thread_num()
 #else
     thread_num = 0
+    
 #endif
+   have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
+   
+   have_a=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/a")
+   if(has_scalar_field(state, "Sigma_d0")) then
+     if(have_a) then
+       call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/a", d0_a)
+       call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
+     else
+       FLExit("When Sigma_d0 is switched on,'/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/a' needs to be set. ")
+     end if
+   end if
     colour_loop: do clr = 1, size(colours)
       len = key_count(colours(clr))
       !$OMP DO SCHEDULE(STATIC)
@@ -1129,6 +1145,7 @@
 
       ! current element
       integer, intent(in) :: ele
+      real::dt
       type(petsc_csr_matrix), intent(inout) :: big_m
       type(vector_field), intent(inout) :: rhs
       type(block_csr_matrix), pointer :: ct_m
@@ -1147,7 +1164,6 @@
       type(vector_field), intent(in)    :: tnu
       type(tensor_field), intent(in)    :: leonard
       real, intent(in)                  :: alpha
-
       type(scalar_field), intent(in) :: gp
       type(tensor_field), intent(in) :: surfacetension
 
@@ -1219,6 +1235,7 @@
       p_shape=>ele_shape(ct_rhs, ele)
 
       oldu_val = ele_val(oldu, ele)
+      
       ! Step 1: Transform
 
       ! transform the velocity derivatives into physical space
@@ -1316,7 +1333,6 @@
          end if
       end if
 
-      have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
       ! Step 3: Assemble contributions
 
       ! Mass terms
@@ -1324,11 +1340,6 @@
         (.not. exclude_mass)) then
         call add_mass_element_cg(ele, test_function, u, oldu_val, density, nvfrac, detwei, detwei_old, detwei_new, big_m_diag_addto, big_m_tensor_addto, rhs_addto, mass, masslump)
       end if
-
-      !Sigma term
-      if(have_wd) then
-        call add_sigma_element_cg( ele, x, u, oldu_val, detwei, detwei_old, detwei_new,big_m_diag_addto, big_m_tensor_addto, rhs_addto, mass, masslump,dt, move_mesh,lump_mass,assemble_mass_matrix, assemble_inverse_masslump ,exclude_mass,have_wd)
-      end if 
       
       ! Advection terms
       if(.not. exclude_advection) then
@@ -1351,7 +1362,7 @@
       end if
 
       ! Absorption terms (sponges) and WettingDrying absorption
-      if (have_absorption .or. have_vertical_stabilization .or. have_wd_abs) then
+      if (have_absorption .or. have_vertical_stabilization .or. have_wd_abs .or.have_sigma) then
        call add_absorption_element_cg(x, ele, test_function, u, oldu_val, density, &
                                       absorption, detwei, big_m_diag_addto, big_m_tensor_addto, rhs_addto, &
                                       masslump, mass, depth, gravity, buoyancy, &
@@ -1736,7 +1747,7 @@
       
     end subroutine add_surfacetension_element_cg
     
-    subroutine add_absorption_element_cg(positions, ele, test_function, u, oldu_val, &
+    subroutine add_absorption_element_cg(positions, ele, test_function,  u, oldu_val, &
                                          density, absorption, detwei, &
                                          big_m_diag_addto, big_m_tensor_addto, rhs_addto, &
                                          masslump, mass, depth, gravity, buoyancy, &
@@ -1744,7 +1755,7 @@
       type(vector_field), intent(in) :: positions
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
-      type(vector_field), intent(in) :: u
+      type(vector_field), intent(in) ::  u
       real, dimension(:,:), intent(in) :: oldu_val
       type(scalar_field), intent(in) :: density
       type(vector_field), intent(in) :: absorption
@@ -1774,7 +1785,7 @@
       real, dimension(u%dim,u%dim,ele_ngi(u,ele)) :: vvr_abs
       real, dimension(u%dim,ele_ngi(u,ele)) :: vvr_abs_diag
       real, dimension(ele_ngi(u,ele)) :: depth_at_quads
-
+      real, dimension(ele_loc(depth,ele)) :: depth_ele
       ! Add implicit buoyancy to the absorption if present
       real, dimension(u%dim,u%dim,ele_ngi(u,ele)) :: ib_abs
       real, dimension(u%dim,ele_ngi(u,ele)) :: ib_abs_diag
@@ -1784,7 +1795,13 @@
       real, dimension(ele_ngi(u,ele)) :: drho_dz
 
       real, dimension(ele_ngi(u,ele)) :: alpha_u_quad
-      
+      real, dimension(u%dim,ele_ngi(u,ele)) :: sigma_d0_diag
+      real, dimension(ele_ngi(u,ele))::sigma_ngi
+      real, dimension(U%dim, ele_loc(U,ele), ele_loc(U,ele)) :: sigma_mat
+      real, dimension(U%dim, ele_loc(U,ele)) :: sigma_lump
+      real, dimension(u%dim, ele_loc(u,ele)) :: u_val
+      real, dimension(ele_loc(U,ele)) ::r_coefficient
+      real, dimension(u%dim, ele_loc(u,ele)) :: ru_val
       density_gi=ele_val_at_quad(density, ele)
       absorption_gi=0.0
       tensor_absorption_gi=0.0
@@ -1862,14 +1879,28 @@
             end do
           end if
         end if
-
-        ! Add any vertical stabilization to the absorption term
+      
+      !Sigma term
+      sigma_ngi=0.0
+      sigma_d0_diag=0.0
+      if(have_sigma) then
+      	if (on_sphere) then
+      	 FLExit('The sigma_d0 scheme currently not implemented on the sphere')	 
+        else
+          call calculate_sigma_element(ele, positions, u, sigma_ngi, d0_a,dt)
+          do i=1, ele_ngi(u,ele)
+           sigma_d0_diag(:,i)=sigma_ngi(i)*grav_at_quads(:,i)
+          end do
+  
+        end if
+      end if
+   
+        ! Add any vertical stabilization to the absorption term. Here vvr_abs_diag, ib_abs_diag, sigma_d0_diag are all negative.
         if (on_sphere) then
           tensor_absorption_gi=tensor_absorption_gi-vvr_abs-ib_abs
-          absorption_gi=absorption_gi-vvr_abs_diag-ib_abs_diag
-        else
-          absorption_gi=absorption_gi-vvr_abs_diag-ib_abs_diag
-        end if
+       end if
+       absorption_gi=absorption_gi-vvr_abs_diag-ib_abs_diag-sigma_d0_diag
+     
 
       end if
       
@@ -1941,27 +1972,37 @@
       else
 
         absorption_mat = shape_shape_vector(test_function, ele_shape(u, ele), detwei*density_gi, absorption_gi)
-
+        Sigma_mat = shape_shape_vector(test_function, ele_shape(u, ele), detwei*density_gi, sigma_d0_diag)
         if (have_wd_abs) then
            alpha_u_quad=ele_val_at_quad(alpha_u_field, ele) !! Wetting and drying absorption becomes active when water level reaches d_0
            absorption_mat =  absorption_mat + &
             &                shape_shape_vector(test_function, ele_shape(u, ele), alpha_u_quad*detwei*density_gi, &
             &                                 ele_val_at_quad(abs_wd,ele))
         end if
-
+        
+        depth_ele = ele_val(depth, ele)
         if(lump_absorption) then
           if(.not.abs_lump_on_submesh) then
             absorption_lump = sum(absorption_mat, 3)
+            sigma_lump = sum(Sigma_mat, 3)
             do dim = 1, u%dim
               big_m_diag_addto(dim, :) = big_m_diag_addto(dim, :) + dt*theta*absorption_lump(dim,:)
-              rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump(dim,:)*oldu_val(dim,:)
+              do i=1, ele_loc(U, ele)
+                   r_coefficient(i)=max(2*(1-depth_ele(i)/2/d0),real(0))
+                   ru_val(dim,i)=r_coefficient(i)*u_val(dim,i)
+              end do
+              rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump(dim,:)*oldu_val(dim,:)+ sigma_lump(dim,:)*ru_val(dim,:)
             end do
           end if
         else
           do dim = 1, u%dim
             big_m_tensor_addto(dim, dim, :, :) = big_m_tensor_addto(dim, dim, :, :) + &
               & dt*theta*absorption_mat(dim,:,:)
-            rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat(dim,:,:), oldu_val(dim,:))
+            do i=0,ele_loc(U, ele)
+               r_coefficient(i)=max(2*(1-depth_ele(i)/2/d0),real(0))
+               ru_val(dim,i)=r_coefficient(i)*u_val(dim,i) 
+            end do
+            rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat(dim,:,:), oldu_val(dim,:))+matmul(Sigma_mat(dim,:,:), ru_val(dim,:))
           end do
           absorption_lump = 0.0
         end if

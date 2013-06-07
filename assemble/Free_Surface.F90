@@ -2518,7 +2518,8 @@ contains
         do i=1, size(alpha)
           if (alpha(i)<=0.0) then
               alpha(i)=0.0
-          else
+          else 
+          !if (alpha(i)>=1.0) then
               alpha(i)=1.0
           end if
         end do

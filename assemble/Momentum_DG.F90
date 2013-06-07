@@ -143,7 +143,8 @@ module momentum_DG
   logical:: have_wd
   
   real :: gravity_magnitude
-
+  real :: d0_a
+  real :: d0
   ! CDG stuff
   real, dimension(3) :: switch_g
   logical :: CDG_penalty
@@ -151,7 +152,9 @@ module momentum_DG
 
   ! Are we running a multi-phase flow simulation?
   logical :: multiphase
-
+  logical::have_sigma
+  logical::have_a
+  
 contains
 
   subroutine construct_momentum_dg(u, p, rho, x, &
@@ -358,7 +361,7 @@ contains
    ! else
    !    call zero(Abs_wd)
     end if
-
+    have_sigma=has_scalar_field(state, "Sigma_d0")
     ! Check if we have either implicit absorption term
     have_vertical_stabilization=have_option(trim(U%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation").or. &
                                 have_option(trim(U%option_path)//"/prognostic/vertical_stabilization/implicit_buoyancy")
@@ -367,10 +370,14 @@ contains
     ! sigma = n_z*g*dt*_rho_o/depth
     have_vertical_velocity_relaxation=have_option(trim(U%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation")
     if (have_vertical_velocity_relaxation) then
+    
       call get_option(trim(U%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation/scale_factor", vvr_sf)
+    end if
+    if (have_vertical_velocity_relaxation .or. have_sigma) then
       dtt => extract_scalar_field(state, "DistanceToTop")
       dtb => extract_scalar_field(state, "DistanceToBottom")
       call allocate(depth, dtt%mesh, "Depth")
+      ewrite(1,*) "LOL ctj10", node_count(dtt)
       do node=1,node_count(dtt)
         call set(depth, node, node_val(dtt, node)+node_val(dtb, node))
       end do
@@ -450,6 +457,9 @@ contains
        theta=1.0
        dt=1.0
     end if
+    
+    have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
+    have_a=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/a")
 
     have_mass = .not. have_option(trim(u%option_path)//&
         &"/prognostic/spatial_discretisation"//&
@@ -462,7 +472,7 @@ contains
          &"/lump_absorption")
     pressure_corrected_absorption=have_option(trim(u%option_path)//&
         &"/prognostic/vector_field::Absorption"//&
-        &"/include_pressure_correction") .or. (have_vertical_stabilization)
+        &"/include_pressure_correction") .or. (have_vertical_stabilization).or. (have_sigma)
         
     if (pressure_corrected_absorption) then
        ! as we add the absorption into the mass matrix
@@ -649,10 +659,29 @@ contains
 
     !$OMP PARALLEL DEFAULT(SHARED) &
     !$OMP PRIVATE(clr, nnid, ele, len)
-
+    
+    if(has_scalar_field(state, "Sigma_d0")) then
+      if(have_a) then
+        call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/a", d0_a)
+        call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
+      else
+        FLExit("When Sigma_d0 is switched on,'/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/a' needs to be set. ")
+     end if
+   end if
+    
+    exclude_mass = have_option(trim(u%option_path)//&
+          &"/prognostic/spatial_discretisation"//&
+          &"/continuous_galerkin/mass_terms/exclude_mass_terms")
+    cmc_lump_mass = have_option(trim(p%option_path)//&
+          &"/prognostic/scheme"//&
+          &"/use_projection_method/full_schur_complement"//&
+          &"/preconditioner_matrix::LumpedSchurComplement")
+    assemble_inverse_masslump = lump_mass .or. cmc_lump_mass
+    assemble_mass_matrix = have_option(trim(p%option_path)//&
+          &"/prognostic/scheme/use_projection_method"//&
+          &"/full_schur_complement/inner_matrix::FullMassMatrix")
     colour_loop: do clr = 1, size(colours) 
       len = key_count(colours(clr))
-
       !$OMP DO SCHEDULE(STATIC)
       element_loop: do nnid = 1, len
        ele = fetch(colours(clr), nnid)
@@ -795,6 +824,7 @@ contains
          & ele_loc(Viscosity,ele)) :: Viscosity_ele
     real, dimension(x%dim, ele_loc(x,ele)) :: x_val, x_val_2
     real, dimension(u%dim, ele_loc(u,ele)) :: u_val
+    
 
      ! \Int_{ele} N_i kappa N_j dV, used for CDG fluxes
     real, dimension(mesh_dim(U),mesh_dim(U), &
@@ -878,6 +908,7 @@ contains
     real, dimension(u%dim,ele_ngi(u,ele)) :: vvr_abs_diag
     real, dimension(ele_ngi(u,ele)) :: depth_at_quads
     type(scalar_field), intent(in) :: depth
+    real, dimension(ele_loc(depth,ele)) :: depth_ele
 
     ! Add implicit buoyancy to the absorption if present
     real, intent(in) :: ib_min_grad
@@ -905,7 +936,14 @@ contains
     real :: turbine_fluxfac
 
     real, dimension(ele_ngi(u,ele)) :: alpha_u_quad
-
+    real, dimension(u%dim,ele_ngi(u,ele)) :: sigma_d0_diag
+    real, dimension(ele_ngi(u,ele))::sigma_ngi
+    real, dimension(U%dim, ele_loc(U,ele), ele_loc(U,ele)) :: &
+         sigma_mat
+    real, dimension(U%dim, ele_loc(U,ele)) :: &
+         sigma_lump
+    real, dimension(ele_loc(U,ele)) ::r_coefficient
+    real, dimension(u%dim, ele_loc(u,ele)) :: ru_val
     dg=continuity(U)<0
     p0=(element_degree(u,ele)==0)
     
@@ -1094,23 +1132,6 @@ contains
         end if
       end if
     end if
-    
-     !sigma
-    have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
-    exclude_mass = have_option(trim(u%option_path)//&
-          &"/prognostic/spatial_discretisation"//&
-          &"/continuous_galerkin/mass_terms/exclude_mass_terms")
-    cmc_lump_mass = have_option(trim(p%option_path)//&
-          &"/prognostic/scheme"//&
-          &"/use_projection_method/full_schur_complement"//&
-          &"/preconditioner_matrix::LumpedSchurComplement")
-    assemble_inverse_masslump = lump_mass .or. cmc_lump_mass
-    assemble_mass_matrix = have_option(trim(p%option_path)//&
-          &"/prognostic/scheme/use_projection_method"//&
-          &"/full_schur_complement/inner_matrix::FullMassMatrix")
-    if(have_wd) then
-        call add_sigma_element_dg(ele, x, u, u_val, detwei, detwei_old, detwei_new, big_m_diag_addto, big_m_tensor_addto, rhs_addto,mass, l_masslump,dt, move_mesh,lump_mass,assemble_mass_matrix, assemble_inverse_masslump ,exclude_mass,have_wd)
-    end if 
       
     if(have_coriolis.and.(rhs%dim>1).and.assemble_element) then
       Coriolis_q=coriolis(ele_val_at_quad(X,ele))
@@ -1284,8 +1305,8 @@ contains
       end if
     end if
 
-    if((have_absorption.or.have_vertical_stabilization.or.have_wd_abs) .and. &
-         (assemble_element .or. pressure_corrected_absorption)) then
+    if((have_absorption.or.have_vertical_stabilization.or.have_wd_abs .or. have_sigma) .and. &
+         (assemble_element .or. pressure_corrected_absorption .or. have_wd))  then
 
       absorption_gi=0.0
       tensor_absorption_gi=0.0
@@ -1299,7 +1320,7 @@ contains
       ib_abs=0.0
       ib_abs_diag=0.0
 
-      if (have_vertical_velocity_relaxation) then
+      if (have_vertical_velocity_relaxation ) then
                 
         ! Form the vertical velocity relaxation absorption term
         if (.not.on_sphere) then
@@ -1350,14 +1371,28 @@ contains
         end if
      
       end if
-
+      
+      !Sigma term
+     
+      sigma_ngi=0.0
+      sigma_d0_diag=0.0
+      if(have_wd .and.have_sigma) then
+      grav_at_quads=ele_val_at_quad(gravity, ele)
+      	if (on_sphere) then
+      	 FLExit('The sigma_d0 scheme currently not implemented on the sphere')
+        else
+        call calculate_sigma_element(ele, X, U, sigma_ngi, d0_a,dt)
+        do i=1, ele_ngi(U,ele)
+          sigma_d0_diag(:,i)=sigma_ngi(i)*grav_at_quads(:,i)
+        end do
+        end if
+     end if
+      
       ! Add any vertical stabilization to the absorption term
       if (on_sphere) then
         tensor_absorption_gi=tensor_absorption_gi-vvr_abs-ib_abs
-        absorption_gi=absorption_gi-vvr_abs_diag-ib_abs_diag
-      else
-        absorption_gi=absorption_gi-vvr_abs_diag-ib_abs_diag
       end if
+      absorption_gi=absorption_gi-vvr_abs_diag-ib_abs_diag-sigma_d0_diag
 
       ! If on the sphere then use 'tensor' absorption. Note that using tensor absorption means that, currently,
       ! the absorption cannot be used in the pressure correction. 
@@ -1441,20 +1476,25 @@ contains
       else
 
         Abs_mat = shape_shape_vector(U_shape, U_shape, detwei*rho_q, absorption_gi)
-
+        Sigma_mat = shape_shape_vector(U_shape, U_shape, detwei*rho_q, sigma_d0_diag)
         if (have_wd_abs) then
           alpha_u_quad=ele_val_at_quad(alpha_u_field, ele)  !! Wetting and drying absorption becomes active when water level reaches d_0
           Abs_mat = Abs_mat + shape_shape_vector(U_shape, U_shape, alpha_u_quad*detwei*rho_q, &
             &                                 ele_val_at_quad(Abs_wd,ele))
         end if
-
+        depth_ele = ele_val(depth, ele)
         if(lump_abs) then        
           abs_lump = sum(Abs_mat, 3)
+          sigma_lump = sum(Sigma_mat, 3)
           do dim = 1, u%dim
             if (assemble_element) then
               big_m_diag_addto(dim, :loc) = big_m_diag_addto(dim, :loc) + dt*theta*abs_lump(dim,:)
               if(acceleration) then
-                rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - abs_lump(dim,:)*u_val(dim,:)
+                do i=1, ele_loc(U, ele)
+                   r_coefficient(i)=max(2*(1-depth_ele(i)/2/d0),real(0))
+                   ru_val(dim,i)=r_coefficient(i)*u_val(dim,i)
+                end do
+               rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - abs_lump(dim,:)*u_val(dim,:)+ sigma_lump(dim,:)*ru_val(dim,:)
               end if
             end if
             if (present(inverse_masslump) .and. pressure_corrected_absorption) then
@@ -1476,7 +1516,11 @@ contains
               big_m_tensor_addto(dim, dim, :loc, :loc) = big_m_tensor_addto(dim, dim, :loc, :loc) + &
                 & dt*theta*Abs_mat(dim,:,:)
               if(acceleration) then
-                rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat(dim,:,:), u_val(dim,:))
+                do i=0,ele_loc(U, ele)
+                   r_coefficient(i)=max(2*(1-depth_ele(i)/2/d0),real(0))
+                   ru_val(dim,i)=r_coefficient(i)*u_val(dim,i) 
+                end do
+                rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat(dim,:,:), u_val(dim,:))+ matmul(Sigma_mat(dim,:,:), ru_val(dim,:))
               end if
             end if
             if (present(inverse_mass) .and. pressure_corrected_absorption) then
@@ -1497,7 +1541,7 @@ contains
 
     end if
       
-    if ((((.not.have_absorption).and.(.not.have_vertical_stabilization).and.(.not.have_wd_abs)) .or. (.not.pressure_corrected_absorption)).and.(have_mass)) then
+    if ((((.not.have_absorption).and.(.not.have_vertical_stabilization).and.(.not.have_wd_abs)) .or. (.not.pressure_corrected_absorption)).and.(have_mass).and. (.not. have_sigma)) then
       ! no absorption: all mass matrix components are the same
       if (present(inverse_mass) .and. .not. lump_mass) then
         inverse_mass_mat=inverse(rho_mat)

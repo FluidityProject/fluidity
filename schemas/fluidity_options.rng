@@ -4577,7 +4577,8 @@ of the wetting and drying alpha coefficient.</a:documentation>
         </element>
       </element>
       <element name="scalar_field">
-        <a:documentation>Sigma_d0 is Only used in wetting and drying and high aspect ratio case.</a:documentation>
+        <a:documentation>Sigma_d0 is Only used in wetting and drying and high aspect ratio case.
+Please set the mesh as P0,because the value is uniform for each element.</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>

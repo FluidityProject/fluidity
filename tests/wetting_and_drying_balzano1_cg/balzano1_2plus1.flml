@@ -440,6 +440,23 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
+    <scalar_field name="Sigma_d0" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
   </material_phase>
   <mesh_adaptivity>
     <mesh_movement>
@@ -450,6 +467,9 @@
             <real_value rank="0">0.01</real_value>
             <comment>important: if you change d0 also change extrude!</comment>
           </d0>
+          <a>
+            <real_value rank="0">7</real_value>
+          </a>
         </wetting_and_drying>
       </free_surface>
       <vector_field name="GridVelocity" rank="1">

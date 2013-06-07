@@ -488,7 +488,7 @@ contains
        s_field => extract_scalar_field(state(i), "Sigma_d0", stat)
        if(stat == 0) then
          if(recalculate(trim(s_field%option_path))) then
-           call calculate_diagnostic_diagnostic_sigma_d0(state(i), s_field)
+           call calculate_diagnostic_sigma_d0(state(i), s_field)
          end if
        end if
 
