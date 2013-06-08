@@ -1109,10 +1109,11 @@ contains
     type(vector_field), intent(inout), optional:: rhs
 
     Vec:: bvec, xvec
+    type(integer_set):: row_set
     PetscInt, dimension(:), allocatable:: node_list
     PetscScalar:: diag
     PetscErrorCode:: ierr
-    integer:: i, n
+    integer:: i, j, row
 
     assert( blocks(A,1)==size(boundary_nodes) )
 
@@ -1120,17 +1121,21 @@ contains
 
     diag = 1.0
 
-    n = 0
+    ! MatZeroRowsColumns seems to not ignore negative row indices
+    ! so first, create a set of petsc rows with negatives removed:
+    call allocate(row_set)
+
     do i=1, size(boundary_nodes)
-      n = n + key_count(boundary_nodes(i))
+      do j=1, key_count(boundary_nodes(i))
+        row = A%row_numbering%gnn2unn(fetch(boundary_nodes(i), j), i)
+        if (row>=0) then
+          call insert(row_set, row)
+        end if
+      end do
     end do
 
-    allocate(node_list(1:n))
-    n = 1
-    do i=1, size(boundary_nodes)
-      node_list(n: n+key_count(boundary_nodes(i))-1) = A%row_numbering%gnn2unn(set2vector(boundary_nodes(i)), i)
-      n = n + key_count(boundary_nodes(i))
-    end do
+    allocate(node_list(1:key_count(row_set)))
+    node_list = set2vector(row_set)
 
     if (present(rhs)) then
 
