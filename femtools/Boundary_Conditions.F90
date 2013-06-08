@@ -137,7 +137,7 @@ implicit none
     set_reference_node, &
     get_periodic_boundary_condition, remove_boundary_condition, &
     set_dirichlet_consistent, apply_dirichlet_conditions, &
-    derive_collapsed_bcs
+    derive_collapsed_bcs, lift_div_grad_boundary_conditions
 
 contains
 
@@ -2045,15 +2045,17 @@ contains
 
   end subroutine apply_dirichlet_conditions_vector
 
-  subroutine apply_dirichlet_conditions_vector_petsc_csr(matrix, rhs, field, dt)
-    !!< Apply dirichlet boundary conditions from field to the problem
-    !!< defined by matrix and rhs.
-    !!<
-    !!< This assumes that boundary conditions are applied in rate of change
-    !!< form and that the matrix has dim x dim blocks.
-    type(petsc_csr_matrix), intent(inout) :: matrix
-    type(vector_field), intent(inout), optional :: rhs
+  subroutine collect_vector_dirichlet_conditions(field, boundary_row_set, rhs, dt)
+    ! returns for each component of the vector field an integer set of those nodes
+    ! to which a strong dirichlet boundary condition is applied.
     type(vector_field), intent(in) :: field
+    type(integer_set), dimension(field%dim), intent(out):: boundary_row_set
+    ! if supplied the boundary condition value is set in the corresponding
+    ! rows of the 'rhs' field (should be allocated beforehand)
+    type(vector_field), intent(inout), optional :: rhs
+    ! if 'dt' is provided, assume the equation is solved in acceleration form, so
+    ! that the rhs values are (current_value-bc_val)/dt 
+    ! current_value is obtained from 'field'
     real, intent(in), optional :: dt
 
     type(scalar_field) :: rhscomponent, bccomponent
@@ -2061,7 +2063,6 @@ contains
     logical, dimension(field%dim):: applies
     character(len=FIELD_NAME_LEN):: bctype
     type(vector_field), pointer:: surface_field
-    type(integer_set), dimension(field%dim):: boundary_row_set
     integer, dimension(:), pointer:: surface_node_list
     integer :: i,j,k
 
@@ -2096,8 +2097,8 @@ contains
                             surface_node_list(j), &
                             node_val(bccomponent,j))
                 end if
-                call insert(boundary_row_set(k), surface_node_list(j))
               end if
+              call insert(boundary_row_set(k), surface_node_list(j))
 
             end if
           end do
@@ -2105,13 +2106,86 @@ contains
 
     end do bcloop
 
+  end subroutine collect_vector_dirichlet_conditions
+
+  subroutine apply_dirichlet_conditions_vector_petsc_csr(matrix, rhs, field, dt)
+    !!< Apply dirichlet boundary conditions from field to the problem
+    !!< defined by matrix and rhs.
+    !!<
+    !!< This assumes that boundary conditions are applied in rate of change
+    !!< form and that the matrix has dim x dim blocks.
+    type(petsc_csr_matrix), intent(inout) :: matrix
+    type(vector_field), intent(inout), optional :: rhs
+    type(vector_field), intent(in) :: field
+    real, intent(in), optional :: dt
+
+    type(integer_set), dimension(field%dim):: boundary_row_set
+    integer:: i
+
+    call collect_vector_dirichlet_conditions(field, boundary_row_set, rhs=rhs, dt=dt)
+
     call lift_boundary_conditions(matrix, boundary_row_set, rhs=rhs)
 
-    do k=1, field%dim
-      call deallocate(boundary_row_set(k))
+    do i=1, field%dim
+      call deallocate(boundary_row_set(i))
     end do
 
   end subroutine apply_dirichlet_conditions_vector_petsc_csr
+
+  subroutine lift_div_grad_boundary_conditions(divergence, rhs, field, transposed_gradient)
+    type(block_csr_matrix), intent(inout):: divergence
+    type(scalar_field), intent(inout):: rhs
+    type(vector_field), intent(in):: field
+    type(block_csr_matrix), intent(inout), optional:: transposed_gradient
+    
+    type(vector_field):: bc_value
+    type(integer_set), dimension(field%dim):: boundary_row_set
+    real, dimension(:), pointer:: val
+    real:: coef
+    integer, dimension(:), pointer:: row
+    integer:: i, j, dim
+
+    assert( blocks(divergence,1)==1 )
+    assert( blocks(divergence,2)==field%dim )
+    assert( block_size(divergence,1)==node_count(rhs) )
+    assert( block_size(divergence,2)==node_count(field) )
+    if (present(transposed_gradient)) then
+      assert( blocks(transposed_gradient,1)==1 )
+      assert( blocks(transposed_gradient,2)==field%dim )
+      assert( block_size(transposed_gradient,1)==node_count(rhs) )
+      assert( block_size(transposed_gradient,2)==node_count(field) )
+    end if
+
+    ! temporary vector field to store bc values
+    call allocate(bc_value, field%dim, field%mesh, "BCValues")
+    call collect_vector_dirichlet_conditions(field, boundary_row_set, rhs=bc_value)
+
+    do dim=1, blocks(divergence,2)
+      do i=1, size(divergence, 1)
+        row => row_m_ptr(divergence, i)
+        val => row_val_ptr(divergence, 1, dim, i)
+        do j=1, size(row)
+
+          if (has_value(boundary_row_set(dim), row(j))) then
+            coef = -val(j)*node_val(bc_value, dim, row(j))
+            call addto(rhs, i, coef)
+            val(j) = 0.0
+            if (present(transposed_gradient)) then
+              ! let's not assume divergence and transposed_gradient have the same sparsity
+              call set(transposed_gradient, 1, dim, i, row(j), 0.0)
+            end if
+          end if
+
+        end do
+      end do
+    end do
+
+    do dim=1, field%dim
+      call deallocate(boundary_row_set(dim))
+    end do
+    call deallocate(bc_value)
+
+  end subroutine lift_div_grad_boundary_conditions
   
   subroutine apply_dirichlet_conditions_vector_component(matrix, rhs, field, dt, dim)
     !!< Apply dirichlet boundary conditions from field to the problem
@@ -2295,7 +2369,7 @@ contains
     end do bcloop
 
   end subroutine apply_dirichlet_conditions_vector_component_lumped
-  
+
   subroutine derive_collapsed_bcs(input_states, collapsed_states, bctype)
     !!< For the collapsed state collapsed_states, containing the collapsed
     !!< components of fields in input_states, copy across the component

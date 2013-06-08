@@ -825,6 +825,12 @@
                   end if
                end if
 
+               if (associated(ct_m(istate)%ptr, ct_m(istate)%ptr)) then
+                 call lift_div_grad_boundary_conditions(ctp_m(istate)%ptr, ct_rhs(istate), u, transposed_gradient=ct_m(istate)%ptr)
+               else
+                 call lift_div_grad_boundary_conditions(ctp_m(istate)%ptr, ct_rhs(istate), u)
+               end if
+
                ! Add mass source-absorption for implicit solids.
                ! This needs to be done after ct_rhs has been formed
                ! in the divergence routines as they zero the field.
