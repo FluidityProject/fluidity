@@ -43,6 +43,8 @@
     use state_module
     use petsc_solve_state_module
     use boundary_conditions_from_options
+    use data_structures
+    use boundary_conditions
 
 #ifdef HAVE_PETSC_MODULES
     use petsc
@@ -60,7 +62,7 @@
   contains
     
 !--------------------------------------------------------------------------------------------------------------------
-    subroutine petsc_solve_full_projection(x,ctp_m,inner_m,ct_m,rhs,pmat,&
+    subroutine petsc_solve_full_projection(x,ctp_m,inner_m,ct_m,rhs,pmat, velocity, &
       state, inner_mesh, auxiliary_matrix)
 !--------------------------------------------------------------------------------------------------------------------
 
@@ -76,6 +78,7 @@
       ! momentum matrix. If preconditioner is set to ScaledPressureMassMatrix, this comes in as the pressure mass matrix,
       ! scaled by the inverse of viscosity.
       type(csr_matrix), intent(inout) :: pmat
+      type(vector_field), intent(in) :: velocity ! used to retrieve strong diricihlet bcs
       ! state, and inner_mesh are used to setup mg preconditioner of inner solve
       type(state_type), intent(in):: state
       type(mesh_type), intent(in):: inner_mesh
@@ -104,7 +107,7 @@
       ewrite(2,*) 'Entering PETSc setup for Full Projection Solve'
       call petsc_solve_setup_full_projection(y,A,b,ksp,petsc_numbering,name,solver_option_path, &
            lstartfromzero,inner_m,ctp_m,ct_m,x%option_path,pmat, &
-           rhs, state, inner_mesh, auxiliary_matrix)
+           rhs, velocity, state, inner_mesh, auxiliary_matrix)
 
       ewrite(2,*) 'Create RHS and solution Vectors in PETSc Format'
       ! create PETSc vec for rhs using above numbering:
@@ -137,7 +140,7 @@
 !--------------------------------------------------------------------------------------------------------
     subroutine petsc_solve_setup_full_projection(y,A,b,ksp,petsc_numbering_p,name,solver_option_path, &
          lstartfromzero,inner_m,div_matrix_comp, div_matrix_incomp,option_path,preconditioner_matrix,rhs, &
-         state, inner_mesh, auxiliary_matrix)
+         velocity, state, inner_mesh, auxiliary_matrix)
          
 !--------------------------------------------------------------------------------------------------------
 
@@ -175,6 +178,7 @@
       type(csr_matrix), optional, intent(in) :: auxiliary_matrix
       ! Option path:
       character(len=*), intent(in):: option_path
+      type(vector_field), intent(in) :: velocity ! used to retrieve strong diricihlet bcs
       ! state, and inner_mesh are used to setup mg preconditioner of inner solve
       type(state_type), intent(in):: state
       type(mesh_type), intent(in):: inner_mesh
@@ -203,6 +207,7 @@
       
       character(len=OPTION_PATH_LEN) :: inner_option_path, inner_solver_option_path
       
+      type(integer_set), dimension(velocity%dim):: boundary_row_set      
       integer reference_node, stat, i, rotation_stat
       logical parallel, have_auxiliary_matrix, have_preconditioner_matrix
 
@@ -287,6 +292,24 @@
            ! below) so two questions:
            ! 1. is it definitely appropriate for all its other used (the divergence matrix and the pressure vectors)?
            ! 2. can it be made appropriate for the auxiliary matrix at the same time as being appropriate for the current uses?
+
+      ! the rows of the gradient matrix (ct_m^T) and columns of ctp_m 
+      ! corresponding to dirichlet bcs have not been zeroed
+      ! This is because lifting the dirichlet bcs from the continuity
+      ! equation into ct_rhs would require maintaining the lifted contributions.
+      ! Typically, we reassemble ct_rhs every nl.it. but keeping ctp_m
+      ! which means that we can't recompute those contributions as the columns 
+      ! are already zeroed. Thus instead we only zero the corresponding rows and columns
+      ! when copying into the div and grad matrices used in the Schur complement solve.
+      ! The lifting of bc values in the continuity equation is already taken care of, as
+      ! the projec_rhs contains the ctp_m u^* term, where u^* already satisfies the bcs
+      ! and ctp_m does not have the corresponding columns zeroed out.
+      call collect_vector_dirichlet_conditions(velocity, boundary_row_set)
+      do i=1, velocity%dim
+        petsc_numbering_u%gnn2unn(set2vector(boundary_row_set(i)), i) = -1
+        call deallocate(boundary_row_set(i))
+      end do
+      
 
       ! Convert Divergence matrix (currently stored as block_csr matrix) to petsc format:   
       ! Create PETSc Div Matrix (comp & incomp) using this numbering:
