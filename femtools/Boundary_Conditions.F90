@@ -127,6 +127,10 @@ implicit none
                       apply_dirichlet_conditions_vector_component_lumped
   end interface apply_dirichlet_conditions    
 
+  interface zero_dirichlet_rows
+     module procedure zero_dirichlet_rows_vector
+  end interface zero_dirichlet_rows
+
   private
   public add_boundary_condition, add_boundary_condition_surface_elements, &
     get_boundary_condition, get_boundary_condition_count, &
@@ -138,7 +142,7 @@ implicit none
     get_periodic_boundary_condition, remove_boundary_condition, &
     set_dirichlet_consistent, apply_dirichlet_conditions, &
     derive_collapsed_bcs, lift_div_grad_boundary_conditions, &
-    collect_vector_dirichlet_conditions
+    collect_vector_dirichlet_conditions, zero_dirichlet_rows
 
 contains
 
@@ -2108,6 +2112,27 @@ contains
     end do bcloop
 
   end subroutine collect_vector_dirichlet_conditions
+
+  subroutine zero_dirichlet_rows_vector(field, rhs)
+    !!< Zero the rows corresponding to dirichlet boundary conditions
+    !!< This can be used when the lhs matrix already had dirichlet bcs
+    !!< applied (zeroing corresponding rows and columns)
+    !!< and only a homogeneous boundary condition is required.
+    type(vector_field), intent(in):: field
+    type(vector_field), intent(inout):: rhs
+
+    type(integer_set), dimension(field%dim) :: boundary_row_set
+    integer :: i, j
+
+    call collect_vector_dirichlet_conditions(field, boundary_row_set)
+    do i=1, field%dim
+      do j=1, key_count(boundary_row_set(i))
+        call set(rhs, i, fetch(boundary_row_set(i), j), 0.0)
+      end do
+      call deallocate(boundary_row_set(i))
+    end do
+
+  end subroutine zero_dirichlet_rows_vector
 
   subroutine apply_dirichlet_conditions_vector_petsc_csr(matrix, rhs, field, dt)
     !!< Apply dirichlet boundary conditions from field to the problem

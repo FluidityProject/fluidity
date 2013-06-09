@@ -41,6 +41,7 @@ module assemble_CMC
   use field_options
   use global_parameters, only: OPTION_PATH_LEN
   use linked_lists
+  use boundary_conditions
   
   implicit none 
 
@@ -136,7 +137,7 @@ contains
       !!< This is used as a preconditioner for the full projection solve
       !!< when using the full momentum matrix.
 
-      ! Fluidity velocity vector:
+      ! Fluidity velocity:
       type(vector_field), intent(in):: u
       ! Divergence matrices:
       type(block_csr_matrix), intent(in) :: ctp_m, ct_m
@@ -164,7 +165,9 @@ contains
 
       end if
 
-      call mult_div_invvector_div_T(schur_diagonal_matrix, ctp_m, inner_m_diagonal, ct_m)
+      call invert(inner_m_diagonal)
+      call zero_dirichlet_rows(u, inner_m_diagonal)
+      call mult_div_vector_div_T(schur_diagonal_matrix, ctp_m, inner_m_diagonal, ct_m)
       ewrite_minmax(schur_diagonal_matrix)
       call deallocate(inner_m_diagonal)
 
