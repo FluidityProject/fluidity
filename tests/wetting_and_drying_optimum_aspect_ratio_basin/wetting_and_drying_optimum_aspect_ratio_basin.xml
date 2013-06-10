@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <testproblem>
-  <name>wetting_and_drying_optimum_aspect_ratio</name>
+  <name>wetting_and_drying_optimum_aspect_ratio_basin</name>
   <owner userid="asc"/>
   <tags>flml wetdry wetdryaspectratio</tags>
   <problem_definition length="short" nprocs="1">
