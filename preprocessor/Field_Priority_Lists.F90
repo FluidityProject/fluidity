@@ -32,6 +32,7 @@ module field_priority_lists
   use fields
   use state_module
   use spud
+  use sediment, only: get_n_sediment_fields, get_sediment_item
 
   implicit none
   
@@ -116,6 +117,22 @@ contains
              end if
           end do
 
+          ! prognostic sediment fields
+          if (have_option('/material_phase['//int2str(p)//']/sediment')) then
+             nfields = get_n_sediment_fields()
+             do f = 1, nfields
+                nsol=nsol+1
+                
+                call get_sediment_item(state(p+1), f, temp_field_name_list(nsol))
+                temp_field_optionpath_list(nsol)='/material_phase['//int2str(p)// &
+                     ']/sediment/scalar_field['//int2str(f-1)//']'
+                temp_field_state_list(nsol) = p+1
+                call get_option(trim(temp_field_optionpath_list(nsol))//'/prognostic/priority', &
+                     tmpint, default=0)
+                priority(nsol) = tmpint
+             end do
+          end if
+
           ! prognostic Mellor Yamada fields:
           if (have_option('/material_phase[' &
                //int2str(p)//']/subgridscale_parameterisations/Mellor_Yamada/scalar_field::KineticEnergy/prognostic')) then
@@ -192,6 +209,20 @@ contains
              call get_option(trim(temp_field_optionpath_list(nsol))//'/prognostic/priority', &
                   tmpint, default=nsol)
              priority(nsol) = -tmpint*100
+          end if
+          ! Check for subgrid-scale kinetic energy equation
+          ! - we need to make sure this is solved *after*
+          ! everything else, so set to a big negative value.
+          if(have_option('/material_phase['//int2str(p)// &
+             ']/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/scalar_field::SubgridKineticEnergy')) then
+             nsol=nsol+1
+             temp_field_name_list(nsol) = "SubgridKineticEnergy"
+             temp_field_optionpath_list(nsol)='/material_phase['//int2str(p)// &
+             ']/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/scalar_field::SubgridKineticEnergy'
+             temp_field_state_list(nsol) = p+1
+             call get_option(trim(temp_field_optionpath_list(nsol))//'/prognostic/priority', &
+                  tmpint, default=nsol)
+             priority(nsol) = -tmpint*200
           end if
 !!! Melt rate should be the last thing to calculate, Sb
           if (have_option('/ocean_forcing/iceshelf_meltrate/Holland08/scalar_field::Sb/diagnostic')) then
@@ -310,6 +341,11 @@ contains
             //int2str(p)//']/subgridscale_parameterisations/k-epsilon/scalar_field::TurbulentDissipation/prognostic')) then
           ntsol=ntsol + 1
        end if
+       ! prognostic scalar fields for subgrid-scale kinetic energy model:
+       if(have_option('/material_phase['//int2str(p)// &
+            ']/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/scalar_field::SubgridKineticEnergy')) then
+          ntsol=ntsol + 1
+       end if
        !Melting
        if (have_option('/ocean_forcing/iceshelf_meltrate/Holland08/scalar_field::Tb/diagnostic')) then
           ntsol=ntsol + 1
@@ -319,6 +355,10 @@ contains
        end if
        if (have_option('/ocean_forcing/iceshelf_meltrate/Holland08/scalar_field::MeltRate/diagnostic')) then
           ntsol=ntsol + 1
+       end if
+       !Sediments
+       if (have_option('/material_phase['//int2str(p)//']/sediment')) then
+          ntsol=ntsol + get_n_sediment_fields()
        end if
 
     end do

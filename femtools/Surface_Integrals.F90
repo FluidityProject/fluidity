@@ -38,13 +38,15 @@ module surface_integrals
   use parallel_fields
   use spud
   use state_module
+  !use smoothing_module
 
   implicit none
   
   private
   
   public :: calculate_surface_integral, gradient_normal_surface_integral, &
-    & normal_surface_integral, surface_integral, surface_gradient_normal
+    & normal_surface_integral, surface_integral, surface_gradient_normal, &
+    & surface_normal_distance_sele
   public :: diagnostic_body_drag
   
   interface integrate_over_surface_element
@@ -405,6 +407,26 @@ contains
     
   end subroutine surface_gradient_normal
   
+  function surface_normal_distance_sele(positions, sele, ele) result(h)
+    ! calculate wall-normal element size
+    type(vector_field), intent(in) :: positions
+    integer, intent(in) :: ele, sele
+    real :: h
+    type(element_type), pointer :: shape
+    integer :: i, dim
+    real, dimension(face_ngi(positions,sele)) :: detwei_bdy
+    real, dimension(positions%dim,positions%dim) :: J
+    real, dimension(positions%dim,face_ngi(positions,sele)) :: normal_bdy
+
+    shape => ele_shape(positions, ele)
+    dim = positions%dim
+
+    call transform_facet_to_physical(positions, sele, detwei_f=detwei_bdy, normal=normal_bdy)
+    J = transpose(matmul(ele_val(positions, ele) , shape%dn(:, 1, :)))
+    h = maxval((/( abs(dot_product(normal_bdy(:, 1), J(i, :))), i=1, dim)/))
+
+  end function surface_normal_distance_sele
+
   function integrate_over_surface_element_mesh(mesh, face_number, surface_ids) result(integrate_over_element)
     !!< Return whether the given surface element should be integrated over when
     !!< performing a surface integral
@@ -495,20 +517,21 @@ contains
     else
       integrate_over_element = integrate_over_surface_element(t_field%mesh, face_number)
     end if
-    
+
   end function integrate_over_surface_element_tensor
-  
-  subroutine diagnostic_body_drag(state, force, pressure_force, viscous_force)
+
+  subroutine diagnostic_body_drag(state, force, surface_integral_name, pressure_force, viscous_force)
     type(state_type), intent(in) :: state
     real, dimension(:), intent(out) :: force
+    character(len = FIELD_NAME_LEN), intent(in) :: surface_integral_name
     real, dimension(size(force)), optional, intent(out) :: pressure_force
     real, dimension(size(force)), optional, intent(out) :: viscous_force
 
-    type(vector_field), pointer :: velocity, position 
+    type(vector_field), pointer :: velocity, position
     type(tensor_field), pointer :: viscosity
-    type(scalar_field), pointer :: pressure 
+    type(scalar_field), pointer :: pressure
     type(element_type), pointer :: x_f_shape, x_shape, u_shape, u_f_shape
-    character(len=OPTION_PATH_LEN) :: option_path    
+    character(len=OPTION_PATH_LEN) :: option_path
     integer :: ele,sele,nloc,snloc,sngi,ngi,stotel,nfaces,meshdim, gi
     integer, dimension(:), allocatable :: surface_ids
     integer, dimension(2) :: shape_option
@@ -521,7 +544,8 @@ contains
     logical :: have_viscosity
 
     ewrite(1,*) 'In diagnostic_body_drag'
-    
+    ewrite(1,*) 'Computing body forces for label "'//trim(surface_integral_name)//'"'
+
     position => extract_vector_field(state, "Coordinate")
     pressure => extract_scalar_field(state, "Pressure")  
     velocity => extract_vector_field(state, "Velocity")
@@ -541,7 +565,7 @@ contains
     sngi  = face_ngi(velocity, 1)
     stotel = surface_element_count(velocity)
     option_path = velocity%option_path          
-    shape_option = option_shape(trim(option_path)//'/prognostic/stat/compute_body_forces_on_surfaces')
+    shape_option = option_shape(trim(option_path)//'/prognostic/stat/compute_body_forces_on_surfaces::'//trim(surface_integral_name)//'/surface_ids')
     allocate( surface_ids(shape_option(1)), face_detwei(sngi), &
               dn_t(nloc, ngi, meshdim), &
               velocity_ele(meshdim, nloc), normal(meshdim, sngi), &
@@ -553,7 +577,7 @@ contains
     allocate(vol_dshape_face(ele_loc(velocity, 1), face_ngi(velocity, 1),meshdim))
     allocate(invJ_face(meshdim, meshdim, face_ngi(velocity, 1)))
 
-    call get_option(trim(option_path)//'/prognostic/stat/compute_body_forces_on_surfaces', surface_ids)
+    call get_option(trim(option_path)//'/prognostic/stat/compute_body_forces_on_surfaces::'//trim(surface_integral_name)//'/surface_ids', surface_ids)
     ewrite(2,*) 'Calculating forces on surfaces with these IDs: ', surface_ids
 
     augmented_shape = make_element_shape(x_shape%loc, u_shape%dim, u_shape%degree, u_shape%quadrature, &

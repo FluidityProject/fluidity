@@ -9,6 +9,11 @@
     <!-- Symmetric predator-prey problem. Zooplankton and Phytoplankton should both form stable cycles with maxmima at 20.0 -->
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="maximum_zooplankton" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("lotka_volterra.stat")
@@ -21,6 +26,9 @@ maximum_phytoplankton = max(s["Water"]["Phytoplankton"]["max"][10:])
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="maximum zooplankton is 20" language="python">
 assert abs(maximum_zooplankton-20.0) &lt; 2.e-2
     </test>
