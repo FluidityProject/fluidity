@@ -1371,6 +1371,8 @@ contains
     ! local field values
     real, dimension(ele_loc(T,1)) :: T_val, T_val_slope, T_val_min,T_val_max
     real :: Tbar
+    ! logical of whether element has any value
+    logical :: non_zero
 
     if (.not. element_degree(T%mesh, 1)==1 .or. continuity(T%mesh)>=0) then
       FLExit("The vertex based slope limiter only works for P1DG fields.")
@@ -1426,18 +1428,23 @@ contains
        T_val_max = ele_val(T_max,ele)
        T_val_min = ele_val(T_min,ele)
 
-       !loop over nodes, adjust alpha
-       do node = 1, size(T_val)
-          ! need to add condition below to stop solver failures when running on cx1
-          if (abs(T_val(node) - Tbar) > 1e-13) then
-             ! alpha will never be bigger than 1.0
-             if ( T_val(node) > Tbar + (T_val_max(node) - Tbar) ) then
-                alpha = (T_val_max(node)-Tbar)/(T_val(node)-Tbar)
-             else if ( T_val(node) < Tbar + (T_val_min(node) - Tbar) ) then
-                alpha = (T_val_min(node)-Tbar)/(T_val(node)-Tbar)
-             end if
-          end if
-       end do
+       !check for zero element - do not limit if zero
+       if (max(sign(1.0,Tbar),0.0) == 1.0) then
+         non_zero = Tbar*(1.0+sign(1.0e-12,Tbar)) > Tbar
+       else
+         non_zero = Tbar*(1.0+sign(1.0e-12,Tbar)) < Tbar
+       end if
+
+       if (non_zero) then
+         !loop over nodes, adjust alpha
+         do node = 1, size(T_val)
+           if(T_val(node)>Tbar*(1.0+sign(1.0e-12,Tbar))) then
+             alpha = min(alpha,(T_val_max(node)-Tbar)/(T_val(node)-Tbar))
+           else if(T_val(node)<Tbar*(1.0-sign(1.0e-12,Tbar))) then
+             alpha = min(alpha,(T_val_min(node)-Tbar)/(T_val(node)-Tbar))
+           end if
+         end do
+       end if
 
        call set(T_limit, T_ele, Tbar + alpha*T_val_slope)
     end do
