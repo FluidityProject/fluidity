@@ -658,14 +658,6 @@ contains
     !$OMP PARALLEL DEFAULT(SHARED) &
     !$OMP PRIVATE(clr, nnid, ele, len)
     
-    !if(has_scalar_field(state, "Sigma_d0")) then
-    !  if(have_wetdry_optimum_aspect_ratio) then
-    !    call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio", wetdry_optimum_aspect_ratio)
-    !  else
-    !    FLExit("When Sigma_d0 is switched on,'/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio' needs to be set. ")
-    ! end if
-    !end if
-    
     exclude_mass = have_option(trim(u%option_path)//&
           &"/prognostic/spatial_discretisation"//&
           &"/continuous_galerkin/mass_terms/exclude_mass_terms")
@@ -932,9 +924,9 @@ contains
     real :: turbine_fluxfac
 
     real, dimension(ele_ngi(u,ele)) :: alpha_u_quad
-    real, dimension(u%dim,ele_ngi(u,ele)) :: sigma_d0_diag
-    !real, dimension(ele_ngi(u,ele))::sigma_ngi
-    real :: sigma_ele
+    real, dimension(u%dim, ele_ngi(u,ele)) :: sigma_d0_diag
+    real, dimension(ele_ngi(u,ele)) :: sigma_ngi
+    ! real :: sigma_ele
 
     dg=continuity(U)<0
     p0=(element_degree(u,ele)==0)
@@ -1364,17 +1356,17 @@ contains
      
       end if
 
-      !sigma_ngi=0.0
-      sigma_ele=0.0
+      sigma_ngi=0.0
+      !sigma_ele=0.0
       sigma_d0_diag=0.0
       if(have_wetdry_optimum_aspect_ratio) then
         grav_at_quads=ele_val_at_quad(gravity, ele)
-        !call calculate_wetdry_vertical_absorption(ele, X, U, sigma_ngi, wetdry_optimum_aspect_ratio,dt,depth)
-        call calculate_wetdry_vertical_absorption(ele, X, U, sigma_ele, wetdry_optimum_aspect_ratio,dt)
+        call calculate_wetdry_vertical_absorption(sigma_ngi, ele, X, dt, wetdry_optimum_aspect_ratio)
+        !call calculate_wetdry_vertical_absorption(ele, X, sigma_ele, wetdry_optimum_aspect_ratio,dt)
          
-        do i=1, ele_ngi(U,ele)
-          !sigma_d0_diag(:,i)=sigma_ngi(i)*grav_at_quads(:,i)
-          sigma_d0_diag(:,i)=sigma_ele*grav_at_quads(:,i)
+        do i=1, ele_ngi(X,ele)
+          sigma_d0_diag(:,i) = sigma_ngi(i) * grav_at_quads(:,i)
+          !sigma_d0_diag(:,i)=sigma_ele*grav_at_quads(:,i)
         end do
          
      end if
