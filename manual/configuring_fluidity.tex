@@ -2483,6 +2483,15 @@ In the presence of viscosity a form of the stress tensor must be chosen, as disc
 
 \emph{Important note when using 'stress form' and 'partial stress form' with a CG velocity field:} when using isotropic viscosities, and not the 'tensor form' of the viscosity term, all components of viscosity must be set to equal to the isotropic viscosity due to the method of implementation. If using an anisotropic viscosity with the 'partial stress form' or 'stress form' consult the schema and query the code to understand how the viscosity tensor must be defined. This does not apply when using DG discretisations. 
 
+\subsubsection{Enforcing hydrostatic balance}
+The option \option{enforce\_hydrostatic\_balance} splits up the Density and Pressure fields into a hydrostatic component (') and a perturbed component (''). The hydrostatic components, denoted $p^{\prime}$ and $\rho^{\prime}$, should satisfy the balance:
+\begin{equation}
+  \nabla p^{\prime} = \rho^{\prime}\mathbf{g}
+\end{equation}
+Enabling this option will subtract the hydrostatic components, specified here, from the pressure and density used in the pressure gradient and buoyancy terms in the momentum equation. This helps to enforce hydrostatic balance and prevent spurious oscillations in the pressure field when using unbalanced finite element pairs. See the article by \cite{GiraldoRestelli_2008} for more information.
+
+Note: To use this option you will also need to create two prescribed scalar fields, called HydrostaticBalancePressure and HydrostaticBalanceDensity, which define $p^{\prime}$ and $\rho^{\prime}$. These must be on the same mesh as pressure and density, respectively.
+
 \subsection{InternalEnergy options}
 \begin{itemize}
 \item The optional heat flux term can be included via the InternalEnergy's Diffusivity field. Users will need to specify an isotropic value for $\frac{k}{C_v}$, where $k$ is the effective conductivity and $C_v$ is the specific heat at constant volume.
