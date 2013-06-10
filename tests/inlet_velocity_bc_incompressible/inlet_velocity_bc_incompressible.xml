@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+   
+  <name>inlet_velocity_bc_incompressible</name>
+  <owner userid="ctj10"/>
+  <tags>flml</tags>
+  
+  <problem_definition length="short" nprocs="1">
+    <command_line>make run</command_line>
+  </problem_definition>
+  
+  <variables>  
+    <variable name="gas_velocity_max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("inlet_velocity_bc_incompressible.stat")
+gas_velocity_max = s["Gas"]["Velocity%1"]["max"][-1]
+    </variable>
+  
+    <variable name="gas_velocity_min" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("inlet_velocity_bc_incompressible.stat")
+gas_velocity_min = s["Gas"]["Velocity%1"]["min"][-1]
+    </variable>
+
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+  </variables>
+    
+  <pass_tests>
+    <test name="Gas::Velocity is 300 m/s everywhere" language="python">
+assert(abs(gas_velocity_max - 300) &lt; 1e-7 and abs(gas_velocity_min - 300) &lt; 1e-7)
+    </test>
+     
+    <test name="Solvers converged" language="python">
+assert(solvers_converged)
+    </test>
+  </pass_tests>
+  
+  <warn_tests>
+  </warn_tests>
+  
+</testproblem>

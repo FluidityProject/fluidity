@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+   
+  <name>inlet_velocity_bc_compressible</name>
+  <owner userid="ctj10"/>
+  <tags>flml</tags>
+  
+  <problem_definition length="medium" nprocs="1">
+    <command_line>make run</command_line>
+  </problem_definition>
+  
+  <variables>  
+    <variable name="gas_velocity_max_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("inlet_velocity_bc_compressible_1d.stat")
+gas_velocity_max_1d = s["Gas"]["Velocity%magnitude"]["max"][-1]
+    </variable>
+  
+    <variable name="gas_velocity_min_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("inlet_velocity_bc_compressible_1d.stat")
+gas_velocity_min_1d = s["Gas"]["Velocity%magnitude"]["min"][-1]
+    </variable>
+
+    <variable name="gas_density_max_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("inlet_velocity_bc_compressible_1d.stat")
+gas_density_max_1d = s["Gas"]["Density"]["max"][-1]
+    </variable>
+  
+    <variable name="gas_density_min_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("inlet_velocity_bc_compressible_1d.stat")
+gas_density_min_1d = s["Gas"]["Density"]["min"][-1]
+    </variable>
+
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+  </variables>
+    
+  <pass_tests>
+    <test name="Gas::Velocity is at least 300 m/s everywhere in the 1D test case" language="python">
+assert(abs(gas_velocity_max_1d) &lt;= 800.0 and abs(gas_velocity_min_1d) &gt;= 300.0)
+    </test>
+
+    <test name="Gas::Density is between 0.05 and 0.25 kg/m^3 everywhere in the 1D test case" language="python">
+assert(abs(gas_density_max_1d) &lt;= 0.25 and abs(gas_density_min_1d) &gt;= 0.05)
+    </test>
+
+    <test name="Solvers converged" language="python">
+assert(solvers_converged)
+    </test>
+  </pass_tests>
+  
+  <warn_tests>
+  </warn_tests>
+  
+</testproblem>
