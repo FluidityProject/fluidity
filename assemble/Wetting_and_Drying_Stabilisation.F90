@@ -86,16 +86,15 @@ contains
     real,intent(in) :: optimum_aspect_ratio
     real, dimension(size(absorption, 2)) :: absorption_ngi
     real, dimension(x%dim, size(absorption, 2)) :: grav_at_quads
-    !real, dimension(:,:), pointer :: grav_at_quads
     integer :: ngi
 
+    absorption = 0.0
     grav_at_quads = ele_val_at_quad(gravity, ele)
     call calculate_wetdry_vertical_absorption_element(absorption_ngi, ele, X, gravity, dt, optimum_aspect_ratio)
     
     do ngi = 1, size(absorption, 2)
       absorption(:, ngi) = absorption_ngi(ngi) * grav_at_quads(:, ngi)
     end do
-    absorption(:, ngi) = matmul(grav_at_quads, absorption_ngi)
 
   end subroutine calculate_wetdry_vertical_absorption_element_tensor
  

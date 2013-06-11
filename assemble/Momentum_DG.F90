@@ -924,7 +924,7 @@ contains
     real :: turbine_fluxfac
 
     real, dimension(ele_ngi(u,ele)) :: alpha_u_quad
-    real, dimension(u%dim, ele_ngi(u,ele)) :: sigma_d0_diag
+    real, dimension(u%dim, ele_ngi(u,ele)) :: wetdry_vert_absorption
     real, dimension(ele_ngi(u,ele)) :: sigma_ngi
 
     dg=continuity(U)<0
@@ -1355,16 +1355,18 @@ contains
      
       end if
 
-      sigma_d0_diag=0.0
+      ! Wetting and drying vertical absorption for large aspect-ratio domains
       if(have_wetdry_optimum_aspect_ratio) then
-        call calculate_wetdry_vertical_absorption(sigma_d0_diag, ele, X, gravity, dt, wetdry_optimum_aspect_ratio)
+        call calculate_wetdry_vertical_absorption(wetdry_vert_absorption, ele, X, gravity, dt, wetdry_optimum_aspect_ratio)
+        absorption_gi = absorption_gi - wetdry_vert_absorption
+        ! TODO: Add correct tensor form to tensor_absorption_gi
       end if
       
       ! Add any vertical stabilization to the absorption term
       if (on_sphere) then
-        tensor_absorption_gi=tensor_absorption_gi-vvr_abs-ib_abs
+        tensor_absorption_gi = tensor_absorption_gi - vvr_abs - ib_abs
       end if
-      absorption_gi = absorption_gi - vvr_abs_diag - ib_abs_diag - sigma_d0_diag
+      absorption_gi = absorption_gi - vvr_abs_diag - ib_abs_diag
 
       ! If on the sphere then use 'tensor' absorption. Note that using tensor absorption means that, currently,
       ! the absorption cannot be used in the pressure correction. 
