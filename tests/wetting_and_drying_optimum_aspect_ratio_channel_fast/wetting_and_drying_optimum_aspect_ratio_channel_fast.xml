@@ -10,7 +10,7 @@ for folder in 1; do cd ${folder}; fluidity -l -v3 channel.flml; cd ..; done
   </problem_definition>
   <variables>
     <variable name="tolerance" language="python">
-      tolerance = 1e-4
+      tolerance = 0
     </variable>
     <variable name="solvers_converged" language="python">
 import os
@@ -52,10 +52,10 @@ for p in pressure_iterations:
       assert(all(pressure_iterations[i]['entries'] == 2 for i in range(1)))
     </test>
     <test name="Pressure_iterations_max_a_1" language="python">
-      assert(  abs(pressure_iterations[0]['maximum'] - pressure_iterations[0]['savedmaximum']) &lt; tolerance )
+      assert(  abs(pressure_iterations[0]['maximum'] - pressure_iterations[0]['savedmaximum']) &lt;= tolerance )
     </test>
     <test name="Pressure_iterations_mean_a_1" language="python">
-      assert(  abs(pressure_iterations[0]['average'] - pressure_iterations[0]['savedaverage']) &lt; tolerance )
+      assert(  abs(pressure_iterations[0]['average'] - pressure_iterations[0]['savedaverage']) &lt;= tolerance )
     </test>
   </pass_tests>
 </testproblem>
