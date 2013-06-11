@@ -10,7 +10,7 @@ for folder in 1 2 3; do cd ${folder}; fluidity -l -v3 basin.flml; cd ..; done
   </problem_definition>
   <variables>
     <variable name="tolerance" language="python">
-      tolerance = 1e-4
+      tolerance = 3
     </variable>
     <variable name="solvers_converged" language="python">
 import os
