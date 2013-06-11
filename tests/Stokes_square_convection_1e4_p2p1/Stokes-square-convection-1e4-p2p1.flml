@@ -173,7 +173,7 @@
                 <solver>
                   <iterative_method name="cg"/>
                   <preconditioner name="fieldsplit">
-                    <fieldsplit_type name="multiplicative"/>
+                    <fieldsplit_type name="symmetric_multiplicative"/>
                     <iterative_method name="preonly"/>
                     <preconditioner name="hypre">
                       <hypre_type name="boomeramg"/>
@@ -230,9 +230,7 @@
           <max_iterations>
             <integer_value rank="0">10000</integer_value>
           </max_iterations>
-          <remove_null_space>
-            <all_components/>
-          </remove_null_space>
+          <remove_null_space/>
           <never_ignore_solver_failures/>
           <diagnostics>
             <monitors/>
@@ -286,7 +284,7 @@
         <solver>
           <iterative_method name="cg"/>
           <preconditioner name="fieldsplit">
-            <fieldsplit_type name="multiplicative"/>
+            <fieldsplit_type name="symmetric_multiplicative"/>
             <iterative_method name="preonly"/>
             <preconditioner name="hypre">
               <hypre_type name="boomeramg"/>

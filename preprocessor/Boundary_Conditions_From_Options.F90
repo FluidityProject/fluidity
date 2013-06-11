@@ -131,7 +131,6 @@ contains
     ! - ocean boundaries
     ! - ocean forcing
     ! - GLS stable boundaries
-    ! - k-epsilon turbulence model
     if (have_option('/geometry/ocean_boundaries')) then
        ! NOTE: has to be a pointer, as bcs should be added to original field
        sfield => extract_scalar_field(states(1), "DistanceToTop")
@@ -281,15 +280,6 @@ contains
        case( "k_epsilon" )
 
           FLAbort("Oops, you shouldn't get a k_epsilon type of BC. It should have been converted")
-
-          !if(.not. have_option &
-          !("/material_phase[0]/subgridscale_parameterisations/k-epsilon/") ) then
-          !    FLExit("Incorrect boundary condition type for field")
-          !end if
-
-          !call allocate(surface_field, surface_mesh, name="value")
-          !call insert_surface_field(field, i+1, surface_field)
-          !call deallocate(surface_field)
 
        case( "bulk_formulae" )
 
