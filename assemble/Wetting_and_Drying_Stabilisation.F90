@@ -63,7 +63,6 @@ contains
     ! Maximum extent
     dr = maxval(r) - minval(r)
 
-    ewrite (-1,*) characteristic_horiz_scales
     ! Horizontal length, in a plane perpendicular to gravitational acceleration
     ! Maximum horizontal edge length
     !dh = maxval(characteristic_horiz_scales)

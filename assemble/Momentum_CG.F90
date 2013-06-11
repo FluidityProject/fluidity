@@ -1796,8 +1796,7 @@
       real, dimension(ele_ngi(u,ele)) :: drho_dz
 
       real, dimension(ele_ngi(u,ele)) :: alpha_u_quad
-      real, dimension(u%dim,ele_ngi(u,ele)) :: wetdry_vert_absorption
-      real, dimension(ele_ngi(u,ele)) :: sigma_ngi
+      real, dimension(u%dim, ele_ngi(u,ele)) :: wetdry_vert_absorption
 
       density_gi=ele_val_at_quad(density, ele)
       absorption_gi=0.0

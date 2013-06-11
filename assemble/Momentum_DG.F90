@@ -925,7 +925,6 @@ contains
 
     real, dimension(ele_ngi(u,ele)) :: alpha_u_quad
     real, dimension(u%dim, ele_ngi(u,ele)) :: wetdry_vert_absorption
-    real, dimension(ele_ngi(u,ele)) :: sigma_ngi
 
     dg=continuity(U)<0
     p0=(element_degree(u,ele)==0)
