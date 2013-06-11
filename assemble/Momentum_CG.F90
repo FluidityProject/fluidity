@@ -1797,7 +1797,6 @@
 
       real, dimension(ele_ngi(u,ele)) :: alpha_u_quad
       real, dimension(u%dim,ele_ngi(u,ele)) :: sigma_d0_diag
-      !real::sigma_ele
       real, dimension(ele_ngi(u,ele)) :: sigma_ngi
 
       density_gi=ele_val_at_quad(density, ele)
@@ -1882,11 +1881,8 @@
         sigma_d0_diag=0.0
         if(have_wetdry_optimum_aspect_ratio) then
           sigma_ngi=0.0
-          !sigma_ele=0.0
-          !call calculate_wetdry_vertical_absorption(ele, positions, sigma_ele, wetdry_optimum_aspect_ratio, dt)
-          call calculate_wetdry_vertical_absorption(sigma_ngi, ele, positions, dt, wetdry_optimum_aspect_ratio)
+          call calculate_wetdry_vertical_absorption(sigma_ngi, ele, positions, gravity, dt, wetdry_optimum_aspect_ratio)
           do i=1, ele_ngi(u,ele)
-            !sigma_d0_diag(:,i) = sigma_ele * grav_at_quads(:,i)
             sigma_d0_diag(:,i) = sigma_ngi(i) * grav_at_quads(:,i)
           end do
         end if

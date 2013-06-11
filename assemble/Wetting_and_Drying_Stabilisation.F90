@@ -22,40 +22,56 @@
     
 contains
 
-  subroutine calculate_wetdry_vertical_absorption_element(absorption_ngi, ele, x, dt, optimum_aspect_ratio)
-    ! absorption = dx_ele**2/(a**2*dt*dz_ele**2).
-    !This module only works in this case: 1)3-dimentional case, 2)z direction in the same direction as gravity, 3)mesh element is triangle.
-
+  subroutine calculate_wetdry_vertical_absorption_element(absorption_ngi, ele, x, gravity, dt, optimum_aspect_ratio)
+    ! Calculates the vertical absoption to add to the momentum equation
     real, dimension(:), intent(inout):: absorption_ngi
     integer, intent(in) :: ele
     type(vector_field), intent(in) :: x
-    real, intent(in)::dt
+    type(vector_field), intent(in) :: gravity
+    real, intent(in) :: dt
     real,intent(in) :: optimum_aspect_ratio
     
-    real, dimension(:,:), allocatable :: x_ele
-    real :: length1, length2, length3,length4,length5,length6,dx_ele
-    real :: dz_ele
-    integer::i
+    real :: dr, dh
+    integer :: node
+    integer, dimension(:), pointer :: enodes
+    real, dimension(x%dim) :: pos, gravity_at_node
+    real, dimension(ele_loc(x,ele)) :: r
+    real, dimension(ele_loc(x,ele) - 1) :: characteristic_horiz_scales
+    real, parameter :: tolerance = 1.0e-5
+    
     ewrite(6,*) 'Calculating wetting and drying optimum aspect ratio vertical absorption, optimum aspect ratio =', optimum_aspect_ratio
 
-    allocate(x_ele(x%dim,ele_loc(x,ele)))
-    !get the nodes cordinate of element
-    x_ele = ele_val(x, ele) 
-    !calculate the lateral lenghth of element's projection to horizontal surface
-    length1 = sqrt((x_ele(2,2)-x_ele(2,1))**2+(x_ele(1,2)-x_ele(1,1))**2)
-    length2 = sqrt((x_ele(2,3)-x_ele(2,1))**2+(x_ele(1,3)-x_ele(1,1))**2)
-    length3 = sqrt((x_ele(2,2)-x_ele(2,3))**2+(x_ele(1,2)-x_ele(1,3))**2)
-    length4 = sqrt((x_ele(2,4)-x_ele(2,1))**2+(x_ele(1,4)-x_ele(1,1))**2)
-    length5 = sqrt((x_ele(2,4)-x_ele(2,2))**2+(x_ele(1,4)-x_ele(1,2))**2)
-    length6 = sqrt((x_ele(2,4)-x_ele(2,3))**2+(x_ele(1,4)-x_ele(1,3))**2)
-    dx_ele = max(length1,length2,length3,length4,length5,length6)
+    enodes => ele_nodes(X, ele)
+    do node = 1, size(enodes)
+      ! Calculate vertical extent, parallel to the gravitational vector
+      pos = node_val(X, enodes(node))
+      gravity_at_node = node_val(gravity, enodes(node))
+      r(node) = dot_product(pos, gravity_at_node)
+      ! Calculate the horizontal extent
+      ! Assumes gravitational direction is normalised (it should be)
+      if (node .eq. 1) cycle
+      characteristic_horiz_scales(node-1) = norm2( cross_product( &
+        & node_val(X, enodes(node)) - node_val(X, enodes(1)), &
+        & node_val(X, enodes(node)) - node_val(X, enodes(1)) - node_val(gravity, 1)) ) 
+    end do
+    ! Alternative calculation of horizontal extent
+    characteristic_horiz_scales = calculate_lengths(ele, x)
+    ! TODO: Look at using Jacobian to derive element chacteristic lengths
 
+    ! Verical lengthscale, in a direction parallel to the gravitational acceleration
+    ! Maximum extent
+    dr = maxval(r) - minval(r)
 
-    dx_ele = max(length1,length2,length3)
-    dz_ele = max(x_ele(3,1),x_ele(3,2), x_ele(3,3) )-min(x_ele(3,1), x_ele(3,2), x_ele(3,3))
-    absorption_ngi = dx_ele**2/(optimum_aspect_ratio**2*dt*dz_ele**2)
+    ewrite (-1,*) characteristic_horiz_scales
+    ! Horizontal length, in a plane perpendicular to gravitational acceleration
+    ! Maximum horizontal edge length
+    !dh = maxval(characteristic_horiz_scales)
+    ! Minimum horizontal edge length
+    dh = minval(characteristic_horiz_scales, mask = characteristic_horiz_scales .gt. tolerance)
+    ! Average horizontal edge length
+    !dh = sum(characteristic_horiz_scales) / size(characteristic_horiz_scales)
 
-    deallocate(x_ele)    
+    absorption_ngi = dh**2 / ((optimum_aspect_ratio * dr)**2 * dt)
 
    end subroutine calculate_wetdry_vertical_absorption_element
  
@@ -63,7 +79,8 @@ contains
     type(state_type),intent(in) :: state
     type(scalar_field), intent(inout) :: absorption
 
-    type(vector_field) :: x
+    type(vector_field), pointer :: x
+    type(vector_field), pointer :: gravity
     logical :: have_optimum_aspect_ratio
     real :: optimum_aspect_ratio
     ! Assume all elements have the same quadrature for the absorption field (currently the case)
@@ -72,20 +89,35 @@ contains
     real :: dt
 
     have_optimum_aspect_ratio = have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio")
-    if(.not. have_optimum_aspect_ratio) FLExit("Please provide an optimum_aspect_ratio.")
+    if (.not. have_optimum_aspect_ratio) FLExit("Please provide an optimum_aspect_ratio.")
     call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio", optimum_aspect_ratio)
     call get_option("/timestepping/timestep", dt)
 
-    x = extract_vector_field(state, "Coordinate")
+    x => extract_vector_field(state, "Coordinate")
+    gravity => extract_vector_field(state, "GravityDirection")
     call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio", optimum_aspect_ratio)
 
     call zero(absorption)  
     do ele=1, element_count(absorption)
-      call calculate_wetdry_vertical_absorption_element(absorption_ngi, ele, x, dt, optimum_aspect_ratio)
+      call calculate_wetdry_vertical_absorption_element(absorption_ngi, ele, x, gravity, dt, optimum_aspect_ratio)
       ! TODO: Fix absorption_ngi -> absorption_loc here
       call set(absorption, ele_nodes(absorption, ele), absorption_ngi(1))
     end do 
 
   end subroutine calculate_wetdry_vertical_absorption_diagnostic
+
+  function calculate_lengths(ele, x) result(characteristic_length)
+    real, dimension(3) :: characteristic_length
+    integer, intent(in) :: ele
+    type(vector_field), intent(in) :: x
+    real, dimension(x%dim, ele_loc(x,ele)) :: ele_pos
+    ele_pos = ele_val(x, ele) 
+    characteristic_length(1) = sqrt((ele_pos(2,1)-ele_pos(2,2))**2 + (ele_pos(1,1)-ele_pos(1,2))**2)
+    characteristic_length(3) = sqrt((ele_pos(2,2)-ele_pos(2,3))**2 + (ele_pos(1,2)-ele_pos(1,3))**2)
+    characteristic_length(2) = sqrt((ele_pos(2,3)-ele_pos(2,1))**2 + (ele_pos(1,3)-ele_pos(1,1))**2)
+    !characteristic_length(4) = sqrt((ele_pos(2,1)-ele_pos(2,4))**2 + (ele_pos(1,1)-ele_pos(1,4))**2)
+    !characteristic_length(5) = sqrt((ele_pos(2,2)-ele_pos(2,4))**2 + (ele_pos(1,2)-ele_pos(1,4))**2)
+    !characteristic_length(6) = sqrt((ele_pos(2,3)-ele_pos(2,4))**2 + (ele_pos(1,3)-ele_pos(1,4))**2)
+  end function calculate_lengths
  
 end module wetting_and_drying_stabilisation
