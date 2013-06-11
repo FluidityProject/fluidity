@@ -1636,6 +1636,10 @@ contains
        call profiler_tic("/update_lagrangian_biology::python_ingest_hook")
        call python_reset()
        call python_add_statec(trim(state%name), len_trim(state%name))
+       do i=1,(size(state%meshes))
+          call python_add_mesh_directly(state%meshes(i)%ptr,state)
+          call python_add_element_directly(state%meshes(i)%ptr%shape,state%meshes(i)%ptr,state)
+       end do
        call python_add_field(xfield, state)
 
        do f=1, size(python_ingest_fields)
