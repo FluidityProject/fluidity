@@ -14,7 +14,8 @@
     implicit none
 
     interface calculate_wetdry_vertical_absorption
-       module procedure calculate_wetdry_vertical_absorption_element, calculate_wetdry_vertical_absorption_diagnostic
+       module procedure calculate_wetdry_vertical_absorption_element_tensor, &
+        & calculate_wetdry_vertical_absorption_diagnostic
     end interface
 
     private
@@ -22,14 +23,14 @@
     
 contains
 
-  subroutine calculate_wetdry_vertical_absorption_element(absorption_ngi, ele, x, gravity, dt, optimum_aspect_ratio)
-    ! Calculates the vertical absoption to add to the momentum equation
-    real, dimension(:), intent(inout):: absorption_ngi
+  subroutine calculate_wetdry_vertical_absorption_element(absorption, ele, x, gravity, dt, optimum_aspect_ratio)
+    ! Calculates the vertical absoption for each quadrature point
+    real, intent(out), dimension(:) :: absorption
     integer, intent(in) :: ele
     type(vector_field), intent(in) :: x
     type(vector_field), intent(in) :: gravity
     real, intent(in) :: dt
-    real,intent(in) :: optimum_aspect_ratio
+    real, intent(in) :: optimum_aspect_ratio
     
     real :: dr, dh
     integer :: node
@@ -71,9 +72,32 @@ contains
     ! Average horizontal edge length
     !dh = sum(characteristic_horiz_scales) / size(characteristic_horiz_scales)
 
-    absorption_ngi = dh**2 / ((optimum_aspect_ratio * dr)**2 * dt)
+    absorption = dh**2 / ((optimum_aspect_ratio * dr)**2 * dt)
 
-   end subroutine calculate_wetdry_vertical_absorption_element
+  end subroutine calculate_wetdry_vertical_absorption_element
+
+  subroutine calculate_wetdry_vertical_absorption_element_tensor(absorption, ele, x, gravity, dt, optimum_aspect_ratio)
+    ! Calculates the vertical absoption to add to the momentum equation
+    real, dimension(:,:), intent(out) :: absorption
+    integer, intent(in) :: ele
+    type(vector_field), intent(in) :: x
+    type(vector_field), intent(in) :: gravity
+    real, intent(in) :: dt
+    real,intent(in) :: optimum_aspect_ratio
+    real, dimension(size(absorption, 2)) :: absorption_ngi
+    real, dimension(x%dim, size(absorption, 2)) :: grav_at_quads
+    !real, dimension(:,:), pointer :: grav_at_quads
+    integer :: ngi
+
+    grav_at_quads = ele_val_at_quad(gravity, ele)
+    call calculate_wetdry_vertical_absorption_element(absorption_ngi, ele, X, gravity, dt, optimum_aspect_ratio)
+    
+    do ngi = 1, size(absorption, 2)
+      absorption(:, ngi) = absorption_ngi(ngi) * grav_at_quads(:, ngi)
+    end do
+    absorption(:, ngi) = matmul(grav_at_quads, absorption_ngi)
+
+  end subroutine calculate_wetdry_vertical_absorption_element_tensor
  
   subroutine calculate_wetdry_vertical_absorption_diagnostic(state, absorption)
     type(state_type),intent(in) :: state

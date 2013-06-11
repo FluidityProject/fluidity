@@ -1877,14 +1877,10 @@
           end if
         end if
 
-        ! Wetting and drying vertical absorption for thin layers
+        ! Wetting and drying vertical absorption for large aspect-ratio domains
         sigma_d0_diag=0.0
         if(have_wetdry_optimum_aspect_ratio) then
-          sigma_ngi=0.0
-          call calculate_wetdry_vertical_absorption(sigma_ngi, ele, positions, gravity, dt, wetdry_optimum_aspect_ratio)
-          do i=1, ele_ngi(u,ele)
-            sigma_d0_diag(:,i) = sigma_ngi(i) * grav_at_quads(:,i)
-          end do
+          call calculate_wetdry_vertical_absorption(sigma_d0_diag, ele, positions, gravity, dt, wetdry_optimum_aspect_ratio)
         end if
    
         if (on_sphere) then

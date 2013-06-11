@@ -1355,17 +1355,10 @@ contains
      
       end if
 
-      sigma_ngi=0.0
       sigma_d0_diag=0.0
       if(have_wetdry_optimum_aspect_ratio) then
-        grav_at_quads=ele_val_at_quad(gravity, ele)
-        call calculate_wetdry_vertical_absorption(sigma_ngi, ele, X, gravity, dt, wetdry_optimum_aspect_ratio)
-         
-        do i=1, ele_ngi(X,ele)
-          sigma_d0_diag(:,i) = sigma_ngi(i) * grav_at_quads(:,i)
-        end do
-         
-     end if
+        call calculate_wetdry_vertical_absorption(sigma_d0_diag, ele, X, gravity, dt, wetdry_optimum_aspect_ratio)
+      end if
       
       ! Add any vertical stabilization to the absorption term
       if (on_sphere) then
