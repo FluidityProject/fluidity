@@ -206,7 +206,7 @@
       Mat pmat ! PETSc preconditioning matrix
       
       character(len=OPTION_PATH_LEN) :: inner_option_path, inner_solver_option_path
-      
+      integer, dimension(:,:), pointer :: save_gnn2unn
       type(integer_set), dimension(velocity%dim):: boundary_row_set      
       integer reference_node, stat, i, rotation_stat
       logical parallel, have_auxiliary_matrix, have_preconditioner_matrix
@@ -304,17 +304,29 @@
       ! The lifting of bc values in the continuity equation is already taken care of, as
       ! the projec_rhs contains the ctp_m u^* term, where u^* already satisfies the bcs
       ! and ctp_m does not have the corresponding columns zeroed out.
+
+      ! in order to not copy over these entries we mark out the corresponding entries in petsc_nubering_u out with a -1
+      ! but first we keep a copy of the original
+      allocate(save_gnn2unn(1:size(petsc_numbering_u%gnn2unn,1),1:size(petsc_numbering_u%gnn2unn,2)))
+      save_gnn2unn = petsc_numbering_u%gnn2unn
+      ! find out which velocity indices are associated with strong bcs:
       call collect_vector_dirichlet_conditions(velocity, boundary_row_set)
+      ! mark these out with -1
       do i=1, velocity%dim
         petsc_numbering_u%gnn2unn(set2vector(boundary_row_set(i)), i) = -1
         call deallocate(boundary_row_set(i))
       end do
-      
 
       ! Convert Divergence matrix (currently stored as block_csr matrix) to petsc format:   
       ! Create PETSc Div Matrix (comp & incomp) using this numbering:
       G_t_comp=block_csr2petsc(div_matrix_comp, petsc_numbering_p, petsc_numbering_u)
       G_t_incomp=block_csr2petsc(div_matrix_incomp, petsc_numbering_p, petsc_numbering_u)
+
+      ! restore petsc_numbering_u - since we have the only reference to petsc_numbering_u
+      ! (as we've only just allocated it above) we can simply repoint %gnn2unn
+      ! restoring is necessary for things like fieldsplit in setup_ksp_from_options() below
+      deallocate(petsc_numbering_u%gnn2unn)
+      petsc_numbering_u%gnn2unn => save_gnn2unn
 
       ! Scale G_t_comp to fit PETSc sign convention:
       call MatScale(G_t_comp,real(-1.0, kind = PetscScalar_kind),ierr)
