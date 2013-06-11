@@ -27,13 +27,17 @@ for folder in range(3):
     <variable name="pressure_iterations" language="python">
     from pressure_iterations_maximum import find_iterations_pressure
 pressure_iterations = []
+savedmaximums = [304, 85, 280]
+savedaverages = [300, 81, 275]
 for folder in range(3): 
   p = find_iterations_pressure(str(folder + 1) + '/fluidity.log-0')
   p['run'] = folder
+  p['savedmaximum'] = savedmaximums[folder]
+  p['savedaverage'] = savedaverages[folder]
   pressure_iterations.append(p)
 print 'Pressure iterations summary:'
 for p in pressure_iterations:
-  print '  Run %(run)i: %(entries)i solves with maximum %(maximum)i and average %(average)i' % p
+  print '  Run %(run)i: %(entries)i solves with maximum %(maximum)i and average %(average)i (tested to %(savedmaximum)i and %(savedaverage)i)' % p
     </variable>
   </variables>
   <pass_tests>
@@ -47,22 +51,22 @@ for p in pressure_iterations:
       assert(all(pressure_iterations[i]['entries'] == 2 for i in range(3)))
     </test>
     <test name="Pressure_iterations_max_a_0.01" language="python">
-      assert(  abs(pressure_iterations[0]['maximum'] - 304) &lt; tolerance )
+      assert(  abs(pressure_iterations[0]['maximum'] - pressure_iterations[0]['savedmaximum']) &lt; tolerance )
     </test>
     <test name="Pressure_iterations_max_a_1" language="python">
-      assert(  abs(pressure_iterations[1]['maximum'] - 85) &lt; tolerance )
+      assert(  abs(pressure_iterations[1]['maximum'] - pressure_iterations[1]['savedmaximum']) &lt; tolerance )
     </test>
     <test name="Pressure_iterations_max_a_100" language="python">
-      assert(  abs(pressure_iterations[2]['maximum'] - 280) &lt; tolerance )
+      assert(  abs(pressure_iterations[2]['maximum'] - pressure_iterations[2]['savedmaximum']) &lt; tolerance )
     </test>
     <test name="Pressure_iterations_mean_a_0.01" language="python">
-      assert(  abs(pressure_iterations[0]['average'] - 300) &lt; tolerance )
+      assert(  abs(pressure_iterations[0]['average'] - pressure_iterations[0]['savedaverage']) &lt; tolerance )
     </test>
     <test name="Pressure_iterations_mean_a_1" language="python">
-      assert(  abs(pressure_iterations[1]['average'] - 81) &lt; tolerance )
+      assert(  abs(pressure_iterations[1]['average'] - pressure_iterations[1]['savedaverage']) &lt; tolerance )
     </test>
     <test name="Pressure_iterations_mean_a_100" language="python">
-      assert(  abs(pressure_iterations[2]['average'] - 275) &lt; tolerance )
+      assert(  abs(pressure_iterations[2]['average'] - pressure_iterations[2]['savedaverage']) &lt; tolerance )
     </test>
   </pass_tests>
 </testproblem>
