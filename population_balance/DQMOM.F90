@@ -36,6 +36,9 @@ module dqmom
   use state_fields_module
   use initialise_fields_module
   use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
+!  use sparsity_patterns_meshes
+  use sparse_tools
+  use solvers
 
   implicit none
 
@@ -300,6 +303,7 @@ contains
     type(scalar_field_pointer), dimension(:), allocatable :: abscissa,&
          weight, it_abscissa, it_weight, s_weighted_abscissa, s_weight
     type(scalar_field), pointer :: lumped_mass
+    type(csr_matrix), pointer :: mass_matrix
     type(scalar_field), dimension(:), allocatable :: r_abscissa, r_weight
     type(tensor_field), pointer :: D
     type(vector_field), pointer :: X
@@ -426,15 +430,30 @@ contains
 
     ! for non-DG we apply inverse mass globally
     if(continuity(r_abscissa(1))>=0) then
-       lumped_mass => get_lumped_mass(state, r_abscissa(1)%mesh)
-       do i = 1, node_count(r_abscissa(1))
+       if(have_option(trim(option_path)//'/adv_diff_source_term_interpolation/use_full_mass_matrix')) then
+          mass_matrix => get_mass_matrix(state, r_abscissa(1)%mesh)
+          ! r_abscissa(1) is used as a dummy scalar field here since it is not needed anymore. 
           do j = 1, N
-             call set(s_weighted_abscissa(j)%ptr, i, node_val(s_weighted_abscissa(j)%ptr,i)&
-                  &/node_val(lumped_mass,i))
-             call set(s_weight(j)%ptr, i, node_val(s_weight(j)%ptr,i)&
-                  &/node_val(lumped_mass,i))
+             call zero(r_abscissa(1))
+             call petsc_solve(r_abscissa(1), mass_matrix, s_weight(j)%ptr, trim(option_path)//'/adv_diff_source_term_interpolation/use_full_mass_matrix')
+             call set(s_weight(j)%ptr, r_abscissa(1))
+             call zero(r_abscissa(1))
+             call petsc_solve(r_abscissa(1), mass_matrix, s_weighted_abscissa(j)%ptr, trim(option_path)//'/adv_diff_source_term_interpolation/use_full_mass_matrix')
+             call set(s_weighted_abscissa(j)%ptr, r_abscissa(1))
           end do
-       end do
+       else if(have_option(trim(option_path)//'/adv_diff_source_term_interpolation/use_mass_lumping')) then
+          lumped_mass => get_lumped_mass(state, r_abscissa(1)%mesh)
+          do j = 1, N
+             do i = 1, node_count(r_abscissa(1))
+                call set(s_weighted_abscissa(j)%ptr, i, node_val(s_weighted_abscissa(j)%ptr,i)&
+                     &/node_val(lumped_mass,i))
+                call set(s_weight(j)%ptr, i, node_val(s_weight(j)%ptr,i)&
+                     &/node_val(lumped_mass,i))
+             end do
+          end do
+       else 
+          FLAbort("Check the .flml file. You must specify an option under 'population_balance/adv_diff_source_term_interpolation'")
+       end if
     end if
 
     do i = 1, N

@@ -2706,6 +2706,29 @@ options</a:documentation>
           </element>
         </zeroOrMore>
       </element>
+      <element name="adv_diff_source_term_interpolation">
+        <a:documentation>This option only works if you are using a continuous mesh for the population balance scalar fields.
+A DG mesh will use inverse mass calculated at element level.
+In the population balance DQMOM algorithm all sources for the 
+advection-diffusion equations are calculated at the quadrature points first 
+and then interpolated back to the nodal points. 
+For a continuous mesh, this interpolation is made by inverting the mass matrix. 
+Mass lumping is fairly quick and can be used with 1st order continuous meshes. 
+But the error is high for higher order continuous meshes and full mass matrix should be used.</a:documentation>
+        <choice>
+          <element name="use_mass_lumping">
+            <a:documentation>The mass matrix is lumped to obtain source fields at nodal points.</a:documentation>
+            <empty/>
+          </element>
+          <element name="use_full_mass_matrix">
+            <a:documentation>Full mass marix is used and the linear system is solved iteratively to obtain source fields at nodal points.</a:documentation>
+            <element name="solver">
+              <a:documentation>This block specifies the solver options for solving the linear system to interpolate advection-diffusion source terms at nodal points.</a:documentation>
+              <ref name="linear_solver_options_asym_scalar"/>
+            </element>
+          </element>
+        </choice>
+      </element>
       <element name="moments">
         <element name="scalar_field">
           <attribute name="rank">
