@@ -218,7 +218,7 @@
       type( vector_field ) :: fl_positions
       type( scalar_field ) :: volume_fraction
 
-      type( scalar_field ), pointer :: pressure, ttt
+      type( scalar_field ), pointer :: pressure
 
       type( scalar_field ) :: field_fl_p11, field_fl_p12, field_fl_p21, field_fl_p22
       type( scalar_field ) :: field_ext_p11, field_ext_p12, field_ext_p21, field_ext_p22
