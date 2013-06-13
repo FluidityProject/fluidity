@@ -233,6 +233,7 @@ This is however the same as when using the geostrophic or hydrostatic pressure s
             <mass_terms/>
             <viscosity_scheme>
               <bassi_rebay/>
+              <tensor_form/>
             </viscosity_scheme>
             <advection_scheme>
               <upwind/>
@@ -366,7 +367,7 @@ This is however the same as when using the geostrophic or hydrostatic pressure s
         <explicit/>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    if((X[1]&lt;-0.25)):
       return 1.0
    else:

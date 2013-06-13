@@ -13,8 +13,8 @@
     <variable name="time_average_xforce" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("flow_past_sphere_Re1.stat")
-print s["0"]["Velocity"]["force%1"][-20:]
-time_average_xforce = sum(s["0"]["Velocity"]["force%1"][-20:])/20
+print s["0"]["Velocity"]["force_sphere%1"][-20:]
+time_average_xforce = sum(s["0"]["Velocity"]["force_sphere%1"][-20:])/20
 print time_average_xforce
     </variable>
     <variable name="exact_xforce" language="python">
@@ -36,8 +36,8 @@ assert(abs(time_average_xforce - exact_xforce)/exact_xforce &lt; 0.01)
     </test>
   </pass_tests>
   <warn_tests>
-    <test name="relative drag force difference (0.5%)." language="python">
-assert(abs(time_average_xforce - exact_xforce)/exact_xforce &lt; 0.005)
+    <test name="relative drag force difference (0.51%)." language="python">
+assert(abs(time_average_xforce - exact_xforce)/exact_xforce &lt; 0.0051)
     </test>
   </warn_tests>
 </testproblem>

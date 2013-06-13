@@ -50,7 +50,7 @@ use k_epsilon
 use integer_set_module !for iceshelf
 use fields_base !for iceshelf
 use fields ! for iceshelf
-use sediment, only: set_sediment_reentrainment, set_sediment_bc_id
+use sediment, only: set_sediment_reentrainment
 use halos_numbering
 use halos_base
 use fefields
@@ -60,7 +60,7 @@ implicit none
   private
   public populate_boundary_conditions, set_boundary_conditions_values, &
        apply_dirichlet_conditions_inverse_mass, impose_reference_pressure_node, &
-       find_reference_pressure_node_from_coordinates, impose_reference_velocity_node
+       find_reference_node_from_coordinates, impose_reference_velocity_node
   public :: populate_scalar_boundary_conditions, &
     & populate_vector_boundary_conditions, initialise_rotated_bcs
 
@@ -131,7 +131,6 @@ contains
     ! - ocean boundaries
     ! - ocean forcing
     ! - GLS stable boundaries
-    ! - k-epsilon turbulence model
     if (have_option('/geometry/ocean_boundaries')) then
        ! NOTE: has to be a pointer, as bcs should be added to original field
        sfield => extract_scalar_field(states(1), "DistanceToTop")
@@ -223,16 +222,20 @@ contains
 
        ! Same thing for sediments. It's of type sediment_reentrainment
        if (trim(bc_type) .eq. "sediment_reentrainment") then
+          ewrite(2,*) "Changing sediment_reentrainment BC type to neumann"
           bc_type = "neumann"
-          ! set which ID it is as sediment classes are created onthe fly so
-          ! aren't in the options tree as normal fields
-          call set_sediment_bc_id(field%name, i+1)
        end if
 
        ! Same thing for k_epsilon turbulence model.
        if (trim(bc_type) .eq. "k_epsilon") then
-          ewrite(2,*) "Changing k_epsilon BC type to dirichlet"
-          bc_type = "dirichlet"
+          call get_option(trim(bc_path_i)//"/type::k_epsilon/", bc_type)
+          if (trim(bc_type) .eq. "low_Re" .and. trim(field%name) .eq. "TurbulentDissipation") then
+             ewrite(2,*) "Changing low_Re epsilon BC type to neumann"
+             bc_type = "neumann"
+          else
+             ewrite(2,*) "Changing k_epsilon BC type to dirichlet"
+             bc_type = "dirichlet"
+          end if
        end if
 
        if(have_option(trim(bc_path_i)//"/type[0]/apply_weakly")) then
@@ -277,15 +280,6 @@ contains
        case( "k_epsilon" )
 
           FLAbort("Oops, you shouldn't get a k_epsilon type of BC. It should have been converted")
-
-          !if(.not. have_option &
-          !("/material_phase[0]/subgridscale_parameterisations/k-epsilon/") ) then
-          !    FLExit("Incorrect boundary condition type for field")
-          !end if
-
-          !call allocate(surface_field, surface_mesh, name="value")
-          !call insert_surface_field(field, i+1, surface_field)
-          !call deallocate(surface_field)
 
        case( "bulk_formulae" )
 
@@ -358,7 +352,7 @@ contains
        end if
 
        select case(trim(bc_type))
-       case("dirichlet", "neumann", "weakdirichlet")
+       case("dirichlet", "neumann", "weakdirichlet", "flux")
 
           if(have_option(trim(bc_path_i)//"/type[0]/align_bc_with_cartesian")) then
              aligned_components=cartesian_aligned_components
@@ -518,7 +512,7 @@ contains
 
        ! now check for user-specified normal/tangent vectors (rotation matrix)
        select case (bc_type)
-       case ("dirichlet", "neumann", "robin", "weakdirichlet", "near_wall_treatment", "log_law_of_wall")
+       case ("dirichlet", "neumann", "robin", "weakdirichlet", "near_wall_treatment", "log_law_of_wall", "flux")
           ! this is the same for all 3 b.c. types
 
           bc_type_path=trim(bc_path_i)//"/type[0]/align_bc_with_surface"
@@ -614,11 +608,6 @@ contains
         call set_sediment_reentrainment(states(1))
     end if
 
-    if (have_option(trim(states(1)%option_path)//'/subgridscale_parameterisations/k-epsilon')) then
-        ewrite(2,*) "Calling keps_bcs"
-        call keps_bcs(states(1))
-    end if
-
     nphases = size(states)
     do p = 0, nphases-1
 
@@ -656,6 +645,12 @@ contains
                position, shift_time=shift_time)
 
        end do
+       
+       ! Special k-epsilon boundary conditions
+       if (have_option(trim(states(p+1)%option_path)//'/subgridscale_parameterisations/k-epsilon')) then
+          ewrite(2,*) "Calling keps_bcs"
+          call keps_bcs(states(p+1))
+       end if
 
     end do
 
@@ -684,6 +679,10 @@ contains
     integer, dimension(:), pointer:: surface_element_list
     integer i, nbcs
 
+    integer :: stat
+    type(scalar_field), pointer:: parent_field
+    character(len=OPTION_PATH_LEN) :: parent_field_name
+
     ! Get number of boundary conditions
     nbcs=option_count(trim(bc_path))
 
@@ -705,9 +704,9 @@ contains
        end if
 
        if (trim(bc_type) .eq. "sediment_reentrainment") then
-            ! skip sediment boundareis - done seperately
-            ! see assemble/Sediment.F90
-            cycle boundary_conditions
+          ! skip sediment boundaries - done seperately
+          ! see assemble/Sediment.F90
+          cycle boundary_conditions
        end if
 
        if (trim(bc_type) .eq. "k_epsilon") then
@@ -725,6 +724,7 @@ contains
             surface_element_list=surface_element_list)
 
        if((surface_mesh%shape%degree==0).and.(bc_type=="dirichlet")) then
+
          ! if the boundary condition is on a 0th degree mesh and is of type strong dirichlet
          ! then the positions used to calculate the bc should be body element centred not
          ! surface element centred
@@ -768,8 +768,20 @@ contains
           if (have_option(trim(bc_type_path)//"/from_file")) then
             ! Special case for tidal harmonic boundary conditions
             call set_tidal_bc_value(surface_field, bc_position, trim(bc_type_path), field%name)
+
           else if (have_option(trim(bc_type_path)//"/NEMO_data")) then
             call set_nemo_bc_value(state, surface_field, bc_position, trim(bc_type_path), field%name, surface_element_list)
+
+          else if (have_option(trim(bc_type_path)//"/from_field")) then
+            ! The parent field contains the boundary values that you want to apply to surface_field.
+            call get_option(trim(bc_type_path)//"/from_field/parent_field_name", parent_field_name)
+            parent_field => extract_scalar_field(state, parent_field_name, stat)
+            if(stat /= 0) then
+               FLExit("Could not extract parent field. Check options file?")
+            end if
+
+            call remap_field_to_surface(parent_field, surface_field, surface_element_list, stat)
+
           else
             call initialise_field(surface_field, bc_type_path, bc_position, &
               time=time)
@@ -850,17 +862,18 @@ contains
     integer ele, face
 
     type(mesh_type), pointer:: surface_mesh
-    type(scalar_field) surface_field_component
-    type(scalar_field), pointer:: scalar_surface_field
+    type(scalar_field) :: surface_field_component, vector_parent_field_component
+    type(scalar_field), pointer:: scalar_surface_field, scalar_parent_field
+    type(vector_field), pointer :: vector_parent_field
     type(vector_field), pointer:: surface_field, surface_field11
     type(vector_field), pointer:: surface_field2, surface_field21, surface_field22
-    type(vector_field) bc_position, temp_position
+    type(vector_field) :: bc_position, temp_position
     character(len=OPTION_PATH_LEN) bc_path_i, bc_type_path, bc_component_path
-    character(len=FIELD_NAME_LEN) bc_name, bc_type
+    character(len=FIELD_NAME_LEN) bc_name, bc_type, parent_field_name
     logical applies(3)
     real:: time, theta, dt
     integer, dimension(:), pointer:: surface_element_list
-    integer i, j, k, nbcs
+    integer i, j, k, nbcs, stat
 
     ns=1
     nbcs=option_count(trim(bc_path))
@@ -896,7 +909,7 @@ contains
        end if
 
        select case(trim(bc_type))
-       case("dirichlet", "neumann", "weakdirichlet")
+       case("dirichlet", "neumann", "weakdirichlet", "flux")
 
           if(have_option(trim(bc_path_i)//"/align_bc_with_cartesian")) then
              aligned_components=cartesian_aligned_components
@@ -988,9 +1001,32 @@ contains
                     foamvel_component=extract_scalar_field(foamvel, j)
                     call remap_field_to_surface(foamvel_component, surface_field_component, surface_element_list)
 
+                  else if (have_option(trim(bc_component_path)//"/from_field")) then
+                     ! The parent field contains the boundary values that you want to apply to surface_field.
+                     call get_option(trim(bc_component_path)//"/from_field/parent_field_name", parent_field_name)
+
+                     ! Is the parent field a scalar field? Let's check using 'stat'...
+                     scalar_parent_field => extract_scalar_field(state, parent_field_name, stat)
+                     if(stat /= 0) then
+                        ! Parent field is not a scalar field. Let's try a vector field extraction...
+                        vector_parent_field => extract_vector_field(state, parent_field_name, stat)
+                        if(stat /= 0) then
+                           ! Parent field not found.
+                           FLExit("Could not extract parent field. Check options file?")
+                        else
+                           ! Apply the j-th component of parent_field to the j-th component
+                           ! of surface_field.
+                           vector_parent_field_component = extract_scalar_field(vector_parent_field, j)
+                           call remap_field_to_surface(vector_parent_field_component, surface_field_component, surface_element_list, stat)
+                        end if
+                     else
+                        ! Apply the scalar field to the j-th component of surface_field.
+                        call remap_field_to_surface(scalar_parent_field, surface_field_component, surface_element_list, stat)
+                     end if                    
+
                   else
-                  call initialise_field(surface_field_component, bc_component_path, bc_position, &
-                       time=time)
+                     call initialise_field(surface_field_component, bc_component_path, bc_position, &
+                              time=time)
                   end if
                end if
             end do
@@ -2267,7 +2303,7 @@ contains
     elseif(apply_reference_node_from_coordinates) then
 
        ewrite(1,*) 'Imposing_reference_pressure_node at user-specified coordinates'    
-       call find_reference_pressure_node_from_coordinates(positions,rhs,option_path,reference_node,reference_node_owned)
+       call find_reference_node_from_coordinates(positions,rhs%mesh,option_path,reference_node,reference_node_owned)
 
        if(IsParallel()) then
           call set_reference_node(cmc_m, reference_node, rhs, reference_node_owned=reference_node_owned)
@@ -2279,13 +2315,14 @@ contains
 
   end subroutine impose_reference_pressure_node
 
-  subroutine find_reference_pressure_node_from_coordinates(positions,rhs,option_path,reference_node,reference_node_owned)
+  subroutine find_reference_node_from_coordinates(positions,mesh,option_path,reference_node,reference_node_owned)
     !! This routine determines which element contains the reference coordinates and,
     !! subsequently, which vertex is nearest to the specified coordinates. In parallel
     !! simulations, we ensure that only one reference node is applied across the whole domain.
 
     type(vector_field), intent(inout) :: positions
-    type(scalar_field), intent(in):: rhs
+    ! the mesh in which to look for the refence node:
+    type(mesh_type), intent(in) :: mesh
     character(len=*), intent(in) :: option_path
 
     integer, intent(inout) :: reference_node
@@ -2307,13 +2344,13 @@ contains
        ! Determine which element contains desired coordinates:
        call picker_inquire(positions, reference_coordinates, ele, local_coord=local_coord, global=.false.)          
        if(ele > 0) then
-          allocate(ele_local_vertices(ele_vertices(rhs,ele)))
+          allocate(ele_local_vertices(ele_vertices(mesh,ele)))
           ! List vertices of element incorporating desired coordinates:
-          ele_local_vertices = element_local_vertices(ele_shape(rhs,ele))
+          ele_local_vertices = element_local_vertices(ele_shape(mesh,ele))
           ! Find nearest vertex:
           local_vertex = maxloc(local_coord,dim=1)             
           ! List of nodes in element:
-          nodes => ele_nodes(rhs,ele)
+          nodes => ele_nodes(mesh,ele)
           ! Reference node:
           reference_node = nodes(ele_local_vertices(local_vertex))
           deallocate(ele_local_vertices)
@@ -2322,7 +2359,7 @@ contains
        ! Deal with parallel issues:
        if(IsParallel()) then
           if(ele > 0) then
-             universal_reference_node = halo_universal_number(rhs%mesh%halos(1),reference_node)
+             universal_reference_node = halo_universal_number(mesh%halos(1),reference_node)
           else
              universal_reference_node = -1
           end if
@@ -2334,8 +2371,8 @@ contains
              FLExit("Reference coordinate error: point defined in "//trim(complete_field_path(option_path, stat=stat2))//"/reference_coordinates is not located in a mesh element")
           end if
           
-          first_owned_node = halo_universal_number(rhs%mesh%halos(1),1)
-          total_owned_nodes = halo_nowned_nodes(rhs%mesh%halos(1))
+          first_owned_node = halo_universal_number(mesh%halos(1),1)
+          total_owned_nodes = halo_nowned_nodes(mesh%halos(1))
           
           ! Is the reference node on this process?
           reference_node_owned = (universal_reference_node >= first_owned_node .AND. universal_reference_node < first_owned_node+total_owned_nodes)
@@ -2350,7 +2387,7 @@ contains
        else ! serial
 
           ! Check that this node nuber is sensible:
-          if(reference_node < 0 .OR. reference_node > node_count(rhs)) then
+          if(reference_node < 0 .OR. reference_node > node_count(mesh)) then
              FLExit("Reference coordinate error: point defined in "//trim(complete_field_path(option_path, stat=stat2))//"/reference_coordinates is not located in a mesh element")
           end if
 
@@ -2362,9 +2399,9 @@ contains
 
     deallocate(reference_coordinates)
 
-  end subroutine find_reference_pressure_node_from_coordinates
+  end subroutine find_reference_node_from_coordinates
 
-  subroutine impose_reference_velocity_node(big_m, rhs, option_path)
+  subroutine impose_reference_velocity_node(big_m, rhs, option_path, positions)
     !!< If solving the Stokes equation and there 
     !!< are only Neumann boundaries on u, it is necessary to pin
     !!< the value of the velocity at one point.
@@ -2372,18 +2409,52 @@ contains
     type(petsc_csr_matrix), intent(inout) :: big_m
     type(vector_field), intent(inout):: rhs
     character(len=*), intent(in) :: option_path
+    type(vector_field), intent(inout):: positions
 
+    character(len=OPTION_PATH_LEN):: reference_node_path
     integer :: reference_node, stat, stat2
+    logical, dimension(blocks(big_m, 1)) :: mask
+    logical :: apply_reference_node, apply_reference_node_from_coordinates, reference_node_owned
 
-    call get_option(trim(complete_field_path(option_path, stat=stat2))//&
-        &"/reference_node", reference_node, &
-        & stat=stat)
-    if (stat==0) then
-       ! all processors now have to call this routine, although only
-       ! process 1 sets it
-       ewrite(1,*) 'Imposing_reference_velocity_node'    
-       call set_reference_node(big_m, reference_node, rhs)
+    apply_reference_node = have_option(trim(complete_field_path(option_path, stat=stat2))//&
+        &"/reference_node")
+    apply_reference_node_from_coordinates = have_option(trim(complete_field_path(option_path, stat=stat2))//&
+        &"/reference_coordinates")
+
+    if(apply_reference_node) then
+
+      reference_node_path=trim(complete_field_path(option_path, stat=stat2))//&
+          &"/reference_node"
+      call get_option(reference_node_path, reference_node)
+
+    elseif(apply_reference_node_from_coordinates) then
+
+       ewrite(1,*) 'Imposing_reference_velocity_node at user-specified coordinates'    
+       call find_reference_node_from_coordinates(positions,rhs%mesh,option_path,reference_node,reference_node_owned)
+       reference_node_path=trim(complete_field_path(option_path, stat=stat2))//&
+          &"/reference_coordinates"
+
+    else
+
+       ! nothing to do
+       return
+
     end if
+
+    mask = .true.
+    if(have_option(trim(reference_node_path)//"/specify_components")) then
+       mask(1) = have_option(trim(reference_node_path)//"/specify_components/x_component")
+       if(blocks(big_m,1)>1) then
+         mask(2) = have_option(trim(reference_node_path)//"/specify_components/y_component")
+       end if
+       if(blocks(big_m,2)>2) then
+         mask(3) = have_option(trim(reference_node_path)//"/specify_components/z_component")
+       end if
+       ewrite(1,*) 'Imposing_reference_velocity_node on specified components: ', mask
+    else
+       ewrite(1,*) 'Imposing_reference_velocity_node on all components'
+    end if
+    call set_reference_node(big_m, reference_node, rhs, mask)
 
   end subroutine impose_reference_velocity_node
   

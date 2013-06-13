@@ -3,12 +3,12 @@
 
 <testproblem>
   <name>lock exchange<comment>Runs a 2d adaptive simulation of the lock exchange, following the set-up of Hartel et al., 2000, JFM. Has basic adaptivity settings so check with in 15% of Hartel values. Also basic checks on mixing stats.
-  WARNING: to test front speeds will need to change example end time so runs for at least 30.0s.
+  NOTE: This test copies the example flml file and edits it to run to 30 seconds to properly test the head speeds.
 </comment></name>
-  <owner userid="hhiester"/>
+  <owner userid="sp911"/>
   <tags>flml 2dadapt</tags>
     <problem_definition length="long" nprocs="1">
-    <command_line>mpiexec fluidity -v2 -l lock_exchange.flml </command_line>
+    <command_line>sed '77 s/10.0/30.0/' &lt;lock_exchange.flml &gt;lock_exchange_test.flml; mpiexec fluidity -v2 -l lock_exchange_test.flml </command_line>
   </problem_definition>  
   <variables>  
      <variable name="temp_bin_lower_0" language="python"> 

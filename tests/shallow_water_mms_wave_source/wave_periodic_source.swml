@@ -53,7 +53,7 @@
             <integer_value shape="1" rank="1">2</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   result = list(X)
   result[0]=result[0]-1.0
   return result</string_value>
@@ -139,7 +139,9 @@
         </spatial_discretisation>
         <solver>
           <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
+          <preconditioner name="lu">
+            <factorization_package name="petsc"/>
+          </preconditioner>
           <relative_error>
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
@@ -153,7 +155,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
   from math import cos,pi, sin
   c = 1.0
   k = 2.0*pi
@@ -166,7 +168,7 @@
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="python">def val(X, t):
+                <string_value lines="20" type="code" language="python">def val(X, t):
   from math import cos, pi, sin
   c = 1.0
   k = 2.0*pi
@@ -232,7 +234,9 @@
         </temporal_discretisation>
         <solver>
           <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
+          <preconditioner name="lu">
+            <factorization_package name="petsc"/>
+          </preconditioner>
           <relative_error>
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
@@ -246,7 +250,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
   from math import cos,pi, sin
   c = 1.0
   k = 2.0*pi
@@ -261,7 +265,7 @@
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="python">def val(X, t):
+                <string_value lines="20" type="code" language="python">def val(X, t):
   from math import cos, pi, sin
   c = 1.0
   k = 2.0*pi
@@ -290,7 +294,7 @@
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
   from math import cos,pi, sin
   c = 1.0
   k = 2.0*pi
@@ -336,7 +340,7 @@
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
   from math import cos,pi, sin
   c = 1.0
   k = 2.0*pi
@@ -386,7 +390,7 @@
     <functional name="dummy">
       <functional_dependencies>
         <algorithm name="functional_dependencies">
-          <string_value lines="20" type="python">def dependencies(times, timestep):
+          <string_value lines="20" type="code" language="python">def dependencies(times, timestep):
    return {}</string_value>
         </algorithm>
       </functional_dependencies>

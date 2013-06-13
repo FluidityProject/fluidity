@@ -288,10 +288,6 @@ module hadapt_extrude_radially
     call combine_r_meshes(shell_mesh, r_meshes, out_mesh, &
        full_shape, mesh_name, option_path, sigma_layers)
 
-!     vtk_write_state(filename, index, model, state, write_region_ids, stat)
-!     call vtk_write_fields("extruded_mesh", 0, out_mesh, out_mesh%mesh, vfields=(/out_mesh/))
-!     call vtk_write_surface_mesh("surface_mesh", 1, out_mesh)
-!     call write_triangle_files("test_mesh", out_mesh)
        
     do column=1, node_count(shell_mesh)
       if (.not. node_owned(shell_mesh, column)) cycle

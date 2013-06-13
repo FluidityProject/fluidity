@@ -1,0 +1,49 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>genpvd (generating pvd files for paraview) test</name>
+  <owner userid="ffm10"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity genpvd_test.flml; ../../bin/genpvd genpvd_test_rectangle
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name = "solvers_converged" language = "python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
+    </variable>
+    <variable name = "pvd_generated" language = "python">
+import os
+files = os.listdir("./")
+pvd_generated = "genpvd_test_rectangle.pvd" in files
+    </variable>
+    <variable name="pvd_correct" language="python">
+import os
+pvd_correct = False
+files = os.listdir("./")
+pvd_generated = "genpvd_test_rectangle.pvd" in files
+if (pvd_generated):
+  infile = open("src/correct_pvd_file.pvd", "r")
+  correct_pvd_content = [i.strip() for i in infile]
+  infile.close()
+  infile = open("genpvd_test_rectangle.pvd", "r")
+  pvd_content = [i.strip() for i in infile]
+  infile.close()  
+  if (pvd_content == correct_pvd_content):
+    pvd_correct = True
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name = "Solvers converged" language = "python">
+assert(solvers_converged)
+    </test>
+    <test name = "PVD file generated" language = "python">
+assert(pvd_generated)
+    </test>
+    <test name = "PVD content correct" language = "python">
+assert(pvd_correct)
+    </test>
+  </pass_tests>
+</testproblem>
+

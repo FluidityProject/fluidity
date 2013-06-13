@@ -6,6 +6,11 @@
     <command_line>for layer in 5 10 20 30; do ./generate_mesh $layer; fluidity cdg_cjc.flml; cp cdg.stat cdg-$layer.stat; cp cdg_1.vtu cdg-$layer.vtu; done</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="convergence" language="python">import numpy
 from fluidity_tools import stat_parser
 layers = numpy.array([5,10,20,30])
@@ -21,6 +26,9 @@ print error
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="ConvergesToSecondOrder" language="python">
 import numpy
 assert(numpy.all(convergence &gt;1.9))</test>

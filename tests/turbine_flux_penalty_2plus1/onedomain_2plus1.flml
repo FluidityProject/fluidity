@@ -83,7 +83,7 @@
         </number_of_detectors>
         <static/>
         <python>
-          <string_value lines="20" type="python">def val(t):
+          <string_value lines="20" type="code" language="python">def val(t):
  import math
  ret=[]
  for j in range(2,11):
@@ -116,6 +116,7 @@
           <discontinuous_galerkin>
             <viscosity_scheme>
               <compact_discontinuous_galerkin/>
+              <tensor_form/>
             </viscosity_scheme>
             <advection_scheme>
               <upwind/>
@@ -168,7 +169,7 @@
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="python">def val(X, t):
+                  <string_value lines="20" type="code" language="python">def val(X, t):
     # Function code
     return X[1]*0.01</string_value>
                 </python>

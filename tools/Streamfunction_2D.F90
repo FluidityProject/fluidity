@@ -27,8 +27,8 @@
 
 #include "fdebug.h"
 
-subroutine streamfunction_2d(input_basename, input_basename_len, &
-  & output_basename, output_basename_len)
+subroutine streamfunction_2d(input_basename_, input_basename_len, &
+  & output_basename_, output_basename_len) bind(c)
   
   use fields
   use fldebug
@@ -39,15 +39,16 @@ subroutine streamfunction_2d(input_basename, input_basename_len, &
   use sparsity_patterns_meshes
   use state_module
   use vtk_interfaces
-  
+  use iso_c_binding
   implicit none
   
-  integer :: input_basename_len
-  integer :: output_basename_len
+  integer(kind=c_size_t), value  :: input_basename_len, output_basename_len
   
-  character(len = input_basename_len), intent(in) :: input_basename
-  character(len = output_basename_len), intent(in) :: output_basename
-  
+  character(kind=c_char, len=1) :: input_basename_(*)
+  character(kind=c_char, len=1) :: output_basename_(*)
+
+  character(len = input_basename_len) :: input_basename
+  character(len = output_basename_len) :: output_basename
   character(len = FIELD_NAME_LEN) :: model
   integer :: i, stat
   type(csr_matrix) :: matrix
@@ -58,6 +59,14 @@ subroutine streamfunction_2d(input_basename, input_basename_len, &
   type(vector_field), pointer :: positions, velocity
   
   ewrite(1, *) "In streamfunction_2d"
+
+  do i=1, input_basename_len
+    input_basename(i:i)=input_basename_(i)
+  end do
+  do i=1, output_basename_len
+    output_basename(i:i)=output_basename_(i)
+  end do
+
   
   state => states(1)
   

@@ -150,6 +150,7 @@
           <discontinuous_galerkin>
             <viscosity_scheme>
               <bassi_rebay/>
+              <tensor_form/>
             </viscosity_scheme>
             <advection_scheme>
               <upwind/>
@@ -364,6 +365,7 @@
           <discontinuous_galerkin>
             <viscosity_scheme>
               <bassi_rebay/>
+              <tensor_form/>
             </viscosity_scheme>
             <advection_scheme>
               <upwind/>
@@ -586,4 +588,9 @@
       </particle_diameter>
     </multiphase_properties>
   </material_phase>
+  <multiphase_interaction>
+    <fluid_particle_drag>
+      <drag_correlation name="stokes"/>
+    </fluid_particle_drag>
+  </multiphase_interaction>
 </fluidity_options>

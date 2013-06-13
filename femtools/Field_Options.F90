@@ -106,7 +106,8 @@ module field_options
                                 FIELD_EQUATION_REDUCEDCONSERVATIONOFMASS = 3, &
                                 FIELD_EQUATION_INTERNALENERGY            = 4, &
                                 FIELD_EQUATION_HEATTRANSFER              = 5, &
-                                FIELD_EQUATION_ELECTRICALPOTENTIAL       = 6
+                                FIELD_EQUATION_ELECTRICALPOTENTIAL       = 6, &
+                                FIELD_EQUATION_KEPSILON       = 7
 
 contains
 
@@ -546,7 +547,7 @@ contains
          ! can remap from coordinate field
          call allocate(positions, coordinate_field%dim, mesh, name="Coordinate")
          
-         if (mesh_periodic(mesh)) then
+         if (mesh_periodic(mesh) .and. continuity(mesh)>=0) then
             call remap_field(coordinate_field, positions, stat=stat)
             if (stat/=REMAP_ERR_UNPERIODIC_PERIODIC) then
               FLAbort("Error remapping coordinate field")
@@ -944,6 +945,8 @@ contains
       equation_type_index = FIELD_EQUATION_INTERNALENERGY
     case ( "ElectricalPotential" )
       equation_type_index = FIELD_EQUATION_ELECTRICALPOTENTIAL
+    case ( "KEpsilon" )
+      equation_type_index = FIELD_EQUATION_KEPSILON
     case default
       equation_type_index = FIELD_EQUATION_UNKNOWN
     end select
@@ -1235,8 +1238,14 @@ contains
                           trim(mat_name)//"."
             FLExit("Selected equation type only compatible with control volume spatial_discretisation")
           end if
+        case(FIELD_EQUATION_KEPSILON)
+          if(.not.cg_disc) then
+            ewrite(-1,*) "Options checking field "//&
+                          trim(field_name)//" in material_phase "//&
+                          trim(mat_name)//"."
+            FLExit("Selected equation type only compatible with continuous galerkin spatial_discretisation")
+          end if  
         end select
-
       end do
     end do
 

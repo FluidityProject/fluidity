@@ -202,6 +202,7 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
             </mass_terms>
             <viscosity_scheme>
               <compact_discontinuous_galerkin/>
+              <tensor_form/>
             </viscosity_scheme>
             <advection_scheme>
               <none/>
@@ -279,7 +280,7 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
           <diagnostic>
             <mesh name="DGP0"/>
             <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
-              <string_value lines="20" type="python"># get the prescribed fields 
+              <string_value lines="20" type="code" language="python"># get the prescribed fields 
 perm = states["fluid"].scalar_fields["Permeability"]
 visc = states["fluid"].scalar_fields["Viscosity"]
 
