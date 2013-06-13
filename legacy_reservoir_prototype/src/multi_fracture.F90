@@ -216,9 +216,9 @@
       type( state_type ) :: alg_ext, alg_fl
       type( mesh_type ), pointer :: fl_mesh, p0_fl_mesh
       type( vector_field ) :: fl_positions
-      type( scalar_field ) :: dummy
+      type( scalar_field ) :: volume_fraction
 
-      type( scalar_field ), pointer :: pressure
+      type( scalar_field ), pointer :: pressure, ttt
 
       type( scalar_field ) :: field_fl_p11, field_fl_p12, field_fl_p21, field_fl_p22
       type( scalar_field ) :: field_ext_p11, field_ext_p12, field_ext_p21, field_ext_p22
@@ -228,6 +228,7 @@
 
       character( len = OPTION_PATH_LEN ) :: &
            path = "/tmp/galerkin_projection/continuous"
+      integer :: i
 
       ewrite(3,*) 'inside interpolate_fractures'
 
@@ -291,16 +292,22 @@
       field_ext_p22 = extract_scalar_field( permeability, 2, 2 )
       call insert( alg_ext, field_ext_p22, "Permeability22" )
 
-      ! dummy field needed for the interpolation
-      call allocate( dummy, pressure%mesh, "Dummy" )
-      call zero( dummy )
+      ! volume fraction, i.e. porosity...
+      call allocate( volume_fraction, p0_fl_mesh, "VolumeFraction" )
+      call zero( volume_fraction )
 
       ewrite(3,*) '...interpolating'
 
       ! interpolate
-      call interpolation_galerkin_femdem( alg_ext, alg_fl, field = dummy )
+      call interpolation_galerkin_femdem( alg_ext, alg_fl, field = volume_fraction )
+
+      ! bound volume fraction
+      do i = 1, node_count( volume_fraction )
+         call set( volume_fraction, i, max( 0., min( 1., node_val( volume_fraction, i ) ) ) )
+      end do
 
       ! copy memory to prototype
+      ! ...for permeability
       call get_option( "/porous_media/Permeability_from_femdem/background_permeability", bgp )
 
       allocate( perm_bg( totele, ndim, ndim ) )
@@ -314,10 +321,18 @@
       perm( :, 2, 1 ) = perm_bg( :, 2, 1 ) + field_fl_p21 % val
       perm( :, 2, 2 ) = perm_bg( :, 2, 2 ) + field_fl_p22 % val
 
+      ! ...for porosity
+      porosity = ( 1. - volume_fraction % val ) * porosity + volume_fraction % val * 1.
+
+      ! bound porosity
+      do i = 1, totele
+         porosity = max( 0., min( 1., porosity ) )
+      end do
+
       ! now deallocate
       deallocate( perm_bg )
 
-      call deallocate( dummy )
+      call deallocate( volume_fraction )
 
       call deallocate( field_fl_p22 )
       call deallocate( field_fl_p21 )
