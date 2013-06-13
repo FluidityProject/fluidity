@@ -262,28 +262,46 @@ contains
        ! get elements associated with current node
        my_nelist => row_m_ptr(zoltan_global_zz_nelist, local_ids(node))
        
-       my_min_quality = 1.0
-       
-       ! find quality of worst element node is associated with
-       do i=1,size(my_nelist)
-          quality = minval(ele_val(zoltan_global_element_quality, my_nelist(i)))
-          
-          if (quality .LT. my_min_quality) then
-             my_min_quality = quality
-          end if
-       end do
-       
        if (have_option(trim(zoltan_global_base_option_path) // "/dont_extend_uncuttable_region")) then
 
          do j=1,size(neighbours)
+           
+           my_min_quality = 1.0
+       
+           ! get elements associated with neighbour node
+           nbor_nelist => row_m_ptr(zoltan_global_zz_nelist, neighbours(j))
+
+           ! search for worst quality element that has an edge joined by these two nodes
+           do i=1, size(nbor_nelist)
+             if (any(my_nelist == nbor_nelist(i))) then
+               quality = minval(ele_val(zoltan_global_element_quality, nbor_nelist(i)))
+               if (quality .LT. my_min_quality) then
+                 my_min_quality = quality
+               end if
+             end if
+           end do
+
+           ! set ewgt of edge to worst adjoining element found
            ewgts(head + j - 1) = (1.0 - my_min_quality) * 20
+
+           if(min_quality .LT. zoltan_global_local_min_quality) then
+             zoltan_global_local_min_quality = my_min_quality
+           end if
+           
          end do
 
-         if(min_quality .LT. zoltan_global_local_min_quality) then
-           zoltan_global_local_min_quality = my_min_quality
-         end if
-
        else
+         
+         my_min_quality = 1.0
+       
+         ! find quality of worst element node is associated with
+         do i=1,size(my_nelist)
+           quality = minval(ele_val(zoltan_global_element_quality, my_nelist(i)))
+
+           if (quality .LT. my_min_quality) then
+             my_min_quality = quality
+           end if
+         end do
 
          ! loop over all neighbouring nodes
          do j=1,size(neighbours)
