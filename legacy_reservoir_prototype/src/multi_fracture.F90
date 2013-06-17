@@ -316,18 +316,48 @@
       perm_bg( :, 2, 1 ) = 0.
       perm_bg( :, 2, 2 ) = bgp
 
-      perm( :, 1, 1 ) = perm_bg( :, 1, 1 ) + field_fl_p11 % val
-      perm( :, 1, 2 ) = perm_bg( :, 1, 2 ) + field_fl_p12 % val
-      perm( :, 2, 1 ) = perm_bg( :, 2, 1 ) + field_fl_p21 % val
-      perm( :, 2, 2 ) = perm_bg( :, 2, 2 ) + field_fl_p22 % val
+      do i = 1, totele
+         if ( volume_fraction % val( i ) > 1.e-7 ) then
+            perm( i, 1, 1 ) =  field_fl_p11 % val( i ) / volume_fraction % val( i ) 
+            perm( i, 1, 2 ) =  field_fl_p12 % val( i ) / volume_fraction % val( i ) 
+            perm( i, 2, 1 ) =  field_fl_p21 % val( i ) / volume_fraction % val( i ) 
+            perm( i, 2, 2 ) =  field_fl_p22 % val( i ) / volume_fraction % val( i ) 
+         else
+            perm( i, 1, 1 ) = perm_bg( i, 1, 1 )
+            perm( i, 1, 2 ) = perm_bg( i, 1, 2 )
+            perm( i, 2, 1 ) = perm_bg( i, 2, 1 )
+            perm( i, 2, 2 ) = perm_bg( i, 2, 2 )
+         end if
+      end do
+
+      !perm( :, 1, 1 ) = ( 1. - volume_fraction % val ) * perm_bg( :, 1, 1 ) + field_fl_p11 % val
+      !perm( :, 1, 2 ) = ( 1. - volume_fraction % val ) * perm_bg( :, 1, 2 ) + field_fl_p12 % val
+      !perm( :, 2, 1 ) = ( 1. - volume_fraction % val ) * perm_bg( :, 2, 1 ) + field_fl_p21 % val
+      !perm( :, 2, 2 ) = ( 1. - volume_fraction % val ) * perm_bg( :, 2, 2 ) + field_fl_p22 % val
+
+      !ewrite(3,*) ' permeability tensor:'
+      !ewrite(3,*) 'xx', perm( :, 1, 1 )
+      !ewrite(3,*) 'xy', perm( :, 1, 2 )
+      !ewrite(3,*) 'yx', perm( :, 2, 1 )
+      !ewrite(3,*) 'yy', perm( :, 2, 2 )
+
+      !ewrite(3,*) 'xx min_max', minval( perm( :, 1, 1 ) ), maxval( perm( :, 1, 1 ) )
+      !ewrite(3,*) 'xy min_max', minval( perm( :, 1, 2 ) ), maxval( perm( :, 1, 2 ) )
+      !ewrite(3,*) 'yx min_max', minval( perm( :, 2, 1 ) ), maxval( perm( :, 2, 1 ) )
+      !ewrite(3,*) 'yy min_max', minval( perm( :, 2, 2 ) ), maxval( perm( :, 2, 2 ) )
+      !stop 749
 
       ! ...for porosity
       porosity = ( 1. - volume_fraction % val ) * porosity + volume_fraction % val * 1.
 
       ! bound porosity
       do i = 1, totele
-         porosity = max( 0., min( 1., porosity ) )
+         porosity( i ) = max( 0., min( 1., porosity( i ) ) )
       end do
+
+      !ewrite(3,*) ' porosity:'
+      !ewrite(3,*) 'phi', porosity
+      !ewrite(3,*) 'phi min_max', minval( porosity ), maxval( porosity )
 
       ! now deallocate
       deallocate( perm_bg )

@@ -687,7 +687,10 @@ start =
                   attribute name { xsd:string },
                   element background_permeability { real }
                }
-            )
+            ),
+            ## Solve for the actual velocity, not
+            ## the Darcy velocity (=porosity*velocity)
+            element actual_velocity { empty }?
          }?
       }
    )

@@ -893,6 +893,13 @@ to sum to 1 by adding constraint into compositional source term.</a:documentatio
               </element>
             </element>
           </choice>
+          <optional>
+            <element name="actual_velocity">
+              <a:documentation>Solve for the actual velocity, not
+the Darcy velocity (=porosity*velocity)</a:documentation>
+              <empty/>
+            </element>
+          </optional>
         </element>
       </optional>
     </element>

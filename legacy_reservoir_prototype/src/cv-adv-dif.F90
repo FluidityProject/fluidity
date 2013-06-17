@@ -263,7 +263,6 @@
 
 
       ! Local variables 
-      LOGICAL, PARAMETER :: INCLUDE_PORE_VOL_IN_DERIV = .FALSE.
       INTEGER, PARAMETER :: WIC_T_BC_DIRICHLET = 1, WIC_T_BC_ROBIN = 2, &
            WIC_T_BC_DIRI_ADV_AND_ROBIN = 3, WIC_D_BC_DIRICHLET = 1, &
            WIC_U_BC_DIRICHLET = 1
@@ -538,7 +537,7 @@
       UP_WIND_NOD = 0.0
 
       ALLOCATE( ONE_PORE( TOTELE ))
-      IF( INCLUDE_PORE_VOL_IN_DERIV ) THEN
+      IF( have_option( '/porous_media/actual_velocity' ) ) THEN
          ! solve for actual velocity
          ONE_PORE = VOLFRA_PORE
       ELSE
