@@ -1217,8 +1217,8 @@ contains
          ! works as long as we're not discontinuous
          assert( mesh%continuity>=0 )
          
-         ! the periodic faces will be internal faces in the output periodic mesh
-         mesh%faces%has_internal_boundaries = .true.         
+         ! the periodic faces will be discontinuous internal faces in the output periodic mesh
+         mesh%faces%has_discontinuous_boundaries = .true.         
          
       else if (model%periodic .and. .not. mesh%periodic) then
         
@@ -1227,7 +1227,7 @@ contains
             mesh, model, lperiodic_face_map, stat=stat)
             
          ! the subroutine above only works if the removing of periodic bcs has removed all internal boundaries
-         mesh%faces%has_internal_boundaries = .true.
+         mesh%faces%has_discontinuous_boundaries = .false.
                      
       else
          ! Transfer the faces from model to mesh
@@ -1235,7 +1235,7 @@ contains
          call incref(mesh%faces%face_list)
          
          ! have internal faces if the model does
-         mesh%faces%has_internal_boundaries = has_internal_boundaries(model)
+         mesh%faces%has_discontinuous_boundaries = has_discontinuous_boundaries(model)
       end if
         
       ! face_element_list is a pure copy of that of the model
@@ -1421,7 +1421,7 @@ contains
          trim(mesh%name)//" face_element_list")
 #endif
 
-    mesh%faces%has_internal_boundaries = present(element_owner)
+    mesh%faces%has_discontinuous_boundaries = present(element_owner)
 
     call allocate(internal_facet_map)
     
@@ -1501,7 +1501,8 @@ contains
       
     else
     
-      bdry_count=0
+      stotel=0 ! number of facets provided in sndgln
+      bdry_count=0 ! number of facets including the doubling of interior facets
       
     end if
             
@@ -1509,6 +1510,13 @@ contains
       ! register the rest of the boundaries
       ! remaining exterior boundaries first, thus completing the surface mesh
       ! This does not work in parallel and is therefore discouraged
+      
+      ! This also doesn't work if we have internal boundaries
+      if (bdry_count>stotel) then
+        ewrite(0,*) "It appears this mesh has internal boundaries."
+        ewrite(0,*) "In this case all external boundaries need to be marked with a surface id."
+        FLExit("Incomplete surface mesh")
+      end if
       
       surface_elements_added=.false.
       do ele=1, size(mesh%faces%face_list,1)
@@ -1545,6 +1553,10 @@ contains
     call register_allocation("mesh_type", "integer", bdry_count, &
          trim(mesh%name)//" boundary_ids")
 #endif
+
+    mesh%faces%unique_surface_element_count=stotel
+    ewrite(2,*) "Number of surface elements: ", bdry_count
+    ewrite(2,*) "Number of unique surface elements: ", stotel
 
     mesh%faces%boundary_ids=0
     ! copy in supplied boundary ids
