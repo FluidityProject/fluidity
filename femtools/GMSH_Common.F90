@@ -131,12 +131,11 @@ contains
   ! Reorder to Fluidity node ordering
 
   subroutine toFluidityElementNodeOrdering( oldList, elemType )
-    integer, pointer :: oldList(:), flNodeList(:), nodeOrder(:)
+    integer, pointer :: oldList(:)
+    integer, dimension(size(oldList)) :: nodeOrder, flNodeList
     integer i, elemType
 
     numNodes = size(oldList)
-    allocate( flNodeList(numNodes) )
-    allocate( nodeOrder(numNodes) )
 
     ! Specify node ordering
     select case( elemType )
@@ -159,24 +158,18 @@ contains
 
     ! Allocate to original list, and dealloc temp list.
     oldList(:) = flNodeList(:)
-    deallocate( flNodeList )
-    !deallocate(nodeOrder)
 
   end subroutine toFluidityElementNodeOrdering
-
-
 
   ! -----------------------------------------------------------------
   ! Reorder Fluidity node ordering to GMSH
 
   subroutine toGMSHElementNodeOrdering( oldList, elemType )
-    integer, pointer :: oldList(:), gmshNodeList(:), nodeOrder(:)
+    integer, pointer :: oldList(:)
+    integer, dimension(size(oldList)) :: nodeOrder, gmshNodeList
     integer i, elemType
 
-
     numNodes = size(oldList)
-    allocate( gmshNodeList(numNodes) )
-    allocate( nodeOrder(numNodes) )
 
     ! Specify node ordering
     select case( elemType )
@@ -200,9 +193,6 @@ contains
 
     ! Allocate to original list, and dealloc temp list.
     oldList(:) = gmshNodeList(:)
-
-    deallocate( gmshNodeList )
-    !deallocate( nodeOrder )
 
   end subroutine toGMSHElementNodeOrdering
 

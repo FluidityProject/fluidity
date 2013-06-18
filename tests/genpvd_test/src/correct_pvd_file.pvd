@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<VTKFile type="Collection" version="0.1" byte_order="LittleEndian">
+<Collection>
+    <DataSet timestep="0.0" group="" part="0" file="genpvd_test_rectangle_0.vtu"/>
+    <DataSet timestep="0.01" group="" part="0" file="genpvd_test_rectangle_1.vtu"/>
+</Collection>
+</VTKFile>

@@ -43,7 +43,7 @@ double round(double);
 #include <string>
 #include <vector>
 
-#ifdef HAVE_NETCDF
+#ifdef HAVE_LIBNETCDF
 extern "C" {
 #include <netcdf.h>
 }

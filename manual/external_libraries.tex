@@ -18,7 +18,7 @@ a better solution than could be implemented by the \fluidity development team.
 run:
 
 \begin{itemize}
-\item Fortran 90 and C++ compiler (tested gfortran 4.5 and 4.6, Intel 11.1 for versions above 11.1.073)
+\item Fortran 90 and C++ compiler (tested gfortran 4.5-4.7, Intel 11.1 for versions above 11.1.073)
 \item BLAS (tested netlib, ATLAS, MKL)
 \item LAPACK (tested netlib, ATLAS, MKL)
 \item XML2 (tested version 2.6)
@@ -102,6 +102,18 @@ deployment process.
 
 In most cases, modern Linux systems will supply some if not most of the
 required packages without needing to resort to compiling them from source.
+
+\subsection{Supported compilers}
+\label{sec:required_libraries_supported_compilers}
+
+Before starting to build the supporting libraries for \fluidity it is strongly
+recommended that you ensure that your builds will use a compiler that is also
+able to build \fluidity. If you do not, you may encounter problems when you try
+to interface \fluidity with the libraries. At present, \fluidity is tested with
+gcc/g++/gfortran versions 4.5-4.7 and the Intel compiler with version 11.1.073
+and later versions of 11.1. Versions of 11.1 earlier than 11.1.073 contain bugs
+that prevent building \fluidity, as do all other major and minor versions of
+the Intel compiler.
 
 \subsection{Build environment}
 \label{sec:required_libraries_build_environment}

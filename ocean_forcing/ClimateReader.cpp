@@ -173,7 +173,7 @@ double ClimateReader::GetValue(string name, double x, double y, double z, int _i
 }
   
 double ClimateReader::GetValue(string name, int ilong, int ilat, int ilevel){
-#ifdef HAVE_NETCDF
+#ifdef HAVE_LIBNETCDF
   if(verbose)
     cout<<"double GetValue("<<name<<", "<<ilong<<", "<<ilat<<", "<<ilevel<<")\n";
   
@@ -249,7 +249,7 @@ double ClimateReader::GetValue(string name, int ilong, int ilat, int ilevel){
 }
 
 int ClimateReader::SetClimatology(string filename){
-#ifdef HAVE_NETCDF
+#ifdef HAVE_LIBNETCDF
   if(verbose)
     cout<<"int set_climatology("<<filename<<")\n";
 

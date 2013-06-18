@@ -102,6 +102,7 @@ module fluids_module
   use multiphase_module
   use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
   use momentum_diagnostic_fields, only: calculate_densities
+  use sediment_diagnostics, only: calculate_sediment_flux
 
   implicit none
 
@@ -697,8 +698,7 @@ contains
 
                    ! Solve the pure control volume form of the equations
                    call solve_field_eqn_cv(field_name=trim(field_name_list(it)), &
-                        state=state(field_state_list(it):field_state_list(it)), &
-                        global_it=its)
+                        state=state, istate=field_state_list(it), global_it=its)
 
                 else if(have_option(trim(field_optionpath_list(it)) // &
                      & "/prognostic/spatial_discretisation/continuous_galerkin")) then
@@ -787,6 +787,9 @@ contains
           end if
 
        end do nonlinear_iteration_loop
+
+       ! Calculate prognostic sediment deposit fields
+       call calculate_sediment_flux(state(1))
 
        ! Reset the number of nonlinear iterations in case it was overwritten by nonlinear_iterations_adapt
        call get_option('/timestepping/nonlinear_iterations',nonlinear_iterations,&
