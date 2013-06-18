@@ -1255,6 +1255,7 @@ contains
            size(mesh%faces%boundary_ids), &
            trim(mesh%name)//" boundary_ids")
 #endif
+      mesh%faces%unique_surface_element_count = model%faces%unique_surface_element_count
        
       ! same for coplanar ids (if existent)
       if (associated(model%faces%coplanar_ids)) then
@@ -1511,13 +1512,6 @@ contains
       ! remaining exterior boundaries first, thus completing the surface mesh
       ! This does not work in parallel and is therefore discouraged
       
-      ! This also doesn't work if we have internal boundaries
-      if (bdry_count>stotel) then
-        ewrite(0,*) "It appears this mesh has internal boundaries."
-        ewrite(0,*) "In this case all external boundaries need to be marked with a surface id."
-        FLExit("Incomplete surface mesh")
-      end if
-      
       surface_elements_added=.false.
       do ele=1, size(mesh%faces%face_list,1)
         
@@ -1538,12 +1532,20 @@ contains
          end do
          
       end do
-      if (surface_elements_added .and. .not. warning_given) then
+
+      if (surface_elements_added .and. key_count(internal_facet_map)>0) then
+        ewrite(0,*) "It appears this mesh has internal boundaries."
+        ewrite(0,*) "In this case all external boundaries need to be marked with a surface id."
+        FLExit("Incomplete surface mesh")
+      else if (surface_elements_added .and. .not. warning_given) then
         ewrite(0,*) "WARNING: an incomplete surface mesh has been provided."
         ewrite(0,*) "This will not work in parallel."
         ewrite(0,*) "All parts of the domain boundary need to be marked with a (physical) surface id."
         warning_given=.true.
       end if
+
+      stotel = bdry_count
+
     end if
       
     ! the size of this array will be the way to store the n/o
@@ -1554,7 +1556,7 @@ contains
          trim(mesh%name)//" boundary_ids")
 #endif
 
-    mesh%faces%unique_surface_element_count=stotel
+    mesh%faces%unique_surface_element_count = stotel
     ewrite(2,*) "Number of surface elements: ", bdry_count
     ewrite(2,*) "Number of unique surface elements: ", stotel
 
@@ -1563,10 +1565,10 @@ contains
     if (present(boundary_ids)) then
       if (.not. present(sndgln)) then
         FLAbort("Boundary ids can only be supplied to add_faces with associated surface mesh")
-      else if (stotel/=size(boundary_ids)) then
+      else if (size(boundary_ids) /= size(sndgln)/snloc) then
         FLAbort("Must supply boundary_ids array for the same number of elements as the surface mesh sndgln")
       end if
-      mesh%faces%boundary_ids(1:stotel)=boundary_ids
+      mesh%faces%boundary_ids(1:size(boundary_ids))=boundary_ids
 
       do j=1, key_count(internal_facet_map)
         call fetch_pair(internal_facet_map, j, sele, sele2)
