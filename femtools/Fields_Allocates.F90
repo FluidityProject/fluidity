@@ -1544,7 +1544,9 @@ contains
         warning_given=.true.
       end if
 
-      stotel = bdry_count
+      if (surface_elements_added) then
+        stotel = bdry_count
+      end if
 
     end if
       
