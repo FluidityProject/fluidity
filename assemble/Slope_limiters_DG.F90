@@ -1363,7 +1363,7 @@ contains
     type(scalar_field) :: T_limit, T_max, T_min
     type(mesh_type), pointer :: vertex_mesh
     ! counters
-    integer :: ele, node
+    integer :: ele, ele_2, node, face, ni
     ! local numbers
     integer, dimension(:), pointer :: T_ele
     ! gradient scaling factor
@@ -1371,6 +1371,12 @@ contains
     ! local field values
     real, dimension(ele_loc(T,1)) :: T_val, T_val_slope, T_val_min,T_val_max
     real :: Tbar
+
+    ! variables to stop slope limiting at boundary
+    integer, dimension(:), pointer :: neigh
+    ! local field values
+    real, dimension(face_loc(T,1)) :: T_val_face, T_val_min_face, T_val_max_face
+    
 
     if (.not. element_degree(T%mesh, 1)==1 .or. continuity(T%mesh)>=0) then
       FLExit("The vertex based slope limiter only works for P1DG fields.")
@@ -1410,6 +1416,30 @@ contains
           T_val_min(node) = min(T_val_min(node), Tbar)
        end do
        call set(T_min, ele_nodes(T_min,ele), T_val_min)
+
+       ! don't limit boundary values to mean of element
+       neigh=>ele_neigh(T, ele)
+       do ni=1,size(neigh)
+         ele_2 = neigh(ni)
+         if (ele_2 <= 0) then
+           ! boundary face
+           face=ele_face(T, ele, ele_2)
+           T_val_face = face_val(T, face)
+
+           ! do maxes
+           T_val_max_face = face_val(T_max,face)
+           do node = 1, size(T_val)
+             T_val_max_face(node) = max(T_val_max_face(node), T_val_face(node))
+           end do
+
+           ! do mins
+           T_val_min_face = face_val(T_min,face)
+           do node = 1, size(T_val)
+             T_val_min(node) = min(T_val_min_face(node), T_val_face(node))
+           end do
+         end if
+       end do
+
     end do
 
     ! now for each P1DG node make sure the field value is between the recorded vertex min and max
