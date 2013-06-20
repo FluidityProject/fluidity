@@ -1363,7 +1363,7 @@ contains
     type(scalar_field) :: T_limit, T_max, T_min
     type(mesh_type), pointer :: vertex_mesh
     ! counters
-    integer :: ele, ele_2, node, face, ni
+    integer :: ele, ele_2, ele_3, node, face, face_2, ni, ni_2, fi
     ! local numbers
     integer, dimension(:), pointer :: T_ele
     ! gradient scaling factor
@@ -1373,14 +1373,20 @@ contains
     real :: Tbar
 
     ! variables to stop slope limiting at boundary
-    integer, dimension(:), pointer :: neigh
+    integer, dimension(:), pointer :: neigh, neigh_2
     ! local field values
     real, dimension(face_loc(T,1)) :: T_val_face, T_val_min_face, T_val_max_face
-    
+    type(vector_field), pointer :: X
+    integer, dimension(face_loc(T,1)) :: face_nodes, face_nodes_2
+    real, dimension(mesh_dim(T), ele_loc(T,1)) :: ele_pos
+    real, dimension(mesh_dim(T)) :: node_pos
 
     if (.not. element_degree(T%mesh, 1)==1 .or. continuity(T%mesh)>=0) then
       FLExit("The vertex based slope limiter only works for P1DG fields.")
     end if
+
+    ! Get coordinates (used to identify boundary nodes)
+    X => extract_vector_field(state, "Coordinate")
     
     ! Allocate copy of field
     call allocate(T_limit, T%mesh,trim(T%name)//"Limited")
@@ -1419,23 +1425,67 @@ contains
 
        ! don't limit boundary values to mean of element
        neigh=>ele_neigh(T, ele)
+
        do ni=1,size(neigh)
+
          ele_2 = neigh(ni)
+
          if (ele_2 <= 0) then
-           ! boundary face
+           ! level 1 - ele face on boundary
            face=ele_face(T, ele, ele_2)
            T_val_face = face_val(T, face)
 
            ! do maxes
            T_val_max_face = face_val(T_max,face)
-           do node = 1, size(T_val)
+           do node = 1, size(T_val_face)
              T_val_max_face(node) = max(T_val_max_face(node), T_val_face(node))
            end do
+           call set(T_max, face_global_nodes(T_max, face), T_val_max_face)
 
            ! do mins
            T_val_min_face = face_val(T_min,face)
-           do node = 1, size(T_val)
-             T_val_min(node) = min(T_val_min_face(node), T_val_face(node))
+           do node = 1, size(T_val_face)
+             T_val_min_face(node) = min(T_val_min_face(node), T_val_face(node))
+           end do
+           call set(T_min, face_global_nodes(T_min, face), T_val_min_face)
+
+         else         
+           ! level 2 - ele neighbour has face on boundary
+           neigh_2=>ele_neigh(X, ele_2)
+
+           do ni_2=1,size(neigh_2)
+             
+             ele_3 = neigh_2(ni_2)
+
+             if (ele_3 <= 0) then
+               ! neighbour has face on boudary, ele may have a node on the boundary
+               face         = ele_face(X, ele, ele_2)        ! face in coordinate mesh, ele and ele_2
+               face_2       = ele_face(X, ele_2, ele_3)      ! boundary face in coordinate mesh, ele_2
+               face_nodes   = face_global_nodes(X, face)     ! nodes on coordinate mesh for face
+               face_nodes_2 = face_global_nodes(X, face_2)   ! nodes on coordinate mesh for face_2
+               do fi=1,size(face_nodes_2)
+                 if (any(face_nodes(fi) == face_nodes_2)) then
+                   ! it does! we have found the boundary node in ele
+                   ! we use it's position to identify it
+                   node_pos=node_val(X,face_nodes_2(fi))
+                   ele_pos=ele_val(X,ele)
+
+                   ! do mins and maxes
+                   T_val = ele_val(T,ele)
+                   T_val_max = ele_val(T_max,ele)
+                   T_val_min = ele_val(T_min,ele)
+                   do node=1,ele_loc(T,ele)
+                     if (all(abs(ele_pos(:,node) - node_pos) < epsilon(maxval(node_pos)))) then
+                       T_val_max(node) = max(T_val_max(node), T_val(node))
+                       T_val_min(node) = min(T_val_min(node), T_val(node))
+                     end if
+                   end do
+                   call set(T_max, ele_nodes(T_max,ele), T_val_max)
+                   call set(T_min, ele_nodes(T_min,ele), T_val_min)
+
+                 end if
+               end do
+             end if
            end do
          end if
        end do
