@@ -351,7 +351,8 @@ subroutine horizontal_picker(mesh, positions, vertical_normal, &
   assert(.not. mesh_periodic(positions))
   
   ! search only the first owned nodes
-  nodes=nowned_nodes(mesh)
+  ! FIXME:
+  nodes=size(seles) !nowned_nodes(mesh)
   
   assert( size(seles)==nodes )
   assert(size(loc_coords,1)==positions%dim)
@@ -757,7 +758,7 @@ real, dimension(2):: map2horizontal_sphere
 end function map2horizontal_sphere
 
 function VerticalProlongationOperator(mesh, positions, vertical_normal, &
-  surface_element_list, surface_mesh)
+  surface_element_list, surface_mesh, include_halo_rows)
   !! creates a prolongation operator that prolongates values on
   !! a surface mesh to a full mesh below using the same interpolation
   !! as the vertical extrapolation code above. The transpose of this prolongation
@@ -782,6 +783,8 @@ function VerticalProlongationOperator(mesh, positions, vertical_normal, &
   !! value in the full mesh is interpolated, are removed and there is no
   !! necessary relation between column numbering and surface node numbering.
   type(mesh_type), intent(in), target, optional:: surface_mesh
+  !! halo rows are only include if present and true:
+  logical, intent(in), optional:: include_halo_rows
 
   type(csr_sparsity):: sparsity
   type(mesh_type), pointer:: lsurface_mesh
@@ -794,8 +797,12 @@ function VerticalProlongationOperator(mesh, positions, vertical_normal, &
   ! coefficient have to be at least this otherwise they're negligable in an interpolation
   real, parameter :: COEF_EPS=1d-10
   
-  ! only assemble the rows associted with nodes we own
-  rows=nowned_nodes(mesh)
+  if (present_and_true(include_halo_rows)) then
+    rows=node_count(mesh)
+  else
+    ! only assemble the rows associted with nodes we own
+    rows=nowned_nodes(mesh)
+  end if
   
   ! local coordinates is one more than horizontal coordinate dim
   allocate( seles(rows), loc_coords(1:positions%dim, 1:rows) )

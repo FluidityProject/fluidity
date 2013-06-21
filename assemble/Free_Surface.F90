@@ -64,7 +64,7 @@ public get_extended_pressure_mesh_for_viscous_free_surface, copy_to_extended_p, 
   add_implicit_viscous_free_surface_scaled_mass_integrals, update_prognostic_free_surface, &
   update_implicit_scaled_free_surface, has_implicit_viscous_free_surface_bc, &
   has_explicit_viscous_free_surface_bc, has_standard_free_surface_bc, &
-  add_explicit_viscous_free_surface_integrals
+  add_explicit_viscous_free_surface_integrals, generate_free_surface_halos
 
 public free_surface_module_check_options
 

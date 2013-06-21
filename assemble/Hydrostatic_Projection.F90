@@ -39,6 +39,7 @@ module hydrostatic_projection
   use field_options
   use vertical_extrapolation_module
   use divergence_matrix_cg
+  use free_surface_module
   
 implicit none
 
@@ -83,6 +84,9 @@ contains
       
       call create_surface_mesh(local_surface_p_mesh, surface_nodes, p_mesh, surface_element_list, &
         name="Lumped"//trim(p_mesh%name))
+      if (IsParallel()) then
+        call generate_free_surface_halos(p_mesh, local_surface_p_mesh, surface_nodes)
+      end if
       call insert(state, local_surface_p_mesh, local_surface_p_mesh%name)
       call deallocate(local_surface_p_mesh)
       surface_p_mesh => extract_mesh(state, "Lumped"//trim(p_mesh%name))
@@ -98,7 +102,7 @@ contains
       ! note: have to provide surface_mesh to ensure from_mesh of the prolongator uses same node ordering
       prolongator = VerticalProlongationOperator( &
            p_mesh, positions, vertical_normal, surface_element_list, &
-           surface_mesh=surface_p_mesh)
+           surface_mesh=surface_p_mesh, include_halo_rows=.true.)
       prolongator%name = "HydrostaticProlongator"
       call insert(state, prolongator, prolongator%name)
       call deallocate(prolongator)
@@ -116,6 +120,13 @@ contains
       ! from doing the usual get_csr_sparsity_secondorder() using a surface p and surface u mesh
       ! The latter would only be correct if the mesh is extruded strictly along prismatic columns 
       ! (as in fluidity's extrusion algorithm) - even for a fully "structured" gmsh tetrahedral mesh they are different
+      if (associated(p_mesh%halos)) then
+        allocate(pcmcp_sparsity%row_halo, pcmcp_sparsity%column_halo)
+        pcmcp_sparsity%row_halo = p_mesh%halos(2)
+        pcmcp_sparsity%column_halo = p_mesh%halos(2)
+        call incref(pcmcp_sparsity%row_halo)
+        call incref(pcmcp_sparsity%column_halo)
+      end if
       
       call allocate(local_lumped_cmc_m, pcmcp_sparsity, name="PressurePoissonMatrix")
       call insert(state, local_lumped_cmc_m, name="PressurePoissonMatrix")

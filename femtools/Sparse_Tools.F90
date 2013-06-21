@@ -4391,6 +4391,17 @@ contains
      call deallocate(iset)
     end do
 
+    if (associated(A%row_halo)) then
+      allocate(C%row_halo)
+      C%row_halo = A%row_halo
+      call incref(C%row_halo)
+    end if
+    if (associated(B%column_halo)) then
+      allocate(C%column_halo)
+      C%column_halo = B%column_halo
+      call incref(C%column_halo)
+    end if
+
   end function csr_sparsity_matmul
   
   function csr_sparsity_matmul_atb(A, B) result (C)
@@ -4438,6 +4449,17 @@ contains
     end do
     
     C%sorted_rows=.true.
+
+    if (associated(A%column_halo)) then
+      allocate(C%row_halo)
+      C%row_halo = A%column_halo
+      call incref(C%row_halo)
+    end if
+    if (associated(B%column_halo)) then
+      allocate(C%column_halo)
+      C%column_halo = B%column_halo
+      call incref(C%column_halo)
+    end if
     
   end function csr_sparsity_matmul_atb
   
