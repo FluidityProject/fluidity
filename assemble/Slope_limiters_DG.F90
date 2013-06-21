@@ -32,6 +32,7 @@ use state_module
 use ieee_arithmetic
 use fldebug_parameters
 use spud
+use boundary_conditions
 use elements
 use eventcounter
 use state_fields_module
@@ -1363,7 +1364,7 @@ contains
     type(scalar_field) :: T_limit, T_max, T_min
     type(mesh_type), pointer :: vertex_mesh
     ! counters
-    integer :: ele, ele_2, ele_3, node, face, face_2, ni, ni_2, fi
+    integer :: ele, ele_2, node, face, ni
     ! local numbers
     integer, dimension(:), pointer :: T_ele
     ! gradient scaling factor
@@ -1373,21 +1374,25 @@ contains
     real :: Tbar
 
     ! variables to stop slope limiting at boundary
-    integer, dimension(:), pointer :: neigh, neigh_2
-    ! local field values
-    real, dimension(face_loc(T,1)) :: T_val_face, T_val_min_face, T_val_max_face
-    type(vector_field), pointer :: X
-    integer, dimension(face_loc(T,1)) :: face_nodes, face_nodes_2
+    integer, dimension(:), pointer :: neigh
+    real, dimension(face_loc(T,1)) :: T_val_min_face, T_val_max_face, T_bc_val_face
+    type(scalar_field), pointer :: T_bc
+    integer, dimension(surface_element_count(T)) :: T_bc_type
+    integer, dimension(face_loc(T,1)) :: face_nodes
     real, dimension(mesh_dim(T), ele_loc(T,1)) :: ele_pos
     real, dimension(mesh_dim(T)) :: node_pos
+    logical :: have_dirichlet_bc
 
     if (.not. element_degree(T%mesh, 1)==1 .or. continuity(T%mesh)>=0) then
       FLExit("The vertex based slope limiter only works for P1DG fields.")
     end if
 
-    ! Get coordinates (used to identify boundary nodes)
-    X => extract_vector_field(state, "Coordinate")
-    
+    ! Get dirichlet boundary conditions
+    call get_entire_boundary_condition(T, (/ &
+      "weakdirichlet       ", &
+      "dirichlet           " /), T_bc, T_bc_type)
+    have_dirichlet_bc=any(T_bc_type > 0)
+
     ! Allocate copy of field
     call allocate(T_limit, T%mesh,trim(T%name)//"Limited")
     call set(T_limit, T)
@@ -1423,72 +1428,39 @@ contains
        end do
        call set(T_min, ele_nodes(T_min,ele), T_val_min)
 
-       ! don't limit boundary values to mean of element
-       neigh=>ele_neigh(T, ele)
+       if (have_dirichlet_bc) then
+         ! limit dirichlet boundary values to mean of element or dirichlet value
+         neigh=>ele_neigh(T, ele)
 
-       do ni=1,size(neigh)
+         do ni=1,size(neigh)
 
-         ele_2 = neigh(ni)
+           ele_2 = neigh(ni)
 
-         if (ele_2 <= 0) then
-           ! level 1 - ele face on boundary
-           face=ele_face(T, ele, ele_2)
-           T_val_face = face_val(T, face)
+           if (ele_2 <= 0) then
+             ! ele face on boundary
+             face=ele_face(T, ele, ele_2)
 
-           ! do maxes
-           T_val_max_face = face_val(T_max,face)
-           do node = 1, size(T_val_face)
-             T_val_max_face(node) = max(T_val_max_face(node), T_val_face(node))
-           end do
-           call set(T_max, face_global_nodes(T_max, face), T_val_max_face)
-
-           ! do mins
-           T_val_min_face = face_val(T_min,face)
-           do node = 1, size(T_val_face)
-             T_val_min_face(node) = min(T_val_min_face(node), T_val_face(node))
-           end do
-           call set(T_min, face_global_nodes(T_min, face), T_val_min_face)
-
-         else         
-           ! level 2 - ele neighbour has face on boundary
-           neigh_2=>ele_neigh(X, ele_2)
-
-           do ni_2=1,size(neigh_2)
-             
-             ele_3 = neigh_2(ni_2)
-
-             if (ele_3 <= 0) then
-               ! neighbour has face on boudary, ele may have a node on the boundary
-               face         = ele_face(X, ele, ele_2)        ! face in coordinate mesh, ele and ele_2
-               face_2       = ele_face(X, ele_2, ele_3)      ! boundary face in coordinate mesh, ele_2
-               face_nodes   = face_global_nodes(X, face)     ! nodes on coordinate mesh for face
-               face_nodes_2 = face_global_nodes(X, face_2)   ! nodes on coordinate mesh for face_2
-               do fi=1,size(face_nodes_2)
-                 if (any(face_nodes(fi) == face_nodes_2)) then
-                   ! it does! we have found the boundary node in ele
-                   ! we use it's position to identify it
-                   node_pos=node_val(X,face_nodes_2(fi))
-                   ele_pos=ele_val(X,ele)
-
-                   ! do mins and maxes
-                   T_val = ele_val(T,ele)
-                   T_val_max = ele_val(T_max,ele)
-                   T_val_min = ele_val(T_min,ele)
-                   do node=1,ele_loc(T,ele)
-                     if (all(abs(ele_pos(:,node) - node_pos) < epsilon(maxval(node_pos)))) then
-                       T_val_max(node) = max(T_val_max(node), T_val(node))
-                       T_val_min(node) = min(T_val_min(node), T_val(node))
-                     end if
-                   end do
-                   call set(T_max, ele_nodes(T_max,ele), T_val_max)
-                   call set(T_min, ele_nodes(T_min,ele), T_val_min)
-
-                 end if
+             if (T_bc_type(face) > 0) then 
+               T_bc_val_face = ele_val(T_bc, face)
+               
+               ! do maxes
+               T_val_max_face = face_val(T_max,face)
+               do node = 1, size(T_bc_val_face)
+                 T_val_max_face(node) = max(T_val_max_face(node), T_bc_val_face(node))
                end do
+               call set(T_max, face_global_nodes(T_max, face), T_val_max_face)
+
+               ! do mins
+               T_val_min_face = face_val(T_min,face)
+               do node = 1, size(T_bc_val_face)
+                 T_val_min_face(node) = min(T_val_min_face(node), T_bc_val_face(node))
+               end do
+               call set(T_min, face_global_nodes(T_min, face), T_val_min_face)
+
              end if
-           end do
-         end if
-       end do
+           end if
+         end do
+       end if
 
     end do
 
