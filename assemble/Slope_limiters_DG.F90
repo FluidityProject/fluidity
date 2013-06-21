@@ -1353,12 +1353,17 @@ contains
     
   end function get_H
 
-  subroutine limit_vb(state, t)
+  subroutine limit_vb(state, t, T_bc_in, T_bc_type_in)
     !Vertex-based (not Victoria Bitter) limiter from
     !Kuzmin, J. Comp. Appl. Math., 2010
     ! doi:10.1016/j.cam.2009.05.028
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(inout) :: t
+    ! optional passing in of bc values 
+    ! needed when limiting a vector field as we cannot obtain the boudary condition
+    ! from the single component of this field that is passed into this routine
+    type(scalar_field), intent(in), target, optional :: T_bc_in
+    integer, dimension(:), intent(in), optional :: T_bc_type_in
     !
     ! This is the limited version of the field, we have to make a copy
     type(scalar_field) :: T_limit, T_max, T_min
@@ -1388,9 +1393,14 @@ contains
     end if
 
     ! Get dirichlet boundary conditions
-    call get_entire_boundary_condition(T, (/ &
-      "weakdirichlet       ", &
-      "dirichlet           " /), T_bc, T_bc_type)
+    if (present(T_bc_in) .and. present(T_bc_type_in)) then
+      T_bc => T_bc_in
+      T_bc_type = T_bc_type_in
+    else
+      call get_entire_boundary_condition(T, (/ &
+           "weakdirichlet       ", &
+           "dirichlet           " /), T_bc, T_bc_type)
+    end if
     have_dirichlet_bc=any(T_bc_type > 0)
 
     ! Allocate copy of field

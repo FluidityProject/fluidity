@@ -2953,12 +2953,13 @@ contains
     type(block_csr_matrix), intent(in):: subcycle_m, inverse_mass
     type(state_type), intent(inout):: state
       
-    type(vector_field) :: u_sub, m_delta_u, delta_u
+    type(vector_field) :: u_sub, m_delta_u, delta_u, u_bc
     type(scalar_field), pointer :: courant_number_field
-    type(scalar_field) :: u_cpt
+    type(scalar_field) :: u_cpt, u_bc_cpt
     real :: max_courant_number
     integer :: d, i, subcycles
     logical :: limit_slope
+    integer, dimension(u%dim, surface_element_count(u))  :: u_bc_type
     
     ewrite(1,*) 'Inside subcycle_momentum_dg'
     
@@ -2991,13 +2992,21 @@ contains
     call allocate(m_delta_u, u%dim, u%mesh, "SubcycleMDeltaU")
     call zero(m_delta_u)
 
+    if (limit_slope) then
+      ! we need the bc values
+      call get_entire_boundary_condition(u, (/ &
+           "weakdirichlet       ", &
+           "dirichlet           " /), u_bc, u_bc_type)
+    end if
+
    do i=1, subcycles
       if (limit_slope) then
 
         ! filter wiggles from u
         do d =1, mesh_dim(u)
-        u_cpt = extract_scalar_field_from_vector_field(u_sub,d)
-        call limit_vb(state,u_cpt)
+          u_bc_cpt = extract_scalar_field_from_vector_field(u_bc,d)
+          u_cpt = extract_scalar_field_from_vector_field(u_sub,d)
+          call limit_vb(state,u_cpt,u_bc_cpt,u_bc_type(d,:))
         end do
 
       end if
