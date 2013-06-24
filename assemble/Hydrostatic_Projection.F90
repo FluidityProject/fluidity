@@ -59,7 +59,6 @@ contains
     
     type(vector_field), pointer:: positions, vertical_normal
     type(scalar_field), pointer:: topdis, p, old_p
-    type(vector_field):: surface_x
     type(mesh_type), pointer:: p_mesh, u_mesh, surface_p_mesh
     type(mesh_type):: local_surface_p_mesh
     type(csr_matrix) :: local_lumped_cmc_m
@@ -92,10 +91,6 @@ contains
       surface_p_mesh => extract_mesh(state, "Lumped"//trim(p_mesh%name))
       
       positions => extract_vector_field(state, "Coordinate")
-      call allocate(surface_x, positions%dim, surface_p_mesh, "SurfacePositions")
-      call remap_field_to_surface(positions, surface_x, surface_element_list)
-      call vtk_write_fields("surface_mesh", position=surface_x, model=surface_p_mesh)
-      call deallocate(surface_x)
       vertical_normal => extract_vector_field(state, "GravityDirection")
 
       assert(.not. has_csr_matrix(state, "HydrostaticProlongator"))
