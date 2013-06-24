@@ -120,10 +120,10 @@ contains
       ! from doing the usual get_csr_sparsity_secondorder() using a surface p and surface u mesh
       ! The latter would only be correct if the mesh is extruded strictly along prismatic columns 
       ! (as in fluidity's extrusion algorithm) - even for a fully "structured" gmsh tetrahedral mesh they are different
-      if (associated(p_mesh%halos)) then
+      if (associated(surface_p_mesh%halos)) then
         allocate(pcmcp_sparsity%row_halo, pcmcp_sparsity%column_halo)
-        pcmcp_sparsity%row_halo = p_mesh%halos(2)
-        pcmcp_sparsity%column_halo = p_mesh%halos(2)
+        pcmcp_sparsity%row_halo = surface_p_mesh%halos(2)
+        pcmcp_sparsity%column_halo = surface_p_mesh%halos(2)
         call incref(pcmcp_sparsity%row_halo)
         call incref(pcmcp_sparsity%column_halo)
       end if
