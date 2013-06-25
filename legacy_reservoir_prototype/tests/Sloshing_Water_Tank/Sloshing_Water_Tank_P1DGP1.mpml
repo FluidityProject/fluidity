@@ -504,21 +504,21 @@
         </Relaxation_Coefficient>
       </Comp_Sum2One>
     </is_multiphase_component>
-    <equation_of_state>
-      <incompressible>
-        <linear>
-          <all_equal>
-            <real_value rank="0">2.0</real_value>
-          </all_equal>
-        </linear>
-      </incompressible>
-    </equation_of_state>
     <vector_field name="Velocity" rank="1">
       <aliased material_phase_name="phase1" field_name="Velocity"/>
     </vector_field>
     <scalar_field material_phase_name="phase1" name="ComponentMassFractionPhase1" rank="0">
       <prognostic>
         <mesh name="PressureMesh"/>
+        <equation_of_state>
+          <incompressible>
+            <linear>
+              <all_equal>
+                <real_value rank="0">2.0</real_value>
+              </all_equal>
+            </linear>
+          </incompressible>
+        </equation_of_state>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
@@ -609,21 +609,21 @@
         </Relaxation_Coefficient>
       </Comp_Sum2One>
     </is_multiphase_component>
-    <equation_of_state>
-      <incompressible>
-        <linear>
-          <all_equal>
-            <real_value rank="0">1.0</real_value>
-          </all_equal>
-        </linear>
-      </incompressible>
-    </equation_of_state>
     <vector_field name="Velocity" rank="1">
       <aliased material_phase_name="phase1" field_name="Velocity"/>
     </vector_field>
     <scalar_field material_phase_name="phase1" name="ComponentMassFractionPhase1" rank="0">
       <prognostic>
         <mesh name="PressureMesh"/>
+        <equation_of_state>
+          <incompressible>
+            <linear>
+              <all_equal>
+                <real_value rank="0">1.0</real_value>
+              </all_equal>
+            </linear>
+          </incompressible>
+        </equation_of_state>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>

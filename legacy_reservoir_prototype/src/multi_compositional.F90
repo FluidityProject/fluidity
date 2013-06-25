@@ -108,7 +108,7 @@
            min( 1., max( 0., Saturaold )), K_Comp, max_k, min_k, &
            K_Comp2 )
 
-      ewrite(3,*)'icomp, min,max K:', ICOMP, MIN_K, MAX_K
+      !ewrite(3,*)'icomp, min,max K:', ICOMP, MIN_K, MAX_K
 
       DO CV_NOD = 1, CV_NONODS
          DO IPHASE = 1, NPHASE
@@ -153,14 +153,14 @@
             END DO
          END DO
 
-         ewrite(3,*)'cv_nod, alpha:', cv_nod, alpha( cv_nod )
+         !ewrite(3,*)'cv_nod, alpha:', cv_nod, alpha( cv_nod )
       END DO
 
-      do cv_nod = 1, cv_nonods
-         ewrite(3,*)'comp_ABSORB:',&
-              ( ( comp_ABSORB( cv_nod, iphase, jphase ), iphase = 1, nphase ), &
-              jphase = 1, nphase )
-      end do
+      !do cv_nod = 1, cv_nonods
+      !   ewrite(3,*)'comp_ABSORB:',&
+      !        ( ( comp_ABSORB( cv_nod, iphase, jphase ), iphase = 1, nphase ), &
+      !        jphase = 1, nphase )
+      !end do
 
       deallocate( alpha, sum_nod, volfra_pore_nod, k_comp, k_comp2 )
 
@@ -282,7 +282,7 @@
            SUFEN, SUFENSLX, SUFENSLY, SUFENLX, SUFENLY, SUFENLZ, &
            SBCVN, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFENLX, SBCVFENLY, SBCVFENLZ, &
            SBUFEN, SBUFENSLX, SBUFENSLY, SBUFENLX, SBUFENLY, SBUFENLZ, &
-           MASS, INV_MASS, MASS2U, INV_MASS_NM!, FEMU
+           MASS, INV_MASS, MASS2U, INV_MASS_NM
       LOGICAL, DIMENSION( :, : ), allocatable :: CV_ON_FACE,U_ON_FACE,  &
            CVFEM_ON_FACE,UFEM_ON_FACE
       INTEGER :: CV_NGI, CV_NGI_SHORT, SCVNGI, SBCVNGI, NFACE, &
@@ -372,8 +372,6 @@
 
       ALLOCATE( SELE_OVERLAP_SCALE( CV_NLOC ))
 
-      !    ALLOCATE( FEMU( U_NLOC, CV_NGI ))
-
       CALL CV_FEM_SHAPE_FUNS( &
                                 ! Volume shape functions...
            NDIM, P_ELE_TYPE,  & 
@@ -438,9 +436,8 @@
 
             Loop_U_JLOC: DO U_JLOC = 1, U_NLOC
 
-               NFEMU = 0.0 !!!!!!!!!!!!HHHHHHHHEEEEERRRREEEEEEEE!!!
+               NFEMU = 0.0
                DO CV_GI = 1, CV_NGI
-                  ! NFEMU = NFEMU +  CVFEN( MAT_ILOC, CV_GI ) * FEMU(  U_JLOC, CV_GI ) * DETWEI( CV_GI )
                   NFEMU = NFEMU +  CVFEN( MAT_ILOC, CV_GI ) * UFEN(  U_JLOC, CV_GI ) * DETWEI( CV_GI )
                END DO
 
@@ -668,8 +665,8 @@
                do jphase = iphase + 1, nphase, 1
                   K_Comp2( icomp, cv_nod, iphase, jphase ) = &
                        1. / K_Comp( icomp, iphase, jphase )
-                  ewrite(3,*)'KComp:', icomp, iphase, jphase, cv_nod, ':', &
-                       K_Comp2( icomp, cv_nod, iphase, jphase )
+                  !ewrite(3,*)'KComp:', icomp, iphase, jphase, cv_nod, ':', &
+                  !     K_Comp2( icomp, cv_nod, iphase, jphase )
                end do
             end do
          end do
@@ -684,15 +681,14 @@
                      K_Comp2( icomp, cv_nod, iphase, jphase ) = &
                           1. / sigmoid_function( satura( ( iphase - 1 ) * cv_nonods + cv_nod ), &
                           Sat0, Width, min_k, max_k )
-                     !   Sat0, Width, max_k, min_k )
+                         !Sat0, Width, max_k, min_k )
                   endif
                   !K_Comp2( icomp, cv_nod, iphase, jphase ) = K_Comp2( icomp, cv_nod, jphase, iphase )
                end do
-               ewrite(3,*)'icomp, iphase, sat, kcomp:',icomp, cv_nod, iphase, &
-                    satura( ( iphase - 1 ) * cv_nonods + cv_nod ), &
-                    ( K_Comp2( icomp, cv_nod, iphase, jphase ), &
-                    jphase = 1, nphase )
-
+               !ewrite(3,*)'icomp, iphase, sat, kcomp:',icomp, cv_nod, iphase, &
+               !     satura( ( iphase - 1 ) * cv_nonods + cv_nod ), '::', &
+               !     ( K_Comp2( icomp, cv_nod, iphase, jphase ), &
+               !     jphase = 1, nphase )
             end do
          end do
 
@@ -767,19 +763,18 @@
       integer :: iphase, cv_nodi, icomp
       logical :: ensure_positive
 
-      do icomp = nphase + 1, ncomp2
-         if( have_option( '/material_phase[' // int2str( icomp - 1 ) // &
-              ']/is_multiphase_component/Comp_Sum2One/Relaxation_Coefficient' ) ) then
-            call get_option( '/material_phase[' // int2str( icomp - 1 ) // & 
-                 ']/is_multiphase_component/Comp_Sum2One/Relaxation_Coefficient', &
-                 sum2one_relax )
+      if( have_option( '/material_phase[' // int2str( nphase ) // &
+           ']/is_multiphase_component/Comp_Sum2One/Relaxation_Coefficient' ) ) then
+         call get_option( '/material_phase[' // int2str( nphase ) // & 
+              ']/is_multiphase_component/Comp_Sum2One/Relaxation_Coefficient', &
+              sum2one_relax )
 
-            ensure_positive = have_option( '/material_phase[' // int2str( icomp - 1 ) // & 
-                 ']/is_multiphase_component/Comp_Sum2One/Ensure_Positive' )
-         else
-            FLAbort( 'Please define the relaxation coefficient for components mass conservation constraint.' )
-         end if
-      end do
+         ensure_positive = have_option( '/material_phase[' // int2str( nphase ) // & 
+              ']/is_multiphase_component/Comp_Sum2One/Ensure_Positive' )
+      else
+         FLAbort( 'Please define the relaxation coefficient for components mass conservation constraint.' )
+      end if
+
       ewrite(3,*) 'sum2one_relax, ensure_positive', sum2one_relax, ensure_positive
 
       DO IPHASE = 1, NPHASE

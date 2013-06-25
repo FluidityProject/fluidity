@@ -590,55 +590,6 @@ start =
                element immobile_fraction {real}?
             }?
          }+,
-
-         ## The component options
-         element component {
-            attribute name { xsd:string },
-
-             element compositional_options {
-               (
-                  ## Specify the weighting for the component equation
-                  ## between 0 and 1. Test cases have 1.
-                  element alpha_beta { real },
-                  ## Enable this option to use sigmoid method for finding equilibrium
-                  element KComp_Sigmoid {
-                     (
-                        ## KComp value for this component
-                        element K_Comp { real }
-                     )
-                  }?,
-                  ## Enable this option to force component mass fractions
-                  ## to sum to 1 by adding constraint into compositional source term.
-                  element Comp_Sum2One { 
-                     (
-                        ## Relaxation coefficient to summation constraint [0,1]. 
-                        ## --> 0: under-relaxation ; --> 1: over-relaxation
-                        element Relaxation_Coefficient { real },
-                        ## Ensure that this constraint acts only as a positive absorption term
-                        element Ensure_Positive { empty }?,
-                        ## Explicitly enforce components to sum to one
-                        element Enforce_Comp_Sum2One { empty }?			
-                     )
-                  }?
-               ) 
-             },
-
-            element material_phase {
-               attribute name { xsd:string },
-	       equation_of_state,
-               ## Surface tension
-               element surface_tension { 
-                  (
-                     ## Surface tension coefficient. 
-                     element coefficient { real },
-                     ##  Smoothing.
-                    element smooth { empty } ?
-                  )
-               }?,
-               prognostic_scalar_field
-             }+
-         }*,
-
          mesh_adaptivity_options?,
          ## Porous Media
          element porous_media {
@@ -1911,6 +1862,7 @@ scalar_field_choice =
             (
                element prognostic {
                   velocity_mesh_choice,
+                  equation_of_state,
                   prognostic_scalar_field,
                   cap_option?
                }|
@@ -1942,6 +1894,7 @@ scalar_field_choice =
             (
                element prognostic {
                   velocity_mesh_choice,
+                  equation_of_state,
                   prognostic_scalar_field,
                   cap_option?
                }|
@@ -1973,6 +1926,7 @@ scalar_field_choice =
             (
                element prognostic {
                   velocity_mesh_choice,
+                  equation_of_state,
                   prognostic_scalar_field,
                   cap_option?
                }|
@@ -2001,6 +1955,7 @@ scalar_field_choice =
             (
                element prognostic {
                   velocity_mesh_choice,
+                  equation_of_state,
                   prognostic_scalar_field,
                   cap_option?
                }|

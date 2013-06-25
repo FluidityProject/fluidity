@@ -188,8 +188,7 @@
        !                          nonlinear_iterations, nonlinear_iteration_tolerance, &
        !                          dump_no) 
        call MultiFluids_SolveTimeLoop( state, &
-         dt, nonlinear_iterations, nonlinear_iteration_tolerance, &
-         dump_no )
+         dt, nonlinear_iterations, dump_no )
 
     ! Dump at end, unless explicitly disabled
     if(.not. have_option("/io/disable_dump_at_end")) then

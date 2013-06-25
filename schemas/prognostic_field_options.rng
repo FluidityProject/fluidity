@@ -36,6 +36,12 @@ want this.</a:documentation>
               </optional>
             </element>
           </optional>
+          <optional>
+            <element name="component_density">
+              <a:documentation>For multimaterial simulations.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
           <ref name="input_choice_real"/>
         </element>
         <element name="type">

@@ -758,77 +758,6 @@ Pc = c * S_w ** a</a:documentation>
           </optional>
         </element>
       </oneOrMore>
-      <zeroOrMore>
-        <element name="component">
-          <a:documentation>The component options</a:documentation>
-          <attribute name="name">
-            <data type="string"/>
-          </attribute>
-          <element name="compositional_options">
-            <element name="alpha_beta">
-              <a:documentation>Specify the weighting for the component equation
-between 0 and 1. Test cases have 1.</a:documentation>
-              <ref name="real"/>
-            </element>
-            <optional>
-              <element name="KComp_Sigmoid">
-                <a:documentation>Enable this option to use sigmoid method for finding equilibrium</a:documentation>
-                <element name="K_Comp">
-                  <a:documentation>KComp value for this component</a:documentation>
-                  <ref name="real"/>
-                </element>
-              </element>
-            </optional>
-            <optional>
-              <element name="Comp_Sum2One">
-                <a:documentation>Enable this option to force component mass fractions
-to sum to 1 by adding constraint into compositional source term.</a:documentation>
-                <element name="Relaxation_Coefficient">
-                  <a:documentation>Relaxation coefficient to summation constraint [0,1]. 
---&gt; 0: under-relaxation ; --&gt; 1: over-relaxation</a:documentation>
-                  <ref name="real"/>
-                </element>
-                <optional>
-                  <element name="Ensure_Positive">
-                    <a:documentation>Ensure that this constraint acts only as a positive absorption term</a:documentation>
-                    <empty/>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="Enforce_Comp_Sum2One">
-                    <a:documentation>Explicitly enforce components to sum to one</a:documentation>
-                    <empty/>
-                  </element>
-                </optional>
-              </element>
-            </optional>
-          </element>
-          <oneOrMore>
-            <element name="material_phase">
-              <attribute name="name">
-                <data type="string"/>
-              </attribute>
-              <ref name="equation_of_state"/>
-              <optional>
-                <element name="surface_tension">
-                  <a:documentation>Surface tension</a:documentation>
-                  <element name="coefficient">
-                    <a:documentation>Surface tension coefficient. </a:documentation>
-                    <ref name="real"/>
-                  </element>
-                  <optional>
-                    <element name="smooth">
-                      <a:documentation> Smoothing.</a:documentation>
-                      <empty/>
-                    </element>
-                  </optional>
-                </element>
-              </optional>
-              <ref name="prognostic_scalar_field"/>
-            </element>
-          </oneOrMore>
-        </element>
-      </zeroOrMore>
       <optional>
         <ref name="mesh_adaptivity_options"/>
       </optional>
@@ -2366,6 +2295,7 @@ even if the problem is one-phase</a:documentation>
         <choice>
           <element name="prognostic">
             <ref name="velocity_mesh_choice"/>
+            <ref name="equation_of_state"/>
             <ref name="prognostic_scalar_field"/>
             <optional>
               <ref name="cap_option"/>
@@ -2407,6 +2337,7 @@ even if the problem is one-phase</a:documentation>
         <choice>
           <element name="prognostic">
             <ref name="velocity_mesh_choice"/>
+            <ref name="equation_of_state"/>
             <ref name="prognostic_scalar_field"/>
             <optional>
               <ref name="cap_option"/>
@@ -2448,6 +2379,7 @@ even if the problem is one-phase</a:documentation>
         <choice>
           <element name="prognostic">
             <ref name="velocity_mesh_choice"/>
+            <ref name="equation_of_state"/>
             <ref name="prognostic_scalar_field"/>
             <optional>
               <ref name="cap_option"/>
@@ -2486,6 +2418,7 @@ mass fraction with a particular phase</a:documentation>
         <choice>
           <element name="prognostic">
             <ref name="velocity_mesh_choice"/>
+            <ref name="equation_of_state"/>
             <ref name="prognostic_scalar_field"/>
             <optional>
               <ref name="cap_option"/>

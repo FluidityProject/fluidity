@@ -76,13 +76,11 @@
   contains
 
     subroutine MultiFluids_SolveTimeLoop( state, &
-         dt, nonlinear_iterations, nonlinear_iteration_tolerance, &
-         dump_no )
+         dt, nonlinear_iterations, dump_no )
       implicit none
       type( state_type ), dimension( : ), intent( inout ) :: state
-      integer, intent( inout ) :: dump_no, nonlinear_iterations 
-      real, intent( inout ) :: dt 
-      real, intent( inout ) :: nonlinear_iteration_tolerance
+      integer, intent( inout ) :: dump_no, nonlinear_iterations
+      real, intent( inout ) :: dt
 
 !!$ Primary scalars
       integer :: nphase, nstate, ncomp, totele, ndim, stotel, &
@@ -166,7 +164,7 @@
            suf_u_bc_rob1, suf_v_bc_rob1, suf_w_bc_rob1, suf_u_bc_rob2, suf_v_bc_rob2, suf_w_bc_rob2, &
            suf_t_bc_rob1, suf_t_bc_rob2, suf_vol_bc_rob1, suf_vol_bc_rob2, suf_comp_bc_rob1, suf_comp_bc_rob2, &
            theta_gdiff,  ScalarField_Source_Store, ScalarField_Source_Component, &
-           mass_ele, dummy_ele, density_tmp, density_old_tmp, densityc_tmp, drhodpressurec_tmp, &
+           mass_ele, dummy_ele, density_tmp, density_old_tmp, &
            suf_momu_bc, suf_momv_bc, suf_momw_bc
 !!$
       real, dimension( :, :, : ), allocatable :: Permeability, Material_Absorption, Material_Absorption_Stab, &
@@ -184,13 +182,13 @@
 !!$ Momentum_Diffusion = udiffusion; ScalarAdvectionField_Diffusion = tdiffusion, 
 !!$ Component_Diffusion = comp_diffusion
 
-      character( len = option_path_len ) :: eos_option_path( 1 )
+      !character( len = option_path_len ) :: eos_option_path( 1 )
 
       integer :: stat, istate, iphase, jphase, icomp, its, its2, cv_nodi, adapt_time_steps, cv_inod
       real, dimension( : ), allocatable :: rsum
 
       real, dimension(:, :), allocatable :: DEN_CV_NOD, SUF_SIG_DIAGTEN_BC
-      integer :: CV_NOD, CV_NOD_PHA, CV_ILOC, ELE, s, e, i
+      integer :: CV_NOD, CV_NOD_PHA, CV_ILOC, ELE, I
 
       type( scalar_field ), pointer :: cfl
       real :: c, rc, minc, maxc, ic
@@ -510,6 +508,7 @@
 !!$
          itime = itime + 1
          call get_option( '/timestepping/timestep', dt )
+
          acctim = acctim + dt
          call set_option( '/timestepping/current_time', acctim )
 
@@ -546,39 +545,16 @@
 !!$ Start non-linear loop
          Loop_NonLinearIteration: do its = 1, NonLinearIteration
 
-            call Calculate_Phase_Component_Densities( state, &
-                 Density, DRhoDPressure, Density_Cp )
+            call Calculate_All_Rhos( state, ncomp, nphase, &
+                 cv_nonods, Component, Density, Density_Cp, DRhoDPressure, Density_Component )
 
             if( its == 1 ) then
                Density_Old = Density
                Density_Cp_Old = Density_Cp
+               if( have_component_field ) then
+                  Density_Component_Old = Density_Component
+               end if
             end if
-
-!!$ Calculate Density_Component_Old for compositional
-            if( have_component_field .and. its ==1 ) then
-
-               do icomp = 1, ncomp
-
-                  allocate( DensityC_tmp( cv_nonods ), DRhoDPressureC_tmp( cv_nonods ) )
-                  do iphase = 1, nphase
-                     s = ( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1
-                     e = ( icomp - 1 ) * nphase * cv_nonods + iphase * cv_nonods
-                     eos_option_path = trim( '/material_phase[' // int2str( icomp + nphase - 1 ) // ']/equation_of_state' )
-                     call Assign_Equation_of_State( eos_option_path( 1 ) )
-                     DensityC_tmp=0. ; DRhoDPressureC_tmp=0.
-                     call Computing_Perturbation_Density( state, &
-                          iphase, icomp, icomp, eos_option_path, &
-                          DensityC_tmp, &
-                          DRhoDPressureC_tmp, .true. )
-
-                     Density_Component( s : e ) = DensityC_tmp
-                     Density_Component_Old( s : e ) = Density_Component( s : e )
-
-                  end do ! iphase
-                  deallocate( DensityC_tmp, DRhoDPressureC_tmp )
-               end do ! icomp
-
-            end if ! have_component_field
 
             if( solve_force_balance ) then
                call Calculate_AbsorptionTerm( state, &
@@ -660,40 +636,10 @@
                   Temperature_State % val = Temperature( 1 + ( iphase - 1 ) * cv_nonods : iphase * cv_nonods )
                end do
 
-               call Calculate_Phase_Component_Densities( state, &
-                    Density, DRhoDPressure, Density_Cp )
+               call Calculate_All_Rhos( state, ncomp, nphase, &
+                    cv_nonods, Component, Density, Density_Cp, DRhoDPressure, Density_Component )
 
             end if Conditional_ScalarAdvectionField
-
-!!$ Calculate Density_Component and DRhoDPressure for compositional
-            if( have_component_field ) then
-
-               DRhoDPressure = 0.
-
-               do icomp = 1, ncomp
-
-                  allocate( DensityC_tmp( cv_nonods ), DRhoDPressureC_tmp( cv_nonods ) )
-                  do iphase = 1, nphase
-                     s = ( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1
-                     e = ( icomp - 1 ) * nphase * cv_nonods + iphase * cv_nonods
-                     eos_option_path = trim( '/material_phase[' // int2str( icomp + nphase - 1 ) // ']/equation_of_state' )
-                     call Assign_Equation_of_State( eos_option_path( 1 ) )
-                     DensityC_tmp=0. ; DRhoDPressureC_tmp=0.
-                     call Computing_Perturbation_Density( state, &
-                          iphase, icomp, icomp, eos_option_path, &
-                          DensityC_tmp, &
-                          DRhoDPressureC_tmp, .true. )
-
-                     Density_Component( s : e ) = DensityC_tmp
-
-                     DRhoDPressure( ( iphase - 1 ) * cv_nonods + 1 : iphase * cv_nonods ) = &
-                          DRhoDPressure( ( iphase - 1 ) * cv_nonods + 1 : iphase * cv_nonods ) + &
-                          DRhoDPressureC_tmp * Component( s : e )
-
-                  end do ! iphase
-                  deallocate( DensityC_tmp, DRhoDPressureC_tmp )
-               end do ! icomp
-            end if ! have_component_field
 
             ScalarField_Source_Store = ScalarField_Source + ScalarField_Source_Component
 
@@ -845,28 +791,9 @@
                Pressure_State % val = Pressure_CV
 
 !!$ Calculate Density_Component for compositional
-               if( have_component_field ) then
-
-                  do icomp = 1, ncomp
-
-                     allocate( DensityC_tmp( cv_nonods ), DRhoDPressureC_tmp( cv_nonods ) )
-                     do iphase = 1, nphase
-                        s = ( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1
-                        e = ( icomp - 1 ) * nphase * cv_nonods + iphase * cv_nonods
-                        eos_option_path = trim( '/material_phase[' // int2str( icomp + nphase - 1 ) // ']/equation_of_state' )
-                        call Assign_Equation_of_State( eos_option_path( 1 ) )
-                        DensityC_tmp=0. ; DRhoDPressureC_tmp=0.
-                        call Computing_Perturbation_Density( state, &
-                             iphase, icomp, icomp, eos_option_path, &
-                             DensityC_tmp, &
-                             DRhoDPressureC_tmp, .true. )
-
-                        Density_Component( s : e ) = DensityC_tmp
-
-                     end do ! iphase
-                     deallocate( DensityC_tmp, DRhoDPressureC_tmp )
-                  end do ! icomp
-               end if ! have_component_field
+               if( have_component_field ) &
+                    call Calculate_Component_Rho( state, ncomp, nphase, &
+                    cv_nonods, Density_Component )
 
             end if Conditional_ForceBalanceEquation
 
@@ -1005,21 +932,11 @@
                   sum_theta_flux = sum_theta_flux + theta_flux
                   sum_one_m_theta_flux = sum_one_m_theta_flux + one_m_theta_flux
 
-!!$
-!!$ And Here, zeroed Component_Absorption within ScalarField_Source_Component
-!!$
-!!!!! We have divided through by density 
+
+                  ! We have divided through by density 
                   ScalarField_Source_Component = ScalarField_Source_Component + THETA_GDIFF
 
                end do Loop_Components
-
-               if( have_option( '/material_phase[' // int2str( nstate - ncomp ) // & 
-                    ']/is_multiphase_component/Comp_Sum2One' ) .and. ( ncomp > 1 ) ) then
-                  call Cal_Comp_Sum2One_Sou( ScalarField_Source_Component, cv_nonods, nphase, ncomp, dt, its, &
-                       NonLinearIteration, &
-                       Mean_Pore_CV, PhaseVolumeFraction, PhaseVolumeFraction_Old, Density_Component, Density_Component_Old, &
-                       Component, Component_Old )
-               end if
 
                if( have_option( '/material_phase[' // int2str( nstate - ncomp ) // & 
                     ']/is_multiphase_component/Comp_Sum2One/Enforce_Comp_Sum2One' ) ) then
@@ -1049,16 +966,34 @@
 
                DO ICOMP = 1, NCOMP
 
-                  Loop_Phase_SourceTerm1: do iphase = 1, nphase
+                  call Calculate_ComponentAbsorptionTerm( state, &
+                       icomp, cv_ndgln, & 
+                       Density_Old, PhaseVolumeFraction_Old, Porosity, mass_ele, &
+                       Component_Absorption )
+
+                  if( have_option( '/material_phase[' // int2str( nstate - ncomp ) // &
+                       ']/is_multiphase_component/KComp_Sigmoid' ) .and. nphase > 1 ) then
+                     do cv_nodi = 1, cv_nonods
+                        if( PhaseVolumeFraction_Old( cv_nodi ) > 0.95 ) then
+                           do iphase = 1, nphase
+                              do jphase = min( iphase + 1, nphase ), nphase
+                                 Component_Absorption( cv_nodi, iphase, jphase ) = &
+                                      Component_Absorption( cv_nodi, iphase, jphase ) * max( 0.01, &
+                                      20. * PhaseVolumeFraction_Old( cv_nodi ) )
+                              end do
+                           end do
+                        end if
+                     end do
+                  end if
+
+                 Loop_Phase_SourceTerm1: do iphase = 1, nphase
                      Loop_Phase_SourceTerm2: do jphase = 1, nphase
                         DO CV_NODI = 1, CV_NONODS
                            ScalarField_Source_Component( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) = &
                                 ScalarField_Source_Component( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) - &
                                 Component_Absorption( CV_NODI, IPHASE, JPHASE ) * &
-                                Component( CV_NODI + ( JPHASE - 1 ) * CV_NONODS + &
-                                ( ICOMP - 1 ) * NPHASE * CV_NONODS )  &
-                                / DENSITY_COMPONENT( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + &
-                                ( ICOMP - 1 ) * NPHASE * CV_NONODS )
+                                Component( CV_NODI + ( JPHASE - 1 ) * CV_NONODS + ( ICOMP - 1 ) * NPHASE * CV_NONODS ) / &
+                                DENSITY_COMPONENT( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + ( ICOMP - 1 ) * NPHASE * CV_NONODS )
                         END DO
                      end do Loop_Phase_SourceTerm2
                   end do Loop_Phase_SourceTerm1
@@ -1080,7 +1015,15 @@
                      END DO
                   END DO
 
-               END DO
+               END DO ! ICOMP
+
+               if( have_option( '/material_phase[' // int2str( nstate - ncomp ) // & 
+                    ']/is_multiphase_component/Comp_Sum2One' ) .and. ( ncomp > 1 ) ) then
+                  call Cal_Comp_Sum2One_Sou( ScalarField_Source_Component, cv_nonods, nphase, ncomp, dt, its, &
+                       NonLinearIteration, &
+                       Mean_Pore_CV, PhaseVolumeFraction, PhaseVolumeFraction_Old, Density_Component, Density_Component_Old, &
+                       Component, Component_Old )
+               end if
 
                ! Update state memory
                do icomp = 1, ncomp
