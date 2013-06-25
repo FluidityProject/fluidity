@@ -103,10 +103,6 @@ contains
     ewrite(2,*) 'subroutine limit_slope_dg for vector'
 
     if (limiter==LIMITER_VB) then
-      call allocate(T_bc, T%dim, T%mesh, "Tbc")
-      call zero(T_bc)
-      T_bc_type = 0
-
       ! we need the bc values
       call get_entire_boundary_condition(T, (/ &
            "weakdirichlet       ", &
