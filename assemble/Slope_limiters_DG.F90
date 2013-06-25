@@ -103,7 +103,7 @@ contains
     ewrite(2,*) 'subroutine limit_slope_dg for vector'
 
     if (limiter==LIMITER_VB) then
-      call allocate(T_bc, T%dim, T%mesh, name='T_bc')
+      call allocate(T_bc, T%dim, T%mesh, "Tbc")
       call zero(T_bc)
       T_bc_type = 0
 
