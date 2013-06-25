@@ -2303,6 +2303,13 @@
       REAL, DIMENSION ( :, :, : ), allocatable :: RESID, DIFF_FOR_BETWEEN_U, DIFF_FOR_BETWEEN_V, &
            DIFF_FOR_BETWEEN_W, MAT_ELE
       REAL, DIMENSION ( :, :, :, :, : ), allocatable :: UDIFF_SUF_STAB
+!
+! Variables used to reduce indirect addressing...
+      REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U, LOC_UOLD
+      REAL, DIMENSION ( :, :, : ), allocatable :: LOC_NU, LOC_NUOLD
+      REAL, DIMENSION ( :, : ), allocatable :: LOC_UDEN,  LOC_UDENOLD
+      REAL, DIMENSION ( :, :), allocatable :: LOC_PLIKE_GRAD_SOU_COEF
+      REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U_SOURCE_CV
 
       LOGICAL :: D1, D3, DCYL, GOT_DIFFUS, GOT_UDEN, DISC_PRES, QUAD_OVER_WHOLE_ELE
       INTEGER :: CV_NGI, CV_NGI_SHORT, SCVNGI, SBCVNGI, NFACE
@@ -2653,6 +2660,15 @@
 
       ALLOCATE( VLK_UVW(3) )
 
+! Variables used to reduce indirect addressing...
+      ALLOCATE( LOC_U(NDIM_VEL, NPHASE, U_NLOC),  LOC_UOLD(NDIM_VEL, NPHASE, U_NLOC) ) 
+      ALLOCATE( LOC_NU(NDIM, NPHASE, U_NLOC),  LOC_NUOLD(NDIM, NPHASE, U_NLOC) ) 
+      ALLOCATE( LOC_UDEN(NPHASE, CV_NLOC),  LOC_UDENOLD(NPHASE, CV_NLOC) ) 
+      ALLOCATE( LOC_PLIKE_GRAD_SOU_COEF(NPHASE, CV_NLOC) ) 
+      ALLOCATE( LOC_U_SOURCE_CV(NDIM_VEL, NPHASE, CV_NLOC) ) 
+
+
+
       GOT_DIFFUS = ( R2NORM( UDIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0.0 )  &
            .OR. BETWEEN_ELE_STAB
 
@@ -2767,6 +2783,72 @@
          ! Adjust the volume according to the number of levels. 
          VOLUME=VOLUME/REAL(NLEV)
          MASS_ELE(ELE)=VOLUME
+
+
+! *********subroutine Determine local vectors...
+         LOC_DGM_PHA=0.0
+         LOC_U_RHS  =0.0
+         DO ILEV = 1, NLEV
+            DO U_ILOC = 1 +(ILEV-1)*U_NLOC2, ILEV*U_NLOC2
+
+               U_INOD = U_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
+               DO IPHASE=1,NPHASE
+                  DO IDIM=1,NDIM_VEL
+                   IF(IDIM==1) THEN
+                     LOC_U(IDIM,IPHASE,U_ILOC)=U(U_INOD+(IPHASE-1)*U_NONODS)
+                     LOC_UOLD(IDIM,IPHASE,U_ILOC)=UOLD(U_INOD+(IPHASE-1)*U_NONODS)
+                   ENDIF
+                   IF(IDIM==2) THEN
+                     LOC_U(IDIM,IPHASE,U_ILOC)=V(U_INOD+(IPHASE-1)*U_NONODS)
+                     LOC_UOLD(IDIM,IPHASE,U_ILOC)=VOLD(U_INOD+(IPHASE-1)*U_NONODS)
+                   ENDIF
+                   IF(IDIM==3) THEN
+                     LOC_U(IDIM,IPHASE,U_ILOC)=W(U_INOD+(IPHASE-1)*U_NONODS)
+                     LOC_UOLD(IDIM,IPHASE,U_ILOC)=WOLD(U_INOD+(IPHASE-1)*U_NONODS)
+                   ENDIF
+                  END DO
+                  DO IDIM=1,NDIM
+                   IF(IDIM==1) THEN
+                     LOC_NU(IDIM,IPHASE,U_ILOC)=NU(U_INOD+(IPHASE-1)*U_NONODS)
+                     LOC_NUOLD(IDIM,IPHASE,U_ILOC)=NUOLD(U_INOD+(IPHASE-1)*U_NONODS)
+                   ENDIF
+                   IF(IDIM==2) THEN
+                     LOC_NU(IDIM,IPHASE,U_ILOC)=NV(U_INOD+(IPHASE-1)*U_NONODS)
+                     LOC_NUOLD(IDIM,IPHASE,U_ILOC)=NVOLD(U_INOD+(IPHASE-1)*U_NONODS)
+                   ENDIF
+                   IF(IDIM==3) THEN
+                     LOC_NU(IDIM,IPHASE,U_ILOC)=NW(U_INOD+(IPHASE-1)*U_NONODS)
+                     LOC_NUOLD(IDIM,IPHASE,U_ILOC)=NWOLD(U_INOD+(IPHASE-1)*U_NONODS)
+                   ENDIF
+                  END DO
+               END DO
+
+            END DO
+         END DO
+         DO CV_ILOC = 1, CV_NLOC
+            CV_INOD = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_ILOC )
+
+            DO IPHASE=1,NPHASE
+               LOC_UDEN( IPHASE, CV_ILOC )   =UDEN( CV_INOD + (IPHASE-1)*CV_NONODS)
+               LOC_UDENOLD( IPHASE, CV_ILOC)=UDENOLD( CV_INOD + (IPHASE-1)*CV_NONODS )
+               IF(IPLIKE_GRAD_SOU.NE.0) THEN
+                  LOC_PLIKE_GRAD_SOU_COEF( IPHASE, CV_ILOC )=PLIKE_GRAD_SOU_COEF( CV_INOD + (IPHASE-1)*CV_NONODS )
+               ENDIF
+               DO IDIM=1,NDIM_VEL
+                  LOC_U_SOURCE_CV( IDIM,IPHASE,CV_ILOC)=U_SOURCE_CV( CV_INOD + (IDIM-1)*CV_NONODS + (IPHASE-1)*NDIM_VEL*CV_NONODS)
+               END DO
+            END DO
+
+         END DO
+         DO MAT_ILOC = 1, MAT_NLOC
+            MAT_INOD = MAT_NDGLN(( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
+            LOC_U_ABSORB( :, :, MAT_ILOC)=U_ABSORB( MAT_NODI, :, : ) ! memory of U_ABSORB is wrong way around...
+            LOC_U_ABS_STAB( :, :, MAT_ILOC)=U_ABS_STAB( MAT_NODI, :, : )
+            LOC_UDIFFUSION( :,:,:, MAT_ILOC)=UDIFFUSION( MAT_NODI, :,:,: )
+         END DO
+! *********subroutine Determine local vectors...
+
+! **********REVIEWER 1**********************
          !ewrite(3,*) 'Leaving detnlxr_plus_u'
          !ewrite(3,*)'volume=',volume
          !stop 2892
@@ -2939,7 +3021,9 @@
                END DO
             END DO
          END DO
+! **********REVIEWER 1-END**********************
 
+! **********REVIEWER 1-START**********************
          RHS_DIFF_U=0.0
          RHS_DIFF_V=0.0
          RHS_DIFF_W=0.0
@@ -3366,7 +3450,9 @@ end if
 
             END DO Loop_DGNods1
          END DO Loop_ilev_DGNods1
+! **********REVIEWER 1-END**********************
 
+! **********REVIEWER 2-START**********************
          !ewrite(3,*)'just after Loop_DGNods1'
 
          ! Add-in  surface contributions.
@@ -3464,6 +3550,11 @@ end if
          END DO Loop_ILEV1
 
          !ewrite(3,*)'just after Loop_U_ILOC1'
+
+! **********REVIEWER 2-END**********************
+
+
+! **********REVIEWER 2-START**********************
 
          IF((.not.firstst).and.(RESID_BASED_STAB_DIF.NE.0)) THEN
             !! *************************INNER ELEMENT STABILIZATION****************************************
@@ -3827,6 +3918,7 @@ end if
             !! *************************INNER ELEMENT STABILIZATION****************************************
             ! endof IF(RESID_BASED_STAB_DIF.NE.0) THEN
          ENDIF
+! **********REVIEWER 2-END**********************
 
       END DO Loop_Elements
 
@@ -3837,6 +3929,7 @@ end if
       !! *************************loop over surfaces*********************************************
       ! at some pt we need to merge these 2 loops but there is a bug when doing that!!!!!
 
+! **********REVIEWER 3-START**********************
       DISC_PRES = ( CV_NONODS == TOTELE * CV_NLOC )
 
       Loop_Elements2: DO ELE = 1, TOTELE
@@ -4340,8 +4433,10 @@ end if
                         DIFF_COEFOLD_DIVDX( SGI,:,IPHASE )=0.0
                      END IF If_GOT_DIFFUS2
                    ENDIF
+! *************REVIEWER 3-END*************
 
 
+! *************REVIEWER 4-START*************
                      DO IDIM=1, NDIM_VEL
 ! This if should be deleted eventually and DIFFUS_CAL_COEFF_STRESS_OR_TENSOR used instead...
                    IF(.NOT.STRESS_FORM) THEN
@@ -4784,6 +4879,7 @@ end if
 
          !      END DO Loop_Elements
       END DO Loop_Elements2
+! **********REVIEWER 4-END**********************
 
       !ewrite(3,*)'p=',p
       !ewrite(3,*)'U_RHS:',U_RHS
