@@ -79,14 +79,89 @@ logical :: has_discontinuity_detector_field
 type(scalar_field), pointer :: discontinuity_detector_field
 integer :: limit_count
 
+interface limit_slope_dg
+  module procedure limit_slope_dg_vector, limit_slope_dg_scalar
+end interface limit_slope_dg
+
 contains
 
-  subroutine limit_slope_dg(T, U, X, state, limiter)
+  subroutine limit_slope_dg_vector(state, T, limiter, U, X)
     !! Assume 1D linear elements
-    type(scalar_field), intent(inout) :: T
-    type(vector_field), intent(in) :: X, U
+    type(vector_field), intent(inout) :: T
     type(state_type), intent(inout) :: state
     integer, intent(in) :: limiter
+    type(vector_field), intent(in), optional :: X, U
+    
+    ! bc values for vertex based limiting
+    type(vector_field), pointer :: T_bc
+    type(scalar_field), pointer :: T_bc_cpt
+    integer, dimension(T%dim, surface_element_count(T))  :: T_bc_type
+
+    type(scalar_field), pointer :: T_cpt
+    integer :: d
+
+    ewrite(2,*) 'subroutine limit_slope_dg for vector'
+    
+    call zero(T_bc)
+    T_bc_type = 0
+
+    if (limiter==LIMITER_VB) then
+      ! we need the bc values
+      call get_entire_boundary_condition(T, (/ &
+           "weakdirichlet       ", &
+           "dirichlet           " /), T_bc, T_bc_type)
+    end if      
+    
+    do d = 1, mesh_dim(u)
+      ewrite(2,*) 'subroutine limit_slope_dg for vector component', d
+      T_bc_cpt = extract_scalar_field_from_vector_field(T_bc, d)
+      T_cpt = extract_scalar_field_from_vector_field(T, d)
+      call limit_slope_dg_internal(state, T_cpt, limiter, U, X, T_bc_cpt, T_bc_type(d,:))
+    end do
+
+    ewrite(2,*) 'END subroutine limit_slope_dg'
+    
+  end subroutine limit_slope_dg_vector
+
+  subroutine limit_slope_dg_scalar(state, T, limiter, U, X)
+    !! Assume 1D linear elements
+    type(scalar_field), intent(inout) :: T
+    type(state_type), intent(inout) :: state
+    integer, intent(in) :: limiter
+    type(vector_field), intent(in), optional :: X, U
+    
+    ! bc values for vertex based limiting
+    type(scalar_field), pointer :: T_bc
+    integer, dimension(surface_element_count(T))  :: T_bc_type
+
+    integer :: d
+
+    ewrite(2,*) 'subroutine limit_slope_dg'
+    
+    call zero(T_bc)
+    T_bc_type = 0
+
+    if (limiter==LIMITER_VB) then
+      ! we need the bc values
+      call get_entire_boundary_condition(T, (/ &
+           "weakdirichlet       ", &
+           "dirichlet           " /), T_bc, T_bc_type)
+    end if      
+    
+    call limit_slope_dg_internal(state, T, limiter, U, X, T_bc, T_bc_type)
+
+    ewrite(2,*) 'END subroutine limit_slope_dg'
+    
+  end subroutine limit_slope_dg_scalar
+
+  subroutine limit_slope_dg_internal(state, T, limiter, U, X, T_bc, T_bc_type)
+    !! Assume 1D linear elements
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(inout) :: T
+    integer, intent(in) :: limiter
+    type(vector_field), intent(in) :: X, U
+    type(scalar_field), intent(in) :: T_bc
+    integer, dimension(surface_element_count(T)), intent(in)  :: T_bc_type
 
     integer :: ele, stat
     type(scalar_field) :: T_limit
@@ -94,8 +169,6 @@ contains
     !assert(mesh_dim(coordinate)==1)
     !assert(field%mesh%continuity<0)
     !assert(field%mesh%shape%degree==1)
-
-    ewrite(2,*) 'subroutiune limit_slope_dg'
 
     select case (limiter)
     case (LIMITER_MINIMAL)
@@ -211,7 +284,7 @@ contains
        call deallocate(T_limit)
 
     case (LIMITER_VB)
-       call limit_VB(state, T)
+       call limit_VB(state, T, T_bc, T_bc_type)
 
     case (LIMITER_FPN)
        call limit_fpn(state, T)      
@@ -221,9 +294,7 @@ contains
        FLAbort('no such limiter exists')
     end select
 
-    ewrite(2,*) 'END subroutiune limit_slope_dg'
-
-  end subroutine limit_slope_dg
+  end subroutine limit_slope_dg_internal
 
   subroutine limit_slope_ele_dg(ele, T, X, T_limit)
     
@@ -1353,17 +1424,17 @@ contains
     
   end function get_H
 
-  subroutine limit_vb(state, t, T_bc_in, T_bc_type_in)
+  subroutine limit_vb(state, T, T_bc, T_bc_type)
     !Vertex-based (not Victoria Bitter) limiter from
     !Kuzmin, J. Comp. Appl. Math., 2010
     ! doi:10.1016/j.cam.2009.05.028
     type(state_type), intent(inout) :: state
-    type(scalar_field), intent(inout) :: t
+    type(scalar_field), intent(inout) :: T
     ! optional passing in of bc values 
     ! needed when limiting a vector field as we cannot obtain the boudary condition
     ! from the single component of this field that is passed into this routine
-    type(scalar_field), intent(in), target, optional :: T_bc_in
-    integer, dimension(:), intent(in), optional :: T_bc_type_in
+    type(scalar_field), intent(in), target :: T_bc
+    integer, dimension(:), intent(in) :: T_bc_type
     !
     ! This is the limited version of the field, we have to make a copy
     type(scalar_field) :: T_limit, T_max, T_min
@@ -1381,8 +1452,6 @@ contains
     ! variables to stop slope limiting at boundary
     integer, dimension(:), pointer :: neigh
     real, dimension(face_loc(T,1)) :: T_val_min_face, T_val_max_face, T_bc_val_face
-    type(scalar_field), pointer :: T_bc
-    integer, dimension(surface_element_count(T)) :: T_bc_type
     integer, dimension(face_loc(T,1)) :: face_nodes
     real, dimension(mesh_dim(T), ele_loc(T,1)) :: ele_pos
     real, dimension(mesh_dim(T)) :: node_pos
@@ -1392,15 +1461,7 @@ contains
       FLExit("The vertex based slope limiter only works for P1DG fields.")
     end if
 
-    ! Get dirichlet boundary conditions
-    if (present(T_bc_in) .and. present(T_bc_type_in)) then
-      T_bc => T_bc_in
-      T_bc_type = T_bc_type_in
-    else
-      call get_entire_boundary_condition(T, (/ &
-           "weakdirichlet       ", &
-           "dirichlet           " /), T_bc, T_bc_type)
-    end if
+    ! Do we have dirichlet boundary conditions
     have_dirichlet_bc=any(T_bc_type > 0)
 
     ! Allocate copy of field

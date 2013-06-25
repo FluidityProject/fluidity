@@ -1850,10 +1850,6 @@
          ! Matrix for split explicit advection
          type(block_csr_matrix), dimension(:), intent(inout) :: subcycle_m
 
-         ! Local variables for reduced model
-         integer :: d
-         type(scalar_field) :: u_cpt
-
          ewrite(1,*) 'Entering finalise_state'
 
 
@@ -1871,11 +1867,8 @@
             call rotate_velocity_back_sphere(u, state(istate))
          end if
          if (subcycle(istate)) then
-            ! Filter wiggles from u
-            do d = 1, mesh_dim(u)
-               u_cpt = extract_scalar_field_from_vector_field(u, d)
-               call limit_vb(state(istate), u_cpt)
-            end do
+           ! Filter wiggles from u
+           call limit_slope_dg(state(istate), u, 5)    ! 5 = limit_vb
          end if
          call profiler_toc(u, "assembly")
 

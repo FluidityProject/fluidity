@@ -624,7 +624,7 @@ contains
        call halo_update(T)
        if (limit_slope) then
           ! Filter wiggles from T
-          call limit_slope_dg(T, U_nl, X, state, limiter)
+          call limit_slope_dg(state, T, limiter, U_nl, X)
        end if
 
     end do
