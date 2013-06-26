@@ -2786,66 +2786,68 @@
 
 
 ! *********subroutine Determine local vectors...
-         LOC_DGM_PHA=0.0
-         LOC_U_RHS  =0.0
-         DO ILEV = 1, NLEV
-            DO U_ILOC = 1 +(ILEV-1)*U_NLOC2, ILEV*U_NLOC2
+!!$         LOC_DGM_PHA=0.0
+!!$         LOC_U_RHS  =0.0
+!!$         DO ILEV = 1, NLEV
+!!$            DO U_ILOC = 1 +(ILEV-1)*U_NLOC2, ILEV*U_NLOC2
+!!$
+!!$               U_INOD = U_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
+!!$               DO IPHASE=1,NPHASE
+!!$                  DO IDIM=1,NDIM_VEL
+!!$                   IF(IDIM==1) THEN
+!!$                     LOC_U(IDIM,IPHASE,U_ILOC)=U(U_INOD+(IPHASE-1)*U_NONODS)
+!!$                     LOC_UOLD(IDIM,IPHASE,U_ILOC)=UOLD(U_INOD+(IPHASE-1)*U_NONODS)
+!!$                   ENDIF
+!!$                   IF(IDIM==2) THEN
+!!$                     LOC_U(IDIM,IPHASE,U_ILOC)=V(U_INOD+(IPHASE-1)*U_NONODS)
+!!$                     LOC_UOLD(IDIM,IPHASE,U_ILOC)=VOLD(U_INOD+(IPHASE-1)*U_NONODS)
+!!$                   ENDIF
+!!$                   IF(IDIM==3) THEN
+!!$                     LOC_U(IDIM,IPHASE,U_ILOC)=W(U_INOD+(IPHASE-1)*U_NONODS)
+!!$                     LOC_UOLD(IDIM,IPHASE,U_ILOC)=WOLD(U_INOD+(IPHASE-1)*U_NONODS)
+!!$                   ENDIF
+!!$                  END DO
+!!$                  DO IDIM=1,NDIM
+!!$                   IF(IDIM==1) THEN
+!!$                     LOC_NU(IDIM,IPHASE,U_ILOC)=NU(U_INOD+(IPHASE-1)*U_NONODS)
+!!$                     LOC_NUOLD(IDIM,IPHASE,U_ILOC)=NUOLD(U_INOD+(IPHASE-1)*U_NONODS)
+!!$                   ENDIF
+!!$                   IF(IDIM==2) THEN
+!!$                     LOC_NU(IDIM,IPHASE,U_ILOC)=NV(U_INOD+(IPHASE-1)*U_NONODS)
+!!$                     LOC_NUOLD(IDIM,IPHASE,U_ILOC)=NVOLD(U_INOD+(IPHASE-1)*U_NONODS)
+!!$                   ENDIF
+!!$                   IF(IDIM==3) THEN
+!!$                     LOC_NU(IDIM,IPHASE,U_ILOC)=NW(U_INOD+(IPHASE-1)*U_NONODS)
+!!$                     LOC_NUOLD(IDIM,IPHASE,U_ILOC)=NWOLD(U_INOD+(IPHASE-1)*U_NONODS)
+!!$                   ENDIF
+!!$                  END DO
+!!$               END DO
+!!$
+!!$            END DO
+!!$         END DO
 
-               U_INOD = U_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
-               DO IPHASE=1,NPHASE
-                  DO IDIM=1,NDIM_VEL
-                   IF(IDIM==1) THEN
-                     LOC_U(IDIM,IPHASE,U_ILOC)=U(U_INOD+(IPHASE-1)*U_NONODS)
-                     LOC_UOLD(IDIM,IPHASE,U_ILOC)=UOLD(U_INOD+(IPHASE-1)*U_NONODS)
-                   ENDIF
-                   IF(IDIM==2) THEN
-                     LOC_U(IDIM,IPHASE,U_ILOC)=V(U_INOD+(IPHASE-1)*U_NONODS)
-                     LOC_UOLD(IDIM,IPHASE,U_ILOC)=VOLD(U_INOD+(IPHASE-1)*U_NONODS)
-                   ENDIF
-                   IF(IDIM==3) THEN
-                     LOC_U(IDIM,IPHASE,U_ILOC)=W(U_INOD+(IPHASE-1)*U_NONODS)
-                     LOC_UOLD(IDIM,IPHASE,U_ILOC)=WOLD(U_INOD+(IPHASE-1)*U_NONODS)
-                   ENDIF
-                  END DO
-                  DO IDIM=1,NDIM
-                   IF(IDIM==1) THEN
-                     LOC_NU(IDIM,IPHASE,U_ILOC)=NU(U_INOD+(IPHASE-1)*U_NONODS)
-                     LOC_NUOLD(IDIM,IPHASE,U_ILOC)=NUOLD(U_INOD+(IPHASE-1)*U_NONODS)
-                   ENDIF
-                   IF(IDIM==2) THEN
-                     LOC_NU(IDIM,IPHASE,U_ILOC)=NV(U_INOD+(IPHASE-1)*U_NONODS)
-                     LOC_NUOLD(IDIM,IPHASE,U_ILOC)=NVOLD(U_INOD+(IPHASE-1)*U_NONODS)
-                   ENDIF
-                   IF(IDIM==3) THEN
-                     LOC_NU(IDIM,IPHASE,U_ILOC)=NW(U_INOD+(IPHASE-1)*U_NONODS)
-                     LOC_NUOLD(IDIM,IPHASE,U_ILOC)=NWOLD(U_INOD+(IPHASE-1)*U_NONODS)
-                   ENDIF
-                  END DO
-               END DO
+!         DO CV_ILOC = 1, CV_NLOC
+!            CV_INOD = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_ILOC )
+!
+!            DO IPHASE=1,NPHASE
+!               LOC_UDEN( IPHASE, CV_ILOC )   =UDEN( CV_INOD + (IPHASE-1)*CV_NONODS)
+!               LOC_UDENOLD( IPHASE, CV_ILOC)=UDENOLD( CV_INOD + (IPHASE-1)*CV_NONODS )
+!               IF(IPLIKE_GRAD_SOU.NE.0) THEN
+!                  LOC_PLIKE_GRAD_SOU_COEF( IPHASE, CV_ILOC )=PLIKE_GRAD_SOU_COEF( CV_INOD + (IPHASE-1)*CV_NONODS )
+!               ENDIF
+!               DO IDIM=1,NDIM_VEL
+!                  LOC_U_SOURCE_CV( IDIM,IPHASE,CV_ILOC)=U_SOURCE_CV( CV_INOD + (IDIM-1)*CV_NONODS + (IPHASE-1)*NDIM_VEL*CV_NONODS)
+!               END DO
+!            END DO
+!         END DO
 
-            END DO
-         END DO
-         DO CV_ILOC = 1, CV_NLOC
-            CV_INOD = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_ILOC )
 
-            DO IPHASE=1,NPHASE
-               LOC_UDEN( IPHASE, CV_ILOC )   =UDEN( CV_INOD + (IPHASE-1)*CV_NONODS)
-               LOC_UDENOLD( IPHASE, CV_ILOC)=UDENOLD( CV_INOD + (IPHASE-1)*CV_NONODS )
-               IF(IPLIKE_GRAD_SOU.NE.0) THEN
-                  LOC_PLIKE_GRAD_SOU_COEF( IPHASE, CV_ILOC )=PLIKE_GRAD_SOU_COEF( CV_INOD + (IPHASE-1)*CV_NONODS )
-               ENDIF
-               DO IDIM=1,NDIM_VEL
-                  LOC_U_SOURCE_CV( IDIM,IPHASE,CV_ILOC)=U_SOURCE_CV( CV_INOD + (IDIM-1)*CV_NONODS + (IPHASE-1)*NDIM_VEL*CV_NONODS)
-               END DO
-            END DO
-
-         END DO
-         DO MAT_ILOC = 1, MAT_NLOC
-            MAT_INOD = MAT_NDGLN(( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
-            LOC_U_ABSORB( :, :, MAT_ILOC)=U_ABSORB( MAT_NODI, :, : ) ! memory of U_ABSORB is wrong way around...
-            LOC_U_ABS_STAB( :, :, MAT_ILOC)=U_ABS_STAB( MAT_NODI, :, : )
-            LOC_UDIFFUSION( :,:,:, MAT_ILOC)=UDIFFUSION( MAT_NODI, :,:,: )
-         END DO
+         !DO MAT_ILOC = 1, MAT_NLOC
+         !   MAT_INOD = MAT_NDGLN(( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
+         !   LOC_U_ABSORB( :, :, MAT_ILOC)=U_ABSORB( MAT_NODI, :, : ) ! memory of U_ABSORB is wrong way around...
+         !   LOC_U_ABS_STAB( :, :, MAT_ILOC)=U_ABS_STAB( MAT_NODI, :, : )
+         !   LOC_UDIFFUSION( :,:,:, MAT_ILOC)=UDIFFUSION( MAT_NODI, :,:,: )
+         !END DO
 ! *********subroutine Determine local vectors...
 
 ! **********REVIEWER 1**********************
