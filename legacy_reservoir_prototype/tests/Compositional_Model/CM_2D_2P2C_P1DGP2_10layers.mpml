@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <multiphase_options>
   <simulation_name>
-    <string_value lines="1">CM_2D_2P3C_P1DGP1_10layers</string_value>
+    <string_value lines="1">CM_2D_2P2C_P1DGP1_10layers</string_value>
   </simulation_name>
   <geometry>
     <dimension>
@@ -39,7 +39,7 @@
         <mesh name="CoordinateMesh"/>
         <mesh_shape>
           <polynomial_degree>
-            <integer_value rank="0">1</integer_value>
+            <integer_value rank="0">2</integer_value>
           </polynomial_degree>
         </mesh_shape>
         <mesh_continuity>
@@ -87,7 +87,7 @@
         <mesh name="CoordinateMesh"/>
         <mesh_shape>
           <polynomial_degree>
-            <integer_value rank="0">1</integer_value>
+            <integer_value rank="0">2</integer_value>
           </polynomial_degree>
         </mesh_shape>
         <mesh_continuity>
@@ -103,7 +103,7 @@
         <mesh name="CoordinateMesh"/>
         <mesh_shape>
           <polynomial_degree>
-            <integer_value rank="0">1</integer_value>
+            <integer_value rank="0">2</integer_value>
           </polynomial_degree>
         </mesh_shape>
         <mesh_continuity>
@@ -741,7 +741,7 @@
       </alpha_beta>
       <KComp_Sigmoid>
         <K_Comp>
-          <real_value rank="0">3.2</real_value>
+          <real_value rank="0">4.5</real_value>
         </K_Comp>
       </KComp_Sigmoid>
       <Comp_Sum2One>
@@ -800,7 +800,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value rank="0">0.32</real_value>
+            <real_value rank="0">0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="inflow_C1P1">
@@ -810,7 +810,7 @@
           <type name="dirichlet">
             <apply_weakly/>
             <constant>
-              <real_value rank="0">0.787</real_value>
+              <real_value rank="0">1.0</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -875,7 +875,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value rank="0">0.1</real_value>
+            <real_value rank="0">0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="inflow_C1P2">
@@ -885,7 +885,7 @@
           <type name="dirichlet">
             <apply_weakly/>
             <constant>
-              <real_value rank="0">0.2459375</real_value>
+              <real_value rank="0">0.0</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -911,7 +911,7 @@
       </alpha_beta>
       <KComp_Sigmoid>
         <K_Comp>
-          <real_value rank="0">0.5</real_value>
+          <real_value rank="0">0.2</real_value>
         </K_Comp>
       </KComp_Sigmoid>
       <Comp_Sum2One>
@@ -924,81 +924,6 @@
       <aliased material_phase_name="phase2" field_name="Velocity"/>
     </vector_field>
     <scalar_field material_phase_name="phase1" name="ComponentMassFractionPhase1" rank="0">
-      <prognostic>
-        <mesh name="PressureMesh"/>
-        <equation_of_state>
-          <incompressible>
-            <linear>
-              <all_equal>
-                <real_value rank="0">1.0</real_value>
-              </all_equal>
-            </linear>
-          </incompressible>
-        </equation_of_state>
-        <equation name="AdvectionDiffusion"/>
-        <spatial_discretisation>
-          <control_volumes>
-            <face_value name="FirstOrderUpwind"/>
-            <diffusion_scheme name="ElementGradient"/>
-          </control_volumes>
-          <conservative_advection>
-            <real_value rank="0">1.0</real_value>
-          </conservative_advection>
-        </spatial_discretisation>
-        <temporal_discretisation>
-          <theta>
-            <real_value rank="0">1.0</real_value>
-          </theta>
-        </temporal_discretisation>
-        <solver>
-          <iterative_method name="gmres">
-            <restart>
-              <integer_value rank="0">30</integer_value>
-            </restart>
-          </iterative_method>
-          <preconditioner name="prometheus"/>
-          <relative_error>
-            <real_value rank="0">1e-7</real_value>
-          </relative_error>
-          <max_iterations>
-            <integer_value rank="0">1000</integer_value>
-          </max_iterations>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
-        <initial_condition name="WholeMesh">
-          <constant>
-            <real_value rank="0">0.59</real_value>
-          </constant>
-        </initial_condition>
-        <boundary_conditions name="inflow_C2P1">
-          <surface_ids>
-            <integer_value shape="1" rank="1">6</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <apply_weakly/>
-            <constant>
-              <real_value rank="0">0.213</real_value>
-            </constant>
-          </type>
-        </boundary_conditions>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <consistent_interpolation/>
-      </prognostic>
-    </scalar_field>
-    <scalar_field material_phase_name="phase2" name="ComponentMassFractionPhase2" rank="0">
       <prognostic>
         <mesh name="PressureMesh"/>
         <equation_of_state>
@@ -1048,102 +973,7 @@
             <real_value rank="0">0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="inflow_C2P2">
-          <surface_ids>
-            <integer_value shape="1" rank="1">6</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <apply_weakly/>
-            <constant>
-              <real_value rank="0">0.426</real_value>
-            </constant>
-          </type>
-        </boundary_conditions>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <consistent_interpolation/>
-      </prognostic>
-    </scalar_field>
-  </material_phase>
-  <material_phase name="Component3">
-    <is_multiphase_component>
-      <alpha_beta>
-        <real_value rank="0">1.0</real_value>
-      </alpha_beta>
-      <KComp_Sigmoid>
-        <K_Comp>
-          <real_value rank="0">0.1</real_value>
-        </K_Comp>
-      </KComp_Sigmoid>
-      <Comp_Sum2One>
-        <Relaxation_Coefficient>
-          <real_value rank="0">1.0</real_value>
-        </Relaxation_Coefficient>
-      </Comp_Sum2One>
-    </is_multiphase_component>
-    <vector_field name="Velocity" rank="1">
-      <aliased material_phase_name="phase2" field_name="Velocity"/>
-    </vector_field>
-    <scalar_field material_phase_name="phase1" name="ComponentMassFractionPhase1" rank="0">
-      <prognostic>
-        <mesh name="PressureMesh"/>
-        <equation_of_state>
-          <incompressible>
-            <linear>
-              <all_equal>
-                <real_value rank="0">1.0</real_value>
-              </all_equal>
-            </linear>
-          </incompressible>
-        </equation_of_state>
-        <equation name="AdvectionDiffusion"/>
-        <spatial_discretisation>
-          <control_volumes>
-            <face_value name="FirstOrderUpwind"/>
-            <diffusion_scheme name="ElementGradient"/>
-          </control_volumes>
-          <conservative_advection>
-            <real_value rank="0">1.0</real_value>
-          </conservative_advection>
-        </spatial_discretisation>
-        <temporal_discretisation>
-          <theta>
-            <real_value rank="0">1.0</real_value>
-          </theta>
-        </temporal_discretisation>
-        <solver>
-          <iterative_method name="gmres">
-            <restart>
-              <integer_value rank="0">30</integer_value>
-            </restart>
-          </iterative_method>
-          <preconditioner name="prometheus"/>
-          <relative_error>
-            <real_value rank="0">1e-7</real_value>
-          </relative_error>
-          <max_iterations>
-            <integer_value rank="0">1000</integer_value>
-          </max_iterations>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
-        <initial_condition name="WholeMesh">
-          <constant>
-            <real_value rank="0">0.09</real_value>
-          </constant>
-        </initial_condition>
-        <boundary_conditions name="inflow_C3P1">
+        <boundary_conditions name="inflow_C2P1">
           <surface_ids>
             <integer_value shape="1" rank="1">6</integer_value>
           </surface_ids>
@@ -1215,17 +1045,17 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value rank="0">0.9</real_value>
+            <real_value rank="0">1.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="inflow_C3P2">
+        <boundary_conditions name="inflow_C2P2">
           <surface_ids>
             <integer_value shape="1" rank="1">6</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
             <constant>
-              <real_value rank="0">0.3280625</real_value>
+              <real_value rank="0">0.0</real_value>
             </constant>
           </type>
         </boundary_conditions>
