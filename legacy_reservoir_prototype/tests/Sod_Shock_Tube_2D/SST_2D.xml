@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>Sod_Shock_Tube_2D</name>
+  <owner userid="zhihua.xie"/>
+  <tags>mpml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>
+
+../../../bin/multiphase_prototype Sod_Shock_Tube_2D_P1DGP1_20by20.mpml
+../../../bin/multiphase_prototype Sod_Shock_Tube_2D_P1DGP2_20by20.mpml
+../../../bin/multiphase_prototype Sod_Shock_Tube_2D_P1DGP1DG_20by20.mpml
+
+    </command_line>
+    <!-- Two-dimensional Sod Shock Tube problem - evaluate different mesh resolutions and element pairs -->
+  </problem_definition>
+  <variables>
+
+<!-- P1DG-P1 -->
+    <variable name="rho_max_p1dgp1_20by20" language="python">
+from fluidity_tools import stat_parser as stat
+rho_max_p1dgp1_20by20 = stat("SodShockTube_P1DGP1_20by20.stat")["phase1"]["Density"]["max"][-1]
+    </variable>
+    <variable name="rho_min_p1dgp1_20by20" language="python">
+from fluidity_tools import stat_parser as stat
+rho_min_p1dgp1_20by20 = stat("SodShockTube_P1DGP1_20by20.stat")["phase1"]["Density"]["min"][-1]
+    </variable>
+    <variable name="rho_int_p1dgp1_20by20" language="python">
+from fluidity_tools import stat_parser as stat
+rho_int_p1dgp1_20by20 = stat("SodShockTube_P1DGP1_20by20.stat")["phase1"]["Density"]["integral"][-1]
+    </variable>
+
+    <variable name="p_max_p1dgp1_20by20" language="python">
+from fluidity_tools import stat_parser as stat
+p_max_p1dgp1_20by20 = stat("SodShockTube_P1DGP1_20by20.stat")["phase1"]["Pressure"]["max"][-1]
+    </variable>
+    <variable name="p_min_p1dgp1_20by20" language="python">
+from fluidity_tools import stat_parser as stat
+p_min_p1dgp1_20by20 = stat("SodShockTube_P1DGP1_20by20.stat")["phase1"]["Pressure"]["min"][-1]
+    </variable>
+    <variable name="p_int_p1dgp1_20by20" language="python">
+from fluidity_tools import stat_parser as stat
+p_int_p1dgp1_20by20 = stat("SodShockTube_P1DGP1_20by20.stat")["phase1"]["Pressure"]["integral"][-1]
+    </variable>
+
+    <variable name="u_max_p1dgp1_20by20" language="python">
+from fluidity_tools import stat_parser as stat
+u_max_p1dgp1_20by20 = stat("SodShockTube_P1DGP1_20by20.stat")["phase1"]["Speed"]["max"][-1]
+    </variable>
+    <variable name="u_min_p1dgp1_20by20" language="python">
+from fluidity_tools import stat_parser as stat
+u_min_p1dgp1_20by20 = stat("SodShockTube_P1DGP1_20by20.stat")["phase1"]["Speed"]["min"][-1]
+    </variable>
+    <variable name="u_int_p1dgp1_20by20" language="python">
+from fluidity_tools import stat_parser as stat
+u_int_p1dgp1_20by20 = stat("SodShockTube_P1DGP1_20by20.stat")["phase1"]["Speed"]["integral"][-1]
+    </variable>
+
+<!-- P1DG-P2 -->
+    <variable name="rho_max_p1dgp2_20by20" language="python">
+from fluidity_tools import stat_parser as stat
+rho_max_p1dgp2_20by20 = stat("SodShockTube_P1DGP2_20by20.stat")["phase1"]["Density"]["max"][-1]
+    </variable>
+    <variable name="rho_min_p1dgp2_20by20" language="python">
+from fluidity_tools import stat_parser as stat
+rho_min_p1dgp2_20by20 = stat("SodShockTube_P1DGP2_20by20.stat")["phase1"]["Density"]["min"][-1]
+    </variable>
+    <variable name="rho_int_p1dgp2_20by20" language="python">
+from fluidity_tools import stat_parser as stat
+rho_int_p1dgp2_20by20 = stat("SodShockTube_P1DGP2_20by20.stat")["phase1"]["Density"]["integral"][-1]
+    </variable>
+
+    <variable name="p_max_p1dgp2_20by20" language="python">
+from fluidity_tools import stat_parser as stat
+p_max_p1dgp2_20by20 = stat("SodShockTube_P1DGP2_20by20.stat")["phase1"]["Pressure"]["max"][-1]
+    </variable>
+    <variable name="p_min_p1dgp2_20by20" language="python">
+from fluidity_tools import stat_parser as stat
+p_min_p1dgp2_20by20 = stat("SodShockTube_P1DGP2_20by20.stat")["phase1"]["Pressure"]["min"][-1]
+    </variable>
+    <variable name="p_int_p1dgp2_20by20" language="python">
+from fluidity_tools import stat_parser as stat
+p_int_p1dgp2_20by20 = stat("SodShockTube_P1DGP2_20by20.stat")["phase1"]["Pressure"]["integral"][-1]
+    </variable>
+
+    <variable name="u_max_p1dgp2_20by20" language="python">
+from fluidity_tools import stat_parser as stat
+u_max_p1dgp2_20by20 = stat("SodShockTube_P1DGP2_20by20.stat")["phase1"]["Speed"]["max"][-1]
+    </variable>
+    <variable name="u_min_p1dgp2_20by20" language="python">
+from fluidity_tools import stat_parser as stat
+u_min_p1dgp2_20by20 = stat("SodShockTube_P1DGP2_20by20.stat")["phase1"]["Speed"]["min"][-1]
+    </variable>
+    <variable name="u_int_p1dgp2_20by20" language="python">
+from fluidity_tools import stat_parser as stat
+u_int_p1dgp2_20by20 = stat("SodShockTube_P1DGP2_20by20.stat")["phase1"]["Speed"]["integral"][-1]
+    </variable>
+
+<!-- P1DG-P1DG -->
+    <variable name="rho_max_p1dgp1dg_20by20" language="python">
+from fluidity_tools import stat_parser as stat
+rho_max_p1dgp1dg_20by20 = stat("SodShockTube_P1DGP1DG_20by20.stat")["phase1"]["Density"]["max"][-1]
+    </variable>
+    <variable name="rho_min_p1dgp1dg_20by20" language="python">
+from fluidity_tools import stat_parser as stat
+rho_min_p1dgp1dg_20by20 = stat("SodShockTube_P1DGP1DG_20by20.stat")["phase1"]["Density"]["min"][-1]
+    </variable>
+    <variable name="rho_int_p1dgp1dg_20by20" language="python">
+from fluidity_tools import stat_parser as stat
+rho_int_p1dgp1dg_20by20 = stat("SodShockTube_P1DGP1DG_20by20.stat")["phase1"]["Density"]["integral"][-1]
+    </variable>
+
+    <variable name="p_max_p1dgp1dg_20by20" language="python">
+from fluidity_tools import stat_parser as stat
+p_max_p1dgp1dg_20by20 = stat("SodShockTube_P1DGP1DG_20by20.stat")["phase1"]["Pressure"]["max"][-1]
+    </variable>
+    <variable name="p_min_p1dgp1dg_20by20" language="python">
+from fluidity_tools import stat_parser as stat
+p_min_p1dgp1dg_20by20 = stat("SodShockTube_P1DGP1DG_20by20.stat")["phase1"]["Pressure"]["min"][-1]
+    </variable>
+    <variable name="p_int_p1dgp1dg_20by20" language="python">
+from fluidity_tools import stat_parser as stat
+p_int_p1dgp1dg_20by20 = stat("SodShockTube_P1DGP1DG_20by20.stat")["phase1"]["Pressure"]["integral"][-1]
+    </variable>
+
+    <variable name="u_max_p1dgp1dg_20by20" language="python">
+from fluidity_tools import stat_parser as stat
+u_max_p1dgp1dg_20by20 = stat("SodShockTube_P1DGP1DG_20by20.stat")["phase1"]["Speed"]["max"][-1]
+    </variable>
+    <variable name="u_min_p1dgp1dg_20by20" language="python">
+from fluidity_tools import stat_parser as stat
+u_min_p1dgp1dg_20by20 = stat("SodShockTube_P1DGP1DG_20by20.stat")["phase1"]["Speed"]["min"][-1]
+    </variable>
+    <variable name="u_int_p1dgp1dg_20by20" language="python">
+from fluidity_tools import stat_parser as stat
+u_int_p1dgp1dg_20by20 = stat("SodShockTube_P1DGP1DG_20by20.stat")["phase1"]["Speed"]["integral"][-1]
+    </variable>
+
+  </variables>
+  <pass_tests>
+
+<!-- P1DG-P1 -->
+    <test name="Assert density max absolute error for P1DG-P1 20by20 mesh is less than..." 
+language="python">
+assert(abs(rho_max_p1dgp1_20by20) &lt; 0.80911932642424444E+000 + 1.0e-10)
+    </test>
+    <test name="Assert density min absolute error for P1DG-P1 20by20 mesh is less than..." 
+language="python">
+assert(abs(rho_min_p1dgp1_20by20) &lt; 0.12497604579467958E+000 + 1.0e-10)
+    </test>
+    <test name="Assert density integral absolute error for P1DG-P1 20by20 mesh is less than..." 
+language="python">
+assert(abs(rho_int_p1dgp1_20by20) &lt; 0.24568546221527476E+000 + 1.0e-10)
+    </test>
+
+
+    <test name="Assert pressure max absolute error for P1DG-P1 20by20 mesh is less than..." 
+language="python">
+assert(abs(p_max_p1dgp1_20by20) &lt; 0.74202971152954456E+000 + 1.0e-10)
+    </test>
+    <test name="Assert pressure min absolute error for P1DG-P1 20by20 mesh is less than..." 
+language="python">
+assert(abs(p_min_p1dgp1_20by20) &lt; 0.99975641062627491E-001 + 1.0e-10)
+    </test>
+    <test name="Assert pressure integral absolute error for P1DG-P1 20by20 mesh is less than..." 
+language="python">
+assert(abs(p_int_p1dgp1_20by20) &lt; 0.19658620425521642E+000 + 1.0e-10)
+    </test>
+
+    <test name="Assert speed max absolute error for P1DG-P1 20by20 mesh is less than..." 
+language="python">
+assert(abs(u_max_p1dgp1_20by20) &lt; 0.12062139996695647E+001 + 1.0e-10)
+    </test>
+    <test name="Assert speed min absolute error for P1DG-P1 20by20 mesh is less than..." 
+language="python">
+assert(abs(u_min_p1dgp1_20by20) &lt; 0.57584854305026218E-015 + 1.0e-10)
+    </test>
+    <test name="Assert speed integral absolute error for P1DG-P1 20by20 mesh is less than..." 
+language="python">
+assert(abs(u_int_p1dgp1_20by20) &lt; 0.51202408688922785E+000 + 1.0e-10)
+    </test>
+
+<!-- P1DG-P2 -->
+    <test name="Assert density max absolute error for P1DG-P2 20by20 mesh is less than..." 
+language="python">
+assert(abs(rho_max_p1dgp2_20by20) &lt; 0.81241699096457609E+000 + 1.0e-10)
+    </test>
+    <test name="Assert density min absolute error for P1DG-P2 20by20 mesh is less than..." 
+language="python">
+assert(abs(rho_min_p1dgp2_20by20) &lt; 0.12499999999959779E+000 + 1.0e-10)
+    </test>
+    <test name="Assert density integral absolute error for P1DG-P2 20by20 mesh is less than..." 
+language="python">
+assert(abs(rho_int_p1dgp2_20by20) &lt; 0.24010086060256142E+000 + 1.0e-10)
+    </test>
+
+
+    <test name="Assert pressure max absolute error for P1DG-P2 20by20 mesh is less than..." 
+language="python">
+assert(abs(p_max_p1dgp2_20by20) &lt; 0.74554794674800595E+000 + 1.0e-10)
+    </test>
+    <test name="Assert pressure min absolute error for P1DG-P2 20by20 mesh is less than..." 
+language="python">
+assert(abs(p_min_p1dgp2_20by20) &lt; 0.10000000326633811E+000 + 1.0e-10)
+    </test>
+    <test name="Assert pressure integral absolute error for P1DG-P2 20by20 mesh is less than..." 
+language="python">
+assert(abs(p_int_p1dgp2_20by20) &lt; 0.19170755412353069E+000 + 1.0e-10)
+    </test>
+
+    <test name="Assert speed max absolute error for P1DG-P2 20by20 mesh is less than..." 
+language="python">
+assert(abs(u_max_p1dgp2_20by20) &lt; 0.98434089856991724E+000 + 1.0e-10)
+    </test>
+    <test name="Assert speed min absolute error for P1DG-P2 20by20 mesh is less than..." 
+language="python">
+assert(abs(u_min_p1dgp2_20by20) &lt; 0.16679020100623302E-013 + 1.0e-10)
+    </test>
+    <test name="Assert speed integral absolute error for P1DG-P2 20by20 mesh is less than..." 
+language="python">
+assert(abs(u_int_p1dgp2_20by20) &lt; 0.47812443865585058E+000 + 1.0e-10)
+    </test>
+
+<!-- P1DG-P1DG -->
+    <test name="Assert density max absolute error for P1DG-P1DG 20by20 mesh is less than..." 
+language="python">
+assert(abs(rho_max_p1dgp1dg_20by20) &lt; 0.11817300823825208E+001 + 1.0e-10)
+    </test>
+    <test name="Assert density min absolute error for P1DG-P1DG 20by20 mesh is less than..." 
+language="python">
+assert(abs(rho_min_p1dgp1dg_20by20) &lt; 0.12374836393542017E+000 + 1.0e-10)
+    </test>
+    <test name="Assert density integral absolute error for P1DG-P1DG 20by20 mesh is less than..." 
+language="python">
+assert(abs(rho_int_p1dgp1dg_20by20) &lt; 0.24597332344760908E+000 + 1.0e-10)
+    </test>
+
+
+    <test name="Assert pressure max absolute error for P1DG-P1DG 20by20 mesh is less than..." 
+language="python">
+assert(abs(p_max_p1dgp1dg_20by20) &lt; 0.98424378919838162E+000 + 1.0e-10)
+    </test>
+    <test name="Assert pressure min absolute error for P1DG-P1DG 20by20 mesh is less than..." 
+language="python">
+assert(abs(p_min_p1dgp1dg_20by20) &lt; 0.92505055880756512E-001 + 1.0e-10)
+    </test>
+    <test name="Assert pressure integral absolute error for P1DG-P1DG 20by20 mesh is less than..." 
+language="python">
+assert(abs(p_int_p1dgp1dg_20by20) &lt; 0.19657719752569533E+000 + 1.0e-10)
+    </test>
+
+    <test name="Assert speed max absolute error for P1DG-P1DG 20by20 mesh is less than..." 
+language="python">
+assert(abs(u_max_p1dgp1dg_20by20) &lt; 0.11801882186394062E+001 + 1.0e-10)
+    </test>
+    <test name="Assert speed min absolute error for P1DG-P1DG 20by20 mesh is less than..." 
+language="python">
+assert(abs(u_min_p1dgp1dg_20by20) &lt; 0.10690241401694584E-008 + 1.0e-10)
+    </test>
+    <test name="Assert speed integral absolute error for P1DG-P1DG 20by20 mesh is less than..." 
+language="python">
+assert(abs(u_int_p1dgp1dg_20by20) &lt; 0.52483447108214676E+000 + 1.0e-10)
+    </test>
+
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
