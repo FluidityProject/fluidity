@@ -317,6 +317,7 @@
           <discontinuous_galerkin>
             <viscosity_scheme>
               <compact_discontinuous_galerkin/>
+              <tensor_form/>
             </viscosity_scheme>
             <advection_scheme>
               <upwind/>
@@ -726,7 +727,7 @@
       <love_number>
         <value>
           <real_value rank="0">0.693</real_value>
-         </value>
+        </value>
       </love_number>
       <sal>
         <beta>

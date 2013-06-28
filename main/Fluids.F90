@@ -107,6 +107,7 @@ module fluids_module
   use detector_move_lagrangian
   use Profiler
   use momentum_diagnostic_fields, only: calculate_densities
+  use sediment_diagnostics, only: calculate_sediment_flux
 
   implicit none
 
@@ -805,6 +806,9 @@ contains
 
        end do nonlinear_iteration_loop
        call profiler_toc("/fluidity::nonlinear_iterations")
+
+       ! Calculate prognostic sediment deposit fields
+       call calculate_sediment_flux(state(1))
 
        ! Reset the number of nonlinear iterations in case it was overwritten by nonlinear_iterations_adapt
        call get_option('/timestepping/nonlinear_iterations',nonlinear_iterations,&

@@ -63,7 +63,7 @@ mu = (s1_d*s1_D + s2_d*s2_D)/(s1_d + s2_d)
 sigma = ((s1_d*(s1_D - mu)**2.0 + s2_d*(s2_D - mu)**2.0)/(s1_d + s2_d))**0.5
 lambda_m = 1.0 - 0.288*sigma
 
-tau_b = u**2.0 + v**2.0    # drag shear stress // |cD*|u|*u| // cD = 1.0
+tau_b = u**2.0 + v**2.0 + 2**0.5*u*v   # drag shear stress // |cD*|u|*u| // cD = 1.0
 
 d_50 = s1_D
 

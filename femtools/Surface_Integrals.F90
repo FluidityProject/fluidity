@@ -38,13 +38,15 @@ module surface_integrals
   use parallel_fields
   use spud
   use state_module
+  !use smoothing_module
 
   implicit none
   
   private
   
   public :: calculate_surface_integral, gradient_normal_surface_integral, &
-    & normal_surface_integral, surface_integral, surface_gradient_normal
+    & normal_surface_integral, surface_integral, surface_gradient_normal, &
+    & surface_normal_distance_sele
   public :: diagnostic_body_drag
   
   interface integrate_over_surface_element
@@ -405,6 +407,26 @@ contains
     
   end subroutine surface_gradient_normal
   
+  function surface_normal_distance_sele(positions, sele, ele) result(h)
+    ! calculate wall-normal element size
+    type(vector_field), intent(in) :: positions
+    integer, intent(in) :: ele, sele
+    real :: h
+    type(element_type), pointer :: shape
+    integer :: i, dim
+    real, dimension(face_ngi(positions,sele)) :: detwei_bdy
+    real, dimension(positions%dim,positions%dim) :: J
+    real, dimension(positions%dim,face_ngi(positions,sele)) :: normal_bdy
+
+    shape => ele_shape(positions, ele)
+    dim = positions%dim
+
+    call transform_facet_to_physical(positions, sele, detwei_f=detwei_bdy, normal=normal_bdy)
+    J = transpose(matmul(ele_val(positions, ele) , shape%dn(:, 1, :)))
+    h = maxval((/( abs(dot_product(normal_bdy(:, 1), J(i, :))), i=1, dim)/))
+
+  end function surface_normal_distance_sele
+
   function integrate_over_surface_element_mesh(mesh, face_number, surface_ids) result(integrate_over_element)
     !!< Return whether the given surface element should be integrated over when
     !!< performing a surface integral
