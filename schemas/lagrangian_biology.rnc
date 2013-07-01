@@ -237,7 +237,12 @@ lagrangian_biology =
                         ## Python code specifying the biology model
                         element python {
                            python_code
-                        }
+                        },
+                        (
+                           element field_alias {
+                              attribute name { xsd:string }
+                           }
+                        )*
                      )
                   }|
                   ## Do not calculate biology

@@ -92,13 +92,14 @@ contains
   end function get_functional_group
 
   subroutine initialise_lagrangian_biology_metamodel()
-    character(len=OPTION_PATH_LEN) :: fg_buffer, stage_buffer, env_field_buffer
+    character(len=OPTION_PATH_LEN) :: fg_buffer, stage_buffer, env_field_buffer, field_alias
     character(len=FIELD_NAME_LEN) :: stage_name, kernel_module, kernel_func, kernel_params
     type(functional_group), pointer :: fgroup
     type(detector_linked_list), pointer :: agent_array
     integer, dimension(:), allocatable :: rnd_seed
     integer :: i, rnd_seed_int, rnd_dim
     integer :: j, dim, fg, stage, n_fgroups, n_ext_fgroups, n_stages, n_env_fields, array
+    integer :: f, v, n_fields, n_food
 
     if (.not.have_option("/embedded_models/lagrangian_ensemble_biology")) return
 
@@ -238,6 +239,28 @@ contains
        fgroup%is_external = .true.
        if (have_option( trim(fg_buffer)//"/biology" )) then
           call get_option( trim(fg_buffer)//"/biology/python", fgroup%external_python )
+
+          ! We need to create one large list of all the fields required by the external FG
+          n_fields = option_count( trim(fg_buffer)//"/biology/field_alias" )
+          if ( size(fgroup%food_sets) > 0) then
+             allocate( fgroup%pyfields( n_fields + 2*size(fgroup%food_sets(1)%varieties) ) )
+          else
+             allocate( fgroup%pyfields( n_fields ) )
+          end if
+
+          do f=1, n_fields
+             write(field_alias, "(a,i0,a)") trim(fg_buffer)//"/biology/field_alias[",f-1,"]"
+             call get_option( trim(field_alias)//"/name", fgroup%pyfields(f))
+          end do
+
+          if ( size(fgroup%food_sets) > 0) then
+             do v=1, size(fgroup%food_sets(1)%varieties)
+                fgroup%pyfields(n_fields + 2*v-1) =  &
+                     trim(fgroup%food_sets(1)%target_fgroup)//"EnsembleSize"//trim(fgroup%food_sets(1)%varieties(v)%name)
+                fgroup%pyfields(n_fields + 2*v) = &
+                     trim(fgroup%name)//trim(fgroup%food_sets(1)%name)//"Request"//trim(fgroup%food_sets(1)%varieties(v)%name)
+             end do
+          end if
        end if
     end do
 
@@ -399,6 +422,29 @@ contains
     end if
 
   end subroutine init_python_states
+
+  subroutine add_python_substate(state, xfield, python_fields)
+    type(state_type), intent(inout) :: state
+    type(vector_field), pointer, intent(inout) :: xfield
+    character(len=FIELD_NAME_LEN), dimension(:), pointer :: python_fields
+
+    type(scalar_field), pointer :: pyfield
+    integer :: i, f
+
+    call python_reset()
+    call python_add_statec(trim(state%name), len_trim(state%name))
+    do i=1,(size(state%meshes))
+       call python_add_mesh_directly(state%meshes(i)%ptr,state)
+       call python_add_element_directly(state%meshes(i)%ptr%shape,state%meshes(i)%ptr,state)
+    end do
+    call python_add_field(xfield, state)
+
+    do f=1, size(python_fields)
+       pyfield => extract_scalar_field(state, trim(python_fields(f)))
+       call python_add_field(pyfield, state)
+    end do
+
+  end subroutine add_python_substate
 
   subroutine read_functional_group(fgroup, fg_path) 
     type(functional_group), pointer, intent(inout) :: fgroup
@@ -781,6 +827,7 @@ contains
     type(scalar_field), pointer :: exchange_field, pypost_field
     character(len=FIELD_NAME_LEN) :: foodname
     character(len=OPTION_PATH_LEN) :: le_options
+    character(len=FIELD_NAME_LEN), dimension(:), pointer :: pyfield_names
     type(food_set) :: fset
     integer :: i, j, f, v, env, pm_period, hvar, hvar_ind, hvar_src_ind, fg, stage
     logical :: python_state_initialised, use_kernel_function, use_persistent
@@ -807,18 +854,13 @@ contains
        ! that might be set by external FGroups
        call reset_exchange_fields(state(1), fgroup)
 
-       ! Prepare python-state, but only for external FGroups
        if (fgroup%is_external) then
-          if (.not. python_state_initialised) then
-             call profiler_tic("/update_lagrangian_biology::python_reload")
-             call python_reset()
-             call python_add_state(state(1))
-             call profiler_toc("/update_lagrangian_biology::python_reload")
-             python_state_initialised = .true.
-          end if
-
           ! Run the Eulerian external code and skip the rest of the agent loop
+          call profiler_tic(trim(agent_array%name)//"::update_external")
+          pyfield_names => fgroup%pyfields
+          call add_python_substate( state(1), xfield, pyfield_names )
           call python_run_string( trim(fgroup%external_python) )    
+          call profiler_toc(trim(agent_array%name)//"::update_external")
 
           cycle
        end if
@@ -1042,23 +1084,10 @@ contains
     ! Execute python post-processing for coupled models
     if (associated(python_post_fields)) then
        call profiler_tic("/update_lagrangian_biology::python_post_process")
-       call python_reset()
-       call python_add_statec(trim(state(1)%name), len_trim(state(1)%name))
-       do i=1,(size(state(1)%meshes))
-          call python_add_mesh_directly(state(1)%meshes(i)%ptr,state(1))
-          call python_add_element_directly(state(1)%meshes(i)%ptr%shape,state(1)%meshes(i)%ptr,state(1))
-       end do
-       call python_add_field(xfield, state(1))
-
-       do f=1, size(python_post_fields)
-          pypost_field => extract_scalar_field(state(1), trim(python_post_fields(f)))
-          call python_add_field(pypost_field, state(1))
-       end do
-
+       call add_python_substate(state(1), xfield, python_post_fields)
        call python_run_string( trim(python_post_kernel) )    
        call profiler_toc("/update_lagrangian_biology::python_post_process")
     end if
-
 
     call profiler_toc("/update_lagrangian_biology")
 
@@ -1634,19 +1663,7 @@ contains
     ! This is bad !!!, but requried to re-create the VEW algorithm
     if (associated(python_ingest_fields)) then
        call profiler_tic("/update_lagrangian_biology::python_ingest_hook")
-       call python_reset()
-       call python_add_statec(trim(state%name), len_trim(state%name))
-       do i=1,(size(state%meshes))
-          call python_add_mesh_directly(state%meshes(i)%ptr,state)
-          call python_add_element_directly(state%meshes(i)%ptr%shape,state%meshes(i)%ptr,state)
-       end do
-       call python_add_field(xfield, state)
-
-       do f=1, size(python_ingest_fields)
-          pyingest_field => extract_scalar_field(state, trim(python_ingest_fields(f)))
-          call python_add_field(pyingest_field, state)
-       end do
-
+       call add_python_substate(state, xfield, python_ingest_fields)
        call python_run_string( trim(python_ingest_kernel) )    
        call profiler_toc("/update_lagrangian_biology::python_ingest_hook")
     end if

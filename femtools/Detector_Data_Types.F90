@@ -310,6 +310,8 @@ module detector_data_types
     ! External FGroups to represent Eulerian predators
     logical :: is_external = .false.
     character(len=PYTHON_FUNC_LEN) :: external_python
+
+    character(len=FIELD_NAME_LEN), dimension(:), allocatable :: pyfields
   end type functional_group
 
 end module detector_data_types

@@ -296,6 +296,13 @@ Arbitrary agent pairs will be merged to enforce this limit.</a:documentation>
                   <a:documentation>Python code specifying the biology model</a:documentation>
                   <ref name="python_code"/>
                 </element>
+                <zeroOrMore>
+                  <element name="field_alias">
+                    <attribute name="name">
+                      <data type="string"/>
+                    </attribute>
+                  </element>
+                </zeroOrMore>
               </element>
               <element name="disable_biology">
                 <a:documentation>Do not calculate biology</a:documentation>
