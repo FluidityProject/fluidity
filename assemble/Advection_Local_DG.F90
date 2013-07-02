@@ -1119,7 +1119,7 @@ module advection_local_DG
     down=>extract_vector_field(state, "GravityDirection")
     Q_old=>extract_scalar_field(state, "Old"//trim(Q%name))
     call get_option('/timestepping/timestep',dt)
-    call get_option(trim(Q%option_path)//'/prognostic/timestepping/theta',t_theta)
+    call get_option('/timestepping/theta',t_theta)
     
     !set up matrix and rhs
     Q_sparsity => get_csr_sparsity_firstorder(state, Q%mesh, Q%mesh)

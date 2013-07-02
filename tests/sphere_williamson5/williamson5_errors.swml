@@ -142,7 +142,7 @@
       <integer_value rank="0">4</integer_value>
     </nonlinear_iterations>
     <finish_time>
-      <real_value rank="0">4320000.0</real_value>
+      <real_value rank="0">432000.0</real_value>
       <comment>Williamson 5 runs for 50 days = 60*60*24*50 = 4320000.0s</comment>
     </finish_time>
   </timestepping>
@@ -402,6 +402,51 @@
     <scalar_field name="LayerHeight" rank="0">
       <diagnostic>
         <algorithm source_field_2_type="scalar" name="scalar_sum" source_field_1_name="LayerThickness" source_field_2_name="Orography" material_phase_support="single" source_field_1_type="scalar"/>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat>
+          <manifold_transformation/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="ExactHeight15" rank="0">
+      <prescribed>
+        <mesh name="PressureMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value type="code" lines="20" language="python">import exacttools
+
+val = exacttools.setexact('sphere_ico4.dat','src/h_sphere_ico4_0360.dat')</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <manifold_transformation/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+        <do_not_recalculate/>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="HeightError15" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_difference" source_field_1_name="LayerHeight" source_field_2_name="ExactHeight15" source_field_2_type="scalar" material_phase_support="single" source_field_1_type="scalar"/>
         <mesh name="PressureMesh"/>
         <output/>
         <stat>
