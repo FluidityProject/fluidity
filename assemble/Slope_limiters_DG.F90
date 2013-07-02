@@ -1495,7 +1495,7 @@ contains
        end do
        call set(T_min, ele_nodes(T_min,ele), T_val_min)
 
-       if (have_dirichlet_bc) then
+       if (have_dirichlet_bc .and. (element_neighbour_owned(T, ele).or.element_owned(T, ele))) then
          ! limit dirichlet boundary values to mean of element or dirichlet value
          neigh=>ele_neigh(T, ele)
 
