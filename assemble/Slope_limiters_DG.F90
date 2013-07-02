@@ -93,11 +93,11 @@ contains
     type(vector_field), intent(in), optional :: X, U
     
     ! bc values for vertex based limiting
-    type(vector_field), pointer :: T_bc
-    type(scalar_field), pointer :: T_bc_cpt
+    type(vector_field) :: T_bc
+    type(scalar_field) :: T_bc_cpt
     integer, dimension(T%dim, surface_element_count(T))  :: T_bc_type
 
-    type(scalar_field), pointer :: T_cpt
+    type(scalar_field) :: T_cpt
     integer :: d
 
     ewrite(2,*) 'subroutine limit_slope_dg for vector'
@@ -109,9 +109,11 @@ contains
            "dirichlet           " /), T_bc, T_bc_type)
     end if      
     
-    do d = 1, mesh_dim(u)
+    do d = 1, T%dim
       ewrite(2,*) 'subroutine limit_slope_dg for vector component', d
-      T_bc_cpt = extract_scalar_field_from_vector_field(T_bc, d)
+      if (limiter==LIMITER_VB) then 
+        T_bc_cpt = extract_scalar_field_from_vector_field(T_bc, d)
+      end if
       T_cpt = extract_scalar_field_from_vector_field(T, d)
       call limit_slope_dg_internal(state, T_cpt, limiter, U, X, T_bc_cpt, T_bc_type(d,:))
     end do
@@ -128,15 +130,12 @@ contains
     type(vector_field), intent(in), optional :: X, U
     
     ! bc values for vertex based limiting
-    type(scalar_field), pointer :: T_bc
+    type(scalar_field) :: T_bc
     integer, dimension(surface_element_count(T))  :: T_bc_type
 
     integer :: d
 
     ewrite(2,*) 'subroutine limit_slope_dg'
-    
-    call zero(T_bc)
-    T_bc_type = 0
 
     if (limiter==LIMITER_VB) then
       ! we need the bc values
