@@ -126,7 +126,7 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">1</integer_value>
+        <integer_value rank="0">50</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <output_mesh name="P0DG"/>
@@ -137,7 +137,7 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">1e-4</real_value>
+      <real_value rank="0">1e-3</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">0.5</real_value>
