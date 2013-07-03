@@ -73,41 +73,41 @@ sed -i 's/_10layers/_50layers/' CM_2D_2P3C_LVI_P1DGP2_50layers.mpml
 
 cp  CM_2D_2P3C_LVI_P1DGP1_10layers.mpml CM_2D_2P3C_LVI_P1DGP1_100layers.mpml
 sed -i 's/_10layers/_100layers/' CM_2D_2P3C_LVI_P1DGP1_100layers.mpml
-sed -i 's/1e-3/1e-4/' CM_2D_2P3C_LVI_P1DGP1_100layers.mpml
+sed -i 's/1e-2/1e-4/' CM_2D_2P3C_LVI_P1DGP1_100layers.mpml
 
 cp  CM_2D_2P3C_LVI_P1DGP1DG_10layers.mpml CM_2D_2P3C_LVI_P1DGP1DG_100layers.mpml
 sed -i 's/_10layers/_100layers/' CM_2D_2P3C_LVI_P1DGP1DG_100layers.mpml
-sed -i 's/1e-3/1e-4/' CM_2D_2P3C_LVI_P1DGP1DG_100layers.mpml
+sed -i 's/1e-2/1e-4/' CM_2D_2P3C_LVI_P1DGP1DG_100layers.mpml
 
 cp  CM_2D_2P3C_LVI_P1DGP2_10layers.mpml CM_2D_2P3C_LVI_P1DGP2_100layers.mpml
 sed -i 's/_10layers/_100layers/' CM_2D_2P3C_LVI_P1DGP2_100layers.mpml
-sed -i 's/1e-3/1e-4/' CM_2D_2P3C_LVI_P1DGP2_100layers.mpml
+sed -i 's/1e-2/1e-4/' CM_2D_2P3C_LVI_P1DGP2_100layers.mpml
 
 
 cp  CM_2D_2P3C_LVI_P1DGP1_10layers.mpml CM_2D_2P3C_LVI_P1DGP1_250layers.mpml
 sed -i 's/_10layers/_250layers/' CM_2D_2P3C_LVI_P1DGP1_250layers.mpml
-sed -i 's/1e-3/1e-4/' CM_2D_2P3C_LVI_P1DGP1_250layers.mpml
+sed -i 's/1e-2/1e-4/' CM_2D_2P3C_LVI_P1DGP1_250layers.mpml
 
 cp  CM_2D_2P3C_LVI_P1DGP1DG_10layers.mpml CM_2D_2P3C_LVI_P1DGP1DG_250layers.mpml
 sed -i 's/_10layers/_250layers/' CM_2D_2P3C_LVI_P1DGP1DG_250layers.mpml
-sed -i 's/1e-3/1e-4/' CM_2D_2P3C_LVI_P1DGP1DG_250layers.mpml
+sed -i 's/1e-2/1e-4/' CM_2D_2P3C_LVI_P1DGP1DG_250layers.mpml
 
 cp  CM_2D_2P3C_LVI_P1DGP2_10layers.mpml CM_2D_2P3C_LVI_P1DGP2_250layers.mpml
 sed -i 's/_10layers/_250layers/' CM_2D_2P3C_LVI_P1DGP2_250layers.mpml
-sed -i 's/1e-3/1e-4/' CM_2D_2P3C_LVI_P1DGP2_250layers.mpml
+sed -i 's/1e-2/1e-4/' CM_2D_2P3C_LVI_P1DGP2_250layers.mpml
 
 
 cp  CM_2D_2P3C_LVI_P1DGP1_10layers.mpml CM_2D_2P3C_LVI_P1DGP1_500layers.mpml
 sed -i 's/_10layers/_500layers/' CM_2D_2P3C_LVI_P1DGP1_500layers.mpml
-sed -i 's/1e-3/1e-4/' CM_2D_2P3C_LVI_P1DGP1_500layers.mpml
+sed -i 's/1e-2/1e-4/' CM_2D_2P3C_LVI_P1DGP1_500layers.mpml
 
 cp  CM_2D_2P3C_LVI_P1DGP1DG_10layers.mpml CM_2D_2P3C_LVI_P1DGP1DG_500layers.mpml
 sed -i 's/_10layers/_500layers/' CM_2D_2P3C_LVI_P1DGP1DG_500layers.mpml
-sed -i 's/1e-3/1e-4/' CM_2D_2P3C_LVI_P1DGP1DG_500layers.mpml
+sed -i 's/1e-2/1e-4/' CM_2D_2P3C_LVI_P1DGP1DG_500layers.mpml
 
 cp  CM_2D_2P3C_LVI_P1DGP2_10layers.mpml CM_2D_2P3C_LVI_P1DGP2_500layers.mpml
 sed -i 's/_10layers/_500layers/' CM_2D_2P3C_LVI_P1DGP2_500layers.mpml
-sed -i 's/1e-3/1e-4/' CM_2D_2P3C_LVI_P1DGP2_500layers.mpml
+sed -i 's/1e-2/1e-4/' CM_2D_2P3C_LVI_P1DGP2_500layers.mpml
 
 
 
