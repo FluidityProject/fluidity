@@ -313,8 +313,22 @@ Arbitrary agent pairs will be merged to enforce this limit.</a:documentation>
         </choice>
       </zeroOrMore>
       <optional>
+        <element name="python_pre_process">
+          <a:documentation>Python state invocation after agent update used for coupling models. 
+For performance reasons only the specified fields are accessible.</a:documentation>
+          <ref name="python_code"/>
+          <zeroOrMore>
+            <element name="field_alias">
+              <attribute name="name">
+                <data type="string"/>
+              </attribute>
+            </element>
+          </zeroOrMore>
+        </element>
+      </optional>
+      <optional>
         <element name="python_post_process">
-          <a:documentation>Python state invocation used for coupling models. 
+          <a:documentation>Python state invocation before agent update used for coupling models. 
 For performance reasons only the specified fields are accessible.</a:documentation>
           <ref name="python_code"/>
           <zeroOrMore>
