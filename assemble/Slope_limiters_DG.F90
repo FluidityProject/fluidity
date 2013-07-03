@@ -118,6 +118,10 @@ contains
       call limit_slope_dg_internal(state, T_cpt, limiter, U, X, T_bc_cpt, T_bc_type(d,:))
     end do
 
+    if (limiter==LIMITER_VB) then 
+      call deallocate(T_bc)
+    end if
+
     ewrite(2,*) 'END subroutine limit_slope_dg'
     
   end subroutine limit_slope_dg_vector
@@ -145,6 +149,10 @@ contains
     end if      
     
     call limit_slope_dg_internal(state, T, limiter, U, X, T_bc, T_bc_type)
+
+    if (limiter==LIMITER_VB) then 
+      call deallocate(T_bc)
+    end if
 
     ewrite(2,*) 'END subroutine limit_slope_dg'
     
