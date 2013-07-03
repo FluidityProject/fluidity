@@ -2,7 +2,7 @@ Point(1) = {0., 0., 0.};
 Extrude {4, 0, 0} {
   Point{1}; Layers{10}; 
 }
-Extrude {0, 0.1, 0} {
+Extrude {0, 0.4, 0} {
   Line{1};  Layers{1};
 }
 Physical Line(6) = {3};

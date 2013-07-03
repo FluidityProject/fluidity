@@ -310,10 +310,13 @@
 
          ELSE
 
-            IF( IGOT_T2 == 1 ) THEN
-               CALL SIMPLE_SOLVER( ACV, T, CV_RHS,  &
-                    NCOLACV, nphase * CV_NONODS, FINACV, COLACV, MIDACV,  &
-                    1.E-10, 1., 0., 1., 400 )
+            IF( IGOT_T2 == 1) THEN
+               !CALL SIMPLE_SOLVER( ACV, T, CV_RHS,  &
+               !     NCOLACV, nphase * CV_NONODS, FINACV, COLACV, MIDACV,  &
+               !     1.E-10, 1., 0., 1., 400 )
+               CALL SOLVER( ACV, T, CV_RHS, &
+                    FINACV, COLACV, &
+                    trim('/material_phase::Component1/scalar_field::ComponentMassFractionPhase1/prognostic') )
             ELSE
                CALL SOLVER( ACV, T, CV_RHS, &
                     FINACV, COLACV, &
@@ -1275,7 +1278,7 @@
                END DO
             END IF
 
-            if( cv_nonods==x_nonods ) then ! a continuous pressure:
+            if( cv_nonods==x_nonods .or. .false. ) then ! a continuous pressure:
 ! James feed CMC_PRECON into this sub and use as the preconditioner matrix...
 ! CMC_PRECON has length CMC_PRECON(NCOLCMC*IGOT_CMC_PRECON) 
                CALL SOLVER( CMC, DP, P_RHS, &

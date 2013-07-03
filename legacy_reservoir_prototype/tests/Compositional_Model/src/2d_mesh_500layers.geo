@@ -1,8 +1,8 @@
 Point(1) = {0., 0., 0.};
 Extrude {4, 0, 0} {
-  Point{1}; Layers{50}; 
+  Point{1}; Layers{500}; 
 }
-Extrude {0, 0.08, 0} {
+Extrude {0, 0.008, 0} {
   Line{1};  Layers{1};
 }
 Physical Line(6) = {3};
