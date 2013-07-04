@@ -141,9 +141,9 @@ fluidity_tools.compare_variable(ElapsedTime_presc_mov_t, 0.01, 1.0e-7)
     </test>
     <test name = "Adapt mesh at first adapt" language = "python">
 import fluidity_tools
-fluidity_tools.compare_variable(fluid_mesh_number_nodes_presc_mov_dt[0], 1266, 1.0e-7)
+fluidity_tools.compare_variable(fluid_mesh_number_nodes_presc_mov_dt[0], 1284, 1.0e-7)
 fluidity_tools.compare_variable(fluid_mesh_number_nodes_presc_mov_dt[0], fluid_mesh_number_nodes_presc_mov_dt[1], 1.0e-7)
-fluidity_tools.compare_variable(fluid_mesh_number_nodes_presc_mov_t[0], 1266, 1.0e-7)
+fluidity_tools.compare_variable(fluid_mesh_number_nodes_presc_mov_t[0], 1284, 1.0e-7)
 fluidity_tools.compare_variable(fluid_mesh_number_nodes_presc_mov_t[0], fluid_mesh_number_nodes_presc_mov_t[1], 1.0e-7)
     </test>
     <test name = "SolidConcentration from stat-file for prescribed movement based on dt" language = "python">
