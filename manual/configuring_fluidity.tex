@@ -2488,9 +2488,11 @@ The option \option{enforce\_hydrostatic\_balance} splits up the Density and Pres
 \begin{equation}
   \nabla p^{\prime} = \rho^{\prime}\mathbf{g}
 \end{equation}
-Enabling this option will subtract the hydrostatic components, specified here, from the pressure and density used in the pressure gradient and buoyancy terms in the momentum equation. This helps to enforce hydrostatic balance and prevent spurious oscillations in the pressure field when using unbalanced finite element pairs. See the article by \cite{GiraldoRestelli_2008} for more information.
+Enabling this option will subtract the hydrostatic components, specified here, from the pressure and density used in the pressure gradient and buoyancy terms in the momentum equation. This helps to maintain hydrostatic balance and prevent spurious oscillations in the pressure field when using unbalanced finite element pairs.
 
-Note: To use this option you will also need to create two prescribed scalar fields, called HydrostaticBalancePressure and HydrostaticBalanceDensity, which define $p^{\prime}$ and $\rho^{\prime}$. These must be on the same mesh as pressure and density, respectively.
+To use this option you will also need to create two prescribed scalar fields, called HydrostaticReferencePressure and HydrostaticReferenceDensity, which define $p^{\prime}$ and $\rho^{\prime}$. These must be on the same mesh as pressure and density, respectively, and are meant to be set up as vertical profiles (i.e. constant in the horizontal direction). 
+
+Note that unlike all the other hydrostatic/geostrophic balance options in Fluidity (i.e. \option{subtract_out_hydrostatic_level} under the linear incompressible EoS option, or with HydrostaticPressure or GeostrophicPressure fields), the hydrostatic pressure is not subtracted from the Pressure field itself. In other words, the Pressure field that gets solved for (and output in the .vtu files) is still the combined Pressure ($p = p^{\prime} + \rho^{\prime}$), and the hydrostatic pressure $p^{\prime}$ is only subtracted in the momentum equation.
 
 \subsection{InternalEnergy options}
 \begin{itemize}

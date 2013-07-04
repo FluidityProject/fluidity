@@ -159,9 +159,9 @@
     ! If .true., the pressure and density fields will be split up into hydrostatic
     ! and perturbed components. The hydrostatic components will be subtracted 
     ! from the pressure and density used in the pressure gradient and buoyancy terms
-    ! in the momentum equation. This helps to enforce hydrostatic balance and prevent
+    ! in the momentum equation. This helps to maintain hydrostatic balance and prevent
     ! spurious oscillations in the pressure field when using unbalanced finite element pairs.
-    logical :: enforce_hydrostatic_balance
+    logical :: subtract_out_reference_profile
 
     ! scale factor for the absorption
     real :: vvr_sf 
@@ -262,7 +262,7 @@
       ! for temperature dependent viscosity :
       type(scalar_field), pointer :: temperature
 
-      ! Fields for the enforce_hydrostatic_balance option under the Velocity field
+      ! Fields for the subtract_out_reference_profile option under the Velocity field
       type(scalar_field), pointer :: hb_density, hb_pressure
 
       integer :: stat, dim, ele, sele
@@ -373,15 +373,15 @@
       ! Splits up the Density and Pressure fields into a hydrostatic component (') and a perturbed component (''). 
       ! The hydrostatic components, denoted p' and rho', should satisfy the balance: grad(p') = rho'*g
       ! We subtract the hydrostatic component from the density used in the buoyancy term of the momentum equation.
-      if (have_option(trim(u%option_path)//'/prognostic/enforce_hydrostatic_balance')) then
-         enforce_hydrostatic_balance = .true.
+      if (have_option(trim(u%option_path)//'/prognostic/subtract_out_reference_profile')) then
+         subtract_out_reference_profile = .true.
          hb_density => extract_scalar_field(state, "HydrostaticBalanceDensity", stat)
          if(stat /= 0) then
-            FLExit("When using the enforce_hydrostatic_balance option, please set a (prescribed) HydrostaticBalanceDensity field.")
+            FLExit("When using the subtract_out_reference_profile option, please set a (prescribed) HydrostaticBalanceDensity field.")
             ewrite(-1,*) 'The HydrostaticBalanceDensity field, defining the hydrostatic component of the density field, needs to be set.'
          end if
       else
-         enforce_hydrostatic_balance = .false.
+         subtract_out_reference_profile = .false.
          hb_density => dummyscalar
       end if
 
@@ -755,11 +755,11 @@
            fs_sf=get_surface_stab_scale_factor(u)
          end if
 
-         if(enforce_hydrostatic_balance.and.integrate_continuity_by_parts.and.(assemble_ct_matrix_here .or. include_pressure_and_continuity_bcs)) then
-            hb_pressure => extract_scalar_field(state, "HydrostaticBalancePressure", stat)
+         if(subtract_out_reference_profile.and.integrate_continuity_by_parts.and.(assemble_ct_matrix_here .or. include_pressure_and_continuity_bcs)) then
+            hb_pressure => extract_scalar_field(state, "HydrostaticReferencePressure", stat)
             if(stat /= 0) then
-               FLExit("When using the enforce_hydrostatic_balance option, please set a (prescribed) HydrostaticBalancePressure field.")
-               ewrite(-1,*) 'The HydrostaticBalancePressure field, defining the hydrostatic component of the pressure field, needs to be set.'
+               FLExit("When using the subtract_out_reference_profile option, please set a (prescribed) HydrostaticReferencePressure field.")
+               ewrite(-1,*) 'The HydrostaticReferencePressure field, defining the hydrostatic component of the pressure field, needs to be set.'
             end if
          end if
 
@@ -1062,7 +1062,7 @@
                 !      /
                 ! add -|  N_i M_j \vec n p_j, where p_j are the prescribed bc values
                 !      /
-                if (enforce_hydrostatic_balance) then
+                if (subtract_out_reference_profile) then
                    ! Here we subtract the hydrostatic component from the pressure boundary condition used in the surface integral when
                    ! assembling ct_m. Hopefully this will be the same as the pressure boundary condition itself.
                    call addto(rhs, dim, u_nodes_bdy, -matmul(ele_val(pressure_bc, sele)-face_val(hb_pressure, sele), &
@@ -1730,7 +1730,7 @@
       real, dimension(ele_ngi(u, ele)) :: nvfrac_gi
       real, dimension(ele_ngi(u, ele)) :: coefficient_detwei
       
-      if (enforce_hydrostatic_balance) then
+      if (subtract_out_reference_profile) then
         coefficient_detwei = gravity_magnitude*(ele_val_at_quad(buoyancy, ele)-ele_val_at_quad(hb_density, ele))*detwei
       else
         coefficient_detwei = gravity_magnitude*ele_val_at_quad(buoyancy, ele)*detwei

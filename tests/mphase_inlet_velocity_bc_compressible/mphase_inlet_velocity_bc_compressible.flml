@@ -130,6 +130,7 @@
             <real_value rank="0">1.33</real_value>
           </ratio_specific_heats>
         </stiffened_gas>
+        <subtract_out_reference_profile/>
       </compressible>
     </equation_of_state>
     <scalar_field name="Pressure" rank="0">
@@ -358,7 +359,6 @@
             <output/>
           </prescribed>
         </tensor_field>
-        <enforce_hydrostatic_balance/>
         <output/>
         <stat>
           <include_in_stat/>
@@ -479,7 +479,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="HydrostaticBalancePressure" rank="0">
+    <scalar_field name="HydrostaticReferencePressure" rank="0">
       <prescribed>
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
@@ -504,7 +504,7 @@
         </detectors>
       </prescribed>
     </scalar_field>
-    <scalar_field name="HydrostaticBalanceDensity" rank="0">
+    <scalar_field name="HydrostaticReferenceDensity" rank="0">
       <prescribed>
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">

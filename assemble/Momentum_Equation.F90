@@ -1515,7 +1515,7 @@
          type(vector_field) :: delta_u
          type(vector_field), pointer :: positions
 
-         ! Fields for the enforce_hydrostatic_balance option under the Velocity field
+         ! Fields for the subtract_out_reference_profile option under the Velocity field
          type(scalar_field), pointer :: hb_pressure
          type(scalar_field) :: combined_p
          integer :: stat
@@ -1544,14 +1544,14 @@
                &have_option('/ocean_forcing/shelf')) then
             ewrite(1,*) "shelf: Entering compute_pressure_and_tidal_gradient"
                call compute_pressure_and_tidal_gradient(state(istate), delta_u, ct_m(istate)%ptr, p_theta, x)
-            else if (have_option(trim(u%option_path)//'/prognostic/enforce_hydrostatic_balance')) then
+            else if (have_option(trim(u%option_path)//'/prognostic/subtract_out_reference_profile')) then
                ! Splits up the Density and Pressure fields into a hydrostatic component (') and a perturbed component (''). 
                ! The hydrostatic components, denoted p' and rho', should satisfy the balance: grad(p') = rho'*g
                ! We subtract the hydrostatic component from the pressure used in the pressure gradient term of the momentum equation.
-               hb_pressure => extract_scalar_field(state(istate), "HydrostaticBalancePressure", stat)
+               hb_pressure => extract_scalar_field(state(istate), "HydrostaticReferencePressure", stat)
                if(stat /= 0) then
-                  FLExit("When using the enforce_hydrostatic_balance option, please set a (prescribed) HydrostaticBalancePressure field.")
-                  ewrite(-1,*) 'The HydrostaticBalancePressure field, defining the hydrostatic component of the pressure field, needs to be set.'
+                  FLExit("When using the subtract_out_reference_profile option, please set a (prescribed) HydrostaticReferencePressure field.")
+                  ewrite(-1,*) 'The HydrostaticReferencePressure field, defining the hydrostatic component of the pressure field, needs to be set.'
                end if
                call allocate(combined_p,p_theta%mesh, "PressurePerturbation")
                call set(combined_p, p_theta)

@@ -135,7 +135,7 @@ module momentum_DG
   logical :: have_advection
   logical :: move_mesh
   logical :: have_pressure_bc
-  logical :: enforce_hydrostatic_balance
+  logical :: subtract_out_reference_profile
   
   real :: gravity_magnitude
 
@@ -216,7 +216,7 @@ contains
     !! Surface tension field
     type(tensor_field) :: surfacetension
 
-    ! Fields for the enforce_hydrostatic_balance option under the Velocity field
+    ! Fields for the subtract_out_reference_profile option under the Velocity field
     type(scalar_field), pointer :: hb_density, hb_pressure
 
     !! field over the entire surface mesh, giving bc values
@@ -402,15 +402,15 @@ contains
     ! Splits up the Density and Pressure fields into a hydrostatic component (') and a perturbed component (''). 
     ! The hydrostatic components, denoted p' and rho', should satisfy the balance: grad(p') = rho'*g
     ! We subtract the hydrostatic component from the density used in the buoyancy term of the momentum equation.
-    if (have_option(trim(u%option_path)//'/prognostic/enforce_hydrostatic_balance')) then
-       enforce_hydrostatic_balance = .true.
+    if (have_option(trim(u%option_path)//'/prognostic/subtract_out_reference_profile')) then
+       subtract_out_reference_profile = .true.
        hb_density => extract_scalar_field(state, "HydrostaticBalanceDensity")
 
        if(l_include_pressure_bcs) then
-          hb_pressure => extract_scalar_field(state, "HydrostaticBalancePressure")
+          hb_pressure => extract_scalar_field(state, "HydrostaticReferencePressure")
        end if
     else
-       enforce_hydrostatic_balance = .false.
+       subtract_out_reference_profile = .false.
     end if
 
     Viscosity=extract_tensor_field(state, "Viscosity", stat)
@@ -1271,7 +1271,7 @@ contains
 
     if(have_gravity.and.acceleration.and.assemble_element) then
       ! buoyancy
-      if(enforce_hydrostatic_balance) then
+      if(subtract_out_reference_profile) then
          coefficient_detwei = detwei*gravity_magnitude*(ele_val_at_quad(buoyancy, ele)-ele_val_at_quad(hb_density, ele))
       else
          coefficient_detwei = detwei*gravity_magnitude*ele_val_at_quad(buoyancy, ele)
@@ -2360,9 +2360,9 @@ contains
        ! add -|  N_i M_j \vec n p_j, where p_j are the prescribed bc values
        !      /
        do dim = 1, U%dim
-          if(enforce_hydrostatic_balance) then
+          if(subtract_out_reference_profile) then
             rhs_addto(dim,u_face_l) = rhs_addto(dim,u_face_l) - &
-                 matmul( face_val(hb_pressure, face) - ele_val(pressure_bc, face), mnCT(1,dim,:,:) )
+                 matmul( ele_val(pressure_bc, face) - face_val(hb_pressure, face), mnCT(1,dim,:,:) )
           else
             rhs_addto(dim,u_face_l) = rhs_addto(dim,u_face_l) - &
                  matmul( ele_val(pressure_bc, face), mnCT(1,dim,:,:) )

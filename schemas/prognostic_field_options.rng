@@ -1476,20 +1476,6 @@ Note that the default value is zero. </a:documentation>
       </element>
     </optional>
     <optional>
-      <element name="enforce_hydrostatic_balance">
-        <a:documentation>This splits up the Density and Pressure fields into a hydrostatic component (') and a perturbed component (''). 
-The hydrostatic components, denoted p' and rho', should satisfy the balance:
-grad(p') = rho'*g
-
-Enabling this option will subtract the hydrostatic components, specified here, from the pressure and density used in the pressure gradient and buoyancy terms in the momentum equation. This helps to enforce hydrostatic balance and prevent spurious oscillations in the pressure field when using unbalanced finite element pairs.
-
-Note: You will also need to create two prescribed scalar fields, called HydrostaticBalancePressure and HydrostaticBalanceDensity, which define p' and rho'. These must be on the same mesh as pressure and density, respectively.
-
-See the article by Giraldo and Restelli (2008), doi: 10.1016/j.jcp.2007.12.009, for more information.</a:documentation>
-        <ref name="comment"/>
-      </element>
-    </optional>
-    <optional>
       <element name="tensor_field">
         <a:documentation>SurfaceTension</a:documentation>
         <attribute name="name">
