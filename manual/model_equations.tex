@@ -333,6 +333,31 @@ Within \fluidity it is also possible to relate the density of sea water to the i
 
 % The Pade approx may not actually be coded for the in situ temp, this needs to be checked.
 
+\subsection{Forms of the viscous term in the momentum equation} \label{sec:ViscosityTerms}
+
+If the modelled fluid is incompressible, or has a homogeneous viscosity, it is possible to simplify the stress term in the momentum equation. The complete form of this term, termed the '\emph{stress form}', is:
+\begin{equation}
+\nabla\cdot\sigtens = \nabla\cdot\left(-p \bmI + \tautens\right) = - \nabla p + 
+\nabla\cdot\mu\left(\nabla\bmu + (\nabla\bmu)^T - \frac{2}{3}(\nabla\cdot\bmu)\bmI \right)
+\end{equation}
+
+If the flow is incompressible, $\nabla\cdot\bmu=0$. It is now possible to simplify the above equation into the '\emph{partial stress form}':
+\begin{equation}
+\nabla\cdot\sigtens = - \nabla p + 
+\nabla\cdot\mu\left(\nabla\bmu + (\nabla\bmu)^T\right)
+\end{equation}
+
+If the flow is incompressible, and the viscosity is homogeneous:
+\begin{equation}
+\nabla\cdot\mu\left(\nabla\bmu + (\nabla\bmu)^T\right) = \frac{\partial}{\partial x_j} \mu \left(\frac{\partial \bmu_i}{\partial x_j} + \frac{\partial \bmu_j}{\partial x_i}\right) = \mu \left(\frac{\partial}{\partial x_j}\frac{\partial \bmu_i}{\partial x_j} + \frac{\partial}{\partial x_j}\frac{\partial \bmu_j}{\partial x_i}\right) = \mu \left(\frac{\partial}{\partial x_j}\frac{\partial \bmu_i}{\partial x_j}\right) = \nabla\cdot\mu\nabla\bmu
+\end{equation}
+the stress tensor can then be further simplified to obtain the '\emph{tensor form}':
+\begin{equation}
+\nabla\cdot\sigtens = - \nabla p + \nabla\cdot\mu\nabla\bmu
+\end{equation}
+
+The appropriate form of the stress tensor must be selected in the options tree as described in \ref{sec:VelocityOptions}.
+
 \subsection{Momentum boundary conditions} \label{sec:BCs-mom}
 
 \index{boundary conditions!Momentum}

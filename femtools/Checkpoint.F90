@@ -515,22 +515,35 @@ contains
           ! checkpoint the solid mesh (always serial for now):
           position => extract_vector_field(state(1), trim(mesh_name)//"SolidCoordinate")
           call write_mesh_files(mesh_filename, mesh_format, position, solid=solid)
-        else if(get_active_nparts(ele_count(mesh)) > 1) then
-          ! Write out the fluid mesh
-          if (mesh%name=="CoordinateMesh") then
-            position => extract_vector_field(state(1), "Coordinate")
+        ! Write out the mesh using a suitable coordinate field
+        else if (mesh%name=="CoordinateMesh") then
+          if (have_option("/mesh_adaptivity/mesh_movement/free_surface")) then
+            ! we don't want/need to checkpoint the moved mesh, as the mesh movement will again be applied after the restart
+            ! based on the checkpointed FreeSurface field.
+            position => extract_vector_field(state(1), "OriginalCoordinate", stat=stat1)
+            if (stat1/=0) then
+              ! some cases (e.g. flredecomp) OriginalCoordinate doesn't exist
+              position => extract_vector_field(state(1), "Coordinate")
+            end if
           else
-            position => extract_vector_field(state(1), trim(mesh%name)//"Coordinate")
+            position => extract_vector_field(state(1), "Coordinate")
           end if
+        else
+          position => extract_vector_field(state(1), trim(mesh%name)//"Coordinate")
+        end if
+
+        if(get_active_nparts(ele_count(mesh)) > 1) then
           call write_mesh_files(parallel_filename(mesh_filename), mesh_format, position)
           ! Write out the halos
           ewrite(2, *) "Checkpointing halos"
           call write_halos(mesh_filename, mesh)
         else
-          ! Write out the fluid mesh
-          call write_mesh_files(mesh_filename, mesh_format, state(1), mesh)
+          ! Write out the mesh
+          call write_mesh_files(mesh_filename, mesh_format, position)
         end if
-     end if
+
+      end if
+
    end do
 
   end subroutine checkpoint_meshes
@@ -565,11 +578,29 @@ contains
     
     do i = 1, size(state)
       if (.not. present_and_true(solid)) then
-        positions => extract_vector_field(state(i), "Coordinate")
+        if (have_option("/mesh_adaptivity/mesh_movement/free_surface")) then
+          ! we don't want/need to checkpoint the moved mesh, as the mesh movement will again be applied after the restart
+          ! based on the checkpointed FreeSurface field.
+          positions => extract_vector_field(state(i), "OriginalCoordinate", stat=stat)
+          if (stat/=0) then
+            ! some cases (e.g. flredecomp) OriginalCoordinate doesn't exist
+            positions => extract_vector_field(state(1), "Coordinate")
+          end if
+        else
+          if (have_option("/mesh_adaptivity/mesh_movement")) then
+            ! for other mesh movement schemes we should probably write out the "moved" mesh to retain that information
+            ! However if the checkpointed mesh is not the "CoordinateMesh", it will have its own MeshNameCoordinate field
+            ! that hasn't moved; leading to a failure to restart from the checkpoint. This is only one of the possible problems
+            ! generally this functionality is untested.
+            ewrite(0,*) "WARNING: using mesh_movement with checkpointing is untested and likely broken."
+          end if
+          positions => extract_vector_field(state(i), "Coordinate")
+        end if
       else
         mesh_name = trim(state(1)%name(1:len(trim(state(1)%name))-10))
         positions => extract_vector_field(state(i), trim(mesh_name)//"SolidCoordinate")
       end if
+
       do j = 1, size(state(i)%meshes)
         mesh => state(i)%meshes(j)%ptr
         nparts = get_active_nparts(ele_count(mesh))

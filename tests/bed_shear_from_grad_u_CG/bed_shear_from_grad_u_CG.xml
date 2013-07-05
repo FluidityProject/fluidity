@@ -9,16 +9,6 @@
     <!-- check bed shear stress is as expected for very simple set up -->
 </problem_definition>
   <variables>   
-    <variable name="SS_min" language="python">
-
-from vtktools import *
-from numpy import *
-data = vtu('bed_shear_from_grad_u_CG_0.vtu')
-
-Shear = data.GetField('BedShearStress')
-SS_min = Shear.min()
-
-    </variable>  
     <variable name="SS_max" language="python">
 
 from vtktools import *
@@ -27,17 +17,14 @@ data = vtu('bed_shear_from_grad_u_CG_0.vtu')
 
 Shear = data.GetField('BedShearStress')
 SS_max = Shear.max()
+print SS_max
 
     </variable>  
   </variables>
   <pass_tests>
     <!-- max shear stress is within 0.001% of 1 -->
-    <test name="kinetic energy source term is as expected, error less than 0.01%" language="python">
-assert(0.9999 &lt; SS_max &lt; 1.0001)
-    </test>
-    <!-- in shear stress is within 0.001% of -1 -->
-    <test name="kinetic energy source term is as expected, error less than 0.01%" language="python">
-assert(-1.0001 &lt; SS_min &lt; 0.9999)
+    <test name="bed shear stress error less than 0.01%" language="python">
+assert(1.9999 &lt; SS_max &lt; 2.0001)
     </test>
   </pass_tests>
   <warn_tests>
