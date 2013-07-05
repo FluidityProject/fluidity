@@ -2483,8 +2483,8 @@ In the presence of viscosity a form of the stress tensor must be chosen, as disc
 
 \emph{Important note when using 'stress form' and 'partial stress form' with a CG velocity field:} when using isotropic viscosities, and not the 'tensor form' of the viscosity term, all components of viscosity must be set to equal to the isotropic viscosity due to the method of implementation. If using an anisotropic viscosity with the 'partial stress form' or 'stress form' consult the schema and query the code to understand how the viscosity tensor must be defined. This does not apply when using DG discretisations. 
 
-\subsubsection{Enforcing hydrostatic balance}
-The option \option{subtract\_out_reference\_profile} splits up the Density and Pressure fields into a hydrostatic (reference) component (') and a perturbed component (''). The hydrostatic (reference) components, denoted $p^{\prime}$ and $\rho^{\prime}$, should satisfy the balance:
+\subsubsection{Hydrostatic balance}
+The option \option{subtract\_out\_reference\_profile} splits up the Density and Pressure fields into a hydrostatic (reference) component (') and a perturbed component (''). The hydrostatic (reference) components, denoted $p^{\prime}$ and $\rho^{\prime}$, should satisfy the balance:
 \begin{equation}
   \nabla p^{\prime} = \rho^{\prime}\mathbf{g}
 \end{equation}

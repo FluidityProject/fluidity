@@ -15,13 +15,13 @@
     <variable name="gas_velocity_max" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("mphase_enforce_hydrostatic_balance_1d.stat")
-gas_velocity_max = s["Gas"]["Velocity%magnitude"]["max"]
+gas_velocity_max = s["Gas"]["Velocity%magnitude"]["max"][-1]
     </variable>
 
     <variable name="particles_velocity_max" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("mphase_enforce_hydrostatic_balance_1d.stat")
-particles_velocity_max = s["Particles"]["Velocity%magnitude"]["max"]
+particles_velocity_max = s["Particles"]["Velocity%magnitude"]["max"][-1]
     </variable>
   
     <variable name="solvers_converged" language="python">
@@ -33,11 +33,11 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     
   <pass_tests>
     <test name="Maximum Gas::Velocity remains (near) zero" language="python">
-assert(abs(gas_velocity_max).all() &lt; 1e-4)
+assert(abs(gas_velocity_max) &lt; 1e-4)
     </test>
      
     <test name="Particles settle at Stokes law velocity" language="python">
-assert(abs(particles_velocity_max).all() &lt; 1e-4)
+assert(abs(particles_velocity_max) &lt; 2.0)
     </test>
 
     <test name="Solvers converged" language="python">

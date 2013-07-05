@@ -373,12 +373,12 @@
       ! Splits up the Density and Pressure fields into a hydrostatic component (') and a perturbed component (''). 
       ! The hydrostatic components, denoted p' and rho', should satisfy the balance: grad(p') = rho'*g
       ! We subtract the hydrostatic component from the density used in the buoyancy term of the momentum equation.
-      if (have_option(trim(u%option_path)//'/prognostic/subtract_out_reference_profile')) then
+      if (have_option(trim(state%option_path)//'/equation_of_state/compressible/subtract_out_reference_profile')) then
          subtract_out_reference_profile = .true.
-         hb_density => extract_scalar_field(state, "HydrostaticBalanceDensity", stat)
+         hb_density => extract_scalar_field(state, "HydrostaticReferenceDensity", stat)
          if(stat /= 0) then
-            FLExit("When using the subtract_out_reference_profile option, please set a (prescribed) HydrostaticBalanceDensity field.")
-            ewrite(-1,*) 'The HydrostaticBalanceDensity field, defining the hydrostatic component of the density field, needs to be set.'
+            FLExit("When using the subtract_out_reference_profile option, please set a (prescribed) HydrostaticReferenceDensity field.")
+            ewrite(-1,*) 'The HydrostaticReferenceDensity field, defining the hydrostatic component of the density field, needs to be set.'
          end if
       else
          subtract_out_reference_profile = .false.

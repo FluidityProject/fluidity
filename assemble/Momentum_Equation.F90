@@ -1544,7 +1544,7 @@
                &have_option('/ocean_forcing/shelf')) then
             ewrite(1,*) "shelf: Entering compute_pressure_and_tidal_gradient"
                call compute_pressure_and_tidal_gradient(state(istate), delta_u, ct_m(istate)%ptr, p_theta, x)
-            else if (have_option(trim(u%option_path)//'/prognostic/subtract_out_reference_profile')) then
+            else if (have_option(trim(state(istate)%option_path)//'/equation_of_state/compressible/subtract_out_reference_profile')) then
                ! Splits up the Density and Pressure fields into a hydrostatic component (') and a perturbed component (''). 
                ! The hydrostatic components, denoted p' and rho', should satisfy the balance: grad(p') = rho'*g
                ! We subtract the hydrostatic component from the pressure used in the pressure gradient term of the momentum equation.
