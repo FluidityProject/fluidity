@@ -3,7 +3,7 @@
 
 <testproblem>
    
-  <name>enforce_hydrostatic_balance</name>
+  <name>subtract_out_reference_profile</name>
   <owner userid="ctj10"/>
   <tags>flml</tags>
   
@@ -14,13 +14,13 @@
   <variables>  
     <variable name="gas_velocity_max_1d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("enforce_hydrostatic_balance_1d.stat")
+s = stat_parser("subtract_out_reference_profile_1d.stat")
 gas_velocity_max_1d = s["Gas"]["Velocity%magnitude"]["max"]
     </variable>
 
     <variable name="gas_velocity_max_pseudo1d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("enforce_hydrostatic_balance_pseudo1d.stat")
+s = stat_parser("subtract_out_reference_profile_pseudo1d.stat")
 gas_velocity_max_pseudo1d = s["Gas"]["Velocity%magnitude"]["max"]
     </variable>
   

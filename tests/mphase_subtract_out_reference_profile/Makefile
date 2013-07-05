@@ -4,7 +4,7 @@ preprocess:
 
 run:
 	@echo **********Running simulation
-	../../bin/fluidity -v2 -l mphase_enforce_hydrostatic_balance_1d.flml
+	../../bin/fluidity -v2 -l mphase_subtract_out_reference_profile_1d.flml
 
 input: clean preprocess
 
