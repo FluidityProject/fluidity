@@ -21,10 +21,10 @@ input: clean
 	spud-set williamson5_errors_4.swml /simulation_name 'sphere_williamson5_errorsmesh4'
 	spud-set williamson5_errors_5.swml /simulation_name 'sphere_williamson5_errorsmesh5'
 	spud-set williamson5_errors_6.swml /simulation_name 'sphere_williamson5_errorsmesh6'
-	sed -i s/sphere_ico4/sphere_ico3/ williamson5_errors_3.swml
-	sed -i s/sphere_ico4/sphere_ico4/ williamson5_errors_4.swml
-	sed -i s/sphere_ico4/sphere_ico5/ williamson5_errors_5.swml
-	sed -i s/sphere_ico4/sphere_ico6/ williamson5_errors_6.swml
+	sed -i s/sphere_ico4/sphere_ico3/g williamson5_errors_3.swml
+	sed -i s/sphere_ico4/sphere_ico4/g williamson5_errors_4.swml
+	sed -i s/sphere_ico4/sphere_ico5/g williamson5_errors_5.swml
+	sed -i s/sphere_ico4/sphere_ico6/g williamson5_errors_6.swml
 
 
 	spud-set williamson5_errors_6.swml /timestepping/timestep 450.0
@@ -36,10 +36,10 @@ sw5_basic_runs: input
 	../../bin/shallow_water_mimetic -v 1 williamson5_6.swml &> 6.out &
 
 sw5_convergence_runs: input
-	../../bin/shallow_water_mimetic -v 1 williamson5_errors_3.swml &> 3.out &
-	../../bin/shallow_water_mimetic -v 1 williamson5_errors_4.swml &> 4.out &
-	../../bin/shallow_water_mimetic -v 1 williamson5_errors_5.swml &> 5.out &
-	../../bin/shallow_water_mimetic -v 1 williamson5_errors_6.swml &> 6.out &
+	../../bin/shallow_water_mimetic -v 1 williamson5_errors_3.swml &> 3e.out &
+	../../bin/shallow_water_mimetic -v 1 williamson5_errors_4.swml &> 4e.out &
+	../../bin/shallow_water_mimetic -v 1 williamson5_errors_5.swml &> 5e.out &
+	../../bin/shallow_water_mimetic -v 1 williamson5_errors_6.swml &> 6e.out &
 
 
 sw5_6: input
