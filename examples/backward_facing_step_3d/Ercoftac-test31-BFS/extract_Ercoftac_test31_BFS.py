@@ -25,7 +25,7 @@ def inflow_data(plane):
   datafile = open('BFS-SEM-ERCOFTAC'+str(plane)+'-list.dat', 'w')
   datafile.write('y/h\n'+str(y)+'\nU/U0\n'+str(U)+"\nu'/U0\n"+str(uu)+"\nv'/U0\n"+str(vv)+"\nw'/U0\n"+str(uv)+'\n')
   datafile = open('BFS-SEM-ERCOFTAC'+str(plane)+'-table.dat', 'w')
-  datafile.write("y U u'u' v'v' -10*u'v'\n")
+  datafile.write("y/h U/U0 u'u'/U0^2 v'v'/U0^2 -10*u'v'/U0^2\n")
   for i in range(len(y)):
     datafile.write(str(y[i])+' '+str(U[i])+' '+str(uu[i])+' '+str(vv[i])+' '+str(uv[i])+'\n')
   ercoftac.close(); datafile.close()

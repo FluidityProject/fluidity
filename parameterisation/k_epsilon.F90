@@ -40,6 +40,7 @@ module k_epsilon
   use boundary_conditions
   use fields_manipulation
   use surface_integrals
+  use smoothing_module
   use fetools
   use vector_tools
   use sparsity_patterns_meshes
@@ -537,7 +538,7 @@ subroutine keps_eddyvisc(state, advdif)
   type(tensor_field), pointer      :: eddy_visc, viscosity, bg_visc
   type(vector_field), pointer      :: x, u
   type(scalar_field)               :: kk, eps
-  type(scalar_field), pointer      :: scalar_eddy_visc, ll, f_mu, density, dummydensity
+  type(scalar_field), pointer      :: scalar_eddy_visc, ll, f_mu, density, dummydensity, filter
   type(scalar_field)               :: ev_rhs
   integer                          :: i, j, ele, stat
   
@@ -626,6 +627,14 @@ subroutine keps_eddyvisc(state, advdif)
      call set(scalar_eddy_visc, ev_rhs)
   end if
 
+  ! If VLES then scale by filter function
+  filter => extract_scalar_field(state, 'VLESFilter', stat)
+  if (stat == 0) then
+     call zero(filter)
+     call vles_filter(filter, scalar_eddy_visc, ll, eps, X)
+     call scale(scalar_eddy_visc, filter)
+  end if
+
   call deallocate(ev_rhs)
   call deallocate(kk)
   call deallocate(eps)
@@ -658,6 +667,49 @@ subroutine keps_eddyvisc(state, advdif)
   
   contains
   
+   subroutine vles_filter(filter, scalar_eddy_visc, ll, eps, X)
+
+      type(scalar_field), intent(inout) :: scalar_eddy_visc, filter
+      type(scalar_field), intent(in)    :: ll, eps
+      type(vector_field), intent(in)    :: X
+      type(scalar_field)                :: delta
+      type(patch_type)                  :: patch
+      integer                           :: i, ele
+      integer, pointer, dimension(:)    :: nodes_ev
+      real, allocatable, dimension(:)   :: rhs_addto
+      real                              :: f, lcut, lint, lkol
+      real                              :: beta=-0.002 ! coefficient calibrated by Speziale (1998)
+      real                              :: n=2.0 ! exponent calibrated by Han (2012)
+
+      call allocate(delta, scalar_eddy_visc%mesh, name="FilterWidth")
+      call zero(delta)
+
+      do ele = 1, ele_count(scalar_eddy_visc)
+        nodes_ev => ele_nodes(scalar_eddy_visc, ele)
+        allocate(rhs_addto(size(nodes_ev)))
+        do i=1, size(nodes_ev)
+          patch = get_patch_ele(scalar_eddy_visc%mesh, nodes_ev(i))
+          rhs_addto(i) = sqrt(length_scale_scalar(X, ele))/patch%count
+          deallocate(patch%elements)
+        end do
+        call addto(delta, nodes_ev, rhs_addto)
+        deallocate(rhs_addto)
+      end do
+
+      do i = 1, node_count(scalar_eddy_visc)
+        ! Nodal values of cutoff, integral and Kolmogorov lengthscales:
+        lcut = node_val(delta, i)
+        lint = node_val(ll, i)
+        lkol = node_val(scalar_eddy_visc, i)**0.75/node_val(eps, i)**0.25
+        ! expression for filter in terms of lengthscales:
+        f = min(1.0, (1.0 - exp(beta*lcut/lkol) )/(1.0 - exp(beta*lint/lkol) ) )**n
+        call set(filter, i, f)
+      end do
+
+      call deallocate(delta)
+
+   end subroutine vles_filter
+
    subroutine keps_eddyvisc_ele(ele, X, kk, eps, scalar_eddy_visc, f_mu, density, ev_rhs)
    
       type(vector_field), intent(in)   :: x

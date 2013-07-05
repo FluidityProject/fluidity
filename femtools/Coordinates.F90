@@ -62,7 +62,6 @@ module Coordinates
        tensor_spherical_polar_2_cartesian, &
        higher_order_sphere_projection, &
        sphere_inward_normal_at_quad_ele, sphere_inward_normal_at_quad_face, &
-       rotate_diagonal_to_cartesian_gi, rotate_diagonal_to_cartesian_face, &
        rotate_diagonal_to_sphere_gi, rotate_diagonal_to_sphere_face, &
        rotate_ct_m_sphere, rotate_momentum_to_sphere, &
        rotate_velocity_sphere, rotate_velocity_back_sphere, &
@@ -1055,94 +1054,6 @@ contains
 
   end function sphere_inward_normal_at_quad_face
 
-  function rotate_diagonal_to_cartesian_gi(positions, ele_number, diagonal) result(quad_val)
-    ! Given the diagonal of a tensor in spherical coordinates, this function transforms the
-    ! tensor components to a cartesian system at all quadrature points of an element.
-    ! This result is given by R(diagonal)R^T where R is the transformation matrix.
-    type(vector_field), intent(in) :: positions
-    integer, intent(in) :: ele_number
-    real, dimension(mesh_dim(positions),ele_ngi(positions,ele_number)), intent(in) :: diagonal
-    real, dimension(mesh_dim(positions),ele_ngi(positions,ele_number)) :: X_quad
-    real, dimension(mesh_dim(positions),mesh_dim(positions)) :: R, RT
-    real, dimension(mesh_dim(positions),mesh_dim(positions),ele_ngi(positions,ele_number)) :: diagonal_T, quad_val
-    real :: radius, theta, phi !distance form origin, polar angle, azimuthal angle
-    integer :: i
-
-    assert(mesh_dim(positions)==3)
-
-    X_quad=ele_val_at_quad(positions, ele_number)
-
-    diagonal_T=0.0
-    do i=1,mesh_dim(positions)
-      diagonal_T(i,i,:)=diagonal(i,:)
-    end do
-
-    do i=1,ele_ngi(positions,ele_number)
-      ! Calculate the spherical-polar coordinates of the point
-      call cartesian_2_spherical_polar(X_quad(1,i), X_quad(2,i), X_quad(3,i), radius, theta, phi)
-
-      R(1,1)=sin(theta)*cos(phi)
-      R(1,2)=cos(theta)*cos(phi)
-      R(1,3)=-sin(phi)
-      R(2,1)=sin(theta)*sin(phi)
-      R(2,2)=cos(theta)*sin(phi)
-      R(2,3)=cos(phi)
-      R(3,1)=cos(theta)
-      R(3,2)=-sin(theta)
-      R(3,3)=0.0
-
-      RT = TRANSPOSE(R)
-
-      quad_val(:,:,i)=matmul((matmul(R,diagonal_T(:,:,i))),RT)
-
-    end do
-
-  end function rotate_diagonal_to_cartesian_gi
-
-  function rotate_diagonal_to_cartesian_face(positions, face_number, diagonal) result(quad_val)
-    ! Given the diagonal of a tensor in spherical coordinates, this function transforms the
-    ! tensor components to a cartesian system at all quadrature points of an face.
-    ! This result is given by R(diagonal)R^T where R is the transformation matrix.
-    type(vector_field), intent(in) :: positions
-    integer, intent(in) :: face_number
-    real, dimension(positions%dim,face_ngi(positions,face_number)), intent(in) :: diagonal
-    real, dimension(positions%dim,face_ngi(positions,face_number)) :: X_quad
-    real, dimension(positions%dim,positions%dim) :: R, RT
-    real, dimension(positions%dim,positions%dim,face_ngi(positions,face_number)) :: diagonal_T, quad_val
-    real :: radius, theta, phi !distance form origin, polar angle, azimuthal angle
-    integer :: i
-
-    assert(positions%dim==3)
-
-    X_quad=face_val_at_quad(positions, face_number)
-
-    diagonal_T=0.0
-    do i=1,positions%dim
-      diagonal_T(i,i,:)=diagonal(i,:)
-    end do
-
-    do i=1,ele_ngi(positions,face_number)
-      ! Calculate the spherical-polar coordinates of the point
-      call cartesian_2_spherical_polar(X_quad(1,i), X_quad(2,i), X_quad(3,i), radius, theta, phi)
-
-      R(1,1)=sin(theta)*cos(phi)
-      R(1,2)=cos(theta)*cos(phi)
-      R(1,3)=-sin(phi)
-      R(2,1)=sin(theta)*sin(phi)
-      R(2,2)=cos(theta)*sin(phi)
-      R(2,3)=cos(phi)
-      R(3,1)=cos(theta)
-      R(3,2)=-sin(theta)
-      R(3,3)=0.0
-
-      RT = TRANSPOSE(R)
-
-      quad_val(:,:,i)=matmul((matmul(R,diagonal_T(:,:,i))),RT)
-
-    end do
-
-  end function rotate_diagonal_to_cartesian_face
-
   function rotate_diagonal_to_sphere_gi(positions, ele_number, diagonal) result(quad_val)
     ! Given the diagonal of a tensor in cartesian coordinates, this function
     ! transforms the tensor components to a spherical-polar basis. This result
@@ -1170,18 +1081,18 @@ contains
       ! Calculate the spherical-polar coordinates of the point
       call cartesian_2_spherical_polar(X_quad(1,i), X_quad(2,i), X_quad(3,i), radius, theta, phi)
 
-      R(1,1)=sin(theta)*cos(phi)
-      R(1,2)=sin(theta)*sin(phi)
-      R(1,3)=cos(theta)
-      R(2,1)=cos(theta)*cos(phi)
+      R(1,1)=-sin(phi)
+      R(1,2)=cos(theta)*cos(phi)
+      R(1,3)=sin(theta)*cos(phi)
+      R(2,1)=cos(phi)
       R(2,2)=cos(theta)*sin(phi)
-      R(2,3)=-sin(theta)
-      R(3,1)=-sin(phi)
-      R(3,2)=cos(phi)
-      R(3,3)=0.0
+      R(2,3)=sin(theta)*sin(phi)
+      R(3,1)=0
+      R(3,2)=-sin(theta)
+      R(3,3)=cos(theta)
 
-      RT = TRANSPOSE(R)
-
+      RT=R
+      call invert(RT)
       quad_val(:,:,i)=matmul((matmul(R,diagonal_T(:,:,i))),RT)
 
     end do
@@ -1215,18 +1126,18 @@ contains
       ! Calculate the spherical-polar coordinates of the point
       call cartesian_2_spherical_polar(X_quad(1,i), X_quad(2,i), X_quad(3,i), radius, theta, phi)
 
-      R(1,1)=sin(theta)*cos(phi)
-      R(1,2)=sin(theta)*sin(phi)
-      R(1,3)=cos(theta)
-      R(2,1)=cos(theta)*cos(phi)
+      R(1,1)=-sin(phi)
+      R(1,2)=cos(theta)*cos(phi)
+      R(1,3)=sin(theta)*cos(phi)
+      R(2,1)=cos(phi)
       R(2,2)=cos(theta)*sin(phi)
-      R(2,3)=-sin(theta)
-      R(3,1)=-sin(phi)
-      R(3,2)=cos(phi)
-      R(3,3)=0.0
+      R(2,3)=sin(theta)*sin(phi)
+      R(3,1)=0
+      R(3,2)=-sin(theta)
+      R(3,3)=cos(theta)
 
-      RT = TRANSPOSE(R)
-
+      RT=R
+      call invert(RT)
       quad_val(:,:,i)=matmul((matmul(R,diagonal_T(:,:,i))),RT)
 
     end do
@@ -1278,8 +1189,8 @@ contains
       call cartesian_2_spherical_polar(x(1),x(2),x(3),radius,theta,phi)
 
       node_normal=(/sin(theta)*cos(phi),sin(theta)*sin(phi),cos(theta)/)
-      node_tangent1=(/cos(theta)*cos(phi),cos(theta)*sin(phi),-sin(theta)/)
-      node_tangent2=(/-sin(phi),cos(phi),0.0/)
+      node_tangent1=(/-sin(phi),cos(phi),0.0/)
+      node_tangent2=(/cos(theta)*cos(phi),cos(theta)*sin(phi),-sin(theta)/)
 
       call set(sphere_normal, node, node_normal)
       call set(sphere_tangent1, node, node_tangent1)
@@ -1298,9 +1209,9 @@ contains
       do j=1, size(rowcol)
         rotated_node=rowcol(j)
         ! construct local rotation matrix
-        local_rotation(1,:)=node_val(sphere_normal, rotated_node)
-        local_rotation(2,:)=node_val(sphere_tangent1, rotated_node)
-        local_rotation(3,:)=node_val(sphere_tangent2, rotated_node)
+        local_rotation(1,:)=node_val(sphere_tangent1, rotated_node)
+        local_rotation(2,:)=node_val(sphere_tangent2, rotated_node)
+        local_rotation(3,:)=node_val(sphere_normal, rotated_node)
 
         ! look up ct_m values of row i, column rowcol(j) in xyz orientation
         do k=1, blocks(ct_m,2)
@@ -1441,8 +1352,8 @@ contains
       call cartesian_2_spherical_polar(x(1),x(2),x(3),radius,theta,phi)
 
       node_normal=(/sin(theta)*cos(phi),sin(theta)*sin(phi),cos(theta)/)
-      node_tangent1=(/cos(theta)*cos(phi),cos(theta)*sin(phi),-sin(theta)/)
-      node_tangent2=(/-sin(phi),cos(phi),0.0/)
+      node_tangent1=(/-sin(phi),cos(phi),0.0/)
+      node_tangent2=(/cos(theta)*cos(phi),cos(theta)*sin(phi),-sin(theta)/)
 
       call set(sphere_normal, node, node_normal)
       call set(sphere_tangent1, node, node_tangent1)
@@ -1451,9 +1362,9 @@ contains
     end do
 
     do node=1, mynodes
-      local_rotation(:,1)=node_val(sphere_normal, node)
-      local_rotation(:,2)=node_val(sphere_tangent1, node)
-      local_rotation(:,3)=node_val(sphere_tangent2, node)
+      local_rotation(:,1)=node_val(sphere_tangent1, node)
+      local_rotation(:,2)=node_val(sphere_tangent2, node)
+      local_rotation(:,3)=node_val(sphere_normal, node)
 
       call addto(rotation_sphere, node, node, local_rotation)
     end do
@@ -1472,6 +1383,7 @@ contains
     type(vector_field), intent(inout):: vfield
     type(state_type), intent(inout):: state
     
+    type(vector_field), pointer:: u
     type(vector_field):: result
     type(petsc_csr_matrix), pointer:: rotation_sphere
     integer :: stat
@@ -1479,7 +1391,8 @@ contains
     rotation_sphere => extract_petsc_csr_matrix(state, "RotationMatrixSphere", stat=stat)
     if (stat/=0) then
       allocate(rotation_sphere)
-      call create_rotation_matrix_sphere(rotation_sphere, vfield, state)
+      u => extract_vector_field(state, "Velocity")
+      call create_rotation_matrix_sphere(rotation_sphere, u, state)
       call insert(state, rotation_sphere, "RotationMatrixSphere")
     end if
     
@@ -1506,7 +1419,8 @@ contains
     rotation_sphere => extract_petsc_csr_matrix(state, "RotationMatrixSphere", stat=stat)
     if (stat/=0) then
       allocate(rotation_sphere)
-      call create_rotation_matrix_sphere(rotation_sphere, vfield, state)
+      u => extract_vector_field(state, "Velocity")
+      call create_rotation_matrix_sphere(rotation_sphere, u, state)
       call insert(state, rotation_sphere, "RotationMatrixSphere")
     end if
     

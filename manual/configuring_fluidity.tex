@@ -2458,11 +2458,30 @@ This section contains advice for running a compressible simulation, by describin
 use of the pressure solve, so no solver options are needed either. By having an equation type turned on, the density is not only incorporated into the pressure solve 
 but also an Advection-Diffusion equation is solved (and solver options need to be specified).
 
-\subsection{Velocity options}
+\subsection{Velocity options}\label{sec:VelocityOptions}
+\subsubsection{Mass lumping}
+For continuous velocities \option{\ldots/spatial\_discretisation/\ldots/lump\_mass\_matrix} should be turned on.
+\subsubsection{Selecting the correct form of the viscous term}
+In the presence of viscosity a form of the stress tensor must be chosen, as discussed in \ref{sec:ViscosityTerms}. 
 \begin{itemize}
-\item for continuous velocities \option{\ldots/spatial\_discretisation/\ldots/lump\_mass\_matrix} should be turned on.
-\item in the presence of viscosity \option{\ldots/spatial\_discretisation/continuous\_galerkin/stress\_terms/stress\_form} is required and all components of the anisotropic symmetric Viscosity tensor should be filled out.  This functionality is only available with continuous Galerkin velocities.
+\item for compressible flow the full '\emph{stress form}' is required: 
+\begin{itemize} 
+\item CG discretisation: \option{\ldots/spatial\_discretisation/continuous\_galerkin/stress\_terms/stress\_form}
+\item DG discretisation: not available
 \end{itemize}
+\item for incompressible flow with spatially varying viscosity the '\emph{partial stress form}' is required:
+\begin{itemize} 
+\item CG discretisation: \option{\ldots/spatial\_discretisation/continuous\_galerkin/stress\_terms/partial\_stress\_form}
+\item DG discretisation: only available when using the Bassi-Rebay formulation of the viscosity term and for isotropic viscosity \option{\ldots/spatial\_discretisation/continuous\_galerkin/stress\_terms/bassi-rebay/partial\_stress\_form}
+\end{itemize}
+\item for incompressible flow with homogeneous viscosity, the '\emph{tensor form}' is valid:
+\begin{itemize} 
+\item CG discretisation: \option{\ldots/spatial\_discretisation/continuous\_galerkin/stress\_terms/tensor\_form}
+\item DG discretisation: \option{\ldots/spatial\_discretisation/continuous\_galerkin/stress\_terms/bassi-rebay/tensor\_form} or any other viscosity term formulation.
+\end{itemize}
+\end{itemize}
+
+\emph{Important note when using 'stress form' and 'partial stress form' with a CG velocity field:} when using isotropic viscosities, and not the 'tensor form' of the viscosity term, all components of viscosity must be set to equal to the isotropic viscosity due to the method of implementation. If using an anisotropic viscosity with the 'partial stress form' or 'stress form' consult the schema and query the code to understand how the viscosity tensor must be defined. This does not apply when using DG discretisations. 
 
 \subsection{InternalEnergy options}
 \begin{itemize}
