@@ -47,7 +47,7 @@ module fsi_projections
 
   contains
 
-  subroutine fsi_one_way_galerkin_projection(fieldF, positionsF, positionsS, alpha_sf, solid_velocity_on_solid, solid_velocity_sf)
+  subroutine fsi_one_way_galerkin_projection(fieldF, positionsF, positionsS, alpha_sf, solver_option_path, solid_velocity_on_solid, solid_velocity_sf)
     !! Return the volume fraction scalar field by projecting unity from the supermesh to the fluid mesh
     !! and, iff given, the solid velocity from the solid (via the supermesh) to the fluid mesh.
     !! Since positionsF and positionsS are different, we need to supermesh!
@@ -57,11 +57,11 @@ module fsi_projections
     type(vector_field), intent(inout) :: fieldF
     type(vector_field), intent(inout) :: positionsF, positionsS
     type(scalar_field), intent(inout) :: alpha_sf
+    character(len=OPTION_PATH_LEN), intent(in) :: solver_option_path
     type(vector_field), intent(in), optional :: solid_velocity_on_solid
     type(vector_field), intent(inout), optional :: solid_velocity_sf
 
-    ! this is for using the advancing front algorithm:
-    type(ilist), dimension(ele_count(positionsS)) :: map_SF 
+    type(ilist), dimension(ele_count(positionsS)) :: map_SF
     integer :: ele_F, ele_S
 
     type(quadrature_type) :: supermesh_quad
@@ -218,41 +218,17 @@ module fsi_projections
     ! loop over fluid and solid elements and solve the last equation, which will
     ! project alpha from the supermesh to the fluid mesh
 
-    ! Set solver options for the interpolations:
-    tmp = alpha_sf%option_path
-    ! Here we have to differ between CG and DG projection:
-    alpha_sf%option_path = "/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/continuous"
-    !if (have_option("/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/continuous")) then
-    !    alpha_sf%option_path = "/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/continuous"
-    !else if (have_option("/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/discontinuous")) then
-    !    alpha_sf%option_path = "/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/discontinuous"
-    !end if
-
     ! Project alpha to the fluid mesh:
-    call petsc_solve(alpha_sf, mass_matrix_fluid, rhs_alpha_sf)
-
-    ! Resetting option path for alpha_sf:
-    alpha_sf%option_path = trim(tmp)
+    call petsc_solve(alpha_sf, mass_matrix_fluid, rhs_alpha_sf, option_path=trim(solver_option_path))
 
     ! Same for solid velocity, IFF it was given:
     if (present(solid_velocity_on_solid) .and. present(solid_velocity_sf)) then
-        tmp = solid_velocity_sf%option_path
-        ! Here we have to differ between CG and DG projection:
-        solid_velocity_sf%option_path = "/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/continuous"
-        !if (have_option("/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/continuous")) then
-        !    solid_velocity_sf%option_path = "/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/continuous"
-        !else if (have_option("/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/discontinuous")) then
-        !    solid_velocity_sf%option_path = "/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/discontinuous"
-        !end if
-
         ! Project solid velocity to the fluid mesh:
-        call petsc_solve(solid_velocity_sf, mass_matrix_fluid, rhs_fluid)
-        ! Resetting option path for solid_velocity_sf:
-        solid_velocity_sf%option_path = trim(tmp)
+        call petsc_solve(solid_velocity_sf, mass_matrix_fluid, rhs_fluid, option_path=trim(solver_option_path))
     end if
 
     ! Get options from option tree if projection is bounded or not:
-    if (have_option('/embedded_models/fsi_model/inter_mesh_projection/galerkin_projection/continuous/bounded[0]')) then
+    if (have_option(trim(solver_option_path)//'/bounded[0]')) then
         call bound_projection(alpha_sf, rhs_alpha_sf, mass_matrix_fluid, &
                               lumped_mass_matrix_fluid, lumped_inverse_mass_matrix_fluid, &
                               positionsF)
@@ -575,196 +551,196 @@ module fsi_projections
 
     ewrite(2,*) "Leaving bound_projection_scalars"
 
-   end subroutine bound_projection_scalars
+  end subroutine bound_projection_scalars
 
-   subroutine fsi_one_way_grandy_interpolation(fluid_position, solid_position, alpha)
+  subroutine fsi_one_way_grandy_interpolation(fluid_position, solid_position, alpha)
 
-       type(vector_field), pointer, intent(inout) :: fluid_position
-       type(vector_field), intent(in) :: solid_position
-       type(scalar_field), intent(inout) :: alpha
-       type(scalar_field) :: alpha_coordinatemesh
+     type(vector_field), pointer, intent(inout) :: fluid_position
+     type(vector_field), intent(in) :: solid_position
+     type(scalar_field), intent(inout) :: alpha
+     type(scalar_field) :: alpha_coordinatemesh
 
-       type(vector_field), pointer :: positions
-       type(vector_field) :: external_positions_local
-       integer :: ele_A, ele_B, ele_C
-       type(tet_type) :: tet_A, tet_B
-       type(plane_type), dimension(:), allocatable :: planes_A
-       integer :: stat, nintersections, i, j, k, ntests
-       integer, dimension(:), pointer :: ele_A_nodes
-       type(vector_field) :: intersection
-       real, dimension(:, :), allocatable :: pos_A
-       real, dimension(:), allocatable :: detwei
-       real :: vol, ele_A_vol
+     type(vector_field), pointer :: positions
+     type(vector_field) :: external_positions_local
+     integer :: ele_A, ele_B, ele_C
+     type(tet_type) :: tet_A, tet_B
+     type(plane_type), dimension(:), allocatable :: planes_A
+     integer :: stat, nintersections, i, j, k, ntests
+     integer, dimension(:), pointer :: ele_A_nodes
+     type(vector_field) :: intersection
+     real, dimension(:, :), allocatable :: pos_A
+     real, dimension(:), allocatable :: detwei
+     real :: vol, ele_A_vol
 
-       call allocate(alpha_coordinatemesh, fluid_position%mesh, 'SolidConcentrationCoordinateMesh')
-       call zero(alpha_coordinatemesh)
+     call allocate(alpha_coordinatemesh, fluid_position%mesh, 'SolidConcentrationCoordinateMesh')
+     call zero(alpha_coordinatemesh)
 
-       ! Set the input of the RTREE finder as the coordinates of the fluids mesh:
-       call rtree_intersection_finder_set_input(fluid_position)
+     ! Set the input of the RTREE finder as the coordinates of the fluids mesh:
+     call rtree_intersection_finder_set_input(fluid_position)
 
-       ! For all elements of the solids mesh:
-       do ele_B = 1, ele_count(solid_position)
+     ! For all elements of the solids mesh:
+     do ele_B = 1, ele_count(solid_position)
 
-          ! Via RTREE, find intersection of solid element 'ele_B' with the
-          ! input mesh (fluid coordinate mesh 'positions'):
-          call rtree_intersection_finder_find(solid_position, ele_B)
-          ! Fetch output, the number of intersections of this solid element:
-          call rtree_intersection_finder_query_output(nintersections)
+        ! Via RTREE, find intersection of solid element 'ele_B' with the
+        ! input mesh (fluid coordinate mesh 'positions'):
+        call rtree_intersection_finder_find(solid_position, ele_B)
+        ! Fetch output, the number of intersections of this solid element:
+        call rtree_intersection_finder_query_output(nintersections)
 
-          if (fluid_position%dim == 3) then
-             ! Get (solid) element value (coordinate), form tetrahedra:
-             tet_B%v = ele_val(solid_position, ele_B)
-          else
-             call intersector_set_dimension(fluid_position%dim)
-          end if
+        if (fluid_position%dim == 3) then
+           ! Get (solid) element value (coordinate), form tetrahedra:
+           tet_B%v = ele_val(solid_position, ele_B)
+        else
+           call intersector_set_dimension(fluid_position%dim)
+        end if
 
-          ! 1st inner-loop
-          ! For all intersections of solid element ele_B with fluid mesh:
-          do j = 1, nintersections
-             ! Get the donor (fluid) element which intersects with ele_B
-             call rtree_intersection_finder_get_output(ele_A, j)
-             ! If 3D
-             if (fluid_position%dim == 3) then
-                ! Get the global coordinates of fluid element ele_A:
-                if (ele_loc(fluid_position, ele_A)==4) then
-                   ! if fluid element is a tetrahedra
-                   allocate(planes_A(4))
-                   tet_A%v = ele_val(fluid_position, ele_A)
-                   planes_A = get_planes(tet_A)
-                else
-                   ! if fluid element is not a tetrahedra, 
-                   ! assumed to be a hexahedra:
-                   allocate(planes_A(6))
-                   planes_A = get_planes(fluid_position, ele_A)
-                end if
-                ! Get the coordinates of nodes of the intersection
-                ! between of both elements, store in intersection
-                call intersect_tets(tet_B, planes_A, &
-                     ele_shape(solid_position, ele_B), &
-                     stat=stat, output=intersection)
-                deallocate(planes_A)
-             else ! 2D
-                allocate(pos_A(fluid_position%dim, ele_loc(fluid_position, ele_A)))
-                pos_A = ele_val(fluid_position, ele_A)
-                intersection = intersect_elements(solid_position, ele_B, pos_A, ele_shape(solid_position, ele_B))
-                deallocate(pos_A)
-                stat = 0
-             end if ! end of dim==3
+        ! 1st inner-loop
+        ! For all intersections of solid element ele_B with fluid mesh:
+        do j = 1, nintersections
+           ! Get the donor (fluid) element which intersects with ele_B
+           call rtree_intersection_finder_get_output(ele_A, j)
+           ! If 3D
+           if (fluid_position%dim == 3) then
+              ! Get the global coordinates of fluid element ele_A:
+              if (ele_loc(fluid_position, ele_A)==4) then
+                 ! if fluid element is a tetrahedra
+                 allocate(planes_A(4))
+                 tet_A%v = ele_val(fluid_position, ele_A)
+                 planes_A = get_planes(tet_A)
+              else
+                 ! if fluid element is not a tetrahedra, 
+                 ! assumed to be a hexahedra:
+                 allocate(planes_A(6))
+                 planes_A = get_planes(fluid_position, ele_A)
+              end if
+              ! Get the coordinates of nodes of the intersection
+              ! between of both elements, store in intersection
+              call intersect_tets(tet_B, planes_A, &
+                   ele_shape(solid_position, ele_B), &
+                   stat=stat, output=intersection)
+              deallocate(planes_A)
+           else ! 2D
+              allocate(pos_A(fluid_position%dim, ele_loc(fluid_position, ele_A)))
+              pos_A = ele_val(fluid_position, ele_A)
+              intersection = intersect_elements(solid_position, ele_B, pos_A, ele_shape(solid_position, ele_B))
+              deallocate(pos_A)
+              stat = 0
+           end if ! end of dim==3
 
-             ! No intersection, cycle:
-             if (stat == 1) cycle
+           ! No intersection, cycle:
+           if (stat == 1) cycle
 
-             ! Compute intersection volume:
-             vol = 0.0
-             do ele_C = 1, ele_count(intersection)
-                vol = vol + abs(simplex_volume(intersection, ele_C))
-             end do
+           ! Compute intersection volume:
+           vol = 0.0
+           do ele_C = 1, ele_count(intersection)
+              vol = vol + abs(simplex_volume(intersection, ele_C))
+           end do
 
-             ! Compute the volume of the fluid element:
-             allocate(detwei(ele_ngi(fluid_position, ele_A)))
-             call transform_to_physical(fluid_position, ele_A, detwei=detwei)
-             ele_A_vol = sum(detwei)
-             deallocate(detwei)
+           ! Compute the volume of the fluid element:
+           allocate(detwei(ele_ngi(fluid_position, ele_A)))
+           call transform_to_physical(fluid_position, ele_A, detwei=detwei)
+           ele_A_vol = sum(detwei)
+           deallocate(detwei)
 
-             ! Compute the volume fraction:
-             ! ele_A_nodes: pointer to global node numbers of
-             ! fluid element ele_A of the coordinate mesh
-             ele_A_nodes => ele_nodes(fluid_position, ele_A)
-             do k = 1, size(ele_A_nodes)
-                ! Volume fraction by grandy projection
-                call addto(alpha_coordinatemesh, ele_A_nodes(k), vol/ele_A_vol)
-             end do
-             call deallocate(intersection)
+           ! Compute the volume fraction:
+           ! ele_A_nodes: pointer to global node numbers of
+           ! fluid element ele_A of the coordinate mesh
+           ele_A_nodes => ele_nodes(fluid_position, ele_A)
+           do k = 1, size(ele_A_nodes)
+              ! Volume fraction by grandy projection
+              call addto(alpha_coordinatemesh, ele_A_nodes(k), vol/ele_A_vol)
+           end do
+           call deallocate(intersection)
+        end do
+     end do
+
+     call finalise_tet_intersector
+     call rtree_intersection_finder_reset(ntests)
+
+     ! Bound field:
+     call bound_scalar_field(alpha_coordinatemesh, 0.0, 1.0)
+
+     ! Remap to alpha:
+     call remap_field(alpha_coordinatemesh, alpha)
+     call deallocate(alpha_coordinatemesh)
+
+  end subroutine fsi_one_way_grandy_interpolation
+
+  subroutine bound_scalar_field(sfield, minvalue, maxvalue)
+      type(scalar_field), intent(inout) :: sfield
+      real, intent(in) :: minvalue, maxvalue
+      integer :: i, ele
+      integer, dimension(:), pointer :: nodes
+
+      do ele = 1, ele_count(sfield%mesh)
+          nodes => ele_nodes(sfield%mesh, ele)
+          do i = 1, size(nodes)
+              call set(sfield, nodes(i), max(minvalue, min(maxvalue, node_val(sfield, nodes(i)))))
           end do
-       end do
+      end do
 
-       call finalise_tet_intersector
-       call rtree_intersection_finder_reset(ntests)
+  end subroutine bound_scalar_field
 
-       ! Bound field:
-       call bound_scalar_field(alpha_coordinatemesh, 0.0, 1.0)
+  subroutine fsi_get_interface(fsi_interface, positionsF, positionsS)
+  !! This subroutine returns a scalar field, that is 1 only at the elements which intersect
+  !! with the surface elements of a solid mesh
+      type(scalar_field), intent(inout) :: fsi_interface
+      type(vector_field), pointer, intent(in) :: positionsF, positionsS
 
-       ! Remap to alpha:
-       call remap_field(alpha_coordinatemesh, alpha)
-       call deallocate(alpha_coordinatemesh)
+      integer :: ele_F, ele_S
+      integer :: num_intersections
+      integer :: i, j, n, dim, node
+      
+      integer, dimension(:), pointer :: solid_faces
+      integer, dimension(:), pointer :: nodes
+      integer, dimension(face_loc(positionsS, 1)) :: solid_face_nodes
+      integer :: face_number
 
-    end subroutine fsi_one_way_grandy_interpolation
+      ewrite(2,*) "inside fsi_get_interface"
 
-    subroutine bound_scalar_field(sfield, minvalue, maxvalue)
-        type(scalar_field), intent(inout) :: sfield
-        real, intent(in) :: minvalue, maxvalue
-        integer :: i, ele
-        integer, dimension(:), pointer :: nodes
+      ! Set the dimension for the intersection finder:
+      dim = mesh_dim(positionsS)
+      call intersector_set_dimension(dim) 
+      ! Use rtree intersection finder because it is more robust, e.g.
+      ! it does not fail when running in parallel and no solid element is found in the 
+      ! composition of the fluid mesh:
+      ! Set input for rtree intersection finder:
+      call rtree_intersection_finder_set_input(positionsF)
 
-        do ele = 1, ele_count(sfield%mesh)
-            nodes => ele_nodes(sfield%mesh, ele)
-            do i = 1, size(nodes)
-                call set(sfield, nodes(i), max(minvalue, min(maxvalue, node_val(sfield, nodes(i)))))
-            end do
-        end do
+      do ele_S=1,ele_count(positionsS)
+          solid_faces => ele_faces(positionsS, ele_S)
+          do i=1, ele_face_count(positionsS,ele_S)
+              !face_number = 0.0
+              face_number = face_neigh(positionsS, solid_faces(i))
+              if (face_number == solid_faces(i)) then
+                  solid_face_nodes = 0.0
+                  ! This means, the face 'face_number' has no neighbour face, meaning
+                  ! this face is at the solid's boundary, 
+                  ! so let's get intersecting fluid elements for this solid element:
 
-    end subroutine bound_scalar_field
+                  ! Via rtree, find intersection of solid element with fluid elements:
+                  call rtree_intersection_finder_find(positionsS, ele_S)
+                  ! Fetch output, the number of intersections
+                  call rtree_intersection_finder_query_output(num_intersections)
+                  ! Set scalar field for intersection with the solid boundary
+                  if (num_intersections .ne. 0) then
+                      do j=1, num_intersections
+                          ! Get the donor (fluid) element which intersects with ele_S
+                          call rtree_intersection_finder_get_output(ele_F, j)
+                          nodes => ele_nodes(positionsF, ele_F)
+                          do n = 1, size(nodes)
+                              node = nodes(n)
+                              call set(fsi_interface, node, 1.0)
+                          end do
+                      end do
+                  end if
+              end if
+          end do
+      end do
 
-    subroutine fsi_get_interface(fsi_interface, positionsF, positionsS)
-    !! This subroutine returns a scalar field, that is 1 only at the elements which intersect
-    !! with the surface elements of a solid mesh
-        type(scalar_field), intent(inout) :: fsi_interface
-        type(vector_field), pointer, intent(in) :: positionsF, positionsS
+      ewrite(2,*) "leaving fsi_get_interface"
 
-        integer :: ele_F, ele_S
-        integer :: num_intersections
-        integer :: i, j, n, dim, node
-        
-        integer, dimension(:), pointer :: solid_faces
-        integer, dimension(:), pointer :: nodes
-        integer, dimension(face_loc(positionsS, 1)) :: solid_face_nodes
-        integer :: face_number
-
-        ewrite(2,*) "inside fsi_get_interface"
-
-        ! Set the dimension for the intersection finder:
-        dim = mesh_dim(positionsS)
-        call intersector_set_dimension(dim) 
-        ! Use rtree intersection finder because it is more robust, e.g.
-        ! it does not fail when running in parallel and no solid element is found in the 
-        ! composition of the fluid mesh:
-        ! Set input for rtree intersection finder:
-        call rtree_intersection_finder_set_input(positionsF)
-
-        do ele_S=1,ele_count(positionsS)
-            solid_faces => ele_faces(positionsS, ele_S)
-            do i=1, ele_face_count(positionsS,ele_S)
-                !face_number = 0.0
-                face_number = face_neigh(positionsS, solid_faces(i))
-                if (face_number == solid_faces(i)) then
-                    solid_face_nodes = 0.0
-                    ! This means, the face 'face_number' has no neighbour face, meaning
-                    ! this face is at the solid's boundary, 
-                    ! so let's get intersecting fluid elements for this solid element:
-
-                    ! Via rtree, find intersection of solid element with fluid elements:
-                    call rtree_intersection_finder_find(positionsS, ele_S)
-                    ! Fetch output, the number of intersections
-                    call rtree_intersection_finder_query_output(num_intersections)
-                    ! Set scalar field for intersection with the solid boundary
-                    if (num_intersections .ne. 0) then
-                        do j=1, num_intersections
-                            ! Get the donor (fluid) element which intersects with ele_S
-                            call rtree_intersection_finder_get_output(ele_F, j)
-                            nodes => ele_nodes(positionsF, ele_F)
-                            do n = 1, size(nodes)
-                                node = nodes(n)
-                                call set(fsi_interface, node, 1.0)
-                            end do
-                        end do
-                    end if
-                end if
-            end do
-        end do
-
-        ewrite(2,*) "leaving fsi_get_interface"
-
-    end subroutine fsi_get_interface
+  end subroutine fsi_get_interface
 
 end module fsi_projections
 
