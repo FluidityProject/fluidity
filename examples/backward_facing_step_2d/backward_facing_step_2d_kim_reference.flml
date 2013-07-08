@@ -46,7 +46,7 @@
     </dump_format>
     <dump_period>
       <constant>
-        <integer_value rank="0">1</integer_value>
+        <real_value rank="0">1</real_value>
       </constant>
     </dump_period>
     <output_mesh name="CoordinateMesh"/>
