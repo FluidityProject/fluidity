@@ -16,12 +16,6 @@ Immersed Solids</a:documentation>
               <ref name="fsi_model_input_mesh"/>
             </oneOrMore>
           </element>
-          <group>
-            <a:documentation>The projection between solid and fluid mesh. It is
-recommended to use a Galerkin projection via supermeshing,
-which should be bounded.</a:documentation>
-            <ref name="fsi_model_projection"/>
-          </group>
           <optional>
             <element name="beta">
               <a:documentation>Beta is a scaling factor to improve the 
@@ -104,6 +98,7 @@ and is computed internally.</a:documentation>
             </group>
           </element>
         </optional>
+        <ref name="fsi_model_projection"/>
       </element>
     </oneOrMore>
   </define>
@@ -138,11 +133,9 @@ coordinate mesh for this solid phase is chosen.</a:documentation>
     </element>
   </define>
   <define name="fsi_model_projection">
-    <element name="inter_mesh_projection">
+    <element name="fsi_projection">
       <a:documentation>Specify the method to be use for projections
-of fields between fluid and solid mesh
-Currently only the Galerkin Projection via 
-supermeshing is supported.</a:documentation>
+of fields between fluid and solid mesh.</a:documentation>
       <choice>
         <element name="galerkin_projection">
           <a:documentation>Construction of a supermesh for the part of 
@@ -155,6 +148,8 @@ unity from the supermesh, to the fluid mesh.</a:documentation>
           </optional>
         </element>
         <element name="grandy_interpolation">
+          <a:documentation> Grandy interpolation. Conservative, but highly diffusive.
+See doi:10.1006/jcph.1998.6125 .</a:documentation>
           <empty/>
         </element>
       </choice>

@@ -14,12 +14,6 @@ embedded_models =
             {
                fsi_model_input_mesh+
             },
-            ## The projection between solid and fluid mesh. It is
-            ## recommended to use a Galerkin projection via supermeshing,
-            ## which should be bounded.
-            (
-               fsi_model_projection
-            ),
             ## Beta is a scaling factor to improve the 
             ## relaxation of the fluid within a solid body. 
             ## Useful for thin structures, e.g. turbine blades.
@@ -77,7 +71,8 @@ fsi_solid_phases =
          (
             fsi_model_solid_force_mesh
          )
-      }?
+      }?,
+      fsi_model_projection
    }+
 )
 
@@ -105,11 +100,10 @@ fsi_model_input_mesh =
    }
 
 fsi_model_projection =
+(
     ## Specify the method to be use for projections
-    ## of fields between fluid and solid mesh
-    ## Currently only the Galerkin Projection via 
-    ## supermeshing is supported.
-    element inter_mesh_projection
+    ## of fields between fluid and solid mesh.
+    element fsi_projection
     {
         ## Construction of a supermesh for the part of 
         ## the fluid mesh which is occupied by the solid mesh.
@@ -119,8 +113,11 @@ fsi_model_projection =
            continuous_discontinuous_projection,
            supermesh_conservation?
         }|
+        ##  Grandy interpolation. Conservative, but highly diffusive.
+        ## See doi:10.1006/jcph.1998.6125 .
         element grandy_interpolation{empty}
     }
+)
 
 
 fsi_model_input_real_dim_vector_python =
