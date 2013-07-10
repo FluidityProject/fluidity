@@ -2,6 +2,7 @@
 <testproblem>
    <name>Backward-facing step 2D example</name>
    <!--Runs a reference and kepsilon 2D backward-facing step problems.-->
+   <!-- this seems to be a fragile test. Anyone with experience of BFS think of a better one-->   
   <owner userid="asc"/>
   <tags>flml</tags>
   <!-- uses flml -->
@@ -33,8 +34,7 @@ os.chdir('../')
   <pass_tests>
     <test name="reference_finish_time" language="python">assert reference_finishtime &gt; 199.0</test>
     <test name="kepsilon_finish_time" language="python">assert kepsilon_finishtime &gt; 199.0</test>
-    <test name="reference reattachment length is 3.0-ish" language="python">
-    <!-- this seems to be a frgile test. Anyone with experience of BFS think of a better one?-->
+    <test name="reference reattachment length is 3.0ish" language="python">
 assert(reference_reattachment_length[-1,0] - 3.0 &lt; 0.5)
     </test>
     <test name="kepsilon reattachment length is within 1% of experimental value" language="python">
