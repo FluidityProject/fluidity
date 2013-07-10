@@ -44,11 +44,11 @@
     <dump_format>
       <string_value>vtk</string_value>
     </dump_format>
-    <dump_period_in_timesteps>
+    <dump_period>
       <constant>
-        <integer_value rank="0">50</integer_value>
+        <real_value rank="0">1</real_value>
       </constant>
-    </dump_period_in_timesteps>
+    </dump_period>
     <output_mesh name="CoordinateMesh"/>
     <stat/>
   </io>
@@ -73,15 +73,6 @@
         <mesh name="VelocityMesh"/>
       </courant_number>
     </adaptive_timestep>
-    <steady_state>
-      <tolerance>
-        <real_value rank="0">1.e-5</real_value>
-        <infinity_norm/>
-      </tolerance>
-      <steady_state_file>
-        <plain_text_output/>
-      </steady_state_file>
-    </steady_state>
   </timestepping>
   <material_phase name="Fluid">
     <subgridscale_parameterisations>

@@ -1917,12 +1917,12 @@ contains
     adapt_path=trim(path)//"/adaptivity_options"
     if(have_option(trim(adapt_path)//"/absolute_measure")) then
        adapt_path=trim(adapt_path)//"/absolute_measure/scalar_field::InterpolationErrorBound"
-       call allocate_and_insert_scalar_field(adapt_path, state, parent_mesh=mesh_name, &
+       call allocate_and_insert_scalar_field(adapt_path, state, parent_mesh=topology_mesh_name, &
           parent_name=lfield_name, &
           dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     else if(have_option(trim(adapt_path)//"/relative_measure")) then
        adapt_path=trim(adapt_path)//"/relative_measure/scalar_field::InterpolationErrorBound"
-       call allocate_and_insert_scalar_field(adapt_path, state, parent_mesh=mesh_name, &
+       call allocate_and_insert_scalar_field(adapt_path, state, parent_mesh=topology_mesh_name, &
           parent_name=lfield_name, &
           dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     end if
@@ -2050,11 +2050,11 @@ contains
     adapt_path=trim(path)//"/adaptivity_options"
     if(have_option(trim(adapt_path)//"/absolute_measure")) then
        adapt_path=trim(adapt_path)//"/absolute_measure/vector_field::InterpolationErrorBound"
-       call allocate_and_insert_vector_field(adapt_path, state, mesh_name, lfield_name, &
+       call allocate_and_insert_vector_field(adapt_path, state, topology_mesh_name, lfield_name, &
           dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     else if(have_option(trim(adapt_path)//"/relative_measure")) then
        adapt_path=trim(adapt_path)//"/relative_measure/vector_field::InterpolationErrorBound"
-       call allocate_and_insert_vector_field(adapt_path, state, mesh_name, lfield_name, &
+       call allocate_and_insert_vector_field(adapt_path, state, topology_mesh_name, lfield_name, &
           dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     end if
 
@@ -2170,11 +2170,11 @@ contains
     adapt_path=trim(path)//"/adaptivity_options"
     if(have_option(trim(adapt_path)//"/absolute_measure")) then
        adapt_path=trim(adapt_path)//"/absolute_measure/tensor_field::InterpolationErrorBound"
-       call allocate_and_insert_tensor_field(adapt_path, state, mesh_name, field_name, &
+       call allocate_and_insert_tensor_field(adapt_path, state, topology_mesh_name, field_name, &
             dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     else if(have_option(trim(adapt_path)//"/relative_measure")) then
        adapt_path=trim(adapt_path)//"/relative_measure/tensor_field::InterpolationErrorBound"
-       call allocate_and_insert_tensor_field(adapt_path, state, mesh_name, field_name, &
+       call allocate_and_insert_tensor_field(adapt_path, state, topology_mesh_name, field_name, &
             dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     end if
 
