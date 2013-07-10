@@ -44,11 +44,11 @@
     <dump_format>
       <string_value>vtk</string_value>
     </dump_format>
-    <dump_period_in_timesteps>
+    <dump_period>
       <constant>
-        <integer_value rank="0">50</integer_value>
+        <real_value rank="0">1</real_value>
       </constant>
-    </dump_period_in_timesteps>
+    </dump_period>
     <output_mesh name="CoordinateMesh"/>
     <stat/>
   </io>
@@ -73,15 +73,6 @@
         <mesh name="VelocityMesh"/>
       </courant_number>
     </adaptive_timestep>
-    <steady_state>
-      <tolerance>
-        <real_value rank="0">1.e-5</real_value>
-        <infinity_norm/>
-      </tolerance>
-      <steady_state_file>
-        <plain_text_output/>
-      </steady_state_file>
-    </steady_state>
   </timestepping>
   <material_phase name="Fluid">
     <subgridscale_parameterisations>
@@ -89,7 +80,23 @@
         <scalar_field name="TurbulentKineticEnergy" rank="0">
           <prognostic>
             <mesh name="VelocityMesh"/>
-            <equation name="KEpsilon"/>
+            <equation name="KEpsilon">
+              <density name="Density">
+                <discretisation_options>
+                  <spatial_discretisation>
+                    <control_volumes>
+                      <face_value name="FirstOrderUpwind"/>
+                    </control_volumes>
+                  </spatial_discretisation>
+                  <temporal_discretisation>
+                    <theta>
+                      <real_value rank="0">1.0</real_value>
+                    </theta>
+                    <control_volumes/>
+                  </temporal_discretisation>
+                </discretisation_options>
+              </density>
+            </equation>
             <spatial_discretisation>
               <control_volumes>
                 <face_value name="FiniteElement">
@@ -205,7 +212,23 @@
         <scalar_field name="TurbulentDissipation" rank="0">
           <prognostic>
             <mesh name="VelocityMesh"/>
-            <equation name="KEpsilon"/>
+            <equation name="KEpsilon">
+              <density name="Density">
+                <discretisation_options>
+                  <spatial_discretisation>
+                    <control_volumes>
+                      <face_value name="FirstOrderUpwind"/>
+                    </control_volumes>
+                  </spatial_discretisation>
+                  <temporal_discretisation>
+                    <theta>
+                      <real_value rank="0">1.0</real_value>
+                    </theta>
+                    <control_volumes/>
+                  </temporal_discretisation>
+                </discretisation_options>
+              </density>
+            </equation>
             <spatial_discretisation>
               <control_volumes>
                 <face_value name="FiniteElement">
