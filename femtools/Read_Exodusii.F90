@@ -1131,7 +1131,7 @@ contains
              field%mesh%ndglno(n+z) = exo_element(exo_e)%nodeIDs(n)
           end do
           ! Set region_id of element (this will be its blockID in exodus)
-          field%mesh%region_ids = exo_element(exo_e)%blockID
+          field%mesh%region_ids(i) = exo_element(exo_e)%blockID
           exo_e = exo_e+1
           z = z+num_nodes_per_elem_ele
        end if
