@@ -761,6 +761,8 @@
                FLExit("When using the subtract_out_reference_profile option, please set a (prescribed) HydrostaticReferencePressure field.")
                ewrite(-1,*) 'The HydrostaticReferencePressure field, defining the hydrostatic component of the pressure field, needs to be set.'
             end if
+         else
+            hb_pressure => dummyscalar
          end if
 
          surface_element_loop: do sele=1, surface_element_count(u)

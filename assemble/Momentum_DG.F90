@@ -216,6 +216,9 @@ contains
     !! Surface tension field
     type(tensor_field) :: surfacetension
 
+    ! Dummy fields in case state doesn't contain the above fields
+    type(scalar_field), pointer :: dummyscalar
+
     ! Fields for the subtract_out_reference_profile option under the Velocity field
     type(scalar_field), pointer :: hb_density, hb_pressure
 
@@ -328,6 +331,11 @@ contains
     end if
     ewrite(2, *) "Include advection? ", have_advection
 
+    allocate(dummyscalar)
+    call allocate(dummyscalar, u%mesh, "DummyScalar", field_type=FIELD_TYPE_CONSTANT)
+    call zero(dummyscalar)
+    dummyscalar%option_path=""
+
     Source=extract_vector_field(state, "VelocitySource", stat)
     have_source = (stat==0)
     if (.not.have_source) then
@@ -408,9 +416,13 @@ contains
 
        if(l_include_pressure_bcs) then
           hb_pressure => extract_scalar_field(state, "HydrostaticReferencePressure")
+       else
+          hb_pressure => dummyscalar
        end if
     else
        subtract_out_reference_profile = .false.
+       hb_density => dummyscalar
+       hb_pressure => dummyscalar
     end if
 
     Viscosity=extract_tensor_field(state, "Viscosity", stat)
@@ -728,6 +740,8 @@ contains
     if(multiphase) then
       call deallocate(nvfrac)
     end if
+    call deallocate(dummyscalar)
+    deallocate(dummyscalar)
     
     ewrite(1, *) "Exiting construct_momentum_dg"
 
