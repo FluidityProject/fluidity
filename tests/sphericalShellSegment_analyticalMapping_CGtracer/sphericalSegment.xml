@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>spherical segment - spherical cooridnate mapping - CG tracers<comment>Tests the exact coordinate mapping on the sphere, with CG tracers. This is a stay-idle test, velocities should be near zero.</comment></name>
+  <owner userid="avdis01"/>
+  <problem_definition length="medium" nprocs="2">
+    <command_line>mpiexec -n 2 ../../bin/flredecomp -i 1 -o 2 -v -l sphericalSegment sphericalSegment_flredecomp &amp;&amp;
+mpirun -np 2 fluidity -v2 -l sphericalSegment_flredecomp.flml &amp;&amp;
+  </problem_definition>
+  <variables>
+    <variable name="solvers_converged" language="python">import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files</variable>
+    <variable name="max_velocity" language="python">from fluidity_tools import stat_parser
+stat=stat_parser('sphericalSegment.stat')
+max_velocity=stat['Fields']['Velocity%magnitude']['max']</variable>
+    <variable name="max_llv_velocity" language="python">from fluidity_tools import stat_parser
+stat=stat_parser('sphericalSegment.stat')
+max_llv_velocity=stat['Fields']['LonLatVerticalVelocity%magnitude']['max']</variable>
+    <variable name="kineticEnergyIntegral" language="python">from fluidity_tools import stat_parser
+stat=stat_parser('sphericalSegment.stat')
+kineticEnergyIntegral=stat['Fields']['Velocity%magnitude']['l2norm']</variable>
+    <variable name="volume" language="python">from fluidity_tools import stat_parser
+stat=stat_parser('sphericalSegment.stat')
+# this only works because we don't move the free surface
+# we actually compute H \int_top \eta, i.e. the volume difference with
+# equilibrium state multiplied by depth H
+volume_before=stat['Fields']['FreeSurface']['integral']</variable>
+    <variable name="max_temperature" language="python">from fluidity_tools import stat_parser
+stat=stat_parser('sphericalSegment.stat')
+max_temperature=stat['Fields']['Temperature']['max']</variable>
+    <variable name="min_temperature" language="python">from fluidity_tools import stat_parser
+stat=stat_parser('sphericalSegment.stat')
+min_temperature=stat['Fields']['Temperature']['min']</variable>
+    <variable name="max_salinity" language="python">from fluidity_tools import stat_parser
+stat=stat_parser('sphericalSegment.stat')
+max_salinity=stat['Fields']['Salinity']['max']</variable>
+    <variable name="min_salinity" language="python">from fluidity_tools import stat_parser
+stat=stat_parser('sphericalSegment.stat')
+min_salinity=stat['Fields']['Salinity']['min']</variable>
+  </variables>
+  <pass_tests>
+    <test name="solvers_converged" language="python">assert solvers_converged</test>
+    <test name="correct_velocity_transformation" language="python">from fluidity_tools import compare_variable
+compare_variable(max_velocity[0], max_llv_velocity[0], 1e-10)
+compare_variable(max_velocity[-1], max_llv_velocity[-1], 1e-10)</test>
+  </pass_tests>
+</testproblem>
