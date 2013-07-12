@@ -98,6 +98,22 @@
         </stat>
       </from_mesh>
     </mesh>
+    <mesh name="PressureMesh_Discontinuous">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <mesh_continuity>
+          <string_value>discontinuous</string_value>
+        </mesh_continuity>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
     <quadrature>
       <degree>
         <integer_value rank="0">5</integer_value>
@@ -124,7 +140,8 @@
       <real_value rank="0">2.e-2</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">10.</real_value>
+      <real_value rank="0">2.0</real_value>
+      <comment>It was 10. -- changed for test-harness</comment>
     </finish_time>
     <nonlinear_iterations>
       <integer_value rank="0">3</integer_value>
@@ -177,7 +194,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    import math
    val=0.1
    if (X[0]&gt; 0.25 and X[0]&lt;0.95 and X[1]&gt;0.15 and X[1]&lt;0.85): val=1.
@@ -577,7 +594,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    
    import math
    
@@ -673,6 +690,52 @@ def val(X, t):
         </adaptivity_options>
         <consistent_interpolation/>
       </prognostic>
+    </scalar_field>
+    <scalar_field name="Temperature_Reference" rank="0">
+      <prescribed>
+        <mesh name="PressureMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value type="code" lines="20" language="python">def val(X,t):
+   
+   import math
+   
+   vel = 1.0
+   
+   DX = vel * t
+   
+   if(X[0]&gt;(0.25+DX) and X[0]&lt;(0.95+DX) and X[1]&gt;0.15 and X[1]&lt;0.85):
+      val = 1.0
+   else:
+      val = 0.0
+   return val</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="Temperature_DifferenceRef" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_difference" source_field_1_name="Temperature" source_field_2_name="Temperature_Reference" source_field_2_type="scalar" material_phase_support="single" source_field_1_type="scalar">
+          <absolute_difference/>
+        </algorithm>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
     </scalar_field>
     <multiphase_properties>
       <relperm_type>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>BL_2D</name>
+  <owner userid="jefferson.gomes"/>
+  <tags>mpml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>
+../../../bin/multiphase_prototype Advection_SinglePhase_Adaptive.mpml
+
+    </command_line>
+
+    
+  </problem_definition>
+  <variables>
+
+    <variable name="Reference_Advection" language="python">
+from fluidity_tools import stat_parser as stat
+Reference_Advection = stat("Advection_SinglePhase_Adaptive.stat")["phase1"]["Advection_SinglePhase_Adaptive"]["max"][-1]
+    </variable>
+
+  </variables>
+
+  <pass_tests>
+    <test name="Assert max absolute regression difference for Temperature Advection Field is less than 1.0e-10" language="python">
+assert(abs(Reference_Advection) &lt; 1.0e-10)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+
+</testproblem>
