@@ -72,6 +72,9 @@
       <courant_number name="CFLNumber">
         <mesh name="VelocityMesh"/>
       </courant_number>
+      <increase_tolerance>
+        <real_value rank="0">1.2</real_value>
+      </increase_tolerance>
     </adaptive_timestep>
   </timestepping>
   <material_phase name="Fluid">
@@ -118,7 +121,7 @@
             </spatial_discretisation>
             <temporal_discretisation>
               <theta>
-                <real_value rank="0">0.5</real_value>
+                <real_value rank="0">1.0</real_value>
               </theta>
               <control_volumes>
                 <number_advection_iterations>
@@ -128,10 +131,12 @@
               </control_volumes>
             </temporal_discretisation>
             <solver>
-              <iterative_method name="cg"/>
-              <preconditioner name="hypre">
-                <hypre_type name="boomeramg"/>
-              </preconditioner>
+              <iterative_method name="gmres">
+                <restart>
+                  <integer_value rank="0">30</integer_value>
+                </restart>
+              </iterative_method>
+              <preconditioner name="sor"/>
               <relative_error>
                 <real_value rank="0">1.e-7</real_value>
               </relative_error>
@@ -250,7 +255,7 @@
             </spatial_discretisation>
             <temporal_discretisation>
               <theta>
-                <real_value rank="0">0.5</real_value>
+                <real_value rank="0">1.0</real_value>
               </theta>
               <control_volumes>
                 <number_advection_iterations>
@@ -260,10 +265,12 @@
               </control_volumes>
             </temporal_discretisation>
             <solver>
-              <iterative_method name="cg"/>
-              <preconditioner name="hypre">
-                <hypre_type name="boomeramg"/>
-              </preconditioner>
+              <iterative_method name="gmres">
+                <restart>
+                  <integer_value rank="0">30</integer_value>
+                </restart>
+              </iterative_method>
+              <preconditioner name="sor"/>
               <relative_error>
                 <real_value rank="0">1.e-7</real_value>
               </relative_error>
@@ -472,7 +479,7 @@
         </sigma_p>
         <time_discretisation>
           <theta>
-            <real_value rank="0">0.5</real_value>
+            <real_value rank="0">1.0</real_value>
           </theta>
           <source_term_implementation>
             <production_term>source</production_term>
