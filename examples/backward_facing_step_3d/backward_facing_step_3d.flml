@@ -465,6 +465,11 @@
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
+      <zoltan_options>
+        <load_imbalance_tolerance>
+          <real_value rank="0">1.5</real_value>
+        </load_imbalance_tolerance>
+      </zoltan_options>
     </hr_adaptivity>
   </mesh_adaptivity>
 </fluidity_options>
