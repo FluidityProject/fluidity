@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>BL_2D</name>
+  <owner userid="jefferson.gomes"/>
+  <tags>mpml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>
+../../../bin/multiphase_prototype Advection_SinglePhase.mpml
+
+    </command_line>
+
+    
+  </problem_definition>
+  <variables>
+
+    <variable name="Reference_Advection_Max" language="python">
+from fluidity_tools import stat_parser as stat
+Reference_Advection_Max = stat("Advection_SinglePhase.stat")["phase1"]["Temperature_DifferenceRef"]["max"][-1]
+    </variable>
+
+    <variable name="Reference_Advection_Min" language="python">
+from fluidity_tools import stat_parser as stat
+Reference_Advection_Min = stat("Advection_SinglePhase.stat")["phase1"]["Temperature_DifferenceRef"]["min"][-1]
+    </variable>
+
+
+  </variables>
+
+  <pass_tests>
+    <test name="Assert max absolute regression difference for Temperature Advection Field is less than 1.0e-10" language="python">
+assert(abs(Reference_Advection_Max) &lt; .95)
+    </test>
+    <test name="Assert min absolute regression difference for Temperature Advection Field is less than 1.0e-10" language="python">
+assert(abs(Reference_Advection_Min) &lt; .95)
+    </test>
+
+
+  </pass_tests>
+
+  <warn_tests>
+  </warn_tests>
+
+</testproblem>
