@@ -57,7 +57,7 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">0.01</real_value>
+      <real_value rank="0">0.001</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">200.0</real_value>
@@ -67,7 +67,7 @@
     </nonlinear_iterations>
     <adaptive_timestep>
       <requested_cfl>
-        <real_value rank="0">2.0</real_value>
+        <real_value rank="0">0.5</real_value>
       </requested_cfl>
       <courant_number name="CFLNumber">
         <mesh name="VelocityMesh"/>
@@ -123,12 +123,6 @@
               <theta>
                 <real_value rank="0">1.0</real_value>
               </theta>
-              <control_volumes>
-                <number_advection_iterations>
-                  <integer_value rank="0">3</integer_value>
-                </number_advection_iterations>
-                <limit_theta/>
-              </control_volumes>
             </temporal_discretisation>
             <solver>
               <iterative_method name="gmres">
@@ -257,12 +251,6 @@
               <theta>
                 <real_value rank="0">1.0</real_value>
               </theta>
-              <control_volumes>
-                <number_advection_iterations>
-                  <integer_value rank="0">3</integer_value>
-                </number_advection_iterations>
-                <limit_theta/>
-              </control_volumes>
             </temporal_discretisation>
             <solver>
               <iterative_method name="gmres">
@@ -557,7 +545,7 @@
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
-            <real_value rank="0">0.5</real_value>
+            <real_value rank="0">1.0</real_value>
           </theta>
           <relaxation>
             <real_value rank="0">0.5</real_value>
