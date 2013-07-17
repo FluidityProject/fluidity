@@ -26,7 +26,7 @@ os.chdir('../')
 from postprocessor_2d import reattachment_length, get_filelist
 import numpy, os
 os.chdir('./kepsilon/')
-filelist = get_filelist(10,50)
+filelist = get_filelist(10,120)
 kepsilon_reattachment_length = numpy.array(reattachment_length(filelist))
 os.chdir('../')
     </variable>

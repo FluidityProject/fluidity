@@ -57,7 +57,7 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">0.001</real_value>
+      <real_value rank="0">0.01</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">200.0</real_value>
@@ -67,13 +67,13 @@
     </nonlinear_iterations>
     <adaptive_timestep>
       <requested_cfl>
-        <real_value rank="0">0.5</real_value>
+        <real_value rank="0">2</real_value>
       </requested_cfl>
       <courant_number name="CFLNumber">
         <mesh name="VelocityMesh"/>
       </courant_number>
       <increase_tolerance>
-        <real_value rank="0">1.2</real_value>
+        <real_value rank="0">1.5</real_value>
       </increase_tolerance>
     </adaptive_timestep>
   </timestepping>
@@ -155,14 +155,6 @@
                 <constant>
                   <real_value rank="0">1.e-4</real_value>
                 </constant>
-              </type>
-            </boundary_conditions>
-            <boundary_conditions name="walls">
-              <surface_ids>
-                <integer_value shape="2" rank="1">10 12</integer_value>
-              </surface_ids>
-              <type name="k_epsilon">
-                <string_value>high_Re</string_value>
               </type>
             </boundary_conditions>
             <tensor_field name="Diffusivity" rank="2">
@@ -283,14 +275,6 @@
                 <constant>
                   <real_value rank="0">1.e-5</real_value>
                 </constant>
-              </type>
-            </boundary_conditions>
-            <boundary_conditions name="walls">
-              <surface_ids>
-                <integer_value shape="2" rank="1">10 12</integer_value>
-              </surface_ids>
-              <type name="k_epsilon">
-                <string_value>high_Re</string_value>
               </type>
             </boundary_conditions>
             <tensor_field name="Diffusivity" rank="2">
@@ -602,16 +586,6 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <boundary_conditions name="walls">
-          <surface_ids>
-            <integer_value shape="2" rank="1">10 12</integer_value>
-          </surface_ids>
-          <type name="log_law_of_wall">
-            <surface_roughness>
-              <real_value rank="0">1.e-6</real_value>
-            </surface_roughness>
-          </type>
-        </boundary_conditions>
         <boundary_conditions name="no_normal">
           <surface_ids>
             <integer_value shape="2" rank="1">10 12</integer_value>
@@ -624,6 +598,16 @@
                 </constant>
               </normal_component>
             </align_bc_with_surface>
+          </type>
+        </boundary_conditions>
+        <boundary_conditions name="walls">
+          <surface_ids>
+            <integer_value shape="2" rank="1">10 12</integer_value>
+          </surface_ids>
+          <type name="log_law_of_wall">
+            <surface_roughness>
+              <real_value rank="0">1.e-6</real_value>
+            </surface_roughness>
           </type>
         </boundary_conditions>
         <tensor_field name="Viscosity" rank="2">
