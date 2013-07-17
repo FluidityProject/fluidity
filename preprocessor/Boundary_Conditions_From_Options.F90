@@ -487,6 +487,12 @@ contains
                   deallocate(surface_mesh)
              end if
           end if
+          
+       case ("outflow")
+          ! dummy bc for outflow planes
+          call add_boundary_condition(field, trim(bc_name), trim(bc_type), surface_ids, option_path=bc_path_i, &
+                                       & applies=(/ .true., .true., .true. /) )
+          deallocate(surface_ids) 
  
        case default
           FLAbort("Incorrect boundary condition type for field")
@@ -1097,7 +1103,7 @@ contains
               call zero(scalar_surface_field)
            end if
 
-         case ("no_normal_flow")
+         case ("no_normal_flow", "outflow")
 
           ! nothing to be done (yet?)
           
