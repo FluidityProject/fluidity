@@ -97,8 +97,7 @@ sediment reentrainment. </a:documentation>
           </optional>
         </element>
         <element name="type">
-          <a:documentation>[UNDER DEVELOPMENT - DOES NOT WORK YET]
-Special type of Dirichlet boundary condition for the k-epsilon
+          <a:documentation>Special type of Dirichlet boundary condition for the k-epsilon
 turbulence model. Can be used on TurbulentKineticEnergy (k)
 and/or TurbulentDissipation (epsilon) fields.
 e.g. use a Dirichlet BC on inlets and k_epsilon on walls.</a:documentation>

@@ -1653,17 +1653,6 @@ When using \option{\ldots/control\_volumes} under Pressure \option{\ldots/spatia
 \option{\ldots/integrate\_continuity\_by\_parts} with CG Pressure and Velocity this boundary condition type 
 imposes a weak no normal flow boundary condition on the surfaces specified.
 
-\subsubsection{Near-wall treatment}
-
-This option implements a penalty function for the near wall region, negating the need to use fine meshes
-near walls \citep{bazilevs2007}. This option should be used in conjunction with a 
-\option{\ldots/no\_normal\_flow} boundary on the same surface.
-
-\subsubsection{Log-law of wall}
-
-This option sets the velocity to proportional to the logarithm of the distance from the boundary. 
-A surface roughness needs to be specified which is the thickness of laminar sublayer.
-
 \subsection{Special input date for boundary conditions}\label{sec:BCs:specialised}
 
 When running free surface simulations the surface elevation at the boundary is specified by applying a pressure Dirichlet condition. Since the free surface elevation is often measured data, there are some special possibilities to specify a pressure Dirichlet condition: 
