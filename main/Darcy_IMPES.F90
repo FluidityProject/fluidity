@@ -140,6 +140,9 @@ program Darcy_IMPES
 
    real :: finish_time
 
+   logical :: timing
+   real :: time1, time2
+
    type(state_type), dimension(:), pointer :: state => null()    
    
    type(tensor_field) :: metric_tensor
@@ -399,8 +402,13 @@ program Darcy_IMPES
    ! Initialise the non linear iter actual
    nonlinear_iterations_this_timestep = nonlinear_iterations_at_first_timestep
    
+   timing=(debug_level()>=2)
+
    timestep_loop: do
       timestep = timestep + 1
+      if (timing) then
+         call cpu_time(time1)
+      end if
 
       if(simulation_completed(current_time, timestep)) then
          
@@ -499,6 +507,12 @@ program Darcy_IMPES
          call darcy_impes_adaptive_timestep()
       
       end if adapt_if
+      
+
+      if (timing) then
+         call cpu_time(time2)
+         ewrite(2,*) "Time spent in One loop of time step: dBp", time2-time1
+      end if
       
    end do timestep_loop
    

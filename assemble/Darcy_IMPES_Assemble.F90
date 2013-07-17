@@ -4192,7 +4192,14 @@ visc_ele_bdy(1)
          
          sat_effective = (sat_val_all_phases(2) - relperm_corr_residual_sats(2)) / &
                          (1.0 - relperm_corr_residual_sats(1) - relperm_corr_residual_sats(2))
+	 if ( sat_effective >= 1.0 ) then
+	    sat_effective = 1.0
+	 end if 
          
+	 if ( sat_effective <= 0.0 ) then
+	    sat_effective = 0.0
+	 end if 
+
          if (p == 1) then
 
             relperm_val = relperm_corr_scaling_coefficients(1) * (1.0 - sat_effective) ** relperm_corr_exponents(1)
@@ -4239,10 +4246,30 @@ visc_ele_bdy(1)
       !!< Calculate the cfl number field based adaptive time step
       
       type(darcy_impes_type), intent(inout) :: di
+
+     !! NEW NoT TESTED FROM HERE
+      type(logical) :: diff_cfl
+
+
+      real :: ds, dpds, diff, deltax
+      type(scalar_field), pointer::sat, phi, perm, vis
+     
+      type(vector_field), pointer:: X
+
+      real, dimension(:), allocatable :: detwei
+      real, dimension(:), pointer :: phi_ele, perm_ele, sat_ele, vis_ele
+      integer, dimension(:), pointer :: sat_ele_nodes
+      integer :: i , ele
+      real, dimension(:, :, :), allocatable :: invJ
+      real :: sat_node
+      type(state_type) :: state
+
+     !! TILL HERE
+  
       
       ! local variables
       integer :: p
-      real, dimension(di%number_phase) :: phase_dt
+      real, dimension(di%number_phase) :: phase_dt, dtdiff
       
       ewrite(1,*) 'Calculate CFL number field based adaptive timestep'
       
@@ -4260,7 +4287,70 @@ visc_ele_bdy(1)
                                                 di%adaptive_dt_options%increase_tolerance)         
          
       end do phase_loop
+
+
+     ! NEW NOT TESTED FROM HERE 
+!     diff_cfl = .False.        	
+!     if (diff_cfl) then 
+
+!      do p = 1, di%number_phase
+     
+!        sat=>extract_scalar_field(state(p), "Saturation")
+!        phi=>extract_scalar_field(state(p), "Porosity")
+!        perm=>extract_scalar_field(state(p), "Permeability")
+!        vis=>extract_scalar_field(state(p), "Viscosity")
+
+!        X=>extract_vector_field(state(1), "Coordinate")
+!        allocate (invj(mesh_dim(x), mesh_dim(x), ele_ngi(x, 1)))
+!        allocate (detwei(ele_ngi(X,ele)))
+
+
+!        ds = 1.e-10
+!        dpds=0.
+    
+!        diff= 0.
+
+!        do ele = 1, ele_count(sat)
+        
+!          sat_ele_nodes => ele_nodes(sat, ele)
+ 
+!          phi_ele = ele_val(phi, ele)
+!          perm_ele = ele_val(perm, ele)
+!          vis_ele = ele_val(vis, ele)
+
+ !         call compute_inverse_jacobian(ele_val(X,ele), ele_shape(X,ele), &
+  !                                     detwei=detwei, invJ=invJ)
+
+
+ 
+!          deltax = minval(invJ) 
+
+!          do i  = 1, size(sat_ele_nodes)
+ 
+!             sat_node = node_val(sat, sat_ele_nodes(i) )
+!             dpds =  abs( ( (sat_node+ds)**(-0.5) - (sat_node-ds)**(-0.5) ) /(2.*ds) )
+
+ !            diff = max( diff, ( 1./phi_ele(ele)) * (perm_ele(ele) / vis_ele(ele)) * dpds )
+
+!          end do 
+         
+!          dtdiff(p) = deltax**2 / (2*diff)
+
+ !       end do
+
+!       deallocate (invj)
+!       deallocate (detwei)
+
+!     end do
+     
+
       
+!      di%dt = min(minval(dtdiff), minval(phase_dt))
+
+!     end if 
+
+! UNTIL HERE
+
       di%dt = minval(phase_dt)
 
       if(di%adaptive_dt_options%min_dt_terminate_if_reached) then
