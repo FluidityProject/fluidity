@@ -684,12 +684,6 @@
                call drag_surface(big_m(istate), mom_rhs(istate), state(istate), density)
             end if
 
-            ! Near wall treatment
-            if (has_boundary_condition(u, "near_wall_treatment") .or. &
-               has_boundary_condition(u, "log_law_of_wall")) then
-               call wall_functions(big_m(istate), mom_rhs(istate), state(istate))
-            end if
-
             call profiler_toc(u, "assembly")
 
             call profiler_tic(p, "assembly")
