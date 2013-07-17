@@ -106,11 +106,8 @@ e.g. use a Dirichlet BC on inlets and k_epsilon on walls.</a:documentation>
             <value>k_epsilon</value>
           </attribute>
           <element name="string_value">
-            <a:documentation>Select high/low Reynolds number wall functions for k and epsilon fields.</a:documentation>
-            <choice>
-              <value>low_Re</value>
-              <value>high_Re</value>
-            </choice>
+            <a:documentation>Select low Reynolds number wall function for k and epsilon fields.</a:documentation>
+            <value>low_Re</value>
           </element>
         </element>
         <element name="type">

@@ -71,9 +71,9 @@ scalar_boundary_conditions =
             ## e.g. use a Dirichlet BC on inlets and k_epsilon on walls.
             element type {
                attribute name { "k_epsilon" },
-               ## Select high/low Reynolds number wall functions for k and epsilon fields.
+               ## Select low Reynolds number wall function for k and epsilon fields.
                element string_value {
-               "low_Re"|"high_Re"
+               "low_Re"
                }
             }|
             ## Flux boundary condition. Currently only works with a control_volume 

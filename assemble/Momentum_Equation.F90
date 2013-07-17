@@ -64,7 +64,6 @@
       use state_matrices_module
       use vtk_interfaces
       use rotated_boundary_conditions
-      use Weak_BCs
       use reduced_model_runtime
       use state_fields_module
       use Tidal_module
