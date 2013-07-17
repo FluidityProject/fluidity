@@ -73,7 +73,7 @@
         <mesh name="VelocityMesh"/>
       </courant_number>
       <minimum_timestep>
-        <real_value rank="0">0.001</real_value>
+        <real_value rank="0">0.01</real_value>
       </minimum_timestep>
     </adaptive_timestep>
   </timestepping>
@@ -320,7 +320,7 @@
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
-                    <real_value shape="3" dim1="dim" rank="1">0.01 0.01 0.01</real_value>
+                    <real_value shape="3" dim1="dim" rank="1">0.15 0.15 0.15</real_value>
                   </constant>
                 </value>
                 <output>
@@ -441,10 +441,10 @@
   <mesh_adaptivity>
     <hr_adaptivity>
       <period_in_timesteps>
-        <integer_value rank="0">50</integer_value>
+        <integer_value rank="0">25</integer_value>
       </period_in_timesteps>
       <maximum_number_of_nodes>
-        <integer_value rank="0">100000</integer_value>
+        <integer_value rank="0">150000</integer_value>
       </maximum_number_of_nodes>
       <enable_gradation>
         <gradation_parameter>
