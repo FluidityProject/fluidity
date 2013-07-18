@@ -121,7 +121,7 @@
             </spatial_discretisation>
             <temporal_discretisation>
               <theta>
-                <real_value rank="0">1.0</real_value>
+                <real_value rank="0">0.5</real_value>
               </theta>
             </temporal_discretisation>
             <solver>
@@ -241,7 +241,7 @@
             </spatial_discretisation>
             <temporal_discretisation>
               <theta>
-                <real_value rank="0">1.0</real_value>
+                <real_value rank="0">0.5</real_value>
               </theta>
             </temporal_discretisation>
             <solver>
@@ -451,7 +451,7 @@
         </sigma_p>
         <time_discretisation>
           <theta>
-            <real_value rank="0">1.0</real_value>
+            <real_value rank="0">0.5</real_value>
           </theta>
           <source_term_implementation>
             <production_term>source</production_term>
@@ -529,7 +529,7 @@
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
-            <real_value rank="0">1.0</real_value>
+            <real_value rank="0">0.5</real_value>
           </theta>
           <relaxation>
             <real_value rank="0">0.5</real_value>
