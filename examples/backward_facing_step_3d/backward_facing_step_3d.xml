@@ -23,7 +23,7 @@ reattachment_length = numpy.array(reatt_length(filelist, yarray))
   </variables>
   <pass_tests>
     <test name="finish_time" language="python">assert finishtime &gt; 50.0</test>
-    <test name="Reattachment length does not change by more than 10%" language="python">
+    <test name="Reattachment length does not change by more than 15%" language="python">
         print ( ( max(reattachment_length[:,0]) - min(reattachment_length[:,0]) ) / min(reattachment_length[:,0]) )
 assert( ( max(reattachment_length[:,0]) - min(reattachment_length[:,0]) ) / min(reattachment_length[:,0]) &lt; 0.15)
     </test>

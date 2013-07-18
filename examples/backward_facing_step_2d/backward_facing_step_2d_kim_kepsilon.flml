@@ -121,7 +121,7 @@
             </spatial_discretisation>
             <temporal_discretisation>
               <theta>
-                <real_value rank="0">1.0</real_value>
+                <real_value rank="0">0.5</real_value>
               </theta>
             </temporal_discretisation>
             <solver>
@@ -241,7 +241,7 @@
             </spatial_discretisation>
             <temporal_discretisation>
               <theta>
-                <real_value rank="0">1.0</real_value>
+                <real_value rank="0">0.5</real_value>
               </theta>
             </temporal_discretisation>
             <solver>
@@ -451,7 +451,7 @@
         </sigma_p>
         <time_discretisation>
           <theta>
-            <real_value rank="0">1.0</real_value>
+            <real_value rank="0">0.5</real_value>
           </theta>
           <source_term_implementation>
             <production_term>source</production_term>
@@ -529,7 +529,7 @@
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
-            <real_value rank="0">1.0</real_value>
+            <real_value rank="0">0.5</real_value>
           </theta>
           <relaxation>
             <real_value rank="0">0.5</real_value>
@@ -598,16 +598,6 @@
                 </constant>
               </normal_component>
             </align_bc_with_surface>
-          </type>
-        </boundary_conditions>
-        <boundary_conditions name="walls">
-          <surface_ids>
-            <integer_value shape="2" rank="1">10 12</integer_value>
-          </surface_ids>
-          <type name="log_law_of_wall">
-            <surface_roughness>
-              <real_value rank="0">1.e-6</real_value>
-            </surface_roughness>
           </type>
         </boundary_conditions>
         <tensor_field name="Viscosity" rank="2">
