@@ -782,7 +782,7 @@ contains
           if (mesh_name=="CoordinateMesh") then
             call allocate(coordinateposition, modelposition%dim, mesh, "Coordinate")
           else
-            call allocate(coordinateposition, modelposition%dim, mesh, trim(mesh_name)//"/Coordinate")
+            call allocate(coordinateposition, modelposition%dim, mesh, trim(mesh_name)//"Coordinate")
           end if
                 
           ! remap the external mesh positions onto the CoordinateMesh... this requires that the space
