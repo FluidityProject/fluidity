@@ -880,11 +880,11 @@ contains
 
        if (fgroup%is_external) then
           ! Run the Eulerian external code and skip the rest of the agent loop
-          call profiler_tic(trim(agent_array%name)//"::update_external")
+          call profiler_tic(trim(fgroup%name)//"::update_external")
           pyfield_names => fgroup%pyfields
           call add_python_substate( state(1), xfield, pyfield_names )
           call python_run_string( trim(fgroup%external_python) )    
-          call profiler_toc(trim(agent_array%name)//"::update_external")
+          call profiler_toc(trim(fgroup%name)//"::update_external")
 
           cycle
        end if

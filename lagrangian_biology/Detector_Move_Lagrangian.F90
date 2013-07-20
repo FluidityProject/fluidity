@@ -247,11 +247,13 @@ contains
           if(detector%type==LAGRANGIAN_DETECTOR) then
              detector%update_vector = detector%position
 
+#ifdef DDEBUG
              do i=1, size(detector%update_vector)
                 if (ieee_is_nan(detector%update_vector(i))) then
                    FLAbort("Encountered NaN detector position")
                 end if
              end do
+#endif
           end if
           detector => detector%next
        end do
@@ -564,10 +566,12 @@ contains
           detector%local_coords = local_coords(xfield,detector%element,detector%update_vector)
        end if
 
+#ifdef DDEBUG
        if (minval(detector%local_coords) < -detector_list%search_tolerance) then
           ewrite(-1,*) "Detector", detector%id_number, ", in element", detector%element, " has local coordinates: ", detector%local_coords
           FLAbort("Negative local coordinate for lagrangian detector after tracking!")
        end if
+#endif
 
        detector => detector%next
     end do
