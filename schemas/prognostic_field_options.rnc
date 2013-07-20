@@ -64,16 +64,15 @@ scalar_boundary_conditions =
                # still set)
                element set_to_zero { empty }?
             }|
-            ## [UNDER DEVELOPMENT - DOES NOT WORK YET]
             ## Special type of Dirichlet boundary condition for the k-epsilon
             ## turbulence model. Can be used on TurbulentKineticEnergy (k)
             ## and/or TurbulentDissipation (epsilon) fields.
             ## e.g. use a Dirichlet BC on inlets and k_epsilon on walls.
             element type {
                attribute name { "k_epsilon" },
-               ## Select high/low Reynolds number wall functions for k and epsilon fields.
+               ## Select low Reynolds number wall function for k and epsilon fields.
                element string_value {
-               "low_Re"|"high_Re"
+               "low_Re"
                }
             }|
             ## Flux boundary condition. Currently only works with a control_volume 

@@ -3177,13 +3177,7 @@ contains
             end do
          end do
          deallocate( faceglobalnodes )
-
-      ! calculate using velocity gradient
-      else if (have_option(trim(bed_shear_stress%option_path)//&
-           &"/diagnostic/calculation_method/wall_treatment")) then
-
-         ! not handled here - handled in Weak_BCs
-
+         
       ! calculate using velocity gradient
       else if (have_option(trim(bed_shear_stress%option_path)//&
            &"/diagnostic/calculation_method/velocity_gradient")) then

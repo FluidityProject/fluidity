@@ -424,24 +424,6 @@ The associated boundary conditions are:
   \right ). \label{eq:epsbc1}
 \end{align}
 
-\par{\textbf{High Reynolds number boundary conditions}\\}
-For high Reynolds numbers ($Re>10^4$), the \option{high\_Re} wall functions are
-recommended \citep{wilcox1998turbulence}:
-
-\begin{align}
-  \bmu &= u_* \left [ \frac{1}{\kappa} \ln (\rho u_* y / \mu) + B \right ], \label{eq:ubc2}\\
-  k &= \frac{u_*^2}{C_{\mu}^{1/2}}, \label{eq:kbc2}\\
-  \epsilon &= \frac{u_*^3}{\kappa y}, \label{eq:epsbc2}\\
-  u_* &= (\tau_w / \rho)^{1/2} = \left ( \frac{\mu_T}{\rho} \ppx[n]{U_S} \right
-  )^{1/2}, \label{eq:ustar}
-\end{align}
-where $B$ is a model constant, $y$ is the distance to the wall, $u_*$ is the friction
-velocity, $U_S$ is the streamwise velocity parallel to the wall, $\kappa=0.43$ is Von
-Karman's constant, $\mu$ is the dynamic laminar (background) viscosity, $\mu_T$ is the
-dynamic eddy (turbulent) viscosity, $\rho$ is the density and $\ppx[n]{}$ is the gradient
-operator in the wall-normal direction. For implementation details see
-\ref{sec:kepsilon_usage}.
-
 \par{\textbf{Turbulent diffusivity of scalar fields}\\}
 When using scalar fields, such as a temperature or sediment field, The k-$\epsilon$ model
 simulates subgridscale eddies by increasing the diffusivity of the scalar fields such that
