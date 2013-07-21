@@ -77,6 +77,9 @@ module transform_elements
   real, dimension(:), allocatable, save :: face_detJ_cache
   ! Record which element is on the other side of the last n/2 elements.
   integer, dimension(:), allocatable, save :: face_cache
+
+  ! Record the d coordinate of the plane equation describing each face
+  real, dimension(:), allocatable, save :: face_d_cache
   
   
   ! The reference count id of the positions mesh being cached.
@@ -297,7 +300,7 @@ contains
   end subroutine construct_cache
 
   function retrieve_cached_face_transform_full(X, face, &
-       & normal_local, detJ_local) result (cache_valid)
+       & normal_local, detJ_local, planar_d) result (cache_valid)
     !!< Determine whether the transform cache is valid for this operation.
     !!< 
     !!< If caching is applicable and the cache is not ready, set up the
@@ -309,7 +312,11 @@ contains
     !! Face normal
     real, dimension(X%dim), intent(out) :: normal_local
 
+    !! Planar coordiante d
+    real, intent(out), optional :: planar_d
+
     logical :: cache_valid
+    real :: s
 
     cache_valid=.true.
     
@@ -333,8 +340,13 @@ contains
        cache_valid=.true.
     end if
 
+    s = sign(1,face_cache(face))
     detJ_local=face_detJ_cache(abs(face_cache(face)))  
-    normal_local=sign(1,face_cache(face))*face_normal_cache(:,abs(face_cache(face)))
+    normal_local=s*face_normal_cache(:,abs(face_cache(face)))
+
+    if(present(planar_d)) then
+       planar_d = s*face_d_cache(abs(face_cache(face)))
+    end if
     
   end function retrieve_cached_face_transform_full
 
@@ -351,7 +363,7 @@ contains
     type(element_type), pointer :: X_shape_f
     real :: detJ
     integer, dimension(:), pointer :: neigh
-    
+
 !    ewrite(1,*) "Reconstructing element geometry cache."
 
     call abort_if_in_parallel_region
@@ -366,7 +378,7 @@ contains
        call register_deallocation("transform_cache", "integer", &
             & size(face_cache))
 #endif
-       deallocate(face_detJ_cache, face_normal_cache, face_cache)
+       deallocate(face_detJ_cache, face_normal_cache, face_cache, face_d_cache)
     end if
 
     elements=element_count(X)
@@ -376,7 +388,7 @@ contains
 
     allocate(face_detJ_cache(unique_faces), &
          face_normal_cache(X%dim,unique_faces), &
-         face_cache(faces))
+         face_cache(faces), face_d_cache(faces))
 #ifdef HAVE_MEMORY_STATS
     call register_allocation("transform_cache", "real", &
          & size(face_detJ_cache)+size(face_normal_cache))
@@ -450,7 +462,10 @@ contains
           ! Calculate normal.
           face_normal_cache(:,current_face)=normgi(X_val,X_f,J)
           face_detJ_cache(current_face)=detJ
-   
+
+          ! Establish planar d coordinate using a point on the plane
+          face_d_cache(current_face) = - sum(face_normal_cache(:,current_face) * X_f(:,1))
+
        end do
     end do
     assert(current_face==unique_faces)
