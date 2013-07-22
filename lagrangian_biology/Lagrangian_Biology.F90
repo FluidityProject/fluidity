@@ -304,6 +304,9 @@ contains
     call init_id_counter()
     ewrite(2,*) "Lagrangian biology: Initialised ID counter"
 
+    call cache_element_volumes(state(1))
+    ewrite(2,*) "Lagrangian biology: Cached element volumes"
+
     ! We create an agent array for each stage of each Functional Group
     do fg=1, get_num_functional_groups()
        fgroup => get_functional_group(fg)
@@ -825,6 +828,10 @@ contains
        deallocate(python_ingest_fields)
     end if
 
+    if (allocated(ele_volume_cache)) then
+       deallocate(ele_volume_cache)
+    end if
+
     call delete_id_counter()
 
   end subroutine lagrangian_biology_cleanup
@@ -1195,7 +1202,7 @@ contains
 
     agent => agent_list%first
     do while (associated(agent))
-       ele_volume = element_volume(xfield, agent%element)
+       ele_volume = ele_volume_cache(agent%element)
        call addto(agent_count_field, agent%element, 1.0/ele_volume)
        agent => agent%next
     end do
@@ -1262,7 +1269,7 @@ contains
 
        agent => fgroup%agent_arrays(stage)%first
        do while (associated(agent))
-          ele_volume = element_volume(xfield, agent%element)
+          ele_volume = ele_volume_cache(agent%element)
 
           ! Add diagnostic quantities to the field for all variables
           do v=1, size(fgroup%variables)
@@ -1405,7 +1412,7 @@ contains
                 if (fgroup%variables(ivar)%path_integration .and. associated(agent%path_elements)) then
                    call integrate_along_path(uptake_diagfields(v)%ptr, xfield, agent, agent%biology(ivar) )
                 else
-                   ele_volume = element_volume(xfield, agent%element)
+                   ele_volume = ele_volume_cache(agent%element)
                    call addto(uptake_diagfields(v)%ptr, agent%element, agent%biology(ivar)*agent%biology(BIOVAR_SIZE) / ele_volume)
                 end if
              end do
@@ -1423,7 +1430,7 @@ contains
                 if (fgroup%variables(ivar)%path_integration .and. associated(agent%path_elements)) then
                    call integrate_along_path(release_diagfields(v)%ptr, xfield, agent, quantity )
                 else
-                   ele_volume = element_volume(xfield, agent%element)
+                   ele_volume = ele_volume_cache(agent%element)
                    call addto(release_diagfields(v)%ptr, agent%element, quantity*agent%biology(BIOVAR_SIZE) / ele_volume)
                 end if
              end do
@@ -1508,7 +1515,7 @@ contains
 
        ! Loop over all elements in chemical fields
        do ele=1,ele_count(chemfield)
-          ele_volume = element_volume(xfield, ele)
+          ele_volume = ele_volume_cache(ele)
 
           chem_integral = integral_element(chemfield, xfield, ele)
           request = integral_element(request_field, xfield, ele)
@@ -1635,7 +1642,7 @@ contains
              else
                 ! If there is zero chemical in this element 
                 ! we turn the total quantity into an evenly distributed concentration
-                ele_volume = element_volume(xfield, ele)
+                ele_volume = ele_volume_cache(ele)
                 if (release > 0.0) then
                    call set(chemfield, element_nodes(n), release / ele_volume)
                 else
@@ -1747,7 +1754,7 @@ contains
 
                    ! For external FGroups calculate Eulerian ingestion fields
                    if (fgroup%is_external) then
-                      ele_volume = element_volume(xfield, ele)
+                      ele_volume = ele_volume_cache(ele)
 
                       cells_ing = request * depletion(1) / ele_volume
                       call set(ing_cells_field, ele, cells_ing)
@@ -1788,7 +1795,7 @@ contains
                                depletion = ele_val(depletion_field, path_ele%data%ele)
                                conc = integral_element(conc_field, xfield, path_ele%data%ele) 
 
-                               if (conc / element_volume(xfield, path_ele%data%ele) >= agent%food_thresholds(fv)) then
+                               if (conc / ele_volume_cache(path_ele%data%ele) >= agent%food_thresholds(fv)) then
                                   ele_ingest_cells = depletion(1) * (path_ele%data%dist / path_total) * agent%food_requests(fv)
                                   agent%food_ingests(fv) = agent%food_ingests(fv) + ele_ingest_cells
 
@@ -1894,7 +1901,7 @@ contains
              if (variety%vrequest%path_integration .and. associated(agent%path_elements)) then
                 call integrate_along_path(frequest_fields(v)%ptr, xfield, agent, agent%food_requests(v), agent%food_thresholds(v), fthreshold_fields(v)%ptr)
              else
-                ele_volume = element_volume(xfield, agent%element)
+                ele_volume = ele_volume_cache(agent%element)
                 call addto(frequest_fields(v)%ptr, agent%element, agent%food_requests(v)*agent%biology(BIOVAR_SIZE) / ele_volume)
              end if
           end do
@@ -1934,7 +1941,7 @@ contains
              if (variety%vingest%path_integration .and. associated(agent%path_elements)) then
                 call integrate_along_path(fingest_fields(v)%ptr, xfield, agent, agent%food_ingests(v))
              else
-                ele_volume = element_volume(xfield, agent%element)
+                ele_volume = ele_volume_cache(agent%element)
                 call addto(fingest_fields(v)%ptr, agent%element, agent%food_ingests(v)*agent%biology(BIOVAR_SIZE) / ele_volume)
              end if
           end do
@@ -1966,7 +1973,7 @@ contains
 
     path_ele => agent%path_elements       
     path_loop: do while( associated(path_ele) )
-       ele_path_volume = element_volume(xfield, path_ele%data%ele)
+       ele_path_volume = ele_volume_cache(path_ele%data%ele)
        if (present(concfield) .and. present(threshold)) then
           ele_conc = integral_element(concfield, xfield, path_ele%data%ele) / ele_path_volume
           if (.not. ele_conc >= threshold) then

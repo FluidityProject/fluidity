@@ -101,6 +101,7 @@ module fluids_module
 #endif
   use multiphase_module
   use lagrangian_biology
+  use lebiology_python
   use detectors
   use detector_data_types
   use detector_parallel
@@ -924,6 +925,9 @@ contains
 
              if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep)
              call run_diagnostics(state)
+
+             ! ml805 refresh the element volume caching for LE Biology
+             call cache_element_volumes(state(1))
  
           end if
        else if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
@@ -939,6 +943,9 @@ contains
 
              if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep)
              call run_diagnostics(state)
+
+             ! ml805 refresh the element volume caching for LE Biology
+             call cache_element_volumes(state(1))
 
           end if
 

@@ -3,6 +3,7 @@
 module lebiology_python
   use fldebug
   use fields
+  use state_module
   use detector_data_types
   use detector_tools
   use detector_parallel
@@ -21,9 +22,12 @@ module lebiology_python
             lebiology_add_foods, lebiology_prepare_pyfunc, &
             lebiology_initialise_agent, lebiology_move_agent, &
             lebiology_update_agent, get_new_agent_list, &
-            lebiology_pre_sample_environment
+            lebiology_pre_sample_environment, &
+            cache_element_volumes, ele_volume_cache
 
   type(detector_linked_list), target, save :: new_agent_list
+
+  real, dimension(:), allocatable, save :: ele_volume_cache
 
   interface
 
@@ -393,7 +397,7 @@ contains
           path_ele => agent%path_elements
           do while( associated(path_ele) )
               ele_integral = integral_element(fields(f)%ptr, xfield, path_ele%data%ele)
-              ele_volume = element_volume(xfield, path_ele%data%ele)
+              ele_volume = ele_volume_cache(path_ele%data%ele)
               fieldvals(f) = fieldvals(f) + path_ele%data%dist * ele_integral / ele_volume
               path_total = path_total + path_ele%data%dist
 
@@ -403,7 +407,7 @@ contains
           if (path_total > 0.0) then
              fieldvals(f) = fieldvals(f) / path_total
           else
-             fieldvals(f) = integral_element(fields(f)%ptr, xfield, agent%element) / element_volume(xfield, agent%element)
+             fieldvals(f) = integral_element(fields(f)%ptr, xfield, agent%element) / ele_volume_cache(agent%element)
           end if
        elseif (sampling(f) == VARSMPL_OLDZ) then
           ! Use buffered field value from beginning of timestep
@@ -526,5 +530,24 @@ contains
 
     call insert(agent, new_agent_list)
   end subroutine fl_add_agent
+
+  subroutine cache_element_volumes(state)
+    type(state_type), intent(inout) :: state
+
+    type(vector_field), pointer :: xfield    
+    integer :: ele
+
+    xfield=>extract_vector_field(state, "Coordinate")
+
+    if( allocated(ele_volume_cache) ) then
+       deallocate(ele_volume_cache)
+    end if
+
+    allocate( ele_volume_cache( ele_count(xfield) ) )
+
+    do ele=1, ele_count(xfield)
+       ele_volume_cache(ele) = element_volume(xfield, ele)
+    end do
+  end subroutine cache_element_volumes
 
 end module lebiology_python
