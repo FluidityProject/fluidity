@@ -49,7 +49,6 @@ module foam_flow_module
   use sparse_matrices_fields
   use vector_tools
   use field_derivatives
-  use Weak_BCs
   use state_matrices_module
   use gradient_matrix_cg, only: assemble_gradient_matrix_cg
 
