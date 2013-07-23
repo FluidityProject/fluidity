@@ -1218,7 +1218,7 @@ contains
          assert( mesh%continuity>=0 )
          
          ! the periodic faces will be discontinuous internal faces in the output periodic mesh
-         mesh%faces%has_discontinuous_boundaries = .true.         
+         mesh%faces%has_discontinuous_internal_boundaries = .true.         
          
       else if (model%periodic .and. .not. mesh%periodic) then
         
@@ -1227,7 +1227,7 @@ contains
             mesh, model, lperiodic_face_map, stat=stat)
             
          ! the subroutine above only works if the removing of periodic bcs has removed all internal boundaries
-         mesh%faces%has_discontinuous_boundaries = .false.
+         mesh%faces%has_discontinuous_internal_boundaries = .false.
                      
       else
          ! Transfer the faces from model to mesh
@@ -1235,7 +1235,7 @@ contains
          call incref(mesh%faces%face_list)
          
          ! have internal faces if the model does
-         mesh%faces%has_discontinuous_boundaries = has_discontinuous_boundaries(model)
+         mesh%faces%has_discontinuous_internal_boundaries = has_discontinuous_internal_boundaries(model)
       end if
         
       ! face_element_list is a pure copy of that of the model
@@ -1422,7 +1422,7 @@ contains
          trim(mesh%name)//" face_element_list")
 #endif
 
-    mesh%faces%has_discontinuous_boundaries = present(element_owner)
+    mesh%faces%has_discontinuous_internal_boundaries = present(element_owner)
 
     call allocate(internal_facet_map)
     

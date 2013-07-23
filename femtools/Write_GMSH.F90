@@ -263,7 +263,7 @@ contains
     ! Gather some info about the mesh
     numElements = ele_count(mesh)
     numFaces = unique_surface_element_count(mesh)
-    needs_element_owners = has_discontinuous_boundaries(mesh)
+    needs_element_owners = has_discontinuous_internal_boundaries(mesh)
 
     ! In the GMSH format, faces are also elements.
     numGMSHElems = numElements + numFaces

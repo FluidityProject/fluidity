@@ -266,9 +266,9 @@ module fields_base
           & mesh_periodic_tensor
   end interface
     
-  interface has_discontinuous_boundaries
-     module procedure mesh_has_discontinuous_boundaries
-  end interface has_discontinuous_boundaries
+  interface has_discontinuous_internal_boundaries
+     module procedure mesh_has_discontinuous_internal_boundaries
+  end interface has_discontinuous_internal_boundaries
 
   interface extract_scalar_field ! extract_scalar_field is already used in State.F90
      module procedure extract_scalar_field_from_vector_field, extract_scalar_field_from_tensor_field
@@ -416,21 +416,21 @@ contains
   
   end function mesh_periodic_tensor
 
-  pure function mesh_has_discontinuous_boundaries(mesh)
+  pure function mesh_has_discontinuous_internal_boundaries(mesh)
     !!< Return whether the mesh has discontinuous boundaries
     !!< These are internal boundaries where the surface id are 
     !!< allowed to be discontinuous (the pair of adjacent 
     !!< internal facets can have two different ids).
-    logical :: mesh_has_discontinuous_boundaries
+    logical :: mesh_has_discontinuous_internal_boundaries
     type(mesh_type), intent(in) :: mesh
     
     if (associated(mesh%faces)) then
-      mesh_has_discontinuous_boundaries = mesh%faces%has_discontinuous_boundaries
+      mesh_has_discontinuous_internal_boundaries = mesh%faces%has_discontinuous_internal_boundaries
     else
-      mesh_has_discontinuous_boundaries = .false.
+      mesh_has_discontinuous_internal_boundaries = .false.
     end if
   
-  end function mesh_has_discontinuous_boundaries
+  end function mesh_has_discontinuous_internal_boundaries
 
   pure function node_count_mesh(mesh) result (node_count)
     ! Return the number of nodes in a mesh.

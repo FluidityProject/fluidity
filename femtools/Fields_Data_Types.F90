@@ -130,15 +130,15 @@ module fields_data_types
      !! Note that other meshes (with has_internal_boundaries==.false.) may still have internal facets
      !! as part of the surface mesh, in this case the surface ids do have to agree and only one of each
      !! pair of facets is written when writing out the mesh.
-     logical :: has_discontinuous_boundaries=.false.
-     !! If internal facets are present in the surface mesh (and has_discontinuous_boundaries==.false.) 
+     logical :: has_discontinuous_internal_boundaries=.false.
+     !! If internal facets are present in the surface mesh (and has_discontinuous_internal_boundaries==.false.) 
      !! the surface facets are numbered such that 1:unique_surface_element_count visits each external facet
      !! and each pair of internal facets only once (the order of this is typically determined by the 
      !! read-in input mesh in which internal facets are only also only present once)
      !! The second facets of each pair of internal facets are numbered 
      !! unique_surface_element_count+1:surface_element_count (surface_element_count()==size(boundary_ids))
      !! For meshes with no internal facets: unique_surface_element_count==surface_element_count()
-     !! For meshes with has_discontinuous_boundaries no order is guaranteed and also
+     !! For meshes with has_discontinuous_internal_boundaries no order is guaranteed and also
      !! unique_surface_element_count==surface_element_count()
      integer :: unique_surface_element_count
   end type mesh_faces

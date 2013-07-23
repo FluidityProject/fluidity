@@ -314,7 +314,7 @@ contains
         FLAbort("Invalid dimension")
     end select
 
-    if (has_discontinuous_boundaries(mesh)) then
+    if (has_discontinuous_internal_boundaries(mesh)) then
       ! If the mesh is periodic, we want to write out the parent element of every face
       nolabels = 2
     else
@@ -324,7 +324,7 @@ contains
     ! header line: nofaces, and number of boundary markers
     write(unit, *, err=42) nofaces, nolabels
     
-    if (.not. has_discontinuous_boundaries(mesh)) then
+    if (.not. has_discontinuous_internal_boundaries(mesh)) then
       do i=1, nofaces
          write(unit, *, err=42) i, face_global_nodes(mesh, i), &
               surface_element_id(mesh, i)
