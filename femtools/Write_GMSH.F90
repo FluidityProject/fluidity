@@ -49,7 +49,7 @@ module write_gmsh
   end interface
 
   ! Writes to GMSH binary format - can set to ASCII (handy for debugging)
-  logical, parameter  :: useBinaryGMSH=.false.
+  logical, parameter  :: useBinaryGMSH=.true.
 
 contains
 
