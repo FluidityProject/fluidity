@@ -357,6 +357,12 @@ contains
     if(nselm > 0) then
       call getsndgln(input_positions%mesh, snlist)
     end if
+
+    if (surface_element_count(input_positions)/=unique_surface_element_count(input_positions%mesh)) then
+      ewrite(0,*) "WARNING: It appears you have an internal boundary and you're trying to use 3D adaptivity."
+      ewrite(0,*) "This combination has not been tested yet and may not work at all."
+      ewrite(0,*) "Please report your experiences to the Fluidity mailing list."
+    end if
     
     ! Surface IDs
     allocate(surfid(nselm))
