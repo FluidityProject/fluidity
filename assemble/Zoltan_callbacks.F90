@@ -284,7 +284,7 @@ contains
            ! set ewgt of edge to worst adjoining element found
            ewgts(head + j - 1) = (1.0 - my_min_quality) * 20
 
-           if(min_quality .LT. zoltan_global_local_min_quality) then
+           if(my_min_quality .LT. zoltan_global_local_min_quality) then
              zoltan_global_local_min_quality = my_min_quality
            end if
            
