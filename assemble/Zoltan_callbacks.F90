@@ -349,24 +349,7 @@ contains
     
     zoltan_global_calculated_local_min_quality = .true.
 
-    assert(head == sum(num_edges(1:num_obj))+1)
-    
-    ! calculate the local maximum edge weight
-    my_max_weight = maxval(ewgts(1:head-1))
-    
-    ! calculate the local minimum edge weight
-    my_min_weight = minval(ewgts(1:head-1))
-
-    ! ! calculate global maximum edge weight
-    ! call MPI_ALLREDUCE(my_max_weight,max_weight,1,MPI_REAL,MPI_MAX, MPI_COMM_FEMTOOLS,err)
-
-    ! ! calculate global minimum edge weight
-    ! call MPI_ALLREDUCE(my_min_weight,min_weight,1,MPI_REAL,MPI_MIN, MPI_COMM_FEMTOOLS,err)
-
-    ! ! calculate the nth percentile edge weight
-    ! call get_option(trim(zoltan_global_base_option_path)//"/uncuttable_edge_fraction", &
-    !      nocut_edge_fraction, default=0.1)
-    ! nocut_weight = (max_weight - min_weight)*(1.0 - nocut_edge_fraction) + min_weight
+    assert(head == sum(num_edges(1:num_obj))+1) 
 
     ! calculate ewgt that marks maximum nocut_edge_fraction of elements in any partition
     allocate(s_ewgts(head-1))
@@ -375,19 +358,13 @@ contains
     my_nocut_weight = s_ewgts(size(s_ewgts) * (1.0 - nocut_edge_fraction))    
     call MPI_ALLREDUCE(my_nocut_weight,nocut_weight,1,MPI_REAL,MPI_MAX,MPI_COMM_FEMTOOLS,err)
 
-    ewrite(2,*) 'nocut_weight = ', nocut_weight
-
-    ! don't want to adjust the weights if all the elements are of a similar quality
-    if (min_weight < max_weight * 0.9) then
-
-      ! make poor elements uncuttable
-      do i=1,head-1
-        if (ewgts(i) .GT. nocut_weight) then
-          ewgts(i) = (total_num_edges + 1)
-        end if
-      end do
-
-    end if
+    ewrite(2,*) 'nocut_weight (best: 0 - worst: 20) = ', nocut_weight
+    ! make poor elements uncuttable
+    do i=1,head-1
+      if (ewgts(i) .GT. nocut_weight) then
+        ewgts(i) = (total_num_edges + 1)
+      end if
+    end do
     
     if (zoltan_global_output_edge_weights) then
        call zero(zoltan_global_max_edge_weight_on_node)
