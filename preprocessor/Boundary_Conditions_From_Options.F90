@@ -463,7 +463,7 @@ contains
           call insert_surface_field(field, i+1, surface_field)
           call deallocate(surface_field)
           
-       case ("free_surface", "no_normal_flow")
+       case ("free_surface", "no_normal_flow", "prescribed_normal_flow")
 
           ! these are marked as applying in the 1st direction only
           ! so they could potentially be combined with rotated bcs
