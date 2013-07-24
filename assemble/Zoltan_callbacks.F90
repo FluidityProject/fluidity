@@ -355,6 +355,8 @@ contains
     allocate(s_ewgts(head-1))
     s_ewgts(:) = ewgts(1:head-1)
     call qsort(s_ewgts)
+    call get_option(trim(zoltan_global_base_option_path)//"/uncuttable_edge_fraction", &
+         nocut_edge_fraction, default=0.1)
     my_nocut_weight = s_ewgts(size(s_ewgts) * (1.0 - nocut_edge_fraction))    
     call MPI_ALLREDUCE(my_nocut_weight,nocut_weight,1,MPI_REAL,MPI_MAX,MPI_COMM_FEMTOOLS,err)
 
