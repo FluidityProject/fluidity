@@ -195,8 +195,6 @@ contains
 
     ! sorted ewgts
     real(zoltan_float), dimension(:), allocatable :: s_ewgts 
-    real(zoltan_float) :: buffer
-    logical :: swapped
     real(zoltan_float) :: my_nocut_weight
     
     ewrite(1,*) "In zoltan_cb_get_edge_list"
@@ -370,28 +368,14 @@ contains
     !      nocut_edge_fraction, default=0.1)
     ! nocut_weight = (max_weight - min_weight)*(1.0 - nocut_edge_fraction) + min_weight
 
-    ! calculate ewgt that marks nocut_edge_fraction of elements in partition
+    ! calculate ewgt that marks maximum nocut_edge_fraction of elements in any partition
     allocate(s_ewgts(head-1))
     s_ewgts(:) = ewgts(1:head-1)
-    ! swapped = .true.
-    ! do while (swapped)
-    !   swapped = .false.
-    !   do i = 2, size(s_ewgts)
-    !     if (s_ewgts(i-1) > s_ewgts(i)) then
-    !       buffer = s_ewgts(i)
-    !       s_ewgts(i) = s_ewgts(i-1)
-    !       s_ewgts(i-1) = buffer
-    !       swapped = .true.
-    !     end if
-    !   end do
-    ! end do
     call qsort(s_ewgts)
-    my_nocut_weight = s_ewgts(size(s_ewgts) * (1.0 - nocut_edge_fraction))
-    
-    ! calculate global nocut_weight
+    my_nocut_weight = s_ewgts(size(s_ewgts) * (1.0 - nocut_edge_fraction))    
     call MPI_ALLREDUCE(my_nocut_weight,nocut_weight,1,MPI_REAL,MPI_MAX,MPI_COMM_FEMTOOLS,err)
 
-    ewrite(0,*) 'nocut_weight = ', nocut_weight
+    ewrite(2,*) 'nocut_weight = ', nocut_weight
 
     ! don't want to adjust the weights if all the elements are of a similar quality
     if (min_weight < max_weight * 0.9) then
