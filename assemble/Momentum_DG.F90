@@ -2164,6 +2164,7 @@ contains
     dirichlet=.false.
     free_surface=.false.
     no_normal_flow=.false.
+    prescribed_normal_flow=.false.
     l_have_pressure_bc=.false.
     if (boundary) then
        do dim=1,U%dim
@@ -2187,7 +2188,7 @@ contains
        end if
 
        l_have_pressure_bc = pressure_bc_type(face) > 0
-    end if
+   end if
 
     !----------------------------------------------------------------------
     ! Change of coordinates on face.
