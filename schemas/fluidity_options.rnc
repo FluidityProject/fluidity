@@ -2444,12 +2444,6 @@ diagnostic_vector_field_bed_shear_stress =
             ## bed shear stress. Valid for non parameterised velocity boundaries.
             element velocity_gradient {    
                empty
-            }|
-            ## This diagnostic can only be used in conjunction with a near-wall treatment
-            ## velocity boundary condition. It is calculated at the same time as that boundary condition.
-            ## The shear stress depends upon parameters set for the near-wall treatment algorithm.
-            element wall_treatment {  
-               empty
             }
          }
       ),
@@ -2834,27 +2828,6 @@ velocity_boundary_conditions =
          element type {
             attribute name { "no_normal_flow" },
             empty
-         }|
-
-         ## Implements a penalty function for the near wall region.
-         ## Using this option coarse meshes can
-         ## be used in the near wall region.
-         ##
-         ## Should be used in combination with a no_normal_flow condition. 
-         ##
-         ## See Bazilevs et al. 2007
-         element type{
-            attribute name { "near_wall_treatment" },
-            element tolerance {real},
-            ## if not set then Cb=2*h, where h is the element size
-            element Cb {real}?
-         }|
-         ## Log law of the wall
-         ##
-         ## Should be used in combination with a no_normal_flow condition. 
-         element type{
-            attribute name { "log_law_of_wall" },
-            element surface_roughness {real}
          }|
          ## Flux boundary condition. 
          ##

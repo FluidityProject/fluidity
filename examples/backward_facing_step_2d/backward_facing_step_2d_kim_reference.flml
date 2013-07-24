@@ -46,7 +46,7 @@
     </dump_format>
     <dump_period>
       <constant>
-        <integer_value rank="0">1</integer_value>
+        <real_value rank="0">1</real_value>
       </constant>
     </dump_period>
     <output_mesh name="CoordinateMesh"/>
@@ -205,16 +205,6 @@
                 </constant>
               </y_component>
             </align_bc_with_cartesian>
-          </type>
-        </boundary_conditions>
-        <boundary_conditions name="walls">
-          <surface_ids>
-            <integer_value shape="2" rank="1">10 12</integer_value>
-          </surface_ids>
-          <type name="log_law_of_wall">
-            <surface_roughness>
-              <real_value rank="0">1.e-6</real_value>
-            </surface_roughness>
           </type>
         </boundary_conditions>
         <boundary_conditions name="no_normal">
