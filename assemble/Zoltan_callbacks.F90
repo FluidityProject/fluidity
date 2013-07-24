@@ -373,18 +373,19 @@ contains
     ! calculate ewgt that marks nocut_edge_fraction of elements in partition
     allocate(s_ewgts(head-1))
     s_ewgts(:) = ewgts(1:head-1)
-    swapped = .true.
-    do while (swapped)
-      swapped = .false.
-      do i = 2, size(s_ewgts)
-        if (s_ewgts(i-1) > s_ewgts(i)) then
-          buffer = s_ewgts(i)
-          s_ewgts(i) = s_ewgts(i-1)
-          s_ewgts(i-1) = buffer
-          swapped = .true.
-        end if
-      end do
-    end do
+    ! swapped = .true.
+    ! do while (swapped)
+    !   swapped = .false.
+    !   do i = 2, size(s_ewgts)
+    !     if (s_ewgts(i-1) > s_ewgts(i)) then
+    !       buffer = s_ewgts(i)
+    !       s_ewgts(i) = s_ewgts(i-1)
+    !       s_ewgts(i-1) = buffer
+    !       swapped = .true.
+    !     end if
+    !   end do
+    ! end do
+    call qsort(s_ewgts)
     my_nocut_weight = s_ewgts(size(s_ewgts) * (1.0 - nocut_edge_fraction))
     
     ! calculate global nocut_weight
@@ -425,8 +426,58 @@ contains
     end if
 
     ierr = ZOLTAN_OK
-  end subroutine zoltan_cb_get_edge_list
 
+  contains
+    
+    recursive subroutine qsort(A)
+      real(zoltan_float), intent(in out), dimension(:) :: A
+      integer :: iq
+
+      if(size(A) > 1) then
+        call qsort_partition(A, iq)
+        call qsort(A(:iq-1))
+        call qsort(A(iq:))
+      endif
+    end subroutine qsort
+
+    subroutine qsort_partition(A, marker)
+      real(zoltan_float), intent(in out), dimension(:) :: A
+      integer, intent(out) :: marker
+      integer :: i, j
+      real(zoltan_float) :: temp
+      real(zoltan_float) :: x      ! pivot point
+      x = A(1)
+      i= 0
+      j= size(A) + 1
+
+      do
+        j = j-1
+        do
+          if (A(j) <= x) exit
+          j = j-1
+        end do
+        i = i+1
+        do
+          if (A(i) >= x) exit
+          i = i+1
+        end do
+        if (i < j) then
+          ! exchange A(i) and A(j)
+          temp = A(i)
+          A(i) = A(j)
+          A(j) = temp
+        elseif (i == j) then
+          marker = i+1
+          return
+        else
+          marker = i
+          return
+        endif
+      end do
+
+    end subroutine qsort_partition
+
+  end subroutine zoltan_cb_get_edge_list
 
   ! Here is how we pack nodal positions for phase one migration:
   ! --------------------------------------------------------------------------------------------------------------
