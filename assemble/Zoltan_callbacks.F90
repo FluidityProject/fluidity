@@ -285,13 +285,12 @@ contains
              end if
            end do
 
-           ! set ewgt of edge to worst adjoining element found
-           ewgts(head + j - 1) = (1.0 - my_min_quality) * 20
-
            if(my_min_quality .LT. zoltan_global_local_min_quality) then
              zoltan_global_local_min_quality = my_min_quality
            end if
-           
+
+           ! set ewgt of edge to worst adjoining element found
+           ewgts(head + j - 1) = (1.0 - my_min_quality) * 20           
          end do
 
        else
@@ -332,14 +331,8 @@ contains
              zoltan_global_local_min_quality = min_quality
            end if
 
-           ! check if the quality is within the tolerance         
-           if (min_quality .GT. zoltan_global_quality_tolerance) then
-             ! if it is
-             ewgts(head + j - 1) = 1.0
-           else
-             ! if it's not
-             ewgts(head + j - 1) = (1.0 - min_quality) * 20
-           end if
+           ! set ewgts for edge
+           ewgts(head + j - 1) = (1.0 - min_quality) * 20
          end do
 
        end if
@@ -359,8 +352,8 @@ contains
          nocut_edge_fraction, default=0.1)
     my_nocut_weight = s_ewgts(size(s_ewgts) * (1.0 - nocut_edge_fraction))    
     call MPI_ALLREDUCE(my_nocut_weight,nocut_weight,1,MPI_REAL,MPI_MAX,MPI_COMM_FEMTOOLS,err)
-
     ewrite(2,*) 'nocut_weight (best: 0 - worst: 20) = ', nocut_weight
+
     ! make poor elements uncuttable
     do i=1,head-1
       if (ewgts(i) .GT. nocut_weight) then
