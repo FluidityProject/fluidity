@@ -150,7 +150,8 @@
     ! LES coefficients and options
     real :: smagorinsky_coefficient
     character(len=OPTION_PATH_LEN) :: length_scale_type
-    logical :: have_eddy_visc, have_filter_width, have_coeff
+    logical :: have_lilly, have_eddy_visc, backscatter
+    logical :: have_strain, have_filtered_strain, have_filter_width
 
     ! Temperature dependent viscosity coefficients:
     real :: reference_viscosity
@@ -165,7 +166,8 @@
     real :: fs_sf
     ! min vertical density gradient for implicit buoyancy
     real :: ib_min_grad
-    real::d0_a,d0
+    real::d0_a
+    real::d0
 
     ! Are we running a multi-phase flow simulation?
     logical :: multiphase
@@ -252,9 +254,9 @@
       ! For 4th order:
       type(tensor_field):: grad_u
       ! For Germano Dynamic LES:
-      type(vector_field), pointer :: fnu, tnu
-      type(tensor_field), pointer :: leonard, strainprod
-      real                        :: alpha, gamma
+      type(vector_field), pointer :: tnu
+      type(tensor_field), pointer :: leonard
+      real                        :: alpha
 
       ! for temperature dependent viscosity :
       type(scalar_field), pointer :: temperature
@@ -317,6 +319,10 @@
       if(.not. have_absorption) absorption=>dummyvector
       ewrite_minmax(absorption)
 
+     have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
+     have_sigma=has_scalar_field(state, "Sigma_d0")
+     have_a=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/a")
+ 
       have_wd_abs=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/dry_absorption")
       ! Absorption term in dry zones for wetting and drying
       if (have_wd_abs) then
@@ -328,15 +334,15 @@
       ! Check if we have either implicit absorption term
       have_vertical_stabilization=have_option(trim(u%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation").or. &
                                   have_option(trim(u%option_path)//"/prognostic/vertical_stabilization/implicit_buoyancy")
-      have_sigma=has_scalar_field(state, "Sigma_d0")
+
       ! If we have vertical velocity relaxation set then grab the required fields
       ! sigma = n_z*g*dt*_rho_o/depth
       have_vertical_velocity_relaxation=have_option(trim(u%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation")
-     if (have_vertical_velocity_relaxation) then
-      call get_option(trim(U%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation/scale_factor", vvr_sf)
-     end if
-     if (have_vertical_velocity_relaxation .or. have_sigma) then
+      if (have_vertical_velocity_relaxation) then
+        call get_option(trim(u%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation/scale_factor", vvr_sf)
         ewrite(2,*) "vertical velocity relaxation scale_factor= ", vvr_sf
+      endif
+      if (have_vertical_velocity_relaxation .or. have_sigma) then
         dtt => extract_scalar_field(state, "DistanceToTop")
         dtb => extract_scalar_field(state, "DistanceToBottom")
         call allocate(depth, dtt%mesh, "Depth")
@@ -386,7 +392,8 @@
          &"/continuous_galerkin/les_model")
       if (have_les) then
          ! Set everything to false initially, then set to true if present
-         have_eddy_visc=.false.; have_filter_width=.false.; have_coeff=.false.
+         have_lilly=.false.; have_eddy_visc=.false.; backscatter=.false.
+         have_strain=.false.; have_filtered_strain=.false.; have_filter_width=.false.
 
          les_option_path=(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
                  &"/continuous_galerkin/les_model")
@@ -404,7 +411,7 @@
             if(have_eddy_visc) then
                ! Initialise the eddy viscosity field. Calling this subroutine works because
                ! you can't have 2 different types of LES model for the same material phase.
-               call les_init_diagnostic_fields(state, have_eddy_visc, .false., .false.)
+               call les_init_diagnostic_fields(state, have_eddy_visc, .false., .false., .false.)
             end if
          end if
          if (les_fourth_order) then
@@ -418,57 +425,47 @@
                  smagorinsky_coefficient)
          end if
          if(dynamic_les) then
-           ! Scalar or tensor filter width
-           call get_option(trim(les_option_path)//"/dynamic_les/length_scale_type", length_scale_type)
+           ! Are we using the Lilly (1991) modification?
+           have_lilly = have_option(trim(les_option_path)//"/dynamic_les/enable_lilly")
+
+           ! Whether or not to allow backscatter (negative eddy viscosity)
+           backscatter = have_option(trim(les_option_path)//"/dynamic_les/enable_backscatter")
+
            ! Initialise optional diagnostic fields
            have_eddy_visc = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::EddyViscosity")
+           have_strain = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::StrainRate")
+           have_filtered_strain = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::FilteredStrainRate")
            have_filter_width = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::FilterWidth")
-           have_coeff = have_option(trim(les_option_path)//"/dynamic_les/scalar_field::SmagorinskyCoefficient")
-           call les_init_diagnostic_fields(state, have_eddy_visc, have_filter_width, have_coeff)
+           call les_init_diagnostic_fields(state, have_eddy_visc, have_strain, have_filtered_strain, have_filter_width)
 
            ! Initialise necessary local fields.
            ewrite(2,*) "Initialising compulsory dynamic LES fields"
-           if(have_option(trim(les_option_path)//"/dynamic_les/vector_field::FirstFilteredVelocity")) then
-             fnu => extract_vector_field(state, "FirstFilteredVelocity")
-           else
-             allocate(fnu)
-             call allocate(fnu, u%dim, u%mesh, "FirstFilteredVelocity")
-           end if
-           call zero(fnu)
-           if(have_option(trim(les_option_path)//"/dynamic_les/vector_field::TestFilteredVelocity")) then
-             tnu => extract_vector_field(state, "TestFilteredVelocity")
+           if(have_option(trim(les_option_path)//"/dynamic_les/vector_field::FilteredVelocity")) then
+             tnu => extract_vector_field(state, "FilteredVelocity")
            else
              allocate(tnu)
-             call allocate(tnu, u%dim, u%mesh, "TestFilteredVelocity")
+             call allocate(tnu, u%dim, u%mesh, "FilteredVelocity")
            end if
            call zero(tnu)
            allocate(leonard)
            call allocate(leonard, u%mesh, "LeonardTensor")
            call zero(leonard)
-           allocate(strainprod)
-           call allocate(strainprod, u%mesh, "StrainProduct")
-           call zero(strainprod)
 
-           ! Get (first filter)/(mesh size) ratio alpha. Default value is 2.
+           ! Get (test filter)/(mesh filter) size ratio alpha. Default value is 2.
            call get_option(trim(les_option_path)//"/dynamic_les/alpha", alpha, default=2.0)
-           ! Get (test filter)/(first filter) size ratio alpha. Default value is 2.
-           call get_option(trim(les_option_path)//"/dynamic_les/gama", gamma, default=2.0)
 
            ! Calculate test-filtered velocity field and Leonard tensor field.
            ewrite(2,*) "Calculating test-filtered velocity and Leonard tensor"
-           call leonard_tensor(nu, x, fnu, tnu, leonard, strainprod, alpha, gamma, les_option_path)
+           call leonard_tensor(nu, x, tnu, leonard, alpha, les_option_path)
 
            ewrite_minmax(leonard)
-           ewrite_minmax(strainprod)
          else
-            fnu => dummyvector
             tnu => dummyvector
             leonard => dummytensor
-            strainprod => dummytensor
          end if
       else
          les_second_order=.false.; les_fourth_order=.false.; wale=.false.; dynamic_les=.false.
-         fnu => dummyvector; tnu => dummyvector; leonard => dummytensor; strainprod => dummytensor
+         tnu => dummyvector; leonard => dummytensor
       end if
       
 
@@ -682,9 +679,7 @@
     thread_num = 0
     
 #endif
-   have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
    
-   have_a=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/a")
    if(has_scalar_field(state, "Sigma_d0")) then
      if(have_a) then
        call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/a", d0_a)
@@ -703,7 +698,7 @@
               density, ct_rhs, &
               source, absorption, buoyancy, gravity, &
               viscosity, grad_u, &
-              fnu, tnu, leonard, strainprod, alpha, gamma, &
+              tnu, leonard, alpha, &
               gp, surfacetension, &
               assemble_ct_matrix_here, depth, &
               alpha_u_field, abs_wd, temperature, nvfrac, &
@@ -840,7 +835,7 @@
       ewrite_minmax(rhs)
       
       if(les_second_order .or. dynamic_les) then
-         call les_solve_diagnostic_fields(state, have_eddy_visc, have_filter_width, have_coeff)
+         call les_solve_diagnostic_fields(state, have_eddy_visc, have_strain, have_filtered_strain, have_filter_width)
       end if
 
       if (les_fourth_order) then
@@ -848,14 +843,10 @@
       end if
 
       if (dynamic_les) then
-        if(.not. have_option(trim(les_option_path)//"/dynamic_les/vector_field::FirstFilteredVelocity")) then
+        if(.not. have_option(trim(les_option_path)//"/dynamic_les/vector_field::FilteredVelocity")) then
           call deallocate(tnu); deallocate(tnu)
         end if
-        if(.not. have_option(trim(les_option_path)//"/dynamic_les/vector_field::TestFilteredVelocity")) then
-          call deallocate(fnu); deallocate(fnu)
-        end if
         call deallocate(leonard); deallocate(leonard)
-        call deallocate(strainprod); deallocate(strainprod)
       end if
 
       call deallocate(dummytensor)
@@ -1144,7 +1135,7 @@
                                             density, ct_rhs, &
                                             source, absorption, buoyancy, gravity, &
                                             viscosity, grad_u, &
-                                            fnu, tnu, leonard, strainprod, alpha, gamma, &
+                                            tnu, leonard, alpha, &
                                             gp, surfacetension, &
                                             assemble_ct_matrix_here, depth, &
                                             alpha_u_field, abs_wd, temperature, nvfrac, supg_shape)
@@ -1173,10 +1164,9 @@
       type(tensor_field), intent(in) :: viscosity, grad_u
 
       ! Fields for Germano Dynamic LES Model
-      type(vector_field), intent(in)    :: fnu, tnu
-      type(tensor_field), intent(in)    :: leonard, strainprod
-      real, intent(in)                  :: alpha, gamma
-
+      type(vector_field), intent(in)    :: tnu
+      type(tensor_field), intent(in)    :: leonard
+      real, intent(in)                  :: alpha
       type(scalar_field), intent(in) :: gp
       type(tensor_field), intent(in) :: surfacetension
 
@@ -1375,17 +1365,19 @@
       end if
 
       ! Absorption terms (sponges) and WettingDrying absorption
-      if (have_absorption .or. have_vertical_stabilization .or. have_wd_abs .or.have_sigma) then
-       call add_absorption_element_cg(x, ele, test_function, u, oldu_val, density, &
+      if (have_absorption .or. have_vertical_stabilization .or. have_wd_abs .or. have_sigma) then
+         call add_absorption_element_cg(x, ele, test_function, u, oldu_val, density, &
                                       absorption, detwei, big_m_diag_addto, big_m_tensor_addto, rhs_addto, &
                                       masslump, mass, depth, gravity, buoyancy, &
                                       alpha_u_field, abs_wd)
+         
+      
       end if
 
       ! Viscous terms
       if(have_viscosity .or. have_les) then
         call add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, viscosity, grad_u, &
-           fnu, tnu, leonard, strainprod, alpha, gamma, du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, density, nvfrac)
+           tnu, leonard, alpha, du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, density, nvfrac)
       end if
       
       ! Coriolis terms
@@ -1798,7 +1790,7 @@
       real, dimension(u%dim,u%dim,ele_ngi(u,ele)) :: vvr_abs
       real, dimension(u%dim,ele_ngi(u,ele)) :: vvr_abs_diag
       real, dimension(ele_ngi(u,ele)) :: depth_at_quads
-      real, dimension(ele_loc(depth,ele)) :: depth_ele
+
       ! Add implicit buoyancy to the absorption if present
       real, dimension(u%dim,u%dim,ele_ngi(u,ele)) :: ib_abs
       real, dimension(u%dim,ele_ngi(u,ele)) :: ib_abs_diag
@@ -1809,16 +1801,12 @@
 
       real, dimension(ele_ngi(u,ele)) :: alpha_u_quad
       real, dimension(u%dim,ele_ngi(u,ele)) :: sigma_d0_diag
-      real, dimension(ele_ngi(u,ele))::sigma_ngi
-      real, dimension(U%dim, ele_loc(U,ele), ele_loc(U,ele)) :: sigma_mat
-      real, dimension(U%dim, ele_loc(U,ele)) :: sigma_lump
-      real, dimension(u%dim, ele_loc(u,ele)) :: u_val
-      real, dimension(ele_loc(U,ele)) ::r_coefficient
-      real, dimension(u%dim, ele_loc(u,ele)) :: ru_val
+      real::sigma_ele
+      
       density_gi=ele_val_at_quad(density, ele)
       absorption_gi=0.0
       tensor_absorption_gi=0.0
-
+      
       if (have_absorption) then
         absorption_gi = ele_val_at_quad(absorption, ele)
       end if
@@ -1828,7 +1816,7 @@
       end if
 
       ! If we have any vertical stabilizing absorption terms, calculate them now
-      if (have_vertical_stabilization) then
+      if (have_vertical_stabilization .or. have_sigma) then
         ! zero the vertical stab absorptions
         vvr_abs_diag=0.0
         vvr_abs=0.0
@@ -1892,17 +1880,26 @@
             end do
           end if
         end if
-      
+
       !Sigma term
-      sigma_ngi=0.0
+      sigma_ele=0.0
       sigma_d0_diag=0.0
+      grav_at_quads=ele_val_at_quad(gravity, ele)
+      depth_at_quads=ele_val_at_quad(depth, ele)
       if(have_sigma) then
       	if (on_sphere) then
       	 FLExit('The sigma_d0 scheme currently not implemented on the sphere')	 
         else
-          call calculate_sigma_element(ele, positions, u, sigma_ngi, d0_a,dt)
           do i=1, ele_ngi(u,ele)
-           sigma_d0_diag(:,i)=sigma_ngi(i)*grav_at_quads(:,i)
+            call calculate_sigma_element(ele, positions, u, sigma_ele, d0_a,dt) 
+            !set a big value for sigma in dry area. sigma= dx^2/(a^2*dt*d0^2). 	Assume the element length is 50m, then the biggest sigma=50*50/(a**2*dt*d0**2)
+            if (depth_at_quads(i)<2*d0) then
+            sigma_ele=50*50/(d0_a**2*dt*d0**2)*(2*d0-depth_at_quads(i))/d0
+            end if
+            !print *, "sigma_ele = ", sigma_ele
+            sigma_d0_diag(:,i)=sigma_ele*grav_at_quads(:,i)
+            !print *, 'grav_at_quads(:,i)',grav_at_quads(:,i)
+            !print *, 'sigma_d0_dia(:,i)=', sigma_d0_diag(:,i) 
           end do
   
         end if
@@ -1985,37 +1982,27 @@
       else
 
         absorption_mat = shape_shape_vector(test_function, ele_shape(u, ele), detwei*density_gi, absorption_gi)
-        Sigma_mat = shape_shape_vector(test_function, ele_shape(u, ele), detwei*density_gi, sigma_d0_diag)
+
         if (have_wd_abs) then
            alpha_u_quad=ele_val_at_quad(alpha_u_field, ele) !! Wetting and drying absorption becomes active when water level reaches d_0
            absorption_mat =  absorption_mat + &
             &                shape_shape_vector(test_function, ele_shape(u, ele), alpha_u_quad*detwei*density_gi, &
             &                                 ele_val_at_quad(abs_wd,ele))
         end if
-        
-        depth_ele = ele_val(depth, ele)
+
         if(lump_absorption) then
           if(.not.abs_lump_on_submesh) then
             absorption_lump = sum(absorption_mat, 3)
-            sigma_lump = sum(Sigma_mat, 3)
             do dim = 1, u%dim
               big_m_diag_addto(dim, :) = big_m_diag_addto(dim, :) + dt*theta*absorption_lump(dim,:)
-              do i=1, ele_loc(U, ele)
-                   r_coefficient(i)=max(2*(1-depth_ele(i)/2/d0),real(0))
-                   ru_val(dim,i)=r_coefficient(i)*u_val(dim,i)
-              end do
-              rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump(dim,:)*oldu_val(dim,:)+ sigma_lump(dim,:)*ru_val(dim,:)
+              rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump(dim,:)*oldu_val(dim,:)
             end do
           end if
         else
           do dim = 1, u%dim
             big_m_tensor_addto(dim, dim, :, :) = big_m_tensor_addto(dim, dim, :, :) + &
               & dt*theta*absorption_mat(dim,:,:)
-            do i=0,ele_loc(U, ele)
-               r_coefficient(i)=max(2*(1-depth_ele(i)/2/d0),real(0))
-               ru_val(dim,i)=r_coefficient(i)*u_val(dim,i) 
-            end do
-            rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat(dim,:,:), oldu_val(dim,:))+matmul(Sigma_mat(dim,:,:), ru_val(dim,:))
+            rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat(dim,:,:), oldu_val(dim,:))
           end do
           absorption_lump = 0.0
         end if
@@ -2036,7 +2023,7 @@
     end subroutine add_absorption_element_cg
       
     subroutine add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, viscosity, grad_u, &
-        fnu, tnu, leonard, strainprod, alpha, gamma, &
+        tnu, leonard, alpha, &
          du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, density, nvfrac)
       type(state_type), intent(inout) :: state
       integer, intent(in) :: ele
@@ -2048,17 +2035,15 @@
       type(tensor_field), intent(in) :: grad_u
 
       ! Fields for Germano Dynamic LES Model
-      type(vector_field), intent(in)    :: fnu, tnu
-      type(tensor_field), intent(in)    :: leonard, strainprod
-      real, intent(in)                  :: alpha, gamma
+      type(vector_field), intent(in)    :: tnu
+      type(tensor_field), intent(in)    :: leonard
+      real, intent(in)                  :: alpha
 
       ! Local quantities specific to Germano Dynamic LES Model
-      real, dimension(x%dim, x%dim, ele_ngi(u,ele))  :: strain_gi, t_strain_gi, strainprod_gi
+      real                                           :: numerator, denominator
+      real, dimension(x%dim, x%dim, ele_ngi(u,ele))  :: strain_gi, t_strain_gi
       real, dimension(x%dim, x%dim, ele_ngi(u,ele))  :: mesh_size_gi, leonard_gi
-      real, dimension(x%dim, x%dim, ele_ngi(u,ele))  :: f_tensor, t_tensor
-      real, dimension(x%dim, x%dim)                  :: mij
       real, dimension(ele_ngi(u, ele))               :: strain_mod, t_strain_mod
-      real, dimension(ele_ngi(u, ele))               :: f_scalar, t_scalar
       type(element_type)                             :: shape_nu
       integer, dimension(:), pointer                 :: nodes_nu
 
@@ -2158,8 +2143,8 @@
             ! you can't have 2 different types of LES model for the same material_phase.
             if(have_eddy_visc) then
               call les_assemble_diagnostic_fields(state, u, ele, detwei, &
-                   les_tensor_gi, les_tensor_gi, les_coef_gi, &
-                 have_eddy_visc, .false., .false.)
+                   les_tensor_gi, les_tensor_gi, les_tensor_gi, les_tensor_gi, &
+                 have_eddy_visc, .false., .false., .false.)
             end if
 
          ! Fourth order Smagorinsky model
@@ -2180,60 +2165,77 @@
             nodes_nu => ele_nodes(nu, ele)
             les_tensor_gi=0.0
 
-            ! Get strain S1 for first-filtered velocity
-            strain_gi = les_strain_rate(du_t, ele_val(fnu, ele))
-            ! Get strain S2 for test-filtered velocity
+            ! Get strain S1 for unfiltered velocity (dim,dim,ngi)
+            strain_gi = les_strain_rate(du_t, ele_val(nu, ele))
+            ! Get strain S2 for test-filtered velocity (dim,dim,ngi)
             t_strain_gi = les_strain_rate(du_t, ele_val(tnu, ele))
-            ! Mesh size (units length^2)
+            ! Filter width G1 associated with mesh size (units length^2)
             mesh_size_gi = length_scale_tensor(du_t, ele_shape(u, ele))
-            ! Leonard tensor and strain product at Gauss points
+            ! Leonard tensor L at gi
             leonard_gi = ele_val_at_quad(leonard, ele)
-            strainprod_gi = ele_val_at_quad(strainprod, ele)
 
             do gi=1, ele_ngi(nu, ele)
-               ! Get strain modulus |S1| for first-filtered velocity
-               strain_mod(gi) = sqrt( 2*sum(strain_gi(:,:,gi)*strain_gi(:,:,gi) ) )
-               ! Get strain modulus |S2| for test-filtered velocity
-               t_strain_mod(gi) = sqrt( 2*sum(t_strain_gi(:,:,gi)*t_strain_gi(:,:,gi) ) )
+              ! Get strain modulus |S1| for unfiltered velocity (ngi)
+              strain_mod(gi) = sqrt( 2*sum(strain_gi(:,:,gi)*strain_gi(:,:,gi) ) )
+              ! Get strain modulus |S2| for test-filtered velocity (ngi)
+              t_strain_mod(gi) = sqrt( 2*sum(t_strain_gi(:,:,gi)*t_strain_gi(:,:,gi) ) )
             end do
 
-            select case(length_scale_type)
-               case("scalar")
-                  ! Scalar first filter width G1 = alpha^2*meshsize (units length^2)
-                  f_scalar = alpha**2*length_scale_scalar(x, ele)
-                  ! Combined width G2 = (1+gamma^2)*G1
-                  t_scalar = (1.0+gamma**2)*f_scalar
-                  do gi=1, ele_ngi(nu, ele)
-                    ! Tensor M_ij = (|S2|*S2)G2 - ((|S1|S1)^f2)G1
-                    mij = t_strain_mod(gi)*t_strain_gi(:,:,gi)*t_scalar(gi) - strainprod_gi(:,:,gi)*f_scalar(gi)
-                    ! Model coeff C_S = -(L_ij M_ij) / 2(M_ij M_ij)
-                    les_coef_gi(gi) = -0.5*sum(leonard_gi(:,:,gi)*mij) / sum(mij*mij)
-                    ! Constrain C_S to be between 0 and 0.04.
-                    les_coef_gi(gi) = min(max(les_coef_gi(gi),0.0), 0.04)
-                    ! Isotropic tensor dynamic eddy viscosity = -2C_S|S1|.alpha^2.G1
-                    les_tensor_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*strain_mod(gi)*f_scalar(gi)
-                  end do
-               case("tensor")
-                  ! First filter width G1 = alpha^2*mesh size (units length^2)
-                  f_tensor = alpha**2*mesh_size_gi
-                  ! Combined width G2 = (1+gamma^2)*G1
-                  t_tensor = (1.0+gamma**2)*f_tensor
-                  do gi=1, ele_ngi(nu, ele)
-                    ! Tensor M_ij = (|S2|*S2).G2 - ((|S1|S1)^f2).G1
-                    mij = t_strain_mod(gi)*t_strain_gi(:,:,gi)*t_tensor(:,:,gi) - strainprod_gi(:,:,gi)*f_tensor(:,:,gi)
-                    ! Model coeff C_S = -(L_ij M_ij) / 2(M_ij M_ij)
-                    les_coef_gi(gi) = -0.5*sum(leonard_gi(:,:,gi)*mij) / sum(mij*mij)
-                    ! Constrain C_S to be between 0 and 0.04.
-                    les_coef_gi(gi) = min(max(les_coef_gi(gi),0.0), 0.04)
-                    ! Anisotropic tensor dynamic eddy viscosity m_ij = -2C_S|S1|.alpha^2.G1
-                    les_tensor_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*strain_mod(gi)*f_tensor(:,:,gi)
-                  end do
-            end select
+            ! If sum of strain components = 0, don't use dynamic LES model
+            if(abs(sum(strain_gi(:,:,:))) < epsilon(0.0)) then
+              les_tensor_gi = 0.0
+              t_strain_mod = 0.0
+            else
+              ! Choose original Germano model or Lilly's (1991) modification from options
+              if(.not. have_lilly) then
+                do gi=1, ele_ngi(nu, ele)
+                  ! |S1|*L.S1
+                  numerator = sum( leonard_gi(:,:,gi)*strain_gi(:,:,gi) )*strain_mod(gi)
+
+                  ! alpha^2*|S2|*S2.S1
+                  ! This term is WRONG until I find a way of filtering the strain rate product. The difference may be quite small though.
+                  denominator = -alpha**2*t_strain_mod(gi)*sum(t_strain_gi(:,:,gi)*strain_gi(:,:,gi))
+
+                  ! Dynamic eddy viscosity m_ij = C*S1
+                  les_tensor_gi(:,:,gi) = numerator/denominator
+
+                  ! Whether or not to allow negative eddy viscosity (backscattering)
+                  ! but do not allow (viscosity+eddy_viscosity) < 0.
+                  if(any(les_tensor_gi(:,:,gi) < 0.0)) then
+                    if(backscatter) then
+                      les_tensor_gi(:,:,gi) = max(les_tensor_gi(:,:,gi), epsilon(0.0) - viscosity_gi(:,:,gi))
+                    else
+                      les_tensor_gi(:,:,gi) = max(les_tensor_gi(:,:,gi),0.0)
+                    end if
+                  end if
+                end do
+              else if(have_lilly) then
+                do gi=1, ele_ngi(nu, ele)
+                  ! |S1|*L.S1
+                  numerator = sum(leonard_gi(:,:,gi)*t_strain_gi(:,:,gi))*strain_mod(gi)
+                  ! alpha^2*|S2|^2*S2.S2
+                  ! This term is WRONG until I find a way of filtering the strain rate product. The difference may be quite small though.
+                  denominator = -alpha**2*(t_strain_mod(gi))**2*sum(t_strain_gi(:,:,gi)*t_strain_gi(:,:,gi))
+                  ! Dynamic eddy viscosity m_ij
+                  les_tensor_gi(:,:,gi) = numerator/denominator
+
+                  ! Whether or not to allow negative eddy viscosity (backscattering)
+                  ! but do not allow (viscosity+eddy_viscosity) < 0.
+                  if(any(les_tensor_gi(:,:,gi) < 0.0)) then
+                    if(backscatter) then
+                      les_tensor_gi(:,:,gi) = max(les_tensor_gi(:,:,gi), epsilon(0.0) - viscosity_gi(:,:,gi))
+                    else
+                      les_tensor_gi(:,:,gi) = max(les_tensor_gi(:,:,gi),0.0)
+                    end if
+                  end if
+                end do
+              end if
+            end if
 
             ! Assemble diagnostic fields
             call les_assemble_diagnostic_fields(state, nu, ele, detwei, &
-                 mesh_size_gi, les_tensor_gi, les_coef_gi, &
-                 have_eddy_visc, have_filter_width, have_coeff)
+                 mesh_size_gi, strain_gi, t_strain_gi, les_tensor_gi, &
+                 have_eddy_visc, have_strain, have_filtered_strain, have_filter_width)
 
          else
             FLAbort("Unknown LES model")

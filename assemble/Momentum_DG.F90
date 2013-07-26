@@ -742,6 +742,7 @@ contains
     call deallocate(surfacetension)
     call deallocate(buoyancy)
     call deallocate(gravity)
+    call deallocate(depth)
     if(multiphase) then
       call deallocate(nvfrac)
     end if
