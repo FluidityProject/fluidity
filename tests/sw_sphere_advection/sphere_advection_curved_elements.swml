@@ -38,15 +38,17 @@
           <polynomial_degree>
             <integer_value rank="0">2</integer_value>
           </polynomial_degree>
+          <element_type>
+            <string_value>discontinuous lagrangian</string_value>
+          </element_type>
         </mesh_shape>
-        <mesh_continuity>
-          <string_value>discontinuous</string_value>
-        </mesh_continuity>
         <constraint_type>
           <string_value>BDFM</string_value>
           <solver>
             <iterative_method name="preonly"/>
-            <preconditioner name="lu"/>
+            <preconditioner name="lu">
+              <factorization_package name="petsc"/>
+            </preconditioner>
             <relative_error>
               <real_value rank="0">1.0e-50</real_value>
             </relative_error>
@@ -71,10 +73,10 @@
           <polynomial_degree>
             <integer_value rank="0">1</integer_value>
           </polynomial_degree>
+          <element_type>
+            <string_value>discontinuous lagrangian</string_value>
+          </element_type>
         </mesh_shape>
-        <mesh_continuity>
-          <string_value>discontinuous</string_value>
-        </mesh_continuity>
         <stat>
           <exclude_from_stat/>
         </stat>
@@ -91,9 +93,6 @@
             <string_value>bubble</string_value>
           </element_type>
         </mesh_shape>
-        <mesh_continuity>
-          <string_value>continuous</string_value>
-        </mesh_continuity>
         <stat>
           <exclude_from_stat/>
         </stat>
@@ -173,6 +172,7 @@
           <adjoint_storage>
             <exists_in_forward/>
           </adjoint_storage>
+          <do_not_recalculate/>
         </prescribed>
       </vector_field>
     </gravity>
@@ -199,7 +199,9 @@
         <temporal_discretisation/>
         <solver>
           <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
+          <preconditioner name="lu">
+            <factorization_package name="petsc"/>
+          </preconditioner>
           <relative_error>
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
@@ -253,23 +255,19 @@
         </spatial_discretisation>
         <temporal_discretisation>
           <discontinuous_galerkin>
-<<<<<<< TREE
-            <maximum_courant_number_per_subcycle>
-              <real_value rank="0">0.01</real_value>
-            </maximum_courant_number_per_subcycle>
-=======
             <number_advection_subcycles>
               <integer_value rank="0">1</integer_value>
             </number_advection_subcycles>
             <SSPRK_order>
               <integer_value rank="0">3</integer_value>
             </SSPRK_order>
->>>>>>> MERGE-SOURCE
           </discontinuous_galerkin>
         </temporal_discretisation>
         <solver>
           <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
+          <preconditioner name="lu">
+            <factorization_package name="petsc"/>
+          </preconditioner>
           <relative_error>
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
@@ -283,23 +281,14 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-<<<<<<< TREE
-            <string_value lines="20" type="code" language="python">def val(X,t): 
-  from math import tanh
-=======
-            <string_value lines="20" type="code" language="python">def val(X,t): 
+            <string_value lines="20" type="code" language="python">def val(X,t):
   from math import exp, tanh
->>>>>>> MERGE-SOURCE
   x = X[0]
   y = X[1]
   z = X[2]
   R = (x**2+y**2+z**2)**0.5
   x = x/R
-<<<<<<< TREE
-  return tanh(10*x)</string_value>
-=======
   return tanh(x*10)</string_value>
->>>>>>> MERGE-SOURCE
           </python>
         </initial_condition>
         <mean_layer_thickness>

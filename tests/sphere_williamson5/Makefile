@@ -26,8 +26,9 @@ input: clean
 	sed -i s/sphere_ico4/sphere_ico5/g williamson5_errors_5.swml
 	sed -i s/sphere_ico4/sphere_ico6/g williamson5_errors_6.swml
 
-
-	spud-set williamson5_errors_6.swml /timestepping/timestep 450.0
+	spud-set williamson5_errors_6.swml /timestepping/timestep 900.0
+	spud-set williamson5_errors_5.swml /timestepping/timestep 450.0
+	spud-set williamson5_errors_6.swml /timestepping/timestep 225.0
 
 sw5_basic_runs: input
 	../../bin/shallow_water_mimetic -v 1 williamson5_3.swml &> 3.out &

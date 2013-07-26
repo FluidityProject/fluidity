@@ -256,21 +256,21 @@
          !   !Just advance the D and PV fields.
          call set(advecting_u, u)
          call allocate(MassFlux,mesh_dim(U),u%mesh,'MassFlux')
-         call allocate(PVFlux,mesh_dim(U),u%mesh,'PVFlux')
          call zero(massFlux)
-         call zero(PVFlux)
          ! no flux for now - just testing advection (jemma 7/3/13)
 !         call solve_advection_dg_subcycle("LayerThickness", state, &
 !              "NonlinearVelocity",continuity=.true.)
          call solve_advection_dg_subcycle("LayerThickness", state, &
               "NonlinearVelocity",continuity=.true.,Flux=MassFlux)
-         call set(pvtracer_old,pvtracer)
          if(have_pv_tracer) then
+            call set(pvtracer_old,pvtracer)
+            call allocate(PVFlux,mesh_dim(U),u%mesh,'PVFlux')
+            call zero(PVFlux)
             call solve_advection_cg_tracer(PVtracer,D,&
                  d_old,MassFlux,advecting_u,PVFlux,state)
+            call deallocate(PVFlux)
          end if
          call deallocate(MassFlux)
-         call deallocate(PVFlux)
       else
          call allocate(newU,U%dim,U%mesh,"NewLocalVelocity")
          call allocate(newD,D%mesh,"NewLayerThickness")
