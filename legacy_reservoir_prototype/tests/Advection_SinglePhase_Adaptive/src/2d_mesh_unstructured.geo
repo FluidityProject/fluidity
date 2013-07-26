@@ -1,9 +1,9 @@
-Point(1) = {0., 0., 0.};
+Point(1) = {0., 0., 0., 0.05};
 Extrude {6, 0, 0} {
-  Point{1}; Layers{60};
+  Point{1};
 }
 Extrude {0, 1, 0} {
-  Line{1}; Layers{10};
+  Line{1};
 }
 // left
 Physical Line(6) = {3};

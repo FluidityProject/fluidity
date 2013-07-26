@@ -1,11 +1,15 @@
 SHELL = sh
 
-SIM = Advection_SinglePhase_Adaptive
+#SIM = Advection_SinglePhase_Adaptive
 
 input: clean
 
-	gmsh -2 src/2d_mesh.geo
-	../../../scripts/gmsh2triangle --2d src/2d_mesh.msh
+	gmsh -2 src/2d_mesh_unstructured.geo
+	gmsh -2 src/2d_mesh_adaptive.geo
+	gmsh -2 src/2d_mesh_square.geo
+	../../../scripts/gmsh2triangle --2d src/2d_mesh_adaptive.msh
+	../../../scripts/gmsh2triangle --2d src/2d_mesh_unstructured.msh
+	../../../scripts/gmsh2triangle --2d src/2d_mesh_square.msh
 
 clean:
 	rm -f *.d.* fluidity.* ocvn

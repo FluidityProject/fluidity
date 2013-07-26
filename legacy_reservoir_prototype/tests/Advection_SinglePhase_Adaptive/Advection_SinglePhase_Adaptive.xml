@@ -2,12 +2,14 @@
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 
 <testproblem>
-  <name>BL_2D</name>
+  <name>Advection</name>
   <owner userid="jefferson.gomes"/>
   <tags>mpml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
 ../../../bin/multiphase_prototype Advection_SinglePhase_Adaptive.mpml
+../../../bin/multiphase_prototype Advection_SinglePhase_Unstructured.mpml
+../../../bin/multiphase_prototype Advection_Square_New.mpml
 
     </command_line>
 
@@ -15,18 +17,121 @@
   </problem_definition>
   <variables>
 
-    <variable name="Reference_Advection" language="python">
-from fluidity_tools import stat_parser as stat
-Reference_Advection = stat("Advection_SinglePhase_Adaptive.stat")["phase1"]["Advection_SinglePhase_Adaptive"]["max"][-1]
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
+
+    <variable name="Temp_Adapt_Integral_Max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("Advection_SinglePhase_Adaptive.stat")
+Temp_Adapt_Integral_Max = max(s["phase1"]["Temperature"]["integral"])
+    </variable>
+    <variable name="TempRef_Adapt_Integral_Max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("Advection_SinglePhase_Adaptive.stat")
+TempRef_Adapt_Integral_Max = max(s["phase1"]["Temperature_Reference"]["integral"])
+    </variable>
+
+
+    <variable name="Temp_Adapt_Integral_Final" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("Advection_SinglePhase_Adaptive.stat")
+Temp_Adapt_Integral_Final = s["phase1"]["Temperature"]["integral"][-1]
+    </variable>
+    <variable name="TempRef_Adapt_Integral_Final" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("Advection_SinglePhase_Adaptive.stat")
+TempRef_Adapt_Integral_Final = s["phase1"]["Temperature_Reference"]["integral"][-1]
+    </variable>
+
+
+
+
+    <variable name="Temp_Unstruct_Integral_Final" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("Advection_SinglePhase_Unstructured.stat")
+Temp_Unstruct_Integral_Final = s["phase1"]["Temperature"]["integral"][-1]
+    </variable>
+    <variable name="TempRef_Unstruct_Integral_Final" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("Advection_SinglePhase_Unstructured.stat")
+TempRef_Unstruct_Integral_Final = s["phase1"]["Temperature_Reference"]["integral"][-1]
+    </variable>
+
+
+    <variable name="Temp_Unstruct_Integral_Max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("Advection_SinglePhase_Unstructured.stat")
+Temp_Unstruct_Integral_Max = max(s["phase1"]["Temperature"]["integral"])
+    </variable>
+    <variable name="TempRef_Unstruct_Integral_Max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("Advection_SinglePhase_Unstructured.stat")
+TempRef_Unstruct_Integral_Max = max(s["phase1"]["Temperature_Reference"]["integral"])
+    </variable>
+
+
+
+    <variable name="Temp_Square_Integral_Final" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("Advection_Square_New.stat")
+Temp_Square_Integral_Final = s["phase1"]["Temperature"]["integral"][-1]
+    </variable>
+    <variable name="TempRef_Square_Integral_Final" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("Advection_Square_New.stat")
+TempRef_Square_Integral_Final = s["phase1"]["Temperature_Reference"]["integral"][-1]
+    </variable>
+
+
+    <variable name="Temp_Square_Integral_Max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("Advection_Square_New.stat")
+Temp_Square_Integral_Max = max(s["phase1"]["Temperature"]["integral"])
+    </variable>
+    <variable name="TempRef_Square_Integral_Max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("Advection_Square_New.stat")
+TempRef_Square_Integral_Max = max(s["phase1"]["Temperature_Reference"]["integral"])
+    </variable>
+
+
 
   </variables>
 
   <pass_tests>
-    <test name="Assert max absolute regression difference for Temperature Advection Field is less than 1.0e-10" language="python">
-assert(abs(Reference_Advection) &lt; 1.0e-10)
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
     </test>
+    <test name="Adaptive: Temperature Integral Max Comparison is smaller than 1.e-4" language="python">
+from math import pi
+assert abs(Temp_Adapt_Integral_Max - TempRef_Adapt_Integral_Max) &lt; 1.e-4
+    </test>
+    <test name="Adaptive: Temperature Integral Final Comparison is smaller than 1.e-1" language="python">
+assert abs(Temp_Adapt_Integral_Final - TempRef_Adapt_Integral_Final) &lt; 1.0e-1
+    </test>
+
+    <test name="Unstructured: Temperature Integral Max Comparison is smaller than 1.e-4" language="python">
+from math import pi
+assert abs(Temp_Unstruct_Integral_Max - TempRef_Unstruct_Integral_Max) &lt; 5.e-3
+    </test>
+    <test name="Unstructured: Temperature Integral Final Comparison is smaller than 1.e-1" language="python">
+assert abs(Temp_Unstruct_Integral_Final - TempRef_Unstruct_Integral_Final) &lt; 1.0e-2
+    </test>
+
+    <test name="Square Adaptive: Temperature Integral Max Comparison is smaller than 1.e-4" language="python">
+from math import pi
+assert abs(Temp_Square_Integral_Max - TempRef_Square_Integral_Max) &lt; 5.e-3
+    </test>
+    <test name="Square Adaptive: Temperature Integral Final Comparison is smaller than 1.e-1" language="python">
+assert abs(Temp_Square_Integral_Final - TempRef_Square_Integral_Final) &lt; 1.0e-3
+    </test>
+
+
   </pass_tests>
+
   <warn_tests>
   </warn_tests>
 
