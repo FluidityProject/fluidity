@@ -6,6 +6,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <limits>
 
 #include <cassert>
 #include <cstdlib>
@@ -447,33 +448,31 @@ int write_triangle_file(std::string basename,
   int NFacets = facet_ids.size();
   
   ofstream nodefile;
-  nodefile.open("mesh.node");
+  nodefile.open(std::string(basename+".node").c_str());
   nodefile<<NNodes<<" "<<3<<" "<<0<<" "<<0<<std::endl;
+  nodefile<<std::setprecision(std::numeric_limits<double>::digits10+1);
 
   for(int i=0;i<NNodes;i++){
     nodefile<<i+1<<" "<<xyz[i*3]<<" "<<xyz[i*3+1]<<" "<<xyz[i*3+2]<<std::endl;
   }
 
   ofstream elefile;
-  elefile.open("mesh.ele");
+  elefile.open(std::string(basename+".ele").c_str());
   elefile<<NTetra<<" "<<4<<" "<<1<<std::endl;
 
   for(int i=0;i<NTetra;i++){
-    elefile<<i+1<<" "<<tets[i*4]<<" "<<tets[i*4+1]<<" "<<tets[i*4+2]<<" "<<tets[i*4+3]<<"  1"<<std::endl;
+    elefile<<i+1<<" "<<tets[i*4]+1<<" "<<tets[i*4+1]+1<<" "<<tets[i*4+2]+1<<" "<<tets[i*4+3]+1<<" 1"<<std::endl;
   }
 
   ofstream facefile;
-  facefile.open("mesh.face");
+  facefile.open(std::string(basename+".face").c_str());
   facefile<<NFacets<<" "<<1<<std::endl;
   for(int i=0;i<NFacets;i++){
-    facefile<<i+1<<" "<<facets[i*3]<<" "<<facets[i*3+1]<<" "<<facets[i*3+2]<<" "<<facet_ids[i]<<std::endl;
+    facefile<<i+1<<" "<<facets[i*3]+1<<" "<<facets[i*3+1]+1<<" "<<facets[i*3+2]+1<<" "<<facet_ids[i]<<std::endl;
   }
 
 
-  std::cerr<<"write triangle files: "
-           <<filename_node<<", "
-           <<filename_face<<", "
-           <<filename_ele<<", "<<std::endl;
+  
   
   return 0;
 }
