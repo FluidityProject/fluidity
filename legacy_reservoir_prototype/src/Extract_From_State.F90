@@ -513,8 +513,8 @@
       if( .not. is_overlapping ) v_dg_vel_int_opt = 1
       comp_diffusion_opt = 0 ; ncomp_diff_coef = 0
       volfra_use_theta_flux = .false. ; volfra_get_theta_flux = .true.
-      comp_use_theta_flux = .false.   ; comp_get_theta_flux = .true.
-      t_use_theta_flux = .false.      ; t_get_theta_flux = .true.
+      comp_use_theta_flux = .false. ; comp_get_theta_flux = .true.
+      t_use_theta_flux = .false. ; t_get_theta_flux = .true.
 
 !!$ IN/DG_ELE_UPWIND are options for optimisation of upwinding across faces in the overlapping
 !!$ formulation. The data structure and options for this formulation need to be added later. 
@@ -1080,7 +1080,7 @@
                   face_nodes = ele_nodes( field_prot_bc, sele )
                   do kk = 1, snloc
                      suf_bc( ( iphase - 1 ) * stotel * snloc + ( j - 1 ) * snloc + kk ) = &
-                          field_prot_bc % val( face_nodes( 1 ) )
+                          field_prot_bc % val( face_nodes( kk ) )
                   end do
                   sele = sele + 1
                end if
@@ -1218,7 +1218,7 @@
                   do kk = 1, snloc
                      suf_bc( ( icomp - ( nphase + 1 ) ) * nphase * stotel * snloc + &
                           ( iphase - 1 ) * stotel * snloc + ( j - 1 ) * snloc + kk ) = &
-                          field_prot_bc % val( face_nodes( 1 ) )
+                          field_prot_bc % val( face_nodes( kk ) )
                   end do
                   sele = sele + 1
                end if

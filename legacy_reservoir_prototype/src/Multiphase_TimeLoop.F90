@@ -849,18 +849,18 @@
 !!$ Computing the absorption term for the multi-components equation
                   call Calculate_ComponentAbsorptionTerm( state, &
                        icomp, cv_ndgln, & 
-                       Density_Old, PhaseVolumeFraction_Old, Porosity, mass_ele, &
+                       Density, PhaseVolumeFraction, Porosity, mass_ele, &
                        Component_Absorption )
 
                   Conditional_SmoothAbsorption: if( have_option( '/material_phase[' // int2str( nstate - ncomp ) // &
                        ']/is_multiphase_component/KComp_Sigmoid' ) .and. nphase > 1 ) then
                      do cv_nodi = 1, cv_nonods
-                        if( PhaseVolumeFraction_Old( cv_nodi ) > 0.95 ) then
+                        if( PhaseVolumeFraction( cv_nodi ) > 0.95 ) then
                            do iphase = 1, nphase
                               do jphase = min( iphase + 1, nphase ), nphase
                                  Component_Absorption( cv_nodi, iphase, jphase ) = &
                                       Component_Absorption( cv_nodi, iphase, jphase ) * max( 0.01, &
-                                      20. * PhaseVolumeFraction_Old( cv_nodi ) )
+                                      20. * ( 1. - PhaseVolumeFraction( cv_nodi ) ) )
                               end do
                            end do
                         end if
@@ -968,25 +968,25 @@
 
                   call Calculate_ComponentAbsorptionTerm( state, &
                        icomp, cv_ndgln, & 
-                       Density_Old, PhaseVolumeFraction_Old, Porosity, mass_ele, &
+                       Density, PhaseVolumeFraction, Porosity, mass_ele, &
                        Component_Absorption )
 
                   if( have_option( '/material_phase[' // int2str( nstate - ncomp ) // &
                        ']/is_multiphase_component/KComp_Sigmoid' ) .and. nphase > 1 ) then
                      do cv_nodi = 1, cv_nonods
-                        if( PhaseVolumeFraction_Old( cv_nodi ) > 0.95 ) then
+                        if( PhaseVolumeFraction( cv_nodi ) > 0.95 ) then
                            do iphase = 1, nphase
                               do jphase = min( iphase + 1, nphase ), nphase
                                  Component_Absorption( cv_nodi, iphase, jphase ) = &
                                       Component_Absorption( cv_nodi, iphase, jphase ) * max( 0.01, &
-                                      20. * PhaseVolumeFraction_Old( cv_nodi ) )
+                                      20. * ( 1. - PhaseVolumeFraction( cv_nodi ) ) )
                               end do
                            end do
                         end if
                      end do
                   end if
 
-                 Loop_Phase_SourceTerm1: do iphase = 1, nphase
+                  Loop_Phase_SourceTerm1: do iphase = 1, nphase
                      Loop_Phase_SourceTerm2: do jphase = 1, nphase
                         DO CV_NODI = 1, CV_NONODS
                            ScalarField_Source_Component( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) = &

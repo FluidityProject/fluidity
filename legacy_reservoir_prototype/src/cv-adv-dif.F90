@@ -743,7 +743,7 @@
 
 ! **********ANISOTROPIC LIMITING...*******************
       IANISOLIM=0
-      IF(CV_DISOPT.GE.8) IANISOLIM=1
+      IF(CV_DISOPT.GE.5) IANISOLIM=1
       IF (IANISOLIM==0) THEN
          ALLOCATE(TUPWIND_MAT(1), TOLDUPWIND_MAT(1), DENUPWIND_MAT(1), DENOLDUPWIND_MAT(1))
          ALLOCATE(T2UPWIND_MAT(1), T2OLDUPWIND_MAT(1))
@@ -2726,6 +2726,14 @@
       INTEGER, DIMENSION( NSMALL_COLM*IANISOTROPIC ), intent( in ) :: SMALL_COLM
       REAL, DIMENSION( NSMALL_COLM*IANISOTROPIC), intent( in ) :: TUPWIND_MAT 
 
+
+ !     CALL ONVDLIMsqrt( TOTELE, &
+ !          TDLIM, TDCEN, INCOME, PELE, PELEOT, &
+ !          ETDNEW, TDMIN, TDMAX, .true., NOLIMI )
+ !          !ETDNEW, TDMIN, TDMAX, FIRORD, NOLIMI )
+
+IF (.true.) THEN
+
       IF(IANISOTROPIC==1) THEN ! limit based on 2 largest and 2 minima values of T:
          CALL ONVDLIM_ANO( TOTELE, &
          TDLIM, TDCEN, INCOME, PELE, PELEOT, &
@@ -2740,6 +2748,9 @@
          TDLIM, TDCEN, INCOME, PELE, PELEOT, &
          ETDNEW, TDMIN, TDMAX, FIRORD, NOLIMI, COURANT_OR_MINUS_ONE )
       ENDIF
+
+END IF
+
 
       RETURN
 
@@ -3025,6 +3036,7 @@
       REAL, DIMENSION( NSMALL_COLM ), intent( in ) :: TUPWIND_MAT 
       ! Local variables   
       REAL, PARAMETER :: TOLER=1.0E-10
+      INTEGER, PARAMETER :: POWER=1
       REAL :: UCIN, UCOU, TUPWIN, TUPWI2, TDELE, DENOIN, CTILIN, DENOOU, &
            CTILOU, FTILIN, FTILOU
       INTEGER :: COUNT
@@ -3045,57 +3057,56 @@
 !         ENDIF
 
           DO COUNT=SMALL_FINDRM(PELEOT),SMALL_FINDRM(PELEOT+1)-1
-             IF(SMALL_COLM(COUNT)==PELE) TUPWIN = TUPWIND_MAT(COUNT)
+             IF(SMALL_COLM(COUNT)==PELE) TUPWIN = TUPWIND_MAT(COUNT)**power
  !            IF(SMALL_COLM(COUNT)==PELE) TUPWI2 = TUPWIND_MAT(COUNT)
           END DO
           DO COUNT=SMALL_FINDRM(PELE),SMALL_FINDRM(PELE+1)-1
-             IF(SMALL_COLM(COUNT)==PELEOT) TUPWI2 = TUPWIND_MAT(COUNT)
+             IF(SMALL_COLM(COUNT)==PELEOT) TUPWI2 = TUPWIND_MAT(COUNT)**power
  !            IF(SMALL_COLM(COUNT)==PELEOT) TUPWIN = TUPWIND_MAT(COUNT)
           END DO
 
 
          ! Calculate normalisation parameters for incomming velocities 
-         TDELE = ETDNEW( PELE )
+         TDELE = ETDNEW( PELE )**power
          !tdele = min( max( tdcen + 1.*( TDELE - tdcen ) , 0.) , 1. )
-         DENOIN = TDELE - TUPWIN 
+         DENOIN = TDELE - TUPWIN
 
          IF( ABS( DENOIN ) < TOLER ) DENOIN = SIGN( TOLER, DENOIN )
 
-         UCIN = ETDNEW( PELEOT )
+         UCIN = ETDNEW( PELEOT )**power
          CTILIN = ( UCIN - TUPWIN ) / DENOIN
 
          ! Calculate normalisation parameters for out going velocities 
-         TDELE = ETDNEW( PELEOT )
+         TDELE = ETDNEW( PELEOT )**power
          !tdele =  min( max( tdcen + 1.*( TDELE - tdcen ) , 0.) , 1. )
          DENOOU = TDELE - TUPWI2
 
          IF( ABS( DENOOU ) < TOLER) DENOOU = SIGN( TOLER, DENOOU )
-         UCOU = ETDNEW( PELE )
+         UCOU = ETDNEW( PELE )**power
          CTILOU = ( UCOU - TUPWI2 ) / DENOOU
 
       ELSE
 
          ! Calculate normalisation parameters for incomming velocities 
-         TUPWIN = ETDNEW( PELE )
-         UCIN = ETDNEW( PELE )
+         TUPWIN = ETDNEW( PELE )**power
+         UCIN = ETDNEW( PELE )**power
          DENOIN = 1.
          CTILIN = 0.
 
          ! Calculate normalisation parameters for out going velocities 
-         TUPWI2 = ETDNEW( PELE )
-         UCOU = ETDNEW( PELE )
+         TUPWI2 = ETDNEW( PELE )**power
+         UCOU = ETDNEW( PELE )**power
          DENOOU = 1.
          CTILOU = 0.
 
       ENDIF Conditional_PELEOT
-
+      
       Conditional_FIRORD: IF( FIRORD ) THEN ! Velocity is pointing into element
 
          ! Velocity is going out of element
          TDLIM = INCOME * UCIN + ( 1.0 - INCOME ) * UCOU 
 
       ELSE
-
 
          FTILIN = ( TDCEN - TUPWIN ) / DENOIN
          FTILOU = ( TDCEN - TUPWI2 ) / DENOOU
@@ -3104,6 +3115,8 @@
          TDLIM= INCOME*( TUPWIN + NVDFUNNEW( FTILIN, CTILIN, COURANT_OR_MINUS_ONE ) * DENOIN ) &
               + ( 1.0 - INCOME ) * ( TUPWI2 + NVDFUNNEW( FTILOU, CTILOU, COURANT_OR_MINUS_ONE ) &
               * DENOOU )
+     
+         TDLIM=max(TDLIM,0.0)**(1.0/POWER)
 
       ENDIF Conditional_FIRORD
 
@@ -3146,6 +3159,7 @@
       LOGICAL, intent( in ) :: FIRORD, NOLIMI
       ! Local variables   
       REAL, PARAMETER :: TOLER=1.0E-10
+      INTEGER, PARAMETER :: POWER=2
       REAL :: UCIN, UCOU, TUPWIN, TUPWI2, TDELE, DENOIN, CTILIN, DENOOU, &
            CTILOU, FTILIN, FTILOU
 
@@ -3157,63 +3171,64 @@
       Conditional_PELEOT: IF( PELEOT /= PELE ) THEN
 
          IF( ETDNEW( PELEOT ) > ETDNEW( PELE )) THEN
-            TUPWIN = TDMAX( PELEOT )**2
-            TUPWI2 = TDMIN( PELE )**2
+            TUPWIN = TDMAX( PELEOT )**POWER
+            TUPWI2 = TDMIN( PELE )**POWER
          ELSE
-            TUPWIN = TDMIN( PELEOT )**2
-            TUPWI2 = TDMAX( PELE ) **2
+            TUPWIN = TDMIN( PELEOT )**POWER
+            TUPWI2 = TDMAX( PELE ) **POWER
          ENDIF
 
          ! Calculate normalisation parameters for incomming velocities 
-         TDELE = ETDNEW( PELE )**2 
+         TDELE = ETDNEW( PELE )**POWER
          DENOIN = TDELE - TUPWIN
 
          IF( ABS( DENOIN ) < TOLER ) DENOIN = SIGN( TOLER, DENOIN )
 
-         UCIN = ETDNEW( PELEOT )**2
+         UCIN = ETDNEW( PELEOT )**POWER
          CTILIN = ( UCIN - TUPWIN ) / DENOIN
 
          ! Calculate normalisation parameters for out going velocities 
-         TDELE = ETDNEW( PELEOT )**2 
+         TDELE = ETDNEW( PELEOT )**POWER
          DENOOU = TDELE - TUPWI2
 
          IF( ABS( DENOOU ) < TOLER) DENOOU = SIGN( TOLER, DENOOU )
-         UCOU = ETDNEW( PELE )**2
+         UCOU = ETDNEW( PELE )**POWER
          CTILOU = ( UCOU - TUPWI2 ) / DENOOU
 
       ELSE
 
          ! Calculate normalisation parameters for incomming velocities 
-         TUPWIN = ETDNEW( PELE )**2
-         UCIN = ETDNEW( PELE )**2
+         TUPWIN = ETDNEW( PELE )**POWER
+         UCIN = ETDNEW( PELE )**POWER
          DENOIN = 1.
          CTILIN = 0.
 
          ! Calculate normalisation parameters for out going velocities 
-         TUPWI2 = ETDNEW( PELE )**2
-         UCOU = ETDNEW( PELE )**2
+         TUPWI2 = ETDNEW( PELE )**POWER
+         UCOU = ETDNEW( PELE )**POWER
          DENOOU = 1.
          CTILOU = 0.
 
       ENDIF Conditional_PELEOT
 
       Conditional_FIRORD: IF( FIRORD ) THEN ! Velocity is pointing into element
+ !     Conditional_FIRORD: IF( .TRUE. ) THEN ! Velocity is pointing into element
 
          ! Velocity is going out of element
          TDLIM = INCOME * UCIN + ( 1.0 - INCOME ) * UCOU 
-         TDLIM=sqrt(max(TDLIM,0.0))
+         TDLIM=max(TDLIM,0.0)**(1.0/POWER)
 
       ELSE
 
-         FTILIN = ( max(0.0,TDCEN)**2 - TUPWIN ) / DENOIN
-         FTILOU = ( max(0.0,TDCEN)**2 - TUPWI2 ) / DENOOU
+         FTILIN = ( max(0.0,TDCEN)**POWER - TUPWIN ) / DENOIN
+         FTILOU = ( max(0.0,TDCEN)**POWER - TUPWI2 ) / DENOOU
 
          ! Velocity is going out of element
          TDLIM= INCOME*( TUPWIN + NVDFUNNEWsqrt( FTILIN, CTILIN, -1.0 ) * DENOIN ) &
               + ( 1.0 - INCOME ) * ( TUPWI2 + NVDFUNNEWsqrt( FTILOU, CTILOU, -1.0 ) &
               * DENOOU )
 
-         TDLIM=sqrt(max(TDLIM,0.0))
+         TDLIM=max(TDLIM,0.0)**(1.0/POWER)
 
       ENDIF Conditional_FIRORD
 
@@ -3268,8 +3283,8 @@
       REAL :: UC, UF, COURAT
       ! Local variables
       REAL, PARAMETER :: XI = 2. ! XI = 1.
-      !    REAL, PARAMETER :: XI = 10. ! XI = 1.
-      !    REAL, PARAMETER :: XI = 5. ! XI = 1.
+      !REAL, PARAMETER :: XI = 10. ! XI = 1.
+      !REAL, PARAMETER :: XI = 5. ! XI = 1.
       REAL :: TILDEUF, MAXUF
 
       ! For the region 0 < UC < 1 on the NVD, define the limiter
@@ -3281,11 +3296,10 @@
             TILDEUF = MIN( 1.0, max( UC / COURAT, XI * UC ))
          ELSE !For the normal limiting
             MAXUF = MAX( 0.0, UF )
-            !          MAXUF = MAX( UC, UF )
+            !MAXUF = MAX( UC, UF )
             TILDEUF = MIN( 1.0, XI * UC, MAXUF )
-            !          TILDEUF = MIN( 1.0, 1.5* UC, MAXUF )
-
-            !          TILDEUF = MIN( 1.0, SQRT(UC), MAXUF )
+            !TILDEUF = MIN( 1.0, 1.5* UC, MAXUF )
+            !TILDEUF = MIN( 1.0, SQRT(UC), MAXUF )
          ENDIF
 
       ELSE ! Outside the region 0<UC<1 on the NVD, use first-order upwinding
@@ -3342,7 +3356,7 @@
       ! 
       REAL :: UC, UF, COURAT
       ! Local variables
-      REAL, PARAMETER :: XI = 2., TOLER=1.0E-10 ! XI = 1.
+      REAL, PARAMETER :: XI = 2., TOLER=1.0E-10
       LOGICAL, PARAMETER :: DOWNWIND_EXTRAP = .TRUE.
       REAL :: TILDEUF, MAXUF
 
@@ -3366,7 +3380,8 @@
                TILDEUF = MIN( 1.0, max( UC / (2.0 * COURAT), XI * UC ))
             ENDIF
          ELSE !For the normal limiting
-            MAXUF = MAX( 0.0, UF )
+            !MAXUF = MAX( 0.0, UF )
+            MAXUF = MAX( UC, UF )
             TILDEUF = MIN( 1.0, XI * UC, MAXUF )
          ENDIF
 
@@ -5386,7 +5401,7 @@
            NDOTQ_INT,NDOTQOLD_INT,FEMTOLDGI2,NDOTQ2,NDOTQOLD2, &
            FEMTOLDGI_IPHA, OVER_RELAX, ABS_CV_NODI_IPHA, ABS_CV_NODJ_IPHA, &
            GRAD_ABS_CV_NODI_IPHA, GRAD_ABS_CV_NODJ_IPHA, V_NODI, G_NODI, V_NODJ, G_NODJ, &
-           GEOMTOLDGI_IPHA, W_UPWIND, INCOME3, INCOME4, INCOMEOLD3, INCOMEOLD4, &
+           GEOMTOLDGI_IPHA, W_UPWIND, W_UPWINDOLD, INCOME3, INCOME4, INCOMEOLD3, INCOMEOLD4, &
            LIMT3, LIMTOLD3, FEMTGI_IPHA, GEOMTGI_IPHA, UPWIND_FRAC
       REAL :: NVEC(3),SUF_SIG_DIAGTEN_BC_GI(3), UGI_TMP(3)
       INTEGER :: U_KLOC,U_NODK,U_NODK2_IPHA,U_NODK_IPHA,U_KLOC2,U_SKLOC, &
@@ -5687,17 +5702,51 @@
                   SAT_BASED=.TRUE.
                END IF
 
-               CALL FIND_OPT_INCOME_INTERP(INCOME, W_UPWIND, NDOTQ, NDOTQ2, IPHASE, &
-                    T(CV_NODI_IPHA),T(CV_NODJ_IPHA), FEMTGI_IPHA, GEOMTGI_IPHA,OVER_RELAX, &
-                    ABS_CV_NODI_IPHA, ABS_CV_NODJ_IPHA, &
-                    GRAD_ABS_CV_NODI_IPHA, GRAD_ABS_CV_NODJ_IPHA,CONSERV,MAX_OPER,SAT_BASED)
 
-               CALL FIND_OPT_INCOME_INTERP(INCOMEOLD, W_UPWIND, NDOTQOLD, NDOTQOLD2, IPHASE, &
-                    TOLD(CV_NODI_IPHA),TOLD(CV_NODJ_IPHA), FEMTOLDGI_IPHA, GEOMTOLDGI_IPHA,OVER_RELAX, &
-                    ABS_CV_NODI_IPHA, ABS_CV_NODJ_IPHA, &
-                    GRAD_ABS_CV_NODI_IPHA, GRAD_ABS_CV_NODJ_IPHA,CONSERV,MAX_OPER,SAT_BASED)
+               if ( .true. ) then
 
-               if (.true.) then ! Chris look at this...
+                  !OVER_RELAX=1.0
+                  !SAT_BASED=.TRUE.
+                  !MAX_OPER=.FALSE.
+
+                  CALL FIND_OPT_INCOME_INTERP(INCOME, W_UPWIND, NDOTQ, NDOTQ2, IPHASE, &
+                       T(CV_NODI_IPHA),T(CV_NODJ_IPHA), FEMTGI_IPHA, GEOMTGI_IPHA,OVER_RELAX, &
+                       ABS_CV_NODI_IPHA, ABS_CV_NODJ_IPHA, &
+                       GRAD_ABS_CV_NODI_IPHA, GRAD_ABS_CV_NODJ_IPHA,CONSERV,MAX_OPER,SAT_BASED)
+
+                  CALL FIND_OPT_INCOME_INTERP(INCOMEOLD, W_UPWIND, NDOTQOLD, NDOTQOLD2, IPHASE, &
+                       TOLD(CV_NODI_IPHA),TOLD(CV_NODJ_IPHA), FEMTOLDGI_IPHA, GEOMTOLDGI_IPHA,OVER_RELAX, &
+                       ABS_CV_NODI_IPHA, ABS_CV_NODJ_IPHA, &
+                       GRAD_ABS_CV_NODI_IPHA, GRAD_ABS_CV_NODJ_IPHA,CONSERV,MAX_OPER,SAT_BASED)
+
+               else
+
+                  !  if ( 0.5 * ( ndotq + ndotq2 ) > 0 ) then ! OUTGOING
+                  !     W_UPWIND = ( LIMT - T(CV_NODI_IPHA) ) / TOLFUN( T(CV_NODJ_IPHA) - T(CV_NODI_IPHA) )
+                  !  else ! INCOMING
+                  !     W_UPWIND = 1. - ( LIMT - T(CV_NODJ_IPHA) ) / TOLFUN( T(CV_NODI_IPHA) - T(CV_NODJ_IPHA) )
+                  !  end if
+                  W_UPWIND = ( LIMT - T(CV_NODI_IPHA) ) / TOLFUN( T(CV_NODJ_IPHA) - T(CV_NODI_IPHA) )
+                  W_UPWIND = MAX( MIN( 1. , W_UPWIND ), 0. )
+
+                  INCOME = ( -NDOTQ + ( W_UPWIND * T(CV_NODJ_IPHA) * NDOTQ2 + (1. - W_UPWIND) * T(CV_NODI_IPHA) * NDOTQ ) / TOLFUN( LIMT ) ) / TOLFUN( NDOTQ2 - NDOTQ  )
+                  INCOME = MAX( MIN( 1. , INCOME ), 0. )
+
+                  W_UPWINDOLD = ( LIMTOLD - TOLD(CV_NODI_IPHA) ) / TOLFUN( TOLD(CV_NODJ_IPHA) - TOLD(CV_NODI_IPHA) )
+                  W_UPWINDOLD = MAX( MIN( 1. , W_UPWINDOLD ), 0. )
+                  
+                  INCOMEOLD = ( -NDOTQOLD + ( W_UPWINDOLD * TOLD(CV_NODJ_IPHA) * NDOTQOLD2 + (1. - W_UPWIND) * TOLD(CV_NODI_IPHA) * NDOTQOLD ) / TOLFUN( LIMTOLD ) ) / TOLFUN( NDOTQOLD2 - NDOTQOLD  )
+                  INCOMEOLD = MAX( MIN( 1. , INCOMEOLD ), 0. )
+
+                  if ( 0.5 * ( ndotq + ndotq2 ) == 0.0 ) INCOME = 0.5
+                  if ( 0.5 * ( ndotqold + ndotqold2 ) == 0.0 ) INCOMEOLD = 0.5
+
+               end if
+
+               !INCOME = 0.5
+               !INCOMEOLD = 0.5
+
+               if ( .true. ) then ! Chris look at this... false for lvi test case is better
 
                   IF(0.5*(NDOTQ+NDOTQ2) < 0.0) THEN
                      INCOME3=1.0
@@ -5709,6 +5758,9 @@
                   ELSE
                      INCOMEOLD3=0.0
                   END IF
+
+                  !INCOME3=0.5
+                  !INCOMEOLD3=0.5
 
                   IF(LIM_VOL_ADJUST) THEN
                      RESET_STORE=.FALSE. 
@@ -6583,17 +6635,17 @@
       ! a volume frac of 0.5 and gradually apply limiting near 0 and 1. 
       LOGICAL, PARAMETER :: UPWIND = .TRUE., HI_ORDER_HALF = .FALSE., LIM_VOL_ADJUST2 = .TRUE.
       LOGICAL, PARAMETER :: DOWNWIND_EXTRAP = .TRUE. ! Extrapolate a downwind value for interface tracking.
-      
+
       ! Scaling to reduce the downwind bias(=1downwind, =0central)
       LOGICAL, PARAMETER :: SCALE_DOWN_WIND = .true.
-! Non-linear Petrov-Galerkin option for interface tracking...
-! =4 is anisotropic downwind diffusion based on a projected 1D system (1st recommend)
-! =0 is anisotropic downwind diffusion based on a velocity projection like SUPG 
-! (2nd recommend, most compressive)
-! =2 is isotropic downwind diffusion  (3rd recommend,least compressive)
-! =5 is isotropic downwind diffusion with magnitude of =0 option. 
-! In tests they all produce similar results.
-!      INTEGER, PARAMETER :: NON_LIN_PETROV_INTERFACE = 5
+      ! Non-linear Petrov-Galerkin option for interface tracking...
+      ! =4 is anisotropic downwind diffusion based on a projected 1D system (1st recommend)
+      ! =0 is anisotropic downwind diffusion based on a velocity projection like SUPG 
+      ! (2nd recommend, most compressive)
+      ! =2 is isotropic downwind diffusion  (3rd recommend,least compressive)
+      ! =5 is isotropic downwind diffusion with magnitude of =0 option. 
+      ! In tests they all produce similar results.
+      !      INTEGER, PARAMETER :: NON_LIN_PETROV_INTERFACE = 5
       INTEGER, PARAMETER :: NON_LIN_PETROV_INTERFACE = 3
 
       LOGICAL :: FIRSTORD, NOLIMI, RESET_STORE, LIM_VOL_ADJUST
@@ -6621,8 +6673,8 @@
       FVT2OLD = 1.0
 
       if ( cv_disopt>=8 ) then
-         courant_or_minus_one_new = abs ( dt * ndotq / hdc )
-         courant_or_minus_one_old = abs ( dt * ndotqold / hdc )
+         courant_or_minus_one_new = -1. !abs ( dt * ndotq / hdc )
+         courant_or_minus_one_old = -1. !abs ( dt * ndotqold / hdc )
       else
          courant_or_minus_one_new = -1.0
          courant_or_minus_one_old = -1.0
@@ -6668,8 +6720,8 @@
 
             FVT    = INCOME * SUF_T_BC(CV_SNODK_IPHA) + ( 1. - INCOME ) * T( CV_NODI_IPHA )
             FVTOLD = INCOMEOLD * SUF_T_BC(CV_SNODK_IPHA) + ( 1. - INCOMEOLD ) * TOLD( CV_NODI_IPHA ) 
-!            FVT    = SUF_T_BC(CV_SNODK_IPHA) 
-!            FVTOLD = SUF_T_BC(CV_SNODK_IPHA) 
+            !            FVT    = SUF_T_BC(CV_SNODK_IPHA) 
+            !            FVTOLD = SUF_T_BC(CV_SNODK_IPHA) 
 
             FVD    = INCOME * SUF_D_BC(CV_SNODK_IPHA) + ( 1. - INCOME ) * DEN( CV_NODI_IPHA )
             FVDOLD = INCOMEOLD * SUF_D_BC(CV_SNODK_IPHA) +  (1. - INCOMEOLD ) * DENOLD( CV_NODI_IPHA )
@@ -6688,8 +6740,8 @@
 
       ! By default do not use first-order upwinding
       FIRSTORD = .FALSE.
-!         print *,'CV_DISOPT / 2:',CV_DISOPT / 2
-!       stop 27
+      !         print *,'CV_DISOPT / 2:',CV_DISOPT / 2
+      !       stop 27
 
       ! No limiting if CV_DISOPT is 6 or 7  (why not just define limt=femt and skip to assembly?)
       NOLIMI = ( INT( CV_DISOPT / 2 ) == 3 ) 
@@ -6756,7 +6808,7 @@
                   CV_SNODK_IPHA = CV_SNODK + ( IPHASE - 1 ) * STOTEL*CV_SNLOC
                   FEMTGI = FEMTGI +  SCVFEN( CV_KLOC, GI ) * ( SUF_T_BC( CV_SNODK_IPHA ) & 
                        * INCOME + FEMT( CV_NODK_IPHA ) * ( 1. -INCOME ))
-!                  FEMTGI = FEMTGI +  SCVFEN( CV_KLOC, GI ) *  SUF_T_BC( CV_SNODK_IPHA ) 
+                  !                  FEMTGI = FEMTGI +  SCVFEN( CV_KLOC, GI ) *  SUF_T_BC( CV_SNODK_IPHA ) 
                   FEMTOLDGI = FEMTOLDGI + SCVFEN( CV_KLOC, GI ) * ( SUF_T_BC( CV_SNODK_IPHA ) &
                        * INCOMEOLD + FEMTOLD( CV_NODK_IPHA ) * ( 1. - INCOMEOLD ))
                   IF(IGOT_T2==1) THEN
@@ -6796,164 +6848,164 @@
             RSCALE=1.0 ! Scaling to reduce the downwind bias(=1downwind, =0central)
             IF(SCALE_DOWN_WIND) THEN
                IF(DOWNWIND_EXTRAP.AND.(courant_or_minus_one_new.GE.0.0)) THEN
-!                  print *,'NON_LIN_PETROV_INTERFACE:',NON_LIN_PETROV_INTERFACE
-!                  stop 3832
-                IF(NON_LIN_PETROV_INTERFACE==0) THEN ! NOT non-linear Petrov-Galerkin Interface
-                  TXGI=0.0
-                  TYGI=0.0
-                  TZGI=0.0
-                  DO CV_KLOC = 1, CV_NLOC
-                    CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
-                    CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
-                    TXGI=TXGI+SCVFENX( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
-      IF(NDIM.GE.2) TYGI=TYGI+SCVFENY( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
-      IF(NDIM.GE.3) TZGI=TZGI+SCVFENZ( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
-                  END DO
+                  !                  print *,'NON_LIN_PETROV_INTERFACE:',NON_LIN_PETROV_INTERFACE
+                  !                  stop 3832
+                  IF(NON_LIN_PETROV_INTERFACE==0) THEN ! NOT non-linear Petrov-Galerkin Interface
+                     TXGI=0.0
+                     TYGI=0.0
+                     TZGI=0.0
+                     DO CV_KLOC = 1, CV_NLOC
+                        CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
+                        CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
+                        TXGI=TXGI+SCVFENX( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
+                        IF(NDIM.GE.2) TYGI=TYGI+SCVFENY( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
+                        IF(NDIM.GE.3) TZGI=TZGI+SCVFENZ( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
+                     END DO
 
-                  UDGI=0.0
-                  VDGI=0.0
-                  WDGI=0.0
-                  DO U_KLOC = 1, U_NLOC
-                      U_NODK = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC )
-                      U_NODK_IPHA = U_NODK + ( IPHASE - 1 ) * U_NONODS
-                      UDGI=UDGI+SUFEN( U_KLOC, GI )*U(U_NODK_IPHA)
-        IF(NDIM.GE.2) VDGI=VDGI+SUFEN( U_KLOC, GI )*V(U_NODK_IPHA)
-        IF(NDIM.GE.3) WDGI=WDGI+SUFEN( U_KLOC, GI )*W(U_NODK_IPHA)
-                  END DO
- 
-! cosine rule with velocity and normal:
-!                  RSCALE=ABS(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI) &
-!                        /TOLFUN(UDGI**2+VDGI**2+WDGI**2)
-! cosine rule with velocity and concentration gradient:
-!                  RSCALE=ABS(TXGI*UDGI+TYGI*VDGI+TZGI*WDGI) &
-!                        /TOLFUN((UDGI**2+VDGI**2+WDGI**2)*SQRT(TXGI**2+TYGI**2+TZGI**2))
-! no cosine rule:
-                  RSCALE=1.0 &
-                        /TOLFUN(sqrt(UDGI**2+VDGI**2+WDGI**2))
+                     UDGI=0.0
+                     VDGI=0.0
+                     WDGI=0.0
+                     DO U_KLOC = 1, U_NLOC
+                        U_NODK = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC )
+                        U_NODK_IPHA = U_NODK + ( IPHASE - 1 ) * U_NONODS
+                        UDGI=UDGI+SUFEN( U_KLOC, GI )*U(U_NODK_IPHA)
+                        IF(NDIM.GE.2) VDGI=VDGI+SUFEN( U_KLOC, GI )*V(U_NODK_IPHA)
+                        IF(NDIM.GE.3) WDGI=WDGI+SUFEN( U_KLOC, GI )*W(U_NODK_IPHA)
+                     END DO
 
-                  VEC_VEL(1)=UDGI
-                  VEC_VEL(2)=VDGI
-                  VEC_VEL(3)=WDGI
-                  VEC_VEL2=0.0
-                  DO IDIM=1,NDIM
-                     VEC_VEL2(IDIM)=SUM( INV_JAC(IDIM, 1:NDIM, GI)*VEC_VEL(1:NDIM) )
-                  END DO
-! normalize the velocity in here: 
-!                  VEC_VEL2=VEC_VEL2/TOLFUN(SQRT( UDGI**2+VDGI**2+WDGI**2))
+                     ! cosine rule with velocity and normal:
+                     !                  RSCALE=ABS(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI) &
+                     !                        /TOLFUN(UDGI**2+VDGI**2+WDGI**2)
+                     ! cosine rule with velocity and concentration gradient:
+                     !                  RSCALE=ABS(TXGI*UDGI+TYGI*VDGI+TZGI*WDGI) &
+                     !                        /TOLFUN((UDGI**2+VDGI**2+WDGI**2)*SQRT(TXGI**2+TYGI**2+TZGI**2))
+                     ! no cosine rule:
+                     RSCALE=1.0 &
+                          /TOLFUN(sqrt(UDGI**2+VDGI**2+WDGI**2))
 
-                  ELE_LENGTH_SCALE=0.5*SQRT( (UDGI**2+VDGI**2+WDGI**2)/TOLFUN( SUM( VEC_VEL2(1:NDIM)**2 ))  )
-!                  ELE_LENGTH_SCALE=1.0/TOLFUN( SQRT(SUM( VEC_VEL2(1:NDIM)**2 )) )  
-!                  ELE_LENGTH_SCALE=0.5*HDC
-! For discontinuous elements half the length scale...
-                  IF(U_NONODS==CV_NONODS) ELE_LENGTH_SCALE=0.5*ELE_LENGTH_SCALE
-! For quadratic elements...
-                  IF( ((NDIM==2).AND.(CV_NLOC==6)).or.((NDIM==3).AND.(CV_NLOC==10)) ) &
-                      ELE_LENGTH_SCALE=0.5*ELE_LENGTH_SCALE
-                ELSE ! Petrov-Galerkin end of IF(NON_LIN_PETROV_INTERFACE==0) THEN 
-               
-                  TXGI=0.0
-                  TYGI=0.0
-                  TZGI=0.0
-                  TGI=0.0
-                  TOLDGI=0.0
-                  DO CV_KLOC = 1, CV_NLOC
-                    CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
-                    CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
-!                   if(cv_nonods==u_nonods) then ! DG
-                   if(.true.) then 
-                    TXGI=TXGI+SCVFENX( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
-      IF(NDIM.GE.2) TYGI=TYGI+SCVFENY( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
-      IF(NDIM.GE.3) TZGI=TZGI+SCVFENZ( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
-                    TGI=TGI+SCVFEN( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
-                    TOLDGI=TOLDGI+SCVFEN( CV_KLOC, GI )*FEMTOLD(CV_NODK_IPHA)
-                   else
+                     VEC_VEL(1)=UDGI
+                     VEC_VEL(2)=VDGI
+                     VEC_VEL(3)=WDGI
+                     VEC_VEL2=0.0
+                     DO IDIM=1,NDIM
+                        VEC_VEL2(IDIM)=SUM( INV_JAC(IDIM, 1:NDIM, GI)*VEC_VEL(1:NDIM) )
+                     END DO
+                     ! normalize the velocity in here: 
+                     !                  VEC_VEL2=VEC_VEL2/TOLFUN(SQRT( UDGI**2+VDGI**2+WDGI**2))
 
-                    TXGI=TXGI+SCVFENX( CV_KLOC, GI )*T(CV_NODK_IPHA)
-      IF(NDIM.GE.2) TYGI=TYGI+SCVFENY( CV_KLOC, GI )*T(CV_NODK_IPHA)
-      IF(NDIM.GE.3) TZGI=TZGI+SCVFENZ( CV_KLOC, GI )*T(CV_NODK_IPHA)
-                    TGI=TGI+SCVFEN( CV_KLOC, GI )*T(CV_NODK_IPHA)
-                    TOLDGI=TOLDGI+SCVFEN( CV_KLOC, GI )*TOLD(CV_NODK_IPHA)
-                   endif
-                  END DO
+                     ELE_LENGTH_SCALE=0.5*SQRT( (UDGI**2+VDGI**2+WDGI**2)/TOLFUN( SUM( VEC_VEL2(1:NDIM)**2 ))  )
+                     !                  ELE_LENGTH_SCALE=1.0/TOLFUN( SQRT(SUM( VEC_VEL2(1:NDIM)**2 )) )  
+                     !                  ELE_LENGTH_SCALE=0.5*HDC
+                     ! For discontinuous elements half the length scale...
+                     IF(U_NONODS==CV_NONODS) ELE_LENGTH_SCALE=0.5*ELE_LENGTH_SCALE
+                     ! For quadratic elements...
+                     IF( ((NDIM==2).AND.(CV_NLOC==6)).or.((NDIM==3).AND.(CV_NLOC==10)) ) &
+                          ELE_LENGTH_SCALE=0.5*ELE_LENGTH_SCALE
+                  ELSE ! Petrov-Galerkin end of IF(NON_LIN_PETROV_INTERFACE==0) THEN 
 
-                  TDTGI=(TGI-TOLDGI)/DT
-                  TDTGI=0.0
+                     TXGI=0.0
+                     TYGI=0.0
+                     TZGI=0.0
+                     TGI=0.0
+                     TOLDGI=0.0
+                     DO CV_KLOC = 1, CV_NLOC
+                        CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
+                        CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
+                        !                   if(cv_nonods==u_nonods) then ! DG
+                        if(.true.) then 
+                           TXGI=TXGI+SCVFENX( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
+                           IF(NDIM.GE.2) TYGI=TYGI+SCVFENY( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
+                           IF(NDIM.GE.3) TZGI=TZGI+SCVFENZ( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
+                           TGI=TGI+SCVFEN( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
+                           TOLDGI=TOLDGI+SCVFEN( CV_KLOC, GI )*FEMTOLD(CV_NODK_IPHA)
+                        else
 
-                  UDGI=0.0
-                  VDGI=0.0
-                  WDGI=0.0
-                  DO U_KLOC = 1, U_NLOC
-                      U_NODK = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC )
-                      U_NODK_IPHA = U_NODK + ( IPHASE - 1 ) * U_NONODS
-                      UDGI=UDGI+SUFEN( U_KLOC, GI )*U(U_NODK_IPHA)
-        IF(NDIM.GE.2) VDGI=VDGI+SUFEN( U_KLOC, GI )*V(U_NODK_IPHA)
-        IF(NDIM.GE.3) WDGI=WDGI+SUFEN( U_KLOC, GI )*W(U_NODK_IPHA)
-                  END DO
+                           TXGI=TXGI+SCVFENX( CV_KLOC, GI )*T(CV_NODK_IPHA)
+                           IF(NDIM.GE.2) TYGI=TYGI+SCVFENY( CV_KLOC, GI )*T(CV_NODK_IPHA)
+                           IF(NDIM.GE.3) TZGI=TZGI+SCVFENZ( CV_KLOC, GI )*T(CV_NODK_IPHA)
+                           TGI=TGI+SCVFEN( CV_KLOC, GI )*T(CV_NODK_IPHA)
+                           TOLDGI=TOLDGI+SCVFEN( CV_KLOC, GI )*TOLD(CV_NODK_IPHA)
+                        endif
+                     END DO
 
-                  U_DOT_GRADT_GI=TDTGI + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
+                     TDTGI=(TGI-TOLDGI)/DT
+                     TDTGI=0.0
 
-!                  COEF=U_DOT_GRADT_GI/TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 )
-                  IF(NON_LIN_PETROV_INTERFACE==5) THEN 
-                     COEF=1.0 / TOLFUN( SQRT( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 ) )
-                  ELSE
-                     COEF=U_DOT_GRADT_GI / TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 )
-                  ENDIF 
-                  A_STAR_T=COEF*TDTGI
-                  A_STAR_X=COEF*TXGI
-                  A_STAR_Y=COEF*TYGI
-                  A_STAR_Z=COEF*TZGI
-! residual based does not work so well...
-!                  RESIDGI=(TGI-TOLDGI)/DT + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
-!                  RESIDGI=TDTGI + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
-! these are the residuals we are aiming for...
-!                  RESIDGI=0.5/DT
-!                  RESIDGI=0.5*courant_or_minus_one_new/DT
-!                  RESIDGI=2.0*courant_or_minus_one_new/DT
-!                  RESIDGI=max( abs(TGI-TOLDGI)/DT,2.*courant_or_minus_one_new/DT)
-!                  RESIDGI=max( abs(TGI-TOLDGI)/DT,1.*sqrt(udgi**2+vdgi**2+wdgi**2)/hdc)
-                  RESIDGI=sqrt(udgi**2+vdgi**2+wdgi**2)/hdc
-! Zh*******
-!  Spread over 4 elements:
-!                  RESIDGI=  max(0., min(1. , -1. + 0.5/tolfun(abs(T(CV_NODI_IPHA) - T(CV_NODj_IPHA)))   )) &
-!                        * sqrt(udgi**2+vdgi**2+wdgi**2)/hdc
-!  Spread over 20 elements:
-!                  RESIDGI=  max(0., min(1. , -1. + 0.1/tolfun(abs(T(CV_NODI_IPHA) - T(CV_NODj_IPHA)))   )) &
-!                        * sqrt(udgi**2+vdgi**2+wdgi**2)/hdc
-!
-!                  RESIDGI=sqrt(A_STAR_X**2+A_STAR_Y**2+A_STAR_Z**2)/hdc
-!                  stop 272
- 
-                  VEC_VEL(1)=A_STAR_X
-                  VEC_VEL(2)=A_STAR_Y
-                  VEC_VEL(3)=A_STAR_Z
-                  VEC_VEL2=0.0
-                  DO IDIM=1,NDIM
-                     VEC_VEL2(IDIM)=SUM( INV_JAC(IDIM, 1:NDIM, GI)*VEC_VEL(1:NDIM) )
-                  END DO
-! a simple expression...
-                  P_STAR=0.5*hdc/TOLFUN( SQRT(A_STAR_X**2 + A_STAR_Y**2 + A_STAR_Z**2) )
-!                  P_STAR=0.5/TOLFUN( SQRT(SUM( VEC_VEL2(1:NDIM)**2 )) )
-! For discontinuous elements half the length scale...
-!                  IF(U_NONODS==CV_NONODS) P_STAR=0.5*P_STAR 
-! For quadratic elements...
-!                  IF( ((NDIM==2).AND.(CV_NLOC==6)).or.((NDIM==3).AND.(CV_NLOC==10)) ) &
-!                      P_STAR=0.5*P_STAR
+                     UDGI=0.0
+                     VDGI=0.0
+                     WDGI=0.0
+                     DO U_KLOC = 1, U_NLOC
+                        U_NODK = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC )
+                        U_NODK_IPHA = U_NODK + ( IPHASE - 1 ) * U_NONODS
+                        UDGI=UDGI+SUFEN( U_KLOC, GI )*U(U_NODK_IPHA)
+                        IF(NDIM.GE.2) VDGI=VDGI+SUFEN( U_KLOC, GI )*V(U_NODK_IPHA)
+                        IF(NDIM.GE.3) WDGI=WDGI+SUFEN( U_KLOC, GI )*W(U_NODK_IPHA)
+                     END DO
 
-                  IF(NON_LIN_PETROV_INTERFACE==1) THEN
-                     DIFF_COEF=COEF*P_STAR*RESIDGI  ! standard approach
-                  ELSE IF(NON_LIN_PETROV_INTERFACE==2) THEN
-                     DIFF_COEF=MAX(0.0, COEF*P_STAR*RESIDGI) ! standard approach making it +ve
-                  ELSE IF(NON_LIN_PETROV_INTERFACE==3) THEN ! residual squared approach
-                     DIFF_COEF=P_STAR*RESIDGI**2/TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 ) 
-                  ELSE IF(NON_LIN_PETROV_INTERFACE==4) THEN! anisotropic diffusion in the A* direction.
-                     COEF2= CVNORMX(GI)*A_STAR_X+CVNORMY(GI)*A_STAR_Y+CVNORMZ(GI)*A_STAR_Z
-                  ELSE ! isotropic diffusion WITH u magnitide
-                     DIFF_COEF=SQRT(UDGI**2 + VDGI**2 + WDGI**2)*P_STAR
-                  ENDIF
-! Make the diffusion coefficient negative (compressive)
-                  DIFF_COEF=-DIFF_COEF
-                  RSCALE=1./TOLFUN(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI) 
-                ENDIF ! Petrov-Galerkin end of IF(NON_LIN_PETROV_INTERFACE==0) THEN 
+                     U_DOT_GRADT_GI=TDTGI + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
+
+                     !                  COEF=U_DOT_GRADT_GI/TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 )
+                     IF(NON_LIN_PETROV_INTERFACE==5) THEN 
+                        COEF=1.0 / TOLFUN( SQRT( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 ) )
+                     ELSE
+                        COEF=U_DOT_GRADT_GI / TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 )
+                     ENDIF
+                     A_STAR_T=COEF*TDTGI
+                     A_STAR_X=COEF*TXGI
+                     A_STAR_Y=COEF*TYGI
+                     A_STAR_Z=COEF*TZGI
+                     ! residual based does not work so well...
+                     !                  RESIDGI=(TGI-TOLDGI)/DT + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
+                     !                  RESIDGI=TDTGI + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
+                     ! these are the residuals we are aiming for...
+                     !                  RESIDGI=0.5/DT
+                     !                  RESIDGI=0.5*courant_or_minus_one_new/DT
+                     !                  RESIDGI=2.0*courant_or_minus_one_new/DT
+                     !                  RESIDGI=max( abs(TGI-TOLDGI)/DT,2.*courant_or_minus_one_new/DT)
+                     !                  RESIDGI=max( abs(TGI-TOLDGI)/DT,1.*sqrt(udgi**2+vdgi**2+wdgi**2)/hdc)
+                     RESIDGI=sqrt(udgi**2+vdgi**2+wdgi**2)/hdc
+                     ! Zh*******
+                     !  Spread over 4 elements:
+                     !                  RESIDGI=  max(0., min(1. , -1. + 0.5/tolfun(abs(T(CV_NODI_IPHA) - T(CV_NODj_IPHA)))   )) &
+                     !                        * sqrt(udgi**2+vdgi**2+wdgi**2)/hdc
+                     !  Spread over 20 elements:
+                     !                  RESIDGI=  max(0., min(1. , -1. + 0.1/tolfun(abs(T(CV_NODI_IPHA) - T(CV_NODj_IPHA)))   )) &
+                     !                        * sqrt(udgi**2+vdgi**2+wdgi**2)/hdc
+                     !
+                     !                  RESIDGI=sqrt(A_STAR_X**2+A_STAR_Y**2+A_STAR_Z**2)/hdc
+                     !                  stop 272
+
+                     VEC_VEL(1)=A_STAR_X
+                     VEC_VEL(2)=A_STAR_Y
+                     VEC_VEL(3)=A_STAR_Z
+                     VEC_VEL2=0.0
+                     DO IDIM=1,NDIM
+                        VEC_VEL2(IDIM)=SUM( INV_JAC(IDIM, 1:NDIM, GI)*VEC_VEL(1:NDIM) )
+                     END DO
+                     ! a simple expression...
+                     P_STAR=0.5*hdc/TOLFUN( SQRT(A_STAR_X**2 + A_STAR_Y**2 + A_STAR_Z**2) )
+                     !                  P_STAR=0.5/TOLFUN( SQRT(SUM( VEC_VEL2(1:NDIM)**2 )) )
+                     ! For discontinuous elements half the length scale...
+                     !                  IF(U_NONODS==CV_NONODS) P_STAR=0.5*P_STAR 
+                     ! For quadratic elements...
+                     !                  IF( ((NDIM==2).AND.(CV_NLOC==6)).or.((NDIM==3).AND.(CV_NLOC==10)) ) &
+                     !                      P_STAR=0.5*P_STAR
+
+                     IF(NON_LIN_PETROV_INTERFACE==1) THEN
+                        DIFF_COEF=COEF*P_STAR*RESIDGI  ! standard approach
+                     ELSE IF(NON_LIN_PETROV_INTERFACE==2) THEN
+                        DIFF_COEF=MAX(0.0, COEF*P_STAR*RESIDGI) ! standard approach making it +ve
+                     ELSE IF(NON_LIN_PETROV_INTERFACE==3) THEN ! residual squared approach
+                        DIFF_COEF=P_STAR*RESIDGI**2/TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 ) 
+                     ELSE IF(NON_LIN_PETROV_INTERFACE==4) THEN! anisotropic diffusion in the A* direction.
+                        COEF2= CVNORMX(GI)*A_STAR_X+CVNORMY(GI)*A_STAR_Y+CVNORMZ(GI)*A_STAR_Z
+                     ELSE ! isotropic diffusion WITH u magnitide
+                        DIFF_COEF=SQRT(UDGI**2 + VDGI**2 + WDGI**2)*P_STAR
+                     ENDIF
+                     ! Make the diffusion coefficient negative (compressive)
+                     DIFF_COEF=-DIFF_COEF
+                     RSCALE=1./TOLFUN(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI) 
+                  ENDIF ! Petrov-Galerkin end of IF(NON_LIN_PETROV_INTERFACE==0) THEN 
                ENDIF
             ENDIF
             DO CV_KLOC = 1, CV_NLOC
@@ -6961,30 +7013,30 @@
                CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
                IF(DOWNWIND_EXTRAP.AND.(courant_or_minus_one_new.GE.0.0)) THEN ! Extrapolate to the downwind value...
                   IF(NON_LIN_PETROV_INTERFACE.NE.0) THEN 
-                 if(.false.) then
-!                        RGRAY=2.0*(udgi**2+vdgi**2+wdgi**2)* &
-! ( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) + CVNORMY(GI)*SCVFENY( CV_KLOC, GI )+CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) ) &
-!          /tolfun( hdc*sqrt(A_STAR_X**2+A_STAR_Y**2+A_STAR_Z**2)*(TXGI**2 + TYGI**2 + TZGI**2 )   &
-!                       *(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI)  )
-!                        RGRAY=8.0*(udgi**2+vdgi**2+wdgi**2)* &
-!                        RGRAY=32.0*(udgi**2+vdgi**2+wdgi**2)* &
-!                        RGRAY=2.0*(udgi**2+vdgi**2+wdgi**2)* &
+                     if(.false.) then
+                        !                        RGRAY=2.0*(udgi**2+vdgi**2+wdgi**2)* &
+                        ! ( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) + CVNORMY(GI)*SCVFENY( CV_KLOC, GI )+CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) ) &
+                        !          /tolfun( hdc*sqrt(A_STAR_X**2+A_STAR_Y**2+A_STAR_Z**2)*(TXGI**2 + TYGI**2 + TZGI**2 )   &
+                        !                       *(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI)  )
+                        !                        RGRAY=8.0*(udgi**2+vdgi**2+wdgi**2)* &
+                        !                        RGRAY=32.0*(udgi**2+vdgi**2+wdgi**2)* &
+                        !                        RGRAY=2.0*(udgi**2+vdgi**2+wdgi**2)* &
                         RGRAY=0.5*(udgi**2+vdgi**2+wdgi**2)* &
- ( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) + CVNORMY(GI)*SCVFENY( CV_KLOC, GI )+CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) ) &
-          /tolfun( hdc*abs(u_dot_gradt_gi)*sqrt(TXGI**2 + TYGI**2 + TZGI**2 )   &
-                       *(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI)  )
-                 else
-                     IF(NON_LIN_PETROV_INTERFACE==4) THEN ! anisotropic diffusion...
-                        RGRAY=RSCALE*COEF2*P_STAR*( UDGI*SCVFENX( CV_KLOC, GI ) &
-                             + VDGI*SCVFENY( CV_KLOC, GI )+WDGI*SCVFENZ( CV_KLOC, GI ) )
-                     ELSE
-                        RGRAY=-1.*DIFF_COEF*RSCALE*( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) &
-                       + CVNORMY(GI)*SCVFENY( CV_KLOC, GI )+CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) )
-                     ENDIF
-                endif
+                             ( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) + CVNORMY(GI)*SCVFENY( CV_KLOC, GI )+CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) ) &
+                             /tolfun( hdc*abs(u_dot_gradt_gi)*sqrt(TXGI**2 + TYGI**2 + TZGI**2 )   &
+                             *(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI)  )
+                     else
+                        IF(NON_LIN_PETROV_INTERFACE==4) THEN ! anisotropic diffusion...
+                           RGRAY=RSCALE*COEF2*P_STAR*( UDGI*SCVFENX( CV_KLOC, GI ) &
+                                + VDGI*SCVFENY( CV_KLOC, GI )+WDGI*SCVFENZ( CV_KLOC, GI ) )
+                        ELSE
+                           RGRAY=-1.*DIFF_COEF*RSCALE*( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) &
+                                + CVNORMY(GI)*SCVFENY( CV_KLOC, GI )+CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) )
+                        ENDIF
+                     endif
                   ELSE
                      RGRAY=RSCALE*ELE_LENGTH_SCALE*( UDGI*SCVFENX( CV_KLOC, GI ) &
-                       + VDGI*SCVFENY( CV_KLOC, GI )+WDGI*SCVFENZ( CV_KLOC, GI ) )
+                          + VDGI*SCVFENY( CV_KLOC, GI )+WDGI*SCVFENZ( CV_KLOC, GI ) )
                   ENDIF
                   RSHAPE    =SCVFEN( CV_KLOC, GI ) + RGRAY
                   RSHAPE_OLD=SCVFEN( CV_KLOC, GI ) + RGRAY
@@ -7010,291 +7062,291 @@
             IF(UPWIND) THEN
 
 
-! Interface tracking...
-            RSCALE=1.0 ! Scaling to reduce the downwind bias(=1downwind, =0central)
+               ! Interface tracking...
+               RSCALE=1.0 ! Scaling to reduce the downwind bias(=1downwind, =0central)
                IF(DOWNWIND_EXTRAP.AND.(courant_or_minus_one_new.GE.0.0)) THEN
 
-                ELE_DOWN=ELE
-                IF(INCOME.LT.0.5) ELE_DOWN=ELE2
+                  ELE_DOWN=ELE
+                  IF(INCOME.LT.0.5) ELE_DOWN=ELE2
 
-                IF(NON_LIN_PETROV_INTERFACE==0) THEN ! NOT non-linear Petrov-Galerkin Interface
-                  TXGI=0.0
-                  TYGI=0.0
-                  TZGI=0.0
-                  DO CV_KLOC = 1, CV_NLOC
-                    CV_NODK = CV_NDGLN(( ELE_DOWN - 1 ) * CV_NLOC + CV_KLOC )
-                    CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
-                    TXGI=TXGI+SCVFENX( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
-      IF(NDIM.GE.2) TYGI=TYGI+SCVFENY( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
-      IF(NDIM.GE.3) TZGI=TZGI+SCVFENZ( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
-                  END DO
+                  IF(NON_LIN_PETROV_INTERFACE==0) THEN ! NOT non-linear Petrov-Galerkin Interface
+                     TXGI=0.0
+                     TYGI=0.0
+                     TZGI=0.0
+                     DO CV_KLOC = 1, CV_NLOC
+                        CV_NODK = CV_NDGLN(( ELE_DOWN - 1 ) * CV_NLOC + CV_KLOC )
+                        CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
+                        TXGI=TXGI+SCVFENX( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
+                        IF(NDIM.GE.2) TYGI=TYGI+SCVFENY( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
+                        IF(NDIM.GE.3) TZGI=TZGI+SCVFENZ( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
+                     END DO
 
-                  UDGI=0.0
-                  VDGI=0.0
-                  WDGI=0.0
-                  DO U_KLOC = 1, U_NLOC
-                      U_NODK = U_NDGLN(( ELE_DOWN - 1 ) * U_NLOC + U_KLOC )
-                      U_NODK_IPHA = U_NODK + ( IPHASE - 1 ) * U_NONODS
-                      UDGI=UDGI+SUFEN( U_KLOC, GI )*U(U_NODK_IPHA)
-        IF(NDIM.GE.2) VDGI=VDGI+SUFEN( U_KLOC, GI )*V(U_NODK_IPHA)
-        IF(NDIM.GE.3) WDGI=WDGI+SUFEN( U_KLOC, GI )*W(U_NODK_IPHA)
-                  END DO
- 
-! cosine rule with velocity and normal:
-!                  RSCALE=ABS(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI) &
-!                        /TOLFUN(UDGI**2+VDGI**2+WDGI**2)
-! cosine rule with velocity and concentration gradient:
-!                  RSCALE=ABS(TXGI*UDGI+TYGI*VDGI+TZGI*WDGI) &
-!                        /TOLFUN((UDGI**2+VDGI**2+WDGI**2)*SQRT(TXGI**2+TYGI**2+TZGI**2))
-! no cosine rule:
-                  RSCALE=1.0 &
-                        /TOLFUN(sqrt(UDGI**2+VDGI**2+WDGI**2))
+                     UDGI=0.0
+                     VDGI=0.0
+                     WDGI=0.0
+                     DO U_KLOC = 1, U_NLOC
+                        U_NODK = U_NDGLN(( ELE_DOWN - 1 ) * U_NLOC + U_KLOC )
+                        U_NODK_IPHA = U_NODK + ( IPHASE - 1 ) * U_NONODS
+                        UDGI=UDGI+SUFEN( U_KLOC, GI )*U(U_NODK_IPHA)
+                        IF(NDIM.GE.2) VDGI=VDGI+SUFEN( U_KLOC, GI )*V(U_NODK_IPHA)
+                        IF(NDIM.GE.3) WDGI=WDGI+SUFEN( U_KLOC, GI )*W(U_NODK_IPHA)
+                     END DO
 
-                  VEC_VEL(1)=UDGI
-                  VEC_VEL(2)=VDGI
-                  VEC_VEL(3)=WDGI
-                  VEC_VEL2=0.0
-                  DO IDIM=1,NDIM
-                     VEC_VEL2(IDIM)=SUM( INV_JAC(IDIM, 1:NDIM, GI)*VEC_VEL(1:NDIM) )
-                  END DO
-! normalize the velocity in here: 
-!                  VEC_VEL2=VEC_VEL2/TOLFUN(SQRT( UDGI**2+VDGI**2+WDGI**2))
+                     ! cosine rule with velocity and normal:
+                     !                  RSCALE=ABS(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI) &
+                     !                        /TOLFUN(UDGI**2+VDGI**2+WDGI**2)
+                     ! cosine rule with velocity and concentration gradient:
+                     !                  RSCALE=ABS(TXGI*UDGI+TYGI*VDGI+TZGI*WDGI) &
+                     !                        /TOLFUN((UDGI**2+VDGI**2+WDGI**2)*SQRT(TXGI**2+TYGI**2+TZGI**2))
+                     ! no cosine rule:
+                     RSCALE=1.0 &
+                          /TOLFUN(sqrt(UDGI**2+VDGI**2+WDGI**2))
 
-                  ELE_LENGTH_SCALE=0.5*SQRT( (UDGI**2+VDGI**2+WDGI**2)/TOLFUN( SUM( VEC_VEL2(1:NDIM)**2 ))  )
-!                  ELE_LENGTH_SCALE=1.0/TOLFUN( SQRT(SUM( VEC_VEL2(1:NDIM)**2 )) )  
-!                  ELE_LENGTH_SCALE=0.5*HDC
-! For discontinuous elements half the length scale...
-                  IF(U_NONODS==CV_NONODS) ELE_LENGTH_SCALE=0.5*ELE_LENGTH_SCALE
-! For quadratic elements...
-                  IF( ((NDIM==2).AND.(CV_NLOC==6)).or.((NDIM==3).AND.(CV_NLOC==10)) ) &
-                      ELE_LENGTH_SCALE=0.5*ELE_LENGTH_SCALE
-                ELSE ! Petrov-Galerkin end of IF(NON_LIN_PETROV_INTERFACE==0) THEN 
-               
-                  TXGI=0.0
-                  TYGI=0.0
-                  TZGI=0.0
-                  TGI=0.0
-                  TOLDGI=0.0
-                  DO CV_KLOC = 1, CV_NLOC
-                    CV_NODK = CV_NDGLN(( ELE_DOWN - 1 ) * CV_NLOC + CV_KLOC )
-                    CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
-                    TXGI=TXGI+SCVFENX( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
-      IF(NDIM.GE.2) TYGI=TYGI+SCVFENY( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
-      IF(NDIM.GE.3) TZGI=TZGI+SCVFENZ( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
-                    TGI=TGI+SCVFEN( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
-                    TOLDGI=TOLDGI+SCVFEN( CV_KLOC, GI )*FEMTOLD(CV_NODK_IPHA)
-                  END DO
+                     VEC_VEL(1)=UDGI
+                     VEC_VEL(2)=VDGI
+                     VEC_VEL(3)=WDGI
+                     VEC_VEL2=0.0
+                     DO IDIM=1,NDIM
+                        VEC_VEL2(IDIM)=SUM( INV_JAC(IDIM, 1:NDIM, GI)*VEC_VEL(1:NDIM) )
+                     END DO
+                     ! normalize the velocity in here: 
+                     !                  VEC_VEL2=VEC_VEL2/TOLFUN(SQRT( UDGI**2+VDGI**2+WDGI**2))
 
-                  TDTGI=(TGI-TOLDGI)/DT
-                  TDTGI=0.0
+                     ELE_LENGTH_SCALE=0.5*SQRT( (UDGI**2+VDGI**2+WDGI**2)/TOLFUN( SUM( VEC_VEL2(1:NDIM)**2 ))  )
+                     !                  ELE_LENGTH_SCALE=1.0/TOLFUN( SQRT(SUM( VEC_VEL2(1:NDIM)**2 )) )  
+                     !                  ELE_LENGTH_SCALE=0.5*HDC
+                     ! For discontinuous elements half the length scale...
+                     IF(U_NONODS==CV_NONODS) ELE_LENGTH_SCALE=0.5*ELE_LENGTH_SCALE
+                     ! For quadratic elements...
+                     IF( ((NDIM==2).AND.(CV_NLOC==6)).or.((NDIM==3).AND.(CV_NLOC==10)) ) &
+                          ELE_LENGTH_SCALE=0.5*ELE_LENGTH_SCALE
+                  ELSE ! Petrov-Galerkin end of IF(NON_LIN_PETROV_INTERFACE==0) THEN 
 
-                  UDGI=0.0
-                  VDGI=0.0
-                  WDGI=0.0
-                  DO U_KLOC = 1, U_NLOC
-                      U_NODK = U_NDGLN(( ELE_DOWN - 1 ) * U_NLOC + U_KLOC )
-                      U_NODK_IPHA = U_NODK + ( IPHASE - 1 ) * U_NONODS
-                      UDGI=UDGI+SUFEN( U_KLOC, GI )*U(U_NODK_IPHA)
-        IF(NDIM.GE.2) VDGI=VDGI+SUFEN( U_KLOC, GI )*V(U_NODK_IPHA)
-        IF(NDIM.GE.3) WDGI=WDGI+SUFEN( U_KLOC, GI )*W(U_NODK_IPHA)
-                  END DO
+                     TXGI=0.0
+                     TYGI=0.0
+                     TZGI=0.0
+                     TGI=0.0
+                     TOLDGI=0.0
+                     DO CV_KLOC = 1, CV_NLOC
+                        CV_NODK = CV_NDGLN(( ELE_DOWN - 1 ) * CV_NLOC + CV_KLOC )
+                        CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
+                        TXGI=TXGI+SCVFENX( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
+                        IF(NDIM.GE.2) TYGI=TYGI+SCVFENY( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
+                        IF(NDIM.GE.3) TZGI=TZGI+SCVFENZ( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
+                        TGI=TGI+SCVFEN( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
+                        TOLDGI=TOLDGI+SCVFEN( CV_KLOC, GI )*FEMTOLD(CV_NODK_IPHA)
+                     END DO
 
-                  U_DOT_GRADT_GI=TDTGI + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
+                     TDTGI=(TGI-TOLDGI)/DT
+                     TDTGI=0.0
 
-                  COEF=U_DOT_GRADT_GI/TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 )
-                  IF(NON_LIN_PETROV_INTERFACE==5) THEN 
-                     COEF=1.0/TOLFUN(SQRT( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2) )
-                  ELSE
+                     UDGI=0.0
+                     VDGI=0.0
+                     WDGI=0.0
+                     DO U_KLOC = 1, U_NLOC
+                        U_NODK = U_NDGLN(( ELE_DOWN - 1 ) * U_NLOC + U_KLOC )
+                        U_NODK_IPHA = U_NODK + ( IPHASE - 1 ) * U_NONODS
+                        UDGI=UDGI+SUFEN( U_KLOC, GI )*U(U_NODK_IPHA)
+                        IF(NDIM.GE.2) VDGI=VDGI+SUFEN( U_KLOC, GI )*V(U_NODK_IPHA)
+                        IF(NDIM.GE.3) WDGI=WDGI+SUFEN( U_KLOC, GI )*W(U_NODK_IPHA)
+                     END DO
+
+                     U_DOT_GRADT_GI=TDTGI + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
+
                      COEF=U_DOT_GRADT_GI/TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 )
-                  ENDIF 
-                  A_STAR_T=COEF*TDTGI
-                  A_STAR_X=COEF*TXGI
-                  A_STAR_Y=COEF*TYGI
-                  A_STAR_Z=COEF*TZGI
-! residual based does not work so well...
-!                  RESIDGI=(TGI-TOLDGI)/DT + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
-!                  RESIDGI=TDTGI + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
-! these are the residuals we are aiming for...
-!                  RESIDGI=0.5/DT
-!                  RESIDGI=0.5*courant_or_minus_one_new/DT
-!                  RESIDGI=2.0*courant_or_minus_one_new/DT
-!                  RESIDGI=4.0*courant_or_minus_one_new/DT
-!                  RESIDGI=(TGI-TOLDGI)/DT
-!                  RESIDGI=max( abs(TGI-TOLDGI)/DT,2.*courant_or_minus_one_new/DT)
-!                  RESIDGI=max( abs(TGI-TOLDGI)/DT,1.*sqrt(udgi**2+vdgi**2+wdgi**2)/hdc)
-!                  RESIDGI=sqrt(udgi**2+vdgi**2+wdgi**2)/hdc
-                  RESIDGI=sqrt(A_STAR_X**2+A_STAR_Y**2+A_STAR_Z**2)/hdc
-!                  RESIDGI=max( abs(TGI-TOLDGI)/DT,(abs(udgi)+abs(vdgi)+abs(wdgi))/hdc)
- 
-                  VEC_VEL(1)=A_STAR_X
-                  VEC_VEL(2)=A_STAR_Y
-                  VEC_VEL(3)=A_STAR_Z
-                  VEC_VEL2=0.0
-                  DO IDIM=1,NDIM
-                     VEC_VEL2(IDIM)=SUM( INV_JAC(IDIM, 1:NDIM, GI)*VEC_VEL(1:NDIM) )
-                  END DO
-! a simple expression...
-                  P_STAR=0.5*hdc/TOLFUN( SQRT(A_STAR_X**2 + A_STAR_Y**2 + A_STAR_Z**2) )
-!                  P_STAR=0.5/TOLFUN( SQRT(SUM( VEC_VEL2(1:NDIM)**2 )) )
-! For discontinuous elements half the length scale...
-!                  IF(U_NONODS==CV_NONODS) P_STAR=0.5*P_STAR 
-! For quadratic elements...
-!                  IF( ((NDIM==2).AND.(CV_NLOC==6)).or.((NDIM==3).AND.(CV_NLOC==10)) ) &
-!                      P_STAR=0.5*P_STAR
-
-                  IF(NON_LIN_PETROV_INTERFACE==1) THEN
-                     DIFF_COEF=COEF*P_STAR*RESIDGI  ! standard approach
-                  ELSE IF(NON_LIN_PETROV_INTERFACE==2) THEN
-                     DIFF_COEF=MAX(0.0, COEF*P_STAR*RESIDGI) ! standard approach making it +ve
-                  ELSE IF(NON_LIN_PETROV_INTERFACE==3) THEN ! residual squared approach
-                     DIFF_COEF=P_STAR*RESIDGI**2/TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 ) 
-                  ELSE IF(NON_LIN_PETROV_INTERFACE==4) THEN! anisotropic diffusion in the A* direction.
-                     COEF2= CVNORMX(GI)*A_STAR_X+CVNORMY(GI)*A_STAR_Y+CVNORMZ(GI)*A_STAR_Z
-                  ELSE ! isotropic diffusion WITH u magnitide
-                     DIFF_COEF=SQRT(UDGI**2 + VDGI**2 + WDGI**2)*P_STAR
-                  ENDIF
-! Make the diffusion coefficient negative (compressive)
-                  DIFF_COEF=-DIFF_COEF
-                  RSCALE=1./TOLFUN(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI) 
-                ENDIF ! Petrov-Galerkin end of IF(NON_LIN_PETROV_INTERFACE==0) THEN 
-!          print *,'ele_length_scale=',ele_length_scale
-                     FEMTGI = 0.0
-                     FEMTOLDGI = 0.0
-                     FEMDGI = 0.0
-                     FEMDOLDGI = 0.0
-                        FEMT2GI = 0.0
-                        FEMT2OLDGI =0.0
-            DO CV_KLOC = 1, CV_NLOC
-!               CV_KLOC2 = CV_OTHER_LOC( CV_KLOC )
-               CV_NODK = CV_NDGLN(( ELE_DOWN - 1 ) * CV_NLOC + CV_KLOC )
-               CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
-!                     CV_NODK2 = CV_NDGLN(( ELE2 - 1 ) * CV_NLOC + CV_KLOC2 )
-!                     CV_NODK2_IPHA = CV_NODK2 + ( IPHASE - 1 ) * CV_NONODS
-! Extrapolate to the downwind value...
-                  IF(NON_LIN_PETROV_INTERFACE.NE.0) THEN 
-                     IF(NON_LIN_PETROV_INTERFACE==4) THEN ! anisotropic diffusion...
-                        RGRAY=RSCALE*COEF2*P_STAR*( UDGI*SCVFENX( CV_KLOC, GI ) &
-                             + VDGI*SCVFENY( CV_KLOC, GI )+WDGI*SCVFENZ( CV_KLOC, GI ) )
+                     IF(NON_LIN_PETROV_INTERFACE==5) THEN 
+                        COEF=1.0/TOLFUN(SQRT( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2) )
                      ELSE
-                        RGRAY=-DIFF_COEF*RSCALE*( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) &
-                       + CVNORMY(GI)*SCVFENY( CV_KLOC, GI )+CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) )
+                        COEF=U_DOT_GRADT_GI/TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 )
                      ENDIF
-                  ELSE
-                     RGRAY=RSCALE*ELE_LENGTH_SCALE*( UDGI*SCVFENX( CV_KLOC, GI ) &
-                       + VDGI*SCVFENY( CV_KLOC, GI )+WDGI*SCVFENZ( CV_KLOC, GI ) )
-                  ENDIF
-                  RSHAPE    =SCVFEN( CV_KLOC, GI ) + RGRAY
-                  RSHAPE_OLD=SCVFEN( CV_KLOC, GI ) + RGRAY
+                     A_STAR_T=COEF*TDTGI
+                     A_STAR_X=COEF*TXGI
+                     A_STAR_Y=COEF*TYGI
+                     A_STAR_Z=COEF*TZGI
+                     ! residual based does not work so well...
+                     !                  RESIDGI=(TGI-TOLDGI)/DT + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
+                     !                  RESIDGI=TDTGI + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
+                     ! these are the residuals we are aiming for...
+                     !                  RESIDGI=0.5/DT
+                     !                  RESIDGI=0.5*courant_or_minus_one_new/DT
+                     !                  RESIDGI=2.0*courant_or_minus_one_new/DT
+                     !                  RESIDGI=4.0*courant_or_minus_one_new/DT
+                     !                  RESIDGI=(TGI-TOLDGI)/DT
+                     !                  RESIDGI=max( abs(TGI-TOLDGI)/DT,2.*courant_or_minus_one_new/DT)
+                     !                  RESIDGI=max( abs(TGI-TOLDGI)/DT,1.*sqrt(udgi**2+vdgi**2+wdgi**2)/hdc)
+                     !                  RESIDGI=sqrt(udgi**2+vdgi**2+wdgi**2)/hdc
+                     RESIDGI=sqrt(A_STAR_X**2+A_STAR_Y**2+A_STAR_Z**2)/hdc
+                     !                  RESIDGI=max( abs(TGI-TOLDGI)/DT,(abs(udgi)+abs(vdgi)+abs(wdgi))/hdc)
 
-!               IF(NON_LIN_PETROV_INTERFACE.NE.0) THEN 
-!                  FEMTGI    = FEMTGI     +  RSHAPE     * 0.5*(FEMT( CV_NODK_IPHA ) +FEMT( CV_NODK2_IPHA ))
-!                  FEMTOLDGI = FEMTOLDGI  +  RSHAPE_OLD * 0.5*(FEMTOLD( CV_NODK_IPHA )+FEMTOLD( CV_NODK2_IPHA ))
-!               ELSE
-                  FEMTGI    = FEMTGI     +  RSHAPE     * FEMT( CV_NODK_IPHA )
-                  FEMTOLDGI = FEMTOLDGI  +  RSHAPE_OLD * FEMTOLD( CV_NODK_IPHA )
-!               ENDIF
+                     VEC_VEL(1)=A_STAR_X
+                     VEC_VEL(2)=A_STAR_Y
+                     VEC_VEL(3)=A_STAR_Z
+                     VEC_VEL2=0.0
+                     DO IDIM=1,NDIM
+                        VEC_VEL2(IDIM)=SUM( INV_JAC(IDIM, 1:NDIM, GI)*VEC_VEL(1:NDIM) )
+                     END DO
+                     ! a simple expression...
+                     P_STAR=0.5*hdc/TOLFUN( SQRT(A_STAR_X**2 + A_STAR_Y**2 + A_STAR_Z**2) )
+                     !                  P_STAR=0.5/TOLFUN( SQRT(SUM( VEC_VEL2(1:NDIM)**2 )) )
+                     ! For discontinuous elements half the length scale...
+                     !                  IF(U_NONODS==CV_NONODS) P_STAR=0.5*P_STAR 
+                     ! For quadratic elements...
+                     !                  IF( ((NDIM==2).AND.(CV_NLOC==6)).or.((NDIM==3).AND.(CV_NLOC==10)) ) &
+                     !                      P_STAR=0.5*P_STAR
 
-               FEMDGI    = FEMDGI     +  SCVFEN( CV_KLOC, GI ) * FEMDEN( CV_NODK_IPHA )
-               FEMDOLDGI = FEMDOLDGI  +  SCVFEN( CV_KLOC, GI ) * FEMDENOLD( CV_NODK_IPHA )
-               IF(IGOT_T2==1) THEN
-                  FEMT2GI    = FEMT2GI     +  SCVFEN( CV_KLOC, GI ) * FEMT2( CV_NODK_IPHA )
-                  FEMT2OLDGI = FEMT2OLDGI  +  SCVFEN( CV_KLOC, GI ) * FEMT2OLD( CV_NODK_IPHA )
-               ELSE
-                  FEMT2GI    = 1.0
-                  FEMT2OLDGI = 1.0
-               ENDIF
-            END DO
+                     IF(NON_LIN_PETROV_INTERFACE==1) THEN
+                        DIFF_COEF=COEF*P_STAR*RESIDGI  ! standard approach
+                     ELSE IF(NON_LIN_PETROV_INTERFACE==2) THEN
+                        DIFF_COEF=MAX(0.0, COEF*P_STAR*RESIDGI) ! standard approach making it +ve
+                     ELSE IF(NON_LIN_PETROV_INTERFACE==3) THEN ! residual squared approach
+                        DIFF_COEF=P_STAR*RESIDGI**2/TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 ) 
+                     ELSE IF(NON_LIN_PETROV_INTERFACE==4) THEN! anisotropic diffusion in the A* direction.
+                        COEF2= CVNORMX(GI)*A_STAR_X+CVNORMY(GI)*A_STAR_Y+CVNORMZ(GI)*A_STAR_Z
+                     ELSE ! isotropic diffusion WITH u magnitide
+                        DIFF_COEF=SQRT(UDGI**2 + VDGI**2 + WDGI**2)*P_STAR
+                     ENDIF
+                     ! Make the diffusion coefficient negative (compressive)
+                     DIFF_COEF=-DIFF_COEF
+                     RSCALE=1./TOLFUN(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI) 
+                  ENDIF ! Petrov-Galerkin end of IF(NON_LIN_PETROV_INTERFACE==0) THEN 
+                  !          print *,'ele_length_scale=',ele_length_scale
+                  FEMTGI = 0.0
+                  FEMTOLDGI = 0.0
+                  FEMDGI = 0.0
+                  FEMDOLDGI = 0.0
+                  FEMT2GI = 0.0
+                  FEMT2OLDGI =0.0
+                  DO CV_KLOC = 1, CV_NLOC
+                     !               CV_KLOC2 = CV_OTHER_LOC( CV_KLOC )
+                     CV_NODK = CV_NDGLN(( ELE_DOWN - 1 ) * CV_NLOC + CV_KLOC )
+                     CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
+                     !                     CV_NODK2 = CV_NDGLN(( ELE2 - 1 ) * CV_NLOC + CV_KLOC2 )
+                     !                     CV_NODK2_IPHA = CV_NODK2 + ( IPHASE - 1 ) * CV_NONODS
+                     ! Extrapolate to the downwind value...
+                     IF(NON_LIN_PETROV_INTERFACE.NE.0) THEN 
+                        IF(NON_LIN_PETROV_INTERFACE==4) THEN ! anisotropic diffusion...
+                           RGRAY=RSCALE*COEF2*P_STAR*( UDGI*SCVFENX( CV_KLOC, GI ) &
+                                + VDGI*SCVFENY( CV_KLOC, GI )+WDGI*SCVFENZ( CV_KLOC, GI ) )
+                        ELSE
+                           RGRAY=-DIFF_COEF*RSCALE*( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) &
+                                + CVNORMY(GI)*SCVFENY( CV_KLOC, GI )+CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) )
+                        ENDIF
+                     ELSE
+                        RGRAY=RSCALE*ELE_LENGTH_SCALE*( UDGI*SCVFENX( CV_KLOC, GI ) &
+                             + VDGI*SCVFENY( CV_KLOC, GI )+WDGI*SCVFENZ( CV_KLOC, GI ) )
+                     ENDIF
+                     RSHAPE    =SCVFEN( CV_KLOC, GI ) + RGRAY
+                     RSHAPE_OLD=SCVFEN( CV_KLOC, GI ) + RGRAY
 
-             IF(.true.) THEN ! Downwinding for DG...
+                     !               IF(NON_LIN_PETROV_INTERFACE.NE.0) THEN 
+                     !                  FEMTGI    = FEMTGI     +  RSHAPE     * 0.5*(FEMT( CV_NODK_IPHA ) +FEMT( CV_NODK2_IPHA ))
+                     !                  FEMTOLDGI = FEMTOLDGI  +  RSHAPE_OLD * 0.5*(FEMTOLD( CV_NODK_IPHA )+FEMTOLD( CV_NODK2_IPHA ))
+                     !               ELSE
+                     FEMTGI    = FEMTGI     +  RSHAPE     * FEMT( CV_NODK_IPHA )
+                     FEMTOLDGI = FEMTOLDGI  +  RSHAPE_OLD * FEMTOLD( CV_NODK_IPHA )
+                     !               ENDIF
+
+                     FEMDGI    = FEMDGI     +  SCVFEN( CV_KLOC, GI ) * FEMDEN( CV_NODK_IPHA )
+                     FEMDOLDGI = FEMDOLDGI  +  SCVFEN( CV_KLOC, GI ) * FEMDENOLD( CV_NODK_IPHA )
+                     IF(IGOT_T2==1) THEN
+                        FEMT2GI    = FEMT2GI     +  SCVFEN( CV_KLOC, GI ) * FEMT2( CV_NODK_IPHA )
+                        FEMT2OLDGI = FEMT2OLDGI  +  SCVFEN( CV_KLOC, GI ) * FEMT2OLD( CV_NODK_IPHA )
+                     ELSE
+                        FEMT2GI    = 1.0
+                        FEMT2OLDGI = 1.0
+                     ENDIF
+                  END DO
+
+                  IF(.true.) THEN ! Downwinding for DG...
                      FEMTGI_DDG = 0.0
                      FEMTOLDGI_DDG = 0.0
-!                     FEMTGI = 0.0
-!                     FEMTOLDGI = 0.0
-!                     FEMDGI = 0.0
-!                     FEMDOLDGI = 0.0
-!                        FEMT2GI = 0.0
-!                        FEMT2OLDGI =0.0
-               DO CV_KLOC = 1, CV_NLOC
-                  CV_KLOC2 = CV_OTHER_LOC( CV_KLOC )
-                  IF(CV_KLOC2 /= 0 ) THEN
-                     CV_NODK2 = CV_NDGLN(( ELE2 - 1 ) * CV_NLOC + CV_KLOC2 )
-                     CV_NODK2_IPHA = CV_NODK2 + ( IPHASE - 1 ) * CV_NONODS
-                     CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
-                     CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
-! Extrapolate to the downwind value...
-! USE DOWNWINDING...
-!                     FEMTGI_DDG = FEMTGI_DDG +  SCVFEN( CV_KLOC, GI ) * ( FEMT( CV_NODK2_IPHA ) & 
-!                          * (1.-INCOME) + FEMT( CV_NODK_IPHA ) * INCOME )
-!                     FEMTOLDGI_DDG = FEMTOLDGI_DDG + SCVFEN( CV_KLOC, GI ) * ( FEMTOLD( CV_NODK2_IPHA ) &
-!                          * (1.-INCOMEOLD) + FEMTOLD( CV_NODK_IPHA ) * INCOMEOLD )
-! central...
-                     FEMTGI_DDG = FEMTGI_DDG +  SCVFEN( CV_KLOC, GI ) * ( FEMT( CV_NODK2_IPHA ) & 
-                          * 0.5 + FEMT( CV_NODK_IPHA ) * 0.5 )
-                     FEMTOLDGI_DDG = FEMTOLDGI_DDG + SCVFEN( CV_KLOC, GI ) * ( FEMTOLD( CV_NODK2_IPHA ) &
-                          * 0.5 + FEMTOLD( CV_NODK_IPHA ) * 0.5 )
-                  if(.false.) then
-                     FEMTGI = FEMTGI +  SCVFEN( CV_KLOC, GI ) * ( FEMT( CV_NODK2_IPHA ) & 
-                          * (1.-INCOME) + FEMT( CV_NODK_IPHA ) * INCOME )
-                     FEMTOLDGI = FEMTOLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMTOLD( CV_NODK2_IPHA ) &
-                          * (1.-INCOMEOLD) + FEMTOLD( CV_NODK_IPHA ) * INCOMEOLD )
-                     FEMDGI = FEMDGI + SCVFEN( CV_KLOC, GI ) * ( FEMDEN( CV_NODK2_IPHA ) &
-                          * (1.-INCOME) + FEMDEN( CV_NODK_IPHA ) * INCOME )
-                     FEMDOLDGI = FEMDOLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMDENOLD( CV_NODK2_IPHA ) &
-                          * (1.-INCOMEOLD) + FEMDENOLD( CV_NODK_IPHA ) * INCOMEOLD )
-                     IF(IGOT_T2==1) THEN
-                        FEMT2GI = FEMT2GI +  SCVFEN( CV_KLOC, GI ) * ( FEMT2( CV_NODK2_IPHA ) & 
-                             * (1.-INCOME) + FEMT2( CV_NODK_IPHA ) * INCOME )
-                        FEMT2OLDGI = FEMT2OLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMT2OLD( CV_NODK2_IPHA ) &
-                             * (1.-INCOMEOLD) + FEMT2OLD( CV_NODK_IPHA ) * INCOMEOLD )
-                     ELSE
-                        FEMT2GI    = 1.0
-                        FEMT2OLDGI = 1.0
-                     ENDIF
-                   endif
+                     !                     FEMTGI = 0.0
+                     !                     FEMTOLDGI = 0.0
+                     !                     FEMDGI = 0.0
+                     !                     FEMDOLDGI = 0.0
+                     !                        FEMT2GI = 0.0
+                     !                        FEMT2OLDGI =0.0
+                     DO CV_KLOC = 1, CV_NLOC
+                        CV_KLOC2 = CV_OTHER_LOC( CV_KLOC )
+                        IF(CV_KLOC2 /= 0 ) THEN
+                           CV_NODK2 = CV_NDGLN(( ELE2 - 1 ) * CV_NLOC + CV_KLOC2 )
+                           CV_NODK2_IPHA = CV_NODK2 + ( IPHASE - 1 ) * CV_NONODS
+                           CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
+                           CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
+                           ! Extrapolate to the downwind value...
+                           ! USE DOWNWINDING...
+                           !                     FEMTGI_DDG = FEMTGI_DDG +  SCVFEN( CV_KLOC, GI ) * ( FEMT( CV_NODK2_IPHA ) & 
+                           !                          * (1.-INCOME) + FEMT( CV_NODK_IPHA ) * INCOME )
+                           !                     FEMTOLDGI_DDG = FEMTOLDGI_DDG + SCVFEN( CV_KLOC, GI ) * ( FEMTOLD( CV_NODK2_IPHA ) &
+                           !                          * (1.-INCOMEOLD) + FEMTOLD( CV_NODK_IPHA ) * INCOMEOLD )
+                           ! central...
+                           FEMTGI_DDG = FEMTGI_DDG +  SCVFEN( CV_KLOC, GI ) * ( FEMT( CV_NODK2_IPHA ) & 
+                                * 0.5 + FEMT( CV_NODK_IPHA ) * 0.5 )
+                           FEMTOLDGI_DDG = FEMTOLDGI_DDG + SCVFEN( CV_KLOC, GI ) * ( FEMTOLD( CV_NODK2_IPHA ) &
+                                * 0.5 + FEMTOLD( CV_NODK_IPHA ) * 0.5 )
+                           if(.false.) then
+                              FEMTGI = FEMTGI +  SCVFEN( CV_KLOC, GI ) * ( FEMT( CV_NODK2_IPHA ) & 
+                                   * (1.-INCOME) + FEMT( CV_NODK_IPHA ) * INCOME )
+                              FEMTOLDGI = FEMTOLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMTOLD( CV_NODK2_IPHA ) &
+                                   * (1.-INCOMEOLD) + FEMTOLD( CV_NODK_IPHA ) * INCOMEOLD )
+                              FEMDGI = FEMDGI + SCVFEN( CV_KLOC, GI ) * ( FEMDEN( CV_NODK2_IPHA ) &
+                                   * (1.-INCOME) + FEMDEN( CV_NODK_IPHA ) * INCOME )
+                              FEMDOLDGI = FEMDOLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMDENOLD( CV_NODK2_IPHA ) &
+                                   * (1.-INCOMEOLD) + FEMDENOLD( CV_NODK_IPHA ) * INCOMEOLD )
+                              IF(IGOT_T2==1) THEN
+                                 FEMT2GI = FEMT2GI +  SCVFEN( CV_KLOC, GI ) * ( FEMT2( CV_NODK2_IPHA ) & 
+                                      * (1.-INCOME) + FEMT2( CV_NODK_IPHA ) * INCOME )
+                                 FEMT2OLDGI = FEMT2OLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMT2OLD( CV_NODK2_IPHA ) &
+                                      * (1.-INCOMEOLD) + FEMT2OLD( CV_NODK_IPHA ) * INCOMEOLD )
+                              ELSE
+                                 FEMT2GI    = 1.0
+                                 FEMT2OLDGI = 1.0
+                              ENDIF
+                           endif
 
-                  ENDIF
-               END DO
-! use the method with the max difference like ENO but opposit...
-               IF(ABS(FEMTGI_DDG-FVT)      .GT.ABS(FEMTGI-FVT))       FEMTGI   =FEMTGI_DDG
-!               FEMTGI   =0.5*(FEMTGI_DDG + FEMTGI)  
-               FEMTGI   =FEMTGI_DDG
-!               IF(ABS(FEMTOLDGI_DDG-FVTOLD).GT.ABS(FEMTOLDGI-FVTOLD)) FEMTOLDGI=FEMTOLDGI_DDG
-!               FEMTOLDGI=0.5*(FEMTOLDGI_DDG + FEMTOLDGI)
-               FEMTOLDGI=FEMTOLDGI_DDG
+                        ENDIF
+                     END DO
+                     ! use the method with the max difference like ENO but opposit...
+                     IF(ABS(FEMTGI_DDG-FVT)      .GT.ABS(FEMTGI-FVT))       FEMTGI   =FEMTGI_DDG
+                     !               FEMTGI   =0.5*(FEMTGI_DDG + FEMTGI)  
+                     FEMTGI   =FEMTGI_DDG
+                     !               IF(ABS(FEMTOLDGI_DDG-FVTOLD).GT.ABS(FEMTOLDGI-FVTOLD)) FEMTOLDGI=FEMTOLDGI_DDG
+                     !               FEMTOLDGI=0.5*(FEMTOLDGI_DDG + FEMTOLDGI)
+                     FEMTOLDGI=FEMTOLDGI_DDG
 
-               ENDIF ! ENDOF DOWNWINDING FOR DG
-! END OF IF(DOWNWIND_EXTRAP.AND.(courant_or_minus_one_new.GE.0.0)) THEN ...
+                  ENDIF ! ENDOF DOWNWINDING FOR DG
+                  ! END OF IF(DOWNWIND_EXTRAP.AND.(courant_or_minus_one_new.GE.0.0)) THEN ...
                ELSE ! Standard DG upwinding...
 
-               DO CV_KLOC = 1, CV_NLOC
-                  CV_KLOC2 = CV_OTHER_LOC( CV_KLOC )
-                  IF(CV_KLOC2 /= 0 ) THEN
-                     CV_NODK2 = CV_NDGLN(( ELE2 - 1 ) * CV_NLOC + CV_KLOC2 )
-                     CV_NODK2_IPHA = CV_NODK2 + ( IPHASE - 1 ) * CV_NONODS
-                     CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
-                     CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
+                  DO CV_KLOC = 1, CV_NLOC
+                     CV_KLOC2 = CV_OTHER_LOC( CV_KLOC )
+                     IF(CV_KLOC2 /= 0 ) THEN
+                        CV_NODK2 = CV_NDGLN(( ELE2 - 1 ) * CV_NLOC + CV_KLOC2 )
+                        CV_NODK2_IPHA = CV_NODK2 + ( IPHASE - 1 ) * CV_NONODS
+                        CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
+                        CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
 
-                     FEMTGI = FEMTGI +  SCVFEN( CV_KLOC, GI ) * ( FEMT( CV_NODK2_IPHA ) & 
-                          * INCOME + FEMT( CV_NODK_IPHA ) * ( 1. -INCOME ))
-                     FEMTOLDGI = FEMTOLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMTOLD( CV_NODK2_IPHA ) &
-                          * INCOMEOLD + FEMTOLD( CV_NODK_IPHA ) * ( 1. - INCOMEOLD ))
-                     FEMDGI = FEMDGI + SCVFEN( CV_KLOC, GI ) * ( FEMDEN( CV_NODK2_IPHA ) &
-                          * INCOME + FEMDEN( CV_NODK_IPHA ) * ( 1. - INCOME ))
-                     FEMDOLDGI = FEMDOLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMDENOLD( CV_NODK2_IPHA ) &
-                          * INCOMEOLD + FEMDENOLD( CV_NODK_IPHA ) * ( 1. - INCOMEOLD ))
-                     IF(IGOT_T2==1) THEN
-                        FEMT2GI = FEMT2GI +  SCVFEN( CV_KLOC, GI ) * ( FEMT2( CV_NODK2_IPHA ) & 
-                             * INCOME + FEMT2( CV_NODK_IPHA ) * ( 1. -INCOME ))
-                        FEMT2OLDGI = FEMT2OLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMT2OLD( CV_NODK2_IPHA ) &
-                             * INCOMEOLD + FEMT2OLD( CV_NODK_IPHA ) * ( 1. - INCOMEOLD ))
-                     ELSE
-                        FEMT2GI    = 1.0
-                        FEMT2OLDGI = 1.0
+                        FEMTGI = FEMTGI +  SCVFEN( CV_KLOC, GI ) * ( FEMT( CV_NODK2_IPHA ) & 
+                             * INCOME + FEMT( CV_NODK_IPHA ) * ( 1. -INCOME ))
+                        FEMTOLDGI = FEMTOLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMTOLD( CV_NODK2_IPHA ) &
+                             * INCOMEOLD + FEMTOLD( CV_NODK_IPHA ) * ( 1. - INCOMEOLD ))
+                        FEMDGI = FEMDGI + SCVFEN( CV_KLOC, GI ) * ( FEMDEN( CV_NODK2_IPHA ) &
+                             * INCOME + FEMDEN( CV_NODK_IPHA ) * ( 1. - INCOME ))
+                        FEMDOLDGI = FEMDOLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMDENOLD( CV_NODK2_IPHA ) &
+                             * INCOMEOLD + FEMDENOLD( CV_NODK_IPHA ) * ( 1. - INCOMEOLD ))
+                        IF(IGOT_T2==1) THEN
+                           FEMT2GI = FEMT2GI +  SCVFEN( CV_KLOC, GI ) * ( FEMT2( CV_NODK2_IPHA ) & 
+                                * INCOME + FEMT2( CV_NODK_IPHA ) * ( 1. -INCOME ))
+                           FEMT2OLDGI = FEMT2OLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMT2OLD( CV_NODK2_IPHA ) &
+                                * INCOMEOLD + FEMT2OLD( CV_NODK_IPHA ) * ( 1. - INCOMEOLD ))
+                        ELSE
+                           FEMT2GI    = 1.0
+                           FEMT2OLDGI = 1.0
+                        ENDIF
+
                      ENDIF
-
-                  ENDIF
-               END DO
-! END OF IF(DOWNWIND_EXTRAP.AND.(courant_or_minus_one_new.GE.0.0)) THEN ELSE ...
+                  END DO
+                  ! END OF IF(DOWNWIND_EXTRAP.AND.(courant_or_minus_one_new.GE.0.0)) THEN ELSE ...
                ENDIF
 
 
@@ -7363,19 +7415,19 @@
          TOLDMAX_UPWIND=TOLDMAX( CV_NODI_IPHA ) * (1. - INCOMEOLD) + TOLDMAX( CV_NODJ_IPHA ) * INCOMEOLD
 
          IF( ( T_UPWIND >= TMAX_UPWIND-1.E-6 ) .OR. ( T_UPWIND <= TMIN_UPWIND+1.E-6 ) ) THEN
-           ! Extrema...
-           T_MIDVAL = 0.5 * ( TMIN_UPWIND + TMAX_UPWIND )
-           !IF( T_UPWIND >= 0.95 ) T_MIDVAL = 0.5  
+            ! Extrema...
+            T_MIDVAL = 0.5 * ( TMIN_UPWIND + TMAX_UPWIND )
+            !IF( T_UPWIND >= 0.95 ) T_MIDVAL = 0.5  
          ELSE
-           T_MIDVAL = 0.5 
+            T_MIDVAL = 0.5 
          ENDIF
 
          IF( ( TOLD_UPWIND >= TOLDMAX_UPWIND-1.E-6 ) .OR. ( TOLD_UPWIND <= TOLDMIN_UPWIND+1.E-6 ) ) THEN
-           ! Extrema...
-           TOLD_MIDVAL = 0.5 * ( TOLDMIN_UPWIND + TOLDMAX_UPWIND )
-           !IF( TOLD_UPWIND >= 0.95 ) TOLD_MIDVAL = 0.5  
+            ! Extrema...
+            TOLD_MIDVAL = 0.5 * ( TOLDMIN_UPWIND + TOLDMAX_UPWIND )
+            !IF( TOLD_UPWIND >= 0.95 ) TOLD_MIDVAL = 0.5  
          ELSE
-           TOLD_MIDVAL = 0.5
+            TOLD_MIDVAL = 0.5
          ENDIF
 
 
@@ -7406,28 +7458,28 @@
          END IF
 
 
-!if( ( T(CV_NODI_IPHA) >= TMAX(CV_NODI_IPHA)-1.E-4 .or. T(CV_NODJ_IPHA) >= TMAX(CV_NODJ_IPHA)-1.E-4 ) .and. (T(CV_NODI_IPHA) <= 0.5+0.1 .OR. T(CV_NODJ_IPHA)<= 0.5+0.1) ) VOF_INTER=.true.
-!if( ( T(CV_NODI_IPHA) <= TMIN(CV_NODI_IPHA)+1.E-4 .or. T(CV_NODJ_IPHA) <= TMIN(CV_NODJ_IPHA)+1.E-4 ) .and. (T(CV_NODI_IPHA) >= 0.5-0.1 .OR. T(CV_NODJ_IPHA)>= 0.5-0.1) ) VOF_INTER=.true.
+         !if( ( T(CV_NODI_IPHA) >= TMAX(CV_NODI_IPHA)-1.E-4 .or. T(CV_NODJ_IPHA) >= TMAX(CV_NODJ_IPHA)-1.E-4 ) .and. (T(CV_NODI_IPHA) <= 0.5+0.1 .OR. T(CV_NODJ_IPHA)<= 0.5+0.1) ) VOF_INTER=.true.
+         !if( ( T(CV_NODI_IPHA) <= TMIN(CV_NODI_IPHA)+1.E-4 .or. T(CV_NODJ_IPHA) <= TMIN(CV_NODJ_IPHA)+1.E-4 ) .and. (T(CV_NODI_IPHA) >= 0.5-0.1 .OR. T(CV_NODJ_IPHA)>= 0.5-0.1) ) VOF_INTER=.true.
 
-!if( ( Told(CV_NODI_IPHA) >= ToldMAX(CV_NODI_IPHA)-1.E-4 .or. Told(CV_NODJ_IPHA) >= ToldMAX(CV_NODJ_IPHA)-1.E-4 ) .and. (Told(CV_NODI_IPHA) <= 0.5+0.1 .OR. Told(CV_NODJ_IPHA)<= 0.5+0.1) ) VOF_INTER_OLD=.true.
-!if( ( Told(CV_NODI_IPHA) <= ToldMIN(CV_NODI_IPHA)+1.E-4 .or. Told(CV_NODJ_IPHA) <= ToldMIN(CV_NODJ_IPHA)+1.E-4 ) .and. (Told(CV_NODI_IPHA) >= 0.5-0.1 .OR. Told(CV_NODJ_IPHA)>= 0.5-0.1) ) VOF_INTER_OLD=.true.
+         !if( ( Told(CV_NODI_IPHA) >= ToldMAX(CV_NODI_IPHA)-1.E-4 .or. Told(CV_NODJ_IPHA) >= ToldMAX(CV_NODJ_IPHA)-1.E-4 ) .and. (Told(CV_NODI_IPHA) <= 0.5+0.1 .OR. Told(CV_NODJ_IPHA)<= 0.5+0.1) ) VOF_INTER_OLD=.true.
+         !if( ( Told(CV_NODI_IPHA) <= ToldMIN(CV_NODI_IPHA)+1.E-4 .or. Told(CV_NODJ_IPHA) <= ToldMIN(CV_NODJ_IPHA)+1.E-4 ) .and. (Told(CV_NODI_IPHA) >= 0.5-0.1 .OR. Told(CV_NODJ_IPHA)>= 0.5-0.1) ) VOF_INTER_OLD=.true.
 
-!if( ( T(CV_NODI_IPHA) >= TMAX(CV_NODI_IPHA)-1.E-4 .or. T(CV_NODJ_IPHA) >= TMAX(CV_NODJ_IPHA)-1.E-4 ) .and. T_UPWIND <= 0.5+0.1 ) VOF_INTER=.true.
-!if( ( T(CV_NODI_IPHA) <= TMIN(CV_NODI_IPHA)+1.E-4 .or. T(CV_NODJ_IPHA) <= TMIN(CV_NODJ_IPHA)+1.E-4 ) .and. T_UPWIND >= 0.5-0.1 ) VOF_INTER=.true.
+         !if( ( T(CV_NODI_IPHA) >= TMAX(CV_NODI_IPHA)-1.E-4 .or. T(CV_NODJ_IPHA) >= TMAX(CV_NODJ_IPHA)-1.E-4 ) .and. T_UPWIND <= 0.5+0.1 ) VOF_INTER=.true.
+         !if( ( T(CV_NODI_IPHA) <= TMIN(CV_NODI_IPHA)+1.E-4 .or. T(CV_NODJ_IPHA) <= TMIN(CV_NODJ_IPHA)+1.E-4 ) .and. T_UPWIND >= 0.5-0.1 ) VOF_INTER=.true.
 
-!if( ( Told(CV_NODI_IPHA) >= ToldMAX(CV_NODI_IPHA)-1.E-4 .or. Told(CV_NODJ_IPHA) >= ToldMAX(CV_NODJ_IPHA)-1.E-4 ) .and. Told_UPWIND <= 0.5+0.1 ) VOF_INTER_OLD=.true.
-!if( ( Told(CV_NODI_IPHA) <= ToldMIN(CV_NODI_IPHA)+1.E-4 .or. Told(CV_NODJ_IPHA) <= ToldMIN(CV_NODJ_IPHA)+1.E-4 ) .and. Told_UPWIND >= 0.5-0.1 ) VOF_INTER_OLD=.true.
+         !if( ( Told(CV_NODI_IPHA) >= ToldMAX(CV_NODI_IPHA)-1.E-4 .or. Told(CV_NODJ_IPHA) >= ToldMAX(CV_NODJ_IPHA)-1.E-4 ) .and. Told_UPWIND <= 0.5+0.1 ) VOF_INTER_OLD=.true.
+         !if( ( Told(CV_NODI_IPHA) <= ToldMIN(CV_NODI_IPHA)+1.E-4 .or. Told(CV_NODJ_IPHA) <= ToldMIN(CV_NODJ_IPHA)+1.E-4 ) .and. Told_UPWIND >= 0.5-0.1 ) VOF_INTER_OLD=.true.
 
-!if( T_UPWIND >= TMAX_UPWIND-1.E-4 .and. T_UPWIND <= 0.5+0.1 ) VOF_INTER=.true.
-!if( T_UPWIND <= TMIN_UPWIND+1.E-4 .and. T_UPWIND >= 0.5-0.1 ) VOF_INTER=.true.
-!if( T_UPWIND >= 0.5+0.3 .or. T_UPWIND <= 0.5-0.3 ) VOF_INTER=.true.
+         !if( T_UPWIND >= TMAX_UPWIND-1.E-4 .and. T_UPWIND <= 0.5+0.1 ) VOF_INTER=.true.
+         !if( T_UPWIND <= TMIN_UPWIND+1.E-4 .and. T_UPWIND >= 0.5-0.1 ) VOF_INTER=.true.
+         !if( T_UPWIND >= 0.5+0.3 .or. T_UPWIND <= 0.5-0.3 ) VOF_INTER=.true.
 
-!if( TOLD_UPWIND >= TOLDMAX_UPWIND-1.E-4 .and. TOLD_UPWIND <= 0.5+0.1 ) VOF_INTER_OLD=.true.
-!if( TOLD_UPWIND <= TOLDMIN_UPWIND+1.E-4 .and. TOLD_UPWIND >= 0.5-0.1 ) VOF_INTER_OLD=.true.
-!if( TOLD_UPWIND >= 0.5+0.3 .or. TOLD_UPWIND <= 0.5-0.3 ) VOF_INTER_OLD=.true.
+         !if( TOLD_UPWIND >= TOLDMAX_UPWIND-1.E-4 .and. TOLD_UPWIND <= 0.5+0.1 ) VOF_INTER_OLD=.true.
+         !if( TOLD_UPWIND <= TOLDMIN_UPWIND+1.E-4 .and. TOLD_UPWIND >= 0.5-0.1 ) VOF_INTER_OLD=.true.
+         !if( TOLD_UPWIND >= 0.5+0.3 .or. TOLD_UPWIND <= 0.5-0.3 ) VOF_INTER_OLD=.true.
 
-!if( FEMTGI < 0.5 ) VOF_INTER=.true.
-!if( FEMToldGI < 0.5 ) VOF_INTER_OLD=.true.
+         !if( FEMTGI < 0.5 ) VOF_INTER=.true.
+         !if( FEMToldGI < 0.5 ) VOF_INTER_OLD=.true.
 
 
 
@@ -7442,9 +7494,9 @@
 
          IF( .NOT.VOF_INTER_OLD ) THEN
             IF( FEMTOLDGI > TOLD_MIDVAL ) THEN
-              FEMTOLDGI = 1.!MIN(1.0, TOLDMAX_UPWIND )!1.0
+               FEMTOLDGI = 1.!MIN(1.0, TOLDMAX_UPWIND )!1.0
             ELSE 
-              FEMTOLDGI = 0.!MAX(0.0, TOLDMIN_UPWIND )!0.0
+               FEMTOLDGI = 0.!MAX(0.0, TOLDMIN_UPWIND )!0.0
             END IF
          END IF
 
@@ -7499,7 +7551,7 @@
                     CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOMEOLD )
             ENDIF
          ENDIF
-         
+
 
          CALL ONVDLIM_ALL( CV_NONODS, &
               LIMT, FEMTGI, INCOME, CV_NODI_IPHA-(IPHASE-1)*CV_NONODS, CV_NODJ_IPHA-(IPHASE-1)*CV_NONODS, &
@@ -7603,25 +7655,25 @@
          LIMTOLD=RELAXOLD*LIMTOLD+(1.-RELAXOLD)*FEMTOLDGI
       ENDIF
 
-       if(.false.) then
-          if(iphase==1) then
-           if((sele.ne.0).and.(cvnormx(gi).lt.-0.5)) then
-                LIMD=1.0
-                LIMT=0.58
-!                LIMT=1.
-                LIMDOLD=1.0
-                LIMTOLD=0.58
-!                LIMTOLD=1.
-           end if
-          endif
-          if(iphase==2) then
-           if((sele.ne.0).and.(cvnormx(gi).lt.-0.5)) then
-                LIMD=1.0
-                LIMT=0.
-                LIMDOLD=1
-                LIMTOLD=0.
-           end if
-          endif
+      if(.false.) then
+         if(iphase==1) then
+            if((sele.ne.0).and.(cvnormx(gi).lt.-0.5)) then
+               LIMD=1.0
+               LIMT=0.58
+               !                LIMT=1.
+               LIMDOLD=1.0
+               LIMTOLD=0.58
+               !                LIMTOLD=1.
+            end if
+         endif
+         if(iphase==2) then
+            if((sele.ne.0).and.(cvnormx(gi).lt.-0.5)) then
+               LIMD=1.0
+               LIMT=0.
+               LIMDOLD=1
+               LIMTOLD=0.
+            end if
+         endif
       endif
 
       LIMDT = LIMD * LIMT
