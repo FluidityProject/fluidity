@@ -303,6 +303,12 @@ int trim_channels(const int *id,
         else
           EEList[i*4+j] = *neighbours.begin();
       }
+#ifndef NDEBUG
+      else{
+	assert(neighbours.size()==1);
+	assert(*neighbours.begin()==i);
+      }
+#endif
     }
   }
 
@@ -315,11 +321,13 @@ int trim_channels(const int *id,
     for(int j=0;j<3;j++){
       facet.insert(facets[i*3+j]);
     }
+    assert(facet.size()==3);
     assert(facet_id_lut.find(facet)==facet_id_lut.end());
     facet_id_lut[facet] = facet_ids[i];
   }
 
   std::set<int> front0, front1;
+  std::set< std::set<int> > facet_id_lut_verify;
   std::vector<int> full_facet_id_list(NTetra*4, -1);
   for(int i=0;i<NTetra;i++){
     for(int j=0;j<4;j++){
@@ -327,14 +335,25 @@ int trim_channels(const int *id,
         std::set<int> facet;
         for(int k=1;k<4;k++)
           facet.insert(tets[i*4+(j+k)%4]);
-        
+        assert(facet.size()==3);
+	
         std::map< std::set<int>, int>::iterator facet_id_pair = facet_id_lut.find(facet);
         if(facet_id_pair==facet_id_lut.end()){
           full_facet_id_list[i*4+j] = 0;
-          for(int k=1;k<4;k++)
-            facets.push_back(tets[i*4+(j+k)%4]);
+
+	  if(j==0){
+            facets.push_back(tets[i*4+1]); facets.push_back(tets[i*4+2]); facets.push_back(tets[i*4+3]); 
+	  }else if(j==1){
+            facets.push_back(tets[i*4]); facets.push_back(tets[i*4+2]); facets.push_back(tets[i*4+3]); 
+	  }else if(j==2){
+            facets.push_back(tets[i*4]); facets.push_back(tets[i*4+1]); facets.push_back(tets[i*4+3]); 
+	  }else if(j==3){
+            facets.push_back(tets[i*4]); facets.push_back(tets[i*4+1]); facets.push_back(tets[i*4+2]); 
+	  }
+
           facet_ids.push_back(0);
         }else{
+	  facet_id_lut_verify.insert(facet);
           if(facet_id_pair->second==id[0])
             front0.insert(i);
           else if(facet_id_pair->second==id[1])
@@ -344,6 +363,7 @@ int trim_channels(const int *id,
       }
     }
   }
+  assert(facet_id_lut.size()==facet_id_lut_verify.size());
   
   // Advance front0
   std::vector<int> label(NTetra, 0);
@@ -363,7 +383,7 @@ int trim_channels(const int *id,
     }
   }
 
-  // Advance backsweep using front1.
+  // Advance back sweep using front1.
   while(!front1.empty()){
     // Get the next unprocessed element in the set.
     int seed = *front1.begin();
@@ -446,12 +466,13 @@ int write_triangle_file(std::string basename,
   int NNodes = xyz.size()/3;
   int NTetra = tets.size()/4;
   int NFacets = facet_ids.size();
-  
+  assert(NFacets=facets.size()/3);
+
   ofstream nodefile;
   nodefile.open(std::string(basename+".node").c_str());
   nodefile<<NNodes<<" "<<3<<" "<<0<<" "<<0<<std::endl;
   nodefile<<std::setprecision(std::numeric_limits<double>::digits10+1);
-
+  
   for(int i=0;i<NNodes;i++){
     nodefile<<i+1<<" "<<xyz[i*3]<<" "<<xyz[i*3+1]<<" "<<xyz[i*3+2]<<std::endl;
   }
@@ -470,9 +491,6 @@ int write_triangle_file(std::string basename,
   for(int i=0;i<NFacets;i++){
     facefile<<i+1<<" "<<facets[i*3]+1<<" "<<facets[i*3+1]+1<<" "<<facets[i*3+2]+1<<" "<<facet_ids[i]<<std::endl;
   }
-
-
-  
   
   return 0;
 }
@@ -487,7 +505,6 @@ int main(int argc, char **argv){
   std::vector<double> xyz;
   std::vector<int> tets, facets, facet_ids;
   std::string basename = filename.substr(0, filename.size()-4);
-  std::cout<<"basename = "<<basename<<std::endl;
 
   if(verbose) std::cout<<"INFO: Reading "<<filename<<std::endl;
   read_tarantula_mesh_file(filename, xyz, tets, facets, facet_ids);
