@@ -445,18 +445,30 @@ int write_triangle_file(std::string basename,
   int NNodes = xyz.size()/3;
   int NTetra = tets.size()/4;
   int NFacets = facet_ids.size();
+  
+  ofstream nodefile;
+  nodefile.open("mesh.node");
+  nodefile<<NNodes<<" "<<3<<" "<<0<<" "<<0<<std::endl;
 
   for(int i=0;i<NNodes;i++){
-    std::cout<<"i,x,y,x = "<<i<<", "<<xyz[i*3]<<", "<<xyz[i*3+1]<<", "<<xyz[i*3+2]<<std::endl;
+    nodefile<<i+1<<" "<<xyz[i*3]<<" "<<xyz[i*3+1]<<" "<<xyz[i*3+2]<<std::endl;
   }
+
+  ofstream elefile;
+  elefile.open("mesh.ele");
+  elefile<<NTetra<<" "<<4<<" "<<1<<std::endl;
 
   for(int i=0;i<NTetra;i++){
-    std::cout<<tets[i*4]<<", "<<tets[i*4+1]<<", "<<tets[i*4+2]<<", "<<tets[i*4+3]<<std::endl;
+    elefile<<i+1<<" "<<tets[i*4]<<" "<<tets[i*4+1]<<" "<<tets[i*4+2]<<" "<<tets[i*4+3]<<"  1"<<std::endl;
   }
 
+  ofstream facefile;
+  facefile.open("mesh.face");
+  facefile<<NFacets<<" "<<1<<std::endl;
   for(int i=0;i<NFacets;i++){
-    std::cout<<facet_ids[i]<<", "<<facets[i*3]<<", "<<facets[i*3+1]<<", "<<facets[i*3+2]<<std::endl;
+    facefile<<i+1<<" "<<facets[i*3]<<" "<<facets[i*3+1]<<" "<<facets[i*3+2]<<" "<<facet_ids[i]<<std::endl;
   }
+
 
   std::cerr<<"write triangle files: "
            <<filename_node<<", "
