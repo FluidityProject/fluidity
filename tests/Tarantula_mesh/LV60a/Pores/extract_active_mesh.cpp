@@ -442,6 +442,22 @@ int write_triangle_file(std::string basename,
   std::string filename_face = basename+".face";
   std::string filename_ele = basename+".ele";
   
+  int NNodes = xyz.size()/3;
+  int NTetra = tets.size()/4;
+  int NFacets = facet_ids.size();
+
+  for(int i=0;i<NNodes;i++){
+    std::cout<<"i,x,y,x = "<<i<<", "<<xyz[i*3]<<", "<<xyz[i*3+1]<<", "<<xyz[i*3+2]<<std::endl;
+  }
+
+  for(int i=0;i<NTetra;i++){
+    std::cout<<tets[i*4]<<", "<<tets[i*4+1]<<", "<<tets[i*4+2]<<", "<<tets[i*4+3]<<std::endl;
+  }
+
+  for(int i=0;i<NFacets;i++){
+    std::cout<<facet_ids[i]<<", "<<facets[i*3]<<", "<<facets[i*3+1]<<", "<<facets[i*3+2]<<std::endl;
+  }
+
   std::cerr<<"write triangle files: "
            <<filename_node<<", "
            <<filename_face<<", "
@@ -449,6 +465,7 @@ int write_triangle_file(std::string basename,
   
   return 0;
 }
+
 
 int main(int argc, char **argv){
   std::string filename;
@@ -471,6 +488,7 @@ int main(int argc, char **argv){
   trim_channels(IDs, xyz, tets, facets, facet_ids);
   if(verbose) std::cout<<"INFO: Finished trimming."<<filename<<std::endl;
 
+  write_vtk_file(basename, xyz, tets, facets, facet_ids);
   write_triangle_file(basename, xyz, tets, facets, facet_ids);
 
   return 0;
