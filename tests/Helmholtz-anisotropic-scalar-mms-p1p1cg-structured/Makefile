@@ -1,8 +1,8 @@
 input:	clean
-	gmsh -2  -algo frontal -o MMS_A_structured.msh src/MMS_A_structured.geo
-	gmsh -2  -algo frontal -o MMS_B_structured.msh src/MMS_B_structured.geo
-	gmsh -2  -algo frontal -o MMS_C_structured.msh src/MMS_C_structured.geo
-	gmsh -2  -algo frontal -o MMS_D_structured.msh src/MMS_D_structured.geo
+	gmsh -2 -bin -algo frontal -o MMS_A_structured.msh src/MMS_A_structured.geo
+	gmsh -2 -bin -algo frontal -o MMS_B_structured.msh src/MMS_B_structured.geo
+	gmsh -2 -bin -algo frontal -o MMS_C_structured.msh src/MMS_C_structured.geo
+	gmsh -2 -bin -algo frontal -o MMS_D_structured.msh src/MMS_D_structured.geo
 
 clean:
 	rm -f *.vtu *.msh *.stat fluidity.err-0 fluidity.log-0

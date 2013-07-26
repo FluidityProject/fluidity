@@ -108,6 +108,14 @@ contains
     ! Read in header information, and validate
     call read_header( fd, lfilename, gmshFormat )
 
+#ifdef __INTEL_COMPILER
+    if (gmshFormat .eq. asciiFormat) then
+        ewrite(-1,*) "There are issues with the Intel compiler and GMSH ASCII files"
+        ewrite(-1,*) "Please use binary GMSH or convert your mesh to triangle"
+        FLExit("Exiting")
+    end if
+#endif
+
     ! Read in the nodes
     call read_nodes_coords( fd, lfilename, gmshFormat, nodes )
 
