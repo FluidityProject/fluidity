@@ -327,8 +327,8 @@ int trim_channels(const int *id,
   }
 
   std::set<int> front0, front1;
-  std::set< std::set<int> > facet_id_lut_verify;
   std::vector<int> full_facet_id_list(NTetra*4, -1);
+  std::map< std::set<int>, int> facet_element_lut;
   for(int i=0;i<NTetra;i++){
     for(int j=0;j<4;j++){
       if(EEList[i*4+j]==-1){
@@ -336,24 +336,24 @@ int trim_channels(const int *id,
         for(int k=1;k<4;k++)
           facet.insert(tets[i*4+(j+k)%4]);
         assert(facet.size()==3);
-	
+	facet_element_lut[facet] = i;
+
         std::map< std::set<int>, int>::iterator facet_id_pair = facet_id_lut.find(facet);
         if(facet_id_pair==facet_id_lut.end()){
           full_facet_id_list[i*4+j] = 0;
 
 	  if(j==0){
-            facets.push_back(tets[i*4+1]); facets.push_back(tets[i*4+2]); facets.push_back(tets[i*4+3]); 
+            facets.push_back(tets[i*4+1]); facets.push_back(tets[i*4+3]); facets.push_back(tets[i*4+2]); 
 	  }else if(j==1){
-            facets.push_back(tets[i*4]); facets.push_back(tets[i*4+2]); facets.push_back(tets[i*4+3]); 
+            facets.push_back(tets[i*4]); facets.push_back(tets[i*4+3]); facets.push_back(tets[i*4+2]);
 	  }else if(j==2){
-            facets.push_back(tets[i*4]); facets.push_back(tets[i*4+1]); facets.push_back(tets[i*4+3]); 
+            facets.push_back(tets[i*4]); facets.push_back(tets[i*4+3]); facets.push_back(tets[i*4+1]);
 	  }else if(j==3){
-            facets.push_back(tets[i*4]); facets.push_back(tets[i*4+1]); facets.push_back(tets[i*4+2]); 
+            facets.push_back(tets[i*4]); facets.push_back(tets[i*4+2]); facets.push_back(tets[i*4+1]);
 	  }
 
-          facet_ids.push_back(0);
+          facet_ids.push_back(7);
         }else{
-	  facet_id_lut_verify.insert(facet);
           if(facet_id_pair->second==id[0])
             front0.insert(i);
           else if(facet_id_pair->second==id[1])
@@ -363,7 +363,6 @@ int trim_channels(const int *id,
       }
     }
   }
-  assert(facet_id_lut.size()==facet_id_lut_verify.size());
   
   // Advance front0
   std::vector<int> label(NTetra, 0);
@@ -431,21 +430,23 @@ int trim_channels(const int *id,
   }
   NFacets = facet_ids.size();
   for(int i=0;i<NFacets;i++){
+    std::set<int> facet_set;
+    for(int j=0;j<3;j++)
+      facet_set.insert(facets[i*3+j]);
+    if(label[facet_element_lut[facet_set]]!=2){
+      continue;
+    }
+    
     int facet[3];
-    bool redundant=false;
     for(int j=0;j<3;j++){
       std::map<int, int>::iterator it=renumbering.find(facets[i*3+j]);
-      if(it!=renumbering.end()){
-        facet[j] = it->second;
-      }else{
-        redundant = true;
-        break;
-      }
+      assert(it!=renumbering.end());
+      facet[j] = it->second;
     }
-    if(redundant)
-      continue;
+    
     for(int j=0;j<3;j++)
       facets_new.push_back(facet[j]);
+    
     facet_ids_new.push_back(facet_ids[i]);
   }
   xyz.swap(xyz_new);
