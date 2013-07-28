@@ -585,13 +585,13 @@ assert(cd_convergence_anisocomm[0][0] &gt; 1.0)
 assert(a_zdiff &lt; 1.1E-7)
     </test>
     <test name="checking zero-filtered vel B with tolerance 1.0e-08" language="python">
-assert(b_zdiff &lt; 1.E-8)
+assert(b_zdiff &lt; 1.E-7)
     </test>
     <test name="checking zero-filtered vel C with tolerance 1.0e-08" language="python">
-assert(c_zdiff &lt; 1.E-8)
+assert(c_zdiff &lt; 1.E-7)
     </test>
     <test name="checking zero-filtered vel D with tolerance 1.0e-08" language="python">
-assert(d_zdiff &lt; 1.E-8)
+assert(d_zdiff &lt; 1.6.E-7)
     </test>
     <test name="ab_convergence_vel_x: L2 order > 2.2" language="python">
 assert(ab_convergence_vel[0][0] &gt; 2.2)
