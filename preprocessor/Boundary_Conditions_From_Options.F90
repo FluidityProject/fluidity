@@ -1071,6 +1071,41 @@ contains
             time=time)
           call deallocate(bc_position)
 
+       case("prescribed_normal_flow")
+
+          call get_boundary_condition(field, i+1, surface_mesh=surface_mesh, &
+               surface_element_list=surface_element_list)
+          surface_field => extract_surface_field(field, bc_name, name="value")
+          bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list)             
+          if (have_option(trim(bc_path_i)//"/from_field")) then
+             ! The parent field contains the boundary values that you want to apply to surface_field.
+             call get_option(trim(bc_component_path)//"/from_field/parent_field_name", parent_field_name)
+
+             ! Is the parent field a scalar field? Let's check using 'stat'...
+             scalar_parent_field => extract_scalar_field(state, parent_field_name, stat)
+             if(stat /= 0) then
+                ! Parent field is not a scalar field. Let's try a vector field extraction...
+                vector_parent_field => extract_vector_field(state, parent_field_name, stat)
+                if(stat /= 0) then
+                   ! Parent field not found.
+                   FLExit("Could not extract parent field. Check options file?")
+                else
+                   ! Apply the 1st component of parent_field to the 1st component
+                   ! of surface_field.
+                   vector_parent_field_component = extract_scalar_field(vector_parent_field, 1)
+                   call remap_field_to_surface(vector_parent_field_component, surface_field_component, surface_element_list, stat)
+                end if
+             else
+                ! Apply the scalar field to the j-th component of surface_field.
+                call remap_field_to_surface(scalar_parent_field, surface_field_component, surface_element_list, stat)
+             end if                    
+
+          else
+             call initialise_field(surface_field_component, bc_path_i, bc_position, &
+                      time=time)
+          end if
+
+
        case("wind_forcing")
 
           call get_boundary_condition(field, i+1, surface_mesh=surface_mesh, &
