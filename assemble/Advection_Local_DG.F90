@@ -194,7 +194,7 @@ module advection_local_DG
     delta_T%option_path = T%option_path
     if(present(Flux)) then
        call allocate(delta_T_total, T%mesh, "deltaT_total")
-      call zero(delta_T_total)
+       call zero(delta_T_total)
     end if
     call allocate(rhs, T%mesh, trim(field_name)//" RHS")
     call zero(rhs)
@@ -309,11 +309,13 @@ module advection_local_DG
             call mult(UpwindFlux, upwindfluxmatrix, Tstage)
             call scale(UpwindFlux,-ldt)
             call update_flux(Flux, Delta_T, UpwindFlux, Mass)
+            call halo_update(Flux)
             call scale(Flux, 1-alpha(k))
             call addto(Flux, tmpflux, alpha(k))
          end if
          ! T = T + dt/s * dT
          call dg_apply_mass(inv_mass, delta_T)
+         call halo_update(delta_T)
          ewrite(2,*) 'Delta_T', maxval(abs(delta_T%val))
          call addto(Tstage, delta_T)
          call scale(Tstage, 1-alpha(k))
@@ -328,6 +330,7 @@ module advection_local_DG
                call mult(delta_t_total, mass, delta_t)
                call zero(UpwindFlux)
                call update_flux(Flux, Delta_T_total, UpwindFlux, Mass)
+               call halo_update(Flux)
             end if
          end if
       end do RKstage_loop

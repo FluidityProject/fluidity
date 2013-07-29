@@ -228,6 +228,8 @@ contains
        call local_solve_residuals_ele(U_res,D_res,&
             newton_local_solver_cache(ele)%ptr,ele)
     end do
+    call halo_update(U_res)
+    call halo_update(D_res)
 
     !Negative scaling occurs here.
     call scale(U_res,-1.0)
