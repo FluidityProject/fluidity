@@ -934,7 +934,7 @@ contains
 
     real, dimension(ele_ngi(u,ele)) :: alpha_u_quad
     real, dimension(u%dim,ele_ngi(u,ele)) :: sigma_d0_diag
-    real::sigma_ele
+    real,dimension(ele_ngi(u,ele)):: sigma_ngi
 
     dg=continuity(U)<0
     p0=(element_degree(u,ele)==0)
@@ -1298,7 +1298,7 @@ contains
     end if
 
     if((have_absorption.or.have_vertical_stabilization.or.have_wd_abs .or. have_sigma) .and. &
-         (assemble_element .or. pressure_corrected_absorption .or. have_wd))  then
+         (assemble_element .or. pressure_corrected_absorption .or. have_sigma))  then
 
       absorption_gi=0.0
       tensor_absorption_gi=0.0
@@ -1312,7 +1312,7 @@ contains
       ib_abs=0.0
       ib_abs_diag=0.0
 
-      if (have_vertical_velocity_relaxation .or. have_sigma) then
+      if (have_vertical_velocity_relaxation) then
                 
         ! Form the vertical velocity relaxation absorption term
         if (.not.on_sphere) then
@@ -1365,20 +1365,23 @@ contains
       end if
       
       !Sigma term
-     
-      sigma_ele=0.0
+      print *, 'absorption_gi=', absorption_gi
+      sigma_ngi=0.0
       sigma_d0_diag=0.0
       if(have_wd .and.have_sigma) then
-      grav_at_quads=ele_val_at_quad(gravity, ele)
+        grav_at_quads=ele_val_at_quad(gravity, ele)
+	depth_at_quads = ele_val_at_quad(depth,ele)
+        print *, 'depth_at_quads=',depth_at_quads
       	if (on_sphere) then
       	 FLExit('The sigma_d0 scheme currently not implemented on the sphere')
         else
-        call calculate_sigma_element(ele, X, U, sigma_ele, d0_a,dt,d0)
-        print *, 'sigma_ele', sigma_ele
-        do i=1, ele_ngi(U,ele)
-         sigma_d0_diag(:,i)=sigma_ele*grav_at_quads(:,i)
-         print *, 'sigma_d0_diag =', sigma_d0_diag(:,i)
-        end do
+           call calculate_sigma_element(ele, X, U, sigma_ngi, d0_a,dt,depth)
+           print *, 'sigma_ngi', sigma_ngi
+           do i=1, ele_ngi(U,ele)
+             sigma_d0_diag(:,i)=sigma_ngi(i)*grav_at_quads(:,i)
+             print *, 'sigma_d0_diag =', sigma_d0_diag(:,i)
+	     print *,  'grav_at_quads=',  grav_at_quads(:,i)
+           end do
         end if
      end if
       
@@ -1386,7 +1389,10 @@ contains
       if (on_sphere) then
         tensor_absorption_gi=tensor_absorption_gi-vvr_abs-ib_abs
       end if
+      print *, 'vvr_abs_diag=',vvr_abs_diag
+      print *, 'ib_abs_diag=', -ib_abs_diag
       absorption_gi=absorption_gi-vvr_abs_diag-ib_abs_diag-sigma_d0_diag
+      print *, 'absorption_gi', absorption_gi
 
       ! If on the sphere then use 'tensor' absorption. Note that using tensor absorption means that, currently,
       ! the absorption cannot be used in the pressure correction. 

@@ -18,24 +18,22 @@
     public calculate_sigma_element, calculate_diagnostic_sigma_d0
     
  contains
- subroutine calculate_sigma_element(ele, x, u, sigma_ele, d0_a,dt,d0)
+ subroutine calculate_sigma_element(ele, x, u, sigma_ngi, d0_a,dt,depth)
    integer, intent(in) :: ele
    type(vector_field), intent(in) :: u, x
+   type(scalar_field),intent(in) :: depth
    integer, parameter:: dim=3
-   real,intent(in) :: d0_a, d0
+   real,intent(in) :: d0_a
    real, dimension(:,:), allocatable :: x_ele
-   real, intent(inout):: sigma_ele
-   integer, dimension(:), pointer:: u_ele
-   real :: dz_ele,temp
-   real, dimension(6)::dz
+   real,dimension(ele_ngi(u,ele)), intent(inout):: sigma_ngi
    real ::length1, length2, length3, length4, length5, length6,dx_ele
    real, intent(in)::dt
-   integer::i,j
+   real, dimension(ele_ngi(u,ele)) :: depth_at_quads
+   integer::i
       allocate(x_ele(x%dim,ele_loc(x,ele)))     
       !get the nodes cordinate of element
       x_ele = ele_val(x, ele) 
-      u_ele => ele_nodes(u, ele)
-      
+      depth_at_quads = ele_val_at_quad(depth, ele)
       !calculate the lateral lenghth of element's projection to horizontal surface
       length1 = sqrt((x_ele(2,2)-x_ele(2,1))**2+(x_ele(1,2)-x_ele(1,1))**2)
       length2 = sqrt((x_ele(2,3)-x_ele(2,1))**2+(x_ele(1,3)-x_ele(1,1))**2)
@@ -44,36 +42,21 @@
       length5 = sqrt((x_ele(2,4)-x_ele(2,2))**2+(x_ele(1,4)-x_ele(1,2))**2)
       length6 = sqrt((x_ele(2,4)-x_ele(2,3))**2+(x_ele(1,4)-x_ele(1,3))**2)
       dx_ele = max(length1,length2,length3,length4,length5,length6)
-      dz(1)=abs(x_ele(3,1)-x_ele(3,2))
-      dz(2)=abs(x_ele(3,1)-x_ele(3,3))
-      dz(3)=abs(x_ele(3,1)-x_ele(3,4))
-      dz(4)=abs(x_ele(3,2)-x_ele(3,3))
-      dz(5)=abs(x_ele(3,2)-x_ele(3,4))
-      dz(6)=abs(x_ele(3,3)-x_ele(3,4))
-      do j=1,5
-        do i=1,6-j
-          if (dz(i)>dz(i+1)) then
-             temp=dz(i+1)
-	     dz(i+1)=dz(i)
-	     dz(i)=temp  
-	  end if     
-	  end do 
-      end do
-      dz_ele = (dz(4)+dz(5)+dz(6))/3
-      print *, 'dz=', dz
-      print *, 'dz_ele', dz_ele
-      do i=1, ele_loc(x,ele)
+
+      do i=1, ele_loc(u,ele)
         if((945 < x_ele(1,i) .and. x_ele(1,i) < 1000) .and. (4945 < x_ele(2,i) .and. x_ele(2,i) < 5000)) then
           print *, 'dx_flat = ',dx_ele
-          print *, 'dz_flat = ',dz_ele
-        end if 
-        if ((1945 < x_ele(1,i) .and. x_ele(1,i) < 2001) .and. (1945 < x_ele(2,i) .and. x_ele(2,i) < 2001)) then
+          print *, 'depth_flat = ', depth_at_quads
+	end if
+        if ((1500 < x_ele(1,i) .and. x_ele(1,i) < 2500) .and. (1500 < x_ele(2,i) .and. x_ele(2,i) < 2500)) then
           print *, 'dx_hump = ',dx_ele
-          print *, 'dz_hump = ',dz_ele 
+          print *, 'depth_hump = ', depth_at_quads
         end if
       end do
-     ! sigma = dx_ele**2/(a**2*dt*dz_ele**2).
-      sigma_ele = dx_ele**2/(d0_a**2*dt*dz_ele**2)
+     ! sigma = dx_ele**2/(a**2*dt*depth_ele**2).
+     do i=1, ele_ngi(u,ele)
+        sigma_ngi(i) = dx_ele**2/(d0_a**2*dt*depth_at_quads(i)**2)
+     end do
       deallocate(x_ele)    
 
    end subroutine calculate_sigma_element
@@ -83,7 +66,7 @@
     integer :: ele
     type(scalar_field), intent(inout) :: sigma
     integer, dimension(ele_loc(sigma, 1)) ::ele_sigma
-    real,dimension(ele_loc(sigma, 1)) ::sigma_node
+    real, dimension(:),allocatable ::sigma_node
     real,  dimension(:), allocatable ::depth_ele 
     type(vector_field) :: U, X
     integer, parameter:: dim=3
@@ -113,11 +96,12 @@
     do ele=1,element_count(sigma)
        ele_sigma=ele_nodes(sigma,ele)
       allocate(x_ele(x%dim,ele_loc(x,ele)))
-      allocate(depth_ele(ele_loc(depth,ele)))
+      allocate(sigma_node(ele_loc(u,ele)))
+      allocate(depth_ele(ele_loc(u,ele)))
       !get the nodes cordinate of element
       x_ele = ele_val(x, ele) 
       depth_ele = ele_val(depth, ele)
-      !calculate the lateral lenghth of element's projection to horizontal surface
+     !calculate the lateral lenghth of element's projection to horizontal surface
       length1 = sqrt((x_ele(2,2)-x_ele(2,1))**2+(x_ele(1,2)-x_ele(1,1))**2)
       length2 = sqrt((x_ele(2,3)-x_ele(2,1))**2+(x_ele(1,3)-x_ele(1,1))**2)
       length3 = sqrt((x_ele(2,2)-x_ele(2,3))**2+(x_ele(1,2)-x_ele(1,3))**2)
@@ -125,27 +109,13 @@
       length5 = sqrt((x_ele(2,4)-x_ele(2,2))**2+(x_ele(1,4)-x_ele(1,2))**2)
       length6 = sqrt((x_ele(2,4)-x_ele(2,3))**2+(x_ele(1,4)-x_ele(1,3))**2)
       dx_ele = max(length1,length2,length3,length4,length5,length6)
-     
-      dz(1)=abs(x_ele(3,1)-x_ele(3,2))
-      dz(2)=abs(x_ele(3,1)-x_ele(3,3))
-      dz(3)=abs(x_ele(3,1)-x_ele(3,4))
-      dz(4)=abs(x_ele(3,2)-x_ele(3,3))
-      dz(5)=abs(x_ele(3,2)-x_ele(3,4))
-      dz(6)=abs(x_ele(3,3)-x_ele(3,4))
-       do j=1,5
-        do i=1,6-j
-          if (dz(i)>dz(i+1)) then
-             temp=dz(i+1)
-	     dz(i+1)=dz(i)
-	     dz(i)=temp  
-	  end if     
-	  end do 
-      end do
-     dz_ele = (dz(4)+dz(5)+dz(6))/3
      !sigma = dx_ele**2/(a**2*dt*dz_ele**2*dt).
-      sigma_node =dx_ele**2/(d0_a**2*dt*dz_ele**2)
+      do i=1, ele_loc(u,ele)
+        sigma_node(i) = dx_ele**2/(d0_a**2*dt*depth_ele(i)**2)
+     end do
       call set(sigma,ele_sigma,sigma_node)
       deallocate(x_ele)
+      deallocate(sigma_node)
       deallocate(depth_ele) 
     end do 
     call deallocate(depth) 

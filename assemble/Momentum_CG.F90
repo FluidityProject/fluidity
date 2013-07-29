@@ -1801,7 +1801,7 @@
 
       real, dimension(ele_ngi(u,ele)) :: alpha_u_quad
       real, dimension(u%dim,ele_ngi(u,ele)) :: sigma_d0_diag
-      real::sigma_ele
+      real, dimension(ele_ngi(u,ele))::sigma_ngi
       
       density_gi=ele_val_at_quad(density, ele)
       absorption_gi=0.0
@@ -1882,7 +1882,7 @@
         end if
 
       !Sigma term
-      sigma_ele=0.0
+      sigma_ngi=0.0
       sigma_d0_diag=0.0
       grav_at_quads=ele_val_at_quad(gravity, ele)
       depth_at_quads=ele_val_at_quad(depth, ele)
@@ -1890,10 +1890,10 @@
       	if (on_sphere) then
       	 FLExit('The sigma_d0 scheme currently not implemented on the sphere')	 
         else
-          do i=1, ele_ngi(u,ele)
-            call calculate_sigma_element(ele, positions, u, sigma_ele, d0_a,dt,d0)
-            print *, "sigma_ele = ", sigma_ele
-            sigma_d0_diag(:,i)=sigma_ele*grav_at_quads(:,i)
+	   call calculate_sigma_element(ele, positions, u, sigma_ngi, d0_a,dt,depth)
+           print *, "sigma_ngi = ", sigma_ngi
+           do i=1, ele_ngi(u,ele)
+            sigma_d0_diag(:,i)=sigma_ngi(i)*grav_at_quads(:,i)
             print *, 'grav_at_quads(:,i)',grav_at_quads(:,i)
             print *, 'sigma_d0_dia(:,i)=', sigma_d0_diag(:,i) 
           end do
