@@ -32,11 +32,22 @@ def get_sizes(panel,xn):
 
     # this deals with the case where nx is not exactly divisible by n
     # by putting an extra node in the first 'extra' partitions in the
-    # x and y dirns:
-    if xn[0] < extra:
-        nxp+=1
-    if xn[1] < extra:
-        nyp+=1
+    # x and y dirns (on panel 0 and corresponding partitions on other panels):
+    
+    if panel<2:
+        if xn[0] < extra:
+            nxp+=1
+    else:
+        if n-xn[0]-1 < extra:
+            nxp+=1
+
+    if panel in [0,1,2,5]:
+        if xn[1] < extra:
+            nyp+=1
+    else:
+        if n-xn[1]-1 < extra:
+            nyp+=1
+
 
     #---------------------------------------------------------------------
     # make sure front and back panels own their edges
@@ -101,16 +112,29 @@ def get_start_coords(panel,xn):
     nxp_base=nx/n
     # this deals with the case where nx is not exactly divisible by n
     # by putting an extra node in the first 'extra' partitions in the
-    # x and y dirns:
+    # x and y dirns (on panel 0 and corresponding partitions on other panels):
     extra=nx%n # extras to add on
-    if xn[0] < extra:
-        xstart[0]=(xn[0]*(nxp_base+1))*dx
+    if panel<2:
+        if xn[0] < extra:
+            xstart[0]=(xn[0]*(nxp_base+1))*dx
+        else:
+            xstart[0]=(extra*(nxp_base+1)+(xn[0]-extra)*nxp_base)*dx
     else:
-        xstart[0]=(extra*(nxp_base+1)+(xn[0]-extra)*nxp_base)*dx
-    if xn[1] < extra:
-        xstart[1]=(xn[1]*(nxp_base+1))*dx
+        if n-xn[0]-1 < extra:
+            xstart[0]=(((n-extra)*nxp_base)+(extra-n+xn[0])*(nxp_base+1))*dx
+        else:
+            xstart[0]=(xn[0]*(nxp_base+1))*dx
+        
+    if panel in [0,1,2,5]:
+        if xn[1] < extra:
+            xstart[1]=(xn[1]*(nxp_base+1))*dx
+        else:
+            xstart[1]=(extra*(nxp_base+1)+(xn[1]-extra)*nxp_base)*dx
     else:
-        xstart[1]=(extra*(nxp_base+1)+(xn[1]-extra)*nxp_base)*dx
+        if n-xn[1]-1 < extra:
+            xstart[1]=(((n-extra)*nxp_base)+(extra-n+xn[1])*(nxp_base+1))*dx
+        else:
+            xstart[1]=(xn[1]*(nxp_base+1))*dx
 
     #---------------------------------------------------------------------
     # make sure front (0) and back (3) panels own their edges - set an offset
