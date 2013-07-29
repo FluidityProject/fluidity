@@ -1891,15 +1891,11 @@
       	 FLExit('The sigma_d0 scheme currently not implemented on the sphere')	 
         else
           do i=1, ele_ngi(u,ele)
-            call calculate_sigma_element(ele, positions, u, sigma_ele, d0_a,dt) 
-            !set a big value for sigma in dry area. sigma= dx^2/(a^2*dt*d0^2). 	Assume the element length is 50m, then the biggest sigma=50*50/(a**2*dt*d0**2)
-            if (depth_at_quads(i)<2*d0) then
-            sigma_ele=50*50/(d0_a**2*dt*d0**2)*(2*d0-depth_at_quads(i))/d0
-            end if
-            !print *, "sigma_ele = ", sigma_ele
+            call calculate_sigma_element(ele, positions, u, sigma_ele, d0_a,dt,d0)
+            print *, "sigma_ele = ", sigma_ele
             sigma_d0_diag(:,i)=sigma_ele*grav_at_quads(:,i)
-            !print *, 'grav_at_quads(:,i)',grav_at_quads(:,i)
-            !print *, 'sigma_d0_dia(:,i)=', sigma_d0_diag(:,i) 
+            print *, 'grav_at_quads(:,i)',grav_at_quads(:,i)
+            print *, 'sigma_d0_dia(:,i)=', sigma_d0_diag(:,i) 
           end do
   
         end if
