@@ -1880,7 +1880,7 @@
             end do
           end if
         end if
-
+	! print *, 'absorption_gi=', absorption_gi
       !Sigma term
       sigma_ngi=0.0
       sigma_d0_diag=0.0
@@ -1891,11 +1891,11 @@
       	 FLExit('The sigma_d0 scheme currently not implemented on the sphere')	 
         else
 	   call calculate_sigma_element(ele, positions, u, sigma_ngi, d0_a,dt,depth)
-           print *, "sigma_ngi = ", sigma_ngi
+          ! print *, "sigma_ngi = ", sigma_ngi
            do i=1, ele_ngi(u,ele)
             sigma_d0_diag(:,i)=sigma_ngi(i)*grav_at_quads(:,i)
-            print *, 'grav_at_quads(:,i)',grav_at_quads(:,i)
-            print *, 'sigma_d0_dia(:,i)=', sigma_d0_diag(:,i) 
+          !  print *, 'grav_at_quads(:,i)',grav_at_quads(:,i)
+         !   print *, 'sigma_d0_dia(:,i)=', sigma_d0_diag(:,i) 
           end do
   
         end if
@@ -1905,6 +1905,8 @@
         if (on_sphere) then
           tensor_absorption_gi=tensor_absorption_gi-vvr_abs-ib_abs
        end if
+      !  print *, 'vvr_abs_diag=',vvr_abs_diag
+       ! print *, 'ib_abs_diag=', ib_abs_diag
        absorption_gi=absorption_gi-vvr_abs_diag-ib_abs_diag-sigma_d0_diag
      
 
