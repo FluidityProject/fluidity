@@ -1365,22 +1365,17 @@ contains
       end if
       
       !Sigma term
-     ! print *, 'absorption_gi=', absorption_gi
       sigma_ngi=0.0
       sigma_d0_diag=0.0
       if(have_wd .and.have_sigma) then
         grav_at_quads=ele_val_at_quad(gravity, ele)
 	depth_at_quads = ele_val_at_quad(depth,ele)
-       ! print *, 'depth_at_quads=',depth_at_quads
       	if (on_sphere) then
       	 FLExit('The sigma_d0 scheme currently not implemented on the sphere')
         else
            call calculate_sigma_element(ele, X, U, sigma_ngi, d0_a,dt,depth)
-          ! print *, 'sigma_ngi', sigma_ngi
            do i=1, ele_ngi(U,ele)
              sigma_d0_diag(:,i)=sigma_ngi(i)*grav_at_quads(:,i)
-            ! print *, 'sigma_d0_diag =', sigma_d0_diag(:,i)
-	   !  print *,  'grav_at_quads=',  grav_at_quads(:,i)
            end do
         end if
      end if
@@ -1389,11 +1384,7 @@ contains
       if (on_sphere) then
         tensor_absorption_gi=tensor_absorption_gi-vvr_abs-ib_abs
       end if
-    !  print *, 'vvr_abs_diag=',vvr_abs_diag
-    !  print *, 'ib_abs_diag=', -ib_abs_diag
       absorption_gi=absorption_gi-vvr_abs_diag-ib_abs_diag-sigma_d0_diag
-    !  print *, 'absorption_gi', absorption_gi
-
       ! If on the sphere then use 'tensor' absorption. Note that using tensor absorption means that, currently,
       ! the absorption cannot be used in the pressure correction. 
       if (on_sphere) then
@@ -1489,7 +1480,7 @@ contains
             if (assemble_element) then
               big_m_diag_addto(dim, :loc) = big_m_diag_addto(dim, :loc) + dt*theta*abs_lump(dim,:)
               if(acceleration) then
-                rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - abs_lump(dim,:)*u_val(dim,:)
+                rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - abs_lump(dim,:)*u_val(dim,:) +abs_lump(dim,:)*u_val(dim,:)
               end if
             end if
             if (present(inverse_masslump) .and. pressure_corrected_absorption) then
@@ -1511,7 +1502,7 @@ contains
               big_m_tensor_addto(dim, dim, :loc, :loc) = big_m_tensor_addto(dim, dim, :loc, :loc) + &
                 & dt*theta*Abs_mat(dim,:,:)
               if(acceleration) then
-                rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat(dim,:,:), u_val(dim,:))
+                rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat(dim,:,:), u_val(dim,:)) +  matmul(Abs_mat(dim,:,:), u_val(dim,:))
               end if
             end if
             if (present(inverse_mass) .and. pressure_corrected_absorption) then

@@ -1208,6 +1208,8 @@
       logical, dimension(u%dim, u%dim) :: block_mask ! control whether the off diagonal entries are used
       integer :: dim, i, j
       type(element_type) :: test_function
+      !Sigma term
+      real, dimension(u%dim, ele_loc(u, ele)) :: u_val
 
       if(move_mesh) then
         ! we've assumed the following in the declarations
@@ -1238,7 +1240,7 @@
       p_shape=>ele_shape(ct_rhs, ele)
 
       oldu_val = ele_val(oldu, ele)
-      
+      u_val = ele_val(u,ele)
       ! Step 1: Transform
 
       ! transform the velocity derivatives into physical space
@@ -1369,7 +1371,7 @@
          call add_absorption_element_cg(x, ele, test_function, u, oldu_val, density, &
                                       absorption, detwei, big_m_diag_addto, big_m_tensor_addto, rhs_addto, &
                                       masslump, mass, depth, gravity, buoyancy, &
-                                      alpha_u_field, abs_wd)
+                                      alpha_u_field, abs_wd, u_val)
          
       
       end if
@@ -1756,7 +1758,7 @@
                                          density, absorption, detwei, &
                                          big_m_diag_addto, big_m_tensor_addto, rhs_addto, &
                                          masslump, mass, depth, gravity, buoyancy, &
-                                         alpha_u_field, abs_wd)
+                                         alpha_u_field, abs_wd, u_val)
       type(vector_field), intent(in) :: positions
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
@@ -1802,7 +1804,7 @@
       real, dimension(ele_ngi(u,ele)) :: alpha_u_quad
       real, dimension(u%dim,ele_ngi(u,ele)) :: sigma_d0_diag
       real, dimension(ele_ngi(u,ele))::sigma_ngi
-      
+      real, dimension(:,:),intent(in) :: u_val
       density_gi=ele_val_at_quad(density, ele)
       absorption_gi=0.0
       tensor_absorption_gi=0.0
@@ -1880,7 +1882,7 @@
             end do
           end if
         end if
-	! print *, 'absorption_gi=', absorption_gi
+	 
       !Sigma term
       sigma_ngi=0.0
       sigma_d0_diag=0.0
@@ -1891,11 +1893,8 @@
       	 FLExit('The sigma_d0 scheme currently not implemented on the sphere')	 
         else
 	   call calculate_sigma_element(ele, positions, u, sigma_ngi, d0_a,dt,depth)
-          ! print *, "sigma_ngi = ", sigma_ngi
            do i=1, ele_ngi(u,ele)
-            sigma_d0_diag(:,i)=sigma_ngi(i)*grav_at_quads(:,i)
-          !  print *, 'grav_at_quads(:,i)',grav_at_quads(:,i)
-         !   print *, 'sigma_d0_dia(:,i)=', sigma_d0_diag(:,i) 
+            sigma_d0_diag(:,i)=sigma_ngi(i)*grav_at_quads(:,i) 
           end do
   
         end if
@@ -1905,8 +1904,6 @@
         if (on_sphere) then
           tensor_absorption_gi=tensor_absorption_gi-vvr_abs-ib_abs
        end if
-      !  print *, 'vvr_abs_diag=',vvr_abs_diag
-       ! print *, 'ib_abs_diag=', ib_abs_diag
        absorption_gi=absorption_gi-vvr_abs_diag-ib_abs_diag-sigma_d0_diag
      
 
@@ -1993,14 +1990,14 @@
             absorption_lump = sum(absorption_mat, 3)
             do dim = 1, u%dim
               big_m_diag_addto(dim, :) = big_m_diag_addto(dim, :) + dt*theta*absorption_lump(dim,:)
-              rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump(dim,:)*oldu_val(dim,:)
+              rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump(dim,:)*oldu_val(dim,:) +absorption_lump(dim,:)*u_val(dim,:)
             end do
           end if
         else
           do dim = 1, u%dim
             big_m_tensor_addto(dim, dim, :, :) = big_m_tensor_addto(dim, dim, :, :) + &
               & dt*theta*absorption_mat(dim,:,:)
-            rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat(dim,:,:), oldu_val(dim,:))
+            rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat(dim,:,:), oldu_val(dim,:)) + matmul(absorption_mat(dim,:,:), u_val(dim,:))
           end do
           absorption_lump = 0.0
         end if

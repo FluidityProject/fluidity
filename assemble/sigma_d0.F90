@@ -42,17 +42,6 @@
       length5 = sqrt((x_ele(2,4)-x_ele(2,2))**2+(x_ele(1,4)-x_ele(1,2))**2)
       length6 = sqrt((x_ele(2,4)-x_ele(2,3))**2+(x_ele(1,4)-x_ele(1,3))**2)
       dx_ele = max(length1,length2,length3,length4,length5,length6)
-
-      do i=1, ele_loc(u,ele)
-        if((945 < x_ele(1,i) .and. x_ele(1,i) < 1000) .and. (4945 < x_ele(2,i) .and. x_ele(2,i) < 5000)) then
-         ! print *, 'dx_flat = ',dx_ele
-         ! print *, 'depth_flat = ', depth_at_quads
-	end if
-        if ((1500 < x_ele(1,i) .and. x_ele(1,i) < 2500) .and. (1500 < x_ele(2,i) .and. x_ele(2,i) < 2500)) then
-         ! print *, 'dx_hump = ',dx_ele
-         ! print *, 'depth_hump = ', depth_at_quads
-        end if
-      end do
      ! sigma = dx_ele**2/(a**2*dt*depth_ele**2).
      do i=1, ele_ngi(u,ele)
         sigma_ngi(i) = dx_ele**2/(d0_a**2*dt*depth_at_quads(i)**2)
