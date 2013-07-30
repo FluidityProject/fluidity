@@ -82,13 +82,8 @@ module momentum_DG
   ! Module private variables for model options. This prevents us having to
   ! do dictionary lookups for every element (or element face!)
   real :: dt, theta
-  logical :: lump_abs, lump_source, subcycle
-  !change for the sigma_d0
-  logical :: lump_mass
-  logical :: assemble_mass_matrix
-  logical :: assemble_inverse_masslump
-  logical :: exclude_mass
-  logical::cmc_lump_mass
+  logical :: lump_mass, lump_abs, lump_source, subcycle
+
   ! Whether the advection term is only integrated by parts once.
   logical :: integrate_by_parts_once=.false.
   ! Whether the conservation term is integrated by parts or not
@@ -387,7 +382,7 @@ contains
     ! If we have vertical velocity relaxation set then grab the required fields
     ! sigma = n_z*g*dt*_rho_o/depth
     have_vertical_velocity_relaxation=have_option(trim(U%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation")
-    if (have_vertical_velocity_relaxation ) then
+    if (have_vertical_velocity_relaxation) then
       call get_option(trim(U%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation/scale_factor", vvr_sf)
     end if
     if (have_vertical_velocity_relaxation .or. have_sigma) then
@@ -707,17 +702,6 @@ contains
      end if
    end if
     
-    exclude_mass = have_option(trim(u%option_path)//&
-          &"/prognostic/spatial_discretisation"//&
-          &"/continuous_galerkin/mass_terms/exclude_mass_terms")
-    cmc_lump_mass = have_option(trim(p%option_path)//&
-          &"/prognostic/scheme"//&
-          &"/use_projection_method/full_schur_complement"//&
-          &"/preconditioner_matrix::LumpedSchurComplement")
-    assemble_inverse_masslump = lump_mass .or. cmc_lump_mass
-    assemble_mass_matrix = have_option(trim(p%option_path)//&
-          &"/prognostic/scheme/use_projection_method"//&
-          &"/full_schur_complement/inner_matrix::FullMassMatrix")
     colour_loop: do clr = 1, size(colours) 
       len = key_count(colours(clr))
       !$OMP DO SCHEDULE(STATIC)
@@ -733,9 +717,9 @@ contains
             & alpha_u_field, Abs_wd, vvr_sf, ib_min_grad, nvfrac, &
             & inverse_mass=inverse_mass, &
             & inverse_masslump=inverse_masslump, &
-            & mass=mass, subcycle_m=subcycle_m)
+            & mass=mass, subcycle_m=subcycle_m, partial_stress=partial_stress)
       end do element_loop
-      !$OMP END DO	
+      !$OMP END DO
 
     end do colour_loop
     !$OMP END PARALLEL
@@ -790,7 +774,7 @@ contains
        &pressure_bc, pressure_bc_type, &
        &turbine_conn_mesh, on_sphere, depth, have_wd_abs, alpha_u_field, Abs_wd, &
        &vvr_sf, ib_min_grad, nvfrac, &
-       &inverse_mass, inverse_masslump, mass, subcycle_m)
+       &inverse_mass, inverse_masslump, mass, subcycle_m, partial_stress)
 
     !!< Construct the momentum equation for discontinuous elements in
     !!< acceleration form.
@@ -859,7 +843,7 @@ contains
     real, dimension(ele_loc(q_mesh,ele), ele_loc(q_mesh,ele)) :: Q_inv 
     real, dimension(U%dim, ele_loc(q_mesh,ele), ele_and_faces_loc(U,ele)) ::&
          & Grad_u_mat_q, Div_u_mat_q 
-    real, dimension(U%dim,ele_and_faces_loc(U,ele),ele_and_faces_loc(U,ele)) ::&
+    real, dimension(U%dim,U%dim,ele_and_faces_loc(U,ele),ele_and_faces_loc(U,ele)) ::&
          & Viscosity_mat
     real, dimension(Viscosity%dim(1), Viscosity%dim(2), &
          & ele_loc(Viscosity,ele)) :: Viscosity_ele
@@ -975,6 +959,10 @@ contains
     real :: turbine_fluxfac
 
     real, dimension(ele_ngi(u,ele)) :: alpha_u_quad
+
+    ! added for partial stress form (sp911)
+    logical, intent(in) :: partial_stress
+    !Sigma term
     real, dimension(u%dim,ele_ngi(u,ele)) :: sigma_d0_diag
     real,dimension(ele_ngi(u,ele)):: sigma_ngi
 
@@ -1166,7 +1154,7 @@ contains
         end if
       end if
     end if
-      
+    
     if(have_coriolis.and.(rhs%dim>1).and.assemble_element) then
       Coriolis_q=coriolis(ele_val_at_quad(X,ele))
     
@@ -1602,13 +1590,13 @@ contains
           do dim = 1, u%dim
              if(multiphase) then
                ! Viscosity matrix is \int{grad(N_A)*viscosity*vfrac*grad(N_B)} for multiphase.
-               Viscosity_mat(dim,:loc,:loc)= &
-                  dshape_tensor_dshape(du_t, ele_val_at_quad(Viscosity,ele), &
-                  &                    du_t, detwei*nvfrac_gi)
+               Viscosity_mat(dim,dim,:loc,:loc) = &
+                    dshape_tensor_dshape(du_t, ele_val_at_quad(Viscosity,ele), &
+                    &                    du_t, detwei*nvfrac_gi)
              else
-               Viscosity_mat(dim,:loc,:loc)= &
-                  dshape_tensor_dshape(du_t, ele_val_at_quad(Viscosity,ele), &
-                  &                    du_t, detwei)
+               Viscosity_mat(dim,dim,:loc,:loc) = &
+                    dshape_tensor_dshape(du_t, ele_val_at_quad(Viscosity,ele), &
+                    &                    du_t, detwei)
              end if
           end do
 
@@ -1994,12 +1982,14 @@ contains
       do dim1=1, Viscosity%dim(1)
          do dim2=1,Viscosity%dim(2)
             do d3 = 1, mesh_dim(U)
+
                ! Div U * G^U * Viscosity * G * Grad U
                ! Where G^U*G = inverse(Q_mass)
-               Viscosity_mat(d3,:,:)=Viscosity_mat(d3,:,:)&
+               Viscosity_mat(d3,d3,:,:)=Viscosity_mat(d3,d3,:,:)&
                   +matmul(matmul(transpose(grad_U_mat_q(dim1,:,:))&
                   &         ,mat_diag_mat(Q_inv, Viscosity_ele(dim1,dim2,:)))&
                   &     ,grad_U_mat_q(dim2,:,:))
+
             end do
          end do
       end do
@@ -2102,7 +2092,7 @@ contains
     type(tensor_field), intent(in), optional :: viscosity
 
     !! Local viscosity matrix for assembly.
-    real, intent(inout), dimension(:,:,:), optional :: viscosity_mat
+    real, intent(inout), dimension(:,:,:,:), optional :: viscosity_mat
 
     ! Matrix for assembling primal fluxes
     ! Note that this assumes same order polys in each element
