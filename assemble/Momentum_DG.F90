@@ -628,12 +628,11 @@ contains
     ! weakdirichlet=1, free_surface=2
     allocate(velocity_bc_type(U%dim, surface_element_count(U)))
     call get_entire_boundary_condition(U, (/ &
-      "weakdirichlet          ", &
-      "free_surface           ", &
-      "no_normal_flow         ", &
-      "turbine_flux_penalty   ", &
-      "turbine_flux_dg        ", &
-      "prescribed_normal_flow "/), velocity_bc, velocity_bc_type)
+      "weakdirichlet       ", &
+      "free_surface        ", &
+      "no_normal_flow      ", &
+      "turbine_flux_penalty", &
+      "turbine_flux_dg     " /), velocity_bc, velocity_bc_type)
 
     ! the turbine connectivity mesh is only needed if one of the boundaries is a turbine.
     if (any(velocity_bc_type==4) .or. any(velocity_bc_type==5)) then
@@ -2109,7 +2108,7 @@ contains
     real, dimension(u%dim, u%dim, face_ngi(u_nl, face)) :: tension_q
     
     integer :: dim, start, finish, floc
-    logical :: boundary, free_surface, no_normal_flow, prescribed_normal_flow, l_have_pressure_bc
+    logical :: boundary, free_surface, no_normal_flow, l_have_pressure_bc
     logical, dimension(U%dim) :: dirichlet
 
     logical :: p0
@@ -2164,7 +2163,6 @@ contains
     dirichlet=.false.
     free_surface=.false.
     no_normal_flow=.false.
-    prescribed_normal_flow=.false.
     l_have_pressure_bc=.false.
     if (boundary) then
        do dim=1,U%dim
@@ -2182,13 +2180,8 @@ contains
           ! advection boundary integral.
           no_normal_flow=.true.
        end if
-       if (velocity_bc_type(1,face)==6) then
-          ! Prescribed normal flow implemented by prescribing u.n
-          prescribed_normal_flow=.true.
-       end if
-
        l_have_pressure_bc = pressure_bc_type(face) > 0
-   end if
+    end if
 
     !----------------------------------------------------------------------
     ! Change of coordinates on face.
@@ -2226,12 +2219,7 @@ contains
         u_f_q = u_f_q - face_val_at_quad(U_mesh, face)
       end if
   
-      if (prescribed_normal_flow) then
-          ! We shoehorn the value in the first dimension of the BC
-          u_nl_q_dotn = face_val_at_quad(velocity_bc,1,face)
-      else
-          u_nl_q_dotn = sum(U_nl_q*normal,1)
-      end if
+      u_nl_q_dotn = sum(U_nl_q*normal,1)
 
       ! Inflow is true if the flow at this gauss point is directed
       ! into this element.
