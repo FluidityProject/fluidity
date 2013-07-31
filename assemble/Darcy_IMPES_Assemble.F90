@@ -88,7 +88,8 @@ module darcy_impes_assemble_module
              darcy_impes_assemble_saturation_rhs_adv, &
              darcy_impes_assemble_and_solve_phase_pressures, &
              darcy_impes_calculate_divergence_total_darcy_velocity, &
-             darcy_impes_calculate_inverse_cv_sa
+             darcy_impes_calculate_inverse_cv_sa, &
+             darcy_impes_MIM_assemble_and_solve_mobile_saturation  !**LCai 27 July 2013
    
    ! Parameters defining Darcy IMPES cached options
    integer, parameter, public :: RELPERM_CORRELATION_POWER                 = 1, &
@@ -194,6 +195,25 @@ module darcy_impes_assemble_module
       type(darcy_impes_cv_options_type) :: sfield_cv_options
    end type darcy_impes_generic_prog_sfield_type
    
+   
+   !***********************************LCai 23 July 2013***********************
+   !the Mobile-Immobile model options
+   type darcy_impes_MIM_options_type
+      type(scalar_field_pointer), dimension(:), pointer :: immobile_saturation
+      type(scalar_field_pointer), dimension(:), pointer :: old_immobile_saturation
+      type(scalar_field_pointer), dimension(:), pointer :: mobile_saturation
+      type(scalar_field_pointer), dimension(:), pointer :: old_mobile_saturation
+      type(scalar_field_pointer), dimension(:), pointer :: mass_trans_coef
+      ! *** Flag for Whether there is Mobile-Immobile model
+      logical, dimension(:), pointer :: have_MIM
+      ! *** Flag to check wether the MIM exist in at least one phase
+      logical :: have_MIM_phase
+      ! *** Flag for Whether there is Mass transfer coefficient
+      logical, dimension(:), pointer :: have_mass_trans_coef
+   end type darcy_impes_MIM_options_type
+   !***********Finish******************LCai 23 July 2013***********************
+   
+   
    type darcy_impes_type
       ! *** Pointers to fields from state that have array length of number of phases ***
       type(vector_field_pointer), dimension(:), pointer :: darcy_velocity
@@ -210,6 +230,7 @@ module darcy_impes_assemble_module
       type(scalar_field_pointer), dimension(:), pointer :: capilliary_pressure
       type(scalar_field_pointer), dimension(:), pointer :: density
       type(scalar_field_pointer), dimension(:), pointer :: old_density
+
       ! *** Pointers to fields from state that are NOT phase dependent ***
       type(mesh_type),    pointer :: pressure_mesh
       type(mesh_type),    pointer :: elementwise_mesh
@@ -297,6 +318,13 @@ module darcy_impes_assemble_module
       logical :: determine_saturation_face_values
       ! *** Data associate with the relperm correlation options ***
       type(darcy_impes_relperm_corr_options_type) :: relperm_corr_options
+      
+      !***********************************LCai 23 & 27 July 2013***********************
+      type (darcy_impes_MIM_options_type) :: MIM_options
+      type(scalar_field)  :: sat_ADE !saturation used for adv-diff equation for solving prog sfield
+	 type(scalar_field)  :: old_sat_ADE 
+      !***********Finish******************LCai 23 & 27 July 2013***********************
+      
       ! *** Flag for each phase for whether there is capilliary pressure ***
       logical, dimension(:), pointer :: have_capilliary_pressure
       ! *** Flag for each phase for whether there is a saturation source ***
@@ -305,6 +333,7 @@ module darcy_impes_assemble_module
       logical :: phase_one_saturation_diagnostic      
       ! *** Flag for whether the first phase pressure is prognostic, else it is prescribed *** 
       logical :: first_phase_pressure_prognostic
+
       ! *** The cached face values for all phases ***
       type(cached_face_value_type) :: cached_face_value
       ! *** The advection subcycle timestep size ***
@@ -2087,6 +2116,12 @@ module darcy_impes_assemble_module
          
       end do sub_loop
       
+      !******************** 27 July 2013 LCai **********************!
+      !Check wether there is MIM model, if true calculate the Mobile saturation
+      if (di%MIM_options%have_MIM_phase) call darcy_impes_MIM_assemble_and_solve_mobile_saturation(di)
+      	
+      !******Finish********* 27 July 2013 LCai **********************!
+      
       ewrite(1,*) 'Finished assemble and solve the saturations for each phase'
             
    end subroutine darcy_impes_assemble_and_solve_phase_saturations
@@ -2473,6 +2508,8 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
       integer :: i
             
       ewrite(1,*) 'Assemble and solve sfield ',trim(di%generic_prog_sfield(f)%sfield%name),' of phase ',p
+      
+	 
 
       ! Get this phase v BC info - only for no_normal_flow and normal_flow which is special as it is a scalar
       call darcy_impes_get_v_boundary_condition(di%darcy_velocity(p)%ptr, &
@@ -2501,6 +2538,23 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
       call zero(di%rhs)
       call zero(di%rhs_full)
       
+      ! **************** 27 July 2013 LCai *******************!
+      call allocate(di%sat_ADE, di%pressure_mesh)
+      call allocate(di%old_sat_ADE, di%pressure_mesh)
+      !check the saturation will be used to calculate the ADE, total saturation OR mobile saturation
+      if (di%MIM_options%have_MIM(p)) then
+          ewrite(1,*) 'Assemble and solve prog sfield, use the mobile saturation of phase', p
+      	call set(di%sat_ADE, di%MIM_options%mobile_saturation(p)%ptr)
+      	call set(di%old_sat_ADE, di%MIM_options%old_mobile_saturation(p)%ptr)
+      else
+      	ewrite(1,*) 'Assemble and solve prog sfield, use the total saturation of phase', p
+      	call set(di%sat_ADE, di%saturation(p)%ptr)
+      	call set(di%old_sat_ADE, di%old_saturation(p)%ptr)
+      end if
+	 ! *******Finish*** 27 July 2013 LCai *******************!
+	 
+	 
+      
       ! Add porosity*saturation(absorption + 1/dt) to lhs 
       if (di%generic_prog_sfield(f)%have_abs) then
          
@@ -2510,12 +2564,12 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
       
       call addto(di%lhs, 1.0/di%dt)            
       call scale(di%lhs, di%cv_mass_pressure_mesh_with_porosity)
-      call scale(di%lhs, di%saturation(p)%ptr)
+      call scale(di%lhs, di%sat_ADE)  ! *****27 July 2013 LCai***change the saturation into pointed one
             
       ! Add old_porosity*old_saturation*old_sfield/dt to rhs      
       call addto(di%rhs, 1.0/di%dt)
       call scale(di%rhs, di%cv_mass_pressure_mesh_with_old_porosity)
-      call scale(di%rhs, di%old_saturation(p)%ptr)
+      call scale(di%rhs, di%old_sat_ADE) ! *****27 July 2013 LCai***change the old saturation into pointed one
       call scale(di%rhs, di%generic_prog_sfield(f)%old_sfield)
       
       ! Add source to rhs   
@@ -2564,6 +2618,11 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
          call set_dirichlet_consistent(di%generic_prog_sfield(f)%sfield) 
       
       end do
+      
+      ! **************** 27 July 2013 LCai *****************!
+      call deallocate(di%sat_ADE) 
+      call deallocate(di%old_sat_ADE)
+       ! ***** Finish*** 27 July 2013 LCai *****************!     
       
       ewrite(1,*) 'Finished assemble and solve sfield ',trim(di%generic_prog_sfield(f)%sfield%name),' of phase ',p
 
@@ -2701,7 +2760,7 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
             porosity_ele = ele_val(di%porosity, vele)
             
             ! get the element values for saturation
-            sat_ele = ele_val(di%saturation(p)%ptr, vele)
+            sat_ele = ele_val(di%sat_ADE, vele)  ! *** 27 July 2013 LCai **change the saturation***!
             
             ! obtain the derivative of the pressure mesh shape function at the CV face quadrature points
             if (di%cached_face_value%cached_p_dshape) then
@@ -5805,5 +5864,37 @@ visc_ele_bdy(1)
   end function darcy_impes_ele_grad_at_quad_scalar
    
 ! ----------------------------------------------------------------------------
+
+! ******************26 July 2013 LCai ****************************************!
+!Slove the mobile saturation if MIM exist
+subroutine darcy_impes_MIM_assemble_and_solve_mobile_saturation(di)
+
+	type(darcy_impes_type), intent(inout) :: di
+	integer :: i
+	type(scalar_field), pointer :: total_sat => null()  !total saturation 
+	type(scalar_field), pointer :: immobile_sat  => null()  ! immobile saturation
+	type(scalar_field)  :: mobile_sat   !mobile saturation
+	
+	call allocate(mobile_sat, di%pressure_mesh)
+	
+	do i= 2, di%number_phase
+
+	  total_sat      => di%saturation(i)%ptr
+	  immobile_sat   => di%MIM_options%immobile_saturation(i)%ptr
+
+	  if (di%MIM_options%have_MIM(i)) then
+	     ewrite(1, *) "calculate the mobile saturation of phase: ", i
+	     call set(mobile_sat, total_sat)
+	     call addto(mobile_sat, immobile_sat, scale=-1.0)
+	     call set(di%MIM_options%mobile_saturation(i)%ptr, mobile_sat)
+	  end if
+	  nullify(immobile_sat, total_sat)
+	  call zero(mobile_sat)
+	end do
+	
+	call deallocate(mobile_sat)
+
+end subroutine darcy_impes_MIM_assemble_and_solve_mobile_saturation
+! *********Finish*** 26 July 2013 LCai ****************************************!
 
 end module darcy_impes_assemble_module

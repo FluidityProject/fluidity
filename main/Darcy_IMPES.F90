@@ -712,8 +712,8 @@ contains
       
       ! Allocate phase flags for special fields
       allocate(di%have_capilliary_pressure(di%number_phase))
-      allocate(di%have_saturation_source(di%number_phase))
-      
+      allocate(di%have_saturation_source(di%number_phase))      
+ 
       ! Pull phase dependent fields from state
       allocate(di%pressure(di%number_phase))
       allocate(di%capilliary_pressure(di%number_phase))
@@ -729,6 +729,18 @@ contains
       allocate(di%fractional_flow(di%number_phase))
       allocate(di%density(di%number_phase))
       allocate(di%old_density(di%number_phase))
+      
+      !*****************************LCai 24 July 2013******************!
+      ! Allocate the MIM model
+      allocate(di%MIM_options%immobile_saturation(di%number_phase))
+      allocate(di%MIM_options%old_immobile_saturation(di%number_phase))
+      allocate(di%MIM_options%mobile_saturation(di%number_phase))
+      allocate(di%MIM_options%old_mobile_saturation(di%number_phase))
+      allocate(di%MIM_options%mass_trans_coef(di%number_phase))
+      !flag of MIM model and mass transfer coefficient
+      allocate(di%MIM_options%have_MIM(di%number_phase))
+      allocate(di%MIM_options%have_mass_trans_coef(di%number_phase))
+      !**********Finish**************LCai 24 July 2013*****************!  
 
       do p = 1,di%number_phase
 
@@ -742,11 +754,51 @@ contains
                di%have_capilliary_pressure    = .false.
                di%capilliary_pressure(p)%ptr  => di%constant_zero_sfield_pmesh
             end if
+            
+           !*****************************LCai 24 July 2013******************!
+	       di%MIM_options%immobile_saturation(p)%ptr  => extract_scalar_field(di%state(p), "ImmobileSaturation", stat = stat)
+	    	  if (stat == 0) then
+               di%MIM_options%have_MIM(p) = .true.
+               di%MIM_options%old_immobile_saturation(p)%ptr  => extract_scalar_field(di%state(p), "OldImmobileSaturation")
+               di%MIM_options%mobile_saturation(p)%ptr        => extract_scalar_field(di%state(p), "MobileSaturation")
+               di%MIM_options%old_mobile_saturation(p)%ptr    => extract_scalar_field(di%state(p), "OldMobileSaturation")
+            else
+               di%MIM_options%have_MIM(p) = .false.
+               di%MIM_options%immobile_saturation(p)%ptr  => di%constant_zero_sfield_pmesh
+               di%MIM_options%mobile_saturation(p)%ptr    => di%constant_zero_sfield_pmesh
+            end if
+           !**********Fisnish**************LCai 24 July 2013*****************!   
+                    
          else
             ! Cannot have capilliary pressure for phase 1 as it is special
             di%have_capilliary_pressure       = .false.
             di%capilliary_pressure(p)%ptr     => di%constant_zero_sfield_pmesh
+            
+            !*****************************LCai 24 July 2013******************!
+             ! Cannot have MIM for phase 1
+             di%MIM_options%have_MIM(p) = .false.
+             di%MIM_options%immobile_saturation(p)%ptr  => di%constant_zero_sfield_pmesh
+             di%MIM_options%mobile_saturation(p)%ptr    => di%constant_zero_sfield_pmesh
+            !*********Finish***************LCai 24 July 2013*****************!
          end if
+         
+         !**********************LCai 25 July 2013****************************!
+         !If the MIM exists, check whether there is mass transfer coefficient
+         if (di%MIM_options%have_MIM(p) ) then
+            di%MIM_options%mass_trans_coef(p)%ptr	=> extract_scalar_field(di%state(p), "MassTransferCoefficient", stat = stat)
+            if (stat == 0) then
+            	di%MIM_options%have_mass_trans_coef(p) = .true.
+            else
+            	di%MIM_options%have_mass_trans_coef(p) = .false.
+            	di%MIM_options%mass_trans_coef(p)%ptr	=> di%constant_zero_sfield_pmesh
+            end if
+         else
+         	  !Cannot have mass transfer coefficient without MIM model
+         	  di%MIM_options%have_mass_trans_coef(p) = .false.
+            di%MIM_options%mass_trans_coef(p)%ptr	=> di%constant_zero_sfield_pmesh  
+         end if
+         !********Finish*********LCai 25 July 2013****************************!
+         	  
          
          di%saturation(p)%ptr                 => extract_scalar_field(di%state(p), "Saturation")
          di%old_saturation(p)%ptr             => extract_scalar_field(di%state(p), "OldSaturation")
@@ -770,6 +822,19 @@ contains
          di%old_density(p)%ptr                => extract_scalar_field(di%state(p), "OldDensity")
          
       end do
+      
+      !**************************26 July 2013 LCai ***************************************!
+      !the flag to check wether the MIM exist in at least one phase
+      di%MIM_options%have_MIM_phase = .false.
+      do p = 1, di%number_phase
+        if (di%MIM_options%have_MIM(p)) then
+           di%MIM_options%have_MIM_phase = .true.
+           exit
+        end if
+      end do 
+      ewrite(1,*) 'if have MIM ', di%MIM_options%have_MIM_phase
+      !*****Finish****************26 July 2013 LCai ***************************************!
+           
       
       ! Determine if the first phase pressure is prognostic, else it is prescribed
       di%first_phase_pressure_prognostic = have_option(trim(di%pressure(1)%ptr%option_path)//'/prognostic')
@@ -1315,6 +1380,13 @@ contains
       ! calculate generic diagnostics - DO NOT ADD 'calculate_diagnostic_variables'
       call calculate_diagnostic_variables_new(di%state)
       
+      !*********************26 July 2013 LCai*****************************!
+      ! calculate the Mobile saturations if MIM is used
+      if (di%MIM_options%have_MIM_phase) call darcy_impes_MIM_assemble_and_solve_mobile_saturation(di)
+      
+      !*******Finish********26 July 2013 LCai*****************************!
+      
+      
       ! Calculate the non first phase pressure's, needs to be after the python fields
       call darcy_impes_calculate_non_first_phase_pressures(di)       
 
@@ -1522,6 +1594,17 @@ contains
       
       deallocate(di%have_capilliary_pressure)
       deallocate(di%have_saturation_source)
+      
+      !*****************************LCai 25 July 2013******************!
+      ! Deallocate the MIM model
+      deallocate(di%MIM_options%immobile_saturation)
+      deallocate(di%MIM_options%old_immobile_saturation)
+      deallocate(di%MIM_options%old_mobile_saturation)
+      deallocate(di%MIM_options%mobile_saturation)
+      deallocate(di%MIM_options%mass_trans_coef)
+      deallocate(di%MIM_options%have_MIM)
+      deallocate(di%MIM_options%have_mass_trans_coef)
+      !**********Finish**************LCai 25 July 2013*****************!
       
       deallocate(di%pressure)
       deallocate(di%capilliary_pressure)

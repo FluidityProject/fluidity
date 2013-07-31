@@ -753,7 +753,9 @@ darcy_impes_other_phase_options =
       
       darcy_impes_fractional_flow_field, 
       
-      darcy_impes_generic_scalar_field*      
+      darcy_impes_generic_scalar_field*,
+     
+      MobileImmobileModel?     
    )
 
 
@@ -2315,3 +2317,62 @@ scalar_convergence_options =
          )
       }
    )
+   
+   
+   MobileImmobileModel =
+	( 
+	  ## The Mobile-Immobile model which divide the total saturation into two regions, 
+	  ## which are the dynamic saturation and the immobile saturation.
+          element MobileImmobileModel {
+					## this is the Immobile Saturation
+		element scalar_field {
+		     attribute rank { "0" },
+		     attribute name {"ImmobileSaturation"},
+		     (
+		     ## Field type
+		     element prescribed {             
+			mesh_choice_pressure,
+			prescribed_scalar_field,
+			darcy_impes_include_cv_stat,
+			darcy_impes_recalculation_options?
+			}|
+		     element diagnostic {
+	                mesh_choice_pressure,
+			scalar_diagnostic_algorithms,
+			darcy_impes_diagnostic_scalar_field,
+			darcy_impes_recalculation_options?
+			}
+		       )
+		      },
+ 		element scalar_field {
+                     attribute rank { "0" },
+                     attribute name {"MobileSaturation"}, 
+		     ## Field type
+		     element diagnostic {
+                        mesh_choice_pressure,
+			darcy_impes_internal_algorithm,
+			darcy_impes_diagnostic_scalar_field,
+			darcy_impes_recalculation_options?
+		        }  
+		      },
+		element scalar_field {
+		     attribute rank { "0" },
+		     attribute name {"MassTransferCoefficient"},
+		     (
+		     ## Field type
+		     element prescribed {                          
+			mesh_choice_pressure,
+                        prescribed_scalar_field,
+                        darcy_impes_include_cv_stat,
+                        darcy_impes_recalculation_options?
+                          }|
+                      element diagnostic {
+                         mesh_choice_pressure,
+                         scalar_diagnostic_algorithms,
+                         darcy_impes_diagnostic_scalar_field,
+                         darcy_impes_recalculation_options?
+                          }
+                         )
+			}?
+                      } 
+	)

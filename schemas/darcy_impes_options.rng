@@ -760,6 +760,9 @@ at the first timestep or not.</a:documentation>
     <zeroOrMore>
       <ref name="darcy_impes_generic_scalar_field"/>
     </zeroOrMore>
+    <optional>
+      <ref name="MobileImmobileModel"/>
+    </optional>
   </define>
   <define name="darcy_impes_first_phase_pressure_field">
     <element name="scalar_field">
@@ -2408,6 +2411,86 @@ enabled) and file (if /io/convergence_file is enabled)</a:documentation>
           <ref name="comment"/>
         </element>
       </choice>
+    </element>
+  </define>
+  <define name="MobileImmobileModel">
+    <element name="MobileImmobileModel">
+      <a:documentation>The Mobile-Immobile model which divide the total saturation into two regions, 
+which are the dynamic saturation and the immobile saturation.</a:documentation>
+      <element name="scalar_field">
+        <a:documentation>this is the Immobile Saturation</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>ImmobileSaturation</value>
+        </attribute>
+        <choice>
+          <element name="prescribed">
+            <a:documentation>Field type</a:documentation>
+            <ref name="mesh_choice_pressure"/>
+            <ref name="prescribed_scalar_field"/>
+            <ref name="darcy_impes_include_cv_stat"/>
+            <optional>
+              <ref name="darcy_impes_recalculation_options"/>
+            </optional>
+          </element>
+          <element name="diagnostic">
+            <ref name="mesh_choice_pressure"/>
+            <ref name="scalar_diagnostic_algorithms"/>
+            <ref name="darcy_impes_diagnostic_scalar_field"/>
+            <optional>
+              <ref name="darcy_impes_recalculation_options"/>
+            </optional>
+          </element>
+        </choice>
+      </element>
+      <element name="scalar_field">
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>MobileSaturation</value>
+        </attribute>
+        <element name="diagnostic">
+          <a:documentation>Field type</a:documentation>
+          <ref name="mesh_choice_pressure"/>
+          <ref name="darcy_impes_internal_algorithm"/>
+          <ref name="darcy_impes_diagnostic_scalar_field"/>
+          <optional>
+            <ref name="darcy_impes_recalculation_options"/>
+          </optional>
+        </element>
+      </element>
+      <optional>
+        <element name="scalar_field">
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <attribute name="name">
+            <value>MassTransferCoefficient</value>
+          </attribute>
+          <choice>
+            <element name="prescribed">
+              <a:documentation>Field type</a:documentation>
+              <ref name="mesh_choice_pressure"/>
+              <ref name="prescribed_scalar_field"/>
+              <ref name="darcy_impes_include_cv_stat"/>
+              <optional>
+                <ref name="darcy_impes_recalculation_options"/>
+              </optional>
+            </element>
+            <element name="diagnostic">
+              <ref name="mesh_choice_pressure"/>
+              <ref name="scalar_diagnostic_algorithms"/>
+              <ref name="darcy_impes_diagnostic_scalar_field"/>
+              <optional>
+                <ref name="darcy_impes_recalculation_options"/>
+              </optional>
+            </element>
+          </choice>
+        </element>
+      </optional>
     </element>
   </define>
 </grammar>

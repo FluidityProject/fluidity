@@ -1349,6 +1349,15 @@ contains
        if (have_option(trim(state_path)//"/sediment")) then 
           call allocate_and_insert_sediment(state_path, state)
        end if
+       
+       
+       !************LCai 24 July 2013**********************!
+	  !The Mobile-Immobile model
+	  if (have_option(trim(state_path)//"/MobileImmobileModel")) then 
+       	call allocate_and_insert_MIM(state_path, state)
+	  end if
+	  !************LCai 24 July 2013**********************!
+	  
 
     end subroutine allocate_and_insert_one_phase
 
@@ -1388,6 +1397,36 @@ contains
         end do sediment_class_loop
 
     end subroutine allocate_and_insert_sediment
+    
+    !************LCai 24 July 2013 Allocate all the Mobile_Immbobile fields*******!
+    !Allocate the Mobile-Immboile Saturations
+    Subroutine allocate_and_insert_MIM(state_path, state)
+    character(len=*), intent(in) :: state_path
+    type(state_type), intent(inout) :: state
+    character(len=OPTION_PATH_LEN) :: path
+    character(len=OPTION_PATH_LEN) :: field_name
+    integer :: nfields ! number of fields
+    integer :: j
+  
+    ! Get number of scalar fields that are children of MIM
+    nfields=option_count(trim(state_path)//"/scalar_field")
+    ! Loop over the scalar fields
+    scalar_field_loop: do j=0, nfields-1
+  
+  	  !save path
+  	  path=trim(state_path)//"/scalar_field["//int2str(j)//"]"
+  	  ! Get Field name
+  	  call get_option(trim(path)//"/name", field_name)
+  	  ! Reset path to have field name rather than index
+  	  path=trim(state_path)//"/scalar_field::"//trim(field_name)
+  	  call allocate_and_insert_scalar_field(trim(path), state, field_name=field_name, &
+  		dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+  		
+      end do scalar_field_loop
+    
+    end Subroutine allocate_and_insert_MIM
+    !****Finish***LCai 24 July 2013 Allocate all the Mobile_Immbobile fields*******!
+    
 
     subroutine allocate_and_insert_irradiance(state)
       ! Allocate irradiance fields for 36 wavebands in PAR
