@@ -1662,7 +1662,7 @@ contains
     integer :: face_ngi
     type(vector_field),intent(in) :: field
     integer, intent(in) :: face_number
-   
+    
     face_ngi=field%mesh%faces%shape%ngi
     
   end function face_ngi_vector
