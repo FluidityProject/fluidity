@@ -452,6 +452,17 @@ contains
              call deallocate(scalar_surface_field)
           end if
 
+       case ("prescribed_normal_flow")
+
+          ! Just add to the first dimension
+          call add_boundary_condition(field, trim(bc_name), trim(bc_type),&
+               & surface_ids, applies=(/ .true., .false., .false. /) , option_path=bc_path_i)
+          deallocate(surface_ids)
+          call get_boundary_condition(field, i+1, surface_mesh=surface_mesh)
+          call allocate(surface_field, field%dim, surface_mesh, name="value")
+          call insert_surface_field(field, i+1, surface_field)
+          call deallocate(surface_field)
+
        case ("bulk_formulae")
 
           ! The bulk_formulae type is actually a wind forcing on velocity...
@@ -463,7 +474,7 @@ contains
           call insert_surface_field(field, i+1, surface_field)
           call deallocate(surface_field)
           
-       case ("free_surface", "no_normal_flow", "prescribed_normal_flow")
+       case ("free_surface", "no_normal_flow")
 
           ! these are marked as applying in the 1st direction only
           ! so they could potentially be combined with rotated bcs
@@ -1076,7 +1087,9 @@ contains
           call get_boundary_condition(field, i+1, surface_mesh=surface_mesh, &
                surface_element_list=surface_element_list)
           surface_field => extract_surface_field(field, bc_name, name="value")
-          bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list)             
+          bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list) 
+          surface_field_component=extract_scalar_field(surface_field, 1)
+          
           if (have_option(trim(bc_path_i)//"/from_field")) then
              ! The parent field contains the boundary values that you want to apply to surface_field.
              call get_option(trim(bc_component_path)//"/from_field/parent_field_name", parent_field_name)
@@ -1096,7 +1109,7 @@ contains
                    call remap_field_to_surface(vector_parent_field_component, surface_field_component, surface_element_list, stat)
                 end if
              else
-                ! Apply the scalar field to the j-th component of surface_field.
+                ! Apply the scalar field to the 1st component of surface_field.
                 call remap_field_to_surface(scalar_parent_field, surface_field_component, surface_element_list, stat)
              end if                    
 
