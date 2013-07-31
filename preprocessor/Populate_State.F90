@@ -1353,7 +1353,7 @@ contains
        
        !************LCai 24 July 2013**********************!
 	  !The Mobile-Immobile model
-	  if (have_option(trim(state_path)//"/MobileImmobileModel")) then 
+	  if (have_option(trim(state_path)//"/MobileImmobileModel")) then   	
        	call allocate_and_insert_MIM(state_path, state)
 	  end if
 	  !************LCai 24 July 2013**********************!
@@ -1408,17 +1408,22 @@ contains
     integer :: nfields ! number of fields
     integer :: j
   
+    !local variable
+    character(len=OPTION_PATH_LEN) :: state_path_MIM
+  
     ! Get number of scalar fields that are children of MIM
-    nfields=option_count(trim(state_path)//"/scalar_field")
+    state_path_MIM=trim(state_path)//"/MobileImmobileModel"
+    nfields=option_count(trim(state_path_MIM)//"/scalar_field")
+
     ! Loop over the scalar fields
     scalar_field_loop: do j=0, nfields-1
   
   	  !save path
-  	  path=trim(state_path)//"/scalar_field["//int2str(j)//"]"
+  	  path=trim(state_path_MIM)//"/scalar_field["//int2str(j)//"]"
   	  ! Get Field name
   	  call get_option(trim(path)//"/name", field_name)
   	  ! Reset path to have field name rather than index
-  	  path=trim(state_path)//"/scalar_field::"//trim(field_name)
+  	  path=trim(state_path_MIM)//"/scalar_field::"//trim(field_name)
   	  call allocate_and_insert_scalar_field(trim(path), state, field_name=field_name, &
   		dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
   		
