@@ -300,10 +300,11 @@ module divergence_matrix_cg
         assert(surface_element_count(test_mesh)==surface_element_count(field))
         allocate(field_bc_type(field%dim, surface_element_count(field)))
         call get_entire_boundary_condition(field, (/ &
-          "weakdirichlet ", &
-          "no_normal_flow", &
-          "internal      ", &
-          "free_surface  "/), field_bc, field_bc_type)
+          "weakdirichlet          ", &
+          "no_normal_flow         ", &
+          "internal               ", &
+          "free_surface           ", &
+          "prescribed_normal_flow "/), field_bc, field_bc_type)
 
         do sele = 1, surface_element_count(test_mesh)
 
@@ -327,18 +328,24 @@ module divergence_matrix_cg
             ele_mat_bdy = shape_shape_vector(test_shape, field_shape, detwei_bdy, normal_bdy)
           end if
 
-          do dim = 1, field%dim
-            if((field_bc_type(dim, sele)==1).and.present(ct_rhs)) then
-              call addto(ct_rhs, test_nodes_bdy, &
-                          -matmul(ele_mat_bdy(dim,:,:), &
-                          ele_val(field_bc, dim, sele)))
-            else
-               if (l_get_ct) then
-                  call addto(ct_m, 1, dim, test_nodes_bdy, field_nodes_bdy, &
-                       ele_mat_bdy(dim,:,:))
-               end if
-            end if
-          end do
+          if (any(field_bc_type(:,sele)==5).and.present(ct_rhs)) then
+                  call addto(ct_rhs, test_nodes_bdy, &
+                              -matmul(ele_mat_bdy(1,:,:), &
+                              ele_val(field_bc, 1, sele)))
+          else
+              do dim = 1, field%dim
+                if((field_bc_type(dim, sele)==1).and.present(ct_rhs)) then
+                  call addto(ct_rhs, test_nodes_bdy, &
+                              -matmul(ele_mat_bdy(dim,:,:), &
+                              ele_val(field_bc, dim, sele)))
+                else
+                   if (l_get_ct) then
+                      call addto(ct_m, 1, dim, test_nodes_bdy, field_nodes_bdy, &
+                           ele_mat_bdy(dim,:,:))
+                   end if
+                end if
+              end do
+          end if
 
         end do
 

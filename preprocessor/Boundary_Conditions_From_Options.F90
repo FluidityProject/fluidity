@@ -1117,7 +1117,7 @@ contains
              call initialise_field(surface_field_component, bc_path_i, bc_position, &
                       time=time)
           end if
-
+          call deallocate(bc_position)
 
        case("wind_forcing")
 
