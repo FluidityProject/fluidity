@@ -1,0 +1,74 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>darcy_transport_immobile_mobile_1D_test</name>
+  <owner userid="LCai"/>
+  <tags>diml immobile-mobile</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>make input;
+darcy_impes  -v2 -l darcy_impes_MIM_1D_test.diml;
+cd ./src ;
+./py_script;
+cd ../ ;<comment>save the plot</comment></command_line>
+  </problem_definition>
+  <variables>
+    <variable name="solvers_converged" language="python">import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files</variable>
+    <variable name="Exp_data" language="python">import numpy
+f=file('./src/RTD_ex.csv','r')
+RTD2=[]
+for row in f:
+        RTD2.append(float(row))
+
+ft=file('./src/RTD_tim.csv','r')
+t2=[]
+for row2 in ft:
+        t2.append(float(row2))
+
+lt=len(t2)-1
+Int_exp=0.0
+
+for i in range(lt):
+        Int_exp+=(t2[i+1]-t2[i])*(RTD2[i+1]+RTD2[i])/2
+
+Exp_data={'Intexp':Int_exp, 'Finexp':RTD2[-1]}<comment>!data from experiment, the integration of its RTD, and the RTD at the final time step
+!extract the data from excel
+!numerical integration by Trapezoidal rule</comment></variable>
+    <variable name="Mdl_data" language="python">import fluidity.diagnostics.fluiditytools as fluidity_tools
+import numpy
+vt = fluidity_tools.stat_parser('./darcy_impes_MIM_1D_test.stat')
+cd = vt['Phase2']['C_d']['integral']
+cs = vt['Phase2']['C_s']['integral']
+prt=vt['Phase1']['Porosity'][u'max']
+msat=vt['Phase2']['MobileSaturation'][u'max']
+isat=vt['Phase2']['ImmobileSaturation'][u'max']
+theta_s=prt*isat
+theta_d=prt*msat
+c = theta_d*cd + theta_s*cs
+c[0] = c[1]
+rtd = 1-c/c[0] 
+#Inumerical integration by Trapezoidal rule
+dth=vt['dt'][u'value'][0]/2
+lt=len(rtd)-1
+Int_model=dth*(rtd[0]+2*sum(rtd[1:lt])+rtd[lt])
+
+Mdl_data={'Intmdl':Int_model, 'Finmdl':rtd[-1],'min':min(rtd),'max':max(rtd)}<comment>!data from model, the integration of its RTD, and the RTD at the final time step
+!extract the data from excel
+!numerical integration by Trapezoidal rule</comment></variable>
+  </variables>
+  <pass_tests>
+    <test name="Solvers_converged" language="python">assert(solvers_converged)</test>
+    <test name="Bound" language="python">import fluidity_tools
+fluidity_tools.compare_variable(0.0,Mdl_data['min'], 0.01)
+fluidity_tools.compare_variable(1.0, Mdl_data['max'], 0.1)<comment>!bound in 0 to 1</comment></test>
+    <test name="Integration_error" language="python">IntErr=abs(Exp_data['Intexp']-Mdl_data['Intmdl'])
+assert(abs(IntErr-36.721591)&lt; 0.1)</test>
+    <test name="absolute_error_final_step" language="python">FinErr=abs(Exp_data['Finexp']-Mdl_data['Finmdl'])
+assert(abs(FinErr-0.009701)&lt; 0.001)</test>
+  </pass_tests>
+  <comment>This is the test cases for the Mobile-immobile model. The mobile-immobile model is turned on, and the mass transfer term is turned on.
+
+The source term in the transport equation of mobile field is calculated by python script.
+
+The transport of the immobile field is calculated by python script.</comment>
+</testproblem>
