@@ -2052,7 +2052,11 @@
             absorption_lump = sum(absorption_mat, 3)
             do dim = 1, u%dim
               big_m_diag_addto(dim, :) = big_m_diag_addto(dim, :) + dt*theta*absorption_lump(dim,:)
-              rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump(dim,:)*oldu_val(dim,:) +absorption_lump(dim,:)*u_val(dim,:)
+              if (have_sigma) then
+                rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump(dim,:)*oldu_val(dim,:) +absorption_lump(dim,:)*u_val(dim,:)
+              else
+                rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump(dim,:)*oldu_val(dim,:)
+              end if
               !print *, 'u_val(dim,:)',u_val(dim,:)
               !print *, 'rhs_addto(dim, :)',rhs_addto(dim, :)
             end do
@@ -2061,9 +2065,13 @@
           do dim = 1, u%dim
             big_m_tensor_addto(dim, dim, :, :) = big_m_tensor_addto(dim, dim, :, :) + &
               & dt*theta*absorption_mat(dim,:,:)
-            rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat(dim,:,:), oldu_val(dim,:)) + matmul(absorption_mat(dim,:,:), u_val(dim,:))
-           ! print *, 'u_val(dim,:)',u_val(dim,:)
-           !   print *, 'rhs_addto(dim, :)',rhs_addto(dim, :)
+            if (have_sigma) then
+              rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat(dim,:,:), oldu_val(dim,:)) + matmul(absorption_mat(dim,:,:), u_val(dim,:))
+            else
+              rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat(dim,:,:), oldu_val(dim,:))
+            end if
+            !print *, 'u_val(dim,:)',u_val(dim,:)
+            !print *, 'rhs_addto(dim, :)',rhs_addto(dim, :)
           end do
           absorption_lump = 0.0
         end if

@@ -1519,7 +1519,13 @@ contains
             if (assemble_element) then
               big_m_diag_addto(dim, :loc) = big_m_diag_addto(dim, :loc) + dt*theta*abs_lump(dim,:)
               if(acceleration) then
-                rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - abs_lump(dim,:)*u_val(dim,:) +abs_lump(dim,:)*u_val(dim,:)
+                if (have_sigma) then
+                  rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - abs_lump(dim,:)*u_val(dim,:) +abs_lump(dim,:)*u_val(dim,:)
+                else
+                  rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - abs_lump(dim,:)*u_val(dim,:)
+                end if
+               !print *, 'u_val(dim,:)',u_val(dim,:)
+               !print *, 'rhs_addto(dim, :loc)',rhs_addto(dim, :loc)
               end if
             end if
             if (present(inverse_masslump) .and. pressure_corrected_absorption) then
@@ -1541,7 +1547,13 @@ contains
               big_m_tensor_addto(dim, dim, :loc, :loc) = big_m_tensor_addto(dim, dim, :loc, :loc) + &
                 & dt*theta*Abs_mat(dim,:,:)
               if(acceleration) then
-                rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat(dim,:,:), u_val(dim,:)) +  matmul(Abs_mat(dim,:,:), u_val(dim,:))
+                if(have_sigma) then
+                   rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat(dim,:,:), u_val(dim,:)) +  matmul(Abs_mat(dim,:,:), u_val(dim,:))
+                else
+                   rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat(dim,:,:), u_val(dim,:))
+                end if
+               !print *, 'u_val(dim,:)',u_val(dim,:)
+               !print *, 'rhs_addto(dim, :loc)',rhs_addto(dim, :loc)
               end if
             end if
             if (present(inverse_mass) .and. pressure_corrected_absorption) then
