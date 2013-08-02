@@ -1089,10 +1089,10 @@ contains
           surface_field => extract_surface_field(field, bc_name, name="value")
           bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list) 
           surface_field_component=extract_scalar_field(surface_field, 1)
-          
+
           if (have_option(trim(bc_path_i)//"/from_field")) then
              ! The parent field contains the boundary values that you want to apply to surface_field.
-             call get_option(trim(bc_component_path)//"/from_field/parent_field_name", parent_field_name)
+             call get_option(trim(bc_path_i)//"/from_field/parent_field_name", parent_field_name)
 
              ! Is the parent field a scalar field? Let's check using 'stat'...
              scalar_parent_field => extract_scalar_field(state, parent_field_name, stat)
