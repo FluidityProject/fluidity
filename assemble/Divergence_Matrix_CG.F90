@@ -328,24 +328,22 @@ module divergence_matrix_cg
             ele_mat_bdy = shape_shape_vector(test_shape, field_shape, detwei_bdy, normal_bdy)
           end if
 
-          if (any(field_bc_type(:,sele)==5).and.present(ct_rhs)) then
-                  call addto(ct_rhs, test_nodes_bdy, &
-                              -matmul(ele_mat_bdy(1,:,:), &
-                              ele_val(field_bc, 1, sele)))
-          else
-              do dim = 1, field%dim
-                if((field_bc_type(dim, sele)==1).and.present(ct_rhs)) then
-                  call addto(ct_rhs, test_nodes_bdy, &
-                              -matmul(ele_mat_bdy(dim,:,:), &
-                              ele_val(field_bc, dim, sele)))
-                else
-                   if (l_get_ct) then
-                      call addto(ct_m, 1, dim, test_nodes_bdy, field_nodes_bdy, &
-                           ele_mat_bdy(dim,:,:))
-                   end if
-                end if
-              end do
-          end if
+          do dim = 1, field%dim
+            if((field_bc_type(dim, sele)==1).and.present(ct_rhs)) then
+              call addto(ct_rhs, test_nodes_bdy, &
+                          -matmul(ele_mat_bdy(dim,:,:), &
+                          ele_val(field_bc, dim, sele)))
+            elseif (any(field_bc_type(:,sele)==5).and.present(ct_rhs)) then
+                call addto(ct_rhs, test_nodes_bdy, &
+                          -matmul(ele_mat_bdy(dim,:,:), &
+                          (normal_bdy(dim,1)*normal_bdy(dim,1))*ele_val(field_bc, 1, sele)))
+            else
+               if (l_get_ct) then
+                  call addto(ct_m, 1, dim, test_nodes_bdy, field_nodes_bdy, &
+                       ele_mat_bdy(dim,:,:))
+               end if
+            end if
+          end do
 
         end do
 
