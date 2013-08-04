@@ -334,9 +334,13 @@ module divergence_matrix_cg
                           -matmul(ele_mat_bdy(dim,:,:), &
                           ele_val(field_bc, dim, sele)))
             elseif (any(field_bc_type(:,sele)==5).and.present(ct_rhs)) then
-                call addto(ct_rhs, test_nodes_bdy, &
+                if (.not.any(abs(ele_val(field_bc, 1, sele)).lt.1e-10)) then
+                    ! Only add if there's something to add - we get a
+                    ! no_normal_flow BC when there's nothing to add
+                    call addto(ct_rhs, test_nodes_bdy, &
                           -matmul(ele_mat_bdy(dim,:,:), &
                           (normal_bdy(dim,1)*normal_bdy(dim,1))*ele_val(field_bc, 1, sele)))
+                end if
             else
                if (l_get_ct) then
                   call addto(ct_m, 1, dim, test_nodes_bdy, field_nodes_bdy, &
