@@ -965,6 +965,8 @@ contains
     !Sigma term
     real, dimension(u%dim,ele_ngi(u,ele)) :: sigma_d0_diag
     real,dimension(ele_ngi(u,ele)):: sigma_ngi
+    !When you switch on Sigma_d0 term, do you want to add sigma*tildeu to the RHS?
+    logical :: tildeu
 
     dg=continuity(U)<0
     p0=(element_degree(u,ele)==0)
@@ -1400,12 +1402,13 @@ contains
      
       end if
       
-      !Sigma term
-      sigma_ngi=0.0
-      sigma_d0_diag=0.0
       if(have_wd .and.have_sigma) then
         grav_at_quads=ele_val_at_quad(gravity, ele)
 	depth_at_quads = ele_val_at_quad(depth,ele)
+	 !Sigma term
+        sigma_ngi=0.0
+        sigma_d0_diag=0.0
+        tildeu = have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/add_sigma_tildeu_to_RHS")
       	if (on_sphere) then
       	 FLExit('The sigma_d0 scheme currently not implemented on the sphere')
         else
@@ -1519,7 +1522,7 @@ contains
             if (assemble_element) then
               big_m_diag_addto(dim, :loc) = big_m_diag_addto(dim, :loc) + dt*theta*abs_lump(dim,:)
               if(acceleration) then
-                if (have_sigma) then
+                if (have_sigma .and. tildeu) then
                   rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - abs_lump(dim,:)*u_val(dim,:) +abs_lump(dim,:)*u_val(dim,:)
                 else
                   rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - abs_lump(dim,:)*u_val(dim,:)
@@ -1547,7 +1550,7 @@ contains
               big_m_tensor_addto(dim, dim, :loc, :loc) = big_m_tensor_addto(dim, dim, :loc, :loc) + &
                 & dt*theta*Abs_mat(dim,:,:)
               if(acceleration) then
-                if(have_sigma) then
+                if(have_sigma .and. tildeu) then
                    rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat(dim,:,:), u_val(dim,:)) +  matmul(Abs_mat(dim,:,:), u_val(dim,:))
                 else
                    rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat(dim,:,:), u_val(dim,:))

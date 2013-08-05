@@ -1862,6 +1862,8 @@
       real, dimension(u%dim,ele_ngi(u,ele)) :: sigma_d0_diag
       real, dimension(ele_ngi(u,ele))::sigma_ngi
       real, dimension(:,:),intent(in) :: u_val
+      !When you switch on Sigma_d0 term, do you want to add sigma*tildeu to the RHS?
+      logical :: tildeu
       density_gi=ele_val_at_quad(density, ele)
       absorption_gi=0.0
       tensor_absorption_gi=0.0
@@ -1940,14 +1942,16 @@
           end if
         end if
 	 
-      !Sigma term
-      sigma_ngi=0.0
-      sigma_d0_diag=0.0
-      grav_at_quads=ele_val_at_quad(gravity, ele)
-      depth_at_quads=ele_val_at_quad(depth, ele)
+     
+      if(have_sigma) then
+         !Sigma term
+        sigma_ngi=0.0
+        sigma_d0_diag=0.0
+        grav_at_quads=ele_val_at_quad(gravity, ele)
+        depth_at_quads=ele_val_at_quad(depth, ele)
+        tildeu = have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/add_sigma_tildeu_to_RHS")
       !print *, 'depth_at_quads',depth_at_quads
       !print *, 'grav_at_quads',grav_at_quads
-      if(have_sigma) then
       	if (on_sphere) then
       	 FLExit('The sigma_d0 scheme currently not implemented on the sphere')	 
         else
@@ -2052,7 +2056,7 @@
             absorption_lump = sum(absorption_mat, 3)
             do dim = 1, u%dim
               big_m_diag_addto(dim, :) = big_m_diag_addto(dim, :) + dt*theta*absorption_lump(dim,:)
-              if (have_sigma) then
+              if (have_sigma .and. tildeu) then
                 rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump(dim,:)*oldu_val(dim,:) +absorption_lump(dim,:)*u_val(dim,:)
               else
                 rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump(dim,:)*oldu_val(dim,:)
@@ -2065,7 +2069,7 @@
           do dim = 1, u%dim
             big_m_tensor_addto(dim, dim, :, :) = big_m_tensor_addto(dim, dim, :, :) + &
               & dt*theta*absorption_mat(dim,:,:)
-            if (have_sigma) then
+            if (have_sigma .and. tildeu) then
               rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat(dim,:,:), oldu_val(dim,:)) + matmul(absorption_mat(dim,:,:), u_val(dim,:))
             else
               rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat(dim,:,:), oldu_val(dim,:))
