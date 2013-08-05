@@ -1,4 +1,4 @@
-edgeLength = 1.0/201.0;
+edgeLength = 1.0/26.0;
 
 Point(1) = {0.0, 0.0, 0.0, 1};
 
@@ -10,8 +10,8 @@ Extrude {0.0, 1.0, 0.0} {
   Line{1}; Layers{1.0/edgeLength};
 }
 
-Physical Line(1) = {1};  //reentrainment
-Physical Line(2) = {2};  //lid
-Physical Line(3) = {3};  //in
-Physical Line(4) = {4};  //out
+Physical Line(1) = {1}; 
+Physical Line(2) = {2};  
+Physical Line(3) = {3};  
+Physical Line(4) = {4};  
 Physical Surface(6) = {5};

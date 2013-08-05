@@ -307,10 +307,10 @@ contains
     type(scalar_field), dimension(:), allocatable :: r_abscissa, r_weight
     type(tensor_field), pointer :: D
     type(vector_field), pointer :: X
-    real :: theta, cond, growth_r, internal_dispersion_coeff, aggregation_freq_const, breakage_freq_const, breakage_freq_degree
+    real :: theta, cond, growth_r, internal_dispersion_coeff, aggregation_freq_const, breakage_freq_const, breakage_freq_degree, perturb_val
     integer :: i_pop, N, i, j, stat
     character(len=OPTION_PATH_LEN) :: option_path 
-    character(len=FIELD_NAME_LEN) :: type, field_name, growth_type, aggregation_freq_type, breakage_freq_type, breakage_dist_type
+    character(len=FIELD_NAME_LEN) :: type, field_name, growth_type, aggregation_freq_type, breakage_freq_type, breakage_dist_type, singular_option
     logical :: have_D = .false.
     logical :: have_growth = .FALSE.
     logical :: have_internal_dispersion = .FALSE.
@@ -418,6 +418,14 @@ contains
 
     ! get ill-conditioned matrix settings
     call get_option(trim(option_path)//'/ill_conditioned_matrices/required_condition_number', cond)
+    if (have_option(trim(option_path)//'/ill_conditioned_matrices/set_source_to_zero')) then
+       singular_option = 'set_source_to_zero';
+    else if (have_option(trim(option_path)//'/ill_conditioned_matrices/perturbate')) then 
+       singular_option = 'perturbate';
+       call get_option(trim(option_path)//'/ill_conditioned_matrices/perturbate/perturbation', perturb_val)
+!    else if (have_option(trim(option_path)//'/ill_conditioned_matrices/average_surrounding_nodes')) then        
+!       singular_option = 'average_surrounding_nodes';
+    end if
 
     X => extract_vector_field(state, 'Coordinate')
     ! assembly loop
@@ -425,7 +433,7 @@ contains
        call dqmom_calculate_source_term_ele(r_abscissa, r_weight, s_weighted_abscissa, s_weight, &
                 &D, have_D, have_growth, growth_type, growth_r, have_internal_dispersion, internal_dispersion_coeff, &
                 &have_aggregation, aggregation_freq_type, aggregation_freq_const, &
-                &have_breakage, breakage_freq_type, breakage_freq_const, breakage_freq_degree, breakage_dist_type, X, cond, i)       
+                &have_breakage, breakage_freq_type, breakage_freq_const, breakage_freq_degree, breakage_dist_type, X, singular_option, perturb_val, cond, i)       
     end do
 
     ! for non-DG we apply inverse mass globally
@@ -468,16 +476,16 @@ contains
   subroutine dqmom_calculate_source_term_ele(abscissa, weight, s_weighted_abscissa, s_weight, &
                  &D, have_D, have_growth, growth_type, growth_r, have_internal_dispersion, internal_dispersion_coeff, &
                  &have_aggregation, aggregation_freq_type, aggregation_freq_const, &
-                 &have_breakage, breakage_freq_type, breakage_freq_const, breakage_freq_degree, breakage_dist_type, X, cond, ele)
+                 &have_breakage, breakage_freq_type, breakage_freq_const, breakage_freq_degree, breakage_dist_type, X, singular_option, perturb_val, cond, ele)
 
     type(scalar_field), dimension(:), intent(in) :: abscissa, weight
     type(scalar_field_pointer), dimension(:), intent(inout) :: s_weighted_abscissa, s_weight
     type(tensor_field), pointer, intent(in) :: D
     type(vector_field), pointer, intent(in) :: X
     integer, intent(in) :: ele
-    real, intent(in) :: cond, growth_r, internal_dispersion_coeff, aggregation_freq_const, breakage_freq_const, breakage_freq_degree
+    real, intent(in) :: cond, growth_r, internal_dispersion_coeff, aggregation_freq_const, breakage_freq_const, breakage_freq_degree, perturb_val
     logical, intent(in) :: have_D, have_growth, have_internal_dispersion, have_aggregation, have_breakage
-    character(len=FIELD_NAME_LEN), intent(in) :: growth_type, aggregation_freq_type, breakage_freq_type, breakage_dist_type
+    character(len=FIELD_NAME_LEN), intent(in) :: growth_type, aggregation_freq_type, breakage_freq_type, breakage_dist_type, singular_option
 
     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)) :: abscissa_val_at_quad
     real, dimension(ele_ngi(abscissa(1), ele), size(abscissa)*2, size(abscissa)*2) :: A
@@ -520,62 +528,6 @@ contains
 !!       print*, "abscissa = ", abscissa_val_at_quad(1,i)
     end do
     A = A_matrix(abscissa_val_at_quad)
-
-
-
-!    perturb(1) = 0.00
-!    perturb(2) = 0.01
-!    perturb(3) = -0.01
-
-
-    ! check for ill-conditioned matrices
-    do i = 1, ele_ngi(abscissa(1), ele)
-       call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
-!!       print*, "condition number=", (SV(size(SV))/SV(1))
-       if (SV(size(SV))/SV(1) < cond) then
-         print*, "SINGULAR MATRIX"
-       end if
-!!       p_num = 1
-
-
-!!       do j = 1, N
-!!          absc_init(j) = abscissa_val_at_quad(i,j)
-!!       end do
-
-!!       do while (SV(size(SV))/SV(1) < cond)
-!          call get_option("/timestepping/current_time", curr_time)   ! get the current simulation time
-          !! a better check for the first timestep instead of small value of the current time
- !         if (curr_time < 1e-7) then   ! this block perturbates the abscissas in A matrix if current time is 0
-!!             print*, "perturbing %g \n", p_num
-!!             do j = 1, N
-                !! perturbation coefficient should be taken from diamond options with a check for default value
-!!                call random_number(perturb(1))
-!!                abscissa_val_at_quad(i,j) = absc_init(j) + perturb(1)
-!                abscissa_val_at_quad(:,j) = abscissa_val_at_quad(:,j) + (2-j)*(0.1) 
-!!                print*, "abscissa", j, " = ", abscissa_val_at_quad(i,j)
-!!             end do
-!!             A = A_matrix(abscissa_val_at_quad)
-!!             call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
-!!             print*, "condition number=", (SV(size(SV))/SV(1))
-!!             p_num = p_num+1
-!             print*, "perturbed condition number=", (SV(size(SV))/SV(1))
-!             if (SV(size(SV))/SV(1) < cond) then
-!                print*, "perturbing does not help"
-!             end if
-
-!          else          
-!             ewrite(2,*) 'ill-conditioned matrix found'
-!             A(i,:,:) = 0.0
-!             A_3(i,:,:) = 0.0
-!             C(i,:) = 0.0
-!             do j = 1, 2*N
-!                A(i,j,j) = 1.0
-!             end do
-!          end if
-!       end if
-!!       end do
-    end do
-
 
     ! construct A_3 matrix (rhs pt.1)
     do i = 1, 2*N
@@ -689,6 +641,92 @@ contains
 
     !! ----------------
 
+!    perturb(1) = 0.00
+!    perturb(2) = 0.01
+!    perturb(3) = -0.01
+    ! check for ill-conditioned matrices
+    if (singular_option=='perturbate') then
+       do i = 1, ele_ngi(abscissa(1), ele)
+          call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
+          p_num=1
+          do while (SV(size(SV))/SV(1) < cond)
+          !if (SV(size(SV))/SV(1) < cond) then
+             print*, "SINGULAR MATRIX"
+             print*, "condition number=", (SV(size(SV))/SV(1))
+             do j = 1, N
+                !! perturbation coefficient should be taken from diamond options with a check for default value
+                call random_number(perturb(1))
+                perturb(1)=-1.0+2.0*perturb(1)
+                print*, "perturb(1)=", N, perturb(1)
+                abscissa_val_at_quad(i,j) = abscissa_val_at_quad(i,j)*(1.0+perturb(1)*perturb_val)
+                print*, "abscissa", j, " = ", abscissa_val_at_quad(i,j)
+             end do
+             A = A_matrix(abscissa_val_at_quad)
+             call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
+             print*, "perturbed condition number=", (SV(size(SV))/SV(1))
+             p_num=p_num+1
+             print*, "p_num=", p_num
+!             if (SV(size(SV))/SV(1) < cond) then
+!                print*, "perturbing does not help"
+!             end if
+!          end if
+          end do
+       end do
+    else if (singular_option=='set_source_to_zero') then
+       do i = 1, ele_ngi(abscissa(1), ele)
+          call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
+          if (SV(size(SV))/SV(1) < cond) then
+             ewrite(2,*) 'ill-conditioned matrix found'
+             A(i,:,:) = 0.0
+             A_3(i,:,:) = 0.0
+             C(i,:) = 0.0
+             do j = 1, 2*N
+                A(i,j,j) = 1.0
+             end do
+          end if
+       end do
+    end if
+!!       p_num = 1
+
+
+!!       do j = 1, N
+!!          absc_init(j) = abscissa_val_at_quad(i,j)
+!!       end do
+
+!!       do while (SV(size(SV))/SV(1) < cond)
+!          call get_option("/timestepping/current_time", curr_time)   ! get the current simulation time
+          !! a better check for the first timestep instead of small value of the current time
+ !         if (curr_time < 1e-7) then   ! this block perturbates the abscissas in A matrix if current time is 0
+!!             print*, "perturbing %g \n", p_num
+!!             do j = 1, N
+                !! perturbation coefficient should be taken from diamond options with a check for default value
+!!                call random_number(perturb(1))
+!!                abscissa_val_at_quad(i,j) = absc_init(j) + perturb(1)
+!                abscissa_val_at_quad(:,j) = abscissa_val_at_quad(:,j) + (2-j)*(0.1) 
+!!                print*, "abscissa", j, " = ", abscissa_val_at_quad(i,j)
+!!             end do
+!!             A = A_matrix(abscissa_val_at_quad)
+!!             call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
+!!             print*, "condition number=", (SV(size(SV))/SV(1))
+!!             p_num = p_num+1
+!             print*, "perturbed condition number=", (SV(size(SV))/SV(1))
+!             if (SV(size(SV))/SV(1) < cond) then
+!                print*, "perturbing does not help"
+!             end if
+
+!          else          
+!             ewrite(2,*) 'ill-conditioned matrix found'
+!             A(i,:,:) = 0.0
+!             A_3(i,:,:) = 0.0
+!             C(i,:) = 0.0
+!             do j = 1, 2*N
+!                A(i,j,j) = 1.0
+!             end do
+!          end if
+!       end if
+!!       end do
+!    end do
+           
 
 
 
