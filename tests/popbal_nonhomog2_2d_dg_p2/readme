@@ -1,0 +1,11 @@
+quad=4
+2d
+DG
+p2
+unstructured grid cl=1/25
+time=0:0.005:20
+vel=0, transient external diffusion only. Diffusion 2 with a parabolic initial condition
+only moment 3 compared to the analytical case
+analytical case derived using separation of variables
+N=2
+tests for L2error and max error at 5s and 20s
