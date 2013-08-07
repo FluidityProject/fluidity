@@ -2,7 +2,7 @@
 import argparse
 import sys
 import numpy as np
-from math import sqrt
+from math import sqrt, pi, tan
 from mpi4py import MPI
 
 haloheader='''<?xml version="1.0" encoding="utf-8" ?>
@@ -123,7 +123,7 @@ def get_start_coords(panel,xn):
         if n-xn[0]-1 < extra:
             xstart[0]=(((n-extra)*nxp_base)+(extra-n+xn[0])*(nxp_base+1))*dx
         else:
-            xstart[0]=(xn[0]*(nxp_base+1))*dx
+            xstart[0]=(xn[0]*nxp_base)*dx
         
     if panel in [0,1,2,5]:
         if xn[1] < extra:
@@ -134,7 +134,7 @@ def get_start_coords(panel,xn):
         if n-xn[1]-1 < extra:
             xstart[1]=(((n-extra)*nxp_base)+(extra-n+xn[1])*(nxp_base+1))*dx
         else:
-            xstart[1]=(xn[1]*(nxp_base+1))*dx
+            xstart[1]=(xn[1]*nxp_base)*dx
 
     #---------------------------------------------------------------------
     # make sure front (0) and back (3) panels own their edges - set an offset
@@ -237,7 +237,8 @@ parser=argparse.ArgumentParser(description='Creates node, ele and halo files for
 parser.add_argument('meshfile', help='Mesh filename, without extension.')
 parser.add_argument('n', metavar='n',type=int,help='number of partitions along each side of the cube face')
 parser.add_argument('nx', metavar='nx',type=int,help='number of nodes along each side of the cube face')
-#parser.set_usage("usage: %prog meshname n\n"+"n is the number of partitions along each side of the cube face\n"+"i.e. there are 6*n^2 partitions in total.")
+parser.add_argument('--debug',help='test mesh and write out debugging files',action='store_true')
+parser.add_argument('--project',choices=['equidistant','equiangular'],default='None',help='specify projection from cube mesh to sphere')
 
 args=parser.parse_args()
 n=args.n
@@ -249,10 +250,10 @@ nsq=n**2
 nxsq=nx**2
 dx=2./float(nx)
 if r==0:
-#    import pylab
-#    import mpl_toolkits.mplot3d.axes3d as p3d
-#    fig=pylab.figure()
-#    ax=p3d.Axes3D(fig)
+    import pylab
+    import mpl_toolkits.mplot3d.axes3d as p3d
+    fig=pylab.figure()
+    ax=p3d.Axes3D(fig)
     allx=np.empty((size*(nx/n+5)**2,3))
 else:
     allx=None
@@ -318,7 +319,6 @@ xstart=get_start_coords(panel,xn)
 # initialise neigh with values that work away from panel edges:
 neigh=np.ma.array([r-n-1,r-n,r-n+1,r+1,r+n+1,r+n,r+n-1,r-1])
 neigh.mask=np.zeros((8))
-print r, neigh
 
 # edge_count counts how many panel edges this partition is on. When
 # count==2, cn will have the value of the index of neigh that
@@ -347,7 +347,6 @@ if xn[0]==0:
     adj, diff, nxpl =find_neighbour_info(panel,1,0)
     neigh[0]=adj-diff
     neigh[6:8]=[adj+diff,adj]
-    print 'left', r, adj, diff
     if panel%2==1:
         bln[0]=3
         bln[6:8]=3
@@ -357,7 +356,6 @@ if xn[0]==n-1:
     edge_count+=1
     cn+=1
     adj, diff, nxpr=find_neighbour_info(panel,1,2)
-    print 'right', r, adj, diff
     neigh[2:5]=[adj-diff,adj,adj+diff]
     if panel%2==0: bln[2:5]=3
 
@@ -366,7 +364,6 @@ if xn[1]==0:
     edge_count+=1
     cn+=1
     adj, diff, nxpu=find_neighbour_info(panel,0,1)
-    print 'bottom', r, adj, diff
     neigh[0:3]=[adj-diff,adj,adj+diff]
     if panel%2==0: bln[0:3]=2
 
@@ -375,7 +372,6 @@ if xn[1]==n-1:
     edge_count+=1
     cn+=7
     adj, diff, nxpa=find_neighbour_info(panel,0,3)
-    print 'top', r, adj, diff
     neigh[4:7]=[adj+diff,adj,adj-diff]
     if panel%2==1: bln[4:7]=2
 
@@ -389,7 +385,6 @@ cnmask[8]=4
 # doesn't exist. cn contains the index of that neighbour:
 if edge_count==2:
     neigh.mask[cnmask[cn]]=1
-#    neles+=1
 
 # if there is just one partition on this panel, all 4 corner
 # neighbours don't exist:
@@ -398,11 +393,6 @@ if edge_count==4:
     neigh.mask[2]=1
     neigh.mask[4]=1
     neigh.mask[6]=1
-#    if panel!=0 and panel!=3:
-#        neles+=12
-
-print r, neigh
-#sys.exit()
 
 bln.mask=neigh.mask
 
@@ -458,11 +448,7 @@ for i in range(8):
     if i%2==1:
         send_nodes[1][i]=range(first_halo_nodes[1,i],first_halo_nodes[1,i]+n_halo_nodes[1,i]*diff[0,i],diff[0,i])
     elif not neigh.mask[i]:
-#        neles+=4
-#        j=(i/2)%2
-#        k=((i/2)+1)%2
         send_nodes[1][i]=list(np.array([first_halo_nodes[0,i]]*3)+np.array((diff[0,i],diff[0,i]+diff[1,i],diff[1,i])))
-        print r,i,send_nodes[0][i]
 
 loc={}
 loc[0]=[7,5,1,3]
@@ -494,6 +480,10 @@ if panel==0 or panel==3:
         send_nodes[1][l].insert(ind,send_nodes[0][l][end[panel]*(len(send_nodes[0][l])-1)]+diff[1,l])
 
 # Generate cube coordinates for this partition:
+if args.project==None:
+    a=1.0
+else:
+    a=sqrt(3)/3.
 startxp=startx[panel]
 lx0=startxp[lx[panel][0]]+dirn[panel][0]*xstart[0]
 ly0=startxp[lx[panel][1]]+dirn[panel][1]*xstart[1]
@@ -509,10 +499,16 @@ pos[:,lx[panel][1]]=yy.reshape(nxny)
 pos[:,lx[panel][2]]=zz
 
 # project cube to sphere:
-#for i in range(nxny):
-#    rr=sqrt(pos[i,0]**2+pos[i,1]**2+pos[i,2]**2)
-#    pos[i,:]=pos[i,:]/rr
-
+if args.project=='equidistant':
+    for i in range(nxny):
+        rr=sqrt(pos[i,0]**2+pos[i,1]**2+pos[i,2]**2)
+        pos[i,:]=a**2*pos[i,:]/rr
+elif args.project=='equiangular':
+    pos[:,lx[panel][0]]=np.tan((pi/4.)*pos[:,lx[panel][0]])
+    pos[:,lx[panel][1]]=np.tan((pi/4.)*pos[:,lx[panel][1]])
+    for i in range(nxny):
+        rr=sqrt(pos[i,0]**2+pos[i,1]**2+pos[i,2]**2)
+        pos[i,:]=a**2*pos[i,:]/rr
 
 #import pylab
 #import mpl_toolkits.mplot3d.axes3d as p3d
@@ -628,11 +624,6 @@ for i in range(1,8,2):
     # need a separate copy as we don't always want to change both lists
     inner[1]=list(outer[0])
     outer[1]=range(halo_start[1,i],halo_start[1,i]+nrecv[1,i])  
-    print "first:", i
-    print inner[0]
-    print outer[0]
-    print inner[1]
-    print outer[1]
     # deal with halos to the left and right
     for m in [-1,1]:
         # ind1 is 0 if m is -1 or -1 if m is 1:
@@ -643,16 +634,9 @@ for i in range(1,8,2):
         ind3=(i+m)%8
         n_owned_edges=edge_owned[panel][pneigh]+edge_owned[panel][neigh[ind2]/nsq]
         
-#        if r==1: print "n_owned_edges", i, n_owned_edges
         # if corner halo exists:
         if not neigh.mask[ind3]:
-            print i,ind2,pneigh,neigh[ind2]/nsq
             if pneigh==neigh[ind3]/nsq and (i<ind2 or pneigh!=neigh[ind2]/nsq):
-                print "corner halo exists", i, ind3
-                print inner[0]
-                print outer[0]
-                print inner[1]
-                print outer[1]
                 inner[0].insert(-ind1*len(inner[0]),halo_start[0,ind2]+(ind1+1)*(nrecv[0,ind2]-1))
                 inner[0].insert(-ind1*len(inner[0]),halo_start[1,ind2]+(ind1+1)*(nrecv[1,ind2]-1))
                 outer[0].insert(-ind1*len(outer[0]),halo_start[0,ind3])
@@ -661,43 +645,31 @@ for i in range(1,8,2):
                 inner[1].insert(-ind1*len(inner[1]),halo_start[1,ind3]-ind1*2)
                 outer[1].insert(-ind1*len(outer[1]),halo_start[1,ind3]+2*(ind1+1))
                 outer[1].insert(-ind1*len(outer[1]),halo_start[1,ind3]+1)
-                print "after:"
-                print inner[0]
-                print outer[0]
-                print inner[1]
-                print outer[1]
         # if corner halo doesn't exist and the cube edge between the 2
         # adjacent panels is not owned by the panel 'underneath':
         elif not edge_owned[pneigh][neigh[ind2]/nsq]:
-            if r==5: print "other edge not owned underneath", i, ind2
             # if this partition owns both or neither of the 2 cube
             # edges it shares with partitions to the 'left' and
             # 'below':
             if n_owned_edges==2:
-                if r==5: print "partition owns both corner edges", i
                 outer[0].insert(-ind1*len(outer[0]),halo_start[0,ind2]+(ind1+1)*(nrecv[0,ind2]-1))
                 inner[1].insert(-ind1*len(outer[1]),halo_start[0,ind2]+(ind1+1)*(nrecv[0,ind2]-1))
                 outer[1].insert(-ind1*len(outer[1]),halo_start[1,ind2]+(ind1+1)*(nrecv[1,ind2]-1))
             # if this partition only owns the cube edge between it and the
             # panel 'below':
             elif edge_owned[panel][pneigh]:
-                if r==5: print "partition only owns edge underneath", i
                 inner[0].insert(-ind1*len(inner[0]),halo_start[0,ind2]+1+(ind1+1)*(nrecv[0,ind2]-3))
                 outer[0].insert(-ind1*len(outer[0]),halo_start[0,ind2]+(ind1+1)*(nrecv[0,ind2]-1))
                 inner[1].insert(-ind1*len(outer[1]),halo_start[0,ind2]+(ind1+1)*(nrecv[0,ind2]-1))
                 outer[1].insert(-ind1*len(outer[1]),halo_start[1,ind2]+(ind1+1)*(nrecv[1,ind2]-1))
             elif n_owned_edges==0:
-                if r==5: print "partition owns neither corner edge"
-#                outer[0].insert(-ind1*len(outer[0]),halo_start[0,ind2]+(ind1+1)*(nrecv[0,ind2]-1))
                 outer[1].insert(-ind1*len(outer[1]),halo_start[1,ind2]+(ind1+1)*(nrecv[1,ind2]-1))
                 inner[1].insert(-ind1*len(inner[1]),halo_start[0,ind2]+(ind1+1)*(nrecv[0,ind2]-1))
         elif n_owned_edges==0:
-            if r==5: print "partition owns neither corner edge, other edge owned underneath", i
             inner[0].insert(-ind1*len(inner[0]),halo_start[0,ind2]+(ind1+1)*(nrecv[0,ind2]-1))
         # if this partition only owns one cube edge (and the edge between
         # the 2 adjacent panels is owned by the panel 'underneath'):
         elif n_owned_edges==1:
-            if r==5: print "partition only owns one cube edge", i
             inner.append([])
             outer.append([])
             outer[0].pop(ind1)
@@ -708,21 +680,13 @@ for i in range(1,8,2):
             outer[1].insert(-ind1*len(outer[1]),inner[1][ind1])
             inner[-1].insert(-ind1*len(inner[-1]),inner[1].pop(ind1))
     ele_nodes=[node_order[i]]*3
-#    if r==4:
-#        print "before:", ele_nodes
-#        print i, bln[i], edge_owned[neigh[i]][r]
     if bln[i]>1:
         new_order=map(lambda x:node_mapping[bln[i]-2][x-1], node_order[i])
         ele_nodes[edge_owned[pneigh][panel]:3]=[new_order]*(3-edge_owned[pneigh][panel])
-#    if r==1:
-#        print "after:", ele_nodes
     for l in range(len(inner)):
         n_neweles=len(inner[l])-1
         neles+=n_neweles
         neweles=np.zeros((n_neweles,6))
-        print l,n_neweles
-        print inner[l]
-        print outer[l]
         neweles[:,ele_nodes[l][0]]=outer[l][0:n_neweles]
         neweles[:,ele_nodes[l][1]]=outer[l][1:n_neweles+1]
         neweles[:,ele_nodes[l][2]]=inner[l][0:n_neweles]
@@ -732,8 +696,6 @@ for i in range(1,8,2):
     inner=inner[0:2]
     outer=outer[0:2]
 
-print "out of ele numbering"
-print neles, eles.shape
 # insert ele numbers into first column:
 eles[:,0]=range(1,neles+1)
 # insert boundary id of 0 into last column:
@@ -745,8 +707,7 @@ np.savetxt(f,eles,fmt="%d")
 f.close()
 
 # debugging tests
-debug=True
-if(debug):
+if args.debug:
     filename='cube_'+str(r)+'.debug'
     f=open(filename,'w')
     for e in range(0,neles):
