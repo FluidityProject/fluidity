@@ -1570,6 +1570,7 @@ contains
        call set(delta_t, T)
        call scale(delta_t, -1.0)
        call addto(delta_t, T_limit)
+       call halo_update(delta_T)
     end if
     call set(T, T_limit)
     call halo_update(T)
