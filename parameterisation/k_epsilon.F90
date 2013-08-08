@@ -30,6 +30,7 @@
 module k_epsilon
   use quadrature
   use elements
+  use shape_functions
   use field_derivatives
   use fields
   use field_options

@@ -27,24 +27,20 @@
 #include "fdebug.h"
   
   module bubble_tools
-    use fields
-    use field_options
-    use fields_allocates
-    use vector_tools
-    use sparse_matrices_fields
-    use solvers
     use quadrature
-    use sparsity_patterns_meshes
-    use element_numbering
-    use state_module
-    use shape_functions
-    use quadrature
-    use shape_functions
-    use fldebug_parameters
-    use ieee_arithmetic, only: ieee_quiet_nan, ieee_value
-    use spud
-    use vtk_interfaces
+    use elements
+    use sparse_tools
+    use fields_data_types
     use adjacency_lists
+    use shape_functions
+    use fields_allocates
+    use transform_elements
+    use fields
+    use fields_manipulation
+    use state_module
+    use sparsity_patterns_meshes
+    use solvers
+    use vtk_interfaces
     use reference_counting
     implicit none
 

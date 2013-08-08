@@ -27,10 +27,14 @@
 #include "fdebug.h"
 module fields_halos
 !!< This module contains code that depends on both fields and halos
+use quadrature
+use elements
+use sparse_tools
 use fields
+use parallel_fields
+use state_module
 use halos
 use data_structures
-use parallel_fields
 use quicksort
 implicit none
 
