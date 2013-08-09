@@ -1,21 +1,27 @@
 <?xml version='1.0' encoding='utf-8'?>
 <testproblem>
-  <name>spherical segment - spherical cooridnate mapping - CG tracers<comment>Tests the exact coordinate mapping on the sphere, with CG tracers. This is a stay-idle test, velocities should be near zero.</comment></name>
+  <name>spherical segment - spherical cooridnate mapping - P1CG tracers<comment>Tests the exact coordinate mapping on the sphere, with P1CG tracers. This is a stay-idle test, velocities should be near zero.</comment></name>
   <owner userid="avdis01"/>
   <problem_definition length="medium" nprocs="2">
-    <command_line>mpiexec -n 2 ../../bin/flredecomp -i 1 -o 2 -v -l sphericalSegment sphericalSegment_flredecomp &amp;&amp;
-mpirun -np 2 fluidity -v2 -l sphericalSegment_flredecomp.flml &amp;&amp;
+    <command_line>@echo "\n********** Building surface mesh with Gmsh :"  &amp;&amp;
+gmsh -2 src/sphericalSegment.geo &amp;&amp;
+@echo "\n********** Converting the gmsh mesh (ASCII) to triangle format, mesh is on-the-sphere :" &amp;&amp;
+gmsh2triangle -s sphericalSegment &amp;&amp;
+@echo "\n********** Decomposing the mesh into 2 parts for parallel run:" &amp;&amp;
+mpirun -n 2 flredecomp -i 1 -o 2   sphericalSegment   sphericalSegment_flredecomp &amp;&amp;
+@echo "\n********** Running simulation over 2 partitions:"
+mpiexec -n 2 fluidity -v3 -l  sphericalSegment_flredecomp.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files</variable>
-    <variable name="max_velocity" language="python">from fluidity_tools import stat_parser
+    <variable name="max_velocity_magn" language="python">from fluidity_tools import stat_parser
 stat=stat_parser('sphericalSegment.stat')
-max_velocity=stat['Fields']['Velocity%magnitude']['max']</variable>
-    <variable name="max_llv_velocity" language="python">from fluidity_tools import stat_parser
+max_velocity_magn=stat['Fields']['Velocity%magnitude']['max']</variable>
+    <variable name="max_llv_velocity_magn" language="python">from fluidity_tools import stat_parser
 stat=stat_parser('sphericalSegment.stat')
-max_llv_velocity=stat['Fields']['LonLatVerticalVelocity%magnitude']['max']</variable>
+max_llv_velocity_magn=stat['Fields']['LonLatVerticalVelocity%magnitude']['max']</variable>
     <variable name="volume" language="python">from fluidity_tools import stat_parser
 stat=stat_parser('sphericalSegment.stat')
 # this only works because we don't move the free surface
@@ -44,39 +50,33 @@ l2norm_salinity=stat['Fields']['Salinity']['l2norm']</variable>
   <pass_tests>
     <test name="solvers_converged" language="python">assert solvers_converged</test>
     <test name="correct_velocity_transformation_atStart" language="python">from fluidity_tools import compare_variable
-compare_variable(max_velocity[0], max_llv_velocity[0], 1e-10)
+compare_variable(max_velocity_magn[0], max_llv_velocity_magn[0], 1e-10)</test>
     <test name="correct_velocity_transformation_atEnd" language="python">from fluidity_tools import compare_variable
-compare_variable(max_velocity[-1], max_llv_velocity[-1], 1e-10)</test>
-    <test name="zero_max_velocity" language="python">from fluidity_tools import compare_variable
-compare_variable(max_velocity[-1], 0.0, 1e-10)
-    <test name="zero_min_velocity" language="python">from fluidity_tools import compare_variable
-compare_variable(min_velocity[-1], 0.0, 1e-10)
-    <test name="zero_max_llv_velocity" language="python">from fluidity_tools import compare_variable
-compare_variable(max_llv_velocity[-1], 0.0, 1e-10)</test>
-    <test name="zero_min_llv_velocity" language="python">from fluidity_tools import compare_variable
-compare_variable(min_llv_velocity[-1], 0.0, 1e-10)</test>
-    <test name="max_temperature_retention" language="python">
-#The temprerature equation has no diffusivity, we expect only numerical diffusion.
+compare_variable(max_velocity_magn[-1], max_llv_velocity_magn[-1], 1e-10)</test>
+    <test name="zero_max_velocity_magn" language="python">from fluidity_tools import compare_variable
+compare_variable(max_velocity_magn[-1], 0.0, 1e-10)</test>
+    <test name="zero_min_velocity_magn" language="python">from fluidity_tools import compare_variable
+compare_variable(min_velocity_magn[-1], 0.0, 1e-10)</test>
+    <test name="zero_max_llv_velocity_magn" language="python">from fluidity_tools import compare_variable
+compare_variable(max_llv_velocity_magn[-1], 0.0, 1e-10)</test>
+    <test name="zero_min_llv_velocity_magn" language="python">from fluidity_tools import compare_variable
+compare_variable(min_llv_velocity_magn[-1], 0.0, 1e-10)</test>
+    <test name="max_temperature_retention" language="python">#The temprerature equation has no diffusivity, we expect only numerical diffusion.
 from fluidity_tools import compare_variable
 compare_variable(max_temperature[-1], max_temperature[0], 1e-7)</test>
-    <test name="min_temperature_retention" language="python">
-#The temprerature equation has no diffusivity, we expect only numerical diffusion.
+    <test name="min_temperature_retention" language="python">#The temprerature equation has no diffusivity, we expect only numerical diffusion.
 from fluidity_tools import compare_variable
 compare_variable(min_temperature[-1], min_temperature[0], 1e-7)</test>
-    <test name="l2norm_temperature_retention" language="python">
-#The temprerature equation has no diffusivity, we expect only numerical diffusion.
+    <test name="l2norm_temperature_retention" language="python">#The temprerature equation has no diffusivity, we expect only numerical diffusion.
 from fluidity_tools import compare_variable
 compare_variable(l2norm_temperature[-1], l2norm_temperature[0], 1e-3)</test>
-    <test name="max_salinity_retention" language="python">
-#The salinity equation has no diffusivity, and salinity is initialised to a uniform distribution!
+    <test name="max_salinity_retention" language="python">#The salinity equation has no diffusivity, and salinity is initialised to a uniform distribution!
 from fluidity_tools import compare_variable
 compare_variable(max_salinity[-1], max_salinity[0], 1e-11)</test>
-    <test name="min_salinity_retention" language="python">
-#The salinity equation has no diffusivity, and salinity is initialised to a uniform distribution!
+    <test name="min_salinity_retention" language="python">#The salinity equation has no diffusivity, and salinity is initialised to a uniform distribution!
 from fluidity_tools import compare_variable
 compare_variable(min_salinity[-1], min_salinity[0], 1e-11)</test>
-    <test name="l2norm_salinity_retention" language="python">
-#The salinity equation has no diffusivity, and salinity is initialised to a uniform distribution!
+    <test name="l2norm_salinity_retention" language="python">#The salinity equation has no diffusivity, and salinity is initialised to a uniform distribution!
 from fluidity_tools import compare_variable
 compare_variable(l2norm_salinity[-1], l2norm_salinity[0], 1e-11)</test>
   </pass_tests>
