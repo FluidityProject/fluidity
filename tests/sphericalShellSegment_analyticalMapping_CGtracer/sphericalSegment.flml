@@ -308,6 +308,7 @@
           <discontinuous_galerkin>
             <viscosity_scheme>
               <compact_discontinuous_galerkin/>
+              <tensor_form/>
             </viscosity_scheme>
             <advection_scheme>
               <upwind/>
@@ -592,9 +593,22 @@
           </diagnostics>
         </solver>
         <initial_condition name="WholeMesh">
-          <constant>
-            <real_value rank="0">32.0</real_value>
-          </constant>
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X, t):
+    import numpy as np
+    from math import sqrt
+    x = X[0]
+    y = X[1]
+    z = X[2]
+    verticalCoordinate = -(6.37101e+6-sqrt(x**2 + y**2 + z**2))
+    S_surface = 32.0
+    S_bottom = 40.0
+    z_bottom = -4000.0
+    alpha = (S_surface - S_bottom)/(-z_bottom)
+    beta = S_surface
+    Salinity = alpha*verticalCoordinate + beta
+    return Salinity</string_value>
+          </python>
         </initial_condition>
         <output/>
         <stat/>
