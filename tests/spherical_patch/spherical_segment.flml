@@ -101,14 +101,14 @@
     </mesh>
     <quadrature>
       <degree>
-        <integer_value rank="0">4</integer_value>
+        <integer_value rank="0">6</integer_value>
       </degree>
       <surface_degree>
-        <integer_value rank="0">3</integer_value>
+        <integer_value rank="0">6</integer_value>
       </surface_degree>
     </quadrature>
     <spherical_earth>
-      <superparametric_mapping/>
+      <linear_mapping/>
     </spherical_earth>
     <ocean_boundaries>
       <top_surface_ids>
@@ -326,6 +326,7 @@
           <discontinuous_galerkin>
             <viscosity_scheme>
               <compact_discontinuous_galerkin/>
+              <tensor_form/>
             </viscosity_scheme>
             <advection_scheme>
               <upwind/>
@@ -365,7 +366,7 @@
             <real_value rank="0">1.0e-8</real_value>
           </relative_error>
           <max_iterations>
-            <integer_value rank="0">10000</integer_value>
+            <integer_value rank="0">1000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
@@ -452,7 +453,13 @@
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
         <output/>
-        <stat/>
+        <stat>
+          <surface_integral type="value" name="Bottom">
+            <surface_ids>
+              <integer_value shape="1" rank="1">2</integer_value>
+            </surface_ids>
+          </surface_integral>
+        </stat>
         <convergence>
           <include_in_convergence/>
         </convergence>
@@ -499,4 +506,30 @@
       </diagnostic>
     </scalar_field>
   </material_phase>
+  <mesh_adaptivity>
+    <mesh_movement>
+      <free_surface>
+        <move_surface_nodes/>
+      </free_surface>
+      <vector_field name="GridVelocity" rank="1">
+        <diagnostic>
+          <algorithm name="Internal" material_phase_support="multiple"/>
+          <mesh name="CoordinateMesh"/>
+          <output/>
+          <stat>
+            <include_in_stat/>
+          </stat>
+          <convergence>
+            <include_in_convergence/>
+          </convergence>
+          <detectors>
+            <include_in_detectors/>
+          </detectors>
+          <steady_state>
+            <include_in_steady_state/>
+          </steady_state>
+        </diagnostic>
+      </vector_field>
+    </mesh_movement>
+  </mesh_adaptivity>
 </fluidity_options>

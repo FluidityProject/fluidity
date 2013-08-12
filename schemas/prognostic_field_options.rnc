@@ -59,18 +59,20 @@ scalar_boundary_conditions =
                ## Viscosity value to use within this algorithm. This allows the user to override 
                ## use of the material viscosity used for the rest of the simulation for calculating 
                ## sediment reentrainment. 
-               element viscosity { real }?
+               element viscosity { real }?,
+               # Only for debugging purposes - sets Neumann boundary to zero (diagnostic fields are
+               # still set)
+               element set_to_zero { empty }?
             }|
-            ## [UNDER DEVELOPMENT - DOES NOT WORK YET]
             ## Special type of Dirichlet boundary condition for the k-epsilon
             ## turbulence model. Can be used on TurbulentKineticEnergy (k)
             ## and/or TurbulentDissipation (epsilon) fields.
             ## e.g. use a Dirichlet BC on inlets and k_epsilon on walls.
             element type {
                attribute name { "k_epsilon" },
-               ## Select high/low Reynolds number wall functions for k and epsilon fields.
+               ## Select low Reynolds number wall function for k and epsilon fields.
                element string_value {
-               "low_Re"|"high_Re"
+               "low_Re"
                }
             }|
             ## Flux boundary condition. Currently only works with a control_volume 
@@ -741,8 +743,9 @@ prognostic_velocity_field =
                      }|
                      ## Classical scheme from Bassi and Rebay 
                      ## (JCP 131 267-179 1997)
+                     ## Partial stress form is available for inhomogenous isotropic viscosities
                      element bassi_rebay {
-                        empty
+                       empty
                      }|
                      ## Scheme in which upwinding is applied in
                      ## alternating directions. Devised by C.Pain.
@@ -804,6 +807,15 @@ prognostic_velocity_field =
                            }?
                         }?
                      }
+                  ),
+                  (
+                     ## solves the viscosity term in the form:  d/dx_j K du_i/dx_j
+                     element tensor_form { empty }|
+                     ## solves the viscosity term in the form:  d/dx_j k (du_i/dx_j + du_j/dx_j)
+                     ## note that the viscosity, k, must be isoptropic
+                     ##
+                     ## only implemented for the bassi-rebay viscosity scheme
+                     element partial_stress_form { empty }
                   )
                },
                element advection_scheme {
@@ -1187,6 +1199,7 @@ prognostic_velocity_field =
             }?
          }?
       }?,
+
       ## SurfaceTension
       element tensor_field {
          attribute name { "SurfaceTension" },

@@ -1,7 +1,7 @@
 SHELL = sh
 
 input: clean
-	gmsh -2 steptwochannel.geo -o steptwochannel.msh
+	gmsh -2 -bin steptwochannel.geo -o steptwochannel.msh
 
 clean:
 	rm -f *.ele

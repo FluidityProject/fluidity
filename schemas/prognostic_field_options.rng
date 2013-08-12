@@ -86,10 +86,18 @@ sediment reentrainment. </a:documentation>
               <ref name="real"/>
             </element>
           </optional>
+          <optional>
+            <!--
+              Only for debugging purposes - sets Neumann boundary to zero (diagnostic fields are
+              still set)
+            -->
+            <element name="set_to_zero">
+              <empty/>
+            </element>
+          </optional>
         </element>
         <element name="type">
-          <a:documentation>[UNDER DEVELOPMENT - DOES NOT WORK YET]
-Special type of Dirichlet boundary condition for the k-epsilon
+          <a:documentation>Special type of Dirichlet boundary condition for the k-epsilon
 turbulence model. Can be used on TurbulentKineticEnergy (k)
 and/or TurbulentDissipation (epsilon) fields.
 e.g. use a Dirichlet BC on inlets and k_epsilon on walls.</a:documentation>
@@ -97,11 +105,8 @@ e.g. use a Dirichlet BC on inlets and k_epsilon on walls.</a:documentation>
             <value>k_epsilon</value>
           </attribute>
           <element name="string_value">
-            <a:documentation>Select high/low Reynolds number wall functions for k and epsilon fields.</a:documentation>
-            <choice>
-              <value>low_Re</value>
-              <value>high_Re</value>
-            </choice>
+            <a:documentation>Select low Reynolds number wall function for k and epsilon fields.</a:documentation>
+            <value>low_Re</value>
           </element>
         </element>
         <element name="type">
@@ -912,7 +917,8 @@ scaled by C_0</a:documentation>
               </element>
               <element name="bassi_rebay">
                 <a:documentation>Classical scheme from Bassi and Rebay 
-(JCP 131 267-179 1997)</a:documentation>
+(JCP 131 267-179 1997)
+Partial stress form is available for inhomogenous isotropic viscosities</a:documentation>
                 <empty/>
               </element>
               <element name="arbitrary_upwind">
@@ -984,6 +990,19 @@ Int grad u.kappa.grad v dV</a:documentation>
                     </optional>
                   </element>
                 </optional>
+              </element>
+            </choice>
+            <choice>
+              <element name="tensor_form">
+                <a:documentation>solves the viscosity term in the form:  d/dx_j K du_i/dx_j</a:documentation>
+                <empty/>
+              </element>
+              <element name="partial_stress_form">
+                <a:documentation>solves the viscosity term in the form:  d/dx_j k (du_i/dx_j + du_j/dx_j)
+note that the viscosity, k, must be isoptropic
+
+only implemented for the bassi-rebay viscosity scheme</a:documentation>
+                <empty/>
               </element>
             </choice>
           </element>
