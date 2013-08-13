@@ -103,7 +103,7 @@ module fluids_module
   use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
   use momentum_diagnostic_fields, only: calculate_densities
   use sediment_diagnostics, only: calculate_sediment_flux
-  use DQMOM ! gb812
+  use DQMOM
 
   implicit none
 
@@ -178,8 +178,6 @@ contains
 
     INTEGER :: adapt_count
 
-!    real :: temp_dt   ! dummy variable ! gb812 3-dec-2012
-
     ! Absolute first thing: check that the options, if present, are valid.
     call check_options
     ewrite(1,*) "Options sanity check successful"
@@ -251,13 +249,16 @@ contains
          & default=1)
     call get_option("/timestepping/nonlinear_iterations/tolerance", &
          & nonlinear_iteration_tolerance, default=0.0)
-    
+
     if(have_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")) then
 
        if(have_option("/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt")) then
          call get_option('/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt',nonlinear_iterations_adapt)
          nonlinear_iterations = nonlinear_iterations_adapt
        end if
+      
+       ! set population balance initial conditions - for first adaptivity
+       call dqmom_init(state)
 
        call adapt_state_first_timestep(state)
 
@@ -302,8 +303,8 @@ contains
        call populate_sub_state(state,sub_state)
     end if
 
-    ! set population balance initial conditions sdb gb812
-    call DQMOM_init(state)
+    ! set population balance initial conditions
+    call dqmom_init(state)
 
     ! Calculate the number of scalar fields to solve for and their correct
     ! solve order taking into account dependencies.
@@ -451,21 +452,6 @@ contains
     timestep_loop: do
        timestep = timestep + 1
 
-
-       !!!!!-------CAUTION-------OVERRIDES TIMESTEP SET IN DIAMOND OPTIONS!! 
-       ! makes the time step small in the beginning to take care of perturbations in singular matrices  --  gb812 3-dec-2012
-!       if (timestep==1) then
-!          print*, "timestep number in caution = ",timestep
-!          temp_dt = dt
-!          dt = 1.0e-4   ! this small timestep should be calculated based on the condition number (of the perturbed matrix) or specified in diamond with a default value
-!          call set_option("/timestepping/timestep", dt)
-!       else if (timestep >50) then   ! the number of timesteps should either be specified in diamond with default values or decided by the condition number and time coupling relation (to be worked on later)
-!          dt = temp_dt       
-!          call set_option("/timestepping/timestep", dt) 
-!       end if
-       !!!!!------END CAUTION---------------------------
-
-
        ewrite(1, *) "********************"
        ewrite(1, *) "*** NEW TIMESTEP ***"
        ewrite(1, *) "********************"
@@ -592,7 +578,7 @@ contains
 
           call compute_goals(state)
 
-          ! Calculate source terms for populations ------ sdp 28-05-2012 gb812
+          ! Calculate source terms for populations ------
           call dqmom_calculate_source_terms(state, ITS)
 
           !------------------------------------------------
@@ -787,17 +773,9 @@ contains
              call solve_momentum(state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state)
           end if
 
-
-          ! calculate abscissa for populations ----- sdp 28-05-2012 gb812
+          ! calculate abscissa for populations -----
           ! this must be done at the end of each non-linear iteration
-!          !BEING EDITED
-!          do i=1, option_count("/material_phase")
-!            option_path="/material_phase["//int2str(i-1)//"]/scalar_field::FoamVelocityPotential"          
-!
-!          end do 
           call dqmom_calculate_abscissa(state)
-
-
 
           if(nonlinear_iterations > 1) then
              ! Check for convergence between non linear iteration loops

@@ -81,7 +81,7 @@ contains
     type(state_type), dimension(:), pointer :: submaterials
     
     ewrite(1, *) "In calculate_diagnostic_variables"
- 
+
     do i = 1, size(state)
 
        ! start of fields that can be called through the generic calculate_diagnostic_variable

@@ -854,7 +854,6 @@ contains
           call deallocate(work)
        end do
     end do
-
   end subroutine dqmom_calculate_moments
 
   subroutine dqmom_calculate_statistics(state)

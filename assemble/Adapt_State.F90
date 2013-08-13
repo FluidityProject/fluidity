@@ -74,6 +74,7 @@ module adapt_state_module
   use diagnostic_fields_wrapper_new, only : calculate_diagnostic_variables_new => calculate_diagnostic_variables
   use pickers
   use write_gmsh
+  use dqmom
 #ifdef HAVE_ZOLTAN
   use zoltan_integration
   use mpi_interfaces
@@ -878,7 +879,7 @@ contains
     type(state_type), dimension(:), intent(inout) :: states
 
     character(len = *), parameter :: base_path = "/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep"
-    integer :: adapt_iterations, i
+    integer :: adapt_iterations, i, i_state
     type(mesh_type), pointer :: old_mesh
     type(tensor_field) :: metric
     type(vector_field), pointer :: output_positions
@@ -896,7 +897,6 @@ contains
       call copy_to_stored_values(states,"Old")
       call copy_to_stored_values(states,"Iterated")
       call relax_to_nonlinear(states)
-
       call calculate_diagnostic_variables(states)
       call calculate_diagnostic_variables_new(states)
 
@@ -916,6 +916,12 @@ contains
       ! Adapt state, initialising fields from the options tree rather than
       ! interpolating them
       call adapt_state(states, metric, initialise_fields = .true.)
+      
+      ! dqmom_init helps to recalculate the abscissas and weights based on moment initial conditions (if provided)
+      call dqmom_init(states)
+!      do i_state = 1, option_count("/material_phase")
+!          call dqmom_calculate_moments(states(i_state))
+!      end do
     end do
 
     if(have_option(trim(base_path) // "/output_adapted_mesh")) then
