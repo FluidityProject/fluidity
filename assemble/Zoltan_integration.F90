@@ -158,7 +158,6 @@ module zoltan_integration
        & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs, &
        & final_adapt_iteration, flredecomp, flredecomp_input_procs, flredecomp_target_procs)
 
-
     ! Only calculate the global minimum element quality if additional adapt iterations are being used
     if (present(global_min_quality)) then
        if (.NOT. final_adapt_iteration) then

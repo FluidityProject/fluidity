@@ -196,6 +196,12 @@ contains
     ! sorted ewgts
     real(zoltan_float), dimension(:), allocatable :: s_ewgts 
     real(zoltan_float) :: my_nocut_weight
+    real :: nocut_edge_weight
+
+    ! ele-ele weight searching
+    type(csr_sparsity), pointer :: eelist
+    logical, dimension(ele_count(zoltan_global_zz_positions)) :: tested
+    integer :: search_levels
     
     ewrite(1,*) "In zoltan_cb_get_edge_list"
     
@@ -247,9 +253,18 @@ contains
     ! Aim is to assign high edge weights to poor quality elements
     ! so that when we load balance poor quality elements are placed
     ! in the centre of partitions and can be adapted
+
+    ! obtain ele-ele lists
+    eelist => extract_eelist(zoltan_global_zz_mesh)
+
+    ! how many levels of elements are we searching through
+    call get_option(trim(zoltan_global_base_option_path) // "/worst_ele_search_levels", search_levels)
     
     ! loop over the nodes you own
     do node=1,count
+
+       ! we haven't tested any elements for this edge yet
+       tested = .false.
        
        ! find nodes neighbours
        neighbours => row_m_ptr(zoltan_global_zz_sparsity_one, local_ids(node))
@@ -262,80 +277,35 @@ contains
        
        ! find owning proc for each neighbour
        nbor_procs(head:head+size(neighbours)-1) = halo_node_owners(zoltan_global_zz_halo, neighbours) - 1
-       
+         
+       my_min_quality = 1.0
+
        ! get elements associated with current node
        my_nelist => row_m_ptr(zoltan_global_zz_nelist, local_ids(node))
-       
-       if (have_option(trim(zoltan_global_base_option_path) // "/dont_extend_uncuttable_region")) then
 
-         do j=1,size(neighbours)
-           
-           my_min_quality = 1.0
-       
-           ! get elements associated with neighbour node
-           nbor_nelist => row_m_ptr(zoltan_global_zz_nelist, neighbours(j))
+       ! loop through neighbour elements and find worst quality
+       call find_worst_element(my_nelist, search_levels, my_min_quality)
 
-           ! search for worst quality element that has an edge joined by these two nodes
-           do i=1, size(nbor_nelist)
-             if (any(my_nelist == nbor_nelist(i))) then
-               quality = minval(ele_val(zoltan_global_element_quality, nbor_nelist(i)))
-               if (quality .LT. my_min_quality) then
-                 my_min_quality = quality
-               end if
-             end if
-           end do
+       ! loop over all neighbouring nodes
+       do j=1,size(neighbours)
 
-           if(my_min_quality .LT. zoltan_global_local_min_quality) then
-             zoltan_global_local_min_quality = my_min_quality
-           end if
+         min_quality = my_min_quality
 
-           ! set ewgt of edge to worst adjoining element found
-           ewgts(head + j - 1) = (1.0 - my_min_quality) * 20           
-         end do
+         ! get elements associated with neighbour node
+         nbor_nelist => row_m_ptr(zoltan_global_zz_nelist, neighbours(j))
 
-       else
-         
-         my_min_quality = 1.0
-       
-         ! find quality of worst element node is associated with
-         do i=1,size(my_nelist)
-           quality = minval(ele_val(zoltan_global_element_quality, my_nelist(i)))
+         ! loop through n_levels of neighbour element and find worst quality 
+         call find_worst_element(nbor_nelist, search_levels, min_quality)
 
-           if (quality .LT. my_min_quality) then
-             my_min_quality = quality
-           end if
-         end do
+         ! Keep track of the lowest quality element of all those we've looked at
+         ! Will be used in zoltan_drive to calculate a global minimum element quality
+         if(min_quality .LT. zoltan_global_local_min_quality) then
+           zoltan_global_local_min_quality = min_quality
+         end if
 
-         ! loop over all neighbouring nodes
-         do j=1,size(neighbours)
-
-           min_quality = my_min_quality
-
-           ! get elements associated with neighbour node
-           nbor_nelist => row_m_ptr(zoltan_global_zz_nelist, neighbours(j))
-
-           ! loop over all the elements of the neighbour node
-           do i=1, size(nbor_nelist)
-             ! determine the quality of the element
-             quality = minval(ele_val(zoltan_global_element_quality, nbor_nelist(i)))
-
-             ! store the element quality if it's less (worse) than any previous elements
-             if (quality .LT. min_quality) then
-               min_quality = quality
-             end if
-           end do
-
-           ! Keep track of the lowest quality element of all those we've looked at
-           ! Will be used in zoltan_drive to calculate a global minimum element quality
-           if(min_quality .LT. zoltan_global_local_min_quality) then
-             zoltan_global_local_min_quality = min_quality
-           end if
-
-           ! set ewgts for edge
-           ewgts(head + j - 1) = (1.0 - min_quality) * 20
-         end do
-
-       end if
+         ! set ewgts for edge
+         ewgts(head + j - 1) = (1.0 - min_quality) * 20
+       end do
        
        head = head + size(neighbours)
     end do
@@ -350,14 +320,20 @@ contains
     call qsort(s_ewgts)
     call get_option(trim(zoltan_global_base_option_path)//"/uncuttable_edge_fraction", &
          nocut_edge_fraction, default=0.1)
-    my_nocut_weight = s_ewgts(size(s_ewgts) * (1.0 - nocut_edge_fraction))    
-    call MPI_ALLREDUCE(my_nocut_weight,nocut_weight,1,MPI_REAL,MPI_MAX,MPI_COMM_FEMTOOLS,err)
+    my_nocut_weight = s_ewgts(int(size(s_ewgts) * (1.0 - nocut_edge_fraction)))    
+    ! call MPI_ALLREDUCE(my_nocut_weight,nocut_weight,1,MPI_REAL,MPI_MAX,MPI_COMM_FEMTOOLS,err)
+    nocut_weight = my_nocut_weight
     ewrite(2,*) 'nocut_weight (best: 0 - worst: 20) = ', nocut_weight
 
+    call get_option(trim(zoltan_global_base_option_path)//"/uncuttable_edge_weight", &
+         nocut_edge_weight, default=1000.0)
     ! make poor elements uncuttable
     do i=1,head-1
       if (ewgts(i) .GT. nocut_weight) then
-        ewgts(i) = (total_num_edges + 1)
+        ! ewgts(i) = (total_num_edges + 1) 
+        ewgts(i) = (total_num_edges + 1) * nocut_edge_weight
+      else
+        ewgts(i) = 1.0
       end if
     end do
     
@@ -432,6 +408,39 @@ contains
       end do
 
     end subroutine qsort_partition
+
+    recursive subroutine find_worst_element(e_list, n_levels, worst_quality)
+
+      integer, dimension(:), pointer, intent(in) :: e_list 
+      integer, intent(in) :: n_levels
+      real, intent(inout) :: worst_quality
+
+      integer, dimension(:), pointer :: nl_e_list 
+      integer :: i_ele
+
+      if (n_levels > 0) then
+        do i_ele=1,size(e_list)
+          if (e_list(i_ele) > 0) then
+            if (tested(e_list(i_ele)) .eqv. .false.) then
+              
+              quality = minval(ele_val(zoltan_global_element_quality, e_list(i_ele)))
+              tested(e_list(i_ele)) = .true.
+
+              if (quality .LT. my_min_quality) then
+                worst_quality = quality
+              end if
+
+              ! get elements neighbouring this element
+              nl_e_list => row_m_ptr(eelist, e_list(i_ele))
+
+              call find_worst_element(nl_e_list, n_levels - 1, worst_quality)
+
+            end if
+          end if
+        end do
+      end if
+
+    end subroutine find_worst_element
 
   end subroutine zoltan_cb_get_edge_list
 

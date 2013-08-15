@@ -998,10 +998,14 @@ hr_adaptivity =
             element uncuttable_edge_fraction {
                 real
             }?,
-            ## Don't extend uncuttable region.
-            ## If enabled only the poor elements will be marked as uncuttable. Otherwise the region is extended to uncuttable elements and neighbouring elements.
-            element dont_extend_uncuttable_region {
-                empty
+            ## Uncuttable edge weight
+            element uncuttable_edge_weight {
+                real
+            }?,
+            ## Search levels for worst element quality.
+            ## Number of levels of element connections to search through for element quality when setting the edge weights for partitioning.
+            element worst_ele_search_levels {
+                integer
             }?,
             ## Additional adapt iterations.
             ## Zoltan returns the minimum element quality to adaptivity. By setting additional adapt

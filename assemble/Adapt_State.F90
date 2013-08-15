@@ -985,14 +985,11 @@ contains
         & "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity/inhomogenous_vertical_resolution/adapt_in_vertical_only")
 
     ! Don't need to strip the level 2 halo with Zoltan .. in fact, we don't want to
-#ifndef HAVE_ZOLTAN
     if(isparallel()) then
       ! In parallel, strip off the level 2 halo (expected by libsam). The level
       ! 2 halo is restored on the final adapt iteration by libsam.
       call strip_level_2_halo(states, metric, initialise_fields=initialise_fields)
     end if
-#endif
-
 
 #ifdef HAVE_ZOLTAN
 
