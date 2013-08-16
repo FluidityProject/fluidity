@@ -18,29 +18,29 @@ a better solution than could be implemented by the \fluidity development team.
 run:
 
 \begin{itemize}
-\item Fortran 90 and C++ compiler (tested gfortran 4.5-4.7, Intel 11.1 for versions above 11.1.073)
+\item Fortran 90 and C++ compiler (gcc build tested version 4.8.1, expected working for gcc 4.5.x and higher; Intel 11.1 for versions above 11.1.073)
 \item BLAS (tested netlib, ATLAS, MKL)
 \item LAPACK (tested netlib, ATLAS, MKL)
-\item XML2 (tested version 2.6)
-\item MPI2 implementation (tested OpenMPI version 1.4.3)
-\item PETSc (tested versions 3.0 and 3.1)
-\item ParMetis (tested version 3.2)
-\item ARPACK (tested version 96)
-\item Python (tested version 2.7) 
-\item NumPy (tested version 1.6.1)
-\item SciPy (tested version 0.9.0)
-\item Trang (tested version 20030619, any recent version should work)
-\item VTK (tested version 5.6)
-\item Zoltan (tested version 3.501)
+\item MPI2 implementation (build tested OpenMPI version 1.6.5)
+\item PETSc (build tested version 3.4.1, fully tested version 3.1p8)
+\item ParMetis (build tested version 3.2)
+\item Python (build tested version 2.7.5) 
+\item NumPy (build tested version 1.7.1)
+\item VTK (tested version 5.10.1)
+\item Zoltan (build tested version 3.6)
 \end{itemize}
 
 \fluidity recommends also making available the following:
 
 \begin{itemize}
+\item Trang (tested version 20030619, any recent version should work)
 \item CGNS (tested version 2.5)
 \item NetCDF (tested version 4.0)
 \item UDUnits (tested version 2.1.23)
 \item Bazaar (tested version 2.4.0)
+\item SciPy (tested version 0.11.0)
+\item ARPACK (tested version 96)
+\item XML2 (tested version 2.6)
 \end{itemize}
 
 \section{Installing required libraries on Debian or Ubuntu}
@@ -103,6 +103,21 @@ deployment process.
 In most cases, modern Linux systems will supply some if not most of the
 required packages without needing to resort to compiling them from source.
 
+These instructions are developed and tested with a base install of
+ubuntu-server on top of which are installed gcc, gcc-multilib, g++, m4, gawk,
+and make. For other systems, it is assumed that you have the GCC prerequisites
+as described in \url{http://gcc.gnu.org/install/prerequisites.html}, as well as
+a working C++ compiler and an m4 install. GCC and its supporting software
+should be relatively tolerant of older versions, as long as they work and are
+POSIX-compliant.
+
+As a side-note, the gcc-multilib requirement for building gcc 4.7 appears to be
+the result of gcc failing to check for the existence of 32-bit headers at
+configure time, and thus requiring the 32-bit compatibility libraries to be
+installed on 64-bit systems. There may be a workaround for this of which the
+\fluidity developers are not aware; in the interim, the gcc build appears to
+need some degree of 32-bit support on 64-bit systems.
+
 \subsection{Supported compilers}
 \label{sec:required_libraries_supported_compilers}
 
@@ -113,7 +128,8 @@ to interface \fluidity with the libraries. At present, \fluidity is tested with
 gcc/g++/gfortran versions 4.5-4.7 and the Intel compiler with version 11.1.073
 and later versions of 11.1. Versions of 11.1 earlier than 11.1.073 contain bugs
 that prevent building \fluidity, as do all other major and minor versions of
-the Intel compiler.
+the Intel compiler. Bug reports have been filed with Intel to remedy this but 
+remain outstanding as of this document date (August 2013).
 
 \subsection{Build environment}
 \label{sec:required_libraries_build_environment}
@@ -123,14 +139,14 @@ environment containing a few key environment variables. Set WORKING to be the
 root of your working area which the subsequent variables will refer to:
 
 \begin{lstlisting}[language=bash]
-export WORKING="/path/to/my/data"
+export WORKING="/path/to/my/installation"
 
 export PATH="$WORKING/fluidity/bin:$PATH"
-export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$WORKING/fluidity/lib"
-export CFLAGS="-L$WORKING/fluidity/lib"
-export FFLAGS="-L$WORKING/fluidity/lib"
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$WORKING/fluidity/lib:$WORKING/fluidity/lib64"
+export CFLAGS="-L$WORKING/fluidity/lib -L$WORKING/fluidity/lib64"
+export FFLAGS="-L$WORKING/fluidity/lib -L$WORKING/fluidity/lib64"
 export CPPFLAGS="-I$WORKING/fluidity/include"
-export LDFLAGS="-L$WORKING/fluidity/lib"
+export LDFLAGS="-L$WORKING/fluidity/lib -L$WORKING/fluidity/lib64"
 \end{lstlisting}
 
 csh users will want to alter all export commands to the corresponding setenv
@@ -171,25 +187,49 @@ If you do not already have compilers suitable for building \fluidity, GCC is
 freely available and is possible to build from source with sufficient disk
 space and time.
 
+All the instructions below assume that you're building on a 64-bit Linux
+system; if this is not the case, you will need to specify a different
+architecture string for your --build parameter for gcc and the gcc
+prerequisites. It is also assumed that you have some form of compilers for C
+and C++ available to run the GCC and supporting software builds, as well as a
+working M4 install and a working implementation of 'make'; full bootstrapping
+instructions are outside the scope of this manual.
+
+For each install step that follows, two software versions are listed, one being
+the build-tested version as a 'known highest version building' and the other
+being the 'fully tested' version as currently run through automated testing on
+a daily basis. Instructions generally correspond to the former version as our
+experience is that people building their own versions of packages frequently
+want to use latest versions. It is expected that these latest versions will
+perform well with \fluidity but some wrinkles may still remain to be ironed
+out.
+
 \subsubsection{GMP, MPFR, and MPC}
 \label{sec:required_libraries_compilers_gmp_mpfr_mpc}
 
-GMP (tested for \fluidity with gmp-5.0.5) and MPFR (tested for \fluidity with
-mpfr-3.1.0) are needed for the GCC 4.6 build if you do not already have them.
-Download GMP from \url{http://gmplib.org/} and build it in the source
-directory, appending \lstinline[language=bash]+--enable-cxx+ to the standard
-configure, then running the standard make and install.
+GMP (tested for \fluidity build compatibility with gmp-5.1.2, fully tested
+gmp-4.3.2) MPFR (tested for \fluidity build compatibility with mpfr-3.1.2,
+fully tested mpfr-3.1.0), and MPC (tested for \fluidity build compatibility
+with mpc-1.0.1, fully tested mpc-0.9) are needed for the GCC 4.8 build if you
+do not already have them.  Download GMP from \url{http://gmplib.org/} and build
+it in the source directory, appending
+\lstinline[language=bash]+--build=x86_64-linux-gnu --enable-cxx+ to the
+standard configure, then running the standard make and install.
 
 Once GMP has been installed, download MPFR from
 \url{http://www.mpfr.org/mpfr-current/} and build it in the source directory,
-appending \lstinline[language=bash]+--with-gmp=\$WORKING/fluidity+ to the
-standard configure, then running the standard make and install.
+appending
+\lstinline[language=bash]+--build=x86_64-linux-gnu --with-gmp=\$WORKING/fluidity+
+to the standard configure, then running the
+standard make and install.
 
-Once MPFR has been installed, download MPC from 
+Once MPFR has been installed, download MPC from
 \url{http://www.multiprecision.org/index.php?prog=mpc&page=download} and build
 it in the source directory, appending
-\lstinline[language=bash]+--with-gmp=$WORKING/fluidity --with-mpfr=$WORKING/fluidity+ 
-to the standard configure, then running the standard make and install.
+\lstinline[language=bash]+--build=x86_64-linux-gnu --with-gmp=$WORKING/fluidity+
+\lstinline[language=bash]+--with-mpfr=$WORKING/fluidity+
+to the standard configure, then running the
+standard make and install.
 
 If you have no compilers at all, you may need to download GMP, MPFR, and MPC as
 pre-built binaries. If you have any compilers, even if not ones which support
@@ -197,38 +237,55 @@ building \fluidity, you should be able to build GMP, MPFR, and MPC and then go
 on to build GCC. Finding a binary compiler distribution from the start will
 make matters a great deal simpler for you if that option is available.
 
-
 \subsubsection{GCC}
 \label{sec:required_libraries_compilers_gcc}
 
-GCC (tested for \fluidity with gcc-4.6.x Ubuntu-built compilers, assumed
-working with most 4.4.x and 4.5.x, not known yet to work with 4.7.x) can be
-downloaded from the UK mirror at \url{http://gcc-uk.internet.bs/} Before the
-build, make sure that the GMP, MPFR, and MPC libraries are on
-LD{\textunderscore}LIBRARY{\textunderscore}PATH or the stage 1 configure will
-fail even if \lstinline[language=bash]+--with-[gmp|mpfr|mpc]+ is supplied.
+GCC (tested for \fluidity build compatibility up to gcc-4.8.1, fully tested
+gcc-4.6.3) can be downloaded from the UK mirror at
+\url{http://gcc-uk.internet.bs/} Before the build, make sure that the GMP,
+MPFR, and MPC libraries are on LD{\textunderscore}LIBRARY{\textunderscore}PATH
+or the stage 1 configure will fail even if
+\lstinline[language=bash]+--with-[gmp|mpfr|mpc]+ is supplied.
 
 Also note that the build needs to be in a target build directory, NOT in the
 source directory, or again the build will fail with definition conflicts
 against the system includes.
 
-Finally, the java build appears to be buggy in (at least) 4.4 and is enabled by
-default, but \fluidity only needs c, c++, and fortran, so just specify those.
+First, set up the following environment variables:
+\begin{lstlisting}[language=bash]
+export LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/
+export C_INCLUDE_PATH=/usr/include/x86_64-linux-gnu
+export CPLUS_INCLUDE_PATH=/usr/include/x86_64-linux-gnu
+\end{lstlisting}
 
-Make a target build directory which is OUTSIDE the source tree, then build
+Then make a target build directory which is OUTSIDE the source tree, then build
 with the following configure:
 
 \begin{lstlisting}[language=bash]
-/path/to/gcc/source/configure --prefix=$WORKING/fluidity 
---with-gmp=$WORKING/fluidity --with-mpfr=$WORKING/fluidity 
---with-mpc=$WORKING/fluidity --enable-languages=c,c++,fortran
+/path/to/gcc/source/configure --build=x86_64-linux-gnu
+--prefix=$WORKING/fluidity --with-gmp=$WORKING/fluidity
+--with-mpfr=$WORKING/fluidity --with-mpc=$WORKING/fluidity
+--enable-checking=release --enable-languages=c,c++,fortran 
+--disable-multilib --program-suffix=-4.8.1
 \end{lstlisting}
 
-followed by the standard make and install.
+followed by the standard make and install. Note you may well want to change the
+program suffix in the configure string if you are not building gcc 4.8.1.
 
-The GCC4 build has not been tested by the \fluidity builders in an environment
-with no compilers at all and thus the ability or otherwise of the build to
-bootstrap itself is not known.
+Having built a new version of gcc, make sure that subsequent build steps
+actually use it. Either explicitly specify the new version by setting
+environment variables, ie:
+
+\begin{lstlisting}[language=bash]
+export CC=gcc-4.8.1
+export CXX=g++-4.8.1
+export FC=gfortran-4.8.1
+export F90=gfortran-4.8.1
+export CPP=cpp-4.8.1
+\end{lstlisting}
+
+(with suitable version changes if necessary), or if you prefer you could reset
+the symlinks for gcc, gfortran, g++, etc. to point to your new version.
 
 \subsubsection{OpenMPI}
 \label{sec:required_libraries_compilers_openmpi}\index{OpenMPI}
@@ -242,73 +299,10 @@ before \fluidity can be compiled. \fluidity is no longer generally supported as
 non-MPI code as it is assumed that serial runs will be precursors to large
 parallel runs and will be built with MPI enabled for later use.
 
-OpenMPI (tested for \fluidity with openmpi-1.4.3) can be downloaded from
-\url{http://www.open-mpi.org/software/ompi/v1.4/}. It is built in the source
-directory with the standard configure, make, and install.
-
-\subsection{Python}
-\label{sec:required_libraries_python}\index{Python!installing}
-
-Python is widely used within \fluidity for user-defined functions and for
-diagnostic tools and problem setup, and currently tested up to Python version
-2.7. Earlier Python version may be suitable for use but may lack later
-functionality. Python extensions required are: setuptools for \fluidity builds,
-Python-4suite and Python-XML for options file parsing, and NumPy for custom
-function use within \fluidity.
-
-If you do not have a working version of Python it can be built from source. 
-
-\subsubsection{Readline}
-\label{sec:required_libraries_python_readline}
-
-Readline (tested version 6.2) is not strictly needed for Python to build but is
-very handy if you want to make use of things like Python command history.
-Download readline from \url{http://ftp.gnu.org/pub/gnu/readline/} and then add
--fPIC to CFLAGS and FFLAGS for the duration of this build with:
-
-\begin{lstlisting}[language=bash]
-export CFLAGS="$CFLAGS -fPIC"
-export FFLAGS="$FFLAGS -fPIC"
-\end{lstlisting}
-
-These can be returned to their default values after the readline build.
-Building with -fPIC shouldn't be necessary but seems to be required by the
-later Python build.
-
-Build readline in the source directory, appending
-\lstinline[language=bash]+--disable-shared+ to the standard configure and then
-running the standard make and install.
-
-\subsubsection{Python}
-\label{sec:required_libraries_python_python}
-
-Python (tested version 2.7) can be downloaded from
-\url{http://www.python.org/download/} and built in the source directory with
-the standard configure, make, and install, adding
-\lstinline[language=bash]+--enable-shared+ to the configure flags.
-
-\subsubsection{Setuptools}
-\label{sec:required_libraries_python_setuptools}
-
-Setuptools (tested version 0.6c11) can be downloaded from
-\url{http://pypi.python.org/pypi/setuptools} and installed from the appropriate
-egg file with:
-
-\begin{lstlisting}[language=bash]
-sh ./setuptools-0.6c11-py2.6.egg --prefix=$WORKING/fluidity
-\end{lstlisting}
-
-Use the appropriate filename for the Python egg you have downloaded.
-
-\subsubsection{NumPy}
-\label{sec:required_libraries_python_numpy}\index{numpy}
-
-NumPy (tested version 1.6.0) can be installed through
-easy{\textunderscore}install which was provided by setuptools, using:
-
-\begin{lstlisting}[language=bash]
-easy_install numpy
-\end{lstlisting}
+OpenMPI (tested for \fluidity build compatibility up to version 1.6.5, and
+fully tested to 1.4.3) can be downloaded from
+\url{http://www.open-mpi.org/software/}. It is built in the source directory
+with the standard configure, make, and install.
 
 \subsection{Numerical Libraries}
 \label{sec:required_libraries_numerical}
@@ -324,16 +318,19 @@ partitioning and sparse matrix operations.
 
 BLAS can be dowloaded from \url{http://www.netlib.org/blas/} (for netlib BLAS),
 \url{http://sourceforge.net/projects/math-atlas/files/} (for ATLAS), or
-combined with commercially available compilers such as MKL from Intel.
+combined with commercially available compilers such as MKL from Intel. The
+following method assumes netlib BLAS.
 
 BLAS is built in the source directory after editing the following entries in
 the make.inc file:
 
 \begin{lstlisting}[language=bash]
-FORTRAN  = gfortran
-LOADER   = gfortran
+FORTRAN  = gfortran-4.8.1
+LOADER   = gfortran-4.8.1
 OPTS     = -O3 -fPIC
 \end{lstlisting}
+
+(Alter your compiler name and version number as required to suit your system)
 
 Then run:
 
@@ -347,7 +344,9 @@ cp blas_LINUX.a $WORKING/fluidity/lib/libblas.a
 
 LAPACK can be downloaded from \url{http://www.netlib.org/lapack/} (for netlib
 LAPACK), \url{http://sourceforge.net/projects/math-atlas/files/} (for ATLAS),
-or combined with commercially available compilers such as MKL from Intel. 
+or combined with commercially available compilers such as MKL from Intel. The
+following method assumes netlib LAPACK (tested with \fluidity for version
+3.4.2).
 
 LAPACK is built in the source directory. First, make a copy of
 make.inc.example:
@@ -359,21 +358,26 @@ cp make.inc.example make.inc
 Edit it to set:
 
 \begin{lstlisting}[language=bash]
-FORTRAN  = gfortran -fimplicit-none -g -fPIC
+FORTRAN  = gfortran-4.8.1 -fPIC
+LOADER   = gfortran-4.8.1 -fPIC
+CC = gcc-4.8.1 -fPIC
 BLASLIB  = /path/to/your/libraries/libblas.a
 \end{lstlisting}
+
+(Alter your compiler names and version numbers as required to suit your system)
 
 Then:
 
 \begin{lstlisting}[language=bash]
 make
-cp lapack_LINUX.a $WORKING/fluidity/lib/liblapack.a
+cp liblapack.a $WORKING/fluidity/lib/liblapack.a
 \end{lstlisting}
 
 \subsubsection{ParMetis}
 \label{sec:required_libraries_numerical_parmetis}\index{ParMetis}
 
-ParMetis (tested for \fluidity with version 3.2.0) is required for mesh
+ParMetis (tested for \fluidity build compatibility with version 3.2.0, fully
+tested with version 3.1.1, NOT tested with version 4.x) is required for mesh
 partitioning and sparse matrix operations, and can be downloaded from
 \url{http://glaros.dtc.umn.edu/gkhome/fsroot/sw/parmetis/OLD}
 
@@ -397,16 +401,17 @@ alternative partitioner which is free to use for commercial partners.
 \subsubsection{PETSc}
 \label{sec:required_libraries_numerical_petsc}\index{PETSc}
 
-PETSc (currently tested for \fluidity with version 3.1p8) is required for
-efficient solver methods within \fluidity. Some work has been carried out
-to ensure that Fluidity builds correctly with PETSc 3.2 but this has not
-been extensively tested, so іs used at your own risk. Work is ongoing to
-support the latest development branch of PETSc but this is not currently
-supported as an option.
+If you do not already have it installed, you will need Cmake (tested for
+version 2.8.11.2, download from
+\url{http://www.cmake.org/cmake/resources/software.html}) for the PETSc Metis
+build.  Cmake is built in its source directory with the standard configure,
+make, and install.
 
-PETSc can be downloaded from
-\url{http://www.mcs.anl.gov/petsc/petsc-2/download/index.html} and built in the
-source directory. First, set PETSC{\textunderscore}DIR in the source directory:
+PETSc (currently tested for \fluidity build compatibility with version 3.3-p7,
+fully tested with version 3.1p8, not tested with version 3.4.x) is required for
+efficient solver methods within \fluidity. PETSc can be downloaded from
+\url{http://www.mcs.anl.gov/petsc/download/} and built in the source directory.
+First, set PETSC{\textunderscore}DIR in the source directory:
 
 \begin{lstlisting}[language=bash]
 export PETSC_DIR=$PWD
@@ -415,10 +420,11 @@ export PETSC_DIR=$PWD
 Then configure with the following all on one line:
 
 \begin{lstlisting}[language=bash]
-./configure --prefix=$WORKING/fluidity --with-mpi-shared=1 --with-shared=1
-   --with-debugging=0 --with-parmetis=1 --download-parmetis=1 --with-hypre=1
-   --download-hypre=1 --with-prometheus=1 --download-prometheus=1
-   --with-fortran-interfaces=1
+./configure --prefix=$WORKING/fluidity --with-mpi-shared=1
+   --with-shared-libraries=1 --with-debugging=0 --with-parmetis=1
+   --download-parmetis=1 --with-hypre=1 --download-hypre=1
+   --with-prometheus=1 --download-prometheus=1 --with-metis=1
+   --download-metis=1 --with-fortran-interfaces=1
 \end{lstlisting}
 
 When configure completes, it should supply you with a 'make all' command line,
@@ -436,21 +442,190 @@ export PETSC_DIR=$WORKING/fluidity
 NOTE: If you see problems with shared libraries not building correctly, make
 sure you have built BLAS and LAPACK with \lstinline[language=bash]+-fPIC+.
 
+\subsubsection{Zoltan}
+\label{sec:required_libraries_numerical_zoltan}\index{Zoltan}
+
+Zoltan (fully tested with version 3.6) is available as a tarball from  
+\url{http://www.cs.sandia.gov/~kddevin/Zoltan_Distributions/zoltan_distrib_v3.6.tar.gz}
+
+After uncompressing that file, you will fix a known issue with Zoltan Fortran
+modules by editing the file Zoltan{\textunderscore}v3.6/src/Makefile.in: at the
+end of that file and finding lines looking like:
+
+\begin{lstlisting}[language=bash]
+   #if F90_MODULE_LOWERCASE
+   #FORTRAN_MODULES = \
+   # lb_user_const.mod \
+   # zoltan_types.mod \
+   # zoltan.mod \
+   # zoltan_user_data.mod
+   #else
+   #FORTRAN_MODULES = \
+   # LB_USER_CONST.mod \
+   # ZOLTAN_TYPES.mod \
+   # ZOLTAN.mod \
+   # ZOLTAN_USER_DATA.mod
+   #endif
+\end{lstlisting}
+
+Delete lines and leading \# characters appropriately so you end up with the above replaced by:
+
+\begin{lstlisting}[language=bash]
+   FORTRAN_MODULES = \
+          lb_user_const.mod \
+          zoltan_types.mod \
+          zoltan.mod \
+          zoltan_user_data.mod
+\end{lstlisting}
+
+If you are using gcc 4.7.2 or later you will need to make some small
+modifications to the source of Zoltan 3.6, as per the bug reported at
+\url{https://bugs.launchpad.net/fluidity/+bug/1101906}, replacing the file
+\lstinline[language=bash]+<source-root>/src/fort/set_hiermethod.fn+ with the
+new version downloaded from the bug report (
+\url{https://bugs.launchpad.net/fluidity/+bug/1101906/+attachment/3489641/+files/set_hiermethod.fn}
+).
+
+Without this fix in place, a build-time error will be encountered.
+
+Make a build directory and change into it:
+
+\begin{lstlisting}[language=bash]
+   mkdir Zoltan-build/
+   cd Zoltan-build/
+\end{lstlisting}
+
+For configuration you will need to supply your system architecture. Type:
+
+\begin{lstlisting}[language=bash]
+   uname -i
+\end{lstlisting}
+
+A common return value is 'x86{\textunderscore}64' which will be used as the
+example for the following configure. If you are on a 32-bit system the above
+will return 'i386'. In that case, replace 'x86{\textunderscore}64' with 'i386' in
+the following command so 'x86{\textunderscore}64-linux-gnu' reads
+'i386-linux-gnu'.
+
+Configure Zoltan in your build directory with the following typed all on one
+line:
+
+\begin{lstlisting}[language=bash]
+   ../Zoltan_v3.6/configure x86_64-linux-gnu --prefix=$WORKING/fluidity
+      --enable-mpi --with-mpi-compilers --with-parmetis
+      --enable-f90interface --disable-examples
+      --enable-zoltan-cppdriver --with-parmetis-libdir=$WORKING/fluidity/lib
+\end{lstlisting}
+
+(This assumes your build directory and the Zoltan source directory are in the
+same place; if not, tinker with the path to 'configure' accordingly)
+
+Then run the standard make and make install.
+
+\subsection{Python}
+\label{sec:required_libraries_python}\index{Python!installing}
+
+Python is widely used within \fluidity for user-defined functions and for
+diagnostic tools and problem setup, and currently tested up to Python version
+2.7. Earlier Python version may be suitable for use but may lack later
+functionality. Python extensions required are: setuptools for \fluidity builds,
+Python-4suite and Python-XML for options file parsing, and NumPy for custom
+function use within \fluidity.
+
+If you do not have a working version of Python it can be built from source. 
+
+\subsubsection{Readline}
+\label{sec:required_libraries_python_readline}\index{Python!readline}
+
+Readline (tested version 6.2) is not strictly needed for Python to build but is
+very handy if you want to make use of things like Python command history.
+Download readline from \url{http://ftp.gnu.org/pub/gnu/readline/} and then add
+-fPIC to CFLAGS and FFLAGS for the duration of this build with:
+
+\begin{lstlisting}[language=bash]
+export CFLAGS="$CFLAGS -fPIC"
+export FFLAGS="$FFLAGS -fPIC"
+\end{lstlisting}
+
+These can be returned to their default values after the readline build.
+Building with -fPIC shouldn't be necessary but seems to be required by the
+later Python build.
+
+Build readline in the source directory, appending
+\lstinline[language=bash]+--disable-shared+ to the standard configure and then
+running the standard make and install.
+
+\subsubsection{zLib}
+\label{sec:required_libraries_python_zlib}\index{Python!zLib}
+
+zLib (tested version 1.2.8) is not strictly needed for Python to build but is
+useful for many automated package scripts. Download zLib from 
+\url{http://zlib.net/} and build in the source directory with the standard
+configure, make, and make install.
+
+\subsubsection{Python}
+\label{sec:required_libraries_python_python}
+
+Python (tested version 2.7.5) can be downloaded from
+\url{http://www.python.org/download/} and built in the source directory with
+the standard configure, make, and install, adding
+\lstinline[language=bash]+--enable-shared+ to the configure flags.
+
+\subsubsection{NumPy}
+\label{sec:required_libraries_python_numpy}\index{Python!numpy}
+
+NumPy (tested version 1.7.1) can be downloaded as a compressed tarball from
+\url{https://pypi.python.org/pypi/numpy} and after unsetting CFLAGS and
+LDFLAGS:
+
+\begin{lstlisting}[language=bash]
+unset CFLAGS
+unset LDFLAGS
+\end{lstlisting}
+
+is installed from the source directory with:
+
+\begin{lstlisting}[language=bash]
+python ./setup.py --install
+\end{lstlisting}
+
+Ensure that the python you run is the python which you have just installed, as
+opposed to an alternative system version.
+
+Once this step is complete, remember to reset CFLAGS and LDFLAGS to the
+recommended environment versions; assuming you put the code earlier in this 
+appendix into your .bashrc you should be able to simply do this by logging out
+and in again, or restarting your terminal.
+
 \subsection{VTK and supporting software}
 \label{sec:required_libraries_vtk}\index{vtk!installing}
 
-VTK is required for \fluidity data output, and currently tested to version 5.6.
+VTK is required for \fluidity data output, and currently tested to version
+5.10.0 via Ubuntu's packaged version, although bugs in the 5.10.0 build mean
+that for source builds from the original tarball 5.8.0 is recommended and will
+be used as the example in this appendix. \fluidity does not currently support
+VTK 6.x.
+
 If you do not already have them installed, you will need Cmake (tested for
-version 2.8.5, download from
+version 2.8.11.2, download from
 \url{http://www.cmake.org/cmake/resources/software.html}), as well as Tcl and
-Tk (tested for version 8.5.10, download from
+Tk (tested for version 8.6.0, download from
 \url{http://www.tcl.tk/software/tcltk/download.html}. All three packages are
 built with the standard configure, make, and install, Cmake first in its source
 directory, then Tcl followed by Tk in each package's respective unix/
 subdirectory of their main source directory.
 
-VTK (tested version 5.8 from the Ubuntu build) can be download from
-\url{http://www.vtk.org/VTK/resources/software.html}
+It should be noted that the Tk build requires X11 development headers to be
+present on the system. The expected solutions if this is not the case are
+outlined on the Tk wiki at \url{http://wiki.tcl.tk/1843}.
+
+It's also assumed later in this document that you have ncurses on your system
+so cmake also builds the ccmake curses interface. If you do not, you can
+download ncurses from \url{http://ftp.gnu.org/pub/gnu/ncurses/} and build in
+the source directory with the standard configure, make, and make install.
+
+VTK (build tested version 5.8.0) can be downloaded from
+\url{http://vtk.org/files/release/5.8/}
 
 The following build is for a non-graphical install of \fluidity - ie, one for a
 cluster, not one for a workstation expected to run diamond. In the situation
@@ -470,9 +645,9 @@ the library directory added to LD{\textunderscore}LIBRARY{\textunderscore}PATH.
 For the build described here, these would be set to:
 
 \begin{lstlisting}[language=bash]
-export VTK_INCLUDE="$WORKING/fluidity/include/vtk-5.6"
-export VTK_LIBS="$WORKING/fluidity/lib/vtk-5.6"
-export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$WORKING/fluidity/lib/vtk-5.6"
+export VTK_INCLUDE="$WORKING/fluidity/include/vtk-5.8"
+export VTK_LIBS="$WORKING/fluidity/lib/vtk-5.8"
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$WORKING/fluidity/lib/vtk-5.8"
 \end{lstlisting}
 
 If you are building from source, VTK should be built in a separate build
@@ -482,28 +657,35 @@ run:
 \begin{lstlisting}[language=bash]
 mkdir ../VTK-build
 cd ../VTK-build
-ccmake ../VTK/
+ccmake ../VTK
 \end{lstlisting}
 
 Then type 'c' and edit the resulting rules screen to:
 
 \begin{lstlisting}[language=bash]
-BUILD_EXAMPLES                   OFF
-BUILD_SHARED_LIBS                ON                                     
-BUILD_TESTING                    ON
-CMAKE_BACKWARDS_COMPATIBILITY    2.4
+BUILD_EXAMPLES                  OFF
+BUILD_SHARED_LIBS               ON
+BUILD_TESTING                   ON
+CMAKE_BACKWARDS_COMPATIBILITY   2.4
 CMAKE_BUILD_TYPE
-CMAKE_INSTALL_PREFIX             /path/to/WORKING/fluidity          
-VTK_DATA_ROOT                    VTK_DATA_ROOT-NOTFOUND
-VTK_USE_GEOVIS                   OFF                                    
-VTK_USE_INFOVIS                  OFF                                    
-VTK_USE_N_WAY_ARRAYS             OFF
-VTK_USE_PARALLEL                 OFF
-VTK_USE_RENDERING                OFF                                    
-VTK_USE_VIEWS                    OFF                                    
-VTK_WRAP_JAVA                    OFF
-VTK_WRAP_PYTHON                  ON                                     
-VTK_WRAP_TCL                     OFF
+CMAKE_INSTALL_PREFIX            /path/to/WORKING/fluidity
+VTK_DATA_ROOT                   VTK_DATA_ROOT-NOTFOUND
+VTK_EXTRA_COMPILER_WARNINGS     OFF
+VTK_LARGE_DATA_ROOT             VTK_LARGE_DATA_ROOT-NOTFOUND
+VTK_USE_CHARTS                  OFF
+VTK_USE_CHEMISTRY               OFF
+VTK_USE_GEOVIS                  OFF
+VTK_USE_INFOVIS                 OFF
+VTK_USE_N_WAY_ARRAYS            OFF
+VTK_USE_PARALLEL                OFF
+VTK_USE_QT                      OFF 
+VTK_USE_RENDERING               OFF
+VTK_USE_TEXT_ANALYSIS           OFF
+VTK_USE_VIEWS                   OFF
+VTK_WRAP_JAVA                   OFF
+VTK_WRAP_PYTHON                 ON
+VTK_WRAP_PYTHON_SIP             OFF
+VTK_WRAP_TCL                    OFF 
 \end{lstlisting}
 
 Then:
@@ -528,7 +710,7 @@ package instructions should be referred to for full build details.
 \label{sec:required_libraries_supporting_xml2}\index{XML2}
 
 XML2 is required for parsing \fluidity's flml parameter file format, and is
-tested with version 2.7.8. It can be downloaded from \url{ftp://xmlsoft.org/libxml2/}
+tested with version 2.9.0. It can be downloaded from \url{ftp://xmlsoft.org/libxml2/}
 
 \subsubsection{ARPACK}
 \label{sec:required_libraries_supporting_arpack}\index{ARPACK}
@@ -540,10 +722,11 @@ version 96 with paths configured for the local site. It can be downloaded from
 \subsubsection{NetCDF}
 \label{sec:required_libraries_supporting_netcdf}\index{NetCDF}
 
-NetCDF is required for reading datafiles in NetCDF format, and is tested with
-version 4.1.3. It is recommended to be configured with f77, f90, c, cxx, and
-utilities enabled, and with \lstinline[language=bash]+--enable-shared+ added to
-the standard configure. 
+NetCDF and NetCDF-fortran are required for reading datafiles in NetCDF format,
+and are tested with NetCDF version 4.2.1.1 and NetCDF-fortran version 4.2. They
+is recommended to be configured with f77, f90, c, cxx, and utilities enabled,
+and with \lstinline[language=bash]+--enable-shared+ added to the standard
+configure. 
 
 NetCDF can be downloaded from \url{http://www.unidata.ucar.edu/downloads/netcdf/}
 
@@ -553,7 +736,7 @@ Experimental NetCDF 5 is not yet tested for use with Fluidity.
 \label{sec:required_libraries_supporting_udunits}\index{UDUnits}
 
 UDUnits is required for physical unit conversions, and is tested with version
-2.1.23. Note there is a common issue with hand-building this package where
+2.1.24. Note there is a common issue with hand-building this package where
 \lstinline[language=bash]+CPPFLAGS+ needs to be correctly set with a -D
 option for the relevant Fortran environment. This commonly leads to an error
 during the build when not set. See for example
@@ -577,7 +760,8 @@ hence is used at your own risk.
 
 Trang is required for parsing \fluidity's flml schema, and is tested with
 20030619 but any recent version should be sufficient. Trang can be downloaded
-from \url{http://www.thaiopensource.com/relaxng/trang.html}
+from \url{http://www.thaiopensource.com/relaxng/trang.html} and requires a
+Java Runtime Environment to be present.
 
 \subsubsection{Bazaar (bzr)}
 \label{sec:required_libraries_supporting_bzr}\index{bzr!installing}
