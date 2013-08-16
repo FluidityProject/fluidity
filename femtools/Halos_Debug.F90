@@ -185,6 +185,7 @@ contains
       consistent = .true.
     else if(min_halo_receive_node(halo) <= halo_nowned_nodes(halo)) then
       ewrite(1, *) "At least one receive node is owned"
+      ewrite(1,*) min_halo_receive_node(halo), halo_nowned_nodes(halo)
       consistent = .false.
     else if(.not. receive_nodes_unique(halo)) then
       ewrite(1, *) "Receive nodes are not unique"

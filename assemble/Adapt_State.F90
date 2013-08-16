@@ -59,6 +59,7 @@ module adapt_state_module
   use boundary_conditions
   use boundary_conditions_from_options
   use populate_state_module
+  use surface_id_interleaving
   use project_metric_to_surface_module
   use reserve_state_module
   use sam_integration
@@ -100,6 +101,7 @@ contains
       lock_faces, allow_boundary_elements)
     type(vector_field), intent(in) :: old_positions
     type(tensor_field), intent(inout) :: metric
+    type(vector_field) :: stripped_positions
     type(vector_field), intent(out) :: new_positions
     integer, dimension(:), pointer, optional :: node_ownership
     logical, intent(in), optional :: force_preserve_regions
@@ -108,27 +110,430 @@ contains
 
     assert(.not. mesh_periodic(old_positions))
 
-    select case(old_positions%dim)
+    call allocate(stripped_positions, mesh_dim(old_positions%mesh), old_positions%mesh, old_positions%name)
+    call set(stripped_positions, old_positions)
+    stripped_positions%option_path = old_positions%option_path
+    call strip_l2_halo(stripped_positions, metric)
+    assert(halo_count(stripped_positions) < 2)
+
+    select case(stripped_positions%dim)
       case(1)
-        call adapt_mesh_1d(old_positions, metric, new_positions, &
+        call adapt_mesh_1d(stripped_positions, metric, new_positions, &
           & node_ownership = node_ownership, force_preserve_regions = force_preserve_regions)
       case(2)
-        call adapt_mesh_mba2d(old_positions, metric, new_positions, &
+        call adapt_mesh_mba2d(stripped_positions, metric, new_positions, &
           & force_preserve_regions=force_preserve_regions, lock_faces=lock_faces, &
           & allow_boundary_elements=allow_boundary_elements)
       case(3)
         if(have_option("/mesh_adaptivity/hr_adaptivity/adaptivity_library/libmba3d")) then
           assert(.not. present(lock_faces))
-          call adapt_mesh_mba3d(old_positions, metric, new_positions, &
+          call adapt_mesh_mba3d(stripped_positions, metric, new_positions, &
                              force_preserve_regions=force_preserve_regions)
         else
-          call adapt_mesh_3d(old_positions, metric, new_positions, node_ownership = node_ownership, &
+          call adapt_mesh_3d(stripped_positions, metric, new_positions, &
                              force_preserve_regions=force_preserve_regions, lock_faces=lock_faces)
+          ! call adapt_mesh_3d(stripped_positions, metric, new_positions, node_ownership = node_ownership, &
+          !                    force_preserve_regions=force_preserve_regions, lock_faces=lock_faces)
         end if
       case default
         FLAbort("Mesh adaptivity requires a 1D, 2D or 3D mesh")
     end select
+
+    call create_l2_halo(new_positions, metric)
+    assert(halo_count(new_positions) > 1)
+
   end subroutine adapt_mesh_simple
+
+  subroutine create_l2_halo(positions, metric)
+
+    type(vector_field), intent(inout) :: positions
+    type(tensor_field), intent(inout) :: metric       
+
+    type(tensor_field) :: linear_t
+    type(tensor_field), pointer :: field_t
+
+    type(element_type) :: linear_shape
+
+    integer :: max_coplanar_id
+    integer, dimension(:), allocatable :: boundary_ids, coplanar_ids
+
+    integer :: NNODP, NONODS, TOTELE, STOTEL, ncolga, nscate, pncolga, pnscate
+    type(mesh_type) :: old_linear_mesh
+    type(mesh_type), pointer :: linear_mesh
+
+    integer, dimension(:), allocatable :: ATOSEN, ATOREC
+    integer, dimension(:), allocatable :: COLGAT, SCATER
+    type(vector_field), target :: temp_positions
+    integer :: dim, snloc, nloc
+    integer, dimension(:), allocatable :: senlist, surface_ids
+    character(len=FIELD_NAME_LEN) :: linear_mesh_name, linear_coordinate_field_name, metric_name
+    character(len=OPTION_PATH_LEN) :: linear_mesh_option_path
+    integer :: component, component_i, component_j
+
+    real, dimension(:,:), allocatable :: xyz
+    real, dimension(:), allocatable :: value
+
+
+    ewrite(1, *) "In sam_drive"
+    call tic(TICTOC_ID_DATA_REMAP)
+
+    ! Step 1. Initialise sam.
+    call sneaky_sam_init(positions, metric, max_coplanar_id)
+
+    ! ! Step 2. Supply sam with the metric field.
+    old_linear_mesh = positions%mesh
+    ! call allocate(linear_t, old_linear_mesh, "LinearTensorField")
+    ! call remap_field(metric, linear_t)
+    ! call sam_add_field(linear_t)
+    ! call deallocate(linear_t)
+    ! metric_name = metric%name
+
+    ! ! Step 3. Deallocate.
+    ! call deallocate(metric)
+
+    ! Step 4. Create halo
+    call sam_create_halo2_c()
+
+    ! Step 5. Now, we need to reconstruct.
+
+    ! Query the statistics of the new mesh.
+    ewrite(1, *) "Calling sam_query from sam_drive"
+    call sam_query(nonods, totele, stotel, ncolga, nscate, pncolga, pnscate)
+    ewrite(1, *) "Exited sam_query"
+
+    ! Export mesh data from sam
+    dim = positions%dim
+    linear_shape = ele_shape(old_linear_mesh, 1)
+    nloc = old_linear_mesh%shape%loc
+    snloc = old_linear_mesh%faces%surface_mesh%shape%loc
+    call incref(linear_shape)
+    allocate(linear_mesh)
+    linear_mesh_name = old_linear_mesh%name
+    linear_mesh_option_path = old_linear_mesh%option_path
+    if(trim(linear_mesh_name) == "CoordinateMesh") then
+      linear_coordinate_field_name="Coordinate"
+    else
+      linear_coordinate_field_name=trim(linear_mesh_name)//"Coordinate"
+    end if
+    call allocate(linear_mesh, nonods, totele, linear_shape, linear_mesh_name)
+    call deallocate(linear_shape)
+    call allocate(temp_positions, dim, linear_mesh, linear_coordinate_field_name)  
+    temp_positions%option_path = positions%option_path       
+    call deallocate(linear_mesh)
+    deallocate(linear_mesh)
+    linear_mesh => temp_positions%mesh            
+    allocate(surface_ids(stotel))
+    allocate(senlist(stotel * snloc))
+    ewrite(1, *) "Calling sam_export_mesh from sam_drive"
+    allocate(xyz(1:nonods, 1:3))
+    call sam_export_mesh(nonods, totele, stotel, nloc, snloc, &
+         & xyz(:,1), xyz(:,2), xyz(:,3), &
+         & linear_mesh%ndglno, senlist, surface_ids)
+    temp_positions%val=transpose(xyz(:,1:temp_positions%dim))
+    deallocate(xyz)
+    ewrite(1, *) "Exited sam_export_mesh"
+    linear_mesh%option_path = linear_mesh_option_path
+    call deallocate(old_linear_mesh)
+
+    ! Add the surface mesh data
+    allocate(boundary_ids(stotel))
+    allocate(coplanar_ids(stotel))
+    call deinterleave_surface_ids(surface_ids, max_coplanar_id, boundary_ids, coplanar_ids)
+    call add_faces(linear_mesh, sndgln=senlist, boundary_ids=boundary_ids)
+    deallocate(boundary_ids)
+    allocate(linear_mesh%faces%coplanar_ids(stotel))
+    linear_mesh%faces%coplanar_ids = coplanar_ids
+    deallocate(coplanar_ids)
+    deallocate(surface_ids)
+    deallocate(senlist)
+
+    ! Check that the level 2 halo is around
+    if(pncolga >= 0) then
+      allocate(linear_mesh%halos(2))
+    else
+      allocate(linear_mesh%halos(1))
+    end if
+
+    ! Export the level 1 halo
+    allocate(colgat(ncolga))
+    allocate(scater(nscate))
+    allocate(atosen(getnprocs() + 1))
+    allocate(atorec(getnprocs() + 1))
+    ewrite(1, *) "Calling sam_export_halo from sam_drive"
+    call sam_export_halo(colgat, atosen, scater, atorec, ncolga, nscate, getnprocs(), nnodp, nonods)
+    ewrite(1, *) "Exited sam_export_halo"
+    assert(nonods == node_count(linear_mesh))
+    ! Form a halo from the primitive data structures
+    call form_halo_from_raw_data(linear_mesh%halos(1), getnprocs(), colgat, atosen, scater, atorec, nowned_nodes = nnodp)
+    ! Deallocate the primitive data structures
+    deallocate(colgat)
+    deallocate(atosen)
+    deallocate(scater)
+    deallocate(atorec)
+#ifdef DDEBUG
+    if(isparallel()) then
+      ! Check the new halo
+      assert(trailing_receives_consistent(linear_mesh%halos(1)))
+      assert(halo_valid_for_communication(linear_mesh%halos(1)))
+      assert(halo_verifies(linear_mesh%halos(1), temp_positions))
+    end if
+#endif
+
+    if(pncolga >= 0) then
+      ! In "mixed formulation" export the level 2 halo
+      assert(pnscate >= 0)
+      allocate(colgat(pncolga))
+      allocate(scater(pnscate))
+      allocate(atosen(getnprocs() + 1))
+      allocate(atorec(getnprocs() + 1))
+      ewrite(1, *) "Calling sam_export_phalo from sam_drive"
+      call sam_export_phalo(colgat, atosen, scater, atorec, pncolga, pnscate, getnprocs(), nnodp, nonods)
+      ewrite(1, *) "Exited sam_export_phalo"
+      assert(nnodp == halo_nowned_nodes(linear_mesh%halos(1)))
+      assert(nonods == node_count(linear_mesh))
+      ! Form a halo from the primitive data structures
+      call form_halo_from_raw_data(linear_mesh%halos(2), getnprocs(), colgat, atosen, scater, atorec, nowned_nodes = nnodp)
+      ! Deallocate the primitive data structures
+      deallocate(colgat)
+      deallocate(atosen)
+      deallocate(scater)
+      deallocate(atorec)
+      ! Check the new halo
+      assert(trailing_receives_consistent(linear_mesh%halos(2)))
+      assert(halo_valid_for_communication(linear_mesh%halos(2)))
+      assert(halo_verifies(linear_mesh%halos(2), temp_positions))
+
+      ! Derive the elements halo
+      allocate(linear_mesh%element_halos(2))
+      call derive_element_halo_from_node_halo(linear_mesh, &
+           & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES)  
+    else
+      if(.not. serial_storage_halo(linear_mesh%halos(1))) then  ! Cannot derive halos in serial
+        allocate(linear_mesh%element_halos(1))
+        call derive_element_halo_from_node_halo(linear_mesh, &
+             & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES)
+      else
+        allocate(linear_mesh%element_halos(0)) 
+      end if
+    end if
+
+    ! Replace positions with halo enriched version
+    call deallocate(positions)
+    call allocate(positions, mesh_dim(linear_mesh), linear_mesh, linear_coordinate_field_name)
+    call set(positions, temp_positions)
+    positions%option_path = temp_positions%option_path
+    call deallocate(temp_positions)
+
+    ! Build new metric field
+    ! do component_i=dim,1,-1
+    !   do component_j=dim,1,-1
+    !     call sam_pop_field(linear_t%val(component_i, component_j, :), node_count(linear_mesh))
+    !   end do
+    ! end do
+    ! call allocate(metric, linear_mesh, name = metric_name)
+    ! call remap_field(linear_t, metric)
+#ifdef DDEBUG
+    call check_metric(metric)
+#endif
+
+    call deallocate(linear_t)
+
+    ! Step 6. Cleanup
+    call sam_cleanup
+
+  end subroutine create_l2_halo
+
+  subroutine sneaky_sam_init(positions, metric, max_coplanar_id)
+
+    type(vector_field), intent(inout) :: positions
+    type(tensor_field), intent(inout) :: metric
+    integer, intent(out) :: max_coplanar_id
+    
+    ! sam_init_c variables
+    integer :: nonods, totele, stotel
+    integer, dimension(:), allocatable :: scater, atorec, gather, atosen
+    integer :: nscate
+    integer, dimension(:), pointer :: ndglno
+    integer, dimension(:), allocatable :: surfid, sndgln
+    integer :: nloc, snloc
+    real, dimension(:), pointer :: x, y, z
+    real, dimension(:), allocatable :: metric_handle
+    integer :: nfields
+    real, dimension(:), pointer :: fields
+    real, dimension(1), target :: dummy
+    real :: mestp1
+    real, dimension(:,:), allocatable :: xyz
+
+    integer :: dim, i, j, nprocs
+    type(halo_type) :: halo
+    type(mesh_type) :: mesh
+    
+    mesh = positions%mesh
+    dim = mesh_dim(mesh)
+    nonods = node_count(mesh)
+    totele = ele_count(mesh)
+    stotel = surface_element_count(mesh)
+    ewrite(0,*) size(mesh%ndglno)
+    ndglno => mesh%ndglno
+    nloc = mesh%shape%loc
+    snloc = mesh%faces%surface_mesh%shape%loc
+    allocate(sndgln(stotel * snloc))
+    call getsndgln(mesh, sndgln)
+    allocate(surfid(surface_element_count(mesh)))
+    call interleave_surface_ids(mesh, surfid, max_coplanar_id)
+    
+    ! Extract the level 1 halo
+    nprocs = getnprocs()       
+    if(halo_count(mesh) > 0) then
+      halo = mesh%halos(1)
+      assert(trailing_receives_consistent(halo))
+      assert(halo_valid_for_communication(halo))
+
+      ! Copy the halo data into primitive data structures
+      allocate(gather(halo_all_sends_count(halo)))
+      allocate(atosen(halo_proc_count(halo) + 1))
+      nscate = halo_all_receives_count(halo)
+      allocate(scater(nscate))
+      allocate(atorec(halo_proc_count(halo) + 1))
+      call extract_raw_halo_data(halo, gather, atosen, scater, atorec)
+    else
+      if(isparallel()) then
+        ewrite(-1, *) "Warning: sam_init called in parallel with no level one halo"
+      end if
+      allocate(gather(0))
+      allocate(atosen(nprocs + 1))
+      nscate = 0
+      allocate(scater(nscate))
+      allocate(atorec(nprocs + 1))
+      atosen = 0
+      atorec = 0
+    end if
+
+    ! Form the metric
+    allocate(metric_handle(dim * dim * nonods))
+    metric_handle = reshape(metric%val, (/nonods * dim ** 2/))
+
+    ! The field data is taken care of later
+    nfields = 0
+    dummy = 0
+    fields => dummy
+
+    allocate(xyz(1:nonods,1:3))
+    xyz(:,1:positions%dim)=transpose(positions%val)
+    xyz(:,positions%dim+1:)=0.0
+
+    call get_option('/mesh_adaptivity/hr_adaptivity/functional_tolerance', mestp1, default = 0.0)
+
+    call sam_init_c(dim, nonods, totele, stotel, &
+         & gather, atosen, &
+         & scater(1:nscate), atorec, &
+         & size(gather), nscate, nprocs, &
+         & ndglno(1:totele * nloc), nloc, &
+         & sndgln(1:stotel * snloc), surfid(1:stotel), snloc, &
+         & xyz(:,1), xyz(:,2), xyz(:,3), &
+         & metric_handle(1:nonods * dim ** 2), fields, nfields, &
+         & sam_options(1, 1), mestp1)
+
+    deallocate(xyz)
+    deallocate(sndgln)
+    deallocate(surfid)
+    deallocate(gather)
+    deallocate(atosen)
+    deallocate(scater)
+    deallocate(atorec)
+    deallocate(metric_handle)
+
+  end subroutine sneaky_sam_init
+
+  subroutine strip_l2_halo(positions, metric)
+
+    type(vector_field), intent(inout) :: positions
+    type(tensor_field), intent(inout) :: metric
+    
+    character(len = FIELD_NAME_LEN) :: linear_coordinate_field_name
+    integer :: i, j, nlocal_dets, stat
+    integer, dimension(:), allocatable :: renumber
+    logical, dimension(:), allocatable :: keep
+    type(halo_type), pointer :: level_1_halo, level_2_halo
+    type(mesh_type) :: new_linear_mesh, old_linear_mesh
+    type(mesh_type) :: old_linear_mesh_ptr
+    type(scalar_field), pointer :: new_s_field
+    type(vector_field) :: temp_positions
+    type(vector_field), pointer :: new_v_field
+    type(state_type), dimension(:), allocatable :: interpolate_states
+    type(tensor_field), pointer :: new_t_field
+    type(tensor_field) :: temp_metric
+
+    ewrite(1, *) "In strip_l2_halo"
+    
+    ! Find the external mesh. Must be linear and continuous.
+    old_linear_mesh = positions%mesh
+    call incref(old_linear_mesh)
+    call initialise_boundcount(old_linear_mesh, positions)
+       
+    ! Extract the level 1 and level 2 halos
+    assert(associated(positions%mesh%halos))
+    assert(size(positions%mesh%halos) >= 2)
+    level_1_halo => positions%mesh%halos(1)
+    call incref(level_1_halo)
+    level_2_halo => positions%mesh%halos(2)
+    call incref(level_2_halo)  
+    
+    ! Find the nodes to keep
+    allocate(keep(node_count(positions)))
+    call find_nodes_to_keep(keep, level_1_halo, level_2_halo)
+    call deallocate(level_2_halo)
+    
+    ! Generate the renumbering map
+    allocate(renumber(size(keep)))
+    call create_renumbering_map(renumber, keep)
+    
+    ewrite(2, *) "Stripping level 2 halo from the external mesh"
+    call generate_stripped_linear_mesh(old_linear_mesh, new_linear_mesh, level_1_halo, keep, renumber)
+    
+    ewrite(2, *) "Stripping level 2 halo from the mesh field"
+    call allocate(temp_positions, mesh_dim(new_linear_mesh), new_linear_mesh, positions%name)
+    call generate_stripped_vector_field(positions, old_linear_mesh, temp_positions, new_linear_mesh, keep)
+    temp_positions%option_path = positions%option_path
+    nlocal_dets = default_stat%detector_list%length
+    call allsum(nlocal_dets)
+    if(nlocal_dets > 0) call halo_transfer_detectors(old_linear_mesh, temp_positions)
+       
+    ewrite(2, *) "Renumbering level 1 halo"
+    call renumber_halo(level_1_halo, renumber)
+#ifdef DDEBUG
+    if(isparallel()) then
+      assert(halo_verifies(level_1_halo, temp_positions))
+    end if
+#endif
+    call deallocate(level_1_halo)
+ 
+    call deallocate(positions)
+    call allocate(positions, mesh_dim(new_linear_mesh), new_linear_mesh, temp_positions%name)
+    call set(positions, temp_positions)
+    positions%option_path = temp_positions%option_path
+    call deallocate(temp_positions)
+
+    ewrite(2, *) "Stripping level 2 halo from metric " // trim(metric%name)
+    call allocate(temp_metric, new_linear_mesh, metric%name)
+    call generate_stripped_tensor_field(metric, old_linear_mesh, temp_metric, new_linear_mesh, keep)
+    call deallocate(metric)
+    call allocate(metric, new_linear_mesh, metric%name)
+    call set(metric, temp_metric)
+    call deallocate(temp_metric)
+#ifdef DDEBUG
+    call check_metric(metric)
+#endif
+    
+    call deallocate(old_linear_mesh)
+    call deallocate(new_linear_mesh)
+
+    deallocate(keep)
+    deallocate(renumber)
+
+    ewrite(1, *) "Exiting strip_level_2_halo"
+    
+  end subroutine strip_l2_halo
 
   subroutine adapt_mesh_periodic(old_positions, metric, new_positions, force_preserve_regions)
     type(vector_field), intent(in) :: old_positions
@@ -985,11 +1390,13 @@ contains
         & "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity/inhomogenous_vertical_resolution/adapt_in_vertical_only")
 
     ! Don't need to strip the level 2 halo with Zoltan .. in fact, we don't want to
+#ifndef HAVE_ZOLTAN
     if(isparallel()) then
       ! In parallel, strip off the level 2 halo (expected by libsam). The level
       ! 2 halo is restored on the final adapt iteration by libsam.
       call strip_level_2_halo(states, metric, initialise_fields=initialise_fields)
     end if
+#endif
 
 #ifdef HAVE_ZOLTAN
 
@@ -1148,6 +1555,11 @@ contains
       call deallocate(metric)
       ! We're done with the new_positions, so we may drop our reference
       call deallocate(new_positions)
+
+      if(isparallel()) then
+        ! Update the fields to be interpolated, we've messed with the halos since the last call
+        call halo_update(interpolate_states)
+      end if
 
       ! Interpolate fields
       if(associated(node_ownership)) then

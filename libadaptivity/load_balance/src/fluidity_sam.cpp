@@ -68,6 +68,7 @@ using namespace std;
 #define sam_add_field_fc F77_FUNC(sam_add_field_c, SAM_ADD_FIELD_C)
 #define sam_pop_field_fc F77_FUNC(sam_pop_field_c, SAM_POP_FIELD_C)
 #define sam_export_node_ownership_fc F77_FUNC(sam_export_node_ownership_c, SAM_EXPORT_NODE_OWNERSHIP_C)
+#define sam_create_halo2_fc F77_FUNC(sam_create_halo2_c, SAM_CREATE_HALO2_C)
 
 // "Mesh" is the principle object that does everything for SAM.
 Mesh *mesh = NULL;
@@ -350,6 +351,18 @@ extern "C"{
       node_ownership[i] = noddom[i];
     }
     
+    return;
+  }
+
+  void sam_create_halo2_fc(void)
+  {
+#ifdef HAVE_MPI
+    assert(mesh != NULL);
+		assert(mesh->mixed_formulation())
+
+		mesh->invent_pressure_mesh();
+		mesh->formHalo2();
+#endif
     return;
   }
 }
