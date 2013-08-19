@@ -1868,7 +1868,7 @@
       real, dimension(u%dim,ele_ngi(u,ele)) ::extra_integration_diag
       real, dimension(u%dim, ele_loc(u, ele)) :: extra_integration_lump
       real, dimension(u%dim, ele_loc(u, ele), ele_loc(u, ele)) :: extra_integration_mat
-      
+      real ::extra_dry
       density_gi=ele_val_at_quad(density, ele)
       absorption_gi=0.0
       tensor_absorption_gi=0.0
@@ -1992,7 +1992,11 @@
         else
            beta=0.1
            do i=1, ele_ngi(u,ele)
-            extra_integration_diag(:,i)=-max(beta*viscosity_gi(3,3,i)/(depth_at_quads(i)*depth_at_quads(i))-1/dt,real(0))*grav_at_quads(:,i) 
+            !Give a bigger value of extra_integration in dry area
+             extra_dry = max((2*d0-depth_at_quads(i))/d0,real(0))*10000
+             extra_integration_diag(:,i)=-(max(beta*viscosity_gi(3,3,i)/(depth_at_quads(i)*depth_at_quads(i))-1/dt,real(0))+extra_dry)*grav_at_quads(:,i) 
+             
+             
            ! print *, 'viscosity_gi(3,3,i)=',viscosity_gi(3,3,i)
             !print *, 'sigma_d0_diag(:,i)',sigma_d0_diag(:,i)
           end do
