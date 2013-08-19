@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+   
+  <name>subtract_out_reference_profile</name>
+  <owner userid="ctj10"/>
+  <tags>flml</tags>
+  
+  <problem_definition length="medium" nprocs="1">
+    <command_line>make run</command_line>
+  </problem_definition>
+  
+  <variables>  
+    <variable name="gas_velocity_max_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("subtract_out_reference_profile_1d.stat")
+gas_velocity_max_1d = s["Gas"]["Velocity%magnitude"]["max"]
+    </variable>
+
+    <variable name="gas_velocity_max_pseudo1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("subtract_out_reference_profile_pseudo1d.stat")
+gas_velocity_max_pseudo1d = s["Gas"]["Velocity%magnitude"]["max"]
+    </variable>
+  
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+  </variables>
+    
+  <pass_tests>
+    <test name="Maximum Gas::Velocity remains (near) zero (1D simulation)" language="python">
+assert(max(gas_velocity_max_1d) &lt; 1e-5)
+    </test>
+    <test name="Maximum Gas::Velocity remains (near) zero (pseudo-1D simulation)" language="python">
+assert(max(gas_velocity_max_pseudo1d) &lt; 1e-1)
+    </test>
+     
+    <test name="Solvers converged" language="python">
+assert(solvers_converged)
+    </test>
+  </pass_tests>
+  
+  <warn_tests>
+  </warn_tests>
+  
+</testproblem>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+   
+  <name>strong_pressure_bc_compressible</name>
+  <owner userid="ctj10"/>
+  <tags>flml</tags>
+  
+  <problem_definition length="short" nprocs="1">
+    <command_line>make run</command_line>
+  </problem_definition>
+  
+  <variables>  
+    <variable name="gas_velocity_max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("strong_pressure_bc_compressible.stat")
+gas_velocity_max = s["Gas"]["Velocity%magnitude"]["max"]
+    </variable>
+    <variable name="gas_pressure_max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("strong_pressure_bc_compressible.stat")
+gas_pressure_max = s["Gas"]["Pressure"]["max"]
+    </variable>
+    <variable name="gas_pressure_min" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("strong_pressure_bc_compressible.stat")
+gas_pressure_min = s["Gas"]["Pressure"]["min"]
+    </variable>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+  </variables>
+    
+  <pass_tests>
+    <test name="Gas::Velocity is always zero everywhere" language="python">
+assert(max(gas_velocity_max) &lt; 1e-7)
+    </test>    
+    <test name="Gas::Pressure is always 101325 Pa everywhere" language="python">
+assert(max(gas_pressure_max) - 101325.0 &lt; 1.0e-3 and min(gas_pressure_min) - 101325.0 &lt; 1.0e-3)
+    </test>
+    <test name="Solvers converged" language="python">
+assert(solvers_converged)
+    </test>
+  </pass_tests>
+  
+  <warn_tests>
+  </warn_tests>
+  
+</testproblem>

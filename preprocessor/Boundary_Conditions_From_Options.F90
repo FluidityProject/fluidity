@@ -131,7 +131,6 @@ contains
     ! - ocean boundaries
     ! - ocean forcing
     ! - GLS stable boundaries
-    ! - k-epsilon turbulence model
     if (have_option('/geometry/ocean_boundaries')) then
        ! NOTE: has to be a pointer, as bcs should be added to original field
        sfield => extract_scalar_field(states(1), "DistanceToTop")
@@ -281,15 +280,6 @@ contains
        case( "k_epsilon" )
 
           FLAbort("Oops, you shouldn't get a k_epsilon type of BC. It should have been converted")
-
-          !if(.not. have_option &
-          !("/material_phase[0]/subgridscale_parameterisations/k-epsilon/") ) then
-          !    FLExit("Incorrect boundary condition type for field")
-          !end if
-
-          !call allocate(surface_field, surface_mesh, name="value")
-          !call insert_surface_field(field, i+1, surface_field)
-          !call deallocate(surface_field)
 
        case( "bulk_formulae" )
 
@@ -497,23 +487,11 @@ contains
                   deallocate(surface_mesh)
              end if
           end if
-
-       case ("near_wall_treatment", "log_law_of_wall")
-         
-          ! these are marked as applying in the 2nd (and 3d if present) only
-          ! so they could potentially be combined with a no_normal_flow
-          ! or a rotatted bc applying in the normal direction only
-          call add_boundary_condition(field, trim(bc_name), trim(bc_type), &
-               & surface_ids, option_path=bc_path_i, &
-               & applies=(/ .false., .true., .true. /) )
-          deallocate(surface_ids)
-
+          
        case ("outflow")
-
           ! dummy bc for outflow planes
-          call add_boundary_condition(field, trim(bc_name), trim(bc_type), &
-               & surface_ids, option_path=bc_path_i, &
-               & applies=(/ .true., .true., .true. /) )
+          call add_boundary_condition(field, trim(bc_name), trim(bc_type), surface_ids, option_path=bc_path_i, &
+                                       & applies=(/ .true., .true., .true. /) )
           deallocate(surface_ids) 
  
        case default
@@ -522,7 +500,7 @@ contains
 
        ! now check for user-specified normal/tangent vectors (rotation matrix)
        select case (bc_type)
-       case ("dirichlet", "neumann", "robin", "weakdirichlet", "near_wall_treatment", "log_law_of_wall", "flux")
+       case ("dirichlet", "neumann", "robin", "weakdirichlet", "flux")
           ! this is the same for all 3 b.c. types
 
           bc_type_path=trim(bc_path_i)//"/type[0]/align_bc_with_surface"
@@ -532,8 +510,7 @@ contains
                surface_element_list=surface_element_list)
           bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list) 
 
-          if (have_option(bc_type_path) .or. bc_type=="near_wall_treatment" &
-              .or. bc_type=="log_law_of_wall") then
+          if (have_option(bc_type_path)) then
 
              prescribed = .false.
 
@@ -1126,7 +1103,7 @@ contains
               call zero(scalar_surface_field)
            end if
 
-         case ("no_normal_flow", "near_wall_treatment", "log_law_of_wall", "outflow")
+         case ("no_normal_flow", "outflow")
 
           ! nothing to be done (yet?)
           

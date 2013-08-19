@@ -86,10 +86,18 @@ sediment reentrainment. </a:documentation>
               <ref name="real"/>
             </element>
           </optional>
+          <optional>
+            <!--
+              Only for debugging purposes - sets Neumann boundary to zero (diagnostic fields are
+              still set)
+            -->
+            <element name="set_to_zero">
+              <empty/>
+            </element>
+          </optional>
         </element>
         <element name="type">
-          <a:documentation>[UNDER DEVELOPMENT - DOES NOT WORK YET]
-Special type of Dirichlet boundary condition for the k-epsilon
+          <a:documentation>Special type of Dirichlet boundary condition for the k-epsilon
 turbulence model. Can be used on TurbulentKineticEnergy (k)
 and/or TurbulentDissipation (epsilon) fields.
 e.g. use a Dirichlet BC on inlets and k_epsilon on walls.</a:documentation>
@@ -97,11 +105,8 @@ e.g. use a Dirichlet BC on inlets and k_epsilon on walls.</a:documentation>
             <value>k_epsilon</value>
           </attribute>
           <element name="string_value">
-            <a:documentation>Select high/low Reynolds number wall functions for k and epsilon fields.</a:documentation>
-            <choice>
-              <value>low_Re</value>
-              <value>high_Re</value>
-            </choice>
+            <a:documentation>Select low Reynolds number wall function for k and epsilon fields.</a:documentation>
+            <value>low_Re</value>
           </element>
         </element>
         <element name="type">
@@ -710,48 +715,85 @@ suggested value 0.1</a:documentation>
                   </element>
                 </element>
                 <element name="dynamic_les">
-                  <a:documentation>[UNDER DEVELOPMENT] The Germano dynamic method (See Germano 1991, Lilly 1991, Pope)
+                  <a:documentation>The dynamic LES method (See Lilly 1991, Pope)
 accounts for turbulent flow anisotropy by implementing the Smagorinsky model
 with a spatially varying coefficient. At its heart is the difference between turbulent
- stress tensors calculated from the velocity field filtered at 2 filter widths, G_t and G_m.
+ stress tensors calculated from the velocity field filtered at 2 filter widths,
+first filter G_f and test filter G_t.
 See the manual for further details.</a:documentation>
                   <element name="alpha">
-                    <a:documentation>Filtering scale factor alpha: the ratio between the filter widths.
-The test filter G_t = G_m*alpha, where G_m is the filter
-width associated with the local mesh size. Filtering is achieved by applying
-the inverse Helmholtz operator: u_filter_2 = (1-alpha*M)^-1 * u_filter_1.
+                    <a:documentation>Filtering scale factor alpha: the ratio between the mesh size and first filter width G_f.
+First filtering is achieved by applying the inverse Helmholtz operator:
+u_f = (1-alpha^2/24*M*L)^-1 * u, where M is the mesh size squared (a tensor) and L is the Laplacian.
+Lower values will result in less information being filtered out of the velocity.
 
-default/recommended value: 2.0</a:documentation>
+default value: 2.0</a:documentation>
                     <ref name="real"/>
+                  </element>
+                  <element name="gamma">
+                    <a:documentation>Filtering scale factor gamma: the ratio between the first filter G_f and test filter G_t.
+Test filtering is achieved by applying the inverse Helmholtz operator:
+u_t = (1-gamma^2*alpha^2/24*M*L)^-1 * u_f, where M is the mesh size squared (a tensor) and L is the Laplacian.
+Lower values will result in less information being filtered out of the first filtered velocity.
+
+default value: 2.0</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="length_scale_type">
+                    <a:documentation>The 'scalar' length scale is the cube root of the element's volume in 3D. In 2D, it is the square root of the element's area. Using this will result in an isotropic eddy viscosity tensor.
+
+The 'tensor' length scale uses the metric from the adaptivity process. Using this will result in an anisotropic eddy viscosity tensor.</a:documentation>
+                    <choice>
+                      <value>scalar</value>
+                      <value>tensor</value>
+                    </choice>
                   </element>
                   <element name="solver">
                     <a:documentation>Solver options are required for calculation of Helmholtz-smoothed velocity.</a:documentation>
                     <ref name="linear_solver_options_sym"/>
                   </element>
                   <optional>
-                    <element name="enable_lilly">
-                      <a:documentation>Use the Lilly modification to the model (see Lilly 1991).
-</a:documentation>
-                      <empty/>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="enable_backscatter">
-                      <a:documentation>Allow negative eddy viscosity (backscatter).
-WARNING: this may result in the simulation blowing up.
-</a:documentation>
-                      <empty/>
+                    <element name="scalar_field">
+                      <a:documentation>Spatially varying Smagorinsky coefficient.</a:documentation>
+                      <attribute name="name">
+                        <value>SmagorinskyCoefficient</value>
+                      </attribute>
+                      <attribute name="rank">
+                        <value>1</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_scalar_field"/>
+                      </element>
                     </element>
                   </optional>
                   <optional>
                     <element name="vector_field">
-                      <a:documentation>Filtered velocity (diagnostic). This is the Velocity field filtered
-with the test filter - see manual.</a:documentation>
+                      <a:documentation>First filtered velocity (diagnostic). This is the Velocity field filtered
+with the first filter - see manual.</a:documentation>
                       <attribute name="rank">
                         <value>2</value>
                       </attribute>
                       <attribute name="name">
-                        <value>FilteredVelocity</value>
+                        <value>FirstFilteredVelocity</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_tensor_field"/>
+                      </element>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="vector_field">
+                      <a:documentation>Test filtered velocity (diagnostic). This is the first filtered velocity field filtered
+again with the test filter - see manual.</a:documentation>
+                      <attribute name="rank">
+                        <value>2</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>TestFilteredVelocity</value>
                       </attribute>
                       <element name="diagnostic">
                         <ref name="internal_algorithm"/>
@@ -762,72 +804,12 @@ with the test filter - see manual.</a:documentation>
                   </optional>
                   <optional>
                     <element name="tensor_field">
-                      <a:documentation>Filter width tensor (diagnostic). This is the square of the mesh size.</a:documentation>
+                      <a:documentation>First filter width tensor (diagnostic): G_f = meshsize^2*alpha^2.</a:documentation>
                       <attribute name="rank">
                         <value>2</value>
                       </attribute>
                       <attribute name="name">
                         <value>FilterWidth</value>
-                      </attribute>
-                      <element name="diagnostic">
-                        <ref name="internal_algorithm"/>
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="diagnostic_tensor_field"/>
-                        <element name="mass_matrix">
-                          <choice>
-                            <element name="use_lumped_mass_matrix">
-                              <optional>
-                                <element name="use_submesh">
-                                  <empty/>
-                                </element>
-                              </optional>
-                            </element>
-                            <element name="use_consistent_mass_matrix">
-                              <empty/>
-                            </element>
-                          </choice>
-                        </element>
-                      </element>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="tensor_field">
-                      <a:documentation>Strain rate S1: the test filter applied to the strain rate of the mesh-filtered velocity.</a:documentation>
-                      <attribute name="rank">
-                        <value>2</value>
-                      </attribute>
-                      <attribute name="name">
-                        <value>StrainRate</value>
-                      </attribute>
-                      <element name="diagnostic">
-                        <ref name="internal_algorithm"/>
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="diagnostic_tensor_field"/>
-                        <element name="mass_matrix">
-                          <choice>
-                            <element name="use_lumped_mass_matrix">
-                              <optional>
-                                <element name="use_submesh">
-                                  <empty/>
-                                </element>
-                              </optional>
-                            </element>
-                            <element name="use_consistent_mass_matrix">
-                              <empty/>
-                            </element>
-                          </choice>
-                        </element>
-                      </element>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="tensor_field">
-                      <a:documentation>Strain rate S2: the strain rate of the test-filtered velocity.</a:documentation>
-                      <attribute name="rank">
-                        <value>2</value>
-                      </attribute>
-                      <attribute name="name">
-                        <value>FilteredStrainRate</value>
                       </attribute>
                       <element name="diagnostic">
                         <ref name="internal_algorithm"/>
@@ -935,7 +917,8 @@ scaled by C_0</a:documentation>
               </element>
               <element name="bassi_rebay">
                 <a:documentation>Classical scheme from Bassi and Rebay 
-(JCP 131 267-179 1997)</a:documentation>
+(JCP 131 267-179 1997)
+Partial stress form is available for inhomogenous isotropic viscosities</a:documentation>
                 <empty/>
               </element>
               <element name="arbitrary_upwind">
@@ -1007,6 +990,19 @@ Int grad u.kappa.grad v dV</a:documentation>
                     </optional>
                   </element>
                 </optional>
+              </element>
+            </choice>
+            <choice>
+              <element name="tensor_form">
+                <a:documentation>solves the viscosity term in the form:  d/dx_j K du_i/dx_j</a:documentation>
+                <empty/>
+              </element>
+              <element name="partial_stress_form">
+                <a:documentation>solves the viscosity term in the form:  d/dx_j k (du_i/dx_j + du_j/dx_j)
+note that the viscosity, k, must be isoptropic
+
+only implemented for the bassi-rebay viscosity scheme</a:documentation>
+                <empty/>
               </element>
             </choice>
           </element>
@@ -2422,6 +2418,7 @@ Note: Only works for continuous galerkin or control volume discretisations.</a:d
         <attribute name="name">
           <value>KEpsilon</value>
         </attribute>
+        <ref name="equation_coefficients"/>
       </element>
       <element name="equation">
         <a:documentation>Equation type for the sediment bedload fields.

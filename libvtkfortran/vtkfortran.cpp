@@ -665,6 +665,11 @@ extern "C" {
 #endif    
     writer->SetFileName( fl_vtkFileName.c_str() );
  
+    // Set to true binary format (not encoded as base 64)
+    writer->SetDataModeToAppended();
+    writer->EncodeAppendedDataOff();
+
+
     writer->SetInput(dataSet);
   
     writer->SetCompressor(compressor);
@@ -716,6 +721,11 @@ extern "C" {
     writer->SetCompressor(compressor);
     
     compressor->Delete();
+
+    // Set to true binary format (not encoded as base 64)
+    writer->SetDataModeToAppended();
+    writer->EncodeAppendedDataOff();
+
     
     writer->Write();
     writer->Delete();

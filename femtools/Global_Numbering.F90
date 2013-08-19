@@ -605,8 +605,9 @@ contains
                       
                       if (any(this_send_targets%length/=0)) then
                          do i=1,size(ndglno_pos)
-                            call copy(new_send_targets(new_ndglno(ndglno_pos(i)),:) &
-                                 ,this_send_targets)
+                           call deallocate(new_send_targets(new_ndglno(ndglno_pos(i)),:))
+                           call copy(new_send_targets(new_ndglno(ndglno_pos(i)),:) &
+                                ,this_send_targets)
                          end do
                       end if
                    end if
@@ -1306,6 +1307,10 @@ contains
     end do
 
     call flush_lists(visible_elements)
+
+    do proc=1, nprocs
+       deallocate(send_lists(proc)%ptr)
+    end do
 #else
     FLAbort("Communicating halo visibility makes no sense without MPI.")
 #endif
