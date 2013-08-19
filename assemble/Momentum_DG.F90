@@ -1405,6 +1405,8 @@ contains
       if(have_wd .and.have_sigma) then
         grav_at_quads=ele_val_at_quad(gravity, ele)
 	depth_at_quads = ele_val_at_quad(depth,ele)
+	!print *, 'grav_at_quads',grav_at_quads
+	!print *, 'depth_at_quads',depth_at_quads
 	 !Sigma term
         sigma_ngi=0.0
         sigma_d0_diag=0.0
@@ -1415,6 +1417,7 @@ contains
            call calculate_sigma_element(ele, X, U, sigma_ngi, d0_a,dt,depth)
            do i=1, ele_ngi(U,ele)
              sigma_d0_diag(:,i)=sigma_ngi(i)*grav_at_quads(:,i)
+             !print *, 'sigma_d0_diag(:,i)',sigma_d0_diag(:,i)
            end do
         end if
      end if
@@ -1509,7 +1512,7 @@ contains
       else
 
         Abs_mat = shape_shape_vector(U_shape, U_shape, detwei*rho_q, absorption_gi)
-
+        !print *, 'Abs_mat',Abs_mat
         if (have_wd_abs) then
           alpha_u_quad=ele_val_at_quad(alpha_u_field, ele)  !! Wetting and drying absorption becomes active when water level reaches d_0
           Abs_mat = Abs_mat + shape_shape_vector(U_shape, U_shape, alpha_u_quad*detwei*rho_q, &
@@ -1526,6 +1529,9 @@ contains
                   rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - abs_lump(dim,:)*u_val(dim,:) +abs_lump(dim,:)*u_val(dim,:)
                 else
                   rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - abs_lump(dim,:)*u_val(dim,:)
+                  !print *, 'rhs_addto(dim, :loc)',rhs_addto(dim, :loc)
+                 ! print *, 'abs_lump(dim,:)',abs_lump(dim,:)
+                 ! print *, 'u_val(dim,:)',u_val(dim,:)
                 end if
                !print *, 'u_val(dim,:)',u_val(dim,:)
                !print *, 'rhs_addto(dim, :loc)',rhs_addto(dim, :loc)
@@ -1554,6 +1560,9 @@ contains
                    rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat(dim,:,:), u_val(dim,:)) +  matmul(Abs_mat(dim,:,:), u_val(dim,:))
                 else
                    rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat(dim,:,:), u_val(dim,:))
+                   ! print *, 'rhs_addto(dim, :loc)',rhs_addto(dim, :loc)
+                   ! print *, 'Abs_mat(dim,:,:)',Abs_mat(dim,:,:)
+                   ! print *, 'u_val(dim,:)',u_val(dim,:)
                 end if
                !print *, 'u_val(dim,:)',u_val(dim,:)
                !print *, 'rhs_addto(dim, :loc)',rhs_addto(dim, :loc)
