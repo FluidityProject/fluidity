@@ -1175,10 +1175,16 @@ Zoltan to lock edges for many adapts due to too many elements being uncuttable. 
             </element>
           </optional>
           <optional>
-            <element name="dont_extend_uncuttable_region">
-              <a:documentation>Don't extend uncuttable region.
-If enabled only the poor elements will be marked as uncuttable. Otherwise the region is extended to uncuttable elements and neighbouring elements.</a:documentation>
-              <empty/>
+            <element name="uncuttable_edge_weight">
+              <a:documentation>Uncuttable edge weight</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="worst_ele_search_levels">
+              <a:documentation>Search levels for worst element quality.
+Number of levels of element connections to search through for element quality when setting the edge weights for partitioning.</a:documentation>
+              <ref name="integer"/>
             </element>
           </optional>
           <optional>

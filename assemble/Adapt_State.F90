@@ -100,8 +100,9 @@ contains
   subroutine adapt_mesh_simple(old_positions, metric, new_positions, node_ownership, force_preserve_regions, &
       lock_faces, allow_boundary_elements)
     type(vector_field), intent(in) :: old_positions
-    type(tensor_field), intent(inout) :: metric
+    type(tensor_field), intent(in) :: metric
     type(vector_field) :: stripped_positions
+    type(tensor_field) :: stripped_metric
     type(vector_field), intent(out) :: new_positions
     integer, dimension(:), pointer, optional :: node_ownership
     logical, intent(in), optional :: force_preserve_regions
@@ -110,31 +111,36 @@ contains
 
     assert(.not. mesh_periodic(old_positions))
 
-    call strip_l2_halo(old_positions, stripped_positions, metric)
+    ! generate stripped versions of the position and metric fields
+    call strip_l2_halo(old_positions, stripped_positions, metric, stripped_metric)
 
     select case(stripped_positions%dim)
       case(1)
-        call adapt_mesh_1d(stripped_positions, metric, new_positions, &
+        call adapt_mesh_1d(stripped_positions, stripped_metric, new_positions, &
           & node_ownership = node_ownership, force_preserve_regions = force_preserve_regions)
       case(2)
-        call adapt_mesh_mba2d(stripped_positions, metric, new_positions, &
+        call adapt_mesh_mba2d(stripped_positions, stripped_metric, new_positions, &
           & force_preserve_regions=force_preserve_regions, lock_faces=lock_faces, &
           & allow_boundary_elements=allow_boundary_elements)
       case(3)
         if(have_option("/mesh_adaptivity/hr_adaptivity/adaptivity_library/libmba3d")) then
           assert(.not. present(lock_faces))
-          call adapt_mesh_mba3d(stripped_positions, metric, new_positions, &
+          call adapt_mesh_mba3d(stripped_positions, stripped_metric, new_positions, &
                              force_preserve_regions=force_preserve_regions)
         else
-          call adapt_mesh_3d(stripped_positions, metric, new_positions, &
+          call adapt_mesh_3d(stripped_positions, stripped_metric, new_positions, &
                              force_preserve_regions=force_preserve_regions, lock_faces=lock_faces)
-          ! call adapt_mesh_3d(stripped_positions, metric, new_positions, node_ownership = node_ownership, &
+          ! call adapt_mesh_3d(stripped_positions, stripped_metric, new_positions, node_ownership = node_ownership, &
           !                    force_preserve_regions=force_preserve_regions, lock_faces=lock_faces)
         end if
       case default
         FLAbort("Mesh adaptivity requires a 1D, 2D or 3D mesh")
     end select
 
+    ! deallocate stripped metric - we don't need this anymore
+    call deallocate(stripped_metric)
+
+    ! add halo 2 to new_positions
     call create_l2_halo(new_positions)
     assert(halo_count(new_positions) > 1)
 
@@ -172,8 +178,8 @@ contains
     ! Step 1. Initialise sam.
     call sneaky_sam_init(positions, max_coplanar_id)
 
-    ! Step 2. Create halo
-    call sam_create_halo2_c()
+    ! Step 2. Migrate halo 2
+    call sam_migrate_halo2()
 
     ! Step 3. Now, we need to reconstruct.
 
@@ -184,6 +190,7 @@ contains
 
     ! Export mesh data from sam
     old_linear_mesh = positions%mesh
+    call incref(old_linear_mesh)
     dim = positions%dim
     linear_shape = ele_shape(old_linear_mesh, 1)
     nloc = old_linear_mesh%shape%loc
@@ -392,6 +399,33 @@ contains
     xyz(:,positions%dim+1:)=0.0
 
     call get_option('/mesh_adaptivity/hr_adaptivity/functional_tolerance', mestp1, default = 0.0)
+    
+    ! ewrite(0,*) dim
+    ! ewrite(0,*) nonods
+    ! ewrite(0,*) totele
+    ! ewrite(0,*) stotel 
+    ! ewrite(0,*) gather 
+    ! ewrite(0,*) atosen 
+    ! ewrite(0,*) scater(1:nscate) 
+    ! ewrite(0,*) atorec 
+    ! ewrite(0,*) size(gather) 
+    ! ewrite(0,*) nscate 
+    ! ewrite(0,*) nprocs 
+    ! ewrite(0,*) ndglno(1:totele * nloc) 
+    ! ewrite(0,*) nloc 
+    ! ewrite(0,*) sndgln(1:stotel * snloc) 
+    ! ewrite(0,*) surfid(1:stotel) 
+    ! ewrite(0,*) snloc 
+    ! ewrite(0,*) xyz(:, 1) 
+    ! ewrite(0,*) xyz(:, 2) 
+    ! ewrite(0,*) xyz(:, 3) 
+    ! ewrite(0,*) metric_handle(1:nonods * dim ** 2) 
+    ! ewrite(0,*) fields 
+    ! ewrite(0,*) nfields 
+    ! ewrite(0,*) sam_options(1, 1)
+    ! ewrite(0,*) mestp1
+
+    ! FLExit("exiting")
 
     call sam_init_c(dim, nonods, totele, stotel, &
          & gather, atosen, &
@@ -414,11 +448,12 @@ contains
 
   end subroutine sneaky_sam_init
 
-  subroutine strip_l2_halo(old_positions, stripped_positions, metric)
+  subroutine strip_l2_halo(old_positions, stripped_positions, metric, stripped_metric)
 
     type(vector_field), intent(in) :: old_positions
     type(vector_field), intent(out) :: stripped_positions
-    type(tensor_field), intent(inout) :: metric
+    type(tensor_field), intent(in) :: metric
+    type(tensor_field), intent(out) :: stripped_metric
     
     character(len = FIELD_NAME_LEN) :: linear_coordinate_field_name
     integer :: i, j, nlocal_dets, stat
@@ -430,7 +465,6 @@ contains
     type(vector_field), pointer :: new_v_field
     type(state_type), dimension(:), allocatable :: interpolate_states
     type(tensor_field), pointer :: new_t_field
-    type(tensor_field) :: temp_metric
 
     ewrite(1, *) "In strip_l2_halo"
     
@@ -478,14 +512,10 @@ contains
     call deallocate(level_1_halo)
 
     ewrite(2, *) "Stripping level 2 halo from metric " // trim(metric%name)
-    call allocate(temp_metric, new_linear_mesh, metric%name)
-    call generate_stripped_tensor_field(metric, old_linear_mesh, temp_metric, new_linear_mesh, keep)
-    call deallocate(metric)
-    call allocate(metric, new_linear_mesh, metric%name)
-    call set(metric, temp_metric)
-    call deallocate(temp_metric)
+    call allocate(stripped_metric, new_linear_mesh, metric%name)
+    call generate_stripped_tensor_field(metric, old_linear_mesh, stripped_metric, new_linear_mesh, keep)
 #ifdef DDEBUG
-    call check_metric(metric)
+    call check_metric(stripped_metric)
 #endif
     
     call deallocate(old_linear_mesh)

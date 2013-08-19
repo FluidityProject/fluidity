@@ -214,10 +214,10 @@ module sam_integration
      end subroutine sam_export_node_ownership_c
    end interface sam_export_node_ownership
 
-   interface sam_create_halo2
-     subroutine sam_create_halo2_c
-     end subroutine sam_create_halo2_c
-   end interface sam_create_halo2
+   interface sam_migrate_halo2
+     subroutine sam_migrate_halo2_c
+     end subroutine sam_migrate_halo2_c
+   end interface sam_migrate_halo2
    
    private
    
@@ -225,7 +225,7 @@ module sam_integration
         create_renumbering_map, generate_stripped_linear_mesh, generate_stripped_vector_field, &
         halo_transfer_detectors, renumber_halo, generate_stripped_tensor_field, sam_init_c, &
         sam_add_field, sam_query, sam_export_mesh, sam_export_halo, &
-        sam_export_phalo, sam_pop_field, sam_cleanup, sam_create_halo2
+        sam_export_phalo, sam_pop_field, sam_cleanup, sam_migrate_halo2
 
    contains
    
