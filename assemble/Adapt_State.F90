@@ -110,11 +110,7 @@ contains
 
     assert(.not. mesh_periodic(old_positions))
 
-    call allocate(stripped_positions, mesh_dim(old_positions%mesh), old_positions%mesh, old_positions%name)
-    call set(stripped_positions, old_positions)
-    stripped_positions%option_path = old_positions%option_path
-    call strip_l2_halo(stripped_positions, metric)
-    assert(halo_count(stripped_positions) < 2)
+    call strip_l2_halo(old_positions, stripped_positions, metric)
 
     select case(stripped_positions%dim)
       case(1)
@@ -139,18 +135,14 @@ contains
         FLAbort("Mesh adaptivity requires a 1D, 2D or 3D mesh")
     end select
 
-    call create_l2_halo(new_positions, metric)
+    call create_l2_halo(new_positions)
     assert(halo_count(new_positions) > 1)
 
   end subroutine adapt_mesh_simple
 
-  subroutine create_l2_halo(positions, metric)
+  subroutine create_l2_halo(positions)
 
-    type(vector_field), intent(inout) :: positions
-    type(tensor_field), intent(inout) :: metric       
-
-    type(tensor_field) :: linear_t
-    type(tensor_field), pointer :: field_t
+    type(vector_field), intent(inout) :: positions   
 
     type(element_type) :: linear_shape
 
@@ -166,7 +158,7 @@ contains
     type(vector_field), target :: temp_positions
     integer :: dim, snloc, nloc
     integer, dimension(:), allocatable :: senlist, surface_ids
-    character(len=FIELD_NAME_LEN) :: linear_mesh_name, linear_coordinate_field_name, metric_name
+    character(len=FIELD_NAME_LEN) :: linear_mesh_name, linear_coordinate_field_name
     character(len=OPTION_PATH_LEN) :: linear_mesh_option_path
     integer :: component, component_i, component_j
 
@@ -174,27 +166,16 @@ contains
     real, dimension(:), allocatable :: value
 
 
-    ewrite(1, *) "In sam_drive"
+    ewrite(1, *) "In create l2 halo"
     call tic(TICTOC_ID_DATA_REMAP)
 
     ! Step 1. Initialise sam.
-    call sneaky_sam_init(positions, metric, max_coplanar_id)
+    call sneaky_sam_init(positions, max_coplanar_id)
 
-    ! ! Step 2. Supply sam with the metric field.
-    old_linear_mesh = positions%mesh
-    ! call allocate(linear_t, old_linear_mesh, "LinearTensorField")
-    ! call remap_field(metric, linear_t)
-    ! call sam_add_field(linear_t)
-    ! call deallocate(linear_t)
-    ! metric_name = metric%name
-
-    ! ! Step 3. Deallocate.
-    ! call deallocate(metric)
-
-    ! Step 4. Create halo
+    ! Step 2. Create halo
     call sam_create_halo2_c()
 
-    ! Step 5. Now, we need to reconstruct.
+    ! Step 3. Now, we need to reconstruct.
 
     ! Query the statistics of the new mesh.
     ewrite(1, *) "Calling sam_query from sam_drive"
@@ -202,6 +183,7 @@ contains
     ewrite(1, *) "Exited sam_query"
 
     ! Export mesh data from sam
+    old_linear_mesh = positions%mesh
     dim = positions%dim
     linear_shape = ele_shape(old_linear_mesh, 1)
     nloc = old_linear_mesh%shape%loc
@@ -324,29 +306,14 @@ contains
     positions%option_path = temp_positions%option_path
     call deallocate(temp_positions)
 
-    ! Build new metric field
-    ! do component_i=dim,1,-1
-    !   do component_j=dim,1,-1
-    !     call sam_pop_field(linear_t%val(component_i, component_j, :), node_count(linear_mesh))
-    !   end do
-    ! end do
-    ! call allocate(metric, linear_mesh, name = metric_name)
-    ! call remap_field(linear_t, metric)
-#ifdef DDEBUG
-    call check_metric(metric)
-#endif
-
-    call deallocate(linear_t)
-
-    ! Step 6. Cleanup
+    ! Step 4. Cleanup
     call sam_cleanup
 
   end subroutine create_l2_halo
 
-  subroutine sneaky_sam_init(positions, metric, max_coplanar_id)
+  subroutine sneaky_sam_init(positions, max_coplanar_id)
 
     type(vector_field), intent(inout) :: positions
-    type(tensor_field), intent(inout) :: metric
     integer, intent(out) :: max_coplanar_id
     
     ! sam_init_c variables
@@ -373,7 +340,6 @@ contains
     nonods = node_count(mesh)
     totele = ele_count(mesh)
     stotel = surface_element_count(mesh)
-    ewrite(0,*) size(mesh%ndglno)
     ndglno => mesh%ndglno
     nloc = mesh%shape%loc
     snloc = mesh%faces%surface_mesh%shape%loc
@@ -409,9 +375,12 @@ contains
       atorec = 0
     end if
 
-    ! Form the metric
+    ! Form the dummy metric_handle
     allocate(metric_handle(dim * dim * nonods))
-    metric_handle = reshape(metric%val, (/nonods * dim ** 2/))
+    metric_handle = 0.0
+    forall(i = 0:nonods - 1, j = 0:dim - 1)
+      metric_handle(i * dim ** 2 + 1 + j * dim) = 1.0
+    end forall
 
     ! The field data is taken care of later
     nfields = 0
@@ -445,9 +414,10 @@ contains
 
   end subroutine sneaky_sam_init
 
-  subroutine strip_l2_halo(positions, metric)
+  subroutine strip_l2_halo(old_positions, stripped_positions, metric)
 
-    type(vector_field), intent(inout) :: positions
+    type(vector_field), intent(in) :: old_positions
+    type(vector_field), intent(out) :: stripped_positions
     type(tensor_field), intent(inout) :: metric
     
     character(len = FIELD_NAME_LEN) :: linear_coordinate_field_name
@@ -456,9 +426,7 @@ contains
     logical, dimension(:), allocatable :: keep
     type(halo_type), pointer :: level_1_halo, level_2_halo
     type(mesh_type) :: new_linear_mesh, old_linear_mesh
-    type(mesh_type) :: old_linear_mesh_ptr
     type(scalar_field), pointer :: new_s_field
-    type(vector_field) :: temp_positions
     type(vector_field), pointer :: new_v_field
     type(state_type), dimension(:), allocatable :: interpolate_states
     type(tensor_field), pointer :: new_t_field
@@ -467,20 +435,20 @@ contains
     ewrite(1, *) "In strip_l2_halo"
     
     ! Find the external mesh. Must be linear and continuous.
-    old_linear_mesh = positions%mesh
+    old_linear_mesh = old_positions%mesh
     call incref(old_linear_mesh)
-    call initialise_boundcount(old_linear_mesh, positions)
+    call initialise_boundcount(old_linear_mesh, old_positions)
        
     ! Extract the level 1 and level 2 halos
-    assert(associated(positions%mesh%halos))
-    assert(size(positions%mesh%halos) >= 2)
-    level_1_halo => positions%mesh%halos(1)
+    assert(associated(old_positions%mesh%halos))
+    assert(size(old_positions%mesh%halos) >= 2)
+    level_1_halo => old_positions%mesh%halos(1)
     call incref(level_1_halo)
-    level_2_halo => positions%mesh%halos(2)
+    level_2_halo => old_positions%mesh%halos(2)
     call incref(level_2_halo)  
     
     ! Find the nodes to keep
-    allocate(keep(node_count(positions)))
+    allocate(keep(node_count(old_positions)))
     call find_nodes_to_keep(keep, level_1_halo, level_2_halo)
     call deallocate(level_2_halo)
     
@@ -492,27 +460,22 @@ contains
     call generate_stripped_linear_mesh(old_linear_mesh, new_linear_mesh, level_1_halo, keep, renumber)
     
     ewrite(2, *) "Stripping level 2 halo from the mesh field"
-    call allocate(temp_positions, mesh_dim(new_linear_mesh), new_linear_mesh, positions%name)
-    call generate_stripped_vector_field(positions, old_linear_mesh, temp_positions, new_linear_mesh, keep)
-    temp_positions%option_path = positions%option_path
+    call allocate(stripped_positions, mesh_dim(new_linear_mesh), new_linear_mesh, old_positions%name)
+    call generate_stripped_vector_field(old_positions, old_linear_mesh, stripped_positions, &
+         new_linear_mesh, keep)
+    stripped_positions%option_path = old_positions%option_path
     nlocal_dets = default_stat%detector_list%length
     call allsum(nlocal_dets)
-    if(nlocal_dets > 0) call halo_transfer_detectors(old_linear_mesh, temp_positions)
+    if(nlocal_dets > 0) call halo_transfer_detectors(old_linear_mesh, stripped_positions)
        
     ewrite(2, *) "Renumbering level 1 halo"
     call renumber_halo(level_1_halo, renumber)
 #ifdef DDEBUG
     if(isparallel()) then
-      assert(halo_verifies(level_1_halo, temp_positions))
+      assert(halo_verifies(level_1_halo, stripped_positions))
     end if
 #endif
     call deallocate(level_1_halo)
- 
-    call deallocate(positions)
-    call allocate(positions, mesh_dim(new_linear_mesh), new_linear_mesh, temp_positions%name)
-    call set(positions, temp_positions)
-    positions%option_path = temp_positions%option_path
-    call deallocate(temp_positions)
 
     ewrite(2, *) "Stripping level 2 halo from metric " // trim(metric%name)
     call allocate(temp_metric, new_linear_mesh, metric%name)
@@ -530,6 +493,8 @@ contains
 
     deallocate(keep)
     deallocate(renumber)
+
+    assert(size(stripped_positions%mesh%halos) < 2)
 
     ewrite(1, *) "Exiting strip_level_2_halo"
     
