@@ -1994,12 +1994,17 @@
            do i=1, ele_ngi(u,ele)
             !Give a bigger value of extra_integration in dry area
              extra_dry = max((2*d0-depth_at_quads(i))/d0,real(0))*10000
-             extra_integration_diag(:,i)=-(max(beta*viscosity_gi(3,3,i)/(depth_at_quads(i)*depth_at_quads(i))-1/dt,real(0))+extra_dry)*grav_at_quads(:,i) 
-             
-             
-           ! print *, 'viscosity_gi(3,3,i)=',viscosity_gi(3,3,i)
-            !print *, 'sigma_d0_diag(:,i)',sigma_d0_diag(:,i)
+             extra_integration_diag(:,i)=-(max(beta*viscosity_gi(3,3,i)/(depth_at_quads(i)*depth_at_quads(i))-1/dt,real(0))+extra_dry) &
+             & *grav_at_quads(:,i)  
+            
           end do
+            !print *, 'viscosity_gi(3,3,:)', viscosity_gi(3,3,:)
+            !print *, 'grav_at_quads',grav_at_quads
+            !print *, 'depth_at_quads',depth_at_quads
+            !print *, 'dt',dt
+            !print *, 'extra_dry', extra_dry
+            !print *, 'extra_integration_diag=',extra_integration_diag
+            !print *, 'sigma_d0_diag(:,i)',sigma_d0_diag(:,i)
           
         end if
       end if
@@ -2075,7 +2080,7 @@
      if (have_sigma) then
         extra_integration_mat = shape_shape_vector(test_function, ele_shape(u, ele), detwei*density_gi,extra_integration_diag)
      end if
-    ! print *, 'extra_integration_mat=',extra_integration_mat
+     !print *, 'extra_integration_mat=',extra_integration_mat
         if (have_wd_abs) then
            alpha_u_quad=ele_val_at_quad(alpha_u_field, ele) !! Wetting and drying absorption becomes active when water level reaches d_0
            absorption_mat =  absorption_mat + &
@@ -2087,14 +2092,15 @@
           if(.not.abs_lump_on_submesh) then
             absorption_lump = sum(absorption_mat, 3)
             extra_integration_lump = sum(extra_integration_mat, 3)
-            !print *,'extra_integration_lump',extra_integration_lump
+           ! print *,'extra_integration_lump',extra_integration_lump
             do dim = 1, u%dim
               if (have_sigma) then 
+              !extra_integration term is fully implicit
                 big_m_diag_addto(dim, :) = big_m_diag_addto(dim, :) + dt*theta*absorption_lump(dim,:)+dt*extra_integration_lump(dim,:)
-                rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump(dim,:)*oldu_val(dim,:) +absorption_lump(dim,:)*u_val(dim,:) &
-             &   -extra_integration_lump(dim,:)*oldu_val(dim,:)
-                !print *, 'big_m_diag_addto(dim, :)',big_m_diag_addto(dim, :)
-                !print *, 'rhs_addto(dim, :)',rhs_addto(dim, :)
+                rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump(dim,:)*oldu_val(dim,:) +absorption_lump(dim,:)*u_val(dim,:) 
+             !   -extra_integration_lump(dim,:)*oldu_val(dim,:)
+               ! print *, 'big_m_diag_addto(dim, :)',big_m_diag_addto(dim, :)
+               ! print *, 'rhs_addto(dim, :)',rhs_addto(dim, :)
               else 
                 big_m_diag_addto(dim, :) = big_m_diag_addto(dim, :) + dt*theta*absorption_lump(dim,:)
                 rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump(dim,:)*oldu_val(dim,:)
@@ -2106,8 +2112,8 @@
            if (have_sigma) then
              big_m_tensor_addto(dim, dim, :, :) = big_m_tensor_addto(dim, dim, :, :) + &
               & dt*theta*absorption_mat(dim,:,:) + dt*extra_integration_mat(dim,:,:)
-            rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat(dim,:,:), oldu_val(dim,:)) + matmul(absorption_mat(dim,:,:), u_val(dim,:))&
-            &                   -matmul(extra_integration_mat(dim,:,:), oldu_val(dim,:))
+            rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat(dim,:,:), oldu_val(dim,:)) + matmul(absorption_mat(dim,:,:), u_val(dim,:))
+            !    -matmul(extra_integration_mat(dim,:,:), oldu_val(dim,:))
             !print *, 'big_m_tensor_addto',big_m_tensor_addto
             !print *, 'rhs_addto(dim, :)',rhs_addto(dim, :)
            else
