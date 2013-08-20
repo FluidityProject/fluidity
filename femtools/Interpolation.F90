@@ -12,6 +12,7 @@ module interpolation_module
   use meshdiagnostics
   use field_options
   use node_ownership
+  use parallel_fields
   implicit none
 
   interface linear_interpolation
@@ -38,14 +39,17 @@ module interpolation_module
     logical, optional, intent(in) :: different_domains
     
     integer, dimension(node_count(new_position)) :: map
+    integer :: i
 
     ! Thanks, James!
     call find_node_ownership(old_position, new_position, map)
     
     if(.not. present_and_true(different_domains)) then
-      if(.not. all(map > 0)) then
-        FLAbort("Failed to find element mapping")
-      end if
+      do i = 1,size(map)
+        if (map(i) < 0 .and. node_owned(new_position,i)) then
+          FLAbort("Failed to find map for at least one owned node")
+        end if
+      end do
     end if
     
   end function get_element_mapping
@@ -91,24 +95,27 @@ module interpolation_module
     ! Loop over the nodes of the new mesh.
 
     do new_node=1,node_count(new_mesh)
-      
-      ! In what element of the old mesh does the new node lie?
-      ele = map(new_node)
-      node_list => ele_nodes(old_mesh, ele)
+      if (node_owned(new_mesh, new_node)) then 
 
-      do field=1,field_count
-        ! Loop over the nodes of that element,
-        ! get the quadratic expansion of that field,
-        ! evaluate at the point and average.
-        val = 0.0
-        do i=1,size(node_list)
-          old_node = node_list(i)
-          qf_expansion = get_quadratic_fit_qf(old_fields(field), old_position, old_node)
-          val = val + evaluate_qf(qf_expansion, node_val(new_position, new_node))
+        ! In what element of the old mesh does the new node lie?
+        ele = map(new_node)
+        node_list => ele_nodes(old_mesh, ele)
+
+        do field=1,field_count
+          ! Loop over the nodes of that element,
+          ! get the quadratic expansion of that field,
+          ! evaluate at the point and average.
+          val = 0.0
+          do i=1,size(node_list)
+            old_node = node_list(i)
+            qf_expansion = get_quadratic_fit_qf(old_fields(field), old_position, old_node)
+            val = val + evaluate_qf(qf_expansion, node_val(new_position, new_node))
+          end do
+          val = val / size(node_list)
+          call set(new_fields(field), new_node, val)
         end do
-        val = val / size(node_list)
-        call set(new_fields(field), new_node, val)
-      end do
+
+      end if
     end do
 
   end subroutine quadratic_interpolation_qf
@@ -156,13 +163,16 @@ module interpolation_module
       call grad(old_fields(field), old_position, gradient)
       
       do new_node=1,node_count(new_mesh)
+        if (node_owned(new_mesh, new_node)) then 
 
-        ! In what element of the old mesh does the new node lie?
-        ele = map(new_node)
-        fit = get_quadratic_fit_eqf(old_fields(field), old_position, ele, transpose(ele_val(gradient, ele)))
-        val = evaluate_qf(fit, node_val(new_position, new_node))
+          ! In what element of the old mesh does the new node lie?
+          ele = map(new_node)
+          fit = get_quadratic_fit_eqf(old_fields(field), old_position, ele, transpose(ele_val(gradient, ele)))
+          val = evaluate_qf(fit, node_val(new_position, new_node))
 
-        call set(new_fields(field), new_node, val)
+          call set(new_fields(field), new_node, val)
+
+        end if
       end do
     end do
 
@@ -480,49 +490,52 @@ module interpolation_module
     ! Loop over the nodes of the new mesh.
 
     do new_node=1,node_count(new_mesh)
+      if (node_owned(new_mesh,new_node)) then
+        
+        ! In what element of the old mesh does the new node lie?
+        ! Find the local coordinates of the point in that element,
+        ! and evaluate all the shape functions at that point
+        ele = lmap(new_node)
 
-      ! In what element of the old mesh does the new node lie?
-      ! Find the local coordinates of the point in that element,
-      ! and evaluate all the shape functions at that point
-      ele = lmap(new_node)
+        if (ele < 0) then
+          assert(present_and_true(different_domains))
+          cycle
+        end if
 
-      if (ele < 0) then
-        assert(present_and_true(different_domains))
-        cycle
+        node_list => ele_nodes(old_mesh, ele)
+        local_coord = local_coords(old_position, ele, node_val(new_position, new_node))
+        do i=1,ele_loc(old_mesh, ele)
+          shape_fns(i) = eval_shape(ele_shape(old_mesh, ele), i, local_coord)
+        end do
+
+        do field_s=1,field_count_s
+          ! At each node of the old element, evaluate val * shape_fn
+          val_s = 0.0
+          do i=1,ele_loc(old_mesh, ele)
+            val_s = val_s + node_val(old_fields_s(field_s), node_list(i)) * shape_fns(i)
+          end do
+          call set(new_fields_s(field_s), new_node, val_s)
+        end do
+
+        do field_v=1,field_count_v
+          ! At each node of the old element, evaluate val * shape_fn
+          val_v = 0.0
+          do i=1,ele_loc(old_mesh, ele)
+            val_v = val_v + node_val(old_fields_v(field_v), node_list(i)) * shape_fns(i)
+          end do
+          call set(new_fields_v(field_v), new_node, val_v)
+        end do
+
+        do field_t=1,field_count_t
+          ! At each node of the old element, evaluate val * shape_fn
+          val_t = 0.0
+          do i=1,ele_loc(old_mesh, ele)
+            val_t = val_t + node_val(old_fields_t(field_t), node_list(i)) * shape_fns(i)
+          end do
+          call set(new_fields_t(field_t), new_node, val_t)
+        end do
+
       end if
-
-      node_list => ele_nodes(old_mesh, ele)
-      local_coord = local_coords(old_position, ele, node_val(new_position, new_node))
-      do i=1,ele_loc(old_mesh, ele)
-        shape_fns(i) = eval_shape(ele_shape(old_mesh, ele), i, local_coord)
-      end do
-
-      do field_s=1,field_count_s
-        ! At each node of the old element, evaluate val * shape_fn
-        val_s = 0.0
-        do i=1,ele_loc(old_mesh, ele)
-          val_s = val_s + node_val(old_fields_s(field_s), node_list(i)) * shape_fns(i)
-        end do
-        call set(new_fields_s(field_s), new_node, val_s)
-      end do
-
-      do field_v=1,field_count_v
-        ! At each node of the old element, evaluate val * shape_fn
-        val_v = 0.0
-        do i=1,ele_loc(old_mesh, ele)
-          val_v = val_v + node_val(old_fields_v(field_v), node_list(i)) * shape_fns(i)
-        end do
-        call set(new_fields_v(field_v), new_node, val_v)
-      end do
-
-      do field_t=1,field_count_t
-        ! At each node of the old element, evaluate val * shape_fn
-        val_t = 0.0
-        do i=1,ele_loc(old_mesh, ele)
-          val_t = val_t + node_val(old_fields_t(field_t), node_list(i)) * shape_fns(i)
-        end do
-        call set(new_fields_t(field_t), new_node, val_t)
-      end do
     end do
 
     if (.not. present(map)) then
@@ -576,24 +589,27 @@ module interpolation_module
     ! Loop over the nodes of the new mesh.
 
     do new_node=1,node_count(new_mesh)
-      
-      ! In what element of the old mesh does the new node lie?
-      ele = map(new_node)
-      node_list => ele_nodes(old_mesh, ele)
+      if (node_owned(new_mesh,new_node)) then
+        
+        ! In what element of the old mesh does the new node lie?
+        ele = map(new_node)
+        node_list => ele_nodes(old_mesh, ele)
 
-      do field=1,field_count
-        ! Loop over the nodes of that element,
-        ! get the cubic expansion of that field,
-        ! evaluate at the point and average.
-        val = 0.0
-        do i=1,size(node_list)
-          old_node = node_list(i)
-          cf_expansion = get_cubic_fit_cf(old_fields(field), old_position, old_node)
-          val = val + evaluate_cf(cf_expansion, node_val(new_position, new_node))
+        do field=1,field_count
+          ! Loop over the nodes of that element,
+          ! get the cubic expansion of that field,
+          ! evaluate at the point and average.
+          val = 0.0
+          do i=1,size(node_list)
+            old_node = node_list(i)
+            cf_expansion = get_cubic_fit_cf(old_fields(field), old_position, old_node)
+            val = val + evaluate_cf(cf_expansion, node_val(new_position, new_node))
+          end do
+          val = val / size(node_list)
+          call set(new_fields(field), new_node, val)
         end do
-        val = val / size(node_list)
-        call set(new_fields(field), new_node, val)
-      end do
+
+      end if
     end do
 
   end subroutine cubic_interpolation_cf_scalar

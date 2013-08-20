@@ -137,12 +137,12 @@ contains
         FLAbort("Mesh adaptivity requires a 1D, 2D or 3D mesh")
     end select
 
-    ! deallocate stripped metric - we don't need this anymore
+    ! deallocate stripped metric and positions - we don't need these anymore
     call deallocate(stripped_metric)
+    call deallocate(stripped_positions)
 
     ! add halo 2 to new_positions
     call create_l2_halo(new_positions)
-    assert(halo_count(new_positions) > 1)
 
   end subroutine adapt_mesh_simple
 
@@ -193,9 +193,9 @@ contains
     call incref(old_linear_mesh)
     dim = positions%dim
     linear_shape = ele_shape(old_linear_mesh, 1)
+    call incref(linear_shape)
     nloc = old_linear_mesh%shape%loc
     snloc = old_linear_mesh%faces%surface_mesh%shape%loc
-    call incref(linear_shape)
     allocate(linear_mesh)
     linear_mesh_name = old_linear_mesh%name
     linear_mesh_option_path = old_linear_mesh%option_path
@@ -316,6 +316,8 @@ contains
     ! Step 4. Cleanup
     call sam_cleanup
 
+    assert(halo_count(positions) > 1)
+
   end subroutine create_l2_halo
 
   subroutine sneaky_sam_init(positions, max_coplanar_id)
@@ -343,6 +345,7 @@ contains
     type(mesh_type) :: mesh
     
     mesh = positions%mesh
+    call incref(mesh)
     dim = mesh_dim(mesh)
     nonods = node_count(mesh)
     totele = ele_count(mesh)
@@ -400,33 +403,6 @@ contains
 
     call get_option('/mesh_adaptivity/hr_adaptivity/functional_tolerance', mestp1, default = 0.0)
     
-    ! ewrite(0,*) dim
-    ! ewrite(0,*) nonods
-    ! ewrite(0,*) totele
-    ! ewrite(0,*) stotel 
-    ! ewrite(0,*) gather 
-    ! ewrite(0,*) atosen 
-    ! ewrite(0,*) scater(1:nscate) 
-    ! ewrite(0,*) atorec 
-    ! ewrite(0,*) size(gather) 
-    ! ewrite(0,*) nscate 
-    ! ewrite(0,*) nprocs 
-    ! ewrite(0,*) ndglno(1:totele * nloc) 
-    ! ewrite(0,*) nloc 
-    ! ewrite(0,*) sndgln(1:stotel * snloc) 
-    ! ewrite(0,*) surfid(1:stotel) 
-    ! ewrite(0,*) snloc 
-    ! ewrite(0,*) xyz(:, 1) 
-    ! ewrite(0,*) xyz(:, 2) 
-    ! ewrite(0,*) xyz(:, 3) 
-    ! ewrite(0,*) metric_handle(1:nonods * dim ** 2) 
-    ! ewrite(0,*) fields 
-    ! ewrite(0,*) nfields 
-    ! ewrite(0,*) sam_options(1, 1)
-    ! ewrite(0,*) mestp1
-
-    ! FLExit("exiting")
-
     call sam_init_c(dim, nonods, totele, stotel, &
          & gather, atosen, &
          & scater(1:nscate), atorec, &
@@ -437,6 +413,7 @@ contains
          & metric_handle(1:nonods * dim ** 2), fields, nfields, &
          & sam_options(1, 1), mestp1)
 
+    call deallocate(mesh)
     deallocate(xyz)
     deallocate(sndgln)
     deallocate(surfid)

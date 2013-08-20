@@ -320,13 +320,14 @@ contains
     call qsort(s_ewgts)
     call get_option(trim(zoltan_global_base_option_path)//"/uncuttable_edge_fraction", &
          nocut_edge_fraction, default=0.1)
-    my_nocut_weight = s_ewgts(int(size(s_ewgts) * (1.0 - nocut_edge_fraction)))    
-    ! call MPI_ALLREDUCE(my_nocut_weight,nocut_weight,1,MPI_REAL,MPI_MAX,MPI_COMM_FEMTOOLS,err)
-    nocut_weight = my_nocut_weight
-    ewrite(2,*) 'nocut_weight (best: 0 - worst: 20) = ', nocut_weight
+    my_nocut_weight = (s_ewgts(size(s_ewgts)) - s_ewgts(1)) * (1.0 - nocut_edge_fraction) 
+    ! s_ewgts(int(size(s_ewgts) * (1.0 - nocut_edge_fraction)))    
+    call MPI_ALLREDUCE(my_nocut_weight,nocut_weight,1,MPI_REAL,MPI_MAX,MPI_COMM_FEMTOOLS,err)
+    ! nocut_weight = my_nocut_weight
+    ewrite(0,*) 'nocut_weight (best: 0 - worst: 20) = ', nocut_weight
 
     call get_option(trim(zoltan_global_base_option_path)//"/uncuttable_edge_weight", &
-         nocut_edge_weight, default=1000.0)
+         nocut_edge_weight, default=1.0)
     ! make poor elements uncuttable
     do i=1,head-1
       if (ewgts(i) .GT. nocut_weight) then
