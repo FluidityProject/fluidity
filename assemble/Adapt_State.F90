@@ -1615,11 +1615,7 @@ contains
           ! call zoltan now but we need to pass in both the 2d metric (metric) and the 3d full metric (full_metric)
           ! the first is needed to define the element qualities while the second must be interpolated to the newly
           ! decomposed mesh
-          if (zoltan_additional_adapt_iterations .gt. 0) then
-             call zoltan_drive(states, final_adapt_iteration, global_min_quality = global_min_quality, metric = metric, full_metric = full_metric)
-          else
-             call zoltan_drive(states, final_adapt_iteration, metric = metric, full_metric = full_metric)
-          end if
+          call zoltan_drive(states, final_adapt_iteration, global_min_quality = global_min_quality, metric = metric, full_metric = full_metric)
           default_stat%zoltan_drive_call=.true.
 
           ! now we can deallocate the horizontal metric and point metric back at the full metric again
@@ -1627,27 +1623,25 @@ contains
           metric = full_metric
         else
 
+          call zoltan_drive(states, final_adapt_iteration, global_min_quality = global_min_quality, metric = metric)
           if (zoltan_additional_adapt_iterations .gt. 0) then
-             call zoltan_drive(states, final_adapt_iteration, global_min_quality = global_min_quality, metric = metric)
-             if (previous_global_min_quality - global_min_quality >= -1e-5) then
-               locked_counter = locked_counter + 1
-               if (locked_counter > 5) then
-                 ewrite(0,*) 'elements locked for more than 5 iterations - lowering quality tolerance'
-                 if (global_min_quality > quality_tolerance * (1.0 - locked_counter/50.0)) then
-                   ewrite(0,*) 'WARNING: mesh passed with element quality tolerance of :'
-                   ewrite(0,*) quality_tolerance * (1.0 - locked_counter/50.0)
-                   ewrite(0,*) 'due to locked nodes - mesh may not be of desired quality'
-                   global_min_quality = 1.0
-                 else
-                   ewrite(0,*) 'min quality too low - continuing to adapt'
-                 end if
-               end if
-             else
-               locked_counter = 0
-               previous_global_min_quality = global_min_quality
-             end if
-          else
-             call zoltan_drive(states, final_adapt_iteration, metric = metric)
+            if (previous_global_min_quality - global_min_quality >= -1e-5) then
+              locked_counter = locked_counter + 1
+              if (locked_counter > 5) then
+                ewrite(0,*) 'elements locked for more than 5 iterations - lowering quality tolerance'
+                if (global_min_quality > quality_tolerance * (1.0 - locked_counter/50.0)) then
+                  ewrite(0,*) 'WARNING: mesh passed with element quality tolerance of :'
+                  ewrite(0,*) quality_tolerance * (1.0 - locked_counter/50.0)
+                  ewrite(0,*) 'due to locked nodes - mesh may not be of desired quality'
+                  global_min_quality = 1.0
+                else
+                  ewrite(0,*) 'min quality too low - continuing to adapt'
+                end if
+              end if
+            else
+              locked_counter = 0
+              previous_global_min_quality = global_min_quality
+            end if
           end if
           default_stat%zoltan_drive_call=.true.
 

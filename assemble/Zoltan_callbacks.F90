@@ -314,21 +314,17 @@ contains
 
     assert(head == sum(num_edges(1:num_obj))+1) 
 
-    ! calculate ewgt that marks maximum nocut_edge_fraction of elements in any partition
-    allocate(s_ewgts(head-1))
-    s_ewgts(:) = ewgts(1:head-1)
-    call qsort(s_ewgts)
+    ! calculate ewgt to mark as uncuttable
     call get_option(trim(zoltan_global_base_option_path)//"/uncuttable_edge_fraction", &
          nocut_edge_fraction, default=0.1)
-    my_nocut_weight = (s_ewgts(size(s_ewgts)) - s_ewgts(1)) * (1.0 - nocut_edge_fraction) 
-    ! s_ewgts(int(size(s_ewgts) * (1.0 - nocut_edge_fraction)))    
+    my_nocut_weight = max( (maxval(ewgts(1:head-1)) - minval(ewgts(1:head-1))) * (1.0 - nocut_edge_fraction), &
+         20*(1.0-2*zoltan_global_quality_tolerance) ) 
     call MPI_ALLREDUCE(my_nocut_weight,nocut_weight,1,MPI_REAL,MPI_MAX,MPI_COMM_FEMTOOLS,err)
-    ! nocut_weight = my_nocut_weight
-    ewrite(0,*) 'nocut_weight (best: 0 - worst: 20) = ', nocut_weight
+    ewrite(1,*) 'zoltan nocut_weight (best: 0 - worst: 20) = ', nocut_weight
 
+    ! make poor elements uncuttable
     call get_option(trim(zoltan_global_base_option_path)//"/uncuttable_edge_weight", &
          nocut_edge_weight, default=1.0)
-    ! make poor elements uncuttable
     do i=1,head-1
       if (ewgts(i) .GT. nocut_weight) then
         ! ewgts(i) = (total_num_edges + 1) 
@@ -338,6 +334,7 @@ contains
       end if
     end do
     
+    ! debugging output
     if (zoltan_global_output_edge_weights) then
        call zero(zoltan_global_max_edge_weight_on_node)
        head = 1
@@ -362,54 +359,6 @@ contains
 
   contains
     
-    recursive subroutine qsort(A)
-      real(zoltan_float), intent(in out), dimension(:) :: A
-      integer :: iq
-
-      if(size(A) > 1) then
-        call qsort_partition(A, iq)
-        call qsort(A(:iq-1))
-        call qsort(A(iq:))
-      endif
-    end subroutine qsort
-
-    subroutine qsort_partition(A, marker)
-      real(zoltan_float), intent(in out), dimension(:) :: A
-      integer, intent(out) :: marker
-      integer :: i, j
-      real(zoltan_float) :: temp
-      real(zoltan_float) :: x      ! pivot point
-      x = A(1)
-      i= 0
-      j= size(A) + 1
-
-      do
-        j = j-1
-        do
-          if (A(j) <= x) exit
-          j = j-1
-        end do
-        i = i+1
-        do
-          if (A(i) >= x) exit
-          i = i+1
-        end do
-        if (i < j) then
-          ! exchange A(i) and A(j)
-          temp = A(i)
-          A(i) = A(j)
-          A(j) = temp
-        elseif (i == j) then
-          marker = i+1
-          return
-        else
-          marker = i
-          return
-        endif
-      end do
-
-    end subroutine qsort_partition
-
     recursive subroutine find_worst_element(e_list, n_levels, worst_quality)
 
       integer, dimension(:), pointer, intent(in) :: e_list 
