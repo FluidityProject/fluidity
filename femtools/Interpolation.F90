@@ -31,30 +31,44 @@ module interpolation_module
 
   contains
 
-  function get_element_mapping(old_position, new_position, different_domains) result(map)
+  function get_element_mapping(old_position, new_position, different_domains, only_owned) result(map)
     !!< Return the elements in the mesh of old_position
     !!< that contains the nodes of the mesh of new_position
     type(vector_field), intent(inout) :: old_position
     type(vector_field), intent(in) :: new_position
     logical, optional, intent(in) :: different_domains
+    logical, optional, intent(in) :: only_owned
     
     integer, dimension(node_count(new_position)) :: map
     integer :: i
+    logical :: only_owned_b
+
+    if (.not. present(only_owned)) then
+      only_owned_b = .false.
+    else
+      only_owned_b = only_owned
+    end if
 
     ! Thanks, James!
     call find_node_ownership(old_position, new_position, map)
     
     if(.not. present_and_true(different_domains)) then
-      do i = 1,size(map)
-        if (map(i) < 0 .and. node_owned(new_position,i)) then
-          FLAbort("Failed to find map for at least one owned node")
+      if (only_owned_b) then
+        do i = 1,size(map)
+          if (map(i) < 0 .and. node_owned(new_position,i)) then
+            FLAbort("Failed to find map for at least one owned node")
+          end if
+        end do
+      else
+        if (.not. all(map > 0)) then
+          FLAbort("Failed to find element mapping")
         end if
-      end do
+      end if
     end if
     
   end function get_element_mapping
 
-  subroutine quadratic_interpolation_qf(old_fields, old_position, new_fields, new_position)
+  subroutine quadratic_interpolation_qf(old_fields, old_position, new_fields, new_position, only_owned)
     !!< Interpolate the fields defined on the old_fields mesh
     !!< onto the new_fields mesh.
     !!< This routine assumes new_fields have all been allocated.
@@ -63,6 +77,7 @@ module interpolation_module
     type(vector_field), intent(inout) :: old_position
     type(scalar_field), dimension(:), intent(inout) :: new_fields
     type(vector_field), intent(in) :: new_position
+    logical, intent(in), optional :: only_owned
 
     type(mesh_type) :: old_mesh, new_mesh
     integer :: old_node
@@ -75,6 +90,13 @@ module interpolation_module
     integer, dimension(node_count(new_position)) :: map
     real, dimension(MATRIX_SIZE_QF) :: qf_expansion
     real :: val
+    logical :: only_owned_b
+
+    if (.not. present(only_owned)) then
+      only_owned_b = .false.
+    else
+      only_owned_b = only_owned
+    end if
 
     assert(size(old_fields) == size(new_fields))
     field_count = size(old_fields)
@@ -84,7 +106,7 @@ module interpolation_module
 
 
     call add_nelist(old_mesh)
-    map = get_element_mapping(old_position, new_position)
+    map = get_element_mapping(old_position, new_position, only_owned=only_owned_b)
 
     ! Zero the new fields.
 
@@ -95,32 +117,35 @@ module interpolation_module
     ! Loop over the nodes of the new mesh.
 
     do new_node=1,node_count(new_mesh)
-      if (node_owned(new_mesh, new_node)) then 
-
-        ! In what element of the old mesh does the new node lie?
-        ele = map(new_node)
-        node_list => ele_nodes(old_mesh, ele)
-
-        do field=1,field_count
-          ! Loop over the nodes of that element,
-          ! get the quadratic expansion of that field,
-          ! evaluate at the point and average.
-          val = 0.0
-          do i=1,size(node_list)
-            old_node = node_list(i)
-            qf_expansion = get_quadratic_fit_qf(old_fields(field), old_position, old_node)
-            val = val + evaluate_qf(qf_expansion, node_val(new_position, new_node))
-          end do
-          val = val / size(node_list)
-          call set(new_fields(field), new_node, val)
-        end do
-
+      ! cycle unowned elements 
+      if (only_owned_b) then
+        if (.not. node_owned(new_mesh, new_node)) then
+          cycle
+        end if
       end if
+      
+      ! In what element of the old mesh does the new node lie?
+      ele = map(new_node)
+      node_list => ele_nodes(old_mesh, ele)
+
+      do field=1,field_count
+        ! Loop over the nodes of that element,
+        ! get the quadratic expansion of that field,
+        ! evaluate at the point and average.
+        val = 0.0
+        do i=1,size(node_list)
+          old_node = node_list(i)
+          qf_expansion = get_quadratic_fit_qf(old_fields(field), old_position, old_node)
+          val = val + evaluate_qf(qf_expansion, node_val(new_position, new_node))
+        end do
+        val = val / size(node_list)
+        call set(new_fields(field), new_node, val)
+      end do
     end do
 
   end subroutine quadratic_interpolation_qf
 
-  subroutine quadratic_interpolation_eqf(old_fields, old_position, new_fields, new_position)
+  subroutine quadratic_interpolation_eqf(old_fields, old_position, new_fields, new_position, only_owned)
     !!< Interpolate the fields defined on the old_fields mesh
     !!< onto the new_fields mesh.
     !!< This routine assumes new_fields have all been allocated.
@@ -129,6 +154,7 @@ module interpolation_module
     type(vector_field), intent(inout) :: old_position
     type(scalar_field), dimension(:), intent(inout) :: new_fields
     type(vector_field), intent(in) :: new_position
+    logical, intent(in), optional :: only_owned
 
     type(mesh_type) :: old_mesh, new_mesh
     integer :: new_node
@@ -139,6 +165,13 @@ module interpolation_module
     real, dimension(MATRIX_SIZE_QF) :: fit
     real :: val
     type(vector_field) :: gradient
+    logical :: only_owned_b
+
+    if (.not. present(only_owned)) then
+      only_owned_b = .false.
+    else
+      only_owned_b = only_owned
+    end if
 
     assert(size(old_fields) == size(new_fields))
     field_count = size(old_fields)
@@ -149,7 +182,7 @@ module interpolation_module
     call allocate(gradient, 3, old_mesh, "Gradient")
 
     call add_nelist(old_mesh)
-    map = get_element_mapping(old_position, new_position)
+    map = get_element_mapping(old_position, new_position, only_owned=only_owned_b)
 
     ! Zero the new fields.
 
@@ -163,16 +196,19 @@ module interpolation_module
       call grad(old_fields(field), old_position, gradient)
       
       do new_node=1,node_count(new_mesh)
-        if (node_owned(new_mesh, new_node)) then 
-
-          ! In what element of the old mesh does the new node lie?
-          ele = map(new_node)
-          fit = get_quadratic_fit_eqf(old_fields(field), old_position, ele, transpose(ele_val(gradient, ele)))
-          val = evaluate_qf(fit, node_val(new_position, new_node))
-
-          call set(new_fields(field), new_node, val)
-
+        ! cycle unowned elements 
+        if (only_owned_b) then
+          if (.not. node_owned(new_mesh, new_node)) then
+            cycle
+          end if
         end if
+        
+        ! In what element of the old mesh does the new node lie?
+        ele = map(new_node)
+        fit = get_quadratic_fit_eqf(old_fields(field), old_position, ele, transpose(ele_val(gradient, ele)))
+        val = evaluate_qf(fit, node_val(new_position, new_node))
+
+        call set(new_fields(field), new_node, val)
       end do
     end do
 
@@ -180,14 +216,22 @@ module interpolation_module
     
   end subroutine quadratic_interpolation_eqf
 
-  subroutine linear_interpolation_scalar(old_field, old_position, new_field, new_position, map)
+  subroutine linear_interpolation_scalar(old_field, old_position, new_field, new_position, map, only_owned)
     type(scalar_field), intent(in) :: old_field
     type(vector_field), intent(in) :: old_position
     type(scalar_field), intent(inout) :: new_field
     type(vector_field), intent(in) :: new_position
     integer, dimension(:), optional, intent(in) :: map
+    logical, intent(in), optional :: only_owned
 
     type(state_type) :: old_state, new_state
+    logical :: only_owned_b
+
+    if (.not. present(only_owned)) then
+      only_owned_b = .false.
+    else
+      only_owned_b = only_owned
+    end if
 
     call insert(old_state, old_field, old_field%name)
     call insert(new_state, new_field, old_field%name)
@@ -198,21 +242,29 @@ module interpolation_module
     call insert(old_state, old_field%mesh, "Mesh")
     call insert(new_state, new_field%mesh, "Mesh")
 
-    call linear_interpolation_state(old_state, new_state, map = map)
+    call linear_interpolation_state(old_state, new_state, map = map, only_owned = only_owned_b)
     call deallocate(old_state)
     call deallocate(new_state)
 
   end subroutine linear_interpolation_scalar
   
-  subroutine linear_interpolation_scalars(old_fields, old_position, new_fields, new_position, map)
+  subroutine linear_interpolation_scalars(old_fields, old_position, new_fields, new_position, map, only_owned)
     type(scalar_field), dimension(:), intent(in) :: old_fields
     type(vector_field), intent(in) :: old_position
     type(scalar_field), dimension(:), intent(inout) :: new_fields
     type(vector_field), intent(in) :: new_position
     integer, dimension(:), optional, intent(in) :: map
+    logical, intent(in), optional :: only_owned
 
     type(state_type) :: old_state, new_state
     integer :: field, field_count
+    logical :: only_owned_b
+
+    if (.not. present(only_owned)) then
+      only_owned_b = .false.
+    else
+      only_owned_b = only_owned
+    end if
 
     field_count = size(old_fields)
 
@@ -227,20 +279,28 @@ module interpolation_module
     call insert(old_state, old_fields(1)%mesh, "Mesh")
     call insert(new_state, new_fields(1)%mesh, "Mesh")
 
-    call linear_interpolation_state(old_state, new_state, map = map)
+    call linear_interpolation_state(old_state, new_state, map = map, only_owned = only_owned_b)
     call deallocate(old_state)
     call deallocate(new_state)
 
   end subroutine linear_interpolation_scalars
   
-  subroutine linear_interpolation_vector(old_field, old_position, new_field, new_position, map)
+  subroutine linear_interpolation_vector(old_field, old_position, new_field, new_position, map, only_owned)
     type(vector_field), intent(in) :: old_field
     type(vector_field), intent(in) :: old_position
     type(vector_field), intent(inout) :: new_field
     type(vector_field), intent(in) :: new_position
     integer, dimension(:), optional, intent(in) :: map
+    logical, intent(in), optional :: only_owned
 
     type(state_type) :: old_state, new_state
+    logical :: only_owned_b
+
+    if (.not. present(only_owned)) then
+      only_owned_b = .false.
+    else
+      only_owned_b = only_owned
+    end if
 
     call insert(old_state, old_field, old_field%name)
     call insert(new_state, new_field, new_field%name)
@@ -251,20 +311,28 @@ module interpolation_module
     call insert(old_state, old_field%mesh, "Mesh")
     call insert(new_state, new_field%mesh, "Mesh")
 
-    call linear_interpolation_state(old_state, new_state, map = map)
+    call linear_interpolation_state(old_state, new_state, map = map, only_owned = only_owned_b)
     call deallocate(old_state)
     call deallocate(new_state)
 
   end subroutine linear_interpolation_vector
   
-  subroutine linear_interpolation_vectors(old_fields, old_position, new_fields, new_position)
+  subroutine linear_interpolation_vectors(old_fields, old_position, new_fields, new_position, only_owned)
     type(vector_field), dimension(:), intent(in) :: old_fields
     type(vector_field), intent(in) :: old_position
     type(vector_field), dimension(:), intent(inout) :: new_fields
     type(vector_field), intent(in) :: new_position
+    logical, intent(in), optional :: only_owned
 
     type(state_type) :: old_state, new_state
     integer :: field, field_count
+    logical :: only_owned_b
+
+    if (.not. present(only_owned)) then
+      only_owned_b = .false.
+    else
+      only_owned_b = only_owned
+    end if
 
     field_count = size(old_fields)
 
@@ -279,20 +347,28 @@ module interpolation_module
     call insert(old_state, old_fields(1)%mesh, "Mesh")
     call insert(new_state, new_fields(1)%mesh, "Mesh")
 
-    call linear_interpolation_state(old_state, new_state)
+    call linear_interpolation_state(old_state, new_state, only_owned = only_owned_b)
     call deallocate(old_state)
     call deallocate(new_state)
 
   end subroutine linear_interpolation_vectors
   
-  subroutine linear_interpolation_tensors(old_fields, old_position, new_fields, new_position)
+  subroutine linear_interpolation_tensors(old_fields, old_position, new_fields, new_position, only_owned)
     type(tensor_field), dimension(:), intent(in) :: old_fields
     type(vector_field), intent(in) :: old_position
     type(tensor_field), dimension(:), intent(inout) :: new_fields
     type(vector_field), intent(in) :: new_position
+    logical, intent(in), optional :: only_owned
 
     type(state_type) :: old_state, new_state
     integer :: field, field_count
+    logical :: only_owned_b
+
+    if (.not. present(only_owned)) then
+      only_owned_b = .false.
+    else
+      only_owned_b = only_owned
+    end if
 
     field_count = size(old_fields)
 
@@ -307,28 +383,36 @@ module interpolation_module
     call insert(old_state, old_fields(1)%mesh, "Mesh")
     call insert(new_state, new_fields(1)%mesh, "Mesh")
 
-    call linear_interpolation_state(old_state, new_state)
+    call linear_interpolation_state(old_state, new_state, only_owned = only_owned_b)
     call deallocate(old_state)
     call deallocate(new_state)
 
   end subroutine linear_interpolation_tensors
   
-  subroutine linear_interpolation_tensor(old_field, old_position, new_field, new_position)
+  subroutine linear_interpolation_tensor(old_field, old_position, new_field, new_position, only_owned)
     type(tensor_field), intent(in) :: old_field
     type(vector_field), intent(in) :: old_position
     type(tensor_field), intent(inout) :: new_field
     type(vector_field), intent(in) :: new_position
+    logical, intent(in), optional :: only_owned
 
     type(tensor_field), dimension(1) :: new_field_array, old_field_array
+    logical :: only_owned_b
+
+    if (.not. present(only_owned)) then
+      only_owned_b = .false.
+    else
+      only_owned_b = only_owned
+    end if
     
     new_field_array(1) = new_field
     old_field_array(1) = old_field
     
-    call linear_interpolation(old_field_array, old_position, new_field_array, new_position)
+    call linear_interpolation(old_field_array, old_position, new_field_array, new_position, only_owned = only_owned_b)
 
   end subroutine linear_interpolation_tensor
     
-  subroutine linear_interpolation_state(old_state, new_state, map, different_domains)
+  subroutine linear_interpolation_state(old_state, new_state, map, different_domains, only_owned)
     !!< Interpolate the fields defined on the old_fields mesh
     !!< onto the new_fields mesh.
     !!< This routine assumes new_state has all been allocated,
@@ -340,6 +424,7 @@ module interpolation_module
     integer, dimension(:), intent(in), optional, target :: map
     integer, dimension(:), pointer :: lmap
     logical, intent(in), optional :: different_domains
+    logical, intent(in), optional :: only_owned
 
     type(vector_field), pointer :: old_position
     type(vector_field) :: new_position
@@ -359,6 +444,7 @@ module interpolation_module
     real, dimension(:), allocatable :: val_v
     real, dimension(:,:), allocatable :: val_t
     real, dimension(:), allocatable :: local_coord, shape_fns
+    logical :: only_owned_b
 
     type(scalar_field), dimension(:), allocatable, target :: old_fields_s
     type(scalar_field), dimension(:), allocatable, target :: new_fields_s
@@ -380,6 +466,12 @@ module interpolation_module
     if (associated(old_state%tensor_fields)) then
       allocate(old_fields_t(size(old_state%tensor_fields)))
       allocate(new_fields_t(size(new_state%tensor_fields)))
+    end if
+
+    if (.not. present(only_owned)) then
+      only_owned_b = .false.
+    else
+      only_owned_b = only_owned
     end if
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -484,58 +576,61 @@ module interpolation_module
       lmap => map
     else
       allocate(lmap(node_count(new_mesh)))
-      lmap = get_element_mapping(old_position, new_position, different_domains = different_domains)
+      lmap = get_element_mapping(old_position, new_position, different_domains = different_domains, only_owned = only_owned_b)
     end if
 
     ! Loop over the nodes of the new mesh.
 
     do new_node=1,node_count(new_mesh)
-      if (node_owned(new_mesh,new_node)) then
-        
-        ! In what element of the old mesh does the new node lie?
-        ! Find the local coordinates of the point in that element,
-        ! and evaluate all the shape functions at that point
-        ele = lmap(new_node)
-
-        if (ele < 0) then
-          assert(present_and_true(different_domains))
+      ! cycle unowned elements 
+      if (only_owned_b) then
+        if (.not. node_owned(new_mesh, new_node)) then
           cycle
         end if
-
-        node_list => ele_nodes(old_mesh, ele)
-        local_coord = local_coords(old_position, ele, node_val(new_position, new_node))
-        do i=1,ele_loc(old_mesh, ele)
-          shape_fns(i) = eval_shape(ele_shape(old_mesh, ele), i, local_coord)
-        end do
-
-        do field_s=1,field_count_s
-          ! At each node of the old element, evaluate val * shape_fn
-          val_s = 0.0
-          do i=1,ele_loc(old_mesh, ele)
-            val_s = val_s + node_val(old_fields_s(field_s), node_list(i)) * shape_fns(i)
-          end do
-          call set(new_fields_s(field_s), new_node, val_s)
-        end do
-
-        do field_v=1,field_count_v
-          ! At each node of the old element, evaluate val * shape_fn
-          val_v = 0.0
-          do i=1,ele_loc(old_mesh, ele)
-            val_v = val_v + node_val(old_fields_v(field_v), node_list(i)) * shape_fns(i)
-          end do
-          call set(new_fields_v(field_v), new_node, val_v)
-        end do
-
-        do field_t=1,field_count_t
-          ! At each node of the old element, evaluate val * shape_fn
-          val_t = 0.0
-          do i=1,ele_loc(old_mesh, ele)
-            val_t = val_t + node_val(old_fields_t(field_t), node_list(i)) * shape_fns(i)
-          end do
-          call set(new_fields_t(field_t), new_node, val_t)
-        end do
-
       end if
+      
+      ! In what element of the old mesh does the new node lie?
+      ! Find the local coordinates of the point in that element,
+      ! and evaluate all the shape functions at that point
+      ele = lmap(new_node)
+
+      if (ele < 0) then
+        assert(present_and_true(different_domains))
+        cycle
+      end if
+
+      node_list => ele_nodes(old_mesh, ele)
+      local_coord = local_coords(old_position, ele, node_val(new_position, new_node))
+      do i=1,ele_loc(old_mesh, ele)
+        shape_fns(i) = eval_shape(ele_shape(old_mesh, ele), i, local_coord)
+      end do
+
+      do field_s=1,field_count_s
+        ! At each node of the old element, evaluate val * shape_fn
+        val_s = 0.0
+        do i=1,ele_loc(old_mesh, ele)
+          val_s = val_s + node_val(old_fields_s(field_s), node_list(i)) * shape_fns(i)
+        end do
+        call set(new_fields_s(field_s), new_node, val_s)
+      end do
+
+      do field_v=1,field_count_v
+        ! At each node of the old element, evaluate val * shape_fn
+        val_v = 0.0
+        do i=1,ele_loc(old_mesh, ele)
+          val_v = val_v + node_val(old_fields_v(field_v), node_list(i)) * shape_fns(i)
+        end do
+        call set(new_fields_v(field_v), new_node, val_v)
+      end do
+
+      do field_t=1,field_count_t
+        ! At each node of the old element, evaluate val * shape_fn
+        val_t = 0.0
+        do i=1,ele_loc(old_mesh, ele)
+          val_t = val_t + node_val(old_fields_t(field_t), node_list(i)) * shape_fns(i)
+        end do
+        call set(new_fields_t(field_t), new_node, val_t)
+      end do
     end do
 
     if (.not. present(map)) then
@@ -548,7 +643,7 @@ module interpolation_module
 
   end subroutine linear_interpolation_state
 
-  subroutine cubic_interpolation_cf_scalar(old_fields, old_position, new_fields, new_position)
+  subroutine cubic_interpolation_cf_scalar(old_fields, old_position, new_fields, new_position, only_owned)
     !!< Interpolate the fields defined on the old_fields mesh
     !!< onto the new_fields mesh.
     !!< This routine assumes new_fields have all been allocated.
@@ -557,6 +652,7 @@ module interpolation_module
     type(vector_field), intent(inout) :: old_position
     type(scalar_field), dimension(:), intent(inout) :: new_fields
     type(vector_field), intent(in) :: new_position
+    logical, intent(in), optional :: only_owned
 
     type(mesh_type) :: old_mesh, new_mesh
     integer :: old_node
@@ -569,6 +665,7 @@ module interpolation_module
     integer, dimension(node_count(new_position)) :: map
     real, dimension(MATRIX_SIZE_CF) :: cf_expansion
     real :: val
+    logical :: only_owned_b
 
     assert(size(old_fields) == size(new_fields))
     field_count = size(old_fields)
@@ -576,9 +673,15 @@ module interpolation_module
     old_mesh = old_fields(1)%mesh
     new_mesh = new_fields(1)%mesh
 
+    if (.not. present(only_owned)) then
+      only_owned_b = .false.
+    else
+      only_owned_b = only_owned
+    end if
+
 
     call add_nelist(old_mesh)
-    map = get_element_mapping(old_position, new_position)
+    map = get_element_mapping(old_position, new_position, only_owned = only_owned_b)
 
     ! Zero the new fields.
 
@@ -589,40 +692,51 @@ module interpolation_module
     ! Loop over the nodes of the new mesh.
 
     do new_node=1,node_count(new_mesh)
-      if (node_owned(new_mesh,new_node)) then
-        
-        ! In what element of the old mesh does the new node lie?
-        ele = map(new_node)
-        node_list => ele_nodes(old_mesh, ele)
-
-        do field=1,field_count
-          ! Loop over the nodes of that element,
-          ! get the cubic expansion of that field,
-          ! evaluate at the point and average.
-          val = 0.0
-          do i=1,size(node_list)
-            old_node = node_list(i)
-            cf_expansion = get_cubic_fit_cf(old_fields(field), old_position, old_node)
-            val = val + evaluate_cf(cf_expansion, node_val(new_position, new_node))
-          end do
-          val = val / size(node_list)
-          call set(new_fields(field), new_node, val)
-        end do
-
+      ! cycle unowned elements 
+      if (only_owned_b) then
+        if (.not. node_owned(new_mesh, new_node)) then
+          cycle
+        end if
       end if
+
+      ! In what element of the old mesh does the new node lie?
+      ele = map(new_node)
+      node_list => ele_nodes(old_mesh, ele)
+
+      do field=1,field_count
+        ! Loop over the nodes of that element,
+        ! get the cubic expansion of that field,
+        ! evaluate at the point and average.
+        val = 0.0
+        do i=1,size(node_list)
+          old_node = node_list(i)
+          cf_expansion = get_cubic_fit_cf(old_fields(field), old_position, old_node)
+          val = val + evaluate_cf(cf_expansion, node_val(new_position, new_node))
+        end do
+        val = val / size(node_list)
+        call set(new_fields(field), new_node, val)
+      end do
     end do
 
   end subroutine cubic_interpolation_cf_scalar
 
-  subroutine cubic_interpolation_cf_vector(old_fields, old_position, new_fields, new_position)
+  subroutine cubic_interpolation_cf_vector(old_fields, old_position, new_fields, new_position, only_owned)
     type(vector_field), dimension(:), intent(in) :: old_fields
     type(vector_field), intent(inout) :: old_position
     type(vector_field), dimension(:), intent(inout) :: new_fields
     type(vector_field), intent(in) :: new_position
+    logical, intent(in), optional :: only_owned
 
     type(scalar_field), dimension(old_position%dim * size(old_fields)) :: scalars_in
     type(scalar_field), dimension(old_position%dim * size(old_fields)) :: scalars_out
     integer :: i, j
+    logical :: only_owned_b
+
+    if (.not. present(only_owned)) then
+      only_owned_b = .false.
+    else
+      only_owned_b = only_owned
+    end if
 
     do i=1,size(old_fields)
       do j=1,old_position%dim
@@ -630,18 +744,26 @@ module interpolation_module
         scalars_out((i-1) * old_position%dim + j) = extract_scalar_field(new_fields(i), j)
       end do
     end do
-    call cubic_interpolation_cf_scalar(scalars_in, old_position, scalars_out, new_position)
+    call cubic_interpolation_cf_scalar(scalars_in, old_position, scalars_out, new_position, only_owned = only_owned_b)
   end subroutine cubic_interpolation_cf_vector
     
-  subroutine linear_interpolate_states(from_states, target_states, map)
+  subroutine linear_interpolate_states(from_states, target_states, map, only_owned)
   type(state_type), dimension(:), intent(inout):: from_states
   type(state_type), dimension(:), intent(inout):: target_states
   integer, dimension(:), intent(in), optional :: map
+    logical, intent(in), optional :: only_owned
     
     type(state_type) meshj_state
     type(vector_field), pointer:: from_positions
     type(mesh_type), pointer:: from_meshj, target_meshj
     integer i, j
+    logical :: only_owned_b
+
+    if (.not. present(only_owned)) then
+      only_owned_b = .false.
+    else
+      only_owned_b = only_owned
+    end if
     
     do i=1, size(target_states)
       do j=1, mesh_count(target_states(i))
@@ -656,7 +778,7 @@ module interpolation_module
         call insert(meshj_state, from_positions, name=from_positions%name)
         
         call linear_interpolation_state(meshj_state, target_states(i), &
-          map)
+          map = map, only_owned = only_owned_b)
         call deallocate(meshj_state)
       end do
     end do
