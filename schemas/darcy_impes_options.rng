@@ -1643,6 +1643,9 @@ Finite element discretisation may become unbounded so limiting is often necessar
           <optional>
             <ref name="darcy_impes_generic_scalar_field_src"/>
           </optional>
+          <optional>
+            <ref name="darcy_MIM_generic_scalar_field_immobile_src"/>
+          </optional>
           <ref name="darcy_impes_include_cv_stat"/>
           <ref name="adaptivity_options_prognostic_scalar_field"/>
           <ref name="interpolation_algorithm_scalar"/>
@@ -1745,6 +1748,25 @@ Default value is 1.</a:documentation>
         <value>Source</value>
       </attribute>
       <ref name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh"/>
+    </element>
+  </define>
+  <define name="darcy_MIM_generic_scalar_field_immobile_src">
+    <element name="ImmobileSource">
+      <a:documentation>This is the coupled source term for the mobile-immobile model,
+By turning on this term, the source term will be calculated implicitly</a:documentation>
+      <element name="algorithm">
+        <a:documentation>Please write down the name of the corresponding immobile source field,
+Which should be exactly the same with the name set in the MobileImmobileModel option</a:documentation>
+        <attribute name="name">
+          <value>Internal</value>
+        </attribute>
+        <attribute name="material_phase_support">
+          <value>multiple</value>
+        </attribute>
+        <attribute name="source_field_name">
+          <data type="string"/>
+        </attribute>
+      </element>
     </element>
   </define>
   <define name="darcy_impes_first_phase_bc_pressure_field">
@@ -2489,6 +2511,30 @@ which are the dynamic saturation and the immobile saturation.</a:documentation>
               </optional>
             </element>
           </choice>
+        </element>
+      </optional>
+      <optional>
+        <element name="scalar_field">
+          <a:documentation>Please set the immobile field name as the same name of the mobile source field name,
+the prefix of 'Immobile' will be added to be the field name,
+i.e. if the name of this scaler field is set to be 'cd', then the name will be changed to be
+'Immobilecd'  </a:documentation>
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+          <element name="prognostic">
+            <ref name="mesh_choice_pressure"/>
+            <oneOrMore>
+              <ref name="initial_condition_scalar"/>
+            </oneOrMore>
+            <element name="source_field_name">
+              <a:documentation>Please write down the name of the mobile source field which the immobile field is based on</a:documentation>
+              <data type="string" datatypeLibrary=""/>
+            </element>
+            <ref name="darcy_impes_include_cv_stat"/>
+            <ref name="adaptivity_options_prognostic_scalar_field"/>
+            <ref name="interpolation_algorithm_scalar"/>
+          </element>
         </element>
       </optional>
     </element>

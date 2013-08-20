@@ -1605,7 +1605,8 @@ darcy_impes_generic_scalar_field =
                darcy_impes_generic_scalar_field_bc*,
                darcy_impes_generic_scalar_field_diff?,
                darcy_impes_generic_scalar_field_abs?,
-               darcy_impes_generic_scalar_field_src?,               
+               darcy_impes_generic_scalar_field_src?,
+	       darcy_MIM_generic_scalar_field_immobile_src?,
                darcy_impes_include_cv_stat, 
                adaptivity_options_prognostic_scalar_field,
                interpolation_algorithm_scalar
@@ -1704,6 +1705,21 @@ darcy_impes_generic_scalar_field_src =
       }   
    )
       
+
+darcy_MIM_generic_scalar_field_immobile_src =
+   (
+      ## This is the coupled source term for the mobile-immobile model,
+      ## By turning on this term, the source term will be calculated implicitly
+      element ImmobileSource {
+         ## Please write down the name of the corresponding immobile source field,
+         ## Which should be exactly the same with the name set in the MobileImmobileModel option
+         element algorithm {
+            attribute name { "Internal" },
+            attribute material_phase_support { "multiple" },
+            attribute source_field_name { xsd:string }
+     }
+      }
+   )
 
 
 darcy_impes_first_phase_bc_pressure_field =
@@ -2373,6 +2389,25 @@ scalar_convergence_options =
                          darcy_impes_recalculation_options?
                           }
                          )
-			}?
-                      } 
+			}?,
+               
+               ## Please set the immobile field name as the same name of the mobile source field name,
+               ## the prefix of 'Immobile' will be added to be the field name,
+               ## i.e. if the name of this scaler field is set to be 'cd', then the name will be changed to be
+               ## 'Immobilecd'  
+	       element scalar_field {
+	             attribute name { xsd:string },
+	             (
+		      element prognostic { 
+		         mesh_choice_pressure,
+			 initial_condition_scalar+,
+                         ## Please write down the name of the mobile source field which the immobile field is based on
+                         element source_field_name { string },
+                         darcy_impes_include_cv_stat,
+			 adaptivity_options_prognostic_scalar_field,
+			 interpolation_algorithm_scalar
+	              }
+                    )
+                 }?
+	   } 
 	)

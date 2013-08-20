@@ -1398,7 +1398,7 @@ contains
 
     end subroutine allocate_and_insert_sediment
     
-    !************LCai 24 July 2013 Allocate all the Mobile_Immbobile fields*******!
+    !************LCai 24 July & 12 Aug 2013 Allocate all the Mobile_Immbobile fields*******!
     !Allocate the Mobile-Immboile Saturations
     Subroutine allocate_and_insert_MIM(state_path, state)
     character(len=*), intent(in) :: state_path
@@ -1424,13 +1424,17 @@ contains
   	  call get_option(trim(path)//"/name", field_name)
   	  ! Reset path to have field name rather than index
   	  path=trim(state_path_MIM)//"/scalar_field::"//trim(field_name)
+	  !if it is the prognostic immobile field, then adding the prefix to it
+          if (have_option(trim(path)//'/prognostic')) then
+	    field_name = 'Immobile'//trim(field_name)
+	  end if  
   	  call allocate_and_insert_scalar_field(trim(path), state, field_name=field_name, &
   		dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
   		
       end do scalar_field_loop
     
     end Subroutine allocate_and_insert_MIM
-    !****Finish***LCai 24 July 2013 Allocate all the Mobile_Immbobile fields*******!
+    !****Finish***LCai Allocate all the Mobile_Immbobile fields*******!
     
 
     subroutine allocate_and_insert_irradiance(state)
@@ -2573,7 +2577,7 @@ contains
       end do
 
     end subroutine initialise_prognostic_sediment
-
+    
   end subroutine initialise_prognostic_fields
 
   subroutine allocate_and_insert_auxilliary_fields(states, force_prescribed_diagnositc_allocate_old_iterated)

@@ -574,7 +574,7 @@ contains
       logical ,                                     intent(in)    :: this_is_dual
       
       ! Local variables
-      integer                                     :: p, stat, f_count, f
+      integer                                     :: p, stat, f_count, im_count, f, f_p, im_p ! modified on 16 Aug 2013 ** LCai
       real,                          dimension(2) :: tmp_option_shape
       character(len=OPTION_PATH_LEN)              :: tmp_char_option
       
@@ -607,6 +607,7 @@ contains
          di%transmissibility_lambda_dual => extract_scalar_field(di%state(1), "TransmissibilityLambdaDual")
       else
          di%porosity              => extract_scalar_field(di%state(1), "Porosity")
+         di%old_porosity          => extract_scalar_field(di%state(1), "OldPorosity")
          di%absolute_permeability => extract_scalar_field(di%state(1), "AbsolutePermeability")
          nullify(di%transmissibility_lambda_dual)
       end if            
@@ -730,17 +731,20 @@ contains
       allocate(di%density(di%number_phase))
       allocate(di%old_density(di%number_phase))
       
-      !*****************************LCai 24 July 2013******************!
+      !*****************************LCai 24 July 2013**************************!
       ! Allocate the MIM model
       allocate(di%MIM_options%immobile_saturation(di%number_phase))
       allocate(di%MIM_options%old_immobile_saturation(di%number_phase))
       allocate(di%MIM_options%mobile_saturation(di%number_phase))
       allocate(di%MIM_options%old_mobile_saturation(di%number_phase))
       allocate(di%MIM_options%mass_trans_coef(di%number_phase))
+      allocate(di%MIM_options%old_mass_trans_coef(di%number_phase)) 
       !flag of MIM model and mass transfer coefficient
       allocate(di%MIM_options%have_MIM(di%number_phase))
       allocate(di%MIM_options%have_mass_trans_coef(di%number_phase))
-      !**********Finish**************LCai 24 July 2013*****************!  
+      !flag of having immobile prognostic field
+      !***NOT**USED**allocate(di%MIM_options%have_immobile_prog_sfield(di%number_phase))
+      !**********Finish**************LCai***************************************!  
 
       do p = 1,di%number_phase
 
@@ -756,8 +760,8 @@ contains
             end if
             
            !*****************************LCai 24 July 2013******************!
-	       di%MIM_options%immobile_saturation(p)%ptr  => extract_scalar_field(di%state(p), "ImmobileSaturation", stat = stat)
-	    	  if (stat == 0) then
+          di%MIM_options%immobile_saturation(p)%ptr  => extract_scalar_field(di%state(p), "ImmobileSaturation", stat = stat)
+          if (stat == 0) then
                di%MIM_options%have_MIM(p) = .true.
                di%MIM_options%old_immobile_saturation(p)%ptr  => extract_scalar_field(di%state(p), "OldImmobileSaturation")
                di%MIM_options%mobile_saturation(p)%ptr        => extract_scalar_field(di%state(p), "MobileSaturation")
@@ -766,39 +770,47 @@ contains
                di%MIM_options%have_MIM(p) = .false.
                di%MIM_options%immobile_saturation(p)%ptr  => di%constant_zero_sfield_pmesh
                di%MIM_options%mobile_saturation(p)%ptr    => di%constant_zero_sfield_pmesh
+               di%MIM_options%old_immobile_saturation(p)%ptr  => di%constant_zero_sfield_pmesh
+               di%MIM_options%old_mobile_saturation(p)%ptr    => di%constant_zero_sfield_pmesh
             end if
-           !**********Fisnish**************LCai 24 July 2013*****************!   
-                    
+           !**********Fisnish**************LCai ****************************!
+ 
          else
             ! Cannot have capilliary pressure for phase 1 as it is special
             di%have_capilliary_pressure       = .false.
             di%capilliary_pressure(p)%ptr     => di%constant_zero_sfield_pmesh
             
-            !*****************************LCai 24 July 2013******************!
+            !*******************LCai 24 July & 08 Aug 2013******************!
              ! Cannot have MIM for phase 1
              di%MIM_options%have_MIM(p) = .false.
              di%MIM_options%immobile_saturation(p)%ptr  => di%constant_zero_sfield_pmesh
              di%MIM_options%mobile_saturation(p)%ptr    => di%constant_zero_sfield_pmesh
-            !*********Finish***************LCai 24 July 2013*****************!
+             di%MIM_options%old_immobile_saturation(p)%ptr  => di%constant_zero_sfield_pmesh
+             di%MIM_options%old_mobile_saturation(p)%ptr    => di%constant_zero_sfield_pmesh
+            !*********Finish***************LCai******************************!
          end if
          
          !**********************LCai 25 July 2013****************************!
          !If the MIM exists, check whether there is mass transfer coefficient
          if (di%MIM_options%have_MIM(p) ) then
-            di%MIM_options%mass_trans_coef(p)%ptr	=> extract_scalar_field(di%state(p), "MassTransferCoefficient", stat = stat)
-            if (stat == 0) then
-            	di%MIM_options%have_mass_trans_coef(p) = .true.
+            di%MIM_options%mass_trans_coef(p)%ptr => extract_scalar_field(di%state(p), "MassTransferCoefficient", stat = stat)
+   
+            di%MIM_options%old_mass_trans_coef(p)%ptr   => extract_scalar_field(di%state(p), "OldMassTransferCoefficient", stat = stat)
+         if (stat == 0) then
+                di%MIM_options%have_mass_trans_coef(p) = .true.
             else
-            	di%MIM_options%have_mass_trans_coef(p) = .false.
-            	di%MIM_options%mass_trans_coef(p)%ptr	=> di%constant_zero_sfield_pmesh
+                di%MIM_options%have_mass_trans_coef(p) = .false.
+                di%MIM_options%mass_trans_coef(p)%ptr  => di%constant_zero_sfield_pmesh
+                di%MIM_options%old_mass_trans_coef(p)%ptr => di%constant_zero_sfield_pmesh
             end if
          else
-         	  !Cannot have mass transfer coefficient without MIM model
-         	  di%MIM_options%have_mass_trans_coef(p) = .false.
-            di%MIM_options%mass_trans_coef(p)%ptr	=> di%constant_zero_sfield_pmesh  
+            !Cannot have mass transfer coefficient without MIM model
+            di%MIM_options%have_mass_trans_coef(p) = .false.
+            di%MIM_options%mass_trans_coef(p)%ptr  => di%constant_zero_sfield_pmesh
+            di%MIM_options%old_mass_trans_coef(p)%ptr  => di%constant_zero_sfield_pmesh  
          end if
          !********Finish*********LCai 25 July 2013****************************!
-         	  
+           
          
          di%saturation(p)%ptr                 => extract_scalar_field(di%state(p), "Saturation")
          di%old_saturation(p)%ptr             => extract_scalar_field(di%state(p), "OldSaturation")
@@ -884,9 +896,13 @@ contains
       ! Get the data associated with generic prognostic scalar fields
       
       f_count = 0
+      im_count = 0 ! *** 08 Aug 2013**LCai **initicalize count the prognositic immobile field
       
       do p = 1, di%number_phase
-      
+         
+         im_p = 0 !  *** 16 Aug 2013 ** LCai ** count the field within each phase
+         f_p = 0 ! *** 16 Aug 2013 ** LCai ** count the field within each phase
+
          do f = 1, option_count('/material_phase['//int2str(p-1)//']/scalar_field')
          
             if (have_option('/material_phase['//int2str(p-1)//']/scalar_field['//int2str(f-1)//']/prognostic')) then
@@ -898,15 +914,106 @@ contains
                    (trim(tmp_char_option) /= 'Saturation')) then
                
                   f_count = f_count + 1
-                  
+                  f_p = f_p + 1 ! *** 16 Aug 2013 ** LCai ** count the field within each phase
                end if 
                
-            end if 
-            
+            end if  
+           
          end do 
-       
-      end do
+         
+        ! *************09 Aug 2013 LCai ***************************************  
+        ! count the  prognostic immobile field          
+        if (di%MIM_options%have_MIM(p)) then
+
+          do f=1, option_count('/material_phase['//int2str(p-1)//']/MobileImmobileModel/scalar_field')
+
+            if (have_option('/material_phase['//int2str(p-1)//']/MobileImmobileModel/scalar_field['//int2str(f-1)//']/prognostic'))  then
+ 
+              im_count = im_count + 1
+              im_p = im_p + 1 ! *** 16 Aug 2013 ** LCai ** count the field within each phase
+                      
+            end if
+
+          end do
+
+        end if
+
+        !If there exist the Immobile prog field in this phase, check wether the number of those fields equal to the generic prog sfield
+        if (im_p > 0) then
+          if (im_p /= f_p) then
+            print *, "This is phase", p
+            FLExit('The number of the immobile prognostic sfield should either be zero or equal to the generic prog sfield within this phase')
+          end if
+        end if
+       ! *****************finish ***LCai *************************************
+      end do 
       
+
+      ! ************ 09 & 16 Aug 2013 LCai ****************************************
+      ! get the data associate with the prognostic immobile field
+      allocate(di%MIM_options%immobile_prog_sfield(im_count))
+      
+      if (size(di%MIM_options%immobile_prog_sfield) > 0) then
+
+        im_count = 0
+       
+        ! allocate the MIM sorce terms for the matrix to solve the prognostic sfield
+        call allocate(di%MIM_options%MIM_src, di%pressure_mesh)
+
+
+        call allocate(di%MIM_options%MIM_src_s, di%pressure_mesh)
+  
+
+        ! cannot have immobile_prog_field in phase 1
+        !***NOT**USED**di%MIM_options%have_immobile_prog_sfield(1)= .false.
+        
+        do p = 2, di%number_phase
+
+           if (di%MIM_options%have_MIM(p)) then
+
+             do f=1, option_count('/material_phase['//int2str(p-1)//']/MobileImmobileModel/scalar_field')
+
+               if (have_option('/material_phase['//int2str(p-1)//']/MobileImmobileModel/scalar_field['//int2str(f-1)//']/prognostic')) then
+   
+                 im_count = im_count + 1 
+                 
+                 call get_option('/material_phase['//int2str(p-1)//']/MobileImmobileModel/scalar_field['//int2str(f-1)//']/name', &
+                                  tmp_char_option)
+
+                 !***NOT**USED**di%MIM_options%have_immobile_prog_sfield(p)= .true.
+
+                 di%MIM_options%immobile_prog_sfield(im_count)%phase = p
+                   
+                 tmp_char_option = 'Immobile'//trim(tmp_char_option)
+                 
+                 di%MIM_options%immobile_prog_sfield(im_count)%sfield => extract_scalar_field(di%state(p), &
+                                                                                          trim(tmp_char_option)) 
+
+                 di%MIM_options%immobile_prog_sfield(im_count)%old_sfield => extract_scalar_field(di%state(p), &
+                                                                                   'Old'//trim(tmp_char_option))
+                 ! get the source_field names
+                 call  get_option(trim(di%MIM_options%immobile_prog_sfield(im_count)%sfield%option_path)//'/prognostic/source_field_name', &
+                                   di%MIM_options%immobile_prog_sfield(im_count)%source_name )
+               
+              !***NOT**USED** else
+ 
+               !***NOT**USED**di%MIM_options%have_immobile_prog_sfield(p)= .false.
+                 
+               end if         
+             
+             end do
+ 
+           end if
+                   
+        end do
+     
+      !***NOT**USED**else
+
+        !***NOT**USED**di%MIM_options%have_immobile_prog_sfield = .false.          
+
+      end if
+      ! ***************Finish*******LCai *************************************** 
+
       allocate(di%generic_prog_sfield(f_count))
       
       if (size(di%generic_prog_sfield) > 0) then
@@ -990,7 +1097,20 @@ contains
                      else
                         di%generic_prog_sfield(f_count)%have_adv = .true.
                      end if
-                     
+                    
+                     ! *** 09 & 13 Aug 2013 LCai***************************************
+                     tmp_char_option = trim(di%generic_prog_sfield(f_count)%sfield%option_path)//'/prognostic/ImmobileSource'
+                     if (have_option(tmp_char_option)) then
+                       di%generic_prog_sfield(f_count)%have_MIM_source = .true.
+                       ! get the source_field names
+                       call get_option(trim(tmp_char_option)//"/algorithm/source_field_name", di%generic_prog_sfield(f_count)%source_name)
+                       di%generic_prog_sfield(f_count)%source_name = 'Immobile'//trim(di%generic_prog_sfield(f_count)%source_name)
+                     else
+                       di%generic_prog_sfield(f_count)%have_MIM_source = .false.
+                     end if
+                     ewrite(1,*) 'Does immobile source term exist in the generic scalar field', di%generic_prog_sfield(f_count)%sfield%name, &
+                                                                                               di%generic_prog_sfield(f_count)%have_MIM_source
+                 ! *** Finish *** LCai **************************************
                   end if 
 
                end if 
@@ -1536,6 +1656,7 @@ contains
       
       nullify(di%average_pressure)      
       nullify(di%porosity)
+      nullify(di%old_porosity)
       nullify(di%absolute_permeability)
       nullify(di%transmissibility_lambda_dual)
       nullify(di_dual%transmissibility_lambda_dual)
@@ -1555,6 +1676,27 @@ contains
          call deallocate(di%iterated_gradient_pressure(p)%ptr)          
          deallocate(di%gradient_pressure(p)%ptr)
          deallocate(di%iterated_gradient_pressure(p)%ptr)
+         ! *** 09 Aug 2013 LCai *************************
+         nullify(di%capilliary_pressure(p)%ptr)
+         nullify(di%saturation(p)%ptr)
+         nullify(di%old_saturation(p)%ptr)
+         nullify(di%saturation_source(p)%ptr)
+         nullify(di%relative_permeability(p)%ptr)
+         nullify(di%old_relative_permeability(p)%ptr)
+         nullify(di%viscosity(p)%ptr)
+         nullify(di%darcy_velocity(p)%ptr)
+         nullify(di%cfl(p)%ptr)
+         nullify(di%mobility(p)%ptr)
+         nullify(di%fractional_flow(p)%ptr)
+         nullify(di%density(p)%ptr)
+         nullify(di%old_density(p)%ptr)
+         nullify(di%MIM_options%old_immobile_saturation(p)%ptr)
+         nullify(di%MIM_options%immobile_saturation(p)%ptr)
+         nullify(di%MIM_options%mobile_saturation(p)%ptr)
+         nullify(di%MIM_options%old_mobile_saturation(p)%ptr)
+         nullify(di%MIM_options%mass_trans_coef(p)%ptr)
+         nullify(di%MIM_options%old_mass_trans_coef(p)%ptr)
+         ! *** Finish ***LCai ***************************
       end do
       deallocate(di%gradient_pressure)
       deallocate(di%iterated_gradient_pressure)
@@ -1594,9 +1736,27 @@ contains
       
       deallocate(di%have_capilliary_pressure)
       deallocate(di%have_saturation_source)
-      
-      !*****************************LCai 25 July 2013******************!
+     
+       ! **** 09 Aug 2013 *** LCai *************************
+       if (size(di%MIM_options%immobile_prog_sfield) > 0) then
+ 
+         do f = 1, size(di%MIM_options%immobile_prog_sfield)
+           nullify(di%MIM_options%immobile_prog_sfield(f)%sfield)
+           nullify(di%MIM_options%immobile_prog_sfield(f)%old_sfield)
+         end do
+         call deallocate(di%MIM_options%MIM_src)
+         call deallocate(di%MIM_options%MIM_src_s)
+       end if
+       deallocate(di%MIM_options%immobile_prog_sfield) 
+      ! ***** Finish **** LCai **************************** 
+
+ 
+      !*****************************LCai 25 July & 08 Aug 2013******************!
       ! Deallocate the MIM model
+      di%MIM_options%have_mass_trans_coef = .false.
+      !***NOT**USED**di%MIM_options%have_immobile_prog_sfield = .false.
+      di%MIM_options%have_MIM = .false.
+      di%MIM_options%have_MIM_phase = .false.
       deallocate(di%MIM_options%immobile_saturation)
       deallocate(di%MIM_options%old_immobile_saturation)
       deallocate(di%MIM_options%old_mobile_saturation)
@@ -1604,8 +1764,10 @@ contains
       deallocate(di%MIM_options%mass_trans_coef)
       deallocate(di%MIM_options%have_MIM)
       deallocate(di%MIM_options%have_mass_trans_coef)
-      !**********Finish**************LCai 25 July 2013*****************!
-      
+      deallocate(di%MIM_options%old_mass_trans_coef)
+      !***NOT**USED**deallocate(di%MIM_options%have_immobile_prog_sfield) 
+      !**********Finish**************LCai **************************************!
+
       deallocate(di%pressure)
       deallocate(di%capilliary_pressure)
       deallocate(di%saturation)
@@ -1634,6 +1796,7 @@ contains
       deallocate(di%pressure_bc_flag)      
       di%weak_pressure_bc_coeff = 0.0
       call deallocate(di%inverse_characteristic_length)
+       
 
       if (size(di%generic_prog_sfield) > 0) then
          call deallocate(di%sfield_bc_value)
@@ -1650,6 +1813,10 @@ contains
             di%generic_prog_sfield(f)%have_abs  = .false.
             di%generic_prog_sfield(f)%have_src  = .false.
             di%generic_prog_sfield(f)%have_adv  = .false.
+
+            ! *** 09 Aug 2013 LCai *************************
+            di%generic_prog_sfield(f)%have_MIM_source  = .false.
+            ! *** Finish ******LCai
             
             di%generic_prog_sfield(f)%sfield_cv_options%facevalue                   = 0
             di%generic_prog_sfield(f)%sfield_cv_options%number_face_value_iteration = 0
@@ -1661,10 +1828,11 @@ contains
 
       end if
       deallocate(di%generic_prog_sfield)
-      
       call deallocate(di%sfield_upwind)
-      
       di%relperm_corr_options%type     = 0
+
+      
+      
       deallocate(di%relperm_corr_options%exponents)
       deallocate(di%relperm_corr_options%residual_saturations)
       deallocate(di%relperm_corr_options%cutoff_saturations)
