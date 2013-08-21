@@ -3,14 +3,14 @@
   <name>Standing free surface wave in channel using P1DG-P2.</name>
   <owner userid="skramer"/>
   <tags>flml parallel</tags>
-  <problem_definition length="medium" nprocs="1">
-    <command_line>mpiexec -n 2 ../../bin/flredecomp -i 1 -o 2 -v -l standing_wave standing_wave_flredecomp
+  <problem_definition length="medium" nprocs="2">
+    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l standing_wave standing_wave_flredecomp
 
-mpiexec -n 2 ../../bin/fluidity -v3 -l  standing_wave_flredecomp.flml;
+mpiexec ../../bin/fluidity -v3 -l  standing_wave_flredecomp.flml;
 mkdir -p run1_logs; 
 mv fluidity.* run1_logs; 
 spud-set standing_wave_1_checkpoint.flml /material_phase::water/scalar_field::Pressure/prognostic/scheme/poisson_pressure_solution never;
-mpiexec -n 2 ../../bin/fluidity -v3 -l standing_wave_1_checkpoint.flml</command_line>
+mpiexec ../../bin/fluidity -v3 -l standing_wave_1_checkpoint.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">

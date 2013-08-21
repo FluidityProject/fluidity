@@ -3,9 +3,8 @@
   <name>Periodic 2+1 parallel</name>
   <owner userid="am2008"/>
   <tags>flml zoltan parallel</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="short" nprocs="2">
     <command_line>
-    no_proc=2
     filename='periodic_2plus1_parallel';
     mesh='MMS_B';
     periodic_mesh='PeriodicMesh';
@@ -14,10 +13,10 @@
     ../../bin/periodise ${filename}.flml &amp;&amp;
     
     #flredecomp the flml
-    mpiexec -n 2 ../../bin/flredecomp -v -l -i 1 -o $no_proc ${filename}_periodised ${filename}_periodised_flredecomp &amp;&amp;
+    mpiexec ../../bin/flredecomp -v -l -i 1 -o 2 ${filename}_periodised ${filename}_periodised_flredecomp &amp;&amp;
         
     #run
-    mpiexec -n 2 ../../bin/fluidity -v3 -l ${filename}_periodised_flredecomp.flml 
+    mpiexec ../../bin/fluidity -v3 -l ${filename}_periodised_flredecomp.flml 
     </command_line>
   </problem_definition>
   <variables>

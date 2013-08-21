@@ -96,7 +96,7 @@ class TestProblem:
             raise Exception
 
     def is_finished(self):
-        if self.nprocs > 1 or self.length == "long":
+        if self.genpbs:
             file = os.environ["HOME"] + "/lock/" + self.random
             try:
                 os.remove(file)

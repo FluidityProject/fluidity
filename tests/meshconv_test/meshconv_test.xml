@@ -8,8 +8,8 @@
     ../../bin/meshconv -i exodusii -o triangle rectangle; fluidity meshconv_exo2triangle.flml; rm rectangle.node rectangle.ele rectangle.edge;
     ../../bin/meshconv -i gmsh -o triangle rectangle; fluidity meshconv_gmsh2triangle.flml; rm rectangle.msh;
     ../../bin/meshconv -i triangle -o gmsh rectangle; fluidity meshconv_triangle2gmsh.flml; rm rectangle.*
-    mpiexec -n 2 ../../bin/meshconv -i gmsh -o triangle prectangle; mpiexec -n 2 fluidity meshconv_parallel_gmsh2triangle.flml; rm prectangle_?.msh;
-    mpiexec -n 2 ../../bin/meshconv -i triangle -o gmsh prectangle; mpiexec -n 2 fluidity meshconv_parallel_triangle2gmsh.flml; rm prectangle*;
+    mpiexec ../../bin/meshconv -i gmsh -o triangle prectangle; mpiexec fluidity meshconv_parallel_gmsh2triangle.flml; rm prectangle_?.msh;
+    mpiexec ../../bin/meshconv -i triangle -o gmsh prectangle; mpiexec fluidity meshconv_parallel_triangle2gmsh.flml; rm prectangle*;
     </command_line>
   </problem_definition>
   <variables>

@@ -16,10 +16,6 @@ input:
 	cp $(FLMLMODEL1).flml $(FLMLMODEL4).flml 
 	sed -i "s/"$(FLMLMODEL1)"/"$(FLMLMODEL4)"/g" $(FLMLMODEL4).flml 
 	sed -i "s/square-8/square-64/g" $(FLMLMODEL4).flml
-	mpiexec -n 2 ../../bin/flredecomp -i 1 -o 2 -v -l $(FLMLMODEL1) $(FLMLMODEL1)_flredecomp
-	mpiexec -n 2 ../../bin/flredecomp -i 1 -o 2 -v -l $(FLMLMODEL2) $(FLMLMODEL2)_flredecomp
-	mpiexec -n 2 ../../bin/flredecomp -i 1 -o 2 -v -l $(FLMLMODEL3) $(FLMLMODEL3)_flredecomp
-	mpiexec -n 2 ../../bin/flredecomp -i 1 -o 2 -v -l $(FLMLMODEL4) $(FLMLMODEL4)_flredecomp
 
 
 clean: clean-mesh clean-run-debug

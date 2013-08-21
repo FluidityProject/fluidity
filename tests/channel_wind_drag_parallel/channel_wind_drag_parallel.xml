@@ -4,8 +4,9 @@
   <name>Parallel periodic channel with wind-forcing and quadratic bottom drag.</name>
   <owner userid="amcvicar"/>
   <tags>flml zoltan parallel</tags>
-  <problem_definition length="short" nprocs="1">
-    <command_line>mpiexec -np 4 ../../bin/fluidity -v3 -l  channel_parallel_periodised_flredecomp.flml </command_line>
+  <problem_definition length="short" nprocs="4">
+    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 4 channel_parallel_periodised channel_parallel_periodised_flredecomp &amp;&amp;
+mpiexec ../../bin/fluidity -v3 -l  channel_parallel_periodised_flredecomp.flml </command_line>
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">

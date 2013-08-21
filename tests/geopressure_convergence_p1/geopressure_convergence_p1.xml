@@ -4,11 +4,16 @@
   <owner userid="piggt01"/>
   <tags>flml parallel</tags>
   <problem_definition length = "medium" nprocs = "1">
-    <command_line>make clean-run; rm -f 8.log 16.log 32.log 64.log;
-mpiexec -n 2 ../../bin/fluidity -v2 geopressure_8_flredecomp.flml > 8.log;
-mpiexec -n 2 ../../bin/fluidity -v2 geopressure_16_flredecomp.flml > 16.log;
-mpiexec -n 2 ../../bin/fluidity -v2 geopressure_32_flredecomp.flml > 32.log;
-mpiexec -n 2 ../../bin/fluidity -v2 geopressure_64_flredecomp.flml > 64.log;
+    <command_line>
+      make clean-run; rm -f 8.log 16.log 32.log 64.log &amp;&amp;
+      mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l $(FLMLMODEL1) $(FLMLMODEL1)_flredecomp &amp;&amp;
+	mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l $(FLMLMODEL2) $(FLMLMODEL2)_flredecom &amp;&amp;
+	mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l $(FLMLMODEL3) $(FLMLMODEL3)_flredecom &amp;&amp;
+	mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l $(FLMLMODEL4) $(FLMLMODEL4)_flredecom &amp;&amp;
+mpiexec ../../bin/fluidity -v2 geopressure_8_flredecomp.flml &gt; 8.log;
+mpiexec ../../bin/fluidity -v2 geopressure_16_flredecomp.flml &gt; 16.log;
+mpiexec ../../bin/fluidity -v2 geopressure_32_flredecomp.flml &gt; 32.log;
+mpiexec ../../bin/fluidity -v2 geopressure_64_flredecomp.flml &gt; 64.log;
     </command_line>
   </problem_definition>
   <variables>

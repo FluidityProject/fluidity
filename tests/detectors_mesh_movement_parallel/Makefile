@@ -2,7 +2,6 @@ default: input
 
 input: clean
 	../../bin/gmsh2triangle --2d src/square.msh
-	mpiexec -n 2 ../../bin/flredecomp -i 1 -o 2 -v -l detectors detectors_flredecomp
 
 clean: clean-mesh clean-run
 clean-mesh:

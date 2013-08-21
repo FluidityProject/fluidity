@@ -5,14 +5,15 @@ import os
 import os.path
 import glob
 import time
-import fluidity.regressiontest as regressiontest
 import traceback
 import threading
 import xml.parsers.expat
 import string
 
-
+# make sure we use the correct version of regressiontest
 sys.path.insert(0, os.path.join(os.getcwd(), os.path.dirname(sys.argv[0]), os.pardir, "python"))
+import fluidity.regressiontest as regressiontest
+
 try:
   import xml.etree.ElementTree as etree
 except ImportError:
@@ -231,6 +232,10 @@ class TestHarness:
           s = "valgrind --tool=memcheck --leak-check=full -v" + \
               " --show-reachable=yes --num-callers=8 --error-limit=no " + \
               "--log-file=test.log " + s
+
+        # when calling genpbs, genpbs should take care of inserting the right -n <NPROCS> magic
+        if not self.genpbs:
+          s = s.replace('mpiexec ', 'mpiexec -n {} '.format(nprocs))
 
         return s
 
