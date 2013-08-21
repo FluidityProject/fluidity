@@ -1430,7 +1430,7 @@
          call add_absorption_element_cg(x, ele, test_function, u, oldu_val, density, &
                                       absorption, detwei, big_m_diag_addto, big_m_tensor_addto, rhs_addto, &
                                       masslump, mass, depth, gravity, buoyancy, &
-                                      alpha_u_field, abs_wd, u_val,viscosity,state,nu)
+                                      alpha_u_field, abs_wd, u_val,viscosity)
          
       
       end if
@@ -1815,7 +1815,7 @@
                                          density, absorption, detwei, &
                                          big_m_diag_addto, big_m_tensor_addto, rhs_addto, &
                                          masslump, mass, depth, gravity, buoyancy, &
-                                         alpha_u_field, abs_wd, u_val,viscosity,state,nu)
+                                         alpha_u_field, abs_wd, u_val,viscosity)
       type(vector_field), intent(in) :: positions
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
@@ -1836,7 +1836,7 @@
       type(scalar_field), intent(in) :: alpha_u_field
       type(vector_field), intent(in) :: abs_wd
     
-      integer :: dim, dim2, i,j
+      integer :: dim, dim2, i
       real, dimension(ele_ngi(u, ele)) :: density_gi
       real, dimension(u%dim, ele_loc(u, ele)) :: absorption_lump
       real, dimension(u%dim, u%dim, ele_loc(u, ele)) :: absorption_lump_sphere
@@ -1864,15 +1864,10 @@
       real, dimension(:,:),intent(in) :: u_val
       !vertical viscosity conditioning for Momentum equation
       type(tensor_field), intent(in) :: viscosity
-      real, dimension(u%dim,u%dim, ele_ngi(u, ele)):: viscosity_gi
+      real, dimension(u%dim, u%dim, ele_ngi(u, ele)):: viscosity_gi
       real, dimension(u%dim,ele_ngi(u,ele)) ::extra_integration_diag
       real, dimension(u%dim, ele_loc(u, ele)) :: extra_integration_lump
       real, dimension(u%dim, ele_loc(u, ele), ele_loc(u, ele)) :: extra_integration_mat
-      real ::extra_dry
-      type(vector_field), intent(in):: nu
-      type(state_type), intent(in) :: state
-      real, dimension(u%dim, ele_ngi(u, ele)):: nu_gi
-      real::sum_nu
       
       density_gi=ele_val_at_quad(density, ele)
       absorption_gi=0.0
@@ -1996,40 +1991,11 @@
       	 FLExit('The sigma_d0 scheme currently not implemented on the sphere')	 
         else
            beta=0.1
-           !nl_velocity => extract_vector_field(state, "NonlinearVelocity")
-           nu_gi=ele_val_at_quad(nu, ele)
-           !print *, 'nl_velocity',nl_velocity
-           
            do i=1, ele_ngi(u,ele)
-             !do j=1, u%dim
-              !Give a bigger value of extra_integration in dry area
-               !extra_dry = max((2*d0-depth_at_quads(i))/d0,real(0)) 
-               
-               !extra_integration_diag(:,i)=max(beta*viscosity_gi(j,j,i)/(depth_at_quads(i)*depth_at_quads(i))-1/dt,real(0))*100
-               sum_nu=0
-               do j=1, u%dim
-                 sum_nu=sum_nu+nu_gi(j,i)**2
-               end do
-               !print *,' sum_nu', sum_nu
-                extra_integration_diag(:,i) = 1.0e+6*0.025*gravity_magnitude*sqrt(sum_nu)/(depth_at_quads(i)**(1./3.))
-                !extra_integration_diag(:,i) = 1.0e+6*0.025*gravity_magnitude*sqrt(sum(oldu_val**2,dim=1))/(depth_at_quads(i)**(1./3.))
-               !extra_integration_diag(1,i)=10
-               !extra_integration_diag(2,i)=10
-               !extra_integration_diag(3,i)=10
-               !extra_integration_diag(3,i)=max(beta*1/(depth_at_quads(i)*depth_at_quads(i))-1/dt,real(0))*10000000
-               
-               !& *grav_at_quads(:,i)
-              !print *, 'viscosity_gi(3,3,:)', viscosity_gi(3,3,:)  
-          ! end do 
-             
-          end do
-            
-            print *, 'gravity_magnitude',gravity_magnitude
-           ! print *, 'ele_val_at_quad(nl_velocity, ele)',ele_val_at_quad(nl_velocity, ele)
-            !print *, 'dt',dt
-           ! print *, 'extra_dry', extra_dry
-           ! print *, 'extra_integration_diag=',extra_integration_diag
+            extra_integration_diag(:,i)=-max(beta*viscosity_gi(3,3,i)/(depth_at_quads(i)*depth_at_quads(i))-1/dt,real(0))*grav_at_quads(:,i) 
+           ! print *, 'viscosity_gi(3,3,i)=',viscosity_gi(3,3,i)
             !print *, 'sigma_d0_diag(:,i)',sigma_d0_diag(:,i)
+          end do
           
         end if
       end if
@@ -2105,7 +2071,7 @@
      if (have_sigma) then
         extra_integration_mat = shape_shape_vector(test_function, ele_shape(u, ele), detwei*density_gi,extra_integration_diag)
      end if
-     !print *, 'extra_integration_mat=',extra_integration_mat
+    ! print *, 'extra_integration_mat=',extra_integration_mat
         if (have_wd_abs) then
            alpha_u_quad=ele_val_at_quad(alpha_u_field, ele) !! Wetting and drying absorption becomes active when water level reaches d_0
            absorption_mat =  absorption_mat + &
@@ -2117,15 +2083,14 @@
           if(.not.abs_lump_on_submesh) then
             absorption_lump = sum(absorption_mat, 3)
             extra_integration_lump = sum(extra_integration_mat, 3)
-           ! print *,'extra_integration_lump',extra_integration_lump
+            !print *,'extra_integration_lump',extra_integration_lump
             do dim = 1, u%dim
               if (have_sigma) then 
-              !extra_integration term is fully implicit
                 big_m_diag_addto(dim, :) = big_m_diag_addto(dim, :) + dt*theta*absorption_lump(dim,:)+dt*extra_integration_lump(dim,:)
                 rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump(dim,:)*oldu_val(dim,:) +absorption_lump(dim,:)*u_val(dim,:) 
-             !   -extra_integration_lump(dim,:)*oldu_val(dim,:)
-               ! print *, 'big_m_diag_addto(dim, :)',big_m_diag_addto(dim, :)
-               ! print *, 'rhs_addto(dim, :)',rhs_addto(dim, :)
+            
+                !print *, 'big_m_diag_addto(dim, :)',big_m_diag_addto(dim, :)
+                !print *, 'rhs_addto(dim, :)',rhs_addto(dim, :)
               else 
                 big_m_diag_addto(dim, :) = big_m_diag_addto(dim, :) + dt*theta*absorption_lump(dim,:)
                 rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump(dim,:)*oldu_val(dim,:)
@@ -2138,7 +2103,6 @@
              big_m_tensor_addto(dim, dim, :, :) = big_m_tensor_addto(dim, dim, :, :) + &
               & dt*theta*absorption_mat(dim,:,:) + dt*extra_integration_mat(dim,:,:)
             rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat(dim,:,:), oldu_val(dim,:)) + matmul(absorption_mat(dim,:,:), u_val(dim,:))
-            !    -matmul(extra_integration_mat(dim,:,:), oldu_val(dim,:))
             !print *, 'big_m_tensor_addto',big_m_tensor_addto
             !print *, 'rhs_addto(dim, :)',rhs_addto(dim, :)
            else
