@@ -235,7 +235,7 @@ class TestHarness:
 
         # when calling genpbs, genpbs should take care of inserting the right -n <NPROCS> magic
         if not self.genpbs:
-          s = s.replace('mpiexec ', 'mpiexec -n {} '.format(nprocs))
+          s = s.replace('mpiexec ', 'mpiexec -n %(nprocs)d ' % {'nprocs': nprocs})
 
         return s
 
