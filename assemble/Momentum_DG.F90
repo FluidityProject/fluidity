@@ -371,7 +371,9 @@ contains
       call get_option(trim(U%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation/scale_factor", vvr_sf)
     end if
     if (have_vertical_velocity_relaxation .or. have_wetdry_optimum_aspect_ratio) then
-      if (have_wetdry_optimum_aspect_ratio .and. on_sphere) FLExit('Wetting and drying optimum aspect ratio scheme currently not implemented on the sphere')
+      if (have_wetdry_optimum_aspect_ratio .and. on_sphere) then
+        ewrite(-1,*) 'Wetting and drying optimum aspect ratio scheme implemention on the sphere is experimental'
+      end if
       if (have_wetdry_optimum_aspect_ratio) then
         call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/optimum_aspect_ratio", wetdry_optimum_aspect_ratio)
         ewrite(4,*) "Wetting and drying optimum aspect ratio scheme applied to the wetting and drying approach"
