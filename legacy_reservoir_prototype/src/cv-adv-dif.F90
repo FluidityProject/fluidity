@@ -743,7 +743,7 @@
 
 ! **********ANISOTROPIC LIMITING...*******************
       IANISOLIM=0
-      IF(CV_DISOPT.GE.5) IANISOLIM=1
+      IF(CV_DISOPT.GE.8) IANISOLIM=1
       IF (IANISOLIM==0) THEN
          ALLOCATE(TUPWIND_MAT(1), TOLDUPWIND_MAT(1), DENUPWIND_MAT(1), DENOLDUPWIND_MAT(1))
          ALLOCATE(T2UPWIND_MAT(1), T2OLDUPWIND_MAT(1))
@@ -3380,9 +3380,10 @@ END IF
                TILDEUF = MIN( 1.0, max( UC / (2.0 * COURAT), XI * UC ))
             ENDIF
          ELSE !For the normal limiting
-            !MAXUF = MAX( 0.0, UF )
-            MAXUF = MAX( UC, UF )
+            MAXUF = MAX( 0.0, UF )
+            !MAXUF = MAX( UC, UF )
             TILDEUF = MIN( 1.0, XI * UC, MAXUF )
+            !TILDEUF = MIN( 1.0, 3.0 * UC, MAXUF )
          ENDIF
 
       ELSE ! Outside the region 0<UC<1 on the NVD, use first-order upwinding
@@ -6634,7 +6635,7 @@ END IF
       ! If HI_ORDER_HALF then use high order interpolation when around 
       ! a volume frac of 0.5 and gradually apply limiting near 0 and 1. 
       LOGICAL, PARAMETER :: UPWIND = .TRUE., HI_ORDER_HALF = .FALSE., LIM_VOL_ADJUST2 = .TRUE.
-      LOGICAL, PARAMETER :: DOWNWIND_EXTRAP = .TRUE. ! Extrapolate a downwind value for interface tracking.
+      LOGICAL :: DOWNWIND_EXTRAP ! Extrapolate a downwind value for interface tracking.
 
       ! Scaling to reduce the downwind bias(=1downwind, =0central)
       LOGICAL, PARAMETER :: SCALE_DOWN_WIND = .true.
@@ -6672,9 +6673,13 @@ END IF
       FVT2    = 1.0
       FVT2OLD = 1.0
 
+      ! Extrapolate a downwind value for interface tracking.
+      DOWNWIND_EXTRAP = .FALSE.
+      if ( cv_disopt>=8 ) DOWNWIND_EXTRAP = .TRUE.
+
       if ( cv_disopt>=8 ) then
-         courant_or_minus_one_new = -1. !abs ( dt * ndotq / hdc )
-         courant_or_minus_one_old = -1. !abs ( dt * ndotqold / hdc )
+         courant_or_minus_one_new = abs ( dt * ndotq / hdc )
+         courant_or_minus_one_old = abs ( dt * ndotqold / hdc )
       else
          courant_or_minus_one_new = -1.0
          courant_or_minus_one_old = -1.0
