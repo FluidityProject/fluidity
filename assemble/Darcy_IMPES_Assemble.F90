@@ -89,7 +89,8 @@ module darcy_impes_assemble_module
              darcy_impes_assemble_and_solve_phase_pressures, &
              darcy_impes_calculate_divergence_total_darcy_velocity, &
              darcy_impes_calculate_inverse_cv_sa, &
-             darcy_impes_MIM_assemble_and_solve_mobile_saturation  !**LCai 27 July 2013
+             darcy_trans_MIM_assemble_and_solve_mobile_saturation, &  !**LCai 27 July 2013
+             darcy_trans_assemble_galerkin_projection_elemesh_to_pmesh ! ** LCai 22 Aug 2013
    
    ! Parameters defining Darcy IMPES cached options
    integer, parameter, public :: RELPERM_CORRELATION_POWER                 = 1, &
@@ -218,8 +219,8 @@ module darcy_impes_assemble_module
       type(scalar_field_pointer), dimension(:), pointer :: mass_trans_coef
       type(scalar_field_pointer), dimension(:), pointer :: old_mass_trans_coef
       type(immobile_prog_sfield_type), dimension(:), pointer :: immobile_prog_sfield
-      type(scalar_field):: MIM_src !the source term of MIM added to the matrix 
-      type(scalar_field):: MIM_src_s !the second source term of MIM added to the matrix
+      type(scalar_field) :: MIM_src !the source term of MIM added to the matrix 
+      type(scalar_field) :: MIM_src_s !the second source term of MIM added to the matrix
       ! *** Flag for Whether there is Mobile-Immobile model
       logical, dimension(:), pointer :: have_MIM
       ! *** Flag to check wether the MIM exist in at least one phase
@@ -338,11 +339,18 @@ module darcy_impes_assemble_module
       ! *** Data associate with the relperm correlation options ***
       type(darcy_impes_relperm_corr_options_type) :: relperm_corr_options
       
-      !***********************************LCai 23 & 27 July 2013***********************
+      !***********************************LCai 23 & 27 July & 22 Aug 2013***********************
       type (darcy_impes_MIM_options_type) :: MIM_options
       type(scalar_field), pointer  :: sat_ADE !saturation used for adv-diff equation for solving prog sfield
       type(scalar_field), pointer  :: old_sat_ADE 
-      !***********Finish******************LCai 23 & 27 July 2013***********************
+
+      type(scalar_field) :: porosity_pmesh ! the porosity based on pressure mesh
+      type(scalar_field) :: old_porosity_pmesh
+      real, dimension(1) :: porosity_cnt !constant value for porosity as a constant
+      real, dimension(1) :: old_porosity_cnt
+      logical :: prt_is_constant !is the porosity a constant
+     
+      !***********Finish******************LCai **********************************************
       
       ! *** Flag for each phase for whether there is capilliary pressure ***
       logical, dimension(:), pointer :: have_capilliary_pressure
@@ -391,6 +399,18 @@ module darcy_impes_assemble_module
             
       call set(di%cv_mass_pressure_mesh_with_old_porosity, di%cv_mass_pressure_mesh_with_porosity)
       
+      ! *****************22 Aug 2013 *** LCai ********************************** 
+      ! copy the porosity used to calculate the Mobile_immobile_model to old
+      if (size(di%MIM_options%immobile_prog_sfield) > 0) then
+        
+        if (di%prt_is_constant) then
+          di%old_porosity_cnt = di%porosity_cnt
+        else
+          call set(di%old_porosity_pmesh, di%porosity_pmesh)
+        end if
+
+      end if
+      ! *************Finish **** LCai ******************************************
    end subroutine darcy_impes_copy_to_old
 
 ! ----------------------------------------------------------------------------
@@ -2137,7 +2157,7 @@ module darcy_impes_assemble_module
       
       !******************** 27 July 2013 LCai **********************!
       !Check wether there is MIM model, if true calculate the Mobile saturation
-      if (di%MIM_options%have_MIM_phase) call darcy_impes_MIM_assemble_and_solve_mobile_saturation(di)
+      if (di%MIM_options%have_MIM_phase) call darcy_trans_MIM_assemble_and_solve_mobile_saturation(di)
       	
       !******Finish********* 27 July 2013 LCai **********************!
       
@@ -2498,6 +2518,7 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
       
       ! local variables
       integer :: f, p
+
       
       ewrite(1,*) 'Assemble and solve generic prognostic scalar fields'
       
@@ -2529,13 +2550,14 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
       ! *** 16 Aug 2013 ***LCai*****************************************************
       character(len=FIELD_NAME_LEN) :: cp_imfield_name  !*** the name of the coupled immobile field with mobile field 
                                                    !*** 16 Aug 2013 *** LCai ***
+      
 
       type(scalar_field) :: temp_MIM_src !*** the temperory term for source term which is '1/(theta_s+alpha*dt)' 
+
       ! ***Finish *** LCai *********************************************************
 
       ewrite(1,*) 'Assemble and solve sfield ',trim(di%generic_prog_sfield(f)%sfield%name),' of phase ',p
       
-	 
 
       ! Get this phase v BC info - only for no_normal_flow and normal_flow which is special as it is a scalar
       call darcy_impes_get_v_boundary_condition(di%darcy_velocity(p)%ptr, &
@@ -2568,16 +2590,16 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
       !check the saturation will be used to calculate the ADE, total saturation OR mobile saturation
       if (di%MIM_options%have_MIM(p)) then
           ewrite(1,*) 'Assemble and solve prog sfield, use the mobile saturation of phase', p
-      	di%sat_ADE => di%MIM_options%mobile_saturation(p)%ptr
-      	di%old_sat_ADE => di%MIM_options%old_mobile_saturation(p)%ptr
+        di%sat_ADE => di%MIM_options%mobile_saturation(p)%ptr
+        di%old_sat_ADE => di%MIM_options%old_mobile_saturation(p)%ptr
       else
-      	ewrite(1,*) 'Assemble and solve prog sfield, use the total saturation of phase', p
-      	di%sat_ADE => di%saturation(p)%ptr
-      	di%old_sat_ADE =>  di%old_saturation(p)%ptr
+        ewrite(1,*) 'Assemble and solve prog sfield, use the total saturation of phase', p
+        di%sat_ADE => di%saturation(p)%ptr
+        di%old_sat_ADE =>  di%old_saturation(p)%ptr
       end if
-	 ! *******Finish*** 27 July 2013 LCai *******************!
-	 
-	 
+       ! *******Finish*** 27 July 2013 LCai *******************!
+
+          
       
       ! Add porosity*saturation(absorption + 1/dt) to lhs 
       if (di%generic_prog_sfield(f)%have_abs) then
@@ -2607,32 +2629,41 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
       end if
       
 
-      ! ************** 15 Aug 2013 LCai ********************************!
+      ! ************** 15 & 22 Aug 2013 LCai ********************************!
       !If the immobile prognostic field exist, solve the source term of Mobile-immobile model implicitly
       if (di%generic_prog_sfield(f)%have_MIM_source) then
          
-	 call allocate(temp_MIM_src, di%pressure_mesh)
+         call allocate(temp_MIM_src, di%pressure_mesh)
          call zero(temp_MIM_src)
 
-	 call zero(di%MIM_options%MIM_src)
+         call zero(di%MIM_options%MIM_src)
          call zero(di%MIM_options%MIM_src_s)
+         
 
-	 !Addto the lhs matrix
-          !calculate 1/(theta_s+alpha*dt)
-	 call set(di%MIM_options%MIM_src, di%MIM_options%immobile_saturation(p)%ptr)
-	 call scale(di%MIM_options%MIM_src, di%porosity)
-	 call addto(di%MIM_options%MIM_src, di%MIM_options%mass_trans_coef(p)%ptr, scale=di%dt)
-	 call invert(di%MIM_options%MIM_src, temp_MIM_src) !temp_MIM_src is '1/(theta_s+alpha*dt)'
+         !Addto the lhs matrix
+         !calculate 1/(theta_s+alpha*dt)
+         call set(di%MIM_options%MIM_src, di%MIM_options%immobile_saturation(p)%ptr)
+         
+         !check wether to scale with the porosity as a constant of a scalar field
+         if (di%prt_is_constant) then
+          call scale(di%MIM_options%MIM_src, di%porosity_cnt(1))
+         else
+          call scale(di%MIM_options%MIM_src, di%porosity_pmesh)
+         end if
+
+
+         call addto(di%MIM_options%MIM_src, di%MIM_options%mass_trans_coef(p)%ptr, scale=di%dt)
+         call invert(di%MIM_options%MIM_src, temp_MIM_src) !temp_MIM_src is '1/(theta_s+alpha*dt)'
 
          call set(di%MIM_options%MIM_src, temp_MIM_src)
-	 call scale(di%MIM_options%MIM_src, di%MIM_options%mass_trans_coef(p)%ptr) 
-	 call scale(di%MIM_options%MIM_src, di%MIM_options%mass_trans_coef(p)%ptr)! repeated to scale with alpha**2
-	 call scale(di%MIM_options%MIM_src, di%dt)
-	 call addto(di%MIM_options%MIM_src, di%MIM_options%mass_trans_coef(p)%ptr, scale=-1.0)
+         call scale(di%MIM_options%MIM_src, di%MIM_options%mass_trans_coef(p)%ptr) 
+         call scale(di%MIM_options%MIM_src, di%MIM_options%mass_trans_coef(p)%ptr)! repeated to scale with alpha**2
+         call scale(di%MIM_options%MIM_src, di%dt)
+         call addto(di%MIM_options%MIM_src, di%MIM_options%mass_trans_coef(p)%ptr, scale=-1.0)
            
-	 call compute_cv_mass(di%positions, di%MIM_options%MIM_src_s, di%MIM_options%MIM_src)
+         call compute_cv_mass(di%positions, di%MIM_options%MIM_src_s, di%MIM_options%MIM_src)
 
-	 call addto(di%lhs, di%MIM_options%MIM_src_s)
+         call addto(di%lhs, di%MIM_options%MIM_src_s, scale=-1.0)
 
          !Addto the rhs matrix
          !before start to compute rhs, zero the field to be used
@@ -2644,30 +2675,24 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
          imf= 0
 
          do imf= 1, size(di%MIM_options%immobile_prog_sfield)
-	   if (di%MIM_options%immobile_prog_sfield(imf)%phase == p) then
-	     if (trim(di%MIM_options%immobile_prog_sfield(imf)%sfield%name) == trim(cp_imfield_name)) exit  
-	   end if
-	 end do
+           if (di%MIM_options%immobile_prog_sfield(imf)%phase == p) then
+             if (trim(di%MIM_options%immobile_prog_sfield(imf)%sfield%name) == trim(cp_imfield_name)) exit  
+           end if
+         end do
 
-	 !check the selected immobile sfield is correct
-	 if (.not.( trim(di%MIM_options%immobile_prog_sfield(imf)%source_name) == trim(di%generic_prog_sfield(f)%sfield%name))) then
-	 FLExit('The source terms of the mobile-immobile concentration should coincide')
-	 end if
+         !check the selected immobile sfield is correct
+         if (.not.( trim(di%MIM_options%immobile_prog_sfield(imf)%source_name) == trim(di%generic_prog_sfield(f)%sfield%name))) then
+         FLExit('The source terms of the mobile-immobile concentration should coincide')
+         end if
 
-	 !Add the source term with old immobile concentration 
-	 call set(di%MIM_options%MIM_src,temp_MIM_src)
-	 call scale(di%MIM_options%MIM_src, di%MIM_options%mass_trans_coef(p)%ptr)
-	 call scale(di%MIM_options%MIM_src, di%MIM_options%old_immobile_saturation(p)%ptr)
-	 call scale(di%MIM_options%MIM_src, di%MIM_options%immobile_prog_sfield(imf)%old_sfield)
-	 call scale(di%MIM_options%MIM_src, di%cv_mass_pressure_mesh_with_old_porosity) ! this has already inlcuded the cv pmesh
-         call addto (di%rhs, di%MIM_options%MIM_src, scale=-1.0)
+         !Add the source term with old immobile concentration 
+         call set(di%MIM_options%MIM_src,temp_MIM_src)
+         call scale(di%MIM_options%MIM_src, di%MIM_options%mass_trans_coef(p)%ptr)
+         call scale(di%MIM_options%MIM_src, di%MIM_options%old_immobile_saturation(p)%ptr)
+         call scale(di%MIM_options%MIM_src, di%MIM_options%immobile_prog_sfield(imf)%old_sfield)
+         call scale(di%MIM_options%MIM_src, di%cv_mass_pressure_mesh_with_old_porosity) ! this has already inlcuded the cv pmesh
+         call addto (di%rhs, di%MIM_options%MIM_src)
 
-         ! Add the source term with old_mobile_concentration*old_liquid_hold_up/dt
-	 call set(di%MIM_options%MIM_src, di%generic_prog_sfield(f)%old_sfield)
-	 call scale(di%MIM_options%MIM_src, di%MIM_options%old_mobile_saturation(p)%ptr)
-	 call scale(di%MIM_options%MIM_src, di%cv_mass_pressure_mesh_with_old_porosity) ! this has already inlcuded the cv pmesh
-         call scale(di%MIM_options%MIM_src, 1.0/di%dt) 
-	 call addto(di%rhs, di%MIM_options%MIM_src)
       end if
       ! *************Finish *** LCai **********************************!
 
@@ -2721,11 +2746,13 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
       ! ******* 16 Aug 2013 *** LCai **********************
       !Solve the immobile prog sfield if it exist
       if (di%generic_prog_sfield(f)%have_MIM_source) then 
-        
-	  call darcy_trans_assemble_and_solve_immobile_prog_sfield(di, p, f, imf, temp_MIM_src)
-	  call deallocate(temp_MIM_src)
+          
+          call darcy_trans_assemble_and_solve_immobile_prog_sfield(di, p, f, imf, temp_MIM_src) 
+
+          call deallocate(temp_MIM_src)
 
       end if
+
       !****** Finished ******* LCai **********************
 
    end subroutine darcy_impes_assemble_and_solve_generic_prog_sfield
@@ -5969,34 +5996,34 @@ visc_ele_bdy(1)
 
 ! ******************26 July 2013 LCai ****************************************!
 !Slove the mobile saturation if MIM exist
-subroutine darcy_impes_MIM_assemble_and_solve_mobile_saturation(di)
+subroutine darcy_trans_MIM_assemble_and_solve_mobile_saturation(di)
 
-	type(darcy_impes_type), intent(inout) :: di
-	integer :: i
-	type(scalar_field), pointer :: total_sat => null()  !total saturation 
-	type(scalar_field), pointer :: immobile_sat  => null()  ! immobile saturation
-	type(scalar_field)  :: mobile_sat   !mobile saturation
-	
-	call allocate(mobile_sat, di%pressure_mesh)
-	
-	do i= 2, di%number_phase
+        type(darcy_impes_type), intent(inout) :: di
+        integer :: i
+        type(scalar_field), pointer :: total_sat => null()  !total saturation 
+        type(scalar_field), pointer :: immobile_sat  => null()  ! immobile saturation
+        type(scalar_field)  :: mobile_sat   !mobile saturation
 
-	  total_sat      => di%saturation(i)%ptr
-	  immobile_sat   => di%MIM_options%immobile_saturation(i)%ptr
+        call allocate(mobile_sat, di%pressure_mesh)
+        
+        do i= 2, di%number_phase
 
-	  if (di%MIM_options%have_MIM(i)) then
-	     ewrite(1, *) "calculate the mobile saturation of phase: ", i
-	     call set(mobile_sat, total_sat)
-	     call addto(mobile_sat, immobile_sat, scale=-1.0)
-	     call set(di%MIM_options%mobile_saturation(i)%ptr, mobile_sat)
-	  end if
-	  nullify(immobile_sat, total_sat)
-	  call zero(mobile_sat)
-	end do
-	
-	call deallocate(mobile_sat)
+          total_sat      => di%saturation(i)%ptr
+          immobile_sat   => di%MIM_options%immobile_saturation(i)%ptr
 
-end subroutine darcy_impes_MIM_assemble_and_solve_mobile_saturation
+          if (di%MIM_options%have_MIM(i)) then
+             ewrite(1, *) "calculate the mobile saturation of phase: ", i
+             call set(mobile_sat, total_sat)
+             call addto(mobile_sat, immobile_sat, scale=-1.0)
+             call set(di%MIM_options%mobile_saturation(i)%ptr, mobile_sat)
+          end if
+          nullify(immobile_sat, total_sat)
+          call zero(mobile_sat)
+        end do
+        
+        call deallocate(mobile_sat)
+
+end subroutine darcy_trans_MIM_assemble_and_solve_mobile_saturation
 
 
 ! ******** 16 July 2013 LCai *************************************************
@@ -6016,8 +6043,14 @@ subroutine darcy_trans_assemble_and_solve_immobile_prog_sfield(di, p, f, imf, te
        
        ! calculate '(old_theta_s*old_C_s)/(theta_s+alpha*dt)'
        call set(temp_rhs, temp_MIM_src)
-       call scale(temp_rhs, di%MIM_options%immobile_saturation(p)%ptr)
-       call scale(temp_rhs, di%old_porosity)
+       call scale(temp_rhs, di%MIM_options%old_immobile_saturation(p)%ptr)
+
+       if (di%prt_is_constant) then 
+         call scale(temp_rhs, di%old_porosity_cnt(1))
+       else
+         call scale(temp_rhs, di%old_porosity_pmesh)
+       end if
+
        call scale(temp_rhs, di%MIM_options%immobile_prog_sfield(imf)%old_sfield)
 
        call set(di%MIM_options%immobile_prog_sfield(imf)%sfield, temp_rhs)
@@ -6035,6 +6068,53 @@ subroutine darcy_trans_assemble_and_solve_immobile_prog_sfield(di, p, f, imf, te
        ewrite(1,*) 'Finished assemble and solve immobile prog sfield ',trim(di%MIM_options%immobile_prog_sfield(imf)%sfield%name),' of phase ',p
 
 end subroutine darcy_trans_assemble_and_solve_immobile_prog_sfield
+
+
+! ********* 22 Aug 2013 *******LCai ***********************************
+
+subroutine darcy_trans_assemble_galerkin_projection_elemesh_to_pmesh(field, projected_field, positions, ele)
+
+        type(scalar_field), intent(inout) :: field
+        type(scalar_field), intent(in) :: projected_field
+        type(vector_field), intent(in) :: positions
+        integer, intent(in) :: ele
+        type(element_type), pointer :: field_shape, proj_field_shape
+        real, dimension(ele_loc(field, ele)) :: little_rhs
+        real, dimension(ele_loc(field, ele), ele_loc(field, ele)) :: little_mass
+        real, dimension(ele_loc(field, ele), ele_loc(projected_field, ele)) :: little_mba
+        real, dimension(ele_loc(field, ele), ele_loc(projected_field, ele)) :: little_mba_int
+        real, dimension(ele_ngi(field, ele)) :: detwei
+        real, dimension(ele_loc(projected_field, ele)) :: proj_field_val 
+        
+        integer :: i, j, k
+
+
+          field_shape => ele_shape(field, ele)
+          proj_field_shape => ele_shape(projected_field, ele)
+
+          call transform_to_physical(positions, ele, detwei=detwei)
+
+          little_mass = shape_shape(field_shape, field_shape, detwei)
+
+          ! And compute the product of the basis functions
+          little_mba = 0
+          do i=1,ele_ngi(field, ele)
+           forall(j=1:ele_loc(field, ele), k=1:ele_loc(projected_field, ele))
+             little_mba_int(j, k) = field_shape%n(j, i) * proj_field_shape%n(k, i)
+           end forall
+           little_mba = little_mba + little_mba_int * detwei(i)
+          end do
+
+          proj_field_val = ele_val(projected_field, ele)
+          little_rhs = matmul(little_mba, proj_field_val)
+
+          call solve(little_mass, little_rhs)
+          call set(field, ele_nodes(field, ele), little_rhs)
+ 
+
+end subroutine darcy_trans_assemble_galerkin_projection_elemesh_to_pmesh
+
+! ********************Finish*** LCai **********************************
 
 ! *****Finished **** LCai *********************************************
 end module darcy_impes_assemble_module

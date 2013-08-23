@@ -1352,12 +1352,12 @@ contains
        
        
        !************LCai 24 July 2013**********************!
-	  !The Mobile-Immobile model
-	  if (have_option(trim(state_path)//"/MobileImmobileModel")) then   	
-       	call allocate_and_insert_MIM(state_path, state)
-	  end if
-	  !************LCai 24 July 2013**********************!
-	  
+          !The Mobile-Immobile model
+          if (have_option(trim(state_path)//"/MobileImmobileModel")) then 
+            call allocate_and_insert_MIM(state_path, state)
+          end if
+          !************LCai 24 July 2013**********************!
+          
 
     end subroutine allocate_and_insert_one_phase
 
@@ -1418,19 +1418,19 @@ contains
     ! Loop over the scalar fields
     scalar_field_loop: do j=0, nfields-1
   
-  	  !save path
-  	  path=trim(state_path_MIM)//"/scalar_field["//int2str(j)//"]"
-  	  ! Get Field name
-  	  call get_option(trim(path)//"/name", field_name)
-  	  ! Reset path to have field name rather than index
-  	  path=trim(state_path_MIM)//"/scalar_field::"//trim(field_name)
-	  !if it is the prognostic immobile field, then adding the prefix to it
+          !save path
+          path=trim(state_path_MIM)//"/scalar_field["//int2str(j)//"]"
+          ! Get Field name
+          call get_option(trim(path)//"/name", field_name)
+          ! Reset path to have field name rather than index
+          path=trim(state_path_MIM)//"/scalar_field::"//trim(field_name)
+          !if it is the prognostic immobile field, then adding the prefix to it
           if (have_option(trim(path)//'/prognostic')) then
-	    field_name = 'Immobile'//trim(field_name)
-	  end if  
-  	  call allocate_and_insert_scalar_field(trim(path), state, field_name=field_name, &
-  		dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
-  		
+            field_name = 'Immobile'//trim(field_name)
+          end if  
+          call allocate_and_insert_scalar_field(trim(path), state, field_name=field_name, &
+                dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+ 
       end do scalar_field_loop
     
     end Subroutine allocate_and_insert_MIM
@@ -1938,7 +1938,7 @@ contains
     is_prescribed=have_option(trim(path)//"/prescribed")
     is_diagnostic=have_option(trim(path)//"/diagnostic")
 
-    is_constant=allocate_tensor_field_as_constant(path)
+    is_constant=allocate_tensor_field_as_constant(path) 
 
     ewrite(1,*) "Is field prognostic? ", is_prognostic
     ewrite(1,*) "Is field prescribed? ", is_prescribed

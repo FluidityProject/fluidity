@@ -161,7 +161,8 @@ program Darcy_IMPES
    type(state_type) , dimension(:), pointer :: state_prime, state_dual
    logical :: have_dual, have_dual_pressure
    integer :: darcy_debug_log_unit, darcy_debug_err_unit
-   integer :: number_phase_prime, number_phase_dual, number_of_first_adapts 
+   integer :: number_phase_prime, number_phase_dual, number_of_first_adapts
+   integer :: ele_prt ! LCai *****Count the porosity element number 
    character(len=OPTION_PATH_LEN) :: phase_name
    
    type(vector_field), pointer :: output_positions
@@ -420,7 +421,30 @@ program Darcy_IMPES
       
       ! *** Darcy IMPES evaluate pre solve system fields - BCs, prescribed fields and gravity ***
       call darcy_impes_evaluate_pre_solve_fields()
-                     
+      
+      
+      ! ****** 22 Aug 2013 ******** LCai********************************
+      !calculate the porosity used to solve the Mobile-immobile model
+      if (size(di%MIM_options%immobile_prog_sfield) > 0) then
+
+           if (di%prt_is_constant) then
+             di%porosity_cnt = ele_val(di%porosity, 1)
+
+           else
+             call zero(di%porosity_pmesh)
+             ! then do galerkin projection to project the porosity on elementwise mesh to pressure mesh
+             !note that this now only support the porosity which is originally based on dg elemernwise mesh
+             if (continuity(di%porosity) < 0) then !check wether the porosity is dg
+               do ele_prt=1,ele_count(di%porosity_pmesh)
+               call darcy_trans_assemble_galerkin_projection_elemesh_to_pmesh(di%porosity_pmesh, di%porosity, di%positions, ele_prt)
+               end do
+             else
+               FLExit("the mesh of porosity should be elementwise dg")
+             end if
+           end if
+       end if
+       ! ************Finish *** LCai **********************************
+               
       ! Solve the system of equations with a non linear iteration
       call darcy_impes_solve_system_of_equations_with_non_linear_iteration()
       
@@ -574,7 +598,8 @@ contains
       logical ,                                     intent(in)    :: this_is_dual
       
       ! Local variables
-      integer                                     :: p, stat, f_count, im_count, f, f_p, im_p ! modified on 16 Aug 2013 ** LCai
+      integer                                     :: p, stat, f_count, im_count, f, f_p, im_p, imsrc_p, ele 
+                                                    ! modified on 16 Aug 2013 ** LCai
       real,                          dimension(2) :: tmp_option_shape
       character(len=OPTION_PATH_LEN)              :: tmp_char_option
       
@@ -744,7 +769,20 @@ contains
       allocate(di%MIM_options%have_mass_trans_coef(di%number_phase))
       !flag of having immobile prognostic field
       !***NOT**USED**allocate(di%MIM_options%have_immobile_prog_sfield(di%number_phase))
-      !**********Finish**************LCai***************************************!  
+      !**********Finish**************LCai***************************************! 
+      
+
+      ! *****************22 Aug 2013 ***** LCai *****************************************
+      !check wether the porosity is set to be constant or not
+      !Mind that since the bug inside 'allocate_and_insert_scalar_field'
+      !which is using 'is_constant=allocate_tensor_field_as_constant' inside the subrouting for scalar field
+      !it will never return the scalar field as Field_tyoe_constant, so we need to check that explicitly
+      di%prt_is_constant = .false. !this is to check the porosity 
+      if (option_count(trim(di%porosity%option_path) // "/prescribed/value") == 1) then
+         di%prt_is_constant = have_option(trim(di%porosity%option_path) // "/prescribed/value[0]/constant")
+      end if
+      ewrite(1,*) 'Is porosity a constant?', di%prt_is_constant
+      !****************************Finish*** LCai ***************************************
 
       do p = 1,di%number_phase
 
@@ -897,11 +935,12 @@ contains
       
       f_count = 0
       im_count = 0 ! *** 08 Aug 2013**LCai **initicalize count the prognositic immobile field
-      
+
       do p = 1, di%number_phase
          
          im_p = 0 !  *** 16 Aug 2013 ** LCai ** count the field within each phase
          f_p = 0 ! *** 16 Aug 2013 ** LCai ** count the field within each phase
+         imsrc_p = 0 ! *** 22 Aug 2013 ** LCai *** count the generic prognostic field with immobile source option within each phase
 
          do f = 1, option_count('/material_phase['//int2str(p-1)//']/scalar_field')
          
@@ -915,6 +954,12 @@ contains
                
                   f_count = f_count + 1
                   f_p = f_p + 1 ! *** 16 Aug 2013 ** LCai ** count the field within each phase
+
+                  !count the number of generic prog sfield with Immobile_source_option
+                  if (have_option('/material_phase['//int2str(p-1)//']/scalar_field['//int2str(f-1)//']/prognostic/ImmobileSource'))  then
+                    imsrc_p = imsrc_p + 1
+                  end if
+
                end if 
                
             end if  
@@ -940,7 +985,7 @@ contains
 
         !If there exist the Immobile prog field in this phase, check wether the number of those fields equal to the generic prog sfield
         if (im_p > 0) then
-          if (im_p /= f_p) then
+          if ((im_p /= f_p).or.(im_p /= imsrc_p)) then
             print *, "This is phase", p
             FLExit('The number of the immobile prognostic sfield should either be zero or equal to the generic prog sfield within this phase')
           end if
@@ -1118,6 +1163,35 @@ contains
             end do 
 
          end do
+
+         ! ******* 22 Aug 2013 ****** LCai ***********************************
+         ! check that is the immobile prog sfield exist
+         ! if exist, then allocate the porosity used to calcalate MIM
+         !constant or projected to pmesh
+         if (size(di%MIM_options%immobile_prog_sfield) > 0) then
+
+           if (di%prt_is_constant) then
+             di%porosity_cnt = ele_val(di%porosity, 1)
+             
+           else
+             call allocate(di%porosity_pmesh, di%pressure_mesh)
+             call allocate(di%old_porosity_pmesh, di%pressure_mesh)
+             call zero(di%old_porosity_pmesh)
+             call zero(di%porosity_pmesh)
+             ! then do galerkin projection to project the porosity on elementwise mesh to pressure mesh
+             !note that this now only support the porosity which is originally based on dg elemernwise mesh
+             if (continuity(di%porosity) < 0) then !check wether the porosity is dg
+               do ele_prt=1,ele_count(di%porosity_pmesh)
+               call darcy_trans_assemble_galerkin_projection_elemesh_to_pmesh(di%porosity_pmesh, di%porosity, di%positions, ele_prt)
+               end do
+               print *, di%porosity_pmesh%val
+             else
+               FLExit("the mesh of porosity should be elementwise dg")
+             end if
+           end if
+         end if
+
+         ! *********** Finish **********LCai *********************************
 
          call allocate(di%sfield_bc_value, &
                        &di%bc_surface_mesh, &
@@ -1502,7 +1576,7 @@ contains
       
       !*********************26 July 2013 LCai*****************************!
       ! calculate the Mobile saturations if MIM is used
-      if (di%MIM_options%have_MIM_phase) call darcy_impes_MIM_assemble_and_solve_mobile_saturation(di)
+      if (di%MIM_options%have_MIM_phase) call darcy_trans_MIM_assemble_and_solve_mobile_saturation(di)
       
       !*******Finish********26 July 2013 LCai*****************************!
       
@@ -1746,12 +1820,19 @@ contains
          end do
          call deallocate(di%MIM_options%MIM_src)
          call deallocate(di%MIM_options%MIM_src_s)
+         
+         if (.not.(di%prt_is_constant)) then
+           call deallocate(di%porosity_pmesh)
+           call deallocate(di%old_porosity_pmesh)
+         end if
+
        end if
        deallocate(di%MIM_options%immobile_prog_sfield) 
       ! ***** Finish **** LCai **************************** 
 
  
-      !*****************************LCai 25 July & 08 Aug 2013******************!
+      !*****************************LCai 25 July & 08 & 22 Aug 2013******************!
+      di%prt_is_constant= .false.
       ! Deallocate the MIM model
       di%MIM_options%have_mass_trans_coef = .false.
       !***NOT**USED**di%MIM_options%have_immobile_prog_sfield = .false.

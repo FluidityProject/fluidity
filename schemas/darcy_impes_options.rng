@@ -2513,7 +2513,7 @@ which are the dynamic saturation and the immobile saturation.</a:documentation>
           </choice>
         </element>
       </optional>
-      <optional>
+      <zeroOrMore>
         <element name="scalar_field">
           <a:documentation>Please set the immobile field name as the same name of the mobile source field name,
 the prefix of 'Immobile' will be added to be the field name,
@@ -2536,7 +2536,7 @@ i.e. if the name of this scaler field is set to be 'cd', then the name will be c
             <ref name="interpolation_algorithm_scalar"/>
           </element>
         </element>
-      </optional>
+      </zeroOrMore>
     </element>
   </define>
 </grammar>
