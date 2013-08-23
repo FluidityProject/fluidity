@@ -35,13 +35,14 @@
     use shape_functions
     use fields_allocates
     use transform_elements
-    use fields
+    use FETools
     use fields_manipulation
     use state_module
+    use field_options
     use sparsity_patterns_meshes
     use solvers
     use vtk_interfaces
-    use reference_counting
+
     implicit none
 
     private
@@ -477,5 +478,5 @@
       end subroutine bubble_field_to_vtk
 
 #include "../femtools/Reference_count_mesh_type.F90"
-      
+
   end module bubble_tools
