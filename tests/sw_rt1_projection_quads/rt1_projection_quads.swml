@@ -144,6 +144,7 @@ divided by 4
           <adjoint_storage>
             <exists_in_forward/>
           </adjoint_storage>
+          <do_not_recalculate/>
         </prescribed>
       </vector_field>
     </gravity>
@@ -216,16 +217,21 @@ divided by 4
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
-          <continuous_galerkin>
-            <advection_terms>
-              <exclude_advection_terms/>
-            </advection_terms>
-          </continuous_galerkin>
+          <discontinuous_galerkin/>
           <conservative_advection>
             <real_value rank="0">0.</real_value>
           </conservative_advection>
         </spatial_discretisation>
-        <temporal_discretisation/>
+        <temporal_discretisation>
+          <discontinuous_galerkin>
+            <number_advection_subcycles>
+              <integer_value rank="0"/>
+            </number_advection_subcycles>
+            <SSPRK_order>
+              <integer_value rank="0"/>
+            </SSPRK_order>
+          </discontinuous_galerkin>
+        </temporal_discretisation>
         <solver>
           <iterative_method name="preonly"/>
           <preconditioner name="lu">
