@@ -56,6 +56,7 @@ module advection_local_DG
   use manifold_tools
   use bubble_tools
   use diagnostic_fields, only: calculate_diagnostic_variable
+  use diagnostic_fields_wrapper_new
   use global_parameters, only : FIELD_NAME_LEN
   use shallow_water_diagnostics
 
@@ -1292,7 +1293,7 @@ module advection_local_DG
     if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
          &continuous_galerkin/discontinuity_capturing')) then
        ewrite(2,*) 'cjc computing discontinuity detector'
-       call calculate_discontinuity_detector(state,&
+       call calculate_diagnostic_variable(state,&
             discontinuity_detector_field)
     end if
 
