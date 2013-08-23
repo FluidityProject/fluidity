@@ -249,14 +249,6 @@ nsq=n**2
 # each cube face (panel) has nx^2 nodes
 nxsq=nx**2
 dx=2./float(nx)
-if r==0:
-    import pylab
-    import mpl_toolkits.mplot3d.axes3d as p3d
-    fig=pylab.figure()
-    ax=p3d.Axes3D(fig)
-    allx=np.empty((size*(nx/n+5)**2,3))
-else:
-    allx=None
 
 # panel numberings:
 # 0 is the front, 1 the top.
@@ -509,13 +501,6 @@ elif args.project=='equiangular':
     for i in range(nxny):
         rr=sqrt(pos[i,0]**2+pos[i,1]**2+pos[i,2]**2)
         pos[i,:]=a**2*pos[i,:]/rr
-
-#import pylab
-#import mpl_toolkits.mplot3d.axes3d as p3d
-#fig=pylab.figure()
-#ax=p3d.Axes3D(fig)
-#ax.scatter(pos[:,0],pos[:,1],pos[:,2],s=20,marker='x',color='orange')
-#pylab.show()
 
 halo_start=np.ma.zeros((2,8),dtype=np.int)
 halo_start.mask=np.row_stack([neigh.mask,neigh.mask])
