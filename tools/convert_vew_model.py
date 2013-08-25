@@ -79,7 +79,7 @@ system_variables = {
     "Vis_Irrad" : "env['Irradiance']",
     "Density" : "env['Density']",
     "S_t" : "vars['S_t']",
-    "z" : "vars['z']",
+#    "z" : "vars['z']",
     "IngestedCells" : "vars['PIngestedCells']",
     "MLDepth" : "param['MLDepth']",
     "Max_MLD" : "param['Max_MLD']",
@@ -321,11 +321,15 @@ def eval_stmt(t):
   elif t[0] == create:
     s = str(t[2])
     c = "new_agent_vars = {}\n"
-    c = c + Indent.line() + "new_agent_vars['Stage'] = stage_id('" + fgroup.name + "', '" + s + "')\n"
-    c = c + Indent.line() + "new_agent_vars['Size'] = " + eval_expr(t[3])
+    c += Indent.line() + "new_agent_vars['Stage'] = stage_id('" + fgroup.name + "', '" + s + "')\n"
+    c += Indent.line() + "new_agent_vars['Size'] = " + eval_expr(t[3])
     for i in range(4,len(t)):
-      c = c + "\n" + Indent.line() + "new_agent_" + eval_expr(t[i][1]) + " = " + eval_expr(t[i][2]) 
-    c = c + "\n" + Indent.line() + "add_agent('" + fgroup.name + "', new_agent_vars, [-vars['z']])"
+      c += "\n" + Indent.line() + "new_agent_" + eval_expr(t[i][1]) + " = " + eval_expr(t[i][2]) 
+    #c = c + "\n" + Indent.line() + "add_agent('" + fgroup.name + "', new_agent_vars, [-vars['z']])"
+    c += "\n" + Indent.line() + "if vars.has_key('x') and vars.has_key('y'):\n" + Indent.line()
+    c += "  add_agent('" + fgroup.name + "', new_agent_vars, [vars['x'], vars['y'], -vars['z']])\n" + Indent.line()
+    c += "else:\n" + Indent.line()
+    c += "  add_agent('" + fgroup.name + "', new_agent_vars, [-vars['z']])"
     out = c
 
   elif t[0] == pchange:
@@ -336,7 +340,10 @@ def eval_stmt(t):
     out = out + "new_agent_vars['Stage'] = stage_id('" + fgroup.name + "', '" + s + "')\n" + Indent.line()
     out = out + "new_agent_vars['Size'] = vars['Size'] * " + eval_expr(t[3]) + "\n" + Indent.line()
     out = out + "vars['Size'] = vars['Size'] - new_agent_vars['Size']\n" + Indent.line()
-    out = out + "add_agent('" + fgroup.name + "', new_agent_vars, [-vars['z']])\n" + Indent.line()
+    out = out + "if vars.has_key('x') and vars.has_key('y'):\n" + Indent.line()
+    out = out + "  add_agent('" + fgroup.name + "', new_agent_vars, [vars['x'], vars['y'], -vars['z']])\n" + Indent.line()
+    out = out + "else:\n" + Indent.line()
+    out = out + "  add_agent('" + fgroup.name + "', new_agent_vars, [-vars['z']])\n" + Indent.line()
 
   else:
     raise Exception("Unkown statement: " + str(t))
@@ -510,6 +517,7 @@ class FGroup:
     for v in self.pool_update_vars:
       eq_code = v.rhs + " = " + v.lhs
       file.write("  " + eq_code + "\n")
+    #file.write("  return vars\n")
 
 ### Main model parsing ###
 filename = sys.argv[1]
