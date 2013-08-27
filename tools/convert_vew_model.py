@@ -78,7 +78,7 @@ system_variables = {
     "Temp" : "env['Temperature']",
     "Vis_Irrad" : "env['Irradiance']",
     "Density" : "env['Density']",
-    "S_t" : "vars['S_t']",
+    "S_t" : "param['S_t']",
 #    "z" : "vars['z']",
     "IngestedCells" : "vars['PIngestedCells']",
     "MLDepth" : "param['MLDepth']",
@@ -335,15 +335,8 @@ def eval_stmt(t):
   elif t[0] == pchange:
     # TODO This does not support multiple pchanges per update yet!!!
     s = str(t[2])
-    out = "new_agent_vars = {}\n" + Indent.line()
-    out = out + "new_agent_vars.update(vars)\n" + Indent.line()
-    out = out + "new_agent_vars['Stage'] = stage_id('" + fgroup.name + "', '" + s + "')\n" + Indent.line()
-    out = out + "new_agent_vars['Size'] = vars['Size'] * " + eval_expr(t[3]) + "\n" + Indent.line()
-    out = out + "vars['Size'] = vars['Size'] - new_agent_vars['Size']\n" + Indent.line()
-    out = out + "if vars.has_key('x') and vars.has_key('y'):\n" + Indent.line()
-    out = out + "  add_agent('" + fgroup.name + "', new_agent_vars, [vars['x'], vars['y'], -vars['z']])\n" + Indent.line()
-    out = out + "else:\n" + Indent.line()
-    out = out + "  add_agent('" + fgroup.name + "', new_agent_vars, [-vars['z']])\n" + Indent.line()
+    out += "pchange_type.append( stage_id('" + fgroup.name + "', '" + s + "') )\n" + Indent.line()
+    out += "pchange_ratio.append( " + eval_expr(t[3]) + " )\n" + Indent.line()
 
   else:
     raise Exception("Unkown statement: " + str(t))
@@ -481,7 +474,9 @@ class FGroup:
     file.write("\ndef update_" + stage.name + "_" + self.name + "(param, vars, env, dt):\n")
     file.write('  """ FGroup:  ' + self.name + '\n')
     file.write('      Stage:   ' + stage.name + '\n  """\n')
-    file.write("  dt_in_hours = dt / 3600.0\n")
+    file.write("  dt_in_hours = dt / 3600.0\n\n")
+    file.write("  pchange_ratio = []\n")
+    file.write("  pchange_type = []\n")
 
     self.pool_update_vars = []
     self.initialised_vars = []    
@@ -517,6 +512,24 @@ class FGroup:
     for v in self.pool_update_vars:
       eq_code = v.rhs + " = " + v.lhs
       file.write("  " + eq_code + "\n")
+
+    # Add boilerplate code to deal with pchanges
+    file.write("\n  ### Dealing with pchanges\n")
+    file.write("  if len(pchange_ratio) > 0:\n")
+    file.write("    pchange_total = sum([ 1. if pc > 0. else 0. for pc in pchange_ratio])\n")
+    file.write("    for i in range(len(pchange_ratio)):\n")
+    file.write("      if pchange_ratio[i] > 0.:\n")
+    file.write("        new_agent = {}\n")
+    file.write("        for k,v in vars.iteritems():\n")
+    file.write("          new_agent[k] = v\n")
+    file.write("        new_agent['Stage'] = pchange_type[i]\n")
+    file.write("        new_agent['Size'] = vars['Size'] * (pchange_ratio[i] / pchange_total)\n")
+    file.write("        vars['Size'] -= new_agent['Size']\n")
+    file.write("        if vars.has_key('x') and vars.has_key('y'):\n")
+    file.write("          add_agent('" + fgroup.name + "', new_agent, [vars['x'], vars['y'], -vars['z']])\n")
+    file.write("        else:\n")
+    file.write("          add_agent('" + fgroup.name + "', new_agent, [-vars['z']])\n")
+
     #file.write("  return vars\n")
 
 ### Main model parsing ###

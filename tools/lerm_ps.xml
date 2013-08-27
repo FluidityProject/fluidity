@@ -3159,13 +3159,15 @@
       <value>0</value>
       <hist>1</hist>
     </variable>
-    <parameter>
+    <sizevar>
       <name>S_t</name>
       <desc>Size of predator</desc>
-      <value>40</value>
+      <unit>-3,m,1</unit>
+      <codename>getPredSize()</codename>
+      <value>3</value>
       <unit>-3,m,1</unit>
       <hist>1</hist>
-    </parameter>
+    </sizevar>
     <parameter>
       <name>T_ref</name>
       <desc>Reference temperature</desc>

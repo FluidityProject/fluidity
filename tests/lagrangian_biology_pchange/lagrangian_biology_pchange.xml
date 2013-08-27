@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>lagrangian_biology_pchange</name>
+  <owner userid="mlange"/>
+  <tags>flml lagrangian_biology</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>
+../../bin/fluidity -v2 -l -p lagrangian_biology_pchange.flml
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="all_biomass" language="python">
+from fluidity_tools import stat_parser
+all_biomass = stat_parser("pchange_2d.stat")['Water']['AgentEnsembleSize']['integral']
+    </variable>
+    <variable name="all_carbon" language="python">
+from fluidity_tools import stat_parser
+all_carbon = stat_parser("pchange_2d.stat")['Water']['AgentParticulateCarbon']['integral']
+    </variable>
+    <variable name="source_biomass" language="python">
+from fluidity_tools import stat_parser
+source_biomass = stat_parser("pchange_2d.stat")['Water']['AgentEnsembleSizeSource']['integral']
+    </variable>
+    <variable name="source_carbon" language="python">
+from fluidity_tools import stat_parser
+source_carbon = stat_parser("pchange_2d.stat")['Water']['AgentParticulateCarbonSource']['integral']
+    </variable>
+    <variable name="targeta_biomass" language="python">
+from fluidity_tools import stat_parser
+targeta_biomass = stat_parser("pchange_2d.stat")['Water']['AgentEnsembleSizeTargetA']['integral']
+    </variable>
+    <variable name="targeta_carbon" language="python">
+from fluidity_tools import stat_parser
+targeta_carbon = stat_parser("pchange_2d.stat")['Water']['AgentParticulateCarbonTargetA']['integral']
+    </variable>
+    <variable name="targetb_biomass" language="python">
+from fluidity_tools import stat_parser
+targetb_biomass = stat_parser("pchange_2d.stat")['Water']['AgentEnsembleSizeTargetB']['integral']
+    </variable>
+    <variable name="targetb_carbon" language="python">
+from fluidity_tools import stat_parser
+targetb_carbon = stat_parser("pchange_2d.stat")['Water']['AgentParticulateCarbonTargetB']['integral']
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="cell_conservation" language="python">
+assert abs(all_biomass - 1000.0).all() &lt; 1.0e-6
+    </test>
+    <test name="carbon_conservation" language="python">
+assert abs(all_carbon - 1.0).all() &lt; 1.0e-6
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
