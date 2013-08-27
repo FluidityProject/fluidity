@@ -120,7 +120,7 @@
 
 !!$ Defining problem that will be solved
       logical :: have_temperature_field, have_component_field, have_extra_DiffusionLikeTerm, &
-           solve_force_balance, solve_PhaseVolumeFraction
+           solve_force_balance, solve_PhaseVolumeFraction, linearise_density
 
 !!$ Defining solver options
       integer :: velocity_max_iterations, PhaseVolumeFraction_max_iterations
@@ -502,6 +502,11 @@
          call allocate( metric_tensor, extract_mesh(state(1), topology_mesh_name), 'ErrorMetric' )
       end if
 
+      ! linearise density field for P2 simulations
+      ! this is used for buoyancy term in the momentum eq.
+      ! still need to figure out if we need to linearise only the buoyancy term.
+      linearise_density = have_option( '/material_phase[0]/linearise_density' )
+
 !!$ Starting Time Loop 
       itime = 0
       Loop_Time: do
@@ -721,12 +726,14 @@
                   deallocate( DEN_CV_NOD ) 
                end if
 
-               if ( (cv_nloc==6 .or. (cv_nloc==10 .and. ndim==3) ) .and. &
-                    .not. have_option( '/material_phase[0]/multiphase_properties/relperm_type' ) &
-                    ) then
-                  U_Density = Density_tmp
-                  U_Density_Old = Density_Old_tmp
-                  if ( its == 1 ) U_Density_Old = Density_tmp
+               if ( linearise_density ) then
+                  if ( (cv_nloc==6 .or. (cv_nloc==10 .and. ndim==3) ) .and. &
+                       .not. have_option( '/material_phase[0]/multiphase_properties/relperm_type' ) &
+                       ) then
+                     U_Density = Density_tmp
+                     U_Density_Old = Density_Old_tmp
+                     if ( its == 1 ) U_Density_Old = Density_tmp
+                  end if
                end if
 
 !!$ This calculates u_source_cv = ScalarField_Source_CV -- ie, the buoyancy term and as the name

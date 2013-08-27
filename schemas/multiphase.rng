@@ -572,6 +572,12 @@ to sum to 1 by adding constraint into compositional source term.</a:documentatio
             </element>
           </optional>
           <optional>
+            <element name="linearise_density">
+              <a:documentation>linearise density</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
             <ref name="equation_of_state">
               <a:documentation>The equation of state</a:documentation>
             </ref>

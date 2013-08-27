@@ -469,6 +469,8 @@ start =
             }?,
             ## Scale the momentum equation by the volume fraction for when some problems are not well poised.
             element scale_momentum_by_volume_fraction {empty}?,
+            ## linearise density
+            element linearise_density{ empty }?,
             ## The equation of state
             equation_of_state?,
             ## Pressure
