@@ -58,7 +58,6 @@ module advection_local_DG
   use diagnostic_fields, only: calculate_diagnostic_variable
   use diagnostic_fields_wrapper_new
   use global_parameters, only : FIELD_NAME_LEN
-  use shallow_water_diagnostics
 
   implicit none
 
