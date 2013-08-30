@@ -1,4 +1,4 @@
- !    Copyright (C) 2006 Imperial College London and others.
+  !    Copyright (C) 2006 Imperial College London and others.
   !
   !    Please see the AUTHORS file in the main source directory for a full list
   !    of copyright holders.
