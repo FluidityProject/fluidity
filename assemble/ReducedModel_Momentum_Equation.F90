@@ -52,6 +52,7 @@
       use sparse_tools_petsc 
       use global_parameters, only:theta
       use global_parameters, only: option_path_len,current_time
+      use write_state_module
       implicit none
 
       private
@@ -264,7 +265,7 @@
        
        type(pod_matrix_type) :: pod_matrix, pod_matrix_mass, pod_matrix_adv 
        type(pod_rhs_type) :: pod_rhs
-       real, dimension(:), allocatable :: pod_coef,pod_coef_dt
+       real, dimension(:), allocatable :: pod_coef,pod_coef_dt,pod_coef0
        real, dimension(:,:), allocatable :: pod_sol_velocity, pod_ct_m
        real, dimension(:), allocatable :: pod_sol_pressure
        integer :: d, i, j, k,dim,jd
@@ -326,7 +327,8 @@
        ! Adjoint model
        logical :: reduced_adjoint
        type(pod_rhs_type) :: pod_rhs_adjoint
-       integer :: timestep_tmp
+       integer :: timestep_tmp, dump_no_tmp
+       dump_no_tmp = 0
 
        ewrite(1,*) 'Entering solve_momentum_reduced'
        ewrite(1,*) '*********************************'
@@ -381,7 +383,7 @@
              delta_u%option_path = trim(u%option_path)
              call zero(delta_u)
              
-             
+            
              call get_option("/timestepping/timestep", dt)
              
              POD_velocity=>extract_vector_field(POD_state(1,1,istate), "Velocity")
@@ -401,6 +403,10 @@
              allocate(pod_coef((u%dim+1)*size(POD_state,1)))
              allocate(pod_coef_dt((u%dim+1)*size(POD_state,1)))
              allocate(pod_ct_m(size(POD_state,1),u%dim*size(POD_state,1)))
+             if(timestep.eq.total_timestep) then
+                allocate(pod_coef0((u%dim+1)*size(POD_state,1)))
+             endif
+
              
              if(have_option("/reduced_model/adjoint")) then
   		!========================================================================
@@ -439,6 +445,9 @@
                       call project_from_full_to_pod(istate,  pod_state, state, pod_coef)
                       ! save the initial coeficient
                       open(101,file='coef_pod_all')
+                      write(101,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state,1))
+                      close(101)
+                      open(101,file='coef_pod_all0')
                       write(101,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state,1))
                       close(101)
                       timestep_tmp = timestep+1
@@ -645,7 +654,7 @@
                    
                    !pod_coef is from the previous timestep, argument?
                    if(timestep==1) then
-                      open(40,file='coef_pod_all')
+                      open(40,file='coef_pod_all0')
                    else
                       open(40,file='pod_coef')
                    endif
@@ -716,6 +725,23 @@
                    
                    !pod_coef(:)=pod_coef_dt(:)
                    
+                   if(.true.) then
+                   if(timestep.eq.total_timestep) then
+                      
+                      open(101,file='coef_pod_all0')
+                      read(101,*)(pod_coef0(i),i=1,(u%dim+1)*size(POD_state,1))
+                      close(101)
+                      call project_full(delta_u, delta_p, pod_sol_velocity, pod_sol_pressure, POD_state(:,:,istate), pod_coef0)
+                      snapmean_velocity=>extract_vector_field(POD_state(1,1,istate),"SnapmeanVelocity")
+                      snapmean_pressure=>extract_Scalar_field(POD_state(1,2,istate),"SnapmeanPressure")
+                      !call addto(u, delta_u, dt)
+                      u%val=snapmean_velocity%val
+                      call addto(u, delta_u)
+                      p%val=snapmean_pressure%val
+                      call addto(p, delta_p)
+                      call write_state(dump_no_tmp, state)
+                   endif
+                   endif
                    !save pod_coef, rewrite every timestep
                    open(40,file='pod_coef')
                    write(40,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state,1))
@@ -742,7 +768,6 @@
                 p%val=snapmean_pressure%val
                 call addto(p, delta_p)
 
-                
              endif ! adjoint             
              call deallocate(delta_p)
              call deallocate(delta_u)
@@ -756,7 +781,12 @@
              call deallocate(pod_matrix)
              call deallocate(pod_matrix_mass)
              call deallocate(pod_rhs)
-             
+             deallocate(pod_coef)
+
+             if(timestep.eq.total_timestep) then
+                deallocate(pod_coef0)
+             endif
+           
           endif ! prognostic velocity
        enddo reduced_model_loop
        
@@ -835,13 +865,14 @@
       	logical :: reduced_adjoint
       	type(pod_rhs_type) :: pod_rhs_adjoint
       	type(pod_matrix_type) :: adjoint_pod_A, adjoint_pod_B,adjoint_A_extra,adjoint_A ,pod_matrix,pod_matrix_B
+      	type(pod_matrix_type) :: adjoint_pod_A0, adjoint_pod_B0, pod_matrix_B0
       	real, dimension(:,:), allocatable :: pod_coef_all,pod_coef_all_obv,pod_matrix_perturbed,&
                      pod_matrix_snapmean ! solution of adjoint
         real, dimension(:,:), allocatable :: pod_coef_adjoint_tmp
         type(vector_field), pointer :: u
         type(vector_field), pointer :: POD_velocity
         type(scalar_field), pointer :: POD_pressure
-       type(pod_matrix_type) :: pod_matrix_mass
+        type(pod_matrix_type) :: pod_matrix_mass
       	! gradient:
       	real, dimension(:), allocatable :: g,ds,ds_tmp
 
@@ -863,6 +894,9 @@
         call allocate(pod_matrix_B, POD_velocity, POD_pressure)
         call allocate(pod_rhs_adjoint, POD_velocity, POD_pressure)
         call allocate(pod_matrix_mass, POD_velocity, POD_pressure)
+      	call allocate(adjoint_pod_B0, POD_velocity, POD_pressure)
+      	call allocate(adjoint_pod_A0, POD_velocity, POD_pressure)
+        call allocate(pod_matrix_B0, POD_velocity, POD_pressure)
 
         allocate(pod_coef_adjoint_tmp(0:total_timestep,(u%dim+1)*size(POD_state,1)))
         pod_coef_adjoint_tmp = 0.0
@@ -895,7 +929,8 @@
       	ds_tmp = 0.0
 
       	pod_matrix%val=pod_matrix_snapmean(:,:)/(theta*dt)
-      	pod_matrix_B%val=0.0
+      	pod_matrix_B%val=pod_matrix_snapmean(:,:)/(theta*dt)
+      	pod_matrix_B0%val=pod_matrix_snapmean(:,:)/(theta*dt)
       
       	open(1,file='coef_pod_all_obv')
       	read(1,*)((pod_coef_all_obv(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=0,total_timestep)
@@ -912,6 +947,8 @@
             ! delete theta*dt from pod_matrix_perturbed
             pod_matrix_perturbed = pod_matrix_perturbed/(theta*dt)
             pod_matrix%val=pod_matrix%val+  &
+                 pod_coef_all(timestep-1,k+(d-1)*size(POD_state,1))*pod_matrix_perturbed(:,:)
+            pod_matrix_B%val=pod_matrix_B%val+  &
                  pod_coef_all(timestep,k+(d-1)*size(POD_state,1))*pod_matrix_perturbed(:,:)
             adjoint_pod_A%val((d-1)*size(POD_state,1)+k,:)= &
                  theta*matmul(pod_matrix_perturbed(:,:),pod_coef_all(timestep+1, :))
@@ -920,12 +957,22 @@
                  (1.-theta)*matmul(pod_matrix_perturbed(:,:),pod_coef_all(timestep, :))
             !(1.-theta)*matmul(pod_matrix_perturbed(:,:),pod_coef_all(timestep, k+(d-1)*size(POD_state,1)))
             !   pod_matrix%val=pod_matrix%val+pod_coef_all(timestep, k+(d-1)*size(POD_state,1))*pod_matrix_perturbed(:,:)
+            if(timestep.eq.1) then
+               adjoint_pod_A0%val((d-1)*size(POD_state,1)+k,:)= &
+                    theta*matmul(pod_matrix_perturbed(:,:),pod_coef_all(timestep, :))
+               ! theta*matmul(pod_matrix_perturbed(:,:),pod_coef_all(timestep+1, k+(d-1)*size(POD_state,1)))
+               adjoint_pod_B0%val((d-1)*size(POD_state,1)+k,:)= &
+                    (1.-theta)*matmul(pod_matrix_perturbed(:,:),pod_coef_all(timestep-1, :))
+               pod_matrix_B0%val=pod_matrix_B0%val+  &
+                    pod_coef_all(timestep-1,k+(d-1)*size(POD_state,1))*pod_matrix_perturbed(:,:)
+            endif
             
          enddo
          
          read(30,*)((pod_matrix_perturbed(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
 
-         pod_matrix%val=pod_matrix%val+pod_coef_all(timestep,k+u%dim*size(POD_state,1))*pod_matrix_perturbed(:,:)
+         pod_matrix%val=pod_matrix%val+pod_coef_all(timestep-1,k+u%dim*size(POD_state,1))*pod_matrix_perturbed(:,:)
+         pod_matrix_B%val=pod_matrix_B%val+pod_coef_all(timestep,k+u%dim*size(POD_state,1))*pod_matrix_perturbed(:,:)
 
          adjoint_pod_A%val((d-1)*size(POD_state,1)+k,:)=&
               theta*matmul(pod_matrix_perturbed(:,:),pod_coef_all(timestep+1, :))
@@ -934,11 +981,20 @@
               (1.-theta)*matmul(pod_matrix_perturbed(:,:),pod_coef_all(timestep, :))
          !(1.-theta)*matmul(pod_matrix_perturbed(:,:),pod_coef_all(timestep, k+(d-1)*size(POD_state,1)))
          !   pod_matrix%val=pod_matrix%val+pod_coef_all(timestep, k+(d-1)*size(POD_state,1))*pod_matrix_perturbed(:,:)
-      	enddo
+         if(timestep.eq.1) then
+            adjoint_pod_A0%val((d-1)*size(POD_state,1)+k,:)=&
+                 theta*matmul(pod_matrix_perturbed(:,:),pod_coef_all(timestep, :))
+            !theta*matmul(pod_matrix_perturbed(:,:),pod_coef_all(timestep+1, k+(d-1)*size(POD_state,1)))
+            adjoint_pod_B0%val((d-1)*size(POD_state,1)+k,:)=&
+                 (1.-theta)*matmul(pod_matrix_perturbed(:,:),pod_coef_all(timestep-1, :))
+            pod_matrix_B0%val=pod_matrix_B0%val+pod_coef_all(timestep-1,k+u%dim*size(POD_state,1))*pod_matrix_perturbed(:,:)
+        endif
+      enddo
       
       	close(30)
 
-       pod_matrix_B%val = (1.-theta)*pod_matrix%val
+       pod_matrix_B%val = (1.-theta)*pod_matrix_B%val - (pod_matrix_mass%val)/dt
+       pod_matrix_B0%val = (1.-theta)*pod_matrix_B0%val - (pod_matrix_mass%val)/dt
        pod_matrix%val = theta*pod_matrix%val + (pod_matrix_mass%val)/dt
 
 
@@ -953,19 +1009,21 @@
        
        if(timestep.eq.1) then
           ! adjoint_A_extra%val=adjoint_pod_A%val      
-          adjoint_A_extra%val=adjoint_pod_A%val + pod_matrix_B%val - (pod_matrix_mass%val)/dt
+!          adjoint_A_extra%val=adjoint_pod_A%val + pod_matrix_B%val 
+          adjoint_A_extra%val=adjoint_pod_A%val + adjoint_pod_B%val + pod_matrix_B%val 
           adjoint_A_extra%val=transpose(adjoint_A_extra%val)
           adjoint_A%val=transpose(pod_matrix%val)     
           pod_rhs_adjoint%val=matmul(adjoint_A_extra%val,pod_coef_adjoint_tmp(timestep+1,:))
        else
           !    adjoint_A_extra%val=adjoint_pod_A%val+ adjoint_pod_B%val        
-          adjoint_A_extra%val=adjoint_pod_A%val + adjoint_pod_B%val + pod_matrix_B%val - (pod_matrix_mass%val)/dt
+          adjoint_A_extra%val=adjoint_pod_A%val + adjoint_pod_B%val + pod_matrix_B%val
           adjoint_A_extra%val=transpose(adjoint_A_extra%val)
           adjoint_A%val=transpose(pod_matrix%val)     
           pod_rhs_adjoint%val=matmul(adjoint_A_extra%val,pod_coef_adjoint_tmp(timestep+1,:))    
        endif
 
        if(2*int(timestep/2).eq.timestep) then
+ !      if(timestep.eq.total_timestep-1) then
           pod_rhs_adjoint%val(1:u%dim*size(POD_state,1))= pod_rhs_adjoint%val(1:u%dim*size(POD_state,1))+ &
                pod_coef_all_obv(timestep,1:u%dim*size(POD_state,1))-pod_coef_all(timestep,1:u%dim*size(POD_state,1))
        endif
@@ -976,13 +1034,14 @@
        open(10,file='pod_coef_adj.dat')
        write(10,*) (pod_coef_adjoint_tmp(timestep,i),i=1,(u%dim+1)*size(POD_state,1))
        close(10)
+
        if(timestep.eq.1) then
-         ds(:) = matmul(adjoint_pod_B%val, pod_coef_all(0, :))  !!!Is pod_coef_all(1, :) the initial one??
-          g = ds
+         !ds(:) = matmul(-adjoint_pod_A0%val-adjoint_pod_B0%val-pod_matrix_B0%val, pod_coef_all(0, :))  !!!Is pod_coef_all(1, :) the initial one??
+          g = 0.0
           do i = 1,size(g)
              ds = 0.0
              ds(i) = 1.0
-             ds_tmp = matmul(adjoint_pod_B%val,ds)
+             ds_tmp = matmul(-adjoint_pod_A0%val-adjoint_pod_B0%val-pod_matrix_B0%val,ds)
              print*,'ds_tmp', ds_tmp
              g(i)= g(i) + dot_product(pod_rhs_adjoint%val,ds_tmp)
           enddo

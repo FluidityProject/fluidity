@@ -242,7 +242,8 @@ contains
              call addto_p(POD_state(:,2), pod_matrix, d1, i, j, dot_product(ct_tmp, POD_p))
              !!transpose the block corresponding to ct_m^T
              pod_matrix%val(j+(d1-1)*POD_num, i+pod_matrix%u_dim*POD_num)=&
-                  & pod_matrix%val(i+pod_matrix%u_dim*POD_num, j+(d1-1)*POD_num)*dt
+           !       & pod_matrix%val(i+pod_matrix%u_dim*POD_num, j+(d1-1)*POD_num)*dt !be careful dt???
+                  & pod_matrix%val(i+pod_matrix%u_dim*POD_num, j+(d1-1)*POD_num)
             end do
          end do
 

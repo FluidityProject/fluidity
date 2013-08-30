@@ -90,7 +90,7 @@ contains
     real :: valfun,fszero
     real, dimension(:), allocatable :: cva,cvaold,g,gold,d
     logical :: linconver
-    INTEGER,PARAMETER ::NGLOITS=4
+    INTEGER,PARAMETER ::NGLOITS=1
     REAL,PARAMETER ::GOLDR = 5.0
     integer :: total_timestep,total_dump_no
     type(vector_field), pointer :: u ,POD_velocity
@@ -125,9 +125,9 @@ contains
     call delete_option("/reduced_model/adjoint")  ! switch to forward ROM
     ewrite(1,*) 'Forward ROM', have_option("/reduced_model/adjoint")
 
-    call fluids(if_optimal=if_optimal,valfun=valfun)
-    ewrite(1,*) 'Completed the initial forward running'
-
+    call fluids()
+   ewrite(1,*) 'Completed the initial forward running'
+!   stop 11
     !------------------------------------------------------------------------
     ! allocate variables:
     ! nocva: number of control variables to be optimised
@@ -171,7 +171,7 @@ contains
        read(2,*)(g(i),i=1, nocva)
        close(2)
        !call solve_momentum_reduced_adjoint(state, at_first_timestep, timestep, POD_state, POD_state_deim, snapmean, eps,g,its)
-stop 75       
+!stop 75       
        !-----------------------------------------------------------------------------
        ! Line Search
        !-----------------------------------------------------------------------------
@@ -179,14 +179,15 @@ stop 75
        linear_search_loop: do   !need control the loop
           call set_option("/timestepping/current_time", current_time) ! set back the original current time
           ewrite(1,*) 'Forward ROM' 
-!          open(40,file='coef_pod_all')
-!          write(40,*)(cva(i),i=1,size(cva))
-!          close(40)
+          if(linits.eq.1) then
+             open(40,file='coef_pod_all0')
+             read(40,*)(cva(i),i=1,size(cva))
+             close(40)
+          endif
           call fluids(if_optimal=if_optimal,valfun=valfun) !get the func run simulation_name_POD.flml run forward ROM 
           call set_option("/timestepping/current_time", current_time) ! set back the original current time
           valfun=value_cost_function(nocva, pod_state,state)
           ewrite(1,*) 'Cost Function = ', valfun
-!          stop 90
           call  NONLINCG(gloits,linits,valfun,cva,g,goldr,linconver,nocva,gold,d,cvaold,fszero)
           pod_coef_optimised = cva  !the variables need to be modified
           !print  costfunction 
@@ -198,10 +199,9 @@ stop 75
           write(10,*) LINITS, valfun
           close(10) 
           if(linconver) exit
-
       !    LINITS = LINITS + 1 
           ! upadate the initial coeffient
-          open(40,file='coef_pod_all')
+          open(40,file='coef_pod_all0')
           write(40,*)(cva(i),i=1,size(cva))
           close(40)
         enddo linear_search_loop
@@ -217,9 +217,9 @@ stop 75
           open(10,file='cost_function',ACTION='WRITE',position='append')
        endif
        write(10,*) LINITS, valfun
-       close(10)  
+       close(10) 
     enddo global_loop
-    call  fluids()
+    call  fluids(if_optimal=if_optimal,valfun=valfun)
     
     do i = 1, size(state)
        call deallocate(state(i))
@@ -286,9 +286,16 @@ stop 75
     open(30,file='coef_pod_all_obv')
     open(100,file='coef_pod_all')
     DO k = 0, total_timestep
-       print*,'time=',k
        read(30,*)(pod_coef_all_obv(k,ii),ii=1,nocva)
        read(100,*)(pod_coef_all_comp(k,ii),ii=1,nocva)
+    ENDDO
+
+    close(30)
+    close(100)
+
+    DO k = 2, total_timestep
+!    DO k = total_timestep-1, total_timestep-1
+       print*,'time=',k
        if(2*int(k/2).eq.k) then
           !IF(ifhaveobs(k,:).eq.1) THEN   ! if has obv, iflagobs=1, else=0.
           u_obv%val = 0.0
@@ -312,8 +319,6 @@ stop 75
     ENDDO  ! end timestep 
     print*,FUNCT
 !    stop 78
-    close(30)
-    close(100)
     
     deallocate(pod_coef_all_obv)
     deallocate(pod_coef_all_comp)

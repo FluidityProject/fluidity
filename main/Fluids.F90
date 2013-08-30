@@ -254,13 +254,13 @@ contains
        total_timestep=int((finish_time-current_time)/dt)
        dump_no = 0
        call read_pod_basis_differntmesh(POD_state, state)
-       !enddo
+       !enddo    
     else
        if(have_option("/reduced_model/adjoint"))then
           call get_option("/timestepping/current_time", current_time)
           call get_option("/timestepping/finish_time", finish_time)       
           call get_option("/timestepping/timestep", dt)
-          total_timestep=int((finish_time-current_time)/dt)+1
+          total_timestep=int((finish_time-current_time)/dt)
           call read_pod_basis_differntmesh(POD_state, state)
        else
           ! need something to pass into solve_momentum
@@ -510,6 +510,9 @@ contains
        end if
 
        if(simulation_completed(current_time, timestep)) exit timestep_loop
+       if(have_option("/reduced_model/execute_reduced_model").and.have_option("/reduced_model/adjoint")) then
+          if(timestep.gt.total_timestep) exit timestep_loop
+       endif
 
        if( &
                                 ! Do not dump at the start of the simulation (this is handled by write_state call earlier)

@@ -552,37 +552,37 @@ contains
                 call get_option(trim(mesh_path) // "/name", mesh_name)
                 if(mesh_name==trim(s_field%mesh%name)) then
                    call get_option(trim(mesh_path)// "/from_mesh/mesh[0]/name", mesh_name2)
-                   cycle
+                   cycle  !! exit??
                 endif
              enddo
              
              if (trim(mesh_name2)=="CoordinateMesh") then
                 pod_positions => extract_vector_field(state(k), "Coordinate")
              else
-                pod_positions => extract_vector_field(state(k), trim(mesh_name2)//"Coordinate")
+                pod_positions => extract_vector_field(state(k), trim(mesh_name2)//"Coordinate") !!??
              end if
              
              pod_pmesh => extract_mesh(state(k),trim(s_field%mesh%name),stat)
              print*,'pod_xmesh, pod_pmesh', node_count(pod_xmesh),node_count(pod_pmesh)
-             
+!             print*,trim(s_field%mesh%name),trim(s_field%name),"Snapmean"//trim(s_field%name)
              do i = 1,POD_num
                 call insert(pod_state(i,k), pod_xmesh, "CoordinateMesh")
                 call insert(pod_state(i,k), pod_pmesh, trim(s_field%mesh%name))
                 call insert(pod_state(i,k), pod_positions, "Coordinate")
                 
-                call allocate(pod_pressure, pod_pmesh, "Pressure")    
+                call allocate(pod_pressure, pod_pmesh, trim(s_field%name))    
                 call zero(pod_pressure)
                 call set_all(pod_pressure, leftsvd_p(:,i))
-                call insert(pod_state(i,k), pod_pressure, name="Pressure")
+                call insert(pod_state(i,k), pod_pressure, name=trim(s_field%name))
                 
                 call deallocate(pod_pressure)
                 
                 !!insert snapmean data into state
                 
-                call allocate(snapmean_pressure, pod_pmesh, "SnapmeanPressure")
+                call allocate(snapmean_pressure, pod_pmesh, "Snapmean"//trim(s_field%name))
                 call zero(snapmean_pressure)
                 call set_all(snapmean_pressure, snapmean_p(:))
-                call insert(pod_state(i,k), snapmean_pressure, name="SnapmeanPressure") 
+                call insert(pod_state(i,k), snapmean_pressure, name="Snapmean"//trim(s_field%name)) 
                 call deallocate(snapmean_pressure)
 		if(deim) then 
 		call vtk_write_state(filename=trim(simulation_name)//"_PODDEIMBasisRES"//trim(s_field%name),  &
@@ -595,7 +595,7 @@ contains
           endif
        end do !j = 1, size(state(i)%scalar_fields)
        
-        
+!   stop 78     
     end do!k =1, size(state)
     
     deallocate(pod_state)

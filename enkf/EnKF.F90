@@ -47,6 +47,7 @@
     use interpolation_ensemble_state_on_supermesh
     use fldebug
     use fields_allocates
+    use mesh_files
 
     implicit none
 
@@ -79,12 +80,13 @@
     integer :: u_nodes, p_nodes, fs_nodes, t_nodes, s_nodes
     integer :: i, j, dump_no
     character(len = OPTION_PATH_LEN) :: simulation_name
-    character(len=255) :: filename
+    character(len=255) :: filename,name
     !!ensemble matrix mean analysis
     real, dimension(:), allocatable :: meanA_analysis
     type(state_type), dimension(:,:), allocatable :: mean_state
-    character(len = OPTION_PATH_LEN) :: prefix,postfix
+    character(len=OPTION_PATH_LEN) :: prefix,postfix
 
+    print*,'in EnKF'
     call python_init()
     call read_command_line()
     !!state includes the fields i.c., b.c.and mesh info in flml file
@@ -156,7 +158,7 @@
 !100 continue
     do i=1, nrens   
        print*,'writing__',trim(simulation_name)//"_analysis_",i,'.vtu'
-       call form_analysis_state(ensemble_state, ensemble_state_pressure, analysis_state, A(:,i))
+       call form_analysis_state(ensemble_state, analysis_state, A(:,i))
        call vtk_write_state(filename=trim(simulation_name)//"_analysis", index=i, state=analysis_state(1,:))
        call deallocate(analysis_state)
     enddo
@@ -169,7 +171,7 @@
     meanA_analysis=meanA_analysis/nrens
 
     print*,'writing__',"ensemble_mean_analysis.vtu"
-    call form_analysis_state(ensemble_state, ensemble_state_pressure, mean_state, meanA_analysis)
+    call form_analysis_state(ensemble_state, mean_state, meanA_analysis)
     call vtk_write_state(filename="ensemble_mean_analysis", state=mean_state(1,:))
     call deallocate(mean_state)
     deallocate(meanA_analysis)
@@ -182,7 +184,7 @@ contains
     type(state_type), dimension(:), allocatable :: ensemble_state
     type(state_type), dimension(:), allocatable :: ensemble_state_velocity
     type(state_type), dimension(:), allocatable :: ensemble_state_pressure
-    type(state_type), dimension(:), allocatable :: ensemble_state_old
+    type(state_type), dimension(:), allocatable :: ensemble_state_old,ensemble_state_old2
     type(state_type), dimension(:), allocatable :: ensemble_state_velocity_old
     type(state_type), dimension(:), allocatable :: ensemble_state_pressure_old
     real, dimension(:,:),  allocatable, intent(out) :: A
@@ -203,7 +205,7 @@ contains
     integer :: i, j, k, d,ifield,nfield,stat
     integer, intent(out) :: nvar
     integer :: u_nodes, p_nodes, fs_nodes, t_nodes, s_nodes
-    character(len = OPTION_PATH_LEN) :: simulation_name, mesh_name
+    character(len = OPTION_PATH_LEN) :: simulation_name, mesh_name,vtu_filename,prefix,postfix
     !!ensemble matrix mean
     real, dimension(:), allocatable :: meanA
     type(state_type), dimension(:,:), allocatable :: mean_state
@@ -217,6 +219,13 @@ contains
     type(tensor_field), pointer:: tfield_tmp
     type(mesh_type), pointer:: mesh_tmp
 
+    integer ::nmeshes,mxnods
+    logical :: from_file, extruded
+    character(len=OPTION_PATH_LEN) :: mesh_path, mesh_file_name,&
+         mesh_file_format, from_file_path
+    type(vector_field), dimension(:), allocatable :: initial_positions
+    type(vector_field) :: out_positions
+
 
 
     print*,'In construct_ensemble_matrix'
@@ -227,7 +236,6 @@ contains
     allocate(filename(nrens))
     allocate(filename1(nrens))
     allocate(filename2(nrens))
-
 
 
     !call interpolation_ensembles_on_supermesh(ensemble_state, ensemble_state_old, filename)
@@ -245,159 +253,119 @@ contains
     !call deallocate(ensemble_state_velocity_old)
 
     !   allocate(ensemble_state_pressure_old(nrens))
+
+    call get_option('/simulation_name',simulation_name)
+    call get_option('/geometry/quadrature/degree', quadrature_degree)
+
+    prefix = simulation_name
+    postfix = "checkpoint"
+
+
+    !  calculate supermesh
+    !------------------------
+    !call set_option('/mesh_adaptivity/hr_adaptivity/maximum_number_of_nodes', mxnods, stat=stat)
+    mxnods = 10000
+    call compute_pseudo_supermesh_from_mesh(out_positions, mxnods=mxnods)
+
+    ! allocate the new ensemble_state based on the supermesh
+    !--------------------------------------------------------
     allocate(ensemble_state(nrens))
+    call allocate_new_ensemble_state(out_positions, ensemble_state)
 
-    allocate(ensemble_state_old(nrens))
-
-    do i = 1, nrens
-       call nullify(ensemble_state_old(i)) 
-       call set_option_path(ensemble_state_old(i), "/material_phase["//int2str(i-1)//"]")
-
-       call nullify(ensemble_state(i)) 
-       call set_option_path(ensemble_state(i), "/material_phase["//int2str(i-1)//"]")
-    end do
+    ! allocate old ensemble_state
+    !-----------------------------
+    allocate(ensemble_state_old(1))
+    call nullify(ensemble_state_old(1)) 
+    call set_option_path(ensemble_state_old(1), "/material_phase["//int2str(1-1)//"]")
 
     call insert_external_mesh(ensemble_state_old, save_vtk_cache = .true.)
     !    call insert_external_mesh(ensemble_state, save_vtk_cache = .true.)
-    call insert_derived_meshes( ensemble_state_old )
+    call insert_derived_meshes(ensemble_state_old )
     !   call insert_derived_meshes( ensemble_state )
 
     call allocate_and_insert_fields(ensemble_state_old)
-
     call initialise_prognostic_fields(ensemble_state_old, save_vtk_cache=.true., &
          initial_mesh=.true.)
+    call set_prescribed_field_values( ensemble_state_old, initial_mesh=.true.)
+!    call add_missing_field_in_state(ensemble_state, ensemble_state_old)
+      call print_state( ensemble_state(1) )
+print*,'********************************************'
+      call print_state( ensemble_state_old(1) )
 
-    call set_prescribed_field_values(ensemble_state_old, initial_mesh=.true.)
+!stop 123    
 
-    do i = 2, nrens
+    call interpolation_ensembles_on_supermesh( ensemble_state, (/ensemble_state_old(1)/), 1)
 
-       nfield = scalar_field_count( ensemble_state_old(1) )
-       print*,'&&&&scaler',nfield
-       do ifield = 1, nfield 
-          sfield => extract_scalar_field( ensemble_state_old(1), ifield )
-          print*, trim(sfield%name)
+       velocity => extract_vector_field(ensemble_state(1), "Velocity")
+       pressure => extract_scalar_field(ensemble_state(1), "Pressure")
+       free_surface => extract_scalar_field(ensemble_state(1), "FreeSurface")
+       print*,node_count(velocity)
+       print*,node_count(pressure)
+       print*,node_count(free_surface)
+       velocity => extract_vector_field(ensemble_state_old(1), "Velocity")
+       pressure => extract_scalar_field(ensemble_state_old(1), "Pressure")
+       free_surface => extract_scalar_field(ensemble_state_old(1), "FreeSurface")
+       print*,node_count(velocity)
+       print*,node_count(pressure)
+       print*,node_count(free_surface)
 
-          exists=.false.
-          do j=1, scalar_field_count( ensemble_state_old(1) )
-             sfield_tmp => extract_scalar_field( ensemble_state_old(i), trim(sfield%name), stat)
-             mesh_name = trim(sfield%mesh%name)
-             if (trim(sfield%name)==trim(sfield_tmp%name)) then
-                exists=.true.
-                exit
-             end if
-          end do
-          if (exists) cycle
-
-          print*, 'EXISTS',exists 
-          do j=1,mesh_count(ensemble_state_old(1))
-             mesh_tmp => extract_mesh( ensemble_state_old(i), trim(sfield%mesh%name)  )
-             if (trim(mesh_name)==trim(mesh_tmp%name)) exit
-          end do
-
-          print *, node_count(sfield),trim(sfield%name), trim(mesh_tmp%name)
-          call allocate( sfield2,  mesh_tmp, trim(sfield%name)   )
-          call set(sfield2, node_val(sfield,1) )  !!! this is used only for the constant field
-          sfield2%option_path =  sfield%option_path
-          call insert(ensemble_state_old(i), sfield2, trim(sfield%name))
-       end do
-
-!!! Vector
-       !_-------
+       deallocate(ensemble_state_old)
 
 
+    ! interpolate the old ensemble_state onto the supermesh
+    !-----------------------------------------------------
+    allocate(ensemble_state_old2(1))
+    ensemble_state_loop: do i = 2, nrens
 
-       nfield = vector_field_count( ensemble_state_old(1) )
-       print*,'&&&&vector',nfield
-       do ifield = 1, nfield 
-          vfield => extract_vector_field( ensemble_state_old(1), ifield )
-
-
-
-          exists=.false.
-          do j=1, vector_field_count( ensemble_state_old(1) )
-             vfield_tmp => extract_vector_field( ensemble_state_old(i), trim(vfield%name), stat)
-             mesh_name = trim(vfield%mesh%name)
-             if (trim(vfield%name)==trim(vfield_tmp%name)) then
-                exists=.true.
-                exit
-             end if
-          end do
-          if (exists) cycle
-
-          print*, 'EXISTS',exists 
-          do j=1,mesh_count(ensemble_state_old(1))
-             mesh_tmp => extract_mesh( ensemble_state_old(i), trim(vfield%mesh%name)  )
-             if (trim(mesh_name)==trim(mesh_tmp%name)) exit
-          end do
-
-          print *, node_count(vfield),trim(vfield%name)
-          call allocate( vfield2,  vfield%dim, vfield%mesh, trim(vfield%name)   )
-          call set(vfield2, node_val(vfield,1 )) !!! this is used only for the constant field
-          sfield2%option_path =  sfield%option_path
-          call insert(ensemble_state_old(i), vfield2, trim(vfield%name))
-       end do
-
-       nfield = tensor_field_count( ensemble_state_old(1) )
-       print*,'&&&&tensor',nfield
-       do ifield = 1, nfield 
-          tfield => extract_tensor_field( ensemble_state_old(1), ifield )
-
-
-
-          exists=.false.
-          do j=1, tensor_field_count( ensemble_state_old(1) )
-             tfield_tmp => extract_tensor_field( ensemble_state_old(i), trim(tfield%name), stat)
-             mesh_name = trim(tfield%mesh%name)
-             if (trim(tfield%name)==trim(tfield_tmp%name)) then
-                exists=.true.
-                exit
-             end if
-          end do
-          if (exists) cycle
-
-          print*, 'EXISTS',exists 
-          do j=1,mesh_count(ensemble_state_old(1))
-             mesh_tmp => extract_mesh( ensemble_state_old(i), trim(tfield%mesh%name)  )
-             if (trim(mesh_name)==trim(mesh_tmp%name)) exit
-          end do
-
-          print *, node_count(tfield),trim(tfield%name)
-          call allocate( tfield2, tfield%mesh, trim(tfield%name)   )
-          call set(tfield2, node_val(tfield,1 )) !!! this is used only for the constant field
-          sfield2%option_path =  sfield%option_path
-          call insert(ensemble_state_old(i), tfield2, trim(tfield%name))
-       end do
-    end do
-
-    call print_state( ensemble_state_old(1) )
-    print*,'**********'
-    call print_state( ensemble_state_old(2) )
-
-    do i = 1, nrens
-!       cp_no = (i-1)*dump_sampling_period
-
-       call solution_on_checkpoints( (/ ensemble_state(i) /)  , prefix, cp_no=i)
-
-       call initialise_prognostic_fields((/ensemble_state(i) /), save_vtk_cache=.true., &
+       call update_mesh_options(prefix,postfix,i,"gmsh")
+       call nullify(ensemble_state_old2(1)) 
+       call set_option_path(ensemble_state_old2(1), "/material_phase[0]")
+       call insert_external_mesh(ensemble_state_old2, save_vtk_cache = .true.)
+       
+       call insert_derived_meshes(ensemble_state_old2)
+       
+       call allocate_and_insert_fields( ensemble_state_old2 )
+       call print_state( ensemble_state_old2(1) )
+       
+       call solution_on_checkpoints( (/ ensemble_state_old2(1) /)  , prefix, postfix, i)
+       
+       call initialise_prognostic_fields(ensemble_state_old2, save_vtk_cache=.true., &
             initial_mesh=.true.)
+       
+       call set_prescribed_field_values(ensemble_state_old2, initial_mesh=.true.)
 
-       call set_prescribed_field_values((/ensemble_state(i) /), initial_mesh=.true.)
-     end do
+       !!call interpolation_ensembles_on_supermesh(ensemble_state_new, ensemble_state_old)
+       call interpolation_ensembles_on_supermesh( ensemble_state, (/ensemble_state_old2(1)/), i)
 
+       velocity => extract_vector_field(ensemble_state(1), "Velocity")
+       pressure => extract_scalar_field(ensemble_state(1), "Pressure")
+       free_surface => extract_scalar_field(ensemble_state(1), "FreeSurface")
+       print*,node_count(velocity)
+       print*,node_count(pressure)
+       print*,node_count(free_surface)
+       velocity => extract_vector_field(ensemble_state_old2(1), "Velocity")
+       pressure => extract_scalar_field(ensemble_state_old2(1), "Pressure")
+       free_surface => extract_scalar_field(ensemble_state_old2(1), "FreeSurface")
+       print*,node_count(velocity)
+       print*,node_count(pressure)
+       print*,node_count(free_surface)
+print*,'after interpolation_ensembles_on_supermesh'
 
-    call interpolation_ensembles_on_supermesh(ensemble_state, ensemble_state_old)
-
-    stop 44
+    end do ensemble_state_loop
+    deallocate(ensemble_state_old2)
+!stop 
+!       stop 44
 
     !   call vtk_write_state(filename="PressureMesh_test", state=ensemble_state_pressure)
     !   stop 12
 
-    do i=1, nrens
-       write(filename(i), '(a, i0, a)') trim(simulation_name)//'_', i, ".vtu"
-       call vtk_read_state(filename(i), ensemble_state(i), quadrature_degree)
-
-       write(filename1(i), '(a, i0, a)') trim(simulation_name)//'_VelocityMesh_', i, ".vtu"
-       call vtk_read_state(filename1(i), ensemble_state_velocity(i), quadrature_degree) 
+!       do i =1, nrens
+!          write(filename(i), '(a, i0, a)') trim(simulation_name)//'_', i, ".vtu"
+!          call vtk_read_state(filename(2), ensemble_state(i), quadrature_degree)
+!          
+!          write(filename1(i), '(a, i0, a)') trim(simulation_name)//'_VelocityMesh_', i, ".vtu"
+!          call vtk_read_state(filename1(i), ensemble_state_velocity(i), quadrature_degree) 
+!       enddo
 
        !   !! Note that this won't work in parallel. Have to look for the pvtu in that case.
        !   write(filename2(i), '(a, i0, a)') trim(simulation_name)//'_PressureMesh_', i, ".vtu"
@@ -405,8 +373,6 @@ contains
        !   call vtk_read_state(filename2(i), ensemble_state_pressure(i), quadrature_degree)
 
        !   !! Note that we might need code in here to clean out unneeded fields.
-    end do
-
 
     !call interpolation_ensembles_on_supermesh(ensemble_state_new, ensemble_state_pressure, filename)
 
@@ -430,10 +396,11 @@ contains
     t_nodes=0
     s_nodes=0
 
-    velocity => extract_vector_field(ensemble_state_velocity(1), "Velocity")   
+!    velocity => extract_vector_field(ensemble_state_velocity(1), "Velocity")   
+    velocity => extract_vector_field(ensemble_state(1), "Velocity") 
     u_nodes=node_count(velocity)
     nvar=nvar+velocity%dim
-    pressure => extract_scalar_field(ensemble_state_pressure(1), 'Pressure')
+    pressure => extract_scalar_field(ensemble_state(1), 'Pressure')
     p_nodes=node_count(pressure)
     nvar=nvar+1
 
@@ -467,7 +434,7 @@ contains
 
     allocate(A(global_ndim, nrens))
     do k=1, nrens
-       velocity => extract_vector_field(ensemble_state_velocity(k), "Velocity")
+       velocity => extract_vector_field(ensemble_state(k), "Velocity")
        do d=1, velocity%dim
           i=1+u_nodes*(d-1)
           j=u_nodes*d
@@ -475,7 +442,7 @@ contains
           A(i:j,k)=velocity%val(d,:)
        enddo
 
-       pressure => extract_scalar_field(ensemble_state_pressure(k), 'Pressure')
+       pressure => extract_scalar_field(ensemble_state(k), 'Pressure')
        i=j+1
        j=j+p_nodes
        !!pressure%val=field_val(pressure)
@@ -510,10 +477,10 @@ contains
     meanA=meanA/nrens
 
     print*,'writing__',"ensemble_mean.vtu"
-    call form_analysis_state(ensemble_state, ensemble_state_pressure, mean_state, meanA)
+    call form_analysis_state(ensemble_state, mean_state, meanA)
     call vtk_write_state(filename="ensemble_mean", state=mean_state(1,:))
-    call deallocate(mean_state)
-    deallocate(meanA)
+    !call deallocate(mean_state)
+    !deallocate(meanA)
     stop
 
   end subroutine construct_ensemble_matrix
@@ -690,10 +657,9 @@ contains
   end subroutine construct_HA
 
 
-  subroutine form_analysis_state(ensemble_state, ensemble_state_pressure, analysis_state, A)
+  subroutine form_analysis_state(ensemble_state, analysis_state, A)
 
     type(state_type), intent(in), dimension(:) :: ensemble_state
-    type(state_type), intent(in), dimension(:) :: ensemble_state_pressure
     type(state_type), intent(out), dimension(:,:), allocatable :: analysis_state
 
     real, intent(in), dimension(:) :: A
@@ -717,44 +683,51 @@ contains
     allocate(analysis_state(1,1))
     call nullify(analysis_state)
 
-       analysis_mesh => extract_mesh(ensemble_state(1), "Mesh")
+print*,'before analysis_mesh'
+       analysis_mesh => extract_mesh(ensemble_state(1), "CoordinateMesh")
+print*,'after analysis_mesh'
 
        all_meshes_same = .false.
 
-       analysis_xmesh => extract_mesh(ensemble_state(1), "Mesh", stat)
-       analysis_umesh => extract_mesh(ensemble_state(1), "Mesh", stat)
-       analysis_pmesh => extract_mesh(ensemble_state_pressure(1), "Mesh", stat)
+       analysis_xmesh => extract_mesh(ensemble_state(1), "CoordinateMesh", stat)
+       analysis_umesh => extract_mesh(ensemble_state(1), "VelocityMesh", stat)
+       analysis_pmesh => extract_mesh(ensemble_state(1), "PressureMesh", stat)
 
        analysis_positions => extract_vector_field(ensemble_state(1), "Coordinate")
-
 !       call insert(pod_state(i,1), pod_xmesh, "Mesh")
        call insert(analysis_state(1,1), analysis_xmesh, "CoordinateMesh")
        call insert(analysis_state(1,1), analysis_umesh, "VelocityMesh")
        call insert(analysis_state(1,1), analysis_pmesh, "PressureMesh")
        call insert(analysis_state(1,1), analysis_positions, "Coordinate")
-  
+ print*,'after insert mesh'
+ 
        velocity => extract_vector_field(ensemble_state(1), "Velocity")
-       pressure => extract_scalar_field(ensemble_state_pressure(1), "Pressure")
+       pressure => extract_scalar_field(ensemble_state(1), "Pressure")
        free_surface => extract_scalar_field(ensemble_state(1), "FreeSurface")
        u_nodes=node_count(velocity)
        p_nodes=node_count(pressure)
        fs_nodes=node_count(free_surface)
 
        call allocate(analysis_velocity, velocity%dim, analysis_umesh, "Velocity")
+print*,'after allocate velocity'
        call zero(analysis_velocity)
        do j=1,velocity%dim
           analysis_velocity%val(j,:)=A((j-1)*u_nodes+1:j*u_nodes)
        end do
+print*,analysis_velocity%val(1,100:150)
        call insert(analysis_state(1,1), analysis_velocity, name="Velocity")
+print*,'333'
        call deallocate(analysis_velocity)
+print*,'after insert velocity'
 
        call allocate(analysis_pressure, analysis_pmesh, "Pressure")
        call zero(analysis_pressure)
        analysis_pressure%val(:)=A(velocity%dim*u_nodes+1:velocity%dim*u_nodes+p_nodes)
+print*,analysis_pressure%val(100:150)
        call insert(analysis_state(1,1), analysis_pressure, name="Pressure")
        call deallocate(analysis_pressure)
 
-       call allocate(analysis_free_surface, analysis_umesh, "FreeSurface")
+       call allocate(analysis_free_surface, analysis_pmesh, "FreeSurface")
        call zero(analysis_free_surface)
        analysis_free_surface%val(:)=A(velocity%dim*u_nodes+p_nodes+1:velocity%dim*u_nodes+p_nodes+fs_nodes)
        call insert(analysis_state(1,1), analysis_free_surface, name="FreeSurface")
@@ -901,6 +874,56 @@ contains
     end do
   end subroutine solution_on_checkpoints
   
+    subroutine update_mesh_options(prefix,postfix,ensemble_no,format)
+      !!< Updates the mesh.vtu
+      !!< options path path
+
+      character(len = 255) :: filename,mesh_file_name, simulation_name,path,from_file_path
+      integer, intent(in)::ensemble_no
+      character(len=OPTION_PATH_LEN),  intent(in):: prefix
+      character(len=*),  intent(in):: format
+      character(len=OPTION_PATH_LEN), optional, intent(in):: postfix
+      character(len = 255) :: mesh_name
+
+      integer :: stat, i, nmeshes    
+      logical :: from_file, extruded
+
+
+      nmeshes=option_count("/geometry/mesh")
+
+      do i = 0, nmeshes-1  ! do while seemed to break, don't know why
+         path="/geometry/mesh["//int2str(i)//"]"
+         from_file_path = trim(path) // "/from_file"
+         from_file = have_option(from_file_path)
+         if (.not. from_file) then
+            from_file_path = trim(path) // "/from_mesh/extrude/checkpoint_from_file"
+            extruded = have_option(from_file_path)
+         else
+            extruded = .false.
+         end if
+         if(from_file .or. extruded) then
+            call get_option(trim(path)//"/name", mesh_name)
+            call delete_option(trim(from_file_path))
+            mesh_file_name = trim(prefix)// "_" // trim(mesh_name)
+            mesh_file_name = trim(mesh_file_name) // "_" // int2str(ensemble_no)
+            mesh_file_name = trim(mesh_file_name) // "_" // trim(postfix)
+            call set_option_attribute(trim(from_file_path) // "/file_name", trim(mesh_file_name), stat)
+            if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
+               FLAbort("Failed to set mesh filename when ensemble field with option path " // trim(path))
+            end if
+            call set_option_attribute(trim(from_file_path) // "/format/name", trim(format), stat)
+            if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING) then
+               FLAbort("Failed to set mesh format when ensemble field with option path " // trim(path))
+            end if
+         end if        
+         if(from_file .or. extruded) then
+            call get_option(trim(from_file_path) // "/file_name",mesh_file_name) 
+            print*,'mesh_name:: ',mesh_file_name
+         endif
+      end do
+
+    end subroutine update_mesh_options
+
     subroutine update_initial_condition_options(path, filename, format)
       !!< Updates the initial condition options for a prognostic field with
       !!< options path path
@@ -925,6 +948,7 @@ contains
       end if
 
     end subroutine update_initial_condition_options
+
 
     subroutine update_value_options(path, filename, format)
       !!< Updates the value options for a prescribed field with
@@ -972,6 +996,7 @@ contains
       end if
 
     end subroutine update_initial_condition_options2
+
 
 
   end program EnKF

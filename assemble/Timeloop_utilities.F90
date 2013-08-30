@@ -349,7 +349,7 @@ contains
     logical :: simulation_completed
 
     integer :: final_timestep, i, stat
-    real :: current_cpu_time, time_limit, current_wall_time
+    real :: current_cpu_time, time_limit, current_wall_time,dt
 
     simulation_completed = .false.
 
@@ -357,7 +357,8 @@ contains
        select case(i)
        case(1)
           call get_option("/timestepping/finish_time", time_limit)
-          if(current_time >= time_limit) then
+          call get_option("/timestepping/timestep", dt)
+          if(current_time >= time_limit-dt*0.1) then
              simulation_completed = .true.
              ewrite(1, *) "Finish time reached"
              exit

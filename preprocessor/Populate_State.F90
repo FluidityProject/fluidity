@@ -2430,7 +2430,6 @@ contains
              call zero(vfield)
 
 
-print*, '66666 ', trim(vfield%option_path), trim(vfield%name),have_option(trim(vfield%option_path)//'/prognostic')
              call initialise_field_over_regions(vfield, &
                 trim(vfield%option_path)//'/prognostic/initial_condition', &
                 position, phase_path=trim(phase_path))

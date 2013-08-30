@@ -160,9 +160,10 @@ SUBROUTINE NONLINCG(GLOITS,LINITS,VALFUN,CVA,G,       &
            D(I) = -G(I)+BATA*D(I)
            if(G(I).NE.0.0) then
               print *, 'I,BATA,G(I),D(I)222',I,BATA,G(I),D(I)
+   !           stop 11
            endif
         !-----DELETE Later
-           D(I) = -G(I)
+        !   D(I) = -G(I)
         !---
            CVAOLD(I) = CVA(I)
            GOLD(I) = G(I)
@@ -190,10 +191,14 @@ SUBROUTINE NONLINCG(GLOITS,LINITS,VALFUN,CVA,G,       &
   MAXD = 0.0
   MAXCD = 0.0
   DO I = 1,NOCVA
-     MAXCVA = MAX(ABS(CVA(I)),MAXCVA)
+     if(i.lt.10.) then
+        MAXCVA = MAX(ABS(CVA(I)),MAXCVA)
+     endif
+     print*,cva(i),maxcva
      MAXD = MAX(ABS(D(I)),MAXD)
      MAXCD =MAX(ABS(CVA(I)/D(I)),MAXCD)
   END DO
+
   !	IF (GLOITS.EQ.1) THEN
   IF( (GLOITS.EQ.1).OR.( ABS(MOD(GLOITS,5)-0.0).LT.1.0E-6) ) THEN
      !          INISTEP = 0.01
@@ -203,12 +208,12 @@ SUBROUTINE NONLINCG(GLOITS,LINITS,VALFUN,CVA,G,       &
      !          INISTEP = 0.05*MAXCD          
 !**clyde     INISTEP = -0.01
 !**work gyre percoef=0.1     	  INISTEP = -0.06*MAXCVA/MAXD
-! orignal     	  INISTEP = -0.01*MAXCVA/MAXD
+     	  INISTEP = -0.01*MAXCVA/MAXD
 !     	  INISTEP = -0.00001*MAXCVA/MAXD
-     INISTEP = 0.5
+!     INISTEP = 0.0001
   ELSE
-!original     INISTEP = 0.01*MAXCVA/MAXD
-     INISTEP = 0.5
+     INISTEP = 0.01*MAXCVA/MAXD
+!     INISTEP = 0.00001
      !**	  INISTEP = 0.05*MAXCVA/MAXD
      !**headland	  INISTEP = 0.1*MAXCVA/MAXD
   ENDIF
