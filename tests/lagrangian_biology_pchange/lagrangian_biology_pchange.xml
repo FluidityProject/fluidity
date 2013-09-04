@@ -43,13 +43,46 @@ targetb_biomass = stat_parser("pchange_2d.stat")['Water']['AgentEnsembleSizeTarg
 from fluidity_tools import stat_parser
 targetb_carbon = stat_parser("pchange_2d.stat")['Water']['AgentParticulateCarbonTargetB']['integral']
     </variable>
+    <variable name="prey_biomass_a" language="python">
+from fluidity_tools import stat_parser
+prey_biomass_a = stat_parser("pchange_2d.stat")['Water']['PreyAEnsembleSize']['integral']
+    </variable>
+    <variable name="prey_carbon_a" language="python">
+from fluidity_tools import stat_parser
+prey_carbon_a = stat_parser("pchange_2d.stat")['Water']['PreyAParticulateCarbon']['integral']
+    </variable>
+    <variable name="predator_ingested_cells" language="python">
+from fluidity_tools import stat_parser
+predator_ingested_cells = stat_parser("pchange_2d.stat")['Water']['PredatorFoodIngestedCellsInactive']['integral']
+    </variable>
+    <variable name="predator_carbon" language="python">
+from fluidity_tools import stat_parser
+predator_carbon = stat_parser("pchange_2d.stat")['Water']['PredatorParticulateCarbon']['integral']
+    </variable>
+    <variable name="predator_carbon_a1" language="python">
+from fluidity_tools import stat_parser
+predator_carbon_a1 = stat_parser("pchange_2d.stat")['Water']['PredatorParticulateCarbonA1']['integral']
+    </variable>
+    <variable name="predator_carbon_a2" language="python">
+from fluidity_tools import stat_parser
+predator_carbon_a2 = stat_parser("pchange_2d.stat")['Water']['PredatorParticulateCarbonA2']['integral']
+    </variable>
+    <variable name="predator_carbon_a3" language="python">
+from fluidity_tools import stat_parser
+predator_carbon_a3 = stat_parser("pchange_2d.stat")['Water']['PredatorParticulateCarbonA3']['integral']
+    </variable>
   </variables>
   <pass_tests>
     <test name="cell_conservation" language="python">
 assert abs(all_biomass - 1000.0).all() &lt; 1.0e-6
     </test>
     <test name="carbon_conservation" language="python">
-assert abs(all_carbon - 1.0).all() &lt; 1.0e-6
+for i in range(1, len(all_carbon)):
+  assert abs(all_carbon[i] - 1.0) &lt; 1.0e-6
+    </test>
+    <test name="grazing_carbon_conservation" language="python">
+for i in range(1, len(predator_carbon)):
+  assert abs(prey_carbon_a[i-1] + predator_carbon[i] - 1.0 ) &lt; 1.0e-6
     </test>
   </pass_tests>
   <warn_tests>

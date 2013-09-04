@@ -736,7 +736,7 @@ static PyObject *lebiology_add_agent(PyObject *self, PyObject *args)
 {
 #ifdef HAVE_PYTHON
   PyObject *pAgentDict, *pPositionList, *pAgentVar;
-  const char *fg;
+  char *fg;
   if (!PyArg_ParseTuple(args, "sOO", &fg, &pAgentDict, &pPositionList)) {
     return NULL;
   }
@@ -786,8 +786,29 @@ static PyObject *lebiology_add_agent(PyObject *self, PyObject *args)
     pos[i] = PyFloat_AsDouble( PyList_GET_ITEM(pPositionList, i) );
   }
 
-  // Pass the new agent on to the Fortran
-  fl_add_agent_c(vars, n_vars, pos, &lebiology_dim);
+  //Convert food dict
+  PyObject *pFoodNames = PyDict_GetItemString(pFGFoodNames, fg);
+  if (pFoodNames) {
+    PyObject *pFoodKeys = PyDict_Keys(pFoodNames);
+    PyObject *pFoodName = PyList_GetItem(pFoodKeys, 0);
+    PyObject *pVarietyNames = PyDict_GetItem(pFoodNames, pFoodName);
+    int n_fvariety = PyList_Size(pVarietyNames);
+
+    char *food = PyString_AsString(pFoodName);
+    double *frequest = (double *)malloc(n_fvariety * sizeof(double));
+    double *fthreshold = (double *)malloc(n_fvariety * sizeof(double));
+    convert_food_variety(pAgentDict, fg, food, n_fvariety, frequest, fthreshold);
+
+    // Pass the new agent on to the Fortran with food requests
+    fl_add_agent_food_c(vars, n_vars, pos, &lebiology_dim, frequest, fthreshold, &n_fvariety);
+
+    free(frequest);
+    free(fthreshold);
+    Py_DECREF(pFoodKeys);
+  } else {
+    // Pass the new agent on to the Fortran
+    fl_add_agent_c(vars, n_vars, pos, &lebiology_dim);
+  }
 
   free(vars);
   free(n_vars);

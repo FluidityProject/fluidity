@@ -504,6 +504,40 @@ contains
     end if
   end subroutine lebiology_update_agent
 
+  subroutine fl_add_agent_food(vars, n_vars, pos, n_pos, &
+       frequest, fthreshold, n_fvariety) &
+         bind(c, name='fl_add_agent_food_c')
+    use :: iso_c_binding
+    implicit none
+    integer(c_int), intent(inout) :: n_vars, n_pos, n_fvariety
+    real(c_double), dimension(n_vars), intent(inout) :: vars
+    real(c_double), dimension(n_pos), intent(inout) :: pos
+    real(c_double), dimension(n_fvariety), intent(inout) :: frequest, fthreshold
+
+    type(detector_type), pointer :: agent
+
+    allocate(agent)
+    allocate(agent%position(n_pos))
+    allocate(agent%biology(n_vars))
+    allocate(agent%local_coords(n_pos+1))
+    allocate(agent%food_requests(n_fvariety))
+    allocate(agent%food_thresholds(n_fvariety))
+
+    call get_next_detector_id(agent%id_number)
+    agent%name = trim(int2str(agent%id_number))
+    agent%type = LAGRANGIAN_DETECTOR
+
+    agent%position = pos
+    agent%biology = vars
+
+    agent%food_requests = frequest
+    agent%food_thresholds = fthreshold
+
+    agent%path_elements => null()
+
+    call insert(agent, new_agent_list)
+  end subroutine fl_add_agent_food
+
   subroutine fl_add_agent(vars, n_vars, pos, n_pos) &
          bind(c, name='fl_add_agent_c')
     use :: iso_c_binding

@@ -89,6 +89,9 @@ void lebiology_agent_move_c(char *fg, char *key, double pos[], int n_pos, double
 
 /* Wrapper for Fortran function to add converted new agents to the system */
 void fl_add_agent_c(double vars[], int *n_vars, double pos[], int *n_pos);
+
+/* Wrapper for Fortran function to add converted new agents to the system */
+  void fl_add_agent_food_c(double vars[], int *n_vars, double pos[], int *n_pos, double frequest[], double fthreshold[], int *n_fvariety);
 }
 
 /* Callback function to add new agents to the system from inside the embedded Python biology update */
