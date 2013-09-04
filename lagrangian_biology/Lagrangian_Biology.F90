@@ -1051,6 +1051,18 @@ contains
              end if
           end if
 
+          ! Reset Ingested variables
+          do v=1, size(fgroup%variables)
+             if ( fgroup%variables(v)%field_type==BIOFIELD_INGESTED) then
+                agent%biology(v) = 0.0
+             end if
+          end do
+          if (size(fgroup%food_sets) > 0) then
+             do v=1, size(agent%food_ingests)
+                agent%food_ingests(v) = 0.0
+             end do
+          end if
+
           if (fgroup%n_env_buffer > 0) then 
              allocate(agent%env_samples(fgroup%n_env_buffer))
           end if
@@ -1243,7 +1255,7 @@ contains
 
           diagfields(v)%ptr => extract_scalar_field(state, trim(var%field_name))
 
-          if (.not.fgroup%is_external .and. .not.var%field_type == BIOFIELD_INGESTED) then
+          if (.not.fgroup%is_external) then
              call zero(diagfields(v)%ptr)
           end if
        end if
