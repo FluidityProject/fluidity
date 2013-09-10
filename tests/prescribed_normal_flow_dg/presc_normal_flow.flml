@@ -186,29 +186,15 @@
           <surface_ids>
             <integer_value shape="1" rank="1">3</integer_value>
           </surface_ids>
-          <type name="dirichlet">
-            <apply_weakly/>
-            <align_bc_with_cartesian>
-              <x_component>
-                <constant>
-                  <real_value rank="0">0.0</real_value>
-                </constant>
-              </x_component>
-              <y_component>
-                <constant>
-                  <real_value rank="0">0</real_value>
-                </constant>
-              </y_component>
-            </align_bc_with_cartesian>
-          </type>
+          <type name="no_normal_flow"/>
         </boundary_conditions>
         <boundary_conditions name="Inflow">
           <surface_ids>
-            <integer_value shape="2" rank="1">1 2</integer_value>
+            <integer_value shape="1" rank="1">1</integer_value>
           </surface_ids>
           <type name="prescribed_normal_flow">
             <constant>
-              <real_value rank="0">0.005</real_value>
+              <real_value rank="0">-0.005</real_value>
             </constant>
           </type>
         </boundary_conditions>

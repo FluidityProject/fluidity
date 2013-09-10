@@ -321,7 +321,9 @@
             <integer_value shape="1" rank="1">200</integer_value>
           </surface_ids>
           <type name="prescribed_normal_flow">
-            <from_field parent_field_name="SlideVelocity"/>
+            <constant>
+              <real_value rank="0">-0.001</real_value>
+            </constant>
           </type>
         </boundary_conditions>
         <output/>
@@ -431,7 +433,7 @@ for i in range(field.node_count):
   h_current = set_slide_height(X_n,time+dt,slide_front)
   h_past = set_slide_height(X_n,time,slide_front_old) 
   dh = h_current - h_past
-  field.set(i, dh/dt)</string_value>
+  field.set(i, -dh/dt)</string_value>
         </algorithm>
         <mesh name="VelocityMesh"/>
         <output/>
