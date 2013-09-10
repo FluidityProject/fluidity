@@ -321,9 +321,7 @@
             <integer_value shape="1" rank="1">200</integer_value>
           </surface_ids>
           <type name="prescribed_normal_flow">
-            <constant>
-              <real_value rank="0">-0.001</real_value>
-            </constant>
+            <from_field parent_field_name="SlideVelocity"/>
           </type>
         </boundary_conditions>
         <output/>

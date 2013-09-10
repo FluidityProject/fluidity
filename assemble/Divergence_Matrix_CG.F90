@@ -321,15 +321,13 @@ module divergence_matrix_cg
           if (field_bc_type(1,sele)==5 .and. present(ct_rhs)) then
 
             ! prescribed_normal_flow
-
             call transform_facet_to_physical(coordinate, sele, &
                 &                          detwei_f=detwei_bdy)
             if(multiphase) then
               detwei_bdy = detwei_bdy*face_val_at_quad(nvfrac, sele)
             end if
 
-            write(*,*) sele, detwei_bdy*ele_val_at_quad(field_bc,1,sele)
-            call addto(ct_rhs, test_nodes_bdy, -shape_rhs(test_shape, detwei_bdy*ele_val_at_quad(field_bc, 1, sele)))
+            call addto(ct_rhs, test_nodes_bdy, -shape_rhs(test_shape, detwei_bdy*ele_val_at_quad(field_bc, sele, 1)))
 
           else
 
