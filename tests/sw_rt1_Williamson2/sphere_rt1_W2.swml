@@ -102,7 +102,7 @@
       </from_mesh>
     </mesh>
     <mesh name="InputMesh">
-      <from_file file_name="cubed_sphere">
+      <from_file file_name="cube_serial">
         <format name="triangle"/>
         <dimension>
           <integer_value rank="0">2</integer_value>
@@ -134,7 +134,7 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">1800.0</real_value>
+      <real_value rank="0">800.0</real_value>
     </timestep>
     <theta>
       <real_value rank="0">0.5</real_value>
@@ -175,6 +175,7 @@
           <adjoint_storage>
             <exists_in_forward/>
           </adjoint_storage>
+          <do_not_recalculate/>
         </prescribed>
       </vector_field>
     </gravity>
@@ -311,10 +312,37 @@ g = 9.80616
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
+    <scalar_field name="InitialLayerThickness" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+      </diagnostic>
+    </scalar_field>
     <scalar_field name="DG_CourantNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
+        <output/>
+        <stat>
+          <manifold_transformation/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="LayerThicknessError" rank="0">
+      <diagnostic>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="LayerThickness" source_field_2_name="InitialLayerThickness" material_phase_support="single" source_field_1_type="scalar"/>
+        <mesh name="VelocityMesh"/>
         <output/>
         <stat>
           <manifold_transformation/>
