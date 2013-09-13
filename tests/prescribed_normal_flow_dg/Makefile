@@ -1,4 +1,4 @@
-input:
+input: clean
 	gmsh -2 -bin channel.geo
 
 clean:

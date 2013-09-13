@@ -65,7 +65,7 @@
       <real_value rank="0">0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">0.05</real_value>
+      <real_value rank="0">0.5</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">5</real_value>
@@ -146,15 +146,15 @@
             </advection_scheme>
           </discontinuous_galerkin>
           <conservative_advection>
-            <real_value rank="0">0.5</real_value>
+            <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
-            <real_value rank="0">0.5</real_value>
+            <real_value rank="0">1.0</real_value>
           </theta>
           <relaxation>
-            <real_value rank="0">0.5</real_value>
+            <real_value rank="0">0.53</real_value>
           </relaxation>
         </temporal_discretisation>
         <solver>
@@ -182,19 +182,29 @@
             <real_value shape="2" dim1="dim" rank="1">0 0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="FreeSlipWalls">
-          <surface_ids>
-            <integer_value shape="1" rank="1">3</integer_value>
-          </surface_ids>
-          <type name="no_normal_flow"/>
-        </boundary_conditions>
         <boundary_conditions name="Inflow">
           <surface_ids>
             <integer_value shape="1" rank="1">1</integer_value>
           </surface_ids>
           <type name="prescribed_normal_flow">
             <constant>
-              <real_value rank="0">-0.005</real_value>
+              <real_value rank="0">-0.05</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
+        <boundary_conditions name="NoFlow">
+          <surface_ids>
+            <integer_value shape="1" rank="1">3</integer_value>
+          </surface_ids>
+          <type name="no_normal_flow"/>
+        </boundary_conditions>
+        <boundary_conditions name="Outflow">
+          <surface_ids>
+            <integer_value shape="1" rank="1">2</integer_value>
+          </surface_ids>
+          <type name="prescribed_normal_flow">
+            <constant>
+              <real_value rank="0">0.05</real_value>
             </constant>
           </type>
         </boundary_conditions>
