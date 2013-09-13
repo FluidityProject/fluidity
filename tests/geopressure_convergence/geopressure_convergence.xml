@@ -4,10 +4,10 @@
   <owner userid="piggt01"/>
   <tags>flml parallel</tags>
   <problem_definition length = "medium" nprocs = "2">
-    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l $(FLMLMODEL1) $(FLMLMODEL1)_flredecomp &amp;&amp;
-	mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l $(FLMLMODEL2) $(FLMLMODEL2)_flredecomp &amp;&amp;
-	mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l $(FLMLMODEL3) $(FLMLMODEL3)_flredecomp &amp;&amp;
-	mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l $(FLMLMODEL4) $(FLMLMODEL4)_flredecomp &amp;&amp;
+    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l geopressure_8 geopressure_8_flredecomp &amp;&amp;
+	mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l geopressure_16 geopressure_16_flredecomp &amp;&amp;
+	mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l geopressure_32 geopressure_32_flredecomp &amp;&amp;
+	mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l geopressure_64 geopressure_64_flredecomp &amp;&amp;
       make clean-run; rm -f 8.log 16.log 32.log 64.log;
 mpiexec ../../bin/fluidity -v2 geopressure_8_flredecomp.flml &gt; 8.log;
 mpiexec ../../bin/fluidity -v2 geopressure_16_flredecomp.flml &gt; 16.log;
