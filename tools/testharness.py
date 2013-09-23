@@ -5,7 +5,13 @@ import os
 import os.path
 import glob
 import time
-import fluidity.regressiontest as regressiontest
+try:
+    import fluidity.regressiontest as regressiontest
+except:
+    source_root = os.getcwd()+'/'+sys.argv[0][:sys.argv[0].rfind('/bin/')]
+    print source_root
+    sys.path.append(source_root+"/python")
+    import fluidity.regressiontest as regressiontest
 import traceback
 import threading
 import xml.parsers.expat
