@@ -2,7 +2,7 @@
 import argparse
 import sys
 import numpy as np
-from math import sqrt
+from math import sqrt, tan, pi
 
 def find(x):
     for k, nods in enumerate(halonodes):
@@ -100,6 +100,25 @@ h.readline()
 h.readline()
 total_nnods+=int(h.readline().split('\"')[3])
 h.close()
+
+import pylab as p
+import mpl_toolkits.mplot3d.axes3d as p3
+fig = p.figure()
+ax = p3.Axes3D(fig)
+X=allnodes[:,1]
+Y=allnodes[:,2]
+Z=allnodes[:,3]
+ax.scatter(X,Y,Z,s=2,marker='x')
+xc=tan(pi/4.)
+yc=tan(-pi/4.)
+zc=1
+rr=sqrt(xc**2+yc**2+zc**2)
+xc=xc/(3.*rr)
+yc=yc/(3.*rr)
+zc=zc/(3.*rr)
+ax.scatter(xc,yc,zc,s=5,marker='o',color='red')
+p.show()
+
 
 neles=alleles.shape[0]
 

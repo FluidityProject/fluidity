@@ -17,10 +17,12 @@ input: clean
 	spud-set sphere_williamson2_new5.swml /timestepping/timestep 900
 	spud-set sphere_williamson2_new5.swml /timestepping/timestep 450
 clean:
-	rm -f *.d.* *.vtu
-	rm -f fluidity.err-0 fluidity.log-0
-	rm -f channel*.ele channel*.face chanel*.node channel*.edge *.stat *.halo
-	rm -f *.msh *.geo
+	rm -f  *.vtu
+	rm -f *.ele *.node
+	rm -f sphere_williamson2_new3.swml
+	rm -f sphere_williamson2_new4.swml
+	rm -f sphere_williamson2_new5.swml
+	rm -f sphere_williamson2_new6.swml
 
 sw2_convergence_runs: input
 	../../bin/shallow_water_mimetic -v 1 sphere_williamson2_new3.swml &> 3.out &
