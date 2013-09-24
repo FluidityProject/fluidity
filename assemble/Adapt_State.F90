@@ -116,7 +116,9 @@ contains
       call strip_l2_halo(old_positions, stripped_positions, metric, stripped_metric)
     else
       call allocate(stripped_positions, old_positions%dim, old_positions%mesh, old_positions%name)
+      call allocate(stripped_metric, metric%mesh, metric%name)
       call set(stripped_positions, old_positions)
+      call set(stripped_metric, metric)
     end if
 
     select case(stripped_positions%dim)
