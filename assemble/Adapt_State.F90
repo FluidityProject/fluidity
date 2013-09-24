@@ -111,8 +111,13 @@ contains
 
     assert(.not. mesh_periodic(old_positions))
 
-    ! generate stripped versions of the position and metric fields
-    call strip_l2_halo(old_positions, stripped_positions, metric, stripped_metric)
+    if(isparallel()) then
+      ! generate stripped versions of the position and metric fields
+      call strip_l2_halo(old_positions, stripped_positions, metric, stripped_metric)
+    else
+      call allocate(stripped_positions, old_positions%dim, old_positions%mesh, old_positions%name)
+      call set(stripped_positions, old_positions)
+    end if
 
     select case(stripped_positions%dim)
       case(1)
@@ -142,7 +147,9 @@ contains
     call deallocate(stripped_positions)
 
     ! add halo 2 to new_positions
-    call create_l2_halo(new_positions)
+    if(isparallel()) then
+      call create_l2_halo(new_positions)
+    end if
 
   end subroutine adapt_mesh_simple
 
