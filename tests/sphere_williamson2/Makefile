@@ -13,12 +13,12 @@ input: clean
 	sed -i s/sphere_ico4/sphere_ico5/ sphere_williamson2_new5.swml
 	sed -i s/sphere_ico4/sphere_ico6/ sphere_williamson2_new6.swml
 
-	spud-set sphere_williamson2_new5.swml /simulation_name 'sphere_williamson2mesh5'
 	spud-set sphere_williamson2_new5.swml /timestepping/timestep 900
-	spud-set sphere_williamson2_new5.swml /timestepping/timestep 450
+	spud-set sphere_williamson2_new6.swml /timestepping/timestep 450
 clean:
-	rm -f  *.vtu
+	rm -f  *.vtu *.stat
 	rm -f *.ele *.node
+	rm -f *.out
 	rm -f sphere_williamson2_new3.swml
 	rm -f sphere_williamson2_new4.swml
 	rm -f sphere_williamson2_new5.swml

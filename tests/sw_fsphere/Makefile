@@ -11,4 +11,4 @@ input: clean
 	sed -i s/fsphere/fsphere5/ fsphere5.swml
 	sed -i s/fsphere/fsphere6/ fsphere6.swml
 clean:
-	rm -f *.vtu *.stat *.log sphere*.ele sphere*.node *.swml
+	rm -f *.vtu *.stat *.log sphere*.ele sphere*.node fsphere*.swml

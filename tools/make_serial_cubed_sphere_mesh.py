@@ -101,23 +101,23 @@ h.readline()
 total_nnods+=int(h.readline().split('\"')[3])
 h.close()
 
-import pylab as p
-import mpl_toolkits.mplot3d.axes3d as p3
-fig = p.figure()
-ax = p3.Axes3D(fig)
-X=allnodes[:,1]
-Y=allnodes[:,2]
-Z=allnodes[:,3]
-ax.scatter(X,Y,Z,s=2,marker='x')
-xc=tan(pi/4.)
-yc=tan(-pi/4.)
-zc=1
-rr=sqrt(xc**2+yc**2+zc**2)
-xc=xc/(3.*rr)
-yc=yc/(3.*rr)
-zc=zc/(3.*rr)
-ax.scatter(xc,yc,zc,s=5,marker='o',color='red')
-p.show()
+#import pylab as p
+#import mpl_toolkits.mplot3d.axes3d as p3
+#fig = p.figure()
+#ax = p3.Axes3D(fig)
+#X=-allnodes[:,2]
+#Y=allnodes[:,1]
+#Z=allnodes[:,3]
+#ax.scatter(X,Y,Z,s=2,marker='x')
+#xc=tan(pi/4.)
+#yc=tan(-pi/4.)
+#zc=1
+#rr=sqrt(xc**2+yc**2+zc**2)
+#xc=xc/(3.*rr)
+#yc=yc/(3.*rr)
+#zc=zc/(3.*rr)
+#ax.scatter(xc,yc,zc,s=5,marker='o',color='red')
+#p.show()
 
 
 neles=alleles.shape[0]
@@ -157,6 +157,12 @@ for e in range(0,neles):
         f.write(str(sqrt((v3*v3).sum()))+'\n')
         f.write(str(sqrt((v4*v4).sum()))+'\n')
 f.close()
+
+#mapped_allnodes=np.zeros((allnodes.shape))
+#mapped_allnodes[:,0]=allnodes[:,0]
+#mapped_allnodes[:,1]=-allnodes[:,2]
+#mapped_allnodes[:,2]=allnodes[:,1]
+#mapped_allnodes[:,3]=allnodes[:,3]
 
 # write out nodes
 nodefile.write(str(total_nnods)+" 3 0 0\n")

@@ -373,10 +373,14 @@
       X=>extract_vector_field(state, "Coordinate")
       U=>extract_vector_field(state, "Velocity")
       Z=>extract_vector_field(state, "Vorticity",stat)
+      D=>extract_scalar_field(state, "LayerThickness")
 
       if(have_option('/geometry/mesh::CoordinateMesh/recompute_coordinate_f&
            &ield/python')) then
          call recompute_coordinate_field(state)
+         call vtk_write_fields('RecomputedCoordinates', position=X, &
+              model=D%mesh, &
+              vfields=(/X/))
       end if
 
       !SET UP LOCAL VELOCITY
