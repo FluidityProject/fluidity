@@ -2418,6 +2418,9 @@
            'spatial_discretisation/discontinuous_galerkin/stabilisation/method', &
            RESID_BASED_STAB_DIF, default=0)
       BETWEEN_ELE_STAB=RESID_BASED_STAB_DIF.NE.0 ! Always switch on between element diffusion if using non-linear 
+
+      !BETWEEN_ELE_STAB=.FALSE.
+
       ! stabilization
 
       call get_option('/material_phase[0]/vector_field::Velocity/prognostic/' // &
@@ -3777,9 +3780,9 @@ end if
                        *WITH_NONLIN +DENGI(GI, IPHASE)* W_DT(GI, IPHASE) + P_DZ(GI) * RNO_P_IN_A_DOT
 
 
-                  STAR_U_COEF( GI, IPHASE ) = A_DOT_U( GI, IPHASE )/U_GRAD_NORM2( GI, IPHASE )
-                  STAR_V_COEF( GI, IPHASE ) = A_DOT_V( GI, IPHASE )/V_GRAD_NORM2( GI, IPHASE )
-                  STAR_W_COEF( GI, IPHASE ) = A_DOT_W( GI, IPHASE )/W_GRAD_NORM2( GI, IPHASE )
+                  STAR_U_COEF( GI, IPHASE ) = A_DOT_U( GI, IPHASE ) / U_GRAD_NORM2( GI, IPHASE )
+                  STAR_V_COEF( GI, IPHASE ) = A_DOT_V( GI, IPHASE ) / V_GRAD_NORM2( GI, IPHASE )
+                  STAR_W_COEF( GI, IPHASE ) = A_DOT_W( GI, IPHASE ) / W_GRAD_NORM2( GI, IPHASE )
 
 
                   JTT_INV=2./DT 
@@ -3802,9 +3805,9 @@ end if
                           + (2.*UFENZ(U_ILOC,GI)*W_DZ( GI, IPHASE ))**2   )
                   END DO
 
-                  P_STAR_U( GI, IPHASE )= U_NONLIN_SHOCK_COEF/ MAX(TOLER,SQRT( STAR_U_COEF( GI, IPHASE )**2 *U_GRAD_N_MAX2 ))
-                  P_STAR_V( GI, IPHASE )= U_NONLIN_SHOCK_COEF/ MAX(TOLER,SQRT( STAR_V_COEF( GI, IPHASE )**2 *V_GRAD_N_MAX2 ))
-                  P_STAR_W( GI, IPHASE )= U_NONLIN_SHOCK_COEF/ MAX(TOLER,SQRT( STAR_W_COEF( GI, IPHASE )**2 *W_GRAD_N_MAX2 ))
+                  P_STAR_U( GI, IPHASE )= U_NONLIN_SHOCK_COEF/ MAX(TOLER,SQRT( STAR_U_COEF( GI, IPHASE )**2 * U_GRAD_N_MAX2 ))
+                  P_STAR_V( GI, IPHASE )= U_NONLIN_SHOCK_COEF/ MAX(TOLER,SQRT( STAR_V_COEF( GI, IPHASE )**2 * V_GRAD_N_MAX2 ))
+                  P_STAR_W( GI, IPHASE )= U_NONLIN_SHOCK_COEF/ MAX(TOLER,SQRT( STAR_W_COEF( GI, IPHASE )**2 * W_GRAD_N_MAX2 ))
 
                   IF(RESID_BASED_STAB_DIF==1) THEN
 
@@ -4491,16 +4494,27 @@ end if
 ! endof if(.not.stress_form) then...
                    ENDIF
 
-                        FTHETA( SGI,IDIM,IPHASE )=1.0
+                   FTHETA( SGI,IDIM,IPHASE )=1.0
 
-                        SNDOTQ_IN(SGI,IDIM,IPHASE)    =SNDOTQ_IN(SGI,IDIM,IPHASE)  &
-                             +FTHETA( SGI,IDIM,IPHASE )*SDEN(SGI,IPHASE)*SNDOTQ(SGI,IPHASE)*SINCOME(SGI,IPHASE)
-                        SNDOTQ_OUT(SGI,IDIM,IPHASE)   =SNDOTQ_OUT(SGI,IDIM,IPHASE)  &
-                             +FTHETA( SGI,IDIM,IPHASE )*SDEN(SGI,IPHASE)*SNDOTQ(SGI,IPHASE)*(1.-SINCOME(SGI,IPHASE))
-                        SNDOTQOLD_IN(SGI,IDIM,IPHASE) =SNDOTQOLD_IN(SGI,IDIM,IPHASE)  &
-                             +(1.-FTHETA( SGI,IDIM,IPHASE ))*SDEN(SGI,IPHASE)*SNDOTQOLD(SGI,IPHASE)*SINCOMEOLD(SGI,IPHASE)
-                        SNDOTQOLD_OUT(SGI,IDIM,IPHASE)=SNDOTQOLD_OUT(SGI,IDIM,IPHASE)  &
-                             +(1.-FTHETA( SGI,IDIM,IPHASE ))*SDEN(SGI,IPHASE)*SNDOTQOLD(SGI,IPHASE)*(1.-SINCOMEOLD(SGI,IPHASE))
+                   if ( .false. ) then ! central differencing scheme....
+                      SNDOTQ_IN(SGI,IDIM,IPHASE) = SNDOTQ_IN(SGI,IDIM,IPHASE)  &
+                           + FTHETA(SGI,IDIM,IPHASE) * SDEN(SGI,IPHASE) * SNDOTQ(SGI,IPHASE) * 0.5
+                      SNDOTQ_OUT(SGI,IDIM,IPHASE) = SNDOTQ_OUT(SGI,IDIM,IPHASE)  &
+                           + FTHETA(SGI,IDIM,IPHASE) * SDEN(SGI,IPHASE) * SNDOTQ(SGI,IPHASE) * 0.5
+                      SNDOTQOLD_IN(SGI,IDIM,IPHASE) = SNDOTQOLD_IN(SGI,IDIM,IPHASE)  &
+                           + (1.-FTHETA(SGI,IDIM,IPHASE)) * SDEN(SGI,IPHASE) * SNDOTQOLD(SGI,IPHASE) * 0.5
+                      SNDOTQOLD_OUT(SGI,IDIM,IPHASE) = SNDOTQOLD_OUT(SGI,IDIM,IPHASE)  &
+                           + (1.-FTHETA(SGI,IDIM,IPHASE)) * SDEN(SGI,IPHASE) * SNDOTQOLD(SGI,IPHASE) * 0.5
+                   else
+                      SNDOTQ_IN(SGI,IDIM,IPHASE) = SNDOTQ_IN(SGI,IDIM,IPHASE)  &
+                           +FTHETA(SGI,IDIM,IPHASE) * SDEN(SGI,IPHASE) * SNDOTQ(SGI,IPHASE) * SINCOME(SGI,IPHASE)
+                      SNDOTQ_OUT(SGI,IDIM,IPHASE) = SNDOTQ_OUT(SGI,IDIM,IPHASE)  &
+                           +FTHETA(SGI,IDIM,IPHASE) * SDEN(SGI,IPHASE) * SNDOTQ(SGI,IPHASE) * (1.-SINCOME(SGI,IPHASE))
+                      SNDOTQOLD_IN(SGI,IDIM,IPHASE) = SNDOTQOLD_IN(SGI,IDIM,IPHASE)  &
+                           +(1.-FTHETA(SGI,IDIM,IPHASE)) * SDEN(SGI,IPHASE) * SNDOTQOLD(SGI,IPHASE) * SINCOMEOLD(SGI,IPHASE)
+                      SNDOTQOLD_OUT(SGI,IDIM,IPHASE) = SNDOTQOLD_OUT(SGI,IDIM,IPHASE)  &
+                           +(1.-FTHETA(SGI,IDIM,IPHASE)) * SDEN(SGI,IPHASE) * SNDOTQOLD(SGI,IPHASE) * (1.-SINCOMEOLD(SGI,IPHASE))
+                   end if
 
                      END DO
                   END DO
