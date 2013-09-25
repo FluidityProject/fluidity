@@ -124,7 +124,7 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">5000000</integer_value>
+        <integer_value rank="0">4</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <output_mesh name="VelocityMesh"/>
@@ -138,7 +138,7 @@
       <comment>1 hour</comment>
     </timestep>
     <theta>
-      <real_value rank="0">0.55</real_value>
+      <real_value rank="0">0.50</real_value>
     </theta>
     <nonlinear_iterations>
       <integer_value rank="0">4</integer_value>
@@ -224,17 +224,18 @@
         <initial_condition name="WholeMesh">
           <galerkin_projection>
             <python>
-              <string_value type="code" lines="20" language="python">from math import pi
-x = X[0]
-y = X[1]
-z = X[2]
-R = (x**2+y**2+z**2)**0.5
-R0 = 6.37122e6
-x = R0*x/R
-y = R0*y/R
-z = R0*z/R
-u0 = 2*pi*R0/(12.*60.*60.*24)
-</string_value>
+              <string_value type="code" lines="20" language="python">def val(X,t):
+  from math import pi
+  x = X[0]
+  y = X[1]
+  z = X[2]
+  R = (x**2+y**2+z**2)**0.5
+  R0 = 6.37122e6
+  x = R0*x/R
+  y = R0*y/R
+  z = R0*z/R
+  u0 = 2*pi*R0/(12.*60.*60.*24)
+  return [-u0*y/R0,u0*x/R0,0.]</string_value>
             </python>
           </galerkin_projection>
         </initial_condition>

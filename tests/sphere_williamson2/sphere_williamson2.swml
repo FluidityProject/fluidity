@@ -147,6 +147,7 @@
           <adjoint_storage>
             <exists_in_forward/>
           </adjoint_storage>
+          <do_not_recalculate/>
         </prescribed>
       </vector_field>
     </gravity>
@@ -263,11 +264,7 @@ g = 9.80616
         <mesh name="VorticityMesh"/>
         <spatial_discretisation>
           <continuous_galerkin>
-            <two_step_taylor_galerkin>
-              <eta>
-                <real_value rank="0"/>
-              </eta>
-            </two_step_taylor_galerkin>
+            <theta_method/>
           </continuous_galerkin>
         </spatial_discretisation>
         <solver>

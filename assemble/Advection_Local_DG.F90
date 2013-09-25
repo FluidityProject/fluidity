@@ -1138,6 +1138,8 @@ module advection_local_DG
        call get_option(trim(Q%option_path)//'/prognostic/spatial_discretisati&
             &on/continuous_galerkin/discontinuity_capturing/discontinuity_in&
             &dicator_name',discontinuity_detector_name)
+       call get_option(trim(Q%option_path)//'/prognostic/timestepping&
+            &/theta',t_theta)
 
        discontinuity_detector_field => extract_scalar_field(&
             &state,trim(discontinuity_detector_name))
