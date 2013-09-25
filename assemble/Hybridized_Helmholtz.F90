@@ -1899,7 +1899,7 @@ contains
     !Project balance equation into div-conforming space
     call solve_hybridized_helmholtz(state,U_Rhs=balance_eqn,&
          &U_out=balance_eqn,&
-         &compute_cartesian=.true.,&
+         &compute_cartesian=.false.,&
          &projection=.true.,&
          &poisson=.false.,&
          &u_rhs_local=.true.)
@@ -1939,9 +1939,10 @@ contains
     d_shape = ele_shape(d,ele)
     psi_quad = ele_val_at_quad(psi,ele)
 
-    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
-         detwei=detwei)
+    !call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
+    !     detwei=detwei)
 
+    detwei = D%mesh%shape%quadrature%weight
     d_rhs = shape_rhs(d_shape,detwei*psi_quad*f_gi/g)
     d_mass = shape_shape(d_shape,d_shape,detwei)
     call solve(d_mass,d_rhs)

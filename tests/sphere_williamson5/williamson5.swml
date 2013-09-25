@@ -19,20 +19,6 @@
           <exclude_from_stat/>
         </stat>
       </from_mesh>
-      <recompute_coordinate_field>
-        <python>
-          <string_value lines="20" type="code" language="python">def val(X,t):
-  R0 = 6.37122e6
-  x = X[0]
-  y = X[1]
-  z = X[2]
-  R = (x**2+y**2+z**2)**0.5
-  x = R0*x/R
-  y = R0*y/R
-  z = R0*z/R
-  return [x,y,z]</string_value>
-        </python>
-      </recompute_coordinate_field>
     </mesh>
     <mesh name="VelocityMesh">
       <from_mesh>
