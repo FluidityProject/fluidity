@@ -19,14 +19,6 @@
           <exclude_from_stat/>
         </stat>
       </from_mesh>
-      <recompute_coordinate_field>
-        <python>
-          <string_value lines="20" type="code" language="python">def val(X,t):
-  R0 = 6.37122e6
-  R = (X[0]**2+X[1]**2+X[2]**2)**0.5
-  return [X[0]*R0/R,X[1]*R0/R,X[2]*R0/R]</string_value>
-        </python>
-      </recompute_coordinate_field>
     </mesh>
     <mesh name="VelocityMesh">
       <from_mesh>
@@ -118,10 +110,10 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">10</integer_value>
+        <integer_value rank="0">0</integer_value>
       </constant>
     </dump_period_in_timesteps>
-    <output_mesh name="VelocityMesh"/>
+    <output_mesh name="PressureMesh"/>
   </io>
   <timestepping>
     <current_time>
