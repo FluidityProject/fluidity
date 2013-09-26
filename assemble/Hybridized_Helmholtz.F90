@@ -1385,7 +1385,28 @@ contains
     integer, intent(in) :: ele
     !
     integer, dimension(:), pointer :: neigh
-    integer :: ni,face,ele2,face2
+    integer :: ni,face,ele2,face2, i,dim1, loc
+    type(constraints_type), pointer :: constraints
+    real :: residual
+    real, dimension(U%dim, ele_loc(U,ele)) :: U_loc
+
+    !!Check internal continuity constraints    
+    constraints => U%mesh%shape%constraints
+    if(constraints%n_constraints>0) then
+       !constraint%orthogonal(i,loc,dim1) stores the coefficient 
+       !for basis function loc, dimension dim1 in equation i.
+       U_loc = ele_val(U,ele)
+       do i = 1, size(constraints%orthogonal,1)
+          residual = 0.
+          do dim1 = 1, mesh_dim(U)
+             do loc = 1, ele_loc(U,ele)
+                residual = residual + &
+                     sum(U_loc(dim1,:)*constraints%orthogonal(i,:,dim1))
+             end do
+          end do
+          assert(abs(residual)<1.0e-10)
+       end do
+    end if
 
     neigh => ele_neigh(U,ele)
     do ni = 1, size(neigh)
@@ -1423,7 +1444,7 @@ contains
     !jump = maxval(abs(sum(u1*n1+u2*n2,1)))
     jump = shape_rhs(face_shape(Lambda,ele),sum(u1*n1*weight1 &
          +u2*n2*weight2,1)*detwei)
-
+    ewrite(1,*) 'cjc jump', jump
     if(maxval(abs(jump))>1.0e-7) then
        ewrite(0,*) 'Bad jump alert'
        ewrite(0,*) 'face numbers', face, face2
