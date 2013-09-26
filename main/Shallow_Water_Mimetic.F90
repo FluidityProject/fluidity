@@ -557,8 +557,6 @@
          FLExit('Option only available for 3 dimensional coordinates.')
       end if
 
-      ewrite(0,*) X_ele_val,'cjc'
-
       call set_vector_field_from_python(python_function, len(python_function),&
            & dim=3,nodes=ele_loc(X,ele),x=X_ele_val(1,:),y=X_ele_val(2,:)&
            &,z=x_ele_val(3,:),t=0.0,result_dim=3,&
@@ -687,7 +685,7 @@
          call assemble_mean_ele(D,X,h_mean,area,ele)
       end do
       h_mean = h_mean/area
-      
+
       if(have_option('/material_phase::Fluid/scalar_field::LayerThickness/pr&
            &ognostic/mean_layer_thickness/reset_this_value')) then
          ewrite(2,*) 'Setting D0 to mean value computed from field',h_mean
@@ -696,10 +694,21 @@
          D0 = h_mean
       else
          D%val = D%val - h_mean
-         ewrite(2,*) 'Setting field mean value to D0',D0
+
+         h_mean = 0.
+         area = 0.
+         do ele = 1, element_count(D)
+            call assemble_mean_ele(D,X,h_mean,area,ele)
+         end do
+         h_mean = h_mean/area
+         ewrite(1,*) 'area cjc', area, h_mean
+         assert(abs(h_mean)<1.0e-8)
+
          !Add back on the correct mean depth
          call get_option("/material_phase::Fluid/scalar_field::LayerThickness/&
               &prognostic/mean_layer_thickness",D0)
+         ewrite(2,*) 'Setting field mean value to D0',D0
+         
          D%val = D%val + D0
       end if
       h_mean = 0.
@@ -708,7 +717,7 @@
          call assemble_mean_ele(D,X,h_mean,area,ele)
       end do
       ewrite(2,*) 'fix_layerdepth_mean H mean',h_mean/area,D0
-      assert(abs(h_mean/area-D0)/D0<1.0e-8)
+      assert(abs(h_mean/area-D0)/(max(1.0,D0))<1.0e-8)
       ewrite(1,*) 'END fix_layerdepth_mean(state)'
   end subroutine fix_layerdepth_mean
 

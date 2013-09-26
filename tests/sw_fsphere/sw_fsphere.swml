@@ -30,7 +30,7 @@
   x=R0*x/R
   y=R0*y/R
   z=R0*z/R
-  return [-y,x,z]</string_value>
+  return [x,y,z]</string_value>
         </python>
       </recompute_coordinate_field>
     </mesh>
@@ -292,13 +292,13 @@
         <value>
           <python>
             <string_value lines="20" type="code" language="python">def val(X,t): 
-  from math import pi
+  from math import pi,exp
   x = X[0]
   y = X[1]
   z = X[2]
   R0 = 6.37122e6
   u0 = 2*pi*R0/(12.*60.*60.*24)
-  return -u0*z</string_value>
+  return -u0*z*x/R0</string_value>
           </python>
         </value>
         <initialise_from_quadrature_points/>

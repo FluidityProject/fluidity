@@ -46,6 +46,7 @@ module hybridized_helmholtz
     use global_parameters, only: option_path_len, PYTHON_FUNC_LEN
     use vector_tools, only: solve
     use manifold_tools
+    use vtk_interfaces
     implicit none
 
     !Variables belonging to the Newton solver
@@ -1377,9 +1378,10 @@ contains
     end do
   end subroutine compute_cartesian_ele
 
-  subroutine check_continuity_local_ele(U,ele)
+  subroutine check_continuity_local_ele(U,Lambda,X,ele)
     implicit none
-    type(vector_field), intent(in) :: U
+    type(vector_field), intent(in) :: U,X
+    type(scalar_field), intent(in) :: Lambda
     integer, intent(in) :: ele
     !
     integer, dimension(:), pointer :: neigh
@@ -1394,26 +1396,40 @@ contains
        else
           face2 = -1
        end if
-       call check_continuity_local_face(U,ele,ele2,face,face2)
+       call check_continuity_local_face(U,Lambda,X,ele,ele2,face,face2)
     end do
   end subroutine check_continuity_local_ele
 
-  subroutine check_continuity_local_face(U,ele,ele2,face,face2)
+  subroutine check_continuity_local_face(U,Lambda,X,ele,ele2,face,face2)
     implicit none
     integer, intent(in) :: face, face2,ele,ele2
-    type(vector_field), intent(in) :: U
+    type(vector_field), intent(in) :: U,X
+    type(scalar_field), intent(in) :: Lambda
     !
     real, dimension(U%dim, face_ngi(U, face)) :: n1,n2,u1,u2
-    real :: weight, jump
+    real :: weight1,weight2
+    real, dimension(face_loc(Lambda,ele)) :: jump
+    type(element_type), pointer :: U_face_shape
+    real, pointer, dimension(:) :: detwei
+
+    U_face_shape=>face_shape(U, face)
+    detwei => U_face_shape%quadrature%weight
 
     !Get normal in local coordinates
-    call get_local_normal(n1,weight,U,local_face_number(U%mesh,face))
-    call get_local_normal(n2,weight,U,local_face_number(U%mesh,face2))
+    call get_local_normal(n1,weight1,U,local_face_number(U%mesh,face))
+    call get_local_normal(n2,weight2,U,local_face_number(U%mesh,face2))
     u1 = face_val_at_quad(U,face)
     u2 = face_val_at_quad(U,face2)
-    jump = maxval(abs(sum(u1*n1+u2*n2,1)))
-    ewrite(2,*) jump
-    assert(jump<1.0e-8)
+    !jump = maxval(abs(sum(u1*n1+u2*n2,1)))
+    jump = shape_rhs(face_shape(Lambda,ele),sum(u1*n1*weight1 &
+         +u2*n2*weight2,1)*detwei)
+
+    if(maxval(abs(jump))>1.0e-7) then
+       ewrite(0,*) 'Bad jump alert'
+       ewrite(0,*) 'face numbers', face, face2
+       ewrite(0,*) 'face X DOFs', face_global_nodes(X,face)
+       FLExit('Bad jumps')
+    end if
 
   end subroutine check_continuity_local_face
 
@@ -1774,9 +1790,10 @@ contains
     type(state_type), intent(inout) :: state
     !
     type(scalar_field), pointer :: D,psi,f
-    type(scalar_field) :: D_rhs,tmp_field
+    type(scalar_field) :: D_rhs,tmp_field, lambda
     type(vector_field), pointer :: U_local,down,X, U_cart
     type(vector_field) :: Coriolis_term, Balance_eqn, tmpV_field
+    type(mesh_type),pointer :: Lambda_Mesh
     integer :: ele,dim1,i1, stat
     real :: g, D0
     logical :: elliptic_method, pullback
@@ -1818,12 +1835,25 @@ contains
     ewrite(2,*) 'CHECKING CONTINUOUS', maxval(abs(u_local%val))
     tmpV_field%val = U_local%val
     call project_to_constrained_space(state,tmpV_field)
+
     ewrite(2,*) maxval(abs(U_local%val-tmpV_field%val)), 'continuity'
-    u_max = 0.
-    do dim1 = 1, mesh_dim(D)
-       u_max = max(u_max,maxval(abs(U_local%val)))
+    u_max = max(u_max,maxval(abs(U_local%val)))
+    ewrite(2,*) u_max, 'u_max'
+
+    tmpV_field%val = tmpV_Field%val - u_local%val
+
+    call vtk_write_fields('ContinuityCheck', position=X, &
+         model=D%mesh, &
+         vfields=(/tmpV_field/))    
+
+    lambda_mesh=>extract_mesh(state, "VelocityMeshTrace")
+    call allocate(lambda,lambda_mesh,"lambdacheck")
+    do ele = 1, element_count(D)
+       call check_continuity_local_ele(U_local,Lambda,X,ele)
     end do
-    assert(maxval(abs(U_local%val-tmpV_field%val)/max(1.0,u_max))<1.0e-8)
+    call deallocate(lambda)
+
+    assert(maxval(abs(tmpV_field%val)/max(1.0,u_max))<1.0e-8)
 
     if(have_option("/material_phase::Fluid/vector_field::Velocity/prognostic&
          &/initial_condition::WholeMesh/balanced/elliptic_solver")) then
@@ -1906,6 +1936,10 @@ contains
          &poisson=.false.,&
          &u_rhs_local=.true.)
     
+    call vtk_write_fields('BalanceEqn', position=X, &
+         model=D%mesh, &
+         vfields=(/X,balance_eqn/))    
+
     do dim1 = 1, mesh_dim(D)
        ewrite(2,*) 'Balance equation', maxval(abs(balance_eqn%val(dim1,:)))/b_val
        !assert(maxval(abs(balance_eqn%val(dim1,:)))/b_val<1.0e-8)
@@ -2171,7 +2205,7 @@ contains
     do dim1= 1, U_local%dim
        Uloc_gi(dim1,:) = matmul(transpose(U_shape%n),U_loc(dim1,:))
     end do
-    assert(maxval(abs(Uloc_gi-dpsi_gi))/max(1.0,maxval(abs(Uloc_gi)))<1.0e-8)
+    assert(maxval(abs(Uloc_gi-dpsi_gi))/max(1.0,maxval(abs(Uloc_gi)))<1.0e-11)
 
     !verify divergence-free-ness
     !This is just for debugging
@@ -2181,9 +2215,9 @@ contains
     div_gi = 0.
     do gi = 1, ele_ngi(psi,ele)
        do dim1 = 1, mesh_dim(psi)
-          div_gi(gi) = div_gi(gi)+sum(u_shape%dn(:,gi,dim1)*u_loc(dim1,:))&
-               /detJ(gi)
+          div_gi(gi) = div_gi(gi)+sum(u_shape%dn(:,gi,dim1)*u_loc(dim1,:))
        end do
+       div_gi(gi)=div_gi(gi)/detJ(gi)
     end do
     if(maxval(abs(div_gi))>1.0e-8) then
        ewrite(0,*) 'Divergence =', maxval(abs(div_gi))
