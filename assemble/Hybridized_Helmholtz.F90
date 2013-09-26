@@ -1404,7 +1404,8 @@ contains
                      sum(U_loc(dim1,:)*constraints%orthogonal(i,:,dim1))
              end do
           end do
-          assert(abs(residual)<1.0e-10)
+          ewrite(2,*) 'cjc residual', residual,maxval(abs(U_loc))
+          assert(abs(residual/max(1.0,maxval(abs(U_loc))))<1.0e-10)
        end do
     end if
 
@@ -1428,6 +1429,7 @@ contains
     type(scalar_field), intent(in) :: Lambda
     !
     real, dimension(U%dim, face_ngi(U, face)) :: n1,n2,u1,u2
+    real, dimension(face_ngi(U, face)) :: f1,f2
     real :: weight1,weight2
     real, dimension(face_loc(Lambda,ele)) :: jump
     type(element_type), pointer :: U_face_shape
@@ -1442,15 +1444,22 @@ contains
     u1 = face_val_at_quad(U,face)
     u2 = face_val_at_quad(U,face2)
     !jump = maxval(abs(sum(u1*n1+u2*n2,1)))
+
     jump = shape_rhs(face_shape(Lambda,ele),sum(u1*n1*weight1 &
          +u2*n2*weight2,1)*detwei)
-    ewrite(1,*) 'cjc jump', jump
-    if(maxval(abs(jump))>1.0e-7) then
+    ewrite(0,*) 'cjc jump', jump
+    ewrite(0,*) face_local_nodes(U,face)
+    ewrite(0,*) face_local_nodes(U,face2)
+    if(maxval(abs(jump))/max(1.0,maxval(abs(u1)))>1.0e-7) then
+       jump = shape_rhs(face_shape(Lambda,ele),sum(u2*n2*weight2,1)*detwei)
+       ewrite(0,*) 'one side', jump
+       jump = shape_rhs(face_shape(Lambda,ele),sum(u1*n1*weight1,1)*detwei)
+       ewrite(0,*) 'other side', jump
        ewrite(0,*) 'Bad jump alert'
        ewrite(0,*) 'face numbers', face, face2
        ewrite(0,*) 'element numbers', ele, ele2
        ewrite(0,*) 'face X values', face_val(X,face)
-       FLExit('Bad jumps')
+       !FLExit('Bad jumps')
     end if
 
   end subroutine check_continuity_local_face
@@ -1894,9 +1903,7 @@ contains
        !Calculate divergence of Coriolis term 
        call zero(d_rhs)
 
-       pullback = have_option('/material_phase::Fluid/scalar_field::LayerThickn&
-            &ess/prognostic/spatial_discretisation/discontinuous_galerkin/wave_&
-            &equation/pullback')
+       pullback = .false.
        
        do ele = 1, element_count(D)
           call compute_divergence_ele(Coriolis_term,d_rhs,X,ele,pullback)
@@ -1919,7 +1926,6 @@ contains
     end if
 
     !Subtract off the mean part
-    !Didn't bother with pullback
     h_mean = 0.
     area = 0.
     do ele = 1, element_count(D)
@@ -1933,19 +1939,27 @@ contains
     D%val = D%val + D0
 
     !debugging tests
-    call zero(Coriolis_term)
-    do ele = 1, element_count(D)
-       !weights not needed since both sides of equation are multiplied
-       !by weight(ele)^2 in each element
-       call set_coriolis_term_ele(Coriolis_term,f,down,U_local,X,ele)
-    end do
- 
-    call zero(balance_eqn)
-    do ele = 1, element_count(D)
-       call set_pressure_force_ele(balance_eqn,D,X,g,ele,weights(ele),&
-            pullback)
-    end do
-    call addto(balance_eqn,coriolis_term,scale=1.0)
+    if(.true.) then
+       call zero(Coriolis_term)
+       do ele = 1, element_count(D)
+          !weights not needed since both sides of equation are multiplied
+          !by weight(ele)^2 in each element
+          call set_coriolis_term_ele(Coriolis_term,f,down,U_local,X,ele)
+       end do
+       
+       call zero(balance_eqn)
+       do ele = 1, element_count(D)
+          call set_pressure_force_ele(balance_eqn,D,X,g,ele,weights(ele),&
+               pullback)
+       end do
+       call addto(balance_eqn,coriolis_term,scale=1.0)
+    else
+       ! call zero(balance_eqn)
+       ! do ele = 1, element_count(D)
+       !    call set_balance_eqn_ele(balance_eqn,f,U_local,D,X,g,ele)
+       ! end do
+    end if
+
     ewrite(2,*) 'Project balance equation into div-conforming space'
     ewrite(2,*) 'CJC b4',maxval(abs(balance_eqn%val)),&
          & maxval(abs(coriolis_term%val))
@@ -1977,6 +1991,56 @@ contains
     deallocate(weights)
 
   end subroutine set_velocity_from_geostrophic_balance_hybridized
+  
+  ! subroutine set_balance_eqn_ele(balance_eqn,f,U_local,D,X,g,ele)
+  !   type(vector_field), intent(inout) :: balance_eqn
+  !   type(vector_field), intent(in) :: U_local,X
+  !   type(scalar_field), intent(in) :: D,f
+  !   real, intent(in) :: g
+  !   integer, intent(in) :: ele
+  !   !
+  !   real, dimension(mesh_dim(balance_eqn), X%dim, ele_ngi(balance_eqn,ele)) :: J
+  !   real, dimension(ele_ngi(balance_eqn,ele)) :: detJ
+  !   real, dimension(mesh_dim(balance_eqn),mesh_dim(balance_eqn),ele_ngi(balance_eqn,ele))::&
+  !        &Metric
+  !   real, dimension(mesh_dim(balance_eqn)*ele_loc(balance_eqn,ele),&
+  !        mesh_dim(balance_eqn)*ele_loc(balance_eqn,ele)) :: l_u_mat
+  !   real, dimension(mesh_dim(balance_eqn)*ele_loc(balance_eqn,ele)) :: balance_eqn_rhs
+  !   real, dimension(mesh_dim(D),ele_loc(balance_eqn,ele)) :: &
+  !        & rhs_loc
+  !   type(element_type) :: force_shape
+  !   real, dimension(ele_ngi(D,ele)) :: D_gi
+  !   integer :: uloc
+  !   real, dimension(mesh_dim(U_local), ele_ngi(U_local,ele)) :: U_gi
+    
+  !   D_gi = ele_val_at_quad(D,ele)
+  !   u_gi = ele_val_at_quad(u_local,ele)
+
+  !   uloc = ele_loc(balance_eqn,ele)
+  !   force_shape = ele_shape(balance_eqn,ele)
+  !   call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
+  !        detJ=detJ)
+  !   do gi=1,ele_ngi(balance_eqn,ele)
+  !      Metric(:,:,gi)=matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)
+  !   end do
+
+  !   rhs_loc = -g*dshape_rhs(force_shape%dn,&
+  !        D_gi*D%mesh%shape%quadrature%weight)
+  !   rhs_loc(1,:) = rhs_loc(1,:) + -f*shape_rhs(force_shape,&
+  !        u_gi(2,
+  !   do dim1 = 1, mesh_dim(balance_eqn)
+  !      force_rhs((dim1-1)*uloc+1:dim1*uloc) = rhs_loc(dim1,:)
+  !   end do
+  !   do dim1 = 1, mesh_dim(balance_eqn)
+  !      do dim2 = 1, mesh_dim(balance_eqn)
+  !         l_u_mat((dim1-1)*uloc+1:dim1*uloc,&
+  !              &  (dim2-1)*uloc+1:dim2*uloc ) = &
+  !              & shape_shape(force_shape,force_shape,&
+  !              & force_shape%quadrature%weight*Metric(dim1,dim2,:))
+  !      end do
+  !   end do
+
+  ! end subroutine set_balance_eqn_ele
 
   subroutine project_streamfunction_for_balance_ele(D,psi,X,f,g,ele)
     implicit none
@@ -1991,7 +2055,7 @@ contains
     type(element_type) :: psi_shape, d_shape
     real, dimension(ele_ngi(d,ele)) :: detwei, psi_quad,f_gi
     real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
-
+   
     f_gi = ele_val_at_quad(f,ele)
     psi_shape = ele_shape(psi,ele)
     d_shape = ele_shape(d,ele)
@@ -2216,6 +2280,7 @@ contains
     case default
        FLAbort('Exterior derivative not implemented for given mesh dimension')
     end select
+
     dpsi_gi = orientation*dpsi_gi
     U_loc = shape_vector_rhs(u_shape,dpsi_gi,U_shape%quadrature%weight)
 
