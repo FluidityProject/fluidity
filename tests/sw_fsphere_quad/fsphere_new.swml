@@ -286,9 +286,7 @@ g = 9.80616
   x = X[0]
   y = X[1]
   z = X[2]
-  R0 = 6.37122e6
-  u0 = 2*pi*R0/(12.*60.*60.*24)
-  return -u0*z</string_value>
+  return x*y*z</string_value>
           </python>
         </value>
         <initialise_from_quadrature_points/>
