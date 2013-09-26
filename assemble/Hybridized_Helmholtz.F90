@@ -1448,7 +1448,8 @@ contains
     if(maxval(abs(jump))>1.0e-7) then
        ewrite(0,*) 'Bad jump alert'
        ewrite(0,*) 'face numbers', face, face2
-       ewrite(0,*) 'face X DOFs', face_global_nodes(X,face)
+       ewrite(0,*) 'element numbers', ele, ele2
+       ewrite(0,*) 'face X values', face_val(X,face)
        FLExit('Bad jumps')
     end if
 
