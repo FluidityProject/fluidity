@@ -472,10 +472,8 @@ if panel==0 or panel==3:
         send_nodes[1][l].insert(ind,send_nodes[0][l][end[panel]*(len(send_nodes[0][l])-1)]+diff[1,l])
 
 # Generate cube coordinates for this partition:
-if args.project==None:
-    a=1.0
-else:
-    a=sqrt(3)/3.
+a=1.0
+
 startxp=startx[panel]
 lx0=startxp[lx[panel][0]]+dirn[panel][0]*xstart[0]
 ly0=startxp[lx[panel][1]]+dirn[panel][1]*xstart[1]
