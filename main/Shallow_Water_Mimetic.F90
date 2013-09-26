@@ -557,6 +557,8 @@
          FLExit('Option only available for 3 dimensional coordinates.')
       end if
 
+      ewrite(0,*) X_ele_val,'cjc'
+
       call set_vector_field_from_python(python_function, len(python_function),&
            & dim=3,nodes=ele_loc(X,ele),x=X_ele_val(1,:),y=X_ele_val(2,:)&
            &,z=x_ele_val(3,:),t=0.0,result_dim=3,&

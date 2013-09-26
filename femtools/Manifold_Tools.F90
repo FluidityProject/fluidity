@@ -231,6 +231,7 @@ module manifold_tools
        end do
        do gi = 1, ele_ngi(X,ele)
           if(sign(1.0,orientation_gi(gi)).ne.sign(1.0,orientation_gi(1))) then
+             ewrite(0,*) 'orientation full=',orientation_gi
              ewrite(0,*) 'gi=',gi
              ewrite(0,*) 'normal=',normal_gi(:,gi)
              ewrite(0,*) 'up=',up_gi(:,gi)
