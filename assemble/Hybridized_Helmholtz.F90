@@ -1463,10 +1463,10 @@ contains
          u1*n1*weight1,1)*detwei)
        ewrite(0,*) shape_rhs(face_shape(Lambda,ele),sum( &
          u2*n2*weight2,1)*detwei)
-       ewrite(0,*) 'psi1', face_val(psi,face)
-       ewrite(0,*) 'psi2', face_val(psi,face2)
-       ewrite(0,*) 'P1DGtest1', face_val(test,face)
-       ewrite(0,*) 'P1DGtest2', face_val(test,face2)
+       ewrite(0,*) 'psi1', face_val_at_quad(psi,face)
+       ewrite(0,*) 'psi2', face_val_at_quad(psi,face2)
+       ewrite(0,*) 'P1DGtest1', face_val_at_quad(test,face)
+       ewrite(0,*) 'P1DGtest2', face_val_at_quad(test,face2)
 !       FLExit('Bad jumps')
     end if
 

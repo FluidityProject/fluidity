@@ -112,6 +112,8 @@
 
     call populate_state(states)
 
+    call test_mesh(states(1))
+
     ! No support for multiphase or multimaterial at this stage.
     if (size(states)/=1) then
        FLExit("Multiple material_phases are not supported")
@@ -196,6 +198,50 @@
     assert(ierr == MPI_SUCCESS)
 #endif
   contains
+
+    subroutine test_mesh(state)
+
+      type(state_type), intent(inout) :: state
+
+      type(scalar_field), pointer :: test_field
+      integer:: ele,ele2,face,face2,ni
+      integer, dimension(:), pointer:: neigh
+      
+      test_field => extract_scalar_field(state,"P1DGtest")
+
+      do ele = 1, element_count(test_field)
+         neigh => ele_neigh(test_field,ele)
+
+         do ni=1, size(neigh)
+            ele2 = neigh(ni)
+            face = ele_face(test_field,ele,ele2)
+            face2 = ele_face(test_field,ele2,ele)
+            call test_mesh_face(test_field,ele,ele2,face,face2)
+         end do
+
+      end do
+    end subroutine test_mesh
+
+    subroutine test_mesh_face(test_field,ele,ele2,face,face2)
+
+      type(scalar_field), intent(in) :: test_field
+      integer, intent(in) :: ele, ele2, face, face2
+
+      real, dimension(face_ngi(test_field,face)) :: v1,v2
+    
+      v1=face_val_at_quad(test_field,face)
+      v2=face_val_at_quad(test_field,face2)
+  
+      if (maxval(abs(v1-v2))>1.0e-10) then
+         ewrite(0,*) "Hello dham, why am I back-to-front?"
+         ewrite(0,*) "Mesh info: ele, ele2, face, face2", ele, ele2, face, face2
+         ewrite(0,*) "face_val_at_quad(test_field,face) = ", v1
+         ewrite(0,*) "face_val_at_quad(test_field,face2) = ", v2
+
+      end if
+ 
+    end subroutine test_mesh_face
+
     subroutine execute_timestep(state)
       type(state_type), intent(inout) :: state
       !
