@@ -63,6 +63,7 @@
     use Compositional_Terms
     use Copy_Outof_State
     use Copy_BackTo_State
+    use checkpoint
 
     !use mapping_for_ocvfem
     !use matrix_operations
@@ -192,6 +193,8 @@
 
       type( scalar_field ), pointer :: cfl
       real :: c, rc, minc, maxc, ic
+
+      integer :: checkpoint_number
 
 !!$ Compute primary scalars used in most of the code
       call Get_Primary_Scalars( state, &         
@@ -509,8 +512,16 @@
 
 !!$ Starting Time Loop 
       itime = 0
+      checkpoint_number=0
       Loop_Time: do
 !!$
+
+         if (do_checkpoint_simulation(itime)) then
+            call checkpoint_simulation(state,cp_no=checkpoint_number,&
+                 protect_simulation_name=.true.)
+            checkpoint_number=checkpoint_number+1
+         end if
+
          itime = itime + 1
          call get_option( '/timestepping/timestep', dt )
 

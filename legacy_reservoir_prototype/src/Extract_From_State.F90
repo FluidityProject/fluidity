@@ -1047,7 +1047,8 @@
             call set_from_python_function(dummy, trim(func), positions, current_time)
             field_prot = dummy % val
             call deallocate( dummy )
-
+         elseif( have_option( trim( option_path ) // '/prognostic/initial_condition/from_file')) then
+            field_prot = field % val
          else
             ewrite(-1,*) 'No initial condition for field::', trim( field_name )
             FLAbort( 'Check initial conditions' )
@@ -1182,7 +1183,8 @@
             call set_from_python_function( dummy, trim( func ), positions, current_time )
             field_prot = dummy % val
             call deallocate( dummy )
-
+         elseif( have_option( trim( option_path ) // '/prognostic/initial_condition/from_file')) then
+            field_prot = field % val
          else
             ewrite(-1,*) 'No initial condition for field::', trim( field_name )
             FLAbort( ' Check initial conditions ' )
@@ -1346,7 +1348,10 @@
             if( ndim > 2 ) field_w_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = dummy % val( 3, : )
 
             call deallocate( dummy )
-
+         elseif( have_option( trim( option_path ) // '/from_file')) then
+             field_u_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = field % val( 1, : )
+            if( ndim > 1 ) field_v_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = field % val( 2, : )
+            if( ndim > 2 ) field_w_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = field % val( 3, : )
          else
 
             ewrite(-1,*) 'No initial condition for field::', trim( field_name )
