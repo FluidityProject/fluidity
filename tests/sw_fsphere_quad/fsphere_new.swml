@@ -102,7 +102,7 @@
       </from_mesh>
     </mesh>
     <mesh name="InputMesh">
-      <from_file file_name="sphere">
+      <from_file file_name="john2">
         <format name="triangle"/>
         <dimension>
           <integer_value rank="0">2</integer_value>
@@ -352,6 +352,30 @@ g = 9.80616
           <exists_in_forward/>
         </adjoint_storage>
       </diagnostic>
+    </scalar_field>
+    <scalar_field name="P1DGtest" rank="0">
+      <prescribed>
+        <mesh name="PressureMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+  x=X[0]
+  y=X[1]
+  z=X[2]
+  return x*y*z</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <manifold_transformation/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </prescribed>
     </scalar_field>
   </material_phase>
   <debug>

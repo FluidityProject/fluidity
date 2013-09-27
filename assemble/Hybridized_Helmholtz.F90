@@ -1378,10 +1378,10 @@ contains
     end do
   end subroutine compute_cartesian_ele
 
-  subroutine check_continuity_local_ele(U,Lambda,X,ele)
+  subroutine check_continuity_local_ele(U,Lambda,psi,test,X,ele)
     implicit none
     type(vector_field), intent(in) :: U,X
-    type(scalar_field), intent(in) :: Lambda
+    type(scalar_field), intent(in) :: Lambda,psi,test
     integer, intent(in) :: ele
     !
     integer, dimension(:), pointer :: neigh
@@ -1417,15 +1417,15 @@ contains
        else
           face2 = -1
        end if
-       call check_continuity_local_face(U,Lambda,X,ele,ele2,face,face2)
+       call check_continuity_local_face(U,Lambda,psi,test,X,ele,ele2,face,face2)
     end do
   end subroutine check_continuity_local_ele
 
-  subroutine check_continuity_local_face(U,Lambda,X,ele,ele2,face,face2)
+  subroutine check_continuity_local_face(U,Lambda,psi,test,X,ele,ele2,face,face2)
     implicit none
-    integer, intent(in) :: face, face2,ele,ele2
+    integer, intent(in) :: face,face2,ele,ele2
     type(vector_field), intent(in) :: U,X
-    type(scalar_field), intent(in) :: Lambda
+    type(scalar_field), intent(in) :: Lambda, psi, test
     !
     real, dimension(U%dim, face_ngi(U, face)) :: n1,n2,u1,u2
     real :: weight1,weight2
@@ -1450,7 +1450,15 @@ contains
        ewrite(0,*) 'face numbers', face, face2
        ewrite(0,*) 'element numbers', ele, ele2
        ewrite(0,*) 'face X values', face_val(X,face)
-       FLExit('Bad jumps')
+       ewrite(0,*) shape_rhs(face_shape(Lambda,ele),sum( &
+         u1*n1*weight1,1)*detwei)
+       ewrite(0,*) shape_rhs(face_shape(Lambda,ele),sum( &
+         u2*n2*weight2,1)*detwei)
+       ewrite(0,*) 'psi1', face_val(psi,face)
+       ewrite(0,*) 'psi2', face_val(psi,face2)
+       ewrite(0,*) 'P1DGtest1', face_val(test,face)
+       ewrite(0,*) 'P1DGtest2', face_val(test,face2)
+!       FLExit('Bad jumps')
     end if
 
   end subroutine check_continuity_local_face
@@ -1811,7 +1819,7 @@ contains
     implicit none
     type(state_type), intent(inout) :: state
     !
-    type(scalar_field), pointer :: D,psi,f
+    type(scalar_field), pointer :: D,psi,f,test
     type(scalar_field) :: D_rhs,tmp_field, lambda
     type(vector_field), pointer :: U_local,down,X, U_cart
     type(vector_field) :: Coriolis_term, Balance_eqn, tmpV_field
@@ -1824,6 +1832,7 @@ contains
 
     D=>extract_scalar_field(state, "LayerThickness")
     psi=>extract_scalar_field(state, "Streamfunction")
+    test => extract_scalar_field(state,'P1DGtest')
     f=>extract_scalar_field(state, "Coriolis")
     U_local=>extract_vector_field(state, "LocalVelocity")
     U_cart=>extract_vector_field(state, "Velocity")
@@ -1871,7 +1880,7 @@ contains
     lambda_mesh=>extract_mesh(state, "VelocityMeshTrace")
     call allocate(lambda,lambda_mesh,"lambdacheck")
     do ele = 1, element_count(D)
-       call check_continuity_local_ele(U_local,Lambda,X,ele)
+       call check_continuity_local_ele(U_local,Lambda,psi,test,X,ele)
     end do
     call deallocate(lambda)
 
