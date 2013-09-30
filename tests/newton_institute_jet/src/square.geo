@@ -6,7 +6,7 @@ Point (2) = {0, 2*a, 0, dx};
 Line (1) = {1, 2};
 
 Extrude {2*a,0,0} {
-  Line{1};Layers{N};
+  Line{1};
 }
 
 // Volume number for whole domain.

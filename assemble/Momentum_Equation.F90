@@ -75,6 +75,7 @@
       use implicit_solids
       use multiphase_module
       use pressure_dirichlet_bcs_cv
+      use shallow_water_equations
 
       implicit none
 
@@ -93,6 +94,8 @@
 
       ! Do we want to use the compressible projection method?
       logical :: compressible_eos
+      ! are we solving the shallow water equations (which partly follows the compressible projection path)
+      logical :: shallow_water_projection
       ! Are we doing a full Schur solve?
       logical :: full_schur
       ! Are we lumping mass or assuming consistent mass?
@@ -1373,6 +1376,8 @@
                    &"/prognostic/spatial_discretisation/continuous_galerkin&
                    &/test_continuity_with_cv_dual")
 
+         shallow_water_projection = have_option("/material_phase/equation_of_state/compressible/shallow_water")
+
       end subroutine get_pressure_options
 
 
@@ -1667,7 +1672,11 @@
          if(compressible_eos .and. have_option(trim(state(istate)%option_path)//'/equation_of_state/compressible')) then
             call allocate(compress_projec_rhs, p_theta%mesh, "CompressibleProjectionRHS")
 
-            if(cv_pressure) then
+            if (shallow_water_projection) then
+               assert(istate==1)
+               call assemble_shallow_water_projection(state(1), cmc_m, compress_projec_rhs, dt, &
+                                                      theta_pg, theta_divergence, reassemble_cmc_m)
+            else if(cv_pressure) then
                call assemble_compressible_projection_cv(state, cmc_m, compress_projec_rhs, dt, &
                                                       theta_pg, theta_divergence, reassemble_cmc_m)
             else
