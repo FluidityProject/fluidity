@@ -2933,7 +2933,7 @@ END IF
 
       Conditional_PELEOT: IF( PELEOT /= PELE ) THEN
 
-         IF( ETDNEW( PELEOT ) > ETDNEW( PELE )) THEN
+         IF( ETDNEW( PELEOT ) > ETDNEW( PELE ) ) THEN
             TUPWIN = TDMAX( PELEOT )
             TUPWI2 = TDMIN( PELE )
          ELSE
@@ -2988,9 +2988,8 @@ END IF
          FTILOU = ( TDCEN - TUPWI2 ) / DENOOU
 
          ! Velocity is going out of element
-         TDLIM= INCOME*( TUPWIN + NVDFUNNEW( FTILIN, CTILIN, COURANT_OR_MINUS_ONE ) * DENOIN ) &
-              + ( 1.0 - INCOME ) * ( TUPWI2 + NVDFUNNEW( FTILOU, CTILOU, COURANT_OR_MINUS_ONE ) &
-              * DENOOU )
+         TDLIM = INCOME * ( TUPWIN + NVDFUNNEW( FTILIN, CTILIN, COURANT_OR_MINUS_ONE ) * DENOIN ) &
+              + ( 1.0 - INCOME ) * ( TUPWI2 + NVDFUNNEW( FTILOU, CTILOU, COURANT_OR_MINUS_ONE ) * DENOOU )
 
       ENDIF Conditional_FIRORD
 

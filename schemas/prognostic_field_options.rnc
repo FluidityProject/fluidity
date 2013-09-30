@@ -769,6 +769,18 @@ prognostic_velocity_field =
                      element upwind {
                         empty
                      }|
+                     ## Central-differencing of the nonlinear velocity.
+                     element central_differencing {
+                        empty
+                     }|
+
+                     ## Non-linear DG flux - if we have an oscillation use upwinding else use central scheme.
+                     element nonlinear_flux {
+                        empty
+                     }|
+
+
+
                      ## Disable advection
                      element none {
                         empty

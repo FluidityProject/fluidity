@@ -2258,6 +2258,9 @@
 ! if STAB_VISC_WITH_ABS then stabilize (in the projection mehtod) the viscosity using absorption.
 !      REAL, PARAMETER :: WITH_NONLIN = 1.0, TOLER = 1.E-10, ZERO_OR_TWO_THIRDS=2.0/3.0
       REAL, PARAMETER :: WITH_NONLIN = 1.0, TOLER = 1.E-10, ZERO_OR_TWO_THIRDS=0.0
+! NON_LIN_DGFLUX = .TRUE. non-linear DG flux for momentum - if we have an oscillation use upwinding else use central scheme. 
+! UPWIND_DGFLUX=.TRUE. Upwind DG flux.. Else use central scheme. if NON_LIN_DGFLUX = .TRUE. then this option is ignored. 
+      LOGICAL :: NON_LIN_DGFLUX, UPWIND_DGFLUX
 
       INTEGER, DIMENSION( :, : ), allocatable :: CV_SLOCLIST, U_SLOCLIST, CV_NEILOC, FACE_ELE
       INTEGER, DIMENSION( : ), allocatable :: CV_SLOC2LOC, U_SLOC2LOC, FINDGPTS, COLGPTS, &
@@ -2285,7 +2288,12 @@
            UD,VD,WD, UDOLD,VDOLD,WDOLD, &
            DENGI, DENGIOLD,GRAD_SOU_GI,SUD,SVD,SWD, SUDOLD,SVDOLD,SWDOLD, SUD2,SVD2,SWD2, &
            SUDOLD2,SVDOLD2,SWDOLD2, &
-           SNDOTQ, SNDOTQOLD, SINCOME, SINCOMEOLD, SDEN, SDENOLD
+           SNDOTQ, SNDOTQOLD, SINCOME, SINCOMEOLD, SDEN, SDENOLD, &
+           SUD_KEEP, SVD_KEEP, SWD_KEEP, SUDOLD_KEEP, SVDOLD_KEEP, SWDOLD_KEEP, &
+           SUD2_KEEP, SVD2_KEEP, SWD2_KEEP, SUDOLD2_KEEP, SVDOLD2_KEEP, SWDOLD2_KEEP, &
+           SNDOTQ_KEEP, SNDOTQ2_KEEP, SNDOTQOLD_KEEP, SNDOTQOLD2_KEEP, &
+           N_DOT_DU, N_DOT_DU2, N_DOT_DUOLD, N_DOT_DUOLD2
+      REAL, DIMENSION ( : ), allocatable :: vel_dot, vel_dot2, velold_dot, velold_dot2, grad_fact
       LOGICAL, DIMENSION( :, : ), allocatable :: CV_ON_FACE, U_ON_FACE, &
            CVFEM_ON_FACE, UFEM_ON_FACE
 
@@ -2314,7 +2322,8 @@
       REAL, DIMENSION ( :, :), allocatable :: LOC_PLIKE_GRAD_SOU_COEF
       REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U_SOURCE_CV
 
-      LOGICAL :: D1, D3, DCYL, GOT_DIFFUS, GOT_UDEN, DISC_PRES, QUAD_OVER_WHOLE_ELE
+      LOGICAL :: D1, D3, DCYL, GOT_DIFFUS, GOT_UDEN, DISC_PRES, QUAD_OVER_WHOLE_ELE, &
+                 have_oscillation, have_oscillation_old
       INTEGER :: CV_NGI, CV_NGI_SHORT, SCVNGI, SBCVNGI, NFACE
       INTEGER :: IPHASE, ELE, GI, ILOC, GLOBI, GLOBJ, U_NOD, IU_NOD, JCV_NOD, &
            COUNT, COUNT2, IPHA_IDIM, JPHA_JDIM, COUNT_PHA, IU_PHA_NOD, MAT_NOD, SGI, SELE, &
@@ -2326,7 +2335,8 @@
            IU_NOD_PHA, IU_NOD_DIM_PHA, U_NODI_IPHA, U_NODK, U_NODK_PHA, U_SKLOC, X_INOD, X_INOD2, &
            U_NODJ, U_NODJ2, U_NODJ_IPHA, U_SJLOC, X_ILOC, MAT_ILOC2, MAT_INOD, MAT_INOD2, MAT_SILOC, &
            CV_ILOC, CV_JLOC, CV_NOD, CV_NOD_PHA, U_JNOD_IDIM_IPHA, COUNT_PHA2, P_JLOC2, P_JNOD, P_JNOD2, &
-           CV_SILOC, JDIM, JPHASE, ILEV, U_NLOC2, CV_KLOC2, CV_NODK2, CV_NODK2_PHA, GI_SHORT, NLEV, STAT, GLOBI_CV, U_INOD_jDIM_jPHA
+           CV_SILOC, JDIM, JPHASE, ILEV, U_NLOC2, CV_KLOC2, CV_NODK2, CV_NODK2_PHA, GI_SHORT, NLEV, STAT, &
+           GLOBI_CV, U_INOD_jDIM_jPHA, u_nod2, u_nod2_pha
       REAL    :: NN, NXN, NNX, NXNX, NMX, NMY, NMZ, SAREA, &
            VNMX, VNMY, VNMZ, NM
       REAL    :: VOLUME, MN, XC, YC, ZC, XC2, YC2, ZC2, HDC, VLM, VLM_NEW,VLM_OLD, NN_SNDOTQ_IN,NN_SNDOTQ_OUT, &
@@ -2419,8 +2429,6 @@
            RESID_BASED_STAB_DIF, default=0)
       BETWEEN_ELE_STAB=RESID_BASED_STAB_DIF.NE.0 ! Always switch on between element diffusion if using non-linear 
 
-      !BETWEEN_ELE_STAB=.FALSE.
-
       ! stabilization
 
       call get_option('/material_phase[0]/vector_field::Velocity/prognostic/' // &
@@ -2452,6 +2460,15 @@
       firstst=(sum((u(:)-uold(:))**2).lt.1.e-10)
       if(NDIM_VEL.ge.2) firstst=firstst.and.(sum((v(:)-vold(:))**2).lt.1.e-10)
       if(NDIM_VEL.ge.3) firstst=firstst.and.(sum((w(:)-wold(:))**2).lt.1.e-10)
+
+      UPWIND_DGFLUX = .TRUE.
+      if ( have_option( &
+           '/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/advection_scheme/central_differencing') &
+           ) UPWIND_DGFLUX = .FALSE.
+      NON_LIN_DGFLUX = .FALSE.
+      if ( have_option( &
+           '/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/advection_scheme/nonlinear_flux') &
+           ) NON_LIN_DGFLUX = .TRUE.
 
       ALLOCATE( DETWEI( CV_NGI ))
       ALLOCATE( RA( CV_NGI ))
@@ -2587,6 +2604,32 @@
       ALLOCATE( SINCOMEOLD(SBCVNGI,NPHASE) )
       ALLOCATE( SDEN(SBCVNGI,NPHASE) )
       ALLOCATE( SDENOLD(SBCVNGI,NPHASE) )
+
+      ALLOCATE( SUD_KEEP(SBCVNGI,NPHASE) )
+      ALLOCATE( SVD_KEEP(SBCVNGI,NPHASE) )
+      ALLOCATE( SWD_KEEP(SBCVNGI,NPHASE) )
+      ALLOCATE( SUDOLD_KEEP(SBCVNGI,NPHASE) )
+      ALLOCATE( SVDOLD_KEEP(SBCVNGI,NPHASE) )
+      ALLOCATE( SWDOLD_KEEP(SBCVNGI,NPHASE) )
+
+      ALLOCATE( SUD2_KEEP(SBCVNGI,NPHASE) )
+      ALLOCATE( SVD2_KEEP(SBCVNGI,NPHASE) )
+      ALLOCATE( SWD2_KEEP(SBCVNGI,NPHASE) )
+      ALLOCATE( SUDOLD2_KEEP(SBCVNGI,NPHASE) )
+      ALLOCATE( SVDOLD2_KEEP(SBCVNGI,NPHASE) )
+      ALLOCATE( SWDOLD2_KEEP(SBCVNGI,NPHASE) )
+
+      ALLOCATE( SNDOTQ_KEEP(SBCVNGI,NPHASE) )
+      ALLOCATE( SNDOTQ2_KEEP(SBCVNGI,NPHASE) )
+      ALLOCATE( SNDOTQOLD_KEEP(SBCVNGI,NPHASE) )
+      ALLOCATE( SNDOTQOLD2_KEEP(SBCVNGI,NPHASE) )
+
+      ALLOCATE( N_DOT_DU(SBCVNGI,NPHASE) )
+      ALLOCATE( N_DOT_DU2(SBCVNGI,NPHASE) )
+      ALLOCATE( N_DOT_DUOLD(SBCVNGI,NPHASE) )
+      ALLOCATE( N_DOT_DUOLD2(SBCVNGI,NPHASE) )
+
+      ALLOCATE( vel_dot(SBCVNGI), vel_dot2(SBCVNGI), velold_dot(SBCVNGI), velold_dot2(SBCVNGI), grad_fact(SBCVNGI) )
 
       ALLOCATE( DIFF_COEF_DIVDX( SBCVNGI,NDIM_VEL,NPHASE ) )
       ALLOCATE( DIFF_COEFOLD_DIVDX( SBCVNGI,NDIM_VEL,NPHASE ) )
@@ -4152,6 +4195,16 @@ end if
                      END DO
                   END DO
                END DO
+
+              SUD_KEEP=SUD
+              SVD_KEEP=SVD
+              SWD_KEEP=SWD
+
+              SUDOLD_KEEP=SUDOLD
+              SVDOLD_KEEP=SVDOLD
+              SWDOLD_KEEP=SWDOLD
+
+
             ENDIF If_diffusion_or_momentum1
 
             If_ele2_notzero: IF(ELE2 /= 0) THEN
@@ -4269,6 +4322,14 @@ end if
                      END DO
                   END DO
 
+                  SUD2_KEEP=SUD2
+                  SVD2_KEEP=SVD2
+                  SWD2_KEEP=SWD2
+
+                  SUDOLD2_KEEP=SUDOLD2
+                  SVDOLD2_KEEP=SVDOLD2
+                  SWDOLD2_KEEP=SWDOLD2
+
                   IF(MOM_CONSERV) THEN
                      SUD=0.5*(SUD+SUD2)
                      SVD=0.5*(SVD+SVD2)
@@ -4372,6 +4433,51 @@ end if
                SNDOTQ_OUT = 0.0
                SNDOTQOLD_IN  = 0.0
                SNDOTQOLD_OUT = 0.0
+
+
+            IF( NON_LIN_DGFLUX ) THEN
+               DO IPHASE=1, NPHASE
+                  SNDOTQ_KEEP(:,IPHASE)   =SUD_KEEP(:,IPHASE)*SNORMXN(:)   &
+                       +SVD_KEEP(:,IPHASE)*SNORMYN(:)   +SWD_KEEP(:,IPHASE)*SNORMZN(:)
+                  SNDOTQ2_KEEP(:,IPHASE)   =SUD2_KEEP(:,IPHASE)*SNORMXN(:)   &
+                       +SVD2_KEEP(:,IPHASE)*SNORMYN(:)   +SWD2_KEEP(:,IPHASE)*SNORMZN(:)
+
+                  SNDOTQOLD_KEEP(:,IPHASE)=SUDOLD_KEEP(:,IPHASE)*SNORMXN(:)  &
+                       +SVDOLD_KEEP(:,IPHASE)*SNORMYN(:)+SWDOLD_KEEP(:,IPHASE)*SNORMZN(:)
+                  SNDOTQOLD2_KEEP(:,IPHASE)=SUDOLD2_KEEP(:,IPHASE)*SNORMXN(:)  &
+                       +SVDOLD2_KEEP(:,IPHASE)*SNORMYN(:)+SWDOLD2_KEEP(:,IPHASE)*SNORMZN(:)
+               END DO
+
+               N_DOT_DU=0.0 
+               N_DOT_DU2=0.0 
+               N_DOT_DUOLD=0.0 
+               N_DOT_DUOLD2=0.0 
+               DO U_ILOC=1,U_NLOC
+                  u_nod=u_ndgln((ele-1)*u_nloc + u_iloc)
+                  u_nod2=u_ndgln((ele2-1)*u_nloc + u_iloc)
+ 
+                  DO IPHASE=1, NPHASE
+                     u_nod_pha =u_nod  + (iphase-1)*u_nonods
+                     u_nod2_pha=u_nod2 + (iphase-1)*u_nonods
+
+                     vel_dot(:) = u(u_nod_pha)*snormxn(:) + v(u_nod_pha)*snormyn(:) + w(u_nod_pha)*snormzn(:)
+                     vel_dot2(:) = u(u_nod2_pha)*snormxn(:) + v(u_nod2_pha)*snormyn(:) + w(u_nod2_pha)*snormzn(:)
+
+                     velold_dot(:) = uold(u_nod_pha)*snormxn(:) + vold(u_nod_pha)*snormyn(:) + wold(u_nod_pha)*snormzn(:)
+                     velold_dot2(:) = uold(u_nod2_pha)*snormxn(:) + vold(u_nod2_pha)*snormyn(:) + wold(u_nod2_pha)*snormzn(:)
+
+                     grad_fact(:) = UFENX(U_ILOC,1)*snormxn(:) + UFENY(U_ILOC,1)*snormyn(:) + UFENZ(U_ILOC,1)*snormzn(:)
+
+                     N_DOT_DU(:,iphase)  = N_DOT_DU(:,iphase)  + grad_fact(:)*vel_dot(:)
+                     N_DOT_DU2(:,iphase) = N_DOT_DU2(:,iphase) + grad_fact(:)*vel_dot2(:)
+
+                     N_DOT_DUOLD(:,iphase)  = N_DOT_DUOLD(:,iphase)  + grad_fact(:)*velold_dot(:) 
+                     N_DOT_DUOLD2(:,iphase) = N_DOT_DUOLD2(:,iphase) + grad_fact(:)*velold_dot2(:)  
+                  END DO
+
+               END DO
+            ENDIF
+
                ! Have a surface integral on element boundary...  
                DO SGI=1,SBCVNGI
 
@@ -4492,24 +4598,47 @@ end if
                            DIFF_COEFOLD_DIVDX( SGI,IDIM,IPHASE )=0.0
                         END IF If_GOT_DIFFUS
 ! endof if(.not.stress_form) then...
-                   ENDIF
+                     ENDIF
 
-                   FTHETA( SGI,IDIM,IPHASE )=1.0
+                     FTHETA( SGI,IDIM,IPHASE )=1.0
 
-                   if ( .false. ) then ! central differencing scheme....
+                     IF( NON_LIN_DGFLUX ) THEN
+                        ! non-linear DG flux - if we have an oscillation use upwinding else use central scheme. 
+                        have_oscillation = dg_oscilat_detect( SNDOTQ_KEEP(SGI,IPHASE), SNDOTQ2_KEEP(SGI,IPHASE), &
+                             N_DOT_DU(sgi,iphase), N_DOT_DU2(sgi,iphase), SINCOME(SGI,IPHASE) )
+                        have_oscillation_old = dg_oscilat_detect( SNDOTQOLD_KEEP(SGI,IPHASE), SNDOTQOLD2_KEEP(SGI,IPHASE), &
+                             N_DOT_DUOLD(sgi,iphase), N_DOT_DUOLD2(sgi,iphase), SINCOMEOLD(SGI,IPHASE) )
+                     ELSE
+                        IF( UPWIND_DGFLUX ) THEN
+                           ! Upwind DG flux...
+                           have_oscillation = .TRUE.
+                           have_oscillation_old = .TRUE.
+                        ELSE
+                           ! Central diff DG flux...
+                           have_oscillation = .FALSE.
+                           have_oscillation_old = .FALSE.
+                        ENDIF
+                     ENDIF
+
+                   if ( .not. have_oscillation ) then ! central differencing scheme....
                       SNDOTQ_IN(SGI,IDIM,IPHASE) = SNDOTQ_IN(SGI,IDIM,IPHASE)  &
                            + FTHETA(SGI,IDIM,IPHASE) * SDEN(SGI,IPHASE) * SNDOTQ(SGI,IPHASE) * 0.5
                       SNDOTQ_OUT(SGI,IDIM,IPHASE) = SNDOTQ_OUT(SGI,IDIM,IPHASE)  &
                            + FTHETA(SGI,IDIM,IPHASE) * SDEN(SGI,IPHASE) * SNDOTQ(SGI,IPHASE) * 0.5
-                      SNDOTQOLD_IN(SGI,IDIM,IPHASE) = SNDOTQOLD_IN(SGI,IDIM,IPHASE)  &
-                           + (1.-FTHETA(SGI,IDIM,IPHASE)) * SDEN(SGI,IPHASE) * SNDOTQOLD(SGI,IPHASE) * 0.5
-                      SNDOTQOLD_OUT(SGI,IDIM,IPHASE) = SNDOTQOLD_OUT(SGI,IDIM,IPHASE)  &
-                           + (1.-FTHETA(SGI,IDIM,IPHASE)) * SDEN(SGI,IPHASE) * SNDOTQOLD(SGI,IPHASE) * 0.5
                    else
                       SNDOTQ_IN(SGI,IDIM,IPHASE) = SNDOTQ_IN(SGI,IDIM,IPHASE)  &
                            +FTHETA(SGI,IDIM,IPHASE) * SDEN(SGI,IPHASE) * SNDOTQ(SGI,IPHASE) * SINCOME(SGI,IPHASE)
                       SNDOTQ_OUT(SGI,IDIM,IPHASE) = SNDOTQ_OUT(SGI,IDIM,IPHASE)  &
                            +FTHETA(SGI,IDIM,IPHASE) * SDEN(SGI,IPHASE) * SNDOTQ(SGI,IPHASE) * (1.-SINCOME(SGI,IPHASE))
+                   end if
+
+                   ! old velocity...
+                   if ( .not. have_oscillation_old ) then ! central differencing scheme....
+                      SNDOTQOLD_IN(SGI,IDIM,IPHASE) = SNDOTQOLD_IN(SGI,IDIM,IPHASE)  &
+                           + (1.-FTHETA(SGI,IDIM,IPHASE)) * SDEN(SGI,IPHASE) * SNDOTQOLD(SGI,IPHASE) * 0.5
+                      SNDOTQOLD_OUT(SGI,IDIM,IPHASE) = SNDOTQOLD_OUT(SGI,IDIM,IPHASE)  &
+                           + (1.-FTHETA(SGI,IDIM,IPHASE)) * SDEN(SGI,IPHASE) * SNDOTQOLD(SGI,IPHASE) * 0.5
+                   else
                       SNDOTQOLD_IN(SGI,IDIM,IPHASE) = SNDOTQOLD_IN(SGI,IDIM,IPHASE)  &
                            +(1.-FTHETA(SGI,IDIM,IPHASE)) * SDEN(SGI,IPHASE) * SNDOTQOLD(SGI,IPHASE) * SINCOMEOLD(SGI,IPHASE)
                       SNDOTQOLD_OUT(SGI,IDIM,IPHASE) = SNDOTQOLD_OUT(SGI,IDIM,IPHASE)  &
@@ -4520,7 +4649,6 @@ end if
                   END DO
 
                END DO
-
 
                DO U_SILOC=1,U_SNLOC
                   U_ILOC   =U_SLOC2LOC(U_SILOC)
@@ -5129,7 +5257,26 @@ end if
       RETURN
 
     END SUBROUTINE ASSEMB_FORCE_CTY
+ 
 
+
+              LOGICAL FUNCTION dg_oscilat_detect(SNDOTQ_KEEP, SNDOTQ2_KEEP, &
+                                                 N_DOT_DU, N_DOT_DU2, SINCOME )
+! Determine if we have an oscillation in the normal direction...
+              real SNDOTQ_KEEP, SNDOTQ2_KEEP, N_DOT_DU, N_DOT_DU2, SINCOME
+
+              dg_oscilat_detect = .false.
+
+              if( SINCOME> 0.5 ) then
+! velcity comming into element ELE...
+                   if( (SNDOTQ_KEEP - SNDOTQ2_KEEP)*N_DOT_DU2 > 0.0 ) dg_oscilat_detect = .true.
+              else
+! velcity pointing out of the element ELE...
+                   if( (SNDOTQ2_KEEP - SNDOTQ_KEEP)*N_DOT_DU < 0.0 ) dg_oscilat_detect = .true.
+              end if
+
+              return
+              end function dg_oscilat_detect
 
 
 
