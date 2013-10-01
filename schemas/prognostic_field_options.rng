@@ -2499,6 +2499,29 @@ Boussinesq only works for continuous_galerkin and discontinuous_galerkin.</a:doc
       </element>
       <element name="equation">
         <a:documentation>Select the equation used to solve for velocity.
+
+Select ShallowWater to solve the non-linear shallow water equations in non-conservative form.
+The Velocity field will be the depth-averaged flow velocity and the Pressure field
+will be the free surface elevation multiplied by the gravitational constant g</a:documentation>
+        <attribute name="name">
+          <value>ShallowWater</value>
+        </attribute>
+        <!-- Bottom depth (excluding free surface elevation), a positive number -->
+        <element name="scalar_field">
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <attribute name="name">
+            <value>BottomDepth</value>
+          </attribute>
+          <element name="prescribed">
+            <ref name="coordinate_mesh_choice"/>
+            <ref name="prescribed_scalar_field"/>
+          </element>
+        </element>
+      </element>
+      <element name="equation">
+        <a:documentation>Select the equation used to solve for velocity.
 Drainage only works for continuous_galerkin and discontinuous_galerkin.</a:documentation>
         <attribute name="name">
           <value>Drainage</value>

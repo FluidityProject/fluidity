@@ -426,7 +426,7 @@
                ! get the CV tested pressure gradient matrix (i.e. the divergence matrix)
                ! if required with a different unique name. Note there is no need
                ! to again decide reassemble_ct_m as ctp_m for this case is assembled when ct_m is.
-               if ((.not. compressible_eos) .and. cg_pressure_cv_test_continuity) then
+               if (.not. (compressible_eos .or. shallow_water_projection) .and. cg_pressure_cv_test_continuity) then
                   ctp_m(istate)%ptr => get_velocity_divergence_matrix(state(istate), ct_m_name = "CVTestedVelocityDivergenceMatrix")
                end if
 
@@ -460,9 +460,7 @@
                case("LinearMomentum")
                   density=>extract_scalar_field(state(istate), "Density")
                   reassemble_cmc_m = reassemble_cmc_m .or. .not.constant_field(density)
-               case("Boussinesq")
-                  density=>dummydensity
-               case("Drainage")
+               case("Boussinesq", "ShallowWater", "Drainage")
                   density=>dummydensity
                case default
                   ! developer error... out of sync options input and code
@@ -511,7 +509,7 @@
                end select
             end if
 
-            if (standard_fs .or. implicit_prognostic_fs .or. compressible_eos) then
+            if (standard_fs .or. implicit_prognostic_fs .or. compressible_eos .or. shallow_water_projection) then
                ! this needs fixing for multiphase theta_pg could in principle be chosen
                ! per phase but then we need an array and we'd have to include theta_pg
                ! in cmc_m, i.e. solve for theta_div*dt*dp instead of theta_div*theta_pg*dt*dp
@@ -539,7 +537,7 @@
                
                ! Note: Compressible multiphase simulations work, but only when use_theta_pg and use_theta_divergence
                ! are false. This needs improving - see comment above.
-               if(compressible_eos .and. multiphase .and. (use_theta_pg .or. use_theta_divergence)) then
+               if((compressible_eos .or. shallow_water_projection) .and. multiphase .and. (use_theta_pg .or. use_theta_divergence)) then
                   ewrite(-1,*) "Currently, for compressible multiphase flow simulations, the"
                   ewrite(-1,*) "temporal_discretisation/theta and temporal_discretisation/theta_divergence values"
                   ewrite(-1,*) "for each Velocity field must be set to 1.0."
@@ -594,7 +592,7 @@
             call zero(big_m(istate))
             if(reassemble_ct_m) then
                call zero(ct_m(istate)%ptr)         
-               if ((.not. compressible_eos) .and. cg_pressure_cv_test_continuity) then
+               if (.not.(compressible_eos .or. shallow_water_projection) .and. cg_pressure_cv_test_continuity) then
                   call zero(ctp_m(istate)%ptr)
                end if
             end if
@@ -769,6 +767,13 @@
                   else
                      call assemble_compressible_divergence_matrix_cg(ctp_m(istate)%ptr, state, istate, ct_rhs(istate))
                   end if               
+               else if (shallow_water_projection) then
+                 
+                  assert(istate==1)
+                  allocate(ctp_m(1)%ptr)
+                  call allocate(ctp_m(1)%ptr, ct_m(1)%ptr%sparsity, (/1, u%dim/), name="CTP_m")
+                  call assemble_swe_divergence_matrix_cg(ctp_m(1)%ptr, state(1), ct_rhs(1))
+
                else                  
                   ! Incompressible scenario
                   if (cg_pressure_cv_test_continuity) then
@@ -784,7 +789,7 @@
                   end if
                end if
                
-               if (compressible_eos .or. cg_pressure_cv_test_continuity) then
+               if (compressible_eos .or. shallow_water_projection .or. cg_pressure_cv_test_continuity) then
                   if (have_rotated_bcs(u)) then
                      if (dg(istate)) then
                        call zero_non_owned(u)
@@ -1126,7 +1131,7 @@
 
                      call profiler_toc(u, "assembly")
 
-                     if(compressible_eos) then
+                     if(compressible_eos .or. shallow_water_projection) then
                         call deallocate(ctp_m(istate)%ptr)
                         deallocate(ctp_m(istate)%ptr)
                      end if
@@ -1328,6 +1333,10 @@
                                     have_option(trim(u%option_path)//"/prognostic/vertical_stabilization/implicit_buoyancy")
          sphere_absorption(istate) = on_sphere.and.(have_absorption.or.have_vertical_stabilization)
 
+         shallow_water_projection = have_option(trim(u%option_path)//"/prognostic/equation::ShallowWater")
+         ! NOTE: this relies on get_pressure_options() being called first!
+         reassemble_all_cmc_m = reassemble_all_cmc_m .or. shallow_water_projection
+
       end subroutine get_velocity_options
 
 
@@ -1375,8 +1384,6 @@
          cg_pressure_cv_test_continuity = have_option(trim(p%option_path)//&
                    &"/prognostic/spatial_discretisation/continuous_galerkin&
                    &/test_continuity_with_cv_dual")
-
-         shallow_water_projection = have_option("/material_phase/equation_of_state/compressible/shallow_water")
 
       end subroutine get_pressure_options
 
@@ -1669,7 +1676,8 @@
 
          cmc_m => extract_csr_matrix(state(istate), "PressurePoissonMatrix", stat)
          
-         if(compressible_eos .and. have_option(trim(state(istate)%option_path)//'/equation_of_state/compressible')) then
+         if((compressible_eos .and. have_option(trim(state(istate)%option_path)//'/equation_of_state/compressible')) &
+           .or. shallow_water_projection) then
             call allocate(compress_projec_rhs, p_theta%mesh, "CompressibleProjectionRHS")
 
             if (shallow_water_projection) then

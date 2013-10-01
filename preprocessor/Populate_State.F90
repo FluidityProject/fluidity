@@ -109,7 +109,7 @@ module populate_state_module
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/fourth_order", &
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/wale        ", &
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/dynamic_les ", &
-       "/equation_of_state/compressible/shallow_water                                                       "  &
+       "/vector_field::Velocity/prognostic/equation::ShallowWater                                           "  &
        /)
 
   !! Relative paths under a field that are searched for grandchildren
@@ -1645,7 +1645,6 @@ contains
     type(tensor_field) :: tfield
 
     integer :: i, s, stat
-    real :: Pr
 
     ! Prescribed diffusivity
     do i = 1, size(states)

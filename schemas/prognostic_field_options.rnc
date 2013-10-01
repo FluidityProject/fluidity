@@ -2036,6 +2036,23 @@ velocity_equation_choice =
          attribute name { "Boussinesq" }
       }|
       ## Select the equation used to solve for velocity.
+      ##
+      ## Select ShallowWater to solve the non-linear shallow water equations in non-conservative form.
+      ## The Velocity field will be the depth-averaged flow velocity and the Pressure field
+      ## will be the free surface elevation multiplied by the gravitational constant g
+      element equation {
+         attribute name { "ShallowWater" },
+         # Bottom depth (excluding free surface elevation), a positive number
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "BottomDepth" },
+            element prescribed {
+               coordinate_mesh_choice,
+               prescribed_scalar_field
+            }
+         }
+      }|
+      ## Select the equation used to solve for velocity.
       ## Drainage only works for continuous_galerkin and discontinuous_galerkin.
       element equation {
          attribute name { "Drainage" }

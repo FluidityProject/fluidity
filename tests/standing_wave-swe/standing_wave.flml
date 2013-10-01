@@ -116,27 +116,6 @@
     </gravity>
   </physical_parameters>
   <material_phase name="Water">
-    <equation_of_state>
-      <compressible>
-        <shallow_water>
-          <scalar_field name="BottomDepth" rank="0">
-            <prescribed>
-              <mesh name="PressureMesh"/>
-              <value name="WholeMesh">
-                <constant>
-                  <real_value rank="0">1e3</real_value>
-                </constant>
-              </value>
-              <output/>
-              <stat/>
-              <detectors>
-                <exclude_from_detectors/>
-              </detectors>
-            </prescribed>
-          </scalar_field>
-        </shallow_water>
-      </compressible>
-    </equation_of_state>
     <scalar_field name="Pressure" rank="0">
       <prognostic>
         <mesh name="PressureMesh"/>
@@ -188,52 +167,26 @@
         <no_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
-      <prognostic>
-        <mesh name="PressureMesh"/>
-        <spatial_discretisation>
-          <continuous_galerkin>
-            <stabilisation>
-              <no_stabilisation/>
-            </stabilisation>
-            <advection_terms/>
-            <mass_terms/>
-          </continuous_galerkin>
-          <conservative_advection>
-            <real_value rank="0">1.0</real_value>
-          </conservative_advection>
-        </spatial_discretisation>
-        <temporal_discretisation>
-          <theta>
-            <real_value rank="0">0.5</real_value>
-          </theta>
-        </temporal_discretisation>
-        <initial_condition name="WholeMesh">
-          <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
-   import math
-   H=1000.0
-   return H+math.cos(math.pi*X[0]/1.0e6)</string_value>
-          </python>
-        </initial_condition>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <consistent_interpolation/>
-      </prognostic>
-    </scalar_field>
     <vector_field name="Velocity" rank="1">
       <prognostic>
         <mesh name="VelocityMesh"/>
-        <equation name="Boussinesq"/>
+        <equation name="ShallowWater">
+          <scalar_field name="BottomDepth" rank="0">
+            <prescribed>
+              <mesh name="PressureMesh"/>
+              <value name="WholeMesh">
+                <constant>
+                  <real_value rank="0">1e3</real_value>
+                </constant>
+              </value>
+              <output/>
+              <stat/>
+              <detectors>
+                <exclude_from_detectors/>
+              </detectors>
+            </prescribed>
+          </scalar_field>
+        </equation>
         <spatial_discretisation>
           <discontinuous_galerkin>
             <viscosity_scheme>

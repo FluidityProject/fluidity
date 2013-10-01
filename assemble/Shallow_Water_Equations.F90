@@ -35,6 +35,7 @@ module shallow_water_equations
   use spud
   use fields
   use state_module
+  use boundary_conditions
 
   implicit none
 
@@ -58,10 +59,10 @@ module shallow_water_equations
     logical, intent(in) :: reassemble_cmc_m
 
     integer, dimension(:), pointer :: test_nodes
-    type(element_type), pointer :: test_shape_ptr
+    type(element_type), pointer :: test_shape
     real, dimension(:), allocatable :: detwei
     real, dimension(:), allocatable :: delta_p_at_quad
-    real :: g
+    real :: rho0, g
     integer :: ele
 
     type(vector_field), pointer :: coordinate
@@ -79,6 +80,9 @@ module shallow_water_equations
       old_pressure => extract_scalar_field(state, "OldPressure")
 
       call get_option("/physical_parameters/gravity/magnitude", g)
+      ! this is the density in front of the du/dt time-derivative which at the 
+      ! moment is hard-coded to 1.0
+      rho0 = 1.0
   
       allocate(detwei(ele_ngi(pressure, 1)), &
                delta_p_at_quad(ele_ngi(pressure, 1)))
@@ -87,7 +91,7 @@ module shallow_water_equations
       
         test_nodes=>ele_nodes(pressure, ele)
   
-        test_shape_ptr => ele_shape(pressure, ele)
+        test_shape => ele_shape(pressure, ele)
         
         delta_p_at_quad = ele_val_at_quad(pressure, ele) - ele_val_at_quad(old_pressure, ele)
                           
@@ -96,10 +100,10 @@ module shallow_water_equations
         ! Time derivative: pressure correction \Phi that we are solving for is: \Phi=theta_div*theta_pg*(p^{n+1}-p^*)*dt
         ! Thus time derivative lhs is (\eta^{n+1}-\eta^*)/dt = \Phi/(g*dt*dt/theta_div/theta_pg)
         call addto(cmc, test_nodes, test_nodes, &
-           shape_shape(test_shape_ptr, test_shape_ptr, detwei)/(g*dt*dt*theta_divergence*theta_pg))
+           shape_shape(test_shape, test_shape, detwei)/(rho0*g*dt*dt*theta_divergence*theta_pg))
         ! Time derivative rhs: -(\eta^*-\eta^n)/dt = (p^*-p^n)/(g*dt)
         call addto(rhs, test_nodes, &
-           -shape_rhs(test_shape_ptr, detwei*delta_p_at_quad)/(g*dt))
+           -shape_rhs(test_shape, detwei*delta_p_at_quad)/(rho0*g*dt))
         
       end do
 
@@ -108,6 +112,200 @@ module shallow_water_equations
     end if
 
   end subroutine assemble_shallow_water_projection
+
+  subroutine assemble_swe_divergence_matrix_cg(ctp_m, state, ct_rhs)
+
+    ! This only works for single material_phase, so just pass me the first state:
+    type(state_type), intent(inout) :: state
+
+    ! the divergence matrix and rhs to be assembled
+    type(block_csr_matrix), pointer :: ctp_m
+    type(scalar_field), intent(inout), optional :: ct_rhs
+
+    ! local
+    type(mesh_type), pointer :: test_mesh
+
+    type(vector_field), pointer :: field
+
+    integer, dimension(:), pointer :: test_nodes, field_nodes
+    integer, dimension(:), allocatable :: test_nodes_bdy, field_nodes_bdy
+
+    real, dimension(:,:,:), allocatable :: ele_mat, ele_mat_bdy
+    type(element_type), pointer :: field_shape, test_shape
+    real, dimension(:,:,:), allocatable :: dfield_t, dtest_t, dbottom_t
+    real, dimension(:), allocatable :: detwei
+    real, dimension(:,:), allocatable :: normal_bdy
+    
+    real, dimension(:), allocatable :: depth_at_quad
+    real, dimension(:,:), allocatable :: depth_grad_at_quad
+
+    integer :: ele, sele, dim, xdim, ngi
+
+    type(vector_field), pointer :: coordinate, velocity
+    type(scalar_field), pointer :: pressure, old_pressure, bottom_depth
+    real :: theta, dt, g, rho0
+
+    ! integrate by parts
+    logical :: integrate_by_parts
+
+    integer, dimension(:,:), allocatable :: field_bc_type
+    type(vector_field) :: field_bc
+
+    ewrite(1,*) 'In assemble_swe_divergence_matrix_cg'
+
+    coordinate=> extract_vector_field(state, "Coordinate")
+    
+    pressure => extract_scalar_field(state, "Pressure")
+    old_pressure => extract_scalar_field(state, "OldPressure")
+    bottom_depth => extract_scalar_field(state, "BottomDepth")
+    
+    velocity=>extract_vector_field(state, "Velocity")
+    
+    ! note that unlike for compressible we adhere to the option under pressure 
+    ! (unless DG for which we don't have a choice)
+    integrate_by_parts=have_option(trim(pressure%option_path)// &
+           &"/prognostic/spatial_discretisation/integrate_continuity_by_parts") &
+       &.or. have_option(trim(velocity%option_path)// &
+           &"/prognostic/spatial_discretisation/discontinuous_galerkin")
+
+    ewrite(2,*) "SWE divergence is integrated by parts: ", integrate_by_parts
+
+    ! note that this is different then compressible, as we don't have
+    ! a prognostic density equivalent, just treating it as a nonlinear relaxation here
+    call get_option(trim(velocity%option_path)// &
+                       &"/prognostic/temporal_discretisation/relaxation", theta)
+    call get_option("/timestepping/timestep", dt)
+    call get_option("/physical_parameters/gravity/magnitude", g)
+    ! this is the density in front of the du/dt time-derivative which at the 
+    ! moment is hard-coded to 1.0
+    rho0 = 1.0
+    
+    test_mesh => pressure%mesh
+    ! the field that ctp_m is multiplied with:
+    field => velocity
+
+    if(present(ct_rhs)) call zero(ct_rhs)
+
+    ! Clear memory of arrays being designed
+    call zero(ctp_m)
+
+    ngi = ele_ngi(test_mesh, 1)
+    xdim = coordinate%dim
+    allocate(dtest_t(ele_loc(test_mesh, 1), ngi, xdim), &
+             dfield_t(ele_loc(field, 1), ngi, xdim), &
+             dbottom_t(ele_loc(bottom_depth, 1), ngi, xdim), &
+             ele_mat(field%dim, ele_loc(test_mesh, 1), ele_loc(field, 1)), &
+             detwei(ngi), &
+             depth_at_quad(ngi), &
+             depth_grad_at_quad(xdim, ngi))
+    
+    do ele=1, element_count(test_mesh)
+
+      test_nodes => ele_nodes(test_mesh, ele)
+      field_nodes => ele_nodes(field, ele)
+
+      test_shape => ele_shape(test_mesh, ele)
+      field_shape => ele_shape(field, ele)
+      call transform_to_physical(coordinate, ele, test_shape, dshape = dtest_t, detwei=detwei)
+
+      depth_at_quad = (theta*ele_val_at_quad(pressure, ele) + &
+             (1-theta)*ele_val_at_quad(old_pressure, ele))/(rho0*g) + &
+             ele_val_at_quad(bottom_depth, ele)
+      
+      if(integrate_by_parts) then
+
+        ele_mat = -dshape_shape(dtest_t, field_shape, detwei*depth_at_quad)
+
+      else
+          
+        ! transform the field (velocity) derivatives into physical space
+        call transform_to_physical(coordinate, ele, field_shape, dshape=dfield_t)
+        if (bottom_depth%mesh%shape==field_shape) then
+          dbottom_t = dfield_t
+        else if (bottom_depth%mesh%shape==test_shape) then
+          dbottom_t = dtest_t
+        else
+          call transform_to_physical(coordinate, ele, ele_shape(bottom_depth, ele), &
+            dshape=dbottom_t)
+        end if
+        
+        assert( test_shape==pressure%mesh%shape )
+        depth_grad_at_quad = (theta*ele_grad_at_quad(pressure, ele, dtest_t) + &
+             (1-theta)*ele_grad_at_quad(old_pressure, ele, dtest_t))/(rho0*g) + &
+             ele_grad_at_quad(bottom_depth, ele, dbottom_t)
+
+        ele_mat = shape_dshape(test_shape, dfield_t, detwei*depth_at_quad) + &
+                  shape_shape_vector(test_shape, field_shape, detwei, depth_grad_at_quad)
+
+      end if
+      
+      do dim = 1, field%dim
+        call addto(ctp_m, 1, dim, test_nodes, field_nodes, ele_mat(dim,:,:))
+      end do
+
+    end do
+    deallocate(dtest_t, dfield_t, dbottom_t, &
+             ele_mat, detwei, depth_at_quad, &
+             depth_grad_at_quad)
+
+    if(integrate_by_parts) then
+
+      ngi = face_ngi(field,1)
+      xdim = coordinate%dim
+      allocate(detwei(ngi), &
+               depth_at_quad(ngi), &
+               normal_bdy(xdim, ngi))
+      allocate(field_nodes_bdy(field%mesh%faces%shape%loc))
+      allocate(test_nodes_bdy(test_mesh%faces%shape%loc))
+      allocate(ele_mat_bdy(field%dim, face_loc(test_mesh, 1), face_loc(field, 1)))
+
+      assert(surface_element_count(test_mesh)==surface_element_count(field))
+      allocate(field_bc_type(field%dim, surface_element_count(field)))
+      call get_entire_boundary_condition(field, (/ &
+        "weakdirichlet ", &
+        "no_normal_flow", &
+        "internal      "/), &
+        field_bc, field_bc_type)
+
+      do sele = 1, surface_element_count(test_mesh)
+
+        if(any(field_bc_type(:,sele)==2)&
+             .or.any(field_bc_type(:,sele)==3)) cycle
+        
+        test_shape => face_shape(test_mesh, sele)
+        field_shape => face_shape(field, sele)
+
+        call transform_facet_to_physical(coordinate, sele, &
+            &                          detwei_f=detwei, &
+            &                          normal=normal_bdy) 
+
+        depth_at_quad = (theta*face_val_at_quad(pressure, sele) + &
+             (1-theta)*face_val_at_quad(old_pressure, sele))/(rho0*g) + &
+             face_val_at_quad(bottom_depth, sele)
+
+        ele_mat_bdy = shape_shape_vector(test_shape, field_shape, &
+                                         detwei*depth_at_quad, normal_bdy)
+
+        do dim = 1, field%dim
+          if((field_bc_type(dim, sele)==1).and.present(ct_rhs)) then
+            call addto(ct_rhs, test_nodes_bdy, &
+                        -matmul(ele_mat_bdy(dim,:,:), &
+                        ele_val(field_bc, dim, sele)))
+          else
+            call addto(ctp_m, 1, dim, test_nodes_bdy, field_nodes_bdy, &
+                  ele_mat_bdy(dim,:,:))
+          end if
+        end do
+
+      end do
+
+      call deallocate(field_bc)
+      deallocate(field_bc_type, depth_at_quad, detwei, ele_mat_bdy)
+      deallocate(normal_bdy, test_nodes_bdy, field_nodes_bdy)
+
+    end if
+    
+  end subroutine assemble_swe_divergence_matrix_cg
 
 end module shallow_water_equations
 
