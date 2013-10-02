@@ -32,6 +32,7 @@
 ! a different implementation than the one in main/Shallow_Water.F90
 ! that has its own binary and schema.
 module shallow_water_equations
+  use global_parameters, only: OPTION_PATH_LEN
   use spud
   use fields
   use state_module
@@ -128,7 +129,6 @@ module shallow_water_equations
     type(vector_field), pointer :: field
 
     integer, dimension(:), pointer :: test_nodes, field_nodes
-    integer, dimension(:), allocatable :: test_nodes_bdy, field_nodes_bdy
 
     real, dimension(:,:,:), allocatable :: ele_mat, ele_mat_bdy
     type(element_type), pointer :: field_shape, test_shape
@@ -255,8 +255,6 @@ module shallow_water_equations
       allocate(detwei(ngi), &
                depth_at_quad(ngi), &
                normal_bdy(xdim, ngi))
-      allocate(field_nodes_bdy(field%mesh%faces%shape%loc))
-      allocate(test_nodes_bdy(test_mesh%faces%shape%loc))
       allocate(ele_mat_bdy(field%dim, face_loc(test_mesh, 1), face_loc(field, 1)))
 
       assert(surface_element_count(test_mesh)==surface_element_count(field))
@@ -288,12 +286,12 @@ module shallow_water_equations
 
         do dim = 1, field%dim
           if((field_bc_type(dim, sele)==1).and.present(ct_rhs)) then
-            call addto(ct_rhs, test_nodes_bdy, &
+            call addto(ct_rhs, face_global_nodes(test_mesh, sele), &
                         -matmul(ele_mat_bdy(dim,:,:), &
                         ele_val(field_bc, dim, sele)))
           else
-            call addto(ctp_m, 1, dim, test_nodes_bdy, field_nodes_bdy, &
-                  ele_mat_bdy(dim,:,:))
+            call addto(ctp_m, 1, dim, face_global_nodes(test_mesh, sele), &
+                face_global_nodes(field, sele), ele_mat_bdy(dim,:,:))
           end if
         end do
 
@@ -301,11 +299,90 @@ module shallow_water_equations
 
       call deallocate(field_bc)
       deallocate(field_bc_type, depth_at_quad, detwei, ele_mat_bdy)
-      deallocate(normal_bdy, test_nodes_bdy, field_nodes_bdy)
+      deallocate(normal_bdy)
 
     end if
     
   end subroutine assemble_swe_divergence_matrix_cg
+
+  subroutine shallow_water_equations_check_options
+
+    character(len=*), dimension(1:4), parameter:: forbidden_bc_types = (/ &
+      "free_surface ", "bulk_formulae", &
+      "drag         ", "wind_forcing "  /)
+    character(len=OPTION_PATH_LEN):: velocity_option_path, pressure_option_path
+    real:: beta
+    integer:: i, dim
+
+    if (.not. have_option("/material_phase/vector_field::Velocity/prognostic/equation::ShallowWater")) return
+
+    ewrite(2,*) "Checking shallow water options"
+
+    call get_option("/geometry/dimension", dim)
+    if (dim==3) then
+      FLExit("With equation type ShallowWater you need a 2D mesh and configuration")
+    end if
+    if (have_option("/geometry/spherical_earth")) then
+      FLExit("Equation type ShallowWater is not implemented for spherical_earth")
+    end if
+    if (have_option("/geometry/ocean_boundaries")) then
+      FLExit("Do not specify /geometry/ocean_boundaries with equation type ShallowWater")
+    end if
+    if (.not. have_option("/physical_parameters/gravity")) then
+      ewrite(0,*) "Missing option /physical_parameters/gravity " // &
+         & "(you may ignore /physical_parameters/vector_field::GravityDirection)"
+      FLExit("With equation type Shallow water you need to specify gravity")
+    end if
+
+    ! Options under /material_phase
+    if (option_count("/material_phase")/=1) then
+      FLExit("Equation type ShallowWater only works with a single material_phase")
+    end if
+
+    ! These don't make sense - so let's just forbid them to avoid confusion
+    if (have_option("/material_phase/equation_of_state") .or. &
+      have_option("/material_phase/scalar_field::Density")) then
+      FLExit("With equation type ShallowWater you're not allowed an equation_of_state or Density field")
+    end if
+
+    ! Pressure options
+
+    pressure_option_path = "/material_phase/scalar_field::Pressure/prognostic/"
+    if (.not. have_option(pressure_option_path)) then
+      FLExit("With equation type ShallowWater you need a prognostic Pressure field")
+    end if
+
+    if (have_option(trim(pressure_option_path)//"solver/iterative_method::cg")) then
+      ewrite(0,*) "For shallow water equations the pressure matrix is asymmetric"
+      ewrite(0,*) 'Therefore you should not use "cg" as the linear solver'
+      ewrite(0,*) 'Use "gmres" instead'
+      FLExit('Cannot use "cg" as linear solver for Pressure with ShallowWater')
+    end if
+
+    ! Velocity options
+
+    velocity_option_path = "/material_phase/vector_field::Velocity/prognostic/"
+    if (.not. have_option(velocity_option_path)) then
+      FLExit("With equation type ShallowWater you need a prognostic Velocity field")
+    end if
+
+    call get_option(trim(velocity_option_path)//"/spatial_discretisation/conservative_advection", beta)
+    if (beta>0.0) then
+      ewrite(0,*) "The shallow water equations are implemented in non-conservative form"
+      ewrite(0,*) "To be consistent with that the velocity advection term should be in non-conservative form"
+      FLExit("Velocity option spatial_discretisation/conservative_advection should be set to 0.0")
+    end if
+
+    ! boundary conditions that don't make sense:
+    do i=1, size(forbidden_bc_types)
+      if (have_option(trim(velocity_option_path)//"/boundary_conditions/type::"// &
+        trim(forbidden_bc_types(i)))) then
+        FLExit("Can't have "//trim(forbidden_bc_types(i))//" boundary condition with ShallowWater")
+      end if
+    end do
+
+
+  end subroutine shallow_water_equations_check_options
 
 end module shallow_water_equations
 

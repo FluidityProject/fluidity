@@ -129,10 +129,14 @@
           <poisson_pressure_solution>
             <string_value lines="1">never</string_value>
           </poisson_pressure_solution>
-          <use_compressible_projection_method/>
+          <use_projection_method/>
         </scheme>
         <solver>
-          <iterative_method name="cg"/>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
             <real_value rank="0">1e-7</real_value>

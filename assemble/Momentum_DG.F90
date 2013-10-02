@@ -377,6 +377,11 @@ contains
 
     call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude, stat)
     have_gravity = stat==0
+    if (have_option(trim(u%option_path)//'/prognostic/equation::ShallowWater')) then
+      ! for the swe there's no buoyancy term
+      have_gravity = .false.
+    end if
+
     if(have_gravity) then
       buoyancy=extract_scalar_field(state, "VelocityBuoyancyDensity")
       call incref(buoyancy)
