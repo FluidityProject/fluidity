@@ -2529,6 +2529,22 @@ will be the free surface elevation multiplied by the gravitational constant g</a
             <ref name="prescribed_scalar_field"/>
           </element>
         </element>
+        <optional>
+          <element name="bottom_drag">
+            <element name="scalar_field">
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <attribute name="name">
+                <value>BottomDragCoefficient</value>
+              </attribute>
+              <element name="prescribed">
+                <ref name="coordinate_mesh_choice"/>
+                <ref name="prescribed_scalar_field"/>
+              </element>
+            </element>
+          </element>
+        </optional>
       </element>
       <element name="equation">
         <a:documentation>Select the equation used to solve for velocity.

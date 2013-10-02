@@ -373,6 +373,10 @@ module shallow_water_equations
       FLExit("Velocity option spatial_discretisation/conservative_advection should be set to 0.0")
     end if
 
+    if (have_option(trim(velocity_option_path)//"/vertical_stabilization")) then
+      FLExit("With equation type ShallowWater you cannot use the option vertical_stabilization")
+    end if
+
     ! boundary conditions that don't make sense:
     do i=1, size(forbidden_bc_types)
       if (have_option(trim(velocity_option_path)//"/boundary_conditions/type::"// &
