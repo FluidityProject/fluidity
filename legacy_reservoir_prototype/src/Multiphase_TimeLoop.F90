@@ -190,7 +190,7 @@
       real, dimension(:, :), allocatable :: DEN_CV_NOD, SUF_SIG_DIAGTEN_BC
       integer :: CV_NOD, CV_NOD_PHA, CV_ILOC, ELE, I
 
-      type( scalar_field ), pointer :: cfl
+      type( scalar_field ), pointer :: cfl, rc_field
       real :: c, rc, minc, maxc, ic
 
 !!$ Compute primary scalars used in most of the code
@@ -1479,9 +1479,14 @@
             call get_option( '/timestepping/adaptive_timestep/increase_tolerance', ic, stat )
 
             do iphase = 1, nphase
-               cfl => extract_scalar_field( state( iphase), 'CFLNumber' )
+               ! requested cfl
+               rc_field => extract_scalar_field( state( iphase ), 'RequestedCFL', stat )
+               if ( stat == 0 ) rc = min( rc, minval( rc_field % val ) )
+               ! max cfl
+               cfl => extract_scalar_field( state( iphase ), 'CFLNumber' )
                c = max ( c, maxval( cfl % val ) )
             end do
+
             call get_option( '/timestepping/timestep', dt )
             dt = max( min( min( dt * rc / c, ic * dt ), maxc ), minc )
             call set_option( '/timestepping/timestep', dt )
