@@ -253,6 +253,7 @@ contains
 
     !! shallow water bottom drag
     type(scalar_field) :: swe_bottom_drag, old_pressure
+    type(vector_field) :: swe_u_nl
 
     !! 
     type(integer_set), dimension(:), pointer :: colours
@@ -388,6 +389,9 @@ contains
       old_pressure = extract_scalar_field(state, "OldPressure")
       call get_option(trim(U%option_path)//&
             &"/prognostic/temporal_discretisation/relaxation", theta_nl)
+      ! because of the kludge above with advecting velocity, let's just have our own u_nl
+      ! can be on whatever mesh
+      swe_u_nl = extract_vector_field(state, "NonlinearVelocity")
     end if
 
     call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude, stat)
@@ -405,7 +409,6 @@ contains
       call incref(gravity)
 
     else
-      gravity_magnitude = 0.0
       call allocate(buoyancy, u%mesh, "VelocityBuoyancyDensity", FIELD_TYPE_CONSTANT)
       call zero(buoyancy)
       call allocate(gravity, u%dim, u%mesh, "GravityDirection", FIELD_TYPE_CONSTANT)
@@ -673,7 +676,7 @@ contains
        ele = fetch(colours(clr), nnid)
        call construct_momentum_element_dg(ele, big_m, rhs, &
             & X, U, advecting_velocity, U_mesh, X_old, X_new, &
-            & Source, Buoyancy, gravity, Abs, Viscosity, swe_bottom_drag, &
+            & Source, Buoyancy, gravity, Abs, Viscosity, swe_bottom_drag, swe_u_nl, &
             & P, old_pressure, Rho, surfacetension, q_mesh, &
             & velocity_bc, velocity_bc_type, &
             & pressure_bc, pressure_bc_type, &
@@ -731,7 +734,7 @@ contains
 
   subroutine construct_momentum_element_dg(ele, big_m, rhs, &
        &X, U, U_nl, U_mesh, X_old, X_new, Source, Buoyancy, gravity, Abs, &
-       &Viscosity, swe_bottom_drag, P, old_pressure, Rho, surfacetension, q_mesh, &
+       &Viscosity, swe_bottom_drag, swe_u_nl, P, old_pressure, Rho, surfacetension, q_mesh, &
        &velocity_bc, velocity_bc_type, &
        &pressure_bc, pressure_bc_type, &
        &turbine_conn_mesh, on_sphere, depth, have_wd_abs, alpha_u_field, Abs_wd, &
@@ -771,6 +774,7 @@ contains
     integer, dimension(:), intent(in) :: pressure_bc_type
     !! fields only used for swe bottom drag (otherwise unitialised)
     type(scalar_field), intent(in) :: swe_bottom_drag, old_pressure
+    type(vector_field), intent(in) :: swe_u_nl
     
     !! Inverse mass matrix
     type(block_csr_matrix), intent(inout), optional :: inverse_mass
@@ -1363,7 +1367,7 @@ contains
         ! first compute total water depth H
         depth_at_quads = ele_val_at_quad(depth, ele) + (theta_nl*ele_val_at_quad(p, ele) + (1.0-theta_nl)*ele_val_at_quad(old_pressure, ele))/gravity_magnitude
         ! now reuse depth_at_quads to be the absorption coefficient: C_D*|u|/H
-        depth_at_quads = (ele_val_at_quad(swe_bottom_drag, ele)*sqrt(sum(ele_val_at_quad(u_nl, ele)**2, dim=1)))/depth_at_quads
+        depth_at_quads = (ele_val_at_quad(swe_bottom_drag, ele)*sqrt(sum(ele_val_at_quad(swe_u_nl, ele)**2, dim=1)))/depth_at_quads
         do i=1, u%dim
           absorption_gi(i,:) = absorption_gi(i,:) + depth_at_quads
         end do
