@@ -191,7 +191,7 @@
                 <mesh name="CoordinateMesh"/>
                 <value name="WholeMesh">
                   <python>
-                    <string_value type="code" lines="20" language="python">def val(X,t):
+                    <string_value lines="20" type="code" language="python">def val(X,t):
   from math import pi, cos
   L=1e5
   C_D=0.01*(2.0+cos(X[0]/L*2*pi))
@@ -297,12 +297,12 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="AnalyticalPressure" rank="0">
+    <scalar_field name="AnalyticalFreeSurface" rank="0">
       <prescribed>
-        <mesh name="VelocityMesh"/>
+        <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value type="code" lines="20" language="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   from math import pi, sin
   H = 100.
   C_D0 = 0.01
@@ -311,7 +311,7 @@
   dudx = 0.02/L
   u = 1.0 + dudx*X[0]
   p = -C_D0*(2.0*(X[0]-L)+L/(2*pi)*sin(X[0]/L*2*pi))*u**2/H - u*dudx*(X[0]-L)
-  return p</string_value>
+  return p/g</string_value>
             <comment>Analytical steady state solution based on linear theory, i.e. u is constant:
 
   dp/dx = -C_D *u^2/H = -C_D0*(2.0+cos(x/L*2*pi))*u^2/H
@@ -330,10 +330,27 @@ Therefore, with p=0 at x=L:
     </scalar_field>
     <scalar_field name="Error" rank="0">
       <diagnostic>
-        <algorithm name="scalar_difference" source_field_1_name="Pressure" source_field_2_name="AnalyticalPressure" source_field_2_type="scalar" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="FreeSurface" source_field_2_name="AnalyticalFreeSurface" material_phase_support="single" source_field_1_type="scalar">
           <absolute_difference/>
         </algorithm>
-        <mesh name="VelocityMesh"/>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="FreeSurface" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="PressureMesh"/>
         <output/>
         <stat/>
         <convergence>

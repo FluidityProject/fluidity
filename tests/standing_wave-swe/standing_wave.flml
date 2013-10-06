@@ -101,7 +101,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="2" dim1="dim" rank="1">NaN NaN</real_value>
+              <real_value shape="2" dim1="dim" rank="1">0. 0.</real_value>
             </constant>
           </value>
           <output/>
@@ -190,23 +190,6 @@
               </detectors>
             </prescribed>
           </scalar_field>
-          <bottom_drag>
-            <scalar_field name="BottomDragCoefficient" rank="0">
-              <prescribed>
-                <mesh name="CoordinateMesh"/>
-                <value name="WholeMesh">
-                  <constant>
-                    <real_value rank="0">NaN</real_value>
-                  </constant>
-                </value>
-                <output/>
-                <stat/>
-                <detectors>
-                  <exclude_from_detectors/>
-                </detectors>
-              </prescribed>
-            </scalar_field>
-          </bottom_drag>
         </equation>
         <spatial_discretisation>
           <discontinuous_galerkin>
@@ -283,5 +266,22 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
+    <scalar_field name="FreeSurface" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
   </material_phase>
 </fluidity_options>

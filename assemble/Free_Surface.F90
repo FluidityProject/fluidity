@@ -297,7 +297,7 @@ contains
       end if
       
       ! reference density
-      call get_reference_density_from_options(rho0, state%option_path)
+      call get_fs_reference_density_from_options(rho0, state%option_path)
       density => extract_scalar_field(state, "Density", stat=dens_stat)
       have_density = (dens_stat==0)
 
@@ -671,7 +671,7 @@ contains
     gravity_normal => extract_vector_field(state, "GravityDirection")
     density => extract_scalar_field(state, "Density", stat=stat)
     have_density = (stat==0)
-    call get_reference_density_from_options(rho0, state%option_path)
+    call get_fs_reference_density_from_options(rho0, state%option_path)
     call get_option('/timestepping/timestep', dt)
 
     surface_sparsity => get_csr_sparsity_firstorder(state, surface_mesh, surface_mesh)
@@ -852,7 +852,7 @@ contains
     end if
     
     ! reference density
-    call get_reference_density_from_options(rho0, state%option_path)
+    call get_fs_reference_density_from_options(rho0, state%option_path)
     density => extract_scalar_field(state, "Density", stat=dens_stat)
     have_density = (dens_stat==0)
 
@@ -1113,7 +1113,7 @@ contains
     end if
     density => extract_scalar_field(state, "Density", stat=stat)
     have_density = (stat==0)
-    call get_reference_density_from_options(rho0, state%option_path)
+    call get_fs_reference_density_from_options(rho0, state%option_path)
 
     surface_sparsity => get_csr_sparsity_firstorder(state, scaled_fs%mesh, scaled_fs%mesh)
     call allocate(fs_matrix, surface_sparsity, name="FSMatrix")
@@ -1795,7 +1795,7 @@ contains
    move_mesh = have_option("/mesh_adaptivity/mesh_movement/free_surface")
    x => extract_vector_field(state, "Coordinate")
    ! reference density
-   call get_reference_density_from_options(rho0, state%option_path)
+   call get_fs_reference_density_from_options(rho0, state%option_path)
    density => extract_scalar_field(state, "Density", stat=dens_stat)
    have_density = (dens_stat==0)
    call get_option('/physical_parameters/gravity/magnitude', g, stat=stat)
@@ -2378,7 +2378,15 @@ contains
      have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
 
      u => extract_vector_field(state, "Velocity")
-     call get_reference_density_from_options(rho0, state%option_path)
+     call get_fs_reference_density_from_options(rho0, state%option_path)
+
+     if (have_option(trim(u%option_path)//'/prognostic/equation::ShallowWater')) then
+       ! For the shallow water equations we only have a 2D, horizontal mesh
+       ! and f.s. is simply p/g everywhere:
+       call set(free_surface, p)
+       call scale(free_surface, 1./g)
+       return
+     end if
 
      !
      ! first we compute the right free surface values at the free surface
@@ -2490,7 +2498,7 @@ contains
        if (bctype=="free_surface" .and. has_scalar_surface_field(u, i, "WettingDryingAlpha")) then
              scalar_surface_field => extract_scalar_surface_field(u, i, "WettingDryingAlpha")
              ! Update WettingDryingAlpha
-             call get_reference_density_from_options(rho0, state%option_path)
+             call get_fs_reference_density_from_options(rho0, state%option_path)
              original_bottomdist_remap => extract_scalar_field(state, "OriginalDistanceToBottomPressureMesh") 
              call get_option('/physical_parameters/gravity/magnitude', g)
              call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
@@ -2605,7 +2613,7 @@ contains
       end if
       
       ! reference density
-      call get_reference_density_from_options(rho0, state%option_path)
+      call get_fs_reference_density_from_options(rho0, state%option_path)
       ! Timestep
       call get_option('/timestepping/timestep', dt)
       move_mesh = have_option("/mesh_adaptivity/mesh_movement/free_surface")
@@ -2691,7 +2699,8 @@ contains
     
     character(len=OPTION_PATH_LEN):: option_path, phase_path, pressure_path, pade_path
     character(len=FIELD_NAME_LEN):: fs_meshname, p_meshname, bctype
-    logical:: have_free_surface, have_explicit_free_surface, have_viscous_free_surface, have_wd
+    logical:: have_free_surface, have_explicit_free_surface, have_viscous_free_surface
+    logical:: have_wd, have_swe
     integer i, p
 
     do p=1, option_count('/material_phase')
@@ -2727,6 +2736,8 @@ contains
         have_viscous_free_surface = .false.
       end if
       have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
+
+      have_swe=have_option(trim(option_path)//'/equation::ShallowWater')
       
       if (have_free_surface) then
          ewrite(2,*) "You have a free surface boundary condition, checking its options"
@@ -2759,15 +2770,16 @@ contains
       if (have_option(trim(option_path))) then
         call get_option(trim(option_path)//'/mesh[0]/name', fs_meshname)
         call get_option(trim(pressure_path)//'/mesh[0]/name', p_meshname)
-        if (.not. have_free_surface) then
+        if (.not. (have_free_surface .or. have_swe)) then
           ewrite(-1,*) "The diagnostic FreeSurface field has to be used in combination " // &
-            "with the free_surface boundary condition under Velocity."
+            "with the free_surface boundary condition under Velocity, or with " // &
+            "equation type ShallowWater for Velocity."
           FLExit("Exit")
         end if
         if (.not. fs_meshname==p_meshname) then
           FLExit("The diagnostic FreeSurface field and the Pressure field have to be on the same mesh")
         end if
-        if (.not. have_option('/geometry/ocean_boundaries')) then
+        if (.not. have_option('/geometry/ocean_boundaries') .and. .not. have_swe) then
           ewrite(0,*) "Warning: your diagnostic free surface will only be " // &
             "defined at the free surface nodes and not extrapolated downwards, " // &
             "because you didn't specify geometry/ocean_boundaries."
