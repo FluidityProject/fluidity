@@ -787,6 +787,7 @@ These errors are sufficiently small that the stated values are a suitable approx
 use in body tide corrections to the majority of tidal constituents.
 
 \subsection{Shallow water equations}
+\index{shallow water equations}
 In many oceanographic simulations, the horizontal lengths scales are much larger
 than the vertical. It can be shown that this leads to small vertical velocities,
 and in particular small vertical accelerations. Thus, in the vertical momentum
@@ -828,7 +829,7 @@ velocity:
 \end{equation}
 the depth-averaged shallow water equations (in non-conservative form) are given
 by:
-\begin{subequations}
+\begin{subequations} \label{eq:swe}
 \begin{align}
   \frac{\partial\eta}{\partial t} + \nabla\cdot\left(h\bar\bmu\right) &=0,
   \label{eq:swe1} \\
