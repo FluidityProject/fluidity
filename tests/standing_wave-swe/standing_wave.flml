@@ -177,7 +177,7 @@
         <equation name="ShallowWater">
           <scalar_field name="BottomDepth" rank="0">
             <prescribed>
-              <mesh name="PressureMesh"/>
+              <mesh name="CoordinateMesh"/>
               <value name="WholeMesh">
                 <constant>
                   <real_value rank="0">1e3</real_value>
