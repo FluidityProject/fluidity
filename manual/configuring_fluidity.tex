@@ -2211,9 +2211,7 @@ main differences with a 3D setup are:
 \begin{itemize}
   \item Under Velocity, the equation type should be set to
     \option{equation::ShallowWater}. Here you should specify the bottom depth
-    of your domain as a prescibed \option{scalar\_field::BottomDepth} either
-    using a \option{constant} or \option{python} function, or, to read from a netcdf
-    file, use \option{from\_map}.
+    of your domain as a prescibed \option{scalar\_field::BottomDepth}.
   \item The problem is solved on a 2D mesh. This typically means that the
     CoordinateMesh is set as the input mesh (with the \option{from\_file}
     option). As before, the VelocityMesh and PressureMesh are derived from it (using
