@@ -128,7 +128,7 @@ in use.
 The quadrature degree is specified by setting \option{/geometry/quadrature/degree}.
 
 \subsubsection{Spherical Earth}
-\label{sec:spherical_earh}
+\label{sec:spherical_earth}
 \index{spherical earth}
 
 Enabling \option{/geometry/spherical\_earth} informs \fluidity that your simulation is being carried out in an Earth like geometry, that is, a three dimensional geometry with gravity pointing towards the centre of the coordinate system. This has implications for various options and terms such as wind forcing (see section \ref{sec:wind_forcing}), the calculation of buoyancy and the `direction' of absorptions (see \ref{sec:Source}).
@@ -1325,6 +1325,8 @@ temperature, \PSU{} for salt, \kgmm{} for density. The reference density is
 \end{description}
 
 \section{Sub-grid Scale Parameterisations}
+\label{sec:sub-grid-scale-parameterisations}
+\index{turbulence models}
 
 \fluidity\ contains a number of sub-grid scale parameterisations which model physical process below the resolution of the mesh.
 
@@ -1766,7 +1768,7 @@ order for the boundary conditions to be set correctly, enable the \linebreak
 \option{\ldots/subgridscale\_parameterisations/GLS/calculate\_boundaries}
 option.
 
-\subsubsection{k-epsilon sub-grid scale parameterisation}\label{sec:BCs:special:kepsilon}
+\subsubsection{k-epsilon sub-grid scale parameterisation} \label{sec:BCs:special:kepsilon}
 \index{k-$\epsilon$ model!boundary conditions}
 \index{boundary conditions!k-$\epsilon$ model}
 
@@ -1859,15 +1861,15 @@ Note: To use sediment, a linear equation of state must also be enabled
 \option{\ldots/equation\_of\_state/fluids/linear}
 
 \section{Configuring ocean simulations}
-\label{section:large-scale-ocean}
+\label{sec:large-scale-ocean}
 
 This section contains advice for running a large scale ocean simulation in
 three dimensions. The flow domain is characterized by the large aspect ratio
 between horizontal and vertical length scales. The following is a set of
-recomennded discretisation options for such simulations. It is based on the use
+recommended discretisation options for such simulations. It is based on the use
 of the \PoDGPt velocity, pressure element pair \citep{cotter2009}. The
 recommendations are applicable to both global or ocean-scale domains as well as
-smaller, regional or coastal domains. For the first case, see the additional
+to smaller, regional or coastal domains. For the first case, see the additional
 instructions in section \ref{sec:ocean_on_the_sphere}, to solve the equations
 on the sphere.
 
@@ -1877,31 +1879,35 @@ The mesh that you use should be unstructured in the horizontal and structured
 in the vertical (this is to ensure that hydrostatic and geostropic balances can
 be maintained). It can either be constructed in gmsh and read into fluidity, or
 a two-dimensional mesh can be made in gmsh and extruded within fluidity (see
-\ref{sec:extruded_meshes}). To enable the \PoDGPt element pair you will need
+section \ref{sec:extruded_meshes}). To enable the \PoDGPt element pair you will need
 the two following additional meshes that are derived from the three-dimensional
 CoordinateMesh:
 \begin{itemize}
-\item The VelocityMesh must be made discontinuous galerkin, by setting \option{/geometry/mesh(VelocityMesh)/from\_mesh/mesh\_shape/mesh\_continuity} to discontinuous.  
+\item The VelocityMesh must be made discontinuous galerkin, by setting
+  \option{/geometry/mesh::VelocityMesh/from\_mesh/mesh\_shape/mesh\_continuity} to discontinuous.  
 \item The PressureMesh must be made quadratic, by setting
-\\* \option{/geometry/mesh(PressureMesh)/from\_mesh/mesh\_shape/polynomial\_degree}  to $2$.  
+\\* \option{/geometry/mesh::PressureMesh/from\_mesh/mesh\_shape/polynomial\_degree}  to $2$.  
 \end{itemize}
 Also under \option{/geometry/}, the \option{ocean\_boundaries} option
 should be switched on, with the surface ids of the top and bottom specified (if
 you are using extrusion these should correspond to the surface ids specified
 there). This is necessary to make the diagnostic FreeSurface field, and the
-\option{vertical\_lumping} option for the \option{mg} preconditioner work.
+\option{vertical\_lumping} option for the \option{mg} preconditioner work. In
+parallel, this requires a 2D input mesh and extrustion within fluidity.
 
 \subsection{Time stepping}
 \begin{itemize}
-\item The timestep is typically chosen based on a knowledge of the time scales
+\item The timestep is typically chosen based on some knowledge of the time scales
   involved in the simulation. An adaptive timestep is less applicable here as
   this only looks at advective time scales. Other time scales that may be
   applicable: a Courant condition based on the barotropic wave speed, $c=\sqrt{gH}$ where
   $H$ is the waterdepth, the frequencies of the forcings, baroclinic timescales
-  (e.g. the Brunt–V\"ais\"al\"a frequency), etc. Since all equations are solved in
+  (e.g. the Brunt-V\"ais\"al\"a frequency), etc. Since all equations are solved in
   an implicit manner, a relatively large timestep can be chosen. This will
-  however impact the temporal accuracy so the timestep should be chosen with
-  the timescale of the physical phenomena of interest in mind.
+  however impact the temporal accuracy, so the timestep should be chosen with
+  the timescale of the physical phenomena of interest in mind. Despite the
+  implicit solution technique, choosing too large ia timestep may still hamper
+  the stability of the model.
 \item \option{/timestepping/nonlinear\_iterations} is typically set to 2, to
   deal with the nonlinearities of the advection term (and coupling of the
   temperature and salinity equations and the buoyancy term in baroclinic
@@ -1911,19 +1917,19 @@ there). This is necessary to make the diagnostic FreeSurface field, and the
   under Velocity (and Temperature and Salinity if applicable). It is
   recommended to start with a value of 1.0 (most stable choice), and only
   reduce this after it is established that the model is sufficiently stable, in
-  order to improve the temporal accuracy of the model.
-\item As explained above the timestep that is chosen can often be much larger
+  order to improve the temporal accuracy of the model (reduces the artificial 
+  dissipation/wave damping).
+\item As explained above, the timestep that is chosen can often be much larger
   than would be allowed by the Courant condition. In addition, with DG
   discretisations the maximum allowed Courant condition is much smaller than
-  1.0. Therefore we recommend switiching on sub-cycling by choosing
+  1.0. Therefore, we recommend switiching on sub-cycling by choosing
   \option{discontinuous\_galerkin} under
   \option{\ldots/temporal\_discretisation}. A value of 0.1 is safe for the
   \option{maximum\_courant\_number\_per\_sub\_cycle}, a value of 0.5 can be a
   bit more efficient.
-\item To enable the last option you also need to add a
-  \option{DG\_CourantNumber} diagnostic field under the
+\item To enable the last option, you also need to add a
+  diagnostic \option{scalar\_field::DG\_CourantNumber} under the
   \option{/material\_phase}.
-%\item \option{\ldots/material\_phase/equation\_of\_state/subtract\_out\_hydrostatic\_level} must be on.
 \end{itemize}
 
 \subsection{Velocity options}
@@ -1947,21 +1953,52 @@ The velocity discretisation is discontinuous galerkin. Recommended options under
     usually sufficient.
 \end{itemize}
 
+\subsection{Choosing Viscosity values}
+The choice of viscosity in a realistic, large-scale ocean domain is a difficult
+topic. The molecular (kinematic) viscosity of water, 1e-6 m$^2/$s, is too small
+to have any influence at these length scales. Rather, viscosity should be thought
+of as a parameterisation of the energy dissipation that happens at length scales
+smaller than those that are resolved (the sub-grid scale). For smaller 
+scale, CFD-type problems this viscosity can be calculated by standard turbulence
+closure models (see section \ref{sec:sub-grid-scale-parameterisations}). For
+larger scale problems the situation is less clear. Often, a fixed ``eddy
+viscosity'' is chosen as a tunable parameter. For the vertical, one of the many
+GLS configurations can be used (section
+\ref{sec:sub-grid-scale-parameterisations}). At the moment, we do not have the
+capability for a seperate, LES-type model for the horizontal. 
+
+In some sense, viscosity can also be thought of as a stabilisation method.
+Although many numerical schemes are designed to remain stable, putting in just as
+much numerical diffusion as necessary, this usually only holds for ideal
+circumstances. In practice, due to underresolving, poor coastal and bathymetry
+data, and unnatural (not well-posed) boundary conditions that have to be
+applied, additional viscosity is needed to keep the model stable. Thus a good
+way of choosing a viscosity value is to start with a value that is not too low
+(this depends on mesh resolution) to obtain a stable model. Then, if the results
+are deemed too smooth with excessive mixing, the viscosity value can be lowered.
+
 \subsection{Pressure options}
 This uses the Continuous Galerkin discretisation, with a mesh of polynomial order two (already specified above).
 
 \begin{itemize}
 \item The \option{mesh} be the PressureMesh and \option{\ldots/spatial\_discretisation} must be \option{continuous\_galerkin}.
-\item Under that last option select both \option{remove\_stabilisation\_term}
-  and \option{integrate\_continuity\_by\_parts}
+\item Under that last option, select both \option{remove\_stabilisation\_term}
+  and \option{integrate\_continuity\_by\_parts}.
 \item Under \option{\ldots/scheme}, \option{poisson\_pressure\_solution} should
   be set to \option{only first timestep}, and \option{use\_projection\_method}
   should be selected.
 \item Under \option{\dots/solver}, select \option{cg} for the
   \option{iterative\_method}, and \option{mg} for the \option{preconditioner}.
-  Under the \option{\ldots/preconditioner::mg} switch on
+  Under \option{\ldots/preconditioner::mg}, switch on
   \option{vertical\_lumping}.
 \end{itemize}
+
+Having a boundary condition \option{type::free\_surface} requires the option
+\option{equation\_of\_state/fluids/linear} under \option{/material\_phase}, 
+and the option \option{subtract\_out\_hydrostatic\_level} under it. The \option{reference\_density}
+should not have an effect on a \option{equation::Boussinesq} configuration, but
+it is safest to simply set it to 1.0. Also without a free surface boundary
+condition, it is a good idea to set these \option{equation\_of\_state} options.
 
 \subsection{Boundary conditions}
 
@@ -1980,7 +2017,15 @@ This uses the Continuous Galerkin discretisation, with a mesh of polynomial orde
   \item For open boundary conditions, you should either prescribe the velocity
     or the pressure by adding a \option{type::dirichlet} boundary condition
     under \option{vector\_field::Velocity} or \option{scalar\_field::Pressure}
-    respectively.
+    respectively. Note, that in simulations with constant density where the
+    hydrostatic pressure has been subtracted, the main component of pressure is
+    the barotropic pressure $p=g\eta$ (in Boussinesq we have also divided out
+    the reference density $\rho_0$). Thus, neglecting non-hydrostatic effects, a
+    free surface boundary condition can be applied by multiplying the desired
+    free surface elevation by $g$ and setting this as a \option{type::dirichlet}
+    Pressure boundary condition. For baroclinic simulations, the vertical
+    pressure profile should be taken into account and added to the barotropic
+    pressure.
 \end{itemize}
 
 \subsection{Baroclinic simulations}
@@ -2000,9 +2045,10 @@ Continuous Galerkin discretisation of these fields:
 \begin{itemize}
   \item Choose \option{continuous\_galerkin} under
     \option{\ldots/spatial\_discretisation}. 
-  \item If the fields contain discontinuities (shocks or fronts) a
-    \option{streamline\_upwind} can be chosen under
-    \option{\ldots/spatial\_discretisation/stabilisation}.
+  \item If the fields contain discontinuities (shocks or fronts), you can
+    choose \option{streamline\_upwind} under
+    \option{\ldots/spatial\_discretisation/stabilisation} to stabilize the
+    solution.
   \item To ensure conservation of the scalar, choose a value of 1.0 for
     \option{\dots/spatial\_discretisation/conservative\_advection}. 
   \item For \option{\ldots/solver/} options, choose \option{gmres} for the
@@ -2013,7 +2059,7 @@ As mentioned in the time stepping section, our ability to use large timesteps
 relies on the fact that the equations are solved implicitly. Because we do not
 solve the Temperature and Navier Stokes equations in a directly coupled way
 however, the timescale associated with this coupling, the buoyancy or
-Brunt-V\"ais\"al\"a frequency becomes a, very strict, limitation on the timestep. To
+Brunt-V\"ais\"al\"a frequency still poses a, very strict, limitation on the timestep. To
 avoid this, add the option
 \option{\ldots/vertical\_stabilization/implicity\_buoyancy} under the Velocity
 field.
@@ -2022,11 +2068,11 @@ field.
 \label{sec:ocean_on_the_sphere}
 For ocean scale simulations, in which the curvature of the Earth is important,
 the equations should be solved in a spherical domain. Follow the instructions
-in section \ref{sec_spherical_earth}. Note, that when using
+in section \ref{sec:spherical_earth}. Note, that when using
 \option{super\_parametric\_mapping} the CoordinateMesh should be P2. This is
 recommended for large-scale baroclinic simulations, in particular when
-under-resolved. This is
-achieved by having another mesh, typically called \option{BaseMesh}, that has the
+under-resolved. It is
+achieved by adding another mesh, typically called \option{BaseMesh}, that has the
 \option{extrude} option under it instead of the CoordinateMesh. The
 CoordinateMesh is now derived from the BaseMesh with the additional option of
 \option{polynomial\_order} set to 2 (in the same way as the PressureMesh is
@@ -2051,13 +2097,13 @@ stabilisation, which may lead to excessive wave energy disipation. It can be a
 good choice in a highly-energy turbulent regime.
 
 For the \PoDGPt discretisation most of the recommendations in section
-\ref{sec:large-scale-oceans} should be followed. The option
+\ref{sec:large-scale-ocean} should be followed. The option
 \option{vertical\_lumping} under \option{\ldots/preconditioner::mg} is no longer
 necessary.
 
 For the \Poo discretisation the following differences apply:
 \begin{itemize}
-  \item Separate VelocityMesh and PressureMesh are not necessarry. Instead you
+  \item A separate VelocityMesh and PressureMesh are not necessarry. Instead you
     can put all fields on the same CoordinateMesh or, alternatively, remove the
     \option{mesh\_continuity} and \option{polynomial\_degree} options under
     these meshes.
@@ -2066,112 +2112,68 @@ For the \Poo discretisation the following differences apply:
     you could consider using an \option{adaptive\_timestep} under
     \option{/timestepping}.
   \item Under Velocity select
-    \option{\ldots/spatial\_discretisation/continuous\_galerkin}. Under that
-    you have to have \option{mass\_terms/lump\_mass\_matrix}. You may need
+    \option{\ldots/spatial\_discretisation/continuous\_galerkin}. Under it,
+    you need to have \option{mass\_terms/lump\_mass\_matrix}. You may need
     to add \option{stabilisation/streamline\_upwind} to stabilize non-smooth
     flows.
-  \item The options for Pressure are the same as before.
+  \item The options for Pressure are the same as before, except the option
+    \option{vertical\_lumping} is no longer necessary under
+    \option{\ldots/preconditioner::mg}.
+  \item Because the P1 pressure discretisation is not very good for maintaining
+    geostrophic balance, it is usually necessary to solve this balance in a
+    separate solve (see section \ref{sec:balance_pressure}). The part of pressure that balances the geostrophic
+    Coriolis and buoyancy terms, is solved for in a separate field called
+    GeostrophicPressure that is on a higher order mesh. Add a new mesh under
+    \option{/geometry} with the name \option{GeostrophicPressureMesh}, with
+    option \option{from\_mesh/mesh::CoordinateMesh} and add
+    the option \option{polynomial\_order} with value 2.
+    Add a prognostic \option{scalar\_field::GeostrophicPressure} under
+    \option{/material\_phase} using that same mesh. Under
+    \option{\ldots/spatial\_discretisation}, choose \option{include\_buoyancy}
+    as the \option{geostrophic\_pressure\_option} to include both Coriolis and
+    buoyancy in the balance. The \option{\ldots/solver} options can be chosen
+    the same as for Pressure. If your problem includes a
+    \option{type::free\_surface} boundary condition under Velocity, you should
+    add a zero \option{type::dirichlet} boundary condition under the
+    Geostrophic field at the same free surface boundary. If not, leave all
+    boundaries unspecified (this implies a Neumann condition). In that case
+    however, you need the option \option{remove\_null\_space} under
+    \option{\ldots/solver}.
 \end{itemize}
 
-\subsection{Geometry}
-\label{sec:GFD_config_geometry}
-
-For both P1-P1 and P1DG-P2 \option{\ldots/geometry/mesh::CoordinateMesh} is required. For P1-P1 this can then be used for both the velocity and pressure fields so \option{\ldots/geometry/mesh::VelocityMesh} and \option{\ldots/geometry/mesh::PressureMesh} do not need to be set.
-
-For P1DG-P2 the velocity mesh requires discontinuous Galerkin to be selected for continuity and the pressure mesh must have polynomial order two. To do this set:
+\subsection{Control Volumes for scalar fields}
+For smaller scale problems using Control Volumes (CV) may be a robust and efficient
+option for solving the scalar advection diffusion equations. For larger scale problems in which maintaining stratification is
+important it is not recommended. The recommended options for scalar fields 
+discretised with CV are:
 \begin{itemize}
-\item \option{\ldots/geometry/mesh::VelocityMesh/from\_mesh/mesh::CoordinateMesh}
-\item \option{\ldots/geometry/mesh::VelocityMesh/from\_mesh/mesh\_continuity} to \option{discontinuous}
-\item \option{\ldots/geometry/mesh::PressureMesh/from\_mesh/mesh::CoordinateMesh}
-\item \option{\ldots/geometry/mesh::PressureMesh/from\_mesh/mesh\_shape/polynomial\_degree} to 2
-\end{itemize}
-
-If \option{\ldots/scalar\_field::GeostrophicPressure} is to be included, cf. \ref{sec:config_geostrophic_balance}, \ref{sec:GFD_config_geopressure}, then a further mesh needs to be added. This must have polynomial degree one order greater than the mesh used for the velocity field. To demonstrate let us call this mesh `GeostrophicPressureMesh', derive this mesh from the \option{CoordinateMesh} and assume the mesh used for the velocity field has polynomial order 1, then to include this option:
-\begin{itemize}
-\item select a new \option{\ldots/geometry/mesh} and set the \option{name} attribute as \option{GeostrophicPressureMesh}
-\item select \option{\ldots/from\_mesh::CoordinateMesh}
-\item set \option{\ldots/from\_mesh::CoordinateMesh/mesh\_shape/polynomial\_degree} to 2
-\end{itemize}
-
-\subsection{Timestepping}
-
-2 non-linear iterations are recommended and can be specified by setting \option{\ldots/timestepping/nonlinear\_iterations} to 2.
-
-\subsection{Material/phase}
-
-
-\subsubsection{Equation of state}
-
-For most problems the linear equation of state is appropriate, cf. \ref{sec:equation_of_state}. This is selected with \option{\ldots/equation\_of\_state/fluids/linear} and other values such as the thermal contraction coefficient can be set in the options that appear below. 
-
-It is generally recommended to subtract out the hydrostatic pressure level from the equation of state by setting the option \option{\ldots/equation\_of\_state/fluids/linear/subtract\_out\_hydrostatic\_level}. This will allow increased accuracy for lower-order element pairs, cf. \ref{sec:balance_pressure}.
-
-\subsubsection{Pressure}
-
-The specified mesh should be \option{CoordinateMesh} for P1-P1 and \option{PressureMesh} for P1DG-P2. 
-
-\begin{itemize}
-\item \option{\ldots/spatial\_discretisation/continuous\_galerkin} is recommended for the spatial discretisation. 
-\item \option{\ldots/scheme/poisson\_pressure\_solution} can be chosen as either \option{never} or \option{only\_first\_timestep}, cf. \ref{sec:poisson_pressure_solution}.
-\end{itemize}
-
-Note, if the normal component of the velocity is imposed on all boundaries, then either \option{\ldots/prognostic/reference\_node} or \option{\ldots/solver/remove\_null\_space} need to be set, cf. \ref{Nullspaceremove}.
-
-\subsubsection{Velocity}
-
-The specified mesh should be \option{CoordinateMesh} for P1-P1 and \option{PressureMesh} for P1DG-P2. 
-
-The equation used to solve for Velocity is set under \option{\ldots/equation}, cf. \ref{sec:ND_momentum_equation}. For GFD problems that require the Boussinesq approximation selecting \option{\ldots/equation::Boussinesq} will ensure that this correct formulation used, cf, \ref{sec:boussinesq_approximation}, \ref{sec:typical_ICOM_equations}, \ref{sec:ND_momentum_equation}.
-
-A Crank-Nicolson temporal discretisation with a non-linear relaxation is recommended for the temporal discretisation cf. \ref{sec:ND_time_loop}, \ref{sec:ND_time_disct_adv_diff}. This is selected by setting:
-\begin{itemize}
-\item \option{\ldots/temporal\_discretisation/theta} to 0.5
-\item \option{\ldots/temporal\_discretisation/relaxation} to 0.5
-\end{itemize}
-
-If using P1-P1, the following are recommended for the spatial discretisation:
-\begin{itemize}
-\item \option{\ldots/spatial\_discretisation/continuous\_galerkin/stabilisation/no\_stabilisation}, cf. \ref{sec:ND_advective_stabilisation_CG}
-\item \option{\ldots/spatial\_discretisation/continuous\_galerkin/mass\_terms/lump\_mass\_matrix}, cf. \ref{sec:ND_cg_mass_lumping}
-\item \option{\ldots/spatial\_discretisation/conservative\_advection} set to 0 (non-conservative), \ref{sec:Spatial discretisations}
-\end{itemize}
-
-If using P1DG-P2, the following are recommended for the spatial discretisation:
-\begin{itemize}
-\item \option{\ldots/spatial\_discretisation/discontinuous\_galerkin/viscosity\_scheme/compact\_discontinuous\_galerkin}, cf. \ref{sec:NM_DG_diffusion}
-\item \option{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/upwind}, cf. \ref{sec:ND_discontinuous_galerkin_advection}
-\item \option{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/integrate\_advection\_by\_parts/twice}, cf. \ref{sec:ND_discontinuous_galerkin_advection}
-\item \option{\ldots/spatial\_discretisation/conservative\_advection} set to 0 (non-conservative), \ref{sec:Spatial discretisations}
-\end{itemize}
-
-\subsubsection{Advected scalar fields}
-The recommended options for scalar fields are considered for P1-P1 and P1DG-P2 separately. \\ \\
-{\bf \Poo} \\ \\
-The mesh used should be the \option{CoordinateMesh} and the equation type \option{AdvectionDiffusion}, cf. \ref{sec:ND_advection_diffusion_discretisation}. 
-
-For the spatial discretisation a control-volumes discretisation with a finite-element face value discretisation and Sweby limiter are recommended which are selected with the options, cf. \ref{sec:CVs}:
+  \item The mesh used should be the \option{CoordinateMesh} and the equation type \option{AdvectionDiffusion}, cf. \ref{sec:ND_advection_diffusion_discretisation}. 
+  \item For the spatial discretisation a control-volumes discretisation with a finite-element face value discretisation and Sweby limiter are recommended which are selected with the options, cf. \ref{sec:CVs}:
 \begin{itemize}
 \item \option{\ldots/spatial\_discretisation/control\_volumes/face\_value::FiniteElement}
 \item \option{\ldots/prognostic/spatial\_discretisation/control\_volumes/face\_value::FiniteElement/limit\_face\_value/limiter::Sweby}
 \end{itemize}
-To help increase speed it is possible to store upwind elements so they do not have to be recalculated every time step (only after adapts). To do this activate the option:
-\begin{itemize}
-\item{\option{\ldots/prognostic/spatial\_discretisation/control\_volumes/face\_value::FiniteElement/limit\_face\_value/limiter::Sweby/project\_upwind\_value\_from\_point/store\_upwind\_elements}}
-\end{itemize}
-An Element Gradient diffusion scheme is also generally recommended, selected under \option{\ldots/spatial\_discretisation/control\_volumes/diffusion\_scheme::ElementGradient}
-
-For the temporal discretisation a Crank-Nicolson scheme is recommended, with the control volume options of 3 advection iterations and limit theta, cf. \ref{sec:CVs}. These are set with the options:
+\item To help increase speed it is possible to store upwind elements so they do
+  not have to be recalculated every time step (only after adapts). To do this
+  activate the option
+\option{\ldots/spatial\_discretisation/control\_volumes/face\_value::FiniteElement/limit\_face\_value/limiter::Sweby/project\_upwind\_value\_from\_point/store\_upwind\_elements}.
+\item For diffusion, the Element Gradient diffusion scheme is recommended, selected under \option{\ldots/spatial\_discretisation/control\_volumes/diffusion\_scheme::ElementGradient}
+\item For the temporal discretisation a Crank-Nicolson scheme is recommended, with the control volume options of 3 advection iterations and limit theta, cf. \ref{sec:CVs}. These are set with the options:
 \begin{itemize}
 \item{\option{\ldots/temporal\_discretisation/theta} set to 0.5}
 \item{\option{\ldots/temporal\_discretisation/control\_volumes/number\_advection\_iterations}}
 \item{\option{\ldots/prognostic/temporal\_discretisation/control\_volumes/limit\_theta}}
 \end{itemize}
+\end{itemize}
 
-{\bf \PoDGPt} \\
-
-The mesh used should be the \option{VelocityMesh} and the equation type \option{AdvectionDiffusion}, cf. \ref{sec:ND_advection_diffusion_discretisation}. 
-
-For the spatial discretisation a discontinuous-Galerkin discretisation
+\subsection{Discontinuous Galerkin for scalar fields}
+When using \PoDGPt for Velocity and Pressure, using P1DG for the scalar fields
+is also an option that may be more accurate but is also more expensive. If stratification is important however, there is a known
+issue with maintaining stratification near the boundaries with the DG slope
+limiter.
+\begin{itemize}
+  \item The mesh used should be the \option{VelocityMesh} and the equation type \option{AdvectionDiffusion}, cf. \ref{sec:ND_advection_diffusion_discretisation}. 
+  \item For the spatial discretisation a discontinuous-Galerkin discretisation
 is recommended with a Lax-Friedrichs advection scheme, velocity
 projected to continuous space, advection integrated by parts once and
 a compact-discontinuous-Galerkin diffusion scheme with a vertex-based
@@ -2184,35 +2186,75 @@ slope limiter. These options are selected with:
 \item{\option{\ldots/spatial\_discretisation/discontinuous\_galerkin/slope\_limiter::Vertex\_Based}, cf. \ref{sec:ND_DG_slope_limiters}.}
 \end{itemize}
 
-For the temporal discretisation a Crank-Nicolson scheme with subcycling is recommended. This can be set with:
+\item For the temporal discretisation a Crank-Nicolson scheme with subcycling is recommended. This can be set with:
 \begin{itemize}
 \item{\option{\ldots/temporal\_discretisation/theta} set to 0.5}
 \item{\option{\ldots/temporal\_discretisation/discontinuous\_galerkin/maximum\_courant\_number\_per\_subcycle} set to an appropriate value.}
 \end{itemize}
-
-
-\subsubsection{Geostrophic Pressure}
-\label{sec:GFD_config_geopressure}
-If enabled a `geopressure' solver is used, \ref{sec:config_geostrophic_balance}. 
-\begin{itemize}
-\item The specified mesh should be the \option{GeostrophicPressureMesh}, cf. \ref{sec:GFD_config_geometry}. 
-\item The terms included in the right-hand side of the geopressure solver are selected under: \\
-\option{\ldots/spatial\_discretisation/geostrophic\_pressure\_option}.
-\item A reference node must be set as geopressure uses Neumann boundary conditions on all boundaries (cf. \ref{Nullspaceremove}), for example:
-\option{\ldots/reference\_node::node\_1}
 \end{itemize}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Shallow Water Equations           %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \section{Shallow Water Equations} \label{sec:shallow_water_equations}
-To solve for the shallow water equations \eqref{swe} select equation type
+\index{shallow water equations!configuration}
+To solve for the shallow water equations \eqref{eq:swe} select equation type
 \option{equation::ShallowWater} under a prognostic Velocity field. You will
 also need a prognostic Pressure field which solves the barotropic pressure
 $g\eta$, where $\eta$ is the Free Surface elevation. 
 
-\subsection{Discretisation}
 The setup of the temporal
-and spatial discretisation options is mostly the same as for other geophysical
-flow problems (see sections \ref{section:large-scale-ocean} and
-\ref{sec:gfd_problems}). We recommend the \PoDGPt pressure element pair
+and spatial discretisation options is mostly the same as for 3D ocean
+flow problems (see section \ref{sec:large-scale-ocean}). We recommend the \PoDGPt pressure element pair. The
+main differences with a 3D setup are:
+\begin{itemize}
+  \item Under Velocity, the equation type should be set to
+    \option{equation::ShallowWater}. Here you should specify the bottom depth
+    of your domain as a prescibed \option{scalar\_field::BottomDepth} either
+    using a \option{constant} or \option{python} function, or, to read from a netcdf
+    file, use \option{from\_map}.
+  \item The problem is solved on a 2D mesh. This typically means that the
+    CoordinateMesh is set as the input mesh (with the \option{from\_file}
+    option). As before, the VelocityMesh and PressureMesh are derived from it (using
+    \option{from\_mesh}) with the options \option{mesh\_continuity} set to
+    \option{discontinuous} for the VelocityMesh and 
+    \option{mesh\_shape/polynomial\_degree} set to 2 for the PressureMesh.
+    The option \option{/geometry/ocean\_boundaries} should not be used.
+  \item Under \option{/physical\_parameters} you still need to set
+    \option{gravtiy/magnitude}. The settings under
+    \option{gravity/vector\_field::GravityDirection} will be ignored.
+  \item A Coriolis force may be added under \option{/physical\_parameters} with
+    either the option \option{f\_plane} or \option{beta\_plane}.
+  \item Since density is not taken into account in the shallow water equations
+    that are solved, equation \eqref{eq:swe}, you should not have an
+    \option{equation\_of\_state} or a \option{scalar\_field::Density} under
+    \option{/material\_phase}.
+  \item Since the shallow water equations are solved in non-conservative form,
+    the momentum advection term needs to be in non-conservative form. Set
+    \option{\ldots/spatial\_discretisation/conservative\_advection} to 0.0
+    under Velocity.
+  \item No boundary conditions for the bottom or top free surface should be
+    added under the Velocity field. Instead, to add a bottom drag select this
+    option under \option{equation::ShallowWater}. Lateral boundary conditions
+    are set as previously. As before, a free surface boundary condition is
+    applied as a Pressure boundary condition, where the desired free surface
+    elevation is multiplied by $g$.
+  \item For Pressure, the option \option{\ldots/solver/iterative\_method} should
+    be set to \option{iterative\_method::gmres} instead of \option{cg}.
+    The \option{vertical\_lumping} under \option{preconditioner::mg} is not
+    valid in 2D domains. The \option{preconditioner::mg} is still recommended.
+  \item A diagnostic \option{scalar\_field::FreeSurface} (should be on the
+    PressureMesh) can be added to
+    visualise the free surface elevation $\eta$. This is calculated by dividing
+    the Pressure value by $g$.
+\end{itemize}
+
+There is currently no capability to solve the shallow water equations on the
+sphere. For ocean-scale and global models, where one is only interested in the
+barotropic, depth-averaged flow, you need to set up the problem using a 3D
+configuration as described in section \ref{sec:large-scale-ocean} using a
+single layer.
 
 \section{Mesh adaptivity} \label{sec:config_adapt}
 
