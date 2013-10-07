@@ -1,7 +1,7 @@
 SHELL = sh
 
 input: clean
-	gmsh -2 square.geo -o square.msh
+	gmsh -2 -bin square.geo -o square.msh
 
 clean:
 	rm -f *.ele

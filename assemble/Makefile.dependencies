@@ -311,7 +311,7 @@ Foam_Flow.o ../include/foam_flow_module.mod: Foam_Flow.F90 \
    ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
    ../include/state_matrices_module.mod ../include/state_module.mod \
    ../include/transform_elements.mod ../include/vector_tools.mod \
-   ../include/vtk_interfaces.mod ../include/weak_bcs.mod
+   ../include/vtk_interfaces.mod
 
 ../include/free_surface_module.mod: Free_Surface.o
 	@true
@@ -601,8 +601,7 @@ Momentum_Equation.o ../include/momentum_equation.mod: Momentum_Equation.F90 \
    ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
    ../include/state_fields_module.mod ../include/state_matrices_module.mod \
    ../include/state_module.mod ../include/tidal_module.mod \
-   ../include/vertical_balance_pressure.mod ../include/vtk_interfaces.mod \
-   ../include/weak_bcs.mod
+   ../include/vertical_balance_pressure.mod ../include/vtk_interfaces.mod
 
 ../include/multimaterial_module.mod: Multimaterials.o
 	@true

@@ -1656,17 +1656,6 @@ When using \option{\ldots/control\_volumes} under Pressure \option{\ldots/spatia
 \option{\ldots/integrate\_continuity\_by\_parts} with CG Pressure and Velocity this boundary condition type 
 imposes a weak no normal flow boundary condition on the surfaces specified.
 
-\subsubsection{Near-wall treatment}
-
-This option implements a penalty function for the near wall region, negating the need to use fine meshes
-near walls \citep{bazilevs2007}. This option should be used in conjunction with a 
-\option{\ldots/no\_normal\_flow} boundary on the same surface.
-
-\subsubsection{Log-law of wall}
-
-This option sets the velocity to proportional to the logarithm of the distance from the boundary. 
-A surface roughness needs to be specified which is the thickness of laminar sublayer.
-
 \subsection{Special input date for boundary conditions}\label{sec:BCs:specialised}
 
 When running free surface simulations the surface elevation at the boundary is specified by applying a pressure Dirichlet condition. Since the free surface elevation is often measured data, there are some special possibilities to specify a pressure Dirichlet condition: 
@@ -2620,11 +2609,41 @@ This section contains advice for running a compressible simulation, by describin
 use of the pressure solve, so no solver options are needed either. By having an equation type turned on, the density is not only incorporated into the pressure solve 
 but also an Advection-Diffusion equation is solved (and solver options need to be specified).
 
-\subsection{Velocity options}
+\subsection{Velocity options}\label{sec:VelocityOptions}
+\subsubsection{Mass lumping}
+For continuous velocities \option{\ldots/spatial\_discretisation/\ldots/lump\_mass\_matrix} should be turned on.
+\subsubsection{Selecting the correct form of the viscous term}
+In the presence of viscosity a form of the stress tensor must be chosen, as discussed in \ref{sec:ViscosityTerms}. 
 \begin{itemize}
-\item for continuous velocities \option{\ldots/spatial\_discretisation/\ldots/lump\_mass\_matrix} should be turned on.
-\item in the presence of viscosity \option{\ldots/spatial\_discretisation/continuous\_galerkin/stress\_terms/stress\_form} is required and all components of the anisotropic symmetric Viscosity tensor should be filled out.  This functionality is only available with continuous Galerkin velocities.
+\item for compressible flow the full '\emph{stress form}' is required: 
+\begin{itemize} 
+\item CG discretisation: \option{\ldots/spatial\_discretisation/continuous\_galerkin/stress\_terms/stress\_form}
+\item DG discretisation: not available
 \end{itemize}
+\item for incompressible flow with spatially varying viscosity the '\emph{partial stress form}' is required:
+\begin{itemize} 
+\item CG discretisation: \option{\ldots/spatial\_discretisation/continuous\_galerkin/stress\_terms/partial\_stress\_form}
+\item DG discretisation: only available when using the Bassi-Rebay formulation of the viscosity term and for isotropic viscosity \option{\ldots/spatial\_discretisation/continuous\_galerkin/stress\_terms/bassi-rebay/partial\_stress\_form}
+\end{itemize}
+\item for incompressible flow with homogeneous viscosity, the '\emph{tensor form}' is valid:
+\begin{itemize} 
+\item CG discretisation: \option{\ldots/spatial\_discretisation/continuous\_galerkin/stress\_terms/tensor\_form}
+\item DG discretisation: \option{\ldots/spatial\_discretisation/continuous\_galerkin/stress\_terms/bassi-rebay/tensor\_form} or any other viscosity term formulation.
+\end{itemize}
+\end{itemize}
+
+\emph{Important note when using 'stress form' and 'partial stress form' with a CG velocity field:} when using isotropic viscosities, and not the 'tensor form' of the viscosity term, all components of viscosity must be set to equal to the isotropic viscosity due to the method of implementation. If using an anisotropic viscosity with the 'partial stress form' or 'stress form' consult the schema and query the code to understand how the viscosity tensor must be defined. This does not apply when using DG discretisations. 
+
+\subsubsection{Hydrostatic balance}
+The option \option{subtract\_out\_reference\_profile} splits up the Density and Pressure fields into a hydrostatic (reference) component (') and a perturbed component (''). The hydrostatic (reference) components, denoted $p^{\prime}$ and $\rho^{\prime}$, should satisfy the balance:
+\begin{equation}
+  \nabla p^{\prime} = \rho^{\prime}\mathbf{g}
+\end{equation}
+Enabling this option will subtract the hydrostatic components, specified here, from the pressure and density used in the pressure gradient and buoyancy terms in the momentum equation. This helps to maintain hydrostatic balance and prevent spurious oscillations in the pressure field when using unbalanced finite element pairs.
+
+To use this option you will also need to create two prescribed scalar fields, called HydrostaticReferencePressure and HydrostaticReferenceDensity, which define $p^{\prime}$ and $\rho^{\prime}$. These must be on the same mesh as pressure and density, respectively, and are meant to be set up as vertical profiles (i.e. constant in the horizontal direction). 
+
+Note that unlike all the other hydrostatic/geostrophic balance options in Fluidity (i.e. \option{subtract\_out\_hydrostatic\_level} under the linear incompressible EoS option, or with HydrostaticPressure or GeostrophicPressure fields), the hydrostatic pressure is not subtracted from the Pressure field itself. In other words, the Pressure field that gets solved for (and output in the .vtu files) is still the combined Pressure ($p = p^{\prime} + \rho^{\prime}$), and the hydrostatic pressure $p^{\prime}$ is only subtracted in the momentum equation.
 
 \subsection{InternalEnergy options}
 \begin{itemize}

@@ -64,7 +64,6 @@
       use state_matrices_module
       use vtk_interfaces
       use rotated_boundary_conditions
-      use Weak_BCs
       use reduced_model_runtime
       use state_fields_module
       use Tidal_module
@@ -683,12 +682,6 @@
 
             if (has_boundary_condition(u, "drag")) then
                call drag_surface(big_m(istate), mom_rhs(istate), state(istate), density)
-            end if
-
-            ! Near wall treatment
-            if (has_boundary_condition(u, "near_wall_treatment") .or. &
-               has_boundary_condition(u, "log_law_of_wall")) then
-               call wall_functions(big_m(istate), mom_rhs(istate), state(istate))
             end if
 
             call profiler_toc(u, "assembly")
@@ -1527,6 +1520,11 @@
          type(vector_field) :: delta_u
          type(vector_field), pointer :: positions
 
+         ! Fields for the subtract_out_reference_profile option under the Velocity field
+         type(scalar_field), pointer :: hb_pressure
+         type(scalar_field) :: combined_p
+         integer :: stat
+
          ewrite(1,*) 'Entering advance_velocity'
 
 
@@ -1551,6 +1549,20 @@
                &have_option('/ocean_forcing/shelf')) then
             ewrite(1,*) "shelf: Entering compute_pressure_and_tidal_gradient"
                call compute_pressure_and_tidal_gradient(state(istate), delta_u, ct_m(istate)%ptr, p_theta, x)
+            else if (have_option(trim(state(istate)%option_path)//'/equation_of_state/compressible/subtract_out_reference_profile')) then
+               ! Splits up the Density and Pressure fields into a hydrostatic component (') and a perturbed component (''). 
+               ! The hydrostatic components, denoted p' and rho', should satisfy the balance: grad(p') = rho'*g
+               ! We subtract the hydrostatic component from the pressure used in the pressure gradient term of the momentum equation.
+               hb_pressure => extract_scalar_field(state(istate), "HydrostaticReferencePressure", stat)
+               if(stat /= 0) then
+                  FLExit("When using the subtract_out_reference_profile option, please set a (prescribed) HydrostaticReferencePressure field.")
+                  ewrite(-1,*) 'The HydrostaticReferencePressure field, defining the hydrostatic component of the pressure field, needs to be set.'
+               end if
+               call allocate(combined_p,p_theta%mesh, "PressurePerturbation")
+               call set(combined_p, p_theta)
+               call addto(combined_p, hb_pressure, scale=-1.0)
+               call mult_T(delta_u, ct_m(istate)%ptr, combined_p)
+               call deallocate(combined_p)
             else
                call mult_T(delta_u, ct_m(istate)%ptr, p_theta)
             end if
