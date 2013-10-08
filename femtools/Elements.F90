@@ -1324,7 +1324,7 @@ contains
        vertex_coords=shape%cell%vertex_coords(vertices,:)
        
        do i=1, shape%dim-1
-          A(i,:)=vertex_coords(i,:)-vertex_coords(1,:)
+          A(i,:)=vertex_coords(i+1,:)-vertex_coords(1,:)
        end do
 
        raw_facet=shape%facet2dofs(facet)%dofs
