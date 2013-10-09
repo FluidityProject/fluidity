@@ -366,6 +366,10 @@
         assert(.not. have_vertical_velocity_relaxation)
         depth = extract_scalar_field(state, "BottomDepth") ! we reuse the field that's already passed for VVR
         old_pressure => extract_scalar_field(state, "OldPressure")
+      else
+        ! just to be sure, nullify these pointer instead of passing them undefined:
+        nullify(swe_bottom_drag)
+        nullify(old_pressure)
       end if
 
       call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude, &
