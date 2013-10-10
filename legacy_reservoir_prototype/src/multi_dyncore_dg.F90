@@ -4435,48 +4435,51 @@ end if
                SNDOTQOLD_OUT = 0.0
 
 
-            IF( NON_LIN_DGFLUX ) THEN
-               DO IPHASE=1, NPHASE
-                  SNDOTQ_KEEP(:,IPHASE)   =SUD_KEEP(:,IPHASE)*SNORMXN(:)   &
-                       +SVD_KEEP(:,IPHASE)*SNORMYN(:)   +SWD_KEEP(:,IPHASE)*SNORMZN(:)
-                  SNDOTQ2_KEEP(:,IPHASE)   =SUD2_KEEP(:,IPHASE)*SNORMXN(:)   &
-                       +SVD2_KEEP(:,IPHASE)*SNORMYN(:)   +SWD2_KEEP(:,IPHASE)*SNORMZN(:)
-
-                  SNDOTQOLD_KEEP(:,IPHASE)=SUDOLD_KEEP(:,IPHASE)*SNORMXN(:)  &
-                       +SVDOLD_KEEP(:,IPHASE)*SNORMYN(:)+SWDOLD_KEEP(:,IPHASE)*SNORMZN(:)
-                  SNDOTQOLD2_KEEP(:,IPHASE)=SUDOLD2_KEEP(:,IPHASE)*SNORMXN(:)  &
-                       +SVDOLD2_KEEP(:,IPHASE)*SNORMYN(:)+SWDOLD2_KEEP(:,IPHASE)*SNORMZN(:)
-               END DO
-
-               N_DOT_DU=0.0 
-               N_DOT_DU2=0.0 
-               N_DOT_DUOLD=0.0 
-               N_DOT_DUOLD2=0.0 
-               DO U_ILOC=1,U_NLOC
-                  u_nod=u_ndgln((ele-1)*u_nloc + u_iloc)
-                  u_nod2=u_ndgln((ele2-1)*u_nloc + u_iloc)
- 
+               IF( NON_LIN_DGFLUX ) THEN
                   DO IPHASE=1, NPHASE
-                     u_nod_pha =u_nod  + (iphase-1)*u_nonods
-                     u_nod2_pha=u_nod2 + (iphase-1)*u_nonods
+                     SNDOTQ_KEEP(:,IPHASE)   =SUD_KEEP(:,IPHASE)*SNORMXN(:)   &
+                          +SVD_KEEP(:,IPHASE)*SNORMYN(:)   +SWD_KEEP(:,IPHASE)*SNORMZN(:)
+                     SNDOTQ2_KEEP(:,IPHASE)   =SUD2_KEEP(:,IPHASE)*SNORMXN(:)   &
+                          +SVD2_KEEP(:,IPHASE)*SNORMYN(:)   +SWD2_KEEP(:,IPHASE)*SNORMZN(:)
 
-                     vel_dot(:) = u(u_nod_pha)*snormxn(:) + v(u_nod_pha)*snormyn(:) + w(u_nod_pha)*snormzn(:)
-                     vel_dot2(:) = u(u_nod2_pha)*snormxn(:) + v(u_nod2_pha)*snormyn(:) + w(u_nod2_pha)*snormzn(:)
-
-                     velold_dot(:) = uold(u_nod_pha)*snormxn(:) + vold(u_nod_pha)*snormyn(:) + wold(u_nod_pha)*snormzn(:)
-                     velold_dot2(:) = uold(u_nod2_pha)*snormxn(:) + vold(u_nod2_pha)*snormyn(:) + wold(u_nod2_pha)*snormzn(:)
-
-                     grad_fact(:) = UFENX(U_ILOC,1)*snormxn(:) + UFENY(U_ILOC,1)*snormyn(:) + UFENZ(U_ILOC,1)*snormzn(:)
-
-                     N_DOT_DU(:,iphase)  = N_DOT_DU(:,iphase)  + grad_fact(:)*vel_dot(:)
-                     N_DOT_DU2(:,iphase) = N_DOT_DU2(:,iphase) + grad_fact(:)*vel_dot2(:)
-
-                     N_DOT_DUOLD(:,iphase)  = N_DOT_DUOLD(:,iphase)  + grad_fact(:)*velold_dot(:) 
-                     N_DOT_DUOLD2(:,iphase) = N_DOT_DUOLD2(:,iphase) + grad_fact(:)*velold_dot2(:)  
+                     SNDOTQOLD_KEEP(:,IPHASE)=SUDOLD_KEEP(:,IPHASE)*SNORMXN(:)  &
+                          +SVDOLD_KEEP(:,IPHASE)*SNORMYN(:)+SWDOLD_KEEP(:,IPHASE)*SNORMZN(:)
+                     SNDOTQOLD2_KEEP(:,IPHASE)=SUDOLD2_KEEP(:,IPHASE)*SNORMXN(:)  &
+                          +SVDOLD2_KEEP(:,IPHASE)*SNORMYN(:)+SWDOLD2_KEEP(:,IPHASE)*SNORMZN(:)
                   END DO
 
-               END DO
-            ENDIF
+                  ELE3=ELE2
+                  IF ( ELE2==0 ) ELE3=ELE
+              
+                  N_DOT_DU=0.0 
+                  N_DOT_DU2=0.0 
+                  N_DOT_DUOLD=0.0 
+                  N_DOT_DUOLD2=0.0 
+                  DO U_ILOC=1,U_NLOC
+                     u_nod=u_ndgln((ele-1)*u_nloc + u_iloc)
+                     u_nod2=u_ndgln((ele3-1)*u_nloc + u_iloc)
+ 
+                     DO IPHASE=1, NPHASE
+                        u_nod_pha =u_nod  + (iphase-1)*u_nonods
+                        u_nod2_pha=u_nod2 + (iphase-1)*u_nonods
+
+                        vel_dot = u(u_nod_pha)*snormxn + v(u_nod_pha)*snormyn + w(u_nod_pha)*snormzn
+                        vel_dot2 = u(u_nod2_pha)*snormxn + v(u_nod2_pha)*snormyn + w(u_nod2_pha)*snormzn
+
+                        velold_dot = uold(u_nod_pha)*snormxn + vold(u_nod_pha)*snormyn(:) + wold(u_nod_pha)*snormzn
+                        velold_dot2 = uold(u_nod2_pha)*snormxn + vold(u_nod2_pha)*snormyn(:) + wold(u_nod2_pha)*snormzn
+
+                        grad_fact = UFENX(U_ILOC,1)*snormxn + UFENY(U_ILOC,1)*snormyn + UFENZ(U_ILOC,1)*snormzn
+
+                        N_DOT_DU(:,iphase)  = N_DOT_DU(:,iphase)  + grad_fact*vel_dot
+                        N_DOT_DU2(:,iphase) = N_DOT_DU2(:,iphase) + grad_fact*vel_dot2
+
+                        N_DOT_DUOLD(:,iphase) = N_DOT_DUOLD(:,iphase)  + grad_fact*velold_dot
+                        N_DOT_DUOLD2(:,iphase) = N_DOT_DUOLD2(:,iphase) + grad_fact*velold_dot2 
+                     END DO
+
+                  END DO
+               END IF
 
                ! Have a surface integral on element boundary...  
                DO SGI=1,SBCVNGI
