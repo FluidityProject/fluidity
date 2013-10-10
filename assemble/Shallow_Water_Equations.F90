@@ -359,6 +359,12 @@ module shallow_water_equations
       FLExit('Cannot use "cg" as linear solver for Pressure with ShallowWater')
     end if
 
+    if (.not. have_option(trim(pressure_option_path)// &
+      "/spatial_discretisation/continuous_galerkin")) then
+      ! it might also work with dg, but someone should test that - definitely won't work with cv
+      FLExit('Equation type ShallowWater only work with a continuous galerkin Pressure')
+    end if
+
     ! Velocity options
 
     velocity_option_path = "/material_phase/vector_field::Velocity/prognostic/"
