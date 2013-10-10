@@ -306,7 +306,7 @@ module divergence_matrix_cg
           "free_surface           ", &
           "prescribed_normal_flow "/), field_bc, field_bc_type)
 
-       do sele = 1, surface_element_count(test_mesh)
+        do sele = 1, surface_element_count(test_mesh)
 
           if(any(field_bc_type(:,sele)==2)&
                .or.any(field_bc_type(:,sele)==3)&
