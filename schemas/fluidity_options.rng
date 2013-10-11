@@ -3788,6 +3788,13 @@ boundary condition on the surface_ids specified.</a:documentation>
         <empty/>
       </element>
       <element name="type">
+        <a:documentation>Implements a prescribed normal flow. Works for DG only.</a:documentation>
+        <attribute name="name">
+          <value>prescribed_normal_flow</value>
+        </attribute>
+        <ref name="input_choice_real_bc_component"/>
+      </element>
+      <element name="type">
         <a:documentation>Flux boundary condition. 
 
 Weakly enforces a flux across a boundary</a:documentation>

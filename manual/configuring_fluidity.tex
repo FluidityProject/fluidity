@@ -1653,6 +1653,14 @@ When using \option{\ldots/control\_volumes} under Pressure \option{\ldots/spatia
 \option{\ldots/integrate\_continuity\_by\_parts} with CG Pressure and Velocity this boundary condition type 
 imposes a weak no normal flow boundary condition on the surfaces specified.
 
+\subsubsection{Prescribed normal flow}
+\index{boundary conditions!prescribed normal flow}
+
+When using \option{\ldots/control\_volumes} under Pressure \option{\ldots/spatial\_discretisation}, when using 
+\option{\ldots/integrate\_continuity\_by\_parts} with CG Pressure and Velocity, or DG Velocity this boundary condition type 
+imposes a weak prescribed normal flow boundary condition on the surfaces specified.
+
+
 \subsection{Special input date for boundary conditions}\label{sec:BCs:specialised}
 
 When running free surface simulations the surface elevation at the boundary is specified by applying a pressure Dirichlet condition. Since the free surface elevation is often measured data, there are some special possibilities to specify a pressure Dirichlet condition: 

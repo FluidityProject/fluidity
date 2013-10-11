@@ -2829,6 +2829,13 @@ velocity_boundary_conditions =
             attribute name { "no_normal_flow" },
             empty
          }|
+         ## Implements a prescribed normal flow. Works for DG only. This
+         ## implements a weakly imposed bounadry condition normal to the surface.
+         ## Note: Positive points out of the domain, negative into the domain.
+         element type {
+            attribute name { "prescribed_normal_flow" },
+               input_choice_real_bc_component
+         }|
          ## Flux boundary condition. 
          ##
          ## Weakly enforces a flux across a boundary
