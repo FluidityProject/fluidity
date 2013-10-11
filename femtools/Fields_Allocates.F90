@@ -1295,16 +1295,35 @@ contains
              ! (this might break for the case where elements share more than one
              ! face, but in that case the next few lines are wrong as well)
 
-             mesh%faces%face_lno((faces(j)-1)*snloc+1:faces(j)*snloc)= &
-                  sorted_facet(mesh%shape, j, ele_facet(1:p))
+             if(mesh%shape%numbering%type/=ELEMENT_TRACE) then
+                mesh%faces%face_lno((faces(j)-1)*snloc+1:faces(j)*snloc)= &
+                     sorted_facet(mesh%shape, j, ele_facet(1:p))
+                
+                face2=ival(mesh%faces%face_list, neigh(j), ele)
+                
+                local_facet=vertices_entity(mesh%shape%cell,&
+                     & sorted(ele_facet2(1:p)))
+                
+                mesh%faces%face_lno((face2-1)*snloc+1:face2*snloc)= &
+                     sorted_facet(mesh%shape, local_facet(2), ele_facet2(1:p))
+             else
+                !TRACE SPACE CASE
+                ! Trace dofs are only accessible via the facets, so the
+                !  facets do not need to be sorted consistent with the
+                !  elements. 
+                local_facet=vertices_entity(mesh%shape%cell,&
+                     & sorted(ele_facet(1:p)))
+                mesh%faces%face_lno((faces(j)-1)*snloc+1:faces(j)*snloc)= &
+                     mesh%shape%facet2dofs(local_facet(2))%dofs
 
-             face2=ival(mesh%faces%face_list, neigh(j), ele)
+                face2=ival(mesh%faces%face_list, neigh(j), ele)
+                
+                local_facet=vertices_entity(mesh%shape%cell,&
+                     & sorted(ele_facet2(1:p)))
 
-             local_facet=vertices_entity(mesh%shape%cell,&
-                  & sorted(ele_facet2(1:p)))
-
-             mesh%faces%face_lno((face2-1)*snloc+1:face2*snloc)= &
-                  sorted_facet(mesh%shape, local_facet(2), ele_facet2(1:p))
+                mesh%faces%face_lno((face2-1)*snloc+1:face2*snloc)= &
+                     mesh%shape%facet2dofs(local_facet(2))%dofs
+             end if
 
           else if (neigh(j)<0) then
 

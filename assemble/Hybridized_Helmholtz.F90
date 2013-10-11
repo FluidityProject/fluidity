@@ -1434,6 +1434,18 @@ contains
     real, dimension(face_loc(Lambda,ele)) :: jump
     type(element_type), pointer :: U_face_shape
     real, pointer, dimension(:) :: detwei
+    
+    if(.not.all(face_global_nodes(lambda,face).eq.face_global_nodes(lambda&
+         &,face2))) then
+       ewrite(0,*) ele,ele2,face,face2
+       ewrite(0,*) ele_nodes(lambda,ele)
+       ewrite(0,*) 'ASDF'
+       ewrite(0,*) ele_nodes(lambda,ele2)
+       ewrite(0,*) face_global_nodes(lambda,face)
+       ewrite(0,*) face_global_nodes(lambda,face2)
+       ewrite(0,*) face_local_nodes(lambda,face)
+       ewrite(0,*) face_local_nodes(lambda,face2)
+    end if
 
     U_face_shape=>face_shape(U, face)
     detwei => U_face_shape%quadrature%weight
@@ -1447,9 +1459,9 @@ contains
 
     jump = shape_rhs(face_shape(Lambda,ele),sum(u1*n1*weight1 &
          +u2*n2*weight2,1)*detwei)
-    ewrite(0,*) 'cjc jump', jump
-    ewrite(0,*) face_local_nodes(U,face)
-    ewrite(0,*) face_local_nodes(U,face2)
+    !ewrite(0,*) 'cjc jump', jump
+    !ewrite(0,*) face_local_nodes(U,face)
+    !ewrite(0,*) face_local_nodes(U,face2)
     if(maxval(abs(jump))/max(1.0,maxval(abs(u1)))>1.0e-7) then
        jump = shape_rhs(face_shape(Lambda,ele),sum(u2*n2*weight2,1)*detwei)
        ewrite(0,*) 'one side', jump
@@ -1467,7 +1479,7 @@ contains
        ewrite(0,*) 'psi2', face_val_at_quad(psi,face2)
        ewrite(0,*) 'P1DGtest1', face_val_at_quad(test,face)
        ewrite(0,*) 'P1DGtest2', face_val_at_quad(test,face2)
-!       FLExit('Bad jumps')
+       FLExit('Bad jumps')
     end if
 
   end subroutine check_continuity_local_face
@@ -1887,9 +1899,19 @@ contains
          vfields=(/tmpV_field/))    
 
     lambda_mesh=>extract_mesh(state, "VelocityMeshTrace")
+    
+    ewrite(0,*) lambda_mesh%shape%facet2dofs(1)%dofs
+    ewrite(0,*) lambda_mesh%shape%facet2dofs(2)%dofs
+    ewrite(0,*) lambda_mesh%shape%facet2dofs(3)%dofs
+    ewrite(0,*) lambda_mesh%shape%facet2dofs(4)%dofs
+    !stop
+
     call allocate(lambda,lambda_mesh,"lambdacheck")
     do ele = 1, element_count(D)
        call check_continuity_local_ele(U_local,Lambda,psi,test,X,ele)
+    end do
+    do ele = 1, element_count(D)
+       call check_continuity_local_ele(tmpV_field,Lambda,psi,test,X,ele)
     end do
     call deallocate(lambda)
 
