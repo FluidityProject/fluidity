@@ -21,7 +21,7 @@
       </from_mesh>
       <recompute_coordinate_field>
         <python>
-          <string_value type="code" lines="20" language="python">def val(X,t):
+          <string_value lines="20" type="code" language="python">def val(X,t):
   print X[0],X[1],X[2]
   return [X[0],X[1],X[2]]</string_value>
         </python>
@@ -307,6 +307,67 @@ divided by 4
           <exists_in_forward/>
         </adjoint_storage>
       </prescribed>
+    </scalar_field>
+    <scalar_field name="P1DGtest" rank="0">
+      <prognostic>
+        <mesh name="PressureMesh"/>
+        <equation name="AdvectionDiffusion"/>
+        <spatial_discretisation>
+          <continuous_galerkin>
+            <stabilisation>
+              <no_stabilisation/>
+            </stabilisation>
+            <advection_terms/>
+            <mass_terms/>
+          </continuous_galerkin>
+          <conservative_advection>
+            <real_value rank="0"/>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta>
+            <real_value rank="0"/>
+          </theta>
+        </temporal_discretisation>
+        <solver>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0"/>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0"/>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0"/>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <python>
+            <string_value type="code" lines="20" language="python">def val(X,t):
+  return X[0]*X[1]</string_value>
+          </python>
+        </initial_condition>
+        <output/>
+        <stat>
+          <manifold_transformation/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
     </scalar_field>
   </material_phase>
   <debug>

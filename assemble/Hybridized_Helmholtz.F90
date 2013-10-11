@@ -1378,10 +1378,10 @@ contains
     end do
   end subroutine compute_cartesian_ele
 
-  subroutine check_continuity_local_ele(U,Lambda,psi,test,X,ele)
+  subroutine check_continuity_local_ele(U,Lambda,psi,X,ele)
     implicit none
     type(vector_field), intent(in) :: U,X
-    type(scalar_field), intent(in) :: Lambda,psi,test
+    type(scalar_field), intent(in) :: Lambda,psi
     integer, intent(in) :: ele
     !
     integer, dimension(:), pointer :: neigh
@@ -1418,15 +1418,15 @@ contains
        else
           face2 = -1
        end if
-       call check_continuity_local_face(U,Lambda,psi,test,X,ele,ele2,face,face2)
+       call check_continuity_local_face(U,Lambda,psi,X,ele,ele2,face,face2)
     end do
   end subroutine check_continuity_local_ele
 
-  subroutine check_continuity_local_face(U,Lambda,psi,test,X,ele,ele2,face,face2)
+  subroutine check_continuity_local_face(U,Lambda,psi,X,ele,ele2,face,face2)
     implicit none
     integer, intent(in) :: face,face2,ele,ele2
     type(vector_field), intent(in) :: U,X
-    type(scalar_field), intent(in) :: Lambda, psi, test
+    type(scalar_field), intent(in) :: Lambda, psi
     !
     real, dimension(U%dim, face_ngi(U, face)) :: n1,n2,u1,u2
     real, dimension(face_ngi(U, face)) :: f1,f2
@@ -1477,8 +1477,6 @@ contains
          u2*n2*weight2,1)*detwei)
        ewrite(0,*) 'psi1', face_val_at_quad(psi,face)
        ewrite(0,*) 'psi2', face_val_at_quad(psi,face2)
-       ewrite(0,*) 'P1DGtest1', face_val_at_quad(test,face)
-       ewrite(0,*) 'P1DGtest2', face_val_at_quad(test,face2)
        FLExit('Bad jumps')
     end if
 
@@ -1840,7 +1838,7 @@ contains
     implicit none
     type(state_type), intent(inout) :: state
     !
-    type(scalar_field), pointer :: D,psi,f,test
+    type(scalar_field), pointer :: D,psi,f
     type(scalar_field) :: D_rhs,tmp_field, lambda
     type(vector_field), pointer :: U_local,down,X, U_cart
     type(vector_field) :: Coriolis_term, Balance_eqn, tmpV_field
@@ -1853,7 +1851,6 @@ contains
 
     D=>extract_scalar_field(state, "LayerThickness")
     psi=>extract_scalar_field(state, "Streamfunction")
-    test => extract_scalar_field(state,'P1DGtest')
     f=>extract_scalar_field(state, "Coriolis")
     U_local=>extract_vector_field(state, "LocalVelocity")
     U_cart=>extract_vector_field(state, "Velocity")
@@ -1908,10 +1905,10 @@ contains
 
     call allocate(lambda,lambda_mesh,"lambdacheck")
     do ele = 1, element_count(D)
-       call check_continuity_local_ele(U_local,Lambda,psi,test,X,ele)
+       call check_continuity_local_ele(U_local,Lambda,psi,X,ele)
     end do
     do ele = 1, element_count(D)
-       call check_continuity_local_ele(tmpV_field,Lambda,psi,test,X,ele)
+       call check_continuity_local_ele(tmpV_field,Lambda,psi,X,ele)
     end do
     call deallocate(lambda)
 

@@ -112,7 +112,7 @@
 
     call populate_state(states)
 
-    call test_mesh(states(1))
+!    call test_mesh(states(1))
 
     ! No support for multiphase or multimaterial at this stage.
     if (size(states)/=1) then

@@ -102,7 +102,7 @@
       </from_mesh>
     </mesh>
     <mesh name="InputMesh">
-      <from_file file_name="john2">
+      <from_file file_name="cube_serial">
         <format name="triangle"/>
         <dimension>
           <integer_value rank="0">2</integer_value>
