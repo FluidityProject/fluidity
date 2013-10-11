@@ -941,24 +941,34 @@ prognostic_velocity_field =
          },
          ## Implicit/explicit control of pressure gradient temporal
          ##  discretisation, theta_pg
+         ##
          ##  =0.  -- explicit
+         ##
          ##  =0.5 -- Crank-Nicolson
+         ##
          ##  =1.  -- implicit
+         ##
          ##  Specification of this parameter will only affect
          ##  solution procedure when a free-surface is present or 
-         ##  compressible projection is used. If left unspecified
+         ##  compressible projection or equation type Shallow Water is used. 
+         ##  If left unspecified
          ##  the code defaults to theta_pg = theta.
          element theta_pressure_gradient {
             real
          }?,
          ## Implicit/explicit control of velocity-divergence temporal
          ##  discretisation, theta_divergence
+         ##
          ##  =0.  -- explicit
+         ##
          ##  =0.5 -- Crank-Nicolson
+         ##
          ##  =1.  -- implicit
+         ##
          ##  Specification of this parameter will only affect
          ##  solution procedure when a free-surface is present or 
-         ##  compressible projection is used. If left unspecified
+         ##  compressible projection or equation type Shallow Water is used. 
+         ##  If left unspecified
          ##  the code defaults to theta_divergence = theta.
          element theta_divergence {
             real
@@ -2047,6 +2057,33 @@ velocity_equation_choice =
       ## Boussinesq only works for continuous_galerkin and discontinuous_galerkin.
       element equation {
          attribute name { "Boussinesq" }
+      }|
+      ## Select the equation used to solve for velocity.
+      ##
+      ## Select ShallowWater to solve the non-linear shallow water equations in non-conservative form.
+      ## The Velocity field will be the depth-averaged flow velocity and the Pressure field
+      ## will be the free surface elevation multiplied by the gravitational constant g
+      element equation {
+         attribute name { "ShallowWater" },
+         # Bottom depth (excluding free surface elevation), a positive number
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "BottomDepth" },
+            element prescribed {
+               coordinate_mesh_choice,
+               prescribed_scalar_field
+            }
+         },
+         element bottom_drag {
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "BottomDragCoefficient" },
+               element prescribed {
+                  coordinate_mesh_choice,
+                  prescribed_scalar_field
+               }
+            }
+         }?
       }|
       ## Select the equation used to solve for velocity.
       ## Drainage only works for continuous_galerkin and discontinuous_galerkin.
