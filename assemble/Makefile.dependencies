@@ -733,8 +733,8 @@ Saturation_Distribution_Search_HookeJeeves.o \
 
 Shallow_Water_Equations.o ../include/shallow_water_equations.mod: \
    Shallow_Water_Equations.F90 ../include/boundary_conditions.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/spud.mod \
-   ../include/state_module.mod
+   ../include/fdebug.h ../include/fields.mod ../include/global_parameters.mod \
+   ../include/spud.mod ../include/state_module.mod
 
 ../include/slope_limiters_dg.mod: Slope_limiters_DG.o
 	@true
