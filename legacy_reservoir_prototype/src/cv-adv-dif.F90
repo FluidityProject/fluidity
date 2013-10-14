@@ -1004,6 +1004,7 @@
                            CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
                                 HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
                                 IGOT_T2,T2, T2OLD, FEMT2, FEMT2OLD, DEN, DENOLD, &
+                                !0,T, TOLD, FEMT, FEMTOLD, DEN, DENOLD, &
                                 U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
                                 CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ, &
                                 CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
@@ -1098,6 +1099,7 @@
                            CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
                                 HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
                                 IGOT_T2,T2, T2OLD, FEMT2, FEMT2OLD, DEN, DENOLD, &
+                                !0,T, TOLD, FEMT, FEMTOLD, DEN, DENOLD, &
                                 U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
                                 CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
                                 CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
@@ -5434,7 +5436,7 @@ END IF
       ! If BETWEEN_ELE_HARMONIC_AVE use a Harmonic average for the between element DG permeability.
       LOGICAL, PARAMETER :: BETWEEN_ELE_HARMONIC_AVE = .FALSE.
       ! If BETWEEN_ELE_REIM_AVE use a simple Riemann approach for the between element DG permeability.
-      LOGICAL, PARAMETER :: BETWEEN_ELE_RIEM_AVE = .FALSE. !.TRUE.
+      LOGICAL, PARAMETER :: BETWEEN_ELE_RIEM_AVE = .TRUE.
       LOGICAL :: RESET_STORE, LIM_VOL_ADJUST
       REAL :: TMIN_STORE, TMAX_STORE, TOLDMIN_STORE, TOLDMAX_STORE
       REAL :: PERM_TILDE, NDOTQ_TILDE, NDOTQ2_TILDE, NDOTQOLD_TILDE, NDOTQOLD2_TILDE
@@ -6059,16 +6061,16 @@ END IF
                         GRAD_ABS_CV_NODJ_IPHA = GRAD_ABS_CV_NODJ_IPHA + NVEC(IDIM)*G_NODJ
                      END DO
 
-                     NDOTQ_TILDE  = ( GRAD_ABS_CV_NODI_IPHA*T(CV_NODI+(IPHASE-1)*CV_NONODS) / ABS_CV_NODI_IPHA + 1./VOLFRA_PORE(ELE)  ) * NDOTQ  
-                     NDOTQ2_TILDE = ( GRAD_ABS_CV_NODJ_IPHA*T(CV_NODJ+(IPHASE-1)*CV_NONODS) / ABS_CV_NODJ_IPHA + 1./VOLFRA_PORE(ELE2) ) * NDOTQ2 
-                     NDOTQOLD_TILDE  = ( GRAD_ABS_CV_NODI_IPHA*TOLD(CV_NODI+(IPHASE-1)*CV_NONODS)/ABS_CV_NODI_IPHA + 1./VOLFRA_PORE(ELE)  ) * NDOTQOLD  
-                     NDOTQOLD2_TILDE = ( GRAD_ABS_CV_NODJ_IPHA*TOLD(CV_NODJ+(IPHASE-1)*CV_NONODS)/ABS_CV_NODJ_IPHA + 1./VOLFRA_PORE(ELE2) ) * NDOTQOLD2 
+                     NDOTQ_TILDE = ( GRAD_ABS_CV_NODI_IPHA * T(CV_NODI+(IPHASE-1)*CV_NONODS) / ABS_CV_NODI_IPHA + 1./VOLFRA_PORE(ELE) ) * NDOTQ  
+                     NDOTQ2_TILDE = ( GRAD_ABS_CV_NODJ_IPHA * T(CV_NODJ+(IPHASE-1)*CV_NONODS) / ABS_CV_NODJ_IPHA + 1./VOLFRA_PORE(ELE2) ) * NDOTQ2 
+                     NDOTQOLD_TILDE = ( GRAD_ABS_CV_NODI_IPHA * TOLD(CV_NODI+(IPHASE-1)*CV_NONODS) / ABS_CV_NODI_IPHA + 1./VOLFRA_PORE(ELE) ) * NDOTQOLD  
+                     NDOTQOLD2_TILDE = ( GRAD_ABS_CV_NODJ_IPHA * TOLD(CV_NODJ+(IPHASE-1)*CV_NONODS) / ABS_CV_NODJ_IPHA + 1./VOLFRA_PORE(ELE2) ) * NDOTQOLD2 
    
                   ELSE IF(BETWEEN_ELE_HARMONIC_AVE) THEN
 !  simple mean...
 !                     PERM_TILDE= ( PERM_ELE(ELE) + PERM_ELE(ELE2) ) / 2.0
 !
-                     PERM_TILDE= ( 1.0+1.0 ) &
+                     PERM_TILDE = ( 1.0+1.0 ) &
                             /( 1./(1.0*PERM_ELE(ELE)) + 1./(1.0*PERM_ELE(ELE2)) )
 
 !                     PERM_TILDE= ( 1./MASS_CV(CV_NODI)+1./MASS_CV(CV_NODJ) ) &
