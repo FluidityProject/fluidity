@@ -173,11 +173,11 @@
       character( len = option_path_len ) :: path
 
 
-      ALLOCATE( ACV( NCOLACV ))
-      ALLOCATE( CV_RHS( CV_NONODS * NPHASE ))
-      ALLOCATE( DIAG_SCALE_PRES( CV_NONODS ))
-      ALLOCATE( CT_RHS( CV_NONODS ))
-      ALLOCATE( CT( NCOLCT *NDIM * NPHASE ))
+      ALLOCATE( ACV( NCOLACV ) )
+      ALLOCATE( CV_RHS( CV_NONODS * NPHASE ) )
+      ALLOCATE( DIAG_SCALE_PRES( CV_NONODS ) )
+      ALLOCATE( CT_RHS( CV_NONODS ) )
+      ALLOCATE( CT( NCOLCT *NDIM * NPHASE ) )
 
       if( present( option_path ) ) then
 
@@ -4603,7 +4603,7 @@ end if
 ! endof if(.not.stress_form) then...
                      ENDIF
 
-                     FTHETA( SGI,IDIM,IPHASE )=1.0
+                     FTHETA( SGI,IDIM,IPHASE )=0.5 !1.0
 
                      IF( NON_LIN_DGFLUX ) THEN
                         ! non-linear DG flux - if we have an oscillation use upwinding else use central scheme. 
@@ -5638,7 +5638,7 @@ end if
       integer, dimension( NCOLELE ), intent( in ) :: COLELE
 
       real, dimension( : ), allocatable :: U_FORCE_X_SUF_TEN, U_FORCE_Y_SUF_TEN, U_FORCE_Z_SUF_TEN, &
-           &                                         CV_U_FORCE_X_SUF_TEN, CV_U_FORCE_Y_SUF_TEN, CV_U_FORCE_Z_SUF_TEN 
+           &                               CV_U_FORCE_X_SUF_TEN, CV_U_FORCE_Y_SUF_TEN, CV_U_FORCE_Z_SUF_TEN 
       real, dimension( STOTEL * CV_SNLOC ) :: DUMMY_SUF_COMP_BC
       integer, dimension( STOTEL ) :: DUMMY_WIC_COMP_BC
 
