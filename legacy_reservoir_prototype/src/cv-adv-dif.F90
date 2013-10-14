@@ -5434,7 +5434,7 @@ END IF
       ! If BETWEEN_ELE_HARMONIC_AVE use a Harmonic average for the between element DG permeability.
       LOGICAL, PARAMETER :: BETWEEN_ELE_HARMONIC_AVE = .FALSE.
       ! If BETWEEN_ELE_REIM_AVE use a simple Riemann approach for the between element DG permeability.
-      LOGICAL, PARAMETER :: BETWEEN_ELE_RIEM_AVE = .FALSE. !.TRUE.
+      LOGICAL, PARAMETER :: BETWEEN_ELE_RIEM_AVE = .TRUE.
       LOGICAL :: RESET_STORE, LIM_VOL_ADJUST
       REAL :: TMIN_STORE, TMAX_STORE, TOLDMIN_STORE, TOLDMAX_STORE
       REAL :: PERM_TILDE, NDOTQ_TILDE, NDOTQ2_TILDE, NDOTQOLD_TILDE, NDOTQOLD2_TILDE
@@ -5498,8 +5498,6 @@ END IF
             DO U_KLOC_LEV = 1, U_NLOC_LEV
                U_KLOC=(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV
                IF(UDGI*CVNORMX(GI)+VDGI*CVNORMY(GI)+WDGI*CVNORMZ(GI).LT.0.0) THEN ! Incomming...
-!               IF(.false.) THEN ! Incomming...
-!               IF(.true.) THEN ! Incomming...
                   UGI_COEF_ELE(U_KLOC)=UGI_COEF_ELE(U_KLOC)+1.0*SUF_SIG_DIAGTEN_BC_GI(1)
                   VGI_COEF_ELE(U_KLOC)=VGI_COEF_ELE(U_KLOC)+1.0*SUF_SIG_DIAGTEN_BC_GI(2)
                   WGI_COEF_ELE(U_KLOC)=WGI_COEF_ELE(U_KLOC)+1.0*SUF_SIG_DIAGTEN_BC_GI(3)
@@ -5511,15 +5509,11 @@ END IF
             END DO
 
            IF(UDGI*CVNORMX(GI)+VDGI*CVNORMY(GI)+WDGI*CVNORMZ(GI).LT.0.0) THEN ! Incomming...
-!            IF(.false.) THEN ! Incomming...
-!            IF(.true.) THEN ! Incomming...
                UGI_TMP = SUF_SIG_DIAGTEN_BC_GI(1:3) * (/UDGI, VDGI, WDGI/)
                UDGI=UGI_TMP(1) ; VDGI=UGI_TMP(2) ; WDGI=UGI_TMP(3)
             ENDIF
             
             IF(UOLDDGI*CVNORMX(GI)+VOLDDGI*CVNORMY(GI)+WOLDDGI*CVNORMZ(GI).LT.0.0) THEN ! Incomming...
-!            IF(.false.) THEN ! Incomming...
-!            IF(.true.) THEN ! Incomming...
                UGI_TMP = SUF_SIG_DIAGTEN_BC_GI(1:3) * (/UOLDDGI, VOLDDGI, WOLDDGI/)
                UOLDDGI=UGI_TMP(1) ; VOLDDGI=UGI_TMP(2) ; WOLDDGI=UGI_TMP(3)
             ENDIF
@@ -5710,15 +5704,16 @@ END IF
                MAX_OPER=.TRUE.
                CONSERV=.TRUE.
                SAT_BASED=.FALSE.
-               IF(.false.) THEN
-                  !FEMTOLDGI_IPHA=(LIMT-FEMTGI) + GEOMTOLDGI_IPHA
-                  FEMTOLDGI_IPHA=LIMT
-                  !FEMTOLDGI_IPHA=sqrt(LIMT-FEMTOLDGI_IPHA) + FEMTOLDGI_IPHA
-                  !GEOMTOLDGI_IPHA=FEMTGI
 
-                  OVER_RELAX=1.0
-                  MAX_OPER=.FALSE.
-                  SAT_BASED=.TRUE.
+               IF( .false. ) THEN
+                  !FEMTOLDGI_IPHA = (LIMT-FEMTGI) + GEOMTOLDGI_IPHA
+                  FEMTOLDGI_IPHA = LIMT
+                  !FEMTOLDGI_IPHA = sqrt(LIMT-FEMTOLDGI_IPHA) + FEMTOLDGI_IPHA
+                  !GEOMTOLDGI_IPHA = FEMTGI
+
+                  OVER_RELAX = 1.0
+                  MAX_OPER = .FALSE.
+                  SAT_BASED = .TRUE.
                END IF
 
 
@@ -5760,13 +5755,15 @@ END IF
                   W_UPWIND = ( LIMT - T(CV_NODI_IPHA) ) / TOLFUN( T(CV_NODJ_IPHA) - T(CV_NODI_IPHA) )
                   W_UPWIND = MAX( MIN( 1. , W_UPWIND ), 0. )
 
-                  INCOME = ( -NDOTQ_TILDE + ( W_UPWIND * T(CV_NODJ_IPHA) * NDOTQ2_TILDE + (1. - W_UPWIND) * T(CV_NODI_IPHA) * NDOTQ_TILDE ) / TOLFUN( LIMT ) ) / TOLFUN( NDOTQ2_TILDE - NDOTQ_TILDE  )
+                  INCOME = ( -NDOTQ_TILDE + ( W_UPWIND * T(CV_NODJ_IPHA) * NDOTQ2_TILDE + (1. - W_UPWIND) * T(CV_NODI_IPHA) * NDOTQ_TILDE ) / TOLFUN( LIMT ) ) &
+                       / TOLFUN( NDOTQ2_TILDE - NDOTQ_TILDE  )
                   INCOME = MAX( MIN( 1. , INCOME ), 0. )
 
                   W_UPWINDOLD = ( LIMTOLD - TOLD(CV_NODI_IPHA) ) / TOLFUN( TOLD(CV_NODJ_IPHA) - TOLD(CV_NODI_IPHA) )
                   W_UPWINDOLD = MAX( MIN( 1. , W_UPWINDOLD ), 0. )
                   
-                  INCOMEOLD = ( -NDOTQOLD_TILDE + ( W_UPWINDOLD * TOLD(CV_NODJ_IPHA) * NDOTQOLD2_TILDE + (1. - W_UPWIND) * TOLD(CV_NODI_IPHA) * NDOTQOLD_TILDE ) / TOLFUN( LIMTOLD ) ) / TOLFUN( NDOTQOLD2_TILDE - NDOTQOLD_TILDE  )
+                  INCOMEOLD = ( -NDOTQOLD_TILDE + ( W_UPWINDOLD * TOLD(CV_NODJ_IPHA) * NDOTQOLD2_TILDE + (1. - W_UPWIND) * TOLD(CV_NODI_IPHA) * NDOTQOLD_TILDE ) &
+                       / TOLFUN( LIMTOLD ) ) / TOLFUN( NDOTQOLD2_TILDE - NDOTQOLD_TILDE  )
                   INCOMEOLD = MAX( MIN( 1. , INCOMEOLD ), 0. )
 
                   if ( 0.5 * ( ndotq_TILDE + ndotq2_TILDE ) == 0.0 ) INCOME = 0.5
@@ -6022,9 +6019,9 @@ END IF
 
                ELSE IF(DG_ELE_UPWIND==3) THEN ! the best optimal upwind frac.
 
-                  IF(BETWEEN_ELE_RIEM_AVE.AND.(IGOT_T2.NE.1)) THEN ! Riemen method...
+                  IF ( BETWEEN_ELE_RIEM_AVE .AND. IGOT_T2/=1 ) THEN ! Riemann method...
 !  simple mean...
-                     PERM_TILDE= ( PERM_ELE(ELE) + PERM_ELE(ELE2) ) /2.0
+                     PERM_TILDE= ( PERM_ELE(ELE) + PERM_ELE(ELE2) ) / 2.0
 
 !                     PERM_TILDE= ( 1.0+1.0 ) &
 !                            /( 1./(1.0*PERM_ELE(ELE)) + 1./(1.0*PERM_ELE(ELE2)) )
@@ -6062,14 +6059,14 @@ END IF
                         GRAD_ABS_CV_NODJ_IPHA = GRAD_ABS_CV_NODJ_IPHA + NVEC(IDIM)*G_NODJ
                      END DO
 
-                     NDOTQ_TILDE  = ( GRAD_ABS_CV_NODI_IPHA*T(CV_NODI+(IPHASE-1)*CV_NONODS)/ABS_CV_NODI_IPHA    +1./VOLFRA_PORE(ELE)  )*NDOTQ  
-                     NDOTQ2_TILDE = ( GRAD_ABS_CV_NODJ_IPHA*T(CV_NODJ+(IPHASE-1)*CV_NONODS)/ABS_CV_NODJ_IPHA    +1./VOLFRA_PORE(ELE2) )*NDOTQ2 
-                     NDOTQOLD_TILDE  = ( GRAD_ABS_CV_NODI_IPHA*TOLD(CV_NODI+(IPHASE-1)*CV_NONODS)/ABS_CV_NODI_IPHA    +1./VOLFRA_PORE(ELE)  )*NDOTQOLD  
-                     NDOTQOLD2_TILDE = ( GRAD_ABS_CV_NODJ_IPHA*TOLD(CV_NODJ+(IPHASE-1)*CV_NONODS)/ABS_CV_NODJ_IPHA    +1./VOLFRA_PORE(ELE2) )*NDOTQOLD2 
+                     NDOTQ_TILDE  = ( GRAD_ABS_CV_NODI_IPHA*T(CV_NODI+(IPHASE-1)*CV_NONODS) / ABS_CV_NODI_IPHA + 1./VOLFRA_PORE(ELE)  ) * NDOTQ  
+                     NDOTQ2_TILDE = ( GRAD_ABS_CV_NODJ_IPHA*T(CV_NODJ+(IPHASE-1)*CV_NONODS) / ABS_CV_NODJ_IPHA + 1./VOLFRA_PORE(ELE2) ) * NDOTQ2 
+                     NDOTQOLD_TILDE  = ( GRAD_ABS_CV_NODI_IPHA*TOLD(CV_NODI+(IPHASE-1)*CV_NONODS)/ABS_CV_NODI_IPHA + 1./VOLFRA_PORE(ELE)  ) * NDOTQOLD  
+                     NDOTQOLD2_TILDE = ( GRAD_ABS_CV_NODJ_IPHA*TOLD(CV_NODJ+(IPHASE-1)*CV_NONODS)/ABS_CV_NODJ_IPHA + 1./VOLFRA_PORE(ELE2) ) * NDOTQOLD2 
    
                   ELSE IF(BETWEEN_ELE_HARMONIC_AVE) THEN
 !  simple mean...
-                     PERM_TILDE= ( PERM_ELE(ELE) + PERM_ELE(ELE2) )/2.0
+                     PERM_TILDE= ( PERM_ELE(ELE) + PERM_ELE(ELE2) ) / 2.0
 
 !                     PERM_TILDE= ( 1.0+1.0 ) &
 !                            /( 1./(1.0*PERM_ELE(ELE)) + 1./(1.0*PERM_ELE(ELE2)) )
@@ -6079,10 +6076,10 @@ END IF
 ! seems wrong...
 !                     PERM_TILDE= ( MASS_CV(CV_NODI)+MASS_CV(CV_NODJ) ) &
 !                            /( 1./(MASS_CV(CV_NODI)*PERM_ELE(ELE)) + 1./(MASS_CV(CV_NODJ)*PERM_ELE(ELE2)) )
-                     NDOTQ_TILDE  = NDOTQ  * PERM_TILDE/PERM_ELE(ELE) 
-                     NDOTQ2_TILDE = NDOTQ2 * PERM_TILDE/PERM_ELE(ELE2) 
-                     NDOTQOLD_TILDE  = NDOTQOLD  * PERM_TILDE/PERM_ELE(ELE) 
-                     NDOTQOLD2_TILDE = NDOTQOLD2 * PERM_TILDE/PERM_ELE(ELE2) 
+                     NDOTQ_TILDE  = NDOTQ  * PERM_TILDE / PERM_ELE( ELE ) 
+                     NDOTQ2_TILDE = NDOTQ2 * PERM_TILDE / PERM_ELE( ELE2 ) 
+                     NDOTQOLD_TILDE  = NDOTQOLD  * PERM_TILDE / PERM_ELE( ELE ) 
+                     NDOTQOLD2_TILDE = NDOTQOLD2 * PERM_TILDE / PERM_ELE( ELE2 ) 
                   ELSE
                      NDOTQ_TILDE  = NDOTQ  
                      NDOTQ2_TILDE = NDOTQ2 
