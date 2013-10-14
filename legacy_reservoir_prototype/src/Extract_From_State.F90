@@ -1879,7 +1879,7 @@
 
 
     subroutine update_boundary_conditions( state, stotel, cv_snloc, nphase, & 
-         &                                                    suf_t_bc, suf_t_bc_rob1, suf_t_bc_rob2 )
+         &                                 suf_t_bc, suf_t_bc_rob1, suf_t_bc_rob2 )
       implicit none
       type( state_type ), dimension( : ), intent( in ) :: state
       integer, intent( in ) :: stotel, cv_snloc, nphase
