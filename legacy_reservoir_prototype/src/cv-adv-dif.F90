@@ -6021,10 +6021,10 @@ END IF
 
                   IF ( BETWEEN_ELE_RIEM_AVE .AND. IGOT_T2/=1 ) THEN ! Riemann method...
 !  simple mean...
-                     PERM_TILDE= ( PERM_ELE(ELE) + PERM_ELE(ELE2) ) / 2.0
-
-!                     PERM_TILDE= ( 1.0+1.0 ) &
-!                            /( 1./(1.0*PERM_ELE(ELE)) + 1./(1.0*PERM_ELE(ELE2)) )
+!                     PERM_TILDE= ( PERM_ELE(ELE) + PERM_ELE(ELE2) ) / 2.0
+!
+                     PERM_TILDE= ( 1.0+1.0 ) &
+                            /( 1./(1.0*PERM_ELE(ELE)) + 1./(1.0*PERM_ELE(ELE2)) )
 
 !                     PERM_TILDE= ( 1./MASS_CV(CV_NODI)+1./MASS_CV(CV_NODJ) ) &
 !                            /( 1./(MASS_CV(CV_NODI)*PERM_ELE(ELE)) + 1./(MASS_CV(CV_NODJ)*PERM_ELE(ELE2)) )
@@ -6066,10 +6066,10 @@ END IF
    
                   ELSE IF(BETWEEN_ELE_HARMONIC_AVE) THEN
 !  simple mean...
-                     PERM_TILDE= ( PERM_ELE(ELE) + PERM_ELE(ELE2) ) / 2.0
-
-!                     PERM_TILDE= ( 1.0+1.0 ) &
-!                            /( 1./(1.0*PERM_ELE(ELE)) + 1./(1.0*PERM_ELE(ELE2)) )
+!                     PERM_TILDE= ( PERM_ELE(ELE) + PERM_ELE(ELE2) ) / 2.0
+!
+                     PERM_TILDE= ( 1.0+1.0 ) &
+                            /( 1./(1.0*PERM_ELE(ELE)) + 1./(1.0*PERM_ELE(ELE2)) )
 
 !                     PERM_TILDE= ( 1./MASS_CV(CV_NODI)+1./MASS_CV(CV_NODJ) ) &
 !                            /( 1./(MASS_CV(CV_NODI)*PERM_ELE(ELE)) + 1./(MASS_CV(CV_NODJ)*PERM_ELE(ELE2)) )
