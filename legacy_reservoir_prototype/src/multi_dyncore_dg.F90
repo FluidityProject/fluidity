@@ -2193,7 +2193,7 @@
          UDIFFUSION, &
          IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
          P, scale_momentum_by_volume_fraction, NDIM_VEL )
-      use shape_functions_NDim
+
       implicit none
 
       type( state_type ), dimension( : ), intent( in ) :: state

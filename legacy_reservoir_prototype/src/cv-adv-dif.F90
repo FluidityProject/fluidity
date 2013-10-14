@@ -259,7 +259,7 @@
       REAL, DIMENSION( CV_NONODS ), intent( inout ) :: MEAN_PORE_CV
       REAL, DIMENSION( TOTELE ), intent( inout ) :: MASS_ELE_TRANSP
       character( len = * ), intent( in ), optional :: option_path_spatial_discretisation
-!      character( len = option_path_len ), intent( in ), optional :: option_path_spatial_discretisation
+      !character( len = option_path_len ), intent( in ), optional :: option_path_spatial_discretisation
 
 
       ! Local variables 
@@ -292,7 +292,7 @@
            T2OLDMIN, &
            T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, &
            T2OLDMIN_2ND_MC, &
-           UP_WIND_NOD, DU, DV, DW
+           UP_WIND_NOD, DU, DV, DW, PERM_ELE
       REAL, DIMENSION( : , : ), allocatable :: CVN, CVN_SHORT, CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
            CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT,  &
            UFEN, UFENLX, UFENLY, UFENLZ, SCVFEN, SCVFENSLX, SCVFENSLY, &
@@ -353,12 +353,19 @@
               DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT
       INTEGER :: IDUM(1)
       REAL :: RDUM(1),n1,n2,n3
+      type( scalar_field ), pointer :: perm
+
 
       overlapping = .false.
       call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
            overlapping_path )
       if( trim( overlapping_path ) == 'overlapping' ) overlapping = .true.
 
+      ALLOCATE( PERM_ELE( TOTELE ) ) ; PERM_ELE = 0.0
+      if ( overlapping ) then
+         perm => extract_scalar_field( state(1), "Permeability" )
+         perm_ele = perm % val
+      end if
 
       IDUM = 0
       RDUM = 0.
@@ -996,7 +1003,7 @@
                         IF(IGOT_T2==1) THEN 
                            CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
                                 HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
-                                T2, T2OLD, FEMT2, FEMT2OLD, DEN, DENOLD, &
+                                IGOT_T2,T2, T2OLD, FEMT2, FEMT2OLD, DEN, DENOLD, &
                                 U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
                                 CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ, &
                                 CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
@@ -1009,11 +1016,11 @@
                                 T2MIN, T2MAX, T2OLDMIN, T2OLDMAX, T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 T2MIN_2ND_MC, T2OLDMIN_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, LIMIT_USE_2ND,&
-                                overlapping)
+                                overlapping, PERM_ELE)
                         ELSE
                            CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
                                 HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
-                                T, TOLD, FEMT, FEMTOLD, DEN, DENOLD, &
+                                IGOT_T2,T, TOLD, FEMT, FEMTOLD, DEN, DENOLD, &
                                 U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
                                 CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ, &
                                 CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
@@ -1026,7 +1033,7 @@
                                 TMIN, TMAX, TOLDMIN, TOLDMAX, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, TOLDMAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 TMIN_2ND_MC, TOLDMIN_2ND_MC, TMAX_2ND_MC, TOLDMAX_2ND_MC, LIMIT_USE_2ND,&
-                                overlapping)
+                                overlapping, PERM_ELE)
                         ENDIF
 
 
@@ -1090,7 +1097,7 @@
                         IF(IGOT_T2==1) THEN
                            CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
                                 HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
-                                T2, T2OLD, FEMT2, FEMT2OLD, DEN, DENOLD, &
+                                IGOT_T2,T2, T2OLD, FEMT2, FEMT2OLD, DEN, DENOLD, &
                                 U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
                                 CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
                                 CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
@@ -1103,11 +1110,11 @@
                                 T2MIN, T2MAX, T2OLDMIN, T2OLDMAX, T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 T2MIN_2ND_MC, T2OLDMIN_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, LIMIT_USE_2ND,&
-                                overlapping)
+                                overlapping, PERM_ELE)
                         ELSE
                            CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
                                 HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
-                                T, TOLD, FEMT, FEMTOLD, DEN, DENOLD, &
+                                IGOT_T2,T, TOLD, FEMT, FEMTOLD, DEN, DENOLD, &
                                 U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
                                 CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
                                 CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
@@ -1120,7 +1127,7 @@
                                 TMIN, TMAX, TOLDMIN, TOLDMAX, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, TOLDMAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 TMIN_2ND_MC, TOLDMIN_2ND_MC, TMAX_2ND_MC, TOLDMAX_2ND_MC, LIMIT_USE_2ND,&
-                           OVERLAPPING)
+                                OVERLAPPING, PERM_ELE)
                         ENDIF
 
                         !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===============
@@ -1602,6 +1609,8 @@
       ewrite(3,*) 'just print out - in cv_assemb'
 
       ! Deallocating temporary working arrays
+      DEALLOCATE( PERM_ELE )
+
       DEALLOCATE( JCOUNT_KLOC )
       DEALLOCATE( CVNORMX )
       DEALLOCATE( CVNORMY )
@@ -3037,7 +3046,7 @@ END IF
       REAL, PARAMETER :: TOLER=1.0E-10
       INTEGER, PARAMETER :: POWER=1
       REAL :: UCIN, UCOU, TUPWIN, TUPWI2, TDELE, DENOIN, CTILIN, DENOOU, &
-           &  CTILOU, FTILIN, FTILOU
+           CTILOU, FTILIN, FTILOU
       INTEGER :: COUNT
 
       IF( NOLIMI ) THEN
@@ -3047,13 +3056,21 @@ END IF
 
       Conditional_PELEOT: IF( PELEOT /= PELE ) THEN
 
+!         IF( ETDNEW( PELEOT ) > ETDNEW( PELE )) THEN
+!            TUPWIN = TDMAX( PELEOT )
+!            TUPWI2 = TDMIN( PELE )
+!         ELSE
+!            TUPWIN = TDMIN( PELEOT )
+!            TUPWI2 = TDMAX( PELE ) 
+!         ENDIF
+
           DO COUNT=SMALL_FINDRM(PELEOT),SMALL_FINDRM(PELEOT+1)-1
              IF(SMALL_COLM(COUNT)==PELE) TUPWIN = TUPWIND_MAT(COUNT)**power
-             !IF(SMALL_COLM(COUNT)==PELE) TUPWI2 = TUPWIND_MAT(COUNT)
+ !            IF(SMALL_COLM(COUNT)==PELE) TUPWI2 = TUPWIND_MAT(COUNT)
           END DO
           DO COUNT=SMALL_FINDRM(PELE),SMALL_FINDRM(PELE+1)-1
              IF(SMALL_COLM(COUNT)==PELEOT) TUPWI2 = TUPWIND_MAT(COUNT)**power
-             !IF(SMALL_COLM(COUNT)==PELEOT) TUPWIN = TUPWIND_MAT(COUNT)
+ !            IF(SMALL_COLM(COUNT)==PELEOT) TUPWIN = TUPWIND_MAT(COUNT)
           END DO
 
 
@@ -5215,7 +5232,7 @@ END IF
 
     SUBROUTINE GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ,INCOME, NDOTQOLD, INCOMEOLD, &
          HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
-         T, TOLD, FEMT, FEMTOLD, DEN, DENOLD, &
+         IGOT_T2, T, TOLD, FEMT, FEMTOLD, DEN, DENOLD, &
          U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
          CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
          CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
@@ -5228,14 +5245,14 @@ END IF
          TMIN, TMAX, TOLDMIN, TOLDMAX, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, TOLDMAX_NOD, &
          IN_ELE_UPWIND, DG_ELE_UPWIND, &
          TMIN_2ND_MC, TOLDMIN_2ND_MC, TMAX_2ND_MC, TOLDMAX_2ND_MC,  LIMIT_USE_2ND,&
-         is_overlapping)
+         is_overlapping, PERM_ELE)
       ! Calculate NDOTQ and INCOME on the CV boundary at quadrature pt GI. 
       IMPLICIT NONE
       INTEGER, intent( in ) :: NPHASE, GI, IPHASE, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, &
            CV_NODJ_IPHA, CV_NODI_IPHA, CV_DG_VEL_INT_OPT, ELE, ELE2, &
            SELE, U_SNLOC, STOTEL, WIC_U_BC_DIRICHLET, CV_ELE_TYPE, CV_NLOC, CV_SNLOC, CV_ILOC, CV_JLOC, &
            NOPT_VEL_UPWIND_COEFS, NDIM, MAT_NLOC, MAT_NONODS, FACE_ITS, &
-           IN_ELE_UPWIND, DG_ELE_UPWIND
+           IN_ELE_UPWIND, DG_ELE_UPWIND, IGOT_T2
       REAL, intent( in ) :: HDC, LIMT, LIMTOLD, FEMDGI, FEMTGI, FEMDOLDGI, FEMTOLDGI
       REAL, intent( inout ) :: NDOTQNEW,NDOTQ, INCOME, NDOTQOLD, INCOMEOLD
       INTEGER, DIMENSION( TOTELE*U_NLOC ), intent( in ) :: U_NDGLN
@@ -5253,6 +5270,7 @@ END IF
       REAL, DIMENSION( U_NLOC ), intent( inout ) :: UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
            UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2
       REAL, DIMENSION( TOTELE  ), intent( in ) :: VOLFRA_PORE
+      REAL, DIMENSION( TOTELE  ), intent( in ) :: PERM_ELE
       REAL, DIMENSION( CV_NLOC, SCVNGI  ), intent( in ) :: SCVFEN
       INTEGER, DIMENSION( TOTELE*CV_NLOC ), intent( in ) :: CV_NDGLN
       INTEGER, DIMENSION( CV_NLOC ), intent( in ) :: CV_OTHER_LOC
@@ -5272,7 +5290,7 @@ END IF
          ! For overlapping basis function approach.
          CALL GET_INT_VEL_OVERLAP( NPHASE, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
               HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
-              T, TOLD, FEMT, FEMTOLD, DEN, DENOLD, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
+              IGOT_T2,T, TOLD, FEMT, FEMTOLD, DEN, DENOLD, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
               CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
               CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
               SELE, U_SNLOC,STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC, WIC_U_BC, &
@@ -5283,7 +5301,8 @@ END IF
               FACE_ITS, LIMT, LIMTOLD, FEMDGI, FEMTGI, FEMDOLDGI, FEMTOLDGI, UP_WIND_NOD, &
               TMIN, TMAX, TOLDMIN, TOLDMAX, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, TOLDMAX_NOD, &
               IN_ELE_UPWIND, DG_ELE_UPWIND, &
-              TMIN_2ND_MC, TOLDMIN_2ND_MC, TMAX_2ND_MC, TOLDMAX_2ND_MC,  LIMIT_USE_2ND)
+              TMIN_2ND_MC, TOLDMIN_2ND_MC, TMAX_2ND_MC, TOLDMAX_2ND_MC,  LIMIT_USE_2ND, &
+              PERM_ELE)
       ELSE
          CALL GET_INT_VEL_ORIG( NPHASE, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
               HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
@@ -5298,7 +5317,8 @@ END IF
               FACE_ITS, LIMT, LIMTOLD, FEMDGI, FEMTGI, FEMDOLDGI, FEMTOLDGI, UP_WIND_NOD, &
               TMIN, TMAX, TOLDMIN, TOLDMAX, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, TOLDMAX_NOD, &
               IN_ELE_UPWIND, DG_ELE_UPWIND, &
-              TMIN_2ND_MC, TOLDMIN_2ND_MC, TMAX_2ND_MC, TOLDMAX_2ND_MC,  LIMIT_USE_2ND)
+              TMIN_2ND_MC, TOLDMIN_2ND_MC, TMAX_2ND_MC, TOLDMAX_2ND_MC,  LIMIT_USE_2ND, &
+              PERM_ELE)
       END IF
 
       ! Calculate NDOTQNEW from NDOTQ
@@ -5336,7 +5356,7 @@ END IF
 
     SUBROUTINE GET_INT_VEL_OVERLAP( NPHASE, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
          HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
-         T, TOLD, FEMT, FEMTOLD, DEN, DENOLD, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
+         IGOT_T2,T, TOLD, FEMT, FEMTOLD, DEN, DENOLD, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
          CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
          CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
          SELE, U_SNLOC, STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC, WIC_U_BC, &
@@ -5347,7 +5367,8 @@ END IF
          FACE_ITS, LIMT, LIMTOLD, FEMDGI, FEMTGI, FEMDOLDGI, FEMTOLDGI, UP_WIND_NOD, &
          TMIN, TMAX, TOLDMIN, TOLDMAX, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, TOLDMAX_NOD, &
          IN_ELE_UPWIND, DG_ELE_UPWIND, &
-         TMIN_2ND_MC, TOLDMIN_2ND_MC, TMAX_2ND_MC, TOLDMAX_2ND_MC,  LIMIT_USE_2ND)
+         TMIN_2ND_MC, TOLDMIN_2ND_MC, TMAX_2ND_MC, TOLDMAX_2ND_MC,  LIMIT_USE_2ND, &
+         PERM_ELE)
       !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===
       ! Calculate NDOTQ and INCOME on the CV boundary at quadrature pt GI. 
       ! it assumes an overlapping decomposition approach for velocity. 
@@ -5356,7 +5377,7 @@ END IF
            CV_NODJ_IPHA, CV_NODI_IPHA, CV_DG_VEL_INT_OPT, ELE, ELE2, &
            SELE, U_SNLOC, STOTEL, WIC_U_BC_DIRICHLET, CV_ELE_TYPE, CV_NLOC, CV_ILOC, CV_JLOC, &
            NOPT_VEL_UPWIND_COEFS, NDIM, MAT_NLOC, MAT_NONODS, FACE_ITS, &
-           IN_ELE_UPWIND, DG_ELE_UPWIND
+           IN_ELE_UPWIND, DG_ELE_UPWIND, IGOT_T2
       REAL, intent( in ) :: HDC, LIMT, LIMTOLD, FEMDGI, FEMTGI, FEMDOLDGI, FEMTOLDGI
       REAL, intent( inout ) :: NDOTQ, INCOME, NDOTQOLD, INCOMEOLD
       INTEGER, DIMENSION( TOTELE*U_NLOC ), intent( in ) :: U_NDGLN
@@ -5385,6 +5406,7 @@ END IF
       REAL, DIMENSION( CV_NONODS * NPHASE  ), intent( inout ) :: TMIN, TOLDMIN, TMAX, TOLDMAX
       logical, intent( in ) :: LIMIT_USE_2ND
       REAL, DIMENSION( CV_NONODS * NPHASE ), intent( inout ) :: TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC
+      REAL, DIMENSION( TOTELE  ), intent( in ) :: PERM_ELE
 
       ! Local variables
       REAL :: UDGI,VDGI,WDGI,UOLDDGI,VOLDDGI,WOLDDGI,  &
@@ -5409,8 +5431,13 @@ END IF
       !    INTEGER, PARAMETER :: DG_ELE_UPWIND = 3
       !    INTEGER, PARAMETER :: DG_ELE_UPWIND = 2
       LOGICAL, PARAMETER :: LIM_VOL_ADJUST2 = .true.
+      ! If BETWEEN_ELE_HARMONIC_AVE use a Harmonic average for the between element DG permeability.
+      LOGICAL, PARAMETER :: BETWEEN_ELE_HARMONIC_AVE = .FALSE.
+      ! If BETWEEN_ELE_REIM_AVE use a simple Riemann approach for the between element DG permeability.
+      LOGICAL, PARAMETER :: BETWEEN_ELE_RIEM_AVE = .FALSE. !.TRUE.
       LOGICAL :: RESET_STORE, LIM_VOL_ADJUST
       REAL :: TMIN_STORE, TMAX_STORE, TOLDMIN_STORE, TOLDMAX_STORE
+      REAL :: PERM_TILDE, NDOTQ_TILDE, NDOTQ2_TILDE, NDOTQOLD_TILDE, NDOTQOLD2_TILDE
       ! coefficients for this element ELE
 
       ! The adjustment method for variable CV volumes is not ready for new limiter method...
@@ -5668,10 +5695,10 @@ END IF
                   DO JDIM=1,NDIM
                      IJ=(IPHASE-1)*MAT_NONODS*NDIM*NDIM + (MAT_NODI-1)*NDIM*NDIM + (IDIM-1)*NDIM +JDIM
                      V_NODI = V_NODI + OPT_VEL_UPWIND_COEFS(IJ) * NVEC(JDIM)
-                     G_NODI = G_NODI + OPT_VEL_UPWIND_COEFS(IJ+NPHASE*MAT_NONODS*NDIM*NDIM)*NVEC(JDIM)
+                     G_NODI = G_NODI + OPT_VEL_UPWIND_COEFS(IJ+NPHASE*MAT_NONODS*NDIM*NDIM) * NVEC(JDIM)
                      IJ=(IPHASE-1)*MAT_NONODS*NDIM*NDIM + (MAT_NODJ-1)*NDIM*NDIM + (IDIM-1)*NDIM +JDIM
                      V_NODJ = V_NODJ + OPT_VEL_UPWIND_COEFS(IJ) * NVEC(JDIM)
-                     G_NODJ = G_NODJ + OPT_VEL_UPWIND_COEFS(IJ+NPHASE*MAT_NONODS*NDIM*NDIM)*NVEC(JDIM)
+                     G_NODJ = G_NODJ + OPT_VEL_UPWIND_COEFS(IJ+NPHASE*MAT_NONODS*NDIM*NDIM) * NVEC(JDIM)
                   END DO
                   ABS_CV_NODI_IPHA      = ABS_CV_NODI_IPHA + NVEC(IDIM)*V_NODI
                   GRAD_ABS_CV_NODI_IPHA = GRAD_ABS_CV_NODI_IPHA + NVEC(IDIM)*G_NODI
@@ -5695,18 +5722,30 @@ END IF
                END IF
 
 
+               IF ( BETWEEN_ELE_RIEM_AVE .AND. (IGOT_T2/=1) ) THEN ! Riemann method...
+                     NDOTQ_TILDE  = ( GRAD_ABS_CV_NODI_IPHA * T(CV_NODI+(IPHASE-1)*CV_NONODS) / ABS_CV_NODI_IPHA + 1./VOLFRA_PORE(ELE) ) * NDOTQ  
+                     NDOTQ2_TILDE = ( GRAD_ABS_CV_NODJ_IPHA * T(CV_NODJ+(IPHASE-1)*CV_NONODS) / ABS_CV_NODJ_IPHA + 1./VOLFRA_PORE(ELE) ) * NDOTQ2 
+                     NDOTQOLD_TILDE  = ( GRAD_ABS_CV_NODI_IPHA * TOLD(CV_NODI+(IPHASE-1)*CV_NONODS) / ABS_CV_NODI_IPHA + 1./VOLFRA_PORE(ELE) ) * NDOTQOLD  
+                     NDOTQOLD2_TILDE = ( GRAD_ABS_CV_NODJ_IPHA * TOLD(CV_NODJ+(IPHASE-1)*CV_NONODS) / ABS_CV_NODJ_IPHA + 1./VOLFRA_PORE(ELE) ) * NDOTQOLD2 
+               ELSE
+                     NDOTQ_TILDE  = NDOTQ
+                     NDOTQ2_TILDE = NDOTQ2
+                     NDOTQOLD_TILDE  = NDOTQOLD
+                     NDOTQOLD2_TILDE = NDOTQOLD2
+               END IF
+
                if ( .true. ) then
 
                   !OVER_RELAX=1.0
                   !SAT_BASED=.TRUE.
                   !MAX_OPER=.FALSE.
 
-                  CALL FIND_OPT_INCOME_INTERP(INCOME, W_UPWIND, NDOTQ, NDOTQ2, IPHASE, &
+                  CALL FIND_OPT_INCOME_INTERP(INCOME, W_UPWIND, NDOTQ_TILDE, NDOTQ2_TILDE, IPHASE, &
                        T(CV_NODI_IPHA),T(CV_NODJ_IPHA), FEMTGI_IPHA, GEOMTGI_IPHA,OVER_RELAX, &
                        ABS_CV_NODI_IPHA, ABS_CV_NODJ_IPHA, &
                        GRAD_ABS_CV_NODI_IPHA, GRAD_ABS_CV_NODJ_IPHA,CONSERV,MAX_OPER,SAT_BASED)
 
-                  CALL FIND_OPT_INCOME_INTERP(INCOMEOLD, W_UPWIND, NDOTQOLD, NDOTQOLD2, IPHASE, &
+                  CALL FIND_OPT_INCOME_INTERP(INCOMEOLD, W_UPWIND, NDOTQOLD_TILDE, NDOTQOLD2_TILDE, IPHASE, &
                        TOLD(CV_NODI_IPHA),TOLD(CV_NODJ_IPHA), FEMTOLDGI_IPHA, GEOMTOLDGI_IPHA,OVER_RELAX, &
                        ABS_CV_NODI_IPHA, ABS_CV_NODJ_IPHA, &
                        GRAD_ABS_CV_NODI_IPHA, GRAD_ABS_CV_NODJ_IPHA,CONSERV,MAX_OPER,SAT_BASED)
@@ -5721,17 +5760,17 @@ END IF
                   W_UPWIND = ( LIMT - T(CV_NODI_IPHA) ) / TOLFUN( T(CV_NODJ_IPHA) - T(CV_NODI_IPHA) )
                   W_UPWIND = MAX( MIN( 1. , W_UPWIND ), 0. )
 
-                  INCOME = ( -NDOTQ + ( W_UPWIND * T(CV_NODJ_IPHA) * NDOTQ2 + (1. - W_UPWIND) * T(CV_NODI_IPHA) * NDOTQ ) / TOLFUN( LIMT ) ) / TOLFUN( NDOTQ2 - NDOTQ  )
+                  INCOME = ( -NDOTQ_TILDE + ( W_UPWIND * T(CV_NODJ_IPHA) * NDOTQ2_TILDE + (1. - W_UPWIND) * T(CV_NODI_IPHA) * NDOTQ_TILDE ) / TOLFUN( LIMT ) ) / TOLFUN( NDOTQ2_TILDE - NDOTQ_TILDE  )
                   INCOME = MAX( MIN( 1. , INCOME ), 0. )
 
                   W_UPWINDOLD = ( LIMTOLD - TOLD(CV_NODI_IPHA) ) / TOLFUN( TOLD(CV_NODJ_IPHA) - TOLD(CV_NODI_IPHA) )
                   W_UPWINDOLD = MAX( MIN( 1. , W_UPWINDOLD ), 0. )
                   
-                  INCOMEOLD = ( -NDOTQOLD + ( W_UPWINDOLD * TOLD(CV_NODJ_IPHA) * NDOTQOLD2 + (1. - W_UPWIND) * TOLD(CV_NODI_IPHA) * NDOTQOLD ) / TOLFUN( LIMTOLD ) ) / TOLFUN( NDOTQOLD2 - NDOTQOLD  )
+                  INCOMEOLD = ( -NDOTQOLD_TILDE + ( W_UPWINDOLD * TOLD(CV_NODJ_IPHA) * NDOTQOLD2_TILDE + (1. - W_UPWIND) * TOLD(CV_NODI_IPHA) * NDOTQOLD_TILDE ) / TOLFUN( LIMTOLD ) ) / TOLFUN( NDOTQOLD2_TILDE - NDOTQOLD_TILDE  )
                   INCOMEOLD = MAX( MIN( 1. , INCOMEOLD ), 0. )
 
-                  if ( 0.5 * ( ndotq + ndotq2 ) == 0.0 ) INCOME = 0.5
-                  if ( 0.5 * ( ndotqold + ndotqold2 ) == 0.0 ) INCOMEOLD = 0.5
+                  if ( 0.5 * ( ndotq_TILDE + ndotq2_TILDE ) == 0.0 ) INCOME = 0.5
+                  if ( 0.5 * ( ndotqold_TILDE + ndotqold2_TILDE) == 0.0 ) INCOMEOLD = 0.5
 
                end if
 
@@ -5740,12 +5779,12 @@ END IF
 
                if ( .true. ) then ! Chris look at this... false for lvi test case is better
 
-                  IF(0.5*(NDOTQ+NDOTQ2) < 0.0) THEN
+                  IF(0.5*(NDOTQ_TILDE+NDOTQ2_TILDE) < 0.0) THEN
                      INCOME3=1.0
                   ELSE
                      INCOME3=0.0
                   END IF
-                  IF(0.5*(NDOTQOLD+NDOTQOLD2) < 0.0) THEN
+                  IF(0.5*(NDOTQOLD_TILDE+NDOTQOLD2_TILDE) < 0.0) THEN
                      INCOMEOLD3=1.0
                   ELSE
                      INCOMEOLD3=0.0
@@ -5983,6 +6022,74 @@ END IF
 
                ELSE IF(DG_ELE_UPWIND==3) THEN ! the best optimal upwind frac.
 
+                  IF(BETWEEN_ELE_RIEM_AVE.AND.(IGOT_T2.NE.1)) THEN ! Riemen method...
+!  simple mean...
+                     PERM_TILDE= ( PERM_ELE(ELE) + PERM_ELE(ELE2) ) /2.0
+
+!                     PERM_TILDE= ( 1.0+1.0 ) &
+!                            /( 1./(1.0*PERM_ELE(ELE)) + 1./(1.0*PERM_ELE(ELE2)) )
+
+!                     PERM_TILDE= ( 1./MASS_CV(CV_NODI)+1./MASS_CV(CV_NODJ) ) &
+!                            /( 1./(MASS_CV(CV_NODI)*PERM_ELE(ELE)) + 1./(MASS_CV(CV_NODJ)*PERM_ELE(ELE2)) )
+! seems wrong...
+!                     PERM_TILDE= ( MASS_CV(CV_NODI)+MASS_CV(CV_NODJ) ) &
+!                            /( 1./(MASS_CV(CV_NODI)*PERM_ELE(ELE)) + 1./(MASS_CV(CV_NODJ)*PERM_ELE(ELE2)) )
+
+
+                     NVEC(1)=CVNORMX(GI)
+                     NVEC(2)=CVNORMY(GI)
+                     NVEC(3)=CVNORMZ(GI)
+                     ABS_CV_NODI_IPHA      = 0.0
+                     GRAD_ABS_CV_NODI_IPHA = 0.0
+                     ABS_CV_NODJ_IPHA      = 0.0
+                     GRAD_ABS_CV_NODJ_IPHA = 0.0
+                     DO IDIM=1,NDIM
+                        V_NODI=0.0
+                        G_NODI=0.0
+                        V_NODJ=0.0
+                        G_NODJ=0.0
+                        DO JDIM=1,NDIM
+                           IJ=(IPHASE-1)*MAT_NONODS*NDIM*NDIM + (MAT_NODI-1)*NDIM*NDIM + (IDIM-1)*NDIM +JDIM
+                           V_NODI = V_NODI + OPT_VEL_UPWIND_COEFS(IJ) * NVEC(JDIM)
+                           G_NODI = G_NODI + OPT_VEL_UPWIND_COEFS(IJ+NPHASE*MAT_NONODS*NDIM*NDIM)*NVEC(JDIM)
+                           IJ=(IPHASE-1)*MAT_NONODS*NDIM*NDIM + (MAT_NODJ-1)*NDIM*NDIM + (IDIM-1)*NDIM +JDIM
+                           V_NODJ = V_NODJ + OPT_VEL_UPWIND_COEFS(IJ) * NVEC(JDIM)
+                           G_NODJ = G_NODJ + OPT_VEL_UPWIND_COEFS(IJ+NPHASE*MAT_NONODS*NDIM*NDIM)*NVEC(JDIM)
+                        END DO
+                        ABS_CV_NODI_IPHA      = ABS_CV_NODI_IPHA + NVEC(IDIM)*V_NODI
+                        GRAD_ABS_CV_NODI_IPHA = GRAD_ABS_CV_NODI_IPHA + NVEC(IDIM)*G_NODI
+                        ABS_CV_NODJ_IPHA      = ABS_CV_NODJ_IPHA + NVEC(IDIM)*V_NODJ
+                        GRAD_ABS_CV_NODJ_IPHA = GRAD_ABS_CV_NODJ_IPHA + NVEC(IDIM)*G_NODJ
+                     END DO
+
+                     NDOTQ_TILDE  = ( GRAD_ABS_CV_NODI_IPHA*T(CV_NODI+(IPHASE-1)*CV_NONODS)/ABS_CV_NODI_IPHA    +1./VOLFRA_PORE(ELE)  )*NDOTQ  
+                     NDOTQ2_TILDE = ( GRAD_ABS_CV_NODJ_IPHA*T(CV_NODJ+(IPHASE-1)*CV_NONODS)/ABS_CV_NODJ_IPHA    +1./VOLFRA_PORE(ELE2) )*NDOTQ2 
+                     NDOTQOLD_TILDE  = ( GRAD_ABS_CV_NODI_IPHA*TOLD(CV_NODI+(IPHASE-1)*CV_NONODS)/ABS_CV_NODI_IPHA    +1./VOLFRA_PORE(ELE)  )*NDOTQOLD  
+                     NDOTQOLD2_TILDE = ( GRAD_ABS_CV_NODJ_IPHA*TOLD(CV_NODJ+(IPHASE-1)*CV_NONODS)/ABS_CV_NODJ_IPHA    +1./VOLFRA_PORE(ELE2) )*NDOTQOLD2 
+   
+                  ELSE IF(BETWEEN_ELE_HARMONIC_AVE) THEN
+!  simple mean...
+                     PERM_TILDE= ( PERM_ELE(ELE) + PERM_ELE(ELE2) )/2.0
+
+!                     PERM_TILDE= ( 1.0+1.0 ) &
+!                            /( 1./(1.0*PERM_ELE(ELE)) + 1./(1.0*PERM_ELE(ELE2)) )
+
+!                     PERM_TILDE= ( 1./MASS_CV(CV_NODI)+1./MASS_CV(CV_NODJ) ) &
+!                            /( 1./(MASS_CV(CV_NODI)*PERM_ELE(ELE)) + 1./(MASS_CV(CV_NODJ)*PERM_ELE(ELE2)) )
+! seems wrong...
+!                     PERM_TILDE= ( MASS_CV(CV_NODI)+MASS_CV(CV_NODJ) ) &
+!                            /( 1./(MASS_CV(CV_NODI)*PERM_ELE(ELE)) + 1./(MASS_CV(CV_NODJ)*PERM_ELE(ELE2)) )
+                     NDOTQ_TILDE  = NDOTQ  * PERM_TILDE/PERM_ELE(ELE) 
+                     NDOTQ2_TILDE = NDOTQ2 * PERM_TILDE/PERM_ELE(ELE2) 
+                     NDOTQOLD_TILDE  = NDOTQOLD  * PERM_TILDE/PERM_ELE(ELE) 
+                     NDOTQOLD2_TILDE = NDOTQOLD2 * PERM_TILDE/PERM_ELE(ELE2) 
+                  ELSE
+                     NDOTQ_TILDE  = NDOTQ  
+                     NDOTQ2_TILDE = NDOTQ2 
+                     NDOTQOLD_TILDE  = NDOTQOLD 
+                     NDOTQOLD2_TILDE = NDOTQOLD2 
+                  ENDIF
+
                   MAT_NODI=MAT_NDGLN((ELE-1)*MAT_NLOC+CV_ILOC)
                   MAT_NODJ=MAT_NDGLN((ELE2-1)*MAT_NLOC+CV_JLOC)
 
@@ -6003,7 +6110,7 @@ END IF
                         end if
 
                         if (.true.) then
-                           if (0.5*(NDOTQ+NDOTQ2)>0.0) then
+                           if (0.5*(NDOTQ_TILDE+NDOTQ2_TILDE)>0.0) then
                               CV_KNOD = CV_NDGLN((ELE-1)*CV_NLOC+CV_KLOC)
                               FEMTGI_IPHA = FEMTGI_IPHA + SCVFEN(CV_KLOC,GI) &
                                    * FEMT(CV_KNOD+(IPHASE-1)*CV_NONODS)
@@ -6012,7 +6119,7 @@ END IF
                               FEMTGI_IPHA = FEMTGI_IPHA + SCVFEN(CV_KLOC,GI) &
                                    * FEMT(CV_KNOD2+(IPHASE-1)*CV_NONODS)
                            end if
-                           if (0.5*(NDOTQOLD+NDOTQOLD2)>0.0) then
+                           if (0.5*(NDOTQOLD_TILDE+NDOTQOLD2_TILDE)>0.0) then
                               CV_KNOD = CV_NDGLN((ELE-1)*CV_NLOC+CV_KLOC)
                               FEMTOLDGI_IPHA = FEMTOLDGI_IPHA + SCVFEN(CV_KLOC,GI) &
                                    * FEMTOLD(CV_KNOD+(IPHASE-1)*CV_NONODS)
@@ -6075,24 +6182,24 @@ END IF
                   CONSERV=.TRUE.
                   SAT_BASED=.FALSE.
 
-                  CALL FIND_OPT_INCOME_INTERP(INCOME, W_UPWIND, NDOTQ, NDOTQ2, IPHASE, &
+                  CALL FIND_OPT_INCOME_INTERP(INCOME, W_UPWIND, NDOTQ_TILDE, NDOTQ2_TILDE, IPHASE, &
                        T(CV_NODI_IPHA),T(CV_NODJ_IPHA), FEMTGI_IPHA, GEOMTGI_IPHA,OVER_RELAX, &
                        ABS_CV_NODI_IPHA, ABS_CV_NODJ_IPHA, &
                        GRAD_ABS_CV_NODI_IPHA, GRAD_ABS_CV_NODJ_IPHA,CONSERV,MAX_OPER,SAT_BASED)
 
-                  CALL FIND_OPT_INCOME_INTERP(INCOMEOLD, W_UPWIND, NDOTQOLD, NDOTQOLD2, IPHASE,  &
+                  CALL FIND_OPT_INCOME_INTERP(INCOMEOLD, W_UPWIND, NDOTQOLD_TILDE, NDOTQOLD2_TILDE, IPHASE,  &
                        TOLD(CV_NODI_IPHA),TOLD(CV_NODJ_IPHA), FEMTOLDGI_IPHA, GEOMTOLDGI_IPHA,OVER_RELAX, &
                        ABS_CV_NODI_IPHA, ABS_CV_NODJ_IPHA, &
                        GRAD_ABS_CV_NODI_IPHA, GRAD_ABS_CV_NODJ_IPHA,CONSERV,MAX_OPER,SAT_BASED)
 
                   if(.true.) then
 
-                     IF(0.5*(NDOTQ+NDOTQ2) < 0.0) THEN
+                     IF(0.5*(NDOTQ_TILDE+NDOTQ2_TILDE) < 0.0) THEN
                         INCOME3=1.0
                      ELSE
                         INCOME3=0.0
                      END IF
-                     IF(0.5*(NDOTQOLD+NDOTQOLD2) < 0.0) THEN
+                     IF(0.5*(NDOTQOLD_TILDE+NDOTQOLD2_TILDE) < 0.0) THEN
                         INCOMEOLD3=1.0
                      ELSE
                         INCOMEOLD3=0.0
@@ -6149,18 +6256,28 @@ END IF
                      SAT_BASED=.TRUE.
                   END IF
 
-                  CALL FIND_OPT_INCOME_INTERP(INCOME4, W_UPWIND, NDOTQ, NDOTQ2, IPHASE, &
+                  CALL FIND_OPT_INCOME_INTERP(INCOME4, W_UPWIND, NDOTQ_TILDE, NDOTQ2_TILDE, IPHASE, &
                        T(CV_NODI_IPHA),T(CV_NODJ_IPHA), FEMTGI_IPHA, GEOMTGI_IPHA,OVER_RELAX, &
                        ABS_CV_NODI_IPHA, ABS_CV_NODJ_IPHA, &
                        GRAD_ABS_CV_NODI_IPHA, GRAD_ABS_CV_NODJ_IPHA,CONSERV,MAX_OPER,SAT_BASED)
 
-                  CALL FIND_OPT_INCOME_INTERP(INCOMEOLD4, W_UPWIND, NDOTQOLD, NDOTQOLD2, IPHASE,  &
+                  CALL FIND_OPT_INCOME_INTERP(INCOMEOLD4, W_UPWIND, NDOTQOLD_TILDE, NDOTQOLD2_TILDE, IPHASE,  &
                        TOLD(CV_NODI_IPHA),TOLD(CV_NODJ_IPHA), FEMTOLDGI_IPHA, GEOMTOLDGI_IPHA,OVER_RELAX, &
                        ABS_CV_NODI_IPHA, ABS_CV_NODJ_IPHA, &
                        GRAD_ABS_CV_NODI_IPHA, GRAD_ABS_CV_NODJ_IPHA,CONSERV,MAX_OPER,SAT_BASED)
 
                   INCOME    = INCOME3*MAX(INCOME4,INCOME) + (1.-INCOME3)*MIN(INCOME4,INCOME) 
                   INCOMEOLD = INCOMEOLD3*MAX(INCOMEOLD4,INCOMEOLD) + (1.-INCOMEOLD3)*MIN(INCOMEOLD4,INCOMEOLD)
+
+                  IF(BETWEEN_ELE_HARMONIC_AVE) THEN
+! Adjust for harmonic average...
+                     IF( (ABS( NDOTQ2 - NDOTQ ).GT.1E-10) .AND. (ABS( NDOTQOLD2 - NDOTQOLD ).GT.1.E-10) ) THEN
+                        INCOME    = (-NDOTQ + (1.-INCOME)*NDOTQ_TILDE + INCOME*NDOTQ2_TILDE) /( NDOTQ2 - NDOTQ )
+                        INCOMEOLD = (-NDOTQOLD + (1.-INCOMEOLD)*NDOTQOLD_TILDE + INCOMEOLD*NDOTQOLD2_TILDE) /( NDOTQOLD2 - NDOTQOLD )
+                        INCOME    = MIN(1.0, MAX(0.0, INCOME) )
+                        INCOMEOLD = MIN(1.0, MAX(0.0, INCOMEOLD) )
+                     ENDIF                  
+                  ENDIF
 
                ELSE
 
@@ -6180,6 +6297,7 @@ END IF
                      INCOMEOLD=2.*(1.-UPWIND_FRAC)*MASS_CV(CV_NODI)/(MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
                   END IF
                END IF
+
 
                DT_I = 1.0 - INCOME
                DT_J = 1.0 - DT_I
@@ -6269,11 +6387,31 @@ END IF
       ! Define whether flux is incoming or outgoing, depending on direction of flow
       INCOME = 1.
       IF( NDOTQ >= 0. ) INCOME = 0.
-!      IF( NDOTQ > 0. ) INCOME = 0.
+      !IF( NDOTQ > 0. ) INCOME = 0.
 
       INCOMEOLD = 1.
       IF( NDOTQOLD >= 0. ) INCOMEOLD = 0.
-!      IF( NDOTQOLD > 0. ) INCOMEOLD = 0.
+      !IF( NDOTQOLD > 0. ) INCOMEOLD = 0.
+
+
+      IF( BETWEEN_ELE_RIEM_AVE .AND. IGOT_T2/=1 ) THEN ! Riemann method...
+         IF ( SELE==0 ) THEN
+            INCOME = 1.
+            IF ( 0.5*(NDOTQ_TILDE+NDOTQ2_TILDE) >= 0. ) INCOME = 0.
+            INCOMEOLD = 1.
+            IF ( 0.5*(NDOTQOLD_TILDE+NDOTQOLD2_TILDE) >= 0. ) INCOMEOLD = 0.
+         END IF
+      END IF
+
+
+      IF( BETWEEN_ELE_HARMONIC_AVE .AND. IGOT_T2/=1 ) THEN ! Harmonic average method...
+         IF ( ELE/=ELE2 .AND. ELE2/=0 ) THEN
+            INCOME = 1.
+            IF ( 0.5*(NDOTQ_TILDE+NDOTQ2_TILDE) >= 0. ) INCOME = 0.
+            INCOMEOLD = 1.
+            IF ( 0.5*(NDOTQOLD_TILDE+NDOTQOLD2_TILDE) >= 0. ) INCOMEOLD = 0.
+         END IF
+      END IF
 
 
       RETURN  
@@ -6296,7 +6434,8 @@ END IF
          FACE_ITS, LIMT, LIMTOLD, FEMDGI, FEMTGI, FEMDOLDGI, FEMTOLDGI, UP_WIND_NOD, &
          TMIN, TMAX, TOLDMIN, TOLDMAX, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, TOLDMAX_NOD, &
          IN_ELE_UPWIND, DG_ELE_UPWIND, &
-         TMIN_2ND_MC, TOLDMIN_2ND_MC, TMAX_2ND_MC, TOLDMAX_2ND_MC,  LIMIT_USE_2ND)
+         TMIN_2ND_MC, TOLDMIN_2ND_MC, TMAX_2ND_MC, TOLDMAX_2ND_MC,  LIMIT_USE_2ND, &
+         PERM_ELE)
 
       ! Calculate NDOTQ and INCOME on the CV boundary at quadrature pt GI. 
       IMPLICIT NONE
@@ -6331,6 +6470,7 @@ END IF
       REAL, DIMENSION( CV_NONODS * NPHASE  ), intent( inout ) :: TMIN, TOLDMIN, TMAX, TOLDMAX
       logical, intent( in ) :: LIMIT_USE_2ND
       REAL, DIMENSION( CV_NONODS * NPHASE ), intent( inout ) :: TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC
+      REAL, DIMENSION( TOTELE  ), intent( in ) :: PERM_ELE
 
       ! Local variables
       REAL :: UDGI,VDGI,WDGI,UOLDDGI,VOLDDGI,WOLDDGI,  &
@@ -7549,7 +7689,8 @@ END IF
                     CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOMEOLD )
             ENDIF
          ENDIF
-
+         
+!         NO_LIMIT=.not.VOF_INTER
 
          CALL ONVDLIM_ALL( CV_NONODS, &
               LIMT, FEMTGI, INCOME, CV_NODI_IPHA-(IPHASE-1)*CV_NONODS, CV_NODJ_IPHA-(IPHASE-1)*CV_NONODS, &
@@ -7569,12 +7710,14 @@ END IF
               LIMD, FEMDGI, INCOME, CV_NODI_IPHA-(IPHASE-1)*CV_NONODS, CV_NODJ_IPHA-(IPHASE-1)*CV_NONODS, &
               DEN( CV_STAR_IPHA ), DENMIN( CV_STAR_IPHA ), DENMAX( CV_STAR_IPHA ), &
               DENMIN_2ND_MC( CV_STAR_IPHA ), DENMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_NEW, &
+!              DENMIN_2ND_MC( CV_STAR_IPHA ), DENMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, .TRUE., LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_NEW, &
               IANISOTROPIC, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, DENUPWIND_MAT(1+(IPHASE-1)*NSMALL_COLM*IANISOTROPIC) )
 
          CALL ONVDLIM_ALL( CV_NONODS, &
               LIMDOLD,FEMDOLDGI, INCOMEOLD, CV_NODI_IPHA-(IPHASE-1)*CV_NONODS, CV_NODJ_IPHA-(IPHASE-1)*CV_NONODS, &
               DENOLD( CV_STAR_IPHA ), DENOLDMIN( CV_STAR_IPHA ), DENOLDMAX( CV_STAR_IPHA ), &
               DENOLDMIN_2ND_MC( CV_STAR_IPHA ), DENOLDMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_OLD, &
+!              DENOLDMIN_2ND_MC( CV_STAR_IPHA ), DENOLDMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, .TRUE., LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_OLD, &
               IANISOTROPIC, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, DENOLDUPWIND_MAT(1+(IPHASE-1)*NSMALL_COLM*IANISOTROPIC) )
 
          IF(IGOT_T2==1) THEN

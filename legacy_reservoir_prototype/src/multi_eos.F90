@@ -141,8 +141,7 @@
       deallocate( Rho, dRhodP, Cp )
       deallocate( eos_option_path )
 
-      if( ncomp > 1 ) &
-           call Cap_Bulk_Rho( state, ncomp, nphase, &
+      if( ncomp > 1 ) call Cap_Bulk_Rho( state, ncomp, nphase, &
            cv_nonods, Density_Component, Density_Bulk, DensityCp_Bulk )
 
     end subroutine Calculate_All_Rhos
