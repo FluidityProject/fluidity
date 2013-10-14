@@ -739,7 +739,7 @@
 
 !!$ This calculates u_source_cv = ScalarField_Source_CV -- ie, the buoyancy term and as the name
 !!$ suggests it's a CV source term for the velocity field
-               call calculate_u_source_cv( state, cv_nonods, ndim, nphase, u_density, Velocity_U_Source_CV )
+               call calculate_u_source_cv( state, cv_nonods, ndim, nphase, Density_tmp, Velocity_U_Source_CV )
 
                ! calculate the viscosity for the momentum equation...
                if ( its == 1 ) &
