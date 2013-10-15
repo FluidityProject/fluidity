@@ -6076,13 +6076,20 @@ END IF
                      END DO
 
                      IF(ROE_AVE) THEN
-                        NDOTQ_TILDE  = ( DEN(CV_NODI_IPHA) * T(CV_NODI_IPHA) * NDOTQ -  &
-                       &           DEN(CV_NODJ_IPHA) * T(CV_NODJ_IPHA) * NDOTQ2 ) / TOLFUN( T(CV_NODI_IPHA) - T(CV_NODJ_IPHA) )
-                        NDOTQ2_TILDE = NDOTQ_TILDE
+                        IF(ABS(T(CV_NODI_IPHA) - T(CV_NODJ_IPHA)).LT.1.E-3) THEN ! Make sure we have some sort of velocity (only needed between elements)...
+                           NDOTQ_TILDE  = 0.5 * (NDOTQ + NDOTQ2 ) 
+                           NDOTQ2_TILDE = NDOTQ_TILDE
+                           NDOTQOLD_TILDE  = 0.5 * (NDOTQOLD + NDOTQOLD2 ) 
+                           NDOTQOLD2_TILDE = NDOTQOLD_TILDE
+                        ELSE
+                           NDOTQ_TILDE  = ( DEN(CV_NODI_IPHA) * T(CV_NODI_IPHA) * NDOTQ -  &
+                       &           DEN(CV_NODJ_IPHA) * T(CV_NODJ_IPHA) * NDOTQ2 ) / ( T(CV_NODI_IPHA) - T(CV_NODJ_IPHA) )
+                           NDOTQ2_TILDE = NDOTQ_TILDE
 
-                        NDOTQOLD_TILDE  = ( DENOLD(CV_NODI_IPHA) * TOLD(CV_NODI_IPHA) * NDOTQOLD -  &
-                       &           DENOLD(CV_NODJ_IPHA) * TOLD(CV_NODJ_IPHA) * NDOTQOLD2 ) / TOLFUN( TOLD(CV_NODI_IPHA) - TOLD(CV_NODJ_IPHA) )
-                        NDOTQOLD2_TILDE = NDOTQOLD_TILDE
+                           NDOTQOLD_TILDE  = ( DENOLD(CV_NODI_IPHA) * TOLD(CV_NODI_IPHA) * NDOTQOLD -  &
+                       &           DENOLD(CV_NODJ_IPHA) * TOLD(CV_NODJ_IPHA) * NDOTQOLD2 ) / ( TOLD(CV_NODI_IPHA) - TOLD(CV_NODJ_IPHA) )
+                           NDOTQOLD2_TILDE = NDOTQOLD_TILDE
+                        ENDIF
                      ELSE
 
                         NDOTQ_TILDE  = DEN(CV_NODI_IPHA)*( - T(CV_NODI_IPHA) * GRAD_ABS_CV_NODI_IPHA   / ABS_CV_NODI_IPHA + 1. ) * NDOTQ  
