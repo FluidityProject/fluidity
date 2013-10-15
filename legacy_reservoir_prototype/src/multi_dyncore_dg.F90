@@ -2258,6 +2258,8 @@
 ! if STAB_VISC_WITH_ABS then stabilize (in the projection mehtod) the viscosity using absorption.
 !      REAL, PARAMETER :: WITH_NONLIN = 1.0, TOLER = 1.E-10, ZERO_OR_TWO_THIRDS=2.0/3.0
       REAL, PARAMETER :: WITH_NONLIN = 1.0, TOLER = 1.E-10, ZERO_OR_TWO_THIRDS=0.0
+!  perform Roe averaging
+      LOGICAL, PARAMETER :: ROE_AVE = .FALSE.
 ! NON_LIN_DGFLUX = .TRUE. non-linear DG flux for momentum - if we have an oscillation use upwinding else use central scheme. 
 ! UPWIND_DGFLUX=.TRUE. Upwind DG flux.. Else use central scheme. if NON_LIN_DGFLUX = .TRUE. then this option is ignored. 
       LOGICAL :: NON_LIN_DGFLUX, UPWIND_DGFLUX
@@ -2288,7 +2290,8 @@
            UD,VD,WD, UDOLD,VDOLD,WDOLD, &
            DENGI, DENGIOLD,GRAD_SOU_GI,SUD,SVD,SWD, SUDOLD,SVDOLD,SWDOLD, SUD2,SVD2,SWD2, &
            SUDOLD2,SVDOLD2,SWDOLD2, &
-           SNDOTQ, SNDOTQOLD, SINCOME, SINCOMEOLD, SDEN, SDENOLD, &
+           SNDOTQ, SNDOTQOLD, SNDOTQ_ROE, SNDOTQOLD_ROE, SINCOME, SINCOMEOLD, SDEN, SDENOLD, &
+           SDEN_KEEP, SDENOLD_KEEP, SDEN2_KEEP, SDENOLD2_KEEP, &
            SUD_KEEP, SVD_KEEP, SWD_KEEP, SUDOLD_KEEP, SVDOLD_KEEP, SWDOLD_KEEP, &
            SUD2_KEEP, SVD2_KEEP, SWD2_KEEP, SUDOLD2_KEEP, SVDOLD2_KEEP, SWDOLD2_KEEP, &
            SNDOTQ_KEEP, SNDOTQ2_KEEP, SNDOTQOLD_KEEP, SNDOTQOLD2_KEEP, &
@@ -2600,10 +2603,17 @@
       ALLOCATE( SWDOLD2(SBCVNGI,NPHASE) )
       ALLOCATE( SNDOTQ(SBCVNGI,NPHASE) )
       ALLOCATE( SNDOTQOLD(SBCVNGI,NPHASE) )
+      ALLOCATE( SNDOTQ_ROE(SBCVNGI,NPHASE) )
+      ALLOCATE( SNDOTQOLD_ROE(SBCVNGI,NPHASE) )
       ALLOCATE( SINCOME(SBCVNGI,NPHASE) )
       ALLOCATE( SINCOMEOLD(SBCVNGI,NPHASE) )
       ALLOCATE( SDEN(SBCVNGI,NPHASE) )
       ALLOCATE( SDENOLD(SBCVNGI,NPHASE) )
+
+      ALLOCATE( SDEN_KEEP(SBCVNGI,NPHASE) )
+      ALLOCATE( SDENOLD_KEEP(SBCVNGI,NPHASE) )
+      ALLOCATE( SDEN2_KEEP(SBCVNGI,NPHASE) )
+      ALLOCATE( SDENOLD2_KEEP(SBCVNGI,NPHASE) )
 
       ALLOCATE( SUD_KEEP(SBCVNGI,NPHASE) )
       ALLOCATE( SVD_KEEP(SBCVNGI,NPHASE) )
@@ -4152,6 +4162,8 @@ end if
             If_diffusion_or_momentum1: IF(GOT_DIFFUS .OR. GOT_UDEN) THEN
                SDEN=0.0
                SDENOLD=0.0
+               SDEN_KEEP=0.0 ; SDEN2_KEEP=0.0
+               SDENOLD_KEEP=0.0 ; SDENOLD2_KEEP=0.0
                DO CV_SKLOC=1,CV_SNLOC
                   CV_KLOC=CV_SLOC2LOC( CV_SKLOC )
                   CV_NODK=CV_NDGLN((ELE-1)*CV_NLOC+CV_KLOC)
@@ -4170,6 +4182,16 @@ end if
                              *0.5*(UDEN(CV_NODK_PHA)+UDEN(CV_NODK2_PHA)) *WITH_NONLIN
                         SDENOLD(SGI,IPHASE)=SDENOLD(SGI,IPHASE) + SBCVFEN(CV_SKLOC,SGI) &
                              *0.5*(UDENOLD(CV_NODK_PHA)+UDENOLD(CV_NODK2_PHA)) *WITH_NONLIN
+
+                        SDEN_KEEP(SGI,IPHASE)=SDEN_KEEP(SGI,IPHASE) + SBCVFEN(CV_SKLOC,SGI) &
+                             *UDEN(CV_NODK_PHA)*WITH_NONLIN
+                        SDEN2_KEEP(SGI,IPHASE)=SDEN2_KEEP(SGI,IPHASE) + SBCVFEN(CV_SKLOC,SGI) &
+                             *UDEN(CV_NODK2_PHA)*WITH_NONLIN
+
+                        SDENOLD_KEEP(SGI,IPHASE)=SDENOLD_KEEP(SGI,IPHASE) + SBCVFEN(CV_SKLOC,SGI) &
+                             *UDENOLD(CV_NODK_PHA)*WITH_NONLIN
+                        SDENOLD2_KEEP(SGI,IPHASE)=SDENOLD2_KEEP(SGI,IPHASE) + SBCVFEN(CV_SKLOC,SGI) &
+                             *UDENOLD(CV_NODK2_PHA)*WITH_NONLIN
                      END DO
                   END DO
                END DO
@@ -4426,6 +4448,7 @@ end if
                        +SVDOLD(:,IPHASE)*SNORMYN(:)+SWDOLD(:,IPHASE)*SNORMZN(:)
                END DO
 
+
                SINCOME(:,:)   =0.5+0.5*SIGN(1.0,-SNDOTQ(:,:))
                SINCOMEOLD(:,:)=0.5+0.5*SIGN(1.0,-SNDOTQOLD(:,:))
 
@@ -4447,6 +4470,27 @@ end if
                      SNDOTQOLD2_KEEP(:,IPHASE)=SUDOLD2_KEEP(:,IPHASE)*SNORMXN(:)  &
                           +SVDOLD2_KEEP(:,IPHASE)*SNORMYN(:)+SWDOLD2_KEEP(:,IPHASE)*SNORMZN(:)
                   END DO
+
+
+
+                  IF(ROE_AVE) THEN ! perform Roe averaging....
+                     do iphase = 1, nphase
+                        do sgi = 1, SBCVNGI
+                           !  consider momentum normal to the element only...
+			   ! that is the ( (\rho u_n u_n)_left - (\rho u_n u_n)_right )/ ( (u_n)_left - (u_n)_right )
+                           SNDOTQ_ROE(sgi,iphase) =( SDEN_KEEP(sgi,iphase) * SNDOTQ_KEEP(sgi,iphase)**2 - &
+                                &                    SDEN2_KEEP(sgi,iphase) * SNDOTQ2_KEEP(sgi,iphase)**2 ) &
+                                &                  / tolfun(  SNDOTQ_KEEP(sgi,iphase) -  SNDOTQ2_KEEP(sgi,iphase) )
+
+                           SNDOTQOLD_ROE(sgi,iphase) =( SDENOLD_KEEP(sgi,iphase) * SNDOTQOLD_KEEP(sgi,iphase)**2 - &
+                                &                       SDENOLD2_KEEP(sgi,iphase) * SNDOTQOLD2_KEEP(sgi,iphase)**2 ) &
+                                &                     / tolfun(  SNDOTQOLD_KEEP(sgi,iphase) -  SNDOTQOLD2_KEEP(sgi,iphase) )
+                        end do
+                     end do
+                     SINCOME   =0.5+0.5*SIGN(1.0,-SNDOTQ_ROE)
+                     SINCOMEOLD=0.5+0.5*SIGN(1.0,-SNDOTQOLD_ROE)
+                  END IF
+
 
                   ELE3=ELE2
                   IF ( ELE2==0 ) ELE3=ELE
@@ -5178,10 +5222,18 @@ end if
       DEALLOCATE( SWDOLD2 )
       DEALLOCATE( SNDOTQ )
       DEALLOCATE( SNDOTQOLD )
+      DEALLOCATE( SNDOTQ_ROE )
+      DEALLOCATE( SNDOTQOLD_ROE )
+
       DEALLOCATE( SINCOME )
       DEALLOCATE( SINCOMEOLD )
       DEALLOCATE( SDEN )
       DEALLOCATE( SDENOLD )
+
+      DEALLOCATE( SDEN_KEEP )
+      DEALLOCATE( SDENOLD_KEEP )
+      DEALLOCATE( SDEN2_KEEP )
+      DEALLOCATE( SDENOLD2_KEEP )
 
       DEALLOCATE( DIFF_COEF_DIVDX )
       DEALLOCATE( DIFF_COEFOLD_DIVDX )
