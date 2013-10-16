@@ -6099,13 +6099,13 @@ END IF
                      IF(ROE_AVE) THEN
 
 ! take the mean of the underlying velocity...
-                        Q_UNDERLY=0.5*( NDOTQ/ABS_CV_NODI_IPHA + NDOTQ2/ABS_CV_NODJ_IPHA )
-                        NDOTQ_TILDE =ABS_CV_NODI_IPHA*Q_UNDERLY
-                        NDOTQ2_TILDE=ABS_CV_NODJ_IPHA*Q_UNDERLY
+                        Q_UNDERLY=0.5*( NDOTQ*ABS_CV_NODI_IPHA + NDOTQ2*ABS_CV_NODJ_IPHA )
+                        NDOTQ_TILDE =Q_UNDERLY/ABS_CV_NODI_IPHA
+                        NDOTQ2_TILDE=Q_UNDERLY/ABS_CV_NODJ_IPHA
 
-                        QOLD_UNDERLY=0.5*( NDOTQOLD/ABS_CV_NODI_IPHA + NDOTQOLD2/ABS_CV_NODJ_IPHA )
-                        NDOTQOLD_TILDE =ABS_CV_NODI_IPHA*QOLD_UNDERLY
-                        NDOTQOLD2_TILDE=ABS_CV_NODJ_IPHA*QOLD_UNDERLY
+                        QOLD_UNDERLY=0.5*( NDOTQOLD*ABS_CV_NODI_IPHA + NDOTQOLD2*ABS_CV_NODJ_IPHA )
+                        NDOTQOLD_TILDE =QOLD_UNDERLY/ABS_CV_NODI_IPHA
+                        NDOTQOLD2_TILDE=QOLD_UNDERLY/ABS_CV_NODJ_IPHA
 
 
 ! Correct for the Harmonic averaging of absolute permeability...
