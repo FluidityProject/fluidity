@@ -359,9 +359,12 @@ contains
     end if
 
     if (surface_element_count(input_positions)/=unique_surface_element_count(input_positions%mesh)) then
-      ewrite(0,*) "WARNING: It appears you have an internal boundary and you're trying to use 3D adaptivity."
-      ewrite(0,*) "This combination has not been tested yet and may not work at all."
-      ewrite(0,*) "Please report your experiences to the Fluidity mailing list."
+      ewrite(0,*) "It appears you have an internal boundary and you're trying to use 3D adaptivity."
+      ewrite(0,*) "This combination has not been implemented yet."
+      ! You could try to see if it somehow does work, by simply removing this FLExit()
+      ! (make sure to check you still have the right internal boundary ids after the adapt)
+      ! Feel free to discuss on the fluidity mailing list.
+      FLExit("Cannot have internal boundaries with 3D adaptivity")
     end if
     
     ! Surface IDs

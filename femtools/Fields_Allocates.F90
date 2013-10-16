@@ -1448,7 +1448,7 @@ contains
               ewrite(0,*) "Surface element: ", sele
               ewrite(0,*) "Provided element owner: ", element_owner(sele)
               ewrite(0,*) "Found adjacent element: ", ele
-              FLExit("Provided element owner ship information is incorrect")
+              FLExit("Provided element ownership information is incorrect")
             end if
           end if
           call register_external_surface_element(mesh, sele, ele, snodes)
