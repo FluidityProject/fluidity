@@ -1141,12 +1141,17 @@ twice.</a:documentation>
         <element name="theta_pressure_gradient">
           <a:documentation>Implicit/explicit control of pressure gradient temporal
  discretisation, theta_pg
+
  =0.  -- explicit
+
  =0.5 -- Crank-Nicolson
+
  =1.  -- implicit
+
  Specification of this parameter will only affect
  solution procedure when a free-surface is present or 
- compressible projection is used. If left unspecified
+ compressible projection or equation type Shallow Water is used. 
+ If left unspecified
  the code defaults to theta_pg = theta.</a:documentation>
           <ref name="real"/>
         </element>
@@ -1155,12 +1160,17 @@ twice.</a:documentation>
         <element name="theta_divergence">
           <a:documentation>Implicit/explicit control of velocity-divergence temporal
  discretisation, theta_divergence
+
  =0.  -- explicit
+
  =0.5 -- Crank-Nicolson
+
  =1.  -- implicit
+
  Specification of this parameter will only affect
  solution procedure when a free-surface is present or 
- compressible projection is used. If left unspecified
+ compressible projection or equation type Shallow Water is used. 
+ If left unspecified
  the code defaults to theta_divergence = theta.</a:documentation>
           <ref name="real"/>
         </element>
@@ -2515,6 +2525,45 @@ Boussinesq only works for continuous_galerkin and discontinuous_galerkin.</a:doc
         <attribute name="name">
           <value>Boussinesq</value>
         </attribute>
+      </element>
+      <element name="equation">
+        <a:documentation>Select the equation used to solve for velocity.
+
+Select ShallowWater to solve the non-linear shallow water equations in non-conservative form.
+The Velocity field will be the depth-averaged flow velocity and the Pressure field
+will be the free surface elevation multiplied by the gravitational constant g</a:documentation>
+        <attribute name="name">
+          <value>ShallowWater</value>
+        </attribute>
+        <!-- Bottom depth (excluding free surface elevation), a positive number -->
+        <element name="scalar_field">
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <attribute name="name">
+            <value>BottomDepth</value>
+          </attribute>
+          <element name="prescribed">
+            <ref name="coordinate_mesh_choice"/>
+            <ref name="prescribed_scalar_field"/>
+          </element>
+        </element>
+        <optional>
+          <element name="bottom_drag">
+            <element name="scalar_field">
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <attribute name="name">
+                <value>BottomDragCoefficient</value>
+              </attribute>
+              <element name="prescribed">
+                <ref name="coordinate_mesh_choice"/>
+                <ref name="prescribed_scalar_field"/>
+              </element>
+            </element>
+          </element>
+        </optional>
       </element>
       <element name="equation">
         <a:documentation>Select the equation used to solve for velocity.
