@@ -411,11 +411,11 @@ if test "x$PETSC_DIR" == "x"; then
 
   # Try to identify the obvious choice
   if test -d /usr/lib/petscdir ; then
-    petsc_release=`ls /usr/lib/petscdir | sort -n | tail -1`
+    petsc_release=`ls /usr/lib/petscdir | sort -n | tail -n 1`
     if test -d "/usr/lib/petscdir/$petsc_release" ; then
       export PETSC_DIR=/usr/lib/petscdir/$petsc_release
 
-      petsc_arch=`ls /usr/lib/petscdir/$petsc_release/ | grep c-opt | head -1`
+      petsc_arch=`ls /usr/lib/petscdir/$petsc_release/ | grep c-opt | head -n 1`
       if test -d $PETSC_DIR/$petsc_arch ; then
         export PETSC_ARCH=$petsc_arch
       else
