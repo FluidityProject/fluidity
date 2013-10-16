@@ -1,17 +1,14 @@
-FLMLMODEL = parallel_p0_consistent_interpolation
-MESH = square-unstructured
-
 default: input
 
-input: src/$(MESH).tar.bz2
-	tar -xvjf src/$(MESH).tar.bz2
+input: src/square-unstructured.tar.bz2
+	tar -xvjf src/square-unstructured.tar.bz2
 
 clean: clean-mesh clean-run
 	rm -rf parallel_p0_consistent_interpolation_*
 clean-mesh:
-	rm -f $(MESH).edge $(MESH).ele $(MESH).node
-	rm -f $(MESH)_?*.edge $(MESH)_?*.ele $(MESH)_?*.node $(MESH)_?*.halo
+	rm -f square-unstructured.edge square-unstructured.ele square-unstructured.node
+	rm -f square-unstructured_?*.edge square-unstructured_?*.ele square-unstructured_?*.node square-unstructured_?*.halo
 clean-run:
-	rm -f $(FLMLMODEL)_?*.pvtu $(FLMLMODEL)_?*_?*.vtu $(FLMLMODEL).stat fluidity.err-* fluidity.log-* \
+	rm -f parallel_p0_consistent_interpolation_?*.pvtu parallel_p0_consistent_interpolation_?*_?*.vtu parallel_p0_consistent_interpolation.stat fluidity.err-* fluidity.log-* \
 	matrixdump matrixdump.info
 	rm -rf *flredecomp*

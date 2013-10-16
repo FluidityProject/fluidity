@@ -3,7 +3,7 @@
   <name>channel-flow-dg</name>
   <owner userid="avdis01"/>
   <problem_definition length="medium" nprocs="1">
-    <command_line>for layer in 5 10 20 30; do ./generate_mesh $layer; fluidity cdg_cjc.flml; cp cdg.stat cdg-$layer.stat; cp cdg_1.vtu cdg-$layer.vtu; done</command_line>
+    <command_line>./generate_mesh 5; fluidity cdg_cjc.flml; cp cdg.stat cdg-5.stat; cp cdg_1.vtu cdg-5.vtu; ./generate_mesh 10; fluidity cdg_cjc.flml; cp cdg.stat cdg-10.stat; cp cdg_1.vtu cdg-10.vtu; ./generate_mesh 20; fluidity cdg_cjc.flml; cp cdg.stat cdg-20.stat; cp cdg_1.vtu cdg-20.vtu; ./generate_mesh 30; fluidity cdg_cjc.flml; cp cdg.stat cdg-30.stat; cp cdg_1.vtu cdg-30.vtu</command_line>
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">
