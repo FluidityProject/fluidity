@@ -258,7 +258,7 @@ contains
     eelist => extract_eelist(zoltan_global_zz_mesh)
 
     ! how many levels of elements are we searching through
-    call get_option(trim(zoltan_global_base_option_path) // "/worst_ele_search_levels", search_levels)
+    call get_option(trim(zoltan_global_base_option_path) // "/worst_ele_search_levels", search_levels, default=2)
     
     ! loop over the nodes you own
     do node=1,count
