@@ -19,12 +19,14 @@ This chapter introduces the paramateristations that are available in \fluidity.
 \index{GLS|see{generic length scale model}}
 \index{generic length scale model}
 
-The generic length scale (GLS) turbulence parameterisation is capable of simulating vertical
+The generic length scale (GLS) turbulence parameterisation is capable of simulating \emph{vertical}
 turbulence at a scale lower than that of the mesh. There is no dependency on the mesh resolution,
 so is ideal for adaptive ocean-scale problems. GLS has the additional advantage that it
 can be set-up to behave as a number of classical turbulence models:
 $k-\epsilon$, $k-kl$, $k-\omega$,
-and an additional model based on \citet{umlauf2003}, the $gen$ model.
+and an additional model based on \citet{umlauf2003}, the $gen$ model. Further details are
+available in \citet{hill2012}, along with test cases and a demonstration of how GLS can be
+used in conjuction with adaptive remeshing.
 
 Briefly, all implementations rely on a local, temporally varying, kinematic eddy
 viscosity $K_M$ that parametrises turbulence (local Reynolds stresses) in terms of mean-flow
