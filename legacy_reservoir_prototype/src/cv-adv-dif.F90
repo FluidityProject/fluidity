@@ -5440,6 +5440,7 @@ END IF
       LOGICAL :: RESET_STORE, LIM_VOL_ADJUST
       REAL :: TMIN_STORE, TMAX_STORE, TOLDMIN_STORE, TOLDMAX_STORE
       REAL :: PERM_TILDE, NDOTQ_TILDE, NDOTQ2_TILDE, NDOTQOLD_TILDE, NDOTQOLD2_TILDE, rden_ave, rdenold_ave, Q_UNDERLY, QOLD_UNDERLY
+      REAL :: NDOTQ_KEEP_IN, NDOTQOLD_KEEP_IN,  NDOTQ_KEEP, NDOTQ2_KEEP, NDOTQOLD_KEEP, NDOTQOLD2_KEEP
       ! coefficients for this element ELE
 
       ! The adjustment method for variable CV volumes is not ready for new limiter method...
@@ -5727,26 +5728,17 @@ END IF
                      NDOTQOLD_TILDE = NDOTQOLD 
                      NDOTQOLD2_TILDE = NDOTQOLD2 
 
-                     rden_ave = 0.5 * ( DEN(CV_NODI_IPHA) + DEN(CV_NODJ_IPHA) )
                      ! Make sure we have some sort of velocity (only needed between elements)...
-                     IF ( ABS( DEN(CV_NODI_IPHA) * T(CV_NODI_IPHA) - DEN(CV_NODJ_IPHA) * T(CV_NODJ_IPHA) ) / rden_ave < 1e-3 ) THEN
-                        NDOTQ_TILDE = 0.5 * (NDOTQ_TILDE + NDOTQ2_TILDE )
-                     ELSE ! do the Roe average of the rest of the velocity...
-                        NDOTQ_TILDE = ( DEN(CV_NODI_IPHA) * T(CV_NODI_IPHA) * NDOTQ_TILDE -  &
+! do the Roe average of the rest of the velocity...
+                     NDOTQ_TILDE = ( DEN(CV_NODI_IPHA) * T(CV_NODI_IPHA) * NDOTQ_TILDE -  &
                              &             DEN(CV_NODJ_IPHA) * T(CV_NODJ_IPHA) * NDOTQ2_TILDE ) / &
-                             &           ( DEN(CV_NODI_IPHA) * T(CV_NODI_IPHA) - DEN(CV_NODJ_IPHA) * T(CV_NODJ_IPHA) )
-                     END IF
+                             &           tolfun( DEN(CV_NODI_IPHA) * T(CV_NODI_IPHA) - DEN(CV_NODJ_IPHA) * T(CV_NODJ_IPHA) )
                      NDOTQ2_TILDE = NDOTQ_TILDE
 
-                     rdenold_ave = 0.5 * ( DENOLD(CV_NODI_IPHA) + DENOLD(CV_NODJ_IPHA) )
                      ! Make sure we have some sort of velocity (only needed between elements)...
-                     IF( ABS( DENOLD(CV_NODI_IPHA) * TOLD(CV_NODI_IPHA) - DENOLD(CV_NODJ_IPHA) * TOLD(CV_NODJ_IPHA) ) / rdenold_ave < 1e-3 ) THEN
-                        NDOTQOLD_TILDE = 0.5 * (NDOTQOLD_TILDE + NDOTQOLD2_TILDE )
-                     ELSE
-                        NDOTQOLD_TILDE = ( DENOLD(CV_NODI_IPHA) * TOLD(CV_NODI_IPHA) * NDOTQOLD_TILDE -  &
+                     NDOTQOLD_TILDE = ( DENOLD(CV_NODI_IPHA) * TOLD(CV_NODI_IPHA) * NDOTQOLD_TILDE -  &
                              &             DENOLD(CV_NODJ_IPHA) * TOLD(CV_NODJ_IPHA) * NDOTQOLD2_TILDE ) / &
-                             &           ( DENOLD(CV_NODI_IPHA) * TOLD(CV_NODI_IPHA) - DENOLD(CV_NODJ_IPHA) * TOLD(CV_NODJ_IPHA) )
-                     END IF
+                             &           tolfun( DENOLD(CV_NODI_IPHA) * TOLD(CV_NODI_IPHA) - DENOLD(CV_NODJ_IPHA) * TOLD(CV_NODJ_IPHA) )
                      NDOTQOLD2_TILDE = NDOTQOLD_TILDE
 
                   ELSE
@@ -5859,7 +5851,9 @@ END IF
                        / TOLFUN( TOLD( CV_NODJ_IPHA ) - TOLD( CV_NODI_IPHA ) )
 
                   INCOME    = INCOME3*MAX(INCOME4,INCOME) + (1.-INCOME3)*MIN(INCOME4,INCOME) 
-                  INCOMEOLD = INCOMEOLD3*MAX(INCOMEOLD4,INCOMEOLD) + (1.-INCOMEOLD3)*MIN(INCOMEOLD4,INCOMEOLD)     
+                  INCOMEOLD = INCOMEOLD3*MAX(INCOMEOLD4,INCOMEOLD) + (1.-INCOMEOLD3)*MIN(INCOMEOLD4,INCOMEOLD)    
+                  IF(NDOTQ+NDOTQ2==0.0) INCOME=0.5  
+                  IF(NDOTQOLD+NDOTQOLD2==0.0) INCOMEOLD=0.5
 
                   IF(LIM_VOL_ADJUST) THEN
                      RESET_STORE=.TRUE. 
@@ -6107,37 +6101,42 @@ END IF
                         NDOTQOLD_TILDE =QOLD_UNDERLY/ABS_CV_NODI_IPHA
                         NDOTQOLD2_TILDE=QOLD_UNDERLY/ABS_CV_NODJ_IPHA
 
+                        
+!                        NDOTQ_TILDE =NDOTQ
+!                        NDOTQ2_TILDE=NDOTQ2
+
+!                        NDOTQOLD_TILDE =NDOTQOLD
+!                        NDOTQOLD2_TILDE=NDOTQOLD2
 
 ! Correct for the Harmonic averaging of absolute permeability...
                         PERM_TILDE= ( 1.0+1.0 )  /( 1./(1.0*PERM_ELE(ELE)) + 1./(1.0*PERM_ELE(ELE2)) )
+!                        PERM_TILDE= 0.5*(PERM_ELE(ELE) + PERM_ELE(ELE2)) 
+!                        PERM_TILDE= min(PERM_ELE(ELE), PERM_ELE(ELE2)) 
                         NDOTQ_TILDE  = NDOTQ_TILDE  * PERM_TILDE / PERM_ELE( ELE ) 
                         NDOTQ2_TILDE = NDOTQ2_TILDE * PERM_TILDE / PERM_ELE( ELE2 ) 
                         NDOTQOLD_TILDE  = NDOTQOLD_TILDE  * PERM_TILDE / PERM_ELE( ELE ) 
                         NDOTQOLD2_TILDE = NDOTQOLD2_TILDE * PERM_TILDE / PERM_ELE( ELE2 ) 
+! These are the new limits of the velocities...
+                        NDOTQ_KEEP  = NDOTQ_TILDE   ! this is associated with saturation at NODI
+                        NDOTQ2_KEEP = NDOTQ2_TILDE  ! this is associated with saturation at NODJ
+                        NDOTQOLD_KEEP  = NDOTQOLD_TILDE  
+                        NDOTQOLD2_KEEP = NDOTQOLD2_TILDE 
+
+! between these limits work out which are associated with the flux limited saturation at this interface. 
 
 ! Make sure we have some sort of velocity (only needed between elements)...
-                        rden_ave   =0.5*(VOLFRA_PORE(ELE)*DEN(CV_NODI_IPHA) + VOLFRA_PORE(ELE2)*DEN(CV_NODJ_IPHA)) 
-                        IF(ABS( VOLFRA_PORE(ELE)*DEN(CV_NODI_IPHA) * T(CV_NODI_IPHA) - VOLFRA_PORE(ELE2)*DEN(CV_NODJ_IPHA) * T(CV_NODJ_IPHA) )/rden_ave.LT.1.E-3) THEN 
-                           NDOTQ_TILDE  = 0.5 * (NDOTQ_TILDE + NDOTQ2_TILDE ) 
+
+                        ! do the Roe average of the rest of the velocity...
+                           NDOTQ_TILDE  = ( DEN(CV_NODI_IPHA) * T(CV_NODI_IPHA) * NDOTQ_TILDE -  &
+                       &           DEN(CV_NODJ_IPHA) * T(CV_NODJ_IPHA) * NDOTQ2_TILDE ) & 
+                               / tolfun( VOLFRA_PORE(ELE)*DEN(CV_NODI_IPHA) * T(CV_NODI_IPHA) - VOLFRA_PORE(ELE2)*DEN(CV_NODJ_IPHA) * T(CV_NODJ_IPHA) )
                            NDOTQ2_TILDE = NDOTQ_TILDE
-                        ELSE ! do the Roe average of the rest of the velocity...
-                           NDOTQ_TILDE  = ( VOLFRA_PORE(ELE)*DEN(CV_NODI_IPHA) * T(CV_NODI_IPHA) * NDOTQ_TILDE -  &
-                       &           VOLFRA_PORE(ELE2)*DEN(CV_NODJ_IPHA) * T(CV_NODJ_IPHA) * NDOTQ2_TILDE ) & 
-                               / ( VOLFRA_PORE(ELE)*DEN(CV_NODI_IPHA) * T(CV_NODI_IPHA) - VOLFRA_PORE(ELE2)*DEN(CV_NODJ_IPHA) * T(CV_NODJ_IPHA) )
-                           NDOTQ2_TILDE = NDOTQ_TILDE
-                        ENDIF
 
 ! Make sure we have some sort of velocity (only needed between elements)...
-                        rdenold_ave=0.5*(VOLFRA_PORE(ELE)*DENOLD(CV_NODI_IPHA) + VOLFRA_PORE(ELE2)*DENOLD(CV_NODJ_IPHA)) 
-                        IF(ABS( VOLFRA_PORE(ELE)*DENOLD(CV_NODI_IPHA) * TOLD(CV_NODI_IPHA) - VOLFRA_PORE(ELE2)*DENOLD(CV_NODJ_IPHA) * TOLD(CV_NODJ_IPHA) )/rdenold_ave.LT.1.E-3) THEN 
-                           NDOTQOLD_TILDE  = 0.5 * (NDOTQOLD_TILDE + NDOTQOLD2_TILDE ) 
+                           NDOTQOLD_TILDE  = ( DENOLD(CV_NODI_IPHA) * TOLD(CV_NODI_IPHA) * NDOTQOLD_TILDE -  &
+                       &           DENOLD(CV_NODJ_IPHA) * TOLD(CV_NODJ_IPHA) * NDOTQOLD2_TILDE ) &
+                               / tolfun( VOLFRA_PORE(ELE)*DENOLD(CV_NODI_IPHA) * TOLD(CV_NODI_IPHA) - VOLFRA_PORE(ELE2)*DENOLD(CV_NODJ_IPHA) * TOLD(CV_NODJ_IPHA) )
                            NDOTQOLD2_TILDE = NDOTQOLD_TILDE
-                        ELSE
-                           NDOTQOLD_TILDE  = ( VOLFRA_PORE(ELE)*DENOLD(CV_NODI_IPHA) * TOLD(CV_NODI_IPHA) * NDOTQOLD_TILDE -  &
-                       &           VOLFRA_PORE(ELE2)*DENOLD(CV_NODJ_IPHA) * TOLD(CV_NODJ_IPHA) * NDOTQOLD2_TILDE ) &
-                               / ( VOLFRA_PORE(ELE)*DENOLD(CV_NODI_IPHA) * TOLD(CV_NODI_IPHA) - VOLFRA_PORE(ELE2)*DENOLD(CV_NODJ_IPHA) * TOLD(CV_NODJ_IPHA) )
-                           NDOTQOLD2_TILDE = NDOTQOLD_TILDE
-                        ENDIF
 
                      ELSE
 
@@ -6349,6 +6348,17 @@ END IF
 
                   INCOME    = INCOME3*MAX(INCOME4,INCOME) + (1.-INCOME3)*MIN(INCOME4,INCOME) 
                   INCOMEOLD = INCOMEOLD3*MAX(INCOMEOLD4,INCOMEOLD) + (1.-INCOMEOLD3)*MIN(INCOMEOLD4,INCOMEOLD)
+
+                  IF(ROE_AVE) THEN
+! Amend INCOME,INCOMEOLD so as to reflect being inbetween [NDOTQ_KEEP, NDOTQ2_KEEP] and [NDOTQOLD_KEEP, NDOTQOLD2_KEEP] 
+                     NDOTQ_KEEP_IN = INCOME*NDOTQ2_KEEP + (1.-INCOME)*NDOTQ_KEEP
+                     INCOME    = MIN(1.0, MAX(0.0,  (NDOTQ_KEEP_IN - NDOTQ)/TOLFUN( NDOTQ2 - NDOTQ ) ))
+                     IF(NDOTQ2 + NDOTQ == 0.0) INCOME=0.5
+
+                     NDOTQOLD_KEEP_IN = INCOMEOLD*NDOTQOLD2_KEEP + (1.-INCOMEOLD)*NDOTQOLD_KEEP
+                     INCOMEOLD = MIN(1.0, MAX(0.0,  (NDOTQOLD_KEEP_IN - NDOTQOLD)/TOLFUN( NDOTQOLD2 - NDOTQOLD ) ))
+                     IF(NDOTQOLD2 + NDOTQOLD == 0.0) INCOMEOLD=0.5
+                  ENDIF
 
                   IF(BETWEEN_ELE_HARMONIC_AVE) THEN
 ! Adjust for harmonic average...
@@ -8976,8 +8986,9 @@ END IF
 
       IF(VEL_BASE_INT) THEN !****************
 
-         IF((ABS(SAT_CV_NODI_IPHA - SAT_CV_NODJ_IPHA) < 1.E-4) &
-              .OR.(ABS(NDOTQ - NDOTQ2) < 1.E-6)) THEN
+!         IF((ABS(SAT_CV_NODI_IPHA - SAT_CV_NODJ_IPHA) < 1.E-4) &
+!              .OR.(ABS(NDOTQ - NDOTQ2) < 1.E-6)) THEN
+         IF(ABS(SAT_CV_NODI_IPHA - SAT_CV_NODJ_IPHA) < 1.E-4) THEN
             INCOME=0.5
             W=0.5
             RETURN
