@@ -5439,7 +5439,7 @@ END IF
       LOGICAL, PARAMETER :: ROE_AVE = .TRUE.
       LOGICAL :: RESET_STORE, LIM_VOL_ADJUST
       REAL :: TMIN_STORE, TMAX_STORE, TOLDMIN_STORE, TOLDMAX_STORE
-      REAL :: PERM_TILDE, NDOTQ_TILDE, NDOTQ2_TILDE, NDOTQOLD_TILDE, NDOTQOLD2_TILDE, rden_ave, rdenold_ave
+      REAL :: PERM_TILDE, NDOTQ_TILDE, NDOTQ2_TILDE, NDOTQOLD_TILDE, NDOTQOLD2_TILDE, rden_ave, rdenold_ave, Q_UNDERLY, QOLD_UNDERLY
       ! coefficients for this element ELE
 
       ! The adjustment method for variable CV volumes is not ready for new limiter method...
@@ -5732,9 +5732,9 @@ END IF
                      IF ( ABS( DEN(CV_NODI_IPHA) * T(CV_NODI_IPHA) - DEN(CV_NODJ_IPHA) * T(CV_NODJ_IPHA) ) / rden_ave < 1e-3 ) THEN
                         NDOTQ_TILDE = 0.5 * (NDOTQ_TILDE + NDOTQ2_TILDE )
                      ELSE ! do the Roe average of the rest of the velocity...
-                        NDOTQOLD_TILDE = ( DENOLD(CV_NODI_IPHA) * TOLD(CV_NODI_IPHA) * NDOTQOLD_TILDE -  &
-                             &             DENOLD(CV_NODJ_IPHA) * TOLD(CV_NODJ_IPHA) * NDOTQOLD2_TILDE ) / &
-                             &           ( DENOLD(CV_NODI_IPHA) * TOLD(CV_NODI_IPHA) - DENOLD(CV_NODJ_IPHA) * TOLD(CV_NODJ_IPHA) )
+                        NDOTQ_TILDE = ( DEN(CV_NODI_IPHA) * T(CV_NODI_IPHA) * NDOTQ_TILDE -  &
+                             &             DEN(CV_NODJ_IPHA) * T(CV_NODJ_IPHA) * NDOTQ2_TILDE ) / &
+                             &           ( DEN(CV_NODI_IPHA) * T(CV_NODI_IPHA) - DEN(CV_NODJ_IPHA) * T(CV_NODJ_IPHA) )
                      END IF
                      NDOTQ2_TILDE = NDOTQ_TILDE
 
@@ -6098,12 +6098,22 @@ END IF
 
                      IF(ROE_AVE) THEN
 
+! take the mean of the underlying velocity...
+                        Q_UNDERLY=0.5*( NDOTQ/ABS_CV_NODI_IPHA + NDOTQ2/ABS_CV_NODJ_IPHA )
+                        NDOTQ_TILDE =ABS_CV_NODI_IPHA*Q_UNDERLY
+                        NDOTQ2_TILDE=ABS_CV_NODJ_IPHA*Q_UNDERLY
+
+                        QOLD_UNDERLY=0.5*( NDOTQOLD/ABS_CV_NODI_IPHA + NDOTQOLD2/ABS_CV_NODJ_IPHA )
+                        NDOTQOLD_TILDE =ABS_CV_NODI_IPHA*QOLD_UNDERLY
+                        NDOTQOLD2_TILDE=ABS_CV_NODJ_IPHA*QOLD_UNDERLY
+
+
 ! Correct for the Harmonic averaging of absolute permeability...
                         PERM_TILDE= ( 1.0+1.0 )  /( 1./(1.0*PERM_ELE(ELE)) + 1./(1.0*PERM_ELE(ELE2)) )
-                        NDOTQ_TILDE  = NDOTQ  * PERM_TILDE / PERM_ELE( ELE ) 
-                        NDOTQ2_TILDE = NDOTQ2 * PERM_TILDE / PERM_ELE( ELE2 ) 
-                        NDOTQOLD_TILDE  = NDOTQOLD  * PERM_TILDE / PERM_ELE( ELE ) 
-                        NDOTQOLD2_TILDE = NDOTQOLD2 * PERM_TILDE / PERM_ELE( ELE2 ) 
+                        NDOTQ_TILDE  = NDOTQ_TILDE  * PERM_TILDE / PERM_ELE( ELE ) 
+                        NDOTQ2_TILDE = NDOTQ2_TILDE * PERM_TILDE / PERM_ELE( ELE2 ) 
+                        NDOTQOLD_TILDE  = NDOTQOLD_TILDE  * PERM_TILDE / PERM_ELE( ELE ) 
+                        NDOTQOLD2_TILDE = NDOTQOLD2_TILDE * PERM_TILDE / PERM_ELE( ELE2 ) 
 
 ! Make sure we have some sort of velocity (only needed between elements)...
                         rden_ave   =0.5*(VOLFRA_PORE(ELE)*DEN(CV_NODI_IPHA) + VOLFRA_PORE(ELE2)*DEN(CV_NODJ_IPHA)) 
@@ -6111,10 +6121,10 @@ END IF
                            NDOTQ_TILDE  = 0.5 * (NDOTQ_TILDE + NDOTQ2_TILDE ) 
                            NDOTQ2_TILDE = NDOTQ_TILDE
                         ELSE ! do the Roe average of the rest of the velocity...
-                           NDOTQOLD_TILDE  = ( VOLFRA_PORE(ELE)*DENOLD(CV_NODI_IPHA) * TOLD(CV_NODI_IPHA) * NDOTQOLD_TILDE -  &
-                       &           VOLFRA_PORE(ELE2)*DENOLD(CV_NODJ_IPHA) * TOLD(CV_NODJ_IPHA) * NDOTQOLD2_TILDE ) & 
-                               / ( VOLFRA_PORE(ELE)*DENOLD(CV_NODI_IPHA) * TOLD(CV_NODI_IPHA) - VOLFRA_PORE(ELE2)*DENOLD(CV_NODJ_IPHA) * TOLD(CV_NODJ_IPHA) )
-                           NDOTQOLD2_TILDE = NDOTQOLD_TILDE
+                           NDOTQ_TILDE  = ( VOLFRA_PORE(ELE)*DEN(CV_NODI_IPHA) * T(CV_NODI_IPHA) * NDOTQ_TILDE -  &
+                       &           VOLFRA_PORE(ELE2)*DEN(CV_NODJ_IPHA) * T(CV_NODJ_IPHA) * NDOTQ2_TILDE ) & 
+                               / ( VOLFRA_PORE(ELE)*DEN(CV_NODI_IPHA) * T(CV_NODI_IPHA) - VOLFRA_PORE(ELE2)*DEN(CV_NODJ_IPHA) * T(CV_NODJ_IPHA) )
+                           NDOTQ2_TILDE = NDOTQ_TILDE
                         ENDIF
 
 ! Make sure we have some sort of velocity (only needed between elements)...
