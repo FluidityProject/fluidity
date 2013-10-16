@@ -452,6 +452,17 @@ contains
              call deallocate(scalar_surface_field)
           end if
 
+       case ("prescribed_normal_flow")
+
+          ! Just add to the first dimension
+          call add_boundary_condition(field, trim(bc_name), trim(bc_type),&
+               & surface_ids, applies=(/ .true., .false., .false. /) , option_path=bc_path_i)
+          deallocate(surface_ids)
+          call get_boundary_condition(field, i+1, surface_mesh=surface_mesh)
+          call allocate(surface_field, field%dim, surface_mesh, name="value")
+          call insert_surface_field(field, i+1, surface_field)
+          call deallocate(surface_field)
+
        case ("bulk_formulae")
 
           ! The bulk_formulae type is actually a wind forcing on velocity...
@@ -1069,6 +1080,43 @@ contains
 
           call initialise_field(scalar_surface_field, bc_path_i, bc_position, &
             time=time)
+          call deallocate(bc_position)
+
+       case("prescribed_normal_flow")
+
+          call get_boundary_condition(field, i+1, surface_mesh=surface_mesh, &
+               surface_element_list=surface_element_list)
+          surface_field => extract_surface_field(field, bc_name, name="value")
+          bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list) 
+          surface_field_component=extract_scalar_field(surface_field, 1)
+
+          if (have_option(trim(bc_path_i)//"/from_field")) then
+             ! The parent field contains the boundary values that you want to apply to surface_field.
+             call get_option(trim(bc_path_i)//"/from_field/parent_field_name", parent_field_name)
+
+             ! Is the parent field a scalar field? Let's check using 'stat'...
+             scalar_parent_field => extract_scalar_field(state, parent_field_name, stat)
+             if(stat /= 0) then
+                ! Parent field is not a scalar field. Let's try a vector field extraction...
+                vector_parent_field => extract_vector_field(state, parent_field_name, stat)
+                if(stat /= 0) then
+                   ! Parent field not found.
+                   FLExit("Could not extract parent field. Check options file?")
+                else
+                   ! Apply the 1st component of parent_field to the 1st component
+                   ! of surface_field.
+                   vector_parent_field_component = extract_scalar_field(vector_parent_field, 1)
+                   call remap_field_to_surface(vector_parent_field_component, surface_field_component, surface_element_list, stat)
+                end if
+             else
+                ! Apply the scalar field to the 1st component of surface_field.
+                call remap_field_to_surface(scalar_parent_field, surface_field_component, surface_element_list, stat)
+             end if                    
+
+          else
+             call initialise_field(surface_field_component, bc_path_i, bc_position, &
+                      time=time)
+          end if
           call deallocate(bc_position)
 
        case("wind_forcing")
