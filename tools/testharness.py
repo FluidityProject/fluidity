@@ -5,13 +5,16 @@ import os
 import os.path
 import glob
 import time
+
 try:
-    import fluidity.regressiontest as regressiontest
-except:
-    source_root = os.getcwd()+'/'+sys.argv[0][:sys.argv[0].rfind('/bin/')]
-    print source_root
-    sys.path.append(source_root+"/python")
-    import fluidity.regressiontest as regressiontest
+ import fluidity.regressiontest as regressiontest
+except ImportError:
+ # try again by adding the path "../python" relative to testharness' own location to sys.path
+ head,tail = os.path.split(sys.argv[0])
+ python_path = os.path.abspath(os.path.join(head,'..','python'))
+ sys.path.append(python_path)
+ import fluidity.regressiontest as regressiontest
+
 import traceback
 import threading
 import xml.parsers.expat
