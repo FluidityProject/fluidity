@@ -410,18 +410,12 @@ if test "x$PETSC_DIR" == "x"; then
   AC_MSG_WARN( [No PETSC_DIR set - trying to autodetect] )
 
   # Try to identify the obvious choice
-  if test -d /usr/lib/petscdir ; then
-    petsc_release=`ls /usr/lib/petscdir | sort -n | tail -n 1`
-    if test -d "/usr/lib/petscdir/$petsc_release" ; then
-      export PETSC_DIR=/usr/lib/petscdir/$petsc_release
-
-      petsc_arch=`ls /usr/lib/petscdir/$petsc_release/ | grep c-opt | head -n 1`
-      if test -d $PETSC_DIR/$petsc_arch ; then
-        export PETSC_ARCH=$petsc_arch
-      else
-        unset PETSC_DIR
-      fi
-    fi
+  if test -f /usr/lib/petsc/include/petscversion.h ; then
+    export PETSC_DIR=/usr/lib/petsc
+  elif test -f /usr/include/petscversion.h ; then
+    export PETSC_DIR=/usr
+  elif test -f /usr/local/include/petscversion.h ; then
+    export PETSC_DIR=/usr/local
   fi
 fi
 # Check again incase we failed.
@@ -430,7 +424,6 @@ if test "x$PETSC_DIR" == "x"; then
   AC_MSG_ERROR( [You need to set PETSC_DIR to point at your PETSc installation... exiting] )
 fi
 AC_MSG_NOTICE([Using PETSC_DIR=$PETSC_DIR])
-AC_MSG_NOTICE([Using PETSC_ARCH=$PETSC_ARCH])
 
 PETSC_LINK_LIBS=`make -s -f petsc_makefile getlinklibs`
 LIBS="$PETSC_LINK_LIBS $LIBS"
