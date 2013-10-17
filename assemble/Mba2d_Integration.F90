@@ -175,7 +175,6 @@ module mba2d_integration
           ! if face==face2 it's an external facet that's dealt with already
           ! we check face>face2 to ensure we only copy one of the two coinciding facets
           stotel = stotel +1
-          ! not sure this will work with lock_faces:
           call insert(input_face_numbering_to_mba2d_numbering, face, stotel)
           ipf(1:2, stotel) = face_global_nodes(xmesh, face)
           ipf(3, stotel) = 0
