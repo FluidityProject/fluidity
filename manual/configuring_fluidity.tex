@@ -1666,6 +1666,27 @@ When using \option{\ldots/control\_volumes} under Pressure \option{\ldots/spatia
 imposes a weak prescribed normal flow boundary condition on the surfaces specified.
 
 
+\subsection{Internal boundary conditions}\label{sec:internal_bcs}
+\index{boundary conditions!internal boundaries}
+Fluidity has some support (with limitations) for applying boundary conditions
+along internal boundaries. This is done in the normal way 
+by applying physical line/surface ids to the internal boundary, and associating
+boundary conditions with these in the options file. It should be
+noted that this functionality is not as well tested as other boundary
+conditions, so you should always first try it out on a simplified version of
+your problem to see if it behaves as expected. Strong Dirichlet boundary
+conditions should work correctly, other boundary condition types may not give
+the right answer. Since the gmsh .msh format does not give you the
+option of setting a different surface id on either side of the internal
+boundary, it is not possible to apply a different boundary condition type or
+value on either side.
+
+When using mesh adaptivity, it will maintain the internal boundary and its
+surface id. Mesh adaptivity in three dimensions with internal boundaries 
+is currently not supported. For parallel runs you have to use flredecomp (see
+section \ref{mesh!meshing tools!flredecomp}) to
+decompose the problem, as fldecomp will refuse any mesh with internal boundaries.
+
 \subsection{Special input date for boundary conditions}\label{sec:BCs:specialised}
 
 When running free surface simulations the surface elevation at the boundary is specified by applying a pressure Dirichlet condition. Since the free surface elevation is often measured data, there are some special possibilities to specify a pressure Dirichlet condition: 
