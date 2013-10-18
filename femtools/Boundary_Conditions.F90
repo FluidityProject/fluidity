@@ -141,7 +141,7 @@ implicit none
 contains
 
   subroutine add_scalar_boundary_condition(field, name, type, boundary_ids, &
-    option_path)
+    option_path, is_sub_state)
   !!< Add boundary condition to scalar field
   type(scalar_field), intent(inout):: field
   !! all things should have a name
@@ -152,6 +152,8 @@ contains
   integer, dimension(:), intent(in):: boundary_ids
   !! path to options for this b.c. in the options tree
   character(len=*), optional, intent(in) :: option_path
+  !! boundary condition warnings surpressed when dealing with sub_state
+  logical, intent(in), optional:: is_sub_state
   
     logical, dimension(1:size(boundary_ids)):: boundary_id_used
     integer, dimension(:), allocatable:: surface_element_list
@@ -174,7 +176,7 @@ contains
       end if
     end do
       
-    if (.not. IsParallel() .and. .not. all(boundary_id_used)) then
+    if (.not. IsParallel() .and. .not. all(boundary_id_used)  .and. .not.(is_sub_state)) then
       ewrite(0,*) "WARNING: for boundary condition: ", trim(name)
       ewrite(0,*) "added to field: ", trim(field%name)
       ewrite(0,*) "The following boundary ids were specified, but they don't appear in the surface mesh:"
@@ -232,7 +234,7 @@ contains
   end subroutine add_scalar_boundary_condition_surface_elements
     
   subroutine add_vector_boundary_condition(field, name, type, boundary_ids, &
-      applies, option_path)
+      applies, option_path, is_sub_state)
   !!< Add boundary condition to vector field
   type(vector_field), intent(inout):: field
   !! all things should have a name
@@ -245,6 +247,8 @@ contains
   logical, dimension(:), intent(in), optional:: applies
   !! path to options for this b.c. in the options tree
   character(len=*), optional, intent(in) :: option_path
+  !! boundary condition warnings surpressed when dealing with sub_state
+  logical, intent(in), optional:: is_sub_state
     
     logical, dimension(1:size(boundary_ids)):: boundary_id_used
     integer, dimension(:), allocatable:: surface_element_list
@@ -267,7 +271,7 @@ contains
       end if
     end do
         
-    if (.not. IsParallel() .and. .not. all(boundary_id_used)) then
+    if (.not. IsParallel() .and. .not. all(boundary_id_used) .and. .not.(is_sub_state)) then
       ewrite(0,*) "WARNING: for boundary condition: ", trim(name)
       ewrite(0,*) "added to field: ", trim(field%name)
       ewrite(0,*) "The following boundary ids were specified, but they don't appear in the surface mesh:"
