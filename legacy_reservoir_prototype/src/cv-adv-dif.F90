@@ -5435,7 +5435,7 @@ END IF
       LOGICAL, PARAMETER :: BETWEEN_ELE_HARMONIC_AVE = .FALSE.
       ! If BETWEEN_ELE_REIM_AVE use a simple Riemann approach for the between element DG permeability.
       ! If ROW_AVE then use a Roe averaged flux between the elements or CV's when BETWEEN_ELE_REIM_AVE =.true. 
-      LOGICAL, PARAMETER :: BETWEEN_ELE_RIEM_AVE = .FALSE. !.TRUE.
+      LOGICAL, PARAMETER :: BETWEEN_ELE_RIEM_AVE = .false. !.TRUE.
       LOGICAL, PARAMETER :: ROE_AVE = .TRUE.
       LOGICAL :: RESET_STORE, LIM_VOL_ADJUST
       REAL :: TMIN_STORE, TMAX_STORE, TOLDMIN_STORE, TOLDMAX_STORE
@@ -6062,6 +6062,9 @@ END IF
 ! seems wrong...
 !                     PERM_TILDE= ( MASS_CV(CV_NODI)+MASS_CV(CV_NODJ) ) &
 !                            /( 1./(MASS_CV(CV_NODI)*PERM_ELE(ELE)) + 1./(MASS_CV(CV_NODJ)*PERM_ELE(ELE2)) )
+
+               MAT_NODI=MAT_NDGLN((ELE-1)*MAT_NLOC+CV_ILOC)
+               MAT_NODJ=MAT_NDGLN((ELE-1)*MAT_NLOC+CV_JLOC)
 
 
                      NVEC(1)=CVNORMX(GI)
