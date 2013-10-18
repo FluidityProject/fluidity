@@ -2313,9 +2313,7 @@ section \ref{sec:Solve} for more details.
 
 With piecewise linear continuous fields additional options are available to bound the result following a Galerkin projection:\\
 \option{\ldots/galerkin\_projection/continuous/bounded::Diffuse}\\
-and\\
-\option{\ldots/galerkin\_projection/continuous/bounded::Algencan}\\
-The latter uses the algencan optimisation library to bound the field and requires \fluidity\ to be configured with \lstinline [language=bash]+--enable-algencan+.  The \option{Diffuse} bounding algorithm is internal to \fluidity\ and the most frequently used.
+The \option{Diffuse} bounding algorithm is internal to \fluidity\ and the most frequently used.
 
 To use the \option{Diffuse} bounding algorithm \citep{farrell2009a} the number of iterations the algorithm is allowed to take must be specified.  Additionally an optional tolerance can be specified to terminate this iteration loop early.  Furthermore if the bounds on the field are known in advance then these can be specified through:\\
 \option{\ldots/bounded::Diffuse/bounds/upper\_bound}\\
