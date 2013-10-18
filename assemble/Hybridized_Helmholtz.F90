@@ -1889,8 +1889,6 @@ contains
     u_max = max(u_max,maxval(abs(U_local%val)))
     ewrite(2,*) u_max, 'u_max'
 
-    tmpV_field%val = tmpV_Field%val - u_local%val
-
     call vtk_write_fields('ContinuityCheck', position=X, &
          model=D%mesh, &
          vfields=(/tmpV_field/))    
@@ -1911,6 +1909,7 @@ contains
        call check_continuity_local_ele(tmpV_field,Lambda,psi,X,ele)
     end do
     call deallocate(lambda)
+    tmpV_field%val = tmpV_Field%val - u_local%val
 
     assert(maxval(abs(tmpV_field%val)/max(1.0,u_max))<1.0e-8)
 
