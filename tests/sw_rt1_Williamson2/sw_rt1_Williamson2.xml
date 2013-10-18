@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>rt1 cubed sphere Williamson 2 solid body rotation</name>
+  <owner userid="jemma"/>
+  <tags>swml mimetic quad cubedsphere rt1</tags>
+  <problem_definition length="special" nprocs="6">
+    <command_line>mpiexec -n 6 --output-filename log shallow_water_mimetic W2_12.swml; mpiexec -n 6 --output-filename log shallow_water_mimetic W2_24.swml; mpiexec -n 6 --output-filename log shallow_water_mimetic W2_48.swml; mpiexec -n 6 --output-filename shallow_water_mimetic W2_96.swml;
+</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="l2errors" language="python">
+import fluidity_tools
+l2errors = []
+nquads = [12,24,48,96]
+for n in nquads:
+   filename = 'W2'+str(n)
+   s = fluidity_tools.stat_parser(filename+".stat")
+   error = s['Fluid']['LayerThicknessDiff']['l2norm'][-1]
+   l2errors.append(error)
+print l2errors
+    </variable>
+    <variable name="l_inftyerrors" language="python">
+import fluidity_tools
+l_inftyerrors = []
+nquads = [12,24,48,96]
+for n in nquads:
+   filename = 'W2'+str(n)
+   s = fluidity_tools.stat_parser(filename+".stat")
+   error = s['Fluid']['LayerThicknessDiff']['max'][-1]
+   error = max(error,s['Fluid']['LayerThicknessDiff']['min'][-1])
+   l_inftyerrors.append(error)
+print l_inftyerrors
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="l2 convergence 1" language="python">
+assert(l2errors[1]/l2errors[0] &lt; 0.25)
+    </test>
+    <test name="l_infty convergence 1" language="python">
+print l_inftyerrors[1]/l_inftyerrors[0]
+assert(l_inftyerrors[1]/l_inftyerrors[0] &lt; 0.36)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
+
