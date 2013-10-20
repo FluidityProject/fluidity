@@ -106,7 +106,7 @@ contains
 
     call allocate_and_insert_fields(sub_states)
 
-    call populate_boundary_conditions(sub_states, is_sub_state=.true.)
+    call populate_boundary_conditions(sub_states, suppress_warnings=.true.)
 
     call set_boundary_conditions_values(sub_states)
 

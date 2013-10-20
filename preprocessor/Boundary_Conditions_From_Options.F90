@@ -71,12 +71,13 @@ implicit none
 
 contains
 
-  subroutine populate_boundary_conditions(states, is_sub_state)
+  subroutine populate_boundary_conditions(states, suppress_warnings)
     ! Populate the boundary conditions of all fields
     ! This is called as part of populate_state but also
     ! after an adapt.
     type(state_type), dimension(:), intent(in):: states
-    logical, optional, intent(in)  :: is_sub_state
+    ! suppress warnings about non-existant surface ids
+    logical, optional, intent(in)  :: suppress_warnings
 
     ! these must be pointers as bc's should be added to the original field
     type(scalar_field), pointer:: sfield
@@ -105,9 +106,9 @@ contains
           field_path=sfield%option_path
 
           call populate_scalar_boundary_conditions(sfield, &
-               trim(field_path)//'/prognostic/boundary_conditions', position, is_sub_state=is_sub_state)
+               trim(field_path)//'/prognostic/boundary_conditions', position, suppress_warnings=suppress_warnings)
           call populate_scalar_boundary_conditions(sfield, &
-               trim(field_path)//'/diagnostic/algorithm/boundary_conditions', position, is_sub_state=is_sub_state)
+               trim(field_path)//'/diagnostic/algorithm/boundary_conditions', position, suppress_warnings=suppress_warnings)
 
        end do
 
@@ -122,7 +123,7 @@ contains
 
           ! only prognostic fields from here:
           call populate_vector_boundary_conditions(states(p+1),vfield, &
-               trim(field_path)//'/prognostic/boundary_conditions', position, is_sub_state=is_sub_state)
+               trim(field_path)//'/prognostic/boundary_conditions', position, suppress_warnings=suppress_warnings)
 
        end do
 
@@ -171,13 +172,14 @@ contains
     
   end subroutine populate_boundary_conditions
 
-  subroutine populate_scalar_boundary_conditions(field, bc_path, position, is_sub_state)
+  subroutine populate_scalar_boundary_conditions(field, bc_path, position, suppress_warnings)
     ! Populate the boundary conditions of one scalar field
     ! needs to be a pointer:
     type(scalar_field), pointer:: field
     character(len=*), intent(in):: bc_path
     type(vector_field), intent(in):: position
-    logical, optional, intent(in) :: is_sub_state
+    ! suppress warnings about non-existant surface ids
+    logical, optional, intent(in) :: suppress_warnings
 
     type(mesh_type), pointer:: surface_mesh
     type(scalar_field) surface_field
@@ -246,7 +248,7 @@ contains
 
        ! Add boundary condition
        call add_boundary_condition(field, trim(bc_name), trim(bc_type), &
-            surface_ids, option_path=bc_path_i, is_sub_state=is_sub_state)
+            surface_ids, option_path=bc_path_i, suppress_warnings=suppress_warnings)
 
        ! mesh of only the part of the surface where this b.c. applies
        call get_boundary_condition(field, i+1, surface_mesh=surface_mesh, &
@@ -305,14 +307,15 @@ contains
 
   end subroutine populate_scalar_boundary_conditions
 
-  subroutine populate_vector_boundary_conditions(state, field, bc_path, position, is_sub_state)
+  subroutine populate_vector_boundary_conditions(state, field, bc_path, position, suppress_warnings)
     ! Populate the boundary conditions of one vector field
     ! needs to be a pointer:
     type(state_type), intent(in) :: state
     type(vector_field), pointer:: field
     character(len=*), intent(in):: bc_path
     type(vector_field), intent(in):: position
-    logical, optional, intent(in) :: is_sub_state
+    ! suppress warnings about non-existant surface ids
+    logical, optional, intent(in) :: suppress_warnings
 
     ! possible vector components for vector b.c.s
     ! either carteisan aligned or aligned with the surface
@@ -376,7 +379,7 @@ contains
           call add_sem_bc(have_sem_bc)
           
           call add_boundary_condition(field, trim(bc_name), trim(bc_type),&
-               & surface_ids, applies=applies, option_path=bc_path_i, is_sub_state=is_sub_state)
+               & surface_ids, applies=applies, option_path=bc_path_i, suppress_warnings=suppress_warnings)
           deallocate(surface_ids)
           
           call get_boundary_condition(field, i+1, surface_mesh=surface_mesh)
@@ -415,7 +418,7 @@ contains
           end do
 
           call add_boundary_condition(field, trim(bc_name), trim(bc_type),&
-               & surface_ids, applies=applies, option_path=bc_path_i, is_sub_state=is_sub_state)
+               & surface_ids, applies=applies, option_path=bc_path_i, suppress_warnings=suppress_warnings)
           deallocate(surface_ids)
 
           call get_boundary_condition(field, i+1, surface_mesh=surface_mesh)
@@ -430,7 +433,7 @@ contains
        case("drag")
 
           call add_boundary_condition(field, trim(bc_name), trim(bc_type), &
-               & surface_ids, option_path=bc_path_i, is_sub_state=is_sub_state)
+               & surface_ids, option_path=bc_path_i, suppress_warnings=suppress_warnings)
           deallocate(surface_ids)
 
           call get_boundary_condition(field, i+1, surface_mesh=surface_mesh)
@@ -441,7 +444,7 @@ contains
        case ("wind_forcing")
 
           call add_boundary_condition(field, trim(bc_name), trim(bc_type), &
-               & surface_ids, option_path=bc_path_i, is_sub_state=is_sub_state)
+               & surface_ids, option_path=bc_path_i, suppress_warnings=suppress_warnings)
           deallocate(surface_ids)
 
           call get_boundary_condition(field, i+1, surface_mesh=surface_mesh)
@@ -460,7 +463,7 @@ contains
           ! Just add to the first dimension
           call add_boundary_condition(field, trim(bc_name), trim(bc_type),&
                & surface_ids, applies=(/ .true., .false., .false. /) , option_path=bc_path_i,&
-               & is_sub_state=is_sub_state)
+               & suppress_warnings=suppress_warnings)
           deallocate(surface_ids)
           call get_boundary_condition(field, i+1, surface_mesh=surface_mesh)
           call allocate(surface_field, field%dim, surface_mesh, name="value")
@@ -471,7 +474,7 @@ contains
 
           ! The bulk_formulae type is actually a wind forcing on velocity...
           call add_boundary_condition(field, trim(bc_name) ,&
-                &'wind_forcing', surface_ids, option_path=bc_path_i,is_sub_state=is_sub_state)
+                &'wind_forcing', surface_ids, option_path=bc_path_i,suppress_warnings=suppress_warnings)
           deallocate(surface_ids)
           call get_boundary_condition(field, i+1, surface_mesh=surface_mesh)
           call allocate(surface_field, field%dim-1, surface_mesh, name="WindSurfaceField")
@@ -485,7 +488,7 @@ contains
           ! applying in the tangential directions only
           call add_boundary_condition(field, trim(bc_name), trim(bc_type), &
                & surface_ids, option_path=bc_path_i, &
-               & applies=(/ .true., .false., .false. /),is_sub_state=is_sub_state)
+               & applies=(/ .true., .false., .false. /),suppress_warnings=suppress_warnings)
           deallocate(surface_ids)
 
           if (trim(bc_type)=="free_surface") then
@@ -506,7 +509,7 @@ contains
        case ("outflow")
           ! dummy bc for outflow planes
           call add_boundary_condition(field, trim(bc_name), trim(bc_type), surface_ids, option_path=bc_path_i, &
-                                       & applies=(/ .true., .true., .true. /),is_sub_state=is_sub_state )
+                                       & applies=(/ .true., .true., .true. /),suppress_warnings=suppress_warnings )
           deallocate(surface_ids) 
  
        case default
