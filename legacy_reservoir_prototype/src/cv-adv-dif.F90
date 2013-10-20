@@ -5439,7 +5439,7 @@ END IF
       LOGICAL, PARAMETER :: ROE_AVE = .TRUE.
       LOGICAL :: RESET_STORE, LIM_VOL_ADJUST
       REAL :: TMIN_STORE, TMAX_STORE, TOLDMIN_STORE, TOLDMAX_STORE
-      REAL :: PERM_TILDE, NDOTQ_TILDE, NDOTQ2_TILDE, NDOTQOLD_TILDE, NDOTQOLD2_TILDE, rden_ave, rdenold_ave, Q_UNDERLY, QOLD_UNDERLY
+      REAL :: PERM_TILDE, PERMold_TILDE,NDOTQ_TILDE, NDOTQ2_TILDE, NDOTQOLD_TILDE, NDOTQOLD2_TILDE, rden_ave, rdenold_ave, Q_UNDERLY, QOLD_UNDERLY
       REAL :: NDOTQ_KEEP_IN, NDOTQOLD_KEEP_IN,  NDOTQ_KEEP, NDOTQ2_KEEP, NDOTQOLD_KEEP, NDOTQOLD2_KEEP
       ! coefficients for this element ELE
 
@@ -5855,6 +5855,9 @@ END IF
                   IF(NDOTQ+NDOTQ2==0.0) INCOME=0.5  
                   IF(NDOTQOLD+NDOTQOLD2==0.0) INCOMEOLD=0.5
 
+                     NDOTQ_KEEP_IN = INCOME*NDOTQ2 + (1.-INCOME)*NDOTQ
+                     NDOTQOLD_KEEP_IN = INCOMEOLD*NDOTQOLD2 + (1.-INCOMEOLD)*NDOTQOLD
+
                   IF(LIM_VOL_ADJUST) THEN
                      RESET_STORE=.TRUE. 
                      CALL CAL_LIM_VOL_ADJUST(TMIN_STORE,TMIN,T,TMIN_NOD,RESET_STORE,MASS_CV, &
@@ -6115,10 +6118,26 @@ END IF
                         PERM_TILDE= ( 1.0+1.0 )  /( 1./(1.0*PERM_ELE(ELE)) + 1./(1.0*PERM_ELE(ELE2)) )
 !                        PERM_TILDE= 0.5*(PERM_ELE(ELE) + PERM_ELE(ELE2)) 
 !                        PERM_TILDE= min(PERM_ELE(ELE), PERM_ELE(ELE2)) 
+!                        PERM_TILDE= max(PERM_ELE(ELE), PERM_ELE(ELE2)) 
+                        PERMold_TILDE= PERM_TILDE
+
+                    if(.false.) then
+                        if(0.5*(NDOTQ_TILDE+NDOTQ2_TILDE).gt.0.0) then
+                            PERM_TILDE= PERM_ELE(ELE2)
+                        else
+                            PERM_TILDE=  PERM_ELE(ELE)
+                        endif
+                        if(0.5*(NDOTQold_TILDE+NDOTQold2_TILDE).gt.0.0) then
+                            PERMold_TILDE= PERM_ELE(ELE2)
+                        else
+                            PERMold_TILDE=  PERM_ELE(ELE)
+                        endif
+                     endif
+
                         NDOTQ_TILDE  = NDOTQ_TILDE  * PERM_TILDE / PERM_ELE( ELE ) 
                         NDOTQ2_TILDE = NDOTQ2_TILDE * PERM_TILDE / PERM_ELE( ELE2 ) 
-                        NDOTQOLD_TILDE  = NDOTQOLD_TILDE  * PERM_TILDE / PERM_ELE( ELE ) 
-                        NDOTQOLD2_TILDE = NDOTQOLD2_TILDE * PERM_TILDE / PERM_ELE( ELE2 ) 
+                        NDOTQOLD_TILDE  = NDOTQOLD_TILDE  * PERMold_TILDE / PERM_ELE( ELE ) 
+                        NDOTQOLD2_TILDE = NDOTQOLD2_TILDE * PERMold_TILDE / PERM_ELE( ELE2 ) 
 ! These are the new limits of the velocities...
                         NDOTQ_KEEP  = NDOTQ_TILDE   ! this is associated with saturation at NODI
                         NDOTQ2_KEEP = NDOTQ2_TILDE  ! this is associated with saturation at NODJ
@@ -6352,6 +6371,24 @@ END IF
                   INCOME    = INCOME3*MAX(INCOME4,INCOME) + (1.-INCOME3)*MIN(INCOME4,INCOME) 
                   INCOMEOLD = INCOMEOLD3*MAX(INCOMEOLD4,INCOMEOLD) + (1.-INCOMEOLD3)*MIN(INCOMEOLD4,INCOMEOLD)
 
+! first order upwinding...
+                 if(.false.) then
+!                     IF(0.5*(NDOTQ_TILDE+NDOTQ2_TILDE) < 0.0) THEN
+                     IF(0.5*(NDOTQ_KEEP+ NDOTQ2_KEEP) < 0.0) THEN
+                        INCOME=1.0
+                     ELSE
+                        INCOME=0.0
+                     END IF
+!                     IF(0.5*(NDOTQOLD_TILDE+NDOTQOLD2_TILDE) < 0.0) THEN
+                     IF(0.5*(NDOTQOLD_KEEP+ NDOTQOLD2_KEEP) < 0.0) THEN
+                        INCOMEOLD=1.0
+                     ELSE
+                        INCOMEOLD=0.0
+                     END IF
+                  endif
+                        INCOME=0.5
+                        INCOMEOLD=0.5
+
                   IF(ROE_AVE) THEN
 ! Amend INCOME,INCOMEOLD so as to reflect being inbetween [NDOTQ_KEEP, NDOTQ2_KEEP] and [NDOTQOLD_KEEP, NDOTQOLD2_KEEP] 
                      NDOTQ_KEEP_IN = INCOME*NDOTQ2_KEEP + (1.-INCOME)*NDOTQ_KEEP
@@ -6488,12 +6525,31 @@ END IF
       !IF( NDOTQOLD > 0. ) INCOMEOLD = 0.
 
 
-      IF( BETWEEN_ELE_RIEM_AVE ) THEN ! Riemann method...
+!      IF( BETWEEN_ELE_RIEM_AVE ) THEN ! Riemann method...
+      IF( .false. ) THEN ! Riemann method...
          IF ( SELE==0 ) THEN
-            INCOME = 1.
-            IF ( 0.5*(NDOTQ_TILDE+NDOTQ2_TILDE) >= 0. ) INCOME = 0.
-            INCOMEOLD = 1.
-            IF ( 0.5*(NDOTQOLD_TILDE+NDOTQOLD2_TILDE) >= 0. ) INCOMEOLD = 0.
+!            IF( (ELE.NE.ELE2).AND.(ELE2.NE.0) ) THEN
+            IF( .true. ) THEN
+               INCOME = 1.
+               IF ( NDOTQ >= 0. ) INCOME = 0.
+               INCOMEOLD = 1.
+               IF ( NDOTQOLD >= 0. ) INCOMEOLD = 0.
+!            IF( (ELE.NE.ELE2).AND.(ELE2.NE.0) ) THEN
+            else if( .false. ) THEN
+               INCOME = 1.
+               !IF ( 0.5*(NDOTQ_TILDE+NDOTQ2_TILDE) >= 0. ) INCOME = 0.
+               IF ( NDOTQ_KEEP_IN >= 0. ) INCOME = 0.
+               INCOMEOLD = 1.
+               !IF ( 0.5*(NDOTQOLD_TILDE+NDOTQOLD2_TILDE) >= 0. ) INCOMEOLD = 0.
+               IF ( NDOTQOLD_KEEP_IN >= 0. ) INCOMEOLD = 0.
+            ELSE
+               INCOME = 1.
+               IF ( 0.5*(NDOTQ_TILDE+NDOTQ2_TILDE) >= 0. ) INCOME = 0.
+               !IF ( NDOTQ_KEEP_IN >= 0. ) INCOME = 0.
+               INCOMEOLD = 1.
+               IF ( 0.5*(NDOTQOLD_TILDE+NDOTQOLD2_TILDE) >= 0. ) INCOMEOLD = 0.
+               !IF ( NDOTQOLD_KEEP_IN >= 0. ) INCOMEOLD = 0.
+            ENDIF
          END IF
       END IF
 

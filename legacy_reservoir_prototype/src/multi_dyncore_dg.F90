@@ -1278,10 +1278,23 @@
                END DO
             END IF
 
-            if( cv_nonods==x_nonods .or. .false. ) then ! a continuous pressure:
-          !  if( cv_nonods==x_nonods .or. .true. ) then ! a continuous pressure:
+
+! Add diffusion to DG version of CMC to try and encourage a continuous formulation...
+! the idea is to stabilize pressure without effecting the soln i.e. the rhs of the eqns as
+! pressure may have some singularities associated with it. 
+               if( cv_nonods.ne.x_nonods) then !DG only...
+                   CALL ADD_DIFF_CMC(CMC, &
+                    NCOLCMC, cv_NONODS, FINDCMC, COLCMC, MIDCMC, &
+                    totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln, p )
+               endif 
+
+          !  if( cv_nonods==x_nonods .or. .false. ) then ! a continuous pressure:
+            if( .true. ) then ! a pressure solve:
 ! James feed CMC_PRECON into this sub and use as the preconditioner matrix...
 ! CMC_PRECON has length CMC_PRECON(NCOLCMC*IGOT_CMC_PRECON) 
+
+
+
                CALL SOLVER( CMC, DP, P_RHS, &
                     FINDCMC, COLCMC, &
                     option_path = '/material_phase[0]/scalar_field::Pressure' )
@@ -1303,6 +1316,10 @@
          ewrite(3,*) 'after pressure solve DP:', DP
 
          P = P + DP
+
+        !           CALL ADD_DIFF_CMC(CMC, &
+        !            NCOLCMC, cv_NONODS, FINDCMC, COLCMC, MIDCMC, &
+        !            totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln, p )
 
          ! Use a projection method
          ! CDP = C * DP
@@ -1501,6 +1518,104 @@
       ewrite(3,*) 'Leaving FORCE_BAL_CTY_ASSEM_SOLVE'
 
     END SUBROUTINE FORCE_BAL_CTY_ASSEM_SOLVE
+
+
+
+
+! Add diffusion to CMC to try and encourage a continuous formulation...
+     SUBROUTINE ADD_DIFF_CMC(CMC, &
+                    NCOLCMC, cv_NONODS, FINDCMC, COLCMC, MIDCMC, &
+                    totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln, p )
+! Add diffusion to CMC to try and encourage a continuous formulation...
+    !
+    implicit none
+    INTEGER, intent( in ) ::  NCOLCMC, CV_NONODS, totele, cv_nloc, x_nonods
+    REAL, DIMENSION( NCOLCMC ), intent( inout ) ::  CMC
+    REAL, DIMENSION( CV_NONODS ), intent( inout ) ::  p
+    INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCMC
+    INTEGER, DIMENSION( NCOLCMC ), intent( in ) :: COLCMC
+    INTEGER, DIMENSION( CV_NONODS ), intent( in ) :: MIDCMC
+    INTEGER, DIMENSION( cv_nloc*totele ), intent( in ) :: cv_ndgln, x_ndgln
+
+! local variables...
+
+    integer, dimension( : ), allocatable :: dg_nods, MAP_DG2CTY
+    real, dimension( : ), allocatable :: diag_lum, P_TEMP
+    integer :: ele, cv_iloc, dg_nod, cty_nod, CV_NOD, CV_JNOD
+    integer :: count
+    real :: alpha
+
+! works...
+    alpha=1.e-3
+! can also be used...
+!    alpha=1.e-1
+!    alpha=1.e-2
+
+
+    allocate( MAP_DG2CTY(cv_nonods) )
+    allocate( p_TEMP(X_nonods) )
+    allocate( diag_lum(x_nonods) )
+    allocate( dg_nods(x_nonods) )
+
+    ! lump the pressure nodes to take away the discontinuity...
+    DO ELE = 1, TOTELE
+       DO CV_ILOC = 1, CV_NLOC
+!          dg_nod = (ele-1) * cv_nloc + cv_iloc
+          dg_nod = cv_ndgln( (ele-1) * cv_nloc + cv_iloc )
+          cty_nod = x_ndgln( (ele-1) * cv_nloc + cv_iloc)
+          MAP_DG2CTY(dg_nod) = cty_nod
+       END DO
+    END DO
+
+    diag_lum=0.0
+    dg_nods=0
+    P_TEMP=0.0
+    DO ELE = 1, TOTELE
+       DO CV_ILOC = 1, CV_NLOC
+!          dg_nod = (ele-1) * cv_nloc + cv_iloc
+          dg_nod = cv_ndgln( (ele-1) * cv_nloc + cv_iloc )
+          cty_nod = x_ndgln( (ele-1) * cv_nloc + cv_iloc )
+          diag_lum(cty_nod)=diag_lum(cty_nod) + abs( cmc(midcmc(dg_nod)) )
+          dg_nods(cty_nod)=dg_nods(cty_nod)+1
+          P_TEMP(cty_nod)=P_TEMP(cty_nod)+P(DG_NOD)
+       END DO
+    END DO
+    P_TEMP=p_TEMP/DG_NODS
+
+
+    DO ELE = 1, TOTELE
+       DO CV_ILOC = 1, CV_NLOC
+!          dg_nod = (ele-1) * cv_nloc + cv_iloc
+          dg_nod = cv_ndgln( (ele-1) * cv_nloc + cv_iloc )
+          cty_nod = x_ndgln( (ele-1) * cv_nloc + cv_iloc )
+! uncomment to get a cty pressure...
+          !P(DG_NOD)=P_TEMP(cty_nod)
+       END DO
+    END DO
+
+    DO ELE = 1, TOTELE
+       DO CV_ILOC = 1, CV_NLOC
+!          dg_nod = (ele-1) * cv_nloc + cv_iloc
+          dg_nod = cv_ndgln( (ele-1) * cv_nloc + cv_iloc )
+          cty_nod = x_ndgln( (ele-1) * cv_nloc + cv_iloc )
+                  CV_NOD=DG_NOD
+                  DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
+                     CV_JNOD = COLCMC( COUNT )
+                     IF(CV_JNOD==CV_NOD) THEN ! on the diagonal... 
+                        CMC( COUNT ) = CMC( COUNT ) + alpha*diag_lum(cty_nod)
+                     ELSE
+                        IF(MAP_DG2CTY(CV_JNOD)==cty_nod) THEN ! off diagonal... 
+                           CMC( COUNT ) = CMC( COUNT ) - alpha*diag_lum(cty_nod)/real(dg_nods(cty_nod)-1) 
+                        ENDIF 
+                     ENDIF
+                  END DO
+
+       END DO
+    END DO
+    RETURN
+    END SUBROUTINE ADD_DIFF_CMC
+
+
 
 
 

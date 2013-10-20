@@ -154,10 +154,12 @@ contains
 
     REAL ERROR, RELAX, RELAX_DIAABS, RELAX_DIA
     INTEGER N_LIN_ITS, NGL_ITS
+    LOGICAL ONE_PRES_SOLVE, ONE_SOLVE_1IT
 
     PARAMETER(ERROR=1.E-15, RELAX=0.1, RELAX_DIAABS=0.0)
     PARAMETER(RELAX_DIA=2.0, N_LIN_ITS=2)
     PARAMETER(NGL_ITS=50) ! maybe we need to increase this...
+    PARAMETER(ONE_PRES_SOLVE=.false., ONE_SOLVE_1IT=.false.) ! Only solve for one cty pressure - distribut to DG pressure nodes. 
 
     !  PARAMETER(ERROR=1.E-15, RELAX=0.05, RELAX_DIAABS=0.0)
     !  PARAMETER(RELAX_DIA=2.0, N_LIN_ITS=2)
@@ -233,13 +235,79 @@ contains
              ewrite(3,*)'could not find coln'
              stop 3282
           end if
-          IF(IGOT_CMC_PRECON==0) THEN
+         ! IF((IGOT_CMC_PRECON==0).or.(ONE_PRES_SOLVE)) THEN
+          IF(.true.) THEN
              CMC_SMALL(COUNT2) = CMC_SMALL(COUNT2) + CMC(COUNT)  
           ELSE
+          !  stop 6227
              CMC_SMALL(COUNT2) = CMC_SMALL(COUNT2) + CMC_PRECON(COUNT)  
           ENDIF            
        END DO
     END DO
+
+! Only solve for one pressure...
+    IF(ONE_PRES_SOLVE) THEN
+       ! Map resid_dg to resid_cty as well as the solution:
+       resid_cty=0.
+       do dg_nod = 1, cv_nonods
+          cty_nod = MAP_DG2CTY(dg_nod)
+          resid_cty(cty_nod) = resid_cty(cty_nod)+rhs(dg_nod)
+       end do
+
+       ! Course grid solver...
+       DP_SMALL = 0.
+       EWRITE(3,*)'SOLVER'
+       CALL SOLVER( CMC_SMALL(1:NCMC_SMALL), DP_SMALL, resid_cty, &
+            FINDCMC_SMALL, COLCMC_SMALL(1:NCMC_SMALL), &
+            option_path = '/material_phase[0]/scalar_field::Pressure')
+       EWRITE(3,*)'OUT OF SOLVER'
+
+       ! Map the corrections DP_SMALL to dg:
+       DO dg_nod = 1, cv_nonods
+          cty_nod = MAP_DG2CTY(dg_nod)
+          P(DG_NOD) = DP_SMALL(CTY_NOD)
+       end do
+
+
+       IF(ONE_SOLVE_1IT) THEN ! A single dg pressure iteration
+          if (.true.) then
+             call set_solver_options(path, &
+                  ksptype = "gmres", &
+                  !pctype = "jacobi", & ! use this for P1DGP1DG
+                  !pctype = "sor", & ! use this for P1DGP1DG
+                  pctype = "none", &   ! use this for P1DGP2DG
+                  rtol = 1.e-10, &
+                  atol = 1.e-15, &
+                  max_its =21)
+          endif
+
+       resid_dg = rhs
+       ustep = 0.0
+       do dg_nod = 1, cv_nonods
+          DO COUNT = FINDCMC(dg_NOD), FINDCMC(dg_NOD+1) - 1
+             col=COLCMC(COUNT)
+             resid_dg(dg_nod) = resid_dg(dg_nod) - cmc(count) * P(Col)
+          END DO
+       end do
+
+
+             call add_option( &
+                  trim(path)//"/solver/ignore_all_solver_failures", stat)
+!             CALL SOLVER( CMC, P, RHS, &
+             CALL SOLVER( CMC, ustep, resid_dg, &
+                  FINDCMC, COLCMC, &
+                  option_path = path )
+
+            p=p+ustep
+       ENDIF
+
+       RETURN
+
+
+    END IF
+
+
+
 
           if (.true.) then
              call set_solver_options(path, &
