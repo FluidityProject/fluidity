@@ -1292,9 +1292,7 @@
             if( .true. ) then ! a pressure solve:
 ! James feed CMC_PRECON into this sub and use as the preconditioner matrix...
 ! CMC_PRECON has length CMC_PRECON(NCOLCMC*IGOT_CMC_PRECON) 
-
-
-
+ 
                CALL SOLVER( CMC, DP, P_RHS, &
                     FINDCMC, COLCMC, &
                     option_path = '/material_phase[0]/scalar_field::Pressure' )
@@ -1303,7 +1301,7 @@
                     NCOLCMC, cv_NONODS, FINDCMC, COLCMC, MIDCMC, &
                     totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln )
             end if
-
+ 
             IF( SCALE_P_MATRIX ) THEN
                DO CV_NOD = 1, CV_NONODS
                   DP( CV_NOD ) = DP( CV_NOD ) / DIAG_P_SQRT( CV_NOD )
