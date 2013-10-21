@@ -1300,11 +1300,17 @@
       have_absorption = .false.
       Conditional_AbsorptionField: if( present( field_prot_absorption ) ) then
          field_absorption => extract_vector_field( state( iphase ), trim(field_name) // 'Absorption', stat )
-         have_absorption = ( stat == 0 )
+         option_path = '/material_phase[' // int2str( iphase - 1 ) // ']/vector_field::' // trim( field_name ) // &
+              '/prognostic/vector_field::Absorption/prescribed'
+         have_absorption =  have_option( trim(option_path) )
          if ( have_absorption ) then
             do idim = 1, ndim
                field_prot_absorption( :, idim + (iphase-1)*ndim, idim + (iphase-1)*ndim ) =  &
                     field_absorption % val( idim, : )
+            end do
+         else
+            do idim = 1, ndim
+               field_prot_absorption( :, idim + (iphase-1)*ndim, idim + (iphase-1)*ndim ) = 0.0 
             end do
          end if
       end if Conditional_AbsorptionField
