@@ -6054,17 +6054,6 @@ END IF
                ELSE IF(DG_ELE_UPWIND==3) THEN ! the best optimal upwind frac.
 
                   IF ( BETWEEN_ELE_RIEM_AVE ) THEN ! Riemann method...
-!  simple mean...
-!                     PERM_TILDE= ( PERM_ELE(ELE) + PERM_ELE(ELE2) ) / 2.0
-!
-                     PERM_TILDE= ( 1.0+1.0 ) &
-                            /( 1./(1.0*PERM_ELE(ELE)) + 1./(1.0*PERM_ELE(ELE2)) )
-
-!                     PERM_TILDE= ( 1./MASS_CV(CV_NODI)+1./MASS_CV(CV_NODJ) ) &
-!                            /( 1./(MASS_CV(CV_NODI)*PERM_ELE(ELE)) + 1./(MASS_CV(CV_NODJ)*PERM_ELE(ELE2)) )
-! seems wrong...
-!                     PERM_TILDE= ( MASS_CV(CV_NODI)+MASS_CV(CV_NODJ) ) &
-!                            /( 1./(MASS_CV(CV_NODI)*PERM_ELE(ELE)) + 1./(MASS_CV(CV_NODJ)*PERM_ELE(ELE2)) )
 
                MAT_NODI=MAT_NDGLN((ELE-1)*MAT_NLOC+CV_ILOC)
                MAT_NODJ=MAT_NDGLN((ELE-1)*MAT_NLOC+CV_JLOC)
@@ -6115,19 +6104,25 @@ END IF
 !                        NDOTQOLD2_TILDE=NDOTQOLD2
 
 ! Correct for the Harmonic averaging of absolute permeability...
-                        PERM_TILDE= ( 1.0+1.0 )  /( 1./(1.0*PERM_ELE(ELE)) + 1./(1.0*PERM_ELE(ELE2)) )
+! original...
+!                        PERM_TILDE= ( 1.0/MASS_CV(CV_NODI) + 1.0/MASS_CV(CV_NODJ) )  &
+!                              /( 1./(MASS_CV(CV_NODI)*PERM_ELE(ELE)) + 1./(MASS_CV(CV_NODJ)*PERM_ELE(ELE2)) ) ! v. good.
+! alternate...
+!                        PERM_TILDE= ( 1.0/MASS_CV(CV_NODI) + 1.0/MASS_CV(CV_NODJ) )  &
+!                              /( 1./(MASS_CV(CV_NODJ)*PERM_ELE(ELE)) + 1./(MASS_CV(CV_NODI)*PERM_ELE(ELE2)) ) ! the best?
+                        PERM_TILDE= ( 1.0+1.0 )  /( 1./(1.0*PERM_ELE(ELE)) + 1./(1.0*PERM_ELE(ELE2)) ) ! the best?
 !                        PERM_TILDE= 0.5*(PERM_ELE(ELE) + PERM_ELE(ELE2)) 
 !                        PERM_TILDE= min(PERM_ELE(ELE), PERM_ELE(ELE2)) 
 !                        PERM_TILDE= max(PERM_ELE(ELE), PERM_ELE(ELE2)) 
                         PERMold_TILDE= PERM_TILDE
 
                     if(.false.) then
-                        if(0.5*(NDOTQ_TILDE+NDOTQ2_TILDE).gt.0.0) then
+                        if(0.5*(NDOTQ_TILDE+NDOTQ2_TILDE).lt.0.0) then
                             PERM_TILDE= PERM_ELE(ELE2)
                         else
                             PERM_TILDE=  PERM_ELE(ELE)
                         endif
-                        if(0.5*(NDOTQold_TILDE+NDOTQold2_TILDE).gt.0.0) then
+                        if(0.5*(NDOTQold_TILDE+NDOTQold2_TILDE).lt.0.0) then
                             PERMold_TILDE= PERM_ELE(ELE2)
                         else
                             PERMold_TILDE=  PERM_ELE(ELE)
@@ -6171,10 +6166,10 @@ END IF
    
                   ELSE IF(BETWEEN_ELE_HARMONIC_AVE) THEN
 !  simple mean...
-!                     PERM_TILDE= ( PERM_ELE(ELE) + PERM_ELE(ELE2) ) / 2.0
+                     PERM_TILDE= ( PERM_ELE(ELE) + PERM_ELE(ELE2) ) / 2.0
 !
-                     PERM_TILDE= ( 1.0+1.0 ) &
-                            /( 1./(1.0*PERM_ELE(ELE)) + 1./(1.0*PERM_ELE(ELE2)) )
+!                     PERM_TILDE= ( 1.0+1.0 ) &
+!                            /( 1./(1.0*PERM_ELE(ELE)) + 1./(1.0*PERM_ELE(ELE2)) )
 
 !                     PERM_TILDE= ( 1./MASS_CV(CV_NODI)+1./MASS_CV(CV_NODJ) ) &
 !                            /( 1./(MASS_CV(CV_NODI)*PERM_ELE(ELE)) + 1./(MASS_CV(CV_NODJ)*PERM_ELE(ELE2)) )
@@ -6387,6 +6382,7 @@ END IF
                      END IF
                   endif
                   if( between_ele_riem_ave ) then
+!                  if( .false. ) then
                         INCOME=0.5
                         INCOMEOLD=0.5
                   endif

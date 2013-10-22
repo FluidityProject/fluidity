@@ -235,8 +235,8 @@ contains
              ewrite(3,*)'could not find coln'
              stop 3282
           end if
-         ! IF((IGOT_CMC_PRECON==0).or.(ONE_PRES_SOLVE)) THEN
-          IF(.true.) THEN
+          IF((IGOT_CMC_PRECON==0).or.(ONE_PRES_SOLVE)) THEN
+         ! IF(.true.) THEN
              CMC_SMALL(COUNT2) = CMC_SMALL(COUNT2) + CMC(COUNT)  
           ELSE
           !  stop 6227
