@@ -5,7 +5,7 @@
   <owner userid="jemma"/>
   <tags>swml mimetic quad cubedsphere rt1</tags>
   <problem_definition length="special" nprocs="6">
-    <command_line>mpiexec -n 6 --output-filename log shallow_water_mimetic W2_12.swml; mpiexec -n 6 --output-filename log shallow_water_mimetic W2_24.swml; mpiexec -n 6 --output-filename log shallow_water_mimetic W2_48.swml; mpiexec -n 6 --output-filename shallow_water_mimetic W2_96.swml;
+    <command_line>mpiexec -n 6 --output-filename log ../../bin/shallow_water_mimetic W2_12.swml; mpiexec -n 6 --output-filename log ../../bin/shallow_water_mimetic W2_24.swml; mpiexec -n 6 --output-filename log ../../bin/shallow_water_mimetic W2_48.swml; mpiexec -n 6 --output-filename log ../../bin/shallow_water_mimetic W2_96.swml;
 </command_line>
   </problem_definition>
   <variables>

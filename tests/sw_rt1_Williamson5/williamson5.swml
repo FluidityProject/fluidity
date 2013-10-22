@@ -132,7 +132,7 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">900.0</real_value>
+      <real_value rank="0">450.0</real_value>
       <comment>1 hour</comment>
     </timestep>
     <theta>
