@@ -10,22 +10,31 @@
 mpiexec fluidity -v2 -l backward_facing_step_3d_flredecomp.flml</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="finishtime" language="python">from fluidity_tools import stat_parser as stat
 finishtime= stat("backward_facing_step_3d.stat")["ElapsedTime"]["value"][-1]</variable>
     <variable name="reattachment_length" language="python">
 from postprocessor_3d import reatt_length, get_filelist
 import numpy
 yarray = numpy.array([0.1, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 3.9])
-exclude_initial_results = 45
-filelist = get_filelist(5, 180)
+exclude_initial_results = 60
+filelist = get_filelist(10, 75)
 reattachment_length = numpy.array(reatt_length(filelist, yarray))
     </variable>
   </variables>
   <pass_tests>
-    <test name="finish_time" language="python">assert finishtime &gt; 50.0</test>
-    <test name="Reattachment length does not change by more than 10%" language="python">
-        print ( ( max(reattachment_length[:,0]) - min(reattachment_length[:,0]) ) / min(reattachment_length[:,0]) )
-assert( ( max(reattachment_length[:,0]) - min(reattachment_length[:,0]) ) / min(reattachment_length[:,0]) &lt; 0.1)
+    <test name="Solvers converged" language="python">
+assert(solvers_converged)
+    </test>
+    <test name="finish_time" language="python">
+assert finishtime &gt; 199.0
+    </test>
+    <test name="Reattachment length is less than 20.0" language="python">
+assert(abs(reattachment_length[-1,0]) &lt; 20.0)
     </test>
   </pass_tests>
   <warn_tests/>

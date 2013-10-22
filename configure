@@ -602,7 +602,6 @@ ac_subst_vars='LTLIBOBJS
 LIBOBJS
 HYPERLIGHT
 MEMORY_STATS
-ALGENCAN
 MBA3D
 MBA2D
 MODINC_FLAG
@@ -730,7 +729,6 @@ SHELL'
 ac_subst_files=''
 ac_user_opts='
 enable_option_checking
-enable_gcov
 enable_debugging
 enable_python
 enable_cgal
@@ -756,7 +754,6 @@ with_arpack_lib
 enable_vtk
 enable_2d_adaptivity
 enable_mba3d
-enable_algencan
 enable_memory_stats
 enable_hyperlight
 with_libnuma
@@ -1403,7 +1400,6 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
-  --enable-gcov           turns on GNUs coverage tool - gcov
   --enable-debugging      turns on debugging flags
   --enable-python         embed python in fluidity for generic functions.
   --enable-cgal           turns on use of the CGAL library
@@ -1428,7 +1424,6 @@ Optional Features:
   --enable-vtk            Only use to disable vtk
   --enable-2d-adaptivity  Link against 2D adaptivity library (GPL license)
   --enable-mba3d          Enabled libmba3d 3D adaptivity library
-  --enable-algencan       Enabled algencan optimisation library
   --enable-memory-stats   Enable memory statistics
   --enable-hyperlight     Enable Hyperlight solar irradiance model
 
@@ -2828,25 +2823,11 @@ fi
 #
 # Name fluidity
 #
-# Check whether --enable-gcov was given.
-if test "${enable_gcov+set}" = set; then :
-  enableval=$enable_gcov;
-fi
-
-
 # Check whether --enable-debugging was given.
 if test "${enable_debugging+set}" = set; then :
   enableval=$enable_debugging;
 fi
 
-
-if test "x$enable_gcov" == "xyes" ; then
-    enable_debugging="yes"
-    FCFLAGS="$FCFLAGS -fprofile-arcs -ftest-coverage"
-    CFLAGS="$CFLAGS -fprofile-arcs -ftest-coverage"
-    CXXFLAGS="$CXXFLAGS -fprofile-arcs -ftest-coverage"
-    LDFLAGS="$LDFLAGS -fprofile-arcs -ftest-coverage"
-fi
 
 FLFEMDEM="femdem"
 
@@ -3665,7 +3646,6 @@ $as_echo "$as_me: WARNING: Early versions of intel 11.1 are bugged and cannot be
     FFLAGS="$FFLAGS -vec-report=0"
     FCFLAGS="$FCFLAGS -vec-report=0"
 fi
-
 
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -10460,6 +10440,71 @@ $as_echo "$as_me: Setting optimisation flags for $F77" >&6;}
 #define NDEBUG 1
 EOF
     OPTIMIZATION_FFLAGS="$OPTIMIZATION_FFLAGS -O3"
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc" >&5
+$as_echo_n "checking for malloc in -ltcmalloc... " >&6; }
+if ${ac_cv_lib_tcmalloc_malloc+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ltcmalloc  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char malloc ();
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return malloc ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_tcmalloc_malloc=yes
+else
+  ac_cv_lib_tcmalloc_malloc=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tcmalloc_malloc" >&5
+$as_echo "$ac_cv_lib_tcmalloc_malloc" >&6; }
+if test "x$ac_cv_lib_tcmalloc_malloc" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBTCMALLOC 1
+_ACEOF
+
+  LIBS="-ltcmalloc $LIBS"
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: No tcmalloc support available." >&5
+$as_echo "$as_me: WARNING: No tcmalloc support available." >&2;}
+fi
+
 fi
 
 FFLAGS="$FFLAGS $OPTIMIZATION_FFLAGS"
@@ -12744,10 +12789,26 @@ fi
 
 
 if test "x$PETSC_DIR" == "x"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: No PETSC_DIR set - trying to autodetect " >&5
+$as_echo "$as_me: WARNING: No PETSC_DIR set - trying to autodetect " >&2;}
+
+  # Try to identify the obvious choice
+  if test -f /usr/lib/petsc/include/petscversion.h ; then
+    export PETSC_DIR=/usr/lib/petsc
+  elif test -f /usr/include/petscversion.h ; then
+    export PETSC_DIR=/usr
+  elif test -f /usr/local/include/petscversion.h ; then
+    export PETSC_DIR=/usr/local
+  fi
+fi
+# Check again incase we failed.
+if test "x$PETSC_DIR" == "x"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: No PETSC_DIR set - do you need to load a petsc module? " >&5
 $as_echo "$as_me: WARNING: No PETSC_DIR set - do you need to load a petsc module? " >&2;}
   as_fn_error $? "You need to set PETSC_DIR to point at your PETSc installation... exiting " "$LINENO" 5
 fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: Using PETSC_DIR=$PETSC_DIR" >&5
+$as_echo "$as_me: Using PETSC_DIR=$PETSC_DIR" >&6;}
 
 PETSC_LINK_LIBS=`make -s -f petsc_makefile getlinklibs`
 LIBS="$PETSC_LINK_LIBS $LIBS"
@@ -14620,19 +14681,6 @@ if test "x$enable_mba3d" = "xyes"; then
 
 fi
 
-# Check whether --enable-algencan was given.
-if test "${enable_algencan+set}" = set; then :
-  enableval=$enable_algencan;
-fi
-
-
-if test "x$enable_algencan" = "xyes"; then
-  echo "#define HAVE_ALGENCAN 1" >> include/confdefs.h
-  LIBS="$LIBS -lalgencan"
-  ALGENCAN="yes"
-
-fi
-
 # Check whether --enable-memory_stats was given.
 if test "${enable_memory_stats+set}" = set; then :
   enableval=$enable_memory_stats;
@@ -14870,7 +14918,7 @@ fi
 
 #*******************
 
-ac_config_files="$ac_config_files Makefile debug/Makefile bathymetry/Makefile ocean_forcing/Makefile ocean_forcing/tests/Makefile sediments/Makefile population_balance/Makefile hyperlight/Makefile femtools/Makefile femtools/tests/Makefile forward_interfaces/Makefile horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile preprocessor/Makefile error_measures/Makefile error_measures/tests/Makefile parameterisation/Makefile parameterisation/tests/Makefile fldecomp/Makefile assemble/Makefile assemble/tests/Makefile diagnostics/Makefile main/Makefile tools/Makefile tools/version-info python/setup.py adjoint/Makefile adjoint/tests/Makefile climatology/Makefile libmba2d/Makefile libmba3d/Makefile libjudy/Makefile libjudy/src/Makefile libjudy/src/JudyCommon/Makefile libjudy/src/Judy1/Makefile libjudy/src/JudyL/Makefile libjudy/src/JudySL/Makefile libjudy/src/JudyHS/Makefile libalgencan/Makefile libwm/Makefile libvtkfortran/Makefile schemas/flml reduced_modelling/Makefile"
+ac_config_files="$ac_config_files Makefile debug/Makefile bathymetry/Makefile ocean_forcing/Makefile ocean_forcing/tests/Makefile sediments/Makefile population_balance/Makefile hyperlight/Makefile femtools/Makefile femtools/tests/Makefile forward_interfaces/Makefile horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile preprocessor/Makefile error_measures/Makefile error_measures/tests/Makefile parameterisation/Makefile parameterisation/tests/Makefile fldecomp/Makefile assemble/Makefile assemble/tests/Makefile diagnostics/Makefile main/Makefile tools/Makefile tools/version-info python/setup.py adjoint/Makefile adjoint/tests/Makefile climatology/Makefile libmba2d/Makefile libmba3d/Makefile libjudy/Makefile libjudy/src/Makefile libjudy/src/JudyCommon/Makefile libjudy/src/Judy1/Makefile libjudy/src/JudyL/Makefile libjudy/src/JudySL/Makefile libjudy/src/JudyHS/Makefile libwm/Makefile libvtkfortran/Makefile schemas/flml reduced_modelling/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -15613,7 +15661,6 @@ do
     "libjudy/src/JudyL/Makefile") CONFIG_FILES="$CONFIG_FILES libjudy/src/JudyL/Makefile" ;;
     "libjudy/src/JudySL/Makefile") CONFIG_FILES="$CONFIG_FILES libjudy/src/JudySL/Makefile" ;;
     "libjudy/src/JudyHS/Makefile") CONFIG_FILES="$CONFIG_FILES libjudy/src/JudyHS/Makefile" ;;
-    "libalgencan/Makefile") CONFIG_FILES="$CONFIG_FILES libalgencan/Makefile" ;;
     "libwm/Makefile") CONFIG_FILES="$CONFIG_FILES libwm/Makefile" ;;
     "libvtkfortran/Makefile") CONFIG_FILES="$CONFIG_FILES libvtkfortran/Makefile" ;;
     "schemas/flml") CONFIG_FILES="$CONFIG_FILES schemas/flml" ;;

@@ -2167,25 +2167,6 @@ velocity_boundary_conditions =
          element type {
             attribute name { "no_normal_flow" },
             empty
-         }|
-
-         ## Implements a penalty function for the near wall region.
-         ## Using this option coarse meshes can
-         ## be used in the near wall region.
-         ##
-         ## Should be used in combination with a no_normal_flow condition. 
-         ##
-         ## See Bazilevs et al. 2007
-         element type{
-            attribute name { "near_wall_treatment" },
-            element tolerance {real}
-         }|
-         ## Log law of the wall
-         ##
-         ## Should be used in combination with a no_normal_flow condition. 
-         element type{
-            attribute name { "log_law_of_wall" },
-            element surface_roughness {real}
          }
       )
    )
@@ -5396,15 +5377,6 @@ mesh_info =
             element format {
               attribute name { "vtu" },
               comment
-            }|
-            ## CGNS mesh format (not yet implemented)
-            element format {
-               attribute name { "cgns" },
-               # string_value elements are used only for backwards compatibility - any new format choices should NOT have these
-               element string_value {
-                  "cgns"
-               },
-               comment
             }
          ),
          attribute file_name { xsd:string },
@@ -7457,77 +7429,6 @@ continuous_discontinuous_projection =
             ## deviations to nodes that have less than their bounds.
             element repair_deviations {
               empty
-            }?
-          }|
-          ## Use a bounded Galerkin projection. Conservative, bounded in the
-          ## limit, and hopefully minimally dissipative. This algorithm starts with the
-          ## Galerkin projection and uses the optimisation library Algencan to bound
-          ## it by minimising a functional within constraints on boundedness and conservation.
-          ## Note well: this only works for linear fields.
-          element bounded {
-            attribute name {"Algencan"},
-            (
-              element functional {
-                attribute name {"L2"},
-                element weight {
-                  real
-                }?
-              }|
-              element functional {
-                attribute name {"LumpedMassL2"},
-                element weight {
-                  real
-                }?
-              }|
-              element functional {
-                attribute name {"IntegralL2"},
-                element weight {
-                  real
-                }?
-              }|
-              element functional {
-                attribute name { string },
-                element weight {
-                  real
-                }?
-              }
-            ),
-            ## If the bounds on this field are known then they can be set here.
-            ## These can either further constrain the limits worked out by the
-            ## lumped version of the projection (i.e. to make sure that errors 
-            ## don't accumulate with succesive interpolations) or if apply_globally
-            ## is set they are just made to be bounded within the bounds globally
-            ## (i.e. anything between those bounds is not smoothed).
-            element bounds {
-              element upper_bound {
-                real,
-                ## If this is set the upper_bound is used everywhere.
-                ## If left unset the upper_bound is only used to constrain
-                ## the smoothed bounds calculated by the code
-                element apply_globally {
-                  empty
-                }?,
-                ## This field is to be considered as being coupled to another field
-                ## such that the sum of the two fields is constrained to be less than
-                ## the upper_bound specified above.
-                ## 
-                ## The relationships between fields are worked out according to their
-                ## priority ordering.
-                ##
-                ## This method is akin to the coupled_cv advection method.
-                element coupled {
-                  empty
-                }?
-              }?,
-              element lower_bound {
-                real,
-                ## If this is set the upper_bound is used everywhere.
-                ## If left unset the upper_bound is only used to constrain
-                ## the smoothed bounds calculated by the code
-                element apply_globally {
-                  empty
-                }?
-              }?
             }?
           }
         )?,
