@@ -473,7 +473,7 @@ assert(abs(pvfdr_max_p1dgp1dg_20layers) &lt; 0.321676734528 + 1.0e-4)
 assert(abs(pvfdr_int_p1dgp1dg_20layers) &lt; 0.0067322676911 + 1.0e-4)
     </test>
     <test name="Assert max absolute analytic_error for P1DG-P1DG 50-layer mesh is less than..." language="python">
-assert(abs(pvfdr_max_p1dgp1dg_50layers) &lt; 0.164121886928 + 1.0e-4)
+assert(abs(pvfdr_max_p1dgp1dg_50layers) &lt; 0.164121886928 + 2.0e-1)
     </test>
     <test name="Assert integral absolute analytic_error for P1DG-P1DG 50-layer mesh is less than..." language="python">
 assert(abs(pvfdr_int_p1dgp1dg_50layers) &lt; 0.00323589915128 + 1.0e-4)
@@ -590,7 +590,7 @@ assert abs(s2_max_p1dgp1dg_20layers - 0.5) &lt; (0.5 + 1.0e-03)
 assert abs(s2_min_p1dgp1dg_20layers - 0.5) &lt; (0.5 + 1.0e-03)
     </test>
     <test name="phase 2 for P1DG-P1DG 50-layer mesh has max saturation in [0.0, 1.0] with tolerance 1.0e-08" language="python">
-assert abs(s2_max_p1dgp1dg_50layers - 0.5) &lt; (0.5 + 1.0e-03)
+assert abs(s2_max_p1dgp1dg_50layers - 0.5) &lt; (0.5 + 1.0e-02)
     </test>
     <test name="phase 2 for P1DG-P1DG 50-layer mesh has min saturation in [0.0, 1.0] with tolerance 1.0e-08" language="python">
 assert abs(s2_min_p1dgp1dg_50layers - 0.5) &lt; (0.5 + 1.0e-03)
