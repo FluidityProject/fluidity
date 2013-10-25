@@ -1017,7 +1017,6 @@ contains
     real, intent(inout) :: dt
     integer, intent(inout) :: nonlinear_iterations, nonlinear_iterations_adapt
     type(state_type), dimension(:), pointer :: sub_state
-    integer :: i
 
     ! Overwrite the number of nonlinear iterations if the option is switched on
     if(have_option("/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt")) then

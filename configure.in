@@ -71,21 +71,9 @@ fi
 #
 # Name fluidity
 #
-AC_ARG_ENABLE(gcov,
-    [AC_HELP_STRING([--enable-gcov],
-	    [turns on GNUs coverage tool - gcov])])
-
 AC_ARG_ENABLE(debugging,
     [AC_HELP_STRING([--enable-debugging],
 	    [turns on debugging flags])])
-
-if test "x$enable_gcov" == "xyes" ; then
-    enable_debugging="yes"
-    FCFLAGS="$FCFLAGS -fprofile-arcs -ftest-coverage"
-    CFLAGS="$CFLAGS -fprofile-arcs -ftest-coverage"
-    CXXFLAGS="$CXXFLAGS -fprofile-arcs -ftest-coverage"
-    LDFLAGS="$LDFLAGS -fprofile-arcs -ftest-coverage"
-fi
  
 FLFEMDEM="femdem"
 
@@ -153,7 +141,6 @@ if test "$fcompiler" = "ifort" ; then
     FFLAGS="$FFLAGS -vec-report=0"
     FCFLAGS="$FCFLAGS -vec-report=0"
 fi
-
 
 AC_PROG_CC(icc ecc suncc pgcc gcc cc)
 AC_PROG_CXX(icpc icc ecc sunCC pgCC g++ CC)
@@ -604,6 +591,8 @@ else
 #define NDEBUG 1
 EOF
     OPTIMIZATION_FFLAGS="$OPTIMIZATION_FFLAGS -O3"
+
+    AC_CHECK_LIB(tcmalloc,malloc,,AC_MSG_WARN([No tcmalloc support available.]))
 fi
 
 FFLAGS="$FFLAGS $OPTIMIZATION_FFLAGS"
@@ -1459,17 +1448,6 @@ if test "x$enable_mba3d" = "xyes"; then
   AC_SUBST(MBA3D)
 fi
 
-AC_ARG_ENABLE(algencan,
-[AC_HELP_STRING([--enable-algencan],
-[Enabled algencan optimisation library])])
-
-if test "x$enable_algencan" = "xyes"; then
-  echo "#define HAVE_ALGENCAN 1" >> include/confdefs.h
-  LIBS="$LIBS -lalgencan"
-  ALGENCAN="yes"
-  AC_SUBST(ALGENCAN)
-fi
-
 AC_ARG_ENABLE(memory_stats,
 [AC_HELP_STRING([--enable-memory-stats],
 [Enable memory statistics])])
@@ -1551,7 +1529,6 @@ AC_OUTPUT(Makefile
           libjudy/src/JudyL/Makefile
           libjudy/src/JudySL/Makefile
           libjudy/src/JudyHS/Makefile
-      	  libalgencan/Makefile
           libwm/Makefile
           libvtkfortran/Makefile
           schemas/flml
