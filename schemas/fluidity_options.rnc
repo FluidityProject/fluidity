@@ -1614,8 +1614,9 @@ start =
             ## Phase interaction options for Fluidity's multiphase flow model
             element multiphase_properties {
                comment,
-               element particle_diameter { 
-                     real 
+               element particle_diameter {
+	          element constant { real }|
+		  element use_scalar_field { anystring }
                }?,
                ## If this is the fluid phase, 
                ## the effective conductivity is required 

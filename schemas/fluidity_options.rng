@@ -2194,7 +2194,14 @@ probably equal to the location of the borehole</a:documentation>
               <ref name="comment"/>
               <optional>
                 <element name="particle_diameter">
-                  <ref name="real"/>
+                  <choice>
+                    <element name="constant">
+                      <ref name="real"/>
+                    </element>
+                    <element name="use_scalar_field">
+                      <ref name="anystring"/>
+                    </element>
+                  </choice>
                 </element>
               </optional>
               <optional>
@@ -4375,7 +4382,9 @@ boundary condition on the surface_ids specified.</a:documentation>
         <empty/>
       </element>
       <element name="type">
-        <a:documentation>Implements a prescribed normal flow. Works for DG only.</a:documentation>
+        <a:documentation>Implements a prescribed normal flow. Works for DG only. This
+implements a weakly imposed bounadry condition normal to the surface.
+Note: Positive points out of the domain, negative into the domain.</a:documentation>
         <attribute name="name">
           <value>prescribed_normal_flow</value>
         </attribute>
