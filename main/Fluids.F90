@@ -776,6 +776,10 @@ contains
           ! calculate abscissa for populations -----
           ! this must be done at the end of each non-linear iteration
           call dqmom_calculate_abscissa(state)
+          do i = 1, size(state)
+             call dqmom_calculate_moments(state(i))
+             call dqmom_calculate_statistics(state(i))
+          end do
 
           if(nonlinear_iterations > 1) then
              ! Check for convergence between non linear iteration loops

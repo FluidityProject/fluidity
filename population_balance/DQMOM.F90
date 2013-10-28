@@ -57,10 +57,13 @@ module dqmom
   !! 6. Minimum weight
   !! 7. Check diagnostic fields are set to Internal
   !! 8. Entire set up of fields is a horrible hack - could do with sorting out - suggest 
-  !!    new blueprint for how this could work - will only work for one pop_balance per phase
+  !!    new blueprint for how this could work - will only work for one pop_balance per phase. IMPORTANT
+  !! 9. Make changes to function dqmom_calculate_abscissa so that it works for a state insteaad of all states. 
+  !!    Make necessary changes to the place this is called in the code. 
+  !! 10.In Fluids.F90 use conditions on presence of population balance tree and call the functions inside the if condition.
+  !!    Loop on states inside Fluids.F90 (or any other file where DQMOM functions are called) instead of doing it inside DQMOM functions.  
 
-
-  !! Changes made by Gaurav Bhutani
+  !! Changes made by gb812
   !! 1. in 'Construct C matrix (rhs pt. 2)' -> took grad_D out or squared term
   !! 2. in 'Construct C matrix (rhs pt. 2)' -> while summing grad_D in the next line, changed from sum(grad_D) to sum(grad_D,1) 
 contains
@@ -250,6 +253,7 @@ contains
     character(len=OPTION_PATH_LEN) :: option_path 
     character(len=FIELD_NAME_LEN) :: type
     
+    ewrite(1, *) "In dqmom_calculate_abscissa" 
     do i_state = 1, option_count("/material_phase")
        do i_pop = 1, option_count(trim(states(i_state)%option_path)//'/population_balance')
           call get_pop_option_path(states(i_state), i_pop, option_path)
@@ -277,7 +281,7 @@ contains
           end do
        end do
     end do
-
+    ewrite(1, *) "Exiting dqmom_calculate_abscissa"
   end subroutine dqmom_calculate_abscissa
 
   subroutine dqmom_calculate_source_terms(states, it)
