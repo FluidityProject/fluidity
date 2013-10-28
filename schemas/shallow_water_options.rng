@@ -1521,32 +1521,6 @@ boundary condition on the surface_ids specified.</a:documentation>
         </attribute>
         <empty/>
       </element>
-      <element name="type">
-        <a:documentation>Implements a penalty function for the near wall region.
-Using this option coarse meshes can
-be used in the near wall region.
-
-Should be used in combination with a no_normal_flow condition. 
-
-See Bazilevs et al. 2007</a:documentation>
-        <attribute name="name">
-          <value>near_wall_treatment</value>
-        </attribute>
-        <element name="tolerance">
-          <ref name="real"/>
-        </element>
-      </element>
-      <element name="type">
-        <a:documentation>Log law of the wall
-
-Should be used in combination with a no_normal_flow condition. </a:documentation>
-        <attribute name="name">
-          <value>log_law_of_wall</value>
-        </attribute>
-        <element name="surface_roughness">
-          <ref name="real"/>
-        </element>
-      </element>
     </choice>
   </define>
   <!-- Output options for prognostic fields -->

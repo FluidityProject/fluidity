@@ -1,5 +1,5 @@
 input: clean
-	gmsh -2 -algo del2d src/square.geo
+	gmsh -2 -bin -algo del2d src/square.geo
 	cp src/square.msh .
 
 clean:

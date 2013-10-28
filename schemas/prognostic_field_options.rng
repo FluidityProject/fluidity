@@ -86,10 +86,18 @@ sediment reentrainment. </a:documentation>
               <ref name="real"/>
             </element>
           </optional>
+          <optional>
+            <!--
+              Only for debugging purposes - sets Neumann boundary to zero (diagnostic fields are
+              still set)
+            -->
+            <element name="set_to_zero">
+              <empty/>
+            </element>
+          </optional>
         </element>
         <element name="type">
-          <a:documentation>[UNDER DEVELOPMENT - DOES NOT WORK YET]
-Special type of Dirichlet boundary condition for the k-epsilon
+          <a:documentation>Special type of Dirichlet boundary condition for the k-epsilon
 turbulence model. Can be used on TurbulentKineticEnergy (k)
 and/or TurbulentDissipation (epsilon) fields.
 e.g. use a Dirichlet BC on inlets and k_epsilon on walls.</a:documentation>
@@ -97,11 +105,8 @@ e.g. use a Dirichlet BC on inlets and k_epsilon on walls.</a:documentation>
             <value>k_epsilon</value>
           </attribute>
           <element name="string_value">
-            <a:documentation>Select high/low Reynolds number wall functions for k and epsilon fields.</a:documentation>
-            <choice>
-              <value>low_Re</value>
-              <value>high_Re</value>
-            </choice>
+            <a:documentation>Select low Reynolds number wall function for k and epsilon fields.</a:documentation>
+            <value>low_Re</value>
           </element>
         </element>
         <element name="type">
@@ -912,7 +917,8 @@ scaled by C_0</a:documentation>
               </element>
               <element name="bassi_rebay">
                 <a:documentation>Classical scheme from Bassi and Rebay 
-(JCP 131 267-179 1997)</a:documentation>
+(JCP 131 267-179 1997)
+Partial stress form is available for inhomogenous isotropic viscosities</a:documentation>
                 <empty/>
               </element>
               <element name="arbitrary_upwind">
@@ -984,6 +990,19 @@ Int grad u.kappa.grad v dV</a:documentation>
                     </optional>
                   </element>
                 </optional>
+              </element>
+            </choice>
+            <choice>
+              <element name="tensor_form">
+                <a:documentation>solves the viscosity term in the form:  d/dx_j K du_i/dx_j</a:documentation>
+                <empty/>
+              </element>
+              <element name="partial_stress_form">
+                <a:documentation>solves the viscosity term in the form:  d/dx_j k (du_i/dx_j + du_j/dx_j)
+note that the viscosity, k, must be isoptropic
+
+only implemented for the bassi-rebay viscosity scheme</a:documentation>
+                <empty/>
               </element>
             </choice>
           </element>
@@ -1122,12 +1141,17 @@ twice.</a:documentation>
         <element name="theta_pressure_gradient">
           <a:documentation>Implicit/explicit control of pressure gradient temporal
  discretisation, theta_pg
+
  =0.  -- explicit
+
  =0.5 -- Crank-Nicolson
+
  =1.  -- implicit
+
  Specification of this parameter will only affect
  solution procedure when a free-surface is present or 
- compressible projection is used. If left unspecified
+ compressible projection or equation type Shallow Water is used. 
+ If left unspecified
  the code defaults to theta_pg = theta.</a:documentation>
           <ref name="real"/>
         </element>
@@ -1136,12 +1160,17 @@ twice.</a:documentation>
         <element name="theta_divergence">
           <a:documentation>Implicit/explicit control of velocity-divergence temporal
  discretisation, theta_divergence
+
  =0.  -- explicit
+
  =0.5 -- Crank-Nicolson
+
  =1.  -- implicit
+
  Specification of this parameter will only affect
  solution procedure when a free-surface is present or 
- compressible projection is used. If left unspecified
+ compressible projection or equation type Shallow Water is used. 
+ If left unspecified
  the code defaults to theta_divergence = theta.</a:documentation>
           <ref name="real"/>
         </element>
@@ -2496,6 +2525,45 @@ Boussinesq only works for continuous_galerkin and discontinuous_galerkin.</a:doc
         <attribute name="name">
           <value>Boussinesq</value>
         </attribute>
+      </element>
+      <element name="equation">
+        <a:documentation>Select the equation used to solve for velocity.
+
+Select ShallowWater to solve the non-linear shallow water equations in non-conservative form.
+The Velocity field will be the depth-averaged flow velocity and the Pressure field
+will be the free surface elevation multiplied by the gravitational constant g</a:documentation>
+        <attribute name="name">
+          <value>ShallowWater</value>
+        </attribute>
+        <!-- Bottom depth (excluding free surface elevation), a positive number -->
+        <element name="scalar_field">
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <attribute name="name">
+            <value>BottomDepth</value>
+          </attribute>
+          <element name="prescribed">
+            <ref name="coordinate_mesh_choice"/>
+            <ref name="prescribed_scalar_field"/>
+          </element>
+        </element>
+        <optional>
+          <element name="bottom_drag">
+            <element name="scalar_field">
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <attribute name="name">
+                <value>BottomDragCoefficient</value>
+              </attribute>
+              <element name="prescribed">
+                <ref name="coordinate_mesh_choice"/>
+                <ref name="prescribed_scalar_field"/>
+              </element>
+            </element>
+          </element>
+        </optional>
       </element>
       <element name="equation">
         <a:documentation>Select the equation used to solve for velocity.

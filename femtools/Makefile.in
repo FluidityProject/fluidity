@@ -90,7 +90,7 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   Halos_Communications.o Halos_Debug.o Halos_Derivation.o Halos_IO.o \
   Halos_Numbering.o Halos_Ownership.o Halos_Registration.o Halos_Repair.o \
   qsortd.o Element_Intersection.o Intersection_finder.o tri_predicate.o \
-  tet_predicate.o Lagrangian_Remap.o Weak_BCs.o \
+  tet_predicate.o Lagrangian_Remap.o \
   Detector_Data_Types.o Detector_Tools.o \
   Detector_Parallel.o Detector_Move_Lagrangian.o \
   Picker_Data_Types.o Pickers.o Pickers_Allocates.o \
@@ -112,9 +112,6 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
 # objects to be included in libfemtools:
 F90LIB_OBJS := ../debug/*.o ../libwm/*.o  \
   $(OBJS)
-ifeq (@ALGENCAN@,yes)
-F90LIB_OBJS := $(F90LIB_OBJS) ../libalgencan/*.o
-endif
 
 .SUFFIXES: .F90 .cpp .c .o .a
 

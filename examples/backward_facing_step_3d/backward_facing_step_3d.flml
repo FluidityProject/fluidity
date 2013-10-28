@@ -44,11 +44,11 @@
     <dump_format>
       <string_value>vtk</string_value>
     </dump_format>
-    <dump_period_in_timesteps>
+    <dump_period>
       <constant>
-        <integer_value rank="0">100</integer_value>
+        <real_value rank="0">2</real_value>
       </constant>
-    </dump_period_in_timesteps>
+    </dump_period>
     <output_mesh name="CoordinateMesh"/>
     <stat/>
   </io>
@@ -73,7 +73,7 @@
         <mesh name="VelocityMesh"/>
       </courant_number>
       <minimum_timestep>
-        <real_value rank="0">0.001</real_value>
+        <real_value rank="0">0.01</real_value>
       </minimum_timestep>
     </adaptive_timestep>
   </timestepping>
@@ -320,7 +320,7 @@
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
-                    <real_value shape="3" dim1="dim" rank="1">0.01 0.01 0.01</real_value>
+                    <real_value shape="3" dim1="dim" rank="1">0.15 0.15 0.15</real_value>
                   </constant>
                 </value>
                 <output>
@@ -334,9 +334,29 @@
                 </detectors>
               </prescribed>
             </vector_field>
+            <p_norm>
+              <integer_value rank="0">2</integer_value>
+            </p_norm>
           </absolute_measure>
         </adaptivity_options>
-        <consistent_interpolation/>
+        <galerkin_projection>
+          <continuous>
+            <solver>
+              <iterative_method name="cg"/>
+              <preconditioner name="sor"/>
+              <relative_error>
+                <real_value rank="0">1e-7</real_value>
+              </relative_error>
+              <max_iterations>
+                <integer_value rank="0">2000</integer_value>
+              </max_iterations>
+              <never_ignore_solver_failures/>
+              <diagnostics>
+                <monitors/>
+              </diagnostics>
+            </solver>
+          </continuous>
+        </galerkin_projection>
       </prognostic>
     </vector_field>
     <vector_field name="AverageVelocity" rank="1">
@@ -360,7 +380,24 @@
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
-        <consistent_interpolation/>
+        <galerkin_projection>
+          <continuous>
+            <solver>
+              <iterative_method name="cg"/>
+              <preconditioner name="sor"/>
+              <relative_error>
+                <real_value rank="0">1e-7</real_value>
+              </relative_error>
+              <max_iterations>
+                <integer_value rank="0">2000</integer_value>
+              </max_iterations>
+              <never_ignore_solver_failures/>
+              <diagnostics>
+                <monitors/>
+              </diagnostics>
+            </solver>
+          </continuous>
+        </galerkin_projection>
       </diagnostic>
     </vector_field>
     <vector_field name="FluctuatingVelocity" rank="1">
@@ -380,18 +417,34 @@
         <steady_state>
           <exclude_from_steady_state/>
         </steady_state>
-        <consistent_interpolation/>
+        <galerkin_projection>
+          <continuous>
+            <solver>
+              <iterative_method name="cg"/>
+              <preconditioner name="sor"/>
+              <relative_error>
+                <real_value rank="0">1e-7</real_value>
+              </relative_error>
+              <max_iterations>
+                <integer_value rank="0">2000</integer_value>
+              </max_iterations>
+              <never_ignore_solver_failures/>
+              <diagnostics>
+                <monitors/>
+              </diagnostics>
+            </solver>
+          </continuous>
+        </galerkin_projection>
       </diagnostic>
     </vector_field>
   </material_phase>
   <mesh_adaptivity>
     <hr_adaptivity>
       <period_in_timesteps>
-        <integer_value rank="0">50</integer_value>
+        <integer_value rank="0">25</integer_value>
       </period_in_timesteps>
-      <adaptive_timestep_at_adapt/>
       <maximum_number_of_nodes>
-        <integer_value rank="0">100000</integer_value>
+        <integer_value rank="0">150000</integer_value>
       </maximum_number_of_nodes>
       <enable_gradation>
         <gradation_parameter>
@@ -412,6 +465,11 @@
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
+      <zoltan_options>
+        <load_imbalance_tolerance>
+          <real_value rank="0">1.5</real_value>
+        </load_imbalance_tolerance>
+      </zoltan_options>
     </hr_adaptivity>
   </mesh_adaptivity>
 </fluidity_options>
