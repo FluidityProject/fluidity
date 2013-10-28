@@ -827,6 +827,7 @@ contains
     character(len=OPTION_PATH_LEN) :: option_path 
     character(len=FIELD_NAME_LEN) :: type
     
+    ewrite(1, *) "In dqmom_calculate_moments"
     do i_pop = 1, option_count(trim(state%option_path)//'/population_balance')
        call get_pop_option_path(state, i_pop, option_path)
        N = option_count(trim(option_path)//'/abscissa/scalar_field')
@@ -854,6 +855,7 @@ contains
           call deallocate(work)
        end do
     end do
+    ewrite(1, *) "Exiting dqmom_calculate_moments"
   end subroutine dqmom_calculate_moments
 
   subroutine dqmom_calculate_statistics(state)
@@ -867,6 +869,7 @@ contains
     character(len=OPTION_PATH_LEN) :: option_path 
     character(len=FIELD_NAME_LEN) :: type
     
+    ewrite(1, *) "In dqmom_calculate_statistics"
     do i_pop = 1, option_count(trim(state%option_path)//'/population_balance')
        call get_pop_option_path(state, i_pop, option_path)
 
@@ -883,13 +886,13 @@ contains
           type = 'statistics'
           do i_stat = 1, option_count(trim(option_path)//'/statistics/scalar_field')
              call get_pop_field(state, i_pop, i_stat, type, stats)
-             if (index(stats%name,'Mean') /= 0) then
+             if (trim(stats%name) == "Mean") then
                 call zero(stats)
                 do j = 1, node_count(stats)
                    call set(stats, j, node_val(moments(2)%ptr,j)/node_val(moments(1)%ptr,j))
                 end do
              end if
-             if (index(stats%name,'StandardDeviation') /= 0) then
+             if (trim(stats%name) == "StandardDeviation") then
                 call zero(stats)
                 do j = 1, node_count(stats)
                    mean = node_val(moments(2)%ptr,j)/node_val(moments(1)%ptr,j)
@@ -897,7 +900,7 @@ contains
                         mean**2)**0.5)
                 end do
              end if
-             if (index(stats%name,'Skew') /= 0) then
+             if (trim(stats%name) == "Skew") then
                 call zero(stats)
                 do j = 1, node_count(stats)
                    mean = node_val(moments(2)%ptr,j)/node_val(moments(1)%ptr,j)
@@ -907,12 +910,21 @@ contains
                         3*mean*std**2.0 - mean**3.0) / std**3.0)
                 end do
              end if
+             if (trim(stats%name) == "SauterMeanDia") then
+                call zero(stats)
+                do j = 1, node_count(stats)
+                   call set(stats, j, node_val(moments(4)%ptr,j)/node_val(moments(3)%ptr,j))
+                end do
+             end if
+
           end do
 
           deallocate(moments)
 
        end if
     end do
+    ewrite(1, *) "Exiting dqmom_calculate_statistics"
+
 
   end subroutine dqmom_calculate_statistics
 

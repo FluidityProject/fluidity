@@ -2130,6 +2130,16 @@ population_balance =
                   velocity_mesh_choice,
                   diagnostic_scalar_field
                }
+            }?,
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "SauterMeanDia" },
+               ## Field type
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
             }?
          },   
 

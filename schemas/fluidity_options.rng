@@ -2999,6 +2999,22 @@ requires a distinct name for the options dictionary.</a:documentation>
             </element>
           </element>
         </optional>
+        <optional>
+          <element name="scalar_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>SauterMeanDia</value>
+            </attribute>
+            <element name="diagnostic">
+              <a:documentation>Field type</a:documentation>
+              <ref name="internal_algorithm"/>
+              <ref name="velocity_mesh_choice"/>
+              <ref name="diagnostic_scalar_field"/>
+            </element>
+          </element>
+        </optional>
       </element>
       <element name="population_balance_source_terms">
         <a:documentation>Source terms for the population balance equation like growth, 
