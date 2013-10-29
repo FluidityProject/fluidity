@@ -2480,9 +2480,6 @@ function create_null_space_from_options(mat, null_space_option_path, petsc_numbe
      call MatMultTranspose(RotMat, null_space_array(i), rot_null_space_array(i), ierr)
    end do
 
-   call DumpMatrixEquation("null_mode", null_space_array(1), mat, rot_null_space_array(1))
-   
-
    call MatNullSpaceCreate(MPI_COMM_FEMTOOLS, PETSC_FALSE, nnulls, &
      rot_null_space_array, null_space, ierr)
    call MatNullSpaceTest(null_space, mat, isnull, ierr)
