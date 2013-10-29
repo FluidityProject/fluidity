@@ -4598,7 +4598,7 @@ end if
                      do iphase = 1, nphase
                         do sgi = 1, SBCVNGI
                            !  consider momentum normal to the element only...
-			   ! that is the ( (\rho u_n u_n)_left - (\rho u_n u_n)_right )/ ( (u_n)_left - (u_n)_right )
+                           ! that is the ( (\rho u_n u_n)_left - (\rho u_n u_n)_right ) / ( (u_n)_left - (u_n)_right )
                            SNDOTQ_ROE(sgi,iphase) =( SDEN_KEEP(sgi,iphase) * SNDOTQ_KEEP(sgi,iphase)**2 - &
                                 &                    SDEN2_KEEP(sgi,iphase) * SNDOTQ2_KEEP(sgi,iphase)**2 ) &
                                 &                  / tolfun(  SNDOTQ_KEEP(sgi,iphase) -  SNDOTQ2_KEEP(sgi,iphase) )
