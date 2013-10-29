@@ -80,8 +80,12 @@ module solvers
   type(vector_field), dimension(3), save:: petsc_monitor_vfields
   character(len=FIELD_NAME_LEN), save:: petsc_monitor_vtu_name
   integer, save:: petsc_monitor_vtu_series=0
+
+  Mat, save :: RotMat
   
 private
+ 
+  public :: RotMat
 
 public petsc_solve, set_solver_options, &
    complete_solver_option_path, petsc_solve_needs_positions
@@ -1602,7 +1606,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
        if (.not. present(petsc_numbering)) then
          FLAbort("Need petsc_numbering for multigrid near null space")
        end if
-       null_space = create_null_space_from_options(trim(solver_option_path)//"/multigrid_near_null_space", &
+       null_space = create_null_space_from_options(mat, trim(solver_option_path)//"/multigrid_near_null_space", &
             petsc_numbering, positions=positions)
        call MatSetNearNullSpace(mat, null_space, ierr)
        call MatNullSpaceDestroy(null_space, ierr)
@@ -1670,7 +1674,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
          ewrite(2,*) 'Adding null-space removal options to KSP'
          call MatNullSpaceCreate(MPI_COMM_FEMTOOLS, PETSC_TRUE, 0, PETSC_NULL_OBJECT_ARRAY, null_space, ierr)
        else
-         null_space = create_null_space_from_options(trim(solver_option_path)//"/remove_null_space", &
+         null_space = create_null_space_from_options(mat, trim(solver_option_path)//"/remove_null_space", &
             petsc_numbering, positions=positions)
        end if
        call KSPSetNullSpace(ksp, null_space, ierr)
@@ -2321,7 +2325,8 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
   
 end subroutine MyKSPMonitor
 
-function create_null_space_from_options(null_space_option_path, petsc_numbering, positions) result (null_space)
+function create_null_space_from_options(mat, null_space_option_path, petsc_numbering, positions) result (null_space)
+   Mat, intent(in):: mat
    !! the option path to remove_null_space or multigrid_near_space
    character(len=*), intent(in):: null_space_option_path
    type(petsc_numbering_type), intent(in):: petsc_numbering 
@@ -2329,9 +2334,10 @@ function create_null_space_from_options(null_space_option_path, petsc_numbering,
    type(vector_field), intent(in), optional :: positions
    MatNullSpace :: null_space
 
-   Vec, allocatable, dimension(:) :: null_space_array
+   Vec, allocatable, dimension(:) :: null_space_array, rot_null_space_array
    PetscReal :: norm
    PetscErrorCode :: ierr
+   PetscBool :: isnull
 
    integer :: i, nnulls, nnodes, comp, dim, universal_nodes
    logical, dimension(3) :: rot_mask
@@ -2417,6 +2423,7 @@ function create_null_space_from_options(null_space_option_path, petsc_numbering,
    nnulls=count(mask)+count(rot_mask)
    ! allocate the array of null spaces
    allocate(null_space_array(1:nnulls))
+   allocate(rot_null_space_array(1:nnulls))
    allocate(null_vector(nnodes,dim))
    universal_nodes=petsc_numbering%universal_length/dim
 
@@ -2465,17 +2472,29 @@ function create_null_space_from_options(null_space_option_path, petsc_numbering,
      call deallocate(null_vector_field)
 
    end if
-   
+
    assert(i==nnulls)
 
+   do i=1, nnulls
+     call VecDuplicate(null_space_array(i), rot_null_space_array(i), ierr)
+     call MatMultTranspose(RotMat, null_space_array(i), rot_null_space_array(i), ierr)
+   end do
+
+   call DumpMatrixEquation("null_mode", null_space_array(1), mat, rot_null_space_array(1))
+   
+
    call MatNullSpaceCreate(MPI_COMM_FEMTOOLS, PETSC_FALSE, nnulls, &
-     null_space_array, null_space, ierr)
+     rot_null_space_array, null_space, ierr)
+   call MatNullSpaceTest(null_space, mat, isnull, ierr)
+   ewrite(2,*) "isnull =", isnull
 
    ! get rid of our Vec references
    do i=1, nnulls
      call VecDestroy(null_space_array(i), ierr)
+     call VecDestroy(rot_null_space_array(i), ierr)
    end do
    deallocate(null_space_array)
+   deallocate(rot_null_space_array)
 
 end function create_null_space_from_options
 
