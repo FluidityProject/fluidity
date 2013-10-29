@@ -98,7 +98,7 @@
           <poisson_pressure_solution>
             <string_value lines="1">never</string_value>
           </poisson_pressure_solution>
-          <use_compressible_projection_method/>
+          <use_projection_method/>
         </scheme>
         <solver>
           <iterative_method name="gmres">
@@ -260,7 +260,7 @@
         </boundary_conditions>
         <tensor_field name="Viscosity" rank="2">
           <diagnostic>
-            <algorithm name="bulk_viscosity" material_phase_support="multiple "/>
+            <algorithm depends="MaterialViscosity" name="bulk_viscosity" material_phase_support="multiple"/>
             <output/>
             <stat>
               <include_in_stat/>

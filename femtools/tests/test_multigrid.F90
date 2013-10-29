@@ -12,6 +12,7 @@ subroutine test_multigrid
   use solvers
   use fields
   use parallel_tools
+#include "petscversion.h"
 #ifdef HAVE_PETSC
 #ifdef HAVE_PETSC_MODULES
   use petsc 

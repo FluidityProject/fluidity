@@ -380,45 +380,138 @@ vertical component of the advecting velocity.
 
 \section{Sediments}
 
-\fluidity\ is capable of simulating an unlimited number of sediment concentration classes.
-Each class has a separate grain size, density and settling velocity. The sediment behaves
-as any other tracer field, except it is subject to a settling velocity:
+\fluidity\ is capable of simulating an unlimited number of sediment concentration fields.
+Each sediment field, with concentration, $c_{i}$, behaves as any other tracer field,
+except that it is subject to a settling velocity, $u_{si}$. The equation of conservation
+of suspended sediment mass thus takes the form:
 
 \begin{equation}\label{eq:sediment_conc}
-\ppt{S_m} + \nabla\cdot(\bmu S_m) = \nabla\cdot(\kaptens\nabla S_m) - \sigma S_m
+  \ppt{c_i} + \nabla \cdot c_i ({\bf u} - \delta_{j3}u_{si}) = \nabla \cdot (\kaptens \nabla c_i)
 \end{equation}
 
-The advection in the vertical direction is then modified with a downwards sinking 
-velocity $u_{\mathrm{sink}}$. 
+Source and absorption terms have been removed from the above equation. These will only be
+present on region boundaries.
+
+Each sediment field represents a discrete sediment type with a specific diameter and
+density. A distribution of sediment types can be achieved by using multiple sediment
+fields.
+
+{\bf Notes on model set up}
+
+Each sediment field must have a sinking velocity. Note that this is not shown as a
+required element in the options tree as it is inherited as a standard option for all
+scalar fields.
+
+A sediment density, and sediment bedload field must also be defined. The sediment bedload
+field stores a record of sediment that has exited the modelled region due to settling of
+sediment particles.
+
+To use sediment, a linear equation of state must also be enabled
+\option{\ldots/equation\_of\_state/fluids/linear}
+
+\subsection{Hindered Sinking Velocity}
+
+The effect of suspended sediment concentration on the fall velocity can be taken into
+account by making the Sinking Velocity field diagnostic. The equation of Richardson and
+Zaki [1954] is then used to calculate the hindered sinking velocity, $u_{si}$, based upon
+the unhindered sinking velocity, $u_{s0}$, and the total concentration of sediment, $c$.
+
+\begin{equation}\label{eq:hindered_sinking_velocity}
+  u_{si} = u_{s0}(1-c)^{2.39}
+\end{equation}
 
 \subsection{Deposition and erosion}
 
-A surface can be defined, the sea-bed, which is a sink for sediment. Once sediment
-fluxes through this surface it is removed from the system and stored in a separate 
-field: the SedimentFlux field. Each sediment class has an equivalent Flux field.
+A surface can be defined, the sea-bed, which is a sink for sediment. Once sediment fluxes
+through this surface it is removed from the system and stored in a separate field: the
+Bedload field. Each sediment class has its on bedload field.
+
+Erosion of this bed can be modelled by applying the sediment\_reentrainment boundary
+condition. There are several options for the re-entrainment algorithm that is used to
+calculate the amount of sediment eroded from the bed.
+
+\noindent
+1. Garcia's re-entrainment algorithm
+
+Erosion occurs at a rate based upon the shear velocity of the flow at the bed, $u^*$, the
+distribution of particle classes in the bed, and the particle Reynolds number,
+$R_{p,i}$. The dimensionless entrainment rate for the i$^{th}$ sediment class, $E_i$, is
+given by the following equation:
+
+\begin{equation}
+  E_i = F_i \frac{AZ_i^5}{1-AZ_i^5/0.3}
+\end{equation}
+
+\begin{equation}
+  Z_i = \lambda_m \frac{u^*}{u_{si}} R_{p,i}^{0.6} \left (\frac{d_i}{d_{50}} \right)^{0.2}
+\end{equation}
+
+\noindent
+Where $F_i$ is the volume fraction of the relevant sediment class in the bed, $d_i$ is the
+diameter of the sediment in the i$^{th}$ sediment class and $d_{50}$ is the diameter for
+which 50\% of the sediment in the bed is finer. $A$ is a constant of value $1.3 \times
+10^7$
+
+\noindent
+$u^*$ and $R_{p,i}$ are defined by the following equations:
+
+\begin{equation}
+  u^* = \sqrt{\tau_b/\rho}
+\end{equation}
+
+\begin{equation}
+  R_{p,i} = \sqrt{Rgd^{3}}/\nu
+\end{equation}
+
+This is given dimension by multiplying by the sinking velocity, $u_{si}$, such that the
+total entrainment flux is:
+
+\begin{equation}
+  E_{m} = u_{si}E_i
+\end{equation}
+
+\noindent
+2. Generic re-entrainment algorithm
 
 Erosion occurs when the bed-shear stress is greater than the critical shear stress. Each
-sediment class has a separate shear stress, which can be input or calculated depending
-on the options chosen. Erosion flux, $E_m$ is implemented as a Neumann boundary condition
-on the deposition/erosion surface.
+sediment class has a separate shear stress, which can be input or calculated depending on
+the options chosen. Erosion flux, $E_m$ is implemented as a Neumann boundary condition on
+the bedload/erosion surface.
 
 \begin{equation}\label{eq:sediment_erosion_rate}
-E_m = E_{0m}\left(1-\varphi\right)\frac{\tau_{sf} - \tau_{cm}}{\tau_{cm}}
+  E_m = E_{0m}\left(1-\varphi\right)\frac{\tau_{sf} - \tau_{cm}}{\tau_{cm}}
 \end{equation}
 
 \noindent
 where $E_{0m}$ is the bed erodibility constant (kgm$^{-1}$s${-1}$) for sediment class $m$,
-$\tau_{sf}$ is the bed-shear stress, $\varphi$ is the bed porosity (typically 0.3)
-and $\tau_{cm}$ is the critical shear stress
-for sediment class $m$. The critical shear stress can be input by the user or 
-automatically calculated using:
+$\tau_{sf}$ is the bed-shear stress, $\varphi$ is the bed porosity (typically 0.3) and
+$\tau_{cm}$ is the critical shear stress for sediment class $m$. The critical shear stress
+can be input by the user or automatically calculated using:
 
 \begin{equation}\label{eq:critical_shear_stress}
-\tau_{cm} = 0.041\left(s-1\right)\rho gD
+  \tau_{cm} = 0.041\left(s-1\right)\rho gD
 \end{equation}
 
 \noindent
-where s is the relative density of the sediment, i.e. $\frac{\rho_{S_{m}}}{\rho}$ and $D$ is the sediment
-diameter (mm). The SedimentFlux field effectively mixes the deposited sediment, so order of deposition
-is not preserved.
+where s is the relative density of the sediment, i.e. $\frac{\rho_{S_{m}}}{\rho}$ and $D$
+is the sediment diameter (mm). The SedimentDepositon field effectively mixes the deposited
+sediment, so order of bedload is not preserved.
+
+\subsection{Sediment concentration dependent viscosity}
+
+The viscosity is also affected by the concentration of suspended sediment. This can be
+taken account for by using the sediment\_concentration\_dependent\_viscosity algorithm on
+a diagnostic viscosity field. If using a sub-grid scale parameterisation this must be
+applied to the relevant background viscosity field.
+
+The equation used is that suggested by Krieger and Dougherty, 1959, and more recently by
+Sequeiros, 2009.  Viscosity, $\nu$, is a function of the zero sediment concentration
+viscosity, $\nu_0$, and the total sediment concentration, $c$, as follows.
+
+\begin{equation}\label{eq:sediment_concentration_dependent_viscosity}
+  \nu = \nu_{0}(1-c/0.65)^{-1.625}
+\end{equation}
+
+Note: a ZeroSedimentConcentrationViscosity tensor field is required.
+
 

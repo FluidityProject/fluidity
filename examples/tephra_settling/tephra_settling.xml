@@ -8,7 +8,7 @@
   <tags>flml</tags>
   
   <problem_definition length="long" nprocs="1">
-    <command_line>mpiexec ../../bin/fluidity -v2 -l tephra_settling.flml</command_line>
+    <command_line>mpiexec fluidity -v2 -l tephra_settling.flml</command_line>
     <!-- This is a 2D simulation of the formation of density currents. We consider a -->
     <!-- body of water with a constant inflow of (denser) tephra at the top boundary. -->
     <!-- Density currents/plumes should eventually form when the bulk density is large enough. -->

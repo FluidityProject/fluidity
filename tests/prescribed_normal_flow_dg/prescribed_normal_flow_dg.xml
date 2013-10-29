@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>PrescribedNormalFlow_DG</name>
+  <owner userid="jhill1"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity presc_normal_flow.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+    <variable name="stats" language="python">from fluidity_tools import stat_parser
+s=stat_parser("Presc_normal_flow.stat")
+stats={}
+stats["MaxU"]=s["Water"]["Velocity%magnitude"]["max"][-1]
+stats["MaxU1"]=s["Water"]["Velocity%1"]["max"][-1]
+stats["MaxU2"]=s["Water"]["Velocity%2"]["max"][-1]</variable>
+  </variables>
+  <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
+    <test name="VelocityIsCorrect" language="python">assert(0.0045 &lt; stats["MaxU"]&lt;0.055)</test>
+    <test name="U1IsCorrect" language="python">assert(0.035 &lt; stats["MaxU1"]&lt;0.04)</test>
+    <test name="U2IsCorrect" language="python">assert(0.035 &lt; stats["MaxU2"]&lt;0.04)</test>>
+  </pass_tests>
+  <comment>This problem tests a spatially constant flow through a channel at 45 degrees to the axes with no slip BCs on the edge. Flow is
+      forced in the inflow and outflow via a prescribed normal boundary condition</comment></testproblem>

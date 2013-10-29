@@ -75,14 +75,14 @@ ElementVector<ElementType>::ElementVector(const ElementVector& newkid){
 
 template<class ElementType>
 ElementVector<ElementType>::~ElementVector(){
-  clear();
+  this->clear();
 }
 
 // Overloaded operators.
 template<class ElementType>
 ElementVector<ElementType>& ElementVector<ElementType>::operator=(const ElementVector<ElementType>& in){
   len = in.len;
-  insert( (*this).end(), in.begin(), in.end() );
+  this->insert( (*this).end(), in.begin(), in.end() );
   
   return *this;
 }
@@ -108,7 +108,7 @@ const ElementType& ElementVector<ElementType>::operator[](const unsigned i) cons
 // Other member functions
 template<class ElementType>
 void ElementVector<ElementType>::push_back(const ElementType& in){
-  insert(this->end(), in);
+  this->insert(this->end(), in);
   len++;
 }
 
@@ -130,7 +130,7 @@ unsigned ElementVector<ElementType>::size() const{
 template<class ElementType>
 void ElementVector<ElementType>::clear(){
   len = 0;
-  erase(this->begin(), this->end());
+  this->erase(this->begin(), this->end());
 }
 
 #endif

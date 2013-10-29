@@ -403,18 +403,13 @@ hr_adaptivity =
          (
             ## Time interval (in simulation time) when mesh adaptivity performed.
             ##
-            ## DO NOT SET THIS EQUAL TO OR LESS THAN ONE TIME-STEP SMALLER
-            ## THAN YOUR DUMP PERIOD BECAUSE ALL YOUR DIAGNOSTIC FIELDS WILL
-            ## APPEAR AS ZERO OR JUNK
-            ## DIAGNOSTIC FIELDS GET ZEROED AFTER AN ADAPT
-            ##
             ## Usually set to 10-20 times the timestep.
-            element period {
-               real
-            }|
-            ## Adapt period in timesteps.
             element period_in_timesteps {
                integer
+            }|
+            ## Specify the period in simulation time units
+            element period {
+               real
             }
          ),
          ## Time interval (in cpu time) when mesh adaptivity performed
@@ -583,7 +578,7 @@ hr_adaptivity =
             (
               ## Solver
               element solver {
-                  linear_solver_options_asym
+                  linear_solver_options_asym_scalar
               }|
               ## Assume this field is being solved explicitly and skip the solver.
               ##
@@ -973,6 +968,20 @@ hr_adaptivity =
             ## cut off. Default is 0. 
             element additional_adapt_iterations {
                 integer
+            }?,
+            element field_weighted_partitions {
+            ## Field weighted partitions: turning on this option allows one to 
+            ## weight mesh partitions, based upon a prescribed scalar field. 
+            ## Note that the field should have a minimum value of 0 and a maximum
+            ## value of 1 (no normalisation is done within the code).
+	        element scalar_field {
+                  attribute rank { "0" },
+                  attribute name { "FieldWeightedPartitionValues" },
+                  element prescribed {
+                     coordinate_mesh_choice,
+                     prescribed_scalar_field
+                  }
+               }
             }?,
             ## Zoltan Debugging
             ## 
@@ -1706,77 +1715,6 @@ continuous_projection =
               ## Defaults to computer precision if unspecified.
               element tolerance {
                 real
-              }?
-            }?
-          }|
-          ## Use a bounded Galerkin projection. Conservative, bounded in the
-          ## limit, and hopefully minimally dissipative. This algorithm starts with the
-          ## Galerkin projection and uses the optimisation library Algencan to bound
-          ## it by minimising a functional within constraints on boundedness and conservation.
-          ## Note well: this only works for linear fields.
-          element bounded {
-            attribute name {"Algencan"},
-            (
-              element functional {
-                attribute name {"L2"},
-                element weight {
-                  real
-                }?
-              }|
-              element functional {
-                attribute name {"LumpedMassL2"},
-                element weight {
-                  real
-                }?
-              }|
-              element functional {
-                attribute name {"IntegralL2"},
-                element weight {
-                  real
-                }?
-              }|
-              element functional {
-                attribute name { string },
-                element weight {
-                  real
-                }?
-              }
-            ),
-            ## If the bounds on this field are known then they can be set here.
-            ## These can either further constrain the limits worked out by the
-            ## lumped version of the projection (i.e. to make sure that errors 
-            ## don't accumulate with succesive interpolations) or if apply_globally
-            ## is set they are just made to be bounded within the bounds globally
-            ## (i.e. anything between those bounds is not smoothed).
-            element bounds {
-              element upper_bound {
-                real,
-                ## If this is set the upper_bound is used everywhere.
-                ## If left unset the upper_bound is only used to constrain
-                ## the smoothed bounds calculated by the code
-                element apply_globally {
-                  empty
-                }?,
-                ## This field is to be considered as being coupled to another field
-                ## such that the sum of the two fields is constrained to be less than
-                ## the upper_bound specified above.
-                ## 
-                ## The relationships between fields are worked out according to their
-                ## priority ordering.
-                ##
-                ## This method is akin to the coupled_cv advection method.
-                element coupled {
-                  empty
-                }?
-              }?,
-              element lower_bound {
-                real,
-                ## If this is set the upper_bound is used everywhere.
-                ## If left unset the upper_bound is only used to constrain
-                ## the smoothed bounds calculated by the code
-                element apply_globally {
-                  empty
-                }?
               }?
             }?
           }

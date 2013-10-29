@@ -1186,7 +1186,6 @@ following matrix:
 
 
 
-
 \chapter{Meshes}\targetlabel{chap:meshes}
 
 A mesh is a collection of elements. The roles of the mesh as a data object in
@@ -1416,6 +1415,57 @@ in the third dimension. In this case, the topological dimension of the mesh
 would be 2 but we might require all 3 components of the Velocity field in
 order to calculate the Coriolis term in the plane in which we are actually
 solving the equations.
+
+
+\section{Changing coordinates and bases}
+A number of routines have been implemented in \lstinline{femtools/Coordinates.F90}
+that can be used for coordinate transformations and vector/tensor change of basis.
+The transformations available allow expression of tensor fields in three coordinate
+systems:
+\begin{enumerate}
+\item{\emph{Cartesian coordinates:}} The coordinate-set used in Fluidity. In an
+ocean modelling context the origin of the axes is placed at the centre of the planet,
+the $x$--axis goes through the $0^\circ$ East, $0^\circ$ North point on the surface,
+the $y$--axis goes through the $90^\circ$ East, $0^\circ$ North point on the surface
+and the $z$--axis runs though the planet's poles (spherical planet assumed).
+\item{\emph{Spherical-polar coordinates:}} The position vector is specified in terms
+of $\left[ r \ \theta \ \phi \right]^T$, where $r$ is the distance from the axes origin,
+$\theta$ is the polar angle and $\phi$ is the azimuthal angle, also shown in the left
+panel of figure \ref{fig:polarCoordinates}. The vector basis is $\left[ \hat{e}_r \ \hat{e}_\theta \ \hat{e}_\phi \right]^T$, also shown in figure \ref{fig:polarCoordinates}.
+\item{\emph{longitude--latitude coordinates:}} The position vector is specified in terms of $\left[ \lambda \ \delta \ r \right]^T$, where $\lambda$ is the longitude $\delta$ is the latitude and $r$ is the distance from the axes origin, as shown in the right panel of figure \ref{fig:polarCoordinates}. The vector basis is $\left[ \hat{e}_\lambda \ \hat{e}_\delta \ \hat{e}_r \right]^T$, also shown in figure \ref{fig:polarCoordinates}.
+\end{enumerate}
+\begin{figure}[ht]
+  \centering
+  \scalebox{0.55}{\includegraphics{coordinate_transformations.png}}
+  \caption{Polar coordinates. Left: Spherical-polar coordinates where $\phi$ is the azimuthal angle and $\theta$ is the polar angle. Right: Longitude-latitude coordinates where $\lambda$ denotes longitude and $\delta$ denotes latitude.}
+  \label{fig:polarCoordinates}
+\end{figure}
+\par
+The transformation routines also feature C-interoperable routines so that the
+tansformations can also be called from C/C++ code. The C function prototypes are
+located in \lstinline{include/coordinates.h}.
+\par
+The following lists the availabe transformations:
+\begin{itemize}
+\item{\textbf{Spherical-polar to Cartesian}}\\
+Fortran routine: \lstinline{spherical_polar_2_cartesian}\\
+Fortran routine unit-test: \lstinline{femtools/tests/test_spherical_polar_2_cartesian.F90}\\
+C-inter-operable wrapper: \lstinline{spherical_polar_2_cartesian_c}\\
+C-inter-operable wrapper unit-test: \lstinline{femtools/tests/test_spherical_polar_2_cartesian_c.F90}\\
+Interface: describe routine interface, state that angles are expected in radians\\
+Short description.
+
+\item{\textbf{Cartesian to Spherical-polar}}\\
+Fortran routine: \lstinline{cartesian_2_spherical_polar}\\
+Fortran routine unit-test: \lstinline{femtools/tests/test_cartesian_2_spherical_polar.F90}\\
+C-inter-operable wrapper: \lstinline{cartesian_2_spherical_polar_c}\\
+C-inter-operable wrapper unit-test: \lstinline{femtools/tests/test_cartesian_2_spherical_polar_c.F90}\\
+Interface: describe routine interface, state that angles are returned in radians\\
+Short description.
+\end{itemize}
+\par
+A python version of the transformation routines is available, contained in the module \lstinline{python/GFD_basisChange_tools.py}. Example of use in \lstinline{tests/data/on_sphere_rotations/construct_fields.py}, where the dataset used in the unit-tests is constructed.
+
 
 
 \chapter{State dictionaries}\targetlabel{chap:state}

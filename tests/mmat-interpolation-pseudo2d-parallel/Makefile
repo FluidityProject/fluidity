@@ -1,8 +1,6 @@
 input: clean
 	gmsh -3 src/2d_square.geo
 	../../bin/gmsh2triangle src/2d_square.msh
-	../../bin/fldecomp -n 2  2d_square
 
 clean:
-	rm -rf *.stat *.vtu *.pvtu *.node *.ele *.halo *.face *checkpoint* *convergence* *.log-? *.err-? src/2d_square.msh \
-	matrixdump matrixdump.info
+	rm -rf *.stat *.vtu *.pvtu *.msh *.node *.ele *.halo *.face *edge *checkpoint* *convergence* matrixdump* *.log-? *.err-? src/2d_square.msh adapted_state_* mmat-interpolation_[0-3] bounding_box* *metric* *flredecomp*

@@ -21,6 +21,7 @@ module field_derivatives
     use vtk_interfaces
     use superconvergence
     use state_module
+    use boundary_conditions, only: get_entire_boundary_condition
     implicit none
 
     interface compute_hessian_real
@@ -220,6 +221,11 @@ module field_derivatives
       logical, dimension(gradient%dim) :: derivatives
       integer :: i, dim
 
+      !! Field over the entire surface mesh containing bc values:
+      type(scalar_field) :: bc_value
+      !! Integer array of all surface elements indicating bc type::
+      integer, dimension(:), allocatable :: bc_type
+
       dim = gradient%dim
       do i=1,dim
         pardiff(i) = extract_scalar_field(gradient, i)
@@ -228,7 +234,18 @@ module field_derivatives
       ! we need all derivatives
       derivatives = .true.
 
-      call differentiate_field(infield, positions, derivatives, pardiff)
+      if (infield%mesh%continuity<0) then
+        !! required for dg gradient calculation
+        allocate(bc_type(1:surface_element_count(infield)))
+        call get_entire_boundary_condition(infield, (/"weakdirichlet"/), bc_value, bc_type)
+        
+        call differentiate_field(infield, positions, derivatives, pardiff, bc_value, bc_type)
+        
+        call deallocate(bc_value)
+        deallocate(bc_type)
+      else
+        call differentiate_field(infield, positions, derivatives, pardiff)
+      end if
 
     end subroutine grad_scalar
 
@@ -242,6 +259,20 @@ module field_derivatives
       logical, dimension(gradient(1)%dim) :: derivatives
       integer :: i, j, dim
 
+      !! Field over the entire surface mesh containing bc values:
+      type(vector_field) :: bc_value
+      type(scalar_field) :: bc_component_value
+      !! Integer array of all surface elements indicating bc type::
+      integer, dimension(:,:), allocatable :: bc_type
+      integer, dimension(:), allocatable :: bc_component_type
+
+      if (infield%mesh%continuity<0) then
+        !! required for dg gradient calculation
+        allocate(bc_type(infield%dim, 1:surface_element_count(infield)))
+        allocate(bc_component_type(1:surface_element_count(infield)))
+        call get_entire_boundary_condition(infield, (/"weakdirichlet"/), bc_value, bc_type)
+      end if
+
       dim = gradient(1)%dim
 
       do j=1,infield%dim
@@ -254,8 +285,19 @@ module field_derivatives
 
         derivatives = .true.
 
-        call differentiate_field(component, positions, derivatives, pardiff)
+        if (infield%mesh%continuity<0) then
+          bc_component_value = extract_scalar_field(bc_value, j)
+          bc_component_type = bc_type(j,:)
+          call differentiate_field(component, positions, derivatives, pardiff, bc_component_value, bc_component_type)
+        else
+          call differentiate_field(component, positions, derivatives, pardiff)
+        end if
       end do
+
+      if (infield%mesh%continuity<0) then
+        call deallocate(bc_value)
+        deallocate(bc_type, bc_component_type)
+      end if
 
     end subroutine grad_vector
 
@@ -273,6 +315,20 @@ module field_derivatives
       integer :: i, j
       integer :: node
 
+      !! Field over the entire surface mesh containing bc values:
+      type(vector_field) :: bc_value
+      type(scalar_field) :: bc_component_value
+      !! Integer array of all surface elements indicating bc type::
+      integer, dimension(:,:), allocatable :: bc_type
+      integer, dimension(:), allocatable :: bc_component_type
+
+      if (infield%mesh%continuity<0) then
+        !! required for dg gradient calculation
+        allocate(bc_type(infield%dim, 1:surface_element_count(infield)))
+        allocate(bc_component_type(1:surface_element_count(infield)))
+        call get_entire_boundary_condition(infield, (/"weakdirichlet"/), bc_value, bc_type)
+      end if
+
       do j=1,infield%dim
 
         component = extract_scalar_field(infield, j)
@@ -283,9 +339,20 @@ module field_derivatives
 
         derivatives = .true.
 
-        call differentiate_field(component, positions, derivatives, pardiff)
+        if (infield%mesh%continuity<0) then
+          bc_component_value = extract_scalar_field(bc_value, j)
+          bc_component_type = bc_type(j,:)
+          call differentiate_field(component, positions, derivatives, pardiff, bc_component_value, bc_component_type)
+        else
+          call differentiate_field(component, positions, derivatives, pardiff)
+        end if
 
       end do
+
+      if (infield%mesh%continuity<0) then
+        call deallocate(bc_value)
+        deallocate(bc_type, bc_component_type)
+      end if
  
     end subroutine grad_vector_tensor
 
@@ -1257,11 +1324,15 @@ module field_derivatives
       
     end subroutine differentiate_field_lumped_vector
       
-    subroutine differentiate_field(infield, positions, derivatives, pardiff)
+    subroutine differentiate_field(infield, positions, derivatives, pardiff, bc_value, bc_type)
       type(scalar_field), intent(in), target :: infield
       type(vector_field), intent(in) :: positions
       logical, dimension(:), intent(in) :: derivatives
       type(scalar_field), dimension(:), intent(inout) :: pardiff
+
+      ! weak bc's are rquired to calculated gradient of dg fields
+      type(scalar_field), intent(in), optional :: bc_value
+      integer, dimension(:), intent(in), optional :: bc_type
 
       integer :: i
       type(mesh_type), pointer :: mesh
@@ -1270,6 +1341,11 @@ module field_derivatives
         do i=1,count(derivatives)
           call zero(pardiff(i))
         end do
+        return
+      end if
+
+      if (continuity(infield)<0) then
+        call differentiate_discontinuous_field(infield, positions, derivatives, pardiff, bc_value, bc_type)
         return
       end if
 
@@ -1291,6 +1367,182 @@ module field_derivatives
       end if
       
     end subroutine differentiate_field
+
+    subroutine differentiate_discontinuous_field(infield, positions, derivatives, pardiff, bc_value, bc_type)
+      ! calculated using:
+      ! N_i N_j grad_u = N_i delta u_h - 
+      !                  ({N_i} (u_h^-n^- + u_h^+n^+)) on internal faces -
+      !                  (N_i (u_h - u_b) n) on weak dirichlet boundaries
+      ! where: {x} = average of x over face
+      !        u_h = value of u in element
+      !        u_b = dirichlet boundary value
+      ! (see Bassi et. al. 2005 - Discontinuous Galerkin solution of the Reynolds-averaged
+      ! Navier–Stokes and k–x turbulence model equations, pg. 517
+
+      type(scalar_field), intent(in), target :: infield
+      type(vector_field), intent(in) :: positions
+      logical, dimension(:), intent(in) :: derivatives
+      type(scalar_field), dimension(:), intent(inout) :: pardiff
+
+      type(scalar_field), intent(in) :: bc_value
+      integer, dimension(:), intent(in) :: bc_type
+      
+      integer :: ele, i
+
+      if (infield%field_type == FIELD_TYPE_CONSTANT) then
+        do i=1,count(derivatives)
+          if (derivatives(i)) then
+             call zero(pardiff(i))
+          end if
+        end do
+        return
+      end if
+
+      ! only works if all pardiff fields are discontinuous:
+      do i=1, count(derivatives)
+        assert(pardiff(i)%mesh%continuity<0)
+      end do
+      
+      ! calculate gradient
+      do ele = 1, ele_count(infield)
+        call calculate_grad_ele_dg(infield, positions, derivatives, pardiff, ele, bc_value, bc_type)
+      end do
+
+    end subroutine differentiate_discontinuous_field    
+
+    subroutine calculate_grad_ele_dg(infield, positions, derivatives, pardiff, ele, bc_value, bc_type)
+      type(scalar_field), intent(in), target :: infield
+      type(vector_field), intent(in) :: positions
+      logical, dimension(:), intent(in) :: derivatives
+      type(scalar_field), dimension(:), intent(inout) :: pardiff  
+      integer, intent(in) :: ele
+      type(scalar_field), intent(in) :: bc_value
+      integer, dimension(:), intent(in) :: bc_type    
+      
+      ! variables for interior integral
+      type(element_type), pointer :: shape
+      real, dimension(ele_loc(infield, ele), ele_ngi(infield, ele), positions%dim) :: dshape
+      real, dimension(ele_ngi(infield, ele)) :: detwei
+      real, dimension(positions%dim, ele_ngi(infield, ele)) :: grad_h_gi
+      real, dimension(positions%dim, ele_loc(infield, ele)) :: rhs
+
+      ! variables for surface integral
+      integer :: ni, ele_2, face, face_2, i
+      integer, dimension(:), pointer :: neigh
+
+      ! inverse mass
+      real, dimension(ele_loc(infield, ele), ele_loc(infield, ele)) :: inv_mass
+
+      ! In parallel, we only construct the equations on elements we own, or
+      ! those in the L1 halo.
+      if (.not.(element_owned(infield, ele).or.element_neighbour_owned(infield, ele))) then
+        return
+      end if
+
+      shape => ele_shape(infield, ele) 
+      call transform_to_physical(positions, ele, shape, dshape, detwei)
+
+      ! Calculate grad within the element
+      grad_h_gi = ele_grad_at_quad(infield, ele, dshape)
+
+      ! Assemble interior contributions to rhs
+      rhs = shape_vector_rhs(shape, grad_h_gi, detwei)
+
+      ! Interface integrals
+      neigh=>ele_neigh(infield, ele)
+      do ni=1,size(neigh)
+        ! Find the relevant faces.
+        ele_2 = neigh(ni)
+        face = ele_face(infield, ele, ele_2)
+
+        if (ele_2>0) then
+          ! Internal faces.
+          face_2=ele_face(infield, ele_2, ele)
+        else
+          ! External face.
+          face_2=face
+        end if
+
+        call calculate_grad_ele_dg_interface(ele, face, face_2, ni, &
+             & rhs, positions, infield, bc_value, bc_type)
+      end do
+
+      ! multiply by inverse of mass matrix
+      inv_mass = inverse(shape_shape(shape, shape, detwei))
+      do i = 1, positions%dim
+        rhs(i,:) = matmul(inv_mass, rhs(i,:))
+        if (derivatives(i)) then
+          call set(pardiff(i), ele_nodes(pardiff(i), ele), rhs(i,:))
+        end if
+      end do
+
+    end subroutine calculate_grad_ele_dg
+
+    subroutine calculate_grad_ele_dg_interface(ele, face, face_2, &
+         ni, rhs, positions, infield, bc_value, bc_type)
+
+      !!< Construct the DG element boundary integrals on the ni-th face of
+      !!< element ele.
+      integer, intent(in) :: ele, face, face_2, ni
+      type(scalar_field), intent(in) :: bc_value, infield
+      type(vector_field), intent(in) :: positions
+      integer, dimension(:), intent(in) :: bc_type
+      real, dimension(positions%dim, ele_loc(infield, ele)), intent(inout) :: rhs
+
+      ! Face objects and numberings.
+      type(element_type), pointer :: shape
+      real, dimension(positions%dim, face_ngi(infield, face)) :: normal
+      real, dimension(face_ngi(infield, face)) :: detwei, in_q, in_q_2, in_bc_q
+      real, dimension(positions%dim, face_ngi(infield, face)) :: vector
+      real, dimension(positions%dim, face_loc(infield, face)) :: face_rhs
+      real, dimension(ele_loc(infield, ele)) :: elenodes
+      real, dimension(face_loc(infield, face)) :: facenodes
+
+      integer :: i, j
+
+      face_rhs = 0.0
+      vector = 0.0
+
+      ! shape and detwei are the same for both faces, normal+ = - normal-
+      shape => face_shape(infield, face)
+      call transform_facet_to_physical(positions, face, detwei_f=detwei, normal=normal)
+
+      if (face==face_2) then  
+        ! boundary faces - need to apply weak dirichlet bc's
+        ! = - int_ v_h \cdot (u - u^b) n 
+        ! first check for weak-dirichlet bc
+        if (bc_type(face) == 1) then  
+          in_q = face_val_at_quad(infield, face)
+          in_bc_q = ele_val_at_quad(bc_value, face)
+
+          do i=1, mesh_dim(infield)
+            vector(i,:) = -1.0*(in_q(:) - in_bc_q(:))*normal(i,:)
+          end do
+          face_rhs = shape_vector_rhs(shape, vector, detwei) 
+        end if
+      else    
+        ! internal face
+        ! = int_ {v_h} \cdot J(x)  
+        in_q = face_val_at_quad(infield, face)
+        in_q_2 = face_val_at_quad(infield, face_2)
+
+        do i=1, mesh_dim(infield)
+          vector(i,:) = -0.5*(in_q(:) - in_q_2(:))*normal(i,:)
+        end do
+        face_rhs = shape_vector_rhs(shape, vector, detwei) 
+      end if
+
+      elenodes = ele_nodes(infield, ele)
+      facenodes = face_global_nodes(infield, face)
+      do i=1, face_loc(infield, face)
+        do j=1, ele_loc(infield, face)
+          if (facenodes(i) == elenodes(j)) then
+            rhs(:, j) = rhs(:, j) + face_rhs(:, i)
+          end if
+        end do
+      end do
+
+    end subroutine calculate_grad_ele_dg_interface
 
     subroutine differentiate_field_discontinuous(infield, positions, derivatives, pardiff)
       type(scalar_field), intent(in), target :: infield
@@ -1326,7 +1578,7 @@ module field_derivatives
         ewrite(0,*) "a check and a more helpful error message should be inserted in"
         ewrite(0,*) "the calling routine (outside field_derivatives) - please mantis this:"
         ewrite(0,*) "Error has occured in differentiate_field_discontinuous, with field, ", trim(infield%name)
-        FLAbort("The field_derivatives code cannot take the derivative of a discontinuous field")
+        FLAbort("Shouldn't get here?")
       end if
       
       xshape=ele_shape(positions, 1)

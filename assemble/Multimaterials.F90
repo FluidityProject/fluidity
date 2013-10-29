@@ -322,7 +322,7 @@ contains
     integer, dimension(size(state)) :: state_order
     type(scalar_field) :: sumvolumefractionsbound
 
-    ewrite(1,*) 'In calculate_bulk_scalar_property'
+    ewrite(1,*) 'In calculate_bulk_scalar_property:', trim(bulkfield%name)
 
     call zero(bulkfield)
 
@@ -361,7 +361,7 @@ contains
     integer, dimension(size(state)) :: state_order
     type(scalar_field) :: sumvolumefractionsbound
 
-    ewrite(1,*) 'In calculate_bulk_vector_property'
+    ewrite(1,*) 'In calculate_bulk_vector_property:', trim(bulkfield%name)
 
     call zero(bulkfield)
     
@@ -400,7 +400,7 @@ contains
     integer, dimension(size(state)) :: state_order
     type(scalar_field) :: sumvolumefractionsbound
 
-    ewrite(1,*) 'In calculate_bulk_tensor_property'
+    ewrite(1,*) 'In calculate_bulk_tensor_property:', trim(bulkfield%name)
 
     call zero(bulkfield)
     

@@ -134,6 +134,7 @@ contains
     integer, dimension(dim+1) :: counts
     integer :: i,j,k
     integer :: ltype, coords,surface_count
+    real :: dx
     type(constraints_type), pointer :: constraint
 
     ! Check that the quadrature and the element shapes match.
@@ -212,18 +213,21 @@ contains
 
           select case(ltype)
           case(ELEMENT_LAGRANGIAN)
+             if (degree == 0) then
+                dx = 0.0
+             else
+                dx = 1.0/degree
+             end if 
              select case(ele_num%family)
              case (FAMILY_SIMPLEX)
                 ! Raw polynomial.
                 shape%spoly(j,i)&
-                     =lagrange_polynomial(counts(j), counts(j), 1.0/degree)
+                     =lagrange_polynomial(counts(j), counts(j), dx)
              case(FAMILY_CUBE)
-
                 ! note that local coordinates run from -1.0 to 1.0
                 shape%spoly(j,i)&
-                     =lagrange_polynomial(counts(j), degree, 2.0/degree, &
+                     =lagrange_polynomial(counts(j), degree, 2.0*dx, &
                      origin=-1.0)
-
              end select
 
           case(ELEMENT_TRACE)

@@ -29,8 +29,8 @@ elec = e.GetScalarRange("ElectricalPotential")
       <test name="Solvers converged" language="python">
         assert(solvers_converged)
       </test>
-    <test name="pressure range check with tolerance 1.1e-06" language="python">
-assert abs(pressure[1] - 1.0e9) &lt; 1.1e-06
+    <test name="pressure range check with tolerance 1.25e-06" language="python">
+assert abs(pressure[1] - 1.0e9) &lt; 1.25e-06
     </test>
     <test name="electrical range check" language="python">
 assert abs(elec[0] + 10.0) &lt; 0.1

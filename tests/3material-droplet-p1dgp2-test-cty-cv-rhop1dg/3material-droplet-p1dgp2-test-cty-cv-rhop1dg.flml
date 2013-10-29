@@ -239,6 +239,7 @@
           <discontinuous_galerkin>
             <viscosity_scheme>
               <compact_discontinuous_galerkin/>
+              <tensor_form/>
             </viscosity_scheme>
             <advection_scheme>
               <upwind/>
@@ -299,7 +300,7 @@
         <tensor_field name="Viscosity" rank="2">
           <diagnostic>
             <mesh name="VelocityMesh"/>
-            <algorithm name="bulk_viscosity" material_phase_support="multiple "/>
+            <algorithm depends="MaterialViscosity" name="bulk_viscosity" material_phase_support="multiple"/>
             <output/>
             <stat>
               <include_in_stat/>

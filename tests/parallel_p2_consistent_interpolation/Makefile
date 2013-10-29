@@ -5,7 +5,6 @@ default: input
 
 input: src/$(MESH).tar.bz2
 	tar -xvjf src/$(MESH).tar.bz2
-	fldecomp -n 2 $(MESH)
 
 clean: clean-mesh clean-run
 	rm -rf parallel_p2_consistent_interpolation_*
@@ -15,3 +14,4 @@ clean-mesh:
 clean-run:
 	rm -f $(FLMLMODEL)_?*.pvtu $(FLMLMODEL)_?*_?*.vtu $(FLMLMODEL).stat fluidity.err-* fluidity.log-* \
 	matrixdump matrixdump.info
+	rm -rf *flredecomp*

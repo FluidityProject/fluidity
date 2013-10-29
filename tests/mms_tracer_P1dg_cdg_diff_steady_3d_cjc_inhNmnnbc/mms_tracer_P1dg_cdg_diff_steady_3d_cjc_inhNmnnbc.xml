@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>channel-flow-dg</name>
+  <owner userid="avdis01"/>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>./generate_mesh 5; fluidity cdg_cjc.flml; cp cdg.stat cdg-5.stat; cp cdg_1.vtu cdg-5.vtu; ./generate_mesh 10; fluidity cdg_cjc.flml; cp cdg.stat cdg-10.stat; cp cdg_1.vtu cdg-10.vtu; ./generate_mesh 20; fluidity cdg_cjc.flml; cp cdg.stat cdg-20.stat; cp cdg_1.vtu cdg-20.vtu; ./generate_mesh 30; fluidity cdg_cjc.flml; cp cdg.stat cdg-30.stat; cp cdg_1.vtu cdg-30.vtu</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+    <variable name="convergence" language="python">import numpy
+from fluidity_tools import stat_parser
+layers = numpy.array([5,10,20,30])
+dxs=1.0/layers
+error=[]
+for layer in layers:
+        s=stat_parser("cdg-"+`layer`+".stat")
+        error.append((s["Stuff"]['AbsoluteDifference']['l2norm'][-1]))
+
+error=numpy.array(error)
+convergence=numpy.log(error[:-1]/error[1:])/numpy.log((1.0*layers[1:])/(1.0*layers[:-1]))
+print error
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
+    <test name="ConvergesToSecondOrder" language="python">
+import numpy
+assert(numpy.all(convergence &gt;1.9))</test>
+  </pass_tests>
+</testproblem>
