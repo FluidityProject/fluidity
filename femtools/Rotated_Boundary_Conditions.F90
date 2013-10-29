@@ -37,7 +37,6 @@ use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
 use halos_base
 use sparse_tools_petsc
 use state_module
-use solvers, only: RotMat
 
 implicit none
 
@@ -163,11 +162,6 @@ contains
     end do
 
     call assemble(rotation_m)
-
-    RotMat = rotation_m%M
-
-    ! matrixdump for rotation matrix
-    !call dump_matrix("rotation_matrix", rotation_m)
 
   end subroutine create_rotation_matrix
     

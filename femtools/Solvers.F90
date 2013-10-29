@@ -81,12 +81,8 @@ module solvers
   character(len=FIELD_NAME_LEN), save:: petsc_monitor_vtu_name
   integer, save:: petsc_monitor_vtu_series=0
 
-  Mat, save :: RotMat
-  
 private
  
-  public :: RotMat
-
 public petsc_solve, set_solver_options, &
    complete_solver_option_path, petsc_solve_needs_positions
 
@@ -465,7 +461,7 @@ subroutine petsc_solve_scalar_petsc_csr(x, matrix, rhs, option_path, &
 end subroutine petsc_solve_scalar_petsc_csr
 
 subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path, &
-  prolongators, positions)
+  prolongators, positions, rotation_matrix)
   !!< Solve a linear system the nice way. Options for this
   !!< come via the options mechanism. 
   type(vector_field), intent(inout) :: x
@@ -476,6 +472,8 @@ subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path, &
   type(petsc_csr_matrix), dimension(:), optional, intent(in) :: prolongators
   !! positions field is only used with remove_null_space/ or multigrid_near_null_space/ with rotational components
   type(vector_field), intent(in), optional :: positions
+  !! with rotated bcs: matrix to transform from x,y,z aligned vectors to boundary aligned
+  Mat, intent(in), optional:: rotation_matrix
 
 
   KSP ksp
@@ -496,7 +494,8 @@ subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path, &
   call petsc_solve_setup_petsc_csr(y, b, ksp, &
         solver_option_path, lstartfromzero, &
         matrix, vfield=x, option_path=option_path, &
-        prolongators=prolongators, positions=positions)
+        prolongators=prolongators, &
+        positions=positions, rotation_matrix=rotation_matrix)
         
   ! copy array into PETSc vecs
   call petsc_solve_copy_vectors_from_vector_fields(y, b, x, rhs, &
@@ -939,7 +938,8 @@ subroutine petsc_solve_setup_petsc_csr(y, b, ksp, &
   solver_option_path, startfromzero, &
   matrix, sfield, vfield, tfield, &
   option_path, startfromzero_in, &
-  prolongators,surface_node_list, positions)
+  prolongators,surface_node_list, &
+  positions, rotation_matrix)
 !!< sets up things needed to call petsc_solve_core
 !! Stuff that comes out:
 !!
@@ -975,6 +975,8 @@ type(petsc_csr_matrix), dimension(:), optional, intent(in) :: prolongators
 integer, dimension(:), optional, intent(in) :: surface_node_list
 !! positions field is only used with remove_null_space/ or multigrid_near_null_space/ with rotational components
 type(vector_field), intent(in), optional :: positions
+!! with rotated bcs: matrix to transform from x,y,z aligned vectors to boundary aligned
+Mat, intent(in), optional:: rotation_matrix
 
 
   type(mesh_type), pointer:: mesh
@@ -1029,7 +1031,7 @@ type(vector_field), intent(in), optional :: positions
       matrix%column_numbering, &
       startfromzero_in=startfromzero_in, &
       prolongators=prolongators, surface_node_list=surface_node_list, &
-      positions=positions)
+      positions=positions, rotation_matrix=rotation_matrix)
   
   b=PetscNumberingCreateVec(matrix%column_numbering)
   call VecDuplicate(b, y, ierr)
@@ -1513,7 +1515,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
        petsc_numbering, &
        startfromzero_in, &
        prolongators, surface_node_list, matrix_csr, &
-       internal_smoothing_option, positions)
+       internal_smoothing_option, positions, rotation_matrix)
   !!< Creates the KSP solver context and calls
   !!< setup_ksp_from_options
     KSP, intent(out) :: ksp
@@ -1534,6 +1536,8 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     integer, optional, intent(in) :: internal_smoothing_option
     ! positions field is only used with remove_null_space/ or multigrid_near_null_space/ with rotational components
     type(vector_field), intent(in), optional :: positions
+    ! with rotated bcs: matrix to transform from x,y,z aligned vectors to boundary aligned
+    Mat, intent(in), optional:: rotation_matrix
     
     PetscErrorCode ierr
     
@@ -1551,13 +1555,14 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
       surface_node_list=surface_node_list, &
       matrix_csr=matrix_csr, &
       internal_smoothing_option=internal_smoothing_option, &
-      positions=positions)
+      positions=positions, &
+      rotation_matrix=rotation_matrix)
       
   end subroutine SetupKSP
     
   recursive subroutine setup_ksp_from_options(ksp, mat, pmat, solver_option_path, &
       petsc_numbering, startfromzero_in, prolongators, surface_node_list, matrix_csr, &
-      internal_smoothing_option, positions)
+      internal_smoothing_option, positions, rotation_matrix)
   !!< Sets options for the given ksp according to the options
   !!< in the options tree.
     KSP, intent(out) :: ksp
@@ -1577,6 +1582,8 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     integer, optional, intent(in) :: internal_smoothing_option
     ! positions field is only used with remove_null_space/ or multigrid_near_null_space/ with rotational components
     type(vector_field), intent(in), optional :: positions
+    ! with rotated bcs: matrix to transform from x,y,z aligned vectors to boundary aligned
+    Mat, intent(in), optional:: rotation_matrix
     
     ! hack to satisfy interface for MatNullSpaceCreate
     ! only works as the array won't actually be used
@@ -1607,7 +1614,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
          FLAbort("Need petsc_numbering for multigrid near null space")
        end if
        null_space = create_null_space_from_options(mat, trim(solver_option_path)//"/multigrid_near_null_space", &
-            petsc_numbering, positions=positions)
+            petsc_numbering, positions=positions, rotation_matrix=rotation_matrix)
        call MatSetNearNullSpace(mat, null_space, ierr)
        call MatNullSpaceDestroy(null_space, ierr)
 #endif
@@ -2325,13 +2332,16 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
   
 end subroutine MyKSPMonitor
 
-function create_null_space_from_options(mat, null_space_option_path, petsc_numbering, positions) result (null_space)
+function create_null_space_from_options(mat, null_space_option_path, &
+      petsc_numbering, positions, rotation_matrix) result (null_space)
    Mat, intent(in):: mat
    !! the option path to remove_null_space or multigrid_near_space
    character(len=*), intent(in):: null_space_option_path
    type(petsc_numbering_type), intent(in):: petsc_numbering 
    ! positions field is only used with remove_null_space/ with rotational components
    type(vector_field), intent(in), optional :: positions
+   ! with rotated bcs: matrix to transform from x,y,z aligned vectors to boundary aligned
+   Mat, intent(in), optional:: rotation_matrix
    MatNullSpace :: null_space
 
    Vec, allocatable, dimension(:) :: null_space_array, rot_null_space_array
@@ -2423,7 +2433,6 @@ function create_null_space_from_options(mat, null_space_option_path, petsc_numbe
    nnulls=count(mask)+count(rot_mask)
    ! allocate the array of null spaces
    allocate(null_space_array(1:nnulls))
-   allocate(rot_null_space_array(1:nnulls))
    allocate(null_vector(nnodes,dim))
    universal_nodes=petsc_numbering%universal_length/dim
 
@@ -2475,23 +2484,34 @@ function create_null_space_from_options(mat, null_space_option_path, petsc_numbe
 
    assert(i==nnulls)
 
-   do i=1, nnulls
-     call VecDuplicate(null_space_array(i), rot_null_space_array(i), ierr)
-     call MatMultTranspose(RotMat, null_space_array(i), rot_null_space_array(i), ierr)
-   end do
+   if (present(rotation_matrix)) then
+     allocate(rot_null_space_array(1:nnulls))
+     do i=1, nnulls
+       call VecDuplicate(null_space_array(i), rot_null_space_array(i), ierr)
+       call MatMultTranspose(rotation_matrix, null_space_array(i), rot_null_space_array(i), ierr)
+     end do
+     call MatNullSpaceCreate(MPI_COMM_FEMTOOLS, PETSC_FALSE, nnulls, &
+       rot_null_space_array, null_space, ierr)
+   else
+     call MatNullSpaceCreate(MPI_COMM_FEMTOOLS, PETSC_FALSE, nnulls, &
+       null_space_array, null_space, ierr)
+   end if
 
-   call MatNullSpaceCreate(MPI_COMM_FEMTOOLS, PETSC_FALSE, nnulls, &
-     rot_null_space_array, null_space, ierr)
    call MatNullSpaceTest(null_space, mat, isnull, ierr)
    ewrite(2,*) "isnull =", isnull
 
    ! get rid of our Vec references
    do i=1, nnulls
      call VecDestroy(null_space_array(i), ierr)
-     call VecDestroy(rot_null_space_array(i), ierr)
    end do
    deallocate(null_space_array)
-   deallocate(rot_null_space_array)
+
+   if (present(rotation_matrix)) then
+     do i=1, nnulls
+       call VecDestroy(rot_null_space_array(i), ierr)
+     end do
+     deallocate(rot_null_space_array)
+   end if
 
 end function create_null_space_from_options
 
