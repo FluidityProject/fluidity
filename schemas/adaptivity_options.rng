@@ -1042,10 +1042,21 @@ purposes. They are subject to change and may not be in the final "release".</a:d
           <optional>
             <element name="partitioner">
               <a:documentation>Select which partitioner to use during all but the last adapt iteration.
-Graph partitioners available are ParMETIS and Zoltan PHG. The Zoltan
-PHG hypergraph partitoner is also available.
-Default is the Zoltan PHG graph partitioner.</a:documentation>
+Default is the Zoltan PHG graph partitioner which gives good results in 
+most situations.</a:documentation>
               <choice>
+                <element name="zoltan">
+                  <a:documentation>Use the Zoltan PHG partitioner (recommended).</a:documentation>
+                  <element name="method">
+                    <a:documentation>Select the partitioning method you would like used by Zoltan PHG.
+For intermediate partitioning we recommend using 'graph' as 'hypergraph'
+ignores edge weighting.</a:documentation>
+                    <choice>
+                      <value>graph</value>
+                      <value>hypergraph</value>
+                    </choice>
+                  </element>
+                </element>
                 <element name="metis">
                   <a:documentation>Use the ParMETIS graph partitioner. ParMETIS setup to match as
 closely as possible the setup used previously by Sam.</a:documentation>
@@ -1055,25 +1066,13 @@ closely as possible the setup used previously by Sam.</a:documentation>
                   <a:documentation>Use the PT-Scotch graph partitioner.</a:documentation>
                   <empty/>
                 </element>
-                <element name="zoltan">
-                  <a:documentation>Use the Zoltan PHG partitioner.</a:documentation>
-                  <element name="method">
-                    <a:documentation>Select the partitioning method you would like used by Zoltan PHG.
-Currently hypergraph partitioning is the simplest implementation
-and can produce non-contiguous partitions for certain problems.</a:documentation>
-                    <choice>
-                      <value>graph</value>
-                      <value>hypergraph</value>
-                    </choice>
-                  </element>
-                </element>
               </choice>
               <optional>
                 <element name="lb_approach">
                   <a:documentation>Choose whether to repartition or partition the mesh at each adapt iteration.
 Repartitioning results in a smaller amount of data migration between processes
-and hence is cheaper, but this can result in locked-nodes. The default option is
-to repartition the mesh each iteration and then full ypartition the mesh on the 
+and hence is cheaper. The default option is
+to repartition the mesh each iteration and then fully partition the mesh on the 
 final iteration to create a well balanced mesh.</a:documentation>
                   <choice>
                     <value>REPARTITION</value>
@@ -1086,10 +1085,21 @@ final iteration to create a well balanced mesh.</a:documentation>
           <optional>
             <element name="final_partitioner">
               <a:documentation>Select which partitioner to use after the final adapt iteration.
-Graph partitioners available are ParMETIS and Zoltan PHG. The 
-Zoltan PHG hypergraph partitoner is also available.
-Default is the ParMETIS graph partitioner.</a:documentation>
+Default is the Zoltan PHG hypergraph partitioner which gives good results in most 
+situations.</a:documentation>
               <choice>
+                <element name="zoltan">
+                  <a:documentation>Use the Zoltan PHG partitioner (recommended).</a:documentation>
+                  <element name="method">
+                    <a:documentation>Select the partitioning method you would like used by Zoltan PHG.
+For final partitioning we recommend using 'hypergraph' which ignores edge 
+weighting but can produce very well balanced partitions.</a:documentation>
+                    <choice>
+                      <value>graph</value>
+                      <value>hypergraph</value>
+                    </choice>
+                  </element>
+                </element>
                 <element name="metis">
                   <a:documentation>Use the ParMETIS graph partitioner. ParMETIS setup to match as
 closely as possible the setup used previously by Sam.</a:documentation>
@@ -1099,25 +1109,13 @@ closely as possible the setup used previously by Sam.</a:documentation>
                   <a:documentation>Use the PT-Scotch graph partitioner.</a:documentation>
                   <empty/>
                 </element>
-                <element name="zoltan">
-                  <a:documentation>Use the Zoltan PHG partitioner.</a:documentation>
-                  <element name="method">
-                    <a:documentation>Select the partitioning method you would like used by Zoltan PHG.
-Currently hypergraph partitioning is the simplest implementation
-and can produce non-contiguous partitions for certain problems.</a:documentation>
-                    <choice>
-                      <value>graph</value>
-                      <value>hypergraph</value>
-                    </choice>
-                  </element>
-                </element>
               </choice>
               <optional>
                 <element name="lb_approach">
                   <a:documentation>Choose whether to repartition or partition the mesh at each the final adapt iteration.
 Repartitioning results in a smaller amount of data migration between processes
-and hence is cheaper, but this can result in locked-nodes. The default option is
-to repartition the mesh each iteration and then full ypartition the mesh on the 
+and hence is cheaper. The default option is
+to repartition the mesh each iteration and then fully partition the mesh on the 
 final iteration to create a well balanced mesh.</a:documentation>
                   <choice>
                     <value>PARTITION</value>
@@ -1132,9 +1130,9 @@ final iteration to create a well balanced mesh.</a:documentation>
               <a:documentation>Element quality cut off. 
 Elements with a quality greater than this will be liable to be
 on the parition boundary. Below this, they will be free to be adapted
-and improved. Range is 0 to 1, with default 0.6
+and improved. Range is 0 to 1, with default 0.1.
 This should be set to the same value as used for the quality option
-in libmba2d or libmba3d</a:documentation>
+in libmba2d or libmba3d if using these libraries.</a:documentation>
               <ref name="real"/>
             </element>
           </optional>
@@ -1145,10 +1143,8 @@ The amount of load imbalance the partitioning algorithm should deem acceptable.
 The imbalance is computed as the maximum load divided by the average load.
 A value for load_imbalance_tol of 1.2 indicates that 20% imbalance is okay.
 A high value for this parameter (~1.5) could see Zoltan produce poorer partitions
-but be able to move the partition boundaries easier to allow adaption. For some 
-problems where the partitioner creates empty partitions lowering this (~1.075) will
-force Zoltan to create more evenly balanced partitions (no empty ones) but may
-require more adapt iterations to produce a fully adapted final mesh. The default value is 1.5.</a:documentation>
+but be able to move the partition boundaries easier to allow adaption. 
+The default value is 1.5.</a:documentation>
               <ref name="real"/>
             </element>
           </optional>
@@ -1166,7 +1162,8 @@ A low value is recommended. The default value is 1.03.</a:documentation>
             <element name="uncuttable_edge_fraction">
               <a:documentation>Uncuttable edge fraction.
 The fraction of edges that are marked as uncuttable when partitioning with edge weighting. i.e. 
-all but the final adapt. This value determines the range of edge weight values that are defined as being uncuttable, as a percentage of the worst value.
+all but the final adapt. This value determines the range of edge weight values that are defined 
+as being uncuttable, as a percentage of the worst value.
 Uncuttable elements are marked to allow elements with low element 
 qualities, when measured against the metric, to adapt. Marking more elements uncuttable may allow the mesh 
 to improve more quickly if Zoltan is capable of avoiding all of the edges, but could cause 
@@ -1175,15 +1172,9 @@ Zoltan to lock edges for many adapts due to too many elements being uncuttable. 
             </element>
           </optional>
           <optional>
-            <element name="uncuttable_edge_weight">
-              <a:documentation>Uncuttable edge weight</a:documentation>
-              <ref name="real"/>
-            </element>
-          </optional>
-          <optional>
             <element name="worst_ele_search_levels">
               <a:documentation>Search levels for worst element quality.
-Number of levels of element connections to search through for element quality when setting the edge weights for partitioning.</a:documentation>
+Number of levels of element connections to search through for element quality when setting the edge weights for partitioning. default is 2 and works fine for most situations.</a:documentation>
               <ref name="integer"/>
             </element>
           </optional>

@@ -323,12 +323,10 @@ contains
     ewrite(1,*) 'zoltan nocut_weight (best: 0 - worst: 20) = ', nocut_weight
 
     ! make poor elements uncuttable
-    call get_option(trim(zoltan_global_base_option_path)//"/uncuttable_edge_weight", &
-         nocut_edge_weight, default=1.0)
     do i=1,head-1
       if (ewgts(i) .GT. nocut_weight) then
         ! ewgts(i) = (total_num_edges + 1) 
-        ewgts(i) = (total_num_edges + 1) * nocut_edge_weight
+        ewgts(i) = (total_num_edges + 1) 
       else
         ewgts(i) = 1.0
       end if

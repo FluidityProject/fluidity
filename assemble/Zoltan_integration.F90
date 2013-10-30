@@ -331,10 +331,10 @@ module zoltan_integration
        call get_option(trim(zoltan_global_base_option_path) // "/element_quality_cutoff", zoltan_global_quality_tolerance)
        ! check that the value is reasonable
        if (zoltan_global_quality_tolerance < 0. .or. zoltan_global_quality_tolerance > 1.) then
-          FLExit("element_quality_cutoff should be between 0 and 1. Default is 0.6")
+          FLExit("element_quality_cutoff should be between 0 and 1. Default is 0.1")
        end if
     else
-       zoltan_global_quality_tolerance = 0.6
+       zoltan_global_quality_tolerance = 0.1
     end if
 
     if(present(mesh_name)) then
