@@ -359,7 +359,7 @@ subroutine petsc_solve_vector_components(x, matrix, rhs, option_path)
 
   type(scalar_field) x_component, rhs_component
   type(petsc_numbering_type) petsc_numbering
-  character(len=OPTION_PATH_LEN) solver_option_path, name, option_path_in
+  character(len=OPTION_PATH_LEN) solver_option_path, option_path_in
   integer literations, i
   logical lstartfromzero
   
@@ -532,7 +532,7 @@ subroutine petsc_solve_tensor_components(x, matrix, rhs, &
 
   type(scalar_field) x_component, rhs_component
   type(petsc_numbering_type) petsc_numbering
-  character(len=OPTION_PATH_LEN) solver_option_path, name, option_path_in
+  character(len=OPTION_PATH_LEN) solver_option_path, option_path_in
   integer literations, i, j, startj
   logical lstartfromzero
   
@@ -692,7 +692,6 @@ type(vector_field), intent(in), optional :: positions
   integer ierr
   logical:: parallel, timing, have_cache
   type(halo_type), pointer ::  halo
-  type(mesh_type), pointer:: mesh
   integer i, j
   KSP, pointer:: ksp_pointer
 
@@ -978,8 +977,6 @@ type(vector_field), intent(in), optional :: positions
 !! with rotated bcs: matrix to transform from x,y,z aligned vectors to boundary aligned
 Mat, intent(in), optional:: rotation_matrix
 
-
-  type(mesh_type), pointer:: mesh
   real time1, time2
   integer ierr
   logical parallel, timing
@@ -2133,8 +2130,7 @@ subroutine petsc_monitor_setup(petsc_numbering, max_its)
   integer, intent(in) :: max_its
   
   type(mesh_type), pointer:: mesh
-  integer :: ierr, i, ncomponents
-  integer, allocatable, dimension(:) :: numbering
+  integer :: ierr, ncomponents
 
   petsc_monitor_x=PetscNumberingCreateVec(petsc_numbering)
   petsc_monitor_numbering=petsc_numbering
@@ -2347,7 +2343,11 @@ function create_null_space_from_options(mat, null_space_option_path, &
    Vec, allocatable, dimension(:) :: null_space_array, rot_null_space_array
    PetscReal :: norm
    PetscErrorCode :: ierr
+#if PETSC_VERSION_MINOR>=2
    PetscBool :: isnull
+#else
+   PetscTruth :: isnull
+#endif
 
    integer :: i, nnulls, nnodes, comp, dim, universal_nodes
    logical, dimension(3) :: rot_mask
@@ -2497,8 +2497,15 @@ function create_null_space_from_options(mat, null_space_option_path, &
        null_space_array, null_space, ierr)
    end if
 
-   call MatNullSpaceTest(null_space, mat, isnull, ierr)
-   ewrite(2,*) "isnull =", isnull
+   if(have_option(trim(null_space_option_path)//'/test_null_space')) then
+     call MatNullSpaceTest(null_space, mat, isnull, ierr)
+     ewrite(1,*) "For nullspace "//trim(null_space_option_path)//":"
+     if (isnull) then
+       ewrite(1,*) "PETSc's MatNullSpaceTest agrees that this is a null space"
+     else
+       ewrite(1,*) "PETSc's MatNullSpaceTest does not think this is a null space"
+     end if
+   end if
 
    ! get rid of our Vec references
    do i=1, nnulls

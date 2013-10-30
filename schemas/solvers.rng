@@ -482,7 +482,12 @@ FIXME: maybe some hints what a useful setup is</a:documentation>
         <a:documentation>If the constant solution is a null vector of the linear system (e.g. Poisson equation with only Neumann bcs)
 use this option to remove the constant component from the solution every iteration of the linear solver. This
 leads to better convergence rates, when compared to imposing a reference_node to pin the solution.</a:documentation>
-        <empty/>
+        <optional>
+          <element name="test_null_space">
+            <a:documentation>Test whether the null space is actually a null space</a:documentation>
+            <empty/>
+          </element>
+        </optional>
       </element>
     </optional>
     <ref name="miscellaneous_solver_options"/>
@@ -567,6 +572,12 @@ a rotational mode around each axis may be present.</a:documentation>
           </optional>
         </element>
       </choice>
+    </optional>
+    <optional>
+      <element name="test_null_space">
+        <a:documentation>Test whether the null space is actually a null space</a:documentation>
+        <empty/>
+      </element>
     </optional>
   </define>
   <define name="basic_solver_options">
