@@ -115,7 +115,7 @@
           <poisson_pressure_solution>
             <string_value lines="1">never</string_value>
           </poisson_pressure_solution>
-          <use_compressible_projection_method/>
+          <use_projection_method/>
           <update_discretised_equation/>
         </scheme>
         <solver>

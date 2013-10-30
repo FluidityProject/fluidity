@@ -1324,6 +1324,7 @@ contains
       call allocate(extended_mesh, node_count(pressure_mesh)+node_count(fs_mesh), &
           element_count(pressure_mesh), pressure_mesh%shape, &
           "Extended"//trim(pressure_mesh%name))
+      extended_mesh%periodic = pressure_mesh%periodic
 
       do ele=1, element_count(pressure_mesh)
         nodes => ele_nodes(pressure_mesh,ele)

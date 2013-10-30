@@ -1,8 +1,6 @@
 input: clean
-	gmsh -2 src/squareA.geo
-	../../bin/gmsh2triangle --2d -i src/squareA.msh
-	gmsh -2 src/squareB.geo
-	../../bin/gmsh2triangle --2d -i src/squareB.msh
+	gmsh -2 src/squareA.geo -o squareA.msh
+	gmsh -2 src/squareB.geo -o squareB.msh
 
 clean:
-	rm -rf src/*.msh *.stat *.vtu *.log-0 *.err-0 *checkpoint *.convergence *.log *.node *.edge *.ele
+	rm -rf *.msh *.stat *.vtu *.log-0 *.err-0 *checkpoint *.convergence *.log *.node *.edge *.ele

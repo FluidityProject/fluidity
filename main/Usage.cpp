@@ -84,12 +84,6 @@ void print_version(ostream& stream){
 #else
       <<"no\n"
 #endif
-      <<"CGNS support\t\t\t"
-#ifdef HAVE_CGNS
-      <<"yes\n"
-#else
-      <<"no\n"
-#endif
       <<"NetCDF support\t\t\t"
 #ifdef HAVE_LIBNETCDF   
       <<"yes\n"
