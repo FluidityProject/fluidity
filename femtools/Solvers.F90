@@ -1679,7 +1679,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
          call MatNullSpaceCreate(MPI_COMM_FEMTOOLS, PETSC_TRUE, 0, PETSC_NULL_OBJECT_ARRAY, null_space, ierr)
        else
          null_space = create_null_space_from_options(mat, trim(solver_option_path)//"/remove_null_space", &
-            petsc_numbering, positions=positions)
+            petsc_numbering, positions=positions, rotation_matrix=rotation_matrix)
        end if
        call KSPSetNullSpace(ksp, null_space, ierr)
        call MatNullSpaceDestroy(null_space, ierr)
