@@ -2398,9 +2398,9 @@ stage is then applied to the horizontal input mesh, and the
 \option{bottom\_depth} and \option{sizing\_function} extrusion options are
  reapplied for the creation of the vertical columns.
 If an extruded initial mesh is
-provided \emph{without} \option{vertically\_structured\_adaptivity}, the extruded 
-mesh is simply adapted in all directions, resulting in a fully unstructured mesh
-and the extrusion options are no longer applicable. Further options under
+provided only \option{vertically\_structured\_adaptivity} can be used. Adapting the
+mesh is all dimension will not work correctly.
+Further options under
 \option{vertically\_structured\_adaptivity} are:
 \begin{itemize}
 \item \option{inhomogeneous\_vertical\_resolution} -
