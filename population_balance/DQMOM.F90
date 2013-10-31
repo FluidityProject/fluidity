@@ -50,7 +50,6 @@ module dqmom
   !! TODO:
   !! 1. Make field_finding algorithm work for multiple phases and make sure it works for
   !!    several pop_balances
-  !! 2. Check what PD algorithm does when it can't find the abscissa and weights
   !! 3. Make check_options run
   !! 4. Check all prognostic fields are identical (possible bar initial conditions)
   !! 5. Check prognostic Source terms are set to diagnostic, Internal
@@ -202,7 +201,7 @@ contains
        ! values
        P(1,2) = 1.0       
        do i = 2, 2*n_abscissa
-          P(i,2) = (-1)**(i-1)*node_val(moments(i)%ptr, i_node)
+          P(i,2) = (-1)**(i-1)*(node_val(moments(i)%ptr, i_node)/node_val(moments(1)%ptr, i_node))
        end do
        do j = 3, 2*n_abscissa + 1
           do i = 1, (2*n_abscissa + 1) - (j - 1)
