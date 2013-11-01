@@ -1136,6 +1136,21 @@ suggested value 0.1</a:documentation>
                   </element>
                 </element>
               </optional>
+              <optional>
+                <element name="scalar_field">
+                  <a:documentation>If distance to wall is enabled a Van Driest damping function will be applied based upon the wall distances set in this field.</a:documentation>
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>DistanceToWall</value>
+                  </attribute>
+                  <element name="prescribed">
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="prescribed_scalar_field"/>
+                  </element>
+                </element>
+              </optional>
             </element>
           </optional>
         </element>

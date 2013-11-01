@@ -279,7 +279,7 @@ contains
     ! LES - sp911
     logical :: have_les = .false.
     real :: smagorinsky_coefficient
-    type(scalar_field), pointer :: eddy_visc, prescribed_filter_width
+    type(scalar_field), pointer :: eddy_visc, prescribed_filter_width, distance_to_wall
 
     ewrite(1, *) "In construct_momentum_dg"
 
@@ -631,6 +631,10 @@ contains
         if (stat/=0) then
           nullify(prescribed_filter_width)
         end if
+        distance_to_wall => extract_scalar_field(state, "DistanceToWall", stat=stat)  
+        if (stat/=0) then
+          nullify(distance_to_wall)
+        end if
       end if
 
     end if
@@ -751,7 +755,8 @@ contains
             & inverse_masslump=inverse_masslump, &
             & mass=mass, subcycle_m=subcycle_m, partial_stress=partial_stress, &
             & have_les=have_les, smagorinsky_coefficient=smagorinsky_coefficient, &
-            & eddy_visc=eddy_visc, prescribed_filter_width=prescribed_filter_width)
+            & eddy_visc=eddy_visc, prescribed_filter_width=prescribed_filter_width, &
+            & distance_to_wall=distance_to_wall)
       end do element_loop
       !$OMP END DO
 
@@ -809,7 +814,7 @@ contains
        &turbine_conn_mesh, on_sphere, depth, have_wd_abs, alpha_u_field, Abs_wd, &
        &vvr_sf, ib_min_grad, nvfrac, &
        &inverse_mass, inverse_masslump, mass, subcycle_m, partial_stress, &
-       &have_les, smagorinsky_coefficient, eddy_visc, prescribed_filter_width)
+       &have_les, smagorinsky_coefficient, eddy_visc, prescribed_filter_width, distance_to_wall)
 
     !!< Construct the momentum equation for discontinuous elements in
     !!< acceleration form.
@@ -1004,7 +1009,8 @@ contains
     ! LES - sp911
     logical :: have_les
     real :: smagorinsky_coefficient
-    type(scalar_field), pointer, intent(inout) :: eddy_visc, prescribed_filter_width
+    type(scalar_field), pointer, intent(inout) :: eddy_visc
+    type(scalar_field), pointer, intent(in) :: prescribed_filter_width, distance_to_wall
 
     dg=continuity(U)<0
     p0=(element_degree(u,ele)==0)
@@ -2089,7 +2095,7 @@ contains
       real, dimension(mesh_dim(u), mesh_dim(u), ele_loc(u,ele)) :: g_nl
       real, dimension(mesh_dim(u), mesh_dim(u)) :: s
       real, dimension(ele_loc(u,ele)) :: s_mod
-      real, dimension(ele_loc(u,ele)) :: les_scalar_viscosity
+      real, dimension(ele_loc(u,ele)) :: les_scalar_viscosity, y_wall, y_plus
       real, dimension(ele_loc(u,ele), ele_loc(u,ele)) :: M_inv
       
       ! get inverse mass
@@ -2151,11 +2157,21 @@ contains
       if (associated(prescribed_filter_width)) then
         les_filter_width = ele_val(prescribed_filter_width, ele)
       else
-        les_filter_width = length_scale_scalar(X, ele)
+        ! when using the element size to compute the filter width we assume the filter 
+        ! width is twice the element size
+        les_filter_width = 2*length_scale_scalar(X, ele)
       end if
 
-      les_scalar_viscosity = 4.0*les_filter_width*&
-           s_mod*(smagorinsky_coefficient**2)
+      ! apply Van Driest damping functions
+      if (associated(distance_to_wall)) then
+        y_wall = ele_val(distance_to_wall, ele)
+        do i=1,ele_loc(u,ele)
+          y_plus(i) = y_wall(i) * norm2(g_nl(:,:,i)+transpose(g_nl(:,:,i)))
+        end do
+        les_filter_width = (1 - exp(-1.0*y_plus/25.0))*les_filter_width
+      end if
+
+      les_scalar_viscosity = (les_filter_width*smagorinsky_coefficient)**2 * s_mod
 
       if (associated(eddy_visc)) then
         call set(eddy_visc, ele_nodes(eddy_visc, ele), les_scalar_viscosity)

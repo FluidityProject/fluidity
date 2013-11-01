@@ -932,6 +932,17 @@ prognostic_velocity_field =
                            prescribed_scalar_field
                         }
                      )
+                  }?,
+                  ## If distance to wall is enabled a Van Driest damping function will be applied based upon the wall distances set in this field.
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "DistanceToWall" },
+                     (
+                        element prescribed {
+                           velocity_mesh_choice,
+                           prescribed_scalar_field
+                        }
+                     )
                   }?
                }?
             }
