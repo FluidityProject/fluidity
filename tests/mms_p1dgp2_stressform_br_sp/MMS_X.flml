@@ -142,9 +142,8 @@
               <exclude_mass_terms/>
             </mass_terms>
             <viscosity_scheme>
-              <bassi_rebay>
-                <partial_stress_form/>
-              </bassi_rebay>
+              <bassi_rebay/>
+              <partial_stress_form/>
             </viscosity_scheme>
             <advection_scheme>
               <none/>

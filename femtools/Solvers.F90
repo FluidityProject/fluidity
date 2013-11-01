@@ -1697,8 +1697,12 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     end if
     if (have_option(trim(solver_option_path)// &
        '/diagnostics/monitors/preconditioned_residual_graph')) then
+#if PETSC_VERSION_MINOR<4
         call KSPMonitorSet(ksp, KSPMonitorLG, PETSC_NULL_OBJECT, &
            PETSC_NULL_FUNCTION, ierr)
+#else
+        FLExit("Solver option diagnostics/monitors/preconditioned_residual_graph not supported with petsc version >=3.4")
+#endif
     end if
 
     if (have_option(trim(solver_option_path)// &

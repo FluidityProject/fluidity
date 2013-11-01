@@ -765,7 +765,7 @@ contains
     ! create a Vec according to the proper partioning:
     call VecCreateMPI(MPI_COMM_FEMTOOLS, n*ncomponents, m, new_x, ierr)
     ! fill it with values from the read x by asking for its row numbers
-    call VecScatterCreate(x, row_indexset, new_x, PETSC_NULL, &
+    call VecScatterCreate(x, row_indexset, new_x, PETSC_NULL_OBJECT, &
        scatter, ierr)
     call VecScatterBegin(scatter, x, new_x, INSERT_VALUES, &
        SCATTER_FORWARD, ierr)

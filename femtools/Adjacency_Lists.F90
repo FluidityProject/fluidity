@@ -908,7 +908,7 @@ END SUBROUTINE NODELE
            if(.not. any(row_idx(j - 1)%ptr == candidate_ele)) cycle ele_loop
          end do
          
-#ifndef DDEBUG
+#ifdef DDEBUG
          if(adj_ele > 0) then
            ! We've found more than one adjacent element. We're in trouble.
            adj_ele = -1

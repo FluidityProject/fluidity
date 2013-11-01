@@ -97,7 +97,7 @@ module populate_state_module
        
   !! A list of relative paths under /material_phase[i]
   !! that are searched for additional fields to be added.
-  character(len=OPTION_PATH_LEN), dimension(11) :: additional_fields_relative=&
+  character(len=OPTION_PATH_LEN), dimension(14) :: additional_fields_relative=&
        (/ &
        "/subgridscale_parameterisations/Mellor_Yamada                                                       ", &
        "/subgridscale_parameterisations/prescribed_diffusivity                                              ", &
@@ -109,7 +109,10 @@ module populate_state_module
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/fourth_order", &
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/wale        ", &
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/dynamic_les ", &
-       "/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/les_model/         " &
+       "/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/les_model/         ", &
+       "/vector_field::Velocity/prognostic/equation::ShallowWater                                           ", &
+       "/vector_field::Velocity/prognostic/equation::ShallowWater/bottom_drag                               ", &
+       "/vector_field::BedShearStress/diagnostic/calculation_method/velocity_gradient                       " &
        /)
 
   !! Relative paths under a field that are searched for grandchildren
@@ -782,7 +785,7 @@ contains
           if (mesh_name=="CoordinateMesh") then
             call allocate(coordinateposition, modelposition%dim, mesh, "Coordinate")
           else
-            call allocate(coordinateposition, modelposition%dim, mesh, trim(mesh_name)//"/Coordinate")
+            call allocate(coordinateposition, modelposition%dim, mesh, trim(mesh_name)//"Coordinate")
           end if
                 
           ! remap the external mesh positions onto the CoordinateMesh... this requires that the space
@@ -1645,7 +1648,6 @@ contains
     type(tensor_field) :: tfield
 
     integer :: i, s, stat
-    real :: Pr
 
     ! Prescribed diffusivity
     do i = 1, size(states)
@@ -1917,12 +1919,12 @@ contains
     adapt_path=trim(path)//"/adaptivity_options"
     if(have_option(trim(adapt_path)//"/absolute_measure")) then
        adapt_path=trim(adapt_path)//"/absolute_measure/scalar_field::InterpolationErrorBound"
-       call allocate_and_insert_scalar_field(adapt_path, state, parent_mesh=mesh_name, &
+       call allocate_and_insert_scalar_field(adapt_path, state, parent_mesh=topology_mesh_name, &
           parent_name=lfield_name, &
           dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     else if(have_option(trim(adapt_path)//"/relative_measure")) then
        adapt_path=trim(adapt_path)//"/relative_measure/scalar_field::InterpolationErrorBound"
-       call allocate_and_insert_scalar_field(adapt_path, state, parent_mesh=mesh_name, &
+       call allocate_and_insert_scalar_field(adapt_path, state, parent_mesh=topology_mesh_name, &
           parent_name=lfield_name, &
           dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     end if
@@ -2050,11 +2052,11 @@ contains
     adapt_path=trim(path)//"/adaptivity_options"
     if(have_option(trim(adapt_path)//"/absolute_measure")) then
        adapt_path=trim(adapt_path)//"/absolute_measure/vector_field::InterpolationErrorBound"
-       call allocate_and_insert_vector_field(adapt_path, state, mesh_name, lfield_name, &
+       call allocate_and_insert_vector_field(adapt_path, state, topology_mesh_name, lfield_name, &
           dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     else if(have_option(trim(adapt_path)//"/relative_measure")) then
        adapt_path=trim(adapt_path)//"/relative_measure/vector_field::InterpolationErrorBound"
-       call allocate_and_insert_vector_field(adapt_path, state, mesh_name, lfield_name, &
+       call allocate_and_insert_vector_field(adapt_path, state, topology_mesh_name, lfield_name, &
           dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     end if
 
@@ -2170,11 +2172,11 @@ contains
     adapt_path=trim(path)//"/adaptivity_options"
     if(have_option(trim(adapt_path)//"/absolute_measure")) then
        adapt_path=trim(adapt_path)//"/absolute_measure/tensor_field::InterpolationErrorBound"
-       call allocate_and_insert_tensor_field(adapt_path, state, mesh_name, field_name, &
+       call allocate_and_insert_tensor_field(adapt_path, state, topology_mesh_name, field_name, &
             dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     else if(have_option(trim(adapt_path)//"/relative_measure")) then
        adapt_path=trim(adapt_path)//"/relative_measure/tensor_field::InterpolationErrorBound"
-       call allocate_and_insert_tensor_field(adapt_path, state, mesh_name, field_name, &
+       call allocate_and_insert_tensor_field(adapt_path, state, topology_mesh_name, field_name, &
             dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     end if
 
@@ -3907,11 +3909,11 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
     if (have_option(trim(pressure_path))) then
 
        ! Check that compressible projection method is used:
-       compressible_projection = have_option(trim(pressure_path)//&
-            "/scheme/use_compressible_projection_method")
+       compressible_projection = have_option("/material_phase[0]"//&
+            "/equation_of_state/compressible")
 
        if(.not.(compressible_projection)) then
-          FLExit("For foam problems you need to use the compressible projection method.")
+          FLExit("For foam problems you need to use a compressible eos.")
        end if
     end if
 

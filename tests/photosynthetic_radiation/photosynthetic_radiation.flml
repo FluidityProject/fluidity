@@ -142,7 +142,7 @@
             </iterative_method>
             <preconditioner name="sor"/>
             <relative_error>
-              <real_value rank="0">1.0e-7</real_value>
+              <real_value rank="0">1.0e-8</real_value>
             </relative_error>
             <max_iterations>
               <integer_value rank="0">5000</integer_value>

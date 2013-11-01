@@ -86,10 +86,18 @@ sediment reentrainment. </a:documentation>
               <ref name="real"/>
             </element>
           </optional>
+          <optional>
+            <!--
+              Only for debugging purposes - sets Neumann boundary to zero (diagnostic fields are
+              still set)
+            -->
+            <element name="set_to_zero">
+              <empty/>
+            </element>
+          </optional>
         </element>
         <element name="type">
-          <a:documentation>[UNDER DEVELOPMENT - DOES NOT WORK YET]
-Special type of Dirichlet boundary condition for the k-epsilon
+          <a:documentation>Special type of Dirichlet boundary condition for the k-epsilon
 turbulence model. Can be used on TurbulentKineticEnergy (k)
 and/or TurbulentDissipation (epsilon) fields.
 e.g. use a Dirichlet BC on inlets and k_epsilon on walls.</a:documentation>
@@ -97,11 +105,8 @@ e.g. use a Dirichlet BC on inlets and k_epsilon on walls.</a:documentation>
             <value>k_epsilon</value>
           </attribute>
           <element name="string_value">
-            <a:documentation>Select high/low Reynolds number wall functions for k and epsilon fields.</a:documentation>
-            <choice>
-              <value>low_Re</value>
-              <value>high_Re</value>
-            </choice>
+            <a:documentation>Select low Reynolds number wall function for k and epsilon fields.</a:documentation>
+            <value>low_Re</value>
           </element>
         </element>
         <element name="type">
@@ -914,17 +919,7 @@ scaled by C_0</a:documentation>
                 <a:documentation>Classical scheme from Bassi and Rebay 
 (JCP 131 267-179 1997)
 Partial stress form is available for inhomogenous isotropic viscosities</a:documentation>
-                <choice>
-                  <element name="tensor_form">
-                    <a:documentation>solves the viscosity term in the form:  d/dx_j K du_i/dx_j</a:documentation>
-                    <empty/>
-                  </element>
-                  <element name="partial_stress_form">
-                    <a:documentation>solves the viscosity term in the form:  d/dx_j k (du_i/dx_j + du_j/dx_j)
-note that the viscosity, k, must be isoptropic</a:documentation>
-                    <empty/>
-                  </element>
-                </choice>
+                <empty/>
               </element>
               <element name="arbitrary_upwind">
                 <a:documentation>Scheme in which upwinding is applied in
@@ -995,6 +990,19 @@ Int grad u.kappa.grad v dV</a:documentation>
                     </optional>
                   </element>
                 </optional>
+              </element>
+            </choice>
+            <choice>
+              <element name="tensor_form">
+                <a:documentation>solves the viscosity term in the form:  d/dx_j K du_i/dx_j</a:documentation>
+                <empty/>
+              </element>
+              <element name="partial_stress_form">
+                <a:documentation>solves the viscosity term in the form:  d/dx_j k (du_i/dx_j + du_j/dx_j)
+note that the viscosity, k, must be isoptropic
+
+only implemented for the bassi-rebay viscosity scheme</a:documentation>
+                <empty/>
               </element>
             </choice>
           </element>
@@ -1160,12 +1168,17 @@ suggested value 0.1</a:documentation>
         <element name="theta_pressure_gradient">
           <a:documentation>Implicit/explicit control of pressure gradient temporal
  discretisation, theta_pg
+
  =0.  -- explicit
+
  =0.5 -- Crank-Nicolson
+
  =1.  -- implicit
+
  Specification of this parameter will only affect
  solution procedure when a free-surface is present or 
- compressible projection is used. If left unspecified
+ compressible projection or equation type Shallow Water is used. 
+ If left unspecified
  the code defaults to theta_pg = theta.</a:documentation>
           <ref name="real"/>
         </element>
@@ -1174,12 +1187,17 @@ suggested value 0.1</a:documentation>
         <element name="theta_divergence">
           <a:documentation>Implicit/explicit control of velocity-divergence temporal
  discretisation, theta_divergence
+
  =0.  -- explicit
+
  =0.5 -- Crank-Nicolson
+
  =1.  -- implicit
+
  Specification of this parameter will only affect
  solution procedure when a free-surface is present or 
- compressible projection is used. If left unspecified
+ compressible projection or equation type Shallow Water is used. 
+ If left unspecified
  the code defaults to theta_divergence = theta.</a:documentation>
           <ref name="real"/>
         </element>
@@ -1685,130 +1703,87 @@ runs to ensure correct results.</a:documentation>
         </element>
         <ref name="comment"/>
       </element>
-      <choice>
-        <element name="use_projection_method">
-          <a:documentation>Use the incompressible projection method to determine
+      <element name="use_projection_method">
+        <a:documentation>Use the projection method to determine
 the pressure and satisfy continuity</a:documentation>
-          <optional>
-            <element name="full_schur_complement">
-              <a:documentation>Assemble and use the full schur complement.
+        <optional>
+          <element name="full_schur_complement">
+            <a:documentation>Assemble and use the full schur complement.
 This allows you to not lump the mass matrix if you're using
 cg and to use the full momentum matrix in the projection if
 you so desire.</a:documentation>
-              <choice>
-                <element name="inner_matrix">
-                  <a:documentation>Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
+            <choice>
+              <element name="inner_matrix">
+                <a:documentation>Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
 Use the full mass matrix.
 
 Make sure you've not lumped your mass in the velocity spatial_discretisation if you want to be consistent!</a:documentation>
-                  <attribute name="name">
-                    <value>FullMassMatrix</value>
-                  </attribute>
-                  <element name="solver">
-                    <ref name="linear_solver_options_sym"/>
-                  </element>
+                <attribute name="name">
+                  <value>FullMassMatrix</value>
+                </attribute>
+                <element name="solver">
+                  <ref name="linear_solver_options_sym"/>
                 </element>
-                <element name="inner_matrix">
-                  <a:documentation>Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
+              </element>
+              <element name="inner_matrix">
+                <a:documentation>Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
 Use the full momentum matrix.
 
 Doesn't really matter if you've lumped your mass or not but why would you if you're doing a full inner solve anyway?</a:documentation>
-                  <attribute name="name">
-                    <value>FullMomentumMatrix</value>
-                  </attribute>
-                  <element name="solver">
-                    <ref name="linear_solver_options_asym_vector"/>
-                  </element>
+                <attribute name="name">
+                  <value>FullMomentumMatrix</value>
+                </attribute>
+                <element name="solver">
+                  <ref name="linear_solver_options_asym_vector"/>
                 </element>
-              </choice>
-              <choice>
-                <element name="preconditioner_matrix">
-                  <a:documentation>Specify the preconditioner matrix to use on the schur complement.
+              </element>
+            </choice>
+            <choice>
+              <element name="preconditioner_matrix">
+                <a:documentation>Specify the preconditioner matrix to use on the schur complement.
 
 For DG, the LumpedSchurComplement is our best approximation to CMC.</a:documentation>
-                  <attribute name="name">
-                    <value>LumpedSchurComplement</value>
-                  </attribute>
-                  <optional>
-                    <element name="lump_on_submesh">
-                      <empty/>
-                    </element>
-                  </optional>
-                </element>
-                <element name="preconditioner_matrix">
-                  <a:documentation>Specify the preconditioner matrix to use on the schur complement.
+                <attribute name="name">
+                  <value>LumpedSchurComplement</value>
+                </attribute>
+                <optional>
+                  <element name="lump_on_submesh">
+                    <empty/>
+                  </element>
+                </optional>
+              </element>
+              <element name="preconditioner_matrix">
+                <a:documentation>Specify the preconditioner matrix to use on the schur complement.
 
 DiagonalSchurComplement = C_P^T * [(Big_m)_diagonal]^-1 * C</a:documentation>
-                  <attribute name="name">
-                    <value>DiagonalSchurComplement</value>
-                  </attribute>
-                  <empty/>
-                </element>
-                <element name="preconditioner_matrix">
-                  <a:documentation>Specify the preconditioner matrix to use on the schur complement.
+                <attribute name="name">
+                  <value>DiagonalSchurComplement</value>
+                </attribute>
+                <empty/>
+              </element>
+              <element name="preconditioner_matrix">
+                <a:documentation>Specify the preconditioner matrix to use on the schur complement.
 
 Pressure Mass Matrix, scaled with the inverse of viscosity. This is
 shown to be spectrally equivalent to the Schur complement.
 Note that this currently only works with isoviscous and/or isotropic
 viscosity tensors.</a:documentation>
-                  <attribute name="name">
-                    <value>ScaledPressureMassMatrix</value>
-                  </attribute>
-                  <empty/>
-                </element>
-                <element name="preconditioner_matrix">
-                  <a:documentation>Specify the preconditioner matrix to use on the schur complement.</a:documentation>
-                  <attribute name="name">
-                    <value>NoPreconditionerMatrix</value>
-                  </attribute>
-                  <empty/>
-                </element>
-              </choice>
-            </element>
-          </optional>
-        </element>
-        <element name="use_compressible_projection_method">
-          <a:documentation>Use the compressible projection method to determine the
-pressure and satisfy continuity and the eos.
-This is only currently compatible with control volume
-pressure spatial discretisations and requires a
-multimaterial eos.</a:documentation>
-          <optional>
-            <choice>
-              <element name="normalisation">
-                <a:documentation>Variable (normally a density) used to normalise
-each materials contribution
-to the C_P^T matrix.  Leave unselected for no normalisation.
-Selects the MaterialDensity field.</a:documentation>
                 <attribute name="name">
-                  <value>MaterialDensity</value>
+                  <value>ScaledPressureMassMatrix</value>
                 </attribute>
                 <empty/>
               </element>
-              <element name="normalisation">
-                <a:documentation>Variable (normally a density) used to normalise
-each materials contribution
-to the C_P^T matrix.  Leave unselected for no normalisation.
-Selects the bulk Density field.</a:documentation>
+              <element name="preconditioner_matrix">
+                <a:documentation>Specify the preconditioner matrix to use on the schur complement.</a:documentation>
                 <attribute name="name">
-                  <value>Density</value>
-                </attribute>
-                <empty/>
-              </element>
-              <element name="normalisation">
-                <a:documentation>Variable (normally a density) used to normalise
-each materials contribution
-to the C_P^T matrix.  Leave unselected for no normalisation.
-Allows the selection of an arbitrary field.</a:documentation>
-                <attribute name="name">
-                  <data type="string" datatypeLibrary=""/>
+                  <value>NoPreconditionerMatrix</value>
                 </attribute>
                 <empty/>
               </element>
             </choice>
-          </optional>
-        </element>
-      </choice>
+          </element>
+        </optional>
+      </element>
       <optional>
         <element name="update_discretised_equation">
           <a:documentation>rediscretise the equations at every timestep and iteration
@@ -2534,6 +2509,45 @@ Boussinesq only works for continuous_galerkin and discontinuous_galerkin.</a:doc
         <attribute name="name">
           <value>Boussinesq</value>
         </attribute>
+      </element>
+      <element name="equation">
+        <a:documentation>Select the equation used to solve for velocity.
+
+Select ShallowWater to solve the non-linear shallow water equations in non-conservative form.
+The Velocity field will be the depth-averaged flow velocity and the Pressure field
+will be the free surface elevation multiplied by the gravitational constant g</a:documentation>
+        <attribute name="name">
+          <value>ShallowWater</value>
+        </attribute>
+        <!-- Bottom depth (excluding free surface elevation), a positive number -->
+        <element name="scalar_field">
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <attribute name="name">
+            <value>BottomDepth</value>
+          </attribute>
+          <element name="prescribed">
+            <ref name="coordinate_mesh_choice"/>
+            <ref name="prescribed_scalar_field"/>
+          </element>
+        </element>
+        <optional>
+          <element name="bottom_drag">
+            <element name="scalar_field">
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <attribute name="name">
+                <value>BottomDragCoefficient</value>
+              </attribute>
+              <element name="prescribed">
+                <ref name="coordinate_mesh_choice"/>
+                <ref name="prescribed_scalar_field"/>
+              </element>
+            </element>
+          </element>
+        </optional>
       </element>
       <element name="equation">
         <a:documentation>Select the equation used to solve for velocity.

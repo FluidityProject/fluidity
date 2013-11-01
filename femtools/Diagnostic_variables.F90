@@ -1385,6 +1385,7 @@ contains
        ! In serial make sure the detector is in the domain
        ! unless we have the write_nan_outside override
        if (element<0 .and. .not.detector_list%write_nan_outside) then
+          ewrite(-1,*) "Dealing with detector ", id, " named: ", trim(name)
           FLExit("Trying to initialise detector outside of computational domain")
        end if
     end if

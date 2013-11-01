@@ -162,6 +162,20 @@ border length per unit volume (lambda). </a:documentation>
           <empty/>
         </element>
       </choice>
+      <optional>
+        <element name="subtract_out_reference_profile">
+          <a:documentation>This splits up the Density and Pressure fields into a hydrostatic (reference) component (') and a perturbed component (''). 
+The hydrostatic (reference) components, denoted p' and rho', should satisfy the balance:
+grad(p') = rho'*g
+
+Enabling this option will subtract the hydrostatic components, specified here, from the pressure and density used in the pressure gradient and buoyancy terms in the momentum equation. This helps to maintain hydrostatic balance and prevent spurious oscillations in the pressure field when using unbalanced finite element pairs.
+
+Note 1: You will also need to create two prescribed scalar fields, called HydrostaticReferencePressure and HydrostaticReferenceDensity, which define p' and rho'. These must be on the same mesh as pressure and density, respectively. Also, these fields are meant to be time-independent and set up as vertical profiles (i.e. constant in the horizontal direction).
+
+Note 2: Unlike all the other hydrostatic/geostrophic balance options in Fluidity (i.e. subtract_out_hydrostatic_level under the linear incompressible EoS option, or with HydrostaticPressure or GeostrophicPressure fields), the hydrostatic pressure is not subtracted from the Pressure field itself. In other words, the Pressure field that gets solved for (and output in the .vtu files) is still the combined Pressure (p = p' + p''), and the hydrostatic pressure p' is only subtracted in the momentum equation.</a:documentation>
+          <empty/>
+        </element>
+      </optional>
     </element>
   </define>
 </grammar>

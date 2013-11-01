@@ -349,7 +349,7 @@ If the flow is incompressible, $\nabla\cdot\bmu=0$. It is now possible to simpli
 
 If the flow is incompressible, and the viscosity is homogeneous:
 \begin{equation}
-\nabla\cdot\mu\left(\nabla\bmu + (\nabla\bmu)^T\right) = \frac{\partial_i}{\partial x_j} \mu \left(\frac{\partial \bmu_i}{\partial x_j} + \frac{\bmu_j}{\partial x_i}\right) = \mu \left(\frac{\partial_i}{\partial x_j}\frac{\partial \bmu_i}{\partial x_j} + \frac{\partial_i}{\partial x_j}\frac{\bmu_j}{\partial x_i}\right) = \mu \left(\frac{\partial_i}{\partial x_j}\frac{\partial \bmu_i}{\partial x_j}\right) = \nabla\cdot\mu\nabla\bmu
+\nabla\cdot\mu\left(\nabla\bmu + (\nabla\bmu)^T\right) = \frac{\partial}{\partial x_j} \mu \left(\frac{\partial \bmu_i}{\partial x_j} + \frac{\partial \bmu_j}{\partial x_i}\right) = \mu \left(\frac{\partial}{\partial x_j}\frac{\partial \bmu_i}{\partial x_j} + \frac{\partial}{\partial x_j}\frac{\partial \bmu_j}{\partial x_i}\right) = \mu \left(\frac{\partial}{\partial x_j}\frac{\partial \bmu_i}{\partial x_j}\right) = \nabla\cdot\mu\nabla\bmu
 \end{equation}
 the stress tensor can then be further simplified to obtain the '\emph{tensor form}':
 \begin{equation}
@@ -426,10 +426,10 @@ stating that a fluid particle following the flow at the free surface, should
 remain at the free surface. In other words, its trajectory is described by
 $t\mapsto (x(t), y(t),\eta(x(t),y(t),t))$. Its vertical velocity, $w$, should
 therefore satisfy:
-\begin{equation*}
+\begin{equation} \label{eq:kinematicbc1}
   \frac{D\eta}{Dt}=\bmu_H \cdot\nabla_H \eta +
   \frac{\partial\eta}{\partial t} = w \quad \textrm{on}\quad \Omega
-\end{equation*}
+\end{equation}
 where $\nabla_H\equiv(\partial/\partial x,\partial/\partial y)^T$, and
 $\bmu_H$ is the horizontal component of $\bmu$.
 Using the fact that the normal vector $\vec n$ at the free surface is
@@ -623,7 +623,7 @@ If the fluid is in a state of rest, the left hand-side is zero, giving:
 This is known as hydrostatic balance. If the pressure $p_{\text{top}}$ at the top of the domain
 is given, e.g., an atmospheric pressure or a given ice load, 
 the hydrostatic pressure can be computed as
-\begin{equation}
+\begin{equation} \label{eq:hydrostatic_pressure}
   p(x,y,z) = p_{\text{top}}(x,y) + \int_{z=z}^{\eta(x,y)} \rho g dz,
 \end{equation}
 where $z=\eta(x,y)$ denotes the location of the top of the domain, e.g. a free
@@ -772,7 +772,7 @@ where $\eta_{eq}$ is the equilibrium tidal potential (m), $\lambda$ is the east 
 $[(\pi/2)-{\text{latitude}}]$, $\chi$ is the astronomical argument (radians), $\sigma$
 is the frequency of the tidal constituent (s$^{\text{-1}}$), $t$ is universal standard
 time (s) and $A$ is the equilibrium amplitude of the tidal constituent (m). Subscript
-$i$ represents the semidiurnal constituents (e.g. M$_{\text{2}}$), subscript $j$
+$i$ represents the semi-diurnal constituents (e.g. M$_{\text{2}}$), subscript $j$
 the diurnal constituents (\eg K$_{\text{1}}$) and subscript $k$ the long period
 constituents (\eg M$_{\text{f}}$; \citealp{Wells2008}).   
 The overall forcing 
@@ -806,10 +806,68 @@ Earth's gravitational potential brought about by the re-distribution of the Eart
 is a correction for the physical distortion to the Earth's surface \citep{Pugh1987}.
 
 The exact values of $k$ and $h$ vary for different tidal constituents and the numbers shown are given
-for the semidiurnal M$_{\text{2}}$ constituent. Typical variations to $k$ and $h$ are less than 0.01 which
+for the semi-diurnal M$_{\text{2}}$ constituent. Typical variations to $k$ and $h$ are less than 0.01 which
 corresponds to a $<$1\% change to the equilibrium tidal potential.
 These errors are sufficiently small that the stated values are a suitable approximation to
 use in body tide corrections to the majority of tidal constituents.
+
+\subsection{Shallow water equations}
+\index{shallow water equations}
+In many oceanographic simulations, the horizontal lengths scales are much larger
+than the vertical. It can be shown that this leads to small vertical velocities,
+and in particular small vertical accelerations. Thus, in the vertical momentum
+equation \eqref{eq:vertmom} the left hand-side can be neglected entirely. This
+means we assume the total pressure is given by \eqref{eq:hydrostatic_pressure},
+the so-called hydrostatic or shallow water approximation.
+
+Although shallow water flows are nearly horizontal, they may still exhibit a
+three-dimensional structure, due to e.g. bottom friction. In many applications
+however, these 3D effects are not important and it is sufficient to only study
+the depth-averaged flow velocities and free surface elevations
+\citep{vreugdenhil1994}. The depth-integrated continuity equation can be derived
+by working out the horizontal divergence of the horizontal velocities
+integrated, vertically, from the bottom $z=b$ to the free surface $z=\eta$:
+\begin{equation}
+\begin{split}
+  \nabla_H \cdot \int_{z=b}^{z=\eta} \bmu_H &=
+  \bmu_H\big|_{z=\eta}\cdot\nabla_H \eta
+  -\bmu_H\big|_{z=b}\cdot\nabla_H b + \int_{z=b}^{z=\eta} \nabla_H\cdot\bmu_H \\
+  &=
+  \bmu_H\big|_{z=\eta}\cdot\nabla_H \eta
+  -\bmu_H\big|_{z=b}\cdot\nabla_H b 
+  + \int_{z=b}^{z=\eta} \nabla\cdot\bmu-\frac{\partial w}{\partial z} \\
+  &=
+  \left[\bmu_H\cdot\nabla_H \eta + w\right]_{z=\eta}
+  -\left[\bmu_H\cdot\nabla_H b + w\right]_{z=b} \\
+  &=-\frac{\partial\eta}{\partial t} + 0
+  \label{eq:swe1_derivation}
+\end{split}
+\end{equation}
+Here, we've made use of the divergence-freeness of the flow, and, in the last
+step, the kinematic boundary condition \eqref{eq:kinematicbc1} at the free
+surface and no-normal-flow condition at the bottom.
+
+After defining the total water depth $h=\eta-b$, and the depth-averaged
+velocity:
+\begin{equation}
+  \bar\bmu = \frac{\int_{z=b}^{z=\eta} \bmu_H}{h},
+\end{equation}
+the depth-averaged shallow water equations (in non-conservative form) are given
+by:
+\begin{subequations} \label{eq:swe}
+\begin{align}
+  \frac{\partial\eta}{\partial t} + \nabla\cdot\left(h\bar\bmu\right) &=0,
+  \label{eq:swe1} \\
+  \frac{\partial\bar\bmu}{\partial t} + \bar\bmu\cdot\nabla\bar\bmu
+  + g\nabla\eta + C_D \frac{\|\bar\bmu\|\bar\bmu}{h} &=0. \label{eq:swe2}
+\end{align}
+\end{subequations}
+Note that because this is now a purely two-dimensional equation, we may drop the
+subscript $H$ from the gradient operator $\nabla$. The continuity equation
+\eqref{eq:swe1} follows directly from \eqref{eq:swe1_derivation}.
+For the derivation of the depth-averaged momentum equation \eqref{eq:swe2} see
+e.g. \citet{vreugdenhil1994}. The last term in that equation is a quadratic drag term, with
+dimensionless coefficient $C_D$, that represents the bottom friction.
 
 \subsection{Multi-material simulations}
 \index{multi-material flow}
@@ -873,7 +931,7 @@ where $e_i$ is the internal energy, $k_i$ is the effective conductivity, $C_{v,i
 
 \subsection{Porous Media Darcy Flow}
 \label{sec:porous_media_darcy_flow_equations}
-\index{porous media darcy flow}
+\index{porous media Darcy flow}
 
 \subsubsection{Single Phase}
 

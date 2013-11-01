@@ -47,7 +47,7 @@ module mba2d_integration
 
     type(mesh_type), pointer :: xmesh
 
-    integer :: nonods, mxnods, orig_stotel, stotel, mxface, totele, maxele
+    integer :: nonods, mxnods, orig_stotel, stotel, mxface, totele, maxele, stotel_external
     real, dimension(:, :), allocatable :: pos
     integer, dimension(:, :), allocatable :: ipf
     integer, dimension(:, :), allocatable :: ipe
@@ -57,7 +57,7 @@ module mba2d_integration
     integer, dimension(:), allocatable :: iFnc
     integer, dimension(:), allocatable :: lbE
     real, dimension(:, :), allocatable :: tmp_metric
-    integer :: i, j, k, partition_surface_id, face
+    integer :: i, j, k, partition_surface_id, face, face2
     real :: quality, rQuality
     integer :: iPrint, ierr, maxWr, maxWi
     real, dimension(:), allocatable :: rW
@@ -144,6 +144,7 @@ module mba2d_integration
     ipf = 0
     partition_surface_id = maxval(surface_ids) + 1
     stotel = 0
+    stotel_external = 0
 
     call allocate(input_face_numbering_to_mba2d_numbering)
     do i=1,totele
@@ -156,14 +157,37 @@ module mba2d_integration
           call insert(input_face_numbering_to_mba2d_numbering, face, stotel)
           ipf(1:2, stotel) = face_global_nodes(xmesh, face)
           ipf(3, stotel) = 0
-          if (face <= orig_stotel) then ! if face is genuinely external, i.e. on the domain exterior
+          if (face <= orig_stotel) then ! if facet is genuinely external, i.e. on the domain exterior
             ipf(4, stotel) = surface_ids(face)
+            stotel_external = stotel_external + 1
           else
             ipf(4, stotel) = partition_surface_id
           end if
         end if
       end do
     end do
+
+    if (stotel_external<orig_stotel) then
+      ! not all facets in the surface mesh are external apparently
+      do face=1, orig_stotel
+        face2 = face_neigh(xmesh, face)
+        if (face>face2) then
+          ! if face==face2 it's an external facet that's dealt with already
+          ! we check face>face2 to ensure we only copy one of the two coinciding facets
+          stotel = stotel +1
+          call insert(input_face_numbering_to_mba2d_numbering, face, stotel)
+          ipf(1:2, stotel) = face_global_nodes(xmesh, face)
+          ipf(3, stotel) = 0
+          ipf(4, stotel) = surface_ids(face)
+          if (surface_ids(face)/=surface_ids(face2)) then
+            ! note that we're here checking for the combined surface+coplanar id to be the same
+            ! but the coplanar id of the 2 facets should always be the same
+            FLExit("Adaptivity with internal boundaries only works if the surface id is single valued")
+          end if
+        end if                
+      end do
+
+    end if
 
     if (.not. present(lock_faces)) then
       nfv = 0
@@ -343,22 +367,9 @@ module mba2d_integration
     new_mesh%option_path = xmesh%option_path
     
     if (.not. isparallel()) then
-      allocate(boundary_ids(stotel))
-      allocate(coplanar_ids(stotel))
-      call deinterleave_surface_ids(ipf(4, 1:stotel), max_coplanar_id, boundary_ids, coplanar_ids)  
-      
-      allocate(new_sndgln(1:2,1:stotel))
-      new_sndgln=ipf(1:2,1:stotel)
-      call add_faces(new_mesh, sndgln=reshape(new_sndgln, (/ 2*stotel /) ), &
-        boundary_ids=boundary_ids)
-      deallocate(boundary_ids)
-      deallocate(new_sndgln)
-      
-      if(associated(xmesh%faces%coplanar_ids)) then
-        allocate(new_mesh%faces%coplanar_ids(stotel))
-        new_mesh%faces%coplanar_ids = coplanar_ids
-      end if
-      deallocate(coplanar_ids)
+      allocate(new_sndgln(1:2,1:stotel), mba_boundary_ids(1:stotel))
+      new_sndgln = ipf(1:2,1:stotel)
+      mba_boundary_ids =ipf(4,1:stotel)
     else
       ! In parallel, we need to filter out the surface elements with colour partition_surface_id, because
       ! they are not real external faces
@@ -372,35 +383,39 @@ module mba2d_integration
         end if
       end do
 
+      ! number of surface elements without inter-partition surface elements
       stotel = j - 1
-      allocate(mba_boundary_ids(stotel))
-
-      do i=1,stotel
+      allocate(mba_boundary_ids(1:stotel), new_sndgln(1:2,1:stotel))
+      do i=1, stotel
         mba_boundary_ids(i) = ipf(4, fetch(physical_surface_ids, i))
-      end do
-
-      allocate(boundary_ids(stotel))
-      allocate(coplanar_ids(stotel))
-      call deinterleave_surface_ids(mba_boundary_ids, max_coplanar_id, boundary_ids, coplanar_ids)  
-      deallocate(mba_boundary_ids)
-      
-      allocate(new_sndgln(1:2,1:stotel))
-      do i=1,stotel
         new_sndgln(1:2, i) = ipf(1:2, fetch(physical_surface_ids, i))
       end do
-      call add_faces(new_mesh, sndgln=reshape(new_sndgln, (/ 2*stotel /) ), &
-        boundary_ids=boundary_ids)
-      deallocate(boundary_ids)
-      deallocate(new_sndgln)
       
-      if(associated(xmesh%faces%coplanar_ids)) then
-        allocate(new_mesh%faces%coplanar_ids(stotel))
-        new_mesh%faces%coplanar_ids = coplanar_ids
-      end if
-      deallocate(coplanar_ids)
-
+      do i=1, stotel
+        new_sndgln(1:2, i) = ipf(1:2, fetch(physical_surface_ids, i))
+      end do
       call deallocate(physical_surface_ids)
     end if
+
+    ! add_faces might create extra (internal) surface elements, so we 
+    ! use the combined boundary+coplanar ids first
+    call add_faces(new_mesh, sndgln=reshape(new_sndgln, (/ 2*stotel /) ), &
+      boundary_ids=mba_boundary_ids)
+    deallocate(mba_boundary_ids)
+    deallocate(new_sndgln)
+
+    ! and only deinterleave now we know the total number of elements in the surface mesh
+    stotel = surface_element_count(new_mesh)
+    allocate(boundary_ids(1:stotel), coplanar_ids(1:stotel))
+    call deinterleave_surface_ids(new_mesh%faces%boundary_ids, max_coplanar_id, boundary_ids, coplanar_ids)
+
+    new_mesh%faces%boundary_ids = boundary_ids
+
+    if(associated(xmesh%faces%coplanar_ids)) then
+      allocate(new_mesh%faces%coplanar_ids(1:stotel))
+      new_mesh%faces%coplanar_ids = coplanar_ids
+    end if
+    deallocate(boundary_ids, coplanar_ids)
     
     if(have_option("/mesh_adaptivity/hr_adaptivity/preserve_mesh_regions")&
                               .or.present_and_true(force_preserve_regions)) then

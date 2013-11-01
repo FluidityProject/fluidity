@@ -188,6 +188,7 @@ the geometry is 1d and one time step is done (as nothing depends on time)</comme
             </mass_terms>
             <viscosity_scheme>
               <compact_discontinuous_galerkin/>
+              <tensor_form/>
             </viscosity_scheme>
             <advection_scheme>
               <none/>

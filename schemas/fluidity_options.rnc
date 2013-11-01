@@ -2439,16 +2439,10 @@ diagnostic_vector_field_bed_shear_stress =
             element drag_coefficient {
                real
             }|
-            ## velocity_gradient - nu * grad(u)
+            ## nu * (grad(u) + grad(u).T)
             ## This uses the velocity gradient at the boundaries to calculate the 
-            ## bed shear stress. Valid for non parameterised velocity boundaries
-            element velocity_gradient {  
-               empty
-            }|
-            ## This diagnostic can only be used in conjunction with a near-wall treatment
-            ## velocity boundary condition. It is calculated at the same time as that boundary condition.
-            ## The shear stress depends upon parameters set for the near-wall treatment algorithm.
-            element wall_treatment {  
+            ## bed shear stress. Valid for non parameterised velocity boundaries.
+            element velocity_gradient {    
                empty
             }
          }
@@ -2835,26 +2829,12 @@ velocity_boundary_conditions =
             attribute name { "no_normal_flow" },
             empty
          }|
-
-         ## Implements a penalty function for the near wall region.
-         ## Using this option coarse meshes can
-         ## be used in the near wall region.
-         ##
-         ## Should be used in combination with a no_normal_flow condition. 
-         ##
-         ## See Bazilevs et al. 2007
-         element type{
-            attribute name { "near_wall_treatment" },
-            element tolerance {real},
-            ## if not set then Cb=2*h, where h is the element size
-            element Cb {real}?
-         }|
-         ## Log law of the wall
-         ##
-         ## Should be used in combination with a no_normal_flow condition. 
-         element type{
-            attribute name { "log_law_of_wall" },
-            element surface_roughness {real}
+         ## Implements a prescribed normal flow. Works for DG only. This
+         ## implements a weakly imposed bounadry condition normal to the surface.
+         ## Note: Positive points out of the domain, negative into the domain.
+         element type {
+            attribute name { "prescribed_normal_flow" },
+               input_choice_real_bc_component
          }|
          ## Flux boundary condition. 
          ##
@@ -3348,7 +3328,7 @@ scalar_field_choice =
             ## Field type
             (
                element prognostic {
-                  velocity_mesh_choice,
+                  velocity_mesh_choice,   
                   prognostic_scalar_field
                }|
                element prescribed {
@@ -3449,12 +3429,15 @@ scalar_field_choice =
             attribute rank { "0" },
             attribute name { "FreeSurface" },
             (
-               ## Free Surface
-               ## NOTE: the diagnostic FreeSurface field only works in combination
-               ## with the free_surface boundary condition applied to the Velocity
+               ## Free Surface elevation, to be used in combination with:
+               ##
+               ## * a free_surface boundary condition applied to the Velocity
                ## field, without the no_normal_stress_option.
                ## It gives you a full dimensional field (constant over the vertical)
                ## of the free surface elevation.
+               ##
+               ## * equation type ShallowWater for Velocity. It simply divides 
+               ## Pressure by g, the gravitational constant.
                element diagnostic {
                   internal_algorithm,
                   ## Must be on the same mesh as Pressure
@@ -5585,9 +5568,8 @@ vector_field_choice =
             )
          }|
          
-         ## Bed Shear Stress = density*drag_coeff*|u|*u
-         ##
-         ## at the moment this assumes the density and drag coefficients are constants.
+         ## Bed Shear Stress
+         ## 
          ## This diagnostic vector field is only calculated over surface elements/nodes, 
          ## interior nodes will have zero value.
          element vector_field {
@@ -5598,6 +5580,10 @@ vector_field_choice =
                    internal_algorithm,
                    velocity_mesh_choice,
                    diagnostic_vector_field_bed_shear_stress
+                }|
+                element prescribed {
+                   velocity_mesh_choice,
+                   prescribed_vector_field_no_adapt
                 }|
                 element aliased {
                    generic_aliased_field

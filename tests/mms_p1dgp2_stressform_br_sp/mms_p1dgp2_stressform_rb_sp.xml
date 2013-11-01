@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
-  <name>???</name>
+  <name>MMS test of partial stress form for P1DGP2 with bassi-rebay viscosity scheme</name>
   <owner userid="sp911"/>
   <tags>flml</tags>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>fluidity MMS_A.flml &gt; MMS_A.log; fluidity MMS_B.flml &gt; MMS_B.log; fluidity MMS_C.flml &gt; MMS_C.log; fluidity MMS_D.flml &gt; MMS_D.log</command_line>
   </problem_definition>
   <variables>
@@ -15,8 +15,6 @@ from math import log
 import numpy as np
 
 meshes = [['A','B'], ['B','C'], ['C','D']]
-
-convergence = np.ones(2) * 1e10
 
 print ''
 print 'ORDER OF CONVERGENCE'
@@ -37,30 +35,14 @@ for i, mesh in enumerate(meshes):
 
     print mesh[0] + '->' + mesh[1] + ': ', [log(ratio_x, 2), log(ratio_y, 2)]
 
-    convergence[0] = min(log(ratio_x, 2), log(ratio_y, 2), convergence[0])
+    convergence = min(log(ratio_x, 2), log(ratio_y, 2))
 
 print '-------------------------------------------'
-    </variable>
-    <variable name="a_finish_time" language="python">
-from fluidity_tools import stat_parser as stat
-a_finish_time = stat("MMS_A.stat")["ElapsedTime"]["value"][-1]
-    </variable>
-    <variable name="b_finish_time" language="python">
-from fluidity_tools import stat_parser as stat
-b_finish_time = stat("MMS_B.stat")["ElapsedTime"]["value"][-1]
-    </variable>
-    <variable name="c_finish_time" language="python">
-from fluidity_tools import stat_parser as stat
-c_finish_time = stat("MMS_C.stat")["ElapsedTime"]["value"][-1]
-    </variable>
-    <variable name="d_finish_time" language="python">
-from fluidity_tools import stat_parser as stat
-d_finish_time = stat("MMS_D.stat")["ElapsedTime"]["value"][-1]
     </variable>
   </variables>
   <pass_tests>
     <test name="velocity convergence order > 1.9" language="python">
-assert(convergence[0] &gt; 1.9)
+assert(convergence &gt; 1.9)
     </test>
   </pass_tests>
   <warn_tests>

@@ -44,11 +44,11 @@
     <dump_format>
       <string_value>vtk</string_value>
     </dump_format>
-    <dump_period_in_timesteps>
+    <dump_period>
       <constant>
-        <integer_value rank="0">50</integer_value>
+        <real_value rank="0">1</real_value>
       </constant>
-    </dump_period_in_timesteps>
+    </dump_period>
     <output_mesh name="CoordinateMesh"/>
     <stat/>
   </io>
@@ -73,15 +73,6 @@
         <mesh name="VelocityMesh"/>
       </courant_number>
     </adaptive_timestep>
-    <steady_state>
-      <tolerance>
-        <real_value rank="0">1.e-5</real_value>
-        <infinity_norm/>
-      </tolerance>
-      <steady_state_file>
-        <plain_text_output/>
-      </steady_state_file>
-    </steady_state>
   </timestepping>
   <material_phase name="Fluid">
     <subgridscale_parameterisations>
@@ -108,17 +99,7 @@
             </equation>
             <spatial_discretisation>
               <control_volumes>
-                <face_value name="FiniteElement">
-                  <limit_face_value>
-                    <limiter name="Sweby">
-                      <project_upwind_value_from_point>
-                        <store_upwind_elements>
-                          <store_upwind_quadrature/>
-                        </store_upwind_elements>
-                      </project_upwind_value_from_point>
-                    </limiter>
-                  </limit_face_value>
-                </face_value>
+                <face_value name="FirstOrderUpwind"/>
                 <diffusion_scheme name="ElementGradient"/>
               </control_volumes>
               <conservative_advection>
@@ -129,18 +110,14 @@
               <theta>
                 <real_value rank="0">0.5</real_value>
               </theta>
-              <control_volumes>
-                <number_advection_iterations>
-                  <integer_value rank="0">3</integer_value>
-                </number_advection_iterations>
-                <limit_theta/>
-              </control_volumes>
             </temporal_discretisation>
             <solver>
-              <iterative_method name="cg"/>
-              <preconditioner name="hypre">
-                <hypre_type name="boomeramg"/>
-              </preconditioner>
+              <iterative_method name="gmres">
+                <restart>
+                  <integer_value rank="0">30</integer_value>
+                </restart>
+              </iterative_method>
+              <preconditioner name="sor"/>
               <relative_error>
                 <real_value rank="0">1.e-7</real_value>
               </relative_error>
@@ -165,14 +142,6 @@
                 <constant>
                   <real_value rank="0">1.e-4</real_value>
                 </constant>
-              </type>
-            </boundary_conditions>
-            <boundary_conditions name="walls">
-              <surface_ids>
-                <integer_value shape="2" rank="1">10 12</integer_value>
-              </surface_ids>
-              <type name="k_epsilon">
-                <string_value>high_Re</string_value>
               </type>
             </boundary_conditions>
             <tensor_field name="Diffusivity" rank="2">
@@ -240,17 +209,7 @@
             </equation>
             <spatial_discretisation>
               <control_volumes>
-                <face_value name="FiniteElement">
-                  <limit_face_value>
-                    <limiter name="Sweby">
-                      <project_upwind_value_from_point>
-                        <store_upwind_elements>
-                          <store_upwind_quadrature/>
-                        </store_upwind_elements>
-                      </project_upwind_value_from_point>
-                    </limiter>
-                  </limit_face_value>
-                </face_value>
+                <face_value name="FirstOrderUpwind"/>
                 <diffusion_scheme name="ElementGradient"/>
               </control_volumes>
               <conservative_advection>
@@ -261,18 +220,14 @@
               <theta>
                 <real_value rank="0">0.5</real_value>
               </theta>
-              <control_volumes>
-                <number_advection_iterations>
-                  <integer_value rank="0">3</integer_value>
-                </number_advection_iterations>
-                <limit_theta/>
-              </control_volumes>
             </temporal_discretisation>
             <solver>
-              <iterative_method name="cg"/>
-              <preconditioner name="hypre">
-                <hypre_type name="boomeramg"/>
-              </preconditioner>
+              <iterative_method name="gmres">
+                <restart>
+                  <integer_value rank="0">30</integer_value>
+                </restart>
+              </iterative_method>
+              <preconditioner name="sor"/>
               <relative_error>
                 <real_value rank="0">1.e-7</real_value>
               </relative_error>
@@ -297,14 +252,6 @@
                 <constant>
                   <real_value rank="0">1.e-5</real_value>
                 </constant>
-              </type>
-            </boundary_conditions>
-            <boundary_conditions name="walls">
-              <surface_ids>
-                <integer_value shape="2" rank="1">10 12</integer_value>
-              </surface_ids>
-              <type name="k_epsilon">
-                <string_value>high_Re</string_value>
               </type>
             </boundary_conditions>
             <tensor_field name="Diffusivity" rank="2">
@@ -522,6 +469,16 @@
             <monitors/>
           </diagnostics>
         </solver>
+        <boundary_conditions name="out">
+          <surface_ids>
+            <integer_value shape="1" rank="1">11</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <constant>
+              <real_value rank="0">0.0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
         <output/>
         <stat/>
         <convergence>
@@ -616,16 +573,6 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <boundary_conditions name="walls">
-          <surface_ids>
-            <integer_value shape="2" rank="1">10 12</integer_value>
-          </surface_ids>
-          <type name="log_law_of_wall">
-            <surface_roughness>
-              <real_value rank="0">1.e-6</real_value>
-            </surface_roughness>
-          </type>
-        </boundary_conditions>
         <boundary_conditions name="no_normal">
           <surface_ids>
             <integer_value shape="2" rank="1">10 12</integer_value>
@@ -643,33 +590,53 @@
         <tensor_field name="Viscosity" rank="2">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
-            <output>
-              <exclude_from_vtu/>
-            </output>
+            <output/>
             <stat>
-              <exclude_from_stat/>
+              <include_in_stat/>
             </stat>
           </diagnostic>
         </tensor_field>
         <vector_field name="Source" rank="1">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
-            <output>
-              <exclude_from_vtu/>
-            </output>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </vector_field>
+        <vector_field name="Absorption" rank="1">
+          <prescribed>
+            <value name="WholeMesh">
+              <python>
+                <string_value lines="20" type="code" language="python">def val(X, t):
+    #absorption coefficient
+    k=0.5
+    if(X[0]&gt;30.0):
+        A=(X[0]-30.0)/5.0*k
+    else:
+        A=0.0
+    return [A,0.0]</string_value>
+              </python>
+            </value>
+            <output/>
             <stat>
               <exclude_from_stat/>
             </stat>
-            <convergence>
-              <exclude_from_convergence/>
-            </convergence>
             <detectors>
               <exclude_from_detectors/>
             </detectors>
-            <steady_state>
-              <exclude_from_steady_state/>
-            </steady_state>
-          </diagnostic>
+          </prescribed>
+          <default_absorption/>
         </vector_field>
         <output/>
         <stat>
@@ -688,7 +655,7 @@
           <include_in_detectors/>
         </detectors>
         <steady_state>
-          <include_in_steady_state/>
+          <exclude_from_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
