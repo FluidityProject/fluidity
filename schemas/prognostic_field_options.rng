@@ -1174,6 +1174,40 @@ suggested value 0.1</a:documentation>
                   </element>
                 </element>
               </optional>
+              <optional>
+                <element name="debug">
+                  <optional>
+                    <element name="scalar_field">
+                      <attribute name="rank">
+                        <value>0</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>YPlus</value>
+                      </attribute>
+                      <element name="prescribed">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="internal_algorithm"/>
+                        <ref name="diagnostic_scalar_field"/>
+                      </element>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="scalar_field">
+                      <attribute name="rank">
+                        <value>0</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>DampedFilterWidth</value>
+                      </attribute>
+                      <element name="prescribed">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="internal_algorithm"/>
+                        <ref name="diagnostic_scalar_field"/>
+                      </element>
+                    </element>
+                  </optional>
+                </element>
+              </optional>
             </element>
           </optional>
         </element>
