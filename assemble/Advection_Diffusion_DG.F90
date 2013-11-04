@@ -843,7 +843,8 @@ contains
          eddy_visc => extract_scalar_field(state, "DGLESScalarEddyViscosity", stat=stat)
          call get_option(trim(T%option_path)//"/prognostic"//&
               &"/subgridscale_parameterisation::LES/PrandtlNumber", prandtl)
-         do i = 1, U%dim
+         do i = 1, mesh_dim(U)
+           ewrite(0,*) i
            call addto(Diffusivity, i, i, eddy_visc, scale=1./prandtl)
          end do
        end if
