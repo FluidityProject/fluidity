@@ -884,6 +884,11 @@
                   sbcvngi = 3
                   scvngi = 3
                endif
+               if(u_nloc2==10) then ! use a quadratic interpolation pt set...
+                  cv_ngi = 14
+                  sbcvngi = 4
+                  scvngi = 4
+               endif
                if (whole_ele_volume_order==1) cv_ngi = 1
                if (whole_ele_surface_order==1) sbcvngi = 1
                if (whole_ele_surface_order==1) scvngi = 1
@@ -905,6 +910,11 @@
                cv_ngi = 7
                sbcvngi = 3
                scvngi = 3
+               if(u_nloc2==10) then ! use a quadratic interpolation pt set...
+                  cv_ngi = 14
+                  sbcvngi = 4
+                  scvngi = 4
+               endif
                if (whole_ele_volume_order==1) cv_ngi = 1
                if (whole_ele_surface_order==1) sbcvngi = 1
                if (whole_ele_surface_order==1) scvngi = 1
@@ -4504,6 +4514,7 @@
     end subroutine shatri_hex
 
 
+
     subroutine shatri( l1, l2, l3, l4, weight, d3, &
          nloc, ngi, &
          n, nlx, nly, nlz )
@@ -4518,12 +4529,30 @@
       real, dimension( :, : ), allocatable :: cvn_dummy, un_dummy, unlx_dummy, &
            unly_dummy, unlz_dummy
       real, dimension( : ), allocatable :: cvweigh_dummy
+      real :: a,b
 
       ewrite(3,*)'In shatri d3,nloc=',d3,nloc
 
       Conditional_Dimensionality: if( .not. d3 ) then ! Assume a triangle
 
          Conditional_NLOC: Select Case( nloc )
+         case( 10 )
+! cubic triangle...
+
+! get the shape functions for a cubic triangle...
+            call shape_triangle_cubic( l1, l2, l3, l4, weight, d3, &
+         nloc, ngi, &
+         n, nlx, nly, nlz )
+
+            base_order=.true.
+            if(base_order) then
+               ! order so that the 1st nodes are on the base...
+              call base_order_tri(n,nloc,ngi)
+              call base_order_tri(nlx,nloc,ngi)
+              call base_order_tri(nly,nloc,ngi)
+            endif
+
+!stop 6661
          case( 6, 7 )
             do gi = 1, ngi           
                n( 1, gi ) = ( 2. * l1( gi ) - 1. ) * l1( gi )            
@@ -4532,7 +4561,7 @@
                n( 4, gi ) = 4. * l1( gi ) * l2( gi )         
                n( 5, gi ) = 4. * l2( gi ) * l3( gi )         
                n( 6, gi ) = 4. * l1( gi ) * l3( gi )
-               ! x-derivative (nb. l1 + l2 + l3 + l4 = 1 )                
+               ! x-derivative (nb. l1 + l2 + l3  = 1 )                
                nlx( 1, gi ) = 4. * l1( gi ) - 1.              
                nlx( 2, gi ) = 0.           
                nlx( 3, gi ) = -4. * ( 1. - l2( gi ) ) + 4. * l1( gi ) + 1. 
@@ -4679,6 +4708,88 @@
 
 
 
+
+    subroutine shape_triangle_cubic( l1, l2, l3, l4, weight, d3, &
+         nloc, ngi, &
+         n, nlx, nly, nlz )
+      implicit none
+      integer, intent( in ) :: nloc, ngi
+      real, dimension( ngi ), intent( in ) :: l1, l2, l3, l4, weight
+      logical, intent( in ) :: d3
+      real, dimension( nloc, ngi ), intent( inout ) :: n, nlx, nly, nlz
+      ! Local variables
+      logical :: base_order
+      integer :: gi, ndim, cv_ele_type_dummy, u_nloc_dummy
+      real, dimension( :, : ), allocatable :: cvn_dummy, un_dummy, unlx_dummy, &
+           unly_dummy, unlz_dummy
+      real, dimension( : ), allocatable :: cvweigh_dummy
+      real :: a,b
+
+      ewrite(3,*)'In shatri d3,nloc=',d3,nloc
+      if(nloc.ne.10) then ! wrong element type
+          stop 28213
+      endif
+
+
+! cubic triangle...
+            do gi = 1, ngi   
+! corner nodes...
+               n( 1, gi ) = 0.5*( 3. * l1( gi ) - 1. ) * (3. * l1( gi )   -2.) *  l1( gi ) 
+               n( 2, gi ) = 0.5*( 3. * l2( gi ) - 1. ) * (3. * l2( gi )   -2.) *  l2( gi ) 
+               n( 3, gi ) = 0.5*( 3. * l3( gi ) - 1. ) * (3. * l3( gi )   -2.) *  l3( gi ) 
+! mid side nodes...
+               n( 4, gi ) = (9./2.)*l1( gi )*l2( gi )*( 3. * l1( gi ) - 1. ) 
+               n( 5, gi ) = (9./2.)*l2( gi )*l1( gi )*( 3. * l2( gi ) - 1. ) 
+
+               n( 6, gi ) = (9./2.)*l2( gi )*l3( gi )*( 3. * l2( gi ) - 1. ) 
+               n( 7, gi ) = (9./2.)*l3( gi )*l2( gi )*( 3. * l3( gi ) - 1. ) 
+
+               n( 8, gi ) = (9./2.)*l3( gi )*l1( gi )*( 3. * l3( gi ) - 1. ) 
+               n( 9, gi ) = (9./2.)*l1( gi )*l3( gi )*( 3. * l1( gi ) - 1. ) 
+! central node...
+               n( 10, gi ) = 27.*l1( gi )*l2( gi )*l3( gi ) 
+
+          ! x-derivative (nb. l1 + l2 + l3  = 1 )  
+! corner nodes...
+               nlx( 1, gi ) = 0.5*( 27. * l1( gi )**2  - 18. *  l1( gi ) + 2. )  
+               nlx( 2, gi ) = 0.0
+               nlx( 3, gi ) = 0.5*( 27. * l3( gi )**2  - 18. *  l3( gi ) + 2. )   *  (-1.0)
+! mid side nodes...
+               nlx( 4, gi ) = (9./2.)*(6.*l1( gi )*l2( gi )  - l2( gi ) )
+               nlx( 5, gi ) = (9./2.)*l2( gi )*( 3. * l2( gi ) - 1. ) 
+
+               nlx( 6, gi ) = - (9./2.)*l2( gi )*( 3. * l2( gi ) - 1. ) 
+               nlx( 7, gi ) = (9./2.)*(   -l2(gi)*( 6.*l3(gi) -1. )    )
+                 
+               nlx( 8, gi ) = -(9./2.)*( l1( gi )*(6.*l3(gi)-1.) + l3(gi)*(3.*l3(gi)-1.)  )
+               nlx( 9, gi ) = (9./2.)*(  l3(gi)*(3.*l1(gi)-1.) -l1(gi)*(3.*l1(gi)-1.)  )
+! central node...
+               nlx( 10, gi ) = 27.*l2( gi )*( 1. - 2.*l1(gi)  - l2( gi ) )
+ 
+          ! y-derivative (nb. l1 + l2 + l3  = 1 )  
+! corner nodes...
+               nly( 1, gi ) = 0.0  
+               nly( 2, gi ) = 0.5*( 27. * l2( gi )**2  - 18. *  l2( gi ) + 2.  )
+               nly( 3, gi ) = 0.5*( 27. * l3( gi )**2  - 18. *  l3( gi ) + 2.  )   *  (-1.0)
+! mid side nodes...
+               nly( 4, gi ) = (9./2.)*l1( gi )*( 3. * l1( gi ) - 1. ) 
+               nly( 5, gi ) = (9./2.)*l1( gi )*( 6. * l2( gi ) - 1. ) 
+
+               nly( 6, gi ) = (9./2.)*( l3( gi )*( 6. * l2( gi ) - 1. ) -l2(gi)*( 3.*l2(gi)-1. )  ) 
+               nly( 7, gi ) = (9./2.)*( -l2( gi )*( 6. * l3( gi ) - 1. ) +l3(gi)*(3.*l3(gi)-1.)  )
+
+               nly( 8, gi ) = -(9./2.)*l1( gi )*( 6. * l3( gi ) - 1. ) 
+               nly( 9, gi ) = -(9./2.)*l1( gi )*( 3. * l1( gi ) - 1. ) 
+! central node...
+               nly( 10, gi ) = 27.*l1( gi )*( 1. - 2.*l2(gi)  - l1( gi ) )
+           end do
+
+    end subroutine shape_triangle_cubic
+
+
+
+
+
     subroutine base_order_tri(n,nloc,ngi)
       ! order so that the 1st nodes are on the base for a 
       ! quadratic triangle...
@@ -4694,12 +4805,31 @@
       allocate(old2new(nloc))
       rn=n
 
-      old2new(1)=1
-      old2new(2)=4
-      old2new(3)=2
-      old2new(4)=6
-      old2new(5)=5
-      old2new(6)=3
+      if(nloc==6) then ! quadratic triangle
+
+         old2new(1)=1
+         old2new(2)=4
+         old2new(3)=2
+         old2new(4)=6
+         old2new(5)=5
+         old2new(6)=3
+
+      else if(nloc==10) then ! cubic triangle
+
+         old2new(1)=1
+         old2new(2)=4
+         old2new(3)=5
+         old2new(4)=2
+         old2new(5)=9
+         old2new(6)=10
+         old2new(7)=6
+         old2new(8)=8
+         old2new(9)=7
+         old2new(10)=3
+
+      else ! another element option not available
+         stop 921
+      endif
 
     do iloc=1,nloc
       n(iloc,:)=rn(old2new(iloc),:)
@@ -6647,6 +6777,8 @@
             nwicel = 4
          else if( cv_nloc == 10 ) then ! Quadratic tets
             nwicel = 5
+         else if( cv_nloc == 20 ) then ! Cubic tets
+            nwicel = 6
          end if
       else
          nwicel = 2
@@ -6654,10 +6786,14 @@
             nwicel = 1
          else if( cv_nloc == 9 ) then ! Quadratic hex
             nwicel = 3
-         else if ( cv_nloc == 3 ) then ! Linear tets
+         else if ( cv_nloc == 3 ) then ! Linear triangle
             nwicel = 4
-         else if ( cv_nloc == 6 ) then ! Quadratic tets
+         else if ( cv_nloc == 6 ) then ! Quadratic triangle
             nwicel = 5
+         else if ( cv_nloc == 10 ) then ! Cubic triangle
+            nwicel = 6
+         else
+             stop 2929
          end if
       end if Conditional_Dimensionality1
             
@@ -6679,6 +6815,8 @@
             nwicel = 4
          else if( u_nloc == 10 ) then ! Quadratic tets
             nwicel = 5
+         else if( u_nloc == 20 ) then ! Cubic tets
+            nwicel = 6
          end if
       else
          nwicel = 2
@@ -6690,6 +6828,8 @@
             nwicel = 4
          else if ( u_nloc == 6 ) then ! Quadratic tets
             nwicel = 5
+         else if ( u_nloc == 10 ) then ! Quadratic tets
+            nwicel = 6
          end if
       end if Conditional_Dimensionality2
 ! for velocity...
@@ -6832,8 +6972,8 @@
         ENDIF
      ENDIF
      
-     IF((NWICEL.EQ.4).or.(NWICEL.EQ.5)) THEN 
-! works for linear or quadratic triangles or tets...
+     IF((NWICEL.EQ.4).or.(NWICEL.EQ.5).or.(NWICEL.EQ.6)) THEN 
+! works for linear or quadratic triangles or tets (also cubic triangles)...
            CALL TR2or3DQU(NGI,NLOC,MLOC,        &
                 M,MLX,MLY,MLZ,                  &
                 WEIGHT,N,NLX,NLY,NLZ,           &
@@ -6969,7 +7109,7 @@
            endif
         endif
      else
-        if(nloc==6) then
+        if((nloc==6).or.(nloc==10)) then
            base_order=.true.
            if(base_order) then
               ! order so that the 1st nodes are on the base...
@@ -6996,7 +7136,7 @@
            CALL SHATRIold(L1, L2, L3, L4, SWEIGH, DD3,&
                               SNLOC,SNGI,&
                               SN,SNLX,SNLY,RUB) 
-           if(snloc==6) then
+           if((snloc==6).or.(snloc==10)) then
               base_order=.true.
               if(base_order) then
                  ! order so that the 1st nodes are on the base...
@@ -7232,7 +7372,34 @@
      !
      IF(.NOT.D3) THEN
         ! Assume a triangle...
-        IF((NLOC.EQ.6).OR.(NLOC.EQ.7)) THEN
+              !
+              IF(NLOC.EQ.1) THEN
+                 DO 30 GI=1,NGI
+                    N(1,GI)=1.0
+                    NLX(1,GI)=0.0
+                    NLY(1,GI)=0.0
+30               CONTINUE
+              ELSE IF((NLOC.EQ.3).OR.(NLOC.EQ.4)) THEN
+                 DO 20 GI=1,NGI
+                    N(1,GI)=L1(GI)
+                    N(2,GI)=L2(GI)
+                    N(3,GI)=L3(GI)
+                 !
+                    NLX(1,GI)=1.0
+                    NLX(2,GI)=0.0
+                    NLX(3,GI)=-1.0
+                 !
+                    NLY(1,GI)=0.0
+                    NLY(2,GI)=1.0
+                    NLY(3,GI)=-1.0
+                    IF(NLOC.EQ.4) THEN
+                    ! Bubble function...
+                       N(4,GI)  =L1(GI)*L2(GI)*L3(GI)
+                       NLX(4,GI)=L2(GI)*(1.-L2(GI))-2.*L1(GI)*L2(GI)
+                       NLY(4,GI)=L1(GI)*(1.-L1(GI))-2.*L1(GI)*L2(GI)
+                    ENDIF
+20               CONTINUE
+              ELSE IF((NLOC.EQ.6).OR.(NLOC.EQ.7)) THEN
            DO 10 GI=1,NGI
               N(1,GI)=(2.*L1(GI)-1.)*L1(GI)
               N(2,GI)=(2.*L2(GI)-1.)*L2(GI)
@@ -7269,37 +7436,15 @@
               ENDIF
 10            CONTINUE
               ! ENDOF IF(NLOC.EQ.6) THEN...
+           ELSE IF(NLOC==10) THEN ! Cubic triangle...
+! get the shape functions for a cubic triangle...
+            call shape_triangle_cubic( l1, l2, l3, l4, weight, d3, &
+         nloc, ngi, &
+         n, nlx, nly, nlz )
+           
+           ELSE ! has not found the element shape functions
+              stop 811 
            ENDIF
-           !
-           IF((NLOC.EQ.3).OR.(NLOC.EQ.4)) THEN
-              DO 20 GI=1,NGI
-                 N(1,GI)=L1(GI)
-                 N(2,GI)=L2(GI)
-                 N(3,GI)=L3(GI)
-                 !
-                 NLX(1,GI)=1.0
-                 NLX(2,GI)=0.0
-                 NLX(3,GI)=-1.0
-                 !
-                 NLY(1,GI)=0.0
-                 NLY(2,GI)=1.0
-                 NLY(3,GI)=-1.0
-                 IF(NLOC.EQ.4) THEN
-                    ! Bubble function...
-                    N(4,GI)  =L1(GI)*L2(GI)*L3(GI)
-                    NLX(4,GI)=L2(GI)*(1.-L2(GI))-2.*L1(GI)*L2(GI)
-                    NLY(4,GI)=L1(GI)*(1.-L1(GI))-2.*L1(GI)*L2(GI)
-                 ENDIF
-20               CONTINUE
-              ENDIF
-              !
-              IF(NLOC.EQ.1) THEN
-                 DO 30 GI=1,NGI
-                    N(1,GI)=1.0
-                    NLX(1,GI)=0.0
-                    NLY(1,GI)=0.0
-30                  CONTINUE
-                 ENDIF
                  !
                  ! ENDOF IF(.NOT.D3) THEN
               ENDIF
@@ -7445,6 +7590,7 @@
         REAL ALPHA,BETA
         REAL ALPHA1,BETA1
         REAL ALPHA2,BETA2
+        real rsum
         INTEGER I
 !
         IF(D3) THEN
@@ -7606,6 +7752,58 @@
                   L2(6)=ALPHA2
 ! ENDOF IF(NGI.EQ.7) THEN...
           ENDIF
+
+          IF(NGI.EQ.14) THEN
+! 5th order quadrature set...
+             L1(1) = 6.943184420297371E-002
+             L1(2) = 6.943184420297371E-002
+             L1(3) = 6.943184420297371E-002
+             L1(4) = 6.943184420297371E-002
+             L1(5) = 6.943184420297371E-002
+             L1(6) = 0.330009478207572
+             L1(7) = 0.330009478207572
+             L1(8) = 0.330009478207572
+             L1(9) = 0.330009478207572
+             L1(10) = 0.669990521792428
+             L1(11) = 0.669990521792428
+             L1(12) = 0.669990521792428
+             L1(13) = 0.930568155797026
+             L1(14) = 0.930568155797026
+! local coord 1:
+             L2(1) = 4.365302387072518E-002
+             L2(2) = 0.214742881469342
+             L2(3) = 0.465284077898513
+             L2(4) = 0.715825274327684
+             L2(5) = 0.886915131926301
+             L2(6) = 4.651867752656094E-002
+             L2(7) = 0.221103222500738
+             L2(8) = 0.448887299291690
+             L2(9) = 0.623471844265867
+             L2(10) = 3.719261778493340E-002
+             L2(11) = 0.165004739103786
+             L2(12) = 0.292816860422638
+             L2(13) = 1.467267513102734E-002
+             L2(14) = 5.475916907194637E-002
+! local coord 2:
+             WEIGHT(1) = 1.917346464706755E-002
+             WEIGHT(2) = 3.873334126144628E-002
+             WEIGHT(3) = 4.603770904527855E-002
+             WEIGHT(4) = 3.873334126144628E-002
+             WEIGHT(5) = 1.917346464706755E-002
+             WEIGHT(6) = 3.799714764789616E-002
+             WEIGHT(7) = 7.123562049953998E-002
+             WEIGHT(8) = 7.123562049953998E-002
+             WEIGHT(9) = 3.799714764789616E-002
+             WEIGHT(10) = 2.989084475992800E-002
+             WEIGHT(11) = 4.782535161588505E-002
+             WEIGHT(12) = 2.989084475992800E-002
+             WEIGHT(13) = 6.038050853208200E-003
+             WEIGHT(14) = 6.038050853208200E-003
+             rsum=SUM(WEIGHT(1:NGI)) 
+             WEIGHT(1:NGI)=WEIGHT(1:NGI)/RSUM
+! ENDOF IF(NGI.EQ.14) THEN...
+          ENDIF
+
 !
           DO I=1,NGI
                   L3(I)=1.0-L1(I)-L2(I)
@@ -8292,6 +8490,29 @@
             CV_SLOCLIST(4,1)=7
             CV_SLOCLIST(4,2)=8
             CV_SLOCLIST(4,3)=9
+         ELSE IF(CV_NLOC==10) THEN ! Cubic triangle
+         !    print *,'need to correct this'
+         !    stop 28
+            IF(NFACE/=3) THEN
+               EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
+               STOP 4337
+            ENDIF
+            CV_SLOCLIST(1,1)=1
+            CV_SLOCLIST(1,2)=2
+            CV_SLOCLIST(1,3)=3
+            CV_SLOCLIST(1,4)=4
+
+            CV_SLOCLIST(2,1)=1
+            CV_SLOCLIST(2,2)=5
+            CV_SLOCLIST(2,3)=8
+            CV_SLOCLIST(2,4)=10
+
+            CV_SLOCLIST(3,1)=4
+            CV_SLOCLIST(3,2)=7
+            CV_SLOCLIST(3,3)=9
+            CV_SLOCLIST(3,4)=10
+         ELSE ! option not available
+             stop 39211
 
          END IF
 
@@ -8316,7 +8537,7 @@
             CV_SLOCLIST(4,2)=3
             CV_SLOCLIST(4,3)=4
             ! quadratic triangle: 
-         ELSE IF(CV_NLOC==10) THEN
+         ELSE IF(CV_NLOC==10) THEN ! quadratic...
             IF(NFACE/=4) THEN
                EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
                STOP 4338

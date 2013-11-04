@@ -1208,14 +1208,17 @@
       integer :: iphase, ele, sele, cv_siloc, cv_snodi, cv_snodi_ipha, iface, s, e, &
            ele2, sele2, cv_iloc, idim, jdim, i, mat_nod
       real :: mobility, satura_bc
-      real, dimension( ndim, ndim ) :: inv_perm, sigma_out, mat, mat_inv
+      real, dimension( ndim, ndim ) :: inv_perm, sigma_out, sigma_in, mat, mat_inv
       integer, dimension( :, : ), allocatable :: cv_sloclist, face_ele
       integer, dimension( : ), allocatable :: idone
       integer, dimension( cv_snloc ) :: cv_sloc2loc
       integer, parameter :: WIC_BC_DIRICHLET = 1
 !!$ for the pressure b.c. and overlapping method 
 !!$ make the material property change just inside the domain else on the surface only...
-      logical, parameter :: mat_change_inside = .true.
+!      logical, parameter :: mat_change_inside = .true.
+      logical, parameter :: mat_change_inside = .false.
+! if mat_perm_bc_dg use the method that is used for DG between the elements.
+      logical, parameter :: mat_perm_bc_dg = .true.
       logical :: is_land, is_corey
 
       type(corey_options) :: options
@@ -1305,9 +1308,19 @@
                            end do
                         end do
 
-                        mat = matmul( sigma_out, inverse( material_absorption( mat_nod, s : e, s : e ) ) )
-                        mat_inv = inverse( mat )
-                        suf_sig_diagten_bc( cv_snodi_ipha, 1 : ndim ) = (/ (mat_inv(i, i), i = 1, ndim) /)
+                        if(mat_perm_bc_dg) then
+! if mat_perm_bc_dg use the method that is used for DG between the elements.
+                           sigma_in=0.0
+                           sigma_in = material_absorption( mat_nod, s : e, s : e )
+                           mat = sigma_out  +  matmul(  sigma_in,  matmul( inverse( sigma_out ), sigma_in ) )
+                           mat_inv = matmul( inverse( sigma_in+sigma_out ), mat )
+                           suf_sig_diagten_bc( cv_snodi_ipha, 1 : ndim ) = (/ (mat_inv(i, i), i = 1, ndim) /)
+                     !!      suf_sig_diagten_bc( cv_snodi_ipha, 1 : ndim ) = 1.
+                        else
+                           mat = matmul( sigma_out, inverse( material_absorption( mat_nod, s : e, s : e ) ) )
+                           mat_inv = inverse( mat )
+                           suf_sig_diagten_bc( cv_snodi_ipha, 1 : ndim ) = (/ (mat_inv(i, i), i = 1, ndim) /)
+                        endif
 
                         if( mat_change_inside ) then
                            suf_sig_diagten_bc( cv_snodi_ipha, 1 : ndim ) = 1.

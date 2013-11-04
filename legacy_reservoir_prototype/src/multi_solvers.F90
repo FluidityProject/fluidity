@@ -159,6 +159,8 @@ contains
     PARAMETER(ERROR=1.E-15, RELAX=0.1, RELAX_DIAABS=0.0)
     PARAMETER(RELAX_DIA=2.0, N_LIN_ITS=2)
     PARAMETER(NGL_ITS=50) ! maybe we need to increase this...
+   ! PARAMETER(NGL_ITS=50) ! maybe we need to increase this...
+   ! PARAMETER(NGL_ITS=50) ! maybe we need to increase this...
     PARAMETER(ONE_PRES_SOLVE=.false., ONE_SOLVE_1IT=.false.) ! Only solve for one cty pressure - distribut to DG pressure nodes. 
 
     !  PARAMETER(ERROR=1.E-15, RELAX=0.05, RELAX_DIAABS=0.0)
@@ -213,7 +215,7 @@ contains
     allocate( resid_dg(cv_nonods) )
     allocate( resid_cty(x_nonods) )
     allocate( dp_small(x_nonods) )
-    allocate( dp_dg(cv_nonods) )
+    allocate( dp_dg(cv_nonods) ) 
     allocate( USTEP(cv_nonods) )
     allocate( nods_sourou(x_nonods) )
 
@@ -235,10 +237,11 @@ contains
              ewrite(3,*)'could not find coln'
              stop 3282
           end if
-          IF((IGOT_CMC_PRECON==0).or.(ONE_PRES_SOLVE)) THEN
-         ! IF(.true.) THEN
+         ! IF((IGOT_CMC_PRECON==0).or.(ONE_PRES_SOLVE)) THEN
+          IF(.true.) THEN
+         ! IF(.false.) THEN
              CMC_SMALL(COUNT2) = CMC_SMALL(COUNT2) + CMC(COUNT)  
-          ELSE
+          ELSE 
           !  stop 6227
              CMC_SMALL(COUNT2) = CMC_SMALL(COUNT2) + CMC_PRECON(COUNT)  
           ENDIF            
@@ -317,7 +320,8 @@ contains
                   !pctype = "none", &   ! use this for P1DGP2DG
                   rtol = 1.e-10, &
                   atol = 1.e-15, &
-                  max_its = 25)
+                  max_its = 7)
+             !     max_its = 25)
           endif
 
 
@@ -327,7 +331,7 @@ contains
        ! SSOR smoother for the multi-grid method...
        ewrite(3,*)'before solving:',p
 
-       if (gl_its>2) then
+       if (gl_its>1) then
 
           if (.true.) then
 
@@ -371,6 +375,7 @@ contains
        OPT_STEP=-SUM(-USTEP(:)*RESID_DG(:))/MAX(1.E-15, SUM(USTEP(:)*USTEP(:)))
 ! Make sure the step length is between [0,1]
        OPT_STEP=MIN(1.0,MAX(0.,OPT_STEP))
+        print *,'after smoother gl_its, OPT_STEP:',gl_its, OPT_STEP
 
        P = P + DP_DG * OPT_STEP
     endif
@@ -395,6 +400,13 @@ contains
        end if
 
 
+       resid_dg = rhs
+       do dg_nod = 1, cv_nonods
+          DO COUNT = FINDCMC(dg_NOD), FINDCMC(dg_NOD+1) - 1
+             col=COLCMC(COUNT)
+             resid_dg(dg_nod) = resid_dg(dg_nod) - cmc(count) * P(Col)
+          END DO
+       end do
        ! Map resid_dg to resid_cty as well as the solution:
        resid_cty=0.
        nods_sourou=0.
@@ -404,7 +416,7 @@ contains
           nods_sourou(cty_nod) = nods_sourou(cty_nod)+1.
        end do
        ! We have added the rows together so no need to normalize residual. 
-       resid_cty= resid_cty/nods_sourou
+       ! resid_cty= resid_cty/nods_sourou
 
        ! Course grid solver...
        DP_SMALL = 0.
@@ -420,6 +432,8 @@ contains
           DP_DG(DG_NOD) = DP_SMALL(CTY_NOD)
        END DO
 
+    OPT_STEP=1.0
+    if(.true.) then
 ! Determine optimal step length...
        USTEP=0.0
        do dg_nod = 1, cv_nonods
@@ -430,6 +444,8 @@ contains
        OPT_STEP=-SUM(-USTEP(:)*RESID_DG(:))/MAX(1.E-15, SUM(USTEP(:)*USTEP(:)))
 ! Make sure the step length is between [0,1]
        OPT_STEP=MIN(1.0,MAX(0.,OPT_STEP))
+        print *,'after compact solve gl_its, OPT_STEP:',gl_its, OPT_STEP
+     endif
 
        P = P + DP_DG * OPT_STEP
 

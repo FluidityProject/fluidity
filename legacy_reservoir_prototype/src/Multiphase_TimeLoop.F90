@@ -215,6 +215,8 @@
            cv_snloc, p_snloc, u_snloc, &
            cv_ndgln, u_ndgln, p_ndgln, x_ndgln, x_ndgln_p1, xu_ndgln, mat_ndgln, &
            cv_sndgln, p_sndgln, u_sndgln )
+!             print *,' x_ndgln:',x_ndgln
+!             stop 1811
 
 !!$
 !!$ Computing Sparsity Patterns Matrices

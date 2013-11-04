@@ -1690,6 +1690,16 @@ ewrite(3,*)'lll:', option_path_len
          case default
             sele_overlap_scale = 1.
          end Select
+! correct scaling...
+         sele_overlap_scale = real(cv_nloc)/real(cv_snloc)
+    !     if(ndim==2) then
+    !        if(cv_nloc==3) sele_overlap_scale =3.
+    !        if(cv_nloc==6) sele_overlap_scale = 6.
+    !     else if(ndim==3) then
+    !        if(cv_nloc==4) sele_overlap_scale = 2.
+    !        if(cv_nloc==10) sele_overlap_scale = 4.
+    !     endif
+     !       sele_overlap_scale = 0.33
       else
          sele_overlap_scale = 1.
       end if
