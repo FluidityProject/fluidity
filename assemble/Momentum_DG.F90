@@ -2173,6 +2173,7 @@ contains
 
       les_scalar_viscosity = (les_filter_width*smagorinsky_coefficient)**2 * s_mod
 
+      ! store sgs viscosity
       if (associated(eddy_visc)) then
         call set(eddy_visc, ele_nodes(eddy_visc, ele), les_scalar_viscosity)
       end if

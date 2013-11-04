@@ -701,6 +701,12 @@ contains
     type(scalar_field) :: T
     !! Diffusivity
     type(tensor_field) :: Diffusivity
+    type(tensor_field), pointer :: Diffusivity_ptr
+    
+    !! Turbulent diffusion - LES (sp911)
+    type(scalar_field), pointer :: eddy_visc
+    real :: prandtl
+    integer :: i
 
     !! Source and absorption
     type(scalar_field) :: Source, Absorption
@@ -819,18 +825,28 @@ contains
     call allocate(U_nl, U_nl_backup%dim, U_nl_backup%mesh, "LocalNonlinearVelocity")
     call set(U_nl, U_nl_backup)
 
-
-    Diffusivity=extract_tensor_field(state, trim(field_name)//"Diffusivity"&
+    Diffusivity_ptr => extract_tensor_field(state, trim(field_name)//"Diffusivity"&
          &, stat=stat)
     if (stat/=0) then
-       call allocate(Diffusivity, T%mesh, trim(field_name)//"Diffusivity",&
+       call allocate(Diffusivity, T%mesh, "Diffusivity",&
             FIELD_TYPE_CONSTANT)
        call zero(Diffusivity)
        include_diffusion=.false.
     else
-       ! Grab an extra reference to cause the deallocate below to be safe.
-       call incref(Diffusivity)
+       call allocate(Diffusivity, T%mesh, "Diffusivity")
+       call set(Diffusivity, Diffusivity_ptr)
+
        include_diffusion=.true.
+
+       if (have_option(trim(T%option_path)//"/prognostic"//&
+         &"/subgridscale_parameterisation::LES")) then
+         eddy_visc => extract_scalar_field(state, "DGLESScalarEddyViscosity", stat=stat)
+         call get_option(trim(T%option_path)//"/prognostic"//&
+              &"/subgridscale_parameterisation::LES/PrandtlNumber", prandtl)
+         do i = 1, U%dim
+           call addto(Diffusivity, i, i, eddy_visc, scale=1./prandtl)
+         end do
+       end if
     end if
 
     Source=extract_scalar_field(state, trim(field_name)//"Source"&

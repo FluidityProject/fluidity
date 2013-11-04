@@ -199,6 +199,23 @@ prognostic_scalar_field =
             ## Option to set a unique isotropic background diffusivity for this field.
             element background_diffusivity { real }?
          }|
+         ## Turning this option on enables a turbulent diffusion term for this field when using LES.
+         ## This is only implemented for cases where velocity is discontinuous and this scalar field is discontiuous.
+         ##
+         ## The turbulent diffusion term is identical to the molecular diffusion term but takes its value of diffusivity
+         ## from the LES eddy viscosity, scaled by a Prandtl number. 
+         ##
+         ## k_T = nu_T / Pr
+         ##
+         ## where k_T = turbulent diffusivity, nu_T = eddy viscosity and Pr = prandtl number
+         ##
+         ## See "Experimental and large eddy simulation results for the purging of salt water from a cavity by an 
+         ## overflow of fresh water", Kirkpatrick 2005
+         element subgridscale_parameterisation {
+            attribute name { "LES"},
+            ## Ratio of turbulent momentum diffusivity to turbulent molecular diffusivity. 
+            element PrandtlNumber { real }?
+         }|
          element subgridscale_parameterisation {
             attribute name { "prescribed_diffusivity"}
          }         
