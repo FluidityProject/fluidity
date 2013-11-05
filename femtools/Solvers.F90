@@ -98,7 +98,7 @@ module solvers
 private
 
 public petsc_solve, set_solver_options, &
-   complete_solver_option_path
+     complete_solver_option_path, petsc_solve_destroy_petsc_csr
 
 ! meant for unit-testing solver code only:
 public petsc_solve_setup, petsc_solve_core, petsc_solve_destroy, &

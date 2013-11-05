@@ -32,7 +32,7 @@ FCFLAGS = -I../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
 MPIF90  = @MPIF90@
 
 CC      = @CC@
-CFLAGS  = @CPPFLAGS@ @CFLAGS@ -I../include -I/usr/local/include -g
+CFLAGS  = @CPPFLAGS@ @CFLAGS@ -I../include -I/usr/local/include
 
 CXX     = @CXX@
 CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include -I/usr/local/include

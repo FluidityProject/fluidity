@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <multiphase_options>
   <simulation_name>
-    <string_value lines="1">SodShockTube_P1DGP1DG_20layersb</string_value>
+    <string_value lines="1">SodShockTube_P1DGP1DG_20layers</string_value>
   </simulation_name>
   <geometry>
     <dimension>

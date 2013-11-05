@@ -1301,7 +1301,7 @@
       Conditional_AbsorptionField: if( present( field_prot_absorption ) ) then
          field_absorption => extract_vector_field( state( iphase ), trim(field_name) // 'Absorption', stat )
          option_path = '/material_phase[' // int2str( iphase - 1 ) // ']/vector_field::' // trim( field_name ) // &
-              '/prognostic/vector_field::Absorption/prescribed'
+              '/prognostic/vector_field::Absorption/diagnostic/algorithm::vector_python_diagnostic'
          have_absorption =  have_option( trim(option_path) )
          if ( have_absorption ) then
             do idim = 1, ndim
