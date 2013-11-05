@@ -2445,16 +2445,8 @@ horizontal metric leading to the contact point being under-resolved.
 \index{zoltan}
 
 There are a number of options available for controlling Zoltan's behaviour when re-partitioning the mesh during
-and after adaptivity, which can be found under \option{mesh\_adaptivity/zoltan\_options}. The options are:
-\begin{itemize}
-\item partitioner - this is the partitioner used in the intermediate adapt iterations. It can be one of Scotch, ParMetis, Zoltan, or Zoltan Hypergraph. Default is Zoltan.
-\item final partitioner - the partitioner used for the final adapt iteration where load balancing is important. Same choices as above. Default is ParMetis. 
-\item element quality cutoff - at what value of element quality is an element deemed ``bad''. Default is 0.6.
-\item load imbalance tolerance - a value of 1 means each processor will have exactly the same number of elements. However, smaller numbers here mean that the intermediate adapts may
-not be able to move the mesh sufficiently to get a good quality mesh from adaptivity.
-\item additional adapt iterations - increases the number of intermediate adapt iterations during parallel adaptive simulations.
-\item zoltan debug - debugging options.
-\end{itemize}
+and after adaptivity, which can be found under \option{mesh\_adaptivity/zoltan\_options}. In most cases the default
+options should work fine. Each of the options and there functions are explained in detail in the schema.
 
 For more information on the approach to parallel adaptivity adopted in \fluidity\ see section \ref{sec:parallel_adaptivity}.
 \subsubsection{Metric advection}
