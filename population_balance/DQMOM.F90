@@ -390,10 +390,10 @@ contains
     if (have_option(trim(option_path)//'/population_balance_source_terms/aggregation')) then
        have_aggregation = .TRUE.
        if (have_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/constant_aggregation')) then
-          aggregation_freq_type = 'constant_aggregation';
+          aggregation_freq_type = 'constant_aggregation'
           call get_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/constant_aggregation', aggregation_freq_const)
        else if (have_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/hydrodynamic_aggregation')) then
-          aggregation_freq_type = 'hydrodynamic_aggregation';
+          aggregation_freq_type = 'hydrodynamic_aggregation'
        end if
     else
        have_aggregation = .FALSE.
@@ -403,16 +403,18 @@ contains
     if (have_option(trim(option_path)//'/population_balance_source_terms/breakage')) then
        have_breakage = .TRUE.
        if (have_option(trim(option_path)//'/population_balance_source_terms/breakage/breakage_frequency/constant_breakage')) then
-          breakage_freq_type = 'constant_breakage';
+          breakage_freq_type = 'constant_breakage'
           call get_option(trim(option_path)//'/population_balance_source_terms/breakage/breakage_frequency/constant_breakage', breakage_freq_const)
        else if (have_option(trim(option_path)//'/population_balance_source_terms/breakage/breakage_frequency/power_law_breakage')) then
-          breakage_freq_type = 'power_law_breakage';
+          breakage_freq_type = 'power_law_breakage'
           call get_option(trim(option_path)//'/population_balance_source_terms/breakage/breakage_frequency/power_law_breakage/coefficient', breakage_freq_const)
           call get_option(trim(option_path)//'/population_balance_source_terms/breakage/breakage_frequency/power_law_breakage/degree', breakage_freq_degree)
        end if
 
        if (have_option(trim(option_path)//'/population_balance_source_terms/breakage/distribution_function/symmetric_fragmentation')) then
-          breakage_dist_type = 'symmetric_fragmentation';
+          breakage_dist_type = 'symmetric_fragmentation'
+       else if (have_option(trim(option_path)//'/population_balance_source_terms/breakage/distribution_function/mcCoy_madras_2003')) then
+          breakage_dist_type = 'mcCoy_madras_2003'
        end if
    
     else
@@ -584,7 +586,6 @@ contains
 !    end do
     
     if (have_breakage) then
-
        if (breakage_freq_type=='constant_breakage') then
           break_freq = breakage_freq_const
        else if (breakage_freq_type=='power_law_breakage') then
@@ -598,6 +599,13 @@ contains
              do j = 1, N
                 moment_daughter_dist_func(:,i,j) = (2.0**(((3-(i-1))/3.0)))*(abscissa_val_at_quad(:,j)**(i-1))   
 !                moment_daughter_dist_func(:,i,j) = (2.0**(((3-(i-1))/3.0)))*(ele_val_at_quad(abscissa(j), ele)**(i-1))
+             end do
+          end do
+       else if (breakage_dist_type=='mcCoy_madras_2003') then
+          do i = 1, 2*N
+             do j = 1, N
+                moment_daughter_dist_func(:,i,j) = (6.0/((i-1)+3.0))*(abscissa_val_at_quad(:,j)**(i-1))
+!                moment_daughter_dist_func(:,i,j) = (6.0/((i-1)+3.0))*(ele_val_at_quad(abscissa(j), ele)**(i-1))
              end do
           end do
        end if
@@ -625,13 +633,14 @@ contains
              end do
           end do
        end if
-    
+
        do i = 1, 2*N
           do j = 1, N
              do k = 1, N
                 ! birth term due to aggregation
                 S_rhs(:,i) = S_rhs(:,i) + 0.5 * aggregation_freq(:,j,k) * ele_val_at_quad(weight(j), ele) * ele_val_at_quad(weight(k), ele) * &
-                                           &(abscissa_val_at_quad(:,j)**3 + abscissa_val_at_quad(:,k)**3)**((i-1)/3.0)
+                                           ((abs(abscissa_val_at_quad(:,j)**3 + abscissa_val_at_quad(:,k)**3)**(1.0/3.0)) * &
+                                           sign(1.0,(abscissa_val_at_quad(:,j)**3 + abscissa_val_at_quad(:,k)**3)))**(i-1)
 !                S_rhs(:,i) = S_rhs(:,i) + 0.5 * aggregation_freq(:,j,k) * ele_val_at_quad(weight(j), ele) * ele_val_at_quad(weight(k), ele) * &
 !                                           &(ele_val_at_quad(abscissa(j), ele)**3 + ele_val_at_quad(abscissa(k), ele)**3)**((i-1)/3.0)
                 ! death term due to aggregation
@@ -679,7 +688,7 @@ contains
        do i = 1, ele_ngi(abscissa(1), ele)
           call svd(A(i,:,:), svd_tmp1, SV, svd_tmp2)
           if (SV(size(SV))/SV(1) < cond) then
-             ewrite(2,*) 'ill-conditioned matrix found'
+             ewrite(2,*) 'ill-conditioned matrix found', SV(size(SV))/SV(1)
              A(i,:,:) = 0.0
              A_3(i,:,:) = 0.0
              C(i,:) = 0.0

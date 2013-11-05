@@ -3076,10 +3076,17 @@ breakage, aggegation and internal dispersion</a:documentation>
               </choice>
             </element>
             <element name="distribution_function">
-              <element name="symmetric_fragmentation">
-                <a:documentation/>
-                <empty/>
-              </element>
+              <choice>
+                <element name="symmetric_fragmentation">
+                  <a:documentation/>
+                  <empty/>
+                </element>
+                <element name="mcCoy_madras_2003">
+                  <a:documentation>McCoy and Madras (2003) used P(v|v') = 2/v' for v&lt;v' and 0 otherwise, where v stands for volume. 
+When written in terms of particle diameter, this converts to P(x|x')=(6x^2)/x'^3 for x&lt;x' and 0 otherwise.</a:documentation>
+                  <empty/>
+                </element>
+              </choice>
             </element>
           </element>
         </optional>
@@ -3118,6 +3125,10 @@ system.
 Recommended value of 1e-7</a:documentation>
               <ref name="real"/>
             </element>
+          </element>
+          <element name="do_nothing">
+            <a:documentation>Do not check for ill-conditioning of matrix A</a:documentation>
+            <empty/>
           </element>
         </choice>
       </element>

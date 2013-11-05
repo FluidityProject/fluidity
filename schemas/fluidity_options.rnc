@@ -2179,7 +2179,10 @@ population_balance =
                },
                element distribution_function{
                   ##
-                  element symmetric_fragmentation{ empty }
+                  element symmetric_fragmentation{ empty }|
+                  ## McCoy and Madras (2003) used P(v|v') = 2/v' for v<v' and 0 otherwise, where v stands for volume. 
+                  ## When written in terms of particle diameter, this converts to P(x|x')=(6x^2)/x'^3 for x<x' and 0 otherwise.
+                  element mcCoy_madras_2003{ empty }
                }
             }?
          },
@@ -2212,7 +2215,9 @@ population_balance =
                   ## system.
                   ## Recommended value of 1e-7
                   element perturbation{ real }
-               }
+               }|
+               ## Do not check for ill-conditioning of matrix A
+               element do_nothing{ empty }
             )
          },
          ## weights of zero can cause instabilities. It is recommended that a minimum
