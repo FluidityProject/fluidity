@@ -403,6 +403,9 @@
       CMC = 0.0
       IF(IGOT_CMC_PRECON.NE.0) CMC_PRECON = 0.0
 
+    !   print *,' CV_nonods,FINDCMC( CV_nonods):',CV_nonods,FINDCMC( CV_nonods)
+    !    stop 21
+
       NEED_COLOR = 1.0
       NCOLOR = 0
       DONE = .FALSE. 

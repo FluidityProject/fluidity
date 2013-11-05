@@ -236,6 +236,7 @@
 
       IF(NCT > MX_NCT ) THEN
          EWRITE(3,*)'MX_NCT is not long enough NCT,MX_NCT:',NCT,MX_NCT
+         stop 2721
       ENDIF
 
       !DO CV_NODI=1,CV_NONODS
@@ -754,6 +755,11 @@
 
       lencolm = ptr - 1
       findrm( nonods2 + 1 ) = lencolm + 1
+
+      if(nimem.lt.lencolm) then
+         print *,'nimem not long enough nimem,lencolm:',nimem,lencolm
+         stop 822
+      endif
 
       deallocate( matrix )
 
@@ -1309,11 +1315,13 @@
 
     subroutine Defining_MaxLengths_for_Sparsity_Matrices( ndim, nphase, totele, u_nloc, cv_nloc, cv_nonods, &
          mx_nface_p1, mxnele, mx_nct, mx_nc, mx_ncolcmc, mx_ncoldgm_pha, mx_ncolmcy, &
-         mx_ncolacv, mx_ncolm )
+         mx_ncolacv, mx_ncolm, &  
+         is_overlapping )
       implicit none
       integer, intent( in ) :: ndim, nphase, totele, u_nloc, cv_nloc, cv_nonods
       integer, intent( inout ) :: mx_nface_p1, mxnele, mx_nct, mx_nc, mx_ncolcmc, mx_ncoldgm_pha, &
            mx_ncolmcy, mx_ncolacv, mx_ncolm
+      logical, intent( in ) :: is_overlapping
 
       ewrite(3,*)'In Defining_Lengths_for_Sparsity_Matrices'
 
@@ -1323,15 +1331,26 @@
       mx_nct = totele * u_nloc * cv_nloc * ndim * nphase
       mx_ncolm = mxnele * cv_nloc * cv_nloc * nphase * nphase
       if( cv_nonods == cv_nloc * totele ) then ! Discontinuous in Pressure
-         mx_nct = mx_nct * mx_nface_p1 * 10
-         mx_ncolm = mx_ncolm * 5
+      !   mx_nct = mx_nct * mx_nface_p1 * 10
+      !   mx_ncolm = mx_ncolm * 5
+         mx_nct = mx_nct * mx_nface_p1 
+         mx_ncolm = mx_ncolm * 3
       end if
+!      if(is_overlapping) mx_ncolm = 1
       mx_nc = mx_nct
 
 !!$ Assuming the DG representation requires the more storage space
       mx_ncolcmc = mx_nface_p1 **3 * cv_nloc * cv_nloc * totele 
-      mx_ncoldgm_pha = ( mxnele + totele ) * ( u_nloc * ndim * nphase) **2
-      mx_ncolmcy = mx_ncoldgm_pha + mx_nct + mx_nc + mx_ncolcmc
+      if(is_overlapping) then
+         mx_ncoldgm_pha = 1
+         mx_ncolmcy     = 1
+      !   mx_ncolm = 1
+      else
+         mx_ncoldgm_pha = ( mxnele + totele ) * ( u_nloc * ndim * nphase) **2    ! for overlapping method =1
+         mx_ncolmcy = mx_ncoldgm_pha + mx_nct + mx_nc + mx_ncolcmc               ! for overlapping method =1
+      endif
+!         mx_ncolmcy = mx_ncoldgm_pha + mx_nct + mx_nc + mx_ncolcmc               ! for overlapping method =1
+
       mx_ncolacv = 3 * mx_nface_p1 * cv_nonods * nphase + cv_nonods * ( nphase - 1 ) * nphase
 
       return
@@ -1422,17 +1441,20 @@
 !!$      ewrite(3,*)'colele: ', size( colele ), ncolele, '==>', colele( 1 : ncolele )
 !!$      ewrite(3,*)'midele: ', size( midele ), '==>', midele( 1 : totele )
 
+      if ( .not. is_overlapping ) then
       !-
       !- Computing sparsity for force balance
       !-
-      mx_ncolele_pha = nphase * ncolele + ( nphase - 1 ) * nphase * totele
-      allocate( colele_pha( mx_ncolele_pha ) )
-      allocate( finele_pha( totele * nphase + 1 ) )
-      allocate( midele_pha( totele * nphase ) )
-      colele_pha = 0 ; finele_pha = 0 ; midele_pha = 0
-      call exten_sparse_multi_phase( totele, ncolele, finele, colele, &
+         mx_ncolele_pha = nphase * ncolele + ( nphase - 1 ) * nphase * totele
+         allocate( colele_pha( mx_ncolele_pha ) )
+         allocate( finele_pha( totele * nphase + 1 ) )
+         allocate( midele_pha( totele * nphase ) )
+         colele_pha = 0 ; finele_pha = 0 ; midele_pha = 0
+
+         call exten_sparse_multi_phase( totele, ncolele, finele, colele, &
            nphase, totele * nphase, mx_ncolele_pha, &
            finele_pha, colele_pha, midele_pha )
+
 !!$      ewrite(3,*)'finele_pha: ', finele_pha( 1 : totele * nphase + 1 )
 !!$      ewrite(3,*)'colele_pha: ', colele_pha( 1 : mx_ncolele_pha )
 !!$      ewrite(3,*)'midele_pha: ', midele_pha( 1 : totele * nphase )
@@ -1442,13 +1464,18 @@
 !!$           '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type/overlapping')) &
 !!$           is_overlapping = .true.
 
-      if ( .not. is_overlapping ) then
+!      if ( .not. is_overlapping ) then
          findgm_pha = 0 ; coldgm_pha = 0 ; middgm_pha = 0
          call form_dgm_pha_sparsity( totele, nphase, u_nloc, nphase * u_nonods * ndim, &
               ndim, mx_ncoldgm_pha, ncoldgm_pha, &
               coldgm_pha, findgm_pha, middgm_pha, &
               finele, colele, ncolele )
+
+! dealocate colele_pha...
+      deallocate( colele_pha ) ; deallocate( finele_pha ) ; deallocate( midele_pha )
+
       else
+!         findgm_pha = 0 ; coldgm_pha = 0 ; middgm_pha = 0
          ncoldgm_pha=0
       end if
 !!$      ewrite(3,*)'findgm_pha: ', findgm_pha( 1 : nphase * u_nonods * ndim + 1 )
@@ -1520,12 +1547,16 @@
       !-
       !- Computing the sparsity for the force balance plus cty multi-phase eqns
       !- 
+    if(.not.is_overlapping) then
       finmcy = 0 ; colmcy = 0 ; midmcy = 0
       call exten_sparse_mom_cty( ndim, findgm_pha, coldgm_pha, nphase * u_nonods * ndim, ncoldgm_pha, ncolct, &
            cv_nonods, findct, colct, &
            u_nonods, ncolc, mx_ncolmcy, &
            findc, colc, finmcy, colmcy, midmcy, nlenmcy, &
            ncolmcy, nphase, ncolcmc, findcmc, colcmc )
+    else 
+       ncolmcy=0
+    endif
 !!$      ewrite(3,*)'finmcy: ', size( finmcy ), nlenmcy + 1, '==>', finmcy( 1 : nlenmcy + 1 )
 !!$      ewrite(3,*)'colmcy: ', size( colmcy ), ncolmcy, '==>', colmcy( 1 : ncolmcy )
 !!$      ewrite(3,*)'midmcy: ', size( midmcy ), nlenmcy, '==>', midmcy( 1 : nlenmcy )
@@ -1599,7 +1630,7 @@
       !-
       deallocate( x_ndgln_p1 ) ; deallocate( x_ndgln ) ; deallocate( cv_ndgln ) ; deallocate( p_ndgln ) ; deallocate( mat_ndgln ) ; &
       deallocate( u_ndgln) ; deallocate( xu_ndgln ) ; deallocate( cv_sndgln ) ; deallocate( p_sndgln ) ; deallocate( u_sndgln ) ; &
-      deallocate( colele_pha ) ; deallocate( finele_pha ) ; deallocate( midele_pha ) ; deallocate( centct ) ; deallocate( midacv_loc ) ; &
+      deallocate( centct ) ; deallocate( midacv_loc ) ; &
       deallocate( finacv_loc ) ; deallocate( colacv_loc )
 
       return
@@ -1676,6 +1707,11 @@
       end do
       nct = gcount2
       findct( cv_nonods + 1 ) = gcount2 + 1
+
+      if(mx_nct.lt.nct) then
+         print *,'mx_nct not long enough mx_nct,nct:',mx_nct,nct
+         stop 221
+      endif
 
       ! sort colct in increasing order
       do cv_nodi = 1, cv_nonods

@@ -224,7 +224,8 @@
 !!$ Defining lengths and allocating space for the matrices
       call Defining_MaxLengths_for_Sparsity_Matrices( ndim, nphase, totele, u_nloc, cv_nloc, cv_nonods, &
            mx_nface_p1, mxnele, mx_nct, mx_nc, mx_ncolcmc, mx_ncoldgm_pha, mx_ncolmcy, &
-           mx_ncolacv, mx_ncolm )
+           mx_ncolacv, mx_ncolm, &
+           is_overlapping )
       nlenmcy = u_nonods * nphase * ndim + cv_nonods
       allocate( finacv( cv_nonods * nphase + 1 ), colacv( mx_ncolacv ), midacv( cv_nonods * nphase ), &
            finmcy( nlenmcy + 1 ), colmcy( mx_ncolmcy ), midmcy( nlenmcy ), &
@@ -504,6 +505,15 @@
       if ( have_option( '/mesh_adaptivity/hr_adaptivity' ) ) then
          call allocate( metric_tensor, extract_mesh(state(1), topology_mesh_name), 'ErrorMetric' )
       end if
+
+
+   !   print *,'u_nonods, cv_nonods, totele:',u_nonods, cv_nonods, totele
+   !   print *,'mx_ncolacv, ncolacv:',mx_ncolacv, ncolacv
+   !   print *,'nlenmcy, mx_ncolmcy, ncolmcy,mxnele, ncolele:',nlenmcy, mx_ncolmcy, ncolmcy,mxnele, ncolele
+   !   print *,'mx_ncoldgm_pha, ncoldgm_pha:',mx_ncoldgm_pha, ncoldgm_pha
+   !   print *,'mx_nct, ncolct,mx_nc, ncolc, mx_ncolcmc, ncolcmc:',mx_nct, ncolct,mx_nc, ncolc, mx_ncolcmc, ncolcmc
+   !   print *,'mx_ncolm, ncolm:',mx_ncolm, ncolm
+   !   stop 282
 
       ! linearise density field for P2 simulations
       ! this is used for buoyancy term in the momentum eq.
@@ -1255,7 +1265,8 @@
 !!$ Defining lengths and allocating space for the matrices
             call Defining_MaxLengths_for_Sparsity_Matrices( ndim, nphase, totele, u_nloc, cv_nloc, cv_nonods, &
                  mx_nface_p1, mxnele, mx_nct, mx_nc, mx_ncolcmc, mx_ncoldgm_pha, mx_ncolmcy, &
-                 mx_ncolacv, mx_ncolm )
+                 mx_ncolacv, mx_ncolm,  &
+                 is_overlapping  )
             nlenmcy = u_nonods * nphase * ndim + cv_nonods
             allocate( finacv( cv_nonods * nphase + 1 ), colacv( mx_ncolacv ), midacv( cv_nonods * nphase ), &
                  finmcy( nlenmcy + 1 ), colmcy( mx_ncolmcy ), midmcy( nlenmcy ), &
