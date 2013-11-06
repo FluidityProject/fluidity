@@ -78,6 +78,11 @@ void set_scalar_field_from_python(char *function, int *function_len, int *dim,
 
   // Extract the function from the code.
   pFunc=PyDict_GetItemString(pLocals, "val");
+  if (pFunc == NULL) {
+      printf("Couldn't find a 'val' function in your Python code.\n");
+      *stat=1;
+      return;
+  }
 
   // Clean up memory from null termination.
   free(function_c);
