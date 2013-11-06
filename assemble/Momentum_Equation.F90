@@ -2011,13 +2011,6 @@
                      ewrite(-1,*) "mass_terms/lump_mass_matrix"
                      FLExit("Good luck!")
                   end if
-
-               else if(have_option("/material_phase["//int2str(i)//&
-                                 &"]/scalar_field::Pressure/prognostic"//&
-                                 &"/scheme/use_compressible_projection_method")) then
-                  ewrite(-1,*) "You must lump the velocity mass matrix with the"
-                  ewrite(-1,*) "compressible projection method."
-                  FLExit("Sorry.")
                end if
 
             end if
