@@ -463,9 +463,8 @@ clean-all-tests: clean-test
 distclean: clean
 	@echo "    DISTCLEAN"
 	@cd @SPATIALINDEXDIR@ ; make distclean > /dev/null ; rm -rf	\
-	 make.log regressiontest/mvrtree/.deps				\
-	 regressiontest/rtree/.deps regressiontest/tprtree/.deps >	\
-	 /dev/null
+	 test/mvrtree/.deps test/rtree/.deps test/tprtree/.deps         \
+         make.log > /dev/null
 	@cd libadaptivity ; make distclean > /dev/null
 	@cd libjudy ; make distclean > /dev/null
 	@cd libvtkfortran ; make distclean > /dev/null
