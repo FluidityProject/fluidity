@@ -3788,7 +3788,9 @@ boundary condition on the surface_ids specified.</a:documentation>
         <empty/>
       </element>
       <element name="type">
-        <a:documentation>Implements a prescribed normal flow. Works for DG only.</a:documentation>
+        <a:documentation>Implements a prescribed normal flow. Works for DG only. This
+implements a weakly imposed bounadry condition normal to the surface.
+Note: Positive points out of the domain, negative into the domain.</a:documentation>
         <attribute name="name">
           <value>prescribed_normal_flow</value>
         </attribute>
