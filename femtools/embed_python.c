@@ -360,6 +360,13 @@ void set_vector_field_from_python(char *function, int *function_len, int *dim,
     }
     
     pResult=PyObject_CallObject(pFunc, pArgs);
+    // Check for a Python error in the function call
+    if (PyErr_Occurred()){
+      PyErr_Print();
+      *stat=1;
+      return;
+    }
+
     if (PyObject_Length(pResult) != *result_dim)
     {
       fprintf(stderr, "Error: length of object returned from python (%d) does not match the allocated dimension of the vector field (%d).\n",
@@ -368,12 +375,6 @@ void set_vector_field_from_python(char *function, int *function_len, int *dim,
       return;
     }
     
-    // Check for a Python error in the function call
-    if (PyErr_Occurred()){
-      PyErr_Print();
-      *stat=1;
-      return;
-    }
     
     px=PySequence_GetItem(pResult, 0);
     
