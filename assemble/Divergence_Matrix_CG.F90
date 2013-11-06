@@ -300,48 +300,64 @@ module divergence_matrix_cg
         assert(surface_element_count(test_mesh)==surface_element_count(field))
         allocate(field_bc_type(field%dim, surface_element_count(field)))
         call get_entire_boundary_condition(field, (/ &
-          "weakdirichlet ", &
-          "no_normal_flow", &
-          "internal      ", &
-          "free_surface  "/), field_bc, field_bc_type)
+          "weakdirichlet          ", &
+          "no_normal_flow         ", &
+          "internal               ", &
+          "free_surface           ", &
+          "prescribed_normal_flow "/), field_bc, field_bc_type)
 
         do sele = 1, surface_element_count(test_mesh)
 
           if(any(field_bc_type(:,sele)==2)&
                .or.any(field_bc_type(:,sele)==3)&
                .or.any(field_bc_type(:,sele)==4)) cycle
-          
+
           test_shape=>face_shape(test_mesh, sele)
           field_shape=>face_shape(field, sele)
 
           test_nodes_bdy=face_global_nodes(test_mesh, sele)
           field_nodes_bdy=face_global_nodes(field, sele)
 
-          call transform_facet_to_physical(coordinate, sele, &
-              &                          detwei_f=detwei_bdy,&
-              &                          normal=normal_bdy) 
+          if (field_bc_type(1,sele)==5 .and. present(ct_rhs)) then
 
-          if(multiphase) then
-            ele_mat_bdy = shape_shape_vector(test_shape, field_shape, detwei_bdy*face_val_at_quad(nvfrac, ele), normal_bdy)
-          else
-            ele_mat_bdy = shape_shape_vector(test_shape, field_shape, detwei_bdy, normal_bdy)
-          end if
-
-          do dim = 1, field%dim
-            if((field_bc_type(dim, sele)==1).and.present(ct_rhs)) then
-              call addto(ct_rhs, test_nodes_bdy, &
-                          -matmul(ele_mat_bdy(dim,:,:), &
-                          ele_val(field_bc, dim, sele)))
-            else
-               if (l_get_ct) then
-                  call addto(ct_m, 1, dim, test_nodes_bdy, field_nodes_bdy, &
-                       ele_mat_bdy(dim,:,:))
-               end if
+            ! prescribed_normal_flow
+            call transform_facet_to_physical(coordinate, sele, &
+                &                          detwei_f=detwei_bdy)
+            if(multiphase) then
+              detwei_bdy = detwei_bdy*face_val_at_quad(nvfrac, sele)
             end if
-          end do
 
+            call addto(ct_rhs, test_nodes_bdy, -shape_rhs(test_shape, detwei_bdy*ele_val_at_quad(field_bc, sele, 1)))
+
+          else
+
+            ! Dirichlet or no boundary condition
+
+            call transform_facet_to_physical(coordinate, sele, &
+                &                          detwei_f=detwei_bdy,&
+                &                          normal=normal_bdy)
+
+            if(multiphase) then
+              ele_mat_bdy = shape_shape_vector(test_shape, field_shape, detwei_bdy*face_val_at_quad(nvfrac, ele), normal_bdy)
+            else
+              ele_mat_bdy = shape_shape_vector(test_shape, field_shape, detwei_bdy, normal_bdy)
+            end if
+
+            do dim = 1, field%dim
+              if((field_bc_type(dim, sele)==1).and.present(ct_rhs)) then
+                call addto(ct_rhs, test_nodes_bdy, &
+                            -matmul(ele_mat_bdy(dim,:,:), &
+                            ele_val(field_bc, dim, sele)))
+              else
+                 if (l_get_ct) then
+                    call addto(ct_m, 1, dim, test_nodes_bdy, field_nodes_bdy, &
+                         ele_mat_bdy(dim,:,:))
+                 end if
+              end if
+            end do
+          end if
         end do
-
+        
         call deallocate(field_bc)
         deallocate(field_bc_type)
         deallocate(detwei_bdy, normal_bdy)

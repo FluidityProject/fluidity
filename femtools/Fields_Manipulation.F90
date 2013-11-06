@@ -1999,7 +1999,7 @@ implicit none
     end if
     
     ! Zero any left-over dimensions
-    do ele=from_field%dim+1,to_field%dim
+    do i=from_field%dim+1,to_field%dim
       to_field%val(i,:)=0.0
     end do
     

@@ -37,8 +37,9 @@ Adapt_State.o ../include/adapt_state_module.mod: Adapt_State.F90 \
    ../include/project_metric_to_surface_module.mod ../include/quadrature.mod \
    ../include/reserve_state_module.mod ../include/sam_integration.mod \
    ../include/sparse_tools.mod ../include/state_module.mod \
-   ../include/tictoc.mod ../include/timeloop_utilities.mod \
-   ../include/write_gmsh.mod ../include/zoltan_integration.mod
+   ../include/surface_id_interleaving.mod ../include/tictoc.mod \
+   ../include/timeloop_utilities.mod ../include/write_gmsh.mod \
+   ../include/zoltan_integration.mod
 
 ../include/adapt_state_prescribed_module.mod: Adapt_State_Prescribed.o
 	@true
@@ -311,7 +312,7 @@ Foam_Flow.o ../include/foam_flow_module.mod: Foam_Flow.F90 \
    ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
    ../include/state_matrices_module.mod ../include/state_module.mod \
    ../include/transform_elements.mod ../include/vector_tools.mod \
-   ../include/vtk_interfaces.mod ../include/weak_bcs.mod
+   ../include/vtk_interfaces.mod
 
 ../include/free_surface_module.mod: Free_Surface.o
 	@true
@@ -633,14 +634,14 @@ Momentum_Equation.o ../include/momentum_equation.mod: Momentum_Equation.F90 \
    ../include/parallel_tools.mod ../include/petsc_solve_state_module.mod \
    ../include/pressure_dirichlet_bcs_cv.mod ../include/profiler.mod \
    ../include/reduced_model_runtime.mod \
-   ../include/rotated_boundary_conditions.mod ../include/slope_limiters_dg.mod \
+   ../include/rotated_boundary_conditions.mod \
+   ../include/shallow_water_equations.mod ../include/slope_limiters_dg.mod \
    ../include/solvers.mod ../include/sparse_matrices_fields.mod \
    ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
    ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
    ../include/state_fields_module.mod ../include/state_matrices_module.mod \
    ../include/state_module.mod ../include/tidal_module.mod \
-   ../include/vertical_balance_pressure.mod ../include/vtk_interfaces.mod \
-   ../include/weak_bcs.mod
+   ../include/vertical_balance_pressure.mod ../include/vtk_interfaces.mod
 
 ../include/multimaterial_module.mod: Multimaterials.o
 	@true
@@ -766,6 +767,14 @@ Saturation_Distribution_Search_HookeJeeves.o \
    ../include/global_parameters.mod ../include/momentum_equation.mod \
    ../include/spontaneous_potentials.mod ../include/spud.mod \
    ../include/state_module.mod ../include/write_state_module.mod
+
+../include/shallow_water_equations.mod: Shallow_Water_Equations.o
+	@true
+
+Shallow_Water_Equations.o ../include/shallow_water_equations.mod: \
+   Shallow_Water_Equations.F90 ../include/boundary_conditions.mod \
+   ../include/fdebug.h ../include/fields.mod ../include/global_parameters.mod \
+   ../include/spud.mod ../include/state_module.mod
 
 ../include/slope_limiters_dg.mod: Slope_limiters_DG.o
 	@true
