@@ -74,7 +74,8 @@ implicit none
 
   interface zero
      module procedure zero_scalar, zero_vector, zero_tensor, &
-          zero_vector_dim, zero_tensor_dim_dim
+          zero_vector_dim, zero_tensor_dim_dim, &
+          zero_scalar_field_nodes, zero_vector_field_nodes, zero_tensor_field_nodes
   end interface
 
   interface deallocate_faces
@@ -155,6 +156,9 @@ contains
     type(element_type), target, intent(in) :: shape
     character(len=*), intent(in), optional :: name
     integer :: i
+#ifdef _OPENMP
+    integer :: j
+#endif
     
     mesh%nodes=nodes
 
@@ -910,6 +914,9 @@ contains
     integer, dimension(:), allocatable :: ndglno
     real, dimension(:), pointer :: val
     integer :: i, input_nodes, n_faces
+#ifdef _OPENMP
+    integer :: j
+#endif
 
     if (present(continuity)) then
        mesh%continuity=continuity
