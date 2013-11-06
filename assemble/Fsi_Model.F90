@@ -1265,12 +1265,8 @@ module fsi_model
               do i = 1, size(nodes)
                   if (node_val(alpha, nodes(i)) .gt. 0.0) then
                       do j = 1, solidforce%dim
-                          ! With multiplying by alpha:
-                          call set(solidforce, j, nodes(i), (node_val(alpha, nodes(i))*beta*100/ dt) * (node_val(fluid_velocity,j,nodes(i)) + &
-                                    & (node_val(solid_velocity,j,nodes(i))) ) )
-                          ! Without multiplying by alpha:
-!                          call set(solidforce, j, nodes(i), (beta*100/dt) * (node_val(fluid_velocity,j,nodes(i)) + &
-!                                   & (node_val(solid_velocity,j,nodes(i))) ) )
+                          call set(solidforce, j, nodes(i), (beta/dt) * (node_val(fluid_velocity,j,nodes(i)) - &
+                                   & (node_val(solid_velocity,j,nodes(i))) ) )
                       end do
                   end if
               end do

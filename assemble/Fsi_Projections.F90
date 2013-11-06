@@ -108,7 +108,7 @@ module fsi_projections
     supermesh_positions_shape = make_element_shape(vertices=ele_loc(positionsS, 1), dim=dim, degree=1, quad=supermesh_quad)
     supermesh_field_shape = make_element_shape(vertices=ele_loc(positionsS, 1), dim=dim, degree=max_degree, quad=supermesh_quad)
     ! For each element in S get the list of intersecting elements in F
-    map_SF = intersection_finder(positionsS, positionsF)
+    map_SF = rtree_intersection_finder(positionsS, positionsF)
 
     sparsity_fluid = make_sparsity(fieldF%mesh, fieldF%mesh, "FluidMassMatrixSparsity")
     call allocate(mass_matrix_fluid, sparsity_fluid, name="FluidMassMatrix")
