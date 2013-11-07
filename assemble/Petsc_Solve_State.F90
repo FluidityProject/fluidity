@@ -389,8 +389,9 @@ contains
     end do
       
     call allocate(P, rows, columns, dnnz, onnz, (/ ncomponents, ncomponents /), name="HigherOrderProlongator")
-    if (associated(p1_mesh%halos)) then
-      P%column_halo => p1_mesh%halos(1)
+    if (associated(P%column_halo)) then
+      allocate(P%column_halo)
+      P%column_halo = p1_mesh%halos(1)
       call incref(P%column_halo)
     end if
     call zero(P)
