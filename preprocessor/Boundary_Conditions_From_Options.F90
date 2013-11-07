@@ -2496,7 +2496,11 @@ contains
     else
        ewrite(1,*) 'Imposing_reference_velocity_node on all components'
     end if
-    call set_reference_node(big_m, reference_node, rhs, mask)
+    if(IsParallel()) then
+      call set_reference_node(big_m, reference_node, rhs, mask, reference_node_owned=reference_node_owned)
+    else
+      call set_reference_node(big_m, reference_node, rhs, mask)
+    end if
 
   end subroutine impose_reference_velocity_node
   
