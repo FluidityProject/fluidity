@@ -2734,6 +2734,9 @@ velocity_boundary_conditions =
          ## bottom and sides.
          element type {
             attribute name { "drag" },
+            element extra_drag {
+              real
+            }?,
             input_choice_real,
             (
               ## Use a quadratic drag.

@@ -11,8 +11,8 @@
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="channel">
-        <format name="triangle"/>
+      <from_file file_name="src/chan64">
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -106,7 +106,7 @@
       <real_value rank="0">0.025</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">2</real_value>
+      <real_value rank="0">50</real_value>
     </finish_time>
     <steady_state>
       <tolerance>

@@ -3673,6 +3673,11 @@ bottom and sides.</a:documentation>
         <attribute name="name">
           <value>drag</value>
         </attribute>
+        <optional>
+          <element name="extra_drag">
+            <ref name="real"/>
+          </element>
+        </optional>
         <ref name="input_choice_real"/>
         <choice>
           <element name="quadratic_drag">
