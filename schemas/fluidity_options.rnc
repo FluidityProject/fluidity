@@ -2734,6 +2734,9 @@ velocity_boundary_conditions =
          ## bottom and sides.
          element type {
             attribute name { "drag" },
+            ##When wetting and drying is switched on, it may need to have large drag in dry areas to hold the unphysical flow. 
+            ##This value is to specify the large drag in dry areas. A value of 1.0e+6 is recommended. However, for different cases it needs to be
+            ##chosen differently.  
             element extra_drag {
               real
             }?,
