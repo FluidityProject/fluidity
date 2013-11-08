@@ -145,10 +145,8 @@ subroutine drag_surface(bigm, rhs, state, density)
                    depth_at_quads=face_val_at_quad(depth, sele)
                    do k=1, sngi
                      !if (depth_at_quads(k)<d0+eps) then
-                       !coefficient(k)=1.0e+8
-                       
-                     !extra_drag(k)= max((2*d0-depth_at_quads(k))/d0,real(0))*1.0e+6 
-                     extra_drag(k)=0
+                       !coefficient(k)=1.0e+8   
+                     extra_drag(k)= max((2*d0-depth_at_quads(k))/d0,real(0))*1.0e+6 
                    end do            
                    coefficient =(ele_val_at_quad(drag_coefficient, j)+extra_drag)*gravity_magnitude*coefficient/((face_val_at_quad(distance_bottom, sele)+face_val_at_quad(distance_top, sele))**(1./3.))   
                      !end if

@@ -742,7 +742,9 @@
 
     end do colour_loop
     !$OMP END PARALLEL
-
+    if (have_vertical_velocity_relaxation .or. have_sigma) then
+        call deallocate(depth)
+    end if
       if (have_wd_abs) then
         ! the remapped field is not needed anymore.
         call deallocate(alpha_u_field)
@@ -1430,7 +1432,7 @@
          call add_absorption_element_cg(x, ele, test_function, u, oldu_val, density, &
                                       absorption, detwei, big_m_diag_addto, big_m_tensor_addto, rhs_addto, &
                                       masslump, mass, depth, gravity, buoyancy, &
-                                      alpha_u_field, abs_wd, u_val,viscosity)
+                                      alpha_u_field, abs_wd, u_val)
          
       
       end if
@@ -1815,7 +1817,7 @@
                                          density, absorption, detwei, &
                                          big_m_diag_addto, big_m_tensor_addto, rhs_addto, &
                                          masslump, mass, depth, gravity, buoyancy, &
-                                         alpha_u_field, abs_wd, u_val,viscosity)
+                                         alpha_u_field, abs_wd, u_val)
       type(vector_field), intent(in) :: positions
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
@@ -1862,13 +1864,6 @@
       real, dimension(u%dim,ele_ngi(u,ele)) :: sigma_d0_diag
       real, dimension(ele_ngi(u,ele))::sigma_ngi
       real, dimension(:,:),intent(in) :: u_val
-      !vertical viscosity conditioning for Momentum equation
-      type(tensor_field), intent(in) :: viscosity
-      real, dimension(u%dim, u%dim, ele_ngi(u, ele)):: viscosity_gi
-      real, dimension(u%dim,ele_ngi(u,ele)) ::extra_integration_diag
-      real, dimension(u%dim, ele_loc(u, ele)) :: extra_integration_lump
-      real, dimension(u%dim, ele_loc(u, ele), ele_loc(u, ele)) :: extra_integration_mat
-      
       density_gi=ele_val_at_quad(density, ele)
       absorption_gi=0.0
       tensor_absorption_gi=0.0
@@ -1978,28 +1973,6 @@
 
       end if
       
-      !vertical viscosity conditioning for Momentum equation
-      if (have_viscosity .AND. .not.(have_temperature_dependent_viscosity)) then
-         viscosity_gi = ele_val_at_quad(viscosity, ele)
-      else
-      
-         ! if we don't have viscosity but maybe LES
-         viscosity_gi = 0.0
-      end if
-      if(have_sigma) then
-        if (on_sphere) then
-      	 FLExit('The sigma_d0 scheme currently not implemented on the sphere')	 
-        else
-           beta=0.1
-           do i=1, ele_ngi(u,ele)
-            extra_integration_diag(:,i)=-max(beta*viscosity_gi(3,3,i)/(depth_at_quads(i)*depth_at_quads(i))-1/dt,real(0))*grav_at_quads(:,i) 
-           ! print *, 'viscosity_gi(3,3,i)=',viscosity_gi(3,3,i)
-            !print *, 'sigma_d0_diag(:,i)',sigma_d0_diag(:,i)
-          end do
-          
-        end if
-      end if
-      !print *, 'extra_integration_diag',extra_integration_diag  
       ! element absorption matrix
       !  /
       !  | N_A N_B abs rho dV
@@ -2068,10 +2041,7 @@
       else
 
         absorption_mat = shape_shape_vector(test_function, ele_shape(u, ele), detwei*density_gi, absorption_gi)
-     if (have_sigma) then
-        extra_integration_mat = shape_shape_vector(test_function, ele_shape(u, ele), detwei*density_gi,extra_integration_diag)
-     end if
-    ! print *, 'extra_integration_mat=',extra_integration_mat
+
         if (have_wd_abs) then
            alpha_u_quad=ele_val_at_quad(alpha_u_field, ele) !! Wetting and drying absorption becomes active when water level reaches d_0
            absorption_mat =  absorption_mat + &
@@ -2082,34 +2052,20 @@
         if(lump_absorption) then
           if(.not.abs_lump_on_submesh) then
             absorption_lump = sum(absorption_mat, 3)
-            extra_integration_lump = sum(extra_integration_mat, 3)
-            !print *,'extra_integration_lump',extra_integration_lump
             do dim = 1, u%dim
-              if (have_sigma) then 
-                big_m_diag_addto(dim, :) = big_m_diag_addto(dim, :) + dt*theta*absorption_lump(dim,:)+dt*extra_integration_lump(dim,:)
-                rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump(dim,:)*oldu_val(dim,:) +absorption_lump(dim,:)*u_val(dim,:) 
-            
-                !print *, 'big_m_diag_addto(dim, :)',big_m_diag_addto(dim, :)
-                !print *, 'rhs_addto(dim, :)',rhs_addto(dim, :)
-              else 
-                big_m_diag_addto(dim, :) = big_m_diag_addto(dim, :) + dt*theta*absorption_lump(dim,:)
-                rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump(dim,:)*oldu_val(dim,:)
-              end if
+              big_m_diag_addto(dim, :) = big_m_diag_addto(dim, :) + dt*theta*absorption_lump(dim,:)
+              rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump(dim,:)*oldu_val(dim,:) +absorption_lump(dim,:)*u_val(dim,:)
+              !print *, 'u_val(dim,:)',u_val(dim,:)
+              !print *, 'rhs_addto(dim, :)',rhs_addto(dim, :)
             end do
           end if
         else
           do dim = 1, u%dim
-           if (have_sigma) then
-             big_m_tensor_addto(dim, dim, :, :) = big_m_tensor_addto(dim, dim, :, :) + &
-              & dt*theta*absorption_mat(dim,:,:) + dt*extra_integration_mat(dim,:,:)
-            rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat(dim,:,:), oldu_val(dim,:)) + matmul(absorption_mat(dim,:,:), u_val(dim,:))
-            !print *, 'big_m_tensor_addto',big_m_tensor_addto
-            !print *, 'rhs_addto(dim, :)',rhs_addto(dim, :)
-           else
-             big_m_tensor_addto(dim, dim, :, :) = big_m_tensor_addto(dim, dim, :, :) + &
+            big_m_tensor_addto(dim, dim, :, :) = big_m_tensor_addto(dim, dim, :, :) + &
               & dt*theta*absorption_mat(dim,:,:)
-            rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat(dim,:,:), oldu_val(dim,:)) 
-           end if 
+            rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat(dim,:,:), oldu_val(dim,:)) + matmul(absorption_mat(dim,:,:), u_val(dim,:))
+           ! print *, 'u_val(dim,:)',u_val(dim,:)
+           !   print *, 'rhs_addto(dim, :)',rhs_addto(dim, :)
           end do
           absorption_lump = 0.0
         end if

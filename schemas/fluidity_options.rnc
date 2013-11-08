@@ -3503,13 +3503,12 @@ scalar_field_choice =
             )
          }|
          ## Sigma_d0 is Only used in wetting and drying and high aspect ratio case.
+         ## Please set the mesh as P0,because the value is uniform for each element.
          element scalar_field {
             attribute rank { "0" },
             attribute name { "Sigma_d0" },
             (
-               ## This scaler field stores the value of sigma. If you swith on this term, 
-               ##you should switch on mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/
-               ##d0 and a as well.
+               ## This scaler field stores the value of sigma*dt.
                element diagnostic {
                   internal_algorithm,               
                   mesh_choice,

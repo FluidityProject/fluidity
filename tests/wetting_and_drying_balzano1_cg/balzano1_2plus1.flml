@@ -470,7 +470,6 @@
           <a>
             <real_value rank="0">7</real_value>
           </a>
-          <add_sigma_tildeu_to_RHS/>
         </wetting_and_drying>
       </free_surface>
       <vector_field name="GridVelocity" rank="1">

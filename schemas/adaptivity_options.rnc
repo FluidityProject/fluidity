@@ -1895,9 +1895,6 @@ mesh_adaptivity_options =
                  element a {
                       real
                  }?,
-                 ## When you switch on sigma_d0 term, do you want to add the sigma_tildeu to the RHS? If you do, please switch on this term.
-                 element add_sigma_tildeu_to_RHS {empty}?,
-                 
                  ## Specifies the amount of absorption in dry areas. If a pressure corrected absorption term is desired, please add a pressure corrected absorption under Velocity (of magnitude 0).
                  ## Note: If you double d0, this value has to be doubled as well to achieve the same amount of absorption.
                  element dry_absorption {real_dim_vector}?,
