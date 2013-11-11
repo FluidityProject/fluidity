@@ -142,6 +142,7 @@
                     <specify_components>
                       <x_component/>
                     </specify_components>
+                    <test_null_space/>
                   </remove_null_space>
                   <never_ignore_solver_failures/>
                   <diagnostics>
@@ -165,7 +166,9 @@
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
           </max_iterations>
-          <remove_null_space/>
+          <remove_null_space>
+            <test_null_space/>
+          </remove_null_space>
           <never_ignore_solver_failures/>
           <diagnostics>
             <monitors/>
@@ -248,6 +251,7 @@
             <specify_components>
               <x_component/>
             </specify_components>
+            <test_null_space/>
           </remove_null_space>
           <never_ignore_solver_failures/>
           <diagnostics>
