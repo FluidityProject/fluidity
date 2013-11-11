@@ -61,23 +61,15 @@ subroutine drag_surface(bigm, rhs, state, density)
    integer i, j, k, nobcs, stat
    integer snloc, sele, sngi
    logical:: parallel_dg, have_distance_bottom, have_distance_top, have_gravity, manning_strickler
-   !wetting and drying, extra_drag represents a very large drag force enforced on the bottom surface
+   !wetting and drying
    integer::node
-   logical :: have_wd, have_extra_drag  
-   real :: d0, extra_drag
+   logical :: have_wd  
+   real :: d0
    type(scalar_field), pointer :: dtt,dtb
-   real, dimension(:), allocatable:: depth_at_quads,extra_drag_mat
+   real, dimension(:), allocatable:: depth_at_quads,extra_drag
    type(scalar_field) :: depth
    have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
-   have_extra_drag=have_option(trim(velocity%option_path)//&
-    '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/extra_drag')
-   if (have_wd) then
-     call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
-     if (have_extra_drag) then
-       call get_option(trim(velocity%option_path)//&
-        '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/extra_drag',extra_drag)
-     end if
-   end if
+   call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
    dtt => extract_scalar_field(state, "DistanceToTop")
    dtb => extract_scalar_field(state, "DistanceToBottom")
    call allocate(depth, dtt%mesh, "Depth")
@@ -112,7 +104,7 @@ subroutine drag_surface(bigm, rhs, state, density)
    allocate(faceglobalnodes(1:snloc), &
      face_detwei(1:sngi), coefficient(1:sngi), &
      drag_mat(1:snloc,1:snloc), density_face_gi(1:sngi))
-   allocate(depth_at_quads(1:sngi),extra_drag_mat(1:sngi))
+   allocate(depth_at_quads(1:sngi),extra_drag(1:sngi))
    nobcs=option_count(trim(velocity%option_path)//'/prognostic/boundary_conditions')
    do i=1, nobcs
       call get_boundary_condition(velocity, i, type=bctype, &
@@ -149,15 +141,14 @@ subroutine drag_surface(bigm, rhs, state, density)
               if (manning_strickler) then
                  ! The manning-strickler formulation takes the form n**2g|u|u/(H**0.3333), where H is the water level, g is gravity and n is the Manning coefficient      
                  ! Note that distance_bottom+distance_top is the current water level H 
-                 if(have_wd .and. have_extra_drag) then
+                 if(have_wd ) then
                    depth_at_quads=face_val_at_quad(depth, sele)
                    do k=1, sngi
                      !if (depth_at_quads(k)<d0+eps) then
                        !coefficient(k)=1.0e+8   
-                     extra_drag_mat(k)= max((2*d0-depth_at_quads(k))/d0,real(0))*extra_drag
+                     extra_drag(k)= max((2*d0-depth_at_quads(k))/d0,real(0))*1.0e+6 
                    end do            
-                   coefficient =(ele_val_at_quad(drag_coefficient, j)+extra_drag_mat)*gravity_magnitude*coefficient/((face_val_at_quad(distance_bottom, sele)+face_val_at_quad(distance_top, sele))**(1./3.))  
-                    print *, 'extra_drag_mat=',extra_drag_mat
+                   coefficient =(ele_val_at_quad(drag_coefficient, j)+extra_drag)*gravity_magnitude*coefficient/((face_val_at_quad(distance_bottom, sele)+face_val_at_quad(distance_top, sele))**(1./3.))   
                      !end if
                  else
                    coefficient=ele_val_at_quad(drag_coefficient, j)*gravity_magnitude*coefficient/((face_val_at_quad(distance_bottom, sele)+face_val_at_quad(distance_top, sele))**(1./3.))  
@@ -186,7 +177,8 @@ subroutine drag_surface(bigm, rhs, state, density)
    end do
      
    deallocate(faceglobalnodes, face_detwei, coefficient, drag_mat,density_face_gi)
-   deallocate(depth_at_quads,extra_drag_mat)
+   deallocate(depth_at_quads,extra_drag)
+   
 end subroutine drag_surface
 
 end module drag_module
