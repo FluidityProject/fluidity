@@ -61,17 +61,29 @@ subroutine drag_surface(bigm, rhs, state, density)
    integer i, j, k, nobcs, stat
    integer snloc, sele, sngi
    logical:: parallel_dg, have_distance_bottom, have_distance_top, have_gravity, manning_strickler
-   !wetting and drying
+   !wetting and drying, extra_drag represents a very large drag force enforced on the bottom surface
    integer::node
-   logical :: have_wd , have_extra_drag 
+   logical :: have_wd, have_extra_drag  
    real :: d0, extra_drag
    type(scalar_field), pointer :: dtt,dtb
    real, dimension(:), allocatable:: depth_at_quads,extra_drag_mat
    type(scalar_field) :: depth
    have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
    have_extra_drag=have_option(trim(velocity%option_path)//&
-               '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/extra_drag')
-   
+    '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/extra_drag')
+   if (have_wd) then
+     call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
+     if (have_extra_drag) then
+       call get_option(trim(velocity%option_path)//&
+        '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/extra_drag',extra_drag)
+     end if
+   end if
+   dtt => extract_scalar_field(state, "DistanceToTop")
+   dtb => extract_scalar_field(state, "DistanceToBottom")
+   call allocate(depth, dtt%mesh, "Depth")
+   do node=1,node_count(dtt)
+      call set(depth, node, node_val(dtt, node)+node_val(dtb, node))
+   end do
    
    ewrite(1,*) 'Inside drag_surface'
    
@@ -137,27 +149,15 @@ subroutine drag_surface(bigm, rhs, state, density)
               if (manning_strickler) then
                  ! The manning-strickler formulation takes the form n**2g|u|u/(H**0.3333), where H is the water level, g is gravity and n is the Manning coefficient      
                  ! Note that distance_bottom+distance_top is the current water level H 
-                 if(have_wd ) then
-                    call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
-                    call get_option(trim(velocity%option_path)//&
-               '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/extra_drag',extra_drag)
-                     print*, 'extra_drag=', extra_drag
-                    dtt => extract_scalar_field(state, "DistanceToTop")
-                    dtb => extract_scalar_field(state, "DistanceToBottom")
-                    call allocate(depth, dtt%mesh, "Depth")
-                    do node=1,node_count(dtt)
-                        call set(depth, node, node_val(dtt, node)+node_val(dtb, node))
-                    end do
+                 if(have_wd .and. have_extra_drag) then
                    depth_at_quads=face_val_at_quad(depth, sele)
-                   if (have_extra_drag) then
-                     do k=1, sngi
+                   do k=1, sngi
                      !if (depth_at_quads(k)<d0+eps) then
                        !coefficient(k)=1.0e+8   
-                       extra_drag_mat(k)= max((2*d0-depth_at_quads(k))/d0,real(0))*extra_drag
-                     end do            
-                   coefficient =(ele_val_at_quad(drag_coefficient, j)+extra_drag_mat)*gravity_magnitude*coefficient/((face_val_at_quad(distance_bottom, sele)+face_val_at_quad(distance_top, sele))**(1./3.)) 
-                   print *, 'extra_drag_mat=',extra_drag_mat
-                   end if
+                     extra_drag_mat(k)= max((2*d0-depth_at_quads(k))/d0,real(0))*extra_drag
+                   end do            
+                   coefficient =(ele_val_at_quad(drag_coefficient, j)+extra_drag_mat)*gravity_magnitude*coefficient/((face_val_at_quad(distance_bottom, sele)+face_val_at_quad(distance_top, sele))**(1./3.))  
+                    print *, 'extra_drag_mat=',extra_drag_mat
                      !end if
                  else
                    coefficient=ele_val_at_quad(drag_coefficient, j)*gravity_magnitude*coefficient/((face_val_at_quad(distance_bottom, sele)+face_val_at_quad(distance_top, sele))**(1./3.))  
@@ -187,7 +187,6 @@ subroutine drag_surface(bigm, rhs, state, density)
      
    deallocate(faceglobalnodes, face_detwei, coefficient, drag_mat,density_face_gi)
    deallocate(depth_at_quads,extra_drag_mat)
-   
 end subroutine drag_surface
 
 end module drag_module
