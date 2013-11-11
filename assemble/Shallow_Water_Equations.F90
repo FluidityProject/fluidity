@@ -307,9 +307,9 @@ module shallow_water_equations
 
   subroutine shallow_water_equations_check_options
 
-    character(len=*), dimension(1:4), parameter:: forbidden_bc_types = (/ &
+    character(len=*), dimension(1:3), parameter:: forbidden_bc_types = (/ &
       "free_surface ", "bulk_formulae", &
-      "drag         ", "wind_forcing "  /)
+      "wind_forcing "  /)
     character(len=OPTION_PATH_LEN):: velocity_option_path, pressure_option_path
     real:: beta
     integer:: i, dim
