@@ -80,9 +80,9 @@ module solvers
   type(vector_field), dimension(3), save:: petsc_monitor_vfields
   character(len=FIELD_NAME_LEN), save:: petsc_monitor_vtu_name
   integer, save:: petsc_monitor_vtu_series=0
-
+  
 private
- 
+
 public petsc_solve, set_solver_options, &
    complete_solver_option_path, petsc_solve_needs_positions
 

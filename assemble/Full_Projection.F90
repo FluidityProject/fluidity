@@ -350,15 +350,9 @@
           FLExit("Internal smoothing not available for inner solve")
         end if
         if (associated(mesh_positions)) then
-          if (stat==0) then
-            call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
-              inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true., &
-              prolongators=prolongators, positions=mesh_positions, rotation_matrix=rotation_matrix%M)
-          else
-            call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
-              inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true., &
-              prolongators=prolongators, positions=mesh_positions)
-          end if
+          call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
+            inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true., &
+            prolongators=prolongators, positions=mesh_positions)
         else
           call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
             inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true., &

@@ -484,7 +484,8 @@ use this option to remove the constant component from the solution every iterati
 leads to better convergence rates, when compared to imposing a reference_node to pin the solution.</a:documentation>
         <optional>
           <element name="test_null_space">
-            <a:documentation>Test whether the null space is actually a null space</a:documentation>
+            <a:documentation>Test whether the null space is actually a null space. To see the result of this
+test you need to run fluidity with a verbosity level of at least -v1.</a:documentation>
             <empty/>
           </element>
         </optional>
@@ -575,7 +576,8 @@ a rotational mode around each axis may be present.</a:documentation>
     </optional>
     <optional>
       <element name="test_null_space">
-        <a:documentation>Test whether the null space is actually a null space</a:documentation>
+        <a:documentation>Test whether the null space is actually a null space. To see the result of this
+test you need to run fluidity with a verbosity level of at least -v1.</a:documentation>
         <empty/>
       </element>
     </optional>

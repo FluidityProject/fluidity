@@ -532,7 +532,8 @@ null_space_options =
           }?
         }
       )?,
-      ## Test whether the null space is actually a null space
+      ## Test whether the null space is actually a null space. To see the result of this
+      ## test you need to run fluidity with a verbosity level of at least -v1.
       element test_null_space {
          empty
       }?
