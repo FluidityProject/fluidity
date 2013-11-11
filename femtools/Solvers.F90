@@ -1868,6 +1868,14 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
 
     else
        
+#if PETSC_VERSION_MINOR>=3
+      if (pctype==PCGAMG) then
+        ! we think this is a more useful default - the default value of 0.0
+        ! causes spurious "unsymmetric" failures as well
+        call PCGAMGSetThreshold(pc, 0.01, ierr)
+      end if
+#endif
+
        ! this doesn't work for hypre
        call PCSetType(pc, pctype, ierr)
        ! set options that may have been supplied via the
