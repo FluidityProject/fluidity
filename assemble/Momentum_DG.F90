@@ -1019,8 +1019,8 @@ contains
     ! LES - sp911
     logical :: have_les
     real :: smagorinsky_coefficient
-    type(scalar_field), pointer, intent(inout) :: eddy_visc
-    type(scalar_field), pointer, intent(in) :: prescribed_filter_width, distance_to_wall, y_plus_debug, les_filter_width_debug
+    type(scalar_field), pointer, intent(inout) :: eddy_visc, y_plus_debug, les_filter_width_debug
+    type(scalar_field), pointer, intent(in) :: prescribed_filter_width, distance_to_wall
 
     dg=continuity(U)<0
     p0=(element_degree(u,ele)==0)
@@ -3312,7 +3312,6 @@ contains
       
     type(vector_field) :: u_sub, m_delta_u, delta_u
     type(scalar_field), pointer :: courant_number_field
-    type(scalar_field) :: u_cpt
     real :: max_courant_number
     integer :: d, i, subcycles
     logical :: limit_slope
@@ -3348,17 +3347,11 @@ contains
     call allocate(m_delta_u, u%dim, u%mesh, "SubcycleMDeltaU")
     call zero(m_delta_u)
 
-   do i=1, subcycles
+    do i=1, subcycles
       if (limit_slope) then
-
         ! filter wiggles from u
-        do d =1, mesh_dim(u)
-        u_cpt = extract_scalar_field_from_vector_field(u_sub,d)
-        call limit_vb(state,u_cpt)
-        end do
-
+        call limit_slope_dg(state, u, 5)    ! 5 = limit_vb
       end if
-
  
       ! du = advection * u
       call mult(delta_u, subcycle_m, u_sub)
