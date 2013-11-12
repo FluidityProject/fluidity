@@ -1875,15 +1875,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
             petsc_numbering=petsc_numbering)
 
     else
-       
-#if PETSC_VERSION_MINOR>=3
-      if (pctype==PCGAMG) then
-        ! we think this is a more useful default - the default value of 0.0
-        ! causes spurious "unsymmetric" failures as well
-        call PCGAMGSetThreshold(pc, 0.01, ierr)
-      end if
-#endif
-
+      
        ! this doesn't work for hypre
        call PCSetType(pc, pctype, ierr)
        ! set options that may have been supplied via the
@@ -1896,6 +1888,14 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
           call get_option(trim(option_path)//'/factorization_package/name', matsolverpackage)
           call PCFactorSetMatSolverPackage(pc, matsolverpackage, ierr)
        end if
+
+#if PETSC_VERSION_MINOR>=3
+      if (pctype==PCGAMG) then
+        ! we think this is a more useful default - the default value of 0.0
+        ! causes spurious "unsymmetric" failures as well
+        call PCGAMGSetThreshold(pc, 0.01, ierr)
+      end if
+#endif
       
     end if
 
