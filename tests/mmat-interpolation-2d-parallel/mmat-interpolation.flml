@@ -643,7 +643,6 @@ will get cut off by final_timestep</comment>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
-      <zoltan_options/>
       <debug>
         <write_adapted_mesh/>
         <write_adapted_state/>
