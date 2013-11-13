@@ -126,7 +126,7 @@ class TestHarness:
             if self.parallel is "parallel":
               if prob_nprocs > 1:
                 working_set.append(xml_file)
-            else if self.parallel is "serial":
+            elif self.parallel is "serial":
               if prob_nprocs == 1:
                 working_set.append(xml_file)
             else if self.parallel is "any":
