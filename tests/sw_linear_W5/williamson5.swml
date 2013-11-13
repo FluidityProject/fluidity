@@ -56,7 +56,7 @@
               <real_value rank="0">1.0e-50</real_value>
             </relative_error>
             <max_iterations>
-              <integer_value rank="0">1000</integer_value>
+              <integer_value rank="0">2000</integer_value>
             </max_iterations>
             <never_ignore_solver_failures/>
             <diagnostics>
@@ -141,7 +141,7 @@
       <real_value rank="0">0.5</real_value>
     </theta>
     <nonlinear_iterations>
-      <integer_value rank="0">4</integer_value>
+      <integer_value rank="0">1</integer_value>
     </nonlinear_iterations>
     <finish_time>
       <real_value rank="0">4320900.0</real_value>
@@ -199,7 +199,7 @@
         <mesh name="VelocityMesh"/>
         <equation name="ShallowWater"/>
         <wave_equation>
-          <fully_coupled/>
+          <just_wave_equation_step/>
         </wave_equation>
         <spatial_discretisation>
           <discontinuous_galerkin/>
@@ -260,7 +260,6 @@
           <conservative_advection>
             <real_value rank="0">0.</real_value>
           </conservative_advection>
-          <debug/>
         </spatial_discretisation>
         <temporal_discretisation>
           <discontinuous_galerkin>
@@ -302,7 +301,7 @@
   h0 = 5960.
   Omega = 7.292e-5
   sinsqtheta = (z/R)**2
-  return (g*h0-(R0*Omega*u0 + u0**2/2)*sinsqtheta)/g</string_value>
+  return h0-R0*Omega*u0*sinsqtheta/g</string_value>
           </python>
         </initial_condition>
         <mean_layer_thickness>
