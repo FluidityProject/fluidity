@@ -129,7 +129,7 @@ class TestHarness:
             elif self.parallel is "serial":
               if prob_nprocs == 1:
                 working_set.append(xml_file)
-            else if self.parallel is "any":
+            elif self.parallel is "any":
               working_set.append(xml_file)
                 
         def get_xml_file_tags(xml_file):
