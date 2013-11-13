@@ -555,6 +555,9 @@
          call set_prescribed_field_values( state, exclude_interpolated = .true., &
               exclude_nonreprescribed = .true., time = acctim )
 
+         ! update velocity absorption
+         call update_velocity_absorption( state, ndim, nphase, mat_nonods, velocity_absorption )
+
          ! time varying boundary conditions for Temperature
          if( have_temperature_field ) &
               call update_boundary_conditions( state, stotel, cv_snloc, nphase, & 
@@ -1070,8 +1073,8 @@
               Density, Component, ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
 
 !!$ Calculate diagnostic fields
-            call calculate_diagnostic_variables( state, exclude_nonrecalculated = .true. )
-            call calculate_diagnostic_variables_new( state, exclude_nonrecalculated = .true. )
+         call calculate_diagnostic_variables( state, exclude_nonrecalculated = .true. )
+         call calculate_diagnostic_variables_new( state, exclude_nonrecalculated = .true. )
 
          Conditional_TimeDump: if( ( mod( itime, dump_period_in_timesteps ) == 0 ) ) then
 

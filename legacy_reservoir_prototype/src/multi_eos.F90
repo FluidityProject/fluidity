@@ -1413,4 +1413,41 @@
     end subroutine calculate_u_abs_stab
 
 
+    subroutine update_velocity_absorption( states, ndim, nphase, mat_nonods,velocity_absorption )
+
+      implicit none
+
+      integer, intent( in ) :: ndim, nphase, mat_nonods 
+      type( state_type ), dimension( : ), intent( in ) :: states
+      real, dimension( mat_nonods, ndim*nphase, ndim*nphase ), intent( inout ) :: velocity_absorption
+
+      type( vector_field ), pointer :: absorption
+      integer :: iphase, idim
+      logical :: have_absorption 
+      character( len = option_path_len ) :: option_path
+
+      velocity_absorption = 0.
+
+      do iphase = 1, nphase
+         have_absorption = .false.
+         option_path = '/material_phase[' // int2str( iphase - 1 ) // ']/vector_field::Velocity' // &
+              '/prognostic/vector_field::Absorption/diagnostic/algorithm::vector_python_diagnostic'
+         have_absorption = have_option( trim(option_path) )
+         if ( have_absorption ) then
+            absorption => extract_vector_field( states( iphase ), 'VelocityAbsorption' )
+            do idim = 1, ndim
+               velocity_absorption( :, idim + (iphase-1)*ndim, idim + (iphase-1)*ndim ) =  &
+                    absorption % val( idim, : )
+            end do
+         else
+            do idim = 1, ndim
+               velocity_absorption( :, idim + (iphase-1)*ndim, idim + (iphase-1)*ndim ) = 0.0 
+            end do
+         end if
+      end do
+
+      return
+    end subroutine update_velocity_absorption
+
+
   end module multiphase_EOS
