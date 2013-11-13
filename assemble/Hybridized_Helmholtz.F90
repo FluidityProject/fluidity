@@ -74,17 +74,18 @@ contains
     type(vector_field), intent(in), optional :: UResidual
     type(scalar_field), intent(in), optional :: DResidual
     !
-    type(vector_field), pointer :: X, U, down, U_cart, U_old
+    type(vector_field), pointer :: X, U, down, U_cart, U_old, orography_term
     type(scalar_field), pointer :: D,f, D_old
     type(scalar_field) :: lambda, D_res
     type(vector_field) :: U_res, U_res2
     type(scalar_field), target :: lambda_rhs, u_cpt
+    type(vector_field), target :: l_orography
     type(csr_sparsity) :: lambda_sparsity, continuity_sparsity
     type(csr_matrix) :: continuity_block_mat
     type(mesh_type), pointer :: lambda_mesh
     real :: D0, dt, g, theta, tolerance
     integer :: ele,i1, stat, dim1, dloc, uloc,mdim,n_constraints
-    logical :: have_constraint
+    logical :: have_constraint, have_orography
     character(len=OPTION_PATH_LEN) :: constraint_option_string
 
     ewrite(1,*) 'solve_hybridised_timestep_residual(state)'
@@ -107,6 +108,14 @@ contains
     U_cart => extract_vector_field(state, "Velocity")
     U_old => extract_vector_field(state, "OldLocalVelocity")
     D_old => extract_scalar_field(state, "OldLayerThickness")
+
+    orography_term=>extract_vector_field(state, "LinearOrographyTerm", stat)
+    have_orography = (stat==0)
+    if(.not.have_orography) then
+       call allocate(l_orography,mesh_dim(U),X%mesh,"L_Orography")
+       orography_term => l_orography
+       call zero(l_orography)
+    end if
 
     !Allocate local field variables
     lambda_mesh=>extract_mesh(state, "VelocityMeshTrace")
@@ -172,7 +181,7 @@ contains
        !Compute residuals for linear equation
        do ele = 1, ele_count(D)
           call get_linear_residuals_ele(U_res,D_res,&
-               U_old,D_old,newU,newD,&
+               U_old,D_old,newU,newD,orography_term,&
                newton_local_solver_cache(ele)%ptr,&
                newton_local_solver_rhs_cache(ele)%ptr,ele)
        end do
@@ -205,7 +214,7 @@ contains
     else
        do ele = 1, ele_count(D)
           call get_linear_residuals_ele(U_res,D_res,&
-               U_old,D_old,newU,newD,&
+               U_old,D_old,newU,newD,orography_term,&
                newton_local_solver_cache(ele)%ptr,&
                newton_local_solver_rhs_cache(ele)%ptr,ele)
        end do
@@ -248,6 +257,9 @@ contains
     call deallocate(U_res)
     call deallocate(D_res)
     call deallocate(U_res2)
+    if(.not.have_orography) then
+       call deallocate(l_orography)
+    end if
 
     ewrite(1,*) 'END solve_hybridised_timestep_residual(state)'
   
@@ -480,10 +492,11 @@ contains
   end subroutine solve_hybridized_helmholtz
 
   subroutine get_linear_residuals_ele(U_res,D_res,U,D,&
-       newU,newD,local_solver,local_solver_rhs,ele)
+       newU,newD,orography,local_solver,local_solver_rhs,ele)
     !Subroutine
     type(vector_field), intent(inout) :: U_res,U,newU
     type(scalar_field), intent(inout) :: D_res,D,newD
+    type(vector_field), intent(in) :: orography
     real, dimension(:,:), intent(in) :: local_solver, local_solver_rhs
     integer, intent(in) :: ele
     !
@@ -521,7 +534,7 @@ contains
     rhs_loc2 = rhs_loc2-rhs_loc1
     do dim1 = 1, mesh_dim(U)
        call set(U_res,dim1,ele_nodes(U,ele),&
-            rhs_loc2(u_start(dim1):u_end(dim1)))
+            rhs_loc2(u_start(dim1):u_end(dim1))-ele_val(orography,dim1,ele))
     end do
     call set(D_res,ele_nodes(D,ele),&
          rhs_loc2(d_start:d_end))
@@ -1832,6 +1845,47 @@ contains
          &matmul(D_mass,D_val))
 
   end subroutine compute_energy_ele
+
+  subroutine calculate_linear_orography(state, orography, linear_orography_term)
+    implicit none
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(in) :: orography
+    type(vector_field), intent(inout) :: linear_orography_term
+
+    type(vector_field), pointer :: U
+    real :: g, dt
+    integer :: ele
+
+    U=>extract_vector_field(state, "LocalVelocity")
+    call get_option("/physical_parameters/gravity/magnitude", g)
+    call get_option("/timestepping/timestep", dt)
+
+    do ele=1, element_count(orography)
+       call calculate_linear_orography_ele(orography, U, linear_orography_term, g, dt, ele)
+    end do
+
+  end subroutine calculate_linear_orography
+
+  subroutine calculate_linear_orography_ele(orography, U, linear_orography_term,g,  dt, ele)
+    implicit none
+    type(scalar_field), intent(in) :: orography
+    type(vector_field), intent(in) :: U
+    type(vector_field), intent(inout) :: linear_orography_term
+    real, intent(in) :: g, dt
+    integer, intent(in) :: ele
+
+    type(element_type), pointer :: U_shape
+    real, dimension(ele_ngi(orography,ele)) :: orography_gi
+    real, dimension(mesh_dim(U), ele_loc(linear_orography_term,ele)) :: val
+
+    U_shape=>ele_shape(U, ele)
+    orography_gi = ele_val_at_quad(orography,ele)
+
+    val=dshape_rhs(U_shape%dn, dt*g*orography_gi*U_shape%quadrature%weight)
+    call set(linear_orography_term, ele_nodes(linear_orography_term,ele), val)
+
+  end subroutine calculate_linear_orography_ele
+
 
   subroutine set_velocity_from_geostrophic_balance_hybridized(&
        &state)

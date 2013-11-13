@@ -411,7 +411,7 @@
       type(vector_field), pointer :: v_field,U,X,Z
       type(scalar_field), pointer :: s_field,D,f_ptr
       type(mesh_type), pointer :: v_mesh
-      type(vector_field) :: U_local, advecting_u, old_U
+      type(vector_field) :: U_local, advecting_u, old_U, linear_orography_term
       character(len=PYTHON_FUNC_LEN) :: coriolis
       type(scalar_field) :: f, new_s_field
       integer :: stat
@@ -557,7 +557,19 @@
          D => extract_scalar_field(state, "LayerThickness")
          D%val = D%val - s_field%val
       end if
-      
+      s_field => extract_scalar_field(state, "Orography",stat)
+      print*, "JEMMA:", stat, have_option("/material_phase::Fluid/scalar_field::Orography")
+      print*, have_option('/material_phase::Fluid/vector_field::Velocity/prognostic/wave_equation/just_wave_equation_step')
+      if(stat==0 .and. have_option('/material_phase::Fluid/vector_field::Velocity/prognostic/wave_equation/just_wave_equation_step')) then
+         print*, 'calculating linear orography term'
+         ! calculate LinearOrographyTerm field = g<div w,h_orog>
+         call allocate(linear_orography_term, mesh_dim(U), U%mesh, "LinearOrographyTerm")
+         call calculate_linear_orography(state, s_field, linear_orography_term)
+         ewrite_minmax(linear_orography_term)
+         call insert(state, linear_orography_term, "LinearOrographyTerm")
+         call deallocate(linear_orography_term)
+      end if
+
       s_field => extract_scalar_field(state,"PotentialVorticityTracer",stat)
       if(stat==0) then
          if(s_field%mesh%shape%numbering%type==ELEMENT_BUBBLE) then
