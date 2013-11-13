@@ -213,19 +213,10 @@ module sam_integration
        integer, dimension(nnodes), intent(out) :: node_ownership
      end subroutine sam_export_node_ownership_c
    end interface sam_export_node_ownership
-
-   interface sam_migrate_halo2
-     subroutine sam_migrate_halo2_c
-     end subroutine sam_migrate_halo2_c
-   end interface sam_migrate_halo2
    
    private
    
-   public :: sam_drive, strip_level_2_halo, sam_integration_check_options, find_nodes_to_keep, &
-        create_renumbering_map, generate_stripped_linear_mesh, generate_stripped_vector_field, &
-        halo_transfer_detectors, renumber_halo, generate_stripped_tensor_field, sam_init_c, &
-        sam_add_field, sam_query, sam_export_mesh, sam_export_halo, &
-        sam_export_phalo, sam_pop_field, sam_cleanup, sam_migrate_halo2
+   public :: sam_drive, strip_level_2_halo, sam_integration_check_options
 
    contains
    
@@ -444,7 +435,7 @@ module sam_integration
        !!< renumber is negative if the node is to be stripped, and forms
        !!< a consecutive list elsewhere.
        
-       integer, dimension(:), intent(inout) :: renumber
+       integer, dimension(:), intent(out) :: renumber
        logical, dimension(size(renumber)), intent(in) :: keep
        
        integer :: i, index
