@@ -5,14 +5,25 @@ import os
 import os.path
 import glob
 import time
-import fluidity.regressiontest as regressiontest
+
+try:
+ import fluidity.regressiontest as regressiontest
+except ImportError:
+ # try again by adding the path "../python" relative to testharness' own location to sys.path
+ head,tail = os.path.split(sys.argv[0])
+ python_path = os.path.abspath(os.path.join(head,'..','python'))
+ sys.path.append(python_path)
+ import fluidity.regressiontest as regressiontest
+
 import traceback
 import threading
 import xml.parsers.expat
 import string
 
-
+# make sure we use the correct version of regressiontest
 sys.path.insert(0, os.path.join(os.getcwd(), os.path.dirname(sys.argv[0]), os.pardir, "python"))
+import fluidity.regressiontest as regressiontest
+
 try:
   import xml.etree.ElementTree as etree
 except ImportError:
@@ -22,7 +33,7 @@ class TestHarness:
     def __init__(self, length="any", parallel=False, exclude_tags=None,
                  tags=None, file="", from_file=None,
                  verbose=True, justtest=False,
-                 valgrind=False, no_pbs=False):
+                 valgrind=False, genpbs=False):
         self.tests = []
         self.verbose = verbose
         self.length = length
@@ -34,7 +45,7 @@ class TestHarness:
         self.completed_tests = []
         self.justtest = justtest
         self.valgrind = valgrind
-        self.no_pbs = no_pbs
+        self.genpbs = genpbs
 
         fluidity_command = self.decide_fluidity_command()
 
@@ -94,7 +105,7 @@ class TestHarness:
               prob_defn = p.findall("problem_definition")[0]
               prob_nprocs = int(prob_defn.attrib["nprocs"])                
               testprob = regressiontest.TestProblem(filename=os.path.join(subdir, xml_file),
-                           verbose=self.verbose, replace=self.modify_command_line(prob_nprocs), no_pbs=no_pbs)
+                           verbose=self.verbose, replace=self.modify_command_line(prob_nprocs), genpbs=genpbs)
               self.tests.append((subdir, testprob))
               files.remove(xml_file)
           if files != []:
@@ -232,16 +243,9 @@ class TestHarness:
               " --show-reachable=yes --num-callers=8 --error-limit=no " + \
               "--log-file=test.log " + s
 
-        print s
-        if (self.no_pbs):
-            # check for mpiexec and the correct number of cores
-            if (string.find(s, 'mpiexec') == -1):
-                s = s.replace(flucmd+" ", "mpiexec "+flucmd+" ")
-                print s
-
-            if (string.find(s, '-n') == -1): 
-                s = s.replace('mpiexec ', 'mpiexec -n '+str(nprocs)+' ')
-                print s
+        # when calling genpbs, genpbs should take care of inserting the right -n <NPROCS> magic
+        if not self.genpbs:
+          s = s.replace('mpiexec ', 'mpiexec -n %(nprocs)d ' % {'nprocs': nprocs})
 
         return s
 
@@ -376,7 +380,7 @@ if __name__ == "__main__":
     parser.add_option("-c", "--clean", action="store_true", dest="clean", default = False)
     parser.add_option("--just-test", action="store_true", dest="justtest")
     parser.add_option("--just-list", action="store_true", dest="justlist")
-    parser.add_option("--no_pbs", action="store_true", dest="no_pbs")
+    parser.add_option("--genpbs", action="store_true", dest="genpbs")
     (options, args) = parser.parse_args()
 
     if len(args) > 0: parser.error("Too many arguments.")
@@ -416,7 +420,7 @@ if __name__ == "__main__":
                               justtest=options.justtest,
                               valgrind=options.valgrind,
                               from_file=options.from_file,
-                              no_pbs=options.no_pbs)
+                              genpbs=options.genpbs)
 
     if options.justlist:
       testharness.list()

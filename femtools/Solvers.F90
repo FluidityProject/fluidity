@@ -1180,6 +1180,7 @@ logical, optional, intent(in):: nomatrixdump
   PetscReal norm
   PetscErrorCode ierr
   KSPConvergedReason reason
+  MatNullSpace nullsp
   PetscLogDouble flops1, flops2
   character(len=FIELD_NAME_LEN):: name
   logical print_norms, timing
@@ -1223,6 +1224,12 @@ logical, optional, intent(in):: nomatrixdump
   end if
   
   ewrite(1, *) 'Entering solver.'
+
+  ! if a null space is defined for the petsc matrix, make sure it's projected out of the rhs
+  call KSPGetNullSpace(ksp, nullsp, ierr)
+  if (ierr==0  .and. nullsp/=PETSC_NULL_OBJECT) then
+    call MatNullSpaceRemove(nullsp, b, PETSC_NULL_OBJECT, ierr)
+  end if
 
   call KSPSolve(ksp, b, y, ierr)
   call KSPGetConvergedReason(ksp, reason, ierr)
@@ -1697,8 +1704,12 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     end if
     if (have_option(trim(solver_option_path)// &
        '/diagnostics/monitors/preconditioned_residual_graph')) then
+#if PETSC_VERSION_MINOR<4
         call KSPMonitorSet(ksp, KSPMonitorLG, PETSC_NULL_OBJECT, &
            PETSC_NULL_FUNCTION, ierr)
+#else
+        FLExit("Solver option diagnostics/monitors/preconditioned_residual_graph not supported with petsc version >=3.4")
+#endif
     end if
 
     if (have_option(trim(solver_option_path)// &
@@ -1856,7 +1867,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
             petsc_numbering=petsc_numbering)
 
     else
-       
+      
        ! this doesn't work for hypre
        call PCSetType(pc, pctype, ierr)
        ! set options that may have been supplied via the
@@ -1869,6 +1880,14 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
           call get_option(trim(option_path)//'/factorization_package/name', matsolverpackage)
           call PCFactorSetMatSolverPackage(pc, matsolverpackage, ierr)
        end if
+
+#if PETSC_VERSION_MINOR>=3
+      if (pctype==PCGAMG) then
+        ! we think this is a more useful default - the default value of 0.0
+        ! causes spurious "unsymmetric" failures as well
+        call PCGAMGSetThreshold(pc, 0.01, ierr)
+      end if
+#endif
       
     end if
 

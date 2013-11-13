@@ -110,6 +110,7 @@
     logical :: have_vertical_stabilization
     logical :: have_implicit_buoyancy
     logical :: have_vertical_velocity_relaxation
+    logical :: have_swe_bottom_drag
     logical :: have_viscosity
     logical :: have_surfacetension
     logical :: have_coriolis
@@ -254,6 +255,8 @@
       ! lumping on the submesh
       type(vector_field) :: abslump
       type(scalar_field) :: absdensity, abslump_component, abs_component
+      ! for swe bottom drag
+      type(scalar_field), pointer :: swe_bottom_drag, old_pressure
 
       ! for all LES models:
       character(len=OPTION_PATH_LEN) :: les_option_path
@@ -367,9 +370,26 @@
                         ib_min_grad, default=0.0)
       end if
 
+      have_swe_bottom_drag = have_option(trim(u%option_path)//'/prognostic/equation::ShallowWater/bottom_drag')
+      if (have_swe_bottom_drag) then
+        swe_bottom_drag => extract_scalar_field(state, "BottomDragCoefficient")
+        assert(.not. have_vertical_velocity_relaxation)
+        depth = extract_scalar_field(state, "BottomDepth") ! we reuse the field that's already passed for VVR
+        old_pressure => extract_scalar_field(state, "OldPressure")
+      else
+        ! just to be sure, nullify these pointer instead of passing them undefined:
+        nullify(swe_bottom_drag)
+        nullify(old_pressure)
+      end if
+
       call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude, &
           stat=stat)
       have_gravity = stat == 0
+      if (have_option(trim(u%option_path)//'/prognostic/equation::ShallowWater')) then
+        ! for the swe there's no buoyancy term
+        have_gravity = .false.
+      end if
+
       if(have_gravity) then
         buoyancy=>extract_scalar_field(state, "VelocityBuoyancyDensity")
         gravity=>extract_vector_field(state, "GravityDirection", stat)
@@ -734,6 +754,7 @@
               viscosity, grad_u, &
               fnu, tnu, leonard, strainprod, alpha, gamma, &
               gp, surfacetension, &
+              swe_bottom_drag, old_pressure, p, &
               assemble_ct_matrix_here, depth, &
               alpha_u_field, abs_wd, temperature, nvfrac, &
               supg_element(thread_num+1))
@@ -1195,6 +1216,7 @@
                                             viscosity, grad_u, &
                                             fnu, tnu, leonard, strainprod, alpha, gamma, &
                                             gp, surfacetension, &
+                                            swe_bottom_drag, old_pressure, p, &
                                             assemble_ct_matrix_here, depth, &
                                             alpha_u_field, abs_wd, temperature, nvfrac, supg_shape)
 
@@ -1228,6 +1250,10 @@
 
       type(scalar_field), intent(in) :: gp
       type(tensor_field), intent(in) :: surfacetension
+
+      ! only used with have_swe_bottom_drag - otherwised undefined pointers
+      type(scalar_field), pointer :: swe_bottom_drag, old_pressure
+      type(scalar_field), intent(in) :: p
 
       logical, intent(in) :: assemble_ct_matrix_here
 
@@ -1428,13 +1454,13 @@
       end if
 
       ! Absorption terms (sponges) and WettingDrying absorption
-      if (have_absorption .or. have_vertical_stabilization .or. have_wd_abs .or. have_sigma) then
+
+      if (have_absorption .or. have_vertical_stabilization .or. have_wd_abs .or. have_swe_bottom_drag .or. have_sigma) then
          call add_absorption_element_cg(x, ele, test_function, u, oldu_val, density, &
                                       absorption, detwei, big_m_diag_addto, big_m_tensor_addto, rhs_addto, &
                                       masslump, mass, depth, gravity, buoyancy, &
+                                      swe_bottom_drag, old_pressure, p, nu, &
                                       alpha_u_field, abs_wd, u_val)
-         
-      
       end if
 
       ! Viscous terms
@@ -1817,6 +1843,7 @@
                                          density, absorption, detwei, &
                                          big_m_diag_addto, big_m_tensor_addto, rhs_addto, &
                                          masslump, mass, depth, gravity, buoyancy, &
+                                         swe_bottom_drag, old_pressure, p, nu, &
                                          alpha_u_field, abs_wd, u_val)
       type(vector_field), intent(in) :: positions
       integer, intent(in) :: ele
@@ -1834,6 +1861,10 @@
       type(scalar_field), intent(in) :: depth
       type(vector_field), intent(in) :: gravity
       type(scalar_field), intent(in) :: buoyancy
+      ! fields used for swe bottom drag:
+      type(scalar_field), pointer :: swe_bottom_drag, old_pressure ! these are undefined pointers if .not. have_swe_bottom_drag
+      type(scalar_field), intent(in) :: p
+      type(vector_field), intent(in) :: nu
       ! Wetting and drying parameters
       type(scalar_field), intent(in) :: alpha_u_field
       type(vector_field), intent(in) :: abs_wd
@@ -1971,6 +2002,17 @@
        absorption_gi=absorption_gi-vvr_abs_diag-ib_abs_diag-sigma_d0_diag
        !print *, 'absorption_gi',absorption_gi
 
+      end if
+
+      if (have_swe_bottom_drag) then
+        ! first compute total water depth H
+        depth_at_quads = ele_val_at_quad(depth, ele) + (itheta*ele_val_at_quad(p, ele) + (1.0-itheta)*ele_val_at_quad(old_pressure, ele))/gravity_magnitude
+        ! now reuse depth_at_quads to be the absorption coefficient: C_D*|u|/H
+        depth_at_quads = (ele_val_at_quad(swe_bottom_drag, ele)*sqrt(sum(ele_val_at_quad(nu, ele)**2, dim=1)))/depth_at_quads
+        do i=1, u%dim
+          absorption_gi(i,:) = absorption_gi(i,:) + depth_at_quads
+        end do
+      
       end if
       
       ! element absorption matrix

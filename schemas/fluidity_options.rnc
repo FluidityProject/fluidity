@@ -2835,6 +2835,13 @@ velocity_boundary_conditions =
             attribute name { "no_normal_flow" },
             empty
          }|
+         ## Implements a prescribed normal flow. Works for DG only. This
+         ## implements a weakly imposed bounadry condition normal to the surface.
+         ## Note: Positive points out of the domain, negative into the domain.
+         element type {
+            attribute name { "prescribed_normal_flow" },
+               input_choice_real_bc_component
+         }|
          ## Flux boundary condition. 
          ##
          ## Weakly enforces a flux across a boundary
@@ -3428,12 +3435,15 @@ scalar_field_choice =
             attribute rank { "0" },
             attribute name { "FreeSurface" },
             (
-               ## Free Surface
-               ## NOTE: the diagnostic FreeSurface field only works in combination
-               ## with the free_surface boundary condition applied to the Velocity
+               ## Free Surface elevation, to be used in combination with:
+               ##
+               ## * a free_surface boundary condition applied to the Velocity
                ## field, without the no_normal_stress_option.
                ## It gives you a full dimensional field (constant over the vertical)
                ## of the free surface elevation.
+               ##
+               ## * equation type ShallowWater for Velocity. It simply divides 
+               ## Pressure by g, the gravitational constant.
                element diagnostic {
                   internal_algorithm,
                   ## Must be on the same mesh as Pressure

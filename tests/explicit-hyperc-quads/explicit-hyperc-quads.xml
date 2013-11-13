@@ -32,14 +32,14 @@ mnvfrac = fluidity_tools.stat_parser("channel_flow.stat")['Water']['Tracer']['mi
     <variable name="tracerbehindfront" language="python">
 import vtktools
 from numpy import array
-coordinates=array([[0.005, 0.25, 0.005]])
+coordinates=array([[0.005, 0.25, 0]])
 vtufile=vtktools.vtu('channel_flow_3.vtu')
 tracerbehindfront=vtktools.vtu.ProbeData(vtufile,coordinates,'Tracer')
     </variable>
      <variable name="tracerfrontfront" language="python">
 import vtktools
 from numpy import array
-coordinates=array([[0.005, 0.3, 0.005]])
+coordinates=array([[0.005, 0.3, 0]])
 vtufile=vtktools.vtu('channel_flow_3.vtu')
 tracerfrontfront=vtktools.vtu.ProbeData(vtufile,coordinates,'Tracer')
     </variable>

@@ -941,24 +941,34 @@ prognostic_velocity_field =
          },
          ## Implicit/explicit control of pressure gradient temporal
          ##  discretisation, theta_pg
+         ##
          ##  =0.  -- explicit
+         ##
          ##  =0.5 -- Crank-Nicolson
+         ##
          ##  =1.  -- implicit
+         ##
          ##  Specification of this parameter will only affect
          ##  solution procedure when a free-surface is present or 
-         ##  compressible projection is used. If left unspecified
+         ##  compressible projection or equation type Shallow Water is used. 
+         ##  If left unspecified
          ##  the code defaults to theta_pg = theta.
          element theta_pressure_gradient {
             real
          }?,
          ## Implicit/explicit control of velocity-divergence temporal
          ##  discretisation, theta_divergence
+         ##
          ##  =0.  -- explicit
+         ##
          ##  =0.5 -- Crank-Nicolson
+         ##
          ##  =1.  -- implicit
+         ##
          ##  Specification of this parameter will only affect
          ##  solution procedure when a free-surface is present or 
-         ##  compressible projection is used. If left unspecified
+         ##  compressible projection or equation type Shallow Water is used. 
+         ##  If left unspecified
          ##  the code defaults to theta_divergence = theta.
          element theta_divergence {
             real
@@ -1350,107 +1360,71 @@ prognostic_pressure_field =
                comment
             )
          },
-         (
-            ## Use the incompressible projection method to determine
-            ## the pressure and satisfy continuity
-            element use_projection_method {
-               ## Assemble and use the full schur complement.
-               ## This allows you to not lump the mass matrix if you're using
-               ## cg and to use the full momentum matrix in the projection if
-               ## you so desire.
-               element full_schur_complement {
-                 ( 
-                   ## Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
-                   ## Use the full mass matrix.
-                   ##
-                   ## Make sure you've not lumped your mass in the velocity spatial_discretisation if you want to be consistent!
-                   element inner_matrix {
-                     attribute name { "FullMassMatrix" },
-                     element solver {
-                       linear_solver_options_sym
-                     }
-                   }|
-                   ## Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
-                   ## Use the full momentum matrix.
-                   ##
-                   ## Doesn't really matter if you've lumped your mass or not but why would you if you're doing a full inner solve anyway?
-                   element inner_matrix {
-                     attribute name { "FullMomentumMatrix" },
-                     element solver {
-                       linear_solver_options_asym_vector
-                     }
-                   }
-                 ),
-                 (
-                   ## Specify the preconditioner matrix to use on the schur complement.
-                   ##
-                   ## For DG, the LumpedSchurComplement is our best approximation to CMC.
-                   element preconditioner_matrix {
-                     attribute name { "LumpedSchurComplement" },
-                     element lump_on_submesh {
-                       empty
-                     }?
-                   }|
-                   ## Specify the preconditioner matrix to use on the schur complement.
-                   ##
-                   ## DiagonalSchurComplement = C_P^T * [(Big_m)_diagonal]^-1 * C
-                   element preconditioner_matrix {
-                     attribute name { "DiagonalSchurComplement" },
-                     empty
-                   }|
-                   ## Specify the preconditioner matrix to use on the schur complement.
-                   ##
-                   ## Pressure Mass Matrix, scaled with the inverse of viscosity. This is
-                   ## shown to be spectrally equivalent to the Schur complement.
-                   ## Note that this currently only works with isoviscous and/or isotropic
-                   ## viscosity tensors.
-                   element preconditioner_matrix {
-                     attribute name { "ScaledPressureMassMatrix" },
-                     empty
-                   }|
-                   ## Specify the preconditioner matrix to use on the schur complement.
-                   element preconditioner_matrix {
-                     attribute name { "NoPreconditionerMatrix" },
-                     empty
-                   }
-                 )
-               }?
-            }|
-            ## Use the compressible projection method to determine the
-            ## pressure and satisfy continuity and the eos.
-            ## This is only currently compatible with control volume
-            ## pressure spatial discretisations and requires a
-            ## multimaterial eos.
-            element use_compressible_projection_method {
-               (
-                  ## Variable (normally a density) used to normalise
-                  ## each materials contribution
-                  ## to the C_P^T matrix.  Leave unselected for no normalisation.
-                  ## Selects the MaterialDensity field.
-                  element normalisation {
-                     attribute name{ "MaterialDensity" },
-                     empty
-                  }|
-                  ## Variable (normally a density) used to normalise
-                  ## each materials contribution
-                  ## to the C_P^T matrix.  Leave unselected for no normalisation.
-                  ## Selects the bulk Density field.
-                  element normalisation {
-                     attribute name{ "Density" },
-                     empty
-                  }|
-                  ## Variable (normally a density) used to normalise
-                  ## each materials contribution
-                  ## to the C_P^T matrix.  Leave unselected for no normalisation.
-                  ## Allows the selection of an arbitrary field.
-                  element normalisation {
-                     attribute name{ string },
-                     empty
+         ## Use the projection method to determine
+         ## the pressure and satisfy continuity
+         element use_projection_method {
+            ## Assemble and use the full schur complement.
+            ## This allows you to not lump the mass matrix if you're using
+            ## cg and to use the full momentum matrix in the projection if
+            ## you so desire.
+            element full_schur_complement {
+              ( 
+                ## Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
+                ## Use the full mass matrix.
+                ##
+                ## Make sure you've not lumped your mass in the velocity spatial_discretisation if you want to be consistent!
+                element inner_matrix {
+                  attribute name { "FullMassMatrix" },
+                  element solver {
+                    linear_solver_options_sym
                   }
-               )?
-
-            }
-         ),
+                }|
+                ## Specify the inner matrix (IM) to form the projection schur complement (C^T*IM^{-1}*C). 
+                ## Use the full momentum matrix.
+                ##
+                ## Doesn't really matter if you've lumped your mass or not but why would you if you're doing a full inner solve anyway?
+                element inner_matrix {
+                  attribute name { "FullMomentumMatrix" },
+                  element solver {
+                    linear_solver_options_asym_vector
+                  }
+                }
+              ),
+              (
+                ## Specify the preconditioner matrix to use on the schur complement.
+                ##
+                ## For DG, the LumpedSchurComplement is our best approximation to CMC.
+                element preconditioner_matrix {
+                  attribute name { "LumpedSchurComplement" },
+                  element lump_on_submesh {
+                    empty
+                  }?
+                }|
+                ## Specify the preconditioner matrix to use on the schur complement.
+                ##
+                ## DiagonalSchurComplement = C_P^T * [(Big_m)_diagonal]^-1 * C
+                element preconditioner_matrix {
+                  attribute name { "DiagonalSchurComplement" },
+                  empty
+                }|
+                ## Specify the preconditioner matrix to use on the schur complement.
+                ##
+                ## Pressure Mass Matrix, scaled with the inverse of viscosity. This is
+                ## shown to be spectrally equivalent to the Schur complement.
+                ## Note that this currently only works with isoviscous and/or isotropic
+                ## viscosity tensors.
+                element preconditioner_matrix {
+                  attribute name { "ScaledPressureMassMatrix" },
+                  empty
+                }|
+                ## Specify the preconditioner matrix to use on the schur complement.
+                element preconditioner_matrix {
+                  attribute name { "NoPreconditionerMatrix" },
+                  empty
+                }
+              )
+            }?
+         },
          ## rediscretise the equations at every timestep and iteration
          ## (this is useful as a debugging tool but shouldn't be necessary for any application runs)
          element update_discretised_equation {
@@ -2047,6 +2021,33 @@ velocity_equation_choice =
       ## Boussinesq only works for continuous_galerkin and discontinuous_galerkin.
       element equation {
          attribute name { "Boussinesq" }
+      }|
+      ## Select the equation used to solve for velocity.
+      ##
+      ## Select ShallowWater to solve the non-linear shallow water equations in non-conservative form.
+      ## The Velocity field will be the depth-averaged flow velocity and the Pressure field
+      ## will be the free surface elevation multiplied by the gravitational constant g
+      element equation {
+         attribute name { "ShallowWater" },
+         # Bottom depth (excluding free surface elevation), a positive number
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "BottomDepth" },
+            element prescribed {
+               coordinate_mesh_choice,
+               prescribed_scalar_field
+            }
+         },
+         element bottom_drag {
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "BottomDragCoefficient" },
+               element prescribed {
+                  coordinate_mesh_choice,
+                  prescribed_scalar_field
+               }
+            }
+         }?
       }|
       ## Select the equation used to solve for velocity.
       ## Drainage only works for continuous_galerkin and discontinuous_galerkin.

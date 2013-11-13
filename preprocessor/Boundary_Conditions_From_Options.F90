@@ -71,11 +71,13 @@ implicit none
 
 contains
 
-  subroutine populate_boundary_conditions(states)
+  subroutine populate_boundary_conditions(states, suppress_warnings)
     ! Populate the boundary conditions of all fields
     ! This is called as part of populate_state but also
     ! after an adapt.
     type(state_type), dimension(:), intent(in):: states
+    ! suppress warnings about non-existant surface ids
+    logical, optional, intent(in)  :: suppress_warnings
 
     ! these must be pointers as bc's should be added to the original field
     type(scalar_field), pointer:: sfield
@@ -104,9 +106,9 @@ contains
           field_path=sfield%option_path
 
           call populate_scalar_boundary_conditions(sfield, &
-               trim(field_path)//'/prognostic/boundary_conditions', position)
+               trim(field_path)//'/prognostic/boundary_conditions', position, suppress_warnings=suppress_warnings)
           call populate_scalar_boundary_conditions(sfield, &
-               trim(field_path)//'/diagnostic/algorithm/boundary_conditions', position)
+               trim(field_path)//'/diagnostic/algorithm/boundary_conditions', position, suppress_warnings=suppress_warnings)
 
        end do
 
@@ -121,7 +123,7 @@ contains
 
           ! only prognostic fields from here:
           call populate_vector_boundary_conditions(states(p+1),vfield, &
-               trim(field_path)//'/prognostic/boundary_conditions', position)
+               trim(field_path)//'/prognostic/boundary_conditions', position, suppress_warnings=suppress_warnings)
 
        end do
 
@@ -170,12 +172,14 @@ contains
     
   end subroutine populate_boundary_conditions
 
-  subroutine populate_scalar_boundary_conditions(field, bc_path, position)
+  subroutine populate_scalar_boundary_conditions(field, bc_path, position, suppress_warnings)
     ! Populate the boundary conditions of one scalar field
     ! needs to be a pointer:
     type(scalar_field), pointer:: field
     character(len=*), intent(in):: bc_path
     type(vector_field), intent(in):: position
+    ! suppress warnings about non-existant surface ids
+    logical, optional, intent(in) :: suppress_warnings
 
     type(mesh_type), pointer:: surface_mesh
     type(scalar_field) surface_field
@@ -244,7 +248,7 @@ contains
 
        ! Add boundary condition
        call add_boundary_condition(field, trim(bc_name), trim(bc_type), &
-            surface_ids, option_path=bc_path_i)
+            surface_ids, option_path=bc_path_i, suppress_warnings=suppress_warnings)
 
        ! mesh of only the part of the surface where this b.c. applies
        call get_boundary_condition(field, i+1, surface_mesh=surface_mesh, &
@@ -303,13 +307,15 @@ contains
 
   end subroutine populate_scalar_boundary_conditions
 
-  subroutine populate_vector_boundary_conditions(state, field, bc_path, position)
+  subroutine populate_vector_boundary_conditions(state, field, bc_path, position, suppress_warnings)
     ! Populate the boundary conditions of one vector field
     ! needs to be a pointer:
     type(state_type), intent(in) :: state
     type(vector_field), pointer:: field
     character(len=*), intent(in):: bc_path
     type(vector_field), intent(in):: position
+    ! suppress warnings about non-existant surface ids
+    logical, optional, intent(in) :: suppress_warnings
 
     ! possible vector components for vector b.c.s
     ! either carteisan aligned or aligned with the surface
@@ -373,7 +379,7 @@ contains
           call add_sem_bc(have_sem_bc)
           
           call add_boundary_condition(field, trim(bc_name), trim(bc_type),&
-               & surface_ids, applies=applies, option_path=bc_path_i)
+               & surface_ids, applies=applies, option_path=bc_path_i, suppress_warnings=suppress_warnings)
           deallocate(surface_ids)
           
           call get_boundary_condition(field, i+1, surface_mesh=surface_mesh)
@@ -412,7 +418,7 @@ contains
           end do
 
           call add_boundary_condition(field, trim(bc_name), trim(bc_type),&
-               & surface_ids, applies=applies, option_path=bc_path_i)
+               & surface_ids, applies=applies, option_path=bc_path_i, suppress_warnings=suppress_warnings)
           deallocate(surface_ids)
 
           call get_boundary_condition(field, i+1, surface_mesh=surface_mesh)
@@ -427,7 +433,7 @@ contains
        case("drag")
 
           call add_boundary_condition(field, trim(bc_name), trim(bc_type), &
-               & surface_ids, option_path=bc_path_i)
+               & surface_ids, option_path=bc_path_i, suppress_warnings=suppress_warnings)
           deallocate(surface_ids)
 
           call get_boundary_condition(field, i+1, surface_mesh=surface_mesh)
@@ -438,7 +444,7 @@ contains
        case ("wind_forcing")
 
           call add_boundary_condition(field, trim(bc_name), trim(bc_type), &
-               & surface_ids, option_path=bc_path_i)
+               & surface_ids, option_path=bc_path_i, suppress_warnings=suppress_warnings)
           deallocate(surface_ids)
 
           call get_boundary_condition(field, i+1, surface_mesh=surface_mesh)
@@ -452,11 +458,23 @@ contains
              call deallocate(scalar_surface_field)
           end if
 
+       case ("prescribed_normal_flow")
+
+          ! Just add to the first dimension
+          call add_boundary_condition(field, trim(bc_name), trim(bc_type),&
+               & surface_ids, applies=(/ .true., .false., .false. /) , option_path=bc_path_i,&
+               & suppress_warnings=suppress_warnings)
+          deallocate(surface_ids)
+          call get_boundary_condition(field, i+1, surface_mesh=surface_mesh)
+          call allocate(surface_field, field%dim, surface_mesh, name="value")
+          call insert_surface_field(field, i+1, surface_field)
+          call deallocate(surface_field)
+
        case ("bulk_formulae")
 
           ! The bulk_formulae type is actually a wind forcing on velocity...
           call add_boundary_condition(field, trim(bc_name) ,&
-                &'wind_forcing', surface_ids, option_path=bc_path_i)
+                &'wind_forcing', surface_ids, option_path=bc_path_i,suppress_warnings=suppress_warnings)
           deallocate(surface_ids)
           call get_boundary_condition(field, i+1, surface_mesh=surface_mesh)
           call allocate(surface_field, field%dim-1, surface_mesh, name="WindSurfaceField")
@@ -470,7 +488,7 @@ contains
           ! applying in the tangential directions only
           call add_boundary_condition(field, trim(bc_name), trim(bc_type), &
                & surface_ids, option_path=bc_path_i, &
-               & applies=(/ .true., .false., .false. /) )
+               & applies=(/ .true., .false., .false. /),suppress_warnings=suppress_warnings)
           deallocate(surface_ids)
 
           if (trim(bc_type)=="free_surface") then
@@ -491,7 +509,7 @@ contains
        case ("outflow")
           ! dummy bc for outflow planes
           call add_boundary_condition(field, trim(bc_name), trim(bc_type), surface_ids, option_path=bc_path_i, &
-                                       & applies=(/ .true., .true., .true. /) )
+                                       & applies=(/ .true., .true., .true. /),suppress_warnings=suppress_warnings )
           deallocate(surface_ids) 
  
        case default
@@ -1069,6 +1087,43 @@ contains
 
           call initialise_field(scalar_surface_field, bc_path_i, bc_position, &
             time=time)
+          call deallocate(bc_position)
+
+       case("prescribed_normal_flow")
+
+          call get_boundary_condition(field, i+1, surface_mesh=surface_mesh, &
+               surface_element_list=surface_element_list)
+          surface_field => extract_surface_field(field, bc_name, name="value")
+          bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list) 
+          surface_field_component=extract_scalar_field(surface_field, 1)
+
+          if (have_option(trim(bc_path_i)//"/from_field")) then
+             ! The parent field contains the boundary values that you want to apply to surface_field.
+             call get_option(trim(bc_path_i)//"/from_field/parent_field_name", parent_field_name)
+
+             ! Is the parent field a scalar field? Let's check using 'stat'...
+             scalar_parent_field => extract_scalar_field(state, parent_field_name, stat)
+             if(stat /= 0) then
+                ! Parent field is not a scalar field. Let's try a vector field extraction...
+                vector_parent_field => extract_vector_field(state, parent_field_name, stat)
+                if(stat /= 0) then
+                   ! Parent field not found.
+                   FLExit("Could not extract parent field. Check options file?")
+                else
+                   ! Apply the 1st component of parent_field to the 1st component
+                   ! of surface_field.
+                   vector_parent_field_component = extract_scalar_field(vector_parent_field, 1)
+                   call remap_field_to_surface(vector_parent_field_component, surface_field_component, surface_element_list, stat)
+                end if
+             else
+                ! Apply the scalar field to the 1st component of surface_field.
+                call remap_field_to_surface(scalar_parent_field, surface_field_component, surface_element_list, stat)
+             end if                    
+
+          else
+             call initialise_field(surface_field_component, bc_path_i, bc_position, &
+                      time=time)
+          end if
           call deallocate(bc_position)
 
        case("wind_forcing")
@@ -2441,7 +2496,11 @@ contains
     else
        ewrite(1,*) 'Imposing_reference_velocity_node on all components'
     end if
-    call set_reference_node(big_m, reference_node, rhs, mask)
+    if(IsParallel()) then
+      call set_reference_node(big_m, reference_node, rhs, mask, reference_node_owned=reference_node_owned)
+    else
+      call set_reference_node(big_m, reference_node, rhs, mask)
+    end if
 
   end subroutine impose_reference_velocity_node
   

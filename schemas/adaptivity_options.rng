@@ -1042,10 +1042,21 @@ purposes. They are subject to change and may not be in the final "release".</a:d
           <optional>
             <element name="partitioner">
               <a:documentation>Select which partitioner to use during all but the last adapt iteration.
-Graph partitioners available are ParMETIS and Zoltan PHG. The Zoltan
-PHG hypergraph partitoner is also available.
-Default is the Zoltan PHG graph partitioner.</a:documentation>
+Default is the Zoltan PHG graph partitioner which gives good results in 
+most situations.</a:documentation>
               <choice>
+                <element name="zoltan">
+                  <a:documentation>Use the Zoltan PHG partitioner (recommended).</a:documentation>
+                  <element name="method">
+                    <a:documentation>Select the partitioning method you would like used by Zoltan PHG.
+For intermediate partitioning we recommend using 'graph' as 'hypergraph'
+ignores edge weighting.</a:documentation>
+                    <choice>
+                      <value>graph</value>
+                      <value>hypergraph</value>
+                    </choice>
+                  </element>
+                </element>
                 <element name="metis">
                   <a:documentation>Use the ParMETIS graph partitioner. ParMETIS setup to match as
 closely as possible the setup used previously by Sam.</a:documentation>
@@ -1055,28 +1066,40 @@ closely as possible the setup used previously by Sam.</a:documentation>
                   <a:documentation>Use the PT-Scotch graph partitioner.</a:documentation>
                   <empty/>
                 </element>
-                <element name="zoltan">
-                  <a:documentation>Use the Zoltan PHG partitioner.</a:documentation>
-                  <element name="method">
-                    <a:documentation>Select the partitioning method you would like used by Zoltan PHG.
-Currently hypergraph partitioning is the simplest implementation
-and can produce non-contiguous partitions for certain problems.</a:documentation>
-                    <choice>
-                      <value>graph</value>
-                      <value>hypergraph</value>
-                    </choice>
-                  </element>
-                </element>
               </choice>
+              <optional>
+                <element name="lb_approach">
+                  <a:documentation>Choose whether to repartition or partition the mesh at each adapt iteration.
+Repartitioning results in a smaller amount of data migration between processes
+and hence is cheaper. The default option is
+to repartition the mesh each iteration and then fully partition the mesh on the 
+final iteration to create a well balanced mesh.</a:documentation>
+                  <choice>
+                    <value>REPARTITION</value>
+                    <value>PARTITION</value>
+                  </choice>
+                </element>
+              </optional>
             </element>
           </optional>
           <optional>
             <element name="final_partitioner">
               <a:documentation>Select which partitioner to use after the final adapt iteration.
-Graph partitioners available are ParMETIS and Zoltan PHG. The 
-Zoltan PHG hypergraph partitoner is also available.
-Default is the ParMETIS graph partitioner.</a:documentation>
+Default is the Zoltan PHG hypergraph partitioner which gives good results in most 
+situations.</a:documentation>
               <choice>
+                <element name="zoltan">
+                  <a:documentation>Use the Zoltan PHG partitioner (recommended).</a:documentation>
+                  <element name="method">
+                    <a:documentation>Select the partitioning method you would like used by Zoltan PHG.
+For final partitioning we recommend using 'hypergraph' which ignores edge 
+weighting but can produce very well balanced partitions.</a:documentation>
+                    <choice>
+                      <value>graph</value>
+                      <value>hypergraph</value>
+                    </choice>
+                  </element>
+                </element>
                 <element name="metis">
                   <a:documentation>Use the ParMETIS graph partitioner. ParMETIS setup to match as
 closely as possible the setup used previously by Sam.</a:documentation>
@@ -1086,19 +1109,20 @@ closely as possible the setup used previously by Sam.</a:documentation>
                   <a:documentation>Use the PT-Scotch graph partitioner.</a:documentation>
                   <empty/>
                 </element>
-                <element name="zoltan">
-                  <a:documentation>Use the Zoltan PHG partitioner.</a:documentation>
-                  <element name="method">
-                    <a:documentation>Select the partitioning method you would like used by Zoltan PHG.
-Currently hypergraph partitioning is the simplest implementation
-and can produce non-contiguous partitions for certain problems.</a:documentation>
-                    <choice>
-                      <value>graph</value>
-                      <value>hypergraph</value>
-                    </choice>
-                  </element>
-                </element>
               </choice>
+              <optional>
+                <element name="lb_approach">
+                  <a:documentation>Choose whether to repartition or partition the mesh at each the final adapt iteration.
+Repartitioning results in a smaller amount of data migration between processes
+and hence is cheaper. The default option is
+to repartition the mesh each iteration and then fully partition the mesh on the 
+final iteration to create a well balanced mesh.</a:documentation>
+                  <choice>
+                    <value>PARTITION</value>
+                    <value>REPARTITION</value>
+                  </choice>
+                </element>
+              </optional>
             </element>
           </optional>
           <optional>
@@ -1106,9 +1130,9 @@ and can produce non-contiguous partitions for certain problems.</a:documentation
               <a:documentation>Element quality cut off. 
 Elements with a quality greater than this will be liable to be
 on the parition boundary. Below this, they will be free to be adapted
-and improved. Range is 0 to 1, with default 0.6
+and improved. Range is 0 to 1, with default 0.1.
 This should be set to the same value as used for the quality option
-in libmba2d or libmba3d</a:documentation>
+in libmba2d or libmba3d if using these libraries.</a:documentation>
               <ref name="real"/>
             </element>
           </optional>
@@ -1119,11 +1143,39 @@ The amount of load imbalance the partitioning algorithm should deem acceptable.
 The imbalance is computed as the maximum load divided by the average load.
 A value for load_imbalance_tol of 1.2 indicates that 20% imbalance is okay.
 A high value for this parameter (~1.5) could see Zoltan produce poorer partitions
-but be able to move the partition boundaries easier to allow adaption. For some 
-problems where the partitioner creates empty partitions lowering this (~1.075) will
-force Zoltan to create more evenly balanced partitions (no empty ones) but may
-require more adapt iterations to produce a fully adapted final mesh.</a:documentation>
+but be able to move the partition boundaries easier to allow adaption. 
+The default value is 1.5.</a:documentation>
               <ref name="real"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="final_partition_load_imbalance_tolerance">
+              <a:documentation>Final load imbalance tolerance.
+The amount of load imbalance the partitioning algorithm should deem acceptable on the 
+final adapt iteration. It is assumed that the mesh is well adapted by the final partition
+and hence we no longer worry about locked nodes. The aim is to achieve a well balanced partition.
+A low value is recommended. The default value is 1.03.</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="uncuttable_edge_fraction">
+              <a:documentation>Uncuttable edge fraction.
+The fraction of edges that are marked as uncuttable when partitioning with edge weighting. i.e. 
+all but the final adapt. This value determines the range of edge weight values that are defined 
+as being uncuttable, as a percentage of the worst value.
+Uncuttable elements are marked to allow elements with low element 
+qualities, when measured against the metric, to adapt. Marking more elements uncuttable may allow the mesh 
+to improve more quickly if Zoltan is capable of avoiding all of the edges, but could cause 
+Zoltan to lock edges for many adapts due to too many elements being uncuttable. The default value is 0.10</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="worst_ele_search_levels">
+              <a:documentation>Search levels for worst element quality.
+Number of levels of element connections to search through for element quality when setting the edge weights for partitioning. default is 2 and works fine for most situations.</a:documentation>
+              <ref name="integer"/>
             </element>
           </optional>
           <optional>
@@ -1230,6 +1282,14 @@ Here we dump the size calculated by zoltan_cb_pack_field_sizes for each
 owned node.
 Dump is to the current directory, in a file called field_sizes_*.dat
 One dump file is created for each rank.</a:documentation>
+                  <empty/>
+                </element>
+              </optional>
+              <optional>
+                <element name="lb_eval">
+                  <a:documentation>Call LB_EVAL and print output.
+This prints statistics such on the load balance achieved, and the sum of cut edges
+and weighted cut edges. It also details the settings used by the partitioner.</a:documentation>
                   <empty/>
                 </element>
               </optional>
@@ -1934,6 +1994,9 @@ potential and pressure, while still being balance preserving.</a:documentation>
     <optional>
       <ref name="galerkin_projection_honour_strong_bcs"/>
     </optional>
+    <optional>
+      <ref name="surface_projection"/>
+    </optional>
   </define>
   <define name="galerkin_projection_scalar">
     <ref name="continuous_discontinuous_projection"/>
@@ -1946,6 +2009,9 @@ potential and pressure, while still being balance preserving.</a:documentation>
     <optional>
       <ref name="galerkin_projection_honour_strong_bcs"/>
     </optional>
+    <optional>
+      <ref name="surface_projection"/>
+    </optional>
   </define>
   <define name="continuous_projection">
     <element name="continuous">
@@ -1953,195 +2019,92 @@ potential and pressure, while still being balance preserving.</a:documentation>
 If the field you are interpolating is continuous, then
 a linear solver is required to invert the mass matrix.</a:documentation>
       <optional>
-        <choice>
-          <element name="bounded">
-            <a:documentation>Use a bounded Galerkin projection. Conservative, bounded in the
+        <element name="bounded">
+          <a:documentation>Use a bounded Galerkin projection. Conservative, bounded in the
 limit, and minimally dissipative. This algorithm starts with the
 Galerkin projection and dissipates it until it achieves
 boundedness.
 If it does not converge, it may not be exactly bounded.
 Note well: this only works for linear fields.</a:documentation>
-            <attribute name="name">
-              <value>Diffuse</value>
-            </attribute>
-            <element name="boundedness_iterations">
-              <a:documentation>The number of dissipation iterations attempted to bound the
+          <attribute name="name">
+            <value>Diffuse</value>
+          </attribute>
+          <element name="boundedness_iterations">
+            <a:documentation>The number of dissipation iterations attempted to bound the
 Galerkin projection.</a:documentation>
-              <ref name="integer"/>
+            <ref name="integer"/>
+            <optional>
+              <element name="tolerance">
+                <a:documentation>Specify the tolerance to which boundedness is to be tested during the iterations.
+Defaults to computer precision if unspecified.</a:documentation>
+                <ref name="real"/>
+              </element>
+            </optional>
+          </element>
+          <optional>
+            <element name="bounds">
+              <a:documentation>If the bounds on this field are known then they can be set here.
+These can either further constrain the limits worked out by the
+lumped version of the projection (i.e. to make sure that errors 
+don't accumulate with succesive interpolations) or if apply_globally
+is set they are just made to be bounded within the bounds globally
+(i.e. anything between those bounds is not smoothed).</a:documentation>
+              <optional>
+                <element name="upper_bound">
+                  <ref name="real"/>
+                  <optional>
+                    <element name="apply_globally">
+                      <a:documentation>If this is set the upper_bound is used everywhere.
+If left unset the upper_bound is only used to constrain
+the smoothed bounds calculated by the code</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="coupled">
+                      <a:documentation>This field is to be considered as being coupled to another field
+such that the sum of the two fields is constrained to be less than
+the upper_bound specified above.
+
+The relationships between fields are worked out according to their
+priority ordering.
+
+This method is akin to the coupled_cv advection method.</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
+                </element>
+              </optional>
+              <optional>
+                <element name="lower_bound">
+                  <ref name="real"/>
+                  <optional>
+                    <element name="apply_globally">
+                      <a:documentation>If this is set the upper_bound is used everywhere.
+If left unset the upper_bound is only used to constrain
+the smoothed bounds calculated by the code</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
+                </element>
+              </optional>
+            </element>
+          </optional>
+          <optional>
+            <element name="repair_deviations">
+              <a:documentation>If, after performing all the boundedness_iterations, the field
+is still not bounded then perform surgery to redistribute the
+deviations to nodes that have less than their bounds.</a:documentation>
               <optional>
                 <element name="tolerance">
-                  <a:documentation>Specify the tolerance to which boundedness is to be tested during the iterations.
+                  <a:documentation>Specify the tolerance to which boundedness is to be tested during the repair.
 Defaults to computer precision if unspecified.</a:documentation>
                   <ref name="real"/>
                 </element>
               </optional>
             </element>
-            <optional>
-              <element name="bounds">
-                <a:documentation>If the bounds on this field are known then they can be set here.
-These can either further constrain the limits worked out by the
-lumped version of the projection (i.e. to make sure that errors 
-don't accumulate with succesive interpolations) or if apply_globally
-is set they are just made to be bounded within the bounds globally
-(i.e. anything between those bounds is not smoothed).</a:documentation>
-                <optional>
-                  <element name="upper_bound">
-                    <ref name="real"/>
-                    <optional>
-                      <element name="apply_globally">
-                        <a:documentation>If this is set the upper_bound is used everywhere.
-If left unset the upper_bound is only used to constrain
-the smoothed bounds calculated by the code</a:documentation>
-                        <empty/>
-                      </element>
-                    </optional>
-                    <optional>
-                      <element name="coupled">
-                        <a:documentation>This field is to be considered as being coupled to another field
-such that the sum of the two fields is constrained to be less than
-the upper_bound specified above.
-
-The relationships between fields are worked out according to their
-priority ordering.
-
-This method is akin to the coupled_cv advection method.</a:documentation>
-                        <empty/>
-                      </element>
-                    </optional>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="lower_bound">
-                    <ref name="real"/>
-                    <optional>
-                      <element name="apply_globally">
-                        <a:documentation>If this is set the upper_bound is used everywhere.
-If left unset the upper_bound is only used to constrain
-the smoothed bounds calculated by the code</a:documentation>
-                        <empty/>
-                      </element>
-                    </optional>
-                  </element>
-                </optional>
-              </element>
-            </optional>
-            <optional>
-              <element name="repair_deviations">
-                <a:documentation>If, after performing all the boundedness_iterations, the field
-is still not bounded then perform surgery to redistribute the
-deviations to nodes that have less than their bounds.</a:documentation>
-                <optional>
-                  <element name="tolerance">
-                    <a:documentation>Specify the tolerance to which boundedness is to be tested during the repair.
-Defaults to computer precision if unspecified.</a:documentation>
-                    <ref name="real"/>
-                  </element>
-                </optional>
-              </element>
-            </optional>
-          </element>
-          <element name="bounded">
-            <a:documentation>Use a bounded Galerkin projection. Conservative, bounded in the
-limit, and hopefully minimally dissipative. This algorithm starts with the
-Galerkin projection and uses the optimisation library Algencan to bound
-it by minimising a functional within constraints on boundedness and conservation.
-Note well: this only works for linear fields.</a:documentation>
-            <attribute name="name">
-              <value>Algencan</value>
-            </attribute>
-            <choice>
-              <element name="functional">
-                <attribute name="name">
-                  <value>L2</value>
-                </attribute>
-                <optional>
-                  <element name="weight">
-                    <ref name="real"/>
-                  </element>
-                </optional>
-              </element>
-              <element name="functional">
-                <attribute name="name">
-                  <value>LumpedMassL2</value>
-                </attribute>
-                <optional>
-                  <element name="weight">
-                    <ref name="real"/>
-                  </element>
-                </optional>
-              </element>
-              <element name="functional">
-                <attribute name="name">
-                  <value>IntegralL2</value>
-                </attribute>
-                <optional>
-                  <element name="weight">
-                    <ref name="real"/>
-                  </element>
-                </optional>
-              </element>
-              <element name="functional">
-                <attribute name="name">
-                  <data type="string" datatypeLibrary=""/>
-                </attribute>
-                <optional>
-                  <element name="weight">
-                    <ref name="real"/>
-                  </element>
-                </optional>
-              </element>
-            </choice>
-            <optional>
-              <element name="bounds">
-                <a:documentation>If the bounds on this field are known then they can be set here.
-These can either further constrain the limits worked out by the
-lumped version of the projection (i.e. to make sure that errors 
-don't accumulate with succesive interpolations) or if apply_globally
-is set they are just made to be bounded within the bounds globally
-(i.e. anything between those bounds is not smoothed).</a:documentation>
-                <optional>
-                  <element name="upper_bound">
-                    <ref name="real"/>
-                    <optional>
-                      <element name="apply_globally">
-                        <a:documentation>If this is set the upper_bound is used everywhere.
-If left unset the upper_bound is only used to constrain
-the smoothed bounds calculated by the code</a:documentation>
-                        <empty/>
-                      </element>
-                    </optional>
-                    <optional>
-                      <element name="coupled">
-                        <a:documentation>This field is to be considered as being coupled to another field
-such that the sum of the two fields is constrained to be less than
-the upper_bound specified above.
-
-The relationships between fields are worked out according to their
-priority ordering.
-
-This method is akin to the coupled_cv advection method.</a:documentation>
-                        <empty/>
-                      </element>
-                    </optional>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="lower_bound">
-                    <ref name="real"/>
-                    <optional>
-                      <element name="apply_globally">
-                        <a:documentation>If this is set the upper_bound is used everywhere.
-If left unset the upper_bound is only used to constrain
-the smoothed bounds calculated by the code</a:documentation>
-                        <empty/>
-                      </element>
-                    </optional>
-                  </element>
-                </optional>
-              </element>
-            </optional>
-          </element>
-        </choice>
+          </optional>
+        </element>
       </optional>
       <choice>
         <element name="solver">
@@ -2212,6 +2175,18 @@ integral.  If the conservation fails this tolerance a warning is issued
 (level 0 verbosity) and vtus containing the field are output.</a:documentation>
             <ref name="real"/>
           </element>
+        </element>
+      </optional>
+    </element>
+  </define>
+  <define name="surface_projection">
+    <element name="surface_projection">
+      <a:documentation>Remap this field to the boundary surfaces before projecting. This is only intended for fields 
+where values are non-zero only on the surfaces and you want this to remain so during projection. 
+Any interior values will become zero. This will also only work if the boundaries do not move.</a:documentation>
+      <optional>
+        <element name="surface_ids">
+          <ref name="integer_vector"/>
         </element>
       </optional>
     </element>
