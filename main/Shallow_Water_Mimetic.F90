@@ -590,27 +590,35 @@
       type(state_type), intent(inout) :: state
       !
       type(vector_field), pointer :: X
+      type(vector_field) :: X_copy
       integer :: ele
       character(len=PYTHON_FUNC_LEN) :: Python_Function
       
       X => extract_vector_field(state,"Coordinate")
+      call allocate(X_copy, X%dim, X%mesh, "XCopy")
+      call set(X_copy,X)
+
       call get_option('/geometry/mesh::CoordinateMesh/recompute_coordinate_f&
            &ield/python',Python_Function)
 
       do ele = 1, ele_count(X)
-         call recompute_coordinate_field_ele(X,Python_Function,ele)
+         call recompute_coordinate_field_ele(X,X_copy,Python_Function,ele)
       end do
+
+      call deallocate(X_copy)
+
     end subroutine recompute_coordinate_field
 
-    subroutine recompute_coordinate_field_ele(X,Python_Function,ele)
+    subroutine recompute_coordinate_field_ele(X,X_copy,Python_Function,ele)
       type(vector_field), intent(inout) :: X
+      type(vector_field), intent(in) :: X_copy
       character(len=PYTHON_FUNC_LEN), intent(in) :: Python_Function
       integer, intent(in) :: ele
       !
       real, dimension(X%dim,ele_loc(X,ele)) :: X_ele_val,X_ele_val_2
       integer :: stat
 
-      X_ele_val = ele_val(X,ele)
+      X_ele_val = ele_val(X_copy,ele)
       if(X%dim.ne.3) then
          FLExit('Option only available for 3 dimensional coordinates.')
       end if
