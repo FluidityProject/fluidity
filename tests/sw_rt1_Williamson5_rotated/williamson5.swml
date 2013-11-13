@@ -233,9 +233,11 @@
   angle=pi/4.
   cos_angle=cos(angle)
   sin_angle=sin(angle)
-  x = cos_angle*X[0]-sin_angle*X[2]
+  #x = cos_angle*X[0]-sin_angle*X[2]
+  x=X[0]
   y = X[1]
-  z = sin_angle*X[0]+cos_angle*X[2]
+  z=X[2]
+  #z = sin_angle*X[0]+cos_angle*X[2]
   R = (x**2+y**2+z**2)**0.5
   R0 = 6.37122e6
   x = R0*x/R
