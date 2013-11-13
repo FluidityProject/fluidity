@@ -459,6 +459,7 @@ start =
                   attribute rank { "0" },
                   attribute name { "ManifoldDivergence" },
                   element diagnostic {
+                     scalar_diagnostic_algorithms,
                      pressure_mesh_choice
                   }
                }?,

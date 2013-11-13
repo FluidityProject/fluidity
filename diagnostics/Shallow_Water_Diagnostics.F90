@@ -189,6 +189,8 @@ contains
     type(scalar_field), pointer :: D
     integer :: ele
 
+    ewrite(1,*) "calculating ManifoldDivergence"
+
     U => extract_vector_field(state, "LocalVelocity")
     X => extract_vector_field(state, "Coordinate")
     D => extract_scalar_field(state, "LayerThickness")

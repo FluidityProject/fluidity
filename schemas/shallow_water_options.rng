@@ -591,6 +591,7 @@ field</a:documentation>
                 <value>ManifoldDivergence</value>
               </attribute>
               <element name="diagnostic">
+                <ref name="scalar_diagnostic_algorithms"/>
                 <ref name="pressure_mesh_choice"/>
               </element>
             </element>

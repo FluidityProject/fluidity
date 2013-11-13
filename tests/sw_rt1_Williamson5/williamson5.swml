@@ -381,6 +381,7 @@
     </scalar_field>
     <scalar_field name="ManifoldDivergence" rank="0">
       <diagnostic>
+        <algorithm name="manifold_divergence" material_phase_support="single"/>
         <mesh name="PressureMesh"/>
       </diagnostic>
     </scalar_field>
