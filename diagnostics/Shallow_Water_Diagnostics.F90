@@ -44,7 +44,7 @@ module shallow_water_diagnostics
 
   private
 
-  public :: calculate_discontinuity_detector
+  public :: calculate_discontinuity_detector, calculate_manifold_divergence
   
 contains
 
@@ -179,5 +179,66 @@ contains
     end subroutine fix_bubble_component
     
   end subroutine calculate_discontinuity_detector
+
+  subroutine calculate_manifold_divergence(state, s_field)
+    implicit none
+    type(state_type), intent(in) :: state
+    type(scalar_field), intent(inout) :: s_field
+
+    type(vector_field), pointer :: U, X
+    type(scalar_field), pointer :: D
+    integer :: ele
+
+    U => extract_vector_field(state, "LocalVelocity")
+    X => extract_vector_field(state, "Coordinate")
+    D => extract_scalar_field(state, "LayerThickness")
+
+    do ele = 1, ele_count(s_field)
+       call assemble_manifold_divergence_ele(U, X, D, s_field, ele)
+    end do
+
+
+  end subroutine calculate_manifold_divergence
+
+  subroutine assemble_manifold_divergence_ele(U, X, D, s_field, ele)
+    implicit none
+    type(vector_field), intent(in) :: U, X
+    type(scalar_field), intent(in) :: D
+    type(scalar_field), intent(inout) :: s_field
+    integer, intent(in) :: ele
+
+    real, dimension(mesh_dim(U),ele_loc(U,ele)) ::&
+         & U_vals
+    real, dimension(mesh_dim(U),ele_loc(U,ele),ele_loc(D,ele)) ::&
+         & l_div_mat
+      real, dimension(ele_loc(D,ele),ele_loc(D,ele)) :: &
+           & d_mass_mat
+    real, dimension(ele_loc(D,ele)) :: div_loc
+    real, dimension(ele_ngi(s_field,ele)) :: detwei
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+    type(element_type), pointer :: u_shape,d_shape
+    integer :: dim1
+
+    U_vals = ele_val(U,ele)
+    u_shape => ele_shape(U,ele)
+    d_shape => ele_shape(D,ele)
+
+    l_div_mat = dshape_shape(u_shape%dn,d_shape,D_shape%quadrature%weight)
+
+    div_loc = 0.
+    do dim1 = 1, U%dim
+       div_loc = div_loc + matmul(transpose(l_div_mat(dim1,:,:))&
+            &,U_vals(dim1,:))
+    end do
+
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), &
+         detwei=detwei,J=J)
+    d_mass_mat = shape_shape(d_shape,d_shape,detwei)
+
+    call solve(d_mass_mat, div_loc)
+
+    call set(s_field, ele_nodes(s_field,ele), div_loc)
+
+  end subroutine assemble_manifold_divergence_ele
 
 end module shallow_water_diagnostics

@@ -876,6 +876,7 @@
          call get_total_divergence_ele(total_divergence,U,D,ele)
       end do
     end subroutine get_total_divergence
+
     subroutine get_total_divergence_ele(total_divergence,U,D,ele)
       type(vector_field), intent(in) :: U
       type(scalar_field), intent(in) :: D
@@ -894,10 +895,8 @@
       u_shape => ele_shape(U,ele)
       d_shape => ele_shape(D,ele)
 
-      l_div_mat = dshape_shape(u_shape%dn,d_shape,D_shape%quadrature%weight)      
-      !real, dimension(mesh_dim(U),ele_loc(U,ele),ele_loc(D,ele)) ::&
-      !     & l_div_mat
-      
+      l_div_mat = dshape_shape(u_shape%dn,d_shape,D_shape%quadrature%weight)
+
       do dim1 = 1, mesh_dim(U)
          do i = 1, ele_loc(U,ele)
             do j = 1, ele_loc(D,ele)
