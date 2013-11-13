@@ -30,7 +30,7 @@ except ImportError:
   import elementtree.ElementTree as etree
 
 class TestHarness:
-    def __init__(self, length="any", parallel=False, exclude_tags=None,
+    def __init__(self, length="any", parallel="any", exclude_tags=None,
                  tags=None, file="", from_file=None,
                  verbose=True, justtest=False,
                  valgrind=False, genpbs=False):
@@ -123,12 +123,14 @@ class TestHarness:
           prob_length = prob_defn.attrib["length"]
           prob_nprocs = int(prob_defn.attrib["nprocs"])
           if prob_length == length or (length == "any" and prob_length not in ["special", "long"]):
-            if self.parallel is True:
+            if self.parallel is "parallel":
               if prob_nprocs > 1:
                 working_set.append(xml_file)
-            else:
+            elif self.parallel is "serial":
               if prob_nprocs == 1:
                 working_set.append(xml_file)
+            elif self.parallel is "any":
+              working_set.append(xml_file)
                 
         def get_xml_file_tags(xml_file):
           p = etree.parse(xml_file)
@@ -366,9 +368,9 @@ if __name__ == "__main__":
     import optparse
 
     parser = optparse.OptionParser()
-    parser.add_option("-l", "--length", dest="length", help="length of problem (default=short)", default="any")
-    parser.add_option("-p", "--parallelism", dest="parallel", help="parallelism of problem (default=serial)",
-                      default="serial")
+    parser.add_option("-l", "--length", dest="length", help="length of problem (default=any)", default="any")
+    parser.add_option("-p", "--parallelism", dest="parallel", help="parallelism of problem: options are serial, parallel or any (default=any)",
+                      default="any")
     parser.add_option("-e", "--exclude-tags", dest="exclude_tags", help="run only tests that do not have specific tags (takes precidence over -t)", default=[], action="append")
     parser.add_option("-t", "--tags", dest="tags", help="run tests with specific tags", default=[], action="append")
     parser.add_option("-f", "--file", dest="file", help="specific test case to run (by filename)", default="")
@@ -385,10 +387,9 @@ if __name__ == "__main__":
 
     if len(args) > 0: parser.error("Too many arguments.")
 
-    if options.parallel == "serial":     para = False
-    elif options.parallel == "parallel": para = True
-    else: parser.error("Specify either serial or parallel.")
-
+    if options.parallel not in ['serial', 'parallel', 'any']:
+      parser.error("Specify parallelism as either serial, parallel or any.")
+    
     os.environ["PATH"] = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "..", "bin")) + ":" + os.environ["PATH"]
     try:
       os.environ["PYTHONPATH"] = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "..", "python")) + ":" + os.environ["PYTHONPATH"]
@@ -414,7 +415,7 @@ if __name__ == "__main__":
     else:
       tags = options.tags
 
-    testharness = TestHarness(length=options.length, parallel=para,
+    testharness = TestHarness(length=options.length, parallel=options.parallel,
                               exclude_tags=exclude_tags, tags=tags,
                               file=options.file, verbose=True,
                               justtest=options.justtest,
