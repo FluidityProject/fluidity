@@ -123,13 +123,13 @@ class TestHarness:
           prob_length = prob_defn.attrib["length"]
           prob_nprocs = int(prob_defn.attrib["nprocs"])
           if prob_length == length or (length == "any" and prob_length not in ["special", "long"]):
-            if self.parallel is "parallel":
+            if self.parallel == "parallel":
               if prob_nprocs > 1:
                 working_set.append(xml_file)
-            elif self.parallel is "serial":
+            elif self.parallel == "serial":
               if prob_nprocs == 1:
                 working_set.append(xml_file)
-            elif self.parallel is "any":
+            elif self.parallel == "any":
               working_set.append(xml_file)
                 
         def get_xml_file_tags(xml_file):
