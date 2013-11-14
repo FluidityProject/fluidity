@@ -2374,7 +2374,7 @@
 !      REAL, PARAMETER :: WITH_NONLIN = 1.0, TOLER = 1.E-10, ZERO_OR_TWO_THIRDS=2.0/3.0
       REAL, PARAMETER :: WITH_NONLIN = 1.0, TOLER = 1.E-10, ZERO_OR_TWO_THIRDS=0.0
 !  perform Roe averaging
-      LOGICAL, PARAMETER :: ROE_AVE = .FALSE.
+      LOGICAL, PARAMETER :: ROE_AVE = .false.
 ! NON_LIN_DGFLUX = .TRUE. non-linear DG flux for momentum - if we have an oscillation use upwinding else use central scheme. 
 ! UPWIND_DGFLUX=.TRUE. Upwind DG flux.. Else use central scheme. if NON_LIN_DGFLUX = .TRUE. then this option is ignored. 
       LOGICAL :: NON_LIN_DGFLUX, UPWIND_DGFLUX
@@ -2472,6 +2472,7 @@
            VOLD_NODJ_SGI_IPHASE, VOLD_NODI_SGI_IPHASE, &
            W_NODJ_SGI_IPHASE, W_NODI_SGI_IPHASE, &
            WOLD_NODJ_SGI_IPHASE, WOLD_NODI_SGI_IPHASE
+      REAL :: CENT_RELAX,CENT_RELAX_OLD
       INTEGER :: P_INOD, U_INOD_IPHA, U_JNOD, U_KLOC2, U_NODK2, U_NODK2_PHA, GLOBJ_IPHA
       logical firstst,NO_MATRIX_STORE
       character( len = 100 ) :: name
@@ -2546,6 +2547,7 @@
            'spatial_discretisation/discontinuous_galerkin/stabilisation/method', &
            RESID_BASED_STAB_DIF, default=0)
       BETWEEN_ELE_STAB=RESID_BASED_STAB_DIF.NE.0 ! Always switch on between element diffusion if using non-linear 
+!      BETWEEN_ELE_STAB=.false.
 
       ! stabilization
 
@@ -4768,50 +4770,48 @@ end if
 ! endof if(.not.stress_form) then...
                      ENDIF
 
-                     FTHETA( SGI,IDIM,IPHASE )=0.5 !1.0
+!                     FTHETA( SGI,IDIM,IPHASE )=0.5 !1.0  - should be 1. as there is no theta set for the internal part of an element.
+                     FTHETA( SGI,IDIM,IPHASE )=1.0 ! 0.5
 
+! CENT_RELAX=1.0 (central scheme) =0.0 (upwind scheme). 
                      IF( NON_LIN_DGFLUX ) THEN
                         ! non-linear DG flux - if we have an oscillation use upwinding else use central scheme. 
-                        have_oscillation = dg_oscilat_detect( SNDOTQ_KEEP(SGI,IPHASE), SNDOTQ2_KEEP(SGI,IPHASE), &
-                             N_DOT_DU(sgi,iphase), N_DOT_DU2(sgi,iphase), SINCOME(SGI,IPHASE) )
-                        have_oscillation_old = dg_oscilat_detect( SNDOTQOLD_KEEP(SGI,IPHASE), SNDOTQOLD2_KEEP(SGI,IPHASE), &
-                             N_DOT_DUOLD(sgi,iphase), N_DOT_DUOLD2(sgi,iphase), SINCOMEOLD(SGI,IPHASE) )
+                        CENT_RELAX = dg_oscilat_detect( SNDOTQ_KEEP(SGI,IPHASE), SNDOTQ2_KEEP(SGI,IPHASE), &
+                             N_DOT_DU(sgi,iphase), N_DOT_DU2(sgi,iphase), SINCOME(SGI,IPHASE), MASS_ELE(ELE), MASS_ELE(ELE2) )
+                        CENT_RELAX_OLD = dg_oscilat_detect( SNDOTQOLD_KEEP(SGI,IPHASE), SNDOTQOLD2_KEEP(SGI,IPHASE), &
+                             N_DOT_DUOLD(sgi,iphase), N_DOT_DUOLD2(sgi,iphase), SINCOMEOLD(SGI,IPHASE), MASS_ELE(ELE), MASS_ELE(ELE2) )
                      ELSE
                         IF( UPWIND_DGFLUX ) THEN
                            ! Upwind DG flux...
-                           have_oscillation = .TRUE.
-                           have_oscillation_old = .TRUE.
+                           CENT_RELAX    =0.0
+                           CENT_RELAX_OLD=0.0
                         ELSE
                            ! Central diff DG flux...
-                           have_oscillation = .FALSE.
-                           have_oscillation_old = .FALSE.
+                           CENT_RELAX    =1.0
+                           CENT_RELAX_OLD=1.0
                         ENDIF
                      ENDIF
+! CENT_RELAX=1.0 (central scheme) =0.0 (upwind scheme). 
 
-                   if ( .not. have_oscillation ) then ! central differencing scheme....
                       SNDOTQ_IN(SGI,IDIM,IPHASE) = SNDOTQ_IN(SGI,IDIM,IPHASE)  &
-                           + FTHETA(SGI,IDIM,IPHASE) * SDEN(SGI,IPHASE) * SNDOTQ(SGI,IPHASE) * 0.5
+                           + FTHETA(SGI,IDIM,IPHASE) * SDEN(SGI,IPHASE) * SNDOTQ(SGI,IPHASE) &
+                             * (0.5 * CENT_RELAX + SINCOME(SGI,IPHASE)*(1.-CENT_RELAX))
+
                       SNDOTQ_OUT(SGI,IDIM,IPHASE) = SNDOTQ_OUT(SGI,IDIM,IPHASE)  &
-                           + FTHETA(SGI,IDIM,IPHASE) * SDEN(SGI,IPHASE) * SNDOTQ(SGI,IPHASE) * 0.5
-                   else
-                      SNDOTQ_IN(SGI,IDIM,IPHASE) = SNDOTQ_IN(SGI,IDIM,IPHASE)  &
-                           +FTHETA(SGI,IDIM,IPHASE) * SDEN(SGI,IPHASE) * SNDOTQ(SGI,IPHASE) * SINCOME(SGI,IPHASE)
-                      SNDOTQ_OUT(SGI,IDIM,IPHASE) = SNDOTQ_OUT(SGI,IDIM,IPHASE)  &
-                           +FTHETA(SGI,IDIM,IPHASE) * SDEN(SGI,IPHASE) * SNDOTQ(SGI,IPHASE) * (1.-SINCOME(SGI,IPHASE))
-                   end if
+                           + FTHETA(SGI,IDIM,IPHASE) * SDEN(SGI,IPHASE) * SNDOTQ(SGI,IPHASE) &
+                             * (0.5 * CENT_RELAX + (1.-SINCOME(SGI,IPHASE))*(1.-CENT_RELAX))
+
+                  
 
                    ! old velocity...
-                   if ( .not. have_oscillation_old ) then ! central differencing scheme....
                       SNDOTQOLD_IN(SGI,IDIM,IPHASE) = SNDOTQOLD_IN(SGI,IDIM,IPHASE)  &
-                           + (1.-FTHETA(SGI,IDIM,IPHASE)) * SDEN(SGI,IPHASE) * SNDOTQOLD(SGI,IPHASE) * 0.5
+                           + (1.-FTHETA(SGI,IDIM,IPHASE)) * SDEN(SGI,IPHASE) * SNDOTQOLD(SGI,IPHASE) &
+                             * (0.5* CENT_RELAX_OLD + SINCOMEOLD(SGI,IPHASE)*(1.-CENT_RELAX_OLD)) 
+
                       SNDOTQOLD_OUT(SGI,IDIM,IPHASE) = SNDOTQOLD_OUT(SGI,IDIM,IPHASE)  &
-                           + (1.-FTHETA(SGI,IDIM,IPHASE)) * SDEN(SGI,IPHASE) * SNDOTQOLD(SGI,IPHASE) * 0.5
-                   else
-                      SNDOTQOLD_IN(SGI,IDIM,IPHASE) = SNDOTQOLD_IN(SGI,IDIM,IPHASE)  &
-                           +(1.-FTHETA(SGI,IDIM,IPHASE)) * SDEN(SGI,IPHASE) * SNDOTQOLD(SGI,IPHASE) * SINCOMEOLD(SGI,IPHASE)
-                      SNDOTQOLD_OUT(SGI,IDIM,IPHASE) = SNDOTQOLD_OUT(SGI,IDIM,IPHASE)  &
-                           +(1.-FTHETA(SGI,IDIM,IPHASE)) * SDEN(SGI,IPHASE) * SNDOTQOLD(SGI,IPHASE) * (1.-SINCOMEOLD(SGI,IPHASE))
-                   end if
+                           + (1.-FTHETA(SGI,IDIM,IPHASE)) * SDEN(SGI,IPHASE) * SNDOTQOLD(SGI,IPHASE) &
+                             * (0.5* CENT_RELAX_OLD + (1.-SINCOMEOLD(SGI,IPHASE))*(1.-CENT_RELAX_OLD))
+
 
                      END DO
                   END DO
@@ -5436,20 +5436,49 @@ end if
  
 
 
-              LOGICAL FUNCTION dg_oscilat_detect(SNDOTQ_KEEP, SNDOTQ2_KEEP, &
-                                                 N_DOT_DU, N_DOT_DU2, SINCOME )
+              REAL FUNCTION dg_oscilat_detect(SNDOTQ_KEEP, SNDOTQ2_KEEP, &
+                                                 N_DOT_DU, N_DOT_DU2, SINCOME, MASS_ELE, MASS_ELE2 )
 ! Determine if we have an oscillation in the normal direction...
+! dg_oscilat_detect=1.0- CENTRAL SCHEME.
+! dg_oscilat_detect=0.0- UPWIND SCHEME.
               real SNDOTQ_KEEP, SNDOTQ2_KEEP, N_DOT_DU, N_DOT_DU2, SINCOME
+              REAL MASS_ELE, MASS_ELE2
+! If cons_oscillation then apply upwinding as often as possible...
+      LOGICAL, PARAMETER :: cons_oscillation = .true.
 
-              dg_oscilat_detect = .false.
+           if(cons_oscillation) then
+
+              dg_oscilat_detect = 1.0
 
               if( SINCOME> 0.5 ) then
 ! velcity comming into element ELE...
-                   if( (SNDOTQ_KEEP - SNDOTQ2_KEEP)*N_DOT_DU2 > 0.0 ) dg_oscilat_detect = .true.
+!                   if( (SNDOTQ_KEEP - SNDOTQ2_KEEP)*N_DOT_DU2 > 0.0 ) dg_oscilat_detect = 0.0
+!                   if( (SNDOTQ_KEEP - SNDOTQ2_KEEP)*N_DOT_DU2 > 0.0 ) dg_oscilat_detect = 0.333
+                   if( (SNDOTQ_KEEP - SNDOTQ2_KEEP)*N_DOT_DU2 > 0.0 ) dg_oscilat_detect = 0.5
               else
 ! velcity pointing out of the element ELE...
-                   if( (SNDOTQ2_KEEP - SNDOTQ_KEEP)*N_DOT_DU < 0.0 ) dg_oscilat_detect = .true.
+!                   if( (SNDOTQ2_KEEP - SNDOTQ_KEEP)*N_DOT_DU < 0.0 ) dg_oscilat_detect = 0.0
+!                   if( (SNDOTQ2_KEEP - SNDOTQ_KEEP)*N_DOT_DU < 0.0 ) dg_oscilat_detect = 0.333
+                   if( (SNDOTQ2_KEEP - SNDOTQ_KEEP)*N_DOT_DU < 0.0 ) dg_oscilat_detect = 0.5
               end if
+          else
+! tvd in the means...
+
+              dg_oscilat_detect = 1.0
+
+              if( SINCOME> 0.5 ) then
+! velcity comming into element ELE...
+                   if( (SNDOTQ_KEEP - SNDOTQ2_KEEP)*N_DOT_DU2 > 0.0 ) then
+                      dg_oscilat_detect = 0.0
+                   endif
+              else
+! velcity pointing out of the element ELE...
+                   if( (SNDOTQ2_KEEP - SNDOTQ_KEEP)*N_DOT_DU < 0.0 ) then
+                      dg_oscilat_detect = 0.0
+                   endif
+              end if
+
+          endif
 
               return
               end function dg_oscilat_detect

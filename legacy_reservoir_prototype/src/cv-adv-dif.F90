@@ -4059,6 +4059,7 @@ END IF
       use matrix_operations
       implicit none      
       LOGICAL, PARAMETER :: FAST_AND_SIMP=.TRUE.
+!      LOGICAL, PARAMETER :: FAST_AND_SIMP=.FALSE.
 ! If FAST_AND_SIMP use a simple mean to calculate the between element diffusion.
       INTEGER, intent( in ) :: SBCVNGI,U_NLOC,U_SNLOC,NDIM,NPHASE
       LOGICAL, intent( in ) :: GOT_OTHER_ELE

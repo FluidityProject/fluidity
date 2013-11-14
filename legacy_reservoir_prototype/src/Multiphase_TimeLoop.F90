@@ -887,6 +887,17 @@
                               end do
                            end do
                         end if
+
+                    !    if( PhaseVolumeFraction( cv_nodi ) > 0.90 ) then
+                    !       do iphase = 1, nphase
+                    !          do jphase = min( iphase + 1, nphase ), nphase
+                    !             Component_Absorption( cv_nodi, iphase, jphase ) = &
+                    !                  Component_Absorption( cv_nodi, iphase, jphase ) * max( 0.00001, &
+                    !                  20. * ( 1. - (PhaseVolumeFraction( cv_nodi )-0.05)  ) )
+                    !          end do
+                    !       end do
+                    !    end if
+
                      end do
                   end if Conditional_SmoothAbsorption
 
