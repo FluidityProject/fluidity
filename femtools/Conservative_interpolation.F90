@@ -508,13 +508,12 @@ module conservative_interpolation_module
     ewrite(1, *) "Entering supermeshing loop"
 
     do ele_B=1,ele_count(new_position)
-      if (element_owned(new_position, ele_B)) then
 
-        call galerkin_projection_inner_loop(ele_B, little_mass_matrix, detJ, local_rhs, conservation_tolerance, stat, &
-             field_counts, old_fields, old_position, new_fields, new_position, &
-             lmap_BA, inversion_matrices_A, supermesh_shape)
+       call galerkin_projection_inner_loop(ele_B, little_mass_matrix, detJ, local_rhs, conservation_tolerance, stat, &
+                                           field_counts, old_fields, old_position, new_fields, new_position, &
+                                           lmap_BA, inversion_matrices_A, supermesh_shape)
 
-        if (stat /= 0) then
+       if (stat /= 0) then
           ! Uhoh! We haven't found all the mass for ele_B :-/
           ! The intersector has missed something (almost certainly due to
           ! finite precision arithmetic). Geometry is hard!
@@ -534,9 +533,9 @@ module conservative_interpolation_module
           ewrite(0,*) "Warning: it appears a supermesh intersection wasn't found resulting in a conservation error."
           ewrite(0,*) "Recompile with CGAL if you want to try to fix it."
 #endif
-        end if
+       end if
 
-        do mesh = 1, mesh_count
+       do mesh = 1, mesh_count
           if(field_counts(mesh)>0) then
             nloc = ele_loc(new_fields(mesh,1),1)
             ele_nodes_B => ele_nodes(new_fields(mesh,1), ele_B)
@@ -604,7 +603,6 @@ module conservative_interpolation_module
           end if
 
         end do
-      end if
 
       end do
 
