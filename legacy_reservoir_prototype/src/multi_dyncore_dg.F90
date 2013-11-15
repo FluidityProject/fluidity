@@ -5444,7 +5444,9 @@ end if
               real SNDOTQ_KEEP, SNDOTQ2_KEEP, N_DOT_DU, N_DOT_DU2, SINCOME
               REAL MASS_ELE, MASS_ELE2
 ! If cons_oscillation then apply upwinding as often as possible...
-      LOGICAL, PARAMETER :: cons_oscillation = .true.
+      LOGICAL, PARAMETER :: cons_oscillation = .false.
+              REAL H1,H2, U1,U2,U3
+!              REAL TOLFUN
 
            if(cons_oscillation) then
 
@@ -5452,29 +5454,41 @@ end if
 
               if( SINCOME> 0.5 ) then
 ! velcity comming into element ELE...
-!                   if( (SNDOTQ_KEEP - SNDOTQ2_KEEP)*N_DOT_DU2 > 0.0 ) dg_oscilat_detect = 0.0
+                   if( (SNDOTQ_KEEP - SNDOTQ2_KEEP)*N_DOT_DU2 > 0.0 ) dg_oscilat_detect = 0.0
 !                   if( (SNDOTQ_KEEP - SNDOTQ2_KEEP)*N_DOT_DU2 > 0.0 ) dg_oscilat_detect = 0.333
-                   if( (SNDOTQ_KEEP - SNDOTQ2_KEEP)*N_DOT_DU2 > 0.0 ) dg_oscilat_detect = 0.5
+!                   if( (SNDOTQ_KEEP - SNDOTQ2_KEEP)*N_DOT_DU2 > 0.0 ) dg_oscilat_detect = 0.5
               else
 ! velcity pointing out of the element ELE...
-!                   if( (SNDOTQ2_KEEP - SNDOTQ_KEEP)*N_DOT_DU < 0.0 ) dg_oscilat_detect = 0.0
+                   if( (SNDOTQ2_KEEP - SNDOTQ_KEEP)*N_DOT_DU < 0.0 ) dg_oscilat_detect = 0.0
 !                   if( (SNDOTQ2_KEEP - SNDOTQ_KEEP)*N_DOT_DU < 0.0 ) dg_oscilat_detect = 0.333
-                   if( (SNDOTQ2_KEEP - SNDOTQ_KEEP)*N_DOT_DU < 0.0 ) dg_oscilat_detect = 0.5
+!                   if( (SNDOTQ2_KEEP - SNDOTQ_KEEP)*N_DOT_DU < 0.0 ) dg_oscilat_detect = 0.5
               end if
           else
 ! tvd in the means...
 
               dg_oscilat_detect = 1.0
-
+ 
               if( SINCOME> 0.5 ) then
 ! velcity comming into element ELE...
                    if( (SNDOTQ_KEEP - SNDOTQ2_KEEP)*N_DOT_DU2 > 0.0 ) then
-                      dg_oscilat_detect = 0.0
+                      H1=MASS_ELE
+                      H2=MASS_ELE2
+                      U1=SNDOTQ_KEEP - N_DOT_DU* H1
+                      U2=SNDOTQ2_KEEP+ N_DOT_DU2* H2
+                      U3=SNDOTQ2_KEEP+ N_DOT_DU2* 3*H2
+! Have oscillations...
+                      IF( (U1-U2)/TOLFUN(U2-U3) .LE. 0.0) dg_oscilat_detect = 0.0
                    endif
               else
 ! velcity pointing out of the element ELE...
                    if( (SNDOTQ2_KEEP - SNDOTQ_KEEP)*N_DOT_DU < 0.0 ) then
-                      dg_oscilat_detect = 0.0
+                      H1=MASS_ELE
+                      H2=MASS_ELE2
+                      U1=SNDOTQ_KEEP - N_DOT_DU* 3.*H1
+                      U2=SNDOTQ_KEEP - N_DOT_DU* H1
+                      U3=SNDOTQ2_KEEP+ N_DOT_DU2* H2
+! Have oscillations...
+                      IF( (U1-U2)/TOLFUN(U2-U3) .LE. 0.0) dg_oscilat_detect = 0.0
                    endif
               end if
 
