@@ -64,7 +64,7 @@ contains
     
     ! Local variables  
     type(scalar_field), pointer :: bulk_density, buoyancy_density, sfield
-    type(vector_field), pointer :: vfield, x
+    type(vector_field), pointer :: vfield, x, velocity
     type(vector_field) :: prescribed_source
     type(tensor_field), pointer :: tfield
     
@@ -81,6 +81,14 @@ contains
     ! at the same time to save computations
     ! don't calculate buoyancy if no gravity
     gravity = have_option("/physical_parameters/gravity")
+
+    ! submaterials_istate should always have a Velocity
+    velocity => extract_vector_field(submaterials(submaterials_istate), 'Velocity')
+    if (have_option(trim(velocity%option_path)//'/prognostic/equation::ShallowWater')) then
+      ! for the swe there's no buoyancy term
+      gravity = .false.
+    end if
+
     bulk_density => extract_scalar_field(submaterials(submaterials_istate), 'Density', stat)
     diagnostic = .false.
     if (stat==0) diagnostic = have_option(trim(bulk_density%option_path)//'/diagnostic')

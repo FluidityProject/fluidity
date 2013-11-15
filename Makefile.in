@@ -83,9 +83,6 @@ endif
 ifeq (@MBA3D@,yes)
 LIBMBA3D = lib/libmba3d.a
 endif
-ifeq (@ALGENCAN@,yes)
-LIBALGENCAN = lib/libalgencan.a
-endif
 
 # Thread count for make test.
 THREADS=1
@@ -98,9 +95,6 @@ else
 endif
 ifneq (@HAVE_ADJOINT@,yes)
 	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e adjoint
-endif
-ifneq (@ALGENCAN@,yes)
-	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e algencan
 endif
 ifneq (@MBA2D@,yes)
 	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e 2dadapt
@@ -120,7 +114,7 @@ endif
 
 default: bin/$(FLUIDITY)
 
-sub_system: $(LIBMBA2D) $(LIBMBA3D) $(LIBALGENCAN)  @LIB_FEMDEM@ \
+sub_system: $(LIBMBA2D) $(LIBMBA3D) @LIB_FEMDEM@ \
 	lib/libadaptivity.a lib/libvtkfortran.a lib/libspatialindex.a \
 	lib/libspud.a lib/libjudy.a include/version.h
 
@@ -135,10 +129,6 @@ lib/libmba2d.a:
 lib/libmba3d.a:
 	@echo '    MKDIR lib'; mkdir -p lib
 	echo '    MAKE libmba3d'; $(MAKE) -C libmba3d
-
-lib/libalgencan.a:
-	@echo '    MKDIR lib'; mkdir -p lib
-	echo '    MAKE libalgencan'; $(MAKE) -C libalgencan
 
 lib/libadaptivity.a:
 	@echo '    MKDIR lib'; mkdir -p lib
@@ -444,8 +434,6 @@ clean: clean-light clean-test python_clean clean-debian
 	@cd libmba2d; $(MAKE) clean
 	@echo "    CLEAN libmba3d"
 	@cd libmba3d; $(MAKE) clean
-	@echo "    CLEAN libalgencan"
-	@cd libalgencan; $(MAKE) clean
 	@echo "    CLEAN libwm"
 	@cd libwm; $(MAKE) clean
 	@echo "    CLEAN manual"
@@ -475,9 +463,8 @@ clean-all-tests: clean-test
 distclean: clean
 	@echo "    DISTCLEAN"
 	@cd @SPATIALINDEXDIR@ ; make distclean > /dev/null ; rm -rf	\
-	 make.log regressiontest/mvrtree/.deps				\
-	 regressiontest/rtree/.deps regressiontest/tprtree/.deps >	\
-	 /dev/null
+	 test/mvrtree/.deps test/rtree/.deps test/tprtree/.deps         \
+         make.log > /dev/null
 	@cd libadaptivity ; make distclean > /dev/null
 	@cd libjudy ; make distclean > /dev/null
 	@cd libvtkfortran ; make distclean > /dev/null
@@ -514,7 +501,7 @@ distclean: clean
 test: fltools bin/$(FLUIDITY) bin/shallow_water serialtest bin/burgers_equation
 
 serialtest: fltools bin/$(FLUIDITY) bin/shallow_water
-	@cd tests; ../bin/testharness -l short -p serial $(EXCLUDE_TAGS) -n $(THREADS)
+	@cd tests; ../bin/testharness -l short $(EXCLUDE_TAGS) -n $(THREADS)
 
 mediumtest: fltools bin/$(FLUIDITY) manual bin/burgers_equation bin/shallow_water spudtools
 	@cd tests; ../bin/testharness -l medium $(EXCLUDE_TAGS) -n $(THREADS)

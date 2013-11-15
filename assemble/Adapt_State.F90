@@ -879,6 +879,7 @@ contains
 
     character(len = *), parameter :: base_path = "/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep"
     integer :: adapt_iterations, i
+    type(mesh_type), pointer :: old_mesh
     type(tensor_field) :: metric
     type(vector_field), pointer :: output_positions
     real :: dt
@@ -908,7 +909,8 @@ contains
       end if
 
       ! Form the new metric
-      call allocate(metric, extract_mesh(states(1), topology_mesh_name), "ErrorMetric")
+      old_mesh => extract_mesh(states(1), topology_mesh_name)
+      call allocate(metric, old_mesh, "ErrorMetric")
       call assemble_metric(states, metric)
 
       ! Adapt state, initialising fields from the options tree rather than

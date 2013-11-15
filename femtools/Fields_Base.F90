@@ -223,6 +223,10 @@ module fields_base
           & surface_element_count_tensor, surface_element_count_mesh
   end interface
 
+  interface unique_surface_element_count
+    module procedure unique_surface_element_count_mesh
+  end interface
+
   interface surface_element_id
     module procedure surface_element_id_scalar, surface_element_id_vector, &
       surface_element_id_mesh
@@ -262,9 +266,9 @@ module fields_base
           & mesh_periodic_tensor
   end interface
     
-  interface has_internal_boundaries
-     module procedure mesh_has_internal_boundaries
-  end interface has_internal_boundaries
+  interface has_discontinuous_internal_boundaries
+     module procedure mesh_has_discontinuous_internal_boundaries
+  end interface has_discontinuous_internal_boundaries
 
   interface extract_scalar_field ! extract_scalar_field is already used in State.F90
      module procedure extract_scalar_field_from_vector_field, extract_scalar_field_from_tensor_field
@@ -412,18 +416,21 @@ contains
   
   end function mesh_periodic_tensor
 
-  pure function mesh_has_internal_boundaries(mesh)
-    !!< Return whether the mesh has internal boundaries
-    logical :: mesh_has_internal_boundaries
+  pure function mesh_has_discontinuous_internal_boundaries(mesh)
+    !!< Return whether the mesh has discontinuous boundaries
+    !!< These are internal boundaries where the surface id are 
+    !!< allowed to be discontinuous (the pair of adjacent 
+    !!< internal facets can have two different ids).
+    logical :: mesh_has_discontinuous_internal_boundaries
     type(mesh_type), intent(in) :: mesh
     
     if (associated(mesh%faces)) then
-      mesh_has_internal_boundaries = mesh%faces%has_internal_boundaries
+      mesh_has_discontinuous_internal_boundaries = mesh%faces%has_discontinuous_internal_boundaries
     else
-      mesh_has_internal_boundaries = .false.
+      mesh_has_discontinuous_internal_boundaries = .false.
     end if
   
-  end function mesh_has_internal_boundaries
+  end function mesh_has_discontinuous_internal_boundaries
 
   pure function node_count_mesh(mesh) result (node_count)
     ! Return the number of nodes in a mesh.
@@ -575,6 +582,21 @@ contains
 
   end function surface_element_count_mesh  
   
+  pure function unique_surface_element_count_mesh(mesh) result (element_count)
+    ! Return the number of unique surface elements of a mesh. For internal
+    ! facets that are part of the surface mesh, each pair of adjacent facets
+    ! is only counted once.
+    integer :: element_count
+    type(mesh_type),intent(in) :: mesh
+
+    if (associated(mesh%faces)) then
+      element_count=mesh%faces%unique_surface_element_count
+    else
+      element_count=0
+    end if
+
+  end function unique_surface_element_count_mesh  
+
   pure function face_count_scalar(field) result (face_count)
     ! Return the number of faces in a mesh.
     integer :: face_count
