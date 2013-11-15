@@ -2223,6 +2223,9 @@ population_balance =
          ## weights of zero can cause instabilities. It is recommended that a minimum
          ## weight of approx 1e-10 is used.
          element minimum_weight{ real },
+         ## Scaling factor to be used for the Sauter Mean Diameter calculated in the 
+         ## statistics. It is useful in a non-dimensional implementation of the PBE.
+         element scaling_factor_SauterMeanDia{ real }?,
          ## This is the submerged specific gravity, R, of this population balance
          ## as a function of internal coordinate, Z. 
          ## It will be used in the equation of state.

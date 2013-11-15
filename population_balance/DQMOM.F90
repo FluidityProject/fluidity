@@ -877,7 +877,7 @@ contains
     type(scalar_field_pointer), dimension(:), allocatable :: moments
     type(scalar_field), pointer :: stats
     integer :: i_pop, N, i, j, i_stat
-    real :: mean, std
+    real :: mean, std, scaling_factor_SMD
     character(len=OPTION_PATH_LEN) :: option_path 
     character(len=FIELD_NAME_LEN) :: type
     
@@ -924,8 +924,13 @@ contains
              end if
              if (trim(stats%name) == "SauterMeanDia") then
                 call zero(stats)
+                if (have_option(trim(option_path)//'/scaling_factor_SauterMeanDia')) then
+                   call get_option(trim(option_path)//'/scaling_factor_SauterMeanDia', scaling_factor_SMD)
+                else
+                   scaling_factor_SMD=1.0 
+                end if
                 do j = 1, node_count(stats)
-                   call set(stats, j, node_val(moments(4)%ptr,j)/node_val(moments(3)%ptr,j))
+                   call set(stats, j, scaling_factor_SMD*(node_val(moments(4)%ptr,j)/node_val(moments(3)%ptr,j)) )
                 end do
              end if
 

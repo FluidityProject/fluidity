@@ -3138,6 +3138,13 @@ weight of approx 1e-10 is used.</a:documentation>
         <ref name="real"/>
       </element>
       <optional>
+        <element name="scaling_factor_SauterMeanDia">
+          <a:documentation>Scaling factor to be used for the Sauter Mean Diameter calculated in the 
+statistics. It is useful in a non-dimensional implementation of the PBE.</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
         <element name="submerged_specific_gravity">
           <a:documentation>This is the submerged specific gravity, R, of this population balance
 as a function of internal coordinate, Z. 
