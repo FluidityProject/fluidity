@@ -112,8 +112,6 @@
 
     call populate_state(states)
 
-!    call test_mesh(states(1))
-
     ! No support for multiphase or multimaterial at this stage.
     if (size(states)/=1) then
        FLExit("Multiple material_phases are not supported")
@@ -415,18 +413,18 @@
       character(len=PYTHON_FUNC_LEN) :: coriolis
       type(scalar_field) :: f, new_s_field
       integer :: stat
+      logical :: recomputeX
 
       X=>extract_vector_field(state, "Coordinate")
       U=>extract_vector_field(state, "Velocity")
       Z=>extract_vector_field(state, "Vorticity",stat)
       D=>extract_scalar_field(state, "LayerThickness")
 
-      if(have_option('/geometry/mesh::CoordinateMesh/recompute_coordinate_f&
-           &ield/python')) then
+      recomputeX=have_option('/geometry/mesh::CoordinateMesh/recompute_coordinate_field/python')
+      if (recomputeX) then
          call recompute_coordinate_field(state)
          call vtk_write_fields('RecomputedCoordinates', position=X, &
-              model=D%mesh, &
-              vfields=(/X/))
+              model=D%mesh, vfields=(/X/))
       end if
 
       !SET UP LOCAL VELOCITY
@@ -497,76 +495,21 @@
          call deallocate(f)
       end if
 
-      !sort out streamfunction in bubble space
-      s_field => extract_scalar_field(state,"Streamfunction",stat)
-      if(stat==0) then
-         if(have_option('/material_phase::Fluid/scalar_field::Streamfunction&
-              &/prescribed/initialise_from_quadrature_points')) then
-            call initialise_from_quadrature_points(state,s_field)
-         else
-            if(s_field%mesh%shape%numbering%type==ELEMENT_BUBBLE) then
-               call fix_bubble_component(s_field)
-            end if
-         end if
-      end if
-
-      !VARIOUS BALANCED INITIAL OPTIONS
-      ! Geostrophic balanced initial condition, if required
-      if(have_option("/material_phase::Fluid/vector_field::Velocity/prognostic&
-           &/initial_condition::WholeMesh/balanced")) then
-         call set_velocity_from_geostrophic_balance_hybridized(state)
-      end if
-      
-      !Set velocity from streamfunction
-      if(have_option("/material_phase::Fluid/vector_field::Velocity/prognost&
-           &ic/initial_condition::WholeMesh/from_streamfunction")) then
-         call set_velocity_from_streamfunction(state)
-      end if
-
-      !Set velocity from Galerkin projection
-      if(have_option("/material_phase::Fluid/vector_field::Velocity/prognost&
-           &ic/initial_condition::WholeMesh/galerkin_projection")) then
-         call set_velocity_galerkin_projection(state)
-      end if
-
       v_field => extract_vector_field(state, "LocalVelocity")
       call project_to_constrained_space(state,v_field)
 
-      if(have_option("/material_phase::Fluid/scalar_field::LayerThickness/pr&
-           &ognostic/initial_condition::ProjectionFromPython")) then
-         call set_layerthickness_projection(state)
-      end if
-      if(have_option("/material_phase::Fluid/scalar_field::PrescribedLayerDe&
-           &pthFromProjection")) then
-         call set_layerthickness_projection(state,&
-              &"PrescribedLayerDepthFromProjection")
-      end if
-      if(have_option("/material_phase::Fluid/scalar_field::Orography/prescribe&
-           &d/projected")) then
-         call set_layerthickness_projection(state,"Orography")
-      end if
-      if(have_option("/material_phase::Fluid/scalar_field::Orography/prescribe&
-           &d/limit_values")) then
-         s_field => extract_scalar_field(state, "Orography")
-         call limit_vb_manifold(state,s_field)
-      end if
-      call fix_layerdepth_mean(state)
-      if(have_option("/material_phase::Fluid/scalar_field::Orography/prescribe&
-           &d/subtract_from_layer_thickness")) then
-         s_field => extract_scalar_field(state, "Orography")
-         D => extract_scalar_field(state, "LayerThickness")
-         D%val = D%val - s_field%val
-      end if
+      call reinitialise_fields(state, X, recomputeX)
+
       s_field => extract_scalar_field(state, "Orography",stat)
-      print*, "JEMMA:", stat, have_option("/material_phase::Fluid/scalar_field::Orography")
-      print*, have_option('/material_phase::Fluid/vector_field::Velocity/prognostic/wave_equation/just_wave_equation_step')
       if(stat==0 .and. have_option('/material_phase::Fluid/vector_field::Velocity/prognostic/wave_equation/just_wave_equation_step')) then
-         print*, 'calculating linear orography term'
-         ! calculate LinearOrographyTerm field = g<div w,h_orog>
+         ! calculate LinearOrographyTerm field = dt*g<div w,h_orog>
          call allocate(linear_orography_term, mesh_dim(U), U%mesh, "LinearOrographyTerm")
          call calculate_linear_orography(state, s_field, linear_orography_term)
          ewrite_minmax(linear_orography_term)
          call insert(state, linear_orography_term, "LinearOrographyTerm")
+         call vtk_write_fields('LinearOrographyTerm', position=X, &
+              model=D%mesh, &
+              vfields=(/linear_orography_term/))
          call deallocate(linear_orography_term)
       end if
 
@@ -637,6 +580,193 @@
     call set(X,ele_nodes(X,ele),X_ele_val_2)
 
     end subroutine recompute_coordinate_field_ele
+
+    subroutine reinitialise_fields(state, X, recomputeX)
+      ! This subroutine overwrites fields that have been initialised
+      ! by populate_state but which have options that aren't checked
+      ! for in that code. It also deals with the case where the
+      ! coordinate field has been recomputed and all fields set via a
+      ! python function therefore need to be recomputed as a function
+      ! of the new coordinates.
+      implicit none
+      type(state_type), intent(inout) :: state
+      type(vector_field), intent(in) :: X
+      logical, intent(in) :: recomputeX
+
+      type(scalar_field), pointer :: s_field, D
+      type(vector_field), pointer :: v_field
+      type(vector_field) :: lX
+      integer :: nsfields, nvfields, f, stat, ele
+      character(len=PYTHON_FUNC_LEN) :: Python_Function
+
+      ! Firstly, if we have recomputed the coordinate field, loop over
+      ! all fields (scalar and vector) in state and reinitialise as a
+      ! function of the new coordinates
+      if(recomputeX) then
+         ewrite(1,*) "reinitialising fields using recomputed coordinate"
+         nsfields=scalar_field_count(state)
+         do f=1, nsfields
+            s_field => extract_scalar_field(state,f)
+            call get_option(trim(s_field%option_path)//&
+                 &'/prognostic/initial_condition/python', Python_Function, stat)
+            if(stat/=0) then
+               call get_option(trim(s_field%option_path)//&
+                    &'/prescribed/value/python', Python_Function, stat)
+            end if
+            if(stat==0) then
+               ewrite(1,*) "reinitialising field: ", trim(s_field%name)
+               if(s_field%mesh==X%mesh) then
+                  call allocate(lX,X%dim,X%mesh,"lX")
+                  call set(lX,X)
+               else
+                  lX=get_remapped_coordinates(X,s_field%mesh)
+               end if
+               do ele=1,ele_count(s_field)
+                  call reinitialise_sfield_ele(s_field, Python_Function, lX, ele)
+               end do
+               if(s_field%mesh==X%mesh) then
+                  call deallocate(lX)
+               end if
+            end if
+         end do
+         nvfields=vector_field_count(state)
+         do f=1, nvfields
+            v_field => extract_vector_field(state,f)
+            call get_option(trim(v_field%option_path)//&
+                 &'/prognostic/initial_condition/python', Python_Function, stat)
+            if(stat/=0) then
+               call get_option(trim(v_field%option_path)//&
+                    &'/prescribed/value/python', Python_Function, stat)
+            end if
+            if(stat==0) then
+               ewrite(1,*) "reinitialising field: ", trim(v_field%name)
+               if(v_field%mesh==X%mesh) then
+                  call allocate(lX,X%dim,X%mesh,"lX")
+                  call set(lX,X)
+               else
+                  lX=get_remapped_coordinates(X,s_field%mesh)
+               end if
+               do ele=1,ele_count(v_field)
+                  call reinitialise_vfield_ele(v_field, Python_Function, X, ele)
+               end do
+               if(v_field%mesh==X%mesh) then
+                  call deallocate(lX)
+               end if
+            end if
+         end do
+      end if
+
+      ! Now for all the other initial condition options...
+
+      !sort out streamfunction in bubble space
+      s_field => extract_scalar_field(state,"Streamfunction",stat)
+      if(stat==0) then
+         if(have_option('/material_phase::Fluid/scalar_field::Streamfunction&
+              &/prescribed/initialise_from_quadrature_points')) then
+            call initialise_from_quadrature_points(state,s_field)
+         else
+            if(s_field%mesh%shape%numbering%type==ELEMENT_BUBBLE) then
+               call fix_bubble_component(s_field)
+            end if
+         end if
+      end if
+
+      !VARIOUS BALANCED INITIAL OPTIONS
+      ! Geostrophic balanced initial condition, if required
+      if(have_option("/material_phase::Fluid/vector_field::Velocity/prognostic&
+           &/initial_condition::WholeMesh/balanced")) then
+         call set_velocity_from_geostrophic_balance_hybridized(state)
+      end if
+      
+      !Set velocity from streamfunction
+      if(have_option("/material_phase::Fluid/vector_field::Velocity/prognost&
+           &ic/initial_condition::WholeMesh/from_streamfunction")) then
+         call set_velocity_from_streamfunction(state)
+      end if
+
+      !Set velocity from Galerkin projection
+      if(have_option("/material_phase::Fluid/vector_field::Velocity/prognost&
+           &ic/initial_condition::WholeMesh/galerkin_projection")) then
+         call set_velocity_galerkin_projection(state)
+      end if
+
+      if(have_option("/material_phase::Fluid/scalar_field::LayerThickness/pr&
+           &ognostic/initial_condition::ProjectionFromPython")) then
+         call set_layerthickness_projection(state)
+      end if
+      if(have_option("/material_phase::Fluid/scalar_field::PrescribedLayerDe&
+           &pthFromProjection")) then
+         call set_layerthickness_projection(state,&
+              &"PrescribedLayerDepthFromProjection")
+      end if
+      if(have_option("/material_phase::Fluid/scalar_field::Orography/prescribe&
+           &d/projected")) then
+         call set_layerthickness_projection(state,"Orography")
+      end if
+      if(have_option("/material_phase::Fluid/scalar_field::Orography/prescribe&
+           &d/limit_values")) then
+         s_field => extract_scalar_field(state, "Orography")
+         call limit_vb_manifold(state,s_field)
+      end if
+      call fix_layerdepth_mean(state)
+      if(have_option("/material_phase::Fluid/scalar_field::Orography/prescribe&
+           &d/subtract_from_layer_thickness")) then
+         s_field => extract_scalar_field(state, "Orography")
+         D => extract_scalar_field(state, "LayerThickness")
+         D%val = D%val - s_field%val
+      end if
+
+    end subroutine reinitialise_fields
+
+    subroutine reinitialise_sfield_ele(sfield, python_function, X, ele)
+      implicit none
+      type(scalar_field), intent(inout) :: sfield
+      character(len=PYTHON_FUNC_LEN), intent(in) :: Python_Function
+      type(vector_field), intent(in) :: X
+      integer, intent(in) :: ele
+
+      real, dimension(X%dim, ele_loc(X,ele)) :: X_val
+      real, dimension(ele_loc(sfield,ele)) :: result_val
+      integer :: stat
+
+      X_val=ele_val(X, ele)
+
+      call set_scalar_field_from_python(python_function, len(python_function),&
+           & dim=3,nodes=ele_loc(sfield,ele),x=X_val(1,:),y=X_val(2,:),&
+           & z=X_val(3,:), t=0.0, result=result_val, stat=stat)
+      if(stat /= 0) then
+         FLAbort('Failed to set scalar field values from Python.')
+      end if
+
+      call set(sfield, ele_nodes(sfield,ele), result_val)
+
+    end subroutine reinitialise_sfield_ele
+
+    subroutine reinitialise_vfield_ele(vfield, python_function, X, ele)
+      implicit none
+      type(vector_field), intent(inout) :: vfield
+      character(len=PYTHON_FUNC_LEN), intent(in) :: Python_Function
+      type(vector_field), intent(in) :: X
+      integer, intent(in) :: ele
+
+      real, dimension(X%dim, ele_loc(X, ele)) :: X_val
+      real, dimension(vfield%dim, ele_loc(vfield, ele)) :: result_val
+      integer :: stat
+
+      X_val=ele_val(X,ele)
+
+      call set_vector_field_from_python(python_function, len(python_function),&
+           & dim=3, nodes=ele_loc(vfield, ele), x=X_val(1,:), y=X_val(2,:),&
+           & z=X_val(3,:), t=0.0, result_dim=vfield%dim, &
+           & result_x=result_val(1,:), result_y=result_val(2,:),&
+           & result_z=result_val(3,:), stat=stat)
+      if(stat /= 0) then
+         FLAbort('Failed to set vector field values from Python.')
+      end if
+
+      call set(vfield, ele_nodes(vfield,ele), result_val)
+
+    end subroutine reinitialise_vfield_ele
 
     subroutine set_velocity_galerkin_projection(state)
       type(state_type), intent(in) :: state
@@ -1090,7 +1220,7 @@
       type(mesh_type), pointer :: zeta_mesh
       type(scalar_field), pointer :: sfield
       type(scalar_field), dimension(:), allocatable :: BubbleFields
-      integer :: stat, n_bubble_fields, n_scalar_fields,i
+      integer :: stat, n_bubble_fields, n_scalar_fields,i,nsfields,f
       ! project the local velocity to cartesian coordinates
       call project_local_to_cartesian(state(1))
       ! Now we're ready to call write_state
