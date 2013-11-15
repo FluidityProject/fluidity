@@ -361,11 +361,11 @@
            overlapping_path )
       if( trim( overlapping_path ) == 'overlapping' ) overlapping = .true.
 
-      ALLOCATE( PERM_ELE( TOTELE ) ) ; PERM_ELE = 0.0
-      if ( overlapping ) then
-         perm => extract_scalar_field( state(1), "Permeability" )
-         perm_ele = perm % val
-      end if
+!      ALLOCATE( PERM_ELE( TOTELE ) ) ; PERM_ELE = 0.0
+!      if ( overlapping ) then
+!         perm => extract_scalar_field( state(1), "Permeability" )
+!         perm_ele = perm % val
+!      end if
 
       IDUM = 0
       RDUM = 0.
@@ -1624,7 +1624,7 @@
       ewrite(3,*) 'just print out - in cv_assemb'
 
       ! Deallocating temporary working arrays
-      DEALLOCATE( PERM_ELE )
+!      DEALLOCATE( PERM_ELE )
 
       DEALLOCATE( JCOUNT_KLOC )
       DEALLOCATE( CVNORMX )
