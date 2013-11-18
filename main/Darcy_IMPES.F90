@@ -1060,7 +1060,19 @@ contains
       ! ***************Finish*******LCai *************************************** 
 
       allocate(di%generic_prog_sfield(f_count))
-      
+
+      ! ***************LCai************18 Nov 2013**************!
+      !allocate the variables relates to the dynamic time step according to the change rate of the generic prog sfield 
+      !to avoid the negative concentration
+
+      have_dynamic_timestep=.true.   !temporary one, need to be changed to be according to the options in the diml file
+
+      if (have_dynamic_timestep) then
+        allocate(di%dt_dy(f_count)
+        call allocate(di%dCdt, di%pressure_mesh)
+        call zero(di%dCdt)
+      end if
+      !******************Finish***********LCai******************!
       if (size(di%generic_prog_sfield) > 0) then
       
          f_count = 0
@@ -1829,7 +1841,14 @@ contains
        end if
        deallocate(di%MIM_options%immobile_prog_sfield) 
       ! ***** Finish **** LCai **************************** 
+      
 
+      !***********LCai*******18 Nov 2013********************!
+      if (have_dynamic_timestep) then
+        deallocate(di%dt_dy)
+        call deallocate(di%dCdt)
+      end if
+      !***********Finish********LCai************************!
  
       !*****************************LCai 25 July & 08 & 22 Aug 2013******************!
       di%prt_is_constant= .false.
