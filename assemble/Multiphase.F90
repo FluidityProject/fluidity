@@ -284,9 +284,10 @@
    
          ! Types of drag correlation
          integer, parameter :: DRAG_CORRELATION_TYPE_STOKES = 1, DRAG_CORRELATION_TYPE_WEN_YU = 2, DRAG_CORRELATION_TYPE_ERGUN = 3
+         integer, parameter :: DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN = 4
          
          ewrite(1, *) "Entering add_fluid_particle_drag"
-         
+ 
          ! Let's check whether we actually have at least one particle phase.
          if(option_count("/material_phase/multiphase_properties/particle_diameter") == 0) then
             FLExit("Fluid-particle drag enabled but no particle_diameter has been specified for the particle phase(s).")
@@ -412,7 +413,9 @@
                         drag_correlation = DRAG_CORRELATION_TYPE_WEN_YU
                      case("ergun")
                         drag_correlation = DRAG_CORRELATION_TYPE_ERGUN
-                     case("default")
+                     case("schiller_naumann")
+                        drag_correlation = DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN
+                     case default
                         FLAbort("Unknown correlation for fluid-particle drag")
                   end select
                   
@@ -550,6 +553,18 @@
                      
                   case(DRAG_CORRELATION_TYPE_ERGUN)
                      ! No drag coefficient is needed here.                  
+
+                  case(DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN)
+                     ! Schiller & Naumann (1933) drag correlation
+                     ! Since the particle Reynolds number definition currently contains vfrac_fluid in numerator,
+                     ! we need to take that out by dividing as done below. Must be changed when Reynolds number defn is changed - gb812
+                     do gi = 1, ele_ngi(u,ele)
+                        if((particle_re_gi(gi)/vfrac_fluid_gi(gi)) < 1000) then
+                           drag_coefficient_gi(gi) = (24.0/(particle_re_gi(gi)/vfrac_fluid_gi(gi)))*(1.0+0.15*(particle_re_gi(gi)/vfrac_fluid_gi(gi))**0.687)
+                        else
+                           drag_coefficient_gi(gi) = 0.44
+                        end if
+                     end do
                end select
                       
                ! Don't let the drag_coefficient_gi be NaN
@@ -568,6 +583,8 @@
                   case(DRAG_CORRELATION_TYPE_ERGUN)
                      K = 150.0*((vfrac_particle_gi**2)*viscosity_fluid_gi(1,1,:))/(vfrac_fluid_gi*(d_gi**2)) + &
                                 1.75*(vfrac_particle_gi*density_fluid_gi*magnitude_gi/d_gi)
+                  case(DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN)
+                     K = vfrac_particle_gi*(3.0/4.0)*drag_coefficient_gi*(density_fluid_gi*magnitude_gi)/(d_gi)
                end select               
                
                if(is_particle_phase) then

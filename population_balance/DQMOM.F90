@@ -574,8 +574,9 @@ contains
     if (have_internal_dispersion) then
        do i = 1, 2*N
           do j = 1, N
-!             S_rhs(:,i) = S_rhs(:,i) + (i-1)*(i-2)*ele_val_at_quad(weight(j), ele)*(ele_val_at_quad(abscissa(j), ele)**(i-3))*Diffusion_internal(j)
-             S_rhs(:,i) = S_rhs(:,i) + (i-1)*(i-2)*ele_val_at_quad(weight(j), ele)*(abscissa_val_at_quad(:,j)**(i-3))*internal_dispersion_coeff   ! abscissa_val_at_quad() takes care of the perturbed abscissas
+             ! S_rhs(:,i) = S_rhs(:,i) + (i-1)*(i-2)*ele_val_at_quad(weight(j), ele)*(ele_val_at_quad(abscissa(j), ele)**(i-3))*Diffusion_internal(j)
+             ! abscissa_val_at_quad() takes care of the perturbed abscissas
+             S_rhs(:,i) = S_rhs(:,i) + (i-1)*(i-2)*ele_val_at_quad(weight(j), ele)*(abscissa_val_at_quad(:,j)**(i-3))*internal_dispersion_coeff
           end do
        end do
     end if
