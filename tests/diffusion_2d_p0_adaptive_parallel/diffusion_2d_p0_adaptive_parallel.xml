@@ -115,29 +115,29 @@ assert tracer_error[0] &lt; 0.01
 import numpy
 assert(numpy.all(abs(tracer_error[1:]-tracer_error[0]) &lt; 1.e-9)) 
     </test>
-    <test name="regionids integral is initially 39.0" language="python">
-assert abs(regionids_integral[0] - 39.0) &lt; 1e-9
-    </test>
-    <test name="regionids integral is constant" language="python">
-import numpy
-assert(numpy.all(abs(regionids_integral[1:] - regionids_integral[0]) &lt; 1e-9))
-    </test>
-    <test name="regionids upper left is 21" language="python">
-import numpy
-assert(numpy.all(abs(regionids[0] - 21.) &lt; 1e-9))
-    </test>
-    <test name="regionids upper right is 20" language="python">
-import numpy
-assert(numpy.all(abs(regionids[1] - 20.) &lt; 1e-9))
-    </test>
-    <test name="regionids lower left is 18" language="python">
-import numpy
-assert(numpy.all(abs(regionids[2] - 18.) &lt; 1e-9))
-    </test>
-    <test name="regionids lower right is 19" language="python">
-import numpy
-assert(numpy.all(abs(regionids[3] - 19.) &lt; 1e-9))
-    </test>
+<!--     <test name="regionids integral is initially 39.0" language="python"> -->
+<!-- assert abs(regionids_integral[0] - 39.0) &lt; 1e-9 -->
+<!--     </test> -->
+<!--     <test name="regionids integral is constant" language="python"> -->
+<!-- import numpy -->
+<!-- assert(numpy.all(abs(regionids_integral[1:] - regionids_integral[0]) &lt; 1e-9)) -->
+<!--     </test> -->
+<!--     <test name="regionids upper left is 21" language="python"> -->
+<!-- import numpy -->
+<!-- assert(numpy.all(abs(regionids[0] - 21.) &lt; 1e-9)) -->
+<!--     </test> -->
+<!--     <test name="regionids upper right is 20" language="python"> -->
+<!-- import numpy -->
+<!-- assert(numpy.all(abs(regionids[1] - 20.) &lt; 1e-9)) -->
+<!--     </test> -->
+<!--     <test name="regionids lower left is 18" language="python"> -->
+<!-- import numpy -->
+<!-- assert(numpy.all(abs(regionids[2] - 18.) &lt; 1e-9)) -->
+<!--     </test> -->
+<!--     <test name="regionids lower right is 19" language="python"> -->
+<!-- import numpy -->
+<!-- assert(numpy.all(abs(regionids[3] - 19.) &lt; 1e-9)) -->
+<!--     </test> -->
 <!--    <test name="regionids initial" language="python">
 import numpy
 assert(numpy.array([detectors["Water"]["RegionIDs"][d][0]&gt;17

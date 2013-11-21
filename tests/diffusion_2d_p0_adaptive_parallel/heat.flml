@@ -54,11 +54,19 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">100</integer_value>
+        <integer_value rank="0">1</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <output_mesh name="VelocityMesh"/>
-    <stat/>
+    <checkpointing>
+      <checkpoint_period_in_dumps>
+        <integer_value rank="0">339</integer_value>
+      </checkpoint_period_in_dumps>
+    </checkpointing>
+    <stat>
+      <output_before_adapts/>
+      <output_after_adapts/>
+    </stat>
   </io>
   <timestepping>
     <current_time>
@@ -365,7 +373,6 @@
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
-      <preserve_mesh_regions/>
     </hr_adaptivity>
   </mesh_adaptivity>
 </fluidity_options>

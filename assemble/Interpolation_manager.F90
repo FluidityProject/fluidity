@@ -187,9 +187,9 @@ contains
 
       ! Assuming here that "map" is for the linear mesh
       if(present(map)) then
-        call linear_interpolate_states(states_old, states_new, map = map)
+        call linear_interpolate_states(states_old, states_new, map = map, only_owned = .true.)
       else
-        call linear_interpolate_states(states_old, states_new)
+        call linear_interpolate_states(states_old, states_new, only_owned = .true.)
       end if
 
       call toc(TICTOC_ID_INTERPOLATION)
@@ -342,12 +342,12 @@ contains
                 ! Cannot assume here that "map" applies for new_mesh (as
                 ! new_mesh may have any degree)
                 if(size(map) == node_count(new_mesh)) then
-                  call linear_interpolation(alg_old(mesh), alg_new(mesh), map = map)
+                  call linear_interpolation(alg_old(mesh), alg_new(mesh), map = map, only_owned = .true.)
                 else
-                  call linear_interpolation(alg_old(mesh), alg_new(mesh))
+                  call linear_interpolation(alg_old(mesh), alg_new(mesh), only_owned = .true.)
                 end if
               else
-                call linear_interpolation(alg_old(mesh), alg_new(mesh))
+                call linear_interpolation(alg_old(mesh), alg_new(mesh), only_owned = .true.)
               end if
             end if
           
