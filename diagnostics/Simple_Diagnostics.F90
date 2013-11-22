@@ -183,16 +183,16 @@ contains
     real :: res
     source_field => vector_source_field(state, s_field)
     allocate(val(source_field%dim))
-      assert(node_count(s_field) == node_count(source_field))
-      do i=1,node_count(s_field)
+    assert(node_count(s_field) == node_count(source_field))
+    do i=1,node_count(s_field)
        val = node_val(source_field,i)
 
-    res = 0
-            do j=1,source_field%dim
-      res=res+val(j)**2
-     end do
-     res=sqrt(res)
-     call set(s_field,i,res)
+       res = 0
+       do j=1,source_field%dim
+          res=res+val(j)**2
+       end do
+       res=sqrt(res)
+       call set(s_field,i,res)
     end do
     deallocate(val)
   end subroutine calculate_l2norm
