@@ -350,6 +350,14 @@ program Darcy_IMPES
    
    end if first_adapt_if
    
+   !***************22 Nov 2013**LCai************************************!
+   if (di%have_dynamic_timestep) then
+
+      call darcy_trans_dynamic_timestep(di)
+
+   end if
+   !*********Finish****************************!
+
    ! Checkpoint at start
    if(do_checkpoint_simulation(dump_no)) call checkpoint_simulation(state, cp_no = dump_no)
    ! Dump at start
@@ -498,6 +506,16 @@ program Darcy_IMPES
          call darcy_impes_adaptive_timestep()
       
       end if adapt_if
+
+      !**************22 Nov 2013****LCai***********************!
+
+      if (di%have_dynamic_timestep) then
+
+         call darcy_trans_dynamic_timestep(di)
+
+      end if
+      !************Finish***************************************!
+
       
    end do timestep_loop
    
@@ -1062,14 +1080,19 @@ contains
       allocate(di%generic_prog_sfield(f_count))
 
       ! ***************LCai************18 Nov 2013**************!
-      !allocate the variables relates to the dynamic time step according to the change rate of the generic prog sfield 
+      !allocate the variables relates to the dynamic time step according to 
+      !the rate of the source term of the generic prog sfield 
       !to avoid the negative concentration
 
-      have_dynamic_timestep=.true.   !temporary one, need to be changed to be according to the options in the diml file
+      di%have_dynamic_timestep=.true.   !temporary one, need to be changed to be according to the options in the diml file
 
-      if (have_dynamic_timestep) then
-        allocate(di%dt_dy(f_count)
+      if (di%have_dynamic_timestep) then
+        allocate(di%dt_dy(f_count))
+        di%dt_dy=di%dt
+        
         call allocate(di%dCdt, di%pressure_mesh)
+        call allocate(di%src_pmesh, di%pressure_mesh)
+        call zero(di%src_pmesh)
         call zero(di%dCdt)
       end if
       !******************Finish***********LCai******************!
@@ -1196,7 +1219,7 @@ contains
                do ele_prt=1,ele_count(di%porosity_pmesh)
                call darcy_trans_assemble_galerkin_projection_elemesh_to_pmesh(di%porosity_pmesh, di%porosity, di%positions, ele_prt)
                end do
-               print *, di%porosity_pmesh%val
+          
              else
                FLExit("the mesh of porosity should be elementwise dg")
              end if
@@ -1847,6 +1870,7 @@ contains
       if (have_dynamic_timestep) then
         deallocate(di%dt_dy)
         call deallocate(di%dCdt)
+        call deallocate(di%src_pmesh)
       end if
       !***********Finish********LCai************************!
  
@@ -2164,6 +2188,7 @@ contains
       di%dt = dt
       
       call set_option("/timestepping/timestep", dt)
+      
       
    end subroutine darcy_impes_adaptive_timestep
 

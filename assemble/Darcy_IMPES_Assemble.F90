@@ -374,6 +374,7 @@ module darcy_impes_assemble_module
               logical :: have_dynamic_timestep !the dynamic time according to the change rate of prog_sfield to avoid the nagtive value of concentration
               real, dimension(:) ::  dt_dy   !the dynamic time according to the change rate of prog_sfield to avoid the nagtive value of concentration
               type(scalar_field) :: dCdt  !the change rate of the generic prog sfield, dC/dt
+              type(scalar_field) :: src_pmesh
               !*****Finish********LCai******!
               ! *** The current time, also stored here for convenience ***
               real :: current_time 
@@ -2526,9 +2527,6 @@ module darcy_impes_assemble_module
               
               ! local variables
               integer :: f, p
-              real :: min_dCdt  !****LCai***18 Nov 2013*** the minimun dCdt for the dynamic time step! 
-              integer :: min_dCdtloc !****LCai**18 Nov 2013*** the index of the minimun dCdt for dynamic time step! 
-              real :: dt_temp !*****LCai***18 Nov 2013***!
               ewrite(1,*) 'Assemble and solve generic prognostic scalar fields'
               
       sfield_loop: do f = 1, size(di%generic_prog_sfield)
@@ -2536,29 +2534,7 @@ module darcy_impes_assemble_module
          p = di%generic_prog_sfield(f)%phase
          
          call darcy_impes_assemble_and_solve_generic_prog_sfield(di, f, p)
-         
-         !******************LCai 18 Nov 2013 ***********************************!
-
-         if (di%have_dynamic_timestep) then
-          call set(di%dCdt, di%generic_prog_sfield(f)%sfield%val)
-          call addto(di%dCdt, di%generic_prog_sfield(f)%old_sfield%val, scale=-1.0)
-          call scale(di%dCdt, 1.0/di%dt)
-
-            if (minval(di%dCdt%val)<0.0) then
-               min_dCdt=minval(di%dCdt%val)
-               min_dCdtloc=minloc(di%dCdt%val)
-               di%dy_dt(f)=-0.1*di%generic_prog_sfield(f)%old_sfield%val(min_dCdtloc)/min_dCdt !let the dt_temp equal to 0.1 of the (0-C_old)/min_dCdt
-            else
-               di%dt_dy(f)=di%dt
-            end if 
-            
-            if di%dy_dt(f)>=di%dt
-               di%dy_dt(f)=di%dt
-            end if
-          call zero(di%dCdt)     
-         end if
-           
-         !*****************Finish**********LCai*******************************!  
+          
       end do sfield_loop
 
       ewrite(1,*) 'Finished assemble and solve generic prognostic scalar fields'
@@ -6147,9 +6123,50 @@ end subroutine darcy_trans_assemble_galerkin_projection_elemesh_to_pmesh
 
 ! ********************Finish*** LCai **********************************
 
+!**********************18 NOV 2013****LCai*****************************
 subroutine darcy_trans_dynamic_timestep(di)
 
          type(darcy_impes_type), intent(inout) :: di
+         
+         !local variables
+         integer :: ele
+         integer :: min_loc
+
+         sfield_loop: do f = 1, size(di%generic_prog_sfield)
+
+          if (di%generic_prog_sfield(f)%have_src) then
+
+            ele_loop: do ele=1, ele_count(di%porosity_pmesh)
+
+              call darcy_trans_assemble_galerkin_projection_elemesh_to_pmesh(di%src_pmesh,di%generic_prog_sfield(f)%sfield_src, di%positions, ele)
+            
+            end do ele_loop
+
+
+            call addto(di%dCdt, di%generic_prog_sfield(f)%sfield)
+            call addto(di%dCdt, di%generic_prog_sfield(f)%sfield_src, scale=di%dt)
+
+            if (minval(di%dCdt%val)<=0.0) then
+              
+              min_loc=minloc(di%dCdt%val)
+              
+              di%dt_dy(f)= -0.3*di%generic_prog_sfield(f)%sfield%val(min_loc)/di%generic_prog_sfield(f)%sfield_src%val(min_loc)
+              !if the source term cause the concentration to be negative, then set the time step that the source term will consume 0.4 of the available concentration
+
+            else
+                
+              di%dt_dy(f)=di%dt
+
+            end if
+
+          else
+
+            di%dt_dy(f)=di%dt
+          
+          end if
+
+         end do sfield_loop
+
          if (minval(di%dt_dy)<di%dt) then
            
            di%dt=minval(di%dt_dy)
@@ -6158,7 +6175,18 @@ subroutine darcy_trans_dynamic_timestep(di)
 
            call set_option("/timestepping/timestep", dt)
          end if
+         
+         if (dt<=10**(-5)) then
+           
+            FLExit('The dynamic time step is too small')
+
+         end if
+
+           
+         call zero(di%src_pmesh)
+         call zero(di%dCdt)
 end subroutine
+
 
 ! *****Finished **** LCai *********************************************
 end module darcy_impes_assemble_module
