@@ -1063,7 +1063,7 @@ contains
          &Metricf
     real, dimension(X%dim, X%dim, ele_ngi(U,ele)) :: rot
     real, dimension(mesh_dim(U),mesh_dim(U),ele_loc(U,ele),ele_loc(U&
-         &,ele)) :: l_u_mat
+         &,ele)) :: l_u_mat, A, M_lin
     integer :: mdim, uloc,dloc,dim1,dim2,gi
     type(element_type) :: u_shape, d_shape
     real, dimension(ele_ngi(D,ele)) :: detwei, detJ
@@ -1072,7 +1072,7 @@ contains
     integer, dimension(mesh_dim(U)) :: U_start, U_end
     type(constraints_type), pointer :: constraints
     integer :: i1
-    real :: l_dt,l_theta,l_d0,detJ_bar
+    real :: l_dt,l_theta,l_d0,detJ_bar,alpha
 
     if(projection) then
        l_dt = 0.
@@ -1189,6 +1189,42 @@ contains
     l_u_mat = shape_shape_tensor(u_shape, u_shape, &
          u_shape%quadrature%weight, Metric+l_dt*l_theta*Metricf)
 
+    alpha=0.05
+    A=0.0
+    A(1,1,1,1)=1.0
+    A(1,1,3,3)=1.0
+    A(1,1,4,4)=1.0
+    A(1,1,6,6)=1.0
+    A(1,1,7,7)=1.0
+    A(1,1,9,9)=1.0
+    A(1,1,1,3)=-1.0
+    A(1,1,3,1)=-1.0
+    A(1,1,4,6)=-1.0
+    A(1,1,6,4)=-1.0
+    A(1,1,7,9)=-1.0
+    A(1,1,9,7)=-1.0
+
+    A(2,2,1,1)=1.0
+    A(2,2,2,2)=1.0
+    A(2,2,3,3)=1.0
+    A(2,2,7,7)=1.0
+    A(2,2,8,8)=1.0
+    A(2,2,9,9)=1.0
+    A(2,2,1,7)=-1.0
+    A(2,2,2,8)=-1.0
+    A(2,2,3,9)=-1.0
+    A(2,2,7,1)=-1.0
+    A(2,2,8,2)=-1.0
+    A(2,2,9,3)=-1.0
+
+    do dim1=1, mdim
+       do dim2=1, mdim
+          M_lin(dim1,dim2,:,:)=matmul(matmul(A(dim1,dim1,:,:),l_u_mat(dim1,dim2,:,:)),transpose(A(dim2,dim2,:,:)))
+          print*, M_lin(dim1,dim2,:,:)
+          l_u_mat(dim1,dim2,:,:)=l_u_mat(dim1,dim2,:,:)+alpha*M_lin(dim1,dim2,:,:)
+       end do
+    end do
+
     do dim1 = 1, mdim
        do dim2 = 1, mdim
           local_solver_matrix(u_start(dim1):u_end(dim1),&
@@ -1203,6 +1239,7 @@ contains
             Metric+(l_theta-1.0)*l_dt*Metricf)
        do dim1 = 1, mdim
           do dim2 = 1, mdim
+             l_u_mat(dim1,dim2,:,:)=l_u_mat(dim1,dim2,:,:)+alpha*M_lin(dim1,dim2,:,:)
              local_solver_rhs(u_start(dim1):u_end(dim1),&
                   u_start(dim2):u_end(dim2))=&
                   & l_u_mat(dim1,dim2,:,:)
