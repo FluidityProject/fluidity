@@ -584,7 +584,7 @@
                      K = 150.0*((vfrac_particle_gi**2)*viscosity_fluid_gi(1,1,:))/(vfrac_fluid_gi*(d_gi**2)) + &
                                 1.75*(vfrac_particle_gi*density_fluid_gi*magnitude_gi/d_gi)
                   case(DRAG_CORRELATION_TYPE_SCHILLER_NAUMANN)
-                     K = vfrac_particle_gi*(3.0/4.0)*drag_coefficient_gi*(density_fluid_gi*magnitude_gi)/(d_gi)
+                     K = vfrac_fluid_gi*vfrac_particle_gi*(3.0/4.0)*drag_coefficient_gi*(density_fluid_gi*magnitude_gi)/(d_gi)
                end select               
                
                if(is_particle_phase) then
