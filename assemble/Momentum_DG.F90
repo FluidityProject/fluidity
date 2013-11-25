@@ -3312,6 +3312,7 @@ contains
       
     type(vector_field) :: u_sub, m_delta_u, delta_u
     type(scalar_field), pointer :: courant_number_field
+    type(scalar_field) :: u_cpt
     real :: max_courant_number
     integer :: d, i, subcycles
     logical :: limit_slope
@@ -3349,8 +3350,13 @@ contains
 
     do i=1, subcycles
       if (limit_slope) then
+
         ! filter wiggles from u
-        call limit_slope_dg(state, u, 5)    ! 5 = limit_vb
+        do d =1, mesh_dim(u)
+        u_cpt = extract_scalar_field_from_vector_field(u_sub,d)
+        call limit_vb(state,u_cpt)
+        end do
+
       end if
  
       ! du = advection * u
