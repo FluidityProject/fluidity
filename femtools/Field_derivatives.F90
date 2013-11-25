@@ -1609,6 +1609,8 @@ module field_derivatives
 
       ! Assemble to rhs
       shape => ele_shape(infield, ele) 
+      call transform_to_physical(positions, ele, detwei=detwei)
+      
       rhs = shape_vector_rhs(shape, grad_gi, detwei)
 
       ! multiply by inverse of mass matrix
