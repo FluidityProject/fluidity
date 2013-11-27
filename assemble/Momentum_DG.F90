@@ -39,6 +39,7 @@ module momentum_DG
   use shape_functions
   use transform_elements
   use vector_tools
+  use field_derivatives
   use fldebug
   use vtk_interfaces
   use Coordinates
@@ -278,8 +279,9 @@ contains
 
     ! LES - sp911
     logical :: have_les = .false.
-    real :: smagorinsky_coefficient
-    type(scalar_field), pointer :: eddy_visc, prescribed_filter_width, distance_to_wall, y_plus_debug, les_filter_width_debug
+    real :: smagorinsky_coefficient, Ri_c
+    type(scalar_field), pointer :: eddy_visc, prescribed_filter_width, distance_to_wall, &
+         & y_plus_debug, les_filter_width_debug, f_Ri_debug
 
     ewrite(1, *) "In construct_momentum_dg"
 
@@ -623,30 +625,41 @@ contains
              &"/discontinuous_galerkin/les_model"//&
              &"/smagorinsky_coefficient", &
              smagorinsky_coefficient)
-        eddy_visc => extract_scalar_field(state, "DGLESScalarEddyViscosity", stat=stat)   
-        if (stat/=0) then
-          nullify(eddy_visc)
-        end if
-        prescribed_filter_width => extract_scalar_field(state, "FilterWidth", stat=stat)  
-        if (stat/=0) then
-          nullify(prescribed_filter_width)
-        end if
-        distance_to_wall => extract_scalar_field(state, "DistanceToWall", stat=stat)  
-        if (stat/=0) then
-          nullify(distance_to_wall)
-        end if
-        y_plus_debug => extract_scalar_field(state, "YPlus", stat=stat)  
-        if (stat/=0) then
-          nullify(y_plus_debug)
-        end if
-        les_filter_width_debug => extract_scalar_field(state, "DampedFilterWidth", stat=stat)  
-        if (stat/=0) then
-          nullify(les_filter_width_debug)
-        end if
       end if
-
     end if
     ewrite(2,*) 'partial stress? ', partial_stress
+
+    ! les variables - need to be nullified if non-existent
+    eddy_visc => extract_scalar_field(state, "DGLESScalarEddyViscosity", stat=stat)   
+    if (stat/=0) then
+      nullify(eddy_visc)
+    end if
+    prescribed_filter_width => extract_scalar_field(state, "FilterWidth", stat=stat)  
+    if (stat/=0) then
+      nullify(prescribed_filter_width)
+    end if
+    distance_to_wall => extract_scalar_field(state, "DistanceToWall", stat=stat)  
+    if (stat/=0) then
+      nullify(distance_to_wall)
+    end if
+    y_plus_debug => extract_scalar_field(state, "YPlus", stat=stat)  
+    if (stat/=0) then
+      nullify(y_plus_debug)
+    end if
+    les_filter_width_debug => extract_scalar_field(state, "DampedFilterWidth", stat=stat)  
+    if (stat/=0) then
+      nullify(les_filter_width_debug)
+    end if
+    call get_option(trim(u%option_path)//&
+         &"/prognostic/spatial_discretisation"//&
+         &"/discontinuous_galerkin/les_model"//&
+         &"/Ri_c", &
+         Ri_c, default=-1.0)
+    f_Ri_debug => extract_scalar_field(state, "fRi", stat=stat)  
+    if (stat/=0) then
+      nullify(f_Ri_debug)
+    end if
+    !  end of les variables
 
     integrate_surfacetension_by_parts = have_option(trim(u%option_path)//&
       &"/prognostic/tensor_field::SurfaceTension"//&
@@ -765,7 +778,8 @@ contains
             & have_les=have_les, smagorinsky_coefficient=smagorinsky_coefficient, &
             & eddy_visc=eddy_visc, prescribed_filter_width=prescribed_filter_width, &
             & distance_to_wall=distance_to_wall, y_plus_debug=y_plus_debug, &
-            & les_filter_width_debug=les_filter_width_debug)
+            & les_filter_width_debug=les_filter_width_debug, Ri_c=Ri_c, &
+            & f_Ri_debug=f_Ri_debug)
       end do element_loop
       !$OMP END DO
 
@@ -824,7 +838,7 @@ contains
        &vvr_sf, ib_min_grad, nvfrac, &
        &inverse_mass, inverse_masslump, mass, subcycle_m, partial_stress, &
        &have_les, smagorinsky_coefficient, eddy_visc, prescribed_filter_width, distance_to_wall, &
-       y_plus_debug, les_filter_width_debug)
+       y_plus_debug, les_filter_width_debug, Ri_c, f_Ri_debug)
 
     !!< Construct the momentum equation for discontinuous elements in
     !!< acceleration form.
@@ -951,7 +965,7 @@ contains
     integer, dimension(:), pointer :: neigh, X_neigh
     ! Whether the velocity field is continuous and if it is piecewise constant.
     logical :: dg, p0
-    integer :: i
+    integer :: i, j
     logical :: boundary_element, turbine_face
 
     ! What we will be adding to the matrix and RHS - assemble these as we
@@ -1017,10 +1031,12 @@ contains
     logical, intent(in) :: partial_stress
 
     ! LES - sp911
-    logical :: have_les
-    real :: smagorinsky_coefficient
-    type(scalar_field), pointer, intent(inout) :: eddy_visc, y_plus_debug, les_filter_width_debug
+    logical, intent(in) :: have_les
+    real, intent(in) :: smagorinsky_coefficient, Ri_c
+    type(scalar_field), pointer, intent(inout) :: eddy_visc, y_plus_debug, &
+         & les_filter_width_debug, f_Ri_debug
     type(scalar_field), pointer, intent(in) :: prescribed_filter_width, distance_to_wall
+    real, dimension(mesh_dim(u), ele_loc(u,ele)) :: gravity_loc
 
     dg=continuity(U)<0
     p0=(element_degree(u,ele)==0)
@@ -2107,7 +2123,13 @@ contains
       real, dimension(ele_loc(u,ele)) :: s_mod
       real, dimension(ele_loc(u,ele)) :: les_scalar_viscosity, y_wall, y_plus
       real, dimension(ele_loc(u,ele), ele_loc(u,ele)) :: M_inv
-      
+
+      ! for Ri modified LES
+      real :: dw_dz, Ri, N_2, U_2
+      real, dimension(mesh_dim(u)) :: grav_node, dU_dz
+      real, dimension(ele_loc(u,ele)) :: f_Ri      
+      real, dimension(mesh_dim(u), ele_loc(u,ele)) :: grad_rho
+
       ! get inverse mass
       M_inv = shape_shape(u_shape, u_shape, detwei)
       call invert(M_inv)
@@ -2184,9 +2206,46 @@ contains
         if (associated(y_plus_debug)) then
           call set(y_plus_debug, ele_nodes(y_plus_debug, ele), y_plus)
         end if
-        if (associated(les_filter_width_debug)) then
-          call set(les_filter_width_debug, ele_nodes(les_filter_width_debug, ele), les_filter_width)
+      end if
+
+      ! apply Richardson dependence
+      if (Ri_c >= 0) then
+        gravity_loc = ele_val(gravity, ele)
+        grad_rho = dg_ele_grad_at_loc(Rho, ele, X)
+
+        f_Ri = 1.0
+        do i=1,ele_loc(u,ele)
+          ! assumes boussinesq rho_0 = 1
+          N_2 = -gravity_magnitude*dot_product(grad_rho(:,i), gravity_loc(:,i))
+        
+          dU_dz = matmul(g_nl(:,:,i), gravity_loc(:,i))
+          ! subtract gravity normal component
+          dw_dz = dot_product(dU_dz, gravity_loc(:,i))
+          dU_dz = dU_dz - dw_dz
+
+          U_2 = 0
+          do j=1,mesh_dim(u)
+            U_2 = U_2 + dU_dz(j)**2
+          end do
+
+          Ri = N_2/U_2
+          if (Ri >= 0 .and. Ri <= Ri_c) then
+            f_Ri(i) = (1.0 - Ri/Ri_c)**0.5
+          else if (Ri > Ri_c) then
+            f_Ri(i) = 0.0
+          end if
+        end do
+
+        les_filter_width = f_Ri*les_filter_width
+
+        ! debugging fields
+        if (associated(f_Ri_debug)) then
+          call set(f_Ri_debug, ele_nodes(f_Ri_debug, ele), f_Ri)
         end if
+      end if  
+
+      if (associated(les_filter_width_debug)) then
+        call set(les_filter_width_debug, ele_nodes(les_filter_width_debug, ele), les_filter_width)
       end if
 
       les_scalar_viscosity = (les_filter_width*smagorinsky_coefficient)**2 * s_mod

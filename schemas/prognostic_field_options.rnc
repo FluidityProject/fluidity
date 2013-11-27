@@ -214,7 +214,12 @@ prognostic_scalar_field =
          element subgridscale_parameterisation {
             attribute name { "LES"},
             ## Ratio of turbulent momentum diffusivity to turbulent molecular diffusivity. 
-            element PrandtlNumber { real }?
+            ## Default = 1.0, i.e. SGS viscosity = SGS diffusivity
+            element PrandtlNumber { real }?,
+            ## Richardson number (Ri) dependent SGS diffusivity. Specify the critical Ri number. 
+            ##
+            ## See Stevens et al., 1998; Dornbrack, 1998, Ozgokmen et. al. 2007
+            element Ri_dependency { real }?
          }|
          element subgridscale_parameterisation {
             attribute name { "prescribed_diffusivity"}

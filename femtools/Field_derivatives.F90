@@ -42,6 +42,10 @@ module field_derivatives
       module procedure grad_scalar, grad_vector, grad_vector_tensor
     end interface grad
 
+    interface dg_ele_grad_at_loc
+      module procedure dg_ele_grad_at_loc_scalar, dg_ele_grad_at_loc_vector
+    end interface dg_ele_grad_at_loc
+
     interface dg_ele_grad_at_quad
       module procedure dg_ele_grad_at_quad_scalar, dg_ele_grad_at_quad_vector
     end interface dg_ele_grad_at_quad
@@ -51,13 +55,13 @@ module field_derivatives
     public :: strain_rate, differentiate_field, grad, compute_hessian, &
       domain_is_2d, patch_type, get_patch_ele, get_patch_node, get_quadratic_fit_qf, curl, &
       get_quadratic_fit_eqf, div, u_dot_nabla, get_cubic_fit_cf, differentiate_field_lumped, &
-      dg_ele_grad_at_quad
+      dg_ele_grad_at_quad, dg_ele_grad_at_loc
 
     public :: compute_hessian_qf, compute_hessian_eqf, compute_hessian_var
     
     contains
 
-    function dg_ele_grad_at_quad_scalar(field, ele, X, bc_value, bc_type) result (quad_grad)
+    function dg_ele_grad_at_loc_scalar(field, ele, X, bc_value, bc_type) result (loc_grad)
       ! Return the grad of field at the quadrature points of
       ! ele_number. dn is the transformed element gradient. 
       ! including interface terms for dg discretisations based upon
@@ -72,16 +76,15 @@ module field_derivatives
       type(scalar_field),intent(in) :: field
       integer, intent(in) :: ele 
       type(vector_field), intent(in) :: X
-      type(scalar_field), intent(in) :: bc_value
-      integer, dimension(:), intent(in) :: bc_type   
-      real, dimension(mesh_dim(field), field%mesh%shape%ngi) :: quad_grad
+      type(scalar_field), intent(in), optional :: bc_value
+      integer, dimension(:), intent(in), optional :: bc_type   
+      real, dimension(mesh_dim(field), ele_loc(field, ele)) :: loc_grad
 
       ! variables for interior integral
       type(element_type), pointer :: shape
       real, dimension(ele_loc(field, ele), ele_ngi(field, ele), mesh_dim(field)) :: dshape
       real, dimension(ele_ngi(field, ele)) :: detwei
       real, dimension(mesh_dim(field), ele_ngi(field, ele)) :: grad_h_gi
-      real, dimension(mesh_dim(field), ele_loc(field, ele)) :: rhs
 
       ! variables for surface integral
       integer :: ni, ele_2, face, face_2, i
@@ -89,6 +92,9 @@ module field_derivatives
 
       ! inverse mass
       real, dimension(ele_loc(field, ele), ele_loc(field, ele)) :: inv_mass
+
+      ! assert that we have either both bc_value and bc_type, or neither
+      assert((present(bc_value) .and. present(bc_type)) .or. (.not. present(bc_value) .and. .not. present(bc_type)))
 
       ! we can only compute for the L1 halo as we need values from adjacent elements
       assert( element_owned(field, ele) .or. element_neighbour_owned(field, ele) )
@@ -100,7 +106,7 @@ module field_derivatives
       grad_h_gi = ele_grad_at_quad(field, ele, dshape)
 
       ! Assemble interior contributions to rhs
-      rhs = shape_vector_rhs(shape, grad_h_gi, detwei)
+      loc_grad = shape_vector_rhs(shape, grad_h_gi, detwei)
 
       ! Interface integrals
       neigh=>ele_neigh(field, ele)
@@ -117,31 +123,34 @@ module field_derivatives
           face_2=face
         end if
 
-        call dg_ele_grad_at_quad_scalar_interface(ele, face, face_2, ni, &
-             & rhs, X, field, bc_value, bc_type)
+        if (present(bc_value)) then
+          call dg_ele_grad_at_loc_scalar_interface(ele, face, face_2, ni, &
+               & loc_grad, X, field, bc_value, bc_type)
+        else
+          call dg_ele_grad_at_loc_scalar_interface(ele, face, face_2, ni, &
+               & loc_grad, X, field)
+        end if
       end do
 
       ! multiply by inverse of mass matrix
       inv_mass = inverse(shape_shape(shape, shape, detwei))
       do i = 1, mesh_dim(field)
-        rhs(i,:) = matmul(inv_mass, rhs(i,:))
+        loc_grad(i,:) = matmul(inv_mass, loc_grad(i,:))
       end do
 
-      ! transform to physical
-      quad_grad = matmul(rhs, shape%n)
+    end function dg_ele_grad_at_loc_scalar
 
-    end function dg_ele_grad_at_quad_scalar
-
-    subroutine dg_ele_grad_at_quad_scalar_interface(ele, face, face_2, &
-         ni, rhs, X, field, bc_value, bc_type)
+    subroutine dg_ele_grad_at_loc_scalar_interface(ele, face, face_2, &
+         ni, loc_grad, X, field, bc_value, bc_type)
 
       !!< Construct the DG element boundary integrals on the ni-th face of
       !!< element ele.
       integer, intent(in) :: ele, face, face_2, ni
-      type(scalar_field), intent(in) :: bc_value, field
+      type(scalar_field), intent(in) :: field
       type(vector_field), intent(in) :: X
-      integer, dimension(:), intent(in) :: bc_type
-      real, dimension(mesh_dim(field), ele_loc(field, ele)), intent(inout) :: rhs
+      type(scalar_field), intent(in), optional :: bc_value
+      integer, dimension(:), intent(in), optional :: bc_type
+      real, dimension(mesh_dim(field), ele_loc(field, ele)), intent(inout) :: loc_grad
 
       ! Face objects and numberings.
       type(element_type), pointer :: shape
@@ -165,14 +174,17 @@ module field_derivatives
         ! boundary faces - need to apply weak dirichlet bc's
         ! = - int_ v_h \cdot (u - u^b) n 
         ! first check for weak-dirichlet bc
-        if (bc_type(face) == 1) then  
-          in_q = face_val_at_quad(field, face)
-          in_bc_q = ele_val_at_quad(bc_value, face)
-
-          do i=1, mesh_dim(field)
-            vector(i,:) = -1.0*(in_q(:) - in_bc_q(:))*normal(i,:)
-          end do
-          face_rhs = shape_vector_rhs(shape, vector, detwei) 
+        ! if no bc_info is applied then assume not weak bc
+        if (present(bc_type)) then
+          if (bc_type(face) == 1) then  
+            in_q = face_val_at_quad(field, face)
+            in_bc_q = ele_val_at_quad(bc_value, face)
+            
+            do i=1, mesh_dim(field)
+              vector(i,:) = -1.0*(in_q(:) - in_bc_q(:))*normal(i,:)
+            end do
+            face_rhs = shape_vector_rhs(shape, vector, detwei) 
+          end if
         end if
       else    
         ! internal face
@@ -191,14 +203,14 @@ module field_derivatives
       do i=1, face_loc(field, face)
         do j=1, ele_loc(field, face)
           if (facenodes(i) == elenodes(j)) then
-            rhs(:, j) = rhs(:, j) + face_rhs(:, i)
+            loc_grad(:, j) = loc_grad(:, j) + face_rhs(:, i)
           end if
         end do
       end do
 
-    end subroutine dg_ele_grad_at_quad_scalar_interface
+    end subroutine dg_ele_grad_at_loc_scalar_interface
     
-    function dg_ele_grad_at_quad_vector(field, ele_number, X, bc_value, bc_type) result (quad_grad)
+    function dg_ele_grad_at_loc_vector(field, ele_number, X, bc_value, bc_type) result (loc_grad)
       ! Return the grad of field at the quadrature points of
       ! ele_number. dn is the transformed element gradient. 
       ! including interface terms for dg discretisations based upon
@@ -213,16 +225,93 @@ module field_derivatives
       type(vector_field),intent(in) :: field
       integer, intent(in) :: ele_number
       type(vector_field), intent(in) :: X
-      type(scalar_field), intent(in) :: bc_value
-      integer, dimension(:), intent(in) :: bc_type   
-      real, dimension(mesh_dim(field), field%dim, field%mesh%shape%ngi) :: quad_grad
+      type(vector_field), intent(in), optional :: bc_value
+      integer, dimension(:,:), intent(in), optional :: bc_type   
+      real, dimension(mesh_dim(field), field%dim, ele_loc(field, ele_number)) :: loc_grad
 
-      type(scalar_field) :: field_component
+      type(scalar_field) :: field_component, bc_component_value
       integer :: j
 
       do j=1,field%dim
         field_component = extract_scalar_field(field, j)
-        quad_grad(:,j,:) = dg_ele_grad_at_quad(field_component, ele_number, X, bc_value, bc_type)
+        bc_component_value = extract_scalar_field(bc_value, j)
+        if (present(bc_value)) then
+          loc_grad(:,j,:) = dg_ele_grad_at_loc(field_component, ele_number, X, &
+               & bc_component_value, bc_type(j,:))
+        else
+          loc_grad(:,j,:) = dg_ele_grad_at_loc(field_component, ele_number, X)
+        end if
+      end do
+
+    end function dg_ele_grad_at_loc_vector
+    
+    function dg_ele_grad_at_quad_scalar(field, ele_number, shape, X, bc_value, bc_type) result (quad_grad)
+      ! Return the grad of field at the quadrature points of
+      ! ele_number. dn is the transformed element gradient. 
+      ! including interface terms for dg discretisations based upon
+      ! N_i N_j grad_u = N_i delta u_h - 
+      !                  ({N_i} (u_h^-n^- + u_h^+n^+)) on internal faces -
+      !                  (N_i (u_h - u_b) n) on weak dirichlet boundaries
+      ! where: {x} = average of x over face
+      !        u_h = value of u in element
+      !        u_b = dirichlet boundary value
+      ! (see Bassi et. al. 2005 - Discontinuous Galerkin solution of the Reynolds-averaged
+      ! Navier–Stokes and k–x turbulence model equations, pg. 517
+      type(scalar_field),intent(in) :: field
+      integer, intent(in) :: ele_number
+      type(vector_field), intent(in) :: X
+      type(scalar_field), intent(in), optional :: bc_value
+      integer, dimension(:), intent(in), optional :: bc_type   
+      type(element_type), pointer, intent(in) :: shape
+      real, dimension(mesh_dim(field), ele_loc(field, ele_number)) :: loc_grad
+      real, dimension(mesh_dim(field), field%mesh%shape%ngi) :: quad_grad
+
+      type(scalar_field) :: field_component
+      integer :: j
+
+      if (present(bc_value)) then
+        loc_grad = dg_ele_grad_at_loc(field, ele_number, X, bc_value, bc_type)
+      else
+        loc_grad = dg_ele_grad_at_loc(field, ele_number, X)
+      end if
+
+      ! transform to physical
+      quad_grad = matmul(loc_grad, shape%n)
+
+    end function dg_ele_grad_at_quad_scalar
+    
+    function dg_ele_grad_at_quad_vector(field, ele_number, shape, X, bc_value, bc_type) result (quad_grad)
+      ! Return the grad of field at the quadrature points of
+      ! ele_number. dn is the transformed element gradient. 
+      ! including interface terms for dg discretisations based upon
+      ! N_i N_j grad_u = N_i delta u_h - 
+      !                  ({N_i} (u_h^-n^- + u_h^+n^+)) on internal faces -
+      !                  (N_i (u_h - u_b) n) on weak dirichlet boundaries
+      ! where: {x} = average of x over face
+      !        u_h = value of u in element
+      !        u_b = dirichlet boundary value
+      ! (see Bassi et. al. 2005 - Discontinuous Galerkin solution of the Reynolds-averaged
+      ! Navier–Stokes and k–x turbulence model equations, pg. 517
+      type(vector_field),intent(in) :: field
+      integer, intent(in) :: ele_number
+      type(vector_field), intent(in) :: X
+      type(vector_field), intent(in), optional :: bc_value
+      integer, dimension(:,:), intent(in), optional :: bc_type    
+      type(element_type), pointer, intent(in) :: shape 
+      real, dimension(mesh_dim(field), field%dim, field%mesh%shape%ngi) :: quad_grad
+
+      type(scalar_field) :: field_component, bc_component_value
+      integer :: j
+
+      do j=1,field%dim
+        field_component = extract_scalar_field(field, j)
+        bc_component_value = extract_scalar_field(bc_value, j)
+        if (present(bc_value)) then
+          quad_grad(:,j,:) = dg_ele_grad_at_quad(field_component, ele_number, shape, X, &
+               & bc_component_value, bc_type(j,:))
+        else
+          quad_grad(:,j,:) = dg_ele_grad_at_quad(field_component, ele_number, shape, X)
+        end if
       end do
 
     end function dg_ele_grad_at_quad_vector
@@ -1604,19 +1693,11 @@ module field_derivatives
         return
       end if
 
-      ! Get dg grad 
-      grad_gi = dg_ele_grad_at_quad(infield, ele, positions, bc_value, bc_type)
+      ! Get dg grad       
+      rhs = dg_ele_grad_at_loc(infield, ele, positions, bc_value, bc_type)
 
-      ! Assemble to rhs
-      shape => ele_shape(infield, ele) 
-      call transform_to_physical(positions, ele, detwei=detwei)
-      
-      rhs = shape_vector_rhs(shape, grad_gi, detwei)
-
-      ! multiply by inverse of mass matrix
-      inv_mass = inverse(shape_shape(shape, shape, detwei))
+      ! set pardiffs
       do i = 1, positions%dim
-        rhs(i,:) = matmul(inv_mass, rhs(i,:))
         if (derivatives(i)) then
           call set(pardiff(i), ele_nodes(pardiff(i), ele), rhs(i,:))
         end if

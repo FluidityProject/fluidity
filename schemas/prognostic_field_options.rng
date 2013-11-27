@@ -270,7 +270,16 @@ overflow of fresh water", Kirkpatrick 2005</a:documentation>
           </attribute>
           <optional>
             <element name="PrandtlNumber">
-              <a:documentation>Ratio of turbulent momentum diffusivity to turbulent molecular diffusivity. </a:documentation>
+              <a:documentation>Ratio of turbulent momentum diffusivity to turbulent molecular diffusivity. 
+Default = 1.0, i.e. SGS viscosity = SGS diffusivity</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="Ri_dependency">
+              <a:documentation>Richardson number (Ri) dependent SGS diffusivity. Specify the critical Ri number. 
+
+See Schumann, 1975; Stevens et al., 1998; Dornbrack, 1998, Ozgokmen et. al. 2007</a:documentation>
               <ref name="real"/>
             </element>
           </optional>
