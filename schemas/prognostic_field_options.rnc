@@ -215,11 +215,7 @@ prognostic_scalar_field =
             attribute name { "LES"},
             ## Ratio of turbulent momentum diffusivity to turbulent molecular diffusivity. 
             ## Default = 1.0, i.e. SGS viscosity = SGS diffusivity
-            element PrandtlNumber { real }?,
-            ## Richardson number (Ri) dependent SGS diffusivity. Specify the critical Ri number. 
-            ##
-            ## See Stevens et al., 1998; Dornbrack, 1998, Ozgokmen et. al. 2007
-            element Ri_dependency { real }?
+            element PrandtlNumber { real }?
          }|
          element subgridscale_parameterisation {
             attribute name { "prescribed_diffusivity"}
@@ -966,6 +962,10 @@ prognostic_velocity_field =
                         }
                      )
                   }?,
+                  ## Richardson number (Ri) dependent SGS diffusivity. Specify the critical Ri number. 
+                  ##
+                  ## See Stevens et al., 1998; Dornbrack, 1998, Ozgokmen et. al. 2007
+                  element Ri_c { real }?,
                   element debug {
                      element scalar_field {
                         attribute rank { "0" },
@@ -981,6 +981,17 @@ prognostic_velocity_field =
                      element scalar_field {
                         attribute rank { "0" },
                         attribute name { "DampedFilterWidth" },
+                        (
+                           element prescribed {
+                              velocity_mesh_choice,
+                              internal_algorithm,
+                              diagnostic_scalar_field
+                           }
+                        )
+                     }?,
+                     element scalar_field {
+                        attribute rank { "0" },
+                        attribute name { "fRi" },
                         (
                            element prescribed {
                               velocity_mesh_choice,

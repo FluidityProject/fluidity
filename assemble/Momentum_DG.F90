@@ -2211,7 +2211,7 @@ contains
       ! apply Richardson dependence
       if (Ri_c >= 0) then
         gravity_loc = ele_val(gravity, ele)
-        grad_rho = dg_ele_grad_at_loc(Rho, ele, X)
+        grad_rho = dg_ele_grad(Rho, ele, X)
 
         f_Ri = 1.0
         do i=1,ele_loc(u,ele)

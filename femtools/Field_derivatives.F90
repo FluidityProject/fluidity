@@ -42,9 +42,9 @@ module field_derivatives
       module procedure grad_scalar, grad_vector, grad_vector_tensor
     end interface grad
 
-    interface dg_ele_grad_at_loc
-      module procedure dg_ele_grad_at_loc_scalar, dg_ele_grad_at_loc_vector
-    end interface dg_ele_grad_at_loc
+    interface dg_ele_grad
+      module procedure dg_ele_grad_scalar, dg_ele_grad_vector
+    end interface dg_ele_grad
 
     interface dg_ele_grad_at_quad
       module procedure dg_ele_grad_at_quad_scalar, dg_ele_grad_at_quad_vector
@@ -55,13 +55,13 @@ module field_derivatives
     public :: strain_rate, differentiate_field, grad, compute_hessian, &
       domain_is_2d, patch_type, get_patch_ele, get_patch_node, get_quadratic_fit_qf, curl, &
       get_quadratic_fit_eqf, div, u_dot_nabla, get_cubic_fit_cf, differentiate_field_lumped, &
-      dg_ele_grad_at_quad, dg_ele_grad_at_loc
+      dg_ele_grad_at_quad, dg_ele_grad
 
     public :: compute_hessian_qf, compute_hessian_eqf, compute_hessian_var
     
     contains
 
-    function dg_ele_grad_at_loc_scalar(field, ele, X, bc_value, bc_type) result (loc_grad)
+    function dg_ele_grad_scalar(field, ele, X, bc_value, bc_type) result (loc_grad)
       ! Return the grad of field at the quadrature points of
       ! ele_number. dn is the transformed element gradient. 
       ! including interface terms for dg discretisations based upon
@@ -124,10 +124,10 @@ module field_derivatives
         end if
 
         if (present(bc_value)) then
-          call dg_ele_grad_at_loc_scalar_interface(ele, face, face_2, ni, &
+          call dg_ele_grad_scalar_interface(ele, face, face_2, ni, &
                & loc_grad, X, field, bc_value, bc_type)
         else
-          call dg_ele_grad_at_loc_scalar_interface(ele, face, face_2, ni, &
+          call dg_ele_grad_scalar_interface(ele, face, face_2, ni, &
                & loc_grad, X, field)
         end if
       end do
@@ -138,9 +138,9 @@ module field_derivatives
         loc_grad(i,:) = matmul(inv_mass, loc_grad(i,:))
       end do
 
-    end function dg_ele_grad_at_loc_scalar
+    end function dg_ele_grad_scalar
 
-    subroutine dg_ele_grad_at_loc_scalar_interface(ele, face, face_2, &
+    subroutine dg_ele_grad_scalar_interface(ele, face, face_2, &
          ni, loc_grad, X, field, bc_value, bc_type)
 
       !!< Construct the DG element boundary integrals on the ni-th face of
@@ -208,9 +208,9 @@ module field_derivatives
         end do
       end do
 
-    end subroutine dg_ele_grad_at_loc_scalar_interface
+    end subroutine dg_ele_grad_scalar_interface
     
-    function dg_ele_grad_at_loc_vector(field, ele_number, X, bc_value, bc_type) result (loc_grad)
+    function dg_ele_grad_vector(field, ele_number, X, bc_value, bc_type) result (loc_grad)
       ! Return the grad of field at the quadrature points of
       ! ele_number. dn is the transformed element gradient. 
       ! including interface terms for dg discretisations based upon
@@ -236,14 +236,14 @@ module field_derivatives
         field_component = extract_scalar_field(field, j)
         bc_component_value = extract_scalar_field(bc_value, j)
         if (present(bc_value)) then
-          loc_grad(:,j,:) = dg_ele_grad_at_loc(field_component, ele_number, X, &
+          loc_grad(:,j,:) = dg_ele_grad(field_component, ele_number, X, &
                & bc_component_value, bc_type(j,:))
         else
-          loc_grad(:,j,:) = dg_ele_grad_at_loc(field_component, ele_number, X)
+          loc_grad(:,j,:) = dg_ele_grad(field_component, ele_number, X)
         end if
       end do
 
-    end function dg_ele_grad_at_loc_vector
+    end function dg_ele_grad_vector
     
     function dg_ele_grad_at_quad_scalar(field, ele_number, shape, X, bc_value, bc_type) result (quad_grad)
       ! Return the grad of field at the quadrature points of
@@ -270,9 +270,9 @@ module field_derivatives
       integer :: j
 
       if (present(bc_value)) then
-        loc_grad = dg_ele_grad_at_loc(field, ele_number, X, bc_value, bc_type)
+        loc_grad = dg_ele_grad(field, ele_number, X, bc_value, bc_type)
       else
-        loc_grad = dg_ele_grad_at_loc(field, ele_number, X)
+        loc_grad = dg_ele_grad(field, ele_number, X)
       end if
 
       ! transform to physical
@@ -1694,7 +1694,7 @@ module field_derivatives
       end if
 
       ! Get dg grad       
-      rhs = dg_ele_grad_at_loc(infield, ele, positions, bc_value, bc_type)
+      rhs = dg_ele_grad(infield, ele, positions, bc_value, bc_type)
 
       ! set pardiffs
       do i = 1, positions%dim
