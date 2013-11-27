@@ -147,9 +147,6 @@
       <real_value rank="0">4320900.0</real_value>
       <comment>Williamson 5 runs for 50 days = 60*60*24*50 = 4320000.0s</comment>
     </finish_time>
-    <final_timestep>
-      <integer_value rank="0">0</integer_value>
-    </final_timestep>
   </timestepping>
   <physical_parameters>
     <gravity>
