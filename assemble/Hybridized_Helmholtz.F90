@@ -1063,7 +1063,8 @@ contains
          &Metricf
     real, dimension(X%dim, X%dim, ele_ngi(U,ele)) :: rot
     real, dimension(mesh_dim(U),mesh_dim(U),ele_loc(U,ele),ele_loc(U&
-         &,ele)) :: l_u_mat, A, M_lin
+         &,ele)) :: l_u_mat, M_lin
+    real, dimension(mesh_dim(U),ele_loc(U,ele),ele_loc(U,ele)) :: A
     integer :: mdim, uloc,dloc,dim1,dim2,gi
     type(element_type) :: u_shape, d_shape
     real, dimension(ele_ngi(D,ele)) :: detwei, detJ
@@ -1191,39 +1192,34 @@ contains
 
     alpha=0.05
     A=0.0
-    A(1,1,1,1)=1.0
-    A(1,1,3,3)=1.0
-    A(1,1,4,4)=1.0
-    A(1,1,6,6)=1.0
-    A(1,1,7,7)=1.0
-    A(1,1,9,9)=1.0
-    A(1,1,1,3)=-1.0
-    A(1,1,3,1)=-1.0
-    A(1,1,4,6)=-1.0
-    A(1,1,6,4)=-1.0
-    A(1,1,7,9)=-1.0
-    A(1,1,9,7)=-1.0
+    A(1,1,:)=(/ 1, 0,-1, 0, 0, 0, 0, 0, 0/)
+    A(1,2,:)=(/ 0, 0, 0, 0, 0, 0, 0, 0, 0/)
+    A(1,3,:)=(/-1, 0, 1, 0, 0, 0, 0, 0, 0/)
+    A(1,4,:)=(/ 0, 0, 0, 1, 0,-1, 0, 0, 0/)
+    A(1,5,:)=(/ 0, 0, 0, 0, 0, 0, 0, 0, 0/)
+    A(1,6,:)=(/ 0, 0, 0,-1, 0, 1, 0, 0, 0/)
+    A(1,7,:)=(/ 0, 0, 0, 0, 0, 0, 1, 0,-1/)
+    A(1,8,:)=(/ 0, 0, 0, 0, 0, 0, 0, 0, 0/)
+    A(1,9,:)=(/ 0, 0, 0, 0, 0, 0,-1, 0, 1/)
 
-    A(2,2,1,1)=1.0
-    A(2,2,2,2)=1.0
-    A(2,2,3,3)=1.0
-    A(2,2,7,7)=1.0
-    A(2,2,8,8)=1.0
-    A(2,2,9,9)=1.0
-    A(2,2,1,7)=-1.0
-    A(2,2,2,8)=-1.0
-    A(2,2,3,9)=-1.0
-    A(2,2,7,1)=-1.0
-    A(2,2,8,2)=-1.0
-    A(2,2,9,3)=-1.0
+    A(2,1,:)=(/ 1, 0, 0, 0, 0, 0,-1, 0, 0/)
+    A(2,2,:)=(/ 0, 1, 0, 0, 0, 0, 0,-1, 0/)
+    A(2,3,:)=(/ 0, 0, 1, 0, 0, 0, 0, 0,-1/)
+    A(2,4,:)=(/ 0, 0, 0, 0, 0, 0, 0, 0, 0/)
+    A(2,5,:)=(/ 0, 0, 0, 0, 0, 0, 0, 0, 0/)
+    A(2,6,:)=(/ 0, 0, 0, 0, 0, 0, 0, 0, 0/)
+    A(2,7,:)=(/-1, 0, 0, 0, 0, 0, 1, 0, 0/)
+    A(2,8,:)=(/ 0,-1, 0, 0, 0, 0, 0, 1, 0/)
+    A(2,9,:)=(/ 0, 0,-1, 0, 0, 0, 0, 0, 1/)
 
     do dim1=1, mdim
        do dim2=1, mdim
-          M_lin(dim1,dim2,:,:)=matmul(matmul(A(dim1,dim1,:,:),l_u_mat(dim1,dim2,:,:)),transpose(A(dim2,dim2,:,:)))
+          M_lin(dim1,dim2,:,:)=matmul(matmul(A(dim1,:,:),l_u_mat(dim1,dim2,:,:)),transpose(A(dim2,:,:)))
           print*, M_lin(dim1,dim2,:,:)
-          l_u_mat(dim1,dim2,:,:)=l_u_mat(dim1,dim2,:,:)+alpha*M_lin(dim1,dim2,:,:)
        end do
     end do
+    l_u_mat=l_u_mat+alpha*M_lin
+
 
     do dim1 = 1, mdim
        do dim2 = 1, mdim
@@ -1237,9 +1233,9 @@ contains
        l_u_mat = shape_shape_tensor(u_shape, u_shape, &
             u_shape%quadrature%weight, &
             Metric+(l_theta-1.0)*l_dt*Metricf)
+       l_u_mat=l_u_mat+alpha*M_lin
        do dim1 = 1, mdim
           do dim2 = 1, mdim
-             l_u_mat(dim1,dim2,:,:)=l_u_mat(dim1,dim2,:,:)+alpha*M_lin(dim1,dim2,:,:)
              local_solver_rhs(u_start(dim1):u_end(dim1),&
                   u_start(dim2):u_end(dim2))=&
                   & l_u_mat(dim1,dim2,:,:)
