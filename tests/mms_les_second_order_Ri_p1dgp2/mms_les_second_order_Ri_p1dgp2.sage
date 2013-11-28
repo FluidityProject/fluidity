@@ -16,22 +16,14 @@ def function(phi_0, phi_x, phi_y, phi_xy,
 c = -y
 # molecular diffusion
 k = 1.0
-# eddy visc
-nu_T = function(2.0, 0.4, 0.3, 0.8, 
-                1.0, 0.0, 1.0, 0.0, 0.0, 1.0,
-                1.0, 1.0, 1.0)
-# prandtl
-pr = 0.5
 
 # velocity
 u = y
 v = integral(-diff(u,x),y)  # divergence free
 
-Ri = diff(c,y)/diff(u, y)^2.0
+Ri = -diff(c,y)/diff(u, y)^2.0
 Ri_c = 3.0
 
-# molecular diffusion
-K = 1.0
 # eddy visc
 nu_T = function(2.0, 0.4, 0.3, 0.8, 
                 1.0, 0.0, 1.0, 0.0, 0.0, 1.0,
@@ -40,11 +32,11 @@ nu_T = function(2.0, 0.4, 0.3, 0.8,
 pr = 0.5
 
 # calculate source term
-K_T_x = K + nu_T/pr
-K_T_y = K + ((1-Ri/Ri_c)^0.5)*nu_T/pr
-D_xx = K_T_x*diff(c,x) 
-D_xy = K_T_y*diff(c,y)
-Sc = -(diff(D_xx, x) + diff(D_xy, y))
+k_T_x = k + nu_T/pr
+k_T_y = k + ((1-Ri/Ri_c)^0.5)*nu_T/pr
+D_cx = k_T_x*diff(c,x) 
+D_cy = k_T_y*diff(c,y)
+Sc = -(diff(D_cx, x) + diff(D_cy, y))
   
 print 'from math import sin, cos, tanh, pi, sqrt'
 print ''

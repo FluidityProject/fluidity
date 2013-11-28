@@ -865,6 +865,8 @@ contains
          if (have_option(trim(T%option_path)//"/prognostic"//&
               &"/subgridscale_parameterisation::LES/Ri_c")) then
 
+           ewrite(2,*) 'Calculating Ri dependent eddy viscosity'
+
            ! obtain required values
            call get_option(trim(T%option_path)//"/prognostic"//&
               &"/subgridscale_parameterisation::LES/Ri_c", Ri_c)
@@ -923,17 +925,8 @@ contains
                f_Ri = 1.0
              end if
 
-             ewrite(0,*) 'g_u  ', grad_u_val
-             ewrite(0,*) 'grav ', gravity_val
-             ewrite(0,*) 'u_z  ', matmul(transpose(grad_u_val), gravity_val) 
-             ewrite(0,*) 'u_z_z', dot_product(dU_dz, gravity_val)
-             ewrite(0,*) 'dU_dz', dU_dz
-             ewrite(0,*) norm2(dU_dz)
-             ewrite(0,*) norm2(dU_dz)**2.0
-
              ! calculate modified eddy viscosity
              call addto(eddy_visc, i, (1-f_Ri)*gravity_val*node_val(scalar_eddy_visc, i))
-             ewrite(0,*) node_val(eddy_visc, i)
 
            end do
 
@@ -942,9 +935,6 @@ contains
 
            deallocate(gravity_val, grad_u_val, grad_rho_val, dU_dz)
          end if
-
-         ewrite_minmax(scalar_eddy_visc)
-         ewrite_minmax(eddy_visc)
 
          do i = 1, mesh_dim(X)
            eddy_visc_component = extract_scalar_field(eddy_visc, i)
