@@ -275,6 +275,14 @@ Default = 1.0, i.e. SGS viscosity = SGS diffusivity</a:documentation>
               <ref name="real"/>
             </element>
           </optional>
+          <optional>
+            <element name="Ri_c">
+              <a:documentation>Richardson number (Ri) dependent SGS diffusivity. Specify the critical Ri number. 
+
+See Stevens et al., 1998; Dornbrack, 1998, Ozgokmen et. al. 2007</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
         </element>
         <element name="subgridscale_parameterisation">
           <attribute name="name">
@@ -1176,14 +1184,6 @@ suggested value 0.1</a:documentation>
                 </element>
               </optional>
               <optional>
-                <element name="Ri_c">
-                  <a:documentation>Richardson number (Ri) dependent SGS diffusivity. Specify the critical Ri number. 
-
-See Stevens et al., 1998; Dornbrack, 1998, Ozgokmen et. al. 2007</a:documentation>
-                  <ref name="real"/>
-                </element>
-              </optional>
-              <optional>
                 <element name="debug">
                   <optional>
                     <element name="scalar_field">
@@ -1207,21 +1207,6 @@ See Stevens et al., 1998; Dornbrack, 1998, Ozgokmen et. al. 2007</a:documentatio
                       </attribute>
                       <attribute name="name">
                         <value>DampedFilterWidth</value>
-                      </attribute>
-                      <element name="prescribed">
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="internal_algorithm"/>
-                        <ref name="diagnostic_scalar_field"/>
-                      </element>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="scalar_field">
-                      <attribute name="rank">
-                        <value>0</value>
-                      </attribute>
-                      <attribute name="name">
-                        <value>fRi</value>
                       </attribute>
                       <element name="prescribed">
                         <ref name="velocity_mesh_choice"/>

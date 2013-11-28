@@ -234,8 +234,8 @@ module field_derivatives
 
       do j=1,field%dim
         field_component = extract_scalar_field(field, j)
-        bc_component_value = extract_scalar_field(bc_value, j)
         if (present(bc_value)) then
+          bc_component_value = extract_scalar_field(bc_value, j)
           loc_grad(:,j,:) = dg_ele_grad(field_component, ele_number, X, &
                & bc_component_value, bc_type(j,:))
         else
@@ -305,8 +305,8 @@ module field_derivatives
 
       do j=1,field%dim
         field_component = extract_scalar_field(field, j)
-        bc_component_value = extract_scalar_field(bc_value, j)
         if (present(bc_value)) then
+          bc_component_value = extract_scalar_field(bc_value, j)
           quad_grad(:,j,:) = dg_ele_grad_at_quad(field_component, ele_number, shape, X, &
                & bc_component_value, bc_type(j,:))
         else
@@ -490,6 +490,8 @@ module field_derivatives
       !! Integer array of all surface elements indicating bc type::
       integer, dimension(:), allocatable :: bc_type
 
+      ewrite(1,*) 'in grad_scalar'
+
       dim = gradient%dim
       do i=1,dim
         pardiff(i) = extract_scalar_field(gradient, i)
@@ -530,6 +532,8 @@ module field_derivatives
       integer, dimension(:,:), allocatable :: bc_type
       integer, dimension(:), allocatable :: bc_component_type
 
+      ewrite(1,*) 'in grad_vector'
+
       if (infield%mesh%continuity<0) then
         !! required for dg gradient calculation
         allocate(bc_type(infield%dim, 1:surface_element_count(infield)))
@@ -556,6 +560,7 @@ module field_derivatives
         else
           call differentiate_field(component, positions, derivatives, pardiff)
         end if
+
       end do
 
       if (infield%mesh%continuity<0) then
@@ -585,6 +590,8 @@ module field_derivatives
       !! Integer array of all surface elements indicating bc type::
       integer, dimension(:,:), allocatable :: bc_type
       integer, dimension(:), allocatable :: bc_component_type
+
+      ewrite(1,*) 'in grad_vector_tensor'
 
       if (infield%mesh%continuity<0) then
         !! required for dg gradient calculation

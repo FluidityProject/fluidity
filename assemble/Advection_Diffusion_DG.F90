@@ -39,6 +39,7 @@ module advection_diffusion_DG
   use shape_functions
   use transform_elements
   use vector_tools
+  use field_derivatives
   use fldebug
   use vtk_interfaces
   use Coordinates
@@ -704,9 +705,18 @@ contains
     type(tensor_field), pointer :: Diffusivity_ptr
     
     !! Turbulent diffusion - LES (sp911)
-    type(scalar_field), pointer :: eddy_visc
+    type(scalar_field), pointer :: scalar_eddy_visc
+    type(scalar_field) :: eddy_visc_component
+    type(vector_field) :: eddy_visc
     real :: prandtl
     integer :: i
+    !! Ri dependent LES (sp911)
+    real :: Ri_c, N_2, U_2, Ri, f_Ri
+    type(scalar_field), pointer :: rho
+    type(vector_field) :: grad_rho
+    type(tensor_field) :: grad_u
+    real, dimension(:), allocatable :: gravity_val, grad_rho_val, dU_dz
+    real, dimension(:,:), allocatable :: grad_u_val
 
     !! Source and absorption
     type(scalar_field) :: Source, Absorption
@@ -840,12 +850,108 @@ contains
 
        if (have_option(trim(T%option_path)//"/prognostic"//&
          &"/subgridscale_parameterisation::LES")) then
-         eddy_visc => extract_scalar_field(state, "DGLESScalarEddyViscosity", stat=stat)
+
+         scalar_eddy_visc => extract_scalar_field(state, "DGLESScalarEddyViscosity_", stat=stat)
          call get_option(trim(T%option_path)//"/prognostic"//&
               &"/subgridscale_parameterisation::LES/PrandtlNumber", prandtl, default=1.0)
+
+         ! possibly anisotropic eddy viscosity if using Ri dependency
+         call allocate(eddy_visc, mesh_dim(T), T%mesh, "EddyViscosity")
          do i = 1, mesh_dim(X)
-           call addto(Diffusivity, i, i, eddy_visc, scale=1./prandtl)
+           call set(eddy_visc, i, scalar_eddy_visc)
          end do
+
+         ! apply Richardson dependence
+         if (have_option(trim(T%option_path)//"/prognostic"//&
+              &"/subgridscale_parameterisation::LES/Ri_c")) then
+
+           ! obtain required values
+           call get_option(trim(T%option_path)//"/prognostic"//&
+              &"/subgridscale_parameterisation::LES/Ri_c", Ri_c)
+           
+           rho => extract_scalar_field(state, "Density", stat=stat)
+           if (stat /= 0) then
+             FLExit("You must have a density field to have an Ri dependent les model.")
+           end if
+
+           gravity=extract_vector_field(state, "GravityDirection",stat)
+           if (stat/=0) FLAbort('You must have gravity to have an Ri dependent les model.')
+           call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
+           
+           ! obtain gradients
+           call allocate(grad_rho, mesh_dim(T), T%mesh, "grad_rho")
+           call grad(rho, X, grad_rho)
+           call allocate(grad_u, T%mesh, "grad_u")
+           ! call grad(U_nl, X, grad_u)
+           call grad(u, X, grad_u)
+
+           ewrite_minmax(u)
+           ewrite_minmax(u_nl)
+           ewrite_minmax(u_nl_backup)
+
+           allocate(gravity_val(mesh_dim(T)))
+           allocate(grad_rho_val(mesh_dim(T)))
+           allocate(dU_dz(mesh_dim(T)))
+           allocate(grad_u_val(mesh_dim(T), mesh_dim(T)))
+           
+           do i=1,node_count(eddy_visc)
+             
+             gravity_val = node_val(gravity, i)
+             grad_rho_val = node_val(grad_rho, i)
+             grad_u_val = node_val(grad_u, i)
+             
+             ! assuming boussinesq rho_0 = 1 obtain N_2
+             N_2 = gravity_magnitude*dot_product(grad_rho_val, gravity_val)
+
+             ! obtain U_2 = du/dz**2 + dv/dz**2
+             dU_dz = matmul(transpose(grad_u_val), gravity_val) 
+             dU_dz = dU_dz - dot_product(dU_dz, gravity_val)
+             U_2 = norm2(dU_dz)**2.0
+
+             ! calculate Ri  - avoid floating point errors
+             if ((U_2 > N_2*1e-10) .and. U_2 > tiny(0.0)*1e10) then
+               Ri = N_2/U_2
+             else
+               Ri = Ri_c*1.1
+             end if
+             ! calculate f(Ri)
+             if (Ri >= 0 .and. Ri <= Ri_c) then
+               f_Ri = (1.0 - Ri/Ri_c)**0.5
+             else if (Ri > Ri_c) then
+               f_Ri = 0.0
+             else
+               f_Ri = 1.0
+             end if
+
+             ewrite(0,*) 'g_u  ', grad_u_val
+             ewrite(0,*) 'grav ', gravity_val
+             ewrite(0,*) 'u_z  ', matmul(transpose(grad_u_val), gravity_val) 
+             ewrite(0,*) 'u_z_z', dot_product(dU_dz, gravity_val)
+             ewrite(0,*) 'dU_dz', dU_dz
+             ewrite(0,*) norm2(dU_dz)
+             ewrite(0,*) norm2(dU_dz)**2.0
+
+             ! calculate modified eddy viscosity
+             call addto(eddy_visc, i, (1-f_Ri)*gravity_val*node_val(scalar_eddy_visc, i))
+             ewrite(0,*) node_val(eddy_visc, i)
+
+           end do
+
+           call deallocate(grad_rho)
+           call deallocate(grad_u)
+
+           deallocate(gravity_val, grad_u_val, grad_rho_val, dU_dz)
+         end if
+
+         ewrite_minmax(scalar_eddy_visc)
+         ewrite_minmax(eddy_visc)
+
+         do i = 1, mesh_dim(X)
+           eddy_visc_component = extract_scalar_field(eddy_visc, i)
+           call addto(Diffusivity, i, i, eddy_visc_component, scale=1./prandtl)
+         end do
+
+         call deallocate(eddy_visc)
        end if
     end if
 
