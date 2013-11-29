@@ -716,6 +716,9 @@ contains
     type(vector_field) :: grad_rho
     type(tensor_field) :: grad_u
     real, dimension(:), allocatable :: gravity_val, grad_rho_val, dU_dz
+    ! non-linear velocity (U_nl) is zero when advection is disabled
+    ! I want this to be the actual non-linear velocity so I obtain it myself
+    type(vector_field), pointer :: u_nl_ri
     real, dimension(:,:), allocatable :: grad_u_val
 
     !! Source and absorption
@@ -851,13 +854,14 @@ contains
        if (have_option(trim(T%option_path)//"/prognostic"//&
          &"/subgridscale_parameterisation::LES")) then
 
-         scalar_eddy_visc => extract_scalar_field(state, "DGLESScalarEddyViscosity_", stat=stat)
+         scalar_eddy_visc => extract_scalar_field(state, "DGLESScalarEddyViscosity", stat=stat)
          call get_option(trim(T%option_path)//"/prognostic"//&
               &"/subgridscale_parameterisation::LES/PrandtlNumber", prandtl, default=1.0)
 
          ! possibly anisotropic eddy viscosity if using Ri dependency
-         call allocate(eddy_visc, mesh_dim(T), T%mesh, "EddyViscosity")
-         do i = 1, mesh_dim(X)
+         call allocate(eddy_visc, mesh_dim(T), scalar_eddy_visc%mesh, &
+              & "EddyViscosity")
+         do i = 1, mesh_dim(T)
            call set(eddy_visc, i, scalar_eddy_visc)
          end do
 
@@ -883,13 +887,12 @@ contains
            ! obtain gradients
            call allocate(grad_rho, mesh_dim(T), T%mesh, "grad_rho")
            call grad(rho, X, grad_rho)
-           call allocate(grad_u, T%mesh, "grad_u")
-           ! call grad(U_nl, X, grad_u)
-           call grad(u, X, grad_u)
-
-           ewrite_minmax(u)
-           ewrite_minmax(u_nl)
-           ewrite_minmax(u_nl_backup)
+           u_nl_ri => extract_vector_field(state, "NonlinearVelocity", stat)
+           if (stat/=0) then 
+             FLExit("No velocity field? A velocity field is required for Ri dependent LES!")
+           end if
+           call allocate(grad_u, u_nl_ri%mesh, "grad_u")
+           call grad(u_nl_ri, X, grad_u)
 
            allocate(gravity_val(mesh_dim(T)))
            allocate(grad_rho_val(mesh_dim(T)))
