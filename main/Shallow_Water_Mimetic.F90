@@ -407,7 +407,7 @@
     subroutine setup_fields(state)
       type(state_type), intent(inout) :: state
       type(vector_field), pointer :: v_field,U,X,Z
-      type(scalar_field), pointer :: s_field,D,f_ptr
+      type(scalar_field), pointer :: s_field,s_field_2,D,f_ptr
       type(mesh_type), pointer :: v_mesh
       type(vector_field) :: U_local, advecting_u, old_U, linear_orography_term
       character(len=PYTHON_FUNC_LEN) :: coriolis
@@ -520,6 +520,13 @@
          end if
       end if
       
+      !Initial PV Tracer
+      s_field_2=>extract_scalar_field(state, "InitialPVTracer"&
+           &,stat)    
+      if(stat==0) then
+         s_field_2%val = s_field%val
+      end if
+
       !Initial layer thickness
       s_field=>extract_scalar_field(state, "InitialLayerThickness"&
            &,stat)    

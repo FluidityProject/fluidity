@@ -470,6 +470,13 @@ start =
                      pressure_mesh_choice
                  }
                }?,
+               element scalar_field {
+                  attribute rank { "0" },
+                  attribute name { "InitialPVTracer" },
+                  element diagnostic {
+                     vorticity_mesh_choice
+                 }
+               }?,
                scalar_field_choice*,
                vector_field_choice*,
                tensor_field_choice*
