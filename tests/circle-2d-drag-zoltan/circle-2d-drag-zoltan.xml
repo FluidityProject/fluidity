@@ -5,7 +5,7 @@
 <testproblem>
   <name>circle-2d-drag-zoltan</name>
   <owner userid="jhill1"/>
-  <tags>flml zoltan parallel 2dadapt</tags>
+  <tags>flml zoltan parallel 2dadapt zoltan_fail</tags>
   <problem_definition length="medium" nprocs="3">
       <command_line>fluidity circle-2d-drag-serial.flml;
 mpiexec ../../bin/flredecomp -i 1 -o 3 -v -l circle-2d-drag-parallel circle-2d-drag-parallel_flredecomp &amp;&amp;

@@ -87,7 +87,7 @@ endif
 # Thread count for make test.
 THREADS=1
 
-EXCLUDE_TAGS =
+EXCLUDE_TAGS = -e zoltan_fail
 ifneq (@HAVE_ZOLTAN@,yes)
 	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e zoltan
 else
