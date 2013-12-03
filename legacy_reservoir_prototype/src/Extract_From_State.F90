@@ -47,7 +47,6 @@
     use fefields
     use boundary_conditions
     use futils, only: int2str
-    use multiphase_fractures
     use boundary_conditions_from_options
 
     !use printout
@@ -931,14 +930,6 @@
          call Extract_TensorFields_Outof_State( state, 1, &
               tensorfield, option_path, &
               Permeability )
-
-      elseif( have_option( '/porous_media/Permeability_from_femdem' ) ) then
-
-#ifdef USING_FEMDEM
-         call fractures( state, totele, ndim, permeability, porosity )
-#else
-         FLAbort( 'You forgot to compile with FEMDEM...' )
-#endif
 
       elseif( have_option( '/porous_media/vector_field::Permeability' ) ) then
          FLAbort( 'Permeability Vector Field is not defined yet.' )

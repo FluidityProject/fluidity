@@ -86,59 +86,57 @@ module multiphase_fractures
   type( tensor_field ), save :: permeability_r
 
   private
-  public :: fractures, blasting
+  public :: femdem
 
 contains
 
-  subroutine blasting( states, totele, ndim, perm, porosity )
+  subroutine femdem( states, totele, cv_nonods, ndim, nphase, cv_nloc, &
+       &             cv_ndgln, dt, rho, absorption, perm, porosity )
 
-    integer, intent( in ) :: totele, ndim
+    integer, intent( in ) :: totele, cv_nonods, nphase, ndim, cv_nloc
+    integer, dimension( totele*cv_nloc ), intent( in ) :: cv_ndgln
+    real, intent( in ) :: dt
+    real, dimension( nphase*cv_nonods ), intent( in ) :: rho
     type( state_type ), dimension( : ), intent( in ) :: states
+
+
+    real, dimension( totele*cv_nloc, ndim*nphase, ndim*nphase ), intent( inout ) :: absorption
     real, dimension( totele, ndim, ndim ), intent( inout ) :: perm
     real, dimension( totele ), intent( inout ) :: porosity
 
     real, dimension( : ), allocatable :: vf
 
 
-    ! read in ring and volume solid meshes
+    ! read in ring and solid volume meshes
     ! and simplify the volume mesh
-    call initialise_femdem( states )
-
+    call initialise_femdem()
 
     ! calculate volume fraction using the coarse mesh
     allocate( vf( totele ) ) ; vf = 0.
     call calculate_volume_fraction( states, totele, vf )
 
+    ! calculate absorption coefficient
+    call calculate_absorption( totele, cv_nloc, cv_nonods, ndim, &
+         &                     nphase, cv_ndgln, rho, vf, dt, absorption )
+
+    ! calculate porosity
+    call calculate_phi( states, totele, vf, porosity )
 
     ! calculate permeability and porosity
-    call calculate_perm_and_phi( states, totele, ndim, vf, perm, porosity )
-
-
-
-    ! ensure vf is between 0. and 1.
-    call bound_volume_fraction( vf )
-
-
+    call calculate_perm( states, totele, ndim, vf, perm )
 
     deallocate( vf )
 
     stop 666
 
     return
+  end subroutine femdem
 
-  end subroutine blasting
+  !----------------------------------------------------------------------------------------------------------
+  !----------------------------------------------------------------------------------------------------------
+  !----------------------------------------------------------------------------------------------------------
 
-
-
-
-
-
-
-
-
-  subroutine initialise_femdem( states )
-
-    type( state_type ), dimension( : ), intent( in ) :: states
+  subroutine initialise_femdem()
 
     character( len = FIELD_NAME_LEN ) :: femdem_mesh_name
     integer :: i, loc, sloc
@@ -153,7 +151,6 @@ contains
     integer, dimension( : ), allocatable :: sndglno, boundary_ids
     integer :: quad_degree, poly_degree, continuity
     type( mesh_type ) :: mesh, p0_mesh
-
 
     ewrite(3,*) 'inside initialise_femdem'
 
@@ -291,158 +288,8 @@ contains
     return
   end subroutine initialise_femdem
 
-
-
-
-
-
-
   !----------------------------------------------------------------------------------------------------------
-  !----------------------------------------------------------------------------------------------------------
-  !----------------------------------------------------------------------------------------------------------
-
-  subroutine fractures( states, totele, ndim, perm, porosity )
-
-    integer, intent( in ) :: totele, ndim
-    type( state_type ), dimension( : ), intent( in ) :: states
-    real, dimension( totele, ndim, ndim ), intent( inout ) :: perm
-    real, dimension( totele ), intent( inout ) :: porosity
-
-    ewrite(3,*) 'inside fractures'
-
-    ! define: 1. fracture_positions and 2. permeability
-    call initialise_fractures( states )
-
-    ! interpolate conservatively permeability from
-    ! the fracture mesh to the prototype mesh
-    ! that is interpolate "permeability" to "perm"
-    ! and also adjust porosity
-    !call interpolate_fractures( states, totele, ndim, perm, porosity )
-
-    ewrite(3,*) 'leaving fractures'
-
-    return
-  end subroutine fractures
-
-  !----------------------------------------------------------------------------------------------------------
-
-
-
-
-
-  subroutine initialise_fractures( states )
-
-    type( state_type ), dimension( : ), intent( in ) :: states
-
-    character( len = FIELD_NAME_LEN ) :: fracture_mesh_name
-    integer :: i, loc, sloc
-    integer :: ndim, nodes, elements, edges
-    integer, dimension( : ), allocatable :: ele1, ele2, ele3
-    integer, dimension( : ), allocatable :: face1, face2
-    real, dimension( : ), allocatable :: xs, ys, p1, p2, p3, p4
-    type( quadrature_type ) :: quad
-    type( element_type ) :: shape
-    integer, dimension( : ), allocatable :: sndglno, boundary_ids
-    integer :: quad_degree, poly_degree, continuity
-    type( mesh_type ) :: mesh, p0_mesh
-
-    ewrite(3,*) 'inside initialise_fractures'
-
-    call get_option( "/porous_media/Permeability_from_femdem/name", fracture_mesh_name )
-    call get_option( "/geometry/quadrature/degree", quad_degree )
-    call get_option( "/geometry/dimension", ndim )
-
-    if ( ndim == 2 ) then
-       loc = 3
-       sloc= 2
-    else if ( ndim == 3 ) then
-       loc = 4
-       sloc= 3
-       FLAbort("Fracture modelling is supported for 2D only.")
-    end if
-
-    call y2d_allocate_femdem( trim( fracture_mesh_name )//char(0), &
-         nodes, elements, edges )
-
-    allocate( ele1( elements ) ) ; allocate( ele2( elements ) )
-    allocate( ele3( elements ) )
-    allocate( face1( edges ) ) ; allocate( face2( edges ) )
-
-    allocate( xs( nodes ) ) ; allocate( ys( nodes ) )
-
-    allocate( p1( elements ) ) ; allocate( p2( elements ) )
-    allocate( p3( elements ) ) ; allocate( p4( elements ) )
-
-    call y2d_populate_femdem( ele1, ele2, ele3, &
-         face1, face2, xs, ys, p1, p2, p3, p4 )
-
-    quad = make_quadrature( loc, ndim, degree = quad_degree )
-    shape = make_element_shape( loc, ndim, 1, quad )
-
-    call allocate( mesh, nodes, elements, shape, name="CoordinateMesh" )
-    call allocate( fracture_positions, ndim, mesh, name="Coordinate" )
-
-    fracture_positions%val( 1, : ) = xs
-    fracture_positions%val( 2, : ) = ys
-
-    do i = 1, elements
-       fracture_positions%mesh%ndglno( (i-1)*loc+1 : i*loc ) = &
-            (/ ele1(i)+1, ele2(i)+1, ele3(i)+1 /)
-    end do
-
-    allocate( sndglno( edges * sloc ) ) ; sndglno = 0
-    allocate( boundary_ids( edges) ) ; boundary_ids = 666
-
-    do i = 1, edges
-       sndglno( (i-1)*sloc+1 : i*sloc ) = &
-            (/ face1(i)+1, face2(i)+1 /)
-    end do
-
-    call add_faces( fracture_positions%mesh, &
-         sndgln = sndglno, &
-         boundary_ids = boundary_ids )
-
-    fracture_positions%dim = ndim
-
-    deallocate( boundary_ids, sndglno )
-    call deallocate( mesh )
-    call deallocate_element( shape )
-
-    ! now create the p0 mesh
-    poly_degree = 0 ; continuity = -1
-    shape = make_element_shape( loc, ndim, poly_degree, quad )
-    p0_mesh = make_mesh( fracture_positions%mesh, shape, continuity, "P0DG" )
-
-    call deallocate_element( shape )
-    call deallocate( quad )
-
-    ! store permeability
-    call allocate( permeability_r, p0_mesh, name = "Permeability" )
-    call zero( permeability_r )
-
-    call set_all( permeability_r, 1, 1, p1 )
-    call set_all( permeability_r, 1, 2, p2 )
-    call set_all( permeability_r, 2, 1, p3 )
-    call set_all( permeability_r, 2, 2, p4 )
-
-    deallocate( ele1, ele2, ele3, face1, face2, xs, ys, p1, p2, p3, p4 )
-
-    ewrite(3,*) 'leaving initialise_fractures'
-
-    return
-  end subroutine initialise_fractures
-
-
-
-
-
-
-
-
-
-
-
-
+ 
   subroutine calculate_volume_fraction( states, totele, vf )
 
     integer, intent( in ) :: totele
@@ -453,7 +300,6 @@ contains
     type( mesh_type ), pointer :: fl_mesh, p0_fl_mesh
     type( vector_field ) :: fl_positions
     type( scalar_field ) :: volume_fraction
-    integer :: i
 
     ewrite(3,*) 'inside calculate_volume_fraction'
 
@@ -479,6 +325,9 @@ contains
 
     vf = volume_fraction % val
 
+    ! ensure vf is between 0. and 1.
+    call bound_volume_fraction( vf )
+
     ! now deallocate
     call deallocate( volume_fraction )
     call deallocate( alg_fl )
@@ -489,42 +338,105 @@ contains
     return
   end subroutine calculate_volume_fraction
 
+  !----------------------------------------------------------------------------------------------------------
 
+  subroutine calculate_absorption( totele, cv_nloc, cv_nonods, ndim, &
+       &                           nphase, cv_ndgln, rho, vf, dt, absorption )
 
+    integer, intent( in ) :: totele, cv_nloc, cv_nonods, ndim, nphase
+    integer, dimension( totele*cv_nloc ), intent( in ) :: cv_ndgln
+    real, intent( in ) :: dt
+    real, dimension( totele ), intent( in ) :: vf
+    real, dimension( nphase * cv_nonods), intent( in ) :: rho
 
+    real, dimension( totele * cv_nloc, ndim*nphase, ndim*nphase ), intent( inout ) :: absorption
 
+    integer :: ele, iloc, mi, ci, iphase, idim, idx
+    real :: sigma
 
+    ewrite(3,*) 'inside calculate_absorption'
 
+    do ele = 1, totele
+       do iloc = 1, cv_nloc
 
-  subroutine calculate_perm_and_phi( states, totele, ndim, vf, perm, porosity )
+          mi = (ele-1) * cv_nloc + iloc
+          ci = cv_ndgln( (ele-1) * cv_nloc + iloc )
+
+          do iphase = 1, nphase
+             sigma = vf( ele ) * rho( ci + (iphase-1)*cv_nonods ) / dt
+             do idim = 1, ndim
+                idx = idim + (iphase-1)*ndim
+                absorption( mi, idx, idx ) = absorption( mi, idx, idx ) + sigma
+             end do
+          end do
+
+       end do
+    end do
+
+    ewrite(3,*) 'leaving calculate_absorption'
+
+    return
+  end subroutine calculate_absorption
+
+  !----------------------------------------------------------------------------------------------------------
+
+  subroutine calculate_phi( states, totele, vf, porosity )
+
+    type( state_type ), dimension( : ), intent( in ) :: states
+    integer, intent( in ) :: totele
+    real, dimension( totele ), intent( in ) :: vf
+
+    real, dimension( totele ), intent( inout ) :: porosity
+
+    real :: phi_rock
+    type( scalar_field ), pointer :: phi_matrix
+    integer :: ele
+
+    ! rock mass porosity
+    phi_rock = 0.
+    ! matrix (background) porosity
+    phi_matrix => extract_scalar_field( states(1), "Porosity" )
+
+    porosity = (1.-vf) * phi_matrix % val + vf * phi_rock 
+
+    ! bound...
+    do ele = 1, totele
+       porosity( ele ) = max( 0., min( 1., porosity( ele ) ) )
+    end do
+
+    return
+  end subroutine calculate_phi
+
+  !----------------------------------------------------------------------------------------------------------
+
+  subroutine calculate_perm( states, totele, ndim, vf, perm )
 
     integer, intent( in ) :: totele, ndim
     type( state_type ), dimension( : ), intent( in ) :: states
-
-
     real, dimension( totele ), intent( in ) :: vf
 
     real, dimension( totele, ndim, ndim ), intent( inout ) :: perm
-    real, dimension( totele ), intent( inout ) :: porosity
 
     type( state_type ) :: alg_ext, alg_fl
     type( mesh_type ), pointer :: fl_mesh, p0_fl_mesh
     type( vector_field ) :: fl_positions
-    type( scalar_field ) :: volume_fraction
+    type( scalar_field ) :: rvf
 
-    type( tensor_field ), pointer :: permeability
+    type( tensor_field ), pointer :: permeability_bg
 
     type( scalar_field ) :: field_fl_p11, field_fl_p12, field_fl_p21, field_fl_p22, &
          &                  field_ext_p11, field_ext_p12, field_ext_p21, field_ext_p22
 
-    real :: bgp
-    real, dimension( :, :, : ), allocatable :: perm_bg
+    real :: ring, solid, bg
+    real, dimension( :, : ), allocatable :: permeability_v
 
     character( len = OPTION_PATH_LEN ) :: &
          path = "/tmp/galerkin_projection/continuous"
-    integer :: i
+    integer :: ele, idim, jdim
 
-    ewrite(3,*) 'inside calculate_perm_and_phi'
+    real, parameter :: tol = 1.e-10
+
+    ewrite(3,*) 'inside calculate_perm'
 
     call insert( alg_ext, positions_r%mesh, "Mesh" )
     call insert( alg_ext, positions_r, "Coordinate" )
@@ -572,95 +484,60 @@ contains
     ewrite(3,*) '...generating femdem/ring state'
 
     ! this is the permeability on the solid mesh
-    field_ext_p11 = extract_scalar_field( permeability, 1, 1 )
+    field_ext_p11 = extract_scalar_field( permeability_r, 1, 1 )
     call insert( alg_ext, field_ext_p11, "Permeability11" )
 
-    field_ext_p12 = extract_scalar_field( permeability, 1, 2 )
+    field_ext_p12 = extract_scalar_field( permeability_r, 1, 2 )
     call insert( alg_ext, field_ext_p12, "Permeability12" )
 
-    field_ext_p21 = extract_scalar_field( permeability, 2, 1 )
+    field_ext_p21 = extract_scalar_field( permeability_r, 2, 1 )
     call insert( alg_ext, field_ext_p21, "Permeability21" )
 
-    field_ext_p22 = extract_scalar_field( permeability, 2, 2 )
+    field_ext_p22 = extract_scalar_field( permeability_r, 2, 2 )
     call insert( alg_ext, field_ext_p22, "Permeability22" )
 
     ! volume fraction - this is the ring
-    call allocate( volume_fraction, p0_fl_mesh, "VolumeFraction" )
-    call zero( volume_fraction )
+    call allocate( rvf, p0_fl_mesh, "VolumeFraction" )
+    call zero( rvf )
 
     ewrite(3,*) '...interpolating'
 
     ! interpolate
-    call interpolation_galerkin_femdem( alg_ext, alg_fl, field = volume_fraction )
+    call interpolation_galerkin_femdem( alg_ext, alg_fl, field = rvf )
+
+    ! bound ring volume fraction
+    call bound_volume_fraction( rvf % val )
+
+    ! background and solid permeabilities
+    permeability_bg => extract_tensor_field( states(1), "Permeability" )
+    allocate( permeability_v(ndim, ndim) ) ; permeability_v = 0.
+    forall( idim = 1:ndim ) permeability_v( idim, idim ) = 1. 
+
+    do ele = 1, totele
+
+       ! solid, ring and background volume fractions
+       solid = vf( ele )
+       ring = rvf % val( ele )
+       ! if the ring permeability is zero we are not in a fracture
+       ! so permeability is a combination of the solid and matrix 
+       ! (background) permeabilities
+       if ( permeability_r % val( 1, 1, ele ) <= tol ) ring = 0.
+       bg = max( 0., 1. - solid - ring )
 
 
+!!$ FIX ME *********************
 
 
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+       forall( idim = 1:ndim, jdim = 1:ndim ) &
+            perm( ele, idim, jdim ) = bg * permeability_bg % val( idim, jdim, ele ) &
+            &                       + solid * permeability_v( idim, jdim ) &
+            &                       + ring * permeability_r % val( idim, jdim, ele )
 
-    !  NO...
-    ! bound volume fraction
-    do i = 1, node_count( volume_fraction )
-       call set( volume_fraction, i, max( 0., min( 1., node_val( volume_fraction, i ) ) ) )
     end do
 
-    ! copy memory to prototype
-    ! ...for permeability
-    call get_option( "/porous_media/Permeability_from_femdem/background_permeability", bgp )
+    deallocate( permeability_v )
 
-    allocate( perm_bg( totele, ndim, ndim ) )
-    perm_bg( :, 1, 1 ) = bgp
-    perm_bg( :, 1, 2 ) = 0.
-    perm_bg( :, 2, 1 ) = 0.
-    perm_bg( :, 2, 2 ) = bgp
-
-    do i = 1, totele
-       if ( volume_fraction % val( i ) > 1.e-7 ) then
-          perm( i, 1, 1 ) =  field_fl_p11 % val( i ) / volume_fraction % val( i ) 
-          perm( i, 1, 2 ) =  field_fl_p12 % val( i ) / volume_fraction % val( i ) 
-          perm( i, 2, 1 ) =  field_fl_p21 % val( i ) / volume_fraction % val( i ) 
-          perm( i, 2, 2 ) =  field_fl_p22 % val( i ) / volume_fraction % val( i ) 
-       else
-          perm( i, 1, 1 ) = perm_bg( i, 1, 1 )
-          perm( i, 1, 2 ) = perm_bg( i, 1, 2 )
-          perm( i, 2, 1 ) = perm_bg( i, 2, 1 )
-          perm( i, 2, 2 ) = perm_bg( i, 2, 2 )
-       end if
-    end do
-
-    !perm( :, 1, 1 ) = ( 1. - volume_fraction % val ) * perm_bg( :, 1, 1 ) + field_fl_p11 % val
-    !perm( :, 1, 2 ) = ( 1. - volume_fraction % val ) * perm_bg( :, 1, 2 ) + field_fl_p12 % val
-    !perm( :, 2, 1 ) = ( 1. - volume_fraction % val ) * perm_bg( :, 2, 1 ) + field_fl_p21 % val
-    !perm( :, 2, 2 ) = ( 1. - volume_fraction % val ) * perm_bg( :, 2, 2 ) + field_fl_p22 % val
-
-    !ewrite(3,*) ' permeability tensor:'
-    !ewrite(3,*) 'xx', perm( :, 1, 1 )
-    !ewrite(3,*) 'xy', perm( :, 1, 2 )
-    !ewrite(3,*) 'yx', perm( :, 2, 1 )
-    !ewrite(3,*) 'yy', perm( :, 2, 2 )
-
-    !ewrite(3,*) 'xx min_max', minval( perm( :, 1, 1 ) ), maxval( perm( :, 1, 1 ) )
-    !ewrite(3,*) 'xy min_max', minval( perm( :, 1, 2 ) ), maxval( perm( :, 1, 2 ) )
-    !ewrite(3,*) 'yx min_max', minval( perm( :, 2, 1 ) ), maxval( perm( :, 2, 1 ) )
-    !ewrite(3,*) 'yy min_max', minval( perm( :, 2, 2 ) ), maxval( perm( :, 2, 2 ) )
-    !stop 749
-
-    ! ...for porosity
-    porosity = ( 1. - volume_fraction % val ) * porosity + volume_fraction % val * 1.
-
-    ! bound porosity
-    do i = 1, totele
-       porosity( i ) = max( 0., min( 1., porosity( i ) ) )
-    end do
-
-    !ewrite(3,*) ' porosity:'
-    !ewrite(3,*) 'phi', porosity
-    !ewrite(3,*) 'phi min_max', minval( porosity ), maxval( porosity )
-
-    ! now deallocate
-    deallocate( perm_bg )
-
-    call deallocate( volume_fraction )
+    call deallocate( rvf )
 
     call deallocate( field_fl_p22 )
     call deallocate( field_fl_p21 )
@@ -670,271 +547,45 @@ contains
     call deallocate( alg_fl )
     call deallocate( alg_ext )
 
-    ewrite(3,*) 'leaving calculate_perm_and_phi'
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!$
+!!$
+!!$    do i = 1, totele
+!!$       if ( volume_fraction % val( i ) > 1.e-7 ) then
+!!$          perm( i, 1, 1 ) =  field_fl_p11 % val( i ) / volume_fraction % val( i ) 
+!!$          perm( i, 1, 2 ) =  field_fl_p12 % val( i ) / volume_fraction % val( i ) 
+!!$          perm( i, 2, 1 ) =  field_fl_p21 % val( i ) / volume_fraction % val( i ) 
+!!$          perm( i, 2, 2 ) =  field_fl_p22 % val( i ) / volume_fraction % val( i ) 
+!!$       else
+!!$          perm( i, 1, 1 ) = perm_bg( i, 1, 1 )
+!!$          perm( i, 1, 2 ) = perm_bg( i, 1, 2 )
+!!$          perm( i, 2, 1 ) = perm_bg( i, 2, 1 )
+!!$          perm( i, 2, 2 ) = perm_bg( i, 2, 2 )
+!!$       end if
+!!$    end do
+!!$
+!!$
+!!$    !ewrite(3,*) ' permeability tensor:'
+!!$    !ewrite(3,*) 'xx', perm( :, 1, 1 )
+!!$    !ewrite(3,*) 'xy', perm( :, 1, 2 )
+!!$    !ewrite(3,*) 'yx', perm( :, 2, 1 )
+!!$    !ewrite(3,*) 'yy', perm( :, 2, 2 )
+!!$
+!!$    !ewrite(3,*) 'xx min_max', minval( perm( :, 1, 1 ) ), maxval( perm( :, 1, 1 ) )
+!!$    !ewrite(3,*) 'xy min_max', minval( perm( :, 1, 2 ) ), maxval( perm( :, 1, 2 ) )
+!!$    !ewrite(3,*) 'yx min_max', minval( perm( :, 2, 1 ) ), maxval( perm( :, 2, 1 ) )
+!!$    !ewrite(3,*) 'yy min_max', minval( perm( :, 2, 2 ) ), maxval( perm( :, 2, 2 ) )
+!!$    !stop 749
+
+    ewrite(3,*) 'leaving calculate_perm'
+
+
+    stop 65669
 
     return
-  end subroutine calculate_perm_and_phi
+  end subroutine calculate_perm
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  subroutine interpolate_femdem( states, totele, ndim, perm, porosity )
-
-    integer, intent( in ) :: totele, ndim
-    type( state_type ), dimension( : ), intent( in ) :: states
-    real, dimension( totele, ndim, ndim ), intent( inout ) :: perm
-    real, dimension( totele ), intent( inout ) :: porosity
-
-    type( state_type ) :: alg_ext, alg_fl
-    type( mesh_type ), pointer :: fl_mesh, p0_fl_mesh
-    type( vector_field ) :: fl_positions
-    type( scalar_field ) :: volume_fraction
-
-    type( scalar_field ), pointer :: pressure
-    type( tensor_field ), pointer :: permeability
-
-    type( scalar_field ) :: field_fl_p11, field_fl_p12, field_fl_p21, field_fl_p22, &
-         &                  field_ext_p11, field_ext_p12, field_ext_p21, field_ext_p22
-
-    real :: bgp
-    real, dimension( :, :, : ), allocatable :: perm_bg
-
-    character( len = OPTION_PATH_LEN ) :: &
-         path = "/tmp/galerkin_projection/continuous"
-    integer :: i
-
-    ewrite(3,*) 'inside interpolate_femdem'
-
-    pressure => extract_scalar_field( states(1), "Pressure" )
-
-    call insert( alg_ext, fracture_positions%mesh, "Mesh" )
-    call insert( alg_ext, fracture_positions, "Coordinate" )
-
-    fl_mesh => extract_mesh( states(1), "CoordinateMesh" )
-    fl_positions = extract_vector_field( states(1), "Coordinate" )
-
-    call insert( alg_fl, fl_mesh, "Mesh" )
-    call insert( alg_fl, fl_positions, "Coordinate" )
-
-    call set_solver_options(path, &
-         ksptype = "cg", &
-         pctype = "mg", &
-         rtol = 1.e-10, &
-         atol = 0., &
-         max_its = 10000)
-
-    path = "/tmp"
-
-    p0_fl_mesh => extract_mesh( states(1), "P0DG" )
-
-    ewrite(3,*) '...generating multiphase state'
-
-    ! this is the permeability on the fluidity mesh
-    call allocate( field_fl_p11, p0_fl_mesh, "Permeability11" )
-    call zero( field_fl_p11 )
-    call insert( alg_fl, field_fl_p11, "Permeability11" )
-    field_fl_p11%option_path = path
-
-    call allocate( field_fl_p12, p0_fl_mesh, "Permeability12" )
-    call zero( field_fl_p12 )
-    call insert( alg_fl, field_fl_p12, "Permeability12" )
-    field_fl_p12%option_path = path
-
-    call allocate( field_fl_p21, p0_fl_mesh, "Permeability21" )
-    call zero( field_fl_p21 )
-    call insert( alg_fl, field_fl_p21, "Permeability21" )
-    field_fl_p21%option_path = path
-
-    call allocate( field_fl_p22, p0_fl_mesh, "Permeability22" )
-    call zero( field_fl_p22 )
-    call insert( alg_fl, field_fl_p22, "Permeability22" )
-    field_fl_p22%option_path = path
-
-    ewrite(3,*) '...generating femdem state'
-
-    ! this is the permeability on the solid mesh
-    field_ext_p11 = extract_scalar_field( permeability, 1, 1 )
-    call insert( alg_ext, field_ext_p11, "Permeability11" )
-
-    field_ext_p12 = extract_scalar_field( permeability, 1, 2 )
-    call insert( alg_ext, field_ext_p12, "Permeability12" )
-
-    field_ext_p21 = extract_scalar_field( permeability, 2, 1 )
-    call insert( alg_ext, field_ext_p21, "Permeability21" )
-
-    field_ext_p22 = extract_scalar_field( permeability, 2, 2 )
-    call insert( alg_ext, field_ext_p22, "Permeability22" )
-
-    ! volume fraction, i.e. porosity...
-    call allocate( volume_fraction, p0_fl_mesh, "VolumeFraction" )
-    call zero( volume_fraction )
-
-    ewrite(3,*) '...interpolating'
-
-    ! interpolate
-    call interpolation_galerkin_femdem( alg_ext, alg_fl, field = volume_fraction )
-
-    ! bound volume fraction
-    do i = 1, node_count( volume_fraction )
-       call set( volume_fraction, i, max( 0., min( 1., node_val( volume_fraction, i ) ) ) )
-    end do
-
-    ! copy memory to prototype
-    ! ...for permeability
-    call get_option( "/porous_media/Permeability_from_femdem/background_permeability", bgp )
-
-    allocate( perm_bg( totele, ndim, ndim ) )
-    perm_bg( :, 1, 1 ) = bgp
-    perm_bg( :, 1, 2 ) = 0.
-    perm_bg( :, 2, 1 ) = 0.
-    perm_bg( :, 2, 2 ) = bgp
-
-    do i = 1, totele
-       if ( volume_fraction % val( i ) > 1.e-7 ) then
-          perm( i, 1, 1 ) =  field_fl_p11 % val( i ) / volume_fraction % val( i ) 
-          perm( i, 1, 2 ) =  field_fl_p12 % val( i ) / volume_fraction % val( i ) 
-          perm( i, 2, 1 ) =  field_fl_p21 % val( i ) / volume_fraction % val( i ) 
-          perm( i, 2, 2 ) =  field_fl_p22 % val( i ) / volume_fraction % val( i ) 
-       else
-          perm( i, 1, 1 ) = perm_bg( i, 1, 1 )
-          perm( i, 1, 2 ) = perm_bg( i, 1, 2 )
-          perm( i, 2, 1 ) = perm_bg( i, 2, 1 )
-          perm( i, 2, 2 ) = perm_bg( i, 2, 2 )
-       end if
-    end do
-
-    !perm( :, 1, 1 ) = ( 1. - volume_fraction % val ) * perm_bg( :, 1, 1 ) + field_fl_p11 % val
-    !perm( :, 1, 2 ) = ( 1. - volume_fraction % val ) * perm_bg( :, 1, 2 ) + field_fl_p12 % val
-    !perm( :, 2, 1 ) = ( 1. - volume_fraction % val ) * perm_bg( :, 2, 1 ) + field_fl_p21 % val
-    !perm( :, 2, 2 ) = ( 1. - volume_fraction % val ) * perm_bg( :, 2, 2 ) + field_fl_p22 % val
-
-    !ewrite(3,*) ' permeability tensor:'
-    !ewrite(3,*) 'xx', perm( :, 1, 1 )
-    !ewrite(3,*) 'xy', perm( :, 1, 2 )
-    !ewrite(3,*) 'yx', perm( :, 2, 1 )
-    !ewrite(3,*) 'yy', perm( :, 2, 2 )
-
-    !ewrite(3,*) 'xx min_max', minval( perm( :, 1, 1 ) ), maxval( perm( :, 1, 1 ) )
-    !ewrite(3,*) 'xy min_max', minval( perm( :, 1, 2 ) ), maxval( perm( :, 1, 2 ) )
-    !ewrite(3,*) 'yx min_max', minval( perm( :, 2, 1 ) ), maxval( perm( :, 2, 1 ) )
-    !ewrite(3,*) 'yy min_max', minval( perm( :, 2, 2 ) ), maxval( perm( :, 2, 2 ) )
-    !stop 749
-
-    ! ...for porosity
-    porosity = ( 1. - volume_fraction % val ) * porosity + volume_fraction % val * 1.
-
-    ! bound porosity
-    do i = 1, totele
-       porosity( i ) = max( 0., min( 1., porosity( i ) ) )
-    end do
-
-    !ewrite(3,*) ' porosity:'
-    !ewrite(3,*) 'phi', porosity
-    !ewrite(3,*) 'phi min_max', minval( porosity ), maxval( porosity )
-
-    ! now deallocate
-    deallocate( perm_bg )
-
-    call deallocate( volume_fraction )
-
-    call deallocate( field_fl_p22 )
-    call deallocate( field_fl_p21 )
-    call deallocate( field_fl_p12 )
-    call deallocate( field_fl_p11 )
-
-    call deallocate( alg_fl )
-    call deallocate( alg_ext )
-
-    ewrite(3,*) 'leaving interpolate_femdem'
-
-    return
-  end subroutine interpolate_femdem
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  !----------------------------------------------------------------------------------------------------------
 
 !!$+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !!$+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -955,6 +606,7 @@ contains
     integer, dimension( : ), allocatable :: ndglno, sndglno, boundary_ids, &
          &                                  ndglno_s, tmp, ele_nodes, &
          &                                  ele2_nodes, bc, n, nodes_s
+    real :: area
     real, dimension( : ), allocatable :: X_s, Y_s
     logical :: on_the_wall, delete_ele2
     type( quadrature_type ) :: quad
@@ -1075,6 +727,21 @@ contains
        count = count +1
     end do
 
+    ! make sure elements aren't inside out
+    do ele = 1, nele_s
+       ele_nodes = ndglno_s( (ele-1)*nloc+1 : ele*nloc )
+
+       area = triangle_area( &
+            f % val(1, ele_nodes(1) ), f % val(2, ele_nodes(1) ), &
+            f % val(1, ele_nodes(2) ), f % val(2, ele_nodes(2) ), &
+            f % val(1, ele_nodes(3) ), f % val(2, ele_nodes(3) ) )
+       if ( area < 0. ) then
+          ! swap 2nd and 3rd nodes
+          ndglno_s( (ele-1)*nloc+2 : ele*nloc ) = (/ ele_nodes(3), ele_nodes(2) /) 
+       end if
+    end do
+
+
     ! make sure we've recovered all the elements
     assert( nele_s == count )
 
@@ -1154,12 +821,9 @@ contains
     return
   end subroutine coarsen_mesh_2d
 
-
 !!$+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !!$+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !!$+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
 
   subroutine ibubble( a )
 
@@ -1252,8 +916,14 @@ contains
     return
   end subroutine deallocate_femdem
 
+  real function triangle_area( x1, y1, x2, y2, x3, y3 )
+    implicit none
+    real :: x1, y1, x2, y2, x3, y3
 
+    triangle_area = 0.5 * ( ( x2 * y3 - y2 * x3 ) - x1 * ( y3 - y2 ) + y1 * ( x3 - x2 ) )
 
+    return
+  end function triangle_area
 
 
 end module multiphase_fractures
