@@ -2140,6 +2140,16 @@ population_balance =
                   velocity_mesh_choice,
                   diagnostic_scalar_field
                }
+            }?,
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "MeanDia10" },
+               ## Field type
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
             }?
          },   
 
@@ -2160,7 +2170,9 @@ population_balance =
                   ##
                   element constant_aggregation{ real }|
                   ## aggregation frequency is given by \beta_{alpha gamma} = \xi_{alpha}^3 + \xi_{gamma}^3
-                  element hydrodynamic_aggregation{ empty }
+                  element hydrodynamic_aggregation{ empty }|
+                  ## aggregation frequency is given by \beta_{alpha gamma} = \beta_o (\xi_{alpha} + \xi_{gamma}). Enter the value of constant \beta_o below
+                  element sum_aggregation{ real }
                }
             }?,
             ##
@@ -2223,9 +2235,9 @@ population_balance =
          ## weights of zero can cause instabilities. It is recommended that a minimum
          ## weight of approx 1e-10 is used.
          element minimum_weight{ real },
-         ## Scaling factor to be used for the Sauter Mean Diameter calculated in the 
+         ## Scaling factor to be used for the Sauter Mean Diameter / Mean Diameter calculated in the 
          ## statistics. It is useful in a non-dimensional implementation of the PBE.
-         element scaling_factor_SauterMeanDia{ real }?,
+         element scaling_factor_Dia{ real }?,
          ## This is the submerged specific gravity, R, of this population balance
          ## as a function of internal coordinate, Z. 
          ## It will be used in the equation of state.

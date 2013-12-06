@@ -3015,6 +3015,22 @@ requires a distinct name for the options dictionary.</a:documentation>
             </element>
           </element>
         </optional>
+        <optional>
+          <element name="scalar_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>MeanDia10</value>
+            </attribute>
+            <element name="diagnostic">
+              <a:documentation>Field type</a:documentation>
+              <ref name="internal_algorithm"/>
+              <ref name="velocity_mesh_choice"/>
+              <ref name="diagnostic_scalar_field"/>
+            </element>
+          </element>
+        </optional>
       </element>
       <element name="population_balance_source_terms">
         <a:documentation>Source terms for the population balance equation like growth, 
@@ -3047,6 +3063,10 @@ breakage, aggegation and internal dispersion</a:documentation>
                 <element name="hydrodynamic_aggregation">
                   <a:documentation>aggregation frequency is given by \beta_{alpha gamma} = \xi_{alpha}^3 + \xi_{gamma}^3</a:documentation>
                   <empty/>
+                </element>
+                <element name="sum_aggregation">
+                  <a:documentation>aggregation frequency is given by \beta_{alpha gamma} = \beta_o (\xi_{alpha} + \xi_{gamma})</a:documentation>
+                  <ref name="real"/>
                 </element>
               </choice>
             </element>
@@ -3138,8 +3158,8 @@ weight of approx 1e-10 is used.</a:documentation>
         <ref name="real"/>
       </element>
       <optional>
-        <element name="scaling_factor_SauterMeanDia">
-          <a:documentation>Scaling factor to be used for the Sauter Mean Diameter calculated in the 
+        <element name="scaling_factor_Dia">
+          <a:documentation>Scaling factor to be used for the Sauter Mean Diameter / Mean Diameter calculated in the 
 statistics. It is useful in a non-dimensional implementation of the PBE.</a:documentation>
           <ref name="real"/>
         </element>

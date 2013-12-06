@@ -394,6 +394,9 @@ contains
           call get_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/constant_aggregation', aggregation_freq_const)
        else if (have_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/hydrodynamic_aggregation')) then
           aggregation_freq_type = 'hydrodynamic_aggregation'
+       else if (have_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/sum_aggregation')) then
+          aggregation_freq_type = 'sum_aggregation'
+          call get_option(trim(option_path)//'/population_balance_source_terms/aggregation/aggregation_frequency/sum_aggregation', aggregation_freq_const)
        end if
     else
        have_aggregation = .FALSE.
@@ -631,6 +634,12 @@ contains
           do i = 1, N
              do j = 1, N
                 aggregation_freq(:,i,j) = abscissa_val_at_quad(:,i)**3 + abscissa_val_at_quad(:,j)**3
+             end do
+          end do
+       else if (aggregation_freq_type=='sum_aggregation') then
+          do i = 1, N
+             do j = 1, N
+                aggregation_freq(:,i,j) = (abscissa_val_at_quad(:,i) + abscissa_val_at_quad(:,j))*aggregation_freq_const
              end do
           end do
        end if
@@ -878,7 +887,7 @@ contains
     type(scalar_field_pointer), dimension(:), allocatable :: moments
     type(scalar_field), pointer :: stats
     integer :: i_pop, N, i, j, i_stat
-    real :: mean, std, scaling_factor_SMD
+    real :: mean, std, scaling_factor_Dia
     character(len=OPTION_PATH_LEN) :: option_path 
     character(len=FIELD_NAME_LEN) :: type
     
@@ -925,13 +934,24 @@ contains
              end if
              if (trim(stats%name) == "SauterMeanDia") then
                 call zero(stats)
-                if (have_option(trim(option_path)//'/scaling_factor_SauterMeanDia')) then
-                   call get_option(trim(option_path)//'/scaling_factor_SauterMeanDia', scaling_factor_SMD)
+                if (have_option(trim(option_path)//'/scaling_factor_Dia')) then
+                   call get_option(trim(option_path)//'/scaling_factor_Dia', scaling_factor_Dia)
                 else
-                   scaling_factor_SMD=1.0 
+                   scaling_factor_Dia=1.0 
                 end if
                 do j = 1, node_count(stats)
-                   call set(stats, j, scaling_factor_SMD*(node_val(moments(4)%ptr,j)/node_val(moments(3)%ptr,j)) )
+                   call set(stats, j, scaling_factor_Dia*(node_val(moments(4)%ptr,j)/node_val(moments(3)%ptr,j)) )
+                end do
+             end if
+             if (trim(stats%name) == "MeanDia10") then
+                call zero(stats)
+                if (have_option(trim(option_path)//'/scaling_factor_Dia')) then
+                   call get_option(trim(option_path)//'/scaling_factor_Dia', scaling_factor_Dia)
+                else
+                   scaling_factor_Dia=1.0
+                end if
+                do j = 1, node_count(stats)
+                   call set(stats, j, scaling_factor_Dia*(node_val(moments(2)%ptr,j)/node_val(moments(1)%ptr,j)) )
                 end do
              end if
 
