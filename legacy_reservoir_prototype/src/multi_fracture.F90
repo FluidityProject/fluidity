@@ -1,6 +1,6 @@
 
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+!
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -34,7 +34,7 @@ module multiphase_fractures
   use sparse_tools
   use fields
   use state_module
-
+  use copy_outof_state
   use spud
   use global_parameters, only: option_path_len, field_name_len
   use futils, only: int2str
@@ -46,13 +46,13 @@ module multiphase_fractures
 
 #ifdef USING_FEMDEM
   ! variable name convention:
-  ! _r : ring, _v : volume
+  ! _r : ring, _v : volume, _vc : volume coarse
 
   interface
-     subroutine y2d_allocate_femdem( string, &
-          &     nodes_r, elements_r, edges_r &
+     subroutine y2d_allocate_femdem( string_r, string_v, &
+          &     nodes_r, elements_r, edges_r, &
           &     nodes_v, elements_v, edges_v )
-       character( len = * ), intent( in ) :: string
+       character( len = * ), intent( in ) :: string_r, string_v
        integer, intent( out ) :: nodes_r, elements_r, edges_r, &
             &                    nodes_v, elements_v, edges_v
      end subroutine y2d_allocate_femdem
@@ -60,10 +60,10 @@ module multiphase_fractures
 
   interface
      subroutine y2d_populate_femdem( ele1_r, ele2_r, ele3_r, &
-          face1_r, face2_r, x_r, y_r, &
-          ele1_v, ele2_v ,ele3_v, &
-          face1_v, face2_v, x_v, y_v, &
-          p1, p2, p3, p4 )
+          &                          face1_r, face2_r, x_r, y_r, &
+          &                          p1, p2, p3, p4, &
+          &                          ele1_v, ele2_v, ele3_v, &
+          &                          face1_v, face2_v, x_v, y_v )
        integer, dimension( * ), intent( out ) :: ele1_r, ele2_r, ele3_r, &
             &                                    ele1_v, ele2_v, ele3_v, &
             &                                    face1_r, face2_r, face1_v, face2_v
@@ -71,7 +71,7 @@ module multiphase_fractures
      end subroutine y2d_populate_femdem
   end interface
 
-  interface 
+  interface
      subroutine y2dfemdem( string, dt, p, u, v )
        character( len = * ), intent( in ) :: string
        real, intent( in ) :: dt
@@ -82,7 +82,6 @@ module multiphase_fractures
 #endif
 
   type( vector_field ), save :: positions_r, positions_v, positions_vc
-  type( vector_field ), save :: fracture_positions
   type( tensor_field ), save :: permeability_r
 
   private
@@ -93,12 +92,13 @@ contains
   subroutine femdem( states, totele, cv_nonods, ndim, nphase, cv_nloc, &
        &             cv_ndgln, dt, rho, absorption, perm, porosity )
 
+    implicit none
+
     integer, intent( in ) :: totele, cv_nonods, nphase, ndim, cv_nloc
     integer, dimension( totele*cv_nloc ), intent( in ) :: cv_ndgln
     real, intent( in ) :: dt
     real, dimension( nphase*cv_nonods ), intent( in ) :: rho
     type( state_type ), dimension( : ), intent( in ) :: states
-
 
     real, dimension( totele*cv_nloc, ndim*nphase, ndim*nphase ), intent( inout ) :: absorption
     real, dimension( totele, ndim, ndim ), intent( inout ) :: perm
@@ -106,10 +106,9 @@ contains
 
     real, dimension( : ), allocatable :: vf
 
-
     ! read in ring and solid volume meshes
     ! and simplify the volume mesh
-    call initialise_femdem()
+    call initialise_femdem
 
     ! calculate volume fraction using the coarse mesh
     allocate( vf( totele ) ) ; vf = 0.
@@ -125,9 +124,9 @@ contains
     ! calculate permeability and porosity
     call calculate_perm( states, totele, ndim, vf, perm )
 
+    ! deallocate
+    call deallocate_femdem
     deallocate( vf )
-
-    stop 666
 
     return
   end subroutine femdem
@@ -136,25 +135,32 @@ contains
   !----------------------------------------------------------------------------------------------------------
   !----------------------------------------------------------------------------------------------------------
 
-  subroutine initialise_femdem()
+  subroutine initialise_femdem
 
-    character( len = FIELD_NAME_LEN ) :: femdem_mesh_name
+    implicit none
+
+    character( len = FIELD_NAME_LEN ) :: femdem_mesh_name, femdem_ring_name
     integer :: i, loc, sloc
     integer :: ndim, nodes_r, elements_r, edges_r, &
          &     nodes_v, elements_v, edges_v
     integer, dimension( : ), allocatable :: ele1_r, ele2_r, ele3_r, &
-         &                                  ele1_v, ele2_v, ele3_v
-    integer, dimension( : ), allocatable :: face1_r, face2_r, face1_v, face2_v
+         &                                  ele1_v, ele2_v, ele3_v, &
+         &                                  face1_r, face2_r, face1_v, face2_v
     real, dimension( : ), allocatable :: x_r, y_r, x_v, y_v, p1, p2, p3, p4 
     type( quadrature_type ) :: quad
     type( element_type ) :: shape
-    integer, dimension( : ), allocatable :: sndglno, boundary_ids
+    integer, dimension( : ), allocatable :: sndglno_r, boundary_ids_r, &
+         &                                  sndglno_v, boundary_ids_v
     integer :: quad_degree, poly_degree, continuity
-    type( mesh_type ) :: mesh, p0_mesh
+    type( mesh_type ) :: mesh_r, mesh_v, mesh_r_p0
 
-    ewrite(3,*) 'inside initialise_femdem'
+    ewrite(3,*) "inside initialise_femdem"
 
-    call get_option( "/femdem/name", femdem_mesh_name )
+    !call get_option( "/femdem/name", femdem_mesh_name )
+
+    femdem_mesh_name = "rock.msh"
+    femdem_ring_name = "ring.msh"
+
     call get_option( "/geometry/quadrature/degree", quad_degree )
     call get_option( "/geometry/dimension", ndim )
 
@@ -165,8 +171,12 @@ contains
        FLAbort( "Fracture modelling is supported for 2D only." )
     end if
 
-    call y2d_allocate_femdem( trim( femdem_mesh_name )//char(0), &
+    call y2d_allocate_femdem( &
+         trim( femdem_ring_name )//char(0), trim( femdem_mesh_name )//char(0), &
          nodes_r, elements_r, edges_r, nodes_v, elements_v, edges_v )
+
+    ewrite(3,*) "nodes_r, elements_r, edges_r, nodes_v, elements_v, edges_v", &
+                 nodes_r, elements_r, edges_r, nodes_v, elements_v, edges_v
 
     allocate( ele1_r( elements_r ), ele2_r( elements_r ), ele3_r( elements_r ) )
     allocate( face1_r( edges_r ), face2_r( edges_r ) )
@@ -177,89 +187,85 @@ contains
     allocate( x_r( nodes_r ), y_r( nodes_r ) )
     allocate( x_v( nodes_v ), y_v( nodes_v ) )
 
-    allocate( p1( elements_r ) ) ; allocate( p2( elements_r ) )
-    allocate( p3( elements_r ) ) ; allocate( p4( elements_r ) )
+    allocate( p1( elements_r ), p2( elements_r ) )
+    allocate( p3( elements_r ), p4( elements_r ) )
 
     call y2d_populate_femdem( ele1_r, ele2_r, ele3_r, &
-         &                    face1_r, face2_r, x_r, y_r, &
-         &                    ele1_v, ele2_v, ele3_v, &
-         &                    face1_v, face2_v, x_v, y_v, &
-         &                    p1, p2, p3, p4 )
+         face1_r, face2_r, x_r, y_r, p1, p2, p3, p4, &
+         ele1_v, ele2_v, ele3_v, face1_v, face2_v, x_v, y_v )
 
     quad = make_quadrature( loc, ndim, degree = quad_degree )
     shape = make_element_shape( loc, ndim, 1, quad )
 
-
     ! create the ring mesh
-    call allocate( mesh, nodes_r, elements_r, shape, name="CoordinateMesh" )
-    call allocate( positions_r, ndim, mesh, name="Coordinate" )
+    call allocate( mesh_r, nodes_r, elements_r, shape, name="CoordinateMesh" )
+    call allocate( positions_r, ndim, mesh_r, name="Coordinate" )
+
     positions_r%val( 1, : ) = x_r
     positions_r%val( 2, : ) = y_r
-    call deallocate( mesh )
 
     do i = 1, elements_r
        positions_r%mesh%ndglno( (i-1)*loc+1 : i*loc ) = &
             (/ ele1_r(i)+1, ele2_r(i)+1, ele3_r(i)+1 /)
     end do
 
-    allocate( sndglno( edges_r * sloc ) ) ; sndglno = 0
-    allocate( boundary_ids( edges_r ) ) ; boundary_ids = 666
+    allocate( sndglno_r( edges_r * sloc ) ) ; sndglno_r = 0
+    allocate( boundary_ids_r( edges_r ) ) ; boundary_ids_r = 666
 
     do i = 1, edges_r
-       sndglno( (i-1)*sloc+1 : i*sloc ) = &
+       sndglno_r( (i-1)*sloc+1 : i*sloc ) = &
             (/ face1_r(i)+1, face2_r(i)+1 /)
     end do
 
     call add_faces( positions_r%mesh, &
-         sndgln = sndglno, &
-         boundary_ids = boundary_ids )
+         sndgln = sndglno_r, &
+         boundary_ids = boundary_ids_r )
 
     positions_r%dim = ndim
 
-    deallocate( boundary_ids, sndglno )
-
+    deallocate( boundary_ids_r, sndglno_r )
+    call deallocate( mesh_r )
 
     ! create the volume mesh
-    call allocate( mesh, nodes_v, elements_v, shape, name="CoordinateMesh" )
-    call allocate( positions_v, ndim, mesh, name="Coordinate" )
-    positions_r%val( 1, : ) = x_v
-    positions_r%val( 2, : ) = y_v
-    call deallocate( mesh )
+    call allocate( mesh_v, nodes_v, elements_v, shape, name="CoordinateMesh" )
+    call allocate( positions_v, ndim, mesh_v, name="Coordinate" )
+    positions_v%val( 1, : ) = x_v
+    positions_v%val( 2, : ) = y_v
 
     do i = 1, elements_v
        positions_v%mesh%ndglno( (i-1)*loc+1 : i*loc ) = &
             (/ ele1_v(i)+1, ele2_v(i)+1, ele3_v(i)+1 /)
     end do
 
-    allocate( sndglno( edges_v * sloc ) ) ; sndglno = 0
-    allocate( boundary_ids( edges_v ) ) ; boundary_ids = 666
+    allocate( sndglno_v( edges_v * sloc ) ) ; sndglno_v = 0
+    allocate( boundary_ids_v( edges_v ) ) ; boundary_ids_v = 666
 
     do i = 1, edges_v
-       sndglno( (i-1)*sloc+1 : i*sloc ) = &
+       sndglno_v( (i-1)*sloc+1 : i*sloc ) = &
             (/ face1_v(i)+1, face2_v(i)+1 /)
     end do
 
     call add_faces( positions_v%mesh, &
-         sndgln = sndglno, &
-         boundary_ids = boundary_ids )
+         sndgln = sndglno_v, &
+         boundary_ids = boundary_ids_v )
 
     positions_v%dim = ndim
 
-    deallocate( boundary_ids, sndglno )
-    call deallocate_element( shape )
+    deallocate( boundary_ids_v, sndglno_v )
+    call deallocate( mesh_v )
 
+    call deallocate_element( shape )
 
     ! coarsen the volume mesh
     call coarsen_mesh_2d( positions_v, positions_vc )
 
-
     ! create the ring p0 mesh
     poly_degree = 0 ; continuity = -1
     shape = make_element_shape( loc, ndim, poly_degree, quad )
-    p0_mesh = make_mesh( positions_r%mesh, shape, continuity, "P0DG" )
+    mesh_r_p0 = make_mesh( positions_r%mesh, shape, continuity, "P0DG" )
 
     ! store ring permeability
-    call allocate( permeability_r, p0_mesh, name = "Permeability" )
+    call allocate( permeability_r, mesh_r_p0, name = "Permeability" )
     call zero( permeability_r )
 
     call set_all( permeability_r, 1, 1, p1 )
@@ -268,29 +274,24 @@ contains
     call set_all( permeability_r, 2, 2, p4 )
 
     ! deallocate
-    call deallocate( p0_mesh )
+    call deallocate( mesh_r_p0 )
     call deallocate_element( shape )
     call deallocate( quad )
 
-    deallocate( ele1_r, ele2_r, ele3_r )
-    deallocate( face1_r, face2_r )
+    deallocate( ele1_r, ele2_r, ele3_r, face1_r, face2_r, &
+         &      ele1_v, ele2_v, ele3_v, face1_v, face2_v, &
+         &      x_r, y_r, x_v, y_v, p1, p2, p3, p4 )
 
-    deallocate( ele1_v, ele2_v, ele3_v )
-    deallocate( face1_v, face2_v )
-
-    deallocate( x_r, y_r, x_v, y_v )
-
-    deallocate( p1, p2, p3, p4 )
-
-
-    ewrite(3,*) 'leaving initialise_femdem'
+    ewrite(3,*) "leaving initialise_femdem"
 
     return
   end subroutine initialise_femdem
 
   !----------------------------------------------------------------------------------------------------------
- 
+
   subroutine calculate_volume_fraction( states, totele, vf )
+
+    implicit none
 
     integer, intent( in ) :: totele
     type( state_type ), dimension( : ), intent( in ) :: states
@@ -301,24 +302,24 @@ contains
     type( vector_field ) :: fl_positions
     type( scalar_field ) :: volume_fraction
 
-    ewrite(3,*) 'inside calculate_volume_fraction'
+    ewrite(3,*) "inside calculate_volume_fraction"
 
-    call insert( alg_ext, positions_v%mesh, "Mesh" )
-    call insert( alg_ext, positions_v, "Coordinate" )
+    call insert( alg_ext, positions_vc % mesh, "Mesh" )
+    call insert( alg_ext, positions_vc, "Coordinate" )
 
-    fl_mesh => extract_mesh( states(1), "CoordinateMesh" )
+    fl_mesh => extract_mesh( states( 1 ), "CoordinateMesh" )
     fl_positions = extract_vector_field( states(1), "Coordinate" )
 
     call insert( alg_fl, fl_mesh, "Mesh" )
     call insert( alg_fl, fl_positions, "Coordinate" )
 
-    p0_fl_mesh => extract_mesh( states(1), "P0DG" )
+    p0_fl_mesh => extract_mesh( states( 1 ), "P0DG" )
 
     ! volume fraction, i.e. porosity...
     call allocate( volume_fraction, p0_fl_mesh, "VolumeFraction" )
     call zero( volume_fraction )
 
-    ewrite(3,*) '...interpolating'
+    ewrite(3,*) "...interpolating"
 
     ! interpolate
     call interpolation_galerkin_femdem( alg_ext, alg_fl, field = volume_fraction )
@@ -333,7 +334,7 @@ contains
     call deallocate( alg_fl )
     call deallocate( alg_ext )
 
-    ewrite(3,*) 'leaving calculate_volume_fraction'
+    ewrite(3,*) "leaving calculate_volume_fraction"
 
     return
   end subroutine calculate_volume_fraction
@@ -343,29 +344,31 @@ contains
   subroutine calculate_absorption( totele, cv_nloc, cv_nonods, ndim, &
        &                           nphase, cv_ndgln, rho, vf, dt, absorption )
 
+    implicit none
+
     integer, intent( in ) :: totele, cv_nloc, cv_nonods, ndim, nphase
     integer, dimension( totele*cv_nloc ), intent( in ) :: cv_ndgln
     real, intent( in ) :: dt
     real, dimension( totele ), intent( in ) :: vf
     real, dimension( nphase * cv_nonods), intent( in ) :: rho
 
-    real, dimension( totele * cv_nloc, ndim*nphase, ndim*nphase ), intent( inout ) :: absorption
+    real, dimension( totele * cv_nloc, ndim * nphase, ndim * nphase ), intent( inout ) :: absorption
 
     integer :: ele, iloc, mi, ci, iphase, idim, idx
     real :: sigma
 
-    ewrite(3,*) 'inside calculate_absorption'
+    ewrite(3,*) "inside calculate_absorption"
 
     do ele = 1, totele
        do iloc = 1, cv_nloc
 
-          mi = (ele-1) * cv_nloc + iloc
-          ci = cv_ndgln( (ele-1) * cv_nloc + iloc )
+          mi = ( ele - 1 ) * cv_nloc + iloc
+          ci = cv_ndgln( ( ele - 1 ) * cv_nloc + iloc )
 
           do iphase = 1, nphase
-             sigma = vf( ele ) * rho( ci + (iphase-1)*cv_nonods ) / dt
+             sigma = vf( ele ) * rho( ci + ( iphase - 1 ) * cv_nonods ) / dt
              do idim = 1, ndim
-                idx = idim + (iphase-1)*ndim
+                idx = idim + ( iphase - 1 ) * ndim
                 absorption( mi, idx, idx ) = absorption( mi, idx, idx ) + sigma
              end do
           end do
@@ -373,7 +376,7 @@ contains
        end do
     end do
 
-    ewrite(3,*) 'leaving calculate_absorption'
+    ewrite(3,*) "leaving calculate_absorption"
 
     return
   end subroutine calculate_absorption
@@ -381,6 +384,8 @@ contains
   !----------------------------------------------------------------------------------------------------------
 
   subroutine calculate_phi( states, totele, vf, porosity )
+
+    implicit none
 
     type( state_type ), dimension( : ), intent( in ) :: states
     integer, intent( in ) :: totele
@@ -391,6 +396,8 @@ contains
     real :: phi_rock
     type( scalar_field ), pointer :: phi_matrix
     integer :: ele
+
+    ewrite(3,*) "inside calculate_phi"
 
     ! rock mass porosity
     phi_rock = 0.
@@ -404,12 +411,16 @@ contains
        porosity( ele ) = max( 0., min( 1., porosity( ele ) ) )
     end do
 
+    ewrite(3,*) "leaving calculate_phi"
+
     return
   end subroutine calculate_phi
 
   !----------------------------------------------------------------------------------------------------------
 
   subroutine calculate_perm( states, totele, ndim, vf, perm )
+
+    implicit none
 
     integer, intent( in ) :: totele, ndim
     type( state_type ), dimension( : ), intent( in ) :: states
@@ -422,13 +433,15 @@ contains
     type( vector_field ) :: fl_positions
     type( scalar_field ) :: rvf
 
-    type( tensor_field ), pointer :: permeability_bg
+    type( tensor_field ), pointer :: permeability_bg_t
+    type( scalar_field ), pointer :: permeability_bg_s
 
     type( scalar_field ) :: field_fl_p11, field_fl_p12, field_fl_p21, field_fl_p22, &
          &                  field_ext_p11, field_ext_p12, field_ext_p21, field_ext_p22
 
     real :: ring, solid, bg
     real, dimension( :, : ), allocatable :: permeability_v
+    real, dimension( :, :, : ), allocatable :: permeability_bg, permeability_rl 
 
     character( len = OPTION_PATH_LEN ) :: &
          path = "/tmp/galerkin_projection/continuous"
@@ -436,52 +449,52 @@ contains
 
     real, parameter :: tol = 1.e-10
 
-    ewrite(3,*) 'inside calculate_perm'
+    ewrite(3,*) "inside calculate_perm"
 
     call insert( alg_ext, positions_r%mesh, "Mesh" )
     call insert( alg_ext, positions_r, "Coordinate" )
 
-    fl_mesh => extract_mesh( states(1), "CoordinateMesh" )
-    fl_positions = extract_vector_field( states(1), "Coordinate" )
+    fl_mesh => extract_mesh( states( 1 ), "CoordinateMesh" )
+    fl_positions = extract_vector_field( states( 1 ), "Coordinate" )
 
     call insert( alg_fl, fl_mesh, "Mesh" )
     call insert( alg_fl, fl_positions, "Coordinate" )
 
-    call set_solver_options(path, &
+    call set_solver_options( path, &
          ksptype = "cg", &
          pctype = "mg", &
          rtol = 1.e-10, &
          atol = 0., &
-         max_its = 10000)
+         max_its = 10000 )
 
     path = "/tmp"
 
-    p0_fl_mesh => extract_mesh( states(1), "P0DG" )
+    p0_fl_mesh => extract_mesh( states( 1 ), "P0DG" )
 
-    ewrite(3,*) '...generating fluids state'
+    ewrite(3,*) "...generating fluids state"
 
     ! this is the permeability on the fluidity mesh
     call allocate( field_fl_p11, p0_fl_mesh, "Permeability11" )
     call zero( field_fl_p11 )
     call insert( alg_fl, field_fl_p11, "Permeability11" )
-    field_fl_p11%option_path = path
+    field_fl_p11 % option_path = path
 
     call allocate( field_fl_p12, p0_fl_mesh, "Permeability12" )
     call zero( field_fl_p12 )
     call insert( alg_fl, field_fl_p12, "Permeability12" )
-    field_fl_p12%option_path = path
+    field_fl_p12 % option_path = path
 
     call allocate( field_fl_p21, p0_fl_mesh, "Permeability21" )
     call zero( field_fl_p21 )
     call insert( alg_fl, field_fl_p21, "Permeability21" )
-    field_fl_p21%option_path = path
+    field_fl_p21 % option_path = path
 
     call allocate( field_fl_p22, p0_fl_mesh, "Permeability22" )
     call zero( field_fl_p22 )
     call insert( alg_fl, field_fl_p22, "Permeability22" )
-    field_fl_p22%option_path = path
+    field_fl_p22 % option_path = path
 
-    ewrite(3,*) '...generating femdem/ring state'
+    ewrite(3,*) "...generating femdem/ring state"
 
     ! this is the permeability on the solid mesh
     field_ext_p11 = extract_scalar_field( permeability_r, 1, 1 )
@@ -500,7 +513,7 @@ contains
     call allocate( rvf, p0_fl_mesh, "VolumeFraction" )
     call zero( rvf )
 
-    ewrite(3,*) '...interpolating'
+    ewrite(3,*) "...interpolating"
 
     ! interpolate
     call interpolation_galerkin_femdem( alg_ext, alg_fl, field = rvf )
@@ -508,10 +521,31 @@ contains
     ! bound ring volume fraction
     call bound_volume_fraction( rvf % val )
 
+    allocate( permeability_rl(totele, ndim, ndim) ) ; permeability_rl = 0.
+    permeability_rl(:, 1, 1) = field_fl_p11 % val
+    permeability_rl(:, 1, 2) = field_fl_p12 % val
+    permeability_rl(:, 2, 1) = field_fl_p21 % val
+    permeability_rl(:, 2, 2) = field_fl_p22 % val
+
     ! background and solid permeabilities
-    permeability_bg => extract_tensor_field( states(1), "Permeability" )
+    allocate( permeability_bg(totele, ndim, ndim) ) ; permeability_bg = 0.
+    if( have_option( "/porous_media/scalar_field::Permeability" ) ) then
+
+       permeability_bg_s => extract_scalar_field( states( 1 ), "Permeability" )
+       do ele = 1, element_count( permeability_bg_s ) 
+          forall( idim = 1 : ndim ) permeability_bg( ele, idim, idim ) = permeability_bg_s % val( ele )
+       end do
+
+    elseif( have_option( "/porous_media/tensor_field::Permeability" ) ) then
+
+       permeability_bg_t => extract_tensor_field( states( 1 ), "Permeability" )
+       path = "/porous_media/tensor_field::Permeability"
+       call Extract_TensorFields_Outof_State( states, 1, &
+            permeability_bg_t, path, permeability_bg )
+    end if
+
     allocate( permeability_v(ndim, ndim) ) ; permeability_v = 0.
-    forall( idim = 1:ndim ) permeability_v( idim, idim ) = 1. 
+    forall( idim = 1:ndim ) permeability_v( idim, idim ) = 0.3 
 
     do ele = 1, totele
 
@@ -521,21 +555,17 @@ contains
        ! if the ring permeability is zero we are not in a fracture
        ! so permeability is a combination of the solid and matrix 
        ! (background) permeabilities
-       if ( permeability_r % val( 1, 1, ele ) <= tol ) ring = 0.
+       if ( permeability_rl( ele, 1, 1 ) <= tol ) ring = 0.
        bg = max( 0., 1. - solid - ring )
 
-
-!!$ FIX ME *********************
-
-
        forall( idim = 1:ndim, jdim = 1:ndim ) &
-            perm( ele, idim, jdim ) = bg * permeability_bg % val( idim, jdim, ele ) &
+            perm( ele, idim, jdim ) = bg * permeability_bg( ele, idim, jdim ) &
             &                       + solid * permeability_v( idim, jdim ) &
-            &                       + ring * permeability_r % val( idim, jdim, ele )
+            &                       + permeability_rl( ele, idim, jdim )
 
     end do
 
-    deallocate( permeability_v )
+    deallocate( permeability_bg, permeability_v, permeability_rl )
 
     call deallocate( rvf )
 
@@ -547,50 +577,12 @@ contains
     call deallocate( alg_fl )
     call deallocate( alg_ext )
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!$
-!!$
-!!$    do i = 1, totele
-!!$       if ( volume_fraction % val( i ) > 1.e-7 ) then
-!!$          perm( i, 1, 1 ) =  field_fl_p11 % val( i ) / volume_fraction % val( i ) 
-!!$          perm( i, 1, 2 ) =  field_fl_p12 % val( i ) / volume_fraction % val( i ) 
-!!$          perm( i, 2, 1 ) =  field_fl_p21 % val( i ) / volume_fraction % val( i ) 
-!!$          perm( i, 2, 2 ) =  field_fl_p22 % val( i ) / volume_fraction % val( i ) 
-!!$       else
-!!$          perm( i, 1, 1 ) = perm_bg( i, 1, 1 )
-!!$          perm( i, 1, 2 ) = perm_bg( i, 1, 2 )
-!!$          perm( i, 2, 1 ) = perm_bg( i, 2, 1 )
-!!$          perm( i, 2, 2 ) = perm_bg( i, 2, 2 )
-!!$       end if
-!!$    end do
-!!$
-!!$
-!!$    !ewrite(3,*) ' permeability tensor:'
-!!$    !ewrite(3,*) 'xx', perm( :, 1, 1 )
-!!$    !ewrite(3,*) 'xy', perm( :, 1, 2 )
-!!$    !ewrite(3,*) 'yx', perm( :, 2, 1 )
-!!$    !ewrite(3,*) 'yy', perm( :, 2, 2 )
-!!$
-!!$    !ewrite(3,*) 'xx min_max', minval( perm( :, 1, 1 ) ), maxval( perm( :, 1, 1 ) )
-!!$    !ewrite(3,*) 'xy min_max', minval( perm( :, 1, 2 ) ), maxval( perm( :, 1, 2 ) )
-!!$    !ewrite(3,*) 'yx min_max', minval( perm( :, 2, 1 ) ), maxval( perm( :, 2, 1 ) )
-!!$    !ewrite(3,*) 'yy min_max', minval( perm( :, 2, 2 ) ), maxval( perm( :, 2, 2 ) )
-!!$    !stop 749
-
-    ewrite(3,*) 'leaving calculate_perm'
-
-
-    stop 65669
+    ewrite(3,*) "leaving calculate_perm"
 
     return
   end subroutine calculate_perm
 
   !----------------------------------------------------------------------------------------------------------
-
-!!$+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!!$+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!!$+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
 
   subroutine coarsen_mesh_2d( f, c )
 
@@ -613,6 +605,8 @@ contains
     type( element_type ) :: shape
     type( mesh_type ) :: mesh
 
+    logical, parameter :: coarsen_mesh = .true.
+
     nedge = 3 ! triangles
     nloc  = 3 ! 3 nodes per element
     snloc = 2 ! 2 nodes per edge
@@ -621,252 +615,293 @@ contains
     nele = element_count( f )
     nbcs = surface_element_count( f )
 
-    allocate( ndglno( nloc*nele ), sndglno( snloc*nele ) ) 
-    allocate( ele_nodes( nloc ), ele2_nodes( nloc ) )
-    allocate( n( snloc ), bc(snloc ) )
+    if ( coarsen_mesh ) then
 
+       allocate( ndglno( nloc * nele ), sndglno( snloc * nbcs ) ) 
+       allocate( ele_nodes( nloc ), ele2_nodes( nloc ) )
+       allocate( n( snloc ), bc(snloc ) )
 
-    ndglno = f % mesh % ndglno
-    call getsndgln( f % mesh, sndglno)
+       ndglno = f % mesh % ndglno
+       call getsndgln( f % mesh, sndglno)
 
-    nele_s = nele ! number of elements in the simplified mesh
+       nele_s = nele ! number of elements in the simplified mesh
 
-    do ele = 1, nele
+       do ele = 1, nele
 
-       ele_nodes = ndglno( (ele-1)*nloc+1 : ele*nloc )
+          ele_nodes = ndglno( ( ele - 1 ) * nloc + 1 : ele * nloc )
 
-       ! check if this element has been deleted
-       if ( all( ele_nodes < 0 ) ) cycle
+          ! check if this element has been deleted
+          if ( all( ele_nodes < 0 ) ) cycle
 
-       do edge = 1, nedge
+          do edge = 1, nedge
 
-          n( 1 ) = ele_nodes( edge )
-          if ( edge < nedge ) then
-             n( 2 ) = ele_nodes( edge+1 )
-          else
-             n( 2 ) = ele_nodes( 1 )
-          end if
-
-          on_the_wall = .false.
-          do bcs = 1, nbcs
-             bc = sndglno( (bcs-1)*snloc+1 : bcs*snloc )
-
-             ! on_the_wall = .true. if all nodes on the boundary
-             if ( all(n==bc) ) then
-                on_the_wall = .true.
-                exit
-             end if
-             ! if one node is on the wall 
-             ! figure out which one it is
-             st = -666
-             if ( any(n==bc) .and. .not.on_the_wall ) then
-                do siloc = 1, snloc
-                   do sjloc = 1, snloc
-                      if ( n( siloc ) == bc( sjloc ) ) st = n( siloc )
-                      if ( n( siloc ) /= bc( sjloc ) ) mv = n( siloc )
-                   end do
-                end do
-             end if
-          end do
-
-          if ( .not.on_the_wall ) then
-
-             if ( st < 0 ) then
-                st = n( 1 )
-                mv = n( 2 )
+             n( 1 ) = ele_nodes( edge )
+             if ( edge < nedge ) then
+                n( 2 ) = ele_nodes( edge+1 )
+             else
+                n( 2 ) = ele_nodes( 1 )
              end if
 
-             do ele2 = 1, nele
+             on_the_wall = .false.
+             do bcs = 1, nbcs
+                bc = sndglno( (bcs-1)*snloc+1 : bcs*snloc )
 
-                ele2_nodes = ndglno( (ele2-1)*nloc+1 : ele2*nloc )
-
-                ! check if this element has been deleted
-                if ( all( ele2_nodes < 0 ) ) cycle
-
-                do iloc = 1, nloc
-                   if ( ele2_nodes( iloc ) == mv ) &
-                        ndglno( (ele2-1)*nloc+iloc ) = st
-                end do
-
-                ! update local memory
-                ele2_nodes = ndglno( (ele2-1)*nloc+1 : ele2*nloc )
-
-                ! figure out if we need to delete ele2
-                delete_ele2 = .false.
-                if ( ele2 == ele ) then
-                   delete_ele2 = .true.
-                else
-                   do iloc = 1, nloc
-                      do jloc = iloc+1, nloc
-                         if ( ele2_nodes( iloc ) == ele2_nodes( jloc ) ) & 
-                              delete_ele2 = .true.
+                ! on_the_wall = .true. if all nodes on the boundary
+                if ( all( n == bc ) ) then
+                   on_the_wall = .true.
+                   exit
+                end if
+                ! if one node is on the wall 
+                ! figure out which one it is
+                st = -666
+                if ( any( n == bc ) .and. .not.on_the_wall ) then
+                   do siloc = 1, snloc
+                      do sjloc = 1, snloc
+                         if ( n( siloc ) == bc( sjloc ) ) st = n( siloc )
+                         if ( n( siloc ) /= bc( sjloc ) ) mv = n( siloc )
                       end do
                    end do
                 end if
+             end do
 
-                if ( delete_ele2 ) then
-                   ndglno( (ele2-1)*nloc+1 : ele2*nloc ) = -666
-                   nele_s = nele_s - 1
+             if ( any( sndglno == mv ) ) on_the_wall = .true.
+
+             if ( .not.on_the_wall ) then
+
+                if ( st < 0 ) then
+                   st = n( 1 )
+                   mv = n( 2 )
                 end if
 
-             end do ! ele2, nele
-          end if ! .not.on_the_wall
-       end do ! edge, nedge
-    end do ! ele, nele
+                do ele2 = 1, nele
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!! create simplified mesh !!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                   ele2_nodes = ndglno( ( ele2 - 1 ) * nloc + 1 : ele2 * nloc )
 
-    allocate( ndglno_s( nele_s*nloc ), tmp( nele_s*nloc ) )
+                   ! check if this element has been deleted
+                   if ( all( ele2_nodes < 0 ) ) cycle
 
-    do ele = 1, nele
-       ele_nodes = ndglno( (ele-1)*nloc+1 : ele*nloc )
-       if ( all(ele_nodes<0) ) cycle
-       ndglno_s( (count-1)*nloc+1 : count*nloc ) = ele_nodes
-       count = count +1
-    end do
+                   do iloc = 1, nloc
+                      if ( ele2_nodes( iloc ) == mv ) &
+                           ndglno( ( ele2 - 1 ) * nloc + iloc ) = st
+                   end do
 
-    ! make sure elements aren't inside out
-    do ele = 1, nele_s
-       ele_nodes = ndglno_s( (ele-1)*nloc+1 : ele*nloc )
+                   ! update local memory
+                   ele2_nodes = ndglno( ( ele2 - 1 ) * nloc + 1 : ele2 * nloc )
 
-       area = triangle_area( &
-            f % val(1, ele_nodes(1) ), f % val(2, ele_nodes(1) ), &
-            f % val(1, ele_nodes(2) ), f % val(2, ele_nodes(2) ), &
-            f % val(1, ele_nodes(3) ), f % val(2, ele_nodes(3) ) )
-       if ( area < 0. ) then
-          ! swap 2nd and 3rd nodes
-          ndglno_s( (ele-1)*nloc+2 : ele*nloc ) = (/ ele_nodes(3), ele_nodes(2) /) 
-       end if
-    end do
+                   ! figure out if we need to delete ele2
+                   delete_ele2 = .false.
+                   if ( ele2 == ele ) then
+                      delete_ele2 = .true.
+                   else
+                      do iloc = 1, nloc
+                         do jloc = iloc+1, nloc
+                            if ( ele2_nodes( iloc ) == ele2_nodes( jloc ) ) &
+                                 delete_ele2 = .true.
+                         end do
+                      end do
+                   end if
 
+                   if ( delete_ele2 ) then
+                      ndglno( ( ele2 - 1 ) * nloc + 1 : ele2 * nloc ) = -666
+                      nele_s = nele_s - 1
+                   end if
 
-    ! make sure we've recovered all the elements
-    assert( nele_s == count )
+                end do ! ele2, nele
+             end if ! .not.on_the_wall
+          end do ! edge, nedge
+       end do ! ele, nele
 
-    ! figure out which nodes are still in the mesh and count them
-    tmp = ndglno_s
-    call delete_duplicates( tmp, nnodes_s )
-    allocate( nodes_s( nnodes_s ) ) ; nodes_s = tmp( 1 : nnodes_s )
-    ! sort the node numbers
-    call ibubble( nodes_s )
+       ! create simplified mesh
 
-    ! re-numbering
+       allocate( ndglno_s( nele_s * nloc ), tmp( nele_s * nloc ) )
 
-    allocate( x_s( nnodes_s ), y_s( nnodes_s ) )
-
-    ! deal with nodes
-    do i = 1, nnodes_s
-       j = nodes_s( i )
-       x_s( i ) = f % val(1, j )
-       y_s( i ) = f % val(2, j )
-    end do
-
-    ! deal with ndgln
-    do ele = 1, nele_s
-       ele_nodes = ndglno( (ele-1)*nloc+1 : ele*nloc )
-       do iloc = 1, nloc
-          ! figure out new node number
-          forall( i = 1:nnodes_s, nodes_s(i) == ele_nodes(iloc) ) ne = i 
-          ! amend ndglno
-          ndglno_s( (ele-1)*nloc + iloc ) = ne
+       count = 1
+       do ele = 1, nele
+          ele_nodes = ndglno( ( ele - 1 ) * nloc + 1 : ele * nloc )
+          if ( all( ele_nodes < 0) ) cycle
+          ndglno_s( ( count - 1 ) * nloc + 1 : count * nloc ) = ele_nodes
+          count = count +1
        end do
-    end do
 
-    ! deal with sndgln
-    do bcs = 1, nbcs
-       bc = sndglno( (bcs-1)*snloc+1 : bcs*snloc )
-       do siloc = 1, snloc
-          ! figure out new node number
-          forall( i = 1:nnodes_s, nodes_s(i) == ele_nodes(siloc) ) ne = i 
-          ! amend sndglno
-          sndglno( (bcs-1)*snloc + siloc ) = ne
+       ! make sure elements aren't inside out
+       do ele = 1, nele_s
+          ele_nodes = ndglno_s( ( ele - 1 ) * nloc + 1 : ele * nloc )
+          area = triangle_area( &
+               f % val( 1, ele_nodes( 1 ) ), f % val( 2, ele_nodes( 1 ) ), &
+               f % val( 1, ele_nodes( 2 ) ), f % val( 2, ele_nodes( 2 ) ), &
+               f % val( 1, ele_nodes( 3 ) ), f % val( 2, ele_nodes( 3 ) ) )
+          if ( area < 0. ) then
+             ! swap 2nd and 3rd nodes
+             ndglno_s( ( ele - 1 ) * nloc + 2 : ele * nloc ) = (/ ele_nodes( 3 ), ele_nodes( 2 ) /) 
+          end if
        end do
-    end do
 
+       ! make sure we've recovered all the elements
+       assert( nele_s == count-1 )
 
-    call get_option( "/geometry/quadrature/degree", quad_degree )
+       ! figure out which nodes are still in the mesh and count them
+       tmp = ndglno_s
+       call delete_duplicates( tmp, nnodes_s )
+       allocate( nodes_s( nnodes_s ) ) ; nodes_s = tmp( 1 : nnodes_s )
+       ! sort the node numbers
+       call ibubble( nodes_s )
 
-    quad = make_quadrature( nloc, ndim, degree = quad_degree )
-    shape = make_element_shape( nloc, ndim, 1, quad )
+       ! re-numbering
 
-    ! create the ring mesh
-    call allocate( mesh, nnodes_s, nele_s, shape, name="CoordinateMesh" )
-    call allocate( c, ndim, mesh, name="Coordinate" )
-    c % val( 1, : ) = x_s
-    c % val( 2, : ) = y_s
-    call deallocate( mesh )
+       allocate( x_s( nnodes_s ), y_s( nnodes_s ) )
 
-    c % mesh % ndglno = ndglno_s 
+       ! deal with nodes
+       do i = 1, nnodes_s
+          j = nodes_s( i )
+          x_s( i ) = f % val( 1, j )
+          y_s( i ) = f % val( 2, j )
+       end do
 
-    allocate( boundary_ids( nbcs ) ) ; boundary_ids = 666
-    call add_faces( c % mesh, &
-         sndgln = sndglno, &
-         boundary_ids = boundary_ids )
+       ! deal with ndgln
+       do ele = 1, nele_s
+          ele_nodes = ndglno_s( ( ele - 1 ) * nloc + 1 : ele * nloc )
+          do iloc = 1, nloc
+             ! figure out new node number
+             do i = 1, nnodes_s
+                if ( nodes_s( i ) == ele_nodes( iloc ) ) then
+                   ne = i
+                   exit
+                end if
+             end do
+             ! amend ndglno
+             ndglno_s( ( ele - 1 ) * nloc + iloc ) = ne
+          end do
+       end do
 
-    c % dim = ndim
+       ! deal with sndgln
+       do bcs = 1, nbcs
+          bc = sndglno( ( bcs - 1 ) * snloc + 1 : bcs * snloc )
+          do siloc = 1, snloc
+             ! figure out new node number
+             do i = 1, nnodes_s
+                if ( nodes_s( i ) == bc( siloc ) ) then
+                   ne = i
+                   exit
+                end if
+             end do
+             ! amend sndglno
+             sndglno( ( bcs - 1 ) * snloc + siloc ) = ne
+          end do
+       end do
 
-    deallocate( boundary_ids )
+       call get_option( "/geometry/quadrature/degree", quad_degree )
 
-    call deallocate_element( shape )
-    call deallocate( quad )
+       quad = make_quadrature( nloc, ndim, degree = quad_degree )
+       shape = make_element_shape( nloc, ndim, 1, quad )
 
-    deallocate( ndglno_s, tmp )
-    deallocate( x_s, y_s )
+       ! create the coarse mesh
+       call allocate( mesh, nnodes_s, nele_s, shape, name="CoordinateMesh" )
+       call allocate( c, ndim, mesh, name="Coordinate" )
 
-    deallocate( ndglno, sndglno )
-    deallocate( ele_nodes, ele2_nodes, n, bc )
+       c % val( 1, : ) = x_s
+       c % val( 2, : ) = y_s
+
+       c % mesh % ndglno = ndglno_s
+
+       allocate( boundary_ids( nbcs ) ) ; boundary_ids = 666
+       call add_faces( c % mesh, &
+            sndgln = sndglno, &
+            boundary_ids = boundary_ids )
+
+       c % dim = ndim
+
+       deallocate( boundary_ids )
+
+       call deallocate( mesh )
+       call deallocate_element( shape )
+       call deallocate( quad )
+
+       deallocate( ndglno_s, tmp )
+       deallocate( x_s, y_s )
+
+       deallocate( ndglno, sndglno )
+       deallocate( ele_nodes, ele2_nodes, n, bc )
+
+    else
+
+       call get_option( "/geometry/quadrature/degree", quad_degree )
+
+       quad = make_quadrature( nloc, ndim, degree = quad_degree )
+       shape = make_element_shape( nloc, ndim, 1, quad )
+
+       call allocate( mesh, node_count( f ), element_count( f ), shape, name="CoordinateMesh" )
+       call allocate( c, ndim, mesh, name="Coordinate" )
+       c % val = f % val
+
+       c % mesh % ndglno = f % mesh % ndglno
+
+       allocate( sndglno( snloc*nbcs ) ) ; sndglno = 0
+       call getsndgln( f % mesh, sndglno)
+
+       allocate( boundary_ids( nbcs ) ) ; boundary_ids = 666
+       call add_faces( c % mesh, &
+            sndgln = sndglno, &
+            boundary_ids = boundary_ids )
+
+       c % dim = ndim
+
+       deallocate( sndglno, boundary_ids )
+
+       call deallocate( mesh )
+       call deallocate_element( shape )
+       call deallocate( quad )
+
+    end if
 
     return
   end subroutine coarsen_mesh_2d
 
-!!$+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!!$+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!!$+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  !----------------------------------------------------------------------------------------------------------
+  !----------------------------------------------------------------------------------------------------------
 
   subroutine ibubble( a )
 
     implicit none
+
     integer, dimension( : ), intent( inout ) :: a
-    integer :: n, i, j, p, q, tmp
+    integer :: n, i, j, p, q
 
     n = size( a )
 
     do i = 1, n
-       do j = n, i+1, -1   
-          p = a( j-1 ) 
+       do j = n, i + 1, -1
+          p = a( j - 1 ) 
           q = a( j )
           if ( p > q ) then
-             tmp = p
-             p = q
-             q = tmp
+              a( j - 1 ) = q
+              a( j ) = p
           end if
        end do
     end do
+
     return
   end subroutine ibubble
-
 
   subroutine delete_duplicates( a, count )
 
     implicit none
+
     integer, dimension( : ), intent( inout ) :: a
     integer, intent( out ) :: count
-    integer :: n, i, j 
+    integer :: n, i, j
     integer, dimension(:), allocatable :: tmp
 
     n = size( a )
 
-    allocate( tmp( n ) ) ; tmp = -666 
+    allocate( tmp( n ) ) ; tmp = a
 
     count = 1
-    tmp(1) = tmp(1)
+    tmp( 1 ) = tmp( 1 )
 
     outer: do i = 2, n
        do j = 1, count
           ! Found a match so start looking again
-          if ( tmp(j) == a(i) ) cycle outer
+          if ( tmp( j ) == a( i ) ) cycle outer
        end do
        ! No match found so add it to the output
        count = count + 1
@@ -883,14 +918,16 @@ contains
 
   subroutine bound_volume_fraction ( v, v_min, v_max )
 
+    implicit none
+
     real, dimension( : ), intent( inout ) :: v
     real, intent( in ), optional :: v_min, v_max
     real :: vmin, vmax
     integer :: i
 
     vmin = 0. ; vmax = 1.
-    if ( present( v_min ) ) vmin = v_min 
-    if ( present( v_max ) ) vmax = v_max 
+    if ( present( v_min ) ) vmin = v_min
+    if ( present( v_max ) ) vmax = v_max
 
     do i = 1, size( v )
        v( i ) = max( vmin, min( vmax, v( i ) ) )
@@ -899,31 +936,27 @@ contains
     return
   end subroutine bound_volume_fraction
 
-  subroutine deallocate_fractures
-
-    call deallocate( fracture_positions )
-    call deallocate( permeability_r )
-
-    return
-  end subroutine deallocate_fractures
-
   subroutine deallocate_femdem
+
+    implicit none
 
     call deallocate( positions_r )
     call deallocate( positions_v )
+    call deallocate( positions_vc )
     call deallocate( permeability_r )
 
     return
   end subroutine deallocate_femdem
 
   real function triangle_area( x1, y1, x2, y2, x3, y3 )
+
     implicit none
+
     real :: x1, y1, x2, y2, x3, y3
 
     triangle_area = 0.5 * ( ( x2 * y3 - y2 * x3 ) - x1 * ( y3 - y2 ) + y1 * ( x3 - x2 ) )
 
     return
   end function triangle_area
-
 
 end module multiphase_fractures

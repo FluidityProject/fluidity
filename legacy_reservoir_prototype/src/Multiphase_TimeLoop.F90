@@ -64,6 +64,8 @@
     use Copy_Outof_State
     use Copy_BackTo_State
 
+    use multiphase_fractures
+
     !use mapping_for_ocvfem
     !use matrix_operations
     !use shape_functions
@@ -557,6 +559,12 @@
 
          ! update velocity absorption
          call update_velocity_absorption( state, ndim, nphase, mat_nonods, velocity_absorption )
+
+!!$ FEMDEM...
+         if ( .false. ) &
+              call femdem( state, totele, cv_nonods, ndim, nphase, cv_nloc, &
+              &            cv_ndgln, dt, density, velocity_absorption, permeability, porosity )
+
 
          ! time varying boundary conditions for Temperature
          if( have_temperature_field ) &
