@@ -624,7 +624,9 @@ The normalised mass concentration is 1.0 in the dusty gas region, so we divide 1
             <string_value lines="1">Dust::Velocity,Air::Velocity,Air::PhaseVolumeFraction,Air::Density</string_value>
           </depends>
           <particle_diameter>
-            <real_value rank="0">10e-6</real_value>
+            <constant>
+              <real_value rank="0">10e-6</real_value>
+            </constant>
           </particle_diameter>
           <continuous_phase_name>Air</continuous_phase_name>
         </algorithm>
