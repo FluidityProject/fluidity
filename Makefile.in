@@ -624,7 +624,7 @@ install: default fltools bin/shallow_water bin/burgers_equation
 	rm -rf $(DESTDIR)$(docdir)/fluidity/examples/
 
 install-diamond: 
-	cd libspud; ./configure --prefix=$(DESTDIR)@prefix@; cd ../..
+	cd libspud; ./configure --prefix=@prefix@; cd ../..
 	cd libspud; $(MAKE) clean; cd ../..
 	cd libspud; $(MAKE) install-diamond; cd ../..
 	cd libspud; $(MAKE) install-dxdiff; cd ../..
