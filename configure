@@ -13629,13 +13629,18 @@ $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
     if echo $(hostname) | grep -q "^hector-xe6"; then
         { $as_echo "$as_me:${as_lineno-$LINENO}: Building on hector xe6; disabling shared libraries" >&5
 $as_echo "$as_me: Building on hector xe6; disabling shared libraries" >&6;}
-        SHFLAG=--disable-shared
+        CONFIG_FLAG=--disable-shared
         SPUD_ONLY="yes"
         FLLINKER=$CXX
     else
         FLLINKER=$FC
-        SHFLAG=--enable-shared
+        CONFIG_FLAG=--enable-shared
     fi
+
+    if test "$enable_profiling" = "yes" ; then
+        CONFIG_FLAG="${CONFIG_FLAG} --enable-profiling"
+    fi
+
 
 
     cd libspud
@@ -13646,7 +13651,7 @@ $as_echo "$as_me: Building on hector xe6; disabling shared libraries" >&6;}
     # fluidity's (except for MPI)
     echo "${env_fcflags}"
     echo "${env_fflags}"
-    FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" CFLAGS="${env_cflags} $PIC_FLAG $PROFILING_FLAG" CXXFLAGS="${env_cxxflags} $PIC_FLAG $PROFILING_FLAG" CPPFLAGS="${env_cppflags}" ./configure --prefix=${PWD}/.. ${SHFLAG}
+    FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" CFLAGS="${env_cflags} $PIC_FLAG $PROFILING_FLAG" CXXFLAGS="${env_cxxflags} $PIC_FLAG $PROFILING_FLAG" CPPFLAGS="${env_cppflags}" ./configure --prefix=${PWD}/.. ${CONFIG_FLAG}
     if test "$?" -ne "0"; then
       as_fn_error $? "Configuration of libspud has failed." "$LINENO" 5
       exit -1
