@@ -1454,19 +1454,11 @@ contains
     real :: Tbar
 
     ! variables to stop slope limiting at boundary
-    integer, dimension(:), pointer :: neigh
     real, dimension(face_loc(T,1)) :: T_val_min_face, T_val_max_face, T_bc_val_face
-    integer, dimension(face_loc(T,1)) :: face_nodes
-    real, dimension(mesh_dim(T), ele_loc(T,1)) :: ele_pos
-    real, dimension(mesh_dim(T)) :: node_pos
-    logical :: have_dirichlet_bc
 
     if (.not. element_degree(T%mesh, 1)==1 .or. continuity(T%mesh)>=0) then
       FLExit("The vertex based slope limiter only works for P1DG fields.")
     end if
-
-    ! Do we have dirichlet boundary conditions
-    have_dirichlet_bc=any(T_bc_type > 0)
 
     ! Allocate copy of field
     call allocate(T_limit, T%mesh,trim(T%name)//"Limited")
@@ -1503,41 +1495,31 @@ contains
        end do
        call set(T_min, ele_nodes(T_min,ele), T_val_min)
 
-       if (have_dirichlet_bc .and. (element_neighbour_owned(T, ele).or.element_owned(T, ele))) then
-         ! limit dirichlet boundary values to mean of element or dirichlet value
-         neigh=>ele_neigh(T, ele)
+    end do
 
-         do ni=1,size(neigh)
+    do face = 1, size(T_bc_type)
 
-           ele_2 = neigh(ni)
-
-           if (ele_2 <= 0) then
-             ! ele face on boundary
-             face=ele_face(T, ele, ele_2)
-
-             if (T_bc_type(face) > 0) then 
-               T_bc_val_face = ele_val(T_bc, face)
-               
-               ! do maxes
-               T_val_max_face = face_val(T_max,face)
-               do node = 1, size(T_bc_val_face)
-                 T_val_max_face(node) = max(T_val_max_face(node), T_bc_val_face(node))
-               end do
-               call set(T_max, face_global_nodes(T_max, face), T_val_max_face)
-
-               ! do mins
-               T_val_min_face = face_val(T_min,face)
-               do node = 1, size(T_bc_val_face)
-                 T_val_min_face(node) = min(T_val_min_face(node), T_bc_val_face(node))
-               end do
-               call set(T_min, face_global_nodes(T_min, face), T_val_min_face)
-
-             end if
-           end if
+       if (T_bc_type(face) > 0) then 
+         T_bc_val_face = ele_val(T_bc, face)
+         
+         ! do maxes
+         T_val_max_face = face_val(T_max,face)
+         do node = 1, size(T_bc_val_face)
+           T_val_max_face(node) = max(T_val_max_face(node), T_bc_val_face(node))
          end do
+         call set(T_max, face_global_nodes(T_max, face), T_val_max_face)
+
+         ! do mins
+         T_val_min_face = face_val(T_min,face)
+         do node = 1, size(T_bc_val_face)
+           T_val_min_face(node) = min(T_val_min_face(node), T_bc_val_face(node))
+         end do
+         call set(T_min, face_global_nodes(T_min, face), T_val_min_face)
+
        end if
 
     end do
+
 
     ! now for each P1DG node make sure the field value is between the recorded vertex min and max
     ! this is done without changing the element average (Tbar)
