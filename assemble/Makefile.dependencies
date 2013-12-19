@@ -317,7 +317,8 @@ Foam_Flow.o ../include/foam_flow_module.mod: Foam_Flow.F90 \
 	@true
 
 Free_Surface.o ../include/free_surface_module.mod: Free_Surface.F90 \
-   ../include/boundary_conditions.mod ../include/data_structures.mod \
+   ../include/boundary_conditions.mod ../include/cv_faces.mod \
+   ../include/cv_shape_functions.mod ../include/data_structures.mod \
    ../include/eventcounter.mod ../include/fdebug.h \
    ../include/field_options.mod ../include/fields.mod \
    ../include/global_parameters.mod ../include/halos.mod \
@@ -594,7 +595,8 @@ Momentum_Equation.o ../include/momentum_equation.mod: Momentum_Equation.F90 \
    ../include/petsc_solve_state_module.mod \
    ../include/pressure_dirichlet_bcs_cv.mod ../include/profiler.mod \
    ../include/reduced_model_runtime.mod \
-   ../include/rotated_boundary_conditions.mod ../include/slope_limiters_dg.mod \
+   ../include/rotated_boundary_conditions.mod \
+   ../include/shallow_water_equations.mod ../include/slope_limiters_dg.mod \
    ../include/solvers.mod ../include/sparse_matrices_fields.mod \
    ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
    ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
@@ -726,6 +728,14 @@ Saturation_Distribution_Search_HookeJeeves.o \
    ../include/global_parameters.mod ../include/momentum_equation.mod \
    ../include/spontaneous_potentials.mod ../include/spud.mod \
    ../include/state_module.mod ../include/write_state_module.mod
+
+../include/shallow_water_equations.mod: Shallow_Water_Equations.o
+	@true
+
+Shallow_Water_Equations.o ../include/shallow_water_equations.mod: \
+   Shallow_Water_Equations.F90 ../include/boundary_conditions.mod \
+   ../include/fdebug.h ../include/fields.mod ../include/global_parameters.mod \
+   ../include/spud.mod ../include/state_module.mod
 
 ../include/slope_limiters_dg.mod: Slope_limiters_DG.o
 	@true
