@@ -1533,7 +1533,7 @@ contains
           default_stat%detector_list%detector_names(static_dete+i)=detector_name
 
           call create_single_detector(default_stat%detector_list, xfield, &
-                detector_location, static_dete+1, LAGRANGIAN_DETECTOR, trim(detector_name))
+                detector_location, static_dete+i, LAGRANGIAN_DETECTOR, trim(detector_name))
        end do
 
        k=static_dete+lagrangian_dete+1
