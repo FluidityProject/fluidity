@@ -1682,6 +1682,7 @@ contains
                    read(default_stat%detector_checkpoint_unit) detector_location
                    call create_single_detector(default_stat%detector_list, xfield, &
                           detector_location, k, type_det, trim(detector_name)) 
+                   default_stat%detector_list%detector_names(k)=trim(detector_name)
                    k=k+1           
                 end do
              else                     
