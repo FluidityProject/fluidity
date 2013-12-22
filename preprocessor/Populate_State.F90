@@ -1054,7 +1054,7 @@ contains
 
           call deallocate(solid_position)
        else
-          FLAbort("Solid mesh must be defined as 'from_file'")
+          FLExit("Solid mesh must be defined as 'from_file'")
        end if
 
     end do external_solid_mesh_loop
