@@ -898,6 +898,32 @@
          endif
       endif
 
+!      if(iphase==1) then
+!       print *,'S_GC, S_OR:',S_GC,S_OR
+!        stop 392
+!      endif
+
+!      if(iphase==1) then
+!         if(sat.lt.0.202) then
+!               ABSP = ABSP*max(1.0,  (0.202-sat)*1.e+10 )
+!         endif
+!      endif
+
+    if(.true.) then
+   ! if(.false.) then
+      if(iphase==1) then
+         if(SATURATION.lt.S_GC+0.01) then
+               ABSP = ABSP*max(1.0,  (S_GC+0.01-SATURATION)*1.e+10 )
+         endif
+      endif
+      if(iphase==2) then
+         if(SATURATION.lt.s_or+0.01) then
+               ABSP = ABSP*max(1.0,  (s_or+0.01-SATURATION)*1.e+10 )
+         endif
+      endif
+    endif
+
+
       RETURN
     END SUBROUTINE relperm_corey
 

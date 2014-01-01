@@ -869,6 +869,8 @@
                     option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction', &
                     mass_ele_transp = mass_ele )
 
+                PhaseVolumeFraction=min( max(PhaseVolumeFraction,0.0), 1.0)
+
             end if Conditional_PhaseVolumeFraction
 
 !!$ Starting loop over components
@@ -968,6 +970,10 @@
                                 !option_path = '', &
                           mass_ele_transp = dummy_ele, &
                           thermal = .false. ) ! the false means that we don't add an extra source term
+
+                   Component( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods )  &
+!                       =min(  max(Component( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods ),0.0), 0.95) 
+                       =min(  max(Component( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods ),0.0), 1.0) 
 
                   end do Loop_NonLinearIteration_Components
 

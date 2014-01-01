@@ -3,7 +3,7 @@
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
-!    Prof. C Pain
+!    Prof. C Pain 
 !    Applied Modelling and Computation Group
 !    Department of Earth Science and Engineering
 !    Imperial College London
@@ -5466,14 +5466,18 @@ END IF
       LOGICAL, PARAMETER :: LIM_VOL_ADJUST2 = .true.
       ! If ROW_AVE then use a Roe averaged flux between the elements or CV's when ROE_AVE =.true. 
       LOGICAL, PARAMETER :: ROE_AVE = .false. !.false. !.true.
-      LOGICAL :: RESET_STORE, LIM_VOL_ADJUST
+! limit the volume fraction based on net letting flux go into certain elements for DG between the elements...
+      LOGICAL, PARAMETER :: LIMIT_SAT_BASED_INTERP = .false.
+! limit the volume fraction based on switching to the 1st order scheme for DG between the elements...
+      LOGICAL, PARAMETER :: LIMIT_SAT_BASED_UPWIND = .false.
+      LOGICAL :: RESET_STORE, LIM_VOL_ADJUST, enforce_abs
       REAL :: TMIN_STORE, TMAX_STORE, TOLDMIN_STORE, TOLDMAX_STORE
       REAL :: PERM_TILDE, PERMold_TILDE,NDOTQ_TILDE, NDOTQ2_TILDE, NDOTQOLD_TILDE, NDOTQOLD2_TILDE, rden_ave, rdenold_ave, Q_UNDERLY, QOLD_UNDERLY
       REAL :: NDOTQ_KEEP_IN, NDOTQOLD_KEEP_IN,  NDOTQ_KEEP, NDOTQ2_KEEP, NDOTQOLD_KEEP, NDOTQOLD2_KEEP
       ! coefficients for this element ELE
       real :: gamma, gammaold, abs_tilde, abs_tildeold, abs_tilde_i, abs_tilde_j, abs_max, abs_min, w_relax, w_relaxold, grad2nd, grad2ndold
       real :: abs_tilde_2nd, abs_tildeold_2nd, max_nodtq_keep, min_nodtq_keep, max_nodtqold_keep, min_nodtqold_keep
-      real :: w_weight, w_weightold
+      real :: w_weight, w_weightold, relax
 
 
 
@@ -5666,6 +5670,45 @@ END IF
                END IF
               IF(abs(NDOTQ2 - NDOTQ).lt. 1.e-7) INCOME=0.5
               IF(abs(NDOTQOLD2 - NDOTQOLD) .lt. 1.e-7) INCOMEOLD=0.5
+
+      if(.false.) then
+
+               MAT_NODI=MAT_NDGLN((ELE-1)*MAT_NLOC+CV_ILOC)
+               MAT_NODJ=MAT_NDGLN((ELE-1)*MAT_NLOC+CV_JLOC)
+
+               NVEC(1)=CVNORMX(GI)
+               NVEC(2)=CVNORMY(GI)
+               NVEC(3)=CVNORMZ(GI)
+               ABS_CV_NODI_IPHA      = 0.0
+               GRAD_ABS_CV_NODI_IPHA = 0.0
+               ABS_CV_NODJ_IPHA      = 0.0
+               GRAD_ABS_CV_NODJ_IPHA = 0.0
+               DO IDIM=1,NDIM
+                  V_NODI=0.0
+                  G_NODI=0.0
+                  V_NODJ=0.0
+                  G_NODJ=0.0
+                  DO JDIM=1,NDIM
+                     IJ=(IPHASE-1)*MAT_NONODS*NDIM*NDIM + (MAT_NODI-1)*NDIM*NDIM + (IDIM-1)*NDIM +JDIM
+                     V_NODI = V_NODI + OPT_VEL_UPWIND_COEFS(IJ) * NVEC(JDIM)
+                     G_NODI = G_NODI + OPT_VEL_UPWIND_COEFS(IJ+NPHASE*MAT_NONODS*NDIM*NDIM) * NVEC(JDIM)
+                     IJ=(IPHASE-1)*MAT_NONODS*NDIM*NDIM + (MAT_NODJ-1)*NDIM*NDIM + (IDIM-1)*NDIM +JDIM
+                     V_NODJ = V_NODJ + OPT_VEL_UPWIND_COEFS(IJ) * NVEC(JDIM)
+                     G_NODJ = G_NODJ + OPT_VEL_UPWIND_COEFS(IJ+NPHASE*MAT_NONODS*NDIM*NDIM) * NVEC(JDIM)
+                  END DO
+                  ABS_CV_NODI_IPHA      = ABS_CV_NODI_IPHA + NVEC(IDIM)*V_NODI
+                  GRAD_ABS_CV_NODI_IPHA = GRAD_ABS_CV_NODI_IPHA + NVEC(IDIM)*G_NODI
+                  ABS_CV_NODJ_IPHA      = ABS_CV_NODJ_IPHA + NVEC(IDIM)*V_NODJ
+                  GRAD_ABS_CV_NODJ_IPHA = GRAD_ABS_CV_NODJ_IPHA + NVEC(IDIM)*G_NODJ
+               END DO
+                     INCOME =0.5*ABS_CV_NODI_IPHA* MASS_CV(CV_NODI) /(0.5*(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI) +ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ) ))
+                     INCOMEOLD =0.5*ABS_CV_NODI_IPHA* MASS_CV(CV_NODI) /(0.5*(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI) +ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ) ))
+
+
+      endif
+
+
+
 
             ELSE IF(IN_ELE_UPWIND==2) THEN ! the best
 
@@ -5945,6 +5988,14 @@ END IF
                   INCOMEOLD = MIN(1.0, MAX(0.0,  (NDOTQOLD_KEEP_IN - NDOTQOLD)/TOLFUN( NDOTQOLD2 - NDOTQOLD ) ))
                   IF(abs(NDOTQOLD2 - NDOTQOLD) .lt. 1.e-7) INCOMEOLD=0.5
            endif
+
+
+!                     INCOME =0.5*ABS_CV_NODI_IPHA* MASS_CV(CV_NODI) /(0.5*(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI) +ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ) ))
+!                     INCOMEOLD =0.5*ABS_CV_NODI_IPHA* MASS_CV(CV_NODI) /(0.5*(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI) +ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ) ))
+
+!               stop 821
+
+
 !
 
 ! END OF IF ( HIGH_ORD_IN_ELE ) THEN ...
@@ -6507,6 +6558,82 @@ if (  .not.(FORCE_UPWIND_VEL.or.(DG_ELE_UPWIND==1).or.FORCE_UPWIND_VEL_DG_ELE)  
                 !  incomeold = incomeold3 * max(0.5, incomeold)  +  (1.-incomeold3) *  min(0.5, incomeold)
            endif
 
+! limit the volume fraction based on net letting flux go into certain elements...
+!     if(.false.) then
+     if(LIMIT_SAT_BASED_INTERP) then
+         enforce_abs = .false.
+
+         if(iphase==1) then
+            !  IF(0.5*(NDOTQ_TILDE+NDOTQ2_TILDE) >= 0.0) THEN 
+              IF(0.5*(NDOTQ+NDOTQ2) >= 0.0) THEN 
+                IF(T(CV_NODi_IPHA) < 0.5) then
+                   enforce_abs = .true.
+                   relax=min( 10.*(0.5-T(CV_NODi_IPHA)), 1.0)
+                ENDIF
+              ELSE
+                IF(T(CV_NODj_IPHA) < 0.5) THEN
+                   enforce_abs = .true. 
+                   relax=min( 10.*(0.5-T(CV_NODJ_IPHA)), 1.0)
+                ENDIF
+              ENDIF
+         endif
+
+         if(iphase==2) then
+            !  IF(0.5*(NDOTQ_TILDE+NDOTQ2_TILDE) >= 0.0) THEN 
+              IF(0.5*(NDOTQ+NDOTQ2) >= 0.0) THEN 
+                IF(T(CV_NODi_IPHA) < 0.5) then
+                   enforce_abs = .true.
+                   relax=min( 10.*(0.5-T(CV_NODi_IPHA)), 1.0)
+                ENDIF
+              ELSE
+                IF(T(CV_NODj_IPHA) < 0.5) THEN
+                   enforce_abs = .true. 
+                   relax=min( 10.*(0.5-T(CV_NODJ_IPHA)), 1.0)
+                ENDIF
+              ENDIF
+         endif
+
+
+
+        if(enforce_abs) then
+              INCOME =  (1.-RELAX)*INCOME  + RELAX*( (1.-INCOME)**2 *(1. - 3.*INCOME) +  INCOME*(1.-INCOME)*(1.+3.*INCOME)  ) ! non-lumped
+        endif
+
+          income=min(1.0, max(0.0, income))
+          incomeold=income
+      endif
+
+
+
+
+
+! limit the volume fraction based on switching to the 1st order scheme...
+!     if(.true.) then
+     if(LIMIT_SAT_BASED_UPWIND) then
+!                 if( ABS_CV_NODI_IPHA+ABS_CV_NODJ_IPHA.gt.1.e+6) then ! resort to using the velocity from the highest absorption cell. 
+!                 if( min(ABS_CV_NODI_IPHA,ABS_CV_NODJ_IPHA)/ (ABS_CV_NODI_IPHA+ABS_CV_NODJ_IPHA).lt.1.e-5) then ! resort to using the velocity from the highest absorption cell. 
+                 if( min(ABS_CV_NODI_IPHA,ABS_CV_NODJ_IPHA)/ (ABS_CV_NODI_IPHA+ABS_CV_NODJ_IPHA).lt.1.e-4) then ! resort to using the velocity from the highest absorption cell. 
+!                 if( min(ABS_CV_NODI_IPHA,ABS_CV_NODJ_IPHA)/ (ABS_CV_NODI_IPHA+ABS_CV_NODJ_IPHA).lt.1.e-3) then ! resort to using the velocity from the highest absorption cell. 
+                    ! IF(0.5*(NDOTQ_TILDE+NDOTQ2_TILDE) < 0.0) THEN 
+                     IF(0.5*(NDOTQ+NDOTQ2) < 0.0) THEN 
+                        INCOME=1.0
+                     ELSE
+                        INCOME=0.0
+                     END IF
+                     !IF(0.5*(NDOTQOLD_TILDE+NDOTQOLD2_TILDE) < 0.0) THEN
+                     IF(0.5*(NDOTQOLD+NDOTQOLD2) < 0.0) THEN
+                        INCOMEOLD=1.0
+                     ELSE
+                        INCOMEOLD=0.0
+                     END IF
+                     INCOME =0.5*ABS_CV_NODj_IPHA* MASS_CV(CV_NODj) /(0.5*(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI) +ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ) ))
+                     INCOMEOLD =0.5*ABS_CV_NODj_IPHA* MASS_CV(CV_NODj) /(0.5*(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI) +ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ) ))
+                 endif
+      endif
+
+
+
+
 
                !      IF(abs(NDOTQ2 - NDOTQ).lt. 1.e-7) INCOME=0.5
                !      IF(abs(NDOTQOLD2 - NDOTQOLD) .lt. 1.e-7) INCOMEOLD=0.5
@@ -6980,6 +7107,9 @@ if (  .not.(FORCE_UPWIND_VEL.or.(DG_ELE_UPWIND==1).or.FORCE_UPWIND_VEL_DG_ELE)  
       ! =2 is isotropic downwind diffusion  (3rd recommend,least compressive)
       ! =5 is isotropic downwind diffusion with magnitude of =0 option. 
       ! In tests they all produce similar results.
+! LIMIT_WITHIN_REAL makes sure the saturations are bounded can be used with DG and 
+! recommend using it with LIMIT_SAT_BASED_UPWIND=.true.
+      LOGICAL, PARAMETER :: LIMIT_WITHIN_REAL = .false.
       !      INTEGER, PARAMETER :: NON_LIN_PETROV_INTERFACE = 5
       INTEGER, PARAMETER :: NON_LIN_PETROV_INTERFACE = 3
 
@@ -8022,8 +8152,48 @@ if (  .not.(FORCE_UPWIND_VEL.or.(DG_ELE_UPWIND==1).or.FORCE_UPWIND_VEL_DG_ELE)  
          endif
       endif
 
+
+!    if(.true.) then
+    IF(LIMIT_WITHIN_REAL) THEN
+! Limit within physically realistic region...
+    IF(IPHASE.EQ.1) THEN
+      if(income.gt.0.5) then
+         if(T(CV_NODj_IPHA).LT.0.2) LIMT=0.0
+      else
+         if(T(CV_NODI_IPHA).LT.0.2) LIMT=0.0
+      endif
+
+      if(incomeold.gt.0.5) then
+         if(TOLD(CV_NODj_IPHA).LT.0.2) LIMTOLD=0.0
+      else
+         if(TOLD(CV_NODI_IPHA).LT.0.2) LIMTOLD=0.0
+      endif
+    ENDIF
+
+
+    IF(IPHASE.EQ.2) THEN
+      if(income.gt.0.5) then
+         if(T(CV_NODj_IPHA).LT.0.2) LIMT=0.0
+      else
+         if(T(CV_NODI_IPHA).LT.0.2) LIMT=0.0
+      endif
+
+      if(incomeold.gt.0.5) then
+         if(TOLD(CV_NODj_IPHA).LT.0.2) LIMTOLD=0.0
+      else
+         if(TOLD(CV_NODI_IPHA).LT.0.2) LIMTOLD=0.0
+      endif
+    ENDIF
+
+
+    endif
+
+
+
       LIMDT = LIMD * LIMT
       LIMDTOLD = LIMDOLD * LIMTOLD
+
+
 
       LIMDTT2 = LIMD * LIMT * LIMT2
       LIMDTT2OLD = LIMDOLD * LIMTOLD * LIMT2OLD
