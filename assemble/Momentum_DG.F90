@@ -608,6 +608,8 @@ contains
        FLAbort("Unknown viscosity scheme - Options tree corrupted?")
     end if
 
+    partial_stress = .false.
+    have_les = .false.
     if (have_option(trim(u%option_path)//&
          &"/prognostic/spatial_discretisation"//&
          &"/discontinuous_galerkin/viscosity_scheme"//&
