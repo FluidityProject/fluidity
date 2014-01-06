@@ -97,7 +97,7 @@ module populate_state_module
        
   !! A list of relative paths under /material_phase[i]
   !! that are searched for additional fields to be added.
-  character(len=OPTION_PATH_LEN), dimension(11) :: additional_fields_relative=&
+  character(len=OPTION_PATH_LEN), dimension(15) :: additional_fields_relative=&
        (/ &
        "/subgridscale_parameterisations/Mellor_Yamada                                                       ", &
        "/subgridscale_parameterisations/prescribed_diffusivity                                              ", &
@@ -109,6 +109,10 @@ module populate_state_module
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/fourth_order", &
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/wale        ", &
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/dynamic_les ", &
+       "/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/les_model/         ", &
+       "/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/les_model/debug/   ", &
+       "/vector_field::Velocity/prognostic/equation::ShallowWater                                           ", &
+       "/vector_field::Velocity/prognostic/equation::ShallowWater/bottom_drag                               ", &
        "/vector_field::BedShearStress/diagnostic/calculation_method/velocity_gradient                       " &
        /)
 
@@ -1645,7 +1649,6 @@ contains
     type(tensor_field) :: tfield
 
     integer :: i, s, stat
-    real :: Pr
 
     ! Prescribed diffusivity
     do i = 1, size(states)
@@ -3907,11 +3910,11 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
     if (have_option(trim(pressure_path))) then
 
        ! Check that compressible projection method is used:
-       compressible_projection = have_option(trim(pressure_path)//&
-            "/scheme/use_compressible_projection_method")
+       compressible_projection = have_option("/material_phase[0]"//&
+            "/equation_of_state/compressible")
 
        if(.not.(compressible_projection)) then
-          FLExit("For foam problems you need to use the compressible projection method.")
+          FLExit("For foam problems you need to use a compressible eos.")
        end if
     end if
 

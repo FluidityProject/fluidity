@@ -3788,6 +3788,15 @@ boundary condition on the surface_ids specified.</a:documentation>
         <empty/>
       </element>
       <element name="type">
+        <a:documentation>Implements a prescribed normal flow. Works for DG only. This
+implements a weakly imposed bounadry condition normal to the surface.
+Note: Positive points out of the domain, negative into the domain.</a:documentation>
+        <attribute name="name">
+          <value>prescribed_normal_flow</value>
+        </attribute>
+        <ref name="input_choice_real_bc_component"/>
+      </element>
+      <element name="type">
         <a:documentation>Flux boundary condition. 
 
 Weakly enforces a flux across a boundary</a:documentation>
@@ -4464,12 +4473,15 @@ and should be prognostic.</a:documentation>
         </attribute>
         <choice>
           <element name="diagnostic">
-            <a:documentation>Free Surface
-NOTE: the diagnostic FreeSurface field only works in combination
-with the free_surface boundary condition applied to the Velocity
+            <a:documentation>Free Surface elevation, to be used in combination with:
+
+* a free_surface boundary condition applied to the Velocity
 field, without the no_normal_stress_option.
 It gives you a full dimensional field (constant over the vertical)
-of the free surface elevation.</a:documentation>
+of the free surface elevation.
+
+* equation type ShallowWater for Velocity. It simply divides 
+Pressure by g, the gravitational constant.</a:documentation>
             <ref name="internal_algorithm"/>
             <ref name="pressure_mesh_choice">
               <a:documentation>Must be on the same mesh as Pressure</a:documentation>
@@ -6525,6 +6537,19 @@ where _c and _i denote the compressible and incompressible phases respectively.<
           <element name="solver">
             <ref name="linear_solver_options_sym"/>
           </element>
+        </element>
+      </element>
+      <element name="scalar_field">
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>DGLESScalarEddyViscosity</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="internal_algorithm"/>
+          <ref name="velocity_mesh_choice"/>
+          <ref name="diagnostic_scalar_field"/>
         </element>
       </element>
     </choice>

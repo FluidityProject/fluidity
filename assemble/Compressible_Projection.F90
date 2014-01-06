@@ -104,15 +104,11 @@ module compressible_projection
     logical, intent(in) :: cmcget
 
     ! local:
-    integer :: norm_stat
-    character(len=FIELD_NAME_LEN) :: normalisation_field
-
     type(scalar_field) :: eospressure, drhodp
-    type(scalar_field), pointer :: normalisation, &
-                                   density, olddensity
+    type(scalar_field), pointer :: density, olddensity
     type(scalar_field), pointer :: pressure
     type(scalar_field), pointer :: p_cvmass
-    type(scalar_field) :: lhsfield, invnorm, absrhs
+    type(scalar_field) :: lhsfield, absrhs
     
     type(scalar_field), pointer :: source, absorption
     integer :: stat
@@ -135,24 +131,6 @@ module compressible_projection
 
       ewrite_minmax(p_cvmass)
       
-      call get_option(trim(pressure%option_path)//"/prognostic/scheme/use_compressible_projection_method/normalisation/name", &
-                      normalisation_field, stat=norm_stat)
-      if(norm_stat==0) then
-        normalisation=>extract_scalar_field(state, trim(normalisation_field))
-      else
-        allocate(normalisation)
-        call allocate(normalisation, pressure%mesh, "DummyNormalisation", field_type=FIELD_TYPE_CONSTANT)
-        call set(normalisation, 1.0)
-      end if
-      
-      call allocate(invnorm, normalisation%mesh, "InverseNormalisation", field_type=normalisation%field_type)
-      call invert(normalisation, invnorm)
-      
-      if(norm_stat/=0) then
-        call deallocate(normalisation)
-        deallocate(normalisation)
-      end if
-
       call allocate(lhsfield, pressure%mesh, "LHSField")
 
       call allocate(eospressure, pressure%mesh, 'EOSPressure')
@@ -172,10 +150,9 @@ module compressible_projection
 
       call set(lhsfield, p_cvmass)
       call scale(lhsfield, drhodp)
-      call scale(lhsfield, invnorm)
       call addto_diag(cmc, lhsfield, scale=1./(dt*dt*theta_divergence*theta_pg))
       
-!     rhs = invnorm*p_cvmass* &
+!     rhs = p_cvmass* &
 !      ( (1./dt)*(olddensity - density + drhodp*(eospressure - (pressure + atmospheric_pressure)))
 !       +(absorption)*(drhodp*theta_pg*(eospressure - (pressure + atmospheric_pressure)) - theta_pg*density - (1-theta_pg)*olddensity)
 !       +source)
@@ -216,13 +193,11 @@ module compressible_projection
       end if
       
       call scale(rhs, p_cvmass)
-      call scale(rhs, invnorm)
       
       call deallocate(eospressure)
       call deallocate(drhodp)
 
       call deallocate(lhsfield)
-      call deallocate(invnorm)
 
     end if
 
@@ -241,14 +216,12 @@ module compressible_projection
     logical, intent(in) :: cmcget
 
     ! local:
-    integer :: i, stat, norm_stat
+    integer :: i, stat
     character(len=OPTION_PATH_LEN) :: pressure_option_path
-    character(len=FIELD_NAME_LEN) :: normalisation_field
 
-    type(scalar_field) :: materialpressure, materialdrhodp, normdensity, &
-                          normolddensity, normmatdrhodpp, normdrhodp
-    type(scalar_field), pointer :: normalisation, &
-                                   volumefraction, oldvolumefraction, materialdensity, oldmaterialdensity
+    type(scalar_field) :: materialpressure, materialdrhodp, density, &
+                          olddensity, matdrhodpp, drhodp
+    type(scalar_field), pointer :: volumefraction, oldvolumefraction, materialdensity, oldmaterialdensity
     type(scalar_field), pointer :: dummy_ones
 
     type(scalar_field), pointer :: pressure
@@ -256,6 +229,8 @@ module compressible_projection
     type(scalar_field) :: cv_mass, tempfield
 
     real :: atmospheric_pressure
+    ! Do we want to use the compressible projection method?
+    logical :: have_compressible_eos
 
     ewrite(1,*) 'Entering assemble_mmat_compressible_projection_cv'
 
@@ -266,9 +241,17 @@ module compressible_projection
     end if
     pressure_option_path=trim(pressure%option_path)
     
+    have_compressible_eos = .false.
+    state_loop: do i = 1, size(state)
+      have_compressible_eos = have_option("/material_phase::"//trim(state(i)%name)//"/equation_of_state/compressible")
+      if(have_compressible_eos) then
+        exit state_loop
+      end if
+    end do state_loop
+
     call zero(rhs)
    
-    if(have_option(trim(pressure_option_path)//"/prognostic/scheme/use_compressible_projection_method")) THEN
+    if(have_compressible_eos) THEN
 
       ! only do all this if we need to make cmc (otherwise we'd be adding repeatedly)
       if(cmcget) then
@@ -285,21 +268,18 @@ module compressible_projection
         call get_option(trim(pressure_option_path)//'/prognostic/atmospheric_pressure', &
                         atmospheric_pressure, default=0.0)
 
-        call get_option(trim(pressure_option_path)//"/prognostic/scheme/use_compressible_projection_method/normalisation/name", &
-                        normalisation_field, stat=norm_stat)
-
         call allocate(materialpressure, pressure%mesh, 'MaterialEOSPressure')
         call allocate(materialdrhodp, pressure%mesh, 'DerivativeMaterialdensityWRTBulkPressure')
 
-        call allocate(normdensity, pressure%mesh, 'NormalisedMaterialDensity')
-        call allocate(normolddensity, pressure%mesh, 'NormalisedOldMaterialDensity')
-        call allocate(normmatdrhodpp, pressure%mesh, 'NormalisedMaterialPressure')
-        call allocate(normdrhodp, pressure%mesh, 'NormalisedDrhodp')
+        call allocate(density, pressure%mesh, 'MaterialDensity')
+        call allocate(olddensity, pressure%mesh, 'OldMaterialDensity')
+        call allocate(matdrhodpp, pressure%mesh, 'MaterialPressure')
+        call allocate(drhodp, pressure%mesh, 'Drhodp')
 
-        normdensity%val = 0.0
-        normolddensity%val = 0.0
-        normmatdrhodpp%val = 0.0
-        normdrhodp%val=0.0
+        density%val = 0.0
+        olddensity%val = 0.0
+        matdrhodpp%val = 0.0
+        drhodp%val=0.0
 
         do i = 1,size(state)
 
@@ -314,48 +294,38 @@ module compressible_projection
             materialdensity=>extract_scalar_field(state(i),'MaterialDensity')
             oldmaterialdensity=>extract_scalar_field(state(i),'OldMaterialDensity')
 
-            if(norm_stat==0) then
-              normalisation=>extract_scalar_field(state(i), trim(normalisation_field))
-            else
-              normalisation=>dummy_ones
-            end if
-
-            normdensity%val = normdensity%val &
-                              + materialdensity%val*volumefraction%val/ &
-                                normalisation%val
-            normolddensity%val = normolddensity%val &
-                                + oldmaterialdensity%val*oldvolumefraction%val/ &
-                                  normalisation%val
-            normmatdrhodpp%val = normmatdrhodpp%val &
-                                  + materialpressure%val*materialdrhodp%val*volumefraction%val/ &
-                                    normalisation%val
-            normdrhodp%val = normdrhodp%val &
-                              + materialdrhodp%val*volumefraction%val/ &
-                                normalisation%val
+            density%val = density%val &
+                              + materialdensity%val*volumefraction%val
+            olddensity%val = olddensity%val &
+                                + oldmaterialdensity%val*oldvolumefraction%val
+            matdrhodpp%val = matdrhodpp%val &
+                                  + materialpressure%val*materialdrhodp%val*volumefraction%val
+            drhodp%val = drhodp%val &
+                              + materialdrhodp%val*volumefraction%val
           endif
 
         end do
 
         call zero(tempfield)
-        tempfield%val = (1./(dt*dt))*cv_mass%val*normdrhodp%val
+        tempfield%val = (1./(dt*dt))*cv_mass%val*drhodp%val
 
         call addto_diag(cmc, tempfield)
 
         rhs%val = (1./dt)*cv_mass%val* &
                           ( &
-                            normolddensity%val &
-                          - normdensity%val &
+                            olddensity%val &
+                          - density%val &
                           ) &
                +(1./dt)*cv_mass%val* &
                           ( &
-                            normmatdrhodpp%val &
-                          - normdrhodp%val*(pressure%val+atmospheric_pressure) &
+                            matdrhodpp%val &
+                          - drhodp%val*(pressure%val+atmospheric_pressure) &
                           )
 
-        call deallocate(normdensity)
-        call deallocate(normolddensity)
-        call deallocate(normmatdrhodpp)
-        call deallocate(normdrhodp)
+        call deallocate(density)
+        call deallocate(olddensity)
+        call deallocate(matdrhodpp)
+        call deallocate(drhodp)
 
         call deallocate(materialpressure)
         call deallocate(materialdrhodp)
@@ -667,15 +637,17 @@ module compressible_projection
 
   subroutine compressible_projection_check_options
 
-    character(len=OPTION_PATH_LEN):: prognostic_pressure_path
-    integer:: i
+    character(len=OPTION_PATH_LEN):: pressure_option_path
+    integer:: iphase
+    logical:: have_compressible_eos
 
-    do i=0, option_count("/material_phase")-1
-      prognostic_pressure_path="/material_phase["//int2str(i)//"]/scalar_field::Pressure/prognostic"
-      if (have_option(trim(prognostic_pressure_path)//"/spatial_discretisation/discontinuous_galerkin") &
-        .and. have_option(trim(prognostic_pressure_path)//"/scheme/use_compressible_projection_method")) then
-        FLExit("With a DG pressure you cannot have use_compressible_projection_method")
-      end if
+    do iphase=0, option_count("/material_phase")-1
+       have_compressible_eos = have_option("/material_phase["//int2str(iphase)//"]/equation_of_state/compressible")
+       pressure_option_path = "/material_phase["//int2str(iphase)//"]/scalar_field::Pressure"
+       if(have_compressible_eos.and. &
+            have_option(trim(pressure_option_path)//"/prognostic/spatial_discretisation/discontinuous_galerkin")) then
+          FLExit("With a DG pressure you cannot have use a compressible eos")
+       end if
     end do
 
   end subroutine compressible_projection_check_options
