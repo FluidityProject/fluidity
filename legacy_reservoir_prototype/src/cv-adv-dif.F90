@@ -354,7 +354,8 @@
       INTEGER :: IDUM(1)
       REAL :: RDUM(1),n1,n2,n3
       type( scalar_field ), pointer :: perm
-
+     !Reals to store the irresidual water and irreducible oil values, used in GET_INT_T_DEN
+    real ::  s_gc, s_or
 
       overlapping = .false.
       call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
@@ -856,6 +857,17 @@
          ENDIF
       ENDIF
 
+     !Get the irreducible water and residual oil before entering the loop
+     !this value are used in GET_INT_T_DEN to keep the phases between realistic values
+     !Default value has to be the same as in subroutine get_corey_options in multi_eos.F90
+      !Default value of  S_GC = 0.1
+      call get_option("/material_phase[0]/multiphase_properties/immobile_fraction", &
+          s_gc, default=0.1)
+      !Default value of    S_OR = 0.3
+      call get_option("/material_phase[1]/multiphase_properties/immobile_fraction", &
+           s_or, default=0.3)
+
+
       ! Now we begin the loop over elements to assemble the advection terms
       ! into the matrix (ACV) and the RHS
       Loop_Elements: DO ELE = 1, TOTELE
@@ -1070,7 +1082,9 @@
                              SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
-                             TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT )
+                             TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT, &
+                             !Values to limit the flow when reaching the irreducible  saturation for a phase
+                             s_gc, s_or )
 
                         SUM_LIMT    = SUM_LIMT    + LIMT
                         SUM_LIMTOLD = SUM_LIMTOLD + LIMTOLD
@@ -1167,7 +1181,9 @@
                              SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
-                             TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT )
+                             TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT , &
+                             !Values to limit the flow when reaching the irreducible  saturation for a phase
+                             s_gc, s_or )
 
                      END DO
 
@@ -5472,7 +5488,7 @@ END IF
 ! which should be ued with LIMIT_WITHIN_REAL=.true.
       LOGICAL, PARAMETER :: LIMIT_SAT_BASED_UPWIND = .false.
 ! The fracture modelling with the upwind based method for DG... 
-      LOGICAL, PARAMETER :: high_order_upwind_vel_for_dg = .false.
+      LOGICAL, PARAMETER :: high_order_upwind_vel_for_dg = .true.
       LOGICAL :: RESET_STORE, LIM_VOL_ADJUST, enforce_abs
       REAL :: TMIN_STORE, TMAX_STORE, TOLDMIN_STORE, TOLDMAX_STORE
       REAL :: PERM_TILDE, PERMold_TILDE,NDOTQ_TILDE, NDOTQ2_TILDE, NDOTQOLD_TILDE, NDOTQOLD2_TILDE, rden_ave, rdenold_ave, Q_UNDERLY, QOLD_UNDERLY
@@ -7170,14 +7186,16 @@ END IF
          SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
          U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
          IANISOTROPIC, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
-         TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT )
+         TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT , &
+         !Values to limit the flow when reaching the irreducible  saturation for a phase
+         s_gc, s_or )
       !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===============
       IMPLICIT NONE
       ! Calculate T and DEN on the CV face at quadrature point GI.
       REAL, intent( inout ) :: FVT,FVTOLD, FVT2, FVT2OLD,FVD,FVDOLD, LIMD,LIMT,LIMT2, &
            LIMDOLD,LIMTOLD,LIMT2OLD,LIMDT,LIMDTOLD,LIMDTT2,LIMDTT2OLD, &
            FEMDGI, FEMTGI, FEMT2GI, FEMDOLDGI, FEMTOLDGI, FEMT2OLDGI
-      REAL, intent( in ) :: INCOME,INCOMEOLD,HDC,NDOTQ,NDOTQOLD,DT
+      REAL, intent( in ) :: INCOME,INCOMEOLD,HDC,NDOTQ,NDOTQOLD,DT, s_gc, s_or
       logical, intent( in ) :: LIMIT_USE_2ND
       INTEGER, intent( in ) :: CV_DISOPT,CV_NONODS,NPHASE,CV_NODI_IPHA,CV_NODJ_IPHA,ELE,ELE2,  &
            CV_NLOC,TOTELE,SCVNGI,GI,IPHASE,SELE,CV_SNLOC,STOTEL, &
@@ -8284,30 +8302,30 @@ END IF
 ! Limit within physically realistic region...
     IF(IPHASE.EQ.1) THEN
       if(income.gt.0.5) then
-         if(T(CV_NODj_IPHA).LT.0.2) LIMT=0.0
+         if(T(CV_NODj_IPHA).LT.s_gc) LIMT=0.0
       else
-         if(T(CV_NODI_IPHA).LT.0.2) LIMT=0.0
+         if(T(CV_NODI_IPHA).LT.s_gc) LIMT=0.0
       endif
 
       if(incomeold.gt.0.5) then
-         if(TOLD(CV_NODj_IPHA).LT.0.2) LIMTOLD=0.0
+         if(TOLD(CV_NODj_IPHA).LT.s_gc) LIMTOLD=0.0
       else
-         if(TOLD(CV_NODI_IPHA).LT.0.2) LIMTOLD=0.0
+         if(TOLD(CV_NODI_IPHA).LT.s_gc) LIMTOLD=0.0
       endif
     ENDIF
 
 
     IF(IPHASE.EQ.2) THEN
       if(income.gt.0.5) then
-         if(T(CV_NODj_IPHA).LT.0.2) LIMT=0.0
+         if(T(CV_NODj_IPHA).LT.s_or ) LIMT=0.0
       else
-         if(T(CV_NODI_IPHA).LT.0.2) LIMT=0.0
+         if(T(CV_NODI_IPHA).LT.s_or ) LIMT=0.0
       endif
 
       if(incomeold.gt.0.5) then
-         if(TOLD(CV_NODj_IPHA).LT.0.2) LIMTOLD=0.0
+         if(TOLD(CV_NODj_IPHA).LT.s_or ) LIMTOLD=0.0
       else
-         if(TOLD(CV_NODI_IPHA).LT.0.2) LIMTOLD=0.0
+         if(TOLD(CV_NODI_IPHA).LT.s_or ) LIMTOLD=0.0
       endif
     ENDIF
 
