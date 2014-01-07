@@ -213,6 +213,9 @@ subroutine keps_calculate_rhs(state)
   character(len=FIELD_NAME_LEN), dimension(2) :: field_names
   character(len=FIELD_NAME_LEN) :: equation_type, implementation
 
+  type(vector_field) :: bc_value
+  integer, dimension(:,:), allocatable :: bc_type    
+
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
   if (.not. have_option(trim(option_path))) then 
@@ -242,7 +245,13 @@ subroutine keps_calculate_rhs(state)
   call allocate(dummydensity, X%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
   call set(dummydensity, 1.0)
   dummydensity%option_path = ""
-  
+
+  !! required for dg gradient calculation of u
+  if(continuity(u)<0) then
+      allocate(bc_type(u%dim, 1:surface_element_count(u)))	
+      call get_entire_boundary_condition(u, (/"weakdirichlet"/), bc_value, bc_type)	
+  end if
+
   ! Depending on the equation type, extract the density or set it to some dummy field allocated above
   call get_option(trim(state%option_path)//&
        "/vector_field::Velocity/prognostic/equation[0]/name", equation_type)
@@ -294,7 +303,7 @@ subroutine keps_calculate_rhs(state)
      do ele = 1, ele_count(fields(1))
         call assemble_rhs_ele(src_abs_terms, fields(i), fields(3-i), scalar_eddy_visc, u, &
              density, buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, x, &
-             c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, i)
+             c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, i, bc_value, bc_type)
      end do
 
      ! For non-DG we apply inverse mass globally
@@ -378,7 +387,7 @@ end subroutine keps_calculate_rhs
 
 subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density, &
      buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, &
-     X, c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, field_id)
+     X, c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, field_id, bc_value, bc_type)
 
   type(scalar_field), dimension(3), intent(inout) :: src_abs_terms
   type(scalar_field), intent(in) :: k, eps, scalar_eddy_visc, f_1, f_2
@@ -396,6 +405,9 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
   real, dimension(u%dim, u%dim, ele_ngi(k, ele)) :: reynolds_stress, grad_u
   type(element_type), pointer :: shape
   integer :: term, ngi, dim, gi, i
+
+  type(vector_field), intent(in), optional :: bc_value	
+  integer, dimension(:,:), intent(in), optional :: bc_type    
   
   ! For buoyancy turbulence stuff
   real, dimension(u%dim, ele_ngi(u, ele))  :: vector, u_quad, g_quad
@@ -419,8 +431,13 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
      eps_ele(gi) = max(eps_ele(gi), fields_min)
   end do
 
-  ! Compute Reynolds stress
-  grad_u = ele_grad_at_quad(u, ele, dshape)
+  ! Compute Reynolds stress	
+  if(continuity(u)<0) then
+     grad_u = dg_ele_grad_at_quad(u, ele, shape, X, bc_value, bc_type)
+  else
+     grad_u = ele_grad_at_quad(u, ele, dshape)
+  end if
+
   scalar_eddy_visc_ele = ele_val_at_quad(scalar_eddy_visc, ele)
   dim = u%dim
   do gi = 1, ngi
