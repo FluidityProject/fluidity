@@ -5452,7 +5452,7 @@ END IF
            U_KLOC_LEV, U_NLOC_LEV, U_SKLOC_LEV, U_SNLOC_LEV, CV_KLOC, CV_KNOD, &
            CV_KLOC2, CV_KNOD2, CV_NODI, CV_NODJ, IDIM, JDIM, IJ, MAT_NODI, MAT_NODJ, &
            CV_SKLOC, CV_SNODK, CV_SNODK_IPHA, CV_STAR_IPHA
-      LOGICAL :: CONSERV, MAX_OPER, SAT_BASED
+      LOGICAL :: CONSERV, MAX_OPER, SAT_BASED, got_dt_ij
       ! IN_ELE_UPWIND=1 switches on upwinding within and element (=3 recommended).
       !    INTEGER, PARAMETER :: IN_ELE_UPWIND = 3
       !    INTEGER, PARAMETER :: IN_ELE_UPWIND = 2
@@ -5469,7 +5469,10 @@ END IF
 ! limit the volume fraction based on net letting flux go into certain elements for DG between the elements...
       LOGICAL, PARAMETER :: LIMIT_SAT_BASED_INTERP = .false.
 ! limit the volume fraction based on switching to the 1st order scheme for DG between the elements...
+! which should be ued with LIMIT_WITHIN_REAL=.true.
       LOGICAL, PARAMETER :: LIMIT_SAT_BASED_UPWIND = .false.
+! The fracture modelling with the upwind based method for DG... 
+      LOGICAL, PARAMETER :: high_order_upwind_vel_for_dg = .false.
       LOGICAL :: RESET_STORE, LIM_VOL_ADJUST, enforce_abs
       REAL :: TMIN_STORE, TMAX_STORE, TOLDMIN_STORE, TOLDMAX_STORE
       REAL :: PERM_TILDE, PERMold_TILDE,NDOTQ_TILDE, NDOTQ2_TILDE, NDOTQOLD_TILDE, NDOTQOLD2_TILDE, rden_ave, rdenold_ave, Q_UNDERLY, QOLD_UNDERLY
@@ -5478,6 +5481,10 @@ END IF
       real :: gamma, gammaold, abs_tilde, abs_tildeold, abs_tilde_i, abs_tilde_j, abs_max, abs_min, w_relax, w_relaxold, grad2nd, grad2ndold
       real :: abs_tilde_2nd, abs_tildeold_2nd, max_nodtq_keep, min_nodtq_keep, max_nodtqold_keep, min_nodtqold_keep
       real :: w_weight, w_weightold, relax
+
+      real :: DT_I_upwind, DT_J_upwind, DTOLD_I_upwind, DTOLD_J_upwind
+      real :: dt_max, dt_min, dtOLD_max, dtOLD_min
+      real :: abs_tilde1, abs_tilde2, abs_tildeold1, abs_tildeold2
 
 
 
@@ -5498,6 +5505,9 @@ END IF
 
       U_NLOC_LEV = U_NLOC / CV_NLOC
       U_SNLOC_LEV = U_SNLOC / CV_NLOC
+
+
+      got_dt_ij=.false.
 
 
       Conditional_SELE: IF( SELE /= 0 ) THEN ! On the boundary of the domain. 
@@ -5957,7 +5967,13 @@ END IF
                   end if
 
 
+               if(.true.) then
+                     abs_tilde =  0.5*(  ABS_CV_NODI_IPHA  + ( limt3   -  T(CV_NODI_IPHA)  ) * GRAD_ABS_CV_NODI_IPHA   +   &
+                                         ABS_CV_NODJ_IPHA  + ( limt3   -  T(CV_NODJ_IPHA)  ) * GRAD_ABS_CV_NODJ_IPHA )
 
+                     abs_tildeold = 0.5*(    ABS_CV_NODI_IPHA  + ( limtold3   -  Told(CV_NODI_IPHA)  ) * GRAD_ABS_CV_NODI_IPHA  + & 
+                                             ABS_CV_NODJ_IPHA  + ( limtold3   -  Told(CV_NODJ_IPHA)  ) * GRAD_ABS_CV_NODJ_IPHA  )
+               endif
 
 
                   abs_max=max(ABS_CV_NODI_IPHA,  ABS_CV_NODJ_IPHA)
@@ -6260,8 +6276,8 @@ END IF
 
 
 
-              !   IF (.false. ) THEN ! high order
-              !   IF (.true. ) THEN ! high order
+             !    IF (.false. ) THEN ! high order
+                 IF ( high_order_upwind_vel_for_dg ) THEN ! high order
               !    IF ( DG_ELE_UPWIND==3 ) THEN ! high order
 ! DG_ELE_UPWIND==1: the upwind method. 
 ! DG_ELE_UPWIND==3: the best optimal upwind frac.
@@ -6269,7 +6285,7 @@ END IF
 !if ( (abs(T(CV_NODI_IPHA)-T(CV_NODJ_IPHA)).gt.1.e-4 ).and.(abs(TOLD(CV_NODI_IPHA)-TOLD(CV_NODJ_IPHA)).gt.1.e-4 ) ) then ! high order 
 !if ( ( (abs(T(CV_NODI_IPHA)-T(CV_NODJ_IPHA)).gt.1.e-4 ).and.(abs(TOLD(CV_NODI_IPHA)-TOLD(CV_NODJ_IPHA)).gt.1.e-4 ) ) &
 !             .and.( .not.(FORCE_UPWIND_VEL.or.(DG_ELE_UPWIND==1).or.FORCE_UPWIND_VEL_DG_ELE) )  ) then ! high order 
-if (  .not.(FORCE_UPWIND_VEL.or.(DG_ELE_UPWIND==1).or.FORCE_UPWIND_VEL_DG_ELE)  ) then ! high order 
+!if (  .not.(FORCE_UPWIND_VEL.or.(DG_ELE_UPWIND==1).or.FORCE_UPWIND_VEL_DG_ELE)  ) then ! high order 
 
 
                   FEMTGI_IPHA = 0.0
@@ -6468,14 +6484,68 @@ if (  .not.(FORCE_UPWIND_VEL.or.(DG_ELE_UPWIND==1).or.FORCE_UPWIND_VEL_DG_ELE)  
                   end if
 
 
- ! only limiter method for dg that works...
+
+
+                !     abs_tilde =  max(  ABS_CV_NODI_IPHA  + ( limt3   -  T(CV_NODI_IPHA)  ) * GRAD_ABS_CV_NODI_IPHA,    &
+                !                        ABS_CV_NODJ_IPHA  + ( limt3   -  T(CV_NODJ_IPHA)  ) * GRAD_ABS_CV_NODJ_IPHA )
+
+                !     abs_tildeold = max(    ABS_CV_NODI_IPHA  + ( limtold3   -  Told(CV_NODI_IPHA)  ) * GRAD_ABS_CV_NODI_IPHA,  & 
+                !                            ABS_CV_NODJ_IPHA  + ( limtold3   -  Told(CV_NODJ_IPHA)  ) * GRAD_ABS_CV_NODJ_IPHA  )
+
+
+                     abs_tilde1 =  ABS_CV_NODI_IPHA  + ( limt3   -  T(CV_NODI_IPHA)  ) * GRAD_ABS_CV_NODI_IPHA   
+                     abs_tilde2 =  ABS_CV_NODJ_IPHA  + ( limt3   -  T(CV_NODJ_IPHA)  ) * GRAD_ABS_CV_NODJ_IPHA 
+
+                     abs_tildeold1 = ABS_CV_NODI_IPHA  + ( limtold3   -  Told(CV_NODI_IPHA)  ) * GRAD_ABS_CV_NODI_IPHA  
+                     abs_tildeold2 = ABS_CV_NODJ_IPHA  + ( limtold3   -  Told(CV_NODJ_IPHA)  ) * GRAD_ABS_CV_NODJ_IPHA  
+
+
+
+                     abs_tilde =  0.5*(  ABS_CV_NODI_IPHA  + ( limt3   -  T(CV_NODI_IPHA)  ) * GRAD_ABS_CV_NODI_IPHA   +   &
+                                         ABS_CV_NODJ_IPHA  + ( limt3   -  T(CV_NODJ_IPHA)  ) * GRAD_ABS_CV_NODJ_IPHA )
+
+                     abs_tildeold = 0.5*(    ABS_CV_NODI_IPHA  + ( limtold3   -  Told(CV_NODI_IPHA)  ) * GRAD_ABS_CV_NODI_IPHA  + & 
+                                             ABS_CV_NODJ_IPHA  + ( limtold3   -  Told(CV_NODJ_IPHA)  ) * GRAD_ABS_CV_NODJ_IPHA  )
+
+
+
 
 
                   abs_max=max(ABS_CV_NODI_IPHA,  ABS_CV_NODJ_IPHA)
                   abs_min=min(ABS_CV_NODI_IPHA,  ABS_CV_NODJ_IPHA)
 
-                  abs_tilde    = min(abs_max, max(abs_min,  abs_tilde ))
-                  abs_tildeold = min(abs_max, max(abs_min,  abs_tildeold ))
+                  abs_tilde1    = min(1000.*abs_max, max(0.001*abs_min,  abs_tilde1 )) 
+                  abs_tildeold1 = min(1000.*abs_max, max(0.001*abs_min,  abs_tildeold1 ))
+
+                  abs_tilde2    = min(1000.*abs_max, max(0.001*abs_min,  abs_tilde2 )) 
+                  abs_tildeold2 = min(1000.*abs_max, max(0.001*abs_min,  abs_tildeold2 ))
+
+
+
+
+
+!                  abs_tilde    = min(abs_max, max(abs_min,  abs_tilde ))
+!                  abs_tildeold = min(abs_max, max(abs_min,  abs_tildeold ))
+!                  abs_tilde    = min(10.*abs_max, max(0.1*abs_min,  abs_tilde )) ! works...
+!                  abs_tildeold = min(10.*abs_max, max(0.1*abs_min,  abs_tildeold ))
+
+!                  abs_tilde    = min(10.*abs_max, max(0.001*abs_min,  abs_tilde )) ! not work for BL
+!                  abs_tildeold = min(10.*abs_max, max(0.001*abs_min,  abs_tildeold ))
+
+!                  abs_tilde    = min(1000.*abs_max, max(0.1*abs_min,  abs_tilde )) ! works for BL
+!                  abs_tildeold = min(1000.*abs_max, max(0.1*abs_min,  abs_tildeold ))
+
+!                  abs_tilde    = min(1000.*abs_max, max(abs_min,  abs_tilde )) ! works for BL***
+!                  abs_tildeold = min(1000.*abs_max, max(abs_min,  abs_tildeold ))
+
+                  abs_tilde    = min(1000.*abs_max, max(0.001*abs_min,  abs_tilde )) ! not work for BL
+                  abs_tildeold = min(1000.*abs_max, max(0.001*abs_min,  abs_tildeold ))
+
+!                  abs_tilde    = max(abs_min,  abs_tilde ) ! works for BL
+!                  abs_tildeold = max(abs_min,  abs_tildeold )
+
+ ! only limiter method for dg that works...
+            if(.false.) then
 
 
                   w_weight =abs_tilde /(ABS_CV_NODI_IPHA+ABS_CV_NODJ_IPHA)
@@ -6483,6 +6553,38 @@ if (  .not.(FORCE_UPWIND_VEL.or.(DG_ELE_UPWIND==1).or.FORCE_UPWIND_VEL_DG_ELE)  
 
                   INCOME = (1.-income3) * w_weight  +  income3 * (1.-w_weight)  
                   INCOMEOLD = (1.-incomeold3) * w_weightold  +  incomeold3 * (1.-w_weightold)  
+
+            else
+!*****************
+           got_dt_ij=.true.
+           if(.true.) then 
+! new high order method - works well...
+               DT_I = min(1.0,  0.5*( ABS_CV_NODI_IPHA/abs_tilde1 )      )
+               DT_J = min(1.0,  0.5*( ABS_CV_NODJ_IPHA/abs_tilde2 )      )
+
+               DTOLD_I = min(1.0,  0.5*( ABS_CV_NODI_IPHA/abs_tildeold1 )      )
+               DTOLD_J = min(1.0,  0.5*( ABS_CV_NODJ_IPHA/abs_tildeold2 )      )
+            else ! upwind - works
+                  if ( income3 < 0.5 ) then ! upwind
+                       DT_I = min(1.0,  0.5*ABS_CV_NODI_IPHA/ABS_CV_NODI_IPHA  )
+                       DT_J = min(1.0,  0.5*ABS_CV_NODJ_IPHA/ABS_CV_NODI_IPHA  )
+                  else
+                       DT_I = min(1.0,  0.5*ABS_CV_NODI_IPHA/ABS_CV_NODJ_IPHA  )
+                       DT_J = min(1.0,  0.5*ABS_CV_NODJ_IPHA/ABS_CV_NODJ_IPHA  )
+                  endif
+                  if ( incomeold3 < 0.5 ) then ! upwind
+                       DTold_I = min(1.0,  0.5*ABS_CV_NODI_IPHA/ABS_CV_NODI_IPHA  )
+                       DTold_J = min(1.0,  0.5*ABS_CV_NODJ_IPHA/ABS_CV_NODI_IPHA  )
+                  else
+                       DTold_I = min(1.0,  0.5*ABS_CV_NODI_IPHA/ABS_CV_NODJ_IPHA  )
+                       DTold_J = min(1.0,  0.5*ABS_CV_NODJ_IPHA/ABS_CV_NODJ_IPHA  )
+                  endif
+            endif
+!*****************
+
+
+
+            endif
 
 
 
@@ -6646,13 +6748,16 @@ if (  .not.(FORCE_UPWIND_VEL.or.(DG_ELE_UPWIND==1).or.FORCE_UPWIND_VEL_DG_ELE)  
 
 
 
-
+           if(.not.got_dt_ij) then
 
                DT_I = 1.0 - INCOME
                DT_J = 1.0 - DT_I
 
                DTOLD_I = 1.0 - INCOMEOLD
                DTOLD_J = 1.0 - DTOLD_I
+          endif
+
+
             END IF
 
             ! Amend weighting for porosity only across elements...
@@ -6670,6 +6775,7 @@ if (  .not.(FORCE_UPWIND_VEL.or.(DG_ELE_UPWIND==1).or.FORCE_UPWIND_VEL_DG_ELE)  
             !dtold_i=0.5
             !dtold_j=0.5
 
+        if(.not.got_dt_ij) then
             UDGI_INT = ( DT_I * UDGI + DT_J * UDGI2 ) / (DT_I + DT_J)
             VDGI_INT = ( DT_I * VDGI + DT_J * VDGI2 ) / (DT_I + DT_J)
             WDGI_INT = ( DT_I * WDGI + DT_J * WDGI2 ) / (DT_I + DT_J)
@@ -6677,9 +6783,19 @@ if (  .not.(FORCE_UPWIND_VEL.or.(DG_ELE_UPWIND==1).or.FORCE_UPWIND_VEL_DG_ELE)  
             UOLDDGI_INT = ( DTOLD_I * UOLDDGI + DTOLD_J * UOLDDGI2 ) / (DTOLD_I + DTOLD_J)
             VOLDDGI_INT = ( DTOLD_I * VOLDDGI + DTOLD_J * VOLDDGI2 ) / (DTOLD_I + DTOLD_J)
             WOLDDGI_INT = ( DTOLD_I * WOLDDGI + DTOLD_J * WOLDDGI2 ) / (DTOLD_I + DTOLD_J)
+        else
+            UDGI_INT = ( DT_I * UDGI + DT_J * UDGI2 ) 
+            VDGI_INT = ( DT_I * VDGI + DT_J * VDGI2 ) 
+            WDGI_INT = ( DT_I * WDGI + DT_J * WDGI2 ) 
+
+            UOLDDGI_INT = ( DTOLD_I * UOLDDGI + DTOLD_J * UOLDDGI2 ) 
+            VOLDDGI_INT = ( DTOLD_I * VOLDDGI + DTOLD_J * VOLDDGI2 ) 
+            WOLDDGI_INT = ( DTOLD_I * WOLDDGI + DTOLD_J * WOLDDGI2 ) 
+        endif
 
 
             IF( CV_DG_VEL_INT_OPT < 0 ) THEN
+               if(got_dt_ij) stop 2611 ! we can not use these CV_DG_VEL_INT_OPT < 0, got_dt_ij=.true. options together.
 
                NDOTQ_INT = CVNORMX( GI ) * UDGI_INT + CVNORMY( GI ) * VDGI_INT + &
                     CVNORMZ( GI ) * WDGI_INT
@@ -6714,6 +6830,7 @@ if (  .not.(FORCE_UPWIND_VEL.or.(DG_ELE_UPWIND==1).or.FORCE_UPWIND_VEL_DG_ELE)  
             VDGI  = VDGI_INT 
             WDGI  = WDGI_INT
 
+        if(.not.got_dt_ij) then
             UGI_COEF_ELE(:)=DT_I * UGI_COEF_ELE(:) / (DT_I + DT_J)
             VGI_COEF_ELE(:)=DT_I * VGI_COEF_ELE(:) / (DT_I + DT_J)
             WGI_COEF_ELE(:)=DT_I * WGI_COEF_ELE(:) / (DT_I + DT_J)
@@ -6721,6 +6838,15 @@ if (  .not.(FORCE_UPWIND_VEL.or.(DG_ELE_UPWIND==1).or.FORCE_UPWIND_VEL_DG_ELE)  
             UGI_COEF_ELE2(:)=DT_J * UGI_COEF_ELE2(:) / (DT_I + DT_J)
             VGI_COEF_ELE2(:)=DT_J * VGI_COEF_ELE2(:) / (DT_I + DT_J)
             WGI_COEF_ELE2(:)=DT_J * WGI_COEF_ELE2(:) / (DT_I + DT_J)
+        else
+            UGI_COEF_ELE(:)=DT_I * UGI_COEF_ELE(:) 
+            VGI_COEF_ELE(:)=DT_I * VGI_COEF_ELE(:) 
+            WGI_COEF_ELE(:)=DT_I * WGI_COEF_ELE(:) 
+
+            UGI_COEF_ELE2(:)=DT_J * UGI_COEF_ELE2(:) 
+            VGI_COEF_ELE2(:)=DT_J * VGI_COEF_ELE2(:) 
+            WGI_COEF_ELE2(:)=DT_J * WGI_COEF_ELE2(:) 
+        endif
 
             UOLDDGI  = UOLDDGI_INT 
             VOLDDGI  = VOLDDGI_INT 
