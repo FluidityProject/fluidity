@@ -5488,7 +5488,7 @@ END IF
 ! which should be ued with LIMIT_WITHIN_REAL=.true.
       LOGICAL, PARAMETER :: LIMIT_SAT_BASED_UPWIND = .false.
 ! The fracture modelling with the upwind based method for DG... 
-      LOGICAL, PARAMETER :: high_order_upwind_vel_for_dg = .true.
+      LOGICAL, PARAMETER :: high_order_upwind_vel_for_dg = .false.
       LOGICAL :: RESET_STORE, LIM_VOL_ADJUST, enforce_abs
       REAL :: TMIN_STORE, TMAX_STORE, TOLDMIN_STORE, TOLDMAX_STORE
       REAL :: PERM_TILDE, PERMold_TILDE,NDOTQ_TILDE, NDOTQ2_TILDE, NDOTQOLD_TILDE, NDOTQOLD2_TILDE, rden_ave, rdenold_ave, Q_UNDERLY, QOLD_UNDERLY
