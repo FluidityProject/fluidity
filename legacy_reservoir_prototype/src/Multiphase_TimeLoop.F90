@@ -562,9 +562,9 @@
 
 !!$ FEMDEM...
          if ( .false. ) &
-              call femdem( state, totele, cv_nonods, ndim, nphase, cv_nloc, &
-              &            cv_ndgln, dt, density, velocity_absorption, permeability, porosity )
-
+              call femdem( state, totele, cv_nonods, u_nonods, ndim, nphase, cv_nloc, &
+              &            cv_ndgln, dt, density, pressure_fem, velocity_u, velocity_v, &
+              &            velocity_absorption, permeability, porosity )
 
          ! time varying boundary conditions for Temperature
          if( have_temperature_field ) &

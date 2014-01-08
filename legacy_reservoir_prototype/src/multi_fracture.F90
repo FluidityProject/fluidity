@@ -33,6 +33,7 @@ module multiphase_fractures
   use elements
   use sparse_tools
   use fields
+  use fefields
   use state_module
   use copy_outof_state
   use spud
@@ -49,10 +50,10 @@ module multiphase_fractures
   ! _r : ring, _v : volume, _vc : volume coarse
 
   interface
-     subroutine y2d_allocate_femdem( string_r, string_v, &
+     subroutine y2d_allocate_femdem( string, &
           &     nodes_r, elements_r, edges_r, &
           &     nodes_v, elements_v, edges_v )
-       character( len = * ), intent( in ) :: string_r, string_v
+       character( len = * ), intent( in ) :: string
        integer, intent( out ) :: nodes_r, elements_r, edges_r, &
             &                    nodes_v, elements_v, edges_v
      end subroutine y2d_allocate_femdem
@@ -83,28 +84,33 @@ module multiphase_fractures
 
   type( vector_field ), save :: positions_r, positions_v, positions_vc
   type( tensor_field ), save :: permeability_r
+  character( len = FIELD_NAME_LEN ), save :: femdem_mesh_name
+
 
   private
   public :: femdem
 
 contains
 
-  subroutine femdem( states, totele, cv_nonods, ndim, nphase, cv_nloc, &
-       &             cv_ndgln, dt, rho, absorption, perm, porosity )
+  subroutine femdem( states, totele, cv_nonods, u_nonods, ndim, nphase, cv_nloc, &
+       &             cv_ndgln, dt, rho, p, u, v, absorption, perm, porosity )
 
     implicit none
 
-    integer, intent( in ) :: totele, cv_nonods, nphase, ndim, cv_nloc
-    integer, dimension( totele*cv_nloc ), intent( in ) :: cv_ndgln
+    integer, intent( in ) :: totele, cv_nonods, u_nonods, nphase, ndim, cv_nloc
+    integer, dimension( totele * cv_nloc ), intent( in ) :: cv_ndgln
     real, intent( in ) :: dt
-    real, dimension( nphase*cv_nonods ), intent( in ) :: rho
+    real, dimension( nphase * cv_nonods ), intent( in ) :: rho
+    real, dimension( nphase * u_nonods ), intent( in ) :: u, v
+    real, dimension( cv_nonods ), intent( in ) :: p
     type( state_type ), dimension( : ), intent( in ) :: states
 
-    real, dimension( totele*cv_nloc, ndim*nphase, ndim*nphase ), intent( inout ) :: absorption
+    real, dimension( totele * cv_nloc, ndim * nphase, ndim * nphase ), intent( inout ) :: absorption
     real, dimension( totele, ndim, ndim ), intent( inout ) :: perm
     real, dimension( totele ), intent( inout ) :: porosity
 
-    real, dimension( : ), allocatable :: vf
+    real, dimension( : ), allocatable :: vf, p_r, u_r, v_r 
+    integer :: r_nonods
 
     ! read in ring and solid volume meshes
     ! and simplify the volume mesh
@@ -124,6 +130,13 @@ contains
     ! calculate permeability and porosity
     call calculate_perm( states, totele, ndim, vf, perm )
 
+
+    r_nonods = node_count( positions_r )
+    allocate( p_r( r_nonods ), u_r( r_nonods ), v_r( r_nonods ) )
+    call interpolate_fields(  states, nphase, u_nonods, cv_nonods, r_nonods, &
+         &                    cv_nloc, totele, cv_ndgln, p, u, v, p_r, u_r, v_r )
+    call y2dfemdem( femdem_mesh_name, dt, p_r, u_r, v_r )
+
     ! deallocate
     call deallocate_femdem
     deallocate( vf )
@@ -139,7 +152,6 @@ contains
 
     implicit none
 
-    character( len = FIELD_NAME_LEN ) :: femdem_mesh_name, femdem_ring_name
     integer :: i, loc, sloc
     integer :: ndim, nodes_r, elements_r, edges_r, &
          &     nodes_v, elements_v, edges_v
@@ -157,9 +169,7 @@ contains
     ewrite(3,*) "inside initialise_femdem"
 
     !call get_option( "/femdem/name", femdem_mesh_name )
-
     femdem_mesh_name = "rock.msh"
-    femdem_ring_name = "ring.msh"
 
     call get_option( "/geometry/quadrature/degree", quad_degree )
     call get_option( "/geometry/dimension", ndim )
@@ -171,8 +181,7 @@ contains
        FLAbort( "Fracture modelling is supported for 2D only." )
     end if
 
-    call y2d_allocate_femdem( &
-         trim( femdem_ring_name )//char(0), trim( femdem_mesh_name )//char(0), &
+    call y2d_allocate_femdem( trim( femdem_mesh_name ) // char( 0 ), &
          nodes_r, elements_r, edges_r, nodes_v, elements_v, edges_v )
 
     ewrite(3,*) "nodes_r, elements_r, edges_r, nodes_v, elements_v, edges_v", &
@@ -330,6 +339,7 @@ contains
     call bound_volume_fraction( vf )
 
     ! now deallocate
+    call deallocate( fl_positions )
     call deallocate( volume_fraction )
     call deallocate( alg_fl )
     call deallocate( alg_ext )
@@ -402,9 +412,9 @@ contains
     ! rock mass porosity
     phi_rock = 0.
     ! matrix (background) porosity
-    phi_matrix => extract_scalar_field( states(1), "Porosity" )
+    phi_matrix => extract_scalar_field( states( 1 ), "Porosity" )
 
-    porosity = (1.-vf) * phi_matrix % val + vf * phi_rock 
+    porosity = ( 1. - vf ) * phi_matrix % val + vf * phi_rock 
 
     ! bound...
     do ele = 1, totele
@@ -567,6 +577,7 @@ contains
 
     deallocate( permeability_bg, permeability_v, permeability_rl )
 
+    call deallocate( fl_positions )
     call deallocate( rvf )
 
     call deallocate( field_fl_p22 )
@@ -581,6 +592,165 @@ contains
 
     return
   end subroutine calculate_perm
+
+  !----------------------------------------------------------------------------------------------------------
+
+
+  subroutine interpolate_fields( states, nphase, u_nonods, cv_nonods, r_nonods, &
+       &                         cv_nloc, totele, cv_ndgln, p, u, v, p_r, u_r, v_r )
+
+    implicit none
+
+    type( state_type ), dimension( : ), intent( in ) :: states
+    integer, intent( in ) :: nphase, u_nonods, cv_nonods, r_nonods, cv_nloc 
+    integer, dimension( totele * cv_nloc ), intent( in ) :: cv_ndgln
+    real, dimension( nphase * u_nonods ), intent( in ) :: u, v
+    real, dimension( cv_nonods ), intent( in ) :: p
+    real, dimension( r_nonods ), intent( inout ) :: u_r, v_r, p_r
+
+    type( mesh_type ), pointer :: fl_mesh, u_mesh
+    type( scalar_field ) :: field_fl_p, field_fl_u, field_fl_v, &
+         &                  field_ext_p, field_ext_u, field_ext_v, &
+         &                  u_dg, v_dg
+    type( vector_field ) :: fl_positions
+    type( scalar_field ), pointer :: pressure
+    type( vector_field ), pointer :: velocity
+    type( state_type ) :: alg_ext, alg_fl
+    real, dimension( : ), allocatable :: u_tmp, v_tmp
+    integer, dimension( : ), pointer :: fl_ele_nodes
+    integer :: ele, totele, u_nloc, nlev, i, j, k, number_nodes
+
+    u_r = 0. ; v_r = 0. ; p_r = 0.
+
+    fl_mesh => extract_mesh( states( 1 ), "CoordinateMesh" )
+    fl_positions = extract_vector_field( states( 1 ), "Coordinate" )
+
+    u_mesh => extract_mesh( states( 1 ), "VelocityMesh" )
+
+    totele = ele_count( fl_mesh )
+
+    call allocate( field_fl_p, fl_mesh, "Pressure" )
+    call zero( field_fl_p )
+
+    call allocate( field_fl_u, fl_mesh, "Velocity1" )
+    call zero( field_fl_u )
+
+    call allocate( field_fl_v, fl_mesh, "Velocity2" )
+    call zero( field_fl_v )
+
+    ! deal with pressure
+    if ( cv_nloc == 6  ) then
+       ! linearise pressure for p2
+       do ele = 1, totele
+          fl_ele_nodes => ele_nodes( fl_mesh, ele )
+          field_fl_p % val( fl_ele_nodes( 1 ) ) = p( cv_ndgln( ( ele - 1 ) * cv_nloc + 1 ) )
+          field_fl_p % val( fl_ele_nodes( 2 ) ) = p( cv_ndgln( ( ele - 1 ) * cv_nloc + 3 ) )
+          field_fl_p % val( fl_ele_nodes( 3 ) ) = p( cv_ndgln( ( ele - 1 ) * cv_nloc + 6 ) )
+       end do
+    else
+       ! just copy memory for p1
+       field_fl_p % val = p
+    end if
+
+    ! deal with velocity  
+    velocity => extract_vector_field( states( 1 ), "Velocity" )
+    number_nodes = node_count( velocity )
+    u_nloc = ele_loc( velocity, 1 )
+
+    allocate( u_tmp( number_nodes * nphase ) ) ; u_tmp = 0.
+    allocate( v_tmp( number_nodes * nphase ) ) ; v_tmp = 0.
+
+    if ( is_overlapping ) then
+       pressure => extract_scalar_field( states( 1 ), "Pressure" )
+       nlev = ele_loc( pressure, 1 )
+
+       do k = 1, nphase
+          do i = 1, totele
+             do j = 1, nlev
+                u_tmp ( (k-1)*number_nodes + (i-1)*u_nloc + 1 : (k-1)*number_nodes + i*u_nloc ) = &
+                     u_tmp ( (k-1)*number_nodes + (i-1)*u_nloc + 1 : (k-1)*number_nodes + i*u_nloc ) + &
+                     u ( (k-1)*number_nodes*nlev + (i-1)*u_nloc*nlev + (j-1)*u_nloc+ 1 : & 
+                     (k-1)*number_nodes*nlev + (i-1)*u_nloc*nlev + j*u_nloc )
+                v_tmp ( (k-1)*number_nodes + (i-1)*u_nloc + 1 : (k-1)*number_nodes + i*u_nloc ) = &
+                     v_tmp ( (k-1)*number_nodes + (i-1)*u_nloc + 1 : (k-1)*number_nodes + i*u_nloc ) + &
+                     v ( (k-1)*number_nodes*nlev + (i-1)*u_nloc*nlev + (j-1)*u_nloc+ 1 : & 
+                     (k-1)*number_nodes*nlev + (i-1)*u_nloc*nlev + j*u_nloc )
+             end do
+          end do
+       end do
+
+       u_tmp = u_tmp / nlev
+       v_tmp = v_tmp / nlev
+
+    else
+       u_tmp = u
+       v_tmp = v
+    end if
+
+    call allocate( u_dg, u_mesh, "u_dg" )
+    call zero( u_dg )
+    call allocate( v_dg, u_mesh, "v_dg" )
+    call zero( v_dg )
+    u_dg % val = u_tmp ; v_dg % val = v_tmp 
+
+    call project_field( u_dg, field_fl_u, fl_positions )
+    call project_field( v_dg, field_fl_v, fl_positions )
+
+    ! fluidity state
+    call insert( alg_fl, fl_mesh, "Mesh" )
+    call insert( alg_fl, fl_positions, "Coordinate" )
+
+    call insert(alg_fl, field_fl_p, "Pressure")
+    call insert(alg_fl, field_fl_u, "Velocity1")
+    call insert(alg_fl, field_fl_v, "Velocity2")
+
+    ! ring state
+    call insert( alg_ext, positions_r%mesh, "Mesh" )
+    call insert( alg_ext, positions_r, "Coordinate" )
+
+    call allocate( field_ext_p, fl_mesh, "Pressure" )
+    call zero( field_ext_p )
+    call insert( alg_ext, field_ext_p, "Pressure" )
+
+    call allocate( field_ext_u, fl_mesh, "Velocity1" )
+    call zero( field_ext_u )
+    call insert( alg_ext, field_ext_u, "Velocity1" )
+
+    call allocate( field_ext_v, fl_mesh, "Velocity2" )
+    call zero( field_ext_v )
+    call insert( alg_ext, field_ext_v, "Velocity2" )
+
+    ewrite(3,*) "...interpolating"
+
+    ! interpolate
+    call interpolation_galerkin_femdem( alg_fl, alg_ext, femdem_out = .true. )
+
+    ! copy memory
+    p_r = field_ext_p % val
+    u_r = field_ext_u % val
+    v_r = field_ext_v % val
+
+    call deallocate( fl_positions )
+
+    call deallocate( field_fl_p )
+    call deallocate( field_fl_u )
+    call deallocate( field_fl_v )
+
+    call deallocate( field_ext_p )
+    call deallocate( field_ext_u )
+    call deallocate( field_ext_v )
+
+    call deallocate( alg_fl )
+    call deallocate( alg_ext )
+
+    call deallocate( u_dg )
+    call deallocate( v_dg )
+
+    deallocate( u_tmp, v_tmp )
+
+    return
+  end subroutine interpolate_fields
+
 
   !----------------------------------------------------------------------------------------------------------
 
@@ -958,5 +1128,19 @@ contains
 
     return
   end function triangle_area
+
+  logical function is_overlapping()
+
+    implicit none
+
+    character(len=option_path_len) :: vel_element_type
+
+    call get_option('/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
+         vel_element_type)
+    is_overlapping = .false.
+    if ( trim( vel_element_type ) == "overlapping" ) is_overlapping = .true.
+  
+    return
+  end function is_overlapping
 
 end module multiphase_fractures
