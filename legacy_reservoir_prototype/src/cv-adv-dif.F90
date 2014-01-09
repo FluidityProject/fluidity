@@ -5487,6 +5487,7 @@ END IF
 ! limit the volume fraction based on switching to the 1st order scheme for DG between the elements...
 ! which should be ued with LIMIT_WITHIN_REAL=.true.
       LOGICAL, PARAMETER :: LIMIT_SAT_BASED_UPWIND = .false.
+      LOGICAL, PARAMETER :: LIMIT_WITHIN_REAL=.false.
 ! The fracture modelling with the upwind based method for DG... 
       LOGICAL, PARAMETER :: high_order_upwind_vel_for_dg = .false.
       LOGICAL :: RESET_STORE, LIM_VOL_ADJUST, enforce_abs
@@ -5501,6 +5502,7 @@ END IF
       real :: DT_I_upwind, DT_J_upwind, DTOLD_I_upwind, DTOLD_J_upwind
       real :: dt_max, dt_min, dtOLD_max, dtOLD_min
       real :: abs_tilde1, abs_tilde2, abs_tildeold1, abs_tildeold2
+      real :: wrelax, wrelaxold,  wrelax1, wrelax2, wrelaxold1, wrelaxold2
 
 
 
@@ -6515,6 +6517,13 @@ END IF
                      abs_tildeold1 = ABS_CV_NODI_IPHA  + ( limtold3   -  Told(CV_NODI_IPHA)  ) * GRAD_ABS_CV_NODI_IPHA  
                      abs_tildeold2 = ABS_CV_NODJ_IPHA  + ( limtold3   -  Told(CV_NODJ_IPHA)  ) * GRAD_ABS_CV_NODJ_IPHA  
 
+! redefine so that it detects oscillations...
+                     abs_tilde1 =  ABS_CV_NODI_IPHA  + 1.0*( T(CV_NODJ_IPHA)   -  T(CV_NODI_IPHA)  ) * GRAD_ABS_CV_NODI_IPHA   
+                     abs_tilde2 =  ABS_CV_NODJ_IPHA  + 1.0*( T(CV_NODi_IPHA)   -  T(CV_NODJ_IPHA)  ) * GRAD_ABS_CV_NODJ_IPHA 
+
+                     abs_tildeold1 =  ABS_CV_NODI_IPHA  + 1.0*( Told(CV_NODJ_IPHA)   -  Told(CV_NODI_IPHA)  ) * GRAD_ABS_CV_NODI_IPHA   
+                     abs_tildeold2 =  ABS_CV_NODJ_IPHA  + 1.0*( Told(CV_NODi_IPHA)   -  Told(CV_NODJ_IPHA)  ) * GRAD_ABS_CV_NODJ_IPHA 
+
 
 
                      abs_tilde =  0.5*(  ABS_CV_NODI_IPHA  + ( limt3   -  T(CV_NODI_IPHA)  ) * GRAD_ABS_CV_NODI_IPHA   +   &
@@ -6575,11 +6584,86 @@ END IF
            got_dt_ij=.true.
            if(.true.) then 
 ! new high order method - works well...
-               DT_I = min(1.0,  0.5*( ABS_CV_NODI_IPHA/abs_tilde1 )      )
-               DT_J = min(1.0,  0.5*( ABS_CV_NODJ_IPHA/abs_tilde2 )      )
 
-               DTOLD_I = min(1.0,  0.5*( ABS_CV_NODI_IPHA/abs_tildeold1 )      )
-               DTOLD_J = min(1.0,  0.5*( ABS_CV_NODJ_IPHA/abs_tildeold2 )      )
+               wrelax= min(  &
+                 ABS_CV_NODI_IPHA/abs_tilde1, abs_tilde1/ABS_CV_NODI_IPHA,   &
+                 ABS_CV_NODJ_IPHA/abs_tilde2, abs_tilde2/ABS_CV_NODJ_IPHA    )
+               wrelax1= min( ABS_CV_NODI_IPHA/abs_tilde1, abs_tilde1/ABS_CV_NODI_IPHA )
+               wrelax2= min( ABS_CV_NODJ_IPHA/abs_tilde2, abs_tilde2/ABS_CV_NODJ_IPHA  )
+
+          !     wrelax= min(  &
+          !       ABS_CV_NODI_IPHA/ABS_CV_NODJ_IPHA, ABS_CV_NODJ_IPHA/ABS_CV_NODI_IPHA   )
+
+               wrelaxold= min(  &
+                 ABS_CV_NODI_IPHA/abs_tildeold1, abs_tildeold1/ABS_CV_NODI_IPHA,   &
+                 ABS_CV_NODJ_IPHA/abs_tildeold2, abs_tildeold2/ABS_CV_NODJ_IPHA    )
+               wrelaxold1= min(  ABS_CV_NODI_IPHA/abs_tildeold1, abs_tildeold1/ABS_CV_NODI_IPHA   )
+               wrelaxold2= min(  ABS_CV_NODJ_IPHA/abs_tildeold2, abs_tildeold2/ABS_CV_NODJ_IPHA    )
+
+       !       wrelax=1.
+
+       !       wrelaxold=1.
+
+       !       wrelax=wrelax**2
+       !       wrelaxold=wrelaxold**2
+       !       wrelax1=wrelax1**2
+       !       wrelaxold1=wrelaxold1**2
+       !       wrelax2=wrelax2**2
+       !       wrelaxold2=wrelaxold2**2
+        !      wrelax=1.e-2
+        !  print *, iphase,wrelax,ABS_CV_NODI_IPHA/ABS_CV_NODj_IPHA,abs_tilde1/ABS_CV_NODi_IPHA,abs_tilde2/ABS_CV_NODj_IPHA
+
+           !   wrelaxold=wrelaxold**2
+           !   wrelax= 1. - abs(T(CV_NODI_IPHA)-T(CV_NODJ_IPHA))
+
+          !    wrelaxold=wrelax
+
+       !    wrelax=0.5*(wrelax1+wrelax2)
+       !    wrelax1=wrelax
+       !    wrelax2=wrelax
+
+          if(income3.lt.0.5) then ! flux limit
+             wrelax2=wrelax1
+          else
+             wrelax1=wrelax2
+          endif
+
+
+
+               DT_I = ( (1.-wrelax1)*ABS_CV_NODI_IPHA  + wrelax1*ABS_CV_NODJ_IPHA )/(ABS_CV_NODI_IPHA+ABS_CV_NODJ_IPHA)
+
+               DT_J = ( (1.-wrelax2)*ABS_CV_NODJ_IPHA  + wrelax2*ABS_CV_NODI_IPHA )/(ABS_CV_NODI_IPHA+ABS_CV_NODJ_IPHA)
+
+
+               DTOLD_I = DT_I
+               DTOLD_J = DT_J
+
+
+      !         DT_I = ( (1.-wrelax1)*ABS_CV_NODI_IPHA  + wrelax1*ABS_CV_NODJ_IPHA )/(ABS_CV_NODI_IPHA+ABS_CV_NODJ_IPHA)
+      !         DT_J = ( (1.-wrelax2)*ABS_CV_NODJ_IPHA  + wrelax2*ABS_CV_NODI_IPHA )/(ABS_CV_NODI_IPHA+ABS_CV_NODJ_IPHA)
+
+      !         DTOLD_I = ( (1.-wrelaxold1)*ABS_CV_NODI_IPHA  + wrelaxold1*ABS_CV_NODJ_IPHA )/(ABS_CV_NODI_IPHA+ABS_CV_NODJ_IPHA)
+      !         DTOLD_J = ( (1.-wrelaxold2)*ABS_CV_NODJ_IPHA  + wrelaxold2*ABS_CV_NODI_IPHA )/(ABS_CV_NODI_IPHA+ABS_CV_NODJ_IPHA)
+
+
+!               DT_I = min(1.0,  0.5*( ABS_CV_NODI_IPHA/abs_tilde1 )      )
+!               DT_J = min(1.0,  0.5*( ABS_CV_NODJ_IPHA/abs_tilde2 )      )
+
+!               DTOLD_I = min(1.0,  0.5*( ABS_CV_NODI_IPHA/abs_tildeold1 )      )
+!               DTOLD_J = min(1.0,  0.5*( ABS_CV_NODJ_IPHA/abs_tildeold2 )      )
+
+!                  DT_I_upwind = DT_I
+!                  DT_J_upwind = DT_J
+
+!                  DTOLD_I_upwind = DTOLD_I
+!                  DTOLD_J_upwind = DTOLD_J
+
+        !          DT_I =  DT_I_upwind/(DT_I_upwind+DT_J_upwind)
+        !          DT_J =  DT_J_upwind/(DT_I_upwind+DT_J_upwind)
+
+         !         DTOLD_I = DTOLD_I_upwind/(DTOLD_I_upwind+DTOLD_J_upwind)
+         !         DTOLD_J = DTOLD_J_upwind/(DTOLD_I_upwind+DTOLD_J_upwind)
+
             else ! upwind - works
                   if ( income3 < 0.5 ) then ! upwind
                        DT_I = min(1.0,  0.5*ABS_CV_NODI_IPHA/ABS_CV_NODI_IPHA  )
@@ -6791,15 +6875,87 @@ END IF
             !dtold_i=0.5
             !dtold_j=0.5
 
-        if(.not.got_dt_ij) then
-            UDGI_INT = ( DT_I * UDGI + DT_J * UDGI2 ) / (DT_I + DT_J)
-            VDGI_INT = ( DT_I * VDGI + DT_J * VDGI2 ) / (DT_I + DT_J)
-            WDGI_INT = ( DT_I * WDGI + DT_J * WDGI2 ) / (DT_I + DT_J)
+           if(.not.got_dt_ij) then ! normalize...
 
-            UOLDDGI_INT = ( DTOLD_I * UOLDDGI + DTOLD_J * UOLDDGI2 ) / (DTOLD_I + DTOLD_J)
-            VOLDDGI_INT = ( DTOLD_I * VOLDDGI + DTOLD_J * VOLDDGI2 ) / (DTOLD_I + DTOLD_J)
-            WOLDDGI_INT = ( DTOLD_I * WOLDDGI + DTOLD_J * WOLDDGI2 ) / (DTOLD_I + DTOLD_J)
-        else
+                  DT_I_upwind = DT_I
+                  DT_J_upwind = DT_J
+
+                  DTOLD_I_upwind = DTOLD_I
+                  DTOLD_J_upwind = DTOLD_J
+
+                  DT_I =  DT_I_upwind/(DT_I_upwind+DT_J_upwind)
+                  DT_J =  DT_J_upwind/(DT_I_upwind+DT_J_upwind)
+
+                  DTOLD_I = DTOLD_I_upwind/(DTOLD_I_upwind+DTOLD_J_upwind)
+                  DTOLD_J = DTOLD_J_upwind/(DTOLD_I_upwind+DTOLD_J_upwind)
+          else
+                  income=income3
+                  incomeold=incomeold3
+          endif
+
+
+
+!    if(.true.) then
+!    if(.false.) then
+    IF(LIMIT_WITHIN_REAL) THEN
+! Limit within physically realistic region...
+    IF(IPHASE.EQ.1) THEN
+      if(income.gt.1.0e-3) then
+         if(T(CV_NODj_IPHA).LT.0.2) then
+               DT_I = 0.0
+               DT_J = 0.0
+         endif
+      else
+         if(T(CV_NODI_IPHA).LT.0.2) then
+               DT_I = 0.0
+               DT_J = 0.0
+         endif
+      endif
+
+      if(incomeold.gt.1.0e-3) then
+         if(TOLD(CV_NODj_IPHA).LT.0.2) then
+               DTOLD_I = 0.0
+               DTOLD_J = 0.0
+         endif
+      else
+         if(TOLD(CV_NODI_IPHA).LT.0.2) then
+               DTOLD_I = 0.0
+               DTOLD_J = 0.0
+         endif
+      endif
+    ENDIF
+
+
+    IF(IPHASE.EQ.2) THEN
+      if(income.gt.1.0e-3) then
+         if(T(CV_NODj_IPHA).LT.0.2) then
+               DT_I = 0.0
+               DT_J = 0.0
+         endif
+      else
+         if(T(CV_NODI_IPHA).LT.0.2) then
+               DT_I = 0.0
+               DT_J = 0.0
+         endif
+      endif
+
+      if(incomeold.gt.1.0e-3) then
+         if(TOLD(CV_NODj_IPHA).LT.0.2) then
+               DTOLD_I = 0.0
+               DTOLD_J = 0.0
+         endif
+      else
+         if(TOLD(CV_NODI_IPHA).LT.0.2) then
+               DTOLD_I = 0.0
+               DTOLD_J = 0.0
+         endif
+      endif
+    ENDIF
+
+    endif
+
+
+
             UDGI_INT = ( DT_I * UDGI + DT_J * UDGI2 ) 
             VDGI_INT = ( DT_I * VDGI + DT_J * VDGI2 ) 
             WDGI_INT = ( DT_I * WDGI + DT_J * WDGI2 ) 
@@ -6807,10 +6963,10 @@ END IF
             UOLDDGI_INT = ( DTOLD_I * UOLDDGI + DTOLD_J * UOLDDGI2 ) 
             VOLDDGI_INT = ( DTOLD_I * VOLDDGI + DTOLD_J * VOLDDGI2 ) 
             WOLDDGI_INT = ( DTOLD_I * WOLDDGI + DTOLD_J * WOLDDGI2 ) 
-        endif
 
 
             IF( CV_DG_VEL_INT_OPT < 0 ) THEN
+               stop 2821 ! should not be going in here??
                if(got_dt_ij) stop 2611 ! we can not use these CV_DG_VEL_INT_OPT < 0, got_dt_ij=.true. options together.
 
                NDOTQ_INT = CVNORMX( GI ) * UDGI_INT + CVNORMY( GI ) * VDGI_INT + &
@@ -6846,15 +7002,6 @@ END IF
             VDGI  = VDGI_INT 
             WDGI  = WDGI_INT
 
-        if(.not.got_dt_ij) then
-            UGI_COEF_ELE(:)=DT_I * UGI_COEF_ELE(:) / (DT_I + DT_J)
-            VGI_COEF_ELE(:)=DT_I * VGI_COEF_ELE(:) / (DT_I + DT_J)
-            WGI_COEF_ELE(:)=DT_I * WGI_COEF_ELE(:) / (DT_I + DT_J)
-
-            UGI_COEF_ELE2(:)=DT_J * UGI_COEF_ELE2(:) / (DT_I + DT_J)
-            VGI_COEF_ELE2(:)=DT_J * VGI_COEF_ELE2(:) / (DT_I + DT_J)
-            WGI_COEF_ELE2(:)=DT_J * WGI_COEF_ELE2(:) / (DT_I + DT_J)
-        else
             UGI_COEF_ELE(:)=DT_I * UGI_COEF_ELE(:) 
             VGI_COEF_ELE(:)=DT_I * VGI_COEF_ELE(:) 
             WGI_COEF_ELE(:)=DT_I * WGI_COEF_ELE(:) 
@@ -6862,7 +7009,6 @@ END IF
             UGI_COEF_ELE2(:)=DT_J * UGI_COEF_ELE2(:) 
             VGI_COEF_ELE2(:)=DT_J * VGI_COEF_ELE2(:) 
             WGI_COEF_ELE2(:)=DT_J * WGI_COEF_ELE2(:) 
-        endif
 
             UOLDDGI  = UOLDDGI_INT 
             VOLDDGI  = VOLDDGI_INT 
@@ -8295,42 +8441,6 @@ END IF
             end if
          endif
       endif
-
-
-!    if(.true.) then
-    IF(LIMIT_WITHIN_REAL) THEN
-! Limit within physically realistic region...
-    IF(IPHASE.EQ.1) THEN
-      if(income.gt.0.5) then
-         if(T(CV_NODj_IPHA).LT.s_gc) LIMT=0.0
-      else
-         if(T(CV_NODI_IPHA).LT.s_gc) LIMT=0.0
-      endif
-
-      if(incomeold.gt.0.5) then
-         if(TOLD(CV_NODj_IPHA).LT.s_gc) LIMTOLD=0.0
-      else
-         if(TOLD(CV_NODI_IPHA).LT.s_gc) LIMTOLD=0.0
-      endif
-    ENDIF
-
-
-    IF(IPHASE.EQ.2) THEN
-      if(income.gt.0.5) then
-         if(T(CV_NODj_IPHA).LT.s_or ) LIMT=0.0
-      else
-         if(T(CV_NODI_IPHA).LT.s_or ) LIMT=0.0
-      endif
-
-      if(incomeold.gt.0.5) then
-         if(TOLD(CV_NODj_IPHA).LT.s_or ) LIMTOLD=0.0
-      else
-         if(TOLD(CV_NODI_IPHA).LT.s_or ) LIMTOLD=0.0
-      endif
-    ENDIF
-
-
-    endif
 
 
 
