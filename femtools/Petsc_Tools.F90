@@ -118,6 +118,9 @@ module Petsc_Tools
   public addup_global_assembly
   ! for petsc_numbering:
   public incref, decref, addref
+  ! for unit-testing:
+  logical, public, save :: petsc_test_error_handler_called = .false.
+  public petsc_test_error_handler
 #if PETSC_VERSION_MINOR>=3
 #define MatCreateSeqAIJ myMatCreateSeqAIJ
 #define MatCreateMPIAIJ myMatCreateMPIAIJ
@@ -1349,9 +1352,6 @@ contains
       do i=0, rows-1
         sparsity%findrm(i+1)=j
         call MatGetRow(matrix, offset+i, ncols, row_cols, row_vals, ierr)
-        ! This is stupid, we were given copies in MatGetRow so it could
-        ! have restored its internal tmp arrays straight away, anyway:
-        call MatRestoreRow(matrix, offset+i, ncols, row_cols, row_vals, ierr)
         do k=1, ncols
           if (row_cols(k)>=offset .and. row_cols(k)<offset+rows) then
             ! only local->local entries get inserted
@@ -1366,6 +1366,9 @@ contains
             j=j+1
           end if
         end do
+        ! This is stupid, we were given copies in MatGetRow so it could
+        ! have restored its internal tmp arrays straight away, anyway:
+        call MatRestoreRow(matrix, offset+i, ncols, row_cols, row_vals, ierr)
       end do
       A%sparsity%findrm(i+1)=j
 
@@ -1377,6 +1380,7 @@ contains
         sparsity%findrm(i+1)=j
 #ifdef DOUBLEP
         call MatGetRow(matrix, offset+i, ncols, sparsity%colm(j:), A%val(j:), ierr)
+        j=j+ncols
         ! This is stupid, we were given copies in MatGetRow so it could
         ! have restored its internal tmp arrays straight away, anyway:
         call MatRestoreRow(matrix, offset+i, ncols, sparsity%colm(j:), A%val(j:), ierr)
@@ -1384,12 +1388,12 @@ contains
         allocate(row_vals(size(A%val) - j + 1))
         call MatGetRow(matrix, offset+i, ncols, sparsity%colm(j:), row_vals, ierr)
         A%val(j:) = row_vals
+        j=j+ncols
         ! This is stupid, we were given copies in MatGetRow so it could
         ! have restored its internal tmp arrays straight away, anyway:
         call MatRestoreRow(matrix, offset+i, ncols, sparsity%colm(j:), row_vals, ierr)
         deallocate(row_vals)
 #endif
-        j=j+ncols
       end do
       A%sparsity%findrm(i+1)=j
       
@@ -1472,6 +1476,29 @@ contains
     PetscErrorCode :: ierr
     call PetscInitialize(PETSC_NULL_CHARACTER, ierr); CHKERRQ(ierr);
   end subroutine Initialize_Petsc
+
+! Simple dummy error handler that just tracks whether it's been called or not
+! Useful for unittesting to see that petsc gives error messages at the right moment
+#if PETSC_VERSION_MINOR>=2
+subroutine petsc_test_error_handler(comm,line, func, file, dir, n, p, mess, ctx, ierr)
+#include "finclude/petsc.h"
+  MPI_Comm:: comm
+#else
+subroutine petsc_test_error_handler(line, func, file, dir, n, p, mess, ctx, ierr)
+#include "finclude/petsc.h"
+#endif
+  PetscInt:: line
+  character(len=*):: func, file, dir
+  PetscErrorCode:: n
+  PetscInt:: p
+  character(len=*):: mess
+  PetscInt:: ctx
+  PetscErrorCode:: ierr
+  
+
+  petsc_test_error_handler_called = .true.
+  
+end subroutine petsc_test_error_handler
 
 ! In petsc-3.3 the MatCreate[B]{Seq|MPI}() routines have changed to MatCreate[B]Aij
 ! and MatSetup always needs to be called
