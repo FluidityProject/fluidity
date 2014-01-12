@@ -29,6 +29,9 @@ Line Loop(18) = {2,-12,8,-11};
 Plane Surface(19) = {18};
 Line Loop(20) = {11,9,10,1};
 Plane Surface(21) = {20};
+Extrude {0,0,0.01} {
+  Surface{15,17,19,21}; Layers{1};
+}
 Physical Surface(29) = {104};
 Physical Surface(30) = {100,82,56,30};
 Physical Surface(31) = {42};
