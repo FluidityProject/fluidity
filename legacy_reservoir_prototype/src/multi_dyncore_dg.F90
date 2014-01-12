@@ -1291,6 +1291,7 @@
 
           !  if( cv_nonods==x_nonods .or. .false. ) then ! a continuous pressure:
             if( .true. ) then ! a pressure solve:  
+          !  if( .false. ) then ! a pressure solve:  
 ! James feed CMC_PRECON into this sub and use as the preconditioner matrix...
 ! CMC_PRECON has length CMC_PRECON(NCOLCMC*IGOT_CMC_PRECON) 
  
