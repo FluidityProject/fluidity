@@ -140,7 +140,7 @@ contains
     PC  prec
     Vec y
     PetscViewer viewer
-    PetscTruth flag
+    PetscBool flag
     PetscErrorCode ierr
     KSPConvergedReason reason
     type(petsc_numbering_type) petsc_numbering
@@ -781,7 +781,7 @@ contains
   character(len=*), intent(out):: filename, flml, field
   logical, intent(out):: zero_init_guess, scipy, random_rhs
 
-    PetscTruth flag
+    PetscBool flag
     PetscErrorCode ierr
     
     call PetscOptionsGetString('prns_', '-filename', filename, flag, ierr)
