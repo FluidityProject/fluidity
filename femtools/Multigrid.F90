@@ -9,25 +9,11 @@ use FLDebug
 use spud
 use futils
 use parallel_tools
-#include "petscversion.h"
 #ifdef HAVE_PETSC_MODULES
   use petsc
 #endif
 implicit none
-#ifdef HAVE_PETSC_MODULES
-#include "finclude/petscdef.h"
-#else
-#include "finclude/petsc.h"
-#endif
-#if PETSC_VERSION_MINOR>=2
-#define KSP_NORM_NO KSP_NORM_NONE
-#endif
-#if PETSC_VERSION_MINOR>=3
-#define MatCreateSeqAIJ myMatCreateSeqAIJ
-#define MatCreateMPIAIJ myMatCreateMPIAIJ
-#define MatCreateSeqBAIJ myMatCreateSeqBAIJ
-#define MatCreateMPIBAIJ myMatCreateMPIBAIJ
-#endif
+#include "petsc_legacy.h"
 
 !! Some parameters that change the behaviour of 
 !! the smoothed aggregation method. All of
@@ -633,7 +619,7 @@ integer, intent(in):: iterations
   call KSPSetTolerances(ksp, PETSC_DEFAULT_DOUBLE_PRECISION, &
     PETSC_DEFAULT_DOUBLE_PRECISION, PETSC_DEFAULT_DOUBLE_PRECISION, &
     1, ierr)
-  call KSPSetNormType(ksp, KSP_NORM_NO, ierr)
+  call KSPSetNormType(ksp, KSP_NORM_NONE, ierr)
   
   call KSPGetPC(ksp, pc, ierr)
   call PCSetType(pc, PCSOR, ierr)
@@ -656,7 +642,7 @@ Mat, intent(in):: matrix
     PETSC_DEFAULT_DOUBLE_PRECISION, PETSC_DEFAULT_DOUBLE_PRECISION, &
     0, ierr)
   call KSPRichardsonSetScale(ksp,real(0.0, kind = PetscReal_kind),ierr)
-  call KSPSetNormType(ksp, KSP_NORM_NO, ierr)
+  call KSPSetNormType(ksp, KSP_NORM_NONE, ierr)
   
   call KSPGetPC(ksp, pc, ierr)
   call PCSetType(pc,PCNONE,ierr)
@@ -672,21 +658,13 @@ integer, intent(in):: iterations
   PC:: pc
   PetscErrorCode:: ierr
   
-#if PETSC_VERSION_MINOR>=3
   call KSPSetType(ksp, KSPCHEBYSHEV, ierr)
-#else
-  call KSPSetType(ksp, KSPCHEBYCHEV, ierr)
-#endif
   call KSPSetOperators(ksp, matrix, matrix, SAME_PRECONDITIONER, ierr)
   call KSPSetTolerances(ksp, PETSC_DEFAULT_DOUBLE_PRECISION, &
     PETSC_DEFAULT_DOUBLE_PRECISION, PETSC_DEFAULT_DOUBLE_PRECISION, &
     iterations, ierr)
-#if PETSC_VERSION_MINOR>=3
   call KSPChebyshevSetEigenvalues(ksp, emax, emin, ierr)
-#else
-  call KSPChebychevSetEigenvalues(ksp, emax, emin, ierr)
-#endif
-  call KSPSetNormType(ksp, KSP_NORM_NO, ierr)
+  call KSPSetNormType(ksp, KSP_NORM_NONE, ierr)
 
   call KSPGetPC(ksp, pc, ierr)
   call PCSetType(pc, PCNONE, ierr)
@@ -699,11 +677,7 @@ PetscReal, intent(out):: epsilon, epsilon_decay, omega
 integer, intent(out):: maxlevels, coarsesize
 integer, intent(out):: nosmd, nosmu, clustersize
 
-#if PETSC_VERSION_MINOR>=2
   PetscBool flag
-#else
-  PetscTruth flag
-#endif
   PetscErrorCode ierr
 
     call PetscOptionsGetReal('', '-mymg_epsilon', epsilon, flag, ierr)
@@ -800,11 +774,7 @@ integer, optional, dimension(:), intent(out):: cluster
   
   !
   call VecCopy(diag, sqrt_diag, ierr)
-#if PETSC_VERSION_MINOR>=2
   call VecSqrtAbs(sqrt_diag, ierr)
-#else
-  call VecSqrt(sqrt_diag, ierr)
-#endif
   !
   call VecDuplicate(sqrt_diag, inv_sqrt_diag, ierr)
   call VecCopy(sqrt_diag, inv_sqrt_diag, ierr)

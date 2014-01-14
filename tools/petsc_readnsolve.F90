@@ -1,6 +1,5 @@
 #include "confdefs.h"
 #include "fdebug.h"
-#include "petscversion.h"
 !! Little program that reads in a matrix equation from a file called 
 !! 'matrixdump' in the current directory containing a matrix, rhs vector and 
 !! initial guess, written in PETSc binary format. It then subsequently solves 
@@ -41,20 +40,7 @@ use parallel_tools
   use petsc 
 #endif
 implicit none
-#ifdef HAVE_PETSC_MODULES
-#include "finclude/petscvecdef.h"
-#include "finclude/petscmatdef.h"
-#include "finclude/petsckspdef.h"
-#include "finclude/petscpcdef.h"
-#include "finclude/petscviewerdef.h"
-#include "finclude/petscisdef.h"
-#else
-#include "finclude/petsc.h"
-#endif
-! hack around PetscTruth->PetscBool change in petsc 3.2
-#if PETSC_VERSION_MINOR>=2
-#define PetscTruth PetscBool
-#endif
+#include "petsc_legacy.h"
   ! options read from command-line (-prns_... options)
   character(len=4096) filename, flml
   character(len=FIELD_NAME_LEN):: field
