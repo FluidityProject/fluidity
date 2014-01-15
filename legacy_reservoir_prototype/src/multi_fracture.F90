@@ -73,10 +73,10 @@ module multiphase_fractures
   end interface
 
   interface
-     subroutine y2dfemdem( string, dt, p, u, v )
+     subroutine y2dfemdem( string, dt, rho, p, u, v )
        character( len = * ), intent( in ) :: string
        real, intent( in ) :: dt
-       real, dimension( * ), intent( in ) :: p, u, v
+       real, dimension( * ), intent( in ) :: rho, p, u, v
 
      end subroutine y2dfemdem
   end interface
@@ -109,7 +109,7 @@ contains
     real, dimension( totele, ndim, ndim ), intent( inout ) :: perm
     real, dimension( totele ), intent( inout ) :: porosity
 
-    real, dimension( : ), allocatable :: vf, p_r, u_r, v_r 
+    real, dimension( : ), allocatable :: vf, rho_r, p_r, u_r, v_r 
     integer :: r_nonods
 
     ! read in ring and solid volume meshes
@@ -132,14 +132,16 @@ contains
 
 
     r_nonods = node_count( positions_r )
-    allocate( p_r( r_nonods ), u_r( r_nonods ), v_r( r_nonods ) )
-    call interpolate_fields(  states, nphase, u_nonods, cv_nonods, r_nonods, &
-         &                    cv_nloc, totele, cv_ndgln, p, u, v, p_r, u_r, v_r )
-    call y2dfemdem( femdem_mesh_name, dt, p_r, u_r, v_r )
+    allocate( rho_r( r_nonods), p_r( r_nonods ), u_r( r_nonods ), v_r( r_nonods ) )
+    call interpolate_fields( states, nphase, u_nonods, cv_nonods, r_nonods, &
+         &                   cv_nloc, totele, cv_ndgln, &
+         &                   rho, p, u, v, rho_r, p_r, u_r, v_r )
+    call y2dfemdem( femdem_mesh_name, dt, rho_r, p_r, u_r, v_r )
 
     ! deallocate
     call deallocate_femdem
     deallocate( vf )
+    deallocate( rho_r, p_r, u_r, v_r )
 
     return
   end subroutine femdem
@@ -597,7 +599,8 @@ contains
 
 
   subroutine interpolate_fields( states, nphase, u_nonods, cv_nonods, r_nonods, &
-       &                         cv_nloc, totele, cv_ndgln, p, u, v, p_r, u_r, v_r )
+       &                         cv_nloc, totele, cv_ndgln, &
+       &                         rho, p, u, v, rho_r, p_r, u_r, v_r )
 
     implicit none
 
@@ -605,12 +608,14 @@ contains
     integer, intent( in ) :: nphase, u_nonods, cv_nonods, r_nonods, cv_nloc 
     integer, dimension( totele * cv_nloc ), intent( in ) :: cv_ndgln
     real, dimension( nphase * u_nonods ), intent( in ) :: u, v
+  
+    real, dimension( cv_nonods ), intent( in ) :: rho
     real, dimension( cv_nonods ), intent( in ) :: p
-    real, dimension( r_nonods ), intent( inout ) :: u_r, v_r, p_r
+    real, dimension( r_nonods ), intent( inout ) :: u_r, v_r, p_r, rho_r
 
     type( mesh_type ), pointer :: fl_mesh, u_mesh
-    type( scalar_field ) :: field_fl_p, field_fl_u, field_fl_v, &
-         &                  field_ext_p, field_ext_u, field_ext_v, &
+    type( scalar_field ) :: field_fl_rho, field_fl_p, field_fl_u, field_fl_v, &
+         &                  field_ext_rho, field_ext_p, field_ext_u, field_ext_v, &
          &                  u_dg, v_dg
     type( vector_field ) :: fl_positions
     type( scalar_field ), pointer :: pressure
@@ -620,7 +625,7 @@ contains
     integer, dimension( : ), pointer :: fl_ele_nodes
     integer :: ele, totele, u_nloc, nlev, i, j, k, number_nodes
 
-    u_r = 0. ; v_r = 0. ; p_r = 0.
+    u_r = 0. ; v_r = 0. ; p_r = 0. ; rho_r = 0.
 
     fl_mesh => extract_mesh( states( 1 ), "CoordinateMesh" )
     fl_positions = extract_vector_field( states( 1 ), "Coordinate" )
@@ -628,6 +633,9 @@ contains
     u_mesh => extract_mesh( states( 1 ), "VelocityMesh" )
 
     totele = ele_count( fl_mesh )
+
+    call allocate( field_fl_rho, fl_mesh, "Density" )
+    call zero( field_fl_rho )
 
     call allocate( field_fl_p, fl_mesh, "Pressure" )
     call zero( field_fl_p )
@@ -650,6 +658,20 @@ contains
     else
        ! just copy memory for p1
        field_fl_p % val = p
+    end if
+
+   ! deal with density
+    if ( cv_nloc == 6  ) then
+       ! linearise density for p2
+       do ele = 1, totele
+          fl_ele_nodes => ele_nodes( fl_mesh, ele )
+          field_fl_rho % val( fl_ele_nodes( 1 ) ) = rho( cv_ndgln( ( ele - 1 ) * cv_nloc + 1 ) )
+          field_fl_rho % val( fl_ele_nodes( 2 ) ) = rho( cv_ndgln( ( ele - 1 ) * cv_nloc + 3 ) )
+          field_fl_rho % val( fl_ele_nodes( 3 ) ) = rho( cv_ndgln( ( ele - 1 ) * cv_nloc + 6 ) )
+       end do
+    else
+       ! just copy memory for p1
+       field_fl_rho % val = rho
     end if
 
     ! deal with velocity  
@@ -700,6 +722,7 @@ contains
     call insert( alg_fl, fl_mesh, "Mesh" )
     call insert( alg_fl, fl_positions, "Coordinate" )
 
+    call insert(alg_fl, field_fl_rho, "Density")
     call insert(alg_fl, field_fl_p, "Pressure")
     call insert(alg_fl, field_fl_u, "Velocity1")
     call insert(alg_fl, field_fl_v, "Velocity2")
@@ -707,6 +730,10 @@ contains
     ! ring state
     call insert( alg_ext, positions_r%mesh, "Mesh" )
     call insert( alg_ext, positions_r, "Coordinate" )
+
+    call allocate( field_ext_rho, fl_mesh, "Density" )
+    call zero( field_ext_rho )
+    call insert( alg_ext, field_ext_rho, "Density" )
 
     call allocate( field_ext_p, fl_mesh, "Pressure" )
     call zero( field_ext_p )
@@ -732,10 +759,12 @@ contains
 
     call deallocate( fl_positions )
 
+    call deallocate( field_fl_rho )
     call deallocate( field_fl_p )
     call deallocate( field_fl_u )
     call deallocate( field_fl_v )
 
+    call deallocate( field_ext_rho )
     call deallocate( field_ext_p )
     call deallocate( field_ext_u )
     call deallocate( field_ext_v )
