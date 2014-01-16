@@ -307,8 +307,8 @@
 !!$ Den = C0 / T * ( P - C1 )
          if( .not. have_temperature_field ) FLAbort( 'Temperature Field not defined' )
          allocate( eos_coefs( 2 ) ) ; eos_coefs = 0.
-         call get_option( trim( eos_option_path // '/eos_option1' ), eos_coefs( 1 ) )
-         call get_option( trim( eos_option_path // '/eos_option2' ), eos_coefs( 2 ) )
+         call get_option( trim( eos_option_path ) // '/eos_option1', eos_coefs( 1 ) )
+         call get_option( trim( eos_option_path ) // '/eos_option2', eos_coefs( 2 ) )
          Rho = ( pressure % val + eos_coefs( 1 ) ) * eos_coefs( 2 ) / temperature % val
          perturbation_pressure = max( toler, 1.e-3 * ( abs( pressure % val ) + eos_coefs( 1 ) ) )
          RhoPlus = ( pressure % val + perturbation_pressure + eos_coefs( 1 ) ) *  eos_coefs( 2 ) / &
