@@ -46,6 +46,8 @@ use tidal_module, only: calculate_diagnostic_equilibrium_pressure
 use sparsity_patterns_meshes
 use sparsity_patterns
 use solvers
+use cv_faces
+use cv_shape_functions
 implicit none
 
 private
@@ -61,10 +63,12 @@ public get_extended_pressure_mesh_for_viscous_free_surface, copy_to_extended_p, 
   get_extended_schur_auxillary_sparsity, &
   update_pressure_and_viscous_free_surface,  &
   add_implicit_viscous_free_surface_integrals, &
+  add_implicit_viscous_free_surface_integrals_cv, &
   add_implicit_viscous_free_surface_scaled_mass_integrals, update_prognostic_free_surface, &
   update_implicit_scaled_free_surface, has_implicit_viscous_free_surface_bc, &
   has_explicit_viscous_free_surface_bc, has_standard_free_surface_bc, &
-  add_explicit_viscous_free_surface_integrals
+  add_explicit_viscous_free_surface_integrals, &
+  add_explicit_viscous_free_surface_integrals_cv
 
 public free_surface_module_check_options
 
@@ -1469,7 +1473,7 @@ contains
   end subroutine update_pressure_and_viscous_free_surface
 
   function get_extended_velocity_divergence_matrix(state, u, fs, &
-      extended_mesh, get_ct) result (ct_m_ptr)
+      extended_mesh, get_ct, ct_m_name) result (ct_m_ptr)
     ! returns the velocity divergence matrix from state (or creates a new one if none present)
     ! with extra rows associated with prognostic fs nodes
     ! this routine mimicks the behaviour of get_velocity_divergence_matrix()
@@ -1479,6 +1483,7 @@ contains
     type(mesh_type), intent(in):: extended_mesh
     ! returns .true. if the matrix needs to be reassembled (because it has just been allocated or because of mesh movement)
     logical, optional, intent(out):: get_ct
+    character(len=*), intent(in), optional :: ct_m_name
     type(block_csr_matrix), pointer:: ct_m_ptr
 
     type(block_csr_matrix):: new_ct_m
@@ -1486,11 +1491,19 @@ contains
     integer:: stat
     integer, save:: last_mesh_movement = -1
     logical:: mesh_moved
+    character(len=FIELD_NAME_LEN) :: l_ct_m_name
 
     mesh_moved = eventcount(EVENT_MESH_MOVEMENT)/=last_mesh_movement
     last_mesh_movement = eventcount(EVENT_MESH_MOVEMENT)
 
-    ct_m_ptr => extract_block_csr_matrix(state, "ExtendedVelocityDivergenceMatrix", stat=stat)
+    ! Form the ct_m_name dependent on interface argument
+    if (present(ct_m_name)) then
+       l_ct_m_name = trim(ct_m_name)
+    else
+       l_ct_m_name = "ExtendedVelocityDivergenceMatrix"
+    end if
+
+    ct_m_ptr => extract_block_csr_matrix(state, l_ct_m_name, stat=stat)
     if (stat==0) then
       if (present(get_ct)) then
         get_ct = mesh_moved
@@ -1500,11 +1513,11 @@ contains
 
     sparsity => get_extended_velocity_divergence_sparsity(state, u, fs, extended_mesh)
 
-    call allocate(new_ct_m, sparsity, blocks=(/ 1, u%dim /), name="ExtendedVelocityDivergenceMatrix")
+    call allocate(new_ct_m, sparsity, blocks=(/ 1, u%dim /), name=l_ct_m_name)
     call insert(state, new_ct_m, new_ct_m%name)
     call deallocate(new_ct_m)
 
-    ct_m_ptr => extract_block_csr_matrix(state, "ExtendedVelocityDivergenceMatrix")
+    ct_m_ptr => extract_block_csr_matrix(state, l_ct_m_name)
 
     if (present(get_ct)) then
       get_ct = .true.
@@ -1769,6 +1782,158 @@ contains
 
   end subroutine add_implicit_viscous_free_surface_integrals
 
+  subroutine add_implicit_viscous_free_surface_integrals_cv(state, ct_m, u, &
+      p_mesh, fs)
+    ! This routine adds in the boundary conditions for the viscous free surface
+    ! (that is the free_surface bc with the no_normal_stress option)
+    ! ct_m has been extended with some extra rows (corresponding to free surface
+    ! nodes) that are used to enforce the kinematic bc, the transpose of that
+    ! will produce the \rho_0 g\eta term in the no_normal_stress boundary condition:
+    !   n\cdot\tau\cdot n + p - \rho_0 g\eta = 0
+    ! if pressure is also extended to contain \rho g\eta in the extra nodes.
+    
+    type(state_type), intent(inout):: state
+    type(block_csr_matrix), intent(inout):: ct_m
+    type(vector_field), intent(in):: u
+    type(mesh_type), intent(in):: p_mesh ! the extended pressure mesh
+    type(scalar_field), intent(inout):: fs
+
+    type(vector_field), pointer:: x
+    type(mesh_type), pointer:: fs_mesh, embedded_fs_mesh
+    type(integer_hash_table):: sele_to_fs_ele
+    character(len=FIELD_NAME_LEN):: bc_type
+    character(len=OPTION_PATH_LEN):: bc_option_path
+    integer, dimension(:), pointer:: surface_element_list
+    integer:: i, j
+
+    ! information about cv faces
+    type(cv_faces_type) :: cvfaces
+    ! shape functions for region and surface
+    type(element_type) :: x_cvbdyshape
+    type(element_type) :: p_cvbdyshape
+    type(element_type) :: u_cvbdyshape
+    integer:: quaddegree, ele, sele
+
+    assert(have_option(trim(fs%option_path)//"/prognostic"))
+
+    if (.not. has_boundary_condition_name(fs, "_implicit_free_surface")) then
+      call initialise_implicit_prognostic_free_surface(state, fs, u)
+    end if
+    ! obtain the f.s. surface mesh that has been stored under the
+    ! "_implicit_free_surface" boundary condition
+    call get_boundary_condition(fs, "_implicit_free_surface", &
+        surface_mesh=fs_mesh, surface_element_list=surface_element_list)
+    ! create a map from face numbers to element numbers in fs_mesh
+    call invert_set(surface_element_list, sele_to_fs_ele)
+    embedded_fs_mesh => extract_mesh(state, "_embedded_free_surface_mesh")
+
+    x => extract_vector_field(state, "Coordinate")
+
+    call get_option("/geometry/quadrature/controlvolume_surface_degree", &
+                   quaddegree, default=1)
+
+    cvfaces=find_cv_faces(vertices=ele_vertices(p_mesh, 1), &
+                          dimension=mesh_dim(p_mesh), &
+                          polydegree=p_mesh%shape%degree, &
+                          quaddegree=quaddegree)
+
+    x_cvbdyshape=make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape)
+    p_cvbdyshape=make_cvbdy_element_shape(cvfaces, p_mesh%faces%shape)
+    u_cvbdyshape=make_cvbdy_element_shape(cvfaces, u%mesh%faces%shape)
+
+    do i=1, get_boundary_condition_count(u)
+      call get_boundary_condition(u, i, type=bc_type, option_path=bc_option_path, &
+          surface_element_list=surface_element_list)
+      if (bc_type=="free_surface") then
+        if(have_option(trim(bc_option_path)//"/type[0]/no_normal_stress") .and. &
+           (.not.have_option(trim(bc_option_path)//"/type[0]/no_normal_stress/explicit"))) then
+          do j=1, size(surface_element_list)
+            sele = surface_element_list(j)
+            ele = face_ele(x, sele)
+            call add_boundary_integral_sele(sele, ele)
+          end do
+        end if
+      end if
+    end do
+
+    call deallocate(x_cvbdyshape)
+    call deallocate(p_cvbdyshape)
+    call deallocate(u_cvbdyshape)
+    call deallocate(cvfaces)
+
+  contains
+
+    subroutine add_boundary_integral_sele(sele, ele)
+      integer, intent(in):: sele, ele
+
+      real, dimension(u%dim, face_loc(p_mesh, sele), face_loc(u, sele)) :: ct_mat_bdy
+      real, dimension(u%dim, face_loc(fs, sele), face_loc(u, sele)) :: ht_mat_bdy
+      real, dimension(face_ngi(u, sele)) :: detwei_bdy
+      real, dimension(x_cvbdyshape%ngi) :: detwei_bdy_cv
+      real, dimension(x%dim, face_ngi(x, sele)) :: normal_bdy
+      real, dimension(x%dim, x_cvbdyshape%ngi) :: normal_bdy_cv
+      real, dimension(x%dim, ele_loc(x, ele)) :: x_ele
+      real, dimension(x%dim, face_loc(x, sele)) :: x_ele_bdy
+      integer:: dim, gi, ggi, iloc, jloc, face
+      
+      x_ele = ele_val(x, ele)
+      x_ele_bdy = face_val(x, sele)
+
+      call transform_cvsurf_facet_to_physical(x_ele, x_ele_bdy, &
+                            x_cvbdyshape, normal_bdy_cv, detwei_bdy_cv)
+  
+      ct_mat_bdy = 0.0
+      surface_nodal_loop_i: do iloc = 1, face_loc(p_mesh, sele)
+
+        surface_face_loop: do face = 1, cvfaces%sfaces
+          if(cvfaces%sneiloc(iloc,face)/=0) then
+
+            surface_quadrature_loop: do gi = 1, cvfaces%shape%ngi
+
+              ggi = (face-1)*cvfaces%shape%ngi + gi
+
+              surface_nodal_loop_j: do jloc = 1, face_loc(u, sele)
+
+                surface_inner_dimension_loop: do dim = 1, size(normal_bdy_cv,1)
+
+                   ct_mat_bdy(dim, iloc, jloc) =  ct_mat_bdy(dim, iloc, jloc) + &
+                         u_cvbdyshape%n(jloc,ggi)*detwei_bdy_cv(ggi)*normal_bdy_cv(dim, ggi)
+
+                end do surface_inner_dimension_loop
+
+              end do surface_nodal_loop_j
+
+            end do surface_quadrature_loop
+
+          end if
+
+        end do surface_face_loop
+
+      end do surface_nodal_loop_i
+
+      call transform_facet_to_physical(x, sele, &
+           detwei_f=detwei_bdy, normal=normal_bdy)
+      ht_mat_bdy = shape_shape_vector(face_shape(fs, sele), face_shape(u, sele), &
+           detwei_bdy, normal_bdy)
+
+
+      do dim=1, u%dim
+        ! we've integrated continuity by parts, but not yet added in the resulting
+        ! surface integral - for the non-viscous free surface this is left
+        ! out to enforce the kinematic bc
+        call addto(ct_m, 1, dim, face_global_nodes(p_mesh,sele), &
+             face_global_nodes(u,sele), ct_mat_bdy(dim,:,:))
+        ! for the viscous bc however we add this bc in the extra rows at the bottom of ct_m
+        ! this integral will also enforce the \rho_0 g\eta term in the no_normal_stress bc:
+        !   n\cdot\tau\cdot n + p - (\rho_0-\rho_external) g\eta = 0
+        call addto(ct_m, 1, dim, ele_nodes(embedded_fs_mesh, fetch(sele_to_fs_ele, sele)), &
+             face_global_nodes(u,sele), -ht_mat_bdy(dim,:,:))
+      end do
+
+    end subroutine add_boundary_integral_sele
+
+  end subroutine add_implicit_viscous_free_surface_integrals_cv
+
   subroutine add_explicit_viscous_free_surface_integrals(state, mom_rhs, ct_m, &
         reassemble_ct_m, u, p_mesh, fs)
    type(state_type), intent(inout):: state
@@ -1877,6 +2042,180 @@ contains
     end subroutine add_boundary_integral_sele
 
   end subroutine add_explicit_viscous_free_surface_integrals
+
+  subroutine add_explicit_viscous_free_surface_integrals_cv(state, ct_m, &
+        reassemble_ct_m, u, p_mesh, fs, mom_rhs)
+    type(state_type), intent(inout):: state
+    type(block_csr_matrix), intent(inout):: ct_m
+    logical, intent(in):: reassemble_ct_m
+    type(vector_field), intent(in):: u
+    type(mesh_type), intent(in):: p_mesh
+    type(scalar_field), intent(inout):: fs
+    type(vector_field), intent(inout), optional:: mom_rhs 
+
+    type(scalar_field), pointer:: it_fs, old_fs, density
+    type(vector_field), pointer:: x
+    character(len=FIELD_NAME_LEN):: bctype
+    character(len=OPTION_PATH_LEN):: fs_option_path
+    real:: itheta, external_density, rho0, g
+    integer, dimension(:), pointer:: surface_element_list
+    integer:: i, j, dens_stat, stat
+    logical:: variable_density, have_density, move_mesh
+
+    ! information about cv faces
+    type(cv_faces_type) :: cvfaces
+    ! shape functions for region and surface
+    type(element_type) :: x_cvbdyshape
+    type(element_type) :: p_cvbdyshape
+    type(element_type) :: u_cvbdyshape
+    integer:: quaddegree, ele, sele
+
+    if (.not.present(mom_rhs) .and. .not. reassemble_ct_m) return
+
+    assert(have_option(trim(fs%option_path)//"/prognostic"))
+
+    it_fs => extract_scalar_field(state, "IteratedFreeSurface")
+    old_fs => extract_scalar_field(state, "OldFreeSurface")
+
+    move_mesh = have_option("/mesh_adaptivity/mesh_movement/free_surface")
+    x => extract_vector_field(state, "Coordinate")
+    ! reference density
+    call get_fs_reference_density_from_options(rho0, state%option_path)
+    density => extract_scalar_field(state, "Density", stat=dens_stat)
+    have_density = (dens_stat==0)
+    call get_option('/physical_parameters/gravity/magnitude', g, stat=stat)
+    if (stat/=0) then
+      FLExit("For a free surface you need gravity")
+    end if
+
+    call get_option(trim(u%option_path)//"/prognostic/temporal_discretisation/relaxation", &
+                   itheta)
+
+    call get_option("/geometry/quadrature/controlvolume_surface_degree", &
+                   quaddegree, default=1)
+
+    cvfaces=find_cv_faces(vertices=ele_vertices(p_mesh, 1), &
+                          dimension=mesh_dim(p_mesh), &
+                          polydegree=p_mesh%shape%degree, &
+                          quaddegree=quaddegree)
+
+    x_cvbdyshape=make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape)
+    p_cvbdyshape=make_cvbdy_element_shape(cvfaces, p_mesh%faces%shape)
+    u_cvbdyshape=make_cvbdy_element_shape(cvfaces, u%mesh%faces%shape)
+
+    do i=1, get_boundary_condition_count(u)
+      call get_boundary_condition(u, i, type=bctype, option_path=fs_option_path, &
+          surface_element_list=surface_element_list)
+      if (bctype=="free_surface") then
+        if(have_option(trim(fs_option_path)//"/type[0]/no_normal_stress") .and. &
+           have_option(trim(fs_option_path)//"/type[0]/no_normal_stress/explicit")) then
+          call get_option(trim(fs_option_path)//"/type[0]/external_density", &
+               external_density, default=0.0)
+
+          variable_density = have_option(trim(fs_option_path)//"/type[0]/variable_density") &
+                            .and. (.not.move_mesh)
+          if (variable_density.and.(.not.have_density)) then
+            FLExit("Variable density free surface requires a Density field.")
+          end if
+
+          do j=1, size(surface_element_list)
+            sele = surface_element_list(j)
+            ele = face_ele(x, sele)
+            call add_boundary_integral_sele(sele, ele)
+          end do
+        end if
+      end if
+    end do
+
+    call deallocate(x_cvbdyshape)
+    call deallocate(p_cvbdyshape)
+    call deallocate(u_cvbdyshape)
+    call deallocate(cvfaces)
+
+  contains
+
+    subroutine add_boundary_integral_sele(sele, ele)
+      integer, intent(in):: sele, ele
+
+      real, dimension(u%dim, face_loc(p_mesh, sele), face_loc(u, sele)) :: ct_mat_bdy
+      real, dimension(face_ngi(u, sele)) :: detwei_bdy
+      real, dimension(x_cvbdyshape%ngi) :: detwei_bdy_cv
+      real, dimension(x%dim, face_ngi(x, sele)) :: normal_bdy
+      real, dimension(x%dim, x_cvbdyshape%ngi) :: normal_bdy_cv
+      real, dimension(face_ngi(fs, sele)):: delta_rho_g_quad
+      integer, dimension(face_loc(u, sele)) :: u_nodes_bdy
+      integer, dimension(face_loc(p_mesh, sele)) :: p_nodes_bdy
+      real, dimension(x%dim, ele_loc(x, ele)) :: x_ele
+      real, dimension(x%dim, face_loc(x, sele)) :: x_ele_bdy
+      integer:: dim, gi, ggi, iloc, jloc, face
+      
+      u_nodes_bdy = face_global_nodes(u, sele)
+
+      if (present(mom_rhs)) then
+        call transform_facet_to_physical(x, sele, &
+             detwei_f=detwei_bdy, normal=normal_bdy)
+  
+        if(variable_density) then
+          delta_rho_g_quad = g*(face_val_at_quad(density, sele)-external_density)
+        else
+          delta_rho_g_quad = g*(rho0-external_density)
+        end if
+
+        call addto(mom_rhs, u_nodes_bdy, shape_vector_rhs(face_shape(u, sele), normal_bdy, &
+                                      -detwei_bdy*delta_rho_g_quad* &
+                                      (itheta*face_val_at_quad(it_fs, sele) + &
+                                       (1.0-itheta)*face_val_at_quad(old_fs, sele))))
+      end if
+
+      if(reassemble_ct_m) then
+
+        p_nodes_bdy = face_global_nodes(p_mesh, sele)
+        x_ele = ele_val(x, ele)
+        x_ele_bdy = face_val(x, sele)
+
+        call transform_cvsurf_facet_to_physical(x_ele, x_ele_bdy, &
+                              x_cvbdyshape, normal_bdy_cv, detwei_bdy_cv)
+        ct_mat_bdy = 0.0
+        surface_nodal_loop_i: do iloc = 1, face_loc(p_mesh, sele)
+
+          surface_face_loop: do face = 1, cvfaces%sfaces
+            if(cvfaces%sneiloc(iloc,face)/=0) then
+
+              surface_quadrature_loop: do gi = 1, cvfaces%shape%ngi
+
+                ggi = (face-1)*cvfaces%shape%ngi + gi
+
+                surface_nodal_loop_j: do jloc = 1, face_loc(u, sele)
+
+                  surface_inner_dimension_loop: do dim = 1, size(normal_bdy_cv,1)
+
+                     ct_mat_bdy(dim, iloc, jloc) =  ct_mat_bdy(dim, iloc, jloc) + &
+                           u_cvbdyshape%n(jloc,ggi)*detwei_bdy_cv(ggi)*normal_bdy_cv(dim, ggi)
+
+                  end do surface_inner_dimension_loop
+
+                end do surface_nodal_loop_j
+
+              end do surface_quadrature_loop
+
+            end if
+
+          end do surface_face_loop
+
+        end do surface_nodal_loop_i
+
+        do dim=1, u%dim
+          ! we've integrated continuity by parts, but not yet added in the resulting
+          ! surface integral - for the non-viscous free surface this is left
+          ! out to enforce the kinematic bc
+          call addto(ct_m, 1, dim, face_global_nodes(p_mesh,sele), &
+               face_global_nodes(u,sele), ct_mat_bdy(dim,:,:))
+        end do
+      end if
+
+    end subroutine add_boundary_integral_sele
+
+  end subroutine add_explicit_viscous_free_surface_integrals_cv
 
   subroutine add_implicit_viscous_free_surface_scaled_mass_integrals(state, mass, u, p_mesh, fs, dt)
     ! This routine adds in the boundary conditions for the viscous free surface
@@ -2700,7 +3039,8 @@ contains
     
     character(len=OPTION_PATH_LEN):: option_path, phase_path, pressure_path, pade_path
     character(len=FIELD_NAME_LEN):: fs_meshname, p_meshname, bctype
-    logical:: have_free_surface, have_explicit_free_surface, have_viscous_free_surface
+    logical:: have_free_surface, have_explicit_free_surface, have_viscous_free_surface, have_standard_free_surface
+    logical:: local_have_explicit_free_surface, local_have_viscous_free_surface
     logical:: have_wd, have_swe
     integer i, p
 
@@ -2713,26 +3053,30 @@ contains
         have_free_surface=.false.
         have_viscous_free_surface=.false.
         have_explicit_free_surface=.false.
+        have_standard_free_surface=.false.
         do i=1, option_count(trim(option_path)//'/boundary_conditions')
           call get_option(trim(option_path)//'/boundary_conditions['// &
              int2str(i-1)//']/type[0]/name', bctype)
           if (bctype=='free_surface') then
             have_free_surface=.true.
-            have_viscous_free_surface=have_viscous_free_surface.or. &
-                have_option(trim(option_path)//'/boundary_conditions['// &
+            local_have_viscous_free_surface = have_option(trim(option_path)//'/boundary_conditions['// &
                 int2str(i-1)//']/type[0]/no_normal_stress').and. &
                 .not.have_option(trim(option_path)//'/boundary_conditions['// &
                 int2str(i-1)//']/type[0]/no_normal_stress/explicit')
-            have_explicit_free_surface=have_explicit_free_surface.or.&
-                have_option(trim(option_path)//'/boundary_conditions['// &
+            local_have_explicit_free_surface = have_option(trim(option_path)//'/boundary_conditions['// &
                 int2str(i-1)//']/type[0]/no_normal_stress').and. &
                 have_option(trim(option_path)//'/boundary_conditions['// &
                 int2str(i-1)//']/type[0]/no_normal_stress/explicit')
+            have_standard_free_surface=have_standard_free_surface.or. &
+                ((.not.local_have_viscous_free_surface).and.(.not.local_have_explicit_free_surface))
+            have_viscous_free_surface=have_viscous_free_surface.or.local_have_viscous_free_surface
+            have_explicit_free_surface=have_explicit_free_surface.or.local_have_explicit_free_surface
           end if
         end do
       else
         ! no prognostic velocity, no free_surface bc
         have_free_surface=.false.
+        have_standard_free_surface=.false.
         have_explicit_free_surface=.false.
         have_viscous_free_surface = .false.
       end if
@@ -2740,8 +3084,16 @@ contains
 
       have_swe=have_option(trim(option_path)//'/equation::ShallowWater')
       
-      if (have_free_surface) then
-         ewrite(2,*) "You have a free surface boundary condition, checking its options"
+      if (have_standard_free_surface) then
+         ewrite(2,*) "You have a standard free surface boundary condition, checking its options"
+      end if
+      
+      if (have_explicit_free_surface) then
+         ewrite(2,*) "You have an explicit viscous free surface boundary condition, checking its options"
+      end if
+      
+      if (have_viscous_free_surface) then
+         ewrite(2,*) "You have an implicit viscous free surface boundary condition, checking its options"
       end if
       
       ! first check we're using the new code path (cg_test or dg)
@@ -2758,6 +3110,18 @@ contains
       if (have_free_surface .and. .not. have_option(pressure_path)) then
          ewrite(-1,*) "With the free_surface boundary condition"
          FLExit("You need a prognostic pressure")
+      end if
+
+      if (have_standard_free_surface .and. .not. have_option(trim(pressure_path)// &
+        '/spatial_discretisation/continuous_galerkin')) then
+        ewrite(-1,*) "With standard free_surface boundary condition"
+        FLExit("only a continuous_galerkin spatial_discretisation works for Pressure.")
+      end if
+      
+      if (have_standard_free_surface .and. have_option(trim(pressure_path)// &
+        '/spatial_discretisation/continuous_galerkin/test_continuity_with_cv_dual')) then
+        ewrite(-1,*) "With standard free_surface boundary condition"
+        FLExit("you cannot use test_continuity_with_cv_dual under Pressure.")
       end if
       
       if (have_free_surface .and. .not. have_option(trim(pressure_path)// &
