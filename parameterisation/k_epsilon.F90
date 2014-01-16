@@ -378,6 +378,11 @@ subroutine keps_calculate_rhs(state)
 
   end do field_loop
   
+  !! deallocate velocity bc_type
+  if(continuity(u)<0) then
+      deallocate(bc_type)
+      call deallocate(bc_value)	
+  end if
   call deallocate(dummydensity)
   deallocate(dummydensity)
 
@@ -406,8 +411,8 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
   type(element_type), pointer :: shape
   integer :: term, ngi, dim, gi, i
 
-  type(vector_field), intent(in), optional :: bc_value	
-  integer, dimension(:,:), intent(in), optional :: bc_type    
+  type(vector_field), intent(in) :: bc_value	
+  integer, dimension(:,:), intent(in) :: bc_type    
   
   ! For buoyancy turbulence stuff
   real, dimension(u%dim, ele_ngi(u, ele))  :: vector, u_quad, g_quad
