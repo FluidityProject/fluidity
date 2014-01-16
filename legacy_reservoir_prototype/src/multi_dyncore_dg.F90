@@ -604,7 +604,7 @@
       ALLOCATE(IDUM(TOTELE * U_NLOC * NPHASE * NDIM * U_NLOC * NPHASE * NDIM)) 
       IDUM=0
 
-!      IPLIKE_GRAD_SOU=0
+      IPLIKE_GRAD_SOU=0
 
       CALL ASSEMB_FORCE_CTY( state, &
            NDIM, NPHASE, U_NLOC, X_NLOC, CV_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
@@ -1251,11 +1251,9 @@
             !stop 1244
          end if
 
-
-
          ewrite(3,*)'b4 pressure solve P_RHS:', P_RHS
-!         DP = 0.
-            DP =P
+         DP = 0.
+
          if( .true. ) then ! solve for pressure
 
             SCALE_P_MATRIX = .false. !.true.
@@ -1279,23 +1277,24 @@
                   P_RHS( CV_NOD ) = P_RHS( CV_NOD ) / DIAG_P_SQRT( CV_NOD )
                END DO
             END IF
-!RSUM = 0.5*(maxval(abs(cmc))+minval(abs(cmc)))
-!cmc = cmc / RSUM
-!P_RHS = P_RHS / RSUM
+
+
 ! Add diffusion to DG version of CMC to try and encourage a continuous formulation...
 ! the idea is to stabilize pressure without effecting the soln i.e. the rhs of the eqns as
 ! pressure may have some singularities associated with it. 
-               if( cv_nonods.ne.x_nonods) then !DG only...
-!               if( .false.) then !DG only...
+!               if( cv_nonods.ne.x_nonods) then !DG only...
+               if( .false.) then !DG only...
                    CALL ADD_DIFF_CMC(CMC, &
                     NCOLCMC, cv_NONODS, FINDCMC, COLCMC, MIDCMC, &
                     totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln, p )
                endif 
 
           !  if( cv_nonods==x_nonods .or. .false. ) then ! a continuous pressure:
-            if( .true. ) then ! a pressure solve:
+            if( .true. ) then ! a pressure solve:  
+          !  if( .false. ) then ! a pressure solve:  
 ! James feed CMC_PRECON into this sub and use as the preconditioner matrix...
 ! CMC_PRECON has length CMC_PRECON(NCOLCMC*IGOT_CMC_PRECON) 
+ 
                CALL SOLVER( CMC, DP, P_RHS, &
                     FINDCMC, COLCMC, &
                     option_path = '/material_phase[0]/scalar_field::Pressure' )
@@ -1819,7 +1818,6 @@
            NOIT_DIM, &
            IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD,scale_momentum_by_volume_fraction )
 
-
       IF(.NOT.GLOBAL_SOLVE) THEN
          ! form pres eqn. 
          CALL FORM_PRES_EQN(   &
@@ -1830,6 +1828,7 @@
               CT, NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, MASS_MN_PRES, &
               NCOLCMC, FINDCMC, COLCMC, CMC, CMC_PRECON, IGOT_CMC_PRECON )
       ENDIF
+
       DEALLOCATE( ACV )
 
       ewrite(3,*) 'Leaving CV_ASSEMB_FORCE_CTY_PRES'
@@ -2134,8 +2133,8 @@
            FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL, &
            dummy_transp )
 
-
       ewrite(3,*)'Back from cv_assemb'
+
       IF(GLOBAL_SOLVE) THEN
          ! Put CT into global matrix MCY...
          MCY_RHS( U_NONODS * NDIM * NPHASE + 1 : U_NONODS * NDIM * NPHASE + CV_NONODS ) = &
@@ -3659,12 +3658,12 @@ end if
                Loop_P_JLOC1: DO P_JLOC = 1, P_NLOC
                   JCV_NOD = P_NDGLN(( ELE - 1 ) * P_NLOC + P_JLOC )
 
-                  NMX = 0.0
-                  NMY = 0.0
-                  NMZ = 0.0
-                  GRAD_SOU_GI_NMX = 0.0
-                  GRAD_SOU_GI_NMY = 0.0
-                  GRAD_SOU_GI_NMZ = 0.0
+                  NMX = 0.0  
+                  NMY = 0.0 
+                  NMZ = 0.0   
+                  GRAD_SOU_GI_NMX = 0.0  
+                  GRAD_SOU_GI_NMY = 0.0 
+                  GRAD_SOU_GI_NMZ = 0.0  
                   Loop_GaussPoints1: DO GI = 1 +(ILEV-1)*CV_NGI_SHORT, ILEV*CV_NGI_SHORT
                      !Loop_GaussPoints1: DO GI = 1, CV_NGI
                      !ewrite(3,*) 'P_JLOC, GI, CVFENX( P_JLOC, GI ):',P_JLOC, GI, CVFENX( P_JLOC, GI )
@@ -3678,8 +3677,7 @@ end if
                      !     CVFENX( P_JLOC, GI ),  CVFENY( P_JLOC, GI ),  CVFENZ( P_JLOC, GI ), ':', DETWEI( GI )
 
                      IF ( IPLIKE_GRAD_SOU == 1 ) THEN
-                     GRAD_SOU_GI = 1.0!<--Deactivated, this term is obtained from the surface tension and curvature
-                        GRAD_SOU_GI_NMX( : ) = GRAD_SOU_GI_NMX( : )  &!however that is not necessary to calculate the capillary pressure
+                        GRAD_SOU_GI_NMX( : ) = GRAD_SOU_GI_NMX( : )  &
                              + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * &
                              CVFENX( P_JLOC, GI ) * DETWEI( GI )
                         GRAD_SOU_GI_NMY( : ) = GRAD_SOU_GI_NMY( : )  &
@@ -3712,8 +3710,7 @@ end if
                      IF( NDIM_VEL >= 2 ) C( COUNT_PHA + NCOLC ) = C( COUNT_PHA + NCOLC ) - NMY
                      IF( NDIM_VEL >= 3 ) C( COUNT_PHA + 2 * NCOLC ) = C( COUNT_PHA + 2 * NCOLC ) - NMZ
 
-
-                     IF( IPLIKE_GRAD_SOU == 1) THEN ! Capillary pressure for example terms...
+                     IF( IPLIKE_GRAD_SOU == 1 ) THEN ! Capillary pressure for example terms...
                         IDIM = 1
                         U_RHS( IU_NOD + ( IDIM - 1 ) * U_NONODS + ( IPHASE - 1 ) * NDIM_VEL * U_NONODS ) =   &
                              U_RHS( IU_NOD + ( IDIM - 1 ) * U_NONODS + ( IPHASE - 1 ) * NDIM_VEL * U_NONODS )     &
@@ -3732,11 +3729,11 @@ end if
                         ENDIF
                      ENDIF
                   END DO Loop_Phase1
+
                END DO Loop_P_JLOC1
 
             END DO Loop_U_ILOC1
          END DO Loop_ILEV1
-
 
          !ewrite(3,*)'just after Loop_U_ILOC1'
 
@@ -4285,6 +4282,7 @@ end if
                END DO
 
             ENDIF If_ele2_notzero_1
+
 
             If_diffusion_or_momentum1: IF(GOT_DIFFUS .OR. GOT_UDEN) THEN
                SDEN=0.0
@@ -5882,6 +5880,7 @@ end if
 
          surface_tension = have_option( '/material_phase[' // int2str( nphase - 1 + icomp ) // &
               ']/is_multiphase_component/surface_tension' )
+
          if ( surface_tension ) then
 
             ewrite(3,*) 'Calculating surface tension for component ', icomp
@@ -6991,6 +6990,7 @@ end if
          !PLIKE_GRAD_SOU_GRAD = PLIKE_GRAD_SOU_GRAD + VOLUME_FRAC
          !PLIKE_GRAD_SOU_GRAD = PLIKE_GRAD_SOU_GRAD + FEMT
          PLIKE_GRAD_SOU_GRAD = PLIKE_GRAD_SOU_GRAD + sharp_FEMT
+
          !ewrite(3,*) 'MASS_ELE:', MASS_ELE
          !ewrite(3,*) 'MASS_NORMALISE:', MASS_NORMALISE
 
