@@ -262,64 +262,8 @@ class vtu:
 
   def ProbeData(self, coordinates, name):
     """Interpolate field values at these coordinates."""
-
-    # Initialise locator
-    locator = vtk.vtkPointLocator()
-    locator.SetDataSet(self.ugrid)
-    locator.SetTolerance(10.0)
-    locator.Update()
-
-    # Initialise probe
-    points = vtk.vtkPoints()
-    points.SetDataTypeToDouble()
-    ilen, jlen = coordinates.shape
-    for i in range(ilen):
-      points.InsertNextPoint(coordinates[i][0], coordinates[i][1], coordinates[i][2])
-    polydata = vtk.vtkPolyData()
-    polydata.SetPoints(points)
-    probe = vtk.vtkProbeFilter()
-    probe.SetInput(polydata)
-    probe.SetSource(self.ugrid)
-    probe.Update()
-
-    # Generate a list invalidNodes, containing a map from invalid nodes in the
-    # result to their closest nodes in the input
-    valid_ids = probe.GetValidPoints()
-    valid_loc = 0
-    invalidNodes = []
-    for i in range(ilen):
-      if valid_ids.GetTuple1(valid_loc) == i:
-        valid_loc += 1
-      else:
-        nearest = locator.FindClosestPoint([coordinates[i][0], coordinates[i][1], coordinates[i][2]])
-        invalidNodes.append((i, nearest))
-
-    # Get final updated values
-    pointdata=probe.GetOutput().GetPointData()
-    vtkdata=pointdata.GetArray(name)
-    nc=vtkdata.GetNumberOfComponents()
-    nt=vtkdata.GetNumberOfTuples()
-    array = arr([vtkdata.GetValue(i) for i in range(nt * nc)])
-    
-    # Fix the point data at invalid nodes
-    if len(invalidNodes) > 0:
-      try:
-        oldField = self.ugrid.GetPointData().GetArray(name)
-        components = oldField.GetNumberOfComponents()
-      except:
-        try:
-          oldField = self.ugrid.GetCellData().GetArray(name)
-          components = oldField.GetNumberOfComponents()
-        except:
-          raise Exception("ERROR: couldn't find point or cell field data with name "+name+" in file "+self.filename+".")
-      for invalidNode, nearest in invalidNodes:
-        for comp in range(nc):
-          array[invalidNode * nc + comp] = oldField.GetValue(nearest * nc + comp)
-          
-    valShape = self.GetField(name)[0].shape
-    array.shape = tuple([nt] + list(valShape))
-          
-    return array
+    probe = VTU_Probe(self.ugrid, coordinates)
+    return probe.GetField(name)
 
   def RemoveField(self, name):
     """Removes said field from the unstructured grid."""
@@ -521,11 +465,13 @@ class vtu:
     return
 
   def SubFieldFromField(self, fieldName, array, newFieldName = None):
-    def ManipFunc(field, index):
-      return field[index] - array[index]
+    field = self.GetField(fieldName)
+    if newFieldName is None or fieldName == newFieldName:
+      self.RemoveField(fieldName)
+      newFieldName = fieldName
 
-    self.ManipulateField(fieldName, ManipFunc, newFieldName)
-
+    field = field-array
+    self.AddField(newFieldName, field)
     return
 
   def DotFieldWithField(self, fieldName, array, newFieldName = None):
@@ -629,6 +575,73 @@ class vtu:
     cdtpd.PassCellDataOn()
     cdtpd.Update()
     self.ugrid=cdtpd.GetUnstructuredGridOutput()
+
+class VTU_Probe(object):
+  """A class that combines a vtkProbeFilter with a list of invalid points (points that it failed to probe
+  where we take the value of the nearest point)"""
+
+  def __init__(self, ugrid, coordinates):
+    # Initialise locator
+    locator = vtk.vtkPointLocator()
+    locator.SetDataSet(ugrid)
+    locator.SetTolerance(10.0)
+    locator.Update()
+
+    # Initialise probe
+    points = vtk.vtkPoints()
+    points.SetDataTypeToDouble()
+    ilen, jlen = coordinates.shape
+    for i in range(ilen):
+      points.InsertNextPoint(coordinates[i][0], coordinates[i][1], coordinates[i][2])
+    polydata = vtk.vtkPolyData()
+    polydata.SetPoints(points)
+    self.probe = vtk.vtkProbeFilter()
+    self.probe.SetInput(polydata)
+    self.probe.SetSource(ugrid)
+    self.probe.Update()
+
+    # Generate a list invalidNodes, containing a map from invalid nodes in the
+    # result to their closest nodes in the input
+    valid_ids = self.probe.GetValidPoints()
+    valid_loc = 0
+    self.invalidNodes = []
+    for i in range(ilen):
+      if valid_ids.GetTuple1(valid_loc) == i:
+        valid_loc += 1
+      else:
+        nearest = locator.FindClosestPoint([coordinates[i][0], coordinates[i][1], coordinates[i][2]])
+        self.invalidNodes.append((i, nearest))
+    self.ugrid = ugrid
+
+  def GetField(self, name):
+    # Get final updated values
+    pointdata = self.probe.GetOutput().GetPointData()
+    vtkdata=pointdata.GetArray(name)
+    nc=vtkdata.GetNumberOfComponents()
+    nt=vtkdata.GetNumberOfTuples()
+    array = arr([vtkdata.GetValue(i) for i in range(nt * nc)])
+    
+    # Fix the point data at invalid nodes
+    if len(self.invalidNodes) > 0:
+      oldField = self.ugrid.GetPointData().GetArray(name)
+      if oldField is None:
+        oldField = self.ugrid.GetCellData().GetArray(name)
+        if oldField is None:
+          raise Exception("ERROR: couldn't find point or cell field data with name "+name+".")
+      components = oldField.GetNumberOfComponents()
+      for invalidNode, nearest in self.invalidNodes:
+        for comp in range(nc):
+          array[invalidNode * nc + comp] = oldField.GetValue(nearest * nc + comp)
+          
+    # this is a copy and paster from vtu.GetField above:
+    if nc==9:
+      return array.reshape(nt,3,3)
+    elif nc==4:
+      return array.reshape(nt,2,2)
+    else:
+      return array.reshape(nt,nc)
+          
+    return array
     
 def VtuMatchLocations(vtu1, vtu2, tolerance = 1.0e-6):
   """
@@ -698,6 +711,8 @@ def VtuDiff(vtu1, vtu2, filename = None):
 
   # If the input vtu point locations match, do not use probe
   useProbe  = not VtuMatchLocations(vtu1, vtu2)
+  if useProbe:
+    probe = VTU_Probe(vtu2.ugrid, vtu1.GetLocations())
 
   # Copy the grid from the first input vtu into the output vtu
   resultVtu.ugrid.DeepCopy(vtu1.ugrid)
@@ -707,65 +722,14 @@ def VtuDiff(vtu1, vtu2, filename = None):
   fieldNames1 = vtu1.GetFieldNames()
   fieldNames2 = vtu2.GetFieldNames()
   for fieldName in fieldNames1:
+    field1 = vtu1.GetField(fieldName)
     if fieldName in fieldNames2:
       if useProbe:
-        field2 = vtu2.ProbeData(vtu1.GetLocations(), fieldName)
+        field2 = probe.GetField(fieldName)
       else:
         field2 = vtu2.GetField(fieldName)
-      resultVtu.SubFieldFromField(fieldName, field2)
+      resultVtu.AddField(fieldName, field2-field1)
     else:
       resultVtu.RemoveField(fieldName)
 
   return resultVtu  
-
-def usage():
-  print 'Usage:'
-  print 'COMMAND LINE: vtktools.py [-h] [-p] [-e var1,var2, ...] INPUT_FILENAME'
-  print ''
-  print 'INPUT_FILENAME:'
-  print '           The input file name.'
-  print ''
-  print 'OPTIONS:'
-  print '   -h      Prints this usage message.'
-  print '   -p      Converts the coordinates from xyz to latitude and longitude.'
-  print '   -e      Extracts the data point from the variables provided.'
-
-if __name__ == "__main__":
-  import vtktools
-  import math
-  import getopt
-  
-  optlist, args = getopt.getopt(sys.argv[1:], 'hpe:')
-   
-  v = vtktools.vtu(args[0])
-  
-  # Parse arguments
-  LongLat = False
-  for o,a in optlist:
-    if o == '-h':
-      usage()
-    elif o == '-p':
-      LongLat = True
-    elif o == '-e':
-      scalars = a.strip().split(",") 
-
-  # Project domain if necessary
-  if(LongLat):
-    v.ApplyEarthProjection()
- 
-  # Extract variables
-  if(scalars):
-    npoints = v.ugrid.GetNumberOfPoints ()
-    nvar = len(scalars)
-    for i in range (npoints):
-      (x,y,z) = v.ugrid.GetPoint (i)
-      line = "%lf "%x+"%lf "%y
-      for scalar in scalars:
-        line = line+" %lf"%v.ugrid.GetPointData().GetArray(scalar).GetTuple1(i)
-      print line
-
-
-
-
-
-
