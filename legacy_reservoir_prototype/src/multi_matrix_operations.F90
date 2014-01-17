@@ -95,23 +95,14 @@
       ! calculate DMATINV
       IMPLICIT NONE
       INTEGER, intent( in ) :: NLOC
-      REAL, DIMENSION( NLOC, NLOC ), intent( inout ) :: DMAT, DMATINV
+      REAL, DIMENSION( NLOC, NLOC ), intent( in ) :: DMAT
+      REAL, DIMENSION( NLOC, NLOC ), intent( inout ) ::  DMATINV
       ! Local variables
-      REAL, DIMENSION( : , : ), allocatable :: MAT, MAT2
-      REAL, DIMENSION( : ), allocatable :: X, B
-
-      ALLOCATE( MAT( NLOC, NLOC ))
-      ALLOCATE( MAT2( NLOC, NLOC ))
-      ALLOCATE( X( NLOC ))
-      ALLOCATE( B( NLOC ))
+      REAL, DIMENSION( NLOC , NLOC ) :: MAT, MAT2
+      REAL, DIMENSION( NLOC ) :: X, B
 
       DMATINV = DMAT
       CALL MATINV( DMATINV, NLOC, NLOC, MAT, MAT2, X, B )
-
-      DEALLOCATE( MAT )
-      DEALLOCATE( MAT2 )
-      DEALLOCATE( X )
-      DEALLOCATE( B )
 
       RETURN
     END SUBROUTINE MATDMATINV
@@ -364,7 +355,7 @@
            TOTELE, U_NLOC, NCOLCT, NCOLCMC, IGOT_CMC_PRECON
       INTEGER, DIMENSION( U_NONODS + 1 ), intent( in ) ::FINDC
       INTEGER, DIMENSION( NCOLC ), intent( in ) :: COLC
-      REAL, DIMENSION( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM ), intent( in ) :: INV_PIVIT_MAT
+      REAL, DIMENSION( U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM,TOTELE ), intent( in ) :: INV_PIVIT_MAT
       INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) ::  U_NDGLN
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
       INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
@@ -621,27 +612,19 @@
     SUBROUTINE PHA_BLOCK_INV( INV_PIVIT_MAT, PIVIT_MAT, TOTELE, NBLOCK )
       implicit none
       INTEGER, intent( in ) :: TOTELE, NBLOCK
-      REAL, DIMENSION( TOTELE, NBLOCK, NBLOCK), intent( inout ) ::  INV_PIVIT_MAT 
-      REAL, DIMENSION( TOTELE, NBLOCK, NBLOCK), intent( in ) ::  PIVIT_MAT
+      REAL, DIMENSION( NBLOCK, NBLOCK,TOTELE), intent( inout ) ::  INV_PIVIT_MAT 
+      REAL, DIMENSION( NBLOCK, NBLOCK,TOTELE), intent( in ) ::  PIVIT_MAT
       ! Local variables
-      REAL, DIMENSION( :, :), allocatable :: DMAT, DMATINV
       INTEGER :: ELE
 
-      ALLOCATE( DMAT( NBLOCK, NBLOCK ))
-      ALLOCATE( DMATINV( NBLOCK, NBLOCK ))
       !    
 
       DO ELE = 1, TOTELE
 
-         DMAT( 1 : NBLOCK, 1 : NBLOCK ) = PIVIT_MAT( ELE, 1 : NBLOCK, 1 : NBLOCK )
+         CALL MATDMATINV( PIVIT_MAT(:,:,ele), INV_PIVIT_MAT(:,:,ele), NBLOCK )
 
-         CALL MATDMATINV( DMAT, DMATINV, NBLOCK )
-
-         INV_PIVIT_MAT( ELE, 1 : NBLOCK, 1 : NBLOCK ) = DMATINV( 1 : NBLOCK, 1 : NBLOCK )
       END DO
 
-      DEALLOCATE( DMAT )
-      DEALLOCATE( DMATINV )
 
       RETURN 
 
@@ -649,61 +632,51 @@
 
 
 
-    SUBROUTINE PHA_BLOCK_MAT_VEC( U, BLOCK_MAT, CDP, U_NONODS, NDIM, NPHASE, &
+     SUBROUTINE PHA_BLOCK_MAT_VEC( U, BLOCK_MAT, CDP, U_NONODS, NDIM, NPHASE, &
          TOTELE, U_NLOC, U_NDGLN ) 
       implicit none
       ! U = BLOCK_MAT * CDP
       INTEGER, intent( in )  :: U_NONODS, NDIM, NPHASE, TOTELE, U_NLOC
-      INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) ::  U_NDGLN
+      INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ), target ::  U_NDGLN
       REAL, DIMENSION( U_NONODS * NDIM * NPHASE ), intent( inout ) :: U
-      REAL, DIMENSION( TOTELE, U_NLOC * NDIM * NPHASE, U_NLOC * NDIM * NPHASE ), intent( in ), target :: BLOCK_MAT
+      REAL, DIMENSION( U_NLOC * NDIM * NPHASE, U_NLOC * NDIM * NPHASE,TOTELE ), intent( in ), target :: BLOCK_MAT
       REAL, DIMENSION( U_NONODS * NDIM * NPHASE ), intent( in ) :: CDP
       ! Local 
       INTEGER :: ELE, U_ILOC, U_INOD, IDIM, IPHASE, I, U_JLOC, U_JNOD, JDIM, JPHASE, J, II, JJ
 
-      U = 0.0 
+      integer, dimension(:), pointer :: U_NOD
 
+      real, dimension(U_NLOC*NDIM*NPHASE) :: lcdp
+      integer, dimension(U_NLOC*NDIM*NPHASE) :: u_nodi
+
+      U = 0.0 
 
       Loop_Elements: DO ELE = 1, TOTELE
 
-         Loop_VelocNodsI: DO U_ILOC = 1, U_NLOC
-            U_INOD = U_NDGLN(( ELE - 1 ) *U_NLOC + U_ILOC )
+         U_NOD => U_NDGLN(( ELE - 1 ) * U_NLOC +1: ELE * U_NLOC)            
+               
+         Loop_DimensionsJ: DO JDIM = 1, NDIM
+                  
+            Loop_PhasesJ: DO JPHASE = 1, NPHASE
+                     
+               J = ( JDIM - 1 ) * U_NONODS + ( JPHASE - 1 ) * NDIM * U_NONODS
+               JJ = ( JDIM - 1 ) * U_NLOC + ( JPHASE - 1 ) * NDIM * U_NLOC
 
-            Loop_DimensionsI: DO IDIM = 1, NDIM
-
-               Loop_PhasesI: DO IPHASE = 1, NPHASE
-                  I = U_INOD + ( IDIM - 1 ) * U_NONODS +( IPHASE - 1 ) * NDIM * U_NONODS
-
-                  Loop_VelocNodsJ: DO U_JLOC = 1, U_NLOC
-                     U_JNOD = U_NDGLN(( ELE - 1 ) * U_NLOC + U_JLOC )
-
-                     Loop_DimensionsJ: DO JDIM = 1, NDIM
-
-                        Loop_PhasesJ: DO JPHASE = 1, NPHASE
-
-                           J = U_JNOD + ( JDIM - 1 ) * U_NONODS + ( JPHASE - 1 ) * NDIM * U_NONODS
-                           II = U_ILOC + ( IDIM - 1 ) * U_NLOC + ( IPHASE - 1 ) * NDIM * U_NLOC
-                           JJ = U_JLOC + ( JDIM - 1 ) * U_NLOC + ( JPHASE - 1 ) * NDIM * U_NLOC
-                           U( I ) = U( I ) + BLOCK_MAT( ELE, II, JJ ) * CDP( J )
-
-                        END DO Loop_PhasesJ
-
-                     END DO Loop_DimensionsJ
-
-                  END DO Loop_VelocNodsJ
-
-               END DO Loop_PhasesI
-
-            END DO Loop_DimensionsI
-
-         END DO Loop_VelocNodsI
+               lcdp(JJ+1:JJ+U_NLOC)=CDP(U_NOD+J)
+               U_NODI(JJ+1:JJ+U_NLOC)=U_NOD+J
+            end do Loop_PhasesJ
+         end do Loop_DimensionsJ
+                             
+                           
+         U( U_NODI) = U( U_NODI ) + matmul(BLOCK_MAT( : , : ,ele), LCDP( : ))
 
       END DO Loop_Elements
 
-
       RETURN
 
+
     END SUBROUTINE PHA_BLOCK_MAT_VEC
+
 
 
 
@@ -750,6 +723,8 @@
 
 
 
+
+
     SUBROUTINE C_MULT( CDP, DP, CV_NONODS, U_NONODS, NDIM, NPHASE, &
          C, NCOLC, FINDC, COLC ) 
       implicit none
@@ -785,8 +760,6 @@
       RETURN
 
     END SUBROUTINE C_MULT
-
-
 
 
     SUBROUTINE Ct_MULT_WITH_C( DP, U_LONG, CV_NONODS, U_NONODS, NDIM, NPHASE, &

@@ -1058,7 +1058,7 @@
       ALLOCATE( DU( U_NONODS * NPHASE )) ; DU = 0.
       ALLOCATE( DV( U_NONODS * NPHASE )) ; DV = 0.
       ALLOCATE( DW( U_NONODS * NPHASE )) ; DW = 0.
-      ALLOCATE( PIVIT_MAT( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM )) ; PIVIT_MAT=0.
+      ALLOCATE( PIVIT_MAT( U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM, TOTELE )) ; PIVIT_MAT=0.
       ALLOCATE( INV_PIVIT_MAT( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM )) ; INV_PIVIT_MAT=0.
       ALLOCATE( DGM_PHA( NCOLDGM_PHA )) ; DGM_PHA=0.
 
@@ -1761,7 +1761,7 @@
       REAL, DIMENSION( CV_NONODS, NPHASE, NPHASE ), intent( in ) :: V_ABSORB
       REAL, DIMENSION( TOTELE ), intent( in ) :: VOLFRA_PORE
       ! this is the pivit matrix to use in the projection method. 
-      REAL, DIMENSION( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM), intent( inout ) :: PIVIT_MAT 
+      REAL, DIMENSION( U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM,TOTELE), intent( inout ) :: PIVIT_MAT 
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDM
       INTEGER, DIMENSION( NCOLM ), intent( in ) :: COLM
       INTEGER, DIMENSION( CV_NONODS ), intent( in ) :: MIDM 
@@ -1854,7 +1854,7 @@
       REAL, DIMENSION( NCOLC * NDIM * NPHASE ), intent( in ) :: C
       INTEGER, DIMENSION( U_NONODS + 1 ), intent( in ) :: FINDC
       INTEGER, DIMENSION( NCOLC ), intent( in ) :: COLC
-      REAL, DIMENSION( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM ), intent( in ) :: PIVIT_MAT
+      REAL, DIMENSION( U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM, TOTELE ), intent( in ) :: PIVIT_MAT
       REAL, DIMENSION( NCOLCT * NDIM * NPHASE ), intent( inout ) :: CT
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
       INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
@@ -1867,7 +1867,7 @@
       ! Local variables
       REAL, DIMENSION( :, :, : ), allocatable :: INV_PIVIT_MAT
 
-      ALLOCATE( INV_PIVIT_MAT( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM ))
+      ALLOCATE( INV_PIVIT_MAT( U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM, TOTELE ))
       CALL PHA_BLOCK_INV( INV_PIVIT_MAT, PIVIT_MAT, TOTELE, U_NLOC * NPHASE * NDIM )
 
       CALL COLOR_GET_CMC_PHA( CV_NONODS, U_NONODS, NDIM, NPHASE, &
@@ -2001,7 +2001,7 @@
       LOGICAL, intent( in ) :: GLOBAL_SOLVE
       INTEGER, DIMENSION( NLENMCY + 1 ), intent( in ) :: FINMCY
       REAL, DIMENSION( NCOLMCY ), intent( inout ) :: MCY
-      REAL, DIMENSION( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM ), intent( inout ) :: PIVIT_MAT
+      REAL, DIMENSION( U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM,TOTELE ), intent( inout ) :: PIVIT_MAT
       REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: UDEN, UDENOLD
       REAL, DIMENSION( MAT_NONODS, NDIM, NDIM, NPHASE ), intent( in ) :: UDIFFUSION 
       LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
@@ -2356,7 +2356,7 @@
       INTEGER, DIMENSION( NCOLDGM_PHA ), intent( in ) :: COLDGM_PHA
       INTEGER, DIMENSION( TOTELE + 1 ), intent( in ) :: FINELE
       INTEGER, DIMENSION( NCOLELE ), intent( in ) :: COLELE
-      REAL, DIMENSION( TOTELE, U_NLOC * NPHASE * NDIM_VEL, U_NLOC * NPHASE * NDIM_VEL ), intent( inout ) :: PIVIT_MAT
+      REAL, DIMENSION( U_NLOC * NPHASE * NDIM_VEL, U_NLOC * NPHASE * NDIM_VEL, TOTELE ), intent( inout ) :: PIVIT_MAT
       REAL, DIMENSION( MAT_NONODS, NDIM, NDIM, NPHASE ), intent( in ) :: UDIFFUSION 
       LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
       REAL, DIMENSION( IPLIKE_GRAD_SOU*CV_NONODS * NPHASE ), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
@@ -3408,23 +3408,25 @@ end if
                   END DO
 
 
-                  DO IPHASE = 1, NPHASE
-                     DO IDIM = 1, NDIM_VEL 
+                  DO JPHASE = 1, NPHASE
+                     DO JDIM = 1, NDIM_VEL 
 
-                        IPHA_IDIM = (IPHASE-1)*NDIM_VEL + IDIM
+                        JPHA_JDIM = (JPHASE-1)*NDIM_VEL + JDIM
 
-                        DO JPHASE = 1, NPHASE
-                           DO JDIM = 1, NDIM_VEL 
+                        U_JNOD_JDIM_JPHA = GLOBJ + ( JPHA_JDIM - 1 ) * U_NONODS 
+                        J = U_JLOC + (JPHA_JDIM-1)*U_NLOC
 
-                              JPHA_JDIM = (JPHASE-1)*NDIM_VEL + JDIM
+                        DO IPHASE = 1, NPHASE
+                           DO IDIM = 1, NDIM_VEL 
+
+                              IPHA_IDIM = (IPHASE-1)*NDIM_VEL + IDIM
 
                               U_INOD_IDIM_IPHA = GLOBI + ( IPHA_IDIM - 1 ) * U_NONODS 
                               U_INOD_JDIM_JPHA = GLOBI + ( JPHA_JDIM - 1 ) * U_NONODS 
-                              U_JNOD_JDIM_JPHA = GLOBJ + ( JPHA_JDIM - 1 ) * U_NONODS 
 
                               ! Adding absorption term to the global matrix
                               I = U_ILOC + (IPHA_IDIM-1)*U_NLOC
-                              J = U_JLOC + (JPHA_JDIM-1)*U_NLOC
+                              
 
                               IF(.NOT.NO_MATRIX_STORE) THEN
                               IF(.NOT.JUST_BL_DIAG_MAT) THEN
@@ -3450,11 +3452,11 @@ end if
 
 if ( lump_mass ) then
  !                             PIVIT_MAT(ELE, I, J) =  PIVIT_MAT(ELE, I, J) &
-                              PIVIT_MAT(ELE, I, I) =  PIVIT_MAT(ELE, I, I) &
+                              PIVIT_MAT(I, I,ELE) =  PIVIT_MAT(I, I,ELE) &
                                    + NN_SIGMAGI( IPHA_IDIM, JPHA_JDIM ) + NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM ) &
                                    + NN_MASS( IPHA_IDIM, JPHA_JDIM )/DT
 else
-                              PIVIT_MAT(ELE, I, J) =  PIVIT_MAT(ELE, I, J) &
+                              PIVIT_MAT(I, J,ELE) =  PIVIT_MAT(I, J,ELE) &
  !                             PIVIT_MAT(ELE, I, I) =  PIVIT_MAT(ELE, I, I) &
                                    + NN_SIGMAGI( IPHA_IDIM, JPHA_JDIM ) + NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM ) &
                                    + NN_MASS( IPHA_IDIM, JPHA_JDIM )/DT
