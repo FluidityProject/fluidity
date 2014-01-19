@@ -5478,19 +5478,22 @@ END IF
 ! FORCE_UPWIND_VEL forces the use of upwinding for velocity - good for testing as high order can be complex. 
 ! FORCE_UPWIND_VEL_DG_ELE forces upwind vel between elements
       LOGICAL, PARAMETER :: FORCE_UPWIND_VEL = .false.
+!      LOGICAL, PARAMETER :: FORCE_UPWIND_VEL = .true.
       LOGICAL, PARAMETER :: FORCE_UPWIND_VEL_DG_ELE = .true.
       LOGICAL, PARAMETER :: LIM_VOL_ADJUST2 = .true.
       ! If ROW_AVE then use a Roe averaged flux between the elements or CV's when ROE_AVE =.true. 
       LOGICAL, PARAMETER :: ROE_AVE = .false. !.false. !.true.
 ! limit the volume fraction based on net letting flux go into certain elements for DG between the elements...
       LOGICAL, PARAMETER :: LIMIT_SAT_BASED_INTERP = .false.
+! option for between element velocity calculation...
+      integer, PARAMETER :: between_ele_dg_opt = 5
 ! limit the volume fraction based on switching to the 1st order scheme for DG between the elements...
 ! which should be ued with LIMIT_WITHIN_REAL=.true.
 ! LIMIT_WITHIN_REAL makes sure the saturations are bounded can be used with DG 
-      LOGICAL, PARAMETER :: LIMIT_SAT_BASED_UPWIND = .false.
+      LOGICAL, PARAMETER :: LIMIT_SAT_BASED_UPWIND = .true.
       LOGICAL, PARAMETER :: LIMIT_WITHIN_REAL=.false.
 ! The fracture modelling with the upwind based method for DG... 
-      LOGICAL, PARAMETER :: high_order_upwind_vel_for_dg = .false.
+      LOGICAL, PARAMETER :: high_order_upwind_vel_for_dg = .true.
       LOGICAL :: RESET_STORE, LIM_VOL_ADJUST, enforce_abs
       REAL :: TMIN_STORE, TMAX_STORE, TOLDMIN_STORE, TOLDMAX_STORE
       REAL :: PERM_TILDE, PERMold_TILDE,NDOTQ_TILDE, NDOTQ2_TILDE, NDOTQOLD_TILDE, NDOTQOLD2_TILDE, rden_ave, rdenold_ave, Q_UNDERLY, QOLD_UNDERLY
@@ -5813,6 +5816,8 @@ END IF
                   GRAD_ABS_CV_NODJ_IPHA = GRAD_ABS_CV_NODJ_IPHA + NVEC(IDIM)*G_NODJ
                END DO
 
+       !        print *,'-iphase,cv_nodi,cv_nodj,ABS_CV_NODI_IPHA,ABS_CV_NODJ_IPHA:',iphase,cv_nodi,cv_nodj,ABS_CV_NODI_IPHA,ABS_CV_NODJ_IPHA
+
 
 
 
@@ -6029,6 +6034,36 @@ END IF
 !                     INCOMEOLD =0.5*ABS_CV_NODI_IPHA* MASS_CV(CV_NODI) /(0.5*(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI) +ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ) ))
 
 !               stop 821
+
+
+
+
+! based on switching to the 1st order scheme...
+!     if(.true.) then
+!     if(.false.) then
+     if(LIMIT_SAT_BASED_UPWIND) then
+!                 if( ABS_CV_NODI_IPHA+ABS_CV_NODJ_IPHA.gt.1.e+6) then ! resort to using the velocity from the highest absorption cell. 
+!                 if( min(ABS_CV_NODI_IPHA,ABS_CV_NODJ_IPHA)/ (ABS_CV_NODI_IPHA+ABS_CV_NODJ_IPHA).lt.1.e-5) then ! resort to using the velocity from the highest absorption cell. 
+!                 if( min(ABS_CV_NODI_IPHA,ABS_CV_NODJ_IPHA)/ (ABS_CV_NODI_IPHA+ABS_CV_NODJ_IPHA).lt.1.e-4) then ! resort to using the velocity from the highest absorption cell. 
+                 if( min(ABS_CV_NODI_IPHA,ABS_CV_NODJ_IPHA)/ (ABS_CV_NODI_IPHA+ABS_CV_NODJ_IPHA).lt.1.e-3) then ! resort to using the velocity from the highest absorption cell. 
+!                 if( ABS_CV_NODI_IPHA+ABS_CV_NODJ_IPHA.gt.1.0e+3 ) then ! resort to using the velocity from the highest absorption cell. 
+                   !  IF(0.5*(NDOTQ_TILDE+NDOTQ2_TILDE) < 0.0) THEN 
+                     IF(0.5*(NDOTQ+NDOTQ2) < 0.0) THEN 
+                        INCOME=1.0
+                     ELSE
+                        INCOME=0.0
+                     END IF
+                   !  IF(0.5*(NDOTQOLD_TILDE+NDOTQOLD2_TILDE) < 0.0) THEN
+                     IF(0.5*(NDOTQOLD+NDOTQOLD2) < 0.0) THEN
+                        INCOMEOLD=1.0
+                     ELSE
+                        INCOMEOLD=0.0
+                     END IF
+                 endif
+      endif
+
+
+
 
 
 !
@@ -6652,25 +6687,63 @@ END IF
       endif
 
 
-        if(.false.) then ! upwind...
+        if(.true.) then ! upwind...
 ! no 4 (more stable than 2 and 3):
-!                  if ( income3 < 0.5 ) then ! upwind
-!                       DT_I = (1.-wrelax1)*1.0  + wrelax1*0.5
-!                       DT_J = (1.-wrelax2)*0.0  + wrelax2*0.5
-!                  else
-!                       DT_I = (1.-wrelax1)*0.0  + wrelax1*0.5
-!                       DT_J = (1.-wrelax2)*1.0  + wrelax2*0.5
-!                  endif
-!                  if ( incomeold3 < 0.5 ) then ! upwind
-!                       DTold_I = (1.-wrelaxold1)*1.0  + wrelaxold1*0.5
-!                       DTold_J = (1.-wrelaxold2)*0.0  + wrelaxold2*0.5
-!                  else
-!                       DTold_I = (1.-wrelaxold1)*0.0  + wrelaxold1*0.5
-!                       DTold_J = (1.-wrelaxold2)*1.0  + wrelaxold2*0.5
-!                  endif
+                 if(between_ele_dg_opt==1) then
+                  if ( income3 < 0.5 ) then ! upwind
+                       DT_I = (1.-wrelax1)*1.0  + wrelax1*0.5
+                       DT_J = (1.-wrelax2)*0.0  + wrelax2*0.5
+                  else
+                       DT_I = (1.-wrelax1)*0.0  + wrelax1*0.5
+                       DT_J = (1.-wrelax2)*1.0  + wrelax2*0.5
+                  endif
+                  if ( incomeold3 < 0.5 ) then ! upwind
+                       DTold_I = (1.-wrelaxold1)*1.0  + wrelaxold1*0.5
+                       DTold_J = (1.-wrelaxold2)*0.0  + wrelaxold2*0.5
+                  else
+                       DTold_I = (1.-wrelaxold1)*0.0  + wrelaxold1*0.5
+                       DTold_J = (1.-wrelaxold2)*1.0  + wrelaxold2*0.5
+                  endif
+
+                 else if(between_ele_dg_opt==2) then
+! no 4 (more stable than 2 and 3) (also make sure we dont violate bounds):
+                  if ( income3 < 0.5 ) then ! upwind
+                       DT_I = (1.-wrelax1)*1.0  + wrelax1*0.5
+                       DT_J = (1.-wrelax2)*0.0  + wrelax2*0.5
+         !              IF(T(CV_NODI_IPHA).LT.0.2) THEN
+                       IF(ABS_CV_NODI_IPHA.GT.1.0E+10) THEN
+                          DT_I = 0.0
+                          DT_J = 0.0
+                       ENDIF
+                  else
+                       DT_I = (1.-wrelax1)*0.0  + wrelax1*0.5
+                       DT_J = (1.-wrelax2)*1.0  + wrelax2*0.5
+        !               IF(T(CV_NODJ_IPHA).LT.0.2) THEN
+                       IF(ABS_CV_NODJ_IPHA.GT.1.0E+10) THEN
+                          DT_I = 0.0
+                          DT_J = 0.0
+                       ENDIF
+                  endif
+                  if ( incomeold3 < 0.5 ) then ! upwind
+                       DTold_I = (1.-wrelaxold1)*1.0  + wrelaxold1*0.5
+                       DTold_J = (1.-wrelaxold2)*0.0  + wrelaxold2*0.5
+             !          IF(T(CV_NODI_IPHA).LT.0.2) THEN
+                       IF(ABS_CV_NODI_IPHA.GT.1.0E+10) THEN
+                          DTold_I = 0.0
+                          DTold_J = 0.0
+                       ENDIF
+                  else
+                       DTold_I = (1.-wrelaxold1)*0.0  + wrelaxold1*0.5
+                       DTold_J = (1.-wrelaxold2)*1.0  + wrelaxold2*0.5
+                !       IF(T(CV_NODJ_IPHA).LT.0.2) THEN
+                       IF(ABS_CV_NODJ_IPHA.GT.1.0E+10) THEN
+                          DTold_I = 0.0
+                          DTold_J = 0.0
+                       ENDIF
+                  endif
 
 ! no 2(again):
-                 if(.false.) then
+                 else if(between_ele_dg_opt==3) then
                   if ( income3 < 0.5 ) then ! upwind
                        DT_I = (1.-wrelax1)*1.0  + wrelax1*ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ)  &
                     /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
@@ -6693,9 +6766,92 @@ END IF
                        DTold_J = (1.-wrelaxold2)*1.0  + wrelaxold2*ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)  &
                     /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
                   endif
-                 endif
-! no 3(again):
-                 if(.false.) then
+
+
+! no 2(again):
+                 else if(between_ele_dg_opt==4) then
+                  if ( income3 < 0.5 ) then ! upwind
+                       DT_I = ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ)  &
+                    /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
+                       DT_J = ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)  &
+                    /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
+                       IF(ABS_CV_NODI_IPHA.GT.1.0E+10) THEN
+                          DT_I = 0.0
+                          DT_J = 0.0
+                       ENDIF
+                  else
+                       DT_I = ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ)  &
+                    /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
+                       DT_J = ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)  &
+                    /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
+                       IF(ABS_CV_NODJ_IPHA.GT.1.0E+10) THEN
+                          DT_I = 0.0
+                          DT_J = 0.0
+                       ENDIF
+                  endif
+                  if ( incomeold3 < 0.5 ) then ! upwind
+                       DTold_I = ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ)  &
+                    /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
+                       DTold_J = ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)  &
+                    /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
+                       IF(ABS_CV_NODI_IPHA.GT.1.0E+10) THEN
+                          DTold_I = 0.0
+                          DTold_J = 0.0
+                       ENDIF
+                  else
+                       DTold_I = ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ)  &
+                    /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
+                       DTold_J = ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)  &
+                    /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
+                       IF(ABS_CV_NODJ_IPHA.GT.1.0E+10) THEN
+                          DTold_I = 0.0
+                          DTold_J = 0.0
+                       ENDIF
+                  endif
+
+! no 2(again):
+                 else if(between_ele_dg_opt==5) then
+                  if ( income3 < 0.5 ) then ! upwind
+                       DT_I = (1.-wrelax1)*1.0  + wrelax1*ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ)  &
+                    /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
+                       DT_J = (1.-wrelax2)*0.0  + wrelax2*ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)  &
+                    /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
+                       IF(ABS_CV_NODI_IPHA.GT.1.0E+10) THEN
+                          DT_I = 0.0
+                          DT_J = 0.0
+                       ENDIF
+                  else
+                       DT_I = (1.-wrelax1)*0.0  + wrelax1*ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ)  &
+                    /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
+                       DT_J = (1.-wrelax2)*1.0  + wrelax2*ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)  &
+                    /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
+                       IF(ABS_CV_NODJ_IPHA.GT.1.0E+10) THEN
+                          DT_I = 0.0
+                          DT_J = 0.0
+                       ENDIF
+                  endif
+                  if ( incomeold3 < 0.5 ) then ! upwind
+                       DTold_I = (1.-wrelaxold1)*1.0  + wrelaxold1*ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ)  &
+                    /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
+                       DTold_J = (1.-wrelaxold2)*0.0  + wrelaxold2*ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)  &
+                    /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
+                       IF(ABS_CV_NODI_IPHA.GT.1.0E+10) THEN
+                          DTold_I = 0.0
+                          DTold_J = 0.0
+                       ENDIF
+                  else
+                       DTold_I = (1.-wrelaxold1)*0.0  + wrelaxold1*ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ)  &
+                    /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
+                       DTold_J = (1.-wrelaxold2)*1.0  + wrelaxold2*ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)  &
+                    /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
+                       IF(ABS_CV_NODJ_IPHA.GT.1.0E+10) THEN
+                          DTold_I = 0.0
+                          DTold_J = 0.0
+                       ENDIF
+                  endif
+
+! no 3(again): XXX failed gravity problem...
+                 else if(between_ele_dg_opt==6) then
                   if ( income3 < 0.5 ) then ! upwind
                        DT_I = (1.-wrelax1)*min(1.0,ABS_CV_NODI_IPHA/abs_tilde1)  + wrelax1*ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ)  &
                     /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
@@ -6718,10 +6874,9 @@ END IF
                        DTold_J = (1.-wrelaxold2)*min(1.0,ABS_CV_NODJ_IPHA/abs_tildeold2)  + wrelaxold2*ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)  &
                     /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
                   endif
-                 endif
 
-! no 2(again,again):
-                 if(.true.) then
+! no 2(again,again) XXXXfor the gravity problem:
+                 else if(between_ele_dg_opt==7) then
                   if ( income3 < 0.5 ) then ! upwind
                        DT_I = (1.-wrelax1)*(1.-min(1.0,ABS_CV_NODJ_IPHA/abs_tilde1))  + wrelax1*ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ)  &
                     /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
@@ -6744,10 +6899,9 @@ END IF
                        DTold_J = (1.-wrelaxold2)*(1.-min(1.0,ABS_CV_NODI_IPHA/abs_tildeold2))  + wrelaxold2*ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)  &
                     /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
                   endif
-                 endif
 
-        else if(.false.) then
 ! no 3 soln...
+                 else if(between_ele_dg_opt==8) then
                DT_I = ( (1.-wrelax1)*ABS_CV_NODI_IPHA  ) &
                     /(ABS_CV_NODI_IPHA+ABS_CV_NODJ_IPHA)   + wrelax1*0.5
                DT_J = ( (1.-wrelax2)*ABS_CV_NODJ_IPHA  ) &
@@ -6767,7 +6921,8 @@ END IF
        !                /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))  + wrelaxold1*0.5
        !        DTOLD_J = ( (1.-wrelaxold2)*ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ)  ) &
        !                /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))  + wrelaxold2*0.5
-        else 
+
+                 else if(between_ele_dg_opt==9) then
 ! no 0 soln (more stable than 2 & 3)...
                DT_I = ( (1.-wrelax1)*ABS_CV_NODI_IPHA*MASS_CV(CV_NODI) + wrelax1*ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ) ) &
                     /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
@@ -6778,6 +6933,18 @@ END IF
                        /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
                DTOLD_J = ( (1.-wrelaxold2)*ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ) + wrelaxold2*ABS_CV_NODI_IPHA*MASS_CV(CV_NODI) ) &
                        /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
+! no 0 soln (more stable than 2 & 3)...
+                 else if(between_ele_dg_opt==10) then
+               DT_I = ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ)  &
+                    /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
+               DT_J = ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)  &
+                    /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
+
+               DTOLD_I = ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ)  &
+                       /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
+               DTOLD_J = ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)  &
+                       /(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI)+ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ))
+            endif
         endif
 
 
@@ -6954,43 +7121,47 @@ END IF
 
 
 
-
 ! limit the volume fraction based on switching to the 1st order scheme...
-!     if(.true.) then
-     if(LIMIT_SAT_BASED_UPWIND) then
+     if(.false.) then
+!     if(LIMIT_SAT_BASED_UPWIND) then
 !                 if( ABS_CV_NODI_IPHA+ABS_CV_NODJ_IPHA.gt.1.e+6) then ! resort to using the velocity from the highest absorption cell. 
 !                 if( min(ABS_CV_NODI_IPHA,ABS_CV_NODJ_IPHA)/ (ABS_CV_NODI_IPHA+ABS_CV_NODJ_IPHA).lt.1.e-5) then ! resort to using the velocity from the highest absorption cell. 
                  if( min(ABS_CV_NODI_IPHA,ABS_CV_NODJ_IPHA)/ (ABS_CV_NODI_IPHA+ABS_CV_NODJ_IPHA).lt.1.e-4) then ! resort to using the velocity from the highest absorption cell. 
 !                 if( min(ABS_CV_NODI_IPHA,ABS_CV_NODJ_IPHA)/ (ABS_CV_NODI_IPHA+ABS_CV_NODJ_IPHA).lt.1.e-3) then ! resort to using the velocity from the highest absorption cell. 
-                    ! IF(0.5*(NDOTQ_TILDE+NDOTQ2_TILDE) < 0.0) THEN 
-                     IF(0.5*(NDOTQ+NDOTQ2) < 0.0) THEN 
+!                 if( min(ABS_CV_NODI_IPHA,ABS_CV_NODJ_IPHA)/ (ABS_CV_NODI_IPHA+ABS_CV_NODJ_IPHA).lt.1.e-2) then ! resort to using the velocity from the highest absorption cell. 
+                     IF(0.5*(NDOTQ_TILDE+NDOTQ2_TILDE) < 0.0) THEN 
+                    ! IF(0.5*(NDOTQ+NDOTQ2) < 0.0) THEN 
                         INCOME=1.0
                      ELSE
                         INCOME=0.0
                      END IF
-                     !IF(0.5*(NDOTQOLD_TILDE+NDOTQOLD2_TILDE) < 0.0) THEN
-                     IF(0.5*(NDOTQOLD+NDOTQOLD2) < 0.0) THEN
+                     IF(0.5*(NDOTQOLD_TILDE+NDOTQOLD2_TILDE) < 0.0) THEN
+                     !IF(0.5*(NDOTQOLD+NDOTQOLD2) < 0.0) THEN
                         INCOMEOLD=1.0
                      ELSE
                         INCOMEOLD=0.0
                      END IF
-                     INCOME =0.5*ABS_CV_NODj_IPHA* MASS_CV(CV_NODj) /(0.5*(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI) +ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ) ))
-                     INCOMEOLD =0.5*ABS_CV_NODj_IPHA* MASS_CV(CV_NODj) /(0.5*(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI) +ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ) ))
+!                     INCOME =0.5*ABS_CV_NODj_IPHA* MASS_CV(CV_NODj) /(0.5*(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI) +ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ) ))
+!                     INCOMEOLD =0.5*ABS_CV_NODj_IPHA* MASS_CV(CV_NODj) /(0.5*(ABS_CV_NODI_IPHA*MASS_CV(CV_NODI) +ABS_CV_NODJ_IPHA*MASS_CV(CV_NODJ) ))
                  endif
+              
+               DT_I = 1.0 - INCOME
+               DT_J = 1.0 - DT_I
+
+               DTOLD_I = 1.0 - INCOMEOLD
+               DTOLD_J = 1.0 - DTOLD_I
       endif
 
 
 
 
-
-               !      IF(abs(NDOTQ2 - NDOTQ).lt. 1.e-7) INCOME=0.5
-               !      IF(abs(NDOTQOLD2 - NDOTQOLD) .lt. 1.e-7) INCOMEOLD=0.5
-
-               !      INCOME=0.5 *(INCOME+0.5)
-               !      INCOMEOLD=0.5 *(INCOMEold+0.5)
-
 ! endof IF ( DG_ELE_UPWIND==3 ) THEN ELSE...
                   ENDIF
+
+
+
+
+
 
 
 
@@ -7005,6 +7176,8 @@ END IF
 
 
             END IF
+
+
 
             ! Amend weighting for porosity only across elements...
             IF((ABS(CV_DG_VEL_INT_OPT ) == 2).OR.(ABS(CV_DG_VEL_INT_OPT ) == 3)) THEN 
