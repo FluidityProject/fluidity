@@ -19,12 +19,14 @@ This chapter introduces the paramateristations that are available in \fluidity.
 \index{GLS|see{generic length scale model}}
 \index{generic length scale model}
 
-The generic length scale (GLS) turbulence parameterisation is capable of simulating vertical
+The generic length scale (GLS) turbulence parameterisation is capable of simulating \emph{vertical}
 turbulence at a scale lower than that of the mesh. There is no dependency on the mesh resolution,
 so is ideal for adaptive ocean-scale problems. GLS has the additional advantage that it
 can be set-up to behave as a number of classical turbulence models:
 $k-\epsilon$, $k-kl$, $k-\omega$,
-and an additional model based on \citet{umlauf2003}, the $gen$ model.
+and an additional model based on \citet{umlauf2003}, the $gen$ model. Further details are
+available in \citet{hill2012}, along with test cases and a demonstration of how GLS can be
+used in conjuction with adaptive remeshing.
 
 Briefly, all implementations rely on a local, temporally varying, kinematic eddy
 viscosity $K_M$ that parametrises turbulence (local Reynolds stresses) in terms of mean-flow
@@ -423,24 +425,6 @@ The associated boundary conditions are:
   \epsilon &= \frac{\mu}{\rho} \ppxx[y]{k} = \frac{2\mu}{\rho} \left ( \ppx[n]{k^{1/2}}
   \right ). \label{eq:epsbc1}
 \end{align}
-
-\par{\textbf{High Reynolds number boundary conditions}\\}
-For high Reynolds numbers ($Re>10^4$), the \option{high\_Re} wall functions are
-recommended \citep{wilcox1998turbulence}:
-
-\begin{align}
-  \bmu &= u_* \left [ \frac{1}{\kappa} \ln (\rho u_* y / \mu) + B \right ], \label{eq:ubc2}\\
-  k &= \frac{u_*^2}{C_{\mu}^{1/2}}, \label{eq:kbc2}\\
-  \epsilon &= \frac{u_*^3}{\kappa y}, \label{eq:epsbc2}\\
-  u_* &= (\tau_w / \rho)^{1/2} = \left ( \frac{\mu_T}{\rho} \ppx[n]{U_S} \right
-  )^{1/2}, \label{eq:ustar}
-\end{align}
-where $B$ is a model constant, $y$ is the distance to the wall, $u_*$ is the friction
-velocity, $U_S$ is the streamwise velocity parallel to the wall, $\kappa=0.43$ is Von
-Karman's constant, $\mu$ is the dynamic laminar (background) viscosity, $\mu_T$ is the
-dynamic eddy (turbulent) viscosity, $\rho$ is the density and $\ppx[n]{}$ is the gradient
-operator in the wall-normal direction. For implementation details see
-\ref{sec:kepsilon_usage}.
 
 \par{\textbf{Turbulent diffusivity of scalar fields}\\}
 When using scalar fields, such as a temperature or sediment field, The k-$\epsilon$ model

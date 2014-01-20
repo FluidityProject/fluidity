@@ -1,0 +1,39 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>PrescribedLandslide</name>
+  <owner userid="jhill1"/>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>../../bin/fluidity Storegga_2d_presc.flml; ../../bin/fluidity Storegga_2d.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+    <variable name="stats_norm" language="python">from fluidity_tools import stat_parser
+s=stat_parser("Storegga-2d_presc.stat")
+stats_norm={}
+stats_norm["FS_l2norm"]=s["Water"]["FreeSurface"]["l2norm"][-1]
+stats_norm["VelMagL2norm"]=s["Water"]["Velocity%magnitude"]["l2norm"][-1]
+</variable>    
+<variable name="stats_cart" language="python">from fluidity_tools import stat_parser
+s=stat_parser("Storegga-2d_cart.stat")
+stats_cart={}
+stats_cart["FS_l2norm"]=s["Water"]["FreeSurface"]["l2norm"][-1]
+stats_cart["VelMagL2norm"]=s["Water"]["Velocity%magnitude"]["l2norm"][-1]
+</variable>
+
+  </variables>
+  <pass_tests>
+    <test name="Solvers converged" language="python">
+assert(solvers_converged)
+    </test>
+    <test name="FreeSurface agrees" language="python">
+assert(abs(stats_cart["FS_l2norm"]-stats_norm["FS_l2norm"]) &lt; 0.5)
+    </test>
+    <test name="Velocity agrees" language="python"> 
+assert(abs(stats_cart["VelMagL2norm"]-stats_norm["VelMagL2norm"]) &lt; 0.5)
+    </test>
+  </pass_tests>
+</testproblem>

@@ -13,7 +13,7 @@
    width="472.00269"
    height="616.11145"
    id="svg2"
-   inkscape:version="0.48.1 r9760"
+   inkscape:version="0.48.3.1 r9886"
    sodipodi:docname="fluidity_logo.svg">
   <metadata
      id="metadata3039">
@@ -23,7 +23,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -36,17 +36,17 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="1680"
-     inkscape:window-height="1026"
+     inkscape:window-width="1024"
+     inkscape:window-height="549"
      id="namedview3037"
      showgrid="false"
      inkscape:zoom="0.96956055"
      inkscape:cx="32.343904"
      inkscape:cy="220.12741"
      inkscape:window-x="0"
-     inkscape:window-y="24"
+     inkscape:window-y="25"
      inkscape:window-maximized="1"
-     inkscape:current-layer="svg2"
+     inkscape:current-layer="text3813"
      fit-margin-top="0"
      fit-margin-left="0"
      fit-margin-right="0"
@@ -147,18 +147,12 @@
      inkscape:export-filename="/data2/jhill1/projects/misc/fluidity_logo_14.png"
      inkscape:export-xdpi="3.1600001"
      inkscape:export-ydpi="3.1600001" />
-  <text
-     xml:space="preserve"
-     style="font-size:375px;font-style:italic;font-variant:normal;font-weight:bold;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#1a4aff;fill-opacity:1;stroke:#000000;stroke-width:4;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;font-family:TeXGyrePagella;-inkscape-font-specification:TeXGyrePagella Bold Italic"
-     x="78.888351"
-     y="406.61267"
-     id="text3813"
-     sodipodi:linespacing="125%"
-     inkscape:export-filename="/data2/jhill1/projects/misc/fluidity_logo_14.png"
-     inkscape:export-xdpi="3.1600001"
-     inkscape:export-ydpi="3.1600001"><tspan
-       sodipodi:role="line"
-       id="tspan3815"
-       x="78.888351"
-       y="406.61267">f</tspan></text>
+  <g
+     style="font-size:375px;font-style:italic;font-variant:normal;font-weight:bold;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#1a4aff;fill-opacity:1;stroke:#000000;stroke-width:4;stroke-miterlimit:4;stroke-opacity:1;font-family:TeXGyrePagella;-inkscape-font-specification:TeXGyrePagella Bold Italic"
+     id="text3813">
+    <path
+       d="M 247.26335,137.36267 C 239.38836,135.11267 234.88835,134.36267 229.63835,134.36267 222.13836,134.36267 218.01334,135.48768 210.13835,140.36267 198.51336,147.48766 184.63835,157.23768 178.63835,162.48767 L 157.63835,180.86267 C 140.76337,195.86266 137.01335,203.36269 132.51335,225.48767 131.76335,229.61267 131.38835,230.73767 131.01335,232.98767 126.88836,234.86267 121.63834,237.11267 112.26335,240.11267 L 93.513351,246.11267 91.638351,255.48767 125.76335,255.48767 96.138351,411.86267 C 85.263362,469.61261 81.138338,480.11267 67.638351,480.11267 59.38836,480.11267 53.763346,475.23766 48.513351,463.61267 L 42.138351,464.73767 C 40.263353,475.23766 34.263347,495.86268 30.138351,504.86267 33.513348,506.73767 39.513356,508.23767 44.388351,508.23767 57.138339,508.23767 80.013367,493.61265 95.388351,475.98767 118.63833,448.9877 129.88837,420.48759 147.88835,343.61267 L 168.51335,255.48767 214.63835,255.48767 C 217.26335,245.73768 218.38835,241.61267 220.63835,236.36267 L 218.76335,233.36267 C 200.38837,235.23767 188.76334,236.36267 172.63835,236.36267 L 174.88835,225.48767 C 185.01334,175.98772 189.13837,164.36267 203.76335,164.36267 213.51334,164.36267 219.51336,168.86269 231.13835,185.36267 L 236.76335,184.23767 C 239.76335,166.61269 242.38836,154.98765 247.26335,137.36267"
+       style=""
+       id="path3459" />
+  </g>
 </svg>

@@ -34,37 +34,54 @@ implicit none
 
 private
 
-public get_reference_density_from_options, convert_free_surface_to_pressure
+public get_fs_reference_density_from_options, convert_free_surface_to_pressure
 
 contains
 
-  subroutine get_reference_density_from_options(rho0, phase_path)
+  subroutine get_fs_reference_density_from_options(rho0, phase_path)
+    ! The density returned by this routine defines the relation between
+    ! free surface elevation and barotropic pressure: p = \rho0 g \eta
+    ! For equation types Boussinesq and ShallowWater this is simply 1.0
+    ! (corresponding to the constant in front of the du/dt term in the mom. eqn.)
+    ! For LinearMomentum, we return the reference density. By default it is indeed
+    ! assumed that the density near the f.s. is equal to the reference density and 
+    ! thus p = \rho0 g \eta. Density variations are taken into account in assemble/Free_Surface.F90
+    ! when using the variable_density option under the fs. bc.
 
     real, intent(out) :: rho0
     character(len=*), intent(in), optional :: phase_path
 
-    if (have_option(trim(phase_path)//'/equation_of_state/fluids/linear/')) then
-      ! A material_phase always contains a vector_field::Velocity
-      if (have_option(trim(phase_path)//'vector_field::Velocity/prognostic/equation::Boussinesq')) then
-        ! for Boussinesq the pressure is actually p/rho0 already so we don't want to divide by
-        ! the reference density again
-        rho0 = 1.0
-      else
+    if (have_option(trim(phase_path)//'/vector_field::Velocity/prognostic/equation::ShallowWater') .or. &
+        have_option(trim(phase_path)//'/vector_field::Velocity/prognostic/equation::Boussinesq')) then
+
+      ! with Boussinesq \rho0 is already divided out of the mom. eqn. (and therefore out of Pressure)
+      ! same goes for ShallowWater
+      rho0 = 1.0
+
+    else if (have_option(trim(phase_path)//'/vector_field::Velocity/prognostic/equation::LinearMomentum')) then
+      if (have_option(trim(phase_path)//'/equation_of_state/fluids/linear/')) then
+
         ! for other equation types the pressure is really the pressure so we do need to
         ! divide by the real reference density
         call get_option(trim(phase_path)//'/equation_of_state/fluids/linear/reference_density', rho0)
+      else if (have_option(trim(phase_path)//'/equation_of_state/fluids/ocean_pade_approximation/')) then
+        ! The reference density is hard-coded to be 1.0 for the Ocean Pade Approximation
+        rho0=1.0
+      else
+        ewrite(-1,*) "Unless using Boussinesq Velocity, you must specify a"
+        ewrite(-1,*) "linear or pade equation of state for the free surface."
+        FLExit("Error retrieving reference density from options.")
       end if
-    else if (have_option(trim(phase_path)//'/equation_of_state/fluids/ocean_pade_approximation/')) then
-      ! The reference density is hard-coded to be 1.0 for the Ocean Pade Approximation
-      rho0=1.0
-    else 
-      ewrite(-1,*) "Unless using Boussinesq Velocity, you must specify a"
-      ewrite(-1,*) "linear or pade equation of state for the free surface."
-      FLExit("Error retrieving reference density from options.")
+    else if (.not. have_option(trim(phase_path)//'vector_field::Velocity/prognostic')) then
+      ! this should have been options checked somewhere else, so flabort
+      FLAbort("Need a prognostic velocity to retrieve free surface reference density.")
+    else
+      ! this must mean it doesn't have Velocity equation option, or an unknown equation type
+      ! both are not allowed in the schema, so flabort
+      FLAbort("Unknown equation type for Velocity")
     endif
 
-  end subroutine get_reference_density_from_options
-
+  end subroutine get_fs_reference_density_from_options
 
   subroutine convert_free_surface_to_pressure(field, phase_path)
     type(scalar_field), intent(inout) :: field
@@ -72,7 +89,7 @@ contains
 
     real :: rho0, gravity_magnitude
 
-    call get_reference_density_from_options(rho0, phase_path)
+    call get_fs_reference_density_from_options(rho0, phase_path)
 
     if(have_option("/physical_parameters/gravity")) then
        call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)

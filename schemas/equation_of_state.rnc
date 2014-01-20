@@ -91,62 +91,76 @@ compressible_eos_options =
    (
       ## Equations of state for compressible applications
       element compressible {
-         ## Stiffened Gas EoS
-         ##
-         ## Used with compressible simulations
-         element stiffened_gas {
-            ## reference uncompressed density
-            ##
-            ## if activated then either Liquid EoS or
-            ## full Stiffened Gas EoS
-            element reference_density {
-               real
-            }?,
-            ## Ratio of specific heats at constant
-            ## pressure to that at constant volume
-            ##
-            ## Requires an energy field.
-            ## If activated then a full Stiffened Gas EoS 
-            element ratio_specific_heats {
-               real
-            }?,
-            ## bulk_sound_speed_squared = isothermal_bulk_modulus/reference_density
-            ##
-            ## if activated then either full or partial Liquid EoS or full
+         (
             ## Stiffened Gas EoS
-            element bulk_sound_speed_squared {
-               real
-            }?
-         }|
-         ## Giraldo et. al. 2008, J. Comp. Phys.
-         ##
-         ## Used with compressible simulations
-         element giraldo {
-            ## reference pressure
             ##
-            ## The pressure at which potential temperature
-            ## equals actual temperature. Normally taken to
-            ## be the surface pressure, 1.0e05.
-            element reference_pressure {
-               real
-            },
-            ## Heat capacity at constant pressure
-            element C_P {
-               real
-            },
-            ## Heat capacity at constant volume
-            element C_V {
-               real
+            ## Used with compressible simulations
+            element stiffened_gas {
+               ## reference uncompressed density
+               ##
+               ## if activated then either Liquid EoS or
+               ## full Stiffened Gas EoS
+               element reference_density {
+                  real
+               }?,
+               ## Ratio of specific heats at constant
+               ## pressure to that at constant volume
+               ##
+               ## Requires an energy field.
+               ## If activated then a full Stiffened Gas EoS 
+               element ratio_specific_heats {
+                  real
+               }?,
+               ## bulk_sound_speed_squared = isothermal_bulk_modulus/reference_density
+               ##
+               ## if activated then either full or partial Liquid EoS or full
+               ## Stiffened Gas EoS
+               element bulk_sound_speed_squared {
+                  real
+               }?
+            }|
+            ## Giraldo et. al. 2008, J. Comp. Phys.
+            ##
+            ## Used with compressible simulations
+            element giraldo {
+               ## reference pressure
+               ##
+               ## The pressure at which potential temperature
+               ## equals actual temperature. Normally taken to
+               ## be the surface pressure, 1.0e05.
+               element reference_pressure {
+                  real
+               },
+               ## Heat capacity at constant pressure
+               element C_P {
+                  real
+               },
+               ## Heat capacity at constant volume
+               element C_V {
+                  real
+               }
+            }|
+            ## Foam EoS
+            ## Used with compressible simulations of liquid drainage in foams.
+            ## It describes the liquid content in the foam as the product of the 
+            ## Plateau border cross sectional area and the local Plateau 
+            ## border length per unit volume (lambda). 
+            element foam {
+               empty
             }
-         }|
-         ## Foam EoS
-         ## Used with compressible simulations of liquid drainage in foams.
-         ## It describes the liquid content in the foam as the product of the 
-         ## Plateau border cross sectional area and the local Plateau 
-         ## border length per unit volume (lambda). 
-         element foam {
+         ),
+         ## This splits up the Density and Pressure fields into a hydrostatic (reference) component (') and a perturbed component (''). 
+         ## The hydrostatic (reference) components, denoted p' and rho', should satisfy the balance:
+         ## grad(p') = rho'*g
+         ##
+         ## Enabling this option will subtract the hydrostatic components, specified here, from the pressure and density used in the pressure gradient and buoyancy terms in the momentum equation. This helps to maintain hydrostatic balance and prevent spurious oscillations in the pressure field when using unbalanced finite element pairs.
+         ##
+         ## Note 1: You will also need to create two prescribed scalar fields, called HydrostaticReferencePressure and HydrostaticReferenceDensity, which define p' and rho'. These must be on the same mesh as pressure and density, respectively. Also, these fields are meant to be time-independent and set up as vertical profiles (i.e. constant in the horizontal direction).
+         ##
+         ## Note 2: Unlike all the other hydrostatic/geostrophic balance options in Fluidity (i.e. subtract_out_hydrostatic_level under the linear incompressible EoS option, or with HydrostaticPressure or GeostrophicPressure fields), the hydrostatic pressure is not subtracted from the Pressure field itself. In other words, the Pressure field that gets solved for (and output in the .vtu files) is still the combined Pressure (p = p' + p''), and the hydrostatic pressure p' is only subtracted in the momentum equation.
+         element subtract_out_reference_profile {
             empty
-         }  
+         }?
       }   
    )
    

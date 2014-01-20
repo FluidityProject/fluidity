@@ -163,9 +163,6 @@ contains
 
     call assemble(rotation_m)
 
-    ! matrixdump for rotation matrix
-    !call dump_matrix("rotation_matrix", rotation_m)
-
   end subroutine create_rotation_matrix
     
   subroutine rotate_momentum_equation(big_m, rhs, u, state, dg)

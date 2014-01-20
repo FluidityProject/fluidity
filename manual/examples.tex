@@ -502,8 +502,6 @@ u(z) =
     0.0 & \text{if } 3.0-z_0 < z
   \end{cases}
 \end{equation*}
-
-The log law of the wall is applied weakly on the upper and lower boundaries.
 This approach has been found useful in high-Reynolds number flow, allowing coarser near-wall mesh resolution.
 
 \subsection{Results}
@@ -1388,7 +1386,8 @@ The plot shows the surface elevation measurements at the three gauge stations of
 \label{sec:tephra_settling}
 
 \subsection{Overview}
-In this example, \fluidity\ is used to replicate a laboratory experiment of tephra (fine volcanic ash particles) settling through a tank of water \citep{carey1997}. The experiments by \cite{carey1997} introduced tephra particles into a $0.3\times 0.3\times 0.7$ m tank, filled with water, from above using a delivery system and a particle disperser. The particles settled through the air in the tank at an approximately constant rate until they landed in the water and began to settle through the water at a much reduced velocity. While the particles in the water were sufficiently dispersed their settling velocity was that predicted by Stokes' flow (a few mm/s).  However, the build-up of particles caused by the air-water interface eventually created a layer of particles and water with a bulk density so great, relative to the density of the particle-poor water beneath, as to be gravitationally unstable and promote the formation of a vertical gravity current (plumes). The settling velocity of these plumes of particles 
+In this example, \fluidity\ is used to replicate a laboratory experiment of tephra (fine volcanic ash particles) settling through a tank of water \citep{carey1997}. The experiments by \cite{carey1997} introduced tephra particles into a $0.3\times 0.3\times 0.7$ m tank, filled with water, from above using a delivery system and a particle disperser. The particles settled through the air in the tank at an approximately constant rate until they landed in the water and began to settle through the water at a much reduced velocity. While the particles in the water were sufficiently dispersed their settling velocity was that predicted by Stokes' flow (a few mm/s).  However, the build-up of particles caused by the air-water interface eventually created a layer of particles and water with a bulk density so great, relative to the density of the particle-poor water beneath, as to be gravitationally unstable and promote the formation of a vertical gravity current (plumes). The settling velocity of these plumes of 
+particles 
 and water was observed to be an order of magnitude greater than the Stokes settling velocity of the individual particles.
 
 In the \fluidity\ simulations, rather than represent each tephra particle individually using a multimaterial approach (which would be prohibitively expensive), a ``dispersed multiphase'' approach is adopted (see \ref{sec:multiphase_equations}), in which one phase represents the water in the tank and the other phase represents all the particles dispersed within the water. Similar to the water column collapse example (\ref{sec:water_collapse}), a volume fraction field is used to distinguish between the continuous phase (water) and the dispersed phase (particles). In an element the volume fraction of particles represents the fraction of the element volume that is occupied by particles, which is typically very small. In contrast to the multimaterial approach, however, the multiphase approach assigns each phase a separate velocity, allowing the dispersed phase (particles) to move through the continuous phase (water). In this example, the dispersed phase is more dense than the continuous phase and so sinks under 
