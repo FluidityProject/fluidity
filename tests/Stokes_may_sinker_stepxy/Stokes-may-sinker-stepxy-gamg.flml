@@ -141,7 +141,7 @@
                   <iterative_method name="cg"/>
                   <preconditioner name="gamg"/>
                   <relative_error>
-                    <real_value rank="0">1.0e-10</real_value>
+                    <real_value rank="0">1.0e-6</real_value>
                   </relative_error>
                   <max_iterations>
                     <integer_value rank="0">10000</integer_value>
@@ -164,7 +164,7 @@
           <iterative_method name="fgmres"/>
           <preconditioner name="jacobi"/>
           <relative_error>
-            <real_value rank="0">1.0e-7</real_value>
+            <real_value rank="0">1.0e-5</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">10000</integer_value>
@@ -243,7 +243,7 @@
           <iterative_method name="cg"/>
           <preconditioner name="gamg"/>
           <relative_error>
-            <real_value rank="0">1.0e-10</real_value>
+            <real_value rank="0">1.0e-6</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">10000</integer_value>
