@@ -643,4 +643,20 @@ def VtuDiff(vtu1, vtu2, filename = None):
     else:
       resultVtu.RemoveField(fieldName)
 
+  # Also look for cell-based fields. This only works if we don't have
+  # to interpolate (both meshes are the same)
+  vtkdata=vtu1.ugrid.GetCellData()
+  fieldNames1 = [vtkdata.GetArrayName(i) for i in range(vtkdata.GetNumberOfArrays())]
+  vtkdata=vtu2.ugrid.GetCellData()
+  fieldNames2 = [vtkdata.GetArrayName(i) for i in range(vtkdata.GetNumberOfArrays())]
+  for fieldName in fieldNames1:
+    field1 = vtu1.GetField(fieldName)
+    if fieldName in fieldNames2 and not useProbe:
+      field2 = vtu2.GetField(fieldName)
+      resultVtu.AddField(fieldName, field2-field1)
+    else:
+      if fieldName in fieldNames2:
+        print "Warning: can't interpolate cell-based field ", fieldName
+      resultVtu.RemoveField(fieldName)
+
   return resultVtu  
