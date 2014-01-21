@@ -59,7 +59,7 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
   integer, parameter :: quad_degree = 4
   type(element_type), pointer :: shape
   type(ilist), dimension(:), allocatable :: map_BA
-  type(mesh_type) :: output_mesh
+  type(mesh_type) :: output_mesh, output_p0mesh
   type(mesh_type), pointer :: input_mesh
   type(state_type) :: input_state, output_state
   type(scalar_field) :: output_s_field
@@ -95,7 +95,15 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
   input_mesh => extract_mesh(input_state, "Mesh")
   target_positions = read_triangle_files(trim(target_basename), quad_degree = quad_degree)
   shape => ele_shape(donor_positions, 1)
-  output_mesh = make_mesh(target_positions%mesh, shape, continuity = continuity(donor_positions))
+  if (shape==ele_shape(target_positions,1) .and. continuity(donor_positions)==continuity(target_positions)) then
+    output_mesh = target_positions%mesh
+    call incref(output_mesh)
+  else
+    output_mesh = make_mesh(target_positions%mesh, shape, continuity = continuity(donor_positions))
+  end if
+  if (has_mesh(input_state, "P0Mesh")) then
+    output_p0mesh = piecewise_constant_mesh(target_positions%mesh, "P0Mesh")
+  end if
   
   donor_positions = read_triangle_files(trim(donor_basename), quad_degree = quad_degree)
   
@@ -106,13 +114,22 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
   
   call insert(output_state, target_positions, "Coordinate")
   call insert(output_state, output_mesh, "Mesh")
+  if (has_mesh(input_state, "P0Mesh")) then
+    call insert(output_state, output_p0mesh, "P0Mesh")
+  end if
   do i = 1, scalar_field_count(input_state)
     input_s_field => extract_scalar_field(input_state, i)
     if(input_s_field%name == "vtkGhostLevels") then
       call remove_scalar_field(input_state, input_s_field%name)
       cycle
     end if
-    call allocate(output_s_field, output_mesh, input_s_field%name)
+    if (input_s_field%mesh%name=="Mesh") then
+      call allocate(output_s_field, output_mesh, input_s_field%name)
+    else if (input_s_field%mesh%name=="P0Mesh") then
+      call allocate(output_s_field, output_p0mesh, input_s_field%name)
+    else
+      FLAbort("State from vtk_read_state should contain Mesh and P0Mesh only")
+    end if
     call zero(output_s_field)
     output_s_field%option_path = fields_path
     call insert(output_state, output_s_field, output_s_field%name)
@@ -121,7 +138,13 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
   do i = 1, vector_field_count(input_state)
     input_v_field => extract_vector_field(input_state, i)
     if(input_v_field%name == "Coordinate") cycle
-    call allocate(output_v_field, input_v_field%dim, output_mesh, input_v_field%name)
+    if (input_s_field%mesh%name=="Mesh") then
+      call allocate(output_v_field, input_v_field%dim, output_mesh, input_v_field%name)
+    else if (input_v_field%mesh%name=="P0Mesh") then
+      call allocate(output_v_field, input_v_field%dim, output_p0mesh, input_v_field%name)
+    else
+      FLAbort("State from vtk_read_state should contain Mesh and P0Mesh only")
+    end if
     call zero(output_v_field)
     output_v_field%option_path = fields_path
     call insert(output_state, output_v_field, output_v_field%name)
@@ -129,7 +152,13 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
   end do
   do i = 1, tensor_field_count(input_state)
     input_t_field => extract_tensor_field(input_state, i)
-    call allocate(output_t_field, output_mesh, input_t_field%name)
+    if (input_t_field%mesh%name=="Mesh") then
+      call allocate(output_t_field, output_mesh, input_t_field%name)
+    else if (input_s_field%mesh%name=="P0Mesh") then
+      call allocate(output_t_field, output_p0mesh, input_t_field%name)
+    else
+      FLAbort("State from vtk_read_state should contain Mesh and P0Mesh only")
+    end if
     call zero(output_t_field)
     output_t_field%option_path = fields_path
     call insert(output_state, output_t_field, output_t_field%name)
@@ -154,8 +183,11 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
   call deallocate(input_state)
   
   call vtk_write_state(trim(output_filename), model = "Mesh", state = (/output_state/))
-  call deallocate(output_state)
   call deallocate(output_mesh)
+  if (has_mesh(output_state, "P0Mesh")) then
+    call deallocate(output_p0mesh)
+  end if
+  call deallocate(output_state)
   
   call print_references(0)
   
