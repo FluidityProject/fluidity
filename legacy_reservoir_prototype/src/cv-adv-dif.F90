@@ -3408,11 +3408,16 @@ END IF
             IF(DOWNWIND_EXTRAP) THEN
 ! new method based on downwind extrapolation...
 !               MAXUF = MAX( 0.0, UF )
-               MAXUF = MAX( 0.0, UF, UC )
+                MAXUF = MAX( 0.0, UF, UC )
 !               TILDEUF = MIN( 1.0, UC/ (2.0 * COURAT), MAXUF )
 !               TILDEUF = MIN( 1.0, max(UC/ (2.0 * COURAT), XI * UC ), MAXUF )
-               TILDEUF = MIN( 1.0, max(UC/ (3.0 * COURAT), XI * UC ), MAXUF )
+!               TILDEUF = MIN( 1.0, max(UC/ (3.0 * COURAT), XI * UC ), MAXUF )
 !               TILDEUF = MIN( 1.0, UC * 10.0, MAXUF )
+                IF ( UF < UC ) THEN
+                  TILDEUF = UC
+                ELSE
+                  TILDEUF = MIN( 1.0, max(UC/ (3.0 * COURAT), XI * UC ) )
+                END IF
             ELSE
                !TILDEUF = MIN( 1.0, max( UC / COURAT, XI * UC ))
                ! halve the slope for now...
