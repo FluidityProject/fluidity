@@ -1050,7 +1050,7 @@ contains
     real, dimension(:,:)&
          &, intent(inout) :: local_solver_matrix
     real, dimension(:,:)&
-         &, intent(inout) :: local_solver_rhs
+         &, intent(inout), optional :: local_solver_rhs
     logical, intent(in) :: projection, poisson
     logical, intent(in) :: have_constraint
     !
