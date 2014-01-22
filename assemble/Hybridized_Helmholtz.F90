@@ -1050,7 +1050,7 @@ contains
     real, dimension(:,:)&
          &, intent(inout) :: local_solver_matrix
     real, dimension(:,:)&
-         &, intent(inout), optional :: local_solver_rhs
+         &, intent(inout) :: local_solver_rhs
     logical, intent(in) :: projection, poisson
     logical, intent(in) :: have_constraint
     !
@@ -1215,7 +1215,6 @@ contains
     do dim1=1, mdim
        do dim2=1, mdim
           M_lin(dim1,dim2,:,:)=matmul(matmul(A(dim1,:,:),l_u_mat(dim1,dim2,:,:)),transpose(A(dim2,:,:)))
-          print*, M_lin(dim1,dim2,:,:)
        end do
     end do
     l_u_mat=l_u_mat+alpha*M_lin
