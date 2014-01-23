@@ -36,6 +36,7 @@ module diagnostic_fields_new
   use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN
   use spud
   use state_module
+  use additional_field_locations
 
 USE_MODULES
   
@@ -973,9 +974,9 @@ MULTIPLE_STATE_TENSOR_DIAGNOSTICS
      
     character(len = OPTION_PATH_LEN) :: dependency, field_name, field_path, field_type_path, state_name, state_path
     character(len = OPTION_PATH_LEN), dimension(:), allocatable :: dependencies, split_dependency
-    integer :: i, j, k, l, m, stat
-     
-    if(option_count("/material_phase/scalar_field/diagnostic") + &
+    integer :: i, j, k, l, m, af, stat
+    
+   if(option_count("/material_phase/scalar_field/diagnostic") + &
       & option_count("/material_phase/vector_field/diagnostic") + &
       & option_count("/material_phase/tensor_field/diagnostic") == 0) then
       ! Nothing to check
@@ -1017,28 +1018,92 @@ MULTIPLE_STATE_TENSOR_DIAGNOSTICS
             if(stat /= SPUD_NO_ERROR) cycle
                   
             call tokenize(trim(dependency), dependencies, ",")
-            do m = 1, size(dependencies)
+            DEP_LOOP: do m = 1, size(dependencies)
               call tokenize(trim(dependencies(m)), split_dependency, "::")
               select case(size(split_dependency))
                 case(1)
                   if(option_count(trim(state_path) // "/scalar_field::" // trim(split_dependency(1))) + &
                     & option_count(trim(state_path) // "/vector_field::" // trim(split_dependency(1))) + &
-                    & option_count(trim(state_path) // "/tensor_field::" // trim(split_dependency(1))) == 0) then
-                    call field_error(state_name, field_name, "Field depends on " // split_dependency(1))
+                    & option_count(trim(state_path) // "/tensor_field::" // trim(split_dependency(1))) > 0) then
+                        cycle DEP_LOOP
                   end if
+                  ! We now need to check additional paths as the field may
+                  ! be hidden.
+                  ! check absolute fields
+                  do af=1, size(additional_fields_absolute)
+                      if (have_option(trim(additional_fields_absolute(af)) // "/scalar_field::" // trim(split_dependency(1))) .OR. &
+                        & have_option(trim(additional_fields_absolute(af)) // "/vector_field::" // trim(split_dependency(1))) .OR. &
+                        & have_option(trim(additional_fields_absolute(af)) // "/tensor_field::" // trim(split_dependency(1)))) then
+                              cycle DEP_LOOP
+                      end if
+                  end do
+
+                  ! check relative paths
+                  do af=1, size(additional_fields_relative)
+                      if (have_option(trim(state_path) // trim(additional_fields_relative(af)) // "/scalar_field::" // trim(split_dependency(1))) .OR. &
+                        & have_option(trim(state_path) // trim(additional_fields_relative(af)) // "/vector_field::" // trim(split_dependency(1))) .OR. &
+                        & have_option(trim(state_path) // trim(additional_fields_relative(af)) // "/tensor_field::" // trim(split_dependency(1)))) then
+                              cycle DEP_LOOP
+                      end if
+                  end do
+                  
+                  ! check other paths
+                  do af=1, size(additional_diagnostic_paths)
+                      if (have_option(trim(additional_diagnostic_paths(af)) // "/scalar_field::" // trim(split_dependency(1))) .OR. &
+                        & have_option(trim(additional_diagnostic_paths(af)) // "/vector_field::" // trim(split_dependency(1))) .OR. &
+                        & have_option(trim(additional_diagnostic_paths(af)) // "/tensor_field::" // trim(split_dependency(1)))) then
+                              cycle DEP_LOOP
+                      end if
+                  end do
+
+                  ! Still not found it...then error
+                  call field_error(state_name, field_name, "Field depends on " // split_dependency(1))
+                
                 case(2)
                   if(option_count("/material_phase::" // trim(split_dependency(1)) // "/scalar_field::" // trim(split_dependency(2))) + &
                     & option_count("/material_phase::" // trim(split_dependency(1)) // "/vector_field::" // trim(split_dependency(2))) + &
-                    & option_count("/material_phase::" // trim(split_dependency(1)) // "/tensor_field::" // trim(split_dependency(2))) == 0) then
-                    call field_error(state_name, field_name, "Field depends on " // trim(split_dependency(2)) // " in state " // split_dependency(1))
+                    & option_count("/material_phase::" // trim(split_dependency(1)) // "/tensor_field::" // trim(split_dependency(2))) > 0) then
+                        cycle DEP_LOOP
                   end if
+                  ! We now need to check additional paths as the field may
+                  ! be hidden.
+
+                  ! check absolute fields
+                  do af=1, size(additional_fields_absolute)
+                      if (have_option(trim(additional_fields_absolute(af)) // "/scalar_field::" // trim(split_dependency(1))) .OR. &
+                        & have_option(trim(additional_fields_absolute(af)) // "/vector_field::" // trim(split_dependency(1))) .OR. &
+                        & have_option(trim(additional_fields_absolute(af)) // "/tensor_field::" // trim(split_dependency(1)))) then
+                              cycle DEP_LOOP 
+                      end if
+                  end do
+
+                  ! check relative paths
+                  do af=1, size(additional_fields_relative)
+                      if (have_option("/material_phase::" // trim(split_dependency(1)) // trim(additional_fields_relative(af)) // "/scalar_field::" // trim(split_dependency(1))) .OR. &
+                        & have_option("/material_phase::" // trim(split_dependency(1)) // trim(additional_fields_relative(af)) // "/vector_field::" // trim(split_dependency(1))) .OR. &
+                        & have_option("/material_phase::" // trim(split_dependency(1)) // trim(additional_fields_relative(af)) // "/tensor_field::" // trim(split_dependency(1)))) then
+                              cycle DEP_LOOP
+                      end if
+                  end do
+                  
+                  ! check other paths - err, these are 
+                  do af=1, size(additional_diagnostic_paths)
+                      if (have_option(trim(additional_diagnostic_paths(af)) // "/scalar_field::" // trim(split_dependency(1))) .OR. &
+                        & have_option(trim(additional_diagnostic_paths(af)) // "/vector_field::" // trim(split_dependency(1))) .OR. &
+                        & have_option(trim(additional_diagnostic_paths(af)) // "/tensor_field::" // trim(split_dependency(1)))) then
+                              cycle DEP_LOOP
+                      end if
+                  end do
+                
+                  call field_error(state_name, field_name, "Field depends on " // trim(split_dependency(2)) // " in state " // split_dependency(1))
+                
                 case default
                   ewrite(-1, *) "For dependency " // trim(dependencies(m))
                   call field_error(state_name, field_name, "Invalid dependency")
               end select
                
               deallocate(split_dependency)
-            end do
+            end do DEP_LOOP
             deallocate(dependencies)
           end do
         end do
