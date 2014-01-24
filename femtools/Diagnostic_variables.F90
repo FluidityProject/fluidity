@@ -2728,8 +2728,8 @@ contains
     type(detector_linked_list), intent(inout) :: detector_list
     real, intent(in) :: time, dt
 
-    integer :: i, j, phase, ierror, number_of_scalar_det_fields, dim, procno
-    integer(KIND = MPI_OFFSET_KIND) :: location_to_write, offset, realsize
+    integer :: i, j, phase, ierror, number_of_scalar_det_fields, realsize, dim, procno
+    integer(KIND = MPI_OFFSET_KIND) :: location_to_write, offset
     integer :: number_of_vector_det_fields, number_total_columns
 
     real :: value
