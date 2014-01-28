@@ -1110,7 +1110,6 @@
                 !If variation lower than tolerance_between_non_linear then next time step
                 if (max(maxval(abs(NonLinearIteration_Check_MaxVels(1:NDIM))), &        !At least two iterations
                             maxval(abs(NonLinearIteration_Check_MinVels(1:NDIM))))  < tolerance_between_non_linear  .and. (its>=2)) exit
-print *, its
             end if
 
          end do Loop_NonLinearIteration
