@@ -707,7 +707,8 @@
 
 !!$ Diffusion-like term -- here used as part of the capillary pressure for porous media. It can also be 
 !!$ extended to surface tension -like term.
-               iplike_grad_sou = 0
+              iplike_grad_sou = 0
+              plike_grad_sou_grad = 0
                if( have_option( '/material_phase[0]/multiphase_properties/capillary_pressure' ) )then
                   iplike_grad_sou = 1
                   call calculate_capillary_pressure( state, cv_nonods, nphase, plike_grad_sou_grad, &

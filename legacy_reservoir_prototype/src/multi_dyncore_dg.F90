@@ -604,9 +604,7 @@
       ALLOCATE(IDUM(TOTELE * U_NLOC * NPHASE * NDIM * U_NLOC * NPHASE * NDIM)) 
       IDUM=0
 	  
-		!If capillary pressure is used then we do not have to hard code IPLIKE_GRAD_SOU=0
-       if( .not.have_option( '/material_phase[0]/multiphase_properties/&
-		capillary_pressure' ) ) IPLIKE_GRAD_SOU=0
+        IPLIKE_GRAD_SOU=0
 
       CALL ASSEMB_FORCE_CTY( state, &
            NDIM, NPHASE, U_NLOC, X_NLOC, CV_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
@@ -1291,9 +1289,9 @@
                     totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln, p )
                endif 
 
-          !  if( cv_nonods==x_nonods .or. .false. ) then ! a continuous pressure:
-            if( .true. ) then ! a pressure solve:  
-          !  if( .false. ) then ! a pressure solve:  
+!            if( cv_nonods==x_nonods ) then ! a continuous pressure:
+            if( .true. ) then ! a pressure solve:
+!             if( .false. ) then ! a pressure solve:
 ! James feed CMC_PRECON into this sub and use as the preconditioner matrix...
 ! CMC_PRECON has length CMC_PRECON(NCOLCMC*IGOT_CMC_PRECON) 
  
@@ -2494,6 +2492,10 @@
       integer :: IPIV(U_NLOC)
       REAL :: RHS_U_CV(U_NLOC),RHS_U_CV_OLD(U_NLOC),UDEN_VFILT(NPHASE*U_NLOC),UDENOLD_VFILT(NPHASE*U_NLOC)
 
+      logical :: capillary_pressure_activated
+
+      capillary_pressure_activated = have_option( '/material_phase[0]/multiphase_properties/capillary_pressure' )
+
       ewrite(3,*) 'In ASSEMB_FORCE_CTY'
       !ewrite(3,*) 'Just double-checking sparsity patterns memory allocation:'
       !ewrite(3,*) 'FINDC with size,', size( FINDC ), ':', FINDC( 1 :  size( FINDC ) )
@@ -3090,6 +3092,11 @@
             END DO
          END DO
 
+        !This term is obtained from the surface tension and curvature
+        !For capillary pressure we are using the entry pressure method instead of
+        !calculating the entry pressure from the surface tension and curvature
+        if ( capillary_pressure_activated) GRAD_SOU_GI = 1.0
+
 
 ! ********************start filtering density
 !         FILT_DEN=1
@@ -3680,12 +3687,11 @@ end if
                      !ewrite(3,*)  '* i, j, gi', U_ILOC,P_JLOC, gi, ':',UFEN( U_ILOC, GI ), ':', &
                      !     CVFENX( P_JLOC, GI ),  CVFENY( P_JLOC, GI ),  CVFENZ( P_JLOC, GI ), ':', DETWEI( GI )
 
-                     IF ( IPLIKE_GRAD_SOU == 1 ) THEN
-                     GRAD_SOU_GI = 1.0!<--Deactivated, this term is obtained from the surface tension and curvature
-                        GRAD_SOU_GI_NMX( : ) = GRAD_SOU_GI_NMX( : )  &!however that is not necessary to calculate the capillary pressure
-                             + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * &    !and its value is ussually zero, so it does not allow to obtain results
-                             CVFENX( P_JLOC, GI ) * DETWEI( GI )                        !setting it 1 should not affect anything else, since it is only used
-                        GRAD_SOU_GI_NMY( : ) = GRAD_SOU_GI_NMY( : )  &!for capillary pressure calculations
+                     IF ( IPLIKE_GRAD_SOU == 1 .or. capillary_pressure_activated) THEN
+                        GRAD_SOU_GI_NMX( : ) = GRAD_SOU_GI_NMX( : )  &
+                             + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * &
+                             CVFENX( P_JLOC, GI ) * DETWEI( GI )
+                        GRAD_SOU_GI_NMY( : ) = GRAD_SOU_GI_NMY( : )  &
                              + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * &
                              CVFENY( P_JLOC, GI ) * DETWEI( GI )
                         GRAD_SOU_GI_NMZ( : ) = GRAD_SOU_GI_NMZ( : )  &
@@ -3715,7 +3721,7 @@ end if
                      IF( NDIM_VEL >= 2 ) C( COUNT_PHA + NCOLC ) = C( COUNT_PHA + NCOLC ) - NMY
                      IF( NDIM_VEL >= 3 ) C( COUNT_PHA + 2 * NCOLC ) = C( COUNT_PHA + 2 * NCOLC ) - NMZ
 
-                     IF( IPLIKE_GRAD_SOU == 1 ) THEN ! Capillary pressure for example terms...
+                     IF( IPLIKE_GRAD_SOU == 1 .or. capillary_pressure_activated ) THEN ! Capillary pressure for example terms...
                         IDIM = 1
                         U_RHS( IU_NOD + ( IDIM - 1 ) * U_NONODS + ( IPHASE - 1 ) * NDIM_VEL * U_NONODS ) =   &
                              U_RHS( IU_NOD + ( IDIM - 1 ) * U_NONODS + ( IPHASE - 1 ) * NDIM_VEL * U_NONODS )     &
@@ -3887,7 +3893,7 @@ end if
                   P_DX( GI ) = P_DX( GI ) + CVFENX( P_ILOC, GI )*P(P_INOD)
                   IF(NDIM.GE.2) P_DY( GI ) = P_DY( GI ) + CVFENY( P_ILOC, GI )*P(P_INOD)
                   IF(NDIM.GE.3) P_DZ( GI ) = P_DZ( GI ) + CVFENZ( P_ILOC, GI )*P(P_INOD)
-                  IF( IPLIKE_GRAD_SOU == 1 ) THEN ! Capillary pressure for example terms...
+                  IF( IPLIKE_GRAD_SOU == 1 .or. capillary_pressure_activated) THEN ! Capillary pressure for example terms...
                      DO IPHASE=1,NPHASE
                         RESID_U(GI, IPHASE)=RESID_U(GI, IPHASE) &
                              +GRAD_SOU_GI( GI, IPHASE )*CVFENX( P_ILOC, GI ) * &
@@ -5872,12 +5878,12 @@ end if
       ewrite(3,*) 'Entering CALCULATE_SURFACE_TENSION'
 
       ! Initialise...
-      !For capillary pressure these terms already have a value
-      if( .not. have_option( '/material_phase[0]/multiphase_properties/capillary_pressure' ) ) then
-          IPLIKE_GRAD_SOU = 0
-          PLIKE_GRAD_SOU_COEF = 0.0
+      IPLIKE_GRAD_SOU = 0
+      PLIKE_GRAD_SOU_COEF = 0.0
+      !For capillary pressure these terms already have a value, so overwritting is a problem
+      if( .not. have_option( '/material_phase[0]/multiphase_properties/capillary_pressure' ) )  then
           PLIKE_GRAD_SOU_GRAD = 0.0
-    end if
+      end if
       U_SOURCE_CV = 0.0
 
       DUMMY_SUF_COMP_BC = 0.0
