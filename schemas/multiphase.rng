@@ -396,7 +396,9 @@ This is usually disabled.</a:documentation>
           <element name="nonlinear_iterations">
             <a:documentation>maximum number of non-linear iterations.
 
-Manual suggests 2</a:documentation>
+Manual suggests 2
+
+For an automatic number of non-linear iterations (maximum 50) introduce 0.</a:documentation>
             <ref name="integer"/>
             <optional>
               <element name="tolerance">
@@ -723,6 +725,13 @@ Default value 2.0</a:documentation>
                   <optional>
                     <element name="boost_at_zero_saturation">
                       <a:documentation>Option to boost the absorption at zero saturation</a:documentation>
+                      <ref name="comment"/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="Use_epsilon_method">
+                      <a:documentation>This method implements the true Brooks-Corey model by adding an epsilon value (1e-20) to avoid divisions by zero. 
+(Recommended)</a:documentation>
                       <ref name="comment"/>
                     </element>
                   </optional>

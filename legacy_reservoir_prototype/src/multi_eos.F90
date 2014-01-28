@@ -54,6 +54,7 @@
        real :: kr1_exp
        real :: kr2_exp
        logical :: boost_at_zero_saturation
+       logical :: is_Corey_epsilon_method
               
     end type corey_options
 
@@ -307,8 +308,8 @@
 !!$ Den = C0 / T * ( P - C1 )
          if( .not. have_temperature_field ) FLAbort( 'Temperature Field not defined' )
          allocate( eos_coefs( 2 ) ) ; eos_coefs = 0.
-         call get_option( trim( eos_option_path ) // '/eos_option1', eos_coefs( 1 ) )
-         call get_option( trim( eos_option_path ) // '/eos_option2', eos_coefs( 2 ) )
+         call get_option( trim( eos_option_path // '/eos_option1' ), eos_coefs( 1 ) )
+         call get_option( trim( eos_option_path // '/eos_option2' ), eos_coefs( 2 ) )
          Rho = ( pressure % val + eos_coefs( 1 ) ) * eos_coefs( 2 ) / temperature % val
          perturbation_pressure = max( toler, 1.e-3 * ( abs( pressure % val ) + eos_coefs( 1 ) ) )
          RhoPlus = ( pressure % val + perturbation_pressure + eos_coefs( 1 ) ) *  eos_coefs( 2 ) / &
@@ -686,6 +687,7 @@
       type(corey_options) :: options
       logical :: is_corey, is_land
 
+
       ewrite(3,*) 'In calculate_absorption2'
       ALLOCATE( INV_PERM( TOTELE, NDIM, NDIM ))
       ALLOCATE( PERM( TOTELE, NDIM, NDIM ))
@@ -739,9 +741,15 @@
 
 
                      if (is_corey) then
-                        CALL relperm_corey( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
-                             INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(CV_NOD))), IPHASE,&
-                             options)
+                          if (options%is_Corey_epsilon_method) then
+                             CALL relperm_corey_epsilon( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
+                                 INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(CV_NOD))), IPHASE,&
+                                 options)
+                          else
+                                CALL relperm_corey( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
+                                     INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(CV_NOD))), IPHASE,&
+                                     options)
+                             end if
 
 !if (IPHASE==1)write(IPHASE, *) min(1.0,max(0.0,SATURA(CV_NOD))),";", U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM )
 !if (IPHASE==2)write(IPHASE, *) min(1.0,max(0.0,SATURA(CV_NOD))),";", U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM )
@@ -814,6 +822,7 @@
       call get_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/relperm_exponent", &
            options%kr2_exp, default=2.0)
       options%boost_at_zero_saturation=have_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/boost_at_zero_saturation")
+      options%is_Corey_epsilon_method = have_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/Use_epsilon_method")
     end subroutine get_corey_options
 
     subroutine get_land_options(options)
@@ -835,7 +844,7 @@
            options%kr2_exp, default=2.0)
     end subroutine get_land_options
 
-    SUBROUTINE relperm_corey_epsilon( ABSP, MOBILITY, INV_PERM, SAT, IPHASE,options )
+SUBROUTINE relperm_corey_epsilon( ABSP, MOBILITY, INV_PERM, SAT, IPHASE,options )
         !This subroutine add a small quantity to the corey function to avoid getting a relperm=0 that may give problems
         !when dividing it to obtain the sigma.
       IMPLICIT NONE
@@ -845,89 +854,47 @@
       type(corey_options), intent(in) :: options
       ! Local variables...
       REAL :: S_GC, S_OR, &
-           KR1, KR2, KR, VISC, SATURATION, ABS_SUM, SAT2, &
+           KR1, KR2, KR, VISC, SATURATION, ABS_SUM, &
            kr1_max, kr2_max, kr1_exp, kr2_exp, threshold
-      logical, parameter :: Use_epsilon_method = .true. !Using this method means that we are going to move upwards
-                                                                           !the whole function that calculates the relative permeability an epsilon quantity
 
         !Safe boundary to make sure the saturation does not go out of bounds
-        threshold = 0.0
-        if (Use_epsilon_method) threshold = 1d-8 !SIngle precision epsilon
+        threshold = 1d-8 !SIngle precision epsilon
 
-      s_gc=options%s_gc
-      s_or=options%s_or
-      kr1_max=options%kr1_max
-      kr2_max=options%kr2_max
-      kr1_exp=options%kr1_exp
-      kr2_exp=options%kr2_exp       
+        !Kr_max should only multiply the wetting phase,
+        !however as we do not know if it is phase 1 or 2, we let the decision to the user
+        !and we multiply both phases by kr_max. By default kr_max= 1
+        s_gc=options%s_gc
+        s_or=options%s_or
+        kr1_max=options%kr1_max
+        kr2_max=options%kr2_max
+        kr1_exp=options%kr1_exp
+        kr2_exp=options%kr2_exp
 
-      IF( IPHASE == 1 ) THEN
+        IF( IPHASE == 1 ) THEN
           SATURATION = SAT
-          IF( SAT < S_GC + threshold) THEN
-             KR = 1d-20
-          ELSE IF( SAT > 1. - S_OR ) THEN
+          IF( SATURATION < S_GC + threshold) THEN
+             KR = 0.0
+          ELSE IF( SATURATION > 1. - S_OR - threshold ) THEN
              KR = kr1_max
           ELSE
-             KR = ( ( SAT - S_GC) / ( 1. - S_GC - S_OR )) ** kr1_exp
+             KR = kr1_max*(( ( SATURATION - S_GC) / ( 1. - S_GC - S_OR )) ** kr1_exp)
           ENDIF
          VISC = 1.0
-      ELSE
-        SATURATION = 1. - SAT
-          SAT2 = 1.0 - SAT
-          IF( SAT2 < S_OR + threshold ) THEN
-             KR = 1d-20
-          ELSEIF( SAT2 > 1. - S_GC ) THEN
+        ELSE
+        SATURATION = 1.0 - SAT
+          IF( SATURATION < S_OR + threshold ) THEN
+             KR = 0.0
+          ELSEIF( SATURATION > 1. - S_GC  - threshold ) THEN
              KR = kr2_max
           ELSE
-             KR = ( ( SAT2 - S_OR ) / ( 1. - S_GC - S_OR )) ** kr2_exp
+             KR = kr2_max*(( ( SATURATION - S_OR ) / ( 1. - S_GC - S_OR )) ** kr2_exp)
           ENDIF
          VISC = MOBILITY
-      ENDIF
+        ENDIF
 
-      if (Use_epsilon_method) then
-        !KR = KR + 1d-40 !Raise the function this quantity so it never gets to zero
-        ABS_SUM = KR / VISC * max(1d-10,SATURATION) !MAX( 1.e-6, VISC * max( 0.01, SATURATION ))
+        KR = KR + 1d-20 !Raise the function this quantity so it never gets to zero
+        ABS_SUM = KR / VISC * max(1d-10,SATURATION) !<-- 1d-10 in theory should never be used, just for safety
         ABSP = INV_PERM /  ABS_SUM
-
-      else
-          ABS_SUM = KR / MAX( 1.e-6, VISC * max( 0.01, SATURATION ))
-
-          ABSP = INV_PERM / MAX( 1.e-6, ABS_SUM )
-
-          if( iphase == 1 ) then
-             !ABSP =  min( 1.e+4, ABSP )
-             if( saturation < s_gc ) then
-                ABSP = ( 1. + max( 100. * ( s_gc - saturation ), 0.0 )) * ABSP
-             endif
-          else
-             if (options%boost_at_zero_saturation) then
-                !ABSP = min( 4.0e+5, ABSP)
-                if(saturation < s_or) then
-                   ABSP = (1. + max( 100. * ( s_or - saturation ), 0.0 )) * ABSP
-                   ABSP=ABSP+100000.*exp(30.0*(sat-(1-s_or)))
-                endif
-             else
-                ABSP = min( 1.e+5, ABSP )
-                if( saturation < s_or ) then
-                   ABSP = ( 1. + max( 100. * ( s_or - saturation ), 0.0 )) * ABSP
-                endif
-             endif
-          endif
-          !Limit between bounds
-            if  (.true.) then
-              if(iphase==1) then
-                 if(SATURATION.lt.S_GC+0.01) then
-                       ABSP = ABSP*max(1.0,  (S_GC+0.01-SATURATION)*1.e+10 )
-                 endif
-              endif
-              if(iphase==2) then
-                 if(SATURATION.lt.s_or+0.01) then
-                       ABSP = ABSP*max(1.0,  (s_or+0.01-SATURATION)*1.e+10 )
-                 endif
-              endif
-            end if
-
-      end if
 
         !Limit to bound the value from extremly high values
 !        ABSP =  min( 1d30, ABSP )
@@ -1069,77 +1036,7 @@
       RETURN
     END SUBROUTINE relperm_land
 
-    SUBROUTINE calculate_capillary_pressure( state, CV_NONODS, NPHASE, capillary_pressure, SATURA )
-
-      ! CAPIL_PRES_OPT is the capillary pressure option for deciding what form it might take.
-      ! CAPIL_PRES_COEF( NCAPIL_PRES_COEF, NPHASE, NPHASE ) are the coefficients
-      ! Capillary pressure coefs have the dims CAPIL_PRES_COEF( NCAPIL_PRES_COEF, NPHASE,NPHASE )
-      ! used to calulcate the capillary pressure.
-
-      IMPLICIT NONE
-      type(state_type), dimension(:) :: state
-      INTEGER, intent( in ) :: CV_NONODS, NPHASE
-      REAL, DIMENSION( CV_NONODS * NPHASE ), intent( inout ) :: capillary_pressure
-      REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: SATURA
-      ! Local Variables
-      INTEGER :: nstates, ncomps, nphases, IPHASE, JPHASE, i, j
-      real c, a
-      character(len=OPTION_PATH_LEN) option_path, phase_name
-
-      ewrite(3,*) 'In calc_capil_pres'
-
-      nstates = option_count("/material_phase")
-      ncomps=0
-      do i=1,nstates
-         if (have_option("/material_phase[" // int2str(i-1) // "]/is_multiphase_component")) then
-            ncomps=ncomps+1
-         end if
-      end do
-      nphases=nstates-ncomps
-
-      if (have_option("/material_phase[0]/multiphase_properties/capillary_pressure/type_Brookes_Corey") ) then
-
-         capillary_pressure = 0.0
-
-         DO IPHASE = 1, NPHASE
-
-            option_path = "/material_phase["//int2str(iphase-1)//"]/multiphase_properties/capillary_pressure/type_Brookes_Corey"
-            DO JPHASE = 1, NPHASE
-
-               if (iphase/=jphase) then
-
-                  ! Make sure we're pairing the right fields
-                  j=-1
-                  do i=0, option_count(trim(option_path)//"/phase")-1
-                     call get_option(trim(option_path)//"/phase["//int2str(i)//"]/material_phase_name", phase_name)
-                     if (trim(state(jphase)%name) == trim(phase_name)) then
-                        j=i
-                     endif
-                  enddo
-                  if (j<0) FLAbort('Capillary pressure phase pair not found')
-
-                  call get_option(trim(option_path)//"/phase["//int2str(j)//"]/c", c)
-                  call get_option(trim(option_path)//"/phase["//int2str(j)//"]/a", a)
-
-                  capillary_pressure( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) = &
-                       capillary_pressure( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) + &
-                       c * &
-                       MAX( SATURA( 1 + ( JPHASE - 1 ) * CV_NONODS : JPHASE * CV_NONODS ), 0.0 ) &
-                       ** a
-               endif
-
-            END DO
-
-         END DO
-
-      else
-         FLAbort('Unknown capillary pressure type')
-      endif
-
-      RETURN
-    END SUBROUTINE calculate_capillary_pressure
-
-!   SUBROUTINE calculate_capillary_pressure( state, CV_NONODS, NPHASE, capillary_pressure, SATURA )
+!    SUBROUTINE calculate_capillary_pressure( state, CV_NONODS, NPHASE, capillary_pressure, SATURA )
 !
 !      ! CAPIL_PRES_OPT is the capillary pressure option for deciding what form it might take.
 !      ! CAPIL_PRES_COEF( NCAPIL_PRES_COEF, NPHASE, NPHASE ) are the coefficients
@@ -1152,16 +1049,9 @@
 !      REAL, DIMENSION( CV_NONODS * NPHASE ), intent( inout ) :: capillary_pressure
 !      REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: SATURA
 !      ! Local Variables
-!      INTEGER :: nstates, ncomps, nphases, IPHASE, JPHASE, i, j, k
-!      real c, a, S_OR, S_GC, auxO, auxW
+!      INTEGER :: nstates, ncomps, nphases, IPHASE, JPHASE, i, j
+!      real c, a
 !      character(len=OPTION_PATH_LEN) option_path, phase_name
-!      REAL, DIMENSION( CV_NONODS * NPHASE ) :: saturation
-!      !Corey options
-!      type(corey_options) :: options
-!      !Get corey options
-!      call get_corey_options(options)
-!      s_gc=options%s_gc
-!      s_or=options%s_or
 !
 !      ewrite(3,*) 'In calc_capil_pres'
 !
@@ -1173,8 +1063,6 @@
 !         end if
 !      end do
 !      nphases=nstates-ncomps
-!
-!        saturation = SATURA
 !
 !      if (have_option("/material_phase[0]/multiphase_properties/capillary_pressure/type_Brookes_Corey") ) then
 !
@@ -1197,29 +1085,14 @@
 !                  enddo
 !                  if (j<0) FLAbort('Capillary pressure phase pair not found')
 !
-!                    if (JPHASE==1) then
-!                        auxW = S_GC
-!                        auxO = S_OR
-!                    else
-!                        auxW = S_OR
-!                        auxO = S_GC
-!                    end if
-!                    forall (k = 1 + ( JPHASE - 1 ) * CV_NONODS : JPHASE * CV_NONODS)
-!                        !Effective saturation has to be between one and zero
-!                        saturation(k) = max(min((saturation(k) - auxW)/(1.0 - auxW -  auxO), 1.0), max(0.5*auxW,0.01))!<--Inferior limit just to avoid NaN... in theory it should never be reached
-!                    end forall                                                                                                                                                  !...value chosen since in the plots below 0.1, Brooks-Corey is not defined
-!
 !                  call get_option(trim(option_path)//"/phase["//int2str(j)//"]/c", c)
 !                  call get_option(trim(option_path)//"/phase["//int2str(j)//"]/a", a)
-!    !Later this is multiplied by a value obtained from the surface tension and the shape and weight functions...
-!    !the "c" obtained from diamond is the entry pressure, and the value obtained from the surface tension
-!    !is another way of calculating the entry pressure, so just one of both is necessary, at present the entry pressure is used!
 !
 !                  capillary_pressure( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) = &
 !                       capillary_pressure( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) + &
 !                       c * &
-!                       MAX( saturation( 1 + ( JPHASE - 1 ) * CV_NONODS : JPHASE * CV_NONODS )  , 0.0 ) &
-!                       ** (-a)
+!                       MAX( SATURA( 1 + ( JPHASE - 1 ) * CV_NONODS : JPHASE * CV_NONODS ), 0.0 ) &
+!                       ** a
 !               endif
 !
 !            END DO
@@ -1229,8 +1102,102 @@
 !      else
 !         FLAbort('Unknown capillary pressure type')
 !      endif
+!
 !      RETURN
 !    END SUBROUTINE calculate_capillary_pressure
+!
+   SUBROUTINE calculate_capillary_pressure( state, CV_NONODS, NPHASE, capillary_pressure, SATURA )
+
+      ! CAPIL_PRES_OPT is the capillary pressure option for deciding what form it might take.
+      ! CAPIL_PRES_COEF( NCAPIL_PRES_COEF, NPHASE, NPHASE ) are the coefficients
+      ! Capillary pressure coefs have the dims CAPIL_PRES_COEF( NCAPIL_PRES_COEF, NPHASE,NPHASE )
+      ! used to calculate the capillary pressure.
+
+      IMPLICIT NONE
+      type(state_type), dimension(:) :: state
+      INTEGER, intent( in ) :: CV_NONODS, NPHASE
+      REAL, DIMENSION( CV_NONODS * NPHASE ), intent( inout ) :: capillary_pressure
+      REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: SATURA
+      ! Local Variables
+      INTEGER :: nstates, ncomps, nphases, IPHASE, JPHASE, i, j, k
+      real c, a, S_OR, S_GC, auxO, auxW
+      character(len=OPTION_PATH_LEN) option_path, phase_name
+      REAL, DIMENSION( CV_NONODS * NPHASE ) :: saturation
+      !Corey options
+      type(corey_options) :: options
+      !Get corey options
+      call get_corey_options(options)
+      s_gc=options%s_gc
+      s_or=options%s_or
+
+      ewrite(3,*) 'In calc_capil_pres'
+
+      nstates = option_count("/material_phase")
+      ncomps=0
+      do i=1,nstates
+         if (have_option("/material_phase[" // int2str(i-1) // "]/is_multiphase_component")) then
+            ncomps=ncomps+1
+         end if
+      end do
+      nphases=nstates-ncomps
+
+        saturation = SATURA
+
+      if (have_option("/material_phase[0]/multiphase_properties/capillary_pressure/type_Brookes_Corey") ) then
+
+         capillary_pressure = 0.0
+
+         DO IPHASE = 1, NPHASE
+
+            option_path = "/material_phase["//int2str(iphase-1)//"]/multiphase_properties/capillary_pressure/type_Brookes_Corey"
+            DO JPHASE = 1, NPHASE
+
+               if (iphase/=jphase) then
+
+                  ! Make sure we're pairing the right fields
+                  j=-1
+                  do i=0, option_count(trim(option_path)//"/phase")-1
+                     call get_option(trim(option_path)//"/phase["//int2str(i)//"]/material_phase_name", phase_name)
+                     if (trim(state(jphase)%name) == trim(phase_name)) then
+                        j=i
+                     endif
+                  enddo
+                  if (j<0) FLAbort('Capillary pressure phase pair not found')
+
+                    if (JPHASE==1) then
+                        auxW = S_GC
+                        auxO = S_OR
+                    else
+                        auxW = S_OR
+                        auxO = S_GC
+                    end if
+                    forall (k = 1 + ( JPHASE - 1 ) * CV_NONODS : JPHASE * CV_NONODS)
+                        !Effective saturation has to be between one and zero
+                        saturation(k) = max(min((saturation(k) - auxW)/(1.0 - auxW -  auxO), 1.0), max(0.5*auxW,0.01))!<--Inferior limit just to avoid NaN... in theory it should never be reached
+                    end forall                                                                                                                                                  !...value chosen since in the plots below 0.1, Brooks-Corey is not defined
+
+                  call get_option(trim(option_path)//"/phase["//int2str(j)//"]/c", c)
+                  call get_option(trim(option_path)//"/phase["//int2str(j)//"]/a", a)
+    !Later this is multiplied by a value obtained from the surface tension and the shape and weight functions...
+    !the "c" obtained from diamond is the entry pressure, and the value obtained from the surface tension
+    !is another way of calculating the entry pressure, so just one of both is necessary, at present the entry pressure is used!
+
+                  capillary_pressure( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) = &
+                       capillary_pressure( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) + &
+                       c * &
+                       MAX( saturation( 1 + ( JPHASE - 1 ) * CV_NONODS : JPHASE * CV_NONODS )  , 0.0 ) &
+                       ** (-a)
+               endif
+
+            END DO
+
+         END DO
+
+      else
+         FLAbort('Unknown capillary pressure type')
+      endif
+      RETURN
+    END SUBROUTINE calculate_capillary_pressure
 
 
 
@@ -1450,8 +1417,8 @@
 ! if mat_perm_bc_dg use the method that is used for DG between the elements.
       logical, parameter :: mat_perm_bc_dg = .true.
       logical :: is_land, is_corey
-
       type(corey_options) :: options
+
 
       if( have_option( '/physical_parameters/mobility' ) )then
          call get_option( '/physical_parameters/mobility', mobility )
@@ -1526,10 +1493,13 @@
                         do idim = 1, ndim
                            do jdim = 1, ndim
                               if (is_corey) then
-                                 call relperm_corey( sigma_out( idim, jdim ), mobility, &
-                                      inv_perm( idim, jdim ), satura_bc, iphase,options)
-!                                 call relperm_corey_epsilon( sigma_out( idim, jdim ), mobility, &
-!                                      inv_perm( idim, jdim ), satura_bc, iphase,options)
+                                if (options%is_Corey_epsilon_method) then
+                                     call relperm_corey_epsilon( sigma_out( idim, jdim ), mobility, &
+                                          inv_perm( idim, jdim ), satura_bc, iphase,options)
+                                 else
+                                     call relperm_corey( sigma_out( idim, jdim ), mobility, &
+                                         inv_perm( idim, jdim ), satura_bc, iphase,options)
+                                 end if
                               elseif (is_land) then
 
                                  call relperm_land( sigma_out( idim, jdim ), mobility, &

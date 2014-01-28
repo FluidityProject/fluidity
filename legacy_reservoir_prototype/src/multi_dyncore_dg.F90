@@ -603,8 +603,10 @@
       RDUM=0.0
       ALLOCATE(IDUM(TOTELE * U_NLOC * NPHASE * NDIM * U_NLOC * NPHASE * NDIM)) 
       IDUM=0
-
-      IPLIKE_GRAD_SOU=0
+	  
+		!If capillary pressure is used then we do not have to hard code IPLIKE_GRAD_SOU=0
+       if( .not.have_option( '/material_phase[0]/multiphase_properties/&
+		capillary_pressure' ) ) IPLIKE_GRAD_SOU=0
 
       CALL ASSEMB_FORCE_CTY( state, &
            NDIM, NPHASE, U_NLOC, X_NLOC, CV_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
@@ -3679,10 +3681,11 @@ end if
                      !     CVFENX( P_JLOC, GI ),  CVFENY( P_JLOC, GI ),  CVFENZ( P_JLOC, GI ), ':', DETWEI( GI )
 
                      IF ( IPLIKE_GRAD_SOU == 1 ) THEN
-                        GRAD_SOU_GI_NMX( : ) = GRAD_SOU_GI_NMX( : )  &
-                             + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * &
-                             CVFENX( P_JLOC, GI ) * DETWEI( GI )
-                        GRAD_SOU_GI_NMY( : ) = GRAD_SOU_GI_NMY( : )  &
+                     GRAD_SOU_GI = 1.0!<--Deactivated, this term is obtained from the surface tension and curvature
+                        GRAD_SOU_GI_NMX( : ) = GRAD_SOU_GI_NMX( : )  &!however that is not necessary to calculate the capillary pressure
+                             + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * &    !and its value is ussually zero, so it does not allow to obtain results
+                             CVFENX( P_JLOC, GI ) * DETWEI( GI )                        !setting it 1 should not affect anything else, since it is only used
+                        GRAD_SOU_GI_NMY( : ) = GRAD_SOU_GI_NMY( : )  &!for capillary pressure calculations
                              + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * &
                              CVFENY( P_JLOC, GI ) * DETWEI( GI )
                         GRAD_SOU_GI_NMZ( : ) = GRAD_SOU_GI_NMZ( : )  &
@@ -5869,10 +5872,12 @@ end if
       ewrite(3,*) 'Entering CALCULATE_SURFACE_TENSION'
 
       ! Initialise...
-      IPLIKE_GRAD_SOU = 0
-      PLIKE_GRAD_SOU_COEF = 0.0
-      PLIKE_GRAD_SOU_GRAD = 0.0
-
+      !For capillary pressure these terms already have a value
+      if( .not. have_option( '/material_phase[0]/multiphase_properties/capillary_pressure' ) ) then
+          IPLIKE_GRAD_SOU = 0
+          PLIKE_GRAD_SOU_COEF = 0.0
+          PLIKE_GRAD_SOU_GRAD = 0.0
+    end if
       U_SOURCE_CV = 0.0
 
       DUMMY_SUF_COMP_BC = 0.0
