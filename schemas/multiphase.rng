@@ -396,9 +396,7 @@ This is usually disabled.</a:documentation>
           <element name="nonlinear_iterations">
             <a:documentation>maximum number of non-linear iterations.
 
-Manual suggests 2
-
-For an automatic number of non-linear iterations (maximum 50) introduce 0.</a:documentation>
+Manual suggests 2</a:documentation>
             <ref name="integer"/>
             <optional>
               <element name="tolerance">
@@ -442,6 +440,15 @@ suspect the solution is not converging.</a:documentation>
                 <a:documentation>Number of non-linear iterations for the first time step after adapting the mesh.
 This option will work only if the mesh_adaptivity is switched on.</a:documentation>
                 <ref name="integer"/>
+              </element>
+            </optional>
+            <optional>
+              <element name="nonlinear_iterations_automatic">
+                <a:documentation>Non-linear iterations are chosen automatically based on the variation of the velocity between non-linear iterations.
+
+The input is the tolerance between non-linear iterations.
+Recommended value is 0.01</a:documentation>
+                <ref name="real"/>
               </element>
             </optional>
           </element>

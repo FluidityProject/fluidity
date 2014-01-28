@@ -342,9 +342,7 @@ start =
             ## maximum number of non-linear iterations.
             ## 
             ## Manual suggests 2
-			##
-			##For an automatic number of non-linear iterations (maximum 50) introduce 0.
-            element nonlinear_iterations {
+			element nonlinear_iterations {
                integer,
                ## tolerance for non-linear iteration.
                ## Manual suggests 1.0E-12
@@ -383,6 +381,13 @@ start =
                ## This option will work only if the mesh_adaptivity is switched on.
                element nonlinear_iterations_at_adapt {
                   integer
+               }?,
+               ## Non-linear iterations are chosen automatically based on the variation of the velocity between non-linear iterations.
+               ## 
+               ## The input is the tolerance between non-linear iterations.
+               ## Recommended value is 0.01
+               element nonlinear_iterations_automatic {
+                  real
                }?
             }?,
             ## Vary the timestep according to the courant number.

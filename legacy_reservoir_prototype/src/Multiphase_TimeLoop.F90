@@ -195,12 +195,9 @@
       type( scalar_field ), pointer :: cfl, rc_field
       real :: c, rc, minc, maxc, ic
       !Variables for automatic non-linear iterations
-      integer, parameter :: MaxIterations = 50
-      logical :: Automatic_NonLinerIterations
       real, dimension(3) :: NonLinearIteration_Check_MaxVels, NonLinearIteration_Check_MinVels
+      real :: tolerance_between_non_linear
 
-        !Initialize as false
-       Automatic_NonLinerIterations = .false.
 !!$ Compute primary scalars used in most of the code
       call Get_Primary_Scalars( state, &         
            nphase, nstate, ncomp, totele, ndim, stotel, &
@@ -492,6 +489,7 @@
       call get_option( '/timestepping/finish_time', finish_time )
       call get_option( '/io/dump_period_in_timesteps/constant', dump_period_in_timesteps, default = 1 )
       call get_option( '/timestepping/nonlinear_iterations', NonLinearIteration, default = 3 )
+      call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic', tolerance_between_non_linear, default = -1. )
 !!$
       have_temperature_field = .false. ; have_component_field = .false. ; have_extra_DiffusionLikeTerm = .false.
       do istate = 1, nstate
@@ -577,20 +575,12 @@
               call update_boundary_conditions( state, stotel, cv_snloc, nphase, & 
               Temperature_BC, suf_t_bc_rob1, suf_t_bc_rob2 )
 
-        !If NonLinearIteration = 0  then we perform non linear iterations until the velocity  change < 1%
-        !from one non-linear iteration to the next one
-        if (NonLinearIteration==0 ) then
-            Automatic_NonLinerIterations = .true.
-            NonLinearIteration = MaxIterations !<-----Maximum limit for nonlinear iterations
-        end if
-
-
 !!$ Start non-linear loop
          Loop_NonLinearIteration: do its = 1, NonLinearIteration
 
         !Store the maximum and minimum velocities of the three components
         !to check whether more nonlinear iterations are required
-        if (Automatic_NonLinerIterations) then
+        if (tolerance_between_non_linear>0.) then
             NonLinearIteration_Check_MaxVels = (/maxval(Velocity_NU),&
                     maxval(Velocity_NV), maxval(Velocity_NW) /)
             NonLinearIteration_Check_MinVels = (/minval(Velocity_NU),&
@@ -1110,18 +1100,17 @@
 
             !If Automatic_NonLinerIterations then we compare the variation of the velocity from one time step to the next one
             !if it is less than 1% we advance one time step
-            if (Automatic_NonLinerIterations) then
+            if (tolerance_between_non_linear>0.) then
                 !Compare and normalize maximum values
                 NonLinearIteration_Check_MaxVels = (NonLinearIteration_Check_MaxVels - (/maxval(Velocity_NU),&
                 maxval(Velocity_NV), maxval(Velocity_NW) /)) / NonLinearIteration_Check_MaxVels
                 !Compare and normalize minimum values
                 NonLinearIteration_Check_MinVels = (NonLinearIteration_Check_MinVels - (/minval(Velocity_NU),&
                 minval(Velocity_NV), minval(Velocity_NW) /)) / NonLinearIteration_Check_MinVels
-
-                !If variation lower than 1% then next time step
+                !If variation lower than tolerance_between_non_linear then next time step
                 if (max(maxval(abs(NonLinearIteration_Check_MaxVels(1:NDIM))), &        !At least two iterations
-                            maxval(abs(NonLinearIteration_Check_MinVels(1:NDIM))))  < 1d-2  .and. (its>=2)) exit
-
+                            maxval(abs(NonLinearIteration_Check_MinVels(1:NDIM))))  < tolerance_between_non_linear  .and. (its>=2)) exit
+print *, its
             end if
 
          end do Loop_NonLinearIteration
