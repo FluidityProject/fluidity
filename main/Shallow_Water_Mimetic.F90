@@ -91,7 +91,7 @@
     integer :: timestep
     integer :: ierr
     integer, save :: dump_no=0
-    real :: energy, enstrophy
+    real :: linear_energy, nonlinear_energy, enstrophy
 
 #ifdef HAVE_MPI
     call mpi_init(ierr)
@@ -137,8 +137,9 @@
     ! Always output the initial conditions.
     
     call output_state(states)
-    call compute_energy_hybridized(states(1),energy,nonlinear=.false.)
-    call compute_energy_hybridized(states(1),energy,nonlinear=.true.)
+    call compute_energy_hybridized(states(1),linear_energy,nonlinear=.false.)
+    call compute_energy_hybridized(states(1),nonlinear_energy,nonlinear=.true.)
+    call compute_enstrophy(states(1),enstrophy)
 
     timestep_loop: do
        timestep=timestep+1
@@ -164,18 +165,20 @@
        end if
 
        !Update the variables
-       call compute_energy_hybridized(states(1),energy,nonlinear=.false.)
-       call compute_energy_hybridized(states(1),energy,nonlinear=.true.)
+       call compute_energy_hybridized(states(1),linear_energy,nonlinear=.false.)
+       call compute_energy_hybridized(states(1),nonlinear_energy,nonlinear=.true.)
        call compute_enstrophy(states(1),enstrophy)
        call write_diagnostics(states,current_time, dt, timestep)
 
        ewrite(1,*) 'END OF TIMESTEP   TIME=', current_time
     end do timestep_loop
 
-    call compute_energy_hybridized(states(1),energy,nonlinear=.false.)
-    ewrite(2,*) 'Linear Energy = ',energy
-    call compute_energy_hybridized(states(1),energy,nonlinear=.true.)
-    ewrite(2,*) 'Nonlinear Energy = ',energy
+    call compute_energy_hybridized(states(1),linear_energy,nonlinear=.false.)
+    ewrite(2,*) 'Linear Energy = ',linear_energy
+    call compute_energy_hybridized(states(1),nonlinear_energy,nonlinear=.true.)
+    ewrite(2,*) 'Nonlinear Energy = ',nonlinear_energy
+    call compute_enstrophy(states(1),enstrophy)
+    ewrite(2,*) 'Enstrophy = ',enstrophy
 
     ! One last dump
     call project_local_to_cartesian(states(1))
