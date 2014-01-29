@@ -1761,10 +1761,11 @@ contains
     !ewrite(1,*) 'div', div
   end subroutine check_divergence_ele
 
-  subroutine compute_energy_hybridized(state,energy)
+  subroutine compute_energy_hybridized(state,energy,nonlinear)
     implicit none
     type(state_type), intent(inout) :: state
     real, intent(inout) :: energy
+    logical, intent(in) :: nonlinear
     !
     type(scalar_field), pointer :: D
     type(vector_field), pointer :: u,X
@@ -1776,7 +1777,7 @@ contains
     call get_option("/material_phase::Fluid/scalar_field::LayerThickness/p&
          &rognostic/mean_layer_thickness",D0)
 
-    U=>extract_vector_field(state, "Velocity")
+    U=>extract_vector_field(state, "LocalVelocity")
     D => extract_scalar_field(state, "LayerThickness")
     X=>extract_vector_field(state, "Coordinate")
 
@@ -1784,15 +1785,20 @@ contains
     energy = 0.
 
     do ele = 1, element_count(X)
-       call compute_energy_ele(energy,U,D,X,D0,g,ele)
+       call compute_energy_ele(energy,U,D,X,D0,g,ele,nonlinear)
     end do
 
-    ewrite(2,*) 'Energy:= ', energy
-    ewrite(2,*) 'Percentage Change in energy:= ', (energy-old_energy)/energy
+    if(nonlinear) then
+       ewrite(2,*) 'Nonlinear Energy:= ', energy
+       ewrite(2,*) 'Percentage Change in nonlinear energy:= ', (energy-old_energy)/energy
+    else
+       ewrite(2,*) 'Linear Energy:= ', energy
+       ewrite(2,*) 'Percentage Change in linear energy:= ', (energy-old_energy)/energy
+    end if
 
   end subroutine compute_energy_hybridized
 
-  subroutine compute_energy_ele(energy,U,D,X,D0,g,ele)
+  subroutine compute_energy_ele(energy,U,D,X,D0,g,ele,nonlinear)
     implicit none
     real, intent(inout) :: energy
     type(vector_field), intent(in) :: U,X
@@ -1801,33 +1807,52 @@ contains
     real, intent(in) :: D0,g
     !
     real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
-    real, dimension(ele_ngi(D,ele)) :: detwei
+    real, dimension(ele_ngi(D,ele)) :: detwei, detJ
     type(element_type) :: d_shape, u_shape, x_shape
-    real, dimension(ele_loc(U,ele),ele_loc(U,ele)) :: u_mass
+    real, dimension(mesh_dim(U), mesh_dim(U), ele_ngi(U,ele)) :: Metric
+    real, dimension(mesh_dim(U),mesh_dim(U),ele_loc(U,ele),ele_loc(U,ele)) :: l_u_mat
     real, dimension(ele_loc(D,ele),ele_loc(D,ele)) :: d_mass
-    real, dimension(u%dim,ele_loc(U,ele)) :: U_val
+    real, dimension(U%dim,ele_loc(U,ele)) :: U_val
     real, dimension(ele_loc(D,ele)) :: D_val
+    real, dimension(ele_ngi(D,ele)) :: D_gi
     real, dimension(X%dim,ele_loc(X,ele)) :: X_val
-    integer :: dim1
+    integer :: dim1, dim2, gi
+    logical :: nonlinear
 
     U_val = ele_val(U,ele)
     D_val = ele_val(D,ele)
+    D_gi = ele_val_at_quad(D,ele)
     X_val = ele_val(X,ele)
 
     u_shape = ele_shape(u,ele)
     d_shape = ele_shape(d,ele)
     x_shape = ele_shape(X,ele)
-    call compute_jacobian(x_val,x_shape, J=J, &
-         detwei=detwei)
 
-    u_mass = shape_shape(u_shape,u_shape,detwei)
-    d_mass = shape_shape(d_shape,d_shape,detwei)
+    call compute_jacobian(x_val,x_shape, J=J, &
+         detwei=detwei, detJ=detJ)
+
+    if(nonlinear) then
+       do gi=1,ele_ngi(U,ele)
+          Metric(:,:,gi)=D_gi(gi)*matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)
+       end do
+    else
+       do gi=1,ele_ngi(U,ele)
+          Metric(:,:,gi)=D0*matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)
+       end do
+    end if
+
+    l_u_mat = shape_shape_tensor(u_shape, u_shape, &
+         u_shape%quadrature%weight, Metric)
 
     !kinetic energy
     do dim1 = 1, u%dim
-       energy = energy + D0*dot_product(U_val(dim1,:),&
-            &matmul(u_mass,U_val(dim1,:)))
+       do dim2 = 1,u%dim
+          energy = energy + dot_product(U_val(dim1,:),&
+               &matmul(l_u_mat(dim1,dim2,:,:),U_val(dim2,:)))
+       end do
     end do
+
+    d_mass = shape_shape(d_shape,d_shape,detwei)
 
     energy = energy + g*dot_product(D_val,&
          &matmul(D_mass,D_val))

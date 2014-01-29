@@ -91,7 +91,7 @@
     integer :: timestep
     integer :: ierr
     integer, save :: dump_no=0
-    real :: energy
+    real :: energy, enstrophy
 
 #ifdef HAVE_MPI
     call mpi_init(ierr)
@@ -137,7 +137,8 @@
     ! Always output the initial conditions.
     
     call output_state(states)
-    call compute_energy_hybridized(states(1),energy)
+    call compute_energy_hybridized(states(1),energy,nonlinear=.false.)
+    call compute_energy_hybridized(states(1),energy,nonlinear=.true.)
 
     timestep_loop: do
        timestep=timestep+1
@@ -163,14 +164,18 @@
        end if
 
        !Update the variables
-       call compute_energy_hybridized(states(1),energy)
+       call compute_energy_hybridized(states(1),energy,nonlinear=.false.)
+       call compute_energy_hybridized(states(1),energy,nonlinear=.true.)
+       call compute_enstrophy(states(1),enstrophy)
        call write_diagnostics(states,current_time, dt, timestep)
 
        ewrite(1,*) 'END OF TIMESTEP   TIME=', current_time
     end do timestep_loop
 
-    call compute_energy_hybridized(states(1),energy)
-    ewrite(2,*) 'Energy = ',energy
+    call compute_energy_hybridized(states(1),energy,nonlinear=.false.)
+    ewrite(2,*) 'Linear Energy = ',energy
+    call compute_energy_hybridized(states(1),energy,nonlinear=.true.)
+    ewrite(2,*) 'Nonlinear Energy = ',energy
 
     ! One last dump
     call project_local_to_cartesian(states(1))
@@ -301,9 +306,6 @@
          call set(advecting_u, u)
          call allocate(MassFlux,mesh_dim(U),u%mesh,'MassFlux')
          call zero(massFlux)
-         ! no flux for now - just testing advection (jemma 7/3/13)
-!         call solve_advection_dg_subcycle("LayerThickness", state, &
-!              "NonlinearVelocity",continuity=.true.)
          call solve_advection_dg_subcycle("LayerThickness", state, &
               "NonlinearVelocity",continuity=.true.,Flux=MassFlux)
          if(have_pv_tracer) then
@@ -535,6 +537,58 @@
       end if
 
     end subroutine setup_fields
+
+    subroutine compute_enstrophy(state,enstrophy)
+      implicit none
+      type(state_type), intent(inout) :: state
+      real, intent(inout) :: enstrophy
+
+      type(scalar_field), pointer :: Q, D
+      type(vector_field), pointer :: X
+      integer :: ele, stat
+
+      Q=>extract_scalar_field(state, "PotentialVorticity", stat)
+      if(stat/=0) then
+         Q=>extract_scalar_field(state, "PotentialVorticityTracer", stat)
+      end if
+      if(stat/=0) then
+         ewrite(2,*) "No PV field so enstrophy cannot be calculated"
+         return
+      end if
+      ewrite(2,*) "Using ", trim(Q%name), " in enstrophy calculation"
+      D=>extract_scalar_field(state, "LayerThickness")
+      X=>extract_vector_field(state, "Coordinate")
+
+      enstrophy=0.
+
+      do ele=1,element_count(Q)
+         call compute_enstrophy_ele(enstrophy,Q,D,X,ele)
+      end do
+
+      ewrite(2,*) 'Enstrophy:= ', enstrophy
+
+    end subroutine compute_enstrophy
+
+    subroutine compute_enstrophy_ele(enstrophy,Q,D,X,ele)
+      implicit none
+      real, intent(inout) :: enstrophy
+      type(scalar_field), intent(in) :: Q, D
+      type(vector_field), intent(in) :: X
+      integer, intent(in) :: ele
+
+      real, dimension(ele_ngi(X,ele)) :: detwei
+      real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+      real, dimension(ele_ngi(Q,ele)) :: Q_gi, D_gi
+      integer :: gi
+
+      Q_gi=ele_val_at_quad(Q,ele)
+      D_gi=ele_val_at_quad(D,ele)
+
+      call compute_jacobian(ele_val(X,ele), ele_shape(X,ele),detwei=detwei,J=J)
+
+      enstrophy=enstrophy+sum(D_gi*Q_gi*Q_gi*detwei)
+
+    end subroutine compute_enstrophy_ele
 
     subroutine recompute_coordinate_field(state)
       type(state_type), intent(inout) :: state
