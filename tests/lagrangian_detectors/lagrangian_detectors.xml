@@ -26,8 +26,17 @@ last_single_locations_error[0,2] = s['Single_Lagr_3']['position'][0][-1] - X[99]
 last_single_locations_error[1,2] = s['Single_Lagr_3']['position'][1][-1] - Y[99]
     </variable>
     <variable name="last_locations_error" language="python">
-from readtool import readstat
-last_locations_error = readstat()
+from fluidity_tools import stat_parser
+from numpy import zeros,fromfile
+
+s = stat_parser('lagrangian_detectors.detectors')
+last_locations_error = zeros((2,100))
+X = fromfile('Xvals.txt',sep=' ')
+Y = fromfile('Yvals.txt',sep=' ')
+for i in range(100):
+    name = 'Steve_' + str(i+1).zfill(3)
+    last_locations_error[0,i] = s[name]['position'][0][-1] - X[i]
+    last_locations_error[1,i] = s[name]['position'][1][-1] - Y[i]
     </variable>
   </variables>
   <pass_tests>
