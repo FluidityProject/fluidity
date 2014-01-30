@@ -73,11 +73,11 @@ module multiphase_fractures
   end interface
 
   interface
-     subroutine y2dfemdem( string, dt, rho, p, u, v )
+     subroutine y2dfemdem( string, dt, rho, p, u, v, u_s, v_s )
        character( len = * ), intent( in ) :: string
        real, intent( in ) :: dt
        real, dimension( * ), intent( in ) :: rho, p, u, v
-
+       real, dimension( * ), intent( out ) :: u_s, v_s
      end subroutine y2dfemdem
   end interface
 #endif
@@ -88,7 +88,7 @@ module multiphase_fractures
 
 
   private
-  public :: femdem
+  public :: femdem, blasting
 
 contains
 
@@ -109,7 +109,7 @@ contains
     real, dimension( totele, ndim, ndim ), intent( inout ) :: perm
     real, dimension( totele ), intent( inout ) :: porosity
 
-    real, dimension( : ), allocatable :: vf, rho_r, p_r, u_r, v_r 
+    real, dimension( : ), allocatable :: vf, rho_r, p_r, u_r, v_r, u_s, v_s
     integer :: r_nonods
 
     ! read in ring and solid volume meshes
@@ -132,19 +132,59 @@ contains
 
 
     r_nonods = node_count( positions_r )
-    allocate( rho_r( r_nonods), p_r( r_nonods ), u_r( r_nonods ), v_r( r_nonods ) )
+    allocate( rho_r( r_nonods), p_r( r_nonods ), u_r( r_nonods ), v_r( r_nonods ), u_s( r_nonods ), v_s( r_nonods ) )
     call interpolate_fields( states, nphase, u_nonods, cv_nonods, r_nonods, &
          &                   cv_nloc, totele, cv_ndgln, &
          &                   rho, p, u, v, rho_r, p_r, u_r, v_r )
-    call y2dfemdem( femdem_mesh_name, dt, rho_r, p_r, u_r, v_r )
+    call y2dfemdem( trim( femdem_mesh_name ) // char( 0 ), dt, rho_r, p_r, u_r, v_r, u_s, v_s )
 
     ! deallocate
     call deallocate_femdem
     deallocate( vf )
-    deallocate( rho_r, p_r, u_r, v_r )
+    deallocate( rho_r, p_r, u_r, v_r, u_s, v_s )
 
     return
   end subroutine femdem
+
+
+
+  subroutine blasting( states, totele, cv_nonods, u_nonods, ndim, nphase, cv_nloc, &
+       &               cv_ndgln, dt, rho, p, u, v, absorption, perm, porosity )
+
+    implicit none
+
+    integer, intent( in ) :: totele, cv_nonods, u_nonods, nphase, ndim, cv_nloc
+    integer, dimension( totele * cv_nloc ), intent( in ) :: cv_ndgln
+    real, intent( in ) :: dt
+    real, dimension( nphase * cv_nonods ), intent( in ) :: rho
+    real, dimension( nphase * u_nonods ), intent( in ) :: u, v
+    real, dimension( cv_nonods ), intent( in ) :: p
+    type( state_type ), dimension( : ), intent( in ) :: states
+
+    real, dimension( totele * cv_nloc, ndim * nphase, ndim * nphase ), intent( inout ) :: absorption
+    real, dimension( totele, ndim, ndim ), intent( inout ) :: perm
+    real, dimension( totele ), intent( inout ) :: porosity
+
+    real, dimension( : ), allocatable :: rho_r, p_r, u_r, v_r, u_s, v_s 
+    integer :: r_nonods
+
+    ! read in ring and solid volume meshes
+    ! and simplify the volume mesh
+    call initialise_femdem
+
+    r_nonods = node_count( positions_r )
+    allocate( rho_r( r_nonods), p_r( r_nonods ), u_r( r_nonods ), v_r( r_nonods ), u_s( r_nonods ), v_s( r_nonods ) )
+    call interpolate_fields( states, nphase, u_nonods, cv_nonods, r_nonods, &
+         &                   cv_nloc, totele, cv_ndgln, &
+         &                   rho, p, u, v, rho_r, p_r, u_r, v_r )
+    call y2dfemdem( trim( femdem_mesh_name ) // char( 0 ), dt, rho_r, p_r, u_r, v_r, u_s, v_s )
+
+    ! deallocate
+    call deallocate_femdem
+    deallocate( rho_r, p_r, u_r, v_r, u_s, v_s )
+
+    return
+  end subroutine blasting
 
   !----------------------------------------------------------------------------------------------------------
   !----------------------------------------------------------------------------------------------------------
@@ -660,7 +700,7 @@ contains
        field_fl_p % val = p
     end if
 
-   ! deal with density
+    ! deal with density
     if ( cv_nloc == 6  ) then
        ! linearise density for p2
        do ele = 1, totele
@@ -804,7 +844,7 @@ contains
     type( element_type ) :: shape
     type( mesh_type ) :: mesh
 
-    logical, parameter :: coarsen_mesh = .true.
+    logical, parameter :: coarsen_mesh = .false.
 
     nedge = 3 ! triangles
     nloc  = 3 ! 3 nodes per element

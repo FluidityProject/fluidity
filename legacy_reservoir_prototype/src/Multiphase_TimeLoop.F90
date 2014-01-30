@@ -374,7 +374,7 @@
 !!$
       Porosity=0.
       PhaseVolumeFraction_FEMT=0. ; Temperature_FEMT=0.
-      Density_FEMT=0. ; Component_FEMT=0.
+      Density_FEMT=1. ; Component_FEMT=0.
       Mean_Pore_CV=0. ; SumConc_FEMT=0.
       Dummy_PhaseVolumeFraction_FEMT=0. ; dummy_ele=0. ; mass_ele=0.
 !!$
@@ -565,10 +565,14 @@
          call update_velocity_absorption( state, ndim, nphase, mat_nonods, velocity_absorption )
 
 !!$ FEMDEM...
-         if ( .false. ) &
-              call femdem( state, totele, cv_nonods, u_nonods, ndim, nphase, cv_nloc, &
-              &            cv_ndgln, dt, density, pressure_fem, velocity_u, velocity_v, &
-              &            velocity_absorption, permeability, porosity )
+         if ( .false. ) then
+            !call femdem( state, totele, cv_nonods, u_nonods, ndim, nphase, cv_nloc, &
+            !     &            cv_ndgln, dt, density, pressure_fem, velocity_u, velocity_v, &
+            !     &            velocity_absorption, permeability, porosity )
+            call blasting( state, totele, cv_nonods, u_nonods, ndim, nphase, cv_nloc, &
+                 &            cv_ndgln, dt, density_femt, pressure_fem, velocity_u, velocity_v, &
+                 &            velocity_absorption, permeability, porosity )
+         end if
 
          ! time varying boundary conditions for Temperature
          if( have_temperature_field ) &
