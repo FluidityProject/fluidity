@@ -132,7 +132,8 @@ contains
 
 
     r_nonods = node_count( positions_r )
-    allocate( rho_r( r_nonods), p_r( r_nonods ), u_r( r_nonods ), v_r( r_nonods ), u_s( r_nonods ), v_s( r_nonods ) )
+    allocate( rho_r( r_nonods), p_r( r_nonods ), &
+         &    u_r( r_nonods ), v_r( r_nonods ), u_s( r_nonods ), v_s( r_nonods ) )
     call interpolate_fields( states, nphase, u_nonods, cv_nonods, r_nonods, &
          &                   cv_nloc, totele, cv_ndgln, &
          &                   rho, p, u, v, rho_r, p_r, u_r, v_r )
@@ -173,7 +174,8 @@ contains
     call initialise_femdem
 
     r_nonods = node_count( positions_r )
-    allocate( rho_r( r_nonods), p_r( r_nonods ), u_r( r_nonods ), v_r( r_nonods ), u_s( r_nonods ), v_s( r_nonods ) )
+    allocate( rho_r( r_nonods), p_r( r_nonods ), &
+         &    u_r( r_nonods ), v_r( r_nonods ), u_s( r_nonods ), v_s( r_nonods ) )
     call interpolate_fields( states, nphase, u_nonods, cv_nonods, r_nonods, &
          &                   cv_nloc, totele, cv_ndgln, &
          &                   rho, p, u, v, rho_r, p_r, u_r, v_r )

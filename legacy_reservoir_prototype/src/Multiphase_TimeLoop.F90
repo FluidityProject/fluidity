@@ -567,7 +567,7 @@
 !!$ FEMDEM...
          if ( .false. ) then
             !call femdem( state, totele, cv_nonods, u_nonods, ndim, nphase, cv_nloc, &
-            !     &            cv_ndgln, dt, density, pressure_fem, velocity_u, velocity_v, &
+            !     &            cv_ndgln, dt, density_femt, pressure_fem, velocity_u, velocity_v, &
             !     &            velocity_absorption, permeability, porosity )
             call blasting( state, totele, cv_nonods, u_nonods, ndim, nphase, cv_nloc, &
                  &            cv_ndgln, dt, density_femt, pressure_fem, velocity_u, velocity_v, &
