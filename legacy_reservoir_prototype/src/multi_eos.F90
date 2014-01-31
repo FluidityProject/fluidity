@@ -821,8 +821,9 @@
            options%kr1_exp, default=2.0)
       call get_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/relperm_exponent", &
            options%kr2_exp, default=2.0)
-      options%boost_at_zero_saturation=have_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/boost_at_zero_saturation")
-      options%is_Corey_epsilon_method = have_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/Use_epsilon_method")
+      options%boost_at_zero_saturation = have_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/boost_at_zero_saturation")
+      options%is_Corey_epsilon_method = have_option("/material_phase[0]/multiphase_properties/relperm_type/Corey/Use_epsilon_method").or.&
+                    have_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/Use_epsilon_method")
     end subroutine get_corey_options
 
     subroutine get_land_options(options)
@@ -986,19 +987,19 @@ SUBROUTINE relperm_corey_epsilon( ABSP, MOBILITY, INV_PERM, SAT, IPHASE,options 
 !         endif
 !      endif
 
-    if(.true.) then
-   ! if(.false.) then
-      if(iphase==1) then
-         if(SATURATION.lt.S_GC+0.01) then
-               ABSP = ABSP*max(1.0,  (S_GC+0.01-SATURATION)*1.e+10 )
-         endif
-      endif
-      if(iphase==2) then
-         if(SATURATION.lt.s_or+0.01) then
-               ABSP = ABSP*max(1.0,  (s_or+0.01-SATURATION)*1.e+10 )
-         endif
-      endif
-    endif
+!    if(.true.) then
+!    !if(.false.) then
+!      if(iphase==1) then
+!         if(SATURATION.lt.S_GC+0.01) then
+!               ABSP = ABSP*max(1.0,  (S_GC+0.01-SATURATION)*1.e+10 )
+!         endif
+!      endif
+!      if(iphase==2) then
+!         if(SATURATION.lt.s_or+0.01) then
+!               ABSP = ABSP*max(1.0,  (s_or+0.01-SATURATION)*1.e+10 )
+!         endif
+!      endif
+!    endif
 
 
       RETURN
