@@ -302,7 +302,7 @@
 
       allocate( fintran( nonods + 1 ))
       allocate( coltran( max( totele, nonods ) * mx_nface_p1 ))
-      allocate( icount( nonods * totele ))
+      allocate( icount( nonods ))
 
       icount = 0
       do ele = 1, totele
