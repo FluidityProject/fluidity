@@ -41,15 +41,17 @@
           <polynomial_degree>
             <integer_value rank="0">2</integer_value>
           </polynomial_degree>
+          <element_type>
+            <string_value>discontinuous lagrangian</string_value>
+          </element_type>
         </mesh_shape>
-        <mesh_continuity>
-          <string_value>discontinuous</string_value>
-        </mesh_continuity>
         <constraint_type>
           <string_value>BDFM</string_value>
           <solver>
             <iterative_method name="preonly"/>
-            <preconditioner name="lu"/>
+            <preconditioner name="lu">
+              <factorization_package name="petsc"/>
+            </preconditioner>
             <relative_error>
               <real_value rank="0">1.0e-50</real_value>
             </relative_error>
@@ -74,10 +76,10 @@
           <polynomial_degree>
             <integer_value rank="0">1</integer_value>
           </polynomial_degree>
+          <element_type>
+            <string_value>discontinuous lagrangian</string_value>
+          </element_type>
         </mesh_shape>
-        <mesh_continuity>
-          <string_value>discontinuous</string_value>
-        </mesh_continuity>
         <stat>
           <exclude_from_stat/>
         </stat>
@@ -94,9 +96,6 @@
             <string_value>bubble</string_value>
           </element_type>
         </mesh_shape>
-        <mesh_continuity>
-          <string_value>continuous</string_value>
-        </mesh_continuity>
         <stat>
           <exclude_from_stat/>
         </stat>
@@ -179,6 +178,7 @@
           <adjoint_storage>
             <exists_in_forward/>
           </adjoint_storage>
+          <do_not_recalculate/>
         </prescribed>
       </vector_field>
     </gravity>
@@ -208,7 +208,9 @@
         <temporal_discretisation/>
         <solver>
           <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
+          <preconditioner name="lu">
+            <factorization_package name="petsc"/>
+          </preconditioner>
           <relative_error>
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
@@ -245,12 +247,7 @@ val = galewsky_tools.Uval</string_value>
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
-          <discontinuous_galerkin>
-            <wave_equation/>
-            <advection_terms>
-              <exclude_advection_terms/>
-            </advection_terms>
-          </discontinuous_galerkin>
+          <discontinuous_galerkin/>
           <conservative_advection>
             <real_value rank="0">0.</real_value>
           </conservative_advection>
@@ -258,14 +255,19 @@ val = galewsky_tools.Uval</string_value>
         </spatial_discretisation>
         <temporal_discretisation>
           <discontinuous_galerkin>
-            <maximum_courant_number_per_subcycle>
-              <real_value rank="0">0.1</real_value>
-            </maximum_courant_number_per_subcycle>
+            <number_advection_subcycles>
+              <integer_value rank="0">1</integer_value>
+            </number_advection_subcycles>
+            <SSPRK_order>
+              <integer_value rank="0">3</integer_value>
+            </SSPRK_order>
           </discontinuous_galerkin>
         </temporal_discretisation>
         <solver>
           <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
+          <preconditioner name="lu">
+            <factorization_package name="petsc"/>
+          </preconditioner>
           <relative_error>
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
@@ -299,19 +301,19 @@ val = galewsky_tools.HPval</string_value>
         <mesh name="VorticityMesh"/>
         <spatial_discretisation>
           <continuous_galerkin>
-            <streamline_upwinding>
-              <alpha>
-                <real_value rank="0">0.26</real_value>
-              </alpha>
-              <tol>
-                <real_value rank="0">1.0e-10</real_value>
-              </tol>
-            </streamline_upwinding>
+            <taylor_galerkin>
+              <eta>
+                <real_value rank="0">0.5</real_value>
+              </eta>
+              <Tbar2_3_scheme/>
+            </taylor_galerkin>
           </continuous_galerkin>
         </spatial_discretisation>
         <solver>
           <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
+          <preconditioner name="lu">
+            <factorization_package name="petsc"/>
+          </preconditioner>
           <relative_error>
             <real_value rank="0">1.0e-8</real_value>
           </relative_error>
