@@ -158,6 +158,7 @@ therefore we use: -0.2-6.0675000e-03+d0/2
         </location>
       </static_detector>
       <fail_outside_domain/>
+      <move_with_mesh/>
     </detectors>
   </io>
   <timestepping>

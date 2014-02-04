@@ -30,20 +30,20 @@ PACKAGE_NAME = fluidity
 FLUIDITY = $(PACKAGE_NAME)
 
 FC      = mpif90
-FCFLAGS = -I../include -I/usr/include -I/usr/include/vtk-5.8  -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -I/usr/include/ -I/usr/local/include/ -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/include/spooles -I/usr/include/scotch -I/usr/lib -I/usr/include/suitesparse -DHAVE_PETSC -DHAVE_VTK=1 -fbounds-check -Wall -Wimplicit-interface -Wno-surprising -g -O0 -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -fno-realloc-lhs -ffree-line-length-none -ffixed-line-length-none -finit-integer=-66666 -finit-real=nan  -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/include/spooles -I/usr/include/scotch -I/usr/lib -I/usr/include/suitesparse -fdefault-real-8 -fdefault-double-8
+FCFLAGS = -I../include -I/usr/include -I/usr/include/vtk-5.8  -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include  -I/include -I/include/libadjoint -I/usr/include/ -I/usr/local/include/ -I/usr/include/libadjoint -I/usr/local/include/libadjoint -I/usr/lib/petscdir/3.2/include -I/usr/lib/petscdir/3.2/linux-gnu-c-opt/include -I/usr/include -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -I/usr/lib/openmpi/include -I/usr/lib/openmpi/include/openmpi -DHAVE_PETSC -DHAVE_VTK=1 -ffast-math -frecord-marker=4  -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -fno-realloc-lhs -ffree-line-length-none -ffixed-line-length-none  -O3 -I/usr/lib/petscdir/3.2/include -I/usr/lib/petscdir/3.2/linux-gnu-c-opt/include -I/usr/include -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -I/usr/lib/openmpi/include -I/usr/lib/openmpi/include/openmpi -fdefault-real-8 -fdefault-double-8
 
 CC  = mpicc
-CFLAGS  = -fbounds-check -Wall -g -O0 -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -I../include
+CFLAGS  =  -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -I../include
 
 CXX = mpicxx
-CXXFLAGS= -I/usr/include/vtk-5.8  -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -I/usr/include/ -I/usr/local/include/ -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/include/spooles -I/usr/include/scotch -I/usr/lib -I/usr/include/suitesparse -DHAVE_PETSC -DHAVE_VTK=1 -fbounds-check -Wall -g -O0 -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -I../include
+CXXFLAGS= -I/usr/include/vtk-5.8  -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include  -I/include -I/include/libadjoint -I/usr/include/ -I/usr/local/include/ -I/usr/include/libadjoint -I/usr/local/include/libadjoint -I/usr/lib/petscdir/3.2/include -I/usr/lib/petscdir/3.2/linux-gnu-c-opt/include -I/usr/include -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -I/usr/lib/openmpi/include -I/usr/lib/openmpi/include/openmpi -DHAVE_PETSC -DHAVE_VTK=1  -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -I../include
 
-LINKER = mpicxx -rdynamic   
+LINKER = mpicxx   
 
-FLLINKER = mpif90 -rdynamic    $(FCFLAGS)
+FLLINKER = mpif90    $(FCFLAGS)
 
-LIBS = -L../lib ./lib/libadaptivity.a ./lib/libspatialindex.a ./lib/libspud.a ./lib/libvtkfortran.a ./lib/libjudy.a -lmba2d -lvtkIO -lvtkGraphics -lvtkFiltering -lvtkCommon -lvtksys -ldl -larpack -L/usr/lib/petscdir/3.1/linux-gnu-c-opt/lib -L/usr/lib/petscdir/3.1/linux-gnu-c-opt/lib -L/usr/lib/petscdir/3.1/linux-gnu-c-opt/lib -lpetsc -lX11 -L/usr/lib -ldmumps -lzmumps -lsmumps -lcmumps -lmumps_common -lpord -lscalapack-openmpi -lblacsCinit-openmpi -lblacs-openmpi -lspooles -lHYPRE -lHYPRE_utilities -lHYPRE_multivector -lHYPRE_krylov -lHYPRE_struct_mv -lHYPRE_struct_ls -lHYPRE_sstruct_mv -lHYPRE_sstruct_ls -lHYPRE_seq_mv -lHYPRE_parcsr_mv -lHYPRE_parcsr_block_mv -lHYPRE_DistributedMatrix -lHYPRE_MatrixMatrix -lHYPRE_IJ_mv -lHYPRE_Euclid -lHYPRE_ParaSails -lHYPRE_DistributedMatrixPilutSolver -lHYPRE_parcsr_ls -lHYPRE_FEI_fgmres -lHYPRE_mli -lHYPRE_FEI -lscotch -lhdf5_fortran -lhdf5 -lz -lumfpack -lamd -llapack -lblas -L/usr/lib/openmpi/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.6 -L/usr/lib/x86_64-linux-gnu -L/lib/x86_64-linux-gnu -ldl -lmpi -lopen-rte -lopen-pal -lnsl -lutil -lgcc_s -lpthread -lmpi_f90 -lmpi_f77 -lgfortran -lm -lgfortran -lm -lgfortran -lm -lm -lquadmath -lm -lmpi_cxx -lstdc++ -ldl -lmpi -lopen-rte -lopen-pal -lnsl -lutil -lgcc_s -lpthread -ldl -lnetcdff -lnetcdf -llapack -ludunits2 -lpthread -lm -lstdc++ -L/usr/lib -lpython2.7 -Xlinker -export-dynamic -Wl,-O0 -Wl,-Bsymbolic-functions -lssl -lcrypto -lssl -lcrypto -L/usr/lib -lz -lpthread -ldl -lutil -L/usr/lib/gcc/x86_64-linux-gnu/4.6 -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../.. -lgfortran -lm -lquadmath -L/usr/lib/gcc/x86_64-linux-gnu/4.6 -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../.. -lgfortran -lm -lquadmath -lnetcdf -lnetcdff -L/lib -lparmetis -lmetis -L/usr/lib -L/usr/local/lib/ -lzoltan -lparmetis -lmetis -L./lib  -lblas  -L/usr/lib/gcc/x86_64-linux-gnu/4.6 -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../.. -lgfortran -lm -lquadmath 
-FLIBS = -L../lib  -L/usr/lib/gcc/x86_64-linux-gnu/4.6 -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../.. -lgfortran -lm -lquadmath
+LIBS = -L../lib ./lib/libadaptivity.a ./lib/libspatialindex.a ./lib/libspud.a ./lib/libvtkfortran.a ./lib/libjudy.a -lmba2d -lvtkIO -lvtkGraphics -lvtkFiltering -lvtkCommon -lvtksys -ldl -L/usr/lib/petscdir/3.2/linux-gnu-c-opt/lib -L/usr/lib/petscdir/3.2/linux-gnu-c-opt/lib -L/usr/lib/petscdir/3.2/linux-gnu-c-opt/lib -lpetsc -lX11 -L/usr/lib -ldmumps -lzmumps -lsmumps -lcmumps -lmumps_common -lpord -lscalapack-openmpi -lblacsCinit-openmpi -lblacs-openmpi -lptesmumps -lptscotch -lptscotcherr -lpthread -lspooles -lHYPRE_utilities -lHYPRE_struct_mv -lHYPRE_struct_ls -lHYPRE_sstruct_mv -lHYPRE_sstruct_ls -lHYPRE_IJ_mv -lHYPRE_parcsr_ls -lcholmod -lumfpack -lamd -llapack -lblas -lhdf5_fortran -lhdf5 -lz -L/usr/lib/openmpi/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.7 -L/usr/lib/x86_64-linux-gnu -L/lib/x86_64-linux-gnu -ldl -lmpi -lopen-rte -lopen-pal -lnsl -lutil -lgcc_s -lpthread -lmpi_f90 -lmpi_f77 -lgfortran -lm -lgfortran -lm -lgfortran -lm -lm -lquadmath -lm -lmpi_cxx -lstdc++ -ldl -lmpi -lopen-rte -lopen-pal -lnsl -lutil -lgcc_s -lpthread -ldl -lzoltan -lparmetis -lmetis -lnetcdf -llapack -ludunits2 -lpthread -lm -lstdc++ -L/usr/lib -lpython2.7 -Xlinker -export-dynamic -Wl,-O1 -Wl,-Bsymbolic-functions -L/usr/lib -lz -lpthread -ldl -lutil -L/usr/lib/gcc/x86_64-linux-gnu/4.8 -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../.. -lgfortran -lm -lquadmath -L/usr/lib/gcc/x86_64-linux-gnu/4.8 -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../.. -lgfortran -lm -lquadmath -L/lib -L/usr/lib -L/usr/local/lib/ -ladjoint -L./lib  -lblas  -L/usr/lib/gcc/x86_64-linux-gnu/4.8 -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../.. -lgfortran -lm -lquadmath 
+FLIBS = -L../lib  -L/usr/lib/gcc/x86_64-linux-gnu/4.8 -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../.. -lgfortran -lm -lquadmath
 
 # These objects are needed in each program as they provide the code related to
 # diagnostic output and FLabort:
@@ -54,6 +54,7 @@ VTKDIAGNOSTIC = ../bin/vtkdiagnostic
 FLDIAGNOSTICS = ../bin/fldiagnostics
 STREAMFUNCTION_2D = ../bin/streamfunction_2d
 FLREDECOMP = ../bin/flredecomp
+MESHCONV = ../bin/meshconv
 TEST_LAPLACIAN= ../bin/test_laplacian
 TEST_LAPLACIAN_VECTOR= ../bin/test_laplacian_vector
 VISUALISE_ELEMENTS= ../bin/visualise_elements
@@ -83,7 +84,7 @@ BINARIES = $(DRAWTIMNEW) $(MAKTIMUNIFORM) $(VTKDIAGNOSTIC)		\
   $(VERTICAL_INTEGRATION) $(EVMERGE) $(FLADAPT) $(CHECKMESH)		\
   $(PROJECT_VTU) $(PROBE_VTU) $(SUPERMESH_DIFFERENCE)			\
   $(DIFFERENTIATE_VTU) $(VTU_BINS) $(TRIANGLE2VTU)			\
-  $(PROJECT_TO_CONTINUOUS) 						\
+  $(PROJECT_TO_CONTINUOUS) $(MESHCONV)				\
   $(TEST_PRESSURE_SOLVE) $(UNIFIEDMESH) $(VTKPROJECTION) $(PERIODISE)	\
   $(TEST_TRACE_SPACE) $(STREAMFUNCTION_2D) $(TEST_TRACE_SPACE)		\
   $(TEST_LAPLACIAN) 
@@ -109,10 +110,12 @@ endif
 default: $(BINARIES) scripts
 
 scripts:
+	mkdir -p ../bin
 	for i in *.py ; do cp $$i ../bin/`basename $$i .py` ; done
 	for i in *.sh ; do cp $$i ../bin/`basename $$i .sh` ; done
 
 install-version-info: version-info
+	@mkdir -p ../bin
 	@chmod +x $<
 	@cp $< ../bin/$<
 
@@ -185,6 +188,9 @@ $(STREAMFUNCTION_2D): Streamfunction_2D.o Streamfunction_2D_main.o lib/
 $(FLREDECOMP): Flredecomp.o Flredecomp_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
+$(MESHCONV): Meshconv.o Meshconv_main.o lib/
+	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+
 $(CHECKMESH): Checkmesh.o Checkmesh_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
@@ -213,6 +219,9 @@ clean:
 	rm -f *.o *.mod
 	rm -rf build dist fluidity.egg-info 
 	rm -f lib
+
+distclean:
+	rm -f version-info
 
 $(TEST_TRACE_SPACE): Test_Trace_Space.o lib/
 	$(FLLINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)

@@ -40,38 +40,13 @@ module Petsc_Tools
   use profiler
 #ifdef HAVE_PETSC_MODULES
   use petsc 
-#if PETSC_VERSION_MINOR==0
-  use petscvec 
-  use petscmat 
-  use petscksp 
-  use petscpc 
-  use petscis 
-  use petscmg  
-#endif
 #endif
   implicit none
 #include "petscversion.h"
 #ifdef HAVE_PETSC_MODULES
-#if PETSC_VERSION_MINOR==0
-#include "finclude/petscvecdef.h"
-#include "finclude/petscmatdef.h"
-#include "finclude/petsckspdef.h"
-#include "finclude/petscpcdef.h"
-#include "finclude/petscviewerdef.h"
-#include "finclude/petscisdef.h"
-#else
 #include "finclude/petscdef.h"
-#endif
 #else
 #include "finclude/petsc.h"
-#if PETSC_VERSION_MINOR==0
-#include "finclude/petscvec.h"
-#include "finclude/petscmat.h"
-#include "finclude/petscksp.h"
-#include "finclude/petscpc.h"
-#include "finclude/petscviewer.h"
-#include "finclude/petscis.h"
-#endif
 #endif
 
   PetscReal, parameter, private :: dummy_petsc_real = 0.0
@@ -126,6 +101,10 @@ module Petsc_Tools
   interface petsc2field
     module procedure Petsc2VectorFields, Petsc2ScalarFields, Petsc2VectorField, Petsc2ScalarField, Petsc2ScalarFieldPtrs
   end interface
+
+  interface petsc_numbering_create_is
+    module procedure petsc_numbering_create_is_dim
+  end interface
     
 #include "Reference_count_interface_petsc_numbering_type.F90"
 
@@ -133,13 +112,22 @@ module Petsc_Tools
 
   public reorder, DumpMatrixEquation, Initialize_Petsc
   public csr2petsc, petsc2csr, block_csr2petsc, petsc2array, array2petsc
-  public field2petsc, petsc2field
+  public field2petsc, petsc2field, petsc_numbering_create_is
   public petsc_numbering_type, PetscNumberingCreateVec, allocate, deallocate
   public csr2petsc_CreateSeqAIJ, csr2petsc_CreateMPIAIJ
   public addup_global_assembly
   ! for petsc_numbering:
   public incref, decref, addref
-  
+  ! for unit-testing:
+  logical, public, save :: petsc_test_error_handler_called = .false.
+  public petsc_test_error_handler
+#if PETSC_VERSION_MINOR>=3
+#define MatCreateSeqAIJ myMatCreateSeqAIJ
+#define MatCreateMPIAIJ myMatCreateMPIAIJ
+#define MatCreateSeqBAIJ myMatCreateSeqBAIJ
+#define MatCreateMPIBAIJ myMatCreateMPIBAIJ
+  public MatCreateSeqAIJ, MatCreateMPIAIJ, MatCreateSeqBAIJ, MatCreateMPIBAIJ
+#endif
 contains
 
   ! Note about definitions in this module:
@@ -625,6 +613,26 @@ contains
     call VecSetOption(vec, VEC_IGNORE_OFF_PROC_ENTRIES, PETSC_TRUE, ierr)
 
   end function PetscNumberingCreateVec
+
+  function petsc_numbering_create_is_dim(petsc_numbering, dim) result (index_set)
+    IS:: index_set
+    type(petsc_numbering_type), intent(in):: petsc_numbering
+    integer, intent(in):: dim
+
+    PetscErrorCode:: ierr
+    integer:: nnodp
+
+    nnodp = petsc_numbering%nprivatenodes
+
+#if PETSC_VERSION_MINOR>=2
+    call ISCreateGeneral(MPI_COMM_FEMTOOLS, nnodp, petsc_numbering%gnn2unn(:,dim), &
+         PETSC_COPY_VALUES, index_set, ierr)
+#else
+    call ISCreateGeneral(MPI_COMM_FEMTOOLS, nnodp, petsc_numbering%gnn2unn(:,dim), &
+         index_set, ierr)
+#endif
+       
+  end function petsc_numbering_create_is_dim
   
   subroutine Petsc2Array(vec, petsc_numbering, array)
     !!< Copies the values of a PETSc Vec into an array. The PETSc Vec
@@ -1449,9 +1457,6 @@ contains
       do i=0, rows-1
         sparsity%findrm(i+1)=j
         call MatGetRow(matrix, offset+i, ncols, row_cols, row_vals, ierr)
-        ! This is stupid, we were given copies in MatGetRow so it could
-        ! have restored its internal tmp arrays straight away, anyway:
-        call MatRestoreRow(matrix, offset+i, ncols, row_cols, row_vals, ierr)
         do k=1, ncols
           if (row_cols(k)>=offset .and. row_cols(k)<offset+rows) then
             ! only local->local entries get inserted
@@ -1466,6 +1471,9 @@ contains
             j=j+1
           end if
         end do
+        ! This is stupid, we were given copies in MatGetRow so it could
+        ! have restored its internal tmp arrays straight away, anyway:
+        call MatRestoreRow(matrix, offset+i, ncols, row_cols, row_vals, ierr)
       end do
       A%sparsity%findrm(i+1)=j
 
@@ -1477,6 +1485,7 @@ contains
         sparsity%findrm(i+1)=j
 #ifdef DOUBLEP
         call MatGetRow(matrix, offset+i, ncols, sparsity%colm(j:), A%val(j:), ierr)
+        j=j+ncols
         ! This is stupid, we were given copies in MatGetRow so it could
         ! have restored its internal tmp arrays straight away, anyway:
         call MatRestoreRow(matrix, offset+i, ncols, sparsity%colm(j:), A%val(j:), ierr)
@@ -1484,12 +1493,12 @@ contains
         allocate(row_vals(size(A%val) - j + 1))
         call MatGetRow(matrix, offset+i, ncols, sparsity%colm(j:), row_vals, ierr)
         A%val(j:) = row_vals
+        j=j+ncols
         ! This is stupid, we were given copies in MatGetRow so it could
         ! have restored its internal tmp arrays straight away, anyway:
         call MatRestoreRow(matrix, offset+i, ncols, sparsity%colm(j:), row_vals, ierr)
         deallocate(row_vals)
 #endif
-        j=j+ncols
       end do
       A%sparsity%findrm(i+1)=j
       
@@ -1572,7 +1581,92 @@ contains
     PetscErrorCode :: ierr
     call PetscInitialize(PETSC_NULL_CHARACTER, ierr); CHKERRQ(ierr);
   end subroutine Initialize_Petsc
+
+! Simple dummy error handler that just tracks whether it's been called or not
+! Useful for unittesting to see that petsc gives error messages at the right moment
+#if PETSC_VERSION_MINOR>=2
+subroutine petsc_test_error_handler(comm,line, func, file, dir, n, p, mess, ctx, ierr)
+#include "finclude/petsc.h"
+  MPI_Comm:: comm
+#else
+subroutine petsc_test_error_handler(line, func, file, dir, n, p, mess, ctx, ierr)
+#include "finclude/petsc.h"
+#endif
+  PetscInt:: line
+  character(len=*):: func, file, dir
+  PetscErrorCode:: n
+  PetscInt:: p
+  character(len=*):: mess
+  PetscInt:: ctx
+  PetscErrorCode:: ierr
   
+
+  petsc_test_error_handler_called = .true.
+  
+end subroutine petsc_test_error_handler
+
+! In petsc-3.3 the MatCreate[B]{Seq|MPI}() routines have changed to MatCreate[B]Aij
+! and MatSetup always needs to be called
+#if PETSC_VERSION_MINOR>=3
+  subroutine MatCreateSeqAIJ(MPI_Comm, nrows, ncols, &
+      nz, nnz, M, ierr)
+    integer, intent(in):: MPI_Comm
+    PetscInt, intent(in):: nrows, ncols, nz
+    PetscInt, dimension(:), intent(in):: nnz
+    Mat, intent(out):: M
+    PetscErrorCode, intent(out):: ierr
+
+    call MatCreateAij(MPI_Comm, nrows, ncols, nrows, ncols, &
+      nz, nnz, 0, PETSC_NULL_INTEGER, M, ierr)
+    call MatSetup(M, ierr)
+
+  end subroutine MatCreateSeqAIJ
+
+  subroutine MatCreateMPIAIJ(MPI_Comm, nprows, npcols, &
+      nrows, ncols, &
+      dnz, dnnz, onz, onnz, M, ierr)
+    integer, intent(in):: MPI_Comm
+    PetscInt, intent(in):: nprows, npcols,nrows, ncols, dnz, onz
+    PetscInt, dimension(:), intent(in):: dnnz, onnz
+    Mat, intent(out):: M
+    PetscErrorCode, intent(out):: ierr
+
+    call MatCreateAij(MPI_Comm, nprows, npcols, nrows, ncols, &
+      dnz, dnnz, onz, onnz, M, ierr)
+    call MatSetup(M, ierr)
+
+  end subroutine MatCreateMPIAIJ
+
+  subroutine MatCreateSeqBAIJ(MPI_Comm, bs, nrows, ncols, &
+      nz, nnz, M, ierr)
+    integer, intent(in):: MPI_Comm
+    PetscInt, intent(in):: bs, nrows, ncols, nz
+    PetscInt, dimension(:), intent(in):: nnz
+    Mat, intent(out):: M
+    PetscErrorCode, intent(out):: ierr
+
+    call MatCreateBAij(MPI_Comm, bs, nrows, ncols, nrows, ncols, &
+      nz, nnz, 0, PETSC_NULL_INTEGER, M, ierr)
+    call MatSetup(M, ierr)
+
+  end subroutine MatCreateSeqBAIJ
+
+  subroutine MatCreateMPIBAIJ(MPI_Comm, bs, nprows, npcols, &
+      nrows, ncols, &
+      dnz, dnnz, onz, onnz, M, ierr)
+    integer, intent(in):: MPI_Comm
+    PetscInt, intent(in):: bs, nprows, npcols,nrows, ncols, dnz, onz
+    PetscInt, dimension(:), intent(in):: dnnz, onnz
+    Mat, intent(out):: M
+    PetscErrorCode, intent(out):: ierr
+
+    call MatCreateBAij(MPI_Comm, bs, nprows, npcols, nrows, ncols, &
+      dnz, dnnz, onz, onnz, M, ierr)
+    call MatSetup(M, ierr)
+
+  end subroutine MatCreateMPIBAIJ
+#endif
+
 #include "Reference_count_petsc_numbering_type.F90"
 end module Petsc_Tools
 
@@ -1582,9 +1676,6 @@ end module Petsc_Tools
 ! this routine calls MatGetInfo with an implicit interface.
 subroutine myMatGetInfo(A, flag, info, ierr)
 #include "finclude/petsc.h"
-#if PETSC_VERSION_MINOR==0
-#include "finclude/petscmat.h"
-#endif
 Mat, intent(in):: A
 MatInfoType, intent(in):: flag
 double precision, dimension(:), intent(out):: info

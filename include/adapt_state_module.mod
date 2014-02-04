@@ -1,5 +1,5 @@
-GFORTRAN module version '6' created from Adapt_State.F90 on Mon Jun 10 19:48:26 2013
-MD5:12eade7d0fd37384256d73bec4718969 -- If you edit this, you'll get what you deserve.
+GFORTRAN module version '10' created from Adapt_State.F90
+MD5:d9c159049cf4e4f4920738e95721a7a7 -- If you edit this, you'll get what you deserve.
 
 (() () () () () () () () () () () () () () () () () () () () () () ()
 () () () ())
@@ -8,1114 +8,1085 @@ MD5:12eade7d0fd37384256d73bec4718969 -- If you edit this, you'll get what you de
 
 (('adapt_state' 'adapt_state_module' 2 3))
 
-(('mpi_fortran_argv_null' 4 0 0 'mpi_fortran_argv_null') (
-'mpi_fortran_bottom' 5 0 0 'mpi_fortran_bottom') ('petscfortran4' 6 0 0
-'petscfortran4') ('petscfortran8' 7 0 0 'petscfortran8') ('petscfortran9'
-8 0 0 'petscfortran9') ('mpi_fortran_argvs_null' 9 0 0
-'mpi_fortran_argvs_null') ('mpi_fortran_errcodes_ignore' 10 0 0
-'mpi_fortran_errcodes_ignore') ('mpi_fortran_in_place' 11 0 0
-'mpi_fortran_in_place') ('mpi_fortran_status_ignore' 12 0 0
-'mpi_fortran_status_ignore') ('petscfortran3' 13 0 0 'petscfortran3') (
-'mpi_fortran_statuses_ignore' 14 0 0 'mpi_fortran_statuses_ignore') (
-'petscfortran1' 15 0 0 'petscfortran1') ('petscfortran2' 16 0 0
-'petscfortran2') ('petscfortran5' 17 0 0 'petscfortran5') (
-'petscfortran6' 18 0 0 'petscfortran6') ('petscfortran7' 19 0 0
-'petscfortran7') ('petscfortran10' 20 0 0 'petscfortran10'))
+(('mpi_fortran_argv_null' 4 0 0 '') ('mpi_fortran_bottom' 5 0 0 '') (
+'petscfortran4' 6 0 0 '') ('petscfortran8' 7 0 0 '') ('petscfortran9' 8
+0 0 '') ('mpi_fortran_argvs_null' 9 0 0 '') (
+'mpi_fortran_errcodes_ignore' 10 0 0 '') ('mpi_fortran_in_place' 11 0 0 '')
+('mpi_fortran_status_ignore' 12 0 0 '') ('petscfortran3' 13 0 0 '') (
+'mpi_fortran_statuses_ignore' 14 0 0 '') ('petscfortran1' 15 0 0 '') (
+'petscfortran2' 16 0 0 '') ('petscfortran5' 17 0 0 '') ('petscfortran6'
+18 0 0 '') ('petscfortran7' 19 0 0 '') ('petscfortran10' 20 0 0 ''))
 
 ()
 
 ()
 
-(21 'adapt_mesh' 'adapt_state_module' 'adapt_mesh' 1 ((PROCEDURE
-UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE ALWAYS_EXPLICIT)
-(UNKNOWN 0 0 0 UNKNOWN ()) 22 0 (23 24 25 26 27) () 0 () () () 0 0)
-28 'adapt_state_first_timestep' 'adapt_state_module'
-'adapt_state_first_timestep' 1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC
-DECL UNKNOWN 0 0 SUBROUTINE ALWAYS_EXPLICIT) (UNKNOWN 0 0 0 UNKNOWN ())
-29 0 (30) () 0 () () () 0 0)
-31 'adapt_state_module_check_options' 'adapt_state_module'
-'adapt_state_module_check_options' 1 ((PROCEDURE UNKNOWN-INTENT
-MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0 UNKNOWN ()) 0 0
-() () 0 () () () 0 0)
-32 'extract_and_remove_metric' 'adapt_state_module'
-'extract_and_remove_metric' 1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC
-DECL UNKNOWN 0 0 FUNCTION) (DERIVED 33 0 0 DERIVED ()) 34 0 (35 36) ()
-37 () () () 0 0)
-38 'insert_metric_for_interpolation' 'adapt_state_module'
-'insert_metric_for_interpolation' 1 ((PROCEDURE UNKNOWN-INTENT
+(21 'adapt_mesh' 'adapt_state_module' '' 1 ((PROCEDURE UNKNOWN-INTENT
 MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE ALWAYS_EXPLICIT) (UNKNOWN 0 0 0
-UNKNOWN ()) 39 0 (40 41 42 43 44) () 0 () () () 0 0)
-45 'sam_options' 'adapt_state_module' 'sam_options' 1 ((PROCEDURE
-UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 DIMENSION FUNCTION PURE
-ALWAYS_EXPLICIT) (INTEGER 4 0 0 INTEGER ()) 46 0 (47 48) (1 0 EXPLICIT (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0
-INTEGER ()) 0 '10')) 45 () () () 0 0)
-9 'mpi_argvs_null' 'mpi_interfaces' 'mpi_argvs_null' 1 ((VARIABLE
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 IN_COMMON) (REAL 8 0 0
-REAL ()) 0 0 () () 0 () () () 0 0)
-10 'mpi_errcodes_ignore' 'mpi_interfaces' 'mpi_errcodes_ignore' 1 ((
-VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
-IN_COMMON) (INTEGER 4 0 0 INTEGER ()) 0 0 () (1 0 EXPLICIT (CONSTANT (
-INTEGER 4 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0
-'1')) 0 () () () 0 0)
-5 'mpi_bottom' 'mpi_interfaces' 'mpi_bottom' 1 ((VARIABLE UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 IN_COMMON) (INTEGER 4 0 0 INTEGER ()) 0
-0 () () 0 () () () 0 0)
-4 'mpi_argv_null' 'mpi_interfaces' 'mpi_argv_null' 1 ((VARIABLE
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION IN_COMMON) (
-CHARACTER 1 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1')))
-0 0 () (1 0 EXPLICIT (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1')) 0 () () () 0 0)
-11 'mpi_in_place' 'mpi_interfaces' 'mpi_in_place' 1 ((VARIABLE
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 IN_COMMON) (INTEGER 4 0
-0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-15 'petsc_null_character' 'petscsysdef' 'petsc_null_character' 1 ((
-VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0 IN_COMMON)
-(CHARACTER 1 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '80')))
-0 0 () () 0 () () () 0 0)
-14 'mpi_statuses_ignore' 'mpi_interfaces' 'mpi_statuses_ignore' 1 ((
-VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 IN_COMMON) (
-REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
-12 'mpi_status_ignore' 'mpi_interfaces' 'mpi_status_ignore' 1 ((
-VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
-IN_COMMON) (INTEGER 4 0 0 INTEGER ()) 0 0 () (1 0 EXPLICIT (CONSTANT (
-INTEGER 4 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0
-'5')) 0 () () () 0 0)
-16 'petsc_null_integer' 'petscsysdef' 'petsc_null_integer' 1 ((VARIABLE
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 IN_COMMON) (INTEGER 4 0
-0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-13 'petsc_null' 'petscsysdef' 'petsc_null' 1 ((VARIABLE UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 IN_COMMON) (INTEGER 4 0 0 INTEGER ()) 0
-0 () () 0 () () () 0 0)
-6 'petsc_null_scalar' 'petscsysdef' 'petsc_null_scalar' 1 ((VARIABLE
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 IN_COMMON) (REAL 8 0 0
-REAL ()) 0 0 () () 0 () () () 0 0)
-18 'petsc_null_real' 'petscsysdef' 'petsc_null_real' 1 ((VARIABLE
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 IN_COMMON) (REAL 8 0 0
-REAL ()) 0 0 () () 0 () () () 0 0)
-17 'petsc_null_double' 'petscsysdef' 'petsc_null_double' 1 ((VARIABLE
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 IN_COMMON) (REAL 8 0 0
-REAL ()) 0 0 () () 0 () () () 0 0)
-20 'petsc_comm_self' 'petscsysdef' 'petsc_comm_self' 1 ((VARIABLE
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 IN_COMMON) (INTEGER 4 0
-0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-7 'petsc_null_object' 'petscsysdef' 'petsc_null_object' 1 ((VARIABLE
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 IN_COMMON) (INTEGER 8 0
-0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-19 'petsc_null_truth' 'petscsysdef' 'petsc_null_truth' 1 ((VARIABLE
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 IN_COMMON) (LOGICAL 4 0
-0 LOGICAL ()) 0 0 () () 0 () () () 0 0)
-8 'petsc_comm_world' 'petscsysdef' 'petsc_comm_world' 1 ((VARIABLE
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 IN_COMMON) (INTEGER 4 0
-0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-33 'tensor_field' 'fields_data_types' 'tensor_field' 1 ((DERIVED
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
-0 0 UNKNOWN ()) 0 0 () () 0 ((49 'val' (REAL 8 0 0 REAL ()) (3 0
-DEFERRED () () () () () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS ()) (50 'wrapped'
-(LOGICAL 4 0 0 LOGICAL ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0 0 LOGICAL ())
-0 1)) (51 'field_type' (INTEGER 4 0 0 INTEGER ()) () (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '0')) (52 'name' (CHARACTER 1 0 0
-CHARACTER ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '101'))) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ()) (53 'dim' (INTEGER 4 0 0 INTEGER ()) (1 0 EXPLICIT (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0
-INTEGER ()) 0 '2')) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DIMENSION) UNKNOWN-ACCESS ()) (54 'option_path' (CHARACTER 1
-0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '8192'))) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS (CONSTANT (CHARACTER 1 0 0 CHARACTER (())) 0 8192
-'/uninitialised_path/                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            '))
-(55 'mesh' (DERIVED 56 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (STRUCTURE (DERIVED 56
-0 0 DERIVED ()) 0 ((() ()) ((CONSTANT (LOGICAL 4 0 0 LOGICAL ()) 0 1) ())
-((STRUCTURE (DERIVED 57 0 0 DERIVED ()) 0 ((() ()) (() ()) (() ()) (() ())
-((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ())
-0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0
-UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (
-UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ())
-((STRUCTURE (DERIVED 58 0 0 DERIVED ()) 0 ((() ()) (() ()) (() ()) (() ())
-((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ())
-0) ()) (() ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) (() ())) ()) ())
-((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ())
-0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0
-UNKNOWN ()) 0) ()) (() ())) ()) ()) (() ()) (() ()) (() ()) ((CONSTANT (
-CHARACTER 1 0 0 CHARACTER (())) 0 8192
-'/uninitialised_path/                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ')
-()) ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '0') ()) ((NULL (UNKNOWN 0 0
-0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (
-UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ())
-((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ())
-0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0
-UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (
-UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((CONSTANT (LOGICAL 4 0 0 LOGICAL ()) 0
-0) ())) ())) (59 'refcount' (DERIVED 60 0 0 DERIVED ()) () (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS
-(NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (61 'aliased' (LOGICAL 4 0 0
-LOGICAL ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0) UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0 0 LOGICAL ()) 0 0))) PUBLIC (()
-() () ()) () 0 0 25110185)
-2 'adapt_state_multiple' 'adapt_state_module' 'adapt_state_multiple' 1 (
-(PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE
-ALWAYS_EXPLICIT) (UNKNOWN 0 0 0 UNKNOWN ()) 62 0 (63 64 65) () 0 () () ()
-0 0)
-23 'old_positions' '' 'old_positions' 22 ((VARIABLE IN UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 DUMMY) (DERIVED 66 0 0 DERIVED ()) 0 0 () () 0 () ()
-() 0 0)
-24 'metric' '' 'metric' 22 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DUMMY) (DERIVED 33 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
-25 'new_positions' '' 'new_positions' 22 ((VARIABLE OUT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 DUMMY) (DERIVED 66 0 0 DERIVED ()) 0 0 () () 0 () ()
-() 0 0)
-26 'node_ownership' '' 'node_ownership' 22 ((VARIABLE UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION OPTIONAL POINTER DUMMY) (
-INTEGER 4 0 0 INTEGER ()) 0 0 () (1 0 DEFERRED () ()) 0 () () () 0 0)
-27 'force_preserve_regions' '' 'force_preserve_regions' 22 ((VARIABLE IN
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 OPTIONAL DUMMY) (LOGICAL 4 0 0 LOGICAL
-()) 0 0 () () 0 () () () 0 0)
-63 'states' '' 'states' 62 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DIMENSION DUMMY) (DERIVED 67 0 0 DERIVED ()) 0 0 () (1 0
-ASSUMED_SHAPE (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () ()
-0 0)
-64 'metric' '' 'metric' 62 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DUMMY) (DERIVED 33 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
-65 'initialise_fields' '' 'initialise_fields' 62 ((VARIABLE IN
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 OPTIONAL DUMMY) (LOGICAL 4 0 0 LOGICAL
-()) 0 0 () () 0 () () () 0 0)
-30 'states' '' 'states' 29 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DIMENSION DUMMY) (DERIVED 67 0 0 DERIVED ()) 0 0 () (1 0
-ASSUMED_SHAPE (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () ()
-0 0)
-47 'adapt_iteration' '' 'adapt_iteration' 46 ((VARIABLE IN UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () ()
-() 0 0)
-3 'adapt_state_single' 'adapt_state_module' 'adapt_state_single' 1 ((
+0 UNKNOWN ()) 22 0 (23 24 25 26 27) () 0 () () () 0 0)
+28 'adapt_state_first_timestep' 'adapt_state_module' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE ALWAYS_EXPLICIT)
+(UNKNOWN 0 0 0 0 UNKNOWN ()) 29 0 (30) () 0 () () () 0 0)
+31 'adapt_state_module_check_options' 'adapt_state_module' '' 1 ((
+PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (
+UNKNOWN 0 0 0 0 UNKNOWN ()) 0 0 () () 0 () () () 0 0)
+32 'extract_and_remove_metric' 'adapt_state_module' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 FUNCTION) (DERIVED 33 0 0 0
+DERIVED ()) 34 0 (35 36) () 37 () () () 0 0)
+38 'insert_metric_for_interpolation' 'adapt_state_module' '' 1 ((
 PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE
-ALWAYS_EXPLICIT) (UNKNOWN 0 0 0 UNKNOWN ()) 68 0 (69 70 71) () 0 () () ()
-0 0)
-40 'metric' '' 'metric' 39 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 DUMMY) (DERIVED 33 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
-41 'new_mesh' '' 'new_mesh' 39 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (DERIVED 56 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
-42 'old_state' '' 'old_state' 39 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (DERIVED 67 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
-43 'new_state' '' 'new_state' 39 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (DERIVED 67 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
-44 'metric_name' '' 'metric_name' 39 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 OPTIONAL DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 () () 0
+ALWAYS_EXPLICIT) (UNKNOWN 0 0 0 0 UNKNOWN ()) 39 0 (40 41 42 43 44) () 0
 () () () 0 0)
-35 'state' '' 'state' 34 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 DUMMY) (DERIVED 67 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
-36 'metric_name' '' 'metric_name' 34 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 () () 0 () () ()
-0 0)
-37 'metric' '' 'metric' 34 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 RESULT) (DERIVED 33 0 0 DERIVED ()) 0 0 () () 0 () ()
-() 0 0)
-48 'max_adapt_iteration' '' 'max_adapt_iteration' 46 ((VARIABLE IN
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 ()
+45 'sam_options' 'adapt_state_module' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 DIMENSION FUNCTION PURE ALWAYS_EXPLICIT) (
+INTEGER 4 0 0 0 INTEGER ()) 46 0 (47 48) (1 0 EXPLICIT (CONSTANT (
+INTEGER 4 0 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 0 INTEGER ())
+0 '10')) 45 () () () 0 0)
+2 'adapt_state_multiple' 'adapt_state_module' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE ALWAYS_EXPLICIT)
+(UNKNOWN 0 0 0 0 UNKNOWN ()) 49 0 (50 51 52) () 0 () () () 0 0)
+3 'adapt_state_single' 'adapt_state_module' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE ALWAYS_EXPLICIT)
+(UNKNOWN 0 0 0 0 UNKNOWN ()) 53 0 (54 55 56) () 0 () () () 0 0)
+4 'mpi_argv_null' 'sparse_tools' '' 1 ((VARIABLE UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION IN_COMMON) (CHARACTER 1 0 0 0
+CHARACTER ((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1'))) 0 0 () (1 0
+EXPLICIT (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') (CONSTANT (
+INTEGER 4 0 0 0 INTEGER ()) 0 '1')) 0 () () () 0 0)
+5 'mpi_bottom' 'sparse_tools' '' 1 ((VARIABLE UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 IN_COMMON) (INTEGER 4 0 0 0 INTEGER ())
+0 0 () () 0 () () () 0 0)
+6 'petsc_null_scalar' 'sparse_tools' '' 1 ((VARIABLE UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 IN_COMMON) (REAL 8 0 0 0 REAL ()) 0 0 ()
 () 0 () () () 0 0)
-67 'state_type' 'state_module' 'state_type' 1 ((DERIVED UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 UNKNOWN ())
-0 0 () () 0 ((72 'name' (CHARACTER 1 0 0 CHARACTER ((CONSTANT (INTEGER 4
-0 0 INTEGER ()) 0 '101'))) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (CHARACTER 1 0 0 CHARACTER
-(())) 0 101
-'                                                                                                     '))
-(73 'option_path' (CHARACTER 1 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0
-INTEGER ()) 0 '8192'))) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (CHARACTER 1 0 0 CHARACTER
-(())) 0 8192
-'/uninitialised_path/                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            '))
-(74 'vector_names' (CHARACTER 1 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0
-INTEGER ()) 0 '101'))) (1 0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS (
-NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (75 'scalar_names' (CHARACTER 1 0 0
-CHARACTER ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '101'))) (1 0 DEFERRED
-() ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (
-76 'mesh_names' (CHARACTER 1 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0
-INTEGER ()) 0 '101'))) (1 0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS (
-NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (77 'halo_names' (CHARACTER 1 0 0
-CHARACTER ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '101'))) (1 0 DEFERRED
-() ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (
-78 'tensor_names' (CHARACTER 1 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0
-INTEGER ()) 0 '101'))) (1 0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS (
-NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (79 'csr_sparsity_names' (CHARACTER
-1 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '101'))) (1 0
-DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0))
-(80 'csr_matrix_names' (CHARACTER 1 0 0 CHARACTER ((CONSTANT (INTEGER 4
-0 0 INTEGER ()) 0 '101'))) (1 0 DEFERRED () ()) (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (81
-'block_csr_matrix_names' (CHARACTER 1 0 0 CHARACTER ((CONSTANT (INTEGER
-4 0 0 INTEGER ()) 0 '101'))) (1 0 DEFERRED () ()) (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (82
-'petsc_csr_matrix_names' (CHARACTER 1 0 0 CHARACTER ((CONSTANT (INTEGER
-4 0 0 INTEGER ()) 0 '101'))) (1 0 DEFERRED () ()) (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (83 'vector_fields'
-(DERIVED 84 0 0 DERIVED ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (85 'tensor_fields'
-(DERIVED 86 0 0 DERIVED ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (87 'scalar_fields'
-(DERIVED 88 0 0 DERIVED ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (89 'meshes' (
-DERIVED 90 0 0 DERIVED ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (91 'halos' (
-DERIVED 92 0 0 DERIVED ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (93 'csr_sparsities'
-(DERIVED 94 0 0 DERIVED ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (95 'csr_matrices' (
-DERIVED 96 0 0 DERIVED ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (97
-'block_csr_matrices' (DERIVED 98 0 0 DERIVED ()) (1 0 DEFERRED () ()) (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
-POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (99
-'petsc_csr_matrices' (DERIVED 100 0 0 DERIVED ()) (1 0 DEFERRED () ()) (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
-POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0))) PUBLIC (()
-() () ()) () 0 0 7575341)
-58 'quadrature_type' 'quadrature' 'quadrature_type' 1 ((DERIVED
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
-0 0 UNKNOWN ()) 0 0 () () 0 ((101 'dim' (INTEGER 4 0 0 INTEGER ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ()) (102 'degree' (INTEGER 4 0 0 INTEGER ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ()) (103 'vertices' (INTEGER 4 0 0 INTEGER ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ()) (104 'ngi' (INTEGER 4 0 0 INTEGER ()) () (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (
-105 'weight' (REAL 8 0 0 REAL ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (106 'l' (REAL 8 0 0
-REAL ()) (2 0 DEFERRED () () () ()) (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS (
-NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (107 'name' (CHARACTER 1 0 0
-CHARACTER ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '0'))) () (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (
-108 'refcount' (DERIVED 60 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN
-0 0 0 UNKNOWN ()) 0)) (109 'family' (INTEGER 4 0 0 INTEGER ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ())) PUBLIC (() () () ()) () 0 0 59837722)
-57 'element_type' 'elements' 'element_type' 1 ((DERIVED UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 UNKNOWN ())
-0 0 () () 0 ((110 'dim' (INTEGER 4 0 0 INTEGER ()) () (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (
-111 'loc' (INTEGER 4 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (112 'ngi' (
-INTEGER 4 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (113 'degree' (INTEGER 4 0 0
-INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0) UNKNOWN-ACCESS ()) (114 'n' (REAL 8 0 0 REAL ()) (2 0 DEFERRED () ()
-() ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (
-115 'dn' (REAL 8 0 0 REAL ()) (3 0 DEFERRED () () () () () ()) (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
-POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (116 'n_s'
-(REAL 8 0 0 REAL ()) (3 0 DEFERRED () () () () () ()) (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (117 'dn_s' (REAL 8
-0 0 REAL ()) (4 0 DEFERRED () () () () () () () ()) (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (118 'spoly' (
-DERIVED 119 0 0 DERIVED ()) (2 0 DEFERRED () () () ()) (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (120 'dspoly' (
-DERIVED 119 0 0 DERIVED ()) (2 0 DEFERRED () () () ()) (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (121 'numbering' (
-DERIVED 122 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN
-()) 0)) (123 'quadrature' (DERIVED 58 0 0 DERIVED ()) () (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (
-STRUCTURE (DERIVED 58 0 0 DERIVED ()) 0 ((() ()) (() ()) (() ()) (() ())
-((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ())
-0) ()) (() ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) (() ())) ())) (
-124 'surface_quadrature' (DERIVED 58 0 0 DERIVED ()) () (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS
-(NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (125 'superconvergence' (DERIVED
-126 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0))
-(127 'constraints' (DERIVED 128 0 0 DERIVED ()) () (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS
-(NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (129 'refcount' (DERIVED 60 0 0
-DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (130 'name'
-(CHARACTER 1 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '0')))
-() (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ())) PUBLIC (() () () ()) () 0 0 79461029)
-119 'polynomial' 'polynomials' 'polynomial' 1 ((DERIVED UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 UNKNOWN ())
-0 0 () () 0 ((131 'coefs' (REAL 8 0 0 REAL ()) (1 0 DEFERRED () ()) (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
-POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (132 'degree'
-(INTEGER 4 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (INTEGER 4 0 0 INTEGER ())
-0 '-1'))) PUBLIC (() () () ()) () 0 0 87989236)
-92 'halo_pointer' 'halo_data_types' 'halo_pointer' 1 ((DERIVED
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
-0 0 UNKNOWN ()) 0 0 () () 0 ((133 'ptr' (DERIVED 134 0 0 DERIVED ()) ()
-(UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0))) PUBLIC (() () () ())
-() 0 0 72023282)
-69 'state' '' 'state' 68 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 DUMMY) (DERIVED 67 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
-70 'metric' '' 'metric' 68 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DUMMY) (DERIVED 33 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
-71 'initialise_fields' '' 'initialise_fields' 68 ((VARIABLE IN
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 OPTIONAL DUMMY) (LOGICAL 4 0 0 LOGICAL
-()) 0 0 () () 0 () () () 0 0)
-60 'refcount_type' 'reference_counting' 'refcount_type' 1 ((DERIVED
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
-0 0 UNKNOWN ()) 0 0 () () 0 ((135 'prev' (DERIVED 60 0 0 DERIVED ()) ()
-(UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (136 'next' (
-DERIVED 60 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN
-()) 0)) (137 'count' (INTEGER 4 0 0 INTEGER ()) () (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '0')) (138 'id' (INTEGER 4 0 0
-INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0) UNKNOWN-ACCESS ()) (139 'name' (CHARACTER 1 0 0 CHARACTER ((CONSTANT
-(INTEGER 4 0 0 INTEGER ()) 0 '101'))) () (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (140 'type' (
-CHARACTER 1 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '101')))
-() (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ()) (141 'tagged' (LOGICAL 4 0 0 LOGICAL ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0 0 LOGICAL ()) 0 0))) PUBLIC (() ()
-() ()) () 0 0 25948645)
-128 'constraints_type' 'elements' 'constraints_type' 1 ((DERIVED
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
-0 0 UNKNOWN ()) 0 0 () () 0 ((142 'type' (INTEGER 4 0 0 INTEGER ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ()) (143 'dim' (INTEGER 4 0 0 INTEGER ()) () (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (
-144 'degree' (INTEGER 4 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (145 'loc' (
-INTEGER 4 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (146 'n_constraints' (INTEGER 4
-0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0) UNKNOWN-ACCESS ()) (147 'orthogonal' (REAL 8 0 0 REAL ()) (
-3 0 DEFERRED () () () () () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0
-0 UNKNOWN ()) 0))) PUBLIC (() () () ()) () 0 0 57548971)
-122 'ele_numbering_type' 'element_numbering' 'ele_numbering_type' 1 ((
-DERIVED UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (
-UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0 ((148 'faces' (INTEGER 4 0 0
-INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0) UNKNOWN-ACCESS ()) (149 'vertices' (INTEGER 4 0 0 INTEGER ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ()) (150 'edges' (INTEGER 4 0 0 INTEGER ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ()) (151 'boundaries' (INTEGER 4 0 0 INTEGER ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ()) (152 'degree' (INTEGER 4 0 0 INTEGER ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ()) (153 'dimension' (INTEGER 4 0 0 INTEGER ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ()) (154 'nodes' (INTEGER 4 0 0 INTEGER ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ()) (155 'type' (INTEGER 4 0 0 INTEGER ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1')) (156 'family'
-(INTEGER 4 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (157 'count2number' (INTEGER 4 0
-0 INTEGER ()) (3 0 DEFERRED () () () () () ()) (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
-UNKNOWN-ACCESS ()) (158 'number2count' (INTEGER 4 0 0 INTEGER ()) (2 0
-DEFERRED () () () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS ()) (159 'boundary_coord'
-(INTEGER 4 0 0 INTEGER ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
-UNKNOWN-ACCESS ()) (160 'boundary_val' (INTEGER 4 0 0 INTEGER ()) (1 0
-DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DIMENSION POINTER) UNKNOWN-ACCESS ())) PUBLIC (() () () ()) () 0 0
-96431082)
-126 'superconvergence_type' 'elements' 'superconvergence_type' 1 ((
-DERIVED UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (
-UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0 ((161 'nsp' (INTEGER 4 0 0 INTEGER
-()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ()) (162 'l' (REAL 8 0 0 REAL ()) (2 0 DEFERRED () () ()
-()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-DIMENSION POINTER) UNKNOWN-ACCESS ()) (163 'n' (REAL 8 0 0 REAL ()) (2 0
-DEFERRED () () () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS ()) (164 'dn' (REAL 8 0 0
-REAL ()) (3 0 DEFERRED () () () () () ()) (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS ()))
-PUBLIC (() () () ()) () 0 0 18282395)
-98 'block_csr_matrix_pointer' 'sparse_tools' 'block_csr_matrix_pointer'
-1 ((DERIVED UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP)
-(UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0 ((165 'ptr' (DERIVED 166 0 0
-DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0))) PUBLIC (
-() () () ()) () 0 0 83606449)
-96 'csr_matrix_pointer' 'sparse_tools' 'csr_matrix_pointer' 1 ((DERIVED
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
-0 0 UNKNOWN ()) 0 0 () () 0 ((167 'ptr' (DERIVED 168 0 0 DERIVED ()) ()
-(UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0))) PUBLIC (() () () ())
-() 0 0 82770239)
-94 'csr_sparsity_pointer' 'sparse_tools' 'csr_sparsity_pointer' 1 ((
-DERIVED UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (
-UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0 ((169 'ptr' (DERIVED 170 0 0
-DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0))) PUBLIC (
-() () () ()) () 0 0 9687815)
-134 'halo_type' 'halo_data_types' 'halo_type' 1 ((DERIVED UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 UNKNOWN ())
-0 0 () () 0 ((171 'name' (CHARACTER 1 0 0 CHARACTER ((CONSTANT (INTEGER
-4 0 0 INTEGER ()) 0 '101'))) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (172 'refcount' (DERIVED 60 0 0
-DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (173
-'data_type' (INTEGER 4 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (INTEGER 4 0
-0 INTEGER ()) 0 '0')) (174 'ordering_scheme' (INTEGER 4 0 0 INTEGER ())
-() (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '0')) (175
-'communicator' (INTEGER 4 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (176 'nprocs' (
-INTEGER 4 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (INTEGER 4 0 0 INTEGER ())
-0 '0')) (177 'sends' (DERIVED 178 0 0 DERIVED ()) (1 0 DEFERRED () ()) (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
-POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (179
-'receives' (DERIVED 178 0 0 DERIVED ()) (1 0 DEFERRED () ()) (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
-POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (180
-'nowned_nodes' (INTEGER 4 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (INTEGER 4 0
-0 INTEGER ()) 0 '-1')) (181 'owners' (INTEGER 4 0 0 INTEGER ()) (1 0
-DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0))
-(182 'unn_count' (INTEGER 4 0 0 INTEGER ()) () (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '-1')) (183 'owned_nodes_unn_base'
-(INTEGER 4 0 0 INTEGER ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (184
-'my_owned_nodes_unn_base' (INTEGER 4 0 0 INTEGER ()) () (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '-1')) (185 'receives_gnn_to_unn'
-(INTEGER 4 0 0 INTEGER ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (186 'gnn_to_unn' (
-INTEGER 4 0 0 INTEGER ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0))) PUBLIC (() () () ())
-() 0 0 63994053)
-100 'petsc_csr_matrix_pointer' 'sparse_tools_petsc'
-'petsc_csr_matrix_pointer' 1 ((DERIVED UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0
-((187 'ptr' (DERIVED 188 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN
-0 0 0 UNKNOWN ()) 0))) PUBLIC (() () () ()) () 0 0 85445535)
-90 'mesh_pointer' 'fields_data_types' 'mesh_pointer' 1 ((DERIVED
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
-0 0 UNKNOWN ()) 0 0 () () 0 ((189 'ptr' (DERIVED 56 0 0 DERIVED ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0))) PUBLIC (() () () ())
-() 0 0 65432384)
-56 'mesh_type' 'fields_data_types' 'mesh_type' 1 ((DERIVED
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
-0 0 UNKNOWN ()) 0 0 () () 0 ((190 'ndglno' (INTEGER 4 0 0 INTEGER ()) (
-1 0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS ()) (191 'wrapped' (
-LOGICAL 4 0 0 LOGICAL ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0 0 LOGICAL ())
-0 1)) (192 'shape' (DERIVED 57 0 0 DERIVED ()) () (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (
-STRUCTURE (DERIVED 57 0 0 DERIVED ()) 0 ((() ()) (() ()) (() ()) (() ())
-((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ())
-0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0
-UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (
-UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ())
-((STRUCTURE (DERIVED 58 0 0 DERIVED ()) 0 ((() ()) (() ()) (() ()) (() ())
-((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ())
-0) ()) (() ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) (() ())) ()) ())
-((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ())
-0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0
-UNKNOWN ()) 0) ()) (() ())) ())) (193 'elements' (INTEGER 4 0 0 INTEGER
-()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ()) (194 'nodes' (INTEGER 4 0 0 INTEGER ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ()) (195 'name' (CHARACTER 1 0 0 CHARACTER ((CONSTANT (
-INTEGER 4 0 0 INTEGER ()) 0 '101'))) () (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (196 'option_path'
-(CHARACTER 1 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '8192')))
-() (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS (CONSTANT (CHARACTER 1 0 0 CHARACTER (())) 0 8192
-'/uninitialised_path/                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            '))
-(197 'continuity' (INTEGER 4 0 0 INTEGER ()) () (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '0')) (198 'refcount' (DERIVED 60
-0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0))
-(199 'faces' (DERIVED 200 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN
-0 0 0 UNKNOWN ()) 0)) (201 'subdomain_mesh' (DERIVED 202 0 0 DERIVED ())
-() (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (203 'adj_lists' (
-DERIVED 204 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN
-()) 0)) (205 'columns' (INTEGER 4 0 0 INTEGER ()) (1 0 DEFERRED () ()) (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
-POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (206
-'element_columns' (INTEGER 4 0 0 INTEGER ()) (1 0 DEFERRED () ()) (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
-POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (207
-'region_ids' (INTEGER 4 0 0 INTEGER ()) (1 0 DEFERRED () ()) (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
-POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (208 'halos'
-(DERIVED 134 0 0 DERIVED ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (209 'element_halos'
-(DERIVED 134 0 0 DERIVED ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (210 'colourings' (
-DERIVED 211 0 0 DERIVED ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (212 'periodic' (
-LOGICAL 4 0 0 LOGICAL ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0 0 LOGICAL ())
-0 0))) PUBLIC (() () () ()) () 0 0 2572791)
-88 'scalar_field_pointer' 'fields_data_types' 'scalar_field_pointer' 1 (
-(DERIVED UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (
-UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0 ((213 'ptr' (DERIVED 214 0 0
-DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0))) PUBLIC (
-() () () ()) () 0 0 54828570)
-86 'tensor_field_pointer' 'fields_data_types' 'tensor_field_pointer' 1 (
-(DERIVED UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (
-UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0 ((215 'ptr' (DERIVED 33 0 0
-DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0))) PUBLIC (
-() () () ()) () 0 0 16722823)
-66 'vector_field' 'fields_data_types' 'vector_field' 1 ((DERIVED
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
-0 0 UNKNOWN ()) 0 0 () () 0 ((216 'val' (REAL 8 0 0 REAL ()) (2 0
-DEFERRED () () () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS ()) (217 'wrapped' (
-LOGICAL 4 0 0 LOGICAL ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0 0 LOGICAL ())
-0 1)) (218 'field_type' (INTEGER 4 0 0 INTEGER ()) () (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '0')) (219 'bc' (DERIVED 220 0 0
-DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (221 'name'
-(CHARACTER 1 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '101')))
-() (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ()) (222 'dim' (INTEGER 4 0 0 INTEGER ()) () (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (
-223 'option_path' (CHARACTER 1 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0
-INTEGER ()) 0 '8192'))) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (CHARACTER 1 0 0 CHARACTER
-(())) 0 8192
-'/uninitialised_path/                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            '))
-(224 'mesh' (DERIVED 56 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (STRUCTURE (DERIVED 56
-0 0 DERIVED ()) 0 ((() ()) ((CONSTANT (LOGICAL 4 0 0 LOGICAL ()) 0 1) ())
-((STRUCTURE (DERIVED 57 0 0 DERIVED ()) 0 ((() ()) (() ()) (() ()) (() ())
-((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ())
-0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0
-UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (
-UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ())
-((STRUCTURE (DERIVED 58 0 0 DERIVED ()) 0 ((() ()) (() ()) (() ()) (() ())
-((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ())
-0) ()) (() ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) (() ())) ()) ())
-((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ())
-0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0
-UNKNOWN ()) 0) ()) (() ())) ()) ()) (() ()) (() ()) (() ()) ((CONSTANT (
-CHARACTER 1 0 0 CHARACTER (())) 0 8192
-'/uninitialised_path/                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ')
-()) ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '0') ()) ((NULL (UNKNOWN 0 0
-0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (
-UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ())
-((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ())
-0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0
-UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (
-UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((CONSTANT (LOGICAL 4 0 0 LOGICAL ()) 0
-0) ())) ())) (225 'refcount' (DERIVED 60 0 0 DERIVED ()) () (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS
-(NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (226 'aliased' (LOGICAL 4 0 0
+7 'petsc_null_object' 'sparse_tools' '' 1 ((VARIABLE UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 IN_COMMON) (INTEGER 8 0 0 0 INTEGER ())
+0 0 () () 0 () () () 0 0)
+8 'petsc_comm_world' 'sparse_tools' '' 1 ((VARIABLE UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 IN_COMMON) (INTEGER 4 0 0 0 INTEGER ())
+0 0 () () 0 () () () 0 0)
+9 'mpi_argvs_null' 'mpi_interfaces' '' 1 ((VARIABLE UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 IN_COMMON) (REAL 8 0 0 0 REAL ()) 0 0 ()
+() 0 () () () 0 0)
+10 'mpi_errcodes_ignore' 'mpi_interfaces' '' 1 ((VARIABLE UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION IN_COMMON) (INTEGER 4 0 0 0
+INTEGER ()) 0 0 () (1 0 EXPLICIT (CONSTANT (INTEGER 4 0 0 0 INTEGER ())
+0 '1') (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1')) 0 () () () 0 0)
+11 'mpi_in_place' 'mpi_interfaces' '' 1 ((VARIABLE UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 IN_COMMON) (INTEGER 4 0 0 0 INTEGER ())
+0 0 () () 0 () () () 0 0)
+12 'mpi_status_ignore' 'mpi_interfaces' '' 1 ((VARIABLE UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION IN_COMMON) (INTEGER 4 0 0 0
+INTEGER ()) 0 0 () (1 0 EXPLICIT (CONSTANT (INTEGER 4 0 0 0 INTEGER ())
+0 '1') (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '5')) 0 () () () 0 0)
+13 'petsc_null' 'sparse_tools' '' 1 ((VARIABLE UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 IN_COMMON) (INTEGER 4 0 0 0 INTEGER ())
+0 0 () () 0 () () () 0 0)
+14 'mpi_statuses_ignore' 'mpi_interfaces' '' 1 ((VARIABLE UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 IN_COMMON) (REAL 8 0 0 0 REAL ()) 0 0 ()
+() 0 () () () 0 0)
+15 'petsc_null_character' 'sparse_tools' '' 1 ((VARIABLE UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0 IN_COMMON) (CHARACTER 1 0 0 0
+CHARACTER ((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '80'))) 0 0 () () 0
+() () () 0 0)
+16 'petsc_null_integer' 'sparse_tools' '' 1 ((VARIABLE UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 IN_COMMON) (INTEGER 4 0 0 0 INTEGER ())
+0 0 () () 0 () () () 0 0)
+17 'petsc_null_double' 'sparse_tools' '' 1 ((VARIABLE UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 IN_COMMON) (REAL 8 0 0 0 REAL ()) 0 0 ()
+() 0 () () () 0 0)
+18 'petsc_null_real' 'sparse_tools' '' 1 ((VARIABLE UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 IN_COMMON) (REAL 8 0 0 0 REAL ()) 0 0 ()
+() 0 () () () 0 0)
+19 'petsc_null_truth' 'sparse_tools' '' 1 ((VARIABLE UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 IN_COMMON) (LOGICAL 4 0 0 0 LOGICAL ())
+0 0 () () 0 () () () 0 0)
+20 'petsc_comm_self' 'sparse_tools' '' 1 ((VARIABLE UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 IN_COMMON) (INTEGER 4 0 0 0 INTEGER ())
+0 0 () () 0 () () () 0 0)
+23 'old_positions' '' '' 22 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0
+0 DUMMY) (DERIVED 57 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+24 'metric' '' '' 22 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (DERIVED 33 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+25 'new_positions' '' '' 22 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN
+0 0 DUMMY) (DERIVED 57 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+26 'node_ownership' '' '' 22 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 DIMENSION OPTIONAL POINTER DUMMY) (INTEGER 4 0 0 0
+INTEGER ()) 0 0 () (1 0 DEFERRED () ()) 0 () () () 0 0)
+27 'force_preserve_regions' '' '' 22 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 OPTIONAL DUMMY) (LOGICAL 4 0 0 0 LOGICAL ()) 0 0 () () 0 ()
+() () 0 0)
+30 'states' '' '' 29 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION DUMMY) (DERIVED 58 0 0 0 DERIVED ()) 0 0 () (1 0 ASSUMED_SHAPE
+(CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
+33 'Tensor_field' 'fields_data_types' '' 1 ((DERIVED UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0 0 () () 0 ((59 'val' (REAL 8 0 0 0 REAL ()) (3 0 DEFERRED () () ()
+() () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION POINTER) UNKNOWN-ACCESS ()) (60 'wrapped' (LOGICAL 4 0 0 0
 LOGICAL ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0) UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0 0 LOGICAL ()) 0 0)) (227 'picker'
-(DERIVED 228 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN
-()) 0))) PUBLIC (() () () ()) () 0 0 43598963)
-84 'vector_field_pointer' 'fields_data_types' 'vector_field_pointer' 1 (
-(DERIVED UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (
-UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0 ((229 'ptr' (DERIVED 66 0 0
-DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0))) PUBLIC (
-() () () ()) () 0 0 74448721)
-178 'integer_vector' 'futils' 'integer_vector' 1 ((DERIVED
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
-0 0 UNKNOWN ()) 0 0 () () 0 ((230 'ptr' (INTEGER 4 0 0 INTEGER ()) (1 0
-DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)))
-PUBLIC (() () () ()) () 0 0 9661976)
-166 'block_csr_matrix' 'sparse_tools' 'block_csr_matrix' 1 ((DERIVED
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
-0 0 UNKNOWN ()) 0 0 () () 0 ((231 'sparsity' (DERIVED 170 0 0 DERIVED ())
-() (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS (STRUCTURE (DERIVED 170 0 0 DERIVED ()) 0 (((NULL (
-UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ())
-((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) (() ()) ((NULL (UNKNOWN 0 0 0
-UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (
-UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((CONSTANT (CHARACTER 1 0 0 CHARACTER (
-())) 0 101
-'                                                                                                     ')
-()) ((CONSTANT (LOGICAL 4 0 0 LOGICAL ()) 0 0) ()) ((CONSTANT (LOGICAL 4
-0 0 LOGICAL ()) 0 0) ())) ())) (232 'val' (DERIVED 233 0 0 DERIVED ()) (
-2 0 DEFERRED () () () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0
-0 UNKNOWN ()) 0)) (234 'contiguous_val' (REAL 8 0 0 REAL ()) (1 0
-DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0))
-(235 'ival' (DERIVED 178 0 0 DERIVED ()) (2 0 DEFERRED () () () ()) (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
-POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (236 'blocks'
-(INTEGER 4 0 0 INTEGER ()) (1 0 EXPLICIT (CONSTANT (INTEGER 4 0 0
-INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '2')) (
+0) UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 1)) (61
+'field_type' (INTEGER 4 0 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (INTEGER 4 0
+0 0 INTEGER ()) 0 '0')) (62 'name' (CHARACTER 1 0 0 0 CHARACTER ((
+CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '101'))) () (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (63
+'dim' (INTEGER 4 0 0 0 INTEGER ()) (1 0 EXPLICIT (CONSTANT (INTEGER 4 0
+0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '2')) (
 UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION)
-UNKNOWN-ACCESS (ARRAY (INTEGER 4 0 0 INTEGER ()) 1 (((CONSTANT (INTEGER
-4 0 0 INTEGER ()) 0 '0') ()) ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '0')
-())) ('2'))) (237 'clone' (LOGICAL 4 0 0 LOGICAL ()) () (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (
-CONSTANT (LOGICAL 4 0 0 LOGICAL ()) 0 0)) (238 'external_val' (LOGICAL 4
-0 0 LOGICAL ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0 0 LOGICAL ()) 0 0)) (
-239 'columns' (INTEGER 4 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (240 'refcount' (
-DERIVED 60 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN
-()) 0)) (241 'name' (CHARACTER 1 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0
-INTEGER ()) 0 '101'))) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (CHARACTER 1 0 0 CHARACTER
-(())) 0 101
-'                                                                                                     '))
-(242 'diagonal' (LOGICAL 4 0 0 LOGICAL ()) () (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0
-0 LOGICAL ()) 0 0)) (243 'equal_diagonal_blocks' (LOGICAL 4 0 0 LOGICAL
-()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0 0 LOGICAL ()) 0 0)) (244 'ksp' (
-INTEGER 8 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN
-()) 0))) PUBLIC (() () () ()) () 0 0 61921235)
-168 'csr_matrix' 'sparse_tools' 'csr_matrix' 1 ((DERIVED UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 UNKNOWN ())
-0 0 () () 0 ((245 'sparsity' (DERIVED 170 0 0 DERIVED ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS (STRUCTURE (DERIVED 170 0 0 DERIVED ()) 0 (((NULL (
-UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ())
-((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) (() ()) ((NULL (UNKNOWN 0 0 0
-UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (
-UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((CONSTANT (CHARACTER 1 0 0 CHARACTER (
-())) 0 101
-'                                                                                                     ')
-()) ((CONSTANT (LOGICAL 4 0 0 LOGICAL ()) 0 0) ()) ((CONSTANT (LOGICAL 4
-0 0 LOGICAL ()) 0 0) ())) ())) (246 'val' (REAL 8 0 0 REAL ()) (1 0
-DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0))
-(247 'ival' (INTEGER 4 0 0 INTEGER ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (248 'clone' (
-LOGICAL 4 0 0 LOGICAL ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0 0 LOGICAL ())
-0 0)) (249 'external_val' (LOGICAL 4 0 0 LOGICAL ()) () (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (
-CONSTANT (LOGICAL 4 0 0 LOGICAL ()) 0 0)) (250 'inactive' (DERIVED 251 0
-0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 POINTER) UNKNOWN-ACCESS ()) (252 'ksp' (INTEGER 8 0 0 INTEGER ()) ()
-(UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (253 'refcount' (
-DERIVED 60 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN
-()) 0)) (254 'name' (CHARACTER 1 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0
-INTEGER ()) 0 '101'))) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (CHARACTER 1 0 0 CHARACTER
-(())) 0 101
-'                                                                                                     ')))
-PUBLIC (() () () ()) () 0 0 66371681)
-170 'csr_sparsity' 'sparse_tools' 'csr_sparsity' 1 ((DERIVED
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
-0 0 UNKNOWN ()) 0 0 () () 0 ((255 'findrm' (INTEGER 4 0 0 INTEGER ()) (
-1 0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0
-UNKNOWN ()) 0)) (256 'centrm' (INTEGER 4 0 0 INTEGER ()) (1 0 DEFERRED ()
-()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (
-257 'colm' (INTEGER 4 0 0 INTEGER ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (258 'columns' (
-INTEGER 4 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (259 'row_halo' (DERIVED 134 0 0
-DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (260
-'column_halo' (DERIVED 134 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN
-0 0 0 UNKNOWN ()) 0)) (261 'refcount' (DERIVED 60 0 0 DERIVED ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (262 'name' (
-CHARACTER 1 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '101')))
-() (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS (CONSTANT (CHARACTER 1 0 0 CHARACTER (())) 0 101
-'                                                                                                     '))
-(263 'wrapped' (LOGICAL 4 0 0 LOGICAL ()) () (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0
-0 LOGICAL ()) 0 0)) (264 'sorted_rows' (LOGICAL 4 0 0 LOGICAL ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0 0 LOGICAL ()) 0 0))) PUBLIC (() ()
-() ()) () 0 0 78882345)
-251 'logical_array_ptr' 'sparse_tools' 'logical_array_ptr' 1 ((DERIVED
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
-0 0 UNKNOWN ()) 0 0 () () 0 ((265 'ptr' (LOGICAL 4 0 0 LOGICAL ()) (1 0
-DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)))
-PUBLIC (() () () ()) () 0 0 30974511)
-200 'mesh_faces' 'fields_data_types' 'mesh_faces' 1 ((DERIVED
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
-0 0 UNKNOWN ()) 0 0 () () 0 ((266 'shape' (DERIVED 57 0 0 DERIVED ()) ()
-(UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
-UNKNOWN-ACCESS ()) (267 'face_list' (DERIVED 168 0 0 DERIVED ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS (STRUCTURE (DERIVED 168 0 0 DERIVED ()) 0 (((STRUCTURE (
-DERIVED 170 0 0 DERIVED ()) 0 (((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ())
-((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ())
-0) ()) (() ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN
-0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((
-CONSTANT (CHARACTER 1 0 0 CHARACTER (())) 0 101
-'                                                                                                     ')
-()) ((CONSTANT (LOGICAL 4 0 0 LOGICAL ()) 0 0) ()) ((CONSTANT (LOGICAL 4
-0 0 LOGICAL ()) 0 0) ())) ()) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ())
-((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((CONSTANT (LOGICAL 4 0 0
-LOGICAL ()) 0 0) ()) ((CONSTANT (LOGICAL 4 0 0 LOGICAL ()) 0 0) ()) (()
-()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0
-UNKNOWN ()) 0) ()) ((CONSTANT (CHARACTER 1 0 0 CHARACTER (())) 0 101
-'                                                                                                     ')
-())) ())) (268 'face_lno' (INTEGER 4 0 0 INTEGER ()) (1 0 DEFERRED () ())
-(UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
-POINTER) UNKNOWN-ACCESS ()) (269 'surface_mesh' (DERIVED 56 0 0 DERIVED
-()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS (STRUCTURE (DERIVED 56 0 0 DERIVED ()) 0 ((() ()) ((
-CONSTANT (LOGICAL 4 0 0 LOGICAL ()) 0 1) ()) ((STRUCTURE (DERIVED 57 0 0
-DERIVED ()) 0 ((() ()) (() ()) (() ()) (() ()) ((NULL (UNKNOWN 0 0 0
-UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (
-UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ())
-((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ())
-0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((STRUCTURE (DERIVED 58
-0 0 DERIVED ()) 0 ((() ()) (() ()) (() ()) (() ()) ((NULL (UNKNOWN 0 0 0
-UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) (() ()) ((
-NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) (() ())) ()) ()) ((NULL (UNKNOWN
-0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((
-NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ())
-0) ()) (() ())) ()) ()) (() ()) (() ()) (() ()) ((CONSTANT (CHARACTER 1
-0 0 CHARACTER (())) 0 8192
-'/uninitialised_path/                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ')
-()) ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '0') ()) ((NULL (UNKNOWN 0 0
-0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (
-UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ())
-((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ())
-0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0
-UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (
-UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((CONSTANT (LOGICAL 4 0 0 LOGICAL ()) 0
-0) ())) ())) (270 'surface_node_list' (INTEGER 4 0 0 INTEGER ()) (1 0
-DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DIMENSION POINTER) UNKNOWN-ACCESS ()) (271 'face_element_list' (
-INTEGER 4 0 0 INTEGER ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
-UNKNOWN-ACCESS ()) (272 'boundary_ids' (INTEGER 4 0 0 INTEGER ()) (1 0
-DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DIMENSION POINTER) UNKNOWN-ACCESS ()) (273 'coplanar_ids' (INTEGER 4
-0 0 INTEGER ()) (1 0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS (
-NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (274 'dg_surface_mesh' (DERIVED 56 0
-0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (275
-'has_internal_boundaries' (LOGICAL 4 0 0 LOGICAL ()) () (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (
-CONSTANT (LOGICAL 4 0 0 LOGICAL ()) 0 0))) PUBLIC (() () () ()) () 0 0
-11936185)
-202 'mesh_subdomain_mesh' 'fields_data_types' 'mesh_subdomain_mesh' 1 (
-(DERIVED UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (
-UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0 ((276 'element_list' (INTEGER 4 0
-0 INTEGER ()) (1 0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS ()) (
-277 'node_list' (INTEGER 4 0 0 INTEGER ()) (1 0 DEFERRED () ()) (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
-POINTER) UNKNOWN-ACCESS ())) PUBLIC (() () () ()) () 0 0 85302181)
-214 'scalar_field' 'fields_data_types' 'scalar_field' 1 ((DERIVED
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
-0 0 UNKNOWN ()) 0 0 () () 0 ((278 'val' (REAL 8 0 0 REAL ()) (1 0
-DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DIMENSION POINTER) UNKNOWN-ACCESS ()) (279 'val_stride' (INTEGER 4 0
-0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0) UNKNOWN-ACCESS (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1')) (280
-'wrapped' (LOGICAL 4 0 0 LOGICAL ()) () (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0
-0 LOGICAL ()) 0 1)) (281 'field_type' (INTEGER 4 0 0 INTEGER ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '0')) (282 'bc' (
-DERIVED 283 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN
-()) 0)) (284 'name' (CHARACTER 1 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0
-INTEGER ()) 0 '101'))) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (285 'option_path' (CHARACTER 1
-0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '8192'))) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS (CONSTANT (CHARACTER 1 0 0 CHARACTER (())) 0 8192
-'/uninitialised_path/                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            '))
-(286 'mesh' (DERIVED 56 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (STRUCTURE (DERIVED 56
-0 0 DERIVED ()) 0 ((() ()) ((CONSTANT (LOGICAL 4 0 0 LOGICAL ()) 0 1) ())
-((STRUCTURE (DERIVED 57 0 0 DERIVED ()) 0 ((() ()) (() ()) (() ()) (() ())
-((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ())
-0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0
-UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (
-UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ())
-((STRUCTURE (DERIVED 58 0 0 DERIVED ()) 0 ((() ()) (() ()) (() ()) (() ())
-((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ())
-0) ()) (() ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) (() ())) ()) ())
-((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ())
-0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0
-UNKNOWN ()) 0) ()) (() ())) ()) ()) (() ()) (() ()) (() ()) ((CONSTANT (
-CHARACTER 1 0 0 CHARACTER (())) 0 8192
-'/uninitialised_path/                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ')
-()) ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '0') ()) ((NULL (UNKNOWN 0 0
-0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (
-UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ())
-((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ())
-0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0
-UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (
-UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((CONSTANT (LOGICAL 4 0 0 LOGICAL ()) 0
-0) ())) ())) (287 'refcount' (DERIVED 60 0 0 DERIVED ()) () (UNKNOWN-FL
+UNKNOWN-ACCESS ()) (64 'option_path' (CHARACTER 1 0 0 0 CHARACTER ((
+CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '8192'))) () (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (65
+'mesh' (DERIVED 66 0 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (STRUCTURE (DERIVED 66
+0 0 0 DERIVED ()) 0 ((() ()) ((CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 1)
+()) ((STRUCTURE (DERIVED 67 0 0 0 DERIVED ()) 0 ((() ()) (() ()) (() ())
+(() ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0
+0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (
+UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)
+()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0) ()) ((STRUCTURE (DERIVED 68 0 0 0 DERIVED ()) 0 ((() ())
+(() ()) (() ()) (() ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((
+NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) (() ()) ((NULL (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0) ()) (() ())) ()) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ())
+0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0
+0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) (() ()))
+()) ()) (() ()) (() ()) (() ()) (() ()) ((CONSTANT (INTEGER 4 0 0 0
+INTEGER ()) 0 '0') ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((
+NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0
+0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((
+NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0
+0 0 0 UNKNOWN ()) 0) ()) ((CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 0) ()))
+())) (69 'refcount' (DERIVED 70 0 0 0 DERIVED ()) () (UNKNOWN-FL
 UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS
-(NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (288 'aliased' (LOGICAL 4 0 0
+(NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (71 'aliased' (LOGICAL 4 0 0 0
 LOGICAL ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0) UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0 0 LOGICAL ()) 0 0)) (289
-'py_locweight' (REAL 8 0 0 REAL ()) (2 0 DEFERRED () () () ()) (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
-POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (290
-'py_func' (CHARACTER 1 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 INTEGER ())
-0 '8192'))) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0) UNKNOWN-ACCESS ()) (291 'py_positions' (DERIVED 66 0 0 DERIVED ()) ()
-(UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
-UNKNOWN-ACCESS ()) (292 'py_positions_same_mesh' (LOGICAL 4 0 0 LOGICAL
-()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ()) (293 'py_dim' (INTEGER 4 0 0 INTEGER ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ()) (294 'py_positions_shape' (DERIVED 57 0 0 DERIVED ())
-() (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0))) PUBLIC (() () () ())
-() 0 0 64912956)
-220 'vector_boundary_conditions_ptr' 'fields_data_types'
-'vector_boundary_conditions_ptr' 1 ((DERIVED UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0
-((295 'boundary_condition' (DERIVED 296 0 0 DERIVED ()) (1 0 DEFERRED ()
+0) UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 0))) PUBLIC (
+() () () ()) () 0 0 25110185)
+35 'state' '' '' 34 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (DERIVED 58 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+36 'metric_name' '' '' 34 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () () () 0 0)
+37 'metric' '' '' 34 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 RESULT) (DERIVED 33 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0
+0)
+40 'metric' '' '' 39 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (DERIVED 33 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+41 'new_mesh' '' '' 39 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (DERIVED 66 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+42 'old_state' '' '' 39 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN 0
+0 DUMMY) (DERIVED 58 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+43 'new_state' '' '' 39 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN 0
+0 DUMMY) (DERIVED 58 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+44 'metric_name' '' '' 39 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN 0
+0 OPTIONAL DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () () ()
+0 0)
+47 'adapt_iteration' '' '' 46 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
+0 0 DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+48 'max_adapt_iteration' '' '' 46 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+50 'states' '' '' 49 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION DUMMY) (DERIVED 58 0 0 0 DERIVED ()) 0 0 () (1 0 ASSUMED_SHAPE
+(CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
+51 'metric' '' '' 49 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (DERIVED 33 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+52 'initialise_fields' '' '' 49 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 OPTIONAL DUMMY) (LOGICAL 4 0 0 0 LOGICAL ()) 0 0 () () 0 ()
+() () 0 0)
+54 'state' '' '' 53 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (DERIVED 58 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+55 'metric' '' '' 53 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (DERIVED 33 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+56 'initialise_fields' '' '' 53 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 OPTIONAL DUMMY) (LOGICAL 4 0 0 0 LOGICAL ()) 0 0 () () 0 ()
+() () 0 0)
+57 'Vector_field' 'fields_data_types' '' 1 ((DERIVED UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0 0 () () 0 ((72 'val' (REAL 8 0 0 0 REAL ()) (2 0 DEFERRED () () ()
 ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)))
-PUBLIC (() () () ()) () 0 0 84476181)
-228 'picker_ptr' 'picker_data_types' 'picker_ptr' 1 ((DERIVED
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
-0 0 UNKNOWN ()) 0 0 () () 0 ((297 'ptr' (DERIVED 298 0 0 DERIVED ()) ()
-(UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0))) PUBLIC (() () () ())
-() 0 0 71120007)
-211 'integer_set_vector' 'integer_set_module' 'integer_set_vector' 1 ((
-DERIVED UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (
-UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0 ((299 'sets' (DERIVED 300 0 0
-DERIVED ()) (1 0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS ())) PUBLIC (() ()
-() ()) () 0 0 40688950)
-233 'real_vector' 'futils' 'real_vector' 1 ((DERIVED UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 UNKNOWN ())
-0 0 () () 0 ((301 'ptr' (REAL 8 0 0 REAL ()) (1 0 DEFERRED () ()) (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
-POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0))) PUBLIC (()
-() () ()) () 0 0 72870256)
-300 'integer_set' 'integer_set_module' 'integer_set' 1 ((DERIVED
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) (UNKNOWN 0 0 0 UNKNOWN
-()) 0 0 () () 0 ((302 'address' (DERIVED 303 0 0 DERIVED ()) () (
+DIMENSION POINTER) UNKNOWN-ACCESS ()) (73 'wrapped' (LOGICAL 4 0 0 0
+LOGICAL ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
+0) UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 1)) (74
+'field_type' (INTEGER 4 0 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (INTEGER 4 0
+0 0 INTEGER ()) 0 '0')) (75 'bc' (DERIVED 76 0 0 0 DERIVED ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (77 'name' (
+CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0
+'101'))) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS ()) (78 'dim' (INTEGER 4 0 0 0 INTEGER ()) () (
 UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ())) PUBLIC (() () () ()) () 0 0 67217964)
-188 'petsc_csr_matrix' 'sparse_tools_petsc' 'petsc_csr_matrix' 1 ((
-DERIVED UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (
-UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0 ((304 'm' (INTEGER 8 0 0 INTEGER ())
-() (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ()) (305 'row_numbering' (DERIVED 306 0 0 DERIVED ()) ()
-(UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS (STRUCTURE (DERIVED 306 0 0 DERIVED ()) 0 (((NULL (
-UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) (() ()) (() ()) (() ()) (() ()) ((NULL
-(UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ())
-((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((CONSTANT (CHARACTER 1 0 0
-CHARACTER (())) 0 101
-'                                                                                                     ')
-())) ())) (307 'column_numbering' (DERIVED 306 0 0 DERIVED ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS (STRUCTURE (DERIVED 306 0 0 DERIVED ()) 0 (((NULL (
-UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) (() ()) (() ()) (() ()) (() ()) ((NULL
-(UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ())
-((NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0) ()) ((CONSTANT (CHARACTER 1 0 0
-CHARACTER (())) 0 101
-'                                                                                                     ')
-())) ())) (308 'row_halo' (DERIVED 134 0 0 DERIVED ()) () (UNKNOWN-FL
+UNKNOWN-ACCESS ()) (79 'option_path' (CHARACTER 1 0 0 0 CHARACTER ((
+CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '8192'))) () (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (80
+'mesh' (DERIVED 66 0 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (STRUCTURE (DERIVED 66
+0 0 0 DERIVED ()) 0 ((() ()) ((CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 1)
+()) ((STRUCTURE (DERIVED 67 0 0 0 DERIVED ()) 0 ((() ()) (() ()) (() ())
+(() ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0
+0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (
+UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)
+()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0) ()) ((STRUCTURE (DERIVED 68 0 0 0 DERIVED ()) 0 ((() ())
+(() ()) (() ()) (() ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((
+NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) (() ()) ((NULL (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0) ()) (() ())) ()) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ())
+0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0
+0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) (() ()))
+()) ()) (() ()) (() ()) (() ()) (() ()) ((CONSTANT (INTEGER 4 0 0 0
+INTEGER ()) 0 '0') ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((
+NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0
+0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((
+NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0
+0 0 0 UNKNOWN ()) 0) ()) ((CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 0) ()))
+())) (81 'refcount' (DERIVED 70 0 0 0 DERIVED ()) () (UNKNOWN-FL
 UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS
-(NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (309 'column_halo' (DERIVED 134 0 0
-DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (310
-'refcount' (DERIVED 60 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT
+(NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (82 'aliased' (LOGICAL 4 0 0 0
+LOGICAL ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
+0) UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 0)) (83
+'picker' (DERIVED 84 0 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT
 UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN
-0 0 0 UNKNOWN ()) 0)) (311 'name' (CHARACTER 1 0 0 CHARACTER ((CONSTANT
-(INTEGER 4 0 0 INTEGER ()) 0 '101'))) () (UNKNOWN-FL UNKNOWN-INTENT
+0 0 0 0 UNKNOWN ()) 0))) PUBLIC (() () () ()) () 0 0 43598963)
+58 'State_type' 'state_module' '' 1 ((DERIVED UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0 0 () () 0 ((85 'name' (CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (
+INTEGER 4 0 0 0 INTEGER ()) 0 '101'))) () (UNKNOWN-FL UNKNOWN-INTENT
 UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (CHARACTER 1
-0 0 CHARACTER (())) 0 101
+0 0 0 CHARACTER (())) 0 101
 '                                                                                                     '))
-(312 'is_assembled' (LOGICAL 4 0 0 LOGICAL ()) () (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (
-CONSTANT (LOGICAL 4 0 0 LOGICAL ()) 0 0))) PUBLIC (() () () ()) () 0 0
-75554753)
-204 'adjacency_cache' 'fields_data_types' 'adjacency_cache' 1 ((DERIVED
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
-0 0 UNKNOWN ()) 0 0 () () 0 ((313 'nnlist' (DERIVED 170 0 0 DERIVED ())
-() (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
-UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (314 'nelist' (
-DERIVED 170 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN
-()) 0)) (315 'eelist' (DERIVED 170 0 0 DERIVED ()) () (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS
-(NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0))) PUBLIC (() () () ()) () 0 0
-37419158)
-283 'scalar_boundary_conditions_ptr' 'fields_data_types'
-'scalar_boundary_conditions_ptr' 1 ((DERIVED UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0
-((316 'boundary_condition' (DERIVED 317 0 0 DERIVED ()) (1 0 DEFERRED ()
-()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)))
-PUBLIC (() () () ()) () 0 0 47502942)
-296 'vector_boundary_condition' 'fields_data_types'
-'vector_boundary_condition' 1 ((DERIVED UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0
-((318 'name' (CHARACTER 1 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0
-INTEGER ()) 0 '101'))) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (319 'type' (CHARACTER 1 0 0
-CHARACTER ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '101'))) () (
+(86 'option_path' (CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0
+0 INTEGER ()) 0 '8192'))) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (87 'vector_names' (CHARACTER 1
+0 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '101'))) (1 0
+DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN
+0 0 DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ())
+0)) (88 'scalar_names' (CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (INTEGER
+4 0 0 0 INTEGER ()) 0 '101'))) (1 0 DEFERRED () ()) (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (89 'mesh_names' (
+CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0
+'101'))) (1 0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0
+0 0 UNKNOWN ()) 0)) (90 'halo_names' (CHARACTER 1 0 0 0 CHARACTER ((
+CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '101'))) (1 0 DEFERRED () ()) (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
+POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (91
+'tensor_names' (CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 0
+INTEGER ()) 0 '101'))) (1 0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS (
+NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (92 'csr_sparsity_names' (
+CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0
+'101'))) (1 0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0
+0 0 UNKNOWN ()) 0)) (93 'csr_matrix_names' (CHARACTER 1 0 0 0 CHARACTER
+((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '101'))) (1 0 DEFERRED () ())
+(UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
+POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (94
+'block_csr_matrix_names' (CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (
+INTEGER 4 0 0 0 INTEGER ()) 0 '101'))) (1 0 DEFERRED () ()) (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (95
+'petsc_csr_matrix_names' (CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (
+INTEGER 4 0 0 0 INTEGER ()) 0 '101'))) (1 0 DEFERRED () ()) (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (96 'vector_fields'
+(DERIVED 97 0 0 0 DERIVED ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (98 'tensor_fields'
+(DERIVED 99 0 0 0 DERIVED ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (100 'scalar_fields'
+(DERIVED 101 0 0 0 DERIVED ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (102 'meshes' (
+DERIVED 103 0 0 0 DERIVED ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (104 'halos' (
+DERIVED 105 0 0 0 DERIVED ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (106
+'csr_sparsities' (DERIVED 107 0 0 0 DERIVED ()) (1 0 DEFERRED () ()) (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
+POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (108
+'csr_matrices' (DERIVED 109 0 0 0 DERIVED ()) (1 0 DEFERRED () ()) (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
+POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (110
+'block_csr_matrices' (DERIVED 111 0 0 0 DERIVED ()) (1 0 DEFERRED () ())
+(UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
+POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (112
+'petsc_csr_matrices' (DERIVED 113 0 0 0 DERIVED ()) (1 0 DEFERRED () ())
+(UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
+POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0))) PUBLIC (
+() () () ()) () 0 0 7575341)
+66 'Mesh_type' 'fields_data_types' '' 1 ((DERIVED UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0 0 () () 0 ((114 'ndglno' (INTEGER 4 0 0 0 INTEGER ()) (1 0
+DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN
+0 0 DIMENSION POINTER) UNKNOWN-ACCESS ()) (115 'wrapped' (LOGICAL 4 0 0
+0 LOGICAL ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN
+0 0) UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 1)) (116
+'shape' (DERIVED 67 0 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (STRUCTURE (DERIVED 67
+0 0 0 DERIVED ()) 0 ((() ()) (() ()) (() ()) (() ()) ((NULL (UNKNOWN 0 0
+0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((
+NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0
+0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((
+STRUCTURE (DERIVED 68 0 0 0 DERIVED ()) 0 ((() ()) (() ()) (() ()) (() ())
+((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0) ()) (() ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) (
+() ())) ()) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (
+UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)
+()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) (() ())) ())) (117
+'elements' (INTEGER 4 0 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (118 'nodes' (
+INTEGER 4 0 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (119 'name' (CHARACTER 1 0 0 0
+CHARACTER ((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '101'))) () (
 UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS (CONSTANT (CHARACTER 1 0 0 CHARACTER (())) 0 101
-'                                                                                                     '))
-(320 'applies' (LOGICAL 4 0 0 LOGICAL ()) (1 0 EXPLICIT (CONSTANT (
-INTEGER 4 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0
-'3')) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-DIMENSION) UNKNOWN-ACCESS ()) (321 'surface_element_list' (INTEGER 4 0 0
+UNKNOWN-ACCESS ()) (120 'option_path' (CHARACTER 1 0 0 0 CHARACTER ((
+CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '8192'))) () (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (
+121 'continuity' (INTEGER 4 0 0 0 INTEGER ()) () (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (
+CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '0')) (122 'refcount' (DERIVED
+70 0 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0))
+(123 'faces' (DERIVED 124 0 0 0 DERIVED ()) () (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS
+(NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (125 'subdomain_mesh' (DERIVED
+126 0 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0))
+(127 'adj_lists' (DERIVED 128 0 0 0 DERIVED ()) () (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS
+(NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (129 'columns' (INTEGER 4 0 0 0
 INTEGER ()) (1 0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
 UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0
-0 UNKNOWN ()) 0)) (322 'surface_node_list' (INTEGER 4 0 0 INTEGER ()) (
-1 0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0
-UNKNOWN ()) 0)) (323 'surface_mesh' (DERIVED 56 0 0 DERIVED ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
-UNKNOWN-ACCESS ()) (324 'surface_fields' (DERIVED 66 0 0 DERIVED ()) (1
-0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0
-UNKNOWN ()) 0)) (325 'scalar_surface_fields' (DERIVED 214 0 0 DERIVED ())
+0 0 UNKNOWN ()) 0)) (130 'element_columns' (INTEGER 4 0 0 0 INTEGER ())
 (1 0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0
-UNKNOWN ()) 0)) (326 'option_path' (CHARACTER 1 0 0 CHARACTER ((
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '8192'))) () (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (
-CONSTANT (CHARACTER 1 0 0 CHARACTER (())) 0 8192
-'/uninitialised_path/                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ')))
-PUBLIC (() () () ()) () 0 0 42205165)
-298 'picker_type' 'picker_data_types' 'picker_type' 1 ((DERIVED
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
-0 0 UNKNOWN ()) 0 0 () () 0 ((327 'name' (CHARACTER 1 0 0 CHARACTER ((
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '101'))) () (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (
-328 'refcount' (DERIVED 60 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN
-0 0 0 UNKNOWN ()) 0)) (329 'picker_id' (INTEGER 4 0 0 INTEGER ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '0')) (330
-'last_mesh_movement' (INTEGER 4 0 0 INTEGER ()) () (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '0'))) PUBLIC (() () () ()) () 0 0
-8821665)
-303 'c_ptr' '__iso_c_binding' '' 1 ((DERIVED UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 IS_BIND_C IS_C_INTEROP IS_ISO_C) (DERIVED 303 1 1
-UNKNOWN ()) 0 0 () () 0 ((331 '__c_ptr_c_address' (INTEGER 8 1 0 INTEGER
-()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ())) UNKNOWN-ACCESS () () 2 39 0)
-306 'petsc_numbering_type' 'petsc_tools' 'petsc_numbering_type' 1 ((
-DERIVED UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (
-UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0 ((332 'halo' (DERIVED 134 0 0
-DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (333
-'nprivatenodes' (INTEGER 4 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (334
-'universal_length' (INTEGER 4 0 0 INTEGER ()) () (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (
-335 'offset' (INTEGER 4 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (336 'gnn2unn' (
-INTEGER 4 0 0 INTEGER ()) (2 0 DEFERRED () () () ()) (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
-UNKNOWN-ACCESS ()) (337 'ghost_nodes' (INTEGER 4 0 0 INTEGER ()) (1 0
+UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0)) (131 'region_ids' (INTEGER 4 0 0 0 INTEGER ()) (1 0
 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0))
-(338 'ghost2unn' (INTEGER 4 0 0 INTEGER ()) (2 0 DEFERRED () () () ()) (
+0 0 DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ())
+0)) (132 'halos' (DERIVED 133 0 0 0 DERIVED ()) (1 0 DEFERRED () ()) (
 UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
-POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (339
-'refcount' (DERIVED 60 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT
+POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (134
+'element_halos' (DERIVED 133 0 0 0 DERIVED ()) (1 0 DEFERRED () ()) (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
+POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (135
+'colourings' (DERIVED 136 0 0 0 DERIVED ()) (1 0 DEFERRED () ()) (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
+POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (137
+'periodic' (LOGICAL 4 0 0 0 LOGICAL ()) () (UNKNOWN-FL UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0
+0 0 LOGICAL ()) 0 0))) PUBLIC (() () () ()) () 0 0 2572791)
+67 'Element_type' 'elements' '' 1 ((DERIVED UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN ()) 0 0 () ()
+0 ((138 'dim' (INTEGER 4 0 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (139 'loc' (
+INTEGER 4 0 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (140 'ngi' (INTEGER 4 0 0 0
+INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
+0) UNKNOWN-ACCESS ()) (141 'degree' (INTEGER 4 0 0 0 INTEGER ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS ()) (142 'n' (REAL 8 0 0 0 REAL ()) (2 0 DEFERRED () () ()
+()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0))
+(143 'dn' (REAL 8 0 0 0 REAL ()) (3 0 DEFERRED () () () () () ()) (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
+POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (144 'n_s'
+(REAL 8 0 0 0 REAL ()) (3 0 DEFERRED () () () () () ()) (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (145 'dn_s' (REAL
+8 0 0 0 REAL ()) (4 0 DEFERRED () () () () () () () ()) (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (146 'spoly' (
+DERIVED 147 0 0 0 DERIVED ()) (2 0 DEFERRED () () () ()) (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (148 'dspoly' (
+DERIVED 147 0 0 0 DERIVED ()) (2 0 DEFERRED () () () ()) (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (149 'numbering' (
+DERIVED 150 0 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0)) (151 'quadrature' (DERIVED 68 0 0 0 DERIVED ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS (STRUCTURE (DERIVED 68 0 0 0 DERIVED ()) 0 ((() ()) (() ())
+(() ()) (() ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (
+UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) (() ()) ((NULL (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0) ()) (() ())) ())) (152 'surface_quadrature' (DERIVED 68 0
+0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0))
+(153 'superconvergence' (DERIVED 154 0 0 0 DERIVED ()) () (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS
+(NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (155 'constraints' (DERIVED 156 0
+0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0))
+(157 'refcount' (DERIVED 70 0 0 0 DERIVED ()) () (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS
+(NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (158 'name' (CHARACTER 1 0 0 0
+CHARACTER ((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '0'))) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS ())) PUBLIC (() () () ()) () 0 0 79461029)
+68 'Quadrature_type' 'quadrature' '' 1 ((DERIVED UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0 0 () () 0 ((159 'dim' (INTEGER 4 0 0 0 INTEGER ()) () (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (
+160 'degree' (INTEGER 4 0 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (161 'vertices' (
+INTEGER 4 0 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (162 'ngi' (INTEGER 4 0 0 0
+INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
+0) UNKNOWN-ACCESS ()) (163 'weight' (REAL 8 0 0 0 REAL ()) (1 0 DEFERRED
+() ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0))
+(164 'l' (REAL 8 0 0 0 REAL ()) (2 0 DEFERRED () () () ()) (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (165 'name' (
+CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '0')))
+() (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS ()) (166 'refcount' (DERIVED 70 0 0 0 DERIVED ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (167 'family' (
+INTEGER 4 0 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ())) PUBLIC (() () () ()) () 0 0
+59837722)
+70 'Refcount_type' 'reference_counting' '' 1 ((DERIVED UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0 0 () () 0 ((168 'prev' (DERIVED 70 0 0 0 DERIVED ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (169 'next' (
+DERIVED 70 0 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0)) (170 'count' (INTEGER 4 0 0 0 INTEGER ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '0')) (171 'id'
+(INTEGER 4 0 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (172 'name' (CHARACTER 1 0 0 0
+CHARACTER ((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '101'))) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS ()) (173 'type' (CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (
+INTEGER 4 0 0 0 INTEGER ()) 0 '101'))) () (UNKNOWN-FL UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (174 'tagged' (
+LOGICAL 4 0 0 0 LOGICAL ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0 0 0 LOGICAL ())
+0 0))) PUBLIC (() () () ()) () 0 0 25948645)
+76 'Vector_boundary_conditions_ptr' 'fields_data_types' '' 1 ((DERIVED
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
+0 0 0 UNKNOWN ()) 0 0 () () 0 ((175 'boundary_condition' (DERIVED 176 0
+0 0 DERIVED ()) (1 0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS (
+NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0))) PUBLIC (() () () ()) () 0 0
+84476181)
+84 'Picker_ptr' 'picker_data_types' '' 1 ((DERIVED UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0 0 () () 0 ((177 'ptr' (DERIVED 178 0 0 0 DERIVED ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0))) PUBLIC (() () ()
+()) () 0 0 71120007)
+97 'Vector_field_pointer' 'fields_data_types' '' 1 ((DERIVED
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
+0 0 0 UNKNOWN ()) 0 0 () () 0 ((179 'ptr' (DERIVED 57 0 0 0 DERIVED ())
+() (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0))) PUBLIC (() () ()
+()) () 0 0 74448721)
+99 'Tensor_field_pointer' 'fields_data_types' '' 1 ((DERIVED
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
+0 0 0 UNKNOWN ()) 0 0 () () 0 ((180 'ptr' (DERIVED 33 0 0 0 DERIVED ())
+() (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0))) PUBLIC (() () ()
+()) () 0 0 16722823)
+101 'Scalar_field_pointer' 'fields_data_types' '' 1 ((DERIVED
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
+0 0 0 UNKNOWN ()) 0 0 () () 0 ((181 'ptr' (DERIVED 182 0 0 0 DERIVED ())
+() (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0))) PUBLIC (() () ()
+()) () 0 0 54828570)
+103 'Mesh_pointer' 'fields_data_types' '' 1 ((DERIVED UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0 0 () () 0 ((183 'ptr' (DERIVED 66 0 0 0 DERIVED ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0))) PUBLIC (() () ()
+()) () 0 0 65432384)
+105 'Halo_pointer' 'halo_data_types' '' 1 ((DERIVED UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0 0 () () 0 ((184 'ptr' (DERIVED 133 0 0 0 DERIVED ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0))) PUBLIC (() () ()
+()) () 0 0 72023282)
+107 'Csr_sparsity_pointer' 'sparse_tools' '' 1 ((DERIVED UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0 0 () () 0 ((185 'ptr' (DERIVED 186 0 0 0 DERIVED ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0))) PUBLIC (() () ()
+()) () 0 0 9687815)
+109 'Csr_matrix_pointer' 'sparse_tools' '' 1 ((DERIVED UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0 0 () () 0 ((187 'ptr' (DERIVED 188 0 0 0 DERIVED ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0))) PUBLIC (() () ()
+()) () 0 0 82770239)
+111 'Block_csr_matrix_pointer' 'sparse_tools' '' 1 ((DERIVED
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
+0 0 0 UNKNOWN ()) 0 0 () () 0 ((189 'ptr' (DERIVED 190 0 0 0 DERIVED ())
+() (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0))) PUBLIC (() () ()
+()) () 0 0 83606449)
+113 'Petsc_csr_matrix_pointer' 'sparse_tools_petsc' '' 1 ((DERIVED
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
+0 0 0 UNKNOWN ()) 0 0 () () 0 ((191 'ptr' (DERIVED 192 0 0 0 DERIVED ())
+() (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0))) PUBLIC (() () ()
+()) () 0 0 85445535)
+124 'Mesh_faces' 'fields_data_types' '' 1 ((DERIVED UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0 0 () () 0 ((193 'shape' (DERIVED 67 0 0 0 DERIVED ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
+UNKNOWN-ACCESS ()) (194 'face_list' (DERIVED 188 0 0 0 DERIVED ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS (STRUCTURE (DERIVED 188 0 0 0 DERIVED ()) 0 (((STRUCTURE
+(DERIVED 186 0 0 0 DERIVED ()) 0 (((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)
+()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0) ()) (() ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) (
+(NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0) ()) ((CONSTANT (CHARACTER 1 0 0 0 CHARACTER (())) 0 101
+'                                                                                                     ')
+()) ((CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 0) ()) ((CONSTANT (
+LOGICAL 4 0 0 0 LOGICAL ()) 0 0) ())) ()) ()) ((NULL (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((
+CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 0) ()) ((CONSTANT (LOGICAL 4 0 0
+0 LOGICAL ()) 0 0) ()) (() ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ())
+((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((CONSTANT (CHARACTER 1 0 0 0
+CHARACTER (())) 0 101
+'                                                                                                     ')
+())) ())) (195 'face_lno' (INTEGER 4 0 0 0 INTEGER ()) (1 0 DEFERRED ()
+()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION POINTER) UNKNOWN-ACCESS ()) (196 'surface_mesh' (DERIVED 66 0
+0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0) UNKNOWN-ACCESS (STRUCTURE (DERIVED 66 0 0 0 DERIVED ()) 0 (
+(() ()) ((CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 1) ()) ((STRUCTURE (
+DERIVED 67 0 0 0 DERIVED ()) 0 ((() ()) (() ()) (() ()) (() ()) ((NULL (
+UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)
+()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (
+UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)
+()) ((STRUCTURE (DERIVED 68 0 0 0 DERIVED ()) 0 ((() ()) (() ()) (() ())
+(() ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0
+0 UNKNOWN ()) 0) ()) (() ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ())
+(() ())) ()) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (
+UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)
+()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) (() ())) ()) ()) (() ())
+(() ()) (() ()) (() ()) ((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '0') ())
+((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (
+UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)
+()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (
+UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)
+()) ((CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 0) ())) ())) (197
+'surface_node_list' (INTEGER 4 0 0 0 INTEGER ()) (1 0 DEFERRED () ()) (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
+POINTER) UNKNOWN-ACCESS ()) (198 'face_element_list' (INTEGER 4 0 0 0
+INTEGER ()) (1 0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS ()) (199
+'boundary_ids' (INTEGER 4 0 0 0 INTEGER ()) (1 0 DEFERRED () ()) (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
+POINTER) UNKNOWN-ACCESS ()) (200 'coplanar_ids' (INTEGER 4 0 0 0 INTEGER
+()) (1 0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0)) (201 'dg_surface_mesh' (DERIVED 66 0 0 0 DERIVED ()) ()
+(UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (202
+'has_discontinuous_internal_boundaries' (LOGICAL 4 0 0 0 LOGICAL ()) ()
+(UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 0)) (203
+'unique_surface_element_count' (INTEGER 4 0 0 0 INTEGER ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS ())) PUBLIC (() () () ()) () 0 0 11936185)
+126 'Mesh_subdomain_mesh' 'fields_data_types' '' 1 ((DERIVED
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
+0 0 0 UNKNOWN ()) 0 0 () () 0 ((204 'element_list' (INTEGER 4 0 0 0
+INTEGER ()) (1 0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS ()) (205 'node_list'
+(INTEGER 4 0 0 0 INTEGER ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
+UNKNOWN-ACCESS ())) PUBLIC (() () () ()) () 0 0 85302181)
+128 'Adjacency_cache' 'fields_data_types' '' 1 ((DERIVED UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0 0 () () 0 ((206 'nnlist' (DERIVED 186 0 0 0 DERIVED ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (207 'nelist' (
+DERIVED 186 0 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0)) (208 'eelist' (DERIVED 186 0 0 0 DERIVED ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0))) PUBLIC (() () ()
+()) () 0 0 37419158)
+133 'Halo_type' 'halo_data_types' '' 1 ((DERIVED UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0 0 () () 0 ((209 'name' (CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (
+INTEGER 4 0 0 0 INTEGER ()) 0 '101'))) () (UNKNOWN-FL UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (210 'refcount' (
+DERIVED 70 0 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0)) (211 'data_type' (INTEGER 4 0 0 0 INTEGER ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '0')) (212
+'ordering_scheme' (INTEGER 4 0 0 0 INTEGER ()) () (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (
+CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '0')) (213 'communicator' (
+INTEGER 4 0 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (214 'nprocs' (INTEGER 4 0 0 0
+INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
+0) UNKNOWN-ACCESS (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '0')) (215
+'sends' (DERIVED 216 0 0 0 DERIVED ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (217 'receives' (
+DERIVED 216 0 0 0 DERIVED ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (218 'nowned_nodes'
+(INTEGER 4 0 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (INTEGER 4 0 0 0 INTEGER ())
+0 '-1')) (219 'owners' (INTEGER 4 0 0 0 INTEGER ()) (1 0 DEFERRED () ())
+(UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
+POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (220
+'unn_count' (INTEGER 4 0 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (INTEGER 4 0
+0 0 INTEGER ()) 0 '-1')) (221 'owned_nodes_unn_base' (INTEGER 4 0 0 0
+INTEGER ()) (1 0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0
+0 0 UNKNOWN ()) 0)) (222 'my_owned_nodes_unn_base' (INTEGER 4 0 0 0
+INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
+0) UNKNOWN-ACCESS (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '-1')) (223
+'receives_gnn_to_unn' (INTEGER 4 0 0 0 INTEGER ()) (1 0 DEFERRED () ())
+(UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
+POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (224
+'gnn_to_unn' (INTEGER 4 0 0 0 INTEGER ()) (1 0 DEFERRED () ()) (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
+POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0))) PUBLIC (
+() () () ()) () 0 0 63994053)
+136 'Integer_set_vector' 'integer_set_module' '' 1 ((DERIVED
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
+0 0 0 UNKNOWN ()) 0 0 () () 0 ((225 'sets' (DERIVED 226 0 0 0 DERIVED ())
+(1 0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS ())) PUBLIC (() () () ())
+() 0 0 40688950)
+147 'Polynomial' 'polynomials' '' 1 ((DERIVED UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0 0 () () 0 ((227 'coefs' (REAL 8 0 0 0 REAL ()) (1 0 DEFERRED () ())
+(UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
+POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (228
+'degree' (INTEGER 4 0 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (INTEGER 4 0
+0 0 INTEGER ()) 0 '-1'))) PUBLIC (() () () ()) () 0 0 87989236)
+150 'Ele_numbering_type' 'element_numbering' '' 1 ((DERIVED
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
+0 0 0 UNKNOWN ()) 0 0 () () 0 ((229 'faces' (INTEGER 4 0 0 0 INTEGER ())
+() (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS ()) (230 'vertices' (INTEGER 4 0 0 0 INTEGER ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS ()) (231 'edges' (INTEGER 4 0 0 0 INTEGER ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS ()) (232 'boundaries' (INTEGER 4 0 0 0 INTEGER ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS ()) (233 'degree' (INTEGER 4 0 0 0 INTEGER ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS ()) (234 'dimension' (INTEGER 4 0 0 0 INTEGER ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS ()) (235 'nodes' (INTEGER 4 0 0 0 INTEGER ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS ()) (236 'type' (INTEGER 4 0 0 0 INTEGER ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1')) (237
+'family' (INTEGER 4 0 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (238 'count2number'
+(INTEGER 4 0 0 0 INTEGER ()) (3 0 DEFERRED () () () () () ()) (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
+POINTER) UNKNOWN-ACCESS ()) (239 'number2count' (INTEGER 4 0 0 0 INTEGER
+()) (2 0 DEFERRED () () () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS ()) (240
+'boundary_coord' (INTEGER 4 0 0 0 INTEGER ()) (1 0 DEFERRED () ()) (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
+POINTER) UNKNOWN-ACCESS ()) (241 'boundary_val' (INTEGER 4 0 0 0 INTEGER
+()) (1 0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS ())) PUBLIC (() () () ())
+() 0 0 96431082)
+154 'Superconvergence_type' 'elements' '' 1 ((DERIVED UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0 0 () () 0 ((242 'nsp' (INTEGER 4 0 0 0 INTEGER ()) () (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (
+243 'l' (REAL 8 0 0 0 REAL ()) (2 0 DEFERRED () () () ()) (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
+UNKNOWN-ACCESS ()) (244 'n' (REAL 8 0 0 0 REAL ()) (2 0 DEFERRED () () ()
+()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION POINTER) UNKNOWN-ACCESS ()) (245 'dn' (REAL 8 0 0 0 REAL ()) (
+3 0 DEFERRED () () () () () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS ())) PUBLIC (() ()
+() ()) () 0 0 18282395)
+156 'Constraints_type' 'elements' '' 1 ((DERIVED UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0 0 () () 0 ((246 'type' (INTEGER 4 0 0 0 INTEGER ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS ()) (247 'dim' (INTEGER 4 0 0 0 INTEGER ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS ()) (248 'degree' (INTEGER 4 0 0 0 INTEGER ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS ()) (249 'loc' (INTEGER 4 0 0 0 INTEGER ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS ()) (250 'n_constraints' (INTEGER 4 0 0 0 INTEGER ()) ()
+(UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS ()) (251 'orthogonal' (REAL 8 0 0 0 REAL ()) (3 0
+DEFERRED () () () () () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0
+0 0 UNKNOWN ()) 0))) PUBLIC (() () () ()) () 0 0 57548971)
+176 'Vector_boundary_condition' 'fields_data_types' '' 1 ((DERIVED
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
+0 0 0 UNKNOWN ()) 0 0 () () 0 ((252 'name' (CHARACTER 1 0 0 0 CHARACTER
+((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '101'))) () (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (
+253 'type' (CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 0
+INTEGER ()) 0 '101'))) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (CHARACTER 1 0 0 0
+CHARACTER (())) 0 101
+'                                                                                                     '))
+(254 'applies' (LOGICAL 4 0 0 0 LOGICAL ()) (1 0 EXPLICIT (CONSTANT (
+INTEGER 4 0 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 0 INTEGER ())
+0 '3')) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION) UNKNOWN-ACCESS ()) (255 'surface_element_list' (INTEGER 4 0 0
+0 INTEGER ()) (1 0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS (
+NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (256 'surface_node_list' (INTEGER
+4 0 0 0 INTEGER ()) (1 0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS (
+NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (257 'surface_mesh' (DERIVED 66 0
+0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS ()) (258 'surface_fields' (DERIVED
+57 0 0 0 DERIVED ()) (1 0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS (
+NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (259 'scalar_surface_fields' (
+DERIVED 182 0 0 0 DERIVED ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (260 'option_path'
+(CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0
+'8192'))) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS ())) PUBLIC (() () () ()) () 0 0 42205165)
+178 'Picker_type' 'picker_data_types' '' 1 ((DERIVED UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0 0 () () 0 ((261 'name' (CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (
+INTEGER 4 0 0 0 INTEGER ()) 0 '101'))) () (UNKNOWN-FL UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (262 'refcount' (
+DERIVED 70 0 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0)) (263 'picker_id' (INTEGER 4 0 0 0 INTEGER ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '0')) (264
+'last_mesh_movement' (INTEGER 4 0 0 0 INTEGER ()) () (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (
+CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '0'))) PUBLIC (() () () ()) () 0
+0 8821665)
+182 'Scalar_field' 'fields_data_types' '' 1 ((DERIVED UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0 0 () () 0 ((265 'val' (REAL 8 0 0 0 REAL ()) (1 0 DEFERRED () ())
+(UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
+POINTER) UNKNOWN-ACCESS ()) (266 'val_stride' (INTEGER 4 0 0 0 INTEGER ())
+() (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1')) (267
+'wrapped' (LOGICAL 4 0 0 0 LOGICAL ()) () (UNKNOWN-FL UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0
+0 0 LOGICAL ()) 0 1)) (268 'field_type' (INTEGER 4 0 0 0 INTEGER ()) ()
+(UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '0')) (269 'bc'
+(DERIVED 270 0 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT
 UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN
-0 0 0 UNKNOWN ()) 0)) (340 'name' (CHARACTER 1 0 0 CHARACTER ((CONSTANT
-(INTEGER 4 0 0 INTEGER ()) 0 '101'))) () (UNKNOWN-FL UNKNOWN-INTENT
+0 0 0 0 UNKNOWN ()) 0)) (271 'name' (CHARACTER 1 0 0 0 CHARACTER ((
+CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '101'))) () (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (
+272 'option_path' (CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0
+0 INTEGER ()) 0 '8192'))) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (273 'mesh' (DERIVED 66 0 0 0
+DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
+0) UNKNOWN-ACCESS (STRUCTURE (DERIVED 66 0 0 0 DERIVED ()) 0 ((() ()) (
+(CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 1) ()) ((STRUCTURE (DERIVED 67
+0 0 0 DERIVED ()) 0 ((() ()) (() ()) (() ()) (() ()) ((NULL (UNKNOWN 0 0
+0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((
+NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0
+0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((
+STRUCTURE (DERIVED 68 0 0 0 DERIVED ()) 0 ((() ()) (() ()) (() ()) (() ())
+((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0) ()) (() ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) (
+() ())) ()) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (
+UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)
+()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) (() ())) ()) ()) (() ())
+(() ()) (() ()) (() ()) ((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '0') ())
+((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (
+UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)
+()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (
+UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)
+()) ((CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 0) ())) ())) (274 'refcount'
+(DERIVED 70 0 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0)) (275 'aliased' (LOGICAL 4 0 0 0 LOGICAL ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 0)) (276
+'py_locweight' (REAL 8 0 0 0 REAL ()) (2 0 DEFERRED () () () ()) (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
+POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (277
+'py_func' (CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 0
+INTEGER ()) 0 '8192'))) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (278 'py_positions' (DERIVED 57
+0 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS ()) (279 'py_positions_same_mesh' (
+LOGICAL 4 0 0 0 LOGICAL ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (280 'py_dim' (INTEGER 4 0 0 0
+INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
+0) UNKNOWN-ACCESS ()) (281 'py_positions_shape' (DERIVED 67 0 0 0
+DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
+0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0))) PUBLIC
+(() () () ()) () 0 0 64912956)
+186 'Csr_sparsity' 'sparse_tools' '' 1 ((DERIVED UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0 0 () () 0 ((282 'findrm' (INTEGER 4 0 0 0 INTEGER ()) (1 0
+DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN
+0 0 DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ())
+0)) (283 'centrm' (INTEGER 4 0 0 0 INTEGER ()) (1 0 DEFERRED () ()) (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
+POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (284 'colm'
+(INTEGER 4 0 0 0 INTEGER ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (285 'columns' (
+INTEGER 4 0 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (286 'row_halo' (DERIVED 133 0 0
+0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN
+0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (287
+'column_halo' (DERIVED 133 0 0 0 DERIVED ()) () (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS
+(NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (288 'refcount' (DERIVED 70 0 0 0
+DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
+0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (289
+'name' (CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 0 INTEGER
+()) 0 '101'))) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (CHARACTER 1 0 0 0 CHARACTER (()))
+0 101
+'                                                                                                     '))
+(290 'wrapped' (LOGICAL 4 0 0 0 LOGICAL ()) () (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (
+CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 0)) (291 'sorted_rows' (LOGICAL
+4 0 0 0 LOGICAL ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 0)))
+PUBLIC (() () () ()) () 0 0 78882345)
+188 'Csr_matrix' 'sparse_tools' '' 1 ((DERIVED UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0 0 () () 0 ((292 'sparsity' (DERIVED 186 0 0 0 DERIVED ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS (STRUCTURE (DERIVED 186 0 0 0 DERIVED ()) 0 (((NULL (
+UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)
+()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) (() ()) ((NULL (UNKNOWN 0
+0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((
+NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((CONSTANT (CHARACTER 1 0 0 0
+CHARACTER (())) 0 101
+'                                                                                                     ')
+()) ((CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 0) ()) ((CONSTANT (
+LOGICAL 4 0 0 0 LOGICAL ()) 0 0) ())) ())) (293 'val' (REAL 8 0 0 0 REAL
+()) (1 0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0)) (294 'ival' (INTEGER 4 0 0 0 INTEGER ()) (1 0 DEFERRED ()
+()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0))
+(295 'clone' (LOGICAL 4 0 0 0 LOGICAL ()) () (UNKNOWN-FL UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0
+0 0 LOGICAL ()) 0 0)) (296 'external_val' (LOGICAL 4 0 0 0 LOGICAL ()) ()
+(UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 0)) (297
+'inactive' (DERIVED 298 0 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS ()) (299 'ksp'
+(INTEGER 8 0 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0)) (300 'refcount' (DERIVED 70 0 0 0 DERIVED ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (301 'name' (
+CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0
+'101'))) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS (CONSTANT (CHARACTER 1 0 0 0 CHARACTER (())) 0 101
+'                                                                                                     ')))
+PUBLIC (() () () ()) () 0 0 66371681)
+190 'Block_csr_matrix' 'sparse_tools' '' 1 ((DERIVED UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0 0 () () 0 ((302 'sparsity' (DERIVED 186 0 0 0 DERIVED ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS (STRUCTURE (DERIVED 186 0 0 0 DERIVED ()) 0 (((NULL (
+UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)
+()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) (() ()) ((NULL (UNKNOWN 0
+0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((
+NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((CONSTANT (CHARACTER 1 0 0 0
+CHARACTER (())) 0 101
+'                                                                                                     ')
+()) ((CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 0) ()) ((CONSTANT (
+LOGICAL 4 0 0 0 LOGICAL ()) 0 0) ())) ())) (303 'val' (DERIVED 304 0 0 0
+DERIVED ()) (2 0 DEFERRED () () () ()) (UNKNOWN-FL UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS (
+NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (305 'contiguous_val' (REAL 8 0 0
+0 REAL ()) (1 0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0
+0 0 UNKNOWN ()) 0)) (306 'ival' (DERIVED 216 0 0 0 DERIVED ()) (2 0
+DEFERRED () () () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0)) (307 'blocks' (INTEGER 4 0 0 0 INTEGER ()) (1 0 EXPLICIT
+(CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 0
+INTEGER ()) 0 '2')) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 DIMENSION) UNKNOWN-ACCESS (ARRAY (INTEGER 4 0 0 0 INTEGER ())
+1 (((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '0') ()) ((CONSTANT (
+INTEGER 4 0 0 0 INTEGER ()) 0 '0') ())) ('2'))) (308 'clone' (LOGICAL 4
+0 0 0 LOGICAL ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 0))
+(309 'external_val' (LOGICAL 4 0 0 0 LOGICAL ()) () (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (
+CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 0)) (310 'columns' (INTEGER 4 0
+0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0) UNKNOWN-ACCESS ()) (311 'refcount' (DERIVED 70 0 0 0
+DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
+0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (312
+'name' (CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 0 INTEGER
+()) 0 '101'))) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (CHARACTER 1 0 0 0 CHARACTER (()))
+0 101
+'                                                                                                     '))
+(313 'diagonal' (LOGICAL 4 0 0 0 LOGICAL ()) () (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (
+CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 0)) (314 'equal_diagonal_blocks'
+(LOGICAL 4 0 0 0 LOGICAL ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (LOGICAL 4 0 0 0 LOGICAL ())
+0 0)) (315 'ksp' (INTEGER 8 0 0 0 INTEGER ()) () (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS
+(NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0))) PUBLIC (() () () ()) () 0 0
+61921235)
+192 'Petsc_csr_matrix' 'sparse_tools_petsc' '' 1 ((DERIVED
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
+0 0 0 UNKNOWN ()) 0 0 () () 0 ((316 'm' (INTEGER 8 0 0 0 INTEGER ()) ()
+(UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS ()) (317 'row_numbering' (DERIVED 318 0 0 0 DERIVED ()) ()
+(UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS (STRUCTURE (DERIVED 318 0 0 0 DERIVED ()) 0 (((NULL (
+UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) (() ()) (() ()) (() ()) (() ()) ((
+NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((CONSTANT (
+CHARACTER 1 0 0 0 CHARACTER (())) 0 101
+'                                                                                                     ')
+())) ())) (319 'column_numbering' (DERIVED 318 0 0 0 DERIVED ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS (STRUCTURE (DERIVED 318 0 0 0 DERIVED ()) 0 (((NULL (
+UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) (() ()) (() ()) (() ()) (() ()) ((
+NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0) ()) ((NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0) ()) ((CONSTANT (
+CHARACTER 1 0 0 0 CHARACTER (())) 0 101
+'                                                                                                     ')
+())) ())) (320 'row_halo' (DERIVED 133 0 0 0 DERIVED ()) () (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS
+(NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (321 'column_halo' (DERIVED 133 0
+0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0))
+(322 'refcount' (DERIVED 70 0 0 0 DERIVED ()) () (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS
+(NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (323 'name' (CHARACTER 1 0 0 0
+CHARACTER ((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '101'))) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS (CONSTANT (CHARACTER 1 0 0 0 CHARACTER (())) 0 101
+'                                                                                                     '))
+(324 'is_assembled' (LOGICAL 4 0 0 0 LOGICAL ()) () (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (
+CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 0))) PUBLIC (() () () ()) () 0 0
+75554753)
+216 'Integer_vector' 'futils' '' 1 ((DERIVED UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN ()) 0 0 () ()
+0 ((325 'ptr' (INTEGER 4 0 0 0 INTEGER ()) (1 0 DEFERRED () ()) (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
+POINTER) UNKNOWN-ACCESS ())) PUBLIC (() () () ()) () 0 0 9661976)
+226 'Integer_set' 'integer_set_module' '' 1 ((DERIVED UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) (UNKNOWN 0 0 0 0 UNKNOWN ()) 0 0 () ()
+0 ((326 'address' (DERIVED 327 0 0 0 DERIVED ()) () (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()))
+PUBLIC (() () () ()) () 0 0 67217964)
+270 'Scalar_boundary_conditions_ptr' 'fields_data_types' '' 1 ((DERIVED
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
+0 0 0 UNKNOWN ()) 0 0 () () 0 ((328 'boundary_condition' (DERIVED 329 0
+0 0 DERIVED ()) (1 0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS (
+NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0))) PUBLIC (() () () ()) () 0 0
+47502942)
+298 'Logical_array_ptr' 'sparse_tools' '' 1 ((DERIVED UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0 0 () () 0 ((330 'ptr' (LOGICAL 4 0 0 0 LOGICAL ()) (1 0 DEFERRED ()
+()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)))
+PUBLIC (() () () ()) () 0 0 30974511)
+304 'Real_vector' 'futils' '' 1 ((DERIVED UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN ()) 0 0 () ()
+0 ((331 'ptr' (REAL 8 0 0 0 REAL ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
+UNKNOWN-ACCESS ())) PUBLIC (() () () ()) () 0 0 72870256)
+318 'Petsc_numbering_type' 'petsc_tools' '' 1 ((DERIVED UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0 0 () () 0 ((332 'halo' (DERIVED 133 0 0 0 DERIVED ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (333 'nprivatenodes'
+(INTEGER 4 0 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (334 'universal_length' (
+INTEGER 4 0 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (335 'offset' (INTEGER 4 0 0 0
+INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
+0) UNKNOWN-ACCESS ()) (336 'gnn2unn' (INTEGER 4 0 0 0 INTEGER ()) (2 0
+DEFERRED () () () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS ()) (337 'ghost_nodes' (
+INTEGER 4 0 0 0 INTEGER ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (338 'ghost2unn' (
+INTEGER 4 0 0 0 INTEGER ()) (2 0 DEFERRED () () () ()) (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
+UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (339 'refcount' (
+DERIVED 70 0 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0)) (340 'name' (CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (
+INTEGER 4 0 0 0 INTEGER ()) 0 '101'))) () (UNKNOWN-FL UNKNOWN-INTENT
 UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (CHARACTER 1
-0 0 CHARACTER (())) 0 101
+0 0 0 CHARACTER (())) 0 101
 '                                                                                                     ')))
 PUBLIC (() () () ()) () 0 0 16529124)
-317 'scalar_boundary_condition' 'fields_data_types'
-'scalar_boundary_condition' 1 ((DERIVED UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0
-((341 'name' (CHARACTER 1 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0
+327 'C_ptr' '__iso_c_binding' '' 1 ((DERIVED UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 IS_BIND_C IS_C_INTEROP IS_ISO_C) (DERIVED 327 0 1 1
+UNKNOWN ()) 0 0 () () 0 ((341 '__c_ptr_c_address' (INTEGER 8 0 1 0
+INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
+0) UNKNOWN-ACCESS ())) UNKNOWN-ACCESS () () 2 42 0)
+329 'Scalar_boundary_condition' 'fields_data_types' '' 1 ((DERIVED
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
+0 0 0 UNKNOWN ()) 0 0 () () 0 ((342 'name' (CHARACTER 1 0 0 0 CHARACTER
+((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '101'))) () (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (
+343 'type' (CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 0
 INTEGER ()) 0 '101'))) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (342 'type' (CHARACTER 1 0 0
-CHARACTER ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '101'))) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS (CONSTANT (CHARACTER 1 0 0 CHARACTER (())) 0 101
+UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (CHARACTER 1 0 0 0
+CHARACTER (())) 0 101
 '                                                                                                     '))
-(343 'surface_element_list' (INTEGER 4 0 0 INTEGER ()) (1 0 DEFERRED ()
+(344 'surface_element_list' (INTEGER 4 0 0 0 INTEGER ()) (1 0 DEFERRED ()
 ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (
-344 'surface_node_list' (INTEGER 4 0 0 INTEGER ()) (1 0 DEFERRED () ())
+DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0))
+(345 'surface_node_list' (INTEGER 4 0 0 0 INTEGER ()) (1 0 DEFERRED () ())
 (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
-POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (345
-'surface_mesh' (DERIVED 56 0 0 DERIVED ()) () (UNKNOWN-FL UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS ()) (346
-'surface_fields' (DERIVED 214 0 0 DERIVED ()) (1 0 DEFERRED () ()) (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
-POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)) (347
-'option_path' (CHARACTER 1 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0
-INTEGER ()) 0 '8192'))) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (CONSTANT (CHARACTER 1 0 0 CHARACTER
-(())) 0 8192
-'/uninitialised_path/                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ')))
-PUBLIC (() () () ()) () 0 0 50740068)
+POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0)) (346
+'surface_mesh' (DERIVED 66 0 0 0 DERIVED ()) () (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER) UNKNOWN-ACCESS
+()) (347 'surface_fields' (DERIVED 182 0 0 0 DERIVED ()) (1 0 DEFERRED ()
+()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 0 UNKNOWN ()) 0))
+(348 'option_path' (CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (INTEGER 4 0
+0 0 INTEGER ()) 0 '8192'))) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ())) PUBLIC (() () () ()) () 0 0
+50740068)
 )
 
 ('adapt_mesh' 0 21 'adapt_state_first_timestep' 0 28

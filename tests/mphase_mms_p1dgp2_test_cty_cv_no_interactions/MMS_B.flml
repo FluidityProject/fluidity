@@ -147,6 +147,7 @@
           <discontinuous_galerkin>
             <viscosity_scheme>
               <bassi_rebay/>
+              <tensor_form/>
             </viscosity_scheme>
             <advection_scheme>
               <upwind/>
@@ -473,6 +474,7 @@ mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) + p_y - nu*v_xx - nu
           <discontinuous_galerkin>
             <viscosity_scheme>
               <bassi_rebay/>
+              <tensor_form/>
             </viscosity_scheme>
             <advection_scheme>
               <upwind/>

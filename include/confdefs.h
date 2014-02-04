@@ -26,16 +26,16 @@
 #define HAVE_LIBPTHREAD 1
 #define HAVE_LIBUDUNITS 1
 #define USING_GFORTRAN 1
-#define DDEBUG 1
+#define NDEBUG 1
 #define HAVE_MPI 1
 #define HAVE_MPI_CXX 1
 #define _MPI_CPP_BINDINGS 1
 #define HAVE_LIBNETCDF 1
-#define HAVE_NETCDF 1
 #define HAVE_LIBNETCDFF 1
-#define HAVE_PARMETIS 1
+#define HAVE_LIBMETIS 1
+#define HAVE_LIBPARMETIS 1
 #define HAVE_ZOLTAN 1
-#define HAVE_PETSC_MODULES 1
+#define HAVE_ADJOINT 1
 #define HAVE_PETSC 1
 #define HAVE_HYPRE 1
 #define DOUBLEP 1
@@ -45,7 +45,6 @@
 #define SIZEOF_VOID_P 8
 #define HAVE_JUDY 1
 #define HAVE_SPUD 1
-#define HAVE_LIBARPACK 1
 #define HAVE_LIBDL 1
 #define HAVE_LIBVTKSYS 1
 #define HAVE_LIBVTKCOMMON 1
@@ -53,4 +52,3 @@
 #define HAVE_LIBVTKGRAPHICS 1
 #define HAVE_LIBVTKIO 1
 #define HAVE_MBA_2D 1
-#define HAVE_MEMORY_STATS 1

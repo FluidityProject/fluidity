@@ -223,7 +223,7 @@ assert abs(material3integralstart-material3integralend) &lt; max(abs(divergencem
     </test>
     <test name="check that reasonable tolerance is being used to test conservation" language="python">
 print 'divergence tolerance = ', max(abs(divergencemaxstart), abs(divergencemaxend), abs(divergenceminstart), abs(divergenceminend))
-assert max(abs(divergencemaxstart), abs(divergencemaxend), abs(divergenceminstart), abs(divergenceminend)) &lt; 2.E-8    
+assert max(abs(divergencemaxstart), abs(divergencemaxend), abs(divergenceminstart), abs(divergenceminend)) &lt; 4.E-8    
     </test>
     <test name="check material1 max bound was conserved" language="python">
 assert abs(material1maxstart-material1maxend) &lt; 1.E-10
@@ -238,16 +238,16 @@ assert abs(material1minstart-material1minend) &lt; 1.E-10
 assert abs(material3minstart-material3minend) &lt; 1.E-10
     </test>
     <test name="check initial max divergence was zero" language="python">
-assert abs(divergencemaxstart) &lt; 2.E-8
+assert abs(divergencemaxstart) &lt; 4.E-8
     </test>
     <test name="check initial min divergence was zero" language="python">
-assert abs(divergenceminstart) &lt; 2.E-8
+assert abs(divergenceminstart) &lt; 4.E-8
     </test>
     <test name="check final max divergence was zero" language="python">
-assert abs(divergencemaxend) &lt; 2.E-8
+assert abs(divergencemaxend) &lt; 4.E-8
     </test>
     <test name="check final min divergence was zero" language="python">
-assert abs(divergenceminend) &lt; 2.E-8
+assert abs(divergenceminend) &lt; 4.E-8
     </test>
     <test name="check initial max cfl was 0.1" language="python">
 assert abs(cflmaxstart-0.1) &lt; 1.E-10

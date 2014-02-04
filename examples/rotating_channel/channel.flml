@@ -12,7 +12,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="channel">
-        <format name="gmsh"/>
+        <format name="triangle"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -176,6 +176,7 @@
           <discontinuous_galerkin>
             <viscosity_scheme>
               <compact_discontinuous_galerkin/>
+              <tensor_form/>
             </viscosity_scheme>
             <advection_scheme>
               <upwind/>

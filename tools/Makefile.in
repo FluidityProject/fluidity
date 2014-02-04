@@ -54,6 +54,7 @@ VTKDIAGNOSTIC = ../bin/vtkdiagnostic
 FLDIAGNOSTICS = ../bin/fldiagnostics
 STREAMFUNCTION_2D = ../bin/streamfunction_2d
 FLREDECOMP = ../bin/flredecomp
+MESHCONV = ../bin/meshconv
 TEST_LAPLACIAN= ../bin/test_laplacian
 TEST_LAPLACIAN_VECTOR= ../bin/test_laplacian_vector
 VISUALISE_ELEMENTS= ../bin/visualise_elements
@@ -83,7 +84,7 @@ BINARIES = $(DRAWTIMNEW) $(MAKTIMUNIFORM) $(VTKDIAGNOSTIC)		\
   $(VERTICAL_INTEGRATION) $(EVMERGE) $(FLADAPT) $(CHECKMESH)		\
   $(PROJECT_VTU) $(PROBE_VTU) $(SUPERMESH_DIFFERENCE)			\
   $(DIFFERENTIATE_VTU) $(VTU_BINS) $(TRIANGLE2VTU)			\
-  $(PROJECT_TO_CONTINUOUS) 						\
+  $(PROJECT_TO_CONTINUOUS) $(MESHCONV)				\
   $(TEST_PRESSURE_SOLVE) $(UNIFIEDMESH) $(VTKPROJECTION) $(PERIODISE)	\
   $(TEST_TRACE_SPACE) $(STREAMFUNCTION_2D) $(TEST_TRACE_SPACE)		\
   $(TEST_LAPLACIAN) 
@@ -109,10 +110,12 @@ endif
 default: $(BINARIES) scripts
 
 scripts:
+	mkdir -p ../bin
 	for i in *.py ; do cp $$i ../bin/`basename $$i .py` ; done
 	for i in *.sh ; do cp $$i ../bin/`basename $$i .sh` ; done
 
 install-version-info: version-info
+	@mkdir -p ../bin
 	@chmod +x $<
 	@cp $< ../bin/$<
 
@@ -185,6 +188,9 @@ $(STREAMFUNCTION_2D): Streamfunction_2D.o Streamfunction_2D_main.o lib/
 $(FLREDECOMP): Flredecomp.o Flredecomp_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
+$(MESHCONV): Meshconv.o Meshconv_main.o lib/
+	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+
 $(CHECKMESH): Checkmesh.o Checkmesh_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
@@ -213,6 +219,9 @@ clean:
 	rm -f *.o *.mod
 	rm -rf build dist fluidity.egg-info 
 	rm -f lib
+
+distclean:
+	rm -f version-info
 
 $(TEST_TRACE_SPACE): Test_Trace_Space.o lib/
 	$(FLLINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)

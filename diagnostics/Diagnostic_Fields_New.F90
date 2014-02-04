@@ -38,19 +38,19 @@ module diagnostic_fields_new
   use state_module
 
   use surface_diagnostics
-  use momentum_diagnostics
-  use mass_matrix_diagnostics
-  use mesh_diagnostics
   use field_copies_diagnostics
+  use python_diagnostics
   use tidal_diagnostics
-  use adjoint_functionals
-  use differential_operator_diagnostics
+  use multiphase_diagnostics
   use simple_diagnostics
   use parallel_diagnostics
+  use momentum_diagnostics
+  use adjoint_functionals
   use binary_operators
-  use multiphase_diagnostics
+  use mass_matrix_diagnostics
+  use differential_operator_diagnostics
   use metric_diagnostics
-  use python_diagnostics
+  use mesh_diagnostics
 
   
   implicit none
@@ -314,7 +314,7 @@ contains
         call calculate_dependencies(states, i, s_field, &
           & dep_states_mask = calculated_states, exclude_nonrecalculated = exclude_nonrecalculated)
         ! Calculate the diagnostic
-        ewrite(2, *) "Calculating diagnostic field: " // trim(s_field%name)
+        ewrite(2, *) "Calculating diagnostic field: "//trim(states(i)%name)//"::"//trim(s_field%name)
         call calculate_diagnostic_variable(states, i, s_field)
         ! Mark the field as calculated
         call insert(calculated_states(i), s_field, s_field%name)
@@ -334,7 +334,7 @@ contains
         call calculate_dependencies(states, i, v_field, &
           & dep_states_mask = calculated_states, exclude_nonrecalculated = exclude_nonrecalculated)
         ! Calculate the diagnostic
-        ewrite(2, *) "Calculating diagnostic field: " // trim(v_field%name)
+        ewrite(2, *) "Calculating diagnostic field: "//trim(states(i)%name)//"::"//trim(v_field%name)
         call calculate_diagnostic_variable(states, i, v_field)
         ! Mark the field as calculated
         call insert(calculated_states(i), v_field, v_field%name)
@@ -354,7 +354,7 @@ contains
         call calculate_dependencies(states, i, t_field, &
           & dep_states_mask = calculated_states, exclude_nonrecalculated = exclude_nonrecalculated)
         ! Calculate the diagnostic
-        ewrite(2, *) "Calculating diagnostic field: " // trim(t_field%name)
+        ewrite(2, *) "Calculating diagnostic field: "//trim(states(i)%name)//"::"//trim(t_field%name)
         call calculate_diagnostic_variable(states, i, t_field)
         ! Mark the field as calculated
         call insert(calculated_states(i), t_field, t_field%name)
@@ -493,11 +493,11 @@ contains
         if(has_scalar_field(dep_states_mask(i), dep_s_field%name)) cycle
         
         ! Calculate dependencies
-        call calculate_dependencies(states, state_index, dep_s_field, &
+        call calculate_dependencies(states, i, dep_s_field, &
           & dep_states_mask = dep_states_mask, exclude_nonrecalculated = exclude_nonrecalculated)
         ! Calculate the diagnostic
         ewrite(2, *) "Calculating diagnostic field dependency: " // trim(dep_s_field%name)
-        call calculate_diagnostic_variable(states, state_index, dep_s_field)
+        call calculate_diagnostic_variable(states, i, dep_s_field)
       end do
       
       do j = 1, vector_field_count(dep_states(i))
@@ -509,11 +509,11 @@ contains
         if(has_vector_field(dep_states_mask(i), dep_v_field%name)) cycle
         
         ! Calculate dependencies
-        call calculate_dependencies(states, state_index, dep_v_field, &
+        call calculate_dependencies(states, i, dep_v_field, &
           & dep_states_mask = dep_states_mask, exclude_nonrecalculated = exclude_nonrecalculated)
         ! Calculate the diagnostic
         ewrite(2, *) "Calculating diagnostic field dependency: " // trim(dep_v_field%name)
-        call calculate_diagnostic_variable(states, state_index, dep_v_field)
+        call calculate_diagnostic_variable(states, i, dep_v_field)
       end do
       
       do j = 1, tensor_field_count(dep_states(i))
@@ -525,11 +525,11 @@ contains
         if(has_tensor_field(dep_states_mask(i), dep_t_field%name)) cycle
 
         ! Calculate dependencies
-        call calculate_dependencies(states, state_index, dep_t_field, &
+        call calculate_dependencies(states, i, dep_t_field, &
           & dep_states_mask = dep_states_mask, exclude_nonrecalculated = exclude_nonrecalculated)
         ! Calculate the diagnostic
         ewrite(2, *) "Calculating diagnostic field dependency: " // trim(dep_t_field%name)
-        call calculate_diagnostic_variable(states, state_index, dep_t_field)
+        call calculate_diagnostic_variable(states, i, dep_t_field)
       end do
     end do
     
@@ -603,9 +603,11 @@ contains
     !! has already been calculated or referenced for calculation
     type(state_type), dimension(size(states)), optional, intent(in) :: dep_states_mask
     
-    character(len = FIELD_NAME_LEN), dimension(:), allocatable :: dependencies, split_dependency
-    character(len = OPTION_PATH_LEN) :: base_path, depends
-    integer :: i, j, lstate_index, stat
+    character(len = FIELD_NAME_LEN), dimension(:), allocatable :: dependencies, split_dependency, split_algorithm_path
+    character(len = OPTION_PATH_LEN) :: base_path, depends, material_phase_support, material_phase_support_path
+    integer :: i, j, k, lstate_index, stat
+    integer, dimension(:), allocatable :: state_indices
+    logical :: field_found
     type(scalar_field), pointer :: dep_s_field
     type(tensor_field), pointer :: dep_t_field
     type(vector_field), pointer :: dep_v_field
@@ -622,9 +624,28 @@ contains
         call tokenize(trim(dependencies(j)), split_dependency, "::")
         select case(size(split_dependency))
           case(1)
-            ! Single state dependency
-            assert(state_index > 0 .and. state_index <= size(states))
-            lstate_index = state_index
+            ! First, work out the path to the material_phase_support attribute
+            call tokenize(trim(depend_paths(i)), split_algorithm_path, "/")
+            material_phase_support_path = trim(base_path)
+            do k = 1, size(split_algorithm_path)-1
+              material_phase_support_path = trim(material_phase_support_path)//"/"//trim(split_algorithm_path(k))
+            end do
+            deallocate(split_algorithm_path)
+            ! Then, try to get it
+            call get_option(trim(material_phase_support_path) // "/material_phase_support", material_phase_support, stat = stat)
+            ! Assume we're not supporting multiple phases if it's not found
+            if(stat /= SPUD_NO_ERROR) material_phase_support = "single"
+            ! But if we're explicitely stated as covering multiple material_phases then list all states to be checked for dependencies
+            if (material_phase_support == "multiple") then
+              allocate(state_indices(size(states)))
+              do k = 1, size(states)
+                state_indices(k) = k
+              end do
+            ! Otherwise only check this state for the dependency
+            else 
+              allocate(state_indices(1))
+              state_indices(1) = state_index
+            end if
           case(2)
             ! Multiple state dependency
             lstate_index = 1
@@ -635,82 +656,91 @@ contains
               ewrite(-1, *) "For dependency " // trim(dependencies(j))
               FLAbort("State named " // trim(split_dependency(1)) // " not found")
             end if
+            allocate(state_indices(1))
+            state_indices(1) = lstate_index
           case default
             ewrite(-1, *) "For dependency " // trim(dependencies(j))
             FLAbort("Invalid dependency")
         end select
         
-        if(has_scalar_field(states(lstate_index), split_dependency(size(split_dependency)))) then
-          if(present(parent_states)) then
-            ! We've been given a list of parent fields, so let's check for
-            ! circular dependencies
-            if(has_scalar_field(parent_states(lstate_index), split_dependency(size(split_dependency)))) then
-              ewrite(-1, *) "For dependency " // trim(dependencies(j))
-              FLAbort("Circular dependency")
+        field_found = .false.
+        do k = 1, size(state_indices)
+          lstate_index = state_indices(k)
+          if(has_scalar_field(states(lstate_index), split_dependency(size(split_dependency)))) then
+            field_found = .true.
+            if(present(parent_states)) then
+              ! We've been given a list of parent fields, so let's check for
+              ! circular dependencies
+              if(has_scalar_field(parent_states(lstate_index), split_dependency(size(split_dependency)))) then
+                ewrite(-1, *) "For dependency " // trim(dependencies(j))
+                FLAbort("Circular dependency")
+              end if
+            end if
+            if(present(dep_states_mask)) then
+              if(has_scalar_field(dep_states_mask(lstate_index), trim(split_dependency(size(split_dependency))))) then
+                ! We've already found this dependency
+                cycle
+              end if
+            end if
+            
+            ! We have a new dependency - reference it
+            dep_s_field => extract_scalar_field(states(lstate_index), split_dependency(size(split_dependency)))
+            if(have_option(trim(dep_s_field%option_path) // "/diagnostic")) then
+              call insert(dep_states(lstate_index), dep_s_field, split_dependency(size(split_dependency)))
+            end if
+          else if(has_vector_field(states(lstate_index), split_dependency(size(split_dependency)))) then
+            field_found = .true.
+            if(present(parent_states)) then
+              ! We've been given a list of parent fields, so let's check for
+              ! circular dependencies
+              if(has_vector_field(parent_states(lstate_index), split_dependency(size(split_dependency)))) then
+                ewrite(-1, *) "For dependency " // trim(dependencies(j))
+                FLAbort("Circular dependency")
+              end if
+            end if
+            if(present(dep_states_mask)) then
+              if(has_vector_field(dep_states_mask(lstate_index), trim(split_dependency(size(split_dependency))))) then
+                ! We've already found this dependency
+                cycle
+              end if
+            end if
+            
+            ! We have a new dependency - reference it
+            dep_v_field => extract_vector_field(states(lstate_index), split_dependency(size(split_dependency)))
+            if(have_option(trim(dep_v_field%option_path) // "/diagnostic")) then
+              call insert(dep_states(lstate_index), dep_v_field, split_dependency(size(split_dependency)))
+            end if
+          else if(has_tensor_field(states(lstate_index), split_dependency(size(split_dependency)))) then
+            field_found = .true.
+            if(present(parent_states)) then
+              ! We've been given a list of parent fields, so let's check for
+              ! circular dependencies
+              if(has_tensor_field(parent_states(lstate_index), split_dependency(size(split_dependency)))) then
+                ewrite(-1, *) "For dependency " // trim(dependencies(j))
+                FLAbort("Circular dependency")
+              end if
+            end if
+            if(present(dep_states_mask)) then
+              if(has_tensor_field(dep_states_mask(lstate_index), trim(split_dependency(size(split_dependency))))) then   
+                ! We've already found this dependency  
+                cycle
+              end if
+            end if
+            
+            ! We have a new dependency - reference it
+            dep_t_field => extract_tensor_field(states(lstate_index), split_dependency(size(split_dependency)))
+            if(have_option(trim(dep_t_field%option_path) // "/diagnostic")) then
+              call insert(dep_states(lstate_index), dep_t_field, split_dependency(size(split_dependency)))
             end if
           end if
-          if(present(dep_states_mask)) then
-            if(has_scalar_field(dep_states_mask(lstate_index), trim(split_dependency(size(split_dependency))))) then
-              ! We've already found this dependency
-              deallocate(split_dependency)
-              cycle
-            end if
-          end if
-          
-          ! We have a new dependency - reference it
-          dep_s_field => extract_scalar_field(states(lstate_index), split_dependency(size(split_dependency)))
-          if(have_option(trim(dep_s_field%option_path) // "/diagnostic")) then
-            call insert(dep_states(lstate_index), dep_s_field, split_dependency(size(split_dependency)))
-          end if
-        else if(has_vector_field(states(lstate_index), split_dependency(size(split_dependency)))) then
-          if(present(parent_states)) then
-            ! We've been given a list of parent fields, so let's check for
-            ! circular dependencies
-            if(has_vector_field(parent_states(lstate_index), split_dependency(size(split_dependency)))) then
-              ewrite(-1, *) "For dependency " // trim(dependencies(j))
-              FLAbort("Circular dependency")
-            end if
-          end if
-          if(present(dep_states_mask)) then
-            if(has_vector_field(dep_states_mask(lstate_index), trim(split_dependency(size(split_dependency))))) then
-              ! We've already found this dependency
-              deallocate(split_dependency)
-              cycle
-            end if
-          end if
-          
-          ! We have a new dependency - reference it
-          dep_v_field => extract_vector_field(states(lstate_index), split_dependency(size(split_dependency)))
-          if(have_option(trim(dep_v_field%option_path) // "/diagnostic")) then
-            call insert(dep_states(lstate_index), dep_v_field, split_dependency(size(split_dependency)))
-          end if
-        else if(has_tensor_field(states(lstate_index), split_dependency(size(split_dependency)))) then
-          if(present(parent_states)) then
-            ! We've been given a list of parent fields, so let's check for
-            ! circular dependencies
-            if(has_tensor_field(parent_states(lstate_index), split_dependency(size(split_dependency)))) then
-              ewrite(-1, *) "For dependency " // trim(dependencies(j))
-              FLAbort("Circular dependency")
-            end if
-          end if
-          if(present(dep_states_mask)) then
-            if(has_tensor_field(dep_states_mask(lstate_index), trim(split_dependency(size(split_dependency))))) then   
-              ! We've already found this dependency  
-              deallocate(split_dependency)
-              cycle
-            end if
-          end if
-          
-          ! We have a new dependency - reference it
-          dep_t_field => extract_tensor_field(states(lstate_index), split_dependency(size(split_dependency)))
-          if(have_option(trim(dep_t_field%option_path) // "/diagnostic")) then
-            call insert(dep_states(lstate_index), dep_t_field, split_dependency(size(split_dependency)))
-          end if
-        else
+        end do
+
+        if (.not.field_found) then
           ewrite(-1, *) "For dependency " // trim(dependencies(j))
           FLAbort("Field named " // trim(split_dependency(size(split_dependency))) // " not found")
         end if
         
+        deallocate(state_indices)
         deallocate(split_dependency)
       end do
     
@@ -813,20 +843,6 @@ contains
       
       case("grad_normal")
         call calculate_grad_normal(state, s_field)
-      case("tensor_second_invariant")
-        call calculate_tensor_second_invariant(state, s_field)
-      case("scalar_potential")
-        call calculate_scalar_potential(state, s_field)
-      case("projection_scalar_potential")
-        call calculate_projection_scalar_potential(state, s_field)
-      case("finite_element_lumped_mass_matrix")
-        call calculate_finite_element_lumped_mass_matrix(state, s_field)
-      case("control_volume_mass_matrix")
-        call calculate_control_volume_mass_matrix(state, s_field)
-      case("column_ids")
-        call calculate_column_ids(state, s_field)
-      case("universal_column_ids")
-        call calculate_universal_column_ids(state, s_field)
       case("scalar_copy")
         call calculate_scalar_copy(state, s_field)
       case("extract_scalar_component")
@@ -843,18 +859,8 @@ contains
         call calculate_free_surface_history(state, s_field)
       case("tidal_harmonics")
         call calculate_tidal_harmonics(state, s_field)
-      case("div")
-        call calculate_div(state, s_field)
-      case("finite_element_divergence")
-        call calculate_finite_element_divergence(state, s_field)
-      case("curl_2d")
-        call calculate_curl_2d(state, s_field)
-      case("scalar_advection")
-        call calculate_scalar_advection(state, s_field)
-      case("scalar_laplacian")
-        call calculate_scalar_laplacian(state, s_field)
-      case("temporalmax")
-        call calculate_temporalmax(state, s_field)
+      case("temporalmax_scalar")
+        call calculate_temporalmax_scalar(state, s_field)
       case("temporalmin")
         call calculate_temporalmin(state, s_field)
       case("l2norm")
@@ -875,20 +881,44 @@ contains
         call calculate_element_ownership(s_field)
       case("element_universal_numbering")
         call calculate_element_universal_numbering(s_field)
+      case("tensor_second_invariant")
+        call calculate_tensor_second_invariant(state, s_field)
+      case("scalar_potential")
+        call calculate_scalar_potential(state, s_field)
+      case("projection_scalar_potential")
+        call calculate_projection_scalar_potential(state, s_field)
       case("scalar_sum")
         call calculate_scalar_sum(state, s_field)
       case("scalar_difference")
         call calculate_scalar_difference(state, s_field)
+      case("finite_element_lumped_mass_matrix")
+        call calculate_finite_element_lumped_mass_matrix(state, s_field)
+      case("control_volume_mass_matrix")
+        call calculate_control_volume_mass_matrix(state, s_field)
+      case("div")
+        call calculate_div(state, s_field)
+      case("finite_element_divergence")
+        call calculate_finite_element_divergence(state, s_field)
+      case("curl_2d")
+        call calculate_curl_2d(state, s_field)
+      case("scalar_advection")
+        call calculate_scalar_advection(state, s_field)
+      case("scalar_laplacian")
+        call calculate_scalar_laplacian(state, s_field)
       case("scalar_edge_lengths")
         call calculate_scalar_edge_lengths(state, s_field)
+      case("column_ids")
+        call calculate_column_ids(state, s_field)
+      case("universal_column_ids")
+        call calculate_universal_column_ids(state, s_field)
 
       ! Diagnostic algorithms that require the full states array
+      case("scalar_python_diagnostic")
+        call calculate_scalar_python_diagnostic(states, state_index, s_field, current_time, dt)
       case("particle_reynolds_number")
         call calculate_particle_reynolds_number(states, state_index, s_field)
       case("apparent_density")
         call calculate_apparent_density(states, state_index, s_field)
-      case("scalar_python_diagnostic")
-        call calculate_scalar_python_diagnostic(states, state_index, s_field, current_time, dt)
 
 
       case default
@@ -962,12 +992,6 @@ contains
       case("Internal")
         ! Not handled here
       
-      case("buoyancy")
-        call calculate_buoyancy(state, v_field)
-      case("coriolis")
-        call calculate_coriolis(state, v_field)
-      case("geostrophic_velocity")
-        call calculate_geostrophic_velocity(state, v_field)
       case("vector_copy")
         call calculate_vector_copy(state, v_field)
       case("vector_galerkin_projection")
@@ -978,6 +1002,22 @@ contains
         call calculate_helmholtz_anisotropic_smoothed_vector(state, v_field)
       case("lumped_mass_smoothed_vector")
         call calculate_lumped_mass_smoothed_vector(state, v_field)
+      case("temporalmax_vector")
+        call calculate_temporalmax_vector(state, v_field)
+      case("time_averaged_vector")
+        call calculate_time_averaged_vector(state, v_field)
+      case("time_averaged_vector_times_scalar")
+        call calculate_time_averaged_vector_times_scalar(state, v_field)
+      case("buoyancy")
+        call calculate_buoyancy(state, v_field)
+      case("coriolis")
+        call calculate_coriolis(state, v_field)
+      case("geostrophic_velocity")
+        call calculate_geostrophic_velocity(state, v_field)
+      case("vector_sum")
+        call calculate_vector_sum(state, v_field)
+      case("vector_difference")
+        call calculate_vector_difference(state, v_field)
       case("grad")
         call calculate_grad(state, v_field)
       case("finite_element_divergence_transpose")
@@ -990,24 +1030,16 @@ contains
         call calculate_vector_advection(state, v_field)
       case("vector_laplacian")
         call calculate_vector_laplacian(state, v_field)
-      case("time_averaged_vector")
-        call calculate_time_averaged_vector(state, v_field)
-      case("time_averaged_vector_times_scalar")
-        call calculate_time_averaged_vector_times_scalar(state, v_field)
-      case("vector_sum")
-        call calculate_vector_sum(state, v_field)
-      case("vector_difference")
-        call calculate_vector_difference(state, v_field)
       case("eigenvalues_symmetric")
         call calculate_eigenvalues_symmetric(state, v_field)
 
       
+      case("vector_python_diagnostic")
+        call calculate_vector_python_diagnostic(states, state_index, v_field, current_time, dt)
       case("imposed_material_velocity_source")
         call calculate_imposed_material_velocity_source(states, state_index, v_field)
       case("imposed_material_velocity_absorption")
         call calculate_imposed_material_velocity_absorption(states, v_field)
-      case("vector_python_diagnostic")
-        call calculate_vector_python_diagnostic(states, state_index, v_field, current_time, dt)
 
 
       case default
@@ -1082,12 +1114,20 @@ contains
       case("Internal")
         ! Not handled here
       
-      case("strain_rate")
-        call calculate_strain_rate(state, t_field)
       case("tensor_copy")
         call calculate_tensor_copy(state, t_field)
+      case("helmholtz_smoothed_tensor")
+        call calculate_helmholtz_smoothed_tensor(state, t_field)
       case("helmholtz_anisotropic_smoothed_tensor")
         call calculate_helmholtz_anisotropic_smoothed_tensor(state, t_field)
+      case("lumped_mass_smoothed_tensor")
+        call calculate_lumped_mass_smoothed_tensor(state, t_field)
+      case("strain_rate")
+        call calculate_strain_rate(state, t_field)
+      case("sediment_concentration_dependent_viscosity")
+        call calculate_sediment_concentration_dependent_viscosity(state, t_field)
+      case("tensor_difference")
+        call calculate_tensor_difference(state, t_field)
       case("grad_vector")
         call calculate_grad_vector(state, t_field)
       case("hessian")
@@ -1096,10 +1136,10 @@ contains
         call calculate_field_tolerance(state, t_field)
 
       
-      case("bulk_viscosity")
-        call calculate_bulk_viscosity(states, t_field)
       case("tensor_python_diagnostic")
         call calculate_tensor_python_diagnostic(states, state_index, t_field, current_time, dt)
+      case("bulk_viscosity")
+        call calculate_bulk_viscosity(states, t_field)
 
 
       case default

@@ -43,7 +43,7 @@
 #include <strings.h>
 #include <spatialindex/SpatialIndex.h>
 
-#ifdef HAVE_CGAL
+#ifdef HAVE_LIBCGAL
 #include <CGAL/Cartesian.h>
 #include <CGAL/Polygon_2.h>
 #include <CGAL/intersections.h>
@@ -278,7 +278,7 @@ namespace Fluidity
       virtual void QueryOutput(int& nnodes, int& nelms) const; 
       virtual void GetOutput(double*& positions, int*& enlist) const;
       
-#ifdef HAVE_CGAL
+#ifdef HAVE_LIBCGAL
       typedef CGAL::Lazy_exact_nt< CGAL::Quotient<CGAL::MP_Float> > NT;
       typedef CGAL::Cartesian< NT > Kernel;
       typedef Kernel::Point_2 Point_2;
@@ -291,7 +291,7 @@ namespace Fluidity
 #endif
       
     protected:
-#ifdef HAVE_CGAL
+#ifdef HAVE_LIBCGAL
        Triangulation* triangulation;
 #endif
   };
@@ -371,7 +371,7 @@ namespace Fluidity
       virtual void QueryOutput(int& nnodes, int& nelms) const; 
       virtual void GetOutput(double*& positions, int*& enlist) const;
       
-#ifdef HAVE_CGAL
+#ifdef HAVE_LIBCGAL
       typedef CGAL::Exact_predicates_exact_constructions_kernel Kernel;
       typedef CGAL::Triangulation_3< Kernel > Triangulation;
       typedef CGAL::Polyhedron_3<Kernel> Polyhedron;
@@ -382,7 +382,7 @@ namespace Fluidity
 #endif
       
     protected:
-#ifdef HAVE_CGAL
+#ifdef HAVE_LIBCGAL
        Triangulation* triangulation;
 #endif
   };

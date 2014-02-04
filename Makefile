@@ -48,25 +48,25 @@ htmldir = ${docdir}/
 pdfdir = ${docdir}/
 
 FC      = mpif90
-FCFLAGS = -fbounds-check -Wall -Wimplicit-interface -Wno-surprising -g -O0 -frecord-marker=4 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -fno-realloc-lhs -ffree-line-length-none -ffixed-line-length-none -finit-integer=-66666 -finit-real=nan  -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/include/spooles -I/usr/include/scotch -I/usr/lib -I/usr/include/suitesparse -fdefault-real-8 -fdefault-double-8
+FCFLAGS = -ffast-math -frecord-marker=4  -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -fno-realloc-lhs -ffree-line-length-none -ffixed-line-length-none  -O3 -I/usr/lib/petscdir/3.2/include -I/usr/lib/petscdir/3.2/linux-gnu-c-opt/include -I/usr/include -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -I/usr/lib/openmpi/include -I/usr/lib/openmpi/include/openmpi -fdefault-real-8 -fdefault-double-8
 
 MPIF90  = mpif90
 MPICC   = mpicc
 MPICXX  = mpicxx
 
 CC	= mpicc
-CFLAGS	= -I/usr/include/vtk-5.8  -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -I/usr/include/ -I/usr/local/include/ -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/include/spooles -I/usr/include/scotch -I/usr/lib -I/usr/include/suitesparse -DHAVE_PETSC -DHAVE_VTK=1 -fbounds-check -Wall -g -O0 -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include
+CFLAGS	= -I/usr/include/vtk-5.8  -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include  -I/include -I/include/libadjoint -I/usr/include/ -I/usr/local/include/ -I/usr/include/libadjoint -I/usr/local/include/libadjoint -I/usr/lib/petscdir/3.2/include -I/usr/lib/petscdir/3.2/linux-gnu-c-opt/include -I/usr/include -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -I/usr/lib/openmpi/include -I/usr/lib/openmpi/include/openmpi -DHAVE_PETSC -DHAVE_VTK=1  -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include
 
 CXX	= mpicxx
-CXXFLAGS= -I/usr/include/vtk-5.8  -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -I/usr/include/ -I/usr/local/include/ -I/usr/lib/petscdir/3.1/linux-gnu-c-opt/include -I/usr/lib/petscdir/3.1/include -I/usr/include -I/usr/lib/openmpi/include -I/usr/lib/openmpi/lib -I/usr/include/spooles -I/usr/include/scotch -I/usr/lib -I/usr/include/suitesparse -DHAVE_PETSC -DHAVE_VTK=1 -fbounds-check -Wall -g -O0 -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -I./include
+CXXFLAGS= -I/usr/include/vtk-5.8  -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include  -I/include -I/include/libadjoint -I/usr/include/ -I/usr/local/include/ -I/usr/include/libadjoint -I/usr/local/include/libadjoint -I/usr/lib/petscdir/3.2/include -I/usr/lib/petscdir/3.2/linux-gnu-c-opt/include -I/usr/include -I/usr/include/scotch -I/usr/include/spooles -I/usr/include/suitesparse -I/usr/lib/openmpi/include -I/usr/lib/openmpi/include/openmpi -DHAVE_PETSC -DHAVE_VTK=1  -I/usr/include/python2.7 -DHAVE_NUMPY -I/usr/lib/python2.7/dist-packages/numpy/core/include -I./include
 
-LINKER  = mpicxx -rdynamic   
+LINKER  = mpicxx   
 
-FLLINKER = mpif90 -rdynamic    $(FCFLAGS)
+FLLINKER = mpif90    $(FCFLAGS)
 
 LIBS    = -L./lib -l$(FLUIDITY)  ./lib/libadaptivity.a \
            ./lib/libvtkfortran.a ./lib/libspatialindex.a ./lib/libspud.a ./lib/libjudy.a \
-           -lmba2d -lvtkIO -lvtkGraphics -lvtkFiltering -lvtkCommon -lvtksys -ldl -larpack -L/usr/lib/petscdir/3.1/linux-gnu-c-opt/lib -L/usr/lib/petscdir/3.1/linux-gnu-c-opt/lib -L/usr/lib/petscdir/3.1/linux-gnu-c-opt/lib -lpetsc -lX11 -L/usr/lib -ldmumps -lzmumps -lsmumps -lcmumps -lmumps_common -lpord -lscalapack-openmpi -lblacsCinit-openmpi -lblacs-openmpi -lspooles -lHYPRE -lHYPRE_utilities -lHYPRE_multivector -lHYPRE_krylov -lHYPRE_struct_mv -lHYPRE_struct_ls -lHYPRE_sstruct_mv -lHYPRE_sstruct_ls -lHYPRE_seq_mv -lHYPRE_parcsr_mv -lHYPRE_parcsr_block_mv -lHYPRE_DistributedMatrix -lHYPRE_MatrixMatrix -lHYPRE_IJ_mv -lHYPRE_Euclid -lHYPRE_ParaSails -lHYPRE_DistributedMatrixPilutSolver -lHYPRE_parcsr_ls -lHYPRE_FEI_fgmres -lHYPRE_mli -lHYPRE_FEI -lscotch -lhdf5_fortran -lhdf5 -lz -lumfpack -lamd -llapack -lblas -L/usr/lib/openmpi/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.6 -L/usr/lib/x86_64-linux-gnu -L/lib/x86_64-linux-gnu -ldl -lmpi -lopen-rte -lopen-pal -lnsl -lutil -lgcc_s -lpthread -lmpi_f90 -lmpi_f77 -lgfortran -lm -lgfortran -lm -lgfortran -lm -lm -lquadmath -lm -lmpi_cxx -lstdc++ -ldl -lmpi -lopen-rte -lopen-pal -lnsl -lutil -lgcc_s -lpthread -ldl -lnetcdff -lnetcdf -llapack -ludunits2 -lpthread -lm -lstdc++ -L/usr/lib -lpython2.7 -Xlinker -export-dynamic -Wl,-O0 -Wl,-Bsymbolic-functions -lssl -lcrypto -lssl -lcrypto -L/usr/lib -lz -lpthread -ldl -lutil -L/usr/lib/gcc/x86_64-linux-gnu/4.6 -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../.. -lgfortran -lm -lquadmath -L/usr/lib/gcc/x86_64-linux-gnu/4.6 -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../.. -lgfortran -lm -lquadmath -lnetcdf -lnetcdff -L/lib -lparmetis -lmetis -L/usr/lib -L/usr/local/lib/ -lzoltan -lparmetis -lmetis -L./lib  -lblas  -L/usr/lib/gcc/x86_64-linux-gnu/4.6 -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../.. -lgfortran -lm -lquadmath
+           -lmba2d -lvtkIO -lvtkGraphics -lvtkFiltering -lvtkCommon -lvtksys -ldl -L/usr/lib/petscdir/3.2/linux-gnu-c-opt/lib -L/usr/lib/petscdir/3.2/linux-gnu-c-opt/lib -L/usr/lib/petscdir/3.2/linux-gnu-c-opt/lib -lpetsc -lX11 -L/usr/lib -ldmumps -lzmumps -lsmumps -lcmumps -lmumps_common -lpord -lscalapack-openmpi -lblacsCinit-openmpi -lblacs-openmpi -lptesmumps -lptscotch -lptscotcherr -lpthread -lspooles -lHYPRE_utilities -lHYPRE_struct_mv -lHYPRE_struct_ls -lHYPRE_sstruct_mv -lHYPRE_sstruct_ls -lHYPRE_IJ_mv -lHYPRE_parcsr_ls -lcholmod -lumfpack -lamd -llapack -lblas -lhdf5_fortran -lhdf5 -lz -L/usr/lib/openmpi/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.7 -L/usr/lib/x86_64-linux-gnu -L/lib/x86_64-linux-gnu -ldl -lmpi -lopen-rte -lopen-pal -lnsl -lutil -lgcc_s -lpthread -lmpi_f90 -lmpi_f77 -lgfortran -lm -lgfortran -lm -lgfortran -lm -lm -lquadmath -lm -lmpi_cxx -lstdc++ -ldl -lmpi -lopen-rte -lopen-pal -lnsl -lutil -lgcc_s -lpthread -ldl -lzoltan -lparmetis -lmetis -lnetcdf -llapack -ludunits2 -lpthread -lm -lstdc++ -L/usr/lib -lpython2.7 -Xlinker -export-dynamic -Wl,-O1 -Wl,-Bsymbolic-functions -L/usr/lib -lz -lpthread -ldl -lutil -L/usr/lib/gcc/x86_64-linux-gnu/4.8 -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../.. -lgfortran -lm -lquadmath -L/usr/lib/gcc/x86_64-linux-gnu/4.8 -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../.. -lgfortran -lm -lquadmath -L/lib -L/usr/lib -L/usr/local/lib/ -ladjoint -L./lib  -lblas  -L/usr/lib/gcc/x86_64-linux-gnu/4.8 -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../.. -lgfortran -lm -lquadmath
 
 OBJS = $(shell find . -mindepth 2 -maxdepth 2 -name '*.c' -o -name '*.cpp' -o -name '*.[fF]' -o -name '*.F90' | grep -v ^./lib | xargs)
 MAKE = make -s
@@ -83,9 +83,6 @@ endif
 ifeq (,yes)
 LIBMBA3D = lib/libmba3d.a
 endif
-ifeq (,yes)
-LIBALGENCAN = lib/libalgencan.a
-endif
 
 # Thread count for make test.
 THREADS=1
@@ -96,14 +93,17 @@ ifneq (yes,yes)
 else
 	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e nozoltan
 endif
-ifneq (no,yes)
+ifneq (yes,yes)
 	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e adjoint
-endif
-ifneq (,yes)
-	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e algencan
 endif
 ifneq (yes,yes)
 	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e 2dadapt
+endif
+ifneq (no,yes)
+	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e exodusii
+endif
+ifneq (no,yes)
+	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e petsc33
 endif
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a
@@ -114,57 +114,53 @@ endif
 
 default: bin/$(FLUIDITY) di
 
-sub_system: $(LIBMBA2D) $(LIBMBA3D) $(LIBALGENCAN)   \
+sub_system: $(LIBMBA2D) $(LIBMBA3D)  \
 	lib/libadaptivity.a lib/libvtkfortran.a lib/libspatialindex.a \
 	lib/libspud.a lib/libjudy.a include/version.h
 
 lib/libjudy.a:
 	@echo '    MKDIR lib'; mkdir -p lib
-	@cd libjudy; echo '    MAKE libjudy'; $(MAKE) > make.log ; $(MAKE) install >> make.log ; cd ..
+	echo '    MAKE libjudy'; $(MAKE) -C libjudy > make.log && $(MAKE) -C libjudy install >> make.log
 
 lib/libmba2d.a:
 	@echo '    MKDIR lib'; mkdir -p lib
-	@cd libmba2d; echo '    MAKE libmba2d'; $(MAKE) ; cd ..
+	echo '    MAKE libmba2d'; $(MAKE) -C libmba2d
 
 lib/libmba3d.a:
 	@echo '    MKDIR lib'; mkdir -p lib
-	@cd libmba3d; echo '    MAKE libmba3d'; $(MAKE) ; cd ..
-
-lib/libalgencan.a:
-	@echo '    MKDIR lib'; mkdir -p lib
-	@cd libalgencan; echo '    MAKE libalgencan'; $(MAKE) ; cd ..
+	echo '    MAKE libmba3d'; $(MAKE) -C libmba3d
 
 lib/libadaptivity.a:
 	@echo '    MKDIR lib'; mkdir -p lib
-	@cd libadaptivity; echo '    MAKE libadaptivity'; $(MAKE) -s ; cp lib/libadaptivity.a ../lib/; cd ..
+	@echo '    MAKE libadaptivity'; $(MAKE) -s -C libadaptivity && cp libadaptivity/lib/libadaptivity.a lib/
 
 lib/libvtkfortran.a:
 	@echo '    MKDIR lib'; mkdir -p lib
-	@cd libvtkfortran; echo '    MAKE libvtkfortran'; $(MAKE) 2>make.log 2>&1 ; cp libvtkfortran.a ../lib/; cp *.mod ../include/; cd ..
+	echo '    MAKE libvtkfortran'; $(MAKE) -C libvtkfortran 2>make.log 2>&1 && cp libvtkfortran/libvtkfortran.a lib/ && cp libvtkfortran/*.mod include/
 
 lib/libspatialindex.a:
 	@echo '    MKDIR lib'; mkdir -p lib
-	@cd spatialindex-1.5 ; echo '    MAKE libspatialindex'; $(MAKE); $(MAKE) install >> make.log 2>&1
+	echo '    MAKE libspatialindex'; $(MAKE) -C spatialindex-1.8.0 && $(MAKE) -C spatialindex-1.8.0 install >> make.log 2>&1
 
 lib/libspud.a:
 	@echo '    MKDIR lib'; mkdir -p lib
 ifeq (,yes)
-	@cd libspud;  echo '    MAKE libspud'; $(MAKE) ; $(MAKE) install-libspud
+	echo '    MAKE libspud'; $(MAKE) -C libspud && $(MAKE) -C libspud install-libspud
 else
-	@cd libspud;  echo '    MAKE libspud'; $(MAKE) ; $(MAKE) install-libspud; cd python; python setup.py build; cd ../..; cp libspud/python/build/lib*/libspud.so python/
+	echo '    MAKE libspud'; $(MAKE) -C libspud &&  $(MAKE) -C libspud install-libspud && cd libspud/python && python setup.py build && cd ../.. && cp libspud/python/build/lib*/libspud.so python/
 endif
 
 libfemtools: sub_system
 	@echo '    MKDIR lib'; mkdir -p lib
 	@echo '    MAKE debug'
-	@cd debug; $(MAKE)
+	@$(MAKE) -C debug
 	@echo '    MAKE libwm'
-	@cd libwm; $(MAKE)
-	@cd femtools; echo '    MAKE libfemtools'; $(MAKE) libfemtools ; cp libfemtools.a ../lib/; cd ..
+	@$(MAKE) -C libwm
+	echo '    MAKE libfemtools'; $(MAKE) -C femtools libfemtools && cp femtools/libfemtools.a lib/
 ifeq (,yes)
 :
 	@echo '    MAKE 3dfemdem library'
-	@cd ;$(MAKE)
+	@$(MAKE) -C 
 endif
 
 include/spud.h: lib/libspud.a
@@ -432,7 +428,7 @@ endif
 	@cd adjoint; $(MAKE) clean
 	@echo "    CLEAN main"
 	@cd main; $(MAKE) clean
-	@rm -fr bin/* lib
+	@rm -fr bin lib
 
 clean: clean-light clean-test python_clean clean-debian
 	@echo "    CLEAN libvtkfortran"
@@ -442,19 +438,17 @@ clean: clean-light clean-test python_clean clean-debian
 	@echo "    CLEAN libspud"
 	@cd libspud; $(MAKE) clean
 	@echo "    CLEAN libspatialindex"
-	@cd spatialindex-1.5; $(MAKE) clean >> make.log
+	@cd spatialindex-1.8.0; $(MAKE) clean >> make.log
 	@echo "    CLEAN libmba2d"
 	@cd libmba2d; $(MAKE) clean
 	@echo "    CLEAN libmba3d"
 	@cd libmba3d; $(MAKE) clean
-	@echo "    CLEAN libalgencan"
-	@cd libalgencan; $(MAKE) clean
 	@echo "    CLEAN libwm"
 	@cd libwm; $(MAKE) clean
 	@echo "    CLEAN manual"
 	@cd manual; $(MAKE) clean
-	@cd libadaptivity; echo '    CLEAN libadaptivity'; $(MAKE) -s clean;cd ..
-	@rm -fr include/*.mod *.cache core *.o config.status
+	@echo '    CLEAN libadaptivity'; $(MAKE) -s -C libadaptivity clean
+	@rm -fr lib*/configure.lineno include/*.mod *.cache core *.o config.status
 	@find ./ \( -name work.pc \) -exec rm {} \;
 	@find ./ \( -name work.pcl \) -exec rm {} \;
 
@@ -467,17 +461,25 @@ clean-test:
 	@cd tests; PYTHONPATH=../python ../tools/testharness.py --clean >/dev/null
 	@cd tests/data; $(MAKE) clean
 
+clean-all-tests: clean-test     
+	@echo "    CLEAN parallel/special/long tests"
+	@PYTHONPATH=python tools/testharness.py --parallelism=parallel --clean >/dev/null
+	@PYTHONPATH=python tools/testharness.py --length=special --clean >/dev/null
+	@PYTHONPATH=python tools/testharness.py --length=special --parallelism=parallel --clean >/dev/null
+	@PYTHONPATH=python tools/testharness.py --length=long --clean >/dev/null
+	@PYTHONPATH=python tools/testharness.py --length=long --parallelism=parallel --clean >/dev/null
+
 distclean: clean
 	@echo "    DISTCLEAN"
-	@cd spatialindex-1.5 ; make distclean > /dev/null ; rm -rf	\
-	 make.log regressiontest/mvrtree/.deps				\
-	 regressiontest/rtree/.deps regressiontest/tprtree/.deps >	\
-	 /dev/null
+	@cd spatialindex-1.8.0 ; make distclean > /dev/null ; rm -rf	\
+	 test/mvrtree/.deps test/rtree/.deps test/tprtree/.deps         \
+         make.log > /dev/null
 	@cd libadaptivity ; make distclean > /dev/null
 	@cd libjudy ; make distclean > /dev/null
 	@cd libvtkfortran ; make distclean > /dev/null
 	@cd libspud ; make distclean > /dev/null ; rm -rf		\
 	 libspud.so.0 libtool diamond/build python/build > /dev/null
+	@cd tools ; make distclean > /dev/null
 	@rm -fr `find ./ -name config.status` `find ./ -name		\
 	 config.log` share include/Judy.h include/Wm4Command.h		\
 	 include/Wm4FoundationLIB.h include/Wm4FoundationPCH.h		\
@@ -508,7 +510,7 @@ distclean: clean
 test: fltools bin/$(FLUIDITY) bin/shallow_water serialtest bin/burgers_equation bin/darcy_impes
 
 serialtest: fltools bin/$(FLUIDITY) bin/shallow_water
-	@cd tests; ../bin/testharness -l short -p serial $(EXCLUDE_TAGS) -n $(THREADS)
+	@cd tests; ../bin/testharness -l short $(EXCLUDE_TAGS) -n $(THREADS)
 
 mediumtest: fltools bin/$(FLUIDITY) manual bin/burgers_equation bin/shallow_water bin/darcy_impes spudtools
 	@cd tests; ../bin/testharness -l medium $(EXCLUDE_TAGS) -n $(THREADS)
@@ -569,7 +571,7 @@ ifneq (yes,yes)
 	@echo "makefile dependency generation requires zoltan"
 	@false
 endif
-ifneq (no,yes)
+ifneq (yes,yes)
 	@echo "makefile dependency generation requires adjoint"
 	@false
 endif
@@ -631,7 +633,7 @@ install: default fltools bin/shallow_water bin/burgers_equation bin/darcy_impes
 	rm -rf $(DESTDIR)$(docdir)/fluidity/examples/
 
 install-diamond: 
-	cd libspud; ./configure --prefix=$(DESTDIR)/usr/local; cd ../..
+	cd libspud; ./configure --prefix=/usr/local; cd ../..
 	cd libspud; $(MAKE) clean; cd ../..
 	cd libspud; $(MAKE) install-diamond; cd ../..
 	cd libspud; $(MAKE) install-dxdiff; cd ../..

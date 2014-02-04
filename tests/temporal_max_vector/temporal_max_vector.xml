@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+  <name>Temporal Max Vector</name>
+  <owner userid="jhill1"/>
+  <tags>flml diagnostics</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity  temporal_max_vector.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+    <variable name="val_vel_max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("temporal_vector.stat")
+val_vel_max = s["Water"]["MaxVel%magnitude"]["max"][-1]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
+    <test name="assert correct vel max" language="python">
+import math        
+assert(abs(val_vel_max-math.sqrt(200)) &lt; 0.0001)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

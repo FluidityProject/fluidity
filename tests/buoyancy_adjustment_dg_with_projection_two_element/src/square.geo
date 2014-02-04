@@ -1,6 +1,8 @@
 Point (1) = {0, 0, 0, 1.0};
-Point (2) = {1.0, 0, 0, 1.0};
-Line (1) = {1, 2};
+
+Extrude {1.0,0,0} {
+  Point{1}; Layers{1};
+}
 
 Extrude {0,1.0,0} {
   Line{1}; Layers{1};
@@ -14,3 +16,4 @@ Physical Line(1) = {1};
 Physical Line(2) = {2};
 // Side walls.
 Physical Line(3) = {3,4};
+

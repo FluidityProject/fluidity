@@ -37,7 +37,7 @@ AR      = ar
 ARFLAGS = cr
 
 LIB = libspud.la
-LIBS = $(shell echo   -lpthread -lm -lstdc++   -L/usr/lib/gcc/x86_64-linux-gnu/4.6 -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../.. -lgfortran -lm -lquadmath  -L/usr/lib/gcc/x86_64-linux-gnu/4.6 -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../.. -lgfortran -lm -lquadmath | sed 's/-L /-L/g')
+LIBS = $(shell echo   -lpthread -lm -lstdc++   -L/usr/lib/gcc/x86_64-linux-gnu/4.8 -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../.. -lgfortran -lm -lquadmath  -L/usr/lib/gcc/x86_64-linux-gnu/4.8 -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../.. -lgfortran -lm -lquadmath | sed 's/-L /-L/g')
 
 HEADERS = include/spud.h include/spud include/spud_enums.h include/tinystr.h include/tinyxml.h
 MODS = spud.mod
@@ -55,7 +55,7 @@ VPATH = src/
 default: libspud.la build-diamond
 
 libspud.la: $(OBJS)
-	./libtool --mode=link --tag=FC $(FC) $(FCFLAGS) -o $(LIB) $(OBJS) $(LIBS) -rpath /home/pm108/fluidity/darcy_impes_proper/libspud/../lib 
+	./libtool --mode=link --tag=FC $(FC) $(FCFLAGS) -o $(LIB) $(OBJS) $(LIBS) -rpath /home/richard/darcy_impes_proper/libspud/../lib 
 	if test -f .libs/libspud.a; then cp .libs/libspud.a .; fi
 	(if test -f .libs/libspud.so; then cp .libs/libspud.so ./libspud.so.0; ln -s libspud.so.0 libspud.so; fi) || true
 
@@ -75,37 +75,37 @@ doc:
 install: install-libspud install-spudtools install-diamond install-pyspud install-dxdiff
 
 install-libspud: libspud.la
-	/usr/bin/install -c -d $(DESTDIR)/home/pm108/fluidity/darcy_impes_proper/libspud/../lib
-	/usr/bin/install -c -d $(DESTDIR)/home/pm108/fluidity/darcy_impes_proper/libspud/../include
-	/usr/bin/install -c libspud.a $(DESTDIR)/home/pm108/fluidity/darcy_impes_proper/libspud/../lib
-	(if test -f libspud.so.0; then /usr/bin/install -c libspud.so.0 $(DESTDIR)/home/pm108/fluidity/darcy_impes_proper/libspud/../lib; fi) || true
-	(if test -f libspud.so; then cd $(DESTDIR)/home/pm108/fluidity/darcy_impes_proper/libspud/../lib/; ln -s libspud.so.0 libspud.so; cd -; fi) || true
-	/usr/bin/install -c $(MODS) $(DESTDIR)/home/pm108/fluidity/darcy_impes_proper/libspud/../include
-	/usr/bin/install -c $(HEADERS) $(DESTDIR)/home/pm108/fluidity/darcy_impes_proper/libspud/../include
+	/usr/bin/install -c -d $(DESTDIR)/home/richard/darcy_impes_proper/libspud/../lib
+	/usr/bin/install -c -d $(DESTDIR)/home/richard/darcy_impes_proper/libspud/../include
+	/usr/bin/install -c libspud.a $(DESTDIR)/home/richard/darcy_impes_proper/libspud/../lib
+	(if test -f libspud.so.0; then /usr/bin/install -c libspud.so.0 $(DESTDIR)/home/richard/darcy_impes_proper/libspud/../lib; fi) || true
+	(if test -f libspud.so; then cd $(DESTDIR)/home/richard/darcy_impes_proper/libspud/../lib/; ln -s libspud.so.0 libspud.so; cd -; fi) || true
+	/usr/bin/install -c $(MODS) $(DESTDIR)/home/richard/darcy_impes_proper/libspud/../include
+	/usr/bin/install -c $(HEADERS) $(DESTDIR)/home/richard/darcy_impes_proper/libspud/../include
 
 install-spudtools: 
-	/usr/bin/install -c -d $(DESTDIR)/home/pm108/fluidity/darcy_impes_proper/libspud/../share/spud
-	/usr/bin/install -c -d $(DESTDIR)/home/pm108/fluidity/darcy_impes_proper/libspud/../bin
-	/usr/bin/install -c -m755 bin/spud-preprocess $(DESTDIR)/home/pm108/fluidity/darcy_impes_proper/libspud/../bin
-	/usr/bin/install -c -m755 bin/spud-set $(DESTDIR)/home/pm108/fluidity/darcy_impes_proper/libspud/../bin
-	/usr/bin/install -c -m644 schema/spud_base.rnc $(DESTDIR)/home/pm108/fluidity/darcy_impes_proper/libspud/../share/spud
-	/usr/bin/install -c -m644 schema/spud_base.rng $(DESTDIR)/home/pm108/fluidity/darcy_impes_proper/libspud/../share/spud
+	/usr/bin/install -c -d $(DESTDIR)/home/richard/darcy_impes_proper/libspud/../share/spud
+	/usr/bin/install -c -d $(DESTDIR)/home/richard/darcy_impes_proper/libspud/../bin
+	/usr/bin/install -c -m755 bin/spud-preprocess $(DESTDIR)/home/richard/darcy_impes_proper/libspud/../bin
+	/usr/bin/install -c -m755 bin/spud-set $(DESTDIR)/home/richard/darcy_impes_proper/libspud/../bin
+	/usr/bin/install -c -m644 schema/spud_base.rnc $(DESTDIR)/home/richard/darcy_impes_proper/libspud/../share/spud
+	/usr/bin/install -c -m644 schema/spud_base.rng $(DESTDIR)/home/richard/darcy_impes_proper/libspud/../share/spud
 
 install-diamond:
-	cd diamond;	python setup.py install --prefix=$(DESTDIR)/home/pm108/fluidity/darcy_impes_proper/libspud/..; cd ..
+	cd diamond;	python setup.py install --prefix=$(DESTDIR)/home/richard/darcy_impes_proper/libspud/..; cd ..
 
 install-pyspud:
 ifeq ($(origin BUILDING_DEBIAN),undefined)
-	cd python; python setup.py install --prefix=$(DESTDIR)/home/pm108/fluidity/darcy_impes_proper/libspud/..; cd ..
+	cd python; python setup.py install --prefix=$(DESTDIR)/home/richard/darcy_impes_proper/libspud/..; cd ..
 else
-	cd python; for python in $(shell pyversions -r); do $$python setup.py install --prefix=$(DESTDIR)/home/pm108/fluidity/darcy_impes_proper/libspud/.. --install-layout=deb; done; cd ..
+	cd python; for python in $(shell pyversions -r); do $$python setup.py install --prefix=$(DESTDIR)/home/richard/darcy_impes_proper/libspud/.. --install-layout=deb; done; cd ..
 endif
 
 install-dxdiff:
 ifeq ($(origin DESTDIR),undefined)
-	cd dxdiff; python setup.py install --prefix=$(DESTDIR)/home/pm108/fluidity/darcy_impes_proper/libspud/..; cd ..
+	cd dxdiff; python setup.py install --prefix=$(DESTDIR)/home/richard/darcy_impes_proper/libspud/..; cd ..
 else
-	cd dxdiff; for python in $(shell pyversions -r); do $$python setup.py install --prefix=$(DESTDIR)/home/pm108/fluidity/darcy_impes_proper/libspud/.. --install-layout=deb; done; cd ..
+	cd dxdiff; for python in $(shell pyversions -r); do $$python setup.py install --prefix=$(DESTDIR)/home/richard/darcy_impes_proper/libspud/.. --install-layout=deb; done; cd ..
 endif
 
 clean:

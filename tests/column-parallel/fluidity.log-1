@@ -1,8 +1,11 @@
  Calling fluids from mainfl
+ In keps_check_options
  Checking momentum discretisation options
  Finished checking momentum discretisation options
  Options sanity check successful
  In populate_state
+ In initialise_ocean_forcing_readers
+ Exiting initialise_ocean_forcing_readers
  Using the new makeeelist
  In read_halos_mesh
  Creating universal numbering for a trailing receives halo
@@ -11,7 +14,7 @@
  Creating universal numbering for a trailing receives halo
  Exiting derive_maximal_element_halo
  Exiting read_halos_mesh
- Using the new makeeelist
+ Inside get_coplanar_ids
  In merge_surface_ids
  In derive_maximal_surface_element_halo
  Exiting derive_maximal_surface_element_halo
@@ -761,6 +764,7 @@ Block CSR Matrices:
  Entering solver.
  Out of solver.
  Entering finalise_state
+ In calculate_sediment_bedload
  In calculate_diagnostic_variables
  In calculate_perturbation_density
  In calculate_perturbation_density
@@ -1133,6 +1137,7 @@ Block CSR Matrices:
  Entering solver.
  Out of solver.
  Entering finalise_state
+ In calculate_sediment_bedload
  In calculate_diagnostic_variables
  In calculate_perturbation_density
  In calculate_perturbation_density
@@ -1505,6 +1510,7 @@ Block CSR Matrices:
  Entering solver.
  Out of solver.
  Entering finalise_state
+ In calculate_sediment_bedload
  In calculate_diagnostic_variables
  In calculate_perturbation_density
  In calculate_perturbation_density
@@ -1526,11 +1532,11 @@ Block CSR Matrices:
  Printing references before final deallocation
  Printing out all currently allocated references:
  scalar_field VelocityMeshCVMass has reference count 1
- and id 150
+ and id 155
  mesh_type VelocityMeshDGSurfaceMesh has reference count 1
- and id 20
+ and id 16
  csr_sparsity VelocityMeshVelocityMeshSparsity has reference count 1
- and id 5
+ and id 4
  scalar_field VelocityMeshLumpedMass has reference count 1
  and id 119
  scalar_field Time has reference count 1
@@ -1753,8 +1759,6 @@ Block CSR Matrices:
  and id 2
  scalar_field Density has reference count 1
  and id 1
- csr_sparsity EEListSparsity has reference count 2
- and id 4
  csr_sparsity NEListSparsity has reference count 1
  and id 3
  halo_type CoordinateMeshMaximalElementHalo has reference count 2

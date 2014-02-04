@@ -1,5 +1,5 @@
-GFORTRAN module version '6' created from NetCDFWriter.F90 on Mon Jun 10 19:47:44 2013
-MD5:3aaaa0484c05f1075a962dcaea417f7d -- If you edit this, you'll get what you deserve.
+GFORTRAN module version '10' created from NetCDFWriter.F90
+MD5:456af689e8c2957e5f03f4911680fd87 -- If you edit this, you'll get what you deserve.
 
 (() () () () () () () () () () () () () () () () () () () () () () ()
 () () () ())
@@ -14,60 +14,56 @@ MD5:3aaaa0484c05f1075a962dcaea417f7d -- If you edit this, you'll get what you de
 
 ()
 
-(2 'netcdfwriter_init' 'netcdfwriter' 'netcdfwriter_init' 1 ((PROCEDURE
+(2 'netcdfwriter_init' 'netcdfwriter' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE ALWAYS_EXPLICIT) (UNKNOWN 0 0 0
+0 UNKNOWN ()) 3 0 (4 5 6 7 8 9 10 11 12 13 14) () 0 () () () 0 0)
+15 'netcdfwriter_write_variable' 'netcdfwriter' '' 1 ((PROCEDURE
 UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE ALWAYS_EXPLICIT)
-(UNKNOWN 0 0 0 UNKNOWN ()) 3 0 (4 5 6 7 8 9 10 11 12 13 14) () 0 () () ()
+(UNKNOWN 0 0 0 0 UNKNOWN ()) 16 0 (17 18 19 20) () 0 () () () 0 0)
+4 'filename' '' '' 3 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () () () 0 0)
+5 'longitude' '' '' 3 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION DUMMY) (REAL 8 0 0 0 REAL ()) 0 0 () (1 0 ASSUMED_SHAPE (
+CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
+6 'latitude' '' '' 3 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION DUMMY) (REAL 8 0 0 0 REAL ()) 0 0 () (1 0 ASSUMED_SHAPE (
+CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
+7 'time_coord' '' '' 3 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION OPTIONAL DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () (1 0
+ASSUMED_SHAPE (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) 0 () ()
+() 0 0)
+8 'time_units' '' '' 3 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+OPTIONAL DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () () ()
 0 0)
-15 'netcdfwriter_write_variable' 'netcdfwriter'
-'netcdfwriter_write_variable' 1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC
-DECL UNKNOWN 0 0 SUBROUTINE ALWAYS_EXPLICIT) (UNKNOWN 0 0 0 UNKNOWN ())
-16 0 (17 18 19 20) () 0 () () () 0 0)
-4 'filename' '' 'filename' 3 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 () () 0 () () () 0 0)
-5 'longitude' '' 'longitude' 3 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DIMENSION DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (1 0
-ASSUMED_SHAPE (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () ()
+9 'title' '' '' 3 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+OPTIONAL DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () () ()
 0 0)
-6 'latitude' '' 'latitude' 3 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DIMENSION DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (1 0 ASSUMED_SHAPE (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
-7 'time_coord' '' 'time_coord' 3 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DIMENSION OPTIONAL DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 ()
-(1 0 ASSUMED_SHAPE (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 ()
-() () 0 0)
-8 'time_units' '' 'time_units' 3 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 OPTIONAL DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 () () 0
-() () () 0 0)
-9 'title' '' 'title' 3 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-OPTIONAL DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 () () 0 () () () 0
-0)
-10 'institution' '' 'institution' 3 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 OPTIONAL DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 () () 0
-() () () 0 0)
-11 'history' '' 'history' 3 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 OPTIONAL DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 () () 0 () () ()
+10 'institution' '' '' 3 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+OPTIONAL DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () () ()
 0 0)
-12 'source' '' 'source' 3 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-OPTIONAL DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 () () 0 () () () 0
-0)
-13 'references' '' 'references' 3 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 OPTIONAL DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 () () 0
-() () () 0 0)
-14 'comment' '' 'comment' 3 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 OPTIONAL DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 () () 0 () () ()
+11 'history' '' '' 3 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+OPTIONAL DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () () ()
 0 0)
-17 'name' '' 'name' 16 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 () () 0 () () () 0 0)
-18 'long_name' '' 'long_name' 16 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 () () 0 () () ()
+12 'source' '' '' 3 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+OPTIONAL DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () () ()
 0 0)
-19 'variable' '' 'variable' 16 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DIMENSION DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (3 0
-ASSUMED_SHAPE (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') () (CONSTANT (
-INTEGER 4 0 0 INTEGER ()) 0 '1') () (CONSTANT (INTEGER 4 0 0 INTEGER ())
-0 '1') ()) 0 () () () 0 0)
-20 'units' '' 'units' 16 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 () () 0 () () () 0 0)
+13 'references' '' '' 3 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+OPTIONAL DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () () ()
+0 0)
+14 'comment' '' '' 3 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+OPTIONAL DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () () ()
+0 0)
+17 'name' '' '' 16 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY)
+(CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () () () 0 0)
+18 'long_name' '' '' 16 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () () () 0 0)
+19 'variable' '' '' 16 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION DUMMY) (REAL 8 0 0 0 REAL ()) 0 0 () (3 0 ASSUMED_SHAPE (
+CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') () (CONSTANT (INTEGER 4 0 0
+0 INTEGER ()) 0 '1') () (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') ())
+0 () () () 0 0)
+20 'units' '' '' 16 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY)
+(CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () () () 0 0)
 )
 
 ('netcdfwriter_init' 0 2 'netcdfwriter_write_variable' 0 15)

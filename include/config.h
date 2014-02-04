@@ -19,8 +19,29 @@
 /* Define if F77 and FC dummy `main' functions are identical. */
 /* #undef FC_DUMMY_MAIN_EQ_F77 */
 
+/* Define if you have libadjoint. */
+#define HAVE_ADJOINT 1
+
 /* Define if you have a BLAS library. */
 #define HAVE_BLAS 1
+
+/* Define to 1 if you have the file `hyperlight/Hyperlight.cpp'. */
+/* #undef HAVE_HYPERLIGHT_HYPERLIGHT_CPP */
+
+/* Define to 1 if you have the file `hyperlight/Hyperlight.h'. */
+/* #undef HAVE_HYPERLIGHT_HYPERLIGHT_H */
+
+/* Define to 1 if you have the file `hyperlight/Iop.cpp'. */
+/* #undef HAVE_HYPERLIGHT_IOP_CPP */
+
+/* Define to 1 if you have the file `hyperlight/Iop.h'. */
+/* #undef HAVE_HYPERLIGHT_IOP_H */
+
+/* Define to 1 if you have the file `hyperlight/Sky.cpp'. */
+/* #undef HAVE_HYPERLIGHT_SKY_CPP */
+
+/* Define to 1 if you have the file `hyperlight/Sky.h'. */
+/* #undef HAVE_HYPERLIGHT_SKY_H */
 
 /* Define if you have hypre library. */
 #define HAVE_HYPRE 1
@@ -32,10 +53,16 @@
 #define HAVE_LAPACK 1
 
 /* Define to 1 if you have the `arpack' library (-larpack). */
-#define HAVE_LIBARPACK 1
+/* #undef HAVE_LIBARPACK */
 
 /* Define to 1 if you have the `dl' library (-ldl). */
 #define HAVE_LIBDL 1
+
+/* Define to 1 if you have the `exodus' library (-lexodus). */
+/* #undef HAVE_LIBEXODUS */
+
+/* Define to 1 if you have the `exoIIv2c' library (-lexoIIv2c). */
+/* #undef HAVE_LIBEXOIIV2C */
 
 /* Define to 1 if you have the `m' library (-lm). */
 #define HAVE_LIBM 1
@@ -77,13 +104,13 @@
 #define HAVE_MEMORY_H 1
 
 /* Define if you have ParMetis library. */
-#define HAVE_PARMETIS 1
+/* #undef HAVE_PARMETIS */
 
 /* Define if you have the PETSc library. */
 #define HAVE_PETSC 1
 
 /* Define if you have petsc fortran modules. */
-#define HAVE_PETSC_MODULES 1
+/* #undef HAVE_PETSC_MODULES */
 
 /* If available, contains the Python version number currently in use. */
 #define HAVE_PYTHON "2.7"

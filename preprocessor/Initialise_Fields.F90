@@ -35,6 +35,7 @@ use tictoc
 use global_parameters, only: OPTION_PATH_LEN, PYTHON_FUNC_LEN, is_active_process
 use vtk_cache_module
 use climatology
+use fluxes
 use nemo_states_module
 use physics_from_options
 use load_netcdf_module

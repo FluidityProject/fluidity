@@ -38,7 +38,7 @@ CXX	= mpicxx
 CXXFLAGS= $(CPPFLAGS)   -O3
 
 LINKER	= mpicxx
-LFLAGS	=  -llapack -lblas -lpthread -lm -lstdc++   -L/usr/lib/gcc/x86_64-linux-gnu/4.6 -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../.. -lgfortran -lm -lquadmath -L/usr/lib/gcc/x86_64-linux-gnu/4.6 -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../.. -lgfortran -lm -lquadmath -L./lib -L/usr/lib/gcc/x86_64-linux-gnu/4.6 -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.6/../../.. -lgfortran -lm -lquadmath
+LFLAGS	=  -llapack -lblas -lpthread -lm -lstdc++   -L/usr/lib/gcc/x86_64-linux-gnu/4.8 -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../.. -lgfortran -lm -lquadmath -L/usr/lib/gcc/x86_64-linux-gnu/4.8 -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../.. -lgfortran -lm -lquadmath -L./lib -L/usr/lib/gcc/x86_64-linux-gnu/4.8 -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../.. -lgfortran -lm -lquadmath
 
 MAKE	= make
 INSTALL = /usr/bin/install -c
@@ -77,13 +77,14 @@ OBJS = Debug.o AdaptProgress.o write_log.o adapt1.o  addedg.o  addele.o  addfac.
 	$(CXX) $(CXXFLAGS) -c $<
 
 $(LIB): $(OBJS)
+	@mkdir -p ../lib
 	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
 
 include/fdebug_adapt.h: include/confdefs.h include/ewrite.h
 
 Debug.o: include/fdebug_adapt.h write_log.o
 
-adapt1.o :	adapt1.F write_log.o include/blknew.i include/blkbig.i include/blkorg.i include/blknxt.i include/blkerr.i include/blktim.i
+adapt1.o :	adapt1.F AdaptProgress.o write_log.o include/blknew.i include/blkbig.i include/blkorg.i include/blknxt.i include/blkerr.i include/blktim.i
 
 addedg.o :	addedg.F include/blknew.i include/blkbig.i include/blkerr.i
 
@@ -95,7 +96,7 @@ addnd.o :	addnd.F include/blknew.i include/blkbig.i include/blkorg.i include/blk
 
 adfrnd.o :	adfrnd.F include/blknew.i include/blkbig.i include/blkerr.i
 
-adptvy.o :	adptvy.F write_log.o include/blkprm.i include/blknew.i include/blkerr.i
+adptvy.o :	adptvy.F AdaptProgress.o write_log.o include/blkprm.i include/blknew.i include/blkerr.i
 
 angedg.o :	angedg.F include/blknew.i include/blkbig.i include/blkerr.i
 

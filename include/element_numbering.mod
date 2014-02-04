@@ -1,18 +1,20 @@
-GFORTRAN module version '6' created from Element_Numbering.F90 on Mon Jun 10 19:47:14 2013
-MD5:3ed77b3f49dbe01126da7622d6cf258f -- If you edit this, you'll get what you deserve.
+GFORTRAN module version '10' created from Element_Numbering.F90
+MD5:2df057915eb420ca0ff9c0f63b37a508 -- If you edit this, you'll get what you deserve.
 
 (() () () () () () () () () () () () (2) () () () () () () () () () ()
 () () () ())
 
 ()
 
-(('boundary_local_num' 'element_numbering' 3 4) ('edge_num'
-'element_numbering' 5 6) ('face_local_num' 'element_numbering' 7 8) (
-'face_num' 'element_numbering' 9 10) ('local_coords' 'element_numbering'
-11) ('local_vertices' 'element_numbering' 12) ('nullify' 'futils' 13 14
-15 16) ('real_format' 'futils' 17 18) ('real_format_len' 'futils' 19 20)
-('write_minmax' 'futils' 21 22) ('vertex_num' 'element_numbering' 23 24)
-('boundary_numbering' 'element_numbering' 25))
+(('boundary_local_num' 'element_numbering' 3 4) ('boundary_numbering'
+'element_numbering' 5) ('edge_num' 'element_numbering' 6 7) (
+'ele_numbering_type' 'element_numbering' 8) ('face_local_num'
+'element_numbering' 9 10) ('face_num' 'element_numbering' 11 12) (
+'integer_vector' 'futils' 13) ('local_coords' 'element_numbering' 14) (
+'local_vertices' 'element_numbering' 15) ('nullify' 'futils' 16 17 18 19)
+('real_format' 'futils' 20 21) ('real_format_len' 'futils' 22 23) (
+'real_matrix' 'futils' 24) ('real_vector' 'futils' 25) ('vertex_num'
+'element_numbering' 26 27) ('write_minmax' 'futils' 28 29))
 
 ()
 
@@ -20,904 +22,870 @@ MD5:3ed77b3f49dbe01126da7622d6cf258f -- If you edit this, you'll get what you de
 
 ()
 
-(4 'boundary_local_num_int' 'element_numbering' 'boundary_local_num_int'
-1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 DIMENSION
-FUNCTION ALWAYS_EXPLICIT) (INTEGER 4 0 0 INTEGER ()) 26 0 (27 28 29) (1
-0 EXPLICIT (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (OP (INTEGER 4 0
-0 INTEGER ()) 0 PARENTHESES (FUNCTION (INTEGER 4 0 0 INTEGER ()) 0 30 (
-('' (VARIABLE (DERIVED 31 0 0 DERIVED ()) 0 28 ())) ('' (VARIABLE (
-LOGICAL 4 0 0 LOGICAL ()) 0 29 ()))) 'boundary_num_length' 1 30))) 32 ()
-() () 0 0)
-3 'boundary_local_num_no_int' 'element_numbering'
-'boundary_local_num_no_int' 1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC
-DECL UNKNOWN 0 0 DIMENSION FUNCTION ALWAYS_EXPLICIT) (INTEGER 4 0 0
-INTEGER ()) 33 0 (34 35) (1 0 EXPLICIT (CONSTANT (INTEGER 4 0 0 INTEGER
-()) 0 '1') (OP (INTEGER 4 0 0 INTEGER ()) 0 PARENTHESES (FUNCTION (
-INTEGER 4 0 0 INTEGER ()) 0 30 (('' (VARIABLE (DERIVED 31 0 0 DERIVED ())
-0 35 ())) ('interior' (CONSTANT (LOGICAL 4 0 0 LOGICAL ()) 0 0)))
-'boundary_num_length' 1 30))) 36 () () () 0 0)
-30 'boundary_num_length' 'element_numbering' 'boundary_num_length' 1 ((
-PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE) (
-INTEGER 4 0 0 INTEGER ()) 37 0 (38 39) () 30 () () () 0 0)
-40 'count_chars' 'futils' 'count_chars' 1 ((PROCEDURE UNKNOWN-INTENT
-MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE) (INTEGER 4 0 0 INTEGER ())
-41 0 (42 43) () 40 () () () 0 0)
-44 'current_debug_level' 'fldebug_parameters' 'current_debug_level' 1 (
-(VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0) (
-INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-45 'debug_error_unit' 'fldebug_parameters' 'debug_error_unit' 1 ((
-VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0) (
-INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-46 'debug_level' 'fldebug' 'debug_level' 1 ((PROCEDURE UNKNOWN-INTENT
-MODULE-PROC DECL UNKNOWN 0 0 FUNCTION IMPLICIT_PURE) (INTEGER 4 0 0
-INTEGER ()) 0 0 () () 46 () () () 0 0)
-47 'debug_log_unit' 'fldebug_parameters' 'debug_log_unit' 1 ((VARIABLE
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0) (INTEGER 4 0 0
-INTEGER ()) 0 0 () () 0 () () () 0 0)
-48 'debug_unit' 'fldebug' 'debug_unit' 1 ((PROCEDURE UNKNOWN-INTENT
-MODULE-PROC DECL UNKNOWN 0 0 FUNCTION IMPLICIT_PURE) (INTEGER 4 0 0
-INTEGER ()) 49 0 (50) () 48 () () () 0 0)
-51 'edge_local_num' 'element_numbering' 'edge_local_num' 1 ((PROCEDURE
-UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 DIMENSION FUNCTION
-ALWAYS_EXPLICIT) (INTEGER 4 0 0 INTEGER ()) 52 0 (53 54 55) (1 0
-EXPLICIT (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (FUNCTION (INTEGER
-4 0 0 INTEGER ()) 0 56 (('' (VARIABLE (DERIVED 31 0 0 DERIVED ()) 0 54 ()))
-('' (VARIABLE (LOGICAL 4 0 0 LOGICAL ()) 0 55 ()))) 'edge_num_length' 1
-56)) 51 () () () 0 0)
-6 'edge_num_int' 'element_numbering' 'edge_num_int' 1 ((PROCEDURE
-UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 DIMENSION FUNCTION
-ALWAYS_EXPLICIT) (INTEGER 4 0 0 INTEGER ()) 57 0 (58 59 60 61 62) (1 0
-EXPLICIT (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (FUNCTION (INTEGER
-4 0 0 INTEGER ()) 0 56 (('' (VARIABLE (DERIVED 31 0 0 DERIVED ()) 0 60 ()))
-('' (VARIABLE (LOGICAL 4 0 0 LOGICAL ()) 0 61 ()))) 'edge_num_length' 1
-56)) 6 () () () 0 0)
-56 'edge_num_length' 'element_numbering' 'edge_num_length' 1 ((
-PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE) (
-INTEGER 4 0 0 INTEGER ()) 63 0 (64 65) () 56 () () () 0 0)
-5 'edge_num_no_int' 'element_numbering' 'edge_num_no_int' 1 ((PROCEDURE
-UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 DIMENSION FUNCTION
-ALWAYS_EXPLICIT) (INTEGER 4 0 0 INTEGER ()) 66 0 (67 68 69 70) (1 0
-EXPLICIT (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (FUNCTION (INTEGER
-4 0 0 INTEGER ()) 0 56 (('' (VARIABLE (DERIVED 31 0 0 DERIVED ()) 0 69 ()))
-('interior' (CONSTANT (LOGICAL 4 0 0 LOGICAL ()) 0 0))) 'edge_num_length'
-1 56)) 5 () () () 0 0)
-71 'ele_local_num' 'element_numbering' 'ele_local_num' 1 ((PROCEDURE
-UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 DIMENSION FUNCTION
-ALWAYS_EXPLICIT) (INTEGER 4 0 0 INTEGER ()) 72 0 (73 74) (1 0 EXPLICIT (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (VARIABLE (INTEGER 4 0 0
-INTEGER ()) 0 74 ((COMPONENT 31 75 'nodes')))) 71 () () () 0 0)
-11 'ele_num_local_coords' 'element_numbering' 'ele_num_local_coords' 1 (
-(PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 DIMENSION
-FUNCTION ALWAYS_EXPLICIT) (REAL 8 0 0 REAL ()) 76 0 (77 78) (1 0
-EXPLICIT (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (FUNCTION (INTEGER
-4 0 0 INTEGER ()) 0 79 (('' (VARIABLE (INTEGER 4 0 0 INTEGER ()) 2 78 (
-(COMPONENT 31 80 'number2count') (ARRAY (FULL 0))))) ('' (CONSTANT (
-INTEGER 4 0 0 INTEGER ()) 0 '1')) ('' ())) '' 0 'size')) 81 () () () 0 0)
-12 'ele_num_local_vertices' 'element_numbering' 'ele_num_local_vertices'
-1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 DIMENSION
-FUNCTION ALWAYS_EXPLICIT) (INTEGER 4 0 0 INTEGER ()) 82 0 (83) (1 0
-EXPLICIT (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (VARIABLE (INTEGER
-4 0 0 INTEGER ()) 0 83 ((COMPONENT 31 84 'vertices')))) 12 () () () 0 0)
-31 'ele_numbering_type' 'element_numbering' 'ele_numbering_type' 1 ((
-DERIVED UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (
-UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0 ((85 'faces' (INTEGER 4 0 0
-INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0) UNKNOWN-ACCESS ()) (84 'vertices' (INTEGER 4 0 0 INTEGER ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ()) (86 'edges' (INTEGER 4 0 0 INTEGER ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ()) (87 'boundaries' (INTEGER 4 0 0 INTEGER ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ()) (88 'degree' (INTEGER 4 0 0 INTEGER ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ()) (89 'dimension' (INTEGER 4 0 0 INTEGER ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ()) (75 'nodes' (INTEGER 4 0 0 INTEGER ()) () (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
-UNKNOWN-ACCESS ()) (90 'type' (INTEGER 4 0 0 INTEGER ()) () (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1')) (91 'family' (INTEGER 4 0 0
-INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0) UNKNOWN-ACCESS ()) (92 'count2number' (INTEGER 4 0 0 INTEGER ()) (3 0
-DEFERRED () () () () () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS ()) (80
-'number2count' (INTEGER 4 0 0 INTEGER ()) (2 0 DEFERRED () () () ()) (
-UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
-POINTER) UNKNOWN-ACCESS ()) (93 'boundary_coord' (INTEGER 4 0 0 INTEGER
-()) (1 0 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS ()) (94 'boundary_val' (
-INTEGER 4 0 0 INTEGER ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
-UNKNOWN-ACCESS ())) PUBLIC (() () () ()) () 0 0 96431082)
-95 'element_bubble' 'element_numbering' 'element_bubble' 1 ((PARAMETER
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (INTEGER 4 0 0
-INTEGER ()) 0 0 () (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '3') () 0 () ()
-() 0 0)
-96 'element_controlvolume_surface' 'element_numbering'
-'element_controlvolume_surface' 1 ((PARAMETER UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (INTEGER 4 0 0 INTEGER ()) 0 0 ()
-(CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '5') () 0 () () () 0 0)
-97 'element_controlvolume_surface_bodyderivatives' 'element_numbering'
-'element_controlvolume_surface_bodyderivatives' 1 ((PARAMETER
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (INTEGER 4 0 0
-INTEGER ()) 0 0 () (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '6') () 0 () ()
-() 0 0)
-98 'element_controlvolumebdy_surface' 'element_numbering'
-'element_controlvolumebdy_surface' 1 ((PARAMETER UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (INTEGER 4 0 0 INTEGER ()) 0 0 ()
-(CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '4') () 0 () () () 0 0)
-99 'element_lagrangian' 'element_numbering' 'element_lagrangian' 1 ((
-PARAMETER UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (
-INTEGER 4 0 0 INTEGER ()) 0 0 () (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0
-'1') () 0 () () () 0 0)
-100 'element_nonconforming' 'element_numbering' 'element_nonconforming'
-1 ((PARAMETER UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (
-INTEGER 4 0 0 INTEGER ()) 0 0 () (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0
-'2') () 0 () () () 0 0)
-2 'element_num_equal' 'element_numbering' 'element_num_equal' 1 ((
-PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE) (
-LOGICAL 4 0 0 LOGICAL ()) 101 0 (102 103) () 2 () () () 0 0)
-104 'element_numbering' 'element_numbering' 'element_numbering' 1 ((
-MODULE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) (UNKNOWN 0 0 0
-UNKNOWN ()) 0 0 () () 0 () () () 0 0)
-105 'element_trace' 'element_numbering' 'element_trace' 1 ((PARAMETER
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (INTEGER 4 0 0
-INTEGER ()) 0 0 () (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '7') () 0 () ()
-() 0 0)
-8 'face_local_num_int' 'element_numbering' 'face_local_num_int' 1 ((
-PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 DIMENSION FUNCTION
-ALWAYS_EXPLICIT) (INTEGER 4 0 0 INTEGER ()) 106 0 (107 108 109) (1 0
-EXPLICIT (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (FUNCTION (INTEGER
-4 0 0 INTEGER ()) 0 110 (('' (VARIABLE (DERIVED 31 0 0 DERIVED ()) 0 108
-())) ('' (VARIABLE (LOGICAL 4 0 0 LOGICAL ()) 0 109 ())))
-'face_num_length' 1 110)) 8 () () () 0 0)
-7 'face_local_num_no_int' 'element_numbering' 'face_local_num_no_int' 1
-((PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 DIMENSION
-FUNCTION ALWAYS_EXPLICIT) (INTEGER 4 0 0 INTEGER ()) 111 0 (112 113) (1
-0 EXPLICIT (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (FUNCTION (
-INTEGER 4 0 0 INTEGER ()) 0 110 (('' (VARIABLE (DERIVED 31 0 0 DERIVED ())
-0 113 ())) ('interior' (CONSTANT (LOGICAL 4 0 0 LOGICAL ()) 0 0)))
-'face_num_length' 1 110)) 7 () () () 0 0)
-10 'face_num_int' 'element_numbering' 'face_num_int' 1 ((PROCEDURE
-UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 DIMENSION FUNCTION
-ALWAYS_EXPLICIT) (INTEGER 4 0 0 INTEGER ()) 114 0 (115 116 117 118 119)
-(1 0 EXPLICIT (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (FUNCTION (
-INTEGER 4 0 0 INTEGER ()) 0 110 (('' (VARIABLE (DERIVED 31 0 0 DERIVED ())
-0 117 ())) ('' (VARIABLE (LOGICAL 4 0 0 LOGICAL ()) 0 118 ())))
-'face_num_length' 1 110)) 10 () () () 0 0)
-110 'face_num_length' 'element_numbering' 'face_num_length' 1 ((
-PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE) (
-INTEGER 4 0 0 INTEGER ()) 120 0 (121 122) () 110 () () () 0 0)
-9 'face_num_no_int' 'element_numbering' 'face_num_no_int' 1 ((PROCEDURE
-UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 DIMENSION FUNCTION
-ALWAYS_EXPLICIT) (INTEGER 4 0 0 INTEGER ()) 123 0 (124 125 126 127) (1 0
-EXPLICIT (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (FUNCTION (INTEGER
-4 0 0 INTEGER ()) 0 110 (('' (VARIABLE (DERIVED 31 0 0 DERIVED ()) 0 126
-())) ('interior' (CONSTANT (LOGICAL 4 0 0 LOGICAL ()) 0 0)))
-'face_num_length' 1 110)) 9 () () () 0 0)
-128 'family_cube' 'element_numbering' 'family_cube' 1 ((PARAMETER
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (INTEGER 4 0 0
-INTEGER ()) 0 0 () (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '2') () 0 () ()
-() 0 0)
-129 'family_simplex' 'element_numbering' 'family_simplex' 1 ((PARAMETER
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (INTEGER 4 0 0
-INTEGER ()) 0 0 () (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') () 0 () ()
-() 0 0)
-130 'file_extension' 'futils' 'file_extension' 1 ((PROCEDURE
-UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 FUNCTION IMPLICIT_PURE) (
-CHARACTER 1 0 0 CHARACTER ((FUNCTION (INTEGER 4 0 0 INTEGER ()) 0 131 (
-('' (VARIABLE (CHARACTER 1 0 0 CHARACTER (())) 0 132 ())))
-'file_extension_len' 1 131))) 133 0 (132) () 130 () () () 0 0)
-131 'file_extension_len' 'futils' 'file_extension_len' 1 ((PROCEDURE
-UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE) (INTEGER 4 0
-0 INTEGER ()) 134 0 (135) () 136 () () () 0 0)
-137 'find_element_numbering' 'element_numbering' 'find_element_numbering'
-1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 POINTER
-FUNCTION ALWAYS_EXPLICIT) (DERIVED 31 0 0 DERIVED ()) 138 0 (139 140 141
-142) () 143 () () () 0 0)
-144 'flabort_pinpoint' 'fldebug' 'flabort_pinpoint' 1 ((PROCEDURE
-UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0
-UNKNOWN ()) 145 0 (146 147 148) () 0 () () () 0 0)
-149 'fldebug' 'fldebug' 'fldebug' 1 ((MODULE UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0) (UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0 () () () 0 0)
-150 'fldebug_parameters' 'fldebug_parameters' 'fldebug_parameters' 1 ((
-MODULE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) (UNKNOWN 0 0 0
-UNKNOWN ()) 0 0 () () 0 () () () 0 0)
-151 'flexit_pinpoint' 'fldebug' 'flexit_pinpoint' 1 ((PROCEDURE
-UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0
-UNKNOWN ()) 152 0 (153 154 155) () 0 () () () 0 0)
-156 'free_unit' 'futils' 'free_unit' 1 ((PROCEDURE UNKNOWN-INTENT
-MODULE-PROC DECL UNKNOWN 0 0 FUNCTION) (INTEGER 4 0 0 INTEGER ()) 0 0 ()
-() 156 () () () 0 0)
-157 'futils' 'futils' 'futils' 1 ((MODULE UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0) (UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0 () () () 0 0)
-158 'global_debug_level' 'fldebug_parameters' 'global_debug_level' 1 ((
-VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0) (
-INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-159 'global_parameters' 'global_parameters' 'global_parameters' 1 ((
-MODULE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) (UNKNOWN 0 0 0
-UNKNOWN ()) 0 0 () () 0 () () () 0 0)
-160 'hex_max_degree' 'element_numbering' 'hex_max_degree' 1 ((PARAMETER
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (INTEGER 4 0 0
-INTEGER ()) 0 0 () (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '9') () 0 () ()
-() 0 0)
-161 'hex_numbering' 'element_numbering' 'hex_numbering' 1 ((VARIABLE
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0 DIMENSION TARGET)
-(DERIVED 31 0 0 DERIVED ()) 0 0 () (1 0 EXPLICIT (CONSTANT (INTEGER 4 0
-0 INTEGER ()) 0 '0') (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '9')) 0 () ()
-() 0 0)
-162 'ilink2' 'element_numbering' 'ilink2' 1 ((PARAMETER UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0 DIMENSION) (INTEGER 4 0 0 INTEGER
-()) 0 0 () (ARRAY (INTEGER 4 0 0 INTEGER ()) 2 (((CONSTANT (INTEGER 4 0
-0 INTEGER ()) 0 '1') ()) ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '2') ())
-((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '4') ()) ((CONSTANT (INTEGER 4 0
-0 INTEGER ()) 0 '7') ()) ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '2') ())
-((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '3') ()) ((CONSTANT (INTEGER 4 0
-0 INTEGER ()) 0 '5') ()) ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '8') ())
-((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '4') ()) ((CONSTANT (INTEGER 4 0
-0 INTEGER ()) 0 '5') ()) ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '6') ())
-((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '9') ()) ((CONSTANT (INTEGER 4 0
-0 INTEGER ()) 0 '7') ()) ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '8') ())
-((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '9') ()) ((CONSTANT (INTEGER 4 0
-0 INTEGER ()) 0 '10') ())) ('4' '4')) (2 0 EXPLICIT (CONSTANT (INTEGER 4
-0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '4') (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0
-INTEGER ()) 0 '4')) 0 () () () 0 0)
-163 'int2str' 'futils' 'int2str' 1 ((PROCEDURE UNKNOWN-INTENT
-MODULE-PROC DECL UNKNOWN 0 0 FUNCTION IMPLICIT_PURE) (CHARACTER 1 0 0
-CHARACTER ((FUNCTION (INTEGER 4 0 0 INTEGER ()) 0 164 (('' (VARIABLE (
-INTEGER 4 0 0 INTEGER ()) 0 165 ()))) 'int2str_len' 1 164))) 166 0 (165)
-() 163 () () () 0 0)
-164 'int2str_len' 'futils' 'int2str_len' 1 ((PROCEDURE UNKNOWN-INTENT
-MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE) (INTEGER 4 0 0 INTEGER ())
-167 0 (168) () 164 () () () 0 0)
-169 'integer_vector' 'futils' 'integer_vector' 1 ((DERIVED
+(8 'Ele_numbering_type' 'element_numbering' '' 1 ((DERIVED
 UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0
-0 0 UNKNOWN ()) 0 0 () () 0 ((170 'ptr' (INTEGER 4 0 0 INTEGER ()) (1 0
+0 0 0 UNKNOWN ()) 0 0 () () 0 ((30 'faces' (INTEGER 4 0 0 0 INTEGER ())
+() (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS ()) (31 'vertices' (INTEGER 4 0 0 0 INTEGER ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS ()) (32 'edges' (INTEGER 4 0 0 0 INTEGER ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS ()) (33 'boundaries' (INTEGER 4 0 0 0 INTEGER ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS ()) (34 'degree' (INTEGER 4 0 0 0 INTEGER ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS ()) (35 'dimension' (INTEGER 4 0 0 0 INTEGER ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS ()) (36 'nodes' (INTEGER 4 0 0 0 INTEGER ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS ()) (37 'type' (INTEGER 4 0 0 0 INTEGER ()) () (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0)
+UNKNOWN-ACCESS (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1')) (38 'family'
+(INTEGER 4 0 0 0 INTEGER ()) () (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0) UNKNOWN-ACCESS ()) (39 'count2number' (INTEGER 4 0
+0 0 INTEGER ()) (3 0 DEFERRED () () () () () ()) (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
+UNKNOWN-ACCESS ()) (40 'number2count' (INTEGER 4 0 0 0 INTEGER ()) (2 0
+DEFERRED () () () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 DIMENSION POINTER) UNKNOWN-ACCESS ()) (41 'boundary_coord' (
+INTEGER 4 0 0 0 INTEGER ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
+UNKNOWN-ACCESS ()) (42 'boundary_val' (INTEGER 4 0 0 0 INTEGER ()) (1 0
 DEFERRED () ()) (UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DIMENSION POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0)))
-PUBLIC (() () () ()) () 0 0 9661976)
-171 'interval_max_degree' 'element_numbering' 'interval_max_degree' 1 (
-(PARAMETER UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (
-INTEGER 4 0 0 INTEGER ()) 0 0 () (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0
-'32') () 0 () () () 0 0)
-172 'interval_numbering' 'element_numbering' 'interval_numbering' 1 ((
-VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0 DIMENSION
-TARGET) (DERIVED 31 0 0 DERIVED ()) 0 0 () (1 0 EXPLICIT (CONSTANT (
-INTEGER 4 0 0 INTEGER ()) 0 '0') (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0
-'32')) 0 () () () 0 0)
-173 'interval_numbering_bubble' 'element_numbering'
-'interval_numbering_bubble' 1 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN EXPLICIT-SAVE 0 0 TARGET) (DERIVED 31 0 0 DERIVED ()) 0 0 () ()
-0 () () () 0 0)
-174 'inv_te' 'element_numbering' 'inv_te' 1 ((PROCEDURE UNKNOWN-INTENT
-MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE) (INTEGER 4 0 0 INTEGER ())
-175 0 (176) () 177 () () () 0 0)
-178 'inv_tr' 'element_numbering' 'inv_tr' 1 ((PROCEDURE UNKNOWN-INTENT
-MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE) (INTEGER 4 0 0 INTEGER ())
-179 0 (180) () 181 () () () 0 0)
-182 'local_edge_num' 'element_numbering' 'local_edge_num' 1 ((VARIABLE
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0 DIMENSION) (
-INTEGER 4 0 0 INTEGER ()) 0 0 () (2 0 EXPLICIT (CONSTANT (INTEGER 4 0 0
-INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '4') (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0
-INTEGER ()) 0 '4')) 0 () () () 0 0)
-183 'multiindex' 'futils' 'multiindex' 1 ((PROCEDURE UNKNOWN-INTENT
-MODULE-PROC DECL UNKNOWN 0 0 DIMENSION FUNCTION IMPLICIT_PURE
-ALWAYS_EXPLICIT) (INTEGER 4 0 0 INTEGER ()) 184 0 (185 186) (1 0
-EXPLICIT (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (FUNCTION (INTEGER
-4 0 0 INTEGER ()) 0 40 (('' (VARIABLE (CHARACTER 1 0 0 CHARACTER (())) 0
-185 ())) ('' (VARIABLE (CHARACTER 1 0 0 CHARACTER ((CONSTANT (INTEGER 4
-0 0 INTEGER ()) 0 '1'))) 0 186 ()))) 'count_chars' 1 40)) 183 () () () 0
-0)
-187 'nth_digit' 'futils' 'nth_digit' 1 ((PROCEDURE UNKNOWN-INTENT
-MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE) (INTEGER 4 0 0 INTEGER ())
-188 0 (189 190) () 187 () () () 0 0)
-191 'null' '(intrinsic)' 'null' 1 ((PROCEDURE UNKNOWN-INTENT
-INTRINSIC-PROC UNKNOWN UNKNOWN 0 0 FUNCTION) (UNKNOWN 0 0 0 UNKNOWN ())
-0 0 () () 191 () () () 0 0)
-16 'nullify_integer_vector' 'futils' 'nullify_integer_vector' 1 ((
-PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE
-IMPLICIT_PURE) (UNKNOWN 0 0 0 UNKNOWN ()) 192 0 (193) () 0 () () () 0 0)
-15 'nullify_integer_vector_vector' 'futils'
-'nullify_integer_vector_vector' 1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC
-DECL UNKNOWN 0 0 SUBROUTINE IMPLICIT_PURE ALWAYS_EXPLICIT) (UNKNOWN 0 0
-0 UNKNOWN ()) 194 0 (195) () 0 () () () 0 0)
-14 'nullify_real_vector' 'futils' 'nullify_real_vector' 1 ((PROCEDURE
-UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE IMPLICIT_PURE) (
-UNKNOWN 0 0 0 UNKNOWN ()) 196 0 (197) () 0 () () () 0 0)
-13 'nullify_real_vector_vector' 'futils' 'nullify_real_vector_vector' 1
-((PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE
-IMPLICIT_PURE ALWAYS_EXPLICIT) (UNKNOWN 0 0 0 UNKNOWN ()) 198 0 (199) ()
-0 () () () 0 0)
-200 'number_elements' 'element_numbering' 'number_elements' 1 ((
-PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (
-UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0 () () () 0 0)
-201 'number_hexes_lagrange' 'element_numbering' 'number_hexes_lagrange'
-1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (
-UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0 () () () 0 0)
-202 'number_intervals_bubble' 'element_numbering'
-'number_intervals_bubble' 1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL
-UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0 () () ()
-0 0)
-203 'number_intervals_lagrange' 'element_numbering'
-'number_intervals_lagrange' 1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC
-DECL UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0 () ()
-() 0 0)
-204 'number_point_lagrange' 'element_numbering' 'number_point_lagrange'
-1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (
-UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0 () () () 0 0)
-205 'number_quads_lagrange' 'element_numbering' 'number_quads_lagrange'
-1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (
-UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0 () () () 0 0)
-206 'number_quads_trace' 'element_numbering' 'number_quads_trace' 1 ((
-PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (
-UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0 () () () 0 0)
-207 'number_tets_bubble' 'element_numbering' 'number_tets_bubble' 1 ((
-PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (
-UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0 () () () 0 0)
-208 'number_tets_lagrange' 'element_numbering' 'number_tets_lagrange' 1
-((PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (
-UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0 () () () 0 0)
-209 'number_triangles_bubble' 'element_numbering'
-'number_triangles_bubble' 1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL
-UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0 () () ()
-0 0)
-210 'number_triangles_lagrange' 'element_numbering'
-'number_triangles_lagrange' 1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC
-DECL UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0 () ()
-() 0 0)
-211 'number_triangles_nc' 'element_numbering' 'number_triangles_nc' 1 (
-(PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (
-UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0 () () () 0 0)
-212 'number_triangles_trace' 'element_numbering' 'number_triangles_trace'
-1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (
-UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0 () () () 0 0)
-25 'numbering_boundary_numbering' 'element_numbering'
-'numbering_boundary_numbering' 1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC
-DECL UNKNOWN 0 0 DIMENSION FUNCTION ALWAYS_EXPLICIT) (INTEGER 4 0 0
-INTEGER ()) 213 0 (214 215) (1 0 EXPLICIT (CONSTANT (INTEGER 4 0 0
-INTEGER ()) 0 '1') (FUNCTION (INTEGER 4 0 0 INTEGER ()) 0 30 (('' (
-VARIABLE (DERIVED 31 0 0 DERIVED ()) 0 214 ())) ('' (CONSTANT (LOGICAL 4
-0 0 LOGICAL ()) 0 0))) 'boundary_num_length' 1 30)) 216 () () () 0 0)
-217 'point_numbering' 'element_numbering' 'point_numbering' 1 ((
-VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0 DIMENSION
-TARGET) (DERIVED 31 0 0 DERIVED ()) 0 0 () (1 0 EXPLICIT (CONSTANT (
-INTEGER 4 0 0 INTEGER ()) 0 '0') (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0
-'0')) 0 () () () 0 0)
-218 'present_and_false' 'futils' 'present_and_false' 1 ((PROCEDURE
-UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE
-ALWAYS_EXPLICIT) (LOGICAL 4 0 0 LOGICAL ()) 219 0 (220) () 218 () () ()
-0 0)
-221 'present_and_nonempty' 'futils' 'present_and_nonempty' 1 ((
-PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE
-ALWAYS_EXPLICIT) (LOGICAL 4 0 0 LOGICAL ()) 222 0 (223) () 221 () () ()
-0 0)
-224 'present_and_nonzero' 'futils' 'present_and_nonzero' 1 ((PROCEDURE
-UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE
-ALWAYS_EXPLICIT) (LOGICAL 4 0 0 LOGICAL ()) 225 0 (226) () 224 () () ()
-0 0)
-227 'present_and_true' 'futils' 'present_and_true' 1 ((PROCEDURE
-UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE
-ALWAYS_EXPLICIT) (LOGICAL 4 0 0 LOGICAL ()) 228 0 (229) () 227 () () ()
-0 0)
-230 'present_and_zero' 'futils' 'present_and_zero' 1 ((PROCEDURE
-UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE
-ALWAYS_EXPLICIT) (LOGICAL 4 0 0 LOGICAL ()) 231 0 (232) () 230 () () ()
-0 0)
-233 'quad_max_degree' 'element_numbering' 'quad_max_degree' 1 ((
-PARAMETER UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (
-INTEGER 4 0 0 INTEGER ()) 0 0 () (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0
-'9') () 0 () () () 0 0)
-234 'quad_numbering' 'element_numbering' 'quad_numbering' 1 ((VARIABLE
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0 DIMENSION TARGET)
-(DERIVED 31 0 0 DERIVED ()) 0 0 () (1 0 EXPLICIT (CONSTANT (INTEGER 4 0
-0 INTEGER ()) 0 '0') (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '9')) 0 () ()
-() 0 0)
-235 'quad_numbering_trace' 'element_numbering' 'quad_numbering_trace' 1
-((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0
-DIMENSION TARGET) (DERIVED 31 0 0 DERIVED ()) 0 0 () (1 0 EXPLICIT (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '0') (CONSTANT (INTEGER 4 0 0
-INTEGER ()) 0 '32')) 0 () () () 0 0)
-236 'random_number_minmax' 'futils' 'random_number_minmax' 1 ((
-PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 FUNCTION
-IMPLICIT_PURE) (REAL 8 0 0 REAL ()) 237 0 (238 239) () 240 () () () 0 0)
-241 'real_digits_10' 'global_parameters' 'real_digits_10' 1 ((PARAMETER
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (INTEGER 4 0 0
-INTEGER ()) 0 0 () (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '15') () 0 ()
-() () 0 0)
-18 'real_format_non_padded' 'futils' 'real_format_non_padded' 1 ((
-PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 FUNCTION) (
-CHARACTER 1 0 0 CHARACTER ((FUNCTION (INTEGER 4 0 0 INTEGER ()) 0 242 ()
-'real_format_non_padded_len' 1 20))) 0 0 () () 243 () () () 0 0)
-20 'real_format_non_padded_len' 'futils' 'real_format_non_padded_len' 1
-((PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE) (
-INTEGER 4 0 0 INTEGER ()) 0 0 () () 244 () () () 0 0)
-17 'real_format_padded' 'futils' 'real_format_padded' 1 ((PROCEDURE
-UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 FUNCTION) (CHARACTER 1 0 0
-CHARACTER ((FUNCTION (INTEGER 4 0 0 INTEGER ()) 0 242 ()
-'real_format_non_padded_len' 1 20))) 245 0 (246) () 247 () () () 0 0)
-19 'real_format_padded_len' 'futils' 'real_format_padded_len' 1 ((
-PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE) (
-INTEGER 4 0 0 INTEGER ()) 248 0 (249) () 250 () () () 0 0)
-251 'real_matrix' 'futils' 'real_matrix' 1 ((DERIVED UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 UNKNOWN ())
-0 0 () () 0 ((252 'ptr' (REAL 8 0 0 REAL ()) (2 0 DEFERRED () () () ())
-(UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
-POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0))) PUBLIC (()
-() () ()) () 0 0 29679214)
-253 'real_vector' 'futils' 'real_vector' 1 ((DERIVED UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 UNKNOWN ())
-0 0 () () 0 ((254 'ptr' (REAL 8 0 0 REAL ()) (1 0 DEFERRED () ()) (
+0 0 DIMENSION POINTER) UNKNOWN-ACCESS ())) PUBLIC (() () () ()) () 0 0
+96431082)
+13 'Integer_vector' 'futils' '' 1 ((DERIVED UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN ()) 0 0 () ()
+0 ((43 'ptr' (INTEGER 4 0 0 0 INTEGER ()) (1 0 DEFERRED () ()) (
 UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
-POINTER) UNKNOWN-ACCESS (NULL (UNKNOWN 0 0 0 UNKNOWN ()) 0))) PUBLIC (()
-() () ()) () 0 0 72870256)
-255 'reshape' '(intrinsic)' 'reshape' 1 ((PROCEDURE UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 FUNCTION) (UNKNOWN 0 0 0 UNKNOWN ()) 0
-0 () () 255 () () () 0 0)
-256 'silink2' 'element_numbering' 'silink2' 1 ((PARAMETER UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0 DIMENSION) (INTEGER 4 0 0 INTEGER
-()) 0 0 () (ARRAY (INTEGER 4 0 0 INTEGER ()) 2 (((CONSTANT (INTEGER 4 0
-0 INTEGER ()) 0 '1') ()) ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '4') ())
-((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '6') ()) ((CONSTANT (INTEGER 4 0
-0 INTEGER ()) 0 '4') ()) ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '2') ())
-((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '5') ()) ((CONSTANT (INTEGER 4 0
-0 INTEGER ()) 0 '6') ()) ((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '5') ())
-((CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '3') ())) ('3' '3')) (2 0
-EXPLICIT (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER
-4 0 0 INTEGER ()) 0 '3') (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '3')) 0 () () () 0 0)
-257 'starts_with' 'futils' 'starts_with' 1 ((PROCEDURE UNKNOWN-INTENT
-MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE) (LOGICAL 4 0 0 LOGICAL ())
-258 0 (259 260) () 257 () () () 0 0)
-24 'svertex_num' 'element_numbering' 'svertex_num' 1 ((PROCEDURE
-UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 FUNCTION ALWAYS_EXPLICIT) (
-INTEGER 4 0 0 INTEGER ()) 261 0 (262 263 264 265) () 24 () () () 0 0)
-266 'te' 'element_numbering' 'te' 1 ((PROCEDURE UNKNOWN-INTENT
-MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE) (INTEGER 4 0 0 INTEGER ())
-267 0 (268) () 266 () () () 0 0)
-269 'tet_bubble_max_degree' 'element_numbering' 'tet_bubble_max_degree'
-1 ((PARAMETER UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (
-INTEGER 4 0 0 INTEGER ()) 0 0 () (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0
-'3') () 0 () () () 0 0)
-270 'tet_max_degree' 'element_numbering' 'tet_max_degree' 1 ((PARAMETER
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (INTEGER 4 0 0
-INTEGER ()) 0 0 () (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '9') () 0 () ()
-() 0 0)
-271 'tet_numbering' 'element_numbering' 'tet_numbering' 1 ((VARIABLE
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0 DIMENSION TARGET)
-(DERIVED 31 0 0 DERIVED ()) 0 0 () (1 0 EXPLICIT (CONSTANT (INTEGER 4 0
-0 INTEGER ()) 0 '0') (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '9')) 0 () ()
-() 0 0)
-272 'tet_numbering_bubble' 'element_numbering' 'tet_numbering_bubble' 1
-((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0
-DIMENSION TARGET) (DERIVED 31 0 0 DERIVED ()) 0 0 () (1 0 EXPLICIT (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0
-INTEGER ()) 0 '3')) 0 () () () 0 0)
-273 'tokenize' 'futils' 'tokenize' 1 ((PROCEDURE UNKNOWN-INTENT
-MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE ALWAYS_EXPLICIT) (UNKNOWN 0 0 0
-UNKNOWN ()) 274 0 (275 276 277) () 0 () () () 0 0)
-278 'tr' 'element_numbering' 'tr' 1 ((PROCEDURE UNKNOWN-INTENT
-MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE) (INTEGER 4 0 0 INTEGER ())
-279 0 (280) () 278 () () () 0 0)
-281 'tri_bubble_max_degree' 'element_numbering' 'tri_bubble_max_degree'
-1 ((PARAMETER UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (
-INTEGER 4 0 0 INTEGER ()) 0 0 () (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0
-'2') () 0 () () () 0 0)
-282 'tri_max_degree' 'element_numbering' 'tri_max_degree' 1 ((PARAMETER
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (INTEGER 4 0 0
-INTEGER ()) 0 0 () (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '32') () 0 ()
-() () 0 0)
-283 'tri_numbering' 'element_numbering' 'tri_numbering' 1 ((VARIABLE
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0 DIMENSION TARGET)
-(DERIVED 31 0 0 DERIVED ()) 0 0 () (1 0 EXPLICIT (CONSTANT (INTEGER 4 0
-0 INTEGER ()) 0 '0') (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '32')) 0 ()
-() () 0 0)
-284 'tri_numbering_bubble' 'element_numbering' 'tri_numbering_bubble' 1
-((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0
-DIMENSION TARGET) (DERIVED 31 0 0 DERIVED ()) 0 0 () (1 0 EXPLICIT (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0
-INTEGER ()) 0 '2')) 0 () () () 0 0)
-285 'tri_numbering_nc' 'element_numbering' 'tri_numbering_nc' 1 ((
-VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0 TARGET) (
-DERIVED 31 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
-286 'tri_numbering_trace' 'element_numbering' 'tri_numbering_trace' 1 (
-(VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0
-DIMENSION TARGET) (DERIVED 31 0 0 DERIVED ()) 0 0 () (1 0 EXPLICIT (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '0') (CONSTANT (INTEGER 4 0 0
-INTEGER ()) 0 '32')) 0 () () () 0 0)
-287 'trim_file_extension' 'futils' 'trim_file_extension' 1 ((PROCEDURE
-UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 FUNCTION IMPLICIT_PURE) (
-CHARACTER 1 0 0 CHARACTER ((FUNCTION (INTEGER 4 0 0 INTEGER ()) 0 288 (
-('' (VARIABLE (CHARACTER 1 0 0 CHARACTER (())) 0 289 ())))
-'trim_file_extension_len' 1 288))) 290 0 (289) () 287 () () () 0 0)
-288 'trim_file_extension_len' 'futils' 'trim_file_extension_len' 1 ((
-PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE) (
-INTEGER 4 0 0 INTEGER ()) 291 0 (292) () 293 () () () 0 0)
-23 'vvertex_num' 'element_numbering' 'vvertex_num' 1 ((PROCEDURE
+POINTER) UNKNOWN-ACCESS ())) PUBLIC (() () () ()) () 0 0 9661976)
+24 'Real_matrix' 'futils' '' 1 ((DERIVED UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN ()) 0 0 () ()
+0 ((44 'ptr' (REAL 8 0 0 0 REAL ()) (2 0 DEFERRED () () () ()) (
+UNKNOWN-FL UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION
+POINTER) UNKNOWN-ACCESS ())) PUBLIC (() () () ()) () 0 0 29679214)
+25 'Real_vector' 'futils' '' 1 ((DERIVED UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 POINTER_COMP) (UNKNOWN 0 0 0 0 UNKNOWN ()) 0 0 () ()
+0 ((45 'ptr' (REAL 8 0 0 0 REAL ()) (1 0 DEFERRED () ()) (UNKNOWN-FL
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION POINTER)
+UNKNOWN-ACCESS ())) PUBLIC (() () () ()) () 0 0 72870256)
+4 'boundary_local_num_int' 'element_numbering' '' 1 ((PROCEDURE
 UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 DIMENSION FUNCTION
-ALWAYS_EXPLICIT) (INTEGER 4 0 0 INTEGER ()) 294 0 (295 296 297 298) (1 0
-EXPLICIT (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (FUNCTION (INTEGER
-4 0 0 INTEGER ()) 0 299 (('' (VARIABLE (INTEGER 4 0 0 INTEGER ()) 1 295
-((ARRAY (FULL 0))))) ('' ()) ('' ())) '' 0 'size')) 23 () () () 0 0)
-21 'write_minmax_integer_array' 'fldebug' 'write_minmax_integer_array' 1
-((PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE
-ALWAYS_EXPLICIT) (UNKNOWN 0 0 0 UNKNOWN ()) 300 0 (301 302) () 0 () () ()
-0 0)
-22 'write_minmax_real_array' 'fldebug' 'write_minmax_real_array' 1 ((
-PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE
-ALWAYS_EXPLICIT) (UNKNOWN 0 0 0 UNKNOWN ()) 303 0 (304 305) () 0 () () ()
-0 0)
-242 'real_format_len' 'futils' 'real_format_len' 1 ((PROCEDURE
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 GENERIC) (UNKNOWN 0 0 0
-UNKNOWN ()) 0 0 () () 0 () () () 0 0)
-43 'sep' '' 'sep' 41 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-DUMMY) (CHARACTER 1 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 INTEGER ())
-0 '1'))) 0 0 () () 0 () () () 0 0)
-42 'string' '' 'string' 41 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 () () 0 () () () 0 0)
-132 'filename' '' 'filename' 133 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 () () 0 () () ()
-0 0)
-147 'fromfile' '' 'fromfile' 145 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 () () 0
+ALWAYS_EXPLICIT) (INTEGER 4 0 0 0 INTEGER ()) 46 0 (47 48 49) (1 0
+EXPLICIT (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') (OP (INTEGER 4 0
+0 0 INTEGER ()) 0 PARENTHESES (FUNCTION (INTEGER 4 0 0 0 INTEGER ()) 0
+50 (('' (VARIABLE (DERIVED 8 0 0 0 DERIVED ()) 0 48 ())) ('' (VARIABLE (
+LOGICAL 4 0 0 0 LOGICAL ()) 0 49 ()))) 'boundary_num_length' 1 50))) 51
 () () () 0 0)
-148 'linenumber' '' 'linenumber' 145 ((VARIABLE UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 ()
-() 0 () () () 0 0)
-136 'length' '' 'length' 134 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 RESULT) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () ()
-() 0 0)
-165 'i' '' 'i' 166 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY)
-(INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-193 'vector' '' 'vector' 192 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (DERIVED 169 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
-50 'priority' '' 'priority' 49 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-232 'var' '' 'var' 231 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-OPTIONAL DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-243 'format' '' 'format' 306 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 RESULT) (CHARACTER 1 0 0 CHARACTER ((FUNCTION (
-INTEGER 4 0 0 INTEGER ()) 0 242 () 'real_format_non_padded_len' 1 20)))
-0 0 () () 0 () () () 0 0)
-240 'rand' '' 'rand' 237 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 RESULT) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
-239 'max' '' 'max' 237 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
-247 'format' '' 'format' 245 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 RESULT) (CHARACTER 1 0 0 CHARACTER ((FUNCTION (
-INTEGER 4 0 0 INTEGER ()) 0 242 () 'real_format_non_padded_len' 1 20)))
-0 0 () () 0 () () () 0 0)
-246 'padding' '' 'padding' 245 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-250 'length' '' 'length' 248 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 RESULT) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () ()
-() 0 0)
-249 'padding' '' 'padding' 248 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-289 'filename' '' 'filename' 290 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 () () 0 () () ()
-0 0)
-293 'length' '' 'length' 291 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 RESULT) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () ()
-() 0 0)
-277 'delimiter' '' 'delimiter' 274 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 () () 0 () () ()
-0 0)
-302 'array_expression' '' 'array_expression' 300 ((VARIABLE IN
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY) (CHARACTER 1 0 0 CHARACTER (()))
-0 0 () () 0 () () () 0 0)
-304 'array' '' 'array' 303 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 DIMENSION DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (1 0 ASSUMED_SHAPE (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
-305 'array_expression' '' 'array_expression' 303 ((VARIABLE IN
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY) (CHARACTER 1 0 0 CHARACTER (()))
-0 0 () () 0 () () () 0 0)
-301 'array' '' 'array' 300 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 DIMENSION DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () (1 0 ASSUMED_SHAPE
-(CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
-244 'length' '' 'length' 307 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 RESULT) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () ()
-() 0 0)
-135 'filename' '' 'filename' 134 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 () () 0 () () ()
-0 0)
-146 'errorstr' '' 'errorstr' 145 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 () () 0
+3 'boundary_local_num_no_int' 'element_numbering' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 DIMENSION FUNCTION
+ALWAYS_EXPLICIT) (INTEGER 4 0 0 0 INTEGER ()) 52 0 (53 54) (1 0 EXPLICIT
+(CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') (OP (INTEGER 4 0 0 0
+INTEGER ()) 0 PARENTHESES (FUNCTION (INTEGER 4 0 0 0 INTEGER ()) 0 50 (
+('' (VARIABLE (DERIVED 8 0 0 0 DERIVED ()) 0 54 ())) ('interior' (
+CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 0))) 'boundary_num_length' 1 50)))
+55 () () () 0 0)
+50 'boundary_num_length' 'element_numbering' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE) (INTEGER 4 0
+0 0 INTEGER ()) 56 0 (57 58) () 50 () () () 0 0)
+59 'count_chars' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC
+DECL UNKNOWN 0 0 FUNCTION PURE) (INTEGER 4 0 0 0 INTEGER ()) 60 0 (61 62)
+() 59 () () () 0 0)
+63 'current_debug_level' 'fldebug_parameters' '' 1 ((VARIABLE
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0) (INTEGER 4 0 0 0
+INTEGER ()) 0 0 () () 0 () () () 0 0)
+64 'debug_error_unit' 'fldebug_parameters' '' 1 ((VARIABLE
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0) (INTEGER 4 0 0 0
+INTEGER ()) 0 0 () () 0 () () () 0 0)
+65 'debug_level' 'fldebug' '' 1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC
+DECL UNKNOWN 0 0 FUNCTION IMPLICIT_PURE) (INTEGER 4 0 0 0 INTEGER ()) 0
+0 () () 65 () () () 0 0)
+66 'debug_log_unit' 'fldebug_parameters' '' 1 ((VARIABLE UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0) (INTEGER 4 0 0 0 INTEGER ()) 0 0
+() () 0 () () () 0 0)
+67 'debug_unit' 'fldebug' '' 1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC
+DECL UNKNOWN 0 0 FUNCTION IMPLICIT_PURE) (INTEGER 4 0 0 0 INTEGER ()) 68
+0 (69) () 67 () () () 0 0)
+70 'edge_local_num' 'element_numbering' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 DIMENSION FUNCTION ALWAYS_EXPLICIT) (
+INTEGER 4 0 0 0 INTEGER ()) 71 0 (72 73 74) (1 0 EXPLICIT (CONSTANT (
+INTEGER 4 0 0 0 INTEGER ()) 0 '1') (FUNCTION (INTEGER 4 0 0 0 INTEGER ())
+0 75 (('' (VARIABLE (DERIVED 8 0 0 0 DERIVED ()) 0 73 ())) ('' (
+VARIABLE (LOGICAL 4 0 0 0 LOGICAL ()) 0 74 ()))) 'edge_num_length' 1 75))
+70 () () () 0 0)
+7 'edge_num_int' 'element_numbering' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 DIMENSION FUNCTION ALWAYS_EXPLICIT) (
+INTEGER 4 0 0 0 INTEGER ()) 76 0 (77 78 79 80 81) (1 0 EXPLICIT (
+CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') (FUNCTION (INTEGER 4 0 0 0
+INTEGER ()) 0 75 (('' (VARIABLE (DERIVED 8 0 0 0 DERIVED ()) 0 79 ())) (
+'' (VARIABLE (LOGICAL 4 0 0 0 LOGICAL ()) 0 80 ()))) 'edge_num_length' 1
+75)) 7 () () () 0 0)
+75 'edge_num_length' 'element_numbering' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE) (INTEGER 4 0 0 0 INTEGER ())
+82 0 (83 84) () 75 () () () 0 0)
+6 'edge_num_no_int' 'element_numbering' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 DIMENSION FUNCTION ALWAYS_EXPLICIT) (
+INTEGER 4 0 0 0 INTEGER ()) 85 0 (86 87 88 89) (1 0 EXPLICIT (CONSTANT (
+INTEGER 4 0 0 0 INTEGER ()) 0 '1') (FUNCTION (INTEGER 4 0 0 0 INTEGER ())
+0 75 (('' (VARIABLE (DERIVED 8 0 0 0 DERIVED ()) 0 88 ())) ('interior' (
+CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 0))) 'edge_num_length' 1 75)) 6
 () () () 0 0)
-155 'linenumber' '' 'linenumber' 152 ((VARIABLE UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 ()
-() 0 () () () 0 0)
-154 'fromfile' '' 'fromfile' 152 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 () () 0
-() () () 0 0)
-153 'errorstr' '' 'errorstr' 152 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 () () 0
-() () () 0 0)
-168 'i' '' 'i' 167 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY)
-(INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-186 'sep' '' 'sep' 184 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-DUMMY) (CHARACTER 1 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 INTEGER ())
-0 '1'))) 0 0 () () 0 () () () 0 0)
-185 'string' '' 'string' 184 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 () () 0 () () () 0 0)
-190 'digit' '' 'digit' 188 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-189 'number' '' 'number' 188 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-195 'vector' '' 'vector' 194 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DIMENSION DUMMY) (DERIVED 169 0 0 DERIVED ()) 0 0 () (1 0
-ASSUMED_SHAPE (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () ()
-0 0)
-197 'vector' '' 'vector' 196 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (DERIVED 253 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
-199 'vector' '' 'vector' 198 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DIMENSION DUMMY) (DERIVED 253 0 0 DERIVED ()) 0 0 () (1 0
-ASSUMED_SHAPE (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () ()
-0 0)
-220 'flag' '' 'flag' 219 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-OPTIONAL DUMMY) (LOGICAL 4 0 0 LOGICAL ()) 0 0 () () 0 () () () 0 0)
-229 'flag' '' 'flag' 228 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-OPTIONAL DUMMY) (LOGICAL 4 0 0 LOGICAL ()) 0 0 () () 0 () () () 0 0)
-238 'min' '' 'min' 237 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
-226 'var' '' 'var' 225 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-OPTIONAL DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-260 'start' '' 'start' 258 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 () () 0 () () () 0 0)
-276 'tokens' '' 'tokens' 274 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 ALLOCATABLE DIMENSION DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 ()
-(1 0 DEFERRED () ()) 0 () () () 0 0)
-275 'string' '' 'string' 274 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 () () 0 () () () 0 0)
-259 'string' '' 'string' 258 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 () () 0 () () () 0 0)
-292 'filename' '' 'filename' 291 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 () () 0 () () ()
-0 0)
-223 'var' '' 'var' 222 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-OPTIONAL DUMMY) (CHARACTER 1 0 0 CHARACTER (())) 0 0 () () 0 () () () 0
+90 'ele_local_num' 'element_numbering' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 DIMENSION FUNCTION ALWAYS_EXPLICIT) (
+INTEGER 4 0 0 0 INTEGER ()) 91 0 (92 93) (1 0 EXPLICIT (CONSTANT (
+INTEGER 4 0 0 0 INTEGER ()) 0 '1') (VARIABLE (INTEGER 4 0 0 0 INTEGER ())
+0 93 ((COMPONENT 8 36 'nodes')))) 90 () () () 0 0)
+14 'ele_num_local_coords' 'element_numbering' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 DIMENSION FUNCTION
+ALWAYS_EXPLICIT) (REAL 8 0 0 0 REAL ()) 94 0 (95 96) (1 0 EXPLICIT (
+CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') (FUNCTION (INTEGER 4 0 0 0
+INTEGER ()) 0 97 (('' (VARIABLE (INTEGER 4 0 0 0 INTEGER ()) 2 96 ((
+COMPONENT 8 40 'number2count') (ARRAY (FULL 2 2 2))))) ('' (CONSTANT (
+INTEGER 4 0 0 0 INTEGER ()) 0 '1')) ('' ())) '' 0 'size')) 98 () () () 0
 0)
-139 'vertices' '' 'vertices' 138 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-140 'dimension' '' 'dimension' 138 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-141 'degree' '' 'degree' 138 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-142 'type' '' 'type' 138 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-OPTIONAL DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-143 'ele_num' '' 'ele_num' 138 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 POINTER RESULT ALWAYS_EXPLICIT) (DERIVED 31 0 0
-DERIVED ()) 0 0 () () 0 () () () 0 0)
-180 'm' '' 'm' 179 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY)
-(INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-268 'n' '' 'n' 267 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY)
-(INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-280 'n' '' 'n' 279 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY)
-(INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-181 'n' '' 'n' 179 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 RESULT) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-176 'm' '' 'm' 175 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY)
-(INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-177 'n' '' 'n' 175 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 RESULT) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-102 'element_num1' '' 'element_num1' 101 ((VARIABLE IN UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 DUMMY) (DERIVED 31 0 0 DERIVED ()) 0 0 () () 0 () ()
-() 0 0)
-103 'element_num2' '' 'element_num2' 101 ((VARIABLE IN UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 DUMMY) (DERIVED 31 0 0 DERIVED ()) 0 0 () () 0 () ()
-() 0 0)
-262 'node' '' 'node' 261 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-263 'element' '' 'element' 261 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DIMENSION DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () (1 0
-ASSUMED_SHAPE (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () ()
-0 0)
-264 'ele_num' '' 'ele_num' 261 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 OPTIONAL DUMMY) (DERIVED 31 0 0 DERIVED ()) 0 0 () () 0 () ()
-() 0 0)
-265 'stat' '' 'stat' 261 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-OPTIONAL DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-295 'nodes' '' 'nodes' 294 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 DIMENSION DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () (1 0 ASSUMED_SHAPE
-(CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
-296 'element' '' 'element' 294 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DIMENSION DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () (1 0
-ASSUMED_SHAPE (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () ()
-0 0)
-297 'ele_num' '' 'ele_num' 294 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 OPTIONAL DUMMY) (DERIVED 31 0 0 DERIVED ()) 0 0 () () 0 () ()
-() 0 0)
-298 'stat' '' 'stat' 294 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-OPTIONAL DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-299 'size' '(intrinsic)' 'size' 294 ((PROCEDURE UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 FUNCTION) (UNKNOWN 0 0 0 UNKNOWN ()) 0
-0 () () 299 () () () 0 0)
-83 'ele_num' '' 'ele_num' 82 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DUMMY) (DERIVED 31 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
-38 'ele_num' '' 'ele_num' 37 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DUMMY) (DERIVED 31 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
-39 'interior' '' 'interior' 37 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (LOGICAL 4 0 0 LOGICAL ()) 0 0 () () 0 () () () 0 0)
-64 'ele_num' '' 'ele_num' 63 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DUMMY) (DERIVED 31 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
-65 'interior' '' 'interior' 63 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (LOGICAL 4 0 0 LOGICAL ()) 0 0 () () 0 () () () 0 0)
-121 'ele_num' '' 'ele_num' 120 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (DERIVED 31 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
-122 'interior' '' 'interior' 120 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (LOGICAL 4 0 0 LOGICAL ()) 0 0 () () 0 () () () 0 0)
-214 'ele_num' '' 'ele_num' 213 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (DERIVED 31 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
-215 'boundary' '' 'boundary' 213 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-216 'numbering' '' 'numbering' 213 ((VARIABLE UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION RESULT ALWAYS_EXPLICIT) (
-INTEGER 4 0 0 INTEGER ()) 0 0 () (1 0 EXPLICIT (CONSTANT (INTEGER 4 0 0
-INTEGER ()) 0 '1') (FUNCTION (INTEGER 4 0 0 INTEGER ()) 0 30 (('' (
-VARIABLE (DERIVED 31 0 0 DERIVED ()) 0 214 ())) ('' (CONSTANT (LOGICAL 4
-0 0 LOGICAL ()) 0 0))) 'boundary_num_length' 1 30)) 0 () () () 0 0)
-67 'nodes' '' 'nodes' 66 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-DIMENSION DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () (1 0 EXPLICIT (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0
-INTEGER ()) 0 '2')) 0 () () () 0 0)
-68 'element' '' 'element' 66 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DIMENSION DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () (1 0
-ASSUMED_SHAPE (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () ()
-0 0)
-69 'ele_num' '' 'ele_num' 66 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DUMMY) (DERIVED 31 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
-70 'stat' '' 'stat' 66 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-OPTIONAL DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-58 'nodes' '' 'nodes' 57 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-DIMENSION DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () (1 0 EXPLICIT (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0
-INTEGER ()) 0 '2')) 0 () () () 0 0)
-59 'element' '' 'element' 57 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DIMENSION DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () (1 0
-ASSUMED_SHAPE (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () ()
-0 0)
-60 'ele_num' '' 'ele_num' 57 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DUMMY) (DERIVED 31 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
-61 'interior' '' 'interior' 57 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (LOGICAL 4 0 0 LOGICAL ()) 0 0 () () 0 () () () 0 0)
-62 'stat' '' 'stat' 57 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-OPTIONAL DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-53 'nodes' '' 'nodes' 52 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-DIMENSION DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () (1 0 EXPLICIT (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0
-INTEGER ()) 0 '2')) 0 () () () 0 0)
-54 'ele_num' '' 'ele_num' 52 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DUMMY) (DERIVED 31 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
-55 'interior' '' 'interior' 52 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (LOGICAL 4 0 0 LOGICAL ()) 0 0 () () 0 () () () 0 0)
-124 'nodes' '' 'nodes' 123 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 DIMENSION DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () (1 0 EXPLICIT (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0
-INTEGER ()) 0 '3')) 0 () () () 0 0)
-125 'element' '' 'element' 123 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DIMENSION DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () (1 0
-ASSUMED_SHAPE (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () ()
-0 0)
-126 'ele_num' '' 'ele_num' 123 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (DERIVED 31 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
-127 'stat' '' 'stat' 123 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-OPTIONAL DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-115 'nodes' '' 'nodes' 114 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 DIMENSION DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () (1 0 ASSUMED_SHAPE
-(CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
-116 'element' '' 'element' 114 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DIMENSION DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () (1 0
-ASSUMED_SHAPE (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () ()
-0 0)
-117 'ele_num' '' 'ele_num' 114 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (DERIVED 31 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
-118 'interior' '' 'interior' 114 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (LOGICAL 4 0 0 LOGICAL ()) 0 0 () () 0 () () () 0 0)
-119 'stat' '' 'stat' 114 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-OPTIONAL DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-112 'nodes' '' 'nodes' 111 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 DIMENSION DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () (1 0 ASSUMED_SHAPE
-(CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
-113 'ele_num' '' 'ele_num' 111 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (DERIVED 31 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
-107 'nodes' '' 'nodes' 106 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 DIMENSION DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () (1 0 ASSUMED_SHAPE
-(CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
-108 'ele_num' '' 'ele_num' 106 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (DERIVED 31 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
-109 'interior' '' 'interior' 106 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (LOGICAL 4 0 0 LOGICAL ()) 0 0 () () 0 () () () 0 0)
-34 'nodes' '' 'nodes' 33 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-DIMENSION DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () (1 0 ASSUMED_SHAPE (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
-35 'ele_num' '' 'ele_num' 33 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DUMMY) (DERIVED 31 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
-36 'boundary_local_num' '' 'boundary_local_num' 33 ((VARIABLE
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION RESULT
-ALWAYS_EXPLICIT) (INTEGER 4 0 0 INTEGER ()) 0 0 () (1 0 EXPLICIT (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (OP (INTEGER 4 0 0 INTEGER ())
-0 PARENTHESES (FUNCTION (INTEGER 4 0 0 INTEGER ()) 0 30 (('' (VARIABLE (
-DERIVED 31 0 0 DERIVED ()) 0 35 ())) ('interior' (CONSTANT (LOGICAL 4 0
-0 LOGICAL ()) 0 0))) 'boundary_num_length' 1 30))) 0 () () () 0 0)
-27 'nodes' '' 'nodes' 26 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-DIMENSION DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () (1 0 ASSUMED_SHAPE (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
-28 'ele_num' '' 'ele_num' 26 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DUMMY) (DERIVED 31 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
-29 'interior' '' 'interior' 26 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
-UNKNOWN 0 0 DUMMY) (LOGICAL 4 0 0 LOGICAL ()) 0 0 () () 0 () () () 0 0)
-32 'boundary_local_num' '' 'boundary_local_num' 26 ((VARIABLE
-UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DIMENSION RESULT
-ALWAYS_EXPLICIT) (INTEGER 4 0 0 INTEGER ()) 0 0 () (1 0 EXPLICIT (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (OP (INTEGER 4 0 0 INTEGER ())
-0 PARENTHESES (FUNCTION (INTEGER 4 0 0 INTEGER ()) 0 30 (('' (VARIABLE (
-DERIVED 31 0 0 DERIVED ()) 0 28 ())) ('' (VARIABLE (LOGICAL 4 0 0
-LOGICAL ()) 0 29 ()))) 'boundary_num_length' 1 30))) 0 () () () 0 0)
-73 'nodes' '' 'nodes' 72 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-DIMENSION DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () (1 0 ASSUMED_SHAPE (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
-74 'ele_num' '' 'ele_num' 72 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DUMMY) (DERIVED 31 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
-79 'size' '(intrinsic)' 'size' 76 ((PROCEDURE UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 FUNCTION) (UNKNOWN 0 0 0 UNKNOWN ()) 0
-0 () () 79 () () () 0 0)
-77 'n' '' 'n' 76 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY) (
-INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-78 'ele_num' '' 'ele_num' 76 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 DUMMY) (DERIVED 31 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
-81 'coords' '' 'coords' 76 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN UNKNOWN 0 0 DIMENSION RESULT ALWAYS_EXPLICIT) (REAL 8 0 0 REAL ())
-0 0 () (1 0 EXPLICIT (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (
-FUNCTION (INTEGER 4 0 0 INTEGER ()) 0 79 (('' (VARIABLE (INTEGER 4 0 0
-INTEGER ()) 2 78 ((COMPONENT 31 80 'number2count') (ARRAY (FULL 0))))) (
-'' (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1')) ('' ())) '' 0 'size')) 0
+15 'ele_num_local_vertices' 'element_numbering' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 DIMENSION FUNCTION
+ALWAYS_EXPLICIT) (INTEGER 4 0 0 0 INTEGER ()) 99 0 (100) (1 0 EXPLICIT (
+CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') (VARIABLE (INTEGER 4 0 0 0
+INTEGER ()) 0 100 ((COMPONENT 8 31 'vertices')))) 15 () () () 0 0)
+101 'ele_numbering_type' 'element_numbering' '' 1 ((PROCEDURE
+UNKNOWN-INTENT UNKNOWN-PROC DECL UNKNOWN 0 0 FUNCTION GENERIC) (UNKNOWN
+0 0 0 0 UNKNOWN ()) 0 0 () () 0 () () () 0 0)
+102 'element_bubble' 'element_numbering' '' 1 ((PARAMETER UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (INTEGER 4 0 0 0 INTEGER ()) 0 0
+() (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '3') () 0 () () () 0 0)
+103 'element_controlvolume_surface' 'element_numbering' '' 1 ((
+PARAMETER UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (
+INTEGER 4 0 0 0 INTEGER ()) 0 0 () (CONSTANT (INTEGER 4 0 0 0 INTEGER ())
+0 '5') () 0 () () () 0 0)
+104 'element_controlvolume_surface_bodyderivatives' 'element_numbering' ''
+1 ((PARAMETER UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (
+INTEGER 4 0 0 0 INTEGER ()) 0 0 () (CONSTANT (INTEGER 4 0 0 0 INTEGER ())
+0 '6') () 0 () () () 0 0)
+105 'element_controlvolumebdy_surface' 'element_numbering' '' 1 ((
+PARAMETER UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (
+INTEGER 4 0 0 0 INTEGER ()) 0 0 () (CONSTANT (INTEGER 4 0 0 0 INTEGER ())
+0 '4') () 0 () () () 0 0)
+106 'element_lagrangian' 'element_numbering' '' 1 ((PARAMETER
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (INTEGER 4 0 0 0
+INTEGER ()) 0 0 () (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') () 0 ()
+() () 0 0)
+107 'element_nonconforming' 'element_numbering' '' 1 ((PARAMETER
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (INTEGER 4 0 0 0
+INTEGER ()) 0 0 () (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '2') () 0 ()
+() () 0 0)
+2 'element_num_equal' 'element_numbering' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE) (LOGICAL 4 0
+0 0 LOGICAL ()) 108 0 (109 110) () 2 () () () 0 0)
+111 'element_numbering' 'element_numbering' '' 1 ((MODULE UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) (UNKNOWN 0 0 0 0 UNKNOWN ()) 0 0 () ()
+0 () () () 0 0)
+112 'element_trace' 'element_numbering' '' 1 ((PARAMETER UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (INTEGER 4 0 0 0 INTEGER ()) 0 0
+() (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '7') () 0 () () () 0 0)
+10 'face_local_num_int' 'element_numbering' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 DIMENSION FUNCTION
+ALWAYS_EXPLICIT) (INTEGER 4 0 0 0 INTEGER ()) 113 0 (114 115 116) (1 0
+EXPLICIT (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') (FUNCTION (
+INTEGER 4 0 0 0 INTEGER ()) 0 117 (('' (VARIABLE (DERIVED 8 0 0 0
+DERIVED ()) 0 115 ())) ('' (VARIABLE (LOGICAL 4 0 0 0 LOGICAL ()) 0 116
+()))) 'face_num_length' 1 117)) 10 () () () 0 0)
+9 'face_local_num_no_int' 'element_numbering' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 DIMENSION FUNCTION
+ALWAYS_EXPLICIT) (INTEGER 4 0 0 0 INTEGER ()) 118 0 (119 120) (1 0
+EXPLICIT (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') (FUNCTION (
+INTEGER 4 0 0 0 INTEGER ()) 0 117 (('' (VARIABLE (DERIVED 8 0 0 0
+DERIVED ()) 0 120 ())) ('interior' (CONSTANT (LOGICAL 4 0 0 0 LOGICAL ())
+0 0))) 'face_num_length' 1 117)) 9 () () () 0 0)
+12 'face_num_int' 'element_numbering' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 DIMENSION FUNCTION ALWAYS_EXPLICIT) (
+INTEGER 4 0 0 0 INTEGER ()) 121 0 (122 123 124 125 126) (1 0 EXPLICIT (
+CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') (FUNCTION (INTEGER 4 0 0 0
+INTEGER ()) 0 117 (('' (VARIABLE (DERIVED 8 0 0 0 DERIVED ()) 0 124 ()))
+('' (VARIABLE (LOGICAL 4 0 0 0 LOGICAL ()) 0 125 ()))) 'face_num_length'
+1 117)) 12 () () () 0 0)
+117 'face_num_length' 'element_numbering' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE) (INTEGER 4 0
+0 0 INTEGER ()) 127 0 (128 129) () 117 () () () 0 0)
+11 'face_num_no_int' 'element_numbering' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 DIMENSION FUNCTION ALWAYS_EXPLICIT) (
+INTEGER 4 0 0 0 INTEGER ()) 130 0 (131 132 133 134) (1 0 EXPLICIT (
+CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') (FUNCTION (INTEGER 4 0 0 0
+INTEGER ()) 0 117 (('' (VARIABLE (DERIVED 8 0 0 0 DERIVED ()) 0 133 ()))
+('interior' (CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 0)))
+'face_num_length' 1 117)) 11 () () () 0 0)
+135 'family_cube' 'element_numbering' '' 1 ((PARAMETER UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (INTEGER 4 0 0 0 INTEGER ()) 0 0
+() (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '2') () 0 () () () 0 0)
+136 'family_simplex' 'element_numbering' '' 1 ((PARAMETER UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (INTEGER 4 0 0 0 INTEGER ()) 0 0
+() (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') () 0 () () () 0 0)
+137 'file_extension' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 FUNCTION IMPLICIT_PURE) (CHARACTER 1 0 0 0
+CHARACTER ((FUNCTION (INTEGER 4 0 0 0 INTEGER ()) 0 138 (('' (VARIABLE (
+CHARACTER 1 0 0 0 CHARACTER (())) 0 139 ()))) 'file_extension_len' 1 138)))
+140 0 (139) () 137 () () () 0 0)
+138 'file_extension_len' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE) (INTEGER 4 0 0 0 INTEGER ())
+141 0 (142) () 143 () () () 0 0)
+144 'find_element_numbering' 'element_numbering' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 POINTER FUNCTION
+ALWAYS_EXPLICIT) (DERIVED 8 0 0 0 DERIVED ()) 145 0 (146 147 148 149) ()
+150 () () () 0 0)
+151 'flabort_pinpoint' 'fldebug' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0 0 UNKNOWN ())
+152 0 (153 154 155) () 0 () () () 0 0)
+156 'fldebug' 'fldebug' '' 1 ((MODULE UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0) (UNKNOWN 0 0 0 0 UNKNOWN ()) 0 0 () () 0 () () () 0
+0)
+157 'fldebug_parameters' 'fldebug_parameters' '' 1 ((MODULE
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0 0 () () 0 () () () 0 0)
+158 'flexit_pinpoint' 'fldebug' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0 0 UNKNOWN ())
+159 0 (160 161 162) () 0 () () () 0 0)
+163 'free_unit' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC
+DECL UNKNOWN 0 0 FUNCTION) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 163 ()
+() () 0 0)
+164 'futils' 'futils' '' 1 ((MODULE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0) (UNKNOWN 0 0 0 0 UNKNOWN ()) 0 0 () () 0 () () () 0 0)
+165 'global_debug_level' 'fldebug_parameters' '' 1 ((VARIABLE
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0) (INTEGER 4 0 0 0
+INTEGER ()) 0 0 () () 0 () () () 0 0)
+166 'global_parameters' 'global_parameters' '' 1 ((MODULE UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) (UNKNOWN 0 0 0 0 UNKNOWN ()) 0 0 () ()
+0 () () () 0 0)
+167 'hex_max_degree' 'element_numbering' '' 1 ((PARAMETER UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (INTEGER 4 0 0 0 INTEGER ()) 0 0
+() (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '9') () 0 () () () 0 0)
+168 'hex_numbering' 'element_numbering' '' 1 ((VARIABLE UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0 DIMENSION TARGET) (DERIVED 8 0 0
+0 DERIVED ()) 0 0 () (1 0 EXPLICIT (CONSTANT (INTEGER 4 0 0 0 INTEGER ())
+0 '0') (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '9')) 0 () () () 0 0)
+169 'ilink2' 'element_numbering' '' 1 ((PARAMETER UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0 DIMENSION) (INTEGER 4 0 0 0
+INTEGER ()) 0 0 () (ARRAY (INTEGER 4 0 0 0 INTEGER ()) 2 (((CONSTANT (
+INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) ((CONSTANT (INTEGER 4 0 0 0
+INTEGER ()) 0 '2') ()) ((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '4') ())
+((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '7') ()) ((CONSTANT (INTEGER 4
+0 0 0 INTEGER ()) 0 '2') ()) ((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '3')
+()) ((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '5') ()) ((CONSTANT (
+INTEGER 4 0 0 0 INTEGER ()) 0 '8') ()) ((CONSTANT (INTEGER 4 0 0 0
+INTEGER ()) 0 '4') ()) ((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '5') ())
+((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '6') ()) ((CONSTANT (INTEGER 4
+0 0 0 INTEGER ()) 0 '9') ()) ((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '7')
+()) ((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '8') ()) ((CONSTANT (
+INTEGER 4 0 0 0 INTEGER ()) 0 '9') ()) ((CONSTANT (INTEGER 4 0 0 0
+INTEGER ()) 0 '10') ())) ('4' '4')) (2 0 EXPLICIT (CONSTANT (INTEGER 4 0
+0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '4') (
+CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 0
+INTEGER ()) 0 '4')) 0 () () () 0 0)
+170 'int2str' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL
+UNKNOWN 0 0 FUNCTION IMPLICIT_PURE) (CHARACTER 1 0 0 0 CHARACTER ((
+FUNCTION (INTEGER 4 0 0 0 INTEGER ()) 0 171 (('' (VARIABLE (INTEGER 4 0
+0 0 INTEGER ()) 0 172 ()))) 'int2str_len' 1 171))) 173 0 (172) () 170 ()
+() () 0 0)
+171 'int2str_len' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC
+DECL UNKNOWN 0 0 FUNCTION PURE) (INTEGER 4 0 0 0 INTEGER ()) 174 0 (175)
+() 171 () () () 0 0)
+176 'integer_vector' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT
+UNKNOWN-PROC DECL UNKNOWN 0 0 FUNCTION GENERIC) (UNKNOWN 0 0 0 0 UNKNOWN
+()) 0 0 () () 0 () () () 0 0)
+177 'interval_max_degree' 'element_numbering' '' 1 ((PARAMETER
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (INTEGER 4 0 0 0
+INTEGER ()) 0 0 () (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '32') () 0 ()
+() () 0 0)
+178 'interval_numbering' 'element_numbering' '' 1 ((VARIABLE
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0 DIMENSION TARGET)
+(DERIVED 8 0 0 0 DERIVED ()) 0 0 () (1 0 EXPLICIT (CONSTANT (INTEGER 4 0
+0 0 INTEGER ()) 0 '0') (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '32')) 0
 () () () 0 0)
+179 'interval_numbering_bubble' 'element_numbering' '' 1 ((VARIABLE
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0 TARGET) (DERIVED 8
+0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+180 'inv_te' 'element_numbering' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE) (INTEGER 4 0 0 0 INTEGER ())
+181 0 (182) () 183 () () () 0 0)
+184 'inv_tr' 'element_numbering' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE) (INTEGER 4 0 0 0 INTEGER ())
+185 0 (186) () 187 () () () 0 0)
+188 'local_edge_num' 'element_numbering' '' 1 ((VARIABLE UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0 DIMENSION) (INTEGER 4 0 0 0
+INTEGER ()) 0 0 () (2 0 EXPLICIT (CONSTANT (INTEGER 4 0 0 0 INTEGER ())
+0 '1') (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '4') (CONSTANT (INTEGER
+4 0 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '4'))
+0 () () () 0 0)
+189 'multiindex' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC
+DECL UNKNOWN 0 0 DIMENSION FUNCTION IMPLICIT_PURE ALWAYS_EXPLICIT) (
+INTEGER 4 0 0 0 INTEGER ()) 190 0 (191 192) (1 0 EXPLICIT (CONSTANT (
+INTEGER 4 0 0 0 INTEGER ()) 0 '1') (FUNCTION (INTEGER 4 0 0 0 INTEGER ())
+0 59 (('' (VARIABLE (CHARACTER 1 0 0 0 CHARACTER (())) 0 191 ())) ('' (
+VARIABLE (CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 0
+INTEGER ()) 0 '1'))) 0 192 ()))) 'count_chars' 1 59)) 189 () () () 0 0)
+193 'nth_digit' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC
+DECL UNKNOWN 0 0 FUNCTION PURE) (INTEGER 4 0 0 0 INTEGER ()) 194 0 (195
+196) () 193 () () () 0 0)
+19 'nullify_integer_vector' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE IMPLICIT_PURE) (UNKNOWN 0 0 0 0
+UNKNOWN ()) 197 0 (198) () 0 () () () 0 0)
+18 'nullify_integer_vector_vector' 'futils' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE IMPLICIT_PURE
+ALWAYS_EXPLICIT) (UNKNOWN 0 0 0 0 UNKNOWN ()) 199 0 (200) () 0 () () ()
+0 0)
+17 'nullify_real_vector' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE IMPLICIT_PURE) (UNKNOWN 0 0 0 0
+UNKNOWN ()) 201 0 (202) () 0 () () () 0 0)
+16 'nullify_real_vector_vector' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE IMPLICIT_PURE ALWAYS_EXPLICIT) (
+UNKNOWN 0 0 0 0 UNKNOWN ()) 203 0 (204) () 0 () () () 0 0)
+205 'number_elements' 'element_numbering' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0 0 () () 0 () () () 0 0)
+206 'number_hexes_lagrange' 'element_numbering' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0 0 () () 0 () () () 0 0)
+207 'number_intervals_bubble' 'element_numbering' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0 0 () () 0 () () () 0 0)
+208 'number_intervals_lagrange' 'element_numbering' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0 0 () () 0 () () () 0 0)
+209 'number_point_lagrange' 'element_numbering' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0 0 () () 0 () () () 0 0)
+210 'number_quads_lagrange' 'element_numbering' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0 0 () () 0 () () () 0 0)
+211 'number_quads_trace' 'element_numbering' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0 0 () () 0 () () () 0 0)
+212 'number_tets_bubble' 'element_numbering' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0 0 () () 0 () () () 0 0)
+213 'number_tets_lagrange' 'element_numbering' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0 0 () () 0 () () () 0 0)
+214 'number_triangles_bubble' 'element_numbering' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0 0 () () 0 () () () 0 0)
+215 'number_triangles_lagrange' 'element_numbering' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0 0 () () 0 () () () 0 0)
+216 'number_triangles_nc' 'element_numbering' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0 0 () () 0 () () () 0 0)
+217 'number_triangles_trace' 'element_numbering' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE) (UNKNOWN 0 0 0 0
+UNKNOWN ()) 0 0 () () 0 () () () 0 0)
+5 'numbering_boundary_numbering' 'element_numbering' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 DIMENSION FUNCTION
+ALWAYS_EXPLICIT) (INTEGER 4 0 0 0 INTEGER ()) 218 0 (219 220) (1 0
+EXPLICIT (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') (FUNCTION (
+INTEGER 4 0 0 0 INTEGER ()) 0 50 (('' (VARIABLE (DERIVED 8 0 0 0 DERIVED
+()) 0 219 ())) ('' (CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 0)))
+'boundary_num_length' 1 50)) 221 () () () 0 0)
+222 'point_numbering' 'element_numbering' '' 1 ((VARIABLE UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0 DIMENSION TARGET) (DERIVED 8 0 0
+0 DERIVED ()) 0 0 () (1 0 EXPLICIT (CONSTANT (INTEGER 4 0 0 0 INTEGER ())
+0 '0') (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '0')) 0 () () () 0 0)
+223 'present_and_false' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE ALWAYS_EXPLICIT) (LOGICAL 4 0
+0 0 LOGICAL ()) 224 0 (225) () 223 () () () 0 0)
+226 'present_and_nonempty' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE ALWAYS_EXPLICIT) (LOGICAL 4 0
+0 0 LOGICAL ()) 227 0 (228) () 226 () () () 0 0)
+229 'present_and_nonzero' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE ALWAYS_EXPLICIT) (LOGICAL 4 0
+0 0 LOGICAL ()) 230 0 (231) () 229 () () () 0 0)
+232 'present_and_true' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE ALWAYS_EXPLICIT) (LOGICAL 4 0
+0 0 LOGICAL ()) 233 0 (234) () 232 () () () 0 0)
+235 'present_and_zero' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE ALWAYS_EXPLICIT) (LOGICAL 4 0
+0 0 LOGICAL ()) 236 0 (237) () 235 () () () 0 0)
+238 'quad_max_degree' 'element_numbering' '' 1 ((PARAMETER
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (INTEGER 4 0 0 0
+INTEGER ()) 0 0 () (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '9') () 0 ()
+() () 0 0)
+239 'quad_numbering' 'element_numbering' '' 1 ((VARIABLE UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0 DIMENSION TARGET) (DERIVED 8 0 0
+0 DERIVED ()) 0 0 () (1 0 EXPLICIT (CONSTANT (INTEGER 4 0 0 0 INTEGER ())
+0 '0') (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '9')) 0 () () () 0 0)
+240 'quad_numbering_trace' 'element_numbering' '' 1 ((VARIABLE
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0 DIMENSION TARGET)
+(DERIVED 8 0 0 0 DERIVED ()) 0 0 () (1 0 EXPLICIT (CONSTANT (INTEGER 4 0
+0 0 INTEGER ()) 0 '0') (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '32')) 0
+() () () 0 0)
+241 'random_number_minmax' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 FUNCTION IMPLICIT_PURE) (REAL 8 0 0 0 REAL
+()) 242 0 (243 244) () 245 () () () 0 0)
+246 'real_digits_10' 'global_parameters' '' 1 ((PARAMETER UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (INTEGER 4 0 0 0 INTEGER ()) 0 0
+() (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '15') () 0 () () () 0 0)
+21 'real_format_non_padded' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 FUNCTION) (CHARACTER 1 0 0 0 CHARACTER ((
+FUNCTION (INTEGER 4 0 0 0 INTEGER ()) 0 247 ()
+'real_format_non_padded_len' 1 23))) 0 0 () () 248 () () () 0 0)
+23 'real_format_non_padded_len' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE) (INTEGER 4 0 0 0 INTEGER ())
+0 0 () () 249 () () () 0 0)
+20 'real_format_padded' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 FUNCTION) (CHARACTER 1 0 0 0 CHARACTER ((
+FUNCTION (INTEGER 4 0 0 0 INTEGER ()) 0 247 ()
+'real_format_non_padded_len' 1 23))) 250 0 (251) () 252 () () () 0 0)
+22 'real_format_padded_len' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE) (INTEGER 4 0 0 0 INTEGER ())
+253 0 (254) () 255 () () () 0 0)
+256 'real_matrix' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT UNKNOWN-PROC
+DECL UNKNOWN 0 0 FUNCTION GENERIC) (UNKNOWN 0 0 0 0 UNKNOWN ()) 0 0 () ()
+0 () () () 0 0)
+257 'real_vector' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT UNKNOWN-PROC
+DECL UNKNOWN 0 0 FUNCTION GENERIC) (UNKNOWN 0 0 0 0 UNKNOWN ()) 0 0 () ()
+0 () () () 0 0)
+258 'reshape' '(intrinsic)' '' 1 ((PROCEDURE UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 FUNCTION) (UNKNOWN 0 0 0 0 UNKNOWN ()) 0 0 () () 258
+() () () 0 0)
+259 'silink2' 'element_numbering' '' 1 ((PARAMETER UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0 DIMENSION) (INTEGER 4 0 0 0
+INTEGER ()) 0 0 () (ARRAY (INTEGER 4 0 0 0 INTEGER ()) 2 (((CONSTANT (
+INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) ((CONSTANT (INTEGER 4 0 0 0
+INTEGER ()) 0 '4') ()) ((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '6') ())
+((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '4') ()) ((CONSTANT (INTEGER 4
+0 0 0 INTEGER ()) 0 '2') ()) ((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '5')
+()) ((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '6') ()) ((CONSTANT (
+INTEGER 4 0 0 0 INTEGER ()) 0 '5') ()) ((CONSTANT (INTEGER 4 0 0 0
+INTEGER ()) 0 '3') ())) ('3' '3')) (2 0 EXPLICIT (CONSTANT (INTEGER 4 0
+0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '3') (
+CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 0
+INTEGER ()) 0 '3')) 0 () () () 0 0)
+260 'starts_with' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC
+DECL UNKNOWN 0 0 FUNCTION PURE) (LOGICAL 4 0 0 0 LOGICAL ()) 261 0 (262
+263) () 260 () () () 0 0)
+27 'svertex_num' 'element_numbering' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 FUNCTION ALWAYS_EXPLICIT) (INTEGER 4 0 0 0
+INTEGER ()) 264 0 (265 266 267 268) () 27 () () () 0 0)
+269 'te' 'element_numbering' '' 1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC
+DECL UNKNOWN 0 0 FUNCTION PURE) (INTEGER 4 0 0 0 INTEGER ()) 270 0 (271)
+() 269 () () () 0 0)
+272 'tet_bubble_max_degree' 'element_numbering' '' 1 ((PARAMETER
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (INTEGER 4 0 0 0
+INTEGER ()) 0 0 () (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '3') () 0 ()
+() () 0 0)
+273 'tet_max_degree' 'element_numbering' '' 1 ((PARAMETER UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (INTEGER 4 0 0 0 INTEGER ()) 0 0
+() (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '9') () 0 () () () 0 0)
+274 'tet_numbering' 'element_numbering' '' 1 ((VARIABLE UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0 DIMENSION TARGET) (DERIVED 8 0 0
+0 DERIVED ()) 0 0 () (1 0 EXPLICIT (CONSTANT (INTEGER 4 0 0 0 INTEGER ())
+0 '0') (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '9')) 0 () () () 0 0)
+275 'tet_numbering_bubble' 'element_numbering' '' 1 ((VARIABLE
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0 DIMENSION TARGET)
+(DERIVED 8 0 0 0 DERIVED ()) 0 0 () (1 0 EXPLICIT (CONSTANT (INTEGER 4 0
+0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '3')) 0
+() () () 0 0)
+276 'tokenize' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC DECL
+UNKNOWN 0 0 SUBROUTINE IMPLICIT_PURE ALWAYS_EXPLICIT) (UNKNOWN 0 0 0 0
+UNKNOWN ()) 277 0 (278 279 280) () 0 () () () 0 0)
+281 'tr' 'element_numbering' '' 1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC
+DECL UNKNOWN 0 0 FUNCTION PURE) (INTEGER 4 0 0 0 INTEGER ()) 282 0 (283)
+() 281 () () () 0 0)
+284 'tri_bubble_max_degree' 'element_numbering' '' 1 ((PARAMETER
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (INTEGER 4 0 0 0
+INTEGER ()) 0 0 () (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '2') () 0 ()
+() () 0 0)
+285 'tri_max_degree' 'element_numbering' '' 1 ((PARAMETER UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN IMPLICIT-SAVE 0 0) (INTEGER 4 0 0 0 INTEGER ()) 0 0
+() (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '32') () 0 () () () 0 0)
+286 'tri_numbering' 'element_numbering' '' 1 ((VARIABLE UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0 DIMENSION TARGET) (DERIVED 8 0 0
+0 DERIVED ()) 0 0 () (1 0 EXPLICIT (CONSTANT (INTEGER 4 0 0 0 INTEGER ())
+0 '0') (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '32')) 0 () () () 0 0)
+287 'tri_numbering_bubble' 'element_numbering' '' 1 ((VARIABLE
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0 DIMENSION TARGET)
+(DERIVED 8 0 0 0 DERIVED ()) 0 0 () (1 0 EXPLICIT (CONSTANT (INTEGER 4 0
+0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '2')) 0
+() () () 0 0)
+288 'tri_numbering_nc' 'element_numbering' '' 1 ((VARIABLE
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0 TARGET) (DERIVED 8
+0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+289 'tri_numbering_trace' 'element_numbering' '' 1 ((VARIABLE
+UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN EXPLICIT-SAVE 0 0 DIMENSION TARGET)
+(DERIVED 8 0 0 0 DERIVED ()) 0 0 () (1 0 EXPLICIT (CONSTANT (INTEGER 4 0
+0 0 INTEGER ()) 0 '0') (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '32')) 0
+() () () 0 0)
+290 'trim_file_extension' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 FUNCTION IMPLICIT_PURE) (CHARACTER 1 0 0 0
+CHARACTER ((FUNCTION (INTEGER 4 0 0 0 INTEGER ()) 0 291 (('' (VARIABLE (
+CHARACTER 1 0 0 0 CHARACTER (())) 0 292 ()))) 'trim_file_extension_len'
+1 291))) 293 0 (292) () 290 () () () 0 0)
+291 'trim_file_extension_len' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 FUNCTION PURE) (INTEGER 4 0 0 0 INTEGER ())
+294 0 (295) () 296 () () () 0 0)
+26 'vvertex_num' 'element_numbering' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 DIMENSION FUNCTION ALWAYS_EXPLICIT) (
+INTEGER 4 0 0 0 INTEGER ()) 297 0 (298 299 300 301) (1 0 EXPLICIT (
+CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') (FUNCTION (INTEGER 4 0 0 0
+INTEGER ()) 0 302 (('' (VARIABLE (INTEGER 4 0 0 0 INTEGER ()) 1 298 ((
+ARRAY (FULL 1 2))))) ('' ()) ('' ())) '' 0 'size')) 26 () () () 0 0)
+28 'write_minmax_integer_array' 'fldebug' '' 1 ((PROCEDURE
+UNKNOWN-INTENT MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE ALWAYS_EXPLICIT)
+(UNKNOWN 0 0 0 0 UNKNOWN ()) 303 0 (304 305) () 0 () () () 0 0)
+29 'write_minmax_real_array' 'fldebug' '' 1 ((PROCEDURE UNKNOWN-INTENT
+MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE ALWAYS_EXPLICIT) (UNKNOWN 0 0 0
+0 UNKNOWN ()) 306 0 (307 308) () 0 () () () 0 0)
+47 'nodes' '' '' 46 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () (1 0 ASSUMED_SHAPE
+(CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
+48 'ele_num' '' '' 46 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (DERIVED 8 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+49 'interior' '' '' 46 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (LOGICAL 4 0 0 0 LOGICAL ()) 0 0 () () 0 () () () 0 0)
+51 'boundary_local_num' '' '' 46 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 DIMENSION RESULT ALWAYS_EXPLICIT) (INTEGER 4 0 0 0
+INTEGER ()) 0 0 () (1 0 EXPLICIT (CONSTANT (INTEGER 4 0 0 0 INTEGER ())
+0 '1') (OP (INTEGER 4 0 0 0 INTEGER ()) 0 PARENTHESES (FUNCTION (
+INTEGER 4 0 0 0 INTEGER ()) 0 50 (('' (VARIABLE (DERIVED 8 0 0 0 DERIVED
+()) 0 48 ())) ('' (VARIABLE (LOGICAL 4 0 0 0 LOGICAL ()) 0 49 ())))
+'boundary_num_length' 1 50))) 0 () () () 0 0)
+53 'nodes' '' '' 52 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () (1 0 ASSUMED_SHAPE
+(CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
+54 'ele_num' '' '' 52 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (DERIVED 8 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+55 'boundary_local_num' '' '' 52 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 DIMENSION RESULT ALWAYS_EXPLICIT) (INTEGER 4 0 0 0
+INTEGER ()) 0 0 () (1 0 EXPLICIT (CONSTANT (INTEGER 4 0 0 0 INTEGER ())
+0 '1') (OP (INTEGER 4 0 0 0 INTEGER ()) 0 PARENTHESES (FUNCTION (
+INTEGER 4 0 0 0 INTEGER ()) 0 50 (('' (VARIABLE (DERIVED 8 0 0 0 DERIVED
+()) 0 54 ())) ('interior' (CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 0)))
+'boundary_num_length' 1 50))) 0 () () () 0 0)
+57 'ele_num' '' '' 56 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (DERIVED 8 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+58 'interior' '' '' 56 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (LOGICAL 4 0 0 0 LOGICAL ()) 0 0 () () 0 () () () 0 0)
+61 'string' '' '' 60 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () () () 0 0)
+62 'sep' '' '' 60 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY)
+(CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1')))
+0 0 () () 0 () () () 0 0)
+69 'priority' '' '' 68 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+72 'nodes' '' '' 71 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () (1 0 EXPLICIT (
+CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 0
+INTEGER ()) 0 '2')) 0 () () () 0 0)
+73 'ele_num' '' '' 71 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (DERIVED 8 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+74 'interior' '' '' 71 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (LOGICAL 4 0 0 0 LOGICAL ()) 0 0 () () 0 () () () 0 0)
+77 'nodes' '' '' 76 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () (1 0 EXPLICIT (
+CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 0
+INTEGER ()) 0 '2')) 0 () () () 0 0)
+78 'element' '' '' 76 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () (1 0 ASSUMED_SHAPE
+(CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
+79 'ele_num' '' '' 76 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (DERIVED 8 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+80 'interior' '' '' 76 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (LOGICAL 4 0 0 0 LOGICAL ()) 0 0 () () 0 () () () 0 0)
+81 'stat' '' '' 76 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+OPTIONAL DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+83 'ele_num' '' '' 82 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (DERIVED 8 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+84 'interior' '' '' 82 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (LOGICAL 4 0 0 0 LOGICAL ()) 0 0 () () 0 () () () 0 0)
+86 'nodes' '' '' 85 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () (1 0 EXPLICIT (
+CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 0
+INTEGER ()) 0 '2')) 0 () () () 0 0)
+87 'element' '' '' 85 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () (1 0 ASSUMED_SHAPE
+(CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
+88 'ele_num' '' '' 85 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (DERIVED 8 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+89 'stat' '' '' 85 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+OPTIONAL DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+92 'nodes' '' '' 91 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () (1 0 ASSUMED_SHAPE
+(CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
+93 'ele_num' '' '' 91 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (DERIVED 8 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+95 'n' '' '' 94 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY) (
+INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+96 'ele_num' '' '' 94 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (DERIVED 8 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+97 'size' '(intrinsic)' '' 94 ((PROCEDURE UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 FUNCTION) (UNKNOWN 0 0 0 0 UNKNOWN ()) 0 0 () () 97
+() () () 0 0)
+98 'coords' '' '' 94 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 DIMENSION RESULT ALWAYS_EXPLICIT) (REAL 8 0 0 0 REAL ()) 0 0
+() (1 0 EXPLICIT (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') (
+FUNCTION (INTEGER 4 0 0 0 INTEGER ()) 0 97 (('' (VARIABLE (INTEGER 4 0 0
+0 INTEGER ()) 2 96 ((COMPONENT 8 40 'number2count') (ARRAY (FULL 2 2 2)))))
+('' (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1')) ('' ())) '' 0 'size'))
+0 () () () 0 0)
+100 'ele_num' '' '' 99 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (DERIVED 8 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+109 'element_num1' '' '' 108 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
+0 0 DUMMY) (DERIVED 8 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+110 'element_num2' '' '' 108 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
+0 0 DUMMY) (DERIVED 8 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+114 'nodes' '' '' 113 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () (1 0 ASSUMED_SHAPE
+(CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
+115 'ele_num' '' '' 113 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (DERIVED 8 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+116 'interior' '' '' 113 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (LOGICAL 4 0 0 0 LOGICAL ()) 0 0 () () 0 () () () 0 0)
+119 'nodes' '' '' 118 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () (1 0 ASSUMED_SHAPE
+(CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
+120 'ele_num' '' '' 118 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (DERIVED 8 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+122 'nodes' '' '' 121 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () (1 0 ASSUMED_SHAPE
+(CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
+123 'element' '' '' 121 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () (1 0 ASSUMED_SHAPE
+(CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
+124 'ele_num' '' '' 121 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (DERIVED 8 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+125 'interior' '' '' 121 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (LOGICAL 4 0 0 0 LOGICAL ()) 0 0 () () 0 () () () 0 0)
+126 'stat' '' '' 121 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+OPTIONAL DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+128 'ele_num' '' '' 127 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (DERIVED 8 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+129 'interior' '' '' 127 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (LOGICAL 4 0 0 0 LOGICAL ()) 0 0 () () 0 () () () 0 0)
+131 'nodes' '' '' 130 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () (1 0 EXPLICIT (
+CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 0
+INTEGER ()) 0 '3')) 0 () () () 0 0)
+132 'element' '' '' 130 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () (1 0 ASSUMED_SHAPE
+(CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
+133 'ele_num' '' '' 130 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (DERIVED 8 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+134 'stat' '' '' 130 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+OPTIONAL DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+139 'filename' '' '' 140 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () () () 0 0)
+142 'filename' '' '' 141 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () () () 0 0)
+143 'length' '' '' 141 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 RESULT) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0
+0)
+146 'vertices' '' '' 145 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+147 'dimension' '' '' 145 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+148 'degree' '' '' 145 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+149 'type' '' '' 145 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+OPTIONAL DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+150 'ele_num' '' '' 145 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 POINTER RESULT ALWAYS_EXPLICIT) (DERIVED 8 0 0 0 DERIVED ())
+0 0 () () 0 () () () 0 0)
+153 'errorstr' '' '' 152 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () ()
+() 0 0)
+154 'fromfile' '' '' 152 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () ()
+() 0 0)
+155 'linenumber' '' '' 152 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () ()
+() 0 0)
+160 'errorstr' '' '' 159 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () ()
+() 0 0)
+161 'fromfile' '' '' 159 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () ()
+() 0 0)
+162 'linenumber' '' '' 159 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () ()
+() 0 0)
+172 'i' '' '' 173 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY)
+(INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+175 'i' '' '' 174 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY)
+(INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+182 'm' '' '' 181 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY)
+(INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+183 'n' '' '' 181 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN
+0 0 RESULT) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+186 'm' '' '' 185 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY)
+(INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+187 'n' '' '' 185 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN
+0 0 RESULT) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+191 'string' '' '' 190 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () () () 0 0)
+192 'sep' '' '' 190 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY)
+(CHARACTER 1 0 0 0 CHARACTER ((CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1')))
+0 0 () () 0 () () () 0 0)
+195 'number' '' '' 194 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+196 'digit' '' '' 194 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+198 'vector' '' '' 197 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (DERIVED 13 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+200 'vector' '' '' 199 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION DUMMY) (DERIVED 13 0 0 0 DERIVED ()) 0 0 () (1 0 ASSUMED_SHAPE
+(CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
+202 'vector' '' '' 201 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (DERIVED 25 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+204 'vector' '' '' 203 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION DUMMY) (DERIVED 25 0 0 0 DERIVED ()) 0 0 () (1 0 ASSUMED_SHAPE
+(CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
+219 'ele_num' '' '' 218 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (DERIVED 8 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+220 'boundary' '' '' 218 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+221 'numbering' '' '' 218 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 DIMENSION RESULT ALWAYS_EXPLICIT) (INTEGER 4 0 0 0 INTEGER ())
+0 0 () (1 0 EXPLICIT (CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') (
+FUNCTION (INTEGER 4 0 0 0 INTEGER ()) 0 50 (('' (VARIABLE (DERIVED 8 0 0
+0 DERIVED ()) 0 219 ())) ('' (CONSTANT (LOGICAL 4 0 0 0 LOGICAL ()) 0 0)))
+'boundary_num_length' 1 50)) 0 () () () 0 0)
+225 'flag' '' '' 224 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+OPTIONAL DUMMY) (LOGICAL 4 0 0 0 LOGICAL ()) 0 0 () () 0 () () () 0 0)
+228 'var' '' '' 227 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+OPTIONAL DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () () ()
+0 0)
+231 'var' '' '' 230 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+OPTIONAL DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+234 'flag' '' '' 233 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+OPTIONAL DUMMY) (LOGICAL 4 0 0 0 LOGICAL ()) 0 0 () () 0 () () () 0 0)
+237 'var' '' '' 236 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+OPTIONAL DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+243 'min' '' '' 242 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY)
+(REAL 8 0 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
+244 'max' '' '' 242 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY)
+(REAL 8 0 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
+245 'rand' '' '' 242 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 RESULT) (REAL 8 0 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
+247 'real_format_len' 'futils' '' 1 ((PROCEDURE UNKNOWN-INTENT
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 GENERIC) (UNKNOWN 0 0 0 0 UNKNOWN ()) 0
+0 () () 0 () () () 0 0)
+248 'format' '' '' 309 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 RESULT) (CHARACTER 1 0 0 0 CHARACTER ((FUNCTION (INTEGER 4 0
+0 0 INTEGER ()) 0 247 () 'real_format_non_padded_len' 1 23))) 0 0 () ()
+0 () () () 0 0)
+249 'length' '' '' 310 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 RESULT) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0
+0)
+251 'padding' '' '' 250 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+252 'format' '' '' 250 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 RESULT) (CHARACTER 1 0 0 0 CHARACTER ((FUNCTION (INTEGER 4 0
+0 0 INTEGER ()) 0 247 () 'real_format_non_padded_len' 1 23))) 0 0 () ()
+0 () () () 0 0)
+254 'padding' '' '' 253 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+255 'length' '' '' 253 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 RESULT) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0
+0)
+262 'string' '' '' 261 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () () () 0 0)
+263 'start' '' '' 261 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () () () 0 0)
+265 'node' '' '' 264 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+266 'element' '' '' 264 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () (1 0 ASSUMED_SHAPE
+(CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
+267 'ele_num' '' '' 264 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+OPTIONAL DUMMY) (DERIVED 8 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+268 'stat' '' '' 264 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+OPTIONAL DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+271 'n' '' '' 270 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY)
+(INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+278 'string' '' '' 277 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () () () 0 0)
+279 'tokens' '' '' 277 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+ALLOCATABLE DIMENSION DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () (
+1 0 DEFERRED () ()) 0 () () () 0 0)
+280 'delimiter' '' '' 277 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () () () 0 0)
+283 'n' '' '' 282 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY)
+(INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+292 'filename' '' '' 293 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () () () 0 0)
+295 'filename' '' '' 294 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () () () 0 0)
+296 'length' '' '' 294 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 RESULT) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0
+0)
+298 'nodes' '' '' 297 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () (1 0 ASSUMED_SHAPE
+(CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
+299 'element' '' '' 297 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () (1 0 ASSUMED_SHAPE
+(CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
+300 'ele_num' '' '' 297 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+OPTIONAL DUMMY) (DERIVED 8 0 0 0 DERIVED ()) 0 0 () () 0 () () () 0 0)
+301 'stat' '' '' 297 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+OPTIONAL DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+302 'size' '(intrinsic)' '' 297 ((PROCEDURE UNKNOWN-INTENT UNKNOWN-PROC
+UNKNOWN UNKNOWN 0 0 FUNCTION) (UNKNOWN 0 0 0 0 UNKNOWN ()) 0 0 () () 302
+() () () 0 0)
+304 'array' '' '' 303 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION DUMMY) (INTEGER 4 0 0 0 INTEGER ()) 0 0 () (1 0 ASSUMED_SHAPE
+(CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
+305 'array_expression' '' '' 303 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () ()
+() 0 0)
+307 'array' '' '' 306 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION DUMMY) (REAL 8 0 0 0 REAL ()) 0 0 () (1 0 ASSUMED_SHAPE (
+CONSTANT (INTEGER 4 0 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
+308 'array_expression' '' '' 306 ((VARIABLE IN UNKNOWN-PROC UNKNOWN
+UNKNOWN 0 0 DUMMY) (CHARACTER 1 0 0 0 CHARACTER (())) 0 0 () () 0 () ()
+() 0 0)
 )
 
-('boundary_local_num_int' 0 4 'boundary_local_num_no_int' 0 3
-'boundary_num_length' 0 30 'count_chars' 0 40 'current_debug_level' 0 44
-'debug_error_unit' 0 45 'debug_level' 0 46 'debug_log_unit' 0 47
-'debug_unit' 0 48 'edge_local_num' 0 51 'edge_num_int' 0 6
-'edge_num_length' 0 56 'edge_num_no_int' 0 5 'ele_local_num' 0 71
-'ele_num_local_coords' 0 11 'ele_num_local_vertices' 0 12
-'ele_numbering_type' 0 31 'element_bubble' 0 95
-'element_controlvolume_surface' 0 96
-'element_controlvolume_surface_bodyderivatives' 0 97
-'element_controlvolumebdy_surface' 0 98 'element_lagrangian' 0 99
-'element_nonconforming' 0 100 'element_num_equal' 0 2 'element_numbering'
-0 104 'element_trace' 0 105 'face_local_num_int' 0 8
-'face_local_num_no_int' 0 7 'face_num_int' 0 10 'face_num_length' 0 110
-'face_num_no_int' 0 9 'family_cube' 0 128 'family_simplex' 0 129
-'file_extension' 0 130 'file_extension_len' 0 131 'find_element_numbering'
-0 137 'flabort_pinpoint' 0 144 'fldebug' 0 149 'fldebug_parameters' 0
-150 'flexit_pinpoint' 0 151 'free_unit' 0 156 'futils' 0 157
-'global_debug_level' 0 158 'global_parameters' 0 159 'hex_max_degree' 0
-160 'hex_numbering' 0 161 'ilink2' 0 162 'int2str' 0 163 'int2str_len' 0
-164 'integer_vector' 0 169 'interval_max_degree' 0 171
-'interval_numbering' 0 172 'interval_numbering_bubble' 0 173 'inv_te' 0
-174 'inv_tr' 0 178 'local_edge_num' 0 182 'multiindex' 0 183 'nth_digit'
-0 187 'null' 0 191 'nullify_integer_vector' 0 16
-'nullify_integer_vector_vector' 0 15 'nullify_real_vector' 0 14
-'nullify_real_vector_vector' 0 13 'number_elements' 0 200
-'number_hexes_lagrange' 0 201 'number_intervals_bubble' 0 202
-'number_intervals_lagrange' 0 203 'number_point_lagrange' 0 204
-'number_quads_lagrange' 0 205 'number_quads_trace' 0 206
-'number_tets_bubble' 0 207 'number_tets_lagrange' 0 208
-'number_triangles_bubble' 0 209 'number_triangles_lagrange' 0 210
-'number_triangles_nc' 0 211 'number_triangles_trace' 0 212
-'numbering_boundary_numbering' 0 25 'point_numbering' 0 217
-'present_and_false' 0 218 'present_and_nonempty' 0 221
-'present_and_nonzero' 0 224 'present_and_true' 0 227 'present_and_zero'
-0 230 'quad_max_degree' 0 233 'quad_numbering' 0 234
-'quad_numbering_trace' 0 235 'random_number_minmax' 0 236 'real_digits_10'
-0 241 'real_format_non_padded' 0 18 'real_format_non_padded_len' 0 20
-'real_format_padded' 0 17 'real_format_padded_len' 0 19 'real_matrix' 0
-251 'real_vector' 0 253 'reshape' 0 255 'silink2' 0 256 'starts_with' 0
-257 'svertex_num' 0 24 'te' 0 266 'tet_bubble_max_degree' 0 269
-'tet_max_degree' 0 270 'tet_numbering' 0 271 'tet_numbering_bubble' 0
-272 'tokenize' 0 273 'tr' 0 278 'tri_bubble_max_degree' 0 281
-'tri_max_degree' 0 282 'tri_numbering' 0 283 'tri_numbering_bubble' 0
-284 'tri_numbering_nc' 0 285 'tri_numbering_trace' 0 286
-'trim_file_extension' 0 287 'trim_file_extension_len' 0 288 'vvertex_num'
-0 23 'write_minmax_integer_array' 0 21 'write_minmax_real_array' 0 22)
+('Ele_numbering_type' 0 8 'Integer_vector' 0 13 'Real_matrix' 0 24
+'Real_vector' 0 25 'boundary_local_num_int' 0 4
+'boundary_local_num_no_int' 0 3 'boundary_num_length' 0 50 'count_chars'
+0 59 'current_debug_level' 0 63 'debug_error_unit' 0 64 'debug_level' 0
+65 'debug_log_unit' 0 66 'debug_unit' 0 67 'edge_local_num' 0 70
+'edge_num_int' 0 7 'edge_num_length' 0 75 'edge_num_no_int' 0 6
+'ele_local_num' 0 90 'ele_num_local_coords' 0 14 'ele_num_local_vertices'
+0 15 'ele_numbering_type' 0 101 'element_bubble' 0 102
+'element_controlvolume_surface' 0 103
+'element_controlvolume_surface_bodyderivatives' 0 104
+'element_controlvolumebdy_surface' 0 105 'element_lagrangian' 0 106
+'element_nonconforming' 0 107 'element_num_equal' 0 2 'element_numbering'
+0 111 'element_trace' 0 112 'face_local_num_int' 0 10
+'face_local_num_no_int' 0 9 'face_num_int' 0 12 'face_num_length' 0 117
+'face_num_no_int' 0 11 'family_cube' 0 135 'family_simplex' 0 136
+'file_extension' 0 137 'file_extension_len' 0 138 'find_element_numbering'
+0 144 'flabort_pinpoint' 0 151 'fldebug' 0 156 'fldebug_parameters' 0
+157 'flexit_pinpoint' 0 158 'free_unit' 0 163 'futils' 0 164
+'global_debug_level' 0 165 'global_parameters' 0 166 'hex_max_degree' 0
+167 'hex_numbering' 0 168 'ilink2' 0 169 'int2str' 0 170 'int2str_len' 0
+171 'integer_vector' 0 176 'interval_max_degree' 0 177
+'interval_numbering' 0 178 'interval_numbering_bubble' 0 179 'inv_te' 0
+180 'inv_tr' 0 184 'local_edge_num' 0 188 'multiindex' 0 189 'nth_digit'
+0 193 'nullify_integer_vector' 0 19 'nullify_integer_vector_vector' 0 18
+'nullify_real_vector' 0 17 'nullify_real_vector_vector' 0 16
+'number_elements' 0 205 'number_hexes_lagrange' 0 206
+'number_intervals_bubble' 0 207 'number_intervals_lagrange' 0 208
+'number_point_lagrange' 0 209 'number_quads_lagrange' 0 210
+'number_quads_trace' 0 211 'number_tets_bubble' 0 212
+'number_tets_lagrange' 0 213 'number_triangles_bubble' 0 214
+'number_triangles_lagrange' 0 215 'number_triangles_nc' 0 216
+'number_triangles_trace' 0 217 'numbering_boundary_numbering' 0 5
+'point_numbering' 0 222 'present_and_false' 0 223 'present_and_nonempty'
+0 226 'present_and_nonzero' 0 229 'present_and_true' 0 232
+'present_and_zero' 0 235 'quad_max_degree' 0 238 'quad_numbering' 0 239
+'quad_numbering_trace' 0 240 'random_number_minmax' 0 241 'real_digits_10'
+0 246 'real_format_non_padded' 0 21 'real_format_non_padded_len' 0 23
+'real_format_padded' 0 20 'real_format_padded_len' 0 22 'real_matrix' 0
+256 'real_vector' 0 257 'reshape' 0 258 'silink2' 0 259 'starts_with' 0
+260 'svertex_num' 0 27 'te' 0 269 'tet_bubble_max_degree' 0 272
+'tet_max_degree' 0 273 'tet_numbering' 0 274 'tet_numbering_bubble' 0
+275 'tokenize' 0 276 'tr' 0 281 'tri_bubble_max_degree' 0 284
+'tri_max_degree' 0 285 'tri_numbering' 0 286 'tri_numbering_bubble' 0
+287 'tri_numbering_nc' 0 288 'tri_numbering_trace' 0 289
+'trim_file_extension' 0 290 'trim_file_extension_len' 0 291 'vvertex_num'
+0 26 'write_minmax_integer_array' 0 28 'write_minmax_real_array' 0 29)

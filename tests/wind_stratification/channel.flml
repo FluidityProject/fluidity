@@ -221,6 +221,7 @@
                   <real_value rank="0">1.0</real_value>
                 </penalty_parameter>
               </compact_discontinuous_galerkin>
+              <tensor_form/>
             </viscosity_scheme>
             <advection_scheme>
               <upwind/>

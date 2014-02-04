@@ -268,8 +268,16 @@ contains
         call cnode_owner_finder_query_output(id, nele_ids)
 
         closest_ele_id = -1
-        do j = 1, nele_ids
+        possible_elements_loop: do j = 1, nele_ids
           call cnode_owner_finder_get_output(id, possible_ele_id, j)
+          ! If this process does not own this possible_ele_id element then
+          ! don't consider it.  This filter is needed to make this subroutine work in
+          ! parallel without having to use universal numbers, which aren't defined
+          ! for all the meshes that use this subroutine.
+          if(.not.element_owned(positions_a,possible_ele_id)) then
+             assert(isparallel())
+             cycle possible_elements_loop
+          end if
           ! Zero tolerance - we're not using an "epsilon-ball" approach here
           if(ownership_predicate(positions_a, possible_ele_id, positions(:, i), 0.0, miss = miss)) then
             ele_ids(i) = possible_ele_id
@@ -281,7 +289,7 @@ contains
             closest_ele_id = possible_ele_id
             closest_misses(i) = miss
           end if
-        end do
+        end do possible_elements_loop
 
         ! We didn't find an owner, so choose the element with the closest miss
         ele_ids(i) = closest_ele_id
@@ -310,6 +318,9 @@ contains
           ! Another processes has a smaller miss for this coordinate
           ele_ids(i) = -1
         end if
+        ! if no process has closest_misses(i) < out_of_bounds_tolerance
+        ! then ele_ids(i) is already set to -1 in positions_loop above
+        ! on all processes.  This matches the find_serial(0) behaviour.
       end do
 #endif
             

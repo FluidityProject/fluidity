@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+   
+  <name>mphase_inlet_velocity_bc_incompressible</name>
+  <owner userid="ctj10"/>
+  <tags>flml</tags>
+  
+  <problem_definition length="short" nprocs="1">
+    <command_line>make run</command_line>
+    <!-- Check that we can do velocity inlet boundary conditions for incompressible multiphase flow. -->
+    <!-- A velocity of 0.1 is prescribed on the left for the Gas phase. The velocity is zero for both -->
+    <!-- phases on the right, and the left boundary is left open for the Particle phase. -->
+    <!-- By continuity, the velocity should be equal and opposite at the left boundary for the Particle phase -->
+    <!-- since we have a prescribed PhaseVolumeFraction of 0.5 for both phases. -->
+  </problem_definition>
+  
+  <variables>  
+      <variable name="gas_velocity_max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_inlet_velocity_bc_incompressible.stat")
+gas_velocity_max = s["Gas"]["Velocity%1"]["max"]
+      </variable>
+      
+      <variable name="particle_velocity_max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_inlet_velocity_bc_incompressible.stat")
+particle_velocity_max = s["Particle"]["Velocity%1"]["max"]
+      </variable>
+      
+      <variable name="particle_velocity_min" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_inlet_velocity_bc_incompressible.stat")
+particle_velocity_min = s["Particle"]["Velocity%1"]["min"]
+      </variable>
+      
+      <variable name="sum_velocity_divergence" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_inlet_velocity_bc_incompressible.stat")
+sum_velocity_divergence = s["Gas"]["SumVelocityDivergence"]["max"]
+      </variable>
+  
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+  </variables>
+    
+  <pass_tests>
+      <test name="Maximum Gas::Velocity is always 0.1" language="python">
+assert(abs(gas_velocity_max - 0.1).all() &lt; 1e-15)
+      </test>
+      
+      <test name="Maximum Particle::Velocity (in magnitude) is 0.1 at the end of the simulation, and is opposite in direction" language="python">
+assert(abs(particle_velocity_min[-1] + 0.1) &lt; 1e-15)
+assert(abs(particle_velocity_max[-1]) &lt; 1e-15)
+      </test>
+      
+      <test name="SumVelocityDivergence is approximately zero" language="python">
+assert(abs(sum_velocity_divergence[-1]) &lt; 1e-11)
+      </test>
+     
+    <test name="Solvers converged" language="python">
+assert(solvers_converged)
+    </test>
+  </pass_tests>
+  
+  <warn_tests>
+  </warn_tests>
+  
+</testproblem>

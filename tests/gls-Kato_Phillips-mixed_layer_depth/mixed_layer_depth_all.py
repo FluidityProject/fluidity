@@ -41,7 +41,7 @@ def MLD(filelist):
      tt = time[0]
      kk = u.GetScalarField('GLSTurbulentKineticEnergy')
      pos = u.GetLocations()
-     if (tt < 14400):
+     if (tt < 100):
        continue
 
      xyzkk = []
@@ -79,7 +79,7 @@ def MLD(filelist):
 
 path = sys.argv[1]
 
-x0 = 50.
+x0 = 0.
 tke0 = 1.0e-5
 files_to_look_through_ke = [
 "Kato_Phillips-mld-k_e-CA",
@@ -105,7 +105,7 @@ files_to_look_through_kkl = [
 ]
 colours = ['r','g','b','#8000FF']
 
-times2 = arange(0, 30, 0.1)
+times2 = arange(0, 10, 0.1)
 Dm = 1.05*1.0e-2*(1.0/sqrt(0.01))*sqrt((times2*60*60));
 
 figke = figure(figsize=(9.172,4.5),dpi=90)

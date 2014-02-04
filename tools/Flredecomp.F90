@@ -46,7 +46,9 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
 #endif
   use zoltan_integration
   use state_module
+  use initialise_ocean_forcing_module
   use iso_c_binding
+
   implicit none
 
   character(kind=c_char, len=1) :: input_basename(*)
@@ -150,6 +152,8 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
      call nullify(state(i))
   end do
 
+  call initialise_ocean_forcing_readers
+  
   call insert_external_mesh(state, save_vtk_cache = .true.)
   
   call insert_derived_meshes(state, skip_extrusion=skip_initial_extrusion)
@@ -179,7 +183,7 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   ! Output
   assert(associated(state))
   call checkpoint_simulation(state, prefix = output_base, postfix = "", protect_simulation_name = .false., &
-    keep_initial_data=.true.)
+    keep_initial_data=.true., ignore_detectors=.true.)
 
   do i = 1, size(state)
     call deallocate(state(i))
