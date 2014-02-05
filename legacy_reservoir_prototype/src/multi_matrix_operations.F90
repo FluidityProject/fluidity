@@ -95,92 +95,107 @@
       ! calculate DMATINV
       IMPLICIT NONE
       INTEGER, intent( in ) :: NLOC
-      REAL, DIMENSION( NLOC, NLOC ), intent( in ) :: DMAT
-      REAL, DIMENSION( NLOC, NLOC ), intent( inout ) ::  DMATINV
+      REAL, DIMENSION( :, : ), intent( in ) :: DMAT
+      REAL, DIMENSION( :, : ), intent( inout ) ::  DMATINV
       ! Local variables
-      REAL, DIMENSION( NLOC , NLOC ) :: MAT, MAT2
-      REAL, DIMENSION( NLOC ) :: X, B
+    !  REAL, DIMENSION( NLOC , NLOC ) :: MAT, MAT2
+    !  REAL, DIMENSION( NLOC ) :: X, B
 
       DMATINV = DMAT
-      CALL MATINV( DMATINV, NLOC, NLOC, MAT, MAT2, X, B )
+      CALL MATINV( DMAT,DMATINV, NLOC, NLOC)!, MAT, MAT2, X, B )
 
       RETURN
     END SUBROUTINE MATDMATINV
     !
 
 
-    SUBROUTINE MATINV( A, N, NMAX, MAT, MAT2, X, B)
+    SUBROUTINE MATINV( A,AINV, N, NMAX)!, MAT, MAT2, X, B)
       ! This sub finds the inverse of the matrix A and puts it back in A. 
       ! MAT, MAT2, X and B are working vectors. 
       IMPLICIT NONE
       INTEGER, intent( in ) :: N, NMAX
-      REAL, DIMENSION( NMAX, NMAX ), intent( inout ) ::  A
-      REAL, DIMENSION( N, N ), intent( inout ) :: MAT, MAT2
-      REAL, DIMENSION( N ), intent( inout ) :: X, B
+      REAL, DIMENSION( :, : ), intent( in ) ::  A
+      REAL, DIMENSION( :, : ), intent( out ) ::  AINV
+!      REAL, DIMENSION( N, N ), intent( inout ) :: MAT, MAT2
+!      REAL, DIMENSION( N ), intent( inout ) :: X, B
       ! Local variables
       INTEGER :: ICOL, IM, JM
-      INTEGER , DIMENSION(N,N) :: IPIV
+!      INTEGER , DIMENSION(N,N) :: IPIV
+      INTEGER , DIMENSION(N) :: IPIV
+      REAL, DIMENSION( N, N ) :: MAT, MAT2
+      REAL, DIMENSION( N ) :: X, B
 
-      Loop_Boolean: IF( .true. ) THEN
-         ! Solve MAT XL=BX (NB BDIAG is overwritten)
-         ICOL = 1
-         B( 1 : N ) = 0.
-         B( ICOL ) = 1.
+      integer, dimension(N*N) :: WORK
+      integer :: LWORK
 
-         MAT = A( 1:N,1:N )
+      integer info
+      external dgetrf, dgetri
 
-         CALL SMLINNGOT( MAT, X, B, N, N,IPIV, .FALSE. ) ! X contains the column ICOL of inverse
+      Ainv=A
+      LWORK=N*N
 
-         DO IM = 1, N
-            MAT2( IM, ICOL ) = X( IM )
-         END DO
+      call dgetrf(N,N,AINV,NMAX,IPIV,INFO)
+      call dgetri(N,AINV,NMAX,IPIV,WORK,LWORK,INFO)
+      if (info==0) then
+         return
+      else
+         FLAbort("PIVIT MAtrix block inversion failed")
+      end if
 
-         DO ICOL = 2, N ! Form column ICOL of the inverse. 
-            B = 0.
-            B( ICOL ) = 1.0 ! Solve MAT X=B (NB MAT is overwritten).  
-
-            CALL SMLINNGOT( MAT, X, B, N, N,IPIV, .TRUE. ) ! X contains the column ICOL of inverse
-
-            DO IM = 1, N
-               MAT2( IM, ICOL ) = X( IM )
-            END DO
-         END DO
-
-      ELSE
-         !
-         Loop_Col: DO ICOL = 1, N ! Form column ICOL of the inverse. 
-
-            Loop_IM1: DO IM = 1, N
-
-               B( IM ) = 0.
-               Loop_JM1: DO JM = 1, N
-                  MAT( IM, JM ) = A( IM , JM )
-               END DO Loop_JM1
-            END DO Loop_IM1
-
-            B( ICOL ) = 1.0
-
-            ! Solve MAT X=B (NB MAT is overwritten).  
-
-            CALL SMLINN( MAT, X, B, N, N )
-
-            ! X contains the column ICOL of inverse
-            DO IM = 1, N
-               MAT2( IM, ICOL ) = X( IM )
-            END DO
-            !
-         END DO Loop_Col
-
-      ENDIF Loop_Boolean
-      !
-      ! Set A to MAT2
-      Loop_IM2: DO IM = 1, N
-         Loop_JM2: DO JM = 1, N
-            A( IM, JM ) = MAT2( IM, JM )
-         END DO Loop_JM2
-      END DO Loop_IM2
-
-      RETURN
+!!$      Loop_Boolean: IF( .true. ) THEN
+!!$         ! Solve MAT XL=BX (NB BDIAG is overwritten)
+!!$         ICOL = 1
+!!$         B( 1 : N ) = 0.
+!!$         B( ICOL ) = 1.
+!!$
+!!$!         MAT = A( 1:N,1:N )
+!!$
+!!$         CALL SMLINNGOT( A(1:N,1:N), X, B, N, N,IPIV, .FALSE. ) ! X contains the column ICOL of inverse
+!!$
+!!$         DO IM = 1, N
+!!$            MAT2( IM, ICOL ) = X( IM )
+!!$         END DO
+!!$
+!!$         DO ICOL = 2, N ! Form column ICOL of the inverse. 
+!!$            B = 0.
+!!$            B( ICOL ) = 1.0 ! Solve MAT X=B (NB MAT is overwritten).  
+!!$
+!!$            CALL SMLINNGOT( A(1:N,1:N), X, B, N, N,IPIV, .TRUE. ) ! X contains the column ICOL of inverse
+!!$
+!!$            DO IM = 1, N
+!!$               MAT2( IM, ICOL ) = X( IM )
+!!$            END DO
+!!$         END DO
+!!$
+!!$      ELSE
+!!$         !
+!!$         Loop_Col: DO ICOL = 1, N ! Form column ICOL of the inverse. 
+!!$
+!!$            Loop_IM1: DO IM = 1, N
+!!$
+!!$               B( IM ) = 0.
+!!$               Loop_JM1: DO JM = 1, N
+!!$                  MAT( IM, JM ) = A( IM , JM )
+!!$               END DO Loop_JM1
+!!$            END DO Loop_IM1
+!!$
+!!$            B( ICOL ) = 1.0
+!!$
+!!$            ! Solve MAT X=B (NB MAT is overwritten).  
+!!$
+!!$            CALL SMLINN( MAT, X, B, N, N )
+!!$
+!!$            ! X contains the column ICOL of inverse
+!!$            DO IM = 1, N
+!!$               MAT2( IM, ICOL ) = X( IM )
+!!$            END DO
+!!$            !
+!!$         END DO Loop_Col
+!!$      ENDIF Loop_Boolean
+!!$
+!!$      AINV(1:N,1:N)=MAT2
+!!$
+!!$      RETURN
     END SUBROUTINE MATINV
     !
     !
@@ -340,7 +355,7 @@
 
 
 
-    SUBROUTINE COLOR_GET_CMC_PHA( CV_NONODS, U_NONODS, NDIM, NPHASE, &
+       SUBROUTINE COLOR_GET_CMC_PHA( CV_NONODS, U_NONODS, NDIM, NPHASE, &
          NCOLC, FINDC, COLC, &
          INV_PIVIT_MAT,  &
          TOTELE, U_NLOC, U_NDGLN, &
@@ -355,7 +370,7 @@
            TOTELE, U_NLOC, NCOLCT, NCOLCMC, IGOT_CMC_PRECON
       INTEGER, DIMENSION( U_NONODS + 1 ), intent( in ) ::FINDC
       INTEGER, DIMENSION( NCOLC ), intent( in ) :: COLC
-      REAL, DIMENSION( U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM,TOTELE ), intent( in ) :: INV_PIVIT_MAT
+      REAL, DIMENSION( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM ), intent( in ) :: INV_PIVIT_MAT
       INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) ::  U_NDGLN
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
       INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
@@ -371,14 +386,17 @@
       ! Local variables
       INTEGER, PARAMETER :: MX_NCOLOR = 1000
       REAL, PARAMETER :: INFINY = 1.0E+10
-      LOGICAL :: DONE
-      REAL, DIMENSION( :), allocatable :: NEED_COLOR, COLOR_VEC, CMC_COLOR_VEC, CMC_COLOR_VEC2
-      REAL, DIMENSION( :), allocatable :: CDP, DU, DV, DW, DU_LONG
+      LOGICAL :: UNDONE, LCOL
+      logical, DIMENSION( : ), allocatable :: NEED_COLOR
+      logical, DIMENSION( CV_NONODS ) :: to_color
+      REAL, DIMENSION( : ), allocatable :: COLOR_VEC, CMC_COLOR_VEC, CMC_COLOR_VEC2
+      REAL, DIMENSION( : ), allocatable :: CDP, DU, DV, DW, DU_LONG
       INTEGER :: NCOLOR, CV_NOD, CV_JNOD, COUNT, COUNT2, IDIM, IPHASE, CV_COLJ, U_JNOD, CV_JNOD2
-      INTEGER :: I, ELE,u_inod,u_nod, ndpset
+      INTEGER :: I, ELE,u_inod,u_nod
+      integer, save :: ndpset=-1
       REAL :: RSUM
 
-      call get_option( '/material_phase[0]/scalar_field::Pressure/' // &
+      if (ndpset<0) call get_option( '/material_phase[0]/scalar_field::Pressure/' // &
            'prognostic/reference_node', ndpset, default = 0 )
 
       ALLOCATE( NEED_COLOR( CV_NONODS ))
@@ -391,62 +409,51 @@
       ALLOCATE( CMC_COLOR_VEC( CV_NONODS )) 
       ALLOCATE( CMC_COLOR_VEC2( CV_NONODS )) 
 
+
       CMC = 0.0
       IF(IGOT_CMC_PRECON.NE.0) CMC_PRECON = 0.0
 
-    !   print *,' CV_nonods,FINDCMC( CV_nonods):',CV_nonods,FINDCMC( CV_nonods)
-    !    stop 21
-
-      NEED_COLOR = 1.0
+      NEED_COLOR = .true.
       NCOLOR = 0
-      DONE = .FALSE. 
+      UNDONE = .true. 
 
-      Loop_while: DO WHILE (.NOT.DONE) 
+      Loop_while: DO WHILE (UNDONE) 
 
          NCOLOR=NCOLOR+1  ! Determine what nodes can be coloured with the new color       
-         COLOR_VEC = 0.0
+         to_color=.false.
 
          Loop_CVNOD: DO CV_NOD = 1, CV_NONODS
-            IF( ABS(NEED_COLOR( CV_NOD )) > 0.5 ) THEN 
+            IF(NEED_COLOR( CV_NOD )) THEN 
 
-               RSUM = 0.0
+               LCOL= .FALSE.
                ! use a distance-2 colouring...
                Loop_Row: DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                   CV_JNOD = COLCMC( COUNT )
+                  if(TO_COLOR( CV_JNOD )) then
+                     LCOL=.true.
+                     exit
+                  end if
                   Loop_Row2: DO COUNT2 = FINDCMC( CV_JNOD ), FINDCMC( CV_JNOD + 1 ) - 1
-                     CV_JNOD2 = COLCMC( COUNT2 )
-                     RSUM = RSUM + COLOR_VEC( CV_JNOD2 ) * NEED_COLOR( CV_JNOD2 )
+                     if(TO_COLOR( COLCMC( COUNT2 ))) then
+                        LCOL=.true.
+                        exit
+                     end if
                   END DO Loop_Row2
+                  if (LCOL) exit 
                END DO Loop_Row
 
-               IF( ABS(RSUM) < 0.5 ) THEN
-                  COLOR_VEC( CV_NOD ) = 1.0
-                  !NEED_COLOR( CV_NOD ) = 0.0
+               IF(.not. LCOL) THEN
+                  TO_COLOR( CV_NOD ) = .true.
                ENDIF
 
             ENDIF
-            !   ewrite(3,*)'NCOLOR,CV_NOD,COLOR_VEC( CV_NOD ),NEED_COLOR( CV_NOD ):', &
-            !               NCOLOR,CV_NOD,COLOR_VEC( CV_NOD ),NEED_COLOR( CV_NOD )
          END DO Loop_CVNOD
 
-         !       COLOR_VEC=0
-         !       COLOR_VEC(NCOLOR)=1. 
+         NEED_COLOR = NEED_COLOR .and. .not. TO_COLOR
+         COLOR_VEC=merge(1.0,0.0,TO_COLOR)
 
-         NEED_COLOR = NEED_COLOR - COLOR_VEC
-
-         !       EWRITE(3,*)'NEED_COLOR:',NEED_COLOR
-         !       EWRITE(3,*)'COLOR_VEC:',COLOR_VEC
-         !       STOP 7756
-
-         !       COLOR_VEC=0
-         !       COLOR_VEC(2)=1.
-
-         !       stop 393
-
-         ! CMC_COLOR_VEC=CMC*COLOR_VEC
-         ! CDP=C*COLOR_VEC
          CALL C_MULT( CDP, COLOR_VEC, CV_NONODS, U_NONODS, NDIM, NPHASE, &
-              C, NCOLC, FINDC, COLC )
+              C, NCOLC, FINDC, COLC)
          !!DU_LONG = BLOCK_MAT * CDP
          if(.true.) then
             !            do ele=1,totele
@@ -475,7 +482,7 @@
             END DO
          endif
          CALL CT_MULT( CMC_COLOR_VEC, DU, DV, DW, CV_NONODS, U_NONODS, NDIM, NPHASE, &
-              CT, NCOLCT, FINDCT, COLCT )
+              CT, NCOLCT, FINDCT, COLCT)
       IF(IGOT_CMC_PRECON.NE.0) THEN
          CALL CT_MULT_WITH_C( CMC_COLOR_VEC2, DU_LONG, CV_NONODS, U_NONODS, NDIM, NPHASE, &
                 C, NCOLC, FINDC, COLC )
@@ -507,6 +514,7 @@
          !ENDIF
 
          !Put into matrix CMC
+
          DO CV_NOD = 1, CV_NONODS 
             DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                CV_JNOD = COLCMC( COUNT )
@@ -519,13 +527,9 @@
          END DO
          !stop 383
 
-         RSUM = 0.0
-         DO CV_NOD = 1, CV_NONODS
-            RSUM = RSUM + NEED_COLOR( CV_NOD )
-         END DO
-         DONE = ( ABS(RSUM) < 0.5 )
+         UNDONE = any(NEED_COLOR)
 
-         ewrite(3,*)'************ rsum,done,NCOLOR=',rsum,done,NCOLOR
+         ewrite(3,*)'************ rsum,undone,NCOLOR=',rsum,undone,NCOLOR
 
       END DO Loop_while
 
@@ -612,16 +616,18 @@
     SUBROUTINE PHA_BLOCK_INV( INV_PIVIT_MAT, PIVIT_MAT, TOTELE, NBLOCK )
       implicit none
       INTEGER, intent( in ) :: TOTELE, NBLOCK
-      REAL, DIMENSION( NBLOCK, NBLOCK,TOTELE), intent( inout ) ::  INV_PIVIT_MAT 
-      REAL, DIMENSION( NBLOCK, NBLOCK,TOTELE), intent( in ) ::  PIVIT_MAT
+      REAL, DIMENSION( : , : , : ), intent( inout ), CONTIGUOUS  ::  INV_PIVIT_MAT 
+      REAL, DIMENSION( : , : , : ), intent( in ), CONTIGUOUS ::  PIVIT_MAT
       ! Local variables
       INTEGER :: ELE
 
-      !    
 
       DO ELE = 1, TOTELE
 
-         CALL MATDMATINV( PIVIT_MAT(:,:,ele), INV_PIVIT_MAT(:,:,ele), NBLOCK )
+!         INV_PIVIT_MAT(:,:,ele)=PIVIT_MAT(:,:,ele)
+
+!         CALL MATDMATINV( PIVIT_MAT(:,:,ele), INV_PIVIT_MAT(:,:,ele), NBLOCK )
+         CALL MATINV(PIVIT_MAT(:,:,ele), INV_PIVIT_MAT(:,:,ele), NBLOCK, nblock )
 
       END DO
 
@@ -646,29 +652,40 @@
 
       integer, dimension(:), pointer :: U_NOD
 
-      real, dimension(U_NLOC*NDIM*NPHASE) :: lcdp
+      real, dimension(U_NLOC*NDIM*NPHASE) :: lcdp, lu
       integer, dimension(U_NLOC*NDIM*NPHASE) :: u_nodi
+      integer :: N
+      external dgemv
+
+      N=U_NLOC * NDIM * NPHASE
 
       U = 0.0 
 
       Loop_Elements: DO ELE = 1, TOTELE
 
          U_NOD => U_NDGLN(( ELE - 1 ) * U_NLOC +1: ELE * U_NLOC)            
-               
+
          Loop_DimensionsJ: DO JDIM = 1, NDIM
                   
             Loop_PhasesJ: DO JPHASE = 1, NPHASE
                      
-               J = ( JDIM - 1 ) * U_NONODS + ( JPHASE - 1 ) * NDIM * U_NONODS
+!               J = ( JDIM - 1 ) * U_NONODS + ( JPHASE - 1 ) * NDIM * U_NONODS
                JJ = ( JDIM - 1 ) * U_NLOC + ( JPHASE - 1 ) * NDIM * U_NLOC
 
-               lcdp(JJ+1:JJ+U_NLOC)=CDP(U_NOD+J)
-               U_NODI(JJ+1:JJ+U_NLOC)=U_NOD+J
+               J=JDIM+(JPHASE-1)*NDIM
+
+               lcdp([(J+(i-1)*ndim*nphase,i=1,u_NLOC)])=CDP(U_NOD+(J-1)*U_NONODS)
+               U_NODI([(J+(i-1)*ndim*nphase,i=1,u_NLOC)])=U_NOD+(J-1)*U_NONODS
             end do Loop_PhasesJ
          end do Loop_DimensionsJ
-                             
                            
-         U( U_NODI) = U( U_NODI ) + matmul(BLOCK_MAT( : , : ,ele), LCDP( : ))
+
+         LU=U(U_NODI)
+         call dgemv('N',N,N,1.0d0,BLOCK_MAT( 1:N , 1:N ,ele),N,LCDP,1,1.0d0,LU,1)
+         U(U_NODI)=LU
+                           
+!         U( U_NODI) = U( U_NODI ) + matmul(LOC_BLOCK_MAT( : , : ), LCDP( : ))
+
 
       END DO Loop_Elements
 
@@ -678,7 +695,44 @@
     END SUBROUTINE PHA_BLOCK_MAT_VEC
 
 
-
+!!$    SUBROUTINE CT_MULT( CV_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
+!!$         CT, NCOLCT, FINDCT, COLCT ) 
+!!$      ! CV_RHS=CT*U
+!!$      implicit none
+!!$      INTEGER, intent( in ) :: CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLCT
+!!$      REAL, DIMENSION( CV_NONODS ), intent( inout) :: CV_RHS
+!!$      REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: U, V, W  
+!!$      INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
+!!$      INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
+!!$      REAL, DIMENSION( NCOLCT * NDIM * NPHASE ), intent( in ) :: CT
+!!$
+!!$      ! Local variables
+!!$      INTEGER :: CV_INOD, COUNT, U_JNOD, IPHASE, J
+!!$
+!!$      CV_RHS = 0.0
+!!$
+!!$      DO CV_INOD = 1, CV_NONODS
+!!$
+!!$         DO COUNT = FINDCT( CV_INOD ), FINDCT( CV_INOD + 1 ) - 1, 1
+!!$            U_JNOD = COLCT( COUNT )
+!!$
+!!$            DO IPHASE = 1, NPHASE
+!!$               J = U_JNOD + ( IPHASE - 1 ) * U_NONODS
+!!$
+!!$               CV_RHS( CV_INOD ) = CV_RHS( CV_INOD ) + CT( COUNT + NCOLCT * NDIM * ( IPHASE - 1 )) * U( J )
+!!$               IF( NDIM >= 2 ) CV_RHS( CV_INOD ) = CV_RHS( CV_INOD ) + CT( COUNT + &
+!!$                    NCOLCT + NCOLCT     * NDIM * ( IPHASE - 1 )) * V( J )
+!!$               IF( NDIM >= 3 ) CV_RHS( CV_INOD ) = CV_RHS( CV_INOD ) + CT( COUNT + &
+!!$                    2 * NCOLCT + NCOLCT * NDIM * ( IPHASE-  1 )) * W( J )
+!!$            END DO
+!!$
+!!$         END DO
+!!$
+!!$      END DO
+!!$
+!!$      RETURN
+!!$
+!!$    END SUBROUTINE CT_MULT
 
 
     SUBROUTINE CT_MULT( CV_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
@@ -686,43 +740,39 @@
       ! CV_RHS=CT*U
       implicit none
       INTEGER, intent( in ) :: CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLCT
-      REAL, DIMENSION( CV_NONODS ), intent( inout) :: CV_RHS
+      REAL, DIMENSION( CV_NONODS ), intent( out) :: CV_RHS
       REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: U, V, W  
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
       INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
       REAL, DIMENSION( NCOLCT * NDIM * NPHASE ), intent( in ) :: CT
 
-      ! Local variables
-      INTEGER :: CV_INOD, COUNT, U_JNOD, IPHASE, J
+      real, dimension( ncolct) :: CTU
 
-      CV_RHS = 0.0
+      ! Local variables
+      INTEGER :: CV_INOD, COUNT, U_JNOD, IPHASE, i,J,k
+      integer, pointer :: countp
+
+    ! when code is realigned, it will be possible to form the dot product
+    !              sum(CT(1:ndim*nphase,CV_NOD,U(1:ndim*nphase,cv_nod) 
+    ! directly, unrolling one loop and reducing indirection.
+
+      CTU=0.0
+
+      DO IPHASE = 1, NPHASE
+         CTU=CTU+CT((iphase-1)*ncolct*ndim+1:(iphase-1)*ncolct*ndim+ncolct)*U(colct + ( IPHASE - 1 ) * U_NONODS)
+         if (ndim>=2) CTU=CTU+CT((iphase-1)*ncolct*ndim+ncolct+1:(iphase-1)*ncolct*ndim+2*ncolct)*V(colct + ( IPHASE - 1 ) * U_NONODS)
+         if (ndim>=3) CTU=CTU+CT((iphase-1)*ncolct*ndim+2*ncolct+1:(iphase-1)*ncolct*ndim+3*ncolct)*W(colct + ( IPHASE - 1 ) * U_NONODS)
+      end DO
 
       DO CV_INOD = 1, CV_NONODS
 
-         DO COUNT = FINDCT( CV_INOD ), FINDCT( CV_INOD + 1 ) - 1, 1
-            U_JNOD = COLCT( COUNT )
-
-            DO IPHASE = 1, NPHASE
-               J = U_JNOD + ( IPHASE - 1 ) * U_NONODS
-
-               CV_RHS( CV_INOD ) = CV_RHS( CV_INOD ) + CT( COUNT + NCOLCT * NDIM * ( IPHASE - 1 )) * U( J )
-               IF( NDIM >= 2 ) CV_RHS( CV_INOD ) = CV_RHS( CV_INOD ) + CT( COUNT + &
-                    NCOLCT + NCOLCT     * NDIM * ( IPHASE - 1 )) * V( J )
-               IF( NDIM >= 3 ) CV_RHS( CV_INOD ) = CV_RHS( CV_INOD ) + CT( COUNT + &
-                    2 * NCOLCT + NCOLCT * NDIM * ( IPHASE-  1 )) * W( J )
-            END DO
-
-         END DO
-
+         CV_RHS( CV_INOD ) = sum(CTU( FINDCT( CV_INOD ) :FINDCT( CV_INOD + 1 ) - 1))
+         
       END DO
 
       RETURN
 
     END SUBROUTINE CT_MULT
-
-
-
-
 
 
     SUBROUTINE C_MULT( CDP, DP, CV_NONODS, U_NONODS, NDIM, NPHASE, &
@@ -732,34 +782,36 @@
       INTEGER, intent( in ) :: CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLC
       REAL, DIMENSION( U_NONODS * NDIM * NPHASE ), intent( inout ) :: CDP
       REAL, DIMENSION( CV_NONODS ), intent( in )  :: DP
-      REAL, DIMENSION( NCOLC * NDIM * NPHASE ), intent( in ) :: C
+      REAL, DIMENSION( NCOLC * NDIM * NPHASE ), intent( in ), target :: C
       INTEGER, DIMENSION( U_NONODS + 1 ), intent( in ) ::FINDC
-      INTEGER, DIMENSION( NCOLC ), intent( in ) :: COLC
+      INTEGER, DIMENSION( NCOLC ), intent( in ), target :: COLC
       ! Local variables
-      INTEGER :: U_INOD, COUNT, P_JNOD, IPHASE, I1, IDIM, COUNT_DIM_PHA
+      INTEGER :: U_INOD, COUNT, P_JNOD, IPHASE, I1, IDIM, COUNT_DIM_PHA,j,dim_pha
+      integer, dimension(:), pointer :: P_JNODV
+      real, dimension(NCOLC), target :: ldp
 
-      CDP = 0.0
+      INTEGER, DIMENSION( U_NONODS * NDIM * NPHASE + 1 ) ::GFINDC
+      INTEGER, DIMENSION( NCOLC* NDIM * NPHASE) :: GCOLC
 
-      Loop_VelNodes: DO U_INOD = 1, U_NONODS
 
-         Loop_Crow: DO COUNT = FINDC( U_INOD ), FINDC( U_INOD + 1 ) - 1, 1
-            P_JNOD = COLC( COUNT )
+      ldp = dp(colc)
 
-            Loop_Phase: DO IPHASE = 1, NPHASE
-               Loop_Dim: DO IDIM = 1, NDIM
-                  COUNT_DIM_PHA = COUNT + NCOLC*(IDIM-1) + NCOLC*NDIM*(IPHASE-1)
-                  I1 = U_INOD + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM * U_NONODS
-                  CDP( I1 ) = CDP( I1 ) + C( COUNT_DIM_PHA ) * DP( P_JNOD )
-               END DO Loop_Dim
-            END DO Loop_Phase
+      Loop_Phase: DO IPHASE = 0, NPHASE-1
+         Loop_Dim: DO IDIM = 1, NDIM
+            DIM_PHA = (IDIM-1) + NDIM*IPHASE
+            Loop_VelNodes: DO U_INOD = 1, U_NONODS 
+               CDP( U_INOD + DIM_PHA * U_NONODS ) = &
+                    dot_product(C(FINDC( U_INOD )+NCOLC*dim_pha:FINDC( U_INOD + 1 ) - 1+NCOLC*dim_pha),&
+                    ldp( FINDC( U_INOD ):FINDC( U_INOD + 1 ) - 1))
+            END DO Loop_VelNodes
+         END DO Loop_Dim
+      END DO Loop_Phase
 
-         END DO Loop_Crow
 
-      END DO Loop_VelNodes
+      return
+    end SUBROUTINE C_MULT
 
-      RETURN
-
-    END SUBROUTINE C_MULT
+   
 
 
     SUBROUTINE Ct_MULT_WITH_C( DP, U_LONG, CV_NONODS, U_NONODS, NDIM, NPHASE, &

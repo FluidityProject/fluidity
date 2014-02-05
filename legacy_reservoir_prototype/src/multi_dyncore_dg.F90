@@ -1059,7 +1059,7 @@
       ALLOCATE( DV( U_NONODS * NPHASE )) ; DV = 0.
       ALLOCATE( DW( U_NONODS * NPHASE )) ; DW = 0.
       ALLOCATE( PIVIT_MAT( U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM, TOTELE )) ; PIVIT_MAT=0.
-      ALLOCATE( INV_PIVIT_MAT( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM )) ; INV_PIVIT_MAT=0.
+      ALLOCATE( INV_PIVIT_MAT( U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM, TOTELE )) ; INV_PIVIT_MAT=0.
       ALLOCATE( DGM_PHA( NCOLDGM_PHA )) ; DGM_PHA=0.
 
       n_nloc_lev = u_nloc / cv_nloc
@@ -3423,10 +3423,12 @@ end if
                         JPHA_JDIM = (JPHASE-1)*NDIM_VEL + JDIM
 
                         U_JNOD_JDIM_JPHA = GLOBJ + ( JPHA_JDIM - 1 ) * U_NONODS 
-                        J = U_JLOC + (JPHA_JDIM-1)*U_NLOC
+!                        J = U_JLOC + (JPHA_JDIM-1)*U_NLOC
+                        J=JDIM+(JPHASE-1)*NDIM_VEL+(U_JLOC-1)*NDIM_VEL*NPHASE
 
                         DO IPHASE = 1, NPHASE
-                           DO IDIM = 1, NDIM_VEL 
+                           DO IDIM = 1, NDIM_VEL
+ 
 
                               IPHA_IDIM = (IPHASE-1)*NDIM_VEL + IDIM
 
@@ -3434,7 +3436,8 @@ end if
                               U_INOD_JDIM_JPHA = GLOBI + ( JPHA_JDIM - 1 ) * U_NONODS 
 
                               ! Adding absorption term to the global matrix
-                              I = U_ILOC + (IPHA_IDIM-1)*U_NLOC
+!                              I = U_ILOC + (IPHA_IDIM-1)*U_NLOC
+                              I=IDIM+(IPHASE-1)*NDIM_VEL+(U_ILOC-1)*NDIM_VEL*NPHASE
                               
 
                               IF(.NOT.NO_MATRIX_STORE) THEN
@@ -3458,7 +3461,6 @@ else
 end if
                               ENDIF
                               ENDIF
-
 if ( lump_mass ) then
  !                             PIVIT_MAT(ELE, I, J) =  PIVIT_MAT(ELE, I, J) &
                               PIVIT_MAT(I, I,ELE) =  PIVIT_MAT(I, I,ELE) &
