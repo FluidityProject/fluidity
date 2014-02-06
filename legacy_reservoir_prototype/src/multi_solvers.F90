@@ -215,7 +215,7 @@ contains
    ! PARAMETER(NGL_ITS=50) ! maybe we need to increase this...
    ! PARAMETER(NGL_ITS=50) ! maybe we need to increase this...
     PARAMETER(ONE_PRES_SOLVE=.false., ONE_SOLVE_1IT=.false.) ! Only solve for one cty pressure - distribut to DG pressure nodes. 
-!    PARAMETER(ONE_PRES_SOLVE=.true., ONE_SOLVE_1IT=.true.) ! Only solve for one cty pressure - distribut to DG pressure nodes. 
+!    PARAMETER(ONE_PRES_SOLVE=.true., ONE_SOLVE_1IT=.false.) ! Only solve for one cty pressure - distribut to DG pressure nodes. 
 
     !  PARAMETER(ERROR=1.E-15, RELAX=0.05, RELAX_DIAABS=0.0)
     !  PARAMETER(RELAX_DIA=2.0, N_LIN_ITS=2)
