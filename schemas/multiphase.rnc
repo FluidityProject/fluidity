@@ -382,12 +382,56 @@ start =
                element nonlinear_iterations_at_adapt {
                   integer
                }?,
-               ## Non-linear iterations are chosen automatically based on the variation of the velocity between non-linear iterations.
+               ## Non-linear iterations are chosen automatically based on the variation of the saturation between non-linear iterations.
                ## 
                ## The input is the tolerance between non-linear iterations.
                ## Recommended value is 0.01
                element nonlinear_iterations_automatic {
-                  real
+                  real,
+                  (
+                    ## Adaptive timestep based on the ratio between non-linear iterations.
+                    ## Time step is increased if the ratio is over a threshold, whereas if the ratio is below another threshold or the maximum of non-linear iterations are reached,
+                    ## the calculations for that time are repeated with a lower timestep.
+                    ##
+                    ## A Variable to check has to be chosen:
+                    ## 1 = Pressure; 2 = Velocity; 3 = PhaseVolumeFraction (Default)
+                    element adaptive_timestep_nonlinear{
+                        integer,
+                      (
+                        ## Multiply present timestep by this factor when increasing it.
+                        ## By default 1.2
+                        element increase_factor{
+                        real
+                        }?,
+                        ## Multiply present timestep by this factor when decreasing it.
+                        ## By default 2.0
+                        element decrease_factor{
+                        real
+                        }?,
+                        ## Maximum timestep. Beyond this value the timestep will not be increased.
+                        ## By default unlimmited.
+                        element max_timestep{
+                        real
+                        }?,
+                        ## Minimum timestep. Beyond this value the timestep will not be decreased.
+                        ## By default unlimmited.
+                        element min_timestep{
+                        real
+                        }?,
+                        ## If the ratio between non-linear iterations is smaller, then the timestep can be increased.
+                        ## By default 1e-3.
+                        element increase_ts_switch{
+                        real
+                        }?,
+                        ## If the ratio between non-linear iterations is bigger, then the timestep has to be decreased.
+                        ## Note that if the number of maximum non-linear iterations is reached then the timestep will be also decreased.
+                        ## By default 1e-1.
+                        element decrease_ts_switch{
+                        real
+                        }?
+                      )
+                    }?
+                  )
                }?
             }?,
             ## Vary the timestep according to the courant number.
