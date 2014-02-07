@@ -31,6 +31,7 @@ module detector_data_types
 
   use fldebug
   use global_parameters, only : FIELD_NAME_LEN
+  use mpi_interfaces
   
   implicit none
   
@@ -106,11 +107,11 @@ module detector_data_types
      integer :: num_vfields = 0   ! Total number of vector fields across all phases
 
      !! I/O parameters
+     integer(kind=MPI_OFFSET_KIND) :: mpi_write_count = 0      ! Offset in MPI file
      logical :: binary_output = .false.
      logical :: write_nan_outside = .false.
      integer :: output_unit = 0          ! Assumed non-opened as long this is 0
      integer :: mpi_fh = 0               ! MPI filehandle
-     integer :: mpi_write_count = 0      ! Offset in MPI file
      integer :: total_num_det = 0        ! Global number of detectors in this list
   end type detector_linked_list
 
