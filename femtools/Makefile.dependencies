@@ -212,7 +212,7 @@ Data_structures.o ../include/data_structures.mod: Data_structures.F90 \
 
 Detector_Data_Types.o ../include/detector_data_types.mod: \
    Detector_Data_Types.F90 ../include/fdebug.h ../include/fldebug.mod \
-   ../include/global_parameters.mod
+   ../include/global_parameters.mod ../include/mpi_interfaces.mod
 
 ../include/detector_move_lagrangian.mod: Detector_Move_Lagrangian.o
 	@true
