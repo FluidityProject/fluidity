@@ -15168,7 +15168,7 @@ if test "$adjoint" != "no"; then
     tmpLIBS="$tmpLIBS -L$adjoint/lib"
     tmpCPPFLAGS="$tmpCPPFLAGS  -I$adjoint/include -I$adjoint/include/libadjoint"
   fi
-  if  -f /usr/lib/libadjoint.a -o -f /usr/local/lib/libadjoint.a  ; then
+  if [ -f /usr/lib/libadjoint.a -o -f /usr/local/lib/libadjoint.a ] ; then
     tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -ladjoint"
     tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/ -I/usr/include/libadjoint -I/usr/local/include/libadjoint"
   fi
