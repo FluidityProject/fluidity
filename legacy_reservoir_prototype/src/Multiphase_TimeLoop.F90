@@ -47,6 +47,7 @@
     use signal_vars
     use populate_state_module
     use vector_tools
+    use global_parameters
 
 !!$ Modules required by adaptivity
     use qmesh_module
@@ -589,6 +590,7 @@
       Loop_Time: do
 !!$
          itime = itime + 1
+         timestep = itime
          call get_option( '/timestepping/timestep', dt )
 
          acctim = acctim + dt
@@ -1235,10 +1237,10 @@
 
 
                     !Exit loop section
-                   if (ts_ref_val < tolerance_between_non_linear) exit
+                    if (ts_ref_val < tolerance_between_non_linear) exit
 
                     !Decrease Ts section
-                   if (ts_ref_val > decrease_ts_switch .and. dt / decreaseFactor > min_ts) then
+                    if (ts_ref_val > decrease_ts_switch .and. dt / decreaseFactor > min_ts) then
                         !Decrease time step and repeat!
                         call get_option( '/timestepping/timestep', dt )
                         dt = dt / decreaseFactor
@@ -1279,10 +1281,10 @@
          call set_option( '/timestepping/current_time', acctim )
          call set_option( '/timestepping/timestep', dt)
 
-         current_time=acctim
+         current_time = acctim
 
          !If repeat timestep we don't want to adapt mesh or dump results
-         if (Repeat_time_step) cycle
+         if ( Repeat_time_step ) cycle
 
 !!$ Copying fields back to state:
          call copy_into_state( state, & ! Copying main fields into state
@@ -1349,7 +1351,6 @@
                                 'ComponentMassFractionPhase' // int2str( iphase ) )
                            Component_State % val = component( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
                                 nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
-
 
                            !Component_State => extract_scalar_field( state( icomp + nphase ), & 
                            !     'ComponentMassFractionPhase' // int2str( iphase ) // 'Old' )
