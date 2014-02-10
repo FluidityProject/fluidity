@@ -596,6 +596,8 @@
          acctim = acctim + dt
          call set_option( '/timestepping/current_time', acctim )
 
+         new_lim = .true.
+
          if ( acctim > finish_time ) then 
             ewrite(1,*) "Passed final time"
             exit Loop_Time
@@ -644,16 +646,16 @@
 
             !Store variable to check afterwards
             if (tolerance_between_non_linear>0.) then
-                select case (variable_selection)
-                    case (1)
-                        Pressure_nonlin_check = Pressure_FEM
-                    case (2)
-                        Velocity_U_nonlin_check = Velocity_U
-                        Velocity_V_nonlin_check = Velocity_V
-                        Velocity_W_nonlin_check = Velocity_W
-                    case default
-                        PhaseVolumeFraction_nonlin_check = PhaseVolumeFraction
-                end select
+               select case (variable_selection)
+               case (1)
+                  Pressure_nonlin_check = Pressure_FEM
+               case (2)
+                  Velocity_U_nonlin_check = Velocity_U
+                  Velocity_V_nonlin_check = Velocity_V
+                  Velocity_W_nonlin_check = Velocity_W
+               case default
+                  PhaseVolumeFraction_nonlin_check = PhaseVolumeFraction
+               end select
             end if
 
             !Store backup
@@ -1329,6 +1331,8 @@
          elseif( have_option( '/mesh_adaptivity/prescribed_adaptivity' ) ) then
             if( do_adapt_state_prescribed( current_time ) ) do_reallocate_fields = .true.
          end if Conditional_Adaptivity_ReallocatingFields
+
+         new_mesh = do_reallocate_fields
 
          Conditional_ReallocatingFields: if( do_reallocate_fields ) then
 
