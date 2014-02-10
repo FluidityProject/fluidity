@@ -41,9 +41,11 @@ module cv_advection
 
 contains
 
+
   SUBROUTINE CV_ASSEMB( state, &
        CV_RHS, &
-       NCOLACV, ACV, FINACV, COLACV, MIDACV, &
+       NCOLACV, CSR_ACV, FINACV, COLACV, MIDACV, &
+       SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM,&
        NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
        CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
        CV_ELE_TYPE,  &
@@ -164,7 +166,7 @@ contains
     !     IMPORTANT INPUTS:
     !     ----------------
     !
-    !     ACV   - Matrix for assembling the advection terms (empty on input)
+    !     CSR_ACV   - Matrix for assembling the advection terms (empty on input)
     !     CV_RHS      - Right-hand side vector for advection-diffusion terms
     !     X,Y,Z    - Node co-ordinates
     !     NU       - Nodal velocity component
@@ -180,7 +182,7 @@ contains
     !     IMPORTANT OUTPUTS:
     !     -----------------
     !
-    !     ACV   - Matrix updated to include the advection terms
+    !     CSR_ACV   - Matrix updated to include the advection terms
     !     CV_RHS      - Right-hand side vector updated to include advection terms
     !
     !
@@ -214,7 +216,8 @@ contains
     INTEGER, DIMENSION( STOTEL * NPHASE ), intent( in ) ::  WIC_T_BC, WIC_D_BC, WIC_U_BC
     INTEGER, DIMENSION( STOTEL * NPHASE * IGOT_T2 ), intent( in ) ::  WIC_T2_BC
     REAL, DIMENSION( CV_NONODS * NPHASE ), intent( inout ) :: CV_RHS
-    REAL, DIMENSION( NCOLACV ), intent( inout ) :: ACV
+    !REAL, DIMENSION( NCOLACV ), intent( inout ) :: ACV
+    real, dimension(:), intent(inout) :: CSR_ACV
     INTEGER, DIMENSION( CV_NONODS * NPHASE + 1 ), intent( in ) :: FINACV
     INTEGER, DIMENSION( NCOLACV ), intent( in ) :: COLACV
     INTEGER, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: MIDACV
@@ -260,7 +263,9 @@ contains
     REAL, DIMENSION( CV_NONODS ), intent( inout ) :: MEAN_PORE_CV
     REAL, DIMENSION( TOTELE ), intent( inout ) :: MASS_ELE_TRANSP
     character( len = * ), intent( in ), optional :: option_path_spatial_discretisation
+    integer, dimension(:), intent(in) :: SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM
     !character( len = option_path_len ), intent( in ), optional :: option_path_spatial_discretisation
+
 
     ! Local variables
     INTEGER, PARAMETER :: WIC_T_BC_DIRICHLET = 1, WIC_T_BC_ROBIN = 2, &
@@ -348,7 +353,7 @@ contains
     character( len = option_path_len ) :: option_path, option_path2, path_temp, path_volf, &
          path_comp, path_spatial_discretisation
 
-    integer, dimension(:), allocatable :: SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM
+
     real, dimension(:), allocatable :: TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, &
          DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT
     INTEGER :: IDUM(1)
@@ -370,7 +375,6 @@ contains
 
     IDUM = 0
     RDUM = 0.
-
 
     !       call TRILOCCORDS2D(Xp,Yp, &
     !     &     N1, N2, N3,  &
@@ -773,22 +777,27 @@ contains
        END DO
        NSMALL_COLM=COUNT2
 
-       ALLOCATE(SMALL_FINDRM(CV_NONODS+1),SMALL_COLM(NSMALL_COLM),SMALL_CENTRM(CV_NONODS))
+       !        !We need to allocate CSR_ADV
+       !        allocate(CSR_ACV(NPHASE*NSMALL_COLM))
+
+       !ALLOCATE(SMALL_FINDRM(CV_NONODS+1),SMALL_COLM(NSMALL_COLM),SMALL_CENTRM(CV_NONODS))
        ALLOCATE(TUPWIND_MAT(NSMALL_COLM*NPHASE), TOLDUPWIND_MAT(NSMALL_COLM*NPHASE), &
             DENUPWIND_MAT(NSMALL_COLM*NPHASE), DENOLDUPWIND_MAT(NSMALL_COLM*NPHASE))
        ALLOCATE(T2UPWIND_MAT(NSMALL_COLM*NPHASE*IGOT_T2), T2OLDUPWIND_MAT(NSMALL_COLM*NPHASE*IGOT_T2))
 
        CALL CALC_ANISOTROP_LIM(&
-            ! Caculate the upwind values stored in matrix form...
-            T, TOLD, DEN, DENOLD, T2, T2OLD, &
-            FEMT, FEMTOLD, FEMDEN, FEMDENOLD, FEMT2, FEMT2OLD, (CV_NONODS.NE.X_NONODS), &
+                                ! Caculate the upwind values stored in matrix form...
+            T,TOLD,DEN,DENOLD,T2,T2OLD, &
+            FEMT,FEMTOLD,FEMDEN,FEMDENOLD,FEMT2,FEMT2OLD, (CV_NONODS.NE.X_NONODS), &
             TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, &
             T2UPWIND_MAT, T2OLDUPWIND_MAT, &
-            IGOT_T2, NPHASE, CV_NONODS, CV_NLOC, X_NLOC,TOTELE, CV_NDGLN, &
-            SMALL_FINDRM, SMALL_CENTRM,SMALL_COLM, NSMALL_COLM, &
-            X_NDGLN, X_NONODS, NDIM, &
-            X, Y, Z, XC_CV, YC_CV, ZC_CV, &
-            FINACV, COLACV, NCOLACV)
+                                ! Store the upwind element for interpolation and its weights for
+                                ! faster results...
+            IGOT_T2,NPHASE,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, &
+            SMALL_FINDRM,SMALL_CENTRM,SMALL_COLM,NSMALL_COLM, &
+            X_NDGLN,X_NONODS,NDIM, &
+            X,Y,Z, XC_CV, YC_CV, ZC_CV, &
+            FINACV,COLACV,NCOLACV)
 
        if ( .false. ) then
           ewrite(3,*) 'TUPWIND_MAT', TUPWIND_MAT(1:nsmall_colm)
@@ -839,9 +848,10 @@ contains
     IF(GETCV_DISC) THEN ! Obtain the CV discretised advection/diffusion eqns
        CV_RHS = 0.0
        IF( GETMAT ) THEN
-          ACV = 0.0
+          CSR_ACV = 0.0
        ENDIF
     ENDIF
+
 
     GET_GTHETA=.FALSE.
     IF( IGOT_THETA_FLUX == 1 ) THEN
@@ -935,7 +945,6 @@ contains
                 ENDIF
 
              ENDIF Conditional_CheckingNeighbourhood
-
 
              ! avoid indegrating across the middle of a CV on the boundaries of elements
              Conditional_integration: IF(INTEGRAT_AT_GI) THEN
@@ -1269,19 +1278,21 @@ contains
 
                    ENDIF Conditional_GETCT2
 
+
                    Conditional_GETCV_DISC: IF(GETCV_DISC) THEN
                       ! Obtain the CV discretised advection/diffusion equations
                       IF(GETMAT) THEN
+
                          ! - Calculate the integration of the limited, high-order flux over a face
                          ! Conservative discretisation. The matrix (PIVOT ON LOW ORDER SOLN)
                          IF( ( CV_NODI_IPHA /= CV_NODJ_IPHA ) .AND. ( CV_NODJ_IPHA /= 0 ) ) THEN
-                            DO COUNT = FINACV( CV_NODI_IPHA ), FINACV( CV_NODI_IPHA + 1 ) - 1
-                               IF( COLACV( COUNT ) == CV_NODJ_IPHA )  JCOUNT_IPHA = COUNT
+                            DO COUNT = SMALL_FINDRM( CV_NODI ), SMALL_FINDRM( CV_NODI + 1 ) - 1
+                               IF( SMALL_COLM( COUNT ) == CV_NODJ )  JCOUNT_IPHA = COUNT !An exit may improve the performance!!!
                             END DO
-
-                            ACV( JCOUNT_IPHA ) =  ACV( JCOUNT_IPHA ) &
+                            CSR_ACV( IPHASE+(JCOUNT_IPHA-1)*NPHASE ) =  CSR_ACV( IPHASE+(JCOUNT_IPHA-1)*NPHASE ) &
                                  + SECOND_THETA * FTHETA_T2 * SCVDETWEI( GI ) * NDOTQNEW * INCOME * LIMD  & ! advection
                                  - FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX ! Diffusion contribution
+
                             IF(GET_GTHETA) THEN
                                THETA_GDIFF( CV_NODI_IPHA ) =  THETA_GDIFF( CV_NODI_IPHA ) &
                                     + FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX * T(CV_NODJ_IPHA) ! Diffusion contribution
@@ -1299,12 +1310,13 @@ contains
                             ENDIF
                          ENDIF
 
-                         IMID_IPHA = MIDACV( CV_NODI_IPHA )
+                         IMID_IPHA =  IPHASE+(SMALL_CENTRM(CV_NODI)-1)*NPHASE
 
-                         ACV( IMID_IPHA ) =  ACV( IMID_IPHA ) &
+                         CSR_ACV( IMID_IPHA ) =  CSR_ACV( IMID_IPHA ) &
                               +  SECOND_THETA * FTHETA_T2 * SCVDETWEI( GI ) * NDOTQNEW * ( 1. - INCOME ) * LIMD & ! advection
                               +  FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX  &  ! Diffusion contribution
                               +  SCVDETWEI( GI ) * ROBIN1  ! Robin bc
+
                          IF(GET_GTHETA) THEN
                             THETA_GDIFF( CV_NODI_IPHA ) =  THETA_GDIFF( CV_NODI_IPHA ) &
                                  -  FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX * T( CV_NODI_IPHA ) & ! Diffusion contribution
@@ -1312,7 +1324,7 @@ contains
                          ENDIF
 
                          ! CV_BETA=0 for Non-conservative discretisation (CV_BETA=1 for conservative disc)
-                         ACV( IMID_IPHA ) =  ACV( IMID_IPHA )  &
+                         CSR_ACV( IMID_IPHA ) =  CSR_ACV( IMID_IPHA )  &
                               - SECOND_THETA * FTHETA_T2 * ( 1. - CV_BETA ) * SCVDETWEI( GI ) * NDOTQNEW * LIMD
                       ENDIF
 
@@ -1386,6 +1398,8 @@ contains
     END DO Loop_Elements
 
 
+
+
     if( .false. .and. getct) then
        ewrite(3,*) 'after put_in_ct_rhs'
        ewrite(3,*) 'ct_rhs:', ct_rhs
@@ -1420,7 +1434,9 @@ contains
              ! For the gravity term
              !SOURCT2( CV_NODI_IPHA ) = SOURCT( CV_NODI_IPHA ) * DEN( CV_NODI_IPHA )
              !SOURCT2( CV_NODI_IPHA ) = SOURCT2( CV_NODI_IPHA ) * DEN( CV_NODI_IPHA )
-             IMID_IPHA = MIDACV( CV_NODI_IPHA )
+             !               IMID_IPHA = MIDACV( CV_NODI_IPHA )
+             IMID_IPHA = IPHASE+ (SMALL_CENTRM(CV_NODI)-1)*NPHASE
+
 
              IF(IGOT_T2==1) THEN
                 CV_RHS( CV_NODI_IPHA ) = CV_RHS( CV_NODI_IPHA ) &
@@ -1429,11 +1445,13 @@ contains
                 !* TOLD(CV_NODI_IPHA)  &
                 !* (DEN(CV_NODI_IPHA) * T2(CV_NODI_IPHA) - DENOLD(CV_NODI_IPHA) * T2OLD(CV_NODI_IPHA)) / DT
 
-                ACV( IMID_IPHA ) =  ACV( IMID_IPHA ) &
+
+                CSR_ACV( IMID_IPHA ) = CSR_ACV( IMID_IPHA ) &
                                 !+ (CV_BETA * DENOLD(CV_NODI_IPHA) * T2OLD(CV_NODI_IPHA) &
                      + (CV_BETA * DEN(CV_NODI_IPHA) * T2(CV_NODI_IPHA) &
                      + (1.-CV_BETA) * DEN(CV_NODI_IPHA) * T2(CV_NODI_IPHA))  &
                      * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) / DT
+
 
                 CV_RHS( CV_NODI_IPHA ) = CV_RHS( CV_NODI_IPHA ) &
                      + (CV_BETA * DENOLD(CV_NODI_IPHA) * T2OLD(CV_NODI_IPHA) &
@@ -1447,7 +1465,7 @@ contains
                 !* TOLD(CV_NODI_IPHA) &
                 !* (DEN(CV_NODI_IPHA) - DENOLD(CV_NODI_IPHA)) / DT
 
-                ACV( IMID_IPHA ) =  ACV( IMID_IPHA ) &
+                CSR_ACV( IMID_IPHA ) =  CSR_ACV( IMID_IPHA ) &
                                 !+ (CV_BETA * DENOLD(CV_NODI_IPHA) + (1.-CV_BETA) * DEN(CV_NODI_IPHA))  &
                      + (CV_BETA * DEN(CV_NODI_IPHA) &
                      + (1.-CV_BETA) * DEN(CV_NODI_IPHA))  &
@@ -1463,11 +1481,12 @@ contains
              Conditional_GETMAT2: IF( GETMAT ) THEN
 
                 DO JPHASE = 1, NPHASE
-                   CV_NODI_JPHA = CV_NODI + ( JPHASE - 1 ) * CV_NONODS
-                   DO COUNT = FINACV( CV_NODI_IPHA ), FINACV( CV_NODI_IPHA + 1 ) - 1, 1
-                      IF( CV_NODI_JPHA == COLACV( COUNT )) JCOUNT_IPHA = COUNT
+                   !CV_NODI_JPHA = CV_NODI + ( JPHASE - 1 ) * CV_NONODS
+                   DO COUNT = SMALL_FINDRM( CV_NODI ), SMALL_FINDRM( CV_NODI + 1 ) - 1, 1
+                      IF( SMALL_COLM( COUNT ) == CV_NODI )  JCOUNT_IPHA = COUNT !An exit may improve the performance!!!
                    END DO
-                   ACV(JCOUNT_IPHA) = ACV(JCOUNT_IPHA) &
+
+                   CSR_ACV( IPHASE+(JCOUNT_IPHA-1)*NPHASE )  = CSR_ACV( IPHASE+(JCOUNT_IPHA-1)*NPHASE )  &
                         +  MASS_CV( CV_NODI ) * ABSORBT( CV_NODI, IPHASE, JPHASE )
                 END DO
 
@@ -1757,8 +1776,6 @@ contains
     RETURN
 
   END SUBROUTINE CV_ASSEMB
-
-
 
   SUBROUTINE FIND_OTHER_SIDE( CV_OTHER_LOC, CV_NLOC, CV_NODI, U_OTHER_LOC, U_NLOC,  &
        MAT_OTHER_LOC, MAT_NLOC, INTEGRAT_AT_GI, &
