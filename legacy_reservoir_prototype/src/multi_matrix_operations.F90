@@ -921,6 +921,42 @@
       return
     end subroutine posinmat
 
+    subroutine assemble_global_multiphase_csr(global_csr,&
+         block_csr,dense_block_matrix,block_to_global,global_dense_block)
+
+      real, dimension(:), intent(out)    ::  global_csr
+      real, dimension(:), intent(in)     :: block_csr
+      real, dimension(:,:,:), intent(in) :: dense_block_matrix
+      integer, dimension(:), intent(in)  :: block_to_global
+      integer, dimension(:,:), intent(in)  :: global_dense_block
+
+      integer :: node, jphase, count, global_count
+
+
+      ewrite(3,*), "In  assemble_global_multiphase_csr"
+
+      ! copy the block_csr to global using the assigned map
+
+      ewrite(3,*) 'size(global_csr), size(block_csr)', size(global_csr), size(block_csr)
+      print*, block_to_global
+
+      global_csr(block_to_global)=block_csr(:)
+
+      ! now for the dense block
+
+      do node=1,node_count
+         do jphase=1,nphase
+            global_csr(global_dense_block(jphase,node):&
+                 global_dense_block(jphase,node)+nphase-1)=&
+                 dense_block_matrix(:,jphase,node)
+         end do
+      end do
+
+
+      ewrite(3,*), "Leaving assemble_global_multiphase_csr"
+
+
+    end subroutine assemble_global_multiphase_csr
 
   end module matrix_operations
 

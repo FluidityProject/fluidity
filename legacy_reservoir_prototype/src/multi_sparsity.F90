@@ -413,7 +413,7 @@
       return
     end subroutine getfinele
 
-    subroutine exten_sparse_multi_phase( nonods, mxnele, finm, colm, &
+    subroutine exten_sparse_multi_phase_old( nonods, mxnele, finm, colm, &
          nphase, npha_nonods, ncolm_pha, &
          finm_pha, colm_pha, midm_pha )
       ! Extend the sparsity to a multiphase sparsity
@@ -451,6 +451,63 @@
          end do Loop_CVNODS
       end do Loop_Phase1
 
+      finm_pha( nphase * nonods + 1 ) = count2 + 1
+      !ncolm_pha = count2 
+       if(count2.ne.ncolm_pha) then
+          ewrite(3,*) 'not correct length count2,ncolm_pha:',count2,ncolm_pha
+          stop 2821
+       end if
+
+      !ewrite(3,*) 'colm_pha--',colm_pha(1:ncolm_pha)
+
+      ewrite(3,*) 'Leaving exten_sparse_multi_phase subrt.'
+      return
+    end subroutine exten_sparse_multi_phase_old
+
+    subroutine exten_sparse_multi_phase( nonods, mxnele, finm, colm, &
+         nphase, npha_nonods, ncolm_pha, &
+         finm_pha, colm_pha, midm_pha,&
+      block_to_global, global_dense_block )
+      ! Extend the sparsity to a multiphase sparsity
+      implicit none
+      integer, intent( in ) :: nonods, mxnele
+      integer, dimension( nonods + 1 ), intent( in ) :: finm
+      integer, dimension( mxnele ), intent( in ) :: colm
+      integer, intent( in ) :: nphase, npha_nonods, ncolm_pha
+      integer, dimension( npha_nonods + 1 ), intent( inout ) :: finm_pha
+      integer, dimension( ncolm_pha ), intent( inout ) :: colm_pha
+      integer, dimension( npha_nonods ), intent( inout ) :: midm_pha
+      integer, dimension( : ), intent(out)  :: block_to_global
+      integer, dimension(nphase,nonods), intent(out)  :: global_dense_block
+      ! Local variables
+      integer :: count, count2, iphase, jphase, nod, col_pos
+
+      ewrite(3,*) 'In exten_sparse_multi_phase subrt.'
+
+      count2 = 0
+      Loop_CVNODS: do nod = 1, nonods
+         Loop_Phase1: do iphase = 1, nphase
+            do count = finm( nod ), finm( nod + 1 ) - 1
+               if (colm(count) .ne. nod) then
+                  finm_pha( ( nod - 1 ) * nphase + iphase ) = count2 + 1
+                  count2 = count2 + 1
+                  colm_pha( count2 ) = iphase + ( colm( count ) - 1) * nphase
+                  block_to_global(iphase + ( count - 1) * nphase)=count2
+               else
+                  global_dense_block(iphase,nod)=count2+1
+                  do jphase = 1, nphase
+                     count2 = count2 + 1
+                     colm_pha( count2 ) = jphase + ( colm( count ) - 1) * nphase
+                     if (jphase==iphase) then
+                        block_to_global(iphase + ( count  - 1) * nphase)=count2
+                        midm_pha( iphase + (nod-1) * nphase )=count2
+                     end if
+                  end do
+               end if
+            end do
+         end do Loop_Phase1
+      end do Loop_CVNODS
+                     
       finm_pha( nphase * nonods + 1 ) = count2 + 1
       !ncolm_pha = count2 
        if(count2.ne.ncolm_pha) then
@@ -1360,6 +1417,7 @@
     subroutine Get_Sparsity_Patterns( state, &
 !!$ CV multi-phase eqns (e.g. vol frac, temp)
          mx_ncolacv, ncolacv, finacv, colacv, midacv, &
+         block_to_global_acv, global_dense_block_acv, &
 !!$ Force balance plus cty multi-phase eqns
          nlenmcy, mx_ncolmcy, ncolmcy, finmcy, colmcy, midmcy, &
 !!$ Element connectivity
@@ -1396,6 +1454,8 @@
            cv_sele_type
       logical :: presym, is_overlapping
       real :: dx
+      integer, dimension(:), pointer :: block_to_global_acv
+      integer, dimension(:,:) :: global_dense_block_acv
 
       ewrite(3,*)'In Get_Sparsity_Patterns'
 
@@ -1451,7 +1511,7 @@
          allocate( midele_pha( totele * nphase ) )
          colele_pha = 0 ; finele_pha = 0 ; midele_pha = 0
 
-         call exten_sparse_multi_phase( totele, ncolele, finele, colele, &
+         call exten_sparse_multi_phase_old( totele, ncolele, finele, colele, &
            nphase, totele * nphase, mx_ncolele_pha, &
            finele_pha, colele_pha, midele_pha )
 
@@ -1615,12 +1675,15 @@
 !!$      ewrite(3,*)'colacv_loc: ', size( colacv_loc ), '==>', colacv_loc( 1 : nacv_loc2 )
 !!$      ewrite(3,*)'midacv_loc: ', size( midacv_loc ), '==>', midacv_loc( 1 : cv_nonods )
 
+      allocate( block_to_global_acv( ( finacv_loc( cv_nonods +1 ) - 1) * nphase ) )
       ncolacv =  nphase * nacv_loc + ( nphase - 1 ) * nphase * cv_nonods
       nacv_loc = ncolacv
       finacv = 0 ; colacv = 0 ; midacv = 0
+
       call exten_sparse_multi_phase( cv_nonods, nacv_loc2, finacv_loc, colacv_loc, &
            nphase, nphase * cv_nonods, ncolacv, &
-           finacv, colacv, midacv )
+           finacv, colacv, midacv, block_to_global_acv,&
+           global_dense_block_acv)
 !!$      ewrite(3,*)'finacv:', size( finacv ), '==>', finacv( 1 : cv_nonods * nphase + 1 )
 !!$      ewrite(3,*)'colacv:', size( colacv ), '==>', colacv( 1 : ncolacv )
 !!$      ewrite(3,*)'midacv:', size( midacv ), '==>', midacv( 1 : cv_nonods * nphase )

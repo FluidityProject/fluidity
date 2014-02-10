@@ -104,6 +104,8 @@
            finele, colele, midele, findgm_pha, coldgm_pha, middgm_pha, findct, &
            colct, findc, colc, findcmc, colcmc, midcmc, findm, &
            colm, midm
+      integer, dimension(:), pointer :: block_to_global_acv
+      integer, dimension(:,:), allocatable :: global_dense_block_acv
 
 !!$ Defining element-pair type and discretisation options and coefficients
       integer :: cv_ele_type, p_ele_type, u_ele_type, mat_ele_type, u_sele_type, cv_sele_type, &
@@ -276,6 +278,9 @@
            findcmc( cv_nonods + 1 ), colcmc( mx_ncolcmc ), midcmc( cv_nonods ), &
            findm( cv_nonods + 1 ), colm( mx_ncolm ), midm( cv_nonods ) )
 
+
+      allocate( global_dense_block_acv( nphase , cv_nonods ))
+
       finacv = 0 ; colacv = 0 ; midacv = 0 ; finmcy = 0 ; colmcy = 0 ; midmcy = 0 ; finele = 0
       colele = 0 ; midele = 0 ; findgm_pha = 0 ; coldgm_pha = 0 ; middgm_pha = 0 ; findct = 0
       colct = 0 ; findc = 0 ; colc = 0 ; findcmc = 0 ; colcmc = 0 ; midcmc = 0 ; findm = 0
@@ -289,6 +294,7 @@
       call Get_Sparsity_Patterns( state, &
 !!$ CV multi-phase eqns (e.g. vol frac, temp)
            mx_ncolacv, ncolacv, finacv, colacv, midacv, &
+           block_to_global_acv, global_dense_block_acv, &
 !!$ Force balance plus cty multi-phase eqns
            nlenmcy, mx_ncolmcy, ncolmcy, finmcy, colmcy, midmcy, &
 !!$ Element connectivity
@@ -726,7 +732,8 @@
                                            mat_nloc, totele, mat_ndgln, ScalarAdvectionField_Diffusion )
 
                call INTENERGE_ASSEM_SOLVE( state, &
-                    NCOLACV, FINACV, COLACV, MIDACV, & 
+                    NCOLACV, FINACV, COLACV, MIDACV, &
+                    block_to_global_acv, global_dense_block_acv, &
                     NCOLCT, FINDCT, COLCT, &
                     CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
                     U_ELE_TYPE, CV_ELE_TYPE, CV_SELE_TYPE,  &
@@ -807,6 +814,7 @@
                     PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, IPLIKE_GRAD_SOU, &
                     Velocity_U_Source_CV, Velocity_U_Source, Component, &
                     NCOLACV, FINACV, COLACV, MIDACV, &
+                    block_to_global_acv, global_dense_block_acv, &
                     NCOLCT, FINDCT, COLCT, &
                     CV_NONODS, U_NONODS, X_NONODS, TOTELE, STOTEL, &
                     CV_ELE_TYPE, CV_SELE_TYPE, U_ELE_TYPE, &
@@ -943,6 +951,7 @@
 
                call VolumeFraction_Assemble_Solve( state, &
                     NCOLACV, FINACV, COLACV, MIDACV, &
+                    block_to_global_acv, global_dense_block_acv, &
                     NCOLCT, FINDCT, COLCT, &
                     CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
                     CV_ELE_TYPE, &
@@ -1036,6 +1045,7 @@
 
                      call INTENERGE_ASSEM_SOLVE( state, &
                           NCOLACV, FINACV, COLACV, MIDACV, & ! CV sparsity pattern matrix
+                          block_to_global_acv, global_dense_block_acv, &
                           NCOLCT, FINDCT, COLCT, &
                           CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
                           U_ELE_TYPE, CV_ELE_TYPE, CV_SELE_TYPE,  &
@@ -1409,6 +1419,7 @@
                  mat_ndgln, u_ndgln, xu_ndgln, cv_sndgln, p_sndgln, u_sndgln, &
 !!$ Sparsity patterns
                  finacv, colacv, midacv, finmcy, colmcy, midmcy, &
+                 block_to_global_acv, global_dense_block_acv, &
                  finele, colele, midele, findgm_pha, coldgm_pha, middgm_pha, findct, &
                  colct, findc, colc, findcmc, colcmc, midcmc, findm, &
                  colm, midm, &
@@ -1487,6 +1498,8 @@
                  findc( u_nonods + 1 ), colc( mx_nc ), &
                  findcmc( cv_nonods + 1 ), colcmc( mx_ncolcmc ), midcmc( cv_nonods ), &
                  findm( cv_nonods + 1 ), colm( mx_ncolm ), midm( cv_nonods ) )
+
+            allocate( global_dense_block_acv (nphase,cv_nonods) )
                  finacv = 0 ; colacv = 0 ; midacv = 0 ; finmcy = 0 ; colmcy = 0 ; midmcy = 0 ; finele = 0 ; &
                  colele = 0 ; midele = 0 ; findgm_pha = 0 ; coldgm_pha = 0 ; middgm_pha = 0 ; findct = 0 ; &
                  colct = 0 ; findc = 0 ; colc = 0 ; findcmc = 0 ; colcmc = 0 ; midcmc = 0 ; findm = 0 ; &
@@ -1500,6 +1513,7 @@
             call Get_Sparsity_Patterns( state, &
 !!$ CV multi-phase eqns (e.g. vol frac, temp)
                  mx_ncolacv, ncolacv, finacv, colacv, midacv, &
+                 block_to_global_acv, global_dense_block_acv, &
 !!$ Force balance plus cty multi-phase eqns
                  nlenmcy, mx_ncolmcy, ncolmcy, finmcy, colmcy, midmcy, &
 !!$ Element connectivity
@@ -1725,6 +1739,7 @@
            mat_ndgln, u_ndgln, xu_ndgln, cv_sndgln, p_sndgln, u_sndgln, &
 !!$ Sparsity patterns
            finacv, colacv, midacv, finmcy, colmcy, midmcy, &
+           block_to_global_acv, global_dense_block_acv, &
            finele, colele, midele, findgm_pha, coldgm_pha, middgm_pha, findct, &
            colct, findc, colc, findcmc, colcmc, midcmc, findm, &
            colm, midm, &

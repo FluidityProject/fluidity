@@ -68,6 +68,7 @@
 
     SUBROUTINE INTENERGE_ASSEM_SOLVE( state, &
          NCOLACV, FINACV, COLACV, MIDACV, &
+         block_to_global_acv, global_dense_block_acv, &
          NCOLCT, FINDCT, COLCT, &
          CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
          U_ELE_TYPE, CV_ELE_TYPE, CV_SELE_TYPE, &
@@ -123,6 +124,8 @@
       INTEGER, DIMENSION( CV_NONODS * NPHASE + 1 ), intent( in ) :: FINACV
       INTEGER, DIMENSION( NCOLACV ), intent( in ) :: COLACV
       INTEGER, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: MIDACV 
+      integer, dimension(:)    :: block_to_global_acv
+      integer, dimension (:,:) :: global_dense_block_acv
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
       INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
       REAL, DIMENSION( X_NONODS ), intent( in ) :: X, Y, Z
@@ -165,6 +168,8 @@
       integer :: nits_flux_lim, its_flux_lim
       logical :: lump_eqns
       REAL, DIMENSION( : ), allocatable :: ACV, CV_RHS, CT, DIAG_SCALE_PRES, CT_RHS
+      REAL, DIMENSION( : ), allocatable :: block_acv
+      REAL, DIMENSION( : , : , : ), allocatable :: dense_block_matrix
       REAL, DIMENSION( : ), allocatable :: CV_RHS_SUB, ACV_SUB
       INTEGER, DIMENSION( : ), allocatable :: COLACV_SUB, FINACV_SUB, MIDACV_SUB
       INTEGER :: NCOLACV_SUB, IPHASE, I, J
@@ -173,7 +178,11 @@
       character( len = option_path_len ) :: path
 
 
+      print*, NCOLACV
+
       ALLOCATE( ACV( NCOLACV ) )
+      allocate( block_acv(size(block_to_global_acv) ) )
+      allocate( dense_block_matrix (nphase,nphase,cv_nonods) )
       ALLOCATE( CV_RHS( CV_NONODS * NPHASE ) )
       ALLOCATE( DIAG_SCALE_PRES( CV_NONODS ) )
       ALLOCATE( CT_RHS( CV_NONODS ) )
@@ -310,6 +319,10 @@
 
          ELSE
 
+            call assemble_global_multiphase_csr(acv,&
+                 block_acv,dense_block_matrix,&
+                 block_to_global_acv,global_dense_block_acv)
+
             IF( IGOT_T2 == 1) THEN
                !CALL SIMPLE_SOLVER( ACV, T, CV_RHS,  &
                !     NCOLACV, nphase * CV_NONODS, FINACV, COLACV, MIDACV,  &
@@ -333,6 +346,7 @@
       END DO Loop_NonLinearFlux
 
       DEALLOCATE( ACV )
+      deallocate( block_acv, dense_block_matrix )
       DEALLOCATE( CV_RHS )
       DEALLOCATE( DIAG_SCALE_PRES )
       DEALLOCATE( CT_RHS )
@@ -709,6 +723,7 @@
 
     subroutine VolumeFraction_Assemble_Solve( state, &
          NCOLACV, FINACV, COLACV, MIDACV, &
+         block_to_global_acv, global_dense_block_acv, &
          NCOLCT, FINDCT, COLCT, &
          CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
          CV_ELE_TYPE,  &
@@ -757,6 +772,8 @@
       INTEGER, DIMENSION( CV_NONODS * NPHASE + 1 ), intent( in ) :: FINACV
       INTEGER, DIMENSION( NCOLACV ), intent( in ) :: COLACV
       INTEGER, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: MIDACV 
+      integer, dimension(:), intent(in)  :: block_to_global_acv
+      integer, dimension(:,:), intent(in) :: global_dense_block_acv 
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
       INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
       REAL, DIMENSION( X_NONODS ), intent( in ) :: X, Y, Z
@@ -789,7 +806,8 @@
       ! Local Variables
       LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE., THERMAL= .false.
       integer :: nits_flux_lim, its_flux_lim, igot_t2
-      REAL, DIMENSION( : ), allocatable :: ACV, CV_RHS, CT, DIAG_SCALE_PRES, CT_RHS, SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2
+      REAL, DIMENSION( : ), allocatable :: ACV, block_ACV, CV_RHS, CT, DIAG_SCALE_PRES, CT_RHS, SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2
+      REAL, DIMENSION( :,:,: ), allocatable :: dense_block_matrix
       REAL, DIMENSION( :,:,:,: ), allocatable :: TDIFFUSION
       REAL, DIMENSION( : ), allocatable :: SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, SUF_T2_BC
       INTEGER, DIMENSION( : ), allocatable :: WIC_T2_BC
@@ -813,6 +831,8 @@
       ewrite(3,*) 'In VOLFRA_ASSEM_SOLVE'
 
       ALLOCATE( ACV( NCOLACV ) ) ; ACV = 0.
+      ALLOCATE( block_ACV( size(block_to_global_acv) ) ) ; block_ACV = 0.
+      ALLOCATE( dense_block_matrix( nphase , nphase , cv_nonods) )
       ALLOCATE( CV_RHS( CV_NONODS * NPHASE ) ) ; CV_RHS = 0.
       ALLOCATE( CT( NCOLCT * NDIM * NPHASE ) )
       ALLOCATE( DIAG_SCALE_PRES( CV_NONODS ) )
@@ -871,6 +891,10 @@
               option_path )
 
          satura=0.
+
+         call assemble_global_multiphase_csr(acv,&
+              block_acv,dense_block_matrix,&
+              block_to_global_acv,global_dense_block_acv)
          CALL SOLVER( ACV, SATURA, CV_RHS, &
               FINACV, COLACV, &
               trim(option_path) )
@@ -878,6 +902,8 @@
       END DO Loop_NonLinearFlux
 
       DEALLOCATE( ACV )
+      deallocate( block_acv )
+      deallocate( dense_block_matrix )
       DEALLOCATE( CV_RHS )
       DEALLOCATE( CT )
       DEALLOCATE( DIAG_SCALE_PRES )
@@ -5818,6 +5844,7 @@ end if
          U_SOURCE_CV, U_SOURCE, &
          COMP, &
          NCOLACV, FINACV, COLACV, MIDACV, &
+         block_to_global_acv, global_dense_block_acv, &
          NCOLCT, FINDCT, COLCT, &
          CV_NONODS, U_NONODS, X_NONODS, TOTELE, STOTEL, &
          CV_ELE_TYPE, CV_SELE_TYPE, U_ELE_TYPE, &
@@ -5852,7 +5879,8 @@ end if
       integer, dimension( CV_NONODS * NPHASE + 1 ), intent( in ) :: FINACV
       integer, dimension( NCOLACV ), intent( in ) :: COLACV
       integer, dimension( CV_NONODS * NPHASE ), intent( in ) :: MIDACV 
-
+      integer, dimension(:), intent(in) :: block_to_global_acv
+      integer, dimension(:,:), intent(in) :: global_dense_block_acv
       integer, dimension( CV_NONODS + 1 ), intent( in ) :: FINDCT
       integer, dimension( NCOLCT ), intent( in ) :: COLCT
 
@@ -5933,6 +5961,7 @@ end if
                     COMP( 1 + (IPHASE-1)*CV_NONODS + (ICOMP-1)*NPHASE*CV_NONODS : &
                     IPHASE*CV_NONODS + (ICOMP-1)*NPHASE*CV_NONODS ), &
                     NCOLACV, FINACV, COLACV, MIDACV, &
+                    block_to_global_acv, global_dense_block_acv, &
                     NCOLCT, FINDCT, COLCT, &
                     CV_NONODS, U_NONODS, X_NONODS, TOTELE, STOTEL, &
                     CV_ELE_TYPE, CV_SELE_TYPE, U_ELE_TYPE, &
@@ -5975,6 +6004,7 @@ end if
          PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
          SUF_TENSION_COEF, VOLUME_FRAC, &
          NCOLACV, FINACV, COLACV, MIDACV, &
+         block_to_global_acv, global_dense_block_acv, &
          NCOLCT, FINDCT, COLCT, &
          CV_NONODS, U_NONODS, X_NONODS, TOTELE, STOTEL, &
          CV_ELE_TYPE, CV_SELE_TYPE, U_ELE_TYPE, &
@@ -6133,6 +6163,8 @@ end if
       INTEGER, DIMENSION( CV_NONODS * NPHASE + 1 ), intent( in ) :: FINACV
       INTEGER, DIMENSION( NCOLACV ), intent( in ) :: COLACV
       INTEGER, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: MIDACV 
+      integer, dimension(:), intent(in) :: block_to_global_acv
+      integer, dimension(:, :), intent(in) :: global_dense_block_acv
 
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
       INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
@@ -6957,6 +6989,7 @@ end if
 
          CALL INTENERGE_ASSEM_SOLVE( state, &
               NCOLACV, FINACV, COLACV, MIDACV, & 
+              block_to_global_acv, global_dense_block_acv, &
               NCOLCT, FINDCT, COLCT, &
               CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
               U_ELE_TYPE, CV_ELE_TYPE, CV_SELE_TYPE,  &
