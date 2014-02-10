@@ -940,6 +940,7 @@
       ewrite(3,*) 'size(global_csr), size(block_csr)', size(global_csr), size(block_csr)
       print*, block_to_global
 
+      global_csr=0.0
       global_csr(block_to_global)=block_csr(:)
 
       ! now for the dense block
@@ -948,7 +949,8 @@
          do jphase=1,nphase
             global_csr(global_dense_block(jphase,node):&
                  global_dense_block(jphase,node)+nphase-1)=&
-                 dense_block_matrix(:,jphase,node)
+                 global_csr(global_dense_block(jphase,node):&
+                 global_dense_block(jphase,node)+nphase-1)+dense_block_matrix(:,jphase,node)
          end do
       end do
 
