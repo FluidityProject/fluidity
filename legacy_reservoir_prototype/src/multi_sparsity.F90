@@ -1417,6 +1417,7 @@
     subroutine Get_Sparsity_Patterns( state, &
 !!$ CV multi-phase eqns (e.g. vol frac, temp)
          mx_ncolacv, ncolacv, finacv, colacv, midacv, &
+         finacv_loc, colacv_loc, midacv_loc, &
          block_to_global_acv, global_dense_block_acv, &
 !!$ Force balance plus cty multi-phase eqns
          nlenmcy, mx_ncolmcy, ncolmcy, finmcy, colmcy, midmcy, &
@@ -1440,13 +1441,15 @@
            mx_nct, mx_nc, mx_ncolcmc, mx_ncolm, mx_nface_p1
       integer, intent( inout ) :: ncolacv, ncolmcy, ncolele, ncoldgm_pha, ncolct, ncolc, &
            ncolcmc, ncolm
-      integer, dimension( : ), intent( inout ) :: finacv, colacv, midacv, finmcy, colmcy, midmcy, &
+      integer, dimension( : ), intent( inout ) :: finacv, colacv, midacv
+            integer, dimension(:), pointer :: midacv_loc, finacv_loc, colacv_loc
+integer, dimension( : ), intent( inout ) ::  finmcy, colmcy, midmcy, &
            midele, finele, colele, coldgm_pha, findgm_pha, middgm_pha, findct, colct, &
            findc, colc, findcmc, colcmc, midcmc, findm, colm, midm
 !!$ Local variables
       integer, dimension( : ), allocatable :: x_ndgln_p1, x_ndgln, cv_ndgln, p_ndgln, mat_ndgln, u_ndgln, &
            xu_ndgln, cv_sndgln, p_sndgln, u_sndgln, &
-           colele_pha, finele_pha, midele_pha, centct, dummyvec, midacv_loc, finacv_loc, colacv_loc
+           colele_pha, finele_pha, midele_pha, centct, dummyvec 
       integer :: nphase, nstate, ncomp, totele, ndim, stotel, u_nloc, xu_nloc, cv_nloc, x_nloc, x_nloc_p1, &
            p_nloc, mat_nloc, x_snloc, cv_snloc, u_snloc, p_snloc, cv_nonods, mat_nonods, u_nonods, xu_nonods, &
            x_nonods, x_nonods_p1, p_nonods, mx_ncolacv_loc, count, cv_inod, mx_ncolele_pha, nacv_loc, nacv_loc2, &
@@ -1693,8 +1696,7 @@
       !-
       deallocate( x_ndgln_p1 ) ; deallocate( x_ndgln ) ; deallocate( cv_ndgln ) ; deallocate( p_ndgln ) ; deallocate( mat_ndgln ) ; &
       deallocate( u_ndgln) ; deallocate( xu_ndgln ) ; deallocate( cv_sndgln ) ; deallocate( p_sndgln ) ; deallocate( u_sndgln ) ; &
-      deallocate( centct ) ; deallocate( midacv_loc ) ; &
-      deallocate( finacv_loc ) ; deallocate( colacv_loc )
+      deallocate( centct ) ;
 
       return
     end subroutine Get_Sparsity_Patterns

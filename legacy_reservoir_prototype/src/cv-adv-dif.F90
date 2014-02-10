@@ -9954,9 +9954,9 @@ contains
     REAL, DIMENSION( NSMALL_COLM*NPHASE*IGOT_T2 ), intent( inout ) :: T2UPWIND_MAT, T2OLDUPWIND_MAT
     INTEGER, DIMENSION( TOTELE*X_NLOC ), intent( in ) :: X_NDGLN
     INTEGER, DIMENSION( TOTELE*CV_NLOC ), intent( in ) :: CV_NDGLN
-    INTEGER, DIMENSION( CV_NONODS+1 ), intent( inout ) :: SMALL_FINDRM
-    INTEGER, DIMENSION( NSMALL_COLM ), intent( inout ) :: SMALL_COLM
-    INTEGER, DIMENSION( CV_NONODS ), intent( inout ) :: SMALL_CENTRM
+    INTEGER, DIMENSION( CV_NONODS+1 ), intent( in ) :: SMALL_FINDRM
+    INTEGER, DIMENSION( NSMALL_COLM ), intent( in ) :: SMALL_COLM
+    INTEGER, DIMENSION( CV_NONODS ), intent( in ) :: SMALL_CENTRM
     REAL, DIMENSION( X_NONODS ), intent( in ) :: X,Y,Z
     REAL, DIMENSION( CV_NONODS ), intent( in ) :: XC_CV, YC_CV, ZC_CV
     INTEGER, DIMENSION( CV_NONODS*NPHASE+1 ), intent( in ) :: FINACV
@@ -9964,20 +9964,7 @@ contains
     REAL, DIMENSION(:), ALLOCATABLE :: SOL
 
     ! Allocate memory 
-    INTEGER :: COUNT, COUNT2, CV_NOD
-
-    COUNT2=0
-    DO CV_NOD=1,CV_NONODS
-       SMALL_FINDRM(CV_NOD)=COUNT2+1
-       DO COUNT=FINACV(CV_NOD),FINACV(CV_NOD+1)-1
-          IF(COLACV(COUNT).LE.CV_NONODS) THEN
-             COUNT2=COUNT2+1
-             SMALL_COLM(COUNT2)=COLACV(COUNT)
-             IF(SMALL_COLM(COUNT2)==CV_NOD) SMALL_CENTRM(CV_NOD)=COUNT2
-          ENDIF
-       END DO
-    END DO
-    SMALL_FINDRM(CV_NONODS+1)=COUNT2+1
+    INTEGER :: COUNT, CV_NOD
 
     ! Allocate memory and find upwind field values for limiting...
     IF(IGOT_T2.NE.0) THEN

@@ -68,6 +68,7 @@
 
     SUBROUTINE INTENERGE_ASSEM_SOLVE( state, &
          NCOLACV, FINACV, COLACV, MIDACV, &
+         SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
          block_to_global_acv, global_dense_block_acv, &
          NCOLCT, FINDCT, COLCT, &
          CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
@@ -124,6 +125,7 @@
       INTEGER, DIMENSION( CV_NONODS * NPHASE + 1 ), intent( in ) :: FINACV
       INTEGER, DIMENSION( NCOLACV ), intent( in ) :: COLACV
       INTEGER, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: MIDACV 
+      INTEGER, DIMENSION( : ), intent( in ) :: SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV
       integer, dimension(:)    :: block_to_global_acv
       integer, dimension (:,:) :: global_dense_block_acv
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
@@ -220,6 +222,7 @@
             CALL CV_ASSEMB_CV_DG(state, &
                  CV_RHS, &
                  NCOLACV, ACV, FINACV, COLACV, MIDACV, &
+                 SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
                  NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
                  CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
                  CV_ELE_TYPE,  &
@@ -254,6 +257,7 @@
             CALL CV_ASSEMB( state, &
                  CV_RHS, &
                  NCOLACV, block_acv, FINACV, COLACV, MIDACV, &
+                 SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
                  NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
                  CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
                  CV_ELE_TYPE,  &
@@ -363,6 +367,7 @@
     SUBROUTINE CV_ASSEMB_CV_DG( state, &
          CV_RHS, &
          NCOLACV, ACV, FINACV, COLACV, MIDACV, &
+         SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
          NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
          CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
          CV_ELE_TYPE,  &
@@ -416,7 +421,8 @@
       INTEGER, DIMENSION( STOTEL * NPHASE * IGOT_T2 ), intent( in ) ::  WIC_T2_BC
       INTEGER, DIMENSION( CV_NONODS * NPHASE + 1 ), intent( in ) :: FINACV
       INTEGER, DIMENSION( NCOLACV ), intent( in ) :: COLACV
-      INTEGER, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: MIDACV 
+      INTEGER, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: MIDACV
+      INTEGER, DIMENSION( : ), intent( in ) :: SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
       INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
 !      REAL, DIMENSION( NCOLACV ), intent( inout ) :: ACV
@@ -481,6 +487,7 @@
          CALL CV_ASSEMB( state, &
               CV_RHS, &
               NCOLACV, ACV, FINACV, COLACV, MIDACV, &
+              SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
               NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
               CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
               CV_ELE_TYPE,  &
@@ -728,6 +735,7 @@
 
     subroutine VolumeFraction_Assemble_Solve( state, &
          NCOLACV, FINACV, COLACV, MIDACV, &
+         SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
          block_to_global_acv, global_dense_block_acv, &
          NCOLCT, FINDCT, COLCT, &
          CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
@@ -777,6 +785,7 @@
       INTEGER, DIMENSION( CV_NONODS * NPHASE + 1 ), intent( in ) :: FINACV
       INTEGER, DIMENSION( NCOLACV ), intent( in ) :: COLACV
       INTEGER, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: MIDACV 
+      integer, dimension(:), intent(in)  :: small_finacv,small_colacv,small_midacv
       integer, dimension(:), intent(in)  :: block_to_global_acv
       integer, dimension(:,:), intent(in) :: global_dense_block_acv 
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
@@ -863,7 +872,8 @@
 
          CALL CV_ASSEMB( state, &
               CV_RHS, &
-              NCOLACV, ACV, FINACV, COLACV, MIDACV, &
+              NCOLACV, block_ACV, FINACV, COLACV, MIDACV, &
+              SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
               NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
               CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
               CV_ELE_TYPE,  &
@@ -948,6 +958,7 @@
          NCOLELE, FINELE, COLELE, & ! Element connectivity.
          NCOLCMC, FINDCMC, COLCMC, MIDCMC, & ! pressure matrix for projection method
          NCOLACV, FINACV, COLACV, MIDACV, & ! For CV discretisation method
+         SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
          NLENMCY, NCOLMCY, FINMCY, COLMCY, MIDMCY, & ! Force balance plus cty multi-phase eqns
          NCOLCT, FINDCT, COLCT, & ! CT sparcity - global cty eqn.
          CV_ELE_TYPE, &
@@ -1026,6 +1037,7 @@
       INTEGER, DIMENSION( CV_NONODS * NPHASE + 1 ), intent( in ) :: FINACV
       INTEGER, DIMENSION( NCOLACV ), intent( in ) :: COLACV
       INTEGER, DIMENSION( CV_NONODS * NPHASE), intent( in ) :: MIDACV 
+      integer, dimension(:), intent(in) :: small_finacv,small_colacv,small_midacv
       INTEGER, DIMENSION( NLENMCY + 1 ), intent( in ) :: FINMCY
       INTEGER, DIMENSION( NCOLMCY ), intent( in ) :: COLMCY
       INTEGER, DIMENSION( NLENMCY ), intent( in ) :: MIDMCY
@@ -1111,6 +1123,7 @@
            NCOLELE, FINELE, COLELE, & ! Element connectivity.
            NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES,  & ! pressure matrix for projection method
            NCOLACV, FINACV, COLACV, MIDACV, & ! For CV discretisation method
+           SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
            NCOLCT, FINDCT, COLCT, &
            CV_ELE_TYPE, &
            NU, NV, NW, NUOLD, NVOLD, NWOLD, &
@@ -1690,6 +1703,7 @@
          NCOLELE, FINELE, COLELE, & ! Element connectivity.
          NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, & ! pressure matrix for projection method
          NCOLACV, FINACV, COLACV, MIDACV, & ! For CV discretisation method
+         SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
          NCOLCT, FINDCT, COLCT, &
          CV_ELE_TYPE, &
          NU, NV, NW, NUOLD, NVOLD, NWOLD, &
@@ -1771,6 +1785,7 @@
       INTEGER, DIMENSION( CV_NONODS * NPHASE + 1 ), intent( in ) :: FINACV
       INTEGER, DIMENSION( NCOLACV ), intent( in ) :: COLACV
       INTEGER, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: MIDACV 
+      integer, dimension(:), intent(in) :: small_finacv,small_colacv,small_midacv
       INTEGER, DIMENSION( NLENMCY + 1 ), intent( in ) :: FINMCY
 
       REAL, DIMENSION( NCOLMCY ), intent( inout ) :: MCY
@@ -1825,6 +1840,7 @@
            NCOLELE, FINELE, COLELE, & ! Element connectivity.
            NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, & ! pressure matrix for projection method
            NCOLACV, FINACV, COLACV, MIDACV, & ! For CV discretisation method
+           SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
            NCOLCT, FINDCT, COLCT, &
            CV_ELE_TYPE, &
            NU, NV, NW, NUOLD, NVOLD, NWOLD, &
@@ -1932,6 +1948,7 @@
          NCOLELE, FINELE, COLELE, & ! Element connectivity.
          NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, & ! pressure matrix for projection method
          NCOLACV, FINACV, COLACV, MIDACV, & ! For CV discretisation method
+         SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
          NCOLCT, FINDCT, COLCT, &
          CV_ELE_TYPE, &
          NU, NV, NW, NUOLD, NVOLD, NWOLD, &
@@ -2002,6 +2019,7 @@
       INTEGER, DIMENSION( CV_NONODS * NPHASE + 1 ), intent( in ) :: FINACV
       INTEGER, DIMENSION( NCOLACV ), intent( in ) :: COLACV
       INTEGER, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: MIDACV 
+      integer, dimension(:), intent(in) :: SMALL_FINACV, SMALL_COLACV, small_midacv
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
       INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
       REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: NU, NV, NW, NUOLD, NVOLD, NWOLD
@@ -2132,6 +2150,7 @@
       CALL CV_ASSEMB( state, &
            CV_RHS, &
            NCOLACV, ACV, FINACV, COLACV, MIDACV, &
+           SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
            NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
            CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
            CV_ELE_TYPE,  &
@@ -5846,6 +5865,7 @@ end if
          U_SOURCE_CV, U_SOURCE, &
          COMP, &
          NCOLACV, FINACV, COLACV, MIDACV, &
+         SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
          block_to_global_acv, global_dense_block_acv, &
          NCOLCT, FINDCT, COLCT, &
          CV_NONODS, U_NONODS, X_NONODS, TOTELE, STOTEL, &
@@ -5881,6 +5901,7 @@ end if
       integer, dimension( CV_NONODS * NPHASE + 1 ), intent( in ) :: FINACV
       integer, dimension( NCOLACV ), intent( in ) :: COLACV
       integer, dimension( CV_NONODS * NPHASE ), intent( in ) :: MIDACV 
+      integer, dimension(:), intent(in) :: small_finacv,small_colacv,small_midacv
       integer, dimension(:), intent(in) :: block_to_global_acv
       integer, dimension(:,:), intent(in) :: global_dense_block_acv
       integer, dimension( CV_NONODS + 1 ), intent( in ) :: FINDCT
@@ -5963,6 +5984,7 @@ end if
                     COMP( 1 + (IPHASE-1)*CV_NONODS + (ICOMP-1)*NPHASE*CV_NONODS : &
                     IPHASE*CV_NONODS + (ICOMP-1)*NPHASE*CV_NONODS ), &
                     NCOLACV, FINACV, COLACV, MIDACV, &
+                    SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
                     block_to_global_acv, global_dense_block_acv, &
                     NCOLCT, FINDCT, COLCT, &
                     CV_NONODS, U_NONODS, X_NONODS, TOTELE, STOTEL, &
@@ -6006,6 +6028,7 @@ end if
          PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
          SUF_TENSION_COEF, VOLUME_FRAC, &
          NCOLACV, FINACV, COLACV, MIDACV, &
+         SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
          block_to_global_acv, global_dense_block_acv, &
          NCOLCT, FINDCT, COLCT, &
          CV_NONODS, U_NONODS, X_NONODS, TOTELE, STOTEL, &
@@ -6165,6 +6188,7 @@ end if
       INTEGER, DIMENSION( CV_NONODS * NPHASE + 1 ), intent( in ) :: FINACV
       INTEGER, DIMENSION( NCOLACV ), intent( in ) :: COLACV
       INTEGER, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: MIDACV 
+      integer, dimension(:), intent(in) :: small_finacv,small_colacv,small_midacv
       integer, dimension(:), intent(in) :: block_to_global_acv
       integer, dimension(:, :), intent(in) :: global_dense_block_acv
 
@@ -6992,6 +7016,7 @@ end if
 
          CALL INTENERGE_ASSEM_SOLVE( state, &
               NCOLACV, FINACV, COLACV, MIDACV, & 
+              SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
               block_to_global_acv, global_dense_block_acv, &
               NCOLCT, FINDCT, COLCT, &
               CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
