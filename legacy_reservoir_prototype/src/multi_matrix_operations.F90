@@ -938,8 +938,6 @@
       ! copy the block_csr to global using the assigned map
 
       ewrite(3,*) 'size(global_csr), size(block_csr)', size(global_csr), size(block_csr)
-      print*, block_to_global
-
       global_csr=0.0
       global_csr(block_to_global)=block_csr(:)
 
