@@ -253,7 +253,7 @@
          else
             CALL CV_ASSEMB( state, &
                  CV_RHS, &
-                 NCOLACV, ACV, FINACV, COLACV, MIDACV, &
+                 NCOLACV, block_acv, FINACV, COLACV, MIDACV, &
                  NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
                  CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
                  CV_ELE_TYPE,  &
@@ -281,7 +281,7 @@
                  SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
                  NOIT_DIM, &
                  MEAN_PORE_CV, &
-                 FINACV, COLACV, NCOLACV, ACV, THERMAL, &
+                 FINACV, COLACV, NCOLACV, block_acv, THERMAL, &
                  mass_ele_transp, &
                  option_path )
          end if
@@ -419,7 +419,8 @@
       INTEGER, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: MIDACV 
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
       INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
-      REAL, DIMENSION( NCOLACV ), intent( inout ) :: ACV
+!      REAL, DIMENSION( NCOLACV ), intent( inout ) :: ACV
+      REAL, DIMENSION( : ), allocatable, intent( inout ) :: ACV
       REAL, DIMENSION( CV_NONODS * NPHASE ), intent( inout ) :: CV_RHS
       REAL, DIMENSION( CV_NONODS ), intent( inout ) :: DIAG_SCALE_PRES
       REAL, DIMENSION( CV_NONODS ), intent( inout ) :: CT_RHS
@@ -512,6 +513,10 @@
 
       ELSE ! this is for DG...
 
+        !TEMPORAL
+        allocate(ACV(NCOLACV))
+
+
          CALL WRAPPER_ASSEMB_FORCE_CTY( state, &
               NDIM, NPHASE, U_NLOC, X_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
               U_ELE_TYPE, CV_ELE_TYPE, &
@@ -590,7 +595,7 @@
       REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: DEN, DENOLD
       REAL, intent( in ) :: DT
       REAL, DIMENSION( CV_NONODS * NPHASE ), intent( inout ) :: CV_RHS 
-      REAL, DIMENSION( NCOLACV ), intent( inout ) :: ACV
+      REAL, DIMENSION( : ),  intent( inout ) :: ACV
       INTEGER, DIMENSION( CV_NONODS * NPHASE  + 1 ), intent( in ) :: FINACV
       INTEGER, DIMENSION( NCOLACV ), intent( in ) :: COLACV
       INTEGER, DIMENSION( TOTELE + 1 ), intent( in ) :: FINELE
@@ -1304,7 +1309,6 @@
                END DO
             END IF
 
-
 ! Add diffusion to DG version of CMC to try and encourage a continuous formulation...
 ! the idea is to stabilize pressure without effecting the soln i.e. the rhs of the eqns as
 ! pressure may have some singularities associated with it. 
@@ -1320,7 +1324,6 @@
 !             if( .false. ) then ! a pressure solve:
 ! James feed CMC_PRECON into this sub and use as the preconditioner matrix...
 ! CMC_PRECON has length CMC_PRECON(NCOLCMC*IGOT_CMC_PRECON) 
- 
                CALL SOLVER( CMC, DP, P_RHS, &
                     FINDCMC, COLCMC, &
                     option_path = '/material_phase[0]/scalar_field::Pressure' )
@@ -2929,7 +2932,6 @@
 
       ! Shape functions associated with volume integration using both CV basis 
       ! functions CVN as well as FEM basis functions CVFEN (and its derivatives CVFENLX, CVFENLY, CVFENLZ)
-
 
       !======= DEFINE THE SUB-CONTROL VOLUME & FEM SHAPE FUNCTIONS ========
       ncolgpts = 0 ; colgpts = 0 ; findgpts = 0
@@ -6986,6 +6988,7 @@ end if
          T_BETA=0.0
          NOIT_DIM=1
          LUMP_EQNS=.FALSE.
+
 
          CALL INTENERGE_ASSEM_SOLVE( state, &
               NCOLACV, FINACV, COLACV, MIDACV, & 
