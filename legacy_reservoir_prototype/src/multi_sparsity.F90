@@ -487,9 +487,9 @@
       count2 = 0
       Loop_CVNODS: do nod = 1, nonods
          Loop_Phase1: do iphase = 1, nphase
+            finm_pha( ( nod - 1 ) * nphase + iphase ) = count2 + 1
             do count = finm( nod ), finm( nod + 1 ) - 1
                if (colm(count) .ne. nod) then
-                  finm_pha( ( nod - 1 ) * nphase + iphase ) = count2 + 1
                   count2 = count2 + 1
                   colm_pha( count2 ) = iphase + ( colm( count ) - 1) * nphase
                   block_to_global(iphase + ( count - 1) * nphase)=count2
