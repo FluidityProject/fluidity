@@ -10496,8 +10496,6 @@ contains
     END DO
     !     
 
-    print*, findrm
-
     MATPSI=0.
     DO NOD=1,NONODS! Was loop 10
 
