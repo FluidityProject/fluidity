@@ -946,14 +946,14 @@
       node_count=size(dense_block_matrix,3)
       nphase=size(dense_block_matrix,2)
 
-!      do node=1,node_count
-!         do jphase=1,nphase
-!            global_csr(global_dense_block(jphase,node):&
-!                 global_dense_block(jphase,node)+nphase-1)=&
-!                 global_csr(global_dense_block(jphase,node):&
-!                 global_dense_block(jphase,node)+nphase-1)+dense_block_matrix(:,jphase,node)
-!         end do
-!      end do
+      do node=1,node_count
+         do jphase=1,nphase
+            global_csr(global_dense_block(jphase,node):&
+                 global_dense_block(jphase,node)+nphase-1)=&
+                 global_csr(global_dense_block(jphase,node):&
+                 global_dense_block(jphase,node)+nphase-1)+dense_block_matrix(:,jphase,node)
+         end do
+      end do
 
 
       ewrite(3,*), "Leaving assemble_global_multiphase_csr"

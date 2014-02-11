@@ -181,7 +181,7 @@
 
       ALLOCATE( ACV( NCOLACV ) )
       allocate( block_acv(size(block_to_global_acv) ) )
-      allocate( dense_block_matrix (nphase,nphase,cv_nonods) )
+      allocate( dense_block_matrix (nphase,nphase,cv_nonods) ); dense_block_matrix=0;
       ALLOCATE( CV_RHS( CV_NONODS * NPHASE ) )
       ALLOCATE( DIAG_SCALE_PRES( CV_NONODS ) )
       ALLOCATE( CT_RHS( CV_NONODS ) )
@@ -849,7 +849,7 @@
 
       ALLOCATE( ACV( NCOLACV ) ) ; ACV = 0.
       ALLOCATE( block_ACV( size(block_to_global_acv) ) ) ; block_ACV = 0.
-      ALLOCATE( dense_block_matrix( nphase , nphase , cv_nonods) )
+      ALLOCATE( dense_block_matrix( nphase , nphase , cv_nonods) ); dense_block_matrix=0;
       ALLOCATE( CV_RHS( CV_NONODS * NPHASE ) ) ; CV_RHS = 0.
       ALLOCATE( CT( NCOLCT * NDIM * NPHASE ) )
       ALLOCATE( DIAG_SCALE_PRES( CV_NONODS ) )
