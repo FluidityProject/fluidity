@@ -662,44 +662,44 @@
             end if
 
             !Store backup
-             if (nonLinearAdaptTs.and.its==1.and..not.Repeat_time_step) then
-                PhaseVolumeFraction_backup = PhaseVolumeFraction
-                Pressure_CV_backup =  Pressure_CV
-                Velocity_U_backup= Velocity_U
-                Velocity_V_backup = Velocity_V
-                Velocity_W_backup = Velocity_W
-                Density_backup = Density
-                Component_backup = Component
-                Pressure_FEM_backup =  Pressure_FEM
-                Density_CP_Backup = Density_CP
-                Density_Component_Backup = Density_Component
-                Temperature = Temperature_backup
-                acctim_backup = acctim - dt
+            if (nonLinearAdaptTs.and.its==1.and..not.Repeat_time_step) then
+               PhaseVolumeFraction_backup = PhaseVolumeFraction
+               Pressure_CV_backup =  Pressure_CV
+               Velocity_U_backup= Velocity_U
+               Velocity_V_backup = Velocity_V
+               Velocity_W_backup = Velocity_W
+               Density_backup = Density
+               Component_backup = Component
+               Pressure_FEM_backup =  Pressure_FEM
+               Density_CP_Backup = Density_CP
+               Density_Component_Backup = Density_Component
+               Temperature = Temperature_backup
+               acctim_backup = acctim - dt
             else if (Repeat_time_step) then
-                !Recover backup
-                PhaseVolumeFraction = PhaseVolumeFraction_backup
-                Pressure_CV =  Pressure_CV_backup
-                Velocity_U= Velocity_U_backup
-                Velocity_V = Velocity_V_backup
-                Velocity_W = Velocity_W_backup
-                Density = Density_backup
-                Component = Component_backup
-                Density_Cp = Density_Cp_backup
-                Pressure_FEM =  Pressure_FEM_backup
-                Density_Component = Density_Component_backup
-                Temperature = Temperature_backup
+               !Recover backup
+               PhaseVolumeFraction = PhaseVolumeFraction_backup
+               Pressure_CV =  Pressure_CV_backup
+               Velocity_U= Velocity_U_backup
+               Velocity_V = Velocity_V_backup
+               Velocity_W = Velocity_W_backup
+               Density = Density_backup
+               Component = Component_backup
+               Density_Cp = Density_Cp_backup
+               Pressure_FEM =  Pressure_FEM_backup
+               Density_Component = Density_Component_backup
+               Temperature = Temperature_backup
 
-                !!Update all fields from backup
-                 Velocity_U_Old = Velocity_U ; Velocity_V_Old = Velocity_V ; Velocity_W_Old = Velocity_W
-                 Velocity_NU = Velocity_U ; Velocity_NV = Velocity_V ; Velocity_NW = Velocity_W
-                 Velocity_NU_Old = Velocity_U ; Velocity_NV_Old = Velocity_V ; Velocity_NW_Old = Velocity_W
-                 Density_Old = Density ; Density_Cp_Old = Density_Cp ; Pressure_FEM_Old = Pressure_FEM ; Pressure_CV_Old = Pressure_CV
-                 PhaseVolumeFraction_Old = PhaseVolumeFraction ; Temperature_Old = Temperature ; Component_Old = Component
-                 Density_Old_tmp = Density ; Density_Component_Old = Density_Component
-             end if
+               !!Update all fields from backup
+               Velocity_U_Old = Velocity_U ; Velocity_V_Old = Velocity_V ; Velocity_W_Old = Velocity_W
+               Velocity_NU = Velocity_U ; Velocity_NV = Velocity_V ; Velocity_NW = Velocity_W
+               Velocity_NU_Old = Velocity_U ; Velocity_NV_Old = Velocity_V ; Velocity_NW_Old = Velocity_W
+               Density_Old = Density ; Density_Cp_Old = Density_Cp ; Pressure_FEM_Old = Pressure_FEM ; Pressure_CV_Old = Pressure_CV
+               PhaseVolumeFraction_Old = PhaseVolumeFraction ; Temperature_Old = Temperature ; Component_Old = Component
+               Density_Old_tmp = Density ; Density_Component_Old = Density_Component
+            end if
 
-            call Calculate_All_Rhos( state, ncomp, nphase, cv_nonods, Component, &
-                 Density, Density_Cp, DRhoDPressure, Density_Component )
+            call Calculate_All_Rhos( state, ncomp, nphase, ndim, cv_nonods, cv_nloc, totele, &
+                 cv_ndgln, Component, Density, Density_Cp, DRhoDPressure, Density_Component )
 
             if( its == 1 ) then
                Density_Old = Density
@@ -791,8 +791,8 @@
                   Temperature_State % val = Temperature( 1 + ( iphase - 1 ) * cv_nonods : iphase * cv_nonods )
                end do
 
-               call Calculate_All_Rhos( state, ncomp, nphase, cv_nonods, Component, &
-                    Density, Density_Cp, DRhoDPressure, Density_Component )
+               call Calculate_All_Rhos( state, ncomp, nphase, ndim, cv_nonods, cv_nloc, totele, &
+                    cv_ndgln, Component, Density, Density_Cp, DRhoDPressure, Density_Component )
 
             end if Conditional_ScalarAdvectionField
 

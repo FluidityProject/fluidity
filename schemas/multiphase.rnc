@@ -522,6 +522,8 @@ start =
             element scale_momentum_by_volume_fraction {empty}?,
             ## linearise density
             element linearise_density{ empty }?,
+            ## linearise component for the bulk density calculation used in the momentum equation
+            element linearise_component{ empty }?,
             ## The equation of state
             equation_of_state?,
             ## Pressure

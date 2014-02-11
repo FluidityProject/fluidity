@@ -60,22 +60,24 @@
 
   contains
 
-    subroutine Calculate_All_Rhos( state, ncomp_in, nphase, cv_nonods, Component, &
-         Density_Bulk, DensityCp_Bulk, DRhoDPressure, Density_Component )
+    subroutine Calculate_All_Rhos( state, ncomp_in, nphase, ndim, cv_nonods, cv_nloc, totele, &
+         cv_ndgln, Component, Density_Bulk, DensityCp_Bulk, DRhoDPressure, Density_Component )
 
       implicit none
 
       type( state_type ), dimension( : ), intent( in) :: state
-      integer, intent( in ) :: ncomp_in, nphase, cv_nonods
+      integer, intent( in ) :: ncomp_in, nphase, ndim, cv_nonods, cv_nloc, totele
+      integer, dimension( totele * cv_nloc ), intent( in ) :: cv_ndgln
+
       real, dimension( cv_nonods * nphase * ncomp_in ), intent( in ) :: Component
       real, dimension( cv_nonods * nphase ), intent( inout ) :: Density_Bulk, DensityCp_Bulk
       real, dimension( cv_nonods * nphase ), intent( inout ), optional :: DRhoDPressure
       real, dimension( cv_nonods * nphase * ncomp_in ), intent( inout ) :: Density_Component
 
-      real, dimension( : ), allocatable :: Rho, dRhodP, Cp
+      real, dimension( : ), allocatable :: Rho, dRhodP, Cp, Component_l, c_cv_nod
       character( len = option_path_len ), dimension( : ), allocatable :: eos_option_path
       type( scalar_field ), pointer :: Cp_s
-      integer :: icomp, iphase, ncomp, sc, ec, sp, ep, stat
+      integer :: icomp, iphase, ncomp, sc, ec, sp, ep, stat, cv_iloc, cv_nod, ele
 
       Density_Bulk =0. ; DensityCp_Bulk = 0. ; DRhoDPressure = 0.
 
@@ -103,6 +105,8 @@
 
       allocate( Rho( cv_nonods ), dRhodP( cv_nonods ) )
       allocate( Cp( cv_nonods ) ) ; Cp = 1.
+      allocate( Component_l( cv_nonods ) ) ; Component_l = 0.
+
       do icomp = 1, ncomp
          do iphase = 1, nphase
             sc = ( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1
@@ -111,14 +115,44 @@
             sp = ( iphase - 1 ) * cv_nonods + 1 
             ep = iphase * cv_nonods 
 
+            Component_l = Component( sc : ec )
+            if ( have_option( '/material_phase[0]/linearise_component' ) .and. ncomp>1 ) then
+               ! linearise component
+               if ( cv_nloc==6 .or. (cv_nloc==10 .and. ndim==3) ) then ! P2 triangle or tet
+                  allocate( c_cv_nod( cv_nloc ) )
+                  do ele = 1, totele
+                     do cv_iloc = 1, cv_nloc
+                        cv_nod = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
+                        c_cv_nod( cv_iloc ) = Component_l( cv_nod )
+                     end do
+
+                     c_cv_nod( 2 ) = 0.5 * ( c_cv_nod ( 1 ) + c_cv_nod( 3 ) )
+                     c_cv_nod( 4 ) = 0.5 * ( c_cv_nod ( 1 ) + c_cv_nod( 6 ) )
+                     c_cv_nod( 5 ) = 0.5 * ( c_cv_nod ( 3 ) + c_cv_nod( 6 ) )
+
+                     if ( cv_nloc==10 ) then
+                      c_cv_nod ( 7 ) = 0.5 * ( c_cv_nod ( 1 ) + c_cv_nod( 10 ) )
+                      c_cv_nod ( 8 ) = 0.5 * ( c_cv_nod ( 3 ) + c_cv_nod( 10 ) )
+                      c_cv_nod ( 9 ) = 0.5 * ( c_cv_nod ( 6 ) + c_cv_nod( 10 ) )
+                     end if
+
+                     do cv_iloc = 1, cv_nloc
+                        cv_nod = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
+                        Component_l( cv_nod ) = c_cv_nod( cv_iloc )
+                     end do
+                  end do
+                  deallocate( c_cv_nod )
+               end if
+            end if
+
             Rho=0. ; dRhodP=0. ; Cp=1.
             call Calculate_Rho_dRhodP( state, iphase, icomp, &
                  nphase, ncomp_in, eos_option_path( (icomp - 1 ) * nphase + iphase ), Rho, dRhodP )
 
             if( ncomp > 1 ) then
 
-               Density_Bulk( sp : ep ) = Density_Bulk( sp : ep ) + Rho * Component( sc : ec )
-               DRhoDPressure( sp : ep ) = DRhoDPressure( sp : ep ) + dRhodP * Component( sc : ec ) / Rho
+               Density_Bulk( sp : ep ) = Density_Bulk( sp : ep ) + Rho * Component_l
+               DRhoDPressure( sp : ep ) = DRhoDPressure( sp : ep ) + dRhodP * Component_l / Rho
                Density_Component( sc : ec ) = Rho
 
                Cp_s => extract_scalar_field( state( nphase + icomp ), &
@@ -139,7 +173,7 @@
 
          end do ! iphase
       end do ! icomp
-      deallocate( Rho, dRhodP, Cp )
+      deallocate( Rho, dRhodP, Cp, Component_l )
       deallocate( eos_option_path )
 
       if( ncomp > 1 ) call Cap_Bulk_Rho( state, ncomp, nphase, &
