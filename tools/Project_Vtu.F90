@@ -40,6 +40,7 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
   use spud
   use state_module
   use read_triangle
+  use read_gmsh
   use vtk_interfaces
   use write_triangle
   use iso_c_binding
@@ -56,6 +57,7 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
   character(len = output_filename_len) :: output_filename
   character(len = *), parameter :: fields_path = "/dummy"
   integer :: i
+  logical :: ends_with_msh
   integer, parameter :: quad_degree = 4
   type(element_type), pointer :: shape
   type(ilist), dimension(:), allocatable :: map_BA
@@ -93,7 +95,17 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
   
   donor_positions = extract_vector_field(input_state, "Coordinate")
   input_mesh => extract_mesh(input_state, "Mesh")
-  target_positions = read_triangle_files(trim(target_basename), quad_degree = quad_degree)
+
+  ends_with_msh = .false.
+  if (target_basename_len>4) then
+    ends_with_msh = target_basename(target_basename_len-3:target_basename_len)=='.msh'
+  end if
+  if (ends_with_msh) then
+    target_positions = read_gmsh_file(target_basename(:target_basename_len-4), quad_degree = quad_degree)
+  else
+    target_positions = read_triangle_files(trim(target_basename), quad_degree = quad_degree)
+  end if
+  
   shape => ele_shape(donor_positions, 1)
   if (shape==ele_shape(target_positions,1) .and. continuity(donor_positions)==continuity(target_positions)) then
     output_mesh = target_positions%mesh
@@ -105,7 +117,15 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
     output_p0mesh = piecewise_constant_mesh(target_positions%mesh, "P0Mesh")
   end if
   
-  donor_positions = read_triangle_files(trim(donor_basename), quad_degree = quad_degree)
+  ends_with_msh = .false.
+  if (donor_basename_len>4) then
+    ends_with_msh = donor_basename(donor_basename_len-3:donor_basename_len)=='.msh'
+  end if
+  if (ends_with_msh) then
+    donor_positions = read_gmsh_file(donor_basename(:donor_basename_len-4), quad_degree = quad_degree)
+  else
+    donor_positions = read_triangle_files(trim(donor_basename), quad_degree = quad_degree)
+  end if
   
   allocate(map_BA(ele_count(target_positions)))
   map_BA = rtree_intersection_finder(target_positions, donor_positions)
@@ -138,7 +158,7 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
   do i = 1, vector_field_count(input_state)
     input_v_field => extract_vector_field(input_state, i)
     if(input_v_field%name == "Coordinate") cycle
-    if (input_s_field%mesh%name=="Mesh") then
+    if (input_v_field%mesh%name=="Mesh") then
       call allocate(output_v_field, input_v_field%dim, output_mesh, input_v_field%name)
     else if (input_s_field%mesh%name=="P0Mesh") then
       call allocate(output_v_field, input_v_field%dim, output_p0mesh, input_v_field%name)
@@ -154,7 +174,7 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
     input_t_field => extract_tensor_field(input_state, i)
     if (input_s_field%mesh%name=="Mesh") then
       call allocate(output_t_field, output_mesh, input_t_field%name)
-    else if (input_s_field%mesh%name=="P0Mesh") then
+    else if (input_t_field%mesh%name=="P0Mesh") then
       call allocate(output_t_field, output_p0mesh, input_t_field%name)
     else
       FLAbort("State from vtk_read_state should contain Mesh and P0Mesh only")
