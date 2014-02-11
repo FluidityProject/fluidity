@@ -101,10 +101,11 @@
       integer :: nlenmcy, mx_nface_p1, mx_ncolacv, mxnele, mx_ncoldgm_pha, &
            mx_ncolmcy, mx_nct, mx_nc, mx_ncolcmc, mx_ncolm, &
            ncolacv, ncolmcy, ncolele, ncoldgm_pha, ncolct, ncolc, ncolcmc, ncolm
-      integer, dimension( : ), allocatable :: finacv, colacv, midacv, finmcy, colmcy, midmcy, &
-           finele, colele, midele, findgm_pha, coldgm_pha, middgm_pha, findct, &
-           colct, findc, colc, findcmc, colcmc, midcmc, findm, &
-           colm, midm
+      integer, dimension( : ), allocatable :: finacv, midacv, finmcy,  midmcy, &
+           finele, midele, findgm_pha, middgm_pha, findct, &
+           findc, findcmc, midcmc, findm, &
+           midm
+      integer, dimension(:), pointer :: colacv, colmcy, colele, colct,colm,colc,colcmc,coldgm_pha
       integer, dimension(:), pointer :: small_finacv, small_colacv, small_midacv
       integer, dimension(:), pointer :: block_to_global_acv
       integer, dimension(:,:), allocatable :: global_dense_block_acv
@@ -918,7 +919,7 @@
                     NCOLELE, FINELE, COLELE, & ! Element connectivity.
                     NCOLCMC, FINDCMC, COLCMC, MIDCMC, & ! pressure matrix for projection method
                     NCOLACV, FINACV, COLACV, MIDACV, & ! For CV discretisation method
-                    small_FINACV, small_COLACV, small_MIDACV, &
+                    size(small_colacv),small_FINACV, small_COLACV, small_MIDACV, &
                     NLENMCY, NCOLMCY, FINMCY, COLMCY, MIDMCY, & ! Force balance plus cty multi-phase eqns
                     NCOLCT, FINDCT, COLCT, & ! CT sparsity - global cty eqn.
                     CV_ELE_TYPE, &

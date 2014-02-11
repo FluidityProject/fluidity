@@ -768,13 +768,7 @@ contains
          NSMALL_COLM=1
       ELSE ! IF (IANISOLIM==1) THEN
          ! Reduce matrix size...
-         COUNT2=0
-         DO NOD=1,CV_NONODS
-            DO COUNT=FINACV(NOD),FINACV(NOD+1)-1
-               IF(COLACV(COUNT).LE.CV_NONODS) COUNT2=COUNT2+1
-            END DO
-         END DO
-         NSMALL_COLM=COUNT2
+         NSMALL_COLM=size(small_colm)
 
 !        !We need to allocate CSR_ADV
 !        allocate(CSR_ACV(NPHASE*NSMALL_COLM))
@@ -10502,12 +10496,15 @@ contains
        END DO
     END DO
     !     
+
+    print*, findrm
+
     MATPSI=0.
     DO NOD=1,NONODS! Was loop 10
 
        XNOD=NOD2XNOD(NOD)
        !     
-       DO COUNT=FINDRM(NOD),FINDRM(NOD+1)-1! Was loop 20
+       DO COUNT=FINDRM(NOD ),FINDRM(NOD+1)-1! Was loop 20
 
           NODJ=COLM(COUNT)
           XNODJ=NOD2XNOD(NODJ)

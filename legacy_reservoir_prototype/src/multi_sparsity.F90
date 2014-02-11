@@ -455,7 +455,7 @@
       !ncolm_pha = count2 
        if(count2.ne.ncolm_pha) then
           ewrite(3,*) 'not correct length count2,ncolm_pha:',count2,ncolm_pha
-          stop 2821
+          stop 28219
        end if
 
       !ewrite(3,*) 'colm_pha--',colm_pha(1:ncolm_pha)
@@ -531,13 +531,13 @@
       implicit none
       integer, intent( in ) :: ndim, nlenmcy2, nmcy2, mxnct
       integer, dimension( nlenmcy2 + 1 ), intent( in ) :: finmcy2
-      integer, dimension( nmcy2 ), intent( in ) :: colmcy2
+      integer, dimension( : ), intent( in ) :: colmcy2
       integer, intent( in ) :: cv_nonods
       integer, dimension( cv_nonods + 1 ), intent( in ) :: findct
-      integer, dimension( mxnct ), intent( in ) :: colct
+      integer, dimension( : ), intent( in ) :: colct
       integer, intent( in ) :: u_nonods, ncolc, mx_ncolmcy
       integer, dimension( u_nonods + 1 ), intent( in ) :: findc
-      integer, dimension( ncolc ), intent( in ) :: colc
+      integer, dimension( : ), intent( in ) :: colc
       integer, intent( in ) :: nlenmcy
       integer, dimension( nlenmcy + 1 ), intent( inout ) :: finmcy
       integer, dimension( mx_ncolmcy ), intent( inout ) :: colmcy
@@ -1443,9 +1443,10 @@
            ncolcmc, ncolm
       integer, dimension( : ), intent( inout ) :: finacv, colacv, midacv
             integer, dimension(:), pointer :: midacv_loc, finacv_loc, colacv_loc
-integer, dimension( : ), intent( inout ) ::  finmcy, colmcy, midmcy, &
-           midele, finele, colele, coldgm_pha, findgm_pha, middgm_pha, findct, colct, &
-           findc, colc, findcmc, colcmc, midcmc, findm, colm, midm
+integer, dimension( : ), intent( inout ) ::  finmcy, midmcy, &
+           midele, finele, findgm_pha, middgm_pha, findct, &
+           findc, findcmc, midcmc, findm, midm
+integer, dimension(:), pointer ::  colcmc, colm, colmcy, colct, colc, coldgm_pha, colele
 !!$ Local variables
       integer, dimension( : ), allocatable :: x_ndgln_p1, x_ndgln, cv_ndgln, p_ndgln, mat_ndgln, u_ndgln, &
            xu_ndgln, cv_sndgln, p_sndgln, u_sndgln, &
@@ -1499,6 +1500,8 @@ integer, dimension( : ), intent( inout ) ::  finmcy, colmcy, midmcy, &
       else
          call getfinele( totele, cv_nloc, cv_snloc, x_nonods, x_ndgln, mx_nface_p1, &
               mxnele, ncolele, finele, colele, midele )
+
+         call resize(colele,ncolele)
       end if Conditional_Dimensional_1
 !!$      ewrite(3,*)'finele: ', size( finele ), '==>', finele( 1 : totele + 1 )
 !!$      ewrite(3,*)'colele: ', size( colele ), ncolele, '==>', colele( 1 : ncolele )
@@ -1517,7 +1520,7 @@ integer, dimension( : ), intent( inout ) ::  finmcy, colmcy, midmcy, &
          call exten_sparse_multi_phase_old( totele, ncolele, finele, colele, &
            nphase, totele * nphase, mx_ncolele_pha, &
            finele_pha, colele_pha, midele_pha )
-
+ 
 !!$      ewrite(3,*)'finele_pha: ', finele_pha( 1 : totele * nphase + 1 )
 !!$      ewrite(3,*)'colele_pha: ', colele_pha( 1 : mx_ncolele_pha )
 !!$      ewrite(3,*)'midele_pha: ', midele_pha( 1 : totele * nphase )
@@ -1541,6 +1544,7 @@ integer, dimension( : ), intent( inout ) ::  finmcy, colmcy, midmcy, &
 !         findgm_pha = 0 ; coldgm_pha = 0 ; middgm_pha = 0
          ncoldgm_pha=0
       end if
+      call resize(coldgm_pha,ncoldgm_pha)
 !!$      ewrite(3,*)'findgm_pha: ', findgm_pha( 1 : nphase * u_nonods * ndim + 1 )
 !!$      ewrite(3,*)'coldgm_pha: ', coldgm_pha( 1 : ncoldgm_pha )
 !!$      ewrite(3,*)'middgm_pha: ', middgm_pha( 1 : nphase * u_nonods * ndim )
@@ -1568,6 +1572,7 @@ integer, dimension( : ), intent( inout ) ::  finmcy, colmcy, midmcy, &
                  ncolele, finele, colele, &
                  mx_nct, ncolct, findct, colct )
          endif
+         call resize(colct,ncolct)
       end if Conditional_Dimensional_2
       ncolc = ncolct
 !!$      ewrite(3,*) 'findct: ', size( findct ), '==>', findct( 1 : cv_nonods + 1 )
@@ -1579,6 +1584,7 @@ integer, dimension( : ), intent( inout ) ::  finmcy, colmcy, midmcy, &
       !-
       call conv_ct2c( cv_nonods, ncolct, findct, colct, u_nonods, &
            mx_nc, findc, colc )
+      call resize(colc,ncolc)
 !!$      ewrite(3,*) 'findc: ', size( findc ), '==>', findc( 1 : u_nonods + 1 )
 !!$      ewrite(3,*) 'colc: ', size( findc ), ncolc, '==>', colc( 1 : ncolc )
 
@@ -1593,6 +1599,7 @@ integer, dimension( : ), intent( inout ) ::  finmcy, colmcy, midmcy, &
             call def_spar( cv_nloc + 2, cv_nonods, mx_ncolcmc, ncolcmc, &
                  midcmc, findcmc, colcmc )
          end if Conditional_ContinuousPressure_3
+         call resize(colcmc,ncolcmc)
       else
          allocate( dummyvec( u_nonods ))
          dummyvec = 0
@@ -1620,6 +1627,8 @@ integer, dimension( : ), intent( inout ) ::  finmcy, colmcy, midmcy, &
     else 
        ncolmcy=0
     endif
+    call resize(colmcy,ncolmcy)
+    call resize(colcmc,ncolcmc)
 !!$      ewrite(3,*)'finmcy: ', size( finmcy ), nlenmcy + 1, '==>', finmcy( 1 : nlenmcy + 1 )
 !!$      ewrite(3,*)'colmcy: ', size( colmcy ), ncolmcy, '==>', colmcy( 1 : ncolmcy )
 !!$      ewrite(3,*)'midmcy: ', size( midmcy ), nlenmcy, '==>', midmcy( 1 : nlenmcy )
@@ -1648,6 +1657,7 @@ integer, dimension( : ), intent( inout ) ::  finmcy, colmcy, midmcy, &
                end do
             end do
          end if
+         call resize(colm,ncolm)
       end if Conditional_Dimensional_4
 !!$      ewrite(3,*)'findm: ', size( findm ), '==>', findm( 1 : cv_nonods + 1 )
 !!$      ewrite(3,*)'colm: ', size( colm ), ncolm, '==>', colm( 1 : ncolm )
@@ -1674,6 +1684,9 @@ integer, dimension( : ), intent( inout ) ::  finmcy, colmcy, midmcy, &
               nacv_loc, finacv_loc, colacv_loc, midacv_loc )
       end if Conditional_Dimensional_5
       nacv_loc2 = nacv_loc
+
+      call resize(colacv_loc,nacv_loc)
+
 !!$      ewrite(3,*)'finacv_loc: ', size( finacv_loc ), '==>', finacv_loc( 1 : cv_nonods + 1 )
 !!$      ewrite(3,*)'colacv_loc: ', size( colacv_loc ), '==>', colacv_loc( 1 : nacv_loc2 )
 !!$      ewrite(3,*)'midacv_loc: ', size( midacv_loc ), '==>', midacv_loc( 1 : cv_nonods )
@@ -1699,6 +1712,21 @@ integer, dimension( : ), intent( inout ) ::  finmcy, colmcy, midmcy, &
       deallocate( centct ) ;
 
       return
+
+      contains 
+        
+        subroutine resize(A,n)
+          integer, dimension(:), pointer, intent(inout) :: A
+          integer n
+          integer, dimension(:), pointer :: temp
+
+          allocate(temp(n))
+          temp=A(1:n)
+          deallocate(a)
+          a=>temp
+        end subroutine resize
+          
+
     end subroutine Get_Sparsity_Patterns
 
 

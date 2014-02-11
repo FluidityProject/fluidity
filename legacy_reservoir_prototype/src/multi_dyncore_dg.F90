@@ -331,13 +331,18 @@
                !CALL SIMPLE_SOLVER( ACV, T, CV_RHS,  &
                !     NCOLACV, nphase * CV_NONODS, FINACV, COLACV, MIDACV,  &
                !     1.E-10, 1., 0., 1., 400 )
+
+               T([([(i+(j-1)*nphase,j=1,cv_nonods)],i=1,nphase)])=T
                CALL SOLVER( ACV, T, CV_RHS, &
                     FINACV, COLACV, &
                     trim('/material_phase::Component1/scalar_field::ComponentMassFractionPhase1/prognostic') )
+               T([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)])=T
             ELSE
+               T([([(i+(j-1)*nphase,j=1,cv_nonods)],i=1,nphase)])=T
                CALL SOLVER( ACV, T, CV_RHS, &
                     FINACV, COLACV, &
                     trim(option_path) )
+               T([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)])=T
             END IF
             !ewrite(3,*)'cv_rhs:', cv_rhs
             !ewrite(3,*)'SUF_T_BC:',SUF_T_BC
@@ -828,7 +833,7 @@
       REAL, DIMENSION( : ), allocatable :: THETA_GDIFF, T2, T2OLD, MEAN_PORE_CV
       LOGICAL :: GET_THETA_FLUX
       REAL :: SECOND_THETA
-      INTEGER :: STAT
+      INTEGER :: STAT, i,j
       character( len = option_path_len ) :: path
 
       GET_THETA_FLUX = .FALSE.
@@ -910,9 +915,11 @@
          call assemble_global_multiphase_csr(acv,&
               block_acv,dense_block_matrix,&
               block_to_global_acv,global_dense_block_acv)
+         satura([([(i+(j-1)*nphase,j=1,cv_nonods)],i=1,nphase)])=satura
          CALL SOLVER( ACV, SATURA, CV_RHS, &
               FINACV, COLACV, &
               trim(option_path) )
+         satura([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)])=satura
 
       END DO Loop_NonLinearFlux
 
@@ -958,7 +965,7 @@
          NCOLELE, FINELE, COLELE, & ! Element connectivity.
          NCOLCMC, FINDCMC, COLCMC, MIDCMC, & ! pressure matrix for projection method
          NCOLACV, FINACV, COLACV, MIDACV, & ! For CV discretisation method
-         SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
+         NCOLSMALL,SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
          NLENMCY, NCOLMCY, FINMCY, COLMCY, MIDMCY, & ! Force balance plus cty multi-phase eqns
          NCOLCT, FINDCT, COLCT, & ! CT sparcity - global cty eqn.
          CV_ELE_TYPE, &
@@ -988,7 +995,7 @@
            U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
            STOTEL, U_SNLOC, P_SNLOC, &
            CV_SNLOC, &
-           NCOLC, NCOLDGM_PHA, NCOLELE, NCOLCMC, NCOLACV, NLENMCY, NCOLMCY, NCOLCT, &
+           NCOLC, NCOLDGM_PHA, NCOLELE, NCOLCMC, NCOLACV, ncolsmall, NLENMCY, NCOLMCY, NCOLCT, &
            CV_ELE_TYPE, V_DISOPT, V_DG_VEL_INT_OPT, NCOLM, XU_NLOC, &
            NOPT_VEL_UPWIND_COEFS, IGOT_THETA_FLUX, SCVNGI_THETA, IN_ELE_UPWIND, DG_ELE_UPWIND, &
            IPLIKE_GRAD_SOU
@@ -1037,7 +1044,9 @@
       INTEGER, DIMENSION( CV_NONODS * NPHASE + 1 ), intent( in ) :: FINACV
       INTEGER, DIMENSION( NCOLACV ), intent( in ) :: COLACV
       INTEGER, DIMENSION( CV_NONODS * NPHASE), intent( in ) :: MIDACV 
-      integer, dimension(:), intent(in) :: small_finacv,small_colacv,small_midacv
+      integer, dimension(CV_NONODS+1), intent(in) :: small_finacv
+      integer, dimension( NCOLSMALL), intent(in) ::small_colacv
+      integer, dimension(CV_NONODS), intent(in) :: small_midacv
       INTEGER, DIMENSION( NLENMCY + 1 ), intent( in ) :: FINMCY
       INTEGER, DIMENSION( NCOLMCY ), intent( in ) :: COLMCY
       INTEGER, DIMENSION( NLENMCY ), intent( in ) :: MIDMCY
@@ -2060,7 +2069,7 @@
       REAL, PARAMETER :: V_BETA = 1.0
       REAL :: SECOND_THETA
       LOGICAL, PARAMETER :: GETCV_DISC = .FALSE., GETCT= .TRUE., THERMAL= .FALSE.
-      REAL, DIMENSION( : ), allocatable :: ACV, CV_RHS, SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2, &
+      REAL, DIMENSION( : ), allocatable :: ACV, Block_acv, CV_RHS, SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2, &
            SAT_FEMT, DEN_FEMT, dummy_transp
       REAL, DIMENSION( :,:,:,: ), allocatable :: TDIFFUSION
       REAL, DIMENSION( : ), allocatable :: SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, SUF_T2_BC
@@ -2084,6 +2093,7 @@
       ALLOCATE( WIC_T2_BC( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  )) ; WIC_T2_BC = 0
       ALLOCATE( THETA_GDIFF( CV_NONODS * NPHASE * IGOT_T2 )) ; THETA_GDIFF = 0.
       ALLOCATE( ACV( NCOLACV )) ; ACV = 0.
+      ALLOCATE( BLOCK_ACV( NPHASE*size(SMALL_COLACV )))  ; BLOCK_ACV = 0.
       ALLOCATE( CV_RHS( CV_NONODS * NPHASE )) ; CV_RHS = 0.
       ALLOCATE( TDIFFUSION( MAT_NONODS, NDIM, NDIM, NPHASE )) ; TDIFFUSION = 0.
       ALLOCATE( SUF_VOL_BC_ROB1( STOTEL * CV_SNLOC * NPHASE )) ; SUF_VOL_BC_ROB1 = 0.
@@ -2149,7 +2159,7 @@
       ! Form CT & MASS_MN_PRES matrix...
       CALL CV_ASSEMB( state, &
            CV_RHS, &
-           NCOLACV, ACV, FINACV, COLACV, MIDACV, &
+           NCOLACV, BLOCK_ACV, FINACV, COLACV, MIDACV, &
            SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
            NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
            CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
