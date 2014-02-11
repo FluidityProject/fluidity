@@ -126,7 +126,7 @@
       REAL, DIMENSION( N, N ) :: MAT, MAT2
       REAL, DIMENSION( N ) :: X, B
 
-      integer, dimension(N*N) :: WORK
+      integer, dimension(max(1,N*N)) :: WORK
       integer :: LWORK
 
       integer info
@@ -136,7 +136,7 @@
       LWORK=N*N
 
       call dgetrf(N,N,AINV,NMAX,IPIV,INFO)
-      call dgetri(N,AINV,NMAX,IPIV,WORK,LWORK,INFO)
+      call dgetri(N,AINV,NMAX,IPIV,WORK,max(1,LWORK),INFO)
       if (info==0) then
          return
       else
@@ -625,7 +625,7 @@
 
       DO ELE = 1, TOTELE
 
-!         INV_PIVIT_MAT(:,:,ele)=PIVIT_MAT(:,:,ele)
+         INV_PIVIT_MAT(:,:,ele)=PIVIT_MAT(:,:,ele)
 
 !         CALL MATDMATINV( PIVIT_MAT(:,:,ele), INV_PIVIT_MAT(:,:,ele), NBLOCK )
          CALL MATINV(PIVIT_MAT(:,:,ele), INV_PIVIT_MAT(:,:,ele), NBLOCK, nblock )

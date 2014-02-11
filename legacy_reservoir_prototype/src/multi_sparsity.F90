@@ -1441,12 +1441,12 @@
            mx_nct, mx_nc, mx_ncolcmc, mx_ncolm, mx_nface_p1
       integer, intent( inout ) :: ncolacv, ncolmcy, ncolele, ncoldgm_pha, ncolct, ncolc, &
            ncolcmc, ncolm
-      integer, dimension( : ), intent( inout ) :: finacv, colacv, midacv
-            integer, dimension(:), pointer :: midacv_loc, finacv_loc, colacv_loc
+      integer, dimension( : ), intent( inout ) :: finacv, midacv
+      integer, dimension(:), pointer :: midacv_loc, finacv_loc, colacv_loc
 integer, dimension( : ), intent( inout ) ::  finmcy, midmcy, &
            midele, finele, findgm_pha, middgm_pha, findct, &
            findc, findcmc, midcmc, findm, midm
-integer, dimension(:), pointer ::  colcmc, colm, colmcy, colct, colc, coldgm_pha, colele
+integer, dimension(:), pointer ::  colcmc, colm, colmcy, colct, colc, coldgm_pha, colele,colacv
 !!$ Local variables
       integer, dimension( : ), allocatable :: x_ndgln_p1, x_ndgln, cv_ndgln, p_ndgln, mat_ndgln, u_ndgln, &
            xu_ndgln, cv_sndgln, p_sndgln, u_sndgln, &
@@ -1700,6 +1700,7 @@ integer, dimension(:), pointer ::  colcmc, colm, colmcy, colct, colc, coldgm_pha
            nphase, nphase * cv_nonods, ncolacv, &
            finacv, colacv, midacv, block_to_global_acv,&
            global_dense_block_acv)
+      call resize(colacv,ncolacv)
 !!$      ewrite(3,*)'finacv:', size( finacv ), '==>', finacv( 1 : cv_nonods * nphase + 1 )
 !!$      ewrite(3,*)'colacv:', size( colacv ), '==>', colacv( 1 : ncolacv )
 !!$      ewrite(3,*)'midacv:', size( midacv ), '==>', midacv( 1 : cv_nonods * nphase )
