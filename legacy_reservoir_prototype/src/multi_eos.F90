@@ -115,41 +115,41 @@
             sp = ( iphase - 1 ) * cv_nonods + 1 
             ep = iphase * cv_nonods 
 
-            Component_l = Component( sc : ec )
-            if ( have_option( '/material_phase[0]/linearise_component' ) .and. ncomp>1 ) then
-               ! linearise component
-               if ( cv_nloc==6 .or. (cv_nloc==10 .and. ndim==3) ) then ! P2 triangle or tet
-                  allocate( c_cv_nod( cv_nloc ) )
-                  do ele = 1, totele
-                     do cv_iloc = 1, cv_nloc
-                        cv_nod = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
-                        c_cv_nod( cv_iloc ) = Component_l( cv_nod )
-                     end do
-
-                     c_cv_nod( 2 ) = 0.5 * ( c_cv_nod ( 1 ) + c_cv_nod( 3 ) )
-                     c_cv_nod( 4 ) = 0.5 * ( c_cv_nod ( 1 ) + c_cv_nod( 6 ) )
-                     c_cv_nod( 5 ) = 0.5 * ( c_cv_nod ( 3 ) + c_cv_nod( 6 ) )
-
-                     if ( cv_nloc==10 ) then
-                      c_cv_nod ( 7 ) = 0.5 * ( c_cv_nod ( 1 ) + c_cv_nod( 10 ) )
-                      c_cv_nod ( 8 ) = 0.5 * ( c_cv_nod ( 3 ) + c_cv_nod( 10 ) )
-                      c_cv_nod ( 9 ) = 0.5 * ( c_cv_nod ( 6 ) + c_cv_nod( 10 ) )
-                     end if
-
-                     do cv_iloc = 1, cv_nloc
-                        cv_nod = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
-                        Component_l( cv_nod ) = c_cv_nod( cv_iloc )
-                     end do
-                  end do
-                  deallocate( c_cv_nod )
-               end if
-            end if
-
             Rho=0. ; dRhodP=0. ; Cp=1.
             call Calculate_Rho_dRhodP( state, iphase, icomp, &
                  nphase, ncomp_in, eos_option_path( (icomp - 1 ) * nphase + iphase ), Rho, dRhodP )
 
             if( ncomp > 1 ) then
+
+               Component_l = Component( sc : ec )
+               if ( have_option( '/material_phase[0]/linearise_component' ) .and. ncomp>1 ) then
+                  ! linearise component
+                  if ( cv_nloc==6 .or. (cv_nloc==10 .and. ndim==3) ) then ! P2 triangle or tet
+                     allocate( c_cv_nod( cv_nloc ) )
+                     do ele = 1, totele
+                        do cv_iloc = 1, cv_nloc
+                           cv_nod = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
+                           c_cv_nod( cv_iloc ) = Component_l( cv_nod )
+                        end do
+
+                        c_cv_nod( 2 ) = 0.5 * ( c_cv_nod ( 1 ) + c_cv_nod( 3 ) )
+                        c_cv_nod( 4 ) = 0.5 * ( c_cv_nod ( 1 ) + c_cv_nod( 6 ) )
+                        c_cv_nod( 5 ) = 0.5 * ( c_cv_nod ( 3 ) + c_cv_nod( 6 ) )
+
+                        if ( cv_nloc==10 ) then
+                           c_cv_nod ( 7 ) = 0.5 * ( c_cv_nod ( 1 ) + c_cv_nod( 10 ) )
+                           c_cv_nod ( 8 ) = 0.5 * ( c_cv_nod ( 3 ) + c_cv_nod( 10 ) )
+                           c_cv_nod ( 9 ) = 0.5 * ( c_cv_nod ( 6 ) + c_cv_nod( 10 ) )
+                        end if
+
+                        do cv_iloc = 1, cv_nloc
+                           cv_nod = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
+                           Component_l( cv_nod ) = c_cv_nod( cv_iloc )
+                        end do
+                     end do
+                     deallocate( c_cv_nod )
+                  end if
+               end if
 
                Density_Bulk( sp : ep ) = Density_Bulk( sp : ep ) + Rho * Component_l
                DRhoDPressure( sp : ep ) = DRhoDPressure( sp : ep ) + dRhodP * Component_l / Rho
