@@ -218,7 +218,7 @@
          if(.false.) then
             CALL CV_ASSEMB_CV_DG(state, &
                  CV_RHS, &
-                 NCOLACV, ACV, FINACV, COLACV, MIDACV, &
+                 NCOLACV, BLOCK_ACV, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
                  SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
                  NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
                  CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
@@ -253,7 +253,7 @@
          else
             CALL CV_ASSEMB( state, &
                  CV_RHS, &
-                 NCOLACV, block_acv, FINACV, COLACV, MIDACV, &
+                 NCOLACV, block_acv,dense_block_matrix, FINACV, COLACV, MIDACV, &
                  SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
                  NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
                  CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
@@ -370,7 +370,7 @@
 
     SUBROUTINE CV_ASSEMB_CV_DG( state, &
          CV_RHS, &
-         NCOLACV, ACV, FINACV, COLACV, MIDACV, &
+         NCOLACV, ACV, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
          SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
          NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
          CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
@@ -431,6 +431,7 @@
       INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
 !      REAL, DIMENSION( NCOLACV ), intent( inout ) :: ACV
       REAL, DIMENSION( : ), allocatable, intent( inout ) :: ACV
+      REAL, DIMENSION( :, :, : ), intent( inout ) :: DENSE_BLOCK_MATRIX
       REAL, DIMENSION( CV_NONODS * NPHASE ), intent( inout ) :: CV_RHS
       REAL, DIMENSION( CV_NONODS ), intent( inout ) :: DIAG_SCALE_PRES
       REAL, DIMENSION( CV_NONODS ), intent( inout ) :: CT_RHS
@@ -490,7 +491,7 @@
 
          CALL CV_ASSEMB( state, &
               CV_RHS, &
-              NCOLACV, ACV, FINACV, COLACV, MIDACV, &
+              NCOLACV, ACV, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
               SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
               NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
               CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
@@ -875,7 +876,7 @@
 
          CALL CV_ASSEMB( state, &
               CV_RHS, &
-              NCOLACV, block_ACV, FINACV, COLACV, MIDACV, &
+              NCOLACV, block_ACV, dense_block_matrix, FINACV, COLACV, MIDACV, &
               SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
               NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
               CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
@@ -2066,6 +2067,7 @@
       LOGICAL, PARAMETER :: GETCV_DISC = .FALSE., GETCT= .TRUE., THERMAL= .FALSE.
       REAL, DIMENSION( : ), allocatable :: ACV, Block_acv, CV_RHS, SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2, &
            SAT_FEMT, DEN_FEMT, dummy_transp
+      REAL, DIMENSION( :,:,:), allocatable :: DENSE_BLOCK_MATRIX
       REAL, DIMENSION( :,:,:,: ), allocatable :: TDIFFUSION
       REAL, DIMENSION( : ), allocatable :: SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, SUF_T2_BC
       INTEGER, DIMENSION( : ), allocatable :: WIC_T2_BC
@@ -2089,6 +2091,7 @@
       ALLOCATE( THETA_GDIFF( CV_NONODS * NPHASE * IGOT_T2 )) ; THETA_GDIFF = 0.
       ALLOCATE( ACV( NCOLACV )) ; ACV = 0.
       ALLOCATE( BLOCK_ACV( NPHASE*size(SMALL_COLACV )))  ; BLOCK_ACV = 0.
+      ALLOCATE( DENSE_BLOCK_MATRIX( NPHASE,nphase,cv_nonods))  ; DENSE_BLOCK_MATRIX = 0.
       ALLOCATE( CV_RHS( CV_NONODS * NPHASE )) ; CV_RHS = 0.
       ALLOCATE( TDIFFUSION( MAT_NONODS, NDIM, NDIM, NPHASE )) ; TDIFFUSION = 0.
       ALLOCATE( SUF_VOL_BC_ROB1( STOTEL * CV_SNLOC * NPHASE )) ; SUF_VOL_BC_ROB1 = 0.
@@ -2154,7 +2157,7 @@
       ! Form CT & MASS_MN_PRES matrix...
       CALL CV_ASSEMB( state, &
            CV_RHS, &
-           NCOLACV, BLOCK_ACV, FINACV, COLACV, MIDACV, &
+           NCOLACV, BLOCK_ACV, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
            SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
            NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
            CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
@@ -2207,6 +2210,8 @@
       DEALLOCATE( WIC_T2_BC )
       DEALLOCATE( THETA_GDIFF )
       DEALLOCATE( ACV )
+      DEALLOCATE( BLOCK_ACV )
+      DEALLOCATE( DENSE_BLOCK_MATRIX )
       DEALLOCATE( CV_RHS )
       DEALLOCATE( TDIFFUSION )
       DEALLOCATE( SUF_VOL_BC_ROB1 )

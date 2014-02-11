@@ -43,7 +43,7 @@ contains
 
     SUBROUTINE CV_ASSEMB( state, &
          CV_RHS, &
-         NCOLACV, CSR_ACV, FINACV, COLACV, MIDACV, &
+         NCOLACV, CSR_ACV, dense_acv, FINACV, COLACV, MIDACV, &
          SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM,&
          NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
          CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
@@ -217,6 +217,7 @@ contains
       REAL, DIMENSION( : ), intent( inout ) :: CV_RHS
       !REAL, DIMENSION( NCOLACV ), intent( inout ) :: ACV
       real, dimension(:), intent(inout) :: CSR_ACV
+      real, dimension(:,:,:), intent(inout) :: dense_acv
       INTEGER, DIMENSION( : ), intent( in ) :: FINACV
       INTEGER, DIMENSION( : ), intent( in ) :: COLACV
       INTEGER, DIMENSION( : ), intent( in ) :: MIDACV
@@ -1092,6 +1093,13 @@ contains
                   ENDIF Conditional_SUMLimiting
                   ! get the sum of limiting functions correct...************
 
+                  DO COUNT = SMALL_FINDRM( CV_NODI ), SMALL_FINDRM( CV_NODI + 1 ) - 1
+                     IF( SMALL_COLM( COUNT ) == CV_NODJ ) THEN 
+                        JCOUNT_IPHA = COUNT
+                        EXIT
+                     END IF!An exit may improve the performance!!!
+                  END DO
+
                   Loop_IPHASE: DO IPHASE = 1, NPHASE
 
                      CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
@@ -1277,10 +1285,7 @@ contains
 
                            ! - Calculate the integration of the limited, high-order flux over a face
                            ! Conservative discretisation. The matrix (PIVOT ON LOW ORDER SOLN)
-                           IF( ( CV_NODI_IPHA /= CV_NODJ_IPHA ) .AND. ( CV_NODJ_IPHA /= 0 ) ) THEN
-                              DO COUNT = SMALL_FINDRM( CV_NODI ), SMALL_FINDRM( CV_NODI + 1 ) - 1
-                                 IF( SMALL_COLM( COUNT ) == CV_NODJ )  JCOUNT_IPHA = COUNT !An exit may improve the performance!!!
-                              END DO
+                           IF( ( CV_NODI_IPHA /= CV_NODJ_IPHA ) .AND. ( CV_NODJ /= 0 ) ) THEN
                               CSR_ACV( IPHASE+(JCOUNT_IPHA-1)*NPHASE ) =  CSR_ACV( IPHASE+(JCOUNT_IPHA-1)*NPHASE ) &
                                    + SECOND_THETA * FTHETA_T2 * SCVDETWEI( GI ) * NDOTQNEW * INCOME * LIMD  & ! advection
                                    - FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX ! Diffusion contribution
@@ -1421,6 +1426,14 @@ contains
 
          Loop_CVNODI2: DO CV_NODI = 1, CV_NONODS ! Put onto the diagonal of the matrix
 
+            DO COUNT = SMALL_FINDRM( CV_NODI ), SMALL_FINDRM( CV_NODI + 1 ) - 1, 1
+               IF( SMALL_COLM( COUNT ) == CV_NODI )  then
+                  JCOUNT_IPHA = COUNT !An exit may improve the performance!!!
+                  exit
+               end IF
+            END DO
+
+
             Loop_IPHASE2: DO IPHASE = 1, NPHASE
                CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
                ! For the gravity term
@@ -1474,11 +1487,8 @@ contains
 
                   DO JPHASE = 1, NPHASE
                      !CV_NODI_JPHA = CV_NODI + ( JPHASE - 1 ) * CV_NONODS
-                      DO COUNT = SMALL_FINDRM( CV_NODI ), SMALL_FINDRM( CV_NODI + 1 ) - 1, 1
-                         IF( SMALL_COLM( COUNT ) == CV_NODI )  JCOUNT_IPHA = COUNT !An exit may improve the performance!!!
-                      END DO
 !here we should put the full_ACV
-                     CSR_ACV( IPHASE+(JCOUNT_IPHA-1)*NPHASE )  = CSR_ACV( IPHASE+(JCOUNT_IPHA-1)*NPHASE )  &
+                     dense_acv(JPHASE,IPHASE,CV_NODI)  = dense_acv(JPHASE,IPHASE,CV_NODI)  &
                           +  MASS_CV( CV_NODI ) * ABSORBT( CV_NODI, IPHASE, JPHASE )
                   END DO
 
