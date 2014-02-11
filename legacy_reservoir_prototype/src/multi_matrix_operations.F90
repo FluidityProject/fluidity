@@ -34,6 +34,7 @@
 
     use fldebug
     use spud
+    implicit none
 
   contains
 
@@ -930,7 +931,7 @@
       integer, dimension(:), intent(in)  :: block_to_global
       integer, dimension(:,:), intent(in)  :: global_dense_block
 
-      integer :: node, jphase, count, global_count
+      integer :: node, jphase, count, node_count, nphase
 
 
       ewrite(3,*), "In  assemble_global_multiphase_csr"
@@ -942,6 +943,8 @@
       global_csr(block_to_global)=block_csr(:)
 
       ! now for the dense block
+      node_count=size(dense_block_matrix,3)
+      nphase=size(dense_block_matrix,2)
 
       do node=1,node_count
          do jphase=1,nphase
