@@ -317,7 +317,7 @@ contains
            NCOLGPTS, &
            CV_SILOC, U_KLOC, &
            CV_ILOC, CV_JLOC, IPHASE, JPHASE, &
-           CV_NODJ, CV_NODJ_IPHA, &
+           CV_NODJ, CV_NODJ_IPHA, rhs_nodj_ipha,rhs_nodi_ipha,&
            CV_NODI, CV_NODI_IPHA, CV_NODI_JPHA, U_NODK, TIMOPT, &
            JCOUNT_IPHA, IMID_IPHA, &
            NFACE, X_NODI,  &
@@ -1017,6 +1017,8 @@ contains
 
                         CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
                         CV_NODJ_IPHA = CV_NODJ + ( IPHASE - 1 ) * CV_NONODS
+                        rhs_NODI_IPHA = IPHASE + (cv_nodi-1 ) * nphase
+                        rhs_NODJ_IPHA = IPHASE + (cv_nodj-1 ) * nphase
 
                         ! Calculate NDOTQ and INCOME on the CV boundary at quadrature pt GI.
                         IF(IGOT_T2==1) THEN
@@ -1104,6 +1106,8 @@ contains
 
                      CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
                      CV_NODJ_IPHA = CV_NODJ + ( IPHASE - 1 ) * CV_NONODS
+                     rhs_NODI_IPHA = IPHASE + (cv_nodi-1 ) * nphase
+                     rhs_NODJ_IPHA = IPHASE + (cv_nodj-1 ) * nphase
 
                      If_GOT_DIFFUS: IF( GOT_DIFFUS ) THEN
                         ! This sub caculates the effective diffusion
@@ -1296,7 +1300,7 @@ contains
                               ENDIF
                            ELSE IF(SELE/=0) THEN
                               IF(WIC_T_BC(SELE+(IPHASE-1)*STOTEL) == WIC_T_BC_DIRICHLET) THEN
-                                 CV_RHS( CV_NODI_IPHA ) =  CV_RHS( CV_NODI_IPHA )  &
+                                 CV_RHS( rhs_NODI_IPHA ) =  CV_RHS( rhs_NODI_IPHA )  &
                                       + FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX  &
                                       * SUF_T_BC(CV_SILOC+(SELE-1)*CV_SNLOC+(IPHASE-1)*STOTEL*CV_SNLOC)
                                  IF(GET_GTHETA) THEN
@@ -1333,24 +1337,24 @@ contains
                         IF( (SELE /= 0) .AND. (INCOME > 0.5) ) BCZERO=0.0
 
                         ! Put results into the RHS vector
-                        CV_RHS( CV_NODI_IPHA ) =  CV_RHS( CV_NODI_IPHA )  &
+                        CV_RHS( rhs_NODI_IPHA ) =  CV_RHS( rhs_NODI_IPHA )  &
                                 ! subtract 1st order adv. soln.
                              + SECOND_THETA * FTHETA_T2 * NDOTQNEW * SCVDETWEI( GI ) * LIMD * FVT * BCZERO &
                              -  SCVDETWEI( GI ) * ( FTHETA_T2 * NDOTQNEW * LIMDT &
                              + ONE_M_FTHETA_T2OLD * NDOTQOLD * LIMDTOLD ) ! hi order adv
 
                         ! Subtract out 1st order term non-conservative adv.
-                        CV_RHS( CV_NODI_IPHA ) =  CV_RHS( CV_NODI_IPHA ) &
+                        CV_RHS( rhs_NODI_IPHA ) =  CV_RHS( rhs_NODI_IPHA ) &
                              - FTHETA_T2 * ( 1. - CV_BETA ) * SCVDETWEI( GI ) * NDOTQNEW * LIMD * TMID
 
                         ! High-order non-conservative advection contribution
-                        CV_RHS( CV_NODI_IPHA ) =  CV_RHS( CV_NODI_IPHA ) &
+                        CV_RHS( rhs_NODI_IPHA ) =  CV_RHS( rhs_NODI_IPHA ) &
                              + ( 1. - CV_BETA) * SCVDETWEI( GI ) &
                              * ( FTHETA_T2 * NDOTQNEW * TMID * LIMD  &
                              + ONE_M_FTHETA_T2OLD * NDOTQOLD * LIMDOLD * TOLDMID )
 
                         ! Diffusion contribution
-                        CV_RHS( CV_NODI_IPHA ) =  CV_RHS( CV_NODI_IPHA ) &
+                        CV_RHS( rhs_NODI_IPHA ) =  CV_RHS( rhs_NODI_IPHA ) &
                              + (1.-FTHETA) * SCVDETWEI(GI) * DIFF_COEFOLD_DIVDX  &
                              * (TOLD(CV_NODJ_IPHA) - TOLD(CV_NODI_IPHA)) &
                                 ! Robin bc
@@ -1369,12 +1373,12 @@ contains
                            THERM_FTHETA = 1.
 
                            if( igot_t2 /= 0 ) then
-                              CV_RHS( CV_NODI_IPHA ) = CV_RHS( CV_NODI_IPHA ) &
+                              CV_RHS( rhs_NODI_IPHA ) = CV_RHS( rhs_NODI_IPHA ) &
                                    - CV_P( CV_NODI ) * SCVDETWEI( GI ) * ( &
                                    THERM_FTHETA * NDOTQNEW * LIMT2 &
                                    + ( 1. - THERM_FTHETA ) * NDOTQOLD * LIMT2OLD )
                            else
-                              CV_RHS( CV_NODI_IPHA ) = CV_RHS( CV_NODI_IPHA ) &
+                              CV_RHS( rhs_NODI_IPHA ) = CV_RHS( rhs_NODI_IPHA ) &
                                    - CV_P( CV_NODI ) * SCVDETWEI( GI ) * ( &
                                    THERM_FTHETA * NDOTQNEW &
                                    + ( 1. - THERM_FTHETA ) * NDOTQOLD )
@@ -1436,6 +1440,7 @@ contains
 
             Loop_IPHASE2: DO IPHASE = 1, NPHASE
                CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
+               rhs_NODI_IPHA = iphase + ( cv_nodi -1 ) * nphase
                ! For the gravity term
                !SOURCT2( CV_NODI_IPHA ) = SOURCT( CV_NODI_IPHA ) * DEN( CV_NODI_IPHA )
                !SOURCT2( CV_NODI_IPHA ) = SOURCT2( CV_NODI_IPHA ) * DEN( CV_NODI_IPHA )
@@ -1444,7 +1449,7 @@ contains
 
 
                IF(IGOT_T2==1) THEN
-                  CV_RHS( CV_NODI_IPHA ) = CV_RHS( CV_NODI_IPHA ) &
+                  CV_RHS( rhs_NODI_IPHA ) = CV_RHS( rhs_NODI_IPHA ) &
                        + MASS_CV(CV_NODI) * SOURCT(CV_NODI_IPHA) !&
                   !- CV_BETA * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) & ! conservative time term.
                   !* TOLD(CV_NODI_IPHA)  &
@@ -1458,13 +1463,13 @@ contains
                        * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) / DT
 
 
-                  CV_RHS( CV_NODI_IPHA ) = CV_RHS( CV_NODI_IPHA ) &
+                  CV_RHS( rhs_NODI_IPHA ) = CV_RHS( rhs_NODI_IPHA ) &
                        + (CV_BETA * DENOLD(CV_NODI_IPHA) * T2OLD(CV_NODI_IPHA) &
                        + (1.-CV_BETA) * DEN(CV_NODI_IPHA) * T2(CV_NODI_IPHA))  &
                        * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) * TOLD(CV_NODI_IPHA) / DT
                ELSE
 
-                  CV_RHS( CV_NODI_IPHA ) = CV_RHS( CV_NODI_IPHA ) &
+                  CV_RHS( rhs_NODI_IPHA ) = CV_RHS( rhs_NODI_IPHA ) &
                        + MASS_CV(CV_NODI) * SOURCT(CV_NODI_IPHA) !&
                   !- CV_BETA * MEAN_PORE_CV( CV_NODI ) * MASS_CV( CV_NODI ) & ! conservative time term.
                   !* TOLD(CV_NODI_IPHA) &
@@ -1476,7 +1481,7 @@ contains
                        + (1.-CV_BETA) * DEN(CV_NODI_IPHA))  &
                        * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) / DT
 
-                  CV_RHS( CV_NODI_IPHA ) = CV_RHS( CV_NODI_IPHA ) &
+                  CV_RHS( rhs_NODI_IPHA ) = CV_RHS( rhs_NODI_IPHA ) &
                        + (CV_BETA * DENOLD(CV_NODI_IPHA) &
                        + (1.-CV_BETA) * DEN(CV_NODI_IPHA)) &
                        * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) * TOLD(CV_NODI_IPHA) / DT
@@ -1506,6 +1511,7 @@ contains
          DO IPHASE = 1, NPHASE
             DO CV_NODI = 1, CV_NONODS
                CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
+               rhs_NODI_IPHA = IPHASE + (cv_nodi-1 ) * nphase
 
                if(.false.) then
                   CT_RHS( CV_NODI ) = CT_RHS( CV_NODI )  -  MEAN_PORE_CV( CV_NODI ) * MASS_CV( CV_NODI ) &

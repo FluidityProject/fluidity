@@ -330,14 +330,12 @@
                !     1.E-10, 1., 0., 1., 400 )
 
                T([([(i+(j-1)*nphase,j=1,cv_nonods)],i=1,nphase)])=T
-               CV_RHS([([(i+(j-1)*nphase,j=1,cv_nonods)],i=1,nphase)])=CV_RHS
                CALL SOLVER( ACV, T, CV_RHS, &
                     FINACV, COLACV, &
                     trim('/material_phase::Component1/scalar_field::ComponentMassFractionPhase1/prognostic') )
                T([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)])=T
             ELSE
                T([([(i+(j-1)*nphase,j=1,cv_nonods)],i=1,nphase)])=T
-               CV_RHS([([(i+(j-1)*nphase,j=1,cv_nonods)],i=1,nphase)])=CV_RHS
                CALL SOLVER( ACV, T, CV_RHS, &
                     FINACV, COLACV, &
                     trim(option_path) )
@@ -914,8 +912,6 @@
          call assemble_global_multiphase_csr(acv,&
               block_acv,dense_block_matrix,&
               block_to_global_acv,global_dense_block_acv)
-         satura([([(i+(j-1)*nphase,j=1,cv_nonods)],i=1,nphase)])=satura
-         cv_rhs([([(i+(j-1)*nphase,j=1,cv_nonods)],i=1,nphase)])=cv_rhs
          CALL SOLVER( ACV, SATURA, CV_RHS, &
               FINACV, COLACV, &
               trim(option_path) )
