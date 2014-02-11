@@ -123,7 +123,7 @@
       INTEGER, DIMENSION( STOTEL * NPHASE ), intent( in ) ::  WIC_T_BC, WIC_D_BC, WIC_U_BC
       INTEGER, DIMENSION( STOTEL * NPHASE * IGOT_T2 ), intent( in ) ::  WIC_T2_BC
       INTEGER, DIMENSION( CV_NONODS * NPHASE + 1 ), intent( in ) :: FINACV
-      INTEGER, DIMENSION( NCOLACV ), intent( in ) :: COLACV
+      INTEGER, DIMENSION( : ), intent( in ) :: COLACV
       INTEGER, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: MIDACV 
       INTEGER, DIMENSION( : ), intent( in ) :: SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV
       integer, dimension(:)    :: block_to_global_acv
@@ -309,7 +309,6 @@
             CALL LUMP_ENERGY_EQNS( CV_NONODS, NPHASE, &
                  NCOLACV, NCOLACV_SUB, &
                  FINACV, COLACV, COLACV_SUB, FINACV_SUB, ACV_SUB )
-
             CALL SOLVER( ACV_SUB, T, CV_RHS_SUB, &
                  FINACV_SUB, COLACV_SUB, &
                  trim(option_path))
@@ -328,7 +327,6 @@
                !CALL SIMPLE_SOLVER( ACV, T, CV_RHS,  &
                !     NCOLACV, nphase * CV_NONODS, FINACV, COLACV, MIDACV,  &
                !     1.E-10, 1., 0., 1., 400 )
-
                T([([(i+(j-1)*nphase,j=1,cv_nonods)],i=1,nphase)])=T
                CALL SOLVER( ACV, T, CV_RHS, &
                     FINACV, COLACV, &
@@ -422,7 +420,7 @@
       INTEGER, DIMENSION( STOTEL * NPHASE ), intent( in ) ::  WIC_T_BC, WIC_D_BC, WIC_U_BC
       INTEGER, DIMENSION( STOTEL * NPHASE * IGOT_T2 ), intent( in ) ::  WIC_T2_BC
       INTEGER, DIMENSION( CV_NONODS * NPHASE + 1 ), intent( in ) :: FINACV
-      INTEGER, DIMENSION( NCOLACV ), intent( in ) :: COLACV
+      INTEGER, DIMENSION( : ), intent( in ) :: COLACV
       INTEGER, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: MIDACV
       INTEGER, DIMENSION( : ), intent( in ) :: SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
@@ -912,6 +910,7 @@
          call assemble_global_multiphase_csr(acv,&
               block_acv,dense_block_matrix,&
               block_to_global_acv,global_dense_block_acv)
+
          CALL SOLVER( ACV, SATURA, CV_RHS, &
               FINACV, COLACV, &
               trim(option_path) )
@@ -1180,7 +1179,6 @@
             STOP 8331
          ENDIF
          UP=0.
-
          CALL SOLVER( MCY, UP, MCY_RHS, &
               FINMCY, COLMCY, &
               option_path = '/material_phase[0]/vector_field::Velocity')
@@ -2393,7 +2391,7 @@
       REAL, DIMENSION( :), intent( in ) :: SUF_U_BC_ROB1, SUF_U_BC_ROB2, &
            SUF_V_BC_ROB1, SUF_V_BC_ROB2, SUF_W_BC_ROB1, SUF_W_BC_ROB2
       REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
-      REAL, DIMENSION( CV_NONODS, NPHASE, NPHASE ), intent( in ) :: U_ABS_STAB
+      REAL, DIMENSION( MAT_NONODS, NDIM_VEL * NPHASE, NDIM_VEL * NPHASE ), intent( in ) :: U_ABS_STAB
       REAL, DIMENSION( :, :, : ), intent( in ) :: U_ABSORB
       REAL, DIMENSION( : ), intent( in ) :: U_SOURCE
       REAL, DIMENSION( : ), intent( in ) :: U_SOURCE_CV
@@ -5824,7 +5822,7 @@ end if
 
       INTEGER, intent( in ) :: CV_NONODS, NPHASE, NCOLACV, NCOLACV_SUB
       INTEGER, DIMENSION( CV_NONODS * NPHASE + 1 ), intent( in ) :: FINACV
-      INTEGER, DIMENSION( NCOLACV ), intent( in ) :: COLACV
+      INTEGER, DIMENSION( : ), intent( in ) :: COLACV
       INTEGER, DIMENSION( CV_NONODS ), intent( inout ) :: COLACV_SUB
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( inout ) :: FINACV_SUB
       REAL, DIMENSION( NCOLACV_SUB), intent( inout ) :: ACV_SUB
@@ -5905,7 +5903,7 @@ end if
       integer, dimension( TOTELE * XU_NLOC ), intent( in ) :: XU_NDGLN
       integer, dimension( TOTELE * MAT_NLOC ), intent( in ) :: MAT_NDGLN
       integer, dimension( CV_NONODS * NPHASE + 1 ), intent( in ) :: FINACV
-      integer, dimension( NCOLACV ), intent( in ) :: COLACV
+      integer, dimension( : ), intent( in ) :: COLACV
       integer, dimension( CV_NONODS * NPHASE ), intent( in ) :: MIDACV 
       integer, dimension(:), intent(in) :: small_finacv,small_colacv,small_midacv
       integer, dimension(:), intent(in) :: block_to_global_acv
