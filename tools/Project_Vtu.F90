@@ -64,6 +64,7 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
   type(mesh_type) :: output_mesh, output_p0mesh
   type(mesh_type), pointer :: input_mesh
   type(state_type) :: input_state, output_state
+  type(state_type), dimension(:), allocatable :: input_mesh_states, output_mesh_states
   type(scalar_field) :: output_s_field
   type(scalar_field), pointer :: input_s_field
   type(vector_field) :: donor_positions, output_v_field, target_positions
@@ -130,9 +131,6 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
   allocate(map_BA(ele_count(target_positions)))
   map_BA = rtree_intersection_finder(target_positions, donor_positions)
   
-  call insert(input_state, donor_positions, "Coordinate")
-  
-  call insert(output_state, target_positions, "Coordinate")
   call insert(output_state, output_mesh, "Mesh")
   if (has_mesh(input_state, "P0Mesh")) then
     call insert(output_state, output_p0mesh, "P0Mesh")
@@ -185,8 +183,6 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
     call deallocate(output_t_field)
   end do
   
-  call deallocate(donor_positions)
-  call deallocate(target_positions)
   
   if(current_debug_level >= 2) then
     ewrite(2, *) "Options tree:"
@@ -196,10 +192,27 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
     ewrite(2, *) "Output state:"
     call print_state(output_state)
   end if
+
+  call sort_states_by_mesh( (/ input_state /), input_mesh_states)
+  call sort_states_by_mesh( (/ output_state /), output_mesh_states)
+  do i=1, size(input_mesh_states)
+    call insert(input_mesh_states(i), donor_positions, "Coordinate")
+  end do
+  do i=1, size(output_mesh_states)
+    call insert(output_mesh_states(i), target_positions, "Coordinate")
+  end do
+  ! do this insert after the sort_states_by_mesh as target_positions%mesh is seen as a different mesh
+  call insert(output_state, target_positions, "Coordinate")
+  call deallocate(donor_positions)
+  call deallocate(target_positions)
   
-  call interpolation_galerkin(input_state, output_state, map_BA = map_BA)
+  call interpolation_galerkin(input_mesh_states, output_mesh_states, map_BA = map_BA)
   call deallocate(map_BA)
   deallocate(map_BA)
+  call deallocate(input_mesh_states)
+  deallocate(input_mesh_states)
+  call deallocate(output_mesh_states)
+  deallocate(output_mesh_states)
   call deallocate(input_state)
   
   call vtk_write_state(trim(output_filename), model = "Mesh", state = (/output_state/))
