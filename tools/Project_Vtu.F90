@@ -160,7 +160,7 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
     if(input_v_field%name == "Coordinate") cycle
     if (input_v_field%mesh%name=="Mesh") then
       call allocate(output_v_field, input_v_field%dim, output_mesh, input_v_field%name)
-    else if (input_s_field%mesh%name=="P0Mesh") then
+    else if (input_v_field%mesh%name=="P0Mesh") then
       call allocate(output_v_field, input_v_field%dim, output_p0mesh, input_v_field%name)
     else
       FLAbort("State from vtk_read_state should contain Mesh and P0Mesh only")
@@ -172,7 +172,7 @@ subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, don
   end do
   do i = 1, tensor_field_count(input_state)
     input_t_field => extract_tensor_field(input_state, i)
-    if (input_s_field%mesh%name=="Mesh") then
+    if (input_t_field%mesh%name=="Mesh") then
       call allocate(output_t_field, output_mesh, input_t_field%name)
     else if (input_t_field%mesh%name=="P0Mesh") then
       call allocate(output_t_field, output_p0mesh, input_t_field%name)
