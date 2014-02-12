@@ -67,12 +67,12 @@
 
       type( state_type ), dimension( : ), intent( in) :: state
       integer, intent( in ) :: ncomp_in, nphase, ndim, cv_nonods, cv_nloc, totele
-      integer, dimension( totele * cv_nloc ), intent( in ) :: cv_ndgln
+      integer, dimension( : ), intent( in ) :: cv_ndgln
 
-      real, dimension( cv_nonods * nphase * ncomp_in ), intent( in ) :: Component
-      real, dimension( cv_nonods * nphase ), intent( inout ) :: Density_Bulk, DensityCp_Bulk
-      real, dimension( cv_nonods * nphase ), intent( inout ), optional :: DRhoDPressure
-      real, dimension( cv_nonods * nphase * ncomp_in ), intent( inout ) :: Density_Component
+      real, dimension( : ), intent( in ) :: Component
+      real, dimension( : ), intent( inout ) :: Density_Bulk, DensityCp_Bulk
+      real, dimension(: ), intent( inout ), optional :: DRhoDPressure
+      real, dimension( : ), intent( inout ) :: Density_Component
 
       real, dimension( : ), allocatable :: Rho, dRhodP, Cp, Component_l, c_cv_nod
       character( len = option_path_len ), dimension( : ), allocatable :: eos_option_path
@@ -247,7 +247,7 @@
 
       type( state_type ), dimension( : ), intent( in) :: state
       integer, intent( in ) :: ncomp, nphase, cv_nonods
-      real, dimension( cv_nonods * nphase * ncomp ), intent( inout ) :: Density_Component
+      real, dimension( : ), intent( inout ) :: Density_Component
 
       real, dimension( : ), allocatable :: Rho, dRhodP
       character( len = option_path_len ) :: eos_option_path
@@ -616,7 +616,7 @@
       real, dimension( : ), intent( in ) :: satura
       real, dimension( :, :, : ), intent( in ) :: perm
       integer, intent( in ) :: nopt_vel_upwind_coefs
-      real, dimension( nopt_vel_upwind_coefs ), intent( inout ) :: opt_vel_upwind_coefs
+      real, dimension( : ), intent( inout ) :: opt_vel_upwind_coefs
       real, dimension( :, :, : ), intent( inout ) :: u_absorb
 !!$ Local variables:
       type( tensor_field ), pointer :: viscosity_ph1, viscosity_ph2
@@ -704,11 +704,11 @@
       !    use cv_advection
       implicit none
       INTEGER, intent( in ) :: MAT_NONODS, CV_NONODS, NPHASE, NDIM, TOTELE, CV_NLOC,MAT_NLOC
-      REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: SATURA
-      INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
-      INTEGER, DIMENSION( TOTELE * MAT_NLOC ), intent( in ) :: MAT_NDGLN
-      REAL, DIMENSION( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ), intent( inout ) :: U_ABSORB
-      REAL, DIMENSION( TOTELE, NDIM, NDIM ), intent( in ) :: PERM2
+      REAL, DIMENSION( : ), intent( in ) :: SATURA
+      INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
+      INTEGER, DIMENSION( : ), intent( in ) :: MAT_NDGLN
+      REAL, DIMENSION( :, :, : ), intent( inout ) :: U_ABSORB
+      REAL, DIMENSION( :, :, : ), intent( in ) :: PERM2
       REAL, intent( in ) :: MOBILITY
       ! Local variable
       REAL, PARAMETER :: TOLER = 1.E-10
@@ -1152,8 +1152,8 @@ SUBROUTINE relperm_corey_epsilon( ABSP, MOBILITY, INV_PERM, SAT, IPHASE,options 
       IMPLICIT NONE
       type(state_type), dimension(:) :: state
       INTEGER, intent( in ) :: CV_NONODS, NPHASE
-      REAL, DIMENSION( CV_NONODS * NPHASE ), intent( inout ) :: capillary_pressure
-      REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: SATURA
+      REAL, DIMENSION( : ), intent( inout ) :: capillary_pressure
+      REAL, DIMENSION( : ), intent( in ) :: SATURA
       ! Local Variables
       INTEGER :: nstates, ncomps, nphases, IPHASE, JPHASE, i, j, k
       real c, a, S_OR, S_GC, auxO, auxW
@@ -1240,8 +1240,8 @@ SUBROUTINE relperm_corey_epsilon( ABSP, MOBILITY, INV_PERM, SAT, IPHASE,options 
     subroutine calculate_u_source_cv(state, cv_nonods, ndim, nphase, den, u_source_cv)
       type(state_type), dimension(:), intent(in) :: state
       integer, intent(in) :: cv_nonods, ndim, nphase
-      real, dimension(cv_nonods*nphase), intent(in) :: den
-      real, dimension(cv_nonods*ndim*nphase), intent(inout) :: u_source_cv
+      real, dimension(:), intent(in) :: den
+      real, dimension(:), intent(inout) :: u_source_cv
 
       type(vector_field), pointer :: gravity_direction
       real, dimension(ndim) :: g
@@ -1278,8 +1278,8 @@ SUBROUTINE relperm_corey_epsilon( ABSP, MOBILITY, INV_PERM, SAT, IPHASE,options 
 
       type(state_type), dimension(:), intent(in) :: state
       integer, intent(in) :: ncomp, nphase, ndim, cv_nonods, mat_nonods, mat_nloc, totele
-      integer, dimension(totele * mat_nloc), intent(in) :: mat_ndgln 
-      real, dimension(mat_nonods, ndim, ndim, nphase), intent(inout) :: ScalarAdvectionField_Diffusion
+      integer, dimension(:), intent(in) :: mat_ndgln
+      real, dimension(:, :, :, :), intent(inout) :: ScalarAdvectionField_Diffusion
 
       type(scalar_field), pointer :: component
       type(tensor_field), pointer :: diffusivity
@@ -1342,7 +1342,7 @@ SUBROUTINE relperm_corey_epsilon( ABSP, MOBILITY, INV_PERM, SAT, IPHASE,options 
       integer, intent(in) :: ncomp, nphase, ndim, mat_nonods
       integer, dimension(:), intent(in) :: mat_ndgln
 
-      real, dimension( mat_nonods, ndim, ndim, nphase ), intent(inout) :: Momentum_Diffusion
+      real, dimension( :, :, :, : ), intent(inout) :: Momentum_Diffusion
       character( len = option_path_len ) :: option_path
       type(tensor_field), pointer :: t_field
       integer :: iphase, icomp, idim, stat, cv_nod, mat_nod, cv_nloc, ele
@@ -1420,21 +1420,21 @@ SUBROUTINE relperm_corey_epsilon( ABSP, MOBILITY, INV_PERM, SAT, IPHASE,options 
 
       integer, intent(in) :: totele, stotel, cv_nloc, cv_snloc, nphase, ndim, nface, &
            mat_nonods, cv_nonods, x_nloc, ncolele, cv_ele_type, x_nonods
-      integer, dimension( totele+1 ), intent( in ) :: finele
-      integer, dimension( ncolele ), intent( in ) :: colele
-      integer, dimension( totele * cv_nloc ), intent( in ) :: cv_ndgln
-      integer, dimension( stotel * cv_snloc ), intent( in ) :: cv_sndgln
-      integer, dimension( totele * x_nloc ), intent( in ) :: x_ndgln
-      integer, dimension( totele * cv_nloc ), intent( in ) :: mat_ndgln
-      integer, dimension( stotel * nphase ), intent( in ) :: wic_u_bc, wic_vol_bc
-      real, dimension( totele, ndim, ndim ), intent( in ) :: perm
-      real, dimension( mat_nonods, ndim*nphase, ndim*nphase ), intent( inout ) :: material_absorption
-      real, dimension( stotel * cv_snloc * nphase ), intent( in ) :: sat
-      real, dimension( cv_nonods * nphase ), intent( in ) :: vol
-      real, dimension( x_nonods ), intent( in ) :: x,y,z
+      integer, dimension( : ), intent( in ) :: finele
+      integer, dimension( : ), intent( in ) :: colele
+      integer, dimension( : ), intent( in ) :: cv_ndgln
+      integer, dimension( : ), intent( in ) :: cv_sndgln
+      integer, dimension( : ), intent( in ) :: x_ndgln
+      integer, dimension( : ), intent( in ) :: mat_ndgln
+      integer, dimension( : ), intent( in ) :: wic_u_bc, wic_vol_bc
+      real, dimension( :, :, : ), intent( in ) :: perm
+      real, dimension( :, :, : ), intent( inout ) :: material_absorption
+      real, dimension( : ), intent( in ) :: sat
+      real, dimension( : ), intent( in ) :: vol
+      real, dimension( : ), intent( in ) :: x,y,z
       type(state_type), dimension( : ) :: state
 
-      real, dimension( stotel * cv_snloc * nphase, ndim ), intent( inout ) :: suf_sig_diagten_bc
+      real, dimension( :, : ), intent( inout ) :: suf_sig_diagten_bc
 
       ! local variables
       type(tensor_field), pointer :: viscosity_ph1, viscosity_ph2
@@ -1590,11 +1590,11 @@ SUBROUTINE relperm_corey_epsilon( ABSP, MOBILITY, INV_PERM, SAT, IPHASE,options 
 
       implicit none
 
-      real, dimension( mat_nonods, ndim * nphase, ndim * nphase ), intent( inout ) :: Material_Absorption_Stab
-      real, dimension( mat_nonods, ndim * nphase, ndim * nphase ), intent( in ) :: Material_Absorption
-      real, dimension( mat_nonods * nphase * ndim * ndim * 2 ), intent( in ) :: opt_vel_upwind_coefs
+      real, dimension( :, :, : ), intent( inout ) :: Material_Absorption_Stab
+      real, dimension( :, :, : ), intent( in ) :: Material_Absorption
+      real, dimension( : ), intent( in ) :: opt_vel_upwind_coefs
       integer, intent( in ) :: nphase, ndim, totele, cv_nloc, mat_nloc, mat_nonods
-      integer, dimension( totele * mat_nloc ), intent( in ) :: mat_ndgln
+      integer, dimension( : ), intent( in ) :: mat_ndgln
 
       logical :: use_mat_stab_stab
       integer :: apply_dim, idim, jdim, ipha_idim, iphase, ele, cv_iloc, ij, imat
@@ -1656,7 +1656,7 @@ SUBROUTINE relperm_corey_epsilon( ABSP, MOBILITY, INV_PERM, SAT, IPHASE,options 
 
       integer, intent( in ) :: ndim, nphase, mat_nonods 
       type( state_type ), dimension( : ), intent( in ) :: states
-      real, dimension( mat_nonods, ndim*nphase, ndim*nphase ), intent( inout ) :: velocity_absorption
+      real, dimension( :, :, : ), intent( inout ) :: velocity_absorption
 
       type( vector_field ), pointer :: absorption
       integer :: iphase, idim

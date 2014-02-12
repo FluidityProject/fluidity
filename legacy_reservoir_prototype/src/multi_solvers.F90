@@ -196,14 +196,14 @@ contains
     implicit none
     INTEGER, intent( in ) ::  NCOLCMC, CV_NONODS, totele, cv_nloc, x_nonods, IGOT_CMC_PRECON
 ! IGOT_CMC_PRECON=1 or 0 (1 if we have a preconditioning matrix)
-    REAL, DIMENSION( NCOLCMC ), intent( in ) ::  CMC
-    REAL, DIMENSION( NCOLCMC*IGOT_CMC_PRECON), intent( in ) ::  CMC_PRECON
-    REAL, DIMENSION( CV_NONODS ), intent( inout ) ::  P
-    REAL, DIMENSION( CV_NONODS ), intent( in ) :: RHS
-    INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCMC
-    INTEGER, DIMENSION( NCOLCMC ), intent( in ) :: COLCMC
-    INTEGER, DIMENSION( CV_NONODS ), intent( in ) :: MIDCMC
-    INTEGER, DIMENSION( cv_nloc*totele ), intent( in ) :: cv_ndgln, x_ndgln
+    REAL, DIMENSION( : ), intent( in ) ::  CMC
+    REAL, DIMENSION( :), intent( in ) ::  CMC_PRECON
+    REAL, DIMENSION( : ), intent( inout ) ::  P
+    REAL, DIMENSION( : ), intent( in ) :: RHS
+    INTEGER, DIMENSION( : ), intent( in ) :: FINDCMC
+    INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
+    INTEGER, DIMENSION( : ), intent( in ) :: MIDCMC
+    INTEGER, DIMENSION( : ), intent( in ) :: cv_ndgln, x_ndgln
 
     REAL ERROR, RELAX, RELAX_DIAABS, RELAX_DIA
     INTEGER N_LIN_ITS, NGL_ITS
@@ -529,14 +529,14 @@ contains
     ! It lumps the DG pressure matrix to a continuous pressure matrix...
     INTEGER, intent( in ) ::  MX_NCMC_SMALL,NCOLCMC, CV_NONODS,X_NONODS
     INTEGER, intent( inout ) ::  NCMC_SMALL
-    INTEGER, DIMENSION( x_NONODS + 1 ), intent( inout ) :: FINDCMC_SMALL
-    INTEGER, DIMENSION( MX_NCMC_SMALL ), intent( inout ) :: COLCMC_SMALL
-    INTEGER, DIMENSION( x_nonods ), intent( inout ) :: MIDCMC_SMALL
+    INTEGER, DIMENSION(: ), intent( inout ) :: FINDCMC_SMALL
+    INTEGER, DIMENSION( : ), intent( inout ) :: COLCMC_SMALL
+    INTEGER, DIMENSION( : ), intent( inout ) :: MIDCMC_SMALL
 
-    INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCMC
-    INTEGER, DIMENSION( NCOLCMC ), intent( in ) :: COLCMC
+    INTEGER, DIMENSION( : ), intent( in ) :: FINDCMC
+    INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
 
-    INTEGER, DIMENSION( CV_nonods ), intent( in ) :: MAP_DG2CTY
+    INTEGER, DIMENSION( : ), intent( in ) :: MAP_DG2CTY
     ! Local variables
     integer, dimension( : ), allocatable :: MX_NODS_ROW_SMALL, NODS_ROW_SMALL, &
          FINDCMC_SMALL_mx
@@ -659,12 +659,12 @@ contains
       implicit none
       REAL, intent( in ) :: ERROR, RELAX, RELAX_DIAABS, RELAX_DIA
       INTEGER, intent( in ) ::  N_LIN_ITS, NCMC, NONODS
-      REAL, DIMENSION( NCMC ), intent( in ) ::  CMC
-      REAL, DIMENSION( NONODS ), intent( inout ) ::  P
-      REAL, DIMENSION( NONODS ), intent( in ) :: RHS
-      INTEGER, DIMENSION( NONODS + 1 ), intent( in ) :: FINCMC
-      INTEGER, DIMENSION( NCMC ), intent( in ) :: COLCMC
-      INTEGER, DIMENSION( NONODS ), intent( in ) :: MIDCMC
+      REAL, DIMENSION( : ), intent( in ) ::  CMC
+      REAL, DIMENSION( : ), intent( inout ) ::  P
+      REAL, DIMENSION( : ), intent( in ) :: RHS
+      INTEGER, DIMENSION( : ), intent( in ) :: FINCMC
+      INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
+      INTEGER, DIMENSION( : ), intent( in ) :: MIDCMC
       ! Local variables
       INTEGER :: ITS, ILOOP, ISTART, IFINI, ISTEP, NOD, COUNT
       REAL :: R, SABS_DIAG, RTOP, RBOT, POLD, MAX_ERR
