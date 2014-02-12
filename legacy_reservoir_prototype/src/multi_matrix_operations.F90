@@ -122,15 +122,32 @@
       ! Local variables
       INTEGER :: ICOL, IM, JM
 !      INTEGER , DIMENSION(N,N) :: IPIV
-      INTEGER , DIMENSION(N) :: IPIV
+      INTEGER , DIMENSION(N ) :: IPIV
       REAL, DIMENSION( N, N ) :: MAT, MAT2
       REAL, DIMENSION( N ) :: X, B
 
-      integer, dimension(max(1,N*N)) :: WORK
+      real, dimension(max(1,N*N)) :: WORK
       integer :: LWORK
 
       integer info
-      external dgetrf, dgetri
+
+      interface
+         subroutine dgetrf(N,M,AINV,NMAX,IPIV,INFO)
+           integer :: N, M, NMAX, info
+           real, dimension(NMAX,M) :: AINV
+           integer, dimension(N) :: IPIV
+         end subroutine dgetrf
+      end interface
+
+      interface
+         subroutine dgetri(N,AINV,NMAX,IPIV,WORK,LWORK,INFO)
+           integer :: N, NMAX, info, LWORK
+           real, dimension(NMAX,N) :: AINV
+           integer, dimension(N) :: IPIV
+           real, dimension(LWORK) :: WORK
+         end subroutine dgetri
+      end interface
+
 
       Ainv=A
       LWORK=N*N
@@ -140,7 +157,7 @@
       if (info==0) then
          return
       else
-         FLAbort("PIVIT MAtrix block inversion failed")
+         FLAbort("PIVIT Matrix block inversion failed")
       end if
 
 !!$      Loop_Boolean: IF( .true. ) THEN
@@ -617,7 +634,7 @@
     SUBROUTINE PHA_BLOCK_INV( INV_PIVIT_MAT, PIVIT_MAT, TOTELE, NBLOCK )
       implicit none
       INTEGER, intent( in ) :: TOTELE, NBLOCK
-      REAL, DIMENSION( : , : , : ), intent( inout ), CONTIGUOUS  ::  INV_PIVIT_MAT 
+      REAL, DIMENSION( : , : , : ), intent( out ), CONTIGUOUS  ::  INV_PIVIT_MAT 
       REAL, DIMENSION( : , : , : ), intent( in ), CONTIGUOUS ::  PIVIT_MAT
       ! Local variables
       INTEGER :: ELE
@@ -625,7 +642,7 @@
 
       DO ELE = 1, TOTELE
 
-         INV_PIVIT_MAT(:,:,ele)=PIVIT_MAT(:,:,ele)
+!         INV_PIVIT_MAT(:,:,ele)=PIVIT_MAT(:,:,ele)
 
 !         CALL MATDMATINV( PIVIT_MAT(:,:,ele), INV_PIVIT_MAT(:,:,ele), NBLOCK )
          CALL MATINV(PIVIT_MAT(:,:,ele), INV_PIVIT_MAT(:,:,ele), NBLOCK, nblock )
