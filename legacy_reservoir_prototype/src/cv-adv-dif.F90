@@ -7375,13 +7375,13 @@ contains
                 FEMDGI = FEMDGI + SCVFEN( CV_KLOC, GI ) * ( SUF_D_BC( CV_SNODK_IPHA ) &
                      * INCOME + FEMDEN( CV_NODK_IPHA ) * ( 1. - INCOME ))
                 FEMDOLDGI = FEMDOLDGI + SCVFEN( CV_KLOC, GI ) * ( SUF_D_BC( CV_SNODK_IPHA ) &
-                     * INCOMEOLD + FEMDENOLD( CV_NODK_IPHA ) * ( 1. - INCOMEOLD ))
+                     * INCOMEOLD + FEMDENOLD( CV_NODK_IPHA ) * ( 1. - INCOMEOLD ) )
              END DO
           ENDIF
 
-       ELSE IF( ( ELE2 == 0 ).OR.( ELE2 == ELE ) ) THEN
+       ELSE IF( ( ELE2 == 0 ) .OR. ( ELE2 == ELE ) ) THEN
 
-          RSCALE=1.0 ! Scaling to reduce the downwind bias(=1downwind, =0central)
+          RSCALE = 1.0 ! Scaling to reduce the downwind bias(=1downwind, =0central)
           IF ( SCALE_DOWN_WIND ) THEN
 
              IF ( DOWNWIND_EXTRAP .AND. (courant_or_minus_one_new.GE.0.0) ) THEN
@@ -7394,9 +7394,9 @@ contains
                    DO CV_KLOC = 1, CV_NLOC
                       CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
                       CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
-                      TXGI=TXGI+SCVFENX( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
-                      IF(NDIM.GE.2) TYGI=TYGI+SCVFENY( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
-                      IF(NDIM.GE.3) TZGI=TZGI+SCVFENZ( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
+                      TXGI = TXGI + SCVFENX( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
+                      IF(NDIM.GE.2) TYGI = TYGI + SCVFENY( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
+                      IF(NDIM.GE.3) TZGI = TZGI + SCVFENZ( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
                    END DO
 
                    UDGI=0.0
@@ -7405,9 +7405,9 @@ contains
                    DO U_KLOC = 1, U_NLOC
                       U_NODK = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC )
                       U_NODK_IPHA = U_NODK + ( IPHASE - 1 ) * U_NONODS
-                      UDGI=UDGI+SUFEN( U_KLOC, GI )*U(U_NODK_IPHA)
-                      IF(NDIM.GE.2) VDGI=VDGI+SUFEN( U_KLOC, GI )*V(U_NODK_IPHA)
-                      IF(NDIM.GE.3) WDGI=WDGI+SUFEN( U_KLOC, GI )*W(U_NODK_IPHA)
+                      UDGI = UDGI + SUFEN( U_KLOC, GI ) * U(U_NODK_IPHA)
+                      IF(NDIM.GE.2) VDGI = VDGI+SUFEN( U_KLOC, GI ) * V(U_NODK_IPHA)
+                      IF(NDIM.GE.3) WDGI = WDGI+SUFEN( U_KLOC, GI ) * W(U_NODK_IPHA)
                    END DO
 
                    ! cosine rule with velocity and normal:
@@ -7423,15 +7423,15 @@ contains
                    VEC_VEL(2)=VDGI
                    VEC_VEL(3)=WDGI
                    VEC_VEL2=0.0
-                   DO IDIM=1,NDIM
-                      VEC_VEL2(IDIM)=SUM( INV_JAC(IDIM, 1:NDIM, GI)*VEC_VEL(1:NDIM) )
+                   DO IDIM = 1, NDIM
+                      VEC_VEL2(IDIM) = SUM( INV_JAC(IDIM, 1:NDIM, GI) * VEC_VEL(1:NDIM) )
                    END DO
                    ! normalize the velocity in here: 
-                   !                  VEC_VEL2=VEC_VEL2/TOLFUN(SQRT( UDGI**2+VDGI**2+WDGI**2))
+                   !VEC_VEL2=VEC_VEL2/TOLFUN(SQRT( UDGI**2+VDGI**2+WDGI**2))
 
-                   ELE_LENGTH_SCALE=0.5*SQRT( (UDGI**2+VDGI**2+WDGI**2)/TOLFUN( SUM( VEC_VEL2(1:NDIM)**2 ))  )
-                   !                  ELE_LENGTH_SCALE=1.0/TOLFUN( SQRT(SUM( VEC_VEL2(1:NDIM)**2 )) )  
-                   !                  ELE_LENGTH_SCALE=0.5*HDC
+                   ELE_LENGTH_SCALE = 0.5 * SQRT( (UDGI**2+VDGI**2+WDGI**2) / TOLFUN( SUM( VEC_VEL2(1:NDIM)**2 ) ) )
+                   !ELE_LENGTH_SCALE=1.0/TOLFUN( SQRT(SUM( VEC_VEL2(1:NDIM)**2 )) )  
+                   !ELE_LENGTH_SCALE=0.5*HDC
                    ! For discontinuous elements half the length scale...
                    IF(U_NONODS==CV_NONODS) ELE_LENGTH_SCALE=0.5*ELE_LENGTH_SCALE
                    ! For quadratic elements...
@@ -7450,21 +7450,21 @@ contains
                       CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
                       !if(cv_nonods==u_nonods) then ! DG
                       if(.true.) then 
-                         TXGI=TXGI+SCVFENX( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
-                         IF(NDIM.GE.2) TYGI=TYGI+SCVFENY( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
-                         IF(NDIM.GE.3) TZGI=TZGI+SCVFENZ( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
-                         TGI=TGI+SCVFEN( CV_KLOC, GI )*FEMT(CV_NODK_IPHA)
-                         TOLDGI=TOLDGI+SCVFEN( CV_KLOC, GI )*FEMTOLD(CV_NODK_IPHA)
+                         TXGI = TXGI+SCVFENX( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
+                         IF(NDIM.GE.2) TYGI = TYGI+SCVFENY( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
+                         IF(NDIM.GE.3) TZGI = TZGI+SCVFENZ( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
+                         TGI = TGI + SCVFEN( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
+                         TOLDGI = TOLDGI + SCVFEN( CV_KLOC, GI ) * FEMTOLD(CV_NODK_IPHA)
                       else
-                         TXGI=TXGI+SCVFENX( CV_KLOC, GI )*T(CV_NODK_IPHA)
-                         IF(NDIM.GE.2) TYGI=TYGI+SCVFENY( CV_KLOC, GI )*T(CV_NODK_IPHA)
-                         IF(NDIM.GE.3) TZGI=TZGI+SCVFENZ( CV_KLOC, GI )*T(CV_NODK_IPHA)
-                         TGI=TGI+SCVFEN( CV_KLOC, GI )*T(CV_NODK_IPHA)
-                         TOLDGI=TOLDGI+SCVFEN( CV_KLOC, GI )*TOLD(CV_NODK_IPHA)
+                         TXGI = TXGI + SCVFENX( CV_KLOC, GI ) * T(CV_NODK_IPHA)
+                         IF(NDIM.GE.2) TYGI=TYGI + SCVFENY( CV_KLOC, GI ) * T(CV_NODK_IPHA)
+                         IF(NDIM.GE.3) TZGI=TZGI + SCVFENZ( CV_KLOC, GI ) * T(CV_NODK_IPHA)
+                         TGI = TGI + SCVFEN( CV_KLOC, GI ) * T(CV_NODK_IPHA)
+                         TOLDGI = TOLDGI + SCVFEN( CV_KLOC, GI ) * TOLD(CV_NODK_IPHA)
                       endif
                    END DO
 
-                   TDTGI=(TGI-TOLDGI)/DT
+                   TDTGI = (TGI-TOLDGI) / DT
                    TDTGI=0.0
 
                    UDGI=0.0
@@ -7473,23 +7473,23 @@ contains
                    DO U_KLOC = 1, U_NLOC
                       U_NODK = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC )
                       U_NODK_IPHA = U_NODK + ( IPHASE - 1 ) * U_NONODS
-                      UDGI=UDGI+SUFEN( U_KLOC, GI )*U(U_NODK_IPHA)
-                      IF(NDIM.GE.2) VDGI=VDGI+SUFEN( U_KLOC, GI )*V(U_NODK_IPHA)
-                      IF(NDIM.GE.3) WDGI=WDGI+SUFEN( U_KLOC, GI )*W(U_NODK_IPHA)
+                      UDGI = UDGI + SUFEN( U_KLOC, GI ) * U(U_NODK_IPHA)
+                      IF(NDIM.GE.2) VDGI = VDGI+SUFEN( U_KLOC, GI ) * V(U_NODK_IPHA)
+                      IF(NDIM.GE.3) WDGI = WDGI+SUFEN( U_KLOC, GI ) * W(U_NODK_IPHA)
                    END DO
 
-                   U_DOT_GRADT_GI=TDTGI + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
+                   U_DOT_GRADT_GI = TDTGI + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
 
-                   !                  COEF=U_DOT_GRADT_GI/TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 )
-                   IF(NON_LIN_PETROV_INTERFACE==5) THEN 
-                      COEF=1.0 / TOLFUN( SQRT( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 ) )
+                   !COEF=U_DOT_GRADT_GI/TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 )
+                   IF ( NON_LIN_PETROV_INTERFACE == 5 ) THEN 
+                      COEF = 1.0 / TOLFUN( SQRT( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 ) )
                    ELSE
-                      COEF=U_DOT_GRADT_GI / TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 )
-                   ENDIF
-                   A_STAR_T=COEF*TDTGI
-                   A_STAR_X=COEF*TXGI
-                   A_STAR_Y=COEF*TYGI
-                   A_STAR_Z=COEF*TZGI
+                      COEF = U_DOT_GRADT_GI / TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 )
+                   END IF
+                   A_STAR_T = COEF * TDTGI
+                   A_STAR_X = COEF * TXGI
+                   A_STAR_Y = COEF * TYGI
+                   A_STAR_Z = COEF * TZGI
                    ! residual based does not work so well...
                    !                  RESIDGI=(TGI-TOLDGI)/DT + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
                    !                  RESIDGI=TDTGI + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
@@ -8058,13 +8058,8 @@ contains
          TUPWIN, TUPWI2
     INTEGER :: CV_NODI, CV_NODJ, COUNT
 
-
-
     CV_NODI = CV_NODI_IPHA-(IPHASE-1)*CV_NONODS
     CV_NODJ = CV_NODJ_IPHA-(IPHASE-1)*CV_NONODS
-
-
-
 
     IF ( LIM_VOL_ADJUST ) THEN
        RESET_STORE = .FALSE.
@@ -8078,7 +8073,7 @@ contains
        CALL CAL_LIM_VOL_ADJUST( TOLDMAX_STORE, TOLDMAX, TOLD, TOLDMAX_NOD, RESET_STORE, MASS_CV, &
             CV_NODI_IPHA, CV_NODJ_IPHA, IPHASE, CV_NONODS, NPHASE, INCOMEOLD )
 
-       CALL CAL_LIM_VOL_ADJUST( DENMIN_STORE,DENMIN,DEN,DENMIN_NOD, RESET_STORE, MASS_CV, &
+       CALL CAL_LIM_VOL_ADJUST( DENMIN_STORE, DENMIN, DEN, DENMIN_NOD, RESET_STORE, MASS_CV, &
             CV_NODI_IPHA, CV_NODJ_IPHA, IPHASE, CV_NONODS, NPHASE, INCOME )
        CALL CAL_LIM_VOL_ADJUST( DENMAX_STORE, DENMAX, DEN, DENMAX_NOD, RESET_STORE, MASS_CV, &
             CV_NODI_IPHA, CV_NODJ_IPHA, IPHASE, CV_NONODS, NPHASE, INCOME )
