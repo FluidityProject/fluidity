@@ -174,7 +174,7 @@ contains
     call initialise_femdem
 
     r_nonods = node_count( positions_r )
-    allocate( rho_r( r_nonods), p_r( r_nonods ), &
+    allocate( rho_r( r_nonods ), p_r( r_nonods ), &
          &    u_r( r_nonods ), v_r( r_nonods ), u_s( r_nonods ), v_s( r_nonods ) )
     call interpolate_fields( states, nphase, u_nonods, cv_nonods, r_nonods, &
          &                   cv_nloc, totele, cv_ndgln, &
@@ -666,6 +666,10 @@ contains
     real, dimension( : ), allocatable :: u_tmp, v_tmp
     integer, dimension( : ), pointer :: fl_ele_nodes
     integer :: ele, totele, u_nloc, nlev, i, j, k, number_nodes
+    character(len=option_path_len) :: vel_element_type
+    logical :: is_overlapping
+    character( len = OPTION_PATH_LEN ) :: &
+         path = "/tmp/galerkin_projection/continuous"
 
     u_r = 0. ; v_r = 0. ; p_r = 0. ; rho_r = 0.
 
@@ -675,6 +679,15 @@ contains
     u_mesh => extract_mesh( states( 1 ), "VelocityMesh" )
 
     totele = ele_count( fl_mesh )
+
+    call set_solver_options( path, &
+         ksptype = "cg", &
+         pctype = "mg", &
+         rtol = 1.e-10, &
+         atol = 0., &
+         max_its = 10000 )
+
+    path = "/tmp"
 
     call allocate( field_fl_rho, fl_mesh, "Density" )
     call zero( field_fl_rho )
@@ -723,6 +736,11 @@ contains
 
     allocate( u_tmp( number_nodes * nphase ) ) ; u_tmp = 0.
     allocate( v_tmp( number_nodes * nphase ) ) ; v_tmp = 0.
+
+    call get_option('/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
+         vel_element_type)
+    is_overlapping = .false.
+    if ( trim( vel_element_type ) == "overlapping" ) is_overlapping = .true.
 
     if ( is_overlapping ) then
        pressure => extract_scalar_field( states( 1 ), "Pressure" )
@@ -775,18 +793,22 @@ contains
 
     call allocate( field_ext_rho, fl_mesh, "Density" )
     call zero( field_ext_rho )
+    field_ext_rho % option_path = path
     call insert( alg_ext, field_ext_rho, "Density" )
 
     call allocate( field_ext_p, fl_mesh, "Pressure" )
     call zero( field_ext_p )
+    field_ext_p % option_path = path
     call insert( alg_ext, field_ext_p, "Pressure" )
 
     call allocate( field_ext_u, fl_mesh, "Velocity1" )
     call zero( field_ext_u )
+    field_ext_u % option_path = path
     call insert( alg_ext, field_ext_u, "Velocity1" )
 
     call allocate( field_ext_v, fl_mesh, "Velocity2" )
     call zero( field_ext_v )
+    field_ext_v % option_path = path
     call insert( alg_ext, field_ext_v, "Velocity2" )
 
     ewrite(3,*) "...interpolating"
@@ -1199,19 +1221,5 @@ contains
 
     return
   end function triangle_area
-
-  logical function is_overlapping()
-
-    implicit none
-
-    character(len=option_path_len) :: vel_element_type
-
-    call get_option('/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
-         vel_element_type)
-    is_overlapping = .false.
-    if ( trim( vel_element_type ) == "overlapping" ) is_overlapping = .true.
-  
-    return
-  end function is_overlapping
 
 end module multiphase_fractures
