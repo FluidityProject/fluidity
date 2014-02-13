@@ -43,11 +43,11 @@
       ! perform VEC = C^T * P, matrix vector multiplication
 
       INTEGER, intent( in ) :: FREDOP, NONODS, NCOLCT
-      REAL, DIMENSION( FREDOP ), intent( inout ) :: VEC 
-      REAL, DIMENSION( NCOLCT ), intent( inout ) :: CT
-      REAL, DIMENSION( NONODS ), intent( in ) :: U
-      INTEGER, DIMENSION( NONODS + 1 ), intent( in ) :: FINDCT 
-      INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
+      REAL, DIMENSION( : ), intent( inout ) :: VEC
+      REAL, DIMENSION( : ), intent( inout ) :: CT
+      REAL, DIMENSION( : ), intent( in ) :: U
+      INTEGER, DIMENSION( : ), intent( in ) :: FINDCT
+      INTEGER, DIMENSION( : ), intent( in ) :: COLCT
       ! Local variables
       INTEGER :: PNOD, COUNT, COL
 
@@ -71,11 +71,11 @@
       ! perform VEC = C * P, matrix vector multiplication
 
       INTEGER, intent( in ) :: FREDOP, NONODS, NCOLCT
-      REAL, DIMENSION( NONODS ), intent( inout ) :: VEC 
-      REAL, DIMENSION( NCOLCT ), intent( inout ) :: CT
-      REAL, DIMENSION( FREDOP ), intent( in ) :: P
-      INTEGER, DIMENSION( NONODS + 1 ), intent( in ) :: FINDCT 
-      INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
+      REAL, DIMENSION( : ), intent( inout ) :: VEC
+      REAL, DIMENSION( : ), intent( inout ) :: CT
+      REAL, DIMENSION( : ), intent( in ) :: P
+      INTEGER, DIMENSION( : ), intent( in ) :: FINDCT
+      INTEGER, DIMENSION( : ), intent( in ) :: COLCT
       ! Local variables
       INTEGER :: PNOD, COUNT, COL
 
@@ -221,7 +221,7 @@
     SUBROUTINE MATMASSINV( MASINV, MMAT, NONODS, NLOC, TOTELE )
       IMPLICIT NONE
       INTEGER, intent( in ) :: NONODS, NLOC, TOTELE
-      REAL, DIMENSION( NONODS, NONODS ), intent( inout ) ::  MASINV, MMAT
+      REAL, DIMENSION( :, : ), intent( inout ) ::  MASINV, MMAT
       ! matrix is   AGI   BGI
       !             CGI   DGI
       ! Local variables
@@ -261,9 +261,9 @@
     SUBROUTINE SMLINN( A, X, B, NMX, N )
       IMPLICIT NONE
       INTEGER, intent( in ) :: NMX, N
-      REAL, DIMENSION( NMX, NMX ), intent( inout ) :: A
-      REAL, DIMENSION( NMX ), intent( inout ) :: X
-      REAL, DIMENSION( NMX ), intent( in ) :: B
+      REAL, DIMENSION( :, : ), intent( inout ) :: A
+      REAL, DIMENSION( : ), intent( inout ) :: X
+      REAL, DIMENSION( : ), intent( in ) :: B
       ! Local
       REAL :: R
       INTEGER ::  K, I, J
@@ -308,9 +308,9 @@
     SUBROUTINE SMLINNGOT( A, X, B, NMX, N, IPIV, GOTDEC )
       IMPLICIT NONE
       INTEGER :: NMX, N
-      REAL, DIMENSION( NMX, NMX ), intent( inout ) :: A
-      real, DIMENSION( NMX ), intent( inout ) :: X ! inout as n might be < nmx
-      real, DIMENSION( NMX ), intent( in ) ::  B
+      REAL, DIMENSION( :, : ), intent( inout ) :: A
+      real, DIMENSION( : ), intent( inout ) :: X ! inout as n might be < nmx
+      real, DIMENSION( : ), intent( in ) ::  B
       LOGICAL, intent( in ) :: GOTDEC
       ! Local     
       REAL :: R
@@ -347,9 +347,9 @@
       ! Perform matrix matrix multiplication: AB = A * B
       IMPLICIT NONE
       INTEGER, intent( in ) :: NONODS1, NONODS2, NONODS3, NONODS4
-      REAL, DIMENSION( NONODS1, NONODS4 ), intent( inout ) :: AB
-      REAL, DIMENSION( NONODS1, NONODS2 ), intent( in )    :: A
-      REAL, DIMENSION( NONODS3, NONODS4 ), intent( in )    :: B
+      REAL, DIMENSION( :, : ), intent( inout ) :: AB
+      REAL, DIMENSION( :, : ), intent( in )    :: A
+      REAL, DIMENSION( :, : ), intent( in )    :: B
       ! Local
       INTEGER :: I, J, II
       !          IF(NONODS2.NE.NONODS3) STOP 8329
@@ -386,20 +386,20 @@
       ! form pressure matrix CMC using a colouring approach
       INTEGER, intent( in ) :: CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLC, &
            TOTELE, U_NLOC, NCOLCT, NCOLCMC, IGOT_CMC_PRECON
-      INTEGER, DIMENSION( U_NONODS + 1 ), intent( in ) ::FINDC
-      INTEGER, DIMENSION( NCOLC ), intent( in ) :: COLC
-      REAL, DIMENSION( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM ), intent( in ) :: INV_PIVIT_MAT
-      INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) ::  U_NDGLN
-      INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
-      INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
-      REAL, DIMENSION( CV_NONODS ), intent( in ) :: DIAG_SCALE_PRES
-      REAL, DIMENSION( NCOLCMC ), intent( inout ) :: CMC
-      REAL, DIMENSION( NCOLCMC*IGOT_CMC_PRECON ), intent( inout ) :: CMC_PRECON
-      REAL, DIMENSION( NCOLCMC ), intent( in ) :: MASS_MN_PRES
-      INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCMC
-      INTEGER, DIMENSION( NCOLCMC ), intent( in ) :: COLCMC
-      REAL, DIMENSION( NCOLC * NDIM * NPHASE ), intent( in ) :: C 
-      REAL, DIMENSION( NCOLCT * NDIM * NPHASE ), intent( inout ) :: CT
+      INTEGER, DIMENSION( : ), intent( in ) ::FINDC
+      INTEGER, DIMENSION( : ), intent( in ) :: COLC
+      REAL, DIMENSION( :, :, : ), intent( in ) :: INV_PIVIT_MAT
+      INTEGER, DIMENSION( : ), intent( in ) ::  U_NDGLN
+      INTEGER, DIMENSION( : ), intent( in ) :: FINDCT
+      INTEGER, DIMENSION( : ), intent( in ) :: COLCT
+      REAL, DIMENSION( : ), intent( in ) :: DIAG_SCALE_PRES
+      REAL, DIMENSION( : ), intent( inout ) :: CMC
+      REAL, DIMENSION( : ), intent( inout ) :: CMC_PRECON
+      REAL, DIMENSION( : ), intent( in ) :: MASS_MN_PRES
+      INTEGER, DIMENSION( : ), intent( in ) :: FINDCMC
+      INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
+      REAL, DIMENSION( : ), intent( in ) :: C
+      REAL, DIMENSION( : ), intent( inout ) :: CT
 
       ! Local variables
       INTEGER, PARAMETER :: MX_NCOLOR = 1000
@@ -661,10 +661,10 @@
       implicit none
       ! U = BLOCK_MAT * CDP
       INTEGER, intent( in )  :: U_NONODS, NDIM, NPHASE, TOTELE, U_NLOC
-      INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ), target ::  U_NDGLN
-      REAL, DIMENSION( U_NONODS * NDIM * NPHASE ), intent( inout ) :: U
-      REAL, DIMENSION( U_NLOC * NDIM * NPHASE, U_NLOC * NDIM * NPHASE,TOTELE ), intent( in ), target :: BLOCK_MAT
-      REAL, DIMENSION( U_NONODS * NDIM * NPHASE ), intent( in ) :: CDP
+      INTEGER, DIMENSION( : ), intent( in ), target ::  U_NDGLN
+      REAL, DIMENSION( : ), intent( inout ) :: U
+      REAL, DIMENSION( :, :,: ), intent( in ), target :: BLOCK_MAT
+      REAL, DIMENSION( : ), intent( in ) :: CDP
       ! Local 
       INTEGER :: ELE, U_ILOC, U_INOD, IDIM, IPHASE, I, U_JLOC, U_JNOD, JDIM, JPHASE, J, II, JJ
 
@@ -758,15 +758,15 @@
       ! CV_RHS=CT*U
       implicit none
       INTEGER, intent( in ) :: CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLCT
-      REAL, DIMENSION( CV_NONODS ), intent( out) :: CV_RHS
-      REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: U, V, W  
-      INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
-      INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
-      REAL, DIMENSION( NCOLCT * NDIM * NPHASE ), intent( in ) :: CT
+      REAL, DIMENSION( : ), intent( out) :: CV_RHS
+      REAL, DIMENSION( : ), intent( in ) :: U, V, W
+      INTEGER, DIMENSION( : ), intent( in ) :: FINDCT
+      INTEGER, DIMENSION( : ), intent( in ) :: COLCT
+      REAL, DIMENSION( : ), intent( in ) :: CT
 
-      real, dimension( ncolct) :: CTU
 
       ! Local variables
+      real, dimension( ncolct) :: CTU
       INTEGER :: CV_INOD, COUNT, U_JNOD, IPHASE, i,J,k
       integer, pointer :: countp
 
@@ -798,11 +798,11 @@
       implicit none
       ! CDP=C*DP
       INTEGER, intent( in ) :: CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLC
-      REAL, DIMENSION( U_NONODS * NDIM * NPHASE ), intent( inout ) :: CDP
-      REAL, DIMENSION( CV_NONODS ), intent( in )  :: DP
-      REAL, DIMENSION( NCOLC * NDIM * NPHASE ), intent( in ), target :: C
-      INTEGER, DIMENSION( U_NONODS + 1 ), intent( in ) ::FINDC
-      INTEGER, DIMENSION( NCOLC ), intent( in ), target :: COLC
+      REAL, DIMENSION( : ), intent( inout ) :: CDP
+      REAL, DIMENSION( : ), intent( in )  :: DP
+      REAL, DIMENSION( : ), intent( in ), target :: C
+      INTEGER, DIMENSION( : ), intent( in ) ::FINDC
+      INTEGER, DIMENSION( : ), intent( in ), target :: COLC
       ! Local variables
       INTEGER :: U_INOD, COUNT, P_JNOD, IPHASE, I1, IDIM, COUNT_DIM_PHA,j,dim_pha
       integer, dimension(:), pointer :: P_JNODV
@@ -837,11 +837,11 @@
       implicit none
       ! DP= (C)^T U_LONG
       INTEGER, intent( in ) :: CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLC
-      REAL, DIMENSION( U_NONODS * NDIM * NPHASE ), intent( in ) :: U_LONG
-      REAL, DIMENSION( CV_NONODS ), intent( inout )  :: DP
-      REAL, DIMENSION( NCOLC * NDIM * NPHASE ), intent( in ) :: C
-      INTEGER, DIMENSION( U_NONODS + 1 ), intent( in ) ::FINDC
-      INTEGER, DIMENSION( NCOLC ), intent( in ) :: COLC
+      REAL, DIMENSION( : ), intent( in ) :: U_LONG
+      REAL, DIMENSION( : ), intent( inout )  :: DP
+      REAL, DIMENSION( : ), intent( in ) :: C
+      INTEGER, DIMENSION( : ), intent( in ) ::FINDC
+      INTEGER, DIMENSION( : ), intent( in ) :: COLC
       ! Local variables
       INTEGER :: U_INOD, COUNT, P_JNOD, IPHASE, I1, IDIM, COUNT_DIM_PHA
 
@@ -879,8 +879,8 @@
     SUBROUTINE ULONG_2_UVW( U, V, W, UP, U_NONODS, NDIM, NPHASE)
       implicit none
       INTEGER, intent( in ) :: U_NONODS, NDIM, NPHASE
-      REAL, DIMENSION( U_NONODS * NPHASE ), intent( inout ) :: U,V,W
-      REAL, DIMENSION( U_NONODS * NDIM * NPHASE ), intent( in ) :: UP
+      REAL, DIMENSION( : ), intent( inout ) :: U,V,W
+      REAL, DIMENSION( : ), intent( in ) :: UP
       ! local variables...
       INTEGER :: IPHASE
       DO IPHASE = 1, NPHASE
@@ -904,8 +904,8 @@
       implicit none
       integer, intent( inout ) :: posmat
       integer, intent( in ) :: globi, globj, nonods, ncolm
-      integer, dimension( nonods + 1 ), intent( in ) :: findrm
-      integer, dimension( ncolm ), intent( in ) :: colm
+      integer, dimension( : ), intent( in ) :: findrm
+      integer, dimension( : ), intent( in ) :: colm
       ! Local variables
       integer, parameter :: nmax = 1000000
       integer :: inum, lower, upper, count

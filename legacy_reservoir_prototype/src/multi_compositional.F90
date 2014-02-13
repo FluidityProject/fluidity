@@ -259,14 +259,14 @@
       INTEGER, intent( in ) :: NDIM, NPHASE, NCOMP_DIFF_COEF, &
            COMP_DIFFUSION_OPT, MAT_NONODS, TOTELE, MAT_NLOC, CV_NLOC, U_NLOC, X_NLOC, &
            CV_SNLOC, U_SNLOC, X_NONODS, U_NONODS, CV_NONODS, U_ELE_TYPE, P_ELE_TYPE
-      REAL, DIMENSION( MAT_NONODS, NDIM, NDIM, NPHASE ), intent( in ) :: COMP_DIFFUSION
-      REAL, DIMENSION( NCOMP_DIFF_COEF, NPHASE ), intent( in ) :: COMP_DIFF_COEF
-      REAL, DIMENSION( X_NONODS ), intent( in ) :: X, Y, Z
-      REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: NU, NV, NW
-      INTEGER, DIMENSION( TOTELE * MAT_NLOC ), intent( in ) :: MAT_NDGLN
-      INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN
-      INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: X_NDGLN
-      REAL, DIMENSION( MAT_NONODS * NPHASE * NDIM), intent( inout ) :: MAT_U
+      REAL, DIMENSION( :, :, :, : ), intent( in ) :: COMP_DIFFUSION
+      REAL, DIMENSION( :, : ), intent( in ) :: COMP_DIFF_COEF
+      REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
+      REAL, DIMENSION( : ), intent( in ) :: NU, NV, NW
+      INTEGER, DIMENSION( : ), intent( in ) :: MAT_NDGLN
+      INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
+      INTEGER, DIMENSION( : ), intent( in ) :: X_NDGLN
+      REAL, DIMENSION( :), intent( inout ) :: MAT_U
       ! Determine MAT_U from NU,NV,NW which are these variables mapped to material mesh. 
 
       ! Local variables
@@ -595,8 +595,8 @@
 
       INTEGER, intent( in ) :: NDIM
       REAL, intent( in ) :: DIFF_molecular, DIFF_longitudinal, DIFF_transverse
-      REAL, DIMENSION( NDIM ), intent( in ) :: UD
-      REAL, DIMENSION( NDIM, NDIM ), intent( inout ) :: DIFF_TEN
+      REAL, DIMENSION( : ), intent( in ) :: UD
+      REAL, DIMENSION( :, : ), intent( inout ) :: DIFF_TEN
 
       ! Local variables...
       REAL, PARAMETER :: TOLER = 1.0E-10
@@ -647,10 +647,10 @@
       implicit none
       integer, intent( in ) :: cv_nonods, nphase, ncomp, icomp
       logical, intent( in ) :: KComp_Sigmoid
-      real, dimension( cv_nonods * nphase ), intent( in ) :: Satura
-      real, dimension( ncomp, nphase, nphase ), intent( in ) :: K_Comp
+      real, dimension( : ), intent( in ) :: Satura
+      real, dimension( :, :, : ), intent( in ) :: K_Comp
       real, intent( in ) :: max_k, min_k 
-      real, dimension( ncomp, cv_nonods, nphase, nphase ), intent( inout ) :: K_Comp2
+      real, dimension( :, :, :, : ), intent( inout ) :: K_Comp2
       ! Local variables
       integer :: iphase, jphase, cv_nod
       real, parameter :: Width = 0.1, Err = 1.e-6, Sat = 0.9
@@ -751,10 +751,10 @@
       implicit none
       integer, intent( in ) :: cv_nonods, nphase, ncomp2, its, nits
       real, intent( in ) :: dt
-      real, dimension( cv_nonods * nphase ), intent( inout ) :: V_SOURCE_COMP
-      real, dimension( cv_nonods ), intent( in ) :: MEAN_PORE_CV
-      real, dimension( cv_nonods * nphase ), intent( in ) :: SATURA, SATURAOLD
-      real, dimension( cv_nonods * nphase * ncomp2 ), intent( in ) :: COMP, COMPOLD, DEN_COMP, DENOLD_COMP
+      real, dimension( : ), intent( inout ) :: V_SOURCE_COMP
+      real, dimension( : ), intent( in ) :: MEAN_PORE_CV
+      real, dimension( : ), intent( in ) :: SATURA, SATURAOLD
+      real, dimension( : ), intent( in ) :: COMP, COMPOLD, DEN_COMP, DENOLD_COMP
 
       ! the relaxing (sum2one_relax) is to help convergence. 
       ! =1 is full adjustment to make sure we have sum to 1. 

@@ -98,17 +98,17 @@ contains
     implicit none
 
     integer, intent( in ) :: totele, cv_nonods, u_nonods, nphase, ndim, cv_nloc
-    integer, dimension( totele * cv_nloc ), intent( in ) :: cv_ndgln
+    integer, dimension( : ), intent( in ) :: cv_ndgln
     real, intent( in ) :: dt
-    real, dimension( nphase * cv_nonods ), intent( in ) :: rho
-    real, dimension( nphase * u_nonods ), intent( in ) :: u, v
-    real, dimension( cv_nonods ), intent( in ) :: p
+    real, dimension( : ), intent( in ) :: rho
+    real, dimension( : ), intent( in ) :: u, v
+    real, dimension( : ), intent( in ) :: p
     type( state_type ), dimension( : ), intent( in ) :: states
 
-    real, dimension( totele * cv_nloc, ndim * nphase, ndim * nphase ), intent( inout ) :: absorption
-    real, dimension( totele, ndim, ndim ), intent( inout ) :: perm
-    real, dimension( totele ), intent( inout ) :: porosity
-
+    real, dimension( :, :, : ), intent( inout ) :: absorption
+    real, dimension( :, :, : ), intent( inout ) :: perm
+    real, dimension( : ), intent( inout ) :: porosity
+    !Local variables
     real, dimension( : ), allocatable :: vf, rho_r, p_r, u_r, v_r, u_s, v_s
     integer :: r_nonods
 
@@ -155,16 +155,16 @@ contains
     implicit none
 
     integer, intent( in ) :: totele, cv_nonods, u_nonods, nphase, ndim, cv_nloc
-    integer, dimension( totele * cv_nloc ), intent( in ) :: cv_ndgln
+    integer, dimension( : ), intent( in ) :: cv_ndgln
     real, intent( in ) :: dt
-    real, dimension( nphase * cv_nonods ), intent( in ) :: rho
-    real, dimension( nphase * u_nonods ), intent( in ) :: u, v
-    real, dimension( cv_nonods ), intent( in ) :: p
+    real, dimension( : ), intent( in ) :: rho
+    real, dimension( : ), intent( in ) :: u, v
+    real, dimension( : ), intent( in ) :: p
     type( state_type ), dimension( : ), intent( in ) :: states
 
-    real, dimension( totele * cv_nloc, ndim * nphase, ndim * nphase ), intent( inout ) :: absorption
-    real, dimension( totele, ndim, ndim ), intent( inout ) :: perm
-    real, dimension( totele ), intent( inout ) :: porosity
+    real, dimension( :, :, : ), intent( inout ) :: absorption
+    real, dimension( :, :, : ), intent( inout ) :: perm
+    real, dimension( : ), intent( inout ) :: porosity
 
     real, dimension( : ), allocatable :: rho_r, p_r, u_r, v_r, u_s, v_s 
     integer :: r_nonods
@@ -348,8 +348,8 @@ contains
 
     integer, intent( in ) :: totele
     type( state_type ), dimension( : ), intent( in ) :: states
-    real, dimension( totele ), intent( inout ) :: vf
-
+    real, dimension( : ), intent( inout ) :: vf
+    !Local variables
     type( state_type ) :: alg_ext, alg_fl
     type( mesh_type ), pointer :: fl_mesh, p0_fl_mesh
     type( vector_field ) :: fl_positions
@@ -401,12 +401,12 @@ contains
     implicit none
 
     integer, intent( in ) :: totele, cv_nloc, cv_nonods, ndim, nphase
-    integer, dimension( totele*cv_nloc ), intent( in ) :: cv_ndgln
+    integer, dimension( : ), intent( in ) :: cv_ndgln
     real, intent( in ) :: dt
-    real, dimension( totele ), intent( in ) :: vf
-    real, dimension( nphase * cv_nonods), intent( in ) :: rho
+    real, dimension( : ), intent( in ) :: vf
+    real, dimension( :), intent( in ) :: rho
 
-    real, dimension( totele * cv_nloc, ndim * nphase, ndim * nphase ), intent( inout ) :: absorption
+    real, dimension( :, :, : ), intent( inout ) :: absorption
 
     integer :: ele, iloc, mi, ci, iphase, idim, idx
     real :: sigma
@@ -443,10 +443,10 @@ contains
 
     type( state_type ), dimension( : ), intent( in ) :: states
     integer, intent( in ) :: totele
-    real, dimension( totele ), intent( in ) :: vf
+    real, dimension( : ), intent( in ) :: vf
 
-    real, dimension( totele ), intent( inout ) :: porosity
-
+    real, dimension( : ), intent( inout ) :: porosity
+    !Local variables
     real :: phi_rock
     type( scalar_field ), pointer :: phi_matrix
     integer :: ele
@@ -478,10 +478,10 @@ contains
 
     integer, intent( in ) :: totele, ndim
     type( state_type ), dimension( : ), intent( in ) :: states
-    real, dimension( totele ), intent( in ) :: vf
+    real, dimension( : ), intent( in ) :: vf
 
-    real, dimension( totele, ndim, ndim ), intent( inout ) :: perm
-
+    real, dimension( :, :, : ), intent( inout ) :: perm
+    !Local variables
     type( state_type ) :: alg_ext, alg_fl
     type( mesh_type ), pointer :: fl_mesh, p0_fl_mesh
     type( vector_field ) :: fl_positions
@@ -652,13 +652,13 @@ contains
 
     type( state_type ), dimension( : ), intent( in ) :: states
     integer, intent( in ) :: nphase, u_nonods, cv_nonods, r_nonods, cv_nloc 
-    integer, dimension( totele * cv_nloc ), intent( in ) :: cv_ndgln
-    real, dimension( nphase * u_nonods ), intent( in ) :: u, v
+    integer, dimension( : ), intent( in ) :: cv_ndgln
+    real, dimension( : ), intent( in ) :: u, v
   
-    real, dimension( cv_nonods ), intent( in ) :: rho
-    real, dimension( cv_nonods ), intent( in ) :: p
-    real, dimension( r_nonods ), intent( inout ) :: u_r, v_r, p_r, rho_r
-
+    real, dimension( : ), intent( in ) :: rho
+    real, dimension( : ), intent( in ) :: p
+    real, dimension( : ), intent( inout ) :: u_r, v_r, p_r, rho_r
+    !Local variables
     type( mesh_type ), pointer :: fl_mesh, u_mesh
     type( scalar_field ) :: field_fl_rho, field_fl_p, field_fl_u, field_fl_v, &
          &                  field_ext_rho, field_ext_p, field_ext_u, field_ext_v, &
@@ -861,7 +861,7 @@ contains
 
     type( vector_field ), intent( in ) :: f
     type( vector_field ), intent( out ) :: c
-
+    !Local variables
     integer :: snloc, nloc, nele_s, nele, ele, nnodes_s, &
          &     ele2, siloc, sjloc, iloc, jloc, st, mv, &
          &     edge, nedge, bcs, nbcs, count, ne, i, j, &
@@ -1135,6 +1135,7 @@ contains
     implicit none
 
     integer, dimension( : ), intent( inout ) :: a
+    !Local variables
     integer :: n, i, j, p, q
 
     n = size( a )
@@ -1159,6 +1160,7 @@ contains
 
     integer, dimension( : ), intent( inout ) :: a
     integer, intent( out ) :: count
+    !Local variables
     integer :: n, i, j
     integer, dimension(:), allocatable :: tmp
 
