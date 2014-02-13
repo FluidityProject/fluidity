@@ -1801,18 +1801,18 @@ contains
     IMPLICIT NONE
     INTEGER, intent( in ) :: CV_NLOC, CV_NODI, U_NLOC, X_NONODS, TOTELE, X_NLOC, XU_NLOC, &
          CV_SNLOC, MAT_NLOC, SCVNGI, GI, ELE, NCOLELE 
-    INTEGER, DIMENSION( TOTELE * X_NLOC ), intent( in ) ::  X_NDGLN
-    INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
-    INTEGER, DIMENSION( TOTELE * XU_NLOC ), intent( in ) :: XU_NDGLN
-    INTEGER, DIMENSION( CV_NLOC ), intent( inout ) :: CV_OTHER_LOC
-    INTEGER, DIMENSION( U_NLOC ), intent( inout ) :: U_OTHER_LOC
-    INTEGER, DIMENSION( MAT_NLOC ), intent( inout ) :: MAT_OTHER_LOC
-    LOGICAL, DIMENSION( CV_NLOC, SCVNGI ), intent( in ) :: CVFEM_ON_FACE
-    LOGICAL, DIMENSION( X_NONODS ), intent( inout ) :: X_SHARE
+    INTEGER, DIMENSION( : ), intent( in ) ::  X_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
+    INTEGER, DIMENSION( :), intent( in ) :: XU_NDGLN
+    INTEGER, DIMENSION( : ), intent( inout ) :: CV_OTHER_LOC
+    INTEGER, DIMENSION( : ), intent( inout ) :: U_OTHER_LOC
+    INTEGER, DIMENSION( : ), intent( inout ) :: MAT_OTHER_LOC
+    LOGICAL, DIMENSION( :, : ), intent( in ) :: CVFEM_ON_FACE
+    LOGICAL, DIMENSION( : ), intent( inout ) :: X_SHARE
     INTEGER, intent( inout ) :: ELE2    
     LOGICAL, intent( inout ) :: INTEGRAT_AT_GI  
-    INTEGER, DIMENSION( TOTELE  +  1 ), intent( in ) :: FINELE
-    INTEGER, DIMENSION( NCOLELE ), intent( in ) :: COLELE
+    INTEGER, DIMENSION( : ), intent( in ) :: FINELE
+    INTEGER, DIMENSION( : ), intent( in ) :: COLELE
     ! Local variables
     INTEGER :: X_KLOC, X_NODK, X_NODK2, COUNT, ELE3, SUF_COUNT, CV_KLOC, CV_KLOC2, &
          U_KLOC, U_KLOC2, CV_NODK, XU_NODK, XU_NODK2, ILEV, JLEV
@@ -1924,25 +1924,25 @@ contains
     type( state_type ), dimension( : ), intent( in ) :: state
     INTEGER, intent( in ) :: NDIM, NPHASE, CV_NONODS, TOTELE, X_NLOC, CV_NGI, CV_NLOC, &
          X_NONODS, NCOLM, IGOT_T2, IGETCT, NCOLCMC
-    INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
-    INTEGER, DIMENSION( TOTELE * X_NLOC ), intent( in ) ::  X_NDGLN
-    REAL, DIMENSION( CV_NONODS*NPHASE ), intent( inout ) :: FEMT, FEMTOLD, FEMDEN, FEMDENOLD
-    REAL, DIMENSION( CV_NONODS*NPHASE*IGOT_T2 ), intent( inout ) :: FEMT2, FEMT2OLD
-    REAL, DIMENSION( CV_NONODS*NPHASE ), intent( in ) :: T, TOLD, DEN, DENOLD
-    REAL, DIMENSION( CV_NONODS*NPHASE*IGOT_T2 ), intent( in ) :: T2, T2OLD
-    REAL, DIMENSION( CV_NONODS ), intent( inout ) :: MASS_CV, XC_CV,YC_CV,ZC_CV
-    REAL, DIMENSION( TOTELE ), intent( inout ) :: MASS_ELE
-    REAL, DIMENSION( CV_NLOC, CV_NGI ), intent( in ) :: CVN
-    REAL, DIMENSION( CV_NGI ), intent( inout ) :: CVWEIGHT
-    REAL, DIMENSION( CV_NLOC, CV_NGI ), intent( in ) :: N, NLX, NLY, NLZ 
-    REAL, DIMENSION( X_NONODS ), intent( in ) :: X, Y, Z
-    INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDM
-    INTEGER, DIMENSION( NCOLM ), intent( in ) :: COLM
-    INTEGER, DIMENSION( CV_NONODS ), intent( in ) :: MIDM
+    INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) ::  X_NDGLN
+    REAL, DIMENSION( : ), intent( inout ) :: FEMT, FEMTOLD, FEMDEN, FEMDENOLD
+    REAL, DIMENSION( : ), intent( inout ) :: FEMT2, FEMT2OLD
+    REAL, DIMENSION( : ), intent( in ) :: T, TOLD, DEN, DENOLD
+    REAL, DIMENSION( : ), intent( in ) :: T2, T2OLD
+    REAL, DIMENSION( : ), intent( inout ) :: MASS_CV, XC_CV,YC_CV,ZC_CV
+    REAL, DIMENSION( : ), intent( inout ) :: MASS_ELE
+    REAL, DIMENSION( :, : ), intent( in ) :: CVN
+    REAL, DIMENSION( : ), intent( inout ) :: CVWEIGHT
+    REAL, DIMENSION( :, : ), intent( in ) :: N, NLX, NLY, NLZ
+    REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
+    INTEGER, DIMENSION( : ), intent( in ) :: FINDM
+    INTEGER, DIMENSION( : ), intent( in ) :: COLM
+    INTEGER, DIMENSION( : ), intent( in ) :: MIDM
 
-    REAL, DIMENSION( IGETCT*NCOLCMC ), intent( inout ) :: MASS_MN_PRES
-    INTEGER, DIMENSION( IGETCT*(CV_NONODS + 1) ), intent( in ) :: FINDCMC
-    INTEGER, DIMENSION( IGETCT*NCOLCMC ), intent( in ) :: COLCMC
+    REAL, DIMENSION( : ), intent( inout ) :: MASS_MN_PRES
+    INTEGER, DIMENSION( : ), intent( in ) :: FINDCMC
+    INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
     ! Local variables
     REAL, DIMENSION( : ), allocatable :: PSI, FEMPSI, PSI_AVE, PSI_INT
     INTEGER :: NTSOL,NTSOL_AVE,NTSOL_INT,ELE,CV_ILOC,X_INOD,CV_INOD,NL,NFIELD
@@ -2057,25 +2057,25 @@ contains
     IMPLICIT NONE
     INTEGER, intent( in ) :: NTSOL, NTSOL_AVE, NTSOL_INT, NDIM, CV_NONODS, TOTELE, &
          X_NLOC, CV_NGI, CV_NLOC, X_NONODS, NCOLM, IGETCT, NCOLCMC
-    INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
-    INTEGER, DIMENSION( TOTELE * X_NLOC ), intent( in ) ::  X_NDGLN
-    REAL, DIMENSION( CV_NONODS * NTSOL ), intent( inout ) :: FEMPSI
-    REAL, DIMENSION( CV_NONODS * NTSOL ), intent( in ) :: PSI
-    REAL, DIMENSION( CV_NLOC, CV_NGI ), intent( in ) :: CVN
-    REAL, DIMENSION( CV_NONODS * NTSOL_AVE ), intent( inout ) :: PSI_AVE
-    REAL, DIMENSION( CV_NONODS * NTSOL_INT ), intent( inout ) :: PSI_INT
-    REAL, DIMENSION( CV_NGI ), intent( inout ) :: CVWEIGHT
-    REAL, DIMENSION( CV_NLOC, CV_NGI ), intent( in ) :: N, NLX, NLY, NLZ 
-    REAL, DIMENSION( X_NONODS ), intent( in ) :: X, Y, Z
-    REAL, DIMENSION( TOTELE ), intent( inout ) :: MASS_ELE
-    INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDM
-    INTEGER, DIMENSION( NCOLM ), intent( in ) :: COLM
-    INTEGER, DIMENSION( CV_NONODS ), intent( in ) :: MIDM
+    INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) ::  X_NDGLN
+    REAL, DIMENSION( : ), intent( inout ) :: FEMPSI
+    REAL, DIMENSION( : ), intent( in ) :: PSI
+    REAL, DIMENSION( :, : ), intent( in ) :: CVN
+    REAL, DIMENSION( : ), intent( inout ) :: PSI_AVE
+    REAL, DIMENSION( : ), intent( inout ) :: PSI_INT
+    REAL, DIMENSION( : ), intent( inout ) :: CVWEIGHT
+    REAL, DIMENSION( :, : ), intent( in ) :: N, NLX, NLY, NLZ
+    REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
+    REAL, DIMENSION( : ), intent( inout ) :: MASS_ELE
+    INTEGER, DIMENSION( : ), intent( in ) :: FINDM
+    INTEGER, DIMENSION( : ), intent( in ) :: COLM
+    INTEGER, DIMENSION( : ), intent( in ) :: MIDM
     CHARACTER(100), intent(in) :: PATH
 
-    REAL, DIMENSION( IGETCT*NCOLCMC ), intent( inout ) :: MASS_MN_PRES
-    INTEGER, DIMENSION( IGETCT*(CV_NONODS + 1) ), intent( in ) :: FINDCMC
-    INTEGER, DIMENSION( IGETCT*NCOLCMC ), intent( in ) :: COLCMC
+    REAL, DIMENSION( : ), intent( inout ) :: MASS_MN_PRES
+    INTEGER, DIMENSION( : ), intent( in ) :: FINDCMC
+    INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
     ! Local variables
     LOGICAL :: D1, D3, DCYL
     REAL, DIMENSION( : ), allocatable :: MASS_CV, FEMPSI_RHS, &
@@ -2231,28 +2231,28 @@ contains
     INTEGER, intent( in ) :: NDIM, NDIM_VEL, NPHASE, &
          U_NONODS, TOTELE, X_NLOC, CV_NGI, U_NLOC, &
          X_NONODS, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC_DIRICHLET, SBCVNGI, NFACE
-    REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: U, UOLD, V, VOLD, W, WOLD
-    REAL, DIMENSION( U_NLOC, NPHASE, TOTELE ), intent( inout ) :: DUX_ELE,DUY_ELE,DUZ_ELE, &
+    REAL, DIMENSION( : ), intent( in ) :: U, UOLD, V, VOLD, W, WOLD
+    REAL, DIMENSION(U_NLOC, NPHASE, TOTELE ), intent( inout ) :: DUX_ELE,DUY_ELE,DUZ_ELE, &
          DUOLDX_ELE,DUOLDY_ELE,DUOLDZ_ELE
-    REAL, DIMENSION( U_NLOC, NPHASE, TOTELE ), intent( inout ) :: DVX_ELE,DVY_ELE,DVZ_ELE, &
+    REAL, DIMENSION(U_NLOC, NPHASE, TOTELE ), intent( inout ) :: DVX_ELE,DVY_ELE,DVZ_ELE, &
          DVOLDX_ELE,DVOLDY_ELE,DVOLDZ_ELE
-    REAL, DIMENSION( U_NLOC, NPHASE, TOTELE ), intent( inout ) :: DWX_ELE,DWY_ELE,DWZ_ELE, &
+    REAL, DIMENSION(U_NLOC, NPHASE, TOTELE), intent( inout ) :: DWX_ELE,DWY_ELE,DWZ_ELE, &
          DWOLDX_ELE,DWOLDY_ELE,DWOLDZ_ELE
-    INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN
-    INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: XU_NDGLN
-    INTEGER, DIMENSION( TOTELE * X_NLOC ), intent( in ) ::  X_NDGLN
-    INTEGER, DIMENSION( STOTEL*NPHASE ), intent( in ) ::  WIC_U_BC
-    REAL, DIMENSION( STOTEL*U_SNLOC*NPHASE ), intent( in ) ::  SUF_U_BC,SUF_V_BC,SUF_W_BC
-    INTEGER, DIMENSION( NFACE,U_SNLOC ), intent( in ) ::  U_SLOCLIST
-    INTEGER, DIMENSION( NFACE,CV_SNLOC ), intent( in ) ::  CV_SLOCLIST
-    INTEGER, DIMENSION( NFACE,TOTELE ), intent( in ) ::  FACE_ELE
-    REAL, DIMENSION( CV_NGI ), intent( inout ) :: CVWEIGHT
-    REAL, DIMENSION( U_NLOC, CV_NGI ), intent( in ) :: N, NLX, NLY, NLZ 
-    REAL, DIMENSION( X_NLOC, CV_NGI ), intent( in ) :: CVFEN, CVFENLX, CVFENLY, CVFENLZ
-    REAL, DIMENSION( X_NONODS ), intent( in ) :: X, Y, Z
-    REAL, DIMENSION( U_SNLOC, SBCVNGI ), intent( in ) :: SBUFEN, SBUFENSLX, SBUFENSLY
-    REAL, DIMENSION( CV_SNLOC, SBCVNGI ), intent( in ) :: SBCVFEN, SBCVFENSLX, SBCVFENSLY
-    REAL, DIMENSION( SBCVNGI ), intent( in ) :: SBWEIGH
+    INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) :: XU_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) ::  X_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) ::  WIC_U_BC
+    REAL, DIMENSION( : ), intent( in ) ::  SUF_U_BC,SUF_V_BC,SUF_W_BC
+    INTEGER, DIMENSION( :,: ), intent( in ) ::  U_SLOCLIST
+    INTEGER, DIMENSION( :,: ), intent( in ) ::  CV_SLOCLIST
+    INTEGER, DIMENSION( :,: ), intent( in ) ::  FACE_ELE
+    REAL, DIMENSION( : ), intent( inout ) :: CVWEIGHT
+    REAL, DIMENSION( :, : ), intent( in ) :: N, NLX, NLY, NLZ
+    REAL, DIMENSION( :, : ), intent( in ) :: CVFEN, CVFENLX, CVFENLY, CVFENLZ
+    REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
+    REAL, DIMENSION( :, : ), intent( in ) :: SBUFEN, SBUFENSLX, SBUFENSLY
+    REAL, DIMENSION( :, : ), intent( in ) :: SBCVFEN, SBCVFENSLX, SBCVFENSLY
+    REAL, DIMENSION( : ), intent( in ) :: SBWEIGH
 
     CALL DG_DERIVS( U, UOLD, &
          DUX_ELE, DUY_ELE, DUZ_ELE, DUOLDX_ELE, DUOLDY_ELE, DUOLDZ_ELE, &
@@ -2323,24 +2323,24 @@ contains
     IMPLICIT NONE
     INTEGER, intent( in ) :: NDIM, NPHASE, CV_NONODS, TOTELE, X_NLOC, CV_NGI, CV_NLOC, &
          X_NONODS, STOTEL, CV_SNLOC, X_SNLOC, WIC_T_BC_DIRICHLET, SBCVNGI, NFACE
-    REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: FEMT, FEMTOLD
+    REAL, DIMENSION( : ), intent( in ) :: FEMT, FEMTOLD
     REAL, DIMENSION( CV_NLOC, NPHASE, TOTELE ), intent( inout ) :: DTX_ELE, DTY_ELE, DTZ_ELE, &
          DTOLDX_ELE, DTOLDY_ELE, DTOLDZ_ELE
-    INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
-    INTEGER, DIMENSION( TOTELE * X_NLOC ), intent( in ) ::  X_NDGLN
-    INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) ::  XCV_NDGLN
-    INTEGER, DIMENSION( STOTEL*NPHASE ), intent( in ) ::  WIC_T_BC
-    REAL, DIMENSION( STOTEL*CV_SNLOC*NPHASE ), intent( in ) ::  SUF_T_BC
-    INTEGER, DIMENSION( NFACE,CV_SNLOC ), intent( in ) ::  CV_SLOCLIST
-    INTEGER, DIMENSION( NFACE,X_SNLOC ), intent( in ) ::  X_SLOCLIST
-    INTEGER, DIMENSION( NFACE,TOTELE ), intent( in ) ::  FACE_ELE
-    REAL, DIMENSION( CV_NGI ), intent( inout ) :: CVWEIGHT
-    REAL, DIMENSION( CV_NLOC, CV_NGI ), intent( in ) :: N, NLX, NLY, NLZ 
-    REAL, DIMENSION( X_NLOC, CV_NGI ), intent( in ) :: X_N, X_NLX, X_NLY, X_NLZ 
-    REAL, DIMENSION( X_NONODS ), intent( in ) :: X, Y, Z
-    REAL, DIMENSION( CV_SNLOC, SBCVNGI ), intent( in ) :: SBCVFEN, SBCVFENSLX, SBCVFENSLY
-    REAL, DIMENSION( X_SNLOC, SBCVNGI ), intent( in ) :: X_SBCVFEN, X_SBCVFENSLX, X_SBCVFENSLY
-    REAL, DIMENSION( SBCVNGI ), intent( in ) :: SBWEIGH
+    INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) ::  X_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) ::  XCV_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) ::  WIC_T_BC
+    REAL, DIMENSION( : ), intent( in ) ::  SUF_T_BC
+    INTEGER, DIMENSION( :,: ), intent( in ) ::  CV_SLOCLIST
+    INTEGER, DIMENSION( :,: ), intent( in ) ::  X_SLOCLIST
+    INTEGER, DIMENSION( :,: ), intent( in ) ::  FACE_ELE
+    REAL, DIMENSION( : ), intent( inout ) :: CVWEIGHT
+    REAL, DIMENSION( :, : ), intent( in ) :: N, NLX, NLY, NLZ
+    REAL, DIMENSION( :, : ), intent( in ) :: X_N, X_NLX, X_NLY, X_NLZ
+    REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
+    REAL, DIMENSION( :, : ), intent( in ) :: SBCVFEN, SBCVFENSLX, SBCVFENSLY
+    REAL, DIMENSION( :, : ), intent( in ) :: X_SBCVFEN, X_SBCVFENSLX, X_SBCVFENSLY
+    REAL, DIMENSION( : ), intent( in ) :: SBWEIGH
     ! Local variables
     LOGICAL :: D1, D3, DCYL, APPLYBC
     REAL, DIMENSION( : ), allocatable :: DETWEI, RA
@@ -3439,9 +3439,9 @@ contains
        X, X_NDGLN, TOTELE, CV_NLOC )
     implicit none
     INTEGER, intent( in ) :: CV_NONODS, X_NONODS, TOTELE, CV_NLOC
-    REAL, DIMENSION( CV_NONODS ), intent( inout ) ::  MASS_CV
-    REAL, DIMENSION( X_NONODS ), intent( in ) :: X
-    INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: X_NDGLN
+    REAL, DIMENSION( : ), intent( inout ) ::  MASS_CV
+    REAL, DIMENSION( : ), intent( in ) :: X
+    INTEGER, DIMENSION( : ), intent( in ) :: X_NDGLN
     ! Local variables
     INTEGER ::ELE, NOD1, NOD2, NOD3
     REAL :: DX
@@ -3497,11 +3497,11 @@ contains
     INTEGER , intent( in ) ::  SVNGI,  TOTELE
     INTEGER, intent( in ) ::   XNONOD     
     REAL, intent( in ) ::   XC,YC,ZC
-    INTEGER, DIMENSION( TOTELE * NLOC ), intent( in ) :: XNDGLN
-    REAL, DIMENSION( SVNGI ), intent( inout ) :: CVDETWEI, CVNORMX, CVNORMY, CVNORMZ
-    REAL, DIMENSION( NLOC, SVNGI ), intent( in ) :: SVN, SVNLX, SVNLY
-    REAL, DIMENSION( SVNGI ), intent( in ) :: SVWEIGH
-    REAL, DIMENSION( XNONOD ), intent( in ) :: X, Y, Z
+    INTEGER, DIMENSION( : ), intent( in ) :: XNDGLN
+    REAL, DIMENSION( : ), intent( inout ) :: CVDETWEI, CVNORMX, CVNORMY, CVNORMZ
+    REAL, DIMENSION( :, : ), intent( in ) :: SVN, SVNLX, SVNLY
+    REAL, DIMENSION( : ), intent( in ) :: SVWEIGH
+    REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
     LOGICAL, intent( in ) ::  D1, D3, DCYL
 
     !     - Local variables
@@ -3699,10 +3699,10 @@ contains
     REAL, intent( inout ) :: NORMX, NORMY, NORMZ
     LOGICAL, intent( in ) :: D3
     INTEGER, intent( in ) :: STOTEL, SNLOC, X_NONODS, NONODS, ELE, NCOLM
-    INTEGER, DIMENSION( STOTEL * SNLOC ), intent( in ) :: SNDGLN
-    REAL, DIMENSION( X_NONODS), intent( in ) :: X, Y, Z
-    INTEGER, DIMENSION( NONODS + 1 ), intent( in ) :: FINDRM
-    INTEGER, DIMENSION( NCOLM ), intent( in ) :: COLM
+    INTEGER, DIMENSION( : ), intent( in ) :: SNDGLN
+    REAL, DIMENSION( :), intent( in ) :: X, Y, Z
+    INTEGER, DIMENSION( : ), intent( in ) :: FINDRM
+    INTEGER, DIMENSION( : ), intent( in ) :: COLM
     ! Local variables
     REAL :: XCS, YCS, ZCS, XCV, YCV, ZCV, NORM
     INTEGER :: ICV, L, IGL, L2, IGL2, COUNT, COUNT2, NODJ, NODJ2
@@ -3794,13 +3794,13 @@ contains
     use shape_functions_NDim
     IMPLICIT NONE
     INTEGER, intent( in ) :: SELE, STOTEL, X_NONODS, CV_SNLOC, SBNGI, NDIM
-    INTEGER, DIMENSION( STOTEL * CV_SNLOC ), intent( in ) :: CV_SNDGLN
-    REAL, DIMENSION( CV_SNLOC, SBNGI ), intent( in ) :: SBUFEN, SBUFENSLX, SBUFENSLY
-    REAL, DIMENSION( SBNGI ), intent( in ) :: SBWEIGH
-    REAL, DIMENSION( SBNGI ), intent( inout ) :: SBDETWEI
-    REAL, DIMENSION( SBNGI ), intent( inout ) :: SNORMXN, SNORMYN, SNORMZN
+    INTEGER, DIMENSION( : ), intent( in ) :: CV_SNDGLN
+    REAL, DIMENSION( :, : ), intent( in ) :: SBUFEN, SBUFENSLX, SBUFENSLY
+    REAL, DIMENSION( : ), intent( in ) :: SBWEIGH
+    REAL, DIMENSION( : ), intent( inout ) :: SBDETWEI
+    REAL, DIMENSION( : ), intent( inout ) :: SNORMXN, SNORMYN, SNORMZN
     REAL, intent( in ) :: SNORMX, SNORMY, SNORMZ
-    REAL, DIMENSION( X_NONODS ), intent( in ) :: X,Y,Z
+    REAL, DIMENSION( : ), intent( in ) :: X,Y,Z
     ! Local variables
     REAL, PARAMETER :: PIE = 3.141592654
     INTEGER :: GI, SL, IGLX 
@@ -3917,15 +3917,15 @@ contains
     use shape_functions_NDim
     IMPLICIT NONE
     INTEGER, intent( in ) :: ELE, STOTEL, X_NONODS, SNLOC, SNGI
-    INTEGER, DIMENSION( STOTEL * SNLOC ), intent( in ) :: SNDGLN
-    REAL, DIMENSION( SNLOC, SNGI ), intent( in ) :: SN, SNLX, SNLY
-    REAL, DIMENSION( SNGI ), intent( in ) :: SWEIGH
-    REAL, DIMENSION( SNGI ), intent( inout ) :: DETWEI
+    INTEGER, DIMENSION( : ), intent( in ) :: SNDGLN
+    REAL, DIMENSION( :, : ), intent( in ) :: SN, SNLX, SNLY
+    REAL, DIMENSION( : ), intent( in ) :: SWEIGH
+    REAL, DIMENSION( : ), intent( inout ) :: DETWEI
     REAL, intent( inout ) :: SAREA
     LOGICAL, intent( in ) :: D1, D3, DCYL
-    REAL, DIMENSION( SNGI ), intent( inout ) :: NORMXN, NORMYN, NORMZN
+    REAL, DIMENSION( : ), intent( inout ) :: NORMXN, NORMYN, NORMZN
     REAL, intent( inout ) :: NORMX, NORMY, NORMZ
-    REAL, DIMENSION( X_NONODS ), intent( in ) :: X,Y,Z
+    REAL, DIMENSION( : ), intent( in ) :: X,Y,Z
     ! Local variables
     REAL, PARAMETER :: PIE = 3.141592654
     INTEGER :: GI, SL, IGLX
@@ -4080,11 +4080,11 @@ contains
     ! If FAST_AND_SIMP use a simple mean to calculate the between element diffusion.
     INTEGER, intent( in ) :: SBCVNGI,U_NLOC,U_SNLOC,NDIM,NPHASE
     LOGICAL, intent( in ) :: GOT_OTHER_ELE
-    REAL, DIMENSION( NPHASE,SBCVNGI,NDIM,NDIM  ), intent( out ) :: UDIFF_SUF_STAB
-    REAL, DIMENSION( NPHASE,U_NLOC ), intent( in ) :: DIFF_FOR_BETWEEN_U_ELE,DIFF_FOR_BETWEEN_U_ELE2
-    REAL, DIMENSION( U_NLOC,U_NLOC ), intent( in ) :: MAT_ELE, MAT_ELE2
-    INTEGER, DIMENSION( U_SNLOC ), intent( in ) :: U_SLOC2LOC,U_ILOC_OTHER_SIDE
-    REAL, DIMENSION( U_SNLOC,SBCVNGI ), intent( in ) :: SBUFEN
+    REAL, DIMENSION( :,:,:,:  ), intent( out ) :: UDIFF_SUF_STAB
+    REAL, DIMENSION( :,: ), intent( in ) :: DIFF_FOR_BETWEEN_U_ELE,DIFF_FOR_BETWEEN_U_ELE2
+    REAL, DIMENSION( :,: ), intent( in ) :: MAT_ELE, MAT_ELE2
+    INTEGER, DIMENSION( : ), intent( in ) :: U_SLOC2LOC,U_ILOC_OTHER_SIDE
+    REAL, DIMENSION( :,: ), intent( in ) :: SBUFEN
     ! Local variables...
     REAL, DIMENSION( : , : ), allocatable :: MAT_LOC_2ELES,MAT
     REAL, DIMENSION( : ), allocatable :: VECRHS_2ELES, DIFF
@@ -4245,13 +4245,13 @@ contains
     REAL, intent( in ) :: HDC, T_CV_NODJ_IPHA, T_CV_NODI_IPHA, &
          &                TOLD_CV_NODJ_IPHA, TOLD_CV_NODI_IPHA
     REAL, intent( inout ) :: DIFF_COEF_DIVDX,DIFF_COEFOLD_DIVDX
-    INTEGER, DIMENSION( TOTELE*MAT_NLOC ), intent( in ) ::MAT_NDGLN
-    INTEGER, DIMENSION( STOTEL * NPHASE ), intent( in ) ::WIC_T_BC
-    INTEGER, DIMENSION( CV_NLOC ), intent( in ) ::CV_OTHER_LOC
-    INTEGER, DIMENSION( MAT_NLOC ), intent( in ) ::MAT_OTHER_LOC
-    REAL, DIMENSION( MAT_NLOC,SCVNGI ), intent( in ) :: SMATFEN
-    REAL, DIMENSION( CV_NLOC,SCVNGI ), intent( in ) :: SCVFEN
-    REAL, DIMENSION( MAT_NONODS,NDIM,NDIM,NPHASE ), intent( in ) :: TDIFFUSION
+    INTEGER, DIMENSION( : ), intent( in ) ::MAT_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) ::WIC_T_BC
+    INTEGER, DIMENSION( : ), intent( in ) ::CV_OTHER_LOC
+    INTEGER, DIMENSION( : ), intent( in ) ::MAT_OTHER_LOC
+    REAL, DIMENSION( :,: ), intent( in ) :: SMATFEN
+    REAL, DIMENSION( :,: ), intent( in ) :: SCVFEN
+    REAL, DIMENSION( :,:,:,: ), intent( in ) :: TDIFFUSION
     REAL, DIMENSION( NDIM, NDIM ), intent( in ) :: DIFF_GI_ADDED
     REAL, DIMENSION( CV_NLOC, NPHASE, TOTELE ), intent( in ) :: DTX_ELE,DTY_ELE,DTZ_ELE, &
          &                                                      DTOLDX_ELE,DTOLDY_ELE,DTOLDZ_ELE
@@ -4453,20 +4453,20 @@ contains
          W_CV_NODJ_IPHA, W_CV_NODI_IPHA, WOLD_CV_NODJ_IPHA, WOLD_CV_NODI_IPHA
     REAL, intent( in ) :: ZERO_OR_TWO_THIRDS
     REAL, DIMENSION( 3 ), intent( inout ) :: DIFF_COEF_DIVDX,DIFF_COEFOLD_DIVDX
-    INTEGER, DIMENSION( TOTELE*MAT_NLOC ), intent( in ) ::MAT_NDGLN
-    INTEGER, DIMENSION( STOTEL * NPHASE ), intent( in ) ::WIC_U_BC
-    INTEGER, DIMENSION( MAT_NLOC ), intent( in ) ::MAT_OTHER_LOC
-    INTEGER, DIMENSION( CV_SNLOC ), intent( in ) ::CV_SLOC2LOC
-    REAL, DIMENSION( CV_SNLOC, SBCVNGI  ), intent( in ) :: SBCVFEN
-    REAL, DIMENSION( MAT_NONODS,NDIM,NDIM,NPHASE ), intent( in ) :: UDIFFUSION
+    INTEGER, DIMENSION( : ), intent( in ) ::MAT_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) ::WIC_U_BC
+    INTEGER, DIMENSION( : ), intent( in ) ::MAT_OTHER_LOC
+    INTEGER, DIMENSION( : ), intent( in ) ::CV_SLOC2LOC
+    REAL, DIMENSION( :, :  ), intent( in ) :: SBCVFEN
+    REAL, DIMENSION( :,:,:,: ), intent( in ) :: UDIFFUSION
     ! DIFF_GI_ADDED( IDIM, :,:) is for dimension IDIM e.g IDIM=1 corresponds to U 
     ! the rest is for the diffusion tensor. 
-    REAL, DIMENSION( NDIM,  NDIM,NDIM ), intent( in ) :: DIFF_GI_ADDED
-    REAL, DIMENSION( CV_NLOC, NPHASE, TOTELE ), intent( in ) :: &
+    REAL, DIMENSION( :,  :,: ), intent( in ) :: DIFF_GI_ADDED
+    REAL, DIMENSION( :, :, : ), intent( in ) :: &
          DUX_ELE,DUY_ELE,DUZ_ELE, DUOLDX_ELE,DUOLDY_ELE,DUOLDZ_ELE,  &
          DVX_ELE,DVY_ELE,DVZ_ELE, DVOLDX_ELE,DVOLDY_ELE,DVOLDZ_ELE,  &
          DWX_ELE,DWY_ELE,DWZ_ELE, DWOLDX_ELE,DWOLDY_ELE,DWOLDZ_ELE
-    REAL, DIMENSION( SBCVNGI ), intent( in ) :: SNORMXN,SNORMYN,SNORMZN
+    REAL, DIMENSION( : ), intent( in ) :: SNORMXN,SNORMYN,SNORMZN
 
     ! local variables
     !        ===>  REALS  <===
@@ -4997,7 +4997,7 @@ contains
        TEN_ZX,TEN_ZY,TEN_ZZ )
     ! determine stress form of viscocity...
     IMPLICIT NONE
-    REAL, DIMENSION( 3, 3  ), intent( inOUT ) :: STRESS_IJ
+    REAL, DIMENSION( :, :  ), intent( inOUT ) :: STRESS_IJ
     INTEGER, intent( in )  :: NDIM
     REAL, intent( in ) :: ZERO_OR_TWO_THIRDS, UFENX_ILOC, UFENY_ILOC, UFENZ_ILOC,  &
          UFENX_JLOC_U, UFENY_JLOC_U, UFENZ_JLOC_U,  &
@@ -5085,16 +5085,16 @@ contains
     REAL, intent( in ) :: HDC,T_CV_NODJ_IPHA, T_CV_NODI_IPHA, &
          TOLD_CV_NODJ_IPHA, TOLD_CV_NODI_IPHA
     REAL, intent( inout ) :: DIFF_COEF_DIVDX,DIFF_COEFOLD_DIVDX
-    INTEGER, DIMENSION( TOTELE*MAT_NLOC ), intent( in ) ::MAT_NDGLN
-    INTEGER, DIMENSION( STOTEL * NPHASE ), intent( in ) ::WIC_T_BC
-    INTEGER, DIMENSION( MAT_NLOC ), intent( in ) ::MAT_OTHER_LOC
-    INTEGER, DIMENSION( CV_SNLOC ), intent( in ) ::CV_SLOC2LOC
-    REAL, DIMENSION( CV_SNLOC, SBCVNGI  ), intent( in ) :: SBCVFEN
-    REAL, DIMENSION( MAT_NONODS, NDIM, NDIM, NPHASE  ), intent( in ) :: TDIFFUSION
-    REAL, DIMENSION( NDIM, NDIM ), intent( in ) :: DIFF_GI_ADDED
-    REAL, DIMENSION( CV_NLOC, NPHASE, TOTELE ), intent( in ) :: DTX_ELE,DTY_ELE,DTZ_ELE, &
+    INTEGER, DIMENSION( : ), intent( in ) ::MAT_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) ::WIC_T_BC
+    INTEGER, DIMENSION( : ), intent( in ) ::MAT_OTHER_LOC
+    INTEGER, DIMENSION( : ), intent( in ) ::CV_SLOC2LOC
+    REAL, DIMENSION( :, :  ), intent( in ) :: SBCVFEN
+    REAL, DIMENSION( :, :, :, :  ), intent( in ) :: TDIFFUSION
+    REAL, DIMENSION( :, : ), intent( in ) :: DIFF_GI_ADDED
+    REAL, DIMENSION(CV_NLOC, NPHASE, TOTELE), intent( in ) :: DTX_ELE,DTY_ELE,DTZ_ELE, &
          DTOLDX_ELE,DTOLDY_ELE,DTOLDZ_ELE
-    REAL, DIMENSION( SBCVNGI ), intent( in ) :: SNORMXN,SNORMYN,SNORMZN
+    REAL, DIMENSION( : ), intent( in ) :: SNORMXN,SNORMYN,SNORMZN
 
     ! local variables
     !        ===>  REALS  <===
@@ -5290,38 +5290,38 @@ contains
          IN_ELE_UPWIND, DG_ELE_UPWIND
     REAL, intent( in ) :: HDC, LIMT, LIMTOLD, FEMDGI, FEMTGI, FEMDOLDGI, FEMTOLDGI
     REAL, intent( inout ) :: NDOTQNEW,NDOTQ, INCOME, NDOTQOLD, INCOMEOLD
-    INTEGER, DIMENSION( TOTELE*U_NLOC ), intent( in ) :: U_NDGLN
-    INTEGER, DIMENSION( U_NLOC ), intent( in ) :: U_OTHER_LOC
-    INTEGER, DIMENSION( U_SNLOC ), intent( in ) :: U_SLOC2LOC
-    INTEGER, DIMENSION( STOTEL * NPHASE ), intent( in ) :: WIC_U_BC
-    INTEGER, DIMENSION( CV_NONODS * NPHASE  ), intent( in ) :: TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, &
+    INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) :: U_OTHER_LOC
+    INTEGER, DIMENSION( : ), intent( in ) :: U_SLOC2LOC
+    INTEGER, DIMENSION( : ), intent( in ) :: WIC_U_BC
+    INTEGER, DIMENSION( : ), intent( in ) :: TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, &
          TOLDMAX_NOD
-    REAL, DIMENSION( U_NLOC, SCVNGI  ), intent( in ) :: SUFEN
-    REAL, DIMENSION( CV_NONODS * NPHASE  ), intent( in ) :: T, TOLD, FEMT, FEMTOLD, DEN, DENOLD
-    REAL, DIMENSION( U_NONODS * NPHASE  ), intent( in ) :: U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD
-    REAL, DIMENSION( SCVNGI ), intent( in ) :: CVNORMX, CVNORMY, CVNORMZ
-    REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
-    REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE, NDIM ), intent( in ) :: SUF_SIG_DIAGTEN_BC
-    REAL, DIMENSION( U_NLOC ), intent( inout ) :: UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
+    REAL, DIMENSION( :, :  ), intent( in ) :: SUFEN
+    REAL, DIMENSION( :  ), intent( in ) :: T, TOLD, FEMT, FEMTOLD, DEN, DENOLD
+    REAL, DIMENSION( :  ), intent( in ) :: U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD
+    REAL, DIMENSION( : ), intent( in ) :: CVNORMX, CVNORMY, CVNORMZ
+    REAL, DIMENSION( : ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
+    REAL, DIMENSION( :, : ), intent( in ) :: SUF_SIG_DIAGTEN_BC
+    REAL, DIMENSION( : ), intent( inout ) :: UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
          UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2
-    REAL, DIMENSION( TOTELE  ), intent( in ) :: VOLFRA_PORE
-    REAL, DIMENSION( CV_NLOC, SCVNGI  ), intent( in ) :: SCVFEN
-    INTEGER, DIMENSION( TOTELE*CV_NLOC ), intent( in ) :: CV_NDGLN
-    INTEGER, DIMENSION( CV_NLOC ), intent( in ) :: CV_OTHER_LOC
-    INTEGER, DIMENSION( CV_SNLOC ), intent( in ) :: CV_SLOC2LOC
-    REAL, DIMENSION( CV_NONODS  ), intent( in ) :: MASS_CV
-    REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( in ) :: OPT_VEL_UPWIND_COEFS
-    INTEGER, DIMENSION( TOTELE*MAT_NLOC ), intent( in ) :: MAT_NDGLN
-    REAL, DIMENSION( CV_NONODS*NPHASE  ), intent( inout ) :: UP_WIND_NOD
-    REAL, DIMENSION( CV_NONODS * NPHASE  ), intent( inout ) :: TMIN, TOLDMIN, TMAX, TOLDMAX
+    REAL, DIMENSION( :  ), intent( in ) :: VOLFRA_PORE
+    REAL, DIMENSION( :, :  ), intent( in ) :: SCVFEN
+    INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) :: CV_OTHER_LOC
+    INTEGER, DIMENSION( : ), intent( in ) :: CV_SLOC2LOC
+    REAL, DIMENSION( :  ), intent( in ) :: MASS_CV
+    REAL, DIMENSION( : ), intent( in ) :: OPT_VEL_UPWIND_COEFS
+    INTEGER, DIMENSION( : ), intent( in ) :: MAT_NDGLN
+    REAL, DIMENSION( :  ), intent( inout ) :: UP_WIND_NOD
+    REAL, DIMENSION( :  ), intent( inout ) :: TMIN, TOLDMIN, TMAX, TOLDMAX
     logical, intent( in ) :: LIMIT_USE_2ND
-    REAL, DIMENSION( CV_NONODS * NPHASE ), intent( inout ) :: TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC
+    REAL, DIMENSION( : ), intent( inout ) :: TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC
 
     INTEGER, intent( in ) :: IANISOTROPIC
     INTEGER, intent( in ) :: NSMALL_COLM
-    INTEGER, DIMENSION( (TOTELE+1)*IANISOTROPIC ), intent( in ) :: SMALL_FINDRM
-    INTEGER, DIMENSION( NSMALL_COLM*IANISOTROPIC ), intent( in ) :: SMALL_COLM
-    REAL, DIMENSION( NSMALL_COLM*NPHASE ), intent( in ) :: TUPWIND_MAT, TOLDUPWIND_MAT
+    INTEGER, DIMENSION( : ), intent( in ) :: SMALL_FINDRM
+    INTEGER, DIMENSION( : ), intent( in ) :: SMALL_COLM
+    REAL, DIMENSION( : ), intent( in ) :: TUPWIND_MAT, TOLDUPWIND_MAT
     ! local variables
     logical, INTENT (IN) :: is_overlapping   
     INTEGER :: U_NLOC_LEV,U_KLOC_LEV,U_KLOC,U_NODK_IPHA, U_KLOC2, U_NODK2_IPHA
@@ -5410,49 +5410,49 @@ contains
        TMIN_2ND_MC, TOLDMIN_2ND_MC, TMAX_2ND_MC, TOLDMAX_2ND_MC,  LIMIT_USE_2ND, &
        IANISOTROPIC, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
        TUPWIND_MAT, TOLDUPWIND_MAT )
-    !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===
-    ! Calculate NDOTQ and INCOME on the CV boundary at quadrature pt GI. 
-    ! it assumes an overlapping decomposition approach for velocity. 
-    IMPLICIT NONE
-    INTEGER, intent( in ) :: NPHASE, GI, IPHASE, U_NLOC, CV_SNLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, &
-         CV_NODJ_IPHA, CV_NODI_IPHA, CV_DG_VEL_INT_OPT, ELE, ELE2, &
-         SELE, U_SNLOC, STOTEL, WIC_U_BC_DIRICHLET, CV_ELE_TYPE, CV_NLOC, CV_ILOC, CV_JLOC, &
-         NOPT_VEL_UPWIND_COEFS, NDIM, MAT_NLOC, MAT_NONODS, FACE_ITS, &
-         IN_ELE_UPWIND, DG_ELE_UPWIND
-    REAL, intent( in ) :: HDC, LIMT, LIMTOLD, FEMDGI, FEMTGI, FEMDOLDGI, FEMTOLDGI
-    REAL, intent( inout ) :: NDOTQ, INCOME, NDOTQOLD, INCOMEOLD
-    INTEGER, DIMENSION( TOTELE*U_NLOC ), intent( in ) :: U_NDGLN
-    INTEGER, DIMENSION( U_NLOC ), intent( in ) :: U_OTHER_LOC
-    INTEGER, DIMENSION( U_SNLOC ), intent( in ) :: U_SLOC2LOC
-    INTEGER, DIMENSION( STOTEL * NPHASE ), intent( in ) :: WIC_U_BC
-    INTEGER, DIMENSION( CV_NONODS * NPHASE  ), intent( in ) :: TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, &
-         TOLDMAX_NOD
-    REAL, DIMENSION( U_NLOC, SCVNGI  ), intent( in ) :: SUFEN
-    REAL, DIMENSION( CV_NONODS * NPHASE  ), intent( in ) :: T, TOLD, FEMT, FEMTOLD, DEN, DENOLD
-    REAL, DIMENSION( U_NONODS * NPHASE  ), intent( in ) :: NU, NV, NW, NUOLD, NVOLD, NWOLD
-    REAL, DIMENSION( SCVNGI ), intent( in ) :: CVNORMX, CVNORMY, CVNORMZ
-    REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
-    REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE, NDIM ), intent( in ) :: SUF_SIG_DIAGTEN_BC
-    REAL, DIMENSION( U_NLOC ), intent( inout ) :: UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
-         UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2
-    REAL, DIMENSION( TOTELE  ), intent( in ) :: VOLFRA_PORE
-    REAL, DIMENSION( CV_NLOC, SCVNGI  ), intent( in ) :: SCVFEN
-    INTEGER, DIMENSION( TOTELE*CV_NLOC ), intent( in ) :: CV_NDGLN
-    INTEGER, DIMENSION( CV_NLOC ), intent( in ) :: CV_OTHER_LOC
-    INTEGER, DIMENSION( CV_SNLOC ), intent( in ) :: CV_SLOC2LOC
-    REAL, DIMENSION( CV_NONODS  ), intent( in ) :: MASS_CV
-    REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( in ) :: OPT_VEL_UPWIND_COEFS
-    INTEGER, DIMENSION( TOTELE*MAT_NLOC ), intent( in ) :: MAT_NDGLN
-    REAL, DIMENSION( CV_NONODS*NPHASE  ), intent( inout ) :: UP_WIND_NOD
-    REAL, DIMENSION( CV_NONODS * NPHASE  ), intent( inout ) :: TMIN, TOLDMIN, TMAX, TOLDMAX
-    logical, intent( in ) :: LIMIT_USE_2ND
-    REAL, DIMENSION( CV_NONODS * NPHASE ), intent( inout ) :: TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC
+      !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===
+      ! Calculate NDOTQ and INCOME on the CV boundary at quadrature pt GI.
+      ! it assumes an overlapping decomposition approach for velocity.
+      IMPLICIT NONE
+      INTEGER, intent( in ) :: NPHASE, GI, IPHASE, U_NLOC, CV_SNLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, &
+           CV_NODJ_IPHA, CV_NODI_IPHA, CV_DG_VEL_INT_OPT, ELE, ELE2, &
+           SELE, U_SNLOC, STOTEL, WIC_U_BC_DIRICHLET, CV_ELE_TYPE, CV_NLOC, CV_ILOC, CV_JLOC, &
+           NOPT_VEL_UPWIND_COEFS, NDIM, MAT_NLOC, MAT_NONODS, FACE_ITS, &
+           IN_ELE_UPWIND, DG_ELE_UPWIND
+      REAL, intent( in ) :: HDC, LIMT, LIMTOLD, FEMDGI, FEMTGI, FEMDOLDGI, FEMTOLDGI
+      REAL, intent( inout ) :: NDOTQ, INCOME, NDOTQOLD, INCOMEOLD
+      INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
+      INTEGER, DIMENSION( : ), intent( in ) :: U_OTHER_LOC
+      INTEGER, DIMENSION( : ), intent( in ) :: U_SLOC2LOC
+      INTEGER, DIMENSION( : ), intent( in ) :: WIC_U_BC
+      INTEGER, DIMENSION( :  ), intent( in ) :: TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, &
+           TOLDMAX_NOD
+      REAL, DIMENSION( :, :  ), intent( in ) :: SUFEN
+      REAL, DIMENSION( CV_NONODS * NPHASE  ), intent( in ) :: T, TOLD, FEMT, FEMTOLD, DEN, DENOLD
+      REAL, DIMENSION( :  ), intent( in ) :: NU, NV, NW, NUOLD, NVOLD, NWOLD
+      REAL, DIMENSION( : ), intent( in ) :: CVNORMX, CVNORMY, CVNORMZ
+      REAL, DIMENSION( : ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
+      REAL, DIMENSION( :, : ), intent( in ) :: SUF_SIG_DIAGTEN_BC
+      REAL, DIMENSION( : ), intent( inout ) :: UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
+           UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2
+      REAL, DIMENSION( :  ), intent( in ) :: VOLFRA_PORE
+      REAL, DIMENSION( :, :  ), intent( in ) :: SCVFEN
+      INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
+      INTEGER, DIMENSION( : ), intent( in ) :: CV_OTHER_LOC
+      INTEGER, DIMENSION( : ), intent( in ) :: CV_SLOC2LOC
+      REAL, DIMENSION( :  ), intent( in ) :: MASS_CV
+      REAL, DIMENSION( : ), intent( in ) :: OPT_VEL_UPWIND_COEFS
+      INTEGER, DIMENSION( : ), intent( in ) :: MAT_NDGLN
+      REAL, DIMENSION( :  ), intent( inout ) :: UP_WIND_NOD
+      REAL, DIMENSION( CV_NONODS * NPHASE  ), intent( inout ) :: TMIN, TOLDMIN, TMAX, TOLDMAX
+      logical, intent( in ) :: LIMIT_USE_2ND
+      REAL, DIMENSION( CV_NONODS * NPHASE ), intent( inout ) :: TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC
 
-    INTEGER, intent( in ) :: IANISOTROPIC
-    INTEGER, intent( in ) :: NSMALL_COLM
-    INTEGER, DIMENSION( (TOTELE+1)*IANISOTROPIC ), intent( in ) :: SMALL_FINDRM
-    INTEGER, DIMENSION( NSMALL_COLM*IANISOTROPIC ), intent( in ) :: SMALL_COLM
-    REAL, DIMENSION( NSMALL_COLM*NPHASE ), intent( in ) :: TUPWIND_MAT, TOLDUPWIND_MAT
+      INTEGER, intent( in ) :: IANISOTROPIC
+      INTEGER, intent( in ) :: NSMALL_COLM
+      INTEGER, DIMENSION( : ), intent( in ) :: SMALL_FINDRM
+      INTEGER, DIMENSION( : ), intent( in ) :: SMALL_COLM
+      REAL, DIMENSION( : ), intent( in ) :: TUPWIND_MAT, TOLDUPWIND_MAT
 
     ! Local variables
     REAL :: UDGI,VDGI,WDGI,UOLDDGI,VOLDDGI,WOLDDGI,  &
@@ -6849,30 +6849,30 @@ contains
          IN_ELE_UPWIND, DG_ELE_UPWIND
     REAL, intent( in ) :: HDC, LIMT, LIMTOLD, FEMDGI, FEMTGI, FEMDOLDGI, FEMTOLDGI
     REAL, intent( inout ) :: NDOTQ, INCOME, NDOTQOLD, INCOMEOLD
-    INTEGER, DIMENSION( TOTELE*U_NLOC ), intent( in ) :: U_NDGLN
-    INTEGER, DIMENSION( U_NLOC ), intent( in ) :: U_OTHER_LOC
-    INTEGER, DIMENSION( U_SNLOC ), intent( in ) :: U_SLOC2LOC
-    INTEGER, DIMENSION( STOTEL * NPHASE ), intent( in ) :: WIC_U_BC
-    INTEGER, DIMENSION( CV_NONODS * NPHASE  ), intent( in ) :: TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, &
+    INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) :: U_OTHER_LOC
+    INTEGER, DIMENSION( : ), intent( in ) :: U_SLOC2LOC
+    INTEGER, DIMENSION( : ), intent( in ) :: WIC_U_BC
+    INTEGER, DIMENSION( :  ), intent( in ) :: TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, &
          TOLDMAX_NOD
-    REAL, DIMENSION( U_NLOC, SCVNGI  ), intent( in ) :: SUFEN
-    REAL, DIMENSION( CV_NONODS * NPHASE  ), intent( in ) :: T, TOLD, FEMT, FEMTOLD, DEN, DENOLD
-    REAL, DIMENSION( U_NONODS * NPHASE  ), intent( in ) :: NU, NV, NW, NUOLD, NVOLD, NWOLD
-    REAL, DIMENSION( SCVNGI ), intent( in ) :: CVNORMX, CVNORMY, CVNORMZ
-    REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
-    REAL, DIMENSION( U_NLOC ), intent( inout ) :: UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
+    REAL, DIMENSION( :, :  ), intent( in ) :: SUFEN
+    REAL, DIMENSION( :  ), intent( in ) :: T, TOLD, FEMT, FEMTOLD, DEN, DENOLD
+    REAL, DIMENSION( :  ), intent( in ) :: NU, NV, NW, NUOLD, NVOLD, NWOLD
+    REAL, DIMENSION( : ), intent( in ) :: CVNORMX, CVNORMY, CVNORMZ
+    REAL, DIMENSION( : ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
+    REAL, DIMENSION( : ), intent( inout ) :: UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
          UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2
-    REAL, DIMENSION( TOTELE  ), intent( in ) :: VOLFRA_PORE
-    REAL, DIMENSION( CV_NLOC, SCVNGI  ), intent( in ) :: SCVFEN
-    INTEGER, DIMENSION( TOTELE*CV_NLOC ), intent( in ) :: CV_NDGLN
-    INTEGER, DIMENSION( CV_NLOC ), intent( in ) :: CV_OTHER_LOC
-    REAL, DIMENSION( CV_NONODS  ), intent( in ) :: MASS_CV
-    REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( in ) :: OPT_VEL_UPWIND_COEFS
-    INTEGER, DIMENSION( TOTELE*MAT_NLOC ), intent( in ) :: MAT_NDGLN
-    REAL, DIMENSION( CV_NONODS*NPHASE  ), intent( inout ) :: UP_WIND_NOD
-    REAL, DIMENSION( CV_NONODS * NPHASE  ), intent( inout ) :: TMIN, TOLDMIN, TMAX, TOLDMAX
+    REAL, DIMENSION( :  ), intent( in ) :: VOLFRA_PORE
+    REAL, DIMENSION( :, :  ), intent( in ) :: SCVFEN
+    INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) :: CV_OTHER_LOC
+    REAL, DIMENSION( :  ), intent( in ) :: MASS_CV
+    REAL, DIMENSION( : ), intent( in ) :: OPT_VEL_UPWIND_COEFS
+    INTEGER, DIMENSION( : ), intent( in ) :: MAT_NDGLN
+    REAL, DIMENSION( :  ), intent( inout ) :: UP_WIND_NOD
+    REAL, DIMENSION( :  ), intent( inout ) :: TMIN, TOLDMIN, TMAX, TOLDMAX
     logical, intent( in ) :: LIMIT_USE_2ND
-    REAL, DIMENSION( CV_NONODS * NPHASE ), intent( inout ) :: TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC
+    REAL, DIMENSION( : ), intent( inout ) :: TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC
 
     ! Local variables
     REAL :: UDGI,VDGI,WDGI,UOLDDGI,VOLDDGI,WOLDDGI,  &
@@ -7130,41 +7130,41 @@ contains
     INTEGER, intent( in ) :: CV_DISOPT,CV_NONODS,NPHASE,CV_NODI_IPHA,CV_NODJ_IPHA,ELE,ELE2,  &
          CV_NLOC,TOTELE,SCVNGI,GI,IPHASE,SELE,CV_SNLOC,STOTEL, &
          WIC_T_BC_DIRICHLET,WIC_D_BC_DIRICHLET, IGOT_T2, U_NLOC,U_NONODS,NDIM
-    INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
-    INTEGER, DIMENSION( CV_NLOC ), intent( in ) :: CV_OTHER_LOC
-    INTEGER, DIMENSION( CV_SNLOC ), intent( in ) :: CV_SLOC2LOC
-    INTEGER, DIMENSION( STOTEL * NPHASE ), intent( in ) :: WIC_T_BC, WIC_D_BC
-    INTEGER, DIMENSION( STOTEL * NPHASE * IGOT_T2 ), intent( in ) :: WIC_T2_BC
-    REAL, DIMENSION( U_NLOC, SCVNGI  ), intent( in ) :: SUFEN
-    REAL, DIMENSION( CV_NLOC, SCVNGI  ), intent( in ) :: SCVFEN
-    REAL, DIMENSION( CV_NLOC, SCVNGI  ), intent( in ) :: SCVFENX, SCVFENY, SCVFENZ
-    REAL, DIMENSION( SCVNGI  ), intent( in ) :: CVNORMX, CVNORMY, CVNORMZ
-    REAL, DIMENSION( CV_NONODS * NPHASE  ), intent( in ) :: T, TOLD, DEN, DENOLD, FEMT, FEMTOLD,  &
+    INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) :: CV_OTHER_LOC
+    INTEGER, DIMENSION( : ), intent( in ) :: CV_SLOC2LOC
+    INTEGER, DIMENSION( : ), intent( in ) :: WIC_T_BC, WIC_D_BC
+    INTEGER, DIMENSION( : ), intent( in ) :: WIC_T2_BC
+    REAL, DIMENSION( :, :  ), intent( in ) :: SUFEN
+    REAL, DIMENSION( :, :  ), intent( in ) :: SCVFEN
+    REAL, DIMENSION( :, :  ), intent( in ) :: SCVFENX, SCVFENY, SCVFENZ
+    REAL, DIMENSION( :  ), intent( in ) :: CVNORMX, CVNORMY, CVNORMZ
+    REAL, DIMENSION( :  ), intent( in ) :: T, TOLD, DEN, DENOLD, FEMT, FEMTOLD,  &
          FEMDEN, FEMDENOLD
-    REAL, DIMENSION( CV_NONODS * NPHASE  * IGOT_T2 ), intent( in ) :: T2, T2OLD, FEMT2, FEMT2OLD
-    REAL, DIMENSION( CV_NONODS * NPHASE  ), intent( inout ) :: TMIN, TOLDMIN, DENMIN, DENOLDMIN, TMAX, TOLDMAX, DENMAX, DENOLDMAX
-    REAL, DIMENSION( CV_NONODS * NPHASE  * IGOT_T2 ), intent( inout ) :: T2MIN, T2OLDMIN, T2MAX, T2OLDMAX
-    REAL, DIMENSION( CV_NONODS ), intent( in ) :: MASS_CV
-    INTEGER, DIMENSION( CV_NONODS * NPHASE  ), intent( in ) :: TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, &
+    REAL, DIMENSION( : ), intent( in ) :: T2, T2OLD, FEMT2, FEMT2OLD
+    REAL, DIMENSION( :  ), intent( inout ) :: TMIN, TOLDMIN, DENMIN, DENOLDMIN, TMAX, TOLDMAX, DENMAX, DENOLDMAX
+    REAL, DIMENSION( : ), intent( inout ) :: T2MIN, T2OLDMIN, T2MAX, T2OLDMAX
+    REAL, DIMENSION( : ), intent( in ) :: MASS_CV
+    INTEGER, DIMENSION( :  ), intent( in ) :: TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, &
          TOLDMAX_NOD, DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD
-    INTEGER, DIMENSION( CV_NONODS * NPHASE  * IGOT_T2), intent( in ) :: &
+    INTEGER, DIMENSION( :), intent( in ) :: &
          T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD
-    REAL, DIMENSION( CV_SNLOC*STOTEL*NPHASE  ), intent( in ) :: SUF_T_BC, SUF_D_BC
-    REAL, DIMENSION( CV_SNLOC*STOTEL*NPHASE * IGOT_T2 ), intent( in ) :: SUF_T2_BC
-    REAL, DIMENSION( TOTELE  ), intent( in ) :: VOLFRA_PORE
-    REAL, DIMENSION( CV_NONODS * NPHASE ), intent( inout ) :: TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC,  &
+    REAL, DIMENSION( :  ), intent( in ) :: SUF_T_BC, SUF_D_BC
+    REAL, DIMENSION( : ), intent( in ) :: SUF_T2_BC
+    REAL, DIMENSION( :  ), intent( in ) :: VOLFRA_PORE
+    REAL, DIMENSION( : ), intent( inout ) :: TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC,  &
          DENMAX_2ND_MC, DENMIN_2ND_MC, DENOLDMAX_2ND_MC, DENOLDMIN_2ND_MC
-    REAL, DIMENSION( CV_NONODS * NPHASE * IGOT_T2 ), intent( inout ) :: T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, T2OLDMIN_2ND_MC
-    REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: U, V, W
-    INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN
+    REAL, DIMENSION( : ), intent( inout ) :: T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, T2OLDMIN_2ND_MC
+    REAL, DIMENSION( : ), intent( in ) :: U, V, W
+    INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
     REAL, DIMENSION( NDIM, NDIM, SCVNGI ), intent( in ) :: INV_JAC
 
     INTEGER, intent( in ) :: IANISOTROPIC
     INTEGER, intent( in ) :: NSMALL_COLM
-    INTEGER, DIMENSION( (TOTELE+1)*IANISOTROPIC ), intent( in ) :: SMALL_FINDRM
-    INTEGER, DIMENSION( NSMALL_COLM*IANISOTROPIC ), intent( in ) :: SMALL_COLM
-    REAL, DIMENSION( NSMALL_COLM*NPHASE ), intent( in ) :: TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT
-    REAL, DIMENSION( NSMALL_COLM*NPHASE*IGOT_T2 ), intent( in ) :: T2UPWIND_MAT, T2OLDUPWIND_MAT
+    INTEGER, DIMENSION( : ), intent( in ) :: SMALL_FINDRM
+    INTEGER, DIMENSION( : ), intent( in ) :: SMALL_COLM
+    REAL, DIMENSION( : ), intent( in ) :: TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT
+    REAL, DIMENSION( : ), intent( in ) :: T2UPWIND_MAT, T2OLDUPWIND_MAT
     ! Local variables
     ! If UPWIND then use upwind flux between elements else use central. 
     ! If HI_ORDER_HALF then use high order interpolation when around 
@@ -8042,15 +8042,15 @@ contains
     REAL, DIMENSION( CV_NONODS * NPHASE * IGOT_T2 ), intent( in ) :: T2, T2OLD
     REAL, DIMENSION( CV_NONODS * NPHASE ), intent( inout ) :: TMIN, TOLDMIN, DENMIN, DENOLDMIN, TMAX, TOLDMAX, DENMAX, DENOLDMAX
     REAL, DIMENSION( CV_NONODS * NPHASE * IGOT_T2 ), intent( inout ) :: T2MIN, T2OLDMIN, T2MAX, T2OLDMAX
-    REAL, DIMENSION( CV_NONODS ), intent( in ) :: MASS_CV
-    INTEGER, DIMENSION( CV_NONODS * NPHASE  ), intent( in ) :: TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, &
+    REAL, DIMENSION( : ), intent( in ) :: MASS_CV
+    INTEGER, DIMENSION( :  ), intent( in ) :: TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, &
          TOLDMAX_NOD, DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD
-    INTEGER, DIMENSION( CV_NONODS * NPHASE  * IGOT_T2 ), intent( in ) :: T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD
-    REAL, DIMENSION( NSMALL_COLM * NPHASE ), intent( in ) :: TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT
-    REAL, DIMENSION( NSMALL_COLM * NPHASE * IGOT_T2 ), intent( in ) :: T2UPWIND_MAT, T2OLDUPWIND_MAT
+    INTEGER, DIMENSION( : ), intent( in ) :: T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD
+    REAL, DIMENSION( : ), intent( in ) :: TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT
+    REAL, DIMENSION( : ), intent( in ) :: T2UPWIND_MAT, T2OLDUPWIND_MAT
     INTEGER, intent( in ) :: NSMALL_COLM
-    INTEGER, DIMENSION( (CV_NONODS+1)*IANISOTROPIC ), intent( in ) :: SMALL_FINDRM
-    INTEGER, DIMENSION( NSMALL_COLM*IANISOTROPIC ), intent( in ) :: SMALL_COLM
+    INTEGER, DIMENSION( : ), intent( in ) :: SMALL_FINDRM
+    INTEGER, DIMENSION( : ), intent( in ) :: SMALL_COLM
     REAL, DIMENSION( CV_NONODS * NPHASE ), intent( inout ) :: TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC,  &
          DENMAX_2ND_MC, DENMIN_2ND_MC, DENOLDMAX_2ND_MC, DENOLDMIN_2ND_MC
     REAL, DIMENSION( CV_NONODS * NPHASE * IGOT_T2 ), intent( inout ) :: T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, T2OLDMIN_2ND_MC
@@ -8214,10 +8214,10 @@ contains
     INTEGER, intent( in ) :: CV_NODI_IPHA, CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE
     LOGICAL, intent( in ) :: RESET_STORE
     REAL, intent( inout ) :: TMIN_STORE
-    REAL, DIMENSION( CV_NONODS * NPHASE ), intent( inout ) :: TMIN
-    REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: T
-    INTEGER, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: TMIN_NOD
-    REAL, DIMENSION( CV_NONODS ), intent( in ) :: MASS_CV
+    REAL, DIMENSION( : ), intent( inout ) :: TMIN
+    REAL, DIMENSION( : ), intent( in ) :: T
+    INTEGER, DIMENSION( : ), intent( in ) :: TMIN_NOD
+    REAL, DIMENSION( : ), intent( in ) :: MASS_CV
     ! Local variables...
     REAL DX1, DX2_MIN, COEFF
     INTEGER CV_NODI, CV_NODJ
@@ -8313,9 +8313,9 @@ contains
     ! Form approximate surface normal (NORMX,NORMY,NORMZ)
     IMPLICIT NONE
     INTEGER, intent( in ) :: ELE, TOTELE, NLOC, SNLOC, XNONOD
-    INTEGER, DIMENSION( SNLOC ), intent( in ) ::  SILOC2ILOC
-    INTEGER, DIMENSION( TOTELE * NLOC ), intent( in ) :: XONDGL
-    REAL, DIMENSION( XNONOD ), intent( in ) :: X, Y, Z
+    INTEGER, DIMENSION( : ), intent( in ) ::  SILOC2ILOC
+    INTEGER, DIMENSION( : ), intent( in ) :: XONDGL
+    REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
     REAL, intent( inout ) :: NORMX, NORMY, NORMZ
     ! Local variables
     REAL :: XC, YC, ZC, SXC, SYC, SZC, NORM
@@ -8366,13 +8366,13 @@ contains
     IMPLICIT NONE
     INTEGER, intent( in ) :: TOTELE, STOTEL, NFACE, NCOLELE, CV_NLOC, CV_SNLOC, CV_NONODS, &
          X_NLOC
-    INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
-    INTEGER, DIMENSION( TOTELE * X_NLOC ), intent( in ) :: X_NDGLN
-    INTEGER, DIMENSION( STOTEL * CV_SNLOC ), intent( in ) :: CV_SNDGLN
-    INTEGER, DIMENSION( NFACE, CV_SNLOC ), intent( in ) :: CV_SLOCLIST
-    INTEGER, DIMENSION( NFACE, TOTELE ), intent( inout ) :: FACE_ELE
-    INTEGER, DIMENSION( TOTELE + 1 ), intent( in ) :: FINELE
-    INTEGER, DIMENSION( NCOLELE ), intent( in ) :: COLELE
+    INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) :: X_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) :: CV_SNDGLN
+    INTEGER, DIMENSION( :, : ), intent( in ) :: CV_SLOCLIST
+    INTEGER, DIMENSION( :, : ), intent( inout ) :: FACE_ELE
+    INTEGER, DIMENSION( : ), intent( in ) :: FINELE
+    INTEGER, DIMENSION( : ), intent( in ) :: COLELE
     ! Local variables
     LOGICAL, DIMENSION( : ), allocatable :: NOD_BELONG_ELE
     INTEGER, DIMENSION( : ), allocatable :: NOD_COUNT_SELE, FIN_ND_SELE, COL_ND_SELE, ELE_ROW
@@ -8544,27 +8544,27 @@ contains
          WIC_T_BC_DIRICHLET, WIC_T_BC_DIRI_ADV_AND_ROBIN, &
          WIC_D_BC_DIRICHLET, IGOT_T2
     LOGICAL, intent( in ) :: LIMIT_USE_2ND
-    INTEGER, DIMENSION( STOTEL * CV_SNLOC ), intent( in ) :: CV_SNDGLN
-    REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE ), intent( in ) :: SUF_T_BC, SUF_D_BC
-    REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE * IGOT_T2 ), intent( in ) :: SUF_T2_BC
-    INTEGER, DIMENSION( STOTEL * NPHASE ), intent( in ) :: WIC_T_BC, WIC_D_BC
-    INTEGER, DIMENSION( STOTEL * NPHASE * IGOT_T2), intent( in ) :: WIC_T2_BC
-    INTEGER, DIMENSION( CV_NONODS * NPHASE + 1 ), intent( in ) :: FINACV
-    INTEGER, DIMENSION( NCOLACV ), intent( in ) :: COLACV
-    REAL, DIMENSION( CV_NONODS * NPHASE ), intent( inout ) :: TMAX, TMIN, TOLDMAX, TOLDMIN,  &
+    INTEGER, DIMENSION( : ), intent( in ) :: CV_SNDGLN
+    REAL, DIMENSION( : ), intent( in ) :: SUF_T_BC, SUF_D_BC
+    REAL, DIMENSION( : ), intent( in ) :: SUF_T2_BC
+    INTEGER, DIMENSION( : ), intent( in ) :: WIC_T_BC, WIC_D_BC
+    INTEGER, DIMENSION( :), intent( in ) :: WIC_T2_BC
+    INTEGER, DIMENSION( : ), intent( in ) :: FINACV
+    INTEGER, DIMENSION( : ), intent( in ) :: COLACV
+    REAL, DIMENSION( : ), intent( inout ) :: TMAX, TMIN, TOLDMAX, TOLDMIN,  &
          DENMAX, DENMIN, DENOLDMAX, DENOLDMIN
-    REAL, DIMENSION( CV_NONODS * NPHASE * IGOT_T2 ), intent( inout ) :: T2MAX, T2MIN, T2OLDMAX, T2OLDMIN
+    REAL, DIMENSION( : ), intent( inout ) :: T2MAX, T2MIN, T2OLDMAX, T2OLDMIN
 
-    REAL, DIMENSION( CV_NONODS * NPHASE ), intent( inout ) :: TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC,  &
+    REAL, DIMENSION( : ), intent( inout ) :: TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC,  &
          DENMAX_2ND_MC, DENMIN_2ND_MC, DENOLDMAX_2ND_MC, DENOLDMIN_2ND_MC
-    REAL, DIMENSION( CV_NONODS * NPHASE * IGOT_T2 ), intent( inout ) :: T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, T2OLDMIN_2ND_MC
+    REAL, DIMENSION( : ), intent( inout ) :: T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, T2OLDMIN_2ND_MC
 
-    REAL, DIMENSION( CV_NONODS*NPHASE ), intent( in ) :: T,TOLD,DEN,DENOLD
-    REAL, DIMENSION( CV_NONODS*NPHASE * IGOT_T2), intent( in ) :: T2,T2OLD
-    REAL, DIMENSION( CV_NONODS ), intent( inout ) :: MASS_CV
-    INTEGER, DIMENSION( CV_NONODS * NPHASE  ), intent( inout ) :: TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, &
+    REAL, DIMENSION( : ), intent( in ) :: T,TOLD,DEN,DENOLD
+    REAL, DIMENSION( :), intent( in ) :: T2,T2OLD
+    REAL, DIMENSION( : ), intent( inout ) :: MASS_CV
+    INTEGER, DIMENSION( : ), intent( inout ) :: TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, &
          TOLDMAX_NOD, DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD
-    INTEGER, DIMENSION( CV_NONODS * NPHASE * IGOT_T2 ), intent( inout ) :: T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, &
+    INTEGER, DIMENSION( : ), intent( inout ) :: T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, &
          T2OLDMAX_NOD
     ! Local variables
     INTEGER :: CV_NODI, CV_NODJ, CV_NODI_IPHA, CV_NODJ_IPHA, IPHASE, COUNT, CV_SILOC, SELE, &
@@ -8889,16 +8889,16 @@ contains
     IMPLICIT NONE
     INTEGER, intent( in ) :: ELE, SCVNGI, CV_NONODS, TOTELE, STOTEL, CV_NLOC, U_NLOC, &
          CV_SNLOC, U_SNLOC, NFACE, GI, CV_ILOC
-    INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
-    INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN
-    INTEGER, DIMENSION( STOTEL * CV_SNLOC ), intent( in ) :: CV_SNDGLN
-    INTEGER, DIMENSION( STOTEL * U_SNLOC ), intent( in ) :: U_SNDGLN
+    INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) :: CV_SNDGLN
+    INTEGER, DIMENSION( : ), intent( in ) :: U_SNDGLN
     INTEGER, intent( inout ) :: SELE, CV_SILOC
-    INTEGER, DIMENSION( NFACE, TOTELE ), intent( in ) :: FACE_ELE
-    LOGICAL, DIMENSION( CV_NLOC, SCVNGI ), intent( in )  :: CVFEM_ON_FACE
-    INTEGER, DIMENSION( U_SNLOC ), intent( inout ) :: U_SLOC2LOC
-    INTEGER, DIMENSION( CV_SNLOC ), intent( inout ) :: CV_SLOC2LOC
-    LOGICAL, DIMENSION( CV_NONODS ), intent( inout ) :: LOG_ON_BOUND
+    INTEGER, DIMENSION( :, : ), intent( in ) :: FACE_ELE
+    LOGICAL, DIMENSION( :, : ), intent( in )  :: CVFEM_ON_FACE
+    INTEGER, DIMENSION( : ), intent( inout ) :: U_SLOC2LOC
+    INTEGER, DIMENSION( : ), intent( inout ) :: CV_SLOC2LOC
+    LOGICAL, DIMENSION( : ), intent( inout ) :: LOG_ON_BOUND
     ! local variables
     INTEGER :: IFACE, ELE2, SELE2, CV_JLOC, CV_JNOD, &
          U_JLOC, U_JNOD, CV_KLOC, CV_SKNOD, &
@@ -8971,8 +8971,9 @@ contains
     !      This subroutine defines the shape functions M and N and their
     !      derivatives at the Gauss points
     INTEGER NGI,NLOC
-    REAL WEIGHT(NGI)
-    REAL N(NLOC,NGI),NLX(NLOC,NGI)
+    REAL, dimension(:) :: WEIGHT
+    REAL , dimension (:,:) :: N,NLX
+    !Local variables
     REAL POSI
     REAL LX(3),LY(3)
     REAL WEI(3)
@@ -9035,16 +9036,16 @@ contains
     INTEGER, intent( in ) :: U_NLOC, SCVNGI, GI, NCOLCT, NDIM, &
          CV_NONODS, U_NONODS, NPHASE, IPHASE, TOTELE,  ELE, ELE2, SELE, &
          CV_NODI, CV_NODI_IPHA
-    INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN
-    INTEGER, DIMENSION( U_NLOC ), intent( in ) :: JCOUNT_KLOC, JCOUNT_KLOC2, U_OTHER_LOC
-    REAL, DIMENSION( NCOLCT * NDIM * NPHASE ), intent( inout ) :: CT
-    REAL, DIMENSION( CV_NONODS ), intent( inout ) :: CT_RHS
-    REAL, DIMENSION( U_NLOC ), intent( in ) :: UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
+    INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) :: JCOUNT_KLOC, JCOUNT_KLOC2, U_OTHER_LOC
+    REAL, DIMENSION( : ), intent( inout ) :: CT
+    REAL, DIMENSION( : ), intent( inout ) :: CT_RHS
+    REAL, DIMENSION( : ), intent( in ) :: UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
          UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2
-    REAL, DIMENSION( U_NLOC, SCVNGI ), intent( in ) :: SUFEN
-    REAL, DIMENSION( SCVNGI ), intent( in ) :: SCVDETWEI, CVNORMX, CVNORMY, CVNORMZ
-    REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: NU, NV, NW
-    REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: DEN
+    REAL, DIMENSION( :, : ), intent( in ) :: SUFEN
+    REAL, DIMENSION( : ), intent( in ) :: SCVDETWEI, CVNORMX, CVNORMY, CVNORMZ
+    REAL, DIMENSION( : ), intent( in ) :: NU, NV, NW
+    REAL, DIMENSION( : ), intent( in ) :: DEN
     REAL, intent( in ) :: NDOTQ, NDOTQOLD, LIMDT, LIMDTOLD, FTHETA_T2, ONE_M_FTHETA_T2OLD
 
     ! Local variables...
@@ -9185,10 +9186,10 @@ contains
     IMPLICIT NONE
 
     INTEGER, intent( in ) :: CV_NONODS,X_NONODS,TOTELE,CV_NLOC,X_NLOC,NPHASE
-    REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: SATURA
-    REAL, DIMENSION( X_NONODS ), intent( in ) :: X
-    INTEGER, DIMENSION( TOTELE * X_NLOC ), intent( in ) :: X_NDGLN
-    INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
+    REAL, DIMENSION( : ), intent( in ) :: SATURA
+    REAL, DIMENSION( : ), intent( in ) :: X
+    INTEGER, DIMENSION( : ), intent( in ) :: X_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
     ! Local Variables
     INTEGER :: ELE, CV_ILOC, IPHASE
     REAL :: x_coord
@@ -10034,23 +10035,23 @@ contains
     IMPLICIT NONE
     INTEGER, intent( in ) :: CV_NONODS,X_NONODS,TOTELE,CV_NLOC, X_NLOC, &
          NSMALL_COLM, NDIM,NCOLACV,IGOT_T2,NPHASE
-    REAL, DIMENSION( CV_NONODS*NPHASE ), intent( in ) :: T,TOLD,DEN,DENOLD
-    REAL, DIMENSION( CV_NONODS*NPHASE*IGOT_T2), intent( in ) :: T2,T2OLD
-    REAL, DIMENSION( CV_NONODS*NPHASE ), intent( in ) :: FEMT,FEMTOLD,FEMDEN,FEMDENOLD
-    REAL, DIMENSION( CV_NONODS*NPHASE*IGOT_T2), intent( in ) :: FEMT2,FEMT2OLD
+    REAL, DIMENSION( : ), intent( in ) :: T,TOLD,DEN,DENOLD
+    REAL, DIMENSION( :), intent( in ) :: T2,T2OLD
+    REAL, DIMENSION( :), intent( in ) :: FEMT,FEMTOLD,FEMDEN,FEMDENOLD
+    REAL, DIMENSION( :), intent( in ) :: FEMT2,FEMT2OLD
     LOGICAL, intent( in ) :: USE_FEMT ! Use the FEM solns rather than CV's when interpolating soln
-    REAL, DIMENSION( NSMALL_COLM*NPHASE ), intent( inout ) :: TUPWIND_MAT, TOLDUPWIND_MAT, &
+    REAL, DIMENSION( : ), intent( inout ) :: TUPWIND_MAT, TOLDUPWIND_MAT, &
          DENUPWIND_MAT, DENOLDUPWIND_MAT
-    REAL, DIMENSION( NSMALL_COLM*NPHASE*IGOT_T2 ), intent( inout ) :: T2UPWIND_MAT, T2OLDUPWIND_MAT
-    INTEGER, DIMENSION( TOTELE*X_NLOC ), intent( in ) :: X_NDGLN
-    INTEGER, DIMENSION( TOTELE*CV_NLOC ), intent( in ) :: CV_NDGLN
+    REAL, DIMENSION( : ), intent( inout ) :: T2UPWIND_MAT, T2OLDUPWIND_MAT
+    INTEGER, DIMENSION(: ), intent( in ) :: X_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
     INTEGER, DIMENSION( : ), intent( in) :: SMALL_FINDRM
     INTEGER, DIMENSION( : ), intent( in ) :: SMALL_COLM
     INTEGER, DIMENSION( : ), intent( in) :: SMALL_CENTRM
-    REAL, DIMENSION( X_NONODS ), intent( in ) :: X,Y,Z
-    REAL, DIMENSION( CV_NONODS ), intent( in ) :: XC_CV, YC_CV, ZC_CV
-    INTEGER, DIMENSION( CV_NONODS*NPHASE+1 ), intent( in ) :: FINACV
-    INTEGER, DIMENSION( NCOLACV ), intent( in ) :: COLACV
+    REAL, DIMENSION( : ), intent( in ) :: X,Y,Z
+    REAL, DIMENSION( : ), intent( in ) :: XC_CV, YC_CV, ZC_CV
+    INTEGER, DIMENSION( : ), intent( in ) :: FINACV
+    INTEGER, DIMENSION( : ), intent( in ) :: COLACV
     REAL, DIMENSION(:), ALLOCATABLE :: SOL
 
     ! Allocate memory 
@@ -10138,16 +10139,16 @@ contains
     ! value for each node pair is stored in the matrices TUPWIND AND
     IMPLICIT NONE
     INTEGER, intent(in) :: NONODS,X_NONODS,TOTELE,CV_NLOC, X_NLOC, NSMALL_COLM, NFIELD,NDIM
-    REAL, DIMENSION( NONODS*NFIELD ), intent( in ) :: T
-    REAL, DIMENSION( NONODS*NFIELD ), intent( in ) :: FEMT
+    REAL, DIMENSION( : ), intent( in ) :: T
+    REAL, DIMENSION( : ), intent( in ) :: FEMT
     LOGICAL, intent( in ) :: USE_FEMT
-    REAL, DIMENSION( NSMALL_COLM*NFIELD ), intent( inout ) :: TUPWIND
-    INTEGER, DIMENSION( TOTELE*X_NLOC  ), intent( in ) :: X_NDGLN
-    INTEGER, DIMENSION( TOTELE*CV_NLOC  ), intent( in ) :: CV_NDGLN
-    INTEGER, DIMENSION( NONODS+1 ), intent( in ) :: SMALL_FINDRM
-    INTEGER, DIMENSION( NSMALL_COLM ), intent( in ) :: SMALL_COLM
-    REAL, DIMENSION( X_NONODS ), intent( in ) :: X, Y, Z
-    REAL, DIMENSION( NONODS ), intent( in ) :: XC_CV, YC_CV, ZC_CV
+    REAL, DIMENSION( : ), intent( inout ) :: TUPWIND
+    INTEGER, DIMENSION( :  ), intent( in ) :: X_NDGLN
+    INTEGER, DIMENSION( :  ), intent( in ) :: CV_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) :: SMALL_FINDRM
+    INTEGER, DIMENSION( : ), intent( in ) :: SMALL_COLM
+    REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
+    REAL, DIMENSION( : ), intent( in ) :: XC_CV, YC_CV, ZC_CV
     ! the centre of each CV is: XC_CV, YC_CV, ZC_CV
 
     ! Allocate memory for the interpolated upwind values
@@ -10258,15 +10259,16 @@ contains
     ! value for each node pair is stored in the matrices TUPWIND AND
     IMPLICIT NONE
     INTEGER, intent(in) :: NONODS,X_NONODS,TOTELE,NLOC,NGI,NCOLM,NFIELD,NDIM
-    REAL, DIMENSION( NONODS*NFIELD ), intent( in ) :: T
-    REAL, DIMENSION( NONODS*NFIELD ), intent( in ) :: FEMT
+    REAL, DIMENSION( : ), intent( in ) :: T
+    REAL, DIMENSION( : ), intent( in ) :: FEMT
     LOGICAL, intent( in ) :: USE_FEMT
-    REAL, DIMENSION( NCOLM*NFIELD ), intent( inout ) :: TUPWIND
+    REAL, DIMENSION( : ), intent( inout ) :: TUPWIND
     INTEGER, INTENT(IN) :: NDGLNO(TOTELE*NLOC),X_NDGLN(TOTELE*NLOC)
     INTEGER, INTENT(IN) :: FINDRM(NONODS+1),COLM(NCOLM)
 
-    REAL, DIMENSION(X_NONODS), intent( in ) :: X,Y,Z
-    REAL, DIMENSION( NONODS ), intent( in ) :: XC_CV, YC_CV, ZC_CV
+    REAL, DIMENSION(:), intent( in ) :: X,Y,Z
+    REAL, DIMENSION( : ), intent( in ) :: XC_CV, YC_CV, ZC_CV
+    !Local variables
     REAL, INTENT(IN) :: N(NLOC,NGI),NLX(NLOC,NGI),NLY(NLOC,NGI),NLZ(NLOC,NGI)
     REAL, INTENT(IN) :: WEIGHT(NGI) 
 
@@ -10495,7 +10497,7 @@ contains
     REAL, intent(inout) :: MATPSI(NCOLM*NFIELD)
     INTEGER, intent(in) :: X_NDGLN(TOTELE*NLOC)
     REAL, intent(in) :: X(X_NONODS),Y(X_NONODS),Z(X_NONODS)
-    REAL, DIMENSION( NONODS ), intent( in ) :: XC_CV, YC_CV, ZC_CV
+    REAL, DIMENSION( : ), intent( in ) :: XC_CV, YC_CV, ZC_CV
     REAL, intent(in) :: N(NLOC,NGI),NLX(NLOC,NGI),NLY(NLOC,NGI),NLZ(NLOC,NGI)
     REAL, intent(in) :: WEIGHT(NGI)
     !     work space...
@@ -10896,10 +10898,10 @@ contains
       IMPLICIT NONE
       integer, intent( in ) :: NONODS,MXNCOLEL,TOTELE,NLOC
       integer, intent( inout ) :: NCOLEL
-      integer, dimension( NONODS+1 ), intent( inout ) :: FINDELE
-      integer, dimension( MXNCOLEL ), intent( inout ) :: COLELE
-      integer, dimension( TOTELE*NLOC ), intent( in ) :: NDGLNO
-      integer, dimension( NONODS ), intent( inout ) :: NLIST,INLIST
+      integer, dimension( : ), intent( inout ) :: FINDELE
+      integer, dimension( : ), intent( inout ) :: COLELE
+      integer, dimension( : ), intent( in ) :: NDGLNO
+      integer, dimension( : ), intent( inout ) :: NLIST,INLIST
 !     Local variables...
       INTEGER NOD,ELE,ILOC,COUNT, INOD
 !     
