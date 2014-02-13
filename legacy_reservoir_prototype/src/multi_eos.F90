@@ -1434,7 +1434,7 @@ SUBROUTINE relperm_corey_epsilon( ABSP, MOBILITY, INV_PERM, SAT, IPHASE,options 
       real, dimension( : ), intent( in ) :: x,y,z
       type(state_type), dimension( : ) :: state
 
-      real, dimension( :, : ), intent( inout ) :: suf_sig_diagten_bc
+      real, dimension(stotel * cv_snloc * nphase, ndim ), intent( inout ) :: suf_sig_diagten_bc
 
       ! local variables
       type(tensor_field), pointer :: viscosity_ph1, viscosity_ph2
