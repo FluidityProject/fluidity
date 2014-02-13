@@ -499,7 +499,7 @@ contains
 
     character( len = OPTION_PATH_LEN ) :: &
          path = "/tmp/galerkin_projection/continuous"
-    integer :: ele, idim, jdim
+    integer :: ele, idim, jdim, stat
 
     real, parameter :: tol = 1.e-10
 
@@ -516,10 +516,14 @@ contains
 
     call set_solver_options( path, &
          ksptype = "cg", &
-         pctype = "mg", &
+         pctype = "hypre", &
          rtol = 1.e-10, &
          atol = 0., &
          max_its = 10000 )
+    call add_option( &
+         trim(path)//"/solver/preconditioner[0]/hypre_type[0]/name", stat)
+    call set_option( &
+         trim(path)//"/solver/preconditioner[0]/hypre_type[0]/name", "boomeramg")
 
     path = "/tmp"
 
@@ -665,7 +669,7 @@ contains
     type( state_type ) :: alg_ext, alg_fl
     real, dimension( : ), allocatable :: u_tmp, v_tmp
     integer, dimension( : ), pointer :: fl_ele_nodes
-    integer :: ele, totele, u_nloc, nlev, i, j, k, number_nodes
+    integer :: ele, totele, u_nloc, nlev, i, j, k, number_nodes, stat
     character(len=option_path_len) :: vel_element_type
     logical :: is_overlapping
     character( len = OPTION_PATH_LEN ) :: &
@@ -682,10 +686,14 @@ contains
 
     call set_solver_options( path, &
          ksptype = "cg", &
-         pctype = "mg", &
+         pctype = "hypre", &
          rtol = 1.e-10, &
          atol = 0., &
          max_its = 10000 )
+    call add_option( &
+         trim(path)//"/solver/preconditioner[0]/hypre_type[0]/name", stat)
+    call set_option( &
+         trim(path)//"/solver/preconditioner[0]/hypre_type[0]/name", "boomeramg")
 
     path = "/tmp"
 
@@ -791,22 +799,22 @@ contains
     call insert( alg_ext, positions_r%mesh, "Mesh" )
     call insert( alg_ext, positions_r, "Coordinate" )
 
-    call allocate( field_ext_rho, fl_mesh, "Density" )
+    call allocate( field_ext_rho, positions_r%mesh, "Density" )
     call zero( field_ext_rho )
     field_ext_rho % option_path = path
     call insert( alg_ext, field_ext_rho, "Density" )
 
-    call allocate( field_ext_p, fl_mesh, "Pressure" )
+    call allocate( field_ext_p, positions_r%mesh, "Pressure" )
     call zero( field_ext_p )
     field_ext_p % option_path = path
     call insert( alg_ext, field_ext_p, "Pressure" )
 
-    call allocate( field_ext_u, fl_mesh, "Velocity1" )
+    call allocate( field_ext_u, positions_r%mesh, "Velocity1" )
     call zero( field_ext_u )
     field_ext_u % option_path = path
     call insert( alg_ext, field_ext_u, "Velocity1" )
 
-    call allocate( field_ext_v, fl_mesh, "Velocity2" )
+    call allocate( field_ext_v, positions_r%mesh, "Velocity2" )
     call zero( field_ext_v )
     field_ext_v % option_path = path
     call insert( alg_ext, field_ext_v, "Velocity2" )
