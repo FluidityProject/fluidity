@@ -2783,21 +2783,42 @@ contains
     INTEGER, intent( in ) :: PELE, PELEOT
     REAL, DIMENSION( TOTELE ), intent( in ) :: ETDNEW, TDMIN, TDMAX, TDMIN_2nd_mc, TDMAX_2nd_mc
     LOGICAL, intent( in ) :: FIRORD, NOLIMI, LIMIT_USE_2ND
+    REAL :: ETDNEW_PELE, ETDNEW_PELEOT, TDMIN_PELE, TDMAX_PELE, TDMIN_PELEOT, TDMAX_PELEOT, &
+         &  TDMIN_2ND_MC_PELE, TDMAX_2ND_MC_PELE, TDMIN_2ND_MC_PELEOT, TDMAX_2ND_MC_PELEOT  
 
+    ETDNEW_PELE = ETDNEW( PELE )
+    IF( PELEOT /= PELE ) THEN
+       ETDNEW_PELEOT = ETDNEW( PELEOT )
+       IF ( IANISOTROPIC /= 1 ) THEN
+          TDMIN_PELE   = TDMIN( PELE )
+          TDMAX_PELE   = TDMAX( PELE )
+          TDMIN_PELEOT = TDMIN( PELEOT )
+          TDMAX_PELEOT = TDMAX( PELEOT )
+          IF ( LIMIT_USE_2ND ) THEN
+             TDMIN_2ND_MC_PELE   = TDMIN_2ND_MC( PELE )
+             TDMAX_2ND_MC_PELE   = TDMAX_2ND_MC( PELE )
+             TDMIN_2ND_MC_PELEOT = TDMIN_2ND_MC( PELEOT )
+             TDMAX_2ND_MC_PELEOT = TDMAX_2ND_MC( PELEOT )
+          END IF
+       END IF
+    END IF
 
     IF ( IANISOTROPIC == 1 ) THEN ! limit based on 2 largest and 2 minima values of T:
        CALL ONVDLIM_ANO( TOTELE, &
             TDLIM, TDCEN, INCOME, PELE, PELEOT, &
-            ETDNEW, TDMIN, TDMAX, FIRORD, NOLIMI, COURANT_OR_MINUS_ONE, &
+            ETDNEW_PELE, ETDNEW_PELEOT, FIRORD, NOLIMI, COURANT_OR_MINUS_ONE, &
             TUPWIN, TUPWI2 )
     ELSE IF ( LIMIT_USE_2ND ) THEN ! limit based on 2 largest and 2 minima values of T:
        CALL ONVDLIM_2nd( TOTELE, &
             TDLIM, TDCEN, INCOME, PELE, PELEOT, &
-            ETDNEW, TDMIN, TDMAX, TDMIN_2nd_mc, TDMAX_2nd_mc, FIRORD, NOLIMI )
+            ETDNEW_PELE, ETDNEW_PELEOT, TDMIN_PELE, TDMAX_PELE, TDMIN_PELEOT, TDMAX_PELEOT, &
+            TDMIN_2ND_MC_PELE, TDMAX_2ND_MC_PELE, TDMIN_2ND_MC_PELEOT, TDMAX_2ND_MC_PELEOT, &
+            FIRORD, NOLIMI )
     ELSE
        CALL ONVDLIM( TOTELE, &
             TDLIM, TDCEN, INCOME, PELE, PELEOT, &
-            ETDNEW, TDMIN, TDMAX, FIRORD, NOLIMI, COURANT_OR_MINUS_ONE )
+            ETDNEW_PELE, ETDNEW_PELEOT, TDMIN_PELE,TDMAX_PELE, &
+            TDMIN_PELEOT, TDMAX_PELEOT, FIRORD, NOLIMI, COURANT_OR_MINUS_ONE )
     END IF
 
     RETURN
@@ -2809,7 +2830,9 @@ contains
 
   SUBROUTINE ONVDLIM_2nd( TOTELE, &
        TDLIM, TDCEN, INCOME, PELE, PELEOT, &
-       ETDNEW, TDMIN, TDMAX, TDMIN_2nd_mc, TDMAX_2nd_mc, FIRORD, NOLIMI )
+       ETDNEW_PELE, ETDNEW_PELEOT, TDMIN_PELE, TDMAX_PELE, TDMIN_PELEOT, TDMAX_PELEOT, &
+       TDMIN_2ND_MC_PELE, TDMAX_2ND_MC_PELE, TDMIN_2ND_MC_PELEOT, TDMAX_2ND_MC_PELEOT, &
+       FIRORD, NOLIMI )
     implicit none 
     ! This sub calculates the limited face values TDADJ(1...SNGI) from the central 
     ! difference face values TDCEN(1...SNGI) using a NVD shceme.  
@@ -2836,9 +2859,10 @@ contains
     !--------------------------------------------------- 
     INTEGER, intent( in ) :: TOTELE 
     REAL, intent( inout ) :: TDLIM  
-    REAL, intent( in ) :: TDCEN, INCOME
+    REAL, intent( in ) :: TDCEN, INCOME, ETDNEW_PELE, ETDNEW_PELEOT, TDMIN_PELE, TDMAX_PELE, &
+         &                TDMIN_PELEOT, TDMAX_PELEOT, TDMIN_2ND_MC_PELE, TDMAX_2ND_MC_PELE, &
+         &                TDMIN_2ND_MC_PELEOT, TDMAX_2ND_MC_PELEOT
     INTEGER, intent( in ) :: PELE, PELEOT
-    REAL, DIMENSION( TOTELE ), intent( in ) :: ETDNEW, TDMIN, TDMAX, TDMIN_2nd_mc, TDMAX_2nd_mc
     LOGICAL, intent( in ) :: FIRORD, NOLIMI
     ! Local variables   
     REAL, PARAMETER :: TOLER=1.0E-10
@@ -2854,40 +2878,40 @@ contains
 
        Conditional_PELEOT: IF( PELEOT /= PELE ) THEN
 
-          TC_in =ETDNEW( PELEOT )! upwind value for incomming (to cell PELE) vel
-          TD_in =ETDNEW( PELE )  ! downwind value for incomming vel
-          TC_out=ETDNEW( PELE )  ! upwind value for outgoing vel
-          TD_out=ETDNEW( PELEOT )! downwind value for outgoing vel
+          TC_in  = ETDNEW_PELEOT ! upwind value for incomming (to cell PELE) vel
+          TD_in  = ETDNEW_PELE   ! downwind value for incomming vel
+          TC_out = ETDNEW_PELE   ! upwind value for outgoing vel
+          TD_out = ETDNEW_PELEOT ! downwind value for outgoing vel
 
-          IF( ETDNEW( PELEOT ) > ETDNEW( PELE )) THEN
-             TUPWIN_out = TDMIN( PELE )
-             TD_MIN_out=TDMIN_2nd_mc( PELE )
-             TD_MAX_out=TDMAX( PELE )   !1.E+10
+          IF( ETDNEW_PELEOT > ETDNEW_PELE ) THEN
+             TUPWIN_out = TDMIN_PELE
+             TD_MIN_out = TDMIN_2nd_mc_PELE
+             TD_MAX_out = TDMAX_PELE !1.E+10
 
-             TUPWIN_in  = TDMAX( PELEOT )
-             TD_MAX_in =TDMAX_2nd_mc( PELEOT ) 
-             TD_MIN_in =TDMIN( PELEOT )!-1.E+10 used to bound everything
+             TUPWIN_in = TDMAX_PELEOT
+             TD_MAX_in = TDMAX_2nd_mc_PELEOT
+             TD_MIN_in = TDMIN_PELEOT !-1.E+10 used to bound everything
           ELSE
-             TUPWIN_out = TDMAX( PELE )
-             TD_MAX_out=TDMAX_2nd_mc( PELE )
-             TD_MIN_out=TDMIN( PELE )   !-1.e+10
+             TUPWIN_out = TDMAX_PELE
+             TD_MAX_out = TDMAX_2nd_mc_PELE
+             TD_MIN_out = TDMIN_PELE !-1.e+10
 
-             TUPWIN_in  = TDMIN( PELEOT )
-             TD_MIN_in =TDMIN_2nd_mc( PELEOT )
-             TD_MAX_in =TDMAX( PELEOT ) !+1.e+10 used to bound everything
-          ENDIF
+             TUPWIN_in  = TDMIN_PELEOT
+             TD_MIN_in  = TDMIN_2nd_mc_PELEOT
+             TD_MAX_in  = TDMAX_PELEOT !+1.e+10 used to bound everything
+          END IF
           ! Calculate normalisation parameters for out going velocities *******
-          CALL LIM_TC_2MAX2MIN(TDLIM_out, TC_out,TD_out, TUPWIN_out, TDCEN, TD_MIN_out,TD_MAX_out)
+          CALL LIM_TC_2MAX2MIN(TDLIM_out, TC_out,TD_out, TUPWIN_out, TDCEN, TD_MIN_out, TD_MAX_out)
 
           ! Calculate normalisation parameters for incomming velocities *******
-          CALL LIM_TC_2MAX2MIN(TDLIM_in, TC_in,TD_in, TUPWIN_in, TDCEN, TD_MIN_in,TD_MAX_in)
+          CALL LIM_TC_2MAX2MIN(TDLIM_in, TC_in,TD_in, TUPWIN_in, TDCEN, TD_MIN_in, TD_MAX_in)
 
           ! overall TDLIM*******:
-          TDLIM=INCOME*TDLIM_in + (1.0-INCOME)*TDLIM_out
+          TDLIM = INCOME * TDLIM_in + (1.0-INCOME) * TDLIM_out
 
        ELSE
           ! Next to boundary...
-          TDLIM = ETDNEW( PELE )
+          TDLIM = ETDNEW_PELE
 
        ENDIF Conditional_PELEOT
 
@@ -2895,8 +2919,7 @@ contains
     ELSE
 
        ! Velocity is going out of element
-       !         TDLIM = INCOME * UCIN + ( 1.0 - INCOME ) * UCOU 
-       TDLIM = INCOME * ETDNEW( PELEOT ) + ( 1.0 - INCOME ) * ETDNEW( PELE )
+       TDLIM = INCOME * ETDNEW_PELEOT + ( 1.0 - INCOME ) * ETDNEW_PELE
 
     ENDIF Conditional_FIRORD
 
@@ -2942,7 +2965,8 @@ contains
 
   SUBROUTINE ONVDLIM( TOTELE, &
        TDLIM, TDCEN, INCOME, PELE, PELEOT, &
-       ETDNEW, TDMIN, TDMAX, FIRORD, NOLIMI, COURANT_OR_MINUS_ONE )
+       ETDNEW_PELE, ETDNEW_PELEOT, TDMIN_PELE, TDMAX_PELE, &
+       TDMIN_PELEOT, TDMAX_PELEOT, FIRORD, NOLIMI, COURANT_OR_MINUS_ONE )
     implicit none 
     ! This sub calculates the limited face values TDADJ(1...SNGI) from the central 
     ! difference face values TDCEN(1...SNGI) using a NVD shceme.  
@@ -2965,9 +2989,9 @@ contains
     !--------------------------------------------------- 
     INTEGER, intent( in ) :: TOTELE 
     REAL, intent( inout ) :: TDLIM  
-    REAL, intent( in ) :: TDCEN, INCOME, COURANT_OR_MINUS_ONE
+    REAL, intent( in ) :: TDCEN, INCOME, COURANT_OR_MINUS_ONE, ETDNEW_PELE, ETDNEW_PELEOT, &
+         &                TDMIN_PELE, TDMAX_PELE, TDMIN_PELEOT, TDMAX_PELEOT
     INTEGER, intent( in ) :: PELE, PELEOT
-    REAL, DIMENSION( TOTELE ), intent( in ) :: ETDNEW, TDMIN, TDMAX
     LOGICAL, intent( in ) :: FIRORD, NOLIMI
     ! Local variables   
     REAL, PARAMETER :: TOLER=1.0E-10
@@ -2981,48 +3005,46 @@ contains
 
     Conditional_PELEOT: IF( PELEOT /= PELE ) THEN
 
-       IF( ETDNEW( PELEOT ) > ETDNEW( PELE ) ) THEN
-          TUPWIN = TDMAX( PELEOT )
-          TUPWI2 = TDMIN( PELE )
+       IF( ETDNEW_PELEOT > ETDNEW_PELE ) THEN
+          TUPWIN = TDMAX_PELEOT
+          TUPWI2 = TDMIN_PELE
        ELSE
-          TUPWIN = TDMIN( PELEOT )
-          TUPWI2 = TDMAX( PELE ) 
-       ENDIF
+          TUPWIN = TDMIN_PELEOT
+          TUPWI2 = TDMAX_PELE 
+       END IF
 
        ! Calculate normalisation parameters for incomming velocities 
-       TDELE = ETDNEW( PELE )
-       !tdele = min( max( tdcen + 1.*( TDELE - tdcen ) , 0.) , 1. )
+       TDELE = ETDNEW_PELE
        DENOIN = TDELE - TUPWIN 
 
        IF( ABS( DENOIN ) < TOLER ) DENOIN = SIGN( TOLER, DENOIN )
 
-       UCIN = ETDNEW( PELEOT )
+       UCIN = ETDNEW_PELEOT
        CTILIN = ( UCIN - TUPWIN ) / DENOIN
 
        ! Calculate normalisation parameters for out going velocities 
-       TDELE = ETDNEW( PELEOT )
-       !tdele =  min( max( tdcen + 1.*( TDELE - tdcen ) , 0.) , 1. )
+       TDELE = ETDNEW_PELEOT
        DENOOU = TDELE - TUPWI2
 
        IF( ABS( DENOOU ) < TOLER) DENOOU = SIGN( TOLER, DENOOU )
-       UCOU = ETDNEW( PELE )
+       UCOU = ETDNEW_PELE
        CTILOU = ( UCOU - TUPWI2 ) / DENOOU
 
     ELSE
 
        ! Calculate normalisation parameters for incomming velocities 
-       TUPWIN = ETDNEW( PELE )
-       UCIN = ETDNEW( PELE )
+       TUPWIN = ETDNEW_PELE
+       UCIN = ETDNEW_PELE
        DENOIN = 1.
        CTILIN = 0.
 
        ! Calculate normalisation parameters for out going velocities 
-       TUPWI2 = ETDNEW( PELE )
-       UCOU = ETDNEW( PELE )
+       TUPWI2 = ETDNEW_PELE
+       UCOU = ETDNEW_PELE
        DENOOU = 1.
        CTILOU = 0.
 
-    ENDIF Conditional_PELEOT
+    END IF Conditional_PELEOT
 
     Conditional_FIRORD: IF( FIRORD ) THEN ! Velocity is pointing into element
 
@@ -3031,15 +3053,14 @@ contains
 
     ELSE
 
-
        FTILIN = ( TDCEN - TUPWIN ) / DENOIN
        FTILOU = ( TDCEN - TUPWI2 ) / DENOOU
 
        ! Velocity is going out of element
-       TDLIM = INCOME * ( TUPWIN + NVDFUNNEW( FTILIN, CTILIN, COURANT_OR_MINUS_ONE ) * DENOIN ) &
+       TDLIM =        INCOME   * ( TUPWIN + NVDFUNNEW( FTILIN, CTILIN, COURANT_OR_MINUS_ONE ) * DENOIN ) &
             + ( 1.0 - INCOME ) * ( TUPWI2 + NVDFUNNEW( FTILOU, CTILOU, COURANT_OR_MINUS_ONE ) * DENOOU )
 
-    ENDIF Conditional_FIRORD
+    END IF Conditional_FIRORD
 
     RETURN
 
@@ -3050,7 +3071,7 @@ contains
 
   SUBROUTINE ONVDLIM_ANO( TOTELE, &
        TDLIM, TDCEN, INCOME, PELE, PELEOT, &
-       ETDNEW, TDMIN, TDMAX, FIRORD, NOLIMI, COURANT_OR_MINUS_ONE, &
+       ETDNEW_PELE, ETDNEW_PELEOT, FIRORD, NOLIMI, COURANT_OR_MINUS_ONE, &
        TUPWIN2, TUPWI22 )
     implicit none 
     ! This sub calculates the limited face values TDADJ(1...SNGI) from the central 
@@ -3076,7 +3097,7 @@ contains
     REAL, intent( inout ) :: TDLIM  
     REAL, intent( in ) :: TDCEN, INCOME, COURANT_OR_MINUS_ONE, TUPWIN2, TUPWI22 
     INTEGER, intent( in ) :: PELE, PELEOT
-    REAL, DIMENSION( TOTELE ), intent( in ) :: ETDNEW, TDMIN, TDMAX
+    REAL, intent( in ) :: ETDNEW_PELE, ETDNEW_PELEOT
     LOGICAL, intent( in ) :: FIRORD, NOLIMI
     ! Local variables   
     REAL, PARAMETER :: TOLER=1.0E-10
@@ -3092,46 +3113,37 @@ contains
 
     Conditional_PELEOT: IF( PELEOT /= PELE ) THEN
 
-       !DO COUNT = SMALL_FINDRM(PELEOT), SMALL_FINDRM(PELEOT+1)-1
-       !   IF ( SMALL_COLM(COUNT)==PELE ) TUPWIN = TUPWIND_MAT(COUNT)**power
-       !END DO
-       !DO COUNT = SMALL_FINDRM(PELE), SMALL_FINDRM(PELE+1)-1
-       !   IF ( SMALL_COLM(COUNT)==PELEOT ) TUPWI2 = TUPWIND_MAT(COUNT)**power
-       !END DO
-
        TUPWIN = TUPWIN2 ** POWER
        TUPWI2 = TUPWI22 ** POWER
 
        ! Calculate normalisation parameters for incomming velocities 
-       TDELE = ETDNEW( PELE )**power
-       !tdele = min( max( tdcen + 1.*( TDELE - tdcen ) , 0.) , 1. )
+       TDELE = ETDNEW_PELE ** POWER
        DENOIN = TDELE - TUPWIN
 
        IF( ABS( DENOIN ) < TOLER ) DENOIN = SIGN( TOLER, DENOIN )
 
-       UCIN = ETDNEW( PELEOT )**power
+       UCIN = ETDNEW_PELEOT ** POWER
        CTILIN = ( UCIN - TUPWIN ) / DENOIN
 
        ! Calculate normalisation parameters for out going velocities 
-       TDELE = ETDNEW( PELEOT )**power
-       !tdele =  min( max( tdcen + 1.*( TDELE - tdcen ) , 0.) , 1. )
+       TDELE = ETDNEW_PELEOT ** POWER
        DENOOU = TDELE - TUPWI2
 
-       IF( ABS( DENOOU ) < TOLER) DENOOU = SIGN( TOLER, DENOOU )
-       UCOU = ETDNEW( PELE )**power
+       IF( ABS( DENOOU ) < TOLER ) DENOOU = SIGN( TOLER, DENOOU )
+       UCOU = ETDNEW_PELE ** POWER
        CTILOU = ( UCOU - TUPWI2 ) / DENOOU
 
     ELSE
 
        ! Calculate normalisation parameters for incomming velocities 
-       TUPWIN = ETDNEW( PELE )**power
-       UCIN = ETDNEW( PELE )**power
+       TUPWIN = ETDNEW_PELE ** POWER
+       UCIN = ETDNEW_PELE ** POWER
        DENOIN = 1.
        CTILIN = 0.
 
        ! Calculate normalisation parameters for out going velocities 
-       TUPWI2 = ETDNEW( PELE )**power
-       UCOU = ETDNEW( PELE )**power
+       TUPWI2 = ETDNEW_PELE ** POWER
+       UCOU = ETDNEW_PELE ** POWER
        DENOOU = 1.
        CTILOU = 0.
 
@@ -3151,7 +3163,7 @@ contains
        TDLIM =        INCOME   * ( TUPWIN + NVDFUNNEW( FTILIN, CTILIN, COURANT_OR_MINUS_ONE ) * DENOIN ) &
             + ( 1.0 - INCOME ) * ( TUPWI2 + NVDFUNNEW( FTILOU, CTILOU, COURANT_OR_MINUS_ONE ) * DENOOU )
 
-       TDLIM = MAX( TDLIM, 0.0 )**(1.0/POWER)
+       TDLIM = MAX( TDLIM, 0.0 ) ** (1.0/POWER)
 
     ENDIF Conditional_FIRORD
 
@@ -3165,7 +3177,7 @@ contains
 
   SUBROUTINE ONVDLIMsqrt( TOTELE, &
        TDLIM, TDCEN, INCOME, PELE, PELEOT, &
-       ETDNEW, TDMIN, TDMAX, FIRORD, NOLIMI )
+       ETDNEW_PELE, ETDNEW_PELEOT, TDMIN_PELE, TDMAX_PELE, TDMIN_PELEOT, TDMAX_PELEOT, FIRORD, NOLIMI )
     implicit none 
     ! This sub calculates the limited face values TDADJ(1...SNGI) from the central 
     ! difference face values TDCEN(1...SNGI) using a NVD shceme.  
@@ -3188,9 +3200,9 @@ contains
     !--------------------------------------------------- 
     INTEGER, intent( in ) :: TOTELE 
     REAL, intent( inout ) :: TDLIM  
-    REAL, intent( in ) :: TDCEN, INCOME
+    REAL, intent( in ) :: TDCEN, INCOME, ETDNEW_PELE, ETDNEW_PELEOT, TDMIN_PELE, &
+         &                TDMAX_PELE, TDMIN_PELEOT, TDMAX_PELEOT
     INTEGER, intent( in ) :: PELE, PELEOT
-    REAL, DIMENSION( TOTELE ), intent( in ) :: ETDNEW, TDMIN, TDMAX
     LOGICAL, intent( in ) :: FIRORD, NOLIMI
     ! Local variables   
     REAL, PARAMETER :: TOLER=1.0E-10
@@ -3205,42 +3217,42 @@ contains
 
     Conditional_PELEOT: IF( PELEOT /= PELE ) THEN
 
-       IF( ETDNEW( PELEOT ) > ETDNEW( PELE )) THEN
-          TUPWIN = TDMAX( PELEOT )**POWER
-          TUPWI2 = TDMIN( PELE )**POWER
+       IF( ETDNEW_PELEOT > ETDNEW_PELE ) THEN
+          TUPWIN = TDMAX_PELEOT ** POWER
+          TUPWI2 = TDMIN_PELE ** POWER
        ELSE
-          TUPWIN = TDMIN( PELEOT )**POWER
-          TUPWI2 = TDMAX( PELE ) **POWER
+          TUPWIN = TDMIN_PELEOT ** POWER
+          TUPWI2 = TDMAX_PELE ** POWER
        ENDIF
 
        ! Calculate normalisation parameters for incomming velocities 
-       TDELE = ETDNEW( PELE )**POWER
+       TDELE = ETDNEW_PELE ** POWER
        DENOIN = TDELE - TUPWIN
 
        IF( ABS( DENOIN ) < TOLER ) DENOIN = SIGN( TOLER, DENOIN )
 
-       UCIN = ETDNEW( PELEOT )**POWER
+       UCIN = ETDNEW_PELEOT ** POWER
        CTILIN = ( UCIN - TUPWIN ) / DENOIN
 
        ! Calculate normalisation parameters for out going velocities 
-       TDELE = ETDNEW( PELEOT )**POWER
+       TDELE = ETDNEW_PELEOT ** POWER
        DENOOU = TDELE - TUPWI2
 
        IF( ABS( DENOOU ) < TOLER) DENOOU = SIGN( TOLER, DENOOU )
-       UCOU = ETDNEW( PELE )**POWER
+       UCOU = ETDNEW_PELE ** POWER
        CTILOU = ( UCOU - TUPWI2 ) / DENOOU
 
     ELSE
 
        ! Calculate normalisation parameters for incomming velocities 
-       TUPWIN = ETDNEW( PELE )**POWER
-       UCIN = ETDNEW( PELE )**POWER
+       TUPWIN = ETDNEW_PELE ** POWER
+       UCIN = ETDNEW_PELE ** POWER
        DENOIN = 1.
        CTILIN = 0.
 
        ! Calculate normalisation parameters for out going velocities 
-       TUPWI2 = ETDNEW( PELE )**POWER
-       UCOU = ETDNEW( PELE )**POWER
+       TUPWI2 = ETDNEW_PELE ** POWER
+       UCOU = ETDNEW_PELE ** POWER
        DENOOU = 1.
        CTILOU = 0.
 
@@ -3251,19 +3263,18 @@ contains
 
        ! Velocity is going out of element
        TDLIM = INCOME * UCIN + ( 1.0 - INCOME ) * UCOU 
-       TDLIM=max(TDLIM,0.0)**(1.0/POWER)
+       TDLIM = MAX(TDLIM,0.0) ** (1.0/POWER)
 
     ELSE
 
-       FTILIN = ( max(0.0,TDCEN)**POWER - TUPWIN ) / DENOIN
-       FTILOU = ( max(0.0,TDCEN)**POWER - TUPWI2 ) / DENOOU
+       FTILIN = ( MAX(0.0,TDCEN) ** POWER - TUPWIN ) / DENOIN
+       FTILOU = ( MAX(0.0,TDCEN) ** POWER - TUPWI2 ) / DENOOU
 
        ! Velocity is going out of element
-       TDLIM= INCOME*( TUPWIN + NVDFUNNEWsqrt( FTILIN, CTILIN, -1.0 ) * DENOIN ) &
-            + ( 1.0 - INCOME ) * ( TUPWI2 + NVDFUNNEWsqrt( FTILOU, CTILOU, -1.0 ) &
-            * DENOOU )
+       TDLIM =        INCOME   * ( TUPWIN + NVDFUNNEWsqrt( FTILIN, CTILIN, -1.0 ) * DENOIN ) &
+            + ( 1.0 - INCOME ) * ( TUPWI2 + NVDFUNNEWsqrt( FTILOU, CTILOU, -1.0 ) * DENOOU )
 
-       TDLIM=max(TDLIM,0.0)**(1.0/POWER)
+       TDLIM = MAX( TDLIM, 0.0 ) ** (1.0/POWER)
 
     ENDIF Conditional_FIRORD
 
@@ -5508,7 +5519,7 @@ contains
     real :: dt_max, dt_min, dtOLD_max, dtOLD_min
     real :: abs_tilde1, abs_tilde2, abs_tildeold1, abs_tildeold2
     real :: wrelax, wrelaxold,  wrelax1, wrelax2, wrelaxold1, wrelaxold2
-
+    real :: T_PELE, T_PELEOT, TMIN_PELE, TMAX_PELE, TMIN_PELEOT, TMAX_PELEOT
 
 
     ! print *,'IN_ELE_UPWIND,CV_DG_VEL_INT_OPT,  DG_ELE_UPWIND, IANISOTROPIC:',IN_ELE_UPWIND,CV_DG_VEL_INT_OPT,  DG_ELE_UPWIND, IANISOTROPIC
@@ -5854,14 +5865,29 @@ contains
 
              if(IANISOTROPIC==0) then ! this is the only good isotropic limiting for velocity...
 
+                T_PELE = T( CV_NODI_IPHA )
+                IF( CV_NODJ /= CV_NODI ) THEN
+                   T_PELEOT    = T( CV_NODJ_IPHA )
+                   TMIN_PELE   = TMIN( CV_NODI_IPHA )
+                   TMAX_PELE   = TMAX( CV_NODI_IPHA )
+                   TMIN_PELEOT = TMIN( CV_NODJ_IPHA )
+                   TMAX_PELEOT = TMAX( CV_NODJ_IPHA )
+                END IF
                 CALL ONVDLIMsqrt( CV_NONODS, &
                      LIMT3, FEMTGI_IPHA, INCOME3, CV_NODI, CV_NODJ, &
-                     T( (IPHASE-1)*CV_NONODS+1 ), TMIN( (IPHASE-1)*CV_NONODS+1 ), TMAX( (IPHASE-1)*CV_NONODS+1 ), .FALSE. , .FALSE.)
+                     T_PELE, T_PELEOT, TMIN_PELE, TMAX_PELE, TMIN_PELEOT, TMAX_PELEOT, .FALSE. , .FALSE. )
 
-
+                T_PELE = Told( CV_NODI_IPHA )
+                IF( CV_NODJ /= CV_NODI ) THEN
+                   T_PELEOT    = Told( CV_NODJ_IPHA )
+                   TMIN_PELE   = ToldMIN( CV_NODI_IPHA )
+                   TMAX_PELE   = ToldMAX( CV_NODI_IPHA )
+                   TMIN_PELEOT = ToldMIN( CV_NODJ_IPHA )
+                   TMAX_PELEOT = ToldMAX( CV_NODJ_IPHA )
+                END IF
                 CALL ONVDLIMsqrt( CV_NONODS, &
                      LIMTOLD3, FEMTOLDGI_IPHA, INCOMEOLD3, CV_NODI, CV_NODJ, &
-                     TOLD( (IPHASE-1)*CV_NONODS+1 ), TOLDMIN( (IPHASE-1)*CV_NONODS+1 ), TOLDMAX( (IPHASE-1)*CV_NONODS+1 ), .FALSE., .FALSE. )
+                     T_PELE, T_PELEOT, TMIN_PELE, TMAX_PELE, TMIN_PELEOT, TMAX_PELEOT, .FALSE. , .FALSE. )
 
              else
 
@@ -7203,7 +7229,7 @@ contains
     REAL :: RESIDGI, P_STAR, DIFF_COEF, COEF2, FEMTGI_DDG, FEMTOLDGI_DDG, income2, INCOMEOLD2
 
     ! The adjustment method is not ready for the LIMIT_USE_2ND - the new limiting method.
-    LIM_VOL_ADJUST = ( LIM_VOL_ADJUST2 .AND. (.NOT.LIMIT_USE_2ND) ) .and. IANISOTROPIC==0
+    LIM_VOL_ADJUST = ( LIM_VOL_ADJUST2 .AND. (.NOT.LIMIT_USE_2ND) ) .AND. IANISOTROPIC==0
 
     FVT2    = 1.0
     FVT2OLD = 1.0
@@ -7251,7 +7277,7 @@ contains
        IF ( IGOT_T2 == 1 ) THEN
           FVT2    = INCOME * T2( CV_NODJ_IPHA ) + ( 1. - INCOME ) * T2( CV_NODI_IPHA )
           FVT2OLD = INCOMEOLD * T2OLD( CV_NODJ_IPHA ) + ( 1. - INCOMEOLD ) * T2OLD( CV_NODI_IPHA )
-       ENDIF
+       END IF
 
     ELSE ! Is on boundary of the domain
 
