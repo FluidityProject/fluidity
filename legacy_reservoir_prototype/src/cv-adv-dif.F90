@@ -270,7 +270,7 @@ contains
       INTEGER, PARAMETER :: WIC_T_BC_DIRICHLET = 1, WIC_T_BC_ROBIN = 2, &
            WIC_T_BC_DIRI_ADV_AND_ROBIN = 3, WIC_D_BC_DIRICHLET = 1, &
            WIC_U_BC_DIRICHLET = 1
-      LOGICAL, DIMENSION( : ), allocatable :: X_SHARE,LOG_ON_BOUND
+      LOGICAL, DIMENSION( : ), allocatable :: X_SHARE
       LOGICAL, DIMENSION( :, : ), allocatable :: CV_ON_FACE, U_ON_FACE, &
            CVFEM_ON_FACE, UFEM_ON_FACE
       INTEGER, DIMENSION( : ), allocatable :: FINDGPTS, &
@@ -510,7 +510,6 @@ contains
 
       ALLOCATE( SCVDETWEI( SCVNGI )) ; SCVDETWEI = 0.
       ALLOCATE( SRA( SCVNGI ))
-      ALLOCATE( LOG_ON_BOUND(CV_NONODS))
 
       ALLOCATE( SBCVN( CV_SNLOC, SBCVNGI ))
       ALLOCATE( SBCVFEN( CV_SNLOC, SBCVNGI ))
@@ -927,16 +926,16 @@ contains
                      IF( CV_JLOC == 0 ) THEN ! We are on the boundary of the domain
                         CV_JLOC = CV_ILOC
                         ! Calculate SELE, CV_SILOC, U_SLOC2LOC, CV_SLOC2LOC
-                        CALL CALC_SELE( ELE, SELE, CV_SILOC, CV_ILOC, SCVNGI, U_SLOC2LOC, CV_SLOC2LOC, &
-                             FACE_ELE, TOTELE, NFACE, CVFEM_ON_FACE, GI, &
-                             CV_NONODS, LOG_ON_BOUND, CV_NLOC, U_NLOC, CV_SNLOC, U_SNLOC, STOTEL, &
+                        CALL CALC_SELE( ELE, SELE, CV_SILOC, CV_ILOC, U_SLOC2LOC, CV_SLOC2LOC, &
+                             FACE_ELE, NFACE, CVFEM_ON_FACE( :, GI ), &
+                             CV_NONODS, CV_NLOC, U_NLOC, CV_SNLOC, U_SNLOC, &
                              CV_NDGLN, U_NDGLN, CV_SNDGLN, U_SNDGLN )
                         !EWRITE(3,*)'*****AFTER CALC_SELE SELE,CV_SILOC,CV_SNLOC:',SELE,CV_SILOC,CV_SNLOC
-                     ENDIF
+                     END IF
                      INTEGRAT_AT_GI=.NOT.((ELE==ELE2).AND.(SELE==0))
-                  ENDIF
+                  END IF
 
-               ENDIF Conditional_CheckingNeighbourhood
+               END IF Conditional_CheckingNeighbourhood
 
                ! avoid indegrating across the middle of a CV on the boundaries of elements
                Conditional_integration: IF(INTEGRAT_AT_GI) THEN
@@ -1776,7 +1775,6 @@ contains
 
       DEALLOCATE( SCVDETWEI )
       DEALLOCATE( SRA )
-      DEALLOCATE( LOG_ON_BOUND )
 
       DEALLOCATE( SBCVFEN )
       DEALLOCATE( SBCVFENSLX )
@@ -2672,16 +2670,16 @@ contains
                      IF( CV_JLOC == 0 ) THEN ! We are on the boundary of the domain
                         CV_JLOC = CV_ILOC
                         ! Calculate SELE, CV_SILOC, U_SLOC2LOC, CV_SLOC2LOC
-                        CALL CALC_SELE( ELE, SELE, CV_SILOC, CV_ILOC, SCVNGI, U_SLOC2LOC, CV_SLOC2LOC, &
-                             FACE_ELE, TOTELE, NFACE, CVFEM_ON_FACE, GI, &
-                             CV_NONODS, LOG_ON_BOUND, CV_NLOC, U_NLOC, CV_SNLOC, U_SNLOC, STOTEL, &
+                        CALL CALC_SELE( ELE, SELE, CV_SILOC, CV_ILOC, U_SLOC2LOC, CV_SLOC2LOC, &
+                             FACE_ELE, NFACE, CVFEM_ON_FACE( :, GI ), &
+                             CV_NONODS, CV_NLOC, U_NLOC, CV_SNLOC, U_SNLOC, &
                              CV_NDGLN, U_NDGLN, CV_SNDGLN, U_SNDGLN )
                         !EWRITE(3,*)'*****AFTER CALC_SELE SELE,CV_SILOC,CV_SNLOC:',SELE,CV_SILOC,CV_SNLOC
-                     ENDIF
+                     END IF
                      INTEGRAT_AT_GI=.NOT.((ELE==ELE2).AND.(SELE==0))
-                  ENDIF
+                  END IF
 
-               ENDIF Conditional_CheckingNeighbourhood
+               END IF Conditional_CheckingNeighbourhood
 
                ! avoid indegrating across the middle of a CV on the boundaries of elements
                Conditional_integration: IF(INTEGRAT_AT_GI) THEN
@@ -3985,16 +3983,16 @@ contains
                      IF( CV_JLOC == 0 ) THEN ! We are on the boundary of the domain
                         CV_JLOC = CV_ILOC
                         ! Calculate SELE, CV_SILOC, U_SLOC2LOC, CV_SLOC2LOC
-                        CALL CALC_SELE( ELE, SELE, CV_SILOC, CV_ILOC, SCVNGI, U_SLOC2LOC, CV_SLOC2LOC, &
-                             FACE_ELE, TOTELE, NFACE, CVFEM_ON_FACE, GI, &
-                             CV_NONODS, LOG_ON_BOUND, CV_NLOC, U_NLOC, CV_SNLOC, U_SNLOC, STOTEL, &
-                             CV_NDGLN, U_NDGLN, CV_SNDGLN, U_SNDGLN )
+                        CALL CALC_SELE( ELE, SELE, CV_SILOC, CV_ILOC, U_SLOC2LOC, CV_SLOC2LOC, &
+                             FACE_ELE, NFACE, CVFEM_ON_FACE( :, GI ), &
+                             CV_NONODS, CV_NLOC, U_NLOC, CV_SNLOC, U_SNLOC, &
+                             CV_NDGLN, U_NDGLN, CV_SNDGLN, U_SNDGLN )    
                         !EWRITE(3,*)'*****AFTER CALC_SELE SELE,CV_SILOC,CV_SNLOC:',SELE,CV_SILOC,CV_SNLOC
-                     ENDIF
+                     END IF
                      INTEGRAT_AT_GI=.NOT.((ELE==ELE2).AND.(SELE==0))
-                  ENDIF
+                  END IF
 
-               ENDIF Conditional_CheckingNeighbourhood
+               END IF Conditional_CheckingNeighbourhood
 
                ! avoid indegrating across the middle of a CV on the boundaries of elements
                Conditional_integration: IF(INTEGRAT_AT_GI) THEN
@@ -5266,16 +5264,16 @@ contains
                      IF( CV_JLOC == 0 ) THEN ! We are on the boundary of the domain
                         CV_JLOC = CV_ILOC
                         ! Calculate SELE, CV_SILOC, U_SLOC2LOC, CV_SLOC2LOC
-                        CALL CALC_SELE( ELE, SELE, CV_SILOC, CV_ILOC, SCVNGI, U_SLOC2LOC, CV_SLOC2LOC, &
-                             FACE_ELE, TOTELE, NFACE, CVFEM_ON_FACE, GI, &
-                             CV_NONODS, LOG_ON_BOUND, CV_NLOC, U_NLOC, CV_SNLOC, U_SNLOC, STOTEL, &
+                        CALL CALC_SELE( ELE, SELE, CV_SILOC, CV_ILOC, U_SLOC2LOC, CV_SLOC2LOC, &
+                             FACE_ELE, NFACE, CVFEM_ON_FACE( :, GI ), &
+                             CV_NONODS, CV_NLOC, U_NLOC, CV_SNLOC, U_SNLOC, &
                              CV_NDGLN, U_NDGLN, CV_SNDGLN, U_SNDGLN )
                         !EWRITE(3,*)'*****AFTER CALC_SELE SELE,CV_SILOC,CV_SNLOC:',SELE,CV_SILOC,CV_SNLOC
-                     ENDIF
+                     END IF
                      INTEGRAT_AT_GI=.NOT.((ELE==ELE2).AND.(SELE==0))
-                  ENDIF
+                  END IF
 
-               ENDIF Conditional_CheckingNeighbourhood
+               END IF Conditional_CheckingNeighbourhood
 
                ! avoid indegrating across the middle of a CV on the boundaries of elements
                Conditional_integration: IF(INTEGRAT_AT_GI) THEN
@@ -10955,7 +10953,7 @@ contains
        E_CV_NODK_IPHA( CV_KLOC ) = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_KLOC ) + ( IPHASE - 1 ) * CV_NONODS
     END DO
     IF ( SELE /=0 ) THEN
-       ALLOCATE( SE_CV_NODK_IPHA( CV_NLOC ), SE_CV_SNODK_IPHA( CV_NLOC ) )
+       ALLOCATE( SE_CV_NODK_IPHA( CV_SNLOC ), SE_CV_SNODK_IPHA( CV_SNLOC ) )
        DO CV_SKLOC = 1, CV_SNLOC
           CV_KLOC = CV_SLOC2LOC( CV_SKLOC )
           SE_CV_NODK_IPHA( CV_SKLOC ) = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_KLOC ) + ( IPHASE - 1 ) * CV_NONODS
@@ -13889,37 +13887,40 @@ contains
 
 
 
-  SUBROUTINE CALC_SELE( ELE, SELE, CV_SILOC, CV_ILOC, SCVNGI, U_SLOC2LOC, CV_SLOC2LOC, &
-       FACE_ELE, TOTELE, NFACE, CVFEM_ON_FACE, GI, &
-       CV_NONODS, LOG_ON_BOUND, CV_NLOC, U_NLOC, CV_SNLOC, U_SNLOC, STOTEL, &
+  SUBROUTINE CALC_SELE( ELE, SELE, CV_SILOC, CV_ILOC, U_SLOC2LOC, CV_SLOC2LOC, &
+       FACE_ELE, NFACE, CVFEM_ON_FACE, &
+       CV_NONODS, CV_NLOC, U_NLOC, CV_SNLOC, U_SNLOC, &
        CV_NDGLN, U_NDGLN, CV_SNDGLN, U_SNDGLN ) 
     ! Calculate SELE, CV_SILOC, U_SLOC2LOC, CV_SLOC2LOC for a face on the
     ! boundary of the domain
     IMPLICIT NONE
-    INTEGER, intent( in ) :: ELE, SCVNGI, CV_NONODS, TOTELE, STOTEL, CV_NLOC, U_NLOC, &
-         CV_SNLOC, U_SNLOC, NFACE, GI, CV_ILOC
+    INTEGER, intent( in ) :: ELE, CV_NONODS, CV_NLOC, U_NLOC, &
+         CV_SNLOC, U_SNLOC, NFACE, CV_ILOC
     INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
     INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
     INTEGER, DIMENSION( : ), intent( in ) :: CV_SNDGLN
     INTEGER, DIMENSION( : ), intent( in ) :: U_SNDGLN
-    INTEGER, intent( inout ) :: SELE, CV_SILOC
     INTEGER, DIMENSION( :, : ), intent( in ) :: FACE_ELE
-    LOGICAL, DIMENSION( :, : ), intent( in )  :: CVFEM_ON_FACE
+    LOGICAL, DIMENSION( : ), intent( in )  :: CVFEM_ON_FACE
+    INTEGER, intent( inout ) :: SELE, CV_SILOC
     INTEGER, DIMENSION( : ), intent( inout ) :: U_SLOC2LOC
     INTEGER, DIMENSION( : ), intent( inout ) :: CV_SLOC2LOC
-    LOGICAL, DIMENSION( : ), intent( inout ) :: LOG_ON_BOUND
     ! local variables
     INTEGER :: IFACE, ELE2, SELE2, CV_JLOC, CV_JNOD, &
          U_JLOC, U_JNOD, CV_KLOC, CV_SKNOD, &
-         U_KLOC, U_SKLOC, U_SKNOD, CV_SKLOC, ngi, igi
+         U_KLOC, U_SKLOC, U_SKNOD, CV_SKLOC, CV_SKLOC2, I
     LOGICAL :: FOUND
+    INTEGER, DIMENSION( : ), ALLOCATABLE :: LOG_ON_BOUND
 
     !ewrite(3,*)'In Calc_Sele'
 
+    ALLOCATE( LOG_ON_BOUND( CV_SNLOC ) ) ; I = 1
     DO CV_JLOC = 1, CV_NLOC  
-       CV_JNOD = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_JLOC )
-       !ewrite(3,*)'cv_jloc, gi, cvfem_on_face:', cv_jloc, gi, cvfem_on_face( cv_jloc, gi )
-       LOG_ON_BOUND( CV_JNOD ) = CVFEM_ON_FACE( CV_JLOC, GI )
+       CV_JNOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_JLOC )
+       IF ( .NOT.CVFEM_ON_FACE( CV_JLOC ) ) THEN
+          LOG_ON_BOUND( I ) = CV_JNOD
+          I = I + 1
+       END IF
     END DO
 
     SELE = 0
@@ -13927,14 +13928,14 @@ contains
     DO IFACE = 1, NFACE
        ELE2 = FACE_ELE( IFACE, ELE )
        SELE2 = MAX( 0, - ELE2 )
-       !!SELE = SELE2
        ELE2 = MAX( 0, + ELE2 )
-       IF( SELE2 /= 0 ) THEN
+       IF ( SELE2 /= 0 ) THEN
           FOUND = .TRUE.
-          DO CV_SKLOC = 1, CV_SNLOC 
-             CV_SKNOD = CV_SNDGLN(( SELE2 - 1 ) * CV_SNLOC + CV_SKLOC )
-             !ewrite(3,*)'CV_SKNOD, LOG_ON_BOUND:',CV_SKNOD, LOG_ON_BOUND(CV_SKNOD)
-             IF( .NOT. LOG_ON_BOUND( CV_SKNOD )) FOUND=.FALSE.
+          DO CV_SKLOC = 1, CV_SNLOC
+             CV_SKNOD = CV_SNDGLN( ( SELE2 - 1 ) * CV_SNLOC + CV_SKLOC )
+             DO CV_SKLOC2 = 1, CV_SNLOC
+                IF ( CV_SKNOD == LOG_ON_BOUND( CV_SKLOC2 ) ) FOUND = .FALSE.
+             END DO
           END DO
           IF( FOUND ) SELE = SELE2
        END IF
@@ -13943,31 +13944,30 @@ contains
     ! Calculate CV_SLOC2LOC  
     Conditional_Sele: IF ( SELE /= 0 ) THEN   
        DO CV_SKLOC = 1, CV_SNLOC  
-          CV_SKNOD = CV_SNDGLN(( SELE - 1 ) * CV_SNLOC + CV_SKLOC )
+          CV_SKNOD = CV_SNDGLN( ( SELE - 1 ) * CV_SNLOC + CV_SKLOC )
           DO CV_JLOC = 1, CV_NLOC  
-             CV_JNOD = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_JLOC )
-             IF( CV_SKNOD == CV_JNOD ) CV_KLOC = CV_JLOC
+             CV_JNOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_JLOC )
+             IF( CV_SKNOD == CV_JNOD ) EXIT
           END DO
-          CV_SLOC2LOC( CV_SKLOC ) = CV_KLOC
-          IF( CV_KLOC == CV_ILOC ) CV_SILOC = CV_SKLOC
+          CV_SLOC2LOC( CV_SKLOC ) = CV_JLOC
+          IF( CV_JLOC == CV_ILOC ) CV_SILOC = CV_SKLOC
        END DO
-       !ewrite(3,*) 'cv_sloc2loc: ', cv_sloc2loc
 
        ! Calculate U_SLOC2LOC 
        DO U_SKLOC = 1, U_SNLOC  
-          U_SKNOD = U_SNDGLN(( SELE - 1 ) * U_SNLOC + U_SKLOC )
+          U_SKNOD = U_SNDGLN( ( SELE - 1 ) * U_SNLOC + U_SKLOC )
           DO U_JLOC = 1, U_NLOC  
-             U_JNOD = U_NDGLN(( ELE - 1 ) * U_NLOC + U_JLOC )
-             IF( U_SKNOD == U_JNOD ) U_KLOC = U_JLOC
+             U_JNOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_JLOC )
+             IF( U_SKNOD == U_JNOD ) EXIT
           END DO
-          U_SLOC2LOC( U_SKLOC ) = U_KLOC
+          U_SLOC2LOC( U_SKLOC ) = U_JLOC
        END DO
     END IF Conditional_Sele
 
-    RETURN   
+    DEALLOCATE( LOG_ON_BOUND )
+
+    RETURN
   END SUBROUTINE CALC_SELE
-
-
 
   SUBROUTINE RE1DN3(NGI,NLOC,WEIGHT,N,NLX )
     IMPLICIT NONE
