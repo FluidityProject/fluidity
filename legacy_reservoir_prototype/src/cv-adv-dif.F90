@@ -1069,27 +1069,51 @@ contains
 
                         !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===============
                         ! Calculate T and DEN on the CV face at quadrature point GI.
-                        CALL GET_INT_T_DEN( FVT, FVTOLD, FVT2, FVT2OLD, FVD, FVDOLD, LIMD, LIMT, LIMT2, &
-                             LIMDOLD, LIMTOLD, LIMT2OLD, LIMDT, LIMDTOLD, LIMDTT2, LIMDTT2OLD,&
-                             FEMDGI, FEMTGI,FEMT2GI, FEMDOLDGI, FEMTOLDGI, FEMT2OLDGI, &
+ CALL GET_INT_T_DEN( FVTOLD, FVT2OLD, FVDOLD, &
+                             LIMDOLD, LIMTOLD, LIMT2OLD, LIMDTOLD, LIMDTT2OLD,&
+                             FEMDOLDGI, FEMTOLDGI, FEMT2OLDGI, &
                              CV_DISOPT, CV_NONODS, NPHASE, CV_NODI_IPHA, CV_NODJ_IPHA, ELE, ELE2, GI, IPHASE,  &
-                             CV_NLOC, TOTELE, CV_NDGLN, CV_OTHER_LOC, SCVNGI, SCVFEN, INCOME, INCOMEOLD, &
-                             T, TOLD, T2, T2OLD, DEN, DENOLD, FEMT, FEMTOLD, FEMT2, FEMT2OLD, FEMDEN, FEMDENOLD, &
-                             TMIN, TOLDMIN, T2MIN, T2OLDMIN, DENMIN, DENOLDMIN, &
-                             TMAX, TOLDMAX, T2MAX, T2OLDMAX, DENMAX, DENOLDMAX, &
+                             CV_NLOC, TOTELE, CV_NDGLN, CV_OTHER_LOC, SCVNGI, SCVFEN, INCOMEOLD, &
+                             TOLD, T2OLD, DENOLD, FEMTOLD, FEMT2OLD, FEMDENOLD, &
+                             TOLDMIN, T2OLDMIN, DENOLDMIN, &
+                             TOLDMAX, T2OLDMAX, DENOLDMAX, &
                              SELE, CV_SNLOC, STOTEL, CV_SLOC2LOC, SUF_T_BC, SUF_T2_BC, SUF_D_BC, &
                              WIC_T_BC, WIC_T2_BC, WIC_D_BC, &
                              WIC_T_BC_DIRICHLET, WIC_D_BC_DIRICHLET, ONE_PORE, &
-                             MASS_CV, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, TOLDMAX_NOD, &
-                             DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD, &
-                             T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, IGOT_T2, &
-                             TMIN_2ND_MC, TOLDMIN_2ND_MC, T2MIN_2ND_MC, T2OLDMIN_2ND_MC, DENMIN_2ND_MC, DENOLDMIN_2ND_MC, &
-                             TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, &
-                             LIMIT_USE_2ND, HDC, NDOTQ, NDOTQOLD, DT, &
+                             MASS_CV, TOLDMIN_NOD, TOLDMAX_NOD, &
+                             DENOLDMIN_NOD, DENOLDMAX_NOD, &
+                             T2OLDMIN_NOD, T2OLDMAX_NOD, IGOT_T2, &
+                             TOLDMIN_2ND_MC, T2OLDMIN_2ND_MC, DENOLDMIN_2ND_MC, &
+                             TOLDMAX_2ND_MC, T2OLDMAX_2ND_MC, DENOLDMAX_2ND_MC, &
+                             LIMIT_USE_2ND, HDC, NDOTQOLD, DT, &
                              SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
-                             TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT, &
+                             TOLDUPWIND_MAT, DENOLDUPWIND_MAT, T2OLDUPWIND_MAT , &
+                             !Values to limit the flow when reaching the irreducible  saturation for a phase
+                             s_gc, s_or )
+                        
+                        CALL GET_INT_T_DEN( FVT, FVT2, FVD, LIMD, LIMT, LIMT2, &
+                             LIMDT, LIMDTT2,&
+                             FEMDGI, FEMTGI,FEMT2GI, &
+                             CV_DISOPT, CV_NONODS, NPHASE, CV_NODI_IPHA, CV_NODJ_IPHA, ELE, ELE2, GI, IPHASE,  &
+                             CV_NLOC, TOTELE, CV_NDGLN, CV_OTHER_LOC, SCVNGI, SCVFEN, INCOME, &
+                             T, T2, DEN, FEMT, FEMT2, FEMDEN, &
+                             TMIN, T2MIN, DENMIN, &
+                             TMAX, T2MAX, DENMAX, &
+                             SELE, CV_SNLOC, STOTEL, CV_SLOC2LOC, SUF_T_BC, SUF_T2_BC, SUF_D_BC, &
+                             WIC_T_BC, WIC_T2_BC, WIC_D_BC, &
+                             WIC_T_BC_DIRICHLET, WIC_D_BC_DIRICHLET, ONE_PORE, &
+                             MASS_CV, TMIN_NOD, TMAX_NOD, &
+                             DENMIN_NOD, DENMAX_NOD, &
+                             T2MIN_NOD, T2MAX_NOD, IGOT_T2, &
+                             TMIN_2ND_MC, T2MIN_2ND_MC, DENMIN_2ND_MC, &
+                             TMAX_2ND_MC, T2MAX_2ND_MC, DENMAX_2ND_MC, &
+                             LIMIT_USE_2ND, HDC, NDOTQ, DT, &
+                             SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
+                             U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
+                             IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
+                             TUPWIND_MAT, DENUPWIND_MAT, T2UPWIND_MAT, &
                              !Values to limit the flow when reaching the irreducible  saturation for a phase
                              s_gc, s_or )
 
@@ -1177,27 +1201,51 @@ contains
 
                         !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===============
                         ! Calculate T and DEN on the CV face at quadrature point GI.
-                        CALL GET_INT_T_DEN( FVT, FVTOLD, FVT2, FVT2OLD, FVD, FVDOLD, LIMD, LIMT, LIMT2, &
-                             LIMDOLD, LIMTOLD, LIMT2OLD, LIMDT, LIMDTOLD, LIMDTT2, LIMDTT2OLD,&
-                             FEMDGI, FEMTGI,FEMT2GI, FEMDOLDGI, FEMTOLDGI, FEMT2OLDGI, &
+                         CALL GET_INT_T_DEN( FVTOLD, FVT2OLD, FVDOLD, &
+                             LIMDOLD, LIMTOLD, LIMT2OLD, LIMDTOLD, LIMDTT2OLD,&
+                             FEMDOLDGI, FEMTOLDGI, FEMT2OLDGI, &
                              CV_DISOPT, CV_NONODS, NPHASE, CV_NODI_IPHA, CV_NODJ_IPHA, ELE, ELE2, GI, IPHASE,  &
-                             CV_NLOC, TOTELE, CV_NDGLN, CV_OTHER_LOC, SCVNGI, SCVFEN, INCOME, INCOMEOLD, &
-                             T, TOLD, T2, T2OLD, DEN, DENOLD, FEMT, FEMTOLD, FEMT2, FEMT2OLD, FEMDEN, FEMDENOLD, &
-                             TMIN, TOLDMIN, T2MIN, T2OLDMIN, DENMIN, DENOLDMIN, &
-                             TMAX, TOLDMAX, T2MAX, T2OLDMAX, DENMAX, DENOLDMAX, &
+                             CV_NLOC, TOTELE, CV_NDGLN, CV_OTHER_LOC, SCVNGI, SCVFEN, INCOMEOLD, &
+                             TOLD, T2OLD, DENOLD, FEMTOLD, FEMT2OLD, FEMDENOLD, &
+                             TOLDMIN, T2OLDMIN, DENOLDMIN, &
+                             TOLDMAX, T2OLDMAX, DENOLDMAX, &
                              SELE, CV_SNLOC, STOTEL, CV_SLOC2LOC, SUF_T_BC, SUF_T2_BC, SUF_D_BC, &
                              WIC_T_BC, WIC_T2_BC, WIC_D_BC, &
                              WIC_T_BC_DIRICHLET, WIC_D_BC_DIRICHLET, ONE_PORE, &
-                             MASS_CV, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, TOLDMAX_NOD, &
-                             DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD, &
-                             T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, IGOT_T2, &
-                             TMIN_2ND_MC, TOLDMIN_2ND_MC, T2MIN_2ND_MC, T2OLDMIN_2ND_MC, DENMIN_2ND_MC, DENOLDMIN_2ND_MC, &
-                             TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, &
-                             LIMIT_USE_2ND, HDC, NDOTQ, NDOTQOLD, DT, &
+                             MASS_CV, TOLDMIN_NOD, TOLDMAX_NOD, &
+                             DENOLDMIN_NOD, DENOLDMAX_NOD, &
+                             T2OLDMIN_NOD, T2OLDMAX_NOD, IGOT_T2, &
+                             TOLDMIN_2ND_MC, T2OLDMIN_2ND_MC, DENOLDMIN_2ND_MC, &
+                             TOLDMAX_2ND_MC, T2OLDMAX_2ND_MC, DENOLDMAX_2ND_MC, &
+                             LIMIT_USE_2ND, HDC, NDOTQOLD, DT, &
                              SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
-                             TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT , &
+                             TOLDUPWIND_MAT, DENOLDUPWIND_MAT, T2OLDUPWIND_MAT , &
+                             !Values to limit the flow when reaching the irreducible  saturation for a phase
+                             s_gc, s_or )
+                        
+                        CALL GET_INT_T_DEN( FVT, FVT2, FVD, LIMD, LIMT, LIMT2, &
+                             LIMDT, LIMDTT2,&
+                             FEMDGI, FEMTGI,FEMT2GI, &
+                             CV_DISOPT, CV_NONODS, NPHASE, CV_NODI_IPHA, CV_NODJ_IPHA, ELE, ELE2, GI, IPHASE,  &
+                             CV_NLOC, TOTELE, CV_NDGLN, CV_OTHER_LOC, SCVNGI, SCVFEN, INCOME, &
+                             T, T2, DEN, FEMT, FEMT2, FEMDEN, &
+                             TMIN, T2MIN, DENMIN, &
+                             TMAX, T2MAX, DENMAX, &
+                             SELE, CV_SNLOC, STOTEL, CV_SLOC2LOC, SUF_T_BC, SUF_T2_BC, SUF_D_BC, &
+                             WIC_T_BC, WIC_T2_BC, WIC_D_BC, &
+                             WIC_T_BC_DIRICHLET, WIC_D_BC_DIRICHLET, ONE_PORE, &
+                             MASS_CV, TMIN_NOD, TMAX_NOD, &
+                             DENMIN_NOD, DENMAX_NOD, &
+                             T2MIN_NOD, T2MAX_NOD, IGOT_T2, &
+                             TMIN_2ND_MC, T2MIN_2ND_MC, DENMIN_2ND_MC, &
+                             TMAX_2ND_MC, T2MAX_2ND_MC, DENMAX_2ND_MC, &
+                             LIMIT_USE_2ND, HDC, NDOTQ, DT, &
+                             SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
+                             U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
+                             IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
+                             TUPWIND_MAT, DENUPWIND_MAT, T2UPWIND_MAT, &
                              !Values to limit the flow when reaching the irreducible  saturation for a phase
                              s_gc, s_or )
 
@@ -1791,6 +1839,7 @@ contains
     END SUBROUTINE CV_ASSEMB
 
     SUBROUTINE CV_ASSEMB_ADV_DIF( state, &
+         LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,&
          CV_RHS, &
          NCOLACV, CSR_ACV, dense_acv, FINACV, COLACV, MIDACV, &
          SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM,&
@@ -1945,6 +1994,7 @@ contains
       ! Inputs/Outputs
       IMPLICIT NONE
       type( state_type ), dimension( : ), intent( in ) :: state
+      real, DIMENSION( :, : , : ), intent( in ) :: LIMTOLD,LIMDOLD,LIMT2OLD,LIMDTOLD,LIMDTT2OLD
       INTEGER, intent( in ) :: NCOLACV, CV_NONODS, U_NONODS, X_NONODS, MAT_NONODS, &
            TOTELE, &
            CV_ELE_TYPE, &
@@ -2068,9 +2118,9 @@ contains
       !        ===>  REALS  <===
       REAL :: NDOTQ, NDOTQOLD,  &
            INCOME, INCOMEOLD, HDC, FVT, FVTOLD, FVT2, FVT2OLD, &
-           FVD, FVDOLD, LIMT, LIMTOLD, LIMT2, LIMT2OLD,&
-           LIMD, LIMDOLD, FTHETA, VTHETA, &
-           LIMDT, LIMDTOLD, LIMDTT2, LIMDTT2OLD, &
+           FVD, FVDOLD, LIMT, LIMT2,&
+           LIMD, FTHETA, VTHETA, &
+           LIMDT, LIMDTT2, &
            FEMDGI, FEMTGI,FEMT2GI, FEMDOLDGI, FEMTOLDGI, FEMT2OLDGI, &
            TMID, TOLDMID, &
            DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX, BCZERO, ROBIN1, ROBIN2, &
@@ -2671,91 +2721,6 @@ contains
                   ENDIF
 
                   ! get the sum of limiting functions correct...************
-                  SUM2ONE=.false.
-                  Conditional_SUMLimiting: IF(SUM2ONE) THEN
-                     SUM_LIMT   =0.0
-                     SUM_LIMTOLD=0.0
-                     Loop_IPHASE5: DO IPHASE = 1, NPHASE
-
-                        CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
-                        CV_NODJ_IPHA = CV_NODJ + ( IPHASE - 1 ) * CV_NONODS
-                        rhs_NODI_IPHA = IPHASE + (cv_nodi-1 ) * nphase
-                        rhs_NODJ_IPHA = IPHASE + (cv_nodj-1 ) * nphase
-
-                        ! Calculate NDOTQ and INCOME on the CV boundary at quadrature pt GI.
-                        IF(IGOT_T2==1) THEN
-                           CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
-                                HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
-                                T2, T2OLD, FEMT2, FEMT2OLD, DEN, DENOLD, &
-                                U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
-                                CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ, &
-                                CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
-                                SELE, U_SNLOC, STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC,WIC_U_BC, &
-                                SUF_SIG_DIAGTEN_BC, WIC_U_BC_DIRICHLET, &
-                                UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2, &
-                                ONE_PORE, CV_ELE_TYPE, CV_SLOC2LOC, CV_NLOC, CV_SNLOC, CV_ILOC, CV_JLOC, SCVFEN, CV_NDGLN, CV_OTHER_LOC, &
-                                MASS_CV, OPT_VEL_UPWIND_COEFS,NOPT_VEL_UPWIND_COEFS, NDIM, MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
-                                1, LIMT2, LIMT2OLD, FEMDGI, FEMT2GI, FEMDOLDGI, FEMT2OLDGI, UP_WIND_NOD, &
-                                T2MIN, T2MAX, T2OLDMIN, T2OLDMAX, T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, &
-                                IN_ELE_UPWIND, DG_ELE_UPWIND, &
-                                T2MIN_2ND_MC, T2OLDMIN_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, LIMIT_USE_2ND,&
-                                overlapping, &
-                                IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
-                                T2UPWIND_MAT, T2OLDUPWIND_MAT )
-                        ELSE
-                           CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
-                                HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
-                                T, TOLD, FEMT, FEMTOLD, DEN, DENOLD, &
-                                U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
-                                CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ, &
-                                CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
-                                SELE, U_SNLOC, STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC,WIC_U_BC, &
-                                SUF_SIG_DIAGTEN_BC, WIC_U_BC_DIRICHLET, &
-                                UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2, &
-                                ONE_PORE, CV_ELE_TYPE, CV_SLOC2LOC, CV_NLOC, CV_SNLOC, CV_ILOC, CV_JLOC, SCVFEN, CV_NDGLN, CV_OTHER_LOC, &
-                                MASS_CV, OPT_VEL_UPWIND_COEFS,NOPT_VEL_UPWIND_COEFS, NDIM, MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
-                                1, LIMT, LIMTOLD, FEMDGI, FEMTGI, FEMDOLDGI, FEMTOLDGI, UP_WIND_NOD, &
-                                TMIN, TMAX, TOLDMIN, TOLDMAX, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, TOLDMAX_NOD, &
-                                IN_ELE_UPWIND, DG_ELE_UPWIND, &
-                                TMIN_2ND_MC, TOLDMIN_2ND_MC, TMAX_2ND_MC, TOLDMAX_2ND_MC, LIMIT_USE_2ND,&
-                                overlapping, &
-                                IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
-                                TUPWIND_MAT, TOLDUPWIND_MAT )
-                        ENDIF
-
-
-                        !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===============
-                        ! Calculate T and DEN on the CV face at quadrature point GI.
-                        CALL GET_INT_T_DEN( FVT, FVTOLD, FVT2, FVT2OLD, FVD, FVDOLD, LIMD, LIMT, LIMT2, &
-                             LIMDOLD, LIMTOLD, LIMT2OLD, LIMDT, LIMDTOLD, LIMDTT2, LIMDTT2OLD,&
-                             FEMDGI, FEMTGI,FEMT2GI, FEMDOLDGI, FEMTOLDGI, FEMT2OLDGI, &
-                             CV_DISOPT, CV_NONODS, NPHASE, CV_NODI_IPHA, CV_NODJ_IPHA, ELE, ELE2, GI, IPHASE,  &
-                             CV_NLOC, TOTELE, CV_NDGLN, CV_OTHER_LOC, SCVNGI, SCVFEN, INCOME, INCOMEOLD, &
-                             T, TOLD, T2, T2OLD, DEN, DENOLD, FEMT, FEMTOLD, FEMT2, FEMT2OLD, FEMDEN, FEMDENOLD, &
-                             TMIN, TOLDMIN, T2MIN, T2OLDMIN, DENMIN, DENOLDMIN, &
-                             TMAX, TOLDMAX, T2MAX, T2OLDMAX, DENMAX, DENOLDMAX, &
-                             SELE, CV_SNLOC, STOTEL, CV_SLOC2LOC, SUF_T_BC, SUF_T2_BC, SUF_D_BC, &
-                             WIC_T_BC, WIC_T2_BC, WIC_D_BC, &
-                             WIC_T_BC_DIRICHLET, WIC_D_BC_DIRICHLET, ONE_PORE, &
-                             MASS_CV, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, TOLDMAX_NOD, &
-                             DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD, &
-                             T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, IGOT_T2, &
-                             TMIN_2ND_MC, TOLDMIN_2ND_MC, T2MIN_2ND_MC, T2OLDMIN_2ND_MC, DENMIN_2ND_MC, DENOLDMIN_2ND_MC, &
-                             TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, &
-                             LIMIT_USE_2ND, HDC, NDOTQ, NDOTQOLD, DT, &
-                             SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
-                             U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
-                             IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
-                             TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT, &
-                             !Values to limit the flow when reaching the irreducible  saturation for a phase
-                             s_gc, s_or )
-
-                        SUM_LIMT    = SUM_LIMT    + LIMT
-                        SUM_LIMTOLD = SUM_LIMTOLD + LIMTOLD
-
-                     END DO Loop_IPHASE5
-                  ENDIF Conditional_SUMLimiting
-                  ! get the sum of limiting functions correct...************
 
                   JCOUNT_IPHA = -99999
                   DO COUNT = SMALL_FINDRM( CV_NODI ), SMALL_FINDRM( CV_NODI + 1 ) - 1
@@ -2805,7 +2770,7 @@ contains
                                 UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2, &
                                 ONE_PORE, CV_ELE_TYPE, CV_SLOC2LOC, CV_NLOC, CV_SNLOC, CV_ILOC, CV_JLOC, SCVFEN, CV_NDGLN, CV_OTHER_LOC, &
                                 MASS_CV, OPT_VEL_UPWIND_COEFS,NOPT_VEL_UPWIND_COEFS, NDIM, MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
-                                FACE_ITS, LIMT2, LIMT2OLD, FEMDGI, FEMT2GI, FEMDOLDGI, FEMT2OLDGI, UP_WIND_NOD, &
+                                FACE_ITS, LIMT2, LIMT2OLD(iphase,gi,ele), FEMDGI, FEMT2GI, FEMDOLDGI, FEMT2OLDGI, UP_WIND_NOD, &
                                 T2MIN, T2MAX, T2OLDMIN, T2OLDMAX, T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 T2MIN_2ND_MC, T2OLDMIN_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, LIMIT_USE_2ND,&
@@ -2824,7 +2789,7 @@ contains
                                 UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2, &
                                 ONE_PORE, CV_ELE_TYPE, CV_SLOC2LOC, CV_NLOC, CV_SNLOC, CV_ILOC, CV_JLOC, SCVFEN, CV_NDGLN, CV_OTHER_LOC, &
                                 MASS_CV, OPT_VEL_UPWIND_COEFS,NOPT_VEL_UPWIND_COEFS, NDIM, MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
-                                FACE_ITS, LIMT, LIMTOLD, FEMDGI, FEMTGI, FEMDOLDGI, FEMTOLDGI, UP_WIND_NOD, &
+                                FACE_ITS, LIMT, LIMTOLD(iphase,gi,ele), FEMDGI, FEMTGI, FEMDOLDGI, FEMTOLDGI, UP_WIND_NOD, &
                                 TMIN, TMAX, TOLDMIN, TOLDMAX, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, TOLDMAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 TMIN_2ND_MC, TOLDMIN_2ND_MC, TMAX_2ND_MC, TOLDMAX_2ND_MC, LIMIT_USE_2ND,&
@@ -2835,65 +2800,59 @@ contains
 
                         !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===============
                         ! Calculate T and DEN on the CV face at quadrature point GI.
-                        CALL GET_INT_T_DEN( FVT, FVTOLD, FVT2, FVT2OLD, FVD, FVDOLD, LIMD, LIMT, LIMT2, &
-                             LIMDOLD, LIMTOLD, LIMT2OLD, LIMDT, LIMDTOLD, LIMDTT2, LIMDTT2OLD,&
-                             FEMDGI, FEMTGI,FEMT2GI, FEMDOLDGI, FEMTOLDGI, FEMT2OLDGI, &
+                        
+                        CALL GET_INT_T_DEN( FVT, FVT2, FVD, LIMD, LIMT, LIMT2, &
+                             LIMDT, LIMDTT2,&
+                             FEMDGI, FEMTGI,FEMT2GI, &
                              CV_DISOPT, CV_NONODS, NPHASE, CV_NODI_IPHA, CV_NODJ_IPHA, ELE, ELE2, GI, IPHASE,  &
-                             CV_NLOC, TOTELE, CV_NDGLN, CV_OTHER_LOC, SCVNGI, SCVFEN, INCOME, INCOMEOLD, &
-                             T, TOLD, T2, T2OLD, DEN, DENOLD, FEMT, FEMTOLD, FEMT2, FEMT2OLD, FEMDEN, FEMDENOLD, &
-                             TMIN, TOLDMIN, T2MIN, T2OLDMIN, DENMIN, DENOLDMIN, &
-                             TMAX, TOLDMAX, T2MAX, T2OLDMAX, DENMAX, DENOLDMAX, &
+                             CV_NLOC, TOTELE, CV_NDGLN, CV_OTHER_LOC, SCVNGI, SCVFEN, INCOME, &
+                             T, T2, DEN, FEMT, FEMT2, FEMDEN, &
+                             TMIN, T2MIN, DENMIN, &
+                             TMAX, T2MAX, DENMAX, &
                              SELE, CV_SNLOC, STOTEL, CV_SLOC2LOC, SUF_T_BC, SUF_T2_BC, SUF_D_BC, &
                              WIC_T_BC, WIC_T2_BC, WIC_D_BC, &
                              WIC_T_BC_DIRICHLET, WIC_D_BC_DIRICHLET, ONE_PORE, &
-                             MASS_CV, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, TOLDMAX_NOD, &
-                             DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD, &
-                             T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, IGOT_T2, &
-                             TMIN_2ND_MC, TOLDMIN_2ND_MC, T2MIN_2ND_MC, T2OLDMIN_2ND_MC, DENMIN_2ND_MC, DENOLDMIN_2ND_MC, &
-                             TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, &
-                             LIMIT_USE_2ND, HDC, NDOTQ, NDOTQOLD, DT, &
+                             MASS_CV, TMIN_NOD, TMAX_NOD, &
+                             DENMIN_NOD, DENMAX_NOD, &
+                             T2MIN_NOD, T2MAX_NOD, IGOT_T2, &
+                             TMIN_2ND_MC, T2MIN_2ND_MC, DENMIN_2ND_MC, &
+                             TMAX_2ND_MC, T2MAX_2ND_MC, DENMAX_2ND_MC, &
+                             LIMIT_USE_2ND, HDC, NDOTQ, DT, &
                              SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
-                             TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT , &
+                             TUPWIND_MAT, DENUPWIND_MAT, T2UPWIND_MAT, &
                              !Values to limit the flow when reaching the irreducible  saturation for a phase
                              s_gc, s_or )
 
                      END DO
-
-                     IF( SUM2ONE ) THEN
-                        LIMT   =LIMT/SUM_LIMT
-                        LIMTOLD=LIMTOLD/SUM_LIMTOLD
-                        LIMDT=LIMT*LIMD
-                        LIMDTOLD=LIMTOLD*LIMDOLD
-                     ENDIF
 
                      ! Define face value of theta
                      IF(IGOT_T2==1) THEN
                         FTHETA=FACE_THETA( DT, CV_THETA, ( cv_disopt>=8 ),HDC, NDOTQ, LIMDTT2, DIFF_COEF_DIVDX, &
                              T(CV_NODJ_IPHA)*DEN(CV_NODJ_IPHA)*T2(CV_NODJ_IPHA), &
                              T(CV_NODI_IPHA)*DEN(CV_NODI_IPHA)*T2(CV_NODI_IPHA), &
-                             NDOTQOLD, LIMDTT2OLD, DIFF_COEFOLD_DIVDX, &
+                             NDOTQOLD, LIMDTT2OLD(iphase,gi,ele), DIFF_COEFOLD_DIVDX, &
                              TOLD(CV_NODJ_IPHA)*DENOLD(CV_NODJ_IPHA)*T2OLD(CV_NODJ_IPHA), &
                              TOLD(CV_NODI_IPHA)*DENOLD(CV_NODI_IPHA)*T2OLD(CV_NODI_IPHA) )
                      ELSE
                         FTHETA=FACE_THETA( DT, CV_THETA, ( cv_disopt>=8 ),HDC, NDOTQ, LIMDTT2, DIFF_COEF_DIVDX, &
                              T(CV_NODJ_IPHA)*DEN(CV_NODJ_IPHA), &
                              T(CV_NODI_IPHA)*DEN(CV_NODI_IPHA), &
-                             NDOTQOLD, LIMDTT2OLD, DIFF_COEFOLD_DIVDX, &
+                             NDOTQOLD, LIMDTT2OLD(iphase,gi,ele), DIFF_COEFOLD_DIVDX, &
                              TOLD(CV_NODJ_IPHA)*DENOLD(CV_NODJ_IPHA), &
                              TOLD(CV_NODI_IPHA)*DENOLD(CV_NODI_IPHA) )
                      ENDIF
 
                      FTHETA_T2         = FTHETA * LIMT2
-                     ONE_M_FTHETA_T2OLD = (1.0-FTHETA) * LIMT2OLD
+                     ONE_M_FTHETA_T2OLD = (1.0-FTHETA) * LIMT2OLD(iphase,gi,ele)
 
                      IF(IGOT_THETA_FLUX==1) THEN
                         IF ( GET_THETA_FLUX ) THEN
 !                           THETA_FLUX(ELE, CV_ILOC, GI, IPHASE)      =FTHETA*LIMT
 !                           ONE_M_THETA_FLUX(ELE, CV_ILOC, GI, IPHASE)=(1.0-FTHETA)*LIMTOLD
                            THETA_FLUX(ELE, CV_ILOC, GI, IPHASE)      =FTHETA*LIMDT/DEN(CV_NODI_IPHA)
-                           ONE_M_THETA_FLUX(ELE, CV_ILOC, GI, IPHASE)=(1.0-FTHETA)*LIMDTOLD/DEN(CV_NODI_IPHA)
+                           ONE_M_THETA_FLUX(ELE, CV_ILOC, GI, IPHASE)=(1.0-FTHETA)*LIMDTOLD(iphase,gi,ele)/DEN(CV_NODI_IPHA)
                         ENDIF
                         IF ( USE_THETA_FLUX ) THEN
                            FTHETA_T2         =THETA_FLUX(ELE, CV_ILOC, GI, IPHASE)
@@ -2970,7 +2929,7 @@ contains
            ! subtract 1st order adv. soln.
            + SECOND_THETA * FTHETA_T2 * NDOTQNEW * SCVDETWEI( GI ) * LIMD * FVT * BCZERO &
            -  SCVDETWEI( GI ) * ( FTHETA_T2 * NDOTQNEW * LIMDT &
-           + ONE_M_FTHETA_T2OLD * NDOTQOLD * LIMDTOLD ) ! hi order adv
+           + ONE_M_FTHETA_T2OLD * NDOTQOLD * LIMDTOLD(iphase,gi,ele) ) ! hi order adv
       
       ! Subtract out 1st order term non-conservative adv.
       CV_RHS( rhs_NODI_IPHA ) =  CV_RHS( rhs_NODI_IPHA ) &
@@ -2980,7 +2939,7 @@ contains
       CV_RHS( rhs_NODI_IPHA ) =  CV_RHS( rhs_NODI_IPHA ) &
            + ( 1. - CV_BETA) * SCVDETWEI( GI ) &
            * ( FTHETA_T2 * NDOTQNEW * TMID * LIMD  &
-           + ONE_M_FTHETA_T2OLD * NDOTQOLD * LIMDOLD * TOLDMID )
+           + ONE_M_FTHETA_T2OLD * NDOTQOLD * LIMDOLD(iphase,gi,ele) * TOLDMID )
 
                         ! Diffusion contribution
       CV_RHS( rhs_NODI_IPHA ) =  CV_RHS( rhs_NODI_IPHA ) &
@@ -3005,7 +2964,7 @@ contains
             CV_RHS( rhs_NODI_IPHA ) = CV_RHS( rhs_NODI_IPHA ) &
                  - CV_P( CV_NODI ) * SCVDETWEI( GI ) * ( &
                  THERM_FTHETA * NDOTQNEW * LIMT2 &
-                 + ( 1. - THERM_FTHETA ) * NDOTQOLD * LIMT2OLD )
+                 + ( 1. - THERM_FTHETA ) * NDOTQOLD * LIMT2OLD(iphase,gi,ele) )
          else
             CV_RHS( rhs_NODI_IPHA ) = CV_RHS( rhs_NODI_IPHA ) &
                  - CV_P( CV_NODI ) * SCVDETWEI( GI ) * ( &
@@ -3110,35 +3069,6 @@ contains
          END DO Loop_IPHASE2
          
       END DO Loop_CVNODI2
-         
-
-      !ewrite(3,*)'upwind fraction:'
-      !ewrite(3,*) 'This is wrong now, but up_wind_nod is not used anyway I think', cv_nonods, x_nonods
-      !do iphase=1,nphase
-      !   ewrite(3,*)'for phase iphase=',iphase
-      !   do ele=1,totele-1
-      !      do cv_iloc=1,cv_nloc
-      !         cv_nodi = cv_ndgln((ele-1)*cv_nloc+cv_iloc)
-      !         mat_nodi = mat_ndgln((ele-1)*cv_nloc+cv_iloc)
-      !         cv_nodi_IPHA=cv_nodi +(IPHASE-1)*CV_NONODS
-      !
-      !         if(cv_nonods==x_nonods) then
-      !            !ewrite(3,*)0.5*(x(cv_nodi)+x(cv_nodi+1)),UP_WIND_NOD(cv_nodi_IPHA)
-      !            ewrite(3,*)0.5*(x(x_ndgln((ele-1)*x_nloc+cv_iloc))+x(x_ndgln((ele-1)*x_nloc+cv_iloc+1))),  &
-      !                 UP_WIND_NOD(cv_nodi_IPHA)
-      !         else
-      !            if(cv_iloc==cv_nloc) then
-      !               ewrite(3,*)x(x_ndgln((ele-1)*x_nloc+cv_iloc)),  &
-      !                    UP_WIND_NOD(cv_nodi_IPHA)
-      !            else
-      !               ewrite(3,*)0.5*(x(x_ndgln((ele-1)*x_nloc+cv_iloc))+x(x_ndgln((ele-1)*x_nloc+cv_iloc+1))),  &
-      !                    UP_WIND_NOD(cv_nodi_IPHA)
-      !            endif
-      !         endif
-      !
-      !      end do
-      !   end do
-      !end do
 
       ! for the output
       T_FEMT = FEMT
@@ -4195,27 +4125,51 @@ contains
 
                         !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===============
                         ! Calculate T and DEN on the CV face at quadrature point GI.
-                        CALL GET_INT_T_DEN( FVT, FVTOLD, FVT2, FVT2OLD, FVD, FVDOLD, LIMD, LIMT, LIMT2, &
-                             LIMDOLD, LIMTOLD, LIMT2OLD, LIMDT, LIMDTOLD, LIMDTT2, LIMDTT2OLD,&
-                             FEMDGI, FEMTGI,FEMT2GI, FEMDOLDGI, FEMTOLDGI, FEMT2OLDGI, &
+                         CALL GET_INT_T_DEN( FVTOLD, FVT2OLD, FVDOLD, &
+                             LIMDOLD, LIMTOLD, LIMT2OLD, LIMDTOLD, LIMDTT2OLD,&
+                             FEMDOLDGI, FEMTOLDGI, FEMT2OLDGI, &
                              CV_DISOPT, CV_NONODS, NPHASE, CV_NODI_IPHA, CV_NODJ_IPHA, ELE, ELE2, GI, IPHASE,  &
-                             CV_NLOC, TOTELE, CV_NDGLN, CV_OTHER_LOC, SCVNGI, SCVFEN, INCOME, INCOMEOLD, &
-                             T, TOLD, T2, T2OLD, DEN, DENOLD, FEMT, FEMTOLD, FEMT2, FEMT2OLD, FEMDEN, FEMDENOLD, &
-                             TMIN, TOLDMIN, T2MIN, T2OLDMIN, DENMIN, DENOLDMIN, &
-                             TMAX, TOLDMAX, T2MAX, T2OLDMAX, DENMAX, DENOLDMAX, &
+                             CV_NLOC, TOTELE, CV_NDGLN, CV_OTHER_LOC, SCVNGI, SCVFEN, INCOMEOLD, &
+                             TOLD, T2OLD, DENOLD, FEMTOLD, FEMT2OLD, FEMDENOLD, &
+                             TOLDMIN, T2OLDMIN, DENOLDMIN, &
+                             TOLDMAX, T2OLDMAX, DENOLDMAX, &
                              SELE, CV_SNLOC, STOTEL, CV_SLOC2LOC, SUF_T_BC, SUF_T2_BC, SUF_D_BC, &
                              WIC_T_BC, WIC_T2_BC, WIC_D_BC, &
                              WIC_T_BC_DIRICHLET, WIC_D_BC_DIRICHLET, ONE_PORE, &
-                             MASS_CV, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, TOLDMAX_NOD, &
-                             DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD, &
-                             T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, IGOT_T2, &
-                             TMIN_2ND_MC, TOLDMIN_2ND_MC, T2MIN_2ND_MC, T2OLDMIN_2ND_MC, DENMIN_2ND_MC, DENOLDMIN_2ND_MC, &
-                             TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, &
-                             LIMIT_USE_2ND, HDC, NDOTQ, NDOTQOLD, DT, &
+                             MASS_CV, TOLDMIN_NOD, TOLDMAX_NOD, &
+                             DENOLDMIN_NOD, DENOLDMAX_NOD, &
+                             T2OLDMIN_NOD, T2OLDMAX_NOD, IGOT_T2, &
+                             TOLDMIN_2ND_MC, T2OLDMIN_2ND_MC, DENOLDMIN_2ND_MC, &
+                             TOLDMAX_2ND_MC, T2OLDMAX_2ND_MC, DENOLDMAX_2ND_MC, &
+                             LIMIT_USE_2ND, HDC, NDOTQOLD, DT, &
                              SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
-                             TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT, &
+                             TOLDUPWIND_MAT, DENOLDUPWIND_MAT, T2OLDUPWIND_MAT , &
+                             !Values to limit the flow when reaching the irreducible  saturation for a phase
+                             s_gc, s_or )
+                        
+                        CALL GET_INT_T_DEN( FVT, FVT2, FVD, LIMD, LIMT, LIMT2, &
+                             LIMDT, LIMDTT2,&
+                             FEMDGI, FEMTGI,FEMT2GI, &
+                             CV_DISOPT, CV_NONODS, NPHASE, CV_NODI_IPHA, CV_NODJ_IPHA, ELE, ELE2, GI, IPHASE,  &
+                             CV_NLOC, TOTELE, CV_NDGLN, CV_OTHER_LOC, SCVNGI, SCVFEN, INCOME, &
+                             T, T2, DEN, FEMT, FEMT2, FEMDEN, &
+                             TMIN, T2MIN, DENMIN, &
+                             TMAX, T2MAX, DENMAX, &
+                             SELE, CV_SNLOC, STOTEL, CV_SLOC2LOC, SUF_T_BC, SUF_T2_BC, SUF_D_BC, &
+                             WIC_T_BC, WIC_T2_BC, WIC_D_BC, &
+                             WIC_T_BC_DIRICHLET, WIC_D_BC_DIRICHLET, ONE_PORE, &
+                             MASS_CV, TMIN_NOD, TMAX_NOD, &
+                             DENMIN_NOD, DENMAX_NOD, &
+                             T2MIN_NOD, T2MAX_NOD, IGOT_T2, &
+                             TMIN_2ND_MC, T2MIN_2ND_MC, DENMIN_2ND_MC, &
+                             TMAX_2ND_MC, T2MAX_2ND_MC, DENMAX_2ND_MC, &
+                             LIMIT_USE_2ND, HDC, NDOTQ, DT, &
+                             SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
+                             U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
+                             IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
+                             TUPWIND_MAT, DENUPWIND_MAT, T2UPWIND_MAT, &
                              !Values to limit the flow when reaching the irreducible  saturation for a phase
                              s_gc, s_or )
 
@@ -4303,27 +4257,51 @@ contains
 
                         !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===============
                         ! Calculate T and DEN on the CV face at quadrature point GI.
-                        CALL GET_INT_T_DEN( FVT, FVTOLD, FVT2, FVT2OLD, FVD, FVDOLD, LIMD, LIMT, LIMT2, &
-                             LIMDOLD, LIMTOLD, LIMT2OLD, LIMDT, LIMDTOLD, LIMDTT2, LIMDTT2OLD,&
-                             FEMDGI, FEMTGI,FEMT2GI, FEMDOLDGI, FEMTOLDGI, FEMT2OLDGI, &
+                        CALL GET_INT_T_DEN( FVTOLD, FVT2OLD, FVDOLD, &
+                             LIMDOLD, LIMTOLD, LIMT2OLD, LIMDTOLD, LIMDTT2OLD,&
+                             FEMDOLDGI, FEMTOLDGI, FEMT2OLDGI, &
                              CV_DISOPT, CV_NONODS, NPHASE, CV_NODI_IPHA, CV_NODJ_IPHA, ELE, ELE2, GI, IPHASE,  &
-                             CV_NLOC, TOTELE, CV_NDGLN, CV_OTHER_LOC, SCVNGI, SCVFEN, INCOME, INCOMEOLD, &
-                             T, TOLD, T2, T2OLD, DEN, DENOLD, FEMT, FEMTOLD, FEMT2, FEMT2OLD, FEMDEN, FEMDENOLD, &
-                             TMIN, TOLDMIN, T2MIN, T2OLDMIN, DENMIN, DENOLDMIN, &
-                             TMAX, TOLDMAX, T2MAX, T2OLDMAX, DENMAX, DENOLDMAX, &
+                             CV_NLOC, TOTELE, CV_NDGLN, CV_OTHER_LOC, SCVNGI, SCVFEN, INCOMEOLD, &
+                             TOLD, T2OLD, DENOLD, FEMTOLD, FEMT2OLD, FEMDENOLD, &
+                             TOLDMIN, T2OLDMIN, DENOLDMIN, &
+                             TOLDMAX, T2OLDMAX, DENOLDMAX, &
                              SELE, CV_SNLOC, STOTEL, CV_SLOC2LOC, SUF_T_BC, SUF_T2_BC, SUF_D_BC, &
                              WIC_T_BC, WIC_T2_BC, WIC_D_BC, &
                              WIC_T_BC_DIRICHLET, WIC_D_BC_DIRICHLET, ONE_PORE, &
-                             MASS_CV, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, TOLDMAX_NOD, &
-                             DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD, &
-                             T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, IGOT_T2, &
-                             TMIN_2ND_MC, TOLDMIN_2ND_MC, T2MIN_2ND_MC, T2OLDMIN_2ND_MC, DENMIN_2ND_MC, DENOLDMIN_2ND_MC, &
-                             TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, &
-                             LIMIT_USE_2ND, HDC, NDOTQ, NDOTQOLD, DT, &
+                             MASS_CV, TOLDMIN_NOD, TOLDMAX_NOD, &
+                             DENOLDMIN_NOD, DENOLDMAX_NOD, &
+                             T2OLDMIN_NOD, T2OLDMAX_NOD, IGOT_T2, &
+                             TOLDMIN_2ND_MC, T2OLDMIN_2ND_MC, DENOLDMIN_2ND_MC, &
+                             TOLDMAX_2ND_MC, T2OLDMAX_2ND_MC, DENOLDMAX_2ND_MC, &
+                             LIMIT_USE_2ND, HDC, NDOTQOLD, DT, &
                              SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
-                             TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT , &
+                             TOLDUPWIND_MAT, DENOLDUPWIND_MAT, T2OLDUPWIND_MAT , &
+                             !Values to limit the flow when reaching the irreducible  saturation for a phase
+                             s_gc, s_or )
+                        
+                        CALL GET_INT_T_DEN( FVT, FVT2, FVD, LIMD, LIMT, LIMT2, &
+                             LIMDT, LIMDTT2,&
+                             FEMDGI, FEMTGI,FEMT2GI, &
+                             CV_DISOPT, CV_NONODS, NPHASE, CV_NODI_IPHA, CV_NODJ_IPHA, ELE, ELE2, GI, IPHASE,  &
+                             CV_NLOC, TOTELE, CV_NDGLN, CV_OTHER_LOC, SCVNGI, SCVFEN, INCOME, &
+                             T, T2, DEN, FEMT, FEMT2, FEMDEN, &
+                             TMIN, T2MIN, DENMIN, &
+                             TMAX, T2MAX, DENMAX, &
+                             SELE, CV_SNLOC, STOTEL, CV_SLOC2LOC, SUF_T_BC, SUF_T2_BC, SUF_D_BC, &
+                             WIC_T_BC, WIC_T2_BC, WIC_D_BC, &
+                             WIC_T_BC_DIRICHLET, WIC_D_BC_DIRICHLET, ONE_PORE, &
+                             MASS_CV, TMIN_NOD, TMAX_NOD, &
+                             DENMIN_NOD, DENMAX_NOD, &
+                             T2MIN_NOD, T2MAX_NOD, IGOT_T2, &
+                             TMIN_2ND_MC, T2MIN_2ND_MC, DENMIN_2ND_MC, &
+                             TMAX_2ND_MC, T2MAX_2ND_MC, DENMAX_2ND_MC, &
+                             LIMIT_USE_2ND, HDC, NDOTQ, DT, &
+                             SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
+                             U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
+                             IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
+                             TUPWIND_MAT, DENUPWIND_MAT, T2UPWIND_MAT, &
                              !Values to limit the flow when reaching the irreducible  saturation for a phase
                              s_gc, s_or )
 
@@ -4607,6 +4585,797 @@ contains
 
     END SUBROUTINE CV_ASSEMB_CT
 
+    SUBROUTINE CV_GET_ALL_LIMITED_VALS( state, &
+         LIMT,LIMT2,LIMD,LIMDT,LIMDTT2,&
+         SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM,&
+         CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
+         CV_ELE_TYPE,  &
+         NPHASE,  &
+         CV_NLOC, U_NLOC, X_NLOC, &
+         CV_NDGLN, X_NDGLN, U_NDGLN, &
+         CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
+         X, Y, Z, U, V, W, &
+         NU, NV, NW, &
+         T, DEN, &
+         MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
+         CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, SECOND_THETA, CV_BETA, &
+         SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
+         SUF_T_BC_ROB1, SUF_T_BC_ROB2, &
+         WIC_T_BC, WIC_D_BC, WIC_U_BC, &
+         DERIV, CV_P, &
+         SOURCT, ABSORBT, VOLFRA_PORE, &
+         NDIM, &
+         NCOLM, FINDM, COLM, MIDM, &
+         XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
+         OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
+         IGOT_T2, T2, SCVNGI_THETA,&
+         SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
+         NOIT_DIM, &
+         MEAN_PORE_CV, &
+         FINDCMC, COLCMC, NCOLCMC, &
+         MASS_ELE_TRANSP, &
+         option_path_spatial_discretisation)
+
+      !  =====================================================================
+      !     This subroutine gets the limited face values for a variable
+      !
+      !     This routine uses a Control Volume (CV) formulation to compute
+      !     the advection terms. The general procedure is as follows:
+      !
+      !     This procedure is implemented by considering the CV to be made up
+      !     of a number of sub-control-volumes, which represent the part of
+      !     the control volume within a given element.  The assembly of terms
+      !     considers each of these sub-CVs in turn, calculating (and limiting)
+      !     the flux across sub-CV faces that are external to the CV...
+      !
+      !     To define the "upwind" value of the field variable, which is
+      !     necessary for the limiting scheme, either:
+      !
+      !        A. The upwind value of the field variable to be advected is
+      !           found by interpolation and stored in a matrix (TUPWIND)
+      !        B. The neighbouring nodes are searched for the local maximum
+      !           and minimum
+      !
+      !     The subroutine has several options...
+      !
+      !     Discretisation option
+      !     ---------------------
+      !      - The estimate of the face value may be determined in one of
+      !        several ways.
+      !      - The face value may be centered in time by either a specified
+      !        CV_THETA value, or a non-linear CV_THETA value that is determined
+      !        automatically.
+      !      - The face value may be limited using a univeral-limiter-type
+      !        scheme, or a limited-downwind scheme that is ideal for INTERFACE
+      !        TRACKING.  Alternatively no limiting can be applied.
+      !
+      !     These options are defined by the value of CV_DISOPT, which corresponds
+      !     to the clast digit of the GEM option NDISOT for the field in question.
+      !
+      !     CV_DISOPT=discretisation option in space and time
+      !     ------------------------------------------------------------------
+      !     CV_DISOPT   Method for face-value est.    Time-stepping     Limiting
+      !     ------------------------------------------------------------------
+      !       =0      1st order in space          Theta=specified    UNIVERSAL
+      !       =1      1st order in space          Theta=non-linear   UNIVERSAL
+      !       =2      Trapezoidal rule in space   Theta=specified    UNIVERSAL
+      !       =2 if isotropic limiter then FEM-quadratic & stratification adjust. Theta=non-linear
+      !       =3      Trapezoidal rule in space   Theta=non-linear   UNIVERSAL
+      !       =4      Finite elements in space    Theta=specified    UNIVERSAL
+      !       =5      Finite elements in space    Theta=non-linear   UNIVERSAL
+      !       =6      Finite elements in space    Theta=specified    NONE
+      !       =7      Finite elements in space    Theta=non-linear   NONE
+      !       =8      Finite elements in space    Theta=specified    DOWNWIND+
+      !       =9      Finite elements in space    Theta=non-linear   DOWNWIND+
+      !
+      !     CV_DG_VEL_INT_OPT=interface velocity calculation option between elements
+      !
+      !     Limiting scheme
+      !     ---------------
+      !     The limiting scheme is defined in the subroutine NVDFUNNEW;
+      !     the limited values are computed in subroutine ANONVDLIM/ONVDLIM.
+      !
+      !     ONVDLIM is the original limiting algorithm
+      !
+      !     ANONVDLIM is a new anisoptropic limiting algorithm, which is
+      !     called if either ALOLIM=1 (where ALOLIM is an option flag set
+      !     in this subroutine), or if the interface tracking limiting option
+      !     is selected (CV_DISOPT=8/9).  ***In general ALOLIM appears to be set to 1 (GSC)
+      !
+      !     NOTE: ANONVDLIM only works for TETS; for all other element types
+      !     ONVDLIM is used.
+      !
+      !
+      !     IMPORTANT INPUTS:
+      !     ----------------
+      !
+      !     CSR_ACV   - Matrix for assembling the advection terms (empty on input)
+      !     CV_RHS      - Right-hand side vector for advection-diffusion terms
+      !     X,Y,Z    - Node co-ordinates
+      !     NU       - Nodal velocity component
+      !     T   - advected field values at nodes
+      !     CV_DISOPT   - The discretisation/limiting option (see above)
+      !     DT       - The time step
+      !     ELE_TYP   - Integer flag definining element type
+      !
+      !     IMPORTANT OUTPUTS:
+      !     -----------------
+      !
+      !
+      !     IMPORTANT LOCAL PARAMETERS:
+      !     --------------------------
+      !
+      !     TIMOPT    - Temporal discretisation option, derived from CV_DISOPT.
+      !                (1 for non-linear theta; 0 for theta specified (THETA))
+      !
+      !
+      !***********************************************************************
+
+      ! Inputs/Outputs
+      IMPLICIT NONE
+      type( state_type ), dimension( : ), intent( in ) :: state
+      INTEGER, intent( in ) :: CV_NONODS, U_NONODS, X_NONODS, MAT_NONODS, &
+           TOTELE, &
+           CV_ELE_TYPE, &
+           NPHASE, CV_NLOC, U_NLOC, X_NLOC, MAT_NLOC, &
+           CV_SNLOC, U_SNLOC, STOTEL, CV_DISOPT, CV_DG_VEL_INT_OPT, NDIM, &
+           NCOLM, XU_NLOC, NCOLELE, NOPT_VEL_UPWIND_COEFS, &
+           SCVNGI_THETA, IN_ELE_UPWIND, DG_ELE_UPWIND, &
+           NCOLCMC, igot_t2
+      INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
+      INTEGER, DIMENSION( : ), intent( in ) ::  X_NDGLN
+      INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
+      INTEGER, DIMENSION( : ), intent( in ) :: XU_NDGLN
+      INTEGER, DIMENSION( : ), intent( in ) :: MAT_NDGLN
+      INTEGER, DIMENSION( : ), intent( in ) :: CV_SNDGLN
+      INTEGER, DIMENSION(: ), intent( in ) :: U_SNDGLN
+      INTEGER, DIMENSION( : ), intent( in ) ::  WIC_T_BC, WIC_D_BC, WIC_U_BC
+      INTEGER, DIMENSION( : ), intent( in ) ::  WIC_T2_BC
+      ! Diagonal scaling of (distributed) pressure matrix (used to treat pressure implicitly)
+      INTEGER, DIMENSION( : ), intent( in ) :: FINDCMC
+      INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
+
+      REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
+      REAL, DIMENSION( : ), intent( in ) :: U, V, W
+      REAL, DIMENSION( : ), intent( in ) :: NU, NV, NW
+      REAL, DIMENSION( : ), intent( in ) :: T, DEN
+      REAL, DIMENSION( : ), intent( in ) :: T2 
+      REAL, intent( in ) :: DT, CV_THETA, SECOND_THETA, CV_BETA
+      REAL, DIMENSION( : ), intent( in ) :: SUF_T_BC, SUF_D_BC
+      REAL, DIMENSION( :  ), intent( in ) :: SUF_T2_BC
+      REAL, DIMENSION( : ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
+      REAL, DIMENSION( :, : ), intent( in ) :: SUF_SIG_DIAGTEN_BC
+      REAL, DIMENSION(: ), intent( in ) :: SUF_T_BC_ROB1, SUF_T_BC_ROB2
+      REAL, DIMENSION( : ), intent( in ) :: SUF_T2_BC_ROB1, SUF_T2_BC_ROB2
+      REAL, DIMENSION( : ), intent( in ) :: DERIV
+      REAL, DIMENSION( : ), intent( in ) :: CV_P
+      REAL, DIMENSION( : ), intent( in ) :: SOURCT
+      REAL, DIMENSION( :, :, : ), intent( in ) :: ABSORBT
+      REAL, DIMENSION( : ), intent( in ) :: VOLFRA_PORE
+      INTEGER, DIMENSION( : ), intent( in ) :: FINDM
+      INTEGER, DIMENSION( : ), intent( in ) :: COLM
+      INTEGER, DIMENSION( : ), intent( in ) :: MIDM
+      INTEGER, DIMENSION( : ), intent( in ) :: FINELE
+      INTEGER, DIMENSION( : ), intent( in ) :: COLELE
+      REAL, DIMENSION( : ), intent( in ) :: OPT_VEL_UPWIND_COEFS
+      INTEGER, INTENT( IN ) :: NOIT_DIM
+      REAL, DIMENSION( : ), intent( inout ) :: MEAN_PORE_CV
+      REAL, DIMENSION( : ), intent( inout ) :: MASS_ELE_TRANSP
+      character( len = * ), intent( in ), optional :: option_path_spatial_discretisation
+      integer, dimension(:), intent(in) :: SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM
+      !character( len = option_path_len ), intent( in ), optional :: option_path_spatial_discretisation
+
+      real, dimension(:,:,:), intent(inout) :: LIMT,LIMT2,LIMD,LIMDT,LIMDTT2
+
+      ! Local variables
+      INTEGER, PARAMETER :: WIC_T_BC_DIRICHLET = 1, WIC_T_BC_ROBIN = 2, &
+           WIC_T_BC_DIRI_ADV_AND_ROBIN = 3, WIC_D_BC_DIRICHLET = 1, &
+           WIC_U_BC_DIRICHLET = 1
+      LOGICAL, DIMENSION( : ), allocatable :: X_SHARE,LOG_ON_BOUND
+      LOGICAL, DIMENSION( :, : ), allocatable :: CV_ON_FACE, U_ON_FACE, &
+           CVFEM_ON_FACE, UFEM_ON_FACE
+      INTEGER, DIMENSION( : ), allocatable :: FINDGPTS, &
+           CV_OTHER_LOC, U_OTHER_LOC, MAT_OTHER_LOC, &
+           COLGPTS, CV_SLOC2LOC, U_SLOC2LOC, &
+           TMAX_NOD, TMIN_NOD, &
+           DENMAX_NOD, DENMIN_NOD, &
+           T2MAX_NOD, T2MIN_NOD
+      INTEGER, DIMENSION( : , : ), allocatable :: CV_SLOCLIST, U_SLOCLIST, &
+           FACE_ELE, CV_NEILOC
+      REAL, DIMENSION( : ), allocatable :: CVWEIGHT, CVWEIGHT_SHORT, SCVFEWEIGH, SBCVFEWEIGH, &
+           TMAX, TMIN, TOLDMAX, &
+           TOLDMIN, DENMAX, DENMIN, DENOLDMAX, DENOLDMIN, &
+           TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, &
+           TOLDMIN_2ND_MC, DENMAX_2ND_MC, DENMIN_2ND_MC, DENOLDMAX_2ND_MC, DENOLDMIN_2ND_MC, &
+           CVNORMX, &
+           CVNORMY, CVNORMZ, SCVRA, MASS_CV, MASS_ELE, SNDOTQ, SNDOTQOLD,  &
+           FEMT, FEMTOLD, FEMT2, FEMT2OLD, FEMDEN, FEMDENOLD, XC_CV, YC_CV, ZC_CV, &
+           SCVDETWEI, SRA, UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
+           UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2,  &
+           SUM_CV, ONE_PORE, SELE_OVERLAP_SCALE, &
+           T2MAX, T2MIN, T2OLDMAX, &
+           T2OLDMIN, &
+           T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, &
+           T2OLDMIN_2ND_MC, &
+           UP_WIND_NOD, DU, DV, DW, PERM_ELE
+      REAL, DIMENSION( : , : ), allocatable :: CVN, CVN_SHORT, CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
+           CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT,  &
+           UFEN, UFENLX, UFENLY, UFENLZ, SCVFEN, SCVFENSLX, SCVFENSLY, &
+           SCVFENLX, SCVFENLY, SCVFENLZ, &
+           SCVFENX, SCVFENY, SCVFENZ, &
+           SUFEN, SUFENSLX, SUFENSLY, SUFENLX, SUFENLY, SUFENLZ, &
+           SBCVN,SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
+           SBCVFENLX, SBCVFENLY, SBCVFENLZ, SBUFEN, SBUFENSLX, SBUFENSLY, &
+           SBUFENLX, SBUFENLY, SBUFENLZ, &
+           DUMMY_ZERO_NDIM_NDIM
+      REAL, DIMENSION( : , :, : ), allocatable :: DTX_ELE,DTY_ELE,DTZ_ELE,  &
+           DTOLDX_ELE,DTOLDY_ELE,DTOLDZ_ELE
+      REAL, DIMENSION( : , :, : ), allocatable :: INV_JAC
+
+      !        ===> INTEGERS <===
+      INTEGER :: CV_NGI, CV_NGI_SHORT, SCVNGI, SBCVNGI, COUNT, JCOUNT, &
+           ELE, ELE2, GI, GCOUNT, SELE,   &
+           NCOLGPTS, &
+           CV_SILOC, U_KLOC, &
+           CV_ILOC, CV_JLOC, IPHASE, JPHASE, &
+           CV_NODJ, CV_NODJ_IPHA, rhs_nodj_ipha,rhs_nodi_ipha,&
+           CV_NODI, CV_NODI_IPHA, CV_NODI_JPHA, U_NODK, TIMOPT, &
+           JCOUNT_IPHA, IMID_IPHA, &
+           NFACE, X_NODI,  &
+           CV_INOD, MAT_NODI, FACE_ITS, NFACE_ITS, &
+           CVNOD, XNOD, NSMALL_COLM, COUNT2, NOD
+      !        ===>  REALS  <===
+      REAL :: NDOTQ, NDOTQOLD,  &
+           INCOME, INCOMEOLD, HDC, FVT, FVTOLD, FVT2, FVT2OLD, &
+           FVD, FVDOLD, FTHETA, VTHETA, &
+           FEMDGI, FEMTGI,FEMT2GI, FEMDOLDGI, FEMTOLDGI, FEMT2OLDGI, &
+           TMID, TOLDMID, &
+           DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX, BCZERO, ROBIN1, ROBIN2, &
+           RSUM, &
+           SUM_LIMT, SUM_LIMTOLD, FTHETA_T2, ONE_M_FTHETA_T2OLD, THERM_FTHETA, &
+           W_SUM_ONE1, W_SUM_ONE2, NDOTQNEW, VOLUME
+
+      REAL, DIMENSION( NCOLCMC)  :: MASS_MN_PRES
+
+      REAL, PARAMETER :: W_SUM_ONE = 1.
+
+      integer :: cv_inod_ipha, IGETCT, U_NODK_IPHA, IANISOLIM
+      logical :: Have_Temperature_Fields, Have_VolumeFraction_Fields, Have_Components_Fields
+      logical :: overlapping
+      ! Functions...
+      !REAL :: R2NORM, FACE_THETA
+      !        ===>  LOGICALS  <===
+      character( len = option_path_len ) :: overlapping_path
+      LOGICAL :: GETMAT, LIMIT_USE_2ND, &
+           D1, D3, DCYL, INTEGRAT_AT_GI, &
+           NORMALISE, SUM2ONE, GET_GTHETA, QUAD_OVER_WHOLE_ELE,is_overlapping
+
+      character( len = option_path_len ) :: option_path, option_path2, path_temp, path_volf, &
+           path_comp, path_spatial_discretisation
+
+
+      real, dimension(:), allocatable :: TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, &
+              DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT
+      INTEGER :: IDUM(1)
+      REAL :: RDUM(1),n1,n2,n3
+      type( scalar_field ), pointer :: perm
+     !Reals to store the irresidual water and irreducible oil values, used in GET_INT_T_DEN
+    real ::  s_gc, s_or
+
+      overlapping = .false.
+      call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
+           overlapping_path )
+      if( trim( overlapping_path ) == 'overlapping' ) overlapping = .true.
+
+      IDUM = 0
+      RDUM = 0.
+
+
+      ewrite(3,*) 'In CV_ASSEMB_CT'
+
+      Have_Temperature_Fields = .false.
+      Have_VolumeFraction_Fields = .false.
+      Have_Components_Fields = .false.
+
+      path_temp = '/material_phase[0]/scalar_field::Temperature'
+      path_volf = '/material_phase[0]/scalar_field::PhaseVolumeFraction'
+      path_comp = '/material_phase[' // int2str( nphase ) // ']/scalar_field::ComponentMassFractionPhase1'
+      path_spatial_discretisation = '/prognostic/spatial_discretisation/' // &
+           'control_volumes/face_value/limit_face_value'
+
+      if( have_option( trim( path_temp ) ) ) Have_Temperature_Fields = .true.
+      if( have_option( trim( path_volf ) ) ) Have_VolumeFraction_Fields = .true.
+      if( have_option( trim( path_comp ) ) ) Have_Components_Fields = .true.
+
+      limit_use_2nd = .false.
+
+      if ( present( option_path_spatial_discretisation) ) then
+         if ( Have_Temperature_Fields .or. Have_VolumeFraction_Fields .or. &
+              Have_Components_Fields ) &
+              option_path = trim( option_path_spatial_discretisation ) // &
+              trim( path_spatial_discretisation )
+
+         if ( have_option( trim( option_path ) // '/limiter::Extrema' ) ) &
+              limit_use_2nd = .true.
+      end if
+
+      is_overlapping = .false.
+      call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
+           overlapping_path )
+      if( trim( overlapping_path ) == 'overlapping' ) is_overlapping = .true.
+
+      ewrite(3,*)'CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND, SECOND_THETA:', &
+           CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND, SECOND_THETA
+
+      ndotq = 0. ; ndotqold = 0.
+
+      QUAD_OVER_WHOLE_ELE=.FALSE.
+      ! If QUAD_OVER_WHOLE_ELE=.true. then dont divide element into CV's to form quadrature.
+      call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
+           cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
+
+  
+
+      ! Allocate memory for the control volume surface shape functions, etc.
+
+      ALLOCATE( CVNORMX( SCVNGI ))
+      ALLOCATE( CVNORMY( SCVNGI ))
+      ALLOCATE( CVNORMZ( SCVNGI ))
+      ALLOCATE( SCVRA( SCVNGI ))
+      ALLOCATE( COLGPTS( CV_NLOC * SCVNGI )) !The size of this vector is over-estimated
+      ALLOCATE( FINDGPTS( CV_NLOC + 1 ))
+      ALLOCATE( SNDOTQ( SCVNGI ))
+      ALLOCATE( SNDOTQOLD( SCVNGI ))
+      ALLOCATE( CV_ON_FACE( CV_NLOC, SCVNGI ))
+      ALLOCATE( CVFEM_ON_FACE( CV_NLOC, SCVNGI ))
+      ALLOCATE( U_ON_FACE( U_NLOC, SCVNGI ))
+      ALLOCATE( UFEM_ON_FACE( U_NLOC, SCVNGI ))
+      ALLOCATE( CV_OTHER_LOC( CV_NLOC ))
+      ALLOCATE( U_OTHER_LOC( U_NLOC ))
+      ALLOCATE( MAT_OTHER_LOC( MAT_NLOC ))
+      ALLOCATE( X_SHARE( X_NONODS ))
+      ALLOCATE( CVWEIGHT( CV_NGI ))
+      ALLOCATE( CVN( CV_NLOC, CV_NGI ))
+      ALLOCATE( CVFEN( CV_NLOC, CV_NGI ))
+      ALLOCATE( CVFENLX( CV_NLOC, CV_NGI ))
+      ALLOCATE( CVFENLY( CV_NLOC, CV_NGI ))
+      ALLOCATE( CVFENLZ( CV_NLOC, CV_NGI ))
+
+      ALLOCATE( CVWEIGHT_SHORT( CV_NGI_SHORT ))
+      ALLOCATE( CVN_SHORT( CV_NLOC, CV_NGI_SHORT ))
+      ALLOCATE( CVFEN_SHORT( CV_NLOC, CV_NGI_SHORT))
+      ALLOCATE( CVFENLX_SHORT( CV_NLOC, CV_NGI_SHORT ))
+      ALLOCATE( CVFENLY_SHORT( CV_NLOC, CV_NGI_SHORT ))
+      ALLOCATE( CVFENLZ_SHORT( CV_NLOC, CV_NGI_SHORT ))
+
+      ALLOCATE( UFEN( U_NLOC, CV_NGI))
+      ALLOCATE( UFENLX( U_NLOC, CV_NGI ))
+      ALLOCATE( UFENLY( U_NLOC, CV_NGI ))
+      ALLOCATE( UFENLZ( U_NLOC, CV_NGI ))
+
+      ALLOCATE( SCVFEN( CV_NLOC, SCVNGI ))
+      ALLOCATE( SCVFENSLX( CV_NLOC, SCVNGI ))
+      ALLOCATE( SCVFENSLY( CV_NLOC, SCVNGI ))
+      ALLOCATE( SCVFENLX( CV_NLOC, SCVNGI ))
+      ALLOCATE( SCVFENLY( CV_NLOC, SCVNGI ))
+      ALLOCATE( SCVFENLZ( CV_NLOC, SCVNGI ))
+      ALLOCATE( SCVFENX( CV_NLOC, SCVNGI ))
+      ALLOCATE( SCVFENY( CV_NLOC, SCVNGI ))
+      ALLOCATE( SCVFENZ( CV_NLOC, SCVNGI ))
+      ALLOCATE( SCVFEWEIGH( SCVNGI ))
+
+      ALLOCATE( SUFEN( U_NLOC, SCVNGI ))
+      ALLOCATE( SUFENSLX( U_NLOC, SCVNGI ))
+      ALLOCATE( SUFENSLY( U_NLOC, SCVNGI ))
+      ALLOCATE( SUFENLX( U_NLOC, SCVNGI ))
+      ALLOCATE( SUFENLY( U_NLOC, SCVNGI ))
+      ALLOCATE( SUFENLZ( U_NLOC, SCVNGI ))
+
+      ALLOCATE( SCVDETWEI( SCVNGI )) ; SCVDETWEI = 0.
+      ALLOCATE( SRA( SCVNGI ))
+      ALLOCATE( LOG_ON_BOUND(CV_NONODS))
+
+      ALLOCATE( SBCVN( CV_SNLOC, SBCVNGI ))
+      ALLOCATE( SBCVFEN( CV_SNLOC, SBCVNGI ))
+      ALLOCATE( SBCVFENSLX( CV_SNLOC, SBCVNGI ))
+      ALLOCATE( SBCVFENSLY( CV_SNLOC, SBCVNGI ))
+      ALLOCATE( SBCVFEWEIGH( SBCVNGI ))
+      ALLOCATE( SBCVFENLX( CV_SNLOC, SBCVNGI ))
+      ALLOCATE( SBCVFENLY( CV_SNLOC, SBCVNGI ))
+      ALLOCATE( SBCVFENLZ( CV_SNLOC, SBCVNGI ))
+      ALLOCATE( SBUFEN( U_SNLOC, SBCVNGI ))
+      ALLOCATE( SBUFENSLX( U_SNLOC, SBCVNGI ))
+      ALLOCATE( SBUFENSLY( U_SNLOC, SBCVNGI ))
+      ALLOCATE( SBUFENLX( U_SNLOC, SBCVNGI ))
+      ALLOCATE( SBUFENLY( U_SNLOC, SBCVNGI ))
+      ALLOCATE( SBUFENLZ( U_SNLOC, SBCVNGI ))
+      ALLOCATE( DUMMY_ZERO_NDIM_NDIM(NDIM,NDIM))
+      DUMMY_ZERO_NDIM_NDIM=0.0
+
+      ALLOCATE( CV_SLOC2LOC( CV_SNLOC ))
+      ALLOCATE( U_SLOC2LOC( U_SNLOC ))
+      ALLOCATE( CV_SLOCLIST( NFACE, CV_SNLOC ))
+      ALLOCATE( U_SLOCLIST( NFACE, U_SNLOC ))
+      ALLOCATE( CV_NEILOC( CV_NLOC, SCVNGI ))
+
+      ALLOCATE( SELE_OVERLAP_SCALE(CV_NLOC) )
+
+      ALLOCATE( UGI_COEF_ELE(U_NLOC),  VGI_COEF_ELE(U_NLOC),  WGI_COEF_ELE(U_NLOC) )
+      ALLOCATE( UGI_COEF_ELE2(U_NLOC), VGI_COEF_ELE2(U_NLOC), WGI_COEF_ELE2(U_NLOC) )
+      ! The procity mapped to the CV nodes
+      ALLOCATE( SUM_CV( CV_NONODS ))
+      ALLOCATE( UP_WIND_NOD( CV_NONODS * NPHASE ))
+
+      ALLOCATE( INV_JAC( NDIM, NDIM, SCVNGI ) )
+
+      UP_WIND_NOD = 0.0
+
+      ALLOCATE( ONE_PORE( TOTELE ))
+      IF( have_option( '/porous_media/actual_velocity' ) ) THEN
+         ! solve for actual velocity
+         ONE_PORE = VOLFRA_PORE
+      ELSE
+         ! solve for vel=porosity*actual velocity
+         ONE_PORE = 1.0
+      ENDIF
+
+      ewrite(3,*)'here1'
+
+      D1 = ( NDIM == 1 )
+      D3 = ( NDIM == 3 )
+      DCYL= ( NDIM == -2 )
+
+      GETMAT = .TRUE.
+
+      X_SHARE = .FALSE.
+
+      ! If using the original limiting scheme, the first step is to estimate
+      ! the upwind field value from the surrounding nodes
+
+      ! Allocate memory for terms needed by GETGXYZ OR ONVDLIM
+      ALLOCATE(      TMIN( CV_NONODS * NPHASE) )
+      ALLOCATE(      TMAX( CV_NONODS * NPHASE) )
+      ALLOCATE(      T2MIN( CV_NONODS * NPHASE* IGOT_T2) )
+      ALLOCATE(      T2MAX( CV_NONODS * NPHASE* IGOT_T2) )
+      ALLOCATE(    DENMIN( CV_NONODS * NPHASE) )
+      ALLOCATE(    DENMAX( CV_NONODS * NPHASE) )
+
+      ALLOCATE(      TMIN_2ND_MC( CV_NONODS * NPHASE) )
+      ALLOCATE(      TMAX_2ND_MC( CV_NONODS * NPHASE) )
+      ALLOCATE(      T2MIN_2ND_MC( CV_NONODS * NPHASE* IGOT_T2) )
+      ALLOCATE(      T2MAX_2ND_MC( CV_NONODS * NPHASE* IGOT_T2) )
+      ALLOCATE(    DENMIN_2ND_MC( CV_NONODS * NPHASE) )
+      ALLOCATE(    DENMAX_2ND_MC( CV_NONODS * NPHASE) )
+
+      ALLOCATE(      TMIN_NOD( CV_NONODS * NPHASE) )
+      ALLOCATE(      TMAX_NOD( CV_NONODS * NPHASE) )
+      ALLOCATE(      T2MIN_NOD( CV_NONODS * NPHASE* IGOT_T2) )
+      ALLOCATE(      T2MAX_NOD( CV_NONODS * NPHASE* IGOT_T2) )
+      ALLOCATE(    DENMIN_NOD( CV_NONODS * NPHASE) )
+      ALLOCATE(    DENMAX_NOD( CV_NONODS * NPHASE) )
+
+      NCOLGPTS = 0
+      COLGPTS = 0
+      FINDGPTS = 0
+
+      !     ======= DEFINE THE SUB-CONTROL VOLUME & FEM SHAPE FUNCTIONS ========
+
+      CALL CV_FEM_SHAPE_FUNS( &
+                                ! Volume shape functions...
+           NDIM, CV_ELE_TYPE,  &
+           CV_NGI, CV_NGI_SHORT, CV_NLOC, U_NLOC, CVN, CVN_SHORT, &
+           CVWEIGHT, CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
+           CVWEIGHT_SHORT, CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
+           UFEN, UFENLX, UFENLY, UFENLZ, &
+                                ! Surface of each CV shape functions...
+           SCVNGI, CV_NEILOC, CV_ON_FACE, CVFEM_ON_FACE, &
+           SCVFEN, SCVFENSLX, SCVFENSLY, SCVFEWEIGH, &
+           SCVFENLX, SCVFENLY, SCVFENLZ,  &
+           SUFEN, SUFENSLX, SUFENSLY,  &
+           SUFENLX, SUFENLY, SUFENLZ,  &
+                                ! Surface element shape funcs...
+           U_ON_FACE, UFEM_ON_FACE, NFACE, &
+           SBCVNGI, SBCVN, SBCVFEN,SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, SBCVFENLX, SBCVFENLY, SBCVFENLZ, &
+           SBUFEN, SBUFENSLX, SBUFENSLY, SBUFENLX, SBUFENLY, SBUFENLZ, &
+           CV_SLOCLIST, U_SLOCLIST, CV_SNLOC, U_SNLOC, &
+                                ! Define the gauss points that lie on the surface of the CV...
+           FINDGPTS, COLGPTS, NCOLGPTS, &
+           SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE )
+
+      ! Determine FEMT (finite element wise) etc from T (control volume wise)
+      ! Also determine the CV mass matrix MASS_CV and centre of the CV's XC_CV,YC_CV,ZC_CV.
+      ! This is for projecting to finite element basis functions...
+      ALLOCATE( FEMT( CV_NONODS * NPHASE ))
+      ALLOCATE( FEMDEN( CV_NONODS * NPHASE ))
+      ALLOCATE( FEMT2( CV_NONODS * NPHASE * IGOT_T2 ))
+      ALLOCATE( MASS_CV( CV_NONODS ))
+      ALLOCATE( MASS_ELE( TOTELE ))
+      ALLOCATE( XC_CV( CV_NONODS ))
+      ALLOCATE( YC_CV( CV_NONODS ))
+      ALLOCATE( ZC_CV( CV_NONODS ))
+      ALLOCATE( DTX_ELE( CV_NLOC, NPHASE,TOTELE ))
+      ALLOCATE( DTY_ELE( CV_NLOC, NPHASE,TOTELE ))
+      ALLOCATE( DTZ_ELE( CV_NLOC, NPHASE,TOTELE ))
+
+      ewrite(3,*)'here2'
+
+      CALL PROJ_CV_TO_FEM_2( state, &
+           FEMT, FEMDEN, T, DEN, &
+           IGOT_T2, T2, FEMT2, &
+           XC_CV, YC_CV, ZC_CV, MASS_CV, MASS_ELE,  &
+           NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
+           CV_NGI_SHORT, CV_NLOC, CVN_SHORT, CVWEIGHT_SHORT, &
+           CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
+           X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM, &
+           IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC )
+
+      MASS_ELE_TRANSP = MASS_ELE
+
+      ! Calculate MEAN_PORE_CV
+      SUM_CV = 0.0
+      MEAN_PORE_CV = 0.0
+      DO ELE = 1, TOTELE
+         DO CV_ILOC = 1, CV_NLOC
+            CV_INOD = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_ILOC )
+            SUM_CV( CV_INOD ) = SUM_CV( CV_INOD ) + MASS_ELE( ELE )
+            MEAN_PORE_CV( CV_INOD ) = MEAN_PORE_CV( CV_INOD ) + &
+                 MASS_ELE( ELE ) * VOLFRA_PORE( ELE )
+         END DO
+      END DO
+
+      MEAN_PORE_CV = MEAN_PORE_CV / SUM_CV
+
+      ! For each node, find the largest and smallest value of T and
+      ! DENSITY for both the current and previous timestep, out of
+      ! the node value and all its surrounding nodes including Dirichlet b.c's.
+
+    CALL SURRO_CV_MINMAX_1Time( TMAX, TMIN, DENMAX, DENMIN, &
+           T2MAX, T2MIN, &
+           TMAX_2ND_MC, TMIN_2ND_MC, DENMAX_2ND_MC, DENMIN_2ND_MC, &
+           T2MAX_2ND_MC, T2MIN_2ND_MC, &
+           LIMIT_USE_2ND, &
+           T, T2, DEN, IGOT_T2, NPHASE, CV_NONODS, size(small_colm), SMALL_FINDRM, SMALL_COLM, &
+           STOTEL, CV_SNLOC, CV_SNDGLN, SUF_T_BC, SUF_T2_BC, SUF_D_BC, WIC_T_BC, WIC_T2_BC, WIC_D_BC, &
+           WIC_T_BC_DIRICHLET, WIC_T_BC_DIRI_ADV_AND_ROBIN, &
+           WIC_D_BC_DIRICHLET, MASS_CV, TMIN_NOD, TMAX_NOD, &
+           T2MIN_NOD, T2MAX_NOD, &
+           DENMIN_NOD, DENMAX_NOD )
+
+! **********ANISOTROPIC LIMITING...*******************
+      IANISOLIM=0
+     ! print *,'CV_DISOPT=',CV_DISOPT
+     ! stop 72
+      IF(CV_DISOPT.GE.5) IANISOLIM=1
+! limiting not ready yet for P2 DG:
+!      IF(
+!      IF( (NDIM==2).AND.(CV_NLOC==6) ) IANISOLIM=0
+!      IF( (NDIM==3).AND.(CV_NLOC==10) ) IANISOLIM=0
+!IANISOLIM=0
+      IF (IANISOLIM==0) THEN
+         ALLOCATE(TUPWIND_MAT(1),  DENUPWIND_MAT(1))
+         ALLOCATE(T2UPWIND_MAT(1))
+         NSMALL_COLM=1
+      ELSE ! IF (IANISOLIM==1) THEN
+         ! Reduce matrix size...
+         NSMALL_COLM=size(small_colm)
+
+         ALLOCATE(TUPWIND_MAT(NSMALL_COLM*NPHASE), &
+              DENUPWIND_MAT(NSMALL_COLM*NPHASE))
+         ALLOCATE(T2UPWIND_MAT(NSMALL_COLM*NPHASE*IGOT_T2))
+
+         
+         CALL CALC_ANISOTROP_LIM_1time(&
+              ! Caculate the upwind values stored in matrix form...
+              T,DEN,T2, &
+              FEMT,FEMDEN,FEMT2, (CV_NONODS.NE.X_NONODS), &
+              TUPWIND_MAT, DENUPWIND_MAT, &
+              T2UPWIND_MAT, &
+              ! Store the upwind element for interpolation and its weights for
+              ! faster results...
+              IGOT_T2,NPHASE,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, &
+              SMALL_FINDRM,SMALL_CENTRM,SMALL_COLM,NSMALL_COLM, &
+              X_NDGLN,X_NONODS,NDIM, &
+              X,Y,Z, XC_CV, YC_CV, ZC_CV )
+
+
+      END IF
+! **********...ANISOTROPIC LIMITING*******************
+
+      ALLOCATE( FACE_ELE( NFACE, TOTELE ) ) ; FACE_ELE = 0
+      ! Calculate FACE_ELE
+      CALL CALC_FACE_ELE( FACE_ELE, TOTELE, STOTEL, NFACE, &
+           NCOLELE, FINELE, COLELE, CV_NLOC, CV_SNLOC, CV_NONODS, CV_NDGLN, CV_SNDGLN, &
+           CV_SLOCLIST, X_NLOC, X_NDGLN )
+
+      !     =============== DEFINE THETA FOR TIME-STEPPING ===================
+      ! Define the type of time integration:
+      ! Timopt is 0 if CV_DISOPT is even (theta specified);
+      ! Timopt is 1 if CV_DISOPT is odd (non-linear theta scheme)
+      TIMOPT = MOD( CV_DISOPT, 2 )
+
+      VTHETA = 1.0
+      FTHETA = CV_THETA
+
+     !Get the irreducible water and residual oil before entering the loop
+     !this value are used in GET_INT_T_DEN to keep the phases between realistic values
+     !Default value has to be the same as in subroutine get_corey_options in multi_eos.F90
+      !Default value of  S_GC = 0.1
+      call get_option("/material_phase[0]/multiphase_properties/immobile_fraction", &
+          s_gc, default=0.1)
+      !Default value of    S_OR = 0.3
+      call get_option("/material_phase[1]/multiphase_properties/immobile_fraction", &
+           s_or, default=0.3)
+
+
+      ! Now we begin the loop over elements to assemble the advection terms
+      ! into the matrix (ACV) and the RHS
+      Loop_Elements: DO ELE = 1, TOTELE
+
+
+         ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
+         CALL DETNLXR_INVJAC( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
+              CV_NLOC, SCVNGI, &
+              SCVFEN, SCVFENLX, SCVFENLY, SCVFENLZ, SCVFEWEIGH, SCVDETWEI, SCVRA, VOLUME, D1, D3, DCYL, &
+              SCVFENX, SCVFENY, SCVFENZ, &
+              NDIM, INV_JAC )
+
+
+         Loop_CV_ILOC: DO CV_ILOC = 1, CV_NLOC ! Loop over the nodes of the element
+
+            ! Global node number of the local node
+            CV_NODI = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_ILOC )
+
+            ! Loop over quadrature (gauss) points in ELE neighbouring ILOC
+            Loop_GCOUNT: DO GCOUNT = FINDGPTS( CV_ILOC ), FINDGPTS( CV_ILOC + 1 ) - 1, 1
+
+               ! COLGPTS stores the local Gauss-point number in the ELE
+               GI = COLGPTS( GCOUNT )
+
+               ! Get the neighbouring node for node ILOC and Gauss point GI
+               CV_JLOC = CV_NEILOC( CV_ILOC, GI )
+
+               ELE2 = 0
+               SELE = 0
+               INTEGRAT_AT_GI=.TRUE.
+
+               Conditional_CheckingNeighbourhood: IF( CV_JLOC == -1 ) THEN
+
+                  ! We are on the boundary or next to another element.  Determine CV_OTHER_LOC
+                  ! CVFEM_ON_FACE(CV_KLOC,GI)=.TRUE. if CV_KLOC is on the face that GI is centred on.
+                  ! Look for these nodes on the other elements.
+                  CALL FIND_OTHER_SIDE( CV_OTHER_LOC, CV_NLOC, CV_NODI, U_OTHER_LOC, U_NLOC,  &
+                       MAT_OTHER_LOC, MAT_NLOC, INTEGRAT_AT_GI,  &
+                       TOTELE, X_NLOC, XU_NLOC, X_NDGLN, CV_NDGLN, XU_NDGLN, &
+                       CV_SNLOC, CVFEM_ON_FACE, SCVNGI, GI, X_SHARE, X_NONODS, ELE, ELE2,  &
+                       FINELE, COLELE, NCOLELE )
+
+                  !ewrite(3,*)'================================================================================= '
+                  !ewrite(3,*)' ele, cv_iloc, cv_nodi, gi, cv_jloc: ', ele, cv_iloc, cv_nodi, gi, cv_jloc
+                  !ewrite(3,*)' ele2, integrat_at_gi:', ele2, integrat_at_gi
+                  !ewrite(3,*)'================================================================================= '
+                  !ewrite(3,*)'cv_other_loc:', cv_other_loc( 1 : cv_nloc )
+                  !ewrite(3,*)'u_other_loc:', u_other_loc( 1 : u_nloc )
+                  !ewrite(3,*)'mat_other_loc:', mat_other_loc( 1 : mat_nloc )
+                  !ewrite(3,*)'INTEGRAT_AT_GI=', INTEGRAT_AT_GI
+                  !ewrite(3,*)'================================================================================= '
+
+                  IF(INTEGRAT_AT_GI) THEN
+                     CV_JLOC = CV_OTHER_LOC( CV_ILOC )
+                     SELE=0
+
+                     IF( CV_JLOC == 0 ) THEN ! We are on the boundary of the domain
+                        CV_JLOC = CV_ILOC
+                        ! Calculate SELE, CV_SILOC, U_SLOC2LOC, CV_SLOC2LOC
+                        CALL CALC_SELE( ELE, SELE, CV_SILOC, CV_ILOC, SCVNGI, U_SLOC2LOC, CV_SLOC2LOC, &
+                             FACE_ELE, TOTELE, NFACE, CVFEM_ON_FACE, GI, &
+                             CV_NONODS, LOG_ON_BOUND, CV_NLOC, U_NLOC, CV_SNLOC, U_SNLOC, STOTEL, &
+                             CV_NDGLN, U_NDGLN, CV_SNDGLN, U_SNDGLN )
+                        !EWRITE(3,*)'*****AFTER CALC_SELE SELE,CV_SILOC,CV_SNLOC:',SELE,CV_SILOC,CV_SNLOC
+                     ENDIF
+                     INTEGRAT_AT_GI=.NOT.((ELE==ELE2).AND.(SELE==0))
+                  ENDIF
+
+               ENDIF Conditional_CheckingNeighbourhood
+
+               ! avoid indegrating across the middle of a CV on the boundaries of elements
+               Conditional_integration: IF(INTEGRAT_AT_GI) THEN
+
+                  ! if necessary determine the derivatives between elements ELE and ELE2
+
+                  ! Calculate the control volume normals at the Gauss pts.
+                  CALL SCVDETNX( ELE,      GI,          &
+                       X_NLOC,  SCVNGI,  TOTELE,  &
+                       X_NDGLN,  X_NONODS,         &
+                       SCVDETWEI, CVNORMX, CVNORMY, &
+                       CVNORMZ,  SCVFEN,     SCVFENSLX,   &
+                       SCVFENSLY, SCVFEWEIGH, XC_CV(CV_NODI),    &
+                       YC_CV(CV_NODI),     ZC_CV(CV_NODI),    X,       &
+                       Y,        Z,                &
+                       D1,       D3,      DCYL )
+
+                  ! ================ COMPUTE THE FLUX ACROSS SUB-CV FACE ===============
+
+                  ! Find its global node number
+                  IF(ELE2==0) THEN
+                     CV_NODJ = CV_NDGLN(( ELE - 1 )  * CV_NLOC + CV_JLOC )
+                  ELSE
+                     CV_NODJ = CV_NDGLN(( ELE2 - 1 ) * CV_NLOC + CV_JLOC )
+                  ENDIF
+                  X_NODI = X_NDGLN(( ELE - 1 ) * X_NLOC  + CV_ILOC )
+
+                  ! Compute the distance HDC between the nodes either side of the CV face
+                  ! (this is needed to compute the local courant number and the non-linear
+                  ! theta)
+                  IF(SELE == 0) THEN
+                     HDC = SQRT( (XC_CV(CV_NODI)-XC_CV(CV_NODJ))**2+(YC_CV(CV_NODI)-YC_CV(CV_NODJ))**2 &
+                          +(ZC_CV(CV_NODI)-ZC_CV(CV_NODJ))**2  )
+                  ELSE
+                     HDC = SQRT( (XC_CV(CV_NODI)-X(X_NODI))**2+(YC_CV(CV_NODI)-Y(X_NODI))**2 &
+                          +(ZC_CV(CV_NODI)-Z(X_NODI))**2  )
+                  ENDIF
+
+                  Loop_IPHASE: DO IPHASE = 1, NPHASE
+
+                     CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
+                     CV_NODJ_IPHA = CV_NODJ + ( IPHASE - 1 ) * CV_NONODS
+
+                     NFACE_ITS=1
+                     !IF((CV_ELE_TYPE==2).AND.(CV_NONODS==TOTELE*CV_NLOC)) NFACE_ITS=2
+                     DO FACE_ITS = 1, NFACE_ITS
+                        ! Calculate NDOTQ and INCOME on the CV boundary at quadrature pt GI.
+                        CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
+                             HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
+                             T, T, FEMT, FEMT, DEN, DEN, &
+                             U, V, W, NU, NV, NW, NU, NV, NW, &
+                             CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
+                             CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
+                             SELE, U_SNLOC, STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC,WIC_U_BC, &
+                             SUF_SIG_DIAGTEN_BC, WIC_U_BC_DIRICHLET, &
+                             UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2, &
+                             ONE_PORE, CV_ELE_TYPE, CV_SLOC2LOC, CV_NLOC, CV_SNLOC, CV_ILOC, CV_JLOC, SCVFEN, CV_NDGLN, CV_OTHER_LOC, &
+                             MASS_CV, OPT_VEL_UPWIND_COEFS,NOPT_VEL_UPWIND_COEFS, NDIM, MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
+                             FACE_ITS, LIMT(iphase,gi,ele), LIMT(iphase,gi,ele), FEMDGI, FEMTGI, FEMDOLDGI, FEMTOLDGI, UP_WIND_NOD, &
+                             TMIN, TMAX, TMIN, TMAX, TMIN_NOD, TMAX_NOD, TMIN_NOD, TMAX_NOD, &
+                             IN_ELE_UPWIND, DG_ELE_UPWIND, &
+                             TMIN_2ND_MC, TMIN_2ND_MC, TMAX_2ND_MC, TMAX_2ND_MC, LIMIT_USE_2ND,&
+                             OVERLAPPING, &
+                             IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
+                             TUPWIND_MAT, TUPWIND_MAT )
+                        !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===============
+                        ! Calculate T and DEN on the CV face at quadrature point GI.
+                        CALL GET_INT_T_DEN( FVT, FVT2, FVD, LIMD(iphase,gi,ele), LIMT(iphase,gi,ele), LIMT2(iphase,gi,ele), &
+                             LIMDT(iphase,gi,ele), LIMDTT2(iphase,gi,ele),&
+                             FEMDGI, FEMTGI,FEMT2GI, &
+                             CV_DISOPT, CV_NONODS, NPHASE, CV_NODI_IPHA, CV_NODJ_IPHA, ELE, ELE2, GI, IPHASE,  &
+                             CV_NLOC, TOTELE, CV_NDGLN, CV_OTHER_LOC, SCVNGI, SCVFEN, INCOME, &
+                             T, T2, DEN, FEMT, FEMT2, FEMDEN, &
+                             TMIN, T2MIN, DENMIN, &
+                             TMAX, T2MAX, DENMAX, &
+                             SELE, CV_SNLOC, STOTEL, CV_SLOC2LOC, SUF_T_BC, SUF_T2_BC, SUF_D_BC, &
+                             WIC_T_BC, WIC_T2_BC, WIC_D_BC, &
+                             WIC_T_BC_DIRICHLET, WIC_D_BC_DIRICHLET, ONE_PORE, &
+                             MASS_CV, TMIN_NOD, TMAX_NOD, &
+                             DENMIN_NOD, DENMAX_NOD, &
+                             T2MIN_NOD, T2MAX_NOD, IGOT_T2, &
+                             TMIN_2ND_MC, T2MIN_2ND_MC, DENMIN_2ND_MC, &
+                             TMAX_2ND_MC, T2MAX_2ND_MC, DENMAX_2ND_MC, &
+                             LIMIT_USE_2ND, HDC, NDOTQ, DT, &
+                             SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
+                             U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
+                             IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
+                             TUPWIND_MAT, DENUPWIND_MAT, T2UPWIND_MAT, &
+                             !Values to limit the flow when reaching the irreducible  saturation for a phase
+                             s_gc, s_or )
+                     end DO
+                  end DO Loop_IPHASE
+               end IF Conditional_integration
+            end DO Loop_GCOUNT
+         end DO Loop_CV_ILOC
+
+      end DO Loop_Elements
+
+    end SUBROUTINE CV_GET_ALL_LIMITED_VALS
+
 
   SUBROUTINE FIND_OTHER_SIDE( CV_OTHER_LOC, CV_NLOC, CV_NODI, U_OTHER_LOC, U_NLOC,  &
        MAT_OTHER_LOC, MAT_NLOC, INTEGRAT_AT_GI, &
@@ -4859,7 +5628,127 @@ contains
 
   END SUBROUTINE PROJ_CV_TO_FEM_4
 
+  SUBROUTINE PROJ_CV_TO_FEM_2( state, &
+       FEMT, FEMDEN, T, DEN, &
+       IGOT_T2,T2, FEMT2, &
+       XC_CV,YC_CV,ZC_CV, MASS_CV, MASS_ELE, &
+       NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
+       CV_NGI, CV_NLOC, CVN, CVWEIGHT, N, NLX, NLY, NLZ, &
+       X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM, &
+       IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC )
 
+    ! determine FEMT (finite element wise) etc from T (control volume wise) 
+    IMPLICIT NONE
+    type( state_type ), dimension( : ), intent( in ) :: state
+    INTEGER, intent( in ) :: NDIM, NPHASE, CV_NONODS, TOTELE, X_NLOC, CV_NGI, CV_NLOC, &
+         X_NONODS, NCOLM, IGOT_T2, IGETCT, NCOLCMC
+    INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) ::  X_NDGLN
+    REAL, DIMENSION( : ), intent( inout ) :: FEMT, FEMDEN
+    REAL, DIMENSION( : ), intent( inout ) :: FEMT2
+    REAL, DIMENSION( : ), intent( in ) :: T,  DEN
+    REAL, DIMENSION( : ), intent( in ) :: T2
+    REAL, DIMENSION( : ), intent( inout ) :: MASS_CV, XC_CV,YC_CV,ZC_CV
+    REAL, DIMENSION( : ), intent( inout ) :: MASS_ELE
+    REAL, DIMENSION( :, : ), intent( in ) :: CVN
+    REAL, DIMENSION( : ), intent( inout ) :: CVWEIGHT
+    REAL, DIMENSION( :, : ), intent( in ) :: N, NLX, NLY, NLZ
+    REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
+    INTEGER, DIMENSION( : ), intent( in ) :: FINDM
+    INTEGER, DIMENSION( : ), intent( in ) :: COLM
+    INTEGER, DIMENSION( : ), intent( in ) :: MIDM
+
+    REAL, DIMENSION( : ), intent( inout ) :: MASS_MN_PRES
+    INTEGER, DIMENSION( : ), intent( in ) :: FINDCMC
+    INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
+    ! Local variables
+    REAL, DIMENSION( : ), allocatable :: PSI, FEMPSI, PSI_AVE, PSI_INT
+    INTEGER :: NTSOL,NTSOL_AVE,NTSOL_INT,ELE,CV_ILOC,X_INOD,CV_INOD,NL,NFIELD
+    CHARACTER(len=100) :: PATH
+    INTEGER :: velocity_max_iterations, nstates, istate
+    LOGICAL :: solve_force_balance, have_component
+
+
+    ewrite(3,*) 'In PROJ_CV_TO_FEM_2'
+
+    nstates = option_count( "/material_phase" )
+    have_component = .false.
+    do istate = 1, nstates
+       if( have_option( '/material_phase[' // int2str( istate - 1 ) //']/is_multiphase_component/' ) ) then
+          have_component = .true.
+       end if
+    end do
+
+    solve_force_balance = .false.
+    call get_option( "/material_phase[0]/vector_field::Velocity/prognostic/solver/max_iterations", &
+         velocity_max_iterations,  default =  500 )
+    if( velocity_max_iterations /= 0 ) solve_force_balance = .true.
+
+    if ( solve_force_balance .or. have_component ) then
+       path = '/material_phase[0]/scalar_field::Pressure' 
+    else
+       path = '/material_phase[0]/scalar_field::Temperature' 
+    end if
+
+    NFIELD=2 + IGOT_T2
+    ALLOCATE( PSI( NFIELD * CV_NONODS*NPHASE ))
+    ALLOCATE( FEMPSI( NFIELD * CV_NONODS*NPHASE ))
+    ALLOCATE( PSI_AVE( 3 * CV_NONODS ))
+    ALLOCATE( PSI_INT( 1 * CV_NONODS ))
+
+    NTSOL = NFIELD*NPHASE
+    NTSOL_AVE = 3
+    NTSOL_INT = 1
+
+    NL=CV_NONODS*NPHASE
+    PSI( 1 + 0 * NL : NL + 0 * NL )  =      T( 1 : NL )  
+    PSI( 1 + 1 * NL : NL + 1 * NL )  =    DEN( 1 : NL ) 
+    IF(IGOT_T2==1) THEN
+       PSI( 1 + 2 * NL : NL + 2 * NL )  =      T2( 1 : NL )  
+    ENDIF
+
+    DO ELE=1,TOTELE
+       DO CV_ILOC=1,CV_NLOC
+          X_INOD = X_NDGLN((ELE-1)*X_NLOC +CV_ILOC)
+          CV_INOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)
+          PSI_AVE(CV_INOD)            =X(X_INOD)
+          PSI_AVE(CV_INOD+CV_NONODS)  =Y(X_INOD)
+          PSI_AVE(CV_INOD+2*CV_NONODS)=Z(X_INOD)
+       END DO
+    END DO
+    PSI_INT=1.0
+
+    FEMPSI = PSI
+
+    CALL PROJ_CV_TO_FEM( FEMPSI, PSI, NTSOL, NDIM, &
+         PSI_AVE,NTSOL_AVE, PSI_INT,NTSOL_INT, MASS_ELE, &
+         CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
+         CV_NGI, CV_NLOC, CVN, CVWEIGHT, N, NLX, NLY, NLZ, &
+         X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM, &
+         IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC, PATH )
+
+    NL=CV_NONODS*NPHASE
+    FEMT( 1 : NL ) = FEMPSI( 1 + 0 * NL : NL + 0 * NL ) 
+    FEMDEN( 1 : NL ) = FEMPSI( 1 + 1 * NL : NL + 1 * NL ) 
+    IF(IGOT_T2==1) THEN 
+       FEMT2( 1 : NL ) = FEMPSI( 1 + 2 * NL : NL + 2 * NL ) 
+    ENDIF
+
+    XC_CV( 1 : CV_NONODS ) = PSI_AVE( 1 : CV_NONODS )
+    YC_CV( 1 : CV_NONODS ) = PSI_AVE( 1 +CV_NONODS:   2*CV_NONODS )
+    ZC_CV( 1 : CV_NONODS ) = PSI_AVE( 1 +2*CV_NONODS: 3*CV_NONODS )
+    MASS_CV( 1 : CV_NONODS ) = PSI_INT( 1 : CV_NONODS )
+
+    DEALLOCATE( PSI )
+    DEALLOCATE( FEMPSI )
+    DEALLOCATE( PSI_AVE )
+    DEALLOCATE( PSI_INT )
+
+    ewrite(3,*) 'Leaving PROJ_CV_TO_FEM_2'
+
+    RETURN
+
+  END SUBROUTINE PROJ_CV_TO_FEM_2
 
 
   SUBROUTINE PROJ_CV_TO_FEM( FEMPSI, PSI, NTSOL, NDIM, &
@@ -9943,36 +10832,36 @@ contains
 
 
 
-  Pure SUBROUTINE GET_INT_T_DEN(FVT, FVTOLD, FVT2, FVT2OLD, FVD, FVDOLD, LIMD, LIMT, LIMT2, &
-       LIMDOLD, LIMTOLD, LIMT2OLD, LIMDT, LIMDTOLD, LIMDTT2, LIMDTT2OLD, &
-       FEMDGI, FEMTGI,FEMT2GI, FEMDOLDGI, FEMTOLDGI, FEMT2OLDGI, &
+  Pure SUBROUTINE GET_INT_T_DEN(FVT, FVT2, FVD, LIMD, LIMT, LIMT2, &
+       LIMDT, LIMDTT2,  &
+       FEMDGI, FEMTGI,FEMT2GI, &
        CV_DISOPT, CV_NONODS, NPHASE, CV_NODI_IPHA, CV_NODJ_IPHA, ELE, ELE2, GI, IPHASE,  &
-       CV_NLOC, TOTELE, CV_NDGLN, CV_OTHER_LOC, SCVNGI, SCVFEN, INCOME, INCOMEOLD, &
-       T, TOLD, T2, T2OLD, DEN, DENOLD, FEMT, FEMTOLD, FEMT2, FEMT2OLD, FEMDEN, FEMDENOLD, &
-       TMIN, TOLDMIN, T2MIN, T2OLDMIN, DENMIN, DENOLDMIN, &
-       TMAX, TOLDMAX, T2MAX, T2OLDMAX, DENMAX, DENOLDMAX, &
+       CV_NLOC, TOTELE, CV_NDGLN, CV_OTHER_LOC, SCVNGI, SCVFEN, INCOME, &
+       T, T2, DEN, FEMT, FEMT2, FEMDEN, &
+       TMIN, T2MIN, DENMIN, &
+       TMAX, T2MAX, DENMAX, &
        SELE, CV_SNLOC, STOTEL, CV_SLOC2LOC, SUF_T_BC, SUF_T2_BC, SUF_D_BC, &
        WIC_T_BC, WIC_T2_BC, WIC_D_BC, &
        WIC_T_BC_DIRICHLET, WIC_D_BC_DIRICHLET, VOLFRA_PORE, &
-       MASS_CV, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, TOLDMAX_NOD, &
-       DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD, &
-       T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, IGOT_T2, &
-       TMIN_2ND_MC, TOLDMIN_2ND_MC, T2MIN_2ND_MC, T2OLDMIN_2ND_MC, DENMIN_2ND_MC, DENOLDMIN_2ND_MC, &
-       TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, LIMIT_USE_2ND, &
-       HDC, NDOTQ, NDOTQOLD, DT, &
+       MASS_CV, TMIN_NOD, TMAX_NOD, &
+       DENMIN_NOD, DENMAX_NOD, &
+       T2MIN_NOD, T2MAX_NOD, IGOT_T2, &
+       TMIN_2ND_MC, T2MIN_2ND_MC, DENMIN_2ND_MC, &
+       TMAX_2ND_MC, T2MAX_2ND_MC, DENMAX_2ND_MC, LIMIT_USE_2ND, &
+       HDC, NDOTQ, DT, &
        SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
        U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
        IANISOTROPIC, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
-       TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT , &
+       TUPWIND_MAT, DENUPWIND_MAT, T2UPWIND_MAT, &
        !Values to limit the flow when reaching the irreducible  saturation for a phase
        s_gc, s_or )
     !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===============
     IMPLICIT NONE
     ! Calculate T and DEN on the CV face at quadrature point GI.
-    REAL, intent( inout ) :: FVT,FVTOLD, FVT2, FVT2OLD,FVD,FVDOLD, LIMD,LIMT,LIMT2, &
-         LIMDOLD,LIMTOLD,LIMT2OLD,LIMDT,LIMDTOLD,LIMDTT2,LIMDTT2OLD, &
-         FEMDGI, FEMTGI, FEMT2GI, FEMDOLDGI, FEMTOLDGI, FEMT2OLDGI
-    REAL, intent( in ) :: INCOME,INCOMEOLD,HDC,NDOTQ,NDOTQOLD,DT, s_gc, s_or
+    REAL, intent( inout ) :: FVT, FVT2, FVD, LIMD,LIMT,LIMT2, &
+         LIMDT,LIMDTT2, &
+         FEMDGI, FEMTGI, FEMT2GI
+    REAL, intent( in ) :: INCOME,HDC,NDOTQ,DT, s_gc, s_or
     logical, intent( in ) :: LIMIT_USE_2ND
     INTEGER, intent( in ) :: CV_DISOPT,CV_NONODS,NPHASE,CV_NODI_IPHA,CV_NODJ_IPHA,ELE,ELE2,  &
          CV_NLOC,TOTELE,SCVNGI,GI,IPHASE,SELE,CV_SNLOC,STOTEL, &
@@ -9986,22 +10875,19 @@ contains
     REAL, DIMENSION( :, :  ), intent( in ) :: SCVFEN
     REAL, DIMENSION( :, :  ), intent( in ) :: SCVFENX, SCVFENY, SCVFENZ
     REAL, DIMENSION( :  ), intent( in ) :: CVNORMX, CVNORMY, CVNORMZ
-    REAL, DIMENSION( :  ), intent( in ) :: T, TOLD, DEN, DENOLD, FEMT, FEMTOLD,  &
-         FEMDEN, FEMDENOLD
-    REAL, DIMENSION( : ), intent( in ) :: T2, T2OLD, FEMT2, FEMT2OLD
-    REAL, DIMENSION( :  ), intent( inout ) :: TMIN, TOLDMIN, DENMIN, DENOLDMIN, TMAX, TOLDMAX, DENMAX, DENOLDMAX
-    REAL, DIMENSION( : ), intent( inout ) :: T2MIN, T2OLDMIN, T2MAX, T2OLDMAX
+    REAL, DIMENSION( :  ), intent( in ) :: T, DEN, FEMT, FEMDEN
+    REAL, DIMENSION( : ), intent( in ) :: T2, FEMT2
+    REAL, DIMENSION( :  ), intent( inout ) :: TMIN, DENMIN, TMAX, DENMAX
+    REAL, DIMENSION( : ), intent( inout ) :: T2MIN, T2MAX
     REAL, DIMENSION( : ), intent( in ) :: MASS_CV
-    INTEGER, DIMENSION( :  ), intent( in ) :: TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, &
-         TOLDMAX_NOD, DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD
-    INTEGER, DIMENSION( :), intent( in ) :: &
-         T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD
+    INTEGER, DIMENSION( :  ), intent( in ) :: TMIN_NOD, TMAX_NOD, DENMIN_NOD, DENMAX_NOD
+    INTEGER, DIMENSION( :), intent( in ) :: T2MIN_NOD, T2MAX_NOD
     REAL, DIMENSION( :  ), intent( in ) :: SUF_T_BC, SUF_D_BC
     REAL, DIMENSION( : ), intent( in ) :: SUF_T2_BC
     REAL, DIMENSION( :  ), intent( in ) :: VOLFRA_PORE
-    REAL, DIMENSION( : ), intent( in ) :: TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC,  &
-         DENMAX_2ND_MC, DENMIN_2ND_MC, DENOLDMAX_2ND_MC, DENOLDMIN_2ND_MC
-    REAL, DIMENSION( : ), intent( in ) :: T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, T2OLDMIN_2ND_MC
+    REAL, DIMENSION( : ), intent( in ) :: TMAX_2ND_MC, TMIN_2ND_MC,&
+         DENMAX_2ND_MC, DENMIN_2ND_MC
+    REAL, DIMENSION( : ), intent( in ) :: T2MAX_2ND_MC, T2MIN_2ND_MC
     REAL, DIMENSION( : ), intent( in ) :: U, V, W
     INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
     REAL, DIMENSION( : , : , : ), intent( in ) :: INV_JAC
@@ -10010,8 +10896,8 @@ contains
     INTEGER, intent( in ) :: NSMALL_COLM
     INTEGER, DIMENSION( : ), intent( in ) :: SMALL_FINDRM
     INTEGER, DIMENSION( : ), intent( in ) :: SMALL_COLM
-    REAL, DIMENSION( : ), intent( in ) :: TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT
-    REAL, DIMENSION( : ), intent( in ) :: T2UPWIND_MAT, T2OLDUPWIND_MAT
+    REAL, DIMENSION( : ), intent( in ) :: TUPWIND_MAT, DENUPWIND_MAT
+    REAL, DIMENSION( : ), intent( in ) :: T2UPWIND_MAT
     ! Local variables
     ! If UPWIND then use upwind flux between elements else use central. 
     ! If HI_ORDER_HALF then use high order interpolation when around 
@@ -10032,39 +10918,36 @@ contains
     INTEGER, PARAMETER :: NON_LIN_PETROV_INTERFACE = 3
 
     LOGICAL :: FIRSTORD, NOLIMI, RESET_STORE, LIM_VOL_ADJUST
-    REAL :: RELAX, RELAXOLD, TMIN_STORE, TMAX_STORE, TOLDMIN_STORE, TOLDMAX_STORE, &
-         T2MIN_STORE, T2MAX_STORE, T2OLDMIN_STORE, T2OLDMAX_STORE, &
-         DENMIN_STORE, DENMAX_STORE, DENOLDMIN_STORE, DENOLDMAX_STORE, &
-         COURANT_OR_MINUS_ONE_NEW, COURANT_OR_MINUS_ONE_OLD
+    REAL :: RELAX, TMIN_STORE, TMAX_STORE, TOLDMIN_STORE, &
+         T2MIN_STORE, T2MAX_STORE, &
+         DENMIN_STORE, DENMAX_STORE, &
+         COURANT_OR_MINUS_ONE_NEW
     INTEGER :: CV_KLOC, CV_NODK, CV_NODK_IPHA, CV_KLOC2, CV_NODK2, CV_NODK2_IPHA, CV_STAR_IPHA, &
          CV_SKLOC, CV_SNODK, CV_SNODK_IPHA, U_KLOC,U_NODK,U_NODK_IPHA, IDIM, ELE_DOWN
     INTEGER, DIMENSION( CV_NLOC ) :: E_CV_NODK_IPHA
     INTEGER, DIMENSION( U_NLOC )  ::E_U_NODK_IPHA
     integer, DIMENSION( : ), ALLOCATABLE :: SE_CV_NODK_IPHA, SE_CV_SNODK_IPHA
-    REAL :: T_BETWEEN_MIN, T_BETWEEN_MAX, TOLD_BETWEEN_MIN, TOLD_BETWEEN_MAX
-    REAL :: T_AVE_EDGE, T_AVE_ELE, TOLD_AVE_EDGE, TOLD_AVE_ELE
-    REAL :: T_MIDVAL, TOLD_MIDVAL
-    REAL :: T_UPWIND,TOLD_UPWIND,TMIN_UPWIND,TMAX_UPWIND,TOLDMIN_UPWIND,TOLDMAX_UPWIND
-    REAL :: RSHAPE,RSHAPE_OLD,RGRAY, UDGI,VDGI,WDGI, RSCALE, TXGI,TYGI,TZGI
+    REAL :: T_BETWEEN_MIN, T_BETWEEN_MAX
+    REAL :: T_AVE_EDGE, T_AVE_ELE
+    REAL :: T_MIDVAL
+    REAL :: T_UPWIND, TMIN_UPWIND,TMAX_UPWIND
+    REAL :: RSHAPE,RGRAY, UDGI,VDGI,WDGI, RSCALE, TXGI,TYGI,TZGI
     REAL :: VEC_VEL(3), VEC_VEL2(3), ELE_LENGTH_SCALE
-    REAL :: TGI,TOLDGI,TDTGI, U_DOT_GRADT_GI, COEF, A_STAR_T, A_STAR_X, A_STAR_Y, A_STAR_Z
-    REAL :: RESIDGI, P_STAR, DIFF_COEF, COEF2, FEMTGI_DDG, FEMTOLDGI_DDG, income2, INCOMEOLD2
+    REAL :: TGI,TDTGI, U_DOT_GRADT_GI, COEF, A_STAR_T, A_STAR_X, A_STAR_Y, A_STAR_Z
+    REAL :: RESIDGI, P_STAR, DIFF_COEF, COEF2, FEMTGI_DDG, income2
 
     ! The adjustment method is not ready for the LIMIT_USE_2ND - the new limiting method.
     LIM_VOL_ADJUST = ( LIM_VOL_ADJUST2 .AND. (.NOT.LIMIT_USE_2ND) ) .AND. IANISOTROPIC==0
 
     FVT2    = 1.0
-    FVT2OLD = 1.0
 
     ! Extrapolate a downwind value for interface tracking.
     DOWNWIND_EXTRAP = ( cv_disopt>=8 )
 
     if ( DOWNWIND_EXTRAP ) then
        courant_or_minus_one_new = abs ( dt * ndotq / hdc )
-       courant_or_minus_one_old = abs ( dt * ndotqold / hdc )
     else
        courant_or_minus_one_new = -1.0
-       courant_or_minus_one_old = -1.0
     end if
 
     ! Figure out global node numbers
@@ -10089,14 +10972,11 @@ contains
     IF ( SELE == 0 ) THEN ! Is NOT on boundary of the domain
 
        FVT    = INCOME * T( CV_NODJ_IPHA ) + ( 1. - INCOME ) * T( CV_NODI_IPHA )
-       FVTOLD = INCOMEOLD * TOLD( CV_NODJ_IPHA ) + ( 1. - INCOMEOLD ) * TOLD( CV_NODI_IPHA )
 
        FVD    = INCOME * DEN( CV_NODJ_IPHA ) + ( 1. - INCOME ) * DEN( CV_NODI_IPHA )
-       FVDOLD = INCOMEOLD * DENOLD( CV_NODJ_IPHA ) + (1. - INCOMEOLD ) * DENOLD( CV_NODI_IPHA )
 
        IF ( IGOT_T2 == 1 ) THEN
           FVT2    = INCOME * T2( CV_NODJ_IPHA ) + ( 1. - INCOME ) * T2( CV_NODI_IPHA )
-          FVT2OLD = INCOMEOLD * T2OLD( CV_NODJ_IPHA ) + ( 1. - INCOMEOLD ) * T2OLD( CV_NODI_IPHA )
        END IF
 
     ELSE ! Is on boundary of the domain
@@ -10104,14 +10984,11 @@ contains
        IF( WIC_T_BC( SELE + ( IPHASE - 1 ) * STOTEL ) /= WIC_T_BC_DIRICHLET ) THEN 
           ! Dont apply a Dirichlet b.c.
           FVT    = T( CV_NODI_IPHA )
-          FVTOLD = TOLD( CV_NODI_IPHA )
 
           FVD    = DEN( CV_NODI_IPHA )
-          FVDOLD = DENOLD( CV_NODI_IPHA )
 
           IF ( IGOT_T2 == 1 ) THEN
              FVT2    = T2( CV_NODI_IPHA ) 
-             FVT2OLD = T2OLD( CV_NODI_IPHA ) 
           END IF
        ELSE
           !DO CV_SKLOC = 1, CV_SNLOC
@@ -10129,20 +11006,14 @@ contains
           CV_SNODK_IPHA = SE_CV_SNODK_IPHA( CV_SKLOC )
 
           FVT    = INCOME * SUF_T_BC(CV_SNODK_IPHA) + ( 1. - INCOME ) * T( CV_NODI_IPHA )
-          FVTOLD = INCOMEOLD * SUF_T_BC(CV_SNODK_IPHA) + ( 1. - INCOMEOLD ) * TOLD( CV_NODI_IPHA )
-
           FVD    = INCOME * SUF_D_BC(CV_SNODK_IPHA) + ( 1. - INCOME ) * DEN( CV_NODI_IPHA )
-          FVDOLD = INCOMEOLD * SUF_D_BC(CV_SNODK_IPHA) +  (1. - INCOMEOLD ) * DENOLD( CV_NODI_IPHA )
-
           IF ( IGOT_T2 == 1 ) THEN
              FVT2    = INCOME * SUF_T2_BC(CV_SNODK_IPHA) + ( 1. - INCOME ) * T2( CV_NODI_IPHA )
-             FVT2OLD = INCOMEOLD * SUF_T2_BC(CV_SNODK_IPHA) + ( 1. - INCOMEOLD ) * T2OLD( CV_NODI_IPHA )
           END IF
 
        END IF
        IF( WIC_D_BC( SELE + ( IPHASE - 1 ) * STOTEL ) /= WIC_D_BC_DIRICHLET ) THEN 
           FVD    = DEN( CV_NODI_IPHA )
-          FVDOLD = DENOLD( CV_NODI_IPHA )
        END IF
     END IF
 
@@ -10158,36 +11029,24 @@ contains
 
     CASE( 0 ) ! First-order upwinding
        FEMTGI    = FVT
-       FEMTOLDGI = FVTOLD
-
        FEMT2GI    = FVT2
-       FEMT2OLDGI = FVT2OLD
-
        FEMDGI    = FVD
-       FEMDOLDGI = FVDOLD
-       
+
        FIRSTORD = .TRUE.  
 
     CASE( 1 ) ! Central differencing [Trapezoidal rule (2 OR 3)]
        FEMTGI    = 0.5 * ( T( CV_NODI_IPHA ) + T( CV_NODJ_IPHA ) )        ! need to fix this!
-       FEMTOLDGI = 0.5 * ( TOLD( CV_NODI_IPHA ) + TOLD( CV_NODJ_IPHA ) ) 
        IF ( IGOT_T2 == 1 ) THEN
           FEMT2GI   = 0.5 * ( T2( CV_NODI_IPHA ) + T2( CV_NODJ_IPHA ) )   ! need to fix this!
-          FEMT2OLDGI= 0.5 * ( T2OLD( CV_NODI_IPHA ) + T2OLD( CV_NODJ_IPHA ) ) 
        ELSE
           FEMT2GI    = 1.0
-          FEMT2OLDGI = 1.0
        END IF
        FEMDGI    = 0.5 * ( DEN( CV_NODI_IPHA ) + DEN( CV_NODJ_IPHA ) )    ! need to fix this!
-       FEMDOLDGI = 0.5 * ( DENOLD( CV_NODI_IPHA ) + DENOLD( CV_NODJ_IPHA ) ) 
 
     CASE DEFAULT ! Finite element approximation (4 OR 5)(6 or 7)(8 or 9)
        FEMTGI    = 0.0
-       FEMTOLDGI = 0.0
        FEMT2GI   = 0.0
-       FEMT2OLDGI= 0.0
        FEMDGI    = 0.0
-       FEMDOLDGI = 0.0
 
        Conditional_CV_DISOPT_ELE2: IF ( SELE /= 0 ) THEN
           ! Is on boundary of the domain
@@ -10198,61 +11057,40 @@ contains
                 !CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
                 CV_NODK_IPHA = E_CV_NODK_IPHA( CV_KLOC )
                 FEMTGI    = FEMTGI     +  SCVFEN( CV_KLOC, GI ) * FEMT( CV_NODK_IPHA )
-                FEMTOLDGI = FEMTOLDGI  +  SCVFEN( CV_KLOC, GI ) * FEMTOLD( CV_NODK_IPHA )
                 IF ( IGOT_T2 == 1 ) THEN
                    FEMT2GI    = FEMT2GI     +  SCVFEN( CV_KLOC, GI ) * FEMT2( CV_NODK_IPHA )
-                   FEMT2OLDGI = FEMT2OLDGI  +  SCVFEN( CV_KLOC, GI ) * FEMT2OLD( CV_NODK_IPHA )
                 ELSE
                    FEMT2GI    = 1.0
-                   FEMT2OLDGI = 1.0
                 END IF
              END DO
           ELSE
              DO CV_SKLOC = 1, CV_SNLOC
                 CV_KLOC = CV_SLOC2LOC( CV_SKLOC )
-                !CV_NODK = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_KLOC )
-                !CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
-                !CV_SNODK = ( SELE - 1 ) * CV_SNLOC + CV_SKLOC 
-                !CV_SNODK_IPHA = CV_SNODK + ( IPHASE - 1 ) * STOTEL*CV_SNLOC
                 CV_NODK_IPHA = SE_CV_NODK_IPHA( CV_SKLOC )
                 CV_SNODK_IPHA = SE_CV_SNODK_IPHA( CV_SKLOC )
                 FEMTGI = FEMTGI +  SCVFEN( CV_KLOC, GI ) * ( SUF_T_BC( CV_SNODK_IPHA ) & 
                      * INCOME + FEMT( CV_NODK_IPHA ) * ( 1. - INCOME ) )
-                FEMTOLDGI = FEMTOLDGI + SCVFEN( CV_KLOC, GI ) * ( SUF_T_BC( CV_SNODK_IPHA ) &
-                     * INCOMEOLD + FEMTOLD( CV_NODK_IPHA ) * ( 1. - INCOMEOLD ) )
                 IF ( IGOT_T2 == 1 ) THEN
                    FEMT2GI = FEMT2GI +  SCVFEN( CV_KLOC, GI ) * ( SUF_T2_BC( CV_SNODK_IPHA ) & 
                         * INCOME + FEMT2( CV_NODK_IPHA ) * ( 1. -INCOME ) )
-                   FEMT2OLDGI = FEMT2OLDGI + SCVFEN( CV_KLOC, GI ) * ( SUF_T2_BC( CV_SNODK_IPHA ) &
-                        * INCOMEOLD + FEMT2OLD( CV_NODK_IPHA ) * ( 1. - INCOMEOLD ) )
                 ELSE
                    FEMT2GI    = 1.0
-                   FEMT2OLDGI = 1.0
                 END IF
              END DO
           END IF
 
           IF ( WIC_D_BC(SELE+(IPHASE-1)*STOTEL) /= WIC_D_BC_DIRICHLET) THEN ! Dont apply a Dirichlet bc
              DO CV_KLOC = 1, CV_NLOC
-                !CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
-                !CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
                 CV_NODK_IPHA = E_CV_NODK_IPHA( CV_KLOC )
                 FEMDGI    = FEMDGI     +  SCVFEN( CV_KLOC, GI ) * FEMDEN( CV_NODK_IPHA )
-                FEMDOLDGI = FEMDOLDGI  +  SCVFEN( CV_KLOC, GI ) * FEMDENOLD( CV_NODK_IPHA )
              END DO
           ELSE
              DO CV_SKLOC = 1, CV_SNLOC
                 CV_KLOC = CV_SLOC2LOC( CV_SKLOC )
-                !CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
-                !CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
-                !CV_SNODK = ( SELE - 1 ) * CV_SNLOC + CV_SKLOC 
-                !CV_SNODK_IPHA = CV_SNODK + ( IPHASE - 1 ) * STOTEL * CV_SNLOC
                 CV_NODK_IPHA = SE_CV_NODK_IPHA( CV_SKLOC )
                 CV_SNODK_IPHA = SE_CV_SNODK_IPHA( CV_SKLOC )
                 FEMDGI = FEMDGI + SCVFEN( CV_KLOC, GI ) * ( SUF_D_BC( CV_SNODK_IPHA ) &
                      * INCOME + FEMDEN( CV_NODK_IPHA ) * ( 1. - INCOME ))
-                FEMDOLDGI = FEMDOLDGI + SCVFEN( CV_KLOC, GI ) * ( SUF_D_BC( CV_SNODK_IPHA ) &
-                     * INCOMEOLD + FEMDENOLD( CV_NODK_IPHA ) * ( 1. - INCOMEOLD ) )
              END DO
           END IF
 
@@ -10269,8 +11107,6 @@ contains
                    TYGI=0.0
                    TZGI=0.0
                    DO CV_KLOC = 1, CV_NLOC
-                      !CV_NODK = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_KLOC )
-                      !CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
                       CV_NODK_IPHA = E_CV_NODK_IPHA( CV_KLOC )
                       TXGI = TXGI + SCVFENX( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
                       IF(NDIM.GE.2) TYGI = TYGI + SCVFENY( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
@@ -10281,20 +11117,12 @@ contains
                    VDGI=0.0
                    WDGI=0.0
                    DO U_KLOC = 1, U_NLOC
-                      !U_NODK = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC )
-                      !U_NODK_IPHA = U_NODK + ( IPHASE - 1 ) * U_NONODS
                       U_NODK_IPHA = E_U_NODK_IPHA( U_KLOC )
                       UDGI = UDGI + SUFEN( U_KLOC, GI ) * U(U_NODK_IPHA)
                       IF(NDIM.GE.2) VDGI = VDGI+SUFEN( U_KLOC, GI ) * V(U_NODK_IPHA)
                       IF(NDIM.GE.3) WDGI = WDGI+SUFEN( U_KLOC, GI ) * W(U_NODK_IPHA)
                    END DO
 
-                   ! cosine rule with velocity and normal:
-                   ! RSCALE=ABS(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI) &
-                   !       /TOLFUN(UDGI**2+VDGI**2+WDGI**2)
-                   ! cosine rule with velocity and concentration gradient:
-                   !RSCALE=ABS(TXGI*UDGI+TYGI*VDGI+TZGI*WDGI) &
-                   !      /TOLFUN((UDGI**2+VDGI**2+WDGI**2)*SQRT(TXGI**2+TYGI**2+TZGI**2))
                    ! no cosine rule:
                    RSCALE = 1.0 / TOLFUN( SQRT( UDGI**2 + VDGI**2 + WDGI**2 ) )
 
@@ -10322,7 +11150,7 @@ contains
                    TYGI=0.0
                    TZGI=0.0
                    TGI=0.0
-                   TOLDGI=0.0
+
                    DO CV_KLOC = 1, CV_NLOC
                       !CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
                       !CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
@@ -10333,25 +11161,20 @@ contains
                          IF(NDIM.GE.2) TYGI = TYGI+SCVFENY( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
                          IF(NDIM.GE.3) TZGI = TZGI+SCVFENZ( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
                          TGI = TGI + SCVFEN( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
-                         TOLDGI = TOLDGI + SCVFEN( CV_KLOC, GI ) * FEMTOLD(CV_NODK_IPHA)
                       else
                          TXGI = TXGI + SCVFENX( CV_KLOC, GI ) * T(CV_NODK_IPHA)
                          IF(NDIM.GE.2) TYGI=TYGI + SCVFENY( CV_KLOC, GI ) * T(CV_NODK_IPHA)
                          IF(NDIM.GE.3) TZGI=TZGI + SCVFENZ( CV_KLOC, GI ) * T(CV_NODK_IPHA)
                          TGI = TGI + SCVFEN( CV_KLOC, GI ) * T(CV_NODK_IPHA)
-                         TOLDGI = TOLDGI + SCVFEN( CV_KLOC, GI ) * TOLD(CV_NODK_IPHA)
                       endif
                    END DO
 
-                   TDTGI = (TGI-TOLDGI) / DT
                    TDTGI = 0.0
 
                    UDGI=0.0
                    VDGI=0.0
                    WDGI=0.0
                    DO U_KLOC = 1, U_NLOC
-                      !U_NODK = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC )
-                      !U_NODK_IPHA = U_NODK + ( IPHASE - 1 ) * U_NONODS
                       U_NODK_IPHA = E_U_NODK_IPHA( U_KLOC )
                       UDGI = UDGI + SUFEN( U_KLOC, GI ) * U(U_NODK_IPHA)
                       IF(NDIM.GE.2) VDGI = VDGI+SUFEN( U_KLOC, GI ) * V(U_NODK_IPHA)
@@ -10411,8 +11234,6 @@ contains
           END IF ! SCALE_DOWN_WIND
 
           DO CV_KLOC = 1, CV_NLOC
-             !CV_NODK = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_KLOC )
-             !CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
              CV_NODK_IPHA = E_CV_NODK_IPHA( CV_KLOC )
 
              IF( DOWNWIND_EXTRAP .AND. (courant_or_minus_one_new.GE.0.0) ) THEN ! Extrapolate to the downwind value...
@@ -10438,25 +11259,17 @@ contains
                 END IF
                 
                 RSHAPE    = SCVFEN( CV_KLOC, GI ) + RGRAY
-                RSHAPE_OLD= SCVFEN( CV_KLOC, GI ) + RGRAY
                 FEMTGI    = FEMTGI     +  RSHAPE     * FEMT( CV_NODK_IPHA )
-                FEMTOLDGI = FEMTOLDGI  +  RSHAPE_OLD * FEMTOLD( CV_NODK_IPHA )
-             
              ELSE
 
-                FEMTGI    = FEMTGI     +  SCVFEN( CV_KLOC, GI ) * FEMT( CV_NODK_IPHA )
-                FEMTOLDGI = FEMTOLDGI  +  SCVFEN( CV_KLOC, GI ) * FEMTOLD( CV_NODK_IPHA )
-             
+                FEMTGI    = FEMTGI     +  SCVFEN( CV_KLOC, GI ) * FEMT( CV_NODK_IPHA )             
              END IF
 
              FEMDGI    = FEMDGI     +  SCVFEN( CV_KLOC, GI ) * FEMDEN( CV_NODK_IPHA )
-             FEMDOLDGI = FEMDOLDGI  +  SCVFEN( CV_KLOC, GI ) * FEMDENOLD( CV_NODK_IPHA )
              IF(IGOT_T2==1) THEN
                 FEMT2GI    = FEMT2GI     +  SCVFEN( CV_KLOC, GI ) * FEMT2( CV_NODK_IPHA )
-                FEMT2OLDGI = FEMT2OLDGI  +  SCVFEN( CV_KLOC, GI ) * FEMT2OLD( CV_NODK_IPHA )
              ELSE
                 FEMT2GI    = 1.0
-                FEMT2OLDGI = 1.0
              END IF
           END DO
 
@@ -10531,7 +11344,6 @@ contains
                    TYGI=0.0
                    TZGI=0.0
                    TGI=0.0
-                   TOLDGI=0.0
                    DO CV_KLOC = 1, CV_NLOC
                       !CV_NODK = CV_NDGLN( ( ELE_DOWN - 1 ) * CV_NLOC + CV_KLOC )
                       !CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
@@ -10540,10 +11352,8 @@ contains
                       IF(NDIM.GE.2) TYGI = TYGI + SCVFENY( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
                       IF(NDIM.GE.3) TZGI = TZGI + SCVFENZ( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
                       TGI = TGI + SCVFEN( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
-                      TOLDGI = TOLDGI + SCVFEN( CV_KLOC, GI ) * FEMTOLD(CV_NODK_IPHA)
                    END DO
 
-                   TDTGI=(TGI-TOLDGI)/DT
                    TDTGI=0.0
 
                    UDGI=0.0
@@ -10608,11 +11418,8 @@ contains
                 END IF ! Petrov-Galerkin end of IF(NON_LIN_PETROV_INTERFACE==0) THEN 
 
                 FEMTGI = 0.0
-                FEMTOLDGI = 0.0
                 FEMDGI = 0.0
-                FEMDOLDGI = 0.0
                 FEMT2GI = 0.0
-                FEMT2OLDGI =0.0
                 DO CV_KLOC = 1, CV_NLOC
                    !CV_KLOC2 = CV_OTHER_LOC( CV_KLOC )
                    !CV_NODK = CV_NDGLN( ( ELE_DOWN - 1 ) * CV_NLOC + CV_KLOC )
@@ -10634,36 +11441,26 @@ contains
                            + VDGI*SCVFENY( CV_KLOC, GI ) + WDGI*SCVFENZ( CV_KLOC, GI ) )
                    END IF
                    RSHAPE     = SCVFEN( CV_KLOC, GI ) + RGRAY
-                   RSHAPE_OLD = SCVFEN( CV_KLOC, GI ) + RGRAY
 
                    !IF ( NON_LIN_PETROV_INTERFACE .NE. 0 ) THEN 
                    !   FEMTGI    = FEMTGI     +  RSHAPE     * 0.5 * ( FEMT( CV_NODK_IPHA ) + FEMT( CV_NODK2_IPHA ) )
                    !   FEMTOLDGI = FEMTOLDGI  +  RSHAPE_OLD * 0.5 * ( FEMTOLD( CV_NODK_IPHA ) + FEMTOLD( CV_NODK2_IPHA ) )
                    !ELSE
                    FEMTGI    = FEMTGI     +  RSHAPE     * FEMT( CV_NODK_IPHA )
-                   FEMTOLDGI = FEMTOLDGI  +  RSHAPE_OLD * FEMTOLD( CV_NODK_IPHA )
                    !END IF
 
                    FEMDGI    = FEMDGI     +  SCVFEN( CV_KLOC, GI ) * FEMDEN( CV_NODK_IPHA )
-                   FEMDOLDGI = FEMDOLDGI  +  SCVFEN( CV_KLOC, GI ) * FEMDENOLD( CV_NODK_IPHA )
                    IF ( IGOT_T2 == 1 ) THEN
                       FEMT2GI    = FEMT2GI     +  SCVFEN( CV_KLOC, GI ) * FEMT2( CV_NODK_IPHA )
-                      FEMT2OLDGI = FEMT2OLDGI  +  SCVFEN( CV_KLOC, GI ) * FEMT2OLD( CV_NODK_IPHA )
+
                    ELSE
                       FEMT2GI    = 1.0
-                      FEMT2OLDGI = 1.0
                    END IF
                 END DO
 
                 IF( .TRUE. ) THEN ! Downwinding for DG...
                    FEMTGI_DDG = 0.0
-                   FEMTOLDGI_DDG = 0.0
-                   !FEMTGI = 0.0
-                   !FEMTOLDGI = 0.0
-                   !FEMDGI = 0.0
-                   !FEMDOLDGI = 0.0
-                   !FEMT2GI = 0.0
-                   !FEMT2OLDGI =0.0
+
                    DO CV_KLOC = 1, CV_NLOC
                       CV_KLOC2 = CV_OTHER_LOC( CV_KLOC )
                       IF ( CV_KLOC2 /= 0 ) THEN
@@ -10681,26 +11478,17 @@ contains
                          ! Central...
                          FEMTGI_DDG = FEMTGI_DDG +  SCVFEN( CV_KLOC, GI ) * ( FEMT( CV_NODK2_IPHA ) & 
                               * 0.5 + FEMT( CV_NODK_IPHA ) * 0.5 )
-                         FEMTOLDGI_DDG = FEMTOLDGI_DDG + SCVFEN( CV_KLOC, GI ) * ( FEMTOLD( CV_NODK2_IPHA ) &
-                              * 0.5 + FEMTOLD( CV_NODK_IPHA ) * 0.5 )
-                         
+                        
                          if ( .false. ) then
                             FEMTGI = FEMTGI +  SCVFEN( CV_KLOC, GI ) * ( FEMT( CV_NODK2_IPHA ) & 
                                  * (1.-INCOME) + FEMT( CV_NODK_IPHA ) * INCOME )
-                            FEMTOLDGI = FEMTOLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMTOLD( CV_NODK2_IPHA ) &
-                                 * (1.-INCOMEOLD) + FEMTOLD( CV_NODK_IPHA ) * INCOMEOLD )
                             FEMDGI = FEMDGI + SCVFEN( CV_KLOC, GI ) * ( FEMDEN( CV_NODK2_IPHA ) &
                                  * (1.-INCOME) + FEMDEN( CV_NODK_IPHA ) * INCOME )
-                            FEMDOLDGI = FEMDOLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMDENOLD( CV_NODK2_IPHA ) &
-                                 * (1.-INCOMEOLD) + FEMDENOLD( CV_NODK_IPHA ) * INCOMEOLD )
                             IF(IGOT_T2==1) THEN
                                FEMT2GI = FEMT2GI +  SCVFEN( CV_KLOC, GI ) * ( FEMT2( CV_NODK2_IPHA ) & 
                                     * (1.-INCOME) + FEMT2( CV_NODK_IPHA ) * INCOME )
-                               FEMT2OLDGI = FEMT2OLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMT2OLD( CV_NODK2_IPHA ) &
-                                    * (1.-INCOMEOLD) + FEMT2OLD( CV_NODK_IPHA ) * INCOMEOLD )
                             ELSE
                                FEMT2GI    = 1.0
-                               FEMT2OLDGI = 1.0
                             ENDIF
                          end if
 
@@ -10713,7 +11501,6 @@ contains
                    FEMTGI = FEMTGI_DDG
                    !IF ( ABS(FEMTOLDGI_DDG-FVTOLD) .GT. ABS(FEMTOLDGI-FVTOLD) ) FEMTOLDGI=FEMTOLDGI_DDG
                    !FEMTOLDGI = 0.5 * ( FEMTOLDGI_DDG + FEMTOLDGI )
-                   FEMTOLDGI = FEMTOLDGI_DDG
 
                 END IF ! ENDOF DOWNWINDING FOR DG
                 ! END OF IF ( DOWNWIND_EXTRAP .AND. (courant_or_minus_one_new.GE.0.0) ) THEN ...
@@ -10730,20 +11517,14 @@ contains
                       CV_NODK_IPHA = E_CV_NODK_IPHA( CV_KLOC )
                       FEMTGI = FEMTGI +  SCVFEN( CV_KLOC, GI ) * ( FEMT( CV_NODK2_IPHA ) & 
                            * INCOME + FEMT( CV_NODK_IPHA ) * ( 1. -INCOME ) )
-                      FEMTOLDGI = FEMTOLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMTOLD( CV_NODK2_IPHA ) &
-                           * INCOMEOLD + FEMTOLD( CV_NODK_IPHA ) * ( 1. - INCOMEOLD ) )
                       FEMDGI = FEMDGI + SCVFEN( CV_KLOC, GI ) * ( FEMDEN( CV_NODK2_IPHA ) &
                            * INCOME + FEMDEN( CV_NODK_IPHA ) * ( 1. - INCOME ) )
-                      FEMDOLDGI = FEMDOLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMDENOLD( CV_NODK2_IPHA ) &
-                           * INCOMEOLD + FEMDENOLD( CV_NODK_IPHA ) * ( 1. - INCOMEOLD ) )
+
                       IF ( IGOT_T2 == 1 ) THEN
                          FEMT2GI = FEMT2GI +  SCVFEN( CV_KLOC, GI ) * ( FEMT2( CV_NODK2_IPHA ) & 
                               * INCOME + FEMT2( CV_NODK_IPHA ) * ( 1. -INCOME ) )
-                         FEMT2OLDGI = FEMT2OLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMT2OLD( CV_NODK2_IPHA ) &
-                              * INCOMEOLD + FEMT2OLD( CV_NODK_IPHA ) * ( 1. - INCOMEOLD ) )
                       ELSE
                          FEMT2GI    = 1.0
-                         FEMT2OLDGI = 1.0
                       ENDIF
 
                    END IF
@@ -10762,20 +11543,13 @@ contains
                    CV_NODK_IPHA = E_CV_NODK_IPHA( CV_KLOC )
                    FEMTGI = FEMTGI +  SCVFEN( CV_KLOC, GI ) * ( FEMT( CV_NODK2_IPHA ) & 
                         * 0.5 + FEMT( CV_NODK_IPHA ) * 0.5 )
-                   FEMTOLDGI = FEMTOLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMTOLD( CV_NODK2_IPHA ) &
-                        * 0.5 + FEMTOLD( CV_NODK_IPHA ) * 0.5 )
                    FEMDGI = FEMDGI + SCVFEN( CV_KLOC, GI ) * ( FEMDEN( CV_NODK2_IPHA ) &
                         * 0.5 + FEMDEN( CV_NODK_IPHA ) * 0.5 )
-                   FEMDOLDGI = FEMDOLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMDENOLD( CV_NODK2_IPHA ) &
-                        * 0.5 + FEMDENOLD( CV_NODK_IPHA ) * 0.5 )
                    IF ( IGOT_T2 == 1 ) THEN
                       FEMT2GI = FEMT2GI +  SCVFEN( CV_KLOC, GI ) * ( FEMT2( CV_NODK2_IPHA ) & 
                            * 0.5 + FEMT2( CV_NODK_IPHA ) * 0.5 )
-                      FEMT2OLDGI = FEMT2OLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMT2OLD( CV_NODK2_IPHA ) &
-                           * 0.5 + FEMT2OLD( CV_NODK_IPHA ) * 0.5 )
                    ELSE
                       FEMT2GI    = 1.0
-                      FEMT2OLDGI = 1.0
                    ENDIF
                 ENDIF
              END DO
@@ -10790,59 +11564,48 @@ contains
 
        ! On the boundary of the domain and thus use the 1st order flux. 
        LIMT    = FVT
-       LIMTOLD = FVTOLD
        LIMD    = FVD
-       LIMDOLD = FVDOLD
        LIMT2   = FVT2
-       LIMT2OLD= FVT2OLD
 
     ELSE
 
        CALL LIMITERS( &
             IGOT_T2, CV_NONODS, NPHASE, IPHASE, CV_NODI_IPHA, CV_NODJ_IPHA, IANISOTROPIC, &
             LIM_VOL_ADJUST, FIRSTORD, NOLIMI, LIMIT_USE_2ND, &
-            FEMTGI, FEMTOLDGI, FEMDGI, FEMDOLDGI, FEMT2GI, FEMT2OLDGI,INCOME,INCOMEOLD, &
-            COURANT_OR_MINUS_ONE_NEW, COURANT_OR_MINUS_ONE_OLD, &
-            T, TOLD, DEN, DENOLD, T2, T2OLD, &
-            TMIN, TOLDMIN, DENMIN, DENOLDMIN, TMAX, TOLDMAX, DENMAX, DENOLDMAX, &
-            T2MIN, T2OLDMIN, T2MAX, T2OLDMAX, MASS_CV, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, &
-            TOLDMAX_NOD, DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD, &
-            T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, &
-            TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, &
-            T2UPWIND_MAT, T2OLDUPWIND_MAT, &
+            FEMTGI , FEMDGI, FEMT2GI,INCOME, &
+            COURANT_OR_MINUS_ONE_NEW, &
+            T, DEN, T2, &
+            TMIN, DENMIN, TMAX, DENMAX, &
+            T2MIN, T2MAX, MASS_CV, TMIN_NOD, TMAX_NOD, &
+            DENMIN_NOD, DENMAX_NOD, &
+            T2MIN_NOD, T2MAX_NOD, &
+            TUPWIND_MAT, DENUPWIND_MAT, &
+            T2UPWIND_MAT, &
             NSMALL_COLM, SMALL_FINDRM, SMALL_COLM, &
-            TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC, &
-            DENMAX_2ND_MC, DENMIN_2ND_MC, DENOLDMAX_2ND_MC, DENOLDMIN_2ND_MC, &
-            T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, T2OLDMIN_2ND_MC, &
-            LIMT, LIMTOLD, LIMD, LIMDOLD, LIMT2, LIMT2OLD )
+            TMAX_2ND_MC, TMIN_2ND_MC, &
+            DENMAX_2ND_MC, DENMIN_2ND_MC, &
+            T2MAX_2ND_MC, T2MIN_2ND_MC, &
+            LIMT, LIMD, LIMT2 )
 
     END IF
 
     ! Amend for porosity...
     IF ( ELE2 /= 0 ) THEN 
        FVD    = 0.5 * ( VOLFRA_PORE(ELE) + VOLFRA_PORE(ELE2) ) * FVD
-       FVDOLD = 0.5 * ( VOLFRA_PORE(ELE) + VOLFRA_PORE(ELE2) ) * FVDOLD
        LIMD   = 0.5 * ( VOLFRA_PORE(ELE) + VOLFRA_PORE(ELE2) ) * LIMD
-       LIMDOLD= 0.5 * ( VOLFRA_PORE(ELE) + VOLFRA_PORE(ELE2) ) * LIMDOLD
     ELSE
        FVD    = VOLFRA_PORE(ELE) * FVD
-       FVDOLD = VOLFRA_PORE(ELE) * FVDOLD
        LIMD   = VOLFRA_PORE(ELE) * LIMD
-       LIMDOLD= VOLFRA_PORE(ELE) * LIMDOLD
     END IF
 
     IF ( HI_ORDER_HALF ) THEN
        RELAX = MIN ( 2.*ABS(FEMTGI-0.5), 1.0 )
        LIMT = RELAX * LIMT + (1.-RELAX) * FEMTGI
-       RELAXOLD = MIN( 2.*ABS(FEMTOLDGI-0.5), 1.0 )
-       LIMTOLD = RELAXOLD*LIMTOLD + (1.-RELAXOLD) * FEMTOLDGI
     END IF
 
     LIMDT = LIMD * LIMT
-    LIMDTOLD = LIMDOLD * LIMTOLD
 
     LIMDTT2 = LIMD * LIMT * LIMT2
-    LIMDTT2OLD = LIMDOLD * LIMTOLD * LIMT2OLD
 
     IF ( SELE /=0 ) DEALLOCATE( SE_CV_NODK_IPHA, SE_CV_SNODK_IPHA )
 
@@ -10854,52 +11617,51 @@ contains
       PURE SUBROUTINE LIMITERS( &
        IGOT_T2, CV_NONODS, NPHASE, IPHASE, CV_NODI_IPHA, CV_NODJ_IPHA, IANISOTROPIC, &
        LIM_VOL_ADJUST, FIRSTORD, NOLIMI, LIMIT_USE_2ND, &
-       FEMTGI, FEMTOLDGI, FEMDGI, FEMDOLDGI, FEMT2GI, FEMT2OLDGI,INCOME,INCOMEOLD, &
-       COURANT_OR_MINUS_ONE_NEW, COURANT_OR_MINUS_ONE_OLD, &
-       T, TOLD, DEN, DENOLD, T2, T2OLD, &
-       TMIN, TOLDMIN, DENMIN, DENOLDMIN, TMAX, TOLDMAX, DENMAX, DENOLDMAX, &
-       T2MIN, T2OLDMIN, T2MAX, T2OLDMAX, MASS_CV, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, &
-       TOLDMAX_NOD, DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD, &
-       T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, &
-       TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, &
-       T2UPWIND_MAT, T2OLDUPWIND_MAT, &
+       FEMTGI, FEMDGI, FEMT2GI, INCOME, &
+       COURANT_OR_MINUS_ONE_NEW, &
+       T, DEN, T2, &
+       TMIN, DENMIN, TMAX, DENMAX, &
+       T2MIN, T2MAX, MASS_CV, TMIN_NOD, TMAX_NOD, &
+       DENMIN_NOD, DENMAX_NOD, &
+       T2MIN_NOD, T2MAX_NOD, &
+       TUPWIND_MAT, DENUPWIND_MAT, &
+       T2UPWIND_MAT, &
        NSMALL_COLM, SMALL_FINDRM, SMALL_COLM, &
-       TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC, &
-       DENMAX_2ND_MC, DENMIN_2ND_MC, DENOLDMAX_2ND_MC, DENOLDMIN_2ND_MC, &
-       T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, T2OLDMIN_2ND_MC, &
-       LIMT, LIMTOLD, LIMD, LIMDOLD, LIMT2, LIMT2OLD )
+       TMAX_2ND_MC, TMIN_2ND_MC, &
+       DENMAX_2ND_MC, DENMIN_2ND_MC, &
+       T2MAX_2ND_MC, T2MIN_2ND_MC, &
+       LIMT, LIMD, LIMT2 )
 
     implicit none
 
 
     INTEGER, intent( in ) :: IGOT_T2, CV_NONODS, NPHASE, IPHASE, CV_NODI_IPHA, CV_NODJ_IPHA, IANISOTROPIC
     LOGICAL, intent( in ) :: LIM_VOL_ADJUST, FIRSTORD, NOLIMI, LIMIT_USE_2ND 
-    REAL, intent( in ) :: FEMTGI, FEMTOLDGI, FEMDGI, FEMDOLDGI, FEMT2GI, FEMT2OLDGI,INCOME,INCOMEOLD  
-    REAL, intent( in ) :: COURANT_OR_MINUS_ONE_NEW, COURANT_OR_MINUS_ONE_OLD
+    REAL, intent( in ) :: FEMTGI, FEMDGI, FEMT2GI,INCOME  
+    REAL, intent( in ) :: COURANT_OR_MINUS_ONE_NEW
    
-    REAL, DIMENSION( : ), intent( in ) :: T, TOLD, DEN, DENOLD
-    REAL, DIMENSION( : ), intent( in ) :: T2, T2OLD
-    REAL, DIMENSION( : ), intent( inout ) :: TMIN, TOLDMIN, DENMIN, DENOLDMIN, TMAX, TOLDMAX, DENMAX, DENOLDMAX
-    REAL, DIMENSION( : ), intent( inout ) :: T2MIN, T2OLDMIN, T2MAX, T2OLDMAX
+    REAL, DIMENSION( : ), intent( in ) :: T, DEN
+    REAL, DIMENSION( : ), intent( in ) :: T2 
+    REAL, DIMENSION( : ), intent( inout ) :: TMIN, DENMIN, TMAX, DENMAX
+    REAL, DIMENSION( : ), intent( inout ) :: T2MIN, T2MAX
 
     REAL, DIMENSION( : ), intent( in ) :: MASS_CV
-    INTEGER, DIMENSION( :  ), intent( in ) :: TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, &
-         TOLDMAX_NOD, DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD
-    INTEGER, DIMENSION( : ), intent( in ) :: T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD
-    REAL, DIMENSION( : ), intent( in ) :: TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT
-    REAL, DIMENSION( : ), intent( in ) :: T2UPWIND_MAT, T2OLDUPWIND_MAT
+    INTEGER, DIMENSION( :  ), intent( in ) :: TMIN_NOD, TMAX_NOD, DENMIN_NOD, DENMAX_NOD
+    INTEGER, DIMENSION( : ), intent( in ) :: T2MIN_NOD, T2MAX_NOD
+    REAL, DIMENSION( : ), intent( in ) :: TUPWIND_MAT, DENUPWIND_MAT
+    REAL, DIMENSION( : ), intent( in ) :: T2UPWIND_MAT
     INTEGER, intent( in ) :: NSMALL_COLM
     INTEGER, DIMENSION( :), intent( in ) :: SMALL_FINDRM
     INTEGER, DIMENSION( : ), intent( in ) :: SMALL_COLM
-    REAL, DIMENSION( : ), intent( in ) :: TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC,  &
-         DENMAX_2ND_MC, DENMIN_2ND_MC, DENOLDMAX_2ND_MC, DENOLDMIN_2ND_MC
-    REAL, DIMENSION( : ), intent( in ) :: T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, T2OLDMIN_2ND_MC
-    REAL, intent( inout ) :: LIMT, LIMTOLD, LIMD, LIMDOLD, LIMT2, LIMT2OLD
+    REAL, DIMENSION( : ), intent( in ) :: TMAX_2ND_MC, TMIN_2ND_MC, &
+         DENMAX_2ND_MC, DENMIN_2ND_MC
+    REAL, DIMENSION( : ), intent( in ) :: T2MAX_2ND_MC, T2MIN_2ND_MC
+    REAL, intent( inout ) :: LIMT, LIMD, LIMT2
 
     LOGICAL :: RESET_STORE
-    REAL :: TMIN_STORE, TMAX_STORE, TOLDMIN_STORE, TOLDMAX_STORE, &
-         T2MIN_STORE, T2MAX_STORE, T2OLDMIN_STORE, T2OLDMAX_STORE, &
-         DENMIN_STORE, DENMAX_STORE, DENOLDMIN_STORE, DENOLDMAX_STORE, &
+    REAL :: TMIN_STORE, TMAX_STORE, &
+         T2MIN_STORE, T2MAX_STORE, &
+         DENMIN_STORE, DENMAX_STORE, &
          TUPWIN, TUPWI2
     INTEGER :: CV_NODI, CV_NODJ, COUNT, S, E
 
@@ -10912,33 +11674,18 @@ contains
             CV_NODI_IPHA, CV_NODJ_IPHA, IPHASE, CV_NONODS, NPHASE, INCOME )
        CALL CAL_LIM_VOL_ADJUST( TMAX_STORE, TMAX, T, TMAX_NOD, RESET_STORE, MASS_CV, &
             CV_NODI_IPHA, CV_NODJ_IPHA, IPHASE, CV_NONODS, NPHASE, INCOME )
-
-       CALL CAL_LIM_VOL_ADJUST( TOLDMIN_STORE, TOLDMIN, TOLD, TOLDMIN_NOD, RESET_STORE, MASS_CV, &
-            CV_NODI_IPHA, CV_NODJ_IPHA, IPHASE, CV_NONODS, NPHASE, INCOMEOLD )
-       CALL CAL_LIM_VOL_ADJUST( TOLDMAX_STORE, TOLDMAX, TOLD, TOLDMAX_NOD, RESET_STORE, MASS_CV, &
-            CV_NODI_IPHA, CV_NODJ_IPHA, IPHASE, CV_NONODS, NPHASE, INCOMEOLD )
-
        CALL CAL_LIM_VOL_ADJUST( DENMIN_STORE, DENMIN, DEN, DENMIN_NOD, RESET_STORE, MASS_CV, &
             CV_NODI_IPHA, CV_NODJ_IPHA, IPHASE, CV_NONODS, NPHASE, INCOME )
        CALL CAL_LIM_VOL_ADJUST( DENMAX_STORE, DENMAX, DEN, DENMAX_NOD, RESET_STORE, MASS_CV, &
             CV_NODI_IPHA, CV_NODJ_IPHA, IPHASE, CV_NONODS, NPHASE, INCOME )
-
-       CALL CAL_LIM_VOL_ADJUST( DENOLDMIN_STORE, DENOLDMIN, DENOLD, DENOLDMIN_NOD, RESET_STORE, MASS_CV, &
-            CV_NODI_IPHA, CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOMEOLD )
-       CALL CAL_LIM_VOL_ADJUST( DENOLDMAX_STORE, DENOLDMAX, DENOLD, DENOLDMAX_NOD, RESET_STORE, MASS_CV, &
-            CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOMEOLD )
 
        IF(IGOT_T2==1) THEN
           CALL CAL_LIM_VOL_ADJUST( T2MIN_STORE, T2MIN, T2, T2MIN_NOD, RESET_STORE, MASS_CV, &
                CV_NODI_IPHA, CV_NODJ_IPHA, IPHASE, CV_NONODS, NPHASE, INCOME )
           CALL CAL_LIM_VOL_ADJUST( T2MAX_STORE, T2MAX, T2, T2MAX_NOD, RESET_STORE, MASS_CV, &
                CV_NODI_IPHA, CV_NODJ_IPHA, IPHASE, CV_NONODS, NPHASE, INCOME )
-
-          CALL CAL_LIM_VOL_ADJUST( T2OLDMIN_STORE, T2OLDMIN, T2OLD, T2OLDMIN_NOD, RESET_STORE, MASS_CV, &
-               CV_NODI_IPHA, CV_NODJ_IPHA, IPHASE, CV_NONODS, NPHASE, INCOMEOLD )
-          CALL CAL_LIM_VOL_ADJUST( T2OLDMAX_STORE, T2OLDMAX, T2OLD, T2OLDMAX_NOD, RESET_STORE, MASS_CV, &
-               CV_NODI_IPHA, CV_NODJ_IPHA, IPHASE, CV_NONODS, NPHASE, INCOMEOLD )
        END IF
+
     END IF
 
     IF ( IANISOTROPIC == 1 ) THEN
@@ -10968,21 +11715,9 @@ contains
          IANISOTROPIC, TUPWIN, TUPWI2 )
 
     CALL ONVDLIM_ALL( CV_NONODS, &
-         LIMTOLD, FEMTOLDGI, INCOMEOLD, CV_NODI, CV_NODJ, &
-         TOLD( S:E ), TOLDMIN( S:E ), TOLDMAX( S:E ), &
-         TOLDMIN_2ND_MC( S:E ), TOLDMAX_2ND_MC( S:E ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_OLD, &
-         IANISOTROPIC, TUPWIN, TUPWI2 )
-
-    CALL ONVDLIM_ALL( CV_NONODS, &
          LIMD, FEMDGI, INCOME, CV_NODI, CV_NODJ, &
          DEN( S:E ), DENMIN( S:E ), DENMAX( S:E ), &
          DENMIN_2ND_MC( S:E ), DENMAX_2ND_MC( S:E ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_NEW, &
-         IANISOTROPIC, TUPWIN, TUPWI2 )
-
-    CALL ONVDLIM_ALL( CV_NONODS, &
-         LIMDOLD,FEMDOLDGI, INCOMEOLD, CV_NODI, CV_NODJ, &
-         DENOLD( S:E ), DENOLDMIN( S:E ), DENOLDMAX( S:E ), &
-         DENOLDMIN_2ND_MC( S:E ), DENOLDMAX_2ND_MC( S:E ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_OLD, &
          IANISOTROPIC, TUPWIN, TUPWI2 )
 
     IF ( IGOT_T2 == 1 ) THEN
@@ -10992,14 +11727,8 @@ contains
             T2MIN_2ND_MC( S:E ), T2MAX_2ND_MC( S:E ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_NEW, &
             IANISOTROPIC, TUPWIN, TUPWI2 )
 
-       CALL ONVDLIM_ALL( CV_NONODS, &
-            LIMT2OLD, FEMT2OLDGI, INCOMEOLD, CV_NODI, CV_NODJ, &
-            T2OLD( S:E ), T2OLDMIN( S:E ), T2OLDMAX( S:E ), &
-            T2OLDMIN_2ND_MC( S:E ), T2OLDMAX_2ND_MC( S:E ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_OLD, &
-            IANISOTROPIC, TUPWIN, TUPWI2 )
     ELSE
        LIMT2   =1.0
-       LIMT2OLD=1.0
     END IF
 
     IF ( LIM_VOL_ADJUST ) THEN
@@ -11009,32 +11738,18 @@ contains
        CALL CAL_LIM_VOL_ADJUST(TMAX_STORE,TMAX,T,TMAX_NOD,RESET_STORE,MASS_CV, &
             CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOME )
 
-       CALL CAL_LIM_VOL_ADJUST(TOLDMIN_STORE,TOLDMIN,TOLD,TOLDMIN_NOD,RESET_STORE,MASS_CV, &
-            CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOMEOLD )
-       CALL CAL_LIM_VOL_ADJUST(TOLDMAX_STORE,TOLDMAX,TOLD,TOLDMAX_NOD,RESET_STORE,MASS_CV, &
-            CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOMEOLD )
-
        CALL CAL_LIM_VOL_ADJUST(DENMIN_STORE,DENMIN,DEN,DENMIN_NOD,RESET_STORE,MASS_CV, &
             CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOME )
        CALL CAL_LIM_VOL_ADJUST(DENMAX_STORE,DENMAX,DEN,DENMAX_NOD,RESET_STORE,MASS_CV, &
             CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOME )
-
-       CALL CAL_LIM_VOL_ADJUST(DENOLDMIN_STORE,DENOLDMIN,DENOLD,DENOLDMIN_NOD,RESET_STORE,MASS_CV, &
-            CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOMEOLD )
-       CALL CAL_LIM_VOL_ADJUST(DENOLDMAX_STORE,DENOLDMAX,DENOLD,DENOLDMAX_NOD,RESET_STORE,MASS_CV, &
-            CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOMEOLD )
 
        IF ( IGOT_T2 == 1 ) THEN
           CALL CAL_LIM_VOL_ADJUST(T2MIN_STORE,T2MIN,T2,T2MIN_NOD,RESET_STORE,MASS_CV, &
                CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOME )
           CALL CAL_LIM_VOL_ADJUST(T2MAX_STORE,T2MAX,T2,T2MAX_NOD,RESET_STORE,MASS_CV, &
                CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOME )
-
-          CALL CAL_LIM_VOL_ADJUST(T2OLDMIN_STORE,T2OLDMIN,T2OLD,T2OLDMIN_NOD,RESET_STORE,MASS_CV, &
-               CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOMEOLD )
-          CALL CAL_LIM_VOL_ADJUST(T2OLDMAX_STORE,T2OLDMAX,T2OLD,T2OLDMAX_NOD,RESET_STORE,MASS_CV, &
-               CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOMEOLD )
        END IF
+
     END IF
 
     RETURN
@@ -11044,7 +11759,1105 @@ contains
   END SUBROUTINE GET_INT_T_DEN
 
 
-
+!!$ Pure SUBROUTINE GET_INT_T_DEN(FVT, FVTOLD, FVT2, FVT2OLD, FVD, FVDOLD, LIMD, LIMT, LIMT2, &
+!!$       LIMDOLD, LIMTOLD, LIMT2OLD, LIMDT, LIMDTOLD, LIMDTT2, LIMDTT2OLD, &
+!!$       FEMDGI, FEMTGI,FEMT2GI, FEMDOLDGI, FEMTOLDGI, FEMT2OLDGI, &
+!!$       CV_DISOPT, CV_NONODS, NPHASE, CV_NODI_IPHA, CV_NODJ_IPHA, ELE, ELE2, GI, IPHASE,  &
+!!$       CV_NLOC, TOTELE, CV_NDGLN, CV_OTHER_LOC, SCVNGI, SCVFEN, INCOME, INCOMEOLD, &
+!!$       T, TOLD, T2, T2OLD, DEN, DENOLD, FEMT, FEMTOLD, FEMT2, FEMT2OLD, FEMDEN, FEMDENOLD, &
+!!$       TMIN, TOLDMIN, T2MIN, T2OLDMIN, DENMIN, DENOLDMIN, &
+!!$       TMAX, TOLDMAX, T2MAX, T2OLDMAX, DENMAX, DENOLDMAX, &
+!!$       SELE, CV_SNLOC, STOTEL, CV_SLOC2LOC, SUF_T_BC, SUF_T2_BC, SUF_D_BC, &
+!!$       WIC_T_BC, WIC_T2_BC, WIC_D_BC, &
+!!$       WIC_T_BC_DIRICHLET, WIC_D_BC_DIRICHLET, VOLFRA_PORE, &
+!!$       MASS_CV, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, TOLDMAX_NOD, &
+!!$       DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD, &
+!!$       T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, IGOT_T2, &
+!!$       TMIN_2ND_MC, TOLDMIN_2ND_MC, T2MIN_2ND_MC, T2OLDMIN_2ND_MC, DENMIN_2ND_MC, DENOLDMIN_2ND_MC, &
+!!$       TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, LIMIT_USE_2ND, &
+!!$       HDC, NDOTQ, NDOTQOLD, DT, &
+!!$       SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
+!!$       U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
+!!$       IANISOTROPIC, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
+!!$       TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT , &
+!!$       !Values to limit the flow when reaching the irreducible  saturation for a phase
+!!$       s_gc, s_or )
+!!$    !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===============
+!!$    IMPLICIT NONE
+!!$    ! Calculate T and DEN on the CV face at quadrature point GI.
+!!$    REAL, intent( inout ) :: FVT,FVTOLD, FVT2, FVT2OLD,FVD,FVDOLD, LIMD,LIMT,LIMT2, &
+!!$         LIMDOLD,LIMTOLD,LIMT2OLD,LIMDT,LIMDTOLD,LIMDTT2,LIMDTT2OLD, &
+!!$         FEMDGI, FEMTGI, FEMT2GI, FEMDOLDGI, FEMTOLDGI, FEMT2OLDGI
+!!$    REAL, intent( in ) :: INCOME,INCOMEOLD,HDC,NDOTQ,NDOTQOLD,DT, s_gc, s_or
+!!$    logical, intent( in ) :: LIMIT_USE_2ND
+!!$    INTEGER, intent( in ) :: CV_DISOPT,CV_NONODS,NPHASE,CV_NODI_IPHA,CV_NODJ_IPHA,ELE,ELE2,  &
+!!$         CV_NLOC,TOTELE,SCVNGI,GI,IPHASE,SELE,CV_SNLOC,STOTEL, &
+!!$         WIC_T_BC_DIRICHLET,WIC_D_BC_DIRICHLET, IGOT_T2, U_NLOC,U_NONODS,NDIM
+!!$    INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
+!!$    INTEGER, DIMENSION( : ), intent( in ) :: CV_OTHER_LOC
+!!$    INTEGER, DIMENSION( : ), intent( in ) :: CV_SLOC2LOC
+!!$    INTEGER, DIMENSION( : ), intent( in ) :: WIC_T_BC, WIC_D_BC
+!!$    INTEGER, DIMENSION( : ), intent( in ) :: WIC_T2_BC
+!!$    REAL, DIMENSION( :, :  ), intent( in ) :: SUFEN
+!!$    REAL, DIMENSION( :, :  ), intent( in ) :: SCVFEN
+!!$    REAL, DIMENSION( :, :  ), intent( in ) :: SCVFENX, SCVFENY, SCVFENZ
+!!$    REAL, DIMENSION( :  ), intent( in ) :: CVNORMX, CVNORMY, CVNORMZ
+!!$    REAL, DIMENSION( :  ), intent( in ) :: T, TOLD, DEN, DENOLD, FEMT, FEMTOLD,  &
+!!$         FEMDEN, FEMDENOLD
+!!$    REAL, DIMENSION( : ), intent( in ) :: T2, T2OLD, FEMT2, FEMT2OLD
+!!$    REAL, DIMENSION( :  ), intent( inout ) :: TMIN, TOLDMIN, DENMIN, DENOLDMIN, TMAX, TOLDMAX, DENMAX, DENOLDMAX
+!!$    REAL, DIMENSION( : ), intent( inout ) :: T2MIN, T2OLDMIN, T2MAX, T2OLDMAX
+!!$    REAL, DIMENSION( : ), intent( in ) :: MASS_CV
+!!$    INTEGER, DIMENSION( :  ), intent( in ) :: TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, &
+!!$         TOLDMAX_NOD, DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD
+!!$    INTEGER, DIMENSION( :), intent( in ) :: &
+!!$         T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD
+!!$    REAL, DIMENSION( :  ), intent( in ) :: SUF_T_BC, SUF_D_BC
+!!$    REAL, DIMENSION( : ), intent( in ) :: SUF_T2_BC
+!!$    REAL, DIMENSION( :  ), intent( in ) :: VOLFRA_PORE
+!!$    REAL, DIMENSION( : ), intent( in ) :: TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC,  &
+!!$         DENMAX_2ND_MC, DENMIN_2ND_MC, DENOLDMAX_2ND_MC, DENOLDMIN_2ND_MC
+!!$    REAL, DIMENSION( : ), intent( in ) :: T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, T2OLDMIN_2ND_MC
+!!$    REAL, DIMENSION( : ), intent( in ) :: U, V, W
+!!$    INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
+!!$    REAL, DIMENSION( : , : , : ), intent( in ) :: INV_JAC
+!!$
+!!$    INTEGER, intent( in ) :: IANISOTROPIC
+!!$    INTEGER, intent( in ) :: NSMALL_COLM
+!!$    INTEGER, DIMENSION( : ), intent( in ) :: SMALL_FINDRM
+!!$    INTEGER, DIMENSION( : ), intent( in ) :: SMALL_COLM
+!!$    REAL, DIMENSION( : ), intent( in ) :: TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT
+!!$    REAL, DIMENSION( : ), intent( in ) :: T2UPWIND_MAT, T2OLDUPWIND_MAT
+!!$    ! Local variables
+!!$    ! If UPWIND then use upwind flux between elements else use central. 
+!!$    ! If HI_ORDER_HALF then use high order interpolation when around 
+!!$    ! a volume frac of 0.5 and gradually apply limiting near 0 and 1. 
+!!$    LOGICAL, PARAMETER :: UPWIND = .TRUE., HI_ORDER_HALF = .FALSE., LIM_VOL_ADJUST2 = .TRUE.
+!!$    LOGICAL :: DOWNWIND_EXTRAP ! Extrapolate a downwind value for interface tracking.
+!!$
+!!$    ! Scaling to reduce the downwind bias(=1downwind, =0central)
+!!$    LOGICAL, PARAMETER :: SCALE_DOWN_WIND = .true.
+!!$    ! Non-linear Petrov-Galerkin option for interface tracking...
+!!$    ! =4 is anisotropic downwind diffusion based on a projected 1D system (1st recommend)
+!!$    ! =0 is anisotropic downwind diffusion based on a velocity projection like SUPG 
+!!$    ! (2nd recommend, most compressive)
+!!$    ! =2 is isotropic downwind diffusion  (3rd recommend,least compressive)
+!!$    ! =5 is isotropic downwind diffusion with magnitude of =0 option. 
+!!$    ! In tests they all produce similar results.
+!!$    !      INTEGER, PARAMETER :: NON_LIN_PETROV_INTERFACE = 5
+!!$    INTEGER, PARAMETER :: NON_LIN_PETROV_INTERFACE = 3
+!!$
+!!$    LOGICAL :: FIRSTORD, NOLIMI, RESET_STORE, LIM_VOL_ADJUST
+!!$    REAL :: RELAX, RELAXOLD, TMIN_STORE, TMAX_STORE, TOLDMIN_STORE, TOLDMAX_STORE, &
+!!$         T2MIN_STORE, T2MAX_STORE, T2OLDMIN_STORE, T2OLDMAX_STORE, &
+!!$         DENMIN_STORE, DENMAX_STORE, DENOLDMIN_STORE, DENOLDMAX_STORE, &
+!!$         COURANT_OR_MINUS_ONE_NEW, COURANT_OR_MINUS_ONE_OLD
+!!$    INTEGER :: CV_KLOC, CV_NODK, CV_NODK_IPHA, CV_KLOC2, CV_NODK2, CV_NODK2_IPHA, CV_STAR_IPHA, &
+!!$         CV_SKLOC, CV_SNODK, CV_SNODK_IPHA, U_KLOC,U_NODK,U_NODK_IPHA, IDIM, ELE_DOWN
+!!$    INTEGER, DIMENSION( CV_NLOC ) :: E_CV_NODK_IPHA
+!!$    INTEGER, DIMENSION( U_NLOC )  ::E_U_NODK_IPHA
+!!$    integer, DIMENSION( : ), ALLOCATABLE :: SE_CV_NODK_IPHA, SE_CV_SNODK_IPHA
+!!$    REAL :: T_BETWEEN_MIN, T_BETWEEN_MAX, TOLD_BETWEEN_MIN, TOLD_BETWEEN_MAX
+!!$    REAL :: T_AVE_EDGE, T_AVE_ELE, TOLD_AVE_EDGE, TOLD_AVE_ELE
+!!$    REAL :: T_MIDVAL, TOLD_MIDVAL
+!!$    REAL :: T_UPWIND,TOLD_UPWIND,TMIN_UPWIND,TMAX_UPWIND,TOLDMIN_UPWIND,TOLDMAX_UPWIND
+!!$    REAL :: RSHAPE,RSHAPE_OLD,RGRAY, UDGI,VDGI,WDGI, RSCALE, TXGI,TYGI,TZGI
+!!$    REAL :: VEC_VEL(3), VEC_VEL2(3), ELE_LENGTH_SCALE
+!!$    REAL :: TGI,TOLDGI,TDTGI, U_DOT_GRADT_GI, COEF, A_STAR_T, A_STAR_X, A_STAR_Y, A_STAR_Z
+!!$    REAL :: RESIDGI, P_STAR, DIFF_COEF, COEF2, FEMTGI_DDG, FEMTOLDGI_DDG, income2, INCOMEOLD2
+!!$
+!!$    ! The adjustment method is not ready for the LIMIT_USE_2ND - the new limiting method.
+!!$    LIM_VOL_ADJUST = ( LIM_VOL_ADJUST2 .AND. (.NOT.LIMIT_USE_2ND) ) .AND. IANISOTROPIC==0
+!!$
+!!$    FVT2    = 1.0
+!!$    FVT2OLD = 1.0
+!!$
+!!$    ! Extrapolate a downwind value for interface tracking.
+!!$    DOWNWIND_EXTRAP = ( cv_disopt>=8 )
+!!$
+!!$    if ( DOWNWIND_EXTRAP ) then
+!!$       courant_or_minus_one_new = abs ( dt * ndotq / hdc )
+!!$       courant_or_minus_one_old = abs ( dt * ndotqold / hdc )
+!!$    else
+!!$       courant_or_minus_one_new = -1.0
+!!$       courant_or_minus_one_old = -1.0
+!!$    end if
+!!$
+!!$    ! Figure out global node numbers
+!!$    DO CV_KLOC = 1, CV_NLOC
+!!$       E_CV_NODK_IPHA( CV_KLOC ) = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_KLOC ) + ( IPHASE - 1 ) * CV_NONODS
+!!$    END DO
+!!$    IF ( SELE /=0 ) THEN
+!!$       ALLOCATE( SE_CV_NODK_IPHA( CV_NLOC ), SE_CV_SNODK_IPHA( CV_NLOC ) )
+!!$       DO CV_SKLOC = 1, CV_SNLOC
+!!$          CV_KLOC = CV_SLOC2LOC( CV_SKLOC )
+!!$          SE_CV_NODK_IPHA( CV_SKLOC ) = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_KLOC ) + ( IPHASE - 1 ) * CV_NONODS
+!!$          SE_CV_SNODK_IPHA( CV_SKLOC ) = ( SELE - 1 ) * CV_SNLOC + CV_SKLOC + ( IPHASE - 1 ) * STOTEL * CV_SNLOC
+!!$       END DO
+!!$    END IF
+!!$    DO U_KLOC = 1, U_NLOC
+!!$       E_U_NODK_IPHA( U_KLOC ) = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_KLOC ) + ( IPHASE - 1 ) * U_NONODS
+!!$    END DO
+!!$
+!!$
+!!$
+!!$
+!!$    IF ( SELE == 0 ) THEN ! Is NOT on boundary of the domain
+!!$
+!!$       FVT    = INCOME * T( CV_NODJ_IPHA ) + ( 1. - INCOME ) * T( CV_NODI_IPHA )
+!!$       FVTOLD = INCOMEOLD * TOLD( CV_NODJ_IPHA ) + ( 1. - INCOMEOLD ) * TOLD( CV_NODI_IPHA )
+!!$
+!!$       FVD    = INCOME * DEN( CV_NODJ_IPHA ) + ( 1. - INCOME ) * DEN( CV_NODI_IPHA )
+!!$       FVDOLD = INCOMEOLD * DENOLD( CV_NODJ_IPHA ) + (1. - INCOMEOLD ) * DENOLD( CV_NODI_IPHA )
+!!$
+!!$       IF ( IGOT_T2 == 1 ) THEN
+!!$          FVT2    = INCOME * T2( CV_NODJ_IPHA ) + ( 1. - INCOME ) * T2( CV_NODI_IPHA )
+!!$          FVT2OLD = INCOMEOLD * T2OLD( CV_NODJ_IPHA ) + ( 1. - INCOMEOLD ) * T2OLD( CV_NODI_IPHA )
+!!$       END IF
+!!$
+!!$    ELSE ! Is on boundary of the domain
+!!$
+!!$       IF( WIC_T_BC( SELE + ( IPHASE - 1 ) * STOTEL ) /= WIC_T_BC_DIRICHLET ) THEN 
+!!$          ! Dont apply a Dirichlet b.c.
+!!$          FVT    = T( CV_NODI_IPHA )
+!!$          FVTOLD = TOLD( CV_NODI_IPHA )
+!!$
+!!$          FVD    = DEN( CV_NODI_IPHA )
+!!$          FVDOLD = DENOLD( CV_NODI_IPHA )
+!!$
+!!$          IF ( IGOT_T2 == 1 ) THEN
+!!$             FVT2    = T2( CV_NODI_IPHA ) 
+!!$             FVT2OLD = T2OLD( CV_NODI_IPHA ) 
+!!$          END IF
+!!$       ELSE
+!!$          !DO CV_SKLOC = 1, CV_SNLOC
+!!$          !   CV_KLOC = CV_SLOC2LOC( CV_SKLOC )
+!!$          !   CV_NODK_IPHA = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_KLOC ) + ( IPHASE - 1 ) * CV_NONODS
+!!$          !   IF ( CV_NODK_IPHA == CV_NODI_IPHA ) THEN
+!!$          !      CV_SNODK = ( SELE - 1 ) * CV_SNLOC + CV_SKLOC 
+!!$          !      CV_SNODK_IPHA = CV_SNODK + ( IPHASE - 1 ) * STOTEL*CV_SNLOC
+!!$          !      EXIT
+!!$          !   END IF
+!!$          !END DO
+!!$          DO CV_SKLOC = 1, CV_SNLOC
+!!$             IF ( SE_CV_NODK_IPHA( CV_SKLOC ) == CV_NODI_IPHA ) EXIT
+!!$          END DO
+!!$          CV_SNODK_IPHA = SE_CV_SNODK_IPHA( CV_SKLOC )
+!!$
+!!$          FVT    = INCOME * SUF_T_BC(CV_SNODK_IPHA) + ( 1. - INCOME ) * T( CV_NODI_IPHA )
+!!$          FVTOLD = INCOMEOLD * SUF_T_BC(CV_SNODK_IPHA) + ( 1. - INCOMEOLD ) * TOLD( CV_NODI_IPHA )
+!!$
+!!$          FVD    = INCOME * SUF_D_BC(CV_SNODK_IPHA) + ( 1. - INCOME ) * DEN( CV_NODI_IPHA )
+!!$          FVDOLD = INCOMEOLD * SUF_D_BC(CV_SNODK_IPHA) +  (1. - INCOMEOLD ) * DENOLD( CV_NODI_IPHA )
+!!$
+!!$          IF ( IGOT_T2 == 1 ) THEN
+!!$             FVT2    = INCOME * SUF_T2_BC(CV_SNODK_IPHA) + ( 1. - INCOME ) * T2( CV_NODI_IPHA )
+!!$             FVT2OLD = INCOMEOLD * SUF_T2_BC(CV_SNODK_IPHA) + ( 1. - INCOMEOLD ) * T2OLD( CV_NODI_IPHA )
+!!$          END IF
+!!$
+!!$       END IF
+!!$       IF( WIC_D_BC( SELE + ( IPHASE - 1 ) * STOTEL ) /= WIC_D_BC_DIRICHLET ) THEN 
+!!$          FVD    = DEN( CV_NODI_IPHA )
+!!$          FVDOLD = DENOLD( CV_NODI_IPHA )
+!!$       END IF
+!!$    END IF
+!!$
+!!$    ! By default do not use first-order upwinding
+!!$    FIRSTORD = .FALSE.
+!!$
+!!$    ! No limiting if CV_DISOPT is 6 or 7  (why not just define limt=femt and skip to assembly?)
+!!$    NOLIMI = ( INT( CV_DISOPT / 2 ) == 3 ) 
+!!$
+!!$    ! Make a guess at the CV face value of advected field variable and density 
+!!$    ! (Depends on discetisation option, CV_DISOPT)                
+!!$    SELECT CASE( CV_DISOPT / 2 )
+!!$
+!!$    CASE( 0 ) ! First-order upwinding
+!!$       FEMTGI    = FVT
+!!$       FEMTOLDGI = FVTOLD
+!!$
+!!$       FEMT2GI    = FVT2
+!!$       FEMT2OLDGI = FVT2OLD
+!!$
+!!$       FEMDGI    = FVD
+!!$       FEMDOLDGI = FVDOLD
+!!$       
+!!$       FIRSTORD = .TRUE.  
+!!$
+!!$    CASE( 1 ) ! Central differencing [Trapezoidal rule (2 OR 3)]
+!!$       FEMTGI    = 0.5 * ( T( CV_NODI_IPHA ) + T( CV_NODJ_IPHA ) )        ! need to fix this!
+!!$       FEMTOLDGI = 0.5 * ( TOLD( CV_NODI_IPHA ) + TOLD( CV_NODJ_IPHA ) ) 
+!!$       IF ( IGOT_T2 == 1 ) THEN
+!!$          FEMT2GI   = 0.5 * ( T2( CV_NODI_IPHA ) + T2( CV_NODJ_IPHA ) )   ! need to fix this!
+!!$          FEMT2OLDGI= 0.5 * ( T2OLD( CV_NODI_IPHA ) + T2OLD( CV_NODJ_IPHA ) ) 
+!!$       ELSE
+!!$          FEMT2GI    = 1.0
+!!$          FEMT2OLDGI = 1.0
+!!$       END IF
+!!$       FEMDGI    = 0.5 * ( DEN( CV_NODI_IPHA ) + DEN( CV_NODJ_IPHA ) )    ! need to fix this!
+!!$       FEMDOLDGI = 0.5 * ( DENOLD( CV_NODI_IPHA ) + DENOLD( CV_NODJ_IPHA ) ) 
+!!$
+!!$    CASE DEFAULT ! Finite element approximation (4 OR 5)(6 or 7)(8 or 9)
+!!$       FEMTGI    = 0.0
+!!$       FEMTOLDGI = 0.0
+!!$       FEMT2GI   = 0.0
+!!$       FEMT2OLDGI= 0.0
+!!$       FEMDGI    = 0.0
+!!$       FEMDOLDGI = 0.0
+!!$
+!!$       Conditional_CV_DISOPT_ELE2: IF ( SELE /= 0 ) THEN
+!!$          ! Is on boundary of the domain
+!!$
+!!$          IF ( WIC_T_BC(SELE+(IPHASE-1)*STOTEL) /= WIC_T_BC_DIRICHLET ) THEN ! Don't apply a Dirichlet bc
+!!$             DO CV_KLOC = 1, CV_NLOC
+!!$                !CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
+!!$                !CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
+!!$                CV_NODK_IPHA = E_CV_NODK_IPHA( CV_KLOC )
+!!$                FEMTGI    = FEMTGI     +  SCVFEN( CV_KLOC, GI ) * FEMT( CV_NODK_IPHA )
+!!$                FEMTOLDGI = FEMTOLDGI  +  SCVFEN( CV_KLOC, GI ) * FEMTOLD( CV_NODK_IPHA )
+!!$                IF ( IGOT_T2 == 1 ) THEN
+!!$                   FEMT2GI    = FEMT2GI     +  SCVFEN( CV_KLOC, GI ) * FEMT2( CV_NODK_IPHA )
+!!$                   FEMT2OLDGI = FEMT2OLDGI  +  SCVFEN( CV_KLOC, GI ) * FEMT2OLD( CV_NODK_IPHA )
+!!$                ELSE
+!!$                   FEMT2GI    = 1.0
+!!$                   FEMT2OLDGI = 1.0
+!!$                END IF
+!!$             END DO
+!!$          ELSE
+!!$             DO CV_SKLOC = 1, CV_SNLOC
+!!$                CV_KLOC = CV_SLOC2LOC( CV_SKLOC )
+!!$                !CV_NODK = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_KLOC )
+!!$                !CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
+!!$                !CV_SNODK = ( SELE - 1 ) * CV_SNLOC + CV_SKLOC 
+!!$                !CV_SNODK_IPHA = CV_SNODK + ( IPHASE - 1 ) * STOTEL*CV_SNLOC
+!!$                CV_NODK_IPHA = SE_CV_NODK_IPHA( CV_SKLOC )
+!!$                CV_SNODK_IPHA = SE_CV_SNODK_IPHA( CV_SKLOC )
+!!$                FEMTGI = FEMTGI +  SCVFEN( CV_KLOC, GI ) * ( SUF_T_BC( CV_SNODK_IPHA ) & 
+!!$                     * INCOME + FEMT( CV_NODK_IPHA ) * ( 1. - INCOME ) )
+!!$                FEMTOLDGI = FEMTOLDGI + SCVFEN( CV_KLOC, GI ) * ( SUF_T_BC( CV_SNODK_IPHA ) &
+!!$                     * INCOMEOLD + FEMTOLD( CV_NODK_IPHA ) * ( 1. - INCOMEOLD ) )
+!!$                IF ( IGOT_T2 == 1 ) THEN
+!!$                   FEMT2GI = FEMT2GI +  SCVFEN( CV_KLOC, GI ) * ( SUF_T2_BC( CV_SNODK_IPHA ) & 
+!!$                        * INCOME + FEMT2( CV_NODK_IPHA ) * ( 1. -INCOME ) )
+!!$                   FEMT2OLDGI = FEMT2OLDGI + SCVFEN( CV_KLOC, GI ) * ( SUF_T2_BC( CV_SNODK_IPHA ) &
+!!$                        * INCOMEOLD + FEMT2OLD( CV_NODK_IPHA ) * ( 1. - INCOMEOLD ) )
+!!$                ELSE
+!!$                   FEMT2GI    = 1.0
+!!$                   FEMT2OLDGI = 1.0
+!!$                END IF
+!!$             END DO
+!!$          END IF
+!!$
+!!$          IF ( WIC_D_BC(SELE+(IPHASE-1)*STOTEL) /= WIC_D_BC_DIRICHLET) THEN ! Dont apply a Dirichlet bc
+!!$             DO CV_KLOC = 1, CV_NLOC
+!!$                !CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
+!!$                !CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
+!!$                CV_NODK_IPHA = E_CV_NODK_IPHA( CV_KLOC )
+!!$                FEMDGI    = FEMDGI     +  SCVFEN( CV_KLOC, GI ) * FEMDEN( CV_NODK_IPHA )
+!!$                FEMDOLDGI = FEMDOLDGI  +  SCVFEN( CV_KLOC, GI ) * FEMDENOLD( CV_NODK_IPHA )
+!!$             END DO
+!!$          ELSE
+!!$             DO CV_SKLOC = 1, CV_SNLOC
+!!$                CV_KLOC = CV_SLOC2LOC( CV_SKLOC )
+!!$                !CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
+!!$                !CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
+!!$                !CV_SNODK = ( SELE - 1 ) * CV_SNLOC + CV_SKLOC 
+!!$                !CV_SNODK_IPHA = CV_SNODK + ( IPHASE - 1 ) * STOTEL * CV_SNLOC
+!!$                CV_NODK_IPHA = SE_CV_NODK_IPHA( CV_SKLOC )
+!!$                CV_SNODK_IPHA = SE_CV_SNODK_IPHA( CV_SKLOC )
+!!$                FEMDGI = FEMDGI + SCVFEN( CV_KLOC, GI ) * ( SUF_D_BC( CV_SNODK_IPHA ) &
+!!$                     * INCOME + FEMDEN( CV_NODK_IPHA ) * ( 1. - INCOME ))
+!!$                FEMDOLDGI = FEMDOLDGI + SCVFEN( CV_KLOC, GI ) * ( SUF_D_BC( CV_SNODK_IPHA ) &
+!!$                     * INCOMEOLD + FEMDENOLD( CV_NODK_IPHA ) * ( 1. - INCOMEOLD ) )
+!!$             END DO
+!!$          END IF
+!!$
+!!$       ELSE IF( ( ELE2 == 0 ) .OR. ( ELE2 == ELE ) ) THEN
+!!$
+!!$          RSCALE = 1.0 ! Scaling to reduce the downwind bias(=1downwind, =0central)
+!!$          IF ( SCALE_DOWN_WIND ) THEN
+!!$
+!!$             IF ( DOWNWIND_EXTRAP .AND. (courant_or_minus_one_new.GE.0.0) ) THEN
+!!$
+!!$                IF ( NON_LIN_PETROV_INTERFACE == 0 ) THEN ! NOT non-linear Petrov-Galerkin Interface
+!!$
+!!$                   TXGI=0.0
+!!$                   TYGI=0.0
+!!$                   TZGI=0.0
+!!$                   DO CV_KLOC = 1, CV_NLOC
+!!$                      !CV_NODK = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_KLOC )
+!!$                      !CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
+!!$                      CV_NODK_IPHA = E_CV_NODK_IPHA( CV_KLOC )
+!!$                      TXGI = TXGI + SCVFENX( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
+!!$                      IF(NDIM.GE.2) TYGI = TYGI + SCVFENY( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
+!!$                      IF(NDIM.GE.3) TZGI = TZGI + SCVFENZ( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
+!!$                   END DO
+!!$
+!!$                   UDGI=0.0
+!!$                   VDGI=0.0
+!!$                   WDGI=0.0
+!!$                   DO U_KLOC = 1, U_NLOC
+!!$                      !U_NODK = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC )
+!!$                      !U_NODK_IPHA = U_NODK + ( IPHASE - 1 ) * U_NONODS
+!!$                      U_NODK_IPHA = E_U_NODK_IPHA( U_KLOC )
+!!$                      UDGI = UDGI + SUFEN( U_KLOC, GI ) * U(U_NODK_IPHA)
+!!$                      IF(NDIM.GE.2) VDGI = VDGI+SUFEN( U_KLOC, GI ) * V(U_NODK_IPHA)
+!!$                      IF(NDIM.GE.3) WDGI = WDGI+SUFEN( U_KLOC, GI ) * W(U_NODK_IPHA)
+!!$                   END DO
+!!$
+!!$                   ! cosine rule with velocity and normal:
+!!$                   ! RSCALE=ABS(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI) &
+!!$                   !       /TOLFUN(UDGI**2+VDGI**2+WDGI**2)
+!!$                   ! cosine rule with velocity and concentration gradient:
+!!$                   !RSCALE=ABS(TXGI*UDGI+TYGI*VDGI+TZGI*WDGI) &
+!!$                   !      /TOLFUN((UDGI**2+VDGI**2+WDGI**2)*SQRT(TXGI**2+TYGI**2+TZGI**2))
+!!$                   ! no cosine rule:
+!!$                   RSCALE = 1.0 / TOLFUN( SQRT( UDGI**2 + VDGI**2 + WDGI**2 ) )
+!!$
+!!$                   VEC_VEL(1) = UDGI
+!!$                   VEC_VEL(2) = VDGI
+!!$                   VEC_VEL(3) = WDGI
+!!$                   VEC_VEL2 = 0.0
+!!$                   DO IDIM = 1, NDIM
+!!$                      VEC_VEL2(IDIM) = SUM( INV_JAC(IDIM, 1:NDIM, GI) * VEC_VEL(1:NDIM) )
+!!$                   END DO
+!!$                   ! normalize the velocity in here: 
+!!$                   !VEC_VEL2=VEC_VEL2/TOLFUN(SQRT( UDGI**2+VDGI**2+WDGI**2))
+!!$
+!!$                   ELE_LENGTH_SCALE = 0.5 * SQRT( (UDGI**2+VDGI**2+WDGI**2) / TOLFUN( SUM( VEC_VEL2(1:NDIM)**2 ) ) )
+!!$
+!!$                   ! For discontinuous elements half the length scale...
+!!$                   IF(U_NONODS==CV_NONODS) ELE_LENGTH_SCALE=0.5*ELE_LENGTH_SCALE
+!!$                   ! For quadratic elements...
+!!$                   IF( ((NDIM==2).AND.(CV_NLOC==6)).or.((NDIM==3).AND.(CV_NLOC==10)) ) &
+!!$                        ELE_LENGTH_SCALE=0.5*ELE_LENGTH_SCALE
+!!$
+!!$                ELSE ! Petrov-Galerkin end of IF(NON_LIN_PETROV_INTERFACE==0) THEN 
+!!$
+!!$                   TXGI=0.0
+!!$                   TYGI=0.0
+!!$                   TZGI=0.0
+!!$                   TGI=0.0
+!!$                   TOLDGI=0.0
+!!$                   DO CV_KLOC = 1, CV_NLOC
+!!$                      !CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
+!!$                      !CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
+!!$                      CV_NODK_IPHA = E_CV_NODK_IPHA( CV_KLOC )
+!!$                      !if ( cv_nonods == u_nonods ) then ! DG
+!!$                      if ( .true. ) then 
+!!$                         TXGI = TXGI+SCVFENX( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
+!!$                         IF(NDIM.GE.2) TYGI = TYGI+SCVFENY( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
+!!$                         IF(NDIM.GE.3) TZGI = TZGI+SCVFENZ( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
+!!$                         TGI = TGI + SCVFEN( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
+!!$                         TOLDGI = TOLDGI + SCVFEN( CV_KLOC, GI ) * FEMTOLD(CV_NODK_IPHA)
+!!$                      else
+!!$                         TXGI = TXGI + SCVFENX( CV_KLOC, GI ) * T(CV_NODK_IPHA)
+!!$                         IF(NDIM.GE.2) TYGI=TYGI + SCVFENY( CV_KLOC, GI ) * T(CV_NODK_IPHA)
+!!$                         IF(NDIM.GE.3) TZGI=TZGI + SCVFENZ( CV_KLOC, GI ) * T(CV_NODK_IPHA)
+!!$                         TGI = TGI + SCVFEN( CV_KLOC, GI ) * T(CV_NODK_IPHA)
+!!$                         TOLDGI = TOLDGI + SCVFEN( CV_KLOC, GI ) * TOLD(CV_NODK_IPHA)
+!!$                      endif
+!!$                   END DO
+!!$
+!!$                   TDTGI = (TGI-TOLDGI) / DT
+!!$                   TDTGI = 0.0
+!!$
+!!$                   UDGI=0.0
+!!$                   VDGI=0.0
+!!$                   WDGI=0.0
+!!$                   DO U_KLOC = 1, U_NLOC
+!!$                      !U_NODK = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC )
+!!$                      !U_NODK_IPHA = U_NODK + ( IPHASE - 1 ) * U_NONODS
+!!$                      U_NODK_IPHA = E_U_NODK_IPHA( U_KLOC )
+!!$                      UDGI = UDGI + SUFEN( U_KLOC, GI ) * U(U_NODK_IPHA)
+!!$                      IF(NDIM.GE.2) VDGI = VDGI+SUFEN( U_KLOC, GI ) * V(U_NODK_IPHA)
+!!$                      IF(NDIM.GE.3) WDGI = WDGI+SUFEN( U_KLOC, GI ) * W(U_NODK_IPHA)
+!!$                   END DO
+!!$
+!!$                   U_DOT_GRADT_GI = TDTGI + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
+!!$
+!!$                   IF ( NON_LIN_PETROV_INTERFACE == 5 ) THEN 
+!!$                      COEF = 1.0 / TOLFUN( SQRT( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 ) )
+!!$                   ELSE
+!!$                      COEF = U_DOT_GRADT_GI / TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 )
+!!$                   END IF
+!!$
+!!$                   A_STAR_T = COEF * TDTGI
+!!$                   A_STAR_X = COEF * TXGI
+!!$                   A_STAR_Y = COEF * TYGI
+!!$                   A_STAR_Z = COEF * TZGI
+!!$
+!!$                   RESIDGI = SQRT ( UDGI**2 + VDGI**2 + WDGI**2 ) / HDC
+!!$
+!!$                   VEC_VEL(1) = A_STAR_X
+!!$                   VEC_VEL(2) = A_STAR_Y
+!!$                   VEC_VEL(3) = A_STAR_Z
+!!$                   VEC_VEL2=0.0
+!!$                   DO IDIM = 1, NDIM
+!!$                      VEC_VEL2(IDIM) = SUM( INV_JAC(IDIM, 1:NDIM, GI) * VEC_VEL(1:NDIM) )
+!!$                   END DO
+!!$
+!!$                   P_STAR = 0.5 * HDC / TOLFUN( SQRT( A_STAR_X**2 + A_STAR_Y**2 + A_STAR_Z**2 ) )
+!!$
+!!$                   ! For discontinuous elements half the length scale...
+!!$                   !IF(U_NONODS==CV_NONODS) P_STAR=0.5*P_STAR 
+!!$                   ! For quadratic elements...
+!!$                   !IF( ((NDIM==2).AND.(CV_NLOC==6)).or.((NDIM==3).AND.(CV_NLOC==10)) ) &
+!!$                   !     P_STAR=0.5*P_STAR
+!!$
+!!$                   IF ( NON_LIN_PETROV_INTERFACE == 1 ) THEN           ! standard approach
+!!$                      DIFF_COEF = COEF * P_STAR * RESIDGI
+!!$                   ELSE IF ( NON_LIN_PETROV_INTERFACE == 2 ) THEN      ! standard approach making it +ve
+!!$                      DIFF_COEF = MAX( 0.0, COEF * P_STAR * RESIDGI )
+!!$                   ELSE IF ( NON_LIN_PETROV_INTERFACE == 3 ) THEN      ! residual squared approach
+!!$                      DIFF_COEF = P_STAR * RESIDGI**2 / TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 ) 
+!!$                   ELSE IF ( NON_LIN_PETROV_INTERFACE == 4 ) THEN      ! anisotropic diffusion in the A* direction.
+!!$                      COEF2 = CVNORMX(GI)*A_STAR_X + CVNORMY(GI)*A_STAR_Y + CVNORMZ(GI)*A_STAR_Z
+!!$                   ELSE                                                ! isotropic diffusion with u magnitide
+!!$                      DIFF_COEF = SQRT( UDGI**2 + VDGI**2 + WDGI**2 ) * P_STAR
+!!$                   ENDIF
+!!$                   ! Make the diffusion coefficient negative (compressive)
+!!$                   DIFF_COEF = -DIFF_COEF
+!!$                   RSCALE = 1. / TOLFUN( CVNORMX(GI)*UDGI + CVNORMY(GI)*VDGI + CVNORMZ(GI)*WDGI )
+!!$ 
+!!$                END IF ! Petrov-Galerkin end of IF(NON_LIN_PETROV_INTERFACE==0) THEN 
+!!$            
+!!$             END IF ! DOWNWIND_EXTRAP .AND. CFL>=0
+!!$         
+!!$          END IF ! SCALE_DOWN_WIND
+!!$
+!!$          DO CV_KLOC = 1, CV_NLOC
+!!$             !CV_NODK = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_KLOC )
+!!$             !CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
+!!$             CV_NODK_IPHA = E_CV_NODK_IPHA( CV_KLOC )
+!!$
+!!$             IF( DOWNWIND_EXTRAP .AND. (courant_or_minus_one_new.GE.0.0) ) THEN ! Extrapolate to the downwind value...
+!!$             
+!!$                IF ( NON_LIN_PETROV_INTERFACE.NE.0 ) THEN
+!!$                   if ( .false. ) then
+!!$                      RGRAY = 0.5 * (udgi**2+vdgi**2+wdgi**2) * &
+!!$                           ( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) + CVNORMY(GI)*SCVFENY( CV_KLOC, GI ) + CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) ) &
+!!$                           / tolfun( hdc * abs(u_dot_gradt_gi) * sqrt( TXGI**2 + TYGI**2 + TZGI**2 ) &
+!!$                           * ( CVNORMX(GI)*UDGI + CVNORMY(GI)*VDGI + CVNORMZ(GI)*WDGI )  )
+!!$                   else
+!!$                      IF ( NON_LIN_PETROV_INTERFACE == 4 ) THEN ! anisotropic diffusion...
+!!$                         RGRAY = RSCALE * COEF2 * P_STAR * ( UDGI*SCVFENX( CV_KLOC, GI ) &
+!!$                              + VDGI*SCVFENY( CV_KLOC, GI ) + WDGI*SCVFENZ( CV_KLOC, GI ) )
+!!$                      ELSE
+!!$                         RGRAY = -1. * DIFF_COEF * RSCALE * ( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) &
+!!$                              + CVNORMY(GI)*SCVFENY( CV_KLOC, GI ) + CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) )
+!!$                      END IF
+!!$                   end if
+!!$                ELSE
+!!$                   RGRAY = RSCALE * ELE_LENGTH_SCALE * ( UDGI*SCVFENX( CV_KLOC, GI ) &
+!!$                        + VDGI*SCVFENY( CV_KLOC, GI ) + WDGI*SCVFENZ( CV_KLOC, GI ) )
+!!$                END IF
+!!$                
+!!$                RSHAPE    = SCVFEN( CV_KLOC, GI ) + RGRAY
+!!$                RSHAPE_OLD= SCVFEN( CV_KLOC, GI ) + RGRAY
+!!$                FEMTGI    = FEMTGI     +  RSHAPE     * FEMT( CV_NODK_IPHA )
+!!$                FEMTOLDGI = FEMTOLDGI  +  RSHAPE_OLD * FEMTOLD( CV_NODK_IPHA )
+!!$             
+!!$             ELSE
+!!$
+!!$                FEMTGI    = FEMTGI     +  SCVFEN( CV_KLOC, GI ) * FEMT( CV_NODK_IPHA )
+!!$                FEMTOLDGI = FEMTOLDGI  +  SCVFEN( CV_KLOC, GI ) * FEMTOLD( CV_NODK_IPHA )
+!!$             
+!!$             END IF
+!!$
+!!$             FEMDGI    = FEMDGI     +  SCVFEN( CV_KLOC, GI ) * FEMDEN( CV_NODK_IPHA )
+!!$             FEMDOLDGI = FEMDOLDGI  +  SCVFEN( CV_KLOC, GI ) * FEMDENOLD( CV_NODK_IPHA )
+!!$             IF(IGOT_T2==1) THEN
+!!$                FEMT2GI    = FEMT2GI     +  SCVFEN( CV_KLOC, GI ) * FEMT2( CV_NODK_IPHA )
+!!$                FEMT2OLDGI = FEMT2OLDGI  +  SCVFEN( CV_KLOC, GI ) * FEMT2OLD( CV_NODK_IPHA )
+!!$             ELSE
+!!$                FEMT2GI    = 1.0
+!!$                FEMT2OLDGI = 1.0
+!!$             END IF
+!!$          END DO
+!!$
+!!$       ELSE  ! DG saturation across elements
+!!$
+!!$          IF ( UPWIND ) THEN
+!!$
+!!$             ! Interface tracking...
+!!$             RSCALE=1.0 ! Scaling to reduce the downwind bias(=1downwind, =0central)
+!!$             IF( DOWNWIND_EXTRAP .AND. (courant_or_minus_one_new.GE.0.0) ) THEN
+!!$
+!!$                ELE_DOWN = ELE
+!!$                IF ( INCOME < 0.5 ) ELE_DOWN = ELE2
+!!$
+!!$                IF ( NON_LIN_PETROV_INTERFACE == 0 ) THEN ! NOT non-linear Petrov-Galerkin Interface
+!!$
+!!$                   TXGI=0.0
+!!$                   TYGI=0.0
+!!$                   TZGI=0.0
+!!$                   DO CV_KLOC = 1, CV_NLOC
+!!$                      !CV_NODK = CV_NDGLN( ( ELE_DOWN - 1 ) * CV_NLOC + CV_KLOC )
+!!$                      !CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
+!!$                      CV_NODK_IPHA = E_CV_NODK_IPHA( CV_KLOC )
+!!$                      TXGI = TXGI + SCVFENX( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
+!!$                      IF(NDIM.GE.2) TYGI = TYGI + SCVFENY( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
+!!$                      IF(NDIM.GE.3) TZGI = TZGI + SCVFENZ( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
+!!$                   END DO
+!!$
+!!$                   UDGI=0.0
+!!$                   VDGI=0.0
+!!$                   WDGI=0.0
+!!$                   DO U_KLOC = 1, U_NLOC
+!!$                      !U_NODK = U_NDGLN( ( ELE_DOWN - 1 ) * U_NLOC + U_KLOC )
+!!$                      !U_NODK_IPHA = U_NODK + ( IPHASE - 1 ) * U_NONODS
+!!$                      U_NODK_IPHA = E_U_NODK_IPHA( U_KLOC )
+!!$                      UDGI = UDGI + SUFEN( U_KLOC, GI )*U(U_NODK_IPHA)
+!!$                      IF(NDIM.GE.2) VDGI = VDGI + SUFEN( U_KLOC, GI ) * V(U_NODK_IPHA)
+!!$                      IF(NDIM.GE.3) WDGI = WDGI + SUFEN( U_KLOC, GI ) * W(U_NODK_IPHA)
+!!$                   END DO
+!!$
+!!$                   ! cosine rule with velocity and normal:
+!!$                   !RSCALE=ABS(CVNORMX(GI)*UDGI+CVNORMY(GI)*VDGI+CVNORMZ(GI)*WDGI) &
+!!$                   !      /TOLFUN(UDGI**2+VDGI**2+WDGI**2)
+!!$                   ! cosine rule with velocity and concentration gradient:
+!!$                   !RSCALE=ABS(TXGI*UDGI+TYGI*VDGI+TZGI*WDGI) &
+!!$                   !      /TOLFUN((UDGI**2+VDGI**2+WDGI**2)*SQRT(TXGI**2+TYGI**2+TZGI**2))
+!!$                   ! no cosine rule:
+!!$                   RSCALE = 1.0 &
+!!$                        / TOLFUN( SQRT( UDGI**2 + VDGI**2 + WDGI**2 ) )
+!!$
+!!$                   VEC_VEL(1) = UDGI
+!!$                   VEC_VEL(2) = VDGI
+!!$                   VEC_VEL(3) = WDGI
+!!$                   VEC_VEL2 = 0.0
+!!$                   DO IDIM=1,NDIM
+!!$                      VEC_VEL2(IDIM) = SUM( INV_JAC(IDIM, 1:NDIM, GI) * VEC_VEL(1:NDIM) )
+!!$                   END DO
+!!$                   ! normalize the velocity in here: 
+!!$                   !VEC_VEL2=VEC_VEL2/TOLFUN(SQRT( UDGI**2+VDGI**2+WDGI**2))
+!!$
+!!$                   ELE_LENGTH_SCALE = 0.5 * SQRT( (UDGI**2 + VDGI**2 + WDGI**2 ) / TOLFUN( SUM( VEC_VEL2(1:NDIM)**2 ) ) )
+!!$
+!!$                   ! For discontinuous elements half the length scale...
+!!$                   IF(U_NONODS==CV_NONODS) ELE_LENGTH_SCALE=0.5*ELE_LENGTH_SCALE
+!!$                   ! For quadratic elements...
+!!$                   IF( ((NDIM==2).AND.(CV_NLOC==6)).or.((NDIM==3).AND.(CV_NLOC==10)) ) &
+!!$                        ELE_LENGTH_SCALE = 0.5 * ELE_LENGTH_SCALE
+!!$                
+!!$                ELSE ! Petrov-Galerkin end of IF(NON_LIN_PETROV_INTERFACE==0) THEN 
+!!$
+!!$                   TXGI=0.0
+!!$                   TYGI=0.0
+!!$                   TZGI=0.0
+!!$                   TGI=0.0
+!!$                   TOLDGI=0.0
+!!$                   DO CV_KLOC = 1, CV_NLOC
+!!$                      !CV_NODK = CV_NDGLN( ( ELE_DOWN - 1 ) * CV_NLOC + CV_KLOC )
+!!$                      !CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
+!!$                      CV_NODK_IPHA = E_CV_NODK_IPHA( CV_KLOC )
+!!$                      TXGI = TXGI + SCVFENX( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
+!!$                      IF(NDIM.GE.2) TYGI = TYGI + SCVFENY( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
+!!$                      IF(NDIM.GE.3) TZGI = TZGI + SCVFENZ( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
+!!$                      TGI = TGI + SCVFEN( CV_KLOC, GI ) * FEMT(CV_NODK_IPHA)
+!!$                      TOLDGI = TOLDGI + SCVFEN( CV_KLOC, GI ) * FEMTOLD(CV_NODK_IPHA)
+!!$                   END DO
+!!$
+!!$                   TDTGI=(TGI-TOLDGI)/DT
+!!$                   TDTGI=0.0
+!!$
+!!$                   UDGI=0.0
+!!$                   VDGI=0.0
+!!$                   WDGI=0.0
+!!$                   DO U_KLOC = 1, U_NLOC
+!!$                      !U_NODK = U_NDGLN( ( ELE_DOWN - 1 ) * U_NLOC + U_KLOC )
+!!$                      !U_NODK_IPHA = U_NODK + ( IPHASE - 1 ) * U_NONODS
+!!$                      U_NODK_IPHA = E_U_NODK_IPHA( U_KLOC )
+!!$                      UDGI = UDGI + SUFEN( U_KLOC, GI ) * U(U_NODK_IPHA)
+!!$                      IF(NDIM.GE.2) VDGI = VDGI + SUFEN( U_KLOC, GI ) * V(U_NODK_IPHA)
+!!$                      IF(NDIM.GE.3) WDGI = WDGI + SUFEN( U_KLOC, GI ) * W(U_NODK_IPHA)
+!!$                   END DO
+!!$
+!!$                   U_DOT_GRADT_GI = TDTGI + UDGI*TXGI + VDGI*TYGI + WDGI*TZGI
+!!$
+!!$                   COEF = U_DOT_GRADT_GI / TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 )
+!!$                   IF ( NON_LIN_PETROV_INTERFACE == 5 ) THEN 
+!!$                      COEF = 1.0 / TOLFUN( SQRT( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 ) )
+!!$                   ELSE
+!!$                      COEF = U_DOT_GRADT_GI / TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 )
+!!$                   ENDIF
+!!$
+!!$                   A_STAR_T = COEF * TDTGI
+!!$                   A_STAR_X = COEF * TXGI
+!!$                   A_STAR_Y = COEF * TYGI
+!!$                   A_STAR_Z = COEF * TZGI
+!!$
+!!$                   RESIDGI = SQRT( A_STAR_X**2 + A_STAR_Y**2 + A_STAR_Z**2) / HDC
+!!$
+!!$                   VEC_VEL(1) = A_STAR_X
+!!$                   VEC_VEL(2) = A_STAR_Y
+!!$                   VEC_VEL(3) = A_STAR_Z
+!!$                   VEC_VEL2 = 0.0
+!!$                   DO IDIM = 1, NDIM
+!!$                      VEC_VEL2(IDIM) = SUM( INV_JAC(IDIM, 1:NDIM, GI) * VEC_VEL(1:NDIM) )
+!!$                   END DO
+!!$
+!!$                   P_STAR = 0.5 * HDC / TOLFUN( SQRT( A_STAR_X**2 + A_STAR_Y**2 + A_STAR_Z**2 ) )
+!!$
+!!$                   ! For discontinuous elements half the length scale...
+!!$                   !IF(U_NONODS==CV_NONODS) P_STAR=0.5*P_STAR 
+!!$                   ! For quadratic elements...
+!!$                   !IF( ((NDIM==2).AND.(CV_NLOC==6)).or.((NDIM==3).AND.(CV_NLOC==10)) ) P_STAR=0.5*P_STAR
+!!$
+!!$                   IF ( NON_LIN_PETROV_INTERFACE == 1 ) THEN              ! standard approach
+!!$                      DIFF_COEF = COEF * P_STAR * RESIDGI
+!!$                   ELSE IF( NON_LIN_PETROV_INTERFACE == 2 ) THEN          ! standard approach making it +ve
+!!$                      DIFF_COEF = MAX( 0.0, COEF * P_STAR * RESIDGI )
+!!$                   ELSE IF( NON_LIN_PETROV_INTERFACE == 3 ) THEN          ! residual squared approach
+!!$                      DIFF_COEF = P_STAR * RESIDGI**2 / TOLFUN( TDTGI**2 + TXGI**2 + TYGI**2 + TZGI**2 ) 
+!!$                   ELSE IF( NON_LIN_PETROV_INTERFACE == 4 ) THEN          ! anisotropic diffusion in the A* direction.
+!!$                      COEF2 = CVNORMX(GI)*A_STAR_X + CVNORMY(GI)*A_STAR_Y + CVNORMZ(GI)*A_STAR_Z
+!!$                   ELSE                                                   ! isotropic diffusion with u magnitide
+!!$                      DIFF_COEF = SQRT( UDGI**2 + VDGI**2 + WDGI**2 ) * P_STAR
+!!$                   END IF
+!!$                  
+!!$                   ! Make the diffusion coefficient negative (compressive)
+!!$                   DIFF_COEF = -DIFF_COEF
+!!$                   RSCALE = 1. / TOLFUN( CVNORMX(GI)*UDGI + CVNORMY(GI)*VDGI + CVNORMZ(GI)*WDGI )
+!!$
+!!$                END IF ! Petrov-Galerkin end of IF(NON_LIN_PETROV_INTERFACE==0) THEN 
+!!$
+!!$                FEMTGI = 0.0
+!!$                FEMTOLDGI = 0.0
+!!$                FEMDGI = 0.0
+!!$                FEMDOLDGI = 0.0
+!!$                FEMT2GI = 0.0
+!!$                FEMT2OLDGI =0.0
+!!$                DO CV_KLOC = 1, CV_NLOC
+!!$                   !CV_KLOC2 = CV_OTHER_LOC( CV_KLOC )
+!!$                   !CV_NODK = CV_NDGLN( ( ELE_DOWN - 1 ) * CV_NLOC + CV_KLOC )
+!!$                   !CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
+!!$                   CV_NODK_IPHA = E_CV_NODK_IPHA( CV_KLOC )
+!!$                   !CV_NODK2 = CV_NDGLN( ( ELE2 - 1 ) * CV_NLOC + CV_KLOC2 )
+!!$                   !CV_NODK2_IPHA = CV_NODK2 + ( IPHASE - 1 ) * CV_NONODS
+!!$                   ! Extrapolate to the downwind value...
+!!$                   IF ( NON_LIN_PETROV_INTERFACE .NE. 0 ) THEN 
+!!$                      IF ( NON_LIN_PETROV_INTERFACE == 4 ) THEN ! anisotropic diffusion...
+!!$                         RGRAY = RSCALE * COEF2 *P_STAR * ( UDGI*SCVFENX( CV_KLOC, GI ) &
+!!$                              + VDGI*SCVFENY( CV_KLOC, GI ) + WDGI*SCVFENZ( CV_KLOC, GI ) )
+!!$                      ELSE
+!!$                         RGRAY = -DIFF_COEF * RSCALE * ( CVNORMX(GI)*SCVFENX( CV_KLOC, GI ) &
+!!$                              + CVNORMY(GI)*SCVFENY( CV_KLOC, GI ) + CVNORMZ(GI)*SCVFENZ( CV_KLOC, GI ) )
+!!$                      END IF
+!!$                   ELSE
+!!$                      RGRAY = RSCALE * ELE_LENGTH_SCALE * ( UDGI*SCVFENX( CV_KLOC, GI ) &
+!!$                           + VDGI*SCVFENY( CV_KLOC, GI ) + WDGI*SCVFENZ( CV_KLOC, GI ) )
+!!$                   END IF
+!!$                   RSHAPE     = SCVFEN( CV_KLOC, GI ) + RGRAY
+!!$                   RSHAPE_OLD = SCVFEN( CV_KLOC, GI ) + RGRAY
+!!$
+!!$                   !IF ( NON_LIN_PETROV_INTERFACE .NE. 0 ) THEN 
+!!$                   !   FEMTGI    = FEMTGI     +  RSHAPE     * 0.5 * ( FEMT( CV_NODK_IPHA ) + FEMT( CV_NODK2_IPHA ) )
+!!$                   !   FEMTOLDGI = FEMTOLDGI  +  RSHAPE_OLD * 0.5 * ( FEMTOLD( CV_NODK_IPHA ) + FEMTOLD( CV_NODK2_IPHA ) )
+!!$                   !ELSE
+!!$                   FEMTGI    = FEMTGI     +  RSHAPE     * FEMT( CV_NODK_IPHA )
+!!$                   FEMTOLDGI = FEMTOLDGI  +  RSHAPE_OLD * FEMTOLD( CV_NODK_IPHA )
+!!$                   !END IF
+!!$
+!!$                   FEMDGI    = FEMDGI     +  SCVFEN( CV_KLOC, GI ) * FEMDEN( CV_NODK_IPHA )
+!!$                   FEMDOLDGI = FEMDOLDGI  +  SCVFEN( CV_KLOC, GI ) * FEMDENOLD( CV_NODK_IPHA )
+!!$                   IF ( IGOT_T2 == 1 ) THEN
+!!$                      FEMT2GI    = FEMT2GI     +  SCVFEN( CV_KLOC, GI ) * FEMT2( CV_NODK_IPHA )
+!!$                      FEMT2OLDGI = FEMT2OLDGI  +  SCVFEN( CV_KLOC, GI ) * FEMT2OLD( CV_NODK_IPHA )
+!!$                   ELSE
+!!$                      FEMT2GI    = 1.0
+!!$                      FEMT2OLDGI = 1.0
+!!$                   END IF
+!!$                END DO
+!!$
+!!$                IF( .TRUE. ) THEN ! Downwinding for DG...
+!!$                   FEMTGI_DDG = 0.0
+!!$                   FEMTOLDGI_DDG = 0.0
+!!$                   !FEMTGI = 0.0
+!!$                   !FEMTOLDGI = 0.0
+!!$                   !FEMDGI = 0.0
+!!$                   !FEMDOLDGI = 0.0
+!!$                   !FEMT2GI = 0.0
+!!$                   !FEMT2OLDGI =0.0
+!!$                   DO CV_KLOC = 1, CV_NLOC
+!!$                      CV_KLOC2 = CV_OTHER_LOC( CV_KLOC )
+!!$                      IF ( CV_KLOC2 /= 0 ) THEN
+!!$                         CV_NODK2 = CV_NDGLN( ( ELE2 - 1 ) * CV_NLOC + CV_KLOC2 )
+!!$                         CV_NODK2_IPHA = CV_NODK2 + ( IPHASE - 1 ) * CV_NONODS
+!!$                         !CV_NODK = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_KLOC )
+!!$                         !CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
+!!$                         CV_NODK_IPHA = E_CV_NODK_IPHA( CV_KLOC )
+!!$                         ! Extrapolate to the downwind value...
+!!$                         ! USE DOWNWINDING...
+!!$                         !FEMTGI_DDG = FEMTGI_DDG +  SCVFEN( CV_KLOC, GI ) * ( FEMT( CV_NODK2_IPHA ) & 
+!!$                         !     * (1.-INCOME) + FEMT( CV_NODK_IPHA ) * INCOME )
+!!$                         !FEMTOLDGI_DDG = FEMTOLDGI_DDG + SCVFEN( CV_KLOC, GI ) * ( FEMTOLD( CV_NODK2_IPHA ) &
+!!$                         !     * (1.-INCOMEOLD) + FEMTOLD( CV_NODK_IPHA ) * INCOMEOLD )
+!!$                         ! Central...
+!!$                         FEMTGI_DDG = FEMTGI_DDG +  SCVFEN( CV_KLOC, GI ) * ( FEMT( CV_NODK2_IPHA ) & 
+!!$                              * 0.5 + FEMT( CV_NODK_IPHA ) * 0.5 )
+!!$                         FEMTOLDGI_DDG = FEMTOLDGI_DDG + SCVFEN( CV_KLOC, GI ) * ( FEMTOLD( CV_NODK2_IPHA ) &
+!!$                              * 0.5 + FEMTOLD( CV_NODK_IPHA ) * 0.5 )
+!!$                         
+!!$                         if ( .false. ) then
+!!$                            FEMTGI = FEMTGI +  SCVFEN( CV_KLOC, GI ) * ( FEMT( CV_NODK2_IPHA ) & 
+!!$                                 * (1.-INCOME) + FEMT( CV_NODK_IPHA ) * INCOME )
+!!$                            FEMTOLDGI = FEMTOLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMTOLD( CV_NODK2_IPHA ) &
+!!$                                 * (1.-INCOMEOLD) + FEMTOLD( CV_NODK_IPHA ) * INCOMEOLD )
+!!$                            FEMDGI = FEMDGI + SCVFEN( CV_KLOC, GI ) * ( FEMDEN( CV_NODK2_IPHA ) &
+!!$                                 * (1.-INCOME) + FEMDEN( CV_NODK_IPHA ) * INCOME )
+!!$                            FEMDOLDGI = FEMDOLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMDENOLD( CV_NODK2_IPHA ) &
+!!$                                 * (1.-INCOMEOLD) + FEMDENOLD( CV_NODK_IPHA ) * INCOMEOLD )
+!!$                            IF(IGOT_T2==1) THEN
+!!$                               FEMT2GI = FEMT2GI +  SCVFEN( CV_KLOC, GI ) * ( FEMT2( CV_NODK2_IPHA ) & 
+!!$                                    * (1.-INCOME) + FEMT2( CV_NODK_IPHA ) * INCOME )
+!!$                               FEMT2OLDGI = FEMT2OLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMT2OLD( CV_NODK2_IPHA ) &
+!!$                                    * (1.-INCOMEOLD) + FEMT2OLD( CV_NODK_IPHA ) * INCOMEOLD )
+!!$                            ELSE
+!!$                               FEMT2GI    = 1.0
+!!$                               FEMT2OLDGI = 1.0
+!!$                            ENDIF
+!!$                         end if
+!!$
+!!$                      END IF
+!!$                   END DO
+!!$                   
+!!$                   ! use the method with the max difference like ENO but opposite...
+!!$                   IF ( ABS(FEMTGI_DDG-FVT) .GT. ABS(FEMTGI-FVT) ) FEMTGI = FEMTGI_DDG
+!!$                   !FEMTGI   = 0.5 * ( FEMTGI_DDG + FEMTGI )  
+!!$                   FEMTGI = FEMTGI_DDG
+!!$                   !IF ( ABS(FEMTOLDGI_DDG-FVTOLD) .GT. ABS(FEMTOLDGI-FVTOLD) ) FEMTOLDGI=FEMTOLDGI_DDG
+!!$                   !FEMTOLDGI = 0.5 * ( FEMTOLDGI_DDG + FEMTOLDGI )
+!!$                   FEMTOLDGI = FEMTOLDGI_DDG
+!!$
+!!$                END IF ! ENDOF DOWNWINDING FOR DG
+!!$                ! END OF IF ( DOWNWIND_EXTRAP .AND. (courant_or_minus_one_new.GE.0.0) ) THEN ...
+!!$
+!!$             ELSE ! Standard DG upwinding...
+!!$
+!!$                DO CV_KLOC = 1, CV_NLOC
+!!$                   CV_KLOC2 = CV_OTHER_LOC( CV_KLOC )
+!!$                   IF ( CV_KLOC2 /= 0 ) THEN
+!!$                      CV_NODK2 = CV_NDGLN(( ELE2 - 1 ) * CV_NLOC + CV_KLOC2 )
+!!$                      CV_NODK2_IPHA = CV_NODK2 + ( IPHASE - 1 ) * CV_NONODS
+!!$                      !CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
+!!$                      !CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
+!!$                      CV_NODK_IPHA = E_CV_NODK_IPHA( CV_KLOC )
+!!$                      FEMTGI = FEMTGI +  SCVFEN( CV_KLOC, GI ) * ( FEMT( CV_NODK2_IPHA ) & 
+!!$                           * INCOME + FEMT( CV_NODK_IPHA ) * ( 1. -INCOME ) )
+!!$                      FEMTOLDGI = FEMTOLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMTOLD( CV_NODK2_IPHA ) &
+!!$                           * INCOMEOLD + FEMTOLD( CV_NODK_IPHA ) * ( 1. - INCOMEOLD ) )
+!!$                      FEMDGI = FEMDGI + SCVFEN( CV_KLOC, GI ) * ( FEMDEN( CV_NODK2_IPHA ) &
+!!$                           * INCOME + FEMDEN( CV_NODK_IPHA ) * ( 1. - INCOME ) )
+!!$                      FEMDOLDGI = FEMDOLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMDENOLD( CV_NODK2_IPHA ) &
+!!$                           * INCOMEOLD + FEMDENOLD( CV_NODK_IPHA ) * ( 1. - INCOMEOLD ) )
+!!$                      IF ( IGOT_T2 == 1 ) THEN
+!!$                         FEMT2GI = FEMT2GI +  SCVFEN( CV_KLOC, GI ) * ( FEMT2( CV_NODK2_IPHA ) & 
+!!$                              * INCOME + FEMT2( CV_NODK_IPHA ) * ( 1. -INCOME ) )
+!!$                         FEMT2OLDGI = FEMT2OLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMT2OLD( CV_NODK2_IPHA ) &
+!!$                              * INCOMEOLD + FEMT2OLD( CV_NODK_IPHA ) * ( 1. - INCOMEOLD ) )
+!!$                      ELSE
+!!$                         FEMT2GI    = 1.0
+!!$                         FEMT2OLDGI = 1.0
+!!$                      ENDIF
+!!$
+!!$                   END IF
+!!$                END DO
+!!$             ENDIF ! END OF IF(DOWNWIND_EXTRAP.AND.(courant_or_minus_one_new.GE.0.0)) THEN ELSE ...
+!!$
+!!$          ELSE ! Central DG...
+!!$
+!!$             DO CV_KLOC = 1, CV_NLOC
+!!$                CV_KLOC2 = CV_OTHER_LOC( CV_KLOC )
+!!$                IF ( CV_KLOC2 /= 0 ) THEN
+!!$                   CV_NODK2 = CV_NDGLN( ( ELE2 - 1 ) * CV_NLOC + CV_KLOC2 )
+!!$                   CV_NODK2_IPHA = CV_NODK2 + ( IPHASE - 1 ) * CV_NONODS
+!!$                   !CV_NODK = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_KLOC )
+!!$                   !CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
+!!$                   CV_NODK_IPHA = E_CV_NODK_IPHA( CV_KLOC )
+!!$                   FEMTGI = FEMTGI +  SCVFEN( CV_KLOC, GI ) * ( FEMT( CV_NODK2_IPHA ) & 
+!!$                        * 0.5 + FEMT( CV_NODK_IPHA ) * 0.5 )
+!!$                   FEMTOLDGI = FEMTOLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMTOLD( CV_NODK2_IPHA ) &
+!!$                        * 0.5 + FEMTOLD( CV_NODK_IPHA ) * 0.5 )
+!!$                   FEMDGI = FEMDGI + SCVFEN( CV_KLOC, GI ) * ( FEMDEN( CV_NODK2_IPHA ) &
+!!$                        * 0.5 + FEMDEN( CV_NODK_IPHA ) * 0.5 )
+!!$                   FEMDOLDGI = FEMDOLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMDENOLD( CV_NODK2_IPHA ) &
+!!$                        * 0.5 + FEMDENOLD( CV_NODK_IPHA ) * 0.5 )
+!!$                   IF ( IGOT_T2 == 1 ) THEN
+!!$                      FEMT2GI = FEMT2GI +  SCVFEN( CV_KLOC, GI ) * ( FEMT2( CV_NODK2_IPHA ) & 
+!!$                           * 0.5 + FEMT2( CV_NODK_IPHA ) * 0.5 )
+!!$                      FEMT2OLDGI = FEMT2OLDGI + SCVFEN( CV_KLOC, GI ) * ( FEMT2OLD( CV_NODK2_IPHA ) &
+!!$                           * 0.5 + FEMT2OLD( CV_NODK_IPHA ) * 0.5 )
+!!$                   ELSE
+!!$                      FEMT2GI    = 1.0
+!!$                      FEMT2OLDGI = 1.0
+!!$                   ENDIF
+!!$                ENDIF
+!!$             END DO
+!!$
+!!$          END IF ! IF UPWIND / Central DG
+!!$
+!!$       ENDIF Conditional_CV_DISOPT_ELE2
+!!$
+!!$    END SELECT
+!!$
+!!$    IF ( CV_NODI_IPHA == CV_NODJ_IPHA ) THEN
+!!$
+!!$       ! On the boundary of the domain and thus use the 1st order flux. 
+!!$       LIMT    = FVT
+!!$       LIMTOLD = FVTOLD
+!!$       LIMD    = FVD
+!!$       LIMDOLD = FVDOLD
+!!$       LIMT2   = FVT2
+!!$       LIMT2OLD= FVT2OLD
+!!$
+!!$    ELSE
+!!$
+!!$       CALL LIMITERS( &
+!!$            IGOT_T2, CV_NONODS, NPHASE, IPHASE, CV_NODI_IPHA, CV_NODJ_IPHA, IANISOTROPIC, &
+!!$            LIM_VOL_ADJUST, FIRSTORD, NOLIMI, LIMIT_USE_2ND, &
+!!$            FEMTGI, FEMTOLDGI, FEMDGI, FEMDOLDGI, FEMT2GI, FEMT2OLDGI,INCOME,INCOMEOLD, &
+!!$            COURANT_OR_MINUS_ONE_NEW, COURANT_OR_MINUS_ONE_OLD, &
+!!$            T, TOLD, DEN, DENOLD, T2, T2OLD, &
+!!$            TMIN, TOLDMIN, DENMIN, DENOLDMIN, TMAX, TOLDMAX, DENMAX, DENOLDMAX, &
+!!$            T2MIN, T2OLDMIN, T2MAX, T2OLDMAX, MASS_CV, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, &
+!!$            TOLDMAX_NOD, DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD, &
+!!$            T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, &
+!!$            TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, &
+!!$            T2UPWIND_MAT, T2OLDUPWIND_MAT, &
+!!$            NSMALL_COLM, SMALL_FINDRM, SMALL_COLM, &
+!!$            TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC, &
+!!$            DENMAX_2ND_MC, DENMIN_2ND_MC, DENOLDMAX_2ND_MC, DENOLDMIN_2ND_MC, &
+!!$            T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, T2OLDMIN_2ND_MC, &
+!!$            LIMT, LIMTOLD, LIMD, LIMDOLD, LIMT2, LIMT2OLD )
+!!$
+!!$    END IF
+!!$
+!!$    ! Amend for porosity...
+!!$    IF ( ELE2 /= 0 ) THEN 
+!!$       FVD    = 0.5 * ( VOLFRA_PORE(ELE) + VOLFRA_PORE(ELE2) ) * FVD
+!!$       FVDOLD = 0.5 * ( VOLFRA_PORE(ELE) + VOLFRA_PORE(ELE2) ) * FVDOLD
+!!$       LIMD   = 0.5 * ( VOLFRA_PORE(ELE) + VOLFRA_PORE(ELE2) ) * LIMD
+!!$       LIMDOLD= 0.5 * ( VOLFRA_PORE(ELE) + VOLFRA_PORE(ELE2) ) * LIMDOLD
+!!$    ELSE
+!!$       FVD    = VOLFRA_PORE(ELE) * FVD
+!!$       FVDOLD = VOLFRA_PORE(ELE) * FVDOLD
+!!$       LIMD   = VOLFRA_PORE(ELE) * LIMD
+!!$       LIMDOLD= VOLFRA_PORE(ELE) * LIMDOLD
+!!$    END IF
+!!$
+!!$    IF ( HI_ORDER_HALF ) THEN
+!!$       RELAX = MIN ( 2.*ABS(FEMTGI-0.5), 1.0 )
+!!$       LIMT = RELAX * LIMT + (1.-RELAX) * FEMTGI
+!!$       RELAXOLD = MIN( 2.*ABS(FEMTOLDGI-0.5), 1.0 )
+!!$       LIMTOLD = RELAXOLD*LIMTOLD + (1.-RELAXOLD) * FEMTOLDGI
+!!$    END IF
+!!$
+!!$    LIMDT = LIMD * LIMT
+!!$    LIMDTOLD = LIMDOLD * LIMTOLD
+!!$
+!!$    LIMDTT2 = LIMD * LIMT * LIMT2
+!!$    LIMDTT2OLD = LIMDOLD * LIMTOLD * LIMT2OLD
+!!$
+!!$    IF ( SELE /=0 ) DEALLOCATE( SE_CV_NODK_IPHA, SE_CV_SNODK_IPHA )
+!!$
+!!$    RETURN
+!!$
+!!$
+!!$    contains
+!!$      
+!!$      PURE SUBROUTINE LIMITERS( &
+!!$       IGOT_T2, CV_NONODS, NPHASE, IPHASE, CV_NODI_IPHA, CV_NODJ_IPHA, IANISOTROPIC, &
+!!$       LIM_VOL_ADJUST, FIRSTORD, NOLIMI, LIMIT_USE_2ND, &
+!!$       FEMTGI, FEMTOLDGI, FEMDGI, FEMDOLDGI, FEMT2GI, FEMT2OLDGI,INCOME,INCOMEOLD, &
+!!$       COURANT_OR_MINUS_ONE_NEW, COURANT_OR_MINUS_ONE_OLD, &
+!!$       T, TOLD, DEN, DENOLD, T2, T2OLD, &
+!!$       TMIN, TOLDMIN, DENMIN, DENOLDMIN, TMAX, TOLDMAX, DENMAX, DENOLDMAX, &
+!!$       T2MIN, T2OLDMIN, T2MAX, T2OLDMAX, MASS_CV, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, &
+!!$       TOLDMAX_NOD, DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD, &
+!!$       T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, &
+!!$       TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, &
+!!$       T2UPWIND_MAT, T2OLDUPWIND_MAT, &
+!!$       NSMALL_COLM, SMALL_FINDRM, SMALL_COLM, &
+!!$       TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC, &
+!!$       DENMAX_2ND_MC, DENMIN_2ND_MC, DENOLDMAX_2ND_MC, DENOLDMIN_2ND_MC, &
+!!$       T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, T2OLDMIN_2ND_MC, &
+!!$       LIMT, LIMTOLD, LIMD, LIMDOLD, LIMT2, LIMT2OLD )
+!!$
+!!$    implicit none
+!!$
+!!$
+!!$    INTEGER, intent( in ) :: IGOT_T2, CV_NONODS, NPHASE, IPHASE, CV_NODI_IPHA, CV_NODJ_IPHA, IANISOTROPIC
+!!$    LOGICAL, intent( in ) :: LIM_VOL_ADJUST, FIRSTORD, NOLIMI, LIMIT_USE_2ND 
+!!$    REAL, intent( in ) :: FEMTGI, FEMTOLDGI, FEMDGI, FEMDOLDGI, FEMT2GI, FEMT2OLDGI,INCOME,INCOMEOLD  
+!!$    REAL, intent( in ) :: COURANT_OR_MINUS_ONE_NEW, COURANT_OR_MINUS_ONE_OLD
+!!$   
+!!$    REAL, DIMENSION( : ), intent( in ) :: T, TOLD, DEN, DENOLD
+!!$    REAL, DIMENSION( : ), intent( in ) :: T2, T2OLD
+!!$    REAL, DIMENSION( : ), intent( inout ) :: TMIN, TOLDMIN, DENMIN, DENOLDMIN, TMAX, TOLDMAX, DENMAX, DENOLDMAX
+!!$    REAL, DIMENSION( : ), intent( inout ) :: T2MIN, T2OLDMIN, T2MAX, T2OLDMAX
+!!$
+!!$    REAL, DIMENSION( : ), intent( in ) :: MASS_CV
+!!$    INTEGER, DIMENSION( :  ), intent( in ) :: TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, &
+!!$         TOLDMAX_NOD, DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD
+!!$    INTEGER, DIMENSION( : ), intent( in ) :: T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD
+!!$    REAL, DIMENSION( : ), intent( in ) :: TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT
+!!$    REAL, DIMENSION( : ), intent( in ) :: T2UPWIND_MAT, T2OLDUPWIND_MAT
+!!$    INTEGER, intent( in ) :: NSMALL_COLM
+!!$    INTEGER, DIMENSION( :), intent( in ) :: SMALL_FINDRM
+!!$    INTEGER, DIMENSION( : ), intent( in ) :: SMALL_COLM
+!!$    REAL, DIMENSION( : ), intent( in ) :: TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC,  &
+!!$         DENMAX_2ND_MC, DENMIN_2ND_MC, DENOLDMAX_2ND_MC, DENOLDMIN_2ND_MC
+!!$    REAL, DIMENSION( : ), intent( in ) :: T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, T2OLDMIN_2ND_MC
+!!$    REAL, intent( inout ) :: LIMT, LIMTOLD, LIMD, LIMDOLD, LIMT2, LIMT2OLD
+!!$
+!!$    LOGICAL :: RESET_STORE
+!!$    REAL :: TMIN_STORE, TMAX_STORE, TOLDMIN_STORE, TOLDMAX_STORE, &
+!!$         T2MIN_STORE, T2MAX_STORE, T2OLDMIN_STORE, T2OLDMAX_STORE, &
+!!$         DENMIN_STORE, DENMAX_STORE, DENOLDMIN_STORE, DENOLDMAX_STORE, &
+!!$         TUPWIN, TUPWI2
+!!$    INTEGER :: CV_NODI, CV_NODJ, COUNT, S, E
+!!$
+!!$    CV_NODI = CV_NODI_IPHA - (IPHASE-1)*CV_NONODS
+!!$    CV_NODJ = CV_NODJ_IPHA - (IPHASE-1)*CV_NONODS
+!!$
+!!$    IF ( LIM_VOL_ADJUST ) THEN
+!!$       RESET_STORE = .FALSE.
+!!$       CALL CAL_LIM_VOL_ADJUST( TMIN_STORE, TMIN, T, TMIN_NOD, RESET_STORE, MASS_CV, &
+!!$            CV_NODI_IPHA, CV_NODJ_IPHA, IPHASE, CV_NONODS, NPHASE, INCOME )
+!!$       CALL CAL_LIM_VOL_ADJUST( TMAX_STORE, TMAX, T, TMAX_NOD, RESET_STORE, MASS_CV, &
+!!$            CV_NODI_IPHA, CV_NODJ_IPHA, IPHASE, CV_NONODS, NPHASE, INCOME )
+!!$
+!!$       CALL CAL_LIM_VOL_ADJUST( TOLDMIN_STORE, TOLDMIN, TOLD, TOLDMIN_NOD, RESET_STORE, MASS_CV, &
+!!$            CV_NODI_IPHA, CV_NODJ_IPHA, IPHASE, CV_NONODS, NPHASE, INCOMEOLD )
+!!$       CALL CAL_LIM_VOL_ADJUST( TOLDMAX_STORE, TOLDMAX, TOLD, TOLDMAX_NOD, RESET_STORE, MASS_CV, &
+!!$            CV_NODI_IPHA, CV_NODJ_IPHA, IPHASE, CV_NONODS, NPHASE, INCOMEOLD )
+!!$
+!!$       CALL CAL_LIM_VOL_ADJUST( DENMIN_STORE, DENMIN, DEN, DENMIN_NOD, RESET_STORE, MASS_CV, &
+!!$            CV_NODI_IPHA, CV_NODJ_IPHA, IPHASE, CV_NONODS, NPHASE, INCOME )
+!!$       CALL CAL_LIM_VOL_ADJUST( DENMAX_STORE, DENMAX, DEN, DENMAX_NOD, RESET_STORE, MASS_CV, &
+!!$            CV_NODI_IPHA, CV_NODJ_IPHA, IPHASE, CV_NONODS, NPHASE, INCOME )
+!!$
+!!$       CALL CAL_LIM_VOL_ADJUST( DENOLDMIN_STORE, DENOLDMIN, DENOLD, DENOLDMIN_NOD, RESET_STORE, MASS_CV, &
+!!$            CV_NODI_IPHA, CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOMEOLD )
+!!$       CALL CAL_LIM_VOL_ADJUST( DENOLDMAX_STORE, DENOLDMAX, DENOLD, DENOLDMAX_NOD, RESET_STORE, MASS_CV, &
+!!$            CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOMEOLD )
+!!$
+!!$       IF(IGOT_T2==1) THEN
+!!$          CALL CAL_LIM_VOL_ADJUST( T2MIN_STORE, T2MIN, T2, T2MIN_NOD, RESET_STORE, MASS_CV, &
+!!$               CV_NODI_IPHA, CV_NODJ_IPHA, IPHASE, CV_NONODS, NPHASE, INCOME )
+!!$          CALL CAL_LIM_VOL_ADJUST( T2MAX_STORE, T2MAX, T2, T2MAX_NOD, RESET_STORE, MASS_CV, &
+!!$               CV_NODI_IPHA, CV_NODJ_IPHA, IPHASE, CV_NONODS, NPHASE, INCOME )
+!!$
+!!$          CALL CAL_LIM_VOL_ADJUST( T2OLDMIN_STORE, T2OLDMIN, T2OLD, T2OLDMIN_NOD, RESET_STORE, MASS_CV, &
+!!$               CV_NODI_IPHA, CV_NODJ_IPHA, IPHASE, CV_NONODS, NPHASE, INCOMEOLD )
+!!$          CALL CAL_LIM_VOL_ADJUST( T2OLDMAX_STORE, T2OLDMAX, T2OLD, T2OLDMAX_NOD, RESET_STORE, MASS_CV, &
+!!$               CV_NODI_IPHA, CV_NODJ_IPHA, IPHASE, CV_NONODS, NPHASE, INCOMEOLD )
+!!$       END IF
+!!$    END IF
+!!$
+!!$    IF ( IANISOTROPIC == 1 ) THEN
+!!$       IF( CV_NODJ /= CV_NODI ) THEN
+!!$          DO COUNT = SMALL_FINDRM(CV_NODJ), SMALL_FINDRM(CV_NODJ+1)-1
+!!$             IF ( SMALL_COLM(COUNT) == CV_NODI ) THEN
+!!$                TUPWIN = TUPWIND_MAT( COUNT )
+!!$                EXIT
+!!$             END IF
+!!$          END DO
+!!$          DO COUNT = SMALL_FINDRM(CV_NODI), SMALL_FINDRM(CV_NODI+1)-1
+!!$             IF ( SMALL_COLM(COUNT) == CV_NODJ ) THEN
+!!$                TUPWI2 = TUPWIND_MAT( COUNT )
+!!$                EXIT
+!!$             END IF
+!!$          END DO
+!!$       END IF
+!!$    END IF
+!!$
+!!$    S = ( IPHASE - 1 ) * CV_NONODS + 1
+!!$    E = IPHASE * CV_NONODS
+!!$
+!!$    CALL ONVDLIM_ALL( CV_NONODS, &
+!!$         LIMT, FEMTGI, INCOME, CV_NODI, CV_NODJ, &
+!!$         T( S:E ), TMIN( S:E ), TMAX( S:E ), &
+!!$         TMIN_2ND_MC( S:E ), TMAX_2ND_MC( S:E ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_NEW, &
+!!$         IANISOTROPIC, TUPWIN, TUPWI2 )
+!!$
+!!$    CALL ONVDLIM_ALL( CV_NONODS, &
+!!$         LIMTOLD, FEMTOLDGI, INCOMEOLD, CV_NODI, CV_NODJ, &
+!!$         TOLD( S:E ), TOLDMIN( S:E ), TOLDMAX( S:E ), &
+!!$         TOLDMIN_2ND_MC( S:E ), TOLDMAX_2ND_MC( S:E ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_OLD, &
+!!$         IANISOTROPIC, TUPWIN, TUPWI2 )
+!!$
+!!$    CALL ONVDLIM_ALL( CV_NONODS, &
+!!$         LIMD, FEMDGI, INCOME, CV_NODI, CV_NODJ, &
+!!$         DEN( S:E ), DENMIN( S:E ), DENMAX( S:E ), &
+!!$         DENMIN_2ND_MC( S:E ), DENMAX_2ND_MC( S:E ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_NEW, &
+!!$         IANISOTROPIC, TUPWIN, TUPWI2 )
+!!$
+!!$    CALL ONVDLIM_ALL( CV_NONODS, &
+!!$         LIMDOLD,FEMDOLDGI, INCOMEOLD, CV_NODI, CV_NODJ, &
+!!$         DENOLD( S:E ), DENOLDMIN( S:E ), DENOLDMAX( S:E ), &
+!!$         DENOLDMIN_2ND_MC( S:E ), DENOLDMAX_2ND_MC( S:E ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_OLD, &
+!!$         IANISOTROPIC, TUPWIN, TUPWI2 )
+!!$
+!!$    IF ( IGOT_T2 == 1 ) THEN
+!!$       CALL ONVDLIM_ALL( CV_NONODS, &
+!!$            LIMT2, FEMT2GI, INCOME, CV_NODI, CV_NODJ, &
+!!$            T2( S:E ), T2MIN( S:E ), T2MAX( S:E ), &
+!!$            T2MIN_2ND_MC( S:E ), T2MAX_2ND_MC( S:E ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_NEW, &
+!!$            IANISOTROPIC, TUPWIN, TUPWI2 )
+!!$
+!!$       CALL ONVDLIM_ALL( CV_NONODS, &
+!!$            LIMT2OLD, FEMT2OLDGI, INCOMEOLD, CV_NODI, CV_NODJ, &
+!!$            T2OLD( S:E ), T2OLDMIN( S:E ), T2OLDMAX( S:E ), &
+!!$            T2OLDMIN_2ND_MC( S:E ), T2OLDMAX_2ND_MC( S:E ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_OLD, &
+!!$            IANISOTROPIC, TUPWIN, TUPWI2 )
+!!$    ELSE
+!!$       LIMT2   =1.0
+!!$       LIMT2OLD=1.0
+!!$    END IF
+!!$
+!!$    IF ( LIM_VOL_ADJUST ) THEN
+!!$       RESET_STORE = .TRUE. 
+!!$       CALL CAL_LIM_VOL_ADJUST(TMIN_STORE,TMIN,T,TMIN_NOD,RESET_STORE,MASS_CV, &
+!!$            CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOME )
+!!$       CALL CAL_LIM_VOL_ADJUST(TMAX_STORE,TMAX,T,TMAX_NOD,RESET_STORE,MASS_CV, &
+!!$            CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOME )
+!!$
+!!$       CALL CAL_LIM_VOL_ADJUST(TOLDMIN_STORE,TOLDMIN,TOLD,TOLDMIN_NOD,RESET_STORE,MASS_CV, &
+!!$            CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOMEOLD )
+!!$       CALL CAL_LIM_VOL_ADJUST(TOLDMAX_STORE,TOLDMAX,TOLD,TOLDMAX_NOD,RESET_STORE,MASS_CV, &
+!!$            CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOMEOLD )
+!!$
+!!$       CALL CAL_LIM_VOL_ADJUST(DENMIN_STORE,DENMIN,DEN,DENMIN_NOD,RESET_STORE,MASS_CV, &
+!!$            CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOME )
+!!$       CALL CAL_LIM_VOL_ADJUST(DENMAX_STORE,DENMAX,DEN,DENMAX_NOD,RESET_STORE,MASS_CV, &
+!!$            CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOME )
+!!$
+!!$       CALL CAL_LIM_VOL_ADJUST(DENOLDMIN_STORE,DENOLDMIN,DENOLD,DENOLDMIN_NOD,RESET_STORE,MASS_CV, &
+!!$            CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOMEOLD )
+!!$       CALL CAL_LIM_VOL_ADJUST(DENOLDMAX_STORE,DENOLDMAX,DENOLD,DENOLDMAX_NOD,RESET_STORE,MASS_CV, &
+!!$            CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOMEOLD )
+!!$
+!!$       IF ( IGOT_T2 == 1 ) THEN
+!!$          CALL CAL_LIM_VOL_ADJUST(T2MIN_STORE,T2MIN,T2,T2MIN_NOD,RESET_STORE,MASS_CV, &
+!!$               CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOME )
+!!$          CALL CAL_LIM_VOL_ADJUST(T2MAX_STORE,T2MAX,T2,T2MAX_NOD,RESET_STORE,MASS_CV, &
+!!$               CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOME )
+!!$
+!!$          CALL CAL_LIM_VOL_ADJUST(T2OLDMIN_STORE,T2OLDMIN,T2OLD,T2OLDMIN_NOD,RESET_STORE,MASS_CV, &
+!!$               CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOMEOLD )
+!!$          CALL CAL_LIM_VOL_ADJUST(T2OLDMAX_STORE,T2OLDMAX,T2OLD,T2OLDMAX_NOD,RESET_STORE,MASS_CV, &
+!!$               CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOMEOLD )
+!!$       END IF
+!!$    END IF
+!!$
+!!$    RETURN
+!!$
+!!$  END SUBROUTINE LIMITERS
+!!$
+!!$  END SUBROUTINE GET_INT_T_DEN
 
 !!$  PURE SUBROUTINE LIMITERS( &
 !!$       IGOT_T2, CV_NONODS, NPHASE, IPHASE, CV_NODI_IPHA, CV_NODJ_IPHA, IANISOTROPIC, &
@@ -11302,14 +13115,14 @@ contains
 
 
 
-  REAL FUNCTION FACE_THETA( DT, CV_THETA, INTERFACE_TRACK, HDC, NDOTQ, LIMDT, DIFF_COEF_DIVDX, &
+  PURE REAL FUNCTION FACE_THETA( DT, CV_THETA, INTERFACE_TRACK, HDC, NDOTQ, LIMDT, DIFF_COEF_DIVDX, &
        T_NODJ_IPHA, T_NODI_IPHA,  &
        NDOTQOLD, LIMDTOLD, DIFF_COEFOLD_DIVDX, TOLD_NODJ_IPHA, TOLD_NODI_IPHA )
     IMPLICIT NONE
     ! Define face value of theta
-    REAL :: DT, CV_THETA, HDC, NDOTQ, LIMDT, DIFF_COEF_DIVDX, T_NODJ_IPHA, T_NODI_IPHA,  &
+    REAL, intent(in) :: DT, CV_THETA, HDC, NDOTQ, LIMDT, DIFF_COEF_DIVDX, T_NODJ_IPHA, T_NODI_IPHA,  &
          NDOTQOLD, LIMDTOLD, DIFF_COEFOLD_DIVDX, TOLD_NODJ_IPHA, TOLD_NODI_IPHA
-    LOGICAL INTERFACE_TRACK
+    LOGICAL, intent(in) :: INTERFACE_TRACK
     ! Local variables
     REAL :: FTHETA, HF, HFOLD, GF, PINVTH, QINVTH
 
@@ -11554,8 +13367,6 @@ contains
     RETURN
 
   END SUBROUTINE CALC_FACE_ELE
-
-
 
 
   SUBROUTINE SURRO_CV_MINMAX( TMAX, TMIN, TOLDMAX, TOLDMIN, DENMAX, DENMIN, DENOLDMAX, DENOLDMIN, &
@@ -11858,6 +13669,222 @@ contains
 
     RETURN
   END SUBROUTINE SURRO_CV_MINMAX
+
+  SUBROUTINE SURRO_CV_MINMAX_1time( TMAX, TMIN, DENMAX, DENMIN, &
+       T2MAX, T2MIN, &
+       TMAX_2ND_MC, TMIN_2ND_MC, DENMAX_2ND_MC, DENMIN_2ND_MC, &
+       T2MAX_2ND_MC, T2MIN_2ND_MC, &
+       LIMIT_USE_2ND, &
+       T,  T2, DEN, IGOT_T2, NPHASE, CV_NONODS, NCOLACV, FINACV, COLACV, &
+       STOTEL, CV_SNLOC, CV_SNDGLN, SUF_T_BC,  SUF_T2_BC, SUF_D_BC, WIC_T_BC, WIC_T2_BC, WIC_D_BC, &
+       WIC_T_BC_DIRICHLET, WIC_T_BC_DIRI_ADV_AND_ROBIN, &
+       WIC_D_BC_DIRICHLET, MASS_CV, TMIN_NOD, TMAX_NOD, &
+       T2MIN_NOD, T2MAX_NOD, &
+       DENMIN_NOD, DENMAX_NOD)
+    ! For each node, find the largest and smallest value of T and 
+    ! DENSITY for both the current and previous timestep, out of 
+    ! the node value and all its surrounding nodes including Dirichlet b.c's.
+    IMPLICIT NONE
+    INTEGER, intent( in ) :: NPHASE,CV_NONODS, NCOLACV,STOTEL,CV_SNLOC, &
+         WIC_T_BC_DIRICHLET, WIC_T_BC_DIRI_ADV_AND_ROBIN, &
+         WIC_D_BC_DIRICHLET, IGOT_T2
+    LOGICAL, intent( in ) :: LIMIT_USE_2ND
+    INTEGER, DIMENSION( : ), intent( in ) :: CV_SNDGLN
+    REAL, DIMENSION( : ), intent( in ) :: SUF_T_BC, SUF_D_BC
+    REAL, DIMENSION( : ), intent( in ) :: SUF_T2_BC
+    INTEGER, DIMENSION( : ), intent( in ) :: WIC_T_BC, WIC_D_BC
+    INTEGER, DIMENSION( : ), intent( in ) :: WIC_T2_BC
+    INTEGER, DIMENSION( : ), intent( in ) :: FINACV
+    INTEGER, DIMENSION( : ), intent( in ), target :: COLACV
+    REAL, DIMENSION( : ), intent( inout ) :: TMAX, TMIN,  &
+         DENMAX, DENMIN
+    REAL, DIMENSION( : ), intent( inout ) :: T2MAX, T2MIN
+
+    REAL, DIMENSION( : ), intent( inout ) :: TMAX_2ND_MC, TMIN_2ND_MC,  &
+         DENMAX_2ND_MC, DENMIN_2ND_MC
+    REAL, DIMENSION( : ), intent( inout ) :: T2MAX_2ND_MC, T2MIN_2ND_MC
+
+    REAL, DIMENSION( : ), intent( in ) :: T,DEN
+    REAL, DIMENSION( :), intent( in ) :: T2
+    REAL, DIMENSION( : ), intent( inout ) :: MASS_CV
+    INTEGER, DIMENSION( : ), intent( inout ) :: TMIN_NOD, TMAX_NOD, DENMIN_NOD, DENMAX_NOD
+    INTEGER, DIMENSION( : ), intent( inout ) :: T2MIN_NOD, T2MAX_NOD
+    ! Local variables
+    INTEGER :: CV_NODI, CV_NODJ, CV_NODI_IPHA, CV_NODJ_IPHA, IPHASE, COUNT, CV_SILOC, SELE, &
+         CV_INOD, SUF_CV_SI, SUF_CV_SI_IPHA, CV_INOD_IPHA
+    integer, dimension(:), pointer :: cv_neigh_ptr
+
+    Loop_CV_NODI: DO CV_NODI = 1, CV_NONODS
+
+       cv_neigh_ptr=>colacv(finacv(cv_nodi):finacv(cv_nodi+1)-1)
+
+       DO IPHASE = 1, NPHASE
+          CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
+          TMAX( CV_NODI_IPHA ) = maxval(T( cv_neigh_ptr+ ( IPHASE - 1 ) * CV_NONODS  ))
+          TMAX_NOD( CV_NODI_IPHA:CV_NODI_IPHA ) =&
+               maxloc(T( cv_neigh_ptr+ ( IPHASE - 1 ) * CV_NONODS  ))
+          TMIN( CV_NODI_IPHA ) = minval(T( cv_neigh_ptr+ ( IPHASE - 1 ) * CV_NONODS  ))
+          TMIN_NOD( CV_NODI_IPHA:CV_NODI_IPHA ) =&
+               minloc(T( cv_neigh_ptr+ ( IPHASE - 1 ) * CV_NONODS  ))
+
+          IF(IGOT_T2==1) THEN
+             T2MAX( CV_NODI_IPHA ) =&
+                  maxval(T2( cv_neigh_ptr+ ( IPHASE - 1 ) * CV_NONODS  ))
+             T2MAX_NOD( CV_NODI_IPHA:CV_NODI_IPHA ) =&
+                  maxloc(T2( cv_neigh_ptr+ ( IPHASE - 1 ) * CV_NONODS  ))
+             T2MIN( CV_NODI_IPHA ) =&
+                  minval(T2( cv_neigh_ptr+ ( IPHASE - 1 ) * CV_NONODS  ))
+             T2MIN_NOD( CV_NODI_IPHA:CV_NODI_IPHA ) =&
+                  minloc(T2( cv_neigh_ptr+ ( IPHASE - 1 ) * CV_NONODS  ))
+          ENDIF
+          DENMAX( CV_NODI_IPHA ) =&
+               maxval(DEN( cv_neigh_ptr+ ( IPHASE - 1 ) * CV_NONODS  ))
+          DENMAX_NOD( CV_NODI_IPHA:CV_NODI_IPHA ) =&
+               maxloc(DEN( cv_neigh_ptr+ ( IPHASE - 1 ) * CV_NONODS  ))
+          DENMIN( CV_NODI_IPHA ) =&
+               minval(DEN( cv_neigh_ptr+ ( IPHASE - 1 ) * CV_NONODS  ))
+          DENMIN_NOD( CV_NODI_IPHA:CV_NODI_IPHA ) =&
+               minloc(DEN( cv_neigh_ptr+ ( IPHASE - 1 ) * CV_NONODS  ))
+       END DO
+
+    END DO Loop_CV_NODI
+
+    ! Take into account the Dirichlet b.c's when working out max and min values.
+    Loop_SELE: DO SELE= 1, STOTEL
+
+       Loop_CV_SILOC: DO CV_SILOC = 1, CV_SNLOC
+
+          CV_INOD=CV_SNDGLN((SELE-1)*CV_SNLOC+CV_SILOC)
+          SUF_CV_SI=(SELE-1)*CV_SNLOC+CV_SILOC
+
+          DO IPHASE=1,NPHASE
+             SUF_CV_SI_IPHA = SUF_CV_SI + STOTEL * CV_SNLOC * ( IPHASE - 1 )
+             CV_INOD_IPHA=CV_INOD + CV_NONODS*(IPHASE-1)
+             IF( (WIC_T_BC(SELE+(IPHASE-1)*STOTEL) == WIC_T_BC_DIRICHLET) &
+                  .OR.(WIC_T_BC(SELE+(IPHASE-1)*STOTEL) == WIC_T_BC_DIRI_ADV_AND_ROBIN)) THEN
+                IF(SUF_T_BC( SUF_CV_SI_IPHA ) > TMAX( CV_INOD_IPHA ) ) THEN
+                   TMAX( CV_INOD_IPHA ) = SUF_T_BC( SUF_CV_SI_IPHA )
+                   TMAX_NOD( CV_INOD_IPHA ) =  CV_INOD_IPHA
+                ENDIF
+                IF(SUF_T_BC( SUF_CV_SI_IPHA ) < TMIN( CV_INOD_IPHA ) ) THEN
+                   TMIN( CV_INOD_IPHA ) = SUF_T_BC( SUF_CV_SI_IPHA )
+                   TMIN_NOD( CV_INOD_IPHA ) =  CV_INOD_IPHA
+                ENDIF
+
+             ENDIF
+
+             ! T2:
+             IF(IGOT_T2==1) THEN
+                IF( (WIC_T2_BC(SELE+(IPHASE-1)*STOTEL) == WIC_T_BC_DIRICHLET) &
+                     .OR.(WIC_T2_BC(SELE+(IPHASE-1)*STOTEL) == WIC_T_BC_DIRI_ADV_AND_ROBIN)) THEN
+                   IF(SUF_T2_BC( SUF_CV_SI_IPHA ) > T2MAX( CV_INOD_IPHA ) ) THEN
+                      T2MAX( CV_INOD_IPHA ) = SUF_T2_BC( SUF_CV_SI_IPHA )
+                      T2MAX_NOD( CV_INOD_IPHA ) =  CV_INOD_IPHA
+                   ENDIF
+                   IF(SUF_T2_BC( SUF_CV_SI_IPHA ) < T2MIN( CV_INOD_IPHA ) ) THEN
+                      T2MIN( CV_INOD_IPHA ) = SUF_T2_BC( SUF_CV_SI_IPHA )
+                      T2MIN_NOD( CV_INOD_IPHA ) =  CV_INOD_IPHA
+                   ENDIF
+
+                   !ewrite(3,*) 'T2:',TMAX( CV_INOD_IPHA ), T2MIN( CV_INOD_IPHA ), T2OLDMAX( CV_INOD_IPHA ) , T2OLDMIN( CV_INOD_IPHA )
+                ENDIF
+             ENDIF
+             ! DEN: 
+             !ewrite(3,*) 'stotel,nphase=', stotel,nphase
+             !ewrite(3,*) 'SELE,SELE+(IPHASE-1)*STOTEL:', SELE,SELE+(IPHASE-1)*STOTEL
+             IF( WIC_D_BC(SELE+(IPHASE-1)*STOTEL) == WIC_D_BC_DIRICHLET ) THEN
+                IF(SUF_D_BC( SUF_CV_SI_IPHA ) > DENMAX( CV_INOD_IPHA ) ) THEN
+                   DENMAX( CV_INOD_IPHA ) = SUF_D_BC( SUF_CV_SI_IPHA )
+                   DENMAX_NOD( CV_INOD_IPHA ) =  CV_INOD_IPHA
+                ENDIF
+                IF(SUF_D_BC( SUF_CV_SI_IPHA ) < DENMIN( CV_INOD_IPHA ) ) THEN
+                   DENMIN( CV_INOD_IPHA ) = SUF_D_BC( SUF_CV_SI_IPHA )
+                   DENMIN_NOD( CV_INOD_IPHA ) =  CV_INOD_IPHA
+                ENDIF
+
+                !ewrite(3,*) 'Dens:',DENMAX( CV_INOD_IPHA ), DENMIN( CV_INOD_IPHA ), DENOLDMAX( CV_INOD_IPHA ),DENOLDMIN( CV_INOD_IPHA )
+             ENDIF
+          END DO
+
+       END DO Loop_CV_SILOC
+
+    END DO Loop_SELE
+
+
+    IF(LIMIT_USE_2ND) THEN
+       Loop2_CV_NODI: DO CV_NODI = 1, CV_NONODS
+
+          DO IPHASE = 1,NPHASE
+             CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
+             !ewrite(3,*)'CV_NODI, IPHASE, CV_NODI_IPHA=',CV_NODI, IPHASE, CV_NODI_IPHA
+             TMAX_2ND_MC(CV_NODI_IPHA)  =-1.E+10
+             TMIN_2ND_MC( CV_NODI_IPHA )=+1.E+10
+
+             if(IGOT_T2==1) then
+                T2MAX_2ND_MC( CV_NODI_IPHA )=-1.E+10
+                T2MIN_2ND_MC( CV_NODI_IPHA )=+1.E+10
+             endif
+             DENMAX_2ND_MC( CV_NODI_IPHA )=-1.E+10
+             DENMIN_2ND_MC( CV_NODI_IPHA )=+1.E+10
+          END DO
+
+          DO COUNT = FINACV( CV_NODI ), FINACV( CV_NODI + 1 ) - 1, 1
+             CV_NODJ = COLACV( COUNT )
+
+             DO IPHASE = 1,NPHASE
+                CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
+                CV_NODJ_IPHA = CV_NODJ + ( IPHASE - 1 ) * CV_NONODS
+                IF(CV_NODI_IPHA.NE.CV_NODJ_IPHA) THEN
+                   
+                   IF(TMAX_NOD( CV_NODI_IPHA ) .NE. CV_NODJ_IPHA) THEN
+                      IF( T( CV_NODJ_IPHA ) > TMAX_2ND_MC( CV_NODI_IPHA ) ) THEN
+                         TMAX_2ND_MC( CV_NODI_IPHA ) = T( CV_NODJ_IPHA )
+                      ENDIF
+                   ENDIF
+                   IF(TMIN_NOD( CV_NODI_IPHA ) .NE. CV_NODJ_IPHA) THEN
+                      IF( T( CV_NODJ_IPHA ) < TMIN_2ND_MC( CV_NODI_IPHA ) ) THEN
+                         TMIN_2ND_MC( CV_NODI_IPHA ) = T( CV_NODJ_IPHA )
+                      ENDIF
+                   ENDIF
+                   
+                   ! T2: 
+                   IF(IGOT_T2==1) THEN
+                      IF( T2MAX_NOD( CV_NODI_IPHA ) .NE. CV_NODJ_IPHA ) THEN
+                         IF( T2( CV_NODJ_IPHA ) > T2MAX_2ND_MC( CV_NODI_IPHA ) ) THEN
+                            T2MAX_2ND_MC( CV_NODI_IPHA ) = T2( CV_NODJ_IPHA )
+                         ENDIF
+                      ENDIF
+                      IF( T2MIN_NOD( CV_NODI_IPHA ) .NE. CV_NODJ_IPHA ) THEN
+                         IF( T2( CV_NODJ_IPHA ) < T2MIN_2ND_MC( CV_NODI_IPHA ) ) THEN
+                            T2MIN_2ND_MC( CV_NODI_IPHA ) = T2( CV_NODJ_IPHA )
+                         ENDIF
+                      ENDIF
+                      
+                   ENDIF
+                   ! DEN:  
+                   IF( DENMAX_NOD( CV_NODI_IPHA ) .NE. CV_NODJ_IPHA ) THEN
+                      IF( DEN( CV_NODJ_IPHA ) > DENMAX_2ND_MC( CV_NODI_IPHA ) ) THEN
+                         DENMAX_2ND_MC( CV_NODI_IPHA ) = DEN( CV_NODJ_IPHA ) 
+                      ENDIF
+                   ENDIF
+                   IF( DENMIN_NOD( CV_NODI_IPHA ) .NE. CV_NODJ_IPHA ) THEN
+                      IF( DEN( CV_NODJ_IPHA ) < DENMIN_2ND_MC( CV_NODI_IPHA ) ) THEN
+                         DENMIN_2ND_MC( CV_NODI_IPHA ) = DEN( CV_NODJ_IPHA )
+                      ENDIF
+                   ENDIF
+                   
+                ENDIF
+
+             END DO
+          END DO
+
+       END DO Loop2_CV_NODI
+
+
+    ENDIF
+
+    RETURN
+  END SUBROUTINE SURRO_CV_MINMAX_1time
 
 
 
@@ -13090,7 +15117,89 @@ contains
   END SUBROUTINE CALC_ANISOTROP_LIM
 
 
+  SUBROUTINE CALC_ANISOTROP_LIM_1time(&
+       ! Caculate the upwind values stored in matrix form...
+       T, DEN, T2, &
+       FEMT, FEMDEN, FEMT2, USE_FEMT, &
+       TUPWIND_MAT, DENUPWIND_MAT, &
+       T2UPWIND_MAT, &
+       IGOT_T2, NPHASE, CV_NONODS,CV_NLOC, X_NLOC,TOTELE, CV_NDGLN, &
+       SMALL_FINDRM, SMALL_CENTRM, SMALL_COLM,NSMALL_COLM, &
+       X_NDGLN, X_NONODS, NDIM, &
+       X, Y, Z, XC_CV, YC_CV, ZC_CV) 
+    ! For the anisotropic limiting scheme we find the upwind values
+    ! by interpolation using the subroutine FINPTS or IFINPTS; the upwind
+    ! value for each node pair is stored in the matrices TUPWIND AND
+    IMPLICIT NONE
+    INTEGER, intent( in ) :: CV_NONODS,X_NONODS,TOTELE,CV_NLOC, X_NLOC, &
+         NSMALL_COLM, NDIM,IGOT_T2,NPHASE
+    REAL, DIMENSION( : ), intent( in ) :: T,DEN
+    REAL, DIMENSION( :), intent( in ) :: T2
+    REAL, DIMENSION( :), intent( in ) :: FEMT,FEMDEN
+    REAL, DIMENSION( :), intent( in ) :: FEMT2
+    LOGICAL, intent( in ) :: USE_FEMT ! Use the FEM solns rather than CV's when interpolating soln
+    REAL, DIMENSION( : ), intent( inout ) :: TUPWIND_MAT, &
+         DENUPWIND_MAT
+    REAL, DIMENSION( : ), intent( inout ) :: T2UPWIND_MAT
+    INTEGER, DIMENSION(: ), intent( in ) :: X_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
+    INTEGER, DIMENSION( : ), intent( in) :: SMALL_FINDRM
+    INTEGER, DIMENSION( : ), intent( in ) :: SMALL_COLM
+    INTEGER, DIMENSION( : ), intent( in) :: SMALL_CENTRM
+    REAL, DIMENSION( : ), intent( in ) :: X,Y,Z
+    REAL, DIMENSION( : ), intent( in ) :: XC_CV, YC_CV, ZC_CV
+    REAL, DIMENSION(:), ALLOCATABLE :: SOL
 
+    ! Allocate memory 
+    INTEGER :: COUNT, COUNT2, CV_NOD
+
+
+    ! Allocate memory and find upwind field values for limiting...
+    IF(IGOT_T2.NE.0) THEN
+
+       allocate( sol( 3*nsmall_colm*nphase) )
+       sol = (/TUPWIND_MAT, DENUPWIND_MAT, T2UPWIND_MAT/)
+
+       ! Obtain the weights
+       CALL CALC_ANISOTROP_LIM_VALS( &
+            ! Caculate the upwind values stored in matrix form...
+            (/T,DEN,T2/), &
+            (/FEMT,FEMDEN,FEMT2/), USE_FEMT, &
+            SOL,  &
+            NPHASE*3,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, &
+            SMALL_FINDRM,SMALL_COLM,NSMALL_COLM, &
+            X_NDGLN,X_NONODS,NDIM, &
+            X,Y,Z, XC_CV, YC_CV, ZC_CV )
+
+       TUPWIND_MAT = sol( 1 : nsmall_colm*nphase )
+       DENUPWIND_MAT = sol( 1+nsmall_colm*nphase : 2*nsmall_colm*nphase )
+       T2UPWIND_MAT = sol( 1+2*nsmall_colm*nphase : 3*nsmall_colm*nphase )
+
+       deallocate( sol )
+
+    ELSE
+
+       allocate( sol( 2*nsmall_colm*nphase ) )
+       sol = (/TUPWIND_MAT, DENUPWIND_MAT/)
+
+       CALL CALC_ANISOTROP_LIM_VALS( &
+            ! Caculate the upwind values stored in matrix form...
+            (/T,DEN/),&
+            (/FEMT,FEMDEN/), USE_FEMT, &
+            SOL,  &
+            NPHASE*2,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, &
+            SMALL_FINDRM,SMALL_COLM,NSMALL_COLM, &
+            X_NDGLN,X_NONODS,NDIM, &
+            X,Y,Z, XC_CV, YC_CV, ZC_CV )
+
+       TUPWIND_MAT = sol( 1 : nsmall_colm*nphase )
+       DENUPWIND_MAT = sol( 1+nsmall_colm*nphase : 2*nsmall_colm*nphase )
+
+       deallocate( sol )
+
+    ENDIF
+
+  END SUBROUTINE CALC_ANISOTROP_LIM_1time
 
   SUBROUTINE CALC_ANISOTROP_LIM_VALS( &
        ! Caculate the upwind values stored in matrix form...

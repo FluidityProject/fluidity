@@ -67,6 +67,7 @@
   contains
 
     SUBROUTINE INTENERGE_ASSEM_SOLVE( state, &
+         LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,&
          NCOLACV, FINACV, COLACV, MIDACV, &
          SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
          block_to_global_acv, global_dense_block_acv, &
@@ -107,6 +108,7 @@
 
       implicit none
       type( state_type ), dimension( : ), intent( inout ) :: state
+      REAL, DIMENSION( : , : , : ) :: LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD
       INTEGER, intent( in ) :: NCOLACV, NCOLCT, CV_NONODS, U_NONODS, X_NONODS, MAT_NONODS, TOTELE, &
            U_ELE_TYPE, CV_ELE_TYPE, CV_SELE_TYPE, NPHASE, CV_NLOC, U_NLOC, X_NLOC,  MAT_NLOC, &
            CV_SNLOC, U_SNLOC, STOTEL, XU_NLOC, NDIM, NCOLM, NCOLELE, &
@@ -180,6 +182,7 @@
       INTEGER :: STAT
       character( len = option_path_len ) :: path
 
+
       ALLOCATE( ACV( NCOLACV ) )
       ALLOCATE( mass_mn_pres( size(small_COLACV ) ))
       allocate( block_acv(size(block_to_global_acv) ) )
@@ -212,9 +215,11 @@
       lump_eqns = have_option( '/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
            'spatial_discretisation/continuous_galerkin/mass_terms/lump_mass_matrix' )
 
+
       Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, NITS_FLUX_LIM
 
          CALL CV_ASSEMB_ADV_DIF( state, &
+              LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,&
               CV_RHS, &
               NCOLACV, block_acv,dense_block_matrix, FINACV, COLACV, MIDACV, &
               SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
@@ -790,6 +795,18 @@
       INTEGER :: STAT, i,j
       character( len = option_path_len ) :: path
 
+      REAL, DIMENSION( : , : , : ), allocatable :: LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD
+       integer :: cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface
+
+      call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
+           cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, .false. )
+
+      allocate(LIMTOLD(nphase,scvngi,totele)&
+           ,LIMT2OLD(nphase,scvngi,totele),&
+           LIMDOLD(nphase,scvngi,totele),&
+           LIMDTOLD(nphase,scvngi,totele),&
+           LIMDTT2OLD(nphase,scvngi,totele))
+
       GET_THETA_FLUX = .FALSE.
       IGOT_T2 = 0
 
@@ -827,9 +844,44 @@
       call get_option( trim( path ) // 'number_advection_iterations', nits_flux_lim, default = 1 )
 
       ! THIS DOES NOT WORK FOR NITS_FLUX_LIM>1 (NOBODY KNOWS WHY)
+
+
+      call CV_GET_ALL_LIMITED_VALS( state, &
+         LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,&
+         SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
+         CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
+         CV_ELE_TYPE,  &
+         NPHASE,  &
+         CV_NLOC, U_NLOC, X_NLOC, &
+         CV_NDGLN, X_NDGLN, U_NDGLN, &
+         CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
+         X, Y, Z, NU, NV, NW, &
+         NU, NV, NW, &
+         SATURAOLD, DENOLD, &
+         MAT_NLOC, MAT_NDGLN, MAT_NONODS, & 
+         V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, SECOND_THETA, V_BETA, &
+         SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
+         SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2,  &
+         WIC_VOL_BC, WIC_D_BC, WIC_U_BC, &
+         DERIV, P, &
+         V_SOURCE, V_ABSORB, VOLFRA_PORE, &
+         NDIM, &
+         NCOLM, FINDM, COLM, MIDM, &
+         XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
+         OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
+         IGOT_T2, T2OLD, SCVNGI_THETA,&
+         SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
+         NOIT_DIM, &
+         MEAN_PORE_CV, &
+         SMALL_FINACV, SMALL_COLACV, size(small_colacv), &
+         MASS_ELE_TRANSP, &
+         option_path)
+
+
       Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, 1 !nits_flux_lim
 
          CALL CV_ASSEMB_ADV_DIF( state, &
+              LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,&
               CV_RHS, &
               NCOLACV, block_ACV, dense_block_matrix, FINACV, COLACV, MIDACV, &
               SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
@@ -6276,6 +6328,8 @@ end if
       real, dimension(0,0,0,0):: tflux
       real, allocatable, dimension(:,:,:) :: T_ABSORB
       real, allocatable, dimension(:,:,:,:) :: tdiffusion
+
+      real, dimension(0,0,0) :: ALIMTOLD,ALIMT2OLD,ALIMDOLD,ALIMDTOLD,ALIMDTT2OLD
       
 
       DUMMY_ELE = 0
@@ -6979,6 +7033,7 @@ end if
 
 
          CALL INTENERGE_ASSEM_SOLVE( state, &
+              ALIMTOLD,ALIMT2OLD,ALIMDOLD,ALIMDTOLD,ALIMDTT2OLD,&
               NCOLACV, FINACV, COLACV, MIDACV, & 
               SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
               block_to_global_acv, global_dense_block_acv, &

@@ -57,6 +57,7 @@
     use fluids_module!, only: pre_adapt_tasks, update_state_post_adapt
 
 !!$ Modules indigenous to the prototype Code
+    use cv_advection, only : CV_GET_ALL_LIMITED_VALS
     use multiphase_1D_engine
     use spact
     use multiphase_EOS
@@ -214,7 +215,17 @@
       real, dimension(:), allocatable :: Velocity_U_backup, Velocity_V_backup, Velocity_W_backup, Temperature_backup
       real, dimension(:), allocatable :: Density_backup, Component_backup, Density_Cp_backup, Density_Component_backup
 
+
+      !! face value storage
+
+      real::  second_theta
+      integer :: scvngi
+      REAL, DIMENSION( : , : , : ), allocatable :: LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD
+      REAL, DIMENSION( : , : , : ), allocatable :: LIMVOLD,LIMV2OLD,LIMVDOLD,LIMVDTOLD,LIMVDTT2OLD
+      REAL, DIMENSION( : , : , : ), allocatable :: LIMCOLD,LIMC2OLD,LIMCDOLD,LIMCDTOLD,LIMCDTT2OLD
+
       !Read info for adaptive timestep based on non_linear_iterations
+
 
       variable_selection = 3 !Variable to check how good nonlinear iterations are going 1 (Pressure), 2 (Velocity), 3 (Saturation)
       Repeat_time_step = .false.!Initially has to be false
@@ -377,6 +388,28 @@
 !!$ Variables used in the diffusion-like term: capilarity and surface tension:
            plike_grad_sou_grad( cv_nonods * nphase ), &
            plike_grad_sou_coef( cv_nonods * nphase ) )
+
+      call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
+           cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, .false.)
+
+
+      allocate(LIMTOLD(nphase,scvngi,totele),&
+           LIMT2OLD(nphase,scvngi,totele),&
+           LIMDOLD(nphase,scvngi,totele),&
+           LIMDTOLD(nphase,scvngi,totele),&
+           LIMDTT2OLD(nphase,scvngi,totele),&
+           LIMVOLD(nphase,scvngi,totele),&
+           LIMV2OLD(nphase,scvngi,totele),&
+           LIMVDOLD(nphase,scvngi,totele),&
+           LIMVDTOLD(nphase,scvngi,totele),&
+           LIMVDTT2OLD(nphase,scvngi,totele),&
+           LIMCOLD(nphase*ncomp,scvngi,totele),&
+           LIMC2OLD(nphase*ncomp,scvngi,totele),&
+           LIMCDOLD(nphase*ncomp,scvngi,totele),&
+           LIMCDTOLD(nphase*ncomp,scvngi,totele),&
+           LIMCDTT2OLD(nphase*ncomp,scvngi,totele))
+
+
 !!$
       xu=0. ; yu=0. ; zu=0.
       x=0. ; y=0. ; z=0.
@@ -645,6 +678,94 @@
               call update_boundary_conditions( state, stotel, cv_snloc, nphase, & 
               Temperature_BC, suf_t_bc_rob1, suf_t_bc_rob2 )
 
+         if( have_temperature_field .and. &
+              have_option( '/material_phase[0]/scalar_field::Temperature/prognostic' ) ) then
+
+            call get_option( '/material_phase[0]/scalar_field::Temperature/prognostic/temporal_discretisation' // &
+              '/control_volumes/second_theta', second_theta, default=1. )
+
+            call CV_GET_ALL_LIMITED_VALS( state, &
+                 LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,&
+                 SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
+                 CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
+                 CV_ELE_TYPE,  &
+                 NPHASE,  &
+                 CV_NLOC, U_NLOC, X_NLOC, &
+                 CV_NDGLN, X_NDGLN, U_NDGLN, &
+                 CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
+                 X, Y, Z,& 
+                 Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
+                 Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
+                 Temperature_Old,dENSITY_CP_OLD, &
+                 MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
+                 t_disopt, t_dg_vel_int_opt, dt, t_theta, second_theta, t_beta, &
+                 Temperature_BC, Density_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, &
+                 suf_sig_diagten_bc, suf_t_bc_rob1, suf_t_bc_rob2, &
+                 Temperature_BC_Spatial, Density_BC_Spatial, Velocity_U_BC_Spatial, &
+                 DRhoDPressure, Pressure_CV, &
+                 Temperature_Source, Temperature_Absorption, Porosity, &
+                 NDIM, &
+                 NCOLM, FINDM, COLM, MIDM, &
+                 XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
+                 OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
+                 0, Temperature_Old, scvngi_theta, &
+                 Temperature_BC, suf_t_bc_rob1, suf_t_bc_rob2, Temperature_BC_Spatial, &
+                    in_ele_upwind, dg_ele_upwind, &
+                 NOIT_DIM, &
+                 MEAN_PORE_CV, &
+                 small_finacv,small_colacv,size(small_colacv),&
+                 dummy_ele, &
+                 '/material_phase[0]/scalar_field::Temperature')
+
+         end if
+
+         if( have_component_field ) then
+
+            call get_option( '/material_phase[' // int2str( nphase ) // ']/scalar_field::ComponentMassFractionPhase1/' // &
+              'prognostic/temporal_discretisation/control_volumes/second_theta', second_theta, default=1. )
+
+            do icomp = 1, ncomp
+               call CV_GET_ALL_LIMITED_VALS( state, &
+                 LIMCOLD( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods,:,: ) ,&
+                 LIMC2OLD( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods,:,: ),&
+                 LIMcDOLD( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods,:,: ),&
+                 LIMcDTOLD( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods,:,: ),&
+                 LIMcDTT2OLD( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods,:,: ),&
+                 SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
+                 CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
+                 CV_ELE_TYPE,  &
+                 NPHASE,  &
+                 CV_NLOC, U_NLOC, X_NLOC, &
+                 CV_NDGLN, X_NDGLN, U_NDGLN, &
+                 CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
+                 X, Y, Z,& 
+                 Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
+                 ug, vg, wg, &
+                 Component_Old( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods ), &
+                 DENSITY_COMPONENT_OLD( ( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS ), &
+                 MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
+                 v_disopt, v_dg_vel_int_opt, dt, v_theta, second_theta, v_beta, &
+                 Component_BC( 1 + stotel * cv_snloc * nphase * ( icomp - 1 ) : stotel * cv_snloc * nphase * icomp ), &
+                 Density_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, SUF_SIG_DIAGTEN_BC,&
+                 suf_comp_bc_rob1, suf_comp_bc_rob2, &
+                 Component_BC_Spatial, Density_BC_Spatial, Velocity_U_BC_Spatial, &
+                 DRhoDPressure, Pressure_FEM, &
+                 Component_Source, Component_Absorption, Porosity, &
+                 NDIM, &
+                 NCOLM, FINDM, COLM, MIDM, &
+                 XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
+                 OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
+                 igot_t2, PhaseVolumeFraction_Old, scvngi_theta, &
+                 PhaseVolumeFraction_BC, suf_vol_bc_rob1, suf_vol_bc_rob2, PhaseVolumeFraction_BC_Spatial, &
+                 in_ele_upwind, dg_ele_upwind, &
+                 NOIT_DIM, &
+                 MEAN_PORE_CV, &
+                 small_finacv,small_colacv,size(small_colacv),&
+                 dummy_ele, &
+                 '/material_phase[' // int2str( nphase ) // ']/scalar_field::ComponentMassFractionPhase1/')
+            end do
+         end if
+
 !!$ Start non-linear loop
          Loop_NonLinearIteration: do  its = 1, NonLinearIteration
 
@@ -740,6 +861,7 @@
                                            mat_nloc, totele, mat_ndgln, ScalarAdvectionField_Diffusion )
 
                call INTENERGE_ASSEM_SOLVE( state, &
+                    LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,&
                     NCOLACV, FINACV, COLACV, MIDACV, &
                     small_FINACV, small_COLACV, small_MIDACV, &
                     block_to_global_acv, global_dense_block_acv, &
@@ -1008,7 +1130,7 @@
 !!$ Starting loop over components
             sum_theta_flux = 0. ; sum_one_m_theta_flux = 0. ; ScalarField_Source_Component = 0.
 
-            Conditional_Components: if( have_component_field ) then
+            Conditional_Components:if( have_component_field ) then
                Loop_Components: do icomp = 1, ncomp
 
 !!$ Computing the absorption term for the multi-components equation
@@ -1056,6 +1178,11 @@
                      comp_use_theta_flux = .false. ; comp_get_theta_flux = .true.
 
                      call INTENERGE_ASSEM_SOLVE( state, &
+                          LIMCOLD( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods,:,: ),&
+                          LIMC2OLD( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods,:,: ),&
+                          LIMCOLD( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods,:,: ),&
+                          LIMCDTOLD( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods,:,: ),&
+                          LIMCDTT2OLD( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods,:,: ),&
                           NCOLACV, FINACV, COLACV, MIDACV, & ! CV sparsity pattern matrix
                           SMALL_FINACV, SMALL_COLACV, small_MIDACV,&
                           block_to_global_acv, global_dense_block_acv, &
