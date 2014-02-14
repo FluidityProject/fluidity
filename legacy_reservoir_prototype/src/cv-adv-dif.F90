@@ -5374,125 +5374,122 @@ contains
     end SUBROUTINE CV_GET_ALL_LIMITED_VALS
 
 
-  SUBROUTINE FIND_OTHER_SIDE( CV_OTHER_LOC, CV_NLOC, CV_NODI, U_OTHER_LOC, U_NLOC,  &
-       MAT_OTHER_LOC, MAT_NLOC, INTEGRAT_AT_GI, &
-       TOTELE, X_NLOC, XU_NLOC, X_NDGLN, CV_NDGLN, XU_NDGLN, &
-       CV_SNLOC, CVFEM_ON_FACE, SCVNGI, GI, X_SHARE, X_NONODS, ELE, ELE2,  &
-       FINELE, COLELE, NCOLELE) 
-    ! We are on the boundary or next to another element. Determine CV_OTHER_LOC,
-    ! U_OTHER_LOC. 
-    ! CVFEM_ON_FACE(CV_KLOC,GI)=.TRUE. if CV_KLOC is on the face that GI is centred on.
-    ! Look for these nodes on the other elements. 
-    ! ELE2=0 also when we are between elements but are trying to integrate across 
-    ! the middle of a CV. 
-    IMPLICIT NONE
-    INTEGER, intent( in ) :: CV_NLOC, CV_NODI, U_NLOC, X_NONODS, TOTELE, X_NLOC, XU_NLOC, &
-         CV_SNLOC, MAT_NLOC, SCVNGI, GI, ELE, NCOLELE 
-    INTEGER, DIMENSION( : ), intent( in ) ::  X_NDGLN
-    INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
-    INTEGER, DIMENSION( : ), intent( in ) :: XU_NDGLN
-    INTEGER, DIMENSION( : ), intent( inout ) :: CV_OTHER_LOC
-    INTEGER, DIMENSION( : ), intent( inout ) :: U_OTHER_LOC
-    INTEGER, DIMENSION( : ), intent( inout ) :: MAT_OTHER_LOC
-    LOGICAL, DIMENSION( : , : ), intent( in ) :: CVFEM_ON_FACE
-    LOGICAL, DIMENSION( : ), intent( inout ) :: X_SHARE
-    INTEGER, intent( inout ) :: ELE2    
-    LOGICAL, intent( inout ) :: INTEGRAT_AT_GI  
-    INTEGER, DIMENSION( : ), intent( in ) :: FINELE
-    INTEGER, DIMENSION( : ), intent( in ) :: COLELE
-    ! Local variables
-    INTEGER :: X_KLOC, X_NODK, X_NODK2, COUNT, ELE3, SUF_COUNT, CV_KLOC, CV_KLOC2, &
-         U_KLOC, U_KLOC2, CV_NODK, XU_NODK, XU_NODK2, ILEV, JLEV
+    SUBROUTINE FIND_OTHER_SIDE( CV_OTHER_LOC, CV_NLOC, CV_NODI, U_OTHER_LOC, U_NLOC,  &
+         MAT_OTHER_LOC, MAT_NLOC, INTEGRAT_AT_GI, &
+         TOTELE, X_NLOC, XU_NLOC, X_NDGLN, CV_NDGLN, XU_NDGLN, &
+         CV_SNLOC, CVFEM_ON_FACE, SCVNGI, GI, X_SHARE, X_NONODS, ELE, ELE2,  &
+         FINELE, COLELE, NCOLELE) 
+      ! We are on the boundary or next to another element. Determine CV_OTHER_LOC,
+      ! U_OTHER_LOC. 
+      ! CVFEM_ON_FACE(CV_KLOC,GI)=.TRUE. if CV_KLOC is on the face that GI is centred on.
+      ! Look for these nodes on the other elements. 
+      ! ELE2=0 also when we are between elements but are trying to integrate across 
+      ! the middle of a CV. 
+      IMPLICIT NONE
+      INTEGER, intent( in ) :: CV_NLOC, CV_NODI, U_NLOC, X_NONODS, TOTELE, X_NLOC, XU_NLOC, &
+           &                   CV_SNLOC, MAT_NLOC, SCVNGI, GI, ELE, NCOLELE 
+      INTEGER, DIMENSION( : ), intent( in ) ::  X_NDGLN, CV_NDGLN, XU_NDGLN
+      LOGICAL, DIMENSION( : , : ), intent( in ) :: CVFEM_ON_FACE
+      INTEGER, DIMENSION( : ), intent( in ) :: FINELE
+      INTEGER, DIMENSION( : ), intent( in ) :: COLELE
 
-    !ewrite(3,*) 'In FIND_OTHER_SIDE'
+      INTEGER, DIMENSION( : ), intent( inout ) :: CV_OTHER_LOC, U_OTHER_LOC, MAT_OTHER_LOC
+      LOGICAL, DIMENSION( : ), intent( inout ) :: X_SHARE
+      INTEGER, intent( inout ) :: ELE2    
+      LOGICAL, intent( inout ) :: INTEGRAT_AT_GI 
+      ! Local variables
+      INTEGER :: X_KLOC, X_NODK, X_NODK2, COUNT, ELE3, SUF_COUNT, CV_KLOC, CV_KLOC2, &
+           &     U_KLOC, U_KLOC2, CV_NODK, XU_NODK, XU_NODK2, ILEV, JLEV
 
-    DO X_KLOC = 1, X_NLOC
-       X_NODK = X_NDGLN(( ELE - 1) * X_NLOC + X_KLOC )
-       X_SHARE( X_NODK ) = CVFEM_ON_FACE( X_KLOC, GI )
-    END DO
+      !ewrite(3,*) 'In FIND_OTHER_SIDE'
 
-    ELE3 = 0
-    DO COUNT = FINELE( ELE ), FINELE( ELE + 1 ) - 1, 1
-       ELE2 = COLELE( COUNT )
-       SUF_COUNT = 0 ! See if we share the same nodes
-       IF(ELE2.NE.ELE) THEN
-          DO X_KLOC = 1, X_NLOC
-             X_NODK = X_NDGLN(( ELE2 - 1 ) * X_NLOC + X_KLOC )
-             IF( X_SHARE( X_NODK )) SUF_COUNT = SUF_COUNT + 1
-          END DO
-       ENDIF
-       IF( SUF_COUNT == CV_SNLOC ) ELE3 = ELE2
-       !ewrite(3,*)'suf_count:', ele, ele2, suf_count, cv_snloc
-    END DO
+      DO X_KLOC = 1, X_NLOC
+         X_NODK = X_NDGLN( ( ELE - 1) * X_NLOC + X_KLOC )
+         X_SHARE( X_NODK ) = CVFEM_ON_FACE( X_KLOC, GI )
+      END DO
 
-    DO X_KLOC = 1, X_NLOC
-       X_NODK = X_NDGLN(( ELE - 1 ) * X_NLOC + X_KLOC )
-       X_SHARE( X_NODK ) = .FALSE.
-    END DO
+      ELE3 = 0
+      DO COUNT = FINELE( ELE ), FINELE( ELE + 1 ) - 1, 1
+         ELE2 = COLELE( COUNT )
+         SUF_COUNT = 0 ! See if we share the same nodes
+         IF ( ELE2 /= ELE ) THEN
+            DO X_KLOC = 1, X_NLOC
+               X_NODK = X_NDGLN( ( ELE2 - 1 ) * X_NLOC + X_KLOC )
+               IF ( X_SHARE( X_NODK ) ) SUF_COUNT = SUF_COUNT + 1
+            END DO
+         END IF
+         IF ( SUF_COUNT == CV_SNLOC ) ELE3 = ELE2
+         !ewrite(3,*)'suf_count:', ele, ele2, suf_count, cv_snloc
+      END DO
 
-    ELE2 = ELE3
-    IF( ELE2 /= 0 ) THEN 
-       ! Is CV_NODI in element ELE2 if yes set ELE2=0 as we dont want to integrate in 
-       ! the middle of a CV. 
-       DO CV_KLOC = 1, CV_NLOC
-          CV_NODK = CV_NDGLN(( ELE2 - 1 ) * CV_NLOC + CV_KLOC )
-          !ewrite(3,*)'cv_nodi, cv_nodk:', cv_nodi, cv_nodk, ele, ele2
-          IF( CV_NODK == CV_NODI ) INTEGRAT_AT_GI = .FALSE.
-       END DO
-    ENDIF
+      DO X_KLOC = 1, X_NLOC
+         X_NODK = X_NDGLN( ( ELE - 1 ) * X_NLOC + X_KLOC )
+         X_SHARE( X_NODK ) = .FALSE.
+      END DO
 
-    IF( ( ELE2 /= 0) .AND. INTEGRAT_AT_GI ) THEN ! Determine CV_OTHER_LOC(CV_KLOC)
-       CV_OTHER_LOC = 0
-       DO CV_KLOC = 1, CV_NLOC
-          IF( CVFEM_ON_FACE( CV_KLOC, GI )) THEN ! Find opposite local node
-             X_NODK = X_NDGLN(( ELE - 1 ) * X_NLOC + CV_KLOC )
-             DO CV_KLOC2 = 1, CV_NLOC
-                X_NODK2 = X_NDGLN(( ELE2 - 1 ) * X_NLOC + CV_KLOC2 )
-                IF( X_NODK2 == X_NODK ) CV_OTHER_LOC( CV_KLOC ) = CV_KLOC2
-             END DO
-          ENDIF
-       END DO
+      ELE2 = ELE3
+      IF ( ELE2 /= 0 ) THEN 
+         ! Is CV_NODI in element ELE2 if yes set ELE2=0 as we don't want to integrate in 
+         ! the middle of a CV. 
+         DO CV_KLOC = 1, CV_NLOC
+            CV_NODK = CV_NDGLN( ( ELE2 - 1 ) * CV_NLOC + CV_KLOC )
+            !ewrite(3,*)'cv_nodi, cv_nodk:', cv_nodi, cv_nodk, ele, ele2
+            IF ( CV_NODK == CV_NODI ) INTEGRAT_AT_GI = .FALSE.
+         END DO
+      END IF
 
-       U_OTHER_LOC = 0 ! Determine U_OTHER_LOC(U_KLOC)
-       IF(XU_NLOC /= U_NLOC) THEN ! This is for the overlapping approach
-          DO U_KLOC = 1, XU_NLOC ! Find opposite local node
-             XU_NODK = XU_NDGLN(( ELE - 1 ) * XU_NLOC + U_KLOC )
-             DO U_KLOC2 = 1, XU_NLOC
-                XU_NODK2 = XU_NDGLN(( ELE2 - 1 ) * XU_NLOC + U_KLOC2 )
-                ! XU_NLOC==1 is a special case...
-                IF( ( XU_NODK2 == XU_NODK ) .OR. ( XU_NLOC == 1 ) ) THEN
-                   DO ILEV = 1, CV_NLOC
-                      JLEV = CV_OTHER_LOC( ILEV )
-                      IF( JLEV /= 0 ) THEN 
-                         U_OTHER_LOC( U_KLOC + ( ILEV - 1 ) * XU_NLOC ) = U_KLOC2 + &
-                              ( JLEV - 1 ) * XU_NLOC
-                      ENDIF
-                   END DO
-                END IF
-             END DO
-          END DO
-       ELSE
-          ! Works for non constant and constant (XU_NLOC=1) vel basis functions...
-          DO U_KLOC = 1, U_NLOC ! Find opposite local node
-             XU_NODK = XU_NDGLN(( ELE - 1 ) * XU_NLOC + U_KLOC )
-             DO U_KLOC2 = 1, U_NLOC
-                XU_NODK2 = XU_NDGLN(( ELE2 - 1 ) * XU_NLOC + U_KLOC2 )
-                IF( ( XU_NODK2 == XU_NODK ) .OR. ( XU_NLOC == 1 ) ) &
-                     U_OTHER_LOC( U_KLOC ) = U_KLOC2
-             END DO
-          END DO
-       ENDIF
+      IF ( ( ELE2 /= 0 ) .AND. INTEGRAT_AT_GI ) THEN ! Determine CV_OTHER_LOC(CV_KLOC)
+         CV_OTHER_LOC = 0
+         DO CV_KLOC = 1, CV_NLOC
+            IF ( CVFEM_ON_FACE( CV_KLOC, GI ) ) THEN ! Find opposite local node
+               X_NODK = X_NDGLN( ( ELE - 1 ) * X_NLOC + CV_KLOC )
+               DO CV_KLOC2 = 1, CV_NLOC
+                  X_NODK2 = X_NDGLN( ( ELE2 - 1 ) * X_NLOC + CV_KLOC2 )
+                  IF ( X_NODK2 == X_NODK ) CV_OTHER_LOC( CV_KLOC ) = CV_KLOC2
+               END DO
+            END IF
+         END DO
 
-       MAT_OTHER_LOC = CV_OTHER_LOC
-    ELSE
-       CV_OTHER_LOC = 0
-       U_OTHER_LOC = 0
-       MAT_OTHER_LOC = 0
-    ENDIF
+         U_OTHER_LOC = 0 ! Determine U_OTHER_LOC(U_KLOC)
+         IF ( XU_NLOC /= U_NLOC ) THEN ! This is for the overlapping approach
+            DO U_KLOC = 1, XU_NLOC ! Find opposite local node
+               XU_NODK = XU_NDGLN( ( ELE - 1 ) * XU_NLOC + U_KLOC )
+               DO U_KLOC2 = 1, XU_NLOC
+                  XU_NODK2 = XU_NDGLN(( ELE2 - 1 ) * XU_NLOC + U_KLOC2 )
+                  ! XU_NLOC==1 is a special case...
+                  IF ( ( XU_NODK2 == XU_NODK ) .OR. ( XU_NLOC == 1 ) ) THEN
+                     DO ILEV = 1, CV_NLOC
+                        JLEV = CV_OTHER_LOC( ILEV )
+                        IF ( JLEV /= 0 ) THEN 
+                           U_OTHER_LOC( U_KLOC + ( ILEV - 1 ) * XU_NLOC ) = U_KLOC2 + &
+                                ( JLEV - 1 ) * XU_NLOC
+                        END IF
+                     END DO
+                  END IF
+               END DO
+            END DO
+         ELSE
+            ! Works for non constant and constant (XU_NLOC=1) vel basis functions...
+            DO U_KLOC = 1, U_NLOC ! Find opposite local node
+               XU_NODK = XU_NDGLN( ( ELE - 1 ) * XU_NLOC + U_KLOC )
+               DO U_KLOC2 = 1, U_NLOC
+                  XU_NODK2 = XU_NDGLN(( ELE2 - 1 ) * XU_NLOC + U_KLOC2 )
+                  IF ( ( XU_NODK2 == XU_NODK ) .OR. ( XU_NLOC == 1 ) ) &
+                       U_OTHER_LOC( U_KLOC ) = U_KLOC2
+               END DO
+            END DO
+         END IF
 
-    RETURN
+         MAT_OTHER_LOC = CV_OTHER_LOC
+      ELSE
+         CV_OTHER_LOC = 0
+         U_OTHER_LOC = 0
+         MAT_OTHER_LOC = 0
+      END IF
 
-  END SUBROUTINE FIND_OTHER_SIDE
+      RETURN
+
+    END SUBROUTINE FIND_OTHER_SIDE
 
 
 
