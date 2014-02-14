@@ -112,19 +112,20 @@
            CV_SNLOC, U_SNLOC, STOTEL, XU_NLOC, NDIM, NCOLM, NCOLELE, &
            NOPT_VEL_UPWIND_COEFS, &
            IGOT_T2, IGOT_THETA_FLUX, SCVNGI_THETA, IN_ELE_UPWIND, DG_ELE_UPWIND
-      LOGICAL, intent( in ) :: GET_THETA_FLUX, USE_THETA_FLUX, THERMAL
+      LOGICAL, intent( in ) :: GET_THETA_FLUX, USE_THETA_FLUX
+      LOGICAL, intent( in ), optional ::THERMAL
       INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
       INTEGER, DIMENSION( : ), intent( in ) ::  X_NDGLN
-      INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
+      INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN 
       INTEGER, DIMENSION( : ), intent( in ) :: XU_NDGLN
       INTEGER, DIMENSION( : ), intent( in ) :: MAT_NDGLN
       INTEGER, DIMENSION( : ), intent( in ) :: CV_SNDGLN
-      INTEGER, DIMENSION( : ), intent( in ) :: U_SNDGLN
+      INTEGER, DIMENSION( : ), intent( in ) :: U_SNDGLN 
       INTEGER, DIMENSION( : ), intent( in ) ::  WIC_T_BC, WIC_D_BC, WIC_U_BC
       INTEGER, DIMENSION( : ), intent( in ) ::  WIC_T2_BC
       INTEGER, DIMENSION( : ), intent( in ) :: FINACV
-      INTEGER, DIMENSION( : ), intent( in ) :: COLACV
-      INTEGER, DIMENSION( : ), intent( in ) :: MIDACV
+      INTEGER, DIMENSION( : ), intent( in ) :: COLACV 
+      INTEGER, DIMENSION( : ), intent( in ) :: MIDACV 
       INTEGER, DIMENSION( : ), intent( in ) :: SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV
       integer, dimension(:)    :: block_to_global_acv
       integer, dimension (:,:) :: global_dense_block_acv
@@ -133,17 +134,18 @@
       REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
       REAL, DIMENSION( : ), intent( in ) :: NU, NV, NW, NUOLD, NVOLD, NWOLD, UG, VG, WG
       REAL, DIMENSION( : ), intent( inout ) :: T, T_FEMT, DEN_FEMT
-      REAL, DIMENSION( :), intent( in ) :: TOLD
-      REAL, DIMENSION( :), intent( in ) :: DEN, DENOLD
+      REAL, DIMENSION( : ), intent( in ) :: TOLD
+      REAL, DIMENSION( : ), intent( in ) :: DEN, DENOLD
       REAL, DIMENSION( : ), intent( in ) :: T2, T2OLD
       REAL, DIMENSION( : ), intent( inout ) :: THETA_GDIFF
-      REAL, DIMENSION(TOTELE * IGOT_THETA_FLUX, CV_NLOC, SCVNGI_THETA, NPHASE ), intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX
-      REAL, DIMENSION(MAT_NONODS, NDIM, NDIM, NPHASE ), intent( in ) :: TDIFFUSION
+      REAL, DIMENSION( :,:,:,: ), &
+           intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX
+      REAL, DIMENSION( :,:,:, : ), intent( in ) :: TDIFFUSION
       INTEGER, intent( in ) :: T_DISOPT, T_DG_VEL_INT_OPT
       REAL, intent( in ) :: DT, T_THETA
       REAL, intent( in ) :: T_BETA
       REAL, DIMENSION( : ), intent( in ) :: SUF_T_BC, SUF_D_BC
-      REAL, DIMENSION( :  ), intent( in ) :: SUF_T2_BC
+      REAL, DIMENSION( : ), intent( in ) :: SUF_T2_BC
       REAL, DIMENSION( : ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
       REAL, DIMENSION( :, : ), intent( in ) :: SUF_SIG_DIAGTEN_BC
       REAL, DIMENSION( : ), intent( in ) :: SUF_T_BC_ROB1, SUF_T_BC_ROB2
@@ -151,7 +153,7 @@
       REAL, DIMENSION( : ), intent( in ) :: DERIV
       REAL, DIMENSION( : ), intent( in ) :: P
       REAL, DIMENSION( : ), intent( in ) :: T_SOURCE
-      REAL, DIMENSION(CV_NONODS, NPHASE, NPHASE), intent( in ) :: T_ABSORB
+      REAL, DIMENSION( : , : , : ), intent( in ) :: T_ABSORB
       REAL, DIMENSION( : ), intent( in ) :: VOLFRA_PORE
       INTEGER, DIMENSION( : ), intent( in ) :: FINDM
       INTEGER, DIMENSION( : ), intent( in ) :: COLM
@@ -159,17 +161,17 @@
       INTEGER, DIMENSION( : ), intent( in ) :: FINELE
       INTEGER, DIMENSION( : ), intent( in ) :: COLELE
       REAL, DIMENSION( : ), intent( in ) :: OPT_VEL_UPWIND_COEFS
-      INTEGER, INTENT( IN ) :: NOIT_DIM
+      INTEGER, INTENT(IN) :: NOIT_DIM
       REAL, DIMENSION( : ), intent( inout ) :: MEAN_PORE_CV
       character( len = * ), intent( in ), optional :: option_path
-      real, dimension( : ), intent( inout ) :: mass_ele_transp
+      real, dimension( : ), intent( inout ), optional :: mass_ele_transp
 
       ! Local variables
       LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE.
       integer :: nits_flux_lim, its_flux_lim
       logical :: lump_eqns
       REAL, DIMENSION( : ), allocatable :: ACV, CV_RHS, CT, DIAG_SCALE_PRES, CT_RHS
-      REAL, DIMENSION( : ), allocatable :: block_acv
+      REAL, DIMENSION( : ), allocatable :: block_acv, mass_mn_pres
       REAL, DIMENSION( : , : , : ), allocatable :: dense_block_matrix
       REAL, DIMENSION( : ), allocatable :: CV_RHS_SUB, ACV_SUB
       INTEGER, DIMENSION( : ), allocatable :: COLACV_SUB, FINACV_SUB, MIDACV_SUB
@@ -179,12 +181,10 @@
       character( len = option_path_len ) :: path
 
       ALLOCATE( ACV( NCOLACV ) )
+      ALLOCATE( mass_mn_pres( size(small_COLACV ) ))
       allocate( block_acv(size(block_to_global_acv) ) )
       allocate( dense_block_matrix (nphase,nphase,cv_nonods) ); dense_block_matrix=0;
       ALLOCATE( CV_RHS( CV_NONODS * NPHASE ) )
-      ALLOCATE( DIAG_SCALE_PRES( CV_NONODS ) )
-      ALLOCATE( CT_RHS( CV_NONODS ) )
-      ALLOCATE( CT( NCOLCT *NDIM * NPHASE ) )
 
       if( present( option_path ) ) then
 
@@ -214,77 +214,39 @@
 
       Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, NITS_FLUX_LIM
 
-         if(.false.) then
-            CALL CV_ASSEMB_CV_DG(state, &
-                 CV_RHS, &
-                 NCOLACV, BLOCK_ACV, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
-                 SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
-                 NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
-                 CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
-                 CV_ELE_TYPE,  &
-                 NPHASE, &
-                 CV_NLOC, U_NLOC, X_NLOC,  &
-                 CV_NDGLN, X_NDGLN, U_NDGLN, &
-                 CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-                 X, Y, Z, &
-                 NU, NV, NW, NUOLD, NVOLD, NWOLD, UG, VG, WG, &
-                 T, TOLD, DEN, DENOLD, &
-                 MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
-                 T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, SECOND_THETA, T_BETA, &
-                 SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
-                 SUF_T_BC_ROB1, SUF_T_BC_ROB2,  &
-                 WIC_T_BC, WIC_D_BC, WIC_U_BC, &
-                 DERIV, P,  &
-                 T_SOURCE, T_ABSORB, VOLFRA_PORE, &
-                 NDIM, &
-                 NCOLM, FINDM, COLM, MIDM, &
-                 XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
-                 OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
-                 T_FEMT, DEN_FEMT, &
-                 IGOT_T2, T2, T2OLD, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
-                 THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
-                 SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
-                 NOIT_DIM, &
-                 MEAN_PORE_CV, &
-                 THERMAL, &
-                 mass_ele_transp, &
-                 option_path )
-         else
-            CALL CV_ASSEMB( state, &
-                 CV_RHS, &
-                 NCOLACV, block_acv,dense_block_matrix, FINACV, COLACV, MIDACV, &
-                 SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
-                 NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
-                 CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
-                 CV_ELE_TYPE,  &
-                 NPHASE, &
-                 CV_NLOC, U_NLOC, X_NLOC,  &
-                 CV_NDGLN, X_NDGLN, U_NDGLN, &
-                 CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-                 X, Y, Z, NU, NV, NW, &
-                 NU, NV, NW, NUOLD, NVOLD, NWOLD, &
-                 T, TOLD, DEN, DENOLD, &
-                 MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
-                 T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, SECOND_THETA, T_BETA, &
-                 SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
-                 SUF_T_BC_ROB1, SUF_T_BC_ROB2,  &
-                 WIC_T_BC, WIC_D_BC, WIC_U_BC, &
-                 DERIV, P,  &
-                 T_SOURCE, T_ABSORB, VOLFRA_PORE, &
-                 NDIM, GETCV_DISC, GETCT, &
-                 NCOLM, FINDM, COLM, MIDM, &
-                 XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
-                 OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
-                 T_FEMT, DEN_FEMT, &
-                 IGOT_T2, T2, T2OLD, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
-                 THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
-                 SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
-                 NOIT_DIM, &
-                 MEAN_PORE_CV, &
-                 FINACV, COLACV, NCOLACV, block_acv, THERMAL, &
-                 mass_ele_transp, &
-                 option_path )
-         end if
+         CALL CV_ASSEMB_ADV_DIF( state, &
+              CV_RHS, &
+              NCOLACV, block_acv,dense_block_matrix, FINACV, COLACV, MIDACV, &
+              SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
+              CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
+              CV_ELE_TYPE,  &
+              NPHASE, &
+              CV_NLOC, U_NLOC, X_NLOC,  &
+              CV_NDGLN, X_NDGLN, U_NDGLN, &
+              CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
+              X, Y, Z, NU, NV, NW, &
+              NU, NV, NW, NUOLD, NVOLD, NWOLD, &
+              T, TOLD, DEN, DENOLD, &
+              MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
+              T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, SECOND_THETA, T_BETA, &
+              SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
+              SUF_T_BC_ROB1, SUF_T_BC_ROB2,  &
+              WIC_T_BC, WIC_D_BC, WIC_U_BC, &
+              DERIV, P,  &
+              T_SOURCE, T_ABSORB, VOLFRA_PORE, &
+              NDIM, &
+              NCOLM, FINDM, COLM, MIDM, &
+              XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
+              OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
+              T_FEMT, DEN_FEMT, &
+              IGOT_T2, T2, T2OLD, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
+              THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
+              SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
+              NOIT_DIM, &
+              MEAN_PORE_CV, &
+              SMALL_FINACV, SMALL_COLACV, size(small_colacv), mass_Mn_pres, THERMAL, &
+              mass_ele_transp, &
+              option_path )
 
          t=0.
 
@@ -349,11 +311,9 @@
       END DO Loop_NonLinearFlux
 
       DEALLOCATE( ACV )
+      deALLOCATE( mass_mn_pres )
       deallocate( block_acv, dense_block_matrix )
       DEALLOCATE( CV_RHS )
-      DEALLOCATE( DIAG_SCALE_PRES )
-      DEALLOCATE( CT_RHS )
-      DEALLOCATE( CT )
 
       ewrite(3,*)'t:', t
       ewrite(3,*)'told:', told
@@ -514,7 +474,7 @@
               SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
               NOIT_DIM, &
               MEAN_PORE_CV, &
-              FINACV, COLACV, NCOLACV, ACV, THERMAL, &
+              FINACv, COLACV, NCOLACV, ACV, THERMAL, &
               mass_ele_transp )
 
       ELSE ! this is for DG...
@@ -609,7 +569,8 @@
       REAL, DIMENSION( :, :, :, : ), intent( in ) :: TDIFFUSION
       character( len = * ), intent( in ), optional :: option_path
       ! Local  variables... none
-      REAL, DIMENSION ( : ), allocatable :: RZERO,RDUM
+      REAL, DIMENSION ( :, :, : ), allocatable :: RZERO
+      REAL, DIMENSION ( : ), allocatable :: RDUM
       INTEGER, DIMENSION ( : ), allocatable :: IDUM,IZERO
 
       INTEGER :: IPLIKE_GRAD_SOU
@@ -620,11 +581,11 @@
          FLAbort( 'Only working for u_nloc == cv_nloc ' )
       END IF
 
-      ALLOCATE(RZERO(TOTELE * U_NLOC * NPHASE * NDIM * U_NLOC * NPHASE * NDIM)) 
+      ALLOCATE(RZERO(TOTELE , U_NLOC * NPHASE * NDIM , U_NLOC * NPHASE * NDIM)) 
       RZERO=0.0
       ALLOCATE(IZERO(TOTELE * U_NLOC * NPHASE * NDIM * U_NLOC * NPHASE * NDIM)) 
       IZERO=0
-      ALLOCATE(RDUM(TOTELE * U_NLOC * NPHASE * NDIM * U_NLOC * NPHASE * NDIM)) 
+      ALLOCATE(RDUM(TOTELE *  U_NLOC * NPHASE * NDIM  *  U_NLOC * NPHASE * NDIM)) 
       RDUM=0.0
       ALLOCATE(IDUM(TOTELE * U_NLOC * NPHASE * NDIM * U_NLOC * NPHASE * NDIM)) 
       IDUM=0
@@ -637,28 +598,28 @@
            U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
            U_NDGLN, CV_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN, &
            STOTEL, U_SNDGLN, CV_SNDGLN, CV_SNDGLN, U_SNLOC, CV_SNLOC, CV_SNLOC, &
-           X, Y, Z, RZERO, T_ABSORB, T_SOURCE, RZERO, &
+           X, Y, Z, RZERO, T_ABSORB, T_SOURCE, RDUM, &
            ! Changed the next 3 lines...
            T, T, T, TOLD, TOLD, TOLD, &
            U, V, W, UOLD, VOLD, WOLD, &
            DEN, DENOLD, &
            DT, &
            ! added the next line...
-           SUF_T_BC, SUF_T_BC, SUF_T_BC, RZERO, &
+           SUF_T_BC, SUF_T_BC, SUF_T_BC, RZERO(:,:,1), &
            SUF_T_BC, SUF_T_BC, SUF_T_BC, &
-           SUF_U_BC, SUF_V_BC, SUF_W_BC, RZERO, &
-           SUF_T_BC_ROB1, SUF_T_BC_ROB2, RZERO, RZERO,  &
-           RZERO, RZERO, &
+           SUF_U_BC, SUF_V_BC, SUF_W_BC, RDUM, &
+           SUF_T_BC_ROB1, SUF_T_BC_ROB2, RDUM, RDUM,  &
+           RDUM, RDUM, &
            WIC_T_BC, WIC_T_BC, WIC_U_BC, IZERO,  &
            CV_RHS, &
            RDUM, 0, IDUM, IDUM, & 
            ACV, NCOLACV, FINACV, COLACV, &! Force balance sparsity  
            NCOLELE, FINELE, COLELE, & ! Element connectivity.
            XU_NLOC, XU_NDGLN, &
-           RDUM, JUST_BL_DIAG_MAT,  &
+           RZERO, JUST_BL_DIAG_MAT,  &
            TDIFFUSION, & ! TDiffusion need to be obtained down in the tree according to the option_path
-           IPLIKE_GRAD_SOU, RZERO, RZERO, &
-           RZERO,.FALSE.,1 )
+           IPLIKE_GRAD_SOU, RDUM, RDUM, &
+           RDUM,.FALSE.,1 )
 
 
     END SUBROUTINE WRAPPER_ASSEMB_FORCE_CTY
@@ -816,9 +777,9 @@
       real, dimension( : ), intent( inout ) :: mass_ele_transp
 
       ! Local Variables
-      LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE., THERMAL= .false.
+      LOGICAL, PARAMETER :: THERMAL= .false.
       integer :: nits_flux_lim, its_flux_lim, igot_t2
-      REAL, DIMENSION( : ), allocatable :: ACV, block_ACV, CV_RHS, CT, DIAG_SCALE_PRES, CT_RHS, SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2
+      REAL, DIMENSION( : ), allocatable :: ACV, mass_mn_pres, block_ACV, CV_RHS, CT, DIAG_SCALE_PRES, CT_RHS, SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2
       REAL, DIMENSION( :,:,: ), allocatable :: dense_block_matrix
       REAL, DIMENSION( :,:,:,: ), allocatable :: TDIFFUSION
       REAL, DIMENSION( : ), allocatable :: SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, SUF_T2_BC
@@ -844,6 +805,7 @@
 
       ALLOCATE( ACV( NCOLACV ) ) ; ACV = 0.
       ALLOCATE( block_ACV( size(block_to_global_acv) ) ) ; block_ACV = 0.
+      ALLOCATE( mass_mn_pres(size(small_colacv)) ) ; mass_mn_pres = 0.
       ALLOCATE( dense_block_matrix( nphase , nphase , cv_nonods) ); dense_block_matrix=0;
       ALLOCATE( CV_RHS( CV_NONODS * NPHASE ) ) ; CV_RHS = 0.
       ALLOCATE( CT( NCOLCT * NDIM * NPHASE ) )
@@ -859,20 +821,18 @@
       SUF_VOL_BC_ROB2 = 0.0
       V_BETA = 1.0
 
-      SECOND_THETA = 1.0
       path = '/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/temporal_discretisation/' // &
            'control_volumes/'
-      call get_option( trim( path ) // 'second_theta', second_theta, stat )
+      call get_option( trim( path ) // 'second_theta', second_theta, stat , default = 1.0)
       call get_option( trim( path ) // 'number_advection_iterations', nits_flux_lim, default = 1 )
 
       ! THIS DOES NOT WORK FOR NITS_FLUX_LIM>1 (NOBODY KNOWS WHY)
       Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, 1 !nits_flux_lim
 
-         CALL CV_ASSEMB( state, &
+         CALL CV_ASSEMB_ADV_DIF( state, &
               CV_RHS, &
               NCOLACV, block_ACV, dense_block_matrix, FINACV, COLACV, MIDACV, &
               SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
-              NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
               CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
               CV_ELE_TYPE,  &
               NPHASE,  &
@@ -889,7 +849,7 @@
               WIC_VOL_BC, WIC_D_BC, WIC_U_BC, &
               DERIV, P, &
               V_SOURCE, V_ABSORB, VOLFRA_PORE, &
-              NDIM, GETCV_DISC, GETCT,  &
+              NDIM,&
               NCOLM, FINDM, COLM, MIDM, &
               XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
               OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
@@ -899,11 +859,11 @@
               SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
               NOIT_DIM, &
               MEAN_PORE_CV, &
-              FINACV, COLACV, NCOLACV, ACV, THERMAL, &
+              SMALL_FINACV, SMALL_COLACV, size(small_colacv), mass_mn_pres, THERMAL, &
               mass_ele_transp, &
               option_path )
 
-         satura=0.
+         satura=0.0 !saturaold([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)])
 
          call assemble_global_multiphase_csr(acv,&
               block_acv,dense_block_matrix,&
@@ -917,6 +877,7 @@
       END DO Loop_NonLinearFlux
 
       DEALLOCATE( ACV )
+      DEALLOCATE( mass_mn_pres )
       deallocate( block_acv )
       deallocate( dense_block_matrix )
       DEALLOCATE( CV_RHS )
@@ -1061,12 +1022,12 @@
       ! Local Variables
       LOGICAL, PARAMETER :: GLOBAL_SOLVE = .FALSE.
 
-      REAL, DIMENSION( : ), allocatable :: ACV, CT, CT_RHS, DIAG_SCALE_PRES, &
+      REAL, DIMENSION( : ), allocatable :: CT, CT_RHS, DIAG_SCALE_PRES, &
            U_RHS, MCY_RHS, C, MCY, &
            CMC, CMC_PRECON, MASS_MN_PRES, MASS_CV, P_RHS, UP, U_RHS_CDP, DP, &
            CDP, DU_VEL, UP_VEL, DU, DV, DW, DGM_PHA, DIAG_P_SQRT
       ! this is the pivit matrix to use in the projection method...
-      REAL, DIMENSION( :, :, : ), allocatable :: PIVIT_MAT, INV_PIVIT_MAT
+      REAL, DIMENSION( :, :, : ), allocatable :: PIVIT_MAT 
       INTEGER :: CV_NOD, COUNT, CV_JNOD, IPHASE, ele, x_nod1, x_nod2, x_nod3, cv_iloc,&
            cv_nod1, cv_nod2, cv_nod3, mat_nod1, u_iloc, u_nod, u_nod_pha, u_nloc_lev, n_nloc_lev, &
            ndpset, IGOT_CMC_PRECON
@@ -1078,7 +1039,6 @@
 ! If IGOT_CMC_PRECON=1 use a sym matrix as pressure preconditioner,=0 else CMC as preconditioner as well.
       IGOT_CMC_PRECON=0
 
-      ALLOCATE( ACV( NCOLACV )) ; ACV=0.
       ALLOCATE( CT( NCOLCT * NDIM * NPHASE )) ; CT=0.
       ALLOCATE( CT_RHS( CV_NONODS )) ; CT_RHS=0.
       ALLOCATE( DIAG_SCALE_PRES( CV_NONODS )) ; DIAG_SCALE_PRES=0.
@@ -1100,8 +1060,7 @@
       ALLOCATE( DU( U_NONODS * NPHASE )) ; DU = 0.
       ALLOCATE( DV( U_NONODS * NPHASE )) ; DV = 0.
       ALLOCATE( DW( U_NONODS * NPHASE )) ; DW = 0.
-      ALLOCATE( PIVIT_MAT( U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM, TOTELE )) ; PIVIT_MAT=0.
-      ALLOCATE( INV_PIVIT_MAT( U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM, TOTELE )) ; INV_PIVIT_MAT=0.
+      ALLOCATE( PIVIT_MAT( U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM, TOTELE )) ; PIVIT_MAT=0.0
       ALLOCATE( DGM_PHA( NCOLDGM_PHA )) ; DGM_PHA=0.
 
       n_nloc_lev = u_nloc / cv_nloc
@@ -1188,7 +1147,7 @@
 
       ELSE ! solve using a projection method
 
-         CALL PHA_BLOCK_INV( INV_PIVIT_MAT, PIVIT_MAT, TOTELE, U_NLOC * NPHASE * NDIM )
+ !        CALL PHA_BLOCK_INV( PIVIT_MAT, TOTELE, U_NLOC * NPHASE * NDIM )
 
          ! Put pressure in rhs of force balance eqn:  CDP=C*P
          CALL C_MULT( CDP, P, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
@@ -1200,7 +1159,7 @@
          IF ( JUST_BL_DIAG_MAT .OR. NO_MATRIX_STORE ) THEN
 
             ! DU = BLOCK_MAT * CDP
-            CALL PHA_BLOCK_MAT_VEC( UP_VEL, INV_PIVIT_MAT, U_RHS_CDP, U_NONODS, NDIM, NPHASE, &
+            CALL PHA_BLOCK_MAT_VEC( UP_VEL, PIVIT_MAT, U_RHS_CDP, U_NONODS, NDIM, NPHASE, &
                  TOTELE, U_NLOC, U_NDGLN )
 
          ELSE
@@ -1381,7 +1340,7 @@
 
          ! correct velocity...
          ! DU = BLOCK_MAT * CDP 
-         CALL PHA_BLOCK_MAT_VEC( DU_VEL, INV_PIVIT_MAT, CDP, U_NONODS, NDIM, NPHASE, &
+         CALL PHA_BLOCK_MAT_VEC( DU_VEL, PIVIT_MAT, CDP, U_NONODS, NDIM, NPHASE, &
               TOTELE, U_NLOC, U_NDGLN )
 
          CALL ULONG_2_UVW( DU, DV, DW, DU_VEL, U_NONODS, NDIM, NPHASE )
@@ -1533,7 +1492,6 @@
          end if
       END IF
 
-      DEALLOCATE( ACV )
       DEALLOCATE( CT )
       DEALLOCATE( CT_RHS )
       DEALLOCATE( DIAG_SCALE_PRES )
@@ -1554,7 +1512,6 @@
       DEALLOCATE( DV )
       DEALLOCATE( DW )
       DEALLOCATE( PIVIT_MAT )
-      DEALLOCATE( INV_PIVIT_MAT )
 
       ewrite(3,*) 'Leaving FORCE_BAL_CTY_ASSEM_SOLVE'
 
@@ -1803,7 +1760,7 @@
       REAL, DIMENSION( : , : , :  ), intent( in ) :: V_ABSORB
       REAL, DIMENSION( :  ), intent( in ) :: VOLFRA_PORE
       ! this is the pivit matrix to use in the projection method. 
-      REAL, DIMENSION( : ,:,:  ), intent( inout ) :: PIVIT_MAT
+      REAL, DIMENSION( : ,:,:  ), intent( out ) :: PIVIT_MAT
       INTEGER, DIMENSION( :  ), intent( in ) :: FINDM
       INTEGER, DIMENSION( :  ), intent( in ) :: COLM
       INTEGER, DIMENSION( :  ), intent( in ) :: MIDM
@@ -1870,6 +1827,7 @@
               TOTELE, U_NLOC, U_NDGLN, &
               CT, NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, MASS_MN_PRES, &
               NCOLCMC, FINDCMC, COLCMC, CMC, CMC_PRECON, IGOT_CMC_PRECON )
+
       ENDIF
 
       DEALLOCATE( ACV )
@@ -1893,11 +1851,11 @@
       ! Form pressure eqn only if .not. GLOBAL_SOLVE ready for using a projection method. 
       INTEGER, intent( in ) :: CV_NONODS, U_NONODS,  &
            NDIM, NPHASE, NCOLC, TOTELE, U_NLOC, NCOLCT, NCOLCMC, IGOT_CMC_PRECON
-      INTEGER, DIMENSION(: ), intent( in ) :: U_NDGLN
+      INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN 
       REAL, DIMENSION( : ), intent( in ) :: C
       INTEGER, DIMENSION( : ), intent( in ) :: FINDC
       INTEGER, DIMENSION( : ), intent( in ) :: COLC
-      REAL, DIMENSION( :, :, : ), intent( in ) :: PIVIT_MAT
+      REAL, DIMENSION( : , : , : ), intent( inout ) :: PIVIT_MAT
       REAL, DIMENSION( : ), intent( inout ) :: CT
       INTEGER, DIMENSION( : ), intent( in ) :: FINDCT
       INTEGER, DIMENSION( : ), intent( in ) :: COLCT
@@ -1905,23 +1863,24 @@
       INTEGER, DIMENSION( : ), intent( in ) :: FINDCMC
       INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
       REAL, DIMENSION( : ), intent( inout ) :: CMC, MASS_MN_PRES
-      REAL, DIMENSION( :), intent( inout ) :: CMC_PRECON
+      REAL, DIMENSION( : ), intent( inout ) :: CMC_PRECON
 
       ! Local variables
-      REAL, DIMENSION( :, :, : ), allocatable :: INV_PIVIT_MAT
+!      REAL, DIMENSION( :, :, : ), allocatable :: INV_PIVIT_MAT
 
-      ALLOCATE( INV_PIVIT_MAT( U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM, TOTELE ))
-      CALL PHA_BLOCK_INV( INV_PIVIT_MAT, PIVIT_MAT, TOTELE, U_NLOC * NPHASE * NDIM )
+!      ALLOCATE( INV_PIVIT_MAT( U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM, TOTELE ))
+!      CALL PHA_BLOCK_INV( INV_PIVIT_MAT, PIVIT_MAT, TOTELE, U_NLOC * NPHASE * NDIM )
+      CALL PHA_BLOCK_INV( PIVIT_MAT, TOTELE, U_NLOC * NPHASE * NDIM )
 
       CALL COLOR_GET_CMC_PHA( CV_NONODS, U_NONODS, NDIM, NPHASE, &
            NCOLC, FINDC, COLC, &
-           INV_PIVIT_MAT,  &
+           PIVIT_MAT,  &
            TOTELE, U_NLOC, U_NDGLN, &
            NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, &
            CMC, CMC_PRECON, IGOT_CMC_PRECON, NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, &
            C, CT )
 
-      DEALLOCATE( INV_PIVIT_MAT )
+!      DEALLOCATE( INV_PIVIT_MAT )
 
       ewrite(3,*) 'Leaving FORM_PRES_EQN'
 
@@ -2045,7 +2004,7 @@
       LOGICAL, intent( in ) :: GLOBAL_SOLVE
       INTEGER, DIMENSION( : ), intent( in ) :: FINMCY
       REAL, DIMENSION( : ), intent( inout ) :: MCY
-      REAL, DIMENSION( :, :,: ), intent( inout ) :: PIVIT_MAT
+      REAL, DIMENSION( :, :,: ), intent( out ) :: PIVIT_MAT
       REAL, DIMENSION( : ), intent( in ) :: UDEN, UDENOLD
       REAL, DIMENSION( :, :, :, : ), intent( in ) :: UDIFFUSION
       LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
@@ -2147,9 +2106,7 @@
       second_theta = 0.0
 
       ! Form CT & MASS_MN_PRES matrix...
-      CALL CV_ASSEMB( state, &
-           CV_RHS, &
-           NCOLACV, BLOCK_ACV, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
+      CALL CV_ASSEMB_CT( state, &
            SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
            NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
            CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
@@ -2168,7 +2125,7 @@
            WIC_VOL_BC, WIC_D_BC, WIC_U_BC, &
            DERIV, CV_P,  &
            V_SOURCE, V_ABSORB, VOLFRA_PORE, &
-           NDIM, GETCV_DISC, GETCT, &
+           NDIM,&
            NCOLM, FINDM, COLM, MIDM, &
            XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
            OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, & 
@@ -2380,7 +2337,7 @@
       INTEGER, DIMENSION( : ), intent( in ) ::  WIC_U_BC, WIC_MOMU_BC, WIC_NU_BC, WIC_P_BC
 ! viscocity b.c's on velocity...
       REAL, DIMENSION( : ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
-      REAL, DIMENSION(STOTEL * CV_SNLOC * NPHASE, NDIM ), intent( in ) :: SUF_SIG_DIAGTEN_BC
+      REAL, DIMENSION( : , : ), intent( in ) :: SUF_SIG_DIAGTEN_BC
 ! Momentum b.c's...
       REAL, DIMENSION( : ), intent( in ) :: SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC
 ! bcs on the advection velocity...
@@ -2389,7 +2346,7 @@
       REAL, DIMENSION( :), intent( in ) :: SUF_U_BC_ROB1, SUF_U_BC_ROB2, &
            SUF_V_BC_ROB1, SUF_V_BC_ROB2, SUF_W_BC_ROB1, SUF_W_BC_ROB2
       REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
-      REAL, DIMENSION( MAT_NONODS, NDIM_VEL * NPHASE, NDIM_VEL * NPHASE ), intent( in ) :: U_ABS_STAB
+      REAL, DIMENSION( : ,  : ,  : ), intent( in ) :: U_ABS_STAB
       REAL, DIMENSION( :, :, : ), intent( in ) :: U_ABSORB
       REAL, DIMENSION( : ), intent( in ) :: U_SOURCE
       REAL, DIMENSION( : ), intent( in ) :: U_SOURCE_CV
@@ -2406,7 +2363,7 @@
       INTEGER, DIMENSION( :), intent( in ) :: COLDGM_PHA
       INTEGER, DIMENSION(: ), intent( in ) :: FINELE
       INTEGER, DIMENSION( : ), intent( in ) :: COLELE
-      REAL, DIMENSION(U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM, TOTELE ), intent( inout ) :: PIVIT_MAT
+      REAL, DIMENSION( : , : , : ), intent( out ) :: PIVIT_MAT
       REAL, DIMENSION( :, :, :, : ), intent( in ) :: UDIFFUSION
       LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
       REAL, DIMENSION( : ), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
@@ -2946,8 +2903,6 @@
       IF(( .NOT. JUST_BL_DIAG_MAT ).and.(.NOT.NO_MATRIX_STORE)) DGM_PHA = 0.0
       C = 0.0
       U_RHS = 0.0
-
-      PIVIT_MAT = 0.0
 
       !======= DEFINE THE SUB-CONTROL VOLUME SHAPE FUNCTIONS, ETC ========
 
@@ -3512,13 +3467,14 @@ end if
                               ENDIF
 if ( lump_mass ) then
  !                             PIVIT_MAT(ELE, I, J) =  PIVIT_MAT(ELE, I, J) &
-                              PIVIT_MAT(I, I,ELE) =  PIVIT_MAT(I, I,ELE) &
-                                   + NN_SIGMAGI( IPHA_IDIM, JPHA_JDIM ) + NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM ) &
+                              PIVIT_MAT(I, I,ELE) =  &
+                                   NN_SIGMAGI( IPHA_IDIM, JPHA_JDIM ) + NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM ) &
                                    + NN_MASS( IPHA_IDIM, JPHA_JDIM )/DT
 else
-                              PIVIT_MAT(I, J,ELE) =  PIVIT_MAT(I, J,ELE) &
+!   print*, i,j, ele, PIVIT_MAT(I, J,ELE)
+                              PIVIT_MAT(I, J,ELE) =  &
  !                             PIVIT_MAT(ELE, I, I) =  PIVIT_MAT(ELE, I, I) &
-                                   + NN_SIGMAGI( IPHA_IDIM, JPHA_JDIM ) + NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM ) &
+                                   NN_SIGMAGI( IPHA_IDIM, JPHA_JDIM ) + NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM ) &
                                    + NN_MASS( IPHA_IDIM, JPHA_JDIM )/DT
 end if
 
@@ -6255,21 +6211,22 @@ end if
       integer, dimension(:), allocatable :: IPIV
       REAL, DIMENSION( : , :, : ), allocatable :: DTX_ELE,DTY_ELE,DTZ_ELE, &
            SHARP_DTX_ELE,SHARP_DTY_ELE,SHARP_DTZ_ELE, &
-           DTOLDX_ELE,DTOLDY_ELE,DTOLDZ_ELE, TDIFFUSION
+           DTOLDX_ELE,DTOLDY_ELE,DTOLDZ_ELE
       REAL, DIMENSION( : ), allocatable :: B_CV_X,B_CV_Y,B_CV_Z, &
            RHS_U_SHORT_X,RHS_U_SHORT_Y,RHS_U_SHORT_Z, &
-           U_SOL_X,U_SOL_Y,U_SOL_Z,T_ABSORB, &
+           U_SOL_X,U_SOL_Y,U_SOL_Z, &
            DIF_TX, DIF_TY, DIF_TZ, &
-           DX_DIFF_X, DY_DIFF_X, DZ_DIFF_X, &
-           DX_DIFF_Y, DY_DIFF_Y, DZ_DIFF_Y, &
-           DX_DIFF_Z, DY_DIFF_Z, DZ_DIFF_Z, &
            MASS_NORMALISE, &
            TAU_XX, TAU_XY, TAU_XZ, &
            TAU_YX, TAU_YY, TAU_YZ, &
-           TAU_ZX, TAU_ZY, TAU_ZZ, &
-           DX_TAU_XX, DY_TAU_XY, DZ_TAU_XZ, &
+           TAU_ZX, TAU_ZY, TAU_ZZ
+       REAL, DIMENSION( :, :, : ), allocatable ::&
+       DX_TAU_XX, DY_TAU_XY, DZ_TAU_XZ, &
            DX_TAU_YX, DY_TAU_YY, DZ_TAU_YZ, &
-           DX_TAU_ZX, DY_TAU_ZY, DZ_TAU_ZZ
+           DX_TAU_ZX, DY_TAU_ZY, DZ_TAU_ZZ, &
+            DX_DIFF_X, DY_DIFF_X, DZ_DIFF_X, &
+           DX_DIFF_Y, DY_DIFF_Y, DZ_DIFF_Y, &
+           DX_DIFF_Z, DY_DIFF_Z, DZ_DIFF_Z, rzero3
 
       !        ===> INTEGERS <===
       INTEGER :: CV_NGI, CV_NGI_SHORT, SCVNGI, SBCVNGI, COUNT, JCOUNT, &
@@ -6316,6 +6273,10 @@ end if
 
       CHARACTER(LEN=OPTION_PATH_LEN) :: OPTION_PATH
       REAL, DIMENSION(TOTELE) :: DUMMY_ELE
+      real, dimension(0,0,0,0):: tflux
+      real, allocatable, dimension(:,:,:) :: T_ABSORB
+      real, allocatable, dimension(:,:,:,:) :: tdiffusion
+      
 
       DUMMY_ELE = 0
 
@@ -6333,6 +6294,7 @@ end if
       ALLOCATE(RDUM(MAX(U_NLOC,CV_NLOC)*TOTELE)) ; RDUM = 0.0
       ALLOCATE(IDUM(MAX(U_NLOC,CV_NLOC)*TOTELE)) ; IDUM = 0
       ALLOCATE(RZERO(MAX(U_NLOC,CV_NLOC)*TOTELE)) ; RZERO=0.0 
+      ALLOCATE(RZERO3(MAX(U_NLOC,CV_NLOC),1,TOTELE)); RZERO3=0.0
       ALLOCATE(RZERO_DIAGTEN(CV_SNLOC*STOTEL*NPHASE, NDIM)) ; RZERO_DIAGTEN=0.0 
       ALLOCATE(IZERO(MAX(U_NLOC,CV_NLOC)*TOTELE))  ; IZERO=0 
       ALLOCATE(CV_ONE(CV_NONODS)) ; CV_ONE=1.0
@@ -6603,7 +6565,7 @@ end if
 
       ! determine the curvature by solving a simple eqn...
 
-      ALLOCATE( TDIFFUSION( NDIM, NDIM, CV_NONODS ) ) ; TDIFFUSION=0.0
+      ALLOCATE( TDIFFUSION( NDIM, NDIM, CV_NONODS,nphase ) ) ; TDIFFUSION=0.0
       ALLOCATE( MASS_NORMALISE( CV_NONODS ) ) ; MASS_NORMALISE=0.0
       DO ELE=1,TOTELE
          DO CV_ILOC=1,CV_NLOC
@@ -6682,7 +6644,7 @@ end if
             IF(NDIM.GE.3) RR = RR+ DTZ_ELE(CV_ILOC, 1, ELE)**2
             RDIF = 1.0 / MAX( TOLER, SQRT(RR) )
             DO IDIM=1,NDIM
-               TDIFFUSION(IDIM,IDIM,CV_NOD) = TDIFFUSION(IDIM,IDIM,CV_NOD) + &
+               TDIFFUSION(IDIM,IDIM,CV_NOD,1) = TDIFFUSION(IDIM,IDIM,CV_NOD,1) + &
                     RDIF * MASS_ELE(ELE) / MASS_NORMALISE(CV_NOD)
             END DO
          END DO
@@ -6771,18 +6733,18 @@ end if
 
          if ( stress_form ) then
 
-            ALLOCATE(DX_TAU_XX(CV_NLOC*TOTELE), DY_TAU_XY(CV_NLOC*TOTELE), DZ_TAU_XZ(CV_NLOC*TOTELE))
-            ALLOCATE(DX_TAU_YX(CV_NLOC*TOTELE), DY_TAU_YY(CV_NLOC*TOTELE), DZ_TAU_YZ(CV_NLOC*TOTELE))
-            ALLOCATE(DX_TAU_ZX(CV_NLOC*TOTELE), DY_TAU_ZY(CV_NLOC*TOTELE), DZ_TAU_ZZ(CV_NLOC*TOTELE))
+            ALLOCATE(DX_TAU_XX(CV_NLOC,nphase,TOTELE), DY_TAU_XY(CV_NLOC,nphase,TOTELE), DZ_TAU_XZ(CV_NLOC,nphase,TOTELE))
+            ALLOCATE(DX_TAU_YX(CV_NLOC,nphase,TOTELE), DY_TAU_YY(CV_NLOC,nphase,TOTELE), DZ_TAU_YZ(CV_NLOC,nphase,TOTELE))
+            ALLOCATE(DX_TAU_ZX(CV_NLOC,nphase,TOTELE), DY_TAU_ZY(CV_NLOC,nphase,TOTELE), DZ_TAU_ZZ(CV_NLOC,nphase,TOTELE))
 
             DX_TAU_XX=0.0 ; DY_TAU_XY=0.0 ; DZ_TAU_XZ=0.0
             DX_TAU_YX=0.0 ; DY_TAU_YY=0.0 ; DZ_TAU_YZ=0.0
             DX_TAU_ZX=0.0 ; DY_TAU_ZY=0.0 ; DZ_TAU_ZZ=0.0
 
             CALL DG_DERIVS_UVW( TAU_XX, TAU_XX, TAU_XY, TAU_XY, TAU_XZ, TAU_XZ, &
-                 DX_TAU_XX, RDUM, RDUM, RDUM, RDUM, RDUM, &
-                 RDUM, DY_TAU_XY, RDUM, RDUM, RDUM, RDUM, &
-                 RDUM, RDUM, DZ_TAU_XZ, RDUM, RDUM, RDUM, &
+                 DX_TAU_XX, RZERO3, RZERo3, RZERo3, Rzero3, Rzero3, &
+                 Rzero3, DY_TAU_XY, Rzero3, Rzero3, Rzero3, Rzero3, &
+                 rzero3, Rzero3, DZ_TAU_XZ, rzero3, rzero3, rzero3, &
                  NDIM, NDIM, NPHASE, DG_CV_NONODS, TOTELE, DG_CV_NDGLN, &
                  X_NDGLN, X_NLOC, X_NDGLN, &
                  CV_NGI, CV_NLOC, CVWEIGHT, &
@@ -6794,7 +6756,7 @@ end if
                  1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, & 
                  SBCVFEN, SBCVFENSLX, SBCVFENSLY)
 
-            U_FORCE_X_SUF_TEN = DX_TAU_XX + DY_TAU_XY + DZ_TAU_XZ
+            U_FORCE_X_SUF_TEN = pack(DX_TAU_XX(:,1,:) + DY_TAU_XY(:,1,:) + DZ_TAU_XZ(:,1,:),.true.)
 !!$            femtold=0.0
 !!$            DO ELE=1,TOTELE
 !!$               DO CV_ILOC=1,CV_NLOC
@@ -6813,9 +6775,9 @@ end if
 
             IF(NDIM.GE.2) THEN
                CALL DG_DERIVS_UVW( TAU_YX, TAU_YX, TAU_YY, TAU_YY, TAU_YZ, TAU_YZ, &
-                    DX_TAU_YX, RDUM, RDUM, RDUM, RDUM, RDUM, &
-                    RDUM, DY_TAU_YY, RDUM, RDUM, RDUM, RDUM, &
-                    RDUM, RDUM, DZ_TAU_YZ, RDUM, RDUM, RDUM, &
+                    DX_TAU_YX, RZERO3, RZERo3, RZERo3, Rzero3, Rzero3, &
+                 Rzero3, DY_TAU_YY, Rzero3, Rzero3, Rzero3, Rzero3, &
+                 rzero3, Rzero3, DZ_TAU_YZ, rzero3, rzero3, rzero3,&
                     NDIM, NDIM, NPHASE, DG_CV_NONODS, TOTELE, DG_CV_NDGLN, &
                     X_NDGLN, X_NLOC, X_NDGLN, &
                     CV_NGI, CV_NLOC, CVWEIGHT, &
@@ -6827,7 +6789,7 @@ end if
                     1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, & 
                     SBCVFEN, SBCVFENSLX, SBCVFENSLY)
 
-               U_FORCE_Y_SUF_TEN = DX_TAU_YX + DY_TAU_YY + DZ_TAU_YZ
+               U_FORCE_Y_SUF_TEN = pack(DX_TAU_YX(:,1,:)+ DY_TAU_YY(:,1,:) + DZ_TAU_YZ(:,1,:),.true.)
 
 
 !!$               femtold=0.0
@@ -6852,9 +6814,9 @@ end if
 
             IF(NDIM.GE.3) THEN
                CALL DG_DERIVS_UVW( TAU_ZX, TAU_ZX, TAU_ZY, TAU_ZY, TAU_ZZ, TAU_ZZ, &
-                    DX_TAU_ZX, RDUM, RDUM, RDUM, RDUM, RDUM, &
-                    RDUM, DY_TAU_ZY, RDUM, RDUM, RDUM, RDUM, &
-                    RDUM, RDUM, DZ_TAU_ZZ, RDUM, RDUM, RDUM, &
+                    DX_TAU_ZX,  RZERO3, RZERo3, RZERo3, Rzero3, Rzero3, &
+                 Rzero3, DY_TAU_ZY, Rzero3, Rzero3, Rzero3, Rzero3, &
+                 rzero3, Rzero3, DZ_TAU_ZZ, rzero3, rzero3, rzero3, &
                     NDIM, NDIM, NPHASE, DG_CV_NONODS, TOTELE, DG_CV_NDGLN, &
                     X_NDGLN, X_NLOC, X_NDGLN, &
                     CV_NGI, CV_NLOC, CVWEIGHT, &
@@ -6866,7 +6828,7 @@ end if
                     1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, & 
                     SBCVFEN, SBCVFENSLX, SBCVFENSLY)
 
-               U_FORCE_Z_SUF_TEN = DX_TAU_ZX + DY_TAU_ZY + DZ_TAU_ZZ
+               U_FORCE_Z_SUF_TEN = pack(DX_TAU_ZX(:,1,:) + DY_TAU_ZY(:,1,:) + DZ_TAU_ZZ(:,1,:),.true.)
 
 !!$               femtold=0.0
 !!$               DO ELE=1,TOTELE
@@ -6898,9 +6860,10 @@ end if
 
          else ! non stress form
 
-            ALLOCATE(DX_DIFF_X(CV_NLOC*TOTELE), DY_DIFF_X(CV_NLOC*TOTELE), DZ_DIFF_X(CV_NLOC*TOTELE))
-            ALLOCATE(DX_DIFF_Y(CV_NLOC*TOTELE), DY_DIFF_Y(CV_NLOC*TOTELE), DZ_DIFF_Y(CV_NLOC*TOTELE))
-            ALLOCATE(DX_DIFF_Z(CV_NLOC*TOTELE), DY_DIFF_Z(CV_NLOC*TOTELE), DZ_DIFF_Z(CV_NLOC*TOTELE)) 
+            ALLOCATE(DX_DIFF_X(CV_NLOC,nphase,TOTELE), DY_DIFF_X(CV_NLOC,nphase,TOTELE), DZ_DIFF_X(CV_NLOC,nphase,TOTELE))
+            ALLOCATE(DX_DIFF_Y(CV_NLOC,nphase,TOTELE), DY_DIFF_Y(CV_NLOC,nphase,TOTELE), DZ_DIFF_Y(CV_NLOC,nphase,TOTELE))
+            ALLOCATE(DX_DIFF_Z(CV_NLOC,nphase,TOTELE), DY_DIFF_Z(CV_NLOC,nphase,TOTELE), DZ_DIFF_Z(CV_NLOC,nphase,TOTELE))
+
 
             DX_DIFF_X=0. ;  DY_DIFF_X=0. ; DZ_DIFF_X=0.
             DX_DIFF_Y=0. ;  DY_DIFF_Y=0. ; DZ_DIFF_Y=0.
@@ -6909,9 +6872,9 @@ end if
             if(.true.) then
 
                CALL DG_DERIVS_UVW( DIF_TX, DIF_TX, DIF_TY, DIF_TY, DIF_TZ, DIF_TZ, &
-                    DX_DIFF_X, DY_DIFF_X, DZ_DIFF_X, RDUM, RDUM, RDUM, &
-                    DX_DIFF_Y, DY_DIFF_Y, DZ_DIFF_Y, RDUM, RDUM, RDUM, &
-                    DX_DIFF_Z, DY_DIFF_Z, DZ_DIFF_Z, RDUM, RDUM, RDUM, &
+                    DX_DIFF_X, DY_DIFF_X, DZ_DIFF_X, rzero3, rzero3, rzero3, &
+                    DX_DIFF_Y, DY_DIFF_Y, DZ_DIFF_Y, rzero3, rzero3, rzero3, &
+                    DX_DIFF_Z, DY_DIFF_Z, DZ_DIFF_Z, rzero3, rzero3, rzero3, &
                     NDIM, NDIM, NPHASE, DG_CV_NONODS, TOTELE, DG_CV_NDGLN, &
                     X_NDGLN, X_NLOC, X_NDGLN, &
                     CV_NGI, CV_NLOC, CVWEIGHT, &
@@ -6935,7 +6898,7 @@ end if
                END DO
 
                CALL DG_DERIVS( FEMTOLD, rzero, &
-                    DToldX_ELE, rdum, rdum,   rdum, rdum, rdum, &
+                    DToldX_ELE, rzero3, rzero3,   rzero3, rzero3, rzero3, &
                     NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, &
                     X_NDGLN, X_NLOC, X_NDGLN, &
                     CV_NGI_SHORT, CV_NLOC, CVWEIGHT_SHORT, &
@@ -6950,7 +6913,7 @@ end if
                DO ELE=1,TOTELE
                   DO CV_ILOC=1,CV_NLOC
                      dg_cv_nod=(ELE-1)*CV_NLOC+CV_ILOC
-                     DX_DIFF_X(dg_cv_nod)=DToldX_ELE(CV_ILOC, 1, ELE)
+                     DX_DIFF_X(cv_ILOC,1,ele)=DToldX_ELE(CV_ILOC, 1, ELE)
                   END DO
                END DO
 
@@ -6965,7 +6928,7 @@ end if
                END DO
 
                CALL DG_DERIVS( FEMTOLD, rzero, &
-                    rdum, DToldY_ELE, rdum,   rdum, rdum, rdum, & 
+                    rzero3, DToldY_ELE, rzero3,   rzero3, rzero3, rzero3, & 
                     NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, &
                     X_NDGLN, X_NLOC, X_NDGLN, &
                     CV_NGI_SHORT, CV_NLOC, CVWEIGHT_SHORT, &
@@ -6980,7 +6943,7 @@ end if
                DO ELE=1,TOTELE
                   DO CV_ILOC=1,CV_NLOC
                      dg_cv_nod=(ELE-1)*CV_NLOC+CV_ILOC
-                     DY_DIFF_Y(dg_cv_nod)=DToldY_ELE(CV_ILOC, 1, ELE)
+                     DY_DIFF_Y(CV_ILOC, 1, ELE)=DToldY_ELE(CV_ILOC, 1, ELE)
                   END DO
                END DO
 
@@ -6991,9 +6954,9 @@ end if
                DO CV_ILOC=1,CV_NLOC
                   CV_NOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)
                   DG_CV_NOD=(ELE-1)*CV_NLOC+CV_ILOC
-                  RR=DX_DIFF_X(DG_CV_NOD)
-                  IF(NDIM.GE.2) RR=RR + DY_DIFF_Y(DG_CV_NOD)
-                  IF(NDIM.GE.3) RR=RR + DZ_DIFF_Z(DG_CV_NOD)
+                  RR=DX_DIFF_X(CV_ILOC,1,ele)
+                  IF(NDIM.GE.2) RR=RR + DY_DIFF_Y(CV_ILOC,1,ele)
+                  IF(NDIM.GE.3) RR=RR + DZ_DIFF_Z(CV_ILOC,1,ele)
                   CURVATURE(CV_NOD) = CURVATURE(CV_NOD) + RR * MASS_ELE(ELE) / MASS_NORMALISE(CV_NOD)
                END DO
             END DO
@@ -7007,7 +6970,7 @@ end if
          end if
 
       ELSE
-         ALLOCATE(T_ABSORB(CV_NONODS)) ; T_ABSORB=1.0
+         ALLOCATE(T_ABSORB(CV_NONODS,nphase,nphase)) ; T_ABSORB=1.0
          DT=1.0
          T_THETA=0.0 
          T_BETA=0.0
@@ -7043,7 +7006,7 @@ end if
               RDUM, NOPT_VEL_UPWIND_COEFS, &
               RDUM, CV_ONE, &
               IGOT_T2, CURVATURE, VOLUME_FRAC, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
-              CURVATURE,CURVATURE,CURVATURE, &
+              tflux,tflux,CURVATURE, &
               RZERO, RZERO, RZERO, IDUM, IN_ELE_UPWIND, DG_ELE_UPWIND, &
               NOIT_DIM, &
               ! nits_flux_lim_t
@@ -7095,7 +7058,7 @@ end if
                   DO CV_ILOC=1,CV_NLOC
                      CV_NOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)
                      DG_CV_NOD=(ELE-1)*CV_NLOC+CV_ILOC
-                     femtold(cv_nod)=femtold(cv_nod)+Dx_DIFF_x(DG_CV_NOD) * MASS_ELE(ELE) / MASS_NORMALISE(CV_NOD)
+                     femtold(cv_nod)=femtold(cv_nod)+Dx_DIFF_x(DG_CV_NOD,1, ele) * MASS_ELE(ELE) / MASS_NORMALISE(CV_NOD)
                   END DO
                END DO
                DO SMOOTH_ITS=1,SMOOTH_NITS ! this produces better results but a complex scheme
@@ -7118,7 +7081,7 @@ end if
                   DO CV_ILOC=1,CV_NLOC
                      CV_NOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)
                      DG_CV_NOD=(ELE-1)*CV_NLOC+CV_ILOC
-                     Dx_DIFF_x(DG_CV_NOD) = femtold(cv_nod)
+                     Dx_DIFF_x(DG_CV_NOD,1 ,ele) = femtold(cv_nod)
                   END DO
                END DO
 
@@ -7127,7 +7090,7 @@ end if
                   DO CV_ILOC=1,CV_NLOC
                      CV_NOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)
                      DG_CV_NOD=(ELE-1)*CV_NLOC+CV_ILOC
-                     femtold(cv_nod)=femtold(cv_nod)+DY_DIFF_Y(DG_CV_NOD) * MASS_ELE(ELE) / MASS_NORMALISE(CV_NOD)
+                     femtold(cv_nod)=femtold(cv_nod)+DY_DIFF_Y(DG_CV_NOD,1,ele) * MASS_ELE(ELE) / MASS_NORMALISE(CV_NOD)
                   END DO
                END DO
                DO SMOOTH_ITS=1,SMOOTH_NITS! this produces better results but a complex scheme
@@ -7150,7 +7113,7 @@ end if
                   DO CV_ILOC=1,CV_NLOC
                      CV_NOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)
                      DG_CV_NOD=(ELE-1)*CV_NLOC+CV_ILOC
-                     DY_DIFF_Y(DG_CV_NOD) = femtold(cv_nod)
+                     DY_DIFF_Y(DG_CV_NOD,1,ele) = femtold(cv_nod)
                   END DO
                END DO
             endif
@@ -7184,9 +7147,9 @@ end if
                   !IF(NDIM.GE.2) CV_FORCE_Y_SUF_TEN(CV_NOD)=CV_FORCE_Y_SUF_TEN(CV_NOD)+RR*DTY_ELE(CV_ILOC, 1, ELE)
                   !IF(NDIM.GE.3) CV_FORCE_Z_SUF_TEN(CV_NOD)=CV_FORCE_Z_SUF_TEN(CV_NOD)+RR*DTZ_ELE(CV_ILOC, 1, ELE)
 
-                  RR=DX_DIFF_X(DG_CV_NOD)
-                  IF(NDIM.GE.2) RR=RR + DY_DIFF_Y(DG_CV_NOD)
-                  IF(NDIM.GE.3) RR=RR + DZ_DIFF_Z(DG_CV_NOD)
+                  RR=DX_DIFF_X(DG_CV_NOD,1 ,ele)
+                  IF(NDIM.GE.2) RR=RR + DY_DIFF_Y(DG_CV_NOD,1 ,ele)
+                  IF(NDIM.GE.3) RR=RR + DZ_DIFF_Z(DG_CV_NOD,1, ele)
                   !                 if(rr.ne.0.0) print *,'ele,cv_iloc,rr=',ele,cv_iloc,rr, &
                   !                     sqrt(DTX_ELE(CV_ILOC, 1, ELE)**2+DTX_ELE(CV_ILOC, 1, ELE)**2)
                   !                  RR = - SUF_TENSION_COEF * max(RR,0.0)

@@ -103,20 +103,19 @@
     !  REAL, DIMENSION( NLOC ) :: X, B
 
       DMATINV = DMAT
-      CALL MATINV( DMAT,DMATINV, NLOC, NLOC)!, MAT, MAT2, X, B )
+      CALL MATINV( DMATINV, NLOC, NLOC)!, MAT, MAT2, X, B )
 
       RETURN
     END SUBROUTINE MATDMATINV
     !
 
 
-    SUBROUTINE MATINV( A,AINV, N, NMAX)!, MAT, MAT2, X, B)
+    SUBROUTINE MATINV( A, N, NMAX)!, MAT, MAT2, X, B)
       ! This sub finds the inverse of the matrix A and puts it back in A. 
       ! MAT, MAT2, X and B are working vectors. 
       IMPLICIT NONE
       INTEGER, intent( in ) :: N, NMAX
-      REAL, DIMENSION( :, : ), intent( in ) ::  A
-      REAL, DIMENSION( :, : ), intent( out ) ::  AINV
+      REAL, DIMENSION( :, : ), intent( inout ) ::  A
 !      REAL, DIMENSION( N, N ), intent( inout ) :: MAT, MAT2
 !      REAL, DIMENSION( N ), intent( inout ) :: X, B
       ! Local variables
@@ -132,91 +131,33 @@
       integer info
 
       interface
-         subroutine dgetrf(N,M,AINV,NMAX,IPIV,INFO)
+         subroutine dgetrf(N,M,A,NMAX,IPIV,INFO)
            integer :: N, M, NMAX, info
-           real, dimension(NMAX,M) :: AINV
+           real, dimension(NMAX,M) :: A
            integer, dimension(N) :: IPIV
          end subroutine dgetrf
       end interface
 
       interface
-         subroutine dgetri(N,AINV,NMAX,IPIV,WORK,LWORK,INFO)
+         subroutine dgetri(N,A,NMAX,IPIV,WORK,LWORK,INFO)
            integer :: N, NMAX, info, LWORK
-           real, dimension(NMAX,N) :: AINV
+           real, dimension(NMAX,N) :: A
            integer, dimension(N) :: IPIV
            real, dimension(LWORK) :: WORK
          end subroutine dgetri
       end interface
 
-
-      Ainv=A
       LWORK=N*N
 
-      call dgetrf(N,N,AINV,NMAX,IPIV,INFO)
-      call dgetri(N,AINV,NMAX,IPIV,WORK,max(1,LWORK),INFO)
+      call dgetrf(N,N,A,NMAX,IPIV,INFO)
+      call dgetri(N,A,NMAX,IPIV,WORK,max(1,LWORK),INFO)
       if (info==0) then
          return
       else
          FLAbort("PIVIT Matrix block inversion failed")
       end if
 
-!!$      Loop_Boolean: IF( .true. ) THEN
-!!$         ! Solve MAT XL=BX (NB BDIAG is overwritten)
-!!$         ICOL = 1
-!!$         B( 1 : N ) = 0.
-!!$         B( ICOL ) = 1.
-!!$
-!!$!         MAT = A( 1:N,1:N )
-!!$
-!!$         CALL SMLINNGOT( A(1:N,1:N), X, B, N, N,IPIV, .FALSE. ) ! X contains the column ICOL of inverse
-!!$
-!!$         DO IM = 1, N
-!!$            MAT2( IM, ICOL ) = X( IM )
-!!$         END DO
-!!$
-!!$         DO ICOL = 2, N ! Form column ICOL of the inverse. 
-!!$            B = 0.
-!!$            B( ICOL ) = 1.0 ! Solve MAT X=B (NB MAT is overwritten).  
-!!$
-!!$            CALL SMLINNGOT( A(1:N,1:N), X, B, N, N,IPIV, .TRUE. ) ! X contains the column ICOL of inverse
-!!$
-!!$            DO IM = 1, N
-!!$               MAT2( IM, ICOL ) = X( IM )
-!!$            END DO
-!!$         END DO
-!!$
-!!$      ELSE
-!!$         !
-!!$         Loop_Col: DO ICOL = 1, N ! Form column ICOL of the inverse. 
-!!$
-!!$            Loop_IM1: DO IM = 1, N
-!!$
-!!$               B( IM ) = 0.
-!!$               Loop_JM1: DO JM = 1, N
-!!$                  MAT( IM, JM ) = A( IM , JM )
-!!$               END DO Loop_JM1
-!!$            END DO Loop_IM1
-!!$
-!!$            B( ICOL ) = 1.0
-!!$
-!!$            ! Solve MAT X=B (NB MAT is overwritten).  
-!!$
-!!$            CALL SMLINN( MAT, X, B, N, N )
-!!$
-!!$            ! X contains the column ICOL of inverse
-!!$            DO IM = 1, N
-!!$               MAT2( IM, ICOL ) = X( IM )
-!!$            END DO
-!!$            !
-!!$         END DO Loop_Col
-!!$      ENDIF Loop_Boolean
-!!$
-!!$      AINV(1:N,1:N)=MAT2
-!!$
-!!$      RETURN
     END SUBROUTINE MATINV
-    !
-    !
 
     SUBROUTINE MATMASSINV( MASINV, MMAT, NONODS, NLOC, TOTELE )
       IMPLICIT NONE
@@ -631,11 +572,10 @@
 
 
 
-    SUBROUTINE PHA_BLOCK_INV( INV_PIVIT_MAT, PIVIT_MAT, TOTELE, NBLOCK )
+    SUBROUTINE PHA_BLOCK_INV( PIVIT_MAT, TOTELE, NBLOCK )
       implicit none
       INTEGER, intent( in ) :: TOTELE, NBLOCK
-      REAL, DIMENSION( : , : , : ), intent( out ), CONTIGUOUS  ::  INV_PIVIT_MAT 
-      REAL, DIMENSION( : , : , : ), intent( in ), CONTIGUOUS ::  PIVIT_MAT
+      REAL, DIMENSION( : , : , : ), intent( inout ), CONTIGUOUS ::  PIVIT_MAT
       ! Local variables
       INTEGER :: ELE
 
@@ -645,7 +585,7 @@
 !         INV_PIVIT_MAT(:,:,ele)=PIVIT_MAT(:,:,ele)
 
 !         CALL MATDMATINV( PIVIT_MAT(:,:,ele), INV_PIVIT_MAT(:,:,ele), NBLOCK )
-         CALL MATINV(PIVIT_MAT(:,:,ele), INV_PIVIT_MAT(:,:,ele), NBLOCK, nblock )
+         CALL MATINV( PIVIT_MAT(:,:,ele), NBLOCK, nblock )
 
       END DO
 
@@ -673,19 +613,29 @@
       real, dimension(U_NLOC*NDIM*NPHASE) :: lcdp, lu
       integer, dimension(U_NLOC*NDIM*NPHASE) :: u_nodi
       integer :: N
-      external dgemv
+      
+      interface 
+         subroutine dgemv(T,M,N,alpha,MAT,NMAX,X,Xinc,beta,Y,yinc)
+           implicit none
+           character(len=1) :: T
+           integer :: m,n,nmax,xinc,yinc
+           real ::  alpha, beta
+           real, dimension(nmax,n) :: MAT
+           real, dimension(N) :: X
+           real, dimension(M) :: Y
+         end subroutine dgemv
+      end interface
+           
 
       N=U_NLOC * NDIM * NPHASE
-
-      U = 0.0 
 
       Loop_Elements: DO ELE = 1, TOTELE
 
          U_NOD => U_NDGLN(( ELE - 1 ) * U_NLOC +1: ELE * U_NLOC)            
 
-         Loop_DimensionsJ: DO JDIM = 1, NDIM
-                  
-            Loop_PhasesJ: DO JPHASE = 1, NPHASE
+
+         Loop_PhasesJ: DO JPHASE = 1, NPHASE
+            Loop_DimensionsJ: DO JDIM = 1, NDIM
                      
 !               J = ( JDIM - 1 ) * U_NONODS + ( JPHASE - 1 ) * NDIM * U_NONODS
                JJ = ( JDIM - 1 ) * U_NLOC + ( JPHASE - 1 ) * NDIM * U_NLOC
@@ -694,12 +644,12 @@
 
                lcdp([(J+(i-1)*ndim*nphase,i=1,u_NLOC)])=CDP(U_NOD+(J-1)*U_NONODS)
                U_NODI([(J+(i-1)*ndim*nphase,i=1,u_NLOC)])=U_NOD+(J-1)*U_NONODS
-            end do Loop_PhasesJ
-         end do Loop_DimensionsJ
+            end do Loop_DimensionsJ
+         end do Loop_PhasesJ
                            
 
-         LU=U(U_NODI)
-         call dgemv('N',N,N,1.0d0,BLOCK_MAT( 1:N , 1:N ,ele),N,LCDP,1,1.0d0,LU,1)
+!         LU=U(U_NODI)
+         call dgemv('N',N,N,1.0d0,BLOCK_MAT( : , : ,ele),N,LCDP,1,0.0d0,LU,1)
          U(U_NODI)=LU
                            
 !         U( U_NODI) = U( U_NODI ) + matmul(LOC_BLOCK_MAT( : , : ), LCDP( : ))
@@ -774,18 +724,24 @@
     !              sum(CT(1:ndim*nphase,CV_NOD,U(1:ndim*nphase,cv_nod) 
     ! directly, unrolling one loop and reducing indirection.
 
-      CTU=0.0
 
-      DO IPHASE = 1, NPHASE
+      DO CV_INOD = 1, CV_NONODS
+         CTU( FINDCT( CV_INOD ) :FINDCT( CV_INOD + 1 )-1)=CT( FINDCT( CV_INOD ) :FINDCT( CV_INOD + 1 ) -1)&
+              *u(colct( FINDCT( CV_INOD ) :FINDCT( CV_INOD + 1 )-1))
+      end do
+      if (ndim>=2) CTU=CTU+CT(ncolct+1:2*ncolct)*V(colct)
+      if (ndim>=3) CTU=CTU+CT(2*ncolct+1:3*ncolct)*W(colct)
+
+      DO IPHASE = 2, NPHASE
          CTU=CTU+CT((iphase-1)*ncolct*ndim+1:(iphase-1)*ncolct*ndim+ncolct)*U(colct + ( IPHASE - 1 ) * U_NONODS)
-         if (ndim>=2) CTU=CTU+CT((iphase-1)*ncolct*ndim+ncolct+1:(iphase-1)*ncolct*ndim+2*ncolct)*V(colct + ( IPHASE - 1 ) * U_NONODS)
+         if (ndim>=2) &
+              CTU=CTU+CT((iphase-1)*ncolct*ndim+ncolct+1:(iphase-1)*ncolct*ndim+2*ncolct)&
+              *V(colct + ( IPHASE - 1 ) * U_NONODS)
          if (ndim>=3) CTU=CTU+CT((iphase-1)*ncolct*ndim+2*ncolct+1:(iphase-1)*ncolct*ndim+3*ncolct)*W(colct + ( IPHASE - 1 ) * U_NONODS)
       end DO
 
       DO CV_INOD = 1, CV_NONODS
-
          CV_RHS( CV_INOD ) = sum(CTU( FINDCT( CV_INOD ) :FINDCT( CV_INOD + 1 ) - 1))
-         
       END DO
 
       RETURN
@@ -805,12 +761,14 @@
       INTEGER, DIMENSION( : ), intent( in ), target :: COLC
       ! Local variables
       INTEGER :: U_INOD, COUNT, P_JNOD, IPHASE, I1, IDIM, COUNT_DIM_PHA,j,dim_pha
-      integer, dimension(:), pointer :: P_JNODV
-      real, dimension(NCOLC), target :: ldp
+      real, dimension(NCOLC) :: ldp
 
-      INTEGER, DIMENSION( U_NONODS * NDIM * NPHASE + 1 ) ::GFINDC
-      INTEGER, DIMENSION( NCOLC* NDIM * NPHASE) :: GCOLC
-
+      interface
+         real function ddot( N, dx,incx,dy, incy)
+           integer :: n, incx, incy
+           real, dimension(N) :: dx,dy
+         end function ddot
+      end interface
 
       ldp = dp(colc)
 
@@ -819,7 +777,8 @@
             DIM_PHA = (IDIM-1) + NDIM*IPHASE
             Loop_VelNodes: DO U_INOD = 1, U_NONODS 
                CDP( U_INOD + DIM_PHA * U_NONODS ) = &
-                    dot_product(C(FINDC( U_INOD )+NCOLC*dim_pha:FINDC( U_INOD + 1 ) - 1+NCOLC*dim_pha),&
+                    dot_product(&
+                    C(FINDC( U_INOD )+NCOLC*dim_pha:FINDC( U_INOD + 1 ) - 1+NCOLC*dim_pha),&
                     ldp( FINDC( U_INOD ):FINDC( U_INOD + 1 ) - 1))
             END DO Loop_VelNodes
          END DO Loop_Dim

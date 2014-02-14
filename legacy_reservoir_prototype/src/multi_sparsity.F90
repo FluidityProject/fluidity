@@ -1599,7 +1599,6 @@ integer, dimension(:), pointer ::  colcmc, colm, colmcy, colct, colc, coldgm_pha
             call def_spar( cv_nloc + 2, cv_nonods, mx_ncolcmc, ncolcmc, &
                  midcmc, findcmc, colcmc )
          end if Conditional_ContinuousPressure_3
-         call resize(colcmc,ncolcmc)
       else
          allocate( dummyvec( u_nonods ))
          dummyvec = 0
@@ -1609,6 +1608,7 @@ integer, dimension(:), pointer ::  colcmc, colm, colmcy, colct, colc, coldgm_pha
               ncolcmc, findcmc, colcmc, midcmc, dummyvec, presym )
          deallocate( dummyvec )
       end if Conditional_Dimensional_3
+      call resize(colcmc,ncolcmc)
       if( mx_ncolcmc < ncolcmc ) FLAbort("Incorrect number of dimension of CMC sparsity matrix")
 !!$      ewrite(3,*)'findcmc: ', size( findcmc ), '==>', findcmc( 1 : cv_nonods + 1 )
 !!$      ewrite(3,*)'colcmc: ', size( colcmc ), ncolcmc, '==>', colcmc( 1 : ncolcmc )
@@ -1657,8 +1657,8 @@ integer, dimension(:), pointer ::  colcmc, colm, colmcy, colct, colc, coldgm_pha
                end do
             end do
          end if
-         call resize(colm,ncolm)
       end if Conditional_Dimensional_4
+      call resize(colm,ncolm)
 !!$      ewrite(3,*)'findm: ', size( findm ), '==>', findm( 1 : cv_nonods + 1 )
 !!$      ewrite(3,*)'colm: ', size( colm ), ncolm, '==>', colm( 1 : ncolm )
 !!$      ewrite(3,*)'midm: ', size( midm ), '==>', midm( 1 : cv_nonods )

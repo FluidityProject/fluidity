@@ -180,7 +180,7 @@
            Component_Diffusion_Operator_Coefficient
       real, dimension( :, :, :, : ), allocatable :: Momentum_Diffusion, ScalarAdvectionField_Diffusion, &
            Component_Diffusion, &
-           theta_flux, one_m_theta_flux, sum_theta_flux, sum_one_m_theta_flux
+           theta_flux, one_m_theta_flux, sum_theta_flux, sum_one_m_theta_flux, theta0_flux
 
 !!$ Material_Absorption_Stab = u_abs_stab; Material_Absorption = u_absorb; ScalarField_Absorption = v_absorb
 !!$ Component_Absorption = comp_absorb; ScalarAdvectionField_Absorption = t_absorb
@@ -283,6 +283,7 @@
 
 
       allocate( global_dense_block_acv( nphase , cv_nonods ))
+      allocate(theta0_flux(0,0,0,0))
 
       finacv = 0 ; colacv = 0 ; midacv = 0 ; finmcy = 0 ; colmcy = 0 ; midmcy = 0 ; finele = 0
       colele = 0 ; midele = 0 ; findgm_pha = 0 ; coldgm_pha = 0 ; middgm_pha = 0 ; findct = 0
@@ -773,7 +774,7 @@
                     Temperature_FEMT, Dummy_PhaseVolumeFraction_FEMT, &
                     0, Temperature, Temperature_Old, 0, scvngi_theta, &
                     t_get_theta_flux, t_use_theta_flux, &
-                    Temperature, Temperature, Temperature, &
+                    theta0_flux, theta0_flux, Temperature, &
                     Temperature_BC, suf_t_bc_rob1, suf_t_bc_rob2, Temperature_BC_Spatial, &
                     in_ele_upwind, dg_ele_upwind, &
 !!$                    
