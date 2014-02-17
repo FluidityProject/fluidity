@@ -639,7 +639,7 @@ def VtuDiff(vtu1, vtu2, filename = None):
         field2 = probe.GetField(fieldName)
       else:
         field2 = vtu2.GetField(fieldName)
-      resultVtu.AddField(fieldName, field2-field1)
+      resultVtu.AddField(fieldName, field1-field2)
     else:
       resultVtu.RemoveField(fieldName)
 
@@ -649,14 +649,24 @@ def VtuDiff(vtu1, vtu2, filename = None):
   fieldNames1 = [vtkdata.GetArrayName(i) for i in range(vtkdata.GetNumberOfArrays())]
   vtkdata=vtu2.ugrid.GetCellData()
   fieldNames2 = [vtkdata.GetArrayName(i) for i in range(vtkdata.GetNumberOfArrays())]
-  for fieldName in fieldNames1:
-    field1 = vtu1.GetField(fieldName)
-    if fieldName in fieldNames2 and not useProbe:
-      field2 = vtu2.GetField(fieldName)
-      resultVtu.AddField(fieldName, field2-field1)
-    else:
-      if fieldName in fieldNames2:
-        print "Warning: can't interpolate cell-based field ", fieldName
+  if useProbe:
+    # meshes are different - we can't interpolate cell-based fields so let's just remove them from the output
+    for fieldName in fieldNames1:
+      if fieldName=='vtkGhostLevels':
+        # this field should just be passed on unchanged
+        continue
       resultVtu.RemoveField(fieldName)
+  else:
+    # meshes are the same - we can simply subtract
+    for fieldName in fieldNames1:
+      if fieldName=='vtkGhostLevels':
+        # this field should just be passed on unchanged
+        continue
+      elif fieldName in fieldNames2:
+        field1 = vtu1.GetField(fieldName)
+        field2 = vtu2.GetField(fieldName)
+        resultVtu.AddField(fieldName, field1-field2)
+      else:
+        resultVtu.RemoveField(fieldName)
 
   return resultVtu  
