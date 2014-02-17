@@ -52,8 +52,11 @@ extern "C" {
 using namespace std; 
 
 void project_vtu_usage(char *binary){
-  cerr<<"Usage: "<<binary<<" [OPTIONS] input_filename donor_basename target_basename output_filename\n"
-      <<"Project an input vtu onto a triangle mesh\n"
+  cerr<<"Usage: "<<binary<<" [OPTIONS] input_filename donor_mesh target_mesh output_filename\n"
+      <<"Project an input vtu onto a different mesh\n\n"
+      <<"input_filename and output_filename are the names of the input and output vtus\n"
+      <<"donor_mesh and target_mesh are either the name of gmsh file corresponding to the donor and target mesh (if ending in .msh), "
+      <<"or the basename for the triangle files (.node+.ele+.edge/.face) for those meshes\n\n"
       <<"\t-h\t\tPrints out this message\n"
       <<"\t-v\t\tVerbose mode\n";
 }
