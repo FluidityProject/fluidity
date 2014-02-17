@@ -1200,7 +1200,7 @@ contains
 
                         !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===============
                         ! Calculate T and DEN on the CV face at quadrature point GI.
-                         CALL GET_INT_T_DEN( FVTOLD, FVT2OLD, FVDOLD, &
+                        CALL GET_INT_T_DEN( FVTOLD, FVT2OLD, FVDOLD, &
                              LIMDOLD, LIMTOLD, LIMT2OLD, LIMDTOLD, LIMDTT2OLD,&
                              FEMDOLDGI, FEMTOLDGI, FEMT2OLDGI, &
                              CV_DISOPT, CV_NONODS, NPHASE, CV_NODI_IPHA, CV_NODJ_IPHA, ELE, ELE2, GI, IPHASE,  &
@@ -1251,11 +1251,11 @@ contains
                      END DO
 
                      IF( SUM2ONE ) THEN
-                        LIMT   =LIMT/SUM_LIMT
-                        LIMTOLD=LIMTOLD/SUM_LIMTOLD
-                        LIMDT=LIMT*LIMD
-                        LIMDTOLD=LIMTOLD*LIMDOLD
-                     ENDIF
+                        LIMT = LIMT / SUM_LIMT
+                        LIMTOLD = LIMTOLD / SUM_LIMTOLD
+                        LIMDT = LIMT * LIMD
+                        LIMDTOLD = LIMTOLD * LIMDOLD
+                     END IF
 
                      ! Define face value of theta
                      IF(IGOT_T2==1) THEN
