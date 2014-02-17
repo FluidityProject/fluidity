@@ -883,7 +883,7 @@ contains
          Loop_CV_ILOC: DO CV_ILOC = 1, CV_NLOC ! Loop over the nodes of the element
 
             ! Global node number of the local node
-            CV_NODI = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_ILOC )
+            CV_NODI = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
 
             ! Loop over quadrature (gauss) points in ELE neighbouring ILOC
             Loop_GCOUNT: DO GCOUNT = FINDGPTS( CV_ILOC ), FINDGPTS( CV_ILOC + 1 ) - 1, 1
@@ -905,8 +905,8 @@ contains
                   ! Look for these nodes on the other elements.
                   CALL FIND_OTHER_SIDE( CV_OTHER_LOC, CV_NLOC, CV_NODI, U_OTHER_LOC, U_NLOC,  &
                        MAT_OTHER_LOC, MAT_NLOC, INTEGRAT_AT_GI,  &
-                       TOTELE, X_NLOC, XU_NLOC, X_NDGLN, CV_NDGLN, XU_NDGLN, &
-                       CV_SNLOC, CVFEM_ON_FACE, SCVNGI, GI, X_SHARE, X_NONODS, ELE, ELE2,  &
+                       X_NLOC, XU_NLOC, X_NDGLN, CV_NDGLN, XU_NDGLN, &
+                       CV_SNLOC, CVFEM_ON_FACE(:,GI), X_SHARE, X_NONODS, ELE, ELE2,  &
                        FINELE, COLELE, NCOLELE )
 
                   !ewrite(3,*)'================================================================================= '
@@ -919,11 +919,11 @@ contains
                   !ewrite(3,*)'INTEGRAT_AT_GI=', INTEGRAT_AT_GI
                   !ewrite(3,*)'================================================================================= '
 
-                  IF(INTEGRAT_AT_GI) THEN
+                  IF ( INTEGRAT_AT_GI ) THEN
                      CV_JLOC = CV_OTHER_LOC( CV_ILOC )
-                     SELE=0
+                     SELE = 0
 
-                     IF( CV_JLOC == 0 ) THEN ! We are on the boundary of the domain
+                     IF ( CV_JLOC == 0 ) THEN ! We are on the boundary of the domain
                         CV_JLOC = CV_ILOC
                         ! Calculate SELE, CV_SILOC, U_SLOC2LOC, CV_SLOC2LOC
                         CALL CALC_SELE( ELE, SELE, CV_SILOC, CV_ILOC, U_SLOC2LOC, CV_SLOC2LOC, &
@@ -932,36 +932,36 @@ contains
                              CV_NDGLN, U_NDGLN, CV_SNDGLN, U_SNDGLN )
                         !EWRITE(3,*)'*****AFTER CALC_SELE SELE,CV_SILOC,CV_SNLOC:',SELE,CV_SILOC,CV_SNLOC
                      END IF
-                     INTEGRAT_AT_GI=.NOT.((ELE==ELE2).AND.(SELE==0))
+                     INTEGRAT_AT_GI = .NOT.( (ELE==ELE2) .AND. (SELE==0) )
                   END IF
 
                END IF Conditional_CheckingNeighbourhood
 
                ! avoid indegrating across the middle of a CV on the boundaries of elements
-               Conditional_integration: IF(INTEGRAT_AT_GI) THEN
+               Conditional_integration: IF ( INTEGRAT_AT_GI ) THEN
 
                   ! if necessary determine the derivatives between elements ELE and ELE2
 
                   ! Calculate the control volume normals at the Gauss pts.
-                  CALL SCVDETNX( ELE,      GI,          &
-                       X_NLOC,  SCVNGI,  TOTELE,  &
-                       X_NDGLN,  X_NONODS,         &
+                  CALL SCVDETNX( ELE, GI, &
+                       X_NLOC, SCVNGI, TOTELE, &
+                       X_NDGLN, X_NONODS, &
                        SCVDETWEI, CVNORMX, CVNORMY, &
-                       CVNORMZ,  SCVFEN,     SCVFENSLX,   &
-                       SCVFENSLY, SCVFEWEIGH, XC_CV(CV_NODI),    &
-                       YC_CV(CV_NODI),     ZC_CV(CV_NODI),    X,       &
-                       Y,        Z,                &
-                       D1,       D3,      DCYL )
+                       CVNORMZ, SCVFEN, SCVFENSLX, &
+                       SCVFENSLY, SCVFEWEIGH, XC_CV(CV_NODI), &
+                       YC_CV(CV_NODI), ZC_CV(CV_NODI), &
+                       X, Y, Z, &
+                       D1, D3, DCYL )
 
                   ! ================ COMPUTE THE FLUX ACROSS SUB-CV FACE ===============
 
                   ! Find its global node number
-                  IF(ELE2==0) THEN
-                     CV_NODJ = CV_NDGLN(( ELE - 1 )  * CV_NLOC + CV_JLOC )
+                  IF ( ELE2 == 0 ) THEN
+                     CV_NODJ = CV_NDGLN( ( ELE - 1 )  * CV_NLOC + CV_JLOC )
                   ELSE
-                     CV_NODJ = CV_NDGLN(( ELE2 - 1 ) * CV_NLOC + CV_JLOC )
-                  ENDIF
-                  X_NODI = X_NDGLN(( ELE - 1 ) * X_NLOC  + CV_ILOC )
+                     CV_NODJ = CV_NDGLN( ( ELE2 - 1 ) * CV_NLOC + CV_JLOC )
+                  END IF
+                  X_NODI = X_NDGLN( ( ELE - 1 ) * X_NLOC  + CV_ILOC )
 
                   Conditional_GETCT1: IF( GETCT ) THEN ! Obtain the CV discretised CT equations plus RHS
                      !ewrite(3,*)'==================================================================='
@@ -2649,8 +2649,8 @@ contains
                   ! Look for these nodes on the other elements.
                   CALL FIND_OTHER_SIDE( CV_OTHER_LOC, CV_NLOC, CV_NODI, U_OTHER_LOC, U_NLOC,  &
                        MAT_OTHER_LOC, MAT_NLOC, INTEGRAT_AT_GI,  &
-                       TOTELE, X_NLOC, XU_NLOC, X_NDGLN, CV_NDGLN, XU_NDGLN, &
-                       CV_SNLOC, CVFEM_ON_FACE, SCVNGI, GI, X_SHARE, X_NONODS, ELE, ELE2,  &
+                       X_NLOC, XU_NLOC, X_NDGLN, CV_NDGLN, XU_NDGLN, &
+                       CV_SNLOC, CVFEM_ON_FACE(:,GI), X_SHARE, X_NONODS, ELE, ELE2,  &
                        FINELE, COLELE, NCOLELE )
 
                   !ewrite(3,*)'================================================================================= '
@@ -3962,8 +3962,8 @@ contains
                   ! Look for these nodes on the other elements.
                   CALL FIND_OTHER_SIDE( CV_OTHER_LOC, CV_NLOC, CV_NODI, U_OTHER_LOC, U_NLOC,  &
                        MAT_OTHER_LOC, MAT_NLOC, INTEGRAT_AT_GI,  &
-                       TOTELE, X_NLOC, XU_NLOC, X_NDGLN, CV_NDGLN, XU_NDGLN, &
-                       CV_SNLOC, CVFEM_ON_FACE, SCVNGI, GI, X_SHARE, X_NONODS, ELE, ELE2,  &
+                       X_NLOC, XU_NLOC, X_NDGLN, CV_NDGLN, XU_NDGLN, &
+                       CV_SNLOC, CVFEM_ON_FACE(:,GI), X_SHARE, X_NONODS, ELE, ELE2,  &
                        FINELE, COLELE, NCOLELE )
 
                   !ewrite(3,*)'================================================================================= '
@@ -5242,8 +5242,8 @@ contains
                   ! Look for these nodes on the other elements.
                   CALL FIND_OTHER_SIDE( CV_OTHER_LOC, CV_NLOC, CV_NODI, U_OTHER_LOC, U_NLOC,  &
                        MAT_OTHER_LOC, MAT_NLOC, INTEGRAT_AT_GI,  &
-                       TOTELE, X_NLOC, XU_NLOC, X_NDGLN, CV_NDGLN, XU_NDGLN, &
-                       CV_SNLOC, CVFEM_ON_FACE, SCVNGI, GI, X_SHARE, X_NONODS, ELE, ELE2,  &
+                       X_NLOC, XU_NLOC, X_NDGLN, CV_NDGLN, XU_NDGLN, &
+                       CV_SNLOC, CVFEM_ON_FACE(:,GI), X_SHARE, X_NONODS, ELE, ELE2,  &
                        FINELE, COLELE, NCOLELE )
 
                   !ewrite(3,*)'================================================================================= '
@@ -5376,8 +5376,8 @@ contains
 
     SUBROUTINE FIND_OTHER_SIDE( CV_OTHER_LOC, CV_NLOC, CV_NODI, U_OTHER_LOC, U_NLOC,  &
          MAT_OTHER_LOC, MAT_NLOC, INTEGRAT_AT_GI, &
-         TOTELE, X_NLOC, XU_NLOC, X_NDGLN, CV_NDGLN, XU_NDGLN, &
-         CV_SNLOC, CVFEM_ON_FACE, SCVNGI, GI, X_SHARE, X_NONODS, ELE, ELE2,  &
+         X_NLOC, XU_NLOC, X_NDGLN, CV_NDGLN, XU_NDGLN, &
+         CV_SNLOC, CVFEM_ON_FACE, X_SHARE, X_NONODS, ELE, ELE2,  &
          FINELE, COLELE, NCOLELE) 
       ! We are on the boundary or next to another element. Determine CV_OTHER_LOC,
       ! U_OTHER_LOC. 
@@ -5386,17 +5386,17 @@ contains
       ! ELE2=0 also when we are between elements but are trying to integrate across 
       ! the middle of a CV. 
       IMPLICIT NONE
-      INTEGER, intent( in ) :: CV_NLOC, CV_NODI, U_NLOC, X_NONODS, TOTELE, X_NLOC, XU_NLOC, &
-           &                   CV_SNLOC, MAT_NLOC, SCVNGI, GI, ELE, NCOLELE 
-      INTEGER, DIMENSION( : ), intent( in ) ::  X_NDGLN, CV_NDGLN, XU_NDGLN
-      LOGICAL, DIMENSION( : , : ), intent( in ) :: CVFEM_ON_FACE
+      INTEGER, intent( in ) :: CV_NLOC, CV_NODI, U_NLOC, X_NONODS, X_NLOC, XU_NLOC, &
+           &                   CV_SNLOC, MAT_NLOC, ELE, NCOLELE 
+      INTEGER, DIMENSION( : ), intent( in ) :: X_NDGLN, CV_NDGLN, XU_NDGLN
+      LOGICAL, DIMENSION( : ), intent( in ) :: CVFEM_ON_FACE
       INTEGER, DIMENSION( : ), intent( in ) :: FINELE
       INTEGER, DIMENSION( : ), intent( in ) :: COLELE
 
       INTEGER, DIMENSION( : ), intent( inout ) :: CV_OTHER_LOC, U_OTHER_LOC, MAT_OTHER_LOC
       LOGICAL, DIMENSION( : ), intent( inout ) :: X_SHARE
-      INTEGER, intent( inout ) :: ELE2    
-      LOGICAL, intent( inout ) :: INTEGRAT_AT_GI 
+      INTEGER, intent( inout ) :: ELE2
+      LOGICAL, intent( inout ) :: INTEGRAT_AT_GI
       ! Local variables
       INTEGER :: X_KLOC, X_NODK, X_NODK2, COUNT, ELE3, SUF_COUNT, CV_KLOC, CV_KLOC2, &
            &     U_KLOC, U_KLOC2, CV_NODK, XU_NODK, XU_NODK2, ILEV, JLEV
@@ -5405,7 +5405,7 @@ contains
 
       DO X_KLOC = 1, X_NLOC
          X_NODK = X_NDGLN( ( ELE - 1) * X_NLOC + X_KLOC )
-         X_SHARE( X_NODK ) = CVFEM_ON_FACE( X_KLOC, GI )
+         X_SHARE( X_NODK ) = CVFEM_ON_FACE( X_KLOC )
       END DO
 
       ELE3 = 0
@@ -5441,7 +5441,7 @@ contains
       IF ( ( ELE2 /= 0 ) .AND. INTEGRAT_AT_GI ) THEN ! Determine CV_OTHER_LOC(CV_KLOC)
          CV_OTHER_LOC = 0
          DO CV_KLOC = 1, CV_NLOC
-            IF ( CVFEM_ON_FACE( CV_KLOC, GI ) ) THEN ! Find opposite local node
+            IF ( CVFEM_ON_FACE( CV_KLOC ) ) THEN ! Find opposite local node
                X_NODK = X_NDGLN( ( ELE - 1 ) * X_NLOC + CV_KLOC )
                DO CV_KLOC2 = 1, CV_NLOC
                   X_NODK2 = X_NDGLN( ( ELE2 - 1 ) * X_NLOC + CV_KLOC2 )
