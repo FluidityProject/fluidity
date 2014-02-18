@@ -135,7 +135,7 @@ configure:4143: result: BSD nm
 configure:4146: checking whether ln -s works
 configure:4150: result: yes
 configure:4158: checking the maximum length of command line arguments
-configure:4283: result: 1572864
+configure:4283: result: 1635000
 configure:4300: checking whether the shell understands some XSI constructs
 configure:4310: result: yes
 configure:4314: checking whether the shell understands "+="
@@ -590,18 +590,18 @@ Using built-in specs.
 Target: x86_64-linux-gnu
 Thread model: posix
 gcc version 4.8.1 (Ubuntu/Linaro 4.8.1-10ubuntu9) 
- /usr/lib/gcc/x86_64-linux-gnu/4.8/f951 conftest.f -ffixed-form -quiet -dumpbase conftest.f -mtune=generic -march=x86-64 -auxbase conftest -version -fintrinsic-modules-path /usr/lib/gcc/x86_64-linux-gnu/4.8/finclude -o /tmp/ccUzkaKF.s
+ /usr/lib/gcc/x86_64-linux-gnu/4.8/f951 conftest.f -ffixed-form -quiet -dumpbase conftest.f -mtune=generic -march=x86-64 -auxbase conftest -version -fintrinsic-modules-path /usr/lib/gcc/x86_64-linux-gnu/4.8/finclude -o /tmp/ccihUMkj.s
 GNU Fortran (Ubuntu/Linaro 4.8.1-10ubuntu9) version 4.8.1 (x86_64-linux-gnu)
 	compiled by GNU C version 4.8.1, GMP version 5.1.2, MPFR version 3.1.1-p2, MPC version 1.0.1
 GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
 GNU Fortran (Ubuntu/Linaro 4.8.1-10ubuntu9) version 4.8.1 (x86_64-linux-gnu)
 	compiled by GNU C version 4.8.1, GMP version 5.1.2, MPFR version 3.1.1-p2, MPC version 1.0.1
 GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
- as -v --64 -o /tmp/ccvc2b16.o /tmp/ccUzkaKF.s
+ as -v --64 -o /tmp/ccXC3xni.o /tmp/ccihUMkj.s
 GNU assembler version 2.23.52 (x86_64-linux-gnu) using BFD version (GNU Binutils for Ubuntu) 2.23.52.20130913
 Reading specs from /usr/lib/gcc/x86_64-linux-gnu/4.8/libgfortran.spec
 rename spec lib to liborig
- /usr/lib/gcc/x86_64-linux-gnu/4.8/collect2 --sysroot=/ --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -z relro -o conftest /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crt1.o /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/4.8/crtbegin.o -L/usr/lib/gcc/x86_64-linux-gnu/4.8 -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../.. /tmp/ccvc2b16.o -lgfortran -lm -lgcc_s -lgcc -lquadmath -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/4.8/crtend.o /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crtn.o
+ /usr/lib/gcc/x86_64-linux-gnu/4.8/collect2 --sysroot=/ --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -z relro -o conftest /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crt1.o /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/4.8/crtbegin.o -L/usr/lib/gcc/x86_64-linux-gnu/4.8 -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../.. /tmp/ccXC3xni.o -lgfortran -lm -lgcc_s -lgcc -lquadmath -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/4.8/crtend.o /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crtn.o
 configure:20515: result: -v
 configure:20517: checking for Fortran 77 libraries of gfortran
 configure:20540: gfortran -o conftest -v conftest.f
@@ -609,18 +609,18 @@ Using built-in specs.
 Target: x86_64-linux-gnu
 Thread model: posix
 gcc version 4.8.1 (Ubuntu/Linaro 4.8.1-10ubuntu9) 
- /usr/lib/gcc/x86_64-linux-gnu/4.8/f951 conftest.f -ffixed-form -quiet -dumpbase conftest.f -mtune=generic -march=x86-64 -auxbase conftest -version -fintrinsic-modules-path /usr/lib/gcc/x86_64-linux-gnu/4.8/finclude -o /tmp/ccMZO0CH.s
+ /usr/lib/gcc/x86_64-linux-gnu/4.8/f951 conftest.f -ffixed-form -quiet -dumpbase conftest.f -mtune=generic -march=x86-64 -auxbase conftest -version -fintrinsic-modules-path /usr/lib/gcc/x86_64-linux-gnu/4.8/finclude -o /tmp/ccXThJnk.s
 GNU Fortran (Ubuntu/Linaro 4.8.1-10ubuntu9) version 4.8.1 (x86_64-linux-gnu)
 	compiled by GNU C version 4.8.1, GMP version 5.1.2, MPFR version 3.1.1-p2, MPC version 1.0.1
 GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
 GNU Fortran (Ubuntu/Linaro 4.8.1-10ubuntu9) version 4.8.1 (x86_64-linux-gnu)
 	compiled by GNU C version 4.8.1, GMP version 5.1.2, MPFR version 3.1.1-p2, MPC version 1.0.1
 GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
- as -v --64 -o /tmp/ccpL1448.o /tmp/ccMZO0CH.s
+ as -v --64 -o /tmp/cc2d1PCj.o /tmp/ccXThJnk.s
 GNU assembler version 2.23.52 (x86_64-linux-gnu) using BFD version (GNU Binutils for Ubuntu) 2.23.52.20130913
 Reading specs from /usr/lib/gcc/x86_64-linux-gnu/4.8/libgfortran.spec
 rename spec lib to liborig
- /usr/lib/gcc/x86_64-linux-gnu/4.8/collect2 --sysroot=/ --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -z relro -o conftest /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crt1.o /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/4.8/crtbegin.o -L/usr/lib/gcc/x86_64-linux-gnu/4.8 -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../.. /tmp/ccpL1448.o -lgfortran -lm -lgcc_s -lgcc -lquadmath -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/4.8/crtend.o /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crtn.o
+ /usr/lib/gcc/x86_64-linux-gnu/4.8/collect2 --sysroot=/ --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -z relro -o conftest /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crt1.o /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/4.8/crtbegin.o -L/usr/lib/gcc/x86_64-linux-gnu/4.8 -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../.. /tmp/cc2d1PCj.o -lgfortran -lm -lgcc_s -lgcc -lquadmath -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/4.8/crtend.o /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crtn.o
 configure:20715: result:  -L/usr/lib/gcc/x86_64-linux-gnu/4.8 -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../.. -lgfortran -lm -lquadmath
 configure:20728: *** Fishing for modern Fortran compiler
 configure:20836: checking for Fortran compiler version
@@ -665,18 +665,18 @@ Using built-in specs.
 Target: x86_64-linux-gnu
 Thread model: posix
 gcc version 4.8.1 (Ubuntu/Linaro 4.8.1-10ubuntu9) 
- /usr/lib/gcc/x86_64-linux-gnu/4.8/f951 conftest.f -ffixed-form -I /usr/include -quiet -dumpbase conftest.f -mtune=generic -march=x86-64 -auxbase conftest -version -fintrinsic-modules-path /usr/lib/gcc/x86_64-linux-gnu/4.8/finclude -o /tmp/ccvrSyFU.s
+ /usr/lib/gcc/x86_64-linux-gnu/4.8/f951 conftest.f -ffixed-form -I /usr/include -quiet -dumpbase conftest.f -mtune=generic -march=x86-64 -auxbase conftest -version -fintrinsic-modules-path /usr/lib/gcc/x86_64-linux-gnu/4.8/finclude -o /tmp/cc01ioYA.s
 GNU Fortran (Ubuntu/Linaro 4.8.1-10ubuntu9) version 4.8.1 (x86_64-linux-gnu)
 	compiled by GNU C version 4.8.1, GMP version 5.1.2, MPFR version 3.1.1-p2, MPC version 1.0.1
 GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
 GNU Fortran (Ubuntu/Linaro 4.8.1-10ubuntu9) version 4.8.1 (x86_64-linux-gnu)
 	compiled by GNU C version 4.8.1, GMP version 5.1.2, MPFR version 3.1.1-p2, MPC version 1.0.1
 GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
- as -v -I /usr/include --64 -o /tmp/ccBDt4pm.o /tmp/ccvrSyFU.s
+ as -v -I /usr/include --64 -o /tmp/ccSLXYwA.o /tmp/cc01ioYA.s
 GNU assembler version 2.23.52 (x86_64-linux-gnu) using BFD version (GNU Binutils for Ubuntu) 2.23.52.20130913
 Reading specs from /usr/lib/gcc/x86_64-linux-gnu/4.8/libgfortran.spec
 rename spec lib to liborig
- /usr/lib/gcc/x86_64-linux-gnu/4.8/collect2 --sysroot=/ --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -z relro -o conftest /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crt1.o /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/4.8/crtbegin.o -L/usr/lib/gcc/x86_64-linux-gnu/4.8 -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../.. /tmp/ccBDt4pm.o -lgfortran -lm -lgcc_s -lgcc -lquadmath -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/4.8/crtend.o /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crtn.o
+ /usr/lib/gcc/x86_64-linux-gnu/4.8/collect2 --sysroot=/ --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -z relro -o conftest /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crt1.o /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/4.8/crtbegin.o -L/usr/lib/gcc/x86_64-linux-gnu/4.8 -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../.. /tmp/ccSLXYwA.o -lgfortran -lm -lgcc_s -lgcc -lquadmath -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/4.8/crtend.o /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crtn.o
 configure:21034: result: -v
 configure:21036: checking for Fortran libraries of gfortran
 configure:21059: gfortran -o conftest -I/usr/include -v conftest.f
@@ -684,18 +684,18 @@ Using built-in specs.
 Target: x86_64-linux-gnu
 Thread model: posix
 gcc version 4.8.1 (Ubuntu/Linaro 4.8.1-10ubuntu9) 
- /usr/lib/gcc/x86_64-linux-gnu/4.8/f951 conftest.f -ffixed-form -I /usr/include -quiet -dumpbase conftest.f -mtune=generic -march=x86-64 -auxbase conftest -version -fintrinsic-modules-path /usr/lib/gcc/x86_64-linux-gnu/4.8/finclude -o /tmp/cc15suo6.s
+ /usr/lib/gcc/x86_64-linux-gnu/4.8/f951 conftest.f -ffixed-form -I /usr/include -quiet -dumpbase conftest.f -mtune=generic -march=x86-64 -auxbase conftest -version -fintrinsic-modules-path /usr/lib/gcc/x86_64-linux-gnu/4.8/finclude -o /tmp/ccbv3uIK.s
 GNU Fortran (Ubuntu/Linaro 4.8.1-10ubuntu9) version 4.8.1 (x86_64-linux-gnu)
 	compiled by GNU C version 4.8.1, GMP version 5.1.2, MPFR version 3.1.1-p2, MPC version 1.0.1
 GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
 GNU Fortran (Ubuntu/Linaro 4.8.1-10ubuntu9) version 4.8.1 (x86_64-linux-gnu)
 	compiled by GNU C version 4.8.1, GMP version 5.1.2, MPFR version 3.1.1-p2, MPC version 1.0.1
 GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
- as -v -I /usr/include --64 -o /tmp/ccrW0Hjy.o /tmp/cc15suo6.s
+ as -v -I /usr/include --64 -o /tmp/ccTvk3sK.o /tmp/ccbv3uIK.s
 GNU assembler version 2.23.52 (x86_64-linux-gnu) using BFD version (GNU Binutils for Ubuntu) 2.23.52.20130913
 Reading specs from /usr/lib/gcc/x86_64-linux-gnu/4.8/libgfortran.spec
 rename spec lib to liborig
- /usr/lib/gcc/x86_64-linux-gnu/4.8/collect2 --sysroot=/ --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -z relro -o conftest /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crt1.o /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/4.8/crtbegin.o -L/usr/lib/gcc/x86_64-linux-gnu/4.8 -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../.. /tmp/ccrW0Hjy.o -lgfortran -lm -lgcc_s -lgcc -lquadmath -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/4.8/crtend.o /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crtn.o
+ /usr/lib/gcc/x86_64-linux-gnu/4.8/collect2 --sysroot=/ --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -z relro -o conftest /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crt1.o /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/4.8/crtbegin.o -L/usr/lib/gcc/x86_64-linux-gnu/4.8 -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../.. /tmp/ccTvk3sK.o -lgfortran -lm -lgcc_s -lgcc -lquadmath -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/4.8/crtend.o /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crtn.o
 configure:21234: result:  -L/usr/lib/gcc/x86_64-linux-gnu/4.8 -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../.. -lgfortran -lm -lquadmath
 configure:21257: *** Assuming that gfortran can process both free and fixed form fortran files.
 configure:21377: checking for C++ compiler version
@@ -779,7 +779,7 @@ configure:22128: checking for Fortran 77 name-mangling scheme
 configure:22141: gfortran -c    conftest.f >&5
 configure:22141: $? = 0
 configure:22182: gcc -o conftest      conftest.c cfortran_test.o   -L/usr/lib/gcc/x86_64-linux-gnu/4.8 -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../.. -lgfortran -lm -lquadmath >&5
-/tmp/ccwvahx6.o: In function `main':
+/tmp/ccBggHCl.o: In function `main':
 conftest.c:(.text+0xa): undefined reference to `foobar'
 collect2: error: ld returned 1 exit status
 configure:22182: $? = 1
@@ -1043,7 +1043,7 @@ lt_cv_sys_global_symbol_pipe='sed -n -e '"'"'s/^.*[	 ]\([ABCDGIRSTW][ABCDGIRSTW]
 lt_cv_sys_global_symbol_to_c_name_address='sed -n -e '"'"'s/^: \([^ ]*\)[ ]*$/  {\"\1\", (void *) 0},/p'"'"' -e '"'"'s/^[ABCDGIRSTW]* \([^ ]*\) \([^ ]*\)$/  {"\2", (void *) \&\2},/p'"'"
 lt_cv_sys_global_symbol_to_c_name_address_lib_prefix='sed -n -e '"'"'s/^: \([^ ]*\)[ ]*$/  {\"\1\", (void *) 0},/p'"'"' -e '"'"'s/^[ABCDGIRSTW]* \([^ ]*\) \(lib[^ ]*\)$/  {"\2", (void *) \&\2},/p'"'"' -e '"'"'s/^[ABCDGIRSTW]* \([^ ]*\) \([^ ]*\)$/  {"lib\2", (void *) \&\2},/p'"'"
 lt_cv_sys_global_symbol_to_cdecl='sed -n -e '"'"'s/^T .* \(.*\)$/extern int \1();/p'"'"' -e '"'"'s/^[ABCDGIRSTW]* .* \(.*\)$/extern char \1;/p'"'"
-lt_cv_sys_max_cmd_len='1572864'
+lt_cv_sys_max_cmd_len='1635000'
 lt_cv_to_host_file_cmd='func_convert_file_noop'
 lt_cv_to_tool_file_cmd='func_convert_file_noop'
 

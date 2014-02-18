@@ -557,8 +557,8 @@ module darcy_impes_assemble_module
       real,    dimension(:),     pointer :: p_rhs_local_bdy
       real,    dimension(:,:),   pointer :: p_matrix_local_bdy
       integer, dimension(:),     pointer :: p_nodes_bdy
-      integer, parameter :: PRESSURE_BC_TYPE_WEAKDIRICHLET = 1, PRESSURE_BC_TYPE_DIRICHLET = 2 
-      integer, parameter :: V_BC_TYPE_NORMAL_FLOW          = 1, V_BC_TYPE_NO_NORMAL_FLOW   = 2
+      integer, parameter :: PRESSURE_BC_TYPE_WEAKDIRICHLET   = 1, PRESSURE_BC_TYPE_DIRICHLET = 2 
+      integer, parameter :: V_BC_TYPE_PRESCRIBED_NORMAL_FLOW = 1, V_BC_TYPE_NO_NORMAL_FLOW   = 2
             
       ! allocate arrays used in assemble process - many assume
       ! that all elements are the same type.
@@ -745,18 +745,18 @@ module darcy_impes_assemble_module
 
          ewrite(1,*) 'Assemble boundary contribution to global continuity from phase ',p
                            
-         ! Get this phase v BC info - only for no_normal_flow and normal_flow which is special as it is a scalar
+         ! Get this phase v BC info - only for no_normal_flow and prescribed_normal_flow which is special as it is a scalar
          call darcy_impes_get_v_boundary_condition(di%darcy_velocity(p)%ptr, &
-                                                   (/"normal_flow   ", &
-                                                     "no_normal_flow"/), &
+                                                   (/"prescribed_normal_flow", &
+                                                     "no_normal_flow        "/), &
                                                    di%bc_surface_mesh, &
                                                    di%v_bc_value, &
                                                    di%v_bc_flag)
          
          if (have_dual .and. solve_dual_pressure) then         
             call darcy_impes_get_v_boundary_condition(di_dual%darcy_velocity(p)%ptr, &
-                                                      (/"normal_flow   ", &
-                                                        "no_normal_flow"/), &
+                                                      (/"prescribed_normal_flow", &
+                                                        "no_normal_flow        "/), &
                                                       di_dual%bc_surface_mesh, &
                                                       di_dual%v_bc_value, &
                                                       di_dual%v_bc_flag)
@@ -1089,7 +1089,7 @@ module darcy_impes_assemble_module
             
             end if
             
-            if (di%v_bc_flag(sele) == V_BC_TYPE_NORMAL_FLOW) then
+            if (di%v_bc_flag(sele) == V_BC_TYPE_PRESCRIBED_NORMAL_FLOW) then
                               
                bc_sele_val = ele_val(di%v_bc_value, sele)
                         
@@ -1145,9 +1145,9 @@ module darcy_impes_assemble_module
 
                         ggi = (face-1)*di%cvfaces%shape%ngi + gi
                                                 
-                        normal_flow: if (di%v_bc_flag(sele) == V_BC_TYPE_NORMAL_FLOW) then
+                        prescribed_normal_flow: if (di%v_bc_flag(sele) == V_BC_TYPE_PRESCRIBED_NORMAL_FLOW) then
                            
-                           ! If have normal_flow BC for this phase then include CV integral of value
+                           ! If have prescribed_normal_flow BC for this phase then include CV integral of value
                            
                            if (di%subcy_opt_sat%have .and. di%subcy_opt_sat%consistent) then
                                                       
@@ -1164,7 +1164,7 @@ module darcy_impes_assemble_module
                            
                            end if
                            
-                        else normal_flow
+                        else prescribed_normal_flow
                                                                                
                            ! Form the face value = detwei * (relperm*absperm/visc)
                            if (di%subcy_opt_sat%have .and. di%subcy_opt_sat%consistent) then
@@ -1240,7 +1240,7 @@ module darcy_impes_assemble_module
 
                            end if pressure_weak
 
-                        end if normal_flow
+                        end if prescribed_normal_flow
                         
                      end do bc_quad_loop
 
@@ -1266,7 +1266,7 @@ module darcy_impes_assemble_module
 
       !!< Form the data associated with any v BC by returning 
       !!< full surface mesh arrays of a flag indicating  either 
-      !!< no_normal_flow or normal_flow and the value.
+      !!< no_normal_flow or prescribed_normal_flow and the value.
 
       type(vector_field),               intent(in),   target :: v
       character(len=*),   dimension(:), intent(in)           :: types
@@ -1276,43 +1276,44 @@ module darcy_impes_assemble_module
 
       ! Local variables
       character(len=FIELD_NAME_LEN)                       :: bctype
-      type(scalar_field),                         pointer :: scalar_surface_field
+      type(scalar_field)                                  :: scalar_surface_field
       integer,                      dimension(:), pointer :: surface_element_list
       integer                                             :: i, j, k, sele
 
       ewrite(1,*) 'Get DarcyVelocity boundary condition data'
 
-      ! Zero the normal_flow value surface field on whole boundary mesh  
+      ! Zero the prescribed_normal_flow value surface field on whole boundary mesh  
       call zero(v_bc_value)
 
-      ! Initialise flag for whether surface element has normal_flow BC
+      ! Initialise flag for whether surface element has prescribed_normal_flow BC
       v_bc_flag = 0
 
       ! Loop each BC object instance for the v
-      ! (May have multiple normal_flow BC's applied to different surface id's)
+      ! (May have multiple prescribed_normal_flow BC's applied to different surface id's)
       BC_loop: do i=1, get_boundary_condition_count(v)
 
          ! Get this BC info
          call get_boundary_condition(v, i, type = bctype, &
                                      surface_element_list = surface_element_list)
 
-         ! check this is a normal_flow BC  or no_normal_flow (nothing else is permitted)
-         if ((trim(bctype) /= 'normal_flow') .and. (trim(bctype) /= 'no_normal_flow')) then
+         ! check this is a prescribed_normal_flow BC  or no_normal_flow (nothing else is permitted)
+         if ((trim(bctype) /= 'prescribed_normal_flow') .and. (trim(bctype) /= 'no_normal_flow')) then
             FLAbort('Have unknown BC type for a DarcyVelocity')
          end if
 
-         ! Extract the scalar_surface_field for this BC for normal_flow
-         if (trim(bctype) == 'normal_flow') then
-            if (associated(v%bc%boundary_condition(i)%scalar_surface_fields)) then
-               scalar_surface_field => v%bc%boundary_condition(i)%scalar_surface_fields(1)
+         ! Extract the surface_field for this BC for prescribed_normal_flow
+         if (trim(bctype) == 'prescribed_normal_flow') then
+            if (associated(v%bc%boundary_condition(i)%surface_fields)) then
+               scalar_surface_field = extract_scalar_field(&
+                    v%bc%boundary_condition(i)%surface_fields(1), 1)
             else
-               FLAbort('Component scalar_surface_fields for DarcyVelocity BC type not associated')
+               FLAbort('Component surface_fields for DarcyVelocity BC type not associated')
             end if
          end if 
          
          ! Loop the surface elements associated with this BC instance
          ! and place the required BC value in whole boundary field
-         ! for the normal_flow BC type
+         ! for the prescribed_normal_flow BC type
          BC_sele_loop: do k = 1, size(surface_element_list)
 
             ! Find the whole domain surface element number
@@ -1328,13 +1329,13 @@ module darcy_impes_assemble_module
                if (trim(types(j)) == trim(bctype)) exit
             end do
             if (j > size(types)) then
-               FLAbort('Cannot find no_normal_flow or normal_flow bctype for DarcyVelocity')
+               FLAbort('Cannot find no_normal_flow or prescribed_normal_flow bctype for DarcyVelocity')
             end if
             
             v_bc_flag(sele) = j
 
-            ! Set the normal_flow field values from this BC for its sele
-            if (trim(bctype) == 'normal_flow') then
+            ! Set the prescribed_normal_flow field values from this BC for its sele
+            if (trim(bctype) == 'prescribed_normal_flow') then
                call set(v_bc_value, &
                         ele_nodes(bc_surface_mesh, sele), &
                         ele_val(scalar_surface_field, k))
@@ -1561,7 +1562,7 @@ module darcy_impes_assemble_module
       real,    dimension(:,:), pointer :: x_ele_bdy
       real,    dimension(:),   pointer :: div_tvel_rhs_local_bdy
       integer, dimension(:),   pointer :: p_nodes_bdy
-      integer, parameter :: V_BC_TYPE_NORMAL_FLOW          = 1, V_BC_TYPE_NO_NORMAL_FLOW = 2
+      integer, parameter :: V_BC_TYPE_PRESCRIBED_NORMAL_FLOW = 1, V_BC_TYPE_NO_NORMAL_FLOW = 2
       integer, parameter :: PRESSURE_BC_TYPE_WEAKDIRICHLET = 1
                         
       ewrite(1,*) 'Calculate the DivergenceTotalDarcyVelocity'
@@ -1727,10 +1728,10 @@ module darcy_impes_assemble_module
 
          end do vele_loop
 
-         ! Get this phase v BC info - only for no_normal_flow and normal_flow which is special as it is a scalar
+         ! Get this phase v BC info - only for no_normal_flow and prescribed_normal_flow which is special as it is a scalar
          call darcy_impes_get_v_boundary_condition(di%darcy_velocity(p)%ptr, &
-                                                   (/"normal_flow   ", &
-                                                     "no_normal_flow"/), &
+                                                   (/"prescribed_normal_flow", &
+                                                     "no_normal_flow        "/), &
                                                    di%bc_surface_mesh, &
                                                    di%v_bc_value, &
                                                    di%v_bc_flag)
@@ -1757,7 +1758,7 @@ module darcy_impes_assemble_module
             
             end if
                      
-            if (di%v_bc_flag(sele) == V_BC_TYPE_NORMAL_FLOW) then
+            if (di%v_bc_flag(sele) == V_BC_TYPE_PRESCRIBED_NORMAL_FLOW) then
               
                bc_sele_val = ele_val(di%v_bc_value, sele)
             
@@ -1797,7 +1798,7 @@ module darcy_impes_assemble_module
 
                         ggi = (face-1)*di%cvfaces%shape%ngi + gi
                                                 
-                        normal_flow: if (di%v_bc_flag(sele) == V_BC_TYPE_NORMAL_FLOW) then
+                        prescribed_normal_flow: if (di%v_bc_flag(sele) == V_BC_TYPE_PRESCRIBED_NORMAL_FLOW) then
 
                            if (di%subcy_opt_sat%have .and. di%subcy_opt_sat%consistent) then
                            
@@ -1814,7 +1815,7 @@ module darcy_impes_assemble_module
                            
                            end if
                            
-                        else normal_flow
+                        else prescribed_normal_flow
                          
                            ! NOTE this v_over_relperm_dot_n does not contain the relperm terms
                            v_over_relperm_dot_n = dot_product(v_over_relperm_face_quad_bdy(:,ggi), normal_bdy(:,ggi))
@@ -1885,7 +1886,7 @@ module darcy_impes_assemble_module
 
                            end if pressure_weak
                         
-                        end if normal_flow
+                        end if prescribed_normal_flow
                         
                      end do bc_quad_loop
 
@@ -2045,10 +2046,10 @@ module darcy_impes_assemble_module
             ! Allocate and get the BC data. If the BC is time dependent then
             ! the end of overall time step values are used for all subcycles. 
 
-            ! Get this phase v BC info - only for no_normal_flow and normal_flow which is special as it is a scalar
+            ! Get this phase v BC info - only for no_normal_flow and prescribed_normal_flow which is special as it is a scalar
             call darcy_impes_get_v_boundary_condition(di%darcy_velocity(p)%ptr, &
-                                                      (/"normal_flow   ", &
-                                                        "no_normal_flow"/), &
+                                                      (/"prescribed_normal_flow", &
+                                                        "no_normal_flow        "/), &
                                                       di%bc_surface_mesh, &
                                                       di%v_bc_value, &
                                                       di%v_bc_flag)
@@ -2151,7 +2152,7 @@ module darcy_impes_assemble_module
       real,    dimension(:,:), pointer :: x_ele_bdy
       real,    dimension(:),   pointer :: s_rhs_local_bdy
       integer, dimension(:),   pointer :: p_nodes_bdy
-      integer, parameter :: V_BC_TYPE_NORMAL_FLOW          = 1, V_BC_TYPE_NO_NORMAL_FLOW = 2
+      integer, parameter :: V_BC_TYPE_PRESCRIBED_NORMAL_FLOW = 1, V_BC_TYPE_NO_NORMAL_FLOW = 2
       integer, parameter :: PRESSURE_BC_TYPE_WEAKDIRICHLET = 1
       
       ! allocate arrays used in assemble process - many assume
@@ -2312,7 +2313,7 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
 
          end if
 
-         if (di%v_bc_flag(sele) == V_BC_TYPE_NORMAL_FLOW) then
+         if (di%v_bc_flag(sele) == V_BC_TYPE_PRESCRIBED_NORMAL_FLOW) then
 
             bc_sele_val = ele_val(di%v_bc_value, sele)
 
@@ -2353,13 +2354,13 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
 
                      ggi = (face-1)*di%cvfaces%shape%ngi + gi
 
-                     normal_flow: if (di%v_bc_flag(sele) == V_BC_TYPE_NORMAL_FLOW) then
+                     prescribed_normal_flow: if (di%v_bc_flag(sele) == V_BC_TYPE_PRESCRIBED_NORMAL_FLOW) then
 
                         s_rhs_local_bdy(iloc) = s_rhs_local_bdy(iloc) - &
                                                 bc_sele_val(iloc) * &
                                                 detwei_bdy(ggi)
 
-                     else normal_flow                           
+                     else prescribed_normal_flow                           
 
                         ! NOTE this v_over_relperm_dot_n does not contain the relperm terms
                         v_over_relperm_dot_n = dot_product(v_over_relperm_face_quad_bdy(:,ggi), normal_bdy(:,ggi))
@@ -2406,7 +2407,7 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
 
                         end if pressure_weak
 
-                     end if normal_flow
+                     end if prescribed_normal_flow
 
                   end do bc_quad_loop
 
@@ -2495,10 +2496,10 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
             
       ewrite(1,*) 'Assemble and solve sfield ',trim(di%generic_prog_sfield(f)%sfield%name),' of phase ',p
 
-      ! Get this phase v BC info - only for no_normal_flow and normal_flow which is special as it is a scalar
+      ! Get this phase v BC info - only for no_normal_flow and prescribed_normal_flow which is special as it is a scalar
       call darcy_impes_get_v_boundary_condition(di%darcy_velocity(p)%ptr, &
-                                                (/"normal_flow   ", &
-                                                  "no_normal_flow"/), &
+                                                (/"prescribed_normal_flow", &
+                                                  "no_normal_flow        "/), &
                                                 di%bc_surface_mesh, &
                                                 di%v_bc_value, &
                                                 di%v_bc_flag)
@@ -2634,7 +2635,7 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
       real,    dimension(:),     pointer :: rhs_local_bdy
       real,    dimension(:),     pointer :: matrix_local_bdy
       integer, dimension(:),     pointer :: p_nodes_bdy
-      integer, parameter :: V_BC_TYPE_NORMAL_FLOW          = 1, V_BC_TYPE_NO_NORMAL_FLOW = 2
+      integer, parameter :: V_BC_TYPE_PRESCRIBED_NORMAL_FLOW = 1, V_BC_TYPE_NO_NORMAL_FLOW = 2
       integer, parameter :: PRESSURE_BC_TYPE_WEAKDIRICHLET = 1
       integer, parameter :: SFIELD_BC_TYPE_WEAKDIRICHLET   = 1
       
@@ -2875,7 +2876,7 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
 
             end if
 
-            if (di%v_bc_flag(sele) == V_BC_TYPE_NORMAL_FLOW) then
+            if (di%v_bc_flag(sele) == V_BC_TYPE_PRESCRIBED_NORMAL_FLOW) then
 
                bc_sele_val = ele_val(di%v_bc_value, sele)
 
@@ -2913,7 +2914,7 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
 
                         ggi = (face-1)*di%cvfaces%shape%ngi + gi
 
-                        normal_flow: if (di%v_bc_flag(sele) == V_BC_TYPE_NORMAL_FLOW) then
+                        prescribed_normal_flow: if (di%v_bc_flag(sele) == V_BC_TYPE_PRESCRIBED_NORMAL_FLOW) then
 
                            if (bc_sele_val(iloc) <= 0) then
 
@@ -2936,7 +2937,7 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
                                                     detwei_bdy(ggi) * &
                                                     (1.0 - income)
 
-                        else normal_flow                          
+                        else prescribed_normal_flow                          
 
                            v_dot_n = - di%cached_face_value%relperm_bdy(1,ggi,sele,p) * absperm_ele_bdy(1) * &
 dot_product((grad_pressure_face_quad_bdy(:,ggi) - di%cached_face_value%den_bdy(ggi,sele,p) * grav_ele_bdy(:,1)), normal_bdy(:,ggi))/ visc_ele_bdy(1)
@@ -3019,7 +3020,7 @@ dot_product((grad_pressure_face_quad_bdy(:,ggi) - di%cached_face_value%den_bdy(g
 
                            end if pressure_weak
 
-                        end if normal_flow
+                        end if prescribed_normal_flow
 
                      end do bc_quad_loop
 
@@ -3383,7 +3384,7 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
       real,    dimension(:),     pointer :: m_local_bdy
       integer, dimension(:),     pointer :: p_nodes_bdy
       real,    dimension(:),     pointer :: bc_sele_val
-      integer, parameter :: V_BC_TYPE_NORMAL_FLOW = 1, V_BC_TYPE_NO_NORMAL_FLOW = 2
+      integer, parameter :: V_BC_TYPE_PRESCRIBED_NORMAL_FLOW = 1, V_BC_TYPE_NO_NORMAL_FLOW = 2
             
       ewrite(1,*) 'Calculate CFL, Velocity, Mobilities and FractionalFlow fields'
 
@@ -3574,13 +3575,12 @@ visc_ele(1)
 
          end do vele_loop
 
-         ! Get this phase v BC info - only for no_normal_flow and normal_flow which is special as it is a scalar
-         call darcy_impes_get_v_boundary_condition(di%darcy_velocity(p)%ptr, &
-                                                   (/"normal_flow   ", &
-                                                     "no_normal_flow"/), &
-                                                   di%bc_surface_mesh, &
-                                                   di%v_bc_value, &
-                                                   di%v_bc_flag)
+         ! Get this phase v BC info - only for no_normal_flow and
+         ! prescribed_normal_flow which is special as it is a scalar
+         call darcy_impes_get_v_boundary_condition(&
+              di%darcy_velocity(p)%ptr, &
+              (/"prescribed_normal_flow", "no_normal_flow        "/), &
+              di%bc_surface_mesh, di%v_bc_value, di%v_bc_flag)
          
          sele_loop: do sele = 1, di%number_sele
             
@@ -3602,7 +3602,7 @@ visc_ele(1)
             
             end if
             
-            if (di%v_bc_flag(sele) == V_BC_TYPE_NORMAL_FLOW) then
+            if (di%v_bc_flag(sele) == V_BC_TYPE_PRESCRIBED_NORMAL_FLOW) then
             
                bc_sele_val = ele_val(di%v_bc_value, sele)
             
@@ -3632,7 +3632,7 @@ visc_ele(1)
                         
                            v_dot_n = 0.0
                         
-                        else if (di%v_bc_flag(sele) == V_BC_TYPE_NORMAL_FLOW) then
+                        else if (di%v_bc_flag(sele) == V_BC_TYPE_PRESCRIBED_NORMAL_FLOW) then
                         
                            v_dot_n = bc_sele_val(iloc)
                                                       

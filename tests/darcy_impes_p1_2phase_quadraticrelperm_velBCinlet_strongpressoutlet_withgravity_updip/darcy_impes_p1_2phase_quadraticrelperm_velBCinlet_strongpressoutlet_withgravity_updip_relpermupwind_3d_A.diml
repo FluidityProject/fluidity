@@ -449,7 +449,7 @@
           <surface_ids>
             <integer_value shape="1" rank="1">3</integer_value>
           </surface_ids>
-          <type name="normal_flow">
+          <type name="prescribed_normal_flow">
             <constant>
               <real_value rank="0">-1.0</real_value>
             </constant>

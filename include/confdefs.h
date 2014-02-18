@@ -24,7 +24,6 @@
 #define HAVE_LIBSTDC__ 1
 #define HAVE_LIBM 1
 #define HAVE_LIBPTHREAD 1
-#define HAVE_LIBUDUNITS 1
 #define USING_GFORTRAN 1
 #define NDEBUG 1
 #define HAVE_MPI 1
@@ -32,9 +31,6 @@
 #define _MPI_CPP_BINDINGS 1
 #define HAVE_LIBNETCDF 1
 #define HAVE_LIBNETCDFF 1
-#define HAVE_LIBMETIS 1
-#define HAVE_LIBPARMETIS 1
-#define HAVE_ZOLTAN 1
 #define HAVE_ADJOINT 1
 #define HAVE_PETSC 1
 #define HAVE_HYPRE 1

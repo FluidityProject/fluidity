@@ -743,7 +743,7 @@ configure:5623: $? = 0
 configure:5623: result: yes
 configure:5629: checking for _doprnt
 configure:5629: gcc -o conftest -DJU_64BIT -g -O2   conftest.c  >&5
-/tmp/ccH7ue1k.o: In function `main':
+/tmp/ccPOKXlC.o: In function `main':
 /home/richard/darcy_impes_proper-ref/libjudy/conftest.c:81: undefined reference to `_doprnt'
 collect2: error: ld returned 1 exit status
 configure:5629: $? = 1
@@ -855,7 +855,7 @@ configure:5643: gcc -o conftest -DJU_64BIT -g -O2   conftest.c  >&5
 conftest.c:74:6: warning: conflicting types for built-in function 'pow' [enabled by default]
  char pow ();
       ^
-/tmp/ccRXY87H.o: In function `main':
+/tmp/ccbgmuf1.o: In function `main':
 /home/richard/darcy_impes_proper-ref/libjudy/conftest.c:85: undefined reference to `pow'
 collect2: error: ld returned 1 exit status
 configure:5643: $? = 1
@@ -1012,7 +1012,7 @@ configure:6487: output
 0000000000000000 B some_variable
 configure:6494: result: BSD nm
 configure:6498: checking the maximum length of command line arguments
-configure:6618: result: 1572864
+configure:6618: result: 1635000
 configure:6635: checking whether the shell understands some XSI constructs
 configure:6645: result: yes
 configure:6649: checking whether the shell understands "+="
@@ -1214,7 +1214,7 @@ lt_cv_sys_global_symbol_pipe='sed -n -e '\''s/^.*[	 ]\([ABCDGIRSTW][ABCDGIRSTW]*
 lt_cv_sys_global_symbol_to_c_name_address='sed -n -e '\''s/^: \([^ ]*\) $/  {\"\1\", (void *) 0},/p'\'' -e '\''s/^[ABCDGIRSTW]* \([^ ]*\) \([^ ]*\)$/  {"\2", (void *) \&\2},/p'\'''
 lt_cv_sys_global_symbol_to_c_name_address_lib_prefix='sed -n -e '\''s/^: \([^ ]*\) $/  {\"\1\", (void *) 0},/p'\'' -e '\''s/^[ABCDGIRSTW]* \([^ ]*\) \(lib[^ ]*\)$/  {"\2", (void *) \&\2},/p'\'' -e '\''s/^[ABCDGIRSTW]* \([^ ]*\) \([^ ]*\)$/  {"lib\2", (void *) \&\2},/p'\'''
 lt_cv_sys_global_symbol_to_cdecl='sed -n -e '\''s/^T .* \(.*\)$/extern int \1();/p'\'' -e '\''s/^[ABCDGIRSTW]* .* \(.*\)$/extern char \1;/p'\'''
-lt_cv_sys_max_cmd_len=1572864
+lt_cv_sys_max_cmd_len=1635000
 
 ## ----------------- ##
 ## Output variables. ##

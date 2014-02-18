@@ -38,4 +38,4 @@ dlopen=''
 dlpreopen=''
 
 # Directory that this library needs to be installed in:
-libdir='/home/richard/darcy_impes_proper-alt/spatialindex-1.8.0/../lib'
+libdir='/home/richard/darcy_impes_proper-ref/spatialindex-1.8.0/../lib'

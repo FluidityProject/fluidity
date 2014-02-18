@@ -1848,7 +1848,7 @@ darcy_impes_bc_velocity_field =
          },
          (
             element type {
-               attribute name { "normal_flow" },
+               attribute name { "prescribed_normal_flow" },
                input_choice_real
             }|
             element type {

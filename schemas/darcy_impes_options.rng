@@ -1894,7 +1894,7 @@ Default value is 1.</a:documentation>
       <choice>
         <element name="type">
           <attribute name="name">
-            <value>normal_flow</value>
+            <value>prescribed_normal_flow</value>
           </attribute>
           <ref name="input_choice_real"/>
         </element>
