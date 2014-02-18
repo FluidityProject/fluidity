@@ -812,7 +812,7 @@ darcy_impes_asym_solver_options =
       }|
       element solver {
          attribute name { "ChooseSolverOptions" },
-         linear_solver_options_asym
+         linear_solver_options_asym_scalar
       }   
    )
 
@@ -1974,7 +1974,7 @@ darcy_impes_metric_advection =
          (
            ## Solver
            element solver {
-               linear_solver_options_asym
+               linear_solver_options_asym_scalar
            }|
            ## Assume this field is being solved explicitly and skip the solver.
            ##

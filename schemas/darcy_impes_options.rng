@@ -837,7 +837,7 @@ at the first timestep or not.</a:documentation>
         <attribute name="name">
           <value>ChooseSolverOptions</value>
         </attribute>
-        <ref name="linear_solver_options_asym"/>
+        <ref name="linear_solver_options_asym_scalar"/>
       </element>
     </choice>
   </define>
@@ -2042,7 +2042,7 @@ higher order solution is pivotted.
       <choice>
         <element name="solver">
           <a:documentation>Solver</a:documentation>
-          <ref name="linear_solver_options_asym"/>
+          <ref name="linear_solver_options_asym_scalar"/>
         </element>
         <element name="explicit">
           <a:documentation>Assume this field is being solved explicitly and skip the solver.
