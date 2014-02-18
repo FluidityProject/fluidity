@@ -46,7 +46,7 @@ plugin_dirs = [dir for dir in os.listdir('plugins') if os.path.isdir(os.path.joi
 plugin_data_files = []
 for plugin in plugin_dirs:
   if prefix is None:
-    plugin_data_files.append(("/home/richard/darcy_impes_proper/libspud/../share/diamond/plugins/" + plugin,
+    plugin_data_files.append(("/home/richard/darcy_impes_proper-ref/libspud/../share/diamond/plugins/" + plugin,
       glob.glob('plugins/' + plugin + '/*.py')))
   else:
     plugin_data_files.append((prefix + "/share/diamond/plugins/" + plugin,
@@ -55,7 +55,7 @@ for plugin in plugin_dirs:
 # Now parse the GUI directories
 gui_data_files = []
 if prefix is None:
-  gui_data_files.append(("/home/richard/darcy_impes_proper/libspud/../share/diamond/gui",
+  gui_data_files.append(("/home/richard/darcy_impes_proper-ref/libspud/../share/diamond/gui",
     ["gui/gui.glade", "gui/diamond.svg"]))
 else:
   gui_data_files.append((prefix + "/share/diamond/gui",

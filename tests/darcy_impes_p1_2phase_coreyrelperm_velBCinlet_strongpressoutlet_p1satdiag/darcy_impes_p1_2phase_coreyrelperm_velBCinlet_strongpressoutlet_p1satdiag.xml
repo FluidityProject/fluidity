@@ -57,6 +57,7 @@ rm -f darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_
 
 
 
+rm temp.txt  #TEMP
 ./Run_Compare_Numerical_To_Analytic_1d_Multiple.py
 
 
@@ -747,35 +748,40 @@ from fluidity_tools import stat_parser
 s = stat_parser("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_A.stat")
 v_tot_mag_min_modrelpermupwind_satfesweby_1d_A = s["Phase1"]["TotalDarcyVelocity%magnitude"]["min"][-1]
     </variable>
+    
     <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
   </variables>
+  
   <pass_tests>
     <test name="Solvers converged" language="python">
 assert(solvers_converged)
     </test>
-    <test name="AB_CV_L2Norm_convergence_phase2_sat_relpermupwind_1d: 0.35 gt order lt 0.45" language="python">
-assert(abs(AB_CV_L2Norm_convergence_phase2_sat_relpermupwind_1d - 0.4) &lt; 0.05)
+    
+    <!-- analytical comparisons, 1st order, 1D -->
+    <test name="AB_CV_L2Norm_convergence_phase2_sat_relpermupwind_1d: order gt 0.35" language="python">
+assert(AB_CV_L2Norm_convergence_phase2_sat_relpermupwind_1d &gt; 0.35)
     </test>
-    <test name="BC_CV_L2Norm_convergence_phase2_sat_relpermupwind_1d: 0.35 gt order lt 0.45" language="python">
-assert(abs(BC_CV_L2Norm_convergence_phase2_sat_relpermupwind_1d - 0.4) &lt; 0.05)
+    <test name="BC_CV_L2Norm_convergence_phase2_sat_relpermupwind_1d: order gt 0.35" language="python">
+assert(BC_CV_L2Norm_convergence_phase2_sat_relpermupwind_1d &gt; 0.35)
     </test>
-    <test name="CD_CV_L2Norm_convergence_phase2_sat_relpermupwind_1d: 0.35 gt order lt 0.45" language="python">
-assert(abs(CD_CV_L2Norm_convergence_phase2_sat_relpermupwind_1d - 0.4) &lt; 0.05)
+    <test name="CD_CV_L2Norm_convergence_phase2_sat_relpermupwind_1d: order gt 0.35" language="python">
+assert(CD_CV_L2Norm_convergence_phase2_sat_relpermupwind_1d &gt; 0.35)
     </test>
-    <test name="AB_CV_L1Norm_convergence_phase2_sat_relpermupwind_1d: 0.45 gt order lt 0.55" language="python">
-assert(abs(AB_CV_L1Norm_convergence_phase2_sat_relpermupwind_1d - 0.5) &lt; 0.05)
+    <test name="AB_CV_L1Norm_convergence_phase2_sat_relpermupwind_1d: order gt 0.45" language="python">
+assert(AB_CV_L1Norm_convergence_phase2_sat_relpermupwind_1d &gt; 0.45)
     </test>
-    <test name="BC_CV_L1Norm_convergence_phase2_sat_relpermupwind_1d: 0.45 gt order lt 0.55" language="python">
-assert(abs(BC_CV_L1Norm_convergence_phase2_sat_relpermupwind_1d - 0.5) &lt; 0.05)
+    <test name="BC_CV_L1Norm_convergence_phase2_sat_relpermupwind_1d: order gt 0.45" language="python">
+assert(BC_CV_L1Norm_convergence_phase2_sat_relpermupwind_1d &gt; 0.45)
     </test>
-    <test name="CD_CV_L1Norm_convergence_phase2_sat_relpermupwind_1d: 0.45 gt order lt 0.55" language="python">
-assert(abs(CD_CV_L1Norm_convergence_phase2_sat_relpermupwind_1d - 0.5) &lt; 0.05)
+    <test name="CD_CV_L1Norm_convergence_phase2_sat_relpermupwind_1d: order gt 0.45" language="python">
+assert(CD_CV_L1Norm_convergence_phase2_sat_relpermupwind_1d &gt; 0.45)
     </test>
 
+    <!-- regression comparisons, 1st order, 1D -->
     <test name="Assert max absolute regression error for saturation phase 1 using relpermupwind for 1d on mesh A is less than 1.0e-06" language="python">
 assert(abs(phase1_sat_relpermupwind_regression_error_max_1d_A) &lt; 1.0e-06)
     </test>
@@ -788,6 +794,8 @@ assert(abs(phase1_sat_relpermupwind_regression_error_max_1d_C) &lt; 1.0e-06)
     <test name="Assert max absolute regression error for saturation phase 1 using relpermupwind for 1d on for mesh D is less than 1.0e-06" language="python">
 assert(abs(phase1_sat_relpermupwind_regression_error_max_1d_D) &lt; 1.0e-06)
     </test>
+    
+    <!-- regression comparisons, 1st order, 2D -->
     <test name="Assert max absolute regression error for saturation phase 1 using relpermupwind for 2d on mesh A is less than 1.0e-06" language="python">
 assert(abs(phase1_sat_relpermupwind_regression_error_max_2d_A) &lt; 1.0e-06)
     </test>
@@ -797,6 +805,8 @@ assert(abs(phase1_sat_relpermupwind_regression_error_max_2d_B) &lt; 1.0e-06)
     <test name="Assert max absolute regression error for saturation phase 1 using relpermupwind for 2d on for mesh C is less than 1.0e-06" language="python">
 assert(abs(phase1_sat_relpermupwind_regression_error_max_2d_C) &lt; 1.0e-06)
     </test>
+    
+    <!-- regression comparisons, 1st order, 3D -->
     <test name="Assert max absolute regression error for saturation phase 1 using relpermupwind for 3d on mesh A is less than 1.0e-06" language="python">
 assert(abs(phase1_sat_relpermupwind_regression_error_max_3d_A) &lt; 1.0e-06)
     </test>
@@ -804,6 +814,7 @@ assert(abs(phase1_sat_relpermupwind_regression_error_max_3d_A) &lt; 1.0e-06)
 assert(abs(phase1_sat_relpermupwind_regression_error_max_3d_B) &lt; 1.0e-06)
     </test>
 
+    <!-- basic comparisons, 1st order, 1D -->
     <test name="phase 1 using relpermupwind for 1d for mesh A has max(sat) in [0.0, 1.0] with tolerance 1.0e-08" language="python">
 assert abs(phase1_sat_relpermupwind_max_1d_A - 0.5) &lt; (0.5 + 1.0e-08)
     </test>
@@ -828,6 +839,8 @@ assert abs(sum_sat_relpermupwind_min_1d_A - 1.0) &lt; 1.0e-08
 print 'difference: ',abs(sum_sat_relpermupwind_integral_1d_A - 1.0)
 assert abs(sum_sat_relpermupwind_integral_1d_A - 1.0) &lt; 1.0e-08
     </test>
+
+    <!-- basic comparisons, 1st order, 2D -->
     <test name="phase 1 using relpermupwind for 2d for mesh A has max(sat) in [0.0, 1.0] with tolerance 1.0e-08" language="python">
 assert abs(phase1_sat_relpermupwind_max_2d_A - 0.5) &lt; (0.5 + 1.0e-08)
     </test>
@@ -852,6 +865,8 @@ assert abs(sum_sat_relpermupwind_min_2d_A - 1.0) &lt; 1.0e-08
 print 'difference: ',abs(sum_sat_relpermupwind_integral_2d_A - 1.0)
 assert abs(sum_sat_relpermupwind_integral_2d_A - 1.0) &lt; 1.0e-08
     </test>
+    
+    <!-- basic comparisons, 1st order, 3D -->
     <test name="phase 1 using relpermupwind for 3d for mesh A has max(sat) in [0.0, 1.0] with tolerance 1.0e-08" language="python">
 assert abs(phase1_sat_relpermupwind_max_3d_A - 0.5) &lt; (0.5 + 1.0e-08)
     </test>
@@ -876,6 +891,8 @@ assert abs(sum_sat_relpermupwind_min_3d_A - 1.0) &lt; 1.0e-08
 print 'difference: ',abs(sum_sat_relpermupwind_integral_3d_A - 1.0)
 assert abs(sum_sat_relpermupwind_integral_3d_A - 1.0) &lt; 1.0e-08
     </test>
+    
+    <!-- basic comparisons, 1st order, 1D (velocity) -->
     <test name="Check v_tot_mag_max_relpermupwind_1d_A is 1.0 with tolerance 1.0e-08" language="python">
 assert abs(v_tot_mag_max_relpermupwind_1d_A - 1.0) &lt; 1.0e-08
     </test>
@@ -883,25 +900,27 @@ assert abs(v_tot_mag_max_relpermupwind_1d_A - 1.0) &lt; 1.0e-08
 assert abs(v_tot_mag_min_relpermupwind_1d_A - 1.0) &lt; 1.0e-08
     </test>
 
-    <test name="AB_CV_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d: 0.34 gt order lt 0.44" language="python">
-assert(abs(AB_CV_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d - 0.39) &lt; 0.05)
+    <!-- analytical comparisons, 2nd order w/Sweby, 1D -->
+    <test name="AB_CV_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d: order gt 0.34" language="python">
+assert(AB_CV_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d &gt; 0.34)
     </test>
-    <test name="BC_CV_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d: 0.34 gt order lt 0.44" language="python">
-assert(abs(BC_CV_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d - 0.39) &lt; 0.05)
+    <test name="BC_CV_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d: order gt 0.34" language="python">
+assert(BC_CV_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d &gt; 0.34)
     </test>
-    <test name="CD_CV_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d: 0.34 gt order lt 0.44" language="python">
-assert(abs(CD_CV_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d - 0.39) &lt; 0.05)
+    <test name="CD_CV_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d: order gt 0.34" language="python">
+assert(CD_CV_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d &gt; 0.34)
     </test>
-    <test name="AB_CV_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d: 0.45 gt order lt 0.55" language="python">
-assert(abs(AB_CV_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d - 0.5) &lt; 0.05)
+    <test name="AB_CV_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d: order gt 0.45" language="python">
+assert(AB_CV_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d &gt; 0.45)
     </test>
-    <test name="BC_CV_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d: 0.45 gt order lt 0.55" language="python">
-assert(abs(BC_CV_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d - 0.5) &lt; 0.05)
+    <test name="BC_CV_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d: order gt 0.45" language="python">
+assert(BC_CV_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d &gt; 0.45)
     </test>
-    <test name="CD_CV_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d: 0.45 gt order lt 0.55" language="python">
-assert(abs(CD_CV_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d - 0.5) &lt; 0.05)
+    <test name="CD_CV_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d: order gt 0.45" language="python">
+assert(CD_CV_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d &gt; 0.45)
     </test>
 
+    <!-- regression comparisons, 2nd order w/Sweby, 1D -->
     <test name="Assert max absolute regression error for saturation phase 1 using modrelpermupwind_satfesweby for 1d on mesh A is less than 1.0e-06" language="python">
 assert(abs(phase1_sat_modrelpermupwind_satfesweby_regression_error_max_1d_A) &lt; 1.0e-06)
     </test>
@@ -914,6 +933,8 @@ assert(abs(phase1_sat_modrelpermupwind_satfesweby_regression_error_max_1d_C) &lt
     <test name="Assert max absolute regression error for saturation phase 1 using modrelpermupwind_satfesweby for 1d on for mesh D is less than 1.0e-06" language="python">
 assert(abs(phase1_sat_modrelpermupwind_satfesweby_regression_error_max_1d_D) &lt; 1.0e-06)
     </test>
+    
+    <!-- regression comparisons, 2nd order w/Sweby, 2D -->
     <test name="Assert max absolute regression error for saturation phase 1 using modrelpermupwind_satfesweby for 2d on mesh A is less than 1.0e-06" language="python">
 assert(abs(phase1_sat_modrelpermupwind_satfesweby_regression_error_max_2d_A) &lt; 1.0e-06)
     </test>
@@ -923,6 +944,8 @@ assert(abs(phase1_sat_modrelpermupwind_satfesweby_regression_error_max_2d_B) &lt
     <test name="Assert max absolute regression error for saturation phase 1 using modrelpermupwind_satfesweby for 2d on for mesh C is less than 1.0e-06" language="python">
 assert(abs(phase1_sat_modrelpermupwind_satfesweby_regression_error_max_2d_C) &lt; 1.0e-06)
     </test>
+    
+    <!-- regression comparisons, 2nd order w/Sweby, 3D -->
     <test name="Assert max absolute regression error for saturation phase 1 using modrelpermupwind_satfesweby for 3d on mesh A is less than 1.0e-06" language="python">
 assert(abs(phase1_sat_modrelpermupwind_satfesweby_regression_error_max_3d_A) &lt; 1.0e-06)
     </test>
@@ -930,6 +953,7 @@ assert(abs(phase1_sat_modrelpermupwind_satfesweby_regression_error_max_3d_A) &lt
 assert(abs(phase1_sat_modrelpermupwind_satfesweby_regression_error_max_3d_B) &lt; 1.0e-06)
     </test>
 
+    <!-- basic comparisons, 2nd order w/Sweby, 1D -->
     <test name="phase 1 using modrelpermupwind_satfesweby for 1d for mesh A has max(sat) in [0.0, 1.0] with tolerance 1.0e-08" language="python">
 assert abs(phase1_sat_modrelpermupwind_satfesweby_max_1d_A - 0.5) &lt; (0.5 + 1.0e-08)
     </test>
@@ -954,6 +978,8 @@ assert abs(sum_sat_modrelpermupwind_satfesweby_min_1d_A - 1.0) &lt; 1.0e-08
 print 'difference: ',abs(sum_sat_modrelpermupwind_satfesweby_integral_1d_A - 1.0)
 assert abs(sum_sat_modrelpermupwind_satfesweby_integral_1d_A - 1.0) &lt; 1.0e-08
     </test>
+
+    <!-- basic comparisons, 2nd order w/Sweby, 2D -->
     <test name="phase 1 using modrelpermupwind_satfesweby for 2d for mesh A has max(sat) in [0.0, 1.0] with tolerance 1.0e-08" language="python">
 assert abs(phase1_sat_modrelpermupwind_satfesweby_max_2d_A - 0.5) &lt; (0.5 + 1.0e-08)
     </test>
@@ -978,6 +1004,8 @@ assert abs(sum_sat_modrelpermupwind_satfesweby_min_2d_A - 1.0) &lt; 1.0e-08
 print 'difference: ',abs(sum_sat_modrelpermupwind_satfesweby_integral_2d_A - 1.0)
 assert abs(sum_sat_modrelpermupwind_satfesweby_integral_2d_A - 1.0) &lt; 1.0e-08
     </test>
+    
+    <!-- basic comparisons, 2nd order w/Sweby, 3D -->
     <test name="phase 1 using modrelpermupwind_satfesweby for 3d for mesh A has max(sat) in [0.0, 1.0] with tolerance 1.0e-08" language="python">
 assert abs(phase1_sat_modrelpermupwind_satfesweby_max_3d_A - 0.5) &lt; (0.5 + 1.0e-08)
     </test>
@@ -1002,12 +1030,95 @@ assert abs(sum_sat_modrelpermupwind_satfesweby_min_3d_A - 1.0) &lt; 1.0e-08
 print 'difference: ',abs(sum_sat_modrelpermupwind_satfesweby_integral_3d_A - 1.0)
 assert abs(sum_sat_modrelpermupwind_satfesweby_integral_3d_A - 1.0) &lt; 1.0e-08
     </test>
+
+    <!-- basic comparisons, 2nd order w/Sweby, 1D (velocity) -->
     <test name="Check v_tot_mag_max_modrelpermupwind_satfesweby_1d_A is 1.0 with tolerance 1.0e-08" language="python">
 assert abs(v_tot_mag_max_modrelpermupwind_satfesweby_1d_A - 1.0) &lt; 1.0e-08
     </test>
     <test name="Check v_tot_mag_min_modrelpermupwind_satfesweby_1d_A is 1.0 with tolerance 1.0e-08" language="python">
 assert abs(v_tot_mag_min_modrelpermupwind_satfesweby_1d_A - 1.0) &lt; 1.0e-08
     </test>
+    
+    <!-- It is straightforward to compare the the 1D simulations to the
+         expected 1D quasi-analytical solution at the latter's point
+         locations; Run_Compare_Numerical_To_Analytic_1d_Multiple.py
+         constructs a piecewise-linear interpolant between the
+         simulation's points.  This is difficult to extend to 2D and 3D,
+         but not if the interpolation is done the other way round -
+         i.e. Linear_Interp_1D.py is used to interpolate the analytical
+         solution at each simulation point.  This means the jump
+         discontinuity of the analytical solution will be
+         ill-represented, but we can still expect first order
+         convergence of the L1-errors. -->
+
+    <!-- analytical comparisons, 1st order, 2D -->
+    <test name="AB_FE_L1Norm_convergence_phase2_sat_relpermupwind_2d: order gt 0.4" language="python">
+from math import log
+from fluidity_tools import stat_parser as stat
+A = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_2d_A.stat")["Phase2"]["AnalyticSaturationError"]["integral"][-1]
+B = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_2d_B.stat")["Phase2"]["AnalyticSaturationError"]["integral"][-1]
+with open("temp.txt", "a") as myfile:  #TEMP
+    myfile.write("\nAB_FE_L1Norm_convergence_phase2_sat_relpermupwind_2d:\n")  #TEMP
+    myfile.write("A = " + str(A) + ";\t" + "B = " + str(B) + ";\t" + "rate = " + str(log(A/B, 2)) + "\n")  #TEMP
+assert( log(A/B, 2) &gt; 0.4 )
+    </test>
+    <test name="BC_FE_L1Norm_convergence_phase2_sat_relpermupwind_2d: order gt 0.4" language="python">
+from math import log
+from fluidity_tools import stat_parser as stat
+B = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_2d_B.stat")["Phase2"]["AnalyticSaturationError"]["integral"][-1]
+C = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_2d_C.stat")["Phase2"]["AnalyticSaturationError"]["integral"][-1]
+with open("temp.txt", "a") as myfile:  #TEMP
+    myfile.write("\nBC_FE_L1Norm_convergence_phase2_sat_relpermupwind_2d:\n")  #TEMP
+    myfile.write("B = " + str(B) + ";\t" + "C = " + str(C) + ";\t" + "rate = " + str(log(B/C, 2)) + "\n")  #TEMP
+assert( log(B/C, 2) &gt; 0.4 )
+    </test>
+
+    <!-- analytical comparisons, 1st order, 3D -->
+    <test name="AB_FE_L1Norm_convergence_phase2_sat_relpermupwind_3d: order gt 0.4" language="python">
+from math import log
+from fluidity_tools import stat_parser as stat
+A = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_3d_A.stat")["Phase2"]["AnalyticSaturationError"]["integral"][-1]
+B = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_3d_B.stat")["Phase2"]["AnalyticSaturationError"]["integral"][-1]
+with open("temp.txt", "a") as myfile:  #TEMP
+    myfile.write("\nAB_FE_L1Norm_convergence_phase2_sat_relpermupwind_3d:\n")  #TEMP
+    myfile.write("A = " + str(A) + ";\t" + "B = " + str(B) + ";\t" + "rate = " + str(log(A/B, 2)) + "\n")  #TEMP
+assert( log(A/B, 2) &gt; 0.4 )
+    </test>
+    
+    <!-- analytical comparisons, 2nd order w/Sweby, 2D -->
+    <test name="AB_FE_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_2d: order gt 0.4" language="python">
+from math import log
+from fluidity_tools import stat_parser as stat
+A = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_2d_A.stat")["Phase2"]["AnalyticSaturationError"]["integral"][-1]
+B = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_2d_B.stat")["Phase2"]["AnalyticSaturationError"]["integral"][-1]
+with open("temp.txt", "a") as myfile:  #TEMP
+    myfile.write("\nAB_FE_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_2d:\n")  #TEMP
+    myfile.write("A = " + str(A) + ";\t" + "B = " + str(B) + ";\t" + "rate = " + str(log(A/B, 2)) + "\n")  #TEMP
+assert( log(A/B, 2) &gt; 0.4 )
+    </test>
+    <test name="BC_FE_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_2d: order gt 0.4" language="python">
+from math import log
+from fluidity_tools import stat_parser as stat
+B = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_2d_B.stat")["Phase2"]["AnalyticSaturationError"]["integral"][-1]
+C = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_2d_C.stat")["Phase2"]["AnalyticSaturationError"]["integral"][-1]
+with open("temp.txt", "a") as myfile:  #TEMP
+    myfile.write("\nBC_FE_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_2d:\n")  #TEMP
+    myfile.write("B = " + str(B) + ";\t" + "C = " + str(C) + ";\t" + "rate = " + str(log(B/C, 2)) + "\n")  #TEMP
+assert( log(B/C, 2) &gt; 0.4 )
+    </test>
+
+    <!-- analytical comparisons, 2nd order w/Sweby, 3D -->
+    <test name="AB_FE_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_3d: order gt 0.4" language="python">
+from math import log
+from fluidity_tools import stat_parser as stat
+A = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_3d_A.stat")["Phase2"]["AnalyticSaturationError"]["integral"][-1]
+B = stat("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_3d_B.stat")["Phase2"]["AnalyticSaturationError"]["integral"][-1]
+with open("temp.txt", "a") as myfile:  #TEMP
+    myfile.write("\nAB_FE_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_3d:\n")  #TEMP
+    myfile.write("A = " + str(A) + ";\t" + "B = " + str(B) + ";\t" + "rate = " + str(log(A/B, 2)) + "\n")  #TEMP
+assert( log(A/B, 2) &gt; 0.4 )
+    </test>
+
   </pass_tests>
   <warn_tests>
   </warn_tests>

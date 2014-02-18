@@ -11,6 +11,6 @@ if ! which trang > /dev/null; then
   exit 1
 fi
 
-cp /home/richard/darcy_impes_proper/libspud/../share/spud/spud_base.rnc $(dirname $1)
+cp /home/richard/darcy_impes_proper-ref/libspud/../share/spud/spud_base.rnc $(dirname $1)
 trang $1 ${1/rnc/rng}
 rm -f $(dirname $1)/spud_base.rn{c,g}

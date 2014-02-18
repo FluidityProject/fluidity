@@ -34,7 +34,7 @@ def register_plugin(applies, name, cb):
 def configure_plugins(suffix):
   homedir = os.path.expanduser('~')
   dirs = [os.path.join(homedir, ".diamond", "plugins", suffix),
-      "/home/richard/darcy_impes_proper/libspud/../share/diamond/plugins/" + suffix]
+      "/home/richard/darcy_impes_proper-ref/libspud/../share/diamond/plugins/" + suffix]
   if sys.platform != "win32" and sys.platform != "win64":
     dirs.append("/etc/diamond/plugins/" + suffix)
 
