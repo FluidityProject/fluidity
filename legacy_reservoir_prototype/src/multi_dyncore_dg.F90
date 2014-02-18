@@ -67,7 +67,7 @@
   contains
 
     SUBROUTINE INTENERGE_ASSEM_SOLVE( state, &
-         LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,&
+         LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,NDOTQOLD,&
          NCOLACV, FINACV, COLACV, MIDACV, &
          SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
          block_to_global_acv, global_dense_block_acv, &
@@ -95,25 +95,25 @@
          XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
          OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
          T_FEMT, DEN_FEMT, &
-         IGOT_T2, T2, T2OLD, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
-         THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
+         IGOT_T2, T2, T2OLD, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
+         THETA_GDIFF, &
          SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
          NOIT_DIM, &
          MEAN_PORE_CV, &
          option_path, &
          mass_ele_transp, &
-         thermal )
+         thermal, THETA_FLUX, ONE_M_THETA_FLUX )
 
       ! Solve for internal energy using a control volume method.
 
       implicit none
       type( state_type ), dimension( : ), intent( inout ) :: state
-      REAL, DIMENSION( : , : , : ) :: LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD
+      REAL, DIMENSION( : , : ) :: LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,NDOTQOLD
       INTEGER, intent( in ) :: NCOLACV, NCOLCT, CV_NONODS, U_NONODS, X_NONODS, MAT_NONODS, TOTELE, &
            U_ELE_TYPE, CV_ELE_TYPE, CV_SELE_TYPE, NPHASE, CV_NLOC, U_NLOC, X_NLOC,  MAT_NLOC, &
            CV_SNLOC, U_SNLOC, STOTEL, XU_NLOC, NDIM, NCOLM, NCOLELE, &
            NOPT_VEL_UPWIND_COEFS, &
-           IGOT_T2, IGOT_THETA_FLUX, SCVNGI_THETA, IN_ELE_UPWIND, DG_ELE_UPWIND
+           IGOT_T2, SCVNGI_THETA, IN_ELE_UPWIND, DG_ELE_UPWIND
       LOGICAL, intent( in ) :: GET_THETA_FLUX, USE_THETA_FLUX
       LOGICAL, intent( in ), optional ::THERMAL
       INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
@@ -140,8 +140,7 @@
       REAL, DIMENSION( : ), intent( in ) :: DEN, DENOLD
       REAL, DIMENSION( : ), intent( in ) :: T2, T2OLD
       REAL, DIMENSION( : ), intent( inout ) :: THETA_GDIFF
-      REAL, DIMENSION( :,:,:,: ), &
-           intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX
+      REAL, DIMENSION( :,: ), intent( inout ), optional :: THETA_FLUX, ONE_M_THETA_FLUX
       REAL, DIMENSION( :,:,:, : ), intent( in ) :: TDIFFUSION
       INTEGER, intent( in ) :: T_DISOPT, T_DG_VEL_INT_OPT
       REAL, intent( in ) :: DT, T_THETA
@@ -219,7 +218,7 @@
       Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, NITS_FLUX_LIM
 
          CALL CV_ASSEMB_ADV_DIF( state, &
-              LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,&
+              LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,NDOTQOLD,&
               CV_RHS, &
               NCOLACV, block_acv,dense_block_matrix, FINACV, COLACV, MIDACV, &
               SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
@@ -244,14 +243,15 @@
               XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
               OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
               T_FEMT, DEN_FEMT, &
-              IGOT_T2, T2, T2OLD, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
-              THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
+              IGOT_T2, T2, T2OLD, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
+              THETA_GDIFF, &
               SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
               NOIT_DIM, &
               MEAN_PORE_CV, &
               SMALL_FINACV, SMALL_COLACV, size(small_colacv), mass_Mn_pres, THERMAL, &
               mass_ele_transp, &
-              option_path )
+              option_path,&
+              theta_flux=THETA_FLUX, one_m_theta_flux=ONE_M_THETA_FLUX)
 
          t=0.
 
@@ -722,12 +722,12 @@
          XU_NLOC, XU_NDGLN ,FINELE, COLELE, NCOLELE, &
          OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
          Sat_FEMT, DEN_FEMT, &
-         IGOT_THETA_FLUX, SCVNGI_THETA, USE_THETA_FLUX, &
-         THETA_FLUX, ONE_M_THETA_FLUX, &
+         SCVNGI_THETA, USE_THETA_FLUX, &
          IN_ELE_UPWIND, DG_ELE_UPWIND, &
          NOIT_DIM, &
          option_path, &
-         mass_ele_transp )
+         mass_ele_transp,&
+         THETA_FLUX, ONE_M_THETA_FLUX)
 
       implicit none
       type( state_type ), dimension( : ), intent( in ) :: state
@@ -737,7 +737,7 @@
            NPHASE, CV_NLOC, U_NLOC, X_NLOC, &
            CV_SNLOC, U_SNLOC, STOTEL, XU_NLOC, NDIM, &
            NCOLM, NCOLELE, NOPT_VEL_UPWIND_COEFS, &
-           MAT_NLOC, MAT_NONODS, IGOT_THETA_FLUX, SCVNGI_THETA, IN_ELE_UPWIND, DG_ELE_UPWIND
+           MAT_NLOC, MAT_NONODS, SCVNGI_THETA, IN_ELE_UPWIND, DG_ELE_UPWIND
       LOGICAL, intent( in ) :: USE_THETA_FLUX
       INTEGER, DIMENSION(: ), intent( in ) :: CV_NDGLN
       INTEGER, DIMENSION( : ), intent( in ) :: MAT_NDGLN
@@ -759,7 +759,7 @@
       REAL, DIMENSION( : ), intent( in ) :: U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD
       REAL, DIMENSION( : ), intent( inout ) :: SATURA, SATURAOLD, Sat_FEMT, DEN_FEMT
       REAL, DIMENSION( : ), intent( in ) :: DEN, DENOLD
-      REAL, DIMENSION( :, :, :, : ), intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX
+      REAL, DIMENSION( :, :), intent( inout ), optional :: THETA_FLUX, ONE_M_THETA_FLUX
       INTEGER, intent( in ) :: V_DISOPT, V_DG_VEL_INT_OPT
       REAL, intent( in ) :: DT, V_THETA
       REAL, intent( inout ) :: V_BETA
@@ -795,17 +795,29 @@
       INTEGER :: STAT, i,j
       character( len = option_path_len ) :: path
 
-      REAL, DIMENSION( : , : , : ), allocatable :: LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD
-       integer :: cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface
+      REAL, DIMENSION( : , :  ), allocatable :: LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,NDOTQOLD
+      integer :: cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, face_count
 
-      call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
-           cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, .false. )
+      face_count=CV_count_faces( SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV,&
+           CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
+           CV_ELE_TYPE,  &
+           NPHASE,  &
+           CV_NLOC, U_NLOC, X_NLOC, &
+           CV_NDGLN, X_NDGLN, U_NDGLN, &
+           CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
+           X, Y, Z,&
+           MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
+           NDIM, &
+           NCOLM, FINDM, COLM, MIDM, &
+           XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
+           small_finacv,small_colacv,size(small_colacv) )
 
-      allocate(LIMTOLD(nphase,scvngi,totele)&
-           ,LIMT2OLD(nphase,scvngi,totele),&
-           LIMDOLD(nphase,scvngi,totele),&
-           LIMDTOLD(nphase,scvngi,totele),&
-           LIMDTT2OLD(nphase,scvngi,totele))
+      allocate(ndotqold(nphase,face_count),&
+           LIMTOLD(nphase,face_count),&
+           LIMT2OLD(nphase,face_count),&
+           LIMDOLD(nphase,face_count),&
+           LIMDTOLD(nphase,face_count),&
+           LIMDTT2OLD(nphase,face_count))
 
       GET_THETA_FLUX = .FALSE.
       IGOT_T2 = 0
@@ -847,7 +859,7 @@
 
 
       call CV_GET_ALL_LIMITED_VALS( state, &
-         LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,&
+         LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,NDOTQOLD,&
          SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
          CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
          CV_ELE_TYPE,  &
@@ -881,7 +893,7 @@
       Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, 1 !nits_flux_lim
 
          CALL CV_ASSEMB_ADV_DIF( state, &
-              LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,&
+              LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,NDOTQOLD,&
               CV_RHS, &
               NCOLACV, block_ACV, dense_block_matrix, FINACV, COLACV, MIDACV, &
               SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
@@ -906,14 +918,15 @@
               XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
               OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
               Sat_FEMT, DEN_FEMT, &
-              IGOT_T2, T2, T2OLD, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
-              THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
+              IGOT_T2, T2, T2OLD, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
+              THETA_GDIFF, &
               SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
               NOIT_DIM, &
               MEAN_PORE_CV, &
               SMALL_FINACV, SMALL_COLACV, size(small_colacv), mass_mn_pres, THERMAL, &
               mass_ele_transp, &
-              option_path )
+              option_path,&
+              THETA_FLUX, ONE_M_THETA_FLUX)
 
          satura=0.0 !saturaold([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)])
 
@@ -1066,7 +1079,7 @@
       REAL, DIMENSION(  : ), intent( in ) :: UDEN, UDENOLD
       REAL, DIMENSION(  : ,  : ,  : ,  :  ), intent( in ) :: UDIFFUSION
       REAL, DIMENSION(  :  ), intent( in ) :: OPT_VEL_UPWIND_COEFS
-      REAL, DIMENSION( : ,  : ,  : ,  :  ), intent( inout ) :: &
+      REAL, DIMENSION( : ,  :  ), intent( inout ) :: &
            THETA_FLUX, ONE_M_THETA_FLUX
       INTEGER, INTENT( IN ) :: NOIT_DIM
       REAL, DIMENSION( :  ), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
@@ -1770,7 +1783,7 @@
       REAL, DIMENSION( :  ), intent( inout ) ::  CV_P, P
       REAL, DIMENSION( :  ), intent( in ) :: DEN, DENOLD, SATURA, SATURAOLD
       REAL, DIMENSION(:  ), intent( in ) :: DERIV
-      REAL, DIMENSION(: , : , : , :  ), intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX
+      REAL, DIMENSION(: , :  ), intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX
       REAL, DIMENSION( :  ), intent( inout ) :: CT_RHS,DIAG_SCALE_PRES
       REAL, DIMENSION( :  ), intent( inout ) :: U_RHS
       REAL, DIMENSION( :  ), intent( inout ) :: MCY_RHS
@@ -2013,7 +2026,7 @@
       REAL, DIMENSION(  :  ), intent( in ) :: CV_P, P
       REAL, DIMENSION(  :  ), intent( in ) :: DEN, DENOLD, SATURA, SATURAOLD
       REAL, DIMENSION(  :  ), intent( in ) :: DERIV
-      REAL, DIMENSION(  : ,  : ,  : ,  :  ), intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX
+      REAL, DIMENSION(  : ,  :   ), intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX
       REAL, intent( in ) :: DT
       INTEGER, DIMENSION(  :  ), intent( in ) :: FINDC
       INTEGER, DIMENSION(  :  ), intent( in ) :: COLC
@@ -6329,7 +6342,7 @@ end if
       real, allocatable, dimension(:,:,:) :: T_ABSORB
       real, allocatable, dimension(:,:,:,:) :: tdiffusion
 
-      real, dimension(0,0,0) :: ALIMTOLD,ALIMT2OLD,ALIMDOLD,ALIMDTOLD,ALIMDTT2OLD
+      real, dimension(0,0) :: ALIMTOLD,ALIMT2OLD,ALIMDOLD,ALIMDTOLD,ALIMDTT2OLD,ANDOTQOLD
       
 
       DUMMY_ELE = 0
@@ -7033,7 +7046,7 @@ end if
 
 
          CALL INTENERGE_ASSEM_SOLVE( state, &
-              ALIMTOLD,ALIMT2OLD,ALIMDOLD,ALIMDTOLD,ALIMDTT2OLD,&
+              ALIMTOLD,ALIMT2OLD,ALIMDOLD,ALIMDTOLD,ALIMDTT2OLD,ANDOTQOLD,&
               NCOLACV, FINACV, COLACV, MIDACV, & 
               SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
               block_to_global_acv, global_dense_block_acv, &
@@ -7060,8 +7073,8 @@ end if
               XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
               RDUM, NOPT_VEL_UPWIND_COEFS, &
               RDUM, CV_ONE, &
-              IGOT_T2, CURVATURE, VOLUME_FRAC, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
-              tflux,tflux,CURVATURE, &
+              IGOT_T2, CURVATURE, VOLUME_FRAC, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
+              CURVATURE, &
               RZERO, RZERO, RZERO, IDUM, IN_ELE_UPWIND, DG_ELE_UPWIND, &
               NOIT_DIM, &
               ! nits_flux_lim_t

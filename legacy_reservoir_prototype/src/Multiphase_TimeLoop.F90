@@ -57,7 +57,7 @@
     use fluids_module!, only: pre_adapt_tasks, update_state_post_adapt
 
 !!$ Modules indigenous to the prototype Code
-    use cv_advection, only : CV_GET_ALL_LIMITED_VALS
+    use cv_advection, only : CV_GET_ALL_LIMITED_VALS, cv_count_faces
     use multiphase_1D_engine
     use spact
     use multiphase_EOS
@@ -180,8 +180,9 @@
 !!$
            Component_Diffusion_Operator_Coefficient
       real, dimension( :, :, :, : ), allocatable :: Momentum_Diffusion, ScalarAdvectionField_Diffusion, &
-           Component_Diffusion, &
-           theta_flux, one_m_theta_flux, sum_theta_flux, sum_one_m_theta_flux, theta0_flux
+           Component_Diffusion
+           
+      real, dimension( :, : ), allocatable ::theta_flux, one_m_theta_flux, sum_theta_flux, sum_one_m_theta_flux, theta0_flux
 
 !!$ Material_Absorption_Stab = u_abs_stab; Material_Absorption = u_absorb; ScalarField_Absorption = v_absorb
 !!$ Component_Absorption = comp_absorb; ScalarAdvectionField_Absorption = t_absorb
@@ -219,10 +220,11 @@
       !! face value storage
 
       real::  second_theta
-      integer :: scvngi
-      REAL, DIMENSION( : , : , : ), allocatable :: LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD
-      REAL, DIMENSION( : , : , : ), allocatable :: LIMVOLD,LIMV2OLD,LIMVDOLD,LIMVDTOLD,LIMVDTT2OLD
-      REAL, DIMENSION( : , : , : ), allocatable :: LIMCOLD,LIMC2OLD,LIMCDOLD,LIMCDTOLD,LIMCDTT2OLD
+      integer :: scvngi, ncv_faces
+      REAL, DIMENSION( : , : ), allocatable :: NDOTQOLD,NDOTQVOLD
+      REAL, DIMENSION( : , : ), allocatable :: LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD
+      REAL, DIMENSION( : , : ), allocatable :: LIMVOLD,LIMV2OLD,LIMVDOLD,LIMVDTOLD,LIMVDTT2OLD
+      REAL, DIMENSION( : , : ,: ), allocatable :: NDOTQCOLD,LIMCOLD,LIMC2OLD,LIMCDOLD,LIMCDTOLD,LIMCDTT2OLD
 
       !Read info for adaptive timestep based on non_linear_iterations
 
@@ -294,7 +296,7 @@
 
 
       allocate( global_dense_block_acv( nphase , cv_nonods ))
-      allocate(theta0_flux(0,0,0,0))
+      allocate(theta0_flux(0,0))
 
       finacv = 0 ; colacv = 0 ; midacv = 0 ; finmcy = 0 ; colmcy = 0 ; midmcy = 0 ; finele = 0
       colele = 0 ; midele = 0 ; findgm_pha = 0 ; coldgm_pha = 0 ; middgm_pha = 0 ; findct = 0
@@ -389,25 +391,38 @@
            plike_grad_sou_grad( cv_nonods * nphase ), &
            plike_grad_sou_coef( cv_nonods * nphase ) )
 
-      call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
-           cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, .false.)
+      ncv_faces=CV_count_faces( SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV,&
+           CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
+           CV_ELE_TYPE,  &
+           NPHASE,  &
+           CV_NLOC, U_NLOC, X_NLOC, &
+           CV_NDGLN, X_NDGLN, U_NDGLN, &
+           CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
+           X, Y, Z,&
+           MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
+           NDIM, &
+           NCOLM, FINDM, COLM, MIDM, &
+           XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
+           small_finacv,small_colacv,size(small_colacv) )
 
-
-      allocate(LIMTOLD(nphase,scvngi,totele),&
-           LIMT2OLD(nphase,scvngi,totele),&
-           LIMDOLD(nphase,scvngi,totele),&
-           LIMDTOLD(nphase,scvngi,totele),&
-           LIMDTT2OLD(nphase,scvngi,totele),&
-           LIMVOLD(nphase,scvngi,totele),&
-           LIMV2OLD(nphase,scvngi,totele),&
-           LIMVDOLD(nphase,scvngi,totele),&
-           LIMVDTOLD(nphase,scvngi,totele),&
-           LIMVDTT2OLD(nphase,scvngi,totele),&
-           LIMCOLD(nphase*ncomp,scvngi,totele),&
-           LIMC2OLD(nphase*ncomp,scvngi,totele),&
-           LIMCDOLD(nphase*ncomp,scvngi,totele),&
-           LIMCDTOLD(nphase*ncomp,scvngi,totele),&
-           LIMCDTT2OLD(nphase*ncomp,scvngi,totele))
+      allocate(NDOTQOLD(nphase,ncv_faces),&
+           NDOTQVOLD(nphase,ncv_faces),&
+           LIMTOLD(nphase,ncv_faces),&
+           LIMT2OLD(nphase,ncv_faces),&
+           LIMDOLD(nphase,ncv_faces),&
+           LIMDTOLD(nphase,ncv_faces),&
+           LIMDTT2OLD(nphase,ncv_faces),&
+           LIMVOLD(nphase,ncv_faces),&
+           LIMV2OLD(nphase,ncv_faces),&
+           LIMVDOLD(nphase,ncv_faces),&
+           LIMVDTOLD(nphase,ncv_faces),&
+           LIMVDTT2OLD(nphase,ncv_faces),&
+           NDOTQCOLD(nphase,ncv_faces,ncomp),&
+           LIMCOLD(nphase,ncv_faces,ncomp),&
+           LIMC2OLD(nphase,ncv_faces,ncomp),&
+           LIMCDOLD(nphase,ncv_faces,ncomp),&
+           LIMCDTOLD(nphase,ncv_faces,ncomp),&
+           LIMCDTT2OLD(nphase,ncv_faces,ncomp))
 
 
 !!$
@@ -524,10 +539,10 @@
       call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
            cv_ngi, cv_ngi_short, scvngi_theta, sbcvngi, nface, .false. )
 
-      allocate( theta_flux( totele * igot_theta_flux, cv_nloc, scvngi_theta, nphase ), &
-           one_m_theta_flux( totele * igot_theta_flux, cv_nloc, scvngi_theta, nphase ), &
-           sum_theta_flux( totele * igot_theta_flux, cv_nloc, scvngi_theta, nphase ), &
-           sum_one_m_theta_flux( totele * igot_theta_flux, cv_nloc, scvngi_theta, nphase ), &
+      allocate( theta_flux( nphase, ncv_faces * igot_theta_flux ), &
+           one_m_theta_flux( nphase, ncv_faces * igot_theta_flux ), &
+           sum_theta_flux( nphase, ncv_faces * igot_theta_flux ), &
+           sum_one_m_theta_flux( nphase, ncv_faces * igot_theta_flux ), &
            theta_gdiff( cv_nonods * nphase ), ScalarField_Source_Store( cv_nonods * nphase ), &
            ScalarField_Source_Component( cv_nonods * nphase ) )
 
@@ -685,7 +700,7 @@
               '/control_volumes/second_theta', second_theta, default=1. )
 
             call CV_GET_ALL_LIMITED_VALS( state, &
-                 LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,&
+                 LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,NDOTQOLD,&
                  SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
                  CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
                  CV_ELE_TYPE,  &
@@ -726,11 +741,12 @@
 
             do icomp = 1, ncomp
                call CV_GET_ALL_LIMITED_VALS( state, &
-                 LIMCOLD( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods,:,: ) ,&
-                 LIMC2OLD( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods,:,: ),&
-                 LIMcDOLD( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods,:,: ),&
-                 LIMcDTOLD( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods,:,: ),&
-                 LIMcDTT2OLD( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods,:,: ),&
+                 LIMCOLD( : ,:, icomp ) ,&
+                 LIMC2OLD(  : ,:, icomp ),&
+                 LIMcDOLD(  : ,:, icomp ),&
+                 LIMcDTOLD(  : ,:, icomp ),&
+                 LIMcDTT2OLD(  : ,:, icomp ),&
+                 NDOTQCOLD(  : ,:, icomp ),&
                  SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
                  CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
                  CV_ELE_TYPE,  &
@@ -861,7 +877,7 @@
                                            mat_nloc, totele, mat_ndgln, ScalarAdvectionField_Diffusion )
 
                call INTENERGE_ASSEM_SOLVE( state, &
-                    LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,&
+                    LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,NDOTQOLD,&
                     NCOLACV, FINACV, COLACV, MIDACV, &
                     small_FINACV, small_COLACV, small_MIDACV, &
                     block_to_global_acv, global_dense_block_acv, &
@@ -894,9 +910,9 @@
 !!$
                     opt_vel_upwind_coefs, nopt_vel_upwind_coefs, &
                     Temperature_FEMT, Dummy_PhaseVolumeFraction_FEMT, &
-                    0, Temperature, Temperature_Old, 0, scvngi_theta, &
+                    0,Temperature, Temperature_Old, scvngi_theta, &
                     t_get_theta_flux, t_use_theta_flux, &
-                    theta0_flux, theta0_flux, Temperature, &
+                    Temperature, &
                     Temperature_BC, suf_t_bc_rob1, suf_t_bc_rob2, Temperature_BC_Spatial, &
                     in_ele_upwind, dg_ele_upwind, &
 !!$                    
@@ -1023,6 +1039,7 @@
                call calculate_u_abs_stab( Material_Absorption_Stab, Material_Absorption, &
                     opt_vel_upwind_coefs, nphase, ndim, totele, cv_nloc, mat_nloc, mat_nonods, mat_ndgln )
 !if (acctim==0.) Pressure_FEM = 0.
+
                CALL FORCE_BAL_CTY_ASSEM_SOLVE( state, &
                     NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
                     U_ELE_TYPE, P_ELE_TYPE, &
@@ -1082,6 +1099,8 @@
 
             Conditional_PhaseVolumeFraction: if ( solve_PhaseVolumeFraction ) then
 
+               if (igot_theta_flux>0) then
+
                call VolumeFraction_Assemble_Solve( state, &
                     NCOLACV, FINACV, COLACV, MIDACV, &
                     small_FINACV, small_COLACV, small_MIDACV, &
@@ -1113,8 +1132,48 @@
 !!$
                     opt_vel_upwind_coefs, nopt_vel_upwind_coefs, &
                     PhaseVolumeFraction_FEMT, Density_FEMT, &
-                    igot_theta_flux, scvngi_theta, volfra_use_theta_flux, &
-                    sum_theta_flux, sum_one_m_theta_flux, &
+                    scvngi_theta, volfra_use_theta_flux, &
+                    in_ele_upwind, dg_ele_upwind, &
+!!$                    
+                    NOIT_DIM, & ! This need to be removed as it is already deprecated
+!!$
+!!$                 nits_flux_lim_volfra, &
+                    option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction', &
+                    mass_ele_transp = mass_ele,&
+                    theta_flux=sum_theta_flux, one_m_theta_flux=sum_one_m_theta_flux)
+               else
+                                 call VolumeFraction_Assemble_Solve( state, &
+                    NCOLACV, FINACV, COLACV, MIDACV, &
+                    small_FINACV, small_COLACV, small_MIDACV, &
+                    block_to_global_acv, global_dense_block_acv, &
+                    NCOLCT, FINDCT, COLCT, &
+                    CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
+                    CV_ELE_TYPE, &
+                    NPHASE, &
+                    CV_NLOC, U_NLOC, X_NLOC,  &
+                    CV_NDGLN, X_NDGLN, U_NDGLN, &
+                    CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
+!!$
+                    x, y, z, Velocity_U, Velocity_V, Velocity_W, &
+                    Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
+                    PhaseVolumeFraction, PhaseVolumeFraction_Old, &
+                    Density, Density_Old, &
+!!$
+                    MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
+!!$
+                    v_disopt, v_dg_vel_int_opt, dt, v_theta, v_beta, &
+                    PhaseVolumeFraction_BC, Density_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, SUF_SIG_DIAGTEN_BC, &
+                    PhaseVolumeFraction_BC_Spatial, Density_BC_Spatial, Velocity_U_BC_Spatial, &
+                    DRhoDPressure, Pressure_FEM, &
+                    ScalarField_Source_Store, ScalarField_Absorption, Porosity, &
+!!$
+                    NDIM, &
+                    NCOLM, FINDM, COLM, MIDM, &
+                    XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
+!!$
+                    opt_vel_upwind_coefs, nopt_vel_upwind_coefs, &
+                    PhaseVolumeFraction_FEMT, Density_FEMT, &
+                    scvngi_theta, volfra_use_theta_flux, &
                     in_ele_upwind, dg_ele_upwind, &
 !!$                    
                     NOIT_DIM, & ! This need to be removed as it is already deprecated
@@ -1122,6 +1181,7 @@
 !!$                 nits_flux_lim_volfra, &
                     option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction', &
                     mass_ele_transp = mass_ele )
+                              end if
 
                 PhaseVolumeFraction=min( max(PhaseVolumeFraction,0.0), 1.0)
 
@@ -1178,11 +1238,12 @@
                      comp_use_theta_flux = .false. ; comp_get_theta_flux = .true.
 
                      call INTENERGE_ASSEM_SOLVE( state, &
-                          LIMCOLD( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods,:,: ),&
-                          LIMC2OLD( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods,:,: ),&
-                          LIMCOLD( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods,:,: ),&
-                          LIMCDTOLD( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods,:,: ),&
-                          LIMCDTT2OLD( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods,:,: ),&
+                          LIMCOLD(  : ,:, icomp ),&
+                          LIMC2OLD(  : ,:, icomp ),&
+                          LIMCOLD(  : ,:, icomp ),&
+                          LIMCDTOLD(  : ,:, icomp ),&
+                          LIMCDTT2OLD(  : ,:, icomp ),&
+                          NDOTQCOLD(  : ,:, icomp ),&
                           NCOLACV, FINACV, COLACV, MIDACV, & ! CV sparsity pattern matrix
                           SMALL_FINACV, SMALL_COLACV, small_MIDACV,&
                           block_to_global_acv, global_dense_block_acv, &
@@ -1218,9 +1279,9 @@
                           opt_vel_upwind_coefs, nopt_vel_upwind_coefs, &
                           Component_FEMT( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods ), &
                           Density_FEMT, &
-                          igot_t2, PhaseVolumeFraction, PhaseVolumeFraction_Old, igot_theta_flux, scvngi_theta, &
+                          igot_t2, PhaseVolumeFraction, PhaseVolumeFraction_Old, scvngi_theta, &
                           comp_get_theta_flux, comp_use_theta_flux, &
-                          theta_flux, one_m_theta_flux, theta_gdiff, &
+                          theta_gdiff, &
                           PhaseVolumeFraction_BC, suf_vol_bc_rob1, suf_vol_bc_rob2, PhaseVolumeFraction_BC_Spatial, &
                           in_ele_upwind, dg_ele_upwind, &
 !!$
@@ -1230,7 +1291,8 @@
                           Mean_Pore_CV, &
                                 !option_path = '', &
                           mass_ele_transp = dummy_ele, &
-                          thermal = .false. ) ! the false means that we don't add an extra source term
+                          thermal = .false.,& ! the false means that we don't add an extra source term
+                          theta_flux=theta_flux, one_m_theta_flux=one_m_theta_flux)
 
                    Component( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods )  &
 !                       =min(  max(Component( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods ),0.0), 0.95) 
@@ -1826,10 +1888,10 @@
             call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
                  cv_ngi, cv_ngi_short, scvngi_theta, sbcvngi, nface, .false. )
 
-            allocate( theta_flux( totele * igot_theta_flux, cv_nloc, scvngi_theta, nphase ), &
-                 one_m_theta_flux( totele * igot_theta_flux, cv_nloc, scvngi_theta, nphase ), &
-                 sum_theta_flux( totele * igot_theta_flux, cv_nloc, scvngi_theta, nphase ), &
-                 sum_one_m_theta_flux( totele * igot_theta_flux, cv_nloc, scvngi_theta, nphase ), &
+            allocate( theta_flux( nphase, scvngi_theta*cv_nloc*totele * igot_theta_flux ), &
+                 one_m_theta_flux( nphase, scvngi_theta*cv_nloc*totele * igot_theta_flux ), &
+                 sum_theta_flux( nphase, scvngi_theta*cv_nloc*totele * igot_theta_flux ), &
+                 sum_one_m_theta_flux( nphase, scvngi_theta*cv_nloc*totele * igot_theta_flux ), &
                  theta_gdiff( cv_nonods * nphase ), ScalarField_Source_Store( cv_nonods * nphase ), &
                  ScalarField_Source_Component( cv_nonods * nphase ) )
 
