@@ -829,8 +829,6 @@ contains
     u_r = field_ext_u % val
     v_r = field_ext_v % val
 
-    call deallocate( fl_positions )
-
     call deallocate( field_fl_rho )
     call deallocate( field_fl_p )
     call deallocate( field_fl_u )
