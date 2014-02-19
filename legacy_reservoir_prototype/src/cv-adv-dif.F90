@@ -5401,7 +5401,8 @@ contains
                      !IF((CV_ELE_TYPE==2).AND.(CV_NONODS==TOTELE*CV_NLOC)) NFACE_ITS=2
                      DO FACE_ITS = 1, NFACE_ITS
                         ! Calculate NDOTQ and INCOME on the CV boundary at quadrature pt GI.
-                            CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQOLD(iphase,global_face), INCOME, &
+                        if (igot_t2==1) then
+                           CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQOLD(iphase,global_face), INCOME, &
                                 HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
                                 T2, FEMT2, DEN, &
                                 U, V, W, NU, NV, NW, &
@@ -5419,6 +5420,27 @@ contains
                                 overlapping, &
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 T2UPWIND_MAT )
+                        else
+                           
+                           CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQOLD(iphase,global_face), INCOME, &
+                                HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
+                                T, FEMT, DEN, &
+                                U, V, W, NU, NV, NW, &
+                                CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ, &
+                                CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
+                                SELE, U_SNLOC, STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC,WIC_U_BC, &
+                                SUF_SIG_DIAGTEN_BC, WIC_U_BC_DIRICHLET, &
+                                UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2, &
+                                ONE_PORE, CV_ELE_TYPE, CV_SLOC2LOC, CV_NLOC, CV_SNLOC, CV_ILOC, CV_JLOC, SCVFEN, CV_NDGLN, CV_OTHER_LOC, &
+                                MASS_CV, OPT_VEL_UPWIND_COEFS,NOPT_VEL_UPWIND_COEFS, NDIM, MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
+                                FACE_ITS, LIMT(iphase,global_face), FEMDGI, FEMTGI,  UP_WIND_NOD, &
+                                TMIN, TMAX,  TMIN_NOD, TMAX_NOD, &
+                                IN_ELE_UPWIND, DG_ELE_UPWIND, &
+                                TMIN_2ND_MC, TMAX_2ND_MC, LIMIT_USE_2ND,&
+                                overlapping, &
+                                IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
+                                TUPWIND_MAT )
+                         end if
                         !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===============
                         ! Calculate T and DEN on the CV face at quadrature point GI.
                         CALL GET_INT_T_DEN( FVT, FVT2, FVD, LIMD(iphase,global_face), LIMT(iphase,global_face), LIMT2(iphase,global_face), &
