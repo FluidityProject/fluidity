@@ -11462,7 +11462,7 @@ end SUBROUTINE GET_INT_VEL
 
                       !CV_NODK = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_KLOC )
                       !CV_NODK_IPHA = CV_NODK + ( IPHASE - 1 ) * CV_NONODS
-                      CV_NODK_IPHA = E_CV_NODK_IPHA( CV_KLOC )
+                      !CV_NODK_IPHA = E_CV_NODK_IPHA( CV_KLOC )
                       !if ( cv_nonods == u_nonods ) then ! DG
                       if ( .true. ) then 
                          TXGI = dot_product(SCVFENX( : , GI ) , FEMT(E_CV_NODK_IPHA))
