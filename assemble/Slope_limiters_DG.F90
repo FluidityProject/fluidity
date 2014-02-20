@@ -1497,26 +1497,30 @@ contains
 
     end do
 
+    ! include facet averages and dirichlet values in min-max range
     do face = 1, size(T_bc_type)
 
        if (T_bc_type(face) > 0) then 
+         ! for Dirichlet facet: include Dirichlet value of each node in its own min-max range
          T_bc_val_face = ele_val(T_bc, face)
-         
-         ! do maxes
-         T_val_max_face = face_val(T_max,face)
-         do node = 1, size(T_bc_val_face)
-           T_val_max_face(node) = max(T_val_max_face(node), T_bc_val_face(node))
-         end do
-         call set(T_max, face_global_nodes(T_max, face), T_val_max_face)
-
-         ! do mins
-         T_val_min_face = face_val(T_min,face)
-         do node = 1, size(T_bc_val_face)
-           T_val_min_face(node) = min(T_val_min_face(node), T_bc_val_face(node))
-         end do
-         call set(T_min, face_global_nodes(T_min, face), T_val_min_face)
-
+       else
+         ! any other facet: include the facet average value in the min-max range of all its nodes
+         T_bc_val_face = sum(face_val(T, face)) / face_loc(T, face)
        end if
+         
+       ! do maxes
+       T_val_max_face = face_val(T_max,face)
+       do node = 1, size(T_bc_val_face)
+         T_val_max_face(node) = max(T_val_max_face(node), T_bc_val_face(node))
+       end do
+       call set(T_max, face_global_nodes(T_max, face), T_val_max_face)
+
+       ! do mins
+       T_val_min_face = face_val(T_min,face)
+       do node = 1, size(T_bc_val_face)
+         T_val_min_face(node) = min(T_val_min_face(node), T_bc_val_face(node))
+       end do
+       call set(T_min, face_global_nodes(T_min, face), T_val_min_face)
 
     end do
 
