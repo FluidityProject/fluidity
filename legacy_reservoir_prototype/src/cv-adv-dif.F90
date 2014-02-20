@@ -9184,7 +9184,6 @@ pure real function ptolfun(value)
                +SNORMZN(SGI)*(DIFF_GI_BOTH(3,1)*DWOLDDX_GI  &
                +DIFF_GI_BOTH(3,2)*DWOLDDY_GI+DIFF_GI_BOTH(3,3)*DWOLDDZ_GI)
 
-
           IF(STRESS_FORM) THEN
 
              CALL CALC_STRESS_TEN(STRESS_INDEX, ZERO_OR_TWO_THIRDS, NDIM, &
@@ -11046,10 +11045,10 @@ pure real function ptolfun(value)
     Conditional_SELE: IF( SELE /= 0 ) THEN ! On the boundary of the domain. 
        IF( WIC_U_BC( SELE + ( IPHASE - 1 ) * STOTEL) /= WIC_U_BC_DIRICHLET ) THEN ! velocity free boundary
           s = ( ELE - 1 ) * U_NLOC +(IPHASE-1)*U_NONODS +1
-          e = ELE * U_NLOC +(IPHASE-1)*U_NONODS 
-          UDGI = dot_product(SUFEN(:, GI ),  NU( U_NDGLN( s : e)))
-          VDGI = dot_product(SUFEN(:, GI ),  NV( U_NDGLN( s : e )))
-          WDGI = dot_product(SUFEN(:, GI ),  NW( U_NDGLN( s : e )))
+          e = ELE * U_NLOC
+          UDGI = dot_product(SUFEN(:, GI ),  NU( U_NDGLN( s : e )+(IPHASE-1)*U_NONODS ))
+          VDGI = dot_product(SUFEN(:, GI ),  NV( U_NDGLN( s : e )+(IPHASE-1)*U_NONODS ))
+          WDGI = dot_product(SUFEN(:, GI ),  NW( U_NDGLN( s : e )+(IPHASE-1)*U_NONODS ))
           UGI_COEF_ELE(1:U_NLOC)=UGI_COEF_ELE(1:U_NLOC)+1.0
           VGI_COEF_ELE(1:U_NLOC)=UGI_COEF_ELE(1:U_NLOC)+1.0
           WGI_COEF_ELE(1:U_NLOC)=UGI_COEF_ELE(1:U_NLOC)+1.0
