@@ -1442,8 +1442,9 @@ SUBROUTINE relperm_corey_epsilon( ABSP, MOBILITY, INV_PERM, SAT, IPHASE,options 
            ele2, sele2, cv_iloc, idim, jdim, i, mat_nod
       real :: mobility, satura_bc
       real, dimension( ndim, ndim ) :: inv_perm, sigma_out, sigma_in, mat, mat_inv
-      integer, dimension( :, : ), allocatable :: cv_sloclist, face_ele
-      integer, dimension( : ), allocatable :: idone
+      integer, dimension( nface, totele) :: face_ele
+      integer, dimension( mat_nonods*nphase ) :: idone
+      integer, dimension(nface, cv_snloc ) :: cv_sloclist
       integer, dimension( cv_snloc ) :: cv_sloc2loc
       integer, parameter :: WIC_BC_DIRICHLET = 1
 !!$ for the pressure b.c. and overlapping method 
@@ -1469,12 +1470,11 @@ SUBROUTINE relperm_corey_epsilon( ABSP, MOBILITY, INV_PERM, SAT, IPHASE,options 
 
       suf_sig_diagten_bc = 1.
 
-      allocate( idone( mat_nonods*nphase ) ) ; idone=0
-      allocate( cv_sloclist( nface, cv_snloc ) )
+      idone=0
       call determin_sloclist( cv_sloclist, cv_nloc, cv_snloc, nface,  &
            ndim, cv_ele_type )
 
-      allocate( face_ele( nface, totele ) ) ; face_ele = 0
+      face_ele = 0
       call calc_face_ele( face_ele, totele, stotel, nface, &
            ncolele, finele, colele, cv_nloc, cv_snloc, cv_nonods, cv_ndgln, cv_sndgln, &
            cv_sloclist, x_nloc, x_ndgln )
@@ -1579,7 +1579,6 @@ SUBROUTINE relperm_corey_epsilon( ABSP, MOBILITY, INV_PERM, SAT, IPHASE,options 
 
       end do
 
-      deallocate( face_ele, cv_sloclist )
 
       return
     end subroutine calculate_SUF_SIG_DIAGTEN_BC
