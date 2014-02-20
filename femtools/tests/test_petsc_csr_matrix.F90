@@ -8,35 +8,6 @@ subroutine test_petsc_csr_matrix()
   use unittest_tools
   implicit none
 #include "finclude/petsc.h"
-
-  
-#if PETSC_VERSION_MINOR>=2
-  interface
-     subroutine error_handler(comm,line, func, file, dir, n, p, mess, ctx, ierr)
-       MPI_Comm:: comm
-       PetscInt:: line
-       character(len=*):: func, file, dir
-       PetscErrorCode:: n
-       PetscInt:: p
-       character(len=*):: mess
-       PetscInt:: ctx
-       PetscErrorCode:: ierr
-     end subroutine error_handler
-  end interface
-#else
-  interface
-     subroutine error_handler(line, func, file, dir, n, p, mess, ctx, ierr)
-       PetscInt:: line
-       character(len=*):: func, file, dir
-       PetscErrorCode:: n
-       PetscInt:: p
-       character(len=*):: mess
-       PetscInt:: ctx
-       PetscErrorCode:: ierr
-       
-     end subroutine error_handler
-  end interface
-#endif
   
   type(petsc_csr_matrix):: A
   type(csr_matrix):: B
@@ -102,8 +73,8 @@ subroutine test_petsc_csr_matrix()
   
   ! ---- now check for a fail if we under estimate nnz ---
   
-  ! set error handler to catch the petsc error
-  call PetscPushErrorHandler(error_handler, ctx, ierr)
+  ! set error handler to catch the petsc error (use the one from petsc_tools)
+  call PetscPushErrorHandler(petsc_test_error_handler, ctx, ierr)
   
   call allocate(A, 4, 4, &
     dnnz=(/ 1, 1, 1, 1 /), &
@@ -113,50 +84,16 @@ subroutine test_petsc_csr_matrix()
     
   call zero(A)
   
-  ! ctx should be set to 1 in the error handler
-  ctx=0
+  ! this is a module variable in petsc_tools that gets set to .true. in the error handler
+  petsc_test_error_handler_called = .false.
   
   ! addition that over runs preallocated memory
   call addto(A, 1, 1, (/ 1 /), (/ 1, 2 /), &
     reshape( (/ 2.0, 3.0 /), (/ 1, 2 /)) )
   
-  fail= (ctx/=1)
+  fail = .not. petsc_test_error_handler_called
   call report_test("[petsc_csr_matrix]", fail, .false., "PETSc should give an error when overrunning nnz.")
   
   call deallocate(A)
       
 end subroutine test_petsc_csr_matrix
-  
-#if PETSC_VERSION_MINOR>=2
-subroutine error_handler(comm,line, func, file, dir, n, p, mess, ctx, ierr)
-#include "finclude/petsc.h"
-  MPI_Comm:: comm
-  PetscInt:: line
-  character(len=*):: func, file, dir
-  PetscErrorCode:: n
-  PetscInt:: p
-  character(len=*):: mess
-  PetscInt:: ctx
-  PetscErrorCode:: ierr
-  
-
-  ctx=1
-  
-end subroutine error_handler
-#else
-    subroutine error_handler(line, func, file, dir, n, p, mess, ctx, ierr)
-#include "finclude/petsc.h"
-      PetscInt:: line
-      character(len=*):: func, file, dir
-      PetscErrorCode:: n
-      PetscInt:: p
-      character(len=*):: mess
-      PetscInt:: ctx
-      PetscErrorCode:: ierr
-      
-
-      ctx=1
-      
-    end subroutine error_handler
-    
-#endif
