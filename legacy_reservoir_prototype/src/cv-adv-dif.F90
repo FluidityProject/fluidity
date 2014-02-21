@@ -11044,7 +11044,7 @@ pure real function ptolfun(value)
 
     Conditional_SELE: IF( SELE /= 0 ) THEN ! On the boundary of the domain. 
        IF( WIC_U_BC( SELE + ( IPHASE - 1 ) * STOTEL) /= WIC_U_BC_DIRICHLET ) THEN ! velocity free boundary
-          s = ( ELE - 1 ) * U_NLOC +(IPHASE-1)*U_NONODS +1
+          s = ( ELE - 1 ) * U_NLOC + 1
           e = ELE * U_NLOC
           UDGI = dot_product(SUFEN(:, GI ),  NU( U_NDGLN( s : e )+(IPHASE-1)*U_NONODS ))
           VDGI = dot_product(SUFEN(:, GI ),  NV( U_NDGLN( s : e )+(IPHASE-1)*U_NONODS ))
