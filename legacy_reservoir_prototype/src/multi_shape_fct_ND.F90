@@ -60,7 +60,7 @@
       integer, intent( in ) :: sngi, snloc
       real, dimension( : ), intent( inout ) :: sweigh
       real, dimension( :, : ), intent( inout ) :: sn, snlx
-      real, dimension(ngi_l ), intent( in ) :: l1, l2
+      real, dimension(: ), intent( in ) :: l1, l2
       ! Local variables:
       integer, parameter :: nl = 16, nlp = 4, npq = 2
       real, dimension( : ), allocatable :: lx, ly, lxp, lyp, weit
@@ -216,7 +216,7 @@
       integer, intent( in ) :: sngi, snloc
       real, dimension( : ), intent( inout ) :: sweigh
       real, dimension( :, : ), intent( inout ) :: sn, snlx, snly
-      real, dimension( ngi_l ), intent( in ) :: l1, l2, l3
+      real, dimension( : ), intent( in ) :: l1, l2, l3
       ! Local variables:
       integer, parameter :: nl = 4, nlp = 8, npq = 2
       real, dimension( : ), allocatable :: lx, ly, lz, lxp, lyp, lzp, weit, rdum2
@@ -593,7 +593,7 @@
       real, dimension( :, : ), intent( inout ) :: m
       real, dimension( : ), intent( inout ) :: weight
       real, dimension( :, : ), intent( inout ) :: n, nlx, nly, nlz
-      real, dimension( ngi_l ), intent( in ) :: l1, l2, l3
+      real, dimension( : ), intent( in ) :: l1, l2, l3
       ! Local variables:
       integer, parameter :: nl = 3, nlp = 27, npq = 4
       real, dimension( : ), allocatable :: lx, ly, lz, lxp, lyp, lzp, weit, &
@@ -6920,12 +6920,12 @@
            CALL RE2DN4(LOWQUA,NGI,0,NLOC,MLOC, &
                 M,WEIGHT,N,NLX,NLY,          &
                 SNGI,SNLOC,SWEIGH,SN,SNLX, &
-                m,m)
+                m(:,1),m(:,1))
         ELSE
            CALL RE3DN8(LOWQUA,NGI,0,NLOC,MLOC, &
                 M,WEIGHT,N,NLX,NLY,NLZ,      &
                 SNGI,SNLOC,SWEIGH,SN,SNLX,SNLY, &
-                m,m,m)
+                m(:,1),m(:,1),m(:,1))
         ENDIF
      ENDIF
      
@@ -6967,7 +6967,7 @@
            ! LAGRANGE 27 NODE 3-D ELEMENT -BILINEAR PRESSURE
            CALL RE3D27(LOWQUA,NGI,0,NLOC,MLOC, &
                 M,WEIGHT,N,NLX,NLY,NLZ, &
-                m,m,m)
+                m(:,1),m(:,1),m(:,1))
            CALL RE2DN9(LOWQUA,SNGI,0,SNLOC,MLOC, &
                 M,SWEIGH,SN,SNLX,SNLY, &
                 m(:,1),m(:,1))
