@@ -1663,6 +1663,15 @@
                  Component_Diffusion, &
                  theta_flux, one_m_theta_flux, sum_theta_flux, sum_one_m_theta_flux, density_tmp, density_old_tmp )
 
+deallocate(NDOTQOLD,&
+           NDOTQVOLD,LIMTOLD,LIMT2OLD,&
+           LIMDOLD,LIMDTOLD,LIMDTT2OLD,&
+           LIMVOLD,LIMV2OLD,LIMVDOLD,&
+           LIMVDTOLD,LIMVDTT2OLD,NDOTQCOLD,&
+           LIMCOLD,LIMC2OLD,LIMCDOLD,&
+           LIMCDTOLD,LIMCDTT2OLD)
+
+
 !!$  Compute primary scalars used in most of the code
             call Get_Primary_Scalars( state, &         
                  nphase, nstate, ncomp, totele, ndim, stotel, &
@@ -1863,6 +1872,40 @@
             allocate( density_tmp(cv_nonods*nphase) , density_old_tmp(cv_nonods*nphase) )
             density_tmp=0. ; density_old_tmp=0.
 
+ncv_faces=CV_count_faces( SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV,&
+           CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
+           CV_ELE_TYPE,  &
+           NPHASE,  &
+           CV_NLOC, U_NLOC, X_NLOC, &
+           CV_NDGLN, X_NDGLN, U_NDGLN, &
+           CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
+           X, Y, Z,&
+           MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
+           NDIM, &
+           NCOLM, FINDM, COLM, MIDM, &
+           XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
+           small_finacv,small_colacv,size(small_colacv) )
+
+      allocate(NDOTQOLD(nphase,ncv_faces),&
+           NDOTQVOLD(nphase,ncv_faces),&
+           LIMTOLD(nphase,ncv_faces),&
+           LIMT2OLD(nphase,ncv_faces),&
+           LIMDOLD(nphase,ncv_faces),&
+           LIMDTOLD(nphase,ncv_faces),&
+           LIMDTT2OLD(nphase,ncv_faces),&
+           LIMVOLD(nphase,ncv_faces),&
+           LIMV2OLD(nphase,ncv_faces),&
+           LIMVDOLD(nphase,ncv_faces),&
+           LIMVDTOLD(nphase,ncv_faces),&
+           LIMVDTT2OLD(nphase,ncv_faces),&
+           NDOTQCOLD(nphase,ncv_faces,ncomp),&
+           LIMCOLD(nphase,ncv_faces,ncomp),&
+           LIMC2OLD(nphase,ncv_faces,ncomp),&
+           LIMCDOLD(nphase,ncv_faces,ncomp),&
+           LIMCDTOLD(nphase,ncv_faces,ncomp),&
+           LIMCDTT2OLD(nphase,ncv_faces,ncomp))
+
+
 !!$
 !!$ Initialising Robin boundary conditions --  this still need to be defined in the schema:
 !!$
@@ -1991,6 +2034,16 @@
                PhaseVolumeFraction_backup, Component_backup&
                , Velocity_W_backup, Pressure_FEM_backup,&
                 Density_Component_backup, Density_Cp_backup)
+
+        deallocate(NDOTQOLD,&
+             NDOTQVOLD,LIMTOLD,LIMT2OLD,&
+             LIMDOLD,LIMDTOLD,LIMDTT2OLD,&
+             LIMVOLD,LIMV2OLD,LIMVDOLD,&
+             LIMVDTOLD,LIMVDTT2OLD,NDOTQCOLD,&
+             LIMCOLD,LIMC2OLD,LIMCDOLD,&
+             LIMCDTOLD,LIMCDTT2OLD)
+
+
         if (tolerance_between_non_linear>0.) then
             select case (variable_selection)
                 case (1)

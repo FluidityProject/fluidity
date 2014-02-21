@@ -403,7 +403,7 @@
       real, dimension( :, : ), intent( inout ) :: m
       real, dimension( : ), intent( inout ) :: weight
       real, dimension( :, : ), intent( inout ) :: n, nlx, nly
-      real, dimension( ngi_l ), intent( in ) :: l1, l2
+      real, dimension( : ), intent( in ) :: l1, l2
       ! Local variables:
       integer, parameter :: nl = 3, nlp = 9, npq = 4
       real, dimension( : ), allocatable :: lx, ly, lz, lxp, lyp, weit, &
@@ -4963,7 +4963,7 @@
          if( .not. d3 ) then
             call re2dn9( lowqua, ngi, 0, nloc, mloc, &
                  m, weight, n, nlx, nly, &
-                 rdum, rdum )
+                 rdum, rdum)
 
             call quad_basis_funs_1d(sngi, snloc,  &
                  sweigh, sn, snlx )
@@ -6946,7 +6946,7 @@
         IF(.NOT.D3) THEN
            CALL RE2DN9(LOWQUA,NGI,0,NLOC,MLOC, &
                 M,WEIGHT,N,NLX,NLY, &
-                m,m)
+                m(:,1),m(:,1))
            sweigh=0.0
            sn=0.0
            snlx=0.0
@@ -6970,7 +6970,7 @@
                 m,m,m)
            CALL RE2DN9(LOWQUA,SNGI,0,SNLOC,MLOC, &
                 M,SWEIGH,SN,SNLX,SNLY, &
-                m,m)
+                m(:,1),m(:,1))
         ENDIF
      ENDIF
      
