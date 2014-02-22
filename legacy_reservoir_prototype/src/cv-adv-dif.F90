@@ -11050,8 +11050,8 @@ pure real function ptolfun(value)
           VDGI = dot_product(SUFEN(:, GI ),  NV( U_NDGLN( s : e )+(IPHASE-1)*U_NONODS ))
           WDGI = dot_product(SUFEN(:, GI ),  NW( U_NDGLN( s : e )+(IPHASE-1)*U_NONODS ))
           UGI_COEF_ELE(1:U_NLOC)=UGI_COEF_ELE(1:U_NLOC)+1.0
-          VGI_COEF_ELE(1:U_NLOC)=UGI_COEF_ELE(1:U_NLOC)+1.0
-          WGI_COEF_ELE(1:U_NLOC)=UGI_COEF_ELE(1:U_NLOC)+1.0
+          VGI_COEF_ELE(1:U_NLOC)=VGI_COEF_ELE(1:U_NLOC)+1.0
+          WGI_COEF_ELE(1:U_NLOC)=WGI_COEF_ELE(1:U_NLOC)+1.0
        ELSE ! Specified vel bc.
           UDGI = 0.0
           VDGI = 0.0
@@ -11061,11 +11061,11 @@ pure real function ptolfun(value)
 
           IF(WIC_U_BC(SELE+(IPHASE-1)*STOTEL) == 10) THEN
              UDGI = dot_product(SUFEN(U_SLOC2LOC, GI ),&
-                  0.5*( NU( U_NDGLN(U_NODK_IPHA_V)) + SUF_U_BC( U_SNODK_IPHA_V )))
+                  0.5*( NU( U_NODK_IPHA_V ) + SUF_U_BC( U_SNODK_IPHA_V )))
              VDGI = dot_product(SUFEN(U_SLOC2LOC, GI ),&
-                  0.5*( NV( U_NDGLN(U_NODK_IPHA_V)) + SUF_V_BC( U_SNODK_IPHA_V )))
+                  0.5*( NV( U_NODK_IPHA_V ) + SUF_V_BC( U_SNODK_IPHA_V )))
              WDGI = dot_product(SUFEN(U_SLOC2LOC, GI ),&
-                  0.5*( NW( U_NDGLN(U_NODK_IPHA_V)) + SUF_W_BC( U_SNODK_IPHA_V )))
+                  0.5*( NW( U_NODK_IPHA_V ) + SUF_W_BC( U_SNODK_IPHA_V )))
              UGI_COEF_ELE(U_SLOC2LOC)=UGI_COEF_ELE(U_SLOC2LOC)+0.5
              VGI_COEF_ELE(U_SLOC2LOC)=VGI_COEF_ELE(U_SLOC2LOC)+0.5
              WGI_COEF_ELE(U_SLOC2LOC)=WGI_COEF_ELE(U_SLOC2LOC)+0.5
@@ -11080,14 +11080,15 @@ pure real function ptolfun(value)
        ENDIF
 
     ELSE ! Conditional_SELE. Not on the boundary of the domain.
-       s = ( ELE - 1 ) * U_NLOC +(IPHASE-1)*U_NONODS +1
-       e = ELE * U_NLOC +(IPHASE-1)*U_NONODS 
-       UDGI = dot_product(SUFEN(:, GI ),  NU( U_NDGLN( s : e )))
-       VDGI = dot_product(SUFEN(:, GI ),  NV( U_NDGLN( s : e )))
-       WDGI = dot_product(SUFEN(:, GI ),  NW( U_NDGLN( s : e )))
+
+       s = ( ELE - 1 ) * U_NLOC  +1
+       e = ELE * U_NLOC
+       UDGI = dot_product(SUFEN(:, GI ),  NU( U_NDGLN( s : e ) +(IPHASE-1)*U_NONODS))
+       VDGI = dot_product(SUFEN(:, GI ),  NV( U_NDGLN( s : e ) +(IPHASE-1)*U_NONODS))
+       WDGI = dot_product(SUFEN(:, GI ),  NW( U_NDGLN( s : e ) +(IPHASE-1)*U_NONODS))
        UGI_COEF_ELE(1:U_NLOC)=UGI_COEF_ELE(1:U_NLOC)+1.0
-       VGI_COEF_ELE(1:U_NLOC)=UGI_COEF_ELE(1:U_NLOC)+1.0
-       WGI_COEF_ELE(1:U_NLOC)=UGI_COEF_ELE(1:U_NLOC)+1.0
+       VGI_COEF_ELE(1:U_NLOC)=VGI_COEF_ELE(1:U_NLOC)+1.0
+       WGI_COEF_ELE(1:U_NLOC)=WGI_COEF_ELE(1:U_NLOC)+1.0
 
        Conditional_ELE2: IF( ELE2 /= 0 ) THEN
           UDGI2 = 0.0
