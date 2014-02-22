@@ -11044,11 +11044,16 @@ pure real function ptolfun(value)
 
     Conditional_SELE: IF( SELE /= 0 ) THEN ! On the boundary of the domain. 
        IF( WIC_U_BC( SELE + ( IPHASE - 1 ) * STOTEL) /= WIC_U_BC_DIRICHLET ) THEN ! velocity free boundary
-          s = ( ELE - 1 ) * U_NLOC + 1
-          e = ELE * U_NLOC
-          UDGI = dot_product(SUFEN(:, GI ),  NU( U_NDGLN( s : e )+(IPHASE-1)*U_NONODS ))
-          VDGI = dot_product(SUFEN(:, GI ),  NV( U_NDGLN( s : e )+(IPHASE-1)*U_NONODS ))
-          WDGI = dot_product(SUFEN(:, GI ),  NW( U_NDGLN( s : e )+(IPHASE-1)*U_NONODS ))
+!          s = ( ELE - 1 ) * U_NLOC + 1
+!          e = ELE * U_NLOC
+!          UDGI = dot_product(SUFEN(:, GI ),  NU( U_NDGLN( s : e )+(IPHASE-1)*U_NONODS ))
+!          VDGI = dot_product(SUFEN(:, GI ),  NV( U_NDGLN( s : e )+(IPHASE-1)*U_NONODS ))
+!          WDGI = dot_product(SUFEN(:, GI ),  NW( U_NDGLN( s : e )+(IPHASE-1)*U_NONODS ))
+          s = U_NDGLN( ( ELE - 1 ) * U_NLOC + 1 ) + (IPHASE-1)*U_NONODS
+          e = U_NDGLN( ELE * U_NLOC )             + (IPHASE-1)*U_NONODS
+          UDGI = dot_product(SUFEN(:, GI ),  NU( s : e ) )
+          VDGI = dot_product(SUFEN(:, GI ),  NV( s : e ) )
+          WDGI = dot_product(SUFEN(:, GI ),  NW( s : e ) )
           UGI_COEF_ELE(1:U_NLOC)=UGI_COEF_ELE(1:U_NLOC)+1.0
           VGI_COEF_ELE(1:U_NLOC)=VGI_COEF_ELE(1:U_NLOC)+1.0
           WGI_COEF_ELE(1:U_NLOC)=WGI_COEF_ELE(1:U_NLOC)+1.0
@@ -11081,11 +11086,16 @@ pure real function ptolfun(value)
 
     ELSE ! Conditional_SELE. Not on the boundary of the domain.
 
-       s = ( ELE - 1 ) * U_NLOC  +1
-       e = ELE * U_NLOC
-       UDGI = dot_product(SUFEN(:, GI ),  NU( U_NDGLN( s : e ) +(IPHASE-1)*U_NONODS))
-       VDGI = dot_product(SUFEN(:, GI ),  NV( U_NDGLN( s : e ) +(IPHASE-1)*U_NONODS))
-       WDGI = dot_product(SUFEN(:, GI ),  NW( U_NDGLN( s : e ) +(IPHASE-1)*U_NONODS))
+!       s = ( ELE - 1 ) * U_NLOC  +1
+!       e = ELE * U_NLOC
+!       UDGI = dot_product(SUFEN(:, GI ),  NU( U_NDGLN( s : e ) +(IPHASE-1)*U_NONODS))
+!       VDGI = dot_product(SUFEN(:, GI ),  NV( U_NDGLN( s : e ) +(IPHASE-1)*U_NONODS))
+!       WDGI = dot_product(SUFEN(:, GI ),  NW( U_NDGLN( s : e ) +(IPHASE-1)*U_NONODS))
+       s = U_NDGLN( ( ELE - 1 ) * U_NLOC + 1 ) + (IPHASE-1)*U_NONODS
+       e = U_NDGLN( ELE * U_NLOC )             + (IPHASE-1)*U_NONODS
+       UDGI = dot_product(SUFEN(:, GI ),  NU( s : e) )
+       VDGI = dot_product(SUFEN(:, GI ),  NV( s : e) )
+       WDGI = dot_product(SUFEN(:, GI ),  NW( s : e) )
        UGI_COEF_ELE(1:U_NLOC)=UGI_COEF_ELE(1:U_NLOC)+1.0
        VGI_COEF_ELE(1:U_NLOC)=VGI_COEF_ELE(1:U_NLOC)+1.0
        WGI_COEF_ELE(1:U_NLOC)=WGI_COEF_ELE(1:U_NLOC)+1.0

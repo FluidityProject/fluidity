@@ -4201,6 +4201,7 @@ end if
 ! **********REVIEWER 3-START**********************
       DISC_PRES = ( CV_NONODS == TOTELE * CV_NLOC )
 
+!      COUNTELE=0
       Loop_Elements2: DO ELE = 1, TOTELE
 
          Between_Elements_And_Boundary: DO IFACE = 1, NFACE
@@ -4304,6 +4305,9 @@ end if
 
 
             If_ele2_notzero_1: IF(ELE2 /= 0) THEN
+! Element connectivity counter...
+!               COUNTELE=COUNTELE+1
+
                if( is_overlapping ) then
                   U_OTHER_LOC=0
                   U_ILOC_OTHER_SIDE=0
