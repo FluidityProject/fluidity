@@ -9,8 +9,8 @@ RIGHT_X   = 1.0
 
 input: clean
 	interval --dx=$(MESH_SIZE) $(LEFT_X) $(RIGHT_X) $(SIM)_1d
-	gmsh -2 square.geo -o square.msh
-	gmsh -3 cube.geo -o cube.msh
+	cp mesh_data/square*.msh .
+	cp mesh_data/cube*.msh .
 
 clean:
 	rm -f *.ele

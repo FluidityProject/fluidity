@@ -3,6 +3,7 @@ SHELL = sh
 input: clean
 	cp mesh_data/square_A.msh .
 	../../bin/fldecomp -n 2 -m gmsh square_A
+
 clean:
 	rm -f *.ele
 	rm -f *.node

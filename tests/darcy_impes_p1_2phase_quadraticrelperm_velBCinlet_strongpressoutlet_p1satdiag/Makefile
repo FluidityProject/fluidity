@@ -1,15 +1,15 @@
 SHELL = sh
 
 input: clean
-	cp mesh_data/line_mesh_1d_A* .
-	cp mesh_data/line_mesh_1d_B* .
-	cp mesh_data/line_mesh_1d_C* .
-	cp mesh_data/line_mesh_1d_D* .
-	cp mesh_data/square_A.msh .
-	cp mesh_data/square_B.msh .
-	cp mesh_data/square_C.msh .
-	cp mesh_data/cube_A.msh .
-	cp mesh_data/cube_B.msh .
+	cp ../darcy_impes_common/mesh_data/line_mesh_1d_A* .
+	cp ../darcy_impes_common/mesh_data/line_mesh_1d_B* .
+	cp ../darcy_impes_common/mesh_data/line_mesh_1d_C* .
+	cp ../darcy_impes_common/mesh_data/line_mesh_1d_D* .
+	cp ../darcy_impes_common/mesh_data/square_A.msh .
+	cp ../darcy_impes_common/mesh_data/square_B.msh .
+	cp ../darcy_impes_common/mesh_data/square_C.msh .
+	cp ../darcy_impes_common/mesh_data/cube_A.msh .
+	cp ../darcy_impes_common/mesh_data/cube_B.msh .
 
 clean:
 	rm -f *.ele

@@ -484,10 +484,9 @@
         <value name="WholeMesh">
           <python>
             <string_value lines="20" type="code" language="python">def val(X, t):
-   import Linear_Interp_1D
-   LI = Linear_Interp_1D.Linear_Interp_1D("reference_solution/analytic_BL_QuadraticPerm_saturation.txt")  
-   s = LI.interp(X[0])   
-   return s</string_value>
+   import darcy_impes_tools
+   afname = "reference_solution/analytic_BL_QuadraticPerm_saturation2.txt"
+   return darcy_impes_tools.interpUsingAnalytic(X[0], afname)</string_value>
           </python>
         </value>
         <stat>
@@ -514,10 +513,9 @@
         <value name="WholeMesh">
           <python>
             <string_value lines="20" type="code" language="python">def val(X, t):
-   import Linear_Interp_1D
-   LI = Linear_Interp_1D.Linear_Interp_1D("reference_solution/analytic_BL_QuadraticPerm_pressure.txt")  
-   p = LI.interp(X[0])   
-   return p</string_value>
+   import darcy_impes_tools
+   afname = "reference_solution/analytic_BL_QuadraticPerm_pressure2.txt"
+   return darcy_impes_tools.interpUsingAnalytic(X[0], afname)</string_value>
           </python>
         </value>
         <stat>
