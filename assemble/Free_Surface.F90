@@ -133,7 +133,8 @@ contains
       logical:: include_normals, move_mesh
       logical:: addto_cmc
       logical:: have_wd, have_wd_node_int
-      
+      logical:: reduced_model_tmp
+
       real, save :: coef_old = 0.0
 
       !!the free surface matrix in the continuity equation
@@ -146,6 +147,14 @@ contains
  
       ewrite(1,*) 'Entering add_free_surface_to_cmc_projection routine'
       ewrite(2,*) "Are we adding free-surface contribution to RHS:",present(rhs)
+      reduced_model_tmp= have_option("/reduced_model/execute_reduced_model") 
+      if(reduced_model_tmp) then
+         call zero(rhs)
+!         use_theta_divergence=.false.
+!         theta_divergence=1.0
+!         theta_pressure_gradient=1.0
+      endif
+      
 
       ! gravity acceleration
       call get_option('/physical_parameters/gravity/magnitude', g, stat=grav_stat)
@@ -321,10 +330,16 @@ contains
         end if
 
         if(present(rhs)) then
-           call addto(rhs, face_global_nodes(p, sele), &
-                -(matmul(mass_ele, face_val(p, sele)) &
-                -matmul(mass_ele_old, face_val(prevp,sele)))*alpha)
+           if(reduced_model_tmp) then
+              call addto(rhs, face_global_nodes(p, sele), &
+                   +matmul(mass_ele_old, face_val(prevp,sele))*alpha/dt)              
+           else
+              call addto(rhs, face_global_nodes(p, sele), &
+                   -(matmul(mass_ele, face_val(p, sele)) &
+                   -matmul(mass_ele_old, face_val(prevp,sele)))*alpha)
+           endif
         end if
+        !!?? if reduced order modelling, may fix the WD below
         if (have_wd .and. present(rhs)) then
            call addto(rhs, face_global_nodes(p, sele), &
                 +(matmul(mass_ele_wd, face_val(original_bottomdist_remap, sele)-d0) &
@@ -334,9 +349,14 @@ contains
       else
         ! no mesh movement - just use the same mass matrix as above
          if(present(rhs)) then
-            call addto(rhs, face_global_nodes(p, sele), &
-                 -1.0*matmul(mass_ele, face_val(p, sele)-face_val(prevp,sele))*alpha)
-         end if
+           if(reduced_model_tmp) then
+              call addto(rhs, face_global_nodes(p, sele), &
+                   +1.0*matmul(mass_ele, face_val(prevp,sele))*alpha/dt)
+           else
+              call addto(rhs, face_global_nodes(p, sele), &
+                   -1.0*matmul(mass_ele, face_val(p, sele)-face_val(prevp,sele))*alpha)
+           end if
+        endif
       end if
       
     end subroutine add_free_surface_element

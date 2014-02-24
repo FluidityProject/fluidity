@@ -332,7 +332,7 @@
       integer, intent(in),optional ::total_timestep
 
       !free surface matrix
-      type(csr_matrix) :: fs_m
+      type(csr_matrix) :: fs_m, fs_m_temp
 
       logical :: on_sphere, have_absorption, have_vertical_stabilization
       type(vector_field), pointer :: dummy_absorption
@@ -354,11 +354,11 @@
            endif
 
 
- 	if(timestep==1)then 
-         	timestep_check=.true.
-    	  else
-     		timestep_check= .false.
-      	endif
+           if(timestep==1)then 
+              timestep_check=.true.
+           else
+              timestep_check= .false.
+           endif
          u => extract_vector_field(state(1), "Velocity", stat)
          DT1=0.1
          !! Get diagnostics (equations of state, etc) and assemble matrices
@@ -490,6 +490,8 @@
 
                ! Get the pressure poisson matrix (i.e. the CMC/projection matrix)
                cmc_m => get_pressure_poisson_matrix(state(istate), get_cmc=reassemble_cmc_m) ! ...and similarly for reassemble_cmc_m
+               call allocate(fs_m_temp,cmc_m%sparsity)
+               call zero(fs_m_temp)
                reassemble_cmc_m = reassemble_cmc_m .or. reassemble_all_cmc_m
                call profiler_toc(p, "assembly")
             end if
@@ -706,8 +708,8 @@
             end if
             
             ! If CV pressure then add in any dirichlet pressure BC integrals to the mom_rhs.
-            if (cv_pressure) then
-!            if (cv_pressure.and.(.not.reduced_model)) then
+!            if (cv_pressure) then
+            if (cv_pressure.and.(.not.reduced_model)) then
                call add_pressure_dirichlet_bcs_cv(mom_rhs(istate), u, p, state(istate))
             end if
             
@@ -1211,8 +1213,14 @@
 
          else !! Reduced model version
             
-            call solve_momentum_reduced(state, u,p,big_m, ct_m, mom_rhs, ct_rhs, inverse_masslump, &
-                 at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its, total_timestep, if_optimal=if_optimal)           
+            if (has_boundary_condition(u, "free_surface")) then
+               call solve_momentum_reduced(state, u,p,big_m, ct_m, mom_rhs, ct_rhs, inverse_masslump, & 
+                    at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its, total_timestep, if_optimal=if_optimal, &
+                    fs_m=fs_m_temp) 
+            else
+               call solve_momentum_reduced(state, u,p,big_m, ct_m, mom_rhs, ct_rhs, inverse_masslump, &
+                    at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its, total_timestep, if_optimal=if_optimal)          
+            endif
          end if ! end of 'if .not.reduced_model'
 
 
@@ -1257,7 +1265,7 @@
          deallocate(subcycle_m)
          deallocate(inner_m)
 
-         !call deallocate(fs_m)
+         call deallocate(fs_m_temp)
 
          if(multiphase .and. associated(cmc_global)) then
             call deallocate(cmc_global)

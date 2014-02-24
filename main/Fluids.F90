@@ -135,6 +135,7 @@ contains
     real, optional :: valfun
     integer :: nocva
     type(vector_field), pointer :: u
+    type(scalar_field), pointer :: p 
     logical :: adjoint_reduced
     !     System state wrapper.
     type(state_type), dimension(:), pointer :: state => null()
@@ -152,7 +153,13 @@ contains
     integer :: i, j,k,it, its,m
 
     logical :: not_to_move_det_yet = .false.
-
+    ! reduced order model
+    real, dimension(:), allocatable :: pod_coef,pod_coef_dt,pod_coef0
+    type(scalar_field) :: delta_p
+    ! Change in velocity
+    type(vector_field) :: delta_u
+    real, dimension(:,:), allocatable :: pod_sol_velocity
+    real, dimension(:), allocatable :: pod_sol_pressure
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
     !     STUFF for MEsh movement, and Solid-fluid-coupling.  ------ jem
@@ -185,6 +192,11 @@ contains
     real :: eps
     
     integer :: total_timestep
+    !!for reduced model
+    type(vector_field), pointer :: snapmean_velocity
+    type(scalar_field), pointer :: snapmean_pressure
+    type(vector_field), pointer :: POD_velocity, POD_velocity_deim, velocity_deim,velocity_deim_snapmean
+    type(scalar_field), pointer :: POD_pressure
 
     ! Absolute first thing: check that the options, if present, are valid.
     call check_options
@@ -203,7 +215,6 @@ contains
 
     call initialise_qmesh
     call initialise_write_state
-
 
     ! Initialise sediments
     if (have_option("/material_phase[0]/sediment")) then
@@ -236,12 +247,12 @@ contains
     ! Read state from .flml file
     call populate_state(state)
 !    deim=have_option("/reduced_model/discrete_empirical_interpolation_method")
-     
+
 !    call populate_state(deim_state_res)
   
     ewrite(3,*)'before have_option test'
     
-    if (have_option("/reduced_model/execute_reduced_model")) then
+    if (have_option("/reduced_model/execute_reduced_model").or.have_option("/reduced_model/nonintrusive_rom")) then
 	!do m = 1,size(state)
 !              if (deim) then
 !                    call read_input_states_deimres(deim_state_resl)
@@ -495,6 +506,38 @@ contains
     ! *** Start of timestep loop ***
     ! ******************************
 
+    If(have_option("/reduced_model/nonintrusive_rom")) then
+       !! Intital values from rom pod_coef
+       print*,'uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu'
+       POD_velocity=>extract_vector_field(POD_state(1,1,1), "Velocity")
+       POD_pressure=>extract_scalar_field(POD_state(1,2,1), "Pressure")    
+       u=>extract_vector_field(state(1), "Velocity")
+       p=>extract_scalar_field(state(1), "Pressure")    
+       
+       ! Allocate the change in pressure field
+       call allocate(delta_p, p%mesh, "DeltaP")
+       delta_p%option_path = trim(p%option_path)
+       call zero(delta_p)
+       
+       ! Allocate the change in velocity pressure field
+       call allocate(delta_u, u%dim, u%mesh, "DeltaU")
+       delta_u%option_path = trim(u%option_path)
+       call zero(delta_u)
+
+       allocate(pod_coef((u%dim+1)*size(POD_state,1)))
+       open(10,file='nonintrusive_coef_pod0.dat')
+       read(10,*) (pod_coef(i),i=1,(u%dim+1)*size(POD_state,1))
+       close(10)
+       call project_full(delta_u, delta_p, pod_sol_velocity, pod_sol_pressure, POD_state(:,:,1), pod_coef)
+       snapmean_velocity=>extract_vector_field(POD_state(1,1,1),"SnapmeanVelocity")
+       snapmean_pressure=>extract_Scalar_field(POD_state(1,2,1),"SnapmeanPressure")
+       !call addto(u, delta_u, dt)
+       u%val=snapmean_velocity%val
+       call addto(u, delta_u)
+       p%val=snapmean_pressure%val
+       call addto(p, delta_p)
+    endif
+
     timestep_loop: do
        timestep = timestep + 1
 
@@ -580,7 +623,7 @@ contains
             exclude_nonreprescribed=.true.)
 
 #ifdef HAVE_HYPERLIGHT
-       ! Calculate multispectral irradiance fields from hyperlight
+       ! Calculate multispnectral irradiance fields from hyperlight
        if(have_option("/ocean_biology/lagrangian_ensemble/hyperlight")) then
           call set_irradiance_from_hyperlight(state(1))
        end if
@@ -803,6 +846,7 @@ contains
           ! a loop over state (hence over phases) is incorporated into this subroutine call
           ! hence this lives outside the phase_loop
 
+
           if(use_sub_state()) then
              call update_subdomain_fields(state,sub_state)
              if(.not.have_option("/reduced_model/execute_reduced_model"))then
@@ -868,6 +912,15 @@ contains
           end if
 
        end do nonlinear_iteration_loop
+
+       If(have_option("/reduced_model/nonintrusive_rom")) then
+          call project_from_full_to_pod(1,  pod_state, state, pod_coef)
+          open(10,file='nonintrusive_coef_pod1.dat')
+          write(10,*) (pod_coef(i),i=1,(u%dim+1)*size(POD_state,1))
+          close(10)
+          exit timestep_loop
+      endif
+    
 
        ! Reset the number of nonlinear iterations in case it was overwritten by nonlinear_iterations_adapt
        call get_option('/timestepping/nonlinear_iterations',nonlinear_iterations,&
@@ -1061,6 +1114,12 @@ contains
           enddo
        end do
     end if
+    if(have_option("/reduced_model/nonintrusive_rom")) then
+       deallocate(pod_coef)
+       call deallocate(delta_u)
+       call deallocate(delta_p)
+    endif
+
 !   deallocate(pod_state_deim)
     ! if (allocated(pod_state_deim)) then
      !  do i=1, size(pod_state_deim,1)

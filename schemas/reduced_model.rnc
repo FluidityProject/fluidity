@@ -31,6 +31,9 @@ reduced_model =
       element adjoint {
         empty
      }?,
+      element nonintrusive_rom {
+        empty
+     }?,
            ## DEIM(Discrete Empirical Interpolation Method)
           
        element discrete_empirical_interpolation_method {

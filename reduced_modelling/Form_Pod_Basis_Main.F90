@@ -530,9 +530,9 @@ contains
 		 call vtk_write_state(filename=trim(simulation_name)//"_PODDEIMBasisRES"//trim(v_field%name),  &
                      index=i, model=trim(v_field%mesh%name), state=(/pod_state(i,k)/))
 		else
-                call vtk_write_state(filename=trim(simulation_name)//"_PODBasis"//trim(v_field%name),  &
+                 call vtk_write_state(filename=trim(simulation_name)//"_PODBasis"//trim(v_field%name),  &
                      index=i, model=trim(v_field%mesh%name), state=(/pod_state(i,k)/))
-		     endif 
+		endif 
              enddo
           endif
        end do !j = 1, size(state(i)%scalar_fields)

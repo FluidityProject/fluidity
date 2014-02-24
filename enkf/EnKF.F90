@@ -353,8 +353,6 @@ print*,'after interpolation_ensembles_on_supermesh'
 
     end do ensemble_state_loop
     deallocate(ensemble_state_old2)
-!stop 
-!       stop 44
 
     !   call vtk_write_state(filename="PressureMesh_test", state=ensemble_state_pressure)
     !   stop 12

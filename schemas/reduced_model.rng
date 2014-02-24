@@ -38,6 +38,11 @@ E.g. 1 for every dump, 10 for every tenth dump. </a:documentation>
         </element>
       </optional>
       <optional>
+        <element name="nonintrusive_rom">
+          <empty/>
+        </element>
+      </optional>
+      <optional>
         <element name="discrete_empirical_interpolation_method">
           <a:documentation>DEIM(Discrete Empirical Interpolation Method)</a:documentation>
           <empty/>

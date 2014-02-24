@@ -113,7 +113,7 @@ contains
     fszero=0.0
     valfun=0.0
     linconver= .true.
-    if_optimal = .true.
+    if_optimal = .false.
     !----------------------------------
     !call forward ROM
     !get the initial ROM solution coef.
@@ -126,8 +126,8 @@ contains
     ewrite(1,*) 'Forward ROM', have_option("/reduced_model/adjoint")
 
     call fluids()
-   ewrite(1,*) 'Completed the initial forward running'
-!   stop 11
+    ewrite(1,*) 'Completed the initial forward running'
+   stop 11
     !------------------------------------------------------------------------
     ! allocate variables:
     ! nocva: number of control variables to be optimised
@@ -167,11 +167,12 @@ contains
        ewrite(1,*) 'Adjoint ROM', have_option("/reduced_model/adjoint")
        call fluids() !get the func run simulation_name_POD.flml run forward ROM 
        call set_option("/timestepping/current_time", current_time) ! set back the original current time
+     !  stop 12
        open(unit=2,file='adjoint_g')
        read(2,*)(g(i),i=1, nocva)
        close(2)
        !call solve_momentum_reduced_adjoint(state, at_first_timestep, timestep, POD_state, POD_state_deim, snapmean, eps,g,its)
-!stop 75       
+stop 75       
        !-----------------------------------------------------------------------------
        ! Line Search
        !-----------------------------------------------------------------------------

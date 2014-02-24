@@ -37,6 +37,7 @@ subroutine mainfl() bind(C)
   use spud
   use tictoc
   use Adjoint_ROM_main_module
+  use Nonintrusive_rom_module
 #ifdef HAVE_ZOLTAN
   use zoltan
 #endif
@@ -66,6 +67,14 @@ subroutine mainfl() bind(C)
     ewrite(1, *) 'entry adjoint model'
 
     call Adjoint_ROM_main()
+  else if(have_option("/reduced_model/nonintrusive_rom")) then
+     !######################################################
+     !       Nonintrusive Reduced Model
+     !######################################################
+    ewrite(1, *) 'entry nonintrusive reduced order model'
+
+    call Non_Intrusive_ROM_main()
+    
   else
      !######################################################
      !      Normal Fluidity Model

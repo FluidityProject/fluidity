@@ -51,7 +51,7 @@ ARFLAGS = cr
 
 LIB = ../lib/lib$(FLUIDITY).a
 
-OBJS = Fluids.o Usage.o Adjoint_ROM_main.o mainfl.o 
+OBJS = Fluids.o Usage.o Adjoint_ROM_main.o Non_Intrusive_ROM_main.o mainfl.o 
 
 .SUFFIXES: .F90 .c .cpp .o .a
 
