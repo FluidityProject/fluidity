@@ -1,1 +1,0 @@
-This python file generates triangle format files from .spm as discussed in the report. Note that the generated triangle files include disconnected mesh regions which cannot be used for flow simulation.
