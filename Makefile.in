@@ -112,7 +112,7 @@ endif
 	@echo "        CXX $<"
 	$(CXX) $(CXXFLAGS) -c $<
 
-default: bin/$(FLUIDITY) di
+default: bin/$(FLUIDITY)
 
 sub_system: $(LIBMBA2D) $(LIBMBA3D) @LIB_FEMDEM@ \
 	lib/libadaptivity.a lib/libvtkfortran.a lib/libspatialindex.a \
