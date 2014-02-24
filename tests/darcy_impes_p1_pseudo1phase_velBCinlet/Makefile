@@ -3,6 +3,7 @@ SHELL = sh
 SIM = darcy_impes_p1_pseudo1phase_velBCinlet
 
 input: clean
+	cp ../darcy_impes_common/darcy_impes_tools.py .
 	cp mesh_data/$(SIM)*.* .
 	cp mesh_data/square*.msh .
 	cp mesh_data/cube*.msh .
@@ -26,3 +27,4 @@ clean:
 	rm -f matrixdump*
 	rm -f first_timestep_adapted_mesh*
 	rm -f *.convergence 
+	rm -f darcy_impes_tools.py

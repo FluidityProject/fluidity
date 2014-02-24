@@ -1,6 +1,7 @@
 SHELL = sh
 
 input: clean
+	cp ../darcy_impes_common/darcy_impes_tools.py .
 	cp mesh_data/square_A.msh .
 	../../bin/fldecomp -n 2 -m gmsh square_A
 
@@ -27,3 +28,4 @@ clean:
 	rm -f *.txt
 	rm -f *checkpoint*
 	rm -rf *2d_A_0 *2d_A_1
+	rm -f darcy_impes_tools.py

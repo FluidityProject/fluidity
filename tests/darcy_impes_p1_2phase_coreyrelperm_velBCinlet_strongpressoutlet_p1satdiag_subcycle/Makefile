@@ -2,6 +2,7 @@ SHELL = sh
 
 input: clean
 	cp mesh_data/square_A.msh .
+	cp ../darcy_impes_common/darcy_impes_tools.py .
 
 clean:
 	rm -f *.ele
@@ -25,3 +26,4 @@ clean:
 	rm -f *.pyc
 	rm -f *.txt
 	rm -f *checkpoint*
+	rm -f darcy_impes_tools.py

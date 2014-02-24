@@ -1,6 +1,7 @@
 SHELL = sh
 
 input: clean
+	cp ../darcy_impes_common/darcy_impes_tools.py .
 	cp ../darcy_impes_common/mesh_data/line_mesh_1d_A* .
 	cp ../darcy_impes_common/mesh_data/line_mesh_1d_B* .
 	cp ../darcy_impes_common/mesh_data/line_mesh_1d_C* .
@@ -32,3 +33,4 @@ clean:
 	rm -f *.convergence 
 	rm -f *.pyc
 	rm -f *.txt
+	rm -f darcy_impes_tools.py

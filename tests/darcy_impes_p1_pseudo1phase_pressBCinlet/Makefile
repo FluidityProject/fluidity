@@ -8,6 +8,7 @@ LEFT_X    = 0.0
 RIGHT_X   = 300.0
 
 input: clean
+	cp ../darcy_impes_common/darcy_impes_tools.py .
 	interval --dx=$(MESH_SIZE) $(LEFT_X) $(RIGHT_X) $(SIM)_1d
 	cp mesh_data/square*.msh .
 	cp mesh_data/cube*.msh .
@@ -31,3 +32,4 @@ clean:
 	rm -f matrixdump*
 	rm -f first_timestep_adapted_mesh*
 	rm -f *.convergence 
+	rm -f darcy_impes_tools.py
