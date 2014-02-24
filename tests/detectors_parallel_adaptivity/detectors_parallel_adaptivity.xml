@@ -18,8 +18,18 @@ s= stat_parser("detectors.stat")
 ElapsedTime=s["ElapsedTime"]["value"]
     </variable>
     <variable name="last_locations_error" language="python">
-from readtool import readstat
-last_locations_error = readstat("detectors.detectors")
+from fluidity_tools import stat_parser
+from numpy import zeros,fromfile
+
+s = stat_parser('detectors.detectors')
+last_locations_error = zeros((2,100))
+X = fromfile('Xvals.txt',sep=' ')
+Y = fromfile('Yvals.txt',sep=' ')
+for i in range(100):
+    name = 'Steve_' + str(i+1).zfill(3)
+    # +0.5 due to domain change from the lagrangian_detectors setup
+    last_locations_error[0,i] = s[name]['position'][0][-1] - X[i] + 0.5
+    last_locations_error[1,i] = s[name]['position'][1][-1] - Y[i] + 0.5
     </variable>
   </variables>
   <pass_tests>
