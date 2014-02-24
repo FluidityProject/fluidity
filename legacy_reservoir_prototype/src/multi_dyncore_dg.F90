@@ -3906,20 +3906,11 @@ end if
                            U_DX_NEW( IDIM, JDIM, IPHASE, GI ) = U_DX_NEW( IDIM, JDIM, IPHASE, GI ) + &
                                 LOC_U(JDIM,IPHASE,U_ILOC) * UFENXNEW( U_ILOC, GI, IDIM )
 !                                U_N* UFENXNEW( U_ILOC, GI, IDIM )
-                        END DO
-                     END DO
-
-                     DO JDIM = 1, NDIM_VEL
-!                        IF ( JDIM==1 ) U_N = UOLD(U_INOD_IPHA)
-!                        IF ( JDIM==2 ) U_N = VOLD(U_INOD_IPHA)
-!                        IF ( JDIM==3 ) U_N = WOLD(U_INOD_IPHA)
-                        DO IDIM = 1, NDIM
                            UOLD_DX_NEW( IDIM, JDIM, IPHASE, GI ) = UOLD_DX_NEW( IDIM, JDIM, IPHASE, GI ) + &
                                 LOC_U(JDIM,IPHASE,U_ILOC) * UFENXNEW( U_ILOC, GI, IDIM )
 !                                U_N * UFENXNEW( U_ILOC, GI, IDIM )
                         END DO
                      END DO
-
 
 
 !!$                     U_DX( GI, IPHASE ) = U_DX( GI, IPHASE ) + UFENX( U_ILOC, GI ) * U(U_INOD_IPHA)
