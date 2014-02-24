@@ -3455,16 +3455,18 @@ end if
 ! Stabilization for viscosity...
                         IF(STAB_VISC_WITH_ABS) THEN
                            IF(STRESS_FORM) THEN
-                              IF(IDIM==1) THEN
                                  NN_SIGMAGI_STAB( IPHA_IDIM, IPHA_IDIM ) &
-                                  = NN_SIGMAGI_STAB( IPHA_IDIM, IPHA_IDIM ) + MAX(0.0,STRESS_IJ( IPHASE,1,1 ))
-                              ELSE IF(IDIM==2) THEN
-                                 NN_SIGMAGI_STAB( IPHA_IDIM, IPHA_IDIM ) &
-                                  = NN_SIGMAGI_STAB( IPHA_IDIM, IPHA_IDIM ) + MAX(0.0,STRESS_IJ( IPHASE,2,2 ))
-                              ELSE
-                                 NN_SIGMAGI_STAB( IPHA_IDIM, IPHA_IDIM ) &
-                                  = NN_SIGMAGI_STAB( IPHA_IDIM, IPHA_IDIM ) + MAX(0.0,STRESS_IJ( IPHASE,3,3 ))
-                              ENDIF
+                                  = NN_SIGMAGI_STAB( IPHA_IDIM, IPHA_IDIM ) + MAX(0.0,STRESS_IJ( IPHASE,IDIM,IDIM ))
+!                              IF(IDIM==1) THEN
+!                                 NN_SIGMAGI_STAB( IPHA_IDIM, IPHA_IDIM ) &
+!                                  = NN_SIGMAGI_STAB( IPHA_IDIM, IPHA_IDIM ) + MAX(0.0,STRESS_IJ( IPHASE,1,1 ))
+!                              ELSE IF(IDIM==2) THEN
+!                                 NN_SIGMAGI_STAB( IPHA_IDIM, IPHA_IDIM ) &
+!                                  = NN_SIGMAGI_STAB( IPHA_IDIM, IPHA_IDIM ) + MAX(0.0,STRESS_IJ( IPHASE,2,2 ))
+!                              ELSE
+!                                 NN_SIGMAGI_STAB( IPHA_IDIM, IPHA_IDIM ) &
+!                                  = NN_SIGMAGI_STAB( IPHA_IDIM, IPHA_IDIM ) + MAX(0.0,STRESS_IJ( IPHASE,3,3 ))
+!                              ENDIF
                            ELSE
                               NN_SIGMAGI_STAB( IPHA_IDIM, IPHA_IDIM ) &
                                 = NN_SIGMAGI_STAB( IPHA_IDIM, IPHA_IDIM ) + MAX(0.0,VLK( IPHASE ))
@@ -3476,8 +3478,8 @@ end if
                      ! Time mass term...
                      GI_SHORT=MOD(GI,CV_NGI_SHORT)
                      IF(GI_SHORT==0) GI_SHORT=CV_NGI_SHORT
-                     DO IDIM = 1, NDIM_VEL
-                        DO IPHASE = 1, NPHASE
+                     DO IPHASE = 1, NPHASE
+                        DO IDIM = 1, NDIM_VEL
                            IPHA_IDIM=(IPHASE-1)*NDIM_VEL + IDIM
                            JPHA_JDIM=IPHA_IDIM
                            NN_MASS(IPHA_IDIM, JPHA_JDIM ) = NN_MASS(IPHA_IDIM, JPHA_JDIM ) &
@@ -3489,8 +3491,8 @@ end if
 
                   END DO Loop_Gauss2
 
-                  DO IDIM = 1, NDIM_VEL
-                     DO IPHASE = 1, NPHASE
+                  DO IPHASE = 1, NPHASE
+                     DO IDIM = 1, NDIM_VEL
                         U_RHS( GLOBI + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM_VEL*U_NONODS ) =   &
                              U_RHS( GLOBI + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM_VEL*U_NONODS )     &
                              + NN * U_SOURCE( GLOBJ + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM_VEL*U_NONODS )
