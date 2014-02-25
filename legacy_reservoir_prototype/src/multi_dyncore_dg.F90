@@ -3385,8 +3385,8 @@
 
                                 end do
 
-                                    RNN = UFEN( U_ILOC, GI ) * UFEN( U_JLOC,  GI ) * DETWEI( GI )
                                 DO GI = 1 +(ILEV-1)*CV_NGI_SHORT, ILEV*CV_NGI_SHORT
+                                    RNN = UFEN( U_ILOC, GI ) * UFEN( U_JLOC,  GI ) * DETWEI( GI )
                                     DO IPHASE = 1, NPHASE
                                         DO IDIM = 1, NDIM_VEL
                                             IPHA_IDIM = IDIM + (IPHASE-1)*NDIM
