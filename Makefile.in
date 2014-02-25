@@ -507,9 +507,9 @@ distclean: clean
 	@find ./ \( -name make.log \) -exec rm -f {} \; > /dev/null
 	@rm -f Makefile > /dev/null
 
-test: fltools bin/$(FLUIDITY) bin/shallow_water serialtest bin/burgers_equation bin/darcy_impes
+test: fltools bin/$(FLUIDITY) bin/shallow_water bin/darcy_impes serialtest bin/burgers_equation
 
-serialtest: fltools bin/$(FLUIDITY) bin/shallow_water
+serialtest: fltools bin/$(FLUIDITY) bin/shallow_water bin/darcy_impes
 	@cd tests; ../bin/testharness -l short $(EXCLUDE_TAGS) -n $(THREADS)
 
 mediumtest: fltools bin/$(FLUIDITY) manual bin/burgers_equation bin/shallow_water bin/darcy_impes spudtools

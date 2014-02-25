@@ -191,6 +191,9 @@ class TestHelper:
    def processFolder(self):
        """Preprocesses input files before running simulations for each
        variant."""
+
+       binary_path = "../../bin/darcy_impes"
+       
        if self.verbose: print "Processing "+self.numericalFilenameStem+":"
        for modelName in self.modelNameList:
            if self.verbose: print "  "+modelName+":"
@@ -214,7 +217,9 @@ class TestHelper:
                                f.write(line.replace('_A', '_'+gridName))
                            f.close()
                    # process and clean up 
-                   subprocess.call(["../../bin/darcy_impes", s2])
+                   if not os.path.isfile(binary_path): 
+                       raise IOError("The darcy_impes binary hasn't been built yet.")
+                   subprocess.call([binary_path, s2])
                    if gridName!='A': os.remove(s2)
        
 
