@@ -5125,6 +5125,9 @@
     end subroutine PrintOutFunMat
 
 
+
+
+
     SUBROUTINE DGSDETNXLOC2( SNLOC, SNGI, &
          XSL, YSL, ZSL, &
          SN, SNLX, SNLY, SWEIGH, SDETWE, SAREA, &
@@ -5228,6 +5231,118 @@
       RETURN
 
     END SUBROUTINE DGSDETNXLOC2
+
+
+
+
+
+    SUBROUTINE DGSDETNXLOC2_ALL( SNLOC, SNGI, NDIM, &
+         XSL_ALL,  &
+         SN, SNLX, SNLY, SWEIGH, SDETWE, SAREA, &
+         NORMXN_ALL,  &
+         NORMX_ALL )
+      IMPLICIT NONE
+
+      INTEGER, intent( in ) :: SNLOC, SNGI, NDIM
+      REAL, DIMENSION( NDIM, SNLOC ), intent( in ) :: XSL_ALL
+      REAL, DIMENSION( SNLOC, SNGI ), intent( in ) :: SN
+      REAL, DIMENSION( SNLOC, SNGI ), intent( in ) :: SNLX, SNLY
+      REAL, DIMENSION( SNGI ), intent( in ) :: SWEIGH
+      REAL, DIMENSION( SNGI ), intent( inout ) :: SDETWE 
+      REAL, intent( inout ) ::  SAREA
+      REAL, DIMENSION( NDIM, SNGI ), intent( inout ) :: NORMXN_ALL 
+      REAL, DIMENSION( NDIM ), intent( in ) :: NORMX_ALL
+      ! Local variables
+      real, parameter :: pi = 3.141592654
+      INTEGER :: GI, SL, IGLX
+      REAL :: DXDLX, DXDLY, DYDLX, DYDLY, DZDLX, DZDLY
+      REAL :: A, B, C, DETJ, RGI, TWOPI, RUB3, RUB4
+
+      SAREA=0.
+
+      IF(NDIM==3) THEN
+         DO GI=1,SNGI
+
+            DXDLX=0.
+            DXDLY=0.
+            DYDLX=0.
+            DYDLY=0.
+            DZDLX=0.
+            DZDLY=0.
+
+            DO SL=1,SNLOC
+               DXDLX=DXDLX + SNLX(SL,GI)*XSL_ALL(1,SL)
+               DXDLY=DXDLY + SNLY(SL,GI)*XSL_ALL(1,SL)
+               DYDLX=DYDLX + SNLX(SL,GI)*XSL_ALL(2,SL)
+               DYDLY=DYDLY + SNLY(SL,GI)*XSL_ALL(2,SL)
+               DZDLX=DZDLX + SNLX(SL,GI)*XSL_ALL(3,SL)
+               DZDLY=DZDLY + SNLY(SL,GI)*XSL_ALL(3,SL)
+            END DO
+            A = DYDLX*DZDLY - DYDLY*DZDLX
+            B = DXDLX*DZDLY - DXDLY*DZDLX
+            C = DXDLX*DYDLY - DXDLY*DYDLX
+
+            DETJ=SQRT( A**2 + B**2 + C**2)
+            SDETWE(GI)=DETJ*SWEIGH(GI)
+            SAREA=SAREA+SDETWE(GI)
+
+            ! Calculate the normal at the Gauss pts...
+            ! Perform x-product. N=T1 x T2
+            CALL NORMGI(NORMXN_ALL(1,GI),NORMXN_ALL(2,GI),NORMXN_ALL(3,GI), &
+                 DXDLX,DYDLX,DZDLX, DXDLY,DYDLY,DZDLY, &
+                 NORMX_ALL(1),NORMX_ALL(2),NORMX_ALL(3))
+         END DO
+      ELSE IF(NDIM==2) THEN
+         TWOPI=1.0
+!         IF(DCYL) TWOPI=2.*PI
+
+         DO GI=1,SNGI
+            RGI=0.
+            DXDLX=0.
+            DXDLY=0.
+            DYDLX=0.
+            DYDLY=0.
+            DZDLX=0.
+            ! DZDLY=1 is to calculate the normal.
+            DZDLY=1.
+            DO SL=1,SNLOC
+               DXDLX=DXDLX + SNLX(SL,GI)*XSL_ALL(1, SL)
+               DYDLX=DYDLX + SNLX(SL,GI)*XSL_ALL(2, SL)
+               RGI=RGI+SN(SL,GI)*XSL_ALL(2, SL)
+            END DO
+!            IF(.NOT.DCYL) RGI=1.0
+            RGI=1.0
+            DETJ=SQRT( DXDLX**2 + DYDLX**2 )
+            SDETWE(GI)=TWOPI*RGI*DETJ*SWEIGH(GI)
+            SAREA=SAREA+SDETWE(GI)
+            RUB3=0.0
+            RUB4=0.0
+            CALL NORMGI(NORMXN_ALL(1,GI),NORMXN_ALL(2,GI),RUB3, &
+                 DXDLX,DYDLX,DZDLX, DXDLY,DYDLY,DZDLY, &
+                 NORMX_ALL(1),NORMX_ALL(2),RUB4)
+         END DO
+
+      ELSE ! For 1D...
+         DO GI = 1, SNGI
+            DXDLX = 0.
+            DO SL = 1, SNLOC
+               DXDLX = DXDLX + SNLX( SL, GI ) * XSL_ALL( 1, SL )
+            END DO
+            SDETWE( GI ) = SWEIGH( GI )
+            SAREA = SAREA + SDETWE( GI )
+            NORMXN_ALL( 1, GI ) = NORMX_ALL(1)
+         END DO
+
+      ENDIF
+
+      RETURN
+
+    END SUBROUTINE DGSDETNXLOC2_ALL
+
+
+
+
+
 
     SUBROUTINE NORMGI( NORMXN, NORMYN, NORMZN, &
          DXDLX, DYDLX, DZDLX, DXDLY, DYDLY, DZDLY, &

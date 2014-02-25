@@ -2451,6 +2451,10 @@
 ! NON_LIN_DGFLUX = .TRUE. non-linear DG flux for momentum - if we have an oscillation use upwinding else use central scheme. 
 ! UPWIND_DGFLUX=.TRUE. Upwind DG flux.. Else use central scheme. if NON_LIN_DGFLUX = .TRUE. then this option is ignored. 
       LOGICAL :: NON_LIN_DGFLUX, UPWIND_DGFLUX
+! Storage for pointers to the other side of the element. 
+! Switched off for now until this is hooked up. 
+      LOGICAL, PARAMETER :: STORED_OTHER_SIDE = .FALSE.
+      INTEGER, PARAMETER :: ISTORED_OTHER_SIDE = 0
 
       INTEGER, DIMENSION( :, : ), allocatable :: CV_SLOCLIST, U_SLOCLIST, CV_NEILOC, FACE_ELE
       INTEGER, DIMENSION( : ), allocatable :: CV_SLOC2LOC, U_SLOC2LOC, FINDGPTS, COLGPTS, &
@@ -2459,6 +2463,8 @@
            SNORMXN, SNORMYN, SNORMZN, SCVFEWEIGH, SBCVFEWEIGH, SDETWE, NXUDN, VLK, VLN,VLN_OLD, &
            XSL,YSL,ZSL, SELE_OVERLAP_SCALE, GRAD_SOU_GI_NMX, GRAD_SOU_GI_NMY, GRAD_SOU_GI_NMZ, &
            MASS_ELE
+      REAL, DIMENSION( :, : ),    ALLOCATABLE :: XL_ALL, XSL_ALL, SNORMXN_ALL
+      REAL, DIMENSION( : ),    ALLOCATABLE :: NORMX_ALL
       REAL, DIMENSION( :, : ), ALLOCATABLE :: CVN, CVN_SHORT, CVFEN, CVFENLX, CVFENLY, CVFENLZ, & 
            CVFENX, CVFENY, CVFENZ, CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, & 
            CVFENX_SHORT, CVFENY_SHORT, CVFENZ_SHORT, &
@@ -2518,6 +2524,13 @@
 
       REAL, DIMENSION ( :, :, :,   :, :, :,   : ), allocatable :: DIAG_BIGM_CON, BIGM_CON
 
+! memory for fast retreval of surface info...
+      INTEGER, DIMENSION ( :, :, : ), allocatable :: STORED_U_ILOC_OTHER_SIDE, STORED_U_OTHER_LOC, STORED_MAT_OTHER_LOC
+! To memory access very local...
+      REAL, DIMENSION ( :, :, : ), allocatable :: SLOC_U, SLOC_UOLD, SLOC2_U, SLOC2_UOLD
+      REAL, DIMENSION ( :, :, : ), allocatable :: SLOC_NU, SLOC_NUOLD, SLOC2_NU, SLOC2_NUOLD
+      REAL, DIMENSION ( :, : ), allocatable :: SLOC_UDEN, SLOC2_UDEN, SLOC_UDENOLD, SLOC2_UDENOLD
+
       LOGICAL :: D1, D3, DCYL, GOT_DIFFUS, GOT_UDEN, DISC_PRES, QUAD_OVER_WHOLE_ELE, &
                  have_oscillation, have_oscillation_old
       INTEGER :: CV_NGI, CV_NGI_SHORT, SCVNGI, SBCVNGI, NFACE
@@ -2532,7 +2545,7 @@
            U_NODJ, U_NODJ2, U_NODJ_IPHA, U_SJLOC, X_ILOC, MAT_ILOC2, MAT_INOD, MAT_INOD2, MAT_SILOC, &
            CV_ILOC, CV_JLOC, CV_NOD, CV_NOD_PHA, U_JNOD_IDIM_IPHA, COUNT_PHA2, P_JLOC2, P_JNOD, P_JNOD2, &
            CV_SILOC, JDIM, JPHASE, ILEV, U_NLOC2, CV_KLOC2, CV_NODK2, CV_NODK2_PHA, GI_SHORT, NLEV, STAT, &
-           GLOBI_CV, U_INOD_jDIM_jPHA, u_nod2, u_nod2_pha, cv_inod, COUNT_ELE
+           GLOBI_CV, U_INOD_jDIM_jPHA, u_nod2, u_nod2_pha, cv_inod, COUNT_ELE, CV_ILOC2, CV_INOD2
       REAL    :: NN, NXN, NNX, NXNX, NMX, NMY, NMZ, SAREA, &
            VNMX, VNMY, VNMZ, NM
       REAL    :: VOLUME, MN, XC, YC, ZC, XC2, YC2, ZC2, HDC, VLM, VLM_NEW,VLM_OLD, NN_SNDOTQ_IN,NN_SNDOTQ_OUT, &
@@ -2701,6 +2714,9 @@
       ALLOCATE( SNORMXN( SBCVNGI ))
       ALLOCATE( SNORMYN( SBCVNGI ))
       ALLOCATE( SNORMZN( SBCVNGI ))
+
+      ALLOCATE( XL_ALL(NDIM,CV_NLOC), XSL_ALL(NDIM,CV_SNLOC) )
+      ALLOCATE( NORMX_ALL(NDIM), SNORMXN_ALL(NDIM,SBCVNGI) )
 
       ALLOCATE( CVWEIGHT( CV_NGI ))
       ALLOCATE( CVN( CV_NLOC, CV_NGI ))
@@ -2872,6 +2888,10 @@
       ALLOCATE( DWZ_ELE( U_NLOC, NPHASE, TOTELE ))
       ALLOCATE( DUOLDX_ELE( U_NLOC, NPHASE, TOTELE ))
       ALLOCATE( DUOLDY_ELE( U_NLOC, NPHASE, TOTELE ))
+!                  ALLOCATE( STORED_U_ILOC_OTHER_SIDE( U_SNLOC, NFACE, TOTELE*ISTORED_OTHER_SIDE ) )
+!                  ALLOCATE( STORED_U_OTHER_LOC( U_NLOC, NFACE, TOTELE*ISTORED_OTHER_SIDE ) )
+!                  ALLOCATE( STORED_MAT_OTHER_LOC( MAT_NLOC, NFACE, TOTELE*ISTORED_OTHER_SIDE ) )
+! Storage for pointers to the other side of the element. 
       ALLOCATE( DUOLDZ_ELE( U_NLOC, NPHASE, TOTELE ))
       ALLOCATE( DVOLDX_ELE( U_NLOC, NPHASE, TOTELE ))
       ALLOCATE( DVOLDY_ELE( U_NLOC, NPHASE, TOTELE ))
@@ -2941,6 +2961,27 @@
       ALLOCATE( LOC_U_RHS( NDIM_VEL, NPHASE, U_NLOC ) )
       ALLOCATE( UFENXNEW( U_NLOC, CV_NGI, NDIM ))
 
+! Memory for rapid retreval...
+! Storage for pointers to the other side of the element. 
+      ALLOCATE( STORED_U_ILOC_OTHER_SIDE( U_SNLOC, NFACE, TOTELE*ISTORED_OTHER_SIDE ) )
+      ALLOCATE( STORED_U_OTHER_LOC( U_NLOC, NFACE, TOTELE*ISTORED_OTHER_SIDE ) )
+      ALLOCATE( STORED_MAT_OTHER_LOC( MAT_NLOC, NFACE, TOTELE*ISTORED_OTHER_SIDE ) )
+! 
+! To memory access very local...
+      ALLOCATE( SLOC_U(NDIM_VEL,NPHASE,U_SNLOC) )
+      ALLOCATE( SLOC_UOLD(NDIM_VEL,NPHASE,U_SNLOC) )
+      ALLOCATE( SLOC2_U(NDIM_VEL,NPHASE,U_SNLOC) )
+      ALLOCATE( SLOC2_UOLD(NDIM_VEL,NPHASE,U_SNLOC) )
+
+      ALLOCATE( SLOC_NU(NDIM_VEL,NPHASE,U_SNLOC) )
+      ALLOCATE( SLOC_NUOLD(NDIM_VEL,NPHASE,U_SNLOC) )
+      ALLOCATE( SLOC2_NU(NDIM_VEL,NPHASE,U_SNLOC) )
+      ALLOCATE( SLOC2_NUOLD(NDIM_VEL,NPHASE,U_SNLOC) )
+
+      ALLOCATE( SLOC_UDEN(NPHASE, CV_SNLOC)  )
+      ALLOCATE( SLOC2_UDEN(NPHASE, CV_SNLOC)  )
+      ALLOCATE( SLOC_UDENOLD(NPHASE, CV_SNLOC)  ) 
+      ALLOCATE( SLOC2_UDENOLD(NPHASE, CV_SNLOC) )
 
       GOT_DIFFUS = ( R2NORM( UDIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0.0 )  &
            .OR. BETWEEN_ELE_STAB
@@ -4247,9 +4288,14 @@ end if
             U_SLOC2LOC( : ) = U_SLOCLIST( IFACE, : )
             CV_SLOC2LOC( : ) = CV_SLOCLIST( IFACE, : )
 
-            ! Form approximate surface normal (NORMX,NORMY,NORMZ)
-            CALL DGSIMPLNORM( ELE, CV_SLOC2LOC, TOTELE, CV_NLOC, CV_SNLOC, X_NDGLN, &
-                 X, Y, Z, X_NONODS, NORMX, NORMY, NORMZ )
+
+            ! Recalculate the normal...
+            DO CV_ILOC=1,CV_NLOC
+               X_INOD=X_NDGLN((ELE-1)*X_NLOC+CV_ILOC) 
+               XL_ALL(1,CV_ILOC)=X(X_INOD)
+               IF(NDIM.GE.2) XL_ALL(2,CV_ILOC)=Y(X_INOD)
+               IF(NDIM.GE.3) XL_ALL(3,CV_ILOC)=Z(X_INOD)
+            END DO
 
             ! Recalculate the normal...
             DO CV_SILOC=1,CV_SNLOC
@@ -4258,14 +4304,64 @@ end if
                XSL(CV_SILOC)=X(X_INOD)
                YSL(CV_SILOC)=Y(X_INOD)
                ZSL(CV_SILOC)=Z(X_INOD)
+
+               XSL_ALL(1,CV_SILOC)=X(X_INOD)
+               IF(NDIM.GE.2) XSL_ALL(2,CV_SILOC)=Y(X_INOD)
+               IF(NDIM.GE.3) XSL_ALL(3,CV_SILOC)=Z(X_INOD)
                !ewrite(3,*)'CV_SILOC,x,y,z:',CV_SILOC,XSL(CV_SILOC),ySL(CV_SILOC),zSL(CV_SILOC)
             END DO
+
+            ! Form approximate surface normal (NORMX,NORMY,NORMZ)
+       if(.true.) then
+            CALL DGSIMPLNORM( ELE, CV_SLOC2LOC, TOTELE, CV_NLOC, CV_SNLOC, X_NDGLN, &
+                 X, Y, Z, X_NONODS, NORMX, NORMY, NORMZ )
+            NORMX_ALL(1)=NORMX
+            IF(NDIM.GE.2) NORMX_ALL(2)=NORMY
+            IF(NDIM.GE.3) NORMX_ALL(3)=NORMZ
+       else
+
+!            CALL DGSIMPLNORM_ALL( CV_NLOC, CV_SNLOC, NDIM, &
+!                 XL_ALL, XSL_ALL, NORMX_ALL )
+            DO IDIM = 1, NDIM
+               NORMX_ALL(IDIM) = SUM( XSL_ALL( IDIM, : ) )/ REAL( CV_SNLOC ) - SUM( XL_ALL( IDIM, : ) ) / REAL( CV_NLOC )   
+            END DO
+            NORMX_ALL(:) = NORMX_ALL(:) / SQRT( SUM(NORMX_ALL(:)**2) )
+
+            NORMX=NORMX_ALL(1)
+            IF(NDIM.GE.2) NORMY=NORMX_ALL(2)
+            IF(NDIM.GE.3) NORMZ=NORMX_ALL(3)
+!              print *,'before NORMX,NORMY:',NORMX,NORMY  
+!            CALL DGSIMPLNORM( ELE, CV_SLOC2LOC, TOTELE, CV_NLOC, CV_SNLOC, X_NDGLN, &
+!                 X, Y, Z, X_NONODS, NORMX, NORMY, NORMZ )
+!           if(abs(NORMX_ALL(1)-NORMX) + abs(NORMX_ALL(2)-NORMY).gt.0.001) then
+!              print *,'after NORMX_ALL(1),NORMX_ALL(2):',NORMX_ALL(1),NORMX_ALL(2)
+!              print *,'after NORMX,NORMY:',NORMX,NORMY
+!              stop 2821
+!           endif
+       endif
+
+       if(.true.) then
             CALL DGSDETNXLOC2(CV_SNLOC,SBCVNGI, &
                  XSL,YSL,ZSL, &
                  SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, SDETWE,SAREA, &
                  (NDIM==1), (NDIM==3), (NDIM==-2), &
                  SNORMXN,SNORMYN,SNORMZN, &
                  NORMX,NORMY,NORMZ)
+            SNORMXN_ALL(1,:)=SNORMXN
+            IF(NDIM.GE.2) SNORMXN_ALL(2,:)=SNORMYN
+            IF(NDIM.GE.3) SNORMXN_ALL(3,:)=SNORMZN
+       else
+            CALL DGSDETNXLOC2_ALL(CV_SNLOC, SBCVNGI, NDIM, &
+                 XSL_ALL, &
+                 SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, SDETWE, SAREA, &
+                 SNORMXN_ALL, &
+                 NORMX_ALL)
+
+            SNORMXN(:)=SNORMXN_ALL(1,:)
+            IF(NDIM.GE.2) SNORMYN(:)=SNORMXN_ALL(2,:)
+            IF(NDIM.GE.3) SNORMZN(:)=SNORMXN_ALL(3,:)
+       endif
+
             !ewrite(3,*)'sarea=',sarea
             !stop 8821
 
@@ -4339,6 +4435,13 @@ end if
 
             If_ele2_notzero_1: IF(ELE2 /= 0) THEN
 ! Element connectivity...
+              If_stored: IF(STORED_OTHER_SIDE) THEN
+
+                     U_ILOC_OTHER_SIDE( : ) = STORED_U_ILOC_OTHER_SIDE( :, IFACE, ELE )
+                     U_OTHER_LOC( : )       = STORED_U_OTHER_LOC( :, IFACE, ELE )
+                     MAT_OTHER_LOC( : )     = STORED_MAT_OTHER_LOC( :, IFACE, ELE )
+
+              ELSE If_stored
 
                if( is_overlapping ) then
                   U_OTHER_LOC=0
@@ -4400,7 +4503,108 @@ end if
                   END DO
                END DO
 
+               IF(ISTORED_OTHER_SIDE.NE.0) THEN
+
+                  STORED_U_ILOC_OTHER_SIDE( :, IFACE, ELE ) = U_ILOC_OTHER_SIDE( : )
+                  STORED_U_OTHER_LOC( :, IFACE, ELE )       = U_OTHER_LOC( : )
+                  STORED_MAT_OTHER_LOC( :, IFACE, ELE )     = MAT_OTHER_LOC( : )
+
+               ENDIF
+
+
+             ENDIF If_stored
+
+! ***********SUBROUTINE DETERMINE_OTHER_SIDE_FACE - END************
+
             ENDIF If_ele2_notzero_1
+
+
+
+! ********Mapping to local variables****************
+        if(.false.) then
+            ELE3=ELE2
+            IF(ELE3==0) ELE3=ELE
+! CV variables...
+            DO CV_SILOC=1,CV_SNLOC
+               CV_ILOC=CV_SLOC2LOC(CV_SILOC)
+!               CV_ILOC2=U_ILOC_OTHER_SIDE( U_SILOC ) 
+!               CV_ILOC2=CV_OTHER_LOC( CV_ILOC ) 
+               CV_ILOC2=MAT_OTHER_LOC( CV_ILOC ) 
+               CV_INOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC) 
+               CV_INOD2=CV_NDGLN((ELE3-1)*CV_NLOC+CV_ILOC2) 
+! for normal calc...
+! new storage...
+!               SLOC_UDEN(:, CV_SILOC)  =UDEN(:,CV_INOD)
+!               SLOC2_UDEN(:, CV_SILOC)=UDEN(:,CV_INOD2)
+!               SLOC_UDENOLD(:, CV_SILOC)  =UDENOLD(:,CV_INOD)
+!               SLOC2_UDENOLD(:, CV_SILOC)=UDENOLD(:,CV_INOD2)
+! old storage...
+               DO IPHASE=1,NPHASE
+                  SLOC_UDEN(IPHASE, CV_SILOC)  =UDEN( (IPHASE-1)*CV_NONODS + CV_INOD)
+                  SLOC2_UDEN(IPHASE, CV_SILOC) =UDEN( (IPHASE-1)*CV_NONODS + CV_INOD2)
+                  SLOC_UDENOLD(IPHASE, CV_SILOC)  =UDENOLD( (IPHASE-1)*CV_NONODS + CV_INOD)
+                  SLOC2_UDENOLD(IPHASE, CV_SILOC)=UDENOLD( (IPHASE-1)*CV_NONODS + CV_INOD2)
+               END DO
+            END DO
+
+! velocity variables...
+            DO U_SILOC=1,U_SNLOC
+               U_ILOC=U_SLOC2LOC(U_SILOC)
+               U_ILOC2=U_ILOC_OTHER_SIDE( U_SILOC ) 
+               U_INOD=U_NDGLN((ELE-1)*U_NLOC+U_ILOC) 
+               U_INOD=U_NDGLN((ELE3-1)*U_NLOC+U_ILOC2) 
+! for normal calc...
+! new stoage...
+!               SLOC_U(:,:,U_SILOC)=U(:,:,U_INOD)
+!               SLOC_UOLD(:,:,U_SILOC)=UOLD(:,:,U_INOD)
+!               SLOC2_U(:,:,U_SILOC)=U(:,:,U_INOD2)
+!               SLOC2_UOLD(:,:,U_SILOC)=UOLD(:,:,U_INOD2)
+
+!               SLOC_NU(:,:,U_SILOC)=NU(:,:,U_INOD)
+!               SLOC_NUOLD(:,:,U_SILOC)=NUOLD(:,:,U_INOD)
+!               SLOC2_NU(:,:,U_SILOC)=NU(:,:,U_INOD2)
+!               SLOC2_NUOLD(:,:,U_SILOC)=NUOLD(:,:,U_INOD2)
+! old storage...
+               DO IPHASE=1,NPHASE
+! U:
+                  SLOC_U(1,IPHASE,U_SILOC)=U( (IPHASE-1)*U_NONODS + U_INOD )
+                  SLOC_UOLD(1,IPHASE,U_SILOC)=UOLD( (IPHASE-1)*U_NONODS + U_INOD )
+                  SLOC2_U(1,IPHASE,U_SILOC)=U( (IPHASE-1)*U_NONODS + U_INOD )
+                  SLOC2_UOLD(1,IPHASE,U_SILOC)=UOLD( (IPHASE-1)*U_NONODS + U_INOD )
+
+                  SLOC_NU(1,IPHASE,U_SILOC)=NU( (IPHASE-1)*U_NONODS + U_INOD )
+                  SLOC_NUOLD(1,IPHASE,U_SILOC)=NUOLD( (IPHASE-1)*U_NONODS + U_INOD )
+                  SLOC2_NU(1,IPHASE,U_SILOC)=NU( (IPHASE-1)*U_NONODS + U_INOD )
+                  SLOC2_NUOLD(1,IPHASE,U_SILOC)=NUOLD( (IPHASE-1)*U_NONODS + U_INOD )
+! V:
+                IF(NDIM.GE.2) THEN
+                  SLOC_U(2,IPHASE,U_SILOC)=V( (IPHASE-1)*U_NONODS + U_INOD )
+                  SLOC_UOLD(2,IPHASE,U_SILOC)=VOLD( (IPHASE-1)*U_NONODS + U_INOD )
+                  SLOC2_U(2,IPHASE,U_SILOC)=V( (IPHASE-1)*U_NONODS + U_INOD )
+                  SLOC2_UOLD(2,IPHASE,U_SILOC)=VOLD( (IPHASE-1)*U_NONODS + U_INOD )
+
+                  SLOC_NU(2,IPHASE,U_SILOC)=NV( (IPHASE-1)*U_NONODS + U_INOD )
+                  SLOC_NUOLD(2,IPHASE,U_SILOC)=NVOLD( (IPHASE-1)*U_NONODS + U_INOD )
+                  SLOC2_NU(2,IPHASE,U_SILOC)=NV( (IPHASE-1)*U_NONODS + U_INOD )
+                  SLOC2_NUOLD(2,IPHASE,U_SILOC)=NVOLD( (IPHASE-1)*U_NONODS + U_INOD )
+                ENDIF
+! W:
+                IF(NDIM.GE.3) THEN
+                  SLOC_U(3,IPHASE,U_SILOC)=W( (IPHASE-1)*U_NONODS + U_INOD )
+                  SLOC_UOLD(3,IPHASE,U_SILOC)=WOLD( (IPHASE-1)*U_NONODS + U_INOD )
+                  SLOC2_U(3,IPHASE,U_SILOC)=W( (IPHASE-1)*U_NONODS + U_INOD )
+                  SLOC2_UOLD(3,IPHASE,U_SILOC)=WOLD( (IPHASE-1)*U_NONODS + U_INOD )
+
+                  SLOC_NU(3,IPHASE,U_SILOC)=NW( (IPHASE-1)*U_NONODS + U_INOD )
+                  SLOC_NUOLD(3,IPHASE,U_SILOC)=NWOLD( (IPHASE-1)*U_NONODS + U_INOD )
+                  SLOC2_NU(3,IPHASE,U_SILOC)=NW( (IPHASE-1)*U_NONODS + U_INOD )
+                  SLOC2_NUOLD(3,IPHASE,U_SILOC)=NWOLD( (IPHASE-1)*U_NONODS + U_INOD )
+                ENDIF
+               END DO
+            END DO
+        endif
+! ********Mapping to local variables****************
+
 
 
             If_diffusion_or_momentum1: IF(GOT_DIFFUS .OR. GOT_UDEN) THEN
@@ -4910,6 +5114,9 @@ end if
                            ! Central diff DG flux...
                            CENT_RELAX    =1.0
                            CENT_RELAX_OLD=1.0
+!                                    U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) - VLM * SUF_U_BC_ROB2( SUF_U_SJ2_IPHA )
+!                                    RHS_DIFF_U(U_ILOC,IPHASE)=RHS_DIFF_U(U_ILOC,IPHASE)  &
+!                                         - VLM * SUF_U_BC_ROB1( SUF_U_SJ2_IPHA )*U(JU_NOD_PHA) - VLM * SUF_U_BC_ROB2( SUF_U_SJ2_IPHA )
                         ENDIF
                      ENDIF
 ! CENT_RELAX=1.0 (central scheme) =0.0 (upwind scheme). 

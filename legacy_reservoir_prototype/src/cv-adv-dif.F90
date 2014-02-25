@@ -12212,6 +12212,39 @@ end SUBROUTINE GET_INT_VEL
 
 
 
+    SUBROUTINE DGSIMPLNORM_ALL( NLOC, SNLOC, NDIM,  &
+         XL_ALL, XSL_ALL, NORMX_ALL )
+      ! Form approximate surface normal (NORMX_ALL(1),NORMX_ALL(2),NORMX_ALL(3))
+      IMPLICIT NONE
+      INTEGER, intent( in ) :: NLOC, SNLOC, NDIM
+      REAL, DIMENSION( NDIM, NLOC ), intent( in ) :: XL_ALL
+      REAL, DIMENSION( NDIM, SNLOC ), intent( in ) :: XSL_ALL
+      REAL, DIMENSION( NDIM ), intent( inout ) :: NORMX_ALL
+      ! Local variables
+      REAL :: XC(NDIM), SXC(NDIM), NORM
+      INTEGER :: ILOC, IDIM
+
+      DO IDIM = 1, NDIM
+         XC(IDIM) = SUM( XL_ALL( IDIM, : ) ) / REAL( NLOC )
+      END DO
+
+      DO IDIM = 1, NDIM
+         SXC(IDIM) = SUM( XSL_ALL( IDIM, : ) )/ REAL( SNLOC )
+      END DO
+
+      NORMX_ALL = SXC - XC
+
+      NORM = SQRT( SUM(NORMX_ALL(:)**2) )
+
+      NORMX_ALL(:) = NORMX_ALL(:) / NORM
+
+      RETURN
+
+    END SUBROUTINE DGSIMPLNORM_ALL
+
+
+
+
   SUBROUTINE DGSIMPLNORM( ELE, SILOC2ILOC, TOTELE, NLOC, SNLOC, XONDGL, &
        X, Y, Z, XNONOD, NORMX, NORMY, NORMZ )
     ! Form approximate surface normal (NORMX,NORMY,NORMZ)
