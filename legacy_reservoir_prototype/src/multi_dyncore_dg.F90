@@ -4321,36 +4321,36 @@
                      ! U:
                      SLOC_U(1,IPHASE,U_SILOC)=U( (IPHASE-1)*U_NONODS + U_INOD )
                      SLOC_UOLD(1,IPHASE,U_SILOC)=UOLD( (IPHASE-1)*U_NONODS + U_INOD )
-                     SLOC2_U(1,IPHASE,U_SILOC)=U( (IPHASE-1)*U_NONODS + U_INOD )
-                     SLOC2_UOLD(1,IPHASE,U_SILOC)=UOLD( (IPHASE-1)*U_NONODS + U_INOD )
+                     SLOC2_U(1,IPHASE,U_SILOC)=U( (IPHASE-1)*U_NONODS + U_INOD2 )
+                     SLOC2_UOLD(1,IPHASE,U_SILOC)=UOLD( (IPHASE-1)*U_NONODS + U_INOD2 )
 
                      SLOC_NU(1,IPHASE,U_SILOC)=NU( (IPHASE-1)*U_NONODS + U_INOD )
                      SLOC_NUOLD(1,IPHASE,U_SILOC)=NUOLD( (IPHASE-1)*U_NONODS + U_INOD )
-                     SLOC2_NU(1,IPHASE,U_SILOC)=NU( (IPHASE-1)*U_NONODS + U_INOD )
-                     SLOC2_NUOLD(1,IPHASE,U_SILOC)=NUOLD( (IPHASE-1)*U_NONODS + U_INOD )
+                     SLOC2_NU(1,IPHASE,U_SILOC)=NU( (IPHASE-1)*U_NONODS + U_INOD2 )
+                     SLOC2_NUOLD(1,IPHASE,U_SILOC)=NUOLD( (IPHASE-1)*U_NONODS + U_INOD2 )
                      ! V:
                      IF(NDIM.GE.2) THEN
                         SLOC_U(2,IPHASE,U_SILOC)=V( (IPHASE-1)*U_NONODS + U_INOD )
                         SLOC_UOLD(2,IPHASE,U_SILOC)=VOLD( (IPHASE-1)*U_NONODS + U_INOD )
-                        SLOC2_U(2,IPHASE,U_SILOC)=V( (IPHASE-1)*U_NONODS + U_INOD )
-                        SLOC2_UOLD(2,IPHASE,U_SILOC)=VOLD( (IPHASE-1)*U_NONODS + U_INOD )
+                        SLOC2_U(2,IPHASE,U_SILOC)=V( (IPHASE-1)*U_NONODS + U_INOD2 )
+                        SLOC2_UOLD(2,IPHASE,U_SILOC)=VOLD( (IPHASE-1)*U_NONODS + U_INOD2 )
 
                         SLOC_NU(2,IPHASE,U_SILOC)=NV( (IPHASE-1)*U_NONODS + U_INOD )
                         SLOC_NUOLD(2,IPHASE,U_SILOC)=NVOLD( (IPHASE-1)*U_NONODS + U_INOD )
-                        SLOC2_NU(2,IPHASE,U_SILOC)=NV( (IPHASE-1)*U_NONODS + U_INOD )
-                        SLOC2_NUOLD(2,IPHASE,U_SILOC)=NVOLD( (IPHASE-1)*U_NONODS + U_INOD )
+                        SLOC2_NU(2,IPHASE,U_SILOC)=NV( (IPHASE-1)*U_NONODS + U_INOD2 )
+                        SLOC2_NUOLD(2,IPHASE,U_SILOC)=NVOLD( (IPHASE-1)*U_NONODS + U_INOD2 )
                      ENDIF
                      ! W:
                      IF(NDIM.GE.3) THEN
                         SLOC_U(3,IPHASE,U_SILOC)=W( (IPHASE-1)*U_NONODS + U_INOD )
                         SLOC_UOLD(3,IPHASE,U_SILOC)=WOLD( (IPHASE-1)*U_NONODS + U_INOD )
-                        SLOC2_U(3,IPHASE,U_SILOC)=W( (IPHASE-1)*U_NONODS + U_INOD )
-                        SLOC2_UOLD(3,IPHASE,U_SILOC)=WOLD( (IPHASE-1)*U_NONODS + U_INOD )
+                        SLOC2_U(3,IPHASE,U_SILOC)=W( (IPHASE-1)*U_NONODS + U_INOD2 )
+                        SLOC2_UOLD(3,IPHASE,U_SILOC)=WOLD( (IPHASE-1)*U_NONODS + U_INOD2 )
 
                         SLOC_NU(3,IPHASE,U_SILOC)=NW( (IPHASE-1)*U_NONODS + U_INOD )
                         SLOC_NUOLD(3,IPHASE,U_SILOC)=NWOLD( (IPHASE-1)*U_NONODS + U_INOD )
-                        SLOC2_NU(3,IPHASE,U_SILOC)=NW( (IPHASE-1)*U_NONODS + U_INOD )
-                        SLOC2_NUOLD(3,IPHASE,U_SILOC)=NWOLD( (IPHASE-1)*U_NONODS + U_INOD )
+                        SLOC2_NU(3,IPHASE,U_SILOC)=NW( (IPHASE-1)*U_NONODS + U_INOD2 )
+                        SLOC2_NUOLD(3,IPHASE,U_SILOC)=NWOLD( (IPHASE-1)*U_NONODS + U_INOD2 )
                      ENDIF
                   END DO
                END DO
