@@ -2455,6 +2455,10 @@
       ! Switched off for now until this is hooked up. 
       LOGICAL, PARAMETER :: STORED_OTHER_SIDE = .FALSE.
       INTEGER, PARAMETER :: ISTORED_OTHER_SIDE = 0
+! This is for rapid access to the C matrix...
+      LOGICAL, PARAMETER :: STORED_AC_SPAR_PT=.FALSE.
+      INTEGER, PARAMETER :: IDO_STORE_AC_SPAR_PT=0
+
 
       INTEGER, DIMENSION( :, : ), allocatable :: CV_SLOCLIST, U_SLOCLIST, CV_NEILOC, FACE_ELE
       INTEGER, DIMENSION( : ), allocatable :: CV_SLOC2LOC, U_SLOC2LOC, FINDGPTS, COLGPTS, &
@@ -2524,10 +2528,14 @@
 
       ! memory for fast retreval of surface info...
       INTEGER, DIMENSION ( :, :, : ), allocatable :: STORED_U_ILOC_OTHER_SIDE, STORED_U_OTHER_LOC, STORED_MAT_OTHER_LOC
+      INTEGER, DIMENSION ( :, :, : ), allocatable :: POSINMAT_C_STORE
+      INTEGER, DIMENSION ( :, :, :, : ), allocatable :: POSINMAT_C_STORE_SUF_DG
       ! To memory access very local...
       REAL, DIMENSION ( :, :, : ), allocatable :: SLOC_U, SLOC_UOLD, SLOC2_U, SLOC2_UOLD
       REAL, DIMENSION ( :, :, : ), allocatable :: SLOC_NU, SLOC_NUOLD, SLOC2_NU, SLOC2_NUOLD
       REAL, DIMENSION ( :, : ), allocatable :: SLOC_UDEN, SLOC2_UDEN, SLOC_UDENOLD, SLOC2_UDENOLD
+      ! For derivatives...
+      REAL, DIMENSION ( : ), allocatable :: NMX_ALL
 
       LOGICAL :: D1, D3, DCYL, GOT_DIFFUS, GOT_UDEN, DISC_PRES, QUAD_OVER_WHOLE_ELE, &
            have_oscillation, have_oscillation_old
@@ -2962,11 +2970,6 @@
       ALLOCATE( SUF_ROB1_BC( NDIM_VEL,NPHASE,U_SNLOC,STOTEL ) ) ; SUF_ROB1_BC = 0.0
       ALLOCATE( SUF_ROB2_BC( NDIM_VEL,NPHASE,U_SNLOC,STOTEL ) ) ; SUF_ROB2_BC = 0.0
 
-      ! Memory for rapid retreval...
-      ! Storage for pointers to the other side of the element. 
-      ALLOCATE( STORED_U_ILOC_OTHER_SIDE( U_SNLOC, NFACE, TOTELE*ISTORED_OTHER_SIDE ) )
-      ALLOCATE( STORED_U_OTHER_LOC( U_NLOC, NFACE, TOTELE*ISTORED_OTHER_SIDE ) )
-      ALLOCATE( STORED_MAT_OTHER_LOC( MAT_NLOC, NFACE, TOTELE*ISTORED_OTHER_SIDE ) )
       ! 
       ! To memory access very local...
       ALLOCATE( SLOC_U(NDIM_VEL,NPHASE,U_SNLOC) )
@@ -2983,6 +2986,8 @@
       ALLOCATE( SLOC2_UDEN(NPHASE, CV_SNLOC)  )
       ALLOCATE( SLOC_UDENOLD(NPHASE, CV_SNLOC)  ) 
       ALLOCATE( SLOC2_UDENOLD(NPHASE, CV_SNLOC) )
+! Derivatives...
+      ALLOCATE( NMX_ALL(NDIM_VEL) )
 
       ! temprorarily rearrange boundary condition memory...
       do sele = 1, stotel
@@ -3091,6 +3096,14 @@
       !ewrite(3,*)'cvn_short:',cvn_short
       !ewrite(3,*)'SBCVFEN',SBCVFEN
       !stop 768
+! Memory for rapid retreval...
+! Storage for pointers to the other side of the element. 
+      ALLOCATE( STORED_U_ILOC_OTHER_SIDE( U_SNLOC, NFACE, TOTELE*ISTORED_OTHER_SIDE ) )
+      ALLOCATE( STORED_U_OTHER_LOC( U_NLOC, NFACE, TOTELE*ISTORED_OTHER_SIDE ) )
+      ALLOCATE( STORED_MAT_OTHER_LOC( MAT_NLOC, NFACE, TOTELE*ISTORED_OTHER_SIDE ) )
+
+      ALLOCATE( POSINMAT_C_STORE( U_NLOC,P_NLOC, TOTELE*IDO_STORE_AC_SPAR_PT) )
+      ALLOCATE( POSINMAT_C_STORE_SUF_DG( U_SNLOC,P_SNLOC,NFACE,TOTELE*IDO_STORE_AC_SPAR_PT ) )
 
       ALLOCATE( FACE_ELE( NFACE, TOTELE ))
       ! Calculate FACE_ELE
@@ -4066,6 +4079,9 @@
 
       Loop_Elements2: DO ELE = 1, TOTELE
 
+         ! for copy local memory copying...
+         LOC_U_RHS = 0.0
+
          Between_Elements_And_Boundary: DO IFACE = 1, NFACE
             ELE2  = FACE_ELE( IFACE, ELE )
             SELE2 = MAX( 0, - ELE2 )
@@ -4164,89 +4180,88 @@
 
 
             If_ele2_notzero_1: IF(ELE2 /= 0) THEN
-               ! Element connectivity...
-               If_stored: IF(STORED_OTHER_SIDE) THEN
+! ***********SUBROUTINE DETERMINE_OTHER_SIDE_FACE - START************
 
-                  U_ILOC_OTHER_SIDE( : ) = STORED_U_ILOC_OTHER_SIDE( :, IFACE, ELE )
-                  U_OTHER_LOC( : )       = STORED_U_OTHER_LOC( :, IFACE, ELE )
-                  MAT_OTHER_LOC( : )     = STORED_MAT_OTHER_LOC( :, IFACE, ELE )
+              If_stored: IF(STORED_OTHER_SIDE) THEN
 
-               ELSE If_stored
+                     U_ILOC_OTHER_SIDE( : ) = STORED_U_ILOC_OTHER_SIDE( :, IFACE, ELE )
+                     U_OTHER_LOC( : )       = STORED_U_OTHER_LOC( :, IFACE, ELE )
+                     MAT_OTHER_LOC( : )     = STORED_MAT_OTHER_LOC( :, IFACE, ELE )
 
-                  if( is_overlapping ) then
-                     U_OTHER_LOC=0
-                     U_ILOC_OTHER_SIDE=0
-                     IF( XU_NLOC == 1 ) THEN ! For constant vel basis functions...
-                        DO ILEV=1,CV_NLOC
-                           U_ILOC_OTHER_SIDE( 1 +(ILEV-1)*U_SNLOC/CV_NLOC) &
-                                = 1 + (ILEV-1)*U_NLOC/CV_NLOC
-                           U_OTHER_LOC( 1 + (ILEV-1)*U_NLOC/CV_NLOC) &
-                                = 1 + (ILEV-1)*U_NLOC/CV_NLOC
-                        END DO
-                     ELSE
-                        DO U_SILOC = 1, U_SNLOC/CV_NLOC
-                           U_ILOC = U_SLOC2LOC( U_SILOC )
-                           U_INOD = XU_NDGLN(( ELE - 1 ) * XU_NLOC + U_ILOC )
-                           DO U_ILOC2 = 1, U_NLOC/CV_NLOC
-                              U_INOD2 = XU_NDGLN(( ELE2 - 1 ) * XU_NLOC + U_ILOC2 )
-                              IF( U_INOD2 == U_INOD ) THEN 
-                                 DO ILEV=1,CV_NLOC
-                                    U_ILOC_OTHER_SIDE( U_SILOC +(ILEV-1)*U_SNLOC/CV_NLOC) &
-                                         = U_ILOC2 + (ILEV-1)*U_NLOC/CV_NLOC
-                                    U_OTHER_LOC( U_ILOC + (ILEV-1)*U_NLOC/CV_NLOC) &
-                                         = U_ILOC2 + (ILEV-1)*U_NLOC/CV_NLOC
-                                 END DO
-                              ENDIF
-                           END DO
-                        END DO
-                     ENDIF
-                  ELSE
-                     U_OTHER_LOC=0
-                     U_ILOC_OTHER_SIDE=0
-                     IF( XU_NLOC == 1 ) THEN ! For constant vel basis functions...
-                        U_ILOC_OTHER_SIDE( 1 ) = 1
-                        U_OTHER_LOC( 1 )= 1
-                     ELSE
-                        DO U_SILOC = 1, U_SNLOC
-                           U_ILOC = U_SLOC2LOC( U_SILOC )
-                           U_INOD = XU_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
-                           DO U_ILOC2 = 1, U_NLOC
-                              U_INOD2 = XU_NDGLN(( ELE2 - 1 ) * U_NLOC + U_ILOC2 )
-                              IF( U_INOD2 == U_INOD ) THEN
-                                 U_ILOC_OTHER_SIDE( U_SILOC ) = U_ILOC2
-                                 U_OTHER_LOC( U_ILOC )=U_ILOC2
-                              ENDIF
-                           END DO
-                        END DO
-                     ENDIF
-                  ENDIF
+              ELSE If_stored
 
-                  MAT_OTHER_LOC=0
-                  DO MAT_SILOC = 1, CV_SNLOC
-                     MAT_ILOC = CV_SLOC2LOC( MAT_SILOC )
-                     MAT_INOD = X_NDGLN(( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
-                     DO MAT_ILOC2 = 1, MAT_NLOC
-                        MAT_INOD2 = X_NDGLN(( ELE2 - 1 ) * MAT_NLOC + MAT_ILOC2 )
-                        IF( MAT_INOD2 == MAT_INOD ) THEN
-                           MAT_OTHER_LOC( MAT_ILOC )=MAT_ILOC2
-                        ENDIF
+               if( is_overlapping ) then
+                  U_OTHER_LOC=0
+                  U_ILOC_OTHER_SIDE=0
+                  IF( XU_NLOC == 1 ) THEN ! For constant vel basis functions...
+                     DO ILEV=1,CV_NLOC
+                        U_ILOC_OTHER_SIDE( 1 +(ILEV-1)*U_SNLOC/CV_NLOC) &
+                             = 1 + (ILEV-1)*U_NLOC/CV_NLOC
+                        U_OTHER_LOC( 1 + (ILEV-1)*U_NLOC/CV_NLOC) &
+                             = 1 + (ILEV-1)*U_NLOC/CV_NLOC
                      END DO
-                  END DO
-
-                  IF(ISTORED_OTHER_SIDE.NE.0) THEN
-
-                     STORED_U_ILOC_OTHER_SIDE( :, IFACE, ELE ) = U_ILOC_OTHER_SIDE( : )
-                     STORED_U_OTHER_LOC( :, IFACE, ELE )       = U_OTHER_LOC( : )
-                     STORED_MAT_OTHER_LOC( :, IFACE, ELE )     = MAT_OTHER_LOC( : )
-
+                  ELSE
+                     DO U_SILOC = 1, U_SNLOC/CV_NLOC
+                        U_ILOC = U_SLOC2LOC( U_SILOC )
+                        U_INOD = XU_NDGLN(( ELE - 1 ) * XU_NLOC + U_ILOC )
+                        DO U_ILOC2 = 1, U_NLOC/CV_NLOC
+                           U_INOD2 = XU_NDGLN(( ELE2 - 1 ) * XU_NLOC + U_ILOC2 )
+                           IF( U_INOD2 == U_INOD ) THEN 
+                              DO ILEV=1,CV_NLOC
+                                 U_ILOC_OTHER_SIDE( U_SILOC +(ILEV-1)*U_SNLOC/CV_NLOC) &
+                                      = U_ILOC2 + (ILEV-1)*U_NLOC/CV_NLOC
+                                 U_OTHER_LOC( U_ILOC + (ILEV-1)*U_NLOC/CV_NLOC) &
+                                      = U_ILOC2 + (ILEV-1)*U_NLOC/CV_NLOC
+                              END DO
+                           ENDIF
+                        END DO
+                     END DO
                   ENDIF
+               ELSE ! Not overlapping...
+                  U_OTHER_LOC=0
+                  U_ILOC_OTHER_SIDE=0
+                  IF( XU_NLOC == 1 ) THEN ! For constant vel basis functions...
+                     U_ILOC_OTHER_SIDE( 1 ) = 1
+                     U_OTHER_LOC( 1 )= 1
+                  ELSE
+                     DO U_SILOC = 1, U_SNLOC
+                        U_ILOC = U_SLOC2LOC( U_SILOC )
+                        U_INOD = XU_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
+                        DO U_ILOC2 = 1, U_NLOC
+                           U_INOD2 = XU_NDGLN(( ELE2 - 1 ) * U_NLOC + U_ILOC2 )
+                           IF( U_INOD2 == U_INOD ) THEN
+                              U_ILOC_OTHER_SIDE( U_SILOC ) = U_ILOC2
+                              U_OTHER_LOC( U_ILOC )=U_ILOC2
+                           ENDIF
+                        END DO
+                     END DO
+                  ENDIF
+               ENDIF
+
+               MAT_OTHER_LOC=0
+               DO MAT_SILOC = 1, CV_SNLOC
+                  MAT_ILOC = CV_SLOC2LOC( MAT_SILOC )
+                  MAT_INOD = X_NDGLN(( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
+                  DO MAT_ILOC2 = 1, MAT_NLOC
+                     MAT_INOD2 = X_NDGLN(( ELE2 - 1 ) * MAT_NLOC + MAT_ILOC2 )
+                     IF( MAT_INOD2 == MAT_INOD ) THEN
+                        MAT_OTHER_LOC( MAT_ILOC )=MAT_ILOC2
+                     ENDIF
+                  END DO
+               END DO
+
+               IF(ISTORED_OTHER_SIDE.NE.0) THEN
+
+                  STORED_U_ILOC_OTHER_SIDE( :, IFACE, ELE ) = U_ILOC_OTHER_SIDE( : )
+                  STORED_U_OTHER_LOC( :, IFACE, ELE )       = U_OTHER_LOC( : )
+                  STORED_MAT_OTHER_LOC( :, IFACE, ELE )     = MAT_OTHER_LOC( : )
+
+               ENDIF
 
 
-               ENDIF If_stored
+             ENDIF If_stored
 
-               ! ***********SUBROUTINE DETERMINE_OTHER_SIDE_FACE - END************
-
-
+! ***********SUBROUTINE DETERMINE_OTHER_SIDE_FACE - END************
             ENDIF If_ele2_notzero_1
 
 
@@ -4345,6 +4360,7 @@
 
 
             If_on_boundary_domain: IF(SELE /= 0) THEN
+! ***********SUBROUTINE DETERMINE_SUF_PRES - START************
                ! Put the surface integrals in for pressure b.c.'s
                ! that is add into C matrix and U_RHS. (DG velocities)
                Loop_ILOC2: DO U_SILOC = 1, U_SNLOC
@@ -4362,13 +4378,15 @@
                      if( ( .not. is_overlapping ) .or. ( p_jloc == ilev ) ) then
                         JCV_NOD = P_SNDGLN(( SELE - 1 ) * P_SNLOC + P_SJLOC )
                         !ewrite(3,*)'ele, sele, p_jloc, jcv_nod:', ele, sele, p_jloc, jcv_nod
-                        NMX = 0.0  
-                        NMY = 0.0 
-                        NMZ = 0.0   
+                        NMX_ALL = 0.0  
+!                        NMX = 0.0  
+!                        NMY = 0.0 
+!                        NMZ = 0.0   
                         Loop_GaussPoints2: DO SGI = 1, SBCVNGI
-                           NMX = NMX + SNORMXN( SGI ) * SBUFEN( U_SILOC, SGI ) * SBCVFEN( P_SJLOC, SGI ) * SDETWE( SGI )
-                           NMY = NMY + SNORMYN( SGI ) * SBUFEN( U_SILOC, SGI ) * SBCVFEN( P_SJLOC, SGI ) * SDETWE( SGI )
-                           NMZ = NMZ + SNORMZN( SGI ) * SBUFEN( U_SILOC, SGI ) * SBCVFEN( P_SJLOC, SGI ) * SDETWE( SGI )
+                           NMX_ALL(:) = NMX_ALL(:) + SNORMXN_ALL( :, SGI ) *SBUFEN( U_SILOC, SGI ) * SBCVFEN( P_SJLOC, SGI ) * SDETWE( SGI )
+!                           NMX = NMX + SNORMXN( SGI ) * SBUFEN( U_SILOC, SGI ) * SBCVFEN( P_SJLOC, SGI ) * SDETWE( SGI )
+!                           NMY = NMY + SNORMYN( SGI ) * SBUFEN( U_SILOC, SGI ) * SBCVFEN( P_SJLOC, SGI ) * SDETWE( SGI )
+!                           NMZ = NMZ + SNORMZN( SGI ) * SBUFEN( U_SILOC, SGI ) * SBCVFEN( P_SJLOC, SGI ) * SDETWE( SGI )
                            !ewrite(3,*)'sgi,SNORMXN( SGI ),SBUFEN( U_SILOC, SGI ),SBCVFEN( P_SJLOC, SGI ),SDETWE( SGI ):', &
                            !     sgi,SNORMXN( SGI ),SBUFEN( U_SILOC, SGI ),SBCVFEN( P_SJLOC, SGI ),SDETWE( SGI )
                         END DO Loop_GaussPoints2
@@ -4377,8 +4395,13 @@
                         ! Put into matrix
 
                         ! Find COUNT - position in matrix : FINMCY, COLMCY
-                        CALL POSINMAT( COUNT, IU_NOD, JCV_NOD,  &
-                             U_NONODS, FINDC, COLC, NCOLC )
+!                        CALL POSINMAT( COUNT, IU_NOD, JCV_NOD,  &
+!                             U_NONODS, FINDC, COLC, NCOLC )
+
+            CALL USE_POSINMAT_C_STORE(COUNT, IU_NOD, JCV_NOD,  &
+              U_NONODS, FINDC, COLC, NCOLC, &
+              IDO_STORE_AC_SPAR_PT,STORED_AC_SPAR_PT, POSINMAT_C_STORE,ELE,U_ILOC,P_JLOC, &
+              TOTELE,U_NLOC,P_NLOC) 
 
                         Loop_Phase2: DO IPHASE = 1, NPHASE
                            COUNT_PHA = COUNT + ( IPHASE - 1 ) * NDIM_VEL * NCOLC 
@@ -4386,22 +4409,29 @@
                            SUF_P_SJ_IPHA = ( SELE - 1 ) * P_SNLOC + P_SJLOC  + (IPHASE-1)*STOTEL*P_SNLOC
 
                            IF(WIC_P_BC(SELE+(IPHASE-1)*STOTEL) == WIC_P_BC_DIRICHLET) THEN
-                              C( COUNT_PHA ) = C( COUNT_PHA ) + NMX * SELE_OVERLAP_SCALE(P_JLOC)
-                              IF( NDIM_VEL >= 2 ) C( COUNT_PHA + NCOLC )     = C( COUNT_PHA + NCOLC ) &
-                                   + NMY * SELE_OVERLAP_SCALE(P_JLOC)
-                              IF( NDIM_VEL >= 3 ) C( COUNT_PHA + 2 * NCOLC ) = C( COUNT_PHA + 2 * NCOLC ) &
-                                   + NMZ * SELE_OVERLAP_SCALE(P_JLOC)
-                              !ewrite(3,*)'sele,IU_PHA_NOD,SUF_P_SJ_IPHA,NMX,NMy,NMz,SUF_P_BC( SUF_P_SJ_IPHA ),SELE_OVERLAP_SCALE(P_JLOC):', &
-                              !     sele,IU_PHA_NOD,SUF_P_SJ_IPHA,NMX,NMy,NMz,SUF_P_BC( SUF_P_SJ_IPHA ),SELE_OVERLAP_SCALE(P_JLOC)
+ 
+                              DO IDIM=1,NDIM_VEL
+                                 C( COUNT_PHA + NCOLC*(IDIM-1) )     = C( COUNT_PHA + NCOLC*(IDIM-1) )+ NMX_ALL(IDIM) * SELE_OVERLAP_SCALE(P_JLOC)
+                                 LOC_U_RHS( IDIM, IPHASE, U_ILOC) =  LOC_U_RHS( IDIM, IPHASE, U_ILOC)  &
+                                   - NMX_ALL(IDIM) * SUF_P_BC( SUF_P_SJ_IPHA ) * SELE_OVERLAP_SCALE(P_JLOC)
+                              END DO
 
-                              U_RHS( IU_PHA_NOD ) = U_RHS( IU_PHA_NOD ) &
-                                   - NMX * SUF_P_BC( SUF_P_SJ_IPHA ) * SELE_OVERLAP_SCALE(P_JLOC)
-                              IF( NDIM_VEL >= 2 ) U_RHS( IU_PHA_NOD + U_NONODS )  = &
-                                   U_RHS( IU_PHA_NOD + U_NONODS ) &
-                                   - NMY * SUF_P_BC( SUF_P_SJ_IPHA ) * SELE_OVERLAP_SCALE(P_JLOC)
-                              IF( NDIM_VEL >= 3 ) U_RHS( IU_PHA_NOD + 2 * U_NONODS ) = &
-                                   U_RHS( IU_PHA_NOD + 2 * U_NONODS ) &
-                                   - NMZ * SUF_P_BC( SUF_P_SJ_IPHA ) * SELE_OVERLAP_SCALE(P_JLOC)
+!                              C( COUNT_PHA ) = C( COUNT_PHA ) + NMX * SELE_OVERLAP_SCALE(P_JLOC)
+!                              IF( NDIM_VEL >= 2 ) C( COUNT_PHA + NCOLC )     = C( COUNT_PHA + NCOLC ) &
+!                                   + NMY * SELE_OVERLAP_SCALE(P_JLOC)
+!                              IF( NDIM_VEL >= 3 ) C( COUNT_PHA + 2 * NCOLC ) = C( COUNT_PHA + 2 * NCOLC ) &
+!                                   + NMZ * SELE_OVERLAP_SCALE(P_JLOC)
+!                              !ewrite(3,*)'sele,IU_PHA_NOD,SUF_P_SJ_IPHA,NMX,NMy,NMz,SUF_P_BC( SUF_P_SJ_IPHA ),SELE_OVERLAP_SCALE(P_JLOC):', &
+!                              !     sele,IU_PHA_NOD,SUF_P_SJ_IPHA,NMX,NMy,NMz,SUF_P_BC( SUF_P_SJ_IPHA ),SELE_OVERLAP_SCALE(P_JLOC)
+
+!                              U_RHS( IU_PHA_NOD ) = U_RHS( IU_PHA_NOD ) &
+!                                   - NMX * SUF_P_BC( SUF_P_SJ_IPHA ) * SELE_OVERLAP_SCALE(P_JLOC)
+!                              IF( NDIM_VEL >= 2 ) U_RHS( IU_PHA_NOD + U_NONODS )  = &
+!                                   U_RHS( IU_PHA_NOD + U_NONODS ) &
+!                                   - NMY * SUF_P_BC( SUF_P_SJ_IPHA ) * SELE_OVERLAP_SCALE(P_JLOC)
+!                              IF( NDIM_VEL >= 3 ) U_RHS( IU_PHA_NOD + 2 * U_NONODS ) = &
+!                                   U_RHS( IU_PHA_NOD + 2 * U_NONODS ) &
+!                                   - NMZ * SUF_P_BC( SUF_P_SJ_IPHA ) * SELE_OVERLAP_SCALE(P_JLOC)
                            ENDIF
 
                         END DO Loop_Phase2
@@ -4409,6 +4439,7 @@
                   END DO Loop_JLOC2
 
                END DO Loop_ILOC2
+! ***********SUBROUTINE DETERMINE_SUF_PRES - END************
             ENDIF If_on_boundary_domain
 
 
@@ -4418,41 +4449,49 @@
                SDENOLD=0.0
                SDEN_KEEP=0.0 ; SDEN2_KEEP=0.0
                SDENOLD_KEEP=0.0 ; SDENOLD2_KEEP=0.0
-               DO CV_SKLOC=1,CV_SNLOC
-                  CV_KLOC=CV_SLOC2LOC( CV_SKLOC )
-                  CV_NODK=CV_NDGLN((ELE-1)*CV_NLOC+CV_KLOC)
-                  IF((ELE2/=0).AND.MOM_CONSERV) THEN
-                     CV_KLOC2 = MAT_OTHER_LOC(CV_KLOC)
-                     CV_NODK2 = CV_NDGLN(( ELE2 - 1 ) * CV_NLOC + CV_KLOC2 )
-                  ELSE
-                     CV_KLOC2 = CV_KLOC
-                     CV_NODK2 = CV_NODK
-                  ENDIF
+               DO CV_SILOC=1,CV_SNLOC
+                  CV_ILOC=CV_SLOC2LOC( CV_SILOC )
+!                  CV_NODK=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)
+!                  IF((ELE2/=0).AND.MOM_CONSERV) THEN
+!                     CV_ILOC2 = MAT_OTHER_LOC(CV_ILOC)
+!                     CV_NODK2 = CV_NDGLN(( ELE2 - 1 ) * CV_NLOC + CV_ILOC2 )
+!                  ELSE
+!                     CV_ILOC2 = CV_ILOC
+!                     CV_NODK2 = CV_NODK
+!                  ENDIF
                   DO IPHASE=1, NPHASE
-                     CV_NODK_PHA =CV_NODK +(IPHASE-1)*CV_NONODS
-                     CV_NODK2_PHA=CV_NODK2+(IPHASE-1)*CV_NONODS
+!                     CV_NODK_PHA =CV_NODK +(IPHASE-1)*CV_NONODS
+!                     CV_NODK2_PHA=CV_NODK2+(IPHASE-1)*CV_NONODS
                      DO SGI=1,SBCVNGI
-                        SDEN(SGI,IPHASE)=SDEN(SGI,IPHASE) + SBCVFEN(CV_SKLOC,SGI) &
-                             *0.5*(UDEN(CV_NODK_PHA)+UDEN(CV_NODK2_PHA)) *WITH_NONLIN
-                        SDENOLD(SGI,IPHASE)=SDENOLD(SGI,IPHASE) + SBCVFEN(CV_SKLOC,SGI) &
-                             *0.5*(UDENOLD(CV_NODK_PHA)+UDENOLD(CV_NODK2_PHA)) *WITH_NONLIN
+                        SDEN(SGI,IPHASE)=SDEN(SGI,IPHASE) + SBCVFEN(CV_SILOC,SGI) &
+                             *0.5*(SLOC_UDEN(IPHASE,CV_SILOC)+SLOC2_UDEN(IPHASE,CV_SILOC)) *WITH_NONLIN
+!                             *0.5*(UDEN(CV_NODK_PHA)+UDEN(CV_NODK2_PHA)) *WITH_NONLIN
+                        SDENOLD(SGI,IPHASE)=SDENOLD(SGI,IPHASE) + SBCVFEN(CV_SILOC,SGI) &
+                             *0.5*(SLOC_UDENOLD(IPHASE,CV_SILOC)+SLOC2_UDENOLD(IPHASE,CV_SILOC)) *WITH_NONLIN
+!                             *0.5*(UDENOLD(CV_NODK_PHA)+UDENOLD(CV_NODK2_PHA)) *WITH_NONLIN
 
-                        SDEN_KEEP(SGI,IPHASE)=SDEN_KEEP(SGI,IPHASE) + SBCVFEN(CV_SKLOC,SGI) &
-                             *UDEN(CV_NODK_PHA)*WITH_NONLIN
-                        SDEN2_KEEP(SGI,IPHASE)=SDEN2_KEEP(SGI,IPHASE) + SBCVFEN(CV_SKLOC,SGI) &
-                             *UDEN(CV_NODK2_PHA)*WITH_NONLIN
+                        SDEN_KEEP(SGI,IPHASE)=SDEN_KEEP(SGI,IPHASE) + SBCVFEN(CV_SILOC,SGI) &
+                             *SLOC_UDEN(IPHASE,CV_SILOC)*WITH_NONLIN
+!                             *UDEN(CV_NODK_PHA)*WITH_NONLIN
+                        SDEN2_KEEP(SGI,IPHASE)=SDEN2_KEEP(SGI,IPHASE) + SBCVFEN(CV_SILOC,SGI) &
+                             *SLOC2_UDEN(IPHASE,CV_SILOC)*WITH_NONLIN
+!                             *UDEN(CV_NODK2_PHA)*WITH_NONLIN
 
-                        SDENOLD_KEEP(SGI,IPHASE)=SDENOLD_KEEP(SGI,IPHASE) + SBCVFEN(CV_SKLOC,SGI) &
-                             *UDENOLD(CV_NODK_PHA)*WITH_NONLIN
-                        SDENOLD2_KEEP(SGI,IPHASE)=SDENOLD2_KEEP(SGI,IPHASE) + SBCVFEN(CV_SKLOC,SGI) &
-                             *UDENOLD(CV_NODK2_PHA)*WITH_NONLIN
+                        SDENOLD_KEEP(SGI,IPHASE)=SDENOLD_KEEP(SGI,IPHASE) + SBCVFEN(CV_SILOC,SGI) &
+                             *SLOC_UDENOLD(IPHASE,CV_SILOC)*WITH_NONLIN
+!                             *UDENOLD(CV_NODK_PHA)*WITH_NONLIN
+                        SDENOLD2_KEEP(SGI,IPHASE)=SDENOLD2_KEEP(SGI,IPHASE) + SBCVFEN(CV_SILOC,SGI) &
+                             *SLOC2_UDENOLD(IPHASE,CV_SILOC)*WITH_NONLIN
+!                             *UDENOLD(CV_NODK2_PHA)*WITH_NONLIN
                      END DO
                   END DO
                END DO
 
+!               SUD_ALL=0.0
                SUD=0.0
                SVD=0.0
                SWD=0.0
+!               SUDOLD_ALL=0.0
                SUDOLD=0.0
                SVDOLD=0.0
                SWDOLD=0.0
@@ -4462,6 +4501,9 @@
                   DO IPHASE=1, NPHASE
                      U_NODK_PHA=U_NODK+(IPHASE-1)*U_NONODS
                      DO SGI=1,SBCVNGI
+!                        SUD_ALL(:,IPHASE,SGI)   =SUD(:,IPHASE,SGI)    + SBUFEN(SGI,U_SILOC)*SLOC_NU(:,IPHASE,U_SILOC)
+!                        SUDOLD_ALL(:,IPHASE,SGI)=SUDOLD(:,IPHASE,SGI) + SBUFEN(SGI,U_SILOC)*SLOC_NUOLD(:,IPHASE,U_SILOC)
+
                         SUD(SGI,IPHASE)=SUD(SGI,IPHASE) + SBUFEN(U_SKLOC,SGI)*NU(U_NODK_PHA)
                         SVD(SGI,IPHASE)=SVD(SGI,IPHASE) + SBUFEN(U_SKLOC,SGI)*NV(U_NODK_PHA)
                         SWD(SGI,IPHASE)=SWD(SGI,IPHASE) + SBUFEN(U_SKLOC,SGI)*NW(U_NODK_PHA)
@@ -4511,10 +4553,21 @@
                               VNMZ = VNMZ + SNORMZN(SGI) * RNN
                            END DO
 
-                           CALL POSINMAT( COUNT,  U_INOD, P_JNOD,&
-                                U_NONODS, FINDC, COLC, NCOLC )
-                           CALL POSINMAT( COUNT2, U_INOD, P_JNOD2,&
-                                U_NONODS, FINDC, COLC, NCOLC )
+!                           CALL POSINMAT( COUNT,  U_INOD, P_JNOD,&
+!                                U_NONODS, FINDC, COLC, NCOLC )
+!                           CALL POSINMAT( COUNT2, U_INOD, P_JNOD2,&
+!                                U_NONODS, FINDC, COLC, NCOLC )
+
+            CALL USE_POSINMAT_C_STORE(COUNT, U_INOD, P_JNOD,  &
+              U_NONODS, FINDC, COLC, NCOLC, &
+              IDO_STORE_AC_SPAR_PT,STORED_AC_SPAR_PT, POSINMAT_C_STORE,ELE,U_ILOC,P_JLOC, &
+              TOTELE,U_NLOC,P_NLOC) 
+
+            CALL USE_POSINMAT_C_STORE_SUF_DG(COUNT2, U_INOD, P_JNOD2,  &
+              U_NONODS, FINDC, COLC, NCOLC, &
+              IDO_STORE_AC_SPAR_PT,STORED_AC_SPAR_PT, POSINMAT_C_STORE_SUF_DG, ELE,IFACE,U_SILOC,P_SJLOC,  &
+              TOTELE,NFACE,U_SNLOC,P_SNLOC) 
+
                            Loop_Phase5: DO IPHASE = 1, NPHASE
                               COUNT_PHA  = COUNT  + ( IPHASE - 1 ) * NDIM_VEL * NCOLC
                               COUNT_PHA2 = COUNT2 + ( IPHASE - 1 ) * NDIM_VEL * NCOLC
@@ -5337,6 +5390,16 @@
 
          ! ideally insert inner element stabilization here... 
 
+         ! copy local memory
+         DO U_ILOC = 1, U_NLOC
+            U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
+            DO IPHASE = 1, NPHASE
+               DO IDIM = 1, NDIM_VEL
+                  I = U_INOD + (IDIM-1)*U_NONODS + (IPHASE-1)*NDIM_VEL*U_NONODS
+                  U_RHS( I ) = U_RHS( I ) + LOC_U_RHS( IDIM, IPHASE, U_ILOC )
+               END DO
+            END DO
+         END DO
 
          !      END DO Loop_Elements
       END DO Loop_Elements2
@@ -5744,6 +5807,60 @@
 
               return
               end function dg_oscilat_detect
+
+
+
+
+
+            SUBROUTINE USE_POSINMAT_C_STORE(COUNT, U_INOD, P_JNOD,  &
+              U_NONODS, FINDC, COLC, NCOLC, &
+              IDO_STORE_AC_SPAR_PT,STORED_AC_SPAR_PT, POSINMAT_C_STORE,ELE,U_ILOC,P_JLOC, &
+              TOTELE,U_NLOC,P_NLOC) 
+      INTEGER, intent( inout ) :: COUNT
+      INTEGER, intent( in ) :: U_INOD, P_JNOD, U_NONODS,  NCOLC
+      INTEGER, intent( in ) :: ELE,U_ILOC,P_JLOC,  TOTELE,U_NLOC,P_NLOC
+      INTEGER, intent( in ) :: IDO_STORE_AC_SPAR_PT
+      LOGICAL, intent( in ) :: STORED_AC_SPAR_PT
+      INTEGER, DIMENSION( U_NLOC,P_NLOC, TOTELE*IDO_STORE_AC_SPAR_PT), intent( inout ) :: POSINMAT_C_STORE
+      INTEGER, DIMENSION( U_NONODS + 1), intent( in ) :: FINDC
+      INTEGER, DIMENSION( NCOLC), intent( in ) :: COLC
+
+                        ! Find COUNT - position in matrix : FINMCY, COLMCY
+                        IF(STORED_AC_SPAR_PT) THEN
+                           COUNT=POSINMAT_C_STORE(U_ILOC,P_JLOC,ELE) 
+                        ELSE
+                           CALL POSINMAT( COUNT, U_INOD, P_JNOD,  &
+                             U_NONODS, FINDC, COLC, NCOLC )
+                           IF(IDO_STORE_AC_SPAR_PT.NE.0) POSINMAT_C_STORE(U_ILOC,P_JLOC,ELE) = COUNT
+                        ENDIF
+            RETURN
+            END SUBROUTINE USE_POSINMAT_C_STORE
+
+
+
+
+            SUBROUTINE USE_POSINMAT_C_STORE_SUF_DG(COUNT, U_INOD, P_JNOD,  &
+               U_NONODS, FINDC, COLC, NCOLC, &
+               IDO_STORE_AC_SPAR_PT,STORED_AC_SPAR_PT, POSINMAT_C_STORE_SUF_DG, ELE,IFACE,U_SILOC,P_SJLOC,  &
+               TOTELE,NFACE,U_SNLOC,P_SNLOC) 
+      INTEGER, intent( inout ) :: COUNT
+      INTEGER, intent( in ) :: U_INOD, P_JNOD, U_NONODS,  NCOLC
+      INTEGER, intent( in ) :: ELE,IFACE,U_SILOC,P_SJLOC,  TOTELE,NFACE,U_SNLOC,P_SNLOC
+      INTEGER, intent( in ) :: IDO_STORE_AC_SPAR_PT
+      LOGICAL, intent( in ) :: STORED_AC_SPAR_PT
+      INTEGER, DIMENSION( U_SNLOC,P_SNLOC,NFACE,TOTELE*IDO_STORE_AC_SPAR_PT ), intent( inout ) :: POSINMAT_C_STORE_SUF_DG
+      INTEGER, DIMENSION( U_NONODS + 1), intent( in ) :: FINDC
+      INTEGER, DIMENSION( NCOLC), intent( in ) :: COLC
+                        ! Find COUNT2 - position in matrix : FINMCY, COLMCY
+                        IF(STORED_AC_SPAR_PT) THEN
+                           COUNT=POSINMAT_C_STORE_SUF_DG(U_SILOC,P_SJLOC,IFACE,ELE) 
+                        ELSE
+                           CALL POSINMAT( COUNT, U_INOD, P_JNOD,  &
+                             U_NONODS, FINDC, COLC, NCOLC )
+                           IF(IDO_STORE_AC_SPAR_PT.NE.0) POSINMAT_C_STORE_SUF_DG(U_SILOC,P_SJLOC,IFACE,ELE)=COUNT
+                        ENDIF
+            RETURN
+            END SUBROUTINE USE_POSINMAT_C_STORE_SUF_DG
 
 
 
