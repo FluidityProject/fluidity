@@ -2500,17 +2500,16 @@
            U_DX, U_DY, U_DZ, V_DX, V_DY, V_DZ, W_DX, W_DY, W_DZ, & 
            UOLD_DX, UOLD_DY, UOLD_DZ, VOLD_DX, VOLD_DY, VOLD_DZ, &
            WOLD_DX, WOLD_DY, WOLD_DZ, &
-           U_GRAD_NORM2, U_GRAD_NORM, V_GRAD_NORM2, V_GRAD_NORM,  W_GRAD_NORM2, W_GRAD_NORM, &
-           A_DOT_U, A_DOT_V,A_DOT_W, STAR_U_COEF, STAR_V_COEF, STAR_W_COEF, &
-           P_STAR_U, P_STAR_V, P_STAR_W, DIF_STAB_U, DIF_STAB_V, DIF_STAB_W, P_DX 
+           P_DX
 
-      REAL, DIMENSION ( : ), allocatable :: VLK_UVW
+      REAL, DIMENSION ( : ), allocatable :: VLK_UVW, U_R2_COEF, U_GRAD_N_MAX2  
       REAL, DIMENSION ( :, :, : ), allocatable :: RESID, DIFF_FOR_BETWEEN_U, DIFF_FOR_BETWEEN_V, &
-           DIFF_FOR_BETWEEN_W, MAT_ELE, DIFFGI_U, RHS_DIFF_U, DIFF_VEC_U, SOUGI_X, RESID_U, U_DT
+           DIFF_FOR_BETWEEN_W, MAT_ELE, DIFFGI_U, RHS_DIFF_U, DIFF_VEC_U, SOUGI_X, RESID_U, U_DT, &
+           DIF_STAB_U, U_GRAD_NORM2, U_GRAD_NORM, A_DOT_U, STAR_U_COEF, P_STAR_U 
       REAL, DIMENSION ( :, :, :, :, : ), allocatable :: UDIFF_SUF_STAB
       !
       ! Variables used to reduce indirect addressing...
-      REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U_RHS, UFENXNEW
+      REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U_RHS, UFENXNEW, CVFENXNEW 
       REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U, LOC_UOLD
       REAL, DIMENSION ( :, :, : ), allocatable :: LOC_NU, LOC_NUOLD
       REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U_ABSORB, LOC_U_ABS_STAB
@@ -2551,15 +2550,14 @@
            CV_SILOC, JDIM, JPHASE, ILEV, U_NLOC2, CV_KLOC2, CV_NODK2, CV_NODK2_PHA, GI_SHORT, NLEV, STAT, &
            GLOBI_CV, U_INOD_jDIM_jPHA, u_nod2, u_nod2_pha, cv_inod, COUNT_ELE, CV_ILOC2, CV_INOD2
       REAL    :: NN, NXN, NNX, NXNX, NMX, NMY, NMZ, SAREA, &
-           VNMX, VNMY, VNMZ, NM
+           VNMX, VNMY, VNMZ, NM, R
       REAL    :: VOLUME, MN, XC, YC, ZC, XC2, YC2, ZC2, HDC, VLM, VLM_NEW,VLM_OLD, NN_SNDOTQ_IN,NN_SNDOTQ_OUT, &
            NN_SNDOTQOLD_IN,NN_SNDOTQOLD_OUT, NORMX, NORMY, NORMZ, RNN, RN, RNMX(3)
       REAL    :: MASSE, MASSE2, rsum
       ! Nonlinear Petrov-Galerkin stuff...
       INTEGER :: RESID_BASED_STAB_DIF
       REAL :: U_NONLIN_SHOCK_COEF,RNO_P_IN_A_DOT
-      REAL :: JTT_INV,U_GRAD_N_MAX2,V_GRAD_N_MAX2,W_GRAD_N_MAX2
-      REAL :: U_R2_COEF,V_R2_COEF,W_R2_COEF
+      REAL :: JTT_INV
       REAL :: VLKNN, U_N
       REAL :: U_NODJ_SGI_IPHASE, U_NODI_SGI_IPHASE, &
            UOLD_NODJ_SGI_IPHASE, UOLD_NODI_SGI_IPHASE, &
@@ -2696,8 +2694,8 @@
       ALLOCATE( UD( NDIM_VEL, NPHASE, CV_NGI ))
       ALLOCATE( UDOLD( NDIM_VEL, NPHASE, CV_NGI ))
 
-      ALLOCATE( UD_ND( 3, NPHASE, CV_NGI ))
-      ALLOCATE( UDOLD_ND( 3, NPHASE, CV_NGI ))
+      ALLOCATE( UD_ND( NDIM, NPHASE, CV_NGI ))
+      ALLOCATE( UDOLD_ND( NDIM, NPHASE, CV_NGI ))
 
       ALLOCATE( DENGI( NPHASE, CV_NGI ))
       ALLOCATE( DENGIOLD( NPHASE, CV_NGI ))
@@ -2914,12 +2912,12 @@
 
       ALLOCATE( DIFFGI_U(NDIM,NPHASE,CV_NGI) )
 
-      ALLOCATE( U_DT(3, NPHASE,CV_NGI) ) !NDIM_VEL , U_DX(CV_NGI,NPHASE), U_DY(CV_NGI,NPHASE), U_DZ(CV_NGI,NPHASE) )
+      ALLOCATE( U_DT(NDIM_VEL, NPHASE,CV_NGI) ) !NDIM_VEL , U_DX(CV_NGI,NPHASE), U_DY(CV_NGI,NPHASE), U_DZ(CV_NGI,NPHASE) )
       !ALLOCATE( V_DT(NPHASE,CV_NGI) ) !, V_DX(CV_NGI,NPHASE), V_DY(CV_NGI,NPHASE), V_DZ(CV_NGI,NPHASE) )
       !ALLOCATE( W_DT(NPHASE,CV_NGI) ) !, W_DX(CV_NGI,NPHASE), W_DY(CV_NGI,NPHASE), W_DZ(CV_NGI,NPHASE) )
 
-      ALLOCATE( U_DX_NEW( 3, 3, NPHASE, CV_NGI ) ) ! formally: NDIM, NDIM_VEL, NPHASE, CV_NG
-      ALLOCATE( UOLD_DX_NEW( 3, 3, NPHASE, CV_NGI ) )
+      ALLOCATE( U_DX_NEW( NDIM, NDIM_VEL, NPHASE, CV_NGI ) )
+      ALLOCATE( UOLD_DX_NEW( NDIM, NDIM_VEL, NPHASE, CV_NGI ) )
 
       ALLOCATE( UOLD_DX(CV_NGI,NPHASE), UOLD_DY(CV_NGI,NPHASE), UOLD_DZ(CV_NGI,NPHASE) )
       ALLOCATE( VOLD_DX(CV_NGI,NPHASE), VOLD_DY(CV_NGI,NPHASE), VOLD_DZ(CV_NGI,NPHASE) )
@@ -2927,19 +2925,22 @@
 
       ALLOCATE( SOUGI_X(NDIM,NPHASE,CV_NGI) )   !, SOUGI_Y(CV_NGI,NPHASE), SOUGI_Z(CV_NGI,NPHASE) )
 
-      ALLOCATE( RESID( NDIM_VEL,NPHASE,CV_NGI ) )
-      ALLOCATE( RESID_U(3,NPHASE,CV_NGI) )   ! NDIM_VEL, RESID_V(CV_NGI,NPHASE), RESID_W(CV_NGI,NPHASE) )
-      ALLOCATE( P_DX(3, CV_NGI)  )    ! NDIM , P_DY(CV_NGI), P_DZ(CV_NGI) )
+      !ALLOCATE( RESID( NDIM_VEL,NPHASE,CV_NGI ) )
+      ALLOCATE( RESID_U(NDIM_VEL,NPHASE,CV_NGI) )   ! NDIM_VEL, RESID_V(CV_NGI,NPHASE), RESID_W(CV_NGI,NPHASE) )
+      ALLOCATE( P_DX(NDIM, CV_NGI)  )    ! NDIM , P_DY(CV_NGI), P_DZ(CV_NGI) )
 
-      ALLOCATE( U_GRAD_NORM2(CV_NGI,NPHASE), U_GRAD_NORM(CV_NGI,NPHASE) )
-      ALLOCATE( V_GRAD_NORM2(CV_NGI,NPHASE), V_GRAD_NORM(CV_NGI,NPHASE) )
-      ALLOCATE( W_GRAD_NORM2(CV_NGI,NPHASE), W_GRAD_NORM(CV_NGI,NPHASE) )
+      ALLOCATE( U_GRAD_NORM2(NDIM_VEL,NPHASE,CV_NGI), U_GRAD_NORM(NDIM_VEL,NPHASE,CV_NGI) )
+      !ALLOCATE( V_GRAD_NORM2(CV_NGI,NPHASE), V_GRAD_NORM(CV_NGI,NPHASE) )
+      !ALLOCATE( W_GRAD_NORM2(CV_NGI,NPHASE), W_GRAD_NORM(CV_NGI,NPHASE) )
 
-      ALLOCATE( A_DOT_U(CV_NGI,NPHASE), A_DOT_V(CV_NGI,NPHASE),A_DOT_W(CV_NGI,NPHASE) )
-      ALLOCATE( STAR_U_COEF(CV_NGI,NPHASE), STAR_V_COEF(CV_NGI,NPHASE), STAR_W_COEF(CV_NGI,NPHASE) )
-      ALLOCATE( P_STAR_U(CV_NGI,NPHASE), P_STAR_V(CV_NGI,NPHASE), P_STAR_W(CV_NGI,NPHASE) )
-      ALLOCATE( DIF_STAB_U(CV_NGI,NPHASE), DIF_STAB_V(CV_NGI,NPHASE), DIF_STAB_W(CV_NGI,NPHASE) )
+      ALLOCATE( A_DOT_U(NDIM_VEL,NPHASE,CV_NGI) )   !, A_DOT_V(CV_NGI,NPHASE),A_DOT_W(CV_NGI,NPHASE) )
+      ALLOCATE( STAR_U_COEF(NDIM_VEL,NPHASE,CV_NGI)   ) !, STAR_V_COEF(CV_NGI,NPHASE), STAR_W_COEF(CV_NGI,NPHASE) )
+      ALLOCATE( P_STAR_U(NDIM_VEL,NPHASE,CV_NGI) )  !, P_STAR_V(CV_NGI,NPHASE), P_STAR_W(CV_NGI,NPHASE) )
+      ALLOCATE( DIF_STAB_U(NDIM_VEL,NPHASE, CV_NGI) )  !, DIF_STAB_V(CV_NGI,NPHASE), DIF_STAB_W(CV_NGI,NPHASE) )
 
+
+      ALLOCATE( U_R2_COEF( NDIM_VEL ) )
+      ALLOCATE( U_GRAD_N_MAX2( NDIM_VEL ) )
       ALLOCATE( VLK_UVW(3) )
 
       ! Variables used to reduce indirect addressing...
@@ -2954,6 +2955,7 @@
       ALLOCATE( LOC_UDIFFUSION(NDIM, NDIM, NPHASE, MAT_NLOC) ) 
       ALLOCATE( LOC_U_RHS( NDIM_VEL, NPHASE, U_NLOC ) )
       ALLOCATE( UFENXNEW( U_NLOC, CV_NGI, NDIM ))
+      ALLOCATE( CVFENXNEW( CV_NLOC, CV_NGI, NDIM ))
 
       ALLOCATE( SUF_MOM_BC( NDIM_VEL,NPHASE,U_SNLOC,STOTEL ) ) ; SUF_MOM_BC = 0.0
       ALLOCATE( SUF_ROB1_BC( NDIM_VEL,NPHASE,U_SNLOC,STOTEL ) ) ; SUF_ROB1_BC = 0.0
@@ -3190,21 +3192,20 @@
          DO IDIM = 1, NDIM
             IF ( IDIM==1 ) THEN
                UFENXNEW( :, :, IDIM ) = UFENX
+               CVFENXNEW( :, :, IDIM ) = CVFENX
             END IF
             IF ( IDIM==2 ) THEN
                UFENXNEW( :, :, IDIM ) = UFENY
+               CVFENXNEW( :, :, IDIM ) = CVFENY
             END IF
             IF ( IDIM==3 ) THEN
                UFENXNEW( :, :, IDIM ) = UFENZ
+               CVFENXNEW( :, :, IDIM ) = CVFENZ
             END IF
          END DO
 
 
          ! *********subroutine Determine local vectors...
-
-         !ewrite(3,*) 'Leaving detnlxr_plus_u'
-         !ewrite(3,*)'volume=',volume
-         !stop 2892
 
          UD = 0.0 ; UDOLD = 0.0
          UD_ND = 0.0 ; UDOLD_ND = 0.0
@@ -3506,11 +3507,11 @@
                                 * UFEN( U_JLOC, GI ) * DETWEI( GI ) * WITH_NONLIN
                         ELSE
                            VLN( IPHASE ) = VLN( IPHASE ) + &
-                                UFEN( U_ILOC, GI ) * DENGI( IPHASE, GI ) * SUM( UD( :, IPHASE, GI ) * UFENXNEW( U_JLOC, GI, :) ) &
+                                UFEN( U_ILOC, GI ) * DENGI( IPHASE, GI ) * SUM( UD( :, IPHASE, GI ) * UFENXNEW( U_JLOC, GI, : ) ) &
                                 * DETWEI( GI ) * WITH_NONLIN
 
                            VLN_OLD( IPHASE ) = VLN_OLD( IPHASE ) + &
-                                UFEN( U_ILOC, GI ) * DENGI( IPHASE, GI ) * SUM( UDOLD( :, IPHASE, GI ) * UFENXNEW( U_JLOC, GI, :) ) &
+                                UFEN( U_ILOC, GI ) * DENGI( IPHASE, GI ) * SUM( UDOLD( :, IPHASE, GI ) * UFENXNEW( U_JLOC, GI, : ) ) &
                                 * DETWEI( GI ) * WITH_NONLIN
                         END IF
 
@@ -3760,7 +3761,7 @@
                U_DT( IDIM, :, : ) = ( UD( IDIM, :, : ) - UDOLD( IDIM, :, : ) ) / DT
             END DO
 
-            RESID=0.0
+            RESID_U = 0.0
             DO GI = 1, CV_NGI
                DO IPHASE = 1, NPHASE
                   DO IDIM = 1, NDIM_VEL 
@@ -3768,7 +3769,7 @@
                      DO JPHASE = 1, NPHASE
                         DO JDIM = 1, NDIM_VEL 
                            JPHA_JDIM = (JPHASE-1)*NDIM_VEL + JDIM
-                           RESID( IDIM, IPHASE, GI ) = RESID( IDIM, IPHASE, GI ) + &
+                           RESID_U( IDIM, IPHASE, GI ) = RESID_U( IDIM, IPHASE, GI ) + &
                                 SIGMAGI( IPHA_IDIM, JPHA_JDIM, GI ) * UD( JDIM, IPHASE, GI )
                         END DO
                      END DO
@@ -3776,29 +3777,23 @@
                END DO
             END DO
 
-            RESID_U = 0.0
-            RESID_U( 1:NDIM_VEL, :, : ) = RESID( 1:NDIM_VEL, :, : )
 
             P_DX = 0.0
 
             DO P_ILOC = 1, P_NLOC
                P_INOD = P_NDGLN( ( ELE - 1 ) * P_NLOC + P_ILOC )
                DO GI = 1, CV_NGI
-                  P_DX( 1, GI ) = P_DX( 1, GI ) + CVFENX( P_ILOC, GI )*P(P_INOD)
-                  IF(NDIM.GE.2) P_DX( 2, GI ) = P_DX( 2, GI ) + CVFENY( P_ILOC, GI ) * P( P_INOD )
-                  IF(NDIM.GE.3) P_DX( 3, GI ) = P_DX( 3, GI ) + CVFENZ( P_ILOC, GI ) * P( P_INOD )
+
+                  P_DX( :, GI ) = P_DX( :, GI ) + CVFENXNEW( P_ILOC, GI, : ) * P( P_INOD )
 
                   IF ( IPLIKE_GRAD_SOU == 1 .OR. CAPILLARY_PRESSURE_ACTIVATED ) THEN ! Capillary pressure for example terms...
                      DO IPHASE = 1, NPHASE
-                        RESID_U( 1, IPHASE, GI ) = RESID_U( 1, IPHASE, GI ) &
-                             +GRAD_SOU_GI( IPHASE, GI ) * CVFENX( P_ILOC, GI ) * &
-                             PLIKE_GRAD_SOU_GRAD( P_INOD + ( IPHASE - 1 ) * CV_NONODS )
-                        RESID_U( 2, IPHASE, GI ) = RESID_U( 2, IPHASE, GI ) &
-                             +GRAD_SOU_GI( IPHASE, GI ) * CVFENY( P_ILOC, GI ) * &
-                             PLIKE_GRAD_SOU_GRAD( P_INOD + ( IPHASE - 1 ) * CV_NONODS )
-                        RESID_U( 3, IPHASE, GI ) = RESID_U( 3, IPHASE, GI ) &
-                             +GRAD_SOU_GI( IPHASE, GI ) * CVFENZ( P_ILOC, GI ) * &
-                             PLIKE_GRAD_SOU_GRAD( P_INOD + ( IPHASE - 1 ) * CV_NONODS )
+
+                        R = GRAD_SOU_GI( IPHASE, GI ) * PLIKE_GRAD_SOU_GRAD( P_INOD + ( IPHASE - 1 ) * CV_NONODS )
+                        DO IDIM = 1, NDIM_VEL
+                           RESID_U( IDIM, IPHASE, GI ) = RESID_U( IDIM, IPHASE, GI ) + R * CVFENXNEW( P_ILOC, GI, IDIM )
+                        END DO
+
                      END DO
                   END IF
                END DO
@@ -3815,124 +3810,79 @@
                           * WITH_NONLIN &
                           + DENGI( IPHASE, GI ) * U_DT( IDIM, IPHASE, GI )   &
                           - SOUGI_X( IDIM, IPHASE, GI ) - DIFFGI_U( IDIM, IPHASE, GI ) + P_DX( IDIM, GI )
+
+                     U_GRAD_NORM2( IDIM, IPHASE, GI ) = U_DT( IDIM, IPHASE, GI )**2 + SUM( U_DX_NEW( :, IDIM, IPHASE, GI )**2 )
+                     U_GRAD_NORM( IDIM, IPHASE, GI ) = MAX( TOLER, SQRT( U_GRAD_NORM2( IDIM, IPHASE, GI ) ) )  
+                     U_GRAD_NORM2( IDIM, IPHASE, GI ) = MAX( TOLER, U_GRAD_NORM2( IDIM, IPHASE, GI ) )
+
+                     A_DOT_U( IDIM, IPHASE, GI ) = DENGI( IPHASE, GI ) * ( SUM( UD_ND( :, IPHASE, GI ) * U_DX_NEW( :, IDIM, IPHASE, GI ) ) &
+                          * WITH_NONLIN + U_DT( 1, IPHASE, GI ) ) + P_DX(1,GI) * RNO_P_IN_A_DOT
+
+                     STAR_U_COEF( IDIM, IPHASE, GI ) = A_DOT_U( IDIM, IPHASE, GI ) / U_GRAD_NORM2( IDIM, IPHASE, GI )
+
                   END DO
-
-                  U_GRAD_NORM2( GI, IPHASE ) = U_DT( 1, IPHASE, GI )**2 + SUM( U_DX_NEW( :, 1, IPHASE, GI )**2 )
-                  U_GRAD_NORM( GI, IPHASE ) = MAX( TOLER, SQRT(U_GRAD_NORM2( GI, IPHASE ) ) )  
-                  U_GRAD_NORM2( GI, IPHASE ) = MAX( TOLER, U_GRAD_NORM2( GI, IPHASE ) )
-
-                  V_GRAD_NORM2( GI, IPHASE ) = U_DT( 2, IPHASE, GI )**2 + SUM( U_DX_NEW( :, 2, IPHASE, GI )**2 )
-                  V_GRAD_NORM( GI, IPHASE ) = MAX( TOLER, SQRT(V_GRAD_NORM2( GI, IPHASE ) ) ) 
-                  V_GRAD_NORM2( GI, IPHASE ) = MAX( TOLER, V_GRAD_NORM2( GI, IPHASE ) ) 
-
-                  W_GRAD_NORM2( GI, IPHASE ) = U_DT( 3, IPHASE, GI )**2 + SUM( U_DX_NEW( :, 3, IPHASE, GI )**2 ) 
-                  W_GRAD_NORM( GI, IPHASE ) = MAX( TOLER, SQRT(W_GRAD_NORM2( GI, IPHASE ) ) ) 
-                  W_GRAD_NORM2( GI, IPHASE ) = MAX( TOLER, W_GRAD_NORM2( GI, IPHASE ) ) 
-
-                  A_DOT_U( GI, IPHASE ) = DENGI( IPHASE, GI ) * ( SUM( UD_ND( :, IPHASE, GI ) * U_DX_NEW( :, 1, IPHASE, GI ) ) &
-                       * WITH_NONLIN + U_DT( 1, IPHASE, GI ) ) + P_DX(1,GI) * RNO_P_IN_A_DOT
-                  A_DOT_V( GI, IPHASE ) = DENGI( IPHASE, GI ) * ( SUM( UD_ND( :, IPHASE, GI ) * U_DX_NEW( :, 2, IPHASE, GI ) ) &
-                       * WITH_NONLIN + U_DT( 2, IPHASE, GI ) ) + P_DX(2,GI) * RNO_P_IN_A_DOT
-                  A_DOT_W( GI, IPHASE ) = DENGI( IPHASE, GI ) * ( SUM( UD_ND( :, IPHASE, GI ) * U_DX_NEW( :, 3, IPHASE, GI ) ) &
-                       * WITH_NONLIN + U_DT( 3, IPHASE, GI ) ) + P_DX(3,GI) * RNO_P_IN_A_DOT
-
-                  STAR_U_COEF( GI, IPHASE ) = A_DOT_U( GI, IPHASE ) / U_GRAD_NORM2( GI, IPHASE )
-                  STAR_V_COEF( GI, IPHASE ) = A_DOT_V( GI, IPHASE ) / V_GRAD_NORM2( GI, IPHASE )
-                  STAR_W_COEF( GI, IPHASE ) = A_DOT_W( GI, IPHASE ) / W_GRAD_NORM2( GI, IPHASE )
-
 
                   JTT_INV = 2. / DT 
 
-                  U_GRAD_N_MAX2=0.0 ; V_GRAD_N_MAX2=0.0 ; W_GRAD_N_MAX2=0.0
+                  U_GRAD_N_MAX2=0.0 !; V_GRAD_N_MAX2=0.0 ; W_GRAD_N_MAX2=0.0
                   DO U_ILOC = 1, U_NLOC
-                     U_GRAD_N_MAX2 = MAX( U_GRAD_N_MAX2, &
-                          ( JTT_INV * U_DT( 1, IPHASE, GI ) )**2 &
-                          + 4. * SUM( ( UFENXNEW( U_ILOC, GI, : ) * U_DX_NEW( 1:NDIM, 1, IPHASE, GI ) )**2 ) )
-
-                     V_GRAD_N_MAX2 = MAX( V_GRAD_N_MAX2, &
-                          ( JTT_INV * U_DT( 2, IPHASE, GI ) )**2 &
-                          + 4. * SUM( ( UFENXNEW( U_ILOC, GI, : ) * U_DX_NEW( 1:NDIM, 2, IPHASE, GI ) )**2 ) )
-
-                     W_GRAD_N_MAX2 = MAX( W_GRAD_N_MAX2, &
-                          ( JTT_INV * U_DT( 3, IPHASE, GI ) )**2 &
-                          + 4. * SUM( ( UFENXNEW( U_ILOC, GI, : ) * U_DX_NEW( 1:NDIM, 3, IPHASE, GI ) )**2 ) )
+                     DO IDIM = 1, NDIM_VEL
+                        U_GRAD_N_MAX2( IDIM ) = MAX( U_GRAD_N_MAX2( IDIM ), &
+                             ( JTT_INV * U_DT( IDIM, IPHASE, GI ) )**2 &
+                             + 4. * SUM( ( UFENXNEW( U_ILOC, GI, : ) * U_DX_NEW( 1:NDIM, IDIM, IPHASE, GI ) )**2 ) )
+                     END DO
                   END DO
 
-                  P_STAR_U( GI, IPHASE ) = U_NONLIN_SHOCK_COEF / MAX( TOLER, SQRT( STAR_U_COEF( GI, IPHASE )**2 * U_GRAD_N_MAX2 ) )
-                  P_STAR_V( GI, IPHASE ) = U_NONLIN_SHOCK_COEF / MAX( TOLER, SQRT( STAR_V_COEF( GI, IPHASE )**2 * V_GRAD_N_MAX2 ) )
-                  P_STAR_W( GI, IPHASE ) = U_NONLIN_SHOCK_COEF / MAX( TOLER, SQRT( STAR_W_COEF( GI, IPHASE )**2 * W_GRAD_N_MAX2 ) )
+                  DO IDIM = 1, NDIM_VEL
+                     P_STAR_U( IDIM, IPHASE, GI ) = U_NONLIN_SHOCK_COEF / MAX( TOLER, SQRT( STAR_U_COEF( IDIM, IPHASE, GI )**2 * U_GRAD_N_MAX2( IDIM ) ) )
+                  END DO
 
                   IF ( RESID_BASED_STAB_DIF==1 ) THEN
 
-                     U_R2_COEF=RESID_U( 1, IPHASE, GI )**2
-                     V_R2_COEF=RESID_U( 2, IPHASE, GI )**2
-                     W_R2_COEF=RESID_U( 3, IPHASE, GI )**2
+                     U_R2_COEF( : ) = RESID_U( :, IPHASE, GI )**2
 
-                  ELSE IF ( RESID_BASED_STAB_DIF==2 ) THEN ! Default.
+                  ELSE IF ( RESID_BASED_STAB_DIF==2 ) THEN
 
-                     U_R2_COEF=MAX(0.0, A_DOT_U( GI, IPHASE )*RESID_U( 1, IPHASE, GI ) )
-                     V_R2_COEF=MAX(0.0, A_DOT_V( GI, IPHASE )*RESID_U( 2, IPHASE, GI ) )
-                     W_R2_COEF=MAX(0.0, A_DOT_W( GI, IPHASE )*RESID_U( 3, IPHASE, GI ) )
+                     U_R2_COEF( : ) = MAX( 0.0, A_DOT_U( :, IPHASE, GI ) * RESID_U( :, IPHASE, GI ) )
 
-                  ELSE IF ( RESID_BASED_STAB_DIF==3 ) THEN ! Max of both the methods.
+                  ELSE IF ( RESID_BASED_STAB_DIF==3 ) THEN ! Max of two previous methods.
 
-                     U_R2_COEF=MAX( RESID_U( 1, IPHASE, GI )**2, A_DOT_U( GI, IPHASE ) * RESID_U( 1, IPHASE, GI ) )
-                     V_R2_COEF=MAX( RESID_U( 2, IPHASE, GI )**2, A_DOT_V( GI, IPHASE ) * RESID_U( 2, IPHASE, GI ) )
-                     W_R2_COEF=MAX( RESID_U( 3, IPHASE, GI )**2, A_DOT_W( GI, IPHASE ) * RESID_U( 3, IPHASE, GI ) )
+                     U_R2_COEF( : ) = MAX( RESID_U( :, IPHASE, GI )**2, A_DOT_U( :, IPHASE, GI ) * RESID_U( :, IPHASE, GI ) )
 
-                  ENDIF
+                  END IF
 
-                  DIF_STAB_U( GI, IPHASE ) = (U_R2_COEF * P_STAR_U( GI, IPHASE )) / U_GRAD_NORM2( GI, IPHASE )
-                  DIF_STAB_V( GI, IPHASE ) = (V_R2_COEF * P_STAR_V( GI, IPHASE )) / V_GRAD_NORM2( GI, IPHASE )
-                  DIF_STAB_W( GI, IPHASE ) = (W_R2_COEF * P_STAR_W( GI, IPHASE )) / W_GRAD_NORM2( GI, IPHASE )
+                  DIF_STAB_U( :, IPHASE, GI ) = U_R2_COEF( : ) * P_STAR_U( :, IPHASE, GI ) / U_GRAD_NORM2( :, IPHASE, GI )
 
-                  ! ENDOF DO IPHASE = 1, NPHASE...
                END DO
-               ! ENDOF DO GI = 1, CV_NGI...
             END DO
 
 
             ! Place the diffusion term into matrix...
             DO U_ILOC = 1, U_NLOC
-               U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
                DO U_JLOC = 1, U_NLOC
-                  U_JNOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_JLOC )
                   DO IPHASE = 1, NPHASE
                      JPHASE = IPHASE
-                     GLOBJ_IPHA = U_JNOD + (IPHASE-1)*U_NONODS
+
                      VLK_UVW = 0.0
                      DO GI = 1, CV_NGI
-                        VLKNN = ( UFENX( U_ILOC, GI ) * UFENX( U_JLOC,  GI ) &
-                             +UFENY( U_ILOC, GI ) * UFENY( U_JLOC,  GI ) &
-                             +UFENZ( U_ILOC, GI ) * UFENZ( U_JLOC,  GI ) )* DETWEI( GI )
-                        VLK_UVW(1) = VLK_UVW(1) + DIF_STAB_U( GI, IPHASE ) * VLKNN
-                        VLK_UVW(2) = VLK_UVW(2) + DIF_STAB_V( GI, IPHASE ) * VLKNN
-                        VLK_UVW(3) = VLK_UVW(3) + DIF_STAB_W( GI, IPHASE ) * VLKNN
+                        VLKNN = SUM( UFENXNEW( U_ILOC, GI, : ) * UFENXNEW( U_JLOC, GI, : ) * DETWEI( GI ) )
+                        DO IDIM = 1, NDIM_VEL
+                           VLK_UVW( IDIM ) = VLK_UVW( IDIM ) + DIF_STAB_U( IDIM, IPHASE, GI ) * VLKNN
+                        END DO
                      END DO
 
                      DO IDIM = 1, NDIM_VEL
                         JDIM = IDIM
-                        U_INOD_IDIM_IPHA = U_INOD + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM_VEL*U_NONODS 
-                        U_JNOD_IDIM_IPHA = U_JNOD + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM_VEL*U_NONODS 
 
                         IF ( .NOT.JUST_BL_DIAG_MAT ) THEN
                            IF ( NO_MATRIX_STORE ) THEN
-                              IF(IDIM==1) U_RHS( U_INOD_IDIM_IPHA ) = U_RHS( U_INOD_IDIM_IPHA ) &
-                                   - VLK_UVW(IDIM) * U(GLOBJ_IPHA)
-                              IF(IDIM==2) U_RHS( U_INOD_IDIM_IPHA ) = U_RHS( U_INOD_IDIM_IPHA ) &
-                                   - VLK_UVW(IDIM) * V(GLOBJ_IPHA)
-                              IF(IDIM==3) U_RHS( U_INOD_IDIM_IPHA ) = U_RHS( U_INOD_IDIM_IPHA ) &
-                                   - VLK_UVW(IDIM) * W(GLOBJ_IPHA)
+                              LOC_U_RHS( IDIM, IPHASE, U_ILOC ) = LOC_U_RHS( IDIM, IPHASE, U_ILOC ) &
+                                   - VLK_UVW( IDIM ) * LOC_U( IDIM, IPHASE, U_JLOC )
                            ELSE
                               DIAG_BIGM_CON( IDIM, JDIM, IPHASE, JPHASE, U_ILOC, U_JLOC, ELE )  &
                                    = DIAG_BIGM_CON( IDIM, JDIM, IPHASE, JPHASE, U_ILOC, U_JLOC, ELE ) + VLK_UVW( IDIM )
                            END IF
                         END IF
-
-                        ! Adding diffusion and momentum terms to the global matrix
-                        I = U_ILOC + (IDIM-1) * U_NLOC + (IPHASE-1) * NDIM_VEL * U_NLOC
-                        J = U_JLOC + (IDIM-1) * U_NLOC + (IPHASE-1) * NDIM_VEL * U_NLOC
-
                      END DO
 
                   END DO
@@ -3957,11 +3907,11 @@
                         ! diffusion/viscocity.
                         RN = UFEN( U_ILOC, GI ) * DETWEI( GI )
                         DIFF_FOR_BETWEEN_U( ELE, IPHASE, U_ILOC ) = DIFF_FOR_BETWEEN_U( ELE, IPHASE, U_ILOC ) &
-                             + RN * DIF_STAB_U( GI, IPHASE )
+                             + RN * DIF_STAB_U( 1, IPHASE, GI )
                         IF(NDIM_VEL.GE.2) DIFF_FOR_BETWEEN_V( ELE, IPHASE, U_ILOC ) = DIFF_FOR_BETWEEN_V( ELE, IPHASE, U_ILOC ) &
-                             + RN * DIF_STAB_V( GI, IPHASE )
+                             + RN * DIF_STAB_U( 2, IPHASE, GI )
                         IF(NDIM_VEL.GE.3) DIFF_FOR_BETWEEN_W( ELE, IPHASE, U_ILOC ) = DIFF_FOR_BETWEEN_W( ELE, IPHASE, U_ILOC ) &
-                             + RN * DIF_STAB_W( GI, IPHASE )
+                             + RN * DIF_STAB_U( 3, IPHASE, GI )
                      END DO
                   END DO
                END DO
@@ -5416,6 +5366,8 @@
       DEALLOCATE( UFENY )
       DEALLOCATE( UFENZ )
 
+      DEALLOCATE( UFENXNEW, CVFENXNEW )
+
       DEALLOCATE( SCVFEN )
       DEALLOCATE( SCVFENSLX )
       DEALLOCATE( SCVFENSLY )
@@ -5550,18 +5502,18 @@
 
       DEALLOCATE( SOUGI_X )  !, SOUGI_Y, SOUGI_Z )
 
-      DEALLOCATE( RESID )
+      !DEALLOCATE( RESID )
       DEALLOCATE( RESID_U)   !, RESID_V, RESID_W )
       DEALLOCATE( P_DX ) !, P_DY, P_DZ )
 
       DEALLOCATE( U_GRAD_NORM2, U_GRAD_NORM )
-      DEALLOCATE( V_GRAD_NORM2, V_GRAD_NORM )
-      DEALLOCATE( W_GRAD_NORM2, W_GRAD_NORM )
+      !DEALLOCATE( V_GRAD_NORM2, V_GRAD_NORM )
+      !DEALLOCATE( W_GRAD_NORM2, W_GRAD_NORM )
 
-      DEALLOCATE( A_DOT_U, A_DOT_V,A_DOT_W )
-      DEALLOCATE( STAR_U_COEF, STAR_V_COEF, STAR_W_COEF )
-      DEALLOCATE( P_STAR_U, P_STAR_V, P_STAR_W )
-      DEALLOCATE( DIF_STAB_U, DIF_STAB_V, DIF_STAB_W )
+      DEALLOCATE( A_DOT_U )  !  , A_DOT_V,A_DOT_W )
+      DEALLOCATE( STAR_U_COEF )  !, STAR_V_COEF, STAR_W_COEF )
+      DEALLOCATE( P_STAR_U ) !  , P_STAR_V, P_STAR_W )
+      DEALLOCATE( DIF_STAB_U )  !, DIF_STAB_V, DIF_STAB_W )
 
       DEALLOCATE( UDIFF_SUF_STAB )
 
