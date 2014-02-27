@@ -270,6 +270,10 @@
          integer :: submaterials_istate
          ! Do we have fluid-particle drag between phases?
          logical :: have_fp_drag
+         
+         !Add the source term representing the inflow and outflow from the drainage system
+         type(scalar_field), pointer ::source_SWMM
+         logical :: have_SWMM
 
          ewrite(1,*) 'Entering solve_momentum'
 
@@ -451,6 +455,12 @@
             call allocate(dummyscalar, x%mesh, "DummyScalar", field_type=FIELD_TYPE_CONSTANT)
             call zero(dummyscalar)
             dummyscalar%option_path = ""
+            
+            !Extract the source_SWMM field or set it to dummy scalar field
+            source_SWMM=>extract_scalar_field(state, "Source_SWMM", stat)
+            have_SWMM = stat == 0
+            if(.not. have_SWMM) source_SWMM=>dummyscalar
+            ewrite_minmax(source_SWMM) 
 
             ! Depending on the equation type, extract the density or set it to some dummy field allocated above
             call get_option(trim(u%option_path)//"/prognostic/equation[0]/name", &
@@ -1771,9 +1781,14 @@
          type(ilist), intent(inout) :: stiff_nodes_list
 
          type(vector_field), pointer :: positions
-
+         
+         
+         
          ewrite(1,*) 'Entering correct_pressure'
-
+         !Add the source term representing the inflow and outflow from the drainage system
+        ! have_SWMM=has_scalar_field(state, "Source_SWMM")
+         
+         
 
          ! Apply strong Dirichlet conditions
          ! we're solving for "delta_p"=theta_pg*theta_divergence*dp*dt, where dp=p_final-p_current
@@ -1794,7 +1809,7 @@
             call zero_stiff_nodes(projec_rhs, stiff_nodes_list)
          end if
          call profiler_toc(p, "assembly")
-
+         
          ! Solve for the change in pressure, delta_p
          if(full_schur) then
             if(assemble_schur_auxiliary_matrix) then

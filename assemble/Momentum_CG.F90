@@ -137,7 +137,7 @@
     ! the calls to get_entire_boundary_condition below
     integer, parameter :: BC_TYPE_WEAKDIRICHLET = 1, BC_TYPE_NO_NORMAL_FLOW=2, &
                           BC_TYPE_INTERNAL = 3, BC_TYPE_FREE_SURFACE = 4, &
-                          BC_TYPE_FLUX = 5
+                          BC_TYPE_FLUX = 5, BC_TYPE_SWMM =6, BC_TYPE_RAINFALL = 7
     integer, parameter :: PRESSURE_BC_TYPE_WEAKDIRICHLET = 1, PRESSURE_BC_DIRICHLET = 2
 
     ! Stabilisation schemes.
@@ -175,9 +175,11 @@
     real :: ib_min_grad
     real::d0_a
     real::d0
-
+    !logical :: have_SWMM 
+    !logical :: have_rainfall
     ! Are we running a multi-phase flow simulation?
     logical :: multiphase
+    
 
   contains
 
@@ -298,7 +300,11 @@
       logical :: cache_valid
 
       type(element_type), dimension(:), allocatable :: supg_element
-
+      !Add the source term representing the inflow and outflow from the drainage system
+      !type(scalar_field), pointer ::source_SWMM
+      !type(scalar_field), pointer ::source_rainfall
+      
+      
       ewrite(1,*) 'Entering construct_momentum_cg'
     
       assert(continuity(u)>=0)
@@ -330,10 +336,23 @@
       have_absorption = stat == 0
       if(.not. have_absorption) absorption=>dummyvector
       ewrite_minmax(absorption)
-
+      
+     !high aspect ration conditioning
      have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
      have_sigma=has_scalar_field(state, "Sigma_d0")
      have_a=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/a")
+     
+     !Extract the source_SWMM field or set it to dummy scalar field
+    ! source_SWMM=>extract_scalar_field(state, "source_SWMM", stat)
+    ! have_SWMM = stat == 0
+    ! if(.not. have_SWMM) source_SWMM=>dummyscalar
+     !ewrite_minmax(source_SWMM) 
+            
+     !Extract the source_Rainfall field or set it to dummy scalar field
+     !source_rainfall=>extract_scalar_field(state, "source_rainfall", stat)
+     !have_rainfall = stat == 0
+     !if(.not. have_rainfall) source_rainfall=>dummyscalar
+    ! ewrite_minmax(source_rainfall) 
  
       have_wd_abs=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/dry_absorption")
       ! Absorption term in dry zones for wetting and drying
@@ -783,7 +802,9 @@
              "no_normal_flow", &
              "internal      ", &
              "free_surface  ", &
-             "flux          " &
+             "flux          ", &
+             "source_SWMM   ", &
+             "source_rain   "  &
            & /), velocity_bc, velocity_bc_type)
 
          allocate(pressure_bc_type(surface_element_count(p)))
@@ -1030,7 +1051,10 @@
 
       real, dimension(u%dim, face_loc(u, sele)) :: oldu_val
       real, dimension(u%dim, face_ngi(u, sele)) :: ndotk_k
-
+      !real, dimension(face_ngi(u, sele)) ::test_mat
+      real::source_q,sum_guess, source_qi 
+      real, dimension(face_loc(ct_rhs,sele))::source_guess_mat,source_mat
+      
       u_shape=> face_shape(u, sele)
       p_shape=> face_shape(ct_rhs, sele)
 
@@ -1205,7 +1229,33 @@
         end do
       end if
 
-
+      !Add the interacted flux with drainage system to the RHS of Continuity Equation. The flux can be calculated by SWMM.
+      !Add the interacted flux with drainage system to the RHS of Continuity Equation. The flux can be calculated by SWMM. 
+      
+      !print *, 'test_mat',test_mat
+      source_q=0.1  
+      source_qi=source_q/face_loc(ct_rhs, sele)
+      source_guess_mat=shape_rhs(p_shape,source_qi*detwei_bdy)
+      sum_guess = 0.
+      do i=1, face_loc(ct_rhs, sele)
+          sum_guess = sum_guess + source_guess_mat(i)
+      end do
+      do i=1, face_loc(ct_rhs, sele)
+          source_mat(i)=source_q*source_guess_mat(i)/sum_guess
+      end do
+      call addto(ct_rhs,p_nodes_bdy,source_mat)
+      
+      
+      !print *, 'ct_rhs', ele_val(ct_rhs,sele)
+      if (velocity_bc_type(1,sele)==BC_TYPE_SWMM .or. velocity_bc_type(1,sele)==BC_TYPE_RAINFALL) then
+         do dim = 1, u%dim
+          if(velocity_bc_type(dim,sele)==BC_TYPE_SWMM .or. velocity_bc_type(1,sele)==BC_TYPE_RAINFALL) then
+            call addto(ct_rhs,p_nodes_bdy, shape_rhs(p_shape, ele_val_at_quad(velocity_bc, sele, dim)*detwei_bdy))
+          end if
+         end do
+         !call addto(ct_rhs,p_nodes_bdy,shape_rhs(p_shape,source_SWMM))
+      end if
+      
     end subroutine construct_momentum_surface_element_cg
 
     subroutine construct_momentum_element_cg(state, ele, big_m, rhs, ct_m, &
