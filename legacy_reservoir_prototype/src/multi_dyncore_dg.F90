@@ -366,7 +366,7 @@
       ! Solve for internal energy using a control volume method.
 
       implicit none
-      type( state_type ), dimension( : ), intent( in ) :: state
+      type( state_type ), dimension( : ), intent( inout ) :: state
       INTEGER, intent( in ) :: NCOLACV, NCOLCT, CV_NONODS, U_NONODS, X_NONODS, MAT_NONODS, TOTELE, &
            CV_ELE_TYPE, NPHASE, CV_NLOC, U_NLOC, X_NLOC,  MAT_NLOC, &
            CV_SNLOC, U_SNLOC, STOTEL, XU_NLOC, NDIM, NCOLM, NCOLELE, &
@@ -541,7 +541,7 @@
       use shape_functions_NDim
       implicit none
 
-      type( state_type ), dimension( : ), intent( in ) :: state
+      type( state_type ), dimension( : ), intent( inout ) :: state
       INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
            U_ELE_TYPE, CV_ELE_TYPE, U_NONODS, CV_NONODS, X_NONODS, &
            MAT_NONODS, STOTEL, U_SNLOC, CV_SNLOC, &
@@ -730,7 +730,7 @@
          THETA_FLUX, ONE_M_THETA_FLUX)
 
       implicit none
-      type( state_type ), dimension( : ), intent( in ) :: state
+      type( state_type ), dimension( : ), intent( inout ) :: state
       INTEGER, intent( in ) :: NCOLACV, NCOLCT, &
            CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
            CV_ELE_TYPE, &
@@ -1006,7 +1006,7 @@
          scale_momentum_by_volume_fraction )
 
       IMPLICIT NONE
-      type( state_type ), dimension( : ), intent( in ) :: state
+      type( state_type ), dimension( : ), intent( inout ) :: state
       INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, &
            TOTELE, U_ELE_TYPE, P_ELE_TYPE, &
            U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -1751,7 +1751,7 @@
 
       ! Assembly the force balance, cty and if .not.GLOBAL_SOLVE pressure eqn. 
 
-      type( state_type ), dimension( : ), intent( in ) :: state
+      type( state_type ), dimension( : ), intent( inout ) :: state
       INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, &
            TOTELE, U_ELE_TYPE, P_ELE_TYPE, &
            U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -1997,7 +1997,7 @@
 
       ! Form the global CTY and momentum eqns and combine to form one large matrix eqn. 
 
-      type( state_type ), dimension( : ), intent( in ) :: state
+      type( state_type ), dimension( : ), intent( inout ) :: state
       INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, &
            TOTELE, U_ELE_TYPE, P_ELE_TYPE, &
            U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -2384,7 +2384,7 @@
 
       implicit none
 
-      type( state_type ), dimension( : ), intent( in ) :: state
+      type( state_type ), dimension( : ), intent( inout ) :: state
       INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
            U_ELE_TYPE, P_ELE_TYPE, U_NONODS, CV_NONODS, X_NONODS, &
            MAT_NONODS, STOTEL, U_SNLOC, P_SNLOC, CV_SNLOC, &
@@ -3120,6 +3120,80 @@
               WIC_U_BC_DIRICHLET, SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBCVFEWEIGH, &
               SBCVFEN, SBCVFENSLX, SBCVFENSLY)
       ENDIF
+!###############################################################
+!TEMPORAL, JUST TO CHECK THAT WHAT I HAVE DONE WORKS FINE
+         ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
+
+
+do ele = 1, totele
+
+        !Calculate and store
+         CALL DETNLXR_PLUS_U( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
+              X_NLOC, CV_NLOC, CV_NGI, &
+              CVFEN, CVFENLX, CVFENLY, CVFENLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
+              CVFENX, CVFENY, CVFENZ, &
+              U_NLOC, UFENLX, UFENLY, UFENLZ, UFENX, UFENY, UFENZ, Use_stored = .false., state = state )
+if (ele == 1) then
+print *, "CALCULATE AND STORE SECTION!"
+print *, "NX", CVFENLX
+print *, "####################################"
+print *, "NY", CVFENLY
+print *, "####################################"
+print *, "NZ", CVFENLZ
+print *, "####################################"
+print *, "UNX", CVFENX
+print *, "####################################"
+print *, "UNY", CVFENY
+print *, "####################################"
+print *, "UNZ", CVFENZ
+print *, "####################################"
+print *, "DETWEI", DETWEI
+print *, "####################################"
+print *, "RA", RA
+print *, "####################################"
+print *, "VOLUME", VOLUME
+print *, "####################################"
+end if
+
+end do
+
+
+do ele = 1, totele
+
+        !Recover and check
+         CALL DETNLXR_PLUS_U( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
+              X_NLOC, CV_NLOC, CV_NGI, &
+              CVFEN, CVFENLX, CVFENLY, CVFENLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
+              CVFENX, CVFENY, CVFENZ, &
+              U_NLOC, UFENLX, UFENLY, UFENLZ, UFENX, UFENY, UFENZ, Use_stored = .true., state = state )
+
+
+if (ele == 1) then
+print *, "RESTORE SECTION!"
+print *, "NX", CVFENLX
+print *, "####################################"
+print *, "NY", CVFENLY
+print *, "####################################"
+print *, "NZ", CVFENLZ
+print *, "####################################"
+print *, "UNX", CVFENX
+print *, "####################################"
+print *, "UNY", CVFENY
+print *, "####################################"
+print *, "UNZ", CVFENZ
+print *, "####################################"
+print *, "DETWEI", DETWEI
+print *, "####################################"
+print *, "RA", RA
+print *, "####################################"
+print *, "VOLUME", VOLUME
+print *, "####################################"
+end if
+end do
+!############################################################
+
+
+
 
       Loop_Elements: DO ELE = 1, TOTELE ! Volume integral
 
