@@ -2503,8 +2503,8 @@
            P_DX
 
       REAL, DIMENSION ( : ), allocatable :: VLK_UVW, U_R2_COEF, U_GRAD_N_MAX2  
-      REAL, DIMENSION ( :, :, : ), allocatable :: RESID, DIFF_FOR_BETWEEN_U, DIFF_FOR_BETWEEN_V, &
-           DIFF_FOR_BETWEEN_W, MAT_ELE, DIFFGI_U, RHS_DIFF_U, DIFF_VEC_U, SOUGI_X, RESID_U, U_DT, &
+      REAL, DIMENSION ( :, :, : ), allocatable :: RESID, &
+           MAT_ELE, DIFFGI_U, RHS_DIFF_U, DIFF_VEC_U, SOUGI_X, RESID_U, U_DT, &
            DIF_STAB_U, U_GRAD_NORM2, U_GRAD_NORM, A_DOT_U, STAR_U_COEF, P_STAR_U 
       REAL, DIMENSION ( :, :, :, :, : ), allocatable :: UDIFF_SUF_STAB
       !
@@ -2513,7 +2513,7 @@
       REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U, LOC_UOLD
       REAL, DIMENSION ( :, :, : ), allocatable :: LOC_NU, LOC_NUOLD
       REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U_ABSORB, LOC_U_ABS_STAB
-      REAL, DIMENSION ( :, :, :, : ), allocatable :: LOC_UDIFFUSION, U_DX_NEW, UOLD_DX_NEW
+      REAL, DIMENSION ( :, :, :, : ), allocatable :: LOC_UDIFFUSION, U_DX_NEW, UOLD_DX_NEW, DIFF_FOR_BETWEEN_U
       REAL, DIMENSION ( :, :, :, : ), allocatable :: SUF_MOM_BC, SUF_ROB1_BC, SUF_ROB2_BC, TEN_XX
       REAL, DIMENSION ( :, :, :, :, :, : ), allocatable :: LOC_DGM_PHA
       REAL, DIMENSION ( :, : ), allocatable :: LOC_UDEN,  LOC_UDENOLD
@@ -3025,15 +3025,7 @@
 
       IF ( BETWEEN_ELE_STAB ) THEN
          ! Calculate stabilization diffusion coefficient between elements...
-         ALLOCATE( DIFF_FOR_BETWEEN_U( TOTELE, NPHASE, U_NLOC ) ) ; DIFF_FOR_BETWEEN_U = 0.0
-         IF ( NDIM_VEL>=2 ) THEN 
-            ALLOCATE( DIFF_FOR_BETWEEN_V( TOTELE, NPHASE, U_NLOC ) )
-            DIFF_FOR_BETWEEN_V = 0.0
-         END IF
-         IF ( NDIM_VEL>=3 ) THEN 
-            ALLOCATE( DIFF_FOR_BETWEEN_W( TOTELE, NPHASE, U_NLOC ) )
-            DIFF_FOR_BETWEEN_W = 0.0
-         END IF
+         ALLOCATE( DIFF_FOR_BETWEEN_U( NDIM_VEL, TOTELE, NPHASE, U_NLOC ) ) ; DIFF_FOR_BETWEEN_U = 0.0
          ALLOCATE( MAT_ELE( TOTELE, U_NLOC, U_NLOC ) ) ; MAT_ELE = 0.0
       END IF
 
@@ -3706,7 +3698,7 @@
 
          ! **********REVIEWER 2-START**********************
 
-         IF((.not.firstst).and.(RESID_BASED_STAB_DIF.NE.0)) THEN
+         IF( (.NOT.FIRSTST) .AND. (RESID_BASED_STAB_DIF/=0) ) THEN
             !! *************************INNER ELEMENT STABILIZATION****************************************
             !! *************************INNER ELEMENT STABILIZATION****************************************
 
@@ -3819,7 +3811,7 @@
                      U_GRAD_NORM2( IDIM, IPHASE, GI ) = MAX( TOLER, U_GRAD_NORM2( IDIM, IPHASE, GI ) )
 
                      A_DOT_U( IDIM, IPHASE, GI ) = DENGI( IPHASE, GI ) * ( SUM( UD_ND( :, IPHASE, GI ) * U_DX_NEW( :, IDIM, IPHASE, GI ) ) &
-                          * WITH_NONLIN + U_DT( IDIM, IPHASE, GI ) ) + P_DX(IDIM,GI) * RNO_P_IN_A_DOT
+                          * WITH_NONLIN + U_DT( IDIM, IPHASE, GI ) ) + P_DX( IDIM, GI ) * RNO_P_IN_A_DOT
 
                      STAR_U_COEF( IDIM, IPHASE, GI ) = A_DOT_U( IDIM, IPHASE, GI ) / U_GRAD_NORM2( IDIM, IPHASE, GI )
 
@@ -3827,7 +3819,7 @@
 
                   JTT_INV = 2. / DT 
 
-                  U_GRAD_N_MAX2=0.0 !; V_GRAD_N_MAX2=0.0 ; W_GRAD_N_MAX2=0.0
+                  U_GRAD_N_MAX2=0.0
                   DO U_ILOC = 1, U_NLOC
                      DO IDIM = 1, NDIM_VEL
                         U_GRAD_N_MAX2( IDIM ) = MAX( U_GRAD_N_MAX2( IDIM ), &
@@ -3869,9 +3861,7 @@
                      VLK_UVW = 0.0
                      DO GI = 1, CV_NGI
                         VLKNN = SUM( UFENXNEW( U_ILOC, GI, : ) * UFENXNEW( U_JLOC, GI, : ) * DETWEI( GI ) )
-                        DO IDIM = 1, NDIM_VEL
-                           VLK_UVW( IDIM ) = VLK_UVW( IDIM ) + DIF_STAB_U( IDIM, IPHASE, GI ) * VLKNN
-                        END DO
+                        VLK_UVW( : ) = VLK_UVW( : ) + DIF_STAB_U( :, IPHASE, GI ) * VLKNN
                      END DO
 
                      DO IDIM = 1, NDIM_VEL
@@ -3909,12 +3899,8 @@
                         ! we store these vectors in order to try and work out the between element 
                         ! diffusion/viscocity.
                         RN = UFEN( U_ILOC, GI ) * DETWEI( GI )
-                        DIFF_FOR_BETWEEN_U( ELE, IPHASE, U_ILOC ) = DIFF_FOR_BETWEEN_U( ELE, IPHASE, U_ILOC ) &
-                             + RN * DIF_STAB_U( 1, IPHASE, GI )
-                        IF(NDIM_VEL.GE.2) DIFF_FOR_BETWEEN_V( ELE, IPHASE, U_ILOC ) = DIFF_FOR_BETWEEN_V( ELE, IPHASE, U_ILOC ) &
-                             + RN * DIF_STAB_U( 2, IPHASE, GI )
-                        IF(NDIM_VEL.GE.3) DIFF_FOR_BETWEEN_W( ELE, IPHASE, U_ILOC ) = DIFF_FOR_BETWEEN_W( ELE, IPHASE, U_ILOC ) &
-                             + RN * DIF_STAB_U( 3, IPHASE, GI )
+                        DIFF_FOR_BETWEEN_U( :, ELE, IPHASE, U_ILOC ) = DIFF_FOR_BETWEEN_U( :, ELE, IPHASE, U_ILOC ) &
+                             + RN * DIF_STAB_U( :, IPHASE, GI )
                      END DO
                   END DO
                END DO
@@ -4615,17 +4601,17 @@
                   IF(ELE2==0) ELE3=ELE
                   IDIM=1
                   CALL BETWEEN_ELE_SOLVE_DIF(UDIFF_SUF_STAB(IDIM,:,:,:,: ), &
-                       DIFF_FOR_BETWEEN_U(ELE,:,:), DIFF_FOR_BETWEEN_U(ELE3,:,:), &
+                       DIFF_FOR_BETWEEN_U(1,ELE,:,:), DIFF_FOR_BETWEEN_U(1,ELE3,:,:), &
                        MAT_ELE(ELE,:,:), MAT_ELE(ELE3,:,:), U_SLOC2LOC,U_ILOC_OTHER_SIDE, &
                        SBUFEN,SBCVNGI,U_NLOC,U_SNLOC,NDIM,NPHASE,GOT_OTHER_ELE) 
                   IDIM=2
                   IF(NDIM_VEL.GE.2) CALL BETWEEN_ELE_SOLVE_DIF(UDIFF_SUF_STAB(IDIM,:,:,:,: ), &
-                       DIFF_FOR_BETWEEN_V(ELE,:,:), DIFF_FOR_BETWEEN_V(ELE3,:,:), &
+                       DIFF_FOR_BETWEEN_U(2,ELE,:,:), DIFF_FOR_BETWEEN_U(2,ELE3,:,:), &
                        MAT_ELE(ELE,:,:), MAT_ELE(ELE3,:,:), U_SLOC2LOC,U_ILOC_OTHER_SIDE, &
                        SBUFEN,SBCVNGI,U_NLOC,U_SNLOC,NDIM,NPHASE,GOT_OTHER_ELE) 
                   IDIM=3
                   IF(NDIM_VEL.GE.3) CALL BETWEEN_ELE_SOLVE_DIF(UDIFF_SUF_STAB(IDIM,:,:,:,: ), &
-                       DIFF_FOR_BETWEEN_W(ELE,:,:), DIFF_FOR_BETWEEN_W(ELE3,:,:), &
+                       DIFF_FOR_BETWEEN_U(3,ELE,:,:), DIFF_FOR_BETWEEN_U(3,ELE3,:,:), &
                        MAT_ELE(ELE,:,:), MAT_ELE(ELE3,:,:), U_SLOC2LOC,U_ILOC_OTHER_SIDE, &
                        SBUFEN,SBCVNGI,U_NLOC,U_SNLOC,NDIM,NPHASE,GOT_OTHER_ELE) 
                ENDIF
