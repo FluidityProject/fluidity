@@ -3120,77 +3120,6 @@
               WIC_U_BC_DIRICHLET, SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBCVFEWEIGH, &
               SBCVFEN, SBCVFENSLX, SBCVFENSLY)
       ENDIF
-!###############################################################
-!TEMPORAL, JUST TO CHECK THAT WHAT I HAVE DONE WORKS FINE
-         ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
-
-
-do ele = 1, totele
-
-        !Calculate and store
-         CALL DETNLXR_PLUS_U( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
-              X_NLOC, CV_NLOC, CV_NGI, &
-              CVFEN, CVFENLX, CVFENLY, CVFENLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
-              CVFENX, CVFENY, CVFENZ, &
-              U_NLOC, UFENLX, UFENLY, UFENLZ, UFENX, UFENY, UFENZ, Use_stored = .false., state = state )
-if (ele == 1) then
-print *, "CALCULATE AND STORE SECTION!"
-print *, "NX", CVFENLX
-print *, "####################################"
-print *, "NY", CVFENLY
-print *, "####################################"
-print *, "NZ", CVFENLZ
-print *, "####################################"
-print *, "UNX", CVFENX
-print *, "####################################"
-print *, "UNY", CVFENY
-print *, "####################################"
-print *, "UNZ", CVFENZ
-print *, "####################################"
-print *, "DETWEI", DETWEI
-print *, "####################################"
-print *, "RA", RA
-print *, "####################################"
-print *, "VOLUME", VOLUME
-print *, "####################################"
-end if
-
-end do
-
-
-do ele = 1, totele
-
-        !Recover and check
-         CALL DETNLXR_PLUS_U( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
-              X_NLOC, CV_NLOC, CV_NGI, &
-              CVFEN, CVFENLX, CVFENLY, CVFENLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
-              CVFENX, CVFENY, CVFENZ, &
-              U_NLOC, UFENLX, UFENLY, UFENLZ, UFENX, UFENY, UFENZ, Use_stored = .true., state = state )
-
-
-if (ele == 1) then
-print *, "RESTORE SECTION!"
-print *, "NX", CVFENLX
-print *, "####################################"
-print *, "NY", CVFENLY
-print *, "####################################"
-print *, "NZ", CVFENLZ
-print *, "####################################"
-print *, "UNX", CVFENX
-print *, "####################################"
-print *, "UNY", CVFENY
-print *, "####################################"
-print *, "UNZ", CVFENZ
-print *, "####################################"
-print *, "DETWEI", DETWEI
-print *, "####################################"
-print *, "RA", RA
-print *, "####################################"
-print *, "VOLUME", VOLUME
-print *, "####################################"
-end if
-end do
-!############################################################
 
 
 
@@ -3890,7 +3819,7 @@ end do
                      U_GRAD_NORM2( IDIM, IPHASE, GI ) = MAX( TOLER, U_GRAD_NORM2( IDIM, IPHASE, GI ) )
 
                      A_DOT_U( IDIM, IPHASE, GI ) = DENGI( IPHASE, GI ) * ( SUM( UD_ND( :, IPHASE, GI ) * U_DX_NEW( :, IDIM, IPHASE, GI ) ) &
-                          * WITH_NONLIN + U_DT( 1, IPHASE, GI ) ) + P_DX(1,GI) * RNO_P_IN_A_DOT
+                          * WITH_NONLIN + U_DT( IDIM, IPHASE, GI ) ) + P_DX(IDIM,GI) * RNO_P_IN_A_DOT
 
                      STAR_U_COEF( IDIM, IPHASE, GI ) = A_DOT_U( IDIM, IPHASE, GI ) / U_GRAD_NORM2( IDIM, IPHASE, GI )
 
