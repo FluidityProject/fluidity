@@ -3048,7 +3048,7 @@
 
       IF ( BETWEEN_ELE_STAB ) THEN
          ! Calculate stabilization diffusion coefficient between elements...
-         ALLOCATE( DIFF_FOR_BETWEEN_U( NDIM_VEL, TOTELE, NPHASE, U_NLOC ) ) ; DIFF_FOR_BETWEEN_U = 0.0
+         ALLOCATE( DIFF_FOR_BETWEEN_U( NDIM_VEL, NPHASE, U_NLOC, TOTELE ) ) ; DIFF_FOR_BETWEEN_U = 0.0
          ALLOCATE( MAT_ELE( U_NLOC, U_NLOC, TOTELE ) ) ; MAT_ELE = 0.0
       END IF
 
@@ -3917,9 +3917,8 @@
                      DO GI = 1, CV_NGI
                         ! we store these vectors in order to try and work out the between element 
                         ! diffusion/viscocity.
-                        RN = UFEN( U_ILOC, GI ) * DETWEI( GI )
-                        DIFF_FOR_BETWEEN_U( :, ELE, IPHASE, U_ILOC ) = DIFF_FOR_BETWEEN_U( :, ELE, IPHASE, U_ILOC ) &
-                             + RN * DIF_STAB_U( :, IPHASE, GI )
+                        DIFF_FOR_BETWEEN_U( :, IPHASE, U_ILOC, ELE ) = DIFF_FOR_BETWEEN_U( :, IPHASE, U_ILOC, ELE ) &
+                             + UFEN( U_ILOC, GI ) * DETWEI( GI ) * DIF_STAB_U( :, IPHASE, GI ) 
                      END DO
                   END DO
                END DO
@@ -4648,17 +4647,17 @@
                   IF(ELE2==0) ELE3=ELE
                   IDIM=1
                   CALL BETWEEN_ELE_SOLVE_DIF(UDIFF_SUF_STAB(IDIM,:,:,:,: ), &
-                       DIFF_FOR_BETWEEN_U(1,ELE,:,:), DIFF_FOR_BETWEEN_U(1,ELE3,:,:), &
+                       DIFF_FOR_BETWEEN_U(1,:,:,ELE), DIFF_FOR_BETWEEN_U(1,:,:,ELE3), &
                        MAT_ELE(:,:,ELE), MAT_ELE(:,:,ELE3), U_SLOC2LOC,U_ILOC_OTHER_SIDE, &
                        SBUFEN,SBCVNGI,U_NLOC,U_SNLOC,NDIM,NPHASE,GOT_OTHER_ELE) 
                   IDIM=2
                   IF(NDIM_VEL.GE.2) CALL BETWEEN_ELE_SOLVE_DIF(UDIFF_SUF_STAB(IDIM,:,:,:,: ), &
-                       DIFF_FOR_BETWEEN_U(2,ELE,:,:), DIFF_FOR_BETWEEN_U(2,ELE3,:,:), &
+                       DIFF_FOR_BETWEEN_U(2,:,:,ELE), DIFF_FOR_BETWEEN_U(2,:,:,ELE3), &
                        MAT_ELE(:,:,ELE), MAT_ELE(:,:,ELE3), U_SLOC2LOC,U_ILOC_OTHER_SIDE, &
                        SBUFEN,SBCVNGI,U_NLOC,U_SNLOC,NDIM,NPHASE,GOT_OTHER_ELE) 
                   IDIM=3
                   IF(NDIM_VEL.GE.3) CALL BETWEEN_ELE_SOLVE_DIF(UDIFF_SUF_STAB(IDIM,:,:,:,: ), &
-                       DIFF_FOR_BETWEEN_U(3,ELE,:,:), DIFF_FOR_BETWEEN_U(3,ELE3,:,:), &
+                       DIFF_FOR_BETWEEN_U(3,:,:,ELE), DIFF_FOR_BETWEEN_U(3,:,:,ELE3), &
                        MAT_ELE(:,:,ELE), MAT_ELE(:,:,ELE3), U_SLOC2LOC,U_ILOC_OTHER_SIDE, &
                        SBUFEN,SBCVNGI,U_NLOC,U_SNLOC,NDIM,NPHASE,GOT_OTHER_ELE) 
                ENDIF
