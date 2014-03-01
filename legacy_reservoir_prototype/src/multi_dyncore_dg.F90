@@ -2508,7 +2508,7 @@
       REAL, DIMENSION ( :, :, :, :, : ), allocatable :: UDIFF_SUF_STAB
       !
       ! Variables used to reduce indirect addressing...
-      REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U_RHS, UFENXNEW, CVFENXNEW, UFENX_ALL
+      REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U_RHS, UFENXNEW, CVFENXNEW, UFENX_ALL, CVFENX_ALL
       REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U, LOC_UOLD
       REAL, DIMENSION ( :, :, : ), allocatable :: LOC_NU, LOC_NUOLD
       REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U_ABSORB, LOC_U_ABS_STAB
@@ -2533,7 +2533,7 @@
 
       REAL, DIMENSION ( :, :, : ), allocatable :: U_NODI_SGI_IPHASE_ALL, U_NODJ_SGI_IPHASE_ALL, UOLD_NODI_SGI_IPHASE_ALL, UOLD_NODJ_SGI_IPHASE_ALL
       ! For derivatives...
-      REAL, DIMENSION ( : ), allocatable :: NMX_ALL, VNMX_ALL
+      REAL, DIMENSION ( : ), allocatable :: NMX_ALL, VNMX_ALL,  RNMX_ALL
 
       LOGICAL :: D1, D3, DCYL, GOT_DIFFUS, GOT_UDEN, DISC_PRES, QUAD_OVER_WHOLE_ELE, &
            have_oscillation, have_oscillation_old
@@ -2968,6 +2968,7 @@
       ALLOCATE( UFENXNEW( U_NLOC, CV_NGI, NDIM ))
       ALLOCATE( UFENX_ALL( NDIM, U_NLOC, CV_NGI )) ! The same as FENXNEW but different ordering...
       ALLOCATE( CVFENXNEW( CV_NLOC, CV_NGI, NDIM ))
+      ALLOCATE( CVFENX_ALL( NDIM,  CV_NLOC, CV_NGI )) 
 
       ALLOCATE( SUF_MOM_BC( NDIM_VEL,NPHASE,U_SNLOC,STOTEL ) ) ; SUF_MOM_BC = 0.0
       ALLOCATE( SUF_MOM_BC_NU( NDIM_VEL,NPHASE,U_SNLOC,STOTEL ) ) ; SUF_MOM_BC_NU = 0.0
@@ -2993,6 +2994,7 @@
 ! Derivatives...
       ALLOCATE( NMX_ALL(NDIM) )
       ALLOCATE( VNMX_ALL(NDIM) )
+      ALLOCATE( RNMX_ALL(NDIM) )
 ! 
       ALLOCATE( U_NODI_SGI_IPHASE_ALL(NDIM_VEL,NPHASE,SBCVNGI) )
       ALLOCATE( U_NODJ_SGI_IPHASE_ALL(NDIM_VEL,NPHASE,SBCVNGI) )
@@ -3097,9 +3099,7 @@
            FINDGPTS, COLGPTS, NCOLGPTS, &
            SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE ) 
 
-           UFENX_ALL(1,:,:)=UFENX(:,:)
-           UFENX_ALL(2,:,:)=UFENY(:,:)
-           IF(NDIM.GE.3) UFENX_ALL(3,:,:)=UFENZ(:,:)
+
 
       !ewrite(3,*)'cvn:',cvn
       !ewrite(3,*)'cvn_short:',cvn_short
@@ -3150,6 +3150,17 @@
               CVFEN, CVFENLX, CVFENLY, CVFENLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
               CVFENX, CVFENY, CVFENZ, &
               U_NLOC, UFENLX, UFENLY, UFENLZ, UFENX, UFENY, UFENZ ) 
+
+           UFENX_ALL(1,:,:)=UFENX(:,:)
+           UFENX_ALL(2,:,:)=UFENY(:,:)
+           IF(NDIM.GE.3) UFENX_ALL(3,:,:)=UFENZ(:,:)
+
+           CVFENX_ALL( 1, :, : )=CVFENX( :, : )
+           CVFENX_ALL( 2, :, : )=CVFENY( :, : )
+           IF(NDIM.GE.3) CVFENX_ALL( 3, :, : )=CVFENZ( :, : )
+
+
+
          ! Adjust the volume according to the number of levels. 
          VOLUME=VOLUME/REAL(NLEV)
          MASS_ELE(ELE)=VOLUME
@@ -3666,27 +3677,39 @@
                Loop_P_JLOC1: DO P_JLOC = 1, P_NLOC
                   JCV_NOD = P_NDGLN( ( ELE - 1 ) * P_NLOC + P_JLOC )
 
-                  NMX = 0.0 ; NMY = 0.0 ; NMZ = 0.0
+                  NMX_ALL = 0.0 
+!                  NMX = 0.0 ; NMY = 0.0 ; NMZ = 0.0
                   GRAD_SOU_GI_NMX = 0.0
                   Loop_GaussPoints1: DO GI = 1 + (ILEV-1)*CV_NGI_SHORT, ILEV*CV_NGI_SHORT
-
                      RN = UFEN( U_ILOC, GI ) * DETWEI( GI )
-                     RNMX( 1 ) = RN * CVFENX( P_JLOC, GI )
-                     RNMX( 2 ) = RN * CVFENY( P_JLOC, GI )
-                     RNMX( 3 ) = RN * CVFENZ( P_JLOC, GI )
 
-                     NMX = NMX + RNMX( 1 )
-                     NMY = NMY + RNMX( 2 )
-                     NMZ = NMZ + RNMX( 3 )
+                    RNMX_ALL( : ) = RN * CVFENX_ALL( :, P_JLOC, GI ) 
+
+                    NMX_ALL( : ) = NMX_ALL( : ) + RNMX_ALL( : )
+
+!                     RNMX( 1 ) = RN * CVFENX( P_JLOC, GI )
+!                     RNMX( 2 ) = RN * CVFENY( P_JLOC, GI )
+!                     RNMX( 3 ) = RN * CVFENZ( P_JLOC, GI )
+
+!                     NMX = NMX + RNMX( 1 )
+!                     NMY = NMY + RNMX( 2 )
+!                     NMZ = NMZ + RNMX( 3 )
+
 
                      IF ( IPLIKE_GRAD_SOU == 1 .OR. CAPILLARY_PRESSURE_ACTIVATED ) THEN
                         DO IDIM = 1, NDIM_VEL
                            GRAD_SOU_GI_NMX( IDIM, : ) = GRAD_SOU_GI_NMX( IDIM, : ) &
-                                + GRAD_SOU_GI( :, GI ) * RNMX( IDIM )
+!                                + GRAD_SOU_GI( :, GI ) * RNMX( IDIM )
+                                + GRAD_SOU_GI( :, GI ) * RNMX_ALL( IDIM )
                         END DO
                      END IF
 
                   END DO Loop_GaussPoints1
+!                  print *,'nmx,nmx_all(1),nmy,nmx_all(2):',nmx,nmx_all(1),nmy,nmx_all(2)
+!                  print *,'CVFENX_ALL( 1, :, : ) :',CVFENX_ALL( 1, :, : )
+!                  print *,'CVFENX( :, : )        :',CVFENX( :, : )
+!                  print *,'CVFENX_ALL( 2, :, : ) :',CVFENX_ALL( 2, :, : )
+!                  print *,'CVFENy( :, : )        :',CVFENy( :, : )
 
                   ! Put into matrix
 
@@ -3698,9 +3721,18 @@
                   Loop_Phase1: DO IPHASE = 1, NPHASE
                      COUNT_PHA = COUNT + ( IPHASE - 1 ) * NDIM_VEL * NCOLC
 
-                     C( COUNT_PHA ) = C( COUNT_PHA ) - NMX
-                     IF( NDIM_VEL >= 2 ) C( COUNT_PHA + NCOLC ) = C( COUNT_PHA + NCOLC ) - NMY
-                     IF( NDIM_VEL >= 3 ) C( COUNT_PHA + 2 * NCOLC ) = C( COUNT_PHA + 2 * NCOLC ) - NMZ
+                     DO IDIM = 1, NDIM_VEL
+                        C( COUNT_PHA + NCOLC*(IDIM-1) ) = C( COUNT_PHA + NCOLC*(IDIM-1) ) - NMX_ALL(IDIM)
+                     END DO
+! not work...
+!                     C( COUNT_PHA ) = C( COUNT_PHA ) - NMX_ALL(1)
+!                     IF( NDIM_VEL >= 2 ) C( COUNT_PHA + NCOLC ) = C( COUNT_PHA + NCOLC ) - NMX_ALL(2)
+!                     IF( NDIM_VEL >= 3 ) C( COUNT_PHA + 2 * NCOLC ) = C( COUNT_PHA + 2 * NCOLC ) - NMX_ALL(3)
+! works...
+!                     C( COUNT_PHA ) = C( COUNT_PHA ) - NMX
+!                     IF( NDIM_VEL >= 2 ) C( COUNT_PHA + NCOLC ) = C( COUNT_PHA + NCOLC ) - NMY
+!                     IF( NDIM_VEL >= 3 ) C( COUNT_PHA + 2 * NCOLC ) = C( COUNT_PHA + 2 * NCOLC ) - NMZ
+
 
                      IF ( IPLIKE_GRAD_SOU == 1 .OR. CAPILLARY_PRESSURE_ACTIVATED ) THEN ! Capillary pressure for example terms...
 
