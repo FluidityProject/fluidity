@@ -2508,7 +2508,7 @@
       REAL, DIMENSION ( :, :, :, :, : ), allocatable :: UDIFF_SUF_STAB
       !
       ! Variables used to reduce indirect addressing...
-      REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U_RHS, UFENXNEW, CVFENXNEW, UFENX_ALL, CVFENX_ALL
+      REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U_RHS, UFENX_ALL, CVFENX_ALL
       REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U, LOC_UOLD
       REAL, DIMENSION ( :, :, : ), allocatable :: LOC_NU, LOC_NUOLD
       REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U_ABSORB, LOC_U_ABS_STAB
@@ -2965,9 +2965,7 @@
       ALLOCATE( LOC_U_ABS_STAB(NDIM_VEL* NPHASE, NDIM_VEL* NPHASE, MAT_NLOC) ) 
       ALLOCATE( LOC_UDIFFUSION(NDIM, NDIM, NPHASE, MAT_NLOC) ) 
       ALLOCATE( LOC_U_RHS( NDIM_VEL, NPHASE, U_NLOC ) )
-      ALLOCATE( UFENXNEW( U_NLOC, CV_NGI, NDIM ))
-      ALLOCATE( UFENX_ALL( NDIM, U_NLOC, CV_NGI )) ! The same as FENXNEW but different ordering...
-      ALLOCATE( CVFENXNEW( CV_NLOC, CV_NGI, NDIM ))
+      ALLOCATE( UFENX_ALL( NDIM, U_NLOC, CV_NGI )) 
       ALLOCATE( CVFENX_ALL( NDIM,  CV_NLOC, CV_NGI )) 
 
       ALLOCATE( SUF_MOM_BC( NDIM_VEL,NPHASE,U_SNLOC,STOTEL ) ) ; SUF_MOM_BC = 0.0
@@ -3160,7 +3158,6 @@
            IF(NDIM.GE.3) CVFENX_ALL( 3, :, : )=CVFENZ( :, : )
 
 
-
          ! Adjust the volume according to the number of levels. 
          VOLUME=VOLUME/REAL(NLEV)
          MASS_ELE(ELE)=VOLUME
@@ -3218,22 +3215,6 @@
             LOC_U_ABSORB( :, :, MAT_ILOC ) = U_ABSORB( MAT_INOD, :, : )
             LOC_U_ABS_STAB( :, :, MAT_ILOC ) = U_ABS_STAB( MAT_INOD, :, : )
             LOC_UDIFFUSION( :, :, :, MAT_ILOC ) = UDIFFUSION( MAT_INOD, :, :, : )
-         END DO
-
-
-         DO IDIM = 1, NDIM
-            IF ( IDIM==1 ) THEN
-               UFENXNEW( :, :, IDIM ) = UFENX
-               CVFENXNEW( :, :, IDIM ) = CVFENX
-            END IF
-            IF ( IDIM==2 ) THEN
-               UFENXNEW( :, :, IDIM ) = UFENY
-               CVFENXNEW( :, :, IDIM ) = CVFENY
-            END IF
-            IF ( IDIM==3 ) THEN
-               UFENXNEW( :, :, IDIM ) = UFENZ
-               CVFENXNEW( :, :, IDIM ) = CVFENZ
-            END IF
          END DO
 
 
@@ -3371,17 +3352,17 @@
                         DO U_ILOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
                            IF ( STRESS_FORM ) THEN ! stress form of viscosity...
                               CALL CALC_STRESS_TEN( STRESS_IJ_ELE(IPHASE,:,:, U_ILOC, U_JLOC), ZERO_OR_TWO_THIRDS, NDIM, &
-                                   UFENXNEW( U_ILOC, GI, 1 ),UFENXNEW( U_ILOC, GI, 2 ),UFENXNEW( U_ILOC, GI, 3 ), &
-                                   UFENXNEW( U_JLOC, GI, 1 ),UFENXNEW( U_JLOC, GI, 2 ),UFENXNEW( U_JLOC, GI, 3 ), &
-                                   UFENXNEW( U_JLOC, GI, 1 ),UFENXNEW( U_JLOC, GI, 2 ),UFENXNEW( U_JLOC, GI, 3 ), &
-                                   UFENXNEW( U_JLOC, GI, 1 ),UFENXNEW( U_JLOC, GI, 2 ),UFENXNEW( U_JLOC, GI, 3 ), &
+                                   UFENX_ALL( 1, U_ILOC, GI ),UFENX_ALL( 2, U_ILOC, GI ),UFENX_ALL( 3, U_ILOC, GI ), &
+                                   UFENX_ALL( 1, U_JLOC, GI ),UFENX_ALL( 2, U_JLOC, GI ),UFENX_ALL( 3, U_JLOC, GI ), &
+                                   UFENX_ALL( 1, U_JLOC, GI ),UFENX_ALL( 2, U_JLOC, GI ),UFENX_ALL( 3, U_JLOC, GI ), &
+                                   UFENX_ALL( 1, U_JLOC, GI ),UFENX_ALL( 2, U_JLOC, GI ),UFENX_ALL( 3, U_JLOC, GI ), &
                                    TEN_XX( 1, 1, IPHASE, GI ),TEN_XX( 1, 2, IPHASE, GI ),TEN_XX( 1, 3, IPHASE, GI ),  &
                                    TEN_XX( 2, 1, IPHASE, GI ),TEN_XX( 2, 2, IPHASE, GI ),TEN_XX( 2, 3, IPHASE, GI ),  &
                                    TEN_XX( 3, 1, IPHASE, GI ),TEN_XX( 3, 2, IPHASE, GI ),TEN_XX( 3, 3, IPHASE, GI ) )
                            ELSE
                               DO IDIM = 1, NDIM
                                  VLK_ELE( IPHASE, U_ILOC, U_JLOC ) = VLK_ELE( IPHASE, U_ILOC, U_JLOC ) + &
-                                      UFENXNEW( U_ILOC, GI, IDIM ) * SUM( UFENXNEW( U_JLOC, GI, : ) * TEN_XX( IDIM, :, IPHASE, GI ) ) * DETWEI( GI )
+                                      UFENX_ALL( IDIM, U_ILOC, GI ) * SUM( UFENX_ALL( :, U_JLOC, GI ) * TEN_XX( IDIM, :, IPHASE, GI ) ) * DETWEI( GI )
                               END DO
                            END IF
                         END DO
@@ -3531,19 +3512,19 @@
 
                         IF ( MOM_CONSERV ) THEN
                            VLN( IPHASE ) = VLN( IPHASE ) - &
-                                DENGI( IPHASE, GI ) * SUM( UD( :, IPHASE, GI ) * UFENXNEW( U_ILOC, GI, : ) )  &
+                                DENGI( IPHASE, GI ) * SUM( UD( :, IPHASE, GI ) * UFENX_ALL( :, U_ILOC, GI ) )  &
                                 * UFEN( U_JLOC, GI ) * DETWEI( GI ) * WITH_NONLIN
 
                            VLN_OLD( IPHASE ) = VLN_OLD( IPHASE ) - &
-                                DENGI( IPHASE, GI ) * SUM( UDOLD( :, IPHASE, GI ) * UFENXNEW( U_ILOC, GI, : ) )  &
+                                DENGI( IPHASE, GI ) * SUM( UDOLD( :, IPHASE, GI ) * UFENX_ALL( :, U_ILOC, GI ) )  &
                                 * UFEN( U_JLOC, GI ) * DETWEI( GI ) * WITH_NONLIN
                         ELSE
                            VLN( IPHASE ) = VLN( IPHASE ) + &
-                                UFEN( U_ILOC, GI ) * DENGI( IPHASE, GI ) * SUM( UD( :, IPHASE, GI ) * UFENXNEW( U_JLOC, GI, : ) ) &
+                                UFEN( U_ILOC, GI ) * DENGI( IPHASE, GI ) * SUM( UD( :, IPHASE, GI ) * UFENX_ALL( :, U_JLOC, GI ) ) &
                                 * DETWEI( GI ) * WITH_NONLIN
 
                            VLN_OLD( IPHASE ) = VLN_OLD( IPHASE ) + &
-                                UFEN( U_ILOC, GI ) * DENGI( IPHASE, GI ) * SUM( UDOLD( :, IPHASE, GI ) * UFENXNEW( U_JLOC, GI, : ) ) &
+                                UFEN( U_ILOC, GI ) * DENGI( IPHASE, GI ) * SUM( UDOLD( :, IPHASE, GI ) * UFENX_ALL( :, U_JLOC, GI ) ) &
                                 * DETWEI( GI ) * WITH_NONLIN
                         END IF
 
@@ -3678,38 +3659,22 @@
                   JCV_NOD = P_NDGLN( ( ELE - 1 ) * P_NLOC + P_JLOC )
 
                   NMX_ALL = 0.0 
-!                  NMX = 0.0 ; NMY = 0.0 ; NMZ = 0.0
                   GRAD_SOU_GI_NMX = 0.0
                   Loop_GaussPoints1: DO GI = 1 + (ILEV-1)*CV_NGI_SHORT, ILEV*CV_NGI_SHORT
                      RN = UFEN( U_ILOC, GI ) * DETWEI( GI )
 
-                    RNMX_ALL( : ) = RN * CVFENX_ALL( :, P_JLOC, GI ) 
+                     RNMX_ALL( : ) = RN * CVFENX_ALL( :, P_JLOC, GI ) 
 
-                    NMX_ALL( : ) = NMX_ALL( : ) + RNMX_ALL( : )
-
-!                     RNMX( 1 ) = RN * CVFENX( P_JLOC, GI )
-!                     RNMX( 2 ) = RN * CVFENY( P_JLOC, GI )
-!                     RNMX( 3 ) = RN * CVFENZ( P_JLOC, GI )
-
-!                     NMX = NMX + RNMX( 1 )
-!                     NMY = NMY + RNMX( 2 )
-!                     NMZ = NMZ + RNMX( 3 )
-
+                     NMX_ALL( : ) = NMX_ALL( : ) + RNMX_ALL( : )
 
                      IF ( IPLIKE_GRAD_SOU == 1 .OR. CAPILLARY_PRESSURE_ACTIVATED ) THEN
                         DO IDIM = 1, NDIM_VEL
                            GRAD_SOU_GI_NMX( IDIM, : ) = GRAD_SOU_GI_NMX( IDIM, : ) &
-!                                + GRAD_SOU_GI( :, GI ) * RNMX( IDIM )
                                 + GRAD_SOU_GI( :, GI ) * RNMX_ALL( IDIM )
                         END DO
                      END IF
 
                   END DO Loop_GaussPoints1
-!                  print *,'nmx,nmx_all(1),nmy,nmx_all(2):',nmx,nmx_all(1),nmy,nmx_all(2)
-!                  print *,'CVFENX_ALL( 1, :, : ) :',CVFENX_ALL( 1, :, : )
-!                  print *,'CVFENX( :, : )        :',CVFENX( :, : )
-!                  print *,'CVFENX_ALL( 2, :, : ) :',CVFENX_ALL( 2, :, : )
-!                  print *,'CVFENy( :, : )        :',CVFENy( :, : )
 
                   ! Put into matrix
 
@@ -3724,14 +3689,6 @@
                      DO IDIM = 1, NDIM_VEL
                         C( COUNT_PHA + NCOLC*(IDIM-1) ) = C( COUNT_PHA + NCOLC*(IDIM-1) ) - NMX_ALL(IDIM)
                      END DO
-! not work...
-!                     C( COUNT_PHA ) = C( COUNT_PHA ) - NMX_ALL(1)
-!                     IF( NDIM_VEL >= 2 ) C( COUNT_PHA + NCOLC ) = C( COUNT_PHA + NCOLC ) - NMX_ALL(2)
-!                     IF( NDIM_VEL >= 3 ) C( COUNT_PHA + 2 * NCOLC ) = C( COUNT_PHA + 2 * NCOLC ) - NMX_ALL(3)
-! works...
-!                     C( COUNT_PHA ) = C( COUNT_PHA ) - NMX
-!                     IF( NDIM_VEL >= 2 ) C( COUNT_PHA + NCOLC ) = C( COUNT_PHA + NCOLC ) - NMY
-!                     IF( NDIM_VEL >= 3 ) C( COUNT_PHA + 2 * NCOLC ) = C( COUNT_PHA + 2 * NCOLC ) - NMZ
 
 
                      IF ( IPLIKE_GRAD_SOU == 1 .OR. CAPILLARY_PRESSURE_ACTIVATED ) THEN ! Capillary pressure for example terms...
@@ -3799,9 +3756,9 @@
                      DO JDIM = 1, NDIM_VEL
                         DO IDIM = 1, NDIM
                            U_DX_NEW( IDIM, JDIM, IPHASE, GI ) = U_DX_NEW( IDIM, JDIM, IPHASE, GI ) + &
-                                LOC_U( JDIM, IPHASE, U_ILOC ) * UFENXNEW( U_ILOC, GI, IDIM )
+                                LOC_U( JDIM, IPHASE, U_ILOC ) * UFENX_ALL( IDIM, U_ILOC, GI )
                            UOLD_DX_NEW( IDIM, JDIM, IPHASE, GI ) = UOLD_DX_NEW( IDIM, JDIM, IPHASE, GI ) + &
-                                LOC_UOLD( JDIM, IPHASE, U_ILOC ) * UFENXNEW( U_ILOC, GI, IDIM )
+                                LOC_UOLD( JDIM, IPHASE, U_ILOC ) * UFENX_ALL( IDIM, U_ILOC, GI )
                         END DO
                      END DO
 
@@ -3837,14 +3794,14 @@
                P_INOD = P_NDGLN( ( ELE - 1 ) * P_NLOC + P_ILOC )
                DO GI = 1, CV_NGI
 
-                  P_DX( :, GI ) = P_DX( :, GI ) + CVFENXNEW( P_ILOC, GI, : ) * P( P_INOD )
+                  P_DX( :, GI ) = P_DX( :, GI ) + CVFENX_ALL( :, P_ILOC, GI ) * P( P_INOD )
 
                   IF ( IPLIKE_GRAD_SOU == 1 .OR. CAPILLARY_PRESSURE_ACTIVATED ) THEN ! Capillary pressure for example terms...
                      DO IPHASE = 1, NPHASE
 
                         R = GRAD_SOU_GI( IPHASE, GI ) * PLIKE_GRAD_SOU_GRAD( P_INOD + ( IPHASE - 1 ) * CV_NONODS )
                         DO IDIM = 1, NDIM_VEL
-                           RESID_U( IDIM, IPHASE, GI ) = RESID_U( IDIM, IPHASE, GI ) + R * CVFENXNEW( P_ILOC, GI, IDIM )
+                           RESID_U( IDIM, IPHASE, GI ) = RESID_U( IDIM, IPHASE, GI ) + R * CVFENX_ALL( IDIM, P_ILOC, GI )
                         END DO
 
                      END DO
@@ -3882,7 +3839,7 @@
                      DO IDIM = 1, NDIM_VEL
                         U_GRAD_N_MAX2( IDIM ) = MAX( U_GRAD_N_MAX2( IDIM ), &
                              ( JTT_INV * U_DT( IDIM, IPHASE, GI ) )**2 &
-                             + 4. * SUM( ( UFENXNEW( U_ILOC, GI, : ) * U_DX_NEW( 1:NDIM, IDIM, IPHASE, GI ) )**2 ) )
+                             + 4. * SUM( ( UFENX_ALL( :, U_ILOC, GI ) * U_DX_NEW( 1:NDIM, IDIM, IPHASE, GI ) )**2 ) )
                      END DO
                   END DO
 
@@ -3918,7 +3875,7 @@
 
                      VLK_UVW = 0.0
                      DO GI = 1, CV_NGI
-                        VLKNN = SUM( UFENXNEW( U_ILOC, GI, : ) * UFENXNEW( U_JLOC, GI, : ) ) * DETWEI( GI ) 
+                        VLKNN = SUM( UFENX_ALL( :, U_ILOC, GI ) * UFENX_ALL( :, U_JLOC, GI ) ) * DETWEI( GI ) 
                         VLK_UVW( : ) = VLK_UVW( : ) + DIF_STAB_U( :, IPHASE, GI ) * VLKNN
                      END DO
 
@@ -5492,8 +5449,6 @@
       DEALLOCATE( UFENX )
       DEALLOCATE( UFENY )
       DEALLOCATE( UFENZ )
-
-      DEALLOCATE( UFENXNEW, CVFENXNEW )
 
       DEALLOCATE( SCVFEN )
       DEALLOCATE( SCVFENSLX )
