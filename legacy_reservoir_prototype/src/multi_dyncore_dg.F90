@@ -3969,11 +3969,6 @@
       !!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX!!
 
 
-
-      !ewrite(3,*) 'c=',c
-      !ewrite(3,*) 'here1 u_rhs:',u_rhs
-      !ewrite(3,*) 'disc_pres',  (CV_NONODS == TOTELE * CV_NLOC )
-
       !! *************************loop over surfaces*********************************************
       ! at some pt we need to merge these 2 loops but there is a bug when doing that!!!!!
 
@@ -4315,18 +4310,7 @@
                SDEN_KEEP=0.0 ; SDEN2_KEEP=0.0
                SDENOLD_KEEP=0.0 ; SDENOLD2_KEEP=0.0
                DO CV_SILOC=1,CV_SNLOC
-!                  CV_ILOC=CV_SLOC2LOC( CV_SILOC )
-!                  CV_NODK=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)
-!                  IF((ELE2/=0).AND.MOM_CONSERV) THEN
-!                     CV_ILOC2 = MAT_OTHER_LOC(CV_ILOC)
-!                     CV_NODK2 = CV_NDGLN(( ELE2 - 1 ) * CV_NLOC + CV_ILOC2 )
-!                  ELSE
-!                     CV_ILOC2 = CV_ILOC
-!                     CV_NODK2 = CV_NODK
-!                  ENDIF
                   DO IPHASE=1, NPHASE
-!                     CV_NODK_PHA =CV_NODK +(IPHASE-1)*CV_NONODS
-!                     CV_NODK2_PHA=CV_NODK2+(IPHASE-1)*CV_NONODS
                      DO SGI=1,SBCVNGI
                         SDEN(IPHASE,SGI)=SDEN(IPHASE,SGI) + SBCVFEN(CV_SILOC,SGI) &
                              *0.5*(SLOC_UDEN(IPHASE,CV_SILOC)+SLOC2_UDEN(IPHASE,CV_SILOC)) *WITH_NONLIN
@@ -4353,28 +4337,12 @@
                END DO
 
                SUD_ALL=0.0
-!               SUD=0.0
-!               SVD=0.0
-!               SWD=0.0
                SUDOLD_ALL=0.0
-!               SUDOLD=0.0
-!               SVDOLD=0.0
-!               SWDOLD=0.0
                DO U_SILOC=1,U_SNLOC
-!                  U_ILOC=U_SLOC2LOC( U_SILOC )
-!                  U_NODI=U_NDGLN((ELE-1)*U_NLOC+U_ILOC)
                   DO IPHASE=1, NPHASE
-!                     U_NODI_PHA=U_NODI+(IPHASE-1)*U_NONODS
                      DO SGI=1,SBCVNGI
                         SUD_ALL(:,IPHASE,SGI)   =SUD_ALL(:,IPHASE,SGI)    + SBUFEN(U_SILOC,SGI)*SLOC_NU(:,IPHASE,U_SILOC)
                         SUDOLD_ALL(:,IPHASE,SGI)=SUDOLD_ALL(:,IPHASE,SGI) + SBUFEN(U_SILOC,SGI)*SLOC_NUOLD(:,IPHASE,U_SILOC)
-
-!                        SUD(IPHASE,SGI)=SUD(IPHASE,SGI) + SBUFEN(U_SKLOC,SGI)*NU(U_NODK_PHA)
-!                        SVD(IPHASE,SGI)=SVD(IPHASE,SGI) + SBUFEN(U_SKLOC,SGI)*NV(U_NODK_PHA)
-!                        SWD(IPHASE,SGI)=SWD(IPHASE,SGI) + SBUFEN(U_SKLOC,SGI)*NW(U_NODK_PHA)
-!                        SUDOLD(IPHASE,SGI)=SUDOLD(IPHASE,SGI) + SBUFEN(U_SKLOC,SGI)*NUOLD(U_NODK_PHA)
-!                        SVDOLD(IPHASE,SGI)=SVDOLD(IPHASE,SGI) + SBUFEN(U_SKLOC,SGI)*NVOLD(U_NODK_PHA)
-!                        SWDOLD(IPHASE,SGI)=SWDOLD(IPHASE,SGI) + SBUFEN(U_SKLOC,SGI)*NWOLD(U_NODK_PHA)
                      END DO
                   END DO
                END DO
