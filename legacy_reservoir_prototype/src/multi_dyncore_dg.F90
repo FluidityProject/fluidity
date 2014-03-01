@@ -2512,7 +2512,7 @@
       REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U, LOC_UOLD
       REAL, DIMENSION ( :, :, : ), allocatable :: LOC_NU, LOC_NUOLD
       REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U_ABSORB, LOC_U_ABS_STAB
-      REAL, DIMENSION ( :, :, :, : ), allocatable :: LOC_UDIFFUSION, U_DX_NEW, UOLD_DX_NEW, DIFF_FOR_BETWEEN_U
+      REAL, DIMENSION ( :, :, :, : ), allocatable :: LOC_UDIFFUSION, U_DX_ALL, UOLD_DX_ALL, DIFF_FOR_BETWEEN_U
       REAL, DIMENSION ( :, :, :, : ), allocatable :: SUF_MOM_BC, SUF_MOM_BC_NU, SUF_ROB1_UBC_ALL, SUF_ROB2_UBC_ALL, TEN_XX
       REAL, DIMENSION ( :, :, :, :, :, : ), allocatable :: LOC_DGM_PHA
       REAL, DIMENSION ( :, : ), allocatable :: LOC_UDEN,  LOC_UDENOLD
@@ -2926,8 +2926,8 @@
       !ALLOCATE( V_DT(NPHASE,CV_NGI) ) !, V_DX(CV_NGI,NPHASE), V_DY(CV_NGI,NPHASE), V_DZ(CV_NGI,NPHASE) )
       !ALLOCATE( W_DT(NPHASE,CV_NGI) ) !, W_DX(CV_NGI,NPHASE), W_DY(CV_NGI,NPHASE), W_DZ(CV_NGI,NPHASE) )
 
-      ALLOCATE( U_DX_NEW( NDIM, NDIM_VEL, NPHASE, CV_NGI ) )
-      ALLOCATE( UOLD_DX_NEW( NDIM, NDIM_VEL, NPHASE, CV_NGI ) )
+      ALLOCATE( U_DX_ALL( NDIM, NDIM_VEL, NPHASE, CV_NGI ) )
+      ALLOCATE( UOLD_DX_ALL( NDIM, NDIM_VEL, NPHASE, CV_NGI ) )
 
       ALLOCATE( UOLD_DX(CV_NGI,NPHASE), UOLD_DY(CV_NGI,NPHASE), UOLD_DZ(CV_NGI,NPHASE) )
       ALLOCATE( VOLD_DX(CV_NGI,NPHASE), VOLD_DY(CV_NGI,NPHASE), VOLD_DZ(CV_NGI,NPHASE) )
@@ -3747,7 +3747,7 @@
             END DO
 
             DIFFGI_U = 0.0
-            U_DX_NEW = 0.0 ; UOLD_DX_NEW = 0.0
+            U_DX_ALL = 0.0 ; UOLD_DX_ALL = 0.0
             SOUGI_X = 0.0
 
             DO U_ILOC = 1, U_NLOC
@@ -3764,9 +3764,9 @@
 
                      DO JDIM = 1, NDIM_VEL
                         DO IDIM = 1, NDIM
-                           U_DX_NEW( IDIM, JDIM, IPHASE, GI ) = U_DX_NEW( IDIM, JDIM, IPHASE, GI ) + &
+                           U_DX_ALL( IDIM, JDIM, IPHASE, GI ) = U_DX_ALL( IDIM, JDIM, IPHASE, GI ) + &
                                 LOC_U( JDIM, IPHASE, U_ILOC ) * UFENX_ALL( IDIM, U_ILOC, GI )
-                           UOLD_DX_NEW( IDIM, JDIM, IPHASE, GI ) = UOLD_DX_NEW( IDIM, JDIM, IPHASE, GI ) + &
+                           UOLD_DX_ALL( IDIM, JDIM, IPHASE, GI ) = UOLD_DX_ALL( IDIM, JDIM, IPHASE, GI ) + &
                                 LOC_UOLD( JDIM, IPHASE, U_ILOC ) * UFENX_ALL( IDIM, U_ILOC, GI )
                         END DO
                      END DO
@@ -3825,16 +3825,16 @@
 
                   DO IDIM = 1, NDIM_VEL
                      RESID_U( IDIM, IPHASE, GI ) = RESID_U( IDIM, IPHASE, GI) + &
-                          DENGI( IPHASE, GI ) * SUM( UD_ND( :, IPHASE, GI ) * U_DX_NEW( :, IDIM, IPHASE, GI ) ) &
+                          DENGI( IPHASE, GI ) * SUM( UD_ND( :, IPHASE, GI ) * U_DX_ALL( :, IDIM, IPHASE, GI ) ) &
                           * WITH_NONLIN &
                           + DENGI( IPHASE, GI ) * U_DT( IDIM, IPHASE, GI )   &
                           - SOUGI_X( IDIM, IPHASE, GI ) - DIFFGI_U( IDIM, IPHASE, GI ) + P_DX( IDIM, GI )
 
-                     U_GRAD_NORM2( IDIM, IPHASE, GI ) = U_DT( IDIM, IPHASE, GI )**2 + SUM( U_DX_NEW( :, IDIM, IPHASE, GI )**2 )
+                     U_GRAD_NORM2( IDIM, IPHASE, GI ) = U_DT( IDIM, IPHASE, GI )**2 + SUM( U_DX_ALL( :, IDIM, IPHASE, GI )**2 )
                      U_GRAD_NORM( IDIM, IPHASE, GI ) = MAX( TOLER, SQRT( U_GRAD_NORM2( IDIM, IPHASE, GI ) ) )  
                      U_GRAD_NORM2( IDIM, IPHASE, GI ) = MAX( TOLER, U_GRAD_NORM2( IDIM, IPHASE, GI ) )
 
-                     A_DOT_U( IDIM, IPHASE, GI ) = DENGI( IPHASE, GI ) * ( SUM( UD_ND( :, IPHASE, GI ) * U_DX_NEW( :, IDIM, IPHASE, GI ) ) &
+                     A_DOT_U( IDIM, IPHASE, GI ) = DENGI( IPHASE, GI ) * ( SUM( UD_ND( :, IPHASE, GI ) * U_DX_ALL( :, IDIM, IPHASE, GI ) ) &
                           * WITH_NONLIN + U_DT( IDIM, IPHASE, GI ) ) + P_DX( IDIM, GI ) * RNO_P_IN_A_DOT
 
                      STAR_U_COEF( IDIM, IPHASE, GI ) = A_DOT_U( IDIM, IPHASE, GI ) / U_GRAD_NORM2( IDIM, IPHASE, GI )
@@ -3848,7 +3848,7 @@
                      DO IDIM = 1, NDIM_VEL
                         U_GRAD_N_MAX2( IDIM ) = MAX( U_GRAD_N_MAX2( IDIM ), &
                              ( JTT_INV * U_DT( IDIM, IPHASE, GI ) )**2 &
-                             + 4. * SUM( ( UFENX_ALL( :, U_ILOC, GI ) * U_DX_NEW( 1:NDIM, IDIM, IPHASE, GI ) )**2 ) )
+                             + 4. * SUM( ( UFENX_ALL( :, U_ILOC, GI ) * U_DX_ALL( 1:NDIM, IDIM, IPHASE, GI ) )**2 ) )
                      END DO
                   END DO
 
