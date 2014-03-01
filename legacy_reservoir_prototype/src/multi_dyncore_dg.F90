@@ -2516,7 +2516,8 @@
       REAL, DIMENSION ( :, :, :, : ), allocatable :: SUF_MOM_BC, SUF_MOM_BC_NU, SUF_ROB1_UBC_ALL, SUF_ROB2_UBC_ALL, TEN_XX
       REAL, DIMENSION ( :, :, :, :, :, : ), allocatable :: LOC_DGM_PHA
       REAL, DIMENSION ( :, : ), allocatable :: LOC_UDEN,  LOC_UDENOLD
-      REAL, DIMENSION ( :, :), allocatable :: LOC_PLIKE_GRAD_SOU_COEF
+      REAL, DIMENSION ( : ), allocatable :: LOC_P
+      REAL, DIMENSION ( :, :), allocatable :: LOC_PLIKE_GRAD_SOU_COEF, LOC_PLIKE_GRAD_SOU_GRAD
       REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U_SOURCE, LOC_U_SOURCE_CV
 
 
@@ -2952,13 +2953,13 @@
       ALLOCATE( U_GRAD_N_MAX2( NDIM_VEL ) )
       ALLOCATE( VLK_UVW(NDIM_VEL) )
 
-!      ALLOCATE( VLK_UVW(3) )
-
       ! Variables used to reduce indirect addressing...
       ALLOCATE( LOC_U(NDIM_VEL, NPHASE, U_NLOC),  LOC_UOLD(NDIM_VEL, NPHASE, U_NLOC) ) 
       ALLOCATE( LOC_NU(NDIM, NPHASE, U_NLOC),  LOC_NUOLD(NDIM, NPHASE, U_NLOC) ) 
       ALLOCATE( LOC_UDEN(NPHASE, CV_NLOC),  LOC_UDENOLD(NPHASE, CV_NLOC) ) 
+      ALLOCATE( LOC_P(P_NLOC) )
       ALLOCATE( LOC_PLIKE_GRAD_SOU_COEF(NPHASE, CV_NLOC) ) 
+      ALLOCATE( LOC_PLIKE_GRAD_SOU_GRAD(NPHASE, CV_NLOC) ) 
       ALLOCATE( LOC_U_SOURCE(NDIM_VEL, NPHASE, U_NLOC) ) 
       ALLOCATE( LOC_U_SOURCE_CV(NDIM_VEL, NPHASE, CV_NLOC) ) 
       ALLOCATE( LOC_U_ABSORB(NDIM_VEL* NPHASE, NDIM_VEL* NPHASE, MAT_NLOC) ) 
@@ -3208,6 +3209,14 @@
                   LOC_U_SOURCE_CV( IDIM, IPHASE, CV_ILOC ) = U_SOURCE_CV( CV_INOD + (IDIM-1)*CV_NONODS + (IPHASE-1)*NDIM_VEL*CV_NONODS )
                END DO
             END DO
+         END DO
+
+         DO P_ILOC = 1, P_NLOC
+            P_INOD = P_NDGLN( ( ELE - 1 ) * P_NLOC + P_ILOC )
+            DO IPHASE=1,NPHASE
+               LOC_PLIKE_GRAD_SOU_GRAD(IPHASE, P_ILOC) = PLIKE_GRAD_SOU_GRAD(P_INOD + (IPHASE-1)*CV_NONODS) 
+            END DO
+            LOC_P(P_ILOC) = P(P_INOD) 
          END DO
 
          DO MAT_ILOC = 1, MAT_NLOC
@@ -3695,7 +3704,7 @@
 
                         DO IDIM = 1, NDIM_VEL
                            LOC_U_RHS( IDIM, IPHASE, U_ILOC ) = LOC_U_RHS( IDIM, IPHASE, U_ILOC ) &
-                                - GRAD_SOU_GI_NMX( IDIM, IPHASE ) * PLIKE_GRAD_SOU_GRAD( JCV_NOD + ( IPHASE - 1 ) * CV_NONODS )
+                                - GRAD_SOU_GI_NMX( IDIM, IPHASE ) * LOC_PLIKE_GRAD_SOU_GRAD( IPHASE, P_JLOC )
                         END DO
 
                      END IF
@@ -3791,15 +3800,15 @@
             P_DX = 0.0
 
             DO P_ILOC = 1, P_NLOC
-               P_INOD = P_NDGLN( ( ELE - 1 ) * P_NLOC + P_ILOC )
+!               P_INOD = P_NDGLN( ( ELE - 1 ) * P_NLOC + P_ILOC )
                DO GI = 1, CV_NGI
 
-                  P_DX( :, GI ) = P_DX( :, GI ) + CVFENX_ALL( :, P_ILOC, GI ) * P( P_INOD )
+                  P_DX( :, GI ) = P_DX( :, GI ) + CVFENX_ALL( :, P_ILOC, GI ) * LOC_P( P_ILOC )
 
                   IF ( IPLIKE_GRAD_SOU == 1 .OR. CAPILLARY_PRESSURE_ACTIVATED ) THEN ! Capillary pressure for example terms...
                      DO IPHASE = 1, NPHASE
 
-                        R = GRAD_SOU_GI( IPHASE, GI ) * PLIKE_GRAD_SOU_GRAD( P_INOD + ( IPHASE - 1 ) * CV_NONODS )
+                        R = GRAD_SOU_GI( IPHASE, GI ) * LOC_PLIKE_GRAD_SOU_GRAD( IPHASE, P_ILOC )
                         DO IDIM = 1, NDIM_VEL
                            RESID_U( IDIM, IPHASE, GI ) = RESID_U( IDIM, IPHASE, GI ) + R * CVFENX_ALL( IDIM, P_ILOC, GI )
                         END DO
