@@ -261,7 +261,7 @@ contains
        select case(trim(bc_type))
 
        case("dirichlet", "neumann", "weakdirichlet", &
-            "buoyancy", "flux")
+            "buoyancy", "flux", "source_SWMM","source_rainfall")
 
           call allocate(surface_field, surface_mesh, name="value")
           call insert_surface_field(field, i+1, surface_field)
@@ -358,7 +358,7 @@ contains
        end if
 
        select case(trim(bc_type))
-       case("dirichlet", "neumann", "weakdirichlet", "flux")
+       case("dirichlet", "neumann", "weakdirichlet", "flux","source_SWMM", "source_rainfall")
 
           if(have_option(trim(bc_path_i)//"/type[0]/align_bc_with_cartesian")) then
              aligned_components=cartesian_aligned_components
@@ -518,7 +518,7 @@ contains
 
        ! now check for user-specified normal/tangent vectors (rotation matrix)
        select case (bc_type)
-       case ("dirichlet", "neumann", "robin", "weakdirichlet", "flux")
+       case ("dirichlet", "neumann", "robin", "weakdirichlet", "flux", "source_SWMM","source_rainfall")
           ! this is the same for all 3 b.c. types
 
           bc_type_path=trim(bc_path_i)//"/type[0]/align_bc_with_surface"
@@ -750,7 +750,7 @@ contains
        ! be constant or set from a generic or python function.
        select case(trim(bc_type))
 
-       case("dirichlet", "neumann", "weakdirichlet", "flux")
+       case("dirichlet", "neumann", "weakdirichlet", "flux","source_SWMM","source_rainfall")
 
           bc_type_path=trim(bc_path_i)//"/type[0]"
 
@@ -914,7 +914,7 @@ contains
        end if
 
        select case(trim(bc_type))
-       case("dirichlet", "neumann", "weakdirichlet", "flux")
+       case("dirichlet", "neumann", "weakdirichlet", "flux","source_SWMM","source_rainfall")
 
           if(have_option(trim(bc_path_i)//"/align_bc_with_cartesian")) then
              aligned_components=cartesian_aligned_components

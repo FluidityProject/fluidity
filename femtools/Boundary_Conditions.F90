@@ -1246,7 +1246,7 @@ contains
     !! A field over the entire surface containing the boundary values
     !! for the bcs of the type requested. This field is defined on a 
     !! dg surface mesh so that it can deal with discontinuities between
-    !! differen boundary conditions.
+    !! different boundary conditions.
     !! The ordering of the (surface) elements in this mesh is the same
     !! as the ordering of the surface elements (faces) of the given
     !! field.

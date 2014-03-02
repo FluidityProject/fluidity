@@ -3784,6 +3784,20 @@ reference_density, this field needs to be 1.3e-3.</a:documentation>
         </choice>
       </element>
       <element name="type">
+        <a:documentation>Specify the flow rate exchanged with the subsurface drainage system. </a:documentation>
+        <attribute name="name">
+          <value>source_SWMM</value>
+        </attribute>
+        <ref name="velocity_components_choice"/>
+      </element>
+      <element name="type">
+        <a:documentation>Specify hydrological elements, such as rainfall, evaporation, etc.</a:documentation>
+        <attribute name="name">
+          <value>source_rainfall</value>
+        </attribute>
+        <ref name="velocity_components_choice"/>
+      </element>
+      <element name="type">
         <a:documentation>When using control_volumes under Pressure
 spatial_discretisation or when using
 integrate_continuity_by_parts with continuous_galerkin

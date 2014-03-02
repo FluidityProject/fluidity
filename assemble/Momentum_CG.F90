@@ -806,7 +806,7 @@
              "source_SWMM   ", &
              "source_rain   "  &
            & /), velocity_bc, velocity_bc_type)
-
+           
          allocate(pressure_bc_type(surface_element_count(p)))
          call get_entire_boundary_condition(p, &
            & (/ &
@@ -1052,8 +1052,10 @@
       real, dimension(u%dim, face_loc(u, sele)) :: oldu_val
       real, dimension(u%dim, face_ngi(u, sele)) :: ndotk_k
       !real, dimension(face_ngi(u, sele)) ::test_mat
-      real::source_q,sum_guess, source_qi 
-      real, dimension(face_loc(ct_rhs,sele))::source_guess_mat,source_mat
+      real::sum_guess ,sum_source
+      real, dimension(face_loc(ct_rhs,sele))::source_guess_mat, source_mat
+      real, dimension(face_ngi(u, sele))::source_q_gi
+      integer::have_constant
       
       u_shape=> face_shape(u, sele)
       p_shape=> face_shape(ct_rhs, sele)
@@ -1231,30 +1233,35 @@
 
       !Add the interacted flux with drainage system to the RHS of Continuity Equation. The flux can be calculated by SWMM.
       !Add the interacted flux with drainage system to the RHS of Continuity Equation. The flux can be calculated by SWMM. 
-      
-      !print *, 'test_mat',test_mat
-      source_q=0.1  
-      source_qi=source_q/face_loc(ct_rhs, sele)
-      source_guess_mat=shape_rhs(p_shape,source_qi*detwei_bdy)
-      sum_guess = 0.
-      do i=1, face_loc(ct_rhs, sele)
-          sum_guess = sum_guess + source_guess_mat(i)
-      end do
-      do i=1, face_loc(ct_rhs, sele)
-          source_mat(i)=source_q*source_guess_mat(i)/sum_guess
-      end do
-      call addto(ct_rhs,p_nodes_bdy,source_mat)
-      
-      
-      !print *, 'ct_rhs', ele_val(ct_rhs,sele)
-      if (velocity_bc_type(1,sele)==BC_TYPE_SWMM .or. velocity_bc_type(1,sele)==BC_TYPE_RAINFALL) then
-         do dim = 1, u%dim
-          if(velocity_bc_type(dim,sele)==BC_TYPE_SWMM .or. velocity_bc_type(1,sele)==BC_TYPE_RAINFALL) then
-            call addto(ct_rhs,p_nodes_bdy, shape_rhs(p_shape, ele_val_at_quad(velocity_bc, sele, dim)*detwei_bdy))
-          end if
+      !Assume that there is only one source point in each cell
+      if (any(velocity_bc_type(:,sele)==BC_TYPE_SWMM) ) then
+         source_q_gi=ele_val_at_quad(velocity_bc, sele, 3)
+         source_guess_mat=shape_rhs(p_shape,source_q_gi*detwei_bdy)
+         sum_guess = 0
+         sum_source=0.
+         have_constant=0
+         do i=1,face_ngi(u, sele)
+           sum_source=sum_source+source_q_gi(i)
+           !check whether the input is constant value. 
+           if (i>1) then
+             if(source_q_gi(i) /= source_q_gi(i-1)) then
+              have_constant=have_constant+1
+             end if
+           end if 
          end do
-         !call addto(ct_rhs,p_nodes_bdy,shape_rhs(p_shape,source_SWMM))
+         if (have_constant==0) then 
+             sum_source=sum_source/face_ngi(u, sele)
+         end if
+         do i=1, face_loc(ct_rhs, sele)
+          sum_guess = sum_guess + source_guess_mat(i)
+         end do
+         do i=1, face_loc(u, sele)
+          source_mat(i)=sum_source*source_guess_mat(i)/sum_guess
+         end do
+         !For pipe flow source and rainfall, there is only vertical source
+         call addto(ct_rhs,p_nodes_bdy, source_mat)
       end if
+      !.or. velocity_bc_type(:,sele)==BC_TYPE_RAINFALL)
       
     end subroutine construct_momentum_surface_element_cg
 
@@ -2028,8 +2035,7 @@
       sigma_d0_diag=0.0
       grav_at_quads=ele_val_at_quad(gravity, ele)
       depth_at_quads=ele_val_at_quad(depth, ele)
-      !print *, 'depth_at_quads',depth_at_quads
-      !print *, 'grav_at_quads',grav_at_quads
+
       if(have_sigma) then
       	if (on_sphere) then
       	 FLExit('The sigma_d0 scheme currently not implemented on the sphere')	 
@@ -2037,7 +2043,6 @@
 	   call calculate_sigma_element(ele, positions, u, sigma_ngi, d0_a,dt,depth)
            do i=1, ele_ngi(u,ele)
             sigma_d0_diag(:,i)=sigma_ngi(i)*grav_at_quads(:,i) 
-            !print *, 'sigma_d0_diag(:,i)',sigma_d0_diag(:,i)
           end do
   
         end if
@@ -2047,11 +2052,9 @@
         if (on_sphere) then
           tensor_absorption_gi=tensor_absorption_gi-vvr_abs-ib_abs
        end if
-       !print *, 'vvr_abs_diag',vvr_abs_diag
-      ! print *, 'ib_abs_diag',ib_abs_diag
+       
        absorption_gi=absorption_gi-vvr_abs_diag-ib_abs_diag-sigma_d0_diag
-       !print *, 'absorption_gi',absorption_gi
-
+      
       end if
 
       if (have_swe_bottom_drag) then
@@ -2147,8 +2150,6 @@
             do dim = 1, u%dim
               big_m_diag_addto(dim, :) = big_m_diag_addto(dim, :) + dt*theta*absorption_lump(dim,:)
               rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump(dim,:)*oldu_val(dim,:) +absorption_lump(dim,:)*u_val(dim,:)
-              !print *, 'u_val(dim,:)',u_val(dim,:)
-              !print *, 'rhs_addto(dim, :)',rhs_addto(dim, :)
             end do
           end if
         else
@@ -2156,8 +2157,6 @@
             big_m_tensor_addto(dim, dim, :, :) = big_m_tensor_addto(dim, dim, :, :) + &
               & dt*theta*absorption_mat(dim,:,:)
             rhs_addto(dim, :) = rhs_addto(dim, :) - matmul(absorption_mat(dim,:,:), oldu_val(dim,:)) + matmul(absorption_mat(dim,:,:), u_val(dim,:))
-           ! print *, 'u_val(dim,:)',u_val(dim,:)
-           !   print *, 'rhs_addto(dim, :)',rhs_addto(dim, :)
           end do
           absorption_lump = 0.0
         end if
