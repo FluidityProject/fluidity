@@ -2829,9 +2829,9 @@ velocity_boundary_conditions =
             attribute name { "source_SWMM" },
             velocity_components_choice
          }|
-         ## Specify hydrological elements, such as rainfall, evaporation, etc.
+         ## Specify hydrological elements, such as rainfall, evaporation, etc. Warining: The unit of rainfall observation data is usually mm/s. It must be conversed to m/s.
          element type {
-            attribute name { "source_rainfall" },
+            attribute name { "rainfall" },
             velocity_components_choice
          }|
          ## When using control_volumes under Pressure

@@ -804,7 +804,7 @@
              "free_surface  ", &
              "flux          ", &
              "source_SWMM   ", &
-             "source_rain   "  &
+             "rainfall      "  &
            & /), velocity_bc, velocity_bc_type)
            
          allocate(pressure_bc_type(surface_element_count(p)))
@@ -1052,10 +1052,11 @@
       real, dimension(u%dim, face_loc(u, sele)) :: oldu_val
       real, dimension(u%dim, face_ngi(u, sele)) :: ndotk_k
       !real, dimension(face_ngi(u, sele)) ::test_mat
-      real::sum_guess ,sum_source
-      real, dimension(face_loc(ct_rhs,sele))::source_guess_mat, source_mat
-      real, dimension(face_ngi(u, sele))::source_q_gi
+      real::sum_guess ,sum_source, sum_guess_rainfall, sum_rainfall
+      real, dimension(face_loc(ct_rhs,sele))::source_guess_mat, source_mat,rainfall_guess_mat, rainfall_mat
+      real, dimension(face_ngi(u, sele))::source_q_gi, intensity_gi
       integer::have_constant
+      real :: sele_area
       
       u_shape=> face_shape(u, sele)
       p_shape=> face_shape(ct_rhs, sele)
@@ -1233,7 +1234,7 @@
 
       !Add the interacted flux with drainage system to the RHS of Continuity Equation. The flux can be calculated by SWMM.
       !Add the interacted flux with drainage system to the RHS of Continuity Equation. The flux can be calculated by SWMM. 
-      !Assume that there is only one source point in each cell
+      !Assume that there is only one source point at most in each cell.
       if (any(velocity_bc_type(:,sele)==BC_TYPE_SWMM) ) then
          source_q_gi=ele_val_at_quad(velocity_bc, sele, 3)
          source_guess_mat=shape_rhs(p_shape,source_q_gi*detwei_bdy)
@@ -1261,7 +1262,41 @@
          !For pipe flow source and rainfall, there is only vertical source
          call addto(ct_rhs,p_nodes_bdy, source_mat)
       end if
-      !.or. velocity_bc_type(:,sele)==BC_TYPE_RAINFALL)
+      
+      !Input of rainfall is in term of intensity (m/s). Note usually the unit of rainfall observation data is mm/s. 
+      !Unit conversion is needed before being read to the code. 
+      
+      if (any(velocity_bc_type(:,sele)==BC_TYPE_RAINFALL) ) then
+         sele_area=sum(detwei_bdy)
+         !get the rainfall intensity
+         intensity_gi=ele_val_at_quad(velocity_bc, sele, 3)
+         rainfall_guess_mat=shape_rhs(p_shape,intensity_gi*detwei_bdy)
+         sum_guess_rainfall=0
+         sum_rainfall=0
+         have_constant=0
+         do i=1,face_ngi(u, sele)
+           sum_rainfall=sum_rainfall+intensity_gi(i)
+           !check whether the input is constant value. 
+           if (i>1) then
+             if(intensity_gi(i) /= intensity_gi(i-1)) then
+              have_constant=have_constant+1
+             end if
+           end if 
+         end do
+         !sum_rainfall is the sum of the intensity value of all the gaussion quadrature points.
+         if (have_constant==0) then 
+             sum_rainfall=sum_rainfall/face_ngi(u, sele)
+         end if
+         do i=1, face_loc(ct_rhs, sele)
+          sum_guess_rainfall= sum_guess_rainfall + rainfall_guess_mat(i)
+         end do
+         !distribute the rainfall amount (intensity*area, m^3/s) to each node. 
+         do i=1, face_loc(u, sele)
+          rainfall_mat(i)=sele_area*sum_rainfall*rainfall_guess_mat(i)/sum_guess_rainfall
+         end do
+         !For pipe flow source and rainfall, there is only vertical source
+         call addto(ct_rhs,p_nodes_bdy, rainfall_mat)
+      end if
       
     end subroutine construct_momentum_surface_element_cg
 

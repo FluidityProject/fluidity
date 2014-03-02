@@ -3791,9 +3791,9 @@ reference_density, this field needs to be 1.3e-3.</a:documentation>
         <ref name="velocity_components_choice"/>
       </element>
       <element name="type">
-        <a:documentation>Specify hydrological elements, such as rainfall, evaporation, etc.</a:documentation>
+        <a:documentation>Specify hydrological elements, such as rainfall, evaporation, etc. Warining: The unit of rainfall observation data is usually mm/s. It must be conversed to m/s.</a:documentation>
         <attribute name="name">
-          <value>source_rainfall</value>
+          <value>rainfall</value>
         </attribute>
         <ref name="velocity_components_choice"/>
       </element>
