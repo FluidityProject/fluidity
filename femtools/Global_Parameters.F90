@@ -159,4 +159,7 @@ module global_parameters
   !! New timestep for limiter
   logical :: new_lim = .false.
 
+  !! Overlapping method
+  logical :: is_overlapping = .false.
+
 end module global_parameters

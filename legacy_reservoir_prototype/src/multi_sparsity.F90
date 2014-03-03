@@ -32,7 +32,7 @@
     use fldebug
 
     use spud
-    use global_parameters, only: option_path_len
+    use global_parameters, only: option_path_len, is_overlapping
 
   contains
 
@@ -97,15 +97,8 @@
       INTEGER :: CV_NOD, U_NOD, JLOC, COUNT, ELE, ELE1, ELE2, CV_NODI, CV_ILOC, ILEV, count2, rep
       integer, dimension(cv_nonods) :: cv_ndgln_small
       logical :: repeated, finished_colct
-      character( len = option_path_len ) :: overlapping_path 
-      logical :: is_overlapping   
 
       ewrite(3,*) 'In DEF_SPAR_CT_DG'
-
-      is_overlapping = .false.
-      call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
-           overlapping_path )
-      if( trim( overlapping_path ) == 'overlapping' ) is_overlapping = .true.
 
       COUNT = 2
       !! Get condensed form of cv_ndgln, ie without any repeats
@@ -1372,13 +1365,11 @@
 
     subroutine Defining_MaxLengths_for_Sparsity_Matrices( ndim, nphase, totele, u_nloc, cv_nloc, cv_nonods, &
          mx_nface_p1, mxnele, mx_nct, mx_nc, mx_ncolcmc, mx_ncoldgm_pha, mx_ncolmcy, &
-         mx_ncolacv, mx_ncolm, &  
-         is_overlapping )
+         mx_ncolacv, mx_ncolm )
       implicit none
       integer, intent( in ) :: ndim, nphase, totele, u_nloc, cv_nloc, cv_nonods
       integer, intent( inout ) :: mx_nface_p1, mxnele, mx_nct, mx_nc, mx_ncolcmc, mx_ncoldgm_pha, &
            mx_ncolmcy, mx_ncolacv, mx_ncolm
-      logical, intent( in ) :: is_overlapping
 
       ewrite(3,*)'In Defining_Lengths_for_Sparsity_Matrices'
 
@@ -1456,7 +1447,7 @@ integer, dimension(:), pointer ::  colcmc, colm, colmcy, colct, colc, coldgm_pha
            x_nonods, x_nonods_p1, p_nonods, mx_ncolacv_loc, count, cv_inod, mx_ncolele_pha, nacv_loc, nacv_loc2, &
            ele, iloc1, iloc2, globi, globj, cv_ele_type, p_ele_type, u_ele_type, mat_ele_type, u_sele_type, &
            cv_sele_type
-      logical :: presym, is_overlapping
+      logical :: presym
       real :: dx
       integer, dimension(:), pointer :: block_to_global_acv
       integer, dimension(:,:) :: global_dense_block_acv
@@ -1468,8 +1459,7 @@ integer, dimension(:), pointer ::  colcmc, colm, colmcy, colct, colc, coldgm_pha
            nphase, nstate, ncomp, totele, ndim, stotel, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, x_nloc_p1, p_nloc, mat_nloc, &
            x_snloc, cv_snloc, u_snloc, p_snloc, &
-           cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, x_nonods_p1, p_nonods, dx, &
-           is_overlapping )
+           cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, x_nonods_p1, p_nonods, dx )
 
 !!$ Calculating Global Node Numbers
       allocate( x_ndgln_p1( totele * x_nloc_p1 ), x_ndgln( totele * x_nloc ), cv_ndgln( totele * cv_nloc ), &
@@ -1481,7 +1471,7 @@ integer, dimension(:), pointer ::  colcmc, colm, colmcy, colct, colc, coldgm_pha
            cv_sndgln = 0 ; p_sndgln = 0 ; u_sndgln = 0
 
       call Compute_Node_Global_Numbers( state, &
-           is_overlapping, totele, stotel, x_nloc, x_nloc_p1, cv_nloc, p_nloc, u_nloc, xu_nloc, &
+           totele, stotel, x_nloc, x_nloc_p1, cv_nloc, p_nloc, u_nloc, xu_nloc, &
            cv_snloc, p_snloc, u_snloc, &
            cv_ndgln, u_ndgln, p_ndgln, x_ndgln, x_ndgln_p1, xu_ndgln, mat_ndgln, &
            cv_sndgln, p_sndgln, u_sndgln )

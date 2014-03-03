@@ -40,7 +40,7 @@
     use diagnostic_variables
     use diagnostic_fields
     use diagnostic_fields_wrapper
-    use global_parameters, only: option_path_len
+    use global_parameters, only: option_path_len, is_overlapping
     use diagnostic_fields_wrapper_new
     use element_numbering
     use shape_functions
@@ -77,8 +77,7 @@
          nphase, nstate, ncomp, totele, ndim, stotel, &
          u_nloc, xu_nloc, cv_nloc, x_nloc, x_nloc_p1, p_nloc, mat_nloc, &
          x_snloc, cv_snloc, u_snloc, p_snloc, &
-         cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, x_nonods_p1, p_nonods, dx, &
-         is_overlapping )
+         cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, x_nonods_p1, p_nonods, dx )
 !!$ This subroutine extracts all primary variables associated with the mesh from state,
 !!$ and associated them with the variables used in the MultiFluids model.
       implicit none
@@ -88,7 +87,6 @@
            mat_nloc, x_snloc, cv_snloc, u_snloc, p_snloc, cv_nonods, mat_nonods, u_nonods, &
            xu_nonods, x_nonods, x_nonods_p1, p_nonods
       real, intent( inout ), optional :: dx
-      logical, intent( inout ), optional :: is_overlapping
 
 !!$ Local variables
       character( len = option_path_len ) :: vel_element_type
@@ -115,12 +113,10 @@
       assert( nphase > 0 ) ! Check if there is more than 0 phases
 
 !!$ Get the vel element type.
-      if( present( is_overlapping ) ) then
-         call get_option('/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
-              vel_element_type )
-         is_overlapping = .false.
-         if ( trim( vel_element_type ) == 'overlapping' ) is_overlapping = .true. 
-      end if
+      call get_option('/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
+           vel_element_type )
+      is_overlapping = .false.
+      if ( trim( vel_element_type ) == 'overlapping' ) is_overlapping = .true.
 
       positions => extract_vector_field( state, 'Coordinate' )
       pressure_cg_mesh => extract_mesh( state, 'PressureMesh_Continuous' )
@@ -159,11 +155,9 @@
       if( present( xu_nonods ) ) xu_nonods = max(( xu_nloc - 1 ) * totele + 1, totele )
 
 !!$ Take care of overlapping elements
-      if( present( is_overlapping ) ) then
-         if( ( is_overlapping ) .and. ( ndim > 1 ) ) u_nonods = u_nonods * cv_nloc
-         if( ( is_overlapping ) .and. ( ndim > 1 ) ) u_nloc = u_nloc * cv_nloc
-         if( is_overlapping ) u_snloc = u_snloc * cv_nloc 
-      end if
+      if( ( is_overlapping ) .and. ( ndim > 1 ) ) u_nonods = u_nonods * cv_nloc
+      if( ( is_overlapping ) .and. ( ndim > 1 ) ) u_nloc = u_nloc * cv_nloc
+      if( is_overlapping ) u_snloc = u_snloc * cv_nloc 
 
 !!$ Used just for 1D:
       if( present( dx ) ) dx = maxval( positions % val( 1, : ) ) - minval( positions % val( 1, : ) )
@@ -173,7 +167,7 @@
 
 
     subroutine Compute_Node_Global_Numbers( state, &
-         is_overlapping, totele, stotel, x_nloc, x_nloc_p1, cv_nloc, p_nloc, u_nloc, xu_nloc, &
+         totele, stotel, x_nloc, x_nloc_p1, cv_nloc, p_nloc, u_nloc, xu_nloc, &
          cv_snloc, p_snloc, u_snloc, &
          cv_ndgln, u_ndgln, p_ndgln, x_ndgln, x_ndgln_p1, xu_ndgln, mat_ndgln, &
          cv_sndgln, p_sndgln, u_sndgln )
@@ -183,7 +177,6 @@
       type( vector_field ), pointer :: positions, velocity
       type( mesh_type ), pointer :: pressure_cg_mesh, velocity_cg_mesh
       type( scalar_field ), pointer :: pressure
-      logical, intent( in ) :: is_overlapping
       integer, intent( in ) :: totele, stotel, x_nloc, x_nloc_p1, cv_nloc, p_nloc, u_nloc, xu_nloc, &
            cv_snloc, p_snloc, u_snloc
       integer, dimension( : ) :: cv_ndgln, u_ndgln, p_ndgln, x_ndgln, x_ndgln_p1, xu_ndgln, mat_ndgln, &
@@ -208,7 +201,7 @@
 
 !!$ Velocities
       velocity => extract_vector_field( state( 1 ), 'Velocity' )
-      call Get_Ndgln( u_ndgln, velocity, is_overlapping, cv_nloc )
+      call Get_Ndgln( u_ndgln, velocity, cv_nloc )
 
 !!$ Velocity in the continuous space
       velocity_cg_mesh => extract_mesh( state( 1 ), 'VelocityMesh_Continuous' )
@@ -411,7 +404,6 @@
 
 
     subroutine Get_Discretisation_Options( state, &
-         is_overlapping, &
          t_disopt, v_disopt, t_beta, v_beta, t_theta, v_theta, u_theta, &
          t_dg_vel_int_opt, u_dg_vel_int_opt, v_dg_vel_int_opt, w_dg_vel_int_opt, &
          comp_diffusion_opt, ncomp_diff_coef, in_ele_upwind, dg_ele_upwind, &
@@ -421,7 +413,6 @@
 !!$ This subroutine extract all discretisation options from the schema
       implicit none
       type( state_type ), dimension( : ), intent( in ) :: state
-      logical, intent( in ) :: is_overlapping
       integer, intent( inout ) :: t_disopt, v_disopt
       real, intent( inout ) :: t_beta, v_beta, t_theta, v_theta, u_theta
       integer, intent( inout ) :: t_dg_vel_int_opt, u_dg_vel_int_opt, v_dg_vel_int_opt, w_dg_vel_int_opt, &
@@ -781,8 +772,7 @@
            nphase, nstate, ncomp, totele, ndim, stotel, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, x_nloc_p1, p_nloc, mat_nloc, &
            x_snloc, cv_snloc, u_snloc, p_snloc, &
-           cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, x_nonods_p1, p_nonods, dx, &
-           is_overlapping )
+           cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, x_nonods_p1, p_nonods, dx )
 
 !!$ Calculating Global Node Numbers
       allocate( x_ndgln_p1( totele * x_nloc_p1 ), x_ndgln( totele * x_nloc ), cv_ndgln( totele * cv_nloc ), &
@@ -794,7 +784,7 @@
       u_ndgln = 0 ;  xu_ndgln = 0 ; cv_sndgln = 0 ; p_sndgln = 0 ; u_sndgln = 0
 
       call Compute_Node_Global_Numbers( state, &
-           is_overlapping, totele, stotel, x_nloc, x_nloc_p1, cv_nloc, p_nloc, u_nloc, xu_nloc, &
+           totele, stotel, x_nloc, x_nloc_p1, cv_nloc, p_nloc, u_nloc, xu_nloc, &
            cv_snloc, p_snloc, u_snloc, &
            cv_ndgln, u_ndgln, p_ndgln, x_ndgln, x_ndgln_p1, xu_ndgln, mat_ndgln, &
            cv_sndgln, p_sndgln, u_sndgln )
@@ -881,8 +871,7 @@
               Velocity_U_BC_Spatial, wic_momu_bc, &
               Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, &
               suf_momu_bc, suf_momv_bc, suf_momw_bc, &
-              field_prot_source=Velocity_U_Source, field_prot_absorption=Velocity_Absorption, &
-              is_overlapping=is_overlapping )
+              field_prot_source=Velocity_U_Source, field_prot_absorption=Velocity_Absorption )
       end do Loop_Velocity
 
 !!$
@@ -1246,12 +1235,11 @@
          field_u_prot, field_v_prot, field_w_prot, field_nu_prot, field_nv_prot, field_nw_prot, &
          wic_bc, wic_momu_bc, suf_u_bc, suf_v_bc, suf_w_bc, &
          suf_momu_bc, suf_momv_bc, suf_momw_bc, &
-         field_prot_source, field_prot_absorption, is_overlapping )
+         field_prot_source, field_prot_absorption )
       implicit none
       type( state_type ), dimension( : ), intent( in ) :: state
       logical, intent( in ) :: initialised
       integer, intent( in ) :: iphase
-      logical, intent( in ) :: is_overlapping
       type( vector_field ), pointer :: field, field_prot_bc
       real, dimension( : ), intent( inout ) :: field_u_prot, field_v_prot, field_w_prot, &
            field_nu_prot, field_nv_prot, field_nw_prot
@@ -1672,11 +1660,10 @@
 !!$
 !!$ Module Get_Ndgln Interfaces
 
-    subroutine Get_Scalar_Ndgln( ndgln, field, is_overlapping, cv_nloc )
+    subroutine Get_Scalar_Ndgln( ndgln, field, cv_nloc )
       implicit none
       type( scalar_field ), intent( in ) :: field
       integer, intent( in ), optional :: cv_nloc
-      logical, intent( in ), optional :: is_overlapping
       integer, dimension( : ), intent( inout ) :: ndgln
       ! Local variables
       integer, dimension( : ), pointer :: nloc
@@ -1694,29 +1681,24 @@
       return
     end subroutine Get_Scalar_Ndgln
 
-    subroutine Get_Vector_Ndgln( ndgln, field, is_overlapping, cv_nloc )
+    subroutine Get_Vector_Ndgln( ndgln, field, cv_nloc )
       implicit none
       type( vector_field ), intent( in ) :: field
       integer, intent( in ), optional :: cv_nloc
-      logical, intent( in ), optional :: is_overlapping
       integer, dimension( : ), intent( inout ) :: ndgln
       ! Local variables
       integer, dimension( : ), pointer :: nloc
       integer :: ele, iloc, count, cv_nloc2, ndim
-      logical :: is_overlapping2
-
 
       call get_option( '/geometry/dimension', ndim )
-      is_overlapping2 = .false.
-      if ( present( is_overlapping ) ) is_overlapping2 = is_overlapping
       cv_nloc2 = 1
-      if ( ( is_overlapping2 ) .and. ( ndim > 1 ) ) cv_nloc2 = cv_nloc
+      if ( is_overlapping .and. ( ndim > 1 ) ) cv_nloc2 = cv_nloc
 
       count = 0
       do ele = 1, ele_count( field )
          nloc => ele_nodes( field, ele )
          do iloc = 1, ele_loc( field, 1 ) * cv_nloc2
-            if( is_overlapping2 ) then
+            if( is_overlapping ) then
                count = count + 1
                ndgln( ( ele - 1 ) * ele_loc( field, 1 ) * cv_nloc2 + iloc ) = count
             else
@@ -1731,11 +1713,10 @@
     end subroutine Get_Vector_Ndgln
 
 
-    subroutine Get_Mesh_Ndgln( ndgln, mesh, is_overlapping, cv_nloc )
+    subroutine Get_Mesh_Ndgln( ndgln, mesh, cv_nloc )
       implicit none
       type( mesh_type ), intent( in ) :: mesh
       integer, intent( in ), optional :: cv_nloc
-      logical, intent( in ), optional :: is_overlapping
       integer, dimension( : ), intent( inout ) :: ndgln
       ! Local variables
       integer, dimension( : ), pointer :: nloc
@@ -1756,12 +1737,11 @@
 !!$
 !!$ Module Get_SNdgln Interfaces
 
-    subroutine Get_Scalar_SNdgln( sndgln, field, is_overlapping, cv_nloc  )
+    subroutine Get_Scalar_SNdgln( sndgln, field, cv_nloc  )
       implicit none
       type( scalar_field ), intent( in ) :: field
       integer, dimension( : ), intent( inout ) :: sndgln
       integer, intent( in ), optional :: cv_nloc
-      logical, intent( in ), optional :: is_overlapping
       ! Local variables
       integer, dimension( : ), allocatable :: snloc
       integer :: sele, iloc
@@ -1781,12 +1761,11 @@
       return
     end subroutine Get_Scalar_SNdgln
 
-    subroutine Get_Vector_SNdgln( sndgln, field, is_overlapping, cv_nloc  )
+    subroutine Get_Vector_SNdgln( sndgln, field, cv_nloc  )
       implicit none
       type( vector_field ), intent( in ) :: field
       integer, dimension( : ), intent( inout ) :: sndgln
       integer, intent( in ), optional :: cv_nloc
-      logical, intent( in ), optional :: is_overlapping
       ! Local variables
       integer, dimension( : ), allocatable :: snloc
       integer :: sele, iloc
@@ -1820,7 +1799,7 @@
            x_snloc, cv_snloc, u_snloc, p_snloc, &
            cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, x_nonods_p1, p_nonods, knod, istate
       real :: dx
-      logical :: is_overlapping, initialised
+      logical :: initialised
       integer, dimension( : ), allocatable :: cv_ndgln, u_ndgln, p_ndgln, x_ndgln, x_ndgln_p1, xu_ndgln, mat_ndgln, &
            cv_sndgln, p_sndgln, u_sndgln, Temperature_BC_Spatial
       real, dimension( : ), allocatable :: Temperature, Temperature_BC 
@@ -1829,8 +1808,7 @@
            nphase, nstate, ncomp, totele, ndim, stotel, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, x_nloc_p1, p_nloc, mat_nloc, &
            x_snloc, cv_snloc, u_snloc, p_snloc, &
-           cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, x_nonods_p1, p_nonods, dx, &
-           is_overlapping )
+           cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, x_nonods_p1, p_nonods, dx )
 
 !!$ Calculating Global Node Numbers
       allocate( x_ndgln_p1( totele * x_nloc_p1 ), x_ndgln( totele * x_nloc ), cv_ndgln( totele * cv_nloc ), &
@@ -1845,7 +1823,7 @@
            temperature_bc( stotel * cv_snloc * nphase ) )
 
       call Compute_Node_Global_Numbers( state, &
-           is_overlapping, totele, stotel, x_nloc, x_nloc_p1, cv_nloc, p_nloc, u_nloc, xu_nloc, &
+           totele, stotel, x_nloc, x_nloc_p1, cv_nloc, p_nloc, u_nloc, xu_nloc, &
            cv_snloc, p_snloc, u_snloc, &
            cv_ndgln, u_ndgln, p_ndgln, x_ndgln, x_ndgln_p1, xu_ndgln, mat_ndgln, &
            cv_sndgln, p_sndgln, u_sndgln )
