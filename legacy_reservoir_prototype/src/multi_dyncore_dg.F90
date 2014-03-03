@@ -3143,9 +3143,6 @@
               SBCVFEN, SBCVFENSLX, SBCVFENSLY)
       ENDIF
 
-
-
-
       Loop_Elements: DO ELE = 1, TOTELE ! Volume integral
 
          ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
@@ -4310,8 +4307,8 @@
                SDEN_KEEP=0.0 ; SDEN2_KEEP=0.0
                SDENOLD_KEEP=0.0 ; SDENOLD2_KEEP=0.0
                DO CV_SILOC=1,CV_SNLOC
-                  DO IPHASE=1, NPHASE
-                     DO SGI=1,SBCVNGI
+                  DO SGI=1,SBCVNGI
+                      DO IPHASE=1, NPHASE                     
                         SDEN(IPHASE,SGI)=SDEN(IPHASE,SGI) + SBCVFEN(CV_SILOC,SGI) &
                              *0.5*(SLOC_UDEN(IPHASE,CV_SILOC)+SLOC2_UDEN(IPHASE,CV_SILOC)) *WITH_NONLIN
 !                             *0.5*(UDEN(CV_NODK_PHA)+UDEN(CV_NODK2_PHA)) *WITH_NONLIN
@@ -4339,8 +4336,8 @@
                SUD_ALL=0.0
                SUDOLD_ALL=0.0
                DO U_SILOC=1,U_SNLOC
-                  DO IPHASE=1, NPHASE
-                     DO SGI=1,SBCVNGI
+                  DO SGI=1,SBCVNGI
+                     DO IPHASE=1, NPHASE
                         SUD_ALL(:,IPHASE,SGI)   =SUD_ALL(:,IPHASE,SGI)    + SBUFEN(U_SILOC,SGI)*SLOC_NU(:,IPHASE,U_SILOC)
                         SUDOLD_ALL(:,IPHASE,SGI)=SUDOLD_ALL(:,IPHASE,SGI) + SBUFEN(U_SILOC,SGI)*SLOC_NUOLD(:,IPHASE,U_SILOC)
                      END DO
@@ -4513,44 +4510,35 @@
 
             If_diffusion_or_momentum3: IF(GOT_DIFFUS .OR. GOT_UDEN) THEN
 
-               IF(BETWEEN_ELE_STAB) THEN
-                  ! Calculate stabilization diffusion coefficient...
-                  !stop 2821
-                  ELE3=ELE2
-                  GOT_OTHER_ELE=(ELE2.NE.ELE).and.(ELE2.NE.0)
-                  IF(ELE2==0) ELE3=ELE
-                  IDIM=1
-                  CALL BETWEEN_ELE_SOLVE_DIF(UDIFF_SUF_STAB(IDIM,:,:,:,: ), &
-                       DIFF_FOR_BETWEEN_U(1,:,:,ELE), DIFF_FOR_BETWEEN_U(1,:,:,ELE3), &
-                       MAT_ELE(:,:,ELE), MAT_ELE(:,:,ELE3), U_SLOC2LOC,U_ILOC_OTHER_SIDE, &
-                       SBUFEN,SBCVNGI,U_NLOC,U_SNLOC,NDIM,NPHASE,GOT_OTHER_ELE) 
-                  IDIM=2
-                  IF(NDIM_VEL.GE.2) CALL BETWEEN_ELE_SOLVE_DIF(UDIFF_SUF_STAB(IDIM,:,:,:,: ), &
-                       DIFF_FOR_BETWEEN_U(2,:,:,ELE), DIFF_FOR_BETWEEN_U(2,:,:,ELE3), &
-                       MAT_ELE(:,:,ELE), MAT_ELE(:,:,ELE3), U_SLOC2LOC,U_ILOC_OTHER_SIDE, &
-                       SBUFEN,SBCVNGI,U_NLOC,U_SNLOC,NDIM,NPHASE,GOT_OTHER_ELE) 
-                  IDIM=3
-                  IF(NDIM_VEL.GE.3) CALL BETWEEN_ELE_SOLVE_DIF(UDIFF_SUF_STAB(IDIM,:,:,:,: ), &
-                       DIFF_FOR_BETWEEN_U(3,:,:,ELE), DIFF_FOR_BETWEEN_U(3,:,:,ELE3), &
-                       MAT_ELE(:,:,ELE), MAT_ELE(:,:,ELE3), U_SLOC2LOC,U_ILOC_OTHER_SIDE, &
-                       SBUFEN,SBCVNGI,U_NLOC,U_SNLOC,NDIM,NPHASE,GOT_OTHER_ELE) 
-               ENDIF
-
-               DO IPHASE=1, NPHASE
-                  DO SGI=1,SBCVNGI
-                     SNDOTQ(IPHASE,SGI)    = SUM( SUD_ALL(:,IPHASE,SGI)*SNORMXN_ALL(:,SGI) )  
-                     SNDOTQOLD(IPHASE,SGI) = SUM( SUDOLD_ALL(:,IPHASE,SGI)*SNORMXN_ALL(:,SGI) )  
+                IF(BETWEEN_ELE_STAB) THEN
+                    ! Calculate stabilization diffusion coefficient...
+                    !stop 2821
+                    ELE3=ELE2
+                    GOT_OTHER_ELE=(ELE2.NE.ELE).and.(ELE2.NE.0)
+                    IF(ELE2==0) ELE3=ELE
+                                                      
+                    DO IDIM = 1, NDIM_VEL
+                        CALL BETWEEN_ELE_SOLVE_DIF(UDIFF_SUF_STAB(IDIM,:,:,:,: ), &
+                        DIFF_FOR_BETWEEN_U(IDIM,:,:,ELE), DIFF_FOR_BETWEEN_U(IDIM,:,:,ELE3), &
+                        MAT_ELE(:,:,ELE), MAT_ELE(:,:,ELE3), U_SLOC2LOC,U_ILOC_OTHER_SIDE, &
+                        SBUFEN,SBCVNGI,U_NLOC,U_SNLOC,NDIM,NPHASE,GOT_OTHER_ELE)
+                    END DO
+                END IF
+                  DO IPHASE=1, NPHASE
+                      DO SGI=1,SBCVNGI
+                          SNDOTQ(IPHASE,SGI)    = SUM( SUD_ALL(:,IPHASE,SGI)*SNORMXN_ALL(:,SGI) )
+                          SNDOTQOLD(IPHASE,SGI) = SUM( SUDOLD_ALL(:,IPHASE,SGI)*SNORMXN_ALL(:,SGI) )
+                      END DO
                   END DO
-               END DO
 
 
-               SINCOME(:,:)   =0.5+0.5*SIGN(1.0,-SNDOTQ(:,:))
-               SINCOMEOLD(:,:)=0.5+0.5*SIGN(1.0,-SNDOTQOLD(:,:))
+                  SINCOME(:,:)   =0.5+0.5*SIGN(1.0,-SNDOTQ(:,:))
+                  SINCOMEOLD(:,:)=0.5+0.5*SIGN(1.0,-SNDOTQOLD(:,:))
 
-               SNDOTQ_IN  = 0.0
-               SNDOTQ_OUT = 0.0
-               SNDOTQOLD_IN  = 0.0
-               SNDOTQOLD_OUT = 0.0
+                  SNDOTQ_IN  = 0.0
+                  SNDOTQ_OUT = 0.0
+                  SNDOTQOLD_IN  = 0.0
+                  SNDOTQOLD_OUT = 0.0
 
 
                IF( NON_LIN_DGFLUX ) THEN
