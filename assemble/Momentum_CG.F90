@@ -1256,7 +1256,7 @@
          do i=1, face_loc(ct_rhs, sele)
           sum_guess = sum_guess + source_guess_mat(i)
          end do
-         do i=1, face_loc(u, sele)
+         do i=1, face_loc(ct_rhs, sele)
           source_mat(i)=sum_source*source_guess_mat(i)/sum_guess
          end do
          !For pipe flow source and rainfall, there is only vertical source
@@ -1284,7 +1284,7 @@
           sum_guess_rainfall= sum_guess_rainfall + rainfall_guess_mat(i)
          end do
          !distribute the rainfall amount (intensity*area, m^3/s) to each node. 
-         do i=1, face_loc(u, sele)
+         do i=1, face_loc(ct_rhs, sele)
           rainfall_mat(i)=sele_area*sum_rainfall*rainfall_guess_mat(i)/sum_guess_rainfall
          end do
          !For pipe flow source and rainfall, there is only vertical source

@@ -166,7 +166,7 @@
          logical :: have_pressure
          ! Are we solving a Poisson pressure equation?
          logical :: poisson_p
-
+         
          ! Matrix sparsity patterns for the matrices we allocate locally
          type(csr_sparsity), pointer :: u_sparsity
 
@@ -270,7 +270,7 @@
          integer :: submaterials_istate
          ! Do we have fluid-particle drag between phases?
          logical :: have_fp_drag
-         
+         integer::i
          !Add the source term representing the inflow and outflow from the drainage system
 
          ewrite(1,*) 'Entering solve_momentum'
@@ -625,17 +625,17 @@
             if(dg(istate)) then
                if(subcycle(istate)) then
                   call construct_momentum_dg(u, p, density, x, &
-                     big_m(istate), mom_rhs(istate), state(istate), &
+                     big_m(istate), mom_rhs(istate),ct_rhs(istate), state(istate), &
                      inverse_masslump=inverse_masslump(istate), &
                      inverse_mass=inverse_mass(istate), &
                      include_pressure_bcs=.not. cv_pressure, &
-                     subcycle_m=subcycle_m(istate),ct_rhs=ct_rhs(istate))
+                     subcycle_m=subcycle_m(istate))
                else
                   call construct_momentum_dg(u, p, density, x, &
-                     big_m(istate), mom_rhs(istate), state(istate), &
+                     big_m(istate), mom_rhs(istate), ct_rhs(istate), state(istate), &
                      inverse_masslump=inverse_masslump(istate), &
                      inverse_mass=inverse_mass(istate), &
-                     include_pressure_bcs=.not. cv_pressure, ct_rhs=ct_rhs(istate))
+                     include_pressure_bcs=.not. cv_pressure)
                end if
                if(has_scalar_field(state(istate), gp_name)) then
                   call subtract_geostrophic_pressure_gradient(mom_rhs(istate), state(istate))
@@ -695,15 +695,20 @@
                call assemble_divergence_matrix_cv(ct_m(istate)%ptr, state(istate), ct_rhs=ct_rhs(istate), &
                                              test_mesh=p_theta%mesh, field=u, get_ct=reassemble_ct_m)
             end if
-
+            
             ! Assemble divergence matrix C^T.
             ! At the moment cg does its own ct assembly. We might change this in the future.
             ! This call will form the ct_rhs, which for compressible_eos
             ! or cg_pressure_cv_test_continuity is formed for a second time later below.
             if(dg(istate) .and. .not. cv_pressure) then
-               call assemble_divergence_matrix_cg(ct_m(istate)%ptr, state(istate), ct_rhs=ct_rhs(istate), &
-                 test_mesh=p_theta%mesh, field=u, get_ct=reassemble_ct_m)
+               if (.not. (has_boundary_condition(u, "source_SWMM") .or. has_boundary_condition(u, "rainfall"))) then   
+                  call assemble_divergence_matrix_cg(ct_m(istate)%ptr, state(istate), ct_rhs=ct_rhs(istate), &
+                   test_mesh=p_theta%mesh, field=u, get_ct=reassemble_ct_m)
+               end if
             end if
+            do i=1, element_count(p)
+                 print *, 'ct_rhs_momentum_equation',ele_val(ct_rhs(istate),i)
+               end do
             if (implicit_prognostic_fs .and. reassemble_ct_m) then
               call add_implicit_viscous_free_surface_integrals(state(istate), &
                 ct_m(istate)%ptr, u, p_mesh, free_surface)
