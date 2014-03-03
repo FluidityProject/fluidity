@@ -629,13 +629,13 @@
                      inverse_masslump=inverse_masslump(istate), &
                      inverse_mass=inverse_mass(istate), &
                      include_pressure_bcs=.not. cv_pressure, &
-                     subcycle_m=subcycle_m(istate))
+                     subcycle_m=subcycle_m(istate),ct_rhs=ct_rhs(istate))
                else
                   call construct_momentum_dg(u, p, density, x, &
                      big_m(istate), mom_rhs(istate), state(istate), &
                      inverse_masslump=inverse_masslump(istate), &
                      inverse_mass=inverse_mass(istate), &
-                     include_pressure_bcs=.not. cv_pressure)
+                     include_pressure_bcs=.not. cv_pressure, ct_rhs=ct_rhs(istate))
                end if
                if(has_scalar_field(state(istate), gp_name)) then
                   call subtract_geostrophic_pressure_gradient(mom_rhs(istate), state(istate))

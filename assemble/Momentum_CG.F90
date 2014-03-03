@@ -1276,17 +1276,10 @@
          have_constant=0
          do i=1,face_ngi(u, sele)
            sum_rainfall=sum_rainfall+intensity_gi(i)
-           !check whether the input is constant value. 
-           if (i>1) then
-             if(intensity_gi(i) /= intensity_gi(i-1)) then
-              have_constant=have_constant+1
-             end if
-           end if 
          end do
          !sum_rainfall is the sum of the intensity value of all the gaussion quadrature points.
-         if (have_constant==0) then 
-             sum_rainfall=sum_rainfall/face_ngi(u, sele)
-         end if
+         sum_rainfall=sum_rainfall/face_ngi(u, sele)
+        
          do i=1, face_loc(ct_rhs, sele)
           sum_guess_rainfall= sum_guess_rainfall + rainfall_guess_mat(i)
          end do

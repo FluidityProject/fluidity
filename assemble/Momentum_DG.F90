@@ -157,7 +157,7 @@ contains
        & big_m, rhs, state, &
        & inverse_masslump, inverse_mass, mass, &
        & acceleration_form, include_pressure_bcs,&
-       & subcycle_m)
+       & subcycle_m,ct_rhs)
     !!< Construct the momentum equation for discontinuous elements in
     !!< acceleration form. If acceleration_form is present and false, the
     !!< matrices will be constructed for use in conventional solution form.
@@ -278,7 +278,8 @@ contains
 
     ! Partial stress - sp911
     logical :: partial_stress 
-
+    type(scalar_field), intent(inout) ::ct_rhs
+    
     ewrite(1, *) "In construct_momentum_dg"
 
     call profiler_tic("construct_momentum_dg")
@@ -666,8 +667,10 @@ contains
       "free_surface        ", &
       "no_normal_flow      ", &
       "turbine_flux_penalty", &
-      "turbine_flux_dg     " /), velocity_bc, velocity_bc_type)
-
+      "turbine_flux_dg     ", &
+      "source_SWMM         ", &
+      "rainfall            " /), velocity_bc, velocity_bc_type)
+    
     ! the turbine connectivity mesh is only needed if one of the boundaries is a turbine.
     if (any(velocity_bc_type==4) .or. any(velocity_bc_type==5)) then
         turbine_conn_mesh=get_periodic_mesh(state, u%mesh)
@@ -742,7 +745,7 @@ contains
             & alpha_u_field, Abs_wd, vvr_sf, ib_min_grad, nvfrac, &
             & inverse_mass=inverse_mass, &
             & inverse_masslump=inverse_masslump, &
-            & mass=mass, subcycle_m=subcycle_m, partial_stress=partial_stress)
+            & mass=mass, subcycle_m=subcycle_m, partial_stress=partial_stress,ct_rhs=ct_rhs)
       end do element_loop
       !$OMP END DO
 
@@ -801,7 +804,7 @@ contains
        &pressure_bc, pressure_bc_type, &
        &turbine_conn_mesh, on_sphere, depth, have_wd_abs, alpha_u_field, Abs_wd, &
        &vvr_sf, ib_min_grad, nvfrac, &
-       &inverse_mass, inverse_masslump, mass, subcycle_m, partial_stress)
+       &inverse_mass, inverse_masslump, mass, subcycle_m, partial_stress,ct_rhs)
 
     !!< Construct the momentum equation for discontinuous elements in
     !!< acceleration form.
@@ -995,6 +998,7 @@ contains
     !Sigma term
     real, dimension(u%dim,ele_ngi(u,ele)) :: sigma_d0_diag
     real,dimension(ele_ngi(u,ele)):: sigma_ngi
+    type(scalar_field), intent(inout) ::ct_rhs
 
     dg=continuity(U)<0
     p0=(element_degree(u,ele)==0)
@@ -1812,7 +1816,7 @@ contains
                         & subcycle_m_tensor_addto, nvfrac, &
                         & ele2grad_mat=ele2grad_mat, kappa_mat=kappa_mat, &
                         & inverse_mass_mat=inverse_mass_mat, &
-                        & viscosity=viscosity, viscosity_mat=viscosity_mat)
+                        & viscosity=viscosity, viscosity_mat=viscosity_mat, ct_rhs=ct_rhs)
            end if
         else
             if(.not. turbine_face .or. turbine_fluxfac>=0) then
@@ -1822,7 +1826,7 @@ contains
                         & Rho, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
                         & velocity_bc, velocity_bc_type, &
                         & pressure_bc, pressure_bc_type, hb_pressure, &
-                        & subcycle_m_tensor_addto, nvfrac)
+                        & subcycle_m_tensor_addto, nvfrac, ct_rhs=ct_rhs)
             end if
         end if
 
@@ -2093,7 +2097,7 @@ contains
        & pressure_bc, pressure_bc_type, hb_pressure, &
        & subcycle_m_tensor_addto, nvfrac, &
        & ele2grad_mat, kappa_mat, inverse_mass_mat, &
-       & viscosity, viscosity_mat)
+       & viscosity, viscosity_mat, ct_rhs)
     !!< Construct the DG element boundary integrals on the ni-th face of
     !!< element ele.
     implicit none
@@ -2186,12 +2190,21 @@ contains
     real, dimension(u%dim, u%dim, face_ngi(u_nl, face)) :: tension_q
     
     integer :: dim, start, finish, floc
-    logical :: boundary, free_surface, no_normal_flow, l_have_pressure_bc
+    logical :: boundary, free_surface, no_normal_flow, l_have_pressure_bc 
     logical, dimension(U%dim) :: dirichlet
 
     logical :: p0
 
     integer :: d1, d2
+    !!Define variables for the SWMM and rainfall sources! --TZhang
+    type(scalar_field), intent(inout) :: ct_rhs
+    logical::source_SWMM, rainfall
+    real::sum_guess ,sum_source, sum_guess_rainfall, sum_rainfall
+    real, dimension(face_loc(ct_rhs,face))::source_guess_mat, source_mat,rainfall_guess_mat, rainfall_mat
+    real, dimension(face_ngi(u, face))::source_q_gi, intensity_gi
+    integer::have_constant
+    real :: sele_area
+    integer::i
 
     floc = face_loc(u, face)
 
@@ -2242,6 +2255,8 @@ contains
     free_surface=.false.
     no_normal_flow=.false.
     l_have_pressure_bc=.false.
+    source_SWMM=.false.
+    rainfall=.false.
     if (boundary) then
        do dim=1,U%dim
           if (velocity_bc_type(dim,face)==1) then
@@ -2259,6 +2274,15 @@ contains
           no_normal_flow=.true.
        end if
        l_have_pressure_bc = pressure_bc_type(face) > 0
+       
+       !source from the subsurface drainage system, is set to the 3rd component.
+       if (velocity_bc_type(3,face)==6) then
+          source_SWMM=.true.
+       end if
+       ! source from the rainfall, evaporation, etc., is set to the 3rd component.
+       if (velocity_bc_type(3,face)==7) then
+            rainfall=.true.
+       end if
     end if
 
     !----------------------------------------------------------------------
@@ -2434,7 +2458,68 @@ contains
       rhs_addto(:,u_face_l) = rhs_addto(:,u_face_l) + shape_tensor_dot_vector_rhs(u_shape, tension_q, normal, detwei)
     end if
     
-
+    !Add the interacted flux with drainage system to the RHS of Continuity Equation. The flux can be calculated by SWMM.
+    !Add the interacted flux with drainage system to the RHS of Continuity Equation. The flux can be calculated by SWMM. 
+    !Assume that there is only one source point at most in each cell.   --TZhang
+    if (source_SWMM) then
+         source_q_gi=face_val_at_quad(velocity_bc, face, 3)
+         print *, 'source_q_gi',source_q_gi
+         source_guess_mat=shape_rhs(p_shape,source_q_gi*detwei)
+         sum_guess = 0
+         sum_source=0.
+         have_constant=0
+         do i=1,face_ngi(u, face)
+           sum_source=sum_source+source_q_gi(i)
+           !check whether the input is constant value. 
+           if (i>1) then
+             if(source_q_gi(i) /= source_q_gi(i-1)) then
+              have_constant=have_constant+1
+             end if
+           end if 
+         end do
+         if (have_constant==0) then 
+             sum_source=sum_source/face_ngi(u, face)
+         end if
+         do i=1, face_loc(ct_rhs, face)
+          sum_guess = sum_guess + source_guess_mat(i)
+         end do
+         do i=1, face_loc(u, face)
+          source_mat(i)=sum_source*source_guess_mat(i)/sum_guess
+         end do
+         print *, 'source_mat',source_mat
+         !For pipe flow source and rainfall, there is only vertical source
+         call addto(ct_rhs,face_global_nodes(ct_rhs, face), source_mat)
+      end if
+      
+      !Input of rainfall is in term of intensity (m/s). Note usually the unit of rainfall observation data is mm/s. 
+      !Unit conversion is needed before being read to the code.   --TZhang
+      
+      if (rainfall) then
+         sele_area=sum(detwei)
+         !get the rainfall intensity
+         intensity_gi=face_val_at_quad(velocity_bc, face, 3)
+         rainfall_guess_mat=shape_rhs(p_shape,intensity_gi*detwei)
+         sum_guess_rainfall=0
+         sum_rainfall=0
+         have_constant=0
+         do i=1,face_ngi(u, face)
+           sum_rainfall=sum_rainfall+intensity_gi(i)
+         end do
+         !sum_rainfall is the sum of the intensity value of all the gaussion quadrature points.
+         sum_rainfall=sum_rainfall/face_ngi(u, face)
+        
+         do i=1, face_loc(ct_rhs, face)
+          sum_guess_rainfall= sum_guess_rainfall + rainfall_guess_mat(i)
+         end do
+         !distribute the rainfall amount (intensity*area, m^3/s) to each node. 
+         do i=1, face_loc(u, face)
+          rainfall_mat(i)=sele_area*sum_rainfall*rainfall_guess_mat(i)/sum_guess_rainfall
+         end do
+         !For pipe flow source and rainfall, there is only vertical source
+         call addto(ct_rhs,face_global_nodes(ct_rhs, face), rainfall_mat)
+      end if
+    
+    
     !----------------------------------------------------------------------
     ! Perform global assembly.
     !----------------------------------------------------------------------
