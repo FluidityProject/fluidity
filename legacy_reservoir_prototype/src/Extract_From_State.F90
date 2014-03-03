@@ -155,9 +155,11 @@
       if( present( xu_nonods ) ) xu_nonods = max(( xu_nloc - 1 ) * totele + 1, totele )
 
 !!$ Take care of overlapping elements
-      if( ( is_overlapping ) .and. ( ndim > 1 ) ) u_nonods = u_nonods * cv_nloc
-      if( ( is_overlapping ) .and. ( ndim > 1 ) ) u_nloc = u_nloc * cv_nloc
-      if( is_overlapping ) u_snloc = u_snloc * cv_nloc 
+      if( present( u_nonods ) ) then
+         if( ( is_overlapping ) .and. ( ndim > 1 ) ) u_nonods = u_nonods * cv_nloc
+         if( ( is_overlapping ) .and. ( ndim > 1 ) ) u_nloc = u_nloc * cv_nloc
+         if( is_overlapping ) u_snloc = u_snloc * cv_nloc 
+      end if
 
 !!$ Used just for 1D:
       if( present( dx ) ) dx = maxval( positions % val( 1, : ) ) - minval( positions % val( 1, : ) )
@@ -1692,7 +1694,10 @@
 
       call get_option( '/geometry/dimension', ndim )
       cv_nloc2 = 1
-      if ( is_overlapping .and. ( ndim > 1 ) ) cv_nloc2 = cv_nloc
+
+      if ( trim( field % name ) == 'Velocity' ) then
+         if ( is_overlapping .and. ( ndim > 1 ) ) cv_nloc2 = cv_nloc
+      end if
 
       count = 0
       do ele = 1, ele_count( field )

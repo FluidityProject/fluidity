@@ -582,9 +582,10 @@
       LOGICAL :: JUST_BL_DIAG_MAT
 
       INTEGER :: U_NLOC2, ILEV, NLEV, ELE, U_ILOC, U_INOD, IPHASE, IDIM
-      REAL, DIMENSION( :, :, : ), allocatable :: U_ALL
+      REAL, DIMENSION( :, :, : ), allocatable :: U_ALL, UOLD_ALL
 
-      ALLOCATE( U_ALL( NDIM, NPHASE, U_NONODS  )  )
+      ALLOCATE( U_ALL( NDIM, NPHASE, U_NONODS ), UOLD_ALL( NDIM, NPHASE, U_NONODS ) )
+      U_ALL = 0. ; UOLD_ALL = 0.
 
       IF(U_NLOC.NE.CV_NLOC) THEN
          ewrite(3,*) 'u_nloc, cv_nloc:', u_nloc, cv_nloc
@@ -613,14 +614,17 @@
          DO ILEV = 1, NLEV
             DO U_ILOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
                U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
-               DO IPHASE=1,NPHASE
+               DO IPHASE = 1, NPHASE
                   DO IDIM = 1, NDIM
                      IF ( IDIM==1 ) THEN
                         U_ALL( IDIM, IPHASE, U_INOD ) = U( U_INOD + (IPHASE-1)*U_NONODS )
+                        UOLD_ALL( IDIM, IPHASE, U_INOD ) = UOLD( U_INOD + (IPHASE-1)*U_NONODS )
                      ELSE IF ( IDIM==2 ) THEN
                         U_ALL( IDIM, IPHASE, U_INOD ) = V( U_INOD + (IPHASE-1)*U_NONODS )
+                        UOLD_ALL( IDIM, IPHASE, U_INOD ) = VOLD( U_INOD + (IPHASE-1)*U_NONODS )
                      ELSE
                         U_ALL( IDIM, IPHASE, U_INOD ) = W( U_INOD + (IPHASE-1)*U_NONODS )
+                        UOLD_ALL( IDIM, IPHASE, U_INOD ) = WOLD( U_INOD + (IPHASE-1)*U_NONODS )
                      END IF
                   END DO
                END DO
@@ -637,6 +641,7 @@
            X, Y, Z, RZERO, T_ABSORB, T_SOURCE, RDUM, &
            ! Changed the next 3 lines...
            T, T, T, TOLD, TOLD, TOLD, &
+!           U, UOLD, &
            U, V, W, UOLD, VOLD, WOLD, &
            DEN, DENOLD, &
            DT, &
@@ -658,7 +663,7 @@
            RDUM,.FALSE.,1 )
 
 
-      DEALLOCATE( U_ALL, RZERO, IZERO, RDUM, IDUM )
+      DEALLOCATE( U_ALL, UOLD_ALL, RZERO, IZERO, RDUM, IDUM )
 
     END SUBROUTINE WRAPPER_ASSEMB_FORCE_CTY
 
@@ -2125,7 +2130,7 @@
       INTEGER :: IGOT_T2
 
       INTEGER :: U_NLOC2, ILEV, NLEV, ELE, U_ILOC, U_INOD, IPHASE, IDIM
-      REAL, DIMENSION( :, :, : ), allocatable :: U_ALL
+      REAL, DIMENSION( :, :, : ), allocatable :: U_ALL, UOLD_ALL
 
       ewrite(3,*)'In CV_ASSEMB_FORCE_CTY'
 
@@ -2153,7 +2158,8 @@
       ALLOCATE( DEN_FEMT( NPHASE * CV_NONODS ) ) ; DEN_FEMT = 0.
       allocate( dummy_transp( totele ) ) ; dummy_transp = 0.
 
-      ALLOCATE( U_ALL( NDIM, NPHASE, U_NONODS) ) ; U_ALL = 0.
+      ALLOCATE( U_ALL( NDIM, NPHASE, U_NONODS ), UOLD_ALL( NDIM, NPHASE, U_NONODS ) )
+      U_ALL = 0. ; UOLD_ALL = 0.
 
       TDIFFUSION = 0.0
 
@@ -2174,17 +2180,19 @@
                   DO IDIM = 1, NDIM
                      IF ( IDIM==1 ) THEN
                         U_ALL( IDIM, IPHASE, U_INOD ) = U( U_INOD + (IPHASE-1)*U_NONODS )
+                        UOLD_ALL( IDIM, IPHASE, U_INOD ) = UOLD( U_INOD + (IPHASE-1)*U_NONODS )
                      ELSE IF ( IDIM==2 ) THEN
                         U_ALL( IDIM, IPHASE, U_INOD ) = V( U_INOD + (IPHASE-1)*U_NONODS )
+                        UOLD_ALL( IDIM, IPHASE, U_INOD ) = VOLD( U_INOD + (IPHASE-1)*U_NONODS )
                      ELSE
                         U_ALL( IDIM, IPHASE, U_INOD ) = W( U_INOD + (IPHASE-1)*U_NONODS )
+                        UOLD_ALL( IDIM, IPHASE, U_INOD ) = WOLD( U_INOD + (IPHASE-1)*U_NONODS )
                      END IF
                   END DO
                END DO
             END DO
          END DO
       END DO
-
 
       ! Obtain the momentum and C matricies
       CALL ASSEMB_FORCE_CTY( state, & 
@@ -2196,6 +2204,7 @@
            X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
            U, V, W, UOLD, VOLD, WOLD, &
            U, V, W, UOLD, VOLD, WOLD, &
+!           U_ALL, UOLD_ALL, &
            UDEN, UDENOLD, &
            DT, &
            SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
@@ -2298,7 +2307,7 @@
       DEALLOCATE( MEAN_PORE_CV )
       DEALLOCATE( SAT_FEMT )
       DEALLOCATE( DEN_FEMT )
-      DEALLOCATE( U_ALL )
+      DEALLOCATE( U_ALL, UOLD_ALL )
 
       ewrite(3,*) 'Leaving CV_ASSEMB_FORCE_CTY'
 
