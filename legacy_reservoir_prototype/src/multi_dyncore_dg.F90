@@ -641,7 +641,7 @@
            X, Y, Z, RZERO, T_ABSORB, T_SOURCE, RDUM, &
            ! Changed the next 3 lines...
            T, T, T, TOLD, TOLD, TOLD, &
-!           U, UOLD, &
+!           U_ALL, UOLD_ALL, &
            U, V, W, UOLD, VOLD, WOLD, &
            DEN, DENOLD, &
            DT, &
@@ -2204,7 +2204,7 @@
            X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
            U, V, W, UOLD, VOLD, WOLD, &
            U, V, W, UOLD, VOLD, WOLD, &
-!           U_ALL, UOLD_ALL, &
+!           U_ALL, UOLD, &
            UDEN, UDENOLD, &
            DT, &
            SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
@@ -2439,6 +2439,7 @@
          X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
          U, V, W, UOLD, VOLD, WOLD, &
          NU, NV, NW, NUOLD, NVOLD, NWOLD, &
+!         NU_ALL, NU0LD_ALL, &
          UDEN, UDENOLD, &
          DT, &
          SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
