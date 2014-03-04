@@ -2666,13 +2666,13 @@
       integer :: IPIV(U_NLOC)
 
       !Variables to improve PIVIT_MAT creation speed
-      REAL, DIMENSION ( :, :, :, :), allocatable :: NN_SIGMAGI_ELE, NN_SIGMAGI_STAB_ELE,NN_MASS_ELE,NN_MASSOLD_ELE
-      REAL, DIMENSION ( :, :, :, :, :), allocatable :: STRESS_IJ_ELE, DUX_ELE_ALL, DUOLDX_ELE_ALL
-      REAL, DIMENSION ( :, :, :), allocatable :: VLK_ELE
+      REAL, DIMENSION ( :, :, :, : ), allocatable :: NN_SIGMAGI_ELE, NN_SIGMAGI_STAB_ELE,NN_MASS_ELE,NN_MASSOLD_ELE
+      REAL, DIMENSION ( :, :, :, :, : ), allocatable :: STRESS_IJ_ELE, DUX_ELE_ALL, DUOLDX_ELE_ALL
+      REAL, DIMENSION ( :, :, : ), allocatable :: VLK_ELE
 
       logical :: capillary_pressure_activated
 
-      REAL, DIMENSION ( :, :, :), allocatable :: U_ALL, UOLD_ALL
+      REAL, DIMENSION ( :, :, : ), allocatable :: U_ALL, UOLD_ALL, NU_ALL, NUOLD_ALL
 
       capillary_pressure_activated = have_option( '/material_phase[0]/multiphase_properties/capillary_pressure' )
 
@@ -3064,10 +3064,10 @@
       ALLOCATE( SLOC2_U(NDIM_VEL,NPHASE,U_SNLOC) )
       ALLOCATE( SLOC2_UOLD(NDIM_VEL,NPHASE,U_SNLOC) )
 
-      ALLOCATE( SLOC_NU(NDIM_VEL,NPHASE,U_SNLOC) )
-      ALLOCATE( SLOC_NUOLD(NDIM_VEL,NPHASE,U_SNLOC) )
-      ALLOCATE( SLOC2_NU(NDIM_VEL,NPHASE,U_SNLOC) )
-      ALLOCATE( SLOC2_NUOLD(NDIM_VEL,NPHASE,U_SNLOC) )
+      ALLOCATE( SLOC_NU(NDIM,NPHASE,U_SNLOC) )
+      ALLOCATE( SLOC_NUOLD(NDIM,NPHASE,U_SNLOC) )
+      ALLOCATE( SLOC2_NU(NDIM,NPHASE,U_SNLOC) )
+      ALLOCATE( SLOC2_NUOLD(NDIM,NPHASE,U_SNLOC) )
 
       ALLOCATE( SLOC_UDEN(NPHASE, CV_SNLOC)  )
       ALLOCATE( SLOC2_UDEN(NPHASE, CV_SNLOC)  )
@@ -3085,7 +3085,7 @@
 
 
 
-      ALLOCATE( U_ALL( NDIM, NPHASE, U_NONODS ), UOLD_ALL( NDIM, NPHASE, U_NONODS ) )
+      ALLOCATE( U_ALL( NDIM_VEL, NPHASE, U_NONODS ), UOLD_ALL( NDIM_VEL, NPHASE, U_NONODS ) )
       U_ALL = 0. ; UOLD_ALL = 0.
 
       IF ( IS_OVERLAPPING ) THEN
@@ -3100,7 +3100,7 @@
             DO U_ILOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
                U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
                DO IPHASE = 1, NPHASE
-                  DO IDIM = 1, NDIM
+                  DO IDIM = 1, NDIM_VEL
                      IF ( IDIM==1 ) THEN
                         U_ALL( IDIM, IPHASE, U_INOD ) = U( U_INOD + (IPHASE-1)*U_NONODS )
                         UOLD_ALL( IDIM, IPHASE, U_INOD ) = UOLD( U_INOD + (IPHASE-1)*U_NONODS )
@@ -3116,6 +3116,43 @@
             END DO
          END DO
       END DO
+
+
+      ALLOCATE( NU_ALL( NDIM, NPHASE, U_NONODS ), NUOLD_ALL( NDIM, NPHASE, U_NONODS ) )
+      NU_ALL = 0. ; NUOLD_ALL = 0.
+
+      IF ( IS_OVERLAPPING ) THEN
+         NLEV = CV_NLOC
+         U_NLOC2 = MAX( 1, U_NLOC / CV_NLOC )
+      ELSE
+         NLEV = 1
+         U_NLOC2 = U_NLOC
+      END IF
+      DO ELE = 1, TOTELE
+         DO ILEV = 1, NLEV
+            DO U_ILOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
+               U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
+               DO IPHASE = 1, NPHASE
+                  DO IDIM = 1, NDIM
+                     IF ( IDIM==1 ) THEN
+                        NU_ALL( IDIM, IPHASE, U_INOD ) = NU( U_INOD + (IPHASE-1)*U_NONODS )
+                        NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NUOLD( U_INOD + (IPHASE-1)*U_NONODS )
+                     ELSE IF ( IDIM==2 ) THEN
+                        NU_ALL( IDIM, IPHASE, U_INOD ) = NV( U_INOD + (IPHASE-1)*U_NONODS )
+                        NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NVOLD( U_INOD + (IPHASE-1)*U_NONODS )
+                     ELSE
+                        NU_ALL( IDIM, IPHASE, U_INOD ) = NW( U_INOD + (IPHASE-1)*U_NONODS )
+                        NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NWOLD( U_INOD + (IPHASE-1)*U_NONODS )
+                     END IF
+                  END DO
+               END DO
+            END DO
+         END DO
+      END DO
+
+
+
+
 
 
 
@@ -3258,39 +3295,61 @@
            NCOLELE, FINELE, COLELE, CV_NLOC, CV_SNLOC, CV_NONODS, CV_NDGLN, CV_SNDGLN, &
            CV_SLOCLIST, X_NLOC, X_NDGLN )
 
-      !ewrite(3,*) 'got_diffus:', got_diffus
-
       IF( GOT_DIFFUS ) THEN
-         CALL DG_DERIVS_UVW( U, UOLD, V, VOLD, W, WOLD, &
-              DUX_ELE, DUY_ELE, DUZ_ELE, DUOLDX_ELE, DUOLDY_ELE, DUOLDZ_ELE, &
-              DVX_ELE, DVY_ELE, DVZ_ELE, DVOLDX_ELE, DVOLDY_ELE, DVOLDZ_ELE, &
-              DWX_ELE, DWY_ELE, DWZ_ELE, DWOLDX_ELE, DWOLDY_ELE, DWOLDZ_ELE, &
-              NDIM, NDIM_VEL, NPHASE, U_NONODS, TOTELE, U_NDGLN, &
+         CALL DG_DERIVS_ALL( U_ALL, UOLD_ALL, &
+              DUX_ELE_ALL, DUOLDX_ELE_ALL, &
+              NDIM, NPHASE, NDIM_VEL, U_NONODS, TOTELE, U_NDGLN, &
               XU_NDGLN, X_NLOC, X_NDGLN, &
               CV_NGI, U_NLOC, CVWEIGHT, &
               UFEN, UFENLX, UFENLY, UFENLZ, &
               CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
               X_NONODS, X, Y, Z, &
-              NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC, &
-              SUF_U_BC,SUF_V_BC,SUF_W_BC, &
-              WIC_U_BC_DIRICHLET, SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBCVFEWEIGH, &
-              SBCVFEN, SBCVFENSLX, SBCVFENSLY)
+              NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC_ALL, SUF_U_BC_ALL, &
+              SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBCVFEWEIGH, &
+              SBCVFEN, SBCVFENSLX, SBCVFENSLY )
+
+         DUX_ELE = 0.0 ; DVX_ELE = 0.0 ; DWX_ELE = 0.0
+         DUY_ELE = 0.0 ; DVX_ELE = 0.0 ; DWX_ELE = 0.0
+         DUZ_ELE = 0.0 ; DVX_ELE = 0.0 ; DWX_ELE = 0.0
+
+         DUOLDX_ELE = 0.0 ; DVOLDX_ELE = 0.0 ; DWOLDX_ELE = 0.0
+         DUOLDY_ELE = 0.0 ; DVOLDX_ELE = 0.0 ; DWOLDX_ELE = 0.0
+         DUOLDZ_ELE = 0.0 ; DVOLDX_ELE = 0.0 ; DWOLDX_ELE = 0.0
+
+         IF ( NDIM >= 2 ) THEN
+            DUX_ELE = DUX_ELE_ALL( 1, 1, :, :, : ) ; DVX_ELE = DUX_ELE_ALL( 1, 2, :, :, : )
+            DUY_ELE = DUX_ELE_ALL( 2, 1, :, :, : ) ; DVY_ELE = DUX_ELE_ALL( 2, 2, :, :, : )
+
+            DUOLDX_ELE = DUOLDX_ELE_ALL( 1, 1, :, :, : ) ; DVOLDX_ELE = DUOLDX_ELE_ALL( 1, 2, :, :, : )
+            DUOLDY_ELE = DUOLDX_ELE_ALL( 2, 1, :, :, : ) ; DVOLDY_ELE = DUOLDX_ELE_ALL( 2, 2, :, :, : )
+
+            IF ( NDIM >= 3 ) THEN
+               DUZ_ELE = DUX_ELE_ALL( 3, 1, :, :, : ) ; DVZ_ELE = DUX_ELE_ALL( 3, 2, :, :, : )
+
+               DWX_ELE = DUX_ELE_ALL( 1, 3, :, :, : )
+               DWY_ELE = DUX_ELE_ALL( 2, 3, :, :, : )
+               DWZ_ELE = DUX_ELE_ALL( 3, 3, :, :, : )
+
+               DUOLDZ_ELE = DUOLDX_ELE_ALL( 3, 1, :, :, : ) ; DVOLDZ_ELE = DUOLDX_ELE_ALL( 3, 2, :, :, : )
+
+               DWOLDX_ELE = DUOLDX_ELE_ALL( 1, 3, :, :, : )
+               DWOLDY_ELE = DUOLDX_ELE_ALL( 2, 3, :, :, : )
+               DWOLDZ_ELE = DUOLDX_ELE_ALL( 3, 3, :, :, : )
+            END IF
+         END IF
+
+      ELSE
+
+         DUX_ELE = 0.0 ; DVX_ELE = 0.0 ; DWX_ELE = 0.0
+         DUY_ELE = 0.0 ; DVX_ELE = 0.0 ; DWX_ELE = 0.0
+         DUZ_ELE = 0.0 ; DVX_ELE = 0.0 ; DWX_ELE = 0.0
+
+         DUOLDX_ELE = 0.0 ; DVOLDX_ELE = 0.0 ; DWOLDX_ELE = 0.0
+         DUOLDY_ELE = 0.0 ; DVOLDX_ELE = 0.0 ; DWOLDX_ELE = 0.0
+         DUOLDZ_ELE = 0.0 ; DVOLDX_ELE = 0.0 ; DWOLDX_ELE = 0.0
+
       END IF
 
-
-      !IF( GOT_DIFFUS ) THEN
-      !   CALL DG_DERIVS_ALL( U_ALL, UOLD_ALL, &
-      !        DUX_ELE_ALL, DUOLDX_ELE_ALL, &
-      !        NDIM, NPHASE, NDIM_VEL, U_NONODS, TOTELE, U_NDGLN, &
-      !        XU_NDGLN, X_NLOC, X_NDGLN, &
-      !        CV_NGI, U_NLOC, CVWEIGHT, &
-      !        UFEN, UFENLX, UFENLY, UFENLZ, &
-      !        CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
-      !        X_NONODS, X, Y, Z, &
-      !        NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC_ALL, SUF_U_BC_ALL, &
-      !        SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBCVFEWEIGH, &
-      !        SBCVFEN, SBCVFENSLX, SBCVFENSLY )
-      !END IF
 
       Loop_Elements: DO ELE = 1, TOTELE ! Volume integral
 
@@ -3321,27 +3380,23 @@
          DO ILEV = 1, NLEV
             DO U_ILOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
                U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
-               DO IPHASE=1,NPHASE
+               DO IPHASE = 1, NPHASE
                   DO IDIM = 1, NDIM_VEL
-                     IF ( IDIM==1 ) THEN
-                        LOC_U( IDIM, IPHASE, U_ILOC ) = U( U_INOD+(IPHASE-1)*U_NONODS )
-                        LOC_UOLD( IDIM, IPHASE, U_ILOC ) = UOLD( U_INOD+(IPHASE-1)*U_NONODS )
-                        LOC_NU( IDIM, IPHASE, U_ILOC ) = NU( U_INOD+(IPHASE-1)*U_NONODS )
-                        LOC_NUOLD( IDIM, IPHASE, U_ILOC ) = NUOLD( U_INOD+(IPHASE-1)*U_NONODS )
-                     END IF
-                     IF ( IDIM==2 ) THEN
-                        LOC_U( IDIM, IPHASE, U_ILOC ) = V( U_INOD+(IPHASE-1)*U_NONODS )
-                        LOC_UOLD( IDIM, IPHASE, U_ILOC ) = VOLD( U_INOD+(IPHASE-1)*U_NONODS )
-                        LOC_NU( IDIM, IPHASE, U_ILOC ) = NV( U_INOD+(IPHASE-1)*U_NONODS )
-                        LOC_NUOLD( IDIM, IPHASE, U_ILOC ) = NVOLD( U_INOD+(IPHASE-1)*U_NONODS )
-                     END IF
-                     IF ( IDIM==3 ) THEN
-                        LOC_U( IDIM, IPHASE, U_ILOC ) = W( U_INOD+(IPHASE-1)*U_NONODS )
-                        LOC_UOLD( IDIM, IPHASE, U_ILOC ) = WOLD( U_INOD+(IPHASE-1)*U_NONODS )
-                        LOC_NU( IDIM, IPHASE, U_ILOC ) = NW( U_INOD+(IPHASE-1)*U_NONODS )
-                        LOC_NUOLD( IDIM, IPHASE, U_ILOC ) = NWOLD( U_INOD+(IPHASE-1)*U_NONODS )
-                     END IF
+                     LOC_U( IDIM, IPHASE, U_ILOC ) = U_ALL( IDIM, IPHASE, U_INOD )
+                     LOC_UOLD( IDIM, IPHASE, U_ILOC ) = UOLD_ALL( IDIM, IPHASE, U_INOD )
                      LOC_U_SOURCE( IDIM, IPHASE, U_ILOC ) = U_SOURCE( U_INOD + (IDIM-1)*U_NONODS + (IPHASE-1)*NDIM_VEL*U_NONODS )
+                  END DO
+               END DO
+            END DO
+         END DO
+
+         DO ILEV = 1, NLEV
+            DO U_ILOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
+               U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
+               DO IPHASE = 1, NPHASE
+                  DO IDIM = 1, NDIM
+                     LOC_NU( IDIM, IPHASE, U_ILOC ) = NU_ALL( IDIM, IPHASE, U_INOD )
+                     LOC_NUOLD( IDIM, IPHASE, U_ILOC ) = NUOLD_ALL( IDIM, IPHASE, U_INOD )
                   END DO
                END DO
             END DO
@@ -4300,78 +4355,54 @@
 
 
 
-            ! ********Mapping to local variables****************
-            if(.true.) then
-               ! CV variables...
-               DO CV_SILOC=1,CV_SNLOC
-                  CV_ILOC=CV_SLOC2LOC(CV_SILOC) 
-                  CV_INOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC) 
-                  IF(ELE2 /= 0) THEN
-                     CV_ILOC2=MAT_OTHER_LOC( CV_ILOC )
-                     CV_INOD2=CV_NDGLN((ELE2-1)*CV_NLOC+CV_ILOC2) 
-                  ELSE
-                     CV_ILOC2=CV_ILOC
-                     CV_INOD2=CV_INOD
-                  ENDIF
-                  ! for normal calc...
-                  DO IPHASE=1,NPHASE
-                     SLOC_UDEN(IPHASE, CV_SILOC)  =UDEN( (IPHASE-1)*CV_NONODS + CV_INOD)
-                     SLOC2_UDEN(IPHASE, CV_SILOC) =UDEN( (IPHASE-1)*CV_NONODS + CV_INOD2)
-                     SLOC_UDENOLD(IPHASE, CV_SILOC)  =UDENOLD( (IPHASE-1)*CV_NONODS + CV_INOD)
-                     SLOC2_UDENOLD(IPHASE, CV_SILOC)=UDENOLD( (IPHASE-1)*CV_NONODS + CV_INOD2)
+            ! ********Mapping to local variables***************
+            ! CV variables...
+            DO CV_SILOC = 1, CV_SNLOC
+               CV_ILOC = CV_SLOC2LOC( CV_SILOC ) 
+               CV_INOD = CV_NDGLN( (ELE-1)*CV_NLOC + CV_ILOC ) 
+               IF ( ELE2 /= 0 ) THEN
+                  CV_ILOC2 = MAT_OTHER_LOC( CV_ILOC )
+                  CV_INOD2 = CV_NDGLN( (ELE2-1)*CV_NLOC+CV_ILOC2 ) 
+               ELSE
+                  CV_ILOC2=CV_ILOC
+                  CV_INOD2=CV_INOD
+               END IF
+               ! for normal calc...
+               DO IPHASE = 1, NPHASE
+                  SLOC_UDEN( IPHASE, CV_SILOC ) = UDEN( (IPHASE-1)*CV_NONODS + CV_INOD )
+                  SLOC2_UDEN( IPHASE, CV_SILOC ) = UDEN( (IPHASE-1)*CV_NONODS + CV_INOD2 )
+                  SLOC_UDENOLD( IPHASE, CV_SILOC ) = UDENOLD( (IPHASE-1)*CV_NONODS + CV_INOD )
+                  SLOC2_UDENOLD( IPHASE, CV_SILOC ) = UDENOLD( (IPHASE-1)*CV_NONODS + CV_INOD2 )
+               END DO
+            END DO
+
+            ! velocity variables...
+            DO U_SILOC = 1, U_SNLOC
+               U_ILOC = U_SLOC2LOC( U_SILOC )
+               U_INOD = U_NDGLN( (ELE-1)*U_NLOC + U_ILOC ) 
+               IF ( ELE2 /= 0 ) THEN
+                  U_ILOC2 = U_ILOC_OTHER_SIDE( U_SILOC ) 
+                  U_INOD2 = U_NDGLN( (ELE2-1)*U_NLOC + U_ILOC2 ) 
+               ELSE
+                  U_ILOC2 = U_ILOC
+                  U_INOD2 = U_INOD 
+               END IF
+               DO IPHASE = 1, NPHASE
+                  DO IDIM = 1, NDIM_VEL
+                     SLOC_U( IDIM, IPHASE, U_SILOC ) = U_ALL( IDIM, IPHASE, U_INOD )
+                     SLOC_UOLD( IDIM, IPHASE, U_SILOC ) = UOLD_ALL( IDIM, IPHASE, U_INOD )
+                     SLOC2_U( IDIM, IPHASE, U_SILOC ) = U_ALL( IDIM, IPHASE, U_INOD2 )
+                     SLOC2_UOLD( IDIM, IPHASE, U_SILOC ) = UOLD_ALL( IDIM, IPHASE, U_INOD2 )
+                  END DO
+
+                  DO IDIM = 1, NDIM
+                     SLOC_NU( IDIM, IPHASE, U_SILOC ) = NU_ALL( IDIM, IPHASE, U_INOD )
+                     SLOC_NUOLD( IDIM, IPHASE, U_SILOC ) = NUOLD_ALL( IDIM, IPHASE, U_INOD )
+                     SLOC2_NU( IDIM, IPHASE, U_SILOC ) = NU_ALL( IDIM, IPHASE, U_INOD2 )
+                     SLOC2_NUOLD( IDIM, IPHASE, U_SILOC ) = NUOLD_ALL( IDIM, IPHASE, U_INOD2 )
                   END DO
                END DO
-
-               ! velocity variables...
-               DO U_SILOC=1,U_SNLOC
-                  U_ILOC=U_SLOC2LOC(U_SILOC)
-                  U_INOD=U_NDGLN((ELE-1)*U_NLOC+U_ILOC) 
-                  IF(ELE2 /= 0) THEN
-                     U_ILOC2=U_ILOC_OTHER_SIDE( U_SILOC ) 
-                     U_INOD2=U_NDGLN((ELE2-1)*U_NLOC+U_ILOC2) 
-                  ELSE
-                     U_ILOC2=U_ILOC
-                     U_INOD2=U_INOD 
-                  ENDIF
-                  ! for normal calc...
-                  DO IPHASE=1,NPHASE
-                     ! U:
-                     SLOC_U(1,IPHASE,U_SILOC)=U( (IPHASE-1)*U_NONODS + U_INOD )
-                     SLOC_UOLD(1,IPHASE,U_SILOC)=UOLD( (IPHASE-1)*U_NONODS + U_INOD )
-                     SLOC2_U(1,IPHASE,U_SILOC)=U( (IPHASE-1)*U_NONODS + U_INOD2 )
-                     SLOC2_UOLD(1,IPHASE,U_SILOC)=UOLD( (IPHASE-1)*U_NONODS + U_INOD2 )
-
-                     SLOC_NU(1,IPHASE,U_SILOC)=NU( (IPHASE-1)*U_NONODS + U_INOD )
-                     SLOC_NUOLD(1,IPHASE,U_SILOC)=NUOLD( (IPHASE-1)*U_NONODS + U_INOD )
-                     SLOC2_NU(1,IPHASE,U_SILOC)=NU( (IPHASE-1)*U_NONODS + U_INOD2 )
-                     SLOC2_NUOLD(1,IPHASE,U_SILOC)=NUOLD( (IPHASE-1)*U_NONODS + U_INOD2 )
-                     ! V:
-                     IF(NDIM.GE.2) THEN
-                        SLOC_U(2,IPHASE,U_SILOC)=V( (IPHASE-1)*U_NONODS + U_INOD )
-                        SLOC_UOLD(2,IPHASE,U_SILOC)=VOLD( (IPHASE-1)*U_NONODS + U_INOD )
-                        SLOC2_U(2,IPHASE,U_SILOC)=V( (IPHASE-1)*U_NONODS + U_INOD2 )
-                        SLOC2_UOLD(2,IPHASE,U_SILOC)=VOLD( (IPHASE-1)*U_NONODS + U_INOD2 )
-
-                        SLOC_NU(2,IPHASE,U_SILOC)=NV( (IPHASE-1)*U_NONODS + U_INOD )
-                        SLOC_NUOLD(2,IPHASE,U_SILOC)=NVOLD( (IPHASE-1)*U_NONODS + U_INOD )
-                        SLOC2_NU(2,IPHASE,U_SILOC)=NV( (IPHASE-1)*U_NONODS + U_INOD2 )
-                        SLOC2_NUOLD(2,IPHASE,U_SILOC)=NVOLD( (IPHASE-1)*U_NONODS + U_INOD2 )
-                     ENDIF
-                     ! W:
-                     IF(NDIM.GE.3) THEN
-                        SLOC_U(3,IPHASE,U_SILOC)=W( (IPHASE-1)*U_NONODS + U_INOD )
-                        SLOC_UOLD(3,IPHASE,U_SILOC)=WOLD( (IPHASE-1)*U_NONODS + U_INOD )
-                        SLOC2_U(3,IPHASE,U_SILOC)=W( (IPHASE-1)*U_NONODS + U_INOD2 )
-                        SLOC2_UOLD(3,IPHASE,U_SILOC)=WOLD( (IPHASE-1)*U_NONODS + U_INOD2 )
-
-                        SLOC_NU(3,IPHASE,U_SILOC)=NW( (IPHASE-1)*U_NONODS + U_INOD )
-                        SLOC_NUOLD(3,IPHASE,U_SILOC)=NWOLD( (IPHASE-1)*U_NONODS + U_INOD )
-                        SLOC2_NU(3,IPHASE,U_SILOC)=NW( (IPHASE-1)*U_NONODS + U_INOD2 )
-                        SLOC2_NUOLD(3,IPHASE,U_SILOC)=NWOLD( (IPHASE-1)*U_NONODS + U_INOD2 )
-                     ENDIF
-                  END DO
-               END DO
-            endif
+            END DO
             ! ********Mapping to local variables****************
 
 
