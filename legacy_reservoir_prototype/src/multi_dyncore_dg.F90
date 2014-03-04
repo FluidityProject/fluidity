@@ -3292,9 +3292,6 @@
       !        SBCVFEN, SBCVFENSLX, SBCVFENSLY )
       !END IF
 
-
-
-
       Loop_Elements: DO ELE = 1, TOTELE ! Volume integral
 
          ! Calculate DETWEI,RA,NX,NY,NZ for element ELE

@@ -6967,6 +6967,7 @@ contains
 
     ! ewrite(3,*)'totele=',totele
 
+
     Loop_Elements2: DO ELE=1,TOTELE
 
        Between_Elements_And_Boundary: DO IFACE = 1, NFACE
@@ -7105,9 +7106,7 @@ contains
 
        END DO Between_Elements_And_Boundary
 
-
     END DO Loop_Elements2
-
 
 
     ! Solve local system for the gradients DTX_ELE etc:
@@ -7253,9 +7252,9 @@ contains
     REAL, DIMENSION( :, : ), intent( in ) :: X_SBCVFEN, X_SBCVFENSLX, X_SBCVFENSLY
     REAL, DIMENSION( : ), intent( in ) :: SBWEIGH
     ! Local variables
-    REAL, DIMENSION( :, :, : ), allocatable :: masele
-    REAL, DIMENSION( :, :, :, :, : ), allocatable :: vtx_ele,vtoldx_ele
-    LOGICAL :: D1, D3, DCYL, APPLYBC(ncomp,nphase)
+    REAL, DIMENSION( :, :, : ), ALLOCATABLE :: MASELE
+    REAL, DIMENSION( :, :, :, :, : ), ALLOCATABLE :: VTX_ELE, VTOLDX_ELE
+    LOGICAL :: D1, D3, DCYL, APPLYBC( NCOMP, NPHASE )
     REAL, dimension( CV_NGI ) :: DETWEI, RA
     REAL, DIMENSION( 3, CV_NLOC, CV_NGI ):: NX ! first index should be ndim
     REAL, DIMENSION( 3, X_NLOC, CV_NGI ) :: X_NX ! first index should be ndim
@@ -7270,6 +7269,8 @@ contains
     INTEGER, PARAMETER :: WIC_T_BC_DIRICHLET = 1
 
     ewrite(3,*)'in DG_DERIVS'
+
+    DTX_ELE = 0.0 ; DTOLDX_ELE = 0.0
 
     ALLOCATE( MASELE( CV_NLOC, CV_NLOC, TOTELE ) )
     ALLOCATE( VTX_ELE( NDIM, NCOMP, NPHASE, CV_NLOC, TOTELE ) )
@@ -7397,37 +7398,36 @@ contains
                 ! Have a surface integral on element boundary... 
                 VLM_NORX(:) = MATMUL( SNORMXN( :, : ), &
                      SDETWE(:) * SBCVFEN( CV_SILOC, : ) * SBCVFEN( CV_SJLOC, : ) )
-             END DO
 
-             ! add diffusion term...
-             DO IPHASE = 1, NPHASE
-                CV_NODJ_IPHA = CV_NODJ + (IPHASE-1)*CV_NONODS
-                CV_NODJ2_IPHA = CV_NODJ2 + (IPHASE-1)*CV_NONODS
-                DO ICOMP = 1, NCOMP
-                   IF ( APPLYBC( ICOMP, IPHASE ) ) THEN
+                ! add diffusion term...
+                DO IPHASE = 1, NPHASE
+                   DO ICOMP = 1, NCOMP
+                      IF ( APPLYBC( ICOMP, IPHASE ) ) THEN
                   
-                      VTX_ELE(:, ICOMP, IPHASE, CV_ILOC, ELE ) = &
-                           VTX_ELE( :, ICOMP, IPHASE, CV_ILOC, ELE ) &
-                           - VLM_NORX(:) * 0.5 * ( FEMT( ICOMP, IPHASE, CV_NODJ ) - FEMT( ICOMP, IPHASE, CV_NODJ2 ) * NRBC )
+                         VTX_ELE(:, ICOMP, IPHASE, CV_ILOC, ELE ) = &
+                              VTX_ELE( :, ICOMP, IPHASE, CV_ILOC, ELE ) &
+                              - VLM_NORX(:) * 0.5 * ( FEMT( ICOMP, IPHASE, CV_NODJ ) - FEMT( ICOMP, IPHASE, CV_NODJ2 ) * NRBC )
+                         VTOLDX_ELE( :, ICOMP, IPHASE, CV_ILOC, ELE ) = &
+                              VTX_ELE( :, ICOMP, IPHASE, CV_ILOC, ELE ) &
+                              - VLM_NORX(:) * 0.5 * ( FEMTOLD( ICOMP, IPHASE, CV_NODJ ) - FEMTOLD( ICOMP, IPHASE, CV_NODJ2 ) * NRBC )
 
+                         IF ( SELE2 /= 0 ) THEN
+                            IF ( WIC_T_BC( ICOMP, IPHASE, SELE2 ) == WIC_T_BC_DIRICHLET ) THEN
 
-                      VTOLDX_ELE( :, ICOMP, IPHASE, CV_ILOC, ELE ) = &
-                           VTX_ELE( :, ICOMP, IPHASE, CV_ILOC, ELE ) &
-                           - VLM_NORX(:) * 0.5 * ( FEMTOLD( ICOMP, IPHASE, CV_NODJ ) - FEMTOLD( ICOMP, IPHASE, CV_NODJ2 ) * NRBC )
+                               RTBC = SUF_T_BC( ICOMP, IPHASE, CV_SJLOC2, SELE2 )
 
-                      IF ( SELE2 /= 0 ) THEN
-                         IF ( WIC_T_BC( ICOMP, IPHASE, SELE2 ) == WIC_T_BC_DIRICHLET ) THEN
-                            RTBC = SUF_T_BC( ICOMP, IPHASE, CV_SJLOC2, SELE2 )
-                            VTX_ELE( :, ICOMP, IPHASE, CV_ILOC, ELE ) = VTX_ELE( :, ICOMP, IPHASE, CV_ILOC, ELE ) &
-                                 + VLM_NORX(:) * 0.5 * RTBC
+                               VTX_ELE( :, ICOMP, IPHASE, CV_ILOC, ELE ) = VTX_ELE( :, ICOMP, IPHASE, CV_ILOC, ELE ) &
+                                    + VLM_NORX(:) * 0.5 * RTBC
+                               VTOLDX_ELE( :, ICOMP, IPHASE, CV_ILOC, ELE ) = VTOLDX_ELE( :, ICOMP, IPHASE, CV_ILOC, ELE ) &
+                                    + VLM_NORX(:) * 0.5 * RTBC
 
-                            VTOLDX_ELE( :, ICOMP, IPHASE, CV_ILOC, ELE ) = VTOLDX_ELE( :, ICOMP, IPHASE, CV_ILOC, ELE ) &
-                                 + VLM_NORX(:) * 0.5 * RTBC
+                            END IF
                          END IF
                       END IF
-                   END IF
+                   END DO
                 END DO
              END DO
+
           END DO
 
        END DO Between_Elements_And_Boundary
