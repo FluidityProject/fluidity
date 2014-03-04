@@ -2586,12 +2586,13 @@
       REAL, DIMENSION ( :, :, :, :, : ), allocatable :: UDIFF_SUF_STAB
       !
       ! Variables used to reduce indirect addressing...
+      INTEGER, DIMENSION ( :, :, : ), allocatable :: WIC_U_BC_ALL
       REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U_RHS, UFENX_ALL, CVFENX_ALL
       REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U, LOC_UOLD
       REAL, DIMENSION ( :, :, : ), allocatable :: LOC_NU, LOC_NUOLD
       REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U_ABSORB, LOC_U_ABS_STAB
       REAL, DIMENSION ( :, :, :, : ), allocatable :: LOC_UDIFFUSION, U_DX_ALL, UOLD_DX_ALL, DIFF_FOR_BETWEEN_U
-      REAL, DIMENSION ( :, :, :, : ), allocatable :: SUF_MOM_BC, SUF_MOM_BC_NU, SUF_ROB1_UBC_ALL, SUF_ROB2_UBC_ALL, TEN_XX
+      REAL, DIMENSION ( :, :, :, : ), allocatable :: SUF_U_BC_ALL, SUF_MOM_BC, SUF_MOM_BC_NU, SUF_ROB1_UBC_ALL, SUF_ROB2_UBC_ALL, TEN_XX
       REAL, DIMENSION ( :, :, :, : ), allocatable :: SUF_MOM_BC_P
       REAL, DIMENSION ( :, :, :, :, :, : ), allocatable :: LOC_DGM_PHA
       REAL, DIMENSION ( :, : ), allocatable :: LOC_UDEN,  LOC_UDENOLD
@@ -2666,10 +2667,12 @@
 
       !Variables to improve PIVIT_MAT creation speed
       REAL, DIMENSION ( :, :, :, :), allocatable :: NN_SIGMAGI_ELE, NN_SIGMAGI_STAB_ELE,NN_MASS_ELE,NN_MASSOLD_ELE
-      REAL, DIMENSION ( :, :, :, :, :), allocatable :: STRESS_IJ_ELE
+      REAL, DIMENSION ( :, :, :, :, :), allocatable :: STRESS_IJ_ELE, DUX_ELE_ALL, DUOLDX_ELE_ALL
       REAL, DIMENSION ( :, :, :), allocatable :: VLK_ELE
 
       logical :: capillary_pressure_activated
+
+      REAL, DIMENSION ( :, :, :), allocatable :: U_ALL, UOLD_ALL
 
       capillary_pressure_activated = have_option( '/material_phase[0]/multiphase_properties/capillary_pressure' )
 
@@ -2963,12 +2966,12 @@
       ALLOCATE( DWX_ELE( U_NLOC, NPHASE, TOTELE ))
       ALLOCATE( DWY_ELE( U_NLOC, NPHASE, TOTELE ))
       ALLOCATE( DWZ_ELE( U_NLOC, NPHASE, TOTELE ))
+
+      ALLOCATE( DUX_ELE_ALL( NDIM, NDIM_VEL, U_NLOC, NPHASE, TOTELE ))
+
+
       ALLOCATE( DUOLDX_ELE( U_NLOC, NPHASE, TOTELE ))
       ALLOCATE( DUOLDY_ELE( U_NLOC, NPHASE, TOTELE ))
-      !                  ALLOCATE( STORED_U_ILOC_OTHER_SIDE( U_SNLOC, NFACE, TOTELE*ISTORED_OTHER_SIDE ) )
-      !                  ALLOCATE( STORED_U_OTHER_LOC( U_NLOC, NFACE, TOTELE*ISTORED_OTHER_SIDE ) )
-      !                  ALLOCATE( STORED_MAT_OTHER_LOC( MAT_NLOC, NFACE, TOTELE*ISTORED_OTHER_SIDE ) )
-      ! Storage for pointers to the other side of the element. 
       ALLOCATE( DUOLDZ_ELE( U_NLOC, NPHASE, TOTELE ))
       ALLOCATE( DVOLDX_ELE( U_NLOC, NPHASE, TOTELE ))
       ALLOCATE( DVOLDY_ELE( U_NLOC, NPHASE, TOTELE ))
@@ -2976,6 +2979,11 @@
       ALLOCATE( DWOLDX_ELE( U_NLOC, NPHASE, TOTELE ))
       ALLOCATE( DWOLDY_ELE( U_NLOC, NPHASE, TOTELE ))
       ALLOCATE( DWOLDZ_ELE( U_NLOC, NPHASE, TOTELE ))
+
+
+      ALLOCATE( DUOLDX_ELE_ALL( NDIM, NDIM_VEL, U_NLOC, NPHASE, TOTELE ))
+
+
 
       ALLOCATE( GRAD_SOU_GI_NMX( NDIM_VEL, NPHASE ))
       !ALLOCATE( GRAD_SOU_GI_NMY( NPHASE ))
@@ -3040,6 +3048,9 @@
       ALLOCATE( UFENX_ALL( NDIM, U_NLOC, CV_NGI )) 
       ALLOCATE( CVFENX_ALL( NDIM,  CV_NLOC, CV_NGI )) 
 
+
+      ALLOCATE( WIC_U_BC_ALL( NDIM_VEL,NPHASE,STOTEL ) ) ; WIC_U_BC_ALL = 0
+      ALLOCATE( SUF_U_BC_ALL( NDIM_VEL,NPHASE,U_SNLOC,STOTEL ) ) ; SUF_U_BC_ALL = 0.0
       ALLOCATE( SUF_MOM_BC( NDIM_VEL,NPHASE,U_SNLOC,STOTEL ) ) ; SUF_MOM_BC = 0.0
       ALLOCATE( SUF_MOM_BC_NU( NDIM_VEL,NPHASE,U_SNLOC,STOTEL ) ) ; SUF_MOM_BC_NU = 0.0
       ALLOCATE( SUF_ROB1_UBC_ALL( NDIM_VEL,NPHASE,U_SNLOC,STOTEL ) ) ; SUF_ROB1_UBC_ALL = 0.0
@@ -3066,29 +3077,79 @@
       ALLOCATE( NMX_ALL(NDIM) )
       ALLOCATE( VNMX_ALL(NDIM) )
       ALLOCATE( RNMX_ALL(NDIM) )
-! 
+ 
       ALLOCATE( U_NODI_SGI_IPHASE_ALL(NDIM_VEL,NPHASE,SBCVNGI) )
       ALLOCATE( U_NODJ_SGI_IPHASE_ALL(NDIM_VEL,NPHASE,SBCVNGI) )
       ALLOCATE( UOLD_NODI_SGI_IPHASE_ALL(NDIM_VEL,NPHASE,SBCVNGI) )
       ALLOCATE( UOLD_NODJ_SGI_IPHASE_ALL(NDIM_VEL,NPHASE,SBCVNGI) )  
 
+
+
+      ALLOCATE( U_ALL( NDIM, NPHASE, U_NONODS ), UOLD_ALL( NDIM, NPHASE, U_NONODS ) )
+      U_ALL = 0. ; UOLD_ALL = 0.
+
+      IF ( IS_OVERLAPPING ) THEN
+         NLEV = CV_NLOC
+         U_NLOC2 = MAX( 1, U_NLOC / CV_NLOC )
+      ELSE
+         NLEV = 1
+         U_NLOC2 = U_NLOC
+      END IF
+      DO ELE = 1, TOTELE
+         DO ILEV = 1, NLEV
+            DO U_ILOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
+               U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
+               DO IPHASE = 1, NPHASE
+                  DO IDIM = 1, NDIM
+                     IF ( IDIM==1 ) THEN
+                        U_ALL( IDIM, IPHASE, U_INOD ) = U( U_INOD + (IPHASE-1)*U_NONODS )
+                        UOLD_ALL( IDIM, IPHASE, U_INOD ) = UOLD( U_INOD + (IPHASE-1)*U_NONODS )
+                     ELSE IF ( IDIM==2 ) THEN
+                        U_ALL( IDIM, IPHASE, U_INOD ) = V( U_INOD + (IPHASE-1)*U_NONODS )
+                        UOLD_ALL( IDIM, IPHASE, U_INOD ) = VOLD( U_INOD + (IPHASE-1)*U_NONODS )
+                     ELSE
+                        U_ALL( IDIM, IPHASE, U_INOD ) = W( U_INOD + (IPHASE-1)*U_NONODS )
+                        UOLD_ALL( IDIM, IPHASE, U_INOD ) = WOLD( U_INOD + (IPHASE-1)*U_NONODS )
+                     END IF
+                  END DO
+               END DO
+            END DO
+         END DO
+      END DO
+
+
+
+
       ! temprorarily rearrange boundary condition memory...
+      do sele = 1, stotel
+         do iphase = 1, nphase
+            wic_u_bc_all( 1,iphase,sele ) = wic_u_bc( sele+(iphase-1)*stotel )
+         end do
+      end do
+      do idim = 2, ndim_vel
+         wic_u_bc_all( idim,:,: ) = wic_u_bc_all( 1,:,: )
+      end do
+
+
       do sele = 1, stotel
          do u_siloc = 1, u_snloc
             do iphase = 1, nphase
                do idim = 1, ndim_vel
                   i = ( iphase - 1 ) * stotel * u_snloc + ( sele - 1 ) * u_snloc + u_siloc
+                  suf_u_bc_all( idim,iphase,u_siloc,sele ) = suf_u_bc( i )
                   suf_mom_bc( idim,iphase,u_siloc,sele ) = suf_momu_bc( i )
                   suf_mom_bc_nu( idim,iphase,u_siloc,sele ) = suf_nu_bc( i )
                   SUF_ROB1_UBC_ALL( idim,iphase,u_siloc,sele ) = suf_u_bc_rob1( i )
                   SUF_ROB2_UBC_ALL( idim,iphase,u_siloc,sele ) = suf_u_bc_rob2( i )
                   if ( ndim_vel >= 2 ) then
+                     suf_u_bc_all( idim,iphase,u_siloc,sele ) = suf_u_bc( i )
                      suf_mom_bc( idim,iphase,u_siloc,sele ) = suf_momv_bc( i )
                      suf_mom_bc_nu( idim,iphase,u_siloc,sele ) = suf_nv_bc( i )
                      SUF_ROB1_UBC_ALL( idim,iphase,u_siloc,sele ) = suf_v_bc_rob1( i )
                      SUF_ROB2_UBC_ALL( idim,iphase,u_siloc,sele ) = suf_v_bc_rob2( i )
                   end if
                   if ( ndim_vel >= 3 ) then
+                     suf_u_bc_all( idim,iphase,u_siloc,sele ) = suf_u_bc( i )
                      suf_mom_bc( idim,iphase,u_siloc,sele ) = suf_momw_bc( i )
                      suf_mom_bc_nu( idim,iphase,u_siloc,sele ) = suf_nw_bc( i )
                      SUF_ROB1_UBC_ALL( idim,iphase,u_siloc,sele ) = suf_w_bc_rob1( i )
@@ -3111,6 +3172,11 @@
             end do
          end do
       end do
+
+
+
+
+
 
 
       GOT_DIFFUS = ( R2NORM( UDIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0.0 )  &
@@ -3209,7 +3275,25 @@
               SUF_U_BC,SUF_V_BC,SUF_W_BC, &
               WIC_U_BC_DIRICHLET, SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBCVFEWEIGH, &
               SBCVFEN, SBCVFENSLX, SBCVFENSLY)
-      ENDIF
+      END IF
+
+
+      !IF( GOT_DIFFUS ) THEN
+      !   CALL DG_DERIVS_ALL( U_ALL, UOLD_ALL, &
+      !        DUX_ELE_ALL, DUOLDX_ELE_ALL, &
+      !        NDIM, NPHASE, NDIM_VEL, U_NONODS, TOTELE, U_NDGLN, &
+      !        XU_NDGLN, X_NLOC, X_NDGLN, &
+      !        CV_NGI, U_NLOC, CVWEIGHT, &
+      !        UFEN, UFENLX, UFENLY, UFENLZ, &
+      !        CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
+      !        X_NONODS, X, Y, Z, &
+      !        NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC_ALL, SUF_U_BC_ALL, &
+      !        SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBCVFEWEIGH, &
+      !        SBCVFEN, SBCVFENSLX, SBCVFENSLY )
+      !END IF
+
+
+
 
       Loop_Elements: DO ELE = 1, TOTELE ! Volume integral
 

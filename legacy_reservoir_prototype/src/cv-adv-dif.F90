@@ -7236,12 +7236,12 @@ contains
     INTEGER, intent( in ) :: NDIM, NPHASE, NCOMP,CV_NONODS, TOTELE, X_NLOC, CV_NGI, CV_NLOC, &
          X_NONODS, STOTEL, CV_SNLOC, X_SNLOC, SBCVNGI, NFACE
     REAL, DIMENSION( :, :, : ), intent( in ) :: FEMT, FEMTOLD
-    REAL, DIMENSION( :, : ,:, : , : ), intent( inout ) :: DTX_ELE, DTOLDX_ELE
+    REAL, DIMENSION( :, :, :, :, : ), intent( inout ) :: DTX_ELE, DTOLDX_ELE
     INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
     INTEGER, DIMENSION( : ), intent( in ) ::  X_NDGLN
     INTEGER, DIMENSION( : ), intent( in ) ::  XCV_NDGLN
-    INTEGER, DIMENSION( : ,:,:), intent( in ) ::  WIC_T_BC
-    REAL, DIMENSION( :, :, : ), intent( in ) ::  SUF_T_BC
+    INTEGER, DIMENSION( :, :, : ), intent( in ) ::  WIC_T_BC
+    REAL, DIMENSION( :, :, :, : ), intent( in ) ::  SUF_T_BC
     INTEGER, DIMENSION( :, : ), intent( in ) ::  CV_SLOCLIST
     INTEGER, DIMENSION( :, : ), intent( in ) ::  X_SLOCLIST
     INTEGER, DIMENSION( :, : ), intent( in ) ::  FACE_ELE
@@ -7265,8 +7265,8 @@ contains
     REAL :: VOLUME, NN, NNX( NDIM ), NORMX( 3 ), SAREA, NRBC, RNN, RTBC, VLM_NORX( NDIM )
     INTEGER :: ELE, CV_ILOC, CV_JLOC, CV_NODI, CV_NODJ, CV_GI, CV_ILOC2, &
          CV_INOD, CV_INOD2, CV_JLOC2, CV_NODJ2, CV_NODJ2_IPHA, CV_NODJ_IPHA, &
-         CV_SILOC, CV_SJLOC, ELE2, IFACE, IPHASE, SELE2, SUF_CV_SJ2, SUF_CV_SJ2_IPHA, &
-         X_INOD, SGI, X_SILOC, X_ILOC, icomp, idim
+         CV_SILOC, CV_SJLOC, CV_SJLOC2, ELE2, IFACE, IPHASE, SELE2, SUF_CV_SJ2, SUF_CV_SJ2_IPHA, &
+         X_INOD, SGI, X_SILOC, X_ILOC, ICOMP, IDIM
     INTEGER, PARAMETER :: WIC_T_BC_DIRICHLET = 1
 
     ewrite(3,*)'in DG_DERIVS'
@@ -7384,6 +7384,7 @@ contains
                 CV_NODJ = CV_NDGLN( (ELE-1)*CV_NLOC + CV_JLOC )
                 IF ( SELE2 /= 0 ) THEN
                    CV_JLOC2 = CV_JLOC
+                   CV_SJLOC2 = CV_SJLOC
                    CV_NODJ2 = CV_NODJ
                    SUF_CV_SJ2 = CV_SJLOC + CV_SNLOC * ( SELE2 - 1 )
                    NRBC = 0.0
@@ -7394,15 +7395,13 @@ contains
                 END IF
 
                 ! Have a surface integral on element boundary... 
-
-                VLM_NORX(:)=matmul(SNORMXN(:,:),&
-                     SDETWE(:)*SBCVFEN(CV_SILOC,:)*SBCVFEN(CV_SJLOC,:))
-
+                VLM_NORX(:) = MATMUL( SNORMXN( :, : ), &
+                     SDETWE(:) * SBCVFEN( CV_SILOC, : ) * SBCVFEN( CV_SJLOC, : ) )
              END DO
 
              ! add diffusion term...
              DO IPHASE = 1, NPHASE
-                CV_NODJ_IPHA = CV_NODJ  + (IPHASE-1)*CV_NONODS
+                CV_NODJ_IPHA = CV_NODJ + (IPHASE-1)*CV_NONODS
                 CV_NODJ2_IPHA = CV_NODJ2 + (IPHASE-1)*CV_NONODS
                 DO ICOMP = 1, NCOMP
                    IF ( APPLYBC( ICOMP, IPHASE ) ) THEN
@@ -7418,7 +7417,7 @@ contains
 
                       IF ( SELE2 /= 0 ) THEN
                          IF ( WIC_T_BC( ICOMP, IPHASE, SELE2 ) == WIC_T_BC_DIRICHLET ) THEN
-                            RTBC = SUF_T_BC( ICOMP, IPHASE, SUF_CV_SJ2 )
+                            RTBC = SUF_T_BC( ICOMP, IPHASE, CV_SJLOC2, SELE2 )
                             VTX_ELE( :, ICOMP, IPHASE, CV_ILOC, ELE ) = VTX_ELE( :, ICOMP, IPHASE, CV_ILOC, ELE ) &
                                  + VLM_NORX(:) * 0.5 * RTBC
 
@@ -7444,10 +7443,11 @@ contains
 
        FORALL ( IDIM = 1:NDIM, ICOMP = 1:NCOMP, IPHASE = 1:NPHASE )
 
-          DTX_ELE( IDIM, ICOMP, IPHASE, :, ELE ) = MATMUL( INV_MASS( :, : ), VTX_ELE( IDIM, ICOMP, IPHASE, :, ELE ) )
+          !DTX_ELE( IDIM, ICOMP, IPHASE, :, ELE ) = MATMUL( INV_MASS( :, : ), VTX_ELE( IDIM, ICOMP, IPHASE, :, ELE ) )
+          !DTOLDX_ELE( IDIM, ICOMP, IPHASE, :, ELE ) = MATMUL( INV_MASS( :, : ) , VTOLDX_ELE( IDIM, ICOMP, IPHASE, :, ELE ) )
 
-          DTOLDX_ELE( IDIM, ICOMP, IPHASE, :, ELE ) = MATMUL( INV_MASS( :, : ) , VTOLDX_ELE( IDIM, ICOMP, IPHASE, :, ELE ) )
-
+          DTX_ELE( IDIM, ICOMP, :, IPHASE, ELE ) = MATMUL( INV_MASS( :, : ), VTX_ELE( IDIM, ICOMP, IPHASE, :, ELE ) )
+          DTOLDX_ELE( IDIM, ICOMP, :, IPHASE, ELE ) = MATMUL( INV_MASS( :, : ) , VTOLDX_ELE( IDIM, ICOMP, IPHASE, :, ELE ) )
        END FORALL
 
     END DO Loop_Elements3
