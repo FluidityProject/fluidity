@@ -3142,14 +3142,14 @@
                   SUF_ROB1_UBC_ALL( idim,iphase,u_siloc,sele ) = suf_u_bc_rob1( i )
                   SUF_ROB2_UBC_ALL( idim,iphase,u_siloc,sele ) = suf_u_bc_rob2( i )
                   if ( ndim_vel >= 2 ) then
-                     suf_u_bc_all( idim,iphase,u_siloc,sele ) = suf_u_bc( i )
+                     suf_u_bc_all( idim,iphase,u_siloc,sele ) = suf_v_bc( i )
                      suf_mom_bc( idim,iphase,u_siloc,sele ) = suf_momv_bc( i )
                      suf_mom_bc_nu( idim,iphase,u_siloc,sele ) = suf_nv_bc( i )
                      SUF_ROB1_UBC_ALL( idim,iphase,u_siloc,sele ) = suf_v_bc_rob1( i )
                      SUF_ROB2_UBC_ALL( idim,iphase,u_siloc,sele ) = suf_v_bc_rob2( i )
                   end if
                   if ( ndim_vel >= 3 ) then
-                     suf_u_bc_all( idim,iphase,u_siloc,sele ) = suf_u_bc( i )
+                     suf_u_bc_all( idim,iphase,u_siloc,sele ) = suf_w_bc( i )
                      suf_mom_bc( idim,iphase,u_siloc,sele ) = suf_momw_bc( i )
                      suf_mom_bc_nu( idim,iphase,u_siloc,sele ) = suf_nw_bc( i )
                      SUF_ROB1_UBC_ALL( idim,iphase,u_siloc,sele ) = suf_w_bc_rob1( i )
