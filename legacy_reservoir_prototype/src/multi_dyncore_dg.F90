@@ -574,11 +574,11 @@
       REAL, DIMENSION( :, :, :, : ), intent( in ) :: TDIFFUSION
       character( len = * ), intent( in ), optional :: option_path
       ! Local  variables... none
-      REAL, DIMENSION ( :, :, : ), allocatable :: RZERO
+      REAL, DIMENSION ( :, :, : ), allocatable :: RZERO, T_IN, TOLD_IN
       REAL, DIMENSION ( : ), allocatable :: RDUM
       INTEGER, DIMENSION ( : ), allocatable :: IDUM,IZERO
 
-      INTEGER :: IPLIKE_GRAD_SOU
+      INTEGER :: IPLIKE_GRAD_SOU, NDIM_IN, NPHASE_IN
       LOGICAL :: JUST_BL_DIAG_MAT
 
       INTEGER :: U_NLOC2, ILEV, NLEV, ELE, U_ILOC, U_INOD, IPHASE, IDIM
@@ -632,20 +632,22 @@
          END DO
       END DO
 
+
+      ndim_in = 1 ; nphase_in = 1
+      allocate( t_in( ndim_in, nphase_in, u_nonods ) ) ; t_in(1,1,:) = t
+      allocate( told_in( ndim_in, nphase_in, u_nonods ) ) ; told_in(1,1,:) = t
+
       CALL ASSEMB_FORCE_CTY( state, &
-           NDIM, NPHASE, U_NLOC, X_NLOC, CV_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
+           NDIM, NPHASE_IN, U_NLOC, X_NLOC, CV_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
            U_ELE_TYPE, CV_ELE_TYPE, &
            U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
            U_NDGLN, CV_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN, &
            STOTEL, U_SNDGLN, CV_SNDGLN, CV_SNDGLN, U_SNLOC, CV_SNLOC, CV_SNLOC, &
            X, Y, Z, RZERO, T_ABSORB, T_SOURCE, RDUM, &
-           ! Changed the next 3 lines...
-           T, T, T, TOLD, TOLD, TOLD, &
-!           U_ALL, UOLD_ALL, &
-           U, V, W, UOLD, VOLD, WOLD, &
+           T_IN, TOLD_IN, &
+           U_ALL, UOLD_ALL, &
            DEN, DENOLD, &
            DT, &
-           ! added the next line...
            SUF_T_BC, SUF_T_BC, SUF_T_BC, RZERO(:,:,1), &
            SUF_T_BC, SUF_T_BC, SUF_T_BC, &
            SUF_U_BC, SUF_V_BC, SUF_W_BC, RDUM, &
@@ -660,10 +662,10 @@
            RZERO, JUST_BL_DIAG_MAT,  &
            TDIFFUSION, & ! TDiffusion need to be obtained down in the tree according to the option_path
            IPLIKE_GRAD_SOU, RDUM, RDUM, &
-           RDUM,.FALSE.,1 )
+           RDUM,.FALSE.,NDIM_IN )
 
 
-      DEALLOCATE( U_ALL, UOLD_ALL, RZERO, IZERO, RDUM, IDUM )
+      DEALLOCATE( U_ALL, UOLD_ALL, RZERO, IZERO, RDUM, IDUM, T_IN, TOLD_IN )
 
     END SUBROUTINE WRAPPER_ASSEMB_FORCE_CTY
 
@@ -2202,9 +2204,8 @@
            U_NDGLN, P_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN, &
            STOTEL, U_SNDGLN, P_SNDGLN, CV_SNDGLN, U_SNLOC, P_SNLOC, CV_SNLOC, &
            X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
-           U, V, W, UOLD, VOLD, WOLD, &
-           U, V, W, UOLD, VOLD, WOLD, &
-!           U_ALL, UOLD, &
+           U_ALL, UOLD_ALL, &
+           U_ALL, UOLD_ALL, &    ! This is nu...
            UDEN, UDENOLD, &
            DT, &
            SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
@@ -2437,9 +2438,8 @@
          U_NDGLN, P_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN, &
          STOTEL, U_SNDGLN, P_SNDGLN, CV_SNDGLN, U_SNLOC, P_SNLOC, CV_SNLOC, &
          X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
-         U, V, W, UOLD, VOLD, WOLD, &
-         NU, NV, NW, NUOLD, NVOLD, NWOLD, &
-!         NU_ALL, NU0LD_ALL, &
+         U_ALL, UOLD_ALL, &
+         NU_ALL, NUOLD_ALL, &
          UDEN, UDENOLD, &
          DT, &
          SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
@@ -2491,8 +2491,9 @@
       REAL, DIMENSION( :, :, : ), intent( in ) :: U_ABSORB
       REAL, DIMENSION( : ), intent( in ) :: U_SOURCE
       REAL, DIMENSION( : ), intent( in ) :: U_SOURCE_CV
-      REAL, DIMENSION( : ), intent( in ) :: U, V, W, UOLD, VOLD, WOLD
-      REAL, DIMENSION( : ), intent( in ) :: NU, NV, NW, NUOLD, NVOLD, NWOLD
+
+      REAL, DIMENSION ( :, :, : ), intent( in ) :: U_ALL, UOLD_ALL, NU_ALL, NUOLD_ALL
+
       REAL, DIMENSION( : ), intent( in ) :: UDEN, UDENOLD
       REAL, intent( in ) :: DT
       REAL, DIMENSION( : ), intent( inout ) :: U_RHS
@@ -2672,8 +2673,6 @@
 
       logical :: capillary_pressure_activated
 
-      REAL, DIMENSION ( :, :, : ), allocatable :: U_ALL, UOLD_ALL, NU_ALL, NUOLD_ALL
-
       capillary_pressure_activated = have_option( '/material_phase[0]/multiphase_properties/capillary_pressure' )
 
       ewrite(3,*) 'In ASSEMB_FORCE_CTY'
@@ -2752,9 +2751,9 @@
       GOT_DIFFUS = .FALSE.
 
       ! is this the 1st iteration of the time step. 
-      firstst=(sum((u(:)-uold(:))**2).lt.1.e-10)
-      if(NDIM_VEL.ge.2) firstst=firstst.and.(sum((v(:)-vold(:))**2).lt.1.e-10)
-      if(NDIM_VEL.ge.3) firstst=firstst.and.(sum((w(:)-wold(:))**2).lt.1.e-10)
+      FIRSTST = ( SUM( (U_ALL(1,:,:) - UOLD_ALL(1,:,:) ) **2) < 1.e-10 )
+      IF(NDIM_VEL>=2) FIRSTST = FIRSTST .OR. ( SUM( ( U_ALL(2,:,:) - UOLD_ALL(2,:,:) )**2 ) < 1.e-10 )
+      IF(NDIM_VEL>=3) FIRSTST = FIRSTST .OR. ( SUM( ( U_ALL(3,:,:) - UOLD_ALL(3,:,:) )**2 ) < 1.e-10 )
 
       UPWIND_DGFLUX = .TRUE.
       if ( have_option( &
@@ -3082,80 +3081,6 @@
       ALLOCATE( U_NODJ_SGI_IPHASE_ALL(NDIM_VEL,NPHASE,SBCVNGI) )
       ALLOCATE( UOLD_NODI_SGI_IPHASE_ALL(NDIM_VEL,NPHASE,SBCVNGI) )
       ALLOCATE( UOLD_NODJ_SGI_IPHASE_ALL(NDIM_VEL,NPHASE,SBCVNGI) )  
-
-
-
-      ALLOCATE( U_ALL( NDIM_VEL, NPHASE, U_NONODS ), UOLD_ALL( NDIM_VEL, NPHASE, U_NONODS ) )
-      U_ALL = 0. ; UOLD_ALL = 0.
-
-      IF ( IS_OVERLAPPING ) THEN
-         NLEV = CV_NLOC
-         U_NLOC2 = MAX( 1, U_NLOC / CV_NLOC )
-      ELSE
-         NLEV = 1
-         U_NLOC2 = U_NLOC
-      END IF
-      DO ELE = 1, TOTELE
-         DO ILEV = 1, NLEV
-            DO U_ILOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
-               U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
-               DO IPHASE = 1, NPHASE
-                  DO IDIM = 1, NDIM_VEL
-                     IF ( IDIM==1 ) THEN
-                        U_ALL( IDIM, IPHASE, U_INOD ) = U( U_INOD + (IPHASE-1)*U_NONODS )
-                        UOLD_ALL( IDIM, IPHASE, U_INOD ) = UOLD( U_INOD + (IPHASE-1)*U_NONODS )
-                     ELSE IF ( IDIM==2 ) THEN
-                        U_ALL( IDIM, IPHASE, U_INOD ) = V( U_INOD + (IPHASE-1)*U_NONODS )
-                        UOLD_ALL( IDIM, IPHASE, U_INOD ) = VOLD( U_INOD + (IPHASE-1)*U_NONODS )
-                     ELSE
-                        U_ALL( IDIM, IPHASE, U_INOD ) = W( U_INOD + (IPHASE-1)*U_NONODS )
-                        UOLD_ALL( IDIM, IPHASE, U_INOD ) = WOLD( U_INOD + (IPHASE-1)*U_NONODS )
-                     END IF
-                  END DO
-               END DO
-            END DO
-         END DO
-      END DO
-
-
-      ALLOCATE( NU_ALL( NDIM, NPHASE, U_NONODS ), NUOLD_ALL( NDIM, NPHASE, U_NONODS ) )
-      NU_ALL = 0. ; NUOLD_ALL = 0.
-
-      IF ( IS_OVERLAPPING ) THEN
-         NLEV = CV_NLOC
-         U_NLOC2 = MAX( 1, U_NLOC / CV_NLOC )
-      ELSE
-         NLEV = 1
-         U_NLOC2 = U_NLOC
-      END IF
-      DO ELE = 1, TOTELE
-         DO ILEV = 1, NLEV
-            DO U_ILOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
-               U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
-               DO IPHASE = 1, NPHASE
-                  DO IDIM = 1, NDIM
-                     IF ( IDIM==1 ) THEN
-                        NU_ALL( IDIM, IPHASE, U_INOD ) = NU( U_INOD + (IPHASE-1)*U_NONODS )
-                        NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NUOLD( U_INOD + (IPHASE-1)*U_NONODS )
-                     ELSE IF ( IDIM==2 ) THEN
-                        NU_ALL( IDIM, IPHASE, U_INOD ) = NV( U_INOD + (IPHASE-1)*U_NONODS )
-                        NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NVOLD( U_INOD + (IPHASE-1)*U_NONODS )
-                     ELSE
-                        NU_ALL( IDIM, IPHASE, U_INOD ) = NW( U_INOD + (IPHASE-1)*U_NONODS )
-                        NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NWOLD( U_INOD + (IPHASE-1)*U_NONODS )
-                     END IF
-                  END DO
-               END DO
-            END DO
-         END DO
-      END DO
-
-
-
-
-
-
-
 
       ! temprorarily rearrange boundary condition memory...
       do sele = 1, stotel
