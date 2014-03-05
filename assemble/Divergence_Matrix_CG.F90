@@ -128,6 +128,7 @@ module divergence_matrix_cg
       type(element_type), pointer :: nvfrac_shape
       ! Transformed gradient function for the non-linear PhaseVolumeFraction. 
       real, dimension(:, :, :), allocatable :: dnvfrac_t
+      type(vector_field), pointer ::velocity
 
       ! =============================================================
       ! Subroutine to construct the matrix CT_m (a.k.a. C1/2/3T).
@@ -159,8 +160,10 @@ module divergence_matrix_cg
           &"/spatial_discretisation/discontinuous_galerkin")
 
       ewrite(2,*) "Divergence is integrated by parts: ", integrate_by_parts
-
-      if(present(ct_rhs)) call zero(ct_rhs)
+      velocity=>extract_vector_field(state, "Velocity")
+      if (.not. (has_boundary_condition(velocity, "source_SWMM") .or. has_boundary_condition(velocity, "rainfall"))) then
+         if(present(ct_rhs)) call zero(ct_rhs)
+      end if
 
       ! Check if we need to multiply through by the non-linear volume fraction
       if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
@@ -549,8 +552,9 @@ module divergence_matrix_cg
       
       test_mesh => pressure%mesh
       field => velocity
-
-      if(present(ct_rhs)) call zero(ct_rhs)
+      if (.not. (has_boundary_condition(velocity, "source_SWMM") .or. has_boundary_condition(velocity, "rainfall"))) then
+         if(present(ct_rhs)) call zero(ct_rhs)
+      end if 
 
       ! Clear memory of arrays being designed
       call zero(ctp_m)

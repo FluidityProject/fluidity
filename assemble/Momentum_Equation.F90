@@ -700,11 +700,9 @@
             ! At the moment cg does its own ct assembly. We might change this in the future.
             ! This call will form the ct_rhs, which for compressible_eos
             ! or cg_pressure_cv_test_continuity is formed for a second time later below.
-            if(dg(istate) .and. .not. cv_pressure) then
-               if (.not. (has_boundary_condition(u, "source_SWMM") .or. has_boundary_condition(u, "rainfall"))) then   
+            if(dg(istate) .and. .not. cv_pressure) then  
                   call assemble_divergence_matrix_cg(ct_m(istate)%ptr, state(istate), ct_rhs=ct_rhs(istate), &
                    test_mesh=p_theta%mesh, field=u, get_ct=reassemble_ct_m)
-               end if
             end if
             do i=1, element_count(p)
                  print *, 'ct_rhs_momentum_equation',ele_val(ct_rhs(istate),i)

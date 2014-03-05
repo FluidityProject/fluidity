@@ -2201,7 +2201,7 @@ contains
     logical::source_SWMM, rainfall
     real::sum_guess ,sum_source, sum_guess_rainfall, sum_rainfall
     real, dimension(face_loc(ct_rhs,face))::source_guess_mat, source_mat,rainfall_guess_mat, rainfall_mat
-    real, dimension(face_loc(u, face))::source_q, intensity
+    real, dimension(face_ngi(u, face))::source_q, intensity
     integer::have_constant
     real :: sele_area
     integer::i
@@ -2462,13 +2462,14 @@ contains
     !Add the interacted flux with drainage system to the RHS of Continuity Equation. The flux can be calculated by SWMM. 
     !Assume that there is only one source point at most in each cell.   --TZhang
     if (source_SWMM) then
-         source_q=ele_val(velocity_bc,3,face)
+         source_q=ele_val_at_quad(velocity_bc,face,3)
          print *, 'source_q',source_q
-         source_guess_mat=shape_rhs(p_shape,source_q)
+         print *, 'ngi',ele_ngi(velocity_bc, face)
+         source_guess_mat=shape_rhs(p_shape,source_q*detwei)
          sum_guess = 0
          sum_source=0.
          have_constant=0
-         do i=1,face_loc(u, face)
+         do i=1,ele_ngi(velocity_bc, face)
            sum_source=sum_source+source_q(i)
            !check whether the input is constant value. 
            if (i>1) then
@@ -2478,7 +2479,7 @@ contains
            end if 
          end do
          if (have_constant==0) then 
-             sum_source=sum_source/face_loc(u, face)
+             sum_source=sum_source/ele_ngi(velocity_bc, face)
          end if
          do i=1, face_loc(ct_rhs, face)
           sum_guess = sum_guess + source_guess_mat(i)
@@ -2498,16 +2499,16 @@ contains
       if (rainfall) then
          sele_area=sum(detwei)
          !get the rainfall intensity
-         intensity=ele_val(velocity_bc, 3,face)
-         rainfall_guess_mat=shape_rhs(p_shape,intensity)
+         intensity=ele_val_at_quad(velocity_bc,face,3)
+         rainfall_guess_mat=shape_rhs(p_shape,intensity*detwei)
          sum_guess_rainfall=0
          sum_rainfall=0
          have_constant=0
-         do i=1,face_loc(u, face)
+         do i=1,ele_ngi(velocity_bc, face)
            sum_rainfall=sum_rainfall+intensity(i)
          end do
          !sum_rainfall is the sum of the intensity value of all the gaussion quadrature points.
-         sum_rainfall=sum_rainfall/face_loc(u, face)
+         sum_rainfall=sum_rainfall/ele_ngi(velocity_bc, face)
         
          do i=1, face_loc(ct_rhs, face)
           sum_guess_rainfall= sum_guess_rainfall + rainfall_guess_mat(i)
