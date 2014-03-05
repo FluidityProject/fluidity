@@ -8829,6 +8829,7 @@ pure real function ptolfun(value)
     REAL, DIMENSION( : , : ), allocatable :: MAT_LOC_2ELES,MAT
     REAL, DIMENSION( : ), allocatable :: VECRHS_2ELES, DIFF
     REAL, DIMENSION( SBCVNGI ) :: DIFF_ADD_STAB
+    REAL, DIMENSION( NPHASE, SBCVNGI ) :: DIFF_ADD_STAB2
     INTEGER, DIMENSION( U_NLOC ) :: OTHER_SI2
     INTEGER, DIMENSION( 2*U_NLOC ) :: GLOB_NO
     REAL, DIMENSION( U_SNLOC ) :: DIFF_SUF
@@ -8843,31 +8844,37 @@ pure real function ptolfun(value)
     IF(FAST_AND_SIMP) THEN
        ! use a simple average either side of the interface...
        IF(GOT_OTHER_ELE) THEN
-          DO IPHASE=1,NPHASE
-             DIFF_ADD_STAB( : )=0.0
-             DO U_SILOC = 1, U_SNLOC
-                U_ILOC = U_SLOC2LOC( U_SILOC )
-                U_ILOC2= U_ILOC_OTHER_SIDE( U_SILOC ) 
+          DIFF_ADD_STAB2( :, : )=0.0
+          DO U_SILOC = 1, U_SNLOC
+             U_ILOC = U_SLOC2LOC( U_SILOC )
+             U_ILOC2= U_ILOC_OTHER_SIDE( U_SILOC ) 
+             DO IPHASE=1,NPHASE
                 ! Calculate added stabilization diffusion DIFF_ADD_STAB( SGI,IDIM,IPHASE )
-                DIFF_ADD_STAB( : )=DIFF_ADD_STAB( : )+SBUFEN(U_SILOC,:) &
+                DIFF_ADD_STAB2( IPHASE, : )=DIFF_ADD_STAB2( IPHASE, : )+SBUFEN(U_SILOC,:) &
                      *0.5*(DIFF_FOR_BETWEEN_U_ELE(IPHASE,U_ILOC)+DIFF_FOR_BETWEEN_U_ELE2(IPHASE,U_ILOC2))
              END DO
-             DIFF_ADD_STAB( : )=MAX(0.0,DIFF_ADD_STAB( : ))
+          END DO
+          DIFF_ADD_STAB2=MAX(0.0,DIFF_ADD_STAB2)
+
+          DO IPHASE=1,NPHASE
              DO IDIM=1,NDIM
-                UDIFF_SUF_STAB(IPHASE,:,IDIM,IDIM)=DIFF_ADD_STAB( : )
+                UDIFF_SUF_STAB(IDIM,IDIM, IPHASE,:)=DIFF_ADD_STAB2( IPHASE, : )
              END DO
           END DO
        ELSE
-          DO IPHASE=1,NPHASE
-             DIFF_ADD_STAB( : )=0.0
-             DO U_SILOC = 1, U_SNLOC
-                U_ILOC = U_SLOC2LOC( U_SILOC )
-                ! Calculate added stabilization diffusion DIFF_ADD_STAB( SGI,IDIM,IPHASE )
-                DIFF_ADD_STAB( : )=DIFF_ADD_STAB( : )+SBUFEN(U_SILOC,:)*DIFF_FOR_BETWEEN_U_ELE(IPHASE,U_ILOC)
+          DIFF_ADD_STAB2( :, : )=0.0
+          DO U_SILOC = 1, U_SNLOC
+             U_ILOC = U_SLOC2LOC( U_SILOC )
+             DO IPHASE=1,NPHASE
+                ! Calculate added stabilization diffusion DIFF_ADD_STAB2( SGI,IDIM,IPHASE )
+                 DIFF_ADD_STAB2( IPHASE, : )=DIFF_ADD_STAB2( IPHASE, : )+SBUFEN(U_SILOC,:)*DIFF_FOR_BETWEEN_U_ELE(IPHASE,U_ILOC)
              END DO
-             DIFF_ADD_STAB( : )=MAX(0.0,DIFF_ADD_STAB( : ))
+          END DO
+          DIFF_ADD_STAB2=MAX(0.0,DIFF_ADD_STAB2)
+
+          DO IPHASE=1,NPHASE
              DO IDIM=1,NDIM
-                UDIFF_SUF_STAB(IPHASE,:,IDIM,IDIM)=DIFF_ADD_STAB( : )
+                UDIFF_SUF_STAB(IDIM,IDIM, IPHASE,:)=DIFF_ADD_STAB2( IPHASE, : )
              END DO
           END DO
        ENDIF
@@ -8953,7 +8960,7 @@ pure real function ptolfun(value)
           ! Make certain the diffusion is positive between the elements...
           DIFF_ADD_STAB( : )=MAX(0.0,DIFF_ADD_STAB( : ))
           DO IDIM=1,NDIM
-             UDIFF_SUF_STAB(IPHASE,1:SBCVNGI,IDIM,IDIM  )=UDIFF_SUF_STAB(IPHASE,1:SBCVNGI,IDIM,IDIM  ) &
+             UDIFF_SUF_STAB(IDIM,IDIM,  IPHASE,1:SBCVNGI )=UDIFF_SUF_STAB(IDIM,IDIM,  IPHASE,1:SBCVNGI )  &
                   + DIFF_ADD_STAB( 1:SBCVNGI )
           END DO
           ! ENDOF DO IPHASE=1,NPHASE...
@@ -8963,6 +8970,9 @@ pure real function ptolfun(value)
     ENDIF
 
   END SUBROUTINE BETWEEN_ELE_SOLVE_DIF
+
+
+
 
 
 
@@ -9164,49 +9174,41 @@ pure real function ptolfun(value)
 
 
 
-  SUBROUTINE DIFFUS_CAL_COEFF_STRESS_OR_TENSOR(DIFF_COEF_DIVDX, &
+
+  SUBROUTINE DIFFUS_CAL_COEFF_STRESS_OR_TENSOR( DIFF_COEF_DIVDX, &
        DIFF_COEFOLD_DIVDX, STRESS_FORM, ZERO_OR_TWO_THIRDS, &
-       CV_SNLOC, CV_NLOC, MAT_NLOC, NPHASE, TOTELE, MAT_NONODS,MAT_NDGLN, &
-       SBCVFEN,SBCVNGI,SGI, IPHASE, NDIM, UDIFFUSION, DIFF_GI_ADDED, &
+       U_SNLOC, U_NLOC, CV_SNLOC, CV_NLOC, MAT_NLOC, NPHASE,  &
+       SBCVFEN,SBCVNGI, NDIM_VEL, NDIM, SLOC_UDIFFUSION, SLOC2_UDIFFUSION, DIFF_GI_ADDED, &
        HDC, &
-       U_CV_NODJ_IPHA, U_CV_NODI_IPHA, &
-       V_CV_NODJ_IPHA, V_CV_NODI_IPHA, &
-       W_CV_NODJ_IPHA, W_CV_NODI_IPHA, &
-       UOLD_CV_NODJ_IPHA, UOLD_CV_NODI_IPHA, &
-       VOLD_CV_NODJ_IPHA, VOLD_CV_NODI_IPHA, &
-       WOLD_CV_NODJ_IPHA, WOLD_CV_NODI_IPHA, &
-       ELE, ELE2, SNORMXN,SNORMYN,SNORMZN, &
-       DUX_ELE, DUY_ELE, DUZ_ELE, DUOLDX_ELE, DUOLDY_ELE, DUOLDZ_ELE, &
-       DVX_ELE, DVY_ELE, DVZ_ELE, DVOLDX_ELE, DVOLDY_ELE, DVOLDZ_ELE, &
-       DWX_ELE, DWY_ELE, DWZ_ELE, DWOLDX_ELE, DWOLDY_ELE, DWOLDZ_ELE, &
-       SELE, STOTEL, WIC_U_BC, WIC_U_BC_DIRICHLET, MAT_OTHER_LOC,CV_SLOC2LOC )
+       U_CV_NODJ_IPHA_ALL, U_CV_NODI_IPHA_ALL, &
+       UOLD_CV_NODJ_IPHA_ALL, UOLD_CV_NODI_IPHA_ALL, &
+       ELE, ELE2, SNORMXN_ALL, &
+       SLOC_DUX_ELE_ALL, SLOC2_DUX_ELE_ALL,   SLOC_DUOLDX_ELE_ALL, SLOC2_DUOLDX_ELE_ALL,  &
+       SELE, STOTEL, WIC_U_BC, WIC_U_BC_DIRICHLET )
     ! This sub calculates the effective diffusion coefficientd DIFF_COEF_DIVDX,DIFF_COEFOLD_DIVDX
     ! based on a non-linear method and a non-oscillating scheme.
+! This implements the stress and tensor form of diffusion and calculates a jump conidition. 
+! which is in DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX
+! The coefficient are in N_DOT_DKDU, N_DOT_DKDUOLD. 
+! look at the manual DG treatment of viscocity. 
     IMPLICIT NONE
     LOGICAL, intent( in ) :: STRESS_FORM
-    INTEGER, intent( in ) :: CV_SNLOC,CV_NLOC, MAT_NLOC, NPHASE, TOTELE, MAT_NONODS, &
-         &                   SBCVNGI, SGI, IPHASE, NDIM, ELE, ELE2, &
+    INTEGER, intent( in ) :: U_SNLOC, U_NLOC, CV_SNLOC,CV_NLOC, MAT_NLOC, NPHASE,  &
+         &                   SBCVNGI, NDIM_VEL, NDIM, ELE, ELE2, &
          &                   SELE, STOTEL, WIC_U_BC_DIRICHLET
-    REAL, intent( in ) :: HDC, &
-         U_CV_NODJ_IPHA, U_CV_NODI_IPHA, UOLD_CV_NODJ_IPHA, UOLD_CV_NODI_IPHA, &
-         V_CV_NODJ_IPHA, V_CV_NODI_IPHA, VOLD_CV_NODJ_IPHA, VOLD_CV_NODI_IPHA, &
-         W_CV_NODJ_IPHA, W_CV_NODI_IPHA, WOLD_CV_NODJ_IPHA, WOLD_CV_NODI_IPHA
+    REAL, intent( in ) :: HDC
+    REAL, DIMENSION(NDIM_VEL,NPHASE,SBCVNGI), intent( in ) :: U_CV_NODJ_IPHA_ALL, U_CV_NODI_IPHA_ALL, &
+                                                          UOLD_CV_NODJ_IPHA_ALL, UOLD_CV_NODI_IPHA_ALL
     REAL, intent( in ) :: ZERO_OR_TWO_THIRDS
-    REAL, DIMENSION( 3 ), intent( inout ) :: DIFF_COEF_DIVDX,DIFF_COEFOLD_DIVDX
-    INTEGER, DIMENSION( : ), intent( in ) ::MAT_NDGLN
-    INTEGER, DIMENSION( : ), intent( in ) ::WIC_U_BC
-    INTEGER, DIMENSION( : ), intent( in ) ::MAT_OTHER_LOC
-    INTEGER, DIMENSION( : ), intent( in ) ::CV_SLOC2LOC
-    REAL, DIMENSION( :, :  ), intent( in ) :: SBCVFEN
-    REAL, DIMENSION( :,:,:,: ), intent( in ) :: UDIFFUSION
+    REAL, DIMENSION( NDIM,NPHASE,SBCVNGI ), intent( inout ) :: DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX
+    INTEGER, DIMENSION( STOTEL*NPHASE ), intent( in ) ::WIC_U_BC
+    REAL, DIMENSION( U_SNLOC, SBCVNGI  ), intent( in ) :: SBCVFEN
+    REAL, DIMENSION( NDIM,NDIM,NPHASE,U_SNLOC ), intent( in ) :: SLOC_UDIFFUSION, SLOC2_UDIFFUSION
     ! DIFF_GI_ADDED( IDIM, :,:) is for dimension IDIM e.g IDIM=1 corresponds to U 
     ! the rest is for the diffusion tensor. 
-    REAL, DIMENSION( :,  :,: ), intent( in ) :: DIFF_GI_ADDED
-    REAL, DIMENSION( :, :, : ), intent( in ) :: &
-         DUX_ELE,DUY_ELE,DUZ_ELE, DUOLDX_ELE,DUOLDY_ELE,DUOLDZ_ELE,  &
-         DVX_ELE,DVY_ELE,DVZ_ELE, DVOLDX_ELE,DVOLDY_ELE,DVOLDZ_ELE,  &
-         DWX_ELE,DWY_ELE,DWZ_ELE, DWOLDX_ELE,DWOLDY_ELE,DWOLDZ_ELE
-    REAL, DIMENSION( : ), intent( in ) :: SNORMXN,SNORMYN,SNORMZN
+    REAL, DIMENSION( NDIM_VEL, NDIM,NDIM, NPHASE, SBCVNGI), intent( in ) :: DIFF_GI_ADDED
+    REAL, DIMENSION( NDIM_VEL, NDIM , NPHASE, U_SNLOC ), intent( in ) :: SLOC_DUX_ELE_ALL, SLOC2_DUX_ELE_ALL,   SLOC_DUOLDX_ELE_ALL, SLOC2_DUOLDX_ELE_ALL
+    REAL, DIMENSION( NDIM, SBCVNGI ), intent( in ) :: SNORMXN_ALL
 
     ! local variables
     !        ===>  REALS  <===
@@ -9215,38 +9217,48 @@ pure real function ptolfun(value)
     ! If SIMPLE_DIFF_CALC then use a simple and fast diffusion calculation.
     LOGICAL, PARAMETER :: SIMPLE_DIFF_CALC2 = .FALSE.
     REAL, PARAMETER :: DIFF_MIN_FRAC = 0.005, DIFF_MAX_FRAC = 200.0
-    REAL, DIMENSION( : , : ), allocatable :: DIFF_GI,DIFF_GI2, &
-         STRESS_INDEX,STRESS_INDEXOLD, &
-         STRESS_INDEX2,STRESS_INDEXOLD2, DIFF_GI_BOTH
-    REAL :: DUDX_GI,DUDY_GI,DUDZ_GI,DUOLDDX_GI,DUOLDDY_GI,DUOLDDZ_GI, &
-         DUDX_GI2,DUDY_GI2,DUDZ_GI2,DUOLDDX_GI2,DUOLDDY_GI2,DUOLDDZ_GI2, &
-         N_DOT_DKDU,N_DOT_DKDUOLD,  &
-         N_DOT_DKDU2,N_DOT_DKDUOLD2
-    REAL :: DVDX_GI,DVDY_GI,DVDZ_GI,DVOLDDX_GI,DVOLDDY_GI,DVOLDDZ_GI, &
-         DVDX_GI2,DVDY_GI2,DVDZ_GI2,DVOLDDX_GI2,DVOLDDY_GI2,DVOLDDZ_GI2, &
-         N_DOT_DKDV,N_DOT_DKDVOLD,  &
-         N_DOT_DKDV2,N_DOT_DKDVOLD2
-    REAL :: DWDX_GI,DWDY_GI,DWDZ_GI,DWOLDDX_GI,DWOLDDY_GI,DWOLDDZ_GI, &
-         DWDX_GI2,DWDY_GI2,DWDZ_GI2,DWOLDDX_GI2,DWOLDDY_GI2,DWOLDDZ_GI2, &
-         N_DOT_DKDW,N_DOT_DKDWOLD,  &
-         N_DOT_DKDW2,N_DOT_DKDWOLD2
-    REAL :: DIFF_STAND_DIVDX_U,DIFF_STAND_DIVDX2_U, &
-         DIFF_STAND_DIVDX_V,DIFF_STAND_DIVDX2_V, &
-         DIFF_STAND_DIVDX_W,DIFF_STAND_DIVDX2_W, &
-         DIFF_COEF_DIVDX_U,DIFF_COEF_DIVDX_V,DIFF_COEF_DIVDX_W, &
-         DIFF_COEFOLD_DIVDX_U,DIFF_COEFOLD_DIVDX_V,DIFF_COEFOLD_DIVDX_W,COEF
-    INTEGER :: CV_KLOC,CV_KLOC2,MAT_KLOC,MAT_KLOC2,MAT_NODK,MAT_NODK2,IDIM,CV_SKLOC
+
+    REAL, DIMENSION( : , :, :, : ), allocatable :: DIFF_GI, DIFF_GI2
+
+    REAL, DIMENSION( : , :, :, :,  : ), allocatable :: DIFF_GI_BOTH
+    REAL, DIMENSION( :, :, : ), allocatable :: N_DOT_DKDU, N_DOT_DKDUOLD, N_DOT_DKDU2, N_DOT_DKDUOLD2
+    REAL, DIMENSION( :, :, : ), allocatable :: DIFF_STAND_DIVDX_U, DIFF_STAND_DIVDX2_U, &
+             DIFF_COEF_DIVDX_U, DIFF_COEFOLD_DIVDX_U
+    REAL, DIMENSION( :, : ), allocatable :: IDENT
+    REAL, DIMENSION( : ), allocatable :: RZER_DIFF_ALL
+    REAL :: COEF
+    INTEGER :: CV_KLOC,CV_KLOC2,MAT_KLOC,MAT_KLOC2,MAT_NODK,MAT_NODK2,IDIM,JDIM,CV_SKLOC
+    INTEGER :: SGI,IPHASE
     LOGICAL :: ZER_DIFF,SIMPLE_DIFF_CALC
 
     SIMPLE_DIFF_CALC=SIMPLE_DIFF_CALC2
+
+    ALLOCATE( RZER_DIFF_ALL(NPHASE) )
+
+
     ZER_DIFF=.FALSE.
+    RZER_DIFF_ALL=1.0
     IF(SELE /= 0) THEN
-       IF(WIC_U_BC(SELE+(IPHASE-1)*STOTEL) /= WIC_U_BC_DIRICHLET) THEN
-          ZER_DIFF=.TRUE.
-       ELSE
-          SIMPLE_DIFF_CALC=.FALSE.
-       ENDIF
+       ZER_DIFF=.TRUE.
+       RZER_DIFF_ALL=0.0
+       DO IPHASE=1,NPHASE
+          IF(WIC_U_BC(SELE+(IPHASE-1)*STOTEL) == WIC_U_BC_DIRICHLET) THEN
+             ZER_DIFF=.FALSE.
+             RZER_DIFF_ALL(IPHASE)=1.0
+          ENDIF
+       END DO
     ENDIF
+
+!    ZER_DIFF=.FALSE.
+!    IF(SELE /= 0) THEN
+!       IF(WIC_U_BC(SELE+(IPHASE-1)*STOTEL) /= WIC_U_BC_DIRICHLET) THEN
+!          ZER_DIFF=.TRUE.
+!       ELSE
+!          SIMPLE_DIFF_CALC=.FALSE.
+!       ENDIF
+!    ENDIF
+
+
 
     Cond_ZerDiff: IF(ZER_DIFF) THEN
 
@@ -9255,60 +9267,79 @@ pure real function ptolfun(value)
 
     ELSE
 
-       ALLOCATE( DIFF_GI(3,3) )
-       ALLOCATE( DIFF_GI2(3,3) )
-       ALLOCATE( STRESS_INDEX(3,3) )
-       ALLOCATE( STRESS_INDEXOLD(3,3) )
-       ALLOCATE( STRESS_INDEX2(3,3) )
-       ALLOCATE( STRESS_INDEXOLD2(3,3) )
-       ALLOCATE( DIFF_GI_BOTH(3,3) )
+
+       ALLOCATE( DIFF_GI_BOTH(NDIM_VEL, NDIM,NDIM, NPHASE,SBCVNGI) )
+
+       ALLOCATE( N_DOT_DKDU( NDIM_VEL,NPHASE,SBCVNGI )  )
+       ALLOCATE( N_DOT_DKDUOLD( NDIM_VEL,NPHASE,SBCVNGI )  )
+       ALLOCATE( N_DOT_DKDU2( NDIM_VEL,NPHASE,SBCVNGI )  )
+       ALLOCATE( N_DOT_DKDUOLD2( NDIM_VEL,NPHASE,SBCVNGI )  )
+
+       ALLOCATE( DIFF_STAND_DIVDX_U( NDIM_VEL,NPHASE,SBCVNGI )  )
+       ALLOCATE( DIFF_STAND_DIVDX2_U( NDIM_VEL,NPHASE,SBCVNGI )  )
+
+       ALLOCATE( DIFF_COEF_DIVDX_U( NDIM_VEL,NPHASE,SBCVNGI )  )
+       ALLOCATE( DIFF_COEFOLD_DIVDX_U( NDIM_VEL,NPHASE,SBCVNGI )  )
+
+
 
        IF(SIMPLE_DIFF_CALC) THEN ! The simplest method we can think of... 
-          DIFF_GI(:,:) = 0.0
+
+          ALLOCATE( DIFF_GI(NDIM,NDIM,NPHASE,SBCVNGI) )
+          ALLOCATE( DIFF_GI2(NDIM,NDIM,NPHASE,SBCVNGI) )
+
+          ALLOCATE( IDENT(NDIM,NDIM) )
+          IDENT=0.0
+          DO IDIM=1,NDIM
+            IDENT(IDIM,IDIM)=1.0
+          END DO
+
+          DIFF_GI = 0.0
           DO CV_SKLOC = 1, CV_SNLOC
-             MAT_KLOC = CV_SLOC2LOC( CV_SKLOC )
-             MAT_NODK = MAT_NDGLN(( ELE - 1 ) * MAT_NLOC + MAT_KLOC )
-             !ewrite(3,*)'MAT_KLOC,cv_nloc,mat_nloc,MAT_NODK,mat_nonods,cv_nonods:', &
-             !         MAT_KLOC,cv_nloc,mat_nloc,MAT_NODK,mat_nonods,cv_nonods
-             DIFF_GI( 1:NDIM , 1:NDIM ) = DIFF_GI( 1:NDIM , 1:NDIM ) &
-                  + SBCVFEN(CV_SKLOC,SGI) * UDIFFUSION( MAT_NODK, 1:NDIM , 1:NDIM , IPHASE )
+             DO SGI=1,SBCVNGI
+                DO IPHASE=1, NPHASE
+                   DIFF_GI( 1:NDIM , 1:NDIM, IPHASE, SGI ) = DIFF_GI( 1:NDIM , 1:NDIM, IPHASE, SGI  ) &
+                     + SBCVFEN(CV_SKLOC,SGI) * SLOC_UDIFFUSION( 1:NDIM , 1:NDIM , IPHASE, CV_SKLOC )
+                END DO
+             END DO
           END DO
           DIFF_GI=MAX(0.0, DIFF_GI) 
+
           Conditional_MAT_DISOPT_ELE2_2: IF( ( ELE2 /= 0 ).AND.( ELE2 /= ELE) ) THEN
-             DIFF_GI2(:,:) = 0.0
+             DIFF_GI2 = 0.0
              DO CV_SKLOC = 1, CV_SNLOC
-                MAT_KLOC = CV_SLOC2LOC( CV_SKLOC )
-                MAT_KLOC2 = MAT_OTHER_LOC( MAT_KLOC )
-                IF( MAT_KLOC2 /= 0 ) THEN
-                   MAT_NODK2 = MAT_NDGLN(( ELE2 - 1 ) * MAT_NLOC + MAT_KLOC2 )
-                   DIFF_GI2( 1:NDIM, 1:NDIM )=DIFF_GI2( 1:NDIM, 1:NDIM ) +SBCVFEN(CV_SKLOC,SGI) &
-                        *UDIFFUSION(MAT_NODK2, 1:NDIM, 1:NDIM ,IPHASE)
-                ENDIF
+                DO SGI=1,SBCVNGI
+                   DO IPHASE=1, NPHASE
+                      DIFF_GI2( 1:NDIM, 1:NDIM, IPHASE, SGI )=DIFF_GI2( 1:NDIM, 1:NDIM, IPHASE, SGI ) +SBCVFEN(CV_SKLOC,SGI) &
+                        *SLOC2_UDIFFUSION(1:NDIM, 1:NDIM ,IPHASE, CV_SKLOC)
+                   END DO
+                END DO
              END DO
              DIFF_GI2=MAX(0.0, DIFF_GI2) 
              DIFF_GI=0.5*(DIFF_GI+DIFF_GI2)
           ENDIF Conditional_MAT_DISOPT_ELE2_2
 
           IF(STRESS_FORM) THEN
-             DIFF_COEF_DIVDX(1)=8.*( 2.*SNORMXN(SGI)**2*DIFF_GI(1,1) &
-                  +SNORMYN(SGI)**2*DIFF_GI(1,2)   &
-                  +SNORMZN(SGI)**2*DIFF_GI(1,3)+DIFF_GI_ADDED(1, 1,1) ) /HDC
-
-             DIFF_COEF_DIVDX(2)=8.*( SNORMXN(SGI)**2*DIFF_GI(2,1) &
-                  +2.*SNORMYN(SGI)**2*DIFF_GI(2,2)   &
-                  +SNORMZN(SGI)**2*DIFF_GI(2,3)+DIFF_GI_ADDED(2, 1,1) ) /HDC
-
-             DIFF_COEF_DIVDX(3)=8.*( SNORMXN(SGI)**2*DIFF_GI(3,1) &
-                  +SNORMYN(SGI)**2*DIFF_GI(3,2)   &
-                  +2.*SNORMZN(SGI)**2*DIFF_GI(3,3)+DIFF_GI_ADDED(3, 1,1) ) /HDC
+             
+             DO SGI=1,SBCVNGI
+                DO IPHASE=1, NPHASE
+                   DO IDIM=1, NDIM_VEL
+                      DIFF_COEF_DIVDX(IDIM,IPHASE,SGI)=8.*( SUM( (1.+IDENT(IDIM,:))*SNORMXN_ALL(:,SGI)**2*DIFF_GI(IDIM,:,IPHASE,SGI) ) &
+                        +DIFF_GI_ADDED(IDIM, 1,1, IPHASE,SGI) ) /HDC
+!                        +DIFF_GI_ADDED(IDIM, IPHASE,SGI,1,1) ) /HDC
+                   END DO
+                END DO
+             END DO
           ELSE
-             COEF=&
-                  SNORMXN(SGI)*(DIFF_GI(1,1)*SNORMXN(SGI)+ DIFF_GI(1,2)*SNORMYN(SGI)+DIFF_GI(1,3)*SNORMZN(SGI))&
-                  +SNORMYN(SGI)*(DIFF_GI(2,1)*SNORMXN(SGI)+ DIFF_GI(2,2)*SNORMYN(SGI)+DIFF_GI(2,3)*SNORMZN(SGI))&
-                  +SNORMZN(SGI)*(DIFF_GI(3,1)*SNORMXN(SGI)+ DIFF_GI(3,2)*SNORMYN(SGI)+DIFF_GI(3,3)*SNORMZN(SGI))
-             DIFF_COEF_DIVDX(1)=8.*( COEF + DIFF_GI_ADDED(1, 1,1) ) /HDC
-             DIFF_COEF_DIVDX(2)=8.*( COEF + DIFF_GI_ADDED(2, 1,1) ) /HDC
-             DIFF_COEF_DIVDX(3)=8.*( COEF + DIFF_GI_ADDED(3, 1,1) ) /HDC
+             DO SGI=1,SBCVNGI
+                DO IPHASE=1, NPHASE
+                   COEF=0.0
+                   DO IDIM=1,NDIM
+                      COEF=COEF + SNORMXN_ALL(IDIM,SGI)*( SUM( DIFF_GI(IDIM,:,IPHASE,SGI)*SNORMXN_ALL(:,SGI) )  )
+                   END DO
+                   DIFF_COEF_DIVDX(:,IPHASE,SGI)=8.*( COEF + DIFF_GI_ADDED(:, 1,1, IPHASE,SGI) ) /HDC
+                END DO
+             END DO
           ENDIF
 
           DIFF_COEFOLD_DIVDX=DIFF_COEF_DIVDX
@@ -9316,407 +9347,71 @@ pure real function ptolfun(value)
           ! END OF IF(SIMPLE_DIFF_CALC) THEN...
        ELSE
 
-          DUDX_GI = 0.0
-          DUDY_GI = 0.0
-          DUDZ_GI = 0.0
-          DUOLDDX_GI = 0.0
-          DUOLDDY_GI = 0.0
-          DUOLDDZ_GI = 0.0
-
-          DVDX_GI = 0.0
-          DVDY_GI = 0.0
-          DVDZ_GI = 0.0
-          DVOLDDX_GI = 0.0
-          DVOLDDY_GI = 0.0
-          DVOLDDZ_GI = 0.0
-
-          DWDX_GI = 0.0
-          DWDY_GI = 0.0
-          DWDZ_GI = 0.0
-          DWOLDDX_GI = 0.0
-          DWOLDDY_GI = 0.0
-          DWOLDDZ_GI = 0.0
-
-          DO CV_SKLOC = 1, CV_SNLOC
-             CV_KLOC = CV_SLOC2LOC( CV_SKLOC )
-             ! U: 
-             DUDX_GI = DUDX_GI + SBCVFEN(CV_SKLOC,SGI) * DUX_ELE(CV_KLOC,IPHASE,ELE)
-             DUDY_GI = DUDY_GI + SBCVFEN(CV_SKLOC,SGI) * DUY_ELE(CV_KLOC,IPHASE,ELE)
-             DUDZ_GI = DUDZ_GI + SBCVFEN(CV_SKLOC,SGI) * DUZ_ELE(CV_KLOC,IPHASE,ELE)
-
-             DUOLDDX_GI = DUOLDDX_GI + SBCVFEN(CV_SKLOC,SGI) * DUOLDX_ELE(CV_KLOC,IPHASE,ELE)
-             DUOLDDY_GI = DUOLDDY_GI + SBCVFEN(CV_SKLOC,SGI) * DUOLDY_ELE(CV_KLOC,IPHASE,ELE)
-             DUOLDDZ_GI = DUOLDDZ_GI + SBCVFEN(CV_SKLOC,SGI) * DUOLDZ_ELE(CV_KLOC,IPHASE,ELE)
-
-             ! V: 
-             DVDX_GI = DVDX_GI + SBCVFEN(CV_SKLOC,SGI) * DVX_ELE(CV_KLOC,IPHASE,ELE)
-             DVDY_GI = DVDY_GI + SBCVFEN(CV_SKLOC,SGI) * DVY_ELE(CV_KLOC,IPHASE,ELE)
-             DVDZ_GI = DVDZ_GI + SBCVFEN(CV_SKLOC,SGI) * DVZ_ELE(CV_KLOC,IPHASE,ELE)
-
-             DVOLDDX_GI = DVOLDDX_GI + SBCVFEN(CV_SKLOC,SGI) * DVOLDX_ELE(CV_KLOC,IPHASE,ELE)
-             DVOLDDY_GI = DVOLDDY_GI + SBCVFEN(CV_SKLOC,SGI) * DVOLDY_ELE(CV_KLOC,IPHASE,ELE)
-             DVOLDDZ_GI = DVOLDDZ_GI + SBCVFEN(CV_SKLOC,SGI) * DVOLDZ_ELE(CV_KLOC,IPHASE,ELE)
-
-             ! W: 
-             DWDX_GI = DWDX_GI + SBCVFEN(CV_SKLOC,SGI) * DWX_ELE(CV_KLOC,IPHASE,ELE)
-             DWDY_GI = DWDY_GI + SBCVFEN(CV_SKLOC,SGI) * DWY_ELE(CV_KLOC,IPHASE,ELE)
-             DWDZ_GI = DWDZ_GI + SBCVFEN(CV_SKLOC,SGI) * DWZ_ELE(CV_KLOC,IPHASE,ELE)
-
-             DWOLDDX_GI = DWOLDDX_GI + SBCVFEN(CV_SKLOC,SGI) * DWOLDX_ELE(CV_KLOC,IPHASE,ELE)
-             DWOLDDY_GI = DWOLDDY_GI + SBCVFEN(CV_SKLOC,SGI) * DWOLDY_ELE(CV_KLOC,IPHASE,ELE)
-             DWOLDDZ_GI = DWOLDDZ_GI + SBCVFEN(CV_SKLOC,SGI) * DWOLDZ_ELE(CV_KLOC,IPHASE,ELE)
-
-          END DO
-
-          DIFF_GI(:,:) = 0.0
-          DO CV_SKLOC = 1, CV_SNLOC
-             MAT_KLOC = CV_SLOC2LOC( CV_SKLOC )
-             MAT_NODK = MAT_NDGLN(( ELE - 1 ) * MAT_NLOC + MAT_KLOC )
-             !ewrite(3,*)'MAT_KLOC,cv_nloc,mat_nloc,MAT_NODK,mat_nonods,cv_nonods:', &
-             !         MAT_KLOC,cv_nloc,mat_nloc,MAT_NODK,mat_nonods,cv_nonods
-             DIFF_GI( 1:NDIM , 1:NDIM ) = DIFF_GI( 1:NDIM , 1:NDIM ) &
-                  + SBCVFEN(CV_SKLOC,SGI) * UDIFFUSION( MAT_NODK, 1:NDIM , 1:NDIM , IPHASE )
-          END DO
-          DIFF_GI=MAX(0.0, DIFF_GI) 
 
 
-          ! U:
-          IDIM=1
-          DIFF_GI_BOTH=DIFF_GI_ADDED(IDIM,:,:)
-          IF(.NOT.STRESS_FORM) DIFF_GI_BOTH=DIFF_GI_BOTH+DIFF_GI
+! Calculate DIFF_COEF_DIVDX, N_DOT_DKDU, N_DOT_DKDUOLD
+          CALL FOR_TENS_DERIVS_NDOTS(DIFF_STAND_DIVDX_U, N_DOT_DKDU, N_DOT_DKDUOLD,  &
+                 DIFF_GI_ADDED, SLOC_DUX_ELE_ALL, SLOC_DUOLDX_ELE_ALL, SLOC_UDIFFUSION, &
+                 NDIM_VEL, NDIM, NPHASE, U_SNLOC, SBCVNGI, SBCVFEN, SNORMXN_ALL, HDC, ZERO_OR_TWO_THIRDS, STRESS_FORM )
 
-          N_DOT_DKDU=SNORMXN(SGI)*(DIFF_GI_BOTH(1,1)*DUDX_GI+DIFF_GI_BOTH(1,2)*DUDY_GI+DIFF_GI_BOTH(1,3)*DUDZ_GI) &
-               +SNORMYN(SGI)*(DIFF_GI_BOTH(2,1)*DUDX_GI+DIFF_GI_BOTH(2,2)*DUDY_GI+DIFF_GI_BOTH(2,3)*DUDZ_GI) &
-               +SNORMZN(SGI)*(DIFF_GI_BOTH(3,1)*DUDX_GI+DIFF_GI_BOTH(3,2)*DUDY_GI+DIFF_GI_BOTH(3,3)*DUDZ_GI) 
-
-          N_DOT_DKDUOLD=SNORMXN(SGI)*(DIFF_GI_BOTH(1,1)*DUOLDDX_GI  &
-               +DIFF_GI_BOTH(1,2)*DUOLDDY_GI+DIFF_GI_BOTH(1,3)*DUOLDDZ_GI) &
-               +SNORMYN(SGI)*(DIFF_GI_BOTH(2,1)*DUOLDDX_GI  &
-               +DIFF_GI_BOTH(2,2)*DUOLDDY_GI+DIFF_GI_BOTH(2,3)*DUOLDDZ_GI) &
-               +SNORMZN(SGI)*(DIFF_GI_BOTH(3,1)*DUOLDDX_GI  &
-               +DIFF_GI_BOTH(3,2)*DUOLDDY_GI+DIFF_GI_BOTH(3,3)*DUOLDDZ_GI)
-
-          ! V:
-          IDIM=2
-          DIFF_GI_BOTH=DIFF_GI_ADDED(IDIM,:,:)
-          IF(.NOT.STRESS_FORM) DIFF_GI_BOTH=DIFF_GI_BOTH+DIFF_GI
-
-          N_DOT_DKDV=SNORMXN(SGI)*(DIFF_GI_BOTH(1,1)*DVDX_GI+DIFF_GI_BOTH(1,2)*DVDY_GI+DIFF_GI_BOTH(1,3)*DVDZ_GI) &
-               +SNORMYN(SGI)*(DIFF_GI_BOTH(2,1)*DVDX_GI+DIFF_GI_BOTH(2,2)*DVDY_GI+DIFF_GI_BOTH(2,3)*DVDZ_GI) &
-               +SNORMZN(SGI)*(DIFF_GI_BOTH(3,1)*DVDX_GI+DIFF_GI_BOTH(3,2)*DVDY_GI+DIFF_GI_BOTH(3,3)*DVDZ_GI) 
-
-          N_DOT_DKDVOLD=SNORMXN(SGI)*(DIFF_GI_BOTH(1,1)*DVOLDDX_GI  &
-               +DIFF_GI_BOTH(1,2)*DVOLDDY_GI+DIFF_GI_BOTH(1,3)*DVOLDDZ_GI) &
-               +SNORMYN(SGI)*(DIFF_GI_BOTH(2,1)*DVOLDDX_GI  &
-               +DIFF_GI_BOTH(2,2)*DVOLDDY_GI+DIFF_GI_BOTH(2,3)*DVOLDDZ_GI) &
-               +SNORMZN(SGI)*(DIFF_GI_BOTH(3,1)*DVOLDDX_GI  &
-               +DIFF_GI_BOTH(3,2)*DVOLDDY_GI+DIFF_GI_BOTH(3,3)*DVOLDDZ_GI)
-
-          ! W:
-          IDIM=3
-          DIFF_GI_BOTH=DIFF_GI_ADDED(IDIM,:,:)
-          IF(.NOT.STRESS_FORM) DIFF_GI_BOTH=DIFF_GI_BOTH+DIFF_GI
-
-          N_DOT_DKDW=SNORMXN(SGI)*(DIFF_GI_BOTH(1,1)*DWDX_GI+DIFF_GI_BOTH(1,2)*DWDY_GI+DIFF_GI_BOTH(1,3)*DWDZ_GI) &
-               +SNORMYN(SGI)*(DIFF_GI_BOTH(2,1)*DWDX_GI+DIFF_GI_BOTH(2,2)*DWDY_GI+DIFF_GI_BOTH(2,3)*DWDZ_GI) &
-               +SNORMZN(SGI)*(DIFF_GI_BOTH(3,1)*DWDX_GI+DIFF_GI_BOTH(3,2)*DWDY_GI+DIFF_GI_BOTH(3,3)*DWDZ_GI) 
-
-          N_DOT_DKDWOLD=SNORMXN(SGI)*(DIFF_GI_BOTH(1,1)*DWOLDDX_GI  &
-               +DIFF_GI_BOTH(1,2)*DWOLDDY_GI+DIFF_GI_BOTH(1,3)*DWOLDDZ_GI) &
-               +SNORMYN(SGI)*(DIFF_GI_BOTH(2,1)*DWOLDDX_GI  &
-               +DIFF_GI_BOTH(2,2)*DWOLDDY_GI+DIFF_GI_BOTH(2,3)*DWOLDDZ_GI) &
-               +SNORMZN(SGI)*(DIFF_GI_BOTH(3,1)*DWOLDDX_GI  &
-               +DIFF_GI_BOTH(3,2)*DWOLDDY_GI+DIFF_GI_BOTH(3,3)*DWOLDDZ_GI)
-
-          IF(STRESS_FORM) THEN
-
-             CALL CALC_STRESS_TEN(STRESS_INDEX, ZERO_OR_TWO_THIRDS, NDIM, &
-                  SNORMXN(SGI),SNORMYN(SGI),SNORMZN(SGI),  &
-                  DUDX_GI,DUDY_GI,DUDZ_GI, &
-                  DVDX_GI,DVDY_GI,DVDZ_GI, &
-                  DWDX_GI,DWDY_GI,DWDZ_GI, &
-                  DIFF_GI(1,1),DIFF_GI(1,2),DIFF_GI(1,3), &
-                  DIFF_GI(2,1),DIFF_GI(2,2),DIFF_GI(2,3), &
-                  DIFF_GI(3,1),DIFF_GI(3,2),DIFF_GI(3,3) )
-
-
-             CALL CALC_STRESS_TEN(STRESS_INDEXOLD, ZERO_OR_TWO_THIRDS, NDIM, &
-                  SNORMXN(SGI),SNORMYN(SGI),SNORMZN(SGI),  &
-                  DUOLDDX_GI,DUOLDDY_GI,DUOLDDZ_GI, &
-                  DVOLDDX_GI,DVOLDDY_GI,DVOLDDZ_GI, &
-                  DWOLDDX_GI,DWOLDDY_GI,DWOLDDZ_GI, &
-                  DIFF_GI(1,1),DIFF_GI(1,2),DIFF_GI(1,3), &
-                  DIFF_GI(2,1),DIFF_GI(2,2),DIFF_GI(2,3), &
-                  DIFF_GI(3,1),DIFF_GI(3,2),DIFF_GI(3,3) )
-
-             N_DOT_DKDU=N_DOT_DKDU  + STRESS_INDEX(1,1)+STRESS_INDEX(1,2)+STRESS_INDEX(1,3)
-             N_DOT_DKDV=N_DOT_DKDV  + STRESS_INDEX(2,1)+STRESS_INDEX(2,2)+STRESS_INDEX(2,3)
-             N_DOT_DKDW=N_DOT_DKDW  + STRESS_INDEX(3,1)+STRESS_INDEX(3,2)+STRESS_INDEX(3,3)
-
-             N_DOT_DKDUOLD=N_DOT_DKDUOLD  + STRESS_INDEXOLD(1,1)+STRESS_INDEXOLD(1,2)+STRESS_INDEXOLD(1,3)
-             N_DOT_DKDVOLD=N_DOT_DKDVOLD  + STRESS_INDEXOLD(2,1)+STRESS_INDEXOLD(2,2)+STRESS_INDEXOLD(2,3)
-             N_DOT_DKDWOLD=N_DOT_DKDWOLD  + STRESS_INDEXOLD(3,1)+STRESS_INDEXOLD(3,2)+STRESS_INDEXOLD(3,3)
-
-             ! This is the minimum diffusion...
-             DIFF_STAND_DIVDX_U=8.*( 2.*SNORMXN(SGI)**2*DIFF_GI(1,1) &
-                  +SNORMYN(SGI)**2*DIFF_GI(1,2)   &
-                  +SNORMZN(SGI)**2*DIFF_GI(1,3)+DIFF_GI_ADDED(1, 1,1) ) /HDC
-
-             DIFF_STAND_DIVDX_V=8.*( SNORMXN(SGI)**2*DIFF_GI(2,1) &
-                  +2.*SNORMYN(SGI)**2*DIFF_GI(2,2)   &
-                  +SNORMZN(SGI)**2*DIFF_GI(2,3)+DIFF_GI_ADDED(2, 1,1) ) /HDC
-
-             DIFF_STAND_DIVDX_W=8.*( SNORMXN(SGI)**2*DIFF_GI(3,1) &
-                  +SNORMYN(SGI)**2*DIFF_GI(3,2)   &
-                  +2.*SNORMZN(SGI)**2*DIFF_GI(3,3)+DIFF_GI_ADDED(3, 1,1) ) /HDC
-             ! ENDOF IF(STRESS_FORM) THEN...
-          ELSE
-             COEF=&
-                  SNORMXN(SGI)*(DIFF_GI(1,1)*SNORMXN(SGI)+ DIFF_GI(1,2)*SNORMYN(SGI)+DIFF_GI(1,3)*SNORMZN(SGI))&
-                  +SNORMYN(SGI)*(DIFF_GI(2,1)*SNORMXN(SGI)+ DIFF_GI(2,2)*SNORMYN(SGI)+DIFF_GI(2,3)*SNORMZN(SGI))&
-                  +SNORMZN(SGI)*(DIFF_GI(3,1)*SNORMXN(SGI)+ DIFF_GI(3,2)*SNORMYN(SGI)+DIFF_GI(3,3)*SNORMZN(SGI))
-             DIFF_STAND_DIVDX_U=8.*( COEF + DIFF_GI_ADDED(1, 1,1) ) /HDC
-             DIFF_STAND_DIVDX_V=8.*( COEF + DIFF_GI_ADDED(2, 1,1) ) /HDC
-             DIFF_STAND_DIVDX_W=8.*( COEF + DIFF_GI_ADDED(3, 1,1) ) /HDC
-             ! ENDOF IF(STRESS_FORM) THEN ELSE...
-          ENDIF
 
 
           Conditional_MAT_DISOPT_ELE2: IF( ( ELE2 /= 0 ).AND.( ELE2 /= ELE) ) THEN
-             DIFF_GI2(:,:) = 0.0
-             DO CV_SKLOC = 1, CV_SNLOC
-                MAT_KLOC = CV_SLOC2LOC( CV_SKLOC )
-                MAT_KLOC2 = MAT_OTHER_LOC( MAT_KLOC )
-                IF( MAT_KLOC2 /= 0 ) THEN
-                   MAT_NODK2 = MAT_NDGLN(( ELE2 - 1 ) * MAT_NLOC + MAT_KLOC2 )
-                   DIFF_GI2( 1:NDIM, 1:NDIM )=DIFF_GI2( 1:NDIM, 1:NDIM ) +SBCVFEN(CV_SKLOC,SGI) &
-                        *UDIFFUSION(MAT_NODK2, 1:NDIM, 1:NDIM ,IPHASE)
-                ENDIF
-             END DO
-             DIFF_GI2=MAX(0.0, DIFF_GI2) 
-
-             DUDX_GI2 = 0.0
-             DUDY_GI2 = 0.0
-             DUDZ_GI2 = 0.0
-             DUOLDDX_GI2 = 0.0
-             DUOLDDY_GI2 = 0.0
-             DUOLDDZ_GI2 = 0.0
-
-             DVDX_GI2 = 0.0
-             DVDY_GI2 = 0.0
-             DVDZ_GI2 = 0.0
-             DVOLDDX_GI2 = 0.0
-             DVOLDDY_GI2 = 0.0
-             DVOLDDZ_GI2 = 0.0
-
-             DWDX_GI2 = 0.0
-             DWDY_GI2 = 0.0
-             DWDZ_GI2 = 0.0
-             DWOLDDX_GI2 = 0.0
-             DWOLDDY_GI2 = 0.0
-             DWOLDDZ_GI2 = 0.0
-
-             DO CV_SKLOC = 1, CV_SNLOC
-                CV_KLOC = CV_SLOC2LOC( CV_SKLOC )
-                CV_KLOC2 = MAT_OTHER_LOC( CV_KLOC )
-
-                IF(CV_KLOC2 /= 0 )THEN
-                   ! U: 
-                   DUDX_GI2 = DUDX_GI2 + SBCVFEN(CV_SKLOC,SGI) * DUX_ELE(CV_KLOC2,IPHASE,ELE2)
-                   DUDY_GI2 = DUDY_GI2 + SBCVFEN(CV_SKLOC,SGI) * DUY_ELE(CV_KLOC2,IPHASE,ELE2)
-                   DUDZ_GI2 = DUDZ_GI2 + SBCVFEN(CV_SKLOC,SGI) * DUZ_ELE(CV_KLOC2,IPHASE,ELE2)
-
-                   DUOLDDX_GI2 = DUOLDDX_GI2 + SBCVFEN(CV_SKLOC,SGI) *DUOLDX_ELE(CV_KLOC2,IPHASE,ELE2)
-                   DUOLDDY_GI2 = DUOLDDY_GI2 + SBCVFEN(CV_SKLOC,SGI) *DUOLDY_ELE(CV_KLOC2,IPHASE,ELE2)
-                   DUOLDDZ_GI2 = DUOLDDZ_GI2 + SBCVFEN(CV_SKLOC,SGI) *DUOLDZ_ELE(CV_KLOC2,IPHASE,ELE2)
-                   ! V:
-                   DVDX_GI2 = DVDX_GI2 + SBCVFEN(CV_SKLOC,SGI) * DVX_ELE(CV_KLOC2,IPHASE,ELE2)
-                   DVDY_GI2 = DVDY_GI2 + SBCVFEN(CV_SKLOC,SGI) * DVY_ELE(CV_KLOC2,IPHASE,ELE2)
-                   DVDZ_GI2 = DVDZ_GI2 + SBCVFEN(CV_SKLOC,SGI) * DVZ_ELE(CV_KLOC2,IPHASE,ELE2)
-
-                   DVOLDDX_GI2 = DVOLDDX_GI2 + SBCVFEN(CV_SKLOC,SGI) *DVOLDX_ELE(CV_KLOC2,IPHASE,ELE2)
-                   DVOLDDY_GI2 = DVOLDDY_GI2 + SBCVFEN(CV_SKLOC,SGI) *DVOLDY_ELE(CV_KLOC2,IPHASE,ELE2)
-                   DVOLDDZ_GI2 = DVOLDDZ_GI2 + SBCVFEN(CV_SKLOC,SGI) *DVOLDZ_ELE(CV_KLOC2,IPHASE,ELE2)
-                   ! W:
-                   DWDX_GI2 = DWDX_GI2 + SBCVFEN(CV_SKLOC,SGI) * DWX_ELE(CV_KLOC2,IPHASE,ELE2)
-                   DWDY_GI2 = DWDY_GI2 + SBCVFEN(CV_SKLOC,SGI) * DWY_ELE(CV_KLOC2,IPHASE,ELE2)
-                   DWDZ_GI2 = DWDZ_GI2 + SBCVFEN(CV_SKLOC,SGI) * DWZ_ELE(CV_KLOC2,IPHASE,ELE2)
-
-                   DWOLDDX_GI2 = DWOLDDX_GI2 + SBCVFEN(CV_SKLOC,SGI) *DWOLDX_ELE(CV_KLOC2,IPHASE,ELE2)
-                   DWOLDDY_GI2 = DWOLDDY_GI2 + SBCVFEN(CV_SKLOC,SGI) *DWOLDY_ELE(CV_KLOC2,IPHASE,ELE2)
-                   DWOLDDZ_GI2 = DWOLDDZ_GI2 + SBCVFEN(CV_SKLOC,SGI) *DWOLDZ_ELE(CV_KLOC2,IPHASE,ELE2)
-                ENDIF
-             END DO
-
-             ! U:
-             IDIM=1
-             DIFF_GI_BOTH=DIFF_GI_ADDED(IDIM,:,:)
-             IF(.NOT.STRESS_FORM) DIFF_GI_BOTH=DIFF_GI_BOTH+DIFF_GI
-
-             N_DOT_DKDU2=SNORMXN(SGI)*(DIFF_GI_BOTH(1,1)*DUDX_GI2  &
-                  +DIFF_GI_BOTH(1,2)*DUDY_GI2+DIFF_GI_BOTH(1,3)*DUDZ_GI2) &
-                  +SNORMYN(SGI)*(DIFF_GI_BOTH(2,1)*DUDX_GI2  &
-                  +DIFF_GI_BOTH(2,2)*DUDY_GI2+DIFF_GI_BOTH(2,3)*DUDZ_GI2) &
-                  +SNORMZN(SGI)*(DIFF_GI_BOTH(3,1)*DUDX_GI2  &
-                  +DIFF_GI_BOTH(3,2)*DUDY_GI2+DIFF_GI_BOTH(3,3)*DUDZ_GI2) 
-
-             N_DOT_DKDUOLD2=SNORMXN(SGI)*(DIFF_GI_BOTH(1,1)*DUOLDDX_GI2  &
-                  +DIFF_GI_BOTH(1,2)*DUOLDDY_GI2+DIFF_GI_BOTH(1,3)*DUOLDDZ_GI2) &
-                  +SNORMYN(SGI)*(DIFF_GI_BOTH(2,1)*DUOLDDX_GI2  &
-                  +DIFF_GI_BOTH(2,2)*DUOLDDY_GI2+DIFF_GI_BOTH(2,3)*DUOLDDZ_GI2) &
-                  +SNORMZN(SGI)*(DIFF_GI_BOTH(3,1)*DUOLDDX_GI2  &
-                  +DIFF_GI_BOTH(3,2)*DUOLDDY_GI2+DIFF_GI_BOTH(3,3)*DUOLDDZ_GI2) 
-             ! V:
-             IDIM=2
-             DIFF_GI_BOTH=DIFF_GI_ADDED(IDIM,:,:)
-             IF(.NOT.STRESS_FORM) DIFF_GI_BOTH=DIFF_GI_BOTH+DIFF_GI
-
-             N_DOT_DKDV2=SNORMXN(SGI)*(DIFF_GI_BOTH(1,1)*DVDX_GI2  &
-                  +DIFF_GI_BOTH(1,2)*DVDY_GI2+DIFF_GI_BOTH(1,3)*DVDZ_GI2) &
-                  +SNORMYN(SGI)*(DIFF_GI_BOTH(2,1)*DVDX_GI2  &
-                  +DIFF_GI_BOTH(2,2)*DVDY_GI2+DIFF_GI_BOTH(2,3)*DVDZ_GI2) &
-                  +SNORMZN(SGI)*(DIFF_GI_BOTH(3,1)*DVDX_GI2  &
-                  +DIFF_GI_BOTH(3,2)*DVDY_GI2+DIFF_GI_BOTH(3,3)*DVDZ_GI2) 
-
-             N_DOT_DKDVOLD2=SNORMXN(SGI)*(DIFF_GI_BOTH(1,1)*DVOLDDX_GI2  &
-                  +DIFF_GI_BOTH(1,2)*DVOLDDY_GI2+DIFF_GI_BOTH(1,3)*DVOLDDZ_GI2) &
-                  +SNORMYN(SGI)*(DIFF_GI_BOTH(2,1)*DVOLDDX_GI2  &
-                  +DIFF_GI_BOTH(2,2)*DVOLDDY_GI2+DIFF_GI_BOTH(2,3)*DVOLDDZ_GI2) &
-                  +SNORMZN(SGI)*(DIFF_GI_BOTH(3,1)*DVOLDDX_GI2  &
-                  +DIFF_GI_BOTH(3,2)*DVOLDDY_GI2+DIFF_GI_BOTH(3,3)*DVOLDDZ_GI2) 
-             ! W:
-             IDIM=3
-             DIFF_GI_BOTH=DIFF_GI_ADDED(IDIM,:,:)
-             IF(.NOT.STRESS_FORM) DIFF_GI_BOTH=DIFF_GI_BOTH+DIFF_GI
-
-             N_DOT_DKDW2=SNORMXN(SGI)*(DIFF_GI_BOTH(1,1)*DWDX_GI2  &
-                  +DIFF_GI_BOTH(1,2)*DWDY_GI2+DIFF_GI_BOTH(1,3)*DWDZ_GI2) &
-                  +SNORMYN(SGI)*(DIFF_GI_BOTH(2,1)*DWDX_GI2  &
-                  +DIFF_GI_BOTH(2,2)*DWDY_GI2+DIFF_GI_BOTH(2,3)*DWDZ_GI2) &
-                  +SNORMZN(SGI)*(DIFF_GI_BOTH(3,1)*DWDX_GI2  &
-                  +DIFF_GI_BOTH(3,2)*DWDY_GI2+DIFF_GI_BOTH(3,3)*DWDZ_GI2) 
-
-             N_DOT_DKDWOLD2=SNORMXN(SGI)*(DIFF_GI_BOTH(1,1)*DWOLDDX_GI2  &
-                  +DIFF_GI_BOTH(1,2)*DWOLDDY_GI2+DIFF_GI_BOTH(1,3)*DWOLDDZ_GI2) &
-                  +SNORMYN(SGI)*(DIFF_GI_BOTH(2,1)*DWOLDDX_GI2  &
-                  +DIFF_GI_BOTH(2,2)*DWOLDDY_GI2+DIFF_GI_BOTH(2,3)*DWOLDDZ_GI2) &
-                  +SNORMZN(SGI)*(DIFF_GI_BOTH(3,1)*DWOLDDX_GI2  &
-                  +DIFF_GI_BOTH(3,2)*DWOLDDY_GI2+DIFF_GI_BOTH(3,3)*DWOLDDZ_GI2) 
 
 
-             IF(STRESS_FORM) THEN
 
-                CALL CALC_STRESS_TEN(STRESS_INDEX2, ZERO_OR_TWO_THIRDS, NDIM, &
-                     SNORMXN(SGI),SNORMYN(SGI),SNORMZN(SGI),  &
-                     DUDX_GI2,DUDY_GI2,DUDZ_GI2, &
-                     DVDX_GI2,DVDY_GI2,DVDZ_GI2, &
-                     DWDX_GI2,DWDY_GI2,DWDZ_GI2, &
-                     DIFF_GI2(1,1),DIFF_GI2(1,2),DIFF_GI2(1,3), &
-                     DIFF_GI2(2,1),DIFF_GI2(2,2),DIFF_GI2(2,3), &
-                     DIFF_GI2(3,1),DIFF_GI2(3,2),DIFF_GI2(3,3) )
-
-                CALL CALC_STRESS_TEN(STRESS_INDEXOLD2, ZERO_OR_TWO_THIRDS, NDIM, &
-                     SNORMXN(SGI),SNORMYN(SGI),SNORMZN(SGI),  &
-                     DUOLDDX_GI2,DUOLDDY_GI2,DUOLDDZ_GI2, &
-                     DVOLDDX_GI2,DVOLDDY_GI2,DVOLDDZ_GI2, &
-                     DWOLDDX_GI2,DWOLDDY_GI2,DWOLDDZ_GI2, &
-                     DIFF_GI2(1,1),DIFF_GI2(1,2),DIFF_GI2(1,3), &
-                     DIFF_GI2(2,1),DIFF_GI2(2,2),DIFF_GI2(2,3), &
-                     DIFF_GI2(3,1),DIFF_GI2(3,2),DIFF_GI2(3,3) )
-
-                N_DOT_DKDU2=N_DOT_DKDU2  + STRESS_INDEX2(1,1)+STRESS_INDEX2(1,2)+STRESS_INDEX2(1,3)
-                N_DOT_DKDV2=N_DOT_DKDV2  + STRESS_INDEX2(2,1)+STRESS_INDEX2(2,2)+STRESS_INDEX2(2,3)
-                N_DOT_DKDW2=N_DOT_DKDW2  + STRESS_INDEX2(3,1)+STRESS_INDEX2(3,2)+STRESS_INDEX2(3,3)
-
-                N_DOT_DKDUOLD2=N_DOT_DKDUOLD2  + STRESS_INDEXOLD2(1,1)+STRESS_INDEXOLD2(1,2)+STRESS_INDEXOLD2(1,3)
-                N_DOT_DKDVOLD2=N_DOT_DKDVOLD2  + STRESS_INDEXOLD2(2,1)+STRESS_INDEXOLD2(2,2)+STRESS_INDEXOLD2(2,3)
-                N_DOT_DKDWOLD2=N_DOT_DKDWOLD2  + STRESS_INDEXOLD2(3,1)+STRESS_INDEXOLD2(3,2)+STRESS_INDEXOLD2(3,3)
-
-                ! This is the minimum diffusion...
-                DIFF_STAND_DIVDX2_U=8.*( 2.*SNORMXN(SGI)**2*DIFF_GI2(1,1) &
-                     +SNORMYN(SGI)**2*DIFF_GI2(1,2)   &
-                     +SNORMZN(SGI)**2*DIFF_GI2(1,3)+DIFF_GI_ADDED(1, 1,1) ) /HDC
-
-                DIFF_STAND_DIVDX2_V=8.*( SNORMXN(SGI)**2*DIFF_GI2(2,1) &
-                     +2.*SNORMYN(SGI)**2*DIFF_GI2(2,2)   &
-                     +SNORMZN(SGI)**2*DIFF_GI2(2,3)+DIFF_GI_ADDED(2, 1,1) ) /HDC
-
-                DIFF_STAND_DIVDX2_W=8.*( SNORMXN(SGI)**2*DIFF_GI2(3,1) &
-                     +SNORMYN(SGI)**2*DIFF_GI2(3,2)   &
-                     +2.*SNORMZN(SGI)**2*DIFF_GI2(3,3)+DIFF_GI_ADDED(3, 1,1) ) /HDC
-                ! ENDOF IF(STRESS_FORM) THEN...
-             ELSE
-                COEF=&
-                     SNORMXN(SGI)*(DIFF_GI2(1,1)*SNORMXN(SGI)+ DIFF_GI2(1,2)*SNORMYN(SGI)+DIFF_GI2(1,3)*SNORMZN(SGI))&
-                     +SNORMYN(SGI)*(DIFF_GI2(2,1)*SNORMXN(SGI)+ DIFF_GI2(2,2)*SNORMYN(SGI)+DIFF_GI2(2,3)*SNORMZN(SGI))&
-                     +SNORMZN(SGI)*(DIFF_GI2(3,1)*SNORMXN(SGI)+ DIFF_GI2(3,2)*SNORMYN(SGI)+DIFF_GI2(3,3)*SNORMZN(SGI))
-                DIFF_STAND_DIVDX2_U=8.*( COEF + DIFF_GI_ADDED(1, 1,1) ) /HDC
-                DIFF_STAND_DIVDX2_V=8.*( COEF + DIFF_GI_ADDED(2, 1,1) ) /HDC
-                DIFF_STAND_DIVDX2_W=8.*( COEF + DIFF_GI_ADDED(3, 1,1) ) /HDC
-                ! ENDOF IF(STRESS_FORM) THEN ELSE...
-             ENDIF
+! Calculate DIFF_COEF_DIVDX, N_DOT_DKDU, N_DOT_DKDUOLD
+             CALL FOR_TENS_DERIVS_NDOTS(DIFF_STAND_DIVDX2_U, N_DOT_DKDU2, N_DOT_DKDUOLD2,  &  
+                    DIFF_GI_ADDED, SLOC2_DUX_ELE_ALL, SLOC2_DUOLDX_ELE_ALL, SLOC2_UDIFFUSION, &
+                    NDIM_VEL, NDIM, NPHASE, U_SNLOC, SBCVNGI, SBCVFEN, SNORMXN_ALL, HDC, ZERO_OR_TWO_THIRDS, STRESS_FORM )
 
 
-             N_DOT_DKDU = 0.5*( N_DOT_DKDU + N_DOT_DKDU2 )
-             N_DOT_DKDUOLD= 0.5*( N_DOT_DKDUOLD + N_DOT_DKDUOLD2 )
-             N_DOT_DKDV = 0.5*( N_DOT_DKDV + N_DOT_DKDV2 )
-             N_DOT_DKDVOLD= 0.5*( N_DOT_DKDVOLD + N_DOT_DKDVOLD2 )
-             N_DOT_DKDW = 0.5*( N_DOT_DKDW + N_DOT_DKDW2 )
-             N_DOT_DKDWOLD= 0.5*( N_DOT_DKDWOLD + N_DOT_DKDWOLD2 )
 
-             !   ewrite(3,*)'DToldDX_GI,DToldDX_GI2,N_DOT_DKDTOLD,N_DOT_DKDTOLD2:',  &
-             !            DToldDX_GI,DToldDX_GI2,N_DOT_DKDTOLD,N_DOT_DKDTOLD2
 
-             ! This is the minimum diffusion...
-             DIFF_STAND_DIVDX_U    = 0.5*( DIFF_STAND_DIVDX_U + DIFF_STAND_DIVDX2_U ) 
-             DIFF_STAND_DIVDX_V    = 0.5*( DIFF_STAND_DIVDX_V + DIFF_STAND_DIVDX2_V ) 
-             DIFF_STAND_DIVDX_W    = 0.5*( DIFF_STAND_DIVDX_W + DIFF_STAND_DIVDX2_W ) 
+               N_DOT_DKDU = 0.5*( N_DOT_DKDU + N_DOT_DKDU2 )
+               N_DOT_DKDUOLD= 0.5*( N_DOT_DKDUOLD + N_DOT_DKDUOLD2 )
+
+            ! This is the minimum diffusion...
+               DIFF_STAND_DIVDX_U    = 0.5*( DIFF_STAND_DIVDX_U + DIFF_STAND_DIVDX2_U ) 
 
           ENDIF Conditional_MAT_DISOPT_ELE2
 
 
-          !          EWRITE(3,*)'CV_NODI_IPHA,CV_NODJ_IPHA:',CV_NODI_IPHA,CV_NODJ_IPHA
 
-          DIFF_COEF_DIVDX_U    = MAX( DIFF_MIN_FRAC*DIFF_STAND_DIVDX_U, N_DOT_DKDU / &
-               TOLFUN( U_CV_NODJ_IPHA  - U_CV_NODI_IPHA )  )
-          DIFF_COEFOLD_DIVDX_U = MAX( DIFF_MIN_FRAC*DIFF_STAND_DIVDX_U, N_DOT_DKDUOLD /  &
-               TOLFUN( UOLD_CV_NODJ_IPHA  - UOLD_CV_NODI_IPHA )  )
+          DO SGI=1,SBCVNGI
+             DO IPHASE=1, NPHASE
+                DO IDIM=1,NDIM_VEL
 
-          DIFF_COEF_DIVDX_V    = MAX( DIFF_MIN_FRAC*DIFF_STAND_DIVDX_V, N_DOT_DKDV / &
-               TOLFUN( V_CV_NODJ_IPHA  - V_CV_NODI_IPHA )  )
-          DIFF_COEFOLD_DIVDX_V = MAX( DIFF_MIN_FRAC*DIFF_STAND_DIVDX_V, N_DOT_DKDVOLD /  &
-               TOLFUN( VOLD_CV_NODJ_IPHA  - VOLD_CV_NODI_IPHA )  )
+                   DIFF_COEF_DIVDX_U(IDIM,IPHASE,SGI)    = MAX( DIFF_MIN_FRAC*DIFF_STAND_DIVDX_U(IDIM,IPHASE,SGI), &
+                      N_DOT_DKDU(IDIM,IPHASE,SGI) / &
+                      TOLFUN( U_CV_NODJ_IPHA_ALL(IDIM,IPHASE,SGI)  - U_CV_NODI_IPHA_ALL(IDIM,IPHASE,SGI) )  )
+                   DIFF_COEFOLD_DIVDX_U (IDIM,IPHASE,SGI)= MAX( DIFF_MIN_FRAC*DIFF_STAND_DIVDX_U(IDIM,IPHASE,SGI), &
+                      N_DOT_DKDUOLD(IDIM,IPHASE,SGI) /  &
+                      TOLFUN( UOLD_CV_NODJ_IPHA_ALL(IDIM,IPHASE,SGI)  - UOLD_CV_NODI_IPHA_ALL(IDIM,IPHASE,SGI) )  )
 
-          DIFF_COEF_DIVDX_W    = MAX( DIFF_MIN_FRAC*DIFF_STAND_DIVDX_W, N_DOT_DKDW / &
-               TOLFUN( W_CV_NODJ_IPHA  - W_CV_NODI_IPHA )  )
-          DIFF_COEFOLD_DIVDX_W = MAX( DIFF_MIN_FRAC*DIFF_STAND_DIVDX_W, N_DOT_DKDWOLD /  &
-               TOLFUN( WOLD_CV_NODJ_IPHA  - WOLD_CV_NODI_IPHA )  )
+                END DO
+             END DO
+          END DO
 
-          ! Make sure the diffusion has an upper bound...       
-          DIFF_COEF_DIVDX_U    = MIN( DIFF_MAX_FRAC*DIFF_STAND_DIVDX_U, DIFF_COEF_DIVDX_U )
-          DIFF_COEFOLD_DIVDX_U = MIN( DIFF_MAX_FRAC*DIFF_STAND_DIVDX_U, DIFF_COEFOLD_DIVDX_U )
+         ! Make sure the diffusion has an upper bound...       
+            DIFF_COEF_DIVDX_U    = MIN( DIFF_MAX_FRAC*DIFF_STAND_DIVDX_U, DIFF_COEF_DIVDX_U )
+            DIFF_COEFOLD_DIVDX_U = MIN( DIFF_MAX_FRAC*DIFF_STAND_DIVDX_U, DIFF_COEFOLD_DIVDX_U )
 
-          DIFF_COEF_DIVDX_V    = MIN( DIFF_MAX_FRAC*DIFF_STAND_DIVDX_V, DIFF_COEF_DIVDX_V )
-          DIFF_COEFOLD_DIVDX_V = MIN( DIFF_MAX_FRAC*DIFF_STAND_DIVDX_V, DIFF_COEFOLD_DIVDX_V )
-
-          DIFF_COEF_DIVDX_W    = MIN( DIFF_MAX_FRAC*DIFF_STAND_DIVDX_W, DIFF_COEF_DIVDX_W )
-          DIFF_COEFOLD_DIVDX_W = MIN( DIFF_MAX_FRAC*DIFF_STAND_DIVDX_W, DIFF_COEFOLD_DIVDX_W )
-
-          ! Redfine for output...
-          DIFF_COEF_DIVDX(1)    = DIFF_COEF_DIVDX_U 
-          DIFF_COEFOLD_DIVDX(1) = DIFF_COEFOLD_DIVDX_U 
-
-          DIFF_COEF_DIVDX(2)    = DIFF_COEF_DIVDX_V 
-          DIFF_COEFOLD_DIVDX(2) = DIFF_COEFOLD_DIVDX_V 
-
-          DIFF_COEF_DIVDX(3)    = DIFF_COEF_DIVDX_W 
-          DIFF_COEFOLD_DIVDX(3) = DIFF_COEFOLD_DIVDX_W 
+! Redfine for output...
+            DIFF_COEF_DIVDX   = DIFF_COEF_DIVDX_U
+            DIFF_COEFOLD_DIVDX = DIFF_COEFOLD_DIVDX_U
 
           ! END OF IF(SIMPLE_DIFF_CALC) THEN ELSE...
        ENDIF
 
-       DEALLOCATE( DIFF_GI, DIFF_GI2 )
     END IF Cond_ZerDiff
+
+! 
+! Zero if we are on boundary and applying Dirichlet b.c's
+      DO IPHASE=1, NPHASE
+          DIFF_COEF_DIVDX(:,IPHASE,:)    =  RZER_DIFF_ALL(IPHASE)*DIFF_COEF_DIVDX(:,IPHASE,:)
+          DIFF_COEFOLD_DIVDX(:,IPHASE,:) =  RZER_DIFF_ALL(IPHASE)*DIFF_COEFOLD_DIVDX(:,IPHASE,:)
+      END DO
 
 
     RETURN            
@@ -9726,82 +9421,185 @@ pure real function ptolfun(value)
 
 
 
-  SUBROUTINE CALC_STRESS_TEN(STRESS_IJ, ZERO_OR_TWO_THIRDS, NDIM,   &
-       UFENX_ILOC, UFENY_ILOC, UFENZ_ILOC,  &
-       UFENX_JLOC_U, UFENY_JLOC_U, UFENZ_JLOC_U,  &
-       UFENX_JLOC_V, UFENY_JLOC_V, UFENZ_JLOC_V,  &
-       UFENX_JLOC_W, UFENY_JLOC_W, UFENZ_JLOC_W,  &
-       TEN_XX,TEN_XY,TEN_XZ, &
-       TEN_YX,TEN_YY,TEN_YZ, &
-       TEN_ZX,TEN_ZY,TEN_ZZ )
-    ! determine stress form of viscocity...
+
+        SUBROUTINE FOR_TENS_DERIVS_NDOTS( DIFF_STAND_DIVDX_U, N_DOT_DKDU, N_DOT_DKDUOLD,  &
+                 DIFF_GI_ADDED, SLOC_DUX_ELE_ALL, SLOC_DUOLDX_ELE_ALL, SLOC_UDIFFUSION, &
+                 NDIM_VEL, NDIM, NPHASE, U_SNLOC, SBCVNGI, SBCVFEN, SNORMXN_ALL, HDC, ZERO_OR_TWO_THIRDS, STRESS_FORM )
+
+! Calculate DIFF_STAND_DIVDX_U, N_DOT_DKDU, N_DOT_DKDUOLD
+! This implements the stress and tensor form of diffusion and calculates a jump conidition. 
+! DIFF_STAND_DIVDX_U is the minimal amount of diffusion. 
+! The coefficient are in N_DOT_DKDU, N_DOT_DKDUOLD. 
+! look at the manual DG treatment of viscocity. 
     IMPLICIT NONE
-    REAL, DIMENSION( :, :  ), intent( inOUT ) :: STRESS_IJ
-    INTEGER, intent( in )  :: NDIM
-    REAL, intent( in ) :: ZERO_OR_TWO_THIRDS, UFENX_ILOC, UFENY_ILOC, UFENZ_ILOC,  &
-         UFENX_JLOC_U, UFENY_JLOC_U, UFENZ_JLOC_U,  &
-         UFENX_JLOC_V, UFENY_JLOC_V, UFENZ_JLOC_V,  &
-         UFENX_JLOC_W, UFENY_JLOC_W, UFENZ_JLOC_W,  &
-         TEN_XX,TEN_XY,TEN_XZ, TEN_YX,TEN_YY,TEN_YZ, TEN_ZX,TEN_ZY,TEN_ZZ
-    ! Local variables...
-    REAL :: FEN_TEN_XX,FEN_TEN_XY,FEN_TEN_XZ, &
-         FEN_TEN_YX,FEN_TEN_YY,FEN_TEN_YZ, &
-         FEN_TEN_ZX,FEN_TEN_ZY,FEN_TEN_ZZ
+      INTEGER, intent( in )  :: NDIM_VEL, NDIM, NPHASE, U_SNLOC, SBCVNGI
+      REAL, intent( in )  :: HDC, ZERO_OR_TWO_THIRDS
+      LOGICAL, intent( in )  :: STRESS_FORM
+    REAL, DIMENSION( NDIM,NPHASE,SBCVNGI ), intent( inout ) :: DIFF_STAND_DIVDX_U
+    REAL, DIMENSION( NDIM_VEL,NPHASE,SBCVNGI ), intent( inout ) :: N_DOT_DKDU, N_DOT_DKDUOLD
+    ! DIFF_GI_ADDED( IDIM, :,:) is for dimension IDIM e.g IDIM=1 corresponds to U 
+    ! the rest is for the diffusion tensor. 
+    REAL, DIMENSION( NDIM_VEL, NDIM,NDIM, NPHASE, SBCVNGI), intent( in ) :: DIFF_GI_ADDED
+    REAL, DIMENSION( NDIM_VEL, NDIM , NPHASE, U_SNLOC ), intent( in ) :: SLOC_DUX_ELE_ALL, SLOC_DUOLDX_ELE_ALL 
+    REAL, DIMENSION( U_SNLOC, SBCVNGI  ), intent( in ) :: SBCVFEN
+    REAL, DIMENSION( NDIM,NDIM,NPHASE,U_SNLOC ), intent( in ) :: SLOC_UDIFFUSION
+    REAL, DIMENSION( NDIM, SBCVNGI ), intent( in ) :: SNORMXN_ALL
 
-    FEN_TEN_XX=UFENX_ILOC * TEN_XX
-    FEN_TEN_XY=UFENY_ILOC * TEN_XY
-    FEN_TEN_XZ=UFENZ_ILOC * TEN_XZ
-    STRESS_IJ( 1,1 ) = STRESS_IJ( 1,1 )  &
-         +FEN_TEN_XX*( 2.*UFENX_JLOC_U- ZERO_OR_TWO_THIRDS*UFENX_JLOC_U )  &
-         +FEN_TEN_XY*UFENY_JLOC_U  &
-         +FEN_TEN_XZ*UFENZ_JLOC_U   
-
-    STRESS_IJ( 1,2 ) = STRESS_IJ( 1,2 )   &
-         +FEN_TEN_XX*( - ZERO_OR_TWO_THIRDS*UFENY_JLOC_V )   &
-         +FEN_TEN_XY*UFENX_JLOC_V
-
-    STRESS_IJ( 1,3 ) = STRESS_IJ( 1,3 )   &
-         +FEN_TEN_XX*( - ZERO_OR_TWO_THIRDS*UFENZ_JLOC_W )   &
-         +FEN_TEN_XZ*UFENX_JLOC_W 
+    ! local variables
+    REAL, DIMENSION( : , :, :, : ), allocatable :: DIFF_GI, STRESS_INDEX, STRESS_INDEXOLD
+    REAL, DIMENSION( : , :, :, :,  : ), allocatable :: DIFF_GI_BOTH
+    REAL, DIMENSION( :, :, :, : ), allocatable :: DUDX_ALL_GI, DUOLDDX_ALL_GI
+    REAL, DIMENSION( :, : ), allocatable :: IDENT
+    REAL :: COEF
+    INTEGER :: U_KLOC,U_KLOC2,MAT_KLOC,MAT_KLOC2,IDIM,JDIM,U_SKLOC
+    INTEGER :: SGI,IPHASE
+    LOGICAL :: ZER_DIFF,SIMPLE_DIFF_CALC
 
 
-    FEN_TEN_YX=UFENX_ILOC * TEN_YX
-    FEN_TEN_YY=UFENY_ILOC * TEN_YY
-    FEN_TEN_YZ=UFENZ_ILOC * TEN_YZ
-    STRESS_IJ( 2,1 ) = STRESS_IJ( 2,1 )  &
-         +FEN_TEN_YX*UFENY_JLOC_U  &
-         +FEN_TEN_YY*( - ZERO_OR_TWO_THIRDS*UFENX_JLOC_U )  
+       ALLOCATE( DIFF_GI(NDIM,NDIM,NPHASE,SBCVNGI) )
+       ALLOCATE( STRESS_INDEX(NDIM,NDIM,NPHASE,SBCVNGI) )
+       ALLOCATE( STRESS_INDEXOLD(NDIM,NDIM,NPHASE,SBCVNGI) )
+       ALLOCATE( DIFF_GI_BOTH(NDIM_VEL, NDIM,NDIM, NPHASE,SBCVNGI) )
 
-    STRESS_IJ( 2,2 ) = STRESS_IJ( 2,2 )   &
-         +FEN_TEN_YX*UFENX_JLOC_V  &
-         +FEN_TEN_YY*( 2.*UFENY_JLOC_V- ZERO_OR_TWO_THIRDS*UFENY_JLOC_V )  &
-         +FEN_TEN_YZ*UFENZ_JLOC_V 
+       ALLOCATE( DUDX_ALL_GI( NDIM_VEL,NDIM,NPHASE,SBCVNGI )  )
+       ALLOCATE( DUOLDDX_ALL_GI( NDIM_VEL,NDIM,NPHASE,SBCVNGI )  )
 
-    STRESS_IJ( 2,3 ) = STRESS_IJ( 2,3 )   &
-         +FEN_TEN_YY*( - ZERO_OR_TWO_THIRDS*UFENZ_JLOC_W )   &
-         +FEN_TEN_YZ*UFENZ_JLOC_W 
+       ALLOCATE( IDENT(NDIM,NDIM) )
 
 
-    FEN_TEN_ZX=UFENX_ILOC * TEN_ZX
-    FEN_TEN_ZY=UFENY_ILOC * TEN_ZY
-    FEN_TEN_ZZ=UFENZ_ILOC * TEN_ZZ
-    STRESS_IJ( 3,1 ) = STRESS_IJ( 3,1 )  &
-         +FEN_TEN_ZX*UFENZ_JLOC_U  &
-         +FEN_TEN_ZZ*( - ZERO_OR_TWO_THIRDS*UFENX_JLOC_U )  
-
-    STRESS_IJ( 3,2 ) = STRESS_IJ( 3,2 )   &
-         +FEN_TEN_ZY*UFENZ_JLOC_V   &
-         +FEN_TEN_ZY*( - ZERO_OR_TWO_THIRDS*UFENY_JLOC_V )  
-
-    STRESS_IJ( 3,3 ) = STRESS_IJ( 3,3 )   &
-         +FEN_TEN_ZX*UFENX_JLOC_W   &
-         +FEN_TEN_ZY*UFENY_JLOC_W   &
-         +FEN_TEN_ZZ*( 2.*UFENZ_JLOC_W- ZERO_OR_TWO_THIRDS*UFENZ_JLOC_W ) 
+          IDENT=0.0
+          DO IDIM=1,NDIM
+            IDENT(IDIM,IDIM)=1.0
+          END DO
 
 
-    RETURN            
+          DUDX_ALL_GI = 0.0
+          DUOLDDX_ALL_GI = 0.0
 
-  END SUBROUTINE CALC_STRESS_TEN
+          DO U_SKLOC = 1, U_SNLOC
+             DO SGI=1,SBCVNGI
+                DO IPHASE=1, NPHASE
+             ! U, V & W: 
+                   DUDX_ALL_GI(:,:,IPHASE,SGI)    = DUDX_ALL_GI(:,:,IPHASE,SGI)    + SBCVFEN(U_SKLOC,SGI) * SLOC_DUX_ELE_ALL(:,:,IPHASE,U_SKLOC)
+                   DUOLDDX_ALL_GI(:,:,IPHASE,SGI) = DUOLDDX_ALL_GI(:,:,IPHASE,SGI) + SBCVFEN(U_SKLOC,SGI) * SLOC_DUOLDX_ELE_ALL(:,:,IPHASE,U_SKLOC)
+                END DO
+             END DO
+          END DO
+
+          DIFF_GI = 0.0
+          DO U_SKLOC = 1, U_SNLOC
+             DO SGI=1,SBCVNGI
+                DO IPHASE=1, NPHASE
+                   DIFF_GI( 1:NDIM , 1:NDIM, IPHASE,SGI ) = DIFF_GI( 1:NDIM , 1:NDIM, IPHASE,SGI ) &
+                  + SBCVFEN(U_SKLOC,SGI) * SLOC_UDIFFUSION( 1:NDIM , 1:NDIM , IPHASE, U_SKLOC )
+                END DO
+             END DO
+          END DO
+          DIFF_GI=MAX(0.0, DIFF_GI) 
+
+
+          ! U:
+          DIFF_GI_BOTH=DIFF_GI_ADDED
+          IF(.NOT.STRESS_FORM) THEN
+             DO IDIM=1,NDIM_VEL
+                DIFF_GI_BOTH(IDIM,:,:,:,:) = DIFF_GI_BOTH(IDIM,:,:,:,:) + DIFF_GI(:,:,:,:)
+             END DO
+          ENDIF
+
+          N_DOT_DKDU=0.0
+          N_DOT_DKDUOLD=0.0
+          DO SGI=1,SBCVNGI
+             DO IPHASE=1, NPHASE
+                DO IDIM=1,NDIM_VEL
+           
+                   DO JDIM=1,NDIM 
+                      N_DOT_DKDU(IDIM,IPHASE,SGI)   =N_DOT_DKDU(IDIM,IPHASE,SGI)    + SNORMXN_ALL(JDIM,SGI)*SUM( DIFF_GI_BOTH(IDIM,JDIM,:,IPHASE,SGI)*DUDX_ALL_GI(IDIM,:,IPHASE,SGI) )  
+                      N_DOT_DKDUOLD(IDIM,IPHASE,SGI)=N_DOT_DKDUOLD(IDIM,IPHASE,SGI) + SNORMXN_ALL(JDIM,SGI)*SUM( DIFF_GI_BOTH(IDIM,JDIM,:,IPHASE,SGI)*DUOLDDX_ALL_GI(IDIM,:,IPHASE,SGI) )  
+                   END DO
+
+                END DO
+             END DO
+          END DO
+
+
+          IF(STRESS_FORM) THEN
+
+             DO SGI=1,SBCVNGI
+                DO IPHASE=1,NPHASE
+                   CALL CALC_STRESS_TEN( STRESS_INDEX(:,:,IPHASE,SGI), ZERO_OR_TWO_THIRDS, NDIM,   &
+                      SNORMXN_ALL(:,SGI), DUDX_ALL_GI(:,:,IPHASE,SGI),  DIFF_GI( : , :, IPHASE, SGI ) )
+
+                   CALL CALC_STRESS_TEN( STRESS_INDEXOLD(:,:,IPHASE,SGI), ZERO_OR_TWO_THIRDS, NDIM, &
+                      SNORMXN_ALL(:,SGI), DUOLDDX_ALL_GI(:,:,IPHASE,SGI),  DIFF_GI( : , :, IPHASE, SGI ) )
+                END DO
+             END DO
+
+             DO SGI=1,SBCVNGI
+               DO IPHASE=1,NPHASE
+                  DO IDIM=1,NDIM_VEL
+                     N_DOT_DKDU(IDIM,IPHASE,SGI)   =N_DOT_DKDU(IDIM,IPHASE,SGI)     + SUM( STRESS_INDEX(IDIM,:,IPHASE,SGI) )  
+                     N_DOT_DKDUOLD(IDIM,IPHASE,SGI)=N_DOT_DKDUOLD(IDIM,IPHASE,SGI)  + SUM( STRESS_INDEXOLD(IDIM,:,IPHASE,SGI) ) 
+         ! This is the minimum diffusion...
+                      DIFF_STAND_DIVDX_U(IDIM,IPHASE,SGI) = 8.*( SUM( (1.+IDENT(IDIM,:))*SNORMXN_ALL(:,SGI)**2*DIFF_GI(IDIM,:,IPHASE,SGI) ) &
+                                                  + DIFF_GI_ADDED(IDIM, 1,1, IPHASE,SGI) ) /HDC
+                  END DO 
+               END DO
+            END DO
+
+          ELSE
+             DO SGI=1,SBCVNGI
+                DO IPHASE=1, NPHASE
+                   COEF=0.0
+                   DO IDIM=1,NDIM
+                      COEF=COEF + SNORMXN_ALL(IDIM,SGI) * SUM( DIFF_GI(IDIM,:,IPHASE,SGI)*SNORMXN_ALL(:,SGI) ) 
+                   END DO
+                   DIFF_STAND_DIVDX_U(:,IPHASE,SGI)=8.*( COEF + DIFF_GI_ADDED(:, 1,1, IPHASE,SGI) ) /HDC
+                END DO
+             END DO
+             ! ENDOF IF(STRESS_FORM) THEN ELSE...
+          ENDIF
+
+
+        RETURN
+
+        END SUBROUTINE FOR_TENS_DERIVS_NDOTS
+
+
+
+
+
+    SUBROUTINE CALC_STRESS_TEN(STRESS_IJ, ZERO_OR_TWO_THIRDS, NDIM,    &
+                 UFENX_ILOC, UFENX_JLOC_U,  TEN_XX )
+! determine stress form of viscocity...
+      IMPLICIT NONE
+      INTEGER, intent( in )  :: NDIM
+      REAL, DIMENSION( NDIM, NDIM  ), intent( inOUT ) :: STRESS_IJ
+      REAL, DIMENSION( NDIM ), intent( in ) :: UFENX_ILOC
+      REAL, DIMENSION( NDIM,NDIM ), intent( in ) :: UFENX_JLOC_U, TEN_XX
+      REAL, intent( in ) :: ZERO_OR_TWO_THIRDS
+! Local variables...
+      REAL :: FEN_TEN_XX(NDIM,NDIM), IDENT_DIM(NDIM,NDIM)
+      INTEGER :: IDIM,JDIM
+
+         IDENT_DIM=0.0
+
+         DO IDIM=1,NDIM
+            IDENT_DIM(IDIM,IDIM)=1.0
+            FEN_TEN_XX(IDIM,:)=UFENX_ILOC(IDIM) * TEN_XX(IDIM,:)
+         END DO
+
+         DO IDIM=1,NDIM
+            DO JDIM=1,NDIM
+               STRESS_IJ( IDIM,JDIM ) = STRESS_IJ( IDIM,JDIM )  &
+                           +FEN_TEN_XX(IDIM,JDIM)*SUM( (1.+IDENT_DIM(IDIM,:))*UFENX_JLOC_U(:, IDIM) )
+            END DO
+         END DO
+
+      RETURN            
+
+    END SUBROUTINE CALC_STRESS_TEN
+
+
 
 
 
