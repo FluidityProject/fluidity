@@ -2963,8 +2963,8 @@
 
 !      IF(GOT_DIFFUS) THEN
 !         print *,'NDIM, NDIM, U_NLOC, NPHASE, TOTELE:',NDIM, NDIM, U_NLOC, NPHASE, TOTELE
-         ALLOCATE( DUX_ELE_ALL( NDIM, NDIM, U_NLOC, NPHASE, TOTELE ))
-         ALLOCATE( DUOLDX_ELE_ALL( NDIM, NDIM, U_NLOC, NPHASE, TOTELE ))
+         ALLOCATE( DUX_ELE_ALL( NDIM_VEL, NDIM, NPHASE, U_NLOC, TOTELE ))
+         ALLOCATE( DUOLDX_ELE_ALL( NDIM_VEL, NDIM, NPHASE, U_NLOC, TOTELE ))
          ALLOCATE( WORK_ELE_ALL( U_NLOC, NPHASE, TOTELE ))
 !      ENDIF 
 
@@ -4264,7 +4264,6 @@
 
 
             ! ********Mapping to local variables****************
-            if(.true.) then
                ! CV variables...
                DO CV_SILOC=1,CV_SNLOC
                   CV_ILOC=CV_SLOC2LOC(CV_SILOC) 
@@ -4303,52 +4302,35 @@
                   ! for normal calc...
                   DO IPHASE=1,NPHASE
                      IF(GOT_DIFFUS) THEN
-                if(.false.) then
-                        SLOC_DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_SILOC )    =DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , U_ILOC, IPHASE, ELE )
-                        SLOC_DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_SILOC ) =DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , U_ILOC, IPHASE, ELE )
+
+                        SLOC_DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_SILOC )    =DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_ILOC, ELE )
+                        SLOC_DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_SILOC ) =DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_ILOC, ELE )
                         IF(ELE2 /= 0) THEN
-                           SLOC2_DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_SILOC )   =DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , U_ILOC2, IPHASE, ELE2 )
-                           SLOC2_DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_SILOC )=DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , U_ILOC2, IPHASE, ELE2 )
+                           SLOC2_DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_SILOC )   =DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_ILOC2, ELE2 )
+                           SLOC2_DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_SILOC )=DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_ILOC2, ELE2 )
                         ELSE
-                           SLOC2_DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_SILOC )   =DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , U_ILOC, IPHASE, ELE )
-                           SLOC2_DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_SILOC )=DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , U_ILOC, IPHASE, ELE )
+                           SLOC2_DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_SILOC )   =DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_ILOC, ELE )
+                           SLOC2_DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_SILOC )=DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_ILOC, ELE )
                         ENDIF
-                 else ! reverse the ordering.....
 
-                    do idim_vel=1,ndim_vel
-                       do idim=1,ndim
-                          SLOC_DUX_ELE_ALL( IDIM_VEL, IDIM , IPHASE, U_SILOC )    =DUX_ELE_ALL( IDIM, IDIM_VEL, U_ILOC, IPHASE, ELE )
-                          SLOC_DUOLDX_ELE_ALL( IDIM_VEL, IDIM , IPHASE, U_SILOC ) =DUOLDX_ELE_ALL( IDIM, IDIM_VEL, U_ILOC, IPHASE, ELE )
-                          IF(ELE2 /= 0) THEN
-                             SLOC2_DUX_ELE_ALL( IDIM_VEL, IDIM , IPHASE, U_SILOC )   =DUX_ELE_ALL( IDIM, IDIM_VEL, U_ILOC2, IPHASE, ELE2 )
-                             SLOC2_DUOLDX_ELE_ALL( IDIM_VEL, IDIM , IPHASE, U_SILOC )=DUOLDX_ELE_ALL( IDIM, IDIM_VEL, U_ILOC2, IPHASE, ELE2 )
-                          ELSE
-                             SLOC2_DUX_ELE_ALL( IDIM_VEL, IDIM , IPHASE, U_SILOC )   =DUX_ELE_ALL( IDIM, IDIM_VEL,  U_ILOC, IPHASE, ELE )
-                             SLOC2_DUOLDX_ELE_ALL( IDIM_VEL, IDIM , IPHASE, U_SILOC )=DUOLDX_ELE_ALL( IDIM, IDIM_VEL,  U_ILOC, IPHASE, ELE )
-                          ENDIF
-                       end do
-                    end do
-
-                 endif
-                     ENDIF
+                     END IF
                      ! U:
-                  DO IDIM = 1, NDIM_VEL
-                     SLOC_U( IDIM, IPHASE, U_SILOC ) = U_ALL( IDIM, IPHASE, U_INOD )
-                     SLOC_UOLD( IDIM, IPHASE, U_SILOC ) = UOLD_ALL( IDIM, IPHASE, U_INOD )
-                     SLOC2_U( IDIM, IPHASE, U_SILOC ) = U_ALL( IDIM, IPHASE, U_INOD2 )
-                     SLOC2_UOLD( IDIM, IPHASE, U_SILOC ) = UOLD_ALL( IDIM, IPHASE, U_INOD2 )
-                  END DO
+                     DO IDIM = 1, NDIM_VEL
+                        SLOC_U( IDIM, IPHASE, U_SILOC ) = U_ALL( IDIM, IPHASE, U_INOD )
+                        SLOC_UOLD( IDIM, IPHASE, U_SILOC ) = UOLD_ALL( IDIM, IPHASE, U_INOD )
+                        SLOC2_U( IDIM, IPHASE, U_SILOC ) = U_ALL( IDIM, IPHASE, U_INOD2 )
+                        SLOC2_UOLD( IDIM, IPHASE, U_SILOC ) = UOLD_ALL( IDIM, IPHASE, U_INOD2 )
+                     END DO
 
-                  DO IDIM = 1, NDIM
-                     SLOC_NU( IDIM, IPHASE, U_SILOC ) = NU_ALL( IDIM, IPHASE, U_INOD )
-                     SLOC_NUOLD( IDIM, IPHASE, U_SILOC ) = NUOLD_ALL( IDIM, IPHASE, U_INOD )
-                     SLOC2_NU( IDIM, IPHASE, U_SILOC ) = NU_ALL( IDIM, IPHASE, U_INOD2 )
-                     SLOC2_NUOLD( IDIM, IPHASE, U_SILOC ) = NUOLD_ALL( IDIM, IPHASE, U_INOD2 )
-                  END DO
+                     DO IDIM = 1, NDIM
+                        SLOC_NU( IDIM, IPHASE, U_SILOC ) = NU_ALL( IDIM, IPHASE, U_INOD )
+                        SLOC_NUOLD( IDIM, IPHASE, U_SILOC ) = NUOLD_ALL( IDIM, IPHASE, U_INOD )
+                        SLOC2_NU( IDIM, IPHASE, U_SILOC ) = NU_ALL( IDIM, IPHASE, U_INOD2 )
+                        SLOC2_NUOLD( IDIM, IPHASE, U_SILOC ) = NUOLD_ALL( IDIM, IPHASE, U_INOD2 )
+                     END DO
 
                   END DO
                END DO
-            endif
 
 
 

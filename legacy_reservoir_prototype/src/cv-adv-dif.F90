@@ -7443,11 +7443,11 @@ contains
 
        FORALL ( IDIM = 1:NDIM, ICOMP = 1:NCOMP, IPHASE = 1:NPHASE )
 
-          !DTX_ELE( IDIM, ICOMP, IPHASE, :, ELE ) = MATMUL( INV_MASS( :, : ), VTX_ELE( IDIM, ICOMP, IPHASE, :, ELE ) )
-          !DTOLDX_ELE( IDIM, ICOMP, IPHASE, :, ELE ) = MATMUL( INV_MASS( :, : ) , VTOLDX_ELE( IDIM, ICOMP, IPHASE, :, ELE ) )
+          DTX_ELE( ICOMP, IDIM, IPHASE, :, ELE ) = MATMUL( INV_MASS( :, : ), VTX_ELE( IDIM, ICOMP, IPHASE, :, ELE ) )
+          DTOLDX_ELE( ICOMP, IDIM, IPHASE, :, ELE ) = MATMUL( INV_MASS( :, : ) , VTOLDX_ELE( IDIM, ICOMP, IPHASE, :, ELE ) )
 
-          DTX_ELE( IDIM, ICOMP, :, IPHASE, ELE ) = MATMUL( INV_MASS( :, : ), VTX_ELE( IDIM, ICOMP, IPHASE, :, ELE ) )
-          DTOLDX_ELE( IDIM, ICOMP, :, IPHASE, ELE ) = MATMUL( INV_MASS( :, : ) , VTOLDX_ELE( IDIM, ICOMP, IPHASE, :, ELE ) )
+          !DTX_ELE( ICOMP, IDIM, :, IPHASE, ELE ) = MATMUL( INV_MASS( :, : ), VTX_ELE( IDIM, ICOMP, IPHASE, :, ELE ) )
+          !DTOLDX_ELE( ICOMP, IDIM, :, IPHASE, ELE ) = MATMUL( INV_MASS( :, : ) , VTOLDX_ELE( IDIM, ICOMP, IPHASE, :, ELE ) )
        END FORALL
 
     END DO Loop_Elements3
@@ -9478,11 +9478,9 @@ pure real function ptolfun(value)
 
           DO U_SKLOC = 1, U_SNLOC
              DO SGI=1,SBCVNGI
-                DO IPHASE=1, NPHASE
              ! U, V & W: 
-                   DUDX_ALL_GI(:,:,IPHASE,SGI)    = DUDX_ALL_GI(:,:,IPHASE,SGI)    + SBCVFEN(U_SKLOC,SGI) * SLOC_DUX_ELE_ALL(:,:,IPHASE,U_SKLOC)
-                   DUOLDDX_ALL_GI(:,:,IPHASE,SGI) = DUOLDDX_ALL_GI(:,:,IPHASE,SGI) + SBCVFEN(U_SKLOC,SGI) * SLOC_DUOLDX_ELE_ALL(:,:,IPHASE,U_SKLOC)
-                END DO
+                   DUDX_ALL_GI(:,:,:,SGI)    = DUDX_ALL_GI(:,:,:,SGI)    + SBCVFEN(U_SKLOC,SGI) * SLOC_DUX_ELE_ALL(:,:,:,U_SKLOC)
+                   DUOLDDX_ALL_GI(:,:,:,SGI) = DUOLDDX_ALL_GI(:,:,:,SGI) + SBCVFEN(U_SKLOC,SGI) * SLOC_DUOLDX_ELE_ALL(:,:,:,U_SKLOC)
              END DO
           END DO
 
