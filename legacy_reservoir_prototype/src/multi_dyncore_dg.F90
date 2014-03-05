@@ -648,12 +648,12 @@
            U_ALL, UOLD_ALL, &
            DEN, DENOLD, &
            DT, &
-           SUF_T_BC, SUF_T_BC, SUF_T_BC, RZERO(:,:,1), &
+           SUF_T_BC, SUF_T_BC, SUF_T_BC, &
            SUF_T_BC, SUF_T_BC, SUF_T_BC, &
            SUF_U_BC, SUF_V_BC, SUF_W_BC, RDUM, &
-           SUF_T_BC_ROB1, SUF_T_BC_ROB2, RDUM, RDUM,  &
+           SUF_T_BC_ROB1, SUF_T_BC_ROB2, RDUM, RDUM, &
            RDUM, RDUM, &
-           WIC_T_BC, WIC_T_BC, WIC_U_BC, IZERO,  &
+           WIC_T_BC, WIC_T_BC, WIC_U_BC, IZERO, &
            CV_RHS, &
            RDUM, 0, IDUM, IDUM, & 
            ACV, NCOLACV, FINACV, COLACV, &! Force balance sparsity  
@@ -2208,10 +2208,10 @@
            U_ALL, UOLD_ALL, &    ! This is nu...
            UDEN, UDENOLD, &
            DT, &
-           SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
+           SUF_U_BC, SUF_V_BC, SUF_W_BC, &
            SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC, &
            SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_P_BC, &
-           SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2,  &
+           SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2, &
            SUF_W_BC_ROB1, SUF_W_BC_ROB2, &
            WIC_U_BC, WIC_MOMU_BC, WIC_U_BC, WIC_P_BC,  &
            U_RHS, &
@@ -2442,10 +2442,10 @@
          NU_ALL, NUOLD_ALL, &
          UDEN, UDENOLD, &
          DT, &
-         SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
-         SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC,  &
+         SUF_U_BC, SUF_V_BC, SUF_W_BC, &
+         SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC, &
          SUF_NU_BC, SUF_NV_BC, SUF_NW_BC, SUF_P_BC, &
-         SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2,  &
+         SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2, &
          SUF_W_BC_ROB1, SUF_W_BC_ROB2, &
          WIC_U_BC, WIC_MOMU_BC, WIC_NU_BC, WIC_P_BC,  &
          U_RHS, &
@@ -2478,7 +2478,6 @@
       INTEGER, DIMENSION( : ), intent( in ) ::  WIC_U_BC, WIC_MOMU_BC, WIC_NU_BC, WIC_P_BC
       ! viscocity b.c's on velocity...
       REAL, DIMENSION( : ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
-      REAL, DIMENSION( : , : ), intent( in ) :: SUF_SIG_DIAGTEN_BC
       ! Momentum b.c's...
       REAL, DIMENSION( : ), intent( in ) :: SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC
       ! bcs on the advection velocity...
@@ -3134,10 +3133,6 @@
             end do
          end do
       end do
-
-
-
-
 
 
 
