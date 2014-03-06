@@ -12281,18 +12281,16 @@ end SUBROUTINE GET_INT_VEL
       INTEGER :: ILOC, IDIM
 
       DO IDIM = 1, NDIM
-         XC(IDIM) = SUM( XL_ALL( IDIM, : ) ) / REAL( NLOC )
+         XC(IDIM) = SUM( XL_ALL( IDIM, : ) )
+
+         SXC(IDIM) = SUM( XSL_ALL( IDIM, : ) )
       END DO
 
-      DO IDIM = 1, NDIM
-         SXC(IDIM) = SUM( XSL_ALL( IDIM, : ) )/ REAL( SNLOC )
-      END DO
+      NORMX_ALL = SXC / REAL( SNLOC )  - XC /  REAL( NLOC ) 
 
-      NORMX_ALL = SXC - XC
+      NORM = SQRT( SUM( NORMX_ALL**2 ) )
 
-      NORM = SQRT( SUM(NORMX_ALL(:)**2) )
-
-      NORMX_ALL(:) = NORMX_ALL(:) / NORM
+      NORMX_ALL = NORMX_ALL / NORM
 
       RETURN
 

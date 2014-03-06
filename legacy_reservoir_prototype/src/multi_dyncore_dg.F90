@@ -578,14 +578,16 @@
       REAL, DIMENSION ( : ), allocatable :: RDUM
       INTEGER, DIMENSION ( : ), allocatable :: IDUM,IZERO
 
-      INTEGER :: IPLIKE_GRAD_SOU, NDIM_IN, NPHASE_IN
+      INTEGER :: IPLIKE_GRAD_SOU, NDIM_IN, NPHASE_IN, X_ILOC, X_INOD
       LOGICAL :: JUST_BL_DIAG_MAT
 
       INTEGER :: U_NLOC2, ILEV, NLEV, ELE, U_ILOC, U_INOD, IPHASE, IDIM
       REAL, DIMENSION( :, :, : ), allocatable :: U_ALL, UOLD_ALL
+      REAL, DIMENSION( :, : ), allocatable :: X_ALL
 
-      ALLOCATE( U_ALL( NDIM, NPHASE, U_NONODS ), UOLD_ALL( NDIM, NPHASE, U_NONODS ) )
-      U_ALL = 0. ; UOLD_ALL = 0.
+
+      ALLOCATE( U_ALL( NDIM, NPHASE, U_NONODS ), UOLD_ALL( NDIM, NPHASE, U_NONODS ), X_ALL( NDIM, X_NONODS ) )
+      U_ALL = 0. ; UOLD_ALL = 0. ; X_ALL = 0.
 
       IF(U_NLOC.NE.CV_NLOC) THEN
          ewrite(3,*) 'u_nloc, cv_nloc:', u_nloc, cv_nloc
@@ -631,7 +633,15 @@
             END DO
          END DO
       END DO
-
+      DO IDIM = 1, NDIM
+         IF ( IDIM==1 ) THEN
+            X_ALL( IDIM, : ) = X
+         ELSE IF ( IDIM==2 ) THEN
+            X_ALL( IDIM, : ) = Y
+         ELSE
+            X_ALL( IDIM, : ) = Z
+         END IF
+      END DO
 
       ndim_in = 1 ; nphase_in = 1
       allocate( t_in( ndim_in, nphase_in, u_nonods ) ) ; t_in(1,1,:) = t
@@ -643,7 +653,7 @@
            U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
            U_NDGLN, CV_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN, &
            STOTEL, U_SNDGLN, CV_SNDGLN, CV_SNDGLN, U_SNLOC, CV_SNLOC, CV_SNLOC, &
-           X, Y, Z, RZERO, T_ABSORB, T_SOURCE, RDUM, &
+           X_ALL, X, Y, Z, RZERO, T_ABSORB, T_SOURCE, RDUM, &
            T_IN, TOLD_IN, &
            U_ALL, UOLD_ALL, &
            DEN, DENOLD, &
@@ -665,7 +675,7 @@
            RDUM,.FALSE.,NDIM_IN )
 
 
-      DEALLOCATE( U_ALL, UOLD_ALL, RZERO, IZERO, RDUM, IDUM, T_IN, TOLD_IN )
+      DEALLOCATE( U_ALL, UOLD_ALL, X_ALL, RZERO, IZERO, RDUM, IDUM, T_IN, TOLD_IN )
 
     END SUBROUTINE WRAPPER_ASSEMB_FORCE_CTY
 
@@ -2131,8 +2141,9 @@
       LOGICAL :: GET_THETA_FLUX
       INTEGER :: IGOT_T2
 
-      INTEGER :: U_NLOC2, ILEV, NLEV, ELE, U_ILOC, U_INOD, IPHASE, IDIM
+      INTEGER :: U_NLOC2, ILEV, NLEV, ELE, U_ILOC, U_INOD, IPHASE, IDIM, X_ILOC, X_INOD
       REAL, DIMENSION( :, :, : ), allocatable :: U_ALL, UOLD_ALL
+      REAL, DIMENSION( :, : ), allocatable :: X_ALL
 
       ewrite(3,*)'In CV_ASSEMB_FORCE_CTY'
 
@@ -2160,8 +2171,8 @@
       ALLOCATE( DEN_FEMT( NPHASE * CV_NONODS ) ) ; DEN_FEMT = 0.
       allocate( dummy_transp( totele ) ) ; dummy_transp = 0.
 
-      ALLOCATE( U_ALL( NDIM, NPHASE, U_NONODS ), UOLD_ALL( NDIM, NPHASE, U_NONODS ) )
-      U_ALL = 0. ; UOLD_ALL = 0.
+      ALLOCATE( U_ALL( NDIM, NPHASE, U_NONODS ), UOLD_ALL( NDIM, NPHASE, U_NONODS ), X_ALL( NDIM, X_NONODS ) )
+      U_ALL = 0. ; UOLD_ALL = 0. ; X_ALL = 0.
 
       TDIFFUSION = 0.0
 
@@ -2195,6 +2206,15 @@
             END DO
          END DO
       END DO
+      DO IDIM = 1, NDIM
+         IF ( IDIM==1 ) THEN
+            X_ALL( IDIM, : ) = X
+         ELSE IF ( IDIM==2 ) THEN
+            X_ALL( IDIM, : ) = Y
+         ELSE
+            X_ALL( IDIM, : ) = Z
+         END IF
+      END DO
 
       ! Obtain the momentum and C matricies
       CALL ASSEMB_FORCE_CTY( state, & 
@@ -2203,7 +2223,7 @@
            U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
            U_NDGLN, P_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN, &
            STOTEL, U_SNDGLN, P_SNDGLN, CV_SNDGLN, U_SNLOC, P_SNLOC, CV_SNLOC, &
-           X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
+           X_ALL, X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
            U_ALL, UOLD_ALL, &
            U_ALL, UOLD_ALL, &    ! This is nu...
            UDEN, UDENOLD, &
@@ -2308,7 +2328,7 @@
       DEALLOCATE( MEAN_PORE_CV )
       DEALLOCATE( SAT_FEMT )
       DEALLOCATE( DEN_FEMT )
-      DEALLOCATE( U_ALL, UOLD_ALL )
+      DEALLOCATE( U_ALL, UOLD_ALL, X_ALL )
 
       ewrite(3,*) 'Leaving CV_ASSEMB_FORCE_CTY'
 
@@ -2431,13 +2451,28 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     SUBROUTINE ASSEMB_FORCE_CTY( state, &
          NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
          U_ELE_TYPE, P_ELE_TYPE, &
          U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
          U_NDGLN, P_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN, &
          STOTEL, U_SNDGLN, P_SNDGLN, CV_SNDGLN, U_SNLOC, P_SNLOC, CV_SNLOC, &
-         X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
+         X_ALL, X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
          U_ALL, UOLD_ALL, &
          NU_ALL, NUOLD_ALL, &
          UDEN, UDENOLD, &
@@ -2485,7 +2520,9 @@
       REAL, DIMENSION( : ), intent( in ) :: SUF_P_BC
       REAL, DIMENSION( :), intent( in ) :: SUF_U_BC_ROB1, SUF_U_BC_ROB2, &
            SUF_V_BC_ROB1, SUF_V_BC_ROB2, SUF_W_BC_ROB1, SUF_W_BC_ROB2
-      REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
+      REAL, DIMENSION( :, : ), intent( in ) :: X_ALL
+      REAL, DIMENSION( : ), intent( in ) :: X,Y,Z
+
       REAL, DIMENSION( : ,  : ,  : ), intent( in ) :: U_ABS_STAB
       REAL, DIMENSION( :, :, : ), intent( in ) :: U_ABSORB
       REAL, DIMENSION( : ), intent( in ) :: U_SOURCE
@@ -2544,7 +2581,7 @@
       REAL, DIMENSION( : ),    ALLOCATABLE :: CVWEIGHT, CVWEIGHT_SHORT, DETWEI,RA,  &
            SNORMXN, SNORMYN, SNORMZN, SCVFEWEIGH, SBCVFEWEIGH, SDETWE, NXUDN, VLN,VLN_OLD, &
            XSL,YSL,ZSL, SELE_OVERLAP_SCALE, MASS_ELE
-      REAL, DIMENSION( :, : ),    ALLOCATABLE :: XL_ALL, XSL_ALL, SNORMXN_ALL, GRAD_SOU_GI_NMX
+      REAL, DIMENSION( :, : ),    ALLOCATABLE :: XL_ALL, XL2_ALL, XSL_ALL, SNORMXN_ALL, GRAD_SOU_GI_NMX
       REAL, DIMENSION( : ),    ALLOCATABLE :: NORMX_ALL
       REAL, DIMENSION( :, : ), ALLOCATABLE :: CVN, CVN_SHORT, CVFEN, CVFENLX, CVFENLY, CVFENLZ, & 
            CVFENX, CVFENY, CVFENZ, CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, & 
@@ -2639,7 +2676,7 @@
       REAL    :: NN, NXN, NNX, NXNX, NMX, NMY, NMZ, SAREA, &
            VNMX, VNMY, VNMZ, NM, R
       REAL    :: VOLUME, MN, XC, YC, ZC, XC2, YC2, ZC2, HDC, VLM, VLM_NEW,VLM_OLD, NN_SNDOTQ_IN,NN_SNDOTQ_OUT, &
-           NN_SNDOTQOLD_IN,NN_SNDOTQOLD_OUT, NORMX, NORMY, NORMZ, RNN, RN, RNMX(3)
+           NN_SNDOTQOLD_IN,NN_SNDOTQOLD_OUT, NORMX, NORMY, NORMZ, RNN, RN, RNMX(3), c1(NDIM), c2(NDIM)
       REAL    :: MASSE, MASSE2, rsum
       ! Nonlinear Petrov-Galerkin stuff...
       INTEGER :: RESID_BASED_STAB_DIF
@@ -2693,6 +2730,7 @@
       !ewrite(3,*)'u_absorb=',u_absorb
       !ewrite(3,*)'u_abs_stab=',u_abs_stab
       !stop 2921
+
 
       mom_conserv=.false.
       call get_option( &
@@ -2792,7 +2830,7 @@
       ALLOCATE( SNORMYN( SBCVNGI ))
       ALLOCATE( SNORMZN( SBCVNGI ))
 
-      ALLOCATE( XL_ALL(NDIM,CV_NLOC), XSL_ALL(NDIM,CV_SNLOC) )
+      ALLOCATE( XL_ALL(NDIM,CV_NLOC), XL2_ALL(NDIM,CV_NLOC), XSL_ALL(NDIM,CV_SNLOC) )
       ALLOCATE( NORMX_ALL(NDIM), SNORMXN_ALL(NDIM,SBCVNGI) )
 
       !Variables to improve PIVIT_MAT creation speed
@@ -2887,21 +2925,10 @@
       ALLOCATE( VLN_OLD( NPHASE ))
 
       ALLOCATE( SUD_ALL(NDIM,NPHASE,SBCVNGI) )
-!      ALLOCATE( SUD(NPHASE,SBCVNGI) )
-!      ALLOCATE( SVD(NPHASE,SBCVNGI) )
-!      ALLOCATE( SWD(NPHASE,SBCVNGI) )
       ALLOCATE( SUDOLD_ALL(NDIM,NPHASE,SBCVNGI) )
-!      ALLOCATE( SUDOLD(NPHASE,SBCVNGI) )
-!      ALLOCATE( SVDOLD(NPHASE,SBCVNGI) )
-!      ALLOCATE( SWDOLD(NPHASE,SBCVNGI) )
       ALLOCATE( SUD2_ALL(NDIM,NPHASE,SBCVNGI) )
-!      ALLOCATE( SUD2(NPHASE,SBCVNGI) )
-!      ALLOCATE( SVD2(NPHASE,SBCVNGI) )
-!      ALLOCATE( SWD2(NPHASE,SBCVNGI) )
       ALLOCATE( SUDOLD2_ALL(NDIM,NPHASE,SBCVNGI) )
-!      ALLOCATE( SUDOLD2(NPHASE,SBCVNGI) )
-!      ALLOCATE( SVDOLD2(NPHASE,SBCVNGI) )
-!      ALLOCATE( SWDOLD2(NPHASE,SBCVNGI) )
+
       ALLOCATE( SNDOTQ(NPHASE,SBCVNGI) )
       ALLOCATE( SNDOTQOLD(NPHASE,SBCVNGI) )
       ALLOCATE( SNDOTQ_ROE(NPHASE,SBCVNGI) )
@@ -2917,22 +2944,9 @@
       ALLOCATE( SDENOLD2_KEEP(NPHASE,SBCVNGI) )
 
       ALLOCATE( SUD_ALL_KEEP(NDIM,NPHASE,SBCVNGI) )
-!      ALLOCATE( SUD_KEEP(NPHASE,SBCVNGI) )
-!      ALLOCATE( SVD_KEEP(NPHASE,SBCVNGI) )
-!      ALLOCATE( SWD_KEEP(NPHASE,SBCVNGI) )
       ALLOCATE( SUDOLD_ALL_KEEP(NDIM,NPHASE,SBCVNGI) )
-!      ALLOCATE( SUDOLD_KEEP(NPHASE,SBCVNGI) )
-!      ALLOCATE( SVDOLD_KEEP(NPHASE,SBCVNGI) )
-!      ALLOCATE( SWDOLD_KEEP(NPHASE,SBCVNGI) )
-
       ALLOCATE( SUD2_ALL_KEEP(NDIM,NPHASE,SBCVNGI) )
-!      ALLOCATE( SUD2_KEEP(NPHASE,SBCVNGI) )
-!      ALLOCATE( SVD2_KEEP(NPHASE,SBCVNGI) )
-!      ALLOCATE( SWD2_KEEP(NPHASE,SBCVNGI) )
       ALLOCATE( SUDOLD2_ALL_KEEP(NDIM,NPHASE,SBCVNGI) )
-!      ALLOCATE( SUDOLD2_KEEP(NPHASE,SBCVNGI) )
-!      ALLOCATE( SVDOLD2_KEEP(NPHASE,SBCVNGI) )
-!      ALLOCATE( SWDOLD2_KEEP(NPHASE,SBCVNGI) )
 
       ALLOCATE( SNDOTQ_KEEP(NPHASE,SBCVNGI) )
       ALLOCATE( SNDOTQ2_KEEP(NPHASE,SBCVNGI) )
@@ -2960,44 +2974,12 @@
 
       ALLOCATE( SELE_OVERLAP_SCALE( CV_NLOC ) )
 
-
-!      IF(GOT_DIFFUS) THEN
-!         print *,'NDIM, NDIM, U_NLOC, NPHASE, TOTELE:',NDIM, NDIM, U_NLOC, NPHASE, TOTELE
-         ALLOCATE( DUX_ELE_ALL( NDIM_VEL, NDIM, NPHASE, U_NLOC, TOTELE ))
-         ALLOCATE( DUOLDX_ELE_ALL( NDIM_VEL, NDIM, NPHASE, U_NLOC, TOTELE ))
-         ALLOCATE( WORK_ELE_ALL( U_NLOC, NPHASE, TOTELE ))
-!      ENDIF 
-
-
-!      print *,'U_NLOC, NPHASE, TOTELE:',U_NLOC, NPHASE, TOTELE
-!      ALLOCATE( DUX_ELE( U_NLOC, NPHASE, TOTELE ))
-!      ALLOCATE( DUY_ELE( U_NLOC, NPHASE, TOTELE ))
-!      ALLOCATE( DUZ_ELE( U_NLOC, NPHASE, TOTELE ))
-!      ALLOCATE( DVX_ELE( U_NLOC, NPHASE, TOTELE ))
-!      ALLOCATE( DVY_ELE( U_NLOC, NPHASE, TOTELE ))
-!      ALLOCATE( DVZ_ELE( U_NLOC, NPHASE, TOTELE ))
-!      ALLOCATE( DWX_ELE( U_NLOC, NPHASE, TOTELE ))
-!      ALLOCATE( DWY_ELE( U_NLOC, NPHASE, TOTELE ))
-!      ALLOCATE( DWZ_ELE( U_NLOC, NPHASE, TOTELE ))
-
-!      ALLOCATE( DUOLDX_ELE( U_NLOC, NPHASE, TOTELE ))
-!      ALLOCATE( DUOLDY_ELE( U_NLOC, NPHASE, TOTELE ))
-!      ALLOCATE( DUOLDZ_ELE( U_NLOC, NPHASE, TOTELE ))
-!      ALLOCATE( DVOLDX_ELE( U_NLOC, NPHASE, TOTELE ))
-!      ALLOCATE( DVOLDY_ELE( U_NLOC, NPHASE, TOTELE ))
-!      ALLOCATE( DVOLDZ_ELE( U_NLOC, NPHASE, TOTELE ))
-!      ALLOCATE( DWOLDX_ELE( U_NLOC, NPHASE, TOTELE ))
-!      ALLOCATE( DWOLDY_ELE( U_NLOC, NPHASE, TOTELE ))
-!      ALLOCATE( DWOLDZ_ELE( U_NLOC, NPHASE, TOTELE ))
-
-
-!      ALLOCATE( DUOLDX_ELE_ALL( NDIM, NDIM_VEL, U_NLOC, NPHASE, TOTELE ))
-
-
+      ALLOCATE( DUX_ELE_ALL( NDIM_VEL, NDIM, NPHASE, U_NLOC, TOTELE ))
+      ALLOCATE( DUOLDX_ELE_ALL( NDIM_VEL, NDIM, NPHASE, U_NLOC, TOTELE ))
+      ALLOCATE( WORK_ELE_ALL( U_NLOC, NPHASE, TOTELE ))
 
       ALLOCATE( GRAD_SOU_GI_NMX( NDIM_VEL, NPHASE ))
-      !ALLOCATE( GRAD_SOU_GI_NMY( NPHASE ))
-      !ALLOCATE( GRAD_SOU_GI_NMZ( NPHASE ))
+ 
 
       ALLOCATE( MASS_ELE( TOTELE ))
       MASS_ELE=0.0
@@ -3011,9 +2993,8 @@
 
       ALLOCATE( DIFFGI_U(NDIM_VEL,NPHASE,CV_NGI) )
 
-      ALLOCATE( U_DT(NDIM_VEL, NPHASE,CV_NGI) ) !NDIM_VEL , U_DX(CV_NGI,NPHASE), U_DY(CV_NGI,NPHASE), U_DZ(CV_NGI,NPHASE) )
-      !ALLOCATE( V_DT(NPHASE,CV_NGI) ) !, V_DX(CV_NGI,NPHASE), V_DY(CV_NGI,NPHASE), V_DZ(CV_NGI,NPHASE) )
-      !ALLOCATE( W_DT(NPHASE,CV_NGI) ) !, W_DX(CV_NGI,NPHASE), W_DY(CV_NGI,NPHASE), W_DZ(CV_NGI,NPHASE) )
+      ALLOCATE( U_DT(NDIM_VEL, NPHASE,CV_NGI) )
+    
 
       ALLOCATE( U_DX_ALL( NDIM, NDIM_VEL, NPHASE, CV_NGI ) )
       ALLOCATE( UOLD_DX_ALL( NDIM, NDIM_VEL, NPHASE, CV_NGI ) )
@@ -3022,20 +3003,19 @@
       ALLOCATE( VOLD_DX(CV_NGI,NPHASE), VOLD_DY(CV_NGI,NPHASE), VOLD_DZ(CV_NGI,NPHASE) )
       ALLOCATE( WOLD_DX(CV_NGI,NPHASE), WOLD_DY(CV_NGI,NPHASE), WOLD_DZ(CV_NGI,NPHASE) )
 
-      ALLOCATE( SOUGI_X(NDIM_VEL,NPHASE,CV_NGI) )   !, SOUGI_Y(CV_NGI,NPHASE), SOUGI_Z(CV_NGI,NPHASE) )
+      ALLOCATE( SOUGI_X(NDIM_VEL,NPHASE,CV_NGI) )
 
-      !ALLOCATE( RESID( NDIM_VEL,NPHASE,CV_NGI ) )
-      ALLOCATE( RESID_U(NDIM_VEL,NPHASE,CV_NGI) )   ! NDIM_VEL, RESID_V(CV_NGI,NPHASE), RESID_W(CV_NGI,NPHASE) )
-      ALLOCATE( P_DX(NDIM, CV_NGI)  )    ! NDIM , P_DY(CV_NGI), P_DZ(CV_NGI) )
+     
+      ALLOCATE( RESID_U(NDIM_VEL,NPHASE,CV_NGI) )
+      ALLOCATE( P_DX(NDIM, CV_NGI)  )
 
       ALLOCATE( U_GRAD_NORM2(NDIM_VEL,NPHASE,CV_NGI), U_GRAD_NORM(NDIM_VEL,NPHASE,CV_NGI) )
-      !ALLOCATE( V_GRAD_NORM2(CV_NGI,NPHASE), V_GRAD_NORM(CV_NGI,NPHASE) )
-      !ALLOCATE( W_GRAD_NORM2(CV_NGI,NPHASE), W_GRAD_NORM(CV_NGI,NPHASE) )
 
-      ALLOCATE( A_DOT_U(NDIM_VEL,NPHASE,CV_NGI) )   !, A_DOT_V(CV_NGI,NPHASE),A_DOT_W(CV_NGI,NPHASE) )
-      ALLOCATE( STAR_U_COEF(NDIM_VEL,NPHASE,CV_NGI)   ) !, STAR_V_COEF(CV_NGI,NPHASE), STAR_W_COEF(CV_NGI,NPHASE) )
-      ALLOCATE( P_STAR_U(NDIM_VEL,NPHASE,CV_NGI) )  !, P_STAR_V(CV_NGI,NPHASE), P_STAR_W(CV_NGI,NPHASE) )
-      ALLOCATE( DIF_STAB_U(NDIM_VEL,NPHASE, CV_NGI) )  !, DIF_STAB_V(CV_NGI,NPHASE), DIF_STAB_W(CV_NGI,NPHASE) )
+
+      ALLOCATE( A_DOT_U(NDIM_VEL,NPHASE,CV_NGI) )     
+      ALLOCATE( STAR_U_COEF(NDIM_VEL,NPHASE,CV_NGI) )
+      ALLOCATE( P_STAR_U(NDIM_VEL,NPHASE,CV_NGI) )
+      ALLOCATE( DIF_STAB_U(NDIM_VEL,NPHASE, CV_NGI) )
 
 
       ALLOCATE( U_R2_COEF( NDIM_VEL ) )
@@ -4092,89 +4072,41 @@
                END DO
             ENDIF
 
-
-
             ! The surface nodes on element face IFACE. 
             U_SLOC2LOC( : ) = U_SLOCLIST( IFACE, : )
             CV_SLOC2LOC( : ) = CV_SLOCLIST( IFACE, : )
 
 
             ! Recalculate the normal...
-            DO CV_ILOC=1,CV_NLOC
-               X_INOD=X_NDGLN((ELE-1)*X_NLOC+CV_ILOC) 
-               XL_ALL(1,CV_ILOC)=X(X_INOD)
-               IF(NDIM.GE.2) XL_ALL(2,CV_ILOC)=Y(X_INOD)
-               IF(NDIM.GE.3) XL_ALL(3,CV_ILOC)=Z(X_INOD)
+            DO CV_ILOC = 1, CV_NLOC
+               X_INOD = X_NDGLN( (ELE-1)*X_NLOC + CV_ILOC ) 
+               XL_ALL(1,CV_ILOC) = X_ALL( 1, X_INOD )
+               IF(NDIM.GE.2) XL_ALL(2,CV_ILOC) = X_ALL( 2, X_INOD )
+               IF(NDIM.GE.3) XL_ALL(3,CV_ILOC) = X_ALL( 3, X_INOD )
             END DO
 
             ! Recalculate the normal...
-            DO CV_SILOC=1,CV_SNLOC
-               CV_ILOC=CV_SLOC2LOC(CV_SILOC)
-               X_INOD=X_NDGLN((ELE-1)*X_NLOC+CV_ILOC) 
-               XSL(CV_SILOC)=X(X_INOD)
-               YSL(CV_SILOC)=Y(X_INOD)
-               ZSL(CV_SILOC)=Z(X_INOD)
+            DO CV_SILOC = 1, CV_SNLOC
+               CV_ILOC = CV_SLOC2LOC( CV_SILOC )
+               X_INOD = X_NDGLN( (ELE-1)*X_NLOC + CV_ILOC )
 
-               XSL_ALL(1,CV_SILOC)=X(X_INOD)
-               IF(NDIM.GE.2) XSL_ALL(2,CV_SILOC)=Y(X_INOD)
-               IF(NDIM.GE.3) XSL_ALL(3,CV_SILOC)=Z(X_INOD)
-               !ewrite(3,*)'CV_SILOC,x,y,z:',CV_SILOC,XSL(CV_SILOC),ySL(CV_SILOC),zSL(CV_SILOC)
+               XSL_ALL( 1, CV_SILOC ) = X_ALL( 1, X_INOD )
+               IF(NDIM.GE.2) XSL_ALL( 2, CV_SILOC ) = X_ALL( 2, X_INOD )
+               IF(NDIM.GE.3) XSL_ALL( 3, CV_SILOC ) = X_ALL( 3, X_INOD )
             END DO
 
-            ! Form approximate surface normal (NORMX,NORMY,NORMZ)
-            if(.true.) then
-               CALL DGSIMPLNORM( ELE, CV_SLOC2LOC, TOTELE, CV_NLOC, CV_SNLOC, X_NDGLN, &
-                    X, Y, Z, X_NONODS, NORMX, NORMY, NORMZ )
-               NORMX_ALL(1)=NORMX
-               IF(NDIM.GE.2) NORMX_ALL(2)=NORMY
-               IF(NDIM.GE.3) NORMX_ALL(3)=NORMZ
-            else
+            CALL DGSIMPLNORM_ALL( CV_NLOC, CV_SNLOC, NDIM, &
+                 XL_ALL, XSL_ALL, NORMX_ALL )
 
-               !            CALL DGSIMPLNORM_ALL( CV_NLOC, CV_SNLOC, NDIM, &
-               !                 XL_ALL, XSL_ALL, NORMX_ALL )
-               DO IDIM = 1, NDIM
-                  NORMX_ALL(IDIM) = SUM( XSL_ALL( IDIM, : ) )/ REAL( CV_SNLOC ) - SUM( XL_ALL( IDIM, : ) ) / REAL( CV_NLOC )   
-               END DO
-               NORMX_ALL(:) = NORMX_ALL(:) / SQRT( SUM(NORMX_ALL(:)**2) )
+            CALL DGSDETNXLOC2_ALL(CV_SNLOC, SBCVNGI, NDIM, &
+                 XSL_ALL, &
+                 SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, SDETWE, SAREA, &
+                 SNORMXN_ALL, &
+                 NORMX_ALL)
 
-               NORMX=NORMX_ALL(1)
-               IF(NDIM.GE.2) NORMY=NORMX_ALL(2)
-               IF(NDIM.GE.3) NORMZ=NORMX_ALL(3)
-
-               !              print *,'before NORMX,NORMY:',NORMX,NORMY  
-               !            CALL DGSIMPLNORM( ELE, CV_SLOC2LOC, TOTELE, CV_NLOC, CV_SNLOC, X_NDGLN, &
-               !                 X, Y, Z, X_NONODS, NORMX, NORMY, NORMZ )
-               !           if(abs(NORMX_ALL(1)-NORMX) + abs(NORMX_ALL(2)-NORMY).gt.0.001) then
-               !              print *,'after NORMX_ALL(1),NORMX_ALL(2):',NORMX_ALL(1),NORMX_ALL(2)
-               !              print *,'after NORMX,NORMY:',NORMX,NORMY
-               !              stop 2821
-               !           endif
-            endif
-
-            if(.true.) then
-               CALL DGSDETNXLOC2(CV_SNLOC,SBCVNGI, &
-                    XSL,YSL,ZSL, &
-                    SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, SDETWE,SAREA, &
-                    (NDIM==1), (NDIM==3), (NDIM==-2), &
-                    SNORMXN,SNORMYN,SNORMZN, &
-                    NORMX,NORMY,NORMZ)
-               SNORMXN_ALL(1,:)=SNORMXN
-               IF(NDIM.GE.2) SNORMXN_ALL(2,:)=SNORMYN
-               IF(NDIM.GE.3) SNORMXN_ALL(3,:)=SNORMZN
-            else
-               CALL DGSDETNXLOC2_ALL(CV_SNLOC, SBCVNGI, NDIM, &
-                    XSL_ALL, &
-                    SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, SDETWE, SAREA, &
-                    SNORMXN_ALL, &
-                    NORMX_ALL)
-
-               SNORMXN(:)=SNORMXN_ALL(1,:)
-               IF(NDIM.GE.2) SNORMYN(:)=SNORMXN_ALL(2,:)
-               IF(NDIM.GE.3) SNORMZN(:)=SNORMXN_ALL(3,:)
-            endif
-
-            !ewrite(3,*)'sarea=',sarea
-            !stop 8821
+            SNORMXN(:) = SNORMXN_ALL(1,:)
+            IF(NDIM.GE.2) SNORMYN(:) = SNORMXN_ALL(2,:)
+            IF(NDIM.GE.3) SNORMZN(:) = SNORMXN_ALL(3,:)
 
 
             If_ele2_notzero_1: IF(ELE2 /= 0) THEN
@@ -4518,25 +4450,18 @@
 
                If_diffusion_or_momentum2: IF(GOT_DIFFUS .OR. GOT_UDEN) THEN
                   ! Calculate distance between centres of elements HDC
-                  XC=0.0
-                  YC=0.0
-                  ZC=0.0
-                  XC2=0.0
-                  YC2=0.0
-                  ZC2=0.0
-                  DO X_ILOC=1,X_NLOC
-                     X_INOD =X_NDGLN((ELE-1) *X_NLOC+X_ILOC)
-                     X_INOD2=X_NDGLN((ELE2-1)*X_NLOC+X_ILOC)
-
-                     XC=XC+X(X_INOD)/REAL(X_NLOC)
-                     YC=YC+Y(X_INOD)/REAL(X_NLOC)
-                     ZC=ZC+Z(X_INOD)/REAL(X_NLOC)
-
-                     XC2=XC2+X(X_INOD2)/REAL(X_NLOC)
-                     YC2=YC2+Y(X_INOD2)/REAL(X_NLOC)
-                     ZC2=ZC2+Z(X_INOD2)/REAL(X_NLOC)
+                  DO CV_ILOC = 1, CV_NLOC
+                     X_INOD = X_NDGLN( (ELE2-1)*X_NLOC + CV_ILOC ) 
+                     XL2_ALL(1,CV_ILOC) = X_ALL( 1, X_INOD )
+                     IF(NDIM.GE.2) XL2_ALL(2,CV_ILOC) = X_ALL( 2, X_INOD )
+                     IF(NDIM.GE.3) XL2_ALL(3,CV_ILOC) = X_ALL( 3, X_INOD )
                   END DO
-                  HDC=SQRT((XC-XC2)**2+(YC-YC2)**2+(ZC-ZC2)**2)
+
+                  DO IDIM = 1, NDIM
+                     C1 ( IDIM ) = SUM( XL_ALL( IDIM, : ) ) / REAL( X_NLOC )
+                     C2 ( IDIM ) = SUM( XL2_ALL( IDIM, : ) ) / REAL( X_NLOC )
+                  END DO
+                  HDC = SQRT( SUM( ( C1 - C2 )**2 ) )    
 
                   SUD2_ALL=0.0
                   SUDOLD2_ALL=0.0
@@ -4757,7 +4682,7 @@
                   DO IPHASE=1, NPHASE
                      DO IDIM=1, NDIM_VEL
 
-                        !                     FTHETA( SGI,IDIM,IPHASE )=0.5 !1.0  - should be 1. as there is no theta set for the internal part of an element.
+                        !FTHETA( SGI,IDIM,IPHASE )=0.5 !1.0  - should be 1. as there is no theta set for the internal part of an element.
                         FTHETA( IDIM,IPHASE,SGI )=1.0 ! 0.5
 
                         ! CENT_RELAX=1.0 (central scheme) =0.0 (upwind scheme). 
@@ -4993,6 +4918,8 @@
          !! *************************end loop over surfaces*********************************************
 
 
+
+
          ! ideally insert inner element stabilization here... 
 
          ! copy local memory
@@ -5005,6 +4932,8 @@
                END DO
             END DO
          END DO
+
+
 
          !      END DO Loop_Elements
       END DO Loop_Elements2
@@ -5179,57 +5108,35 @@
 
       DEALLOCATE( SELE_OVERLAP_SCALE )
 
-!      DEALLOCATE( DUX_ELE, DUY_ELE, DUZ_ELE )
-!      DEALLOCATE( DVX_ELE, DVY_ELE, DVZ_ELE )
-!      DEALLOCATE( DWX_ELE, DWY_ELE, DWZ_ELE )
-
-!      DEALLOCATE( DUOLDX_ELE, DUOLDY_ELE, DUOLDZ_ELE )
-!      DEALLOCATE( DVOLDX_ELE, DVOLDY_ELE, DVOLDZ_ELE )
-!      DEALLOCATE( DWOLDX_ELE, DWOLDY_ELE, DWOLDZ_ELE )
 
       DEALLOCATE( GRAD_SOU_GI_NMX )
-      !DEALLOCATE( GRAD_SOU_GI_NMY )
-      !DEALLOCATE( GRAD_SOU_GI_NMZ )
 
       DEALLOCATE( MASS_ELE )
       DEALLOCATE( FACE_ELE )
-      !CALL MATMASSINV( MASINV, MMAT, U_NONODS, U_NLOC, TOTELE)
 
       ! Deallocating for non-linear Petrov-Galerkin diffusion stabilization...
       DEALLOCATE( LOC_MASS_INV )
       DEALLOCATE( LOC_MASS )
       DEALLOCATE( RHS_DIFF_U )
-      !DEALLOCATE( RHS_DIFF_V )
-      !DEALLOCATE( RHS_DIFF_W )
+ 
 
       DEALLOCATE( DIFF_VEC_U )
-      !DEALLOCATE( DIFF_VEC_V )
-      !DEALLOCATE( DIFF_VEC_W )
+  
 
       DEALLOCATE( DIFFGI_U )
 
-      DEALLOCATE( U_DT ) !, U_DX, U_DY, U_DZ )
-      !DEALLOCATE( V_DT ) !, V_DX, V_DY, V_DZ )
-      !DEALLOCATE( W_DT ) !, W_DX, W_DY, W_DZ )
+      DEALLOCATE( U_DT )
 
-      !DEALLOCATE( UOLD_DX, UOLD_DY, UOLD_DZ )
-      !DEALLOCATE( VOLD_DX, VOLD_DY, VOLD_DZ )
-      !DEALLOCATE( WOLD_DX, WOLD_DY, WOLD_DZ )
-
-      DEALLOCATE( SOUGI_X )  !, SOUGI_Y, SOUGI_Z )
-
-      !DEALLOCATE( RESID )
-      DEALLOCATE( RESID_U)   !, RESID_V, RESID_W )
-      DEALLOCATE( P_DX ) !, P_DY, P_DZ )
+      DEALLOCATE( SOUGI_X )
+      DEALLOCATE( RESID_U)
+      DEALLOCATE( P_DX )
 
       DEALLOCATE( U_GRAD_NORM2, U_GRAD_NORM )
-      !DEALLOCATE( V_GRAD_NORM2, V_GRAD_NORM )
-      !DEALLOCATE( W_GRAD_NORM2, W_GRAD_NORM )
 
-      DEALLOCATE( A_DOT_U )  !  , A_DOT_V,A_DOT_W )
-      DEALLOCATE( STAR_U_COEF )  !, STAR_V_COEF, STAR_W_COEF )
-      DEALLOCATE( P_STAR_U ) !  , P_STAR_V, P_STAR_W )
-      DEALLOCATE( DIF_STAB_U )  !, DIF_STAB_V, DIF_STAB_W )
+      DEALLOCATE( A_DOT_U )  
+      DEALLOCATE( STAR_U_COEF )
+      DEALLOCATE( P_STAR_U )   
+      DEALLOCATE( DIF_STAB_U )
 
       DEALLOCATE( UDIFF_SUF_STAB )
 
@@ -5237,7 +5144,6 @@
 
 
       ewrite(3,*)'Leaving assemb_force_cty'
-      !stop 98123
 
       RETURN
 
