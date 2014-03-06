@@ -4140,6 +4140,7 @@
                NORMX=NORMX_ALL(1)
                IF(NDIM.GE.2) NORMY=NORMX_ALL(2)
                IF(NDIM.GE.3) NORMZ=NORMX_ALL(3)
+
                !              print *,'before NORMX,NORMY:',NORMX,NORMY  
                !            CALL DGSIMPLNORM( ELE, CV_SLOC2LOC, TOTELE, CV_NLOC, CV_SNLOC, X_NDGLN, &
                !                 X, Y, Z, X_NONODS, NORMX, NORMY, NORMZ )

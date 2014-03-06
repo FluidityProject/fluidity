@@ -9504,39 +9504,39 @@ pure real function ptolfun(value)
              END DO
           ENDIF
 
-          N_DOT_DKDU=0.0
-          N_DOT_DKDUOLD=0.0
-          DO SGI=1,SBCVNGI
-             DO IPHASE=1, NPHASE
-                DO IDIM_VEL=1,NDIM_VEL
-           
-                   DO IDIM=1,NDIM 
-                      N_DOT_DKDU(IDIM_VEL,IPHASE,SGI)   =N_DOT_DKDU(IDIM_VEL,IPHASE,SGI)    + SNORMXN_ALL(IDIM,SGI)*SUM( DIFF_GI_BOTH(IDIM_VEL,IDIM,:,IPHASE,SGI)*DUDX_ALL_GI(IDIM_VEL,:,IPHASE,SGI) )  
-                      N_DOT_DKDUOLD(IDIM_VEL,IPHASE,SGI)=N_DOT_DKDUOLD(IDIM_VEL,IPHASE,SGI) + SNORMXN_ALL(IDIM,SGI)*SUM( DIFF_GI_BOTH(IDIM_VEL,IDIM,:,IPHASE,SGI)*DUOLDDX_ALL_GI(IDIM_VEL,:,IPHASE,SGI) )  
-                   END DO
-
-                END DO
-             END DO
-          END DO
 
 
           IF(STRESS_FORM) THEN
-
+! stress form needs to add this...
+             N_DOT_DKDU=0.0
+             N_DOT_DKDUOLD=0.0
              DO SGI=1,SBCVNGI
-                DO IPHASE=1,NPHASE
-                   CALL CALC_STRESS_TEN( STRESS_INDEX(:,:,IPHASE,SGI), ZERO_OR_TWO_THIRDS, NDIM,   &
-                      SNORMXN_ALL(:,SGI), DUDX_ALL_GI(:,:,IPHASE,SGI),  DIFF_GI( : , :, IPHASE, SGI ) )
+                DO IPHASE=1, NPHASE
+                   DO IDIM_VEL=1,NDIM_VEL
+           
+                      DO IDIM=1,NDIM 
+! tensor form...
+                         N_DOT_DKDU(IDIM_VEL,IPHASE,SGI)   =N_DOT_DKDU(IDIM_VEL,IPHASE,SGI)    + SNORMXN_ALL(IDIM,SGI)*SUM( DIFF_GI_BOTH(IDIM_VEL,IDIM,:,IPHASE,SGI)*DUDX_ALL_GI(IDIM_VEL,:,IPHASE,SGI) )  & 
+! stress form addition...  
+                                                                                               + SNORMXN_ALL(IDIM,SGI)*SUM( DIFF_GI(IDIM,:,IPHASE,SGI)*DUDX_ALL_GI(:,IDIM_VEL,IPHASE,SGI) ) & 
+! stress form addition...  
+                                                                            + ZERO_OR_TWO_THIRDS*SNORMXN_ALL(IDIM_VEL,SGI)*DIFF_GI(IDIM_VEL,IDIM_VEL,IPHASE,SGI)*DUDX_ALL_GI(IDIM,IDIM,IPHASE,SGI) 
+! tensor form...
+                         N_DOT_DKDUOLD(IDIM_VEL,IPHASE,SGI)=N_DOT_DKDUOLD(IDIM_VEL,IPHASE,SGI) + SNORMXN_ALL(IDIM,SGI)*SUM( DIFF_GI_BOTH(IDIM_VEL,IDIM,:,IPHASE,SGI)*DUOLDDX_ALL_GI(IDIM_VEL,:,IPHASE,SGI) ) & 
+! stress form addition...  
+                                                                                               + SNORMXN_ALL(IDIM,SGI)*SUM( DIFF_GI(IDIM,:,IPHASE,SGI)*DUOLDDX_ALL_GI(:,IDIM_VEL,IPHASE,SGI) ) & 
+! stress form addition...  
+                                                                            + ZERO_OR_TWO_THIRDS*SNORMXN_ALL(IDIM_VEL,SGI)*DIFF_GI(IDIM_VEL,IDIM_VEL,IPHASE,SGI)*DUOLDDX_ALL_GI(IDIM,IDIM,IPHASE,SGI)   
+                      END DO
 
-                   CALL CALC_STRESS_TEN( STRESS_INDEXOLD(:,:,IPHASE,SGI), ZERO_OR_TWO_THIRDS, NDIM, &
-                      SNORMXN_ALL(:,SGI), DUOLDDX_ALL_GI(:,:,IPHASE,SGI),  DIFF_GI( : , :, IPHASE, SGI ) )
+                   END DO
                 END DO
              END DO
+
 
              DO SGI=1,SBCVNGI
                DO IPHASE=1,NPHASE
                   DO IDIM=1,NDIM_VEL
-                     N_DOT_DKDU(IDIM,IPHASE,SGI)   =N_DOT_DKDU(IDIM,IPHASE,SGI)     + SUM( STRESS_INDEX(IDIM,:,IPHASE,SGI) )  
-                     N_DOT_DKDUOLD(IDIM,IPHASE,SGI)=N_DOT_DKDUOLD(IDIM,IPHASE,SGI)  + SUM( STRESS_INDEXOLD(IDIM,:,IPHASE,SGI) ) 
          ! This is the minimum diffusion...
                       DIFF_STAND_DIVDX_U(IDIM,IPHASE,SGI) = 8.*( SUM( (1.+IDENT(IDIM,:))*SNORMXN_ALL(:,SGI)**2*DIFF_GI(IDIM,:,IPHASE,SGI) ) &
                                                   + DIFF_GI_ADDED(IDIM, 1,1, IPHASE,SGI) ) /HDC
@@ -9544,7 +9544,23 @@ pure real function ptolfun(value)
                END DO
             END DO
 
-          ELSE
+          ELSE  ! IF(STRESS_FORM) THEN
+! tensor form...
+             N_DOT_DKDU=0.0
+             N_DOT_DKDUOLD=0.0
+             DO SGI=1,SBCVNGI
+                DO IPHASE=1, NPHASE
+                   DO IDIM_VEL=1,NDIM_VEL
+           
+                      DO IDIM=1,NDIM 
+                         N_DOT_DKDU(IDIM_VEL,IPHASE,SGI)   =N_DOT_DKDU(IDIM_VEL,IPHASE,SGI)    + SNORMXN_ALL(IDIM,SGI)*SUM( DIFF_GI_BOTH(IDIM_VEL,IDIM,:,IPHASE,SGI)*DUDX_ALL_GI(IDIM_VEL,:,IPHASE,SGI) )  
+                         N_DOT_DKDUOLD(IDIM_VEL,IPHASE,SGI)=N_DOT_DKDUOLD(IDIM_VEL,IPHASE,SGI) + SNORMXN_ALL(IDIM,SGI)*SUM( DIFF_GI_BOTH(IDIM_VEL,IDIM,:,IPHASE,SGI)*DUOLDDX_ALL_GI(IDIM_VEL,:,IPHASE,SGI) )  
+                      END DO
+
+                  END DO
+                END DO
+             END DO
+
              DO SGI=1,SBCVNGI
                 DO IPHASE=1, NPHASE
                    COEF=0.0
