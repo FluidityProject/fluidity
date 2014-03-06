@@ -9547,14 +9547,14 @@ pure real function ptolfun(value)
                                                            + SUM( SNORMXN_ALL(:,SGI)*DIFF_GI(IDIM_VEL,:,IPHASE,SGI)*DUDX_ALL_GI(IDIM_VEL,:,IPHASE,SGI) )  & 
                                                            + SUM( SNORMXN_ALL(:,SGI)*DIFF_GI(IDIM_VEL,:,IPHASE,SGI)*DUDX_ALL_GI(:,IDIM_VEL,IPHASE,SGI) ) & 
 ! stress form addition...  
-                                                           + ZERO_OR_TWO_THIRDS*SNORMXN_ALL(IDIM_VEL,SGI)*DIFF_GI(IDIM_VEL,IDIM_VEL,IPHASE,SGI)*DIVU
+                                                           - ZERO_OR_TWO_THIRDS*SNORMXN_ALL(IDIM_VEL,SGI)*DIFF_GI(IDIM_VEL,IDIM_VEL,IPHASE,SGI)*DIVU
 
 ! Stress form...
                          N_DOT_DKDUOLD(IDIM_VEL,IPHASE,SGI)= N_DOT_DKDUOLD(IDIM_VEL,IPHASE,SGI) &
                                                            + SUM( SNORMXN_ALL(:,SGI)*DIFF_GI(IDIM_VEL,:,IPHASE,SGI)*DUOLDDX_ALL_GI(IDIM_VEL,:,IPHASE,SGI) )  & 
                                                            + SUM( SNORMXN_ALL(:,SGI)*DIFF_GI(IDIM_VEL,:,IPHASE,SGI)*DUOLDDX_ALL_GI(:,IDIM_VEL,IPHASE,SGI) ) & 
 ! stress form addition...  
-                                                           + ZERO_OR_TWO_THIRDS*SNORMXN_ALL(IDIM_VEL,SGI)*DIFF_GI(IDIM_VEL,IDIM_VEL,IPHASE,SGI)*DIVUOLD
+                                                           - ZERO_OR_TWO_THIRDS*SNORMXN_ALL(IDIM_VEL,SGI)*DIFF_GI(IDIM_VEL,IDIM_VEL,IPHASE,SGI)*DIVUOLD
                                    
 ! This is for the minimum & max. diffusion...
                          DIFF_STAND_DIVDX_U(IDIM_VEL,IPHASE,SGI)   =  DIFF_STAND_DIVDX_U(IDIM_VEL,IPHASE,SGI) &
@@ -9591,7 +9591,8 @@ pure real function ptolfun(value)
              ! ENDOF IF(STRESS_FORM) THEN ELSE...
           ENDIF
 ! just in case...
-          DIFF_STAND_DIVDX_U=abs( DIFF_STAND_DIVDX_U )
+! the factor of 8 is there to take into account that HD is measured between centres of elements...
+          DIFF_STAND_DIVDX_U=abs( 8.*DIFF_STAND_DIVDX_U )
 
         RETURN
 
