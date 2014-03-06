@@ -653,7 +653,7 @@
            U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
            U_NDGLN, CV_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN, &
            STOTEL, U_SNDGLN, CV_SNDGLN, CV_SNDGLN, U_SNLOC, CV_SNLOC, CV_SNLOC, &
-           X_ALL, X, Y, Z, RZERO, T_ABSORB, T_SOURCE, RDUM, &
+           X_ALL, RZERO, T_ABSORB, T_SOURCE, RDUM, &
            T_IN, TOLD_IN, &
            U_ALL, UOLD_ALL, &
            DEN, DENOLD, &
@@ -2223,7 +2223,7 @@
            U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
            U_NDGLN, P_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN, &
            STOTEL, U_SNDGLN, P_SNDGLN, CV_SNDGLN, U_SNLOC, P_SNLOC, CV_SNLOC, &
-           X_ALL, X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
+           X_ALL, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
            U_ALL, UOLD_ALL, &
            U_ALL, UOLD_ALL, &    ! This is nu...
            UDEN, UDENOLD, &
@@ -2472,7 +2472,7 @@
          U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
          U_NDGLN, P_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN, &
          STOTEL, U_SNDGLN, P_SNDGLN, CV_SNDGLN, U_SNLOC, P_SNLOC, CV_SNLOC, &
-         X_ALL, X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
+         X_ALL, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
          U_ALL, UOLD_ALL, &
          NU_ALL, NUOLD_ALL, &
          UDEN, UDENOLD, &
@@ -2521,7 +2521,6 @@
       REAL, DIMENSION( :), intent( in ) :: SUF_U_BC_ROB1, SUF_U_BC_ROB2, &
            SUF_V_BC_ROB1, SUF_V_BC_ROB2, SUF_W_BC_ROB1, SUF_W_BC_ROB2
       REAL, DIMENSION( :, : ), intent( in ) :: X_ALL
-      REAL, DIMENSION( : ), intent( in ) :: X,Y,Z
 
       REAL, DIMENSION( : ,  : ,  : ), intent( in ) :: U_ABS_STAB
       REAL, DIMENSION( :, :, : ), intent( in ) :: U_ABSORB
@@ -2591,7 +2590,7 @@
            SUFEN, SUFENSLX, SUFENSLY, SUFENLX, SUFENLY, SUFENLZ, &
            SBCVN, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFENLX, SBCVFENLY, SBCVFENLZ, &
            SBUFEN, SBUFENSLX, SBUFENSLY, SBUFENLX, SBUFENLY, SBUFENLZ
-!      REAL, DIMENSION ( : , :,  :, :, : ), allocatable :: DUX_ELE_ALL, DUOLDX_ELE_ALL   
+      REAL, DIMENSION( : ), allocatable :: X, Y, Z
       REAL, DIMENSION ( : , :,  : ), allocatable :: SIGMAGI, SIGMAGI_STAB,&
            DUX_ELE, DUY_ELE, DUZ_ELE, DUOLDX_ELE, DUOLDY_ELE, DUOLDZ_ELE, &
            DVX_ELE, DVY_ELE, DVZ_ELE, DVOLDX_ELE, DVOLDY_ELE, DVOLDZ_ELE, &
@@ -3084,6 +3083,20 @@
       ALLOCATE( U_NODJ_SGI_IPHASE_ALL(NDIM_VEL,NPHASE,SBCVNGI) )
       ALLOCATE( UOLD_NODI_SGI_IPHASE_ALL(NDIM_VEL,NPHASE,SBCVNGI) )
       ALLOCATE( UOLD_NODJ_SGI_IPHASE_ALL(NDIM_VEL,NPHASE,SBCVNGI) )  
+
+      ALLOCATE( X(X_NONODS), Y(X_NONODS), Z(X_NONODS) ) ; X=0. ; Y=0. ; Z=0.  
+
+      DO IDIM = 1, NDIM
+         IF ( IDIM == 1 ) THEN
+            X = X_ALL( IDIM, : )
+         ELSE IF ( IDIM == 2 ) THEN
+            Y = X_ALL( IDIM, : )
+         ELSE
+            Z = X_ALL( IDIM, : )
+         END IF
+      END DO
+
+
 
       ! temprorarily rearrange boundary condition memory...
       do sele = 1, stotel
