@@ -3739,8 +3739,6 @@
                ! put CV source in...
                Loop_CVNods2: DO CV_JLOC = 1 , CV_NLOC
 
-                  GLOBJ = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_JLOC )
-
                   NM = SUM( UFEN( U_ILOC, : ) * CVN( CV_JLOC,  : ) * DETWEI( : ) )
 
                   IF ( LUMP_MASS ) THEN
@@ -3758,7 +3756,7 @@
                END DO LOOP_CVNODS2
 
                Loop_DGNods2: DO U_JLOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
-                  GLOBJ = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_JLOC )
+!                  GLOBJ = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_JLOC )
 
                   NN = 0.0
                   VLN = 0.0
@@ -3906,10 +3904,10 @@
          ! Add in C matrix contribution: (DG velocities)
          Loop_ILEV1: DO ILEV = 1, NLEV
             Loop_U_ILOC1: DO U_ILOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
-               IU_NOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
+               if(.not.got_c_matrix) IU_NOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
 
                Loop_P_JLOC1: DO P_JLOC = 1, P_NLOC
-                  JCV_NOD = P_NDGLN( ( ELE - 1 ) * P_NLOC + P_JLOC )
+                  if(.not.got_c_matrix) JCV_NOD = P_NDGLN( ( ELE - 1 ) * P_NLOC + P_JLOC )
 
                   NMX_ALL = 0.0 
                   GRAD_SOU_GI_NMX = 0.0
@@ -4240,9 +4238,6 @@
             DO CV_ILOC = 1, CV_NLOC
                X_INOD = X_NDGLN( (ELE-1)*X_NLOC + CV_ILOC ) 
                XL_ALL(:,CV_ILOC) = X_ALL( :, X_INOD )
-!               XL_ALL(1,CV_ILOC) = X_ALL( 1, X_INOD )
-!               IF(NDIM.GE.2) XL_ALL(2,CV_ILOC) = X_ALL( 2, X_INOD )
-!               IF(NDIM.GE.3) XL_ALL(3,CV_ILOC) = X_ALL( 3, X_INOD )
             END DO
 
             ! Recalculate the normal...
@@ -4251,9 +4246,6 @@
                X_INOD = X_NDGLN( (ELE-1)*X_NLOC + CV_ILOC )
 
                XSL_ALL( :, CV_SILOC ) = X_ALL( :, X_INOD )
-!               XSL_ALL( 1, CV_SILOC ) = X_ALL( 1, X_INOD )
-!               IF(NDIM.GE.2) XSL_ALL( 2, CV_SILOC ) = X_ALL( 2, X_INOD )
-!               IF(NDIM.GE.3) XSL_ALL( 3, CV_SILOC ) = X_ALL( 3, X_INOD )
             END DO
 
             CALL DGSIMPLNORM_ALL( CV_NLOC, CV_SNLOC, NDIM, &
@@ -4265,9 +4257,9 @@
                  SNORMXN_ALL, &
                  NORMX_ALL)
 
-            SNORMXN(:) = SNORMXN_ALL(1,:)
-            IF(NDIM.GE.2) SNORMYN(:) = SNORMXN_ALL(2,:)
-            IF(NDIM.GE.3) SNORMZN(:) = SNORMXN_ALL(3,:)
+!            SNORMXN(:) = SNORMXN_ALL(1,:)
+!            IF(NDIM.GE.2) SNORMYN(:) = SNORMXN_ALL(2,:)
+!            IF(NDIM.GE.3) SNORMZN(:) = SNORMXN_ALL(3,:)
 
 
             If_ele2_notzero_1: IF(ELE2 /= 0) THEN
@@ -4439,13 +4431,13 @@
 
                   if( .not. is_overlapping ) ilev = 1
 
-                  IU_NOD = U_SNDGLN(( SELE - 1 ) * U_SNLOC + U_SILOC )
+                  if(.not.got_c_matrix) IU_NOD = U_SNDGLN(( SELE - 1 ) * U_SNLOC + U_SILOC )
 
                   Loop_JLOC2: DO P_SJLOC = 1, P_SNLOC
                      P_JLOC = CV_SLOC2LOC( P_SJLOC )
                      !   IF((U_ELE_TYPE/=2).OR.( P_JLOC == ILEV)) THEN 
                      if( ( .not. is_overlapping ) .or. ( p_jloc == ilev ) ) then
-                        JCV_NOD = P_SNDGLN(( SELE - 1 ) * P_SNLOC + P_SJLOC )
+                        if(.not.got_c_matrix) JCV_NOD = P_SNDGLN(( SELE - 1 ) * P_SNLOC + P_SJLOC )
                         NMX_ALL = 0.0  
                         Loop_GaussPoints2: DO SGI = 1, SBCVNGI
                            NMX_ALL(:) = NMX_ALL(:) + SNORMXN_ALL( :, SGI ) *SBUFEN( U_SILOC, SGI ) * SBCVFEN( P_SJLOC, SGI ) * SDETWE( SGI )
@@ -4466,14 +4458,15 @@
                      endif
 
                         Loop_Phase2: DO IPHASE = 1, NPHASE
-                           COUNT_PHA = COUNT + ( IPHASE - 1 ) * NDIM_VEL * NCOLC 
-                           IU_PHA_NOD = IU_NOD + ( IPHASE - 1 ) * U_NONODS * NDIM_VEL
-                           SUF_P_SJ_IPHA = ( SELE - 1 ) * P_SNLOC + P_SJLOC  + (IPHASE-1)*STOTEL*P_SNLOC
+!                           COUNT_PHA = COUNT + ( IPHASE - 1 ) * NDIM_VEL * NCOLC 
+!                           IU_PHA_NOD = IU_NOD + ( IPHASE - 1 ) * U_NONODS * NDIM_VEL
+!                           SUF_P_SJ_IPHA = ( SELE - 1 ) * P_SNLOC + P_SJLOC  + (IPHASE-1)*STOTEL*P_SNLOC
 
                            IF(WIC_P_BC_ALL( IPHASE, SELE ) == WIC_P_BC_DIRICHLET) THEN
  
                               DO IDIM=1,NDIM_VEL
                      if(.not.got_c_matrix) then
+                           COUNT_PHA = COUNT + ( IPHASE - 1 ) * NDIM_VEL * NCOLC 
                                  C( COUNT_PHA + NCOLC*(IDIM-1) )  = C( COUNT_PHA + NCOLC*(IDIM-1) ) + NMX_ALL(IDIM) * SELE_OVERLAP_SCALE(P_JLOC)
                      endif
                                  LOC_U_RHS( IDIM, IPHASE, U_ILOC) =  LOC_U_RHS( IDIM, IPHASE, U_ILOC)  &
@@ -4614,9 +4607,6 @@
                   DO CV_ILOC = 1, CV_NLOC
                      X_INOD = X_NDGLN( (ELE2-1)*X_NLOC + CV_ILOC ) 
                      XL2_ALL(:,CV_ILOC) = X_ALL( :, X_INOD )
-!                     XL2_ALL(1,CV_ILOC) = X_ALL( 1, X_INOD )
-!                     IF(NDIM.GE.2) XL2_ALL(2,CV_ILOC) = X_ALL( 2, X_INOD )
-!                     IF(NDIM.GE.3) XL2_ALL(3,CV_ILOC) = X_ALL( 3, X_INOD )
                   END DO
 
                   DO IDIM = 1, NDIM
