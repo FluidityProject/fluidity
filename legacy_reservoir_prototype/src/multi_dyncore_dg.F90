@@ -3614,11 +3614,11 @@
                      DO GI = 1 + (ILEV-1)*CV_NGI_SHORT, ILEV*CV_NGI_SHORT
                         DO JPHASE = 1, NPHASE
                            IF ( STRESS_FORM ) THEN ! stress form of viscosity...
-                              DO IDIM=1,NDIM
-                                 UFENX_JLOC_U(IDIM,:,GI,U_JLOC) = UFENX_ALL(:,U_JLOC,GI)
-                              END DO
+!                              DO IDIM=1,NDIM
+!                                 UFENX_JLOC_U(IDIM,:,GI,U_JLOC) = UFENX_ALL(:,U_JLOC,GI)
+!                              END DO
                               CALL CALC_STRESS_TEN( STRESS_IJ_ELE(:,:, IPHASE, U_ILOC, U_JLOC), ZERO_OR_TWO_THIRDS, NDIM, &
-                                 UFENX_ALL( :,U_ILOC,GI ), UFENX_JLOC_U(:,:,GI,U_JLOC), TEN_XX(:,:,IPHASE,GI) ) 
+                                 UFENX_ALL( :,U_ILOC,GI ), UFENX_ALL( :,U_JLOC,GI )* DETWEI( GI ), TEN_XX(:,:,IPHASE,GI) ) 
                            ELSE
                               DO IDIM = 1, NDIM
                                  VLK_ELE( IPHASE, U_ILOC, U_JLOC ) = VLK_ELE( IPHASE, U_ILOC, U_JLOC ) + &

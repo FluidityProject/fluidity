@@ -9603,29 +9603,38 @@ pure real function ptolfun(value)
 
 
     SUBROUTINE CALC_STRESS_TEN(STRESS_IJ, ZERO_OR_TWO_THIRDS, NDIM,    &
-                 UFENX_ILOC, UFENX_JLOC_U,  TEN_XX )
+                 UFENX_ILOC, UFENX_JLOC,  TEN_XX )
 ! determine stress form of viscocity...
       IMPLICIT NONE
       INTEGER, intent( in )  :: NDIM
       REAL, DIMENSION( NDIM, NDIM  ), intent( inOUT ) :: STRESS_IJ
       REAL, DIMENSION( NDIM ), intent( in ) :: UFENX_ILOC
-      REAL, DIMENSION( NDIM,NDIM ), intent( in ) :: UFENX_JLOC_U, TEN_XX
+      REAL, DIMENSION( NDIM,NDIM ), intent( in ) :: TEN_XX
+      REAL, DIMENSION( NDIM ), intent( in ) :: UFENX_JLOC
       REAL, intent( in ) :: ZERO_OR_TWO_THIRDS
 ! Local variables...
-      REAL :: FEN_TEN_XX(NDIM,NDIM), IDENT_DIM(NDIM,NDIM)
+      REAL :: FEN_TEN_XX(NDIM,NDIM)
       INTEGER :: IDIM,JDIM
 
-         IDENT_DIM=0.0
 
          DO IDIM=1,NDIM
-            IDENT_DIM(IDIM,IDIM)=1.0
-            FEN_TEN_XX(IDIM,:)=UFENX_ILOC(IDIM) * TEN_XX(IDIM,:)
+            FEN_TEN_XX(IDIM,:)=UFENX_ILOC(:) * TEN_XX(IDIM,:)
+         END DO
+
+         DO IDIM=1,NDIM
+               STRESS_IJ( IDIM,IDIM ) = STRESS_IJ( IDIM,IDIM ) + SUM( FEN_TEN_XX(IDIM,:) * UFENX_JLOC(:) ) 
          END DO
 
          DO IDIM=1,NDIM
             DO JDIM=1,NDIM
-               STRESS_IJ( IDIM,JDIM ) = STRESS_IJ( IDIM,JDIM )  &
-                           +FEN_TEN_XX(IDIM,JDIM)*SUM( (1.+IDENT_DIM(IDIM,:))*UFENX_JLOC_U(:, IDIM) )
+               STRESS_IJ( IDIM,JDIM ) = STRESS_IJ( IDIM,JDIM ) + FEN_TEN_XX(IDIM,JDIM) * UFENX_JLOC(JDIM) 
+            END DO
+         END DO
+
+         DO IDIM=1,NDIM
+            DO JDIM=1,NDIM
+               STRESS_IJ( IDIM,JDIM ) = STRESS_IJ( IDIM,JDIM ) &
+                      - ZERO_OR_TWO_THIRDS * FEN_TEN_XX(IDIM,IDIM) * UFENX_JLOC(JDIM) 
             END DO
          END DO
 
