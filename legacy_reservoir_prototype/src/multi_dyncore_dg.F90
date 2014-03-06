@@ -4424,9 +4424,10 @@
 ! ***********SUBROUTINE DETERMINE_SUF_PRES - START************
                ! Put the surface integrals in for pressure b.c.'s
                ! that is add into C matrix and U_RHS. (DG velocities)
+
+               U_NLOC2=max(1,U_NLOC/CV_NLOC)
                Loop_ILOC2: DO U_SILOC = 1, U_SNLOC
                   U_ILOC = U_SLOC2LOC( U_SILOC )
-                  U_NLOC2=max(1,U_NLOC/CV_NLOC)
                   ILEV=(U_ILOC-1)/U_NLOC2 + 1
 
                   if( .not. is_overlapping ) ilev = 1
@@ -4435,7 +4436,8 @@
 
                   Loop_JLOC2: DO P_SJLOC = 1, P_SNLOC
                      P_JLOC = CV_SLOC2LOC( P_SJLOC )
-                     !   IF((U_ELE_TYPE/=2).OR.( P_JLOC == ILEV)) THEN 
+
+
                      if( ( .not. is_overlapping ) .or. ( p_jloc == ilev ) ) then
                         if(.not.got_c_matrix) JCV_NOD = P_SNDGLN(( SELE - 1 ) * P_SNLOC + P_SJLOC )
                         NMX_ALL = 0.0  
@@ -4458,15 +4460,11 @@
                      endif
 
                         Loop_Phase2: DO IPHASE = 1, NPHASE
-!                           COUNT_PHA = COUNT + ( IPHASE - 1 ) * NDIM_VEL * NCOLC 
-!                           IU_PHA_NOD = IU_NOD + ( IPHASE - 1 ) * U_NONODS * NDIM_VEL
-!                           SUF_P_SJ_IPHA = ( SELE - 1 ) * P_SNLOC + P_SJLOC  + (IPHASE-1)*STOTEL*P_SNLOC
-
                            IF(WIC_P_BC_ALL( IPHASE, SELE ) == WIC_P_BC_DIRICHLET) THEN
  
                               DO IDIM=1,NDIM_VEL
                      if(.not.got_c_matrix) then
-                           COUNT_PHA = COUNT + ( IPHASE - 1 ) * NDIM_VEL * NCOLC 
+                                 COUNT_PHA = COUNT + ( IPHASE - 1 ) * NDIM_VEL * NCOLC 
                                  C( COUNT_PHA + NCOLC*(IDIM-1) )  = C( COUNT_PHA + NCOLC*(IDIM-1) ) + NMX_ALL(IDIM) * SELE_OVERLAP_SCALE(P_JLOC)
                      endif
                                  LOC_U_RHS( IDIM, IPHASE, U_ILOC) =  LOC_U_RHS( IDIM, IPHASE, U_ILOC)  &
@@ -4477,6 +4475,9 @@
 
                         END DO Loop_Phase2
                      ENDIF
+
+
+
                   END DO Loop_JLOC2
 
                END DO Loop_ILOC2
