@@ -9201,7 +9201,7 @@ pure real function ptolfun(value)
                                                           UOLD_CV_NODJ_IPHA_ALL, UOLD_CV_NODI_IPHA_ALL
     REAL, intent( in ) :: ZERO_OR_TWO_THIRDS
     REAL, DIMENSION( NDIM,NPHASE,SBCVNGI ), intent( inout ) :: DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX
-    INTEGER, DIMENSION( STOTEL*NPHASE ), intent( in ) ::WIC_U_BC
+    INTEGER, DIMENSION( NPHASE,STOTEL ), intent( in ) ::WIC_U_BC
     REAL, DIMENSION( U_SNLOC, SBCVNGI  ), intent( in ) :: SBCVFEN
     REAL, DIMENSION( NDIM,NDIM,NPHASE,U_SNLOC ), intent( in ) :: SLOC_UDIFFUSION, SLOC2_UDIFFUSION
     ! DIFF_GI_ADDED( IDIM, :,:) is for dimension IDIM e.g IDIM=1 corresponds to U 
@@ -9242,7 +9242,7 @@ pure real function ptolfun(value)
        ZER_DIFF=.TRUE.
        RZER_DIFF_ALL=0.0
        DO IPHASE=1,NPHASE
-          IF(WIC_U_BC(SELE+(IPHASE-1)*STOTEL) == WIC_U_BC_DIRICHLET) THEN
+          IF(WIC_U_BC( IPHASE, SELE) == WIC_U_BC_DIRICHLET) THEN
              ZER_DIFF=.FALSE.
              RZER_DIFF_ALL(IPHASE)=1.0
           ENDIF

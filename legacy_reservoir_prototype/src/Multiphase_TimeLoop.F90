@@ -219,7 +219,7 @@
       !! face value storage
 
       real::  second_theta
-      integer :: scvngi, ncv_faces
+      integer :: ncv_faces
       REAL, DIMENSION( : , : ), allocatable :: NDOTQOLD,NDOTQVOLD
       REAL, DIMENSION( : , : ), allocatable :: LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD
       REAL, DIMENSION( : , : ), allocatable :: LIMVOLD,LIMV2OLD,LIMVDOLD,LIMVDTOLD,LIMVDTT2OLD
