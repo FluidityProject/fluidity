@@ -2973,9 +2973,6 @@
 
       ALLOCATE( SELE_OVERLAP_SCALE( CV_NLOC ) )
 
-      ALLOCATE( DUX_ELE_ALL( NDIM_VEL, NDIM, NPHASE, U_NLOC, TOTELE ))
-      ALLOCATE( DUOLDX_ELE_ALL( NDIM_VEL, NDIM, NPHASE, U_NLOC, TOTELE ))
-      ALLOCATE( WORK_ELE_ALL( U_NLOC, NPHASE, TOTELE ))
 
       ALLOCATE( GRAD_SOU_GI_NMX( NDIM_VEL, NPHASE ))
  
@@ -3169,6 +3166,14 @@
          ALLOCATE( DIFF_FOR_BETWEEN_U( NDIM_VEL, NPHASE, U_NLOC, TOTELE ) ) ; DIFF_FOR_BETWEEN_U = 0.0
          ALLOCATE( MAT_ELE( U_NLOC, U_NLOC, TOTELE ) ) ; MAT_ELE = 0.0
       END IF
+
+      IF(GOT_DIFFUS) THEN
+         ALLOCATE( DUX_ELE_ALL( NDIM_VEL, NDIM, NPHASE, U_NLOC, TOTELE ))
+         ALLOCATE( DUOLDX_ELE_ALL( NDIM_VEL, NDIM, NPHASE, U_NLOC, TOTELE ))
+         ALLOCATE( WORK_ELE_ALL( U_NLOC, NPHASE, TOTELE ))
+      ENDIF
+
+
 
       D1   = ( NDIM == 1  )
       DCYL = ( NDIM == -2 )
@@ -4093,9 +4098,10 @@
             ! Recalculate the normal...
             DO CV_ILOC = 1, CV_NLOC
                X_INOD = X_NDGLN( (ELE-1)*X_NLOC + CV_ILOC ) 
-               XL_ALL(1,CV_ILOC) = X_ALL( 1, X_INOD )
-               IF(NDIM.GE.2) XL_ALL(2,CV_ILOC) = X_ALL( 2, X_INOD )
-               IF(NDIM.GE.3) XL_ALL(3,CV_ILOC) = X_ALL( 3, X_INOD )
+               XL_ALL(:,CV_ILOC) = X_ALL( :, X_INOD )
+!               XL_ALL(1,CV_ILOC) = X_ALL( 1, X_INOD )
+!               IF(NDIM.GE.2) XL_ALL(2,CV_ILOC) = X_ALL( 2, X_INOD )
+!               IF(NDIM.GE.3) XL_ALL(3,CV_ILOC) = X_ALL( 3, X_INOD )
             END DO
 
             ! Recalculate the normal...
@@ -4103,9 +4109,10 @@
                CV_ILOC = CV_SLOC2LOC( CV_SILOC )
                X_INOD = X_NDGLN( (ELE-1)*X_NLOC + CV_ILOC )
 
-               XSL_ALL( 1, CV_SILOC ) = X_ALL( 1, X_INOD )
-               IF(NDIM.GE.2) XSL_ALL( 2, CV_SILOC ) = X_ALL( 2, X_INOD )
-               IF(NDIM.GE.3) XSL_ALL( 3, CV_SILOC ) = X_ALL( 3, X_INOD )
+               XSL_ALL( :, CV_SILOC ) = X_ALL( :, X_INOD )
+!               XSL_ALL( 1, CV_SILOC ) = X_ALL( 1, X_INOD )
+!               IF(NDIM.GE.2) XSL_ALL( 2, CV_SILOC ) = X_ALL( 2, X_INOD )
+!               IF(NDIM.GE.3) XSL_ALL( 3, CV_SILOC ) = X_ALL( 3, X_INOD )
             END DO
 
             CALL DGSIMPLNORM_ALL( CV_NLOC, CV_SNLOC, NDIM, &
@@ -4465,9 +4472,10 @@
                   ! Calculate distance between centres of elements HDC
                   DO CV_ILOC = 1, CV_NLOC
                      X_INOD = X_NDGLN( (ELE2-1)*X_NLOC + CV_ILOC ) 
-                     XL2_ALL(1,CV_ILOC) = X_ALL( 1, X_INOD )
-                     IF(NDIM.GE.2) XL2_ALL(2,CV_ILOC) = X_ALL( 2, X_INOD )
-                     IF(NDIM.GE.3) XL2_ALL(3,CV_ILOC) = X_ALL( 3, X_INOD )
+                     XL2_ALL(:,CV_ILOC) = X_ALL( :, X_INOD )
+!                     XL2_ALL(1,CV_ILOC) = X_ALL( 1, X_INOD )
+!                     IF(NDIM.GE.2) XL2_ALL(2,CV_ILOC) = X_ALL( 2, X_INOD )
+!                     IF(NDIM.GE.3) XL2_ALL(3,CV_ILOC) = X_ALL( 3, X_INOD )
                   END DO
 
                   DO IDIM = 1, NDIM

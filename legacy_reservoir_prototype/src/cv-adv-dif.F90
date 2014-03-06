@@ -9447,10 +9447,10 @@ pure real function ptolfun(value)
 
     ! local variables
     REAL, DIMENSION( : , :, :, : ), allocatable :: DIFF_GI, STRESS_INDEX, STRESS_INDEXOLD
-    REAL, DIMENSION( : , :, :, :,  : ), allocatable :: DIFF_GI_BOTH
+!    REAL, DIMENSION( : , :, :, :,  : ), allocatable :: DIFF_GI_BOTH
     REAL, DIMENSION( :, :, :, : ), allocatable :: DUDX_ALL_GI, DUOLDDX_ALL_GI
     REAL, DIMENSION( :, : ), allocatable :: IDENT
-    REAL :: COEF
+    REAL :: COEF, DIVU, DIVUOLD
     INTEGER :: U_KLOC,U_KLOC2,MAT_KLOC,MAT_KLOC2,IDIM,JDIM,IDIM_VEL,U_SKLOC
     INTEGER :: SGI,IPHASE
     LOGICAL :: ZER_DIFF,SIMPLE_DIFF_CALC
@@ -9459,7 +9459,7 @@ pure real function ptolfun(value)
        ALLOCATE( DIFF_GI(NDIM,NDIM,NPHASE,SBCVNGI) )
        ALLOCATE( STRESS_INDEX(NDIM,NDIM,NPHASE,SBCVNGI) )
        ALLOCATE( STRESS_INDEXOLD(NDIM,NDIM,NPHASE,SBCVNGI) )
-       ALLOCATE( DIFF_GI_BOTH(NDIM_VEL, NDIM,NDIM, NPHASE,SBCVNGI) )
+!       ALLOCATE( DIFF_GI_BOTH(NDIM_VEL, NDIM,NDIM, NPHASE,SBCVNGI) )
 
        ALLOCATE( DUDX_ALL_GI( NDIM_VEL,NDIM,NPHASE,SBCVNGI )  )
        ALLOCATE( DUOLDDX_ALL_GI( NDIM_VEL,NDIM,NPHASE,SBCVNGI )  )
@@ -9497,82 +9497,101 @@ pure real function ptolfun(value)
 
 
           ! U:
-          DIFF_GI_BOTH=DIFF_GI_ADDED
-          IF(.NOT.STRESS_FORM) THEN
-             DO IDIM=1,NDIM_VEL
-                DIFF_GI_BOTH(IDIM,:,:,:,:) = DIFF_GI_BOTH(IDIM,:,:,:,:) + DIFF_GI(:,:,:,:)
+!          DIFF_GI_BOTH=DIFF_GI_ADDED
+!          IF(.NOT.STRESS_FORM) THEN
+!             DO IDIM=1,NDIM_VEL
+!                DIFF_GI_BOTH(IDIM,:,:,:,:) = DIFF_GI_BOTH(IDIM,:,:,:,:) + DIFF_GI(:,:,:,:)
+!             END DO
+!          ENDIF
+
+! tensor form for added diffusion from stabilization say...
+             N_DOT_DKDU=0.0
+             N_DOT_DKDUOLD=0.0
+             DIFF_STAND_DIVDX_U=0.0
+             DO SGI=1,SBCVNGI
+                DO IPHASE=1, NPHASE
+                   DO IDIM_VEL=1,NDIM_VEL
+                      DO IDIM=1,NDIM
+! tensor form...
+                         N_DOT_DKDU(IDIM_VEL,IPHASE,SGI)   =  N_DOT_DKDU(IDIM_VEL,IPHASE,SGI)   &
+                          +  SNORMXN_ALL(IDIM,SGI)*SUM( DIFF_GI_ADDED(IDIM_VEL,IDIM,:,IPHASE,SGI) * DUDX_ALL_GI(IDIM_VEL,:,IPHASE,SGI) ) 
+! tensor form...
+                         N_DOT_DKDUOLD(IDIM_VEL,IPHASE,SGI)= N_DOT_DKDUOLD(IDIM_VEL,IPHASE,SGI)  &
+                          +  SNORMXN_ALL(IDIM,SGI)*SUM( DIFF_GI_ADDED(IDIM_VEL,IDIM,:,IPHASE,SGI) * DUOLDDX_ALL_GI(IDIM_VEL,:,IPHASE,SGI) ) 
+! for minimal amount of diffusion calc...
+                         DIFF_STAND_DIVDX_U(IDIM_VEL,IPHASE,SGI)   =  DIFF_STAND_DIVDX_U(IDIM_VEL,IPHASE,SGI)   &
+                          + SNORMXN_ALL(IDIM,SGI)*SUM( DIFF_GI_ADDED(IDIM_VEL,IDIM,:,IPHASE,SGI) * SNORMXN_ALL(:,SGI) )  /HDC
+
+                     END DO
+                  END DO
+                END DO
              END DO
-          ENDIF
 
 
 
           IF(STRESS_FORM) THEN
 ! stress form needs to add this...
-             N_DOT_DKDU=0.0
-             N_DOT_DKDUOLD=0.0
              DO SGI=1,SBCVNGI
                 DO IPHASE=1, NPHASE
+
+                   DIVU=0.0
+                   DIVUOLD=0.0
+                   DO IDIM=1,NDIM
+                      DIVU=DIVU+DUDX_ALL_GI(IDIM,IDIM,IPHASE,SGI)
+                      DIVUOLD=DIVUOLD+DUOLDDX_ALL_GI(IDIM,IDIM,IPHASE,SGI)
+                   END DO
+
                    DO IDIM_VEL=1,NDIM_VEL
-           
-                      DO IDIM=1,NDIM 
-! tensor form...
-                         N_DOT_DKDU(IDIM_VEL,IPHASE,SGI)   =N_DOT_DKDU(IDIM_VEL,IPHASE,SGI)    + SNORMXN_ALL(IDIM,SGI)*SUM( DIFF_GI_BOTH(IDIM_VEL,IDIM,:,IPHASE,SGI)*DUDX_ALL_GI(IDIM_VEL,:,IPHASE,SGI) )  & 
+! Stress form...
+                         N_DOT_DKDU(IDIM_VEL,IPHASE,SGI)   =  N_DOT_DKDU(IDIM_VEL,IPHASE,SGI) &
+                                                           + SUM( SNORMXN_ALL(:,SGI)*DIFF_GI(IDIM_VEL,:,IPHASE,SGI)*DUDX_ALL_GI(IDIM_VEL,:,IPHASE,SGI) )  & 
+                                                           + SUM( SNORMXN_ALL(:,SGI)*DIFF_GI(IDIM_VEL,:,IPHASE,SGI)*DUDX_ALL_GI(:,IDIM_VEL,IPHASE,SGI) ) & 
 ! stress form addition...  
-                                                                                               + SNORMXN_ALL(IDIM,SGI)*SUM( DIFF_GI(IDIM,:,IPHASE,SGI)*DUDX_ALL_GI(:,IDIM_VEL,IPHASE,SGI) ) & 
+                                                           + ZERO_OR_TWO_THIRDS*SNORMXN_ALL(IDIM_VEL,SGI)*DIFF_GI(IDIM_VEL,IDIM_VEL,IPHASE,SGI)*DIVU
+
+! Stress form...
+                         N_DOT_DKDUOLD(IDIM_VEL,IPHASE,SGI)= N_DOT_DKDUOLD(IDIM_VEL,IPHASE,SGI) &
+                                                           + SUM( SNORMXN_ALL(:,SGI)*DIFF_GI(IDIM_VEL,:,IPHASE,SGI)*DUOLDDX_ALL_GI(IDIM_VEL,:,IPHASE,SGI) )  & 
+                                                           + SUM( SNORMXN_ALL(:,SGI)*DIFF_GI(IDIM_VEL,:,IPHASE,SGI)*DUOLDDX_ALL_GI(:,IDIM_VEL,IPHASE,SGI) ) & 
 ! stress form addition...  
-                                                                            + ZERO_OR_TWO_THIRDS*SNORMXN_ALL(IDIM_VEL,SGI)*DIFF_GI(IDIM_VEL,IDIM_VEL,IPHASE,SGI)*DUDX_ALL_GI(IDIM,IDIM,IPHASE,SGI) 
-! tensor form...
-                         N_DOT_DKDUOLD(IDIM_VEL,IPHASE,SGI)=N_DOT_DKDUOLD(IDIM_VEL,IPHASE,SGI) + SNORMXN_ALL(IDIM,SGI)*SUM( DIFF_GI_BOTH(IDIM_VEL,IDIM,:,IPHASE,SGI)*DUOLDDX_ALL_GI(IDIM_VEL,:,IPHASE,SGI) ) & 
-! stress form addition...  
-                                                                                               + SNORMXN_ALL(IDIM,SGI)*SUM( DIFF_GI(IDIM,:,IPHASE,SGI)*DUOLDDX_ALL_GI(:,IDIM_VEL,IPHASE,SGI) ) & 
-! stress form addition...  
-                                                                            + ZERO_OR_TWO_THIRDS*SNORMXN_ALL(IDIM_VEL,SGI)*DIFF_GI(IDIM_VEL,IDIM_VEL,IPHASE,SGI)*DUOLDDX_ALL_GI(IDIM,IDIM,IPHASE,SGI)   
-                      END DO
+                                                           + ZERO_OR_TWO_THIRDS*SNORMXN_ALL(IDIM_VEL,SGI)*DIFF_GI(IDIM_VEL,IDIM_VEL,IPHASE,SGI)*DIVUOLD
+                                   
+! This is for the minimum & max. diffusion...
+                         DIFF_STAND_DIVDX_U(IDIM_VEL,IPHASE,SGI)   =  DIFF_STAND_DIVDX_U(IDIM_VEL,IPHASE,SGI) &
+                                                           + (   SUM( SNORMXN_ALL(:,SGI)*DIFF_GI(IDIM_VEL,:,IPHASE,SGI)*SNORMXN_ALL(:,SGI) )  & 
+                                                               + SUM( SNORMXN_ALL(:,SGI)*DIFF_GI(IDIM_VEL,:,IPHASE,SGI)*SNORMXN_ALL(IDIM_VEL,SGI) )    )/HDC
 
                    END DO
                 END DO
              END DO
 
 
-             DO SGI=1,SBCVNGI
-               DO IPHASE=1,NPHASE
-                  DO IDIM=1,NDIM_VEL
-         ! This is the minimum diffusion...
-                      DIFF_STAND_DIVDX_U(IDIM,IPHASE,SGI) = 8.*( SUM( (1.+IDENT(IDIM,:))*SNORMXN_ALL(:,SGI)**2*DIFF_GI(IDIM,:,IPHASE,SGI) ) &
-                                                  + DIFF_GI_ADDED(IDIM, 1,1, IPHASE,SGI) ) /HDC
-                  END DO 
-               END DO
-            END DO
-
           ELSE  ! IF(STRESS_FORM) THEN
 ! tensor form...
-             N_DOT_DKDU=0.0
-             N_DOT_DKDUOLD=0.0
              DO SGI=1,SBCVNGI
                 DO IPHASE=1, NPHASE
                    DO IDIM_VEL=1,NDIM_VEL
-           
-                      DO IDIM=1,NDIM 
-                         N_DOT_DKDU(IDIM_VEL,IPHASE,SGI)   =N_DOT_DKDU(IDIM_VEL,IPHASE,SGI)    + SNORMXN_ALL(IDIM,SGI)*SUM( DIFF_GI_BOTH(IDIM_VEL,IDIM,:,IPHASE,SGI)*DUDX_ALL_GI(IDIM_VEL,:,IPHASE,SGI) )  
-                         N_DOT_DKDUOLD(IDIM_VEL,IPHASE,SGI)=N_DOT_DKDUOLD(IDIM_VEL,IPHASE,SGI) + SNORMXN_ALL(IDIM,SGI)*SUM( DIFF_GI_BOTH(IDIM_VEL,IDIM,:,IPHASE,SGI)*DUOLDDX_ALL_GI(IDIM_VEL,:,IPHASE,SGI) )  
-                      END DO
+                      DO IDIM=1,NDIM
+! tensor form...
+                         N_DOT_DKDU(IDIM_VEL,IPHASE,SGI)   =  N_DOT_DKDU(IDIM_VEL,IPHASE,SGI)   &
+                          +  SNORMXN_ALL(IDIM,SGI)*SUM( DIFF_GI(IDIM,:,IPHASE,SGI) * DUDX_ALL_GI(IDIM_VEL,:,IPHASE,SGI) ) 
+! tensor form...
+                         N_DOT_DKDUOLD(IDIM_VEL,IPHASE,SGI)= N_DOT_DKDUOLD(IDIM_VEL,IPHASE,SGI)  &
+                          +  SNORMXN_ALL(IDIM,SGI)*SUM( DIFF_GI(IDIM,:,IPHASE,SGI) * DUOLDDX_ALL_GI(IDIM_VEL,:,IPHASE,SGI) ) 
+! This is for the minimum & max. diffusion...
+                         DIFF_STAND_DIVDX_U(IDIM_VEL,IPHASE,SGI)   =  DIFF_STAND_DIVDX_U(IDIM_VEL,IPHASE,SGI)   &
+                          +  SNORMXN_ALL(IDIM,SGI)*SUM( DIFF_GI(IDIM,:,IPHASE,SGI) * SNORMXN_ALL(:,SGI) )   /HDC
 
+                     END DO
                   END DO
                 END DO
              END DO
 
-             DO SGI=1,SBCVNGI
-                DO IPHASE=1, NPHASE
-                   COEF=0.0
-                   DO IDIM=1,NDIM
-                      COEF=COEF + SNORMXN_ALL(IDIM,SGI) * SUM( DIFF_GI(IDIM,:,IPHASE,SGI)*SNORMXN_ALL(:,SGI) ) 
-                   END DO
-                   DIFF_STAND_DIVDX_U(:,IPHASE,SGI)=8.*( COEF + DIFF_GI_ADDED(:, 1,1, IPHASE,SGI) ) /HDC
-                END DO
-             END DO
+
              ! ENDOF IF(STRESS_FORM) THEN ELSE...
           ENDIF
-
+! just in case...
+          DIFF_STAND_DIVDX_U=abs( DIFF_STAND_DIVDX_U )
 
         RETURN
 
