@@ -592,6 +592,11 @@
          if( have_option( '/material_phase[' // int2str( istate - 1 ) // ']/is_multiphase_component' ) ) &
               have_component_field = .true.
 !!$
+ if( have_temperature_field ) then
+            call Calculate_All_Rhos( state, ncomp, nphase, ndim, cv_nonods, cv_nloc, totele, &
+                 cv_ndgln, Component, Density, Density_Cp, DRhoDPressure, Density_Component )
+      end if
+
          if( have_component_field ) then
             call get_option( '/material_phase[' // int2str( istate - 1 ) // 'scalar_field::' // &
                  'ComponentMassFractionPhase1/prognostic/temporal_discretisation/control_volumes' // &
