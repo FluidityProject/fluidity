@@ -74,7 +74,8 @@ contains
          MEAN_PORE_CV, &
          FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL, &
          MASS_ELE_TRANSP, &
-         option_path_spatial_discretisation )
+         option_path_spatial_discretisation,&
+         StorageIndexesForDETNLXR_PLUS_U )
 
       !  =====================================================================
       !     In this subroutine the advection terms in the advection-diffusion
@@ -196,7 +197,7 @@ contains
 
       ! Inputs/Outputs
       IMPLICIT NONE
-      type( state_type ), dimension( : ), intent( in ) :: state
+      type( state_type ), dimension( : ), intent( inout ) :: state
       INTEGER, intent( in ) :: NCOLACV, NCOLCT, CV_NONODS, U_NONODS, X_NONODS, MAT_NONODS, &
            TOTELE, &
            CV_ELE_TYPE, &
@@ -263,6 +264,7 @@ contains
       REAL, DIMENSION( : ), intent( inout ) :: MASS_ELE_TRANSP
       character( len = * ), intent( in ), optional :: option_path_spatial_discretisation
       integer, dimension(:), intent(in) :: SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM
+      integer, dimension(:), intent(inout) :: StorageIndexesForDETNLXR_PLUS_U
       !character( len = option_path_len ), intent( in ), optional :: option_path_spatial_discretisation
 
 
@@ -819,7 +821,8 @@ contains
               X_NONODS, X, Y, Z,  &
               NFACE, FACE_ELE, CV_SLOCLIST, CV_SLOCLIST, STOTEL, CV_SNLOC, CV_SNLOC, WIC_T_BC, SUF_T_BC, &
               WIC_T_BC_DIRICHLET, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
-              SBCVFEN, SBCVFENSLX, SBCVFENSLY)
+              SBCVFEN, SBCVFENSLX, SBCVFENSLY&
+              ,  state, "CV", StorageIndexesForDETNLXR_PLUS_U(16))
       ENDIF
 
       !     =============== DEFINE THETA FOR TIME-STEPPING ===================
@@ -1942,7 +1945,8 @@ contains
          FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL, &
          MASS_ELE_TRANSP, &
          option_path_spatial_discretisation, &
-         THETA_FLUX, ONE_M_THETA_FLUX)
+         THETA_FLUX, ONE_M_THETA_FLUX,&
+         StorageIndexesForDETNLXR_PLUS_U)
 
       !  =====================================================================
       !     In this subroutine the advection terms in the advection-diffusion
@@ -2064,7 +2068,7 @@ contains
 
       ! Inputs/Outputs
       IMPLICIT NONE
-      type( state_type ), dimension( : ), intent( in ) :: state
+      type( state_type ), dimension( : ), intent( inout ) :: state
       real, DIMENSION( :, : ), intent( in ) :: LIMTOLD,LIMDOLD,LIMT2OLD,LIMDTOLD,LIMDTT2OLD, ndotqold
       INTEGER, intent( in ) :: NCOLACV, CV_NONODS, U_NONODS, X_NONODS, MAT_NONODS, &
            TOTELE, &
@@ -2127,7 +2131,7 @@ contains
       character( len = * ), intent( in ), optional :: option_path_spatial_discretisation
       integer, dimension(:), intent(in) :: SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM
       !character( len = option_path_len ), intent( in ), optional :: option_path_spatial_discretisation
-
+      integer, dimension(:), intent(inout) :: StorageIndexesForDETNLXR_PLUS_U
 
       ! Local variables
       INTEGER, PARAMETER :: WIC_T_BC_DIRICHLET = 1, WIC_T_BC_ROBIN = 2, &
@@ -2614,7 +2618,8 @@ contains
               X_NONODS, X, Y, Z,  &
               NFACE, FACE_ELE, CV_SLOCLIST, CV_SLOCLIST, STOTEL, CV_SNLOC, CV_SNLOC, WIC_T_BC, SUF_T_BC, &
               WIC_T_BC_DIRICHLET, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
-              SBCVFEN, SBCVFENSLX, SBCVFENSLY)
+              SBCVFEN, SBCVFENSLX, SBCVFENSLY&
+              ,  state,"ADVDIF", StorageIndexesForDETNLXR_PLUS_U(17) )
       ENDIF
 
       !     =============== DEFINE THETA FOR TIME-STEPPING ===================
@@ -3263,7 +3268,8 @@ contains
          MEAN_PORE_CV, &
          FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL, &
          MASS_ELE_TRANSP, &
-         option_path_spatial_discretisation )
+         option_path_spatial_discretisation,&
+         StorageIndexesForDETNLXR_PLUS_U )
 
       !  =====================================================================
       !     In this subroutine the advection terms in the advection-diffusion
@@ -3385,7 +3391,7 @@ contains
 
       ! Inputs/Outputs
       IMPLICIT NONE
-      type( state_type ), dimension( : ), intent( in ) :: state
+      type( state_type ), dimension( : ), intent( inout ) :: state
       INTEGER, intent( in ) :: NCOLCT, CV_NONODS, U_NONODS, X_NONODS, MAT_NONODS, &
            TOTELE, &
            CV_ELE_TYPE, &
@@ -3446,7 +3452,7 @@ contains
       character( len = * ), intent( in ), optional :: option_path_spatial_discretisation
       integer, dimension(:), intent(in) :: SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM
       !character( len = option_path_len ), intent( in ), optional :: option_path_spatial_discretisation
-
+      integer, dimension(:), intent(inout) :: StorageIndexesForDETNLXR_PLUS_U
 
       ! Local variables
       INTEGER, PARAMETER :: WIC_T_BC_DIRICHLET = 1, WIC_T_BC_ROBIN = 2, &
@@ -3926,7 +3932,8 @@ contains
               X_NONODS, X, Y, Z,  &
               NFACE, FACE_ELE, CV_SLOCLIST, CV_SLOCLIST, STOTEL, CV_SNLOC, CV_SNLOC, WIC_T_BC, SUF_T_BC, &
               WIC_T_BC_DIRICHLET, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
-              SBCVFEN, SBCVFENSLX, SBCVFENSLY)
+              SBCVFEN, SBCVFENSLX, SBCVFENSLY&
+              ,  state, "CT", StorageIndexesForDETNLXR_PLUS_U(18))
       ENDIF
 
       !     =============== DEFINE THETA FOR TIME-STEPPING ===================
@@ -6690,7 +6697,7 @@ contains
        NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC,  &
        SUF_U_BC,SUF_V_BC,SUF_W_BC, &
        WIC_U_BC_DIRICHLET, SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBWEIGH, & 
-       SBCVFEN, SBCVFENSLX, SBCVFENSLY)   
+       SBCVFEN, SBCVFENSLX, SBCVFENSLY, state, StorName, Indexes)
 
     ! determine FEMT (finite element wise) etc from T (control volume wise)
     use shape_functions 
@@ -6721,6 +6728,9 @@ contains
     REAL, DIMENSION( :, : ), intent( in ) :: SBUFEN, SBUFENSLX, SBUFENSLY
     REAL, DIMENSION( :, : ), intent( in ) :: SBCVFEN, SBCVFENSLX, SBCVFENSLY
     REAL, DIMENSION( : ), intent( in ) :: SBWEIGH
+    type( state_type ), dimension( : ), intent( inout ) :: state
+    character(len=*), intent(in) :: StorName
+    integer, dimension(:), intent(inout) :: Indexes
 
     CALL DG_DERIVS( U, UOLD, &
          DUX_ELE, DUY_ELE, DUZ_ELE, DUOLDX_ELE, DUOLDY_ELE, DUOLDZ_ELE, &
@@ -6732,7 +6742,8 @@ contains
          X_NONODS, X, Y, Z, &
          NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC, SUF_U_BC, &
          WIC_U_BC_DIRICHLET, SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBWEIGH, & 
-         SBCVFEN, SBCVFENSLX, SBCVFENSLY)   
+         SBCVFEN, SBCVFENSLX, SBCVFENSLY,&
+         state, StorName//"U", Indexes(1))
 
     IF(NDIM_VEL.GE.2) THEN
        CALL DG_DERIVS( V, VOLD, &
@@ -6745,7 +6756,8 @@ contains
             X_NONODS, X, Y, Z, &
             NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC, SUF_V_BC, &
             WIC_U_BC_DIRICHLET, SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBWEIGH, & 
-            SBCVFEN, SBCVFENSLX, SBCVFENSLY)  
+            SBCVFEN, SBCVFENSLX, SBCVFENSLY,&
+            state, StorName//"V", Indexes(2))
     ELSE
        DVX_ELE=0; DVY_ELE=0; DVZ_ELE=0; DVOLDX_ELE=0; DVOLDY_ELE=0; DVOLDZ_ELE=0
     ENDIF
@@ -6761,7 +6773,8 @@ contains
             X_NONODS, X, Y, Z, &
             NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC, SUF_W_BC, &
             WIC_U_BC_DIRICHLET, SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBWEIGH, & 
-            SBCVFEN, SBCVFENSLX, SBCVFENSLY) 
+            SBCVFEN, SBCVFENSLX, SBCVFENSLY,&
+            state,StorName//"W", Indexes(3))
     ELSE
        DWX_ELE=0; DWY_ELE=0; DWZ_ELE=0; DWOLDX_ELE=0; DWOLDY_ELE=0; DWOLDZ_ELE=0
     ENDIF
@@ -6782,7 +6795,8 @@ contains
        X_NONODS, X, Y, Z, &
        NFACE, FACE_ELE, CV_SLOCLIST, X_SLOCLIST, STOTEL, CV_SNLOC, X_SNLOC, WIC_T_BC, SUF_T_BC, &
        WIC_T_BC_DIRICHLET, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBWEIGH, &
-       X_SBCVFEN, X_SBCVFENSLX, X_SBCVFENSLY ) 
+       X_SBCVFEN, X_SBCVFENSLX, X_SBCVFENSLY,&
+        state, StorName,indx )
 
     ! determine FEMT (finite element wise) etc from T (control volume wise)
     use shape_functions 
@@ -6809,17 +6823,21 @@ contains
     REAL, DIMENSION( :, : ), intent( in ) :: SBCVFEN, SBCVFENSLX, SBCVFENSLY
     REAL, DIMENSION( :, : ), intent( in ) :: X_SBCVFEN, X_SBCVFENSLX, X_SBCVFENSLY
     REAL, DIMENSION( : ), intent( in ) :: SBWEIGH
+    type( state_type ), dimension( : ), intent( inout ) :: state
+    character(len=*), intent(in) :: StorName
+    integer, intent(inout) :: indx
     ! Local variables
     LOGICAL :: D1, D3, DCYL, APPLYBC
-    REAL, DIMENSION( : ), allocatable :: DETWEI, RA
-    REAL, DIMENSION( :, : ), allocatable :: NX, NY, NZ, X_NX, X_NY, X_NZ
+    REAL, pointer, DIMENSION( : ) :: DETWEI, RA
+    REAL, pointer, DIMENSION( :, :,: ) :: NX_ALL, X_NX_ALL
+    real, pointer :: VOLUME
     REAL, DIMENSION( :, :, : ), allocatable :: MASELE
     REAL, DIMENSION( :, :, : ), allocatable :: VTX_ELE, VTY_ELE, VTZ_ELE, VTOLDX_ELE, VTOLDY_ELE, VTOLDZ_ELE
     REAL, DIMENSION( :, : ), allocatable :: MASS, INV_MASS
     REAL, DIMENSION( : ), allocatable :: VTX, VTY, VTZ, VTOLDX, VTOLDY, VTOLDZ, DTX, DTY, DTZ, DTOLDX, DTOLDY, DTOLDZ
     REAL, DIMENSION( : ), allocatable :: XSL, YSL, ZSL, SNORMXN, SNORMYN, SNORMZN, SDETWE
     INTEGER, DIMENSION( : ), allocatable :: SLOC2LOC, X_SLOC2LOC, ILOC_OTHER_SIDE
-    REAL :: VOLUME, NN, NNX, NNY, NNZ, NORMX, NORMY, NORMZ, SAREA, NRBC, RNN, RTBC, &
+    REAL :: NN, NNX, NNY, NNZ, NORMX, NORMY, NORMZ, SAREA, NRBC, RNN, RTBC, &
          VLM_NORX, VLM_NORY, VLM_NORZ
     INTEGER :: ELE, CV_ILOC, CV_JLOC, CV_NODI, CV_NODJ, CV_GI, CV_ILOC2, &
          CV_INOD, CV_INOD2, CV_JLOC2, CV_NODJ2, CV_NODJ2_IPHA, CV_NODJ_IPHA, &
@@ -6827,14 +6845,6 @@ contains
          X_INOD, SGI, X_SILOC, X_ILOC
 
     ewrite(3,*)'in DG_DERIVS sbrt'
-    ALLOCATE( DETWEI( CV_NGI )) 
-    ALLOCATE( RA( CV_NGI ))
-    ALLOCATE( NX( CV_NLOC, CV_NGI ))
-    ALLOCATE( NY( CV_NLOC, CV_NGI ))
-    ALLOCATE( NZ( CV_NLOC, CV_NGI ))
-    ALLOCATE( X_NX( X_NLOC, CV_NGI ))
-    ALLOCATE( X_NY( X_NLOC, CV_NGI ))
-    ALLOCATE( X_NZ( X_NLOC, CV_NGI ))
     ALLOCATE( MASELE( CV_NLOC, CV_NLOC, TOTELE ))
     ALLOCATE( VTX_ELE( CV_NLOC, NPHASE, TOTELE ))
     ALLOCATE( VTY_ELE( CV_NLOC, NPHASE, TOTELE ))
@@ -6892,8 +6902,9 @@ contains
        CALL DETNLXR_PLUS_U( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
             X_NLOC, X_NLOC, CV_NGI, &
             X_N, X_NLX, X_NLY, X_NLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
-            X_NX, X_NY, X_NZ, &
-            CV_NLOC, NLX, NLY, NLZ, NX, NY, NZ ) 
+            X_NX_ALL, &
+            CV_NLOC, NLX, NLY, NLZ, NX_ALL,&
+            state,StorName, indx )
 
        !ewrite(3,*)'N',N
        !ewrite(3,*)'nlx:',nlx
@@ -6918,9 +6929,9 @@ contains
              NNZ = 0.0
              DO CV_GI = 1, CV_NGI
                 NN = NN +  N( CV_ILOC, CV_GI )  * N(  CV_JLOC, CV_GI ) * DETWEI( CV_GI )
-                NNX = NNX + N( CV_ILOC, CV_GI )  * NX( CV_JLOC, CV_GI ) * DETWEI( CV_GI )
-                NNY = NNY + N( CV_ILOC, CV_GI )  * NY( CV_JLOC, CV_GI ) * DETWEI( CV_GI )
-                NNZ = NNZ + N( CV_ILOC, CV_GI )  * NZ( CV_JLOC, CV_GI ) * DETWEI( CV_GI )
+                NNX = NNX + N( CV_ILOC, CV_GI )  * NX_ALL(1, CV_JLOC, CV_GI ) * DETWEI( CV_GI )
+                NNY = NNY + N( CV_ILOC, CV_GI )  * NX_ALL(2, CV_JLOC, CV_GI ) * DETWEI( CV_GI )
+                NNZ = NNZ + N( CV_ILOC, CV_GI )  * NX_ALL(3, CV_JLOC, CV_GI ) * DETWEI( CV_GI )
              END DO
 
              MASELE( CV_ILOC,CV_JLOC, ELE)  = MASELE( CV_ILOC,CV_JLOC, ELE ) + NN
@@ -7171,11 +7182,6 @@ contains
     END DO Loop_Elements3
 
 
-    DEALLOCATE( DETWEI ) 
-    DEALLOCATE( RA )
-    DEALLOCATE( NX )
-    DEALLOCATE( NY )
-    DEALLOCATE( NZ )
     DEALLOCATE( MASELE )
     DEALLOCATE( VTX_ELE )
     DEALLOCATE( VTY_ELE )
@@ -7224,7 +7230,8 @@ contains
        X_NONODS, X, Y, Z, &
        NFACE, FACE_ELE, CV_SLOCLIST, X_SLOCLIST, STOTEL, CV_SNLOC, X_SNLOC, WIC_T_BC, SUF_T_BC, &
        SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBWEIGH, &
-       X_SBCVFEN, X_SBCVFENSLX, X_SBCVFENSLY )
+       X_SBCVFEN, X_SBCVFENSLX, X_SBCVFENSLY,&
+      state, StorName, StorageIndexesForDETNLXR_PLUS_U  )
 
     ! determine FEMT (finite element wise) etc from T (control volume wise)
     use shape_functions
@@ -7251,17 +7258,21 @@ contains
     REAL, DIMENSION( :, : ), intent( in ) :: SBCVFEN, SBCVFENSLX, SBCVFENSLY
     REAL, DIMENSION( :, : ), intent( in ) :: X_SBCVFEN, X_SBCVFENSLX, X_SBCVFENSLY
     REAL, DIMENSION( : ), intent( in ) :: SBWEIGH
+    type( state_type ), dimension( : ), intent( inout ) :: state
+    character(len=*), intent(in) :: StorName
+    integer, dimension(:), intent(inout) :: StorageIndexesForDETNLXR_PLUS_U
     ! Local variables
     REAL, DIMENSION( :, :, : ), ALLOCATABLE :: MASELE
     REAL, DIMENSION( :, :, :, :, : ), ALLOCATABLE :: VTX_ELE, VTOLDX_ELE
     LOGICAL :: D1, D3, DCYL, APPLYBC( NCOMP, NPHASE )
-    REAL, dimension( CV_NGI ) :: DETWEI, RA
-    REAL, DIMENSION( 3, CV_NLOC, CV_NGI ):: NX ! first index should be ndim
-    REAL, DIMENSION( 3, X_NLOC, CV_NGI ) :: X_NX ! first index should be ndim
+    REAL, pointer, dimension( : ) :: DETWEI, RA
+    REAL, pointer, DIMENSION( :,:,:):: NX_ALL
+    REAL, pointer, DIMENSION( :, :, : ) :: X_NX_ALL
+    REAL, pointer :: VOLUME
     REAL, DIMENSION( CV_NLOC, CV_NLOC )  :: MASS, INV_MASS
     REAL, DIMENSION( NDIM, X_SNLOC ) :: XSL( 3, X_SNLOC ), SNORMXN( NDIM, SBCVNGI ), SDETWE( SBCVNGI )
     INTEGER  :: SLOC2LOC( CV_SNLOC ), X_SLOC2LOC( X_SNLOC ), ILOC_OTHER_SIDE( CV_SNLOC )
-    REAL :: VOLUME, NN, NNX( NDIM ), NORMX( 3 ), SAREA, NRBC, RNN, RTBC, VLM_NORX( NDIM )
+    REAL :: NN, NNX( NDIM ), NORMX( 3 ), SAREA, NRBC, RNN, RTBC, VLM_NORX( NDIM )
     INTEGER :: ELE, CV_ILOC, CV_JLOC, CV_NODI, CV_NODJ, CV_GI, CV_ILOC2, &
          CV_INOD, CV_INOD2, CV_JLOC2, CV_NODJ2, CV_NODJ2_IPHA, CV_NODJ_IPHA, &
          CV_SILOC, CV_SJLOC, CV_SJLOC2, ELE2, IFACE, IPHASE, SELE2, SUF_CV_SJ2, SUF_CV_SJ2_IPHA, &
@@ -7291,8 +7302,9 @@ contains
        CALL DETNLXR_PLUS_U( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
             X_NLOC, X_NLOC, CV_NGI, &
             X_N, X_NLX, X_NLY, X_NLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
-            X_NX( 1, :, : ), X_NX( 2, :, : ), X_NX( 3, :, : ), &
-            CV_NLOC, NLX, NLY, NLZ, NX( 1, :, : ), NX( 2, :, : ), NX( 3, :, : ) )
+            X_NX_ALL, &
+            CV_NLOC, NLX, NLY, NLZ, NX_ALL&
+            , state,StorName , StorageIndexesForDETNLXR_PLUS_U(23) )
 
        Loop_CV_ILOC: DO CV_ILOC = 1, CV_NLOC
 
@@ -7303,7 +7315,7 @@ contains
              CV_NODJ = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_JLOC )
 
              NN  = SUM( N( CV_ILOC, : ) * N(  CV_JLOC, : ) * DETWEI )
-             NNX = MATMUL( NX( :, CV_JLOC, : ), N( CV_ILOC, : )  * DETWEI )
+             NNX = MATMUL( NX_ALL( :, CV_JLOC, : ), N( CV_ILOC, : )  * DETWEI )
 
              MASELE( CV_ILOC, CV_JLOC, ELE) = MASELE( CV_ILOC, CV_JLOC, ELE ) + NN
 

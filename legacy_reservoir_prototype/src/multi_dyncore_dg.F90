@@ -102,7 +102,8 @@
          MEAN_PORE_CV, &
          option_path, &
          mass_ele_transp, &
-         thermal, THETA_FLUX, ONE_M_THETA_FLUX )
+         thermal, THETA_FLUX, ONE_M_THETA_FLUX,&
+         StorageIndexesForDETNLXR_PLUS_U   )
 
       ! Solve for internal energy using a control volume method.
 
@@ -166,7 +167,7 @@
       REAL, DIMENSION( : ), intent( inout ) :: MEAN_PORE_CV
       character( len = * ), intent( in ), optional :: option_path
       real, dimension( : ), intent( inout ), optional :: mass_ele_transp
-
+      integer, dimension(:), intent(inout) :: StorageIndexesForDETNLXR_PLUS_U
       ! Local variables
       LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE.
       integer :: nits_flux_lim, its_flux_lim
@@ -251,7 +252,8 @@
               SMALL_FINACV, SMALL_COLACV, size(small_colacv), mass_Mn_pres, THERMAL, &
               mass_ele_transp, &
               option_path,&
-              theta_flux=THETA_FLUX, one_m_theta_flux=ONE_M_THETA_FLUX)
+              theta_flux=THETA_FLUX, one_m_theta_flux=ONE_M_THETA_FLUX,&
+               StorageIndexesForDETNLXR_PLUS_U=StorageIndexesForDETNLXR_PLUS_U)
 
          t=0.
 
@@ -361,7 +363,7 @@
          MEAN_PORE_CV, &
          THERMAL, &
          mass_ele_transp, &
-         option_path )
+         option_path, StorageIndexesForDETNLXR_PLUS_U )
 
       ! Solve for internal energy using a control volume method.
 
@@ -429,7 +431,7 @@
       REAL, DIMENSION( : ), intent( inout ) :: MEAN_PORE_CV
       real, dimension( : ), intent( inout ) :: mass_ele_transp
       character( len = * ), intent( in ), optional :: option_path
-
+      integer, dimension(:), intent(inout) :: StorageIndexesForDETNLXR_PLUS_U
       ! Local variables
       LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE.
       INTEGER :: ITS_FLUX_LIM
@@ -480,7 +482,8 @@
               NOIT_DIM, &
               MEAN_PORE_CV, &
               FINACv, COLACV, NCOLACV, ACV, THERMAL, &
-              mass_ele_transp )
+              mass_ele_transp , &
+              StorageIndexesForDETNLXR_PLUS_U=StorageIndexesForDETNLXR_PLUS_U)
 
       ELSE ! this is for DG...
 
@@ -508,7 +511,8 @@
               ACV, NCOLACV, FINACV, COLACV, & ! Force balance sparsity
               NCOLELE, FINELE, COLELE, & ! Element connectivity.
               XU_NLOC, XU_NDGLN, &
-              option_path )
+              option_path,&
+              StorageIndexesForDETNLXR_PLUS_U=StorageIndexesForDETNLXR_PLUS_U )
 
       ENDIF
 
@@ -537,7 +541,8 @@
          ACV, NCOLACV, FINACV, COLACV, & ! Force balance sparsity
          NCOLELE, FINELE, COLELE, & ! Element connectivity.
          XU_NLOC, XU_NDGLN, &
-         option_path )
+         option_path,&
+         StorageIndexesForDETNLXR_PLUS_U )
       use shape_functions_NDim
       implicit none
 
@@ -573,6 +578,7 @@
       INTEGER, DIMENSION( : ), intent( in ) :: COLELE
       REAL, DIMENSION( :, :, :, : ), intent( in ) :: TDIFFUSION
       character( len = * ), intent( in ), optional :: option_path
+      integer, dimension(:), intent(inout) :: StorageIndexesForDETNLXR_PLUS_U
       ! Local  variables... none
       REAL, DIMENSION ( :, :, : ), allocatable :: RZERO, T_IN, TOLD_IN
       REAL, DIMENSION ( : ), allocatable :: RDUM
@@ -769,7 +775,9 @@
            RZERO, JUST_BL_DIAG_MAT,  &
            TDIFFUSION, & ! TDiffusion need to be obtained down in the tree according to the option_path
            IPLIKE_GRAD_SOU, RDUM2, RDUM2, &
-           RDUM, NDIM_IN )
+           RDUM, NDIM_IN, &
+          StorageIndexesForDETNLXR_PLUS_U )
+
 
 
       DEALLOCATE( U_ALL, UOLD_ALL, X_ALL, RZERO, IZERO, RDUM, IDUM, T_IN, TOLD_IN )
@@ -874,7 +882,8 @@
          NOIT_DIM, &
          option_path, &
          mass_ele_transp,&
-         THETA_FLUX, ONE_M_THETA_FLUX)
+         THETA_FLUX, ONE_M_THETA_FLUX,&
+         StorageIndexesForDETNLXR_PLUS_U)
 
       implicit none
       type( state_type ), dimension( : ), intent( inout ) :: state
@@ -927,7 +936,7 @@
       INTEGER, INTENT( IN ) :: NOIT_DIM
       character(len= * ), intent(in), optional :: option_path
       real, dimension( : ), intent( inout ) :: mass_ele_transp
-
+      integer, dimension(:), intent(inout) :: StorageIndexesForDETNLXR_PLUS_U
       ! Local Variables
       LOGICAL, PARAMETER :: THERMAL= .false.
       integer :: nits_flux_lim, its_flux_lim, igot_t2
@@ -1073,7 +1082,8 @@
               SMALL_FINACV, SMALL_COLACV, size(small_colacv), mass_mn_pres, THERMAL, &
               mass_ele_transp, &
               option_path,&
-              THETA_FLUX, ONE_M_THETA_FLUX)
+              THETA_FLUX, ONE_M_THETA_FLUX,&
+              StorageIndexesForDETNLXR_PLUS_U)
 
          satura=0.0 !saturaold([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)])
 
@@ -1150,7 +1160,8 @@
          IN_ELE_UPWIND, DG_ELE_UPWIND, &
          NOIT_DIM, &
          IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
-         scale_momentum_by_volume_fraction )
+         scale_momentum_by_volume_fraction ,&
+          StorageIndexesForDETNLXR_PLUS_U)
 
       IMPLICIT NONE
       type( state_type ), dimension( : ), intent( inout ) :: state
@@ -1230,7 +1241,7 @@
            THETA_FLUX, ONE_M_THETA_FLUX
       INTEGER, INTENT( IN ) :: NOIT_DIM
       REAL, DIMENSION( :  ), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
-
+      integer, dimension(:), intent(inout) :: StorageIndexesForDETNLXR_PLUS_U
       ! Local Variables
       LOGICAL, PARAMETER :: GLOBAL_SOLVE = .FALSE.
 
@@ -1315,7 +1326,8 @@
            THETA_FLUX, ONE_M_THETA_FLUX, &
            IN_ELE_UPWIND, DG_ELE_UPWIND, &
            NOIT_DIM, &
-           IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, scale_momentum_by_volume_fraction )
+           IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, scale_momentum_by_volume_fraction, &
+            StorageIndexesForDETNLXR_PLUS_U)
 
       !ewrite(3,*) 'global_solve, just_bl_diag_mat', global_solve, just_bl_diag_mat
 
@@ -1893,7 +1905,8 @@
          THETA_FLUX, ONE_M_THETA_FLUX, &
          IN_ELE_UPWIND, DG_ELE_UPWIND, &
          NOIT_DIM, &
-         IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD,scale_momentum_by_volume_fraction )
+         IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD,scale_momentum_by_volume_fraction,&
+         StorageIndexesForDETNLXR_PLUS_U )
       implicit none
 
       ! Assembly the force balance, cty and if .not.GLOBAL_SOLVE pressure eqn. 
@@ -1982,7 +1995,7 @@
       REAL, DIMENSION( :  ), intent( in ) :: OPT_VEL_UPWIND_COEFS
       INTEGER, INTENT( IN ) :: NOIT_DIM
       REAL, DIMENSION( : ), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
-
+      integer, dimension(:), intent(inout) :: StorageIndexesForDETNLXR_PLUS_U
       ! Local Variables
       REAL, DIMENSION( : ), allocatable :: ACV
 
@@ -2028,7 +2041,8 @@
            THETA_FLUX, ONE_M_THETA_FLUX, &
            IN_ELE_UPWIND, DG_ELE_UPWIND, &
            NOIT_DIM, &
-           IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD,scale_momentum_by_volume_fraction )
+           IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD,scale_momentum_by_volume_fraction ,&
+            StorageIndexesForDETNLXR_PLUS_U)
 
       IF(.NOT.GLOBAL_SOLVE) THEN
          ! form pres eqn. 
@@ -2138,7 +2152,8 @@
          THETA_FLUX, ONE_M_THETA_FLUX, &
          IN_ELE_UPWIND, DG_ELE_UPWIND, &
          NOIT_DIM, &
-         IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD ,scale_momentum_by_volume_fraction)
+         IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD ,scale_momentum_by_volume_fraction,&
+          StorageIndexesForDETNLXR_PLUS_U)
       use printout
       implicit none
 
@@ -2223,7 +2238,7 @@
       REAL, DIMENSION( : ), intent( in ) :: OPT_VEL_UPWIND_COEFS
       INTEGER, INTENT( IN ) :: NOIT_DIM
       REAL, DIMENSION( :), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
-
+      integer, dimension(:), intent(inout) :: StorageIndexesForDETNLXR_PLUS_U
       ! Local variables
       REAL, PARAMETER :: V_BETA = 1.0
       REAL :: SECOND_THETA
@@ -2448,7 +2463,7 @@
            PIVIT_MAT, JUST_BL_DIAG_MAT, &
            UDIFFUSION_ALL, &
            IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF_ALL, PLIKE_GRAD_SOU_GRAD_ALL, &
-           P, NDIM )
+           P, NDIM, StorageIndexesForDETNLXR_PLUS_U=StorageIndexesForDETNLXR_PLUS_U )
       ! scale the momentum equations by the volume fraction / saturation for the matrix and rhs     
 
       IF(GLOBAL_SOLVE) THEN
@@ -2502,7 +2517,8 @@
            NOIT_DIM, &
            MEAN_PORE_CV, &
            FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL, &
-           dummy_transp )
+           dummy_transp,&
+           StorageIndexesForDETNLXR_PLUS_U=StorageIndexesForDETNLXR_PLUS_U )
 
       ewrite(3,*)'Back from cv_assemb'
 
@@ -2701,7 +2717,8 @@
          UDIFFUSION, &
          IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
          
-         P, NDIM_VEL )
+         P, NDIM_VEL,&
+         StorageIndexesForDETNLXR_PLUS_U )
 
       implicit none
 
@@ -2751,7 +2768,7 @@
       LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
       REAL, DIMENSION( :, : ), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
       REAL, DIMENSION( : ), intent( in ) :: P
-
+      integer, dimension(:), intent(inout) :: StorageIndexesForDETNLXR_PLUS_U
       ! Local Variables
       ! This is for decifering WIC_U_BC & WIC_P_BC
       type( tensor_field ), pointer :: tensorfield
@@ -2782,15 +2799,15 @@
       INTEGER, DIMENSION( :, : ), allocatable :: CV_SLOCLIST, U_SLOCLIST, CV_NEILOC, FACE_ELE
       INTEGER, DIMENSION( : ), allocatable :: CV_SLOC2LOC, U_SLOC2LOC, FINDGPTS, COLGPTS, &
            U_ILOC_OTHER_SIDE, U_OTHER_LOC, MAT_OTHER_LOC
-      REAL, DIMENSION( : ),    ALLOCATABLE :: CVWEIGHT, CVWEIGHT_SHORT, DETWEI,RA,  &
+      REAL, DIMENSION( : ),    ALLOCATABLE :: CVWEIGHT, CVWEIGHT_SHORT,  &
            SNORMXN, SNORMYN, SNORMZN, SCVFEWEIGH, SBCVFEWEIGH, SDETWE, NXUDN, VLN,VLN_OLD, &
            XSL,YSL,ZSL, SELE_OVERLAP_SCALE, MASS_ELE
       REAL, DIMENSION( :, : ),    ALLOCATABLE :: XL_ALL, XL2_ALL, XSL_ALL, SNORMXN_ALL, GRAD_SOU_GI_NMX
       REAL, DIMENSION( : ),    ALLOCATABLE :: NORMX_ALL
       REAL, DIMENSION( :, : ), ALLOCATABLE :: CVN, CVN_SHORT, CVFEN, CVFENLX, CVFENLY, CVFENLZ, & 
-           CVFENX, CVFENY, CVFENZ, CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, & 
+           CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
            CVFENX_SHORT, CVFENY_SHORT, CVFENZ_SHORT, &
-           UFEN, UFENLX, UFENLY, UFENLZ, UFENX, UFENY, UFENZ, SCVFEN, SCVFENSLX, SCVFENSLY, &
+           UFEN, UFENLX, UFENLY, UFENLZ, SCVFEN, SCVFENSLX, SCVFENSLY, &
            SCVFENLX, SCVFENLY, SCVFENLZ, &
            SUFEN, SUFENSLX, SUFENSLY, SUFENLX, SUFENLY, SUFENLZ, &
            SBCVN, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFENLX, SBCVFENLY, SBCVFENLZ, &
@@ -2827,10 +2844,16 @@
            MAT_ELE, DIFFGI_U, RHS_DIFF_U, DIFF_VEC_U, SOUGI_X, RESID_U, U_DT, &
            DIF_STAB_U, U_GRAD_NORM2, U_GRAD_NORM, A_DOT_U, STAR_U_COEF, P_STAR_U 
       REAL, DIMENSION ( :, :, :, :, : ), allocatable :: UDIFF_SUF_STAB
+
+      real, pointer, dimension(:,:,:) :: CVFENX_ALL, UFENX_ALL
+      real, pointer, dimension(:) :: RA, DETWEI
+      real, pointer :: VOLUME
+
+
       !
       ! Variables used to reduce indirect addressing...
       !INTEGER, DIMENSION ( :, :, : ), allocatable :: WIC_U_BC_ALL
-      REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U_RHS, UFENX_ALL, CVFENX_ALL
+      REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U_RHS
       REAL, DIMENSION ( :, :, :, : ), allocatable :: UFENX_JLOC_U
       REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U, LOC_UOLD
       REAL, DIMENSION ( :, :, : ), allocatable :: LOC_NU, LOC_NUOLD
@@ -2882,7 +2905,7 @@
            GLOBI_CV, U_INOD_jDIM_jPHA, u_nod2, u_nod2_pha, cv_inod, COUNT_ELE, CV_ILOC2, CV_INOD2
       REAL    :: NN, NXN, NNX, NXNX, NMX, NMY, NMZ, SAREA, &
            VNMX, VNMY, VNMZ, NM, R
-      REAL    :: VOLUME, MN, XC, YC, ZC, XC2, YC2, ZC2, HDC, VLM, VLM_NEW,VLM_OLD, NN_SNDOTQ_IN,NN_SNDOTQ_OUT, &
+      REAL    :: MN, XC, YC, ZC, XC2, YC2, ZC2, HDC, VLM, VLM_NEW,VLM_OLD, NN_SNDOTQ_IN,NN_SNDOTQ_OUT, &
            NN_SNDOTQOLD_IN,NN_SNDOTQOLD_OUT, NORMX, NORMY, NORMZ, RNN, RN, RNMX(3), c1(NDIM), c2(NDIM)
       REAL    :: MASSE, MASSE2, rsum
       ! Nonlinear Petrov-Galerkin stuff...
@@ -3007,8 +3030,6 @@
            '/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/discontinuous_galerkin/advection_scheme/nonlinear_flux') &
            ) NON_LIN_DGFLUX = .TRUE.
 
-      ALLOCATE( DETWEI( CV_NGI ))
-      ALLOCATE( RA( CV_NGI ))
       ALLOCATE( UD( NDIM_VEL, NPHASE, CV_NGI ))
       ALLOCATE( UDOLD( NDIM_VEL, NPHASE, CV_NGI ))
 
@@ -3048,9 +3069,6 @@
       ALLOCATE( CVFENLX( CV_NLOC, CV_NGI ))
       ALLOCATE( CVFENLY( CV_NLOC, CV_NGI ))
       ALLOCATE( CVFENLZ( CV_NLOC, CV_NGI ))
-      ALLOCATE( CVFENX( CV_NLOC, CV_NGI )) 
-      ALLOCATE( CVFENY( CV_NLOC, CV_NGI ))
-      ALLOCATE( CVFENZ( CV_NLOC, CV_NGI ))
 
       ALLOCATE( CVWEIGHT_SHORT( CV_NGI_SHORT ))
       ALLOCATE( CVN_SHORT( CV_NLOC, CV_NGI_SHORT ))
@@ -3066,9 +3084,6 @@
       ALLOCATE( UFENLX( U_NLOC, CV_NGI ))
       ALLOCATE( UFENLY( U_NLOC, CV_NGI ))
       ALLOCATE( UFENLZ( U_NLOC, CV_NGI ))
-      ALLOCATE( UFENX( U_NLOC, CV_NGI ))
-      ALLOCATE( UFENY( U_NLOC, CV_NGI ))
-      ALLOCATE( UFENZ( U_NLOC, CV_NGI ))
 
       ALLOCATE( SCVFEN( CV_NLOC, SCVNGI ))
       ALLOCATE( SCVFENSLX( CV_NLOC, SCVNGI ))
@@ -3233,8 +3248,6 @@
       ALLOCATE( LOC_U_ABS_STAB(NDIM_VEL* NPHASE, NDIM_VEL* NPHASE, MAT_NLOC) ) 
       ALLOCATE( LOC_UDIFFUSION(NDIM, NDIM, NPHASE, MAT_NLOC) ) 
       ALLOCATE( LOC_U_RHS( NDIM_VEL, NPHASE, U_NLOC ) )
-      ALLOCATE( UFENX_ALL( NDIM, U_NLOC, CV_NGI )) 
-      ALLOCATE( CVFENX_ALL( NDIM,  CV_NLOC, CV_NGI )) 
       ALLOCATE( UFENX_JLOC_U(NDIM,NDIM,CV_NGI,U_NLOC) )
 
       ! To memory access very local...
@@ -3384,7 +3397,8 @@
               X_NONODS, X, Y, Z, &
               NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC_ALL, SUF_U_BC_ALL, &
               SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBCVFEWEIGH, &
-              SBCVFEN, SBCVFENSLX, SBCVFENSLY )
+              SBCVFEN, SBCVFENSLX, SBCVFENSLY ,&
+               state, "CTY", StorageIndexesForDETNLXR_PLUS_U(:))
       ENDIF
 
 
@@ -3395,16 +3409,10 @@
          CALL DETNLXR_PLUS_U( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
               X_NLOC, CV_NLOC, CV_NGI, &
               CVFEN, CVFENLX, CVFENLY, CVFENLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
-              CVFENX, CVFENY, CVFENZ, &
-              U_NLOC, UFENLX, UFENLY, UFENLZ, UFENX, UFENY, UFENZ ) 
+              CVFENX_ALL, &
+              U_NLOC, UFENLX, UFENLY, UFENLZ, UFENX_ALL , &
+                 state ,"C_1", StorageIndexesForDETNLXR_PLUS_U(25))
 
-         UFENX_ALL( 1, :, : ) = UFENX( :, : )
-         UFENX_ALL( 2, :, : ) = UFENY( :, : )
-         IF ( NDIM>=3 ) UFENX_ALL( 3, :, : ) = UFENZ( :, : )
-
-         CVFENX_ALL( 1, :, : ) = CVFENX( :, : )
-         CVFENX_ALL( 2, :, : ) = CVFENY( :, : )
-         IF ( NDIM>=3 ) CVFENX_ALL( 3, :, : ) = CVFENZ( :, : )
 
          ! Adjust the volume according to the number of levels. 
          VOLUME = VOLUME / REAL( NLEV )
@@ -3605,11 +3613,11 @@
                         DO JPHASE = 1, NPHASE
                            IF ( STRESS_FORM ) THEN ! stress form of viscosity...
                               CALL CALC_STRESS_TEN( STRESS_IJ_ELE( :, :, IPHASE, U_ILOC, U_JLOC ), ZERO_OR_TWO_THIRDS, NDIM, &
-                                   UFENX_ALL( :, U_ILOC, GI ), UFENX_ALL( :, U_JLOC, GI )* DETWEI( GI ), TEN_XX( :, :, IPHASE, GI ) ) 
+                                   UFENX_ALL( 1:NDIM, U_ILOC, GI ), UFENX_ALL( 1:NDIM, U_JLOC, GI )* DETWEI( GI ), TEN_XX( :, :, IPHASE, GI ) )
                            ELSE
                               DO IDIM = 1, NDIM
                                  VLK_ELE( IPHASE, U_ILOC, U_JLOC ) = VLK_ELE( IPHASE, U_ILOC, U_JLOC ) + &
-                                      UFENX_ALL( IDIM, U_ILOC, GI ) * SUM( UFENX_ALL( :, U_JLOC, GI ) * TEN_XX( IDIM, :, IPHASE, GI ) ) * DETWEI( GI )
+                                      UFENX_ALL( IDIM, U_ILOC, GI ) * SUM( UFENX_ALL( 1:NDIM, U_JLOC, GI ) * TEN_XX( IDIM, :, IPHASE, GI ) ) * DETWEI( GI )
                               END DO
                            END IF
                         END DO
@@ -3757,19 +3765,19 @@
 
                         IF ( MOM_CONSERV ) THEN
                            VLN( IPHASE ) = VLN( IPHASE ) - &
-                                DENGI( IPHASE, GI ) * SUM( UD( :, IPHASE, GI ) * UFENX_ALL( :, U_ILOC, GI ) )  &
+                                DENGI( IPHASE, GI ) * SUM( UD( :, IPHASE, GI ) * UFENX_ALL( 1:NDIM, U_ILOC, GI ) )  &
                                 * UFEN( U_JLOC, GI ) * DETWEI( GI ) * WITH_NONLIN
 
                            VLN_OLD( IPHASE ) = VLN_OLD( IPHASE ) - &
-                                DENGI( IPHASE, GI ) * SUM( UDOLD( :, IPHASE, GI ) * UFENX_ALL( :, U_ILOC, GI ) )  &
+                                DENGI( IPHASE, GI ) * SUM( UDOLD( :, IPHASE, GI ) * UFENX_ALL( 1:NDIM, U_ILOC, GI ) )  &
                                 * UFEN( U_JLOC, GI ) * DETWEI( GI ) * WITH_NONLIN
                         ELSE
                            VLN( IPHASE ) = VLN( IPHASE ) + &
-                                UFEN( U_ILOC, GI ) * DENGI( IPHASE, GI ) * SUM( UD( :, IPHASE, GI ) * UFENX_ALL( :, U_JLOC, GI ) ) &
+                                UFEN( U_ILOC, GI ) * DENGI( IPHASE, GI ) * SUM( UD( :, IPHASE, GI ) * UFENX_ALL(1:NDIM, U_JLOC, GI ) ) &
                                 * DETWEI( GI ) * WITH_NONLIN
 
                            VLN_OLD( IPHASE ) = VLN_OLD( IPHASE ) + &
-                                UFEN( U_ILOC, GI ) * DENGI( IPHASE, GI ) * SUM( UDOLD( :, IPHASE, GI ) * UFENX_ALL( :, U_JLOC, GI ) ) &
+                                UFEN( U_ILOC, GI ) * DENGI( IPHASE, GI ) * SUM( UDOLD( :, IPHASE, GI ) * UFENX_ALL( 1:NDIM, U_JLOC, GI ) ) &
                                 * DETWEI( GI ) * WITH_NONLIN
                         END IF
 
@@ -3900,7 +3908,7 @@
                   Loop_GaussPoints1: DO GI = 1 + (ILEV-1)*CV_NGI_SHORT, ILEV*CV_NGI_SHORT
                      RN = UFEN( U_ILOC, GI ) * DETWEI( GI )
 
-                     RNMX_ALL( : ) = RN * CVFENX_ALL( :, P_JLOC, GI ) 
+                     RNMX_ALL( : ) = RN * CVFENX_ALL( 1:NDIM, P_JLOC, GI )
 
                      NMX_ALL( : ) = NMX_ALL( : ) + RNMX_ALL( : )
 
@@ -4037,7 +4045,7 @@
             DO P_ILOC = 1, P_NLOC
                DO GI = 1, CV_NGI
 
-                  P_DX( :, GI ) = P_DX( :, GI ) + CVFENX_ALL( :, P_ILOC, GI ) * LOC_P( P_ILOC )
+                  P_DX( :, GI ) = P_DX( :, GI ) + CVFENX_ALL(1:NDIM, P_ILOC, GI ) * LOC_P( P_ILOC )
 
                   IF ( IPLIKE_GRAD_SOU == 1 .OR. CAPILLARY_PRESSURE_ACTIVATED ) THEN ! Capillary pressure for example terms...
                      DO IPHASE = 1, NPHASE
@@ -4082,7 +4090,7 @@
                      DO IDIM = 1, NDIM_VEL
                         U_GRAD_N_MAX2( IDIM ) = MAX( U_GRAD_N_MAX2( IDIM ), &
                              ( JTT_INV * U_DT( IDIM, IPHASE, GI ) )**2 &
-                             + 4. * SUM( ( UFENX_ALL( :, U_ILOC, GI ) * U_DX_ALL( 1:NDIM, IDIM, IPHASE, GI ) )**2 ) )
+                             + 4. * SUM( ( UFENX_ALL( 1:NDIM, U_ILOC, GI ) * U_DX_ALL( 1:NDIM, IDIM, IPHASE, GI ) )**2 ) )
                      END DO
                   END DO
 
@@ -4118,7 +4126,7 @@
 
                      VLK_UVW = 0.0
                      DO GI = 1, CV_NGI
-                        VLKNN = SUM( UFENX_ALL( :, U_ILOC, GI ) * UFENX_ALL( :, U_JLOC, GI ) ) * DETWEI( GI ) 
+                        VLKNN = SUM( UFENX_ALL( 1:NDIM, U_ILOC, GI ) * UFENX_ALL( 1:NDIM, U_JLOC, GI ) ) * DETWEI( GI )
                         VLK_UVW( : ) = VLK_UVW( : ) + DIF_STAB_U( :, IPHASE, GI ) * VLKNN
                      END DO
 
@@ -4773,7 +4781,7 @@
                            velold_dot(sgi)  = sum( SUDOLD_ALL(:,IPHASE,SGI) *snormxn_all(:,sgi) )
                            velold_dot2(sgi) = sum( SUDOLD2_ALL(:,IPHASE,SGI) *snormxn_all(:,sgi) )
 
-                           grad_fact(sgi) = sum( UFENX_ALL(:,U_ILOC,1)*snormxn_ALL(:,SGI) )  
+                           grad_fact(sgi) = sum( UFENX_ALL(1:NDIM,U_ILOC,1)*snormxn_ALL(:,SGI) )
                         end do
 
                         N_DOT_DU(iphase,:)  = N_DOT_DU(iphase,:)  + grad_fact(:)*vel_dot(:)
@@ -5127,8 +5135,6 @@
       !stop 27
 
 
-      DEALLOCATE( DETWEI )
-      DEALLOCATE( RA )
       DEALLOCATE( UD, UD_ND )
       DEALLOCATE( UDOLD, UDOLD_ND )
       DEALLOCATE( DENGI )
@@ -5153,9 +5159,6 @@
       DEALLOCATE( CVFENLX )
       DEALLOCATE( CVFENLY )
       DEALLOCATE( CVFENLZ )
-      DEALLOCATE( CVFENX ) 
-      DEALLOCATE( CVFENY )
-      DEALLOCATE( CVFENZ )
 
       DEALLOCATE( CVWEIGHT_SHORT )
       DEALLOCATE( CVN_SHORT )
@@ -5171,9 +5174,6 @@
       DEALLOCATE( UFENLX )
       DEALLOCATE( UFENLY )
       DEALLOCATE( UFENLZ )
-      DEALLOCATE( UFENX )
-      DEALLOCATE( UFENY )
-      DEALLOCATE( UFENZ )
 
       DEALLOCATE( SCVFEN )
       DEALLOCATE( SCVFENSLX )
@@ -5837,7 +5837,8 @@
          NDIM,  &
          NCOLM, FINDM, COLM, MIDM, &
          XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
-         WIC_COMP_BC, SUF_COMP_BC )
+         WIC_COMP_BC, SUF_COMP_BC,&
+          StorageIndexesForDETNLXR_PLUS_U )
 
       IMPLICIT NONE
 
@@ -5878,6 +5879,7 @@
       integer, dimension( : ), intent( in ) :: MIDM
       integer, dimension( : ), intent( in ) :: FINELE
       integer, dimension( : ), intent( in ) :: COLELE
+      integer, dimension(:), intent(inout) ::  StorageIndexesForDETNLXR_PLUS_U
     !Local variables
       real, dimension( : ), allocatable :: U_FORCE_X_SUF_TEN, U_FORCE_Y_SUF_TEN, U_FORCE_Z_SUF_TEN, &
            &                               CV_U_FORCE_X_SUF_TEN, CV_U_FORCE_Y_SUF_TEN, CV_U_FORCE_Z_SUF_TEN 
@@ -5956,7 +5958,8 @@
                     NDIM, USE_PRESSURE_FORCE, &
                     NCOLM, FINDM, COLM, MIDM, &
                     XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
-                    DUMMY_WIC_COMP_BC, DUMMY_SUF_COMP_BC, USE_SMOOTHING )
+                    DUMMY_WIC_COMP_BC, DUMMY_SUF_COMP_BC, USE_SMOOTHING,&
+                      StorageIndexesForDETNLXR_PLUS_U )
 
             end do
 
@@ -6000,7 +6003,8 @@
          NDIM, USE_PRESSURE_FORCE, &
          NCOLM, FINDM, COLM, MIDM, &
          XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
-         WIC_COMP_BC, SUF_COMP_BC, USE_SMOOTHING )
+         WIC_COMP_BC, SUF_COMP_BC, USE_SMOOTHING,&
+          StorageIndexesForDETNLXR_PLUS_U )
 
       ! Calculate the surface tension force: U_FORCE_X_SUF_TEN,U_FORCE_X_SUF_TEN,U_FORCE_X_SUF_TEN
       ! or PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD,
@@ -6173,7 +6177,7 @@
       INTEGER, DIMENSION( : ), intent( in ) :: FINELE
       INTEGER, DIMENSION( : ), intent( in ) :: COLELE
       LOGICAL, intent( in ) :: USE_PRESSURE_FORCE, USE_SMOOTHING
-
+      integer, dimension(:), intent(inout) ::  StorageIndexesForDETNLXR_PLUS_U
       ! Local variables 
       LOGICAL, DIMENSION( : ), allocatable :: X_SHARE,LOG_ON_BOUND
       LOGICAL, DIMENSION( :, : ), allocatable :: CV_ON_FACE, U_ON_FACE, &
@@ -6197,13 +6201,12 @@
            T2OLDMIN, &
            T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, &
            T2OLDMIN_2ND_MC, &
-           UP_WIND_NOD, DU, DV, DW, RDUM, RZERO, CURVATURE, CV_ONE, DETWEI, RA
+           UP_WIND_NOD, DU, DV, DW, RDUM, RZERO, CURVATURE, CV_ONE
       REAL, DIMENSION( : ), allocatable :: CV_FORCE_X_SUF_TEN, CV_FORCE_Y_SUF_TEN, CV_FORCE_Z_SUF_TEN
       REAL, DIMENSION( : , : ), allocatable :: CVN, CVN_SHORT, CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
            CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT,  &
-           CVFENX, CVFENY, CVFENZ, &
            UFEN, UFENLX, UFENLY, UFENLZ, SCVFEN, SCVFENSLX, SCVFENSLY, &
-           SCVFENLX, SCVFENLY, SCVFENLZ, UFENX, UFENY, UFENZ, &
+           SCVFENLX, SCVFENLY, SCVFENLZ,  &
            SUFEN, SUFENSLX, SUFENSLY, SUFENLX, SUFENLY, SUFENLZ, &
            SBCVN, SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
            SBCVFENLX, SBCVFENLY, SBCVFENLZ, SBUFEN, SBUFENSLX, SBUFENSLY, &
@@ -6255,7 +6258,7 @@
            SUM, &
            SUM_LIMT, SUM_LIMTOLD, FTHETA_T2, ONE_M_FTHETA_T2OLD, THERM_FTHETA, &
            W_SUM_ONE1, W_SUM_ONE2, NDOTQNEW, NN, NM, DT, T_THETA, T_BETA, RDIF, RR, &
-           VOLUME, RSUM, RRSUM, rr2, grad_c_x,grad_c_y,grad_c_z
+           RSUM, RRSUM, rr2, grad_c_x,grad_c_y,grad_c_z
 
       REAL, PARAMETER :: W_SUM_ONE = 1.0, TOLER=1.0E-10
 
@@ -6278,8 +6281,11 @@
       real, dimension(0,0,0,0):: tflux
       real, allocatable, dimension(:,:,:) :: T_ABSORB
       real, allocatable, dimension(:,:,:,:) :: tdiffusion
-
       real, dimension(0,0) :: ALIMTOLD,ALIMT2OLD,ALIMDOLD,ALIMDTOLD,ALIMDTT2OLD,ANDOTQOLD
+      !Pointer
+      real, pointer, dimension(:,:,:) :: CVFENX_ALL, UFENX_ALL
+      real, pointer, dimension(:) :: DETWEI, RA
+      real, pointer :: VOLUME
       
 
       DUMMY_ELE = 0
@@ -6343,9 +6349,6 @@
       ALLOCATE( CVFENLY( CV_NLOC, CV_NGI ))
       ALLOCATE( CVFENLZ( CV_NLOC, CV_NGI ))
 
-      ALLOCATE( CVFENX( CV_NLOC, CV_NGI ))
-      ALLOCATE( CVFENY( CV_NLOC, CV_NGI ))
-      ALLOCATE( CVFENZ( CV_NLOC, CV_NGI ))
 
       ALLOCATE( CVWEIGHT_SHORT( CV_NGI_SHORT ))
       ALLOCATE( CVN_SHORT( CV_NLOC, CV_NGI_SHORT ))
@@ -6359,9 +6362,6 @@
       ALLOCATE( UFENLY( U_NLOC, CV_NGI ))
       ALLOCATE( UFENLZ( U_NLOC, CV_NGI ))
 
-      ALLOCATE( UFENX( U_NLOC, CV_NGI ))
-      ALLOCATE( UFENY( U_NLOC, CV_NGI ))
-      ALLOCATE( UFENZ( U_NLOC, CV_NGI ))
 
       ALLOCATE( SCVFEN( CV_NLOC, SCVNGI ))
       ALLOCATE( SCVFENSLX( CV_NLOC, SCVNGI ))
@@ -6551,7 +6551,8 @@
            NFACE, FACE_ELE, CV_SLOCLIST, CV_SLOCLIST, STOTEL, CV_SNLOC, CV_SNLOC, IZERO, &
            RZERO, &
            1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
-           SBCVFEN, SBCVFENSLX, SBCVFENSLY)
+           SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
+           state, "wrap1", StorageIndexesForDETNLXR_PLUS_U(19) )
 
 
       CALL DG_DERIVS( SHARP_FEMT, FEMTOLD, &
@@ -6565,7 +6566,8 @@
            NFACE, FACE_ELE, CV_SLOCLIST, CV_SLOCLIST, STOTEL, CV_SNLOC, CV_SNLOC, IZERO, &
            RZERO, &
            1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
-           SBCVFEN, SBCVFENSLX, SBCVFENSLY)
+           SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
+           state, "Surf_ten_wrap2", StorageIndexesForDETNLXR_PLUS_U(20))
 
       ! determine the curvature by solving a simple eqn...
 
@@ -6758,7 +6760,8 @@
                  NFACE, FACE_ELE, CV_SLOCLIST, CV_SLOCLIST, STOTEL, CV_SNLOC, CV_SNLOC, IZERO,  &
                  RZERO,RZERO,RZERO, &
                  1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, & 
-                 SBCVFEN, SBCVFENSLX, SBCVFENSLY)
+                 SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
+                 state, "wrapp1", StorageIndexesForDETNLXR_PLUS_U(4:6))
 
             U_FORCE_X_SUF_TEN = pack(DX_TAU_XX(:,1,:) + DY_TAU_XY(:,1,:) + DZ_TAU_XZ(:,1,:),.true.)
 !!$            femtold=0.0
@@ -6791,7 +6794,8 @@
                     NFACE, FACE_ELE, CV_SLOCLIST, CV_SLOCLIST, STOTEL, CV_SNLOC, CV_SNLOC, IZERO,  &
                     RZERO,RZERO,RZERO, &
                     1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, & 
-                    SBCVFEN, SBCVFENSLX, SBCVFENSLY)
+                    SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
+                     state, "wrapp2", StorageIndexesForDETNLXR_PLUS_U(7:9))
 
                U_FORCE_Y_SUF_TEN = pack(DX_TAU_YX(:,1,:)+ DY_TAU_YY(:,1,:) + DZ_TAU_YZ(:,1,:),.true.)
 
@@ -6830,7 +6834,8 @@
                     NFACE, FACE_ELE, CV_SLOCLIST, CV_SLOCLIST, STOTEL, CV_SNLOC, CV_SNLOC, IZERO,  &
                     RZERO,RZERO,RZERO, &
                     1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, & 
-                    SBCVFEN, SBCVFENSLX, SBCVFENSLY)
+                    SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
+                    state, "wrapp3", StorageIndexesForDETNLXR_PLUS_U(10:12))
 
                U_FORCE_Z_SUF_TEN = pack(DX_TAU_ZX(:,1,:) + DY_TAU_ZY(:,1,:) + DZ_TAU_ZZ(:,1,:),.true.)
 
@@ -6888,7 +6893,8 @@
                     NFACE, FACE_ELE, CV_SLOCLIST, CV_SLOCLIST, STOTEL, CV_SNLOC, CV_SNLOC, IZERO,  &
                     RZERO,RZERO,RZERO, &
                     1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, & 
-                    SBCVFEN, SBCVFENSLX, SBCVFENSLY)
+                    SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
+                     state, "wrapp4", StorageIndexesForDETNLXR_PLUS_U(13:15))
 
             else
 
@@ -6912,7 +6918,8 @@
                     NFACE, FACE_ELE, CV_SLOCLIST, CV_SLOCLIST, STOTEL, CV_SNLOC, CV_SNLOC, IZERO, &
                     RZERO, &
                     1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
-                    SBCVFEN, SBCVFENSLX, SBCVFENSLY)
+                    SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
+                    state, "wrap4", StorageIndexesForDETNLXR_PLUS_U(21))
 
                DO ELE=1,TOTELE
                   DO CV_ILOC=1,CV_NLOC
@@ -6942,7 +6949,8 @@
                     NFACE, FACE_ELE, CV_SLOCLIST, CV_SLOCLIST, STOTEL, CV_SNLOC, CV_SNLOC, IZERO, &
                     RZERO, &
                     1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
-                    SBCVFEN, SBCVFENSLX, SBCVFENSLY)
+                    SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
+                    state, "wrap5", StorageIndexesForDETNLXR_PLUS_U(22))
 
                DO ELE=1,TOTELE
                   DO CV_ILOC=1,CV_NLOC
@@ -7018,7 +7026,8 @@
               RZERO, &
               option_path = '/material_phase[0]/scalar_field::Pressure', &
               mass_ele_transp = dummy_ele, &
-              thermal = .FALSE. )
+              thermal = .FALSE.,&
+              StorageIndexesForDETNLXR_PLUS_U=StorageIndexesForDETNLXR_PLUS_U)
 
          DEALLOCATE(T_ABSORB)
 
@@ -7191,14 +7200,14 @@
             ALLOCATE(B_CV_X(CV_NLOC), B_CV_Y(CV_NLOC), B_CV_Z(CV_NLOC))
             ALLOCATE(RHS_U_SHORT_X(U_NLOC), RHS_U_SHORT_Y(U_NLOC), RHS_U_SHORT_Z(U_NLOC))
             ALLOCATE(U_SOL_X(U_NLOC), U_SOL_Y(U_NLOC), U_SOL_Z(U_NLOC))
-            ALLOCATE(DETWEI(CV_NGI), RA(CV_NGI)) ; DETWEI = 0.0 ; RA = 0.0
             DO ELE=1,TOTELE
                ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
                CALL DETNLXR_PLUS_U( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
                     X_NLOC, CV_NLOC, CV_NGI, &
                     CVFEN, CVFENLX, CVFENLY, CVFENLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
-                    CVFENX, CVFENY, CVFENZ, &
-                    U_NLOC, UFENLX, UFENLY, UFENLZ, UFENX, UFENY, UFENZ ) 
+                    CVFENX_ALL, &
+                    U_NLOC, UFENLX, UFENLY, UFENLZ, UFENX_ALL ,&
+                     state, "wrapper", StorageIndexesForDETNLXR_PLUS_U(26))
 
                MASS=0.0
                DO U_ILOC=1,U_NLOC
@@ -7253,7 +7262,7 @@
 
             DEALLOCATE( MASS, STORE_MASS, B_CV_X, B_CV_Y, B_CV_Z, &
                  RHS_U_SHORT_X, RHS_U_SHORT_Y, RHS_U_SHORT_Z, &
-                 U_SOL_X, U_SOL_Y, U_SOL_Z, DETWEI, RA, IPIV)
+                 U_SOL_X, U_SOL_Y, U_SOL_Z, IPIV)
 
          end if
 
@@ -7274,11 +7283,9 @@
       DEALLOCATE( X_SHARE )
       DEALLOCATE( CVWEIGHT, CVN, CVFEN, &
            CVFENLX, CVFENLY, CVFENLZ )
-      DEALLOCATE( CVFENX, CVFENY, CVFENZ )
       DEALLOCATE( CVWEIGHT_SHORT, CVN_SHORT, CVFEN_SHORT, &
            CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT )
       DEALLOCATE( UFEN, UFENLX, UFENLY, UFENLZ )
-      DEALLOCATE( UFENX, UFENY, UFENZ )
       DEALLOCATE( SCVFEN, SCVFENSLX, SCVFENSLY, &
            SCVFENLX, SCVFENLY, SCVFENLZ, SCVFEWEIGH )
       DEALLOCATE( SUFEN, SUFENSLX, SUFENSLY, &
