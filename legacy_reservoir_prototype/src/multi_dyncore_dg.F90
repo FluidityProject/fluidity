@@ -576,6 +576,7 @@
       ! Local  variables... none
       REAL, DIMENSION ( :, :, : ), allocatable :: RZERO, T_IN, TOLD_IN
       REAL, DIMENSION ( : ), allocatable :: RDUM
+      REAL, DIMENSION ( :, : ), allocatable :: RDUM2
       REAL, DIMENSION ( :, :, : ), allocatable :: RDUM3
       INTEGER, DIMENSION ( : ), allocatable :: IDUM,IZERO
 
@@ -611,6 +612,8 @@
       RDUM=0.0
       ALLOCATE(IDUM(TOTELE * U_NLOC * NPHASE * NDIM * U_NLOC * NPHASE * NDIM)) 
       IDUM=0
+      ALLOCATE(RDUM2(NPHASE,CV_NONODS)) 
+      RDUM2=0.0
 
       IPLIKE_GRAD_SOU=0
 
@@ -765,7 +768,7 @@
            XU_NLOC, XU_NDGLN, &
            RZERO, JUST_BL_DIAG_MAT,  &
            TDIFFUSION, & ! TDiffusion need to be obtained down in the tree according to the option_path
-           IPLIKE_GRAD_SOU, RDUM, RDUM, &
+           IPLIKE_GRAD_SOU, RDUM2, RDUM2, &
            RDUM, NDIM_IN )
 
 
@@ -2237,7 +2240,8 @@
 
       INTEGER :: U_NLOC2, ILEV, NLEV, ELE, U_ILOC, U_INOD, IPHASE, IDIM, X_ILOC, X_INOD, MAT_INOD, S, E
       REAL, DIMENSION( :, :, : ), allocatable :: U_ALL, UOLD_ALL, U_SOURCE_ALL, U_SOURCE_CV_ALL, U_ABSORB_ALL, U_ABS_STAB_ALL
-      REAL, DIMENSION( :, : ), allocatable :: X_ALL, UDEN_ALL, UDENOLD_ALL
+      REAL, DIMENSION( :, : ), allocatable :: X_ALL, UDEN_ALL, UDENOLD_ALL, PLIKE_GRAD_SOU_COEF_ALL, PLIKE_GRAD_SOU_GRAD_ALL
+      REAL, DIMENSION( :, :, :, : ), allocatable :: UDIFFUSION_ALL
 
       INTEGER, DIMENSION ( :, :, : ), allocatable :: WIC_U_BC_ALL, WIC_MOMU_BC_ALL
       INTEGER, DIMENSION ( :, : ), allocatable :: WIC_P_BC_ALL
@@ -2394,9 +2398,20 @@
 
       ALLOCATE( U_ABSORB_ALL( NDIM * NPHASE, NDIM * NPHASE, MAT_NONODS ) ) 
       ALLOCATE( U_ABS_STAB_ALL( NDIM * NPHASE, NDIM * NPHASE, MAT_NONODS ) ) 
+      ALLOCATE( UDIFFUSION_ALL( NDIM, NDIM, NPHASE, MAT_NONODS ) ) 
+
       DO MAT_INOD = 1, MAT_NONODS
          U_ABSORB_ALL( :, :, MAT_INOD ) = U_ABSORB( MAT_INOD, :, : ) 
-         U_ABS_STAB_ALL( :, :, MAT_INOD ) = U_ABS_STAB( MAT_INOD, :, : ) 
+         U_ABS_STAB_ALL( :, :, MAT_INOD ) = U_ABS_STAB( MAT_INOD, :, : )
+         UDIFFUSION_ALL( :, :, :, MAT_INOD ) = UDIFFUSION( MAT_INOD, :, :, : ) 
+      END DO
+
+
+      ALLOCATE( PLIKE_GRAD_SOU_COEF_ALL( NPHASE, CV_NONODS ) ) 
+      ALLOCATE( PLIKE_GRAD_SOU_GRAD_ALL( NPHASE, CV_NONODS ) ) 
+      DO IPHASE = 1, NPHASE
+         PLIKE_GRAD_SOU_COEF_ALL( IPHASE, : ) = PLIKE_GRAD_SOU_COEF( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
+         PLIKE_GRAD_SOU_GRAD_ALL( IPHASE, : ) = PLIKE_GRAD_SOU_GRAD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
       END DO
 
       ! Obtain the momentum and C matricies
@@ -2431,8 +2446,8 @@
            NCOLELE, FINELE, COLELE, & ! Element connectivity.
            XU_NLOC, XU_NDGLN, &
            PIVIT_MAT, JUST_BL_DIAG_MAT, &
-           UDIFFUSION, &
-           IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
+           UDIFFUSION_ALL, &
+           IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF_ALL, PLIKE_GRAD_SOU_GRAD_ALL, &
            P, NDIM )
       ! scale the momentum equations by the volume fraction / saturation for the matrix and rhs     
 
@@ -2734,7 +2749,7 @@
       REAL, DIMENSION( : , : , : ), intent( out ) :: PIVIT_MAT
       REAL, DIMENSION( :, :, :, : ), intent( in ) :: UDIFFUSION
       LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
-      REAL, DIMENSION( : ), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
+      REAL, DIMENSION( :, : ), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
       REAL, DIMENSION( : ), intent( in ) :: P
 
       ! Local Variables
@@ -2828,7 +2843,7 @@
       REAL, DIMENSION ( :, :, :, :, :, : ), allocatable :: LOC_DGM_PHA
       REAL, DIMENSION ( :, : ), allocatable :: LOC_UDEN,  LOC_UDENOLD
       REAL, DIMENSION ( : ), allocatable :: LOC_P
-      REAL, DIMENSION ( :, :), allocatable :: LOC_PLIKE_GRAD_SOU_COEF, LOC_PLIKE_GRAD_SOU_GRAD
+      REAL, DIMENSION ( :, : ), allocatable :: LOC_PLIKE_GRAD_SOU_COEF, LOC_PLIKE_GRAD_SOU_GRAD
       REAL, DIMENSION ( :, :, : ), allocatable :: LOC_U_SOURCE, LOC_U_SOURCE_CV
 
 
@@ -3433,7 +3448,8 @@
 
             DO IPHASE = 1, NPHASE
                IF ( IPLIKE_GRAD_SOU /= 0 ) THEN
-                  LOC_PLIKE_GRAD_SOU_COEF( IPHASE, CV_ILOC ) = PLIKE_GRAD_SOU_COEF( CV_INOD + (IPHASE-1)*CV_NONODS )
+                  LOC_PLIKE_GRAD_SOU_COEF( IPHASE, CV_ILOC ) = PLIKE_GRAD_SOU_COEF( IPHASE, CV_INOD )
+                  LOC_PLIKE_GRAD_SOU_GRAD( IPHASE, CV_ILOC ) = PLIKE_GRAD_SOU_GRAD( IPHASE, CV_INOD ) 
                END IF
                DO IDIM = 1, NDIM_VEL
                   LOC_U_SOURCE_CV( IDIM, IPHASE, CV_ILOC ) = U_SOURCE_CV( IDIM, IPHASE, CV_INOD )
@@ -3443,9 +3459,6 @@
 
          DO P_ILOC = 1, P_NLOC
             P_INOD = P_NDGLN( ( ELE - 1 ) * P_NLOC + P_ILOC )
-            DO IPHASE = 1, NPHASE
-               LOC_PLIKE_GRAD_SOU_GRAD( IPHASE, P_ILOC ) = PLIKE_GRAD_SOU_GRAD( P_INOD + (IPHASE-1)*CV_NONODS ) 
-            END DO
             LOC_P( P_ILOC ) = P( P_INOD ) 
          END DO
 
@@ -3453,7 +3466,7 @@
             MAT_INOD = MAT_NDGLN( ( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
             LOC_U_ABSORB( :, :, MAT_ILOC ) = U_ABSORB( :, :, MAT_INOD )
             LOC_U_ABS_STAB( :, :, MAT_ILOC ) = U_ABS_STAB( :, :, MAT_INOD )
-            LOC_UDIFFUSION( :, :, :, MAT_ILOC ) = UDIFFUSION( MAT_INOD, :, :, : )
+            LOC_UDIFFUSION( :, :, :, MAT_ILOC ) = UDIFFUSION( :, :, :, MAT_INOD )
          END DO
 
 
@@ -4335,8 +4348,8 @@
 
                IF ( GOT_DIFFUS ) THEN
                   DO IPHASE = 1, NPHASE
-                     SLOC_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION( CV_INOD, 1:NDIM, 1:NDIM, IPHASE )
-                     SLOC2_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION( CV_INOD2, 1:NDIM, 1:NDIM, IPHASE )
+                     SLOC_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_INOD )
+                     SLOC2_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_INOD2 )
                   END DO
                END IF
             END DO
