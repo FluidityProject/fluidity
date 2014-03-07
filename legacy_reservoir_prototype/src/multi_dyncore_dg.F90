@@ -739,7 +739,7 @@
            U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
            U_NDGLN, CV_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN, &
            STOTEL, U_SNDGLN, CV_SNDGLN, CV_SNDGLN, U_SNLOC, CV_SNLOC, CV_SNLOC, &
-           X_ALL, RZERO, T_ABSORB, T_SOURCE, RDUM, &
+           X_ALL, RZERO, T_ABSORB_ALL, T_SOURCE_ALL, RDUM3, &
            T_IN, TOLD_IN, &
            U_ALL, UOLD_ALL, &
            DEN_ALL, DENOLD_ALL, &
@@ -2406,7 +2406,7 @@
            U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
            U_NDGLN, P_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN, &
            STOTEL, U_SNDGLN, P_SNDGLN, CV_SNDGLN, U_SNLOC, P_SNLOC, CV_SNLOC, &
-           X_ALL, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
+           X_ALL, U_ABS_STAB_ALL, U_ABSORB_ALL, U_SOURCE_ALL, U_SOURCE_CV_ALL, &
            U_ALL, UOLD_ALL, &
            U_ALL, UOLD_ALL, &    ! This is nu...
            UDEN_ALL, UDENOLD_ALL, &
@@ -2715,8 +2715,8 @@
 
       REAL, DIMENSION( :, :, : ), intent( in ) :: U_ABS_STAB
       REAL, DIMENSION( :, :, : ), intent( in ) :: U_ABSORB
-      REAL, DIMENSION( : ), intent( in ) :: U_SOURCE
-      REAL, DIMENSION( : ), intent( in ) :: U_SOURCE_CV
+      REAL, DIMENSION( :, :, : ), intent( in ) :: U_SOURCE
+      REAL, DIMENSION( :, :, : ), intent( in ) :: U_SOURCE_CV
 
       REAL, DIMENSION ( :, :, : ), intent( in ) :: U_ALL, UOLD_ALL, NU_ALL, NUOLD_ALL
 
@@ -3407,7 +3407,7 @@
                   DO IDIM = 1, NDIM_VEL
                      LOC_U( IDIM, IPHASE, U_ILOC ) = U_ALL( IDIM, IPHASE, U_INOD )
                      LOC_UOLD( IDIM, IPHASE, U_ILOC ) = UOLD_ALL( IDIM, IPHASE, U_INOD )
-                     LOC_U_SOURCE( IDIM, IPHASE, U_ILOC ) = U_SOURCE( U_INOD + (IDIM-1)*U_NONODS + (IPHASE-1)*NDIM_VEL*U_NONODS )
+                     LOC_U_SOURCE( IDIM, IPHASE, U_ILOC ) = U_SOURCE( IDIM, IPHASE, U_INOD )
                   END DO
                END DO
             END DO
@@ -3436,7 +3436,7 @@
                   LOC_PLIKE_GRAD_SOU_COEF( IPHASE, CV_ILOC ) = PLIKE_GRAD_SOU_COEF( CV_INOD + (IPHASE-1)*CV_NONODS )
                END IF
                DO IDIM = 1, NDIM_VEL
-                  LOC_U_SOURCE_CV( IDIM, IPHASE, CV_ILOC ) = U_SOURCE_CV( CV_INOD + (IDIM-1)*CV_NONODS + (IPHASE-1)*NDIM_VEL*CV_NONODS )
+                  LOC_U_SOURCE_CV( IDIM, IPHASE, CV_ILOC ) = U_SOURCE_CV( IDIM, IPHASE, CV_INOD )
                END DO
             END DO
          END DO
@@ -3451,8 +3451,8 @@
 
          DO MAT_ILOC = 1, MAT_NLOC
             MAT_INOD = MAT_NDGLN( ( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
-            LOC_U_ABSORB( :, :, MAT_ILOC ) = U_ABSORB( MAT_INOD, :, : )
-            LOC_U_ABS_STAB( :, :, MAT_ILOC ) = U_ABS_STAB( MAT_INOD, :, : )
+            LOC_U_ABSORB( :, :, MAT_ILOC ) = U_ABSORB( :, :, MAT_INOD )
+            LOC_U_ABS_STAB( :, :, MAT_ILOC ) = U_ABS_STAB( :, :, MAT_INOD )
             LOC_UDIFFUSION( :, :, :, MAT_ILOC ) = UDIFFUSION( MAT_INOD, :, :, : )
          END DO
 
