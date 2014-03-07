@@ -8766,6 +8766,8 @@ contains
     RETURN
   END FUNCTION R2NORM
 
+
+
 pure real function ptolfun(value)
     ! This function is a tolerance function for strictly positive values used as a denominator.
     ! If the value of VALUE less than 1E-10, then it returns TOLERANCE otherwise VALUE.
@@ -8775,15 +8777,20 @@ pure real function ptolfun(value)
     ! Local
     real, parameter :: tolerance = 1.e-10
 
-    if( value > tolerance ) then
-       ptolfun = value
-    else
-       ptolfun = tolerance
-    endif
+    ptolfun = max( tolerance, value )
+
+!    if( value > tolerance ) then
+!       ptolfun = value
+!    else
+!       ptolfun = tolerance
+!    endif
 
     return
 
   end function ptolfun
+
+
+
 
   pure real function tolfun(value)
     ! This function is a tolerance function for a value which is used as a denominator.
@@ -8795,15 +8802,18 @@ pure real function ptolfun(value)
     ! Local
     real, parameter :: tolerance = 1.e-10
 
-    if( abs( value ) < tolerance ) then
-       tolfun = sign( tolerance, value )
-    else
-       tolfun = value
-    endif
+    tolfun = sign( 1.0, value ) * max( tolerance, abs(value) )
+
+!    if( abs( value ) < tolerance ) then
+!       tolfun = sign( tolerance, value )
+!    else
+!       tolfun = value
+!    endif
 
     return
 
   end function tolfun
+
 
 
 
@@ -8814,7 +8824,8 @@ pure real function ptolfun(value)
        SBUFEN,SBCVNGI,U_NLOC,U_SNLOC,NDIM,NPHASE,GOT_OTHER_ELE) 
     ! Calculate the between element diffusion coefficients for stabaization scheme UDIFF_SUF_STAB.
     use matrix_operations
-    implicit none      
+    implicit none     
+    !  FAST_AND_SIMP is a good option and is accurate...
     LOGICAL, PARAMETER :: FAST_AND_SIMP=.TRUE.
     !      LOGICAL, PARAMETER :: FAST_AND_SIMP=.FALSE.
     ! If FAST_AND_SIMP use a simple mean to calculate the between element diffusion.
@@ -9382,17 +9393,18 @@ pure real function ptolfun(value)
              DO IPHASE=1, NPHASE
                 DO IDIM=1,NDIM_VEL
 
-                   DIFF_COEF_DIVDX_U(IDIM,IPHASE,SGI)    = MAX( DIFF_MIN_FRAC*DIFF_STAND_DIVDX_U(IDIM,IPHASE,SGI), &
-                      N_DOT_DKDU(IDIM,IPHASE,SGI) / &
-                      TOLFUN( U_CV_NODJ_IPHA_ALL(IDIM,IPHASE,SGI)  - U_CV_NODI_IPHA_ALL(IDIM,IPHASE,SGI) )  )
-                   DIFF_COEFOLD_DIVDX_U (IDIM,IPHASE,SGI)= MAX( DIFF_MIN_FRAC*DIFF_STAND_DIVDX_U(IDIM,IPHASE,SGI), &
-                      N_DOT_DKDUOLD(IDIM,IPHASE,SGI) /  &
-                      TOLFUN( UOLD_CV_NODJ_IPHA_ALL(IDIM,IPHASE,SGI)  - UOLD_CV_NODI_IPHA_ALL(IDIM,IPHASE,SGI) )  )
+                   DIFF_COEF_DIVDX_U(IDIM,IPHASE,SGI)    = N_DOT_DKDU(IDIM,IPHASE,SGI) / &
+                      TOLFUN( U_CV_NODJ_IPHA_ALL(IDIM,IPHASE,SGI)  - U_CV_NODI_IPHA_ALL(IDIM,IPHASE,SGI) )  
+                   DIFF_COEFOLD_DIVDX_U (IDIM,IPHASE,SGI)= N_DOT_DKDUOLD(IDIM,IPHASE,SGI) /  &
+                      TOLFUN( UOLD_CV_NODJ_IPHA_ALL(IDIM,IPHASE,SGI)  - UOLD_CV_NODI_IPHA_ALL(IDIM,IPHASE,SGI) )  
 
                 END DO
              END DO
           END DO
 
+         ! Make sure the diffusion has an lower bound...       
+            DIFF_COEF_DIVDX_U    = MAX( DIFF_MIN_FRAC*DIFF_STAND_DIVDX_U, DIFF_COEF_DIVDX_U )
+            DIFF_COEFOLD_DIVDX_U = MAX( DIFF_MIN_FRAC*DIFF_STAND_DIVDX_U, DIFF_COEFOLD_DIVDX_U )
          ! Make sure the diffusion has an upper bound...       
             DIFF_COEF_DIVDX_U    = MIN( DIFF_MAX_FRAC*DIFF_STAND_DIVDX_U, DIFF_COEF_DIVDX_U )
             DIFF_COEFOLD_DIVDX_U = MIN( DIFF_MAX_FRAC*DIFF_STAND_DIVDX_U, DIFF_COEFOLD_DIVDX_U )

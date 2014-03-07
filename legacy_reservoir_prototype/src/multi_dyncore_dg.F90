@@ -2811,6 +2811,7 @@
       REAL, DIMENSION ( :, :, :, : ), allocatable :: SLOC_DUX_ELE_ALL, SLOC2_DUX_ELE_ALL, SLOC_DUOLDX_ELE_ALL, SLOC2_DUOLDX_ELE_ALL
       REAL, DIMENSION ( :, : ), allocatable :: SLOC_UDEN, SLOC2_UDEN, SLOC_UDENOLD, SLOC2_UDENOLD
       REAL, DIMENSION ( :, :, :, : ), allocatable :: SLOC_UDIFFUSION, SLOC2_UDIFFUSION
+      REAL, DIMENSION ( :, :, : ), allocatable :: SLOC_DIFF_FOR_BETWEEN_U, SLOC2_DIFF_FOR_BETWEEN_U
 
       REAL, DIMENSION ( :, :, : ), allocatable :: U_NODI_SGI_IPHASE_ALL, U_NODJ_SGI_IPHASE_ALL, UOLD_NODI_SGI_IPHASE_ALL, UOLD_NODJ_SGI_IPHASE_ALL
       ! For derivatives...
@@ -3216,6 +3217,9 @@
          ALLOCATE( SLOC_DUOLDX_ELE_ALL( NDIM_VEL, NDIM , NPHASE, U_SNLOC ) )
          ALLOCATE( SLOC2_DUOLDX_ELE_ALL( NDIM_VEL, NDIM , NPHASE, U_SNLOC ) )
 !      ENDIF 
+
+      ALLOCATE( SLOC_DIFF_FOR_BETWEEN_U(NDIM_VEL,NPHASE,U_SNLOC) )
+      ALLOCATE( SLOC2_DIFF_FOR_BETWEEN_U(NDIM_VEL,NPHASE,U_SNLOC) )
 
 
       ALLOCATE( SLOC_UDEN(NPHASE, CV_SNLOC)  )
@@ -4400,6 +4404,18 @@
                         ENDIF
 
                      END IF
+                     IF(BETWEEN_ELE_STAB) THEN
+                  ! Calculate stabilization diffusion coefficient...
+                         DO IDIM_VEL=1,NDIM_VEL
+                            SLOC_DIFF_FOR_BETWEEN_U(IDIM_VEL,IPHASE,U_SILOC)  = DIFF_FOR_BETWEEN_U(IDIM_VEL,IPHASE,U_ILOC,ELE)
+                            IF(ELE2 /= 0) THEN
+                               SLOC2_DIFF_FOR_BETWEEN_U(IDIM_VEL,IPHASE,U_SILOC) = DIFF_FOR_BETWEEN_U(IDIM_VEL,IPHASE,U_ILOC2,ELE2)
+                            ELSE
+                               SLOC2_DIFF_FOR_BETWEEN_U(IDIM_VEL,IPHASE,U_SILOC) = DIFF_FOR_BETWEEN_U(IDIM_VEL,IPHASE,U_ILOC,ELE)
+                            ENDIF
+                         END DO
+                     ENDIF
+
                      ! U:
                      DO IDIM = 1, NDIM_VEL
                         SLOC_U( IDIM, IPHASE, U_SILOC ) = U_ALL( IDIM, IPHASE, U_INOD )
@@ -4674,16 +4690,19 @@
 
                IF(BETWEEN_ELE_STAB) THEN
                   ! Calculate stabilization diffusion coefficient...
-                  !stop 2821
-                  ELE3=ELE2
-                  GOT_OTHER_ELE=(ELE2.NE.ELE).and.(ELE2.NE.0)
-                  IF(ELE2==0) ELE3=ELE
 
-                  DO IDIM=1,NDIM_VEL
-                     CALL BETWEEN_ELE_SOLVE_DIF(UDIFF_SUF_STAB(IDIM,:,:,:,: ), &
-                          DIFF_FOR_BETWEEN_U(IDIM,:,:,ELE), DIFF_FOR_BETWEEN_U(IDIM,:,:,ELE3), &
-                          MAT_ELE(:,:,ELE), MAT_ELE(:,:,ELE3), U_SLOC2LOC,U_ILOC_OTHER_SIDE, &
-                          SBUFEN,SBCVNGI,U_NLOC,U_SNLOC,NDIM,NPHASE,GOT_OTHER_ELE) 
+                  UDIFF_SUF_STAB=0.0
+                  DO U_SILOC = 1, U_SNLOC
+                     DO IPHASE=1,NPHASE
+                        DO IDIM_VEL=1,NDIM_VEL
+                           DO IDIM=1,NDIM
+                              UDIFF_SUF_STAB(IDIM_VEL,IDIM,IDIM,IPHASE,: ) = UDIFF_SUF_STAB(IDIM_VEL,IDIM,IDIM,IPHASE,: )  &
+                               +SBUFEN(U_SILOC,:)*0.5*(  SLOC_DIFF_FOR_BETWEEN_U(IDIM_VEL, IPHASE, U_SILOC) &
+                                                       + SLOC2_DIFF_FOR_BETWEEN_U(IDIM_VEL, IPHASE, U_SILOC)  ) 
+                        
+                           END DO  
+                        END DO
+                     END DO
                   END DO
 
 
