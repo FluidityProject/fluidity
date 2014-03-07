@@ -8757,11 +8757,12 @@ contains
     INTEGER :: I
     REAL :: RSUM
 
-    RSUM = 0.0
-    DO I = 1, NVEC
-       RSUM = RSUM + VEC( I )**2
-    END DO
-    R2NORM = SQRT( RSUM )
+    !RSUM = 0.0
+    !DO I = 1, NVEC
+    !   RSUM = RSUM + VEC( I )**2
+    !END DO
+
+    R2NORM = SQRT( SUM( VEC**2 ) )
 
     RETURN
   END FUNCTION R2NORM

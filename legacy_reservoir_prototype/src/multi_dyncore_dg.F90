@@ -721,7 +721,7 @@
            X_ALL, RZERO, T_ABSORB, T_SOURCE, RDUM, &
            T_IN, TOLD_IN, &
            U_ALL, UOLD_ALL, &
-           DEN, DENOLD, &
+           DEN_ALL, DENOLD_ALL, &
            DT, &
 
            SUF_T_BC_ALL, &
@@ -2370,7 +2370,7 @@
            X_ALL, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
            U_ALL, UOLD_ALL, &
            U_ALL, UOLD_ALL, &    ! This is nu...
-           UDEN, UDENOLD, &
+           UDEN_ALL, UDENOLD_ALL, &
            DT, &
 
            SUF_U_BC_ALL, &
@@ -2635,9 +2635,7 @@
          SUF_NU_BC_ALL, SUF_P_BC_ALL, &
          SUF_U_ROB1_BC_ALL, SUF_U_ROB2_BC_ALL, &
          WIC_U_BC_ALL, WIC_MOMU_BC_ALL, WIC_NU_BC_ALL, WIC_P_BC_ALL, &
-
-
-
+         
          U_RHS, &
          C, NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn 
          DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparsity
@@ -2680,7 +2678,7 @@
 
       REAL, DIMENSION ( :, :, : ), intent( in ) :: U_ALL, UOLD_ALL, NU_ALL, NUOLD_ALL
 
-      REAL, DIMENSION( : ), intent( in ) :: UDEN, UDENOLD
+      REAL, DIMENSION( :, : ), intent( in ) :: UDEN, UDENOLD
       REAL, intent( in ) :: DT
       REAL, DIMENSION( : ), intent( inout ) :: U_RHS
       REAL, DIMENSION( : ), intent( inout ) :: C
@@ -3236,12 +3234,15 @@
       GOT_DIFFUS = ( R2NORM( UDIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0.0 )  &
            .OR. BETWEEN_ELE_STAB
 
-      GOT_UDEN = ( R2NORM( UDEN, CV_NONODS * NPHASE ) /= 0.0 )
+      GOT_UDEN = .FALSE.
+      DO IPHASE = 1, NPHASE
+         GOT_UDEN = GOT_UDEN .OR. ( R2NORM( UDEN( IPHASE, : ), CV_NONODS ) /= 0.0 ) 
+      END DO
 
       JUST_BL_DIAG_MAT=( ( .NOT. GOT_DIFFUS ) .AND. ( .NOT. GOT_UDEN ) )
 
-      ALLOCATE(UDIFF_SUF_STAB(NDIM_VEL, NDIM,NDIM, NPHASE,SBCVNGI ))
-      UDIFF_SUF_STAB=0.0
+      ALLOCATE( UDIFF_SUF_STAB( NDIM_VEL, NDIM, NDIM, NPHASE, SBCVNGI ) )
+      UDIFF_SUF_STAB = 0.0
 
       IF ( BETWEEN_ELE_STAB ) THEN
          ! Calculate stabilization diffusion coefficient between elements...
@@ -3255,9 +3256,9 @@
          ALLOCATE( WORK_ELE_ALL( U_NLOC, NPHASE, TOTELE ) )
       ENDIF
 
-      D1   = ( NDIM == 1  )
-      DCYL = ( NDIM == -2 )
-      D3   = ( NDIM == 3  )
+      D1   = ( NDIM == 1 )
+      DCYL = ( NDIM ==-2 )
+      D3   = ( NDIM == 3 )
 
       NO_MATRIX_STORE = NCOLDGM_PHA<=1
       IF( (.NOT.JUST_BL_DIAG_MAT) .AND. (.NOT.NO_MATRIX_STORE) ) DGM_PHA = 0.0
@@ -3329,8 +3330,6 @@
               NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC_ALL, SUF_U_BC_ALL, &
               SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBCVFEWEIGH, &
               SBCVFEN, SBCVFENSLX, SBCVFENSLY )
-
-         !           print *,'come out of DG_DERIVS_UVW'
       ENDIF
 
 
@@ -3388,9 +3387,11 @@
 
          DO CV_ILOC = 1, CV_NLOC
             CV_INOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
-            DO IPHASE =1, NPHASE
-               LOC_UDEN( IPHASE, CV_ILOC ) = UDEN( CV_INOD + (IPHASE-1)*CV_NONODS )
-               LOC_UDENOLD( IPHASE, CV_ILOC) = UDENOLD( CV_INOD + (IPHASE-1)*CV_NONODS )
+
+            LOC_UDEN( :, CV_ILOC ) = UDEN( :, CV_INOD )
+            LOC_UDENOLD( :, CV_ILOC) = UDENOLD( :, CV_INOD )
+
+            DO IPHASE = 1, NPHASE
                IF ( IPLIKE_GRAD_SOU /= 0 ) THEN
                   LOC_PLIKE_GRAD_SOU_COEF( IPHASE, CV_ILOC ) = PLIKE_GRAD_SOU_COEF( CV_INOD + (IPHASE-1)*CV_NONODS )
                END IF
@@ -4286,16 +4287,18 @@
                   CV_ILOC2 = CV_ILOC
                   CV_INOD2 = CV_INOD
                END IF
-               DO IPHASE = 1, NPHASE
-                  SLOC_UDEN(IPHASE, CV_SILOC)  =UDEN( (IPHASE-1)*CV_NONODS + CV_INOD)
-                  SLOC2_UDEN(IPHASE, CV_SILOC) =UDEN( (IPHASE-1)*CV_NONODS + CV_INOD2)
-                  SLOC_UDENOLD(IPHASE, CV_SILOC)  =UDENOLD( (IPHASE-1)*CV_NONODS + CV_INOD)
-                  SLOC2_UDENOLD(IPHASE, CV_SILOC)=UDENOLD( (IPHASE-1)*CV_NONODS + CV_INOD2)
-                  IF(GOT_DIFFUS) THEN
-                     SLOC_UDIFFUSION( 1:NDIM , 1:NDIM , IPHASE, CV_SILOC ) =UDIFFUSION( CV_INOD, 1:NDIM , 1:NDIM , IPHASE )
-                     SLOC2_UDIFFUSION( 1:NDIM , 1:NDIM , IPHASE, CV_SILOC )=UDIFFUSION( CV_INOD2, 1:NDIM , 1:NDIM , IPHASE )
-                  END IF
-               END DO
+
+               SLOC_UDEN( :, CV_SILOC )  = UDEN( :, CV_INOD )
+               SLOC2_UDEN( :, CV_SILOC ) = UDEN( :, CV_INOD2 )
+               SLOC_UDENOLD( :, CV_SILOC ) = UDENOLD( :, CV_INOD )
+               SLOC2_UDENOLD( :, CV_SILOC ) = UDENOLD( :, CV_INOD2 )
+
+               IF ( GOT_DIFFUS ) THEN
+                  DO IPHASE = 1, NPHASE
+                     SLOC_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION( CV_INOD, 1:NDIM, 1:NDIM, IPHASE )
+                     SLOC2_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION( CV_INOD2, 1:NDIM, 1:NDIM, IPHASE )
+                  END DO
+               END IF
             END DO
 
             DO U_SILOC = 1, U_SNLOC
@@ -4310,74 +4313,74 @@
                END IF
                DO IPHASE = 1, NPHASE
                   IF ( GOT_DIFFUS ) THEN
-                     SLOC_DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_SILOC )    = DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_ILOC, ELE )
-                     SLOC_DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_SILOC ) = DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_ILOC, ELE )
+                     SLOC_DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM, IPHASE, U_SILOC ) = DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM, IPHASE, U_ILOC, ELE )
+                     SLOC_DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM, IPHASE, U_SILOC ) = DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM, IPHASE, U_ILOC, ELE )
                      IF(ELE2 /= 0) THEN
-                        SLOC2_DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_SILOC )   = DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_ILOC2, ELE2 )
-                        SLOC2_DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_SILOC )= DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_ILOC2, ELE2 )
+                        SLOC2_DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM, IPHASE, U_SILOC ) = DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM, IPHASE, U_ILOC2, ELE2 )
+                        SLOC2_DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM, IPHASE, U_SILOC ) = DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM, IPHASE, U_ILOC2, ELE2 )
                      ELSE
-                        SLOC2_DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_SILOC )   = DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_ILOC, ELE )
-                        SLOC2_DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_SILOC )= DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_ILOC, ELE )
+                        SLOC2_DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM, IPHASE, U_SILOC ) = DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM, IPHASE, U_ILOC, ELE )
+                        SLOC2_DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM, IPHASE, U_SILOC ) = DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM, IPHASE, U_ILOC, ELE )
                      END IF
                   END IF
                END DO
             END DO
 
-               ! velocity variables...
-               DO U_SILOC=1,U_SNLOC
-                  U_ILOC=U_SLOC2LOC(U_SILOC)
-                  U_INOD=U_NDGLN((ELE-1)*U_NLOC+U_ILOC) 
-                  IF(ELE2 /= 0) THEN
-                     U_ILOC2=U_ILOC_OTHER_SIDE( U_SILOC ) 
-                     U_INOD2=U_NDGLN((ELE2-1)*U_NLOC+U_ILOC2) 
-                  ELSE
-                     U_ILOC2=U_ILOC
-                     U_INOD2=U_INOD 
-                  ENDIF
-                  ! for normal calc...
-                  DO IPHASE=1,NPHASE
-                     IF(GOT_DIFFUS) THEN
+            ! velocity variables...
+            DO U_SILOC = 1, U_SNLOC
+               U_ILOC = U_SLOC2LOC( U_SILOC )
+               U_INOD = U_NDGLN( (ELE-1)*U_NLOC + U_ILOC ) 
+               IF ( ELE2 /= 0 ) THEN
+                  U_ILOC2 = U_ILOC_OTHER_SIDE( U_SILOC ) 
+                  U_INOD2 = U_NDGLN( (ELE2-1)*U_NLOC + U_ILOC2 ) 
+               ELSE
+                  U_ILOC2 = U_ILOC
+                  U_INOD2 = U_INOD 
+               END IF
+               ! for normal calc...
+               DO IPHASE = 1, NPHASE
 
-                        SLOC_DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_SILOC )    =DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_ILOC, ELE )
-                        SLOC_DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_SILOC ) =DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_ILOC, ELE )
-                        IF(ELE2 /= 0) THEN
-                           SLOC2_DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_SILOC )   =DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_ILOC2, ELE2 )
-                           SLOC2_DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_SILOC )=DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_ILOC2, ELE2 )
-                        ELSE
-                           SLOC2_DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_SILOC )   =DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_ILOC, ELE )
-                           SLOC2_DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_SILOC )=DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM , IPHASE, U_ILOC, ELE )
-                        ENDIF
-
+                  IF ( GOT_DIFFUS ) THEN
+                     SLOC_DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM, IPHASE, U_SILOC ) = DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM, IPHASE, U_ILOC, ELE )
+                     SLOC_DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM, IPHASE, U_SILOC ) = DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM, IPHASE, U_ILOC, ELE )
+                     IF(ELE2 /= 0) THEN
+                        SLOC2_DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM, IPHASE, U_SILOC ) = DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM, IPHASE, U_ILOC2, ELE2 )
+                        SLOC2_DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM, IPHASE, U_SILOC ) = DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM, IPHASE, U_ILOC2, ELE2 )
+                     ELSE
+                        SLOC2_DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM, IPHASE, U_SILOC ) = DUX_ELE_ALL( 1:NDIM_VEL, 1:NDIM, IPHASE, U_ILOC, ELE )
+                        SLOC2_DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM, IPHASE, U_SILOC ) = DUOLDX_ELE_ALL( 1:NDIM_VEL, 1:NDIM, IPHASE, U_ILOC, ELE )
                      END IF
-                     IF(BETWEEN_ELE_STAB) THEN
-                        ! Calculate stabilization diffusion coefficient...
-                        DO IDIM_VEL=1,NDIM_VEL
-                           SLOC_DIFF_FOR_BETWEEN_U(IDIM_VEL,IPHASE,U_SILOC)  = DIFF_FOR_BETWEEN_U(IDIM_VEL,IPHASE,U_ILOC,ELE)
-                           IF(ELE2 /= 0) THEN
-                              SLOC2_DIFF_FOR_BETWEEN_U(IDIM_VEL,IPHASE,U_SILOC) = DIFF_FOR_BETWEEN_U(IDIM_VEL,IPHASE,U_ILOC2,ELE2)
-                           ELSE
-                              SLOC2_DIFF_FOR_BETWEEN_U(IDIM_VEL,IPHASE,U_SILOC) = DIFF_FOR_BETWEEN_U(IDIM_VEL,IPHASE,U_ILOC,ELE)
-                           ENDIF
-                        END DO
-                     ENDIF
+                  END IF
 
-                     ! U:
-                     DO IDIM = 1, NDIM_VEL
-                        SLOC_U( IDIM, IPHASE, U_SILOC ) = U_ALL( IDIM, IPHASE, U_INOD )
-                        SLOC_UOLD( IDIM, IPHASE, U_SILOC ) = UOLD_ALL( IDIM, IPHASE, U_INOD )
-                        SLOC2_U( IDIM, IPHASE, U_SILOC ) = U_ALL( IDIM, IPHASE, U_INOD2 )
-                        SLOC2_UOLD( IDIM, IPHASE, U_SILOC ) = UOLD_ALL( IDIM, IPHASE, U_INOD2 )
+                  IF ( BETWEEN_ELE_STAB ) THEN
+                     ! Calculate stabilization diffusion coefficient...
+                     DO IDIM_VEL = 1, NDIM_VEL
+                        SLOC_DIFF_FOR_BETWEEN_U( IDIM_VEL, IPHASE, U_SILOC ) = DIFF_FOR_BETWEEN_U( IDIM_VEL, IPHASE, U_ILOC, ELE )
+                        IF ( ELE2 /= 0 ) THEN
+                           SLOC2_DIFF_FOR_BETWEEN_U( IDIM_VEL, IPHASE, U_SILOC ) = DIFF_FOR_BETWEEN_U( IDIM_VEL, IPHASE, U_ILOC2, ELE2 )
+                        ELSE
+                           SLOC2_DIFF_FOR_BETWEEN_U( IDIM_VEL, IPHASE, U_SILOC ) = DIFF_FOR_BETWEEN_U( IDIM_VEL, IPHASE, U_ILOC, ELE )
+                        END IF
                      END DO
+                  END IF
 
-                     DO IDIM = 1, NDIM
-                        SLOC_NU( IDIM, IPHASE, U_SILOC ) = NU_ALL( IDIM, IPHASE, U_INOD )
-                        SLOC_NUOLD( IDIM, IPHASE, U_SILOC ) = NUOLD_ALL( IDIM, IPHASE, U_INOD )
-                        SLOC2_NU( IDIM, IPHASE, U_SILOC ) = NU_ALL( IDIM, IPHASE, U_INOD2 )
-                        SLOC2_NUOLD( IDIM, IPHASE, U_SILOC ) = NUOLD_ALL( IDIM, IPHASE, U_INOD2 )
-                     END DO
-
+                  ! U:
+                  DO IDIM = 1, NDIM_VEL
+                     SLOC_U( IDIM, IPHASE, U_SILOC ) = U_ALL( IDIM, IPHASE, U_INOD )
+                     SLOC_UOLD( IDIM, IPHASE, U_SILOC ) = UOLD_ALL( IDIM, IPHASE, U_INOD )
+                     SLOC2_U( IDIM, IPHASE, U_SILOC ) = U_ALL( IDIM, IPHASE, U_INOD2 )
+                     SLOC2_UOLD( IDIM, IPHASE, U_SILOC ) = UOLD_ALL( IDIM, IPHASE, U_INOD2 )
                   END DO
+
+                  DO IDIM = 1, NDIM
+                     SLOC_NU( IDIM, IPHASE, U_SILOC ) = NU_ALL( IDIM, IPHASE, U_INOD )
+                     SLOC_NUOLD( IDIM, IPHASE, U_SILOC ) = NUOLD_ALL( IDIM, IPHASE, U_INOD )
+                     SLOC2_NU( IDIM, IPHASE, U_SILOC ) = NU_ALL( IDIM, IPHASE, U_INOD2 )
+                     SLOC2_NUOLD( IDIM, IPHASE, U_SILOC ) = NUOLD_ALL( IDIM, IPHASE, U_INOD2 )
+                  END DO
+
                END DO
+            END DO
 
 
             If_on_boundary_domain: IF(SELE /= 0) THEN
@@ -4385,10 +4388,10 @@
                ! Put the surface integrals in for pressure b.c.'s
                ! that is add into C matrix and U_RHS. (DG velocities)
 
-               U_NLOC2=max(1,U_NLOC/CV_NLOC)
+               U_NLOC2 = MAX( 1, U_NLOC/CV_NLOC )
                Loop_ILOC2: DO U_SILOC = 1, U_SNLOC
                   U_ILOC = U_SLOC2LOC( U_SILOC )
-                  ILEV=(U_ILOC-1)/U_NLOC2 + 1
+                  ILEV = (U_ILOC-1)/U_NLOC2 + 1
 
                   if( .not. is_overlapping ) ilev = 1
 
@@ -4641,10 +4644,10 @@
                         DO IDIM_VEL=1,NDIM_VEL
                            DO IDIM=1,NDIM
                               UDIFF_SUF_STAB(IDIM_VEL,IDIM,IDIM,IPHASE,: ) = UDIFF_SUF_STAB(IDIM_VEL,IDIM,IDIM,IPHASE,: )  &
-                               +SBUFEN(U_SILOC,:)*0.5*(  SLOC_DIFF_FOR_BETWEEN_U(IDIM_VEL, IPHASE, U_SILOC) &
-                                                       + SLOC2_DIFF_FOR_BETWEEN_U(IDIM_VEL, IPHASE, U_SILOC)  ) 
-                        
-                           END DO  
+                                   +SBUFEN(U_SILOC,:)*0.5*(  SLOC_DIFF_FOR_BETWEEN_U(IDIM_VEL, IPHASE, U_SILOC) &
+                                   + SLOC2_DIFF_FOR_BETWEEN_U(IDIM_VEL, IPHASE, U_SILOC)  ) 
+
+                           END DO
                         END DO
                      END DO
                   END DO
