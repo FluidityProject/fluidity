@@ -7655,10 +7655,11 @@ ewrite(3,*)'lll:', option_path_len
       type(scalar_field), target :: targ_DETWEI_RA
       type(scalar_field), target :: targ_VOLUME
       !#########Storing area#################################
-      !TEMPORARY
+      !****TEMPORARY****
       NDIM = 3
+      !********************
       !If new mesh or mesh moved indx will be zero (set in Multiphase_TimeLoop)
-      if (indx/=0) then
+      if (indx>0) then!Everything has been calculated already
           !Get from state, indx is an input
           NX_ALL(1:NDIM,1:X_NLOC,1:NGI) => &
           state(1)%scalar_fields(indx)%ptr%val(1+NDIM*X_NLOC*NGI*(ELE-1):NDIM*X_NLOC*NGI*ELE)
@@ -7667,11 +7668,20 @@ ewrite(3,*)'lll:', option_path_len
           DETWEI(1:NGI) => state(1)%scalar_fields(indx+2)%ptr%val(1+NGI*(ELE-1):NGI*ELE)
           RA(1:NGI) => state(1)%scalar_fields(indx+2)%ptr%val(1+NGI*((ELE-1)+TOTELE):NGI*(ELE+TOTELE))
           VOLUME => state(1)%scalar_fields(indx+3)%ptr%val(ELE)
-          !We use aliased as a flag to know if we have calculated everything already
-          if (state(1)%scalar_fields(indx)%ptr%aliased) return !Exit subroutine
+          return
+      else if (indx/=0) then!We need to calculate a new value
+          !Get from state, indx is an input
+          NX_ALL(1:NDIM,1:X_NLOC,1:NGI) => &
+          state(1)%scalar_fields(-indx)%ptr%val(1+NDIM*X_NLOC*NGI*(ELE-1):NDIM*X_NLOC*NGI*ELE)
+          UNX_ALL(1:NDIM,1:U_NLOC,1:NGI)  => &
+          state(1)%scalar_fields(-indx+1)%ptr%val(1+NDIM*U_NLOC*NGI*(ELE-1):NDIM*U_NLOC*NGI*ELE)
+          DETWEI(1:NGI) => state(1)%scalar_fields(-indx+2)%ptr%val(1+NGI*(ELE-1):NGI*ELE)
+          RA(1:NGI) => state(1)%scalar_fields(-indx+2)%ptr%val(1+NGI*((ELE-1)+TOTELE):NGI*(ELE+TOTELE))
+          VOLUME => state(1)%scalar_fields(-indx+3)%ptr%val(ELE)
       else if (ELE==1) then !The first time we need to introduce the targets in state
           if (has_scalar_field(state(1), "X"//StorName)) then
-              !Return to the original situation
+              !If we are recalculating due to a mesh modification then
+              !we return to the original situation
               call remove_scalar_field(state(1), "X"//StorName)
               call remove_scalar_field(state(1), "UX"//StorName)
               call remove_scalar_field(state(1), "D"//StorName)
@@ -7692,26 +7702,24 @@ ewrite(3,*)'lll:', option_path_len
 
           !Now we insert them in state and store the indexes
           call insert(state(1), Targ_NX_ALL, "X"//StorName)
-          !Store index
-          indx = size(state(1)%scalar_fields)
+          !Store index with a negative value, because if the index is
+          !zero or negative then we have to calculate stuff
+          indx = -size(state(1)%scalar_fields)
           call insert(state(1), Targ_UNX_ALL, "UX"//StorName)
           call insert(state(1), Targ_DETWEI_RA, "D"//StorName)
           call insert(state(1), Targ_VOLUME, "V"//StorName)
 
-          !As we have to recalculate everything we store that we have to do so
-          !For that, we use 'aliased' as a flag that is true when all the values have been calculated
-          state(1)%scalar_fields(indx)%ptr%aliased = .false.
-          !Get from state
+          !Get from state, indx is an input
           NX_ALL(1:NDIM,1:X_NLOC,1:NGI) => &
-          state(1)%scalar_fields(indx)%ptr%val(1+NDIM*X_NLOC*NGI*(ELE-1):NDIM*X_NLOC*NGI*ELE)
+          state(1)%scalar_fields(-indx)%ptr%val(1+NDIM*X_NLOC*NGI*(ELE-1):NDIM*X_NLOC*NGI*ELE)
           UNX_ALL(1:NDIM,1:U_NLOC,1:NGI)  => &
-          state(1)%scalar_fields(indx+1)%ptr%val(1+NDIM*U_NLOC*NGI*(ELE-1):NDIM*U_NLOC*NGI*ELE)
-          DETWEI(1:NGI) => state(1)%scalar_fields(indx+2)%ptr%val(1+NGI*(ELE-1):NGI*ELE)
-          RA(1:NGI) => state(1)%scalar_fields(indx+2)%ptr%val(1+NGI*((ELE-1)+TOTELE):NGI*(ELE+TOTELE))
-          VOLUME => state(1)%scalar_fields(indx+3)%ptr%val(ELE)
+          state(1)%scalar_fields(-indx+1)%ptr%val(1+NDIM*U_NLOC*NGI*(ELE-1):NDIM*U_NLOC*NGI*ELE)
+          DETWEI(1:NGI) => state(1)%scalar_fields(-indx+2)%ptr%val(1+NGI*(ELE-1):NGI*ELE)
+          RA(1:NGI) => state(1)%scalar_fields(-indx+2)%ptr%val(1+NGI*((ELE-1)+TOTELE):NGI*(ELE+TOTELE))
+          VOLUME => state(1)%scalar_fields(-indx+3)%ptr%val(ELE)
       end if
-      !If this is the last element, from now on we just need to recover the calculated values
-      if (ELE == totele) state(1)%scalar_fields(indx)%ptr%aliased = .true.
+      !When all the values are obtained, the index is set to a positive value
+      if (ELE == totele) indx = abs(indx)
       !#########Storing area finished########################
       !ewrite(3,*)' In Detnlxr_Plus_U'
 
