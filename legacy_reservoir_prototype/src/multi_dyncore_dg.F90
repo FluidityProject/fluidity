@@ -4705,23 +4705,7 @@
                      END DO
                   END DO
 
-
-!                  IDIM=1
-!                  CALL BETWEEN_ELE_SOLVE_DIF(UDIFF_SUF_STAB(IDIM,:,:,:,: ), &
-!                       DIFF_FOR_BETWEEN_U(1,:,:,ELE), DIFF_FOR_BETWEEN_U(1,:,:,ELE3), &
-!                       MAT_ELE(:,:,ELE), MAT_ELE(:,:,ELE3), U_SLOC2LOC,U_ILOC_OTHER_SIDE, &
-!                       SBUFEN,SBCVNGI,U_NLOC,U_SNLOC,NDIM,NPHASE,GOT_OTHER_ELE) 
-!                  IDIM=2
-!                  IF(NDIM_VEL.GE.2) CALL BETWEEN_ELE_SOLVE_DIF(UDIFF_SUF_STAB(IDIM,:,:,:,: ), &
-!                       DIFF_FOR_BETWEEN_U(2,:,:,ELE), DIFF_FOR_BETWEEN_U(2,:,:,ELE3), &
-!                       MAT_ELE(:,:,ELE), MAT_ELE(:,:,ELE3), U_SLOC2LOC,U_ILOC_OTHER_SIDE, &
-!                       SBUFEN,SBCVNGI,U_NLOC,U_SNLOC,NDIM,NPHASE,GOT_OTHER_ELE) 
-!                  IDIM=3
-!                  IF(NDIM_VEL.GE.3) CALL BETWEEN_ELE_SOLVE_DIF(UDIFF_SUF_STAB(IDIM,:,:,:,: ), &
-!                       DIFF_FOR_BETWEEN_U(3,:,:,ELE), DIFF_FOR_BETWEEN_U(3,:,:,ELE3), &
-!                       MAT_ELE(:,:,ELE), MAT_ELE(:,:,ELE3), U_SLOC2LOC,U_ILOC_OTHER_SIDE, &
-!                       SBUFEN,SBCVNGI,U_NLOC,U_SNLOC,NDIM,NPHASE,GOT_OTHER_ELE) 
-               ENDIF
+               ENDIF  ! end of IF(BETWEEN_ELE_STAB) THEN
 
                DO IPHASE=1, NPHASE
                   DO SGI=1,SBCVNGI

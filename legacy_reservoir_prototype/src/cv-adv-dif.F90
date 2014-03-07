@@ -9395,7 +9395,7 @@ pure real function ptolfun(value)
 
                    DIFF_COEF_DIVDX_U(IDIM,IPHASE,SGI)    = N_DOT_DKDU(IDIM,IPHASE,SGI) / &
                       TOLFUN( U_CV_NODJ_IPHA_ALL(IDIM,IPHASE,SGI)  - U_CV_NODI_IPHA_ALL(IDIM,IPHASE,SGI) )  
-                   DIFF_COEFOLD_DIVDX_U (IDIM,IPHASE,SGI)= N_DOT_DKDUOLD(IDIM,IPHASE,SGI) /  &
+                   DIFF_COEFOLD_DIVDX_U(IDIM,IPHASE,SGI) = N_DOT_DKDUOLD(IDIM,IPHASE,SGI) /  &
                       TOLFUN( UOLD_CV_NODJ_IPHA_ALL(IDIM,IPHASE,SGI)  - UOLD_CV_NODI_IPHA_ALL(IDIM,IPHASE,SGI) )  
 
                 END DO
@@ -9516,7 +9516,11 @@ pure real function ptolfun(value)
 !             END DO
 !          ENDIF
 
-! tensor form for added diffusion from stabilization say...
+
+
+          IF(STRESS_FORM) THEN 
+! FOR STRESS FORM...
+! BUT 1st tensor form for added diffusion from stabilization say...
              N_DOT_DKDU=0.0
              N_DOT_DKDUOLD=0.0
              DIFF_STAND_DIVDX_U=0.0
@@ -9539,9 +9543,6 @@ pure real function ptolfun(value)
                 END DO
              END DO
 
-
-
-          IF(STRESS_FORM) THEN
 ! stress form needs to add this...
              DO SGI=1,SBCVNGI
                 DO IPHASE=1, NPHASE
@@ -9578,21 +9579,25 @@ pure real function ptolfun(value)
              END DO
 
 
-          ELSE  ! IF(STRESS_FORM) THEN
+          ELSE  ! IF(STRESS_FORM) THEN ELSE
 ! tensor form...
+! tensor form for added diffusion from stabilization as well...
+             N_DOT_DKDU=0.0
+             N_DOT_DKDUOLD=0.0
+             DIFF_STAND_DIVDX_U=0.0
              DO SGI=1,SBCVNGI
                 DO IPHASE=1, NPHASE
                    DO IDIM_VEL=1,NDIM_VEL
                       DO IDIM=1,NDIM
 ! tensor form...
                          N_DOT_DKDU(IDIM_VEL,IPHASE,SGI)   =  N_DOT_DKDU(IDIM_VEL,IPHASE,SGI)   &
-                          +  SNORMXN_ALL(IDIM,SGI)*SUM( DIFF_GI(IDIM,:,IPHASE,SGI) * DUDX_ALL_GI(IDIM_VEL,:,IPHASE,SGI) ) 
+                          +  SNORMXN_ALL(IDIM,SGI)*SUM( (DIFF_GI_ADDED(IDIM_VEL,IDIM,:,IPHASE,SGI)+DIFF_GI(IDIM,:,IPHASE,SGI)) * DUDX_ALL_GI(IDIM_VEL,:,IPHASE,SGI) ) 
 ! tensor form...
                          N_DOT_DKDUOLD(IDIM_VEL,IPHASE,SGI)= N_DOT_DKDUOLD(IDIM_VEL,IPHASE,SGI)  &
-                          +  SNORMXN_ALL(IDIM,SGI)*SUM( DIFF_GI(IDIM,:,IPHASE,SGI) * DUOLDDX_ALL_GI(IDIM_VEL,:,IPHASE,SGI) ) 
+                          +  SNORMXN_ALL(IDIM,SGI)*SUM( (DIFF_GI_ADDED(IDIM_VEL,IDIM,:,IPHASE,SGI)+DIFF_GI(IDIM,:,IPHASE,SGI)) * DUOLDDX_ALL_GI(IDIM_VEL,:,IPHASE,SGI) ) 
 ! This is for the minimum & max. diffusion...
                          DIFF_STAND_DIVDX_U(IDIM_VEL,IPHASE,SGI)   =  DIFF_STAND_DIVDX_U(IDIM_VEL,IPHASE,SGI)   &
-                          +  SNORMXN_ALL(IDIM,SGI)*SUM( DIFF_GI(IDIM,:,IPHASE,SGI) * SNORMXN_ALL(:,SGI) )   /HDC
+                          +  SNORMXN_ALL(IDIM,SGI)*SUM( (DIFF_GI_ADDED(IDIM_VEL,IDIM,:,IPHASE,SGI)+DIFF_GI(IDIM,:,IPHASE,SGI)) * SNORMXN_ALL(:,SGI) )   /HDC
 
                      END DO
                   END DO
