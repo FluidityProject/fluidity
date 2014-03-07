@@ -579,17 +579,18 @@
       REAL, DIMENSION ( :, :, : ), allocatable :: RDUM3
       INTEGER, DIMENSION ( : ), allocatable :: IDUM,IZERO
 
-      INTEGER :: IPLIKE_GRAD_SOU, NDIM_IN, NPHASE_IN, X_ILOC, X_INOD
+      INTEGER :: IPLIKE_GRAD_SOU, NDIM_IN, NPHASE_IN, X_ILOC, X_INOD, MAT_INOD, S, E
       LOGICAL :: JUST_BL_DIAG_MAT
 
       INTEGER :: U_NLOC2, ILEV, NLEV, ELE, U_ILOC, U_INOD, IPHASE, IDIM, I, SELE, U_SILOC
-      REAL, DIMENSION( :, :, : ), allocatable :: U_ALL, UOLD_ALL
+      REAL, DIMENSION( :, :, : ), allocatable :: U_ALL, UOLD_ALL, T_SOURCE_ALL, T_ABSORB_ALL
       REAL, DIMENSION( :, : ), allocatable :: X_ALL, DEN_ALL, DENOLD_ALL
 
       INTEGER, DIMENSION( :, :, : ), allocatable :: WIC_T_BC_ALL, WIC_NU_BC_ALL
       INTEGER, DIMENSION( :, : ), allocatable :: IZERO2
       REAL, DIMENSION( :, :, :, : ), allocatable :: SUF_T_BC_ALL, SUF_NU_BC_ALL, &
            SUF_T_ROB1_BC_ALL, SUF_T_ROB2_BC_ALL 
+
 
       ndim_in = 1 ; nphase_in = 1
 
@@ -655,6 +656,23 @@
          DENOLD_ALL( IPHASE, : ) = DENOLD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS ) 
       END DO
 
+      ALLOCATE( T_SOURCE_ALL( NDIM_IN, NPHASE_IN, U_NONODS ) ) 
+      DO IPHASE = 1, NPHASE
+         DO IDIM = 1, NDIM_IN
+            S = 1 + (IDIM-1)*U_NONODS + (IPHASE-1)*NDIM_IN*U_NONODS
+            E = IDIM*U_NONODS + (IPHASE-1)*NDIM_IN*U_NONODS
+            T_SOURCE_ALL( IDIM, IPHASE, : ) = T_SOURCE( S:E )
+         END DO
+      END DO
+
+      ALLOCATE( T_ABSORB_ALL( NDIM_IN * NPHASE_IN, NDIM_IN * NPHASE_IN, MAT_NONODS ) ) 
+      DO MAT_INOD = 1, MAT_NONODS
+         T_ABSORB_ALL( :, :, MAT_INOD ) = T_ABSORB( MAT_INOD, :, : ) 
+      END DO
+
+
+
+
       allocate( t_in( ndim_in, nphase_in, u_nonods ) ) ; t_in(1,1,:) = t
       allocate( told_in( ndim_in, nphase_in, u_nonods ) ) ; told_in(1,1,:) = t
 
@@ -712,6 +730,9 @@
 
 
 
+
+
+
       CALL ASSEMB_FORCE_CTY( state, &
            NDIM, NPHASE_IN, U_NLOC, X_NLOC, CV_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
            U_ELE_TYPE, CV_ELE_TYPE, &
@@ -745,7 +766,7 @@
            RZERO, JUST_BL_DIAG_MAT,  &
            TDIFFUSION, & ! TDiffusion need to be obtained down in the tree according to the option_path
            IPLIKE_GRAD_SOU, RDUM, RDUM, &
-           RDUM,.FALSE.,NDIM_IN )
+           RDUM, NDIM_IN )
 
 
       DEALLOCATE( U_ALL, UOLD_ALL, X_ALL, RZERO, IZERO, RDUM, IDUM, T_IN, TOLD_IN )
@@ -2214,8 +2235,8 @@
       LOGICAL :: GET_THETA_FLUX
       INTEGER :: IGOT_T2, I, P_SJLOC, SELE, U_SILOC
 
-      INTEGER :: U_NLOC2, ILEV, NLEV, ELE, U_ILOC, U_INOD, IPHASE, IDIM, X_ILOC, X_INOD
-      REAL, DIMENSION( :, :, : ), allocatable :: U_ALL, UOLD_ALL
+      INTEGER :: U_NLOC2, ILEV, NLEV, ELE, U_ILOC, U_INOD, IPHASE, IDIM, X_ILOC, X_INOD, MAT_INOD, S, E
+      REAL, DIMENSION( :, :, : ), allocatable :: U_ALL, UOLD_ALL, U_SOURCE_ALL, U_SOURCE_CV_ALL, U_ABSORB_ALL, U_ABS_STAB_ALL
       REAL, DIMENSION( :, : ), allocatable :: X_ALL, UDEN_ALL, UDENOLD_ALL
 
       INTEGER, DIMENSION ( :, :, : ), allocatable :: WIC_U_BC_ALL, WIC_MOMU_BC_ALL
@@ -2357,8 +2378,26 @@
          end do
       end do
 
+      ALLOCATE( U_SOURCE_ALL( NDIM, NPHASE, U_NONODS ) ) 
+      ALLOCATE( U_SOURCE_CV_ALL( NDIM, NPHASE, CV_NONODS ) ) 
+      DO IPHASE = 1, NPHASE
+         DO IDIM = 1, NDIM
+            S = 1 + (IDIM-1)*U_NONODS + (IPHASE-1)*NDIM*U_NONODS
+            E = IDIM*U_NONODS + (IPHASE-1)*NDIM*U_NONODS
+            U_SOURCE_ALL( IDIM, IPHASE, : ) = U_SOURCE( S:E )
 
+            S = 1 + (IDIM-1)*CV_NONODS + (IPHASE-1)*NDIM*CV_NONODS
+            E = IDIM*CV_NONODS + (IPHASE-1)*NDIM*CV_NONODS
+            U_SOURCE_CV_ALL( IDIM, IPHASE, : ) = U_SOURCE_CV( S:E )
+         END DO
+      END DO
 
+      ALLOCATE( U_ABSORB_ALL( NDIM * NPHASE, NDIM * NPHASE, MAT_NONODS ) ) 
+      ALLOCATE( U_ABS_STAB_ALL( NDIM * NPHASE, NDIM * NPHASE, MAT_NONODS ) ) 
+      DO MAT_INOD = 1, MAT_NONODS
+         U_ABSORB_ALL( :, :, MAT_INOD ) = U_ABSORB( MAT_INOD, :, : ) 
+         U_ABS_STAB_ALL( :, :, MAT_INOD ) = U_ABS_STAB( MAT_INOD, :, : ) 
+      END DO
 
       ! Obtain the momentum and C matricies
       CALL ASSEMB_FORCE_CTY( state, & 
@@ -2394,7 +2433,7 @@
            PIVIT_MAT, JUST_BL_DIAG_MAT, &
            UDIFFUSION, &
            IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
-           P, scale_momentum_by_volume_fraction, NDIM )
+           P, NDIM )
       ! scale the momentum equations by the volume fraction / saturation for the matrix and rhs     
 
       IF(GLOBAL_SOLVE) THEN
@@ -2624,6 +2663,7 @@
          U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
          U_NDGLN, P_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN, &
          STOTEL, U_SNDGLN, P_SNDGLN, CV_SNDGLN, U_SNLOC, P_SNLOC, CV_SNLOC, &
+     
          X_ALL, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
          U_ALL, UOLD_ALL, &
          NU_ALL, NUOLD_ALL, &
@@ -2642,9 +2682,11 @@
          NCOLELE, FINELE, COLELE, & ! Element connectivity.
          XU_NLOC, XU_NDGLN, &
          PIVIT_MAT, JUST_BL_DIAG_MAT,  &
+         
          UDIFFUSION, &
          IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
-         P, scale_momentum_by_volume_fraction, NDIM_VEL )
+         
+         P, NDIM_VEL )
 
       implicit none
 
@@ -2694,7 +2736,6 @@
       LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
       REAL, DIMENSION( : ), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
       REAL, DIMENSION( : ), intent( in ) :: P
-      LOGICAL, INTENT(IN) :: scale_momentum_by_volume_fraction
 
       ! Local Variables
       ! This is for decifering WIC_U_BC & WIC_P_BC
@@ -2876,7 +2917,6 @@
       !ewrite(3,*)'u_absorb=',u_absorb
       !ewrite(3,*)'u_abs_stab=',u_abs_stab
       !stop 2921
-
 
       mom_conserv=.false.
       call get_option( &
