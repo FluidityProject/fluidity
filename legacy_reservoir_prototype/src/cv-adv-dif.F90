@@ -75,7 +75,7 @@ contains
          FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL, &
          MASS_ELE_TRANSP, &
          option_path_spatial_discretisation,&
-         StorageIndexesForDETNLXR_PLUS_U )
+         StorageIndexes )
 
       !  =====================================================================
       !     In this subroutine the advection terms in the advection-diffusion
@@ -264,7 +264,7 @@ contains
       REAL, DIMENSION( : ), intent( inout ) :: MASS_ELE_TRANSP
       character( len = * ), intent( in ), optional :: option_path_spatial_discretisation
       integer, dimension(:), intent(in) :: SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM
-      integer, dimension(:), intent(inout) :: StorageIndexesForDETNLXR_PLUS_U
+      integer, dimension(:), intent(inout) :: StorageIndexes
       !character( len = option_path_len ), intent( in ), optional :: option_path_spatial_discretisation
 
 
@@ -289,9 +289,9 @@ contains
            TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, &
            TOLDMIN_2ND_MC, DENMAX_2ND_MC, DENMIN_2ND_MC, DENOLDMAX_2ND_MC, DENOLDMIN_2ND_MC, &
            CVNORMX, &
-           CVNORMY, CVNORMZ, SCVRA, MASS_CV, MASS_ELE, SNDOTQ, SNDOTQOLD,  &
+           CVNORMY, CVNORMZ, MASS_CV, MASS_ELE, SNDOTQ, SNDOTQOLD,  &
            FEMT, FEMTOLD, FEMT2, FEMT2OLD, FEMDEN, FEMDENOLD, XC_CV, YC_CV, ZC_CV, &
-           SCVDETWEI, SRA, UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
+           SRA, UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
            UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2,  &
            SUM_CV, ONE_PORE, SELE_OVERLAP_SCALE, &
            T2MAX, T2MIN, T2OLDMAX, &
@@ -303,7 +303,6 @@ contains
            CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT,  &
            UFEN, UFENLX, UFENLY, UFENLZ, SCVFEN, SCVFENSLX, SCVFENSLY, &
            SCVFENLX, SCVFENLY, SCVFENLZ, &
-           SCVFENX, SCVFENY, SCVFENZ, &
            SUFEN, SUFENSLX, SUFENSLY, SUFENLX, SUFENLY, SUFENLZ, &
            SBCVN,SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
            SBCVFENLX, SBCVFENLY, SBCVFENLZ, SBUFEN, SBUFENSLX, SBUFENSLY, &
@@ -311,8 +310,9 @@ contains
            DUMMY_ZERO_NDIM_NDIM
       REAL, DIMENSION( : , :, : ), allocatable :: DTX_ELE,DTY_ELE,DTZ_ELE,  &
            DTOLDX_ELE,DTOLDY_ELE,DTOLDZ_ELE
-      REAL, DIMENSION( : , :, : ), allocatable :: INV_JAC
-
+      REAL, pointer, DIMENSION( : , :, : ) :: INV_JAC
+      real, pointer, dimension(:) :: SCVDETWEI, SCVRA
+      real, pointer, dimension(:,:,:) :: SCVFENX_ALL
       !        ===> INTEGERS <===
       INTEGER :: CV_NGI, CV_NGI_SHORT, SCVNGI, SBCVNGI, COUNT, JCOUNT, &
            ELE, ELE2, GI, GCOUNT, SELE,   &
@@ -336,10 +336,10 @@ contains
            DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX, BCZERO, ROBIN1, ROBIN2, &
            RSUM, &
            SUM_LIMT, SUM_LIMTOLD, FTHETA_T2, ONE_M_FTHETA_T2OLD, THERM_FTHETA, &
-           W_SUM_ONE1, W_SUM_ONE2, NDOTQNEW, VOLUME
+           W_SUM_ONE1, W_SUM_ONE2, NDOTQNEW
 
       REAL, PARAMETER :: W_SUM_ONE = 1.
-
+      real, pointer :: VOLUME
       integer :: cv_inod_ipha, IGETCT, U_NODK_IPHA, IANISOLIM
       logical :: Have_Temperature_Fields, Have_VolumeFraction_Fields, Have_Components_Fields
       logical :: overlapping
@@ -460,7 +460,6 @@ contains
       ALLOCATE( CVNORMX( SCVNGI ))
       ALLOCATE( CVNORMY( SCVNGI ))
       ALLOCATE( CVNORMZ( SCVNGI ))
-      ALLOCATE( SCVRA( SCVNGI ))
       ALLOCATE( COLGPTS( CV_NLOC * SCVNGI )) !The size of this vector is over-estimated
       ALLOCATE( FINDGPTS( CV_NLOC + 1 ))
       ALLOCATE( SNDOTQ( SCVNGI ))
@@ -498,9 +497,6 @@ contains
       ALLOCATE( SCVFENLX( CV_NLOC, SCVNGI ))
       ALLOCATE( SCVFENLY( CV_NLOC, SCVNGI ))
       ALLOCATE( SCVFENLZ( CV_NLOC, SCVNGI ))
-      ALLOCATE( SCVFENX( CV_NLOC, SCVNGI ))
-      ALLOCATE( SCVFENY( CV_NLOC, SCVNGI ))
-      ALLOCATE( SCVFENZ( CV_NLOC, SCVNGI ))
       ALLOCATE( SCVFEWEIGH( SCVNGI ))
 
       ALLOCATE( SUFEN( U_NLOC, SCVNGI ))
@@ -510,7 +506,6 @@ contains
       ALLOCATE( SUFENLY( U_NLOC, SCVNGI ))
       ALLOCATE( SUFENLZ( U_NLOC, SCVNGI ))
 
-      ALLOCATE( SCVDETWEI( SCVNGI )) ; SCVDETWEI = 0.
       ALLOCATE( SRA( SCVNGI ))
 
       ALLOCATE( SBCVN( CV_SNLOC, SBCVNGI ))
@@ -544,7 +539,6 @@ contains
       ALLOCATE( SUM_CV( CV_NONODS ))
       ALLOCATE( UP_WIND_NOD( CV_NONODS * NPHASE ))
 
-      ALLOCATE( INV_JAC( NDIM, NDIM, SCVNGI ) )
 
       UP_WIND_NOD = 0.0
 
@@ -822,7 +816,7 @@ contains
               NFACE, FACE_ELE, CV_SLOCLIST, CV_SLOCLIST, STOTEL, CV_SNLOC, CV_SNLOC, WIC_T_BC, SUF_T_BC, &
               WIC_T_BC_DIRICHLET, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
               SBCVFEN, SBCVFENSLX, SBCVFENSLY&
-              ,  state, "CV", StorageIndexesForDETNLXR_PLUS_U(16))
+              ,  state, "CV", StorageIndexes(16))
       ENDIF
 
       !     =============== DEFINE THETA FOR TIME-STEPPING ===================
@@ -879,9 +873,8 @@ contains
          CALL DETNLXR_INVJAC( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
               CV_NLOC, SCVNGI, &
               SCVFEN, SCVFENLX, SCVFENLY, SCVFENLZ, SCVFEWEIGH, SCVDETWEI, SCVRA, VOLUME, D1, D3, DCYL, &
-              SCVFENX, SCVFENY, SCVFENZ, &
-              NDIM, INV_JAC )
-
+              SCVFENX_ALL, &
+              NDIM, INV_JAC, state, "CVI", StorageIndexes(29))
 
          Loop_CV_ILOC: DO CV_ILOC = 1, CV_NLOC ! Loop over the nodes of the element
 
@@ -1124,7 +1117,7 @@ contains
                              TOLDMIN_2ND_MC, T2OLDMIN_2ND_MC, DENOLDMIN_2ND_MC, &
                              TOLDMAX_2ND_MC, T2OLDMAX_2ND_MC, DENOLDMAX_2ND_MC, &
                              LIMIT_USE_2ND, HDC, NDOTQOLD, DT, &
-                             SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
+                             SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:), CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                              TOLDUPWIND_MAT, DENOLDUPWIND_MAT, T2OLDUPWIND_MAT , &
@@ -1148,7 +1141,7 @@ contains
                              TMIN_2ND_MC, T2MIN_2ND_MC, DENMIN_2ND_MC, &
                              TMAX_2ND_MC, T2MAX_2ND_MC, DENMAX_2ND_MC, &
                              LIMIT_USE_2ND, HDC, NDOTQ, DT, &
-                             SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
+                             SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:), CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                              TUPWIND_MAT, DENUPWIND_MAT, T2UPWIND_MAT, &
@@ -1292,7 +1285,7 @@ contains
                              TOLDMIN_2ND_MC, T2OLDMIN_2ND_MC, DENOLDMIN_2ND_MC, &
                              TOLDMAX_2ND_MC, T2OLDMAX_2ND_MC, DENOLDMAX_2ND_MC, &
                              LIMIT_USE_2ND, HDC, NDOTQOLD, DT, &
-                             SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
+                             SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:), CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                              TOLDUPWIND_MAT, DENOLDUPWIND_MAT, T2OLDUPWIND_MAT , &
@@ -1316,7 +1309,7 @@ contains
                              TMIN_2ND_MC, T2MIN_2ND_MC, DENMIN_2ND_MC, &
                              TMAX_2ND_MC, T2MAX_2ND_MC, DENMAX_2ND_MC, &
                              LIMIT_USE_2ND, HDC, NDOTQ, DT, &
-                             SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
+                             SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:), CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                              TUPWIND_MAT, DENUPWIND_MAT, T2UPWIND_MAT, &
@@ -1836,9 +1829,6 @@ contains
       DEALLOCATE( SCVFENLX )
       DEALLOCATE( SCVFENLY )
       DEALLOCATE( SCVFENLZ )
-      DEALLOCATE( SCVFENX )
-      DEALLOCATE( SCVFENY )
-      DEALLOCATE( SCVFENZ )
       DEALLOCATE( SCVFEWEIGH )
 
       DEALLOCATE( SUFEN )
@@ -1848,7 +1838,6 @@ contains
       DEALLOCATE( SUFENLY )
       DEALLOCATE( SUFENLZ )
 
-      DEALLOCATE( SCVDETWEI )
       DEALLOCATE( SRA )
 
       DEALLOCATE( SBCVFEN )
@@ -1946,7 +1935,7 @@ contains
          MASS_ELE_TRANSP, &
          option_path_spatial_discretisation, &
          THETA_FLUX, ONE_M_THETA_FLUX,&
-         StorageIndexesForDETNLXR_PLUS_U)
+         StorageIndexes)
 
       !  =====================================================================
       !     In this subroutine the advection terms in the advection-diffusion
@@ -2131,7 +2120,7 @@ contains
       character( len = * ), intent( in ), optional :: option_path_spatial_discretisation
       integer, dimension(:), intent(in) :: SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM
       !character( len = option_path_len ), intent( in ), optional :: option_path_spatial_discretisation
-      integer, dimension(:), intent(inout) :: StorageIndexesForDETNLXR_PLUS_U
+      integer, dimension(:), intent(inout) :: StorageIndexes
 
       ! Local variables
       INTEGER, PARAMETER :: WIC_T_BC_DIRICHLET = 1, WIC_T_BC_ROBIN = 2, &
@@ -2151,9 +2140,9 @@ contains
            TMAX, TMIN, DENMAX, DENMIN, &
            TMAX_2ND_MC, TMIN_2ND_MC, DENMAX_2ND_MC, DENMIN_2ND_MC, &
            CVNORMX, &
-           CVNORMY, CVNORMZ, SCVRA, MASS_CV, MASS_ELE, SNDOTQ, SNDOTQOLD,  &
+           CVNORMY, CVNORMZ, MASS_CV, MASS_ELE, SNDOTQ, SNDOTQOLD,  &
            FEMT, FEMTOLD, FEMT2, FEMT2OLD, FEMDEN, FEMDENOLD, XC_CV, YC_CV, ZC_CV, &
-           SCVDETWEI, SRA, UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
+           SRA, UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
            UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2,  &
            SUM_CV, ONE_PORE, SELE_OVERLAP_SCALE, &
            T2MAX, T2MIN,&
@@ -2163,7 +2152,6 @@ contains
            CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT,  &
            UFEN, UFENLX, UFENLY, UFENLZ, SCVFEN, SCVFENSLX, SCVFENSLY, &
            SCVFENLX, SCVFENLY, SCVFENLZ, &
-           SCVFENX, SCVFENY, SCVFENZ, &
            SUFEN, SUFENSLX, SUFENSLY, SUFENLX, SUFENLY, SUFENLZ, &
            SBCVN,SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
            SBCVFENLX, SBCVFENLY, SBCVFENLZ, SBUFEN, SBUFENSLX, SBUFENSLY, &
@@ -2171,8 +2159,9 @@ contains
            DUMMY_ZERO_NDIM_NDIM
       REAL, DIMENSION( : , :, : ), allocatable :: DTX_ELE,DTY_ELE,DTZ_ELE,  &
            DTOLDX_ELE,DTOLDY_ELE,DTOLDZ_ELE
-      REAL, DIMENSION( : , :, : ), allocatable :: INV_JAC
-
+      REAL, pointer,  DIMENSION( : , :, : ) :: INV_JAC
+      real, pointer, dimension(:) :: SCVDETWEI, SCVRA
+      real, pointer, dimension(:,:,:) :: SCVFENX_ALL
       !        ===> INTEGERS <===
       INTEGER :: CV_NGI, CV_NGI_SHORT, SCVNGI, SBCVNGI, COUNT, JCOUNT, &
            ELE, ELE2, GI, GCOUNT, SELE,   &
@@ -2196,10 +2185,10 @@ contains
            DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX, BCZERO, ROBIN1, ROBIN2, &
            RSUM, &
            FTHETA_T2, ONE_M_FTHETA_T2OLD, THERM_FTHETA, &
-           W_SUM_ONE1, W_SUM_ONE2, NDOTQNEW, VOLUME
+           W_SUM_ONE1, W_SUM_ONE2, NDOTQNEW
 
       REAL, PARAMETER :: W_SUM_ONE = 1.
-
+      real, pointer :: VOLUME
       integer :: U_NODK_IPHA, IANISOLIM
       logical :: Have_Temperature_Fields, Have_VolumeFraction_Fields, Have_Components_Fields
       logical :: overlapping
@@ -2287,7 +2276,6 @@ contains
       ALLOCATE( CVNORMX( SCVNGI ))
       ALLOCATE( CVNORMY( SCVNGI ))
       ALLOCATE( CVNORMZ( SCVNGI ))
-      ALLOCATE( SCVRA( SCVNGI ))
       ALLOCATE( COLGPTS( CV_NLOC * SCVNGI )) !The size of this vector is over-estimated
       ALLOCATE( FINDGPTS( CV_NLOC + 1 ))
       ALLOCATE( SNDOTQ( SCVNGI ))
@@ -2325,9 +2313,6 @@ contains
       ALLOCATE( SCVFENLX( CV_NLOC, SCVNGI ))
       ALLOCATE( SCVFENLY( CV_NLOC, SCVNGI ))
       ALLOCATE( SCVFENLZ( CV_NLOC, SCVNGI ))
-      ALLOCATE( SCVFENX( CV_NLOC, SCVNGI ))
-      ALLOCATE( SCVFENY( CV_NLOC, SCVNGI ))
-      ALLOCATE( SCVFENZ( CV_NLOC, SCVNGI ))
       ALLOCATE( SCVFEWEIGH( SCVNGI ))
 
       ALLOCATE( SUFEN( U_NLOC, SCVNGI ))
@@ -2337,7 +2322,6 @@ contains
       ALLOCATE( SUFENLY( U_NLOC, SCVNGI ))
       ALLOCATE( SUFENLZ( U_NLOC, SCVNGI ))
 
-      ALLOCATE( SCVDETWEI( SCVNGI )) ; SCVDETWEI = 0.
       ALLOCATE( SRA( SCVNGI ))
 
       ALLOCATE( SBCVN( CV_SNLOC, SBCVNGI ))
@@ -2371,7 +2355,6 @@ contains
       ALLOCATE( SUM_CV( CV_NONODS ))
       ALLOCATE( UP_WIND_NOD( CV_NONODS * NPHASE ))
 
-      ALLOCATE( INV_JAC( NDIM, NDIM, SCVNGI ) )
 
       UP_WIND_NOD = 0.0
 
@@ -2619,7 +2602,7 @@ contains
               NFACE, FACE_ELE, CV_SLOCLIST, CV_SLOCLIST, STOTEL, CV_SNLOC, CV_SNLOC, WIC_T_BC, SUF_T_BC, &
               WIC_T_BC_DIRICHLET, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
               SBCVFEN, SBCVFENSLX, SBCVFENSLY&
-              ,  state,"ADVDIF", StorageIndexesForDETNLXR_PLUS_U(17) )
+              ,  state,"ADVDIF", StorageIndexes(17) )
       ENDIF
 
       !     =============== DEFINE THETA FOR TIME-STEPPING ===================
@@ -2669,8 +2652,8 @@ contains
          CALL DETNLXR_INVJAC( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
               CV_NLOC, SCVNGI, &
               SCVFEN, SCVFENLX, SCVFENLY, SCVFENLZ, SCVFEWEIGH, SCVDETWEI, SCVRA, VOLUME, D1, D3, DCYL, &
-              SCVFENX, SCVFENY, SCVFENZ, &
-              NDIM, INV_JAC )
+              SCVFENX_ALL, &
+              NDIM, INV_JAC, state, "advI", StorageIndexes(27))
 
 
          Loop_CV_ILOC: DO CV_ILOC = 1, CV_NLOC ! Loop over the nodes of the element
@@ -2867,7 +2850,7 @@ contains
                              TMIN_2ND_MC, T2MIN_2ND_MC, DENMIN_2ND_MC, &
                              TMAX_2ND_MC, T2MAX_2ND_MC, DENMAX_2ND_MC, &
                              LIMIT_USE_2ND, HDC, NDOTQ, DT, &
-                             SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
+                             SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:), CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                              TUPWIND_MAT, DENUPWIND_MAT, T2UPWIND_MAT, &
@@ -3170,9 +3153,6 @@ contains
       DEALLOCATE( SCVFENLX )
       DEALLOCATE( SCVFENLY )
       DEALLOCATE( SCVFENLZ )
-      DEALLOCATE( SCVFENX )
-      DEALLOCATE( SCVFENY )
-      DEALLOCATE( SCVFENZ )
       DEALLOCATE( SCVFEWEIGH )
 
       DEALLOCATE( SUFEN )
@@ -3182,7 +3162,6 @@ contains
       DEALLOCATE( SUFENLY )
       DEALLOCATE( SUFENLZ )
 
-      DEALLOCATE( SCVDETWEI )
       DEALLOCATE( SRA )
 
       DEALLOCATE( SBCVFEN )
@@ -3269,7 +3248,7 @@ contains
          FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL, &
          MASS_ELE_TRANSP, &
          option_path_spatial_discretisation,&
-         StorageIndexesForDETNLXR_PLUS_U )
+         StorageIndexes )
 
       !  =====================================================================
       !     In this subroutine the advection terms in the advection-diffusion
@@ -3452,7 +3431,7 @@ contains
       character( len = * ), intent( in ), optional :: option_path_spatial_discretisation
       integer, dimension(:), intent(in) :: SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM
       !character( len = option_path_len ), intent( in ), optional :: option_path_spatial_discretisation
-      integer, dimension(:), intent(inout) :: StorageIndexesForDETNLXR_PLUS_U
+      integer, dimension(:), intent(inout) :: StorageIndexes
 
       ! Local variables
       INTEGER, PARAMETER :: WIC_T_BC_DIRICHLET = 1, WIC_T_BC_ROBIN = 2, &
@@ -3475,9 +3454,9 @@ contains
            TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, &
            TOLDMIN_2ND_MC, DENMAX_2ND_MC, DENMIN_2ND_MC, DENOLDMAX_2ND_MC, DENOLDMIN_2ND_MC, &
            CVNORMX, &
-           CVNORMY, CVNORMZ, SCVRA, MASS_CV, MASS_ELE, SNDOTQ, SNDOTQOLD,  &
+           CVNORMY, CVNORMZ, MASS_CV, MASS_ELE, SNDOTQ, SNDOTQOLD,  &
            FEMT, FEMTOLD, FEMT2, FEMT2OLD, FEMDEN, FEMDENOLD, XC_CV, YC_CV, ZC_CV, &
-           SCVDETWEI, SRA, UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
+           SRA, UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
            UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2,  &
            SUM_CV, ONE_PORE, SELE_OVERLAP_SCALE, &
            T2MAX, T2MIN, T2OLDMAX, &
@@ -3489,7 +3468,6 @@ contains
            CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT,  &
            UFEN, UFENLX, UFENLY, UFENLZ, SCVFEN, SCVFENSLX, SCVFENSLY, &
            SCVFENLX, SCVFENLY, SCVFENLZ, &
-           SCVFENX, SCVFENY, SCVFENZ, &
            SUFEN, SUFENSLX, SUFENSLY, SUFENLX, SUFENLY, SUFENLZ, &
            SBCVN,SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
            SBCVFENLX, SBCVFENLY, SBCVFENLZ, SBUFEN, SBUFENSLX, SBUFENSLY, &
@@ -3497,8 +3475,9 @@ contains
            DUMMY_ZERO_NDIM_NDIM
       REAL, DIMENSION( : , :, : ), allocatable :: DTX_ELE,DTY_ELE,DTZ_ELE,  &
            DTOLDX_ELE,DTOLDY_ELE,DTOLDZ_ELE
-      REAL, DIMENSION( : , :, : ), allocatable :: INV_JAC
-
+      REAL, pointer, DIMENSION( : , :, : ) :: INV_JAC
+      real, pointer, dimension(:) :: SCVDETWEI, SCVRA
+      real, pointer, dimension(:,:,:) :: SCVFENX_ALL
       !        ===> INTEGERS <===
       INTEGER :: CV_NGI, CV_NGI_SHORT, SCVNGI, SBCVNGI, COUNT, JCOUNT, &
            ELE, ELE2, GI, GCOUNT, SELE,   &
@@ -3522,10 +3501,10 @@ contains
            DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX, BCZERO, ROBIN1, ROBIN2, &
            RSUM, &
            SUM_LIMT, SUM_LIMTOLD, FTHETA_T2, ONE_M_FTHETA_T2OLD, THERM_FTHETA, &
-           W_SUM_ONE1, W_SUM_ONE2, NDOTQNEW, VOLUME
+           W_SUM_ONE1, W_SUM_ONE2, NDOTQNEW
 
       REAL, PARAMETER :: W_SUM_ONE = 1.
-
+      real, pointer :: VOLUME
       integer :: cv_inod_ipha, IGETCT, U_NODK_IPHA, IANISOLIM
       logical :: Have_Temperature_Fields, Have_VolumeFraction_Fields, Have_Components_Fields
       logical :: overlapping
@@ -3614,7 +3593,6 @@ contains
       ALLOCATE( CVNORMX( SCVNGI ))
       ALLOCATE( CVNORMY( SCVNGI ))
       ALLOCATE( CVNORMZ( SCVNGI ))
-      ALLOCATE( SCVRA( SCVNGI ))
       ALLOCATE( COLGPTS( CV_NLOC * SCVNGI )) !The size of this vector is over-estimated
       ALLOCATE( FINDGPTS( CV_NLOC + 1 ))
       ALLOCATE( SNDOTQ( SCVNGI ))
@@ -3652,9 +3630,6 @@ contains
       ALLOCATE( SCVFENLX( CV_NLOC, SCVNGI ))
       ALLOCATE( SCVFENLY( CV_NLOC, SCVNGI ))
       ALLOCATE( SCVFENLZ( CV_NLOC, SCVNGI ))
-      ALLOCATE( SCVFENX( CV_NLOC, SCVNGI ))
-      ALLOCATE( SCVFENY( CV_NLOC, SCVNGI ))
-      ALLOCATE( SCVFENZ( CV_NLOC, SCVNGI ))
       ALLOCATE( SCVFEWEIGH( SCVNGI ))
 
       ALLOCATE( SUFEN( U_NLOC, SCVNGI ))
@@ -3664,7 +3639,6 @@ contains
       ALLOCATE( SUFENLY( U_NLOC, SCVNGI ))
       ALLOCATE( SUFENLZ( U_NLOC, SCVNGI ))
 
-      ALLOCATE( SCVDETWEI( SCVNGI )) ; SCVDETWEI = 0.
       ALLOCATE( SRA( SCVNGI ))
       ALLOCATE( LOG_ON_BOUND(CV_NONODS))
 
@@ -3698,8 +3672,6 @@ contains
       ! The procity mapped to the CV nodes
       ALLOCATE( SUM_CV( CV_NONODS ))
       ALLOCATE( UP_WIND_NOD( CV_NONODS * NPHASE ))
-
-      ALLOCATE( INV_JAC( NDIM, NDIM, SCVNGI ) )
 
       UP_WIND_NOD = 0.0
 
@@ -3933,7 +3905,7 @@ contains
               NFACE, FACE_ELE, CV_SLOCLIST, CV_SLOCLIST, STOTEL, CV_SNLOC, CV_SNLOC, WIC_T_BC, SUF_T_BC, &
               WIC_T_BC_DIRICHLET, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
               SBCVFEN, SBCVFENSLX, SBCVFENSLY&
-              ,  state, "CT", StorageIndexesForDETNLXR_PLUS_U(18))
+              ,  state, "CT", StorageIndexes(18))
       ENDIF
 
       !     =============== DEFINE THETA FOR TIME-STEPPING ===================
@@ -3980,8 +3952,8 @@ contains
          CALL DETNLXR_INVJAC( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
               CV_NLOC, SCVNGI, &
               SCVFEN, SCVFENLX, SCVFENLY, SCVFENLZ, SCVFEWEIGH, SCVDETWEI, SCVRA, VOLUME, D1, D3, DCYL, &
-              SCVFENX, SCVFENY, SCVFENZ, &
-              NDIM, INV_JAC )
+              SCVFENX_ALL,  &
+              NDIM, INV_JAC, state, "ctI", StorageIndexes(28) )
 
 
          Loop_CV_ILOC: DO CV_ILOC = 1, CV_NLOC ! Loop over the nodes of the element
@@ -4188,7 +4160,7 @@ contains
                              TOLDMIN_2ND_MC, T2OLDMIN_2ND_MC, DENOLDMIN_2ND_MC, &
                              TOLDMAX_2ND_MC, T2OLDMAX_2ND_MC, DENOLDMAX_2ND_MC, &
                              LIMIT_USE_2ND, HDC, NDOTQOLD, DT, &
-                             SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
+                             SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:), CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                              TOLDUPWIND_MAT, DENOLDUPWIND_MAT, T2OLDUPWIND_MAT , &
@@ -4212,7 +4184,7 @@ contains
                              TMIN_2ND_MC, T2MIN_2ND_MC, DENMIN_2ND_MC, &
                              TMAX_2ND_MC, T2MAX_2ND_MC, DENMAX_2ND_MC, &
                              LIMIT_USE_2ND, HDC, NDOTQ, DT, &
-                             SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
+                             SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:),CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                              TUPWIND_MAT, DENUPWIND_MAT, T2UPWIND_MAT, &
@@ -4356,7 +4328,7 @@ contains
                              TOLDMIN_2ND_MC, T2OLDMIN_2ND_MC, DENOLDMIN_2ND_MC, &
                              TOLDMAX_2ND_MC, T2OLDMAX_2ND_MC, DENOLDMAX_2ND_MC, &
                              LIMIT_USE_2ND, HDC, NDOTQOLD, DT, &
-                             SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
+                             SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:), CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                              TOLDUPWIND_MAT, DENOLDUPWIND_MAT, T2OLDUPWIND_MAT , &
@@ -4380,7 +4352,7 @@ contains
                              TMIN_2ND_MC, T2MIN_2ND_MC, DENMIN_2ND_MC, &
                              TMAX_2ND_MC, T2MAX_2ND_MC, DENMAX_2ND_MC, &
                              LIMIT_USE_2ND, HDC, NDOTQ, DT, &
-                             SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
+                             SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:), CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                              TUPWIND_MAT, DENUPWIND_MAT, T2UPWIND_MAT, &
@@ -4591,9 +4563,6 @@ contains
       DEALLOCATE( SCVFENLX )
       DEALLOCATE( SCVFENLY )
       DEALLOCATE( SCVFENLZ )
-      DEALLOCATE( SCVFENX )
-      DEALLOCATE( SCVFENY )
-      DEALLOCATE( SCVFENZ )
       DEALLOCATE( SCVFEWEIGH )
 
       DEALLOCATE( SUFEN )
@@ -4603,7 +4572,6 @@ contains
       DEALLOCATE( SUFENLY )
       DEALLOCATE( SUFENLZ )
 
-      DEALLOCATE( SCVDETWEI )
       DEALLOCATE( SRA )
       DEALLOCATE( LOG_ON_BOUND )
 
@@ -4695,7 +4663,7 @@ contains
          MEAN_PORE_CV, &
          FINDCMC, COLCMC, NCOLCMC, &
          MASS_ELE_TRANSP, &
-         option_path_spatial_discretisation)
+         option_path_spatial_discretisation, StorageIndexes)
 
       !  =====================================================================
       !     This subroutine gets the limited face values for a variable
@@ -4794,7 +4762,7 @@ contains
 
       ! Inputs/Outputs
       IMPLICIT NONE
-      type( state_type ), dimension( : ), intent( in ) :: state
+      type( state_type ), dimension( : ), intent( inout ) :: state
       real, dimension(:,:), intent(inout) :: LIMT,LIMT2,LIMD,LIMDT,LIMDTT2,NDOTQOLD
       INTEGER, intent( in ) :: CV_NONODS, U_NONODS, X_NONODS, MAT_NONODS, &
            TOTELE, &
@@ -4845,6 +4813,7 @@ contains
       REAL, DIMENSION( : ), intent( inout ) :: MASS_ELE_TRANSP
       character( len = * ), intent( in ), optional :: option_path_spatial_discretisation
       integer, dimension(:), intent(in) :: SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM
+      integer, dimension(:), intent(inout) :: StorageIndexes
       !character( len = option_path_len ), intent( in ), optional :: option_path_spatial_discretisation
 
       ! Local variables
@@ -4868,9 +4837,9 @@ contains
            TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, &
            TOLDMIN_2ND_MC, DENMAX_2ND_MC, DENMIN_2ND_MC, DENOLDMAX_2ND_MC, DENOLDMIN_2ND_MC, &
            CVNORMX, &
-           CVNORMY, CVNORMZ, SCVRA, MASS_CV, MASS_ELE, SNDOTQ, SNDOTQOLD,  &
+           CVNORMY, CVNORMZ, MASS_CV, MASS_ELE, SNDOTQ, SNDOTQOLD,  &
            FEMT, FEMTOLD, FEMT2, FEMT2OLD, FEMDEN, FEMDENOLD, XC_CV, YC_CV, ZC_CV, &
-           SCVDETWEI, SRA, UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
+           SRA, UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
            UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2,  &
            SUM_CV, ONE_PORE, SELE_OVERLAP_SCALE, &
            T2MAX, T2MIN, T2OLDMAX, &
@@ -4882,7 +4851,6 @@ contains
            CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT,  &
            UFEN, UFENLX, UFENLY, UFENLZ, SCVFEN, SCVFENSLX, SCVFENSLY, &
            SCVFENLX, SCVFENLY, SCVFENLZ, &
-           SCVFENX, SCVFENY, SCVFENZ, &
            SUFEN, SUFENSLX, SUFENSLY, SUFENLX, SUFENLY, SUFENLZ, &
            SBCVN,SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
            SBCVFENLX, SBCVFENLY, SBCVFENLZ, SBUFEN, SBUFENSLX, SBUFENSLY, &
@@ -4890,8 +4858,9 @@ contains
            DUMMY_ZERO_NDIM_NDIM
       REAL, DIMENSION( : , :, : ), allocatable :: DTX_ELE,DTY_ELE,DTZ_ELE,  &
            DTOLDX_ELE,DTOLDY_ELE,DTOLDZ_ELE
-      REAL, DIMENSION( : , :, : ), allocatable :: INV_JAC
-
+      REAL, pointer, DIMENSION( : , :, : ) :: INV_JAC
+      real, pointer, dimension(:) :: SCVRA, SCVDETWEI
+      real, pointer, dimension(:,:,:) :: SCVFENX_ALL
       !        ===> INTEGERS <===
       INTEGER :: CV_NGI, CV_NGI_SHORT, SCVNGI, SBCVNGI, COUNT, JCOUNT, &
            ELE, ELE2, GI, GCOUNT, SELE,   &
@@ -4913,12 +4882,12 @@ contains
            DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX, BCZERO, ROBIN1, ROBIN2, &
            RSUM, &
            SUM_LIMT, SUM_LIMTOLD, FTHETA_T2, ONE_M_FTHETA_T2OLD, THERM_FTHETA, &
-           W_SUM_ONE1, W_SUM_ONE2, NDOTQNEW, VOLUME
+           W_SUM_ONE1, W_SUM_ONE2, NDOTQNEW
 
       REAL, DIMENSION( NCOLCMC)  :: MASS_MN_PRES
 
       REAL, PARAMETER :: W_SUM_ONE = 1.
-
+      real, pointer :: VOLUME
       integer :: cv_inod_ipha, U_NODK_IPHA, IANISOLIM
       logical :: Have_Temperature_Fields, Have_VolumeFraction_Fields, Have_Components_Fields
       logical :: overlapping
@@ -5005,7 +4974,6 @@ contains
       ALLOCATE( CVNORMX( SCVNGI ))
       ALLOCATE( CVNORMY( SCVNGI ))
       ALLOCATE( CVNORMZ( SCVNGI ))
-      ALLOCATE( SCVRA( SCVNGI ))
       ALLOCATE( COLGPTS( CV_NLOC * SCVNGI )) !The size of this vector is over-estimated
       ALLOCATE( FINDGPTS( CV_NLOC + 1 ))
       ALLOCATE( SNDOTQ( SCVNGI ))
@@ -5043,9 +5011,6 @@ contains
       ALLOCATE( SCVFENLX( CV_NLOC, SCVNGI ))
       ALLOCATE( SCVFENLY( CV_NLOC, SCVNGI ))
       ALLOCATE( SCVFENLZ( CV_NLOC, SCVNGI ))
-      ALLOCATE( SCVFENX( CV_NLOC, SCVNGI ))
-      ALLOCATE( SCVFENY( CV_NLOC, SCVNGI ))
-      ALLOCATE( SCVFENZ( CV_NLOC, SCVNGI ))
       ALLOCATE( SCVFEWEIGH( SCVNGI ))
 
       ALLOCATE( SUFEN( U_NLOC, SCVNGI ))
@@ -5055,7 +5020,6 @@ contains
       ALLOCATE( SUFENLY( U_NLOC, SCVNGI ))
       ALLOCATE( SUFENLZ( U_NLOC, SCVNGI ))
 
-      ALLOCATE( SCVDETWEI( SCVNGI )) ; SCVDETWEI = 0.
       ALLOCATE( SRA( SCVNGI ))
 
       ALLOCATE( SBCVN( CV_SNLOC, SBCVNGI ))
@@ -5299,8 +5263,8 @@ contains
          CALL DETNLXR_INVJAC( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
               CV_NLOC, SCVNGI, &
               SCVFEN, SCVFENLX, SCVFENLY, SCVFENLZ, SCVFEWEIGH, SCVDETWEI, SCVRA, VOLUME, D1, D3, DCYL, &
-              SCVFENX, SCVFENY, SCVFENZ, &
-              NDIM, INV_JAC )
+              SCVFENX_ALL, &
+              NDIM, INV_JAC,state, "ali", StorageIndexes(30) )
 
 
          Loop_CV_ILOC: DO CV_ILOC = 1, CV_NLOC ! Loop over the nodes of the element
@@ -5466,7 +5430,7 @@ contains
                              TMIN_2ND_MC, T2MIN_2ND_MC, DENMIN_2ND_MC, &
                              TMAX_2ND_MC, T2MAX_2ND_MC, DENMAX_2ND_MC, &
                              LIMIT_USE_2ND, HDC, NDOTQ, DT, &
-                             SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
+                             SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:),CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                              TUPWIND_MAT, DENUPWIND_MAT, T2UPWIND_MAT, &
@@ -5521,7 +5485,6 @@ contains
       DEALLOCATE( CVNORMX)
       DEALLOCATE( CVNORMY )
       DEALLOCATE( CVNORMZ )
-      DEALLOCATE( SCVRA )
       DEALLOCATE( COLGPTS ) !The size of this vector is over-estimated
       DEALLOCATE( FINDGPTS )
       DEALLOCATE( SNDOTQ )
@@ -5559,9 +5522,6 @@ contains
       DEALLOCATE( SCVFENLX)
       DEALLOCATE( SCVFENLY)
       DEALLOCATE( SCVFENLZ)
-      DEALLOCATE( SCVFENX)
-      DEALLOCATE( SCVFENY)
-      DEALLOCATE( SCVFENZ)
       DEALLOCATE( SCVFEWEIGH)
 
       DEALLOCATE( SUFEN )
@@ -5571,7 +5531,6 @@ contains
       DEALLOCATE( SUFENLY )
       DEALLOCATE( SUFENLZ )
 
-      DEALLOCATE( SCVDETWEI) 
       DEALLOCATE( SRA)
 
       DEALLOCATE( SBCVN)
@@ -5604,7 +5563,6 @@ contains
       DEALLOCATE( SUM_CV)
       DEALLOCATE( UP_WIND_NOD)
 
-      DEALLOCATE( INV_JAC )
 
 
      
@@ -7230,7 +7188,7 @@ contains
        NFACE, FACE_ELE, CV_SLOCLIST, X_SLOCLIST, STOTEL, CV_SNLOC, X_SNLOC, WIC_T_BC, SUF_T_BC, &
        SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBWEIGH, &
        X_SBCVFEN, X_SBCVFENSLX, X_SBCVFENSLY,&
-      state, StorName, StorageIndexesForDETNLXR_PLUS_U  )
+      state, StorName, StorageIndexes  )
 
     ! determine FEMT (finite element wise) etc from T (control volume wise)
     use shape_functions
@@ -7259,7 +7217,7 @@ contains
     REAL, DIMENSION( : ), intent( in ) :: SBWEIGH
     type( state_type ), dimension( : ), intent( inout ) :: state
     character(len=*), intent(in) :: StorName
-    integer, dimension(:), intent(inout) :: StorageIndexesForDETNLXR_PLUS_U
+    integer, dimension(:), intent(inout) :: StorageIndexes
     ! Local variables
     REAL, DIMENSION( :, :, : ), ALLOCATABLE :: MASELE
     REAL, DIMENSION( :, :, :, :, : ), ALLOCATABLE :: VTX_ELE, VTOLDX_ELE
@@ -7303,7 +7261,7 @@ contains
             X_N, X_NLX, X_NLY, X_NLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
             X_NX_ALL, &
             CV_NLOC, NLX, NLY, NLZ, NX_ALL&
-            , state,StorName , StorageIndexesForDETNLXR_PLUS_U(23) )
+            , state,StorName , StorageIndexes(23) )
 
        Loop_CV_ILOC: DO CV_ILOC = 1, CV_NLOC
 

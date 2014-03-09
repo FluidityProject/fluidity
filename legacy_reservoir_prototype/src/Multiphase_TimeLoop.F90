@@ -226,9 +226,9 @@
       REAL, DIMENSION( : , : ,: ), allocatable :: NDOTQCOLD,LIMCOLD,LIMC2OLD,LIMCDOLD,LIMCDTOLD,LIMCDTT2OLD
 
       !Variable to store where we store things. Do not oversize this array, the size has to be the last index in use
-      integer, dimension (26) :: StorageIndexesForDETNLXR_PLUS_U
+      integer, dimension (30) :: StorageIndexes
       !Initially we set to use Stored data and that we have a new mesh
-      StorageIndexesForDETNLXR_PLUS_U = 0!Initialize them as zero ! Entries 1, 2 and 3 are unused, for future purposes
+      StorageIndexes = 0!Initialize them as zero ! Entries 1, 2 and 3 are unused, for future purposes
 
       !Read info for adaptive timestep based on non_linear_iterations
 
@@ -736,7 +736,8 @@
                  MEAN_PORE_CV, &
                  small_finacv,small_colacv,size(small_colacv),&
                  dummy_ele, &
-                 '/material_phase[0]/scalar_field::Temperature')
+                 '/material_phase[0]/scalar_field::Temperature',&
+                 StorageIndexes=StorageIndexes)
 
          end if
 
@@ -784,7 +785,8 @@
                  MEAN_PORE_CV, &
                  small_finacv,small_colacv,size(small_colacv),&
                  dummy_ele, &
-                 '/material_phase[' // int2str( nphase ) // ']/scalar_field::ComponentMassFractionPhase1/')
+                 '/material_phase[' // int2str( nphase ) // ']/scalar_field::ComponentMassFractionPhase1/',&
+                 StorageIndexes=StorageIndexes)
             end do
          end if
 
@@ -929,7 +931,7 @@
                     option_path = '/material_phase[0]/scalar_field::Temperature', &
                     mass_ele_transp = dummy_ele, &
                     thermal = have_option( '/material_phase[0]/scalar_field::Temperature/prognostic/equation::InternalEnergy'),&
-                           StorageIndexesForDETNLXR_PLUS_U=StorageIndexesForDETNLXR_PLUS_U )
+                           StorageIndexes=StorageIndexes )
 
 !!$ Update state memory
                do iphase = 1, nphase
@@ -981,7 +983,7 @@
                     NCOLM, FINDM, COLM, MIDM, &
                     XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
                     Component_BC_Spatial, Component_BC ,&
-                           StorageIndexesForDETNLXR_PLUS_U=StorageIndexesForDETNLXR_PLUS_U)
+                           StorageIndexes=StorageIndexes)
 !!$ Set U_Density
                U_Density = 0. ; U_Density_Old = 0.
                if( .not. have_option( '/material_phase[0]/multiphase_properties/relperm_type' ) )then
@@ -1094,7 +1096,7 @@
 !!$
                     iplike_grad_sou, plike_grad_sou_coef, plike_grad_sou_grad, &
                     scale_momentum_by_volume_fraction,&
-                           StorageIndexesForDETNLXR_PLUS_U=StorageIndexesForDETNLXR_PLUS_U )
+                           StorageIndexes=StorageIndexes )
 
                Pressure_State => extract_scalar_field( state( 1 ), 'Pressure' )
                Pressure_State % val = Pressure_CV
@@ -1150,7 +1152,7 @@
                     option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction', &
                     mass_ele_transp = mass_ele,&
                     theta_flux=sum_theta_flux, one_m_theta_flux=sum_one_m_theta_flux,&
-                           StorageIndexesForDETNLXR_PLUS_U=StorageIndexesForDETNLXR_PLUS_U)
+                           StorageIndexes=StorageIndexes)
                else
                                  call VolumeFraction_Assemble_Solve( state, &
                     NCOLACV, FINACV, COLACV, MIDACV, &
@@ -1191,7 +1193,7 @@
 !!$                 nits_flux_lim_volfra, &
                     option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction', &
                     mass_ele_transp = mass_ele,&
-                           StorageIndexesForDETNLXR_PLUS_U=StorageIndexesForDETNLXR_PLUS_U )
+                           StorageIndexes=StorageIndexes )
                               end if
 
                 PhaseVolumeFraction=min( max(PhaseVolumeFraction,0.0), 1.0)
@@ -1243,7 +1245,7 @@
                        u_ele_type, p_ele_type, ncomp_diff_coef, comp_diffusion_opt, &
                        Component_Diffusion_Operator_Coefficient( icomp, :, : ), &
                        Component_Diffusion ,&
-                           StorageIndexesForDETNLXR_PLUS_U=StorageIndexesForDETNLXR_PLUS_U)
+                           StorageIndexes=StorageIndexes)
 
 !!$ NonLinear iteration for the components advection:
                   Loop_NonLinearIteration_Components: do its2 = 1, NonLinearIteration_Components
@@ -1305,7 +1307,7 @@
                           mass_ele_transp = dummy_ele, &
                           thermal = .false.,& ! the false means that we don't add an extra source term
                           theta_flux=theta_flux, one_m_theta_flux=one_m_theta_flux,&
-                           StorageIndexesForDETNLXR_PLUS_U=StorageIndexesForDETNLXR_PLUS_U)
+                           StorageIndexes=StorageIndexes)
 
                    Component( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods )  &
 !                       =min(  max(Component( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods ),0.0), 0.95) 
@@ -1599,7 +1601,7 @@
 
                   call run_diagnostics( state )
                    !Mesh has changed!
-                    StorageIndexesForDETNLXR_PLUS_U = 0
+                    StorageIndexes = 0
                end if Conditional_Adapt_by_TimeStep
 
             elseif( have_option( '/mesh_adaptivity/prescribed_adaptivity' ) ) then !!$ Conditional_Adaptivity:
@@ -1623,7 +1625,7 @@
 
                   call run_diagnostics( state )
                    !Mesh has changed!
-                    StorageIndexesForDETNLXR_PLUS_U = 0
+                    StorageIndexes = 0
                end if Conditional_Adapt_by_Time
 
                not_to_move_det_yet = .false.

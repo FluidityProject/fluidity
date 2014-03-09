@@ -175,7 +175,7 @@
          u_ele_type, p_ele_type, ncomp_diff_coef, comp_diffusion_opt, &
          comp_diff_coef, &
          comp_diffusion,&
-          StorageIndexesForDETNLXR_PLUS_U)
+          StorageIndexes)
 !!$ Calculate the diffusion coefficient COMP_DIFFUSION for current composition...
 !!$ based on page 136 in Reservoir-Simulation-Mathematical-Techniques-In-Oil-Recovery-(2007).pdf
 !!$ COMP_DIFFUSION_OPT, integer option defining diffusion coeff
@@ -188,7 +188,7 @@
       integer, intent( in ) :: u_ele_type, p_ele_type, ncomp_diff_coef, comp_diffusion_opt
       real, dimension( :, : ), intent( in ) :: comp_diff_coef
       real, dimension( :, :, :, : ),intent( inout ) :: comp_diffusion
-      integer, dimension(:), intent(inout) :: StorageIndexesForDETNLXR_PLUS_U
+      integer, dimension(:), intent(inout) :: StorageIndexes
 !!$ Local variables:
       integer :: nphase, nstate, ncomp, totele, ndim, stotel, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, x_nloc_p1, p_nloc, mat_nloc, x_snloc, cv_snloc, u_snloc, &
@@ -216,7 +216,7 @@
            COMP_DIFFUSION, NCOMP_DIFF_COEF, COMP_DIFF_COEF, &
            X_NONODS, X, Y, Z, NU, NV, NW, U_NONODS, MAT_NDGLN, U_NDGLN, X_NDGLN, &
            U_ELE_TYPE, P_ELE_TYPE, &
-           MAT_U ,  state, StorageIndexesForDETNLXR_PLUS_U)
+           MAT_U ,  state, StorageIndexes)
 
       ! Determine the diffusion coeff tensor COMP_DIFFUSION from MAT_U and COMP_DIFF_COEF
 
@@ -252,7 +252,7 @@
          COMP_DIFFUSION, NCOMP_DIFF_COEF, COMP_DIFF_COEF, &
          X_NONODS, X, Y, Z, NU, NV, NW, U_NONODS, MAT_NDGLN, U_NDGLN, X_NDGLN, &
          U_ELE_TYPE, P_ELE_TYPE, &
-         MAT_U,  state, StorageIndexesForDETNLXR_PLUS_U )
+         MAT_U,  state, StorageIndexes )
       ! Determine MAT_U from NU,NV,NW which are variables mapped to material mesh. 
       use shape_functions
       use matrix_operations
@@ -270,7 +270,7 @@
       INTEGER, DIMENSION( : ), intent( in ) :: X_NDGLN
       REAL, DIMENSION( :), intent( inout ) :: MAT_U
        type( state_type ), dimension( : ), intent( inout ) :: state
-      integer, dimension(:), intent(inout) :: StorageIndexesForDETNLXR_PLUS_U
+      integer, dimension(:), intent(inout) :: StorageIndexes
       ! Determine MAT_U from NU,NV,NW which are these variables mapped to material mesh. 
 
       ! Local variables
@@ -408,7 +408,7 @@
               CVFEN, CVFENLX, CVFENLY, CVFENLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
               CVFENX_ALL, &
               U_NLOC, UFENLX, UFENLY, UFENLZ, UFENX_ALL&
-              , state, "comp", StorageIndexesForDETNLXR_PLUS_U(24) )
+              , state, "comp", StorageIndexes(24) )
 
          MASELE = 0.0
          Loop_MAT_ILOC: DO MAT_ILOC = 1, MAT_NLOC

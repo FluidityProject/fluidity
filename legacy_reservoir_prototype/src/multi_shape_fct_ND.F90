@@ -41,7 +41,8 @@
     use state_module
     use spud
     use global_parameters, only: option_path_len
-
+    use Fields_Allocates, only : allocate
+    use fields_data_types, only: mesh_type, scalar_field
   contains
 
     subroutine re2dn4( lowqua, ngi, ngi_l, nloc, mloc, &
@@ -1337,19 +1338,22 @@
 
     SUBROUTINE DETNLXR_INVJAC( ELE, X,Y,Z, XONDGL, TOTELE, NONODS, NLOC, NGI, &
          N, NLX, NLY, NLZ, WEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
-         NX, NY, NZ,&
-         NDIM, INV_JAC  )
+         NX_ALL,&
+         NDIM, INV_JAC, state, StorName, indx )
       IMPLICIT NONE
       INTEGER, intent( in ) :: ELE, TOTELE, NONODS, NLOC, NGI, NDIM
       INTEGER, DIMENSION( : ) :: XONDGL
       REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
       REAL, DIMENSION( :, : ), intent( in ) :: N, NLX, NLY, NLZ
       REAL, DIMENSION( : ), intent( in ) :: WEIGHT
-      REAL, DIMENSION( : ), intent( inout ) :: DETWEI, RA
-      REAL, intent( inout ) :: VOLUME
       LOGICAL, intent( in ) :: D1, D3, DCYL
-      REAL, DIMENSION( :, : ), intent( inout ) :: NX, NY, NZ
-      REAL, DIMENSION( :,:, : ), intent( inout ):: INV_JAC
+      REAL,pointer,  intent( inout ) :: VOLUME
+      REAL, pointer,  DIMENSION( : ), intent( inout ):: DETWEI, RA
+      REAL, pointer, DIMENSION( :, :, : ), intent( inout ) :: NX_ALL
+      REAL, pointer, DIMENSION( :,:, : ), intent( inout ):: INV_JAC
+      type( state_type ), intent( inout ), dimension(:) :: state
+      character(len=*), intent(in) :: StorName
+      integer, intent(inout) :: indx
       ! Local variables
       REAL, PARAMETER :: PIE = 3.141592654
       REAL :: AGI, BGI, CGI, DGI, EGI, FGI, GGI, HGI, KGI, A11, A12, A13, A21, &
@@ -1357,6 +1361,84 @@
       INTEGER :: GI, L, IGLX, ii
       logical, save :: first = .true.
       real, save :: rsum, rsumabs
+      !Variables to store things in state
+      type(mesh_type), pointer :: fl_mesh
+      type(mesh_type) :: Auxmesh
+      type(scalar_field), target :: targ_NX_ALL
+      type(scalar_field), target :: targ_INV_JAC
+      type(scalar_field), target :: targ_DETWEI_RA
+      type(scalar_field), target :: targ_VOLUME
+      !#########Storing area#################################
+      !****TEMPORARY****
+      integer :: ndim2
+      NDIM2 = 3
+      !********************
+      !If new mesh or mesh moved indx will be zero (set in Multiphase_TimeLoop)
+      if (indx>0) then!Everything has been calculated already
+          !Get from state, indx is an input
+          NX_ALL(1:NDIM2,1:NLOC,1:NGI) => &
+          state(1)%scalar_fields(indx)%ptr%val(1+NDIM2*NLOC*NGI*(ELE-1):NDIM2*NLOC*NGI*ELE)
+          INV_JAC(1:NDIM,1:NDIM,1:NGI)  => &
+          state(1)%scalar_fields(indx+1)%ptr%val(1+(ELE-1)*(NGI+NDIM*NDIM):ELE*(NGI*NDIM*NDIM))
+          DETWEI(1:NGI) => state(1)%scalar_fields(indx+2)%ptr%val(1+NGI*(ELE-1):NGI*ELE)
+          RA(1:NGI) => state(1)%scalar_fields(indx+2)%ptr%val(1+NGI*((ELE-1)+TOTELE):NGI*(ELE+TOTELE))
+          VOLUME => state(1)%scalar_fields(indx+3)%ptr%val(ELE)
+          return
+      else if (indx/=0) then!We need to calculate a new value
+          !Get from state, indx is an input
+          NX_ALL(1:NDIM2,1:NLOC,1:NGI) => &
+          state(1)%scalar_fields(-indx)%ptr%val(1+NDIM2*NLOC*NGI*(ELE-1):NDIM2*NLOC*NGI*ELE)
+          INV_JAC(1:NDIM,1:NDIM,1:NGI)  => &
+          state(1)%scalar_fields(-indx+1)%ptr%val(1+(ELE-1)*(NGI+NDIM*NDIM):ELE*(NGI*NDIM*NDIM))
+          DETWEI(1:NGI) => state(1)%scalar_fields(-indx+2)%ptr%val(1+NGI*(ELE-1):NGI*ELE)
+          RA(1:NGI) => state(1)%scalar_fields(-indx+2)%ptr%val(1+NGI*((ELE-1)+TOTELE):NGI*(ELE+TOTELE))
+          VOLUME => state(1)%scalar_fields(-indx+3)%ptr%val(ELE)
+      else if (ELE==1) then !The first time we need to introduce the targets in state
+          if (has_scalar_field(state(1), "X"//StorName)) then
+              !If we are recalculating due to a mesh modification then
+              !we return to the original situation
+              call remove_scalar_field(state(1), "X"//StorName)
+              call remove_scalar_field(state(1), "UX"//StorName)
+              call remove_scalar_field(state(1), "D"//StorName)
+              call remove_scalar_field(state(1), "V"//StorName)
+          end if
+          !Get mesh file just to be able to allocate the fields we want to store
+          fl_mesh => extract_mesh( state(1), "CoordinateMesh" )
+          Auxmesh = fl_mesh
+          !The number of nodes I want does not coincide
+          Auxmesh%nodes = totele*NLOC*NGI*NDIM2
+          call allocate (Targ_NX_ALL, Auxmesh)
+          Auxmesh%nodes = NDIM*NDIM*NGI*totele
+          call allocate (targ_INV_JAC, Auxmesh)
+          Auxmesh%nodes = totele*NGI*2
+          call allocate (Targ_DETWEI_RA, Auxmesh)
+          Auxmesh%nodes = totele
+          call allocate (Targ_VOLUME, Auxmesh)
+
+          !Now we insert them in state and store the indexes
+          call insert(state(1), Targ_NX_ALL, "X"//StorName)
+          !Store index with a negative value, because if the index is
+          !zero or negative then we have to calculate stuff
+          indx = -size(state(1)%scalar_fields)
+          call insert(state(1), targ_INV_JAC, "UX"//StorName)
+          call insert(state(1), Targ_DETWEI_RA, "D"//StorName)
+          call insert(state(1), Targ_VOLUME, "V"//StorName)
+
+          !Get from state, indx is an input
+          NX_ALL(1:NDIM2,1:NLOC,1:NGI) => &
+          state(1)%scalar_fields(-indx)%ptr%val(1+NDIM2*NLOC*NGI*(ELE-1):NDIM2*NLOC*NGI*ELE)
+          INV_JAC(1:NDIM,1:NDIM,1:NGI)  => &
+          state(1)%scalar_fields(-indx+1)%ptr%val(1+(ELE-1)*(NGI+NDIM*NDIM):ELE*(NGI*NDIM*NDIM))
+          DETWEI(1:NGI) => state(1)%scalar_fields(-indx+2)%ptr%val(1+NGI*(ELE-1):NGI*ELE)
+          RA(1:NGI) => state(1)%scalar_fields(-indx+2)%ptr%val(1+NGI*((ELE-1)+TOTELE):NGI*(ELE+TOTELE))
+          VOLUME => state(1)%scalar_fields(-indx+3)%ptr%val(ELE)
+      end if
+      !When all the values are obtained, the index is set to a positive value
+      if (ELE == totele) indx = abs(indx)
+      !#########Storing area finished########################
+
+
+
       !
       VOLUME = 0.0
       INV_JAC = 0.0
@@ -1420,9 +1502,9 @@
             A23=-(AGI*FGI-CGI*DGI) /DETJ
             A33= (AGI*EGI-BGI*DGI) /DETJ
             do  L=1,NLOC! Was loop 373
-               NX(L,GI)= A11*NLX(L,GI)+A12*NLY(L,GI)+A13*NLZ(L,GI)
-               NY(L,GI)= A21*NLX(L,GI)+A22*NLY(L,GI)+A23*NLZ(L,GI)
-               NZ(L,GI)= A31*NLX(L,GI)+A32*NLY(L,GI)+A33*NLZ(L,GI)
+               NX_ALL(1,L,GI)= A11*NLX(L,GI)+A12*NLY(L,GI)+A13*NLZ(L,GI)
+               NX_ALL(2,L,GI)= A21*NLX(L,GI)+A22*NLY(L,GI)+A23*NLZ(L,GI)
+               NX_ALL(3,L,GI)= A31*NLX(L,GI)+A32*NLY(L,GI)+A33*NLZ(L,GI)
             end do ! Was loop 373 
             INV_JAC( 1,1, GI )= A11
             INV_JAC( 2,1, GI )= A21
@@ -1470,9 +1552,9 @@
             VOLUME=VOLUME+DETWEI(GI)
             !
             do L=1,NLOC
-               NX(L,GI)=(DGI*NLX(L,GI)-BGI*NLY(L,GI))/DETJ
-               NY(L,GI)=(-CGI*NLX(L,GI)+AGI*NLY(L,GI))/DETJ
-               NZ(L,GI)=0.0
+               NX_ALL(1,L,GI)=(DGI*NLX(L,GI)-BGI*NLY(L,GI))/DETJ
+               NX_ALL(2,L,GI)=(-CGI*NLX(L,GI)+AGI*NLY(L,GI))/DETJ
+               NX_ALL(3,L,GI)=0.0
             END DO
 
             INV_JAC( 1,1, GI )= DGI /DETJ
@@ -1499,9 +1581,9 @@
             VOLUME = VOLUME + DETWEI( GI )
             !
             do L = 1, NLOC
-               NX( L, GI ) = NLX( L, GI ) / DETJ
-               NY( L, GI ) = 0.0
-               NZ( L, GI ) = 0.0
+               NX_ALL(1, L, GI ) = NLX( L, GI ) / DETJ
+               NX_ALL(2, L, GI ) = 0.0
+               NX_ALL(3, L, GI ) = 0.0
             END DO
             INV_JAC( 1,1, GI )= 1.0 /DETJ
             !

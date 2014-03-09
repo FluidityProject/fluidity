@@ -103,7 +103,7 @@
          option_path, &
          mass_ele_transp, &
          thermal, THETA_FLUX, ONE_M_THETA_FLUX,&
-         StorageIndexesForDETNLXR_PLUS_U   )
+         StorageIndexes   )
 
       ! Solve for internal energy using a control volume method.
 
@@ -167,7 +167,7 @@
       REAL, DIMENSION( : ), intent( inout ) :: MEAN_PORE_CV
       character( len = * ), intent( in ), optional :: option_path
       real, dimension( : ), intent( inout ), optional :: mass_ele_transp
-      integer, dimension(:), intent(inout) :: StorageIndexesForDETNLXR_PLUS_U
+      integer, dimension(:), intent(inout) :: StorageIndexes
       ! Local variables
       LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE.
       integer :: nits_flux_lim, its_flux_lim
@@ -253,7 +253,7 @@
               mass_ele_transp, &
               option_path,&
               theta_flux=THETA_FLUX, one_m_theta_flux=ONE_M_THETA_FLUX,&
-               StorageIndexesForDETNLXR_PLUS_U=StorageIndexesForDETNLXR_PLUS_U)
+               StorageIndexes=StorageIndexes)
 
          t=0.
 
@@ -363,7 +363,7 @@
          MEAN_PORE_CV, &
          THERMAL, &
          mass_ele_transp, &
-         option_path, StorageIndexesForDETNLXR_PLUS_U )
+         option_path, StorageIndexes )
 
       ! Solve for internal energy using a control volume method.
 
@@ -431,7 +431,7 @@
       REAL, DIMENSION( : ), intent( inout ) :: MEAN_PORE_CV
       real, dimension( : ), intent( inout ) :: mass_ele_transp
       character( len = * ), intent( in ), optional :: option_path
-      integer, dimension(:), intent(inout) :: StorageIndexesForDETNLXR_PLUS_U
+      integer, dimension(:), intent(inout) :: StorageIndexes
       ! Local variables
       LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE.
       INTEGER :: ITS_FLUX_LIM
@@ -483,7 +483,7 @@
               MEAN_PORE_CV, &
               FINACv, COLACV, NCOLACV, ACV, THERMAL, &
               mass_ele_transp , &
-              StorageIndexesForDETNLXR_PLUS_U=StorageIndexesForDETNLXR_PLUS_U)
+              StorageIndexes=StorageIndexes)
 
       ELSE ! this is for DG...
 
@@ -512,7 +512,7 @@
               NCOLELE, FINELE, COLELE, & ! Element connectivity.
               XU_NLOC, XU_NDGLN, &
               option_path,&
-              StorageIndexesForDETNLXR_PLUS_U=StorageIndexesForDETNLXR_PLUS_U )
+              StorageIndexes=StorageIndexes )
 
       ENDIF
 
@@ -542,7 +542,7 @@
          NCOLELE, FINELE, COLELE, & ! Element connectivity.
          XU_NLOC, XU_NDGLN, &
          option_path,&
-         StorageIndexesForDETNLXR_PLUS_U )
+         StorageIndexes )
       use shape_functions_NDim
       implicit none
 
@@ -578,7 +578,7 @@
       INTEGER, DIMENSION( : ), intent( in ) :: COLELE
       REAL, DIMENSION( :, :, :, : ), intent( in ) :: TDIFFUSION
       character( len = * ), intent( in ), optional :: option_path
-      integer, dimension(:), intent(inout) :: StorageIndexesForDETNLXR_PLUS_U
+      integer, dimension(:), intent(inout) :: StorageIndexes
       ! Local  variables... none
       REAL, DIMENSION ( :, :, : ), allocatable :: RZERO, T_IN, TOLD_IN
       REAL, DIMENSION ( : ), allocatable :: RDUM
@@ -776,7 +776,7 @@
            TDIFFUSION, & ! TDiffusion need to be obtained down in the tree according to the option_path
            IPLIKE_GRAD_SOU, RDUM2, RDUM2, &
            RDUM, NDIM_IN, &
-          StorageIndexesForDETNLXR_PLUS_U )
+          StorageIndexes )
 
 
 
@@ -883,7 +883,7 @@
          option_path, &
          mass_ele_transp,&
          THETA_FLUX, ONE_M_THETA_FLUX,&
-         StorageIndexesForDETNLXR_PLUS_U)
+         StorageIndexes)
 
       implicit none
       type( state_type ), dimension( : ), intent( inout ) :: state
@@ -936,7 +936,7 @@
       INTEGER, INTENT( IN ) :: NOIT_DIM
       character(len= * ), intent(in), optional :: option_path
       real, dimension( : ), intent( inout ) :: mass_ele_transp
-      integer, dimension(:), intent(inout) :: StorageIndexesForDETNLXR_PLUS_U
+      integer, dimension(:), intent(inout) :: StorageIndexes
       ! Local Variables
       LOGICAL, PARAMETER :: THERMAL= .false.
       integer :: nits_flux_lim, its_flux_lim, igot_t2
@@ -1043,7 +1043,8 @@
          MEAN_PORE_CV, &
          SMALL_FINACV, SMALL_COLACV, size(small_colacv), &
          MASS_ELE_TRANSP, &
-         option_path)
+         option_path,&
+         StorageIndexes)
 
 
       Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, 1 !nits_flux_lim
@@ -1083,7 +1084,7 @@
               mass_ele_transp, &
               option_path,&
               THETA_FLUX, ONE_M_THETA_FLUX,&
-              StorageIndexesForDETNLXR_PLUS_U)
+              StorageIndexes)
 
          satura=0.0 !saturaold([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)])
 
@@ -1161,7 +1162,7 @@
          NOIT_DIM, &
          IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
          scale_momentum_by_volume_fraction ,&
-          StorageIndexesForDETNLXR_PLUS_U)
+          StorageIndexes)
 
       IMPLICIT NONE
       type( state_type ), dimension( : ), intent( inout ) :: state
@@ -1241,7 +1242,7 @@
            THETA_FLUX, ONE_M_THETA_FLUX
       INTEGER, INTENT( IN ) :: NOIT_DIM
       REAL, DIMENSION( :  ), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
-      integer, dimension(:), intent(inout) :: StorageIndexesForDETNLXR_PLUS_U
+      integer, dimension(:), intent(inout) :: StorageIndexes
       ! Local Variables
       LOGICAL, PARAMETER :: GLOBAL_SOLVE = .FALSE.
 
@@ -1327,7 +1328,7 @@
            IN_ELE_UPWIND, DG_ELE_UPWIND, &
            NOIT_DIM, &
            IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, scale_momentum_by_volume_fraction, &
-            StorageIndexesForDETNLXR_PLUS_U)
+            StorageIndexes)
 
       !ewrite(3,*) 'global_solve, just_bl_diag_mat', global_solve, just_bl_diag_mat
 
@@ -1906,7 +1907,7 @@
          IN_ELE_UPWIND, DG_ELE_UPWIND, &
          NOIT_DIM, &
          IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD,scale_momentum_by_volume_fraction,&
-         StorageIndexesForDETNLXR_PLUS_U )
+         StorageIndexes )
       implicit none
 
       ! Assembly the force balance, cty and if .not.GLOBAL_SOLVE pressure eqn. 
@@ -1995,7 +1996,7 @@
       REAL, DIMENSION( :  ), intent( in ) :: OPT_VEL_UPWIND_COEFS
       INTEGER, INTENT( IN ) :: NOIT_DIM
       REAL, DIMENSION( : ), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
-      integer, dimension(:), intent(inout) :: StorageIndexesForDETNLXR_PLUS_U
+      integer, dimension(:), intent(inout) :: StorageIndexes
       ! Local Variables
       REAL, DIMENSION( : ), allocatable :: ACV
 
@@ -2042,7 +2043,7 @@
            IN_ELE_UPWIND, DG_ELE_UPWIND, &
            NOIT_DIM, &
            IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD,scale_momentum_by_volume_fraction ,&
-            StorageIndexesForDETNLXR_PLUS_U)
+            StorageIndexes)
 
       IF(.NOT.GLOBAL_SOLVE) THEN
          ! form pres eqn. 
@@ -2153,7 +2154,7 @@
          IN_ELE_UPWIND, DG_ELE_UPWIND, &
          NOIT_DIM, &
          IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD ,scale_momentum_by_volume_fraction,&
-          StorageIndexesForDETNLXR_PLUS_U)
+          StorageIndexes)
       use printout
       implicit none
 
@@ -2238,7 +2239,7 @@
       REAL, DIMENSION( : ), intent( in ) :: OPT_VEL_UPWIND_COEFS
       INTEGER, INTENT( IN ) :: NOIT_DIM
       REAL, DIMENSION( :), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
-      integer, dimension(:), intent(inout) :: StorageIndexesForDETNLXR_PLUS_U
+      integer, dimension(:), intent(inout) :: StorageIndexes
       ! Local variables
       REAL, PARAMETER :: V_BETA = 1.0
       REAL :: SECOND_THETA
@@ -2463,7 +2464,7 @@
            PIVIT_MAT, JUST_BL_DIAG_MAT, &
            UDIFFUSION_ALL, &
            IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF_ALL, PLIKE_GRAD_SOU_GRAD_ALL, &
-           P, NDIM, StorageIndexesForDETNLXR_PLUS_U=StorageIndexesForDETNLXR_PLUS_U )
+           P, NDIM, StorageIndexes=StorageIndexes )
       ! scale the momentum equations by the volume fraction / saturation for the matrix and rhs     
 
       IF(GLOBAL_SOLVE) THEN
@@ -2518,7 +2519,7 @@
            MEAN_PORE_CV, &
            FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL, &
            dummy_transp,&
-           StorageIndexesForDETNLXR_PLUS_U=StorageIndexesForDETNLXR_PLUS_U )
+           StorageIndexes=StorageIndexes )
 
       ewrite(3,*)'Back from cv_assemb'
 
@@ -2718,7 +2719,7 @@
          IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
          
          P, NDIM_VEL,&
-         StorageIndexesForDETNLXR_PLUS_U )
+         StorageIndexes )
 
       implicit none
 
@@ -2768,7 +2769,7 @@
       LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
       REAL, DIMENSION( :, : ), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
       REAL, DIMENSION( : ), intent( in ) :: P
-      integer, dimension(:), intent(inout) :: StorageIndexesForDETNLXR_PLUS_U
+      integer, dimension(:), intent(inout) :: StorageIndexes
       ! Local Variables
       ! This is for decifering WIC_U_BC & WIC_P_BC
       type( tensor_field ), pointer :: tensorfield
@@ -3398,7 +3399,7 @@
               NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC_ALL, SUF_U_BC_ALL, &
               SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBCVFEWEIGH, &
               SBCVFEN, SBCVFENSLX, SBCVFENSLY ,&
-               state, "CTY", StorageIndexesForDETNLXR_PLUS_U(:))
+               state, "CTY", StorageIndexes(:))
       ENDIF
 
 
@@ -3411,7 +3412,7 @@
               CVFEN, CVFENLX, CVFENLY, CVFENLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
               CVFENX_ALL, &
               U_NLOC, UFENLX, UFENLY, UFENLZ, UFENX_ALL , &
-                 state ,"C_1", StorageIndexesForDETNLXR_PLUS_U(25))
+                 state ,"C_1", StorageIndexes(25))
 
 
          ! Adjust the volume according to the number of levels. 
@@ -5838,7 +5839,7 @@
          NCOLM, FINDM, COLM, MIDM, &
          XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
          WIC_COMP_BC, SUF_COMP_BC,&
-          StorageIndexesForDETNLXR_PLUS_U )
+          StorageIndexes )
 
       IMPLICIT NONE
 
@@ -5879,7 +5880,7 @@
       integer, dimension( : ), intent( in ) :: MIDM
       integer, dimension( : ), intent( in ) :: FINELE
       integer, dimension( : ), intent( in ) :: COLELE
-      integer, dimension(:), intent(inout) ::  StorageIndexesForDETNLXR_PLUS_U
+      integer, dimension(:), intent(inout) ::  StorageIndexes
     !Local variables
       real, dimension( : ), allocatable :: U_FORCE_X_SUF_TEN, U_FORCE_Y_SUF_TEN, U_FORCE_Z_SUF_TEN, &
            &                               CV_U_FORCE_X_SUF_TEN, CV_U_FORCE_Y_SUF_TEN, CV_U_FORCE_Z_SUF_TEN 
@@ -5959,7 +5960,7 @@
                     NCOLM, FINDM, COLM, MIDM, &
                     XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
                     DUMMY_WIC_COMP_BC, DUMMY_SUF_COMP_BC, USE_SMOOTHING,&
-                      StorageIndexesForDETNLXR_PLUS_U )
+                      StorageIndexes )
 
             end do
 
@@ -6004,7 +6005,7 @@
          NCOLM, FINDM, COLM, MIDM, &
          XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
          WIC_COMP_BC, SUF_COMP_BC, USE_SMOOTHING,&
-          StorageIndexesForDETNLXR_PLUS_U )
+          StorageIndexes )
 
       ! Calculate the surface tension force: U_FORCE_X_SUF_TEN,U_FORCE_X_SUF_TEN,U_FORCE_X_SUF_TEN
       ! or PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD,
@@ -6177,7 +6178,7 @@
       INTEGER, DIMENSION( : ), intent( in ) :: FINELE
       INTEGER, DIMENSION( : ), intent( in ) :: COLELE
       LOGICAL, intent( in ) :: USE_PRESSURE_FORCE, USE_SMOOTHING
-      integer, dimension(:), intent(inout) ::  StorageIndexesForDETNLXR_PLUS_U
+      integer, dimension(:), intent(inout) ::  StorageIndexes
       ! Local variables 
       LOGICAL, DIMENSION( : ), allocatable :: X_SHARE,LOG_ON_BOUND
       LOGICAL, DIMENSION( :, : ), allocatable :: CV_ON_FACE, U_ON_FACE, &
@@ -6552,7 +6553,7 @@
            RZERO, &
            1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
            SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
-           state, "wrap1", StorageIndexesForDETNLXR_PLUS_U(19) )
+           state, "wrap1", StorageIndexes(19) )
 
 
       CALL DG_DERIVS( SHARP_FEMT, FEMTOLD, &
@@ -6567,7 +6568,7 @@
            RZERO, &
            1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
            SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
-           state, "Surf_ten_wrap2", StorageIndexesForDETNLXR_PLUS_U(20))
+           state, "Surf_ten_wrap2", StorageIndexes(20))
 
       ! determine the curvature by solving a simple eqn...
 
@@ -6761,7 +6762,7 @@
                  RZERO,RZERO,RZERO, &
                  1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, & 
                  SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
-                 state, "wrapp1", StorageIndexesForDETNLXR_PLUS_U(4:6))
+                 state, "wrapp1", StorageIndexes(4:6))
 
             U_FORCE_X_SUF_TEN = pack(DX_TAU_XX(:,1,:) + DY_TAU_XY(:,1,:) + DZ_TAU_XZ(:,1,:),.true.)
 !!$            femtold=0.0
@@ -6795,7 +6796,7 @@
                     RZERO,RZERO,RZERO, &
                     1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, & 
                     SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
-                     state, "wrapp2", StorageIndexesForDETNLXR_PLUS_U(7:9))
+                     state, "wrapp2", StorageIndexes(7:9))
 
                U_FORCE_Y_SUF_TEN = pack(DX_TAU_YX(:,1,:)+ DY_TAU_YY(:,1,:) + DZ_TAU_YZ(:,1,:),.true.)
 
@@ -6835,7 +6836,7 @@
                     RZERO,RZERO,RZERO, &
                     1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, & 
                     SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
-                    state, "wrapp3", StorageIndexesForDETNLXR_PLUS_U(10:12))
+                    state, "wrapp3", StorageIndexes(10:12))
 
                U_FORCE_Z_SUF_TEN = pack(DX_TAU_ZX(:,1,:) + DY_TAU_ZY(:,1,:) + DZ_TAU_ZZ(:,1,:),.true.)
 
@@ -6894,7 +6895,7 @@
                     RZERO,RZERO,RZERO, &
                     1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, & 
                     SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
-                     state, "wrapp4", StorageIndexesForDETNLXR_PLUS_U(13:15))
+                     state, "wrapp4", StorageIndexes(13:15))
 
             else
 
@@ -6919,7 +6920,7 @@
                     RZERO, &
                     1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
                     SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
-                    state, "wrap4", StorageIndexesForDETNLXR_PLUS_U(21))
+                    state, "wrap4", StorageIndexes(21))
 
                DO ELE=1,TOTELE
                   DO CV_ILOC=1,CV_NLOC
@@ -6950,7 +6951,7 @@
                     RZERO, &
                     1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
                     SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
-                    state, "wrap5", StorageIndexesForDETNLXR_PLUS_U(22))
+                    state, "wrap5", StorageIndexes(22))
 
                DO ELE=1,TOTELE
                   DO CV_ILOC=1,CV_NLOC
@@ -7027,7 +7028,7 @@
               option_path = '/material_phase[0]/scalar_field::Pressure', &
               mass_ele_transp = dummy_ele, &
               thermal = .FALSE.,&
-              StorageIndexesForDETNLXR_PLUS_U=StorageIndexesForDETNLXR_PLUS_U)
+              StorageIndexes=StorageIndexes)
 
          DEALLOCATE(T_ABSORB)
 
@@ -7207,7 +7208,7 @@
                     CVFEN, CVFENLX, CVFENLY, CVFENLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
                     CVFENX_ALL, &
                     U_NLOC, UFENLX, UFENLY, UFENLZ, UFENX_ALL ,&
-                     state, "wrapper", StorageIndexesForDETNLXR_PLUS_U(26))
+                     state, "wrapper", StorageIndexes(26))
 
                MASS=0.0
                DO U_ILOC=1,U_NLOC
