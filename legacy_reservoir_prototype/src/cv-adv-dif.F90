@@ -11219,7 +11219,7 @@ end SUBROUTINE GET_INT_VEL_2TIME
 
 
 
-  PURE SUBROUTINE GET_INT_VEL_ORIG( NPHASE, NDOTQ, INCOME, &
+    PURE SUBROUTINE GET_INT_VEL_ORIG( NPHASE, NDOTQ, INCOME, &
        HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
        T, FEMT,DEN, NU, NV, NW, &
        CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
@@ -11273,103 +11273,150 @@ end SUBROUTINE GET_INT_VEL_2TIME
          UDGI2,VDGI2,WDGI2, DT_I,DT_J, &
          UDGI_INT,VDGI_INT,WDGI_INT, &
          NDOTQ_INT
-    INTEGER :: U_KLOC,U_NODK,U_NODK2_IPHA,U_NODK_IPHA,U_KLOC2,U_SKLOC, &
-         U_SNODK,U_SNODK_IPHA, II
+    INTEGER :: U_KLOC,U_NODK,U_NODK2_IPHA,U_NODK_IPHA,U_KLOC2,U_NODK2,U_SKLOC, &
+         U_SNODK,U_SNODK_IPHA, II, CV_NODI, CV_NODJ, IDIM
     integer, dimension(U_SNLOC) ::  U_NODK_IPHA_V, U_SNODK_IPHA_V
+    REAL, DIMENSION(NDIM) :: CVNORMX_ALL
+
+    ! Local variable for indirect addressing
+    REAL, DIMENSION ( :, :, : ), allocatable :: UGI_COEF_ELE_ALL, UGI_COEF_ELE2_ALL
+    REAL, DIMENSION ( :, : ), allocatable :: UDGI_ALL, UDGI2_ALL, UDGI_INT_ALL
+    REAL, DIMENSION ( :, :, : ), allocatable :: LOC_NU, SLOC_NU, SLOC2_NU, SUF_U_BC_ALL
+    REAL, DIMENSION ( :, : ), allocatable :: GLOB_T, GLOB_DEN
+
+
+    ALLOCATE( UGI_COEF_ELE_ALL( NDIM, NPHASE, U_NLOC) )
+    ALLOCATE( UGI_COEF_ELE2_ALL( NDIM, NPHASE, U_NLOC) )
+    ALLOCATE( UDGI_ALL( NDIM, NPHASE ), UDGI2_ALL( NDIM, NPHASE ), UDGI_INT_ALL( NDIM, NPHASE ) )
+    ALLOCATE( LOC_NU(NDIM, NPHASE, U_NLOC) )
+    ALLOCATE( SLOC_NU(NDIM, NPHASE, U_SNLOC), SLOC2_NU(NDIM, NPHASE, U_SNLOC) )
+    ALLOCATE( SUF_U_BC_ALL(NDIM, NPHASE, U_SNLOC) )
+    ALLOCATE( GLOB_T( NPHASE, CV_NONODS), GLOB_DEN( NPHASE, CV_NONODS) )
+
+    CVNORMX_ALL(1)= CVNORMX(GI)
+    IF (NDIM>=2 ) CVNORMX_ALL(2)=CVNORMY(GI)
+    IF (NDIM==3 ) CVNORMX_ALL(3)=CVNORMZ(GI)
+
     ! coefficients for this element ELE
-    UGI_COEF_ELE=0.0
-    VGI_COEF_ELE=0.0
-    WGI_COEF_ELE=0.0 
+    UGI_COEF_ELE_ALL=0.0
 
     ! coefficients for this element ELE2
-    UGI_COEF_ELE2=0.0
-    VGI_COEF_ELE2=0.0
-    WGI_COEF_ELE2=0.0 
+    UGI_COEF_ELE2_ALL=0.0
+
+
+    ! Copy local variables----Start
+    DO U_KLOC = 1, U_NLOC
+       U_NODK = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_KLOC )
+       U_NODK_IPHA = U_NODK+(IPHASE-1)*U_NONODS
+       !DO IPHASE=1,NPHASE
+          DO IDIM = 1, NDIM
+             IF ( IDIM==1 ) THEN
+                LOC_NU(IDIM,IPHASE,U_KLOC)=NU(U_NODK_IPHA)
+             END IF
+             IF ( IDIM==2 ) THEN
+                LOC_NU(IDIM,IPHASE,U_KLOC)=NV(U_NODK_IPHA)
+             END IF
+             IF ( IDIM==3 ) THEN
+                LOC_NU(IDIM,IPHASE,U_KLOC)=NW(U_NODK_IPHA)
+             END IF
+          END DO
+       !END DO
+    END DO
+
+    DO U_SKLOC = 1, U_SNLOC
+       U_KLOC = U_SLOC2LOC( U_SKLOC )
+       U_NODK = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC )
+       U_NODK_IPHA = U_NODK + ( IPHASE - 1 ) * U_NONODS
+       IF ( ELE2==0 ) THEN
+          U_KLOC2 = U_KLOC
+          U_NODK2 = U_NODK
+       ELSE
+          U_KLOC2 = U_OTHER_LOC( U_SKLOC ) 
+          U_NODK2 = U_NDGLN( (ELE2-1)*U_NLOC+U_KLOC2 )
+       END IF
+       U_NODK2_IPHA = U_NODK2 + ( IPHASE - 1 ) * U_NONODS
+       U_SNODK = ( SELE - 1 ) * U_SNLOC + U_SKLOC 
+       U_SNODK_IPHA= U_SNODK + ( IPHASE - 1 ) * STOTEL*U_SNLOC
+       !DO IPHASE=1,NPHASE
+          DO IDIM = 1, NDIM
+             IF ( IDIM==1 ) THEN
+                SLOC_NU(IDIM,IPHASE,U_SKLOC)=NU(U_NODK_IPHA)
+                SLOC2_NU(IDIM,IPHASE,U_SKLOC)=NU(U_NODK2_IPHA)
+                IF( SELE /= 0 ) SUF_U_BC_ALL(IDIM,IPHASE,U_SKLOC)=SUF_U_BC(U_SNODK_IPHA)
+             END IF
+             IF ( IDIM==2 ) THEN
+                SLOC_NU(IDIM,IPHASE,U_SKLOC)=NV(U_NODK_IPHA)
+                SLOC2_NU(IDIM,IPHASE,U_SKLOC)=NV(U_NODK2_IPHA)
+                IF( SELE /= 0 ) SUF_U_BC_ALL(IDIM,IPHASE,U_SKLOC)=SUF_V_BC(U_SNODK_IPHA)
+             END IF
+             IF ( IDIM==3 ) THEN
+                SLOC_NU(IDIM,IPHASE,U_SKLOC)=NW(U_NODK_IPHA)
+                SLOC2_NU(IDIM,IPHASE,U_SKLOC)=NW(U_NODK2_IPHA)
+                IF( SELE /= 0 ) SUF_U_BC_ALL(IDIM,IPHASE,U_SKLOC)=SUF_W_BC(U_SNODK_IPHA)
+             END IF
+          END DO
+       !END DO
+    END DO
+
+    CV_NODI = CV_NODI_IPHA - CV_NONODS*(IPHASE-1)
+    CV_NODJ = CV_NODJ_IPHA - CV_NONODS*(IPHASE-1)
+    GLOB_T( IPHASE, CV_NODI ) = T(CV_NODI_IPHA)
+    GLOB_T( IPHASE, CV_NODJ ) = T(CV_NODJ_IPHA)
+    GLOB_DEN( IPHASE, CV_NODI ) = DEN(CV_NODI_IPHA)
+    GLOB_DEN( IPHASE, CV_NODJ ) = DEN(CV_NODJ_IPHA)
+    ! Copy local variables----End
 
     Conditional_SELE: IF( SELE /= 0 ) THEN ! On the boundary of the domain. 
        IF( WIC_U_BC( SELE + ( IPHASE - 1 ) * STOTEL) /= WIC_U_BC_DIRICHLET ) THEN ! velocity free boundary
-!          s = ( ELE - 1 ) * U_NLOC + 1
-!          e = ELE * U_NLOC
-!          UDGI = dot_product(SUFEN(:, GI ),  NU( U_NDGLN( s : e )+(IPHASE-1)*U_NONODS ))
-!          VDGI = dot_product(SUFEN(:, GI ),  NV( U_NDGLN( s : e )+(IPHASE-1)*U_NONODS ))
-!          WDGI = dot_product(SUFEN(:, GI ),  NW( U_NDGLN( s : e )+(IPHASE-1)*U_NONODS ))
-          s = U_NDGLN( ( ELE - 1 ) * U_NLOC + 1 ) + (IPHASE-1)*U_NONODS
-          e = U_NDGLN( ELE * U_NLOC )             + (IPHASE-1)*U_NONODS
-          UDGI = dot_product(SUFEN(:, GI ),  NU( s : e ) )
-          VDGI = dot_product(SUFEN(:, GI ),  NV( s : e ) )
-          WDGI = dot_product(SUFEN(:, GI ),  NW( s : e ) )
-          UGI_COEF_ELE(1:U_NLOC)=UGI_COEF_ELE(1:U_NLOC)+1.0
-          VGI_COEF_ELE(1:U_NLOC)=VGI_COEF_ELE(1:U_NLOC)+1.0
-          WGI_COEF_ELE(1:U_NLOC)=WGI_COEF_ELE(1:U_NLOC)+1.0
+          UDGI_ALL = 0.0
+          DO U_KLOC = 1, U_NLOC
+                UDGI_ALL(:, IPHASE) = UDGI_ALL(:, IPHASE) + SUFEN( U_KLOC, GI ) * LOC_NU( :, IPHASE, U_KLOC )
+                UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) = UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) + 1.0
+          END DO
        ELSE ! Specified vel bc.
-          UDGI = 0.0
-          VDGI = 0.0
-          WDGI = 0.0
-          U_NODK_IPHA_V = U_NDGLN(( ELE - 1 ) * U_NLOC + U_SLOC2LOC( 1:U_SKLOC ) ) + ( IPHASE - 1 ) * U_NONODS
-          U_SNODK_IPHA_V = [(s+ ( SELE - 1 ) * U_SNLOC + ( IPHASE - 1 ) * STOTEL*U_SNLOC,s=1,U_SNLOC)] 
+          UDGI_ALL = 0.0
+          DO U_SKLOC = 1, U_SNLOC
+             U_KLOC = U_SLOC2LOC( U_SKLOC )
 
-          IF(WIC_U_BC(SELE+(IPHASE-1)*STOTEL) == 10) THEN
-             UDGI = dot_product(SUFEN(U_SLOC2LOC, GI ),&
-                  0.5*( NU( U_NODK_IPHA_V ) + SUF_U_BC( U_SNODK_IPHA_V )))
-             VDGI = dot_product(SUFEN(U_SLOC2LOC, GI ),&
-                  0.5*( NV( U_NODK_IPHA_V ) + SUF_V_BC( U_SNODK_IPHA_V )))
-             WDGI = dot_product(SUFEN(U_SLOC2LOC, GI ),&
-                  0.5*( NW( U_NODK_IPHA_V ) + SUF_W_BC( U_SNODK_IPHA_V )))
-             UGI_COEF_ELE(U_SLOC2LOC)=UGI_COEF_ELE(U_SLOC2LOC)+0.5
-             VGI_COEF_ELE(U_SLOC2LOC)=VGI_COEF_ELE(U_SLOC2LOC)+0.5
-             WGI_COEF_ELE(U_SLOC2LOC)=WGI_COEF_ELE(U_SLOC2LOC)+0.5
-          else
-             UDGI = dot_product(SUFEN(U_SLOC2LOC, GI ),&
-                  SUF_U_BC( U_SNODK_IPHA_V ))
-             VDGI = dot_product(SUFEN(U_SLOC2LOC, GI ),&
-                  SUF_V_BC( U_SNODK_IPHA_V ))
-             WDGI = dot_product(SUFEN(U_SLOC2LOC, GI ),&
-                  SUF_W_BC( U_SNODK_IPHA_V ))
-          end if
-       ENDIF
+             IF (WIC_U_BC(SELE+(IPHASE-1)*STOTEL) == 10) THEN
+                UDGI_ALL(:, IPHASE) = UDGI_ALL(:, IPHASE) + SUFEN( U_KLOC, GI ) * 0.5 * &
+                                     ( SLOC_NU( :, IPHASE, U_KLOC ) + SUF_U_BC_ALL( :, IPHASE, U_SKLOC ) )
+                UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) = UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) + 0.5   
+             ELSE
+                UDGI_ALL(:, IPHASE) = UDGI_ALL(:, IPHASE) + SUFEN( U_KLOC, GI ) * SUF_U_BC_ALL(:, IPHASE, U_SKLOC)
+             END IF
+
+          END DO
+       END IF
 
     ELSE ! Conditional_SELE. Not on the boundary of the domain.
-
-!       s = ( ELE - 1 ) * U_NLOC  +1
-!       e = ELE * U_NLOC
-!       UDGI = dot_product(SUFEN(:, GI ),  NU( U_NDGLN( s : e ) +(IPHASE-1)*U_NONODS))
-!       VDGI = dot_product(SUFEN(:, GI ),  NV( U_NDGLN( s : e ) +(IPHASE-1)*U_NONODS))
-!       WDGI = dot_product(SUFEN(:, GI ),  NW( U_NDGLN( s : e ) +(IPHASE-1)*U_NONODS))
-       s = U_NDGLN( ( ELE - 1 ) * U_NLOC + 1 ) + (IPHASE-1)*U_NONODS
-       e = U_NDGLN( ELE * U_NLOC )             + (IPHASE-1)*U_NONODS
-       UDGI = dot_product(SUFEN(:, GI ),  NU( s : e) )
-       VDGI = dot_product(SUFEN(:, GI ),  NV( s : e) )
-       WDGI = dot_product(SUFEN(:, GI ),  NW( s : e) )
-       UGI_COEF_ELE(1:U_NLOC)=UGI_COEF_ELE(1:U_NLOC)+1.0
-       VGI_COEF_ELE(1:U_NLOC)=VGI_COEF_ELE(1:U_NLOC)+1.0
-       WGI_COEF_ELE(1:U_NLOC)=WGI_COEF_ELE(1:U_NLOC)+1.0
+       
+       UDGI_ALL = 0.0
+       DO U_KLOC = 1, U_NLOC
+          UDGI_ALL(:, IPHASE) = UDGI_ALL(:, IPHASE) + SUFEN( U_KLOC, GI ) * LOC_NU( :, IPHASE, U_KLOC )
+          UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) = UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) + 1.0
+       END DO
 
        Conditional_ELE2: IF( ELE2 /= 0 ) THEN
-          UDGI2 = 0.0
-          VDGI2 = 0.0
-          WDGI2 = 0.0
-          DO U_KLOC = 1, U_NLOC
+          UDGI2_ALL = 0.0
+          DO U_SKLOC = 1, U_SNLOC
+             U_KLOC = U_SLOC2LOC( U_SKLOC )
              U_KLOC2 = U_OTHER_LOC( U_KLOC )
-             IF( U_KLOC2 /= 0 ) THEN
-                U_NODK2_IPHA = U_NDGLN((ELE2-1)*U_NLOC+U_KLOC2) +(IPHASE-1)*U_NONODS
-                UDGI2  = UDGI2 + SUFEN( U_KLOC, GI ) * NU( U_NODK2_IPHA )
-                VDGI2  = VDGI2 + SUFEN( U_KLOC, GI ) * NV( U_NODK2_IPHA )
-                WDGI2  = WDGI2 + SUFEN( U_KLOC, GI ) * NW( U_NODK2_IPHA )
-                UGI_COEF_ELE2(U_KLOC2)=UGI_COEF_ELE2(U_KLOC2)+1.0
-                VGI_COEF_ELE2(U_KLOC2)=VGI_COEF_ELE2(U_KLOC2)+1.0
-                WGI_COEF_ELE2(U_KLOC2)=WGI_COEF_ELE2(U_KLOC2)+1.0
-             ENDIF
+!             IF( U_KLOC2 /= 0 ) THEN ! MAKE SURE WE DONT NEED THIS...
+             UDGI2_ALL(:, IPHASE) = UDGI2_ALL(:, IPHASE) + SUFEN( U_KLOC, GI ) * SLOC2_NU(:, IPHASE, U_SKLOC)
+             UGI_COEF_ELE2_ALL( :, IPHASE, U_KLOC2) = UGI_COEF_ELE2_ALL( :, IPHASE, U_KLOC2) + 1.0
+!             ENDIF
           END DO
 
           IF( ABS( CV_DG_VEL_INT_OPT ) == 1 ) THEN
              DT_I=1.0
              DT_J=1.0
           ELSE IF( ABS(CV_DG_VEL_INT_OPT ) == 2) THEN
-             DT_I=MAX(1.E-2,T( CV_NODI_IPHA ))
-             DT_J=MAX(1.E-2,T( CV_NODJ_IPHA ))
+             DT_I=MAX(1.E-2,GLOB_T( IPHASE, CV_NODI ))
+             DT_J=MAX(1.E-2,GLOB_T( IPHASE, CV_NODJ ))
           ELSE IF( ABS(CV_DG_VEL_INT_OPT ) == 3) THEN
-             DT_I=DEN( CV_NODI_IPHA )*T( CV_NODI_IPHA )
-             DT_J=DEN( CV_NODJ_IPHA )*T( CV_NODJ_IPHA )
+             DT_I=GLOB_DEN( IPHASE, CV_NODI )*GLOB_T( IPHASE, CV_NODI )
+             DT_J=GLOB_DEN( IPHASE, CV_NODJ )*GLOB_T( IPHASE, CV_NODJ )
           ENDIF
           ! Amend weighting for porosity only across elements...
           IF(ABS(CV_DG_VEL_INT_OPT ) >= 2) THEN 
@@ -11379,14 +11426,11 @@ end SUBROUTINE GET_INT_VEL_2TIME
              ENDIF
           ENDIF
 
-          UDGI_INT = ( DT_I * UDGI + DT_J * UDGI2 ) / (DT_I + DT_J)
-          VDGI_INT = ( DT_I * VDGI + DT_J * VDGI2 ) / (DT_I + DT_J)
-          WDGI_INT = ( DT_I * WDGI + DT_J * WDGI2 ) / (DT_I + DT_J)
+          UDGI_INT_ALL(:,IPHASE) = (DT_I * UDGI_ALL(:,IPHASE) + DT_J * UDGI2_ALL(:, IPHASE)) / (DT_I + DT_J)
 
           IF( CV_DG_VEL_INT_OPT < 0 ) THEN
 
-             NDOTQ_INT = CVNORMX( GI ) * UDGI_INT + CVNORMY( GI ) * VDGI_INT + &
-                  CVNORMZ( GI ) * WDGI_INT
+             NDOTQ_INT = DOT_PRODUCT( CVNORMX_ALL, UDGI_INT_ALL( :, IPHASE ) )
 
              IF( NDOTQ_INT <= 0.0 ) THEN  !Incoming
                 !   DT_I=1.0
@@ -11396,36 +11440,45 @@ end SUBROUTINE GET_INT_VEL_2TIME
                 !   DT_J=1.0
              ENDIF
 
-             UDGI_INT = ( DT_I * UDGI + DT_J * UDGI2 ) / (DT_I + DT_J)
-             VDGI_INT = ( DT_I * VDGI + DT_J * VDGI2 ) / (DT_I + DT_J)
-             WDGI_INT = ( DT_I * WDGI + DT_J * WDGI2 ) / (DT_I + DT_J)
+             UDGI_INT_ALL(:,IPHASE) = (DT_I * UDGI_ALL(:,IPHASE) + DT_J * UDGI2_ALL(:, IPHASE)) / (DT_I + DT_J)
 
           ENDIF
 
-          UDGI  = UDGI_INT 
-          VDGI  = VDGI_INT 
-          WDGI  = WDGI_INT
+          UDGI_ALL( :, IPHASE ) = UDGI_INT_ALL( :, IPHASE )
 
-          UGI_COEF_ELE(:)=DT_I * UGI_COEF_ELE(:) / (DT_I + DT_J)
-          VGI_COEF_ELE(:)=DT_I * VGI_COEF_ELE(:) / (DT_I + DT_J)
-          WGI_COEF_ELE(:)=DT_I * WGI_COEF_ELE(:) / (DT_I + DT_J)
+          UGI_COEF_ELE_ALL(:,IPHASE,:)=DT_I * UGI_COEF_ELE_ALL(:,IPHASE,:) / (DT_I + DT_J)
 
-          UGI_COEF_ELE2(:)=DT_J * UGI_COEF_ELE2(:) / (DT_I + DT_J)
-          VGI_COEF_ELE2(:)=DT_J * VGI_COEF_ELE2(:) / (DT_I + DT_J)
-          WGI_COEF_ELE2(:)=DT_J * WGI_COEF_ELE2(:) / (DT_I + DT_J)
+          UGI_COEF_ELE2_ALL(:,IPHASE,:)=DT_J * UGI_COEF_ELE2_ALL(:,IPHASE,:) / (DT_I + DT_J)
 
        ENDIF Conditional_ELE2
 
     ENDIF Conditional_SELE
 
-    NDOTQ =  CVNORMX( GI ) * UDGI + CVNORMY( GI ) * VDGI + CVNORMZ(GI) * WDGI
+    NDOTQ =  DOT_PRODUCT( CVNORMX_ALL, UDGI_ALL( :, IPHASE ) )
 
     ! Define whether flux is incoming or outgoing, depending on direction of flow
-    IF( NDOTQ >  0.0 ) THEN
-       INCOME = 0.0  !Outgoing
-    ELSE
-       INCOME = 1.0  !Incoming
-    ENDIF
+    !IF( NDOTQ >  0.0 ) THEN
+    !   INCOME = 0.0  !Outgoing
+    !ELSE
+    !   INCOME = 1.0  !Incoming
+    !ENDIF
+    INCOME = 0.5*( 1. + SIGN(1.0, -NDOTQ) )
+
+    ! Passing back at the moment
+    UGI_COEF_ELE = UGI_COEF_ELE_ALL(1,IPHASE,:)
+    IF (NDIM>=2 ) VGI_COEF_ELE = UGI_COEF_ELE_ALL(2,IPHASE,:)
+    IF (NDIM==3 ) WGI_COEF_ELE = UGI_COEF_ELE_ALL(3,IPHASE,:)
+    UGI_COEF_ELE2 = UGI_COEF_ELE2_ALL(1,IPHASE,:)
+    IF (NDIM>=2 ) VGI_COEF_ELE2 = UGI_COEF_ELE2_ALL(2,IPHASE,:)
+    IF (NDIM==3 ) WGI_COEF_ELE2 = UGI_COEF_ELE2_ALL(3,IPHASE,:)
+
+    DEALLOCATE( UGI_COEF_ELE_ALL )
+    DEALLOCATE( UGI_COEF_ELE2_ALL )
+    DEALLOCATE( UDGI_ALL, UDGI2_ALL, UDGI_INT_ALL )
+    DEALLOCATE( LOC_NU )
+    DEALLOCATE( SLOC_NU, SLOC2_NU )
+    DEALLOCATE( SUF_U_BC_ALL )
+    DEALLOCATE( GLOB_T, GLOB_DEN )
 
     RETURN  
 
@@ -12254,7 +12307,7 @@ end SUBROUTINE GET_INT_VEL_2TIME
     REAL :: TMIN_STORE, TMAX_STORE, &
          T2MIN_STORE, T2MAX_STORE, &
          DENMIN_STORE, DENMAX_STORE, &
-         TUPWIN, TUPWI2
+         TUPWIN, TUPWI2, DENUPWIN, DENUPWI2, T2UPWIN, T2UPWI2
     INTEGER :: CV_NODI, CV_NODJ, COUNT, S, E
 
     CV_NODI = CV_NODI_IPHA - (IPHASE-1)*CV_NONODS
@@ -12285,12 +12338,16 @@ end SUBROUTINE GET_INT_VEL_2TIME
           DO COUNT = SMALL_FINDRM(CV_NODJ), SMALL_FINDRM(CV_NODJ+1)-1
              IF ( SMALL_COLM(COUNT) == CV_NODI ) THEN
                 TUPWIN = TUPWIND_MAT( COUNT )
+                DENUPWIN = DENUPWIND_MAT( COUNT )
+                T2UPWIN = T2UPWIND_MAT( COUNT )
                 EXIT
              END IF
           END DO
           DO COUNT = SMALL_FINDRM(CV_NODI), SMALL_FINDRM(CV_NODI+1)-1
              IF ( SMALL_COLM(COUNT) == CV_NODJ ) THEN
                 TUPWI2 = TUPWIND_MAT( COUNT )
+                DENUPWI2 = DENUPWIND_MAT( COUNT )
+                T2UPWI2 = T2UPWIND_MAT( COUNT )
                 EXIT
              END IF
           END DO
@@ -12310,14 +12367,14 @@ end SUBROUTINE GET_INT_VEL_2TIME
          LIMD, FEMDGI, INCOME, CV_NODI, CV_NODJ, &
          DEN( S:E ), DENMIN( S:E ), DENMAX( S:E ), &
          DENMIN_2ND_MC( S:E ), DENMAX_2ND_MC( S:E ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_NEW, &
-         IANISOTROPIC, TUPWIN, TUPWI2 )
+         IANISOTROPIC, DENUPWIN, DENUPWI2 )
 
     IF ( IGOT_T2 == 1 ) THEN
        CALL ONVDLIM_ALL( CV_NONODS, &
             LIMT2, FEMT2GI, INCOME, CV_NODI, CV_NODJ, &
             T2( S:E ), T2MIN( S:E ), T2MAX( S:E ), &
             T2MIN_2ND_MC( S:E ), T2MAX_2ND_MC( S:E ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_NEW, &
-            IANISOTROPIC, TUPWIN, TUPWI2 )
+            IANISOTROPIC, T2UPWIN, T2UPWI2 )
 
     ELSE
        LIMT2   =1.0
