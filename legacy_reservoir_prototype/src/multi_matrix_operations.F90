@@ -1246,16 +1246,15 @@
             DIM_PHA = (IDIM-1) + NDIM*IPHASE
             Loop_VelNodes: DO U_INOD = 1, U_NONODS 
                CDP( U_INOD + DIM_PHA * U_NONODS ) = &
-                    dot_product( &
+                    DOT_PRODUCT( &
                     C( FINDC( U_INOD ) + NCOLC * DIM_PHA : FINDC( U_INOD + 1 ) - 1 + NCOLC * DIM_PHA ), &
                     LDP( FINDC( U_INOD ) : FINDC( U_INOD + 1 ) - 1 ) )
             END DO Loop_VelNodes
          END DO Loop_Dim
       END DO Loop_Phase
 
-
-      return
-    end SUBROUTINE C_MULT
+      RETURN
+    END SUBROUTINE C_MULT
 
 
 

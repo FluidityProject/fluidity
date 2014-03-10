@@ -1133,6 +1133,20 @@
     end subroutine VolumeFraction_Assemble_Solve
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     SUBROUTINE FORCE_BAL_CTY_ASSEM_SOLVE( state, &
          NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
          U_ELE_TYPE, P_ELE_TYPE, &
@@ -1356,7 +1370,7 @@
 
       NO_MATRIX_STORE=(NCOLDGM_PHA.LE.1)
 
-      IF( GLOBAL_SOLVE ) THEN 
+      IF ( GLOBAL_SOLVE ) THEN 
          ! Global solve  
          IF(JUST_BL_DIAG_MAT) THEN
             EWRITE(3,*)'OPTION NOT READY YET WITH A GLOBAL SOLVE'
@@ -1373,8 +1387,6 @@
               U_NONODS * NDIM * NPHASE + CV_NONODS )
 
       ELSE ! solve using a projection method
-
- !        CALL PHA_BLOCK_INV( PIVIT_MAT, TOTELE, U_NLOC * NPHASE * NDIM )
 
          ! Put pressure in rhs of force balance eqn:  CDP=C*P
          CALL C_MULT( CDP, P, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
@@ -3674,34 +3686,24 @@
                   END DO Loop_GaussPoints1
 
                   ! Put into matrix
-                  if(.not.got_c_matrix) then
-
-                     ! Find COUNT - position in matrix : FINMCY, COLMCY
-
-                     !                  CALL POSINMAT( COUNT, IU_NOD, JCV_NOD,&
-                     !                       U_NONODS, FINDC, COLC, NCOLC )
-
-                     CALL USE_POSINMAT_C_STORE(COUNT, IU_NOD, JCV_NOD,  &
+                  IF ( .NOT.GOT_C_MATRIX ) THEN
+                     CALL USE_POSINMAT_C_STORE( COUNT, IU_NOD, JCV_NOD,  &
                           U_NONODS, FINDC, COLC, NCOLC, &
-                          IDO_STORE_AC_SPAR_PT,STORED_AC_SPAR_PT, POSINMAT_C_STORE,ELE,U_ILOC,P_JLOC, &
-                          TOTELE,U_NLOC,P_NLOC) 
-                  endif
+                          IDO_STORE_AC_SPAR_PT, STORED_AC_SPAR_PT, POSINMAT_C_STORE, ELE, U_ILOC, P_JLOC, &
+                          TOTELE, U_NLOC, P_NLOC )
+                  END IF
 
                   Loop_Phase1: DO IPHASE = 1, NPHASE
 
-
                      ! Put into matrix
-                     if(.not.got_c_matrix) then
+                     IF ( .NOT.GOT_C_MATRIX ) THEN
                         COUNT_PHA = COUNT + ( IPHASE - 1 ) * NDIM_VEL * NCOLC
-
                         DO IDIM = 1, NDIM_VEL
-                           C( COUNT_PHA + NCOLC*(IDIM-1) ) = C( COUNT_PHA + NCOLC*(IDIM-1) ) - NMX_ALL(IDIM)
+                           C( COUNT_PHA + NCOLC*(IDIM-1) ) = C( COUNT_PHA + NCOLC*(IDIM-1) ) - NMX_ALL( IDIM )
                         END DO
-                     endif
-
+                     END IF
 
                      IF ( IPLIKE_GRAD_SOU == 1 .OR. CAPILLARY_PRESSURE_ACTIVATED ) THEN ! Capillary pressure for example terms...
-
                         DO IDIM = 1, NDIM_VEL
                            LOC_U_RHS( IDIM, IPHASE, U_ILOC ) = LOC_U_RHS( IDIM, IPHASE, U_ILOC ) &
                                 - GRAD_SOU_GI_NMX( IDIM, IPHASE ) * LOC_PLIKE_GRAD_SOU_GRAD( IPHASE, P_JLOC )
@@ -4225,29 +4227,27 @@
                         ! Put into matrix
 
                         ! Find COUNT - position in matrix : FINMCY, COLMCY
-                        if(.not.got_c_matrix) then
-                           !                        CALL POSINMAT( COUNT, IU_NOD, JCV_NOD,  &
-                           !                             U_NONODS, FINDC, COLC, NCOLC )
-
-                           CALL USE_POSINMAT_C_STORE(COUNT, IU_NOD, JCV_NOD,  &
+                        IF ( .NOT.GOT_C_MATRIX ) THEN
+                           CALL USE_POSINMAT_C_STORE( COUNT, IU_NOD, JCV_NOD, &
                                 U_NONODS, FINDC, COLC, NCOLC, &
-                                IDO_STORE_AC_SPAR_PT,STORED_AC_SPAR_PT, POSINMAT_C_STORE,ELE,U_ILOC,P_JLOC, &
-                                TOTELE,U_NLOC,P_NLOC) 
-                        endif
+                                IDO_STORE_AC_SPAR_PT, STORED_AC_SPAR_PT, POSINMAT_C_STORE, ELE, U_ILOC, P_JLOC, &
+                                TOTELE, U_NLOC, P_NLOC )
+                        END IF
 
                         Loop_Phase2: DO IPHASE = 1, NPHASE
-                           IF(WIC_P_BC_ALL( IPHASE, SELE ) == WIC_P_BC_DIRICHLET) THEN
+                           IF( WIC_P_BC_ALL( IPHASE, SELE ) == WIC_P_BC_DIRICHLET ) THEN
 
-                              DO IDIM=1,NDIM_VEL
-                                 if(.not.got_c_matrix) then
+                              DO IDIM = 1, NDIM_VEL
+                                 IF ( .NOT.GOT_C_MATRIX ) THEN
                                     COUNT_PHA = COUNT + ( IPHASE - 1 ) * NDIM_VEL * NCOLC 
-                                    C( COUNT_PHA + NCOLC*(IDIM-1) )  = C( COUNT_PHA + NCOLC*(IDIM-1) ) + NMX_ALL(IDIM) * SELE_OVERLAP_SCALE(P_JLOC)
-                                 endif
-                                 LOC_U_RHS( IDIM, IPHASE, U_ILOC) =  LOC_U_RHS( IDIM, IPHASE, U_ILOC)  &
-                                      - NMX_ALL(IDIM) * suf_p_bc_all( iphase,p_sjloc,sele )* SELE_OVERLAP_SCALE(P_JLOC)
+                                    C( COUNT_PHA + NCOLC*(IDIM-1) )  = C( COUNT_PHA + NCOLC*(IDIM-1) ) &
+                                         + NMX_ALL( IDIM ) * SELE_OVERLAP_SCALE( P_JLOC )
+                                 END IF
+                                 LOC_U_RHS( IDIM, IPHASE, U_ILOC) =  LOC_U_RHS( IDIM, IPHASE, U_ILOC ) &
+                                      - NMX_ALL( IDIM ) * SUF_P_BC_ALL( IPHASE, P_SJLOC, SELE ) * SELE_OVERLAP_SCALE( P_JLOC )
                               END DO
 
-                           ENDIF
+                           END IF
 
                         END DO Loop_Phase2
                      ENDIF
@@ -4324,28 +4324,22 @@
 
                            IF( ( .NOT. IS_OVERLAPPING ) .OR. &
                                 (( MAT_OTHER_LOC( ILEV ) /= 0 )) ) THEN
-                              U_INOD = U_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
-                              VNMX_ALL=0.0
+                              U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
+                              VNMX_ALL = 0.0
                               DO SGI = 1, SBCVNGI
-                                 RNN = SDETWE(SGI) * SBUFEN(U_SILOC,SGI) * SBCVFEN(P_SJLOC,SGI)
-                                 VNMX_ALL(:) = VNMX_ALL(:) + SNORMXN_ALL(:,SGI) * RNN
+                                 RNN = SDETWE( SGI ) * SBUFEN( U_SILOC, SGI ) * SBCVFEN( P_SJLOC, SGI )
+                                 VNMX_ALL = VNMX_ALL + SNORMXN_ALL( :, SGI ) * RNN
                               END DO
 
-                              !                           CALL POSINMAT( COUNT,  U_INOD, P_JNOD,&
-                              !                                U_NONODS, FINDC, COLC, NCOLC )
-                              !                           CALL POSINMAT( COUNT2, U_INOD, P_JNOD2,&
-                              !                                U_NONODS, FINDC, COLC, NCOLC )
-
-
-                              CALL USE_POSINMAT_C_STORE(COUNT, U_INOD, P_JNOD,  &
+                              CALL USE_POSINMAT_C_STORE( COUNT, U_INOD, P_JNOD,  &
                                    U_NONODS, FINDC, COLC, NCOLC, &
-                                   IDO_STORE_AC_SPAR_PT,STORED_AC_SPAR_PT, POSINMAT_C_STORE,ELE,U_ILOC,P_JLOC, &
-                                   TOTELE,U_NLOC,P_NLOC) 
+                                   IDO_STORE_AC_SPAR_PT, STORED_AC_SPAR_PT, POSINMAT_C_STORE, ELE, U_ILOC, P_JLOC, &
+                                   TOTELE, U_NLOC, P_NLOC )
 
-                              CALL USE_POSINMAT_C_STORE_SUF_DG(COUNT2, U_INOD, P_JNOD2,  &
+                              CALL USE_POSINMAT_C_STORE_SUF_DG( COUNT2, U_INOD, P_JNOD2,  &
                                    U_NONODS, FINDC, COLC, NCOLC, &
-                                   IDO_STORE_AC_SPAR_PT,STORED_AC_SPAR_PT, POSINMAT_C_STORE_SUF_DG, ELE,IFACE,U_SILOC,P_SJLOC,  &
-                                   TOTELE,NFACE,U_SNLOC,P_SNLOC) 
+                                   IDO_STORE_AC_SPAR_PT, STORED_AC_SPAR_PT, POSINMAT_C_STORE_SUF_DG, ELE, IFACE, U_SILOC, P_SJLOC,  &
+                                   TOTELE, NFACE, U_SNLOC, P_SNLOC ) 
 
                               Loop_Phase5: DO IPHASE = 1, NPHASE
                                  COUNT_PHA  = COUNT  + ( IPHASE - 1 ) * NDIM_VEL * NCOLC
@@ -4358,18 +4352,16 @@
                                  ELSE ! Simple average (works well with IN_ELE_UPWIND=DG_ELE_UPWIND=2)...
                                     MASSE = 1.0
                                     MASSE2 = 1.0
-                                 ENDIF
+                                 END IF
 
                                  ! SELE_OVERLAP_SCALE(P_JNOD) is the scaling needed to convert to overlapping element surfaces. 
                                  DO IDIM=1,NDIM_VEL
-                                    C( COUNT_PHA + (IDIM-1)*NCOLC )     &
-                                         = C( COUNT_PHA  + (IDIM-1)*NCOLC ) + VNMX_ALL(IDIM) * SELE_OVERLAP_SCALE(P_JLOC) &
+                                    C( COUNT_PHA + (IDIM-1)*NCOLC ) = C( COUNT_PHA  + (IDIM-1)*NCOLC ) &
+                                         + VNMX_ALL( IDIM ) * SELE_OVERLAP_SCALE( P_JLOC ) &
                                          *MASSE/(MASSE+MASSE2) 
-                                    C( COUNT_PHA2 + (IDIM-1)*NCOLC )   &
-                                         = C( COUNT_PHA2 + (IDIM-1)*NCOLC ) - VNMX_ALL(IDIM) * SELE_OVERLAP_SCALE(P_JLOC) &
-                                         *MASSE/(MASSE+MASSE2) 
+                                    C( COUNT_PHA2 + (IDIM-1)*NCOLC ) = C( COUNT_PHA2 + (IDIM-1)*NCOLC ) &
+                                         - VNMX_ALL( IDIM ) * SELE_OVERLAP_SCALE( P_JLOC ) * MASSE / ( MASSE + MASSE2 ) 
                                  END DO
-
 
                               END DO Loop_Phase5
                            ENDIF
