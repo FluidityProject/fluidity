@@ -12339,7 +12339,7 @@ end SUBROUTINE GET_INT_VEL_2TIME
              IF ( SMALL_COLM(COUNT) == CV_NODI ) THEN
                 TUPWIN = TUPWIND_MAT( COUNT )
                 DENUPWIN = DENUPWIND_MAT( COUNT )
-                T2UPWIN = T2UPWIND_MAT( COUNT )
+                IF ( IGOT_T2 == 1 ) T2UPWIN = T2UPWIND_MAT( COUNT )
                 EXIT
              END IF
           END DO
@@ -12347,7 +12347,7 @@ end SUBROUTINE GET_INT_VEL_2TIME
              IF ( SMALL_COLM(COUNT) == CV_NODJ ) THEN
                 TUPWI2 = TUPWIND_MAT( COUNT )
                 DENUPWI2 = DENUPWIND_MAT( COUNT )
-                T2UPWI2 = T2UPWIND_MAT( COUNT )
+                IF ( IGOT_T2 == 1 ) T2UPWI2 = T2UPWIND_MAT( COUNT )
                 EXIT
              END IF
           END DO
