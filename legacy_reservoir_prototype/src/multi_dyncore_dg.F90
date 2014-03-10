@@ -777,7 +777,7 @@
            !WIC_T_BC, WIC_T_BC, WIC_U_BC, IZERO, &
 
            CV_RHS, &
-           RDUM, 0, IDUM, IDUM, & 
+           RDUM3, 0, IDUM, IDUM, & 
            ACV, NCOLACV, FINACV, COLACV, &! Force balance sparsity  
            NCOLELE, FINELE, COLELE, & ! Element connectivity.
            XU_NLOC, XU_NDGLN, &
@@ -1272,11 +1272,10 @@
       INTEGER, PARAMETER :: IGOT_CMC_PRECON = 0
 
       REAL, DIMENSION( : ), allocatable :: CT, CT_RHS, DIAG_SCALE_PRES, &
-           U_RHS, MCY_RHS, C, MCY, &
+           U_RHS, MCY_RHS, MCY, &
            CMC, CMC_PRECON, MASS_MN_PRES, MASS_CV, P_RHS, UP, U_RHS_CDP, DP, &
            CDP, DU_VEL, UP_VEL, DU, DV, DW, DGM_PHA, DIAG_P_SQRT, ACV
-      ! this is the pivit matrix to use in the projection method...
-      REAL, DIMENSION( :, :, : ), allocatable :: PIVIT_MAT
+      REAL, DIMENSION( :, :, : ), allocatable :: PIVIT_MAT, C
       INTEGER :: CV_NOD, COUNT, CV_JNOD, IPHASE, ele, x_nod1, x_nod2, x_nod3, cv_iloc, &
            cv_nod1, cv_nod2, cv_nod3, mat_nod1, u_iloc, u_nod, u_nod_pha, ndpset
       REAL :: der1, der2, der3, uabs, rsum, xc, yc
@@ -1290,7 +1289,7 @@
       ALLOCATE( DIAG_SCALE_PRES( CV_NONODS )) ; DIAG_SCALE_PRES=0.
       ALLOCATE( U_RHS( U_NONODS * NDIM * NPHASE )) ; U_RHS=0.
       ALLOCATE( MCY_RHS( U_NONODS * NDIM * NPHASE + CV_NONODS )) ; MCY_RHS=0.
-      ALLOCATE( C( NCOLC * NDIM * NPHASE )) ; C=0.
+      ALLOCATE( C( NDIM, NPHASE, NCOLC )) ; C=0.
       ALLOCATE( MCY( NCOLMCY )) ; MCY=0.
       ALLOCATE( CMC( NCOLCMC )) ; CMC=0.
       ALLOCATE( CMC_PRECON( NCOLCMC*IGOT_CMC_PRECON)) ; IF(IGOT_CMC_PRECON.NE.0) CMC_PRECON=0.
@@ -1389,7 +1388,7 @@
       ELSE ! solve using a projection method
 
          ! Put pressure in rhs of force balance eqn:  CDP=C*P
-         CALL C_MULT( CDP, P, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
+         CALL C_MULT2( CDP, P, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
 
          U_RHS_CDP = U_RHS + CDP
 
@@ -1419,32 +1418,12 @@
 
          CALL ULONG_2_UVW( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
 
-        if(.false.) then
-         do ele=1,totele
-           xc=0.0
-           yc=0.0
-           do cv_iloc=1,cv_nloc
-             cv_nod=cv_ndgln((ele-1)*cv_nloc+cv_iloc)
-             xc=xc + x(cv_nod)/real(cv_nloc) 
-             yc=yc + y(cv_nod)/real(cv_nloc) 
-           end do
-           ewrite(3,*)'ele,xc,yc:',ele,xc,yc
-           do u_iloc=1,u_nloc
-             u_nod=u_ndgln((ele-1)*U_nloc+u_iloc)
-             !ewrite(3,*) 'u_iloc,u(u_nod),v(u_nod):',u_iloc,u(u_nod),v(u_nod)
-             !ewrite(3,*) 'u_iloc,u(u_nod),v(u_nod):',u_iloc,U_RHS_CDP(u_nod),U_RHS_CDP(u_nod+u_nonods)
-           end do
-         end do
-         
-         stop 2982
-       endif
-
-       !ewrite(3,*) 'u::', u
-       !ewrite(3,*) 'v::', v
-       !ewrite(3,*) 'w::', w
-       !ewrite(3,*) 'ct::', ct
-       !ewrite(3,*) 'c::', c
-       !ewrite(3,*) 'ct_rhs::', ct_rhs
+         !ewrite(3,*) 'u::', u
+         !ewrite(3,*) 'v::', v
+         !ewrite(3,*) 'w::', w
+         !ewrite(3,*) 'ct::', ct
+         !ewrite(3,*) 'c::', c
+         !ewrite(3,*) 'ct_rhs::', ct_rhs
 
          ! put on rhs the cty eqn; put most recent pressure in RHS of momentum eqn
          ! NB. P_RHS = -CT*U + CT_RHS 
@@ -1562,7 +1541,7 @@
 
          ! Use a projection method
          ! CDP = C * DP
-         CALL C_MULT( CDP, DP, CV_NONODS, U_NONODS, NDIM, NPHASE, &
+         CALL C_MULT2( CDP, DP, CV_NONODS, U_NONODS, NDIM, NPHASE, &
               C, NCOLC, FINDC, COLC)
 
          !do count = 1, ndim
@@ -1987,7 +1966,7 @@
       INTEGER, DIMENSION( : ), intent( in ) :: MIDM
       REAL, DIMENSION( : ), intent( inout ) :: U_RHS
       REAL, DIMENSION( : ), intent( inout ) :: MCY_RHS
-      REAL, DIMENSION( : ), intent( inout ) :: C
+      REAL, DIMENSION( :, :, : ), intent( inout ) :: C
       REAL, DIMENSION( : ), intent( inout ) :: CT
       REAL, DIMENSION( : ), intent( inout ) :: MASS_MN_PRES
       REAL, DIMENSION( : ), intent( inout ) :: CT_RHS
@@ -2335,7 +2314,7 @@
       INTEGER, DIMENSION( : ), intent( in ) :: FINMCY
       INTEGER, DIMENSION( : ), intent( in ) :: FINDC
       REAL, DIMENSION( : ), intent( inout ) :: MCY
-      REAL, DIMENSION( : ), intent( in ) :: C
+      REAL, DIMENSION( :, :, : ), intent( in ) :: C
       ! Local variables...
       INTEGER :: U_NOD_PHA, IWID, I, U_NOD, IPHASE, IDIM, U_NOD_PHA_I, COUNT, COUNT2
 
@@ -2365,7 +2344,7 @@
                DO I = 1, IWID 
                   COUNT2 = FINMCY( U_NOD_PHA_I + 1 ) - I
                   COUNT = FINDC( U_NOD + 1 ) - I + ( IDIM - 1 ) * NCOLC + ( IPHASE - 1 ) * NCOLC * NDIM
-                  MCY( COUNT2 ) = C( COUNT )
+                  MCY( COUNT2 ) = C( IDIM, IPHASE, COUNT )
                END DO
 
             END DO Loop_UNOD
@@ -2519,7 +2498,7 @@
       REAL, DIMENSION( :, : ), intent( in ) :: UDEN, UDENOLD
       REAL, intent( in ) :: DT
       REAL, DIMENSION( : ), intent( inout ) :: U_RHS
-      REAL, DIMENSION( : ), intent( inout ) :: C
+      REAL, DIMENSION( :, :, : ), intent( inout ) :: C
       INTEGER, DIMENSION( : ), intent( in ) :: FINDC
       INTEGER, DIMENSION( : ), intent( in ) :: COLC
       REAL, DIMENSION( : ), intent( inout ) :: DGM_PHA
@@ -3699,7 +3678,7 @@
                      IF ( .NOT.GOT_C_MATRIX ) THEN
                         COUNT_PHA = COUNT + ( IPHASE - 1 ) * NDIM_VEL * NCOLC
                         DO IDIM = 1, NDIM_VEL
-                           C( COUNT_PHA + NCOLC*(IDIM-1) ) = C( COUNT_PHA + NCOLC*(IDIM-1) ) - NMX_ALL( IDIM )
+                           C( IDIM, IPHASE, COUNT ) = C( IDIM, IPHASE, COUNT ) - NMX_ALL( IDIM )
                         END DO
                      END IF
 
@@ -4239,8 +4218,7 @@
 
                               DO IDIM = 1, NDIM_VEL
                                  IF ( .NOT.GOT_C_MATRIX ) THEN
-                                    COUNT_PHA = COUNT + ( IPHASE - 1 ) * NDIM_VEL * NCOLC 
-                                    C( COUNT_PHA + NCOLC*(IDIM-1) )  = C( COUNT_PHA + NCOLC*(IDIM-1) ) &
+                                    C( IDIM, IPHASE, COUNT ) = C( IDIM, IPHASE, COUNT ) &
                                          + NMX_ALL( IDIM ) * SELE_OVERLAP_SCALE( P_JLOC )
                                  END IF
                                  LOC_U_RHS( IDIM, IPHASE, U_ILOC) =  LOC_U_RHS( IDIM, IPHASE, U_ILOC ) &
@@ -4355,12 +4333,12 @@
                                  END IF
 
                                  ! SELE_OVERLAP_SCALE(P_JNOD) is the scaling needed to convert to overlapping element surfaces. 
-                                 DO IDIM=1,NDIM_VEL
-                                    C( COUNT_PHA + (IDIM-1)*NCOLC ) = C( COUNT_PHA  + (IDIM-1)*NCOLC ) &
-                                         + VNMX_ALL( IDIM ) * SELE_OVERLAP_SCALE( P_JLOC ) &
-                                         *MASSE/(MASSE+MASSE2) 
-                                    C( COUNT_PHA2 + (IDIM-1)*NCOLC ) = C( COUNT_PHA2 + (IDIM-1)*NCOLC ) &
-                                         - VNMX_ALL( IDIM ) * SELE_OVERLAP_SCALE( P_JLOC ) * MASSE / ( MASSE + MASSE2 ) 
+                                 DO IDIM = 1, NDIM_VEL
+                                    C( IDIM, IPHASE, COUNT ) = C( IDIM, IPHASE, COUNT ) & 
+                                         + VNMX_ALL( IDIM ) * SELE_OVERLAP_SCALE( P_JLOC ) * MASSE / ( MASSE + MASSE2 )
+
+                                    C( IDIM, IPHASE, COUNT2 ) = C( IDIM, IPHASE, COUNT2 ) & 
+                                         - VNMX_ALL( IDIM ) * SELE_OVERLAP_SCALE( P_JLOC ) * MASSE / ( MASSE + MASSE2 )
                                  END DO
 
                               END DO Loop_Phase5

@@ -339,7 +339,7 @@
       REAL, DIMENSION( : ), intent( in ) :: MASS_MN_PRES
       INTEGER, DIMENSION( : ), intent( in ) :: FINDCMC
       INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
-      REAL, DIMENSION( : ), intent( in ) :: C
+      REAL, DIMENSION( :, :, : ), intent( in ) :: C
       REAL, DIMENSION( : ), intent( inout ) :: CT
 
       ! Local variables
@@ -374,13 +374,13 @@
               C, CT, ndpset)
       ELSE
          ! Slow but memory efficient...
-         CALL COLOR_GET_CMC_PHA_SLOW( CV_NONODS, U_NONODS, NDIM, NPHASE, &
-              NCOLC, FINDC, COLC, &
-              INV_PIVIT_MAT,  &
-              TOTELE, U_NLOC, U_NDGLN, &
-              NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, &
-              CMC, CMC_PRECON, IGOT_CMC_PRECON, NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, &
-              C, CT, ndpset)
+ !        CALL COLOR_GET_CMC_PHA_SLOW( CV_NONODS, U_NONODS, NDIM, NPHASE, &
+ !             NCOLC, FINDC, COLC, &
+ !             INV_PIVIT_MAT,  &
+ !             TOTELE, U_NLOC, U_NDGLN, &
+ !             NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, &
+ !             CMC, CMC_PRECON, IGOT_CMC_PRECON, NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, &
+ !             C, CT, ndpset)
       END IF
 
     END SUBROUTINE COLOR_GET_CMC_PHA
@@ -414,7 +414,7 @@
          REAL, DIMENSION( : ), intent( in ) :: MASS_MN_PRES
          INTEGER, DIMENSION( : ), intent( in ) :: FINDCMC
          INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
-         REAL, DIMENSION( : ), intent( in ) :: C
+         REAL, DIMENSION( :, :, : ), intent( in ) :: C
          REAL, DIMENSION( : ), intent( inout ) :: CT
 
          ! Local variables
@@ -1259,6 +1259,12 @@
 
 
 
+
+
+
+
+
+
     SUBROUTINE C_MULT_MANY( CDP, DP, CV_NONODS, U_NONODS, NDIM, NPHASE, NBLOCK, &
          C, NCOLC, FINDC, COLC ) 
       implicit none
@@ -1266,7 +1272,7 @@
       INTEGER, intent( in ) :: CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLC, NBLOCK
       REAL, DIMENSION( NBLOCK, NDIM, NPHASE, U_NONODS ), intent( inout ) :: CDP
       REAL, DIMENSION( NBLOCK, CV_NONODS ), intent( in )  :: DP
-      REAL, DIMENSION( NCOLC * NDIM * NPHASE ), intent( in ) :: C
+      REAL, DIMENSION( NDIM, NPHASE, NCOLC ), intent( in ) :: C
       INTEGER, DIMENSION( U_NONODS + 1 ), intent( in ) ::FINDC
       INTEGER, DIMENSION( NCOLC ), intent( in ) :: COLC
       ! Local variables
@@ -1282,11 +1288,10 @@
 
             DO IPHASE = 1, NPHASE
                DO IDIM = 1, NDIM
-                  COUNT_DIM_PHA = COUNT + NCOLC*(IDIM-1) + NCOLC*NDIM*(IPHASE-1)
-	          CDP( :, IDIM, IPHASE, U_INOD ) = CDP( :, IDIM, IPHASE, U_INOD ) + C( COUNT_DIM_PHA ) * DP( :, P_JNOD )
+                  CDP( :, IDIM, IPHASE, U_INOD ) = CDP( :, IDIM, IPHASE, U_INOD ) + C( IDIM, IPHASE, COUNT ) * DP( :, P_JNOD )
                END DO
             END DO
-     
+
          END DO
 
       END DO
@@ -1295,7 +1300,46 @@
 
     END SUBROUTINE C_MULT_MANY
 
+    SUBROUTINE C_MULT2( CDP, DP, CV_NONODS, U_NONODS, NDIM, NPHASE, &
+         C, NCOLC, FINDC, COLC ) 
+      implicit none
+      ! CDP=C*DP
+      INTEGER, intent( in ) :: CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLC
+      !REAL, DIMENSION( NDIM, NPHASE, U_NONODS ), intent( inout ) :: CDP
+      REAL, DIMENSION( NDIM * NPHASE * U_NONODS ), intent( inout ) :: CDP
+      REAL, DIMENSION( CV_NONODS ), intent( in )  :: DP
+      REAL, DIMENSION( NDIM, NPHASE, NCOLC ), intent( in ) :: C
+      INTEGER, DIMENSION( U_NONODS + 1 ), intent( in ) ::FINDC
+      INTEGER, DIMENSION( NCOLC ), intent( in ) :: COLC
+      ! Local variables
+      INTEGER :: U_INOD, COUNT, P_JNOD, IPHASE, IDIM, COUNT_DIM_PHA, DIM_PHA
 
+      CDP = 0.0
+
+      !DO U_INOD = 1, U_NONODS
+      !   DO COUNT = FINDC( U_INOD ), FINDC( U_INOD + 1 ) - 1
+      !      P_JNOD = COLC( COUNT )
+      !      CDP( :, :, U_INOD ) = CDP( :, :, U_INOD ) + C( :, :, COUNT ) * DP( P_JNOD )
+      !   END DO
+      !END DO
+
+      DO U_INOD = 1, U_NONODS
+         DO COUNT = FINDC( U_INOD ), FINDC( U_INOD + 1 ) - 1
+            P_JNOD = COLC( COUNT )
+     
+            DO IPHASE = 0, NPHASE-1
+               DO IDIM = 1, NDIM
+                  DIM_PHA = (IDIM-1) + NDIM*IPHASE
+                  CDP( U_INOD + DIM_PHA * U_NONODS ) = CDP( U_INOD + DIM_PHA * U_NONODS ) + C( IDIM, IPHASE+1, COUNT ) * DP( P_JNOD )
+               END DO
+            END DO
+         
+         END DO
+      END DO
+
+      RETURN
+
+    END SUBROUTINE C_MULT2
 
     SUBROUTINE CT_MULT_WITH_C( DP, U_LONG, CV_NONODS, U_NONODS, NDIM, NPHASE, &
          C, NCOLC, FINDC, COLC ) 
@@ -1348,7 +1392,7 @@
       INTEGER, intent( in ) :: CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLC, NBLOCK
       REAL, DIMENSION( :, :, :, : ), intent( in ) :: U_LONG
       REAL, DIMENSION( :, : ), intent( inout )  :: DP
-      REAL, DIMENSION( : ), intent( in ) :: C
+      REAL, DIMENSION( :, :, : ), intent( in ) :: C
       INTEGER, DIMENSION( : ), intent( in ) ::FINDC
       INTEGER, DIMENSION( : ), intent( in ) :: COLC
       ! Local variables
@@ -1363,9 +1407,7 @@
 
             Loop_Phase: DO IPHASE = 1, NPHASE
                Loop_Dim: DO IDIM = 1, NDIM
-                  COUNT_DIM_PHA = COUNT + NCOLC*(IDIM-1) + NCOLC*NDIM*(IPHASE-1)
-                  I1 = U_INOD + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM * U_NONODS
-                  DP( :, P_JNOD ) = DP( :, P_JNOD ) + C( COUNT_DIM_PHA ) * U_LONG( :, IDIM, IPHASE, U_INOD )
+                  DP( :, P_JNOD ) = DP( :, P_JNOD ) + C( IDIM, IPHASE, COUNT ) * U_LONG( :, IDIM, IPHASE, U_INOD )
                END DO Loop_Dim
             END DO Loop_Phase
 
