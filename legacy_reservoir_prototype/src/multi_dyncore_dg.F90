@@ -253,13 +253,13 @@
               mass_ele_transp, &
               option_path,&
               theta_flux=THETA_FLUX, one_m_theta_flux=ONE_M_THETA_FLUX,&
-               StorageIndexes=StorageIndexes)
+              StorageIndexes=StorageIndexes)
 
          t=0.
 
-         Conditional_Lumping: IF(LUMP_EQNS) THEN
+         Conditional_Lumping: IF ( LUMP_EQNS ) THEN
             ! Lump the multi-phase flow eqns together
-            ALLOCATE( CV_RHS_SUB( CV_NONODS ))
+            ALLOCATE( CV_RHS_SUB( CV_NONODS ) )
 
             CV_RHS_SUB = 0.0
             DO IPHASE = 1, NPHASE
@@ -328,6 +328,17 @@
       ewrite(3,*) 'Leaving INTENERGE_ASSEM_SOLVE'
 
     END SUBROUTINE INTENERGE_ASSEM_SOLVE
+
+
+
+
+
+
+
+
+
+
+
 
 
     SUBROUTINE CV_ASSEMB_CV_DG( state, &
