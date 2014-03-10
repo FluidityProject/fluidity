@@ -476,7 +476,8 @@
                IF ( COUNT3 == 0 ) THEN
                   COUNT2 = 0
                ELSE
-                  CALL IBUBLE( COLOR_IN_ROW( 1 : COUNT3 ), COUNT3 ) 
+!                  CALL IBUBLE( COLOR_IN_ROW( 1 : COUNT3 ), COUNT3) 
+                  CALL quicksort( COLOR_IN_ROW( 1 : COUNT3 ), COUNT3) 
                   COUNT2 = 1
                   I = 1
                   COLOR_IN_ROW2( COUNT2 ) = COLOR_IN_ROW( I )
@@ -602,11 +603,59 @@
 
 
 
+      recursive  subroutine quicksort(vec,n)
+        integer, intent(in) :: n
+        integer, dimension(:), intent(inout) :: vec(n)
+        integer :: ii
+
+        if (size(vec)>1) then
+           ii=partition(vec)
+           call quicksort(vec(1:ii-1),ii-1)
+           call quicksort(vec(ii:n),n-ii+1)
+        end if
+
+      end subroutine quicksort
+        
+        integer function partition(v)
+          integer, intent(inout), dimension(:) :: v
+          integer :: i,j, pivot, temp
+
+          i=0
+          j=size(v)+1
+
+          pivot=v(j/2)
+          
+          do while (i < j)
+             j= j-1
+             do while ( v(j) > pivot)
+                j=j-1
+             end do
+             i = i + 1
+             do while  ( v(i) < pivot )
+                i = i + 1
+             end do
+             if ( i < j ) then
+                temp=v(i); v(i)=v(j); v(j)= temp
+             elseif ( i == j ) then
+                partition = i+1
+                return
+             else
+                partition = i
+             end if
+          end do
+
+        end function partition          
+           
+      
+
 
     SUBROUTINE IBUBLE(LIST,NLIST)
 
       INTEGER NLIST,LIST(NLIST)
       INTEGER I,J,II
+
+      print*, LIST(NLIST)
+
       do I=1,NLIST
          do J=2,NLIST-I+1
             IF(LIST(J-1).GT.LIST(J)) THEN
