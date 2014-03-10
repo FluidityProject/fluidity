@@ -473,10 +473,10 @@
 
 
                ! Perform a bubble sort...
-               CALL IBUBLE( COLOR_IN_ROW( 1 : COUNT3 ), COUNT3 ) 
                IF ( COUNT3 == 0 ) THEN
                   COUNT2 = 0
                ELSE
+                  CALL IBUBLE( COLOR_IN_ROW( 1 : COUNT3 ), COUNT3 ) 
                   COUNT2 = 1
                   I = 1
                   COLOR_IN_ROW2( COUNT2 ) = COLOR_IN_ROW( I )
@@ -608,7 +608,7 @@
       INTEGER NLIST,LIST(NLIST)
       INTEGER I,J,II
       do I=1,NLIST
-         do J=2,NLIST
+         do J=2,NLIST-I+1
             IF(LIST(J-1).GT.LIST(J)) THEN
                !     SWOP
                II=LIST(J-1)
