@@ -429,7 +429,8 @@
          REAL, DIMENSION( :, : ), allocatable :: COLOR_VEC_MANY, CMC_COLOR_VECC_MANY, CMC_COLOR_VEC2C_MANY
          REAL, DIMENSION( :, : ), allocatable :: CDPC_MANY
          REAL, DIMENSION( :, :, :, : ), allocatable :: CDP_MANY
-         REAL, DIMENSION( :, : ), allocatable :: DU_MANY, DV_MANY, DW_MANY, DU_LONG_MANY 
+         REAL, DIMENSION( :, : ), allocatable :: DU_MANY, DV_MANY, DW_MANY
+         REAL, DIMENSION( :, :, :, : ), allocatable :: DU_LONG_MANY 
          REAL, DIMENSION( :, : ), allocatable :: CMC_COLOR_VEC_MANY, CMC_COLOR_VEC2_MANY
          INTEGER :: NCOLOR, CV_NOD, CV_JNOD, COUNT, COUNT2, COUNT3, IDIM, IPHASE, CV_COLJ, U_JNOD, CV_JNOD2
          INTEGER :: MAX_COLOR_IN_ROW, ICHOOSE
@@ -542,7 +543,7 @@
               C, NCOLC, FINDC, COLC )
       
          ! DU_LONG = INV_PIVIT_MAT * CDP
-         ALLOCATE( DU_LONG_MANY( NCOLOR, NDIM*NPHASE*U_NONODS ) ) 
+         ALLOCATE( DU_LONG_MANY( NCOLOR, NDIM, NPHASE, U_NONODS ) ) 
 
          CALL PHA_BLOCK_MAT_VEC_MANY( DU_LONG_MANY, INV_PIVIT_MAT, CDP_MANY, U_NONODS, NDIM, NPHASE, NCOLOR, &
               TOTELE, U_NLOC, U_NDGLN )
@@ -552,8 +553,16 @@
          ! DU_LONG = CDP
 
          ALLOCATE( DU_MANY( NCOLOR, NPHASE*U_NONODS ), DV_MANY( NCOLOR, NPHASE*U_NONODS ), DW_MANY( NCOLOR, NPHASE*U_NONODS ) ) 
+         DU_MANY = 0.0 ; DV_MANY = 0.0 ; DW_MANY = 0.0
+
          DO KVEC = 1, NCOLOR
-            CALL ULONG_2_UVW( DU_MANY( KVEC, : ), DV_MANY( KVEC, : ), DW_MANY( KVEC, : ), DU_LONG_MANY( KVEC, : ), U_NONODS, NDIM, NPHASE )
+            DO IPHASE = 1, NPHASE
+               DU_MANY(  KVEC, 1 + ( IPHASE - 1 ) * U_NONODS : U_NONODS + ( IPHASE - 1 ) * U_NONODS ) =  DU_LONG_MANY( KVEC, 1, IPHASE, : )
+               IF( NDIM >= 2 ) &
+                    DV_MANY( KVEC, 1 + ( IPHASE - 1 ) * U_NONODS : U_NONODS + ( IPHASE - 1 ) * U_NONODS ) = DU_LONG_MANY( KVEC, 2, IPHASE, : )
+               IF( NDIM >= 3 ) &
+                    DW_MANY( KVEC, 1 + ( IPHASE - 1 ) * U_NONODS : U_NONODS + ( IPHASE - 1 ) * U_NONODS ) = DU_LONG_MANY( KVEC, 3, IPHASE, : )
+            END DO
          END DO
 
          ALLOCATE( CMC_COLOR_VEC_MANY( NCOLOR, CV_NONODS ) ) 
@@ -566,6 +575,7 @@
             CALL CT_MULT_WITH_C_MANY( CMC_COLOR_VEC2_MANY, DU_LONG_MANY, CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLOR, &
                  C, NCOLC, FINDC, COLC )
          END IF
+
          DEALLOCATE( DU_LONG_MANY )
          DEALLOCATE( DU_MANY, DV_MANY, DW_MANY ) 
 
@@ -1083,17 +1093,13 @@
       ! U = BLOCK_MAT * CDP
       INTEGER, intent( in )  :: U_NONODS, NDIM, NPHASE, TOTELE, U_NLOC, NBLOCK
       INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) ::  U_NDGLN
-      REAL, DIMENSION( NBLOCK, U_NONODS * NDIM * NPHASE ), intent( inout ) :: U
+      REAL, DIMENSION( NBLOCK, NDIM, NPHASE, U_NONODS ), intent( inout ) :: U
       REAL, DIMENSION( U_NLOC * NDIM * NPHASE, U_NLOC * NDIM * NPHASE, TOTELE ), intent( in ), target :: BLOCK_MAT
       REAL, DIMENSION( NBLOCK, NDIM, NPHASE, U_NONODS ), intent( in ) :: CDP
-      ! Local 
-      real, dimension( :, :, :, : ), allocatable :: U_CONV
-
+      ! Local
       INTEGER :: ELE, U_ILOC, U_INOD, IDIM, IPHASE, I, J, U_JLOC, U_JNOD, JDIM, JPHASE, II, JJ, IORIG
-
-      ALLOCATE( U_CONV( NBLOCK, NDIM, NPHASE, U_NONODS ) )
       
-      U_CONV = 0.0 
+      U = 0.0 
       Loop_Elements: DO ELE = 1, TOTELE
 
          Loop_VelocNodsJ: DO U_JLOC = 1, U_NLOC
@@ -1112,8 +1118,8 @@
                            I = IDIM+(IPHASE-1)*NDIM+(U_ILOC-1)*NDIM*NPHASE
                            II= I + (ELE-1)*NDIM*NPHASE*U_NLOC
                           
-                           U_CONV( :, IDIM, IPHASE, U_INOD ) = U_CONV( :, IDIM, IPHASE, U_INOD ) &
-                                + BLOCK_MAT( I, J, ELE ) *  CDP( :, JDIM, JPHASE, U_JNOD )
+                           U( :, IDIM, IPHASE, U_INOD ) = U( :, IDIM, IPHASE, U_INOD ) &
+                                + BLOCK_MAT( I, J, ELE ) * CDP( :, JDIM, JPHASE, U_JNOD )
                         
                         END DO Loop_DimensionsI
                      END DO Loop_PhasesI
@@ -1122,20 +1128,6 @@
             END DO Loop_PhasesJ
          END DO Loop_VelocNodsJ
       END DO Loop_Elements
-
-      DO ELE = 1, TOTELE
-         DO U_ILOC = 1, U_NLOC
-            U_INOD = U_NDGLN( (ELE-1)*U_NLOC+ U_ILOC )
-            DO IPHASE = 1, NPHASE
-               DO IDIM = 1, NDIM
-                  I = IDIM + (IPHASE-1)*NDIM+(U_ILOC-1)*NDIM*NPHASE
-                  II= I + (ELE-1)*NDIM*NPHASE*U_NLOC
-                  IORIG = U_INOD + (IPHASE-1)*NDIM*U_NONODS + (IDIM-1)*U_NONODS
-                  U( :, IORIG ) = U_CONV( :, IDIM, IPHASE, U_INOD )
-               END DO
-            END DO
-         END DO
-      END DO
 
       RETURN
 
@@ -1408,7 +1400,7 @@
       implicit none
       ! DP = (C)^T U_LONG
       INTEGER, intent( in ) :: CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLC, NBLOCK
-      REAL, DIMENSION( :, : ), intent( in ) :: U_LONG
+      REAL, DIMENSION( :, :, :, : ), intent( in ) :: U_LONG
       REAL, DIMENSION( :, : ), intent( inout )  :: DP
       REAL, DIMENSION( : ), intent( in ) :: C
       INTEGER, DIMENSION( : ), intent( in ) ::FINDC
@@ -1416,7 +1408,6 @@
       ! Local variables
       INTEGER :: U_INOD, COUNT, P_JNOD, IPHASE, I1, IDIM, COUNT_DIM_PHA
 
-      !CDP = 0.0
       DP = 0.0
 
       Loop_VelNodes: DO U_INOD = 1, U_NONODS
@@ -1428,8 +1419,7 @@
                Loop_Dim: DO IDIM = 1, NDIM
                   COUNT_DIM_PHA = COUNT + NCOLC*(IDIM-1) + NCOLC*NDIM*(IPHASE-1)
                   I1 = U_INOD + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM * U_NONODS
-                  !CDP( I1 ) = CDP( I1 ) + C( COUNT_DIM_PHA ) * DP( P_JNOD )
-                  DP( :, P_JNOD ) = DP( :, P_JNOD ) + C( COUNT_DIM_PHA ) * U_LONG( :, I1 )
+                  DP( :, P_JNOD ) = DP( :, P_JNOD ) + C( COUNT_DIM_PHA ) * U_LONG( :, IDIM, IPHASE, U_INOD )
                END DO Loop_Dim
             END DO Loop_Phase
 
