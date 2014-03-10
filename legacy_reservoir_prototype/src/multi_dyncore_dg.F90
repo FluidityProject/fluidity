@@ -1402,7 +1402,6 @@
 
          ELSE
 
-
             !ewrite(3,*) 'before velocity solve:'
             !ewrite(3,*) 'up_vel', up_vel
             !ewrite(3,*) 'u_rhs', u_rhs
@@ -1541,8 +1540,7 @@
 
          ! Use a projection method
          ! CDP = C * DP
-         CALL C_MULT2( CDP, DP, CV_NONODS, U_NONODS, NDIM, NPHASE, &
-              C, NCOLC, FINDC, COLC)
+         CALL C_MULT2( CDP, DP, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
 
          !do count = 1, ndim
          !   do iphase = 1, nphase
