@@ -49,7 +49,6 @@
 
     private :: UVW_2_ULONG, &
          CV_ASSEMB_FORCE_CTY_PRES, &
-         FORM_PRES_EQN, &
          CV_ASSEMB_FORCE_CTY, &
          PUT_MOM_C_IN_GLOB_MAT, &
          PUT_CT_IN_GLOB_MAT, &
@@ -2056,74 +2055,26 @@
            IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD,scale_momentum_by_volume_fraction ,&
             StorageIndexes)
 
-      IF(.NOT.GLOBAL_SOLVE) THEN
+      IF ( .NOT.GLOBAL_SOLVE ) THEN
          ! form pres eqn. 
-         CALL FORM_PRES_EQN(   &
-              CV_NONODS, U_NONODS, NDIM, NPHASE, &
-              C,  NCOLC, FINDC, COLC, &
+
+         CALL PHA_BLOCK_INV( PIVIT_MAT, TOTELE, U_NLOC * NPHASE * NDIM )
+
+         CALL COLOR_GET_CMC_PHA( CV_NONODS, U_NONODS, NDIM, NPHASE, &
+              NCOLC, FINDC, COLC, &
               PIVIT_MAT,  &
               TOTELE, U_NLOC, U_NDGLN, &
-              CT, NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, MASS_MN_PRES, &
-              NCOLCMC, FINDCMC, COLCMC, CMC, CMC_PRECON, IGOT_CMC_PRECON )
+              NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, &
+              CMC, CMC_PRECON, IGOT_CMC_PRECON, NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, &
+              C, CT )
 
-      ENDIF
+      END IF
 
       DEALLOCATE( ACV )
 
       ewrite(3,*) 'Leaving CV_ASSEMB_FORCE_CTY_PRES'
 
     END SUBROUTINE CV_ASSEMB_FORCE_CTY_PRES
-
-
-
-
-    SUBROUTINE FORM_PRES_EQN(   &
-         CV_NONODS, U_NONODS, NDIM, NPHASE, &
-         C, NCOLC, FINDC, COLC, &
-         PIVIT_MAT,  &
-         TOTELE, U_NLOC, U_NDGLN, &
-         CT, NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, MASS_MN_PRES, &
-         NCOLCMC, FINDCMC, COLCMC, CMC, CMC_PRECON, IGOT_CMC_PRECON ) 
-      implicit none
-
-      ! Form pressure eqn only if .not. GLOBAL_SOLVE ready for using a projection method. 
-      INTEGER, intent( in ) :: CV_NONODS, U_NONODS,  &
-           NDIM, NPHASE, NCOLC, TOTELE, U_NLOC, NCOLCT, NCOLCMC, IGOT_CMC_PRECON
-      INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN 
-      REAL, DIMENSION( : ), intent( in ) :: C
-      INTEGER, DIMENSION( : ), intent( in ) :: FINDC
-      INTEGER, DIMENSION( : ), intent( in ) :: COLC
-      REAL, DIMENSION( : , : , : ), intent( inout ) :: PIVIT_MAT
-      REAL, DIMENSION( : ), intent( inout ) :: CT
-      INTEGER, DIMENSION( : ), intent( in ) :: FINDCT
-      INTEGER, DIMENSION( : ), intent( in ) :: COLCT
-      REAL, DIMENSION( : ), intent( in ) :: DIAG_SCALE_PRES
-      INTEGER, DIMENSION( : ), intent( in ) :: FINDCMC
-      INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
-      REAL, DIMENSION( : ), intent( inout ) :: CMC, MASS_MN_PRES
-      REAL, DIMENSION( : ), intent( inout ) :: CMC_PRECON
-
-      ! Local variables
-!      REAL, DIMENSION( :, :, : ), allocatable :: INV_PIVIT_MAT
-
-!      ALLOCATE( INV_PIVIT_MAT( U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM, TOTELE ))
-!      CALL PHA_BLOCK_INV( INV_PIVIT_MAT, PIVIT_MAT, TOTELE, U_NLOC * NPHASE * NDIM )
-      CALL PHA_BLOCK_INV( PIVIT_MAT, TOTELE, U_NLOC * NPHASE * NDIM )
-
-      CALL COLOR_GET_CMC_PHA( CV_NONODS, U_NONODS, NDIM, NPHASE, &
-           NCOLC, FINDC, COLC, &
-           PIVIT_MAT,  &
-           TOTELE, U_NLOC, U_NDGLN, &
-           NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, &
-           CMC, CMC_PRECON, IGOT_CMC_PRECON, NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, &
-           C, CT )
-
-!      DEALLOCATE( INV_PIVIT_MAT )
-
-      ewrite(3,*) 'Leaving FORM_PRES_EQN'
-
-    END SUBROUTINE FORM_PRES_EQN
-
 
 
 

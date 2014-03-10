@@ -885,26 +885,16 @@
     SUBROUTINE PHA_BLOCK_INV( PIVIT_MAT, TOTELE, NBLOCK )
       implicit none
       INTEGER, intent( in ) :: TOTELE, NBLOCK
-      REAL, DIMENSION( : , : , : ), intent( inout ), CONTIGUOUS ::  PIVIT_MAT
+      REAL, DIMENSION( : , : , : ), intent( inout ), CONTIGUOUS :: PIVIT_MAT
       ! Local variables
       INTEGER :: ELE
 
-
       DO ELE = 1, TOTELE
-
-!         INV_PIVIT_MAT(:,:,ele)=PIVIT_MAT(:,:,ele)
-
-!         CALL MATDMATINV( PIVIT_MAT(:,:,ele), INV_PIVIT_MAT(:,:,ele), NBLOCK )
-         CALL MATINV( PIVIT_MAT(:,:,ele), NBLOCK, nblock )
-
+         CALL MATINV( PIVIT_MAT( :, :, ele ), NBLOCK, NBLOCK )
       END DO
 
-
-      RETURN 
-
+      RETURN
     END SUBROUTINE PHA_BLOCK_INV
-
-
 
 
 
