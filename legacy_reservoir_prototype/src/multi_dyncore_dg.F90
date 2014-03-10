@@ -1254,26 +1254,22 @@
       integer, dimension(:), intent(inout) :: StorageIndexes
       ! Local Variables
       LOGICAL, PARAMETER :: GLOBAL_SOLVE = .FALSE.
+      ! If IGOT_CMC_PRECON=1 use a sym matrix as pressure preconditioner,=0 else CMC as preconditioner as well.
+      INTEGER, PARAMETER :: IGOT_CMC_PRECON = 0
 
       REAL, DIMENSION( : ), allocatable :: CT, CT_RHS, DIAG_SCALE_PRES, &
            U_RHS, MCY_RHS, C, MCY, &
            CMC, CMC_PRECON, MASS_MN_PRES, MASS_CV, P_RHS, UP, U_RHS_CDP, DP, &
-           CDP, DU_VEL, UP_VEL, DU, DV, DW, DGM_PHA, DIAG_P_SQRT
+           CDP, DU_VEL, UP_VEL, DU, DV, DW, DGM_PHA, DIAG_P_SQRT, ACV
       ! this is the pivit matrix to use in the projection method...
-      REAL, DIMENSION( :, :, : ), allocatable :: PIVIT_MAT 
-      INTEGER :: CV_NOD, COUNT, CV_JNOD, IPHASE, ele, x_nod1, x_nod2, x_nod3, cv_iloc,&
-           cv_nod1, cv_nod2, cv_nod3, mat_nod1, u_iloc, u_nod, u_nod_pha, &  !u_nloc_lev, n_nloc_lev, &
-           ndpset, IGOT_CMC_PRECON
-      REAL :: der1, der2, der3, uabs, rsum,xc,yc
+      REAL, DIMENSION( :, :, : ), allocatable :: PIVIT_MAT
+      INTEGER :: CV_NOD, COUNT, CV_JNOD, IPHASE, ele, x_nod1, x_nod2, x_nod3, cv_iloc, &
+           cv_nod1, cv_nod2, cv_nod3, mat_nod1, u_iloc, u_nod, u_nod_pha, ndpset
+      REAL :: der1, der2, der3, uabs, rsum, xc, yc
       LOGICAL :: JUST_BL_DIAG_MAT, NO_MATRIX_STORE, SCALE_P_MATRIX
-      REAL, DIMENSION( : ), allocatable :: ACV
-
-
 
       ewrite(3,*) 'In FORCE_BAL_CTY_ASSEM_SOLVE'
 
-! If IGOT_CMC_PRECON=1 use a sym matrix as pressure preconditioner,=0 else CMC as preconditioner as well.
-      IGOT_CMC_PRECON=0
 
       ALLOCATE( CT( NCOLCT * NDIM * NPHASE )) ; CT=0.
       ALLOCATE( CT_RHS( CV_NONODS )) ; CT_RHS=0.
@@ -1298,7 +1294,7 @@
       ALLOCATE( DW( U_NONODS * NPHASE )) ; DW = 0.
       ALLOCATE( PIVIT_MAT( U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM, TOTELE )) ; PIVIT_MAT=0.0
       ALLOCATE( DGM_PHA( NCOLDGM_PHA )) ; DGM_PHA=0.
-      ALLOCATE( ACV( NCOLACV )) 
+      ALLOCATE( ACV( NCOLACV )) ; ACV = 0.
 
 
       CALL CV_ASSEMB_FORCE_CTY( state, &
