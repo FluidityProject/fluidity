@@ -2292,6 +2292,8 @@
           type(scalar_field), pointer :: nfield
           type(tensor_field), pointer :: mfield
 
+          return
+
           mfield=>extract_tensor_field(mstate,"Packed"//name)
 
           nfield=>extract_scalar_field(nstate,name)
@@ -2301,6 +2303,7 @@
           end if
           deallocate(nfield%val)
           nfield%val=>mfield%val(icomp,iphase,:)
+          nfield%val_stride=ncomp*nphase
           nfield%wrapped=.true.
           
 
@@ -2315,6 +2318,8 @@
           type(vector_field), pointer :: nfield
           type(tensor_field), pointer ::mfield
           integer :: ndim,rdim, nonods
+
+          return 
 
           nfield=>extract_vector_field(nstate,name)
           mfield=>extract_tensor_field(mstate,"Packed"//name)
@@ -2342,6 +2347,8 @@
           type(scalar_field), pointer :: nfield
           type(tensor_field), pointer :: mfield
 
+          return
+
           mfield=>extract_tensor_field(mst,"Packed"//name)
 
           do ip=1,nphase
@@ -2356,6 +2363,7 @@
                 end if
                 deallocate(nfield%val)
                 nfield%val=>mfield%val(ic,ip,:)
+                nfield%val_stride=ncomp*nphase
                 nfield%wrapped=.true.
              end if
           end do
