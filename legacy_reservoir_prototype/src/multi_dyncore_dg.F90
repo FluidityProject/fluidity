@@ -1274,12 +1274,15 @@
       REAL, DIMENSION( : ), allocatable :: CT, CT_RHS, DIAG_SCALE_PRES, &
            U_RHS, MCY_RHS, MCY, &
            CMC, CMC_PRECON, MASS_MN_PRES, MASS_CV, P_RHS, UP, U_RHS_CDP, DP, &
-           CDP, DU_VEL, UP_VEL, DU, DV, DW, DGM_PHA, DIAG_P_SQRT, ACV
-      REAL, DIMENSION( :, :, : ), allocatable :: PIVIT_MAT, C
+           DU_VEL, UP_VEL, DU, DV, DW, DGM_PHA, DIAG_P_SQRT, ACV
+      REAL, DIMENSION( :, :, : ), allocatable :: PIVIT_MAT, C, CDP
       INTEGER :: CV_NOD, COUNT, CV_JNOD, IPHASE, ele, x_nod1, x_nod2, x_nod3, cv_iloc, &
            cv_nod1, cv_nod2, cv_nod3, mat_nod1, u_iloc, u_nod, u_nod_pha, ndpset
       REAL :: der1, der2, der3, uabs, rsum, xc, yc
       LOGICAL :: JUST_BL_DIAG_MAT, NO_MATRIX_STORE, SCALE_P_MATRIX
+
+      INTEGER :: I, IDIM, U_INOD 
+
 
       ewrite(3,*) 'In FORCE_BAL_CTY_ASSEM_SOLVE'
 
@@ -1297,9 +1300,9 @@
       ALLOCATE( MASS_CV( CV_NONODS )) ; MASS_CV=0.
       ALLOCATE( P_RHS( CV_NONODS )) ; P_RHS=0.
       ALLOCATE( UP( NLENMCY )) ; UP=0.
-      ALLOCATE( U_RHS_CDP( U_NONODS * NDIM * NPHASE )) ; U_RHS_CDP=0.
+      ALLOCATE( U_RHS_CDP( NDIM * NPHASE * U_NONODS )) ; U_RHS_CDP=0.
       ALLOCATE( DP( CV_NONODS )) ; DP = 0.
-      ALLOCATE( CDP( U_NONODS * NDIM * NPHASE )) ; CDP = 0. 
+      ALLOCATE( CDP( NDIM, NPHASE, U_NONODS )) ; CDP = 0. 
       ALLOCATE( DU_VEL( U_NONODS * NDIM * NPHASE )) ; DU_VEL = 0.
       ALLOCATE( UP_VEL( U_NONODS * NDIM * NPHASE )) ; UP_VEL = 0.
       ALLOCATE( DU( U_NONODS * NPHASE )) ; DU = 0.
@@ -1387,17 +1390,30 @@
 
       ELSE ! solve using a projection method
 
-         ! Put pressure in rhs of force balance eqn:  CDP=C*P
+         ! Put pressure in rhs of force balance eqn:  CDP = C * P
          CALL C_MULT2( CDP, P, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
 
-         U_RHS_CDP = U_RHS + CDP
+         U_RHS_CDP = U_RHS
+
+         DO ELE = 1, TOTELE
+            DO U_ILOC = 1, U_NLOC
+               U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
+               DO IPHASE = 1, NPHASE
+                  DO IDIM = 1, NDIM
+                     I = U_INOD + (IDIM-1)*U_NONODS + (IPHASE-1)*NDIM*U_NONODS
+                     U_RHS_CDP( I ) = U_RHS_CDP( I ) + CDP( IDIM, IPHASE, U_INOD )
+                  END DO
+               END DO
+            END DO
+         END DO
+
 
          CALL UVW_2_ULONG( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
 
          IF ( JUST_BL_DIAG_MAT .OR. NO_MATRIX_STORE ) THEN
 
             ! DU = BLOCK_MAT * CDP
-            CALL PHA_BLOCK_MAT_VEC( UP_VEL, PIVIT_MAT, U_RHS_CDP, U_NONODS, NDIM, NPHASE, &
+            CALL PHA_BLOCK_MAT_VEC_old( UP_VEL, PIVIT_MAT, U_RHS_CDP, U_NONODS, NDIM, NPHASE, &
                  TOTELE, U_NLOC, U_NDGLN )
 
          ELSE

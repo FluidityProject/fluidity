@@ -707,14 +707,15 @@
       logical, DIMENSION( : ), allocatable :: NEED_COLOR
       logical, DIMENSION( CV_NONODS ) :: to_color
       REAL, DIMENSION( : ), allocatable :: COLOR_VEC, CMC_COLOR_VEC, CMC_COLOR_VEC2
-      REAL, DIMENSION( : ), allocatable :: CDP, DU, DV, DW, DU_LONG
+      REAL, DIMENSION( : ), allocatable :: DU, DV, DW, DU_LONG
+      REAL, DIMENSION( :, :, : ), allocatable :: CDP
       INTEGER :: NCOLOR, CV_NOD, CV_JNOD, COUNT, COUNT2, IDIM, IPHASE, CV_COLJ, U_JNOD, CV_JNOD2
       INTEGER :: I, ELE,u_inod,u_nod
       REAL :: RSUM
 
       ALLOCATE( NEED_COLOR( CV_NONODS ) )
       ALLOCATE( COLOR_VEC( CV_NONODS ) )
-      ALLOCATE( CDP( U_NONODS * NDIM * NPHASE ) )
+      ALLOCATE( CDP( NDIM, NPHASE, U_NONODS ) )
       ALLOCATE( DU_LONG( U_NONODS * NDIM * NPHASE ) )
       ALLOCATE( DU( U_NONODS * NPHASE ) )
       ALLOCATE( DV( U_NONODS * NPHASE ) )
@@ -863,16 +864,14 @@
       RETURN
     END SUBROUTINE PHA_BLOCK_INV
 
-
-
-     SUBROUTINE PHA_BLOCK_MAT_VEC( U, BLOCK_MAT, CDP, U_NONODS, NDIM, NPHASE, &
+     SUBROUTINE PHA_BLOCK_MAT_VEC_old( U, BLOCK_MAT, CDP, U_NONODS, NDIM, NPHASE, &
          TOTELE, U_NLOC, U_NDGLN ) 
       implicit none
       ! U = BLOCK_MAT * CDP
       INTEGER, intent( in )  :: U_NONODS, NDIM, NPHASE, TOTELE, U_NLOC
       INTEGER, DIMENSION( : ), intent( in ), target ::  U_NDGLN
       REAL, DIMENSION( : ), intent( inout ) :: U
-      REAL, DIMENSION( :, :,: ), intent( in ), target :: BLOCK_MAT
+      REAL, DIMENSION( :, :, : ), intent( in ), target :: BLOCK_MAT
       REAL, DIMENSION( : ), intent( in ) :: CDP
       ! Local 
       INTEGER :: ELE, U_ILOC, U_INOD, IDIM, IPHASE, I, U_JLOC, U_JNOD, JDIM, JPHASE, J, II, JJ
@@ -906,23 +905,75 @@
          Loop_PhasesJ: DO JPHASE = 1, NPHASE
             Loop_DimensionsJ: DO JDIM = 1, NDIM
                      
-!               J = ( JDIM - 1 ) * U_NONODS + ( JPHASE - 1 ) * NDIM * U_NONODS
+               J = JDIM + (JPHASE-1)*NDIM
                JJ = ( JDIM - 1 ) * U_NLOC + ( JPHASE - 1 ) * NDIM * U_NLOC
 
-               J=JDIM+(JPHASE-1)*NDIM
-
-               lcdp([(J+(i-1)*ndim*nphase,i=1,u_NLOC)])=CDP(U_NOD+(J-1)*U_NONODS)
-               U_NODI([(J+(i-1)*ndim*nphase,i=1,u_NLOC)])=U_NOD+(J-1)*U_NONODS
+               lcdp([(J+(i-1)*ndim*nphase,i=1,u_NLOC)]) = CDP(U_NOD+(J-1)*U_NONODS) ! CDP( JDIM, JPHASE, U_NOD )
+               U_NODI([(J+(i-1)*ndim*nphase,i=1,u_NLOC)]) = U_NOD+(J-1)*U_NONODS
             end do Loop_DimensionsJ
          end do Loop_PhasesJ
-                           
 
-!         LU=U(U_NODI)
-         call dgemv('N',N,N,1.0d0,BLOCK_MAT( : , : ,ele),N,LCDP,1,0.0d0,LU,1)
-         U(U_NODI)=LU
-                           
-!         U( U_NODI) = U( U_NODI ) + matmul(LOC_BLOCK_MAT( : , : ), LCDP( : ))
+         call dgemv( 'N', N, N, 1.0d0, BLOCK_MAT( : , : , ele ), N, LCDP, 1, 0.0d0, LU, 1 )
+         U( U_NODI ) = LU
 
+      END DO Loop_Elements
+
+      RETURN
+
+
+    END SUBROUTINE PHA_BLOCK_MAT_VEC_old
+
+     SUBROUTINE PHA_BLOCK_MAT_VEC( U, BLOCK_MAT, CDP, U_NONODS, NDIM, NPHASE, &
+         TOTELE, U_NLOC, U_NDGLN ) 
+      implicit none
+      ! U = BLOCK_MAT * CDP
+      INTEGER, intent( in )  :: U_NONODS, NDIM, NPHASE, TOTELE, U_NLOC
+      INTEGER, DIMENSION( : ), intent( in ), target ::  U_NDGLN
+      REAL, DIMENSION( : ), intent( inout ) :: U
+      REAL, DIMENSION( :, :, : ), intent( in ), target :: BLOCK_MAT
+      REAL, DIMENSION( :, :, : ), intent( in ) :: CDP
+      ! Local 
+      INTEGER :: ELE, U_ILOC, U_INOD, IDIM, IPHASE, I, U_JLOC, U_JNOD, JDIM, JPHASE, J, II, JJ
+
+      integer, dimension(:), pointer :: U_NOD
+
+      real, dimension(U_NLOC*NDIM*NPHASE) :: lcdp, lu
+      integer, dimension(U_NLOC*NDIM*NPHASE) :: u_nodi
+      integer :: N
+      
+      interface 
+         subroutine dgemv(T,M,N,alpha,MAT,NMAX,X,Xinc,beta,Y,yinc)
+           implicit none
+           character(len=1) :: T
+           integer :: m,n,nmax,xinc,yinc
+           real ::  alpha, beta
+           real, dimension(nmax,n) :: MAT
+           real, dimension(N) :: X
+           real, dimension(M) :: Y
+         end subroutine dgemv
+      end interface
+           
+
+      N=U_NLOC * NDIM * NPHASE
+
+      Loop_Elements: DO ELE = 1, TOTELE
+
+         U_NOD => U_NDGLN(( ELE - 1 ) * U_NLOC +1: ELE * U_NLOC)            
+
+
+         Loop_PhasesJ: DO JPHASE = 1, NPHASE
+            Loop_DimensionsJ: DO JDIM = 1, NDIM
+                     
+               J = JDIM + (JPHASE-1)*NDIM
+               JJ = ( JDIM - 1 ) * U_NLOC + ( JPHASE - 1 ) * NDIM * U_NLOC
+
+               lcdp([(J+(i-1)*ndim*nphase,i=1,u_NLOC)]) = CDP( JDIM, JPHASE, U_NOD )
+               U_NODI([(J+(i-1)*ndim*nphase,i=1,u_NLOC)]) = U_NOD+(J-1)*U_NONODS
+            end do Loop_DimensionsJ
+         end do Loop_PhasesJ
+
+         call dgemv( 'N', N, N, 1.0d0, BLOCK_MAT( : , : , ele ), N, LCDP, 1, 0.0d0, LU, 1 )
+         U( U_NODI ) = LU
 
       END DO Loop_Elements
 
@@ -930,6 +981,22 @@
 
 
     END SUBROUTINE PHA_BLOCK_MAT_VEC
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1272,8 +1339,7 @@
       implicit none
       ! CDP=C*DP
       INTEGER, intent( in ) :: CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLC
-      !REAL, DIMENSION( NDIM, NPHASE, U_NONODS ), intent( inout ) :: CDP
-      REAL, DIMENSION( NDIM * NPHASE * U_NONODS ), intent( inout ) :: CDP
+      REAL, DIMENSION( NDIM, NPHASE, U_NONODS ), intent( inout ) :: CDP
       REAL, DIMENSION( CV_NONODS ), intent( in )  :: DP
       REAL, DIMENSION( NDIM, NPHASE, NCOLC ), intent( in ) :: C
       INTEGER, DIMENSION( U_NONODS + 1 ), intent( in ) ::FINDC
@@ -1283,24 +1349,10 @@
 
       CDP = 0.0
 
-      !DO U_INOD = 1, U_NONODS
-      !   DO COUNT = FINDC( U_INOD ), FINDC( U_INOD + 1 ) - 1
-      !      P_JNOD = COLC( COUNT )
-      !      CDP( :, :, U_INOD ) = CDP( :, :, U_INOD ) + C( :, :, COUNT ) * DP( P_JNOD )
-      !   END DO
-      !END DO
-
       DO U_INOD = 1, U_NONODS
          DO COUNT = FINDC( U_INOD ), FINDC( U_INOD + 1 ) - 1
             P_JNOD = COLC( COUNT )
-     
-            DO IPHASE = 0, NPHASE-1
-               DO IDIM = 1, NDIM
-                  DIM_PHA = (IDIM-1) + NDIM*IPHASE
-                  CDP( U_INOD + DIM_PHA * U_NONODS ) = CDP( U_INOD + DIM_PHA * U_NONODS ) + C( IDIM, IPHASE+1, COUNT ) * DP( P_JNOD )
-               END DO
-            END DO
-         
+            CDP( :, :, U_INOD ) = CDP( :, :, U_INOD ) + C( :, :, COUNT ) * DP( P_JNOD )
          END DO
       END DO
 
