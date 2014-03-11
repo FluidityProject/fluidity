@@ -2161,13 +2161,16 @@
              vfield%option_path=component%option_path
              deallocate(vfield%val)
              vfield%val=>component%val(icomp,:,:)
+             vfield%wrapped=.true.
              call insert(mcstate(icomp),vfield,vfield%name)
              call deallocate(vfield)
+
 
              call allocate(vfield,nphase,component%mesh,"ComponentDensity",field_type=FiELD_TYPE_DEFERRED)
              vfield%option_path=component%option_path
              deallocate(vfield%val)
              vfield%val=>component%val(icomp,:,:)
+             vfield%wrapped=.true.
              call insert(mcstate(icomp),vfield,vfield%name)
              call deallocate(vfield)
              
@@ -2193,6 +2196,7 @@
 
                    deallocate(vfield%val)
                    vfield%val=>tfield%val(:,iphase,:)
+                   vfield%wrapped=.true.
                    call insert(mpstate(iphase),vfield,vfield%name)
                    call deallocate(vfield)
                 end do
