@@ -35,9 +35,14 @@ module cv_advection
   use global_parameters, only: option_path_len, timestep
   use futils, only: int2str
   use adapt_state_prescribed_module
+  use sparsity_patterns
 
   use shape_functions
   use matrix_operations
+
+  INTEGER, PARAMETER :: WIC_T_BC_DIRICHLET = 1, WIC_T_BC_ROBIN = 2, &
+       WIC_T_BC_DIRI_ADV_AND_ROBIN = 3, WIC_D_BC_DIRICHLET = 1, &
+       WIC_U_BC_DIRICHLET = 1
 
 contains
 
@@ -5569,150 +5574,47 @@ contains
     end SUBROUTINE CV_GET_ALL_LIMITED_VALS
 
 
-    function CV_count_faces( SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM,&
+    function CV_count_faces( packed_state,&
          CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
          CV_ELE_TYPE,  &
          NPHASE,  &
          CV_NLOC, U_NLOC, X_NLOC, &
-         CV_NDGLN, X_NDGLN, U_NDGLN, &
          CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-         X, Y, Z,&
-         MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
+         MAT_NLOC, MAT_NONODS, &
          NDIM, &
-         NCOLM, FINDM, COLM, MIDM, &
-         XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
-         FINDCMC, COLCMC, NCOLCMC ) result(global_face)
+         XU_NLOC, face_sparsity) result(global_face)
 
       !  =====================================================================
-      !     This subroutine gets the limited face values for a variable
+      !     This subroutine counts then number of faces in the control volume space
       !
-      !     This routine uses a Control Volume (CV) formulation to compute
-      !     the advection terms. The general procedure is as follows:
-      !
-      !     This procedure is implemented by considering the CV to be made up
-      !     of a number of sub-control-volumes, which represent the part of
-      !     the control volume within a given element.  The assembly of terms
-      !     considers each of these sub-CVs in turn, calculating (and limiting)
-      !     the flux across sub-CV faces that are external to the CV...
-      !
-      !     To define the "upwind" value of the field variable, which is
-      !     necessary for the limiting scheme, either:
-      !
-      !        A. The upwind value of the field variable to be advected is
-      !           found by interpolation and stored in a matrix (TUPWIND)
-      !        B. The neighbouring nodes are searched for the local maximum
-      !           and minimum
-      !
-      !     The subroutine has several options...
-      !
-      !     Discretisation option
-      !     ---------------------
-      !      - The estimate of the face value may be determined in one of
-      !        several ways.
-      !      - The face value may be centered in time by either a specified
-      !        CV_THETA value, or a non-linear CV_THETA value that is determined
-      !        automatically.
-      !      - The face value may be limited using a univeral-limiter-type
-      !        scheme, or a limited-downwind scheme that is ideal for INTERFACE
-      !        TRACKING.  Alternatively no limiting can be applied.
-      !
-      !     These options are defined by the value of CV_DISOPT, which corresponds
-      !     to the clast digit of the GEM option NDISOT for the field in question.
-      !
-      !     CV_DISOPT=discretisation option in space and time
-      !     ------------------------------------------------------------------
-      !     CV_DISOPT   Method for face-value est.    Time-stepping     Limiting
-      !     ------------------------------------------------------------------
-      !       =0      1st order in space          Theta=specified    UNIVERSAL
-      !       =1      1st order in space          Theta=non-linear   UNIVERSAL
-      !       =2      Trapezoidal rule in space   Theta=specified    UNIVERSAL
-      !       =2 if isotropic limiter then FEM-quadratic & stratification adjust. Theta=non-linear
-      !       =3      Trapezoidal rule in space   Theta=non-linear   UNIVERSAL
-      !       =4      Finite elements in space    Theta=specified    UNIVERSAL
-      !       =5      Finite elements in space    Theta=non-linear   UNIVERSAL
-      !       =6      Finite elements in space    Theta=specified    NONE
-      !       =7      Finite elements in space    Theta=non-linear   NONE
-      !       =8      Finite elements in space    Theta=specified    DOWNWIND+
-      !       =9      Finite elements in space    Theta=non-linear   DOWNWIND+
-      !
-      !     CV_DG_VEL_INT_OPT=interface velocity calculation option between elements
-      !
-      !     Limiting scheme
-      !     ---------------
-      !     The limiting scheme is defined in the subroutine NVDFUNNEW;
-      !     the limited values are computed in subroutine ANONVDLIM/ONVDLIM.
-      !
-      !     ONVDLIM is the original limiting algorithm
-      !
-      !     ANONVDLIM is a new anisoptropic limiting algorithm, which is
-      !     called if either ALOLIM=1 (where ALOLIM is an option flag set
-      !     in this subroutine), or if the interface tracking limiting option
-      !     is selected (CV_DISOPT=8/9).  ***In general ALOLIM appears to be set to 1 (GSC)
-      !
-      !     NOTE: ANONVDLIM only works for TETS; for all other element types
-      !     ONVDLIM is used.
-      !
-      !
-      !     IMPORTANT INPUTS:
-      !     ----------------
-      !
-      !     CSR_ACV   - Matrix for assembling the advection terms (empty on input)
-      !     CV_RHS      - Right-hand side vector for advection-diffusion terms
-      !     X,Y,Z    - Node co-ordinates
-      !     NU       - Nodal velocity component
-      !     T   - advected field values at nodes
-      !     CV_DISOPT   - The discretisation/limiting option (see above)
-      !     DT       - The time step
-      !     ELE_TYP   - Integer flag definining element type
-      !
-      !     IMPORTANT OUTPUTS:
-      !     -----------------
-      !
-      !
-      !     IMPORTANT LOCAL PARAMETERS:
-      !     --------------------------
-      !
-      !     TIMOPT    - Temporal discretisation option, derived from CV_DISOPT.
-      !                (1 for non-linear theta; 0 for theta specified (THETA))
-      !
-      !
-      !***********************************************************************
 
       ! Inputs/Outputs
       IMPLICIT NONE
+      type(state_type), intent(inout) :: packed_state
       INTEGER, intent( in ) :: CV_NONODS, U_NONODS, X_NONODS, MAT_NONODS, &
            TOTELE, &
            CV_ELE_TYPE, &
            NPHASE, CV_NLOC, U_NLOC, X_NLOC, MAT_NLOC, &
            CV_SNLOC, U_SNLOC, STOTEL, NDIM, &
-           NCOLM, XU_NLOC, NCOLELE, &
-           NCOLCMC
-      INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
-      INTEGER, DIMENSION( : ), intent( in ) ::  X_NDGLN
-      INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
-      INTEGER, DIMENSION( : ), intent( in ) :: XU_NDGLN
-      INTEGER, DIMENSION( : ), intent( in ) :: MAT_NDGLN
-      INTEGER, DIMENSION( : ), intent( in ) :: CV_SNDGLN
-      INTEGER, DIMENSION(: ), intent( in ) :: U_SNDGLN
+           XU_NLOC 
+      INTEGER, DIMENSION( : ), pointer :: CV_NDGLN
+      INTEGER, DIMENSION( : ), pointer ::  X_NDGLN
+      INTEGER, DIMENSION( : ), pointer :: U_NDGLN
+      INTEGER, DIMENSION( : ), pointer :: XU_NDGLN
+      INTEGER, DIMENSION( : ), pointer :: MAT_NDGLN
+      INTEGER, DIMENSION( : ) :: CV_SNDGLN
+      INTEGER, DIMENSION(: )  :: U_SNDGLN
       ! Diagonal scaling of (distributed) pressure matrix (used to treat pressure implicitly)
-      INTEGER, DIMENSION( : ), intent( in ) :: FINDCMC
-      INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
+      INTEGER, DIMENSION( : ), pointer :: FINDCMC, COLCMC
 
-      REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
-      INTEGER, DIMENSION( : ), intent( in ) :: FINDM
-      INTEGER, DIMENSION( : ), intent( in ) :: COLM
-      INTEGER, DIMENSION( : ), intent( in ) :: MIDM
-      INTEGER, DIMENSION( : ), intent( in ) :: FINELE
-      INTEGER, DIMENSION( : ), intent( in ) :: COLELE
-      integer, dimension(:), intent(in) :: SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM
+      INTEGER, DIMENSION( : ), pointer :: FINDM, COLM, MIDM
+      INTEGER, DIMENSION( : ), pointer :: FINELE, COLELE
+      integer, dimension(:), pointer :: SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM
       !character( len = option_path_len ), intent( in ), optional :: option_path_spatial_discretisation
 
 
       ! Local variables
-      INTEGER, PARAMETER :: WIC_T_BC_DIRICHLET = 1, WIC_T_BC_ROBIN = 2, &
-           WIC_T_BC_DIRI_ADV_AND_ROBIN = 3, WIC_D_BC_DIRICHLET = 1, &
-           WIC_U_BC_DIRICHLET = 1
-      LOGICAL, DIMENSION( : ), allocatable :: X_SHARE,LOG_ON_BOUND
+      LOGICAL, DIMENSION( : ), allocatable :: X_SHARE
       LOGICAL, DIMENSION( :, : ), allocatable :: CV_ON_FACE, U_ON_FACE, &
            CVFEM_ON_FACE, UFEM_ON_FACE
       INTEGER, DIMENSION( : ), allocatable :: FINDGPTS, &
@@ -5724,20 +5626,9 @@ contains
       INTEGER, DIMENSION( : , : ), allocatable :: CV_SLOCLIST, U_SLOCLIST, &
            FACE_ELE, CV_NEILOC
       REAL, DIMENSION( : ), allocatable :: CVWEIGHT, CVWEIGHT_SHORT, SCVFEWEIGH, SBCVFEWEIGH, &
-           TMAX, TMIN, TOLDMAX, &
-           TOLDMIN, DENMAX, DENMIN, DENOLDMAX, DENOLDMIN, &
-           TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, &
-           TOLDMIN_2ND_MC, DENMAX_2ND_MC, DENMIN_2ND_MC, DENOLDMAX_2ND_MC, DENOLDMIN_2ND_MC, &
            CVNORMX, &
-           CVNORMY, CVNORMZ, SCVRA, MASS_CV, MASS_ELE, SNDOTQ, SNDOTQOLD,  &
-           FEMT, FEMTOLD, FEMT2, FEMT2OLD, FEMDEN, FEMDENOLD, XC_CV, YC_CV, ZC_CV, &
-           SCVDETWEI, SRA, UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
-           UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2,  &
+           CVNORMY, CVNORMZ, SCVRA, SCVDETWEI, SRA, &
            SUM_CV, ONE_PORE, SELE_OVERLAP_SCALE, &
-           T2MAX, T2MIN, T2OLDMAX, &
-           T2OLDMIN, &
-           T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, &
-           T2OLDMIN_2ND_MC, &
            UP_WIND_NOD, DU, DV, DW, PERM_ELE
       REAL, DIMENSION( : , : ), allocatable :: CVN, CVN_SHORT, CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
            CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT,  &
@@ -5747,8 +5638,7 @@ contains
            SUFEN, SUFENSLX, SUFENSLY, SUFENLX, SUFENLY, SUFENLZ, &
            SBCVN,SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
            SBCVFENLX, SBCVFENLY, SBCVFENLZ, SBUFEN, SBUFENSLX, SBUFENSLY, &
-           SBUFENLX, SBUFENLY, SBUFENLZ, &
-           DUMMY_ZERO_NDIM_NDIM
+           SBUFENLX, SBUFENLY, SBUFENLZ
 
       !        ===> INTEGERS <===
       INTEGER :: CV_NGI, CV_NGI_SHORT, SCVNGI, SBCVNGI, COUNT, JCOUNT, &
@@ -5762,50 +5652,33 @@ contains
            NFACE, X_NODI,  &
            CV_INOD, MAT_NODI, FACE_ITS, NFACE_ITS, &
            CVNOD, XNOD, NSMALL_COLM, COUNT2, NOD
-      !        ===>  REALS  <===
-      REAL :: NDOTQ,& 
-           INCOME, INCOMEOLD, HDC, FVT, FVTOLD, FVT2, FVT2OLD, &
-           FVD, FVDOLD, FTHETA, VTHETA, &
-           FEMDGI, FEMTGI,FEMT2GI, FEMDOLDGI, FEMTOLDGI, FEMT2OLDGI, &
-           TMID, TOLDMID, &
-           DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX, BCZERO, ROBIN1, ROBIN2, &
-           RSUM, &
-           SUM_LIMT, SUM_LIMTOLD, FTHETA_T2, ONE_M_FTHETA_T2OLD, THERM_FTHETA, &
-           W_SUM_ONE1, W_SUM_ONE2, NDOTQNEW, VOLUME
 
-      REAL, PARAMETER :: W_SUM_ONE = 1.
-
-      integer :: cv_inod_ipha, U_NODK_IPHA, IANISOLIM
-      logical :: Have_Temperature_Fields, Have_VolumeFraction_Fields, Have_Components_Fields
-      logical :: overlapping
-      ! Functions...
-      !REAL :: R2NORM, FACE_THETA
       !        ===>  LOGICALS  <===
-      character( len = option_path_len ) :: overlapping_path
-      LOGICAL :: QUAD_OVER_WHOLE_ELE,is_overlapping,integrat_at_gi
+      LOGICAL :: QUAD_OVER_WHOLE_ELE,integrat_at_gi
 
     INTEGER :: GLOBAL_FACE
+    type(csr_sparsity), pointer :: connectivity
+    type(mesh_type), pointer :: cv_mesh, x_mesh, xu_mesh 
+
+    type(csr_sparsity), intent(out), optional :: face_sparsity
+    type(ilist), dimension(totele) :: face_list 
 
     GLOBAL_FACE=0
 
-      overlapping = .false.
-      call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
-           overlapping_path )
-      if( trim( overlapping_path ) == 'overlapping' ) overlapping = .true.
+    connectivity=>extract_csr_sparsity(packed_state,"ElementConnectivity")
+    cv_mesh=>extract_mesh(packed_state,"PressureMesh")
+    cv_ndgln=>cv_mesh%ndglno
+    x_mesh=>extract_mesh(packed_state,"PressureMesh_Continuous")
+    x_ndgln=>cv_mesh%ndglno
+    xu_mesh=>extract_mesh(packed_state,"VelocityMesh_Continuous")
+    xu_ndgln=>cv_mesh%ndglno
 
       ewrite(3,*) 'In CV_FACE_COUNT'
-
-      is_overlapping = .false.
-      call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
-           overlapping_path )
-      if( trim( overlapping_path ) == 'overlapping' ) is_overlapping = .true.
 
       QUAD_OVER_WHOLE_ELE=.FALSE.
       ! If QUAD_OVER_WHOLE_ELE=.true. then dont divide element into CV's to form quadrature.
       call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
            cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
-
-  
 
       ! Allocate memory for the control volume surface shape functions, etc.
 
@@ -5815,8 +5688,6 @@ contains
       ALLOCATE( SCVRA( SCVNGI ))
       ALLOCATE( COLGPTS( CV_NLOC * SCVNGI )) !The size of this vector is over-estimated
       ALLOCATE( FINDGPTS( CV_NLOC + 1 ))
-      ALLOCATE( SNDOTQ( SCVNGI ))
-      ALLOCATE( SNDOTQOLD( SCVNGI ))
       ALLOCATE( CV_ON_FACE( CV_NLOC, SCVNGI ))
       ALLOCATE( CVFEM_ON_FACE( CV_NLOC, SCVNGI ))
       ALLOCATE( U_ON_FACE( U_NLOC, SCVNGI ))
@@ -5927,16 +5798,12 @@ contains
            FINDGPTS, COLGPTS, NCOLGPTS, &
            SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE )
 
-      ALLOCATE( XC_CV( CV_NONODS ))
-      ALLOCATE( YC_CV( CV_NONODS ))
-      ALLOCATE( ZC_CV( CV_NONODS ))
-
 ! **********...ANISOTROPIC LIMITING*******************
 
       ALLOCATE( FACE_ELE( NFACE, TOTELE ) ) ; FACE_ELE = 0
       ! Calculate FACE_ELE
       CALL CALC_FACE_ELE( FACE_ELE, TOTELE, STOTEL, NFACE, &
-           NCOLELE, FINELE, COLELE, CV_NLOC, CV_SNLOC, CV_NONODS, CV_NDGLN, CV_SNDGLN, &
+           size(connectivity%colm), connectivity%findrm, connectivity%colm, CV_NLOC, CV_SNLOC, CV_NONODS, CV_NDGLN, CV_SNDGLN, &
            CV_SLOCLIST, X_NLOC, X_NDGLN )
 
       !     =============== DEFINE THETA FOR TIME-STEPPING ===================
@@ -5976,7 +5843,7 @@ contains
                        MAT_OTHER_LOC, MAT_NLOC, INTEGRAT_AT_GI,  &
                        X_NLOC, XU_NLOC, X_NDGLN, CV_NDGLN, XU_NDGLN, &
                        CV_SNLOC, CVFEM_ON_FACE(:,GI), X_SHARE, X_NONODS, ELE, ELE2,  &
-                       FINELE, COLELE, NCOLELE )
+                       connectivity%findrm,connectivity%colm, size(connectivity%colm) )
 
                   !ewrite(3,*)'================================================================================= '
                   !ewrite(3,*)' ele, cv_iloc, cv_nodi, gi, cv_jloc: ', ele, cv_iloc, cv_nodi, gi, cv_jloc
@@ -6011,22 +5878,18 @@ contains
 
                   global_face=global_face+1
 
+                  
+
                end IF Conditional_integration
             end DO Loop_GCOUNT
          end DO Loop_CV_ILOC
       end DO Loop_Elements
 
       DEALLOCATE( FACE_ELE )
- 
-      DEALLOCATE( XC_CV)
-      DEALLOCATE( YC_CV)
-      DEALLOCATE( ZC_CV)
 
       DEALLOCATE( SCVRA )
       DEALLOCATE( COLGPTS ) !The size of this vector is over-estimated
       DEALLOCATE( FINDGPTS )
-      DEALLOCATE( SNDOTQ )
-      DEALLOCATE( SNDOTQOLD )
       DEALLOCATE( CV_ON_FACE )
       DEALLOCATE( CVFEM_ON_FACE )
       DEALLOCATE( U_ON_FACE )

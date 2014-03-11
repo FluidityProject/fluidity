@@ -201,6 +201,52 @@ void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type
 #endif
 }
 
+void python_add_scalar_noncontiguous(int *sx,double x[],char *name,int *nlen, int *field_type, 
+  char *option_path, int *oplen, char *state,int *slen,
+				     char *mesh_name, int *mesh_name_len, int *stride){
+#ifdef HAVE_NUMPY
+  // Add the Fortran scalar field to the dictionary of the Python interpreter
+  PyObject *pMain = PyImport_AddModule("__main__");
+  PyObject *pDict = PyModule_GetDict(pMain);
+  // Fix the Fortran strings for C and Python
+  char *namec = fix_string(name,*nlen);
+  char *opc = fix_string(option_path,*oplen);
+  char *meshc = fix_string(mesh_name,*mesh_name_len);
+
+  // Create the array
+  python_add_array_double_1d_noncontiguous(x,sx,"s",stride);
+
+  PyObject *pname = PyString_FromString(namec);
+  PyDict_SetItemString(pDict,"n",pname); 
+  PyObject *poptionp = PyString_FromString(opc);
+  PyDict_SetItemString(pDict,"op",poptionp);  
+  PyObject *pft = PyInt_FromLong(*field_type);
+  PyDict_SetItemString(pDict,"ft",pft);  
+
+  PyRun_SimpleString("n = string.strip(n)");
+  PyRun_SimpleString("op = string.strip(op)");
+
+  char *n = fix_string(state,*slen);
+  int tlen=150+*slen+*mesh_name_len;
+  char t[tlen];
+  snprintf(t, tlen, "field = ScalarField(n,s,ft,op); states['%s'].scalar_fields['%s'] = field",n,namec);
+  PyRun_SimpleString(t);
+
+  // Set the mesh for this field
+  snprintf(t, tlen, "field.set_mesh(states['%s'].meshes['%s'])",n,meshc);
+  PyRun_SimpleString(t);
+
+  // Clean up
+  PyRun_SimpleString("del n; del op; del ft; del s; del field");
+  free(namec); 
+  free(opc);
+  free(n);
+  free(meshc);
+  Py_DECREF(pname);
+  Py_DECREF(poptionp);
+  Py_DECREF(pft);
+#endif
+}
 
 void python_add_vector_(int *num_dim, int *s, 
   double x[], 
@@ -463,6 +509,26 @@ void python_add_array_double_1d(double *arr, int *size, char *name){
 #endif
 }
 
+void python_add_array_double_1d_noncontiguous(double *arr, int *size, char *name, int *stride){
+#ifdef HAVE_NUMPY
+  // Add an array in Python which will be availabe under the variable name 'name'
+  PyObject *pMain = PyImport_AddModule("__main__");
+  PyObject *pDict = PyModule_GetDict(pMain);
+
+  // Create our NumPy matrix struct:
+  // Arguments are: 
+  //  number of dimensions (int),
+  //  size of each dimension (int[]),
+  //  data type to determine the width of each element in memory (int)
+  //  the actual data as a byte array(char*)
+
+  // Set the array
+  PyObject *a = PyArray_New(&PyArray_Type,1, (npy_intp[]){*size},PyArray_DOUBLE, (npy_intp[]){*stride}, (char*)arr,0,0,NULL);
+  PyDict_SetItemString(pDict,name,a);
+  Py_DECREF(a);
+#endif
+}
+
 void python_add_array_double_2d(double *arr, int *sizex, int *sizey, char *name){
 #ifdef HAVE_NUMPY
   // Add an array in Python which will be availabe under the variable name 'name'
@@ -509,6 +575,20 @@ void python_add_array_integer_1d(int *arr, int *size, char *name){
   Py_DECREF(a);
 #endif
 }
+
+void python_add_array_integer_1d_noncontiguous(int *arr, int *size, char *name, int *stride){
+#ifdef HAVE_NUMPY
+  // Add an array in Python which will be availabe under the variable name 'name'
+  PyObject *pMain = PyImport_AddModule("__main__");
+  PyObject *pDict = PyModule_GetDict(pMain);
+
+  // Set the array
+  PyObject *a = PyArray_New(&PyArray_Type,1, (npy_intp[]){*size},PyArray_INT, (npy_intp[]){*stride}, (char*)arr,0,0,NULL);
+  PyDict_SetItemString(pDict,name,a);
+  Py_DECREF(a);
+#endif
+}
+
 
 void python_add_array_integer_2d(int *arr, int *sizex, int *sizey, char *name){
 #ifdef HAVE_NUMPY
