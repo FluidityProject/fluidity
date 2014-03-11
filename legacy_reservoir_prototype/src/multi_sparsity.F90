@@ -1439,7 +1439,7 @@ integer, dimension( : ), intent( inout ) ::  finmcy, midmcy, &
            findc, findcmc, midcmc, findm, midm
 integer, dimension(:), pointer ::  colcmc, colm, colmcy, colct, colc, coldgm_pha, colele,colacv
 !!$ Local variables
-      integer, dimension( : ), allocatable :: x_ndgln_p1, x_ndgln, cv_ndgln, p_ndgln, mat_ndgln, u_ndgln, &
+      integer, dimension( : ), pointer :: x_ndgln_p1, x_ndgln, cv_ndgln, p_ndgln, mat_ndgln, u_ndgln, &
            xu_ndgln, cv_sndgln, p_sndgln, u_sndgln, &
            colele_pha, finele_pha, midele_pha, centct, dummyvec 
       integer :: nphase, nstate, ncomp, totele, ndim, stotel, u_nloc, xu_nloc, cv_nloc, x_nloc, x_nloc_p1, &
@@ -1462,12 +1462,10 @@ integer, dimension(:), pointer ::  colcmc, colm, colmcy, colct, colc, coldgm_pha
            cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, x_nonods_p1, p_nonods, dx )
 
 !!$ Calculating Global Node Numbers
-      allocate( x_ndgln_p1( totele * x_nloc_p1 ), x_ndgln( totele * x_nloc ), cv_ndgln( totele * cv_nloc ), &
-           p_ndgln( totele * p_nloc ), mat_ndgln( totele * mat_nloc ), u_ndgln( totele * u_nloc ), &
-           xu_ndgln( totele * xu_nloc ), cv_sndgln( stotel * cv_snloc ), p_sndgln( stotel * p_snloc ), &
+      allocate(  cv_sndgln( stotel * cv_snloc ), p_sndgln( stotel * p_snloc ), &
            u_sndgln( stotel * u_snloc ) )
 
-      x_ndgln_p1 = 0 ; x_ndgln = 0 ; cv_ndgln = 0 ; p_ndgln = 0 ; mat_ndgln = 0 ; u_ndgln = 0 ; xu_ndgln = 0 ; &
+!      x_ndgln_p1 = 0 ; x_ndgln = 0 ; cv_ndgln = 0 ; p_ndgln = 0 ; mat_ndgln = 0 ; u_ndgln = 0 ; xu_ndgln = 0 ; &
            cv_sndgln = 0 ; p_sndgln = 0 ; u_sndgln = 0
 
       call Compute_Node_Global_Numbers( state, &
@@ -1698,8 +1696,7 @@ integer, dimension(:), pointer ::  colcmc, colm, colmcy, colct, colc, coldgm_pha
       !-
       !- Deallocating temporary arrays
       !-
-      deallocate( x_ndgln_p1 ) ; deallocate( x_ndgln ) ; deallocate( cv_ndgln ) ; deallocate( p_ndgln ) ; deallocate( mat_ndgln ) ; &
-      deallocate( u_ndgln) ; deallocate( xu_ndgln ) ; deallocate( cv_sndgln ) ; deallocate( p_sndgln ) ; deallocate( u_sndgln ) ; &
+      deallocate( cv_sndgln ) ; deallocate( p_sndgln ) ; deallocate( u_sndgln ) ; &
       deallocate( centct ) ;
 
       return

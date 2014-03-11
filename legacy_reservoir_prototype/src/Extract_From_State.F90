@@ -48,6 +48,8 @@
     use boundary_conditions
     use futils, only: int2str
     use boundary_conditions_from_options
+ use memory_diagnostics
+ 
 
     !use printout
     !use quicksort
@@ -60,7 +62,7 @@
     public :: Get_Primary_Scalars, Compute_Node_Global_Numbers, Extracting_MeshDependentFields_From_State, &
          Get_ScalarFields_Outof_State, Get_CompositionFields_Outof_State, Get_VectorFields_Outof_State, &
          Extract_TensorFields_Outof_State, Extract_Position_Field, xp1_2_xp2, Get_Ele_Type, Get_Discretisation_Options, &
-         print_from_state, update_boundary_conditions
+         print_from_state, update_boundary_conditions, pack_multistate, finalise_multistate
 
     interface Get_Ndgln
        module procedure Get_Scalar_Ndgln, Get_Vector_Ndgln, Get_Mesh_Ndgln
@@ -167,6 +169,13 @@
       return
     end subroutine Get_Primary_Scalars
 
+    function get_ndglno(mesh) result(ndglno)
+          type(mesh_type) :: mesh
+          integer, dimension(:), pointer  ::  ndglno
+
+          ndglno=> mesh%ndglno
+        end function get_ndglno
+
 
     subroutine Compute_Node_Global_Numbers( state, &
          totele, stotel, x_nloc, x_nloc_p1, cv_nloc, p_nloc, u_nloc, xu_nloc, &
@@ -181,33 +190,41 @@
       type( scalar_field ), pointer :: pressure
       integer, intent( in ) :: totele, stotel, x_nloc, x_nloc_p1, cv_nloc, p_nloc, u_nloc, xu_nloc, &
            cv_snloc, p_snloc, u_snloc
-      integer, dimension( : ) :: cv_ndgln, u_ndgln, p_ndgln, x_ndgln, x_ndgln_p1, xu_ndgln, mat_ndgln, &
-           cv_sndgln, p_sndgln, u_sndgln
+      integer, dimension( : ), pointer  :: cv_ndgln, u_ndgln, p_ndgln, x_ndgln, x_ndgln_p1, xu_ndgln, mat_ndgln
+      integer, dimension( : ) ::  cv_sndgln, p_sndgln, u_sndgln
 !!$ Local variables 
       integer, dimension( : ), allocatable :: u_sndgln2
       integer :: u_nloc2, u_snloc2, sele, u_siloc2, ilev, u_siloc, ele, inod_remain, i
 
+      x_ndgln_p1=>get_ndglno(extract_mesh(state(1),"CoordinateMesh"))
+      x_ndgln=>get_ndglno(extract_mesh(state(1),"PressureMesh_Continuous"))
+      cv_ndgln=>get_ndglno(extract_mesh(state(1),"PressureMesh"))
+      p_ndgln=>get_ndglno(extract_mesh(state(1),"PressureMesh"))
+      mat_ndgln=>get_ndglno(extract_mesh(state(1),"PressureMesh_Discontinuous"))
+      u_ndgln=>get_ndglno(extract_mesh(state(1),"InternalVelocityMesh"))
+      xu_ndgln=>get_ndglno(extract_mesh(state(1),"VelocityMesh_Continuous"))
+
 !!$ Linear mesh coordinate
       positions => extract_vector_field( state( 1 ), 'Coordinate' )
-      call Get_Ndgln( x_ndgln_p1, positions )
-
+!!$      call Get_Ndgln( x_ndgln_p1, positions )
+!!$
 !!$ Positions/Coordinates
       pressure_cg_mesh => extract_mesh( state( 1 ), 'PressureMesh_Continuous' )
-      call Get_Ndgln( x_ndgln, pressure_cg_mesh )
-
+!!$      call Get_Ndgln( x_ndgln, pressure_cg_mesh )
+!!$
 !!$ Pressure, control volume and material
       pressure => extract_scalar_field( state( 1 ), 'Pressure' )
-      call Get_Ndgln( cv_ndgln, pressure )
-      p_ndgln = cv_ndgln
-      mat_ndgln = (/ (i, i = 1, totele * cv_nloc ) /)
-
+!!$      call Get_Ndgln( cv_ndgln, pressure )
+!!$      p_ndgln = cv_ndgln
+!!$      mat_ndgln = (/ (i, i = 1, totele * cv_nloc ) /)
+!!$
 !!$ Velocities
       velocity => extract_vector_field( state( 1 ), 'Velocity' )
-      call Get_Ndgln( u_ndgln, velocity, cv_nloc )
-
+!!$      call Get_Ndgln( u_ndgln, velocity, cv_nloc )
+!!$
 !!$ Velocity in the continuous space
       velocity_cg_mesh => extract_mesh( state( 1 ), 'VelocityMesh_Continuous' )
-      call Get_Ndgln( xu_ndgln, velocity_cg_mesh )
+!!$      call Get_Ndgln( xu_ndgln, velocity_cg_mesh )
 
 !!$ Surface-based global node numbers for control volumes and pressure
       call Get_SNdgln( cv_sndgln, pressure )
@@ -763,7 +780,7 @@
            cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, x_nonods_p1, p_nonods, &
            cv_ele_type, p_ele_type, u_ele_type, &
            stat, istate, iphase, jphase, icomp, ele, idim, jdim, knod, knod2
-      integer, dimension( : ), allocatable :: cv_ndgln, u_ndgln, p_ndgln, x_ndgln, x_ndgln_p1, &
+      integer, dimension( : ), pointer :: cv_ndgln, u_ndgln, p_ndgln, x_ndgln, x_ndgln_p1, &
            xu_ndgln, mat_ndgln, cv_sndgln, p_sndgln, u_sndgln
       real :: dx
       logical :: is_overlapping, is_isotropic, is_diagonal, is_symmetric, have_gravity
@@ -777,13 +794,12 @@
            cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, x_nonods_p1, p_nonods, dx )
 
 !!$ Calculating Global Node Numbers
-      allocate( x_ndgln_p1( totele * x_nloc_p1 ), x_ndgln( totele * x_nloc ), cv_ndgln( totele * cv_nloc ), &
-           p_ndgln( totele * p_nloc ), mat_ndgln( totele * mat_nloc ), u_ndgln( totele * u_nloc ), &
-           xu_ndgln( totele * xu_nloc ), cv_sndgln( stotel * cv_snloc ), p_sndgln( stotel * p_snloc ), &
+      allocate( cv_sndgln( stotel * cv_snloc ), p_sndgln( stotel * p_snloc ), &
            u_sndgln( stotel * u_snloc ) )
 
-      x_ndgln_p1 = 0 ; x_ndgln = 0 ; cv_ndgln = 0 ; p_ndgln = 0 ; mat_ndgln = 0
-      u_ndgln = 0 ;  xu_ndgln = 0 ; cv_sndgln = 0 ; p_sndgln = 0 ; u_sndgln = 0
+!      x_ndgln_p1 = 0 ; x_ndgln = 0 ; cv_ndgln = 0 ; p_ndgln = 0 ; mat_ndgln = 0
+ !     u_ndgln = 0 ;  xu_ndgln = 0 ; 
+      cv_sndgln = 0 ; p_sndgln = 0 ; u_sndgln = 0
 
       call Compute_Node_Global_Numbers( state, &
            totele, stotel, x_nloc, x_nloc_p1, cv_nloc, p_nloc, u_nloc, xu_nloc, &
@@ -927,8 +943,7 @@
 
       end if Conditional_PermeabilityField
 
-      deallocate( cv_ndgln, u_ndgln, p_ndgln, x_ndgln, x_ndgln_p1, &
-           xu_ndgln, mat_ndgln, cv_sndgln, p_sndgln, u_sndgln )
+      deallocate( cv_sndgln, p_sndgln, u_sndgln )
 
       return
     end subroutine Extracting_MeshDependentFields_From_State
@@ -1805,8 +1820,8 @@
            cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, x_nonods_p1, p_nonods, knod, istate
       real :: dx
       logical :: initialised
-      integer, dimension( : ), allocatable :: cv_ndgln, u_ndgln, p_ndgln, x_ndgln, x_ndgln_p1, xu_ndgln, mat_ndgln, &
-           cv_sndgln, p_sndgln, u_sndgln, Temperature_BC_Spatial
+      integer, dimension( : ), pointer :: cv_ndgln, u_ndgln, p_ndgln, x_ndgln, x_ndgln_p1, xu_ndgln, mat_ndgln
+      integer, dimension( : ), allocatable ::     cv_sndgln, p_sndgln, u_sndgln, Temperature_BC_Spatial
       real, dimension( : ), allocatable :: Temperature, Temperature_BC 
 
       call Get_Primary_Scalars( state, &         
@@ -1816,12 +1831,10 @@
            cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, x_nonods_p1, p_nonods, dx )
 
 !!$ Calculating Global Node Numbers
-      allocate( x_ndgln_p1( totele * x_nloc_p1 ), x_ndgln( totele * x_nloc ), cv_ndgln( totele * cv_nloc ), &
-           p_ndgln( totele * p_nloc ), mat_ndgln( totele * mat_nloc ), u_ndgln( totele * u_nloc ), &
-           xu_ndgln( totele * xu_nloc ), cv_sndgln( stotel * cv_snloc ), p_sndgln( stotel * p_snloc ), &
+      allocate( cv_sndgln( stotel * cv_snloc ), p_sndgln( stotel * p_snloc ), &
            u_sndgln( stotel * u_snloc ) )
 
-      x_ndgln_p1 = 0 ; x_ndgln = 0 ; cv_ndgln = 0 ; p_ndgln = 0 ; mat_ndgln = 0 ; u_ndgln = 0 ; xu_ndgln = 0 ; &
+  !    x_ndgln_p1 = 0 ; x_ndgln = 0 ; cv_ndgln = 0 ; p_ndgln = 0 ; mat_ndgln = 0 ; u_ndgln = 0 ; xu_ndgln = 0 ; &
            cv_sndgln = 0 ; p_sndgln = 0 ; u_sndgln = 0
 
       allocate( temperature( nphase * cv_nonods ), temperature_bc_spatial( nphase * stotel ), &
@@ -1851,8 +1864,7 @@
          ewrite(3,*) istate, field_prot( istate ), temperature( istate ), field%val(istate)
       end do
 
-      deallocate( cv_ndgln, u_ndgln, p_ndgln, x_ndgln, x_ndgln_p1, xu_ndgln, mat_ndgln, &
-           cv_sndgln, p_sndgln, u_sndgln, Temperature_BC_Spatial, Temperature, Temperature_BC ) 
+      deallocate( cv_sndgln, p_sndgln, u_sndgln, Temperature_BC_Spatial, Temperature, Temperature_BC ) 
 
       return
     end subroutine print_from_state
@@ -1990,6 +2002,382 @@
       end do
 
     end subroutine update_boundary_conditions
+
+    subroutine pack_multistate(state, packed_state,&
+         multiphase_state, multicomponent_state) 
+      
+      type(state_type), dimension(:), intent(inout):: state
+      type(state_type), dimension(:), intent(inout), pointer :: &
+           multiphase_state, multicomponent_state
+      type(state_type) ::  packed_state 
+      
+      integer :: i,nphase,ncomp,ndim, stat, iphase, icomp
+      
+      type(scalar_field), pointer :: pressure
+      type(vector_field), pointer :: velocity, position
+      
+      type(vector_field) :: p_position, u_position, m_position
+      type(mesh_type) :: ovmesh,lmesh,nvmesh
+      type(element_type) :: overlapping_shape
+      character( len = option_path_len ) :: vel_element_type
+
+      ncomp=option_count('/material_phase/is_multiphase_component')
+      nphase=size(state)-ncomp
+      position=>extract_vector_field(state(1),"Coordinate")
+      ndim=mesh_dim(position)
+
+      call get_option('/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
+           vel_element_type )
+
+      allocate(multiphase_state(nphase))
+      allocate(multicomponent_state(ncomp))
+
+      pressure=>extract_scalar_field(state(1),"Pressure")
+      call insert(packed_state,pressure,"Pressure")
+
+      call add_new_memory(packed_state,pressure,"FEPressure")
+      call add_new_memory(packed_state,pressure,"OldFEPressure")
+      call add_new_memory(packed_state,pressure,"CVPressure")
+      call add_new_memory(packed_state,pressure,"OldCVPressure")
+
+      call insert_sfield(packed_state,"Density",1,nphase)
+      if (option_count("/material_phase/scalar_field::Temperature")>0) then
+         call insert_sfield(packed_state,"Temperature",1,nphase)
+      end if
+      call insert_sfield(packed_state,"PhaseVolumeFraction",1,nphase)
+
+      velocity=>extract_vector_field(state(1),"Velocity")
+      ovmesh=make_mesh(position%mesh,&
+           shape=velocity%mesh%shape,&
+           continuity=1,name="VelocityMesh_Continuous")
+      call allocate(u_position,ndim,ovmesh,"VelocityCoordinate")
+      ovmesh=make_mesh(position%mesh,&
+           shape=pressure%mesh%shape,&
+           continuity=1,name="PressureMesh_Continuous")
+      call allocate(p_position,ndim,ovmesh,"PressureCoordinate")
+      ovmesh=make_mesh(position%mesh,&
+           shape=pressure%mesh%shape,&
+           continuity=-1,name="PressureMesh_Discontinuous")
+      if ( .not. has_mesh(state(1),"PressureMesh_Discontinuous") ) &
+           call insert(state(1),ovmesh,"PressureMesh_Discontinuous")
+      call allocate(m_position,ndim,ovmesh,"MaterialCoordinate")
+
+      call remap_field( position, u_position )
+      call remap_field( position, p_position )
+      call project_field( position, m_position, position )
+  
+      call insert(packed_state,position,"Coordinate")
+      call insert(packed_state,u_position,"VelocityCoordinate")
+      call insert(packed_state,p_position,"PressureCoordinate")
+      call insert(packed_state,m_position,"MaterialCoordinate")
+      call deallocate(p_position)
+      call deallocate(u_position)
+      call deallocate(m_position)
+
+      if (trim(vel_element_type)=='overlapping') then
+         !overlapping
+         ovmesh=make_mesh(position%mesh,&
+              shape=velocity%mesh%shape,&
+              continuity=velocity%mesh%continuity,&
+              overlapping_shape=pressure%mesh%shape)
+         overlapping_shape=pressure%mesh%shape
+
+         call insert_vfield(packed_state,"Velocity",ovmesh)
+         call insert_vfield(packed_state,"NonlinearVelocity",ovmesh)
+         call insert(state(1),ovmesh,"InternalVelocityMesh")
+      else
+         call insert(packed_state,velocity%mesh,"InternalVelocityMesh")
+         call insert_vfield(packed_state,"Velocity")
+         call insert_vfield(packed_state,"NonlinearVelocity")
+         call insert(state(1),velocity%mesh,"InternalVelocityMesh")
+      end if
+
+      call unpack_multiphase(packed_state,multiphase_state)  
+      if (ncomp>0) then
+         call insert_sfield(packed_state,"ComponentDensity",ncomp,nphase)
+         call insert_sfield(packed_state,"ComponentMassFraction",ncomp,nphase)
+         call unpack_multicomponent(packed_state,multicomponent_state)  
+      end if
+
+      iphase=1
+      icomp=1
+      do i=1,size(state)
+         if(have_option(trim(state(i)%option_path)&
+              //'/is_multiphase_component')) then
+            velocity=>extract_vector_field(state(i),"Velocity",stat)
+            if (stat==0) velocity%wrapped=.true.
+            velocity=>extract_vector_field(state(i),"OldVelocity",stat)
+            if (stat==0) velocity%wrapped=.true.
+            velocity=>extract_vector_field(state(i),"IteratedVelocity",stat)
+            if (stat==0) velocity%wrapped=.true.
+            call unpack_component_sfield(state(i),packed_state,"ComponentDensity",icomp)
+            call unpack_component_sfield(state(i),packed_state,"OldComponentDensity",icomp)
+            call unpack_component_sfield(state(i),packed_state,"ComponentMassFraction",icomp)
+            call unpack_component_sfield(state(i),packed_state,"OldComponentMassFraction",icomp)
+            cycle
+         else
+            call unpack_sfield(state(i),packed_state,"Density",1,iphase)
+            call unpack_sfield(state(i),packed_state,"OldDensity",1,iphase)
+            call unpack_sfield(state(i),packed_state,"IteratedDensity",1,iphase)
+
+            if(have_option(trim(state(i)%option_path)&
+                 //'scalar_field::Temperature')) then
+               call unpack_sfield(state(i),packed_state,"Temperature",1,iphase)
+               call unpack_sfield(state(i),packed_state,"OldTemperate",1,iphase)
+               call unpack_sfield(state(i),packed_state,"IteratedTemperature",1,iphase)
+            end if
+
+            
+
+            call unpack_sfield(state(i),packed_state,"PhaseVolumeFraction",1,iphase)
+            call unpack_sfield(state(i),packed_state,"OldPhaseVolumeFraction",1,iphase)
+            call unpack_sfield(state(i),packed_state,"IteratedPhaseVolumeFraction",1,iphase)
+
+            call unpack_vfield(state(i),packed_state,"Velocity",iphase)
+            call unpack_vfield(state(i),packed_state,"OldVelocity",iphase)
+            call unpack_vfield(state(i),packed_state,"IteratedVelocity",iphase)
+
+            iphase=iphase+1
+         end if
+      end do
+
+      contains
+
+        subroutine unpack_multicomponent(mstate,mcstate)
+          type(state_type) :: mstate
+          type(state_type), dimension(:) :: mcstate
+
+          integer :: icomp
+
+          type(tensor_field), pointer :: component, density
+          type(vector_field) :: vfield
+
+
+          component=>extract_tensor_field(mstate,"PackedComponent")
+          density=>extract_tensor_field(mstate,"PackedComponentDensity")
+
+          do icomp=1,ncomp
+             call allocate(vfield,nphase,component%mesh,"Component",field_type=FIELD_TYPE_DEFERRED)
+             vfield%option_path=component%option_path
+             deallocate(vfield%val)
+             vfield%val=>component%val(icomp,:,:)
+             vfield%wrapped=.true.
+             call insert(mcstate(icomp),vfield,vfield%name)
+             call deallocate(vfield)
+
+
+             call allocate(vfield,nphase,component%mesh,"ComponentDensity",field_type=FiELD_TYPE_DEFERRED)
+             vfield%option_path=component%option_path
+             deallocate(vfield%val)
+             vfield%val=>component%val(icomp,:,:)
+             vfield%wrapped=.true.
+             call insert(mcstate(icomp),vfield,vfield%name)
+             call deallocate(vfield)
+             
+          end do
+
+        end subroutine unpack_multicomponent
+          
+
+        subroutine unpack_multiphase(mstate,mpstate)
+          type(state_type) :: mstate
+          type(state_type), dimension(:) :: mpstate
+          integer :: index, iphase
+
+          type(tensor_field), pointer :: tfield
+          type(vector_field) :: vfield
+
+
+          do index=1,size(mstate%tensor_fields)
+             tfield=>extract_tensor_field(mstate,index)
+             if (tfield%name(:6)=="Packed") then
+                do iphase=1,nphase
+                   call allocate(vfield,tfield%dim(1),tfield%mesh,tfield%name(7:),field_type=FiELD_TYPE_DEFERRED)
+
+                   deallocate(vfield%val)
+                   vfield%val=>tfield%val(:,iphase,:)
+                   vfield%wrapped=.true.
+                   call insert(mpstate(iphase),vfield,vfield%name)
+                   call deallocate(vfield)
+                end do
+             end if
+          end do
+
+        END subroutine unpack_multiphase
+        
+
+        subroutine add_new_memory(mstate,sfield,name)
+          type(state_type) :: mstate
+          type(scalar_field) :: sfield
+          character (len=*) :: name
+          type(scalar_field) :: sfield2
+
+          call allocate(sfield2,sfield%mesh,name)
+          call insert(mstate,sfield2,name)
+          call deallocate(sfield2)
+
+        end subroutine add_new_memory
+          
+
+        subroutine insert_sfield(mstate,name,ncomp,nphase,nmesh)
+          type(state_type), intent(inout) :: mstate
+          character(len=*) :: name
+          type(mesh_type),optional, target :: nmesh
+          integer :: ncomp,nphase
+
+          type(scalar_field), pointer :: nfield
+          type(mesh_type), pointer :: lmesh
+          type(tensor_field) :: mfield
+          integer :: stat
+
+          nfield=>extract_scalar_field(state(1),name,stat)
+          if (stat/=0) then
+             nfield=>extract_scalar_field(state(1),"Pressure",stat)
+          end if
+
+          if (present(nmesh)) then
+             lmesh=> nmesh
+          else
+             lmesh=>nfield%mesh
+          end if
+
+          call allocate(mfield,lmesh,"Packed"//name,dim=[ncomp,nphase])
+          call insert(mstate,mfield,"Packed"//name)
+          call deallocate(mfield)
+          call allocate(mfield,lmesh,"PackedOld"//name,dim=[ncomp,nphase])
+          call insert(mstate,mfield,"PackedOld"//name)
+          call deallocate(mfield)
+          call allocate(mfield,lmesh,"PackedIterated"//name,dim=[ncomp,nphase])
+          call insert(mstate,mfield,"PackedIterated"//name)
+          call deallocate(mfield)
+
+        end subroutine insert_sfield
+
+        subroutine insert_vfield(mstate,name,nmesh)
+          type(state_type), intent(inout) :: mstate
+          character(len=*) :: name
+          type(mesh_type), optional, target :: nmesh
+
+          type(vector_field), pointer :: nfield
+          type(mesh_type), pointer :: lmesh
+          type(tensor_field)  :: mfield
+
+
+          nfield=>extract_vector_field(state(1),name)
+          if (present(nmesh)) then
+             lmesh=> nmesh
+          else
+             lmesh=>nfield%mesh
+          end if
+          
+          call allocate(mfield,lmesh,"Packed"//name,dim=[ndim,nphase])
+          call insert(mstate,mfield,"Packed"//name)
+          call deallocate(mfield)
+          call allocate(mfield,lmesh,"PackedOld"//name,dim=[ndim,nphase])
+          call insert(mstate,mfield,"PackedOld"//name)
+          call deallocate(mfield)
+          call allocate(mfield,lmesh,"PackedIterated"//name,dim=[ndim,nphase])
+          call insert(mstate,mfield,"PackedIterated"//name)
+          call deallocate(mfield)
+
+        end subroutine insert_vfield
+
+        subroutine unpack_sfield(nstate,mstate,name,icomp, iphase)
+          type(state_type), intent(inout) :: nstate, mstate
+          character(len=*) :: name
+          integer :: icomp,iphase, stat
+
+          
+          type(scalar_field), pointer :: nfield
+          type(tensor_field), pointer :: mfield
+
+          mfield=>extract_tensor_field(mstate,"Packed"//name)
+
+          nfield=>extract_scalar_field(nstate,name)
+          mfield%val(icomp,iphase,:)=nfield%val(:)
+          if (icomp==1 .and. iphase == 1) then
+             mfield%option_path=nfield%option_path
+          end if
+          deallocate(nfield%val)
+          nfield%val=>mfield%val(icomp,iphase,:)
+          nfield%wrapped=.true.
+          
+
+        end subroutine unpack_sfield
+
+        subroutine unpack_vfield(nstate,mstate,name,iphase)
+          type(state_type), intent(inout) :: nstate, mstate
+          character(len=*) :: name
+          integer :: iphase
+
+          
+          type(vector_field), pointer :: nfield
+          type(tensor_field), pointer ::mfield
+          integer :: ndim,rdim, nonods
+
+          nfield=>extract_vector_field(nstate,name)
+          mfield=>extract_tensor_field(mstate,"Packed"//name)
+
+          mfield%val(:,iphase,:)=nfield%val(:,1:node_count(mfield))
+          if (icomp==1 .and. iphase == 1) then
+             mfield%option_path=nfield%option_path
+          end if
+#ifdef HAVE_MEMORY_STATS
+          call register_deallocation("vector_field", "real", &
+               size(nfield%val), name=nfield%name)
+#endif
+          deallocate(nfield%val)
+          nfield%val=>mfield%val(:,iphase,:)
+          nfield%wrapped=.true.
+
+        end subroutine unpack_vfield
+
+        subroutine unpack_component_sfield(st,mst,name,ic)
+          type(state_type) :: st, mst
+          character (len=*) :: name
+          integer :: ic
+          integer :: ip
+
+          type(scalar_field), pointer :: nfield
+          type(tensor_field), pointer :: mfield
+
+          mfield=>extract_tensor_field(mst,"Packed"//name)
+
+          do ip=1,nphase
+             if ( has_scalar_field(st,name//"Phase"//int2str(ip)) ) then
+
+                nfield=>extract_scalar_field(st,name//"Phase"//int2str(ip))
+               
+                
+                mfield%val(ic,ip,:)=nfield%val(:)
+                if (ic==1) then
+                   mfield%option_path=nfield%option_path
+                end if
+                deallocate(nfield%val)
+                nfield%val=>mfield%val(icomp,iphase,:)
+                nfield%wrapped=.true.
+             end if
+          end do
+                
+        end subroutine unpack_component_sfield
+
+      end subroutine pack_multistate
+
+      subroutine finalise_multistate(packed_state,multiphase_state,&
+           multicomponent_state)
+
+        type(state_type) :: packed_state
+        type(state_type), dimension(:), pointer :: multiphase_state, multicomponent_state
+
+
+        call deallocate(multiphase_state)
+        deallocate(multiphase_state)
+        call deallocate(multicomponent_state)
+        deallocate(multicomponent_state)
+        call deallocate(packed_state)
+
+      end subroutine finalise_multistate
+
 
   end module Copy_Outof_State
 

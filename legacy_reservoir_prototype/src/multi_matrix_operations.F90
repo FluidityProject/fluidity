@@ -604,19 +604,27 @@
 
 
       recursive  subroutine quicksort(vec,n)
+
+        implicit none
+
         integer, intent(in) :: n
         integer, dimension(:), intent(inout) :: vec(n)
         integer :: ii
 
-        if (size(vec)>1) then
+        if (n>20) then
            ii=partition(vec)
            call quicksort(vec(1:ii-1),ii-1)
            call quicksort(vec(ii:n),n-ii+1)
+        else
+           call insertion_sort(vec,n)
         end if
 
       end subroutine quicksort
         
         integer function partition(v)
+          
+          implicit none
+
           integer, intent(inout), dimension(:) :: v
           integer :: i,j, pivot, temp
 
@@ -646,8 +654,29 @@
 
         end function partition          
            
-      
+        subroutine insertion_sort(vec,n)
+          
+          implicit none
 
+          integer :: n
+          integer, dimension(n) :: vec(n)
+
+          integer :: i ,j, temp
+
+
+          do i = 2, N
+             j = i - 1
+             temp = vec(i)
+
+             do while ( j> 0 .and. vec(j) > temp )
+                vec(j+1)=vec(j)
+                j=j-1
+             end do
+             vec(j+1) = temp
+          end do
+
+        end subroutine insertion_sort
+             
 
     SUBROUTINE IBUBLE(LIST,NLIST)
 

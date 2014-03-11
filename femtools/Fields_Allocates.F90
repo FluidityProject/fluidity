@@ -878,7 +878,7 @@ contains
 
   end function wrap_tensor_field
 
-  function make_mesh (model, shape, continuity, name) &
+   function make_mesh (model, shape, continuity, name,overlapping_shape) &
        result (mesh)
     !!< Produce a mesh based on an old mesh but with a different shape and/or continuity.
     type(mesh_type) :: mesh
@@ -887,10 +887,11 @@ contains
     type(element_type), target, intent(in), optional :: shape
     integer, intent(in), optional :: continuity
     character(len=*), intent(in), optional :: name
+    type(element_type), intent(in), optional :: overlapping_shape
     
     integer, dimension(:), allocatable :: ndglno
     real, dimension(:), pointer :: val
-    integer :: i, input_nodes, n_faces
+    integer :: i, j, K, input_nodes, n_faces
 
     if (present(continuity)) then
        mesh%continuity=continuity
@@ -900,6 +901,9 @@ contains
 
     allocate(mesh%adj_lists)
     mesh%elements=model%elements
+    if (present(overlapping_shape)) then
+       mesh%elements=mesh%elements*overlapping_shape%loc
+    end if
     mesh%periodic=model%periodic
     mesh%wrapped=.false.
 
@@ -933,8 +937,8 @@ contains
           FLExit("Unable to derive a continuous mesh from a discontinuous mesh")
        end if
 
-       allocate(ndglno(mesh%shape%numbering%vertices*model%elements), &
-            mesh%ndglno(mesh%shape%loc*model%elements))
+       allocate(ndglno(mesh%shape%numbering%vertices*mesh%elements), &
+            mesh%ndglno(mesh%shape%loc*mesh%elements))
 #ifdef HAVE_MEMORY_STATS
        call register_allocation("mesh_type", "integer", &
             size(mesh%ndglno), name=name)
@@ -979,7 +983,7 @@ contains
        !trace fields have continuity -1 but aren't like DG
        if(mesh%shape%numbering%type/=ELEMENT_TRACE) then
           ! Make a discontinuous field.
-          allocate(mesh%ndglno(mesh%shape%loc*model%elements))
+          allocate(mesh%ndglno(mesh%shape%loc*mesh%elements))
 #ifdef HAVE_MEMORY_STATS
           call register_allocation("mesh_type", "integer", &
                size(mesh%ndglno), name=name)
@@ -1043,6 +1047,7 @@ contains
     call addref(mesh)
 
   end function make_mesh
+
 
   subroutine add_faces(mesh, model, sndgln, sngi, boundary_ids, &
     periodic_face_map, element_owner, incomplete_surface_mesh, stat)

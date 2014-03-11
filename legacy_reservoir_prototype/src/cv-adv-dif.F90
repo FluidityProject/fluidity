@@ -11322,22 +11322,23 @@ end SUBROUTINE GET_INT_VEL_2TIME
           END DO
        !END DO
     END DO
-
-    DO U_SKLOC = 1, U_SNLOC
-       U_KLOC = U_SLOC2LOC( U_SKLOC )
-       U_NODK = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC )
-       U_NODK_IPHA = U_NODK + ( IPHASE - 1 ) * U_NONODS
-       IF ( ELE2==0 ) THEN
-          U_KLOC2 = U_KLOC
-          U_NODK2 = U_NODK
-       ELSE
-          U_KLOC2 = U_OTHER_LOC( U_SKLOC ) 
-          U_NODK2 = U_NDGLN( (ELE2-1)*U_NLOC+U_KLOC2 )
-       END IF
-       U_NODK2_IPHA = U_NODK2 + ( IPHASE - 1 ) * U_NONODS
-       U_SNODK = ( SELE - 1 ) * U_SNLOC + U_SKLOC 
-       U_SNODK_IPHA= U_SNODK + ( IPHASE - 1 ) * STOTEL*U_SNLOC
-       !DO IPHASE=1,NPHASE
+    
+    if ( sele /= 0 ) then
+       DO U_SKLOC = 1, U_SNLOC
+          U_KLOC = U_SLOC2LOC( U_SKLOC )
+          U_NODK = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC )
+          U_NODK_IPHA = U_NODK + ( IPHASE - 1 ) * U_NONODS
+          IF ( ELE2==0 ) THEN
+             U_KLOC2 = U_KLOC
+             U_NODK2 = U_NODK
+          ELSE
+             U_KLOC2 = U_OTHER_LOC( U_SKLOC ) 
+             U_NODK2 = U_NDGLN( (ELE2-1)*U_NLOC+U_KLOC2 )
+          END IF
+          U_NODK2_IPHA = U_NODK2 + ( IPHASE - 1 ) * U_NONODS
+          U_SNODK = ( SELE - 1 ) * U_SNLOC + U_SKLOC 
+          U_SNODK_IPHA= U_SNODK + ( IPHASE - 1 ) * STOTEL*U_SNLOC
+          !DO IPHASE=1,NPHASE
           DO IDIM = 1, NDIM
              IF ( IDIM==1 ) THEN
                 SLOC_NU(IDIM,IPHASE,U_SKLOC)=NU(U_NODK_IPHA)
@@ -11355,8 +11356,9 @@ end SUBROUTINE GET_INT_VEL_2TIME
                 IF( SELE /= 0 ) SUF_U_BC_ALL(IDIM,IPHASE,U_SKLOC)=SUF_W_BC(U_SNODK_IPHA)
              END IF
           END DO
-       !END DO
-    END DO
+          !END DO
+       END DO
+    end if
 
     CV_NODI = CV_NODI_IPHA - CV_NONODS*(IPHASE-1)
     CV_NODJ = CV_NODJ_IPHA - CV_NONODS*(IPHASE-1)
