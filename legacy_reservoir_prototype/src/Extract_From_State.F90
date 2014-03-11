@@ -2114,6 +2114,7 @@
             call unpack_component_sfield(state(i),packed_state,"OldComponentDensity",icomp)
             call unpack_component_sfield(state(i),packed_state,"ComponentMassFraction",icomp)
             call unpack_component_sfield(state(i),packed_state,"OldComponentMassFraction",icomp)
+            icomp=icomp+1
             cycle
          else
             call unpack_sfield(state(i),packed_state,"Density",1,iphase)
@@ -2354,7 +2355,7 @@
                    mfield%option_path=nfield%option_path
                 end if
                 deallocate(nfield%val)
-                nfield%val=>mfield%val(icomp,iphase,:)
+                nfield%val=>mfield%val(ic,ip,:)
                 nfield%wrapped=.true.
              end if
           end do
