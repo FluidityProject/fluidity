@@ -669,7 +669,7 @@
              temp = vec(i)
 
              do while ( j> 0 )
-                if ( vec(j) <= t ) exit
+                if ( vec(j) <= temp ) exit
                 vec(j+1)=vec(j)
                 j=j-1
              end do

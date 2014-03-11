@@ -2153,11 +2153,11 @@
           type(vector_field) :: vfield
 
 
-          component=>extract_tensor_field(mstate,"PackedComponent")
+          component=>extract_tensor_field(mstate,"PackedComponentMassFraction")
           density=>extract_tensor_field(mstate,"PackedComponentDensity")
 
           do icomp=1,ncomp
-             call allocate(vfield,nphase,component%mesh,"Component",field_type=FIELD_TYPE_DEFERRED)
+             call allocate(vfield,nphase,component%mesh,"ComponentMassFraction",field_type=FIELD_TYPE_DEFERRED)
              vfield%option_path=component%option_path
              deallocate(vfield%val)
              vfield%val=>component%val(icomp,:,:)
