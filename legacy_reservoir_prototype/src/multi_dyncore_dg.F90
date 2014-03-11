@@ -1427,7 +1427,7 @@
             !ewrite(3,*) 'up_vel', up_vel
             !ewrite(3,*) 'u_rhs', u_rhs
             !ewrite(3,*) 'cdp', cdp
-            !ewrite(3,*)  'dgm_pha', dgm_pha
+            !ewrite(3,*) 'dgm_pha', dgm_pha
 
             UP_VEL=0.0
             CALL SOLVER( DGM_PHA, UP_VEL, U_RHS_CDP, &
@@ -1446,7 +1446,7 @@
          !ewrite(3,*) 'ct_rhs::', ct_rhs
 
          ! put on rhs the cty eqn; put most recent pressure in RHS of momentum eqn
-         ! NB. P_RHS = -CT*U + CT_RHS 
+         ! NB. P_RHS = -CT * U + CT_RHS 
          CALL CT_MULT( P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
               CT, NCOLCT, FINDCT, COLCT )
 
@@ -1459,7 +1459,7 @@
             DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                CV_JNOD = COLCMC( COUNT )
                P_RHS( CV_NOD ) = P_RHS( CV_NOD ) &
-                    - DIAG_SCALE_PRES( CV_NOD ) * MASS_MN_PRES( COUNT ) * P( CV_JNOD )    
+                    -DIAG_SCALE_PRES( CV_NOD ) * MASS_MN_PRES( COUNT ) * P( CV_JNOD )    
             END DO
          END DO
 
