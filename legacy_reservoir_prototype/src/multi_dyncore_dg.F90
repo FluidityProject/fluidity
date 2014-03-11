@@ -1487,159 +1487,46 @@
          ewrite(3,*)'b4 pressure solve P_RHS:', P_RHS
          DP = 0.
 
-         if( .true. ) then ! solve for pressure
-
-            SCALE_P_MATRIX = .false. !.true.
-            ALLOCATE( DIAG_P_SQRT( CV_NONODS ) )
-
-            IF( SCALE_P_MATRIX ) THEN
-               DO CV_NOD = 1, CV_NONODS
-                  CMC( MIDCMC(CV_NOD ))= MAX(1.E-7, CMC( MIDCMC(CV_NOD )) ) ! doggy
-                  RSUM = 0.0
-                  DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
-                     RSUM = RSUM + ABS( CMC( COUNT ) )
-                  END DO
-                  DIAG_P_SQRT( CV_NOD ) = SQRT( RSUM )
-               END DO
-               ! Scale matrix...
-               DO CV_NOD = 1, CV_NONODS
-                  DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
-                     CV_JNOD = COLCMC( COUNT )
-                     CMC( COUNT ) = CMC( COUNT ) / ( DIAG_P_SQRT( CV_NOD ) * DIAG_P_SQRT( CV_JNOD ) )
-                  END DO
-                  P_RHS( CV_NOD ) = P_RHS( CV_NOD ) / DIAG_P_SQRT( CV_NOD )
-               END DO
-            END IF
-
 ! Add diffusion to DG version of CMC to try and encourage a continuous formulation...
 ! the idea is to stabilize pressure without effecting the soln i.e. the rhs of the eqns as
 ! pressure may have some singularities associated with it. 
 !               if( cv_nonods.ne.x_nonods) then !DG only...
-               if( .false.) then !DG only...
-                   CALL ADD_DIFF_CMC(CMC, &
-                    NCOLCMC, cv_NONODS, FINDCMC, COLCMC, MIDCMC, &
-                    totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln, p )
-               endif 
+         if( .false.) then !DG only...
+            CALL ADD_DIFF_CMC(CMC, &
+                 NCOLCMC, cv_NONODS, FINDCMC, COLCMC, MIDCMC, &
+                 totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln, p )
+         end if
 
-!            if( cv_nonods==x_nonods ) then ! a continuous pressure:
-            if( .true. ) then ! a pressure solve:
-!             if( .false. ) then ! a pressure solve:
-! James feed CMC_PRECON into this sub and use as the preconditioner matrix...
-! CMC_PRECON has length CMC_PRECON(NCOLCMC*IGOT_CMC_PRECON) 
-               CALL SOLVER( CMC, DP, P_RHS, &
-                    FINDCMC, COLCMC, &
-                    option_path = '/material_phase[0]/scalar_field::Pressure' )
-            else ! a discontinuous pressure multi-grid solver:
-               CALL PRES_DG_MULTIGRID(CMC, CMC_PRECON, IGOT_CMC_PRECON, DP, P_RHS, &
-                    NCOLCMC, cv_NONODS, FINDCMC, COLCMC, MIDCMC, &
-                    totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln )
-            end if
- 
-            IF( SCALE_P_MATRIX ) THEN
-               DO CV_NOD = 1, CV_NONODS
-                  DP( CV_NOD ) = DP( CV_NOD ) / DIAG_P_SQRT( CV_NOD )
-               END DO
-               DEALLOCATE( DIAG_P_SQRT )
-            END IF
-        
+         if( cv_nonods == x_nonods .or. .true. ) then ! a continuous pressure
+            CALL SOLVER( CMC, DP, P_RHS, &
+                 FINDCMC, COLCMC, &
+                 option_path = '/material_phase[0]/scalar_field::Pressure' )
+         else ! a discontinuous pressure multi-grid solver
+            CALL PRES_DG_MULTIGRID(CMC, CMC_PRECON, IGOT_CMC_PRECON, DP, P_RHS, &
+                 NCOLCMC, cv_NONODS, FINDCMC, COLCMC, MIDCMC, &
+                 totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln )
          end if
 
          ewrite(3,*) 'after pressure solve DP:', DP
 
          P = P + DP
 
-        !           CALL ADD_DIFF_CMC(CMC, &
-        !            NCOLCMC, cv_NONODS, FINDCMC, COLCMC, MIDCMC, &
-        !            totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln, p )
-
          ! Use a projection method
          ! CDP = C * DP
          CALL C_MULT2( CDP, DP, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
 
-         !do count = 1, ndim
-         !   do iphase = 1, nphase
-         !      do ele = 1, totele
-         !         do cv_nod = 1, u_nloc
-         !            x_nod1 = u_ndgln( ( ele - 1 ) * u_nloc + cv_nod )
-         !            x_nod2 = ( iphase- 1 ) * ndim * u_nonods + ( count - 1 ) * u_nonods + x_nod1
-         !            ewrite(3,*)'idim, iph, ele, nod, cdp:', count, iphase, ele, cv_nod, x_nod2, cdp( x_nod2 )
-         !         end do
-         !      end do
-         !   end do
-         !end do
-
-         ! correct velocity...
+         ! Correct velocity...
          ! DU = BLOCK_MAT * CDP 
          CALL PHA_BLOCK_MAT_VEC( DU_VEL, PIVIT_MAT, CDP, U_NONODS, NDIM, NPHASE, &
               TOTELE, U_NLOC, U_NDGLN )
 
          CALL ULONG_2_UVW( DU, DV, DW, DU_VEL, U_NONODS, NDIM, NPHASE )
 
-         !ewrite(3,*)'old velocity...'
-         !ewrite(3,*)'U1', U(1:U_NONODS)
-         !ewrite(3,*)'U2', U(1+U_NONODS:2*U_NONODS)
-         !ewrite(3,*)'V1', V(1:U_NONODS)
-         !ewrite(3,*)'V2', V(1+U_NONODS:2*U_NONODS)
-
-         !ewrite(3,*)'DU1', DU(1:U_NONODS)
-         !ewrite(3,*)'DU2', DU(1+U_NONODS:2*U_NONODS)
-         !ewrite(3,*)'DV1', DV(1:U_NONODS)
-         !ewrite(3,*)'DV2', DV(1+U_NONODS:2*U_NONODS)
-
          U = U + DU
          IF( NDIM >= 2 ) V = V + DV
          IF( NDIM >= 3 ) W = W + DW
 
-         !ewrite(3,*)'new velocity...'
-         !ewrite(3,*)'U1', U(1:U_NONODS)
-         !ewrite(3,*)'U2', U(1+U_NONODS:2*U_NONODS)
-         !ewrite(3,*)'V1', V(1:U_NONODS)
-         !ewrite(3,*)'V2', V(1+U_NONODS:2*U_NONODS)
-
-         !stop 777
-
-         ! check continuity
-         !ewrite(3,*)'check continuity...'
-         !p_rhs=0.
-         !CALL CT_MULT(P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
-         !     CT, NCOLCT, FINDCT, COLCT)
-         !ewrite(3,*) 'p_rhs', -p_rhs+ct_rhs
-         !p_rhs= -p_rhs+ct_rhs
-         !ewrite(3,*) 'max,min:', maxval(p_rhs), minval(p_rhs)
-
-         !stop 66
-
-         !ewrite(3,*)'x,p:'
-         !DO CV_NOD = 1, CV_NONODS
-         !   ewrite(3,*)x(cv_nod),p(cv_nod)
-         !end do
-         !do iphase=1,nphase
-         !   ewrite(3,*) 'iphase:', iphase
-         !   do ele=1,totele
-         !      ewrite(3,*) 'ele=',ele
-         !      ewrite(3,*) 'u:',(u((ele-1)*u_nloc +u_iloc +(iphase-1)*u_nonods), &
-         !           u_iloc=1,u_nloc)
-         !   end do
-         !end do
-         !do iphase=1,nphase
-         !   ewrite(3,*) 'iphase:', iphase
-         !   do ele=1,totele
-         !      ewrite(3,*) 'ele=',ele
-         !      ewrite(3,*) 'v:',(v((ele-1)*u_nloc +u_iloc +(iphase-1)*u_nonods), &
-         !           u_iloc=1,u_nloc)
-         !   end do
-         !end do
-         !do iphase=1,nphase
-         !   ewrite(3,*) 'iphase:', iphase
-         !   do ele=1,totele
-         !      ewrite(3,*) 'ele=',ele
-         !      ewrite(3,*) 'w:',(w((ele-1)*u_nloc +u_iloc +(iphase-1)*u_nonods), &
-         !           u_iloc=1,u_nloc)
-         !   end do
-         !end do
-
-      ENDIF
-      !stop 999
+      END IF
 
       ! Calculate control volume averaged pressure CV_P from fem pressure P
       CV_P = 0.0
@@ -1651,76 +1538,6 @@
          END DO
       END DO
       CV_P = CV_P / MASS_CV
-      !ewrite(3,*)'also CV_P=',CV_P
-
-      !ewrite(3,*) 'MASS_MN_PRES:',MASS_MN_PRES
-      !ewrite(3,*) 'DIAG_SCALE_PRES:',DIAG_SCALE_PRES
-
-      !ewrite(3,*)'the velocity should be:'
-      !do ele=1,-totele
-      !   x_nod1=x_ndgln((ele-1)*x_nloc + 1)
-      !   x_nod2=x_ndgln((ele-1)*x_nloc + 2)
-      !   x_nod3=x_ndgln((ele-1)*x_nloc + 3)
-      !   cv_nod1=cv_ndgln((ele-1)*cv_nloc + 1)
-      !   cv_nod2=cv_ndgln((ele-1)*cv_nloc + 2)
-      !   cv_nod3=cv_ndgln((ele-1)*cv_nloc + 3)
-      !   mat_nod1=mat_ndgln((ele-1)*x_nloc + 1)
-      !   der1=10.*(-3.*p(cv_nod1)+4.*p(cv_nod2)-1.*p(cv_nod3))
-      !   der2=10.*(-1.*p(cv_nod1)+0.*p(cv_nod2)+1.*p(cv_nod3))
-      !   der3=10.*(+1.*p(cv_nod1)-4.*p(cv_nod2)+3.*p(cv_nod3))
-      !   uabs=U_ABSORB(mat_nod1,1,1)
-      !   uabs=1.
-      !   ewrite(3,*)x(cv_nod1),-der1/uabs
-      !   ewrite(3,*)x(cv_nod2),-der2/uabs
-      !   ewrite(3,*)x(cv_nod3),-der3/uabs
-      !end do
-
-      !ewrite(3,*) 'VOLFRA_PORE:',VOLFRA_PORE
-      !ewrite(3,*) 'den:',den
-      !ewrite(3,*) 'denold:',denold
-
-      IF(.false.) THEN
-         DO IPHASE=1,NPHASE
-            DU=0.
-            DV=0.
-            DW=0.
-            DU(1+U_NONODS*(IPHASE-1):U_NONODS*IPHASE)=U(1+U_NONODS*(IPHASE-1):U_NONODS*IPHASE)
-            DV(1+U_NONODS*(IPHASE-1):U_NONODS*IPHASE)=V(1+U_NONODS*(IPHASE-1):U_NONODS*IPHASE)
-            DW(1+U_NONODS*(IPHASE-1):U_NONODS*IPHASE)=W(1+U_NONODS*(IPHASE-1):U_NONODS*IPHASE)
-
-            ewrite(3,*)'iphase,du:',iphase,du
-            P_RHS=0.
-            CALL CT_MULT(P_RHS, DU, DV, DW, CV_NONODS, U_NONODS, NDIM, NPHASE, &
-                 CT, NCOLCT, FINDCT, COLCT)
-            !ewrite(3,*) 'P_RHS:',P_RHS
-            !ewrite(3,*) 'CT_RHS:',CT_RHS
-            !stop 292
-
-            if(iphase==1) then
-               SATURA(1+CV_NONODS*(IPHASE-1):CV_NONODS*IPHASE) &
-                    = SATURAOLD(1+CV_NONODS*(IPHASE-1):CV_NONODS*IPHASE) + &
-                    ( -DT * P_RHS(1:CV_NONODS) + DT * CT_RHS(1:CV_NONODS) ) &
-                    / (MASS_CV(1:CV_NONODS) * VOLFRA_PORE(1) )
-            else
-               SATURA(1+CV_NONODS*(IPHASE-1):CV_NONODS*IPHASE) &
-                    = SATURAOLD(1+CV_NONODS*(IPHASE-1):CV_NONODS*IPHASE) - &
-                    DT * P_RHS(1:CV_NONODS)  &
-                    / (MASS_CV(1:CV_NONODS) * VOLFRA_PORE(1) )
-            end if
-         END DO
-
-         if(.false.) then
-            ewrite(3,*)'as a CV representation t:'
-            CALL PRINT_CV_DIST(CV_NONODS,X_NONODS,TOTELE,CV_NLOC,X_NLOC,NPHASE, &
-                 SATURA, X_NDGLN, CV_NDGLN, X) 
-            ewrite(3,*)'sum of phases:'
-            do iphase=1,nphase
-               do cv_nod=1,cv_nonods
-                  ewrite(3,*)'cv_nod,sum:',cv_nod,SATURA(cv_nod)+SATURA(cv_nod+cv_nonods)
-               end do
-            end do
-         end if
-      END IF
 
       DEALLOCATE( CT )
       DEALLOCATE( CT_RHS )
