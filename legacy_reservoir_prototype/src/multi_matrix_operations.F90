@@ -668,7 +668,8 @@
              j = i - 1
              temp = vec(i)
 
-             do while ( j> 0 .and. vec(j) > temp )
+             do while ( j> 0 )
+                if ( vec(j) <= t ) exit
                 vec(j+1)=vec(j)
                 j=j-1
              end do
