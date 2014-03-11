@@ -853,7 +853,7 @@
 
 
 
-    subroutine VolumeFraction_Assemble_Solve( state, &
+    subroutine VolumeFraction_Assemble_Solve( state,packed_state, &
          NCOLACV, FINACV, COLACV, MIDACV, &
          SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
          block_to_global_acv, global_dense_block_acv, &
@@ -887,6 +887,7 @@
 
       implicit none
       type( state_type ), dimension( : ), intent( inout ) :: state
+      type( state_type ) :: packed_state
       INTEGER, intent( in ) :: NCOLACV, NCOLCT, &
            CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
            CV_ELE_TYPE, &
@@ -951,8 +952,12 @@
       INTEGER :: STAT, i,j
       character( len = option_path_len ) :: path
 
+      type(vector_field), pointer :: p_position
+
       REAL, DIMENSION( : , :  ), allocatable :: LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,NDOTQOLD
       integer :: cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, face_count
+
+      p_position=>extract_vector_field(packed_state,"PressureCoordinate")
 
       face_count=CV_count_faces( SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV,&
            CV_NONODS, U_NONODS, X_NONODS, TOTELE, &

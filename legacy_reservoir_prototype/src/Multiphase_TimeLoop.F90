@@ -86,6 +86,12 @@
       integer, intent( inout ) :: dump_no, nonlinear_iterations
       real, intent( inout ) :: dt
 
+!!$ additional state variables for multiphase & multicomponent
+
+      type(state_type) :: packed_state
+      type(state_type), dimension(:), pointer :: multiphase_state, multicomponent_state
+
+
 !!$ Primary scalars
       integer :: nphase, nstate, ncomp, totele, ndim, stotel, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, x_nloc_p1, p_nloc, mat_nloc, &
@@ -94,7 +100,7 @@
       real :: dx
 
 !!$ Node global numbers
-      integer, dimension( : ), allocatable :: x_ndgln_p1, x_ndgln, cv_ndgln, p_ndgln, &
+      integer, dimension( : ), pointer :: x_ndgln_p1, x_ndgln, cv_ndgln, p_ndgln, &
            mat_ndgln, u_ndgln, xu_ndgln, cv_sndgln, p_sndgln, u_sndgln
 
 !!$ Sparsity patterns
@@ -157,7 +163,7 @@
       integer, dimension( : ), allocatable :: PhaseVolumeFraction_BC_Spatial, Pressure_FEM_BC_Spatial, &
            Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, Temperature_BC_Spatial, &
            wic_momu_bc
-      real, dimension( : ), allocatable :: xu, yu, zu, x, y, z, ug, vg, wg, &
+      real, dimension( : ), pointer :: temp,xu, yu, zu, x, y, z, ug, vg, wg, &
            Velocity_U, Velocity_V, Velocity_W, Velocity_U_Old, Velocity_V_Old, Velocity_W_Old, &
            Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
            Pressure_FEM, Pressure_CV, Temperature, Density, Density_Cp, Density_Component, PhaseVolumeFraction, &
@@ -232,6 +238,11 @@
 
       !Read info for adaptive timestep based on non_linear_iterations
 
+    !! JRP changes to make a multiphasic state
+
+      call pack_multistate(state,packed_state,multiphase_state,&
+           multicomponent_state)
+
       variable_selection = 3 !Variable to check how good nonlinear iterations are going 1 (Pressure), 2 (Velocity), 3 (Saturation)
       Repeat_time_step = .false.!Initially has to be false
       nonLinearAdaptTs = have_option(  '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear')
@@ -261,12 +272,13 @@
            cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, x_nonods_p1, p_nonods, dx )
 
 !!$ Calculating Global Node Numbers
-      allocate( x_ndgln_p1( totele * x_nloc_p1 ), x_ndgln( totele * x_nloc ), cv_ndgln( totele * cv_nloc ), &
-           p_ndgln( totele * p_nloc ), mat_ndgln( totele * mat_nloc ), u_ndgln( totele * u_nloc ), &
-           xu_ndgln( totele * xu_nloc ), cv_sndgln( stotel * cv_snloc ), p_sndgln( stotel * p_snloc ), &
+      allocate( cv_sndgln( stotel * cv_snloc ), p_sndgln( stotel * p_snloc ), &
            u_sndgln( stotel * u_snloc ) )
 
-      x_ndgln_p1 = 0 ; x_ndgln = 0 ; cv_ndgln = 0 ; p_ndgln = 0 ; mat_ndgln = 0 ; u_ndgln = 0 ; xu_ndgln = 0 ; &
+      
+      
+
+!      x_ndgln_p1 = 0 ; x_ndgln = 0 ; cv_ndgln = 0 ; p_ndgln = 0 ; mat_ndgln = 0 ; u_ndgln = 0 ; xu_ndgln = 0 ; &
            cv_sndgln = 0 ; p_sndgln = 0 ; u_sndgln = 0
 
       call Compute_Node_Global_Numbers( state, &
@@ -328,6 +340,11 @@
            mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, &
 !!$ CV-FEM matrix
            mx_ncolm, ncolm, findm, colm, midm, mx_nface_p1 )
+
+    call temp_mem_hacks()
+
+    allocate(temp(max(xu_nonods,x_nonods)))
+    call temp_assigns()
 
 !!$ Allocating space for various arrays:
       allocate( xu( xu_nonods ), yu( xu_nonods ), zu( xu_nonods ), &
@@ -1112,7 +1129,7 @@
 
                if (igot_theta_flux>0) then
 
-               call VolumeFraction_Assemble_Solve( state, &
+               call VolumeFraction_Assemble_Solve( state, packed_state, &
                     NCOLACV, FINACV, COLACV, MIDACV, &
                     small_FINACV, small_COLACV, small_MIDACV, &
                     block_to_global_acv, global_dense_block_acv, &
@@ -1154,7 +1171,7 @@
                     theta_flux=sum_theta_flux, one_m_theta_flux=sum_one_m_theta_flux,&
                            StorageIndexes=StorageIndexes)
                else
-                                 call VolumeFraction_Assemble_Solve( state, &
+                  call VolumeFraction_Assemble_Solve( state, packed_state,&
                     NCOLACV, FINACV, COLACV, MIDACV, &
                     small_FINACV, small_COLACV, small_MIDACV, &
                     block_to_global_acv, global_dense_block_acv, &
@@ -1589,7 +1606,7 @@
 
                   call run_diagnostics( state )
 
-                  call adapt_state( state, metric_tensor )
+                  call adapt_state( state, metric_tensor, suppress_reference_warnings=.true. )
 
                   call update_state_post_adapt( state, metric_tensor, dt, sub_state, nonlinear_iterations, &
                        nonlinear_iterations_adapt )
@@ -1631,6 +1648,11 @@
                not_to_move_det_yet = .false.
 
             end if Conditional_Adaptivity
+
+            call deallocate(packed_state)
+            call pack_multistate(state,packed_state,&
+                 multiphase_state,multicomponent_state)
+            call temp_mem_hacks()
 
 !!$ Deallocating array variables:
             deallocate( &
@@ -1696,12 +1718,10 @@ deallocate(NDOTQOLD,&
                  x_snloc, cv_snloc, u_snloc, p_snloc, &
                  cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, x_nonods_p1, p_nonods, dx )
 !!$ Calculating Global Node Numbers
-            allocate( x_ndgln_p1( totele * x_nloc_p1 ), x_ndgln( totele * x_nloc ), cv_ndgln( totele * cv_nloc ), &
-                 p_ndgln( totele * p_nloc ), mat_ndgln( totele * mat_nloc ), u_ndgln( totele * u_nloc ), &
-                 xu_ndgln( totele * xu_nloc ), cv_sndgln( stotel * cv_snloc ), p_sndgln( stotel * p_snloc ), &
+            allocate( cv_sndgln( stotel * cv_snloc ), p_sndgln( stotel * p_snloc ), &
                  u_sndgln( stotel * u_snloc ) )
 
-            x_ndgln_p1 = 0 ; x_ndgln = 0 ; cv_ndgln = 0 ; p_ndgln = 0 ; mat_ndgln = 0 ; u_ndgln = 0 ; xu_ndgln = 0 ; &
+  !          x_ndgln_p1 = 0 ; x_ndgln = 0 ; cv_ndgln = 0 ; p_ndgln = 0 ; mat_ndgln = 0 ; u_ndgln = 0 ; xu_ndgln = 0 ; &
                  cv_sndgln = 0 ; p_sndgln = 0 ; u_sndgln = 0
 
             call Compute_Node_Global_Numbers( state, &
@@ -2058,6 +2078,9 @@ ncv_faces=CV_count_faces( SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV,&
              LIMCOLD,LIMC2OLD,LIMCDOLD,&
              LIMCDTOLD,LIMCDTT2OLD)
 
+        call finalise_multistate(packed_state,multiphase_state,&
+             multicomponent_state)
+
 
         if (tolerance_between_non_linear>0.) then
             select case (variable_selection)
@@ -2075,6 +2098,62 @@ ncv_faces=CV_count_faces( SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV,&
 
 
       return
+
+      contains 
+
+        
+        subroutine temp_mem_hacks()
+          
+!!! routine puts various CSR sparsities into packed_state
+
+          use sparse_tools
+          
+          type(csr_sparsity) :: sparsity
+
+          sparsity=wrap(small_finacv,small_midacv,colm=small_colacv,name='OnePhaseAdvectionSparsity')
+          call insert(packed_state,sparsity,'OnePhaseAdvectionSparsity')
+          sparsity=wrap(finacv,midacv,colm=colacv,name='PackedAdvectionSparsity')
+          call insert(packed_state,sparsity,'PackedAdvectionSparsity')
+          sparsity=wrap(findc,colm=colc,name='CMatrixSparsity')
+          call insert(packed_state,sparsity,'CMatrixSparsity')
+          sparsity=wrap(findct,colm=colct,name='CTMatrixSparsity')
+          call insert(packed_state,sparsity,'CTMatrixSparsity')
+          sparsity=wrap(findcmc,colm=colcmc,name='CMCMatrixSparsity')
+          call insert(packed_state,sparsity,'CMCMatrixSparsity')
+          sparsity=wrap(findm,midm,colm=colm,name='CVFEMSparsity')
+          call insert(packed_state,sparsity,'CVFEMSparsity')
+
+        end subroutine temp_mem_hacks
+
+
+        subroutine temp_assigns()
+
+          type(vector_field), pointer :: pu,pp,pm
+
+          pp=> extract_vector_field(packed_state,"PressureCoordinate")
+          pu=>extract_vector_field(packed_state,"VelocityCoordinate")
+
+          xu=>pu%val(1,:)
+          x=>pp%val(1,:)
+
+
+          if ( ndim >= 2 ) then
+             yu=>pu%val(2,:)
+             y=>pp%val(2,:)
+          else
+             yu=>temp(1:xu_nonods)
+             y=>temp(1:x_nonods)
+          end if
+          
+          if ( ndim == 3 ) then
+             zu=>pu%val(3,:)
+             z=>pp%val(3,:)
+          else
+             zu=>temp(1:xu_nonods)
+             z=>temp(1:x_nonods)
+          end if
+
+        end subroutine temp_assigns
     end subroutine MultiFluids_SolveTimeLoop
 
 
