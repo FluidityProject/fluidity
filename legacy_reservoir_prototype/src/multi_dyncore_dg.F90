@@ -406,7 +406,7 @@
       REAL, DIMENSION( : ), intent( inout ) :: CV_RHS
       REAL, DIMENSION( : ), intent( inout ) :: DIAG_SCALE_PRES
       REAL, DIMENSION( : ), intent( inout ) :: CT_RHS
-      REAL, DIMENSION( : ), intent( inout ) :: CT
+      REAL, DIMENSION( :, :, : ), intent( inout ) :: CT
       REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
       REAL, DIMENSION( : ), intent( in ) :: NU, NV, NW, NUOLD, NVOLD, NWOLD, UG, VG, WG
       REAL, DIMENSION( : ), intent( inout ) :: T, T_FEMT, DEN_FEMT
@@ -1271,11 +1271,11 @@
       ! If IGOT_CMC_PRECON=1 use a sym matrix as pressure preconditioner,=0 else CMC as preconditioner as well.
       INTEGER, PARAMETER :: IGOT_CMC_PRECON = 0
 
-      REAL, DIMENSION( : ), allocatable :: CT, CT_RHS, DIAG_SCALE_PRES, &
+      REAL, DIMENSION( : ), allocatable :: CT_RHS, DIAG_SCALE_PRES, &
            U_RHS, MCY_RHS, MCY, &
            CMC, CMC_PRECON, MASS_MN_PRES, MASS_CV, P_RHS, UP, U_RHS_CDP, DP, &
            DU_VEL, UP_VEL, DU, DV, DW, DGM_PHA, DIAG_P_SQRT, ACV
-      REAL, DIMENSION( :, :, : ), allocatable :: PIVIT_MAT, C, CDP
+      REAL, DIMENSION( :, :, : ), allocatable :: PIVIT_MAT, C, CDP, CT
       INTEGER :: CV_NOD, COUNT, CV_JNOD, IPHASE, ele, x_nod1, x_nod2, x_nod3, cv_iloc, &
            cv_nod1, cv_nod2, cv_nod3, mat_nod1, u_iloc, u_nod, u_nod_pha, ndpset
       REAL :: der1, der2, der3, uabs, rsum, xc, yc
@@ -1287,7 +1287,7 @@
       ewrite(3,*) 'In FORCE_BAL_CTY_ASSEM_SOLVE'
 
 
-      ALLOCATE( CT( NDIM * NPHASE * NCOLCT )) ; CT=0.
+      ALLOCATE( CT( NDIM, NPHASE, NCOLCT )) ; CT=0.
       ALLOCATE( CT_RHS( CV_NONODS )) ; CT_RHS=0.
       ALLOCATE( DIAG_SCALE_PRES( CV_NONODS )) ; DIAG_SCALE_PRES=0.
       ALLOCATE( U_RHS( U_NONODS * NDIM * NPHASE )) ; U_RHS=0.
@@ -1487,11 +1487,10 @@
          ewrite(3,*)'b4 pressure solve P_RHS:', P_RHS
          DP = 0.
 
-! Add diffusion to DG version of CMC to try and encourage a continuous formulation...
-! the idea is to stabilize pressure without effecting the soln i.e. the rhs of the eqns as
-! pressure may have some singularities associated with it. 
-!               if( cv_nonods.ne.x_nonods) then !DG only...
-         if( .false.) then !DG only...
+         ! Add diffusion to DG version of CMC to try and encourage a continuous formulation...
+         ! the idea is to stabilize pressure without effecting the soln i.e. the rhs of the eqns as
+         ! pressure may have some singularities associated with it.
+         if ( cv_nonods/=x_nonods .or. .false. ) then !DG only...
             CALL ADD_DIFF_CMC(CMC, &
                  NCOLCMC, cv_NONODS, FINDCMC, COLCMC, MIDCMC, &
                  totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln, p )
@@ -1533,7 +1532,7 @@
       MASS_CV = 0.0
       DO CV_NOD = 1, CV_NONODS
          DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
-            CV_P( CV_NOD ) = CV_P( CV_NOD ) + MASS_MN_PRES( COUNT ) * P( COLCMC( COUNT ))
+            CV_P( CV_NOD ) = CV_P( CV_NOD ) + MASS_MN_PRES( COUNT ) * P( COLCMC( COUNT ) )
             MASS_CV( CV_NOD ) = MASS_CV( CV_NOD ) + MASS_MN_PRES( COUNT )
          END DO
       END DO
@@ -1563,6 +1562,8 @@
       ewrite(3,*) 'Leaving FORCE_BAL_CTY_ASSEM_SOLVE'
 
     END SUBROUTINE FORCE_BAL_CTY_ASSEM_SOLVE
+
+
 
 
 
@@ -1796,7 +1797,7 @@
       REAL, DIMENSION( : ), intent( inout ) :: U_RHS
       REAL, DIMENSION( : ), intent( inout ) :: MCY_RHS
       REAL, DIMENSION( :, :, : ), intent( inout ) :: C
-      REAL, DIMENSION( : ), intent( inout ) :: CT
+      REAL, DIMENSION( :, :, : ), intent( inout ) :: CT
       REAL, DIMENSION( : ), intent( inout ) :: MASS_MN_PRES
       REAL, DIMENSION( : ), intent( inout ) :: CT_RHS
       REAL, DIMENSION( : ), intent( inout ) :: DIAG_SCALE_PRES
@@ -2094,7 +2095,7 @@
 
       ewrite(3,*)'Back from cv_assemb'
 
-      IF(GLOBAL_SOLVE) THEN
+      IF ( GLOBAL_SOLVE ) THEN
          ! Put CT into global matrix MCY...
          MCY_RHS( U_NONODS * NDIM * NPHASE + 1 : U_NONODS * NDIM * NPHASE + CV_NONODS ) = &
               CT_RHS( 1 : CV_NONODS )
@@ -2103,7 +2104,7 @@
               NLENMCY, NCOLMCY, MCY, FINMCY, &
               CV_NONODS, NCOLCT, CT, DIAG_SCALE_PRES, FINDCT, &
               FINDCMC, NCOLCMC, MASS_MN_PRES ) 
-      ENDIF
+      END IF
 
       DEALLOCATE( T2 )
       DEALLOCATE( T2OLD )
@@ -2198,7 +2199,7 @@
            NCOLCMC
       REAL, DIMENSION( : ), intent( inout ) :: MCY
       INTEGER, DIMENSION( : ), intent( in ) ::  FINMCY
-      REAL, DIMENSION( : ), intent( in ) :: CT
+      REAL, DIMENSION( :, :, : ), intent( in ) :: CT
       REAL, DIMENSION( : ), intent( in ) :: DIAG_SCALE_PRES
       INTEGER, DIMENSION( : ), intent( in ) :: FINDCT, FINDCMC
       REAL, DIMENSION( : ), intent( in ) :: MASS_MN_PRES
@@ -2218,7 +2219,7 @@
                   COUNT_MCY1 = FINMCY( U_NONODS * NPHASE * NDIM + CV_NOD ) - 1 + (COUNT - FINDCT( CV_NOD ) +1) &
                        + ( IPHASE - 1 ) * IWID * NDIM &
                        + IWID*(IDIM-1)
-                  MCY( COUNT_MCY1 ) = CT( COUNT + ( IPHASE - 1 ) * NDIM * NCOLCT + (IDIM-1)*NCOLCT ) 
+                  MCY( COUNT_MCY1 ) = CT( IDIM, IPHASE, COUNT ) 
 
                END DO Loop_DIM
             END DO Loop_PHASE

@@ -340,7 +340,7 @@
       INTEGER, DIMENSION( : ), intent( in ) :: FINDCMC
       INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
       REAL, DIMENSION( :, :, : ), intent( in ) :: C
-      REAL, DIMENSION( : ), intent( inout ) :: CT
+      REAL, DIMENSION( :, :, : ), intent( inout ) :: CT
 
       ! Local variables
       LOGICAL, PARAMETER :: FAST = .true.
@@ -415,7 +415,7 @@
          INTEGER, DIMENSION( : ), intent( in ) :: FINDCMC
          INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
          REAL, DIMENSION( :, :, : ), intent( in ) :: C
-         REAL, DIMENSION( : ), intent( inout ) :: CT
+         REAL, DIMENSION( :, :, : ), intent( inout ) :: CT
 
          ! Local variables
          INTEGER, PARAMETER :: MX_NCOLOR = 1000
@@ -698,7 +698,7 @@
       INTEGER, DIMENSION( : ), intent( in ) :: FINDCMC
       INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
       REAL, DIMENSION( :, :, : ), intent( in ) :: C
-      REAL, DIMENSION( : ), intent( inout ) :: CT
+      REAL, DIMENSION( :, :, : ), intent( inout ) :: CT
 
       ! Local variables
       INTEGER, PARAMETER :: MX_NCOLOR = 1000
@@ -1116,93 +1116,91 @@
 
 
 
-!!$    SUBROUTINE CT_MULT( CV_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
-!!$         CT, NCOLCT, FINDCT, COLCT ) 
-!!$      ! CV_RHS=CT*U
-!!$      implicit none
-!!$      INTEGER, intent( in ) :: CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLCT
-!!$      REAL, DIMENSION( CV_NONODS ), intent( inout) :: CV_RHS
-!!$      REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: U, V, W  
-!!$      INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
-!!$      INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
-!!$      REAL, DIMENSION( NCOLCT * NDIM * NPHASE ), intent( in ) :: CT
-!!$
-!!$      ! Local variables
-!!$      INTEGER :: CV_INOD, COUNT, U_JNOD, IPHASE, J
-!!$
-!!$      CV_RHS = 0.0
-!!$
-!!$      DO CV_INOD = 1, CV_NONODS
-!!$
-!!$         DO COUNT = FINDCT( CV_INOD ), FINDCT( CV_INOD + 1 ) - 1, 1
-!!$            U_JNOD = COLCT( COUNT )
-!!$
-!!$            DO IPHASE = 1, NPHASE
-!!$               J = U_JNOD + ( IPHASE - 1 ) * U_NONODS
-!!$
-!!$               CV_RHS( CV_INOD ) = CV_RHS( CV_INOD ) + CT( COUNT + NCOLCT * NDIM * ( IPHASE - 1 )) * U( J )
-!!$               IF( NDIM >= 2 ) CV_RHS( CV_INOD ) = CV_RHS( CV_INOD ) + CT( COUNT + &
-!!$                    NCOLCT + NCOLCT     * NDIM * ( IPHASE - 1 )) * V( J )
-!!$               IF( NDIM >= 3 ) CV_RHS( CV_INOD ) = CV_RHS( CV_INOD ) + CT( COUNT + &
-!!$                    2 * NCOLCT + NCOLCT * NDIM * ( IPHASE-  1 )) * W( J )
-!!$            END DO
-!!$
-!!$         END DO
-!!$
-!!$      END DO
-!!$
-!!$      RETURN
-!!$
-!!$    END SUBROUTINE CT_MULT
-
-
-
-
-
     SUBROUTINE CT_MULT( CV_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
          CT, NCOLCT, FINDCT, COLCT ) 
       ! CV_RHS=CT*U
       implicit none
       INTEGER, intent( in ) :: CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLCT
-      REAL, DIMENSION( : ), intent( out) :: CV_RHS
-      REAL, DIMENSION( : ), intent( in ) :: U, V, W
-      INTEGER, DIMENSION( : ), intent( in ) :: FINDCT
-      INTEGER, DIMENSION( : ), intent( in ) :: COLCT
-      REAL, DIMENSION( : ), intent( in ) :: CT
-
+      REAL, DIMENSION( CV_NONODS ), intent( inout) :: CV_RHS
+      REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: U, V, W  
+      INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
+      INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
+      REAL, DIMENSION( NDIM, NPHASE, NCOLCT ), intent( in ) :: CT
 
       ! Local variables
-      real, dimension( ncolct) :: CTU
-      INTEGER :: CV_INOD, COUNT, U_JNOD, IPHASE, i,J,k
-      integer, pointer :: countp
+      INTEGER :: CV_INOD, COUNT, U_JNOD, IPHASE, J
 
-    ! when code is realigned, it will be possible to form the dot product
-    !              sum(CT(1:ndim*nphase,CV_NOD,U(1:ndim*nphase,cv_nod) 
-    ! directly, unrolling one loop and reducing indirection.
-
+      CV_RHS = 0.0
 
       DO CV_INOD = 1, CV_NONODS
-         CTU( FINDCT( CV_INOD ) :FINDCT( CV_INOD + 1 )-1)=CT( FINDCT( CV_INOD ) :FINDCT( CV_INOD + 1 ) -1)&
-              *u(colct( FINDCT( CV_INOD ) :FINDCT( CV_INOD + 1 )-1))
-      end do
-      if (ndim>=2) CTU=CTU+CT(ncolct+1:2*ncolct)*V(colct)
-      if (ndim>=3) CTU=CTU+CT(2*ncolct+1:3*ncolct)*W(colct)
 
-      DO IPHASE = 2, NPHASE
-         CTU=CTU+CT((iphase-1)*ncolct*ndim+1:(iphase-1)*ncolct*ndim+ncolct)*U(colct + ( IPHASE - 1 ) * U_NONODS)
-         if (ndim>=2) &
-              CTU=CTU+CT((iphase-1)*ncolct*ndim+ncolct+1:(iphase-1)*ncolct*ndim+2*ncolct)&
-              *V(colct + ( IPHASE - 1 ) * U_NONODS)
-         if (ndim>=3) CTU=CTU+CT((iphase-1)*ncolct*ndim+2*ncolct+1:(iphase-1)*ncolct*ndim+3*ncolct)*W(colct + ( IPHASE - 1 ) * U_NONODS)
-      end DO
+         DO COUNT = FINDCT( CV_INOD ), FINDCT( CV_INOD + 1 ) - 1, 1
+            U_JNOD = COLCT( COUNT )
 
-      DO CV_INOD = 1, CV_NONODS
-         CV_RHS( CV_INOD ) = sum(CTU( FINDCT( CV_INOD ) :FINDCT( CV_INOD + 1 ) - 1))
+            DO IPHASE = 1, NPHASE
+               J = U_JNOD + ( IPHASE - 1 ) * U_NONODS
+
+               CV_RHS( CV_INOD ) = CV_RHS( CV_INOD ) + CT( 1, IPHASE, COUNT ) * U( J )
+               IF( NDIM >= 2 ) CV_RHS( CV_INOD ) = CV_RHS( CV_INOD ) + CT( 2, IPHASE, COUNT ) * V( J )
+               IF( NDIM >= 3 ) CV_RHS( CV_INOD ) = CV_RHS( CV_INOD ) + CT( 3, IPHASE, COUNT ) * W( J )
+            END DO
+
+         END DO
+
       END DO
 
       RETURN
 
     END SUBROUTINE CT_MULT
+
+
+
+
+!!$
+!!$    SUBROUTINE CT_MULT( CV_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
+!!$         CT, NCOLCT, FINDCT, COLCT ) 
+!!$      ! CV_RHS=CT*U
+!!$      implicit none
+!!$      INTEGER, intent( in ) :: CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLCT
+!!$      REAL, DIMENSION( : ), intent( out) :: CV_RHS
+!!$      REAL, DIMENSION( : ), intent( in ) :: U, V, W
+!!$      INTEGER, DIMENSION( : ), intent( in ) :: FINDCT
+!!$      INTEGER, DIMENSION( : ), intent( in ) :: COLCT
+!!$      REAL, DIMENSION( : ), intent( in ) :: CT
+!!$
+!!$
+!!$      ! Local variables
+!!$      real, dimension( ncolct) :: CTU
+!!$      INTEGER :: CV_INOD, COUNT, U_JNOD, IPHASE, i,J,k
+!!$      integer, pointer :: countp
+!!$
+!!$    ! when code is realigned, it will be possible to form the dot product
+!!$    !              sum(CT(1:ndim*nphase,CV_NOD,U(1:ndim*nphase,cv_nod) 
+!!$    ! directly, unrolling one loop and reducing indirection.
+!!$
+!!$
+!!$      DO CV_INOD = 1, CV_NONODS
+!!$         CTU( FINDCT( CV_INOD ) :FINDCT( CV_INOD + 1 )-1)=CT( FINDCT( CV_INOD ) :FINDCT( CV_INOD + 1 ) -1)&
+!!$              *u(colct( FINDCT( CV_INOD ) :FINDCT( CV_INOD + 1 )-1))
+!!$      end do
+!!$      if (ndim>=2) CTU=CTU+CT(ncolct+1:2*ncolct)*V(colct)
+!!$      if (ndim>=3) CTU=CTU+CT(2*ncolct+1:3*ncolct)*W(colct)
+!!$
+!!$      DO IPHASE = 2, NPHASE
+!!$         CTU=CTU+CT((iphase-1)*ncolct*ndim+1:(iphase-1)*ncolct*ndim+ncolct)*U(colct + ( IPHASE - 1 ) * U_NONODS)
+!!$         if (ndim>=2) &
+!!$              CTU=CTU+CT((iphase-1)*ncolct*ndim+ncolct+1:(iphase-1)*ncolct*ndim+2*ncolct)&
+!!$              *V(colct + ( IPHASE - 1 ) * U_NONODS)
+!!$         if (ndim>=3) CTU=CTU+CT((iphase-1)*ncolct*ndim+2*ncolct+1:(iphase-1)*ncolct*ndim+3*ncolct)*W(colct + ( IPHASE - 1 ) * U_NONODS)
+!!$      end DO
+!!$
+!!$      DO CV_INOD = 1, CV_NONODS
+!!$         CV_RHS( CV_INOD ) = sum(CTU( FINDCT( CV_INOD ) :FINDCT( CV_INOD + 1 ) - 1))
+!!$      END DO
+!!$
+!!$      RETURN
+!!$
+!!$    END SUBROUTINE CT_MULT
 
 
 
@@ -1216,7 +1214,7 @@
       REAL, DIMENSION( NBLOCK, NDIM, NPHASE, U_NONODS ), intent( in ) :: U
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
       INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
-      REAL, DIMENSION( NDIM * NPHASE * NCOLCT ), intent( in ) :: CT
+      REAL, DIMENSION( NDIM, NPHASE, NCOLCT ), intent( in ) :: CT
 
       ! Local variables
       INTEGER :: CV_INOD, COUNT, U_JNOD, IPHASE, J, IVEC
@@ -1232,11 +1230,9 @@
                J = U_JNOD + ( IPHASE - 1 ) * U_NONODS
 
                DO IVEC = 1, NBLOCK
-                  CV_RHS( IVEC, CV_INOD ) = CV_RHS( IVEC, CV_INOD ) + CT( COUNT + NCOLCT * NDIM * ( IPHASE - 1 ) ) * U( IVEC, 1, IPHASE, U_JNOD )
-                  IF( NDIM >= 2 ) CV_RHS( IVEC, CV_INOD ) = CV_RHS( IVEC, CV_INOD ) &
-                       + CT( COUNT + NCOLCT + NCOLCT * NDIM * ( IPHASE - 1 ) ) * U( IVEC, 2, IPHASE, U_JNOD )
-                  IF( NDIM >= 3 ) CV_RHS( IVEC, CV_INOD ) = CV_RHS( IVEC, CV_INOD ) &
-                       + CT( COUNT + 2 * NCOLCT + NCOLCT * NDIM * ( IPHASE-  1 ) ) * U( IVEC, 3, IPHASE, U_JNOD )
+                  CV_RHS( IVEC, CV_INOD ) = CV_RHS( IVEC, CV_INOD ) + CT( 1, IPHASE, COUNT ) * U( IVEC, 1, IPHASE, U_JNOD )
+                  IF( NDIM >= 2 ) CV_RHS( IVEC, CV_INOD ) = CV_RHS( IVEC, CV_INOD ) + CT( 2, IPHASE, COUNT ) * U( IVEC, 2, IPHASE, U_JNOD )
+                  IF( NDIM >= 3 ) CV_RHS( IVEC, CV_INOD ) = CV_RHS( IVEC, CV_INOD ) + CT( 3, IPHASE, COUNT ) * U( IVEC, 3, IPHASE, U_JNOD )
                END DO
             END DO
 

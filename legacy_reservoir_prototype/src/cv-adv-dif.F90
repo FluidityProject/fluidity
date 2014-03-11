@@ -222,7 +222,7 @@ contains
       INTEGER, DIMENSION( : ), intent( in ) :: FINACV
       INTEGER, DIMENSION( : ), intent( in ) :: COLACV
       INTEGER, DIMENSION( : ), intent( in ) :: MIDACV
-      REAL, DIMENSION( : ), intent( inout ) :: CT
+      REAL, DIMENSION( :, :, : ), intent( inout ) :: CT
       ! Diagonal scaling of (distributed) pressure matrix (used to treat pressure implicitly)
       REAL, DIMENSION( : ), intent( inout ) :: DIAG_SCALE_PRES
       REAL, DIMENSION( :  ), intent( inout ) :: CT_RHS
@@ -1739,16 +1739,16 @@ contains
          ewrite(3,*) 'cv_rhs:', cv_rhs
       end if
 
-      if( .false. .and. getct) then
-         print *,'******'
-         do CV_NODI=1,cv_nonods
-            print *,'cv_nodi,ct:',cv_nodi,(ct(count),count=findct(cv_nodi),findct(cv_nodi+1)-1)
-         end do
+!      if( .false. .and. getct) then
+!         print *,'******'
+!         do CV_NODI=1,cv_nonods
+!            print *,'cv_nodi,ct:',cv_nodi,(ct(count),count=findct(cv_nodi),findct(cv_nodi+1)-1)
+!         end do
 !         print *,'ct(1:ncolct);',ct(1:ncolct)
 !          stop 1761
 !         ewrite(3,*)'ct(1:ncolct);',ct(1:ncolct)
 !         ewrite(3,*)'ct(1+ncolct:2*ncolct);',ct(1+ncolct:2*ncolct)
-      end if
+!      end if
 
       if (.false. .and. getcv_disc) then
 
@@ -3388,7 +3388,7 @@ contains
       INTEGER, DIMENSION(: ), intent( in ) :: U_SNDGLN
       INTEGER, DIMENSION( : ), intent( in ) ::  WIC_T_BC, WIC_D_BC, WIC_U_BC
       INTEGER, DIMENSION( : ), intent( in ) ::  WIC_T2_BC
-      REAL, DIMENSION( : ), intent( inout ) :: CT
+      REAL, DIMENSION( :, :, : ), intent( inout ) :: CT
       ! Diagonal scaling of (distributed) pressure matrix (used to treat pressure implicitly)
       REAL, DIMENSION( : ), intent( inout ) :: DIAG_SCALE_PRES
       REAL, DIMENSION( :  ), intent( inout ) :: CT_RHS
@@ -13425,7 +13425,7 @@ end SUBROUTINE GET_INT_VEL_2TIME
   END SUBROUTINE RE1DN3
 
 
-  SUBROUTINE PUT_IN_CT_RHS(CT, CT_RHS, U_NLOC, SCVNGI, GI, NCOLCT, NDIM, &
+  SUBROUTINE PUT_IN_CT_RHS( CT, CT_RHS, U_NLOC, SCVNGI, GI, NCOLCT, NDIM, &
        CV_NONODS, U_NONODS, NPHASE, IPHASE, TOTELE, ELE, ELE2, SELE, &
        JCOUNT_KLOC, JCOUNT_KLOC2, U_OTHER_LOC, U_NDGLN,  NU, NV, NW,  &
        SUFEN, SCVDETWEI, CVNORMX, CVNORMY, CVNORMZ, DEN, CV_NODI, CV_NODI_IPHA, &
@@ -13439,7 +13439,7 @@ end SUBROUTINE GET_INT_VEL_2TIME
          CV_NODI, CV_NODI_IPHA
     INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
     INTEGER, DIMENSION( : ), intent( in ) :: JCOUNT_KLOC, JCOUNT_KLOC2, U_OTHER_LOC
-    REAL, DIMENSION( : ), intent( inout ) :: CT
+    REAL, DIMENSION( :, :, : ), intent( inout ) :: CT
     REAL, DIMENSION( : ), intent( inout ) :: CT_RHS
     REAL, DIMENSION( : ), intent( in ) :: UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
          UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2
@@ -13483,35 +13483,33 @@ end SUBROUTINE GET_INT_VEL_2TIME
        !     U_KLOC, CV_NODI_IPHA, JCOUNT_IPHA, RCON
 
        IDIM = 1
-       CT( JCOUNT_IPHA + ( IDIM - 1 ) * NCOLCT ) &
-            =  CT( JCOUNT_IPHA + ( IDIM - 1 ) * NCOLCT) &
-            +  RCON * UGI_COEF_ELE(U_KLOC) * CVNORMX( GI )
+       CT( IDIM, IPHASE, JCOUNT_KLOC( U_KLOC ) ) &
+            = CT( IDIM, IPHASE, JCOUNT_KLOC( U_KLOC ) ) &
+            + RCON * UGI_COEF_ELE( U_KLOC ) * CVNORMX( GI )
 
        IDIM = 2
        IF( NDIM >= 2 ) &
-            CT( JCOUNT_IPHA + ( IDIM - 1 ) * NCOLCT ) &
-            =  CT( JCOUNT_IPHA + ( IDIM - 1 ) * NCOLCT ) &
-            +  RCON * VGI_COEF_ELE(U_KLOC) * CVNORMY( GI )
+            CT( IDIM, IPHASE, JCOUNT_KLOC( U_KLOC ) ) &
+            = CT( IDIM, IPHASE, JCOUNT_KLOC( U_KLOC ) ) &
+            + RCON * VGI_COEF_ELE( U_KLOC ) * CVNORMY( GI )
 
        IDIM = 3
        IF( NDIM >= 3 ) &
-            CT( JCOUNT_IPHA + ( IDIM - 1 ) * NCOLCT ) &
-            =  CT( JCOUNT_IPHA + ( IDIM - 1 ) * NCOLCT ) &
-            +  RCON * WGI_COEF_ELE(U_KLOC) * CVNORMZ( GI )
+            CT( IDIM, IPHASE, JCOUNT_KLOC( U_KLOC ) ) &
+            = CT( IDIM, IPHASE, JCOUNT_KLOC( U_KLOC ) ) &
+            + RCON * WGI_COEF_ELE( U_KLOC ) * CVNORMZ( GI )
     END DO
 
     IF(SELE /= 0) THEN
        UDGI_IMP=0.0
        VDGI_IMP=0.0
        WDGI_IMP=0.0
-       !DO U_KLOC_LEV = 1, U_NLOC_LEV
-       !U_KLOC=(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV
        DO U_KLOC = 1, U_NLOC
-          U_NODK = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC )
+          U_NODK = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_KLOC )
           U_NODK_IPHA = U_NODK + (IPHASE-1)*U_NONODS
-          UDGI_IMP=UDGI_IMP + SUFEN( U_KLOC, GI ) * UGI_COEF_ELE(U_KLOC) * NU(U_NODK_IPHA) 
-          VDGI_IMP=VDGI_IMP + SUFEN( U_KLOC, GI ) * VGI_COEF_ELE(U_KLOC) * NV(U_NODK_IPHA) 
-          WDGI_IMP=WDGI_IMP + SUFEN( U_KLOC, GI ) * WGI_COEF_ELE(U_KLOC) * NW(U_NODK_IPHA) 
+          UDGI_IMP = UDGI_IMP + SUFEN( U_KLOC, GI ) * UGI_COEF_ELE( U_KLOC ) * NU( U_NODK_IPHA ) 
+          VDGI_IMP = VDGI_IMP + SUFEN( U_KLOC, GI ) * VGI_COEF_ELE( U_KLOC ) * NV( U_NODK_IPHA ) 
+          WDGI_IMP = WDGI_IMP + SUFEN( U_KLOC, GI ) * WGI_COEF_ELE( U_KLOC ) * NW( U_NODK_IPHA ) 
        END DO
 
        NDOTQ_IMP=CVNORMX( GI ) * UDGI_IMP + CVNORMY( GI ) * VDGI_IMP + CVNORMZ( GI ) * WDGI_IMP
@@ -13536,15 +13534,13 @@ end SUBROUTINE GET_INT_VEL_2TIME
        CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - SCVDETWEI( GI ) * ( &
             ONE_M_FTHETA_T2OLD * LIMDTOLD * NDOTQOLD &
             ) / DEN( CV_NODI_IPHA ) 
-    ENDIF
+    END IF
 
     IF((ELE2 /= 0).AND.(ELE2 /= ELE)) THEN
        ! We have a discontinuity between elements so integrate along the face...
-       !DO U_KLOC_LEV = 1, U_NLOC_LEV
-       !U_KLOC=(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV
        DO U_KLOC = 1, U_NLOC
-          U_KLOC2=U_OTHER_LOC(U_KLOC)
-          IF(U_KLOC2 /= 0) THEN
+          U_KLOC2 = U_OTHER_LOC( U_KLOC)
+          IF ( U_KLOC2 /= 0 ) THEN
              JCOUNT2_IPHA = JCOUNT_KLOC2( U_KLOC2 ) + (IPHASE - 1) * NCOLCT * NDIM
 
              RCON = SCVDETWEI( GI ) * FTHETA_T2 * LIMDT  &
@@ -13554,24 +13550,25 @@ end SUBROUTINE GET_INT_VEL_2TIME
              !     U_KLOC2, CV_NODI_IPHA, JCOUNT2_IPHA, RCON, UGI_COEF_ELE2( U_KLOC2 )
 
              IDIM = 1
-             CT( JCOUNT2_IPHA + ( IDIM - 1 ) * NCOLCT ) &
-                  =  CT( JCOUNT2_IPHA + ( IDIM - 1 ) * NCOLCT ) &
-                  +  RCON * UGI_COEF_ELE2( U_KLOC2 ) * CVNORMX( GI )
+             CT( IDIM, IPHASE, JCOUNT_KLOC2( U_KLOC2 ) ) &
+                  = CT( IDIM, IPHASE, JCOUNT_KLOC2( U_KLOC2 ) ) &
+                  + RCON * UGI_COEF_ELE2( U_KLOC2 ) * CVNORMX( GI )
 
              IDIM = 2
-             IF( NDIM >= 2 ) &
-                  CT( JCOUNT2_IPHA + ( IDIM - 1 ) * NCOLCT ) &
-                  =  CT( JCOUNT2_IPHA + ( IDIM - 1 ) * NCOLCT ) &
-                  +  RCON * VGI_COEF_ELE2( U_KLOC2 ) * CVNORMY( GI )
+             IF ( NDIM >= 2 ) &
+                  CT( IDIM, IPHASE, JCOUNT_KLOC2( U_KLOC2 ) ) &
+                  = CT( IDIM, IPHASE, JCOUNT_KLOC2( U_KLOC2 ) ) &
+                  + RCON * VGI_COEF_ELE2( U_KLOC2 ) * CVNORMY( GI )
 
              IDIM = 3
-             IF( NDIM >= 3 ) &
-                  CT( JCOUNT2_IPHA + ( IDIM - 1 ) * NCOLCT ) &
-                  =  CT( JCOUNT2_IPHA + ( IDIM - 1 ) * NCOLCT ) &
-                  +  RCON * WGI_COEF_ELE2( U_KLOC2 ) * CVNORMZ( GI )
-          ENDIF
+             IF ( NDIM >= 3 ) &
+                  CT( IDIM, IPHASE, JCOUNT_KLOC2( U_KLOC2 ) ) &
+                  = CT( IDIM, IPHASE, JCOUNT_KLOC2( U_KLOC2 ) ) &
+                  + RCON * WGI_COEF_ELE2( U_KLOC2 ) * CVNORMZ( GI )
+
+          END IF
        END DO
-    ENDIF
+    END IF
 
     !ewrite(3,*)'check ct:,', NCOLCT * NDIM * NPHASE, size(ct), ct(1:NCOLCT * NDIM * NPHASE)
 
