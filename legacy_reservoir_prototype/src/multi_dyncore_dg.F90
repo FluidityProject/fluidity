@@ -48,8 +48,6 @@
     implicit none
 
     private :: UVW_2_ULONG, &
-         CV_ASSEMB_FORCE_CTY_PRES, &
-         FORM_PRES_EQN, &
          CV_ASSEMB_FORCE_CTY, &
          PUT_MOM_C_IN_GLOB_MAT, &
          PUT_CT_IN_GLOB_MAT, &
@@ -253,13 +251,13 @@
               mass_ele_transp, &
               option_path,&
               theta_flux=THETA_FLUX, one_m_theta_flux=ONE_M_THETA_FLUX,&
-               StorageIndexes=StorageIndexes)
+              StorageIndexes=StorageIndexes)
 
          t=0.
 
-         Conditional_Lumping: IF(LUMP_EQNS) THEN
+         Conditional_Lumping: IF ( LUMP_EQNS ) THEN
             ! Lump the multi-phase flow eqns together
-            ALLOCATE( CV_RHS_SUB( CV_NONODS ))
+            ALLOCATE( CV_RHS_SUB( CV_NONODS ) )
 
             CV_RHS_SUB = 0.0
             DO IPHASE = 1, NPHASE
@@ -328,6 +326,17 @@
       ewrite(3,*) 'Leaving INTENERGE_ASSEM_SOLVE'
 
     END SUBROUTINE INTENERGE_ASSEM_SOLVE
+
+
+
+
+
+
+
+
+
+
+
 
 
     SUBROUTINE CV_ASSEMB_CV_DG( state, &
@@ -768,7 +777,7 @@
            !WIC_T_BC, WIC_T_BC, WIC_U_BC, IZERO, &
 
            CV_RHS, &
-           RDUM, 0, IDUM, IDUM, & 
+           RDUM3, 0, IDUM, IDUM, & 
            ACV, NCOLACV, FINACV, COLACV, &! Force balance sparsity  
            NCOLELE, FINELE, COLELE, & ! Element connectivity.
            XU_NLOC, XU_NDGLN, &
@@ -1129,6 +1138,20 @@
     end subroutine VolumeFraction_Assemble_Solve
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     SUBROUTINE FORCE_BAL_CTY_ASSEM_SOLVE( state, &
          NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
          U_ELE_TYPE, P_ELE_TYPE, &
@@ -1250,30 +1273,28 @@
       integer, dimension(:), intent(inout) :: StorageIndexes
       ! Local Variables
       LOGICAL, PARAMETER :: GLOBAL_SOLVE = .FALSE.
+      ! If IGOT_CMC_PRECON=1 use a sym matrix as pressure preconditioner,=0 else CMC as preconditioner as well.
+      INTEGER, PARAMETER :: IGOT_CMC_PRECON = 0
 
       REAL, DIMENSION( : ), allocatable :: CT, CT_RHS, DIAG_SCALE_PRES, &
-           U_RHS, MCY_RHS, C, MCY, &
+           U_RHS, MCY_RHS, MCY, &
            CMC, CMC_PRECON, MASS_MN_PRES, MASS_CV, P_RHS, UP, U_RHS_CDP, DP, &
-           CDP, DU_VEL, UP_VEL, DU, DV, DW, DGM_PHA, DIAG_P_SQRT
-      ! this is the pivit matrix to use in the projection method...
-      REAL, DIMENSION( :, :, : ), allocatable :: PIVIT_MAT 
-      INTEGER :: CV_NOD, COUNT, CV_JNOD, IPHASE, ele, x_nod1, x_nod2, x_nod3, cv_iloc,&
-           cv_nod1, cv_nod2, cv_nod3, mat_nod1, u_iloc, u_nod, u_nod_pha, u_nloc_lev, n_nloc_lev, &
-           ndpset, IGOT_CMC_PRECON
-      REAL :: der1, der2, der3, uabs, rsum,xc,yc
+           CDP, DU_VEL, UP_VEL, DU, DV, DW, DGM_PHA, DIAG_P_SQRT, ACV
+      REAL, DIMENSION( :, :, : ), allocatable :: PIVIT_MAT, C
+      INTEGER :: CV_NOD, COUNT, CV_JNOD, IPHASE, ele, x_nod1, x_nod2, x_nod3, cv_iloc, &
+           cv_nod1, cv_nod2, cv_nod3, mat_nod1, u_iloc, u_nod, u_nod_pha, ndpset
+      REAL :: der1, der2, der3, uabs, rsum, xc, yc
       LOGICAL :: JUST_BL_DIAG_MAT, NO_MATRIX_STORE, SCALE_P_MATRIX
 
       ewrite(3,*) 'In FORCE_BAL_CTY_ASSEM_SOLVE'
 
-! If IGOT_CMC_PRECON=1 use a sym matrix as pressure preconditioner,=0 else CMC as preconditioner as well.
-      IGOT_CMC_PRECON=0
 
       ALLOCATE( CT( NCOLCT * NDIM * NPHASE )) ; CT=0.
       ALLOCATE( CT_RHS( CV_NONODS )) ; CT_RHS=0.
       ALLOCATE( DIAG_SCALE_PRES( CV_NONODS )) ; DIAG_SCALE_PRES=0.
       ALLOCATE( U_RHS( U_NONODS * NDIM * NPHASE )) ; U_RHS=0.
       ALLOCATE( MCY_RHS( U_NONODS * NDIM * NPHASE + CV_NONODS )) ; MCY_RHS=0.
-      ALLOCATE( C( NCOLC * NDIM * NPHASE )) ; C=0.
+      ALLOCATE( C( NDIM, NPHASE, NCOLC )) ; C=0.
       ALLOCATE( MCY( NCOLMCY )) ; MCY=0.
       ALLOCATE( CMC( NCOLCMC )) ; CMC=0.
       ALLOCATE( CMC_PRECON( NCOLCMC*IGOT_CMC_PRECON)) ; IF(IGOT_CMC_PRECON.NE.0) CMC_PRECON=0.
@@ -1291,10 +1312,10 @@
       ALLOCATE( DW( U_NONODS * NPHASE )) ; DW = 0.
       ALLOCATE( PIVIT_MAT( U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM, TOTELE )) ; PIVIT_MAT=0.0
       ALLOCATE( DGM_PHA( NCOLDGM_PHA )) ; DGM_PHA=0.
+      ALLOCATE( ACV( NCOLACV )) ; ACV = 0.
 
-      n_nloc_lev = u_nloc / cv_nloc
 
-      CALL CV_ASSEMB_FORCE_CTY_PRES( state, &
+      CALL CV_ASSEMB_FORCE_CTY( state, &
            NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
            U_ELE_TYPE, P_ELE_TYPE, &
            U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -1308,7 +1329,7 @@
            NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn 
            DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparcity
            NCOLELE, FINELE, COLELE, & ! Element connectivity.
-           NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES,  & ! pressure matrix for projection method
+           NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, & ! pressure matrix for projection method
            NCOLACV, FINACV, COLACV, MIDACV, & ! For CV discretisation method
            SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
            NCOLCT, FINDCT, COLCT, &
@@ -1324,42 +1345,36 @@
            NCOLM, FINDM, COLM, MIDM, &
            XU_NLOC, XU_NDGLN, &
            U_RHS, MCY_RHS, C, CT, CT_RHS, DIAG_SCALE_PRES, GLOBAL_SOLVE, &
-           NLENMCY, NCOLMCY,MCY,FINMCY, &
-           CMC, CMC_PRECON, IGOT_CMC_PRECON, PIVIT_MAT, JUST_BL_DIAG_MAT, &
+           NLENMCY, NCOLMCY,MCY,FINMCY, PIVIT_MAT, JUST_BL_DIAG_MAT, &
            UDEN, UDENOLD, UDIFFUSION, &
            OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
            IGOT_THETA_FLUX, SCVNGI_THETA, USE_THETA_FLUX, &
            THETA_FLUX, ONE_M_THETA_FLUX, &
            IN_ELE_UPWIND, DG_ELE_UPWIND, &
            NOIT_DIM, &
-           IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, scale_momentum_by_volume_fraction, &
+           IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD,scale_momentum_by_volume_fraction ,&
             StorageIndexes)
 
-      !ewrite(3,*) 'global_solve, just_bl_diag_mat', global_solve, just_bl_diag_mat
+      IF ( .NOT.GLOBAL_SOLVE ) THEN
+         ! form pres eqn. 
 
-      if(scale_momentum_by_volume_fraction) then
-         ! add in the entries to petsc matrix
-         do ele = 1, totele
-            do cv_iloc = 1, cv_nloc
-               cv_nod = (ele - 1)*cv_nloc + cv_iloc
-               do u_nloc_lev = 1, n_nloc_lev
-                  do iphase = 1, nphase
-                     u_iloc =(cv_iloc-1)*n_nloc_lev + u_nloc_lev
-                     u_nod = u_ndgln(( ele - 1 ) * u_nloc + u_iloc )
-                     u_nod_pha=u_nod +(iphase-1)*u_nonods
-                     mcy_rhs(u_nod_pha) = mcy_rhs(u_nod_pha) / satura(cv_nod)
-                     do count = finmcy(u_nod), finmcy(u_nod+1) - 1
-                        mcy(count) = mcy(count) / satura(cv_nod)
-                     end do ! End of count loop through sparisit
-                  end do ! End of phase loop
-               end do ! End of overlapping level loop
-            end do ! End of dg local element loop
-         end do  ! End of element loop    
-      end if
+         CALL PHA_BLOCK_INV( PIVIT_MAT, TOTELE, U_NLOC * NPHASE * NDIM )
+
+         CALL COLOR_GET_CMC_PHA( CV_NONODS, U_NONODS, NDIM, NPHASE, &
+              NCOLC, FINDC, COLC, &
+              PIVIT_MAT,  &
+              TOTELE, U_NLOC, U_NDGLN, &
+              NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, &
+              CMC, CMC_PRECON, IGOT_CMC_PRECON, NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, &
+              C, CT )
+
+      END IF
+
+      DEALLOCATE( ACV )
 
       NO_MATRIX_STORE=(NCOLDGM_PHA.LE.1)
 
-      IF( GLOBAL_SOLVE ) THEN 
+      IF ( GLOBAL_SOLVE ) THEN 
          ! Global solve  
          IF(JUST_BL_DIAG_MAT) THEN
             EWRITE(3,*)'OPTION NOT READY YET WITH A GLOBAL SOLVE'
@@ -1377,10 +1392,8 @@
 
       ELSE ! solve using a projection method
 
- !        CALL PHA_BLOCK_INV( PIVIT_MAT, TOTELE, U_NLOC * NPHASE * NDIM )
-
          ! Put pressure in rhs of force balance eqn:  CDP=C*P
-         CALL C_MULT( CDP, P, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
+         CALL C_MULT2( CDP, P, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
 
          U_RHS_CDP = U_RHS + CDP
 
@@ -1393,7 +1406,6 @@
                  TOTELE, U_NLOC, U_NDGLN )
 
          ELSE
-
 
             !ewrite(3,*) 'before velocity solve:'
             !ewrite(3,*) 'up_vel', up_vel
@@ -1410,32 +1422,12 @@
 
          CALL ULONG_2_UVW( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
 
-        if(.false.) then
-         do ele=1,totele
-           xc=0.0
-           yc=0.0
-           do cv_iloc=1,cv_nloc
-             cv_nod=cv_ndgln((ele-1)*cv_nloc+cv_iloc)
-             xc=xc + x(cv_nod)/real(cv_nloc) 
-             yc=yc + y(cv_nod)/real(cv_nloc) 
-           end do
-           ewrite(3,*)'ele,xc,yc:',ele,xc,yc
-           do u_iloc=1,u_nloc
-             u_nod=u_ndgln((ele-1)*U_nloc+u_iloc)
-             !ewrite(3,*) 'u_iloc,u(u_nod),v(u_nod):',u_iloc,u(u_nod),v(u_nod)
-             !ewrite(3,*) 'u_iloc,u(u_nod),v(u_nod):',u_iloc,U_RHS_CDP(u_nod),U_RHS_CDP(u_nod+u_nonods)
-           end do
-         end do
-         
-         stop 2982
-       endif
-
-       !ewrite(3,*) 'u::', u
-       !ewrite(3,*) 'v::', v
-       !ewrite(3,*) 'w::', w
-       !ewrite(3,*) 'ct::', ct
-       !ewrite(3,*) 'c::', c
-       !ewrite(3,*) 'ct_rhs::', ct_rhs
+         !ewrite(3,*) 'u::', u
+         !ewrite(3,*) 'v::', v
+         !ewrite(3,*) 'w::', w
+         !ewrite(3,*) 'ct::', ct
+         !ewrite(3,*) 'c::', c
+         !ewrite(3,*) 'ct_rhs::', ct_rhs
 
          ! put on rhs the cty eqn; put most recent pressure in RHS of momentum eqn
          ! NB. P_RHS = -CT*U + CT_RHS 
@@ -1553,8 +1545,7 @@
 
          ! Use a projection method
          ! CDP = C * DP
-         CALL C_MULT( CDP, DP, CV_NONODS, U_NONODS, NDIM, NPHASE, &
-              C, NCOLC, FINDC, COLC)
+         CALL C_MULT2( CDP, DP, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
 
          !do count = 1, ndim
          !   do iphase = 1, nphase
@@ -1870,257 +1861,6 @@
     END SUBROUTINE UVW_2_ULONG
 
 
-
-
-
-    SUBROUTINE CV_ASSEMB_FORCE_CTY_PRES( state, &
-         NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
-         U_ELE_TYPE, P_ELE_TYPE, &
-         U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
-         U_NDGLN, P_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN, &
-         STOTEL, CV_SNDGLN, U_SNDGLN, P_SNDGLN, &
-         U_SNLOC, P_SNLOC, CV_SNLOC, &
-         X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
-         U, V, W, UOLD, VOLD, WOLD,  &
-         P, CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
-         DT, &
-         NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn 
-         DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparsity
-         NCOLELE, FINELE, COLELE, & ! Element connectivity.
-         NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, & ! pressure matrix for projection method
-         NCOLACV, FINACV, COLACV, MIDACV, & ! For CV discretisation method
-         SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
-         NCOLCT, FINDCT, COLCT, &
-         CV_ELE_TYPE, &
-         NU, NV, NW, NUOLD, NVOLD, NWOLD, &
-         V_DISOPT, V_DG_VEL_INT_OPT, V_THETA, &
-         SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
-         SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC,SUF_P_BC, &
-         SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2,  &
-         SUF_W_BC_ROB1, SUF_W_BC_ROB2, &       
-         WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_MOMU_BC, WIC_P_BC,  &
-         V_SOURCE, V_ABSORB, VOLFRA_PORE, &
-         NCOLM, FINDM, COLM, MIDM, &
-         XU_NLOC, XU_NDGLN, &
-         U_RHS, MCY_RHS, C, CT, CT_RHS, DIAG_SCALE_PRES, GLOBAL_SOLVE, &
-         NLENMCY, NCOLMCY,MCY,FINMCY, &
-         CMC, CMC_PRECON, IGOT_CMC_PRECON, PIVIT_MAT, JUST_BL_DIAG_MAT, &
-         UDEN, UDENOLD, UDIFFUSION, &
-         OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
-         IGOT_THETA_FLUX, SCVNGI_THETA, USE_THETA_FLUX, &
-         THETA_FLUX, ONE_M_THETA_FLUX, &
-         IN_ELE_UPWIND, DG_ELE_UPWIND, &
-         NOIT_DIM, &
-         IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD,scale_momentum_by_volume_fraction,&
-         StorageIndexes )
-      implicit none
-
-      ! Assembly the force balance, cty and if .not.GLOBAL_SOLVE pressure eqn. 
-
-      type( state_type ), dimension( : ), intent( inout ) :: state
-      INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, &
-           TOTELE, U_ELE_TYPE, P_ELE_TYPE, &
-           U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
-           STOTEL, U_SNLOC, P_SNLOC, &
-           CV_SNLOC, &
-           NCOLC, NCOLDGM_PHA, NCOLELE, NCOLCMC, NCOLACV, NLENMCY, NCOLMCY, NCOLCT, &
-           CV_ELE_TYPE, V_DISOPT, V_DG_VEL_INT_OPT, NCOLM, XU_NLOC, &
-           NOPT_VEL_UPWIND_COEFS, IGOT_THETA_FLUX, SCVNGI_THETA,IN_ELE_UPWIND, DG_ELE_UPWIND, & 
-           IPLIKE_GRAD_SOU, IGOT_CMC_PRECON
-      LOGICAL, intent( in ) :: GLOBAL_SOLVE, USE_THETA_FLUX,scale_momentum_by_volume_fraction
-      INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
-      INTEGER, DIMENSION(:  ), intent( in ) :: P_NDGLN
-      INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
-      INTEGER, DIMENSION( :  ), intent( in ) ::  X_NDGLN
-      INTEGER, DIMENSION( :  ), intent( in ) ::  MAT_NDGLN
-      INTEGER, DIMENSION( :  ), intent( in ) :: U_SNDGLN
-      INTEGER, DIMENSION( : ), intent( in ) :: P_SNDGLN
-
-      INTEGER, DIMENSION( :  ), intent( in ) :: CV_SNDGLN
-      INTEGER, DIMENSION( :  ), intent( in ) :: XU_NDGLN
-      INTEGER, DIMENSION( :  ), intent( in ) ::  WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_MOMU_BC, WIC_P_BC
-      REAL, DIMENSION( :  ), intent( in ) :: X, Y, Z
-      REAL, DIMENSION( : , : , :  ), intent( in ) :: U_ABS_STAB
-      REAL, DIMENSION( : ,: , :  ), intent( in ) :: U_ABSORB
-      REAL, DIMENSION( :  ), intent( in ) :: U_SOURCE
-      REAL, DIMENSION( :  ), intent( in ) :: U_SOURCE_CV
-      REAL, DIMENSION( : ), intent( in ) :: U, V, W
-      REAL, DIMENSION( :  ), intent( in ) :: UOLD, VOLD, WOLD
-      REAL, DIMENSION( :  ), intent( inout ) ::  CV_P, P
-      REAL, DIMENSION( :  ), intent( in ) :: DEN, DENOLD, SATURA, SATURAOLD
-      REAL, DIMENSION(:  ), intent( in ) :: DERIV
-      REAL, DIMENSION(: , :  ), intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX
-      REAL, DIMENSION( :  ), intent( inout ) :: CT_RHS,DIAG_SCALE_PRES
-      REAL, DIMENSION( :  ), intent( inout ) :: U_RHS
-      REAL, DIMENSION( :  ), intent( inout ) :: MCY_RHS
-      REAL, intent( in ) :: DT
-      INTEGER, DIMENSION( :  ), intent( in ) :: FINDC
-      INTEGER, DIMENSION( :  ), intent( in ) :: COLC
-      REAL, DIMENSION( :  ), intent( inout ) :: C
-      REAL, DIMENSION( :  ), intent( inout ) :: DGM_PHA
-      INTEGER, DIMENSION( :  ), intent( in ) :: FINDGM_PHA
-      INTEGER, DIMENSION( :  ), intent( in ) :: COLDGM_PHA
-
-      INTEGER, DIMENSION( :  ), intent( in ) :: FINELE
-      INTEGER, DIMENSION( :  ), intent( in ) :: COLELE
-      INTEGER, DIMENSION( :  ), intent( in ) :: FINDCMC
-      INTEGER, DIMENSION( :  ), intent( in ) :: COLCMC
-
-      REAL, DIMENSION( :  ), intent( inout ) :: CMC, MASS_MN_PRES
-      REAL, DIMENSION( :  ), intent( inout ) :: CMC_PRECON
-      INTEGER, DIMENSION( :  ), intent( in ) :: FINACV
-      INTEGER, DIMENSION( :  ), intent( in ) :: COLACV
-      INTEGER, DIMENSION( :  ), intent( in ) :: MIDACV
-      integer, dimension(:), intent(in) :: small_finacv,small_colacv,small_midacv
-      INTEGER, DIMENSION( :  ), intent( in ) :: FINMCY
-
-      REAL, DIMENSION( :  ), intent( inout ) :: MCY
-      INTEGER, DIMENSION( :  ), intent( in ) :: FINDCT
-      INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
-      REAL, DIMENSION( :  ), intent( inout ) :: CT
-      REAL, DIMENSION( :  ), intent( in ) :: NU, NV, NW, NUOLD, NVOLD, NWOLD
-      REAL, intent( in ) :: V_THETA
-      REAL, DIMENSION( :  ), intent( in ) :: SUF_VOL_BC, SUF_D_BC
-      REAL, DIMENSION( : ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
-      REAL, DIMENSION( :  ), intent( in ) :: SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC
-      REAL, DIMENSION( : , :  ), intent( in ) :: SUF_SIG_DIAGTEN_BC
-      REAL, DIMENSION( :  ), intent( in ) :: SUF_P_BC
-      REAL, DIMENSION( :  ), intent( in ) :: SUF_U_BC_ROB1, SUF_U_BC_ROB2, &
-           SUF_V_BC_ROB1, SUF_V_BC_ROB2, SUF_W_BC_ROB1, SUF_W_BC_ROB2
-      REAL, DIMENSION( :  ), intent( in ) :: V_SOURCE
-      REAL, DIMENSION( : , : , :  ), intent( in ) :: V_ABSORB
-      REAL, DIMENSION( :  ), intent( in ) :: VOLFRA_PORE
-      ! this is the pivit matrix to use in the projection method. 
-      REAL, DIMENSION( : ,:,:  ), intent( out ) :: PIVIT_MAT
-      INTEGER, DIMENSION( :  ), intent( in ) :: FINDM
-      INTEGER, DIMENSION( :  ), intent( in ) :: COLM
-      INTEGER, DIMENSION( :  ), intent( in ) :: MIDM
-      REAL, DIMENSION( :  ), intent( in ) :: UDEN, UDENOLD
-      REAL, DIMENSION( : , : , : , :  ), intent( in ) :: UDIFFUSION
-      LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
-      REAL, DIMENSION( :  ), intent( in ) :: OPT_VEL_UPWIND_COEFS
-      INTEGER, INTENT( IN ) :: NOIT_DIM
-      REAL, DIMENSION( : ), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
-      integer, dimension(:), intent(inout) :: StorageIndexes
-      ! Local Variables
-      REAL, DIMENSION( : ), allocatable :: ACV
-
-      ewrite(3,*) 'In CV_ASSEMB_FORCE_CTY_PRES'
-
-      ALLOCATE( ACV( NCOLACV )) 
-
-
-      CALL CV_ASSEMB_FORCE_CTY( state, &
-           NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
-           U_ELE_TYPE, P_ELE_TYPE, &
-           U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
-           U_NDGLN, P_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN, &
-           STOTEL, CV_SNDGLN, U_SNDGLN, P_SNDGLN, &
-           U_SNLOC, P_SNLOC, CV_SNLOC, &
-           X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
-           U, V, W, UOLD, VOLD, WOLD,  &
-           P, CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
-           DT, &
-           NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn 
-           DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparcity
-           NCOLELE, FINELE, COLELE, & ! Element connectivity.
-           NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, & ! pressure matrix for projection method
-           NCOLACV, FINACV, COLACV, MIDACV, & ! For CV discretisation method
-           SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
-           NCOLCT, FINDCT, COLCT, &
-           CV_ELE_TYPE, &
-           NU, NV, NW, NUOLD, NVOLD, NWOLD, &
-           V_DISOPT, V_DG_VEL_INT_OPT, V_THETA, &
-           SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
-           SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC, SUF_P_BC, &
-           SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2, &
-           SUF_W_BC_ROB1, SUF_W_BC_ROB2, &
-           WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_MOMU_BC, WIC_P_BC, &
-           V_SOURCE, V_ABSORB, VOLFRA_PORE, &
-           NCOLM, FINDM, COLM, MIDM, &
-           XU_NLOC, XU_NDGLN, &
-           U_RHS, MCY_RHS, C, CT, CT_RHS, DIAG_SCALE_PRES, GLOBAL_SOLVE, &
-           NLENMCY, NCOLMCY,MCY,FINMCY, PIVIT_MAT, JUST_BL_DIAG_MAT, &
-           UDEN, UDENOLD, UDIFFUSION, &
-           OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
-           IGOT_THETA_FLUX, SCVNGI_THETA, USE_THETA_FLUX, &
-           THETA_FLUX, ONE_M_THETA_FLUX, &
-           IN_ELE_UPWIND, DG_ELE_UPWIND, &
-           NOIT_DIM, &
-           IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD,scale_momentum_by_volume_fraction ,&
-            StorageIndexes)
-
-      IF(.NOT.GLOBAL_SOLVE) THEN
-         ! form pres eqn. 
-         CALL FORM_PRES_EQN(   &
-              CV_NONODS, U_NONODS, NDIM, NPHASE, &
-              C,  NCOLC, FINDC, COLC, &
-              PIVIT_MAT,  &
-              TOTELE, U_NLOC, U_NDGLN, &
-              CT, NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, MASS_MN_PRES, &
-              NCOLCMC, FINDCMC, COLCMC, CMC, CMC_PRECON, IGOT_CMC_PRECON )
-
-      ENDIF
-
-      DEALLOCATE( ACV )
-
-      ewrite(3,*) 'Leaving CV_ASSEMB_FORCE_CTY_PRES'
-
-    END SUBROUTINE CV_ASSEMB_FORCE_CTY_PRES
-
-
-
-
-    SUBROUTINE FORM_PRES_EQN(   &
-         CV_NONODS, U_NONODS, NDIM, NPHASE, &
-         C, NCOLC, FINDC, COLC, &
-         PIVIT_MAT,  &
-         TOTELE, U_NLOC, U_NDGLN, &
-         CT, NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, MASS_MN_PRES, &
-         NCOLCMC, FINDCMC, COLCMC, CMC, CMC_PRECON, IGOT_CMC_PRECON ) 
-      implicit none
-
-      ! Form pressure eqn only if .not. GLOBAL_SOLVE ready for using a projection method. 
-      INTEGER, intent( in ) :: CV_NONODS, U_NONODS,  &
-           NDIM, NPHASE, NCOLC, TOTELE, U_NLOC, NCOLCT, NCOLCMC, IGOT_CMC_PRECON
-      INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN 
-      REAL, DIMENSION( : ), intent( in ) :: C
-      INTEGER, DIMENSION( : ), intent( in ) :: FINDC
-      INTEGER, DIMENSION( : ), intent( in ) :: COLC
-      REAL, DIMENSION( : , : , : ), intent( inout ) :: PIVIT_MAT
-      REAL, DIMENSION( : ), intent( inout ) :: CT
-      INTEGER, DIMENSION( : ), intent( in ) :: FINDCT
-      INTEGER, DIMENSION( : ), intent( in ) :: COLCT
-      REAL, DIMENSION( : ), intent( in ) :: DIAG_SCALE_PRES
-      INTEGER, DIMENSION( : ), intent( in ) :: FINDCMC
-      INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
-      REAL, DIMENSION( : ), intent( inout ) :: CMC, MASS_MN_PRES
-      REAL, DIMENSION( : ), intent( inout ) :: CMC_PRECON
-
-      ! Local variables
-!      REAL, DIMENSION( :, :, : ), allocatable :: INV_PIVIT_MAT
-
-!      ALLOCATE( INV_PIVIT_MAT( U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM, TOTELE ))
-!      CALL PHA_BLOCK_INV( INV_PIVIT_MAT, PIVIT_MAT, TOTELE, U_NLOC * NPHASE * NDIM )
-      CALL PHA_BLOCK_INV( PIVIT_MAT, TOTELE, U_NLOC * NPHASE * NDIM )
-
-      CALL COLOR_GET_CMC_PHA( CV_NONODS, U_NONODS, NDIM, NPHASE, &
-           NCOLC, FINDC, COLC, &
-           PIVIT_MAT,  &
-           TOTELE, U_NLOC, U_NDGLN, &
-           NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, &
-           CMC, CMC_PRECON, IGOT_CMC_PRECON, NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, &
-           C, CT )
-
-!      DEALLOCATE( INV_PIVIT_MAT )
-
-      ewrite(3,*) 'Leaving FORM_PRES_EQN'
-
-    END SUBROUTINE FORM_PRES_EQN
-
-
-
-
     SUBROUTINE CV_ASSEMB_FORCE_CTY( state, &
          NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
          U_ELE_TYPE, P_ELE_TYPE, &
@@ -2229,7 +1969,7 @@
       INTEGER, DIMENSION( : ), intent( in ) :: MIDM
       REAL, DIMENSION( : ), intent( inout ) :: U_RHS
       REAL, DIMENSION( : ), intent( inout ) :: MCY_RHS
-      REAL, DIMENSION( : ), intent( inout ) :: C
+      REAL, DIMENSION( :, :, : ), intent( inout ) :: C
       REAL, DIMENSION( : ), intent( inout ) :: CT
       REAL, DIMENSION( : ), intent( inout ) :: MASS_MN_PRES
       REAL, DIMENSION( : ), intent( inout ) :: CT_RHS
@@ -2577,7 +2317,7 @@
       INTEGER, DIMENSION( : ), intent( in ) :: FINMCY
       INTEGER, DIMENSION( : ), intent( in ) :: FINDC
       REAL, DIMENSION( : ), intent( inout ) :: MCY
-      REAL, DIMENSION( : ), intent( in ) :: C
+      REAL, DIMENSION( :, :, : ), intent( in ) :: C
       ! Local variables...
       INTEGER :: U_NOD_PHA, IWID, I, U_NOD, IPHASE, IDIM, U_NOD_PHA_I, COUNT, COUNT2
 
@@ -2607,7 +2347,7 @@
                DO I = 1, IWID 
                   COUNT2 = FINMCY( U_NOD_PHA_I + 1 ) - I
                   COUNT = FINDC( U_NOD + 1 ) - I + ( IDIM - 1 ) * NCOLC + ( IPHASE - 1 ) * NCOLC * NDIM
-                  MCY( COUNT2 ) = C( COUNT )
+                  MCY( COUNT2 ) = C( IDIM, IPHASE, COUNT )
                END DO
 
             END DO Loop_UNOD
@@ -2761,7 +2501,7 @@
       REAL, DIMENSION( :, : ), intent( in ) :: UDEN, UDENOLD
       REAL, intent( in ) :: DT
       REAL, DIMENSION( : ), intent( inout ) :: U_RHS
-      REAL, DIMENSION( : ), intent( inout ) :: C
+      REAL, DIMENSION( :, :, : ), intent( inout ) :: C
       INTEGER, DIMENSION( : ), intent( in ) :: FINDC
       INTEGER, DIMENSION( : ), intent( in ) :: COLC
       REAL, DIMENSION( : ), intent( inout ) :: DGM_PHA
@@ -3928,34 +3668,24 @@
                   END DO Loop_GaussPoints1
 
                   ! Put into matrix
-                  if(.not.got_c_matrix) then
-
-                     ! Find COUNT - position in matrix : FINMCY, COLMCY
-
-                     !                  CALL POSINMAT( COUNT, IU_NOD, JCV_NOD,&
-                     !                       U_NONODS, FINDC, COLC, NCOLC )
-
-                     CALL USE_POSINMAT_C_STORE(COUNT, IU_NOD, JCV_NOD,  &
+                  IF ( .NOT.GOT_C_MATRIX ) THEN
+                     CALL USE_POSINMAT_C_STORE( COUNT, IU_NOD, JCV_NOD,  &
                           U_NONODS, FINDC, COLC, NCOLC, &
-                          IDO_STORE_AC_SPAR_PT,STORED_AC_SPAR_PT, POSINMAT_C_STORE,ELE,U_ILOC,P_JLOC, &
-                          TOTELE,U_NLOC,P_NLOC) 
-                  endif
+                          IDO_STORE_AC_SPAR_PT, STORED_AC_SPAR_PT, POSINMAT_C_STORE, ELE, U_ILOC, P_JLOC, &
+                          TOTELE, U_NLOC, P_NLOC )
+                  END IF
 
                   Loop_Phase1: DO IPHASE = 1, NPHASE
 
-
                      ! Put into matrix
-                     if(.not.got_c_matrix) then
+                     IF ( .NOT.GOT_C_MATRIX ) THEN
                         COUNT_PHA = COUNT + ( IPHASE - 1 ) * NDIM_VEL * NCOLC
-
                         DO IDIM = 1, NDIM_VEL
-                           C( COUNT_PHA + NCOLC*(IDIM-1) ) = C( COUNT_PHA + NCOLC*(IDIM-1) ) - NMX_ALL(IDIM)
+                           C( IDIM, IPHASE, COUNT ) = C( IDIM, IPHASE, COUNT ) - NMX_ALL( IDIM )
                         END DO
-                     endif
-
+                     END IF
 
                      IF ( IPLIKE_GRAD_SOU == 1 .OR. CAPILLARY_PRESSURE_ACTIVATED ) THEN ! Capillary pressure for example terms...
-
                         DO IDIM = 1, NDIM_VEL
                            LOC_U_RHS( IDIM, IPHASE, U_ILOC ) = LOC_U_RHS( IDIM, IPHASE, U_ILOC ) &
                                 - GRAD_SOU_GI_NMX( IDIM, IPHASE ) * LOC_PLIKE_GRAD_SOU_GRAD( IPHASE, P_JLOC )
@@ -4479,29 +4209,26 @@
                         ! Put into matrix
 
                         ! Find COUNT - position in matrix : FINMCY, COLMCY
-                        if(.not.got_c_matrix) then
-                           !                        CALL POSINMAT( COUNT, IU_NOD, JCV_NOD,  &
-                           !                             U_NONODS, FINDC, COLC, NCOLC )
-
-                           CALL USE_POSINMAT_C_STORE(COUNT, IU_NOD, JCV_NOD,  &
+                        IF ( .NOT.GOT_C_MATRIX ) THEN
+                           CALL USE_POSINMAT_C_STORE( COUNT, IU_NOD, JCV_NOD, &
                                 U_NONODS, FINDC, COLC, NCOLC, &
-                                IDO_STORE_AC_SPAR_PT,STORED_AC_SPAR_PT, POSINMAT_C_STORE,ELE,U_ILOC,P_JLOC, &
-                                TOTELE,U_NLOC,P_NLOC) 
-                        endif
+                                IDO_STORE_AC_SPAR_PT, STORED_AC_SPAR_PT, POSINMAT_C_STORE, ELE, U_ILOC, P_JLOC, &
+                                TOTELE, U_NLOC, P_NLOC )
+                        END IF
 
                         Loop_Phase2: DO IPHASE = 1, NPHASE
-                           IF(WIC_P_BC_ALL( IPHASE, SELE ) == WIC_P_BC_DIRICHLET) THEN
+                           IF( WIC_P_BC_ALL( IPHASE, SELE ) == WIC_P_BC_DIRICHLET ) THEN
 
-                              DO IDIM=1,NDIM_VEL
-                                 if(.not.got_c_matrix) then
-                                    COUNT_PHA = COUNT + ( IPHASE - 1 ) * NDIM_VEL * NCOLC 
-                                    C( COUNT_PHA + NCOLC*(IDIM-1) )  = C( COUNT_PHA + NCOLC*(IDIM-1) ) + NMX_ALL(IDIM) * SELE_OVERLAP_SCALE(P_JLOC)
-                                 endif
-                                 LOC_U_RHS( IDIM, IPHASE, U_ILOC) =  LOC_U_RHS( IDIM, IPHASE, U_ILOC)  &
-                                      - NMX_ALL(IDIM) * suf_p_bc_all( iphase,p_sjloc,sele )* SELE_OVERLAP_SCALE(P_JLOC)
+                              DO IDIM = 1, NDIM_VEL
+                                 IF ( .NOT.GOT_C_MATRIX ) THEN
+                                    C( IDIM, IPHASE, COUNT ) = C( IDIM, IPHASE, COUNT ) &
+                                         + NMX_ALL( IDIM ) * SELE_OVERLAP_SCALE( P_JLOC )
+                                 END IF
+                                 LOC_U_RHS( IDIM, IPHASE, U_ILOC) =  LOC_U_RHS( IDIM, IPHASE, U_ILOC ) &
+                                      - NMX_ALL( IDIM ) * SUF_P_BC_ALL( IPHASE, P_SJLOC, SELE ) * SELE_OVERLAP_SCALE( P_JLOC )
                               END DO
 
-                           ENDIF
+                           END IF
 
                         END DO Loop_Phase2
                      ENDIF
@@ -4578,28 +4305,22 @@
 
                            IF( ( .NOT. IS_OVERLAPPING ) .OR. &
                                 (( MAT_OTHER_LOC( ILEV ) /= 0 )) ) THEN
-                              U_INOD = U_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
-                              VNMX_ALL=0.0
+                              U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
+                              VNMX_ALL = 0.0
                               DO SGI = 1, SBCVNGI
-                                 RNN = SDETWE(SGI) * SBUFEN(U_SILOC,SGI) * SBCVFEN(P_SJLOC,SGI)
-                                 VNMX_ALL(:) = VNMX_ALL(:) + SNORMXN_ALL(:,SGI) * RNN
+                                 RNN = SDETWE( SGI ) * SBUFEN( U_SILOC, SGI ) * SBCVFEN( P_SJLOC, SGI )
+                                 VNMX_ALL = VNMX_ALL + SNORMXN_ALL( :, SGI ) * RNN
                               END DO
 
-                              !                           CALL POSINMAT( COUNT,  U_INOD, P_JNOD,&
-                              !                                U_NONODS, FINDC, COLC, NCOLC )
-                              !                           CALL POSINMAT( COUNT2, U_INOD, P_JNOD2,&
-                              !                                U_NONODS, FINDC, COLC, NCOLC )
-
-
-                              CALL USE_POSINMAT_C_STORE(COUNT, U_INOD, P_JNOD,  &
+                              CALL USE_POSINMAT_C_STORE( COUNT, U_INOD, P_JNOD,  &
                                    U_NONODS, FINDC, COLC, NCOLC, &
-                                   IDO_STORE_AC_SPAR_PT,STORED_AC_SPAR_PT, POSINMAT_C_STORE,ELE,U_ILOC,P_JLOC, &
-                                   TOTELE,U_NLOC,P_NLOC) 
+                                   IDO_STORE_AC_SPAR_PT, STORED_AC_SPAR_PT, POSINMAT_C_STORE, ELE, U_ILOC, P_JLOC, &
+                                   TOTELE, U_NLOC, P_NLOC )
 
-                              CALL USE_POSINMAT_C_STORE_SUF_DG(COUNT2, U_INOD, P_JNOD2,  &
+                              CALL USE_POSINMAT_C_STORE_SUF_DG( COUNT2, U_INOD, P_JNOD2,  &
                                    U_NONODS, FINDC, COLC, NCOLC, &
-                                   IDO_STORE_AC_SPAR_PT,STORED_AC_SPAR_PT, POSINMAT_C_STORE_SUF_DG, ELE,IFACE,U_SILOC,P_SJLOC,  &
-                                   TOTELE,NFACE,U_SNLOC,P_SNLOC) 
+                                   IDO_STORE_AC_SPAR_PT, STORED_AC_SPAR_PT, POSINMAT_C_STORE_SUF_DG, ELE, IFACE, U_SILOC, P_SJLOC,  &
+                                   TOTELE, NFACE, U_SNLOC, P_SNLOC ) 
 
                               Loop_Phase5: DO IPHASE = 1, NPHASE
                                  COUNT_PHA  = COUNT  + ( IPHASE - 1 ) * NDIM_VEL * NCOLC
@@ -4612,18 +4333,16 @@
                                  ELSE ! Simple average (works well with IN_ELE_UPWIND=DG_ELE_UPWIND=2)...
                                     MASSE = 1.0
                                     MASSE2 = 1.0
-                                 ENDIF
+                                 END IF
 
                                  ! SELE_OVERLAP_SCALE(P_JNOD) is the scaling needed to convert to overlapping element surfaces. 
-                                 DO IDIM=1,NDIM_VEL
-                                    C( COUNT_PHA + (IDIM-1)*NCOLC )     &
-                                         = C( COUNT_PHA  + (IDIM-1)*NCOLC ) + VNMX_ALL(IDIM) * SELE_OVERLAP_SCALE(P_JLOC) &
-                                         *MASSE/(MASSE+MASSE2) 
-                                    C( COUNT_PHA2 + (IDIM-1)*NCOLC )   &
-                                         = C( COUNT_PHA2 + (IDIM-1)*NCOLC ) - VNMX_ALL(IDIM) * SELE_OVERLAP_SCALE(P_JLOC) &
-                                         *MASSE/(MASSE+MASSE2) 
-                                 END DO
+                                 DO IDIM = 1, NDIM_VEL
+                                    C( IDIM, IPHASE, COUNT ) = C( IDIM, IPHASE, COUNT ) & 
+                                         + VNMX_ALL( IDIM ) * SELE_OVERLAP_SCALE( P_JLOC ) * MASSE / ( MASSE + MASSE2 )
 
+                                    C( IDIM, IPHASE, COUNT2 ) = C( IDIM, IPHASE, COUNT2 ) & 
+                                         - VNMX_ALL( IDIM ) * SELE_OVERLAP_SCALE( P_JLOC ) * MASSE / ( MASSE + MASSE2 )
+                                 END DO
 
                               END DO Loop_Phase5
                            ENDIF

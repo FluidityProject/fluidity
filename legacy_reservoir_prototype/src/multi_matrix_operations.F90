@@ -339,7 +339,7 @@
       REAL, DIMENSION( : ), intent( in ) :: MASS_MN_PRES
       INTEGER, DIMENSION( : ), intent( in ) :: FINDCMC
       INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
-      REAL, DIMENSION( : ), intent( in ) :: C
+      REAL, DIMENSION( :, :, : ), intent( in ) :: C
       REAL, DIMENSION( : ), intent( inout ) :: CT
 
       ! Local variables
@@ -363,317 +363,301 @@
            'prognostic/reference_node', ndpset, default = 0 )
 
 
-      IF(FAST) THEN
-! Fast but memory intensive...
-       CALL COLOR_GET_CMC_PHA_FAST( CV_NONODS, U_NONODS, NDIM, NPHASE, &
-         NCOLC, FINDC, COLC, &
-         INV_PIVIT_MAT,  &
-         TOTELE, U_NLOC, U_NDGLN, &
-         NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, &
-         CMC, CMC_PRECON, IGOT_CMC_PRECON, NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, &
-         C, CT, ndpset)
-       ELSE
-! Slow but memory efficient...
-       CALL COLOR_GET_CMC_PHA_SLOW( CV_NONODS, U_NONODS, NDIM, NPHASE, &
-         NCOLC, FINDC, COLC, &
-         INV_PIVIT_MAT,  &
-         TOTELE, U_NLOC, U_NDGLN, &
-         NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, &
-         CMC, CMC_PRECON, IGOT_CMC_PRECON, NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, &
-         C, CT, ndpset)
-       ENDIF
+      IF ( FAST ) THEN
+         ! Fast but memory intensive...
+         CALL COLOR_GET_CMC_PHA_FAST( CV_NONODS, U_NONODS, NDIM, NPHASE, &
+              NCOLC, FINDC, COLC, &
+              INV_PIVIT_MAT,  &
+              TOTELE, U_NLOC, U_NDGLN, &
+              NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, &
+              CMC, CMC_PRECON, IGOT_CMC_PRECON, NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, &
+              C, CT, ndpset)
+      ELSE
+         ! Slow but memory efficient...
+         CALL COLOR_GET_CMC_PHA_SLOW( CV_NONODS, U_NONODS, NDIM, NPHASE, &
+              NCOLC, FINDC, COLC, &
+              INV_PIVIT_MAT,  &
+              TOTELE, U_NLOC, U_NDGLN, &
+              NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, &
+              CMC, CMC_PRECON, IGOT_CMC_PRECON, NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, &
+              C, CT, ndpset)
+      END IF
 
-       END SUBROUTINE COLOR_GET_CMC_PHA
+    END SUBROUTINE COLOR_GET_CMC_PHA
 
 
 
 
 
        SUBROUTINE COLOR_GET_CMC_PHA_FAST( CV_NONODS, U_NONODS, NDIM, NPHASE, &
-         NCOLC, FINDC, COLC, &
-         INV_PIVIT_MAT,  &
-         TOTELE, U_NLOC, U_NDGLN, &
-         NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, &
-         CMC, CMC_PRECON, IGOT_CMC_PRECON, NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, &
-         C, CT, ndpset )
-      !use multiphase_1D_engine
+            NCOLC, FINDC, COLC, &
+            INV_PIVIT_MAT,  &
+            TOTELE, U_NLOC, U_NDGLN, &
+            NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, &
+            CMC, CMC_PRECON, IGOT_CMC_PRECON, NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, &
+            C, CT, ndpset )
 
-      implicit none
-      ! form pressure matrix CMC using a colouring approach
-      INTEGER, intent( in ) :: CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLC, &
-           TOTELE, U_NLOC, NCOLCT, NCOLCMC, IGOT_CMC_PRECON
-      INTEGER, intent( in ) :: ndpset 
-      INTEGER, DIMENSION( : ), intent( in ) ::FINDC
-      INTEGER, DIMENSION( : ), intent( in ) :: COLC
-      REAL, DIMENSION( :, :, : ), intent( in ) :: INV_PIVIT_MAT
-      INTEGER, DIMENSION( : ), intent( in ) ::  U_NDGLN
-      INTEGER, DIMENSION( : ), intent( in ) :: FINDCT
-      INTEGER, DIMENSION( : ), intent( in ) :: COLCT
-      REAL, DIMENSION( : ), intent( in ) :: DIAG_SCALE_PRES
-      REAL, DIMENSION( : ), intent( inout ) :: CMC
-      REAL, DIMENSION( : ), intent( inout ) :: CMC_PRECON
-      REAL, DIMENSION( : ), intent( in ) :: MASS_MN_PRES
-      INTEGER, DIMENSION( : ), intent( in ) :: FINDCMC
-      INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
-      REAL, DIMENSION( : ), intent( in ) :: C
-      REAL, DIMENSION( : ), intent( inout ) :: CT
+         implicit none
+         ! form pressure matrix CMC using a colouring approach
+         INTEGER, intent( in ) :: CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLC, &
+              TOTELE, U_NLOC, NCOLCT, NCOLCMC, IGOT_CMC_PRECON
+         INTEGER, intent( in ) :: ndpset 
+         INTEGER, DIMENSION( : ), intent( in ) ::FINDC
+         INTEGER, DIMENSION( : ), intent( in ) :: COLC
+         REAL, DIMENSION( :, :, : ), intent( in ) :: INV_PIVIT_MAT
+         INTEGER, DIMENSION( : ), intent( in ) ::  U_NDGLN
+         INTEGER, DIMENSION( : ), intent( in ) :: FINDCT
+         INTEGER, DIMENSION( : ), intent( in ) :: COLCT
+         REAL, DIMENSION( : ), intent( in ) :: DIAG_SCALE_PRES
+         REAL, DIMENSION( : ), intent( inout ) :: CMC
+         REAL, DIMENSION( : ), intent( inout ) :: CMC_PRECON
+         REAL, DIMENSION( : ), intent( in ) :: MASS_MN_PRES
+         INTEGER, DIMENSION( : ), intent( in ) :: FINDCMC
+         INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
+         REAL, DIMENSION( :, :, : ), intent( in ) :: C
+         REAL, DIMENSION( : ), intent( inout ) :: CT
 
-      ! Local variables
-      INTEGER, PARAMETER :: MX_NCOLOR = 1000
-      REAL, PARAMETER :: INFINY = 1.0E+10
-      LOGICAL, PARAMETER :: SAVED_CMC_COLOR = .FALSE.
-      LOGICAL :: LCOL
-      INTEGER, DIMENSION( : ), allocatable :: ICOLOR
-      INTEGER, DIMENSION( : ), allocatable :: COLOR_IN_ROW, COLOR_IN_ROW2
-      REAL, DIMENSION( : ), allocatable :: COLOR_VEC, CMC_COLOR_VEC, CMC_COLOR_VEC2
-      REAL, DIMENSION( : ), allocatable :: CDP, DU, DV, DW, DU_LONG
-      REAL, DIMENSION( :, : ), allocatable :: COLOR_VEC_MANY, CMC_COLOR_VECC_MANY, CMC_COLOR_VEC2C_MANY
-      REAL, DIMENSION( :, : ), allocatable :: CDP_MANY, CDPC_MANY
-      REAL, DIMENSION( :, : ), allocatable :: DU_MANY, DV_MANY, DW_MANY, DU_LONG_MANY 
-      REAL, DIMENSION( :, : ), allocatable :: CMC_COLOR_VEC_MANY, CMC_COLOR_VEC2_MANY
-      INTEGER :: NCOLOR, CV_NOD, CV_JNOD, COUNT, COUNT2, COUNT3, IDIM, IPHASE, CV_COLJ, U_JNOD, CV_JNOD2
-      INTEGER :: MAX_COLOR_IN_ROW, ICHOOSE
-      INTEGER :: KVEC
-      INTEGER :: I, ELE,u_inod,u_nod
-      REAL :: RSUM
+         ! Local variables
+         INTEGER, PARAMETER :: MX_NCOLOR = 1000
+         REAL, PARAMETER :: INFINY = 1.0E+10
+         LOGICAL, PARAMETER :: SAVED_CMC_COLOR = .FALSE.
+         LOGICAL :: LCOL
+         INTEGER, DIMENSION( : ), allocatable :: ICOLOR
+         INTEGER, DIMENSION( : ), allocatable :: COLOR_IN_ROW, COLOR_IN_ROW2
+         REAL, DIMENSION( :, : ), allocatable :: COLOR_VEC_MANY, CMC_COLOR_VECC_MANY, CMC_COLOR_VEC2C_MANY
+         REAL, DIMENSION( :, : ), allocatable :: CDPC_MANY
+         REAL, DIMENSION( :, :, :, : ), allocatable :: CDP_MANY, DU_LONG_MANY
+         REAL, DIMENSION( :, : ), allocatable :: CMC_COLOR_VEC_MANY, CMC_COLOR_VEC2_MANY
+         INTEGER :: NCOLOR, CV_NOD, CV_JNOD, COUNT, COUNT2, COUNT3, IDIM, IPHASE, CV_COLJ, U_JNOD, CV_JNOD2
+         INTEGER :: MAX_COLOR_IN_ROW, ICHOOSE, KVEC, I, ELE, U_INOD, U_NOD
+         REAL :: RSUM
 
-      ALLOCATE( ICOLOR( CV_NONODS ))
-      ICOLOR = 0
+         ALLOCATE( ICOLOR( CV_NONODS ) ) ; ICOLOR = 0
 
-      ALLOCATE( COLOR_VEC( CV_NONODS ))
-      ALLOCATE( CDP( U_NONODS * NDIM * NPHASE ))
-      ALLOCATE( DU_LONG( U_NONODS * NDIM * NPHASE ))
-      ALLOCATE( DU( U_NONODS * NPHASE ))
-      ALLOCATE( DV( U_NONODS * NPHASE ))
-      ALLOCATE( DW( U_NONODS * NPHASE ))
-      ALLOCATE( CMC_COLOR_VEC( CV_NONODS )) 
-      ALLOCATE( CMC_COLOR_VEC2( CV_NONODS )) 
+         CMC = 0.0
+         IF ( IGOT_CMC_PRECON /= 0 ) CMC_PRECON = 0.0
 
+         MAX_COLOR_IN_ROW = 0
+         DO CV_NOD = 1, CV_NONODS
+            MAX_COLOR_IN_ROW = MAX( MAX_COLOR_IN_ROW, FINDCMC( CV_NOD + 1 ) - FINDCMC( CV_NOD ) )
+         END DO
 
-      CMC = 0.0
-      IF(IGOT_CMC_PRECON.NE.0) CMC_PRECON = 0.0
+         ALLOCATE( COLOR_IN_ROW( MAX_COLOR_IN_ROW**2 ) ) 
+         ALLOCATE( COLOR_IN_ROW2( MAX_COLOR_IN_ROW**2 ) ) 
 
-      MAX_COLOR_IN_ROW=0
-      DO CV_NOD = 1, CV_NONODS
-         MAX_COLOR_IN_ROW=MAX(MAX_COLOR_IN_ROW, FINDCMC( CV_NOD + 1 )-FINDCMC( CV_NOD )  )
-      END DO
+         IF ( SAVED_CMC_COLOR ) THEN
 
-      ALLOCATE( COLOR_IN_ROW(MAX_COLOR_IN_ROW**2) ) 
-      ALLOCATE( COLOR_IN_ROW2(MAX_COLOR_IN_ROW**2) ) 
+            !NCOLOR=
+            !ICOLOR=
 
-      IF(SAVED_CMC_COLOR) THEN
-!         NCOLOR=
-!         ICOLOR=
-      ELSE
+         ELSE
 
-         NCOLOR=0
-         Loop_CVNOD7: DO CV_NOD = 1, CV_NONODS
-! Color this node CV_NOD
+            NCOLOR = 0
+            Loop_CVNOD7: DO CV_NOD = 1, CV_NONODS
 
-
-               COUNT3=0
+               ! Color this node CV_NOD
+               COUNT3 = 0
                ! use a distance-2 colouring...
                Loop_Row7: DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                   CV_JNOD = COLCMC( COUNT )
                   Loop_Row2: DO COUNT2 = FINDCMC( CV_JNOD ), FINDCMC( CV_JNOD + 1 ) - 1
                      CV_JNOD2 = COLCMC( COUNT2 )
-                     IF(CV_NOD.NE.CV_JNOD2) THEN
-                        IF(ICOLOR(CV_JNOD2).NE.0) THEN
-                           COUNT3=COUNT3+1
-                           COLOR_IN_ROW(COUNT3)= ICOLOR(CV_JNOD2)
-                        ENDIF
-                     ENDIF
+                     IF ( CV_NOD /= CV_JNOD2 ) THEN
+                        IF ( ICOLOR( CV_JNOD2 ) /= 0 ) THEN
+                           COUNT3 = COUNT3 + 1
+                           COLOR_IN_ROW( COUNT3 )= ICOLOR( CV_JNOD2 )
+                        END IF
+                     END IF
                   END DO Loop_Row2
                END DO Loop_Row7
 
 
-! Perform a bubble sort...
-               CALL IBUBLE(COLOR_IN_ROW(1:COUNT3),COUNT3) 
-               IF(COUNT3==0) THEN
-                  COUNT2=0
+               ! Perform a bubble sort...
+               IF ( COUNT3 == 0 ) THEN
+                  COUNT2 = 0
                ELSE
-                  COUNT2=1
-                  I=1
-                  COLOR_IN_ROW2(COUNT2)=COLOR_IN_ROW(I)
-                  DO I=2,COUNT3
-                    IF(COLOR_IN_ROW(I).NE.COLOR_IN_ROW(I-1)) THEN
-                       COUNT2=COUNT2+1
-                       COLOR_IN_ROW2(COUNT2)=COLOR_IN_ROW(I)
-                    ENDIF
+!                  CALL IBUBLE( COLOR_IN_ROW( 1 : COUNT3 ), COUNT3) 
+                  CALL quicksort( COLOR_IN_ROW( 1 : COUNT3 ), COUNT3) 
+                  COUNT2 = 1
+                  I = 1
+                  COLOR_IN_ROW2( COUNT2 ) = COLOR_IN_ROW( I )
+                  DO I = 2, COUNT3
+                     IF ( COLOR_IN_ROW( I ) /= COLOR_IN_ROW( I-1 ) ) THEN
+                        COUNT2 = COUNT2 + 1
+                        COLOR_IN_ROW2( COUNT2 ) = COLOR_IN_ROW( I )
+                     END IF
                   END DO
-               ENDIF
+               END IF
 
-
-!                 if(count2>3) print *,'COLOR_IN_ROW(1:COUNT2):',COLOR_IN_ROW(1:COUNT2)
-               ICHOOSE=0
-               DO I=1,COUNT2
-                  IF(COLOR_IN_ROW2(I).NE.I) THEN
-                     ICHOOSE=I
+               ICHOOSE = 0
+               DO I = 1, COUNT2
+                  IF ( COLOR_IN_ROW2( I ) /= I ) THEN
+                     ICHOOSE = I
                      EXIT
-                  ENDIF
+                  END IF
                END DO
-               IF(COUNT2==0) THEN
+               IF ( COUNT2==0 ) THEN
                   ICHOOSE=1
                ELSE
-                  IF(ICHOOSE==0) ICHOOSE = COUNT2 + 1
-               ENDIF
-               ICOLOR(CV_NOD)=ICHOOSE 
-               NCOLOR = MAX( NCOLOR, ICHOOSE)
-         END DO Loop_CVNOD7
-
-!PRINT *,'COLOURED NCOLOR,MAX_COLOR_IN_ROW=',NCOLOR,MAX_COLOR_IN_ROW
-! stop 3212
+                  IF ( ICHOOSE==0 ) ICHOOSE = COUNT2 + 1
+               END IF
+               ICOLOR( CV_NOD ) = ICHOOSE 
+               NCOLOR = MAX( NCOLOR, ICHOOSE )
+            END DO Loop_CVNOD7
 
 
-
-            IF(NCOLOR > MX_NCOLOR) THEN
-               PRINT *,'NOT ENOUGH COLOURS STOPPING - NEED TO MAKE MX_COLOR BIGGER'
+            IF ( NCOLOR > MX_NCOLOR ) THEN
+               EWRITE(-1, *) 'NOT ENOUGH COLOURS STOPPING - NEED TO MAKE MX_COLOR BIGGER'
                STOP 281
-            ENDIF
+            END IF
+
+         END IF ! SAVED_CMC_COLOR
 
 
-         ENDIF ! ENDOF IF(SAVED_CMC_COLOR) THEN ELSE
+         ALLOCATE( COLOR_VEC_MANY( NCOLOR, U_NONODS * NDIM * NPHASE ) ) 
+         COLOR_VEC_MANY = 0.0
 
-
-         ALLOCATE(COLOR_VEC_MANY(NCOLOR,U_NONODS * NDIM * NPHASE )) 
-
-         COLOR_VEC_MANY=0.0
          Loop_CVNOD: DO CV_NOD = 1, CV_NONODS
-              COLOR_VEC_MANY(ICOLOR(CV_NOD), CV_NOD) = 1.0
+            COLOR_VEC_MANY( ICOLOR( CV_NOD ), CV_NOD ) = 1.0
          END DO Loop_CVNOD
 
 
-
-         ALLOCATE(CDP_MANY(NCOLOR,NDIM*NPHASE*U_NONODS)) 
-
-!PRINT *,'GOING INTO C_MULT_MANY'
+         ALLOCATE( CDP_MANY( NCOLOR, NDIM, NPHASE, U_NONODS ) )
 
          CALL C_MULT_MANY( CDP_MANY, COLOR_VEC_MANY, CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLOR, &
-              C, NCOLC, FINDC, COLC)
-         !!DU_LONG = BLOCK_MAT * CDP
+              C, NCOLC, FINDC, COLC )
+      
+         ! DU_LONG = INV_PIVIT_MAT * CDP
+         ALLOCATE( DU_LONG_MANY( NCOLOR, NDIM, NPHASE, U_NONODS ) ) 
 
-            ALLOCATE(DU_LONG_MANY(NCOLOR,NDIM*NPHASE*U_NONODS)) 
-!PRINT *,'GOING INTO PHA_BLOCK_MAT_VEC_MANY'
+         CALL PHA_BLOCK_MAT_VEC_MANY( DU_LONG_MANY, INV_PIVIT_MAT, CDP_MANY, U_NONODS, NDIM, NPHASE, NCOLOR, &
+              TOTELE, U_NLOC, U_NDGLN )
 
-            if(.true.) then ! new
-               CALL PHA_BLOCK_MAT_VEC_MANY( DU_LONG_MANY, INV_PIVIT_MAT, CDP_MANY, U_NONODS, NDIM, NPHASE, NCOLOR, &
-                    TOTELE, U_NLOC, U_NDGLN )
-            else ! original
-               do kvec=1,ncolor
-                   cdp(:) = CDP_MANY(kvec,:)
-                   CALL PHA_BLOCK_MAT_VEC( DU_LONG, INV_PIVIT_MAT, CDP, U_NONODS, NDIM, NPHASE,  &
-                        TOTELE, U_NLOC, U_NDGLN )
-                   DU_LONG_MANY(kvec,:) = DU_LONG(:) 
-               end do
-            endif
+         ! NB. P_RHS = CT * U + CV_RHS 
+         ! DU_LONG = CDP
 
+         ALLOCATE( CMC_COLOR_VEC_MANY( NCOLOR, CV_NONODS ) ) 
 
-!PRINT *,'OUT OF PHA_BLOCK_MAT_VEC_MANY'
-            ! NB. P_RHS=CT*U + CV_RHS 
-            !               DU_LONG=CDP
+         CALL CT_MULT_MANY( CMC_COLOR_VEC_MANY, DU_LONG_MANY, CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLOR, &
+              CT, NCOLCT, FINDCT, COLCT )
 
-            ALLOCATE(DU_MANY(NCOLOR,NPHASE*U_NONODS), DV_MANY(NCOLOR,NPHASE*U_NONODS), DW_MANY(NCOLOR,NPHASE*U_NONODS)) 
-            DO KVEC=1,NCOLOR
-              CALL ULONG_2_UVW( DU_MANY(KVEC,:), DV_MANY(KVEC,:), DW_MANY(KVEC,:), DU_LONG_MANY(KVEC,:), U_NONODS, NDIM, NPHASE )
-            END DO
+         IF ( IGOT_CMC_PRECON /= 0 ) THEN
+            ALLOCATE( CMC_COLOR_VEC2_MANY( NCOLOR, CV_NONODS ) ) 
+            CALL CT_MULT_WITH_C_MANY( CMC_COLOR_VEC2_MANY, DU_LONG_MANY, CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLOR, &
+                 C, NCOLC, FINDC, COLC )
+         END IF
 
-            ALLOCATE(CMC_COLOR_VEC_MANY(NCOLOR,CV_NONODS)) 
-!PRINT *,'GOING INTO CT_MULT_MANY'
-
-         CALL CT_MULT_MANY( CMC_COLOR_VEC_MANY, DU_MANY, DV_MANY, DW_MANY, CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLOR, &
-              CT, NCOLCT, FINDCT, COLCT)
-
-!         CALL CT_MULT_WITH_C_MANY( CMC_COLOR_VEC_MANY, DU_LONG_MANY, CV_NONODS, U_NONODS, NDIM, NPHASE, &
-!                C, NCOLC, FINDC, COLC )
-
-      IF(IGOT_CMC_PRECON.NE.0) THEN
-            ALLOCATE(CMC_COLOR_VEC2_MANY(NCOLOR,CV_NONODS)) 
-         CALL CT_MULT_WITH_C_MANY( CMC_COLOR_VEC2_MANY, DU_LONG_MANY, CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLOR, &
-                C, NCOLC, FINDC, COLC )
-
-!         CALL CT_MULT( CMC_COLOR_VEC2, DU, DV, DW, CV_NONODS, U_NONODS, NDIM, NPHASE, &
-!              *****CT, NCOLCT, FINDCT, COLCT )
-      ENDIF
-            DEALLOCATE(DU_LONG_MANY)
-            DEALLOCATE(DU_MANY, DV_MANY, DW_MANY) 
+         DEALLOCATE( DU_LONG_MANY )
 
          ! Matrix vector involving the mass diagonal term
          DO CV_NOD = 1, CV_NONODS
-            !ewrite(3,*) 'cv_nod=',cv_nod
-            RSUM=0.0
+            RSUM = 0.0
             DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                CV_JNOD = COLCMC( COUNT )
-               !ewrite(3,*) 'CV_JNOD, diag:', CV_JNOD, &
-               !     DIAG_SCALE_PRES(CV_NOD), MASS_MN_PRES(COUNT), COLOR_VEC(CV_JNOD)
-               DO KVEC=1,NCOLOR
-                  CMC_COLOR_VEC_MANY(KVEC,CV_NOD) = CMC_COLOR_VEC_MANY(KVEC,CV_NOD) &
-                    +  DIAG_SCALE_PRES(CV_NOD) * MASS_MN_PRES(COUNT) * COLOR_VEC_MANY(KVEC,CV_JNOD)
+               DO KVEC = 1, NCOLOR
+                  CMC_COLOR_VEC_MANY( KVEC, CV_NOD ) = CMC_COLOR_VEC_MANY( KVEC, CV_NOD ) &
+                       +  DIAG_SCALE_PRES( CV_NOD ) * MASS_MN_PRES( COUNT ) * COLOR_VEC_MANY( KVEC, CV_JNOD )
                END DO
-               RSUM=RSUM+MASS_MN_PRES(COUNT)
+               RSUM = RSUM + MASS_MN_PRES( COUNT )
             END DO
-            IF(IGOT_CMC_PRECON.NE.0) THEN ! Use lumping of MASS_MN_PRES...
-               DO KVEC=1,NCOLOR
-                  CMC_COLOR_VEC2_MANY(KVEC, CV_NOD) = CMC_COLOR_VEC2_MANY(KVEC,CV_NOD) &
-                      +  DIAG_SCALE_PRES(CV_NOD) * RSUM * COLOR_VEC_MANY(KVEC,CV_NOD)
+            IF ( IGOT_CMC_PRECON /= 0 ) THEN ! Use lumping of MASS_MN_PRES...
+               DO KVEC = 1, NCOLOR
+                  CMC_COLOR_VEC2_MANY( KVEC, CV_NOD ) = CMC_COLOR_VEC2_MANY( KVEC, CV_NOD ) &
+                       +  DIAG_SCALE_PRES( CV_NOD ) * RSUM * COLOR_VEC_MANY( KVEC, CV_NOD )
                END DO
-            ENDIF
+            END IF
          END DO
 
          !Put into matrix CMC
-
          DO CV_NOD = 1, CV_NONODS 
             DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                CV_JNOD = COLCMC( COUNT )
-               DO KVEC=1,NCOLOR
+               DO KVEC = 1, NCOLOR
                   CMC( COUNT ) = CMC( COUNT ) + CMC_COLOR_VEC_MANY( KVEC, CV_NOD ) * COLOR_VEC_MANY( KVEC, CV_JNOD )
-                  IF(IGOT_CMC_PRECON.NE.0) THEN 
-                     CMC_PRECON( COUNT ) = CMC_PRECON( COUNT ) + CMC_COLOR_VEC2_MANY( KVEC, CV_NOD ) * COLOR_VEC_MANY( KVEC, CV_JNOD )
-                  ENDIF
+                  IF ( IGOT_CMC_PRECON /= 0 ) CMC_PRECON( COUNT ) = CMC_PRECON( COUNT ) + &
+                       CMC_COLOR_VEC2_MANY( KVEC, CV_NOD ) * COLOR_VEC_MANY( KVEC, CV_JNOD )
                END DO
             END DO
          END DO
-         !stop 383
+
+         IF ( NDPSET /= 0 ) THEN
+            CV_NOD = NDPSET
+            DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
+               CV_JNOD = COLCMC( COUNT )
+               IF ( CV_JNOD /= CV_NOD ) THEN
+                  CMC( COUNT ) = 0.0 ! not the diagonal
+                  IF ( IGOT_CMC_PRECON /= 0 ) CMC_PRECON( COUNT ) = 0.0
+                  DO COUNT2 = FINDCMC( CV_JNOD ), FINDCMC( CV_JNOD + 1 ) - 1
+                     CV_JNOD2 = COLCMC( COUNT2 )
+                     IF ( CV_JNOD2 == CV_NOD ) CMC( COUNT2 ) = 0.0 ! not the diagonal
+                     IF ( IGOT_CMC_PRECON/=0 ) THEN
+                        IF ( CV_JNOD2 == CV_NOD ) CMC_PRECON( COUNT2 ) = 0.0
+                     END IF
+                  END DO
+               END IF
+            END DO
+         END IF
+
+         RETURN
+       END SUBROUTINE COLOR_GET_CMC_PHA_FAST
 
 
 
-      IF(NDPSET /= 0) THEN
-         CV_NOD=NDPSET
-         DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
-            CV_JNOD = COLCMC( COUNT )
-            if(cv_jnod/=cv_nod) then
-               cmc(count)=0.0 ! not the diagonal
-               IF(IGOT_CMC_PRECON.NE.0) cmc_PRECON(count)=0.0
-               DO COUNT2 = FINDCMC( CV_jNOD ), FINDCMC( CV_jNOD + 1 ) - 1
-                  CV_JNOD2 = COLCMC( COUNT2 )
-                  if(cv_jnod2==cv_nod) cmc(count2)=0.0 ! not the diagonal
-                  IF(IGOT_CMC_PRECON.NE.0) THEN
-                     if(cv_jnod2==cv_nod) cmc_PRECON(count2)=0.0
-                  ENDIF
-               END DO
-            endif
-         END DO
-      ENDIF
+      recursive  subroutine quicksort(vec,n)
+        integer, intent(in) :: n
+        integer, dimension(:), intent(inout) :: vec(n)
+        integer :: ii
 
-!      DEALLOCATE( NEED_COLOR )
-!      DEALLOCATE( COLOR_VEC )
-      DEALLOCATE( CDP )
-      DEALLOCATE( DU_LONG )
-      DEALLOCATE( DU,DV,DW )
-      DEALLOCATE( CMC_COLOR_VEC ) 
-      DEALLOCATE( CMC_COLOR_VEC2 )
+        if (size(vec)>1) then
+           ii=partition(vec)
+           call quicksort(vec(1:ii-1),ii-1)
+           call quicksort(vec(ii:n),n-ii+1)
+        end if
 
-      RETURN
-    END SUBROUTINE COLOR_GET_CMC_PHA_FAST
+      end subroutine quicksort
+        
+        integer function partition(v)
+          integer, intent(inout), dimension(:) :: v
+          integer :: i,j, pivot, temp
 
+          i=0
+          j=size(v)+1
 
+          pivot=v(j/2)
+          
+          do while (i < j)
+             j= j-1
+             do while ( v(j) > pivot)
+                j=j-1
+             end do
+             i = i + 1
+             do while  ( v(i) < pivot )
+                i = i + 1
+             end do
+             if ( i < j ) then
+                temp=v(i); v(i)=v(j); v(j)= temp
+             elseif ( i == j ) then
+                partition = i+1
+                return
+             else
+                partition = i
+             end if
+          end do
+
+        end function partition          
+           
+      
 
 
     SUBROUTINE IBUBLE(LIST,NLIST)
 
       INTEGER NLIST,LIST(NLIST)
       INTEGER I,J,II
+
+      print*, LIST(NLIST)
+
       do I=1,NLIST
-         do J=2,NLIST
+         do J=2,NLIST-I+1
             IF(LIST(J-1).GT.LIST(J)) THEN
                !     SWOP
                II=LIST(J-1)
@@ -713,7 +697,7 @@
       REAL, DIMENSION( : ), intent( in ) :: MASS_MN_PRES
       INTEGER, DIMENSION( : ), intent( in ) :: FINDCMC
       INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
-      REAL, DIMENSION( : ), intent( in ) :: C
+      REAL, DIMENSION( :, :, : ), intent( in ) :: C
       REAL, DIMENSION( : ), intent( inout ) :: CT
 
       ! Local variables
@@ -728,208 +712,126 @@
       INTEGER :: I, ELE,u_inod,u_nod
       REAL :: RSUM
 
-
-      ALLOCATE( NEED_COLOR( CV_NONODS ))
-      ALLOCATE( COLOR_VEC( CV_NONODS ))
-      ALLOCATE( CDP( U_NONODS * NDIM * NPHASE ))
-      ALLOCATE( DU_LONG( U_NONODS * NDIM * NPHASE ))
-      ALLOCATE( DU( U_NONODS * NPHASE ))
-      ALLOCATE( DV( U_NONODS * NPHASE ))
-      ALLOCATE( DW( U_NONODS * NPHASE ))
-      ALLOCATE( CMC_COLOR_VEC( CV_NONODS )) 
-      ALLOCATE( CMC_COLOR_VEC2( CV_NONODS )) 
-
+      ALLOCATE( NEED_COLOR( CV_NONODS ) )
+      ALLOCATE( COLOR_VEC( CV_NONODS ) )
+      ALLOCATE( CDP( U_NONODS * NDIM * NPHASE ) )
+      ALLOCATE( DU_LONG( U_NONODS * NDIM * NPHASE ) )
+      ALLOCATE( DU( U_NONODS * NPHASE ) )
+      ALLOCATE( DV( U_NONODS * NPHASE ) )
+      ALLOCATE( DW( U_NONODS * NPHASE ) )
+      ALLOCATE( CMC_COLOR_VEC( CV_NONODS ) ) 
+      ALLOCATE( CMC_COLOR_VEC2( CV_NONODS ) ) 
 
       CMC = 0.0
-      IF(IGOT_CMC_PRECON.NE.0) CMC_PRECON = 0.0
+      IF ( IGOT_CMC_PRECON /= 0 ) CMC_PRECON = 0.0
 
-      NEED_COLOR = .true.
+      NEED_COLOR = .TRUE.
       NCOLOR = 0
-      UNDONE = .true. 
+      UNDONE = .TRUE.
 
-      Loop_while: DO WHILE (UNDONE) 
+      Loop_while: DO WHILE ( UNDONE ) 
 
-         NCOLOR=NCOLOR+1  ! Determine what nodes can be coloured with the new color       
-         to_color=.false.
+         NCOLOR = NCOLOR + 1 ! Determine what nodes can be coloured with the new color       
+         TO_COLOR = .FALSE.
 
          Loop_CVNOD: DO CV_NOD = 1, CV_NONODS
-            IF(NEED_COLOR( CV_NOD )) THEN 
+            IF ( NEED_COLOR( CV_NOD ) ) THEN 
 
                LCOL= .FALSE.
                ! use a distance-2 colouring...
                Loop_Row: DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                   CV_JNOD = COLCMC( COUNT )
-                  if(TO_COLOR( CV_JNOD )) then
-                     LCOL=.true.
-                     exit
-                  end if
+                  IF( TO_COLOR( CV_JNOD ) ) THEN
+                     LCOL=.TRUE.
+                     EXIT
+                  END IF
                   Loop_Row2: DO COUNT2 = FINDCMC( CV_JNOD ), FINDCMC( CV_JNOD + 1 ) - 1
-                     if(TO_COLOR( COLCMC( COUNT2 ))) then
-                        LCOL=.true.
-                        exit
-                     end if
+                     IF ( TO_COLOR( COLCMC( COUNT2 ) ) )  THEN
+                        LCOL = .TRUE.
+                        EXIT
+                     END IF
                   END DO Loop_Row2
-                  if (LCOL) exit 
+                  IF ( LCOL ) EXIT 
                END DO Loop_Row
 
-               IF(.not. LCOL) THEN
-                  TO_COLOR( CV_NOD ) = .true.
-               ENDIF
+               IF ( .NOT.LCOL ) THEN
+                  TO_COLOR( CV_NOD ) = .TRUE.
+               END IF
 
-            ENDIF
+            END IF
          END DO Loop_CVNOD
 
-         NEED_COLOR = NEED_COLOR .and. .not. TO_COLOR
-         COLOR_VEC=merge(1.0,0.0,TO_COLOR)
+         NEED_COLOR = NEED_COLOR .AND. .NOT.TO_COLOR
+         COLOR_VEC = MERGE( 1.0, 0.0, TO_COLOR )
 
-         CALL C_MULT( CDP, COLOR_VEC, CV_NONODS, U_NONODS, NDIM, NPHASE, &
-              C, NCOLC, FINDC, COLC)
-         !!DU_LONG = BLOCK_MAT * CDP
-         if(.true.) then
-            !            do ele=1,totele
-            !               ewrite(3,*)'ele=',ele
-            !               do i=1,U_nloc*nphase*ndim
-            !                  ewrite(3,*)i, INV_PIVIT_MAT(ele,i,:)
-            !               end do
-            !            end do
-            !                   INV_PIVIT_MAT=0.0
-            !                   do i=1,u_nloc*ndim*nphase
-            !                     INV_PIVIT_MAT(:,i,i)=1.0
-            !                   end do
-            CALL PHA_BLOCK_MAT_VEC( DU_LONG, INV_PIVIT_MAT, CDP, U_NONODS, NDIM, NPHASE, &
-                 TOTELE, U_NLOC, U_NDGLN )
-            ! NB. P_RHS=CT*U + CV_RHS 
-            !               DU_LONG=CDP
+         CALL C_MULT2( CDP, COLOR_VEC, CV_NONODS, U_NONODS, NDIM, NPHASE, &
+              C, NCOLC, FINDC, COLC )
+         ! DU_LONG = BLOCK_MAT * CDP
 
-            CALL ULONG_2_UVW( DU, DV, DW, DU_LONG, U_NONODS, NDIM, NPHASE )
+         CALL PHA_BLOCK_MAT_VEC( DU_LONG, INV_PIVIT_MAT, CDP, U_NONODS, NDIM, NPHASE, &
+              TOTELE, U_NLOC, U_NDGLN )
+         ! NB. P_RHS = CT * U + CV_RHS 
+         ! DU_LONG = CDP
 
-         else
-            DO IPHASE=1,NPHASE
-               IDIM=1
-               DU(1+(IPHASE-1)*U_NONODS:U_NONODS+(IPHASE-1)*U_NONODS)  &
-                    =CDP( 1+U_NONODS*(IDIM-1)+U_NONODS*NDIM*(IPHASE-1): &
-                    U_NONODS+U_NONODS*(IDIM-1)+U_NONODS*NDIM*(IPHASE-1) )
-            END DO
-         endif
+         CALL ULONG_2_UVW( DU, DV, DW, DU_LONG, U_NONODS, NDIM, NPHASE )
+
          CALL CT_MULT( CMC_COLOR_VEC, DU, DV, DW, CV_NONODS, U_NONODS, NDIM, NPHASE, &
-              CT, NCOLCT, FINDCT, COLCT)
-      IF(IGOT_CMC_PRECON.NE.0) THEN
-         CALL CT_MULT_WITH_C( CMC_COLOR_VEC2, DU_LONG, CV_NONODS, U_NONODS, NDIM, NPHASE, &
-                C, NCOLC, FINDC, COLC )
-!         CALL CT_MULT( CMC_COLOR_VEC2, DU, DV, DW, CV_NONODS, U_NONODS, NDIM, NPHASE, &
-!              *****CT, NCOLCT, FINDCT, COLCT )
-      ENDIF
+              CT, NCOLCT, FINDCT, COLCT )
+      
+         IF ( IGOT_CMC_PRECON /= 0 ) THEN
+            CALL CT_MULT_WITH_C( CMC_COLOR_VEC2, DU_LONG, CV_NONODS, U_NONODS, NDIM, NPHASE, &
+                 C, NCOLC, FINDC, COLC )
+         END IF
 
          ! Matrix vector involving the mass diagonal term
          DO CV_NOD = 1, CV_NONODS
-            !ewrite(3,*) 'cv_nod=',cv_nod
-            RSUM=0.0
+            RSUM = 0.0
             DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                CV_JNOD = COLCMC( COUNT )
-               !ewrite(3,*) 'CV_JNOD, diag:', CV_JNOD, &
-               !     DIAG_SCALE_PRES(CV_NOD), MASS_MN_PRES(COUNT), COLOR_VEC(CV_JNOD)
-               CMC_COLOR_VEC(CV_NOD) = CMC_COLOR_VEC(CV_NOD) &
-                    +  DIAG_SCALE_PRES(CV_NOD) * MASS_MN_PRES(COUNT) * COLOR_VEC(CV_JNOD)
-               RSUM=RSUM+MASS_MN_PRES(COUNT)
+               CMC_COLOR_VEC( CV_NOD ) = CMC_COLOR_VEC( CV_NOD ) &
+                    + DIAG_SCALE_PRES( CV_NOD ) * MASS_MN_PRES( COUNT ) * COLOR_VEC( CV_JNOD )
+               RSUM = RSUM + MASS_MN_PRES( COUNT )
             END DO
-            IF(IGOT_CMC_PRECON.NE.0) THEN ! Use lumping of MASS_MN_PRES...
-               CMC_COLOR_VEC2(CV_NOD) = CMC_COLOR_VEC2(CV_NOD) &
-                    +  DIAG_SCALE_PRES(CV_NOD) * RSUM * COLOR_VEC(CV_NOD)
-            ENDIF
+           
+            IF ( IGOT_CMC_PRECON /= 0 ) THEN ! Use lumping of MASS_MN_PRES...
+               CMC_COLOR_VEC2( CV_NOD ) = CMC_COLOR_VEC2( CV_NOD ) &
+                    + DIAG_SCALE_PRES( CV_NOD ) * RSUM * COLOR_VEC( CV_NOD )
+            END IF
          END DO
-         !IF(NDPSET /= 0) THEN
-         !   CV_NOD=NDPSET
-         !   CMC_COLOR_VEC(CV_NOD) = CMC_COLOR_VEC(CV_NOD) &
-         !        +  INFINY * COLOR_VEC(CV_JNOD)
-         !ENDIF
 
          !Put into matrix CMC
-
          DO CV_NOD = 1, CV_NONODS 
             DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                CV_JNOD = COLCMC( COUNT )
                CMC( COUNT ) = CMC( COUNT ) + CMC_COLOR_VEC( CV_NOD ) * COLOR_VEC( CV_JNOD )
-               IF(IGOT_CMC_PRECON.NE.0) THEN 
+               IF ( IGOT_CMC_PRECON /= 0 ) THEN 
                   CMC_PRECON( COUNT ) = CMC_PRECON( COUNT ) + CMC_COLOR_VEC2( CV_NOD ) * COLOR_VEC( CV_JNOD )
-               ENDIF
-               !ewrite(3,*) cv_nod, count, CV_JNOD, CMC_COLOR_VEC( CV_NOD ), COLOR_VEC( CV_JNOD )
+               END IF
             END DO
          END DO
-         !stop 383
 
-         UNDONE = any(NEED_COLOR)
+         UNDONE = ANY( NEED_COLOR )
 
-         ewrite(3,*)'************ rsum,undone,NCOLOR=',rsum,undone,NCOLOR
+         ewrite(3,*)'************ rsum,undone,NCOLOR=', rsum, undone, NCOLOR
 
       END DO Loop_while
 
 
-
-
-
-      if (.false.) then
-
-         do ncolor=1,-cv_nonods
-
-            COLOR_VEC=0.0
-            COLOR_VEC(ncolor)=1.0
-
-            du_long=0.0
-            cdp=0.0
-
-            CALL C_MULT( CDP, COLOR_VEC, CV_NONODS, U_NONODS, NDIM, NPHASE, &
-                 C, NCOLC, FINDC, COLC )
-
-            if(.true.) then
-               du_long=cdp
-
-               CALL ULONG_2_UVW( DU, DV, DW, DU_LONG, U_NONODS, NDIM, NPHASE )
-
-               CALL CT_MULT( CMC_COLOR_VEC, DU, DV, DW, CV_NONODS, U_NONODS, NDIM, NPHASE, &
-                    CT, NCOLCT, FINDCT, COLCT )
-            else
-               ! CMC_COLOR_VEC=c^T CDP
-               CMC_COLOR_VEC=0.0
-               do u_nod=1,u_nonods
-                  do count=findc(u_nod),findc(u_nod+1)-1
-                     cv_jnod=colc(count)
-                     CMC_COLOR_VEC(cv_jnod)=CMC_COLOR_VEC(cv_jnod)+c(count)*CDP(u_nod)
-                  end do
-               end do
-            endif
-
-         end do
-
-      end if
-
-      if(.false.) then
-         DO CV_NOD = 1, CV_NONODS
-            ewrite(3,*) 'cv_nod=',cv_nod
-            DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
-               CV_JNOD = COLCMC( COUNT )
-               ewrite(3,*) 'CV_JNOD,cmc(count), diag:', CV_JNOD, cmc(count), &
-                    DIAG_SCALE_PRES(CV_NOD), MASS_MN_PRES(COUNT)
-
-            END DO
-         END DO
-         stop 740
-      endif
-
-      IF(NDPSET /= 0) THEN
-         CV_NOD=NDPSET
+      IF ( NDPSET /= 0 ) THEN
+         CV_NOD = NDPSET
          DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
             CV_JNOD = COLCMC( COUNT )
-            if(cv_jnod/=cv_nod) then
-               cmc(count)=0.0 ! not the diagonal
-               IF(IGOT_CMC_PRECON.NE.0) cmc_PRECON(count)=0.0
-               DO COUNT2 = FINDCMC( CV_jNOD ), FINDCMC( CV_jNOD + 1 ) - 1
+            IF ( CV_JNOD /= CV_NOD ) THEN
+               CMC ( COUNT ) = 0.0 ! not the diagonal
+               IF ( IGOT_CMC_PRECON /= 0 ) CMC_PRECON( COUNT ) = 0.0
+               DO COUNT2 = FINDCMC( CV_JNOD ), FINDCMC( CV_JNOD + 1 ) - 1
                   CV_JNOD2 = COLCMC( COUNT2 )
-                  if(cv_jnod2==cv_nod) cmc(count2)=0.0 ! not the diagonal
-                  IF(IGOT_CMC_PRECON.NE.0) THEN
-                     if(cv_jnod2==cv_nod) cmc_PRECON(count2)=0.0
-                  ENDIF
+                  IF ( CV_JNOD2 == CV_NOD ) CMC( COUNT2 ) = 0.0 ! not the diagonal
+                  IF ( IGOT_CMC_PRECON /= 0 ) THEN
+                     IF( CV_JNOD2 == CV_NOD) CMC_PRECON( COUNT2 ) = 0.0
+                  END IF
                END DO
-            endif
+            END IF
          END DO
       ENDIF
 
@@ -937,7 +839,7 @@
       DEALLOCATE( COLOR_VEC )
       DEALLOCATE( CDP )
       DEALLOCATE( DU_LONG )
-      DEALLOCATE( DU,DV,DW )
+      DEALLOCATE( DU, DV, DW )
       DEALLOCATE( CMC_COLOR_VEC ) 
       DEALLOCATE( CMC_COLOR_VEC2 )
 
@@ -950,26 +852,16 @@
     SUBROUTINE PHA_BLOCK_INV( PIVIT_MAT, TOTELE, NBLOCK )
       implicit none
       INTEGER, intent( in ) :: TOTELE, NBLOCK
-      REAL, DIMENSION( : , : , : ), intent( inout ), CONTIGUOUS ::  PIVIT_MAT
+      REAL, DIMENSION( : , : , : ), intent( inout ), CONTIGUOUS :: PIVIT_MAT
       ! Local variables
       INTEGER :: ELE
 
-
       DO ELE = 1, TOTELE
-
-!         INV_PIVIT_MAT(:,:,ele)=PIVIT_MAT(:,:,ele)
-
-!         CALL MATDMATINV( PIVIT_MAT(:,:,ele), INV_PIVIT_MAT(:,:,ele), NBLOCK )
-         CALL MATINV( PIVIT_MAT(:,:,ele), NBLOCK, nblock )
-
+         CALL MATINV( PIVIT_MAT( :, :, ele ), NBLOCK, NBLOCK )
       END DO
 
-
-      RETURN 
-
+      RETURN
     END SUBROUTINE PHA_BLOCK_INV
-
-
 
 
 
@@ -1045,14 +937,14 @@
 
 
 
-     SUBROUTINE PHA_BLOCK_MAT_VEC_MANY2( U, BLOCK_MAT, CDP, U_NONODS, NDIM, NPHASE, NBLOCK, &
+    SUBROUTINE PHA_BLOCK_MAT_VEC_MANY2( U, BLOCK_MAT, CDP, U_NONODS, NDIM, NPHASE, NBLOCK, &
          TOTELE, U_NLOC, U_NDGLN ) 
       implicit none
       ! U = BLOCK_MAT * CDP
       INTEGER, intent( in )  :: U_NONODS, NDIM, NPHASE, TOTELE, U_NLOC, NBLOCK
       INTEGER, DIMENSION( : ), intent( in ), target ::  U_NDGLN
       REAL, DIMENSION( :, : ), intent( inout ) :: U
-      REAL, DIMENSION( :, :,: ), intent( in ), target :: BLOCK_MAT
+      REAL, DIMENSION( :, :, : ), intent( in ), target :: BLOCK_MAT
       REAL, DIMENSION( :, : ), intent( in ) :: CDP
       ! Local 
       INTEGER :: ELE, U_ILOC, U_INOD, IDIM, IPHASE, I, U_JLOC, U_JNOD, JDIM, JPHASE, J, II, JJ, IVEC
@@ -1074,38 +966,30 @@
            real, dimension(M) :: Y
          end subroutine dgemv
       end interface
-           
 
-      N=U_NLOC * NDIM * NPHASE
+      N = U_NLOC * NDIM * NPHASE
 
       Loop_Elements: DO ELE = 1, TOTELE
 
-         U_NOD => U_NDGLN(( ELE - 1 ) * U_NLOC +1: ELE * U_NLOC)            
+         U_NOD => U_NDGLN( ( ELE - 1 ) * U_NLOC +1 : ELE * U_NLOC )            
 
-         DO IVEC=1,NBLOCK
+         DO IVEC = 1, NBLOCK
 
             Loop_PhasesJ: DO JPHASE = 1, NPHASE
                Loop_DimensionsJ: DO JDIM = 1, NDIM
-                     
-!               J = ( JDIM - 1 ) * U_NONODS + ( JPHASE - 1 ) * NDIM * U_NONODS
+
+                  J = JDIM + ( JPHASE - 1 ) * NDIM
                   JJ = ( JDIM - 1 ) * U_NLOC + ( JPHASE - 1 ) * NDIM * U_NLOC
 
-                  J=JDIM+(JPHASE-1)*NDIM
-
-                  lcdp([(J+(i-1)*ndim*nphase,i=1,u_NLOC)])=CDP(IVEC, U_NOD+(J-1)*U_NONODS)
-                  U_NODI([(J+(i-1)*ndim*nphase,i=1,u_NLOC)])=U_NOD+(J-1)*U_NONODS
+                  lcdp([(J+(i-1)*ndim*nphase, i = 1, u_NLOC)]) = CDP(IVEC, U_NOD+(J-1)*U_NONODS)
+                  U_NODI([(J+(i-1)*ndim*nphase, i = 1, u_NLOC)]) = U_NOD+(J-1)*U_NONODS
                end do Loop_DimensionsJ
             end do Loop_PhasesJ
-                           
 
-!         LU=U(U_NODI)
-            call dgemv('N',N,N,1.0d0,BLOCK_MAT( : , : ,ele),N,LCDP,1,0.0d0,LU,1)
-            U(IVEC,U_NODI)=LU
+            call dgemv('N', N, N, 1.0d0, BLOCK_MAT( : , : , ELE ), N, LCDP, 1, 0.0d0, LU, 1 )
+            U( IVEC, U_NODI ) = LU
 
-         END DO 
-                           
-!         U( U_NODI) = U( U_NODI ) + matmul(LOC_BLOCK_MAT( : , : ), LCDP( : ))
-
+         END DO
 
       END DO Loop_Elements
 
@@ -1123,103 +1007,41 @@
       ! U = BLOCK_MAT * CDP
       INTEGER, intent( in )  :: U_NONODS, NDIM, NPHASE, TOTELE, U_NLOC, NBLOCK
       INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) ::  U_NDGLN
-      REAL, DIMENSION( NBLOCK, U_NONODS * NDIM * NPHASE ), intent( inout ) :: U
+      REAL, DIMENSION( NBLOCK, NDIM, NPHASE, U_NONODS ), intent( inout ) :: U
       REAL, DIMENSION( U_NLOC * NDIM * NPHASE, U_NLOC * NDIM * NPHASE, TOTELE ), intent( in ), target :: BLOCK_MAT
-      REAL, DIMENSION( NBLOCK, U_NONODS * NDIM * NPHASE ), intent( in ) :: CDP
-      ! Local 
-      real, dimension(:,:), allocatable :: CDP_CONV, U_CONV
-
+      REAL, DIMENSION( NBLOCK, NDIM, NPHASE, U_NONODS ), intent( in ) :: CDP
+      ! Local
       INTEGER :: ELE, U_ILOC, U_INOD, IDIM, IPHASE, I, J, U_JLOC, U_JNOD, JDIM, JPHASE, II, JJ, IORIG
-
-! convert 
-      ALLOCATE( CDP_CONV(NBLOCK, NDIM*NPHASE*U_NONODS) )
-      ALLOCATE( U_CONV(NBLOCK, NDIM*NPHASE*U_NONODS) )
-
-!      PRINT *,'HERE1'
       
-      DO ELE = 1, TOTELE
-         DO U_ILOC = 1, U_NLOC
-            U_INOD = U_NDGLN( (ELE-1)*U_NLOC+ U_ILOC)
-!               PRINT *,'U_INOD=',U_INOD
-
-            DO IPHASE = 1, NPHASE
-               DO IDIM = 1, NDIM
-                  I = IDIM+(IPHASE-1)*NDIM+(U_ILOC-1)*NDIM*NPHASE
-                  II= I + (ELE-1)*NDIM*NPHASE*U_NLOC
-
-                  IORIG=U_INOD + (IPHASE-1)*NDIM*U_NONODS + (IDIM-1)*U_NONODS
-                  CDP_CONV(:,II)=CDP(:,IORIG)
-               END DO
-            END DO
-
-         END DO
-      END DO
-
-!      PRINT *,'HERE2'
-
-      U_CONV = 0.0 
-
-
+      U = 0.0 
       Loop_Elements: DO ELE = 1, TOTELE
 
+         Loop_VelocNodsJ: DO U_JLOC = 1, U_NLOC
+            U_JNOD = U_NDGLN( (ELE-1)*U_NLOC+ U_JLOC )
 
-                  Loop_VelocNodsJ: DO U_JLOC = 1, U_NLOC
+            Loop_PhasesJ: DO JPHASE = 1, NPHASE
+               Loop_DimensionsJ: DO JDIM = 1, NDIM
+                  J = JDIM + (JPHASE-1)*NDIM+(U_JLOC-1)*NDIM*NPHASE
+                  JJ= J + (ELE-1)*NDIM*NPHASE*U_NLOC
+                  
+                  Loop_VelocNodsI: DO U_ILOC = 1, U_NLOC
+                     U_INOD = U_NDGLN( (ELE-1)*U_NLOC+ U_ILOC )
 
-                        Loop_PhasesJ: DO JPHASE = 1, NPHASE
-
-                     Loop_DimensionsJ: DO JDIM = 1, NDIM
-                              J = JDIM+(JPHASE-1)*NDIM+(U_JLOC-1)*NDIM*NPHASE
-                              JJ= J + (ELE-1)*NDIM*NPHASE*U_NLOC
-
-
-         Loop_VelocNodsI: DO U_ILOC = 1, U_NLOC
-
-               Loop_PhasesI: DO IPHASE = 1, NPHASE
-
-            Loop_DimensionsI: DO IDIM = 1, NDIM
-
-                              I = IDIM+(IPHASE-1)*NDIM+(U_ILOC-1)*NDIM*NPHASE
-                              II= I + (ELE-1)*NDIM*NPHASE*U_NLOC
-
-                           U_CONV( :, II ) = U_CONV( :, II ) + BLOCK_MAT( I, J, ELE ) * CDP_CONV( :, JJ )
-
-            END DO Loop_DimensionsI
-
-               END DO Loop_PhasesI
-
-         END DO Loop_VelocNodsI
-
-                     END DO Loop_DimensionsJ
-
-                        END DO Loop_PhasesJ
-
-                  END DO Loop_VelocNodsJ
-
+                     Loop_PhasesI: DO IPHASE = 1, NPHASE
+                        Loop_DimensionsI: DO IDIM = 1, NDIM
+                           I = IDIM+(IPHASE-1)*NDIM+(U_ILOC-1)*NDIM*NPHASE
+                           II= I + (ELE-1)*NDIM*NPHASE*U_NLOC
+                          
+                           U( :, IDIM, IPHASE, U_INOD ) = U( :, IDIM, IPHASE, U_INOD ) &
+                                + BLOCK_MAT( I, J, ELE ) * CDP( :, JDIM, JPHASE, U_JNOD )
+                        
+                        END DO Loop_DimensionsI
+                     END DO Loop_PhasesI
+                  END DO Loop_VelocNodsI
+               END DO Loop_DimensionsJ
+            END DO Loop_PhasesJ
+         END DO Loop_VelocNodsJ
       END DO Loop_Elements
-
-!      PRINT *,'HERE3'
-
-! convert back
-      
-      DO ELE = 1, TOTELE
-         DO U_ILOC = 1, U_NLOC
-            U_INOD = U_NDGLN( (ELE-1)*U_NLOC+ U_ILOC)
-!               PRINT *,'U_INOD=',U_INOD
-
-            DO IPHASE = 1, NPHASE
-               DO IDIM = 1, NDIM
-                  I = IDIM+(IPHASE-1)*NDIM+(U_ILOC-1)*NDIM*NPHASE
-                  II= I + (ELE-1)*NDIM*NPHASE*U_NLOC
-
-                  IORIG=U_INOD + (IPHASE-1)*NDIM*U_NONODS + (IDIM-1)*U_NONODS
-                  U(:,IORIG)=U_CONV(:,II)
-               END DO
-            END DO
-
-         END DO
-      END DO
-!      PRINT *,'HERE4'
-
 
       RETURN
 
@@ -1318,13 +1140,13 @@
 
 
 
-    SUBROUTINE CT_MULT_MANY( CV_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, NBLOCK, &
+    SUBROUTINE CT_MULT_MANY( CV_RHS, U, CV_NONODS, U_NONODS, NDIM, NPHASE, NBLOCK, &
          CT, NCOLCT, FINDCT, COLCT ) 
-      ! CV_RHS=CT*U
+      ! CV_RHS = CT * U
       implicit none
       INTEGER, intent( in ) :: CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLCT, NBLOCK
       REAL, DIMENSION( NBLOCK, CV_NONODS ), intent( inout) :: CV_RHS
-      REAL, DIMENSION(NBLOCK,  U_NONODS * NPHASE ), intent( in ) :: U, V, W  
+      REAL, DIMENSION( NBLOCK, NDIM, NPHASE, U_NONODS ), intent( in ) :: U
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
       INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
       REAL, DIMENSION( NCOLCT * NDIM * NPHASE ), intent( in ) :: CT
@@ -1336,19 +1158,18 @@
 
       DO CV_INOD = 1, CV_NONODS
 
-         DO COUNT = FINDCT( CV_INOD ), FINDCT( CV_INOD + 1 ) - 1, 1
+         DO COUNT = FINDCT( CV_INOD ), FINDCT( CV_INOD + 1 ) - 1
             U_JNOD = COLCT( COUNT )
 
             DO IPHASE = 1, NPHASE
                J = U_JNOD + ( IPHASE - 1 ) * U_NONODS
 
-               DO IVEC=1,NBLOCK
-
-                  CV_RHS( IVEC, CV_INOD ) = CV_RHS( IVEC, CV_INOD ) + CT( COUNT + NCOLCT * NDIM * ( IPHASE - 1 )) * U( IVEC, J )
-                  IF( NDIM >= 2 ) CV_RHS( IVEC, CV_INOD ) = CV_RHS( IVEC, CV_INOD ) + CT( COUNT + &
-                       NCOLCT + NCOLCT     * NDIM * ( IPHASE - 1 )) * V( IVEC, J )
-                  IF( NDIM >= 3 ) CV_RHS( IVEC, CV_INOD ) = CV_RHS( IVEC, CV_INOD ) + CT( COUNT + &
-                       2 * NCOLCT + NCOLCT * NDIM * ( IPHASE-  1 )) * W( IVEC, J )
+               DO IVEC = 1, NBLOCK
+                  CV_RHS( IVEC, CV_INOD ) = CV_RHS( IVEC, CV_INOD ) + CT( COUNT + NCOLCT * NDIM * ( IPHASE - 1 ) ) * U( IVEC, 1, IPHASE, U_JNOD )
+                  IF( NDIM >= 2 ) CV_RHS( IVEC, CV_INOD ) = CV_RHS( IVEC, CV_INOD ) &
+                       + CT( COUNT + NCOLCT + NCOLCT * NDIM * ( IPHASE - 1 ) ) * U( IVEC, 2, IPHASE, U_JNOD )
+                  IF( NDIM >= 3 ) CV_RHS( IVEC, CV_INOD ) = CV_RHS( IVEC, CV_INOD ) &
+                       + CT( COUNT + 2 * NCOLCT + NCOLCT * NDIM * ( IPHASE-  1 ) ) * U( IVEC, 3, IPHASE, U_JNOD )
                END DO
             END DO
 
@@ -1378,30 +1199,35 @@
       INTEGER :: U_INOD, COUNT, P_JNOD, IPHASE, I1, IDIM, COUNT_DIM_PHA,j,dim_pha
       real, dimension(NCOLC) :: ldp
 
-      interface
-         real function ddot( N, dx,incx,dy, incy)
-           integer :: n, incx, incy
-           real, dimension(N) :: dx,dy
-         end function ddot
-      end interface
+      !interface
+      !   real function ddot( N, dx,incx,dy, incy)
+      !     integer :: n, incx, incy
+      !     real, dimension(N) :: dx,dy
+      !   end function ddot
+      !end interface
 
-      ldp = dp(colc)
+      LDP = DP( COLC )
 
       Loop_Phase: DO IPHASE = 0, NPHASE-1
          Loop_Dim: DO IDIM = 1, NDIM
             DIM_PHA = (IDIM-1) + NDIM*IPHASE
             Loop_VelNodes: DO U_INOD = 1, U_NONODS 
                CDP( U_INOD + DIM_PHA * U_NONODS ) = &
-                    dot_product(&
-                    C(FINDC( U_INOD )+NCOLC*dim_pha:FINDC( U_INOD + 1 ) - 1+NCOLC*dim_pha),&
-                    ldp( FINDC( U_INOD ):FINDC( U_INOD + 1 ) - 1))
+                    DOT_PRODUCT( &
+                    C( FINDC( U_INOD ) + NCOLC * DIM_PHA : FINDC( U_INOD + 1 ) - 1 + NCOLC * DIM_PHA ), &
+                    LDP( FINDC( U_INOD ) : FINDC( U_INOD + 1 ) - 1 ) )
             END DO Loop_VelNodes
          END DO Loop_Dim
       END DO Loop_Phase
 
+      RETURN
+    END SUBROUTINE C_MULT
 
-      return
-    end SUBROUTINE C_MULT
+
+
+
+
+
 
 
 
@@ -1411,9 +1237,9 @@
       implicit none
       ! CDP=C*DP
       INTEGER, intent( in ) :: CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLC, NBLOCK
-      REAL, DIMENSION( NBLOCK, U_NONODS * NDIM * NPHASE ), intent( inout ) :: CDP
+      REAL, DIMENSION( NBLOCK, NDIM, NPHASE, U_NONODS ), intent( inout ) :: CDP
       REAL, DIMENSION( NBLOCK, CV_NONODS ), intent( in )  :: DP
-      REAL, DIMENSION( NCOLC * NDIM * NPHASE ), intent( in ) :: C
+      REAL, DIMENSION( NDIM, NPHASE, NCOLC ), intent( in ) :: C
       INTEGER, DIMENSION( U_NONODS + 1 ), intent( in ) ::FINDC
       INTEGER, DIMENSION( NCOLC ), intent( in ) :: COLC
       ! Local variables
@@ -1421,45 +1247,80 @@
 
       CDP = 0.0
 
-      Loop_VelNodes: DO U_INOD = 1, U_NONODS
+      DO U_INOD = 1, U_NONODS
 
-         Loop_Crow: DO COUNT = FINDC( U_INOD ), FINDC( U_INOD + 1 ) - 1, 1
+         DO COUNT = FINDC( U_INOD ), FINDC( U_INOD + 1 ) - 1
+
             P_JNOD = COLC( COUNT )
 
-            Loop_Phase: DO IPHASE = 1, NPHASE
-               Loop_Dim: DO IDIM = 1, NDIM
-                  COUNT_DIM_PHA = COUNT + NCOLC*(IDIM-1) + NCOLC*NDIM*(IPHASE-1)
-                  I1 = U_INOD + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM * U_NONODS
-                  CDP( :, I1 ) = CDP( :, I1 ) + C( COUNT_DIM_PHA ) * DP( :, P_JNOD )
-               END DO Loop_Dim
-            END DO Loop_Phase
+            DO IPHASE = 1, NPHASE
+               DO IDIM = 1, NDIM
+                  CDP( :, IDIM, IPHASE, U_INOD ) = CDP( :, IDIM, IPHASE, U_INOD ) + C( IDIM, IPHASE, COUNT ) * DP( :, P_JNOD )
+               END DO
+            END DO
 
-         END DO Loop_Crow
+         END DO
 
-      END DO Loop_VelNodes
+      END DO
 
       RETURN
 
     END SUBROUTINE C_MULT_MANY
 
-
-   
-
-
-    SUBROUTINE Ct_MULT_WITH_C( DP, U_LONG, CV_NONODS, U_NONODS, NDIM, NPHASE, &
+    SUBROUTINE C_MULT2( CDP, DP, CV_NONODS, U_NONODS, NDIM, NPHASE, &
          C, NCOLC, FINDC, COLC ) 
       implicit none
-      ! DP= (C)^T U_LONG
+      ! CDP=C*DP
+      INTEGER, intent( in ) :: CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLC
+      !REAL, DIMENSION( NDIM, NPHASE, U_NONODS ), intent( inout ) :: CDP
+      REAL, DIMENSION( NDIM * NPHASE * U_NONODS ), intent( inout ) :: CDP
+      REAL, DIMENSION( CV_NONODS ), intent( in )  :: DP
+      REAL, DIMENSION( NDIM, NPHASE, NCOLC ), intent( in ) :: C
+      INTEGER, DIMENSION( U_NONODS + 1 ), intent( in ) ::FINDC
+      INTEGER, DIMENSION( NCOLC ), intent( in ) :: COLC
+      ! Local variables
+      INTEGER :: U_INOD, COUNT, P_JNOD, IPHASE, IDIM, COUNT_DIM_PHA, DIM_PHA
+
+      CDP = 0.0
+
+      !DO U_INOD = 1, U_NONODS
+      !   DO COUNT = FINDC( U_INOD ), FINDC( U_INOD + 1 ) - 1
+      !      P_JNOD = COLC( COUNT )
+      !      CDP( :, :, U_INOD ) = CDP( :, :, U_INOD ) + C( :, :, COUNT ) * DP( P_JNOD )
+      !   END DO
+      !END DO
+
+      DO U_INOD = 1, U_NONODS
+         DO COUNT = FINDC( U_INOD ), FINDC( U_INOD + 1 ) - 1
+            P_JNOD = COLC( COUNT )
+     
+            DO IPHASE = 0, NPHASE-1
+               DO IDIM = 1, NDIM
+                  DIM_PHA = (IDIM-1) + NDIM*IPHASE
+                  CDP( U_INOD + DIM_PHA * U_NONODS ) = CDP( U_INOD + DIM_PHA * U_NONODS ) + C( IDIM, IPHASE+1, COUNT ) * DP( P_JNOD )
+               END DO
+            END DO
+         
+         END DO
+      END DO
+
+      RETURN
+
+    END SUBROUTINE C_MULT2
+
+    SUBROUTINE CT_MULT_WITH_C( DP, U_LONG, CV_NONODS, U_NONODS, NDIM, NPHASE, &
+         C, NCOLC, FINDC, COLC ) 
+      implicit none
+      ! DP = (C)^T U_LONG
       INTEGER, intent( in ) :: CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLC
       REAL, DIMENSION( : ), intent( in ) :: U_LONG
       REAL, DIMENSION( : ), intent( inout )  :: DP
-      REAL, DIMENSION( : ), intent( in ) :: C
+      REAL, DIMENSION( :, :, : ), intent( in ) :: C
       INTEGER, DIMENSION( : ), intent( in ) ::FINDC
       INTEGER, DIMENSION( : ), intent( in ) :: COLC
       ! Local variables
       INTEGER :: U_INOD, COUNT, P_JNOD, IPHASE, I1, IDIM, COUNT_DIM_PHA
 
-!      CDP = 0.0
       DP = 0.0
 
       Loop_VelNodes: DO U_INOD = 1, U_NONODS
@@ -1471,8 +1332,7 @@
                Loop_Dim: DO IDIM = 1, NDIM
                   COUNT_DIM_PHA = COUNT + NCOLC*(IDIM-1) + NCOLC*NDIM*(IPHASE-1)
                   I1 = U_INOD + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM * U_NONODS
-!                  CDP( I1 ) = CDP( I1 ) + C( COUNT_DIM_PHA ) * DP( P_JNOD )
-              DP( P_JNOD ) = DP( P_JNOD ) + C( COUNT_DIM_PHA ) * U_LONG( I1 )
+                  DP( P_JNOD ) = DP( P_JNOD ) + C( IDIM, IPHASE, COUNT ) * U_LONG( I1 )
                END DO Loop_Dim
             END DO Loop_Phase
 
@@ -1490,33 +1350,29 @@
 
 
 
-    SUBROUTINE Ct_MULT_WITH_C_MANY( DP, U_LONG, CV_NONODS, U_NONODS, NDIM, NPHASE, NBLOCK, &
+    SUBROUTINE CT_MULT_WITH_C_MANY( DP, U_LONG, CV_NONODS, U_NONODS, NDIM, NPHASE, NBLOCK, &
          C, NCOLC, FINDC, COLC ) 
       implicit none
-      ! DP= (C)^T U_LONG
+      ! DP = (C)^T U_LONG
       INTEGER, intent( in ) :: CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLC, NBLOCK
-      REAL, DIMENSION( :, : ), intent( in ) :: U_LONG
+      REAL, DIMENSION( :, :, :, : ), intent( in ) :: U_LONG
       REAL, DIMENSION( :, : ), intent( inout )  :: DP
-      REAL, DIMENSION( : ), intent( in ) :: C
+      REAL, DIMENSION( :, :, : ), intent( in ) :: C
       INTEGER, DIMENSION( : ), intent( in ) ::FINDC
       INTEGER, DIMENSION( : ), intent( in ) :: COLC
       ! Local variables
       INTEGER :: U_INOD, COUNT, P_JNOD, IPHASE, I1, IDIM, COUNT_DIM_PHA
 
-!      CDP = 0.0
       DP = 0.0
 
       Loop_VelNodes: DO U_INOD = 1, U_NONODS
 
-         Loop_Crow: DO COUNT = FINDC( U_INOD ), FINDC( U_INOD + 1 ) - 1, 1
+         Loop_Crow: DO COUNT = FINDC( U_INOD ), FINDC( U_INOD + 1 ) - 1
             P_JNOD = COLC( COUNT )
 
             Loop_Phase: DO IPHASE = 1, NPHASE
                Loop_Dim: DO IDIM = 1, NDIM
-                  COUNT_DIM_PHA = COUNT + NCOLC*(IDIM-1) + NCOLC*NDIM*(IPHASE-1)
-                  I1 = U_INOD + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM * U_NONODS
-!                  CDP( I1 ) = CDP( I1 ) + C( COUNT_DIM_PHA ) * DP( P_JNOD )
-              DP( :, P_JNOD ) = DP( :, P_JNOD ) + C( COUNT_DIM_PHA ) * U_LONG( :, I1 )
+                  DP( :, P_JNOD ) = DP( :, P_JNOD ) + C( IDIM, IPHASE, COUNT ) * U_LONG( :, IDIM, IPHASE, U_INOD )
                END DO Loop_Dim
             END DO Loop_Phase
 

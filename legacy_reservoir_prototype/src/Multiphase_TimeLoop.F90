@@ -343,7 +343,7 @@
 
     call temp_mem_hacks()
 
-    allocate(temp(max(xu_nonods,x_nonods)))
+    allocate(temp(max(xu_nonods,x_nonods,u_nonods)))
     call temp_assigns()
 
 !!$ Allocating space for various arrays:
@@ -1657,8 +1657,7 @@
 !!$ Deallocating array variables:
             deallocate( &
 !!$ Node glabal numbers
-                 x_ndgln_p1, x_ndgln, cv_ndgln, p_ndgln, &
-                 mat_ndgln, u_ndgln, xu_ndgln, cv_sndgln, p_sndgln, u_sndgln, &
+                 cv_sndgln, p_sndgln, u_sndgln, &
 !!$ Sparsity patterns
                  finacv, colacv, midacv,&
                  small_finacv, small_colacv, small_midacv, &
@@ -2019,8 +2018,7 @@ ncv_faces=CV_count_faces( SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV,&
 !!$ Now deallocating arrays:
       deallocate( &
 !!$ Node glabal numbers
-           x_ndgln_p1, x_ndgln, cv_ndgln, p_ndgln, &
-           mat_ndgln, u_ndgln, xu_ndgln, cv_sndgln, p_sndgln, u_sndgln, &
+           cv_sndgln, p_sndgln, u_sndgln, &
 !!$ Sparsity patterns
            finacv, colacv, midacv,&
            small_finacv, small_colacv, small_midacv, &
@@ -2109,9 +2107,11 @@ ncv_faces=CV_count_faces( SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV,&
           use sparse_tools
           
           type(csr_sparsity) :: sparsity
+          sparsity=wrap(finele,midele,colm=colele,name='ElementConnectivity')
+          call insert(packed_state,sparsity,'ElementConnectivity')
 
-          sparsity=wrap(small_finacv,small_midacv,colm=small_colacv,name='OnePhaseAdvectionSparsity')
-          call insert(packed_state,sparsity,'OnePhaseAdvectionSparsity')
+          sparsity=wrap(small_finacv,small_midacv,colm=small_colacv,name='SinglePhaseAdvectionSparsity')
+          call insert(packed_state,sparsity,'SinglePhaseAdvectionSparsity')
           sparsity=wrap(finacv,midacv,colm=colacv,name='PackedAdvectionSparsity')
           call insert(packed_state,sparsity,'PackedAdvectionSparsity')
           sparsity=wrap(findc,colm=colc,name='CMatrixSparsity')
@@ -2122,6 +2122,7 @@ ncv_faces=CV_count_faces( SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV,&
           call insert(packed_state,sparsity,'CMCMatrixSparsity')
           sparsity=wrap(findm,midm,colm=colm,name='CVFEMSparsity')
           call insert(packed_state,sparsity,'CVFEMSparsity')
+          
 
         end subroutine temp_mem_hacks
 

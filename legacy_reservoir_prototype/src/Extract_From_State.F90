@@ -2058,6 +2058,8 @@
       ovmesh=make_mesh(position%mesh,&
            shape=pressure%mesh%shape,&
            continuity=-1,name="PressureMesh_Discontinuous")
+      if ( .not. has_mesh(state(1),"PressureMesh_Discontinuous") ) &
+           call insert(state(1),ovmesh,"PressureMesh_Discontinuous")
       call allocate(m_position,ndim,ovmesh,"MaterialCoordinate")
 
       call remap_field( position, u_position )
@@ -2155,23 +2157,15 @@
           density=>extract_tensor_field(mstate,"PackedComponentDensity")
 
           do icomp=1,ncomp
-             call allocate(vfield,nphase,component%mesh,"Component")
+             call allocate(vfield,nphase,component%mesh,"Component",field_type=FIELD_TYPE_DEFERRED)
              vfield%option_path=component%option_path
-#ifdef HAVE_MEMORY_STATS
-             call register_deallocation("vector_field", "real", &
-                  size(vfield%val), name=vfield%name)
-#endif
              deallocate(vfield%val)
              vfield%val=>component%val(icomp,:,:)
              call insert(mcstate(icomp),vfield,vfield%name)
              call deallocate(vfield)
 
-             call allocate(vfield,nphase,component%mesh,"ComponentDensity")
+             call allocate(vfield,nphase,component%mesh,"ComponentDensity",field_type=FiELD_TYPE_DEFERRED)
              vfield%option_path=component%option_path
-#ifdef HAVE_MEMORY_STATS
-             call register_deallocation("vector_field", "real", &
-                  size(vfield%val), name=vfield%name)
-#endif
              deallocate(vfield%val)
              vfield%val=>component%val(icomp,:,:)
              call insert(mcstate(icomp),vfield,vfield%name)
@@ -2195,11 +2189,8 @@
              tfield=>extract_tensor_field(mstate,index)
              if (tfield%name(:6)=="Packed") then
                 do iphase=1,nphase
-                   call allocate(vfield,tfield%dim(1),tfield%mesh,tfield%name(7:))
-#ifdef HAVE_MEMORY_STATS
-                   call register_deallocation("vector_field", "real", &
-                        size(vfield%val), name=vfield%name)
-#endif
+                   call allocate(vfield,tfield%dim(1),tfield%mesh,tfield%name(7:),field_type=FiELD_TYPE_DEFERRED)
+
                    deallocate(vfield%val)
                    vfield%val=>tfield%val(:,iphase,:)
                    call insert(mpstate(iphase),vfield,vfield%name)
