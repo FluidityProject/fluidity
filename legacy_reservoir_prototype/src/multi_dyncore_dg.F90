@@ -1442,8 +1442,8 @@
 
          ! put on rhs the cty eqn; put most recent pressure in RHS of momentum eqn
          ! NB. P_RHS = -CT*U + CT_RHS 
-         CALL CT_MULT(P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
-              CT, NCOLCT, FINDCT, COLCT)
+         CALL CT_MULT( P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
+              CT, NCOLCT, FINDCT, COLCT )
 
          !ewrite(3,*) 'P_RHS1::', p_rhs
 
@@ -1454,9 +1454,7 @@
             DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                CV_JNOD = COLCMC( COUNT )
                P_RHS( CV_NOD ) = P_RHS( CV_NOD ) &
-                    - DIAG_SCALE_PRES( CV_NOD ) * MASS_MN_PRES( COUNT ) * P( CV_JNOD )
-               ewrite(3,*) cv_nod, cv_jnod, count, P_RHS( CV_NOD ), &
-                    DIAG_SCALE_PRES( CV_NOD ),  MASS_MN_PRES( COUNT ), P( CV_JNOD )    
+                    - DIAG_SCALE_PRES( CV_NOD ) * MASS_MN_PRES( COUNT ) * P( CV_JNOD )    
             END DO
          END DO
 
