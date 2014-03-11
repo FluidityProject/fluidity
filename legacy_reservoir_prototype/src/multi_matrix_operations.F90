@@ -1216,7 +1216,7 @@
       REAL, DIMENSION( NBLOCK, NDIM, NPHASE, U_NONODS ), intent( in ) :: U
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
       INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
-      REAL, DIMENSION( NCOLCT * NDIM * NPHASE ), intent( in ) :: CT
+      REAL, DIMENSION( NDIM * NPHASE * NCOLCT ), intent( in ) :: CT
 
       ! Local variables
       INTEGER :: CV_INOD, COUNT, U_JNOD, IPHASE, J, IVEC
