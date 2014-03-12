@@ -931,16 +931,16 @@
       ! U = BLOCK_MAT * CDP
       INTEGER, intent( in )  :: U_NONODS, NDIM, NPHASE, TOTELE, U_NLOC
       INTEGER, DIMENSION( : ), intent( in ), target ::  U_NDGLN
-      REAL, DIMENSION( : ), intent( inout ) :: U
+      REAL, DIMENSION( :), intent( inout ) :: U
       REAL, DIMENSION( :, :, : ), intent( in ), target :: BLOCK_MAT
-      REAL, DIMENSION( : ), intent( in ) :: CDP
+      REAL, DIMENSION( :, :, : ), intent( in ) :: CDP
       ! Local 
       INTEGER :: ELE, U_ILOC, U_INOD, IDIM, IPHASE, I, U_JLOC, U_JNOD, JDIM, JPHASE, J, II, JJ
 
       integer, dimension(:), pointer :: U_NOD
 
-      real, dimension(U_NLOC*NDIM*NPHASE) :: lcdp, lu
-      integer, dimension(U_NLOC*NDIM*NPHASE) :: u_nodi
+      real, dimension(NDIM,NPHASE,U_NLOC) :: lcdp, lu
+      integer, dimension(NDIM*NPHASE*u_NLOC) :: u_nodi
       integer :: N
       
       interface 
@@ -960,27 +960,15 @@
 
       Loop_Elements: DO ELE = 1, TOTELE
 
-         U_NOD => U_NDGLN(( ELE - 1 ) * U_NLOC +1: ELE * U_NLOC)
+         U_NOD => U_NDGLN(( ELE - 1 ) * U_NLOC +1: ELE * U_NLOC)         
+         lcdp(:,:,:) = CDP(:,:,U_NOD)
 
-         Loop_PhasesJ: DO JPHASE = 1, NPHASE
-            Loop_DimensionsJ: DO JDIM = 1, NDIM
-                     
-               J = JDIM + (JPHASE-1)*NDIM
-               JJ = ( JDIM - 1 ) * U_NLOC + ( JPHASE - 1 ) * NDIM * U_NLOC
-
-               lcdp([(J+(i-1)*ndim*nphase,i=1,u_NLOC)]) = CDP(U_NOD+(J-1)*U_NONODS)
-               U_NODI([(J+(i-1)*ndim*nphase,i=1,u_NLOC)]) = U_NOD+(J-1)*U_NONODS
-
-
-               ! JAMES HAVE A LOOK AT THIS
-
-               
-
-            end do Loop_DimensionsJ
-         end do Loop_PhasesJ
 
          call dgemv( 'N', N, N, 1.0d0, BLOCK_MAT( : , : , ele ), N, LCDP, 1, 0.0d0, LU, 1 )
-         U( U_NODI ) = LU
+
+         do u_iloc=1,u_nloc
+            U( 1+(U_NOD(u_iloc)-1)*ndim*nphase:U_NOD(u_iloc)*ndim*nphase ) = [LU(:,:,u_iloc)]
+         end do
 
       END DO Loop_Elements
 

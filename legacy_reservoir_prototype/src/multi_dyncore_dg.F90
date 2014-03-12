@@ -1565,7 +1565,7 @@
          IF ( JUST_BL_DIAG_MAT .OR. NO_MATRIX_STORE ) THEN
 
             ! DU = BLOCK_MAT * CDP
-            CALL PHA_BLOCK_MAT_VEC_old( UP_VEL, PIVIT_MAT, U_RHS_CDP, U_NONODS, NDIM, NPHASE, &
+            CALL PHA_BLOCK_MAT_VEC_old( UP_VEL, PIVIT_MAT, CDP, U_NONODS, NDIM, NPHASE, &
                  TOTELE, U_NLOC, U_NDGLN )
 
          ELSE
@@ -1588,10 +1588,7 @@
                  option_path = '/material_phase[0]/vector_field::Velocity')
 
 
-         END IF
-
-
-         ! RENUMBER UP_VEL AFTER SOLVE...
+             ! RENUMBER UP_VEL AFTER SOLVE...
          UP_VEL2 = UP_VEL
          DO ELE = 1, TOTELE
             DO U_ILOC = 1, U_NLOC
@@ -1605,6 +1602,12 @@
                END DO
             END DO
          END DO
+
+
+         END IF
+
+
+        
 
          CALL ULONG_2_UVW( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
 
