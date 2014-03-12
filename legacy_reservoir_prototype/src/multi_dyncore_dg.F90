@@ -1581,7 +1581,6 @@
             !     FINDGM_PHA, COLDGM_PHA, &
             !     option_path = '/material_phase[0]/vector_field::Velocity')
 
-
             ! FOR NEW NUMBERING
             CALL SOLVER( DGM_PHA, UP_VEL, U_RHS_CDP, &
                  FINELE, COLELE, &
@@ -1589,24 +1588,20 @@
 
          END IF
 
-            ! RENUMBER UP_VEL AFTER SOLVE...
-            UP_VEL2 = UP_VEL
-            DO ELE = 1, TOTELE
-               DO U_ILOC = 1, U_NLOC
-                  U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
-                  DO IPHASE = 1, NPHASE
-                     DO IDIM = 1, NDIM
-                        I = IDIM + (IPHASE-1) * NDIM + (U_INOD-1)*NDIM*NPHASE ! NEW
-                        J = U_INOD + (IDIM-1)*U_NONODS + (IPHASE-1)*NDIM*U_NONODS ! OLD
+         ! RENUMBER UP_VEL AFTER SOLVE...
+         UP_VEL2 = UP_VEL
+         DO ELE = 1, TOTELE
+            DO U_ILOC = 1, U_NLOC
+               U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
+               DO IPHASE = 1, NPHASE
+                  DO IDIM = 1, NDIM
+                     I = IDIM + (IPHASE-1) * NDIM + (U_INOD-1)*NDIM*NPHASE ! NEW
+                     J = U_INOD + (IDIM-1)*U_NONODS + (IPHASE-1)*NDIM*U_NONODS ! OLD
                      UP_VEL( J ) = UP_VEL2( I )
                   END DO
                END DO
             END DO
          END DO
-
-
-
-        
 
          CALL ULONG_2_UVW( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
 
