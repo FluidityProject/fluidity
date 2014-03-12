@@ -925,7 +925,7 @@
       RETURN
     END SUBROUTINE PHA_BLOCK_INV
 
-     SUBROUTINE PHA_BLOCK_MAT_VEC_old( U, BLOCK_MAT, CDP, U_NONODS, NDIM, NPHASE, &
+    SUBROUTINE PHA_BLOCK_MAT_VEC_old( U, BLOCK_MAT, CDP, U_NONODS, NDIM, NPHASE, &
          TOTELE, U_NLOC, U_NDGLN ) 
       implicit none
       ! U = BLOCK_MAT * CDP
@@ -960,8 +960,7 @@
 
       Loop_Elements: DO ELE = 1, TOTELE
 
-         U_NOD => U_NDGLN(( ELE - 1 ) * U_NLOC +1: ELE * U_NLOC)            
-
+         U_NOD => U_NDGLN(( ELE - 1 ) * U_NLOC +1: ELE * U_NLOC)
 
          Loop_PhasesJ: DO JPHASE = 1, NPHASE
             Loop_DimensionsJ: DO JDIM = 1, NDIM
@@ -969,8 +968,14 @@
                J = JDIM + (JPHASE-1)*NDIM
                JJ = ( JDIM - 1 ) * U_NLOC + ( JPHASE - 1 ) * NDIM * U_NLOC
 
-               lcdp([(J+(i-1)*ndim*nphase,i=1,u_NLOC)]) = CDP(U_NOD+(J-1)*U_NONODS) ! CDP( JDIM, JPHASE, U_NOD )
+               lcdp([(J+(i-1)*ndim*nphase,i=1,u_NLOC)]) = CDP(U_NOD+(J-1)*U_NONODS)
                U_NODI([(J+(i-1)*ndim*nphase,i=1,u_NLOC)]) = U_NOD+(J-1)*U_NONODS
+
+
+               ! JAMES HAVE A LOOK AT THIS
+
+               
+
             end do Loop_DimensionsJ
          end do Loop_PhasesJ
 

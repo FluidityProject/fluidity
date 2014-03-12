@@ -1282,14 +1282,14 @@
       REAL, DIMENSION( : ), allocatable :: CT_RHS, DIAG_SCALE_PRES, &
            MCY_RHS, MCY, &
            CMC, CMC_PRECON, MASS_MN_PRES, MASS_CV, P_RHS, UP, U_RHS_CDP, DP, &
-           DU_VEL, UP_VEL, DU, DV, DW, DGM_PHA, DIAG_P_SQRT, ACV
+           DU_VEL, UP_VEL, UP_VEL2, DU, DV, DW, DGM_PHA, DIAG_P_SQRT, ACV
       REAL, DIMENSION( :, :, : ), allocatable :: PIVIT_MAT, C, CDP, CT, U_RHS
       INTEGER :: CV_NOD, COUNT, CV_JNOD, IPHASE, ele, x_nod1, x_nod2, x_nod3, cv_iloc, &
            cv_nod1, cv_nod2, cv_nod3, mat_nod1, u_iloc, u_nod, u_nod_pha, ndpset
       REAL :: der1, der2, der3, uabs, rsum, xc, yc
       LOGICAL :: JUST_BL_DIAG_MAT, NO_MATRIX_STORE, SCALE_P_MATRIX
 
-      INTEGER :: I, IDIM, U_INOD 
+      INTEGER :: I, J, IDIM, U_INOD 
 
     !TEMPORARY VARIABLES, ADAPT FROM OLD VARIABLES TO NEW
       INTEGER :: U_NLOC2, ILEV, NLEV, X_ILOC, X_INOD, MAT_INOD, S, E, sele, p_sjloc, u_siloc
@@ -1323,7 +1323,7 @@
       ALLOCATE( CT_RHS( CV_NONODS )) ; CT_RHS=0.
       ALLOCATE( DIAG_SCALE_PRES( CV_NONODS )) ; DIAG_SCALE_PRES=0.
       ALLOCATE( U_RHS( NDIM, NPHASE, U_NONODS )) ; U_RHS=0.
-      ALLOCATE( MCY_RHS( U_NONODS * NDIM * NPHASE + CV_NONODS )) ; MCY_RHS=0.
+      ALLOCATE( MCY_RHS( NDIM * NPHASE * U_NONODS + CV_NONODS )) ; MCY_RHS=0.
       ALLOCATE( C( NDIM, NPHASE, NCOLC )) ; C=0.
       ALLOCATE( MCY( NCOLMCY )) ; MCY=0.
       ALLOCATE( CMC( NCOLCMC )) ; CMC=0.
@@ -1337,6 +1337,7 @@
       ALLOCATE( CDP( NDIM, NPHASE, U_NONODS )) ; CDP = 0. 
       ALLOCATE( DU_VEL( NDIM * NPHASE * U_NONODS )) ; DU_VEL = 0.
       ALLOCATE( UP_VEL( NDIM * NPHASE * U_NONODS )) ; UP_VEL = 0.
+      ALLOCATE( UP_VEL2( NDIM * NPHASE * U_NONODS )) ; UP_VEL2 = 0.
       ALLOCATE( DU( NPHASE * U_NONODS )) ; DU = 0.
       ALLOCATE( DV( NPHASE * U_NONODS )) ; DV = 0.
       ALLOCATE( DW( NPHASE * U_NONODS )) ; DW = 0.
@@ -1551,15 +1552,15 @@
                U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
                DO IPHASE = 1, NPHASE
                   DO IDIM = 1, NDIM
-                     I = U_INOD + (IDIM-1)*U_NONODS + (IPHASE-1)*NDIM*U_NONODS
+                     !I = U_INOD + (IDIM-1)*U_NONODS + (IPHASE-1)*NDIM*U_NONODS
+                     !U_RHS_CDP( I ) = U_RHS( IDIM, IPHASE, U_INOD ) + CDP( IDIM, IPHASE, U_INOD )
+                     ! FOR NEW NUMBERING
+                     I = IDIM + (IPHASE-1) * NDIM + (U_INOD-1)*NDIM*NPHASE
                      U_RHS_CDP( I ) = U_RHS( IDIM, IPHASE, U_INOD ) + CDP( IDIM, IPHASE, U_INOD )
                   END DO
                END DO
             END DO
          END DO
-
-
-         CALL UVW_2_ULONG( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
 
          IF ( JUST_BL_DIAG_MAT .OR. NO_MATRIX_STORE ) THEN
 
@@ -1576,11 +1577,34 @@
             !ewrite(3,*) 'dgm_pha', dgm_pha
 
             UP_VEL = 0.0
+            !CALL SOLVER( DGM_PHA, UP_VEL, U_RHS_CDP, &
+            !     FINDGM_PHA, COLDGM_PHA, &
+            !     option_path = '/material_phase[0]/vector_field::Velocity')
+
+
+            ! FOR NEW NUMBERING
             CALL SOLVER( DGM_PHA, UP_VEL, U_RHS_CDP, &
-                 FINDGM_PHA, COLDGM_PHA, &
+                 FINELE, COLELE, &
                  option_path = '/material_phase[0]/vector_field::Velocity')
 
+
          END IF
+
+
+         ! RENUMBER UP_VEL AFTER SOLVE...
+         UP_VEL2 = UP_VEL
+         DO ELE = 1, TOTELE
+            DO U_ILOC = 1, U_NLOC
+               U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
+               DO IPHASE = 1, NPHASE
+                  DO IDIM = 1, NDIM
+                     I = IDIM + (IPHASE-1) * NDIM + (U_INOD-1)*NDIM*NPHASE ! NEW
+                     J = U_INOD + (IDIM-1)*U_NONODS + (IPHASE-1)*NDIM*U_NONODS ! OLD
+                     UP_VEL( J ) = UP_VEL2( I )
+                  END DO
+               END DO
+            END DO
+         END DO
 
          CALL ULONG_2_UVW( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
 
@@ -4958,7 +4982,7 @@
       INTEGER, DIMENSION( : ), intent( in ) :: COLELE
 ! NEW_ORDERING then order the matrix: IDIM,IPHASE,UILOC,ELE
 ! else use the original ordering...
-      LOGICAL, PARAMETER :: NEW_ORDERING = .FALSE. 
+      LOGICAL, PARAMETER :: NEW_ORDERING = .TRUE.
       INTEGER :: ELE,ELE_ROW_START,ELE_ROW_START_NEXT,ELE_IN_ROW
       INTEGER :: U_ILOC,U_JLOC, IPHASE,JPHASE, IDIM,JDIM, I,J, GLOBI, GLOBJ, U_INOD_IDIM_IPHA, U_JNOD_JDIM_JPHA
       INTEGER :: COUNT,COUNT_ELE,JCOLELE
