@@ -933,14 +933,14 @@
       INTEGER, DIMENSION( : ), intent( in ), target ::  U_NDGLN
       REAL, DIMENSION( :), intent( inout ) :: U
       REAL, DIMENSION( :, :, : ), intent( in ), target :: BLOCK_MAT
-      REAL, DIMENSION( :, :, : ), intent( in ) :: CDP
+      REAL, DIMENSION( : ), intent( in ) :: CDP
       ! Local 
       INTEGER :: ELE, U_ILOC, U_INOD, IDIM, IPHASE, I, U_JLOC, U_JNOD, JDIM, JPHASE, J, II, JJ
 
       integer, dimension(:), pointer :: U_NOD
 
-      real, dimension(NDIM,NPHASE,U_NLOC) :: lcdp, lu
-      integer, dimension(NDIM*NPHASE*u_NLOC) :: u_nodi
+      real, dimension(NDIM,NPHASE,U_NLOC) ::  lu
+      real, dimension(NDIM*NPHASE*u_NLOC) :: lcdp
       integer :: N
       
       interface 
@@ -960,9 +960,11 @@
 
       Loop_Elements: DO ELE = 1, TOTELE
 
-         U_NOD => U_NDGLN(( ELE - 1 ) * U_NLOC +1: ELE * U_NLOC)         
-         lcdp(:,:,:) = CDP(:,:,U_NOD)
-
+         U_NOD => U_NDGLN(( ELE - 1 ) * U_NLOC +1: ELE * U_NLOC) 
+         
+         do u_iloc=1,u_nloc
+            lcdp(1+(u_iloc-1)*nphase*ndim:u_iloc*nphase*ndim)  = CDP( 1+(U_NOD(u_iloc)-1)*ndim*nphase:U_NOD(u_iloc)*ndim*nphase )
+         end do
 
          call dgemv( 'N', N, N, 1.0d0, BLOCK_MAT( : , : , ele ), N, LCDP, 1, 0.0d0, LU, 1 )
 

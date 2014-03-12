@@ -1565,7 +1565,7 @@
          IF ( JUST_BL_DIAG_MAT .OR. NO_MATRIX_STORE ) THEN
 
             ! DU = BLOCK_MAT * CDP
-            CALL PHA_BLOCK_MAT_VEC_old( UP_VEL, PIVIT_MAT, CDP, U_NONODS, NDIM, NPHASE, &
+            CALL PHA_BLOCK_MAT_VEC_old( UP_VEL, PIVIT_MAT, U_RHS_CDP, U_NONODS, NDIM, NPHASE, &
                  TOTELE, U_NLOC, U_NDGLN )
 
          ELSE
