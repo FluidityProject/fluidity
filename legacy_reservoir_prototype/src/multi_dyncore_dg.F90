@@ -36,6 +36,8 @@
     use global_parameters, only: option_path_len, is_overlapping
     use futils, only: int2str
 
+    use Fields_Allocates, only : allocate
+
     use solvers_module
     use mapping_for_ocvfem
     use cv_advection  
@@ -2352,18 +2354,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
     SUBROUTINE ASSEMB_FORCE_CTY( state, &
          NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
          U_ELE_TYPE, P_ELE_TYPE, &
@@ -2469,7 +2459,7 @@
       LOGICAL, PARAMETER :: STORED_AC_SPAR_PT=.FALSE.
       INTEGER, PARAMETER :: IDO_STORE_AC_SPAR_PT=0
       ! re-calculate C matrix...
-      LOGICAL, PARAMETER :: got_c_matrix=.FALSE.
+      LOGICAL :: got_c_matrix
 
 
       INTEGER, DIMENSION( :, : ), allocatable :: CV_SLOCLIST, U_SLOCLIST, CV_NEILOC, FACE_ELE
@@ -2614,8 +2604,50 @@
       REAL, DIMENSION ( :, :, : ), allocatable :: VLK_ELE
 
       logical :: capillary_pressure_activated
+      !Variables to store things in state
+      type(mesh_type), pointer :: fl_mesh
+      type(mesh_type) :: Auxmesh
+      type(scalar_field), target :: Targ_C_Mat
+      real, dimension(:,:,:), pointer :: Point_C_Mat
+
+
+
+
 
       capillary_pressure_activated = have_option( '/material_phase[0]/multiphase_properties/capillary_pressure' )
+
+      !If we do not have an index where we have stored C, then we need to calculate it
+      got_c_matrix  = StorageIndexes(32)/=0
+      if (got_c_matrix) then
+          !Get from state
+          Point_C_Mat(1:size(C,1),1:size(C,2),1:size(C,3)) =>&
+             state(1)%scalar_fields(StorageIndexes(32))%ptr%val
+          C = Point_C_Mat
+      else
+          !Prepare stuff to store C in state
+          if (has_scalar_field(state(1), "C_MAT")) then
+              !If we are recalculating due to a mesh modification then
+              !we return to the original situation
+              call remove_scalar_field(state(1), "C_MAT")
+          end if
+          !Get mesh file just to be able to allocate the fields we want to store
+          fl_mesh => extract_mesh( state(1), "CoordinateMesh" )
+          Auxmesh = fl_mesh
+          !The number of nodes I want does not coincide
+          Auxmesh%nodes = size(C,1) * size(C,2) * size(C,3)
+          call allocate (Targ_C_Mat, Auxmesh)
+
+          !Now we insert them in state and store the index
+          call insert(state(1), Targ_C_Mat, "C_MAT")
+          StorageIndexes(32) = size(state(1)%scalar_fields)
+
+          !Get from state
+          Point_C_Mat(1:size(C,1),1:size(C,2),1:size(C,3)) =>&
+             state(1)%scalar_fields(StorageIndexes(32))%ptr%val
+             Point_C_Mat = 0.
+      end if
+
+
 
       ewrite(3,*) 'In ASSEMB_FORCE_CTY'
       !ewrite(3,*) 'Just double-checking sparsity patterns memory allocation:'
@@ -3006,7 +3038,7 @@
 
       NO_MATRIX_STORE = NCOLDGM_PHA<=1
       IF( (.NOT.JUST_BL_DIAG_MAT) .AND. (.NOT.NO_MATRIX_STORE) ) DGM_PHA = 0.0
-      C = 0.0
+      if (.not.got_c_matrix) C = 0.0
       U_RHS = 0.0
 
       IF (.NOT.NO_MATRIX_STORE ) THEN
@@ -3859,8 +3891,6 @@
       END DO Loop_Elements
 
 
-
-
       !!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX!!
       !!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX!!
 
@@ -4130,6 +4160,7 @@
 
                      if( ( .not. is_overlapping ) .or. ( p_jloc == ilev ) ) then
                         if(.not.got_c_matrix) JCV_NOD = P_SNDGLN(( SELE - 1 ) * P_SNLOC + P_SJLOC )
+
                         NMX_ALL = 0.0  
                         Loop_GaussPoints2: DO SGI = 1, SBCVNGI
                            NMX_ALL(:) = NMX_ALL(:) + SNORMXN_ALL( :, SGI ) *SBUFEN( U_SILOC, SGI ) * SBCVFEN( P_SJLOC, SGI ) * SDETWE( SGI )
@@ -4266,14 +4297,15 @@
                                  END IF
 
                                  ! SELE_OVERLAP_SCALE(P_JNOD) is the scaling needed to convert to overlapping element surfaces. 
-                                 DO IDIM = 1, NDIM_VEL
-                                    C( IDIM, IPHASE, COUNT ) = C( IDIM, IPHASE, COUNT ) & 
+                                 IF ( .NOT.GOT_C_MATRIX ) THEN
+                                     DO IDIM = 1, NDIM_VEL
+                                         C( IDIM, IPHASE, COUNT ) = C( IDIM, IPHASE, COUNT ) &
                                          + VNMX_ALL( IDIM ) * SELE_OVERLAP_SCALE( P_JLOC ) * MASSE / ( MASSE + MASSE2 )
 
-                                    C( IDIM, IPHASE, COUNT2 ) = C( IDIM, IPHASE, COUNT2 ) & 
+                                         C( IDIM, IPHASE, COUNT2 ) = C( IDIM, IPHASE, COUNT2 ) &
                                          - VNMX_ALL( IDIM ) * SELE_OVERLAP_SCALE( P_JLOC ) * MASSE / ( MASSE + MASSE2 )
-                                 END DO
-
+                                     END DO
+                                END IF
                               END DO Loop_Phase5
                            ENDIF
                         END DO
@@ -4766,6 +4798,11 @@
          DEALLOCATE( DIAG_BIGM_CON )
          DEALLOCATE( BIGM_CON)
       ENDIF
+
+    !If C was not stored in state, after its calculation we store it.
+    if (.not.got_c_matrix) then
+            Point_C_Mat = C
+    end if
 
 
       !ewrite(3,*)'p=',p
