@@ -2034,6 +2034,7 @@
 
       pressure=>extract_scalar_field(state(1),"Pressure")
       call insert(packed_state,pressure,"Pressure")
+      call insert(packed_state,pressure%mesh,"PressureMesh")
 
       call add_new_memory(packed_state,pressure,"FEPressure")
       call add_new_memory(packed_state,pressure,"OldFEPressure")
@@ -2047,17 +2048,21 @@
       call insert_sfield(packed_state,"PhaseVolumeFraction",1,nphase)
 
       velocity=>extract_vector_field(state(1),"Velocity")
+      call insert(packed_state,velocity%mesh,"VelocityMesh")
       ovmesh=make_mesh(position%mesh,&
            shape=velocity%mesh%shape,&
            continuity=1,name="VelocityMesh_Continuous")
+      call insert(packed_state,ovmesh,"VelocityMesh_Continuous")
       call allocate(u_position,ndim,ovmesh,"VelocityCoordinate")
       ovmesh=make_mesh(position%mesh,&
            shape=pressure%mesh%shape,&
            continuity=1,name="PressureMesh_Continuous")
+      call insert(packed_state,ovmesh,"PressureMesh_Continuous")
       call allocate(p_position,ndim,ovmesh,"PressureCoordinate")
       ovmesh=make_mesh(position%mesh,&
            shape=pressure%mesh%shape,&
            continuity=-1,name="PressureMesh_Discontinuous")
+      call insert(packed_state,ovmesh,"PressureMesh_Discontinuous")
       if ( .not. has_mesh(state(1),"PressureMesh_Discontinuous") ) &
            call insert(state(1),ovmesh,"PressureMesh_Discontinuous")
       call allocate(m_position,ndim,ovmesh,"MaterialCoordinate")
@@ -2114,6 +2119,7 @@
             call unpack_component_sfield(state(i),packed_state,"OldComponentDensity",icomp)
             call unpack_component_sfield(state(i),packed_state,"ComponentMassFraction",icomp)
             call unpack_component_sfield(state(i),packed_state,"OldComponentMassFraction",icomp)
+            icomp=icomp+1
             cycle
          else
             call unpack_sfield(state(i),packed_state,"Density",1,iphase)
@@ -2153,11 +2159,11 @@
           type(vector_field) :: vfield
 
 
-          component=>extract_tensor_field(mstate,"PackedComponent")
+          component=>extract_tensor_field(mstate,"PackedComponentMassFraction")
           density=>extract_tensor_field(mstate,"PackedComponentDensity")
 
           do icomp=1,ncomp
-             call allocate(vfield,nphase,component%mesh,"Component",field_type=FIELD_TYPE_DEFERRED)
+             call allocate(vfield,nphase,component%mesh,"ComponentMassFraction",field_type=FIELD_TYPE_DEFERRED)
              vfield%option_path=component%option_path
              deallocate(vfield%val)
              vfield%val=>component%val(icomp,:,:)
@@ -2291,6 +2297,7 @@
           type(scalar_field), pointer :: nfield
           type(tensor_field), pointer :: mfield
 
+
           mfield=>extract_tensor_field(mstate,"Packed"//name)
 
           nfield=>extract_scalar_field(nstate,name)
@@ -2300,6 +2307,7 @@
           end if
           deallocate(nfield%val)
           nfield%val=>mfield%val(icomp,iphase,:)
+          nfield%val_stride=ncomp*nphase
           nfield%wrapped=.true.
           
 
@@ -2354,7 +2362,8 @@
                    mfield%option_path=nfield%option_path
                 end if
                 deallocate(nfield%val)
-                nfield%val=>mfield%val(icomp,iphase,:)
+                nfield%val=>mfield%val(ic,ip,:)
+                nfield%val_stride=ncomp*nphase
                 nfield%wrapped=.true.
              end if
           end do

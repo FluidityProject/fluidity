@@ -5575,14 +5575,9 @@ contains
 
 
     function CV_count_faces( packed_state,&
-         CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
          CV_ELE_TYPE,  &
-         NPHASE,  &
-         CV_NLOC, U_NLOC, X_NLOC, &
-         CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-         MAT_NLOC, MAT_NONODS, &
-         NDIM, &
-         XU_NLOC, face_sparsity) result(global_face)
+         STOTEL, CV_SNDGLN, U_SNDGLN, &
+         face_sparsity) result(global_face)
 
       !  =====================================================================
       !     This subroutine counts then number of faces in the control volume space
@@ -5591,12 +5586,7 @@ contains
       ! Inputs/Outputs
       IMPLICIT NONE
       type(state_type), intent(inout) :: packed_state
-      INTEGER, intent( in ) :: CV_NONODS, U_NONODS, X_NONODS, MAT_NONODS, &
-           TOTELE, &
-           CV_ELE_TYPE, &
-           NPHASE, CV_NLOC, U_NLOC, X_NLOC, MAT_NLOC, &
-           CV_SNLOC, U_SNLOC, STOTEL, NDIM, &
-           XU_NLOC 
+      INTEGER, intent( in ) :: CV_ELE_TYPE, STOTEL
       INTEGER, DIMENSION( : ), pointer :: CV_NDGLN
       INTEGER, DIMENSION( : ), pointer ::  X_NDGLN
       INTEGER, DIMENSION( : ), pointer :: U_NDGLN
@@ -5614,6 +5604,9 @@ contains
 
 
       ! Local variables
+      integer :: CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
+           CV_NLOC, U_NLOC, X_NLOC, MAT_NLOC, &
+           NDIM, XU_NLOC, cv_snloc, u_snloc
       LOGICAL, DIMENSION( : ), allocatable :: X_SHARE
       LOGICAL, DIMENSION( :, : ), allocatable :: CV_ON_FACE, U_ON_FACE, &
            CVFEM_ON_FACE, UFEM_ON_FACE
@@ -5658,26 +5651,42 @@ contains
 
     INTEGER :: GLOBAL_FACE
     type(csr_sparsity), pointer :: connectivity
-    type(mesh_type), pointer :: cv_mesh, x_mesh, xu_mesh 
+    type(mesh_type), pointer :: cv_mesh, x_mesh, xu_mesh, u_mesh, mat_mesh
 
     type(csr_sparsity), intent(out), optional :: face_sparsity
-    type(ilist), dimension(totele) :: face_list 
+    type(ilist), dimension(:), allocatable :: face_list 
 
     GLOBAL_FACE=0
 
     connectivity=>extract_csr_sparsity(packed_state,"ElementConnectivity")
     cv_mesh=>extract_mesh(packed_state,"PressureMesh")
     cv_ndgln=>cv_mesh%ndglno
+    totele=element_count(cv_mesh)
+    ndim=mesh_dim(cv_mesh)
+    cv_nonods=node_count(cv_mesh)
+    cv_nloc=ele_loc(cv_mesh,1)
+    cv_snloc=face_loc(cv_mesh,1)
     x_mesh=>extract_mesh(packed_state,"PressureMesh_Continuous")
-    x_ndgln=>cv_mesh%ndglno
+    x_ndgln=>x_mesh%ndglno
+    X_nonods=node_count(x_mesh)
+    X_nloc=ele_loc(x_mesh,1)
     xu_mesh=>extract_mesh(packed_state,"VelocityMesh_Continuous")
-    xu_ndgln=>cv_mesh%ndglno
+    xu_ndgln=>xu_mesh%ndglno
+    u_mesh=>extract_mesh(packed_state,"VelocityMesh")
+    u_ndgln=>u_mesh%ndglno
+    u_nonods=node_count(u_mesh)
+    u_nloc=ele_loc(u_mesh,1)
+    u_snloc=face_loc(u_mesh,1)
+    mat_mesh=>extract_mesh(packed_state,"VelocityMesh")
+    mat_nloc=ele_loc(mat_mesh,1)
+
+    allocate( face_list( totele ) )
 
       ewrite(3,*) 'In CV_FACE_COUNT'
 
       QUAD_OVER_WHOLE_ELE=.FALSE.
       ! If QUAD_OVER_WHOLE_ELE=.true. then dont divide element into CV's to form quadrature.
-      call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
+      call retrieve_ngi( TOTELE, cv_ele_type, CV_NLOC,U_NLOC, &
            cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
 
       ! Allocate memory for the control volume surface shape functions, etc.
@@ -5798,12 +5807,11 @@ contains
            FINDGPTS, COLGPTS, NCOLGPTS, &
            SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE )
 
-! **********...ANISOTROPIC LIMITING*******************
-
       ALLOCATE( FACE_ELE( NFACE, TOTELE ) ) ; FACE_ELE = 0
       ! Calculate FACE_ELE
       CALL CALC_FACE_ELE( FACE_ELE, TOTELE, STOTEL, NFACE, &
-           size(connectivity%colm), connectivity%findrm, connectivity%colm, CV_NLOC, CV_SNLOC, CV_NONODS, CV_NDGLN, CV_SNDGLN, &
+           size(connectivity%colm), connectivity%findrm, connectivity%colm,&
+           CV_NLOC, CV_SNLOC, CV_NONODS, CV_NDGLN, CV_SNDGLN, &
            CV_SLOCLIST, X_NLOC, X_NDGLN )
 
       !     =============== DEFINE THETA FOR TIME-STEPPING ===================

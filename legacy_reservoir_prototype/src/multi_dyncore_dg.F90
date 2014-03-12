@@ -969,12 +969,7 @@
       p_position=>extract_vector_field(packed_state,"PressureCoordinate")
 
       face_count=CV_count_faces( packed_state,&
-           CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
-           CV_ELE_TYPE, NPHASE,  &
-           CV_NLOC, U_NLOC, X_NLOC, &
-           CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-           MAT_NLOC, MAT_NONODS, &
-           NDIM, XU_NLOC )
+           CV_ELE_TYPE, STOTEL, CV_SNDGLN, U_SNDGLN )
 
       allocate(ndotqold(nphase,face_count),&
            LIMTOLD(nphase,face_count),&
@@ -1282,7 +1277,34 @@
 
       INTEGER :: I, IDIM, U_INOD 
 
+    !TEMPORARY VARIABLES, ADAPT FROM OLD VARIABLES TO NEW
+      INTEGER :: U_NLOC2, ILEV, NLEV, X_ILOC, X_INOD, MAT_INOD, S, E, sele, p_sjloc, u_siloc
+      REAL, DIMENSION( :, :, : ), allocatable :: U_ALL, UOLD_ALL, U_SOURCE_ALL, U_SOURCE_CV_ALL, U_ABSORB_ALL, U_ABS_STAB_ALL
+      REAL, DIMENSION( :, : ), allocatable :: X_ALL, UDEN_ALL, UDENOLD_ALL, PLIKE_GRAD_SOU_COEF_ALL, PLIKE_GRAD_SOU_GRAD_ALL
+      REAL, DIMENSION( :, :, :, : ), allocatable :: UDIFFUSION_ALL
 
+      INTEGER, DIMENSION ( :, :, : ), allocatable :: WIC_U_BC_ALL, WIC_MOMU_BC_ALL
+      INTEGER, DIMENSION ( :, : ), allocatable :: WIC_P_BC_ALL
+      REAL, DIMENSION ( :, :, :, : ), allocatable :: SUF_U_BC_ALL, SUF_MOMU_BC_ALL, SUF_NU_BC_ALL
+      REAL, DIMENSION ( :, :, :, : ), allocatable :: SUF_U_ROB1_BC_ALL, SUF_U_ROB2_BC_ALL
+      REAL, DIMENSION ( :, :, : ), allocatable :: SUF_P_BC_ALL
+
+      ALLOCATE( U_ALL( NDIM, NPHASE, U_NONODS ), UOLD_ALL( NDIM, NPHASE, U_NONODS ), &
+           X_ALL( NDIM, X_NONODS ), UDEN_ALL( NPHASE, CV_NONODS ), UDENOLD_ALL( NPHASE, CV_NONODS ) )
+      U_ALL = 0. ; UOLD_ALL = 0. ; X_ALL = 0. ; UDEN_ALL = 0. ; UDENOLD_ALL = 0.
+
+      ALLOCATE( WIC_U_BC_ALL( NDIM,NPHASE,STOTEL ) ) ; WIC_U_BC_ALL = 0
+      ALLOCATE( WIC_MOMU_BC_ALL( NDIM,NPHASE,STOTEL ) ) ; WIC_MOMU_BC_ALL = 0
+      ALLOCATE( WIC_P_BC_ALL( NPHASE,STOTEL ) ) ; WIC_P_BC_ALL = 0
+      ALLOCATE( SUF_U_BC_ALL( NDIM,NPHASE,U_SNLOC,STOTEL ) ) ; SUF_U_BC_ALL = 0.0
+      ALLOCATE( SUF_MOMU_BC_ALL( NDIM,NPHASE,U_SNLOC,STOTEL ) ) ; SUF_MOMU_BC_ALL = 0.0
+      ALLOCATE( SUF_NU_BC_ALL( NDIM,NPHASE,U_SNLOC,STOTEL ) ) ; SUF_NU_BC_ALL = 0.0
+      ALLOCATE( SUF_U_ROB1_BC_ALL( NDIM,NPHASE,U_SNLOC,STOTEL ) ) ; SUF_U_ROB1_BC_ALL = 0.0
+      ALLOCATE( SUF_U_ROB2_BC_ALL( NDIM,NPHASE,U_SNLOC,STOTEL ) ) ; SUF_U_ROB2_BC_ALL = 0.0
+      ALLOCATE( SUF_P_BC_ALL( NPHASE,P_SNLOC,STOTEL ) ) ; SUF_P_BC_ALL = 0.0
+
+
+    !TEMPORARY VARIABLES, ADAPT FROM OLD VARIABLES TO NEW
       ewrite(3,*) 'In FORCE_BAL_CTY_ASSEM_SOLVE'
 
 
@@ -1312,6 +1334,128 @@
       ALLOCATE( ACV( NCOLACV )) ; ACV = 0.
 
 
+
+    !################TEMPORARY ADAPT FROM OLD VARIABLES TO NEW###############
+          IF ( IS_OVERLAPPING ) THEN
+         NLEV = CV_NLOC
+         U_NLOC2 = MAX( 1, U_NLOC / CV_NLOC )
+      ELSE
+         NLEV = 1
+         U_NLOC2 = U_NLOC
+      END IF
+      DO ELE = 1, TOTELE
+         DO ILEV = 1, NLEV
+            DO U_ILOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
+               U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
+               DO IPHASE = 1, NPHASE
+                  DO IDIM = 1, NDIM
+                     IF ( IDIM==1 ) THEN
+                        U_ALL( IDIM, IPHASE, U_INOD ) = U( U_INOD + (IPHASE-1)*U_NONODS )
+                        UOLD_ALL( IDIM, IPHASE, U_INOD ) = UOLD( U_INOD + (IPHASE-1)*U_NONODS )
+                     ELSE IF ( IDIM==2 ) THEN
+                        U_ALL( IDIM, IPHASE, U_INOD ) = V( U_INOD + (IPHASE-1)*U_NONODS )
+                        UOLD_ALL( IDIM, IPHASE, U_INOD ) = VOLD( U_INOD + (IPHASE-1)*U_NONODS )
+                     ELSE
+                        U_ALL( IDIM, IPHASE, U_INOD ) = W( U_INOD + (IPHASE-1)*U_NONODS )
+                        UOLD_ALL( IDIM, IPHASE, U_INOD ) = WOLD( U_INOD + (IPHASE-1)*U_NONODS )
+                     END IF
+                  END DO
+               END DO
+            END DO
+         END DO
+      END DO
+      DO IDIM = 1, NDIM
+         IF ( IDIM==1 ) THEN
+            X_ALL( IDIM, : ) = X
+         ELSE IF ( IDIM==2 ) THEN
+            X_ALL( IDIM, : ) = Y
+         ELSE
+            X_ALL( IDIM, : ) = Z
+         END IF
+      END DO
+      DO IPHASE = 1, NPHASE
+         UDEN_ALL( IPHASE, : ) = UDEN( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
+         UDENOLD_ALL( IPHASE, : ) = UDENOLD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
+      END DO
+!
+      do sele = 1, stotel
+         do iphase = 1, nphase
+            wic_u_bc_all( :,iphase,sele ) = wic_u_bc( sele+(iphase-1)*stotel )
+            wic_momu_bc_all( :,iphase,sele ) = wic_momu_bc( sele+(iphase-1)*stotel )
+            wic_p_bc_all( iphase,sele ) = wic_p_bc( sele+(iphase-1)*stotel )
+         end do
+      end do
+
+      do sele = 1, stotel
+         do u_siloc = 1, u_snloc
+            do iphase = 1, nphase
+               i = ( iphase - 1 ) * stotel * u_snloc + ( sele - 1 ) * u_snloc + u_siloc
+               do idim = 1, ndim
+                  if ( idim == 1 ) then
+                     suf_u_bc_all( idim,iphase,u_siloc,sele ) = suf_u_bc( i )
+                     suf_momu_bc_all( idim,iphase,u_siloc,sele ) = suf_momu_bc( i )
+                     suf_u_rob1_bc_all( idim,iphase,u_siloc,sele ) = suf_u_bc_rob1( i )
+                     suf_u_rob2_bc_all( idim,iphase,u_siloc,sele ) = suf_u_bc_rob2( i )
+                  else if ( idim == 2 ) then
+                     suf_u_bc_all( idim,iphase,u_siloc,sele ) = suf_v_bc( i )
+                     suf_momu_bc_all( idim,iphase,u_siloc,sele ) = suf_momv_bc( i )
+                     suf_u_rob1_bc_all( idim,iphase,u_siloc,sele ) = suf_v_bc_rob1( i )
+                     suf_u_rob2_bc_all( idim,iphase,u_siloc,sele ) = suf_v_bc_rob2( i )
+                  else if ( idim == 3 ) then
+                     suf_u_bc_all( idim,iphase,u_siloc,sele ) = suf_w_bc( i )
+                     suf_momu_bc_all( idim,iphase,u_siloc,sele ) = suf_momw_bc( i )
+                     suf_u_rob1_bc_all( idim,iphase,u_siloc,sele ) = suf_w_bc_rob1( i )
+                     suf_u_rob2_bc_all( idim,iphase,u_siloc,sele ) = suf_w_bc_rob2( i )
+                  end if
+               end do
+            end do
+         end do
+      end do
+
+      do sele = 1, stotel
+         do p_sjloc = 1, p_snloc
+            do iphase = 1, nphase
+               i = ( SELE - 1 ) * P_SNLOC + P_SJLOC  + (IPHASE-1)*STOTEL*P_SNLOC
+               suf_p_bc_all( iphase,p_sjloc,sele ) = suf_p_bc( i )
+            end do
+         end do
+      end do
+
+      ALLOCATE( U_SOURCE_ALL( NDIM, NPHASE, U_NONODS ) )
+      ALLOCATE( U_SOURCE_CV_ALL( NDIM, NPHASE, CV_NONODS ) )
+      DO IPHASE = 1, NPHASE
+         DO IDIM = 1, NDIM
+            S = 1 + (IDIM-1)*U_NONODS + (IPHASE-1)*NDIM*U_NONODS
+            E = IDIM*U_NONODS + (IPHASE-1)*NDIM*U_NONODS
+            U_SOURCE_ALL( IDIM, IPHASE, : ) = U_SOURCE( S:E )
+
+            S = 1 + (IDIM-1)*CV_NONODS + (IPHASE-1)*NDIM*CV_NONODS
+            E = IDIM*CV_NONODS + (IPHASE-1)*NDIM*CV_NONODS
+            U_SOURCE_CV_ALL( IDIM, IPHASE, : ) = U_SOURCE_CV( S:E )
+         END DO
+      END DO
+
+      ALLOCATE( U_ABSORB_ALL( NDIM * NPHASE, NDIM * NPHASE, MAT_NONODS ) )
+      ALLOCATE( U_ABS_STAB_ALL( NDIM * NPHASE, NDIM * NPHASE, MAT_NONODS ) )
+      ALLOCATE( UDIFFUSION_ALL( NDIM, NDIM, NPHASE, MAT_NONODS ) )
+
+      DO MAT_INOD = 1, MAT_NONODS
+         U_ABSORB_ALL( :, :, MAT_INOD ) = U_ABSORB( MAT_INOD, :, : )
+         U_ABS_STAB_ALL( :, :, MAT_INOD ) = U_ABS_STAB( MAT_INOD, :, : )
+         UDIFFUSION_ALL( :, :, :, MAT_INOD ) = UDIFFUSION( MAT_INOD, :, :, : )
+      END DO
+
+
+      ALLOCATE( PLIKE_GRAD_SOU_COEF_ALL( NPHASE, CV_NONODS ) )
+      ALLOCATE( PLIKE_GRAD_SOU_GRAD_ALL( NPHASE, CV_NONODS ) )
+      DO IPHASE = 1, NPHASE
+         PLIKE_GRAD_SOU_COEF_ALL( IPHASE, : ) = PLIKE_GRAD_SOU_COEF( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
+         PLIKE_GRAD_SOU_GRAD_ALL( IPHASE, : ) = PLIKE_GRAD_SOU_GRAD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
+      END DO
+      !##########TEMPORARY ADAPT FROM OLD VARIABLES TO NEW############
+
+
+
       CALL CV_ASSEMB_FORCE_CTY( state, &
            NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
            U_ELE_TYPE, P_ELE_TYPE, &
@@ -1319,8 +1463,8 @@
            U_NDGLN, P_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN, &
            STOTEL, CV_SNDGLN, U_SNDGLN, P_SNDGLN, &
            U_SNLOC, P_SNLOC, CV_SNLOC, &
-           X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
-           U, V, W, UOLD, VOLD, WOLD,  &
+           X_ALL, U_ABS_STAB_ALL, U_ABSORB_ALL, U_SOURCE_ALL, U_SOURCE_CV_ALL, &
+           U_ALL, UOLD_ALL,  &
            P, CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
            DT, &
            NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn 
@@ -1333,23 +1477,22 @@
            CV_ELE_TYPE, &
            NU, NV, NW, NUOLD, NVOLD, NWOLD, &
            V_DISOPT, V_DG_VEL_INT_OPT, V_THETA, &
-           SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
-           SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC, SUF_P_BC, &
-           SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2, &
-           SUF_W_BC_ROB1, SUF_W_BC_ROB2, &
-           WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_MOMU_BC, WIC_P_BC, &
+           SUF_VOL_BC, SUF_D_BC, SUF_U_BC_ALL, SUF_SIG_DIAGTEN_BC, &
+           SUF_MOMU_BC_ALL, SUF_P_BC_ALL, &
+           suf_u_rob1_bc_all, suf_u_rob2_bc_all, &
+           WIC_VOL_BC, WIC_D_BC, WIC_U_BC_ALL, WIC_MOMU_BC_ALL, WIC_P_BC_ALL, &
            V_SOURCE, V_ABSORB, VOLFRA_PORE, &
            NCOLM, FINDM, COLM, MIDM, &
            XU_NLOC, XU_NDGLN, &
            U_RHS, MCY_RHS, C, CT, CT_RHS, DIAG_SCALE_PRES, GLOBAL_SOLVE, &
            NLENMCY, NCOLMCY,MCY,FINMCY, PIVIT_MAT, JUST_BL_DIAG_MAT, &
-           UDEN, UDENOLD, UDIFFUSION, &
+           UDEN_ALL, UDENOLD_ALL, UDIFFUSION_ALL, &
            OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
            IGOT_THETA_FLUX, SCVNGI_THETA, USE_THETA_FLUX, &
            THETA_FLUX, ONE_M_THETA_FLUX, &
            IN_ELE_UPWIND, DG_ELE_UPWIND, &
            NOIT_DIM, &
-           IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD,scale_momentum_by_volume_fraction ,&
+           IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF_ALL, PLIKE_GRAD_SOU_GRAD_ALL,scale_momentum_by_volume_fraction ,&
             StorageIndexes)
 
       IF ( .NOT.GLOBAL_SOLVE ) THEN
@@ -1363,7 +1506,7 @@
               TOTELE, U_NLOC, U_NDGLN, &
               NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, &
               CMC, CMC_PRECON, IGOT_CMC_PRECON, NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, &
-              C, CT )
+              C, CT,  state, StorageIndexes(31) )
 
       END IF
 
@@ -1421,7 +1564,7 @@
             !ewrite(3,*) 'up_vel', up_vel
             !ewrite(3,*) 'u_rhs', u_rhs
             !ewrite(3,*) 'cdp', cdp
-            !ewrite(3,*)  'dgm_pha', dgm_pha
+            !ewrite(3,*) 'dgm_pha', dgm_pha
 
             UP_VEL=0.0
             CALL SOLVER( DGM_PHA, UP_VEL, U_RHS_CDP, &
@@ -1440,7 +1583,7 @@
          !ewrite(3,*) 'ct_rhs::', ct_rhs
 
          ! put on rhs the cty eqn; put most recent pressure in RHS of momentum eqn
-         ! NB. P_RHS = -CT*U + CT_RHS 
+         ! NB. P_RHS = -CT * U + CT_RHS 
          CALL CT_MULT( P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
               CT, NCOLCT, FINDCT, COLCT )
 
@@ -1453,7 +1596,7 @@
             DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                CV_JNOD = COLCMC( COUNT )
                P_RHS( CV_NOD ) = P_RHS( CV_NOD ) &
-                    - DIAG_SCALE_PRES( CV_NOD ) * MASS_MN_PRES( COUNT ) * P( CV_JNOD )    
+                    -DIAG_SCALE_PRES( CV_NOD ) * MASS_MN_PRES( COUNT ) * P( CV_JNOD )    
             END DO
          END DO
 
@@ -1694,8 +1837,8 @@
          U_NDGLN, P_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN, &
          STOTEL, CV_SNDGLN, U_SNDGLN, P_SNDGLN, &
          U_SNLOC, P_SNLOC, CV_SNLOC, &
-         X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
-         U, V, W, UOLD, VOLD, WOLD,  &
+         X_ALL, U_ABS_STAB_ALL, U_ABSORB_ALL, U_SOURCE_ALL, U_SOURCE_CV_ALL, &
+         U_ALL, UOLD_ALL,  &
          P, CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
          DT, &
          NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn 
@@ -1708,23 +1851,22 @@
          CV_ELE_TYPE, &
          NU, NV, NW, NUOLD, NVOLD, NWOLD, &
          V_DISOPT, V_DG_VEL_INT_OPT, V_THETA, &
-         SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
-         SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC, SUF_P_BC, &
-         SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2,  & 
-         SUF_W_BC_ROB1, SUF_W_BC_ROB2, &
-         WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_MOMU_BC, WIC_P_BC,  &
+         SUF_VOL_BC, SUF_D_BC, SUF_U_BC_ALL, SUF_SIG_DIAGTEN_BC, &
+         SUF_MOMU_BC_ALL, SUF_P_BC_ALL, &
+         SUF_U_BC_ROB1_ALL, SUF_U_BC_ROB2_ALL, &
+         WIC_VOL_BC, WIC_D_BC, WIC_U_BC_ALL, WIC_MOMU_BC_ALL, WIC_P_BC_ALL,  &
          V_SOURCE, V_ABSORB, VOLFRA_PORE, &
          NCOLM, FINDM, COLM, MIDM, &
          XU_NLOC, XU_NDGLN, &
          U_RHS, MCY_RHS, C, CT, CT_RHS, DIAG_SCALE_PRES, GLOBAL_SOLVE, &
          NLENMCY, NCOLMCY,MCY,FINMCY, PIVIT_MAT, JUST_BL_DIAG_MAT, &
-         UDEN, UDENOLD, UDIFFUSION, &
+         UDEN_ALL, UDENOLD_ALL, UDIFFUSION_ALL, &
          OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
          IGOT_THETA_FLUX, SCVNGI_THETA, USE_THETA_FLUX, &
          THETA_FLUX, ONE_M_THETA_FLUX, &
          IN_ELE_UPWIND, DG_ELE_UPWIND, &
          NOIT_DIM, &
-         IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD ,scale_momentum_by_volume_fraction,&
+         IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF_ALL, PLIKE_GRAD_SOU_GRAD_ALL ,scale_momentum_by_volume_fraction,&
           StorageIndexes)
       use printout
       implicit none
@@ -1751,12 +1893,12 @@
       INTEGER, DIMENSION(  :  ), intent( in ) :: U_SNDGLN
       INTEGER, DIMENSION(  :  ), intent( in ) :: P_SNDGLN
       INTEGER, DIMENSION(  :  ), intent( in ) :: XU_NDGLN
-      REAL, DIMENSION(  :  ), intent( in ) :: X, Y, Z
-      REAL, DIMENSION(  : ,  : ,  :  ), intent( in ) :: U_ABS_STAB
-      REAL, DIMENSION(  : ,  : ,  :  ), intent( in ) :: U_ABSORB
-      REAL, DIMENSION(  :  ), intent( in ) :: U_SOURCE
-      REAL, DIMENSION(  :  ), intent( in ) :: U_SOURCE_CV
-      REAL, DIMENSION(  :  ), intent( in ) :: U, V, W, UOLD, VOLD, WOLD
+      real, dimension(:,:), intent(in) :: X_ALL
+      REAL, DIMENSION(  : ,  : ,  :  ), intent( in ) :: U_ABS_STAB_ALL
+      REAL, DIMENSION(  : ,  : ,  :  ), intent( in ) :: U_ABSORB_ALL
+      REAL, DIMENSION(  :, :, :  ), intent( in ) :: U_SOURCE_ALL
+      REAL, DIMENSION(  :, :, :  ), intent( in ) :: U_SOURCE_CV_ALL
+      REAL, DIMENSION(  : ,:,: ), intent( in ) :: U_ALL, UOLD_ALL
       REAL, DIMENSION(  :  ), intent( in ) :: CV_P, P
       REAL, DIMENSION(  :  ), intent( in ) :: DEN, DENOLD, SATURA, SATURAOLD
       REAL, DIMENSION(  :  ), intent( in ) :: DERIV
@@ -1780,13 +1922,14 @@
       REAL, DIMENSION(  :  ), intent( in ) :: NU, NV, NW, NUOLD, NVOLD, NWOLD
       REAL, intent( in ) :: V_THETA
       REAL, DIMENSION(  :  ), intent( in ) :: SUF_VOL_BC, SUF_D_BC
-      REAL, DIMENSION(  :  ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
-      REAL, DIMENSION(  :  ), intent( in ) :: SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC
+      REAL, DIMENSION( : , :, : ,:), intent( in ) :: SUF_U_BC_ALL
+      REAL, DIMENSION(  :, :, :, :  ), intent( in ) :: SUF_MOMU_BC_ALL
+      INTEGER, DIMENSION ( :, :, : ), intent(in) :: WIC_U_BC_ALL, WIC_MOMU_BC_ALL
+      INTEGER, DIMENSION ( :, : ), intent(in) :: WIC_P_BC_ALL
       REAL, DIMENSION(  : , : ), intent( in ) :: SUF_SIG_DIAGTEN_BC
-      REAL, DIMENSION(  :  ), intent( in ) :: SUF_P_BC
-      REAL, DIMENSION(  :  ), intent( in ) :: SUF_U_BC_ROB1, SUF_U_BC_ROB2, &
-           SUF_V_BC_ROB1, SUF_V_BC_ROB2, SUF_W_BC_ROB1, SUF_W_BC_ROB2
-      INTEGER, DIMENSION(  :  ), intent( in ) :: WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_MOMU_BC, WIC_P_BC
+      REAL, DIMENSION(  :, :, :  ), intent( in ) :: SUF_P_BC_ALL
+      REAL, DIMENSION(  :, :, :, :  ), intent( in ) :: SUF_U_BC_ROB1_ALL, SUF_U_BC_ROB2_ALL
+      INTEGER, DIMENSION(  :  ), intent( in ) :: WIC_VOL_BC, WIC_D_BC
       REAL, DIMENSION(  :  ), intent( in ) :: V_SOURCE
       REAL, DIMENSION( :, :, : ), intent( in ) :: V_ABSORB
       REAL, DIMENSION( : ), intent( in ) :: VOLFRA_PORE
@@ -1804,12 +1947,12 @@
       INTEGER, DIMENSION( : ), intent( in ) :: FINMCY
       REAL, DIMENSION( : ), intent( inout ) :: MCY
       REAL, DIMENSION( :, :,: ), intent( out ) :: PIVIT_MAT
-      REAL, DIMENSION( : ), intent( in ) :: UDEN, UDENOLD
-      REAL, DIMENSION( :, :, :, : ), intent( in ) :: UDIFFUSION
+      REAL, DIMENSION( :, : ), intent( in ) :: UDEN_ALL, UDENOLD_ALL
+      REAL, DIMENSION( :, :, :, : ), intent( in ) :: UDIFFUSION_ALL
       LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
       REAL, DIMENSION( : ), intent( in ) :: OPT_VEL_UPWIND_COEFS
       INTEGER, INTENT( IN ) :: NOIT_DIM
-      REAL, DIMENSION( :), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
+      REAL, DIMENSION( :, :), intent( in ) :: PLIKE_GRAD_SOU_COEF_ALL, PLIKE_GRAD_SOU_GRAD_ALL
       integer, dimension(:), intent(inout) :: StorageIndexes
       ! Local variables
       REAL, PARAMETER :: V_BETA = 1.0
@@ -1826,15 +1969,13 @@
       INTEGER :: IGOT_T2, I, P_SJLOC, SELE, U_SILOC
 
       INTEGER :: U_NLOC2, ILEV, NLEV, ELE, U_ILOC, U_INOD, IPHASE, IDIM, X_ILOC, X_INOD, MAT_INOD, S, E
-      REAL, DIMENSION( :, :, : ), allocatable :: U_ALL, UOLD_ALL, U_SOURCE_ALL, U_SOURCE_CV_ALL, U_ABSORB_ALL, U_ABS_STAB_ALL
-      REAL, DIMENSION( :, : ), allocatable :: X_ALL, UDEN_ALL, UDENOLD_ALL, PLIKE_GRAD_SOU_COEF_ALL, PLIKE_GRAD_SOU_GRAD_ALL
-      REAL, DIMENSION( :, :, :, : ), allocatable :: UDIFFUSION_ALL
 
-      INTEGER, DIMENSION ( :, :, : ), allocatable :: WIC_U_BC_ALL, WIC_MOMU_BC_ALL
-      INTEGER, DIMENSION ( :, : ), allocatable :: WIC_P_BC_ALL
-      REAL, DIMENSION ( :, :, :, : ), allocatable :: SUF_U_BC_ALL, SUF_MOMU_BC_ALL, SUF_NU_BC_ALL
-      REAL, DIMENSION ( :, :, :, : ), allocatable :: SUF_U_ROB1_BC_ALL, SUF_U_ROB2_BC_ALL
-      REAL, DIMENSION ( :, :, : ), allocatable :: SUF_P_BC_ALL
+
+      REAL, DIMENSION ( :, :, :, : ), allocatable :: SUF_NU_BC_ALL
+    !Temporary variables to convert from new to old
+    integer, dimension(NPHASE*STOTEL) :: wic_u_bc
+    real, dimension(STOTEL * U_SNLOC * NPHASE) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
+    SUF_U_BC =0.0; SUF_V_BC=0.0; SUF_W_BC=0.0;
 
 
       ewrite(3,*)'In CV_ASSEMB_FORCE_CTY'
@@ -1863,73 +2004,14 @@
       ALLOCATE( DEN_FEMT( NPHASE * CV_NONODS ) ) ; DEN_FEMT = 0.
       allocate( dummy_transp( totele ) ) ; dummy_transp = 0.
 
-      ALLOCATE( U_ALL( NDIM, NPHASE, U_NONODS ), UOLD_ALL( NDIM, NPHASE, U_NONODS ), &
-           X_ALL( NDIM, X_NONODS ), UDEN_ALL( NPHASE, CV_NONODS ), UDENOLD_ALL( NPHASE, CV_NONODS ) )
-      U_ALL = 0. ; UOLD_ALL = 0. ; X_ALL = 0. ; UDEN_ALL = 0. ; UDENOLD_ALL = 0.
 
-      ALLOCATE( WIC_U_BC_ALL( NDIM,NPHASE,STOTEL ) ) ; WIC_U_BC_ALL = 0
-      ALLOCATE( WIC_MOMU_BC_ALL( NDIM,NPHASE,STOTEL ) ) ; WIC_MOMU_BC_ALL = 0
-      ALLOCATE( WIC_P_BC_ALL( NPHASE,STOTEL ) ) ; WIC_P_BC_ALL = 0
-      ALLOCATE( SUF_U_BC_ALL( NDIM,NPHASE,U_SNLOC,STOTEL ) ) ; SUF_U_BC_ALL = 0.0
-      ALLOCATE( SUF_MOMU_BC_ALL( NDIM,NPHASE,U_SNLOC,STOTEL ) ) ; SUF_MOMU_BC_ALL = 0.0
       ALLOCATE( SUF_NU_BC_ALL( NDIM,NPHASE,U_SNLOC,STOTEL ) ) ; SUF_NU_BC_ALL = 0.0
-      ALLOCATE( SUF_U_ROB1_BC_ALL( NDIM,NPHASE,U_SNLOC,STOTEL ) ) ; SUF_U_ROB1_BC_ALL = 0.0
-      ALLOCATE( SUF_U_ROB2_BC_ALL( NDIM,NPHASE,U_SNLOC,STOTEL ) ) ; SUF_U_ROB2_BC_ALL = 0.0
-      ALLOCATE( SUF_P_BC_ALL( NPHASE,P_SNLOC,STOTEL ) ) ; SUF_P_BC_ALL = 0.0
 
       TDIFFUSION = 0.0
 
       IF( GLOBAL_SOLVE ) MCY = 0.0
 
-      IF ( IS_OVERLAPPING ) THEN
-         NLEV = CV_NLOC
-         U_NLOC2 = MAX( 1, U_NLOC / CV_NLOC )
-      ELSE
-         NLEV = 1
-         U_NLOC2 = U_NLOC
-      END IF
-      DO ELE = 1, TOTELE
-         DO ILEV = 1, NLEV
-            DO U_ILOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
-               U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
-               DO IPHASE = 1, NPHASE
-                  DO IDIM = 1, NDIM
-                     IF ( IDIM==1 ) THEN
-                        U_ALL( IDIM, IPHASE, U_INOD ) = U( U_INOD + (IPHASE-1)*U_NONODS )
-                        UOLD_ALL( IDIM, IPHASE, U_INOD ) = UOLD( U_INOD + (IPHASE-1)*U_NONODS )
-                     ELSE IF ( IDIM==2 ) THEN
-                        U_ALL( IDIM, IPHASE, U_INOD ) = V( U_INOD + (IPHASE-1)*U_NONODS )
-                        UOLD_ALL( IDIM, IPHASE, U_INOD ) = VOLD( U_INOD + (IPHASE-1)*U_NONODS )
-                     ELSE
-                        U_ALL( IDIM, IPHASE, U_INOD ) = W( U_INOD + (IPHASE-1)*U_NONODS )
-                        UOLD_ALL( IDIM, IPHASE, U_INOD ) = WOLD( U_INOD + (IPHASE-1)*U_NONODS )
-                     END IF
-                  END DO
-               END DO
-            END DO
-         END DO
-      END DO
-      DO IDIM = 1, NDIM
-         IF ( IDIM==1 ) THEN
-            X_ALL( IDIM, : ) = X
-         ELSE IF ( IDIM==2 ) THEN
-            X_ALL( IDIM, : ) = Y
-         ELSE
-            X_ALL( IDIM, : ) = Z
-         END IF
-      END DO
-      DO IPHASE = 1, NPHASE
-         UDEN_ALL( IPHASE, : ) = UDEN( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS ) 
-         UDENOLD_ALL( IPHASE, : ) = UDENOLD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS ) 
-      END DO
 
-      do sele = 1, stotel
-         do iphase = 1, nphase
-            wic_u_bc_all( :,iphase,sele ) = wic_u_bc( sele+(iphase-1)*stotel )
-            wic_momu_bc_all( :,iphase,sele ) = wic_momu_bc( sele+(iphase-1)*stotel )
-            wic_p_bc_all( iphase,sele ) = wic_p_bc( sele+(iphase-1)*stotel )
-         end do
-      end do
 
       do sele = 1, stotel
          do u_siloc = 1, u_snloc
@@ -1937,69 +2019,22 @@
                i = ( iphase - 1 ) * stotel * u_snloc + ( sele - 1 ) * u_snloc + u_siloc
                do idim = 1, ndim
                   if ( idim == 1 ) then
-                     suf_u_bc_all( idim,iphase,u_siloc,sele ) = suf_u_bc( i )
-                     suf_momu_bc_all( idim,iphase,u_siloc,sele ) = suf_momu_bc( i )
                      suf_nu_bc_all( idim,iphase,u_siloc,sele ) = suf_u_bc( i )
-                     suf_u_rob1_bc_all( idim,iphase,u_siloc,sele ) = suf_u_bc_rob1( i )
-                     suf_u_rob2_bc_all( idim,iphase,u_siloc,sele ) = suf_u_bc_rob2( i )
                   else if ( idim == 2 ) then
-                     suf_u_bc_all( idim,iphase,u_siloc,sele ) = suf_v_bc( i )
-                     suf_momu_bc_all( idim,iphase,u_siloc,sele ) = suf_momv_bc( i )
                      suf_nu_bc_all( idim,iphase,u_siloc,sele ) = suf_v_bc( i )
-                     suf_u_rob1_bc_all( idim,iphase,u_siloc,sele ) = suf_v_bc_rob1( i )
-                     suf_u_rob2_bc_all( idim,iphase,u_siloc,sele ) = suf_v_bc_rob2( i )
                   else if ( idim == 3 ) then
-                     suf_u_bc_all( idim,iphase,u_siloc,sele ) = suf_w_bc( i )
-                     suf_momu_bc_all( idim,iphase,u_siloc,sele ) = suf_momw_bc( i )
                      suf_nu_bc_all( idim,iphase,u_siloc,sele ) = suf_w_bc( i )
-                     suf_u_rob1_bc_all( idim,iphase,u_siloc,sele ) = suf_w_bc_rob1( i )
-                     suf_u_rob2_bc_all( idim,iphase,u_siloc,sele ) = suf_w_bc_rob2( i )
                   end if
                end do
             end do
          end do
       end do
 
-      do sele = 1, stotel
-         do p_sjloc = 1, p_snloc
-            do iphase = 1, nphase
-               i = ( SELE - 1 ) * P_SNLOC + P_SJLOC  + (IPHASE-1)*STOTEL*P_SNLOC
-               suf_p_bc_all( iphase,p_sjloc,sele ) = suf_p_bc( i )
-            end do
-         end do
-      end do
-
-      ALLOCATE( U_SOURCE_ALL( NDIM, NPHASE, U_NONODS ) ) 
-      ALLOCATE( U_SOURCE_CV_ALL( NDIM, NPHASE, CV_NONODS ) ) 
-      DO IPHASE = 1, NPHASE
-         DO IDIM = 1, NDIM
-            S = 1 + (IDIM-1)*U_NONODS + (IPHASE-1)*NDIM*U_NONODS
-            E = IDIM*U_NONODS + (IPHASE-1)*NDIM*U_NONODS
-            U_SOURCE_ALL( IDIM, IPHASE, : ) = U_SOURCE( S:E )
-
-            S = 1 + (IDIM-1)*CV_NONODS + (IPHASE-1)*NDIM*CV_NONODS
-            E = IDIM*CV_NONODS + (IPHASE-1)*NDIM*CV_NONODS
-            U_SOURCE_CV_ALL( IDIM, IPHASE, : ) = U_SOURCE_CV( S:E )
-         END DO
-      END DO
-
-      ALLOCATE( U_ABSORB_ALL( NDIM * NPHASE, NDIM * NPHASE, MAT_NONODS ) ) 
-      ALLOCATE( U_ABS_STAB_ALL( NDIM * NPHASE, NDIM * NPHASE, MAT_NONODS ) ) 
-      ALLOCATE( UDIFFUSION_ALL( NDIM, NDIM, NPHASE, MAT_NONODS ) ) 
-
-      DO MAT_INOD = 1, MAT_NONODS
-         U_ABSORB_ALL( :, :, MAT_INOD ) = U_ABSORB( MAT_INOD, :, : ) 
-         U_ABS_STAB_ALL( :, :, MAT_INOD ) = U_ABS_STAB( MAT_INOD, :, : )
-         UDIFFUSION_ALL( :, :, :, MAT_INOD ) = UDIFFUSION( MAT_INOD, :, :, : ) 
-      END DO
 
 
-      ALLOCATE( PLIKE_GRAD_SOU_COEF_ALL( NPHASE, CV_NONODS ) ) 
-      ALLOCATE( PLIKE_GRAD_SOU_GRAD_ALL( NPHASE, CV_NONODS ) ) 
-      DO IPHASE = 1, NPHASE
-         PLIKE_GRAD_SOU_COEF_ALL( IPHASE, : ) = PLIKE_GRAD_SOU_COEF( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
-         PLIKE_GRAD_SOU_GRAD_ALL( IPHASE, : ) = PLIKE_GRAD_SOU_GRAD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
-      END DO
+
+
+
 
       ! Obtain the momentum and C matricies
       CALL ASSEMB_FORCE_CTY( state, & 
@@ -2017,7 +2052,7 @@
            SUF_U_BC_ALL, &
            SUF_MOMU_BC_ALL, &
            SUF_NU_BC_ALL, SUF_P_BC_ALL, &
-           SUF_U_ROB1_BC_ALL, SUF_U_ROB2_BC_ALL, &
+           SUF_U_BC_ROB1_ALL, SUF_U_BC_ROB2_ALL, &
            WIC_U_BC_ALL, WIC_MOMU_BC_ALL, WIC_U_BC_ALL, WIC_P_BC_ALL, &
 
            !SUF_U_BC, SUF_V_BC, SUF_W_BC, &
@@ -2058,6 +2093,44 @@
       ! unused at this stage
       second_theta = 0.0
 
+
+    !CONVERT FROM NEW TO OLD FOR THE NEXT SUBROUTINE
+          do sele = 1, stotel
+         do iphase = 1, nphase
+            wic_u_bc( sele+(iphase-1)*stotel ) = wic_u_bc_all( 1,iphase,sele )
+         end do
+      end do
+
+            do sele = 1, stotel
+         do u_siloc = 1, u_snloc
+            do iphase = 1, nphase
+               i = ( iphase - 1 ) * stotel * u_snloc + ( sele - 1 ) * u_snloc + u_siloc
+               do idim = 1, ndim
+                  if ( idim == 1 ) then
+                     suf_u_bc( i ) = suf_u_bc_all( idim,iphase,u_siloc,sele )
+                  else if ( idim == 2 ) then
+                     suf_v_bc( i ) = suf_u_bc_all( idim,iphase,u_siloc,sele )
+                  else if ( idim == 3 ) then
+                     suf_w_bc( i ) = suf_u_bc_all( idim,iphase,u_siloc,sele )
+                  end if
+               end do
+            end do
+         end do
+      end do
+
+
+
+
+
+
+
+
+    !############################################
+
+
+
+
+
       ! Form CT & MASS_MN_PRES matrix...
       CALL CV_ASSEMB_CT( state, &
            SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
@@ -2068,7 +2141,7 @@
            CV_NLOC, U_NLOC, X_NLOC, &
            CV_NDGLN, X_NDGLN, U_NDGLN, &
            CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-           X, Y, Z, NU, NV, NW, &
+           X_ALL(1,:), X_ALL(2,:), X_ALL(3,:), NU, NV, NW, &
            NU, NV, NW, NUOLD, NVOLD, NWOLD, &
            SATURA, SATURAOLD, DEN_OR_ONE, DENOLD_OR_ONE, &
            MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
@@ -2122,7 +2195,6 @@
       DEALLOCATE( MEAN_PORE_CV )
       DEALLOCATE( SAT_FEMT )
       DEALLOCATE( DEN_FEMT )
-      DEALLOCATE( U_ALL, UOLD_ALL, X_ALL, UDEN_ALL, UDENOLD_ALL )
 
       ewrite(3,*) 'Leaving CV_ASSEMB_FORCE_CTY'
 

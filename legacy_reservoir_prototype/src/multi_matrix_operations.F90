@@ -34,6 +34,9 @@
 
     use fldebug
     use spud
+    use Fields_Allocates, only : allocate
+    use fields_data_types, only: mesh_type, scalar_field
+    use state_module
     implicit none
 
   contains
@@ -320,7 +323,7 @@
          TOTELE, U_NLOC, U_NDGLN, &
          NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, &
          CMC, CMC_PRECON, IGOT_CMC_PRECON, NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, &
-         C, CT )
+         C, CT, state, indx )
       !use multiphase_1D_engine
 
       implicit none
@@ -341,7 +344,8 @@
       INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
       REAL, DIMENSION( :, :, : ), intent( in ) :: C
       REAL, DIMENSION( :, :, : ), intent( inout ) :: CT
-
+      type( state_type ), intent( inout ), dimension(:) :: state
+      integer, intent(inout) :: indx
       ! Local variables
       LOGICAL, PARAMETER :: FAST = .true.
       REAL, PARAMETER :: INFINY = 1.0E+10
@@ -371,7 +375,7 @@
               TOTELE, U_NLOC, U_NDGLN, &
               NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, &
               CMC, CMC_PRECON, IGOT_CMC_PRECON, NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, &
-              C, CT, ndpset)
+              C, CT, ndpset, state, indx)
       ELSE
          ! Slow but memory efficient...
          CALL COLOR_GET_CMC_PHA_SLOW( CV_NONODS, U_NONODS, NDIM, NPHASE, &
@@ -395,7 +399,7 @@
             TOTELE, U_NLOC, U_NDGLN, &
             NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, &
             CMC, CMC_PRECON, IGOT_CMC_PRECON, NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, &
-            C, CT, ndpset )
+            C, CT, ndpset, state, indx )
 
          implicit none
          ! form pressure matrix CMC using a colouring approach
@@ -416,23 +420,29 @@
          INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
          REAL, DIMENSION( :, :, : ), intent( in ) :: C
          REAL, DIMENSION( :, :, : ), intent( inout ) :: CT
-
+         type( state_type ), intent( inout ), dimension(:) :: state
+         integer, intent(inout) :: indx
          ! Local variables
          INTEGER, PARAMETER :: MX_NCOLOR = 1000
          REAL, PARAMETER :: INFINY = 1.0E+10
-         LOGICAL, PARAMETER :: SAVED_CMC_COLOR = .FALSE.
          LOGICAL :: LCOL
-         INTEGER, DIMENSION( : ), allocatable :: ICOLOR
+         INTEGER, DIMENSION( CV_NONODS ) :: ICOLOR
          INTEGER, DIMENSION( : ), allocatable :: COLOR_IN_ROW, COLOR_IN_ROW2
          REAL, DIMENSION( :, : ), allocatable :: COLOR_VEC_MANY, CMC_COLOR_VECC_MANY, CMC_COLOR_VEC2C_MANY
          REAL, DIMENSION( :, : ), allocatable :: CDPC_MANY
          REAL, DIMENSION( :, :, :, : ), allocatable :: CDP_MANY, DU_LONG_MANY
          REAL, DIMENSION( :, : ), allocatable :: CMC_COLOR_VEC_MANY, CMC_COLOR_VEC2_MANY
-         INTEGER :: NCOLOR, CV_NOD, CV_JNOD, COUNT, COUNT2, COUNT3, IDIM, IPHASE, CV_COLJ, U_JNOD, CV_JNOD2
+         INTEGER :: CV_NOD, CV_JNOD, COUNT, COUNT2, COUNT3, IDIM, IPHASE, CV_COLJ, U_JNOD, CV_JNOD2
          INTEGER :: MAX_COLOR_IN_ROW, ICHOOSE, KVEC, I, ELE, U_INOD, U_NOD
+         INTEGER :: NCOLOR
          REAL :: RSUM
+         !Variables to store things in state
+         type(mesh_type), pointer :: fl_mesh
+         type(mesh_type) :: Auxmesh
+         type(scalar_field), target :: targ_icolor
+         real, pointer, dimension(:) :: pointer_icolor
 
-         ALLOCATE( ICOLOR( CV_NONODS ) ) ; ICOLOR = 0
+!         ALLOCATE( ICOLOR( CV_NONODS ) ) ; ICOLOR = 0
 
          CMC = 0.0
          IF ( IGOT_CMC_PRECON /= 0 ) CMC_PRECON = 0.0
@@ -445,13 +455,33 @@
          ALLOCATE( COLOR_IN_ROW( MAX_COLOR_IN_ROW**2 ) ) 
          ALLOCATE( COLOR_IN_ROW2( MAX_COLOR_IN_ROW**2 ) ) 
 
-         IF ( SAVED_CMC_COLOR ) THEN
+         IF ( indx /= 0 ) THEN!coloring stored
 
-            !NCOLOR=
-            !ICOLOR=
-
+             pointer_icolor =>  state(1)%scalar_fields(indx)%ptr%val
+            !Recover the calculated coloring
+            ICOLOR = pointer_icolor(1:CV_NONODS)
+            NCOLOR = pointer_icolor(CV_NONODS+1)
          ELSE
 
+            !Prepare the variable inside state
+         if (has_scalar_field(state(1), "Col_fast")) then
+              !If we are recalculating due to a mesh modification then
+              !we return to the original situation
+              call remove_scalar_field(state(1), "Col_fast")
+          end if
+          !Get mesh file just to be able to allocate the fields we want to store
+          fl_mesh => extract_mesh( state(1), "CoordinateMesh" )
+          Auxmesh = fl_mesh
+          !The number of nodes I want does not coincide
+          Auxmesh%nodes = CV_NONODS+1!in the +1 we store NCOLOR
+          call allocate (targ_icolor, Auxmesh)
+          !Now we insert them in state and store the index
+          call insert(state(1), targ_icolor, "Col_fast")
+          indx = size(state(1)%scalar_fields)
+          !Get from state
+          pointer_icolor =>  state(1)%scalar_fields(indx)%ptr%val
+
+            ICOLOR = 0
             NCOLOR = 0
             Loop_CVNOD7: DO CV_NOD = 1, CV_NONODS
 
@@ -471,13 +501,12 @@
                   END DO Loop_Row2
                END DO Loop_Row7
 
-
                ! Perform a bubble sort...
                IF ( COUNT3 == 0 ) THEN
                   COUNT2 = 0
                ELSE
-!                  CALL IBUBLE( COLOR_IN_ROW( 1 : COUNT3 ), COUNT3) 
-                  CALL quicksort( COLOR_IN_ROW( 1 : COUNT3 ), COUNT3) 
+                  CALL IBUBLE( COLOR_IN_ROW( 1 : COUNT3 ), COUNT3) 
+!                  CALL quicksort( COLOR_IN_ROW( 1 : COUNT3 ), COUNT3) 
                   COUNT2 = 1
                   I = 1
                   COLOR_IN_ROW2( COUNT2 ) = COLOR_IN_ROW( I )
@@ -510,6 +539,10 @@
                EWRITE(-1, *) 'NOT ENOUGH COLOURS STOPPING - NEED TO MAKE MX_COLOR BIGGER'
                STOP 281
             END IF
+
+            !##Store the calculated coloring##
+            pointer_icolor(1:CV_NONODS) = ICOLOR
+            pointer_icolor(CV_NONODS+1) = NCOLOR
 
          END IF ! SAVED_CMC_COLOR
 
@@ -604,19 +637,27 @@
 
 
       recursive  subroutine quicksort(vec,n)
+
+        implicit none
+
         integer, intent(in) :: n
         integer, dimension(:), intent(inout) :: vec(n)
         integer :: ii
 
-        if (size(vec)>1) then
+        if (n>20) then
            ii=partition(vec)
            call quicksort(vec(1:ii-1),ii-1)
            call quicksort(vec(ii:n),n-ii+1)
+        else
+           call insertion_sort(vec,n)
         end if
 
       end subroutine quicksort
         
         integer function partition(v)
+          
+          implicit none
+
           integer, intent(inout), dimension(:) :: v
           integer :: i,j, pivot, temp
 
@@ -646,20 +687,40 @@
 
         end function partition          
            
-      
+        subroutine insertion_sort(vec,n)
+          
+          implicit none
 
+          integer :: n
+          integer, dimension(n) :: vec(n)
+
+          integer :: i ,j, temp
+
+
+          do i = 2, N
+             j = i - 1
+             temp = vec(i)
+
+             do while ( j> 0 )
+                if ( vec(j) <= temp ) exit
+                vec(j+1)=vec(j)
+                j=j-1
+             end do
+
+             vec(j+1) = temp
+          end do
+
+        end subroutine insertion_sort
+             
 
     SUBROUTINE IBUBLE(LIST,NLIST)
 
       INTEGER NLIST,LIST(NLIST)
       INTEGER I,J,II
 
-      print*, LIST(NLIST)
-
       do I=1,NLIST
          do J=2,NLIST-I+1
             IF(LIST(J-1).GT.LIST(J)) THEN
-               !     SWOP
                II=LIST(J-1)
                LIST(J-1)=LIST(J)
                LIST(J)=II

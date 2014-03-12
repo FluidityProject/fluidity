@@ -24,6 +24,9 @@ void python_add_scalar_noncontiguous_(int *sx,double x[],char *name,int *nlen, i
 void python_add_vector_(int *num_dim, int *s, 
   double x[],
   char *name,int *nlen, int *field_type, char *option_path, int *oplen, char *state,int *slen,char*,int*); // Add a new vector field to the state with name *state
+void python_add_vector_noncontiguous_(int *num_dim, int *s, 
+  double x[],
+				      char *name,int *nlen, int *field_type, char *option_path, int *oplen, char *state,int *slen,char*,int*,int*stride); // Add a new vector field to the state with name *state
 void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int *num_dim,
   char *name,int *nlen, int *field_type, char *option_path, int *oplen, char *state,int *slen,char*,int*); // Add a new tensor field to the state with name *state
 
@@ -54,6 +57,7 @@ void python_add_array_double_2d(double *arr, int *sizex, int *sizey, char *name)
 void python_add_array_double_3d(double *arr, int *sizex, int *sizey, int *sizez, char *name);
 
 void python_add_array_double_1d_noncontiguous(double *arr, int *size, char *name, int *stride);
+void python_add_array_double_2d_noncontiguous(double *arr, int *sizex, int* sizey, char *name, int *stride);
 
 void python_add_array_integer_1d(int *arr, int *size, char *name);
 void python_add_array_integer_2d(int *arr, int *sizex, int *sizey, char *name);

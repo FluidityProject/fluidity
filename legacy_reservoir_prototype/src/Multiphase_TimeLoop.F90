@@ -232,7 +232,7 @@
       REAL, DIMENSION( : , : ,: ), allocatable :: NDOTQCOLD,LIMCOLD,LIMC2OLD,LIMCDOLD,LIMCDTOLD,LIMCDTT2OLD
 
       !Variable to store where we store things. Do not oversize this array, the size has to be the last index in use
-      integer, dimension (30) :: StorageIndexes
+      integer, dimension (31) :: StorageIndexes
       !Initially we set to use Stored data and that we have a new mesh
       StorageIndexes = 0!Initialize them as zero ! Entries 1, 2 and 3 are unused, for future purposes
 
@@ -405,15 +405,8 @@
            plike_grad_sou_grad( cv_nonods * nphase ), &
            plike_grad_sou_coef( cv_nonods * nphase ) )
 
-      
-
       ncv_faces=CV_count_faces( packed_state,&
-           CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
-           CV_ELE_TYPE, NPHASE,  &
-           CV_NLOC, U_NLOC, X_NLOC, &
-           CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-           MAT_NLOC, MAT_NONODS, &
-           NDIM, XU_NLOC )
+           CV_ELE_TYPE, STOTEL, CV_SNDGLN, U_SNDGLN )
 
       allocate(NDOTQOLD(nphase,ncv_faces),&
            NDOTQVOLD(nphase,ncv_faces),&
@@ -1898,13 +1891,9 @@ deallocate(NDOTQOLD,&
             allocate( density_tmp(cv_nonods*nphase) , density_old_tmp(cv_nonods*nphase) )
             density_tmp=0. ; density_old_tmp=0.
 
-           ncv_faces=CV_count_faces( packed_state,&
-           CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
-           CV_ELE_TYPE, NPHASE,  &
-           CV_NLOC, U_NLOC, X_NLOC, &
-           CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-           MAT_NLOC, MAT_NONODS, &
-           NDIM, XU_NLOC )
+
+            ncv_faces=CV_count_faces( packed_state,&
+                 CV_ELE_TYPE, STOTEL, CV_SNDGLN, U_SNDGLN )
 
       allocate(NDOTQOLD(nphase,ncv_faces),&
            NDOTQVOLD(nphase,ncv_faces),&
