@@ -403,7 +403,7 @@
 !      REAL, DIMENSION( NCOLACV ), intent( inout ) :: ACV
       REAL, DIMENSION( : ), allocatable, intent( inout ) :: ACV
       REAL, DIMENSION( :, :, : ), intent( inout ) :: DENSE_BLOCK_MATRIX
-      REAL, DIMENSION( : ), intent( inout ) :: CV_RHS
+      REAL, DIMENSION( :, :, : ), intent( inout ) :: CV_RHS
       REAL, DIMENSION( : ), intent( inout ) :: DIAG_SCALE_PRES
       REAL, DIMENSION( : ), intent( inout ) :: CT_RHS
       REAL, DIMENSION( :, :, : ), intent( inout ) :: CT
@@ -449,7 +449,10 @@
       INTEGER :: STAT,U_ELE_TYPE
       LOGICAL :: CV_METHOD
       character( len = option_path_len ) :: path
+      
+      REAL, DIMENSION( : ), allocatable :: CV_RHS1
 
+      allocate(  cv_rhs1( cv_nonods * nphase ) ) ; cv_rhs1=0.0
 
       SECOND_THETA = 1.0
       U_ELE_TYPE = CV_ELE_TYPE
@@ -460,7 +463,7 @@
       IF(CV_METHOD) THEN ! cv method...
 
          CALL CV_ASSEMB( state, &
-              CV_RHS, &
+              CV_RHS1, &
               NCOLACV, ACV, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
               SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
               NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
@@ -579,7 +582,7 @@
       REAL, DIMENSION( : ), intent( in ) :: T, TOLD
       REAL, DIMENSION( : ), intent( in ) :: DEN, DENOLD
       REAL, intent( in ) :: DT
-      REAL, DIMENSION( : ), intent( inout ) :: CV_RHS
+      REAL, DIMENSION( :, :, : ), intent( inout ) :: CV_RHS
       REAL, DIMENSION( : ),  intent( inout ) :: ACV
       INTEGER, DIMENSION( : ), intent( in ) :: FINACV
       INTEGER, DIMENSION( : ), intent( in ) :: COLACV
@@ -1189,8 +1192,8 @@
          IN_ELE_UPWIND, DG_ELE_UPWIND, &
          NOIT_DIM, &
          IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
-         scale_momentum_by_volume_fraction ,&
-          StorageIndexes)
+         scale_momentum_by_volume_fraction, &
+         StorageIndexes )
 
       IMPLICIT NONE
       type( state_type ), dimension( : ), intent( inout ) :: state
@@ -1204,7 +1207,7 @@
            NOPT_VEL_UPWIND_COEFS, IGOT_THETA_FLUX, SCVNGI_THETA, IN_ELE_UPWIND, DG_ELE_UPWIND, &
            IPLIKE_GRAD_SOU
       LOGICAL, intent( in ) :: USE_THETA_FLUX,scale_momentum_by_volume_fraction
-      INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
+      INTEGER, DIMENSION(  :  ), intent( in ) :: U_NDGLN
       INTEGER, DIMENSION(  :  ), intent( in ) :: P_NDGLN
       INTEGER, DIMENSION(  :  ), intent( in ) :: CV_NDGLN
       INTEGER, DIMENSION(  :  ), intent( in ) ::  X_NDGLN
@@ -1216,7 +1219,7 @@
       INTEGER, DIMENSION(  : ), intent( in ) :: XU_NDGLN
       INTEGER, DIMENSION(  : ), intent( in ) ::  WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_MOMU_BC, WIC_P_BC
       REAL, DIMENSION(  :  ), intent( in ) :: X, Y, Z
-      REAL, DIMENSION(  :,:,:  ), intent( in ) :: U_ABS_STAB, U_ABSORB
+      REAL, DIMENSION(  :, :, :  ), intent( in ) :: U_ABS_STAB, U_ABSORB
       REAL, DIMENSION(  :  ), intent( in ) :: U_SOURCE
       REAL, DIMENSION(  :  ), intent( in ) :: U_SOURCE_CV
       REAL, DIMENSION(  : ), intent( inout ) :: U, V, W
@@ -1227,8 +1230,8 @@
       REAL, DIMENSION(  : ), intent( in ) :: DERIV
       REAL, DIMENSION(  :  ), intent( in ) :: SUF_VOL_BC, SUF_D_BC
       REAL, DIMENSION(  :  ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
-      REAL, DIMENSION( :  ), intent( in ) :: SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC
-      REAL, DIMENSION(  : ,  :  ), intent( in ) :: SUF_SIG_DIAGTEN_BC
+      REAL, DIMENSION(  :  ), intent( in ) :: SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC
+      REAL, DIMENSION(  : , :  ), intent( in ) :: SUF_SIG_DIAGTEN_BC
       REAL, DIMENSION(  :  ), intent( in ) :: SUF_P_BC
       REAL, DIMENSION(  :  ), intent( in ) :: SUF_U_BC_ROB1, SUF_U_BC_ROB2, &
            SUF_V_BC_ROB1, SUF_V_BC_ROB2, SUF_W_BC_ROB1, SUF_W_BC_ROB2
@@ -1237,7 +1240,7 @@
       INTEGER, DIMENSION(  :  ), intent( in ) :: COLC
       INTEGER, DIMENSION(  :  ), intent( in ) :: FINDGM_PHA
       INTEGER, DIMENSION(  :  ), intent( in ) :: COLDGM_PHA
-      INTEGER, DIMENSION(  : ), intent( in ) :: MIDDGM_PHA
+      INTEGER, DIMENSION(  :  ), intent( in ) :: MIDDGM_PHA
 
       INTEGER, DIMENSION(  :  ), intent( in ) :: FINELE
       INTEGER, DIMENSION(  :  ), intent( in ) :: COLELE
@@ -1246,10 +1249,10 @@
       INTEGER, DIMENSION(  :  ), intent( in ) :: MIDCMC
       INTEGER, DIMENSION(  :  ), intent( in ) :: FINACV
       INTEGER, DIMENSION(  :  ), intent( in ) :: COLACV
-      INTEGER, DIMENSION(  : ), intent( in ) :: MIDACV
-      integer, dimension( : ), intent(in) :: small_finacv
-      integer, dimension(  : ), intent(in) ::small_colacv
-      integer, dimension( : ), intent(in) :: small_midacv
+      INTEGER, DIMENSION(  :  ), intent( in ) :: MIDACV
+      integer, dimension(  :  ), intent( in ) :: small_finacv
+      integer, dimension(  :  ), intent( in ) :: small_colacv
+      integer, dimension(  :  ), intent( in ) :: small_midacv
       INTEGER, DIMENSION(  :  ), intent( in ) :: FINMCY
       INTEGER, DIMENSION(  :  ), intent( in ) :: COLMCY
       INTEGER, DIMENSION(  :  ), intent( in ) :: MIDMCY
@@ -1277,10 +1280,10 @@
       INTEGER, PARAMETER :: IGOT_CMC_PRECON = 0
 
       REAL, DIMENSION( : ), allocatable :: CT_RHS, DIAG_SCALE_PRES, &
-           U_RHS, MCY_RHS, MCY, &
+           MCY_RHS, MCY, &
            CMC, CMC_PRECON, MASS_MN_PRES, MASS_CV, P_RHS, UP, U_RHS_CDP, DP, &
            DU_VEL, UP_VEL, DU, DV, DW, DGM_PHA, DIAG_P_SQRT, ACV
-      REAL, DIMENSION( :, :, : ), allocatable :: PIVIT_MAT, C, CDP, CT
+      REAL, DIMENSION( :, :, : ), allocatable :: PIVIT_MAT, C, CDP, CT, U_RHS
       INTEGER :: CV_NOD, COUNT, CV_JNOD, IPHASE, ele, x_nod1, x_nod2, x_nod3, cv_iloc, &
            cv_nod1, cv_nod2, cv_nod3, mat_nod1, u_iloc, u_nod, u_nod_pha, ndpset
       REAL :: der1, der2, der3, uabs, rsum, xc, yc
@@ -1319,7 +1322,7 @@
       ALLOCATE( CT( NDIM, NPHASE, NCOLCT )) ; CT=0.
       ALLOCATE( CT_RHS( CV_NONODS )) ; CT_RHS=0.
       ALLOCATE( DIAG_SCALE_PRES( CV_NONODS )) ; DIAG_SCALE_PRES=0.
-      ALLOCATE( U_RHS( NDIM * NPHASE * U_NONODS )) ; U_RHS=0.
+      ALLOCATE( U_RHS( NDIM, NPHASE, U_NONODS )) ; U_RHS=0.
       ALLOCATE( MCY_RHS( U_NONODS * NDIM * NPHASE + CV_NONODS )) ; MCY_RHS=0.
       ALLOCATE( C( NDIM, NPHASE, NCOLC )) ; C=0.
       ALLOCATE( MCY( NCOLMCY )) ; MCY=0.
@@ -1527,7 +1530,7 @@
             STOP 8331
          END IF
          
-         UP=0.
+         UP = 0.0
          CALL SOLVER( MCY, UP, MCY_RHS, &
               FINMCY, COLMCY, &
               option_path = '/material_phase[0]/vector_field::Velocity')
@@ -1542,15 +1545,14 @@
          ! Put pressure in rhs of force balance eqn:  CDP = C * P
          CALL C_MULT2( CDP, P, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
 
-         U_RHS_CDP = U_RHS
-
+         U_RHS_CDP = 0.0
          DO ELE = 1, TOTELE
             DO U_ILOC = 1, U_NLOC
                U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
                DO IPHASE = 1, NPHASE
                   DO IDIM = 1, NDIM
                      I = U_INOD + (IDIM-1)*U_NONODS + (IPHASE-1)*NDIM*U_NONODS
-                     U_RHS_CDP( I ) = U_RHS_CDP( I ) + CDP( IDIM, IPHASE, U_INOD )
+                     U_RHS_CDP( I ) = U_RHS( IDIM, IPHASE, U_INOD ) + CDP( IDIM, IPHASE, U_INOD )
                   END DO
                END DO
             END DO
@@ -1573,7 +1575,7 @@
             !ewrite(3,*) 'cdp', cdp
             !ewrite(3,*) 'dgm_pha', dgm_pha
 
-            UP_VEL=0.0
+            UP_VEL = 0.0
             CALL SOLVER( DGM_PHA, UP_VEL, U_RHS_CDP, &
                  FINDGM_PHA, COLDGM_PHA, &
                  option_path = '/material_phase[0]/vector_field::Velocity')
@@ -1622,11 +1624,11 @@
             DO CV_NOD = 1, CV_NONODS
                ewrite(3,*) 'cv_nod=',cv_nod, &
                     'findcmc=', FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
-               rsum=0.0
+               rsum = 0.0
                DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                   CV_JNOD = COLCMC( COUNT )
-                  ewrite(3,*) 'count,CV_JNOD,cmc(count):',count,CV_JNOD,cmc(count)
-                  if (cv_nod/=cv_jnod) rsum=rsum+abs(cmc(count))
+                  ewrite(3,*) 'count,CV_JNOD,cmc(count):', count, CV_JNOD, cmc( count )
+                  if ( cv_nod /= cv_jnod ) rsum = rsum + abs( cmc( count ) )
                END DO
                ewrite(3,*) 'off_diag, diag=',rsum,cmc(midcmc(cv_nod))
             END DO
@@ -1661,7 +1663,7 @@
 
          ! Use a projection method
          ! CDP = C * DP
-         CALL C_MULT2( CDP, DP, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
+         CALL C_MULT2( CDP, DP, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC )
 
          ! Correct velocity...
          ! DU = BLOCK_MAT * CDP 
@@ -1943,7 +1945,7 @@
       INTEGER, DIMENSION( : ), intent( in ) :: FINDM
       INTEGER, DIMENSION( : ), intent( in ) :: COLM
       INTEGER, DIMENSION( : ), intent( in ) :: MIDM
-      REAL, DIMENSION( : ), intent( inout ) :: U_RHS
+      REAL, DIMENSION( :, :, : ), intent( inout ) :: U_RHS
       REAL, DIMENSION( : ), intent( inout ) :: MCY_RHS
       REAL, DIMENSION( :, :, : ), intent( inout ) :: C
       REAL, DIMENSION( :, :, : ), intent( inout ) :: CT
@@ -2039,10 +2041,6 @@
 
 
 
-
-
-
-
       ! Obtain the momentum and C matricies
       CALL ASSEMB_FORCE_CTY( state, & 
            NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
@@ -2080,14 +2078,30 @@
            P, NDIM, StorageIndexes=StorageIndexes )
       ! scale the momentum equations by the volume fraction / saturation for the matrix and rhs     
 
-      IF(GLOBAL_SOLVE) THEN
+      IF ( GLOBAL_SOLVE ) THEN
          ! put momentum and C matrices into global matrix MCY...
-         MCY_RHS(1:U_NONODS*NDIM*NPHASE)=U_RHS(1:U_NONODS*NDIM*NPHASE)
+
+         MCY_RHS = 0.0
+         DO ELE = 1, TOTELE
+            DO U_ILOC = 1, U_NLOC
+               U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
+               DO IPHASE = 1, NPHASE
+                  DO IDIM = 1, NDIM
+                     I = U_INOD + (IDIM-1)*U_NONODS + (IPHASE-1)*NDIM*U_NONODS
+                     MCY_RHS( I ) = U_RHS( IDIM, IPHASE, U_INOD )
+                  END DO
+               END DO
+            END DO
+         END DO
+
+
+
+
          CALL PUT_MOM_C_IN_GLOB_MAT( NPHASE,NDIM, &
               NCOLDGM_PHA, DGM_PHA, FINDGM_PHA, &
               NLENMCY, NCOLMCY, MCY, FINMCY, &
               U_NONODS, NCOLC, C, FINDC )
-      ENDIF
+      END IF
 
       IF ( USE_THETA_FLUX ) THEN ! We have already put density in theta...
          DEN_OR_ONE = 1.0
@@ -2101,14 +2115,14 @@
       second_theta = 0.0
 
 
-    !CONVERT FROM NEW TO OLD FOR THE NEXT SUBROUTINE
-          do sele = 1, stotel
+      !CONVERT FROM NEW TO OLD FOR THE NEXT SUBROUTINE
+      do sele = 1, stotel
          do iphase = 1, nphase
             wic_u_bc( sele+(iphase-1)*stotel ) = wic_u_bc_all( 1,iphase,sele )
          end do
       end do
 
-            do sele = 1, stotel
+      do sele = 1, stotel
          do u_siloc = 1, u_snloc
             do iphase = 1, nphase
                i = ( iphase - 1 ) * stotel * u_snloc + ( sele - 1 ) * u_snloc + u_siloc
@@ -2125,19 +2139,9 @@
          end do
       end do
 
+      !############################################
 
-
-
-
-
-
-
-    !############################################
-
-
-
-
-
+      
       ! Form CT & MASS_MN_PRES matrix...
       CALL CV_ASSEMB_CT( state, &
            SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
@@ -2405,7 +2409,7 @@
 
       REAL, DIMENSION( :, : ), intent( in ) :: UDEN, UDENOLD
       REAL, intent( in ) :: DT
-      REAL, DIMENSION( : ), intent( inout ) :: U_RHS
+      REAL, DIMENSION( :, :, : ), intent( inout ) :: U_RHS
       REAL, DIMENSION( :, :, : ), intent( inout ) :: C
       INTEGER, DIMENSION( : ), intent( in ) :: FINDC
       INTEGER, DIMENSION( : ), intent( in ) :: COLC
@@ -3826,7 +3830,7 @@
             DO IPHASE = 1, NPHASE
                DO IDIM = 1, NDIM_VEL
                   I = U_INOD + (IDIM-1)*U_NONODS + (IPHASE-1)*NDIM_VEL*U_NONODS
-                  U_RHS( I ) = U_RHS( I ) + LOC_U_RHS( IDIM, IPHASE, U_ILOC )
+                  U_RHS( IDIM, IPHASE, U_INOD ) = U_RHS( IDIM, IPHASE, U_INOD ) + LOC_U_RHS( IDIM, IPHASE, U_ILOC )
                END DO
             END DO
          END DO
@@ -4720,7 +4724,7 @@
             DO IPHASE = 1, NPHASE
                DO IDIM = 1, NDIM_VEL
                   I = U_INOD + (IDIM-1)*U_NONODS + (IPHASE-1)*NDIM_VEL*U_NONODS
-                  U_RHS( I ) = U_RHS( I ) + LOC_U_RHS( IDIM, IPHASE, U_ILOC )
+                  U_RHS( IDIM, IPHASE, U_INOD ) = U_RHS( IDIM, IPHASE, U_INOD ) + LOC_U_RHS( IDIM, IPHASE, U_ILOC )
                END DO
             END DO
          END DO
