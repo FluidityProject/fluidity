@@ -940,7 +940,7 @@
       integer, dimension(:), pointer :: U_NOD
 
       real, dimension(NDIM,NPHASE,U_NLOC) ::  lu
-      real, dimension(NDIM*NPHASE*u_NLOC) :: lcdp
+      real, dimension(NDIM*NPHASE*U_NLOC) :: lcdp
       integer :: N
       
       interface 
@@ -963,7 +963,7 @@
          U_NOD => U_NDGLN(( ELE - 1 ) * U_NLOC +1: ELE * U_NLOC) 
          
          do u_iloc=1,u_nloc
-            lcdp(1+(u_iloc-1)*nphase*ndim:u_iloc*nphase*ndim)  = CDP( 1+(U_NOD(u_iloc)-1)*ndim*nphase:U_NOD(u_iloc)*ndim*nphase )
+            lcdp(1+(u_iloc-1)*nphase*ndim:u_iloc*nphase*ndim) = CDP( 1+(U_NOD(u_iloc)-1)*ndim*nphase:U_NOD(u_iloc)*ndim*nphase )
          end do
 
          call dgemv( 'N', N, N, 1.0d0, BLOCK_MAT( : , : , ele ), N, LCDP, 1, 0.0d0, LU, 1 )
