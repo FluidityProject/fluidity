@@ -1467,7 +1467,6 @@
       !##########TEMPORARY ADAPT FROM OLD VARIABLES TO NEW############
 
 
-
       CALL CV_ASSEMB_FORCE_CTY( state, &
            NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
            U_ELE_TYPE, P_ELE_TYPE, &
@@ -1525,6 +1524,10 @@
       DEALLOCATE( ACV )
 
       NO_MATRIX_STORE = ( NCOLDGM_PHA <= 1 )
+
+      !#####TEMPORARY, CHANGE WHEN BLOCK SOLVER IS READY!#####
+      NO_MATRIX_STORE = .true.
+      !#####TEMPORARY, CHANGE WHEN BLOCK SOLVER IS READY!#####
 
       IF ( GLOBAL_SOLVE ) THEN 
          ! Global solve  
@@ -2611,9 +2614,6 @@
       real, dimension(:,:,:), pointer :: Point_C_Mat
 
 
-
-
-
       capillary_pressure_activated = have_option( '/material_phase[0]/multiphase_properties/capillary_pressure' )
 
       !If we do not have an index where we have stored C, then we need to calculate it
@@ -3037,10 +3037,12 @@
       D3   = ( NDIM == 3 )
 
       NO_MATRIX_STORE = NCOLDGM_PHA<=1
+      !#####TEMPORARY, CHANGE WHEN BLOCK SOLVER IS READY!#####
+      NO_MATRIX_STORE = .true.
+      !#####TEMPORARY, CHANGE WHEN BLOCK SOLVER IS READY!#####
       IF( (.NOT.JUST_BL_DIAG_MAT) .AND. (.NOT.NO_MATRIX_STORE) ) DGM_PHA = 0.0
       if (.not.got_c_matrix) C = 0.0
       U_RHS = 0.0
-
       IF (.NOT.NO_MATRIX_STORE ) THEN
          ALLOCATE( DIAG_BIGM_CON( NDIM_VEL, NDIM_VEL, NPHASE, NPHASE, U_NLOC, U_NLOC, TOTELE ) ) 
          ALLOCATE( BIGM_CON( NDIM_VEL, NDIM_VEL, NPHASE, NPHASE, U_NLOC, U_NLOC, NCOLELE ) ) 
