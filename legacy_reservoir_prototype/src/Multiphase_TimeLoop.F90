@@ -687,6 +687,9 @@
          call set_prescribed_field_values( state, exclude_interpolated = .true., &
               exclude_nonreprescribed = .true., time = acctim )
 
+         call copy_packed_new_to_old(packed_state)
+
+
          ! update velocity absorption
          call update_velocity_absorption( state, ndim, nphase, mat_nonods, velocity_absorption )
 
@@ -723,7 +726,7 @@
                  X, Y, Z,& 
                  Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
                  Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
-                 Temperature_Old,dENSITY_CP_OLD, &
+                 Temperature_Old, DENSITY_CP_OLD, &
                  MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
                  t_disopt, t_dg_vel_int_opt, dt, t_theta, second_theta, t_beta, &
                  Temperature_BC, Density_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, &
@@ -989,7 +992,7 @@
                     NCOLM, FINDM, COLM, MIDM, &
                     XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
                     Component_BC_Spatial, Component_BC ,&
-                           StorageIndexes=StorageIndexes)
+                    StorageIndexes=StorageIndexes )
 !!$ Set U_Density
                U_Density = 0. ; U_Density_Old = 0.
                if( .not. have_option( '/material_phase[0]/multiphase_properties/relperm_type' ) )then
@@ -1105,6 +1108,7 @@
 
                Pressure_State => extract_scalar_field( state( 1 ), 'Pressure' )
                Pressure_State % val = Pressure_CV
+
 
 !!$ Calculate Density_Component for compositional
                if( have_component_field ) &

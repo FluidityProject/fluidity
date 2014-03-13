@@ -1342,38 +1342,38 @@
       ALLOCATE( ACV( NCOLACV )) ; ACV = 0.
 
       !################TEMPORARY ADAPT FROM OLD VARIABLES TO NEW###############
-      IF ( IS_OVERLAPPING ) THEN
-         NLEV = CV_NLOC
-         U_NLOC2 = MAX( 1, U_NLOC / CV_NLOC )
-      ELSE
-         NLEV = 1
-         U_NLOC2 = U_NLOC
-      END IF
-      DO ELE = 1, TOTELE
-         DO ILEV = 1, NLEV
-            DO U_ILOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
-               U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
-               DO IPHASE = 1, NPHASE
-                  DO IDIM = 1, NDIM
-                     IF ( IDIM==1 ) THEN
-                        U_ALL( IDIM, IPHASE, U_INOD ) = U( U_INOD + (IPHASE-1)*U_NONODS )
-                        UOLD_ALL( IDIM, IPHASE, U_INOD ) = UOLD( U_INOD + (IPHASE-1)*U_NONODS )
-                     ELSE IF ( IDIM==2 ) THEN
-                        U_ALL( IDIM, IPHASE, U_INOD ) = V( U_INOD + (IPHASE-1)*U_NONODS )
-                        UOLD_ALL( IDIM, IPHASE, U_INOD ) = VOLD( U_INOD + (IPHASE-1)*U_NONODS )
-                     ELSE
-                        U_ALL( IDIM, IPHASE, U_INOD ) = W( U_INOD + (IPHASE-1)*U_NONODS )
-                        UOLD_ALL( IDIM, IPHASE, U_INOD ) = WOLD( U_INOD + (IPHASE-1)*U_NONODS )
-                     END IF
-                  END DO
-               END DO
-            END DO
-         END DO
-      END DO
+      !IF ( IS_OVERLAPPING ) THEN
+      !   NLEV = CV_NLOC
+      !   U_NLOC2 = MAX( 1, U_NLOC / CV_NLOC )
+      !ELSE
+      !   NLEV = 1
+      !   U_NLOC2 = U_NLOC
+      !END IF
+      !DO ELE = 1, TOTELE
+      !   DO ILEV = 1, NLEV
+      !      DO U_ILOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
+      !         U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
+      !         DO IPHASE = 1, NPHASE
+      !            DO IDIM = 1, NDIM
+      !               IF ( IDIM==1 ) THEN
+      !                  U_ALL( IDIM, IPHASE, U_INOD ) = U( U_INOD + (IPHASE-1)*U_NONODS )
+      !                  UOLD_ALL( IDIM, IPHASE, U_INOD ) = UOLD( U_INOD + (IPHASE-1)*U_NONODS )
+      !               ELSE IF ( IDIM==2 ) THEN
+      !                  U_ALL( IDIM, IPHASE, U_INOD ) = V( U_INOD + (IPHASE-1)*U_NONODS )
+      !                  UOLD_ALL( IDIM, IPHASE, U_INOD ) = VOLD( U_INOD + (IPHASE-1)*U_NONODS )
+      !               ELSE
+      !                  U_ALL( IDIM, IPHASE, U_INOD ) = W( U_INOD + (IPHASE-1)*U_NONODS )
+      !                  UOLD_ALL( IDIM, IPHASE, U_INOD ) = WOLD( U_INOD + (IPHASE-1)*U_NONODS )
+      !               END IF
+      !            END DO
+      !         END DO
+      !      END DO
+      !   END DO
+      !END DO
       
 
       U_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedVelocity" )
-      !U_ALL = U_ALL2%VAL
+      U_ALL = U_ALL2%VAL
 
       !print *, ' '
       !print *, ' '
@@ -1383,6 +1383,7 @@
 
 
       U_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldVelocity" )
+      UOLD_ALL = U_ALL2%VAL
 
       !print *, 'uold_old', UOLD_ALL
       !print *, 'uold_new', U_ALL2%VAL
@@ -1390,6 +1391,13 @@
 
       X_ALL2 => EXTRACT_VECTOR_FIELD( PACKED_STATE, "PressureCoordinate" )
       X_ALL = X_ALL2%VAL
+
+
+      ! make sure is linearised in case option is switched on for p2 simulations...
+      !X_ALL2 => EXTRACT_VECTOR_FIELD( PACKED_STATE, "PackedDensity" )
+      !UDEN_ALL = X_ALL2%VAL
+      !X_ALL2 => EXTRACT_VECTOR_FIELD( PACKED_STATE, "PackedOldDensity" )
+      !UDENOLD_ALL = X_ALL2%VAL
 
       DO IPHASE = 1, NPHASE
          UDEN_ALL( IPHASE, : ) = UDEN( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
@@ -1705,6 +1713,22 @@
          U = U + DU
          IF( NDIM >= 2 ) V = V + DV
          IF( NDIM >= 3 ) W = W + DW
+
+         U_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedVelocity" )
+
+         DO ELE = 1, TOTELE
+            DO U_ILOC = 1, U_NLOC
+               U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
+               DO IPHASE = 1, NPHASE
+                  DO IDIM = 1, NDIM
+                     J = U_INOD + (IPHASE-1)*NDIM*U_NONODS ! OLD
+                     IF (IDIM ==1 ) U_ALL2%VAL( IDIM, IPHASE, U_INOD ) = U( J )
+                     IF (IDIM ==2 ) U_ALL2%VAL( IDIM, IPHASE, U_INOD ) = V( J )
+                     IF (IDIM ==3 ) U_ALL2%VAL( IDIM, IPHASE, U_INOD ) = W( J )
+                  END DO
+               END DO
+            END DO
+         END DO
 
       END IF
 
