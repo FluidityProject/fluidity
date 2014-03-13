@@ -303,6 +303,7 @@ contains
     
     field%dim=dim
     field%option_path=empty_path
+    field%val_stride=(/1,1/)
 
     field%mesh=mesh
     call incref(mesh)

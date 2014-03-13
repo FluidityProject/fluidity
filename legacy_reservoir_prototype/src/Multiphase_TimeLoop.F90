@@ -409,19 +409,8 @@
            plike_grad_sou_grad( cv_nonods * nphase ), &
            plike_grad_sou_coef( cv_nonods * nphase ) )
 
-      ncv_faces=CV_count_faces( SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV,&
-           CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
-           CV_ELE_TYPE,  &
-           NPHASE,  &
-           CV_NLOC, U_NLOC, X_NLOC, &
-           CV_NDGLN, X_NDGLN, U_NDGLN, &
-           CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-           X, Y, Z,&
-           MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
-           NDIM, &
-           NCOLM, FINDM, COLM, MIDM, &
-           XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
-           small_finacv,small_colacv,size(small_colacv) )
+      ncv_faces=CV_count_faces( packed_state,&
+                 CV_ELE_TYPE, STOTEL, CV_SNDGLN, U_SNDGLN )
 
       allocate(NDOTQOLD(nphase,ncv_faces),&
            NDOTQVOLD(nphase,ncv_faces),&
@@ -1905,19 +1894,9 @@ deallocate(NDOTQOLD,&
             allocate( density_tmp(cv_nonods*nphase) , density_old_tmp(cv_nonods*nphase) )
             density_tmp=0. ; density_old_tmp=0.
 
-ncv_faces=CV_count_faces( SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV,&
-           CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
-           CV_ELE_TYPE,  &
-           NPHASE,  &
-           CV_NLOC, U_NLOC, X_NLOC, &
-           CV_NDGLN, X_NDGLN, U_NDGLN, &
-           CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-           X, Y, Z,&
-           MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
-           NDIM, &
-           NCOLM, FINDM, COLM, MIDM, &
-           XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
-           small_finacv,small_colacv,size(small_colacv) )
+
+            ncv_faces=CV_count_faces( packed_state,&
+                 CV_ELE_TYPE, STOTEL, CV_SNDGLN, U_SNDGLN )
 
       allocate(NDOTQOLD(nphase,ncv_faces),&
            NDOTQVOLD(nphase,ncv_faces),&

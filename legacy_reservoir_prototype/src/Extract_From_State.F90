@@ -2034,6 +2034,7 @@
 
       pressure=>extract_scalar_field(state(1),"Pressure")
       call insert(packed_state,pressure,"Pressure")
+      call insert(packed_state,pressure%mesh,"PressureMesh")
 
       call add_new_memory(packed_state,pressure,"FEPressure")
       call add_new_memory(packed_state,pressure,"OldFEPressure")
@@ -2047,17 +2048,21 @@
       call insert_sfield(packed_state,"PhaseVolumeFraction",1,nphase)
 
       velocity=>extract_vector_field(state(1),"Velocity")
+      call insert(packed_state,velocity%mesh,"VelocityMesh")
       ovmesh=make_mesh(position%mesh,&
            shape=velocity%mesh%shape,&
            continuity=1,name="VelocityMesh_Continuous")
+      call insert(packed_state,ovmesh,"VelocityMesh_Continuous")
       call allocate(u_position,ndim,ovmesh,"VelocityCoordinate")
       ovmesh=make_mesh(position%mesh,&
            shape=pressure%mesh%shape,&
            continuity=1,name="PressureMesh_Continuous")
+      call insert(packed_state,ovmesh,"PressureMesh_Continuous")
       call allocate(p_position,ndim,ovmesh,"PressureCoordinate")
       ovmesh=make_mesh(position%mesh,&
            shape=pressure%mesh%shape,&
            continuity=-1,name="PressureMesh_Discontinuous")
+      call insert(packed_state,ovmesh,"PressureMesh_Discontinuous")
       if ( .not. has_mesh(state(1),"PressureMesh_Discontinuous") ) &
            call insert(state(1),ovmesh,"PressureMesh_Discontinuous")
       call allocate(m_position,ndim,ovmesh,"MaterialCoordinate")
@@ -2077,7 +2082,7 @@
       if (trim(vel_element_type)=='overlapping') then
          !overlapping
          ovmesh=make_mesh(position%mesh,&
-              shape=velocity%mesh%shape,&
+              shape=velocity%mesh%shape,& 
               continuity=velocity%mesh%continuity,&
               overlapping_shape=pressure%mesh%shape)
          overlapping_shape=pressure%mesh%shape
@@ -2085,6 +2090,7 @@
          call insert_vfield(packed_state,"Velocity",ovmesh)
          call insert_vfield(packed_state,"NonlinearVelocity",ovmesh)
          call insert(state(1),ovmesh,"InternalVelocityMesh")
+         call insert(packed_state,ovmesh,"InternalVelocityMesh")
       else
          call insert(packed_state,velocity%mesh,"InternalVelocityMesh")
          call insert_vfield(packed_state,"Velocity")
@@ -2292,7 +2298,6 @@
           type(scalar_field), pointer :: nfield
           type(tensor_field), pointer :: mfield
 
-          return
 
           mfield=>extract_tensor_field(mstate,"Packed"//name)
 
@@ -2319,8 +2324,6 @@
           type(tensor_field), pointer ::mfield
           integer :: ndim,rdim, nonods
 
-          return 
-
           nfield=>extract_vector_field(nstate,name)
           mfield=>extract_tensor_field(mstate,"Packed"//name)
 
@@ -2346,8 +2349,6 @@
 
           type(scalar_field), pointer :: nfield
           type(tensor_field), pointer :: mfield
-
-          return
 
           mfield=>extract_tensor_field(mst,"Packed"//name)
 
