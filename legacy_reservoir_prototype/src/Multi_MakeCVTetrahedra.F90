@@ -73,10 +73,10 @@
       implicit none
       integer, intent( in ) :: x_nonods, triangle_totele
       integer, intent( inout ) :: nodeplustetnodes
-      integer, dimension( : ), intent( inout ) :: x_ndgln_big
-      real, dimension( : ), intent( inout ) :: x, y, z, lx, ly, lz
-      integer, dimension( : ), intent( inout ) :: fem_nod
-      integer, dimension( : ), intent( inout ) :: x_ndgln, x_ndgln2
+      integer, dimension( x_nonods ), intent( inout ) :: x_ndgln_big
+      real, dimension( x_nonods ), intent( inout ) :: x, y, z, lx, ly, lz
+      integer, dimension( x_nonods ), intent( inout ) :: fem_nod
+      integer, dimension( x_nonods ), intent( inout ) :: x_ndgln, x_ndgln2
       ! Local variables
       integer :: ifem ! counter for fem_nod
       integer :: nnods, ele, ele2, ilayer, ilayer0, iloc, iloc2, iside, inod, nod, plusnodes
@@ -233,8 +233,8 @@
       implicit none
       logical, intent( in ) :: mapfemnode
       integer, intent( in ) :: ilayer, x_nonods
-      real, dimension( : ), intent( inout ) :: x, y, z
-      integer, dimension( : ), intent( inout ) :: fem_nod
+      real, dimension( x_nonods ), intent( inout ) :: x, y, z
+      integer, dimension( x_nonods ), intent( inout ) :: fem_nod
       integer, intent( inout ) :: ifem
       ! Local variables
       integer :: ilayer0, node, nodeplus1, nodeplus2, iside
@@ -313,8 +313,8 @@
       implicit none
       logical, intent( in ) :: mapfemnode
       integer, intent( in ) :: ilayer, x_nonods
-      real, dimension( : ), intent( inout ) :: x
-      integer, dimension( : ), intent( inout ) :: fem_nod
+      real, dimension( x_nonods ), intent( inout ) :: x
+      integer, dimension( x_nonods ), intent( inout ) :: fem_nod
       integer, intent( inout ) :: ifem
       ! Local variables
       integer :: iside, iloc, node, nodeplus, nodeminus
@@ -352,7 +352,7 @@
       ! centre region
       implicit none
       integer, intent( in ) :: ilayer, x_nonods
-      real, dimension( : ), intent( inout ) :: x, y, z
+      real, dimension( x_nonods ), intent( inout ) :: x, y, z
       ! Local variables
       integer :: node, iloc, ilayer0, nnods, nod, inod
 
@@ -387,7 +387,7 @@
       ! from the large tetrahedron. 
       implicit none
       integer, intent( in ) :: x_nonods
-      integer, dimension( : ), intent( inout ) :: x_ndgln
+      integer, dimension( x_nonods ), intent( inout ) :: x_ndgln
       ! Local variables
       integer :: ele, ilayer
 
@@ -503,8 +503,8 @@
       implicit none
       integer, intent( in ) :: x_nonods, triangle_totele
       integer, intent( inout ) :: nodeplustetnodes
-      integer, dimension( : ), intent( inout ) :: x_ndgln, x_ndgln2
-      real, dimension( : ), intent( inout ) :: x, y, z
+      integer, dimension( x_nonods ), intent( inout ) :: x_ndgln, x_ndgln2
+      real, dimension( x_nonods ), intent( inout ) :: x, y, z
       ! Local variables
       integer, dimension( 12 ), save :: inc_tri = &
            (/ 1, 2, 3, 1, 2, 4, 1, 3, 4, 2, 3, 4 /)
@@ -569,8 +569,8 @@
       implicit none
       integer, intent( in ) :: ele, x_nonods
       integer, intent( inout ) :: nodeplustetnodes
-      integer, dimension( : ), intent( inout ) :: x_ndgln2
-      real, dimension( : ), intent( inout ) :: x, y, z
+      integer, dimension( x_nonods ), intent( inout ) :: x_ndgln2
+      real, dimension( x_nonods ), intent( inout ) :: x, y, z
       ! Local variables
       integer :: ele2, node, iloc, iloc2, inode, nodeplus, nodeminus, nodeplus1
 
@@ -628,8 +628,8 @@
          x, y, z )
       implicit none
       integer, intent( in ) :: x_nonods
-      integer, dimension( : ), intent( inout ) :: x_ndgln2
-      real, dimension( : ), intent( in ) :: x, y, z
+      integer, dimension( x_nonods ), intent( inout ) :: x_ndgln2
+      real, dimension( x_nonods ), intent( in ) :: x, y, z
       ! Local Variables
       real, parameter :: toler = 1.e-10
       integer :: ele, ele2, ntotel, node1, node2, icount
@@ -682,7 +682,7 @@
     subroutine checking_QTet_CV( x_nonods, x_ndgln2 )
       implicit none
       integer, intent( in ) :: x_nonods 
-      integer, dimension( : ), intent( in ) :: x_ndgln2
+      integer, dimension( x_nonods ), intent( in ) :: x_ndgln2
       ! Local variables
       integer :: ele, ele2, inode, iloc, node1, node2, node3, node4
 
@@ -726,8 +726,8 @@
       ! tetrahedra at the large tetrahedron.
       implicit none
       integer, intent( in ) :: ele, x_nonods
-      integer, dimension( : ), intent( in ) :: x_ndgln2
-      integer, dimension( : ), intent( inout ) :: x_ndgln
+      integer, dimension( x_nonods ), intent( in ) :: x_ndgln2
+      integer, dimension( x_nonods ), intent( inout ) :: x_ndgln
       ! Local Variables
       integer :: elequad, ele2, inode, node1, node2, node3, node4, &
            node5, node6, node7, node8
@@ -895,7 +895,7 @@
     real function QTet_Height( ilayer, x_nonods, z )
       implicit none
       integer, intent( in ) :: ilayer, x_nonods
-      real, dimension( : ), intent( in ) :: z
+      real, dimension( x_nonods ), intent( in ) :: z
 
       QTet_Height = 0.
       QTet_Height = real ( nlayer - ilayer ) / real( nlayer ) * &

@@ -41,7 +41,7 @@
     use global_parameters, only: option_path_len
     use shape_functions_Linear_Quadratic
     use shape_functions_NDim
-    use Fields_Allocates, only : allocate
+
   contains
 
 !!!
@@ -1690,16 +1690,6 @@ ewrite(3,*)'lll:', option_path_len
          case default
             sele_overlap_scale = 1.
          end Select
-! correct scaling...
-         sele_overlap_scale = real(cv_nloc)/real(cv_snloc)
-    !     if(ndim==2) then
-    !        if(cv_nloc==3) sele_overlap_scale =3.
-    !        if(cv_nloc==6) sele_overlap_scale = 6.
-    !     else if(ndim==3) then
-    !        if(cv_nloc==4) sele_overlap_scale = 2.
-    !        if(cv_nloc==10) sele_overlap_scale = 4.
-    !     endif
-     !       sele_overlap_scale = 0.33
       else
          sele_overlap_scale = 1.
       end if
@@ -7626,101 +7616,27 @@ ewrite(3,*)'lll:', option_path_len
     SUBROUTINE DETNLXR_PLUS_U( ELE, X, Y, Z, XONDGL, TOTELE, NONODS, &
          X_NLOC, CV_NLOC, NGI, &
          N, NLX, NLY, NLZ, WEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
-         NX_ALL, &
-         U_NLOC, UNLX, UNLY, UNLZ, UNX_ALL, state, StorName , indx )
+         NX, NY, NZ, &
+         U_NLOC, UNLX, UNLY, UNLZ, UNX, UNY, UNZ ) 
       implicit none
       INTEGER, intent( in ) :: ELE, TOTELE, NONODS, X_NLOC, NGI, CV_NLOC, U_NLOC
       INTEGER, DIMENSION( TOTELE * X_NLOC ), intent( in ) :: XONDGL
       REAL, DIMENSION( NONODS ), intent( in ) :: X, Y, Z
       REAL, DIMENSION( CV_NLOC, NGI ), intent( in ) :: N, NLX, NLY, NLZ 
       REAL, DIMENSION( NGI ), intent( in ) :: WEIGHT
+      REAL, DIMENSION( NGI ), intent( inout ) :: DETWEI, RA
+      REAL, intent( inout ) :: VOLUME
       LOGICAL, intent( in ) :: D1, D3, DCYL
+      REAL, DIMENSION( X_NLOC, NGI ), intent( inout ) :: NX, NY, NZ
       REAL, DIMENSION( U_NLOC, NGI ), intent( in ) :: UNLX, UNLY, UNLZ
-      real, pointer, dimension(:,:,:), intent(inout) ::NX_ALL, UNX_ALL
-      real, pointer, dimension(:), intent(inout) :: DETWEI, RA
-      real, pointer, intent(inout) :: VOLUME
-      type( state_type ), intent( inout ), dimension(:) :: state
-      character(len=*), intent(in) :: StorName
-      integer, intent(inout) :: indx
+      REAL, DIMENSION( U_NLOC, NGI ), intent( inout ) :: UNX, UNY, UNZ
+
       ! Local variables
       REAL, PARAMETER :: PIE = 3.141592654
       REAL :: AGI, BGI, CGI, DGI, EGI, FGI, GGI, HGI, KGI, A11, A12, A13, A21, &
            A22, A23, A31, A32, A33, DETJ, TWOPIE, RGI, rsum
-      INTEGER :: GI, L, IGLX, NDIM
-      !Variables to store things in state
-      type(mesh_type), pointer :: fl_mesh
-      type(mesh_type) :: Auxmesh
-      type(scalar_field), target :: targ_NX_ALL
-      type(scalar_field), target :: targ_UNX_ALL
-      type(scalar_field), target :: targ_DETWEI_RA
-      type(scalar_field), target :: targ_VOLUME
-      !#########Storing area#################################
-      !****TEMPORARY****
-      NDIM = 3
-      !********************
-      !If new mesh or mesh moved indx will be zero (set in Multiphase_TimeLoop)
-      if (indx>0) then!Everything has been calculated already
-          !Get from state, indx is an input
-          NX_ALL(1:NDIM,1:X_NLOC,1:NGI) => &
-          state(1)%scalar_fields(indx)%ptr%val(1+NDIM*X_NLOC*NGI*(ELE-1):NDIM*X_NLOC*NGI*ELE)
-          UNX_ALL(1:NDIM,1:U_NLOC,1:NGI)  => &
-          state(1)%scalar_fields(indx+1)%ptr%val(1+NDIM*U_NLOC*NGI*(ELE-1):NDIM*U_NLOC*NGI*ELE)
-          DETWEI(1:NGI) => state(1)%scalar_fields(indx+2)%ptr%val(1+NGI*(ELE-1):NGI*ELE)
-          RA(1:NGI) => state(1)%scalar_fields(indx+2)%ptr%val(1+NGI*((ELE-1)+TOTELE):NGI*(ELE+TOTELE))
-          VOLUME => state(1)%scalar_fields(indx+3)%ptr%val(ELE)
-          return
-      else if (indx/=0) then!We need to calculate a new value
-          !Get from state, indx is an input
-          NX_ALL(1:NDIM,1:X_NLOC,1:NGI) => &
-          state(1)%scalar_fields(-indx)%ptr%val(1+NDIM*X_NLOC*NGI*(ELE-1):NDIM*X_NLOC*NGI*ELE)
-          UNX_ALL(1:NDIM,1:U_NLOC,1:NGI)  => &
-          state(1)%scalar_fields(-indx+1)%ptr%val(1+NDIM*U_NLOC*NGI*(ELE-1):NDIM*U_NLOC*NGI*ELE)
-          DETWEI(1:NGI) => state(1)%scalar_fields(-indx+2)%ptr%val(1+NGI*(ELE-1):NGI*ELE)
-          RA(1:NGI) => state(1)%scalar_fields(-indx+2)%ptr%val(1+NGI*((ELE-1)+TOTELE):NGI*(ELE+TOTELE))
-          VOLUME => state(1)%scalar_fields(-indx+3)%ptr%val(ELE)
-      else if (ELE==1) then !The first time we need to introduce the targets in state
-          if (has_scalar_field(state(1), "X"//StorName)) then
-              !If we are recalculating due to a mesh modification then
-              !we return to the original situation
-              call remove_scalar_field(state(1), "X"//StorName)
-              call remove_scalar_field(state(1), "UX"//StorName)
-              call remove_scalar_field(state(1), "D"//StorName)
-              call remove_scalar_field(state(1), "V"//StorName)
-          end if
-          !Get mesh file just to be able to allocate the fields we want to store
-          fl_mesh => extract_mesh( state(1), "CoordinateMesh" )
-          Auxmesh = fl_mesh
-          !The number of nodes I want does not coincide
-          Auxmesh%nodes = totele*X_NLOC*NGI*NDIM
-          call allocate (Targ_NX_ALL, Auxmesh)
-          Auxmesh%nodes = totele*U_NLOC*NGI*NDIM
-          call allocate (Targ_UNX_ALL, Auxmesh)
-          Auxmesh%nodes = totele*NGI*2
-          call allocate (Targ_DETWEI_RA, Auxmesh)
-          Auxmesh%nodes = totele
-          call allocate (Targ_VOLUME, Auxmesh)
+      INTEGER :: GI, L, IGLX
 
-          !Now we insert them in state and store the indexes
-          call insert(state(1), Targ_NX_ALL, "X"//StorName)
-          !Store index with a negative value, because if the index is
-          !zero or negative then we have to calculate stuff
-          indx = -size(state(1)%scalar_fields)
-          call insert(state(1), Targ_UNX_ALL, "UX"//StorName)
-          call insert(state(1), Targ_DETWEI_RA, "D"//StorName)
-          call insert(state(1), Targ_VOLUME, "V"//StorName)
-
-          !Get from state, indx is an input
-          NX_ALL(1:NDIM,1:X_NLOC,1:NGI) => &
-          state(1)%scalar_fields(-indx)%ptr%val(1+NDIM*X_NLOC*NGI*(ELE-1):NDIM*X_NLOC*NGI*ELE)
-          UNX_ALL(1:NDIM,1:U_NLOC,1:NGI)  => &
-          state(1)%scalar_fields(-indx+1)%ptr%val(1+NDIM*U_NLOC*NGI*(ELE-1):NDIM*U_NLOC*NGI*ELE)
-          DETWEI(1:NGI) => state(1)%scalar_fields(-indx+2)%ptr%val(1+NGI*(ELE-1):NGI*ELE)
-          RA(1:NGI) => state(1)%scalar_fields(-indx+2)%ptr%val(1+NGI*((ELE-1)+TOTELE):NGI*(ELE+TOTELE))
-          VOLUME => state(1)%scalar_fields(-indx+3)%ptr%val(ELE)
-      end if
-      !When all the values are obtained, the index is set to a positive value
-      if (ELE == totele) indx = abs(indx)
-      !#########Storing area finished########################
       !ewrite(3,*)' In Detnlxr_Plus_U'
 
       VOLUME = 0.
@@ -7771,15 +7687,15 @@ ewrite(3,*)'lll:', option_path_len
             A33=   ( AGI * EGI - BGI * DGI ) / DETJ
 
             Loop_L2: DO L = 1, X_NLOC
-               NX_ALL(1, L, GI ) = A11 * NLX( L, GI) + A12 * NLY( L, GI ) + A13 * NLZ( L, GI )
-               NX_ALL(2, L, GI ) = A21 * NLX( L, GI) + A22 * NLY( L, GI ) + A23 * NLZ( L, GI )
-               NX_ALL(3, L, GI ) = A31 * NLX( L, GI) + A32 * NLY( L, GI ) + A33 * NLZ( L, GI )
+               NX( L, GI ) = A11 * NLX( L, GI) + A12 * NLY( L, GI ) + A13 * NLZ( L, GI )
+               NY( L, GI ) = A21 * NLX( L, GI) + A22 * NLY( L, GI ) + A23 * NLZ( L, GI )
+               NZ( L, GI ) = A31 * NLX( L, GI) + A32 * NLY( L, GI ) + A33 * NLZ( L, GI )
             END DO Loop_L2
 
             Loop_L3: DO L = 1, U_NLOC
-               UNX_ALL(1, L, GI ) = A11 * UNLX( L, GI) + A12 * UNLY( L, GI ) + A13 * UNLZ( L, GI )
-               UNX_ALL(2, L, GI ) = A21 * UNLX( L, GI) + A22 * UNLY( L, GI ) + A23 * UNLZ( L, GI )
-               UNX_ALL(3, L, GI ) = A31 * UNLX( L, GI) + A32 * UNLY( L, GI ) + A33 * UNLZ( L, GI )
+               UNX( L, GI ) = A11 * UNLX( L, GI) + A12 * UNLY( L, GI ) + A13 * UNLZ( L, GI )
+               UNY( L, GI ) = A21 * UNLX( L, GI) + A22 * UNLY( L, GI ) + A23 * UNLZ( L, GI )
+               UNZ( L, GI ) = A31 * UNLX( L, GI) + A32 * UNLY( L, GI ) + A33 * UNLZ( L, GI )
             END DO Loop_L3
 
          END DO Loop_GI1
@@ -7818,16 +7734,16 @@ ewrite(3,*)'lll:', option_path_len
             VOLUME = VOLUME + DETWEI( GI )
 
             Loop_L5: DO L = 1, X_NLOC
-               NX_ALL(1, L, GI ) = (  DGI * NLX( L, GI ) - BGI * NLY( L, GI )) / DETJ
-               NX_ALL(2, L, GI ) = ( -CGI * NLX( L, GI ) + AGI * NLY( L, GI )) / DETJ
-               NX_ALL(3,L, GI ) = 0.0
+               NX( L, GI ) = (  DGI * NLX( L, GI ) - BGI * NLY( L, GI )) / DETJ
+               NY( L, GI ) = ( -CGI * NLX( L, GI ) + AGI * NLY( L, GI )) / DETJ
+               NZ( L, GI ) = 0.0
             END DO Loop_L5
 
 
             Loop_L6: DO L = 1, U_NLOC
-               UNX_ALL(1, L, GI ) = (  DGI * UNLX( L, GI ) - BGI * UNLY( L, GI )) / DETJ
-               UNX_ALL(2,L, GI ) = ( -CGI * UNLX( L, GI ) + AGI * UNLY( L, GI )) / DETJ
-               UNX_ALL(3, L, GI ) = 0.0
+               UNX( L, GI ) = (  DGI * UNLX( L, GI ) - BGI * UNLY( L, GI )) / DETJ
+               UNY( L, GI ) = ( -CGI * UNLX( L, GI ) + AGI * UNLY( L, GI )) / DETJ
+               UNZ( L, GI ) = 0.0
             END DO Loop_L6
 
          END DO Loop_GI2
@@ -7851,15 +7767,15 @@ ewrite(3,*)'lll:', option_path_len
             VOLUME = VOLUME + DETWEI( GI )
 
             Loop_L16: DO L = 1, X_NLOC
-               NX_ALL(1, L, GI ) = NLX( L, GI ) / DETJ
-               NX_ALL(2, L, GI ) = 0.0
-               NX_ALL(3, L, GI ) = 0.0
+               NX( L, GI ) = NLX( L, GI ) / DETJ
+               NY( L, GI ) = 0.0
+               NZ( L, GI ) = 0.0
             END DO Loop_L16
 
             Loop_L17: DO L = 1, U_NLOC
-               UNX_ALL(1, L, GI ) = UNLX( L, GI ) / DETJ
-               UNX_ALL(2, L, GI ) = 0.0
-               UNX_ALL(3, L, GI ) = 0.0
+               UNX( L, GI ) = UNLX( L, GI ) / DETJ
+               UNY( L, GI ) = 0.0
+               UNZ( L, GI ) = 0.0
             END DO Loop_L17
 
          END DO Loop_GI14

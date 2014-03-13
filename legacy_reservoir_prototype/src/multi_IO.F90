@@ -184,10 +184,10 @@ contains
     implicit none
 
     integer, intent( in ) :: unit, totele, cv_nonods, x_nonods, nphase, cv_nloc, x_nloc
-    integer, dimension( : ), intent( in ) :: cv_ndgln
-    integer, dimension( : ), intent( in ) :: x_ndgln
-    real, dimension( : ), intent( in ) :: x
-    real, dimension( : ), intent( in ) :: femt
+    integer, dimension( totele * cv_nloc ), intent( in ) :: cv_ndgln
+    integer, dimension( totele * x_nloc ), intent( in ) :: x_ndgln
+    real, dimension( x_nonods ), intent( in ) :: x
+    real, dimension( cv_nonods * nphase ), intent( in ) :: femt
 
     ! Local variables
     integer :: ele, cv_iloc
@@ -258,11 +258,11 @@ contains
        pos_x, field_length, field, iphase )
     implicit none
     integer, intent( in ) :: unit, totele, x_nloc, cv_nonods, x_nonods, cv_nloc, iphase
-    integer, dimension( : ), intent( in ) :: x_ndgln
-    integer, dimension( : ), intent( in ) :: cv_ndgln
-    real, dimension( : ), intent( in ) :: pos_x
+    integer, dimension( totele * x_nloc ), intent( in ) :: x_ndgln
+    integer, dimension( totele * cv_nloc ), intent( in ) :: cv_ndgln
+    real, dimension( x_nonods ), intent( in ) :: pos_x
     integer, intent( in ) :: field_length
-    real, dimension( : ), intent( in ) :: field
+    real, dimension( field_length ), intent( in ) :: field
 
     ! Local variables
     integer :: cv_iloc, ele, xi_nod, xi_nod_plus, xi_nod_minus, field_nod
@@ -319,10 +319,10 @@ contains
        pos_x,  field)
     implicit none
     integer, intent( in ) :: unit, totele, x_nloc, cv_nonods, x_nonods, cv_nloc
-    integer, dimension( : ), intent( in ) :: x_ndgln
-    integer, dimension( : ), intent( in ) :: cv_ndgln
-    real, dimension( : ), intent( in ) :: pos_x
-    real, dimension(:), intent( in ) :: field
+    integer, dimension( totele * x_nloc ), intent( in ) :: x_ndgln
+    integer, dimension( totele * cv_nloc ), intent( in ) :: cv_ndgln
+    real, dimension( x_nonods ), intent( in ) :: pos_x
+    real, dimension(cv_nloc*totele), intent( in ) :: field
 
     ! Local variables
     integer :: cv_iloc, ele, xi_nod, xi_nod_plus, xi_nod_minus, field_nod
@@ -377,13 +377,13 @@ contains
        pos_x, u_nonods, field_length, field, iphase )
     implicit none
     integer, intent( in ) :: unit, totele, xu_nonods, xu_nloc
-    integer, dimension( : ), intent( in ) :: xu_ndgln
+    integer, dimension( totele * xu_nloc ), intent( in ) :: xu_ndgln
     integer, intent( in ) :: u_nloc
-    integer, dimension( : ), intent( in ) :: u_ndgln
-    real, dimension( : ), intent( in ) :: pos_x
+    integer, dimension( totele * u_nloc ), intent( in ) :: u_ndgln
+    real, dimension( xu_nonods ), intent( in ) :: pos_x
     integer, intent( in ) :: u_nonods
     integer, intent( in ) :: field_length
-    real, dimension( : ), intent( in ) :: field
+    real, dimension( field_length ), intent( in ) :: field
     integer, intent( in ) :: iphase
 
     ! Local variables
@@ -441,9 +441,9 @@ contains
        field_length, field )
     implicit none
     integer, intent( in ) :: unit, totele, cv_nonods, cv_nloc
-    integer, dimension( : ), intent( in ) :: cv_ndgln
+    integer, dimension( totele * cv_nloc ), intent( in ) :: cv_ndgln
     integer, intent( in ) :: field_length
-    real, dimension( : ), intent( in ) :: field
+    real, dimension( field_length ), intent( in ) :: field
 
     ! Local variables
     integer :: cv_iloc, ele, cv_nod
@@ -504,20 +504,20 @@ contains
 
     INTEGER, intent( in ) :: NDIM, NPHASE, U_NONODS, CV_NONODS, X_NONODS, &
          STOTEL, U_SNLOC, P_SNLOC, CV_SNLOC
-    INTEGER, DIMENSION( : ), intent( in ) :: X_SNDGLN
-    INTEGER, DIMENSION( : ), intent( in ) :: U_SNDGLN
-    INTEGER, DIMENSION( : ), intent( in )  :: P_SNDGLN
-    INTEGER, DIMENSION( : ), intent( in ) :: CV_SNDGLN
-    REAL, DIMENSION( : ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
-    REAL, DIMENSION( : ), intent( in ) :: SUF_P_BC
-    REAL, DIMENSION( : ), intent( in ) :: SUF_U_BC_ROB1, SUF_U_BC_ROB2, &
+    INTEGER, DIMENSION( STOTEL * CV_SNLOC ), intent( in ) :: X_SNDGLN
+    INTEGER, DIMENSION( STOTEL * U_SNLOC ), intent( in ) :: U_SNDGLN
+    INTEGER, DIMENSION( STOTEL * P_SNLOC ), intent( in )  :: P_SNDGLN
+    INTEGER, DIMENSION( STOTEL * CV_SNLOC ), intent( in ) :: CV_SNDGLN
+    REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
+    REAL, DIMENSION( STOTEL * P_SNLOC * NPHASE ), intent( in ) :: SUF_P_BC
+    REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC_ROB1, SUF_U_BC_ROB2, &
          SUF_V_BC_ROB1, SUF_V_BC_ROB2, SUF_W_BC_ROB1, SUF_W_BC_ROB2 
-    INTEGER, DIMENSION( : ), intent( in ) ::  WIC_U_BC, WIC_P_BC
-    REAL, DIMENSION( : ), intent( in ) :: SUF_VOL_BC, SUF_D_BC
-    REAL, DIMENSION( : ), intent( in ) :: SUF_VOL_BC_ROB1, &
+    INTEGER, DIMENSION( STOTEL * NPHASE ), intent( in ) ::  WIC_U_BC, WIC_P_BC
+    REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE ), intent( in ) :: SUF_VOL_BC, SUF_D_BC
+    REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE ), intent( in ) :: SUF_VOL_BC_ROB1, &
          SUF_VOL_BC_ROB2
-    INTEGER, DIMENSION( : ), intent( in ) ::  WIC_VOL_BC, WIC_D_BC
-    REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
+    INTEGER, DIMENSION( STOTEL * NPHASE ), intent( in ) ::  WIC_VOL_BC, WIC_D_BC
+    REAL, DIMENSION( X_NONODS ), intent( in ) :: X, Y, Z
 
     ! Local variables...
     REAL :: XMIN, XMAX, YMIN, YMAX

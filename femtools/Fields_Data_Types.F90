@@ -165,9 +165,7 @@ module fields_data_types
   type vector_field
      !! dim x nonods vector values
      real, dimension(:,:), pointer :: val
-     !! Stride of val
-     integer, dimension(2) :: val_stride= (/ 1 , 1 /)
-     !! Flag for whether val is allocated 
+     !! Flag for whether val is allocated
      logical :: wrapped = .true.
      !! The data source to be used
      integer :: field_type = FIELD_TYPE_NORMAL

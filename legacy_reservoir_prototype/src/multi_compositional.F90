@@ -174,21 +174,19 @@
          x, y, z, nu, nv, nw, &
          u_ele_type, p_ele_type, ncomp_diff_coef, comp_diffusion_opt, &
          comp_diff_coef, &
-         comp_diffusion,&
-          StorageIndexes)
+         comp_diffusion )
 !!$ Calculate the diffusion coefficient COMP_DIFFUSION for current composition...
 !!$ based on page 136 in Reservoir-Simulation-Mathematical-Techniques-In-Oil-Recovery-(2007).pdf
 !!$ COMP_DIFFUSION_OPT, integer option defining diffusion coeff
 !!$ NCOMP_DIFF_COEF,  integer defining how many coeff's are needed to define the diffusion
 !!$ COMP_DIFF_COEF( NCOMP,  NCOMP_DIFF_COEF, NPHASE  )
       implicit none
-      type( state_type ), dimension( : ), intent( inout ) :: state
+      type( state_type ), dimension( : ), intent( in ) :: state
       integer, dimension( : ), intent( in ) :: mat_ndgln, u_ndgln, x_ndgln
       real, dimension( : ), intent( in ) :: x, y, z, nu, nv, nw
       integer, intent( in ) :: u_ele_type, p_ele_type, ncomp_diff_coef, comp_diffusion_opt
       real, dimension( :, : ), intent( in ) :: comp_diff_coef
       real, dimension( :, :, :, : ),intent( inout ) :: comp_diffusion
-      integer, dimension(:), intent(inout) :: StorageIndexes
 !!$ Local variables:
       integer :: nphase, nstate, ncomp, totele, ndim, stotel, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, x_nloc_p1, p_nloc, mat_nloc, x_snloc, cv_snloc, u_snloc, &
@@ -216,7 +214,7 @@
            COMP_DIFFUSION, NCOMP_DIFF_COEF, COMP_DIFF_COEF, &
            X_NONODS, X, Y, Z, NU, NV, NW, U_NONODS, MAT_NDGLN, U_NDGLN, X_NDGLN, &
            U_ELE_TYPE, P_ELE_TYPE, &
-           MAT_U ,  state, StorageIndexes)
+           MAT_U ) 
 
       ! Determine the diffusion coeff tensor COMP_DIFFUSION from MAT_U and COMP_DIFF_COEF
 
@@ -252,7 +250,7 @@
          COMP_DIFFUSION, NCOMP_DIFF_COEF, COMP_DIFF_COEF, &
          X_NONODS, X, Y, Z, NU, NV, NW, U_NONODS, MAT_NDGLN, U_NDGLN, X_NDGLN, &
          U_ELE_TYPE, P_ELE_TYPE, &
-         MAT_U,  state, StorageIndexes )
+         MAT_U ) 
       ! Determine MAT_U from NU,NV,NW which are variables mapped to material mesh. 
       use shape_functions
       use matrix_operations
@@ -261,22 +259,20 @@
       INTEGER, intent( in ) :: NDIM, NPHASE, NCOMP_DIFF_COEF, &
            COMP_DIFFUSION_OPT, MAT_NONODS, TOTELE, MAT_NLOC, CV_NLOC, U_NLOC, X_NLOC, &
            CV_SNLOC, U_SNLOC, X_NONODS, U_NONODS, CV_NONODS, U_ELE_TYPE, P_ELE_TYPE
-      REAL, DIMENSION( :, :, :, : ), intent( in ) :: COMP_DIFFUSION
-      REAL, DIMENSION( :, : ), intent( in ) :: COMP_DIFF_COEF
-      REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
-      REAL, DIMENSION( : ), intent( in ) :: NU, NV, NW
-      INTEGER, DIMENSION( : ), intent( in ) :: MAT_NDGLN
-      INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
-      INTEGER, DIMENSION( : ), intent( in ) :: X_NDGLN
-      REAL, DIMENSION( :), intent( inout ) :: MAT_U
-       type( state_type ), dimension( : ), intent( inout ) :: state
-      integer, dimension(:), intent(inout) :: StorageIndexes
+      REAL, DIMENSION( MAT_NONODS, NDIM, NDIM, NPHASE ), intent( in ) :: COMP_DIFFUSION
+      REAL, DIMENSION( NCOMP_DIFF_COEF, NPHASE ), intent( in ) :: COMP_DIFF_COEF
+      REAL, DIMENSION( X_NONODS ), intent( in ) :: X, Y, Z
+      REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: NU, NV, NW
+      INTEGER, DIMENSION( TOTELE * MAT_NLOC ), intent( in ) :: MAT_NDGLN
+      INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN
+      INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: X_NDGLN
+      REAL, DIMENSION( MAT_NONODS * NPHASE * NDIM), intent( inout ) :: MAT_U
       ! Determine MAT_U from NU,NV,NW which are these variables mapped to material mesh. 
 
       ! Local variables
       INTEGER, DIMENSION( :, : ), allocatable :: CV_SLOCLIST, U_SLOCLIST, CV_NEILOC, FACE_ELE
       INTEGER, DIMENSION( : ), allocatable :: FINDGPTS, COLGPTS
-      REAL, DIMENSION( : ),    ALLOCATABLE :: CVWEIGHT, CVWEIGHT_SHORT,  &
+      REAL, DIMENSION( : ),    ALLOCATABLE :: CVWEIGHT, CVWEIGHT_SHORT, DETWEI,RA,  &
            SCVFEWEIGH, SBCVFEWEIGH, SELE_OVERLAP_SCALE
       REAL, DIMENSION( :, : ), ALLOCATABLE :: CVN, CVN_SHORT, CVFEN, CVFENLX, CVFENLY, CVFENLZ, & 
            CVFENX, CVFENY, CVFENZ, CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, & 
@@ -292,15 +288,16 @@
       INTEGER :: CV_NGI, CV_NGI_SHORT, SCVNGI, SBCVNGI, NFACE, &
            ELE, MAT_ILOC, MAT_JLOC, CV_GI, U_JLOC, MAT_KLOC, MAT_NODI, MAT_NOD, &
            U_NODJ, IPHASE, U_NODJ_IP, IDIM, JDIM, MAT_NOD_ID_IP, CV_GI_SHORT, NCOLGPTS 
-      REAL :: NN, NFEMU, MASELE
+      REAL :: NN, NFEMU, VOLUME, MASELE
       LOGICAL :: D1, D3, DCYL, QUAD_OVER_WHOLE_ELE
-      real, pointer, dimension(:,:,:) :: UFENX_ALL, CVFENX_ALL
-      real, pointer, dimension(:) :: DETWEI,RA
-      real, pointer :: VOLUME
+
       QUAD_OVER_WHOLE_ELE=.FALSE. 
       ! If QUAD_OVER_WHOLE_ELE=.true. then dont divide element into CV's to form quadrature.
       call  retrieve_ngi( ndim, u_ele_type, cv_nloc, u_nloc, &
            cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
+
+      ALLOCATE( DETWEI( CV_NGI ))
+      ALLOCATE( RA( CV_NGI ))
 
       ALLOCATE( CVWEIGHT( CV_NGI ))
       ALLOCATE( CVN( CV_NLOC, CV_NGI ))
@@ -308,6 +305,9 @@
       ALLOCATE( CVFENLX( CV_NLOC, CV_NGI ))
       ALLOCATE( CVFENLY( CV_NLOC, CV_NGI ))
       ALLOCATE( CVFENLZ( CV_NLOC, CV_NGI ))
+      ALLOCATE( CVFENX( CV_NLOC, CV_NGI )) 
+      ALLOCATE( CVFENY( CV_NLOC, CV_NGI ))
+      ALLOCATE( CVFENZ( CV_NLOC, CV_NGI ))
 
       ALLOCATE( CVWEIGHT_SHORT( CV_NGI_SHORT ))
       ALLOCATE( CVN_SHORT( CV_NLOC, CV_NGI_SHORT ))
@@ -323,6 +323,9 @@
       ALLOCATE( UFENLX( U_NLOC, CV_NGI ))
       ALLOCATE( UFENLY( U_NLOC, CV_NGI ))
       ALLOCATE( UFENLZ( U_NLOC, CV_NGI ))
+      ALLOCATE( UFENX( U_NLOC, CV_NGI ))
+      ALLOCATE( UFENY( U_NLOC, CV_NGI ))
+      ALLOCATE( UFENZ( U_NLOC, CV_NGI ))
 
       ALLOCATE( SCVFEN( CV_NLOC, SCVNGI ))
       ALLOCATE( SCVFENSLX( CV_NLOC, SCVNGI ))
@@ -406,9 +409,8 @@
          ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
          CALL DETNLXR_PLUS_U( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, X_NLOC, CV_NLOC, CV_NGI, &
               CVFEN, CVFENLX, CVFENLY, CVFENLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
-              CVFENX_ALL, &
-              U_NLOC, UFENLX, UFENLY, UFENLZ, UFENX_ALL&
-              , state, "comp", StorageIndexes(24) )
+              CVFENX, CVFENY, CVFENZ, &
+              U_NLOC, UFENLX, UFENLY, UFENLZ, UFENX, UFENY, UFENZ ) 
 
          MASELE = 0.0
          Loop_MAT_ILOC: DO MAT_ILOC = 1, MAT_NLOC
@@ -504,12 +506,17 @@
 
       ! Deallocating temporary arrays
 
+      DEALLOCATE( DETWEI )
+      DEALLOCATE( RA )
       DEALLOCATE( CVWEIGHT )
       DEALLOCATE( CVN )
       DEALLOCATE( CVFEN )
       DEALLOCATE( CVFENLX )
       DEALLOCATE( CVFENLY )
       DEALLOCATE( CVFENLZ )
+      DEALLOCATE( CVFENX ) 
+      DEALLOCATE( CVFENY )
+      DEALLOCATE( CVFENZ )
 
       DEALLOCATE( CVWEIGHT_SHORT )
       DEALLOCATE( CVN_SHORT )
@@ -525,6 +532,9 @@
       DEALLOCATE( UFENLX )
       DEALLOCATE( UFENLY )
       DEALLOCATE( UFENLZ )
+      DEALLOCATE( UFENX )
+      DEALLOCATE( UFENY )
+      DEALLOCATE( UFENZ )
 
       DEALLOCATE( SCVFEN )
       DEALLOCATE( SCVFENSLX )
@@ -585,8 +595,8 @@
 
       INTEGER, intent( in ) :: NDIM
       REAL, intent( in ) :: DIFF_molecular, DIFF_longitudinal, DIFF_transverse
-      REAL, DIMENSION( : ), intent( in ) :: UD
-      REAL, DIMENSION( :, : ), intent( inout ) :: DIFF_TEN
+      REAL, DIMENSION( NDIM ), intent( in ) :: UD
+      REAL, DIMENSION( NDIM, NDIM ), intent( inout ) :: DIFF_TEN
 
       ! Local variables...
       REAL, PARAMETER :: TOLER = 1.0E-10
@@ -637,10 +647,10 @@
       implicit none
       integer, intent( in ) :: cv_nonods, nphase, ncomp, icomp
       logical, intent( in ) :: KComp_Sigmoid
-      real, dimension( : ), intent( in ) :: Satura
-      real, dimension( :, :, : ), intent( in ) :: K_Comp
+      real, dimension( cv_nonods * nphase ), intent( in ) :: Satura
+      real, dimension( ncomp, nphase, nphase ), intent( in ) :: K_Comp
       real, intent( in ) :: max_k, min_k 
-      real, dimension( :, :, :, : ), intent( inout ) :: K_Comp2
+      real, dimension( ncomp, cv_nonods, nphase, nphase ), intent( inout ) :: K_Comp2
       ! Local variables
       integer :: iphase, jphase, cv_nod
       real, parameter :: Width = 0.1, Err = 1.e-6, Sat = 0.9
@@ -741,10 +751,10 @@
       implicit none
       integer, intent( in ) :: cv_nonods, nphase, ncomp2, its, nits
       real, intent( in ) :: dt
-      real, dimension( : ), intent( inout ) :: V_SOURCE_COMP
-      real, dimension( : ), intent( in ) :: MEAN_PORE_CV
-      real, dimension( : ), intent( in ) :: SATURA, SATURAOLD
-      real, dimension( : ), intent( in ) :: COMP, COMPOLD, DEN_COMP, DENOLD_COMP
+      real, dimension( cv_nonods * nphase ), intent( inout ) :: V_SOURCE_COMP
+      real, dimension( cv_nonods ), intent( in ) :: MEAN_PORE_CV
+      real, dimension( cv_nonods * nphase ), intent( in ) :: SATURA, SATURAOLD
+      real, dimension( cv_nonods * nphase * ncomp2 ), intent( in ) :: COMP, COMPOLD, DEN_COMP, DENOLD_COMP
 
       ! the relaxing (sum2one_relax) is to help convergence. 
       ! =1 is full adjustment to make sure we have sum to 1. 

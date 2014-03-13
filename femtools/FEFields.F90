@@ -439,7 +439,7 @@ contains
       do dim=1,to_field%dim
          call set(to_field, dim, ele_nodes(to_field, ele), &
               matmul(mass, &
-              shape_rhs(to_shape, ele_val_at_quad(from_field,ele,dim)*detwei)))
+              shape_rhs(to_shape, ele_val_at_quad(from_field, dim, ele)*detwei)))
       end do
 
     end subroutine dg_projection_ele
