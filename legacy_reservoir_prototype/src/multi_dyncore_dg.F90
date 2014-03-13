@@ -1525,10 +1525,6 @@
 
       NO_MATRIX_STORE = ( NCOLDGM_PHA <= 1 )
 
-      !#####TEMPORARY, CHANGE WHEN BLOCK SOLVER IS READY!#####
-      NO_MATRIX_STORE = .true.
-      !#####TEMPORARY, CHANGE WHEN BLOCK SOLVER IS READY!#####
-
       IF ( GLOBAL_SOLVE ) THEN 
          ! Global solve  
          IF ( JUST_BL_DIAG_MAT ) THEN
@@ -3037,9 +3033,6 @@
       D3   = ( NDIM == 3 )
 
       NO_MATRIX_STORE = NCOLDGM_PHA<=1
-      !#####TEMPORARY, CHANGE WHEN BLOCK SOLVER IS READY!#####
-      NO_MATRIX_STORE = .true.
-      !#####TEMPORARY, CHANGE WHEN BLOCK SOLVER IS READY!#####
       IF( (.NOT.JUST_BL_DIAG_MAT) .AND. (.NOT.NO_MATRIX_STORE) ) DGM_PHA = 0.0
       if (.not.got_c_matrix) C = 0.0
       U_RHS = 0.0
