@@ -54,27 +54,30 @@
        real :: kr1_exp
        real :: kr2_exp
        logical :: boost_at_zero_saturation
+       logical :: is_Corey_epsilon_method
               
     end type corey_options
 
   contains
 
-    subroutine Calculate_All_Rhos( state, ncomp_in, nphase, cv_nonods, Component, &
-         Density_Bulk, DensityCp_Bulk, DRhoDPressure, Density_Component )
+    subroutine Calculate_All_Rhos( state, ncomp_in, nphase, ndim, cv_nonods, cv_nloc, totele, &
+         cv_ndgln, Component, Density_Bulk, DensityCp_Bulk, DRhoDPressure, Density_Component )
 
       implicit none
 
       type( state_type ), dimension( : ), intent( in) :: state
-      integer, intent( in ) :: ncomp_in, nphase, cv_nonods
-      real, dimension( cv_nonods * nphase * ncomp_in ), intent( in ) :: Component
-      real, dimension( cv_nonods * nphase ), intent( inout ) :: Density_Bulk, DensityCp_Bulk
-      real, dimension( cv_nonods * nphase ), intent( inout ), optional :: DRhoDPressure
-      real, dimension( cv_nonods * nphase * ncomp_in ), intent( inout ) :: Density_Component
+      integer, intent( in ) :: ncomp_in, nphase, ndim, cv_nonods, cv_nloc, totele
+      integer, dimension( : ), intent( in ) :: cv_ndgln
 
-      real, dimension( : ), allocatable :: Rho, dRhodP, Cp
+      real, dimension( : ), intent( in ) :: Component
+      real, dimension( : ), intent( inout ) :: Density_Bulk, DensityCp_Bulk
+      real, dimension(: ), intent( inout ), optional :: DRhoDPressure
+      real, dimension( : ), intent( inout ) :: Density_Component
+
+      real, dimension( : ), allocatable :: Rho, dRhodP, Cp, Component_l, c_cv_nod
       character( len = option_path_len ), dimension( : ), allocatable :: eos_option_path
       type( scalar_field ), pointer :: Cp_s
-      integer :: icomp, iphase, ncomp, sc, ec, sp, ep, stat
+      integer :: icomp, iphase, ncomp, sc, ec, sp, ep, stat, cv_iloc, cv_nod, ele
 
       Density_Bulk =0. ; DensityCp_Bulk = 0. ; DRhoDPressure = 0.
 
@@ -102,6 +105,8 @@
 
       allocate( Rho( cv_nonods ), dRhodP( cv_nonods ) )
       allocate( Cp( cv_nonods ) ) ; Cp = 1.
+      allocate( Component_l( cv_nonods ) ) ; Component_l = 0.
+
       do icomp = 1, ncomp
          do iphase = 1, nphase
             sc = ( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1
@@ -116,8 +121,38 @@
 
             if( ncomp > 1 ) then
 
-               Density_Bulk( sp : ep ) = Density_Bulk( sp : ep ) + Rho * Component( sc : ec )
-               DRhoDPressure( sp : ep ) = DRhoDPressure( sp : ep ) + dRhodP * Component( sc : ec ) / Rho
+               Component_l = Component( sc : ec )
+               if ( have_option( '/material_phase[0]/linearise_component' ) .and. ncomp>1 ) then
+                  ! linearise component
+                  if ( cv_nloc==6 .or. (cv_nloc==10 .and. ndim==3) ) then ! P2 triangle or tet
+                     allocate( c_cv_nod( cv_nloc ) )
+                     do ele = 1, totele
+                        do cv_iloc = 1, cv_nloc
+                           cv_nod = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
+                           c_cv_nod( cv_iloc ) = Component_l( cv_nod )
+                        end do
+
+                        c_cv_nod( 2 ) = 0.5 * ( c_cv_nod ( 1 ) + c_cv_nod( 3 ) )
+                        c_cv_nod( 4 ) = 0.5 * ( c_cv_nod ( 1 ) + c_cv_nod( 6 ) )
+                        c_cv_nod( 5 ) = 0.5 * ( c_cv_nod ( 3 ) + c_cv_nod( 6 ) )
+
+                        if ( cv_nloc==10 ) then
+                           c_cv_nod ( 7 ) = 0.5 * ( c_cv_nod ( 1 ) + c_cv_nod( 10 ) )
+                           c_cv_nod ( 8 ) = 0.5 * ( c_cv_nod ( 3 ) + c_cv_nod( 10 ) )
+                           c_cv_nod ( 9 ) = 0.5 * ( c_cv_nod ( 6 ) + c_cv_nod( 10 ) )
+                        end if
+
+                        do cv_iloc = 1, cv_nloc
+                           cv_nod = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
+                           Component_l( cv_nod ) = c_cv_nod( cv_iloc )
+                        end do
+                     end do
+                     deallocate( c_cv_nod )
+                  end if
+               end if
+
+               Density_Bulk( sp : ep ) = Density_Bulk( sp : ep ) + Rho * Component_l
+               DRhoDPressure( sp : ep ) = DRhoDPressure( sp : ep ) + dRhodP * Component_l / Rho
                Density_Component( sc : ec ) = Rho
 
                Cp_s => extract_scalar_field( state( nphase + icomp ), &
@@ -138,7 +173,7 @@
 
          end do ! iphase
       end do ! icomp
-      deallocate( Rho, dRhodP, Cp )
+      deallocate( Rho, dRhodP, Cp, Component_l )
       deallocate( eos_option_path )
 
       if( ncomp > 1 ) call Cap_Bulk_Rho( state, ncomp, nphase, &
@@ -212,7 +247,7 @@
 
       type( state_type ), dimension( : ), intent( in) :: state
       integer, intent( in ) :: ncomp, nphase, cv_nonods
-      real, dimension( cv_nonods * nphase * ncomp ), intent( inout ) :: Density_Component
+      real, dimension( : ), intent( inout ) :: Density_Component
 
       real, dimension( : ), allocatable :: Rho, dRhodP
       character( len = option_path_len ) :: eos_option_path
@@ -307,8 +342,8 @@
 !!$ Den = C0 / T * ( P - C1 )
          if( .not. have_temperature_field ) FLAbort( 'Temperature Field not defined' )
          allocate( eos_coefs( 2 ) ) ; eos_coefs = 0.
-         call get_option( trim( eos_option_path // '/eos_option1' ), eos_coefs( 1 ) )
-         call get_option( trim( eos_option_path // '/eos_option2' ), eos_coefs( 2 ) )
+         call get_option( trim( eos_option_path) // '/eos_option1' , eos_coefs( 1 ) )
+         call get_option( trim( eos_option_path )// '/eos_option2' , eos_coefs( 2 ) )
          Rho = ( pressure % val + eos_coefs( 1 ) ) * eos_coefs( 2 ) / temperature % val
          perturbation_pressure = max( toler, 1.e-3 * ( abs( pressure % val ) + eos_coefs( 1 ) ) )
          RhoPlus = ( pressure % val + perturbation_pressure + eos_coefs( 1 ) ) *  eos_coefs( 2 ) / &
@@ -329,7 +364,6 @@
          !RhoMinus = eos_coefs( 1 ) * ( pressure % val - perturbation_pressure ) + eos_coefs( 2 )
          dRhodP = eos_coefs( 1 ) !0.5 * ( DensityPlus - DensityMinus ) / perturbation_pressure
          deallocate( eos_coefs )
-
       elseif( trim( eos_option_path ) == trim( option_path_comp ) // '/linear_in_pressure/include_internal_energy' ) then
 !!$ Den = C0 * P/T +C1
          if( .not. have_temperature_field ) FLAbort( 'Temperature Field not defined' )
@@ -582,7 +616,7 @@
       real, dimension( : ), intent( in ) :: satura
       real, dimension( :, :, : ), intent( in ) :: perm
       integer, intent( in ) :: nopt_vel_upwind_coefs
-      real, dimension( nopt_vel_upwind_coefs ), intent( inout ) :: opt_vel_upwind_coefs
+      real, dimension( : ), intent( inout ) :: opt_vel_upwind_coefs
       real, dimension( :, :, : ), intent( inout ) :: u_absorb
 !!$ Local variables:
       type( tensor_field ), pointer :: viscosity_ph1, viscosity_ph2
@@ -670,11 +704,11 @@
       !    use cv_advection
       implicit none
       INTEGER, intent( in ) :: MAT_NONODS, CV_NONODS, NPHASE, NDIM, TOTELE, CV_NLOC,MAT_NLOC
-      REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: SATURA
-      INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
-      INTEGER, DIMENSION( TOTELE * MAT_NLOC ), intent( in ) :: MAT_NDGLN
-      REAL, DIMENSION( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ), intent( inout ) :: U_ABSORB
-      REAL, DIMENSION( TOTELE, NDIM, NDIM ), intent( in ) :: PERM2
+      REAL, DIMENSION( : ), intent( in ) :: SATURA
+      INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
+      INTEGER, DIMENSION( : ), intent( in ) :: MAT_NDGLN
+      REAL, DIMENSION( :, :, : ), intent( inout ) :: U_ABSORB
+      REAL, DIMENSION( :, :, : ), intent( in ) :: PERM2
       REAL, intent( in ) :: MOBILITY
       ! Local variable
       REAL, PARAMETER :: TOLER = 1.E-10
@@ -687,6 +721,7 @@
       type(corey_options) :: options
       logical :: is_corey, is_land
 
+
       ewrite(3,*) 'In calculate_absorption2'
       ALLOCATE( INV_PERM( TOTELE, NDIM, NDIM ))
       ALLOCATE( PERM( TOTELE, NDIM, NDIM ))
@@ -698,7 +733,9 @@
 
 
       U_ABSORB = 0.0
-
+!open(1,file = "Sigma_saturation_phase1", status="replace", action = "write")
+!open(2,file = "Sigma_saturation_phase2", status="replace", action = "write")
+!print*,"SIGMA VS PHASE_1 SATURATION"
       Loop_NPHASE: DO IPHASE = 1, NPHASE
 
          is_Corey=.false.
@@ -738,9 +775,20 @@
 
 
                      if (is_corey) then
-                        CALL relperm_corey( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
-                             INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(CV_NOD))), IPHASE,&
-                             options)
+                          if (options%is_Corey_epsilon_method) then
+                             CALL relperm_corey_epsilon( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
+                                 INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(CV_NOD))), IPHASE,&
+                                 options)
+                          else
+                                CALL relperm_corey( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
+                                     INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(CV_NOD))), IPHASE,&
+                                     options)
+                             end if
+
+!if (IPHASE==1)write(IPHASE, *) min(1.0,max(0.0,SATURA(CV_NOD))),";", U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM )
+!if (IPHASE==2)write(IPHASE, *) min(1.0,max(0.0,SATURA(CV_NOD))),";", U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM )
+
+
                      else if (is_land) then
                         CALL relperm_land( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
                              INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(CV_NOD))), IPHASE,&
@@ -779,7 +827,10 @@
          END DO Loop_ELE
 
       END DO Loop_NPHASE
-
+!close(1)
+!close(2)
+!print*,"Files created"
+!read*
       DEALLOCATE( PERM, INV_PERM )
 
       ewrite(3,*) 'Leaving calculate_absorption2'
@@ -804,7 +855,9 @@
            options%kr1_exp, default=2.0)
       call get_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/relperm_exponent", &
            options%kr2_exp, default=2.0)
-      options%boost_at_zero_saturation=have_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/boost_at_zero_saturation")
+      options%boost_at_zero_saturation = have_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/boost_at_zero_saturation")
+      options%is_Corey_epsilon_method = have_option("/material_phase[0]/multiphase_properties/relperm_type/Corey/Use_epsilon_method").or.&
+                    have_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/Use_epsilon_method")
     end subroutine get_corey_options
 
     subroutine get_land_options(options)
@@ -826,6 +879,65 @@
            options%kr2_exp, default=2.0)
     end subroutine get_land_options
 
+SUBROUTINE relperm_corey_epsilon( ABSP, MOBILITY, INV_PERM, SAT, IPHASE,options )
+        !This subroutine add a small quantity to the corey function to avoid getting a relperm=0 that may give problems
+        !when dividing it to obtain the sigma.
+      IMPLICIT NONE
+      REAL, intent( inout ) :: ABSP
+      REAL, intent( in ) :: MOBILITY, SAT, INV_PERM
+      INTEGER, intent( in ) :: IPHASE
+      type(corey_options), intent(in) :: options
+      ! Local variables...
+      REAL :: S_GC, S_OR, &
+           KR1, KR2, KR, VISC, SATURATION, ABS_SUM, &
+           kr1_max, kr2_max, kr1_exp, kr2_exp, threshold
+
+        !Safe boundary to make sure the saturation does not go out of bounds
+        threshold = 1d-8 !SIngle precision epsilon
+
+        !Kr_max should only multiply the wetting phase,
+        !however as we do not know if it is phase 1 or 2, we let the decision to the user
+        !and we multiply both phases by kr_max. By default kr_max= 1
+        s_gc=options%s_gc
+        s_or=options%s_or
+        kr1_max=options%kr1_max
+        kr2_max=options%kr2_max
+        kr1_exp=options%kr1_exp
+        kr2_exp=options%kr2_exp
+
+        IF( IPHASE == 1 ) THEN
+          SATURATION = SAT
+          IF( SATURATION < S_GC + threshold) THEN
+             KR = 0.0
+          ELSE IF( SATURATION > 1. - S_OR - threshold ) THEN
+             KR = kr1_max
+          ELSE
+             KR = kr1_max*(( ( SATURATION - S_GC) / ( 1. - S_GC - S_OR )) ** kr1_exp)
+          ENDIF
+         VISC = 1.0
+        ELSE
+        SATURATION = 1.0 - SAT
+          IF( SATURATION < S_OR + threshold ) THEN
+             KR = 0.0
+          ELSEIF( SATURATION > 1. - S_GC  - threshold ) THEN
+             KR = kr2_max
+          ELSE
+             KR = kr2_max*(( ( SATURATION - S_OR ) / ( 1. - S_GC - S_OR )) ** kr2_exp)
+          ENDIF
+         VISC = MOBILITY
+        ENDIF
+
+        KR = KR + 1d-20 !Raise the function this quantity so it never gets to zero
+        ABS_SUM = KR / VISC * max(1d-10,SATURATION) !<-- 1d-10 in theory should never be used, just for safety
+        ABSP = INV_PERM /  ABS_SUM
+
+        !Limit to bound the value from extremly high values
+!        ABSP =  min( 1d30, ABSP )
+
+      RETURN
+    END SUBROUTINE relperm_corey_epsilon
+
+
     SUBROUTINE relperm_corey( ABSP, MOBILITY, INV_PERM, SAT, IPHASE,options )
       IMPLICIT NONE
       REAL, intent( inout ) :: ABSP
@@ -844,7 +956,7 @@
       kr1_max=options%kr1_max
       kr2_max=options%kr2_max
       kr1_exp=options%kr1_exp
-      kr2_exp=options%kr2_exp       
+      kr2_exp=options%kr2_exp
 
       SATURATION = SAT
       IF( IPHASE == 2 ) SATURATION = 1. - SAT
@@ -898,9 +1010,34 @@
          endif
       endif
 
+!      if(iphase==1) then
+!       print *,'S_GC, S_OR:',S_GC,S_OR
+!        stop 392
+!      endif
+
+!      if(iphase==1) then
+!         if(sat.lt.0.202) then
+!               ABSP = ABSP*max(1.0,  (0.202-sat)*1.e+10 )
+!         endif
+!      endif
+
+!    if(.true.) then
+!    !if(.false.) then
+!      if(iphase==1) then
+!         if(SATURATION.lt.S_GC+0.01) then
+!               ABSP = ABSP*max(1.0,  (S_GC+0.01-SATURATION)*1.e+10 )
+!         endif
+!      endif
+!      if(iphase==2) then
+!         if(SATURATION.lt.s_or+0.01) then
+!               ABSP = ABSP*max(1.0,  (s_or+0.01-SATURATION)*1.e+10 )
+!         endif
+!      endif
+!    endif
+
+
       RETURN
     END SUBROUTINE relperm_corey
-
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! CHRIS BAKER EDIT
     SUBROUTINE relperm_land( ABSP, MOBILITY, INV_PERM, SAT, IPHASE,options )
@@ -934,22 +1071,100 @@
       RETURN
     END SUBROUTINE relperm_land
 
-    SUBROUTINE calculate_capillary_pressure( state, CV_NONODS, NPHASE, capillary_pressure, SATURA )
+!    SUBROUTINE calculate_capillary_pressure( state, CV_NONODS, NPHASE, capillary_pressure, SATURA )
+!   Previous method to calculate the capillary pressure.
+!
+!      ! CAPIL_PRES_OPT is the capillary pressure option for deciding what form it might take.
+!      ! CAPIL_PRES_COEF( NCAPIL_PRES_COEF, NPHASE, NPHASE ) are the coefficients
+!      ! Capillary pressure coefs have the dims CAPIL_PRES_COEF( NCAPIL_PRES_COEF, NPHASE,NPHASE )
+!      ! used to calulcate the capillary pressure.
+!
+!      IMPLICIT NONE
+!      type(state_type), dimension(:) :: state
+!      INTEGER, intent( in ) :: CV_NONODS, NPHASE
+!      REAL, DIMENSION( CV_NONODS * NPHASE ), intent( inout ) :: capillary_pressure
+!      REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: SATURA
+!      ! Local Variables
+!      INTEGER :: nstates, ncomps, nphases, IPHASE, JPHASE, i, j
+!      real c, a
+!      character(len=OPTION_PATH_LEN) option_path, phase_name
+!
+!      ewrite(3,*) 'In calc_capil_pres'
+!
+!      nstates = option_count("/material_phase")
+!      ncomps=0
+!      do i=1,nstates
+!         if (have_option("/material_phase[" // int2str(i-1) // "]/is_multiphase_component")) then
+!            ncomps=ncomps+1
+!         end if
+!      end do
+!      nphases=nstates-ncomps
+!
+!      if (have_option("/material_phase[0]/multiphase_properties/capillary_pressure/type_Brookes_Corey") ) then
+!
+!         capillary_pressure = 0.0
+!
+!         DO IPHASE = 1, NPHASE
+!
+!            option_path = "/material_phase["//int2str(iphase-1)//"]/multiphase_properties/capillary_pressure/type_Brookes_Corey"
+!            DO JPHASE = 1, NPHASE
+!
+!               if (iphase/=jphase) then
+!
+!                  ! Make sure we're pairing the right fields
+!                  j=-1
+!                  do i=0, option_count(trim(option_path)//"/phase")-1
+!                     call get_option(trim(option_path)//"/phase["//int2str(i)//"]/material_phase_name", phase_name)
+!                     if (trim(state(jphase)%name) == trim(phase_name)) then
+!                        j=i
+!                     endif
+!                  enddo
+!                  if (j<0) FLAbort('Capillary pressure phase pair not found')
+!
+!                  call get_option(trim(option_path)//"/phase["//int2str(j)//"]/c", c)
+!                  call get_option(trim(option_path)//"/phase["//int2str(j)//"]/a", a)
+!
+!                  capillary_pressure( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) = &
+!                       capillary_pressure( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) + &
+!                       c * &
+!                       MAX( SATURA( 1 + ( JPHASE - 1 ) * CV_NONODS : JPHASE * CV_NONODS ), 0.0 ) &
+!                       ** a
+!               endif
+!
+!            END DO
+!
+!         END DO
+!
+!      else
+!         FLAbort('Unknown capillary pressure type')
+!      endif
+!
+!      RETURN
+!    END SUBROUTINE calculate_capillary_pressure
+!
+   SUBROUTINE calculate_capillary_pressure( state, CV_NONODS, NPHASE, capillary_pressure, SATURA )
 
-      ! CAPIL_PRES_OPT is the capillary pressure option for deciding what form it might take. 
-      ! CAPIL_PRES_COEF( NCAPIL_PRES_COEF, NPHASE, NPHASE ) are the coefficients 
+      ! CAPIL_PRES_OPT is the capillary pressure option for deciding what form it might take.
+      ! CAPIL_PRES_COEF( NCAPIL_PRES_COEF, NPHASE, NPHASE ) are the coefficients
       ! Capillary pressure coefs have the dims CAPIL_PRES_COEF( NCAPIL_PRES_COEF, NPHASE,NPHASE )
-      ! used to calulcate the capillary pressure. 
+      ! used to calculate the capillary pressure.
 
       IMPLICIT NONE
       type(state_type), dimension(:) :: state
       INTEGER, intent( in ) :: CV_NONODS, NPHASE
-      REAL, DIMENSION( CV_NONODS * NPHASE ), intent( inout ) :: capillary_pressure
-      REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: SATURA
+      REAL, DIMENSION( : ), intent( inout ) :: capillary_pressure
+      REAL, DIMENSION( : ), intent( in ) :: SATURA
       ! Local Variables
-      INTEGER :: nstates, ncomps, nphases, IPHASE, JPHASE, i, j
-      real c, a
+      INTEGER :: nstates, ncomps, nphases, IPHASE, JPHASE, i, j, k
+      real c, a, S_OR, S_GC, auxO, auxW
       character(len=OPTION_PATH_LEN) option_path, phase_name
+      REAL, DIMENSION( CV_NONODS * NPHASE ) :: saturation
+      !Corey options
+      type(corey_options) :: options
+      !Get corey options
+      call get_corey_options(options)
+      s_gc=options%s_gc
+      s_or=options%s_or
 
       ewrite(3,*) 'In calc_capil_pres'
 
@@ -961,6 +1176,8 @@
          end if
       end do
       nphases=nstates-ncomps
+
+        saturation = SATURA
 
       if (have_option("/material_phase[0]/multiphase_properties/capillary_pressure/type_Brookes_Corey") ) then
 
@@ -983,14 +1200,29 @@
                   enddo
                   if (j<0) FLAbort('Capillary pressure phase pair not found')
 
+                    if (JPHASE==1) then
+                        auxW = S_GC
+                        auxO = S_OR
+                    else
+                        auxW = S_OR
+                        auxO = S_GC
+                    end if
+                    forall (k = 1 + ( JPHASE - 1 ) * CV_NONODS : JPHASE * CV_NONODS)
+                        !Effective saturation has to be between one and zero
+                        saturation(k) = max(min((saturation(k) - auxW)/(1.0 - auxW -  auxO), 1.0), max(0.5*auxW,0.01))!<--Inferior limit just to avoid NaN... in theory it should never be reached
+                    end forall                                                                                                                                                  !...value chosen since in the plots below 0.1, Brooks-Corey is not defined
+
                   call get_option(trim(option_path)//"/phase["//int2str(j)//"]/c", c)
                   call get_option(trim(option_path)//"/phase["//int2str(j)//"]/a", a)
+    !Later this is multiplied by a value obtained from the surface tension and the shape and weight functions...
+    !the "c" obtained from diamond is the entry pressure, and the value obtained from the surface tension
+    !is another way of calculating the entry pressure, so just one of both is necessary, at present the entry pressure is used!
 
                   capillary_pressure( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) = &
                        capillary_pressure( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) + &
                        c * &
-                       MAX( SATURA( 1 + ( JPHASE - 1 ) * CV_NONODS : JPHASE * CV_NONODS ), 0.0 ) &
-                       ** a
+                       MAX( saturation( 1 + ( JPHASE - 1 ) * CV_NONODS : JPHASE * CV_NONODS )  , 0.0 ) &
+                       ** (-a)
                endif
 
             END DO
@@ -1000,15 +1232,16 @@
       else
          FLAbort('Unknown capillary pressure type')
       endif
-
       RETURN
     END SUBROUTINE calculate_capillary_pressure
+
+
 
     subroutine calculate_u_source_cv(state, cv_nonods, ndim, nphase, den, u_source_cv)
       type(state_type), dimension(:), intent(in) :: state
       integer, intent(in) :: cv_nonods, ndim, nphase
-      real, dimension(cv_nonods*nphase), intent(in) :: den
-      real, dimension(cv_nonods*ndim*nphase), intent(inout) :: u_source_cv
+      real, dimension(:), intent(in) :: den
+      real, dimension(:), intent(inout) :: u_source_cv
 
       type(vector_field), pointer :: gravity_direction
       real, dimension(ndim) :: g
@@ -1045,8 +1278,8 @@
 
       type(state_type), dimension(:), intent(in) :: state
       integer, intent(in) :: ncomp, nphase, ndim, cv_nonods, mat_nonods, mat_nloc, totele
-      integer, dimension(totele * mat_nloc), intent(in) :: mat_ndgln 
-      real, dimension(mat_nonods, ndim, ndim, nphase), intent(inout) :: ScalarAdvectionField_Diffusion
+      integer, dimension(:), intent(in) :: mat_ndgln
+      real, dimension(:, :, :, :), intent(inout) :: ScalarAdvectionField_Diffusion
 
       type(scalar_field), pointer :: component
       type(tensor_field), pointer :: diffusivity
@@ -1109,7 +1342,7 @@
       integer, intent(in) :: ncomp, nphase, ndim, mat_nonods
       integer, dimension(:), intent(in) :: mat_ndgln
 
-      real, dimension( mat_nonods, ndim, ndim, nphase ), intent(inout) :: Momentum_Diffusion
+      real, dimension( :, :, :, : ), intent(inout) :: Momentum_Diffusion
       character( len = option_path_len ) :: option_path
       type(tensor_field), pointer :: t_field
       integer :: iphase, icomp, idim, stat, cv_nod, mat_nod, cv_nloc, ele
@@ -1187,38 +1420,42 @@
 
       integer, intent(in) :: totele, stotel, cv_nloc, cv_snloc, nphase, ndim, nface, &
            mat_nonods, cv_nonods, x_nloc, ncolele, cv_ele_type, x_nonods
-      integer, dimension( totele+1 ), intent( in ) :: finele
-      integer, dimension( ncolele ), intent( in ) :: colele
-      integer, dimension( totele * cv_nloc ), intent( in ) :: cv_ndgln
-      integer, dimension( stotel * cv_snloc ), intent( in ) :: cv_sndgln
-      integer, dimension( totele * x_nloc ), intent( in ) :: x_ndgln
-      integer, dimension( totele * cv_nloc ), intent( in ) :: mat_ndgln
-      integer, dimension( stotel * nphase ), intent( in ) :: wic_u_bc, wic_vol_bc
-      real, dimension( totele, ndim, ndim ), intent( in ) :: perm
-      real, dimension( mat_nonods, ndim*nphase, ndim*nphase ), intent( inout ) :: material_absorption
-      real, dimension( stotel * cv_snloc * nphase ), intent( in ) :: sat
-      real, dimension( cv_nonods * nphase ), intent( in ) :: vol
-      real, dimension( x_nonods ), intent( in ) :: x,y,z
+      integer, dimension( : ), intent( in ) :: finele
+      integer, dimension( : ), intent( in ) :: colele
+      integer, dimension( : ), intent( in ) :: cv_ndgln
+      integer, dimension( : ), intent( in ) :: cv_sndgln
+      integer, dimension( : ), intent( in ) :: x_ndgln
+      integer, dimension( : ), intent( in ) :: mat_ndgln
+      integer, dimension( : ), intent( in ) :: wic_u_bc, wic_vol_bc
+      real, dimension( :, :, : ), intent( in ) :: perm
+      real, dimension( :, :, : ), intent( inout ) :: material_absorption
+      real, dimension( : ), intent( in ) :: sat
+      real, dimension( : ), intent( in ) :: vol
+      real, dimension( : ), intent( in ) :: x,y,z
       type(state_type), dimension( : ) :: state
 
-      real, dimension( stotel * cv_snloc * nphase, ndim ), intent( inout ) :: suf_sig_diagten_bc
+      real, dimension(stotel * cv_snloc * nphase, ndim ), intent( inout ) :: suf_sig_diagten_bc
 
       ! local variables
       type(tensor_field), pointer :: viscosity_ph1, viscosity_ph2
       integer :: iphase, ele, sele, cv_siloc, cv_snodi, cv_snodi_ipha, iface, s, e, &
            ele2, sele2, cv_iloc, idim, jdim, i, mat_nod
       real :: mobility, satura_bc
-      real, dimension( ndim, ndim ) :: inv_perm, sigma_out, mat, mat_inv
-      integer, dimension( :, : ), allocatable :: cv_sloclist, face_ele
-      integer, dimension( : ), allocatable :: idone
+      real, dimension( ndim, ndim ) :: inv_perm, sigma_out, sigma_in, mat, mat_inv
+      integer, dimension( nface, totele) :: face_ele
+      integer, dimension( mat_nonods*nphase ) :: idone
+      integer, dimension(nface, cv_snloc ) :: cv_sloclist
       integer, dimension( cv_snloc ) :: cv_sloc2loc
       integer, parameter :: WIC_BC_DIRICHLET = 1
 !!$ for the pressure b.c. and overlapping method 
 !!$ make the material property change just inside the domain else on the surface only...
-      logical, parameter :: mat_change_inside = .true.
+!      logical, parameter :: mat_change_inside = .true.
+      logical, parameter :: mat_change_inside = .false.
+! if mat_perm_bc_dg use the method that is used for DG between the elements.
+      logical, parameter :: mat_perm_bc_dg = .true.
       logical :: is_land, is_corey
-
       type(corey_options) :: options
+
 
       if( have_option( '/physical_parameters/mobility' ) )then
          call get_option( '/physical_parameters/mobility', mobility )
@@ -1233,12 +1470,11 @@
 
       suf_sig_diagten_bc = 1.
 
-      allocate( idone( mat_nonods*nphase ) ) ; idone=0
-      allocate( cv_sloclist( nface, cv_snloc ) )
+      idone=0
       call determin_sloclist( cv_sloclist, cv_nloc, cv_snloc, nface,  &
            ndim, cv_ele_type )
 
-      allocate( face_ele( nface, totele ) ) ; face_ele = 0
+      face_ele = 0
       call calc_face_ele( face_ele, totele, stotel, nface, &
            ncolele, finele, colele, cv_nloc, cv_snloc, cv_nonods, cv_ndgln, cv_sndgln, &
            cv_sloclist, x_nloc, x_ndgln )
@@ -1293,9 +1529,13 @@
                         do idim = 1, ndim
                            do jdim = 1, ndim
                               if (is_corey) then
-                                 call relperm_corey( sigma_out( idim, jdim ), mobility, &
-                                      inv_perm( idim, jdim ), satura_bc, iphase,options)
-
+                                if (options%is_Corey_epsilon_method) then
+                                     call relperm_corey_epsilon( sigma_out( idim, jdim ), mobility, &
+                                          inv_perm( idim, jdim ), satura_bc, iphase,options)
+                                 else
+                                     call relperm_corey( sigma_out( idim, jdim ), mobility, &
+                                         inv_perm( idim, jdim ), satura_bc, iphase,options)
+                                 end if
                               elseif (is_land) then
 
                                  call relperm_land( sigma_out( idim, jdim ), mobility, &
@@ -1305,9 +1545,19 @@
                            end do
                         end do
 
-                        mat = matmul( sigma_out, inverse( material_absorption( mat_nod, s : e, s : e ) ) )
-                        mat_inv = inverse( mat )
-                        suf_sig_diagten_bc( cv_snodi_ipha, 1 : ndim ) = (/ (mat_inv(i, i), i = 1, ndim) /)
+                        if(mat_perm_bc_dg) then
+! if mat_perm_bc_dg use the method that is used for DG between the elements.
+                           sigma_in=0.0
+                           sigma_in = material_absorption( mat_nod, s : e, s : e )
+                           mat = sigma_out  +  matmul(  sigma_in,  matmul( inverse( sigma_out ), sigma_in ) )
+                           mat_inv = matmul( inverse( sigma_in+sigma_out ), mat )
+                           suf_sig_diagten_bc( cv_snodi_ipha, 1 : ndim ) = (/ (mat_inv(i, i), i = 1, ndim) /)
+                     !!      suf_sig_diagten_bc( cv_snodi_ipha, 1 : ndim ) = 1.
+                        else
+                           mat = matmul( sigma_out, inverse( material_absorption( mat_nod, s : e, s : e ) ) )
+                           mat_inv = inverse( mat )
+                           suf_sig_diagten_bc( cv_snodi_ipha, 1 : ndim ) = (/ (mat_inv(i, i), i = 1, ndim) /)
+                        endif
 
                         if( mat_change_inside ) then
                            suf_sig_diagten_bc( cv_snodi_ipha, 1 : ndim ) = 1.
@@ -1329,7 +1579,6 @@
 
       end do
 
-      deallocate( face_ele, cv_sloclist )
 
       return
     end subroutine calculate_SUF_SIG_DIAGTEN_BC
@@ -1340,11 +1589,11 @@
 
       implicit none
 
-      real, dimension( mat_nonods, ndim * nphase, ndim * nphase ), intent( inout ) :: Material_Absorption_Stab
-      real, dimension( mat_nonods, ndim * nphase, ndim * nphase ), intent( in ) :: Material_Absorption
-      real, dimension( mat_nonods * nphase * ndim * ndim * 2 ), intent( in ) :: opt_vel_upwind_coefs
+      real, dimension( :, :, : ), intent( inout ) :: Material_Absorption_Stab
+      real, dimension( :, :, : ), intent( in ) :: Material_Absorption
+      real, dimension( : ), intent( in ) :: opt_vel_upwind_coefs
       integer, intent( in ) :: nphase, ndim, totele, cv_nloc, mat_nloc, mat_nonods
-      integer, dimension( totele * mat_nloc ), intent( in ) :: mat_ndgln
+      integer, dimension( : ), intent( in ) :: mat_ndgln
 
       logical :: use_mat_stab_stab
       integer :: apply_dim, idim, jdim, ipha_idim, iphase, ele, cv_iloc, ij, imat
@@ -1398,6 +1647,43 @@
 
       return
     end subroutine calculate_u_abs_stab
+
+
+    subroutine update_velocity_absorption( states, ndim, nphase, mat_nonods,velocity_absorption )
+
+      implicit none
+
+      integer, intent( in ) :: ndim, nphase, mat_nonods 
+      type( state_type ), dimension( : ), intent( in ) :: states
+      real, dimension( :, :, : ), intent( inout ) :: velocity_absorption
+
+      type( vector_field ), pointer :: absorption
+      integer :: iphase, idim
+      logical :: have_absorption 
+      character( len = option_path_len ) :: option_path
+
+      velocity_absorption = 0.
+
+      do iphase = 1, nphase
+         have_absorption = .false.
+         option_path = '/material_phase[' // int2str( iphase - 1 ) // ']/vector_field::Velocity' // &
+              '/prognostic/vector_field::Absorption/diagnostic/algorithm::vector_python_diagnostic'
+         have_absorption = have_option( trim(option_path) )
+         if ( have_absorption ) then
+            absorption => extract_vector_field( states( iphase ), 'VelocityAbsorption' )
+            do idim = 1, ndim
+               velocity_absorption( :, idim + (iphase-1)*ndim, idim + (iphase-1)*ndim ) =  &
+                    absorption % val( idim, : )
+            end do
+         else
+            do idim = 1, ndim
+               velocity_absorption( :, idim + (iphase-1)*ndim, idim + (iphase-1)*ndim ) = 0.0 
+            end do
+         end if
+      end do
+
+      return
+    end subroutine update_velocity_absorption
 
 
   end module multiphase_EOS

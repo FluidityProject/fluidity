@@ -35,103 +35,156 @@ module solvers_module
   use fields
   use global_parameters, only: OPTION_PATH_LEN
   use spud
+  use Petsc_tools
+
+#ifdef HAVE_PETSC_MODULES
+  use petsc 
+#if PETSC_VERSION_MINOR==0
+  use petscvec 
+  use petscmat 
+  use petscksp 
+  use petscpc
+#endif
+#endif
 
   implicit none
-    
+
+#include "petscversion.h"
+#ifdef HAVE_PETSC_MODULES
+#include "finclude/petscvecdef.h"
+#include "finclude/petscmatdef.h"
+#include "finclude/petsckspdef.h"
+#include "finclude/petscpcdef.h"
+#else
+#include "finclude/petsc.h"
+#if PETSC_VERSION_MINOR==0
+#include "finclude/petscvec.h"
+#include "finclude/petscmat.h"
+#include "finclude/petscksp.h"
+#include "finclude/petscpc.h"
+#endif
+#endif
+
   private
-  
-  public  :: solver, PRES_DG_MULTIGRID
-  
+
+  public :: solver, PRES_DG_MULTIGRID
+
   interface solver
      module procedure solve_via_copy_to_petsc_csr_matrix
-  end interface solver
+  end interface
   
 contains
 
 ! -----------------------------------------------------------------------------
 
-  subroutine solve_via_copy_to_petsc_csr_matrix(A, &
-                                                x, &
-                                                b, &
-                                                findfe, &
-                                                colfe, &
-                                                option_path)
-  
-     !!< Solve a matrix Ax = b system via copying over to the
-     !!< petsc_csr_matrix type and calling the femtools solver
-     !!< using the spud options given by the field options path
-     
-    integer, dimension(:), intent(in) :: findfe 
-    integer, dimension(:), intent(in) :: colfe
-    real, dimension(:), intent(in) :: a,b
-    real, dimension(:), intent(inout) :: x
-    character(len=*), intent(in) :: option_path
-    
-    ! local variables
-    integer :: i,j,k
-    integer :: rows
-    integer, dimension(:), allocatable :: dnnz
-    type(petsc_csr_matrix) :: matrix
-    type(scalar_field) :: rhs
-    type(scalar_field) :: solution
-    
-    rows = size(x)
-    
-    ewrite(3,*) size(x)+1, size(findfe)
+  subroutine solve_via_copy_to_petsc_csr_matrix( A, &
+       x, b, findfe, colfe, option_path )
 
-    assert(size(x) == size(b))
-    assert(size(a) == size(colfe))
-    assert((size(x)+1) == size(findfe))
-    
+    !!< Solve a matrix Ax = b system via copying over to the
+    !!< petsc_csr_matrix type and calling the femtools solver
+    !!< using the spud options given by the field options path
+
+    integer, dimension( : ), intent(in) :: findfe
+    integer, dimension( : ), intent(in) :: colfe
+    real, dimension( : ), intent(in) :: a, b
+    real, dimension( : ), intent(inout) :: x
+    character( len=* ), intent(in) :: option_path
+
+    ! local variables
+    integer :: i, j, k, rows
+    integer, dimension( : ), allocatable :: dnnz
+    type(petsc_csr_matrix) :: matrix
+
+    rows = size( x )
+
+    ewrite(3,*) rows+1, size(findfe)
+
+    assert( size( x ) == size( b ) )
+    assert( size( a ) == size( colfe ) )
+    assert( size( x ) + 1 == size( findfe ) )
+
     ! find the number of non zeros per row
-    allocate(dnnz(rows)) ; dnnz = 0
-    do i = 1,rows
-       dnnz(i) = findfe(i+1) - findfe(i)
+    allocate( dnnz( rows ) ) ; dnnz = 0
+    do i = 1, rows
+       dnnz( i ) = findfe( i+1 ) - findfe( i )
     end do
-    
-    ! allocate the petsc_csr_matrix using nnz (pass dnnz also for onnz) 
-    call allocate(matrix, rows, rows, dnnz, dnnz, (/1,1/), name = 'dummy')
-    call zero(matrix)
-    
+
+    ! allocate the petsc_csr_matrix using nnz (pass dnnz also for onnz)
+    call allocate( matrix, rows, rows, dnnz, dnnz, (/1, 1/), name = 'dummy' )
+    call zero( matrix )
+
     ! add in the entries to petsc matrix
     do i = 1, rows
-      do j = findfe(i), findfe(i+1) - 1
-          k = colfe(j)
-          call addto( matrix, blocki = 1, blockj = 1, i = i, j = k, val = a(j) )
+       do j = findfe( i ), findfe( i+1 ) - 1
+          k = colfe( j )
+          call addto( matrix, blocki = 1, blockj = 1, i = i, j = k, val = a( j ) )
        end do
-    end do 
+    end do
 
-    call assemble(matrix)    
-    
-    ! Set up rhs and initial guess which are scalar field types.        
-    allocate(rhs%val(rows))
-    allocate(solution%val(rows))
-        
-    do i = 1,rows
-       call set(rhs, i, b(i))
-       call set(solution, i,  x(i))
-    end do
-        
-    ! solve matrix
-    call petsc_solve(solution, &
-                     matrix, &
-                     rhs, &
-                     option_path = trim(option_path))
-    
-    ! copy solution back    
-    do i = 1,rows
-       x(i) =  node_val(solution, i)
-    end do
-    
+    call assemble( matrix )
+
+    call petsc_solve_scalar_petsc_csr_mp( x, matrix, b, rows, trim( option_path ) )
+
     ! deallocate as needed
-    deallocate(dnnz)    
-    deallocate(rhs%val)
-    deallocate(solution%val)
-    call deallocate(matrix)
-      
+    deallocate( dnnz )
+    call deallocate( matrix )
+
+    return
   end subroutine solve_via_copy_to_petsc_csr_matrix
 
 
+  subroutine petsc_solve_scalar_petsc_csr_mp( x, matrix, rhs, rows, option_path )
+
+    real, dimension( : ), intent(inout) :: x
+    type( petsc_csr_matrix ), intent(inout) :: matrix
+    real, dimension( : ), intent(in) :: rhs
+    integer, intent(in) :: rows
+    character( len=* ), intent(in) :: option_path
+
+    KSP ksp
+    Vec y, b
+
+    character(len=OPTION_PATH_LEN) :: solver_option_path
+    integer :: ierr
+
+    assert( size( x ) == size( rhs ) )
+    assert( size( x ) == size( matrix, 2 ) )
+    assert( size( rhs ) == size( matrix, 1 ) )
+
+    solver_option_path = complete_solver_option_path( option_path )
+
+    call SetupKSP( ksp, matrix%M, matrix%M, solver_option_path, .false., &
+         matrix%column_numbering, .true. )
+
+    b = PetscNumberingCreateVec( matrix%column_numbering )
+    call VecDuplicate( b, y, ierr )
+
+
+    ! copy array into PETSc vecs
+    call VecSetValues( y, rows, &
+         matrix%row_numbering%gnn2unn( 1:rows, 1 ), &
+         x, INSERT_VALUES, ierr )
+    call VecAssemblyBegin( y, ierr )
+    call VecAssemblyEnd( y, ierr )
+
+    call VecSetValues( b, rows, &
+         matrix%row_numbering%gnn2unn( 1:rows, 1 ), &
+         rhs, INSERT_VALUES, ierr )
+    call VecAssemblyBegin( b, ierr )
+    call VecAssemblyEnd( b, ierr )
+
+    call KSPSolve( ksp, b, y, ierr )
+
+    ! copy back the result
+    call VecGetValues( y, rows, &
+         matrix%row_numbering%gnn2unn( 1:rows, 1 ), &
+         x, ierr )
+
+    ! destroy all PETSc objects and the petsc_numbering
+    call petsc_solve_destroy_petsc_csr( y, b, ksp, solver_option_path )
+
+    return
+  end subroutine petsc_solve_scalar_petsc_csr_mp
 
 
   SUBROUTINE PRES_DG_MULTIGRID(CMC, CMC_PRECON, IGOT_CMC_PRECON, P, RHS, &
@@ -143,21 +196,26 @@ contains
     implicit none
     INTEGER, intent( in ) ::  NCOLCMC, CV_NONODS, totele, cv_nloc, x_nonods, IGOT_CMC_PRECON
 ! IGOT_CMC_PRECON=1 or 0 (1 if we have a preconditioning matrix)
-    REAL, DIMENSION( NCOLCMC ), intent( in ) ::  CMC
-    REAL, DIMENSION( NCOLCMC*IGOT_CMC_PRECON), intent( in ) ::  CMC_PRECON
-    REAL, DIMENSION( CV_NONODS ), intent( inout ) ::  P
-    REAL, DIMENSION( CV_NONODS ), intent( in ) :: RHS
-    INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCMC
-    INTEGER, DIMENSION( NCOLCMC ), intent( in ) :: COLCMC
-    INTEGER, DIMENSION( CV_NONODS ), intent( in ) :: MIDCMC
-    INTEGER, DIMENSION( cv_nloc*totele ), intent( in ) :: cv_ndgln, x_ndgln
+    REAL, DIMENSION( : ), intent( in ) ::  CMC
+    REAL, DIMENSION( :), intent( in ) ::  CMC_PRECON
+    REAL, DIMENSION( : ), intent( inout ) ::  P
+    REAL, DIMENSION( : ), intent( in ) :: RHS
+    INTEGER, DIMENSION( : ), intent( in ) :: FINDCMC
+    INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
+    INTEGER, DIMENSION( : ), intent( in ) :: MIDCMC
+    INTEGER, DIMENSION( : ), intent( in ) :: cv_ndgln, x_ndgln
 
     REAL ERROR, RELAX, RELAX_DIAABS, RELAX_DIA
     INTEGER N_LIN_ITS, NGL_ITS
+    LOGICAL ONE_PRES_SOLVE, ONE_SOLVE_1IT
 
     PARAMETER(ERROR=1.E-15, RELAX=0.1, RELAX_DIAABS=0.0)
     PARAMETER(RELAX_DIA=2.0, N_LIN_ITS=2)
     PARAMETER(NGL_ITS=50) ! maybe we need to increase this...
+   ! PARAMETER(NGL_ITS=50) ! maybe we need to increase this...
+   ! PARAMETER(NGL_ITS=50) ! maybe we need to increase this...
+    PARAMETER(ONE_PRES_SOLVE=.false., ONE_SOLVE_1IT=.false.) ! Only solve for one cty pressure - distribut to DG pressure nodes. 
+!    PARAMETER(ONE_PRES_SOLVE=.true., ONE_SOLVE_1IT=.false.) ! Only solve for one cty pressure - distribut to DG pressure nodes. 
 
     !  PARAMETER(ERROR=1.E-15, RELAX=0.05, RELAX_DIAABS=0.0)
     !  PARAMETER(RELAX_DIA=2.0, N_LIN_ITS=2)
@@ -211,7 +269,7 @@ contains
     allocate( resid_dg(cv_nonods) )
     allocate( resid_cty(x_nonods) )
     allocate( dp_small(x_nonods) )
-    allocate( dp_dg(cv_nonods) )
+    allocate( dp_dg(cv_nonods) ) 
     allocate( USTEP(cv_nonods) )
     allocate( nods_sourou(x_nonods) )
 
@@ -233,13 +291,80 @@ contains
              ewrite(3,*)'could not find coln'
              stop 3282
           end if
-          IF(IGOT_CMC_PRECON==0) THEN
+         ! IF((IGOT_CMC_PRECON==0).or.(ONE_PRES_SOLVE)) THEN
+          IF(.true.) THEN
+         ! IF(.false.) THEN
              CMC_SMALL(COUNT2) = CMC_SMALL(COUNT2) + CMC(COUNT)  
-          ELSE
+          ELSE 
+          !  stop 6227
              CMC_SMALL(COUNT2) = CMC_SMALL(COUNT2) + CMC_PRECON(COUNT)  
           ENDIF            
        END DO
     END DO
+
+! Only solve for one pressure...
+    IF(ONE_PRES_SOLVE) THEN
+       ! Map resid_dg to resid_cty as well as the solution:
+       resid_cty=0.
+       do dg_nod = 1, cv_nonods
+          cty_nod = MAP_DG2CTY(dg_nod)
+          resid_cty(cty_nod) = resid_cty(cty_nod)+rhs(dg_nod)
+       end do
+
+       ! Course grid solver...
+       DP_SMALL = 0.
+       EWRITE(3,*)'SOLVER'
+       CALL SOLVER( CMC_SMALL(1:NCMC_SMALL), DP_SMALL, resid_cty, &
+            FINDCMC_SMALL, COLCMC_SMALL(1:NCMC_SMALL), &
+            option_path = '/material_phase[0]/scalar_field::Pressure')
+       EWRITE(3,*)'OUT OF SOLVER'
+
+       ! Map the corrections DP_SMALL to dg:
+       DO dg_nod = 1, cv_nonods
+          cty_nod = MAP_DG2CTY(dg_nod)
+          P(DG_NOD) = DP_SMALL(CTY_NOD)
+       end do
+
+
+       IF(ONE_SOLVE_1IT) THEN ! A single dg pressure iteration
+          if (.true.) then
+             call set_solver_options(path, &
+                  ksptype = "gmres", &
+                  !pctype = "jacobi", & ! use this for P1DGP1DG
+                  !pctype = "sor", & ! use this for P1DGP1DG
+                  pctype = "none", &   ! use this for P1DGP2DG
+                  rtol = 1.e-10, &
+                  atol = 1.e-15, &
+                  max_its =21)
+          endif
+
+       resid_dg = rhs
+       ustep = 0.0
+       do dg_nod = 1, cv_nonods
+          DO COUNT = FINDCMC(dg_NOD), FINDCMC(dg_NOD+1) - 1
+             col=COLCMC(COUNT)
+             resid_dg(dg_nod) = resid_dg(dg_nod) - cmc(count) * P(Col)
+          END DO
+       end do
+
+
+             call add_option( &
+                  trim(path)//"/solver/ignore_all_solver_failures", stat)
+!             CALL SOLVER( CMC, P, RHS, &
+             CALL SOLVER( CMC, ustep, resid_dg, &
+                  FINDCMC, COLCMC, &
+                  option_path = path )
+
+            p=p+ustep
+       ENDIF
+
+       RETURN
+
+
+    END IF
+
+
+
 
           if (.true.) then
              call set_solver_options(path, &
@@ -249,7 +374,8 @@ contains
                   !pctype = "none", &   ! use this for P1DGP2DG
                   rtol = 1.e-10, &
                   atol = 1.e-15, &
-                  max_its = 25)
+                  max_its = 7)
+             !     max_its = 25)
           endif
 
 
@@ -259,7 +385,7 @@ contains
        ! SSOR smoother for the multi-grid method...
        ewrite(3,*)'before solving:',p
 
-       if (gl_its>2) then
+       if (gl_its>1) then
 
           if (.true.) then
 
@@ -303,6 +429,7 @@ contains
        OPT_STEP=-SUM(-USTEP(:)*RESID_DG(:))/MAX(1.E-15, SUM(USTEP(:)*USTEP(:)))
 ! Make sure the step length is between [0,1]
        OPT_STEP=MIN(1.0,MAX(0.,OPT_STEP))
+        print *,'after smoother gl_its, OPT_STEP:',gl_its, OPT_STEP
 
        P = P + DP_DG * OPT_STEP
     endif
@@ -327,6 +454,13 @@ contains
        end if
 
 
+       resid_dg = rhs
+       do dg_nod = 1, cv_nonods
+          DO COUNT = FINDCMC(dg_NOD), FINDCMC(dg_NOD+1) - 1
+             col=COLCMC(COUNT)
+             resid_dg(dg_nod) = resid_dg(dg_nod) - cmc(count) * P(Col)
+          END DO
+       end do
        ! Map resid_dg to resid_cty as well as the solution:
        resid_cty=0.
        nods_sourou=0.
@@ -336,7 +470,7 @@ contains
           nods_sourou(cty_nod) = nods_sourou(cty_nod)+1.
        end do
        ! We have added the rows together so no need to normalize residual. 
-       resid_cty= resid_cty/nods_sourou
+       ! resid_cty= resid_cty/nods_sourou
 
        ! Course grid solver...
        DP_SMALL = 0.
@@ -352,6 +486,8 @@ contains
           DP_DG(DG_NOD) = DP_SMALL(CTY_NOD)
        END DO
 
+    OPT_STEP=1.0
+    if(.true.) then
 ! Determine optimal step length...
        USTEP=0.0
        do dg_nod = 1, cv_nonods
@@ -362,6 +498,8 @@ contains
        OPT_STEP=-SUM(-USTEP(:)*RESID_DG(:))/MAX(1.E-15, SUM(USTEP(:)*USTEP(:)))
 ! Make sure the step length is between [0,1]
        OPT_STEP=MIN(1.0,MAX(0.,OPT_STEP))
+        print *,'after compact solve gl_its, OPT_STEP:',gl_its, OPT_STEP
+     endif
 
        P = P + DP_DG * OPT_STEP
 
@@ -391,14 +529,14 @@ contains
     ! It lumps the DG pressure matrix to a continuous pressure matrix...
     INTEGER, intent( in ) ::  MX_NCMC_SMALL,NCOLCMC, CV_NONODS,X_NONODS
     INTEGER, intent( inout ) ::  NCMC_SMALL
-    INTEGER, DIMENSION( x_NONODS + 1 ), intent( inout ) :: FINDCMC_SMALL
-    INTEGER, DIMENSION( MX_NCMC_SMALL ), intent( inout ) :: COLCMC_SMALL
-    INTEGER, DIMENSION( x_nonods ), intent( inout ) :: MIDCMC_SMALL
+    INTEGER, DIMENSION(: ), intent( inout ) :: FINDCMC_SMALL
+    INTEGER, DIMENSION( : ), intent( inout ) :: COLCMC_SMALL
+    INTEGER, DIMENSION( : ), intent( inout ) :: MIDCMC_SMALL
 
-    INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCMC
-    INTEGER, DIMENSION( NCOLCMC ), intent( in ) :: COLCMC
+    INTEGER, DIMENSION( : ), intent( in ) :: FINDCMC
+    INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
 
-    INTEGER, DIMENSION( CV_nonods ), intent( in ) :: MAP_DG2CTY
+    INTEGER, DIMENSION( : ), intent( in ) :: MAP_DG2CTY
     ! Local variables
     integer, dimension( : ), allocatable :: MX_NODS_ROW_SMALL, NODS_ROW_SMALL, &
          FINDCMC_SMALL_mx
@@ -521,12 +659,12 @@ contains
       implicit none
       REAL, intent( in ) :: ERROR, RELAX, RELAX_DIAABS, RELAX_DIA
       INTEGER, intent( in ) ::  N_LIN_ITS, NCMC, NONODS
-      REAL, DIMENSION( NCMC ), intent( in ) ::  CMC
-      REAL, DIMENSION( NONODS ), intent( inout ) ::  P
-      REAL, DIMENSION( NONODS ), intent( in ) :: RHS
-      INTEGER, DIMENSION( NONODS + 1 ), intent( in ) :: FINCMC
-      INTEGER, DIMENSION( NCMC ), intent( in ) :: COLCMC
-      INTEGER, DIMENSION( NONODS ), intent( in ) :: MIDCMC
+      REAL, DIMENSION( : ), intent( in ) ::  CMC
+      REAL, DIMENSION( : ), intent( inout ) ::  P
+      REAL, DIMENSION( : ), intent( in ) :: RHS
+      INTEGER, DIMENSION( : ), intent( in ) :: FINCMC
+      INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
+      INTEGER, DIMENSION( : ), intent( in ) :: MIDCMC
       ! Local variables
       INTEGER :: ITS, ILOOP, ISTART, IFINI, ISTEP, NOD, COUNT
       REAL :: R, SABS_DIAG, RTOP, RBOT, POLD, MAX_ERR
