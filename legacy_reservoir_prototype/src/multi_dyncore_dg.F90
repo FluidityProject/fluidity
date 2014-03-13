@@ -1295,6 +1295,10 @@
       REAL, DIMENSION ( :, :, :, : ), allocatable :: SUF_U_ROB1_BC_ALL, SUF_U_ROB2_BC_ALL
       REAL, DIMENSION ( :, :, : ), allocatable :: SUF_P_BC_ALL
 
+      type( tensor_field), pointer :: u_all2
+      type( vector_field), pointer :: x_all2
+
+
       ALLOCATE( U_ALL( NDIM, NPHASE, U_NONODS ), UOLD_ALL( NDIM, NPHASE, U_NONODS ), &
            X_ALL( NDIM, X_NONODS ), UDEN_ALL( NPHASE, CV_NONODS ), UDENOLD_ALL( NPHASE, CV_NONODS ) )
       U_ALL = 0. ; UOLD_ALL = 0. ; X_ALL = 0. ; UDEN_ALL = 0. ; UDENOLD_ALL = 0.
@@ -1366,19 +1370,33 @@
             END DO
          END DO
       END DO
-      DO IDIM = 1, NDIM
-         IF ( IDIM==1 ) THEN
-            X_ALL( IDIM, : ) = X
-         ELSE IF ( IDIM==2 ) THEN
-            X_ALL( IDIM, : ) = Y
-         ELSE
-            X_ALL( IDIM, : ) = Z
-         END IF
-      END DO
+      
+
+      U_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedVelocity" )
+      !U_ALL = U_ALL2%VAL
+
+      !print *, ' '
+      !print *, ' '
+      !print *, ' '
+      !print *, 'u_old', U_ALL
+      !print *, 'u_new', U_ALL2%VAL
+
+
+      U_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldVelocity" )
+
+      !print *, 'uold_old', UOLD_ALL
+      !print *, 'uold_new', U_ALL2%VAL
+
+
+      X_ALL2 => EXTRACT_VECTOR_FIELD( PACKED_STATE, "PressureCoordinate" )
+      X_ALL = X_ALL2%VAL
+
       DO IPHASE = 1, NPHASE
          UDEN_ALL( IPHASE, : ) = UDEN( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
          UDENOLD_ALL( IPHASE, : ) = UDENOLD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
       END DO
+
+
 
       do sele = 1, stotel
          do iphase = 1, nphase
