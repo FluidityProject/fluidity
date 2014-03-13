@@ -527,7 +527,6 @@
 C2 = states["Component2"].scalar_fields["ComponentMassFractionPhase1"]
 C3 = states["Component3"].scalar_fields["ComponentMassFractionPhase1"]
 C4 = states["Component4"].scalar_fields["ComponentMassFractionPhase1"]
-
 for i in range( field.node_count ):
  v=C1.node_val(i)+C2.node_val(i)+C3.node_val(i)+C4.node_val(i)
  field.set(i, v)</string_value>
