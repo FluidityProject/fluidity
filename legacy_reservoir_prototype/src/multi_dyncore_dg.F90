@@ -1157,7 +1157,7 @@
 
 
 
-    SUBROUTINE FORCE_BAL_CTY_ASSEM_SOLVE( state, &
+    SUBROUTINE FORCE_BAL_CTY_ASSEM_SOLVE( state, packed_state, &
          NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
          U_ELE_TYPE, P_ELE_TYPE, &
          U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -1199,6 +1199,7 @@
 
       IMPLICIT NONE
       type( state_type ), dimension( : ), intent( inout ) :: state
+      type( state_type ), intent( inout ) :: packed_state
       INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, &
            TOTELE, U_ELE_TYPE, P_ELE_TYPE, &
            U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -4708,7 +4709,6 @@
                                     IF(.NOT.NO_MATRIX_STORE) THEN
                                        DIAG_BIGM_CON(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC,ELE) &
                                             =DIAG_BIGM_CON(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC,ELE) - NN_SNDOTQ_IN
-                                       !                                       DGM_PHA( COUNT ) =  DGM_PHA( COUNT ) - NN_SNDOTQ_IN
                                     ELSE
                                        LOC_U_RHS( IDIM,IPHASE,U_ILOC ) = LOC_U_RHS( IDIM,IPHASE,U_ILOC ) &
                                             + NN_SNDOTQ_IN * SLOC_U( IDIM,IPHASE,U_SJLOC )

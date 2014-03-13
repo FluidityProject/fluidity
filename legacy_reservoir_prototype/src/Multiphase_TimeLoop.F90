@@ -1065,9 +1065,8 @@
                ! stabilisation for high aspect ratio problems - switched off
                call calculate_u_abs_stab( Material_Absorption_Stab, Material_Absorption, &
                     opt_vel_upwind_coefs, nphase, ndim, totele, cv_nloc, mat_nloc, mat_nonods, mat_ndgln )
-!if (acctim==0.) Pressure_FEM = 0.
 
-               CALL FORCE_BAL_CTY_ASSEM_SOLVE( state, &
+               CALL FORCE_BAL_CTY_ASSEM_SOLVE( state, packed_state, &
                     NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
                     U_ELE_TYPE, P_ELE_TYPE, &
                     U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -2129,7 +2128,7 @@ ncv_faces=CV_count_faces( SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV,&
 
         subroutine temp_assigns()
 
-          type(vector_field), pointer :: pu,pp,pm
+          type(vector_field), pointer :: pu,pp
 
           pp=> extract_vector_field(packed_state,"PressureCoordinate")
           pu=>extract_vector_field(packed_state,"VelocityCoordinate")
