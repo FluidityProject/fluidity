@@ -236,7 +236,7 @@
       type(tensor_field), pointer :: velocity, velocity_old
 
       !Variable to store where we store things. Do not oversize this array, the size has to be the last index in use
-      integer, dimension (31) :: StorageIndexes
+      integer, dimension (32) :: StorageIndexes
       !Initially we set to use Stored data and that we have a new mesh
       StorageIndexes = 0!Initialize them as zero ! Entries 1, 2 and 3 are unused, for future purposes
 
