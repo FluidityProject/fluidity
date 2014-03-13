@@ -603,8 +603,132 @@
 
 
 
-
     subroutine form_dgm_pha_sparsity( totele, nphase, u_nloc, u_pha_nonods, &
+         ndim, mx_ncoldgm_pha, ncoldgm_pha, &
+         coldgm_pha, findgm_pha, middgm_pha, &
+         finele, colele, ncolele )
+      ! Form the sparsity of the phase coupled DG discretised matrix
+      ! from the element-wise multi-phase sparsity matrix.
+      implicit none
+      integer, intent( in ) :: totele, nphase, u_nloc, u_pha_nonods, &
+           mx_ncoldgm_pha, ndim, ncolele
+      integer, intent( inout ) :: ncoldgm_pha
+      integer, dimension( mx_ncoldgm_pha ), intent( inout ) :: coldgm_pha
+      integer, dimension( u_pha_nonods + 1 ), intent( inout ) :: findgm_pha
+      integer, dimension( u_pha_nonods ), intent( inout ) :: middgm_pha
+      integer, dimension( totele + 1 ), intent( in ) :: finele
+      integer, dimension( ncolele ), intent( in ) :: colele
+
+      ! Local variables
+      integer :: count, count2, ele_pha, ele_pha2, iloc, jloc, irow, jrow
+      integer :: ele, ele2, idim, jdim, iphase, jphase, u_nonods
+      logical :: new_sparcity
+
+      new_sparcity=.true.
+
+
+      ewrite(3,*) 'In form_dgm_pha_sparsity subrt.'
+
+      u_nonods = u_pha_nonods / ( nphase * ndim )
+
+
+      if ( new_sparcity ) then
+      
+         count2 = 0
+         do ele = 1, totele
+            do iloc = 1, u_nloc
+               do iphase = 1, nphase
+                  do idim = 1, ndim
+                     !irow = ( ele - 1 ) * u_nloc + iloc  + ( idim - 1 ) * u_nonods + (iphase-1)*u_nonods*ndim
+                     irow = ( ele - 1 ) * u_nloc*ndim*nphase + (iloc-1)*ndim*nphase  + ( iphase - 1 ) * ndim + idim
+                     !ewrite(3,*)'irow, ele, u_nloc, iloc, idim, u_nonods, iphase, count2:', &
+                     !irow, ele, u_nloc, iloc, idim, u_nonods, iphase, count2+1
+                     findgm_pha( irow ) = count2 + 1
+                     do count = finele( ele ), finele( ele + 1 ) - 1
+                        ele2 = colele( count )
+                        do jloc = 1, u_nloc
+                           do jphase = 1, nphase
+                              do jdim = 1, ndim
+                                 !jrow = ( ele2 - 1 ) * u_nloc + jloc  + ( jdim - 1 ) * u_nonods + (jphase-1)*u_nonods*ndim
+                                 jrow = ( ele2 - 1) * u_nloc*ndim*nphase + (jloc-1)*ndim*nphase  + ( jphase - 1 ) * ndim + jdim
+                                 count2 = count2 + 1
+                                 coldgm_pha( count2 ) = jrow
+                                 if( irow == jrow ) middgm_pha( irow ) = count2
+                              end do
+                           end do
+                        end do
+                     end do
+                  end do
+               end do
+            end do
+         end do
+         findgm_pha( u_pha_nonods + 1 ) = count2 + 1
+         ncoldgm_pha = count2
+      
+      else
+
+         count2 = 0
+         Loop_Phase1: do iphase = 1, nphase
+            Loop_Dim1: do idim = 1, ndim
+               Loop_Element: do ele = 1, totele
+                  Loop_Loc1: do iloc = 1, u_nloc
+                     irow = ( ele - 1 ) * u_nloc + iloc  + ( idim - 1 ) * u_nonods + (iphase-1)*u_nonods*ndim
+                     !ewrite(3,*)'irow, ele, u_nloc, iloc, idim, u_nonods, iphase, count2:', &
+                     !     irow, ele, u_nloc, iloc, idim, u_nonods, iphase, count2+1
+                     findgm_pha( irow ) = count2 + 1
+                     Loop_Phase2: do jphase = 1, nphase
+                        Loop_Dim2: do jdim = 1, ndim
+                           Loop_Count: do count = finele( ele ), finele( ele + 1 ) - 1
+                              ele2 = colele( count )
+                              Loop_Loc2: do jloc = 1, u_nloc
+                                 jrow = ( ele2 - 1 ) * u_nloc + jloc  + ( jdim - 1 ) * u_nonods + (jphase-1)*u_nonods*ndim
+                                 count2 = count2 + 1
+                                 coldgm_pha( count2 ) = jrow
+                                 if( irow == jrow ) middgm_pha( irow ) = count2
+                              end do Loop_Loc2
+                           end do Loop_Count
+                        end do Loop_Dim2
+                     end do Loop_Phase2
+                  end do Loop_Loc1
+               end do Loop_Element
+            end do Loop_Dim1
+         end do Loop_Phase1
+         findgm_pha( u_pha_nonods + 1 ) = count2 + 1
+         ncoldgm_pha = count2
+      
+      end if
+
+
+      ! perform a bubble sort to order the row in ioncreasing order
+      do irow = 1, u_pha_nonods
+         call ibubble( coldgm_pha( findgm_pha( irow ) : findgm_pha( irow + 1 ) - 1 ) )
+         do count = findgm_pha( irow ), findgm_pha( irow + 1 ) - 1
+            jrow = coldgm_pha( count )
+            if( irow == jrow ) middgm_pha( irow ) = count
+         end do
+      end do
+
+
+      if( ncoldgm_pha > mx_ncoldgm_pha ) &
+           FLAbort(" Incorrect number of dimension of sparsity matrix - ncoldgm_pha ")
+
+      ewrite(3,*) 'Leaving form_dgm_pha_sparsity subrt. '
+
+      return
+    end subroutine form_dgm_pha_sparsity
+
+
+
+
+
+
+
+
+
+
+
+
+    subroutine form_dgm_pha_sparsity_old( totele, nphase, u_nloc, u_pha_nonods, &
          ndim, mx_ncoldgm_pha, ncoldgm_pha, &
          coldgm_pha, findgm_pha, middgm_pha, &
          finele, colele, ncolele )
@@ -674,7 +798,7 @@
       ewrite(3,*) 'Leaving form_dgm_pha_sparsity subrt. '
 
       return
-    end subroutine form_dgm_pha_sparsity
+    end subroutine form_dgm_pha_sparsity_old
 
 
     subroutine pousinmc2( totele, nonods1, nloc1, nonods2, nloc2, &

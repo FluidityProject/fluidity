@@ -1579,14 +1579,14 @@
             !ewrite(3,*) 'dgm_pha', dgm_pha
 
             UP_VEL = 0.0
-            !CALL SOLVER( DGM_PHA, UP_VEL, U_RHS_CDP, &
-            !     FINDGM_PHA, COLDGM_PHA, &
-            !     option_path = '/material_phase[0]/vector_field::Velocity')
+            CALL SOLVER( DGM_PHA, UP_VEL, U_RHS_CDP, &
+                 FINDGM_PHA, COLDGM_PHA, &
+                 option_path = '/material_phase[0]/vector_field::Velocity')
 
             ! FOR NEW NUMBERING
-            CALL SOLVER( DGM_PHA, UP_VEL, U_RHS_CDP, &
-                 FINELE, COLELE, &
-                 option_path = '/material_phase[0]/vector_field::Velocity')
+            !CALL SOLVER( DGM_PHA, UP_VEL, U_RHS_CDP, &
+            !     FINELE, COLELE, &
+            !     option_path = '/material_phase[0]/vector_field::Velocity')
 
          END IF
 
@@ -5011,7 +5011,9 @@
       INTEGER, DIMENSION( : ), intent( in ) :: COLELE
 ! NEW_ORDERING then order the matrix: IDIM,IPHASE,UILOC,ELE
 ! else use the original ordering...
-      LOGICAL, PARAMETER :: NEW_ORDERING = .TRUE.
+      LOGICAL, PARAMETER :: NEW_ORDERING = .FALSE.
+      LOGICAL, PARAMETER :: tempory_order=.true.
+
       INTEGER :: ELE,ELE_ROW_START,ELE_ROW_START_NEXT,ELE_IN_ROW
       INTEGER :: U_ILOC,U_JLOC, IPHASE,JPHASE, IDIM,JDIM, I,J, GLOBI, GLOBJ, U_INOD_IDIM_IPHA, U_JNOD_JDIM_JPHA
       INTEGER :: COUNT,COUNT_ELE,JCOLELE
@@ -5044,32 +5046,40 @@
                   DO JPHASE=1,NPHASE
                      DO IDIM=1,NDIM_VEL
                      DO JDIM=1,NDIM_VEL
-                        IF(NEW_ORDERING) THEN
-! New for rapid code ordering of variables...
+           
+
+                        IF ( NEW_ORDERING ) THEN
+
+                           ! New for rapid code ordering of variables...
                            I=IDIM + (IPHASE-1)*NDIM_VEL + (U_ILOC-1)*NDIM_VEL*NPHASE
                            J=JDIM + (JPHASE-1)*NDIM_VEL + (U_JLOC-1)*NDIM_VEL*NPHASE
                            COUNT = (COUNT_ELE-1)*(NDIM_VEL*NPHASE)**2 + (I-1)*NDIM_VEL*NPHASE*U_NLOC + J
                            DGM_PHA(COUNT) = LOC_DGM_PHA(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC)
+
                         ELSE
-! Old ordering of the variables BIGM...
-! Too compilcated for me to work through quickly - using a simple less efficient method -easier to de-bug
-!                           ROW_START= (ELE_ROW_START-1)*NDIM_VEL*NPHASE
-!                           COUNT = (IPHASE-1)*NDIM_VEL * NDIM_VEL*NPHASE*NCOLELE  +  (IDIM-1)*NDIM_VEL*NPHASE*NCOLELE &
-!                                 + (JPHASE-1)*NDIM_VEL * ELE_IN_ROW           +  (JDIM-1)*NPHASE * ELE_IN_ROW   &
-!                                 + (ELE_ROW_START-1)*NDIM_VEL*NPHASE  &
-!                                 + (JCOLELE-1)*(NDIM_VEL*NPHASE)**2 + (I-1)*NDIM_VEL*NPHASE + J
+
+                           ! Old ordering of the variables BIGM...
                            GLOBI=(ELE-1)*U_NLOC + U_ILOC
                            GLOBJ=(JCOLELE-1)*U_NLOC + U_JLOC
-                           U_INOD_IDIM_IPHA = GLOBI + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM_VEL*U_NONODS 
-                           U_JNOD_JDIM_JPHA = GLOBJ + (JDIM-1)*U_NONODS + ( JPHASE - 1 ) * NDIM_VEL*U_NONODS 
-                              COUNT=0
-                              CALL POSINMAT( COUNT, U_INOD_IDIM_IPHA, U_JNOD_JDIM_JPHA, &
-                                U_NONODS * NPHASE * NDIM_VEL, FINDGM_PHA, COLDGM_PHA, NCOLDGM_PHA )
-                              IF(COUNT.NE.0) THEN
-                                 DGM_PHA(COUNT) = LOC_DGM_PHA(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC)
-                              ENDIF
 
-                        ENDIF
+                           if ( tempory_order ) then
+                              I=IDIM + (IPHASE-1)*NDIM_VEL + (U_ILOC-1)*NDIM_VEL*NPHASE
+                              J=JDIM + (JPHASE-1)*NDIM_VEL + (U_JLOC-1)*NDIM_VEL*NPHASE
+                              U_INOD_IDIM_IPHA = I + (ELE-1)*NDIM_VEL*NPHASE*U_NLOC
+                              U_JNOD_JDIM_JPHA = J + (JCOLELE-1)*NDIM_VEL*NPHASE*U_NLOC
+                           else
+                              U_INOD_IDIM_IPHA = GLOBI + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM_VEL*U_NONODS 
+                              U_JNOD_JDIM_JPHA = GLOBJ + (JDIM-1)*U_NONODS + ( JPHASE - 1 ) * NDIM_VEL*U_NONODS 
+                           end if
+                              
+                           COUNT=0
+                           CALL POSINMAT( COUNT, U_INOD_IDIM_IPHA, U_JNOD_JDIM_JPHA, &
+                                U_NONODS * NPHASE * NDIM_VEL, FINDGM_PHA, COLDGM_PHA, NCOLDGM_PHA )
+                           IF(COUNT.NE.0) THEN
+                              DGM_PHA(COUNT) = LOC_DGM_PHA(IDIM,JDIM,IPHASE,JPHASE,U_ILOC,U_JLOC)   
+                           END IF
+
+                        END IF
 
                      END DO
                      END DO
