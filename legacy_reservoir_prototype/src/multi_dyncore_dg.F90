@@ -1148,8 +1148,8 @@
          U_NDGLN, P_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN, &
          STOTEL, CV_SNDGLN, U_SNDGLN, P_SNDGLN, &
          U_SNLOC, P_SNLOC, CV_SNLOC, &
-         X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
-         U, V, W, UOLD, VOLD, WOLD, &
+         X_ALL, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
+         U_ALL, UOLD_ALL, &
          P, CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
          DT, &
          NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn 
@@ -1204,12 +1204,12 @@
       INTEGER, DIMENSION(  : ), intent( in ) :: CV_SNDGLN
       INTEGER, DIMENSION(  : ), intent( in ) :: XU_NDGLN
       INTEGER, DIMENSION(  : ), intent( in ) ::  WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_MOMU_BC, WIC_P_BC
-      REAL, DIMENSION(  :  ), intent( in ) :: X, Y, Z
+      REAL, DIMENSION(  : , : ), intent( in ) :: X_ALL
       REAL, DIMENSION(  :,:,:  ), intent( in ) :: U_ABS_STAB, U_ABSORB
       REAL, DIMENSION(  :  ), intent( in ) :: U_SOURCE
       REAL, DIMENSION(  :  ), intent( in ) :: U_SOURCE_CV
-      REAL, DIMENSION(  : ), intent( inout ) :: U, V, W
-      REAL, DIMENSION(  :  ), intent( in ) :: UOLD, VOLD, WOLD
+      REAL, DIMENSION(  : , : , : ), intent( inout ) :: U_ALL 
+      REAL, DIMENSION(  : , : , : ), intent( in ) :: UOLD_ALL
       REAL, DIMENSION(  :  ), intent( inout ) :: P,CV_P
       REAL, DIMENSION(  :  ), intent( in ) :: DEN, DENOLD, SATURAOLD
       REAL, DIMENSION(  :  ), intent( inout ) :: SATURA
@@ -1279,8 +1279,8 @@
 
     !TEMPORARY VARIABLES, ADAPT FROM OLD VARIABLES TO NEW
       INTEGER :: U_NLOC2, ILEV, NLEV, X_ILOC, X_INOD, MAT_INOD, S, E, sele, p_sjloc, u_siloc
-      REAL, DIMENSION( :, :, : ), allocatable :: U_ALL, UOLD_ALL, U_SOURCE_ALL, U_SOURCE_CV_ALL, U_ABSORB_ALL, U_ABS_STAB_ALL
-      REAL, DIMENSION( :, : ), allocatable :: X_ALL, UDEN_ALL, UDENOLD_ALL, PLIKE_GRAD_SOU_COEF_ALL, PLIKE_GRAD_SOU_GRAD_ALL
+      REAL, DIMENSION( :, :, : ), allocatable :: U_SOURCE_ALL, U_SOURCE_CV_ALL, U_ABSORB_ALL, U_ABS_STAB_ALL
+      REAL, DIMENSION( :, : ), allocatable ::  UDEN_ALL, UDENOLD_ALL, PLIKE_GRAD_SOU_COEF_ALL, PLIKE_GRAD_SOU_GRAD_ALL
       REAL, DIMENSION( :, :, :, : ), allocatable :: UDIFFUSION_ALL
 
       INTEGER, DIMENSION ( :, :, : ), allocatable :: WIC_U_BC_ALL, WIC_MOMU_BC_ALL
@@ -1289,9 +1289,10 @@
       REAL, DIMENSION ( :, :, :, : ), allocatable :: SUF_U_ROB1_BC_ALL, SUF_U_ROB2_BC_ALL
       REAL, DIMENSION ( :, :, : ), allocatable :: SUF_P_BC_ALL
 
-      ALLOCATE( U_ALL( NDIM, NPHASE, U_NONODS ), UOLD_ALL( NDIM, NPHASE, U_NONODS ), &
-           X_ALL( NDIM, X_NONODS ), UDEN_ALL( NPHASE, CV_NONODS ), UDENOLD_ALL( NPHASE, CV_NONODS ) )
-      U_ALL = 0. ; UOLD_ALL = 0. ; X_ALL = 0. ; UDEN_ALL = 0. ; UDENOLD_ALL = 0.
+      real, dimension ( : ), allocatable :: U,V,W
+
+      ALLOCATE( UDEN_ALL( NPHASE, CV_NONODS ), UDENOLD_ALL( NPHASE, CV_NONODS ) )
+      UDEN_ALL = 0. ; UDENOLD_ALL = 0.
 
       ALLOCATE( WIC_U_BC_ALL( NDIM,NPHASE,STOTEL ) ) ; WIC_U_BC_ALL = 0
       ALLOCATE( WIC_MOMU_BC_ALL( NDIM,NPHASE,STOTEL ) ) ; WIC_MOMU_BC_ALL = 0
@@ -1303,6 +1304,19 @@
       ALLOCATE( SUF_U_ROB2_BC_ALL( NDIM,NPHASE,U_SNLOC,STOTEL ) ) ; SUF_U_ROB2_BC_ALL = 0.0
       ALLOCATE( SUF_P_BC_ALL( NPHASE,P_SNLOC,STOTEL ) ) ; SUF_P_BC_ALL = 0.0
 
+
+      Allocate(U(nphase*u_nonods),V(nphase*u_nonods),W(nphase*u_nonods))
+      U=[transpose(U_ALL(1,:,:))]
+      if (ndim>=2) then
+         V=[transpose(U_ALL(2,:,:))]
+      else
+         V=0
+      end if
+      if (ndim>=3) then
+         W=[transpose(U_ALL(3,:,:))]
+      else
+         W=0
+      end if
 
     !TEMPORARY VARIABLES, ADAPT FROM OLD VARIABLES TO NEW
       ewrite(3,*) 'In FORCE_BAL_CTY_ASSEM_SOLVE'
@@ -1343,36 +1357,7 @@
          NLEV = 1
          U_NLOC2 = U_NLOC
       END IF
-      DO ELE = 1, TOTELE
-         DO ILEV = 1, NLEV
-            DO U_ILOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
-               U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
-               DO IPHASE = 1, NPHASE
-                  DO IDIM = 1, NDIM
-                     IF ( IDIM==1 ) THEN
-                        U_ALL( IDIM, IPHASE, U_INOD ) = U( U_INOD + (IPHASE-1)*U_NONODS )
-                        UOLD_ALL( IDIM, IPHASE, U_INOD ) = UOLD( U_INOD + (IPHASE-1)*U_NONODS )
-                     ELSE IF ( IDIM==2 ) THEN
-                        U_ALL( IDIM, IPHASE, U_INOD ) = V( U_INOD + (IPHASE-1)*U_NONODS )
-                        UOLD_ALL( IDIM, IPHASE, U_INOD ) = VOLD( U_INOD + (IPHASE-1)*U_NONODS )
-                     ELSE
-                        U_ALL( IDIM, IPHASE, U_INOD ) = W( U_INOD + (IPHASE-1)*U_NONODS )
-                        UOLD_ALL( IDIM, IPHASE, U_INOD ) = WOLD( U_INOD + (IPHASE-1)*U_NONODS )
-                     END IF
-                  END DO
-               END DO
-            END DO
-         END DO
-      END DO
-      DO IDIM = 1, NDIM
-         IF ( IDIM==1 ) THEN
-            X_ALL( IDIM, : ) = X
-         ELSE IF ( IDIM==2 ) THEN
-            X_ALL( IDIM, : ) = Y
-         ELSE
-            X_ALL( IDIM, : ) = Z
-         END IF
-      END DO
+
       DO IPHASE = 1, NPHASE
          UDEN_ALL( IPHASE, : ) = UDEN( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
          UDENOLD_ALL( IPHASE, : ) = UDENOLD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
@@ -1525,7 +1510,7 @@
               FINMCY, COLMCY, &
               option_path = '/material_phase[0]/vector_field::Velocity')
 
-         CALL ULONG_2_UVW( U, V, W, UP, U_NONODS, NDIM, NPHASE )
+         U_ALL=reshape(UP_VEL,[ndim,nphase,u_nonods])
 
          P( 1 : CV_NONODS ) = UP( U_NONODS * NDIM * NPHASE + 1 : &
               U_NONODS * NDIM * NPHASE + CV_NONODS )
@@ -1550,7 +1535,7 @@
          END DO
 
 
-         CALL UVW_2_ULONG( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
+         U_ALL=reshape(UP_VEL,[ndim,nphase,u_nonods])
 
          IF ( JUST_BL_DIAG_MAT .OR. NO_MATRIX_STORE ) THEN
 
@@ -1573,7 +1558,21 @@
 
          END IF
 
-         CALL ULONG_2_UVW( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
+         U_ALL=reshape(UP_VEL,[ndim,nphase,u_nonods])
+
+
+      U=[transpose(U_ALL(1,:,:))]
+      if (ndim>=2) then
+         V=[transpose(U_ALL(2,:,:))]
+      else
+         V=0
+      end if
+      if (ndim>=3) then
+         W=[transpose(U_ALL(3,:,:))]
+      else
+         W=0
+      end if
+
 
          !ewrite(3,*) 'u::', u
          !ewrite(3,*) 'v::', v

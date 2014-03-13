@@ -231,6 +231,10 @@
       REAL, DIMENSION( : , : ), allocatable :: LIMVOLD,LIMV2OLD,LIMVDOLD,LIMVDTOLD,LIMVDTT2OLD
       REAL, DIMENSION( : , : ,: ), allocatable :: NDOTQCOLD,LIMCOLD,LIMC2OLD,LIMCDOLD,LIMCDTOLD,LIMCDTT2OLD
 
+
+      type(vector_field), pointer :: x_position
+      type(tensor_field), pointer :: velocity, velocity_old
+
       !Variable to store where we store things. Do not oversize this array, the size has to be the last index in use
       integer, dimension (31) :: StorageIndexes
       !Initially we set to use Stored data and that we have a new mesh
@@ -242,6 +246,10 @@
 
       call pack_multistate(state,packed_state,multiphase_state,&
            multicomponent_state)
+
+      x_position=> extract_vector_field(packed_state,"PressureCoordinate")
+      velocity=> extract_tensor_field(packed_state,"PackedVelocity")
+      velocity_old=> extract_tensor_field(packed_state,"PackedOldVelocity")
 
       variable_selection = 3 !Variable to check how good nonlinear iterations are going 1 (Pressure), 2 (Velocity), 3 (Saturation)
       Repeat_time_step = .false.!Initially has to be false
@@ -672,6 +680,7 @@
          end if
 
 !!$ Update all fields from time-step 'N - 1'
+         velocity_old%val=velocity%val
          Velocity_U_Old = Velocity_U ; Velocity_V_Old = Velocity_V ; Velocity_W_Old = Velocity_W
          Velocity_NU = Velocity_U ; Velocity_NV = Velocity_V ; Velocity_NW = Velocity_W
          Velocity_NU_Old = Velocity_U ; Velocity_NV_Old = Velocity_V ; Velocity_NW_Old = Velocity_W
@@ -1060,8 +1069,8 @@
                     STOTEL, CV_SNDGLN, U_SNDGLN, P_SNDGLN, &
                     U_SNLOC, P_SNLOC, CV_SNLOC, &
 !!$
-                    x, y, z, Material_Absorption_Stab, Material_Absorption+Velocity_Absorption, Velocity_U_Source, Velocity_U_Source_CV, &
-                    Velocity_U, Velocity_V, Velocity_W, Velocity_U_Old, Velocity_V_Old, Velocity_W_Old, &
+                    x_position%val, Material_Absorption_Stab, Material_Absorption+Velocity_Absorption, Velocity_U_Source, Velocity_U_Source_CV, &
+                    Velocity%val, Velocity_Old%val, &
                     Pressure_FEM, Pressure_CV, Density, Density_Old, PhaseVolumeFraction, PhaseVolumeFraction_Old, & 
                     DRhoDPressure, &
                     dt, &
@@ -1099,6 +1108,11 @@
                     iplike_grad_sou, plike_grad_sou_coef, plike_grad_sou_grad, &
                     scale_momentum_by_volume_fraction,&
                            StorageIndexes=StorageIndexes )
+
+               !rearranging for old memory
+               velocity_u=[transpose(velocity%val(1,:,:))]
+               if (ndim >= 2) velocity_v=[transpose(velocity%val(2,:,:))]
+               if (ndim == 3) velocity_w=[transpose(velocity%val(2,:,:))]
 
                Pressure_State => extract_scalar_field( state( 1 ), 'Pressure' )
                Pressure_State % val = Pressure_CV
@@ -1694,7 +1708,6 @@ deallocate(NDOTQOLD,&
            LIMCOLD,LIMC2OLD,LIMCDOLD,&
            LIMCDTOLD,LIMCDTT2OLD)
 
-
 !!$  Compute primary scalars used in most of the code
             call Get_Primary_Scalars( state, &         
                  nphase, nstate, ncomp, totele, ndim, stotel, &
@@ -2104,18 +2117,17 @@ deallocate(NDOTQOLD,&
 
         subroutine temp_assigns()
 
-          type(vector_field), pointer :: pu,pp,pm
+          type(vector_field), pointer :: pu
 
-          pp=> extract_vector_field(packed_state,"PressureCoordinate")
           pu=>extract_vector_field(packed_state,"VelocityCoordinate")
 
           xu=>pu%val(1,:)
-          x=>pp%val(1,:)
+          x=>x_position%val(1,:)
 
 
           if ( ndim >= 2 ) then
              yu=>pu%val(2,:)
-             y=>pp%val(2,:)
+             y=>x_position%val(2,:)
           else
              yu=>temp(1:xu_nonods)
              y=>temp(1:x_nonods)
@@ -2123,7 +2135,7 @@ deallocate(NDOTQOLD,&
           
           if ( ndim == 3 ) then
              zu=>pu%val(3,:)
-             z=>pp%val(3,:)
+             z=>x_position%val(3,:)
           else
              zu=>temp(1:xu_nonods)
              z=>temp(1:x_nonods)
