@@ -32,7 +32,7 @@ module cv_advection
 
   use solvers_module
   use spud
-  use global_parameters, only: option_path_len, timestep
+  use global_parameters, only: option_path_len, timestep, is_overlapping
   use futils, only: int2str
   use adapt_state_prescribed_module
   use sparsity_patterns
@@ -5672,13 +5672,17 @@ contains
     X_nloc=ele_loc(x_mesh,1)
     xu_mesh=>extract_mesh(packed_state,"VelocityMesh_Continuous")
     xu_ndgln=>xu_mesh%ndglno
-    u_mesh=>extract_mesh(packed_state,"VelocityMesh")
+    u_mesh=>extract_mesh(packed_state,"InternalVelocityMesh")
     u_ndgln=>u_mesh%ndglno
     u_nonods=node_count(u_mesh)
-    u_nloc=ele_loc(u_mesh,1)
+    if (is_overlapping) then
+       u_nloc=ele_loc(u_mesh,1)*cv_nloc
+    else
+       u_nloc=ele_loc(u_mesh,1)
+    end if
     u_snloc=face_loc(u_mesh,1)
-    mat_mesh=>extract_mesh(packed_state,"VelocityMesh")
-    mat_nloc=ele_loc(mat_mesh,1)
+    mat_mesh=>extract_mesh(packed_state,"PressureMesh_Discontinuous")
+    mat_nloc=ele_loc(mat_mesh,1) 
 
     allocate( face_list( totele ) )
 
