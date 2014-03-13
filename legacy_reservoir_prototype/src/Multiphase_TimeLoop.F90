@@ -2189,5 +2189,40 @@ deallocate(NDOTQOLD,&
     end subroutine Updating_Linearised_Components
 
 
+   subroutine copy_packed_new_to_old(packed_state)
+     type(state_type), intent(inout) :: packed_state
+     
+     type(scalar_field), pointer :: sfield, nsfield
+     type(vector_field), pointer :: vfield, nvfield
+     type(tensor_field), pointer :: tfield, ntfield
+
+     integer :: i
+
+     do i=1,size(packed_state%scalar_fields)
+        sfield=>packed_state%scalar_fields(i)%ptr
+        if (sfield%name(1:9)=="PackedOld") then
+           nsfield=>extract_scalar_field(packed_state,"Packed"//sfield%name(10:))
+           sfield%val=nsfield%val
+        end if
+     end do
+
+     do i=1,size(packed_state%vector_fields)
+        vfield=>packed_state%vector_fields(i)%ptr
+        if (vfield%name(1:9)=="PackedOld") then
+           nvfield=>extract_vector_field(packed_state,"Packed"//vfield%name(10:))
+           vfield%val=nvfield%val
+        end if
+     end do
+     
+     do i=1,size(packed_state%tensor_fields)
+        tfield=>packed_state%tensor_fields(i)%ptr
+        if (tfield%name(1:9)=="PackedOld") then
+           ntfield=>extract_tensor_field(packed_state,"Packed"//tfield%name(10:))
+           tfield%val=ntfield%val
+        end if
+     end do
+
+   end subroutine copy_packed_new_to_old 
+
 
   end module multiphase_time_loop
