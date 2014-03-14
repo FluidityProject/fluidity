@@ -1596,12 +1596,12 @@
             UP_VEL = 0.0
             CALL SOLVER( DGM_PHA, UP_VEL, U_RHS_CDP, &
                  FINDGM_PHA, COLDGM_PHA, &
-                 option_path = '/material_phase[0]/vector_field::Velocity')
+                 option_path = '/material_phase[0]/vector_field::Velocity',block_size = NDIM*NPHASE*U_NLOC)
 
             ! FOR NEW NUMBERING
             !CALL SOLVER( DGM_PHA, UP_VEL, U_RHS_CDP, &
             !     FINELE, COLELE, &
-            !     option_path = '/material_phase[0]/vector_field::Velocity')
+            !     option_path = '/material_phase[0]/vector_field::Velocity',block_size = NDIM*NPHASE*U_NLOC)
 
          END IF
 
@@ -5042,7 +5042,7 @@
       INTEGER, DIMENSION( : ), intent( in ) :: COLELE
 ! NEW_ORDERING then order the matrix: IDIM,IPHASE,UILOC,ELE
 ! else use the original ordering...
-      LOGICAL, PARAMETER :: NEW_ORDERING = .FALSE.
+      LOGICAL, PARAMETER :: NEW_ORDERING = .false.
       LOGICAL, PARAMETER :: tempory_order=.true.
 
       INTEGER :: ELE,ELE_ROW_START,ELE_ROW_START_NEXT,ELE_IN_ROW

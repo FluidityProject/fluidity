@@ -78,7 +78,7 @@ contains
 ! -----------------------------------------------------------------------------
 
   subroutine solve_via_copy_to_petsc_csr_matrix( A, &
-       x, b, findfe, colfe, option_path )
+       x, b, findfe, colfe, option_path, block_size )
 
     !!< Solve a matrix Ax = b system via copying over to the
     !!< petsc_csr_matrix type and calling the femtools solver
@@ -89,36 +89,40 @@ contains
     real, dimension( : ), intent(in) :: a, b
     real, dimension( : ), intent(inout) :: x
     character( len=* ), intent(in) :: option_path
+    !This optional argument is to create a block-diagonal matrix
+    !and therefore to use block-solvers
+    integer, optional, intent(in) :: block_size
 
     ! local variables
     integer :: i, j, k, rows
     integer, dimension( : ), allocatable :: dnnz
     type(petsc_csr_matrix) :: matrix
+    integer :: size_of_block
+
+    size_of_block = 1
+    if (present(block_size)) size_of_block = block_size
 
     rows = size( x )
-
-    ewrite(3,*) rows+1, size(findfe)
-
     assert( size( x ) == size( b ) )
     assert( size( a ) == size( colfe ) )
     assert( size( x ) + 1 == size( findfe ) )
+    ewrite(3,*) rows+1, size(findfe)
 
+    allocate( dnnz( rows/size_of_block ) ) ; dnnz = 0
     ! find the number of non zeros per row
-    allocate( dnnz( rows ) ) ; dnnz = 0
-    do i = 1, rows
-       dnnz( i ) = findfe( i+1 ) - findfe( i )
+    do i = 1, size( dnnz )
+        dnnz( i ) =(findfe( i+1 ) - findfe( i ))
     end do
+    call allocate( matrix, rows/size_of_block, rows/size_of_block, dnnz, dnnz,&
+    (/1, 1/), name = 'dummy', element_size=size_of_block)
 
-    ! allocate the petsc_csr_matrix using nnz (pass dnnz also for onnz)
-    call allocate( matrix, rows, rows, dnnz, dnnz, (/1, 1/), name = 'dummy' )
     call zero( matrix )
-
     ! add in the entries to petsc matrix
     do i = 1, rows
-       do j = findfe( i ), findfe( i+1 ) - 1
-          k = colfe( j )
-          call addto( matrix, blocki = 1, blockj = 1, i = i, j = k, val = a( j ) )
-       end do
+        do j = findfe( i ), findfe( i+1 ) - 1
+            k = colfe( j )
+            call addto( matrix, blocki = 1, blockj = 1, i = i, j = k, val = a( j ) )
+        end do
     end do
 
     call assemble( matrix )
@@ -141,8 +145,8 @@ contains
     integer, intent(in) :: rows
     character( len=* ), intent(in) :: option_path
 
-    KSP ksp
-    Vec y, b
+    type(KSP):: ksp
+    type(Vec) :: y, b
 
     character(len=OPTION_PATH_LEN) :: solver_option_path
     integer :: ierr
