@@ -64,7 +64,8 @@
     use shape_functions_Linear_Quadratic
     use Compositional_Terms
     use Copy_Outof_State
-    use Copy_BackTo_State
+    use Copy_BackTo_State 
+    use boundary_conditions
 
     use multiphase_fractures
 
@@ -242,6 +243,14 @@
 
       call pack_multistate(state,packed_state,multiphase_state,&
            multicomponent_state)
+      
+      !  Access boundary conditions via a call like
+      !  call get_entire_boundary_condition(extract_tensor_field(packed_state,"Packed"//name),["dirichlet"],tfield,bc_type_list)
+      !  where tfield is type(tensor_field) and bc_type_list is integer, dimension(tfield%dim(1),tfield%dim(2),nonods)
+      !  Then values are in tfield%val(1/ndim/ncomp,nphase,nonods) 
+      !  Type ids are in bc_type_list(1/ndim/ncomp,nphase,stotel) 
+      !
+      !¬ deallocate tfield when finished!!
 
       variable_selection = 3 !Variable to check how good nonlinear iterations are going 1 (Pressure), 2 (Velocity), 3 (Saturation)
       Repeat_time_step = .false.!Initially has to be false
@@ -275,8 +284,6 @@
       allocate( cv_sndgln( stotel * cv_snloc ), p_sndgln( stotel * p_snloc ), &
            u_sndgln( stotel * u_snloc ) )
 
-      
-      
 
 !      x_ndgln_p1 = 0 ; x_ndgln = 0 ; cv_ndgln = 0 ; p_ndgln = 0 ; mat_ndgln = 0 ; u_ndgln = 0 ; xu_ndgln = 0 ; &
            cv_sndgln = 0 ; p_sndgln = 0 ; u_sndgln = 0
@@ -2188,6 +2195,39 @@ deallocate(NDOTQOLD,&
       return
     end subroutine Updating_Linearised_Components
 
+   subroutine copy_packed_new_to_old(packed_state)
+     type(state_type), intent(inout) :: packed_state
+     
+     type(scalar_field), pointer :: sfield, nsfield
+     type(vector_field), pointer :: vfield, nvfield
+     type(tensor_field), pointer :: tfield, ntfield
 
+     integer :: i
+
+     do i=1,size(packed_state%scalar_fields)
+        sfield=>packed_state%scalar_fields(i)%ptr
+        if (sfield%name(1:9)=="PackedOld") then
+           nsfield=>extract_scalar_field(packed_state,"Packed"//sfield%name(10:))
+           sfield%val=nsfield%val
+        end if
+     end do
+
+     do i=1,size(packed_state%vector_fields)
+        vfield=>packed_state%vector_fields(i)%ptr
+        if (vfield%name(1:9)=="PackedOld") then
+           nvfield=>extract_vector_field(packed_state,"Packed"//vfield%name(10:))
+           vfield%val=nvfield%val
+        end if
+     end do
+     
+     do i=1,size(packed_state%tensor_fields)
+        tfield=>packed_state%tensor_fields(i)%ptr
+        if (tfield%name(1:9)=="PackedOld") then
+           ntfield=>extract_tensor_field(packed_state,"Packed"//tfield%name(10:))
+           tfield%val=ntfield%val
+        end if
+     end do
+
+   end subroutine copy_packed_new_to_old
 
   end module multiphase_time_loop

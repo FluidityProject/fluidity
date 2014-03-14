@@ -62,14 +62,17 @@ implicit none
      module procedure allocate_scalar_field, allocate_vector_field,&
           & allocate_tensor_field, allocate_mesh, &
           & allocate_scalar_boundary_condition, &
-          & allocate_vector_boundary_condition
+          & allocate_vector_boundary_condition, &
+          & allocate_tensor_boundary_condition
+     
   end interface
 
   interface deallocate
      module procedure deallocate_mesh, deallocate_scalar_field,&
           & deallocate_vector_field, deallocate_tensor_field, &
           & deallocate_scalar_boundary_condition, &
-          & deallocate_vector_boundary_condition
+          & deallocate_vector_boundary_condition, &
+          & deallocate_tensor_boundary_condition
   end interface
 
   interface deallocate_faces
@@ -134,7 +137,8 @@ implicit none
     
   interface remove_boundary_conditions
     module procedure remove_boundary_conditions_scalar, &
-      remove_boundary_conditions_vector
+      remove_boundary_conditions_vector, &
+      remove_boundary_conditions_tensor
   end interface remove_boundary_conditions
   
 #include "Reference_count_interface_mesh_type.F90"
@@ -303,6 +307,7 @@ contains
     
     field%dim=dim
     field%option_path=empty_path
+    field%val_stride=(/1,1/)
 
     field%mesh=mesh
     call incref(mesh)
@@ -412,6 +417,8 @@ contains
     field%aliased=.false.
     nullify(field%refcount) ! Hack for gfortran component initialisation
     !                         bug.
+    allocate(field%bc)
+    nullify(field%bc%boundary_condition)
     call addref(field)
 
   end subroutine allocate_tensor_field
@@ -662,6 +669,7 @@ contains
     !!< is called on the mesh which will delete one reference to it and
     !!< deallocate it if the count drops to zero.
     type(tensor_field), intent(inout) :: field
+    integer :: i
     
     call decref(field)
     if (has_references(field)) then
@@ -686,9 +694,29 @@ contains
       end select
     end if
 
+    call remove_boundary_conditions(field)
+    if (associated(field%bc)) deallocate(field%bc)
+
     call deallocate(field%mesh)
 
   end subroutine deallocate_tensor_field
+
+  subroutine remove_boundary_conditions_tensor(field)
+     !!< Removes and deallocates all boundary conditions from a field
+     type(tensor_field), intent(inout):: field
+     
+     integer:: i
+     
+     if (associated(field%bc)) then
+        if (associated(field%bc%boundary_condition)) then
+           do i=1, size(field%bc%boundary_condition)
+              call deallocate(field%bc%boundary_condition(i))
+           end do
+           deallocate(field%bc%boundary_condition)
+        end if
+     end if
+    
+  end subroutine remove_boundary_conditions_tensor
   
   subroutine allocate_scalar_boundary_condition(bc, mesh, surface_element_list, &
     name, type)
@@ -744,6 +772,43 @@ contains
     end if
     
   end subroutine allocate_vector_boundary_condition
+
+  subroutine allocate_tensor_boundary_condition(bc, mesh, surface_element_list, &
+    applies, name, type, dims)
+    !!< Allocate a vector boundary condition
+    type(tensor_boundary_condition), intent(out):: bc
+    type(mesh_type), intent(in):: mesh
+    !! surface elements of this mesh to which this b.c. applies (is copied in):
+    integer, dimension(:), intent(in):: surface_element_list
+  !! all things should have a name 
+    character(len=*), intent(in):: name
+    !! type can be any of: ...
+    character(len=*), intent(in):: type
+    !! b.c. only applies for components with applies==.true.
+    logical, dimension(:,:), intent(in), optional:: applies
+    integer, dimension(2), intent(in) :: dims 
+  
+    bc%name=name
+    bc%type=type
+    allocate( bc%surface_element_list(1:size(surface_element_list)) )
+    bc%surface_element_list=surface_element_list
+    allocate(bc%surface_mesh)
+    call create_surface_mesh(bc%surface_mesh, bc%surface_node_list, &
+      mesh, bc%surface_element_list, name=trim(name)//'Mesh')
+
+
+    allocate(bc%applies(dims(1),dims(2)))
+    if (present(applies)) then
+      
+      assert (all(shape(applies)==shape(bc%applies)))
+
+      bc%applies=applies
+    else
+      ! default .true. for all components
+      bc%applies=.true.
+    end if
+    
+  end subroutine allocate_tensor_boundary_condition
     
   subroutine deallocate_scalar_boundary_condition(bc)
   !! deallocate a scalar boundary condition
@@ -790,6 +855,43 @@ contains
     
     deallocate(bc%surface_element_list, bc%surface_node_list)
   end subroutine deallocate_vector_boundary_condition
+
+ subroutine deallocate_tensor_boundary_condition(bc)
+  !! deallocate a vector boundary condition
+  type(tensor_boundary_condition), intent(inout):: bc
+    
+    integer i
+    
+    if (associated(bc%surface_fields)) then
+      do i=1, size(bc%surface_fields)
+        call deallocate(bc%surface_fields(i))
+      end do
+      deallocate(bc%surface_fields)
+    end if
+    
+    if (associated(bc%vector_surface_fields)) then
+       do i=1, size(bc%vector_surface_fields)
+          call deallocate(bc%vector_surface_fields(i))
+       end do
+       deallocate(bc%vector_surface_fields)
+    end if
+
+    if (associated(bc%scalar_surface_fields)) then
+      do i=1, size(bc%scalar_surface_fields)
+        call deallocate(bc%scalar_surface_fields(i))
+      end do
+      deallocate(bc%scalar_surface_fields)
+    end if
+    
+    call deallocate(bc%surface_mesh)
+    deallocate(bc%surface_mesh)
+    
+    deallocate(bc%surface_element_list, bc%surface_node_list)
+
+    deallocate(bc%applies)
+
+  end subroutine deallocate_tensor_boundary_condition
+
     
   !---------------------------------------------------------------------
   ! routines for wrapping meshes and fields around provided arrays
@@ -878,7 +980,7 @@ contains
 
   end function wrap_tensor_field
 
-  function make_mesh (model, shape, continuity, name) &
+   function make_mesh (model, shape, continuity, name,overlapping_shape) &
        result (mesh)
     !!< Produce a mesh based on an old mesh but with a different shape and/or continuity.
     type(mesh_type) :: mesh
@@ -887,10 +989,11 @@ contains
     type(element_type), target, intent(in), optional :: shape
     integer, intent(in), optional :: continuity
     character(len=*), intent(in), optional :: name
+    type(element_type), intent(in), optional :: overlapping_shape
     
     integer, dimension(:), allocatable :: ndglno
     real, dimension(:), pointer :: val
-    integer :: i, input_nodes, n_faces
+    integer :: i, j, K, input_nodes, n_faces
 
     if (present(continuity)) then
        mesh%continuity=continuity
@@ -900,6 +1003,9 @@ contains
 
     allocate(mesh%adj_lists)
     mesh%elements=model%elements
+    if (present(overlapping_shape)) then
+       mesh%elements=mesh%elements*overlapping_shape%loc
+    end if
     mesh%periodic=model%periodic
     mesh%wrapped=.false.
 
@@ -933,8 +1039,8 @@ contains
           FLExit("Unable to derive a continuous mesh from a discontinuous mesh")
        end if
 
-       allocate(ndglno(mesh%shape%numbering%vertices*model%elements), &
-            mesh%ndglno(mesh%shape%loc*model%elements))
+       allocate(ndglno(mesh%shape%numbering%vertices*mesh%elements), &
+            mesh%ndglno(mesh%shape%loc*mesh%elements))
 #ifdef HAVE_MEMORY_STATS
        call register_allocation("mesh_type", "integer", &
             size(mesh%ndglno), name=name)
@@ -979,7 +1085,7 @@ contains
        !trace fields have continuity -1 but aren't like DG
        if(mesh%shape%numbering%type/=ELEMENT_TRACE) then
           ! Make a discontinuous field.
-          allocate(mesh%ndglno(mesh%shape%loc*model%elements))
+          allocate(mesh%ndglno(mesh%shape%loc*mesh%elements))
 #ifdef HAVE_MEMORY_STATS
           call register_allocation("mesh_type", "integer", &
                size(mesh%ndglno), name=name)
@@ -1043,6 +1149,7 @@ contains
     call addref(mesh)
 
   end function make_mesh
+
 
   subroutine add_faces(mesh, model, sndgln, sngi, boundary_ids, &
     periodic_face_map, element_owner, incomplete_surface_mesh, stat)

@@ -2004,12 +2004,16 @@
     end subroutine update_boundary_conditions
 
     subroutine pack_multistate(state, packed_state,&
-         multiphase_state, multicomponent_state) 
+         multiphase_state, multicomponent_state, pmulti_state ) 
       
       type(state_type), dimension(:), intent(inout):: state
       type(state_type), dimension(:), intent(inout), pointer :: &
            multiphase_state, multicomponent_state
       type(state_type) ::  packed_state 
+    
+      type(state_type), dimension(:,:), pointer, optional :: pmulti_state
+
+      type(state_type), dimension(:,:), pointer :: multi_state
       
       integer :: i,nphase,ncomp,ndim, stat, iphase, icomp
       
@@ -2026,11 +2030,14 @@
       position=>extract_vector_field(state(1),"Coordinate")
       ndim=mesh_dim(position)
 
+      
+
       call get_option('/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
            vel_element_type )
 
       allocate(multiphase_state(nphase))
       allocate(multicomponent_state(ncomp))
+      allocate(multi_state(max(1,ncomp),nphase))
 
       pressure=>extract_scalar_field(state(1),"Pressure")
       call insert(packed_state,pressure,"Pressure")
@@ -2126,12 +2133,14 @@
             call unpack_sfield(state(i),packed_state,"Density",1,iphase)
             call unpack_sfield(state(i),packed_state,"OldDensity",1,iphase)
             call unpack_sfield(state(i),packed_state,"IteratedDensity",1,iphase)
+            call insert(multi_state(1,iphase), extract_scalar_field(state(i),"Density"),"Density")
 
             if(have_option(trim(state(i)%option_path)&
                  //'scalar_field::Temperature')) then
                call unpack_sfield(state(i),packed_state,"Temperature",1,iphase)
                call unpack_sfield(state(i),packed_state,"OldTemperate",1,iphase)
                call unpack_sfield(state(i),packed_state,"IteratedTemperature",1,iphase)
+               call insert(multi_state(1,iphase), extract_scalar_field(state(i),"Temperature"),"Temperature")
             end if
 
             
@@ -2139,14 +2148,27 @@
             call unpack_sfield(state(i),packed_state,"PhaseVolumeFraction",1,iphase)
             call unpack_sfield(state(i),packed_state,"OldPhaseVolumeFraction",1,iphase)
             call unpack_sfield(state(i),packed_state,"IteratedPhaseVolumeFraction",1,iphase)
+            call insert(multi_state(1,iphase), extract_scalar_field(state(i),"PhaseVolumeFraction"),"PhaseVolumeFraction")
 
             call unpack_vfield(state(i),packed_state,"Velocity",iphase)
             call unpack_vfield(state(i),packed_state,"OldVelocity",iphase)
             call unpack_vfield(state(i),packed_state,"IteratedVelocity",iphase)
+            call insert(multi_state(1,iphase), extract_vector_field(state(i),"Velocity"),"Velocity")
 
             iphase=iphase+1
          end if
       end do
+
+      if (option_count("/material_phase/scalar_field::Temperature")>0) call allocate_multiphase_scalar_bcs(packed_state,multi_state,"Temperature")
+      call allocate_multiphase_scalar_bcs(packed_state,multi_state,"Density")
+      call allocate_multiphase_scalar_bcs(packed_state,multi_state,"PhaseVolumeFraction")
+      call allocate_multiphase_vector_bcs(packed_state,multi_state,"Velocity")
+
+      if (present(pmulti_state)) then
+         pmulti_state=>multi_state
+      else
+         deallocate(multi_state)
+      end if
 
       contains
 
@@ -2370,6 +2392,121 @@
           end do
                 
         end subroutine unpack_component_sfield
+
+        subroutine allocate_multiphase_scalar_bcs(s,ms,name)
+
+          type(state_type), intent(inout) :: s
+          type(state_type), dimension(:,:), intent(inout) :: ms
+          character( len=*) :: name
+
+          type(tensor_field), pointer :: mfield
+          type(scalar_field), pointer :: sfield
+          type(tensor_boundary_condition) :: tbc
+          type(scalar_boundary_condition), pointer ::  bc
+          type(tensor_boundary_condition), dimension(:), pointer :: temp
+
+          integer :: iphase,icomp,stat, n, nbc
+
+          nbc=0
+          mfield=>extract_tensor_field(s,"Packed"//name)
+
+          allocate(mfield%bc)
+          
+          do iphase=1,mfield%dim(2)
+             do icomp=1,mfield%dim(1)
+                sfield=>extract_scalar_field( ms(icomp,iphase),trim(name),stat)
+                if (stat/= 0 ) cycle
+
+                allocate(tbc%applies(mfield%dim(1),mfield%dim(2)))
+                tbc%applies= .false.
+                tbc%applies(icomp,iphase)=.true.
+               
+                do n=1,get_boundary_condition_count(sfield)
+
+                  bc=>sfield%bc%boundary_condition(n)
+                  
+                  tbc%name=bc%name
+                  tbc%type=bc%type
+                  tbc%surface_element_list=>bc%surface_element_list
+                  tbc%surface_node_list=>bc%surface_node_list
+                  tbc%surface_mesh=>bc%surface_mesh
+                  call incref(tbc%surface_mesh)
+                  tbc%scalar_surface_fields=>bc%surface_fields
+                  
+                  nbc=nbc+1
+                  if (nbc>1) then
+                     temp=>mfield%bc%boundary_condition
+                     allocate(mfield%bc%boundary_condition(nbc))
+                     mfield%bc%boundary_condition(1:nbc-1)=temp
+                     deallocate(temp)
+                     mfield%bc%boundary_condition(nbc)=tbc
+                  else
+                     allocate(mfield%bc%boundary_condition(nbc))
+                     mfield%bc%boundary_condition(nbc)=tbc
+                  end if
+               end do
+            end do
+         end do
+               
+
+       end subroutine allocate_multiphase_scalar_bcs
+
+
+        subroutine allocate_multiphase_vector_bcs(s,ms,name)
+
+          type(state_type), intent(inout) :: s
+          type(state_type), dimension(:,:), intent(inout) :: ms
+          character( len=*) :: name
+
+          type(tensor_field), pointer :: mfield
+          type(vector_field), pointer :: vfield
+          type(tensor_boundary_condition) :: tbc
+          type(vector_boundary_condition), pointer ::  bc
+          type(tensor_boundary_condition), dimension(:), pointer :: temp
+
+          integer :: iphase,icomp,stat, n, nbc
+
+          nbc=0
+          mfield=>extract_tensor_field(s,"Packed"//name)
+
+          allocate(mfield%bc)
+          
+          do iphase=1,mfield%dim(2)
+             vfield=>extract_vector_field( ms(1,iphase),trim(name),stat)
+             if (stat/= 0 ) cycle
+
+             allocate(tbc%applies(mfield%dim(1),mfield%dim(2)))
+             tbc%applies= .false.
+             tbc%applies(:,iphase)=.true.
+               
+             do n=1,get_boundary_condition_count(vfield)
+
+                bc=>vfield%bc%boundary_condition(n)
+                  
+                tbc%name=bc%name
+                tbc%type=bc%type
+                tbc%surface_element_list=>bc%surface_element_list
+                tbc%surface_node_list=>bc%surface_node_list
+                tbc%surface_mesh=>bc%surface_mesh
+                call incref(tbc%surface_mesh)
+                tbc%vector_surface_fields=>bc%surface_fields
+                  
+                nbc=nbc+1
+                if (nbc>1) then
+                   temp=>mfield%bc%boundary_condition
+                   allocate(mfield%bc%boundary_condition(nbc))
+                   mfield%bc%boundary_condition(1:nbc-1)=temp
+                   deallocate(temp)
+                   mfield%bc%boundary_condition(nbc)=tbc
+                else
+                   allocate(mfield%bc%boundary_condition(nbc))
+                   mfield%bc%boundary_condition(nbc)=tbc
+                end if
+             end do
+          end do
+
+       end subroutine allocate_multiphase_vector_bcs
+
 
       end subroutine pack_multistate
 
