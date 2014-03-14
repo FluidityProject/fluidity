@@ -94,6 +94,7 @@ implicit none
                    & set_vector_field_nodes, &
                    & set_vector_field_nodes_dim, &
                    & set_tensor_field_nodes, &
+                   & set_tensor_field_nodes_dim, &
                    & set_scalar_field_field, &
                    & set_scalar_field_from_vector_field, &
                    & set_vector_field_field, &
@@ -1411,6 +1412,20 @@ implicit none
     field%val(:, :, node_numbers) = val
     
   end subroutine set_tensor_field_nodes
+
+  subroutine set_tensor_field_nodes_dim(field, i,j, node_numbers, val)
+    !!< Set the tensor field at the specified nodes
+    !!< Does not work for constant fields
+    type(tensor_field), intent(inout) :: field
+    integer, intent(in) :: i,j
+    integer, dimension(:), intent(in) :: node_numbers
+    real, intent(in), dimension(:) :: val
+
+    assert(field%field_type==FIELD_TYPE_NORMAL)
+
+    field%val(i, j, node_numbers) = val
+    
+  end subroutine set_tensor_field_nodes_dim
     
   subroutine set_tensor_field(field, val)
     !!< Sets tensor with constant value

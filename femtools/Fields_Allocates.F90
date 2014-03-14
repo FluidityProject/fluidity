@@ -62,14 +62,17 @@ implicit none
      module procedure allocate_scalar_field, allocate_vector_field,&
           & allocate_tensor_field, allocate_mesh, &
           & allocate_scalar_boundary_condition, &
-          & allocate_vector_boundary_condition
+          & allocate_vector_boundary_condition, &
+          & allocate_tensor_boundary_condition
+     
   end interface
 
   interface deallocate
      module procedure deallocate_mesh, deallocate_scalar_field,&
           & deallocate_vector_field, deallocate_tensor_field, &
           & deallocate_scalar_boundary_condition, &
-          & deallocate_vector_boundary_condition
+          & deallocate_vector_boundary_condition, &
+          & deallocate_tensor_boundary_condition
   end interface
 
   interface deallocate_faces
@@ -134,7 +137,8 @@ implicit none
     
   interface remove_boundary_conditions
     module procedure remove_boundary_conditions_scalar, &
-      remove_boundary_conditions_vector
+      remove_boundary_conditions_vector, &
+      remove_boundary_conditions_tensor
   end interface remove_boundary_conditions
   
 #include "Reference_count_interface_mesh_type.F90"
@@ -413,6 +417,8 @@ contains
     field%aliased=.false.
     nullify(field%refcount) ! Hack for gfortran component initialisation
     !                         bug.
+    allocate(field%bc)
+    nullify(field%bc%boundary_condition)
     call addref(field)
 
   end subroutine allocate_tensor_field
@@ -663,6 +669,7 @@ contains
     !!< is called on the mesh which will delete one reference to it and
     !!< deallocate it if the count drops to zero.
     type(tensor_field), intent(inout) :: field
+    integer :: i
     
     call decref(field)
     if (has_references(field)) then
@@ -687,9 +694,29 @@ contains
       end select
     end if
 
+    call remove_boundary_conditions(field)
+    if (associated(field%bc)) deallocate(field%bc)
+
     call deallocate(field%mesh)
 
   end subroutine deallocate_tensor_field
+
+  subroutine remove_boundary_conditions_tensor(field)
+     !!< Removes and deallocates all boundary conditions from a field
+     type(tensor_field), intent(inout):: field
+     
+     integer:: i
+     
+     if (associated(field%bc)) then
+        if (associated(field%bc%boundary_condition)) then
+           do i=1, size(field%bc%boundary_condition)
+              call deallocate(field%bc%boundary_condition(i))
+           end do
+           deallocate(field%bc%boundary_condition)
+        end if
+     end if
+    
+  end subroutine remove_boundary_conditions_tensor
   
   subroutine allocate_scalar_boundary_condition(bc, mesh, surface_element_list, &
     name, type)
@@ -745,6 +772,43 @@ contains
     end if
     
   end subroutine allocate_vector_boundary_condition
+
+  subroutine allocate_tensor_boundary_condition(bc, mesh, surface_element_list, &
+    applies, name, type, dims)
+    !!< Allocate a vector boundary condition
+    type(tensor_boundary_condition), intent(out):: bc
+    type(mesh_type), intent(in):: mesh
+    !! surface elements of this mesh to which this b.c. applies (is copied in):
+    integer, dimension(:), intent(in):: surface_element_list
+  !! all things should have a name 
+    character(len=*), intent(in):: name
+    !! type can be any of: ...
+    character(len=*), intent(in):: type
+    !! b.c. only applies for components with applies==.true.
+    logical, dimension(:,:), intent(in), optional:: applies
+    integer, dimension(2), intent(in) :: dims 
+  
+    bc%name=name
+    bc%type=type
+    allocate( bc%surface_element_list(1:size(surface_element_list)) )
+    bc%surface_element_list=surface_element_list
+    allocate(bc%surface_mesh)
+    call create_surface_mesh(bc%surface_mesh, bc%surface_node_list, &
+      mesh, bc%surface_element_list, name=trim(name)//'Mesh')
+
+
+    allocate(bc%applies(dims(1),dims(2)))
+    if (present(applies)) then
+      
+      assert (all(shape(applies)==shape(bc%applies)))
+
+      bc%applies=applies
+    else
+      ! default .true. for all components
+      bc%applies=.true.
+    end if
+    
+  end subroutine allocate_tensor_boundary_condition
     
   subroutine deallocate_scalar_boundary_condition(bc)
   !! deallocate a scalar boundary condition
@@ -791,6 +855,43 @@ contains
     
     deallocate(bc%surface_element_list, bc%surface_node_list)
   end subroutine deallocate_vector_boundary_condition
+
+ subroutine deallocate_tensor_boundary_condition(bc)
+  !! deallocate a vector boundary condition
+  type(tensor_boundary_condition), intent(inout):: bc
+    
+    integer i
+    
+    if (associated(bc%surface_fields)) then
+      do i=1, size(bc%surface_fields)
+        call deallocate(bc%surface_fields(i))
+      end do
+      deallocate(bc%surface_fields)
+    end if
+    
+    if (associated(bc%vector_surface_fields)) then
+       do i=1, size(bc%vector_surface_fields)
+          call deallocate(bc%vector_surface_fields(i))
+       end do
+       deallocate(bc%vector_surface_fields)
+    end if
+
+    if (associated(bc%scalar_surface_fields)) then
+      do i=1, size(bc%scalar_surface_fields)
+        call deallocate(bc%scalar_surface_fields(i))
+      end do
+      deallocate(bc%scalar_surface_fields)
+    end if
+    
+    call deallocate(bc%surface_mesh)
+    deallocate(bc%surface_mesh)
+    
+    deallocate(bc%surface_element_list, bc%surface_node_list)
+
+    deallocate(bc%applies)
+
+  end subroutine deallocate_tensor_boundary_condition
+
     
   !---------------------------------------------------------------------
   ! routines for wrapping meshes and fields around provided arrays
