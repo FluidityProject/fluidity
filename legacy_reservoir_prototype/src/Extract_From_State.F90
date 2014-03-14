@@ -62,7 +62,7 @@
     public :: Get_Primary_Scalars, Compute_Node_Global_Numbers, Extracting_MeshDependentFields_From_State, &
          Get_ScalarFields_Outof_State, Get_CompositionFields_Outof_State, Get_VectorFields_Outof_State, &
          Extract_TensorFields_Outof_State, Extract_Position_Field, xp1_2_xp2, Get_Ele_Type, Get_Discretisation_Options, &
-         print_from_state, update_boundary_conditions, pack_multistate, finalise_multistate
+         print_from_state, update_boundary_conditions, pack_multistate, finalise_multistate, get_ndglno
 
     interface Get_Ndgln
        module procedure Get_Scalar_Ndgln, Get_Vector_Ndgln, Get_Mesh_Ndgln
@@ -2048,6 +2048,9 @@
       call add_new_memory(packed_state,pressure,"CVPressure")
       call add_new_memory(packed_state,pressure,"OldCVPressure")
 
+      call insert_sfield(packed_state,"FEDensity",1,nphase)
+
+
       call insert_sfield(packed_state,"Density",1,nphase)
       if (option_count("/material_phase/scalar_field::Temperature")>0) then
          call insert_sfield(packed_state,"Temperature",1,nphase)
@@ -2109,6 +2112,10 @@
       if (ncomp>0) then
          call insert_sfield(packed_state,"ComponentDensity",ncomp,nphase)
          call insert_sfield(packed_state,"ComponentMassFraction",ncomp,nphase)
+
+         call insert_sfield(packed_state,"FEComponentDensity",ncomp,nphase)
+         call insert_sfield(packed_state,"FEComponentMassFraction",ncomp,nphase)
+
          call unpack_multicomponent(packed_state,multicomponent_state)  
       end if
 
@@ -2127,6 +2134,13 @@
             call unpack_component_sfield(state(i),packed_state,"OldComponentDensity",icomp)
             call unpack_component_sfield(state(i),packed_state,"ComponentMassFraction",icomp)
             call unpack_component_sfield(state(i),packed_state,"OldComponentMassFraction",icomp)
+
+            call unpack_component_sfield(state(i),packed_state,"FEComponentDensity",icomp)
+            !call unpack_component_sfield(state(i),packed_state,"FEOldComponentDensity",icomp)
+            call unpack_component_sfield(state(i),packed_state,"FEComponentMassFraction",icomp)
+            !call unpack_component_sfield(state(i),packed_state,"FEOldComponentMassFraction",icomp)
+
+
             icomp=icomp+1
             cycle
          else

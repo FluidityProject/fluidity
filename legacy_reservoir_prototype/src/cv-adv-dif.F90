@@ -32,13 +32,14 @@ module cv_advection
 
   use solvers_module
   use spud
-  use global_parameters, only: option_path_len, timestep, is_overlapping
+  use global_parameters, only: option_path_len, field_name_len, timestep, is_overlapping
   use futils, only: int2str
   use adapt_state_prescribed_module
   use sparsity_patterns
 
   use shape_functions
   use matrix_operations
+  use Copy_Outof_State
 
   INTEGER, PARAMETER :: WIC_T_BC_DIRICHLET = 1, WIC_T_BC_ROBIN = 2, &
        WIC_T_BC_DIRI_ADV_AND_ROBIN = 3, WIC_D_BC_DIRICHLET = 1, &
@@ -6094,6 +6095,166 @@ contains
       RETURN
 
     END SUBROUTINE FIND_OTHER_SIDE
+
+
+
+
+
+
+    subroutine proj_cv_to_fem_n( packed_state, cvn, n, nlx, nly, nlz, cvweight, &
+         &                       cv_ngi, findm, colm, ncolm )
+
+    implicit none
+
+   
+    ! DO NOT CALL THIS SUB...NOT FINISHED..
+
+    integer, intent( in ) :: cv_ngi, ncolm
+    type( state_type ), intent( inout ) :: packed_state
+    real, dimension( :, : ), intent( in ) :: cvn, n, nlx, nly, nlz
+    real, dimension( : ), intent( in ) :: cvweight
+    integer, dimension( : ), intent( in ) :: findm, colm
+
+    type( tensor_field ), pointer :: field
+    type( vector_field ), pointer :: x
+    type( scalar_field ), pointer :: pressure
+    real, dimension( cv_ngi ) :: detwei
+    integer, dimension( : ), pointer :: x_ndgln, cv_ndgln
+    real, dimension( : ), allocatable :: rhs, mat, ra
+    real, dimension( :, : ), allocatable :: xx
+    real, dimension( :, :, : ), allocatable :: nx
+
+    integer :: nfields, nphase, ncomp, cv_nonods, npsi, &
+         ifield, iphase, icomp, ele, totele, x_nonods, &
+         cv_iloc, cv_jloc, cv_nodi, cv_nodj, count, ipsi, &
+         idx, idim, ndim, cv_nloc
+    real :: nn, nm, volume
+    character( len = option_path_len ) :: path
+    character( len = field_name_len ), dimension( : ), allocatable :: cv_name
+    character( len = field_name_len ) :: fe_name
+
+
+    path = "/material_phase[0]/scalar_field::Pressure" 
+
+    nfields = tensor_field_count( packed_state )
+
+    pressure => extract_scalar_field( packed_state, "Pressure" )
+    
+    cv_nloc = ele_loc( pressure, 1 )
+
+
+    x => extract_vector_field( packed_state, "PressureCoordinate" )
+    x_nonods = node_count( x )
+
+
+    ndim = x%dim
+
+    allocate( nx( cv_nloc, cv_ngi, 3   ) ) ; xx = 0.0
+
+
+    allocate( xx( x_nonods, 3 ) ) ; xx = 0.0
+    do idim = 1, ndim
+       xx( :, 1 ) = x%val( :, 1 )
+    end do
+
+    x_ndgln => get_ndglno( extract_mesh( packed_state, "PressureMesh_Continuous" ) )
+    cv_ndgln => get_ndglno( extract_mesh( packed_state, "PressureMesh" ) )
+
+    cv_nonods = node_count( pressure )
+    totele = ele_count( pressure )
+    
+    allocate( cv_name( nfields ) )
+
+
+    npsi = 0
+    do ifield = 1, nfields
+       field => extract_tensor_field( packed_state, ifield )
+       if ( trim( field%mesh%name ) == "PressureMesh" ) then
+          nphase = size( field%val, 2 ) ; ncomp =  size( field%val, 1 )
+          npsi = npsi + nphase * ncomp
+          cv_name( ifield ) = trim( field%name )
+       end if
+    end do
+
+    allocate( mat( ncolm ), ra( cv_ngi ), xx( x_nonods, 3 ) )
+    allocate( rhs( npsi * cv_nonods ) ) ; rhs = 0.0
+
+    do ele = 1, totele
+
+       call detnlxr( ele, xx(:,1), xx(:,2), xx(:,3), x_ndgln, totele, x_nonods, cv_nloc, cv_ngi, &
+            n, nlx, nly, nlz, cvweight, detwei, ra, volume, (ndim==1), (ndim==3), .false., &
+            nx( :, :, 1 ), nx( :, :, 2 ), nx( :, :, 3 ) )
+
+       do cv_iloc = 1, cv_nloc
+          cv_nodi = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
+
+          do cv_jloc = 1, cv_nloc
+             cv_nodj = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_jloc )
+       
+             nn = dot_product( n( cv_iloc, : ), n(   cv_jloc,: ) * detwei )
+             nm = dot_product( n( cv_iloc, : ), cvn( cv_jloc, : ) * detwei )
+
+             call posinmat( count, cv_nodi, cv_nodj, cv_nonods, findm, colm, ncolm )
+             mat( count ) = mat( count ) + nn
+
+             ipsi = 1
+             do ifield = 1, nfields
+                field => extract_tensor_field( packed_state, ifield  )
+                if ( trim( field%mesh%name ) == "PressureMesh" ) then
+                   do iphase = 1, nphase
+                      do icomp = 1, ncomp
+                         idx = cv_nodi + (ipsi-1)*cv_nonods
+                         rhs( idx ) = rhs( idx ) +  field%val( icomp, iphase, cv_nodj )
+                         ipsi = ipsi + 1
+                      end do
+                   end do
+                end if
+             end do
+
+          end do ! jloc
+       end do ! iloc
+    end do ! ele
+
+
+    stop 666
+
+    ! solve...
+    idx = 1
+    do ifield = 1, nfields
+
+       fe_name = trim( cv_name( ifield ) ) ! come up with something clever here...
+
+
+       ! check strings...
+
+       fe_name = "PackedFE" // trim( cv_name( ifield )(5:) )
+
+
+
+       field => extract_tensor_field( packed_state, trim( fe_name ) )
+
+       !this is not good either..
+       if ( trim( field%mesh%name ) == "PressureMesh" ) then
+          do iphase = 1, nphase
+             do icomp = 1, ncomp
+                call solver( mat, field%val( icomp, iphase, :  ), &
+                     rhs( 1 + ( idx - 1 ) * cv_nonods : idx * cv_nonods ), &
+                     findm, colm, option_path = trim( path ) )
+                idx = idx + 1
+             end do
+          end do
+       end if
+    end do
+
+    deallocate( rhs, mat, ra, xx, nx )
+
+    return
+
+  end subroutine proj_cv_to_fem_n
+
+
+
+
 
 
 
