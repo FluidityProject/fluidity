@@ -348,14 +348,12 @@ contains
       real, pointer :: VOLUME
       integer :: cv_inod_ipha, IGETCT, U_NODK_IPHA, IANISOLIM
       logical :: Have_Temperature_Fields, Have_VolumeFraction_Fields, Have_Components_Fields
-      logical :: overlapping
       ! Functions...
       !REAL :: R2NORM, FACE_THETA
       !        ===>  LOGICALS  <===
-      character( len = option_path_len ) :: overlapping_path
       LOGICAL :: GETMAT, LIMIT_USE_2ND, &
            D1, D3, DCYL, GOT_DIFFUS, INTEGRAT_AT_GI, &
-           NORMALISE, SUM2ONE, GET_GTHETA, QUAD_OVER_WHOLE_ELE,is_overlapping
+           NORMALISE, SUM2ONE, GET_GTHETA, QUAD_OVER_WHOLE_ELE
 
       character( len = option_path_len ) :: option_path, option_path2, path_temp, path_volf, &
            path_comp, path_spatial_discretisation
@@ -368,11 +366,6 @@ contains
       type( scalar_field ), pointer :: perm
      !Reals to store the irresidual water and irreducible oil values, used in GET_INT_T_DEN
     real ::  s_gc, s_or
-
-      overlapping = .false.
-      call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
-           overlapping_path )
-      if( trim( overlapping_path ) == 'overlapping' ) overlapping = .true.
 
 !      ALLOCATE( PERM_ELE( TOTELE ) ) ; PERM_ELE = 0.0
 !      if ( overlapping ) then
@@ -430,11 +423,6 @@ contains
          if ( have_option( trim( option_path ) // '/limiter::Extrema' ) ) &
               limit_use_2nd = .true.
       end if
-
-      is_overlapping = .false.
-      call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
-           overlapping_path )
-      if( trim( overlapping_path ) == 'overlapping' ) is_overlapping = .true.
 
 
       GOT_DIFFUS = ( R2NORM( TDIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0 )
@@ -1043,7 +1031,6 @@ contains
                                 T2OLDMIN, T2OLDMAX, T2OLDMIN_NOD, T2OLDMAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 T2OLDMIN_2ND_MC, T2OLDMAX_2ND_MC, LIMIT_USE_2ND,&
-                                overlapping, &
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 T2OLDUPWIND_MAT )
                             CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, &
@@ -1061,7 +1048,6 @@ contains
                                 T2MIN, T2MAX,  T2MIN_NOD, T2MAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 T2MIN_2ND_MC, T2MAX_2ND_MC, LIMIT_USE_2ND,&
-                                overlapping, &
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 T2UPWIND_MAT )
                         ELSE
@@ -1080,7 +1066,6 @@ contains
                                 TOLDMIN, TOLDMAX, TOLDMIN_NOD, TOLDMAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 TOLDMIN_2ND_MC, TOLDMAX_2ND_MC, LIMIT_USE_2ND,&
-                                overlapping, &
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 TOLDUPWIND_MAT )
                            CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, &
@@ -1098,7 +1083,6 @@ contains
                                 TMIN, TMAX, TMIN_NOD, TMAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 TMIN_2ND_MC, TMAX_2ND_MC, LIMIT_USE_2ND,&
-                                overlapping, &
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 TUPWIND_MAT )
                         ENDIF
@@ -1212,7 +1196,6 @@ contains
                                 T2OLDMIN, T2OLDMAX, T2OLDMIN_NOD, T2OLDMAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 T2OLDMIN_2ND_MC, T2OLDMAX_2ND_MC, LIMIT_USE_2ND,&
-                                overlapping, &
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 T2OLDUPWIND_MAT )
                             CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, &
@@ -1230,7 +1213,6 @@ contains
                                 T2MIN, T2MAX,  T2MIN_NOD, T2MAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 T2MIN_2ND_MC, T2MAX_2ND_MC, LIMIT_USE_2ND,&
-                                overlapping, &
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 T2UPWIND_MAT )
                         ELSE
@@ -1249,7 +1231,6 @@ contains
                                 TOLDMIN, TOLDMAX, TOLDMIN_NOD, TOLDMAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 TOLDMIN_2ND_MC, TOLDMAX_2ND_MC, LIMIT_USE_2ND,&
-                                overlapping, &
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 TOLDUPWIND_MAT )
                            CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, &
@@ -1267,7 +1248,6 @@ contains
                                 TMIN, TMAX, TMIN_NOD, TMAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 TMIN_2ND_MC, TMAX_2ND_MC, LIMIT_USE_2ND,&
-                                overlapping, &
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 TUPWIND_MAT )
                         ENDIF
@@ -2197,14 +2177,12 @@ contains
       real, pointer :: VOLUME
       integer :: U_NODK_IPHA, IANISOLIM
       logical :: Have_Temperature_Fields, Have_VolumeFraction_Fields, Have_Components_Fields
-      logical :: overlapping
       ! Functions...
       !REAL :: R2NORM, FACE_THETA
       !        ===>  LOGICALS  <===
-      character( len = option_path_len ) :: overlapping_path
       LOGICAL :: GETMAT, LIMIT_USE_2ND, &
            D1, D3, DCYL, GOT_DIFFUS, INTEGRAT_AT_GI, &
-           NORMALISE, GET_GTHETA, QUAD_OVER_WHOLE_ELE,is_overlapping
+           NORMALISE, GET_GTHETA, QUAD_OVER_WHOLE_ELE
 
       character( len = option_path_len ) :: option_path, option_path2, path_temp, path_volf, &
            path_comp, path_spatial_discretisation
@@ -2222,11 +2200,6 @@ contains
 
     got_theta_flux=present(theta_flux)
     global_face=0
-
-      overlapping = .false.
-      call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
-           overlapping_path )
-      if( trim( overlapping_path ) == 'overlapping' ) overlapping = .true.
 
       IDUM = 0
       RDUM = 0.
@@ -2258,11 +2231,6 @@ contains
          if ( have_option( trim( option_path ) // '/limiter::Extrema' ) ) &
               limit_use_2nd = .true.
       end if
-
-      is_overlapping = .false.
-      call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
-           overlapping_path )
-      if( trim( overlapping_path ) == 'overlapping' ) is_overlapping = .true.
 
 
       GOT_DIFFUS = ( R2NORM( TDIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0 )
@@ -2812,7 +2780,6 @@ contains
                                 T2MIN, T2MAX,  T2MIN_NOD, T2MAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 T2MIN_2ND_MC,  T2MAX_2ND_MC, LIMIT_USE_2ND,&
-                                overlapping, &
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 T2UPWIND_MAT )
                         ELSE
@@ -2831,7 +2798,6 @@ contains
                                 TMIN, TMAX, TMIN_NOD, TMAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 TMIN_2ND_MC, TMAX_2ND_MC, LIMIT_USE_2ND,&
-                                overlapping, &
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 TUPWIND_MAT )
                         ENDIF
@@ -3513,14 +3479,12 @@ contains
       real, pointer :: VOLUME
       integer :: cv_inod_ipha, IGETCT, U_NODK_IPHA, IANISOLIM
       logical :: Have_Temperature_Fields, Have_VolumeFraction_Fields, Have_Components_Fields
-      logical :: overlapping
       ! Functions...
       !REAL :: R2NORM, FACE_THETA
       !        ===>  LOGICALS  <===
-      character( len = option_path_len ) :: overlapping_path
       LOGICAL :: GETMAT, LIMIT_USE_2ND, &
            D1, D3, DCYL, GOT_DIFFUS, INTEGRAT_AT_GI, &
-           NORMALISE, SUM2ONE, GET_GTHETA, QUAD_OVER_WHOLE_ELE,is_overlapping
+           NORMALISE, SUM2ONE, GET_GTHETA, QUAD_OVER_WHOLE_ELE
 
       character( len = option_path_len ) :: option_path, option_path2, path_temp, path_volf, &
            path_comp, path_spatial_discretisation
@@ -3536,11 +3500,6 @@ contains
 
     integer :: global_face
     global_face=0
-
-      overlapping = .false.
-      call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
-           overlapping_path )
-      if( trim( overlapping_path ) == 'overlapping' ) overlapping = .true.
 
       IDUM = 0
       RDUM = 0.
@@ -3573,11 +3532,6 @@ contains
          if ( have_option( trim( option_path ) // '/limiter::Extrema' ) ) &
               limit_use_2nd = .true.
       end if
-
-      is_overlapping = .false.
-      call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
-           overlapping_path )
-      if( trim( overlapping_path ) == 'overlapping' ) is_overlapping = .true.
 
 
       GOT_DIFFUS = ( R2NORM( TDIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0 )
@@ -4123,7 +4077,6 @@ contains
                                 T2OLDMIN, T2OLDMAX, T2OLDMIN_NOD, T2OLDMAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 T2OLDMIN_2ND_MC, T2OLDMAX_2ND_MC, LIMIT_USE_2ND,&
-                                overlapping, &
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 T2OLDUPWIND_MAT )
                             CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, &
@@ -4141,7 +4094,6 @@ contains
                                 T2MIN, T2MAX,  T2MIN_NOD, T2MAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 T2MIN_2ND_MC, T2MAX_2ND_MC, LIMIT_USE_2ND,&
-                                overlapping, &
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 T2UPWIND_MAT )
                         ENDIF
@@ -4255,7 +4207,6 @@ contains
                                 T2OLDMIN, T2OLDMAX, T2OLDMIN_NOD, T2OLDMAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 T2OLDMIN_2ND_MC, T2OLDMAX_2ND_MC, LIMIT_USE_2ND,&
-                                overlapping, &
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 T2OLDUPWIND_MAT )
                             CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, &
@@ -4273,7 +4224,6 @@ contains
                                 T2MIN, T2MAX,  T2MIN_NOD, T2MAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 T2MIN_2ND_MC, T2MAX_2ND_MC, LIMIT_USE_2ND,&
-                                overlapping, &
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 T2UPWIND_MAT )
                         ELSE
@@ -4292,7 +4242,6 @@ contains
                                 TOLDMIN, TOLDMAX, TOLDMIN_NOD, TOLDMAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 TOLDMIN_2ND_MC, TOLDMAX_2ND_MC, LIMIT_USE_2ND,&
-                                overlapping, &
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 TOLDUPWIND_MAT )
                            CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, &
@@ -4310,7 +4259,6 @@ contains
                                 TMIN, TMAX, TMIN_NOD, TMAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 TMIN_2ND_MC, TMAX_2ND_MC, LIMIT_USE_2ND,&
-                                overlapping, &
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 TUPWIND_MAT )
                         ENDIF
@@ -4896,14 +4844,12 @@ contains
       real, pointer :: VOLUME
       integer :: cv_inod_ipha, U_NODK_IPHA, IANISOLIM
       logical :: Have_Temperature_Fields, Have_VolumeFraction_Fields, Have_Components_Fields
-      logical :: overlapping
       ! Functions...
       !REAL :: R2NORM, FACE_THETA
       !        ===>  LOGICALS  <===
-      character( len = option_path_len ) :: overlapping_path
       LOGICAL :: GETMAT, LIMIT_USE_2ND, &
            D1, D3, DCYL, INTEGRAT_AT_GI, &
-           NORMALISE, SUM2ONE, GET_GTHETA, QUAD_OVER_WHOLE_ELE,is_overlapping
+           NORMALISE, SUM2ONE, GET_GTHETA, QUAD_OVER_WHOLE_ELE
 
       character( len = option_path_len ) :: option_path, option_path2, path_temp, path_volf, &
            path_comp, path_spatial_discretisation
@@ -4920,11 +4866,6 @@ contains
     INTEGER :: GLOBAL_FACE
 
     GLOBAL_FACE=0
-
-      overlapping = .false.
-      call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
-           overlapping_path )
-      if( trim( overlapping_path ) == 'overlapping' ) overlapping = .true.
 
       IDUM = 0
       RDUM = 0.
@@ -4957,11 +4898,6 @@ contains
          if ( have_option( trim( option_path ) // '/limiter::Extrema' ) ) &
               limit_use_2nd = .true.
       end if
-
-      is_overlapping = .false.
-      call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
-           overlapping_path )
-      if( trim( overlapping_path ) == 'overlapping' ) is_overlapping = .true.
 
       ewrite(3,*)'CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND, SECOND_THETA:', &
            CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND, SECOND_THETA
@@ -5394,7 +5330,6 @@ contains
                                 T2MIN, T2MAX, T2MIN, T2MAX, T2MIN_NOD, T2MAX_NOD, T2MIN_NOD, T2MAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 T2MIN_2ND_MC,T2MIN_2ND_MC, T2MAX_2ND_MC,T2MAX_2ND_MC, LIMIT_USE_2ND,&
-                                overlapping, &
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 T2UPWIND_MAT,T2UPWIND_MAT )
                         else
@@ -5413,7 +5348,6 @@ contains
                                 TMIN, TMAX, TMIN, TMAX, TMIN_NOD, TMAX_NOD, TMIN_NOD, TMAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 TMIN_2ND_MC,TMIN_2ND_MC, TMAX_2ND_MC,TMAX_2ND_MC, LIMIT_USE_2ND,&
-                                overlapping, &
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 TUPWIND_MAT,TUPWIND_MAT )
                          end if
@@ -9881,8 +9815,7 @@ pure real function ptolfun(value)
        FACE_ITS, LIMT, FEMDGI, FEMTGI, UP_WIND_NOD, &
        TMIN, TMAX, TMIN_NOD, TMAX_NOD, &
        IN_ELE_UPWIND, DG_ELE_UPWIND, &
-       TMIN_2ND_MC, TMAX_2ND_MC,  LIMIT_USE_2ND,&
-       is_overlapping,  &
+       TMIN_2ND_MC, TMAX_2ND_MC,  LIMIT_USE_2ND, &
        IANISOTROPIC, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
        TUPWIND_MAT )
     ! Calculate NDOTQ and INCOME on the CV boundary at quadrature pt GI. 
@@ -9926,7 +9859,6 @@ pure real function ptolfun(value)
     INTEGER, DIMENSION( : ), intent( in ) :: SMALL_COLM
     REAL, DIMENSION( : ), intent( in ) :: TUPWIND_MAT
     ! local variables
-    logical, INTENT (IN) :: is_overlapping   
     INTEGER :: U_NLOC_LEV,U_KLOC_LEV,U_KLOC,U_NODK_IPHA, U_KLOC2, U_NODK2_IPHA
 
     IF( is_overlapping ) THEN
@@ -10013,8 +9945,7 @@ pure real function ptolfun(value)
        FACE_ITS, LIMT, LIMTOLD, FEMDGI, FEMTGI, FEMDOLDGI, FEMTOLDGI, UP_WIND_NOD, &
        TMIN, TMAX, TOLDMIN, TOLDMAX, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, TOLDMAX_NOD, &
        IN_ELE_UPWIND, DG_ELE_UPWIND, &
-       TMIN_2ND_MC, TOLDMIN_2ND_MC, TMAX_2ND_MC, TOLDMAX_2ND_MC,  LIMIT_USE_2ND,&
-       is_overlapping,  &
+       TMIN_2ND_MC, TOLDMIN_2ND_MC, TMAX_2ND_MC, TOLDMAX_2ND_MC,  LIMIT_USE_2ND, &
        IANISOTROPIC, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
        TUPWIND_MAT, TOLDUPWIND_MAT )
     ! Calculate NDOTQ and INCOME on the CV boundary at quadrature pt GI. 
@@ -10061,7 +9992,6 @@ pure real function ptolfun(value)
     INTEGER, DIMENSION( : ), intent( in ) :: SMALL_COLM
     REAL, DIMENSION( : ), intent( in ) :: TUPWIND_MAT, TOLDUPWIND_MAT
     ! local variables
-    logical, INTENT (IN) :: is_overlapping   
     INTEGER :: U_NLOC_LEV,U_KLOC_LEV,U_KLOC,U_NODK_IPHA, U_KLOC2, U_NODK2_IPHA, u_nodk2
   
     IF( is_overlapping ) THEN
