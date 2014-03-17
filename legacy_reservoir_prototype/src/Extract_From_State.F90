@@ -2178,6 +2178,27 @@
       call allocate_multiphase_scalar_bcs(packed_state,multi_state,"PhaseVolumeFraction")
       call allocate_multiphase_vector_bcs(packed_state,multi_state,"Velocity")
 
+      !! // How to add density as a dependant of olddensity,  as an example
+      !! // Suppose we have a previous declaration
+
+      !! type(tensor_field), pointer :: old_density, density
+
+      !! old_density=>extract_tensor_field(packed_state,"PackedOldDensity")
+      !! density=>extract_tensor_field(packed_state,"PackedDensity")
+      !! call add_dependant_field(old_density,density)
+
+      !! // if we now make a  call 
+
+      !! call mark_as_updated(density)
+
+      !! // then is_updated(density) is now .true. (no other changes)
+      !! // If we then make a  call 
+      
+
+      !! call mark_as_updated(old_density)
+      !! // then is_updated(old_density) is now .true. and is_updated(density) is .false.
+
+
       if (present(pmulti_state)) then
          pmulti_state=>multi_state
       else

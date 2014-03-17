@@ -58,6 +58,8 @@ implicit none
     & extract_nelist, add_eelist, extract_eelist, remove_lists, remove_nnlist, &
     & remove_nelist, remove_eelist, extract_elements, remove_boundary_conditions
   public :: is_updated
+  public add_dependant_field
+
   interface allocate
      module procedure allocate_scalar_field, allocate_vector_field,&
           & allocate_tensor_field, allocate_mesh, &
@@ -147,6 +149,20 @@ implicit none
     module procedure is_updated_tensor_field
 
  end interface
+
+
+ interface add_dependant_field
+     module procedure add_dependant_scalar_field_to_scalar
+     module procedure add_dependant_vector_field_to_scalar
+     module procedure add_dependant_tensor_field_to_scalar
+     module procedure add_dependant_scalar_field_to_vector
+     module procedure add_dependant_vector_field_to_vector
+     module procedure add_dependant_tensor_field_to_vector
+     module procedure add_dependant_scalar_field_to_tensor
+     module procedure add_dependant_vector_field_to_tensor
+     module procedure add_dependant_tensor_field_to_tensor 
+  end interface add_dependant_field
+
 
 #include "Reference_count_interface_mesh_type.F90"
 #include "Reference_count_interface_scalar_field.F90"
@@ -289,6 +305,8 @@ contains
     field%aliased=.false.
     field%option_path=empty_path
     allocate(field%bc)
+    allocate(field%updated)
+    field%updated=.false.
     nullify(field%refcount) ! Hacks for gfortran component initialisation
     !                         bug.
     call addref(field)
@@ -365,6 +383,9 @@ contains
     !                         bug.    
     
     allocate(field%picker)
+
+    allocate(field%updated)
+    field%updated=.false.
     
     call addref(field)
 
@@ -426,6 +447,8 @@ contains
     !                         bug.
     allocate(field%bc)
     nullify(field%bc%boundary_condition)
+    allocate(field%updated)
+    field%updated=.false.
     call addref(field)
 
   end subroutine allocate_tensor_field
@@ -944,7 +967,11 @@ contains
     
     deallocate(bc%surface_element_list, bc%surface_node_list)
 
-    deallocate(bc%applies)
+    if (associated(bc%applies)) then
+       deallocate(bc%applies)
+       nullify(bc%applies)
+    end if
+       
 
   end subroutine deallocate_tensor_boundary_condition
 
@@ -3066,5 +3093,204 @@ contains
         is_updated_tensor_field = .false.
         if (associated(field%updated)) is_updated_tensor_field = field%updated
     end function is_updated_tensor_field
+
+subroutine add_dependant_scalar_field_to_scalar(infield,outfield)
+
+      type(scalar_field), intent(inout) ::  infield
+      type(scalar_field), intent(in), target    ::  outfield
+
+      type(scalar_field_pointer), dimension(:), pointer :: temp
+      integer :: N
+
+      if( associated(infield%dependant_scalar_field)) then
+         temp=>infield%dependant_scalar_field
+         N=size(infield%dependant_scalar_field)
+         allocate(infield%dependant_scalar_field(N+1))
+         infield%dependant_scalar_field(1:N)=temp
+         infield%dependant_scalar_field(N+1)%ptr=>outfield
+         deallocate(temp)
+      else
+         allocate(infield%dependant_scalar_field(1))
+         infield%dependant_scalar_field(1)%ptr=>outfield
+      end if
+
+    end subroutine add_dependant_scalar_field_to_scalar
+
+    subroutine add_dependant_vector_field_to_scalar(infield,outfield)
+
+      type(scalar_field), intent(inout) ::  infield
+      type(vector_field), intent(in), target    ::  outfield
+
+      type(vector_field_pointer), dimension(:), pointer :: temp
+      integer :: N
+
+      if( associated(infield%dependant_vector_field)) then
+         temp=>infield%dependant_vector_field
+         N=size(infield%dependant_vector_field)
+         allocate(infield%dependant_vector_field(N+1))
+         infield%dependant_vector_field(1:N)=temp
+         infield%dependant_vector_field(N+1)%ptr=>outfield
+         deallocate(temp)
+      else
+         allocate(infield%dependant_vector_field(1))
+         infield%dependant_vector_field(1)%ptr=>outfield
+      end if
+
+    end subroutine add_dependant_vector_field_to_scalar
+         
+subroutine add_dependant_tensor_field_to_scalar(infield,outfield)
+
+      type(scalar_field), intent(inout) ::  infield
+      type(tensor_field), intent(in), target    ::  outfield
+
+      type(tensor_field_pointer), dimension(:), pointer :: temp
+      integer :: N
+
+      if( associated(infield%dependant_tensor_field)) then
+         temp=>infield%dependant_tensor_field
+         N=size(infield%dependant_tensor_field)
+         allocate(infield%dependant_tensor_field(N+1))
+         infield%dependant_tensor_field(1:N)=temp
+         infield%dependant_tensor_field(N+1)%ptr=>outfield
+         deallocate(temp)
+      else
+         allocate(infield%dependant_tensor_field(1))
+         infield%dependant_tensor_field(1)%ptr=>outfield
+      end if
+
+    end subroutine add_dependant_tensor_field_to_scalar
+
+    subroutine add_dependant_scalar_field_to_vector(infield,outfield)
+
+      type(vector_field), intent(inout) ::  infield
+      type(scalar_field), intent(in), target    ::  outfield
+
+      type(scalar_field_pointer), dimension(:), pointer :: temp
+      integer :: N
+
+      if( associated(infield%dependant_scalar_field)) then
+         temp=>infield%dependant_scalar_field
+         N=size(infield%dependant_scalar_field)
+         allocate(infield%dependant_scalar_field(N+1))
+         infield%dependant_scalar_field(1:N)=temp
+         infield%dependant_scalar_field(N+1)%ptr=>outfield
+         deallocate(temp)
+      else
+         allocate(infield%dependant_scalar_field(1))
+         infield%dependant_scalar_field(1)%ptr=>outfield
+      end if
+
+    end subroutine add_dependant_scalar_field_to_vector
+
+    subroutine add_dependant_vector_field_to_vector(infield,outfield)
+
+      type(vector_field), intent(inout) ::  infield
+      type(vector_field), intent(in), target    ::  outfield
+
+      type(vector_field_pointer), dimension(:), pointer :: temp
+      integer :: N
+
+      if( associated(infield%dependant_vector_field)) then
+         temp=>infield%dependant_vector_field
+         N=size(infield%dependant_vector_field)
+         allocate(infield%dependant_vector_field(N+1))
+         infield%dependant_vector_field(1:N)=temp
+         infield%dependant_vector_field(N+1)%ptr=>outfield
+         deallocate(temp)
+      else
+         allocate(infield%dependant_vector_field(1))
+         infield%dependant_vector_field(1)%ptr=>outfield
+      end if
+
+    end subroutine add_dependant_vector_field_to_vector
+         
+subroutine add_dependant_tensor_field_to_vector(infield,outfield)
+
+      type(vector_field), intent(inout) ::  infield
+      type(tensor_field), intent(in), target    ::  outfield
+
+      type(tensor_field_pointer), dimension(:), pointer :: temp
+      integer :: N
+
+      if( associated(infield%dependant_tensor_field)) then
+         temp=>infield%dependant_tensor_field
+         N=size(infield%dependant_tensor_field)
+         allocate(infield%dependant_tensor_field(N+1))
+         infield%dependant_tensor_field(1:N)=temp
+         infield%dependant_tensor_field(N+1)%ptr=>outfield
+         deallocate(temp)
+      else
+         allocate(infield%dependant_tensor_field(1))
+         infield%dependant_tensor_field(1)%ptr=>outfield
+      end if
+
+    end subroutine add_dependant_tensor_field_to_vector
+
+
+    subroutine add_dependant_scalar_field_to_tensor(infield,outfield)
+
+      type(tensor_field), intent(inout) ::  infield
+      type(scalar_field), intent(in), target    ::  outfield
+
+      type(scalar_field_pointer), dimension(:), pointer :: temp
+      integer :: N
+
+      if( associated(infield%dependant_scalar_field)) then
+         temp=>infield%dependant_scalar_field
+         N=size(infield%dependant_scalar_field)
+         allocate(infield%dependant_scalar_field(N+1))
+         infield%dependant_scalar_field(1:N)=temp
+         infield%dependant_scalar_field(N+1)%ptr=>outfield
+         deallocate(temp)
+      else
+         allocate(infield%dependant_scalar_field(1))
+         infield%dependant_scalar_field(1)%ptr=>outfield
+      end if
+
+    end subroutine add_dependant_scalar_field_to_tensor
+
+    subroutine add_dependant_vector_field_to_tensor(infield,outfield)
+
+      type(tensor_field), intent(inout) ::  infield
+      type(vector_field), intent(in), target    ::  outfield
+
+      type(vector_field_pointer), dimension(:), pointer :: temp
+      integer :: N
+
+      if( associated(infield%dependant_vector_field)) then
+         temp=>infield%dependant_vector_field
+         N=size(infield%dependant_vector_field)
+         allocate(infield%dependant_vector_field(N+1))
+         infield%dependant_vector_field(1:N)=temp
+         infield%dependant_vector_field(N+1)%ptr=>outfield
+         deallocate(temp)
+      else
+         allocate(infield%dependant_vector_field(1))
+         infield%dependant_vector_field(1)%ptr=>outfield
+      end if
+
+    end subroutine add_dependant_vector_field_to_tensor
+    
+subroutine add_dependant_tensor_field_to_tensor(infield,outfield)
+
+      type(tensor_field), intent(inout) ::  infield
+      type(tensor_field), intent(in), target    ::  outfield
+
+      type(tensor_field_pointer), dimension(:), pointer :: temp
+      integer :: N
+
+      if( associated(infield%dependant_tensor_field)) then
+         temp=>infield%dependant_tensor_field
+         N=size(infield%dependant_tensor_field)
+         allocate(infield%dependant_tensor_field(N+1))
+         infield%dependant_tensor_field(1:N)=temp
+         infield%dependant_tensor_field(N+1)%ptr=>outfield
+         deallocate(temp)
+      else
+         allocate(infield%dependant_tensor_field(1))
+         infield%dependant_tensor_field(1)%ptr=>outfield
+      end if
+
+    end subroutine add_dependant_tensor_field_to_tensor
 
 end module fields_allocates
