@@ -243,7 +243,10 @@
 
       call pack_multistate(state,packed_state,multiphase_state,&
            multicomponent_state)
-      
+
+      !call print_state( packed_state )
+      !stop 78
+
       !  Access boundary conditions via a call like
       !  call get_entire_boundary_condition(extract_tensor_field(packed_state,"Packed"//name),["dirichlet"],tfield,bc_type_list)
       !  where tfield is type(tensor_field) and bc_type_list is integer, dimension(tfield%dim(1),tfield%dim(2),nonods)
@@ -974,8 +977,8 @@
 
 !!$ Diffusion-like term -- here used as part of the capillary pressure for porous media. It can also be 
 !!$ extended to surface tension -like term.
-              iplike_grad_sou = 0
-              plike_grad_sou_grad = 0
+               iplike_grad_sou = 0
+               plike_grad_sou_grad = 0
                if( have_option( '/material_phase[0]/multiphase_properties/capillary_pressure' ) )then
                   iplike_grad_sou = 1
                   call calculate_capillary_pressure( state, cv_nonods, nphase, plike_grad_sou_grad, &
@@ -1006,50 +1009,47 @@
                   U_Density = Density ; U_Density_Old = Density_Old
                end if
 
-!!$ Make mid side nodes the average of the 2 corner nodes...
-               density_tmp = density
+               if ( have_option( "/material_phase[0]/linearise_density" ) .and. & 
+                    .not.have_option( "/material_phase[0]/multiphase_properties/relperm_type" ) ) then
 
-               if ( cv_nloc==6 .or. (cv_nloc==10 .and. ndim==3) ) then ! P2 triangle or tet
-                  allocate( DEN_CV_NOD( CV_NLOC, NPHASE) ) 
+                  if ( cv_nloc==6 .or. (cv_nloc==10 .and. ndim==3) ) then
 
-                  DO ELE = 1, TOTELE
-                     DO CV_ILOC = 1, CV_NLOC
-                        CV_NOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
-                        DO IPHASE = 1,NPHASE
-                           CV_NOD_PHA = CV_NOD +( IPHASE - 1) * CV_NONODS
-                           DEN_CV_NOD( CV_ILOC, IPHASE ) = density_tmp( CV_NOD_PHA )
-                        END DO
-                     END DO
+                     density_tmp = density
+                     allocate( den_cv_nod( cv_nloc, nphase) ) 
 
-                     DEN_CV_NOD(2, :) = 0.5 * ( DEN_CV_NOD(1, :) + DEN_CV_NOD(3, :) )
-                     DEN_CV_NOD(4, :) = 0.5 * ( DEN_CV_NOD(1, :) + DEN_CV_NOD(6, :) )
-                     DEN_CV_NOD(5, :) = 0.5 * ( DEN_CV_NOD(3, :) + DEN_CV_NOD(6, :) )
+                     do ele = 1, totele
+                        do cv_iloc = 1, cv_nloc
+                           cv_nod = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
+                           do iphase = 1,nphase
+                              cv_nod_pha = cv_nod +( iphase - 1) * cv_nonods
+                              den_cv_nod( cv_iloc, iphase ) = density_tmp( cv_nod_pha )
+                           end do
+                        end do
 
-                     if ( cv_nloc==10 ) then
-                        DEN_CV_NOD(7, :) = 0.5 * ( DEN_CV_NOD(1, :) + DEN_CV_NOD(10, :) )
-                        DEN_CV_NOD(8, :) = 0.5 * ( DEN_CV_NOD(3, :) + DEN_CV_NOD(10, :) )
-                        DEN_CV_NOD(9, :) = 0.5 * ( DEN_CV_NOD(6, :) + DEN_CV_NOD(10, :) )
-                     end if
+                        den_cv_nod( 2, : ) = 0.5 * ( den_cv_nod( 1, : ) + den_cv_nod( 3, : ) )
+                        den_cv_nod( 4, : ) = 0.5 * ( den_cv_nod( 1, : ) + den_cv_nod( 6, : ) )
+                        den_cv_nod( 5, : ) = 0.5 * ( den_cv_nod( 3, : ) + den_cv_nod( 6, : ) )
 
-                     DO CV_ILOC = 1, CV_NLOC
-                        CV_NOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
-                        DO IPHASE = 1, NPHASE
-                           CV_NOD_PHA = CV_NOD +( IPHASE - 1) * CV_NONODS
-                           Density_tmp( CV_NOD_PHA ) = DEN_CV_NOD( CV_ILOC, IPHASE )
-                        END DO
-                     END DO
-                  END DO
+                        if ( cv_nloc==10 ) then
+                           den_cv_nod( 7, : ) = 0.5 * ( den_cv_nod( 1, : ) + den_cv_nod( 10, : ) )
+                           den_cv_nod( 8, : ) = 0.5 * ( den_cv_nod( 3, : ) + den_cv_nod( 10, : ) )
+                           den_cv_nod( 9, : ) = 0.5 * ( den_cv_nod( 6, : ) + den_cv_nod( 10, : ) )
+                        end if
 
-                  deallocate( DEN_CV_NOD ) 
-               end if
+                        do cv_iloc = 1, cv_nloc
+                           cv_nod = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
+                           do iphase = 1, nphase
+                              cv_nod_pha = cv_nod +( iphase - 1) * cv_nonods
+                              density_tmp( cv_nod_pha ) = den_cv_nod( cv_iloc, iphase )
+                           end do
+                        end do
+                     end do
 
-               if ( linearise_density ) then
-                  if ( (cv_nloc==6 .or. (cv_nloc==10 .and. ndim==3) ) .and. &
-                       .not. have_option( '/material_phase[0]/multiphase_properties/relperm_type' ) &
-                       ) then
-                     U_Density = Density_tmp
-                     U_Density_Old = Density_Old_tmp
-                     if ( its == 1 ) U_Density_Old = Density_tmp
+                     deallocate( den_cv_nod )
+
+                     u_density = density_tmp
+                     u_density_old = density_old_tmp
+                     if ( its == 1 ) u_density_old = density_tmp
                   end if
                end if
 

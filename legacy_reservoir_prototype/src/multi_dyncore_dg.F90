@@ -1392,19 +1392,17 @@
       X_ALL2 => EXTRACT_VECTOR_FIELD( PACKED_STATE, "PressureCoordinate" )
       X_ALL = X_ALL2%VAL
 
-
       ! make sure is linearised in case option is switched on for p2 simulations...
-      !X_ALL2 => EXTRACT_VECTOR_FIELD( PACKED_STATE, "PackedDensity" )
+      !X_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedDensity" )
       !UDEN_ALL = X_ALL2%VAL
-      !X_ALL2 => EXTRACT_VECTOR_FIELD( PACKED_STATE, "PackedOldDensity" )
+      !X_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldDensity" )
       !UDENOLD_ALL = X_ALL2%VAL
+      ! call linearise_field( )
 
-      DO IPHASE = 1, NPHASE
-         UDEN_ALL( IPHASE, : ) = UDEN( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
-         UDENOLD_ALL( IPHASE, : ) = UDENOLD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
-      END DO
-
-
+      do iphase = 1, nphase
+         uden_all( iphase, : ) = uden( 1 + (iphase-1)*cv_nonods : iphase*cv_nonods )
+         udenold_all( iphase, : ) = udenold( 1 + (iphase-1)*cv_nonods : iphase*cv_nonods )
+      end do
 
       do sele = 1, stotel
          do iphase = 1, nphase
@@ -7036,5 +7034,67 @@
 
     END SUBROUTINE SURFACE_TENSION_WRAPPER
 
+
+    subroutine linearise_field( field )
+      implicit none
+      type( tensor_field ), intent( inout ) :: field
+
+      type( tensor_field ) :: field_tmp
+      integer, dimension( : ), pointer :: ndglno
+      integer :: n, totele, ndim, cv_nloc, ncomp, nphase, cv_nonods, ele, cv_iloc, cv_nod
+      real, dimension( :, :, : ), allocatable :: field_cv_nod
+
+      ! This sub will linearise a p2 field
+
+      n = field%mesh%shape%degree
+
+      if ( n==2 ) then
+
+         ndglno => get_ndglno( field%mesh )
+
+         totele = field%mesh%elements
+         ndim = field%mesh%shape%dim
+         cv_nloc = field%mesh%shape%loc
+
+         ncomp = size( field%val, 1 )
+         nphase = size( field%val, 2 )
+         cv_nonods = size( field%val, 3 )
+
+         allocate( field_cv_nod( ncomp, nphase, cv_nloc ) ) ; field_cv_nod = 0.0
+
+         call allocate( field_tmp, field%mesh )
+         call set( field_tmp, field )
+
+         do ele = 1, totele
+
+            do cv_iloc = 1, cv_nloc
+               cv_nod = ndglno( ( ele - 1 ) * cv_nloc + cv_iloc )
+               field_cv_nod( :, :, cv_iloc ) =  node_val( field_tmp, cv_nod )
+            end do
+
+            field_cv_nod( :, :, 2 ) = 0.5 * ( field_cv_nod( :, :, 1 ) + field_cv_nod( :, :, 3 ) )
+            field_cv_nod( :, :, 4 ) = 0.5 * ( field_cv_nod( :, :, 1 ) + field_cv_nod( :, :, 6 ) )
+            field_cv_nod( :, :, 5 ) = 0.5 * ( field_cv_nod( :, :, 3 ) + field_cv_nod( :, :, 6 ) )
+
+            if ( cv_nloc == 10 ) then
+               field_cv_nod( :, :, 7 ) = 0.5 * ( field_cv_nod( :, :, 1 ) + field_cv_nod( :, :, 10 ) )
+               field_cv_nod( :, :, 8 ) = 0.5 * ( field_cv_nod( :, :, 3 ) + field_cv_nod( :, :, 10 ) )
+               field_cv_nod( :, :, 9 ) = 0.5 * ( field_cv_nod( :, :, 6 ) + field_cv_nod( :, :, 10 ) )
+            end if
+
+            do cv_iloc = 1, cv_nloc
+               cv_nod = ndglno( ( ele - 1 ) * cv_nloc + cv_iloc )
+               field%val( :, :, cv_nod ) = field_cv_nod( :, :, cv_iloc )
+            end do
+
+         end do
+
+         call deallocate( field_tmp )
+         deallocate( field_cv_nod )
+
+      end if
+
+      return
+    end subroutine linearise_field
 
   end module multiphase_1D_engine
