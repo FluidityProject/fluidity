@@ -7041,7 +7041,7 @@
 
       type( tensor_field ) :: field_tmp
       integer, dimension( : ), pointer :: ndglno
-      integer :: n, totele, ndim, cv_nloc, ncomp, nphase, cv_nonods, ele, cv_iloc, cv_nod
+      integer :: n, totele, cv_nloc, ncomp, nphase, ele, cv_iloc, cv_nod
       real, dimension( :, :, : ), allocatable :: field_cv_nod
 
       ! This sub will linearise a p2 field
@@ -7053,12 +7053,10 @@
          ndglno => get_ndglno( field%mesh )
 
          totele = field%mesh%elements
-         ndim = field%mesh%shape%dim
          cv_nloc = field%mesh%shape%loc
 
          ncomp = size( field%val, 1 )
          nphase = size( field%val, 2 )
-         cv_nonods = size( field%val, 3 )
 
          allocate( field_cv_nod( ncomp, nphase, cv_nloc ) ) ; field_cv_nod = 0.0
 
