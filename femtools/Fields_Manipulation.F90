@@ -171,6 +171,10 @@ implicit none
   interface clone_header
     module procedure clone_header_scalar, clone_header_vector, clone_header_tensor
   end interface clone_header
+
+  interface mark_as_updated
+     module procedure mark_scalar_as_updated, mark_vector_as_updated,  mark_tensor_as_updated
+  end interface mark_as_updated
   
   interface normalise
     module procedure normalise_scalar, normalise_vector
@@ -4008,5 +4012,217 @@ implicit none
     
   end subroutine remap_to_full_domain_tensor
   
+
+  subroutine mark_scalar_as_updated(infield)
+    !! subroutine for multiphase code, marks input field as updated and
+    !! sets all dependancies as NOT updated
+
+    type(scalar_field), intent(inout) :: infield
+
+    if (associated(infield%updated)) then
+       infield%updated=.true.
+    else
+       allocate(infield%updated)
+       infield%updated=.true.
+    end if
+    
+    
+    if (associated(infield%dependant_scalar_field)) then
+       call unmark_scalar_children(infield%dependant_scalar_field)
+    end if
+
+    if (associated(infield%dependant_vector_field)) then
+       call unmark_vector_children(infield%dependant_vector_field)
+    end if
+
+    if (associated(infield%dependant_tensor_field)) then
+       call unmark_tensor_children(infield%dependant_tensor_field)
+    end if
+
+  end subroutine mark_scalar_as_updated
+
+  subroutine mark_vector_as_updated(infield)
+    !! subroutine for multiphase code, marks input field as updated and
+    !! sets all dependancies as NOT updated
+
+    type(vector_field), intent(inout) :: infield
+
+    if (associated(infield%updated)) then
+       infield%updated=.true.
+    else
+       allocate(infield%updated)
+       infield%updated=.true.
+    end if
+    
+    
+    if (associated(infield%dependant_scalar_field)) then
+       call unmark_scalar_children(infield%dependant_scalar_field)
+    end if
+
+    if (associated(infield%dependant_vector_field)) then
+       call unmark_vector_children(infield%dependant_vector_field)
+    end if
+
+    if (associated(infield%dependant_tensor_field)) then
+       call unmark_tensor_children(infield%dependant_tensor_field)
+    end if
+
+  end subroutine mark_vector_as_updated
+
+  subroutine mark_tensor_as_updated(infield)
+    !! subroutine for multiphase code, marks input field as updated and
+    !! sets all dependancies as NOT updated
+
+    type(tensor_field), intent(inout) :: infield
+
+    if (associated(infield%updated)) then
+       infield%updated=.true.
+    else
+       allocate(infield%updated)
+       infield%updated=.true.
+    end if
+    
+    
+    if (associated(infield%dependant_scalar_field)) then
+       call unmark_scalar_children(infield%dependant_scalar_field)
+    end if
+
+    if (associated(infield%dependant_vector_field)) then
+       call unmark_vector_children(infield%dependant_vector_field)
+    end if
+
+    if (associated(infield%dependant_tensor_field)) then
+       call unmark_tensor_children(infield%dependant_tensor_field)
+    end if
+
+  end subroutine mark_tensor_as_updated
+
+  recursive subroutine unmark_scalar_children(field_ptr)
+    type(scalar_field_pointer), dimension(:) :: field_ptr
+
+    integer :: i
+    logical :: traverse
+    
+    ! helper subprogram to the mark_as_updated subroutines
+    ! recursively traverse child dependant fields and mark as
+    ! NOT updated. Only fail to recurse if child is already marked as
+    ! not updated. This prevents infinite loops, but will lead to greedy evalutation
+    ! if the dependant fields form a cycle
+
+    do i=1,size(field_ptr)
+
+       traverse=.false.
+    
+       if (associated(field_ptr(i)%ptr)) then
+          if (associated(field_ptr(i)%ptr%updated)) then
+             traverse=field_ptr(i)%ptr%updated
+             field_ptr(i)%ptr%updated=.false.
+          end if
+
+          if (traverse) then
+                
+             if (associated(field_ptr(i)%ptr%dependant_scalar_field)) then
+                call unmark_scalar_children(field_ptr(i)%ptr%dependant_scalar_field)
+             end if
+             
+             if (associated(field_ptr(i)%ptr%dependant_vector_field)) then
+                call unmark_vector_children(field_ptr(i)%ptr%dependant_vector_field)
+             end if
+
+             if (associated(field_ptr(i)%ptr%dependant_tensor_field)) then
+                call unmark_tensor_children(field_ptr(i)%ptr%dependant_tensor_field)
+             end if
+
+          end if
+       end if
+    end do
+
+  end subroutine unmark_scalar_children
+
+  recursive subroutine unmark_vector_children(field_ptr)
+    type(vector_field_pointer), dimension(:) :: field_ptr
+
+    integer :: i
+    logical :: traverse
+    
+    ! helper subprogram to the mark_as_updated subroutines
+    ! recursively traverse child dependant fields and mark as
+    ! NOT updated. Only fail to recurse if child is already marked as
+    ! not updated. This prevents infinite loops, but will lead to greedy evalutation
+    ! if the dependant fields form a cycle
+
+    do i=1,size(field_ptr)
+
+       traverse=.false.
+    
+       if (associated(field_ptr(i)%ptr)) then
+          if (associated(field_ptr(i)%ptr%updated)) then
+             traverse=field_ptr(i)%ptr%updated
+             field_ptr(i)%ptr%updated=.false.
+          end if
+
+          if (traverse) then
+                
+             if (associated(field_ptr(i)%ptr%dependant_scalar_field)) then
+                call unmark_scalar_children(field_ptr(i)%ptr%dependant_scalar_field)
+             end if
+             
+             if (associated(field_ptr(i)%ptr%dependant_vector_field)) then
+                call unmark_vector_children(field_ptr(i)%ptr%dependant_vector_field)
+             end if
+
+             if (associated(field_ptr(i)%ptr%dependant_tensor_field)) then
+                call unmark_tensor_children(field_ptr(i)%ptr%dependant_tensor_field)
+             end if
+
+          end if
+       end if
+    end do
+
+  end subroutine unmark_vector_children
+
+  recursive subroutine unmark_tensor_children(field_ptr)
+    type(tensor_field_pointer), dimension(:) :: field_ptr
+
+    integer :: i
+    logical :: traverse
+    
+    ! helper subprogram to the mark_as_updated subroutines
+    ! recursively traverse child dependant fields and mark as
+    ! NOT updated. Only fail to recurse if child is already marked as
+    ! not updated. This prevents infinite loops, but will lead to greedy evalutation
+    ! if the dependant fields form a cycle
+
+    do i=1,size(field_ptr)
+
+       traverse=.false.
+    
+       if (associated(field_ptr(i)%ptr)) then
+          if (associated(field_ptr(i)%ptr%updated)) then
+             traverse=field_ptr(i)%ptr%updated
+             field_ptr(i)%ptr%updated=.false.
+          end if
+
+          if (traverse) then
+             
+             if (associated(field_ptr(i)%ptr%dependant_scalar_field)) then
+                call unmark_scalar_children(field_ptr(i)%ptr%dependant_scalar_field)
+             end if
+                
+             if (associated(field_ptr(i)%ptr%dependant_vector_field)) then
+                call unmark_vector_children(field_ptr(i)%ptr%dependant_vector_field)
+             end if
+
+             if (associated(field_ptr(i)%ptr%dependant_tensor_field)) then
+                call unmark_tensor_children(field_ptr(i)%ptr%dependant_tensor_field)
+             end if
+
+          end if
+       end if
+    end do
+
+  end subroutine unmark_tensor_children
+             
+
 end module fields_manipulation
 

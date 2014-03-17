@@ -584,6 +584,7 @@ contains
       field%val = ieee_value(0.0, ieee_quiet_nan)
 #endif
       deallocate(field%val)
+      if (associated(field%updated)) deallocate(field%updated) 
     case(FIELD_TYPE_PYTHON)
       call deallocate(field%py_positions)
       call deallocate(field%py_positions_shape)
@@ -600,10 +601,9 @@ contains
     deallocate(field%bc)
     
     !deallocate pointers related with fields storage
-    if (associated(field%updated)) field%updated => null()
-    if (associated(field%dependant_scalar_field)) field%dependant_scalar_field=> null()
-    if (associated(field%dependant_vector_field)) field%dependant_vector_field=> null()
-    if (associated(field%dependant_tensor_field)) field%dependant_tensor_field=> null()
+    call remove_dependancies(field%dependant_scalar_field, &
+                             field%dependant_vector_field, &
+                             field%dependant_tensor_field)
 
   end subroutine deallocate_scalar_field
     
@@ -660,10 +660,11 @@ contains
     deallocate(field%picker)
     nullify(field%picker)
     !deallocate pointers related with fields storage
-    if (associated(field%updated)) field%updated => null()
-    if (associated(field%dependant_scalar_field)) field%dependant_scalar_field=> null()
-    if (associated(field%dependant_vector_field)) field%dependant_vector_field=> null()
-    if (associated(field%dependant_tensor_field)) field%dependant_tensor_field=> null()
+
+    call remove_dependancies(field%dependant_scalar_field, &
+                             field%dependant_vector_field, &
+                             field%dependant_tensor_field)
+
   end subroutine deallocate_vector_field
  
   subroutine remove_boundary_conditions_vector(field)
@@ -738,6 +739,39 @@ contains
      end if
     
   end subroutine remove_boundary_conditions_tensor
+
+
+  subroutine remove_dependancies(scalar_ptr,vector_ptr,tensor_ptr)
+
+    type(scalar_field_pointer), dimension(:), pointer :: scalar_ptr
+    type(vector_field_pointer), dimension(:), pointer :: vector_ptr
+    type(tensor_field_pointer), dimension(:), pointer :: tensor_ptr
+
+    integer :: i
+
+    if (associated(scalar_ptr)) then
+       do i=1,size(scalar_ptr)
+          nullify(scalar_ptr(i)%ptr)
+       end do
+       deallocate(scalar_ptr)
+       nullify(scalar_ptr)
+    end if
+    if (associated(vector_ptr)) then
+       do i=1,size(vector_ptr)
+          nullify(vector_ptr(i)%ptr)
+       end do
+       deallocate(vector_ptr)
+       nullify(vector_ptr)
+    end if
+    if (associated(tensor_ptr)) then
+       do i=1,size(tensor_ptr)
+          nullify(tensor_ptr(i)%ptr)
+       end do
+       deallocate(tensor_ptr)
+       nullify(tensor_ptr)
+    end if
+
+  end subroutine remove_dependancies
   
   subroutine allocate_scalar_boundary_condition(bc, mesh, surface_element_list, &
     name, type)

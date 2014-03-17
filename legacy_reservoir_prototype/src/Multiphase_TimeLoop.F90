@@ -419,8 +419,7 @@
            plike_grad_sou_grad( cv_nonods * nphase ), &
            plike_grad_sou_coef( cv_nonods * nphase ) )
 
-      ncv_faces=CV_count_faces( packed_state,&
-                 CV_ELE_TYPE, STOTEL, CV_SNDGLN, U_SNDGLN )
+      ncv_faces=CV_count_faces( xpacked_state, CV_ELE_TYPE)
 
       allocate(NDOTQOLD(nphase,ncv_faces),&
            NDOTQVOLD(nphase,ncv_faces),&
@@ -1906,8 +1905,7 @@ deallocate(NDOTQOLD,&
             density_tmp=0. ; density_old_tmp=0.
 
 
-            ncv_faces=CV_count_faces( packed_state,&
-                 CV_ELE_TYPE, STOTEL, CV_SNDGLN, U_SNDGLN )
+            ncv_faces=CV_count_faces( packed_state, CV_ELE_TYPE )
 
       allocate(NDOTQOLD(nphase,ncv_faces),&
            NDOTQVOLD(nphase,ncv_faces),&
