@@ -1940,7 +1940,6 @@ contains
          MEAN_PORE_CV, &
          FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL, &
          MASS_ELE_TRANSP, &
-         option_path_spatial_discretisation, &
          THETA_FLUX, ONE_M_THETA_FLUX,&
          StorageIndexes)
 
@@ -2124,9 +2123,7 @@ contains
       INTEGER, INTENT( IN ) :: NOIT_DIM
       REAL, DIMENSION( : ), intent( inout ) :: MEAN_PORE_CV
       REAL, DIMENSION( : ), intent( inout ) :: MASS_ELE_TRANSP
-      character( len = * ), intent( in ), optional :: option_path_spatial_discretisation
       integer, dimension(:), intent(in) :: SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM
-      !character( len = option_path_len ), intent( in ), optional :: option_path_spatial_discretisation
       integer, dimension(:), intent(inout) :: StorageIndexes
 
       ! Local variables
@@ -2201,7 +2198,7 @@ contains
       ! Functions...
       !REAL :: R2NORM, FACE_THETA
       !        ===>  LOGICALS  <===
-      LOGICAL :: GETMAT, LIMIT_USE_2ND, &
+      LOGICAL :: GETMAT, &
            D1, D3, DCYL, GOT_DIFFUS, INTEGRAT_AT_GI, &
            NORMALISE, GET_GTHETA, QUAD_OVER_WHOLE_ELE
 
@@ -2217,7 +2214,7 @@ contains
     real ::  s_gc, s_or
 
     logical got_theta_flux
-    integer :: global_face
+    integer :: global_face, IGETCT
 
     got_theta_flux=present(theta_flux)
     global_face=0
@@ -2319,7 +2316,7 @@ contains
 
       ALLOCATE( UGI_COEF_ELE(U_NLOC),  VGI_COEF_ELE(U_NLOC),  WGI_COEF_ELE(U_NLOC) )
       ALLOCATE( UGI_COEF_ELE2(U_NLOC), VGI_COEF_ELE2(U_NLOC), WGI_COEF_ELE2(U_NLOC) )
-      ! The porocity mapped to the CV nodes
+
       ALLOCATE( SUM_CV( CV_NONODS ))
       ALLOCATE( UP_WIND_NOD( CV_NONODS * NPHASE ))
 
@@ -2374,10 +2371,6 @@ contains
       NCOLGPTS = 0
       COLGPTS = 0
       FINDGPTS = 0
-      !ewrite(3,*)'in ASSEMB_FORCE_CTY',NCOLGPTS
-      !ewrite(3,*)'in ASSEMB_FORCE_CTY, COLGPTS',size(COLGPTS), COLGPTS
-      !ewrite(3,*)'in ASSEMB_FORCE_CTY, FINDGPTS',size(FINDGPTS), FINDGPTS
-
 
       !     ======= DEFINE THE SUB-CONTROL VOLUME & FEM SHAPE FUNCTIONS ========
 
@@ -2403,24 +2396,6 @@ contains
            FINDGPTS, COLGPTS, NCOLGPTS, &
            SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE )
 
-      !ewrite(3,*)'back in cv-adv-dif'
-      !do iphase = 1, nphase
-      !   ewrite(3,*) 'Phase', iphase, ',', 'suf_t_bc:', &
-      !        suf_t_bc( ( iphase - 1 ) * cv_snloc * stotel + 1 : iphase * cv_snloc * stotel )
-      !   ewrite(3,*)''
-      !   ewrite(3,*)' Now suf_u_bc:', &
-      !        suf_u_bc( ( iphase - 1 ) * u_snloc * stotel + 1 : iphase * u_snloc * stotel )
-      !   ewrite(3,*)''
-      !end do
-      !do cv_iloc = 1, cv_nloc
-      !ewrite(3,*)'iloc, cv_on_face:', cv_iloc, &
-      !( cv_on_face( cv_iloc, gi ), gi = 1, scvngi )
-      !ewrite(3,*)'iloc, cvfem_on_face:', cv_iloc, &
-      !( cvfem_on_face( cv_iloc, gi ), gi = 1, scvngi )
-      !end do
-
-
-
       ! Determine FEMT (finite element wise) etc from T (control volume wise)
       ! Also determine the CV mass matrix MASS_CV and centre of the CV's XC_CV,YC_CV,ZC_CV.
       ! This is for projecting to finite element basis functions...
@@ -2443,6 +2418,7 @@ contains
       ALLOCATE( DTOLDZ_ELE( CV_NLOC, NPHASE,TOTELE ))
 
       ewrite(3,*)'here2'
+      IGETCT=0
 
       CALL PROJ_CV_TO_FEM_4( state, &
            FEMT, FEMTOLD, FEMDEN, FEMDENOLD, T, TOLD, DEN, DENOLD, &
@@ -2452,7 +2428,7 @@ contains
            CV_NGI_SHORT, CV_NLOC, CVN_SHORT, CVWEIGHT_SHORT, &
            CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
            X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM, &
-           0, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC )
+           IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC )
 
       MASS_ELE_TRANSP = MASS_ELE
 
@@ -2484,16 +2460,6 @@ contains
       END DO
 
       MEAN_PORE_CV = MEAN_PORE_CV / SUM_CV
-
-      !ewrite(3,*) 'MEAN_PORE_CV:', MEAN_PORE_CV
-
-      !sum=0.0
-      !do ele = 1, totele
-      !   ewrite(3,*) ele, mass_ele(ele)
-      !   sum=sum+mass_ele(ele)
-      !end do
-      !ewrite(3,*)'sum(mass_ele):',sum
-      !stop 221
 
       ! For each node, find the largest and smallest value of T and
       ! DENSITY for both the current and previous timestep, out of
@@ -2686,8 +2652,6 @@ contains
 
                   global_face=global_face+1
 
-                  ! if necessary determine the derivatives between elements ELE and ELE2
-
                   ! Calculate the control volume normals at the Gauss pts.
                   CALL SCVDETNX( ELE,      GI,          &
                        X_NLOC,  SCVNGI,  TOTELE,  &
@@ -2722,7 +2686,6 @@ contains
 
                   ! get the sum of limiting functions correct...************
 
-                  JCOUNT_IPHA = -99999
                   DO COUNT = SMALL_FINDRM( CV_NODI ), SMALL_FINDRM( CV_NODI + 1 ) - 1
                      IF( SMALL_COLM( COUNT ) == CV_NODJ ) THEN 
                         JCOUNT_IPHA = COUNT
@@ -3186,6 +3149,19 @@ contains
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
     SUBROUTINE CV_ASSEMB_CT( state, &
          SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM,&
          NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
@@ -3217,7 +3193,6 @@ contains
          MEAN_PORE_CV, &
          FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL, &
          MASS_ELE_TRANSP, &
-         option_path_spatial_discretisation,&
          StorageIndexes )
 
       !  =====================================================================
@@ -3398,16 +3373,14 @@ contains
       INTEGER, INTENT( IN ) :: NOIT_DIM
       REAL, DIMENSION( : ), intent( inout ) :: MEAN_PORE_CV
       REAL, DIMENSION( : ), intent( inout ) :: MASS_ELE_TRANSP
-      character( len = * ), intent( in ), optional :: option_path_spatial_discretisation
       integer, dimension(:), intent(in) :: SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM
-      !character( len = option_path_len ), intent( in ), optional :: option_path_spatial_discretisation
       integer, dimension(:), intent(inout) :: StorageIndexes
 
       ! Local variables
       INTEGER, PARAMETER :: WIC_T_BC_DIRICHLET = 1, WIC_T_BC_ROBIN = 2, &
            WIC_T_BC_DIRI_ADV_AND_ROBIN = 3, WIC_D_BC_DIRICHLET = 1, &
            WIC_U_BC_DIRICHLET = 1
-      LOGICAL, DIMENSION( : ), allocatable :: X_SHARE,LOG_ON_BOUND
+      LOGICAL, DIMENSION( : ), allocatable :: X_SHARE
       LOGICAL, DIMENSION( :, : ), allocatable :: CV_ON_FACE, U_ON_FACE, &
            CVFEM_ON_FACE, UFEM_ON_FACE
       INTEGER, DIMENSION( : ), allocatable :: FINDGPTS, &
@@ -3572,7 +3545,6 @@ contains
       ALLOCATE( SUFENLZ( U_NLOC, SCVNGI ))
 
       ALLOCATE( SRA( SCVNGI ))
-      ALLOCATE( LOG_ON_BOUND(CV_NONODS))
 
       ALLOCATE( SBCVN( CV_SNLOC, SBCVNGI ))
       ALLOCATE( SBCVFEN( CV_SNLOC, SBCVNGI ))
@@ -3601,7 +3573,7 @@ contains
 
       ALLOCATE( UGI_COEF_ELE(U_NLOC),  VGI_COEF_ELE(U_NLOC),  WGI_COEF_ELE(U_NLOC) )
       ALLOCATE( UGI_COEF_ELE2(U_NLOC), VGI_COEF_ELE2(U_NLOC), WGI_COEF_ELE2(U_NLOC) )
-      ! The procity mapped to the CV nodes
+
       ALLOCATE( SUM_CV( CV_NONODS ))
       ALLOCATE( UP_WIND_NOD( CV_NONODS * NPHASE ))
 
@@ -3673,10 +3645,6 @@ contains
       NCOLGPTS = 0
       COLGPTS = 0
       FINDGPTS = 0
-      !ewrite(3,*)'in ASSEMB_FORCE_CTY',NCOLGPTS
-      !ewrite(3,*)'in ASSEMB_FORCE_CTY, COLGPTS',size(COLGPTS), COLGPTS
-      !ewrite(3,*)'in ASSEMB_FORCE_CTY, FINDGPTS',size(FINDGPTS), FINDGPTS
-
 
       !     ======= DEFINE THE SUB-CONTROL VOLUME & FEM SHAPE FUNCTIONS ========
 
@@ -3806,16 +3774,6 @@ contains
               SMALL_FINDRM,SMALL_CENTRM,SMALL_COLM,NSMALL_COLM, &
               X_NDGLN,X_NONODS,NDIM, &
               X,Y,Z, XC_CV, YC_CV, ZC_CV)
-
-         if ( .false. ) then
-            ewrite(3,*) 'TUPWIND_MAT', TUPWIND_MAT(1:nsmall_colm)
-            ewrite(3,*) 'TOLDUPWIND_MAT', TOLDUPWIND_MAT(1:nsmall_colm)
-            if (igot_t2==1)then
-               ewrite(3,*) 'T2UPWIND_MAT', T2UPWIND_MAT(1:nsmall_colm)
-               ewrite(3,*) 'T2OLDUPWIND_MAT', T2OLDUPWIND_MAT(1:nsmall_colm)
-            end if
-         end if
-
       END IF
 ! **********...ANISOTROPIC LIMITING*******************
 
@@ -3948,9 +3906,7 @@ contains
                ! avoid indegrating across the middle of a CV on the boundaries of elements
                Conditional_integration: IF(INTEGRAT_AT_GI) THEN
 
-                  ! if necessary determine the derivatives between elements ELE and ELE2
-
-                  global_face=glObal_face+1
+                  global_face=global_face+1
 
                   ! Calculate the control volume normals at the Gauss pts.
                   CALL SCVDETNX( ELE,      GI,          &
@@ -3974,14 +3930,21 @@ contains
                   X_NODI = X_NDGLN(( ELE - 1 ) * X_NLOC  + CV_ILOC )
 
                   ! Obtain the CV discretised CT equations plus RHS
-                     !ewrite(3,*)'==================================================================='
-                     !ewrite(3,*)'CV_NODI, CV_NODJ, ELE, ELE2, GI:', CV_NODI, CV_NODJ, ELE, ELE2, GI
-                     !ewrite(3,*)'findct:',FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1
-                     !ewrite(3,*)'colct:',colct( FINDCT( CV_NODI ) : FINDCT( CV_NODI + 1 ) - 1 )
-                     !ewrite(3,*)'SCVDETWEI:', SCVDETWEI(GI)
-
+                  DO U_KLOC = 1, U_NLOC
+                     U_NODK = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC )
+                     JCOUNT = 0
+                     DO COUNT = FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1, 1
+                        IF(COLCT( COUNT ) == U_NODK) then
+                           JCOUNT = COUNT
+                           exit
+                        end if
+                     END DO
+                     JCOUNT_KLOC( U_KLOC ) = JCOUNT
+                  END DO
+                  
+                  IF( ( ELE2 /= 0 ) .AND. ( ELE2 /= ELE ) ) THEN
                      DO U_KLOC = 1, U_NLOC
-                        U_NODK = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC )
+                        U_NODK = U_NDGLN(( ELE2 - 1 ) * U_NLOC + U_KLOC )
                         JCOUNT = 0
                         DO COUNT = FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1, 1
                            IF(COLCT( COUNT ) == U_NODK) then
@@ -3989,25 +3952,9 @@ contains
                               exit
                            end if
                         END DO
-                        JCOUNT_KLOC( U_KLOC ) = JCOUNT
-                        !ewrite(3,*)' u_nodk, jcount1:', u_nodk, jcount
+                        JCOUNT_KLOC2( U_KLOC ) = JCOUNT
                      END DO
-
-                     IF( ( ELE2 /= 0 ) .AND. ( ELE2 /= ELE ) ) THEN
-                        DO U_KLOC = 1, U_NLOC
-                           U_NODK = U_NDGLN(( ELE2 - 1 ) * U_NLOC + U_KLOC )
-                           JCOUNT = 0
-                           DO COUNT = FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1, 1
-                              IF(COLCT( COUNT ) == U_NODK) then
-                                 JCOUNT = COUNT
-                                 exit
-                              end if
-                           END DO
-                           JCOUNT_KLOC2( U_KLOC ) = JCOUNT
-                           !ewrite(3,*)' u_nodk, jcount2:', u_nodk, jcount
-                        END DO
-
-                     ENDIF
+                  END IF
 
                   ! Compute the distance HDC between the nodes either side of the CV face
                   ! (this is needed to compute the local courant number and the non-linear
@@ -4499,7 +4446,6 @@ contains
       DEALLOCATE( SUFENLZ )
 
       DEALLOCATE( SRA )
-      DEALLOCATE( LOG_ON_BOUND )
 
       DEALLOCATE( SBCVFEN )
       DEALLOCATE( SBCVFENSLX )
@@ -4589,7 +4535,7 @@ contains
          MEAN_PORE_CV, &
          FINDCMC, COLCMC, NCOLCMC, &
          MASS_ELE_TRANSP, &
-         option_path_spatial_discretisation, StorageIndexes)
+         StorageIndexes )
 
       !  =====================================================================
       !     This subroutine gets the limited face values for a variable
@@ -4737,16 +4683,14 @@ contains
       INTEGER, INTENT( IN ) :: NOIT_DIM
       REAL, DIMENSION( : ), intent( inout ) :: MEAN_PORE_CV
       REAL, DIMENSION( : ), intent( inout ) :: MASS_ELE_TRANSP
-      character( len = * ), intent( in ), optional :: option_path_spatial_discretisation
       integer, dimension(:), intent(in) :: SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM
       integer, dimension(:), intent(inout) :: StorageIndexes
-      !character( len = option_path_len ), intent( in ), optional :: option_path_spatial_discretisation
 
       ! Local variables
       INTEGER, PARAMETER :: WIC_T_BC_DIRICHLET = 1, WIC_T_BC_ROBIN = 2, &
            WIC_T_BC_DIRI_ADV_AND_ROBIN = 3, WIC_D_BC_DIRICHLET = 1, &
            WIC_U_BC_DIRICHLET = 1
-      LOGICAL, DIMENSION( : ), allocatable :: X_SHARE,LOG_ON_BOUND
+      LOGICAL, DIMENSION( : ), allocatable :: X_SHARE
       LOGICAL, DIMENSION( :, : ), allocatable :: CV_ON_FACE, U_ON_FACE, &
            CVFEM_ON_FACE, UFEM_ON_FACE
       INTEGER, DIMENSION( : ), allocatable :: FINDGPTS, &
@@ -4842,34 +4786,7 @@ contains
       IDUM = 0
       RDUM = 0.
 
-
-      ewrite(3,*) 'In CV_ASSEMB_CT'
-
-!!$      Have_Temperature_Fields = .false.
-!!$      Have_VolumeFraction_Fields = .false.
-!!$      Have_Components_Fields = .false.
-!!$
-!!$      path_temp = '/material_phase[0]/scalar_field::Temperature'
-!!$      path_volf = '/material_phase[0]/scalar_field::PhaseVolumeFraction'
-!!$      path_comp = '/material_phase[' // int2str( nphase ) // ']/scalar_field::ComponentMassFractionPhase1'
-!!$      path_spatial_discretisation = '/prognostic/spatial_discretisation/' // &
-!!$           'control_volumes/face_value/limit_face_value'
-!!$
-!!$      if( have_option( trim( path_temp ) ) ) Have_Temperature_Fields = .true.
-!!$      if( have_option( trim( path_volf ) ) ) Have_VolumeFraction_Fields = .true.
-!!$      if( have_option( trim( path_comp ) ) ) Have_Components_Fields = .true.
-!!$
-!!$      limit_use_2nd = .false.
-!!$
-!!$      if ( present( option_path_spatial_discretisation) ) then
-!!$         if ( Have_Temperature_Fields .or. Have_VolumeFraction_Fields .or. &
-!!$              Have_Components_Fields ) &
-!!$              option_path = trim( option_path_spatial_discretisation ) // &
-!!$              trim( path_spatial_discretisation )
-!!$
-!!$         if ( have_option( trim( option_path ) // '/limiter::Extrema' ) ) &
-!!$              limit_use_2nd = .true.
-!!$      end if
+      ewrite(3,*) 'In CV_GET_ALL_LIMITED_VALS'
 
       ewrite(3,*)'CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, SECOND_THETA:', &
            CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, SECOND_THETA
@@ -5242,8 +5159,6 @@ contains
                Conditional_integration: IF(INTEGRAT_AT_GI) THEN
 
                   global_face=global_face+1
-
-                  ! if necessary determine the derivatives between elements ELE and ELE2
 
                   ! Calculate the control volume normals at the Gauss pts.
                   CALL SCVDETNX( ELE,      GI,          &

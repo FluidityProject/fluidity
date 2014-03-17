@@ -251,7 +251,6 @@
               MEAN_PORE_CV, &
               SMALL_FINACV, SMALL_COLACV, size(small_colacv), mass_Mn_pres, THERMAL, &
               mass_ele_transp, &
-              option_path,&
               theta_flux=THETA_FLUX, one_m_theta_flux=ONE_M_THETA_FLUX,&
               StorageIndexes=StorageIndexes)
 
@@ -1051,7 +1050,6 @@
          MEAN_PORE_CV, &
          SMALL_FINACV, SMALL_COLACV, size(small_colacv), &
          MASS_ELE_TRANSP, &
-         option_path,&
          StorageIndexes)
 
 
@@ -1090,7 +1088,6 @@
               MEAN_PORE_CV, &
               SMALL_FINACV, SMALL_COLACV, size(small_colacv), mass_mn_pres, THERMAL, &
               mass_ele_transp, &
-              option_path,&
               THETA_FLUX, ONE_M_THETA_FLUX,&
               StorageIndexes)
 

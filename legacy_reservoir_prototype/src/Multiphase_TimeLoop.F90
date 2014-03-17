@@ -253,7 +253,7 @@
       !  Then values are in tfield%val(1/ndim/ncomp,nphase,nonods) 
       !  Type ids are in bc_type_list(1/ndim/ncomp,nphase,stotel) 
       !
-      !¬ deallocate tfield when finished!!
+      !A deallocate tfield when finished!!
 
       variable_selection = 3 !Variable to check how good nonlinear iterations are going 1 (Pressure), 2 (Velocity), 3 (Saturation)
       Repeat_time_step = .false.!Initially has to be false
@@ -754,7 +754,6 @@
                  MEAN_PORE_CV, &
                  small_finacv,small_colacv,size(small_colacv),&
                  dummy_ele, &
-                 '/material_phase[0]/scalar_field::Temperature',&
                  StorageIndexes=StorageIndexes)
 
          end if
@@ -803,7 +802,6 @@
                  MEAN_PORE_CV, &
                  small_finacv,small_colacv,size(small_colacv),&
                  dummy_ele, &
-                 '/material_phase[' // int2str( nphase ) // ']/scalar_field::ComponentMassFractionPhase1/',&
                  StorageIndexes=StorageIndexes)
             end do
          end if
