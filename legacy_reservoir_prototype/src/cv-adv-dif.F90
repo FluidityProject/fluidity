@@ -1886,6 +1886,27 @@ contains
 
     END SUBROUTINE CV_ASSEMB
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     SUBROUTINE CV_ASSEMB_ADV_DIF( state, &
          LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,NDOTQOLD,&
          CV_RHS, &
@@ -2206,37 +2227,10 @@ contains
 
       ewrite(3,*) 'In CV_ASSEMB_ADV_DIF'
 
-      Have_Temperature_Fields = .false.
-      Have_VolumeFraction_Fields = .false.
-      Have_Components_Fields = .false.
-
-      path_temp = '/material_phase[0]/scalar_field::Temperature'
-      path_volf = '/material_phase[0]/scalar_field::PhaseVolumeFraction'
-      path_comp = '/material_phase[' // int2str( nphase ) // ']/scalar_field::ComponentMassFractionPhase1'
-      path_spatial_discretisation = '/prognostic/spatial_discretisation/' // &
-           'control_volumes/face_value/limit_face_value'
-
-      if( have_option( trim( path_temp ) ) ) Have_Temperature_Fields = .true.
-      if( have_option( trim( path_volf ) ) ) Have_VolumeFraction_Fields = .true.
-      if( have_option( trim( path_comp ) ) ) Have_Components_Fields = .true.
-
-      limit_use_2nd = .false.
-
-      if ( present( option_path_spatial_discretisation) ) then
-         if ( Have_Temperature_Fields .or. Have_VolumeFraction_Fields .or. &
-              Have_Components_Fields ) &
-              option_path = trim( option_path_spatial_discretisation ) // &
-              trim( path_spatial_discretisation )
-
-         if ( have_option( trim( option_path ) // '/limiter::Extrema' ) ) &
-              limit_use_2nd = .true.
-      end if
-
-
       GOT_DIFFUS = ( R2NORM( TDIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0 )
 
-      ewrite(3,*)'CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND, SECOND_THETA, GOT_DIFFUS:', &
-           CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND, SECOND_THETA, GOT_DIFFUS
+      ewrite(3,*)'CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, SECOND_THETA, GOT_DIFFUS:', &
+           CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, SECOND_THETA, GOT_DIFFUS
 
       ndotq = 0. 
 
@@ -2508,7 +2502,7 @@ contains
            T2MAX, T2MIN, &
            TMAX_2ND_MC, TMIN_2ND_MC, DENMAX_2ND_MC, DENMIN_2ND_MC, &
            T2MAX_2ND_MC, T2MIN_2ND_MC, &
-           LIMIT_USE_2ND, &
+           .false., &
            T, T2, DEN, IGOT_T2, NPHASE, CV_NONODS, size(small_colm), SMALL_FINDRM, SMALL_COLM, &
            STOTEL, CV_SNLOC, CV_SNDGLN, SUF_T_BC, SUF_T2_BC, SUF_D_BC, WIC_T_BC, WIC_T2_BC, WIC_D_BC, &
            WIC_T_BC_DIRICHLET, WIC_T_BC_DIRI_ADV_AND_ROBIN, &
@@ -2779,7 +2773,7 @@ contains
                                 1, LIMT2, FEMDGI, FEMT2GI,  UP_WIND_NOD, &
                                 T2MIN, T2MAX,  T2MIN_NOD, T2MAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
-                                T2MIN_2ND_MC,  T2MAX_2ND_MC, LIMIT_USE_2ND,&
+                                T2MIN_2ND_MC,  T2MAX_2ND_MC, .false.,&
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 T2UPWIND_MAT )
                         ELSE
@@ -2797,7 +2791,7 @@ contains
                                 1, LIMT, FEMDGI, FEMTGI, UP_WIND_NOD, &
                                 TMIN, TMAX, TMIN_NOD, TMAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
-                                TMIN_2ND_MC, TMAX_2ND_MC, LIMIT_USE_2ND,&
+                                TMIN_2ND_MC, TMAX_2ND_MC, .false.,&
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 TUPWIND_MAT )
                         ENDIF
@@ -2821,7 +2815,7 @@ contains
                              T2MIN_NOD, T2MAX_NOD, IGOT_T2, &
                              TMIN_2ND_MC, T2MIN_2ND_MC, DENMIN_2ND_MC, &
                              TMAX_2ND_MC, T2MAX_2ND_MC, DENMAX_2ND_MC, &
-                             LIMIT_USE_2ND, HDC, NDOTQ, DT, &
+                             .false., HDC, NDOTQ, DT, &
                              SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:), CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
@@ -3188,6 +3182,10 @@ contains
 
     END SUBROUTINE CV_ASSEMB_ADV_DIF
 
+
+
+
+
     SUBROUTINE CV_ASSEMB_CT( state, &
          SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM,&
          NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
@@ -3482,7 +3480,7 @@ contains
       ! Functions...
       !REAL :: R2NORM, FACE_THETA
       !        ===>  LOGICALS  <===
-      LOGICAL :: GETMAT, LIMIT_USE_2ND, &
+      LOGICAL :: GETMAT, &
            D1, D3, DCYL, GOT_DIFFUS, INTEGRAT_AT_GI, &
            NORMALISE, SUM2ONE, GET_GTHETA, QUAD_OVER_WHOLE_ELE
 
@@ -3507,37 +3505,11 @@ contains
 
       ewrite(3,*) 'In CV_ASSEMB_CT'
 
-      Have_Temperature_Fields = .false.
-      Have_VolumeFraction_Fields = .false.
-      Have_Components_Fields = .false.
-
-      path_temp = '/material_phase[0]/scalar_field::Temperature'
-      path_volf = '/material_phase[0]/scalar_field::PhaseVolumeFraction'
-      path_comp = '/material_phase[' // int2str( nphase ) // ']/scalar_field::ComponentMassFractionPhase1'
-      path_spatial_discretisation = '/prognostic/spatial_discretisation/' // &
-           'control_volumes/face_value/limit_face_value'
-
-      if( have_option( trim( path_temp ) ) ) Have_Temperature_Fields = .true.
-      if( have_option( trim( path_volf ) ) ) Have_VolumeFraction_Fields = .true.
-      if( have_option( trim( path_comp ) ) ) Have_Components_Fields = .true.
-
-      limit_use_2nd = .false.
-
-      if ( present( option_path_spatial_discretisation) ) then
-         if ( Have_Temperature_Fields .or. Have_VolumeFraction_Fields .or. &
-              Have_Components_Fields ) &
-              option_path = trim( option_path_spatial_discretisation ) // &
-              trim( path_spatial_discretisation )
-
-         if ( have_option( trim( option_path ) // '/limiter::Extrema' ) ) &
-              limit_use_2nd = .true.
-      end if
-
 
       GOT_DIFFUS = ( R2NORM( TDIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0 )
 
-      ewrite(3,*)'CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND, SECOND_THETA, GOT_DIFFUS:', &
-           CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND, SECOND_THETA, GOT_DIFFUS
+      ewrite(3,*)'CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, SECOND_THETA, GOT_DIFFUS:', &
+           CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, SECOND_THETA, GOT_DIFFUS
 
       ndotq = 0. ; ndotqold = 0.
 
@@ -3788,7 +3760,7 @@ contains
            TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC, DENMAX_2ND_MC, DENMIN_2ND_MC, &
            DENOLDMAX_2ND_MC, DENOLDMIN_2ND_MC, &
            T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, T2OLDMIN_2ND_MC, &
-           LIMIT_USE_2ND, &
+           .false., &
            T, TOLD, T2, T2OLD, DEN, DENOLD, IGOT_T2, NPHASE, CV_NONODS, size(small_colm), SMALL_FINDRM, SMALL_COLM, &
            STOTEL, CV_SNLOC, CV_SNDGLN, SUF_T_BC, SUF_T2_BC, SUF_D_BC, WIC_T_BC, WIC_T2_BC, WIC_D_BC, &
            WIC_T_BC_DIRICHLET, WIC_T_BC_DIRI_ADV_AND_ROBIN, &
@@ -4076,7 +4048,7 @@ contains
                                 1, LIMT2OLD, FEMDOLDGI, FEMT2OLDGI, UP_WIND_NOD, &
                                 T2OLDMIN, T2OLDMAX, T2OLDMIN_NOD, T2OLDMAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
-                                T2OLDMIN_2ND_MC, T2OLDMAX_2ND_MC, LIMIT_USE_2ND,&
+                                T2OLDMIN_2ND_MC, T2OLDMAX_2ND_MC, .false.,&
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 T2OLDUPWIND_MAT )
                             CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, &
@@ -4093,7 +4065,7 @@ contains
                                 1, LIMT2, FEMDGI, FEMT2GI,  UP_WIND_NOD, &
                                 T2MIN, T2MAX,  T2MIN_NOD, T2MAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
-                                T2MIN_2ND_MC, T2MAX_2ND_MC, LIMIT_USE_2ND,&
+                                T2MIN_2ND_MC, T2MAX_2ND_MC, .false.,&
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 T2UPWIND_MAT )
                         ENDIF
@@ -4117,7 +4089,7 @@ contains
                              T2OLDMIN_NOD, T2OLDMAX_NOD, IGOT_T2, &
                              TOLDMIN_2ND_MC, T2OLDMIN_2ND_MC, DENOLDMIN_2ND_MC, &
                              TOLDMAX_2ND_MC, T2OLDMAX_2ND_MC, DENOLDMAX_2ND_MC, &
-                             LIMIT_USE_2ND, HDC, NDOTQOLD, DT, &
+                             .false., HDC, NDOTQOLD, DT, &
                              SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:), CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
@@ -4141,7 +4113,7 @@ contains
                              T2MIN_NOD, T2MAX_NOD, IGOT_T2, &
                              TMIN_2ND_MC, T2MIN_2ND_MC, DENMIN_2ND_MC, &
                              TMAX_2ND_MC, T2MAX_2ND_MC, DENMAX_2ND_MC, &
-                             LIMIT_USE_2ND, HDC, NDOTQ, DT, &
+                             .false., HDC, NDOTQ, DT, &
                              SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:),CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
@@ -4206,7 +4178,7 @@ contains
                                 FACE_ITS, LIMT2OLD, FEMDOLDGI, FEMT2OLDGI, UP_WIND_NOD, &
                                 T2OLDMIN, T2OLDMAX, T2OLDMIN_NOD, T2OLDMAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
-                                T2OLDMIN_2ND_MC, T2OLDMAX_2ND_MC, LIMIT_USE_2ND,&
+                                T2OLDMIN_2ND_MC, T2OLDMAX_2ND_MC, .false.,&
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 T2OLDUPWIND_MAT )
                             CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, &
@@ -4223,7 +4195,7 @@ contains
                                 FACE_ITS, LIMT2, FEMDGI, FEMT2GI,  UP_WIND_NOD, &
                                 T2MIN, T2MAX,  T2MIN_NOD, T2MAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
-                                T2MIN_2ND_MC, T2MAX_2ND_MC, LIMIT_USE_2ND,&
+                                T2MIN_2ND_MC, T2MAX_2ND_MC, .false.,&
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 T2UPWIND_MAT )
                         ELSE
@@ -4241,7 +4213,7 @@ contains
                                 1,  LIMTOLD, FEMDOLDGI, FEMT2OLDGI, UP_WIND_NOD, &
                                 TOLDMIN, TOLDMAX, TOLDMIN_NOD, TOLDMAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
-                                TOLDMIN_2ND_MC, TOLDMAX_2ND_MC, LIMIT_USE_2ND,&
+                                TOLDMIN_2ND_MC, TOLDMAX_2ND_MC, .false.,&
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 TOLDUPWIND_MAT )
                            CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, &
@@ -4258,7 +4230,7 @@ contains
                                 FACE_ITS, LIMT, FEMDGI, FEMTGI, UP_WIND_NOD, &
                                 TMIN, TMAX, TMIN_NOD, TMAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
-                                TMIN_2ND_MC, TMAX_2ND_MC, LIMIT_USE_2ND,&
+                                TMIN_2ND_MC, TMAX_2ND_MC, .false.,&
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 TUPWIND_MAT )
                         ENDIF
@@ -4281,7 +4253,7 @@ contains
                              T2OLDMIN_NOD, T2OLDMAX_NOD, IGOT_T2, &
                              TOLDMIN_2ND_MC, T2OLDMIN_2ND_MC, DENOLDMIN_2ND_MC, &
                              TOLDMAX_2ND_MC, T2OLDMAX_2ND_MC, DENOLDMAX_2ND_MC, &
-                             LIMIT_USE_2ND, HDC, NDOTQOLD, DT, &
+                             .false., HDC, NDOTQOLD, DT, &
                              SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:), CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
@@ -4305,7 +4277,7 @@ contains
                              T2MIN_NOD, T2MAX_NOD, IGOT_T2, &
                              TMIN_2ND_MC, T2MIN_2ND_MC, DENMIN_2ND_MC, &
                              TMAX_2ND_MC, T2MAX_2ND_MC, DENMAX_2ND_MC, &
-                             LIMIT_USE_2ND, HDC, NDOTQ, DT, &
+                             .false., HDC, NDOTQ, DT, &
                              SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:), CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
@@ -4847,7 +4819,7 @@ contains
       ! Functions...
       !REAL :: R2NORM, FACE_THETA
       !        ===>  LOGICALS  <===
-      LOGICAL :: GETMAT, LIMIT_USE_2ND, &
+      LOGICAL :: GETMAT, &
            D1, D3, DCYL, INTEGRAT_AT_GI, &
            NORMALISE, SUM2ONE, GET_GTHETA, QUAD_OVER_WHOLE_ELE
 
@@ -4873,34 +4845,34 @@ contains
 
       ewrite(3,*) 'In CV_ASSEMB_CT'
 
-      Have_Temperature_Fields = .false.
-      Have_VolumeFraction_Fields = .false.
-      Have_Components_Fields = .false.
+!!$      Have_Temperature_Fields = .false.
+!!$      Have_VolumeFraction_Fields = .false.
+!!$      Have_Components_Fields = .false.
+!!$
+!!$      path_temp = '/material_phase[0]/scalar_field::Temperature'
+!!$      path_volf = '/material_phase[0]/scalar_field::PhaseVolumeFraction'
+!!$      path_comp = '/material_phase[' // int2str( nphase ) // ']/scalar_field::ComponentMassFractionPhase1'
+!!$      path_spatial_discretisation = '/prognostic/spatial_discretisation/' // &
+!!$           'control_volumes/face_value/limit_face_value'
+!!$
+!!$      if( have_option( trim( path_temp ) ) ) Have_Temperature_Fields = .true.
+!!$      if( have_option( trim( path_volf ) ) ) Have_VolumeFraction_Fields = .true.
+!!$      if( have_option( trim( path_comp ) ) ) Have_Components_Fields = .true.
+!!$
+!!$      limit_use_2nd = .false.
+!!$
+!!$      if ( present( option_path_spatial_discretisation) ) then
+!!$         if ( Have_Temperature_Fields .or. Have_VolumeFraction_Fields .or. &
+!!$              Have_Components_Fields ) &
+!!$              option_path = trim( option_path_spatial_discretisation ) // &
+!!$              trim( path_spatial_discretisation )
+!!$
+!!$         if ( have_option( trim( option_path ) // '/limiter::Extrema' ) ) &
+!!$              limit_use_2nd = .true.
+!!$      end if
 
-      path_temp = '/material_phase[0]/scalar_field::Temperature'
-      path_volf = '/material_phase[0]/scalar_field::PhaseVolumeFraction'
-      path_comp = '/material_phase[' // int2str( nphase ) // ']/scalar_field::ComponentMassFractionPhase1'
-      path_spatial_discretisation = '/prognostic/spatial_discretisation/' // &
-           'control_volumes/face_value/limit_face_value'
-
-      if( have_option( trim( path_temp ) ) ) Have_Temperature_Fields = .true.
-      if( have_option( trim( path_volf ) ) ) Have_VolumeFraction_Fields = .true.
-      if( have_option( trim( path_comp ) ) ) Have_Components_Fields = .true.
-
-      limit_use_2nd = .false.
-
-      if ( present( option_path_spatial_discretisation) ) then
-         if ( Have_Temperature_Fields .or. Have_VolumeFraction_Fields .or. &
-              Have_Components_Fields ) &
-              option_path = trim( option_path_spatial_discretisation ) // &
-              trim( path_spatial_discretisation )
-
-         if ( have_option( trim( option_path ) // '/limiter::Extrema' ) ) &
-              limit_use_2nd = .true.
-      end if
-
-      ewrite(3,*)'CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND, SECOND_THETA:', &
-           CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND, SECOND_THETA
+      ewrite(3,*)'CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, SECOND_THETA:', &
+           CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, SECOND_THETA
 
       ndotq = 0. 
 
@@ -5122,7 +5094,7 @@ contains
            T2MAX, T2MIN, &
            TMAX_2ND_MC, TMIN_2ND_MC, DENMAX_2ND_MC, DENMIN_2ND_MC, &
            T2MAX_2ND_MC, T2MIN_2ND_MC, &
-           LIMIT_USE_2ND, &
+           .false., &
            T, T2, DEN, IGOT_T2, NPHASE, CV_NONODS, size(small_colm), SMALL_FINDRM, SMALL_COLM, &
            STOTEL, CV_SNLOC, CV_SNDGLN, SUF_T_BC, SUF_T2_BC, SUF_D_BC, WIC_T_BC, WIC_T2_BC, WIC_D_BC, &
            WIC_T_BC_DIRICHLET, WIC_T_BC_DIRI_ADV_AND_ROBIN, &
@@ -5329,7 +5301,7 @@ contains
                                 FACE_ITS, LIMT2(iphase,global_face),LIMT2(iphase,global_face), FEMDGI,FEMDGI, FEMT2GI, FEMT2GI, UP_WIND_NOD, &
                                 T2MIN, T2MAX, T2MIN, T2MAX, T2MIN_NOD, T2MAX_NOD, T2MIN_NOD, T2MAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
-                                T2MIN_2ND_MC,T2MIN_2ND_MC, T2MAX_2ND_MC,T2MAX_2ND_MC, LIMIT_USE_2ND,&
+                                T2MIN_2ND_MC,T2MIN_2ND_MC, T2MAX_2ND_MC,T2MAX_2ND_MC, .false.,&
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 T2UPWIND_MAT,T2UPWIND_MAT )
                         else
@@ -5347,7 +5319,7 @@ contains
                                 FACE_ITS, LIMT(iphase,global_face),LIMT(iphase,global_face), FEMDGI,FEMDGI, FEMTGI, FEMTGI, UP_WIND_NOD, &
                                 TMIN, TMAX, TMIN, TMAX, TMIN_NOD, TMAX_NOD, TMIN_NOD, TMAX_NOD, &
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
-                                TMIN_2ND_MC,TMIN_2ND_MC, TMAX_2ND_MC,TMAX_2ND_MC, LIMIT_USE_2ND,&
+                                TMIN_2ND_MC,TMIN_2ND_MC, TMAX_2ND_MC,TMAX_2ND_MC, .false.,&
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                                 TUPWIND_MAT,TUPWIND_MAT )
                          end if
@@ -5369,7 +5341,7 @@ contains
                              T2MIN_NOD, T2MAX_NOD, IGOT_T2, &
                              TMIN_2ND_MC, T2MIN_2ND_MC, DENMIN_2ND_MC, &
                              TMAX_2ND_MC, T2MAX_2ND_MC, DENMAX_2ND_MC, &
-                             LIMIT_USE_2ND, HDC, NDOTQ, DT, &
+                             .false., HDC, NDOTQ, DT, &
                              SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:),CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
