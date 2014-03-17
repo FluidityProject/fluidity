@@ -160,6 +160,11 @@ module fields_data_types
      logical :: py_positions_same_mesh
      integer :: py_dim
      type(element_type), pointer :: py_positions_shape => null()
+     !Pointers to store fields
+     logical, pointer :: updated => null()
+     type(scalar_field_pointer), dimension(:), pointer :: dependant_scalar_field
+     type(vector_field_pointer), dimension(:), pointer :: dependant_vector_field
+     type(tensor_field_pointer), dimension(:), pointer :: dependant_tensor_field
   end type scalar_field
 
   type vector_field
@@ -189,6 +194,11 @@ module fields_data_types
      !! Picker used for spatial indexing (pointer to a pointer to ensure
      !! correct handling on assignment)
      type(picker_ptr), pointer :: picker => null()
+     !Pointers to store fields
+     logical, pointer :: updated => null()
+     type(scalar_field_pointer), dimension(:), pointer :: dependant_scalar_field
+     type(vector_field_pointer), dimension(:), pointer :: dependant_vector_field
+     type(tensor_field_pointer), dimension(:), pointer :: dependant_tensor_field
   end type vector_field
 
   type tensor_field
@@ -213,6 +223,11 @@ module fields_data_types
      type(refcount_type), pointer :: refcount=>null()
      !! Indicator for whether this is an alias to another field.
      logical :: aliased=.false.
+     !Pointers to store fields
+     logical, pointer :: updated => null()
+     type(scalar_field_pointer), dimension(:), pointer :: dependant_scalar_field
+     type(vector_field_pointer), dimension(:), pointer :: dependant_vector_field
+     type(tensor_field_pointer), dimension(:), pointer :: dependant_tensor_field
   end type tensor_field
 
   type mesh_pointer

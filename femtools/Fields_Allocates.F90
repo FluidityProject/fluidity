@@ -57,7 +57,7 @@ implicit none
   public :: add_lists, extract_lists, add_nnlist, extract_nnlist, add_nelist, &
     & extract_nelist, add_eelist, extract_eelist, remove_lists, remove_nnlist, &
     & remove_nelist, remove_eelist, extract_elements, remove_boundary_conditions
-
+  public :: is_updated
   interface allocate
      module procedure allocate_scalar_field, allocate_vector_field,&
           & allocate_tensor_field, allocate_mesh, &
@@ -141,6 +141,13 @@ implicit none
       remove_boundary_conditions_tensor
   end interface remove_boundary_conditions
   
+  interface is_updated
+    module procedure is_updated_scalar_field
+    module procedure is_updated_vector_field
+    module procedure is_updated_tensor_field
+
+ end interface
+
 #include "Reference_count_interface_mesh_type.F90"
 #include "Reference_count_interface_scalar_field.F90"
 #include "Reference_count_interface_vector_field.F90"
@@ -592,6 +599,12 @@ contains
     call remove_boundary_conditions(field)
     deallocate(field%bc)
     
+    !deallocate pointers related with fields storage
+    if (associated(field%updated)) field%updated => null()
+    if (associated(field%dependant_scalar_field)) field%dependant_scalar_field=> null()
+    if (associated(field%dependant_vector_field)) field%dependant_vector_field=> null()
+    if (associated(field%dependant_tensor_field)) field%dependant_tensor_field=> null()
+
   end subroutine deallocate_scalar_field
     
   subroutine remove_boundary_conditions_scalar(field)
@@ -646,7 +659,11 @@ contains
     call remove_picker(field)
     deallocate(field%picker)
     nullify(field%picker)
-    
+    !deallocate pointers related with fields storage
+    if (associated(field%updated)) field%updated => null()
+    if (associated(field%dependant_scalar_field)) field%dependant_scalar_field=> null()
+    if (associated(field%dependant_vector_field)) field%dependant_vector_field=> null()
+    if (associated(field%dependant_tensor_field)) field%dependant_tensor_field=> null()
   end subroutine deallocate_vector_field
  
   subroutine remove_boundary_conditions_vector(field)
@@ -698,7 +715,11 @@ contains
     if (associated(field%bc)) deallocate(field%bc)
 
     call deallocate(field%mesh)
-
+    !deallocate pointers related with fields storage
+    if (associated(field%updated)) field%updated => null()
+    if (associated(field%dependant_scalar_field)) field%dependant_scalar_field=> null()
+    if (associated(field%dependant_vector_field)) field%dependant_vector_field=> null()
+    if (associated(field%dependant_tensor_field)) field%dependant_tensor_field=> null()
   end subroutine deallocate_tensor_field
 
   subroutine remove_boundary_conditions_tensor(field)
@@ -2976,5 +2997,39 @@ contains
 #include "Reference_count_scalar_field.F90"
 #include "Reference_count_vector_field.F90"
 #include "Reference_count_tensor_field.F90"
+
+
+    logical function is_updated_scalar_field(field)
+        !Checks if the updated pointer is associated and if it is
+        !returns the value
+        implicit none
+        !Global variables
+        type(scalar_field) :: field
+        !By default calculate the field
+        is_updated_scalar_field = .false.
+        if (associated(field%updated)) is_updated_scalar_field = field%updated
+    end function is_updated_scalar_field
+
+    logical function is_updated_vector_field(field)
+        !Checks if the updated pointer is associated and if it is
+        !returns the value
+        implicit none
+        !Global variables
+        type(vector_field) :: field
+        !By default calculate the field
+        is_updated_vector_field = .false.
+        if (associated(field%updated)) is_updated_vector_field = field%updated
+    end function is_updated_vector_field
+
+    logical function is_updated_tensor_field(field)
+        !Checks if the updated pointer is associated and if it is
+        !returns the value
+        implicit none
+        !Global variables
+        type(tensor_field) :: field
+        !By default calculate the field
+        is_updated_tensor_field = .false.
+        if (associated(field%updated)) is_updated_tensor_field = field%updated
+    end function is_updated_tensor_field
 
 end module fields_allocates
