@@ -162,9 +162,9 @@ module fields_data_types
      type(element_type), pointer :: py_positions_shape => null()
      !Pointers to store fields
      logical, pointer :: updated => null()
-     type(scalar_field_pointer), dimension(:), pointer :: dependant_scalar_field
-     type(vector_field_pointer), dimension(:), pointer :: dependant_vector_field
-     type(tensor_field_pointer), dimension(:), pointer :: dependant_tensor_field
+     type(scalar_field_pointer), dimension(:), pointer :: dependant_scalar_field=> null()
+     type(vector_field_pointer), dimension(:), pointer :: dependant_vector_field=> null()
+     type(tensor_field_pointer), dimension(:), pointer :: dependant_tensor_field=> null()
   end type scalar_field
 
   type vector_field
@@ -196,9 +196,9 @@ module fields_data_types
      type(picker_ptr), pointer :: picker => null()
      !Pointers to store fields
      logical, pointer :: updated => null()
-     type(scalar_field_pointer), dimension(:), pointer :: dependant_scalar_field
-     type(vector_field_pointer), dimension(:), pointer :: dependant_vector_field
-     type(tensor_field_pointer), dimension(:), pointer :: dependant_tensor_field
+     type(scalar_field_pointer), dimension(:), pointer :: dependant_scalar_field=> null()
+     type(vector_field_pointer), dimension(:), pointer :: dependant_vector_field=> null()
+     type(tensor_field_pointer), dimension(:), pointer :: dependant_tensor_field=> null()
   end type vector_field
 
   type tensor_field
@@ -225,9 +225,9 @@ module fields_data_types
      logical :: aliased=.false.
      !Pointers to store fields
      logical, pointer :: updated => null()
-     type(scalar_field_pointer), dimension(:), pointer :: dependant_scalar_field
-     type(vector_field_pointer), dimension(:), pointer :: dependant_vector_field
-     type(tensor_field_pointer), dimension(:), pointer :: dependant_tensor_field
+     type(scalar_field_pointer), dimension(:), pointer :: dependant_scalar_field => null()
+     type(vector_field_pointer), dimension(:), pointer :: dependant_vector_field=> null()
+     type(tensor_field_pointer), dimension(:), pointer :: dependant_tensor_field=> null()
   end type tensor_field
 
   type mesh_pointer

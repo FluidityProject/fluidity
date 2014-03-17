@@ -748,13 +748,12 @@ contains
     type(tensor_field_pointer), dimension(:), pointer :: tensor_ptr
 
     integer :: i
-    return
     if (associated(scalar_ptr)) then
     print *, size(scalar_ptr)
        do i=1,size(scalar_ptr)
           nullify(scalar_ptr(i)%ptr)
        end do
-       !deallocate(scalar_ptr)
+       deallocate(scalar_ptr)
        nullify(scalar_ptr)
     end if
 
@@ -762,14 +761,14 @@ contains
        do i=1,size(vector_ptr)
           nullify(vector_ptr(i)%ptr)
        end do
-       !deallocate(vector_ptr)
+       deallocate(vector_ptr)
        nullify(vector_ptr)
     end if
     if (associated(tensor_ptr)) then
        do i=1,size(tensor_ptr)
           nullify(tensor_ptr(i)%ptr)
        end do
-       !deallocate(tensor_ptr)
+       deallocate(tensor_ptr)
        nullify(tensor_ptr)
     end if
 
