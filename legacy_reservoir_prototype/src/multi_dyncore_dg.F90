@@ -973,9 +973,10 @@
 
       p_position=>extract_vector_field(packed_state,"PressureCoordinate")
 
-      face_count=CV_count_faces( packed_state, CV_ELE_TYPE )
+      face_count=CV_count_faces( packed_state,&
++                 CV_ELE_TYPE, STOTEL, CV_SNDGLN, U_SNDGLN )
 
-      allocate(ndotqold(nphase,face_count),& 
+      allocate(ndotqold(nphase,face_count),&
            LIMTOLD(nphase,face_count),&
            LIMT2OLD(nphase,face_count),&
            LIMDOLD(nphase,face_count),&
