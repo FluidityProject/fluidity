@@ -1020,39 +1020,6 @@
 
       ! THIS DOES NOT WORK FOR NITS_FLUX_LIM>1 (NOBODY KNOWS WHY)
 
-
-      call CV_GET_ALL_LIMITED_VALS( state, &
-         LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,NDOTQOLD,&
-         SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
-         CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
-         CV_ELE_TYPE,  &
-         NPHASE,  &
-         CV_NLOC, U_NLOC, X_NLOC, &
-         CV_NDGLN, X_NDGLN, U_NDGLN, &
-         CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-         X, Y, Z, NU, NV, NW, &
-         NU, NV, NW, &
-         SATURAOLD, DENOLD, &
-         MAT_NLOC, MAT_NDGLN, MAT_NONODS, & 
-         V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, SECOND_THETA, V_BETA, &
-         SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
-         SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2,  &
-         WIC_VOL_BC, WIC_D_BC, WIC_U_BC, &
-         DERIV, P, &
-         V_SOURCE, V_ABSORB, VOLFRA_PORE, &
-         NDIM, &
-         NCOLM, FINDM, COLM, MIDM, &
-         XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
-         OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
-         IGOT_T2, T2OLD, SCVNGI_THETA,&
-         SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
-         NOIT_DIM, &
-         MEAN_PORE_CV, &
-         SMALL_FINACV, SMALL_COLACV, size(small_colacv), &
-         MASS_ELE_TRANSP, &
-         StorageIndexes)
-
-
       Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, 1 !nits_flux_lim
 
          CALL CV_ASSEMB_ADV_DIF( state, &
