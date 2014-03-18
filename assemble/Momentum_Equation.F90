@@ -706,7 +706,8 @@
             end if
             do i=1, element_count(p)
                  print *, 'ct_rhs_momentum_equation',ele_val(ct_rhs(istate),i)
-               end do
+            end do
+          
             if (implicit_prognostic_fs .and. reassemble_ct_m) then
               call add_implicit_viscous_free_surface_integrals(state(istate), &
                 ct_m(istate)%ptr, u, p_mesh, free_surface)
