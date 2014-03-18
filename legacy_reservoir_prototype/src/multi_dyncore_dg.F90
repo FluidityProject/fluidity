@@ -415,7 +415,7 @@
       REAL, DIMENSION( :), intent( in ) :: DEN, DENOLD
       REAL, DIMENSION( : ), intent( in ) :: T2, T2OLD
       REAL, DIMENSION( : ), intent( inout ) :: THETA_GDIFF
-      REAL, DIMENSION(:, :, :, : ),  intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX
+      REAL, DIMENSION(:, :),  intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX
       REAL, DIMENSION( :, :, :, : ), intent( in ) :: TDIFFUSION
       INTEGER, intent( in ) :: T_DISOPT, T_DG_VEL_INT_OPT
       REAL, intent( in ) :: DT, T_THETA
@@ -1852,6 +1852,11 @@
     END SUBROUTINE UVW_2_ULONG
 
 
+
+
+
+
+
     SUBROUTINE CV_ASSEMB_FORCE_CTY( state, &
          NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
          U_ELE_TYPE, P_ELE_TYPE, &
@@ -2154,40 +2159,42 @@
 
       !############################################
 
-      
-      ! Form CT & MASS_MN_PRES matrix...
-      CALL CV_ASSEMB_CT( state, &
-           SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
-           NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
-           CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
-           CV_ELE_TYPE,  &
-           NPHASE, &
-           CV_NLOC, U_NLOC, X_NLOC, &
-           CV_NDGLN, X_NDGLN, U_NDGLN, &
-           CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-           X_ALL(1,:), X_ALL(2,:), X_ALL(3,:), NU, NV, NW, &
-           NU, NV, NW, NUOLD, NVOLD, NWOLD, &
-           SATURA, SATURAOLD, DEN_OR_ONE, DENOLD_OR_ONE, &
-           MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
-           V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, SECOND_THETA, V_BETA, &
-           SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
-           SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2,  &
-           WIC_VOL_BC, WIC_D_BC, WIC_U_BC, &
-           DERIV, CV_P,  &
-           V_SOURCE, V_ABSORB, VOLFRA_PORE, &
-           NDIM,&
-           NCOLM, FINDM, COLM, MIDM, &
-           XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
-           OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, & 
-           SAT_FEMT, DEN_FEMT, &
-           IGOT_T2, T2, T2OLD, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
-           THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
-           SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
-           NOIT_DIM, &
-           MEAN_PORE_CV, &
-           FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL, &
-           dummy_transp,&
-           StorageIndexes=StorageIndexes )
+
+
+    call CV_ASSEMB( state, &
+         CV_RHS, &
+         NCOLACV,  ACV, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
+         SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV,&
+         NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
+         CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
+         CV_ELE_TYPE,  &
+         NPHASE,  &
+         CV_NLOC, U_NLOC, X_NLOC, &
+         CV_NDGLN, X_NDGLN, U_NDGLN, &
+         CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
+         X_ALL(1,:), X_ALL(2,:), X_ALL(3,:), NU, NV, NW, &!IT SHOULD BE U,V,W
+         NU, NV, NW, NUOLD, NVOLD, NWOLD, &
+         SATURA, SATURAOLD, DEN_OR_ONE, DENOLD_OR_ONE, &
+         MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
+         V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, SECOND_THETA, V_BETA, &
+         SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
+         SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2,  &
+         WIC_VOL_BC, WIC_D_BC, WIC_U_BC, &
+         DERIV, CV_P, &
+         V_SOURCE, V_ABSORB, VOLFRA_PORE, &
+         NDIM, GETCV_DISC, GETCT, &
+         NCOLM, FINDM, COLM, MIDM, &
+         XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
+         OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
+         SAT_FEMT, DEN_FEMT, &
+         IGOT_T2, T2, T2OLD, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
+         THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
+         SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
+         NOIT_DIM, &
+         MEAN_PORE_CV, &
+         FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL, &
+         dummy_transp, &
+         StorageIndexes=StorageIndexes )
 
       ewrite(3,*)'Back from cv_assemb'
 
@@ -2223,6 +2230,40 @@
       ewrite(3,*) 'Leaving CV_ASSEMB_FORCE_CTY'
 
     END SUBROUTINE CV_ASSEMB_FORCE_CTY
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     SUBROUTINE PUT_MOM_C_IN_GLOB_MAT( NPHASE, NDIM, &
