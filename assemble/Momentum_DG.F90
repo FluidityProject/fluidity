@@ -998,7 +998,12 @@ contains
     !Sigma term
     real, dimension(u%dim,ele_ngi(u,ele)) :: sigma_d0_diag
     real,dimension(ele_ngi(u,ele)):: sigma_ngi
-    type(scalar_field), intent(inout) ::ct_rhs
+        !!Define variables for the SWMM and rainfall sources! --TZhang
+    type(scalar_field), intent(inout) :: ct_rhs
+    logical::have_SWMM, have_rainfall
+    real, dimension(ele_loc(p,face),ele_loc(u,face))::source_mat,rainfall_mat
+    real, dimension(ele_loc(u,face),ele_loc(u,face))::source_mom_mat,rainfall_mom_mat
+    real :: sele_area
 
     dg=continuity(U)<0
     p0=(element_degree(u,ele)==0)
@@ -1337,7 +1342,43 @@ contains
         end do
       end if
     end if
-
+    
+    !Add the interacted flux with drainage system to the RHS of Continuity Equation. The flux can be calculated by SWMM.
+    !Add the interacted flux with drainage system to the RHS of Continuity Equation. The flux can be calculated by SWMM. 
+    !Assume that there is only one source point at most in each cell.   --TZhang
+    have_SWMM = have_option(trim(velocity_path)//&
+             "/vector_field::SWMM")
+    print *, 'have_SWMM',have_SWMM
+    have_rainfall = have_option(trim(velocity_path)//&
+             "/vector_field::Rainfall")
+    if (have_SWMM) then
+         !source_q=ele_val_at_quad(velocity_bc,face,3)
+         !print *, 'source_q',source_q
+         source_guess_mat=shape_shape(p_shape,ele_shape(source_SWMM,ele),detwei)
+         print *, 'source_guess_mat',source_guess_mat
+         print *, 'ele_val(velocity_bc,3,ele)',ele_val(source_SWMM,3,ele)
+         !For pipe flow source and rainfall, there is only vertical source
+         call addto(ct_rhs,ele_nodes(p, ele), matmul(source_guess_mat,ele_val(source_SWMM,3,ele)))
+         print *, 'ct_rhs', ele_val(ct_rhs,ele)
+         source_mom_mat=shape_shape(u_shape,ele_shape(source_SWMM,ele),detwei)
+         rhs_addto(3,:loc)=rhs_addto(3,:loc) +matmul(source_mom_mat,ele_val(source_SWMM,3,ele))
+      end if
+      
+      !Input of rainfall is in term of intensity (m/s). Note usually the unit of rainfall observation data is mm/s. 
+      !Unit conversion is needed before being read to the code.   --TZhang
+      
+      if (have_rainfall) then
+         sele_area=sum(detwei)
+         !get the rainfall intensity
+         rainfall_guess_mat=shape_shape(p_shape,ele_shape(rainfall,ele),detwei)
+         !For pipe flow source and rainfall, there is only vertical source
+         call addto(ct_rhs,ele_nodes(p, ele), matmul(rainfall_guess_mat,ele_val(rainfall,3,ele)*sele_area/ele_loc(u,ele)))
+         print *,'sele_area',sele_area
+         print *, 'ele_loc(u,ele)',ele_loc(u,ele)
+         rainfall_mom_mat=shape_shape(u_shape,ele_shape(rainfall,ele),detwei)
+         rhs_addto(3,:loc)=rhs_addto(3,:loc) +matmul(rainfall_mom_mat,ele_val(rainfall,3,ele)*sele_area/ele_loc(u,ele))
+      end if
+    
     if(have_gravity.and.acceleration.and.assemble_element) then
       ! buoyancy
       if(subtract_out_reference_profile) then
@@ -2196,15 +2237,6 @@ contains
     logical :: p0
 
     integer :: d1, d2
-    !!Define variables for the SWMM and rainfall sources! --TZhang
-    type(scalar_field), intent(inout) :: ct_rhs
-    logical::source_SWMM, rainfall
-    real::sum_guess ,sum_source, sum_guess_rainfall, sum_rainfall
-    real, dimension(face_loc(ct_rhs,face))::source_guess_mat, source_mat,rainfall_guess_mat, rainfall_mat
-    real, dimension(face_ngi(u, face))::source_q, intensity
-    integer::have_constant
-    real :: sele_area
-    integer::i
 
     floc = face_loc(u, face)
 
@@ -2458,68 +2490,7 @@ contains
       rhs_addto(:,u_face_l) = rhs_addto(:,u_face_l) + shape_tensor_dot_vector_rhs(u_shape, tension_q, normal, detwei)
     end if
     
-    !Add the interacted flux with drainage system to the RHS of Continuity Equation. The flux can be calculated by SWMM.
-    !Add the interacted flux with drainage system to the RHS of Continuity Equation. The flux can be calculated by SWMM. 
-    !Assume that there is only one source point at most in each cell.   --TZhang
-    if (source_SWMM) then
-         source_q=ele_val_at_quad(velocity_bc,face,3)
-         print *, 'source_q',source_q
-         print *, 'ngi',ele_ngi(velocity_bc, face)
-         source_guess_mat=shape_rhs(p_shape,source_q*detwei)
-         sum_guess = 0
-         sum_source=0.
-         have_constant=0
-         do i=1,ele_ngi(velocity_bc, face)
-           sum_source=sum_source+source_q(i)
-           !check whether the input is constant value. 
-           if (i>1) then
-             if(source_q(i) /= source_q(i-1)) then
-              have_constant=have_constant+1
-             end if
-           end if 
-         end do
-         if (have_constant==0) then 
-             sum_source=sum_source/ele_ngi(velocity_bc, face)
-         end if
-         do i=1, face_loc(ct_rhs, face)
-          sum_guess = sum_guess + source_guess_mat(i)
-         end do
-         do i=1, face_loc(ct_rhs, face)
-          source_mat(i)=sum_source*source_guess_mat(i)/sum_guess
-         end do
-         print *, 'source_mat',source_mat
-         !For pipe flow source and rainfall, there is only vertical source
-         call addto(ct_rhs,face_global_nodes(ct_rhs, face), source_mat)
-         print *, 'ct_rhs', face_val(ct_rhs,face)
-      end if
-      
-      !Input of rainfall is in term of intensity (m/s). Note usually the unit of rainfall observation data is mm/s. 
-      !Unit conversion is needed before being read to the code.   --TZhang
-      
-      if (rainfall) then
-         sele_area=sum(detwei)
-         !get the rainfall intensity
-         intensity=ele_val_at_quad(velocity_bc,face,3)
-         rainfall_guess_mat=shape_rhs(p_shape,intensity*detwei)
-         sum_guess_rainfall=0
-         sum_rainfall=0
-         have_constant=0
-         do i=1,ele_ngi(velocity_bc, face)
-           sum_rainfall=sum_rainfall+intensity(i)
-         end do
-         !sum_rainfall is the sum of the intensity value of all the gaussion quadrature points.
-         sum_rainfall=sum_rainfall/ele_ngi(velocity_bc, face)
-        
-         do i=1, face_loc(ct_rhs, face)
-          sum_guess_rainfall= sum_guess_rainfall + rainfall_guess_mat(i)
-         end do
-         !distribute the rainfall amount (intensity*area, m^3/s) to each node. 
-         do i=1, face_loc(ct_rhs, face)
-          rainfall_mat(i)=sele_area*sum_rainfall*rainfall_guess_mat(i)/sum_guess_rainfall
-         end do
-         !For pipe flow source and rainfall, there is only vertical source
-         call addto(ct_rhs,face_global_nodes(ct_rhs, face), rainfall_mat)
-      end if
+    
     
     
     !----------------------------------------------------------------------

@@ -1263,7 +1263,7 @@
          call addto(ct_rhs,p_nodes_bdy, source_mat)
       end if
       
-      !Input of rainfall is in term of intensity (m/s). Note usually the unit of rainfall observation data is mm/s or inch/h. 
+      !Input of rainfall is in term of intensity (m/s). Note usually the unit of rainfall observation data is mm/s. 
       !Unit conversion is needed before being read to the code. 
       
       if (any(velocity_bc_type(:,sele)==BC_TYPE_RAINFALL) ) then

@@ -1132,6 +1132,54 @@ prognostic_velocity_field =
             empty
          }?
       }?,
+      ## SWMM
+      ## Specify the flow rate exchanged with the subsurface drainage system. 
+      element scalar_field {
+         attribute name { "SWMM" },
+         attribute rank { "1" },
+         (
+            element prescribed {
+               mesh_choice?,
+               prescribed_scalar_field_no_adapt
+            }|
+            element diagnostic {
+               mesh_choice?,
+               (
+                  scalar_python_diagnostic_algorithm |
+                  imposed_material_velocity_SWMM_algorithm |
+                  internal_velocity_SWMM_algorithm
+               ),
+               diagnostic_scalar_field
+            }
+         ),
+         element lump_SWMM {
+            empty
+         }?
+      }?,
+      ## Rainfall
+      ## Specify hydrological elements, such as rainfall, evaporation, etc. Warining: The unit of rainfall observation data is usually mm/s. It must be conversed to m/s.
+      element scalar_field {
+         attribute name { "Rainfall" },
+         attribute rank { "1" },
+         (
+            element prescribed {
+               mesh_choice?,
+               prescribed_scalar_field_no_adapt
+            }|
+            element diagnostic {
+               mesh_choice?,
+               (
+                  scalar_python_diagnostic_algorithm |
+                  imposed_material_velocity_rainfall_algorithm |
+                  internal_velocity_rainfall_algorithm
+               ),
+               diagnostic_scalar_field
+            }
+         ),
+         element lump_rainfall {
+            empty
+         }?
+      }?,
       ## Absorption
       ##
       ## Note: When in spherical geometry the absorption is now automatically rotated.
