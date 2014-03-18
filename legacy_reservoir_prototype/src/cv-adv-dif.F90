@@ -5243,10 +5243,11 @@ contains
     NTSOL_INT = 1
 
     NL=CV_NONODS*NPHASE
-    PSI( 1 + 0 * NL : NL + 0 * NL )  =      T( 1 : NL ) 
-    PSI( 1 + 1 * NL : NL + 1 * NL )  =   TOLD( 1 : NL ) 
-    PSI( 1 + 2 * NL : NL + 2 * NL )  =    DEN( 1 : NL ) 
-    PSI( 1 + 3 * NL : NL + 3 * NL )  = DENOLD( 1 : NL ) 
+    PSI( 1 + 0 * NL : NL + 0 * NL )  =      T( 1 : NL )
+    PSI( 1 + 1 * NL : NL + 1 * NL )  =   TOLD( 1 : NL )
+    PSI( 1 + 2 * NL : NL + 2 * NL )  =    DEN( 1 : NL )
+    PSI( 1 + 3 * NL : NL + 3 * NL )  = DENOLD( 1 : NL )
+
     IF(IGOT_T2==1) THEN
        PSI( 1 + 4 * NL : NL + 4 * NL )  =      T2( 1 : NL ) 
        PSI( 1 + 5 * NL : NL + 5 * NL )  =   T2OLD( 1 : NL ) 

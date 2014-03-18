@@ -256,24 +256,23 @@
       variable_selection = 3 !Variable to check how good nonlinear iterations are going 1 (Pressure), 2 (Velocity), 3 (Saturation)
       Repeat_time_step = .false.!Initially has to be false
       nonLinearAdaptTs = have_option(  '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear')
-       call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear', &
-                variable_selection, default = 3)
+      call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear', &
+           variable_selection, default = 3)
       call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear/increase_factor', &
-                increaseFactor, default = 1.2 )
+           increaseFactor, default = 1.2 )
       call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear/decrease_factor', &
-                decreaseFactor, default = 2. )
+           decreaseFactor, default = 2. )
       call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear/max_timestep', &
-                max_ts, default = huge(min_ts) )
+           max_ts, default = huge(min_ts) )
       call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear/min_timestep', &
-                min_ts, default = 0. )
+           min_ts, default = 0. )
       call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear/increase_ts_switch', &
-                increase_ts_switch, default = 1d-3 )
+           increase_ts_switch, default = 1d-3 )
       call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear/decrease_ts_switch', &
-                decrease_ts_switch, default = 1d-1 )
+           decrease_ts_switch, default = 1d-1 )
 
 
-
-        call get_option( '/timestepping/timestep', initial_dt )
+      call get_option( '/timestepping/timestep', initial_dt )
 !!$ Compute primary scalars used in most of the code
       call Get_Primary_Scalars( state, &         
            nphase, nstate, ncomp, totele, ndim, stotel, &
@@ -510,7 +509,7 @@
 
 !!$ Extracting Mesh Dependent Fields
       initialised = .false.
-      call Extracting_MeshDependentFields_From_State( state, initialised, &
+      call Extracting_MeshDependentFields_From_State( state, packed_state, initialised, &
            xu, yu, zu, x, y, z, &
            PhaseVolumeFraction, PhaseVolumeFraction_BC_Spatial, PhaseVolumeFraction_BC, PhaseVolumeFraction_Source, &
            Pressure_CV, Pressure_FEM, Pressure_FEM_BC_Spatial, Pressure_FEM_BC, &
@@ -1793,7 +1792,7 @@ deallocate(NDOTQOLD,&
 
 !!$ Extracting Mesh Dependent Fields
             initialised = .true.
-            call Extracting_MeshDependentFields_From_State( state, initialised, &
+            call Extracting_MeshDependentFields_From_State( state, packed_state, initialised, &
                  xu, yu, zu, x, y, z, &
                  PhaseVolumeFraction, PhaseVolumeFraction_BC_Spatial, PhaseVolumeFraction_BC, PhaseVolumeFraction_Source, &
                  Pressure_CV, Pressure_FEM, Pressure_FEM_BC_Spatial, Pressure_FEM_BC, &

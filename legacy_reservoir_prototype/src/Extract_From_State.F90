@@ -740,7 +740,7 @@
     end subroutine xp1_2_xp2
 
 
-    subroutine Extracting_MeshDependentFields_From_State( state, initialised, &
+    subroutine Extracting_MeshDependentFields_From_State( state, packed_state, initialised, &
          xu, yu, zu, x, y, z, &
          PhaseVolumeFraction, PhaseVolumeFraction_BC_Spatial, PhaseVolumeFraction_BC, PhaseVolumeFraction_Source, &
          Pressure_CV, Pressure_FEM, Pressure_FEM_BC_Spatial, Pressure_FEM_BC, &
@@ -753,6 +753,8 @@
          Porosity, Permeability  )
       implicit none
       type( state_type ), dimension( : ), intent( inout ) :: state
+      type( state_type ), intent( inout ) :: packed_state
+
       logical, intent( in ) :: initialised
       integer, dimension( : ), intent( inout ) :: PhaseVolumeFraction_BC_Spatial, Pressure_FEM_BC_Spatial, &
            Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, Temperature_BC_Spatial, &
@@ -770,7 +772,7 @@
 
 !!$ Local variables
       type( scalar_field ), pointer :: scalarfield
-      type( vector_field ), pointer :: vectorfield, grav_vectorfield
+      type( vector_field ), pointer :: vectorfield, grav_vectorfield, x_all
       type( tensor_field ), pointer :: tensorfield
       integer, dimension( : ), pointer :: element_nodes
       character( len = option_path_len ) :: option_path
@@ -818,6 +820,13 @@
            x_nloc, x_nloc_p1, x_nonods_p1, x_nonods, &
            x_ndgln_p1, x_ndgln, &
            x, y, z )
+
+      x_all => extract_vector_field( packed_state, "PressureCoordinate" )
+      do idim = 1, ndim
+        if( idim ==1 ) x_all % val( idim, : ) = x
+       if( idim ==2 )   x_all % val( idim, : ) = y
+       if( idim ==3 )   x_all % val( idim, : ) = z
+      end do
 
 !!$
 !!$ Extracting Volume Fraction (or Saturation) Field:
@@ -2068,6 +2077,8 @@
            shape=pressure%mesh%shape,&
            continuity=1,name="PressureMesh_Continuous")
       call insert(packed_state,ovmesh,"PressureMesh_Continuous")
+    
+
       call allocate(p_position,ndim,ovmesh,"PressureCoordinate")
       ovmesh=make_mesh(position%mesh,&
            shape=pressure%mesh%shape,&
@@ -2076,7 +2087,6 @@
       if ( .not. has_mesh(state(1),"PressureMesh_Discontinuous") ) &
            call insert(state(1),ovmesh,"PressureMesh_Discontinuous")
       call allocate(m_position,ndim,ovmesh,"MaterialCoordinate")
-
       call remap_field( position, u_position )
       call remap_field( position, p_position )
       call project_field( position, m_position, position )

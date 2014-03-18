@@ -1306,52 +1306,14 @@
       ALLOCATE( ACV( NCOLACV )) ; ACV = 0.
 
       !################TEMPORARY ADAPT FROM OLD VARIABLES TO NEW###############
-      !IF ( IS_OVERLAPPING ) THEN
-      !   NLEV = CV_NLOC
-      !   U_NLOC2 = MAX( 1, U_NLOC / CV_NLOC )
-      !ELSE
-      !   NLEV = 1
-      !   U_NLOC2 = U_NLOC
-      !END IF
-      !DO ELE = 1, TOTELE
-      !   DO ILEV = 1, NLEV
-      !      DO U_ILOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
-      !         U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
-      !         DO IPHASE = 1, NPHASE
-      !            DO IDIM = 1, NDIM
-      !               IF ( IDIM==1 ) THEN
-      !                  U_ALL( IDIM, IPHASE, U_INOD ) = U( U_INOD + (IPHASE-1)*U_NONODS )
-      !                  UOLD_ALL( IDIM, IPHASE, U_INOD ) = UOLD( U_INOD + (IPHASE-1)*U_NONODS )
-      !               ELSE IF ( IDIM==2 ) THEN
-      !                  U_ALL( IDIM, IPHASE, U_INOD ) = V( U_INOD + (IPHASE-1)*U_NONODS )
-      !                  UOLD_ALL( IDIM, IPHASE, U_INOD ) = VOLD( U_INOD + (IPHASE-1)*U_NONODS )
-      !               ELSE
-      !                  U_ALL( IDIM, IPHASE, U_INOD ) = W( U_INOD + (IPHASE-1)*U_NONODS )
-      !                  UOLD_ALL( IDIM, IPHASE, U_INOD ) = WOLD( U_INOD + (IPHASE-1)*U_NONODS )
-      !               END IF
-      !            END DO
-      !         END DO
-      !      END DO
-      !   END DO
-      !END DO
-      
+    
+
 
       U_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedVelocity" )
       U_ALL = U_ALL2%VAL
 
-      !print *, ' '
-      !print *, ' '
-      !print *, ' '
-      !print *, 'u_old', U_ALL
-      !print *, 'u_new', U_ALL2%VAL
-
-
       U_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldVelocity" )
       UOLD_ALL = U_ALL2%VAL
-
-      !print *, 'uold_old', UOLD_ALL
-      !print *, 'uold_new', U_ALL2%VAL
-
 
       X_ALL2 => EXTRACT_VECTOR_FIELD( PACKED_STATE, "PressureCoordinate" )
       X_ALL = X_ALL2%VAL
@@ -1584,19 +1546,19 @@
 
          CALL ULONG_2_UVW( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
 
-         !ewrite(3,*) 'u::', u
-         !ewrite(3,*) 'v::', v
-         !ewrite(3,*) 'w::', w
-         !ewrite(3,*) 'ct::', ct
-         !ewrite(3,*) 'c::', c
-         !ewrite(3,*) 'ct_rhs::', ct_rhs
+         ewrite(3,*) 'u::', u
+         ewrite(3,*) 'v::', v
+         ewrite(3,*) 'w::', w
+         ewrite(3,*) 'ct::', ct
+         ewrite(3,*) 'c::', c
+         ewrite(3,*) 'ct_rhs::', ct_rhs
 
          ! put on rhs the cty eqn; put most recent pressure in RHS of momentum eqn
          ! NB. P_RHS = -CT * U + CT_RHS 
          CALL CT_MULT( P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
               CT, NCOLCT, FINDCT, COLCT )
 
-         !ewrite(3,*) 'P_RHS1::', p_rhs
+         ewrite(3,*) 'P_RHS1::', p_rhs
 
          P_RHS = -P_RHS + CT_RHS
 
@@ -1613,8 +1575,8 @@
               'prognostic/reference_node', ndpset, default = 0 )
          if ( ndpset /= 0 ) p_rhs( ndpset ) = 0.0
 
-         !ewrite(3,*) 'P_RHS2::', p_rhs
-         !ewrite(3,*) 'CT_RHS::', ct_rhs
+         ewrite(3,*) 'P_RHS2::', p_rhs
+         ewrite(3,*) 'CT_RHS::', ct_rhs
 
          ! solve for pressure correction DP that is solve CMC*DP=P_RHS...
          ewrite(3,*)'about to solve for pressure'
@@ -1682,11 +1644,15 @@
             DO U_ILOC = 1, U_NLOC
                U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
                DO IPHASE = 1, NPHASE
+                  J = U_INOD + (IPHASE-1)*U_NONODS ! OLD
                   DO IDIM = 1, NDIM
-                     J = U_INOD + (IPHASE-1)*NDIM*U_NONODS ! OLD
-                     IF (IDIM ==1 ) U_ALL2%VAL( IDIM, IPHASE, U_INOD ) = U( J )
-                     IF (IDIM ==2 ) U_ALL2%VAL( IDIM, IPHASE, U_INOD ) = V( J )
-                     IF (IDIM ==3 ) U_ALL2%VAL( IDIM, IPHASE, U_INOD ) = W( J )
+                     IF ( IDIM == 1 ) THEN
+                        U_ALL2%VAL( IDIM, IPHASE, U_INOD ) = U( J )
+                     ELSE IF ( IDIM == 2 ) THEN
+                        U_ALL2%VAL( IDIM, IPHASE, U_INOD ) = V( J )
+                     ELSE IF ( IDIM == 3 ) THEN
+                        U_ALL2%VAL( IDIM, IPHASE, U_INOD ) = W( J )
+                     END IF
                   END DO
                END DO
             END DO
