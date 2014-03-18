@@ -57,7 +57,7 @@
     use fluids_module!, only: pre_adapt_tasks, update_state_post_adapt
 
 !!$ Modules indigenous to the prototype Code
-    use cv_advection, only : cv_count_faces
+    use cv_advection, only : CV_GET_ALL_LIMITED_VALS, cv_count_faces
     use multiphase_1D_engine
     use spact
     use multiphase_EOS
@@ -225,6 +225,7 @@
 
       !! face value storage
       integer :: ncv_faces
+      real::  second_theta
       REAL, DIMENSION( : , : ), allocatable :: NDOTQOLD,NDOTQVOLD
       REAL, DIMENSION( : , : ), allocatable :: LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD
       REAL, DIMENSION( : , : ), allocatable :: LIMVOLD,LIMV2OLD,LIMVDOLD,LIMVDTOLD,LIMVDTT2OLD
@@ -716,6 +717,96 @@
 
 !!$ Start non-linear loop
          Loop_NonLinearIteration: do  its = 1, NonLinearIteration
+
+         if( have_temperature_field .and. &
+              have_option( '/material_phase[0]/scalar_field::Temperature/prognostic' ) ) then
+
+            call get_option( '/material_phase[0]/scalar_field::Temperature/prognostic/temporal_discretisation' // &
+              '/control_volumes/second_theta', second_theta, default=1. )
+
+            call CV_GET_ALL_LIMITED_VALS( state, &
+                 LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,NDOTQOLD,&
+                 SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
+                 CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
+                 CV_ELE_TYPE,  &
+                 NPHASE,  &
+                 CV_NLOC, U_NLOC, X_NLOC, &
+                 CV_NDGLN, X_NDGLN, U_NDGLN, &
+                 CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
+                 X, Y, Z,&
+                 Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
+                 Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
+                 Temperature_Old, DENSITY_CP_OLD, &
+                 MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
+                 t_disopt, t_dg_vel_int_opt, dt, t_theta, second_theta, t_beta, &
+                 Temperature_BC, Density_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, &
+                 suf_sig_diagten_bc, suf_t_bc_rob1, suf_t_bc_rob2, &
+                 Temperature_BC_Spatial, Density_BC_Spatial, Velocity_U_BC_Spatial, &
+                 DRhoDPressure, Pressure_CV, &
+                 Temperature_Source, Temperature_Absorption, Porosity, &
+                 NDIM, &
+                 NCOLM, FINDM, COLM, MIDM, &
+                 XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
+                 OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
+                 0, Temperature_Old, scvngi_theta, &
+                 Temperature_BC, suf_t_bc_rob1, suf_t_bc_rob2, Temperature_BC_Spatial, &
+                    in_ele_upwind, dg_ele_upwind, &
+                 NOIT_DIM, &
+                 MEAN_PORE_CV, &
+                 small_finacv,small_colacv,size(small_colacv),&
+                 dummy_ele, &
+                 StorageIndexes=StorageIndexes)
+
+         end if
+
+         if( have_component_field ) then
+
+            call get_option( '/material_phase[' // int2str( nphase ) // ']/scalar_field::ComponentMassFractionPhase1/' // &
+              'prognostic/temporal_discretisation/control_volumes/second_theta', second_theta, default=1. )
+
+            do icomp = 1, ncomp
+               call CV_GET_ALL_LIMITED_VALS( state, &
+                 LIMCOLD( : ,:, icomp ) ,&
+                 LIMC2OLD(  : ,:, icomp ),&
+                 LIMcDOLD(  : ,:, icomp ),&
+                 LIMcDTOLD(  : ,:, icomp ),&
+                 LIMcDTT2OLD(  : ,:, icomp ),&
+                 NDOTQCOLD(  : ,:, icomp ),&
+                 SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
+                 CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
+                 CV_ELE_TYPE,  &
+                 NPHASE,  &
+                 CV_NLOC, U_NLOC, X_NLOC, &
+                 CV_NDGLN, X_NDGLN, U_NDGLN, &
+                 CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
+                 X, Y, Z,&
+                 Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
+                 ug, vg, wg, &
+                 Component_Old( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods ), &
+                 DENSITY_COMPONENT_OLD( ( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS ), &
+                 MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
+                 v_disopt, v_dg_vel_int_opt, dt, v_theta, second_theta, v_beta, &
+                 Component_BC( 1 + stotel * cv_snloc * nphase * ( icomp - 1 ) : stotel * cv_snloc * nphase * icomp ), &
+                 Density_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, SUF_SIG_DIAGTEN_BC,&
+                 suf_comp_bc_rob1, suf_comp_bc_rob2, &
+                 Component_BC_Spatial, Density_BC_Spatial, Velocity_U_BC_Spatial, &
+                 DRhoDPressure, Pressure_FEM, &
+                 Component_Source, Component_Absorption, Porosity, &
+                 NDIM, &
+                 NCOLM, FINDM, COLM, MIDM, &
+                 XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
+                 OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
+                 igot_t2, PhaseVolumeFraction_Old, scvngi_theta, &
+                 PhaseVolumeFraction_BC, suf_vol_bc_rob1, suf_vol_bc_rob2, PhaseVolumeFraction_BC_Spatial, &
+                 in_ele_upwind, dg_ele_upwind, &
+                 NOIT_DIM, &
+                 MEAN_PORE_CV, &
+                 small_finacv,small_colacv,size(small_colacv),&
+                 dummy_ele, &
+                 StorageIndexes=StorageIndexes)
+            end do
+         end if
+
 
             !Store variable to check afterwards
             if (tolerance_between_non_linear>0.) then
