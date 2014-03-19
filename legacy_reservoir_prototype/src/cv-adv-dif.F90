@@ -1993,10 +1993,11 @@ contains
     u_nonods=node_count(u_mesh)
     if (is_overlapping) then
        u_nloc=ele_loc(u_mesh,1)*cv_nloc
+       u_snloc=face_loc(u_mesh,1)*cv_snloc
     else
        u_nloc=ele_loc(u_mesh,1)
+       u_snloc=face_loc(u_mesh,1)
     end if
-    u_snloc=face_loc(u_mesh,1)
     mat_mesh=>extract_mesh(packed_state,"PressureMesh_Discontinuous")
     mat_nloc=ele_loc(mat_mesh,1) 
 
