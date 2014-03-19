@@ -734,23 +734,6 @@ contains
       END DO
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ! END OF TEMP STUFF HERE
 
       CALL PROJ_CV_TO_FEM_4( state, &
@@ -760,8 +743,24 @@ contains
            NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
            CV_NGI_SHORT, CV_NLOC, CVN_SHORT, CVWEIGHT_SHORT, &
            CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
-           X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM, &
+           X_NONODS, X_ALL(1,:), X_ALL(2,:), X_ALL(3,:), NCOLM, FINDM, COLM, MIDM, &
            IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC )
+
+!########CONVERSION OF FEM* TO FEM*_ALL##########
+           DO CV_INOD = 1, CV_NONODS
+               DO IPHASE = 1, NPHASE
+                   FEMT_ALL( IPHASE, CV_INOD) = FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
+                   FEMTOLD_ALL( IPHASE, CV_INOD) = FEMTOLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
+                   FEMDEN_ALL( IPHASE, CV_INOD) = FEMDEN( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
+                   FEMDENOLD_ALL( IPHASE, CV_INOD) = FEMDENOLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
+                   if (IGOT_T2>0) then
+                       FEMT2_ALL( IPHASE, CV_INOD) = FEMT2( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
+                       FEMT2OLD_ALL( IPHASE, CV_INOD) = FEMT2OLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
+                   end if
+               END DO
+           END DO
+
+!###########################################
 
       MASS_ELE_TRANSP = MASS_ELE
 
@@ -771,14 +770,29 @@ contains
          DO CV_INOD = 1, CV_NONODS
             RSUM = 0.0
             DO IPHASE = 1, NPHASE
-               RSUM = RSUM + FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
+               RSUM = RSUM + FEMT_ALL(IPHASE, CV_INOD )
             END DO
             DO IPHASE = 1, NPHASE
-               FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = &
-                    FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) / RSUM
+               FEMT_ALL(IPHASE, CV_INOD ) =  FEMT_ALL(IPHASE, CV_INOD ) / RSUM
             END DO
          END DO
       END IF
+
+!########CONVERSION OF FEM*_ALL TO FEM*##########
+           DO CV_INOD = 1, CV_NONODS
+               DO IPHASE = 1, NPHASE
+                   FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT_ALL( IPHASE, CV_INOD)
+                   FEMTOLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMTOLD_ALL( IPHASE, CV_INOD)
+                   FEMDEN( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMDEN_ALL( IPHASE, CV_INOD)
+                   FEMDENOLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMDENOLD_ALL( IPHASE, CV_INOD)
+                   if (IGOT_T2>0) then
+                       FEMT2( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT2_ALL( IPHASE, CV_INOD)
+                       FEMT2OLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT2OLD_ALL( IPHASE, CV_INOD)
+                   end if
+               END DO
+           END DO
+
+!###########################################
 
       ! Calculate MEAN_PORE_CV
       MEAN_PORE_CV = 0.0 ; SUM_CV = 0.0 
@@ -833,7 +847,7 @@ contains
               IGOT_T2,NPHASE,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, &
               SMALL_FINDRM,SMALL_CENTRM,SMALL_COLM,NSMALL_COLM, &
               X_NDGLN,X_NONODS,NDIM, &
-              X,Y,Z, XC_CV, YC_CV, ZC_CV)
+              X_ALL(1,:), X_ALL(2,:), X_ALL(3,:), XC_CV, YC_CV, ZC_CV)
 
          if ( .false. ) then
             ewrite(3,*) 'TUPWIND_MAT', TUPWIND_MAT(1:nsmall_colm)
@@ -859,7 +873,7 @@ contains
               CV_NGI_SHORT, CV_NLOC, CVWEIGHT_SHORT, &
               CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
               CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
-              X_NONODS, X, Y, Z,  &
+              X_NONODS, X_ALL(1,:), X_ALL(2,:), X_ALL(3,:),  &
               NFACE, FACE_ELE, CV_SLOCLIST, CV_SLOCLIST, STOTEL, CV_SNLOC, CV_SNLOC, WIC_T_BC, SUF_T_BC, &
               WIC_T_BC_DIRICHLET, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
               SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
@@ -907,7 +921,7 @@ contains
 
 
          ! Calculate DETWEI, RA, NX, NY, NZ for element ELE
-         CALL DETNLXR_INVJAC( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
+         CALL DETNLXR_INVJAC( ELE, X_ALL(1,:), X_ALL(2,:), X_ALL(3,:), X_NDGLN, TOTELE, X_NONODS, &
               CV_NLOC, SCVNGI, &
               SCVFEN, SCVFENLX, SCVFENLY, SCVFENLZ, SCVFEWEIGH, SCVDETWEI, SCVRA, VOLUME, D1, D3, DCYL, &
               SCVFENX_ALL, &
@@ -974,7 +988,7 @@ contains
                        CVNORMZ, SCVFEN, SCVFENSLX, &
                        SCVFENSLY, SCVFEWEIGH, XC_CV( CV_NODI ), &
                        YC_CV( CV_NODI ), ZC_CV( CV_NODI ), &
-                       X, Y, Z, &
+                       X_ALL(1,:), X_ALL(2,:), X_ALL(3,:), &
                        D1, D3, DCYL )
 
                   ! Find its global node number
@@ -1019,8 +1033,16 @@ contains
                      HDC = SQRT( (XC_CV(CV_NODI)-XC_CV(CV_NODJ))**2+(YC_CV(CV_NODI)-YC_CV(CV_NODJ))**2 &
                           +(ZC_CV(CV_NODI)-ZC_CV(CV_NODJ))**2  )
                   ELSE
-                     HDC = SQRT( (XC_CV(CV_NODI)-X(X_NODI))**2+(YC_CV(CV_NODI)-Y(X_NODI))**2 &
-                          +(ZC_CV(CV_NODI)-Z(X_NODI))**2  )
+                   !TEMPORARY, UNTIL WE VECTORIZE EVERYTHING
+                    select case (ndim)
+                        case (1)
+                         HDC = SQRT( (XC_CV(CV_NODI)-X_ALL(1,X_NODI))**2 )
+                        case (2)
+                         HDC = SQRT( (XC_CV(CV_NODI)-X_ALL(1,X_NODI))**2+(YC_CV(CV_NODI)-X_ALL(2,X_NODI))**2  )
+                        case default
+                         HDC = SQRT( (XC_CV(CV_NODI)-X_ALL(1,X_NODI))**2+(YC_CV(CV_NODI)-X_ALL(2,X_NODI))**2 &
+                              +(ZC_CV(CV_NODI)-X_ALL(3,X_NODI))**2  )
+                    end select
                   END IF
 
 
@@ -1704,7 +1726,7 @@ contains
 
       ewrite(3,*)'IN cv_adv_dif a CV representation t:'
       CALL PRINT_CV_DIST(CV_NONODS,X_NONODS,TOTELE,CV_NLOC,X_NLOC,NPHASE, &
-           T, X_NDGLN, CV_NDGLN, X)
+           T, X_NDGLN, CV_NDGLN, X_ALL(1,:))
       ewrite(3,*) 'just print out - in cv_assemb'
 
       ! Deallocating temporary working arrays
