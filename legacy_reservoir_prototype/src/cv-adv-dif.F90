@@ -344,7 +344,6 @@ contains
            SUM_LIMT, SUM_LIMTOLD, FTHETA_T2, ONE_M_FTHETA_T2OLD, THERM_FTHETA, &
            W_SUM_ONE1, W_SUM_ONE2, NDOTQNEW
 
-      REAL, PARAMETER :: W_SUM_ONE = 1.
       real, pointer :: VOLUME
       integer :: cv_inod_ipha, IGETCT, U_NODK_IPHA, IANISOLIM, global_face
       logical :: Have_Temperature_Fields, Have_VolumeFraction_Fields, Have_Components_Fields
@@ -360,12 +359,12 @@ contains
 
 
       real, dimension(:), allocatable :: TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, &
-              DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT
+           DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT
       INTEGER :: IDUM(1)
       REAL :: RDUM(1),n1,n2,n3
       type( scalar_field ), pointer :: perm
-     !Reals to store the irresidual water and irreducible oil values, used in GET_INT_T_DEN
-    real ::  s_gc, s_or
+      !Reals to store the irresidual water and irreducible oil values, used in GET_INT_T_DEN
+      real ::  s_gc, s_or
 
 !      ALLOCATE( PERM_ELE( TOTELE ) ) ; PERM_ELE = 0.0
 !      if ( overlapping ) then
@@ -510,19 +509,17 @@ contains
       UP_WIND_NOD = 0.0
 
       ALLOCATE( ONE_PORE( TOTELE ))
-      IF( have_option( '/porous_media/actual_velocity' ) ) THEN
+      IF ( have_option( '/porous_media/actual_velocity' ) ) THEN
          ! solve for actual velocity
          ONE_PORE = VOLFRA_PORE
       ELSE
-         ! solve for vel=porosity*actual velocity
+         ! solve for porosity * actual velocity
          ONE_PORE = 1.0
-      ENDIF
-
-      ewrite(3,*)'here1'
+      END IF
 
       D1 = ( NDIM == 1 )
       D3 = ( NDIM == 3 )
-      DCYL= ( NDIM == -2 )
+      DCYL = ( NDIM == -2 )
 
       GETMAT = .TRUE.
 
@@ -571,14 +568,9 @@ contains
       ALLOCATE( DENOLDMIN_NOD( CV_NONODS * NPHASE) )
       ALLOCATE( DENOLDMAX_NOD( CV_NONODS * NPHASE) )
 
-      ewrite(3,*)'here1.2'
       NCOLGPTS = 0
       COLGPTS = 0
       FINDGPTS = 0
-      !ewrite(3,*)'in ASSEMB_FORCE_CTY',NCOLGPTS
-      !ewrite(3,*)'in ASSEMB_FORCE_CTY, COLGPTS',size(COLGPTS), COLGPTS
-      !ewrite(3,*)'in ASSEMB_FORCE_CTY, FINDGPTS',size(FINDGPTS), FINDGPTS
-
 
       !     ======= DEFINE THE SUB-CONTROL VOLUME & FEM SHAPE FUNCTIONS ========
 
@@ -643,14 +635,13 @@ contains
       ALLOCATE( DTOLDY_ELE( CV_NLOC, NPHASE,TOTELE ))
       ALLOCATE( DTOLDZ_ELE( CV_NLOC, NPHASE,TOTELE ))
 
-      ewrite(3,*)'here2'
-      IGETCT=0
-      IF(GETCT) IGETCT=1
+      IGETCT = 0
+      IF ( GETCT ) IGETCT = 1
 
       CALL PROJ_CV_TO_FEM_4( state, &
            FEMT, FEMTOLD, FEMDEN, FEMDENOLD, T, TOLD, DEN, DENOLD, &
            IGOT_T2, T2,T2OLD, FEMT2,FEMT2OLD, &
-           XC_CV, YC_CV, ZC_CV, MASS_CV, MASS_ELE,  &
+           XC_CV, YC_CV, ZC_CV, MASS_CV, MASS_ELE, &
            NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
            CV_NGI_SHORT, CV_NLOC, CVN_SHORT, CVWEIGHT_SHORT, &
            CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
@@ -659,8 +650,8 @@ contains
 
       MASS_ELE_TRANSP = MASS_ELE
 
-      NORMALISE = .false.
-      IF( NORMALISE ) THEN
+      NORMALISE = .FALSE.
+      IF ( NORMALISE ) THEN
          ! make sure the FEM representation sums to unity so we dont get surprising results...
          DO CV_INOD = 1, CV_NONODS
             RSUM = 0.0
@@ -668,35 +659,24 @@ contains
                RSUM = RSUM + FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
             END DO
             DO IPHASE = 1, NPHASE
-               FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT( CV_INOD + ( IPHASE - 1 ) &
-                    * CV_NONODS ) / RSUM
+               FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = &
+                    FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) / RSUM
             END DO
          END DO
-      ENDIF
+      END IF
 
       ! Calculate MEAN_PORE_CV
-      SUM_CV = 0.0
-      MEAN_PORE_CV = 0.0
+      MEAN_PORE_CV = 0.0 ; SUM_CV = 0.0 
       DO ELE = 1, TOTELE
          DO CV_ILOC = 1, CV_NLOC
-            CV_INOD = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_ILOC )
+            CV_INOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
             SUM_CV( CV_INOD ) = SUM_CV( CV_INOD ) + MASS_ELE( ELE )
             MEAN_PORE_CV( CV_INOD ) = MEAN_PORE_CV( CV_INOD ) + &
                  MASS_ELE( ELE ) * VOLFRA_PORE( ELE )
          END DO
       END DO
-
       MEAN_PORE_CV = MEAN_PORE_CV / SUM_CV
-
-      !ewrite(3,*) 'MEAN_PORE_CV:', MEAN_PORE_CV
-
-      !sum=0.0
-      !do ele = 1, totele
-      !   ewrite(3,*) ele, mass_ele(ele)
-      !   sum=sum+mass_ele(ele)
-      !end do
-      !ewrite(3,*)'sum(mass_ele):',sum
-      !stop 221
+      ewrite(3,*) 'MEAN_PORE_CV MIN/MAX:', MINVAL( MEAN_PORE_CV ), MAXVAL( MEAN_PORE_CV )
 
       ! For each node, find the largest and smallest value of T and
       ! DENSITY for both the current and previous timestep, out of
@@ -769,7 +749,7 @@ contains
               WIC_T_BC_DIRICHLET, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
               SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
               state, "CV", StorageIndexes(16) )
-      ENDIF
+      END IF
 
       !     =============== DEFINE THETA FOR TIME-STEPPING ===================
       ! Define the type of time integration:
@@ -815,14 +795,13 @@ contains
       call get_option("/material_phase[1]/multiphase_properties/immobile_fraction", &
            s_or, default = 0.3 )
 
-       global_face = 0
+      GLOBAL_FACE = 0
 
-      ! Now we begin the loop over elements to assemble the advection terms
-      ! into the matrix (ACV) and the RHS
+
       Loop_Elements: DO ELE = 1, TOTELE
 
 
-         ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
+         ! Calculate DETWEI, RA, NX, NY, NZ for element ELE
          CALL DETNLXR_INVJAC( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
               CV_NLOC, SCVNGI, &
               SCVFEN, SCVFENLX, SCVFENLY, SCVFENLZ, SCVFEWEIGH, SCVDETWEI, SCVRA, VOLUME, D1, D3, DCYL, &
@@ -835,7 +814,7 @@ contains
             CV_NODI = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
 
             ! Loop over quadrature (gauss) points in ELE neighbouring ILOC
-            Loop_GCOUNT: DO GCOUNT = FINDGPTS( CV_ILOC ), FINDGPTS( CV_ILOC + 1 ) - 1, 1
+            Loop_GCOUNT: DO GCOUNT = FINDGPTS( CV_ILOC ), FINDGPTS( CV_ILOC + 1 ) - 1
 
                ! COLGPTS stores the local Gauss-point number in the ELE
                GI = COLGPTS( GCOUNT )
@@ -852,21 +831,11 @@ contains
                   ! We are on the boundary or next to another element.  Determine CV_OTHER_LOC
                   ! CVFEM_ON_FACE(CV_KLOC,GI)=.TRUE. if CV_KLOC is on the face that GI is centred on.
                   ! Look for these nodes on the other elements.
-                  CALL FIND_OTHER_SIDE( CV_OTHER_LOC, CV_NLOC, CV_NODI, U_OTHER_LOC, U_NLOC,  &
-                       MAT_OTHER_LOC, MAT_NLOC, INTEGRAT_AT_GI,  &
+                  CALL FIND_OTHER_SIDE( CV_OTHER_LOC, CV_NLOC, CV_NODI, U_OTHER_LOC, U_NLOC, &
+                       MAT_OTHER_LOC, MAT_NLOC, INTEGRAT_AT_GI, &
                        X_NLOC, XU_NLOC, X_NDGLN, CV_NDGLN, XU_NDGLN, &
-                       CV_SNLOC, CVFEM_ON_FACE(:,GI), X_SHARE, X_NONODS, ELE, ELE2,  &
+                       CV_SNLOC, CVFEM_ON_FACE( :, GI ), X_SHARE, X_NONODS, ELE, ELE2,  &
                        FINELE, COLELE, NCOLELE )
-
-                  !ewrite(3,*)'================================================================================= '
-                  !ewrite(3,*)' ele, cv_iloc, cv_nodi, gi, cv_jloc: ', ele, cv_iloc, cv_nodi, gi, cv_jloc
-                  !ewrite(3,*)' ele2, integrat_at_gi:', ele2, integrat_at_gi
-                  !ewrite(3,*)'================================================================================= '
-                  !ewrite(3,*)'cv_other_loc:', cv_other_loc( 1 : cv_nloc )
-                  !ewrite(3,*)'u_other_loc:', u_other_loc( 1 : u_nloc )
-                  !ewrite(3,*)'mat_other_loc:', mat_other_loc( 1 : mat_nloc )
-                  !ewrite(3,*)'INTEGRAT_AT_GI=', INTEGRAT_AT_GI
-                  !ewrite(3,*)'================================================================================= '
 
                   IF ( INTEGRAT_AT_GI ) THEN
                      CV_JLOC = CV_OTHER_LOC( CV_ILOC )
@@ -879,21 +848,18 @@ contains
                              FACE_ELE, NFACE, CVFEM_ON_FACE( :, GI ), &
                              CV_NONODS, CV_NLOC, U_NLOC, CV_SNLOC, U_SNLOC, &
                              CV_NDGLN, U_NDGLN, CV_SNDGLN, U_SNDGLN )
-                        !EWRITE(3,*)'*****AFTER CALC_SELE SELE,CV_SILOC,CV_SNLOC:',SELE,CV_SILOC,CV_SNLOC
                      END IF
                      INTEGRAT_AT_GI = .NOT.( (ELE==ELE2) .AND. (SELE==0) )
                   END IF
 
                END IF Conditional_CheckingNeighbourhood
 
-               ! avoid indegrating across the middle of a CV on the boundaries of elements
+               ! Avoid integrating across the middle of a CV on the boundaries of elements
                Conditional_integration: IF ( INTEGRAT_AT_GI ) THEN
 
 
-                  global_face=global_face+1
+                  GLOBAL_FACE = GLOBAL_FACE + 1
 
-
-                  ! if necessary determine the derivatives between elements ELE and ELE2
 
                   ! Calculate the control volume normals at the Gauss pts.
                   CALL SCVDETNX( ELE, GI, &
@@ -901,12 +867,10 @@ contains
                        X_NDGLN, X_NONODS, &
                        SCVDETWEI, CVNORMX, CVNORMY, &
                        CVNORMZ, SCVFEN, SCVFENSLX, &
-                       SCVFENSLY, SCVFEWEIGH, XC_CV(CV_NODI), &
-                       YC_CV(CV_NODI), ZC_CV(CV_NODI), &
+                       SCVFENSLY, SCVFEWEIGH, XC_CV( CV_NODI ), &
+                       YC_CV( CV_NODI ), ZC_CV( CV_NODI ), &
                        X, Y, Z, &
                        D1, D3, DCYL )
-
-                  ! ================ COMPUTE THE FLUX ACROSS SUB-CV FACE ===============
 
                   ! Find its global node number
                   IF ( ELE2 == 0 ) THEN
@@ -914,49 +878,38 @@ contains
                   ELSE
                      CV_NODJ = CV_NDGLN( ( ELE2 - 1 ) * CV_NLOC + CV_JLOC )
                   END IF
+                  
                   X_NODI = X_NDGLN( ( ELE - 1 ) * X_NLOC  + CV_ILOC )
 
-                  Conditional_GETCT1: IF( GETCT ) THEN ! Obtain the CV discretised CT equations plus RHS
-                     !ewrite(3,*)'==================================================================='
-                     !ewrite(3,*)'CV_NODI, CV_NODJ, ELE, ELE2, GI:', CV_NODI, CV_NODJ, ELE, ELE2, GI
-                     !ewrite(3,*)'findct:',FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1
-                     !ewrite(3,*)'colct:',colct( FINDCT( CV_NODI ) : FINDCT( CV_NODI + 1 ) - 1 )
-                     !ewrite(3,*)'SCVDETWEI:', SCVDETWEI(GI)
-
+                  IF( GETCT ) THEN
                      DO U_KLOC = 1, U_NLOC
-                        U_NODK = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC )
+                        U_NODK = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_KLOC )
                         JCOUNT = 0
-                        DO COUNT = FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1, 1
-                           IF(COLCT( COUNT ) == U_NODK) then
+                        DO COUNT = FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1
+                           IF ( COLCT( COUNT ) == U_NODK ) THEN
                               JCOUNT = COUNT
-                              exit
-                           end if
+                              EXIT
+                           END IF
                         END DO
                         JCOUNT_KLOC( U_KLOC ) = JCOUNT
-                        !ewrite(3,*)' u_nodk, jcount1:', u_nodk, jcount
                      END DO
-
-                     IF( ( ELE2 /= 0 ) .AND. ( ELE2 /= ELE ) ) THEN
-                        DO U_KLOC = 1, U_NLOC
-                           U_NODK = U_NDGLN(( ELE2 - 1 ) * U_NLOC + U_KLOC )
+                     IF ( ( ELE2 /= 0 ) .AND. ( ELE2 /= ELE ) ) THEN
+                        DO U_KLOC =  1, U_NLOC
+                           U_NODK = U_NDGLN( ( ELE2 - 1 ) * U_NLOC + U_KLOC )
                            JCOUNT = 0
-                           DO COUNT = FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1, 1
-                              IF(COLCT( COUNT ) == U_NODK) then
+                           DO COUNT = FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1
+                              IF ( COLCT( COUNT ) == U_NODK ) THEN
                                  JCOUNT = COUNT
-                                 exit
-                              end if
+                                 EXIT
+                              END IF
                            END DO
                            JCOUNT_KLOC2( U_KLOC ) = JCOUNT
-                           !ewrite(3,*)' u_nodk, jcount2:', u_nodk, jcount
                         END DO
-
-                     ENDIF
-
-                  ENDIF Conditional_GETCT1
+                     END IF
+                  END IF
 
                   ! Compute the distance HDC between the nodes either side of the CV face
-                  ! (this is needed to compute the local courant number and the non-linear
-                  ! theta)
+                  ! (this is needed to compute the local courant number and the non-linear theta)
                   IF ( SELE == 0 ) THEN
                      HDC = SQRT( (XC_CV(CV_NODI)-XC_CV(CV_NODJ))**2+(YC_CV(CV_NODI)-YC_CV(CV_NODJ))**2 &
                           +(ZC_CV(CV_NODI)-ZC_CV(CV_NODJ))**2  )
@@ -965,7 +918,9 @@ contains
                           +(ZC_CV(CV_NODI)-Z(X_NODI))**2  )
                   END IF
 
-                  ! get the sum of limiting functions correct...************
+
+
+                  ! Get the sum of limiting functions correct...************
                   SUM2ONE = .FALSE.
                   Conditional_SUMLimiting: IF ( SUM2ONE ) THEN
                      SUM_LIMT   =0.0
@@ -1106,7 +1061,7 @@ contains
 
                      END DO Loop_IPHASE5
                   END IF Conditional_SUMLimiting
-                  ! get the sum of limiting functions correct...************
+                  ! Get the sum of limiting functions correct...************
 
 
                   DO COUNT = SMALL_FINDRM( CV_NODI ), SMALL_FINDRM( CV_NODI + 1 ) - 1
@@ -1540,8 +1495,8 @@ contains
 
       ENDIF Conditional_GETCV_DISC2
 
-      IF ( GETCT ) THEN ! Form the rhs of the discretised equations
-         DIAG_SCALE_PRES = 0.0 ! Obtain the CV discretised CT eqations plus RHS
+      IF ( GETCT ) THEN
+         DIAG_SCALE_PRES = 0.0
 
          DO IPHASE = 1, NPHASE
             DO CV_NODI = 1, CV_NONODS
