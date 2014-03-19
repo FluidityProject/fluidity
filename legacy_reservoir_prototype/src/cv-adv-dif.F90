@@ -368,6 +368,8 @@ contains
 
 
       INTEGER :: NLEV, U_NLOC2, ILEV, IDIM, U_ILOC, U_INOD
+      REAL :: R
+
 
       REAL, DIMENSION( :, :, : ), ALLOCATABLE :: U_ALL, NU_ALL, NUOLD_ALL
       REAL, DIMENSION( :, : ), ALLOCATABLE :: X_ALL, T_ALL, TOLD_ALL, &
@@ -1545,50 +1547,52 @@ contains
                RHS_NODI_IPHA = IPHASE + ( CV_NODI -1 ) * NPHASE
                IMID_IPHA = IPHASE + (SMALL_CENTRM(CV_NODI)-1)*NPHASE
 
+                R = MEAN_PORE_CV( CV_NODI ) * MASS_CV( CV_NODI ) / DT
+
                IF ( IGOT_T2 == 1 ) THEN
                   CV_RHS( RHS_NODI_IPHA ) = CV_RHS( RHS_NODI_IPHA ) &
                        + MASS_CV(CV_NODI) * SOURCT( CV_NODI_IPHA )
 
                   CSR_ACV( IMID_IPHA ) = CSR_ACV( IMID_IPHA ) &
-                       + (CV_BETA * DEN(CV_NODI_IPHA) * T2(CV_NODI_IPHA) &
-                       + (1.-CV_BETA) * DEN(CV_NODI_IPHA) * T2(CV_NODI_IPHA) ) &
-                       * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) / DT
+                       + (CV_BETA * DEN_ALL( IPHASE, CV_NODI ) * T2_ALL( IPHASE, CV_NODI ) &
+                       + (1.-CV_BETA) * DEN_ALL( IPHASE, CV_NODI ) * T2_ALL( IPHASE, CV_NODI ) ) &
+                       * R
 
                   CV_RHS( RHS_NODI_IPHA ) = CV_RHS( RHS_NODI_IPHA ) &
-                       + (CV_BETA * DENOLD(CV_NODI_IPHA) * T2OLD(CV_NODI_IPHA) &
-                       + (1.-CV_BETA) * DEN(CV_NODI_IPHA) * T2(CV_NODI_IPHA))  &
-                       * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) * TOLD(CV_NODI_IPHA) / DT
+                       + (CV_BETA * DENOLD_ALL( IPHASE, CV_NODI ) * T2OLD_ALL( IPHASE, CV_NODI ) &
+                       + (1.-CV_BETA) * DEN_ALL( IPHASE, CV_NODI ) * T2_ALL( IPHASE, CV_NODI ) )  &
+                       * R * TOLD_ALL( IPHASE, CV_NODI )
                ELSE
 
                   CV_RHS( RHS_NODI_IPHA ) = CV_RHS( RHS_NODI_IPHA ) &
-                       + MASS_CV(CV_NODI) * SOURCT(CV_NODI_IPHA)
+                       + MASS_CV( CV_NODI ) * SOURCT( CV_NODI_IPHA )
 
                   CSR_ACV( IMID_IPHA ) =  CSR_ACV( IMID_IPHA ) &
-                       + (CV_BETA * DEN(CV_NODI_IPHA) &
-                       + (1.-CV_BETA) * DEN(CV_NODI_IPHA))  &
-                       * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) / DT
+                       + (CV_BETA * DEN_ALL( IPHASE, CV_NODI ) &
+                       + (1.-CV_BETA) * DEN_ALL( IPHASE, CV_NODI ) )  &
+                       * R
 
                   CV_RHS( RHS_NODI_IPHA ) = CV_RHS( RHS_NODI_IPHA ) &
-                       + (CV_BETA * DENOLD(CV_NODI_IPHA) &
-                       + (1.-CV_BETA) * DEN(CV_NODI_IPHA)) &
-                       * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) * TOLD(CV_NODI_IPHA) / DT
+                       + ( CV_BETA * DENOLD_ALL( IPHASE, CV_NODI ) &
+                       + (1.-CV_BETA) * DEN_ALL( IPHASE, CV_NODI ) ) &
+                       * R * TOLD_ALL( IPHASE, CV_NODI )
                END IF
 
 
                Conditional_GETMAT2: IF ( GETMAT ) THEN
 
                   DO JPHASE = 1, NPHASE
-                     DENSE_ACV(JPHASE,IPHASE,CV_NODI)  = DENSE_ACV(JPHASE,IPHASE,CV_NODI) &
+                     DENSE_ACV( JPHASE, IPHASE, CV_NODI )  = DENSE_ACV( JPHASE, IPHASE, CV_NODI ) &
                           + MASS_CV( CV_NODI ) * ABSORBT( CV_NODI, IPHASE, JPHASE )
                   END DO
 
-               ENDIF Conditional_GETMAT2
+               END IF Conditional_GETMAT2
 
             END DO Loop_IPHASE2
 
          END DO Loop_CVNODI2
 
-      ENDIF Conditional_GETCV_DISC2
+      END IF Conditional_GETCV_DISC2
 
       IF ( GETCT ) THEN
          DIAG_SCALE_PRES = 0.0
@@ -1601,29 +1605,29 @@ contains
                W_SUM_ONE1 = 1.0 !If == 1.0 applies constraint to T
                W_SUM_ONE2 = 0.0 !If == 1.0 applies constraint to TOLD
 
-               CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - MASS_CV( CV_NODI ) * MEAN_PORE_CV( CV_NODI ) * ( &
-                    (1.0-W_SUM_ONE1) * T( CV_NODI_IPHA ) / DT &
-                    -(1.0-W_SUM_ONE2) * TOLD( CV_NODI_IPHA ) / DT  &
-                    +TOLD( CV_NODI_IPHA ) * ( DEN( CV_NODI_IPHA ) - DENOLD( CV_NODI_IPHA ) ) / ( DT * DEN( CV_NODI_IPHA ) ) &
-                    -DERIV( CV_NODI_IPHA ) * CV_P( CV_NODI ) * T( CV_NODI_IPHA ) / ( DT * DEN( CV_NODI_IPHA ) ) )
-               
+               R = MASS_CV( CV_NODI ) * MEAN_PORE_CV( CV_NODI ) / DT
+
+               CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) &
+                    - R * ( &
+                    + (1.0-W_SUM_ONE1) * T_ALL( IPHASE, CV_NODI ) - (1.0-W_SUM_ONE2) * TOLD_ALL( IPHASE, CV_NODI ) &
+                    + ( TOLD_ALL( IPHASE, CV_NODI ) * ( DEN_ALL( IPHASE, CV_NODI ) - DENOLD_ALL( IPHASE, CV_NODI ) ) &
+                    - DERIV( CV_NODI_IPHA ) * CV_P( CV_NODI ) * T_ALL( IPHASE, CV_NODI ) ) / DEN_ALL( IPHASE, CV_NODI ) )
+
                IF ( IPHASE == 1 ) THEN ! Add constraint to force sum of volume fracts to be unity...
                   ! W_SUM_ONE==1 applies the constraint
                   ! W_SUM_ONE==0 does NOT apply the constraint
-                  CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - MASS_CV( CV_NODI ) * &
-                       ( W_SUM_ONE1 - W_SUM_ONE2 ) * MEAN_PORE_CV( CV_NODI ) / DT
+                  CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - ( W_SUM_ONE1 - W_SUM_ONE2 ) * R
                END IF
 
                DIAG_SCALE_PRES( CV_NODI ) = DIAG_SCALE_PRES( CV_NODI ) + &
-                    MEAN_PORE_CV( CV_NODI ) * T( CV_NODI_IPHA ) * DERIV( CV_NODI_IPHA )  &
-                    / ( DT * DEN( CV_NODI_IPHA ) )
+                    MEAN_PORE_CV( CV_NODI ) * T_ALL( IPHASE, CV_NODI ) * DERIV( CV_NODI_IPHA )  &
+                    / ( DT * DEN_ALL( IPHASE, CV_NODI ) )
 
-               CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + MASS_CV( CV_NODI ) * SOURCT( CV_NODI_IPHA ) / DEN( CV_NODI_IPHA )
+               CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + MASS_CV( CV_NODI ) * SOURCT( CV_NODI_IPHA ) / DEN_ALL( IPHASE, CV_NODI )
 
                DO JPHASE = 1, NPHASE
-                  CV_NODI_JPHA = CV_NODI + ( JPHASE - 1 ) * CV_NONODS
-                  CT_RHS( CV_NODI ) = CT_RHS( CV_NODI )  &
-                       - MASS_CV( CV_NODI ) * ABSORBT( CV_NODI, IPHASE, JPHASE ) * T( CV_NODI_JPHA ) / DEN( CV_NODI_IPHA )
+                  CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) &
+                       - MASS_CV( CV_NODI ) * ABSORBT( CV_NODI, IPHASE, JPHASE ) * T_ALL( JPHASE, CV_NODI ) / DEN_ALL( IPHASE, CV_NODI )
                END DO
             END DO
          END DO
