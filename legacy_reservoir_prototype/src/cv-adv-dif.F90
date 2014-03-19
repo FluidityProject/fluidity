@@ -314,11 +314,11 @@ contains
            SBCVFENLX, SBCVFENLY, SBCVFENLZ, SBUFEN, SBUFENSLX, SBUFENSLY, &
            SBUFENLX, SBUFENLY, SBUFENLZ, &
            DUMMY_ZERO_NDIM_NDIM
-      REAL, DIMENSION( : , :, : ), allocatable :: DTX_ELE,DTY_ELE,DTZ_ELE,  &
+      REAL, DIMENSION( :, :, : ), allocatable :: DTX_ELE,DTY_ELE,DTZ_ELE,  &
            DTOLDX_ELE,DTOLDY_ELE,DTOLDZ_ELE
-      REAL, pointer, DIMENSION( : , :, : ) :: INV_JAC
-      real, pointer, dimension(:) :: SCVDETWEI, SCVRA
-      real, pointer, dimension(:,:,:) :: SCVFENX_ALL
+      REAL, pointer, DIMENSION( :, :, : ) :: INV_JAC
+      real, pointer, dimension( : ) :: SCVDETWEI, SCVRA
+      real, pointer, dimension( :, :, : ) :: SCVFENX_ALL
       !        ===> INTEGERS <===
       INTEGER :: CV_NGI, CV_NGI_SHORT, SCVNGI, SBCVNGI, COUNT, JCOUNT, &
            ELE, ELE2, GI, GCOUNT, SELE,   &
@@ -365,6 +365,27 @@ contains
       type( scalar_field ), pointer :: perm
       !Reals to store the irresidual water and irreducible oil values, used in GET_INT_T_DEN
       real ::  s_gc, s_or
+
+
+
+
+      INTEGER :: NLEV, U_NLOC2, ILEV, IDIM, U_ILOC, U_INOD
+
+      REAL, DIMENSION( :, :, : ), ALLOCATABLE :: NU_ALL, NUOLD_ALL
+      REAL, DIMENSION( :, : ), ALLOCATABLE :: X_ALL, T_ALL, TOLD_ALL, &
+           DEN_ALL, DENOLD_ALL, T2_ALL, T2OLD_ALL, FEMT_ALL, FEMTOLD_ALL, &
+           FEMDEN_ALL, FEMDENOLD_ALL, FEMT2_ALL, FEMT2OLD_ALL
+
+
+
+
+
+
+
+
+
+
+
 
 !      ALLOCATE( PERM_ELE( TOTELE ) ) ; PERM_ELE = 0.0
 !      if ( overlapping ) then
@@ -637,6 +658,97 @@ contains
 
       IGETCT = 0
       IF ( GETCT ) IGETCT = 1
+
+
+! TEMP STUFF HERE
+
+      ALLOCATE( NU_ALL( NDIM, NPHASE, U_NONODS ), NUOLD_ALL( NDIM, NPHASE, U_NONODS ) )
+      ALLOCATE( X_ALL( NDIM, X_NONODS ) )
+      ALLOCATE( T_ALL( NPHASE, CV_NONODS ), TOLD_ALL( NPHASE, CV_NONODS ) )
+      ALLOCATE( DEN_ALL( NPHASE, CV_NONODS ), DENOLD_ALL( NPHASE, CV_NONODS ) )
+      ALLOCATE( T2_ALL( NPHASE, CV_NONODS ), T2OLD_ALL( NPHASE, CV_NONODS ) )
+
+      ALLOCATE( FEMT_ALL( NPHASE, CV_NONODS ), FEMTOLD_ALL( NPHASE, CV_NONODS ) )
+      ALLOCATE( FEMDEN_ALL( NPHASE, CV_NONODS ), FEMDENOLD_ALL( NPHASE, CV_NONODS ) )
+      ALLOCATE( FEMT2_ALL( NPHASE, CV_NONODS ), FEMT2OLD_ALL( NPHASE, CV_NONODS ) )
+
+      NU_ALL=0. ; NUOLD_ALL=0. ; X_ALL=0. ;  X_ALL=0.
+      T_ALL=0. ; TOLD_ALL=0. ; DEN_ALL=0. ; DENOLD_ALL=0. ; T2_ALL=0. ; T2OLD_ALL=0.
+      FEMT_ALL=0. ; FEMTOLD_ALL=0. ; FEMDEN_ALL=0. ; FEMDENOLD_ALL=0. ; FEMT2_ALL=0. ; FEMT2OLD_ALL=0.
+
+
+      IF ( IS_OVERLAPPING ) THEN
+         NLEV = CV_NLOC
+         U_NLOC2 = MAX( 1, U_NLOC / CV_NLOC )
+      ELSE
+         NLEV = 1
+         U_NLOC2 = U_NLOC
+      END IF
+      DO ELE = 1, TOTELE
+         DO ILEV = 1, NLEV
+            DO U_ILOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
+               U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
+               DO IPHASE = 1, NPHASE
+                  DO IDIM = 1, NDIM
+                     IF ( IDIM==1 ) THEN
+                        NU_ALL( IDIM, IPHASE, U_INOD ) = NU( U_INOD + (IPHASE-1)*U_NONODS )
+                        NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NUOLD( U_INOD + (IPHASE-1)*U_NONODS )
+                     ELSE IF ( IDIM==2 ) THEN
+                        NU_ALL( IDIM, IPHASE, U_INOD ) = NV( U_INOD + (IPHASE-1)*U_NONODS )
+                        NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NVOLD( U_INOD + (IPHASE-1)*U_NONODS )
+                     ELSE
+                        NU_ALL( IDIM, IPHASE, U_INOD ) = NW( U_INOD + (IPHASE-1)*U_NONODS )
+                        NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NWOLD( U_INOD + (IPHASE-1)*U_NONODS )
+                     END IF
+                  END DO
+               END DO
+            END DO
+         END DO
+      END DO
+      DO IDIM = 1, NDIM
+         IF ( IDIM==1 ) THEN
+            X_ALL( IDIM, : ) = X
+         ELSE IF ( IDIM==2 ) THEN
+            X_ALL( IDIM, : ) = Y
+         ELSE
+            X_ALL( IDIM, : ) = Z
+         END IF
+      END DO
+
+      DO IPHASE = 1, NPHASE
+
+         DEN_ALL( IPHASE, : ) = DEN( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
+         DENOLD_ALL( IPHASE, : ) = DENOLD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
+
+         T_ALL( IPHASE, : ) = T( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
+         TOLD_ALL( IPHASE, : ) = TOLD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
+
+         IF ( IGOT_T2 == 1 ) THEN
+            T2_ALL( IPHASE, : ) = T2( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
+            T2OLD_ALL( IPHASE, : ) = T2OLD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
+         END IF
+
+      END DO
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+! END OF TEMP STUFF HERE
 
       CALL PROJ_CV_TO_FEM_4( state, &
            FEMT, FEMTOLD, FEMDEN, FEMDENOLD, T, TOLD, DEN, DENOLD, &

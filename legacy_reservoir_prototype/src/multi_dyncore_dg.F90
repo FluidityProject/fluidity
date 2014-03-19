@@ -286,38 +286,36 @@ contains
                 trim(option_path))
 
                 DO IPHASE = 2, NPHASE
-                    T( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) = T ( 1 : CV_NONODS )
+                   T( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) = T ( 1 : CV_NONODS )
                 END DO
 
-            ELSE
+             ELSE
 
                 call assemble_global_multiphase_csr(acv,&
-                block_acv,dense_block_matrix,&
-                block_to_global_acv,global_dense_block_acv)
+                     block_acv,dense_block_matrix,&
+                     block_to_global_acv,global_dense_block_acv)
+            
+                T([([(i+(j-1)*nphase,j=1,cv_nonods)],i=1,nphase)]) = T
 
-                IF( IGOT_T2 == 1) THEN
-                    !CALL SIMPLE_SOLVER( ACV, T, CV_RHS,  &
-                    !     NCOLACV, nphase * CV_NONODS, FINACV, COLACV, MIDACV,  &
-                    !     1.E-10, 1., 0., 1., 400 )
-                    T([([(i+(j-1)*nphase,j=1,cv_nonods)],i=1,nphase)])=T
-                    CALL SOLVER( ACV, T, CV_RHS, &
-                    FINACV, COLACV, &
-                    trim('/material_phase::Component1/scalar_field::ComponentMassFractionPhase1/prognostic') )
-                    T([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)])=T
+                IF ( IGOT_T2 == 1) THEN
+                   CALL SOLVER( ACV, T, CV_RHS, &
+                        FINACV, COLACV, &
+                        trim('/material_phase::Component1/scalar_field::ComponentMassFractionPhase1/prognostic') )
                 ELSE
-                    T([([(i+(j-1)*nphase,j=1,cv_nonods)],i=1,nphase)])=T
-                    CALL SOLVER( ACV, T, CV_RHS, &
-                    FINACV, COLACV, &
-                    trim(option_path) )
-                    T([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)])=T
+                   CALL SOLVER( ACV, T, CV_RHS, &
+                        FINACV, COLACV, &
+                        trim(option_path) )
                 END IF
-               !ewrite(3,*)'cv_rhs:', cv_rhs
-               !ewrite(3,*)'SUF_T_BC:',SUF_T_BC
-               !ewrite(3,*)'ACV:',  (acv(i),i= FINACV(1), FINACV(2)-1)
-               !ewrite(3,*)'T_ABSORB:',((T_ABSORB(1,i,j), i=1,nphase),j=1,nphase)
-               !ewrite(3,*)
 
-            END IF Conditional_Lumping
+                T([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)]) = T
+
+                !ewrite(3,*)'cv_rhs:', cv_rhs
+                !ewrite(3,*)'SUF_T_BC:',SUF_T_BC
+                !ewrite(3,*)'ACV:',  (acv(i),i= FINACV(1), FINACV(2)-1)
+                !ewrite(3,*)'T_ABSORB:',((T_ABSORB(1,i,j), i=1,nphase),j=1,nphase)
+                !ewrite(3,*)
+
+             END IF Conditional_Lumping
 
         END DO Loop_NonLinearFlux
 
