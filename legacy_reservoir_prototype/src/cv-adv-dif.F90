@@ -363,8 +363,6 @@ contains
       INTEGER :: IDUM(1)
       REAL :: RDUM(1),n1,n2,n3
       type( scalar_field ), pointer :: perm
-      !Reals to store the irresidual water and irreducible oil values, used in GET_INT_T_DEN
-      real ::  s_gc, s_or
 
 
 
@@ -897,16 +895,6 @@ contains
          END IF
       END IF
 
-      ! Get the irreducible water and residual oil before entering the loop
-      ! this value are used in GET_INT_T_DEN to keep the phases between realistic values
-      ! Default value has to be the same as in subroutine get_corey_options in multi_eos.F90
-      ! Default value of S_GC = 0.1
-      call get_option("/material_phase[0]/multiphase_properties/immobile_fraction", &
-           s_gc, default = 0.1 )
-      !Default value of S_OR = 0.3
-      call get_option("/material_phase[1]/multiphase_properties/immobile_fraction", &
-           s_or, default = 0.3 )
-
       GLOBAL_FACE = 0
 
 
@@ -1140,9 +1128,7 @@ contains
                              SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:), CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
-                             TOLDUPWIND_MAT, DENOLDUPWIND_MAT, T2OLDUPWIND_MAT , &
-                             !Values to limit the flow when reaching the irreducible  saturation for a phase
-                             s_gc, s_or )
+                             TOLDUPWIND_MAT, DENOLDUPWIND_MAT, T2OLDUPWIND_MAT)
                         
                         CALL GET_INT_T_DEN( FVT, FVT2, FVD, LIMD, LIMT, LIMT2, &
                              LIMDT, LIMDTT2,&
@@ -1164,9 +1150,7 @@ contains
                              SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:), CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
-                             TUPWIND_MAT, DENUPWIND_MAT, T2UPWIND_MAT, &
-                             !Values to limit the flow when reaching the irreducible  saturation for a phase
-                             s_gc, s_or )
+                             TUPWIND_MAT, DENUPWIND_MAT, T2UPWIND_MAT )
 
                         SUM_LIMT    = SUM_LIMT    + LIMT
                         SUM_LIMTOLD = SUM_LIMTOLD + LIMTOLD
@@ -1305,9 +1289,7 @@ contains
                              SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:), CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
-                             TOLDUPWIND_MAT, DENOLDUPWIND_MAT, T2OLDUPWIND_MAT , &
-                             !Values to limit the flow when reaching the irreducible  saturation for a phase
-                             s_gc, s_or )
+                             TOLDUPWIND_MAT, DENOLDUPWIND_MAT, T2OLDUPWIND_MAT  )
                         
                         CALL GET_INT_T_DEN( FVT, FVT2, FVD, LIMD, LIMT, LIMT2, &
                              LIMDT, LIMDTT2,&
@@ -1329,9 +1311,7 @@ contains
                              SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:), CVNORMX, CVNORMY, CVNORMZ, &
                              U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
-                             TUPWIND_MAT, DENUPWIND_MAT, T2UPWIND_MAT, &
-                             !Values to limit the flow when reaching the irreducible  saturation for a phase
-                             s_gc, s_or )
+                             TUPWIND_MAT, DENUPWIND_MAT, T2UPWIND_MAT )
 
                      END DO
 
@@ -7672,16 +7652,14 @@ pure real function ptolfun(value)
        SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
        U,V,W, U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
        IANISOTROPIC, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
-       TUPWIND_MAT, DENUPWIND_MAT, T2UPWIND_MAT, &
-       !Values to limit the flow when reaching the irreducible  saturation for a phase
-       s_gc, s_or )
+       TUPWIND_MAT, DENUPWIND_MAT, T2UPWIND_MAT )
     !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===============
     IMPLICIT NONE
     ! Calculate T and DEN on the CV face at quadrature point GI.
     REAL, intent( inout ) :: FVT, FVT2, FVD, LIMD,LIMT,LIMT2, &
          LIMDT,LIMDTT2, &
          FEMDGI, FEMTGI, FEMT2GI
-    REAL, intent( in ) :: INCOME,HDC,NDOTQ,DT, s_gc, s_or
+    REAL, intent( in ) :: INCOME,HDC,NDOTQ,DT
     INTEGER, intent( in ) :: CV_DISOPT,CV_NONODS,NPHASE,CV_NODI_IPHA,CV_NODJ_IPHA,ELE,ELE2,  &
          CV_NLOC,TOTELE,SCVNGI,GI,IPHASE,SELE,CV_SNLOC,STOTEL, &
          WIC_T_BC_DIRICHLET,WIC_D_BC_DIRICHLET, IGOT_T2, U_NLOC,U_NONODS,NDIM
