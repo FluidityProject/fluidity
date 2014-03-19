@@ -7443,9 +7443,17 @@ pure real function ptolfun(value)
     IF (NDIM==3 ) CVNORMX_ALL(3)=CVNORMZ(GI)
 
     ! coefficients for this element ELE
+    UGI_COEF_ELE=0.0
+    VGI_COEF_ELE=0.0
+    WGI_COEF_ELE=0.0 
+
     UGI_COEF_ELE_ALL=0.0
 
     ! coefficients for this element ELE2
+    UGI_COEF_ELE2=0.0
+    VGI_COEF_ELE2=0.0
+    WGI_COEF_ELE2=0.0 
+
     UGI_COEF_ELE2_ALL=0.0
 
 
