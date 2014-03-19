@@ -371,11 +371,10 @@ contains
       REAL :: R
 
 
-      REAL, DIMENSION( :, :, : ), ALLOCATABLE :: U_ALL, NU_ALL, NUOLD_ALL
+      REAL, DIMENSION( :, :, : ), ALLOCATABLE :: U_ALL, NU_ALL, NUOLD_ALL, ABSORBT_ALL
       REAL, DIMENSION( :, : ), ALLOCATABLE :: X_ALL, T_ALL, TOLD_ALL, &
            DEN_ALL, DENOLD_ALL, T2_ALL, T2OLD_ALL, FEMT_ALL, FEMTOLD_ALL, &
-           FEMDEN_ALL, FEMDENOLD_ALL, FEMT2_ALL, FEMT2OLD_ALL
-
+           FEMDEN_ALL, FEMDENOLD_ALL, FEMT2_ALL, FEMT2OLD_ALL, SOURCT_ALL
 
 
 
@@ -672,10 +671,12 @@ contains
       ALLOCATE( FEMDEN_ALL( NPHASE, CV_NONODS ), FEMDENOLD_ALL( NPHASE, CV_NONODS ) )
       ALLOCATE( FEMT2_ALL( NPHASE, CV_NONODS ), FEMT2OLD_ALL( NPHASE, CV_NONODS ) )
 
+      ALLOCATE( SOURCT_ALL( NPHASE, CV_NONODS ), ABSORBT_ALL( NPHASE, NPHASE, CV_NONODS ) )
+
       NU_ALL=0. ; NUOLD_ALL=0. ; X_ALL=0. ;  X_ALL=0.
       T_ALL=0. ; TOLD_ALL=0. ; DEN_ALL=0. ; DENOLD_ALL=0. ; T2_ALL=0. ; T2OLD_ALL=0.
       FEMT_ALL=0. ; FEMTOLD_ALL=0. ; FEMDEN_ALL=0. ; FEMDENOLD_ALL=0. ; FEMT2_ALL=0. ; FEMT2OLD_ALL=0.
-
+      SOURCT_ALL=0. ; ABSORBT_ALL=0.
 
       IF ( IS_OVERLAPPING ) THEN
          NLEV = CV_NLOC
@@ -730,6 +731,12 @@ contains
             T2_ALL( IPHASE, : ) = T2( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
             T2OLD_ALL( IPHASE, : ) = T2OLD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
          END IF
+
+         SOURCT_ALL( IPHASE, : ) = SOURCT( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
+
+         DO JPHASE = 1, NPHASE
+            ABSORBT_ALL( JPHASE, IPHASE, : ) = ABSORBT( :, JPHASE, IPHASE )
+         END DO
 
       END DO
 
@@ -1573,7 +1580,7 @@ contains
 
                IF ( IGOT_T2 == 1 ) THEN
                   CV_RHS( RHS_NODI_IPHA ) = CV_RHS( RHS_NODI_IPHA ) &
-                       + MASS_CV(CV_NODI) * SOURCT( CV_NODI_IPHA )
+                       + MASS_CV(CV_NODI) * SOURCT_ALL( IPHASE, CV_NODI )
 
                   CSR_ACV( IMID_IPHA ) = CSR_ACV( IMID_IPHA ) &
                        + (CV_BETA * DEN_ALL( IPHASE, CV_NODI ) * T2_ALL( IPHASE, CV_NODI ) &
@@ -1587,7 +1594,7 @@ contains
                ELSE
 
                   CV_RHS( RHS_NODI_IPHA ) = CV_RHS( RHS_NODI_IPHA ) &
-                       + MASS_CV( CV_NODI ) * SOURCT( CV_NODI_IPHA )
+                       + MASS_CV( CV_NODI ) * SOURCT_ALL( IPHASE, CV_NODI )
 
                   CSR_ACV( IMID_IPHA ) =  CSR_ACV( IMID_IPHA ) &
                        + (CV_BETA * DEN_ALL( IPHASE, CV_NODI ) &
@@ -1605,7 +1612,7 @@ contains
 
                   DO JPHASE = 1, NPHASE
                      DENSE_ACV( JPHASE, IPHASE, CV_NODI )  = DENSE_ACV( JPHASE, IPHASE, CV_NODI ) &
-                          + MASS_CV( CV_NODI ) * ABSORBT( CV_NODI, IPHASE, JPHASE )
+                          + MASS_CV( CV_NODI ) * ABSORBT_ALL( IPHASE, JPHASE, CV_NODI )
                   END DO
 
                END IF Conditional_GETMAT2
@@ -1645,11 +1652,11 @@ contains
                     MEAN_PORE_CV( CV_NODI ) * T_ALL( IPHASE, CV_NODI ) * DERIV( CV_NODI_IPHA )  &
                     / ( DT * DEN_ALL( IPHASE, CV_NODI ) )
 
-               CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + MASS_CV( CV_NODI ) * SOURCT( CV_NODI_IPHA ) / DEN_ALL( IPHASE, CV_NODI )
+               CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + MASS_CV( CV_NODI ) * SOURCT_ALL( IPHASE, CV_NODI ) / DEN_ALL( IPHASE, CV_NODI )
 
                DO JPHASE = 1, NPHASE
                   CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) &
-                       - MASS_CV( CV_NODI ) * ABSORBT( CV_NODI, IPHASE, JPHASE ) * T_ALL( JPHASE, CV_NODI ) / DEN_ALL( IPHASE, CV_NODI )
+                       - MASS_CV( CV_NODI ) * ABSORBT_ALL( IPHASE, JPHASE, CV_NODI ) * T_ALL( JPHASE, CV_NODI ) / DEN_ALL( IPHASE, CV_NODI )
                END DO
             END DO
          END DO
