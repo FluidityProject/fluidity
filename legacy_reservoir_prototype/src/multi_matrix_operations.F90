@@ -426,14 +426,15 @@
          INTEGER, PARAMETER :: MX_NCOLOR = 1000
          REAL, PARAMETER :: INFINY = 1.0E+10
          LOGICAL :: LCOL
-         INTEGER, DIMENSION( CV_NONODS ) :: ICOLOR
+         LOGICAL, DIMENSION( : ), allocatable :: COLOR_LOGICAL
+         INTEGER, DIMENSION( : ), allocatable :: ICOLOR
          INTEGER, DIMENSION( : ), allocatable :: COLOR_IN_ROW, COLOR_IN_ROW2
          REAL, DIMENSION( :, : ), allocatable :: COLOR_VEC_MANY, CMC_COLOR_VECC_MANY, CMC_COLOR_VEC2C_MANY
          REAL, DIMENSION( :, : ), allocatable :: CDPC_MANY
          REAL, DIMENSION( :, :, :, : ), allocatable :: CDP_MANY, DU_LONG_MANY
          REAL, DIMENSION( :, : ), allocatable :: CMC_COLOR_VEC_MANY, CMC_COLOR_VEC2_MANY
          INTEGER :: CV_NOD, CV_JNOD, COUNT, COUNT2, COUNT3, IDIM, IPHASE, CV_COLJ, U_JNOD, CV_JNOD2
-         INTEGER :: MAX_COLOR_IN_ROW, ICHOOSE, KVEC, I, ELE, U_INOD, U_NOD
+         INTEGER :: MAX_COLOR_IN_ROW, ICHOOSE, KVEC, I, ELE, U_INOD, U_NOD, ICAN_COLOR, MX_COLOR, NOD_COLOR
          INTEGER :: NCOLOR
          REAL :: RSUM
          !Variables to store things in state
@@ -442,7 +443,7 @@
          type(scalar_field), target :: targ_icolor
          real, pointer, dimension(:) :: pointer_icolor
 
-!         ALLOCATE( ICOLOR( CV_NONODS ) ) ; ICOLOR = 0
+         ALLOCATE( ICOLOR( CV_NONODS ) ) 
 
          CMC = 0.0
          IF ( IGOT_CMC_PRECON /= 0 ) CMC_PRECON = 0.0
@@ -481,58 +482,56 @@
           !Get from state
           pointer_icolor =>  state(1)%scalar_fields(indx)%ptr%val
 
-            ICOLOR = 0
-            NCOLOR = 0
-            Loop_CVNOD7: DO CV_NOD = 1, CV_NONODS
 
-               ! Color this node CV_NOD
-               COUNT3 = 0
+
+
+
+
+         ALLOCATE( COLOR_LOGICAL( CV_NONODS ) )
+         COLOR_LOGICAL = .FALSE.
+
+         NCOLOR=0
+         ICOLOR = 0
+         Loop_CVNOD7: DO CV_NOD = 1, CV_NONODS
+! Color this node CV_NOD
+
+               MX_COLOR=0
                ! use a distance-2 colouring...
                Loop_Row7: DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                   CV_JNOD = COLCMC( COUNT )
                   Loop_Row2: DO COUNT2 = FINDCMC( CV_JNOD ), FINDCMC( CV_JNOD + 1 ) - 1
                      CV_JNOD2 = COLCMC( COUNT2 )
-                     IF ( CV_NOD /= CV_JNOD2 ) THEN
-                        IF ( ICOLOR( CV_JNOD2 ) /= 0 ) THEN
-                           COUNT3 = COUNT3 + 1
-                           COLOR_IN_ROW( COUNT3 )= ICOLOR( CV_JNOD2 )
-                        END IF
-                     END IF
+                     IF(CV_NOD.NE.CV_JNOD2) THEN
+                        NOD_COLOR=ICOLOR(CV_JNOD2)
+                        IF(NOD_COLOR.NE.0) THEN
+                           COLOR_LOGICAL( NOD_COLOR ) = .TRUE.
+                           MX_COLOR=MAX(MX_COLOR, NOD_COLOR )
+                        ENDIF
+                     ENDIF
                   END DO Loop_Row2
                END DO Loop_Row7
 
-               ! Perform a bubble sort...
-               IF ( COUNT3 == 0 ) THEN
-                  COUNT2 = 0
-               ELSE
-                  CALL IBUBLE( COLOR_IN_ROW( 1 : COUNT3 ), COUNT3) 
-!                  CALL quicksort( COLOR_IN_ROW( 1 : COUNT3 ), COUNT3) 
-                  COUNT2 = 1
-                  I = 1
-                  COLOR_IN_ROW2( COUNT2 ) = COLOR_IN_ROW( I )
-                  DO I = 2, COUNT3
-                     IF ( COLOR_IN_ROW( I ) /= COLOR_IN_ROW( I-1 ) ) THEN
-                        COUNT2 = COUNT2 + 1
-                        COLOR_IN_ROW2( COUNT2 ) = COLOR_IN_ROW( I )
-                     END IF
-                  END DO
-               END IF
-
-               ICHOOSE = 0
-               DO I = 1, COUNT2
-                  IF ( COLOR_IN_ROW2( I ) /= I ) THEN
-                     ICHOOSE = I
+! Find the node colour to use...
+               ICAN_COLOR = 0
+               DO I=1,MX_COLOR
+                  IF(.NOT.COLOR_LOGICAL(I)) THEN ! This is a colour we can use...
+                     ICAN_COLOR = I
                      EXIT
-                  END IF
+                  ENDIF
                END DO
-               IF ( COUNT2==0 ) THEN
-                  ICHOOSE=1
-               ELSE
-                  IF ( ICHOOSE==0 ) ICHOOSE = COUNT2 + 1
-               END IF
-               ICOLOR( CV_NOD ) = ICHOOSE 
-               NCOLOR = MAX( NCOLOR, ICHOOSE )
-            END DO Loop_CVNOD7
+               IF(ICAN_COLOR == 0) THEN
+                  ICAN_COLOR =MX_COLOR + 1
+               ENDIF
+               ICOLOR(CV_NOD)=ICAN_COLOR
+               NCOLOR=MAX(NCOLOR,ICAN_COLOR)
+! Reset the colors for the next node...
+               COLOR_LOGICAL(1:max(1,MX_COLOR))=.FALSE.
+
+         END DO Loop_CVNOD7
+
+
+
+
 
 
             IF ( NCOLOR > MX_NCOLOR ) THEN
@@ -545,6 +544,10 @@
             pointer_icolor(CV_NONODS+1) = NCOLOR
 
          END IF ! SAVED_CMC_COLOR
+
+
+
+
 
 
          ALLOCATE( COLOR_VEC_MANY( NCOLOR, CV_NONODS ) )
