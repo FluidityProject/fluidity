@@ -369,7 +369,7 @@ contains
 
       INTEGER :: NLEV, U_NLOC2, ILEV, IDIM, U_ILOC, U_INOD
 
-      REAL, DIMENSION( :, :, : ), ALLOCATABLE :: NU_ALL, NUOLD_ALL
+      REAL, DIMENSION( :, :, : ), ALLOCATABLE :: U_ALL, NU_ALL, NUOLD_ALL
       REAL, DIMENSION( :, : ), ALLOCATABLE :: X_ALL, T_ALL, TOLD_ALL, &
            DEN_ALL, DENOLD_ALL, T2_ALL, T2OLD_ALL, FEMT_ALL, FEMTOLD_ALL, &
            FEMDEN_ALL, FEMDENOLD_ALL, FEMT2_ALL, FEMT2OLD_ALL
@@ -660,7 +660,7 @@ contains
 
 ! TEMP STUFF HERE
 
-      ALLOCATE( NU_ALL( NDIM, NPHASE, U_NONODS ), NUOLD_ALL( NDIM, NPHASE, U_NONODS ) )
+      ALLOCATE( U_ALL( NDIM, NPHASE, U_NONODS ), NU_ALL( NDIM, NPHASE, U_NONODS ), NUOLD_ALL( NDIM, NPHASE, U_NONODS ) )
       ALLOCATE( X_ALL( NDIM, X_NONODS ) )
       ALLOCATE( T_ALL( NPHASE, CV_NONODS ), TOLD_ALL( NPHASE, CV_NONODS ) )
       ALLOCATE( DEN_ALL( NPHASE, CV_NONODS ), DENOLD_ALL( NPHASE, CV_NONODS ) )
@@ -689,12 +689,15 @@ contains
                DO IPHASE = 1, NPHASE
                   DO IDIM = 1, NDIM
                      IF ( IDIM==1 ) THEN
+                        U_ALL( IDIM, IPHASE, U_INOD ) = U( U_INOD + (IPHASE-1)*U_NONODS )
                         NU_ALL( IDIM, IPHASE, U_INOD ) = NU( U_INOD + (IPHASE-1)*U_NONODS )
                         NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NUOLD( U_INOD + (IPHASE-1)*U_NONODS )
                      ELSE IF ( IDIM==2 ) THEN
+                        U_ALL( IDIM, IPHASE, U_INOD ) = V( U_INOD + (IPHASE-1)*U_NONODS )
                         NU_ALL( IDIM, IPHASE, U_INOD ) = NV( U_INOD + (IPHASE-1)*U_NONODS )
                         NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NVOLD( U_INOD + (IPHASE-1)*U_NONODS )
                      ELSE
+                        U_ALL( IDIM, IPHASE, U_INOD ) = W( U_INOD + (IPHASE-1)*U_NONODS )
                         NU_ALL( IDIM, IPHASE, U_INOD ) = NW( U_INOD + (IPHASE-1)*U_NONODS )
                         NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NWOLD( U_INOD + (IPHASE-1)*U_NONODS )
                      END IF
@@ -1324,19 +1327,19 @@ contains
 
                      ! Define face value of theta
                      IF ( IGOT_T2 == 1 ) THEN
-                        FTHETA = FACE_THETA( DT, CV_THETA, ( cv_disopt>=8 ),HDC, NDOTQ, LIMDTT2, DIFF_COEF_DIVDX, &
-                             T(CV_NODJ_IPHA)*DEN(CV_NODJ_IPHA)*T2(CV_NODJ_IPHA), &
-                             T(CV_NODI_IPHA)*DEN(CV_NODI_IPHA)*T2(CV_NODI_IPHA), &
+                        FTHETA = FACE_THETA( DT, CV_THETA, ( CV_DISOPT>=8 ), HDC, NDOTQ, LIMDTT2, DIFF_COEF_DIVDX, &
+                             T_ALL( IPHASE, CV_NODJ ) * DEN_ALL( IPHASE, CV_NODJ ) * T2_ALL( IPHASE, CV_NODJ ), &
+                             T_ALL( IPHASE, CV_NODI ) * DEN_ALL( IPHASE, CV_NODI ) * T2_ALL( IPHASE, CV_NODI ), &
                              NDOTQOLD, LIMDTT2OLD, DIFF_COEFOLD_DIVDX, &
-                             TOLD(CV_NODJ_IPHA)*DENOLD(CV_NODJ_IPHA)*T2OLD(CV_NODJ_IPHA), &
-                             TOLD(CV_NODI_IPHA)*DENOLD(CV_NODI_IPHA)*T2OLD(CV_NODI_IPHA) )
+                             TOLD_ALL( IPHASE, CV_NODJ ) * DENOLD_ALL( IPHASE, CV_NODJ ) * T2OLD_ALL( IPHASE, CV_NODJ ), &
+                             TOLD_ALL( IPHASE, CV_NODI ) * DENOLD_ALL( IPHASE, CV_NODI ) * T2OLD_ALL( IPHASE, CV_NODI ) )
                      ELSE
-                        FTHETA = FACE_THETA( DT, CV_THETA, ( cv_disopt>=8 ),HDC, NDOTQ, LIMDTT2, DIFF_COEF_DIVDX, &
-                             T(CV_NODJ_IPHA)*DEN(CV_NODJ_IPHA), &
-                             T(CV_NODI_IPHA)*DEN(CV_NODI_IPHA), &
+                        FTHETA = FACE_THETA( DT, CV_THETA, ( CV_DISOPT>=8 ), HDC, NDOTQ, LIMDTT2, DIFF_COEF_DIVDX, &
+                             T_ALL( IPHASE, CV_NODJ ) * DEN_ALL( IPHASE, CV_NODJ ), &
+                             T_ALL( IPHASE, CV_NODI ) * DEN_ALL( IPHASE, CV_NODI ), &
                              NDOTQOLD, LIMDTT2OLD, DIFF_COEFOLD_DIVDX, &
-                             TOLD(CV_NODJ_IPHA)*DENOLD(CV_NODJ_IPHA), &
-                             TOLD(CV_NODI_IPHA)*DENOLD(CV_NODI_IPHA) )
+                             TOLD_ALL( IPHASE, CV_NODJ ) * DENOLD_ALL( IPHASE, CV_NODJ ), &
+                             TOLD_ALL( IPHASE, CV_NODI ) * DENOLD_ALL( IPHASE, CV_NODI ) )
                      END IF
 
                      FTHETA_T2 = FTHETA * LIMT2
@@ -1344,12 +1347,12 @@ contains
 
                      IF(IGOT_THETA_FLUX == 1) THEN
                         IF ( GET_THETA_FLUX ) THEN
-                           THETA_FLUX(IPHASE, GLOBAL_FACE) = FTHETA * LIMDT / DEN(CV_NODI_IPHA)
-                           ONE_M_THETA_FLUX(IPHASE, GLOBAL_FACE) = (1.0-FTHETA) * LIMDTOLD / DEN(CV_NODI_IPHA)
+                           THETA_FLUX( IPHASE, GLOBAL_FACE ) = FTHETA * LIMDT / DEN_ALL( IPHASE, CV_NODI )
+                           ONE_M_THETA_FLUX( IPHASE, GLOBAL_FACE ) = (1.0-FTHETA) * LIMDTOLD / DEN_ALL( IPHASE, CV_NODI )
                         END IF
                         IF ( USE_THETA_FLUX ) THEN
-                           FTHETA_T2         =THETA_FLUX(IPHASE, GLOBAL_FACE)
-                           ONE_M_FTHETA_T2OLD=ONE_M_THETA_FLUX(IPHASE, GLOBAL_FACE)
+                           FTHETA_T2 = THETA_FLUX( IPHASE, GLOBAL_FACE )
+                           ONE_M_FTHETA_T2OLD = ONE_M_THETA_FLUX( IPHASE, GLOBAL_FACE )
                         END IF
                      END IF
 
@@ -1390,22 +1393,22 @@ contains
                            ! Conservative discretisation. The matrix (PIVOT ON LOW ORDER SOLN)
                            IF ( ( CV_NODI_IPHA /= CV_NODJ_IPHA ) .AND. ( CV_NODJ /= 0 ) ) THEN
                               CSR_ACV( IPHASE+(JCOUNT_IPHA-1)*NPHASE ) =  CSR_ACV( IPHASE+(JCOUNT_IPHA-1)*NPHASE ) &
-                                   + SECOND_THETA * FTHETA_T2 * SCVDETWEI( GI ) * NDOTQNEW * INCOME * LIMD  & ! advection
+                                   + SECOND_THETA * FTHETA_T2 * SCVDETWEI( GI ) * NDOTQNEW * INCOME * LIMD & ! Advection
                                    - FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX ! Diffusion contribution
 
                               IF ( GET_GTHETA ) THEN
                                  THETA_GDIFF( CV_NODI_IPHA ) =  THETA_GDIFF( CV_NODI_IPHA ) &
-                                      + FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX * T(CV_NODJ_IPHA) ! Diffusion contribution
+                                      + FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX * T_ALL( IPHASE, CV_NODJ ) ! Diffusion contribution
                               END IF
                            ELSE IF ( SELE /= 0 ) THEN
                               IF(WIC_T_BC(SELE+(IPHASE-1)*STOTEL) == WIC_T_BC_DIRICHLET) THEN
-                                 CV_RHS( rhs_NODI_IPHA ) =  CV_RHS( rhs_NODI_IPHA )  &
-                                      + FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX  &
-                                      * SUF_T_BC(CV_SILOC+(SELE-1)*CV_SNLOC+(IPHASE-1)*STOTEL*CV_SNLOC)
+                                 CV_RHS( RHS_NODI_IPHA ) =  CV_RHS( RHS_NODI_IPHA ) &
+                                      + FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX &
+                                      * SUF_T_BC( CV_SILOC + (SELE-1)*CV_SNLOC + (IPHASE-1)*STOTEL*CV_SNLOC )
                                  IF(GET_GTHETA) THEN
                                     THETA_GDIFF( CV_NODI_IPHA ) =  THETA_GDIFF( CV_NODI_IPHA ) &
                                          + FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX &
-                                         * SUF_T_BC(CV_SILOC+(SELE-1)*CV_SNLOC+(IPHASE-1)*STOTEL*CV_SNLOC)
+                                         * SUF_T_BC( CV_SILOC + (SELE-1)*CV_SNLOC + (IPHASE-1)*STOTEL*CV_SNLOC )
                                  END IF
                               END IF
                            END IF
@@ -1413,23 +1416,23 @@ contains
                            IMID_IPHA = IPHASE + (SMALL_CENTRM(CV_NODI)-1)*NPHASE
 
                            CSR_ACV( IMID_IPHA ) =  CSR_ACV( IMID_IPHA ) &
-                                +  SECOND_THETA * FTHETA_T2 * SCVDETWEI( GI ) * NDOTQNEW * ( 1. - INCOME ) * LIMD & ! advection
+                                +  SECOND_THETA * FTHETA_T2 * SCVDETWEI( GI ) * NDOTQNEW * ( 1. - INCOME ) * LIMD & ! Advection
                                 +  FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX  &  ! Diffusion contribution
                                 +  SCVDETWEI( GI ) * ROBIN1  ! Robin bc
 
                            IF ( GET_GTHETA ) THEN
                               THETA_GDIFF( CV_NODI_IPHA ) =  THETA_GDIFF( CV_NODI_IPHA ) &
-                                   -  FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX * T( CV_NODI_IPHA ) & ! Diffusion contribution
-                                   -  SCVDETWEI( GI ) * ROBIN1 * T( CV_NODI_IPHA )  ! Robin bc
+                                   -  FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX * T_ALL( IPHASE, CV_NODI ) & ! Diffusion contribution
+                                   -  SCVDETWEI( GI ) * ROBIN1 * T_ALL( IPHASE, CV_NODI )  ! Robin bc
                            END IF
 
                            ! CV_BETA=0 for Non-conservative discretisation (CV_BETA=1 for conservative disc)
                            CSR_ACV( IMID_IPHA ) = CSR_ACV( IMID_IPHA )  &
                                 - SECOND_THETA * FTHETA_T2 * ( 1. - CV_BETA ) * SCVDETWEI( GI ) * NDOTQNEW * LIMD
-                        ENDIF
+                        END IF
 
-                        TMID   =     T( CV_NODI_IPHA )
-                        TOLDMID = TOLD( CV_NODI_IPHA )
+                        TMID = T_ALL( IPHASE, CV_NODI )
+                        TOLDMID = TOLD_ALL( IPHASE, CV_NODI )
 
                         ! Make allowances for no matrix stencil operating from outside the boundary.
                         BCZERO = 1.0
@@ -1454,21 +1457,21 @@ contains
 
                         ! Diffusion contribution
                         CV_RHS( RHS_NODI_IPHA ) =  CV_RHS( RHS_NODI_IPHA ) &
-                             + (1.-FTHETA) * SCVDETWEI(GI) * DIFF_COEFOLD_DIVDX  &
-                             * (TOLD(CV_NODJ_IPHA) - TOLD(CV_NODI_IPHA)) &
+                             + (1.-FTHETA) * SCVDETWEI(GI) * DIFF_COEFOLD_DIVDX &
+                             * ( TOLD_ALL( IPHASE, CV_NODJ ) - TOLD_ALL( IPHASE, CV_NODI ) ) &
                                 ! Robin bc
-                             + SCVDETWEI(GI) * ROBIN2
-                        IF(GET_GTHETA) THEN
+                             + SCVDETWEI( GI ) * ROBIN2
+                        IF ( GET_GTHETA ) THEN
                            THETA_GDIFF( CV_NODI_IPHA ) =  THETA_GDIFF( CV_NODI_IPHA ) &
-                                + (1.-FTHETA) * SCVDETWEI(GI) * DIFF_COEFOLD_DIVDX  &
-                                * (TOLD(CV_NODJ_IPHA) - TOLD(CV_NODI_IPHA)) &
+                                + (1.-FTHETA) * SCVDETWEI(GI) * DIFF_COEFOLD_DIVDX &
+                                * ( TOLD_ALL( IPHASE, CV_NODJ ) - TOLD_ALL( IPHASE, CV_NODI ) ) &
                                 ! Robin bc
-                                + SCVDETWEI(GI) * ROBIN2
-                        ENDIF
+                                + SCVDETWEI( GI ) * ROBIN2
+                        END IF
 
                         ! this is for the internal energy equation source term..
                         ! - p \div u
-                        IF( THERMAL ) THEN
+                        IF ( THERMAL ) THEN
                            THERM_FTHETA = 1.
 
                            IF( IGOT_T2 /= 0 ) THEN
