@@ -161,7 +161,7 @@ module divergence_matrix_cg
 
       ewrite(2,*) "Divergence is integrated by parts: ", integrate_by_parts
       velocity=>extract_vector_field(state, "Velocity")
-      if (.not. (has_boundary_condition(velocity, "source_SWMM") .or. has_boundary_condition(velocity, "rainfall"))) then
+      if (.not. (has_scalar_field(state, "SWMM") .or. has_scalar_field(state, "Rainfall"))) then
          if(present(ct_rhs)) call zero(ct_rhs)
       end if
 
@@ -552,7 +552,7 @@ module divergence_matrix_cg
       
       test_mesh => pressure%mesh
       field => velocity
-      if (.not. (has_boundary_condition(velocity, "source_SWMM") .or. has_boundary_condition(velocity, "rainfall"))) then
+      if (.not. (has_scalar_field(state(1), "SWMM") .or. has_scalar_field(state(1), "Rainfall"))) then
          if(present(ct_rhs)) call zero(ct_rhs)
       end if 
 

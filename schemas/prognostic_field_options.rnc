@@ -1132,7 +1132,6 @@ prognostic_velocity_field =
             empty
          }?
       }?,
-      
       ## Absorption
       ##
       ## Note: When in spherical geometry the absorption is now automatically rotated.

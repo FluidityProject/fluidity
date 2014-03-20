@@ -358,7 +358,7 @@ contains
        ewrite_minmax(source)
     end if
     
-    have_sigma=has_scalar_field(state, "SWMM")
+    have_SWMM=has_scalar_field(state, "SWMM")
     if (have_SWMM) then
       source_SWMM= extract_scalar_field(state, "SWMM")
     end if
@@ -786,8 +786,6 @@ contains
     call deallocate(Viscosity)
     call deallocate(Abs)
     call deallocate(Source)
-    call deallocate(source_SWMM)
-    call deallocate(rainfall)
     call deallocate(U_nl)
     call deallocate(velocity_bc)
     call deallocate(pressure_bc)
@@ -1369,6 +1367,7 @@ contains
          print *, 'ct_rhs', ele_val(ct_rhs,ele)
          source_mom_mat=shape_shape(u_shape,ele_shape(source_SWMM,ele),detwei)
          rhs_addto(3,:loc)=rhs_addto(3,:loc) +matmul(source_mom_mat,ele_val(source_SWMM,ele))
+         print *, 'rhs_addto',rhs_addto
       end if
       
       !Input of rainfall is in term of intensity (m/s). Note usually the unit of rainfall observation data is mm/s. 
