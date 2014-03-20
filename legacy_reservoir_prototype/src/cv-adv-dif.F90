@@ -753,22 +753,6 @@ contains
            X_NONODS, X_ALL, NCOLM, FINDM, COLM, MIDM, &
            IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC )
 
-!    !########CONVERSION OF FEM* TO FEM*_ALL##########
-!           DO CV_INOD = 1, CV_NONODS
-!               DO IPHASE = 1, NPHASE
-!                   FEMT_ALL( IPHASE, CV_INOD) = FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
-!                   FEMTOLD_ALL( IPHASE, CV_INOD) = FEMTOLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
-!                   FEMDEN_ALL( IPHASE, CV_INOD) = FEMDEN( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
-!                   FEMDENOLD_ALL( IPHASE, CV_INOD) = FEMDENOLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
-!                   if (IGOT_T2>0) then
-!                       FEMT2_ALL( IPHASE, CV_INOD) = FEMT2( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
-!                       FEMT2OLD_ALL( IPHASE, CV_INOD) = FEMT2OLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
-!                   end if
-!               END DO
-!           END DO
-!
-!    !###########################################
-
       MASS_ELE_TRANSP = MASS_ELE
 
       NORMALISE = .FALSE.
