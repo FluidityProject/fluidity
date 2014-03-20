@@ -741,65 +741,50 @@ contains
       END DO
 
 
-! END OF TEMP STUFF HERE
+      ! END OF TEMP STUFF HERE
 
       CALL PROJ_CV_TO_FEM_4( state, &
-           FEMT, FEMTOLD, FEMDEN, FEMDENOLD, T, TOLD, DEN, DENOLD, &
-           IGOT_T2, T2,T2OLD, FEMT2,FEMT2OLD, &
+           FEMT_ALL, FEMTOLD_ALL, FEMDEN_ALL, FEMDENOLD_ALL, T, TOLD, DEN, DENOLD, &
+           IGOT_T2, T2,T2OLD, FEMT2_ALL,FEMT2OLD_ALL, &
            XC_CV, YC_CV, ZC_CV, MASS_CV, MASS_ELE, &
            NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
            CV_NGI_SHORT, CV_NLOC, CVN_SHORT, CVWEIGHT_SHORT, &
            CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
-           X_NONODS, X_ALL(1,:), X_ALL(2,:), X_ALL(3,:), NCOLM, FINDM, COLM, MIDM, &
+           X_NONODS, X_ALL, NCOLM, FINDM, COLM, MIDM, &
            IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC )
 
-!########CONVERSION OF FEM* TO FEM*_ALL##########
-           DO CV_INOD = 1, CV_NONODS
-               DO IPHASE = 1, NPHASE
-                   FEMT_ALL( IPHASE, CV_INOD) = FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
-                   FEMTOLD_ALL( IPHASE, CV_INOD) = FEMTOLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
-                   FEMDEN_ALL( IPHASE, CV_INOD) = FEMDEN( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
-                   FEMDENOLD_ALL( IPHASE, CV_INOD) = FEMDENOLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
-                   if (IGOT_T2>0) then
-                       FEMT2_ALL( IPHASE, CV_INOD) = FEMT2( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
-                       FEMT2OLD_ALL( IPHASE, CV_INOD) = FEMT2OLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
-                   end if
-               END DO
-           END DO
-
-!###########################################
+!    !########CONVERSION OF FEM* TO FEM*_ALL##########
+!           DO CV_INOD = 1, CV_NONODS
+!               DO IPHASE = 1, NPHASE
+!                   FEMT_ALL( IPHASE, CV_INOD) = FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
+!                   FEMTOLD_ALL( IPHASE, CV_INOD) = FEMTOLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
+!                   FEMDEN_ALL( IPHASE, CV_INOD) = FEMDEN( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
+!                   FEMDENOLD_ALL( IPHASE, CV_INOD) = FEMDENOLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
+!                   if (IGOT_T2>0) then
+!                       FEMT2_ALL( IPHASE, CV_INOD) = FEMT2( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
+!                       FEMT2OLD_ALL( IPHASE, CV_INOD) = FEMT2OLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS )
+!                   end if
+!               END DO
+!           END DO
+!
+!    !###########################################
 
       MASS_ELE_TRANSP = MASS_ELE
 
       NORMALISE = .FALSE.
       IF ( NORMALISE ) THEN
-         ! make sure the FEM representation sums to unity so we dont get surprising results...
-         DO CV_INOD = 1, CV_NONODS
-            RSUM = 0.0
-            DO IPHASE = 1, NPHASE
-               RSUM = RSUM + FEMT_ALL(IPHASE, CV_INOD )
-            END DO
-            DO IPHASE = 1, NPHASE
-               FEMT_ALL(IPHASE, CV_INOD ) =  FEMT_ALL(IPHASE, CV_INOD ) / RSUM
-            END DO
-         END DO
+          ! make sure the FEM representation sums to unity so we dont get surprising results...
+          DO CV_INOD = 1, CV_NONODS
+              RSUM = 0.0
+              DO IPHASE = 1, NPHASE
+                  RSUM = RSUM + FEMT_ALL(IPHASE, CV_INOD )
+              END DO
+              DO IPHASE = 1, NPHASE
+                  FEMT_ALL(IPHASE, CV_INOD ) =  FEMT_ALL(IPHASE, CV_INOD ) / RSUM
+              END DO
+          END DO
       END IF
 
-!########CONVERSION OF FEM*_ALL TO FEM*##########
-           DO CV_INOD = 1, CV_NONODS
-               DO IPHASE = 1, NPHASE
-                   FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT_ALL( IPHASE, CV_INOD)
-                   FEMTOLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMTOLD_ALL( IPHASE, CV_INOD)
-                   FEMDEN( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMDEN_ALL( IPHASE, CV_INOD)
-                   FEMDENOLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMDENOLD_ALL( IPHASE, CV_INOD)
-                   if (IGOT_T2>0) then
-                       FEMT2( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT2_ALL( IPHASE, CV_INOD)
-                       FEMT2OLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT2OLD_ALL( IPHASE, CV_INOD)
-                   end if
-               END DO
-           END DO
-
-!###########################################
 
       ! Calculate MEAN_PORE_CV
       MEAN_PORE_CV = 0.0 ; SUM_CV = 0.0 
@@ -832,6 +817,24 @@ contains
       IANISOLIM = 0
       IF ( CV_DISOPT >= 5 ) IANISOLIM = 1
 
+    !########CONVERSION OF FEM*_ALL TO FEM*##########
+           DO CV_INOD = 1, CV_NONODS
+               DO IPHASE = 1, NPHASE
+                   FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT_ALL( IPHASE, CV_INOD)
+                   FEMTOLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMTOLD_ALL( IPHASE, CV_INOD)
+                   FEMDEN( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMDEN_ALL( IPHASE, CV_INOD)
+                   FEMDENOLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMDENOLD_ALL( IPHASE, CV_INOD)
+               END DO
+           END DO
+           if (IGOT_T2>0) then
+               DO CV_INOD = 1, CV_NONODS
+                   DO IPHASE = 1, NPHASE
+                       FEMT2( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT2_ALL( IPHASE, CV_INOD)
+                       FEMT2OLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT2OLD_ALL( IPHASE, CV_INOD)
+                   END DO
+               END DO
+           end if
+    !###########################################
       IF ( IANISOLIM == 0 ) THEN
          ALLOCATE( TUPWIND_MAT(1), TOLDUPWIND_MAT(1), DENUPWIND_MAT(1), DENOLDUPWIND_MAT(1) )
          ALLOCATE( T2UPWIND_MAT(1), T2OLDUPWIND_MAT(1) )
@@ -2568,30 +2571,24 @@ contains
   end subroutine proj_cv_to_fem_n
 
 
-
-
-
-
-
-
   SUBROUTINE PROJ_CV_TO_FEM_4( state, &
-       FEMT, FEMTOLD, FEMDEN, FEMDENOLD, T, TOLD, DEN, DENOLD, &
-       IGOT_T2,T2,T2OLD, FEMT2,FEMT2OLD, &
+       FEMT_ALL, FEMTOLD_ALL, FEMDEN_ALL, FEMDENOLD_ALL, T, TOLD, DEN, DENOLD, &
+       IGOT_T2,T2,T2OLD, FEMT2_ALL,FEMT2OLD_ALL, &
        XC_CV,YC_CV,ZC_CV, MASS_CV, MASS_ELE, &
        NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
        CV_NGI, CV_NLOC, CVN, CVWEIGHT, N, NLX, NLY, NLZ, &
-       X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM, &
+       X_NONODS, X_ALL, NCOLM, FINDM, COLM, MIDM, &
        IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC )
 
-    ! determine FEMT (finite element wise) etc from T (control volume wise) 
+    ! determine FEMT (finite element wise) etc from T (control volume wise)
     IMPLICIT NONE
     type( state_type ), dimension( : ), intent( in ) :: state
     INTEGER, intent( in ) :: NDIM, NPHASE, CV_NONODS, TOTELE, X_NLOC, CV_NGI, CV_NLOC, &
          X_NONODS, NCOLM, IGOT_T2, IGETCT, NCOLCMC
     INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
     INTEGER, DIMENSION( : ), intent( in ) ::  X_NDGLN
-    REAL, DIMENSION( : ), intent( inout ) :: FEMT, FEMTOLD, FEMDEN, FEMDENOLD
-    REAL, DIMENSION( : ), intent( inout ) :: FEMT2, FEMT2OLD
+    REAL, DIMENSION( :,: ), intent( inout ) :: FEMT_ALL, FEMTOLD_ALL, FEMDEN_ALL, FEMDENOLD_ALL
+    REAL, DIMENSION( :,: ), intent( inout ) :: FEMT2_ALL, FEMT2OLD_ALL
     REAL, DIMENSION( : ), intent( in ) :: T, TOLD, DEN, DENOLD
     REAL, DIMENSION( : ), intent( in ) :: T2, T2OLD
     REAL, DIMENSION( : ), intent( inout ) :: MASS_CV, XC_CV,YC_CV,ZC_CV
@@ -2599,7 +2596,7 @@ contains
     REAL, DIMENSION( :, : ), intent( in ) :: CVN
     REAL, DIMENSION( : ), intent( inout ) :: CVWEIGHT
     REAL, DIMENSION( :, : ), intent( in ) :: N, NLX, NLY, NLZ
-    REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
+    REAL, DIMENSION( :, : ), intent( in ) :: X_ALL
     INTEGER, DIMENSION( : ), intent( in ) :: FINDM
     INTEGER, DIMENSION( : ), intent( in ) :: COLM
     INTEGER, DIMENSION( : ), intent( in ) :: MIDM
@@ -2611,7 +2608,7 @@ contains
     REAL, DIMENSION( : ), allocatable :: PSI, FEMPSI, PSI_AVE, PSI_INT
     INTEGER :: NTSOL,NTSOL_AVE,NTSOL_INT,ELE,CV_ILOC,X_INOD,CV_INOD,NL,NFIELD
     CHARACTER(len=100) :: PATH
-    INTEGER :: velocity_max_iterations, nstates, istate
+    INTEGER :: velocity_max_iterations, nstates, istate, iphase, k
     LOGICAL :: solve_force_balance, have_component
 
 
@@ -2631,9 +2628,9 @@ contains
     if( velocity_max_iterations /= 0 ) solve_force_balance = .true.
 
     if ( solve_force_balance .or. have_component ) then
-       path = '/material_phase[0]/scalar_field::Pressure' 
+       path = '/material_phase[0]/scalar_field::Pressure'
     else
-       path = '/material_phase[0]/scalar_field::Temperature' 
+       path = '/material_phase[0]/scalar_field::Temperature'
     end if
 
     NFIELD=4 + IGOT_T2*2
@@ -2653,17 +2650,27 @@ contains
     PSI( 1 + 3 * NL : NL + 3 * NL )  = DENOLD( 1 : NL )
 
     IF(IGOT_T2==1) THEN
-       PSI( 1 + 4 * NL : NL + 4 * NL )  =      T2( 1 : NL ) 
-       PSI( 1 + 5 * NL : NL + 5 * NL )  =   T2OLD( 1 : NL ) 
+       PSI( 1 + 4 * NL : NL + 4 * NL )  =      T2( 1 : NL )
+       PSI( 1 + 5 * NL : NL + 5 * NL )  =   T2OLD( 1 : NL )
     ENDIF
 
     DO ELE=1,TOTELE
        DO CV_ILOC=1,CV_NLOC
           X_INOD = X_NDGLN((ELE-1)*X_NLOC +CV_ILOC)
           CV_INOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)
-          PSI_AVE(CV_INOD)            =X(X_INOD)
-          PSI_AVE(CV_INOD+CV_NONODS)  =Y(X_INOD)
-          PSI_AVE(CV_INOD+2*CV_NONODS)=Z(X_INOD)
+          !####TEMPORARY UNTIL WE VECTORIZE EVERYTHING####
+          select case (ndim)
+              case (1)
+                  PSI_AVE(CV_INOD)            =X_ALL(1,X_INOD)
+              case (2)
+                  PSI_AVE(CV_INOD)            =X_ALL(1,X_INOD)
+                  PSI_AVE(CV_INOD+CV_NONODS)  = X_ALL(2,X_INOD)
+              case default
+                  PSI_AVE(CV_INOD)            =X_ALL(1,X_INOD)
+                  PSI_AVE(CV_INOD+CV_NONODS)  = X_ALL(2,X_INOD)
+                  PSI_AVE(CV_INOD+2*CV_NONODS)= X_ALL(3,X_INOD)
+          end select
+          !####TEMPORARY UNTIL WE VECTORIZE EVERYTHING####
        END DO
     END DO
     PSI_INT=1.0
@@ -2674,18 +2681,34 @@ contains
          PSI_AVE,NTSOL_AVE, PSI_INT,NTSOL_INT, MASS_ELE, &
          CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
          CV_NGI, CV_NLOC, CVN, CVWEIGHT, N, NLX, NLY, NLZ, &
-         X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM, &
+         X_NONODS, X_ALL(1,:), X_ALL(2,:), X_ALL(3,:), NCOLM, FINDM, COLM, MIDM, &
          IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC, PATH )
 
-    NL=CV_NONODS*NPHASE
-    FEMT( 1 : NL ) = FEMPSI( 1 + 0 * NL : NL + 0 * NL ) 
-    FEMTOLD( 1 : NL ) = FEMPSI( 1 + 1 * NL : NL + 1 * NL) 
-    FEMDEN( 1 : NL ) = FEMPSI( 1 + 2 * NL : NL + 2 * NL ) 
-    FEMDENOLD( 1 : NL ) = FEMPSI( 1 + 3 * NL : NL + 3*NL) 
-    IF(IGOT_T2==1) THEN 
-       FEMT2( 1 : NL ) = FEMPSI( 1 + 4 * NL : NL + 4 * NL ) 
-       FEMT2OLD( 1 : NL ) = FEMPSI( 1 + 5 * NL : NL + 5*NL) 
-    ENDIF
+         NL=CV_NONODS*NPHASE
+
+
+         k = 1
+         DO IPHASE = 1, NPHASE
+             DO CV_INOD = 1, CV_NONODS
+                 FEMT_ALL( IPHASE, CV_INOD) = FEMPSI( k )
+                 FEMTOLD_ALL( IPHASE, CV_INOD) = FEMPSI( k + NL )
+                 FEMDEN_ALL( IPHASE, CV_INOD) = FEMPSI( k + 2*NL )
+                 FEMDENOLD_ALL( IPHASE, CV_INOD) = FEMPSI( k + 3*NL )
+                 k = k + 1
+             END DO
+         END DO
+         if (IGOT_T2>0) then
+             k = 1
+             DO IPHASE = 1, NPHASE
+                 DO CV_INOD = 1, CV_NONODS
+                     FEMT2_ALL( IPHASE, CV_INOD) = FEMPSI( k + 4*NL )
+                     FEMT2OLD_ALL( IPHASE, CV_INOD) = FEMPSI( k + 5*NL )
+                     k = k + 1
+                 END DO
+             END DO
+         end if
+
+
 
     XC_CV( 1 : CV_NONODS ) = PSI_AVE( 1 : CV_NONODS )
     YC_CV( 1 : CV_NONODS ) = PSI_AVE( 1 +CV_NONODS:   2*CV_NONODS )
