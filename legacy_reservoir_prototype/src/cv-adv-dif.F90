@@ -1993,7 +1993,7 @@ contains
     u_nonods=node_count(u_mesh)
     if (is_overlapping) then
        u_nloc=ele_loc(u_mesh,1)*cv_nloc
-       u_snloc=face_loc(u_mesh,1)*cv_snloc
+       u_snloc=face_loc(u_mesh,1)*cv_nloc
     else
        u_nloc=ele_loc(u_mesh,1)
        u_snloc=face_loc(u_mesh,1)
