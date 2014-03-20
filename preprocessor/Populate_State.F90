@@ -3893,7 +3893,7 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
     ! Check options for liquid drainage in foam simulations.
 
     character(len=OPTION_PATH_LEN) :: velocity_path, pressure_path, drainage_lambda_path, compressible_eos_path, foam_velocity_path
-    logical :: exclude_mass, equation_drainage, compressible_projection, prescribed_lambda, foam_eos, foam_velocity, Drainage_K1, Drainage_K2, source, absorption
+    logical :: exclude_mass, equation_drainage, compressible_projection, prescribed_lambda, foam_eos, foam_velocity, Drainage_K1, Drainage_K2, source, absorption, Source_SWMM, Rainfall
 
     ! Check that the local length of Plateau borders per unit volume (lambda) is provided.
     compressible_eos_path="/material_phase[0]/equation_of_state/compressible"
@@ -3971,7 +3971,9 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
        if(.not.(Drainage_K2)) then
           FLExit("You need DrainageK2 scalar field for foam simulations.")
        end if
-
+       
+       
+       
     end if
 
     ! Check that there is a Foam Velocity field.

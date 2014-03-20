@@ -148,8 +148,10 @@ module momentum_DG
 
   ! Are we running a multi-phase flow simulation?
   logical :: multiphase
+  
   logical::have_sigma
   logical::have_a
+  logical::have_SWMM, have_rainfall
   
 contains
 
@@ -279,7 +281,7 @@ contains
     ! Partial stress - sp911
     logical :: partial_stress 
     type(scalar_field), intent(inout) ::ct_rhs
-    
+    type(scalar_field) ::source_SWMM, rainfall
     ewrite(1, *) "In construct_momentum_dg"
 
     call profiler_tic("construct_momentum_dg")
@@ -355,7 +357,16 @@ contains
        call incref(Source)
        ewrite_minmax(source)
     end if
+    
+    have_sigma=has_scalar_field(state, "SWMM")
+    if (have_SWMM) then
+      source_SWMM= extract_scalar_field(state, "SWMM")
+    end if
+    
+    have_rainfall = has_scalar_field(state, "Rainfall")
+    if (have_rainfall)   rainfall= extract_scalar_field(state, "Rainfall")
 
+         
     Abs=extract_vector_field(state, "VelocityAbsorption", stat)   
     have_absorption = (stat==0)
     if (.not.have_absorption) then
@@ -667,9 +678,7 @@ contains
       "free_surface        ", &
       "no_normal_flow      ", &
       "turbine_flux_penalty", &
-      "turbine_flux_dg     ", &
-      "source_SWMM         ", &
-      "rainfall            " /), velocity_bc, velocity_bc_type)
+      "turbine_flux_dg     "/), velocity_bc, velocity_bc_type)
     
     ! the turbine connectivity mesh is only needed if one of the boundaries is a turbine.
     if (any(velocity_bc_type==4) .or. any(velocity_bc_type==5)) then
@@ -745,7 +754,7 @@ contains
             & alpha_u_field, Abs_wd, vvr_sf, ib_min_grad, nvfrac, &
             & inverse_mass=inverse_mass, &
             & inverse_masslump=inverse_masslump, &
-            & mass=mass, subcycle_m=subcycle_m, partial_stress=partial_stress)
+            & mass=mass, subcycle_m=subcycle_m, partial_stress=partial_stress,source_SWMM=source_SWMM, rainfall=rainfall)
       end do element_loop
       !$OMP END DO
 
@@ -777,6 +786,8 @@ contains
     call deallocate(Viscosity)
     call deallocate(Abs)
     call deallocate(Source)
+    call deallocate(source_SWMM)
+    call deallocate(rainfall)
     call deallocate(U_nl)
     call deallocate(velocity_bc)
     call deallocate(pressure_bc)
@@ -804,7 +815,7 @@ contains
        &pressure_bc, pressure_bc_type, &
        &turbine_conn_mesh, on_sphere, depth, have_wd_abs, alpha_u_field, Abs_wd, &
        &vvr_sf, ib_min_grad, nvfrac, &
-       &inverse_mass, inverse_masslump, mass, subcycle_m, partial_stress)
+       &inverse_mass, inverse_masslump, mass, subcycle_m, partial_stress,source_SWMM, rainfall)
 
     !!< Construct the momentum equation for discontinuous elements in
     !!< acceleration form.
@@ -1000,9 +1011,9 @@ contains
     real,dimension(ele_ngi(u,ele)):: sigma_ngi
         !!Define variables for the SWMM and rainfall sources! --TZhang
     type(scalar_field), intent(inout) :: ct_rhs
-    logical::have_SWMM, have_rainfall
-    real, dimension(ele_loc(p,face),ele_loc(u,face))::source_mat,rainfall_mat
-    real, dimension(ele_loc(u,face),ele_loc(u,face))::source_mom_mat,rainfall_mom_mat
+    type(scalar_field), intent(inout) ::source_SWMM, rainfall
+    real, dimension(ele_loc(p,ele),ele_loc(u,ele))::source_SWMM_mat,rainfall_mat
+    real, dimension(ele_loc(u,ele),ele_loc(u,ele))::source_mom_mat,rainfall_mom_mat
     real :: sele_area
 
     dg=continuity(U)<0
@@ -1346,22 +1357,18 @@ contains
     !Add the interacted flux with drainage system to the RHS of Continuity Equation. The flux can be calculated by SWMM.
     !Add the interacted flux with drainage system to the RHS of Continuity Equation. The flux can be calculated by SWMM. 
     !Assume that there is only one source point at most in each cell.   --TZhang
-    have_SWMM = have_option(trim(velocity_path)//&
-             "/vector_field::SWMM")
-    print *, 'have_SWMM',have_SWMM
-    have_rainfall = have_option(trim(velocity_path)//&
-             "/vector_field::Rainfall")
+    
     if (have_SWMM) then
          !source_q=ele_val_at_quad(velocity_bc,face,3)
          !print *, 'source_q',source_q
-         source_guess_mat=shape_shape(p_shape,ele_shape(source_SWMM,ele),detwei)
-         print *, 'source_guess_mat',source_guess_mat
-         print *, 'ele_val(velocity_bc,3,ele)',ele_val(source_SWMM,3,ele)
+         source_SWMM_mat=shape_shape(p_shape,ele_shape(source_SWMM,ele),detwei)
+         print *, 'source_swmm_mat',source_SWMM_mat
+         print *, 'ele_val(source_SWMM,3,ele)',ele_val(source_SWMM,ele)
          !For pipe flow source and rainfall, there is only vertical source
-         call addto(ct_rhs,ele_nodes(p, ele), matmul(source_guess_mat,ele_val(source_SWMM,3,ele)))
+         call addto(ct_rhs,ele_nodes(p, ele), matmul(source_SWMM_mat,ele_val(source_SWMM,ele)))
          print *, 'ct_rhs', ele_val(ct_rhs,ele)
          source_mom_mat=shape_shape(u_shape,ele_shape(source_SWMM,ele),detwei)
-         rhs_addto(3,:loc)=rhs_addto(3,:loc) +matmul(source_mom_mat,ele_val(source_SWMM,3,ele))
+         rhs_addto(3,:loc)=rhs_addto(3,:loc) +matmul(source_mom_mat,ele_val(source_SWMM,ele))
       end if
       
       !Input of rainfall is in term of intensity (m/s). Note usually the unit of rainfall observation data is mm/s. 
@@ -1370,13 +1377,13 @@ contains
       if (have_rainfall) then
          sele_area=sum(detwei)
          !get the rainfall intensity
-         rainfall_guess_mat=shape_shape(p_shape,ele_shape(rainfall,ele),detwei)
+         rainfall_mat=shape_shape(p_shape,ele_shape(rainfall,ele),detwei)
          !For pipe flow source and rainfall, there is only vertical source
-         call addto(ct_rhs,ele_nodes(p, ele), matmul(rainfall_guess_mat,ele_val(rainfall,3,ele)*sele_area/ele_loc(u,ele)))
+         call addto(ct_rhs,ele_nodes(p, ele), matmul(rainfall_mat,ele_val(rainfall,ele)*sele_area/ele_loc(u,ele)))
          print *,'sele_area',sele_area
-         print *, 'ele_loc(u,ele)',ele_loc(u,ele)
+         print *, 'ele_loc(u,ele)',ele_loc(rainfall,ele)
          rainfall_mom_mat=shape_shape(u_shape,ele_shape(rainfall,ele),detwei)
-         rhs_addto(3,:loc)=rhs_addto(3,:loc) +matmul(rainfall_mom_mat,ele_val(rainfall,3,ele)*sele_area/ele_loc(u,ele))
+         rhs_addto(3,:loc)=rhs_addto(3,:loc) +matmul(rainfall_mom_mat,ele_val(rainfall,ele)*sele_area/ele_loc(u,ele))
       end if
     
     if(have_gravity.and.acceleration.and.assemble_element) then
@@ -1850,7 +1857,7 @@ contains
             if(.not. turbine_face .or. turbine_fluxfac>=0) then
                    call construct_momentum_interface_dg(ele, face, face_2, ni,&
                         & big_m_tensor_addto, &
-                        & rhs_addto,ct_rhs, Grad_U_mat_q, Div_U_mat_q, X,&
+                        & rhs_addto, Grad_U_mat_q, Div_U_mat_q, X,&
                         & Rho, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
                         & velocity_bc, velocity_bc_type, &
                         & pressure_bc, pressure_bc_type, hb_pressure, &
@@ -1863,7 +1870,7 @@ contains
             if(.not. turbine_face .or. turbine_fluxfac>=0) then
                    call construct_momentum_interface_dg(ele, face, face_2, ni,&
                         & big_m_tensor_addto, &
-                        & rhs_addto, ct_rhs,Grad_U_mat_q, Div_U_mat_q, X,&
+                        & rhs_addto,Grad_U_mat_q, Div_U_mat_q, X,&
                         & Rho, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
                         & velocity_bc, velocity_bc_type, &
                         & pressure_bc, pressure_bc_type, hb_pressure, &
@@ -2132,7 +2139,7 @@ contains
 
   subroutine construct_momentum_interface_dg(ele, face, face_2, ni, &
        & big_m_tensor_addto, &
-       & rhs_addto, ct_rhs, Grad_U_mat, Div_U_mat, X, Rho, U,&
+       & rhs_addto, Grad_U_mat, Div_U_mat, X, Rho, U,&
        & U_nl, U_mesh, P, q_mesh, surfacetension, &
        & velocity_bc, velocity_bc_type, &
        & pressure_bc, pressure_bc_type, hb_pressure, &
@@ -2287,8 +2294,6 @@ contains
     free_surface=.false.
     no_normal_flow=.false.
     l_have_pressure_bc=.false.
-    source_SWMM=.false.
-    rainfall=.false.
     if (boundary) then
        do dim=1,U%dim
           if (velocity_bc_type(dim,face)==1) then
@@ -2306,15 +2311,7 @@ contains
           no_normal_flow=.true.
        end if
        l_have_pressure_bc = pressure_bc_type(face) > 0
-       
-       !source from the subsurface drainage system, is set to the 3rd component.
-       if (velocity_bc_type(3,face)==6) then
-          source_SWMM=.true.
-       end if
-       ! source from the rainfall, evaporation, etc., is set to the 3rd component.
-       if (velocity_bc_type(3,face)==7) then
-            rainfall=.true.
-       end if
+
     end if
 
     !----------------------------------------------------------------------

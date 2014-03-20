@@ -3519,7 +3519,6 @@ scalar_field_choice =
             )
          }|
          ## Sigma_d0 is Only used in wetting and drying and high aspect ratio case.
-         ## Please set the mesh as P0,because the value is uniform for each element.
          element scalar_field {
             attribute rank { "0" },
             attribute name { "Sigma_d0" },
@@ -3533,6 +3532,45 @@ scalar_field_choice =
                
             )
          }|
+         ## SWMM. Specify the flow rate exchanged with the subsurface drainage system.
+         ## Please set the mesh as P0,because the value is uniform for each element.
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "SWMM" },
+            (
+               ## This scaler field stores the value of SWMM source.
+                element prescribed {
+                           velocity_mesh_choice,
+                           prescribed_scalar_field_no_adapt
+                        }|
+                        element diagnostic {
+                           velocity_mesh_choice,
+                           scalar_python_diagnostic_algorithm,
+                           diagnostic_scalar_field_no_adapt
+                        }  
+               
+            )
+         }|
+        ## Rainfall specify hydrological elements, such as rainfall, evaporation, etc.
+        ## Warining: The unit of rainfall observation data is usually mm/s. It must be conversed to m/s.    
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "Rainfall" },
+            (
+               ## This scaler field stores the value of net rainfall (rainfall-loss).
+                element prescribed {
+                           velocity_mesh_choice,
+                           prescribed_scalar_field_no_adapt
+                        }|
+                        element diagnostic {
+                           velocity_mesh_choice,
+                           scalar_python_diagnostic_algorithm,
+                           diagnostic_scalar_field_no_adapt
+                        } 
+               
+            )
+         }|
+        
          ## Second Fluid
          element scalar_field {
             attribute rank { "0" },

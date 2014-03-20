@@ -4577,8 +4577,7 @@ of the wetting and drying alpha coefficient.</a:documentation>
         </element>
       </element>
       <element name="scalar_field">
-        <a:documentation>Sigma_d0 is Only used in wetting and drying and high aspect ratio case.
-Please set the mesh as P0,because the value is uniform for each element.</a:documentation>
+        <a:documentation>Sigma_d0 is Only used in wetting and drying and high aspect ratio case.</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
@@ -4591,6 +4590,50 @@ Please set the mesh as P0,because the value is uniform for each element.</a:docu
           <ref name="mesh_choice"/>
           <ref name="diagnostic_scalar_field"/>
         </element>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>SWMM. Specify the flow rate exchanged with the subsurface drainage system.
+Please set the mesh as P0,because the value is uniform for each element.</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>SWMM</value>
+        </attribute>
+        <choice>
+          <element name="prescribed">
+            <a:documentation>This scaler field stores the value of SWMM source.</a:documentation>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prescribed_scalar_field_no_adapt"/>
+          </element>
+          <element name="diagnostic">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="scalar_python_diagnostic_algorithm"/>
+            <ref name="diagnostic_scalar_field_no_adapt"/>
+          </element>
+        </choice>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>Rainfall specify hydrological elements, such as rainfall, evaporation, etc.
+Warining: The unit of rainfall observation data is usually mm/s. It must be conversed to m/s.    </a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>Rainfall</value>
+        </attribute>
+        <choice>
+          <element name="prescribed">
+            <a:documentation>This scaler field stores the value of net rainfall (rainfall-loss).</a:documentation>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prescribed_scalar_field_no_adapt"/>
+          </element>
+          <element name="diagnostic">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="scalar_python_diagnostic_algorithm"/>
+            <ref name="diagnostic_scalar_field_no_adapt"/>
+          </element>
+        </choice>
       </element>
       <element name="scalar_field">
         <a:documentation>Second Fluid</a:documentation>
