@@ -1337,7 +1337,7 @@ contains
                      END IF
                   END DO
 
-                  Loop_IPHASE: DO IPHASE = 1, NPHASE
+                  Loop_IPHASE1: DO IPHASE = 1, NPHASE
 
                      CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
                      CV_NODJ_IPHA = CV_NODJ + ( IPHASE - 1 ) * CV_NONODS
@@ -1361,9 +1361,22 @@ contains
                         DIFF_COEFOLD_DIVDX(IPHASE) = 0.0
                      END IF If_GOT_DIFFUS
 
+                  END DO Loop_IPHASE1 
+
+
+
+
+                  Loop_IPHASE21: DO IPHASE = 1, NPHASE
+
+
+                     CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
+                     CV_NODJ_IPHA = CV_NODJ + ( IPHASE - 1 ) * CV_NONODS
+                     RHS_NODI_IPHA = IPHASE +  (CV_NODI - 1 ) * NPHASE
+                     RHS_NODJ_IPHA = IPHASE +  (CV_NODJ - 1 ) * NPHASE
 
                      NFACE_ITS = 1
-                     DO FACE_ITS = 1, NFACE_ITS
+                     FACE_ITS = 1
+!                     DO FACE_ITS = 1, NFACE_ITS
                         ! Calculate NDOTQ and INCOME on the CV boundary at quadrature pt GI.
                         IF ( IGOT_T2 == 1 ) THEN
                            CALL GET_INT_VEL( NPHASE, NDOTQNEW(IPHASE),  NDOTQOLD(IPHASE), INCOMEOLD(IPHASE), &
@@ -1438,6 +1451,17 @@ contains
                         END IF
 
 !           print *,'done velocity'
+                  END DO Loop_IPHASE21
+
+
+
+                  Loop_IPHASE3: DO IPHASE = 1, NPHASE
+
+
+                     CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
+                     CV_NODJ_IPHA = CV_NODJ + ( IPHASE - 1 ) * CV_NONODS
+                     RHS_NODI_IPHA = IPHASE +  (CV_NODI - 1 ) * NPHASE
+                     RHS_NODJ_IPHA = IPHASE +  (CV_NODJ - 1 ) * NPHASE
 
                         !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===============
                         ! Calculate T and DEN on the CV face at quadrature point GI.
@@ -1485,13 +1509,20 @@ contains
                              IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
                              TUPWIND_MAT, DENUPWIND_MAT, T2UPWIND_MAT )
 
-                     END DO
+!                     END DO
 
 
+                  END DO Loop_IPHASE3
 
 !           print *,'done temp'
 
 
+                  Loop_IPHASE: DO IPHASE = 1, NPHASE
+
+                     CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
+                     CV_NODJ_IPHA = CV_NODJ + ( IPHASE - 1 ) * CV_NONODS
+                     RHS_NODI_IPHA = IPHASE +  (CV_NODI - 1 ) * NPHASE
+                     RHS_NODJ_IPHA = IPHASE +  (CV_NODJ - 1 ) * NPHASE
 
 
                      IF ( SUM2ONE ) THEN
