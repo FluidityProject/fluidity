@@ -281,7 +281,7 @@ contains
     ! Partial stress - sp911
     logical :: partial_stress 
     type(scalar_field), intent(inout) ::ct_rhs
-    type(scalar_field) ::source_SWMM, rainfall
+    type(scalar_field) :: rainfall
     ewrite(1, *) "In construct_momentum_dg"
 
     call profiler_tic("construct_momentum_dg")
@@ -357,11 +357,7 @@ contains
        call incref(Source)
        ewrite_minmax(source)
     end if
-    
-    have_SWMM=has_scalar_field(state, "SWMM")
-    if (have_SWMM) then
-      source_SWMM= extract_scalar_field(state, "SWMM")
-    end if
+
     
     have_rainfall = has_scalar_field(state, "Rainfall")
     if (have_rainfall)   rainfall= extract_scalar_field(state, "Rainfall")
@@ -754,7 +750,7 @@ contains
             & alpha_u_field, Abs_wd, vvr_sf, ib_min_grad, nvfrac, &
             & inverse_mass=inverse_mass, &
             & inverse_masslump=inverse_masslump, &
-            & mass=mass, subcycle_m=subcycle_m, partial_stress=partial_stress,source_SWMM=source_SWMM, rainfall=rainfall)
+            & mass=mass, subcycle_m=subcycle_m, partial_stress=partial_stress, rainfall=rainfall)
       end do element_loop
       !$OMP END DO
 
@@ -813,7 +809,7 @@ contains
        &pressure_bc, pressure_bc_type, &
        &turbine_conn_mesh, on_sphere, depth, have_wd_abs, alpha_u_field, Abs_wd, &
        &vvr_sf, ib_min_grad, nvfrac, &
-       &inverse_mass, inverse_masslump, mass, subcycle_m, partial_stress,source_SWMM, rainfall)
+       &inverse_mass, inverse_masslump, mass, subcycle_m, partial_stress, rainfall)
 
     !!< Construct the momentum equation for discontinuous elements in
     !!< acceleration form.
@@ -1009,10 +1005,9 @@ contains
     real,dimension(ele_ngi(u,ele)):: sigma_ngi
         !!Define variables for the SWMM and rainfall sources! --TZhang
     type(scalar_field), intent(inout) :: ct_rhs
-    type(scalar_field), intent(inout) ::source_SWMM, rainfall
-    real, dimension(ele_loc(p,ele))::source_SWMM_mat
+    type(scalar_field), intent(inout) :: rainfall
     real, dimension(ele_loc(p,ele),ele_loc(u,ele))::rainfall_mat
-    real, dimension(ele_loc(u,ele))::source_mom_mat
+
     real, dimension(ele_loc(u,ele),ele_loc(u,ele))::rainfall_mom_mat
     real :: sele_area
     real, dimension(ele_ngi(u,ele)) :: mat_unit ,mom_unit 
@@ -1358,29 +1353,7 @@ contains
     !Add the interacted flux with drainage system to the RHS of Continuity Equation. The flux can be calculated by SWMM. 
     !Assume that there is only one source point at most in each cell.   --TZhang
     
-    if (have_SWMM) then
-         !source_q=ele_val_at_quad(velocity_bc,face,3)
-         !print *, 'source_q',source_q
-         do i=1, ele_ngi(u,ele)
-           mat_unit(i)=detwei(i)/sum(detwei)
-           if (have_gravity) then
-             mom_unit(i)=detwei(i)/sum(detwei)*Rho_q(i)*gravity_magnitude*dt
-           end if
-         end do
-         source_SWMM_mat=shape_rhs(p_shape,mat_unit)
-         print *, 'mat_unit',mat_unit
-         print *, 'detwei',detwei
-         print *, 'source_swmm_mat',source_SWMM_mat
-         print *, 'ele_val(source_SWMM,3,ele)',ele_val(source_SWMM,ele)
-         !For pipe flow source and rainfall, there is only vertical source
-         call addto(ct_rhs,ele_nodes(p, ele), source_SWMM_mat*ele_val(source_SWMM,ele))
-         print *, 'multiply',source_SWMM_mat*ele_val(source_SWMM,ele)
-         print *, 'ct_rhs', ele_val(ct_rhs,ele)
-         !source_mom_mat=shape_vector_rhs(u_shape,ele_val_at_quad(gravity, ele),mom_unit)
-         source_mom_mat=shape_rhs(u_shape,mom_unit)
-         rhs_addto(3,:loc)=rhs_addto(3,:loc) +source_mom_mat*ele_val(source_SWMM,ele)
-         print *, 'rhs_addto',rhs_addto
-      end if
+   
       
       !Input of rainfall is in term of intensity (m/s). Note usually the unit of rainfall observation data is mm/s. 
       !Unit conversion is needed before being read to the code.   --TZhang

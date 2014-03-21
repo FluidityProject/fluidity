@@ -137,6 +137,7 @@
       ! Do we have a prognostic free surface (currently only in 
       ! combination with a no_normal_stress free_surface)
       logical :: implicit_prognostic_fs, explicit_prognostic_fs, standard_fs
+      logical :: have_SWMM, have_SWMM_vmesh
 
    contains
 
@@ -272,7 +273,7 @@
          logical :: have_fp_drag
          integer::i
          !Add the source term representing the inflow and outflow from the drainage system
-
+         type(scalar_field)::source_SWMM, source_SWMM_vmesh
          ewrite(1,*) 'Entering solve_momentum'
 
 
@@ -606,13 +607,27 @@
             call zero(ct_rhs(istate))
             call profiler_toc(u, "assembly")
             !add swmm to ct_rhs and mom_rhs, only for incompressible fluids
+            have_SWMM=has_scalar_field(state(istate), "SWMM")
+            have_SWMM_vmesh=has_scalar_field(state(istate), "SWMM_vmesh")
             if (have_SWMM) then
-              call addto(ct_rhs(istate),source_SWMM(istate))
+              source_SWMM= extract_scalar_field(state(istate), "SWMM")
+              if (have_SWMM_vmesh) source_SWMM_vmesh= extract_scalar_field(state(istate), "SWMM_vmesh")
+            end if
+            
+            if (have_SWMM) then
+              call addto(ct_rhs(istate),source_SWMM)
               if (have_SWMM_vmesh) then
-                call addto(mom_rhs(istate),3,source_SWMM_vmesh(istate),9.81*dt)
+                call addto(mom_rhs(istate),3,source_SWMM_vmesh,9.81*dt)
               end if
             end if
-
+            do i=1, ele_count(ct_rhs(istate))
+               print *,'ct_rhs',ele_val(ct_rhs(istate),i)
+            end do
+            print*, 'p_node',node_count(ct_rhs(istate))
+            do i=1, ele_count(mom_rhs(istate))
+              print *,'mom_rhs',ele_val(mom_rhs(istate),i)
+            end do
+            print*, 'v_node',node_count(mom_rhs(istate))
             if(has_scalar_field(state(istate), hp_name)) then
                call calculate_hydrostatic_pressure(state(istate))
             end if
