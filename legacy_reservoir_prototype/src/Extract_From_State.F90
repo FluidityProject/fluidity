@@ -2275,20 +2275,20 @@
           integer :: index, iphase
 
           type(tensor_field), pointer :: tfield
-          type(vector_field) :: vfield
+          type(tensor_field) :: mp_tfield
 
 
           do index=1,size(mstate%tensor_fields)
              tfield=>extract_tensor_field(mstate,index)
              if (tfield%name(:6)=="Packed") then
                 do iphase=1,nphase
-                   call allocate(vfield,tfield%dim(1),tfield%mesh,tfield%name(7:),field_type=FiELD_TYPE_DEFERRED)
+                   call allocate(mp_tfield,tfield%mesh,tfield%name(7:),field_type=FiELD_TYPE_DEFERRED,dim=[tfield%dim(1),1])
 
-                   deallocate(vfield%val)
-                   vfield%val=>tfield%val(:,iphase,:)
-                   vfield%wrapped=.true.
-                   call insert(mpstate(iphase),vfield,vfield%name)
-                   call deallocate(vfield)
+                   mp_tfield%val=>tfield%val(:,iphase:iphase,:)
+                   mp_tfield%updated=>tfield%updated
+                   mp_tfield%wrapped=.true.
+                   call insert(mpstate(iphase),mp_tfield,mp_tfield%name)
+                   call deallocate(mp_tfield)
                 end do
              end if
           end do
@@ -2571,6 +2571,26 @@
 
       end subroutine pack_multistate
 
+      function wrap_as_tensor(field) result(tfield)
+
+        type(scalar_field), intent(inout) :: field  
+        type(tensor_field), pointer :: tfield
+
+        allocate(tfield)
+        call allocate(tfield,field%mesh,name=field%name,dim=[1,1])
+
+        tfield%val(1,1,:)=field%val
+        deallocate(tfield%updated)
+        tfield%updated=field%updated
+        deallocate(field%val)
+        deallocate(field%updated)
+        field%val=>tfield%val(1,1,:)
+        field%updated=>tfield%updated
+        tfield%option_path=field%option_path
+
+      end function wrap_as_tensor
+
+
       subroutine finalise_multistate(packed_state,multiphase_state,&
            multicomponent_state)
 
@@ -2585,6 +2605,46 @@
         call deallocate(packed_state)
 
       end subroutine finalise_multistate
+
+
+
+    subroutine add_dependant_fields_to_tensor_from_state(infield,state,scalar_field_names,&
+         vector_field_names,tensor_field_names)
+
+      !  Convenience subroutine to add a bunch of fields as dependants of infield in one call.
+
+      type(tensor_field) :: infield
+      type(state_type) :: state
+      character (len=*) , dimension(:), optional :: scalar_field_names, vector_field_names, &
+           tensor_field_names
+
+      integer :: i
+      type(scalar_field), pointer :: sfield
+      type(vector_field), pointer :: vfield
+      type(tensor_field), pointer :: tfield
+
+      if (present(scalar_field_names)) then
+         do i=1,size(scalar_field_names)
+            sfield=>extract_scalar_field(state,trim(scalar_field_names(i)))
+            call add_dependant_field(infield,sfield)
+         end do
+      end if
+
+      if (present(vector_field_names)) then
+         do i=1,size(vector_field_names)
+            vfield=>extract_vector_field(state,trim(vector_field_names(i)))
+            call add_dependant_field(infield,vfield)
+         end do
+      end if
+
+      if (present(tensor_field_names)) then
+         do i=1,size(tensor_field_names)
+            tfield=>extract_tensor_field(state,tensor_field_names(i))
+            call add_dependant_field(infield,tfield)
+         end do
+      end if
+
+    end subroutine add_dependant_fields_to_tensor_from_state
 
 
   end module Copy_Outof_State

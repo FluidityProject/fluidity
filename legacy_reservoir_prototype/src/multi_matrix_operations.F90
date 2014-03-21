@@ -1132,41 +1132,37 @@
       implicit none
       ! U = BLOCK_MAT * CDP
       INTEGER, intent( in )  :: U_NONODS, NDIM, NPHASE, TOTELE, U_NLOC, NBLOCK
-      INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) ::  U_NDGLN
-      REAL, DIMENSION( NBLOCK, NDIM, NPHASE, U_NONODS ), intent( inout ) :: U
-      REAL, DIMENSION( U_NLOC * NDIM * NPHASE, U_NLOC * NDIM * NPHASE, TOTELE ), intent( in ), target :: BLOCK_MAT
-      REAL, DIMENSION( NBLOCK, NDIM, NPHASE, U_NONODS ), intent( in ) :: CDP
+      INTEGER, DIMENSION( : ), intent( in ) ::  U_NDGLN
+      REAL, DIMENSION( :, :, :, : ), intent( inout ), contiguous, target :: U
+      REAL, DIMENSION( :, : , : ), intent( in ), contiguous :: BLOCK_MAT
+      REAL, DIMENSION( :, : , :, : ), intent( in ), contiguous, target :: CDP
       ! Local
       INTEGER :: ELE, U_ILOC, U_INOD, IDIM, IPHASE, I, J, U_JLOC, U_JNOD, JDIM, JPHASE, II, JJ, IORIG
-      
+
+      real, dimension(:,:,:,:), pointer, contiguous :: lcdp, lu
+      integer :: N
+       
+       interface 
+         subroutine dgemm(TA,TB,M,N,K,alpha,A,LDA,B,LDB,beta,C,LDC)
+           implicit none
+           character(len=1) :: TA,TB
+           integer :: m,n,k,lda,ldb,ldc
+           real ::  alpha, beta
+           real, dimension(lda,*) :: A
+           real, dimension(ldb,*) :: B
+           real, dimension(ldc,*) :: C
+         end subroutine dgemm
+      end interface
+
       U = 0.0 
+      N=ndim*nphase*u_nloc
+
       Loop_Elements: DO ELE = 1, TOTELE
 
-         Loop_VelocNodsJ: DO U_JLOC = 1, U_NLOC
-            U_JNOD = U_NDGLN( (ELE-1)*U_NLOC+ U_JLOC )
-
-            Loop_PhasesJ: DO JPHASE = 1, NPHASE
-               Loop_DimensionsJ: DO JDIM = 1, NDIM
-                  J = JDIM + (JPHASE-1)*NDIM+(U_JLOC-1)*NDIM*NPHASE
-                  JJ= J + (ELE-1)*NDIM*NPHASE*U_NLOC
-                  
-                  Loop_VelocNodsI: DO U_ILOC = 1, U_NLOC
-                     U_INOD = U_NDGLN( (ELE-1)*U_NLOC+ U_ILOC )
-
-                     Loop_PhasesI: DO IPHASE = 1, NPHASE
-                        Loop_DimensionsI: DO IDIM = 1, NDIM
-                           I = IDIM+(IPHASE-1)*NDIM+(U_ILOC-1)*NDIM*NPHASE
-                           II= I + (ELE-1)*NDIM*NPHASE*U_NLOC
-                          
-                           U( :, IDIM, IPHASE, U_INOD ) = U( :, IDIM, IPHASE, U_INOD ) &
-                                + BLOCK_MAT( I, J, ELE ) * CDP( :, JDIM, JPHASE, U_JNOD )
-                        
-                        END DO Loop_DimensionsI
-                     END DO Loop_PhasesI
-                  END DO Loop_VelocNodsI
-               END DO Loop_DimensionsJ
-            END DO Loop_PhasesJ
-         END DO Loop_VelocNodsJ
+         lu=>u(:,:,:,U_NDGLN( (ELE-1)*U_NLOC + 1):U_NDGLN(ELE * U_NLOC))
+         lcdp=>cdp(:,:,:,U_NDGLN( (ELE-1)*U_NLOC + 1):U_NDGLN(ELE * U_NLOC))
+         call dgemm('N','T',NBLOCK,N,N,1.0,LCDP,NBLOCK,Block_mat(:,:,ele),N,1.0,LU,NBLOCK)
+       
       END DO Loop_Elements
 
       RETURN
