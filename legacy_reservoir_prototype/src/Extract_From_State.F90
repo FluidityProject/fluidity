@@ -49,7 +49,7 @@
     use futils, only: int2str
     use boundary_conditions_from_options
  use memory_diagnostics
- 
+ use initialise_fields_module, only: initialise_field_over_regions
 
     !use printout
     !use quicksort
@@ -823,9 +823,9 @@
 
       x_all => extract_vector_field( packed_state, "PressureCoordinate" )
       do idim = 1, ndim
-        if( idim ==1 ) x_all % val( idim, : ) = x
-       if( idim ==2 )   x_all % val( idim, : ) = y
-       if( idim ==3 )   x_all % val( idim, : ) = z
+          if( idim ==1 ) x_all % val( idim, : ) = x
+          if( idim ==2 )   x_all % val( idim, : ) = y
+          if( idim ==3 )   x_all % val( idim, : ) = z
       end do
 
 !!$
@@ -1054,10 +1054,16 @@
             field_prot = dummy % val
             call deallocate( dummy )
 
+         else if (have_option( trim( option_path ) // '/prognostic/initial_condition') )then
+         call allocate( dummy, field % mesh, 'dummy' )
+         call get_option('/timestepping/current_time', current_time)
+         call initialise_field_over_regions(dummy, trim( option_path ) // '/prognostic/initial_condition', positions, current_time)
+         field_prot = dummy%val
+         call deallocate( dummy )
+
          else
             ewrite(-1,*) 'No initial condition for field::', trim( field_name )
             FLAbort( 'Check initial conditions' )
-
          end if
       end if Conditional_InitialisationFromFLML
 
@@ -1358,6 +1364,15 @@
 
             call deallocate( dummy )
 
+         else if (have_option( trim( option_path ) // '/prognostic/initial_condition') )then
+             call allocate( dummy, field % dim, field % mesh, 'dummy' )
+             call get_option('/timestepping/current_time', current_time)
+             call initialise_field_over_regions(dummy, trim( option_path ) // '/prognostic/initial_condition', positions, current_time)
+             field_u_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = dummy % val( 1, : )
+             if( ndim > 1 ) field_v_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = dummy % val( 2, : )
+             if( ndim > 2 ) field_w_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = dummy % val( 3, : )
+             call deallocate( dummy )
+
          else
 
             ewrite(-1,*) 'No initial condition for field::', trim( field_name )
@@ -1396,6 +1411,7 @@
             BC_Type = 1
 
             face_nodes = (/ ( l, l = 1, snloc2 ) /)
+
             do j = 1, stotel
                if( any ( sufid_bc == field % mesh % faces % boundary_ids( j ) ) ) then 
                   wic_bc( j  + ( iphase - 1 ) * stotel ) = BC_Type

@@ -223,7 +223,6 @@
       real, dimension(:), allocatable :: Velocity_U_backup, Velocity_V_backup, Velocity_W_backup, Temperature_backup
       real, dimension(:), allocatable :: Density_backup, Component_backup, Density_Cp_backup, Density_Component_backup
 
-
       !! face value storage
       integer :: ncv_faces
       real::  second_theta
@@ -763,7 +762,7 @@
                Density_Component_Backup = Density_Component
                Temperature = Temperature_backup
                acctim_backup = acctim - dt
-            else if (Repeat_time_step) then
+            else if (nonLinearAdaptTs.and.Repeat_time_step) then
                !Recover backup
                PhaseVolumeFraction = PhaseVolumeFraction_backup
                Pressure_CV =  Pressure_CV_backup
@@ -1384,7 +1383,7 @@
                   Repeat_time_step = (maxval(s_gc-PhaseVolumeFraction(1:cv_nonods))>check_sat_threshold&
                      .or.maxval(s_or-PhaseVolumeFraction(1+cv_nonods:nphase*cv_nonods))>check_sat_threshold)
                     !Increase Ts section
-                   if ((ts_ref_val < increase_ts_switch .and.dt*increaseFactor<max_ts).and..not.Repeat_time_step) then
+                   if (nonLinearAdaptTs.and.((ts_ref_val < increase_ts_switch .and.dt*increaseFactor<max_ts).and..not.Repeat_time_step)) then
                         call get_option( '/timestepping/timestep', dt )
                         dt = dt * increaseFactor
                         call set_option( '/timestepping/timestep', dt )
@@ -1392,13 +1391,13 @@
                         print *, "Time step increased to:", dt
                     end if
 
-
                     !Exit loop section
                     if ((ts_ref_val < tolerance_between_non_linear).and..not.Repeat_time_step) exit
 
+
                     !Decrease Ts section
-                    if ((ts_ref_val > decrease_ts_switch .and. dt / decreaseFactor > min_ts).or.&
-                    (repeat_time_step.and.its>=NonLinearIteration)) then
+                    if (nonLinearAdaptTs.and.((ts_ref_val > decrease_ts_switch .and. dt / decreaseFactor > min_ts).or.&
+                    (repeat_time_step.and.its>=NonLinearIteration))) then
                         !Decrease time step and repeat!
                         call get_option( '/timestepping/timestep', dt )
                         dt = dt / decreaseFactor
