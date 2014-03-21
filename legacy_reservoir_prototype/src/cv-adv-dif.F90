@@ -1156,7 +1156,6 @@ contains
 
 
 
-
 ! local surface information***********
 
           IF( SELE .NE. 0 ) THEN
@@ -1165,10 +1164,10 @@ contains
                 IF ( CV_KLOC == CV_ILOC ) CV_SILOC=CV_SKLOC
              END DO
           ENDIF
-          IF( (ELE2 > 0) .OR. (SELE /= 0) ) THEN
+          IF( (ELE2 > 0) .and. (SELE /= 0) ) THEN
              DO CV_SKLOC = 1, CV_SNLOC
                 CV_KLOC = CV_SLOC2LOC( CV_SKLOC )
-                CV_NODK = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_KLOC ) 
+                CV_NODK = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_KLOC )
                 DO IPHASE=1,NPHASE
                    CV_NODK_IPHA =  CV_NODK + (IPHASE-1)*CV_NONODS
                    IT=IPHASE
