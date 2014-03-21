@@ -1010,10 +1010,12 @@ contains
         !!Define variables for the SWMM and rainfall sources! --TZhang
     type(scalar_field), intent(inout) :: ct_rhs
     type(scalar_field), intent(inout) ::source_SWMM, rainfall
-    real, dimension(ele_loc(p,ele),ele_loc(u,ele))::source_SWMM_mat,rainfall_mat
-    real, dimension(ele_loc(u,ele),ele_loc(u,ele))::source_mom_mat,rainfall_mom_mat
+    real, dimension(ele_loc(p,ele))::source_SWMM_mat
+    real, dimension(ele_loc(p,ele),ele_loc(u,ele))::rainfall_mat
+    real, dimension(ele_loc(u,ele))::source_mom_mat
+    real, dimension(ele_loc(u,ele),ele_loc(u,ele))::rainfall_mom_mat
     real :: sele_area
-    real, dimension(ele_ngi(u,ele)) :: mat_unit  
+    real, dimension(ele_ngi(u,ele)) :: mat_unit ,mom_unit 
     dg=continuity(U)<0
     p0=(element_degree(u,ele)==0)
     
@@ -1361,15 +1363,22 @@ contains
          !print *, 'source_q',source_q
          do i=1, ele_ngi(u,ele)
            mat_unit(i)=detwei(i)/sum(detwei)
+           if (have_gravity) then
+             mom_unit(i)=detwei(i)/sum(detwei)*Rho_q(i)*gravity_magnitude*dt
+           end if
          end do
-         source_SWMM_mat=shape_shape(p_shape,ele_shape(source_SWMM,ele),mat_unit)
+         source_SWMM_mat=shape_rhs(p_shape,mat_unit)
+         print *, 'mat_unit',mat_unit
+         print *, 'detwei',detwei
          print *, 'source_swmm_mat',source_SWMM_mat
          print *, 'ele_val(source_SWMM,3,ele)',ele_val(source_SWMM,ele)
          !For pipe flow source and rainfall, there is only vertical source
-         call addto(ct_rhs,ele_nodes(p, ele), matmul(source_SWMM_mat,ele_val(source_SWMM,ele)))
+         call addto(ct_rhs,ele_nodes(p, ele), source_SWMM_mat*ele_val(source_SWMM,ele))
+         print *, 'multiply',source_SWMM_mat*ele_val(source_SWMM,ele)
          print *, 'ct_rhs', ele_val(ct_rhs,ele)
-         source_mom_mat=shape_shape(u_shape,ele_shape(source_SWMM,ele),detwei)
-         rhs_addto(3,:loc)=rhs_addto(3,:loc) +matmul(source_mom_mat,ele_val(source_SWMM,ele))
+         !source_mom_mat=shape_vector_rhs(u_shape,ele_val_at_quad(gravity, ele),mom_unit)
+         source_mom_mat=shape_rhs(u_shape,mom_unit)
+         rhs_addto(3,:loc)=rhs_addto(3,:loc) +source_mom_mat*ele_val(source_SWMM,ele)
          print *, 'rhs_addto',rhs_addto
       end if
       

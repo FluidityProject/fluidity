@@ -605,6 +605,13 @@
             call allocate(ct_rhs(istate), p_mesh, "DivergenceRHS")
             call zero(ct_rhs(istate))
             call profiler_toc(u, "assembly")
+            !add swmm to ct_rhs and mom_rhs, only for incompressible fluids
+            if (have_SWMM) then
+              call addto(ct_rhs(istate),source_SWMM(istate))
+              if (have_SWMM_vmesh) then
+                call addto(mom_rhs(istate),3,source_SWMM_vmesh(istate),9.81*dt)
+              end if
+            end if
 
             if(has_scalar_field(state(istate), hp_name)) then
                call calculate_hydrostatic_pressure(state(istate))
