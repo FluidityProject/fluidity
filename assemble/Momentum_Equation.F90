@@ -606,7 +606,9 @@
             call allocate(ct_rhs(istate), p_mesh, "DivergenceRHS")
             call zero(ct_rhs(istate))
             call profiler_toc(u, "assembly")
-            !add swmm to ct_rhs and mom_rhs, only for incompressible fluids
+            
+            !/Start************************21 Mar 2012, TZhang******************/
+            !add SWMM to ct_rhs and mom_rhs, only for incompressible fluids
             have_SWMM=has_scalar_field(state(istate), "SWMM")
             have_SWMM_vmesh=has_scalar_field(state(istate), "SWMM_vmesh")
             if (have_SWMM) then
@@ -615,8 +617,10 @@
             end if
             
             if (have_SWMM) then
+              !add Q (discharge) to the ct_rhs
               call addto(ct_rhs(istate),source_SWMM)
               if (have_SWMM_vmesh) then
+                !add rho*Q*g*dt to mom_rhs
                 call addto(mom_rhs(istate),3,source_SWMM_vmesh,9.81*dt)
               end if
             end if
@@ -628,6 +632,8 @@
               print *,'mom_rhs',ele_val(mom_rhs(istate),i)
             end do
             print*, 'v_node',node_count(mom_rhs(istate))
+            !/End************************21 Mar 2012, TZhang******************/
+            
             if(has_scalar_field(state(istate), hp_name)) then
                call calculate_hydrostatic_pressure(state(istate))
             end if

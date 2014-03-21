@@ -1003,14 +1003,17 @@ contains
     !Sigma term
     real, dimension(u%dim,ele_ngi(u,ele)) :: sigma_d0_diag
     real,dimension(ele_ngi(u,ele)):: sigma_ngi
-        !!Define variables for the SWMM and rainfall sources! --TZhang
+    
+        !!Define variables for the rainfall sources! --TZhang
     type(scalar_field), intent(inout) :: ct_rhs
     type(scalar_field), intent(inout) :: rainfall
     real, dimension(ele_loc(p,ele),ele_loc(u,ele))::rainfall_mat
-
     real, dimension(ele_loc(u,ele),ele_loc(u,ele))::rainfall_mom_mat
     real :: sele_area
     real, dimension(ele_ngi(u,ele)) :: mat_unit ,mom_unit 
+    real, dimension(u%dim,ele_loc(X,ele)-1)::node_coord
+    integer::j
+    logical::same_node
     dg=continuity(U)<0
     p0=(element_degree(u,ele)==0)
     
@@ -1359,7 +1362,31 @@ contains
       !Unit conversion is needed before being read to the code.   --TZhang
       
       if (have_rainfall) then
-         
+         !calculate the projected area of the element on horizontal surface
+          !The node horizontal coordinates of the projected triangle are stored in array node_coord
+         do i=1, ele_loc(X,ele)
+           if (i<2) then
+              node_coord(:,i)=x_val(:,i)
+           else 
+              do j=1,ele_loc(X,ele)-1
+                if (node_coord(1,j)==x_val(1,i) .and. node_coord(2,j)==x_val(2,i)) then
+                   same_node=.True.  
+                   exit 
+                else
+                   same_node=.False.
+                end if
+              end do
+              if (.not. same_node) then  
+                node_coord(:,i)=x_val(:,i)
+              end if   
+           end if
+         end do
+         !calculate the projected area by the coordinates of the projected nodes
+         sele_area=(sqrt((node_coord(2,1)-node_coord(2,3))**2)+sqrt((node_coord(2,2)-node_coord(2,3))**2) &
+                   *sqrt((node_coord(1,2)-node_coord(1,1))**2))/2 &
+                   -sqrt((node_coord(2,1)-node_coord(2,3))**2)*sqrt((node_coord(1,1)-node_coord(1,3))**2)/2 &
+                   -sqrt((node_coord(2,2)-node_coord(2,3))**2)*sqrt((node_coord(1,2)-node_coord(1,3))**2)/2
+         print *, sele_area
          !get the rainfall intensity
          rainfall_mat=shape_shape(p_shape,ele_shape(rainfall,ele),detwei)
          !For pipe flow source and rainfall, there is only vertical source
