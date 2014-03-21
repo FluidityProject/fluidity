@@ -210,7 +210,7 @@
       !Variables for automatic non-linear iterations
       real :: tolerance_between_non_linear, initial_dt, min_ts, max_ts, increase_ts_switch, decrease_ts_switch
       !Variables for adaptive time stepping based on non-linear iterations
-      real :: increaseFactor, decreaseFactor, ts_ref_val
+      real :: increaseFactor, decreaseFactor, ts_ref_val, s_gc, s_or
       integer :: variable_selection
       logical :: nonLinearAdaptTs, Repeat_time_step
       real, dimension(:), allocatable :: PhaseVolumeFraction_nonlin_check, Pressure_nonlin_check
@@ -218,6 +218,7 @@
 
       !Variables to store values to reset iteration
       real :: acctim_backup
+      real, parameter :: check_sat_threshold = 1d-6
       real, dimension(:), allocatable :: PhaseVolumeFraction_backup,  Pressure_CV_backup, Pressure_FEM_backup
       real, dimension(:), allocatable :: Velocity_U_backup, Velocity_V_backup, Velocity_W_backup, Temperature_backup
       real, dimension(:), allocatable :: Density_backup, Component_backup, Density_Cp_backup, Density_Component_backup
@@ -271,7 +272,11 @@
            increase_ts_switch, default = 1d-3 )
       call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear/decrease_ts_switch', &
            decrease_ts_switch, default = 1d-1 )
-
+      !Get irresidual water saturation and irreducible oil to repeat a timestep if the saturation goes below these values
+      call get_option("/material_phase[0]/multiphase_properties/immobile_fraction", &
+           s_gc, default=0.0)
+      call get_option("/material_phase[1]/multiphase_properties/immobile_fraction", &
+           s_or, default=0.0)
 
       call get_option( '/timestepping/timestep', initial_dt )
 !!$ Compute primary scalars used in most of the code
@@ -521,7 +526,6 @@
            suf_momu_bc, suf_momv_bc, suf_momw_bc, Velocity_U_Source, Velocity_Absorption, &
            Temperature, Temperature_BC_Spatial, Temperature_BC, Temperature_Source, suf_t_bc_rob1, suf_t_bc_rob2, &
            Porosity, Permeability )
-
 !!$ Calculate diagnostic fields
       call calculate_diagnostic_variables( state, exclude_nonrecalculated = .true. )
       call calculate_diagnostic_variables_new( state, exclude_nonrecalculated = .true. )
@@ -720,17 +724,14 @@
 
          if( have_temperature_field .and. &
               have_option( '/material_phase[0]/scalar_field::Temperature/prognostic' ) ) then
-
             call get_option( '/material_phase[0]/scalar_field::Temperature/prognostic/temporal_discretisation' // &
               '/control_volumes/second_theta', second_theta, default=1. )
 
          end if
 
          if( have_component_field ) then
-
             call get_option( '/material_phase[' // int2str( nphase ) // ']/scalar_field::ComponentMassFractionPhase1/' // &
               'prognostic/temporal_discretisation/control_volumes/second_theta', second_theta, default=1. )
-
          end if
 
 
@@ -1364,8 +1365,7 @@
             end if Conditional_Components
 
 
-                !If Automatic_NonLinerIterations then we compare the variation of the velocity from one time step to the next one
-                !if it is less than 1% we advance one time step
+                !If Automatic_NonLinerIterations then we compare the variation of the a property from one time step to the next one
                 Repeat_time_step = .false.
                 if (tolerance_between_non_linear>0. .and. its > 1 ) then
 
@@ -1380,9 +1380,11 @@
                             ts_ref_val = maxval(abs(PhaseVolumeFraction-PhaseVolumeFraction_nonlin_check))
                     end select
 
-
+                  !Check that saturation is between bounds, works for two phases
+                  Repeat_time_step = (maxval(s_gc-PhaseVolumeFraction(1:cv_nonods))>check_sat_threshold&
+                     .or.maxval(s_or-PhaseVolumeFraction(1+cv_nonods:nphase*cv_nonods))>check_sat_threshold)
                     !Increase Ts section
-                   if (ts_ref_val < increase_ts_switch .and.dt*increaseFactor<max_ts) then
+                   if ((ts_ref_val < increase_ts_switch .and.dt*increaseFactor<max_ts).and..not.Repeat_time_step) then
                         call get_option( '/timestepping/timestep', dt )
                         dt = dt * increaseFactor
                         call set_option( '/timestepping/timestep', dt )
@@ -1392,10 +1394,11 @@
 
 
                     !Exit loop section
-                    if (ts_ref_val < tolerance_between_non_linear) exit
+                    if ((ts_ref_val < tolerance_between_non_linear).and..not.Repeat_time_step) exit
 
                     !Decrease Ts section
-                    if (ts_ref_val > decrease_ts_switch .and. dt / decreaseFactor > min_ts) then
+                    if ((ts_ref_val > decrease_ts_switch .and. dt / decreaseFactor > min_ts).or.&
+                    (repeat_time_step.and.its>=NonLinearIteration)) then
                         !Decrease time step and repeat!
                         call get_option( '/timestepping/timestep', dt )
                         dt = dt / decreaseFactor
