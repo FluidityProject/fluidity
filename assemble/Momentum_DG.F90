@@ -1013,7 +1013,7 @@ contains
     real, dimension(ele_loc(p,ele),ele_loc(u,ele))::source_SWMM_mat,rainfall_mat
     real, dimension(ele_loc(u,ele),ele_loc(u,ele))::source_mom_mat,rainfall_mom_mat
     real :: sele_area
-
+    real, dimension(ele_ngi(u,ele)) :: mat_unit  
     dg=continuity(U)<0
     p0=(element_degree(u,ele)==0)
     
@@ -1359,7 +1359,10 @@ contains
     if (have_SWMM) then
          !source_q=ele_val_at_quad(velocity_bc,face,3)
          !print *, 'source_q',source_q
-         source_SWMM_mat=shape_shape(p_shape,ele_shape(source_SWMM,ele),detwei)
+         do i=1, ele_ngi(u,ele)
+           mat_unit(i)=detwei(i)/sum(detwei)
+         end do
+         source_SWMM_mat=shape_shape(p_shape,ele_shape(source_SWMM,ele),mat_unit)
          print *, 'source_swmm_mat',source_SWMM_mat
          print *, 'ele_val(source_SWMM,3,ele)',ele_val(source_SWMM,ele)
          !For pipe flow source and rainfall, there is only vertical source
@@ -1374,15 +1377,15 @@ contains
       !Unit conversion is needed before being read to the code.   --TZhang
       
       if (have_rainfall) then
-         sele_area=sum(detwei)
+         
          !get the rainfall intensity
          rainfall_mat=shape_shape(p_shape,ele_shape(rainfall,ele),detwei)
          !For pipe flow source and rainfall, there is only vertical source
-         call addto(ct_rhs,ele_nodes(p, ele), matmul(rainfall_mat,ele_val(rainfall,ele)*sele_area/ele_loc(u,ele)))
-         print *,'sele_area',sele_area
+         call addto(ct_rhs,ele_nodes(p, ele), matmul(rainfall_mat,ele_val(rainfall,ele)))
+        ! print *,'sele_area',sele_area
          print *, 'ele_loc(u,ele)',ele_loc(rainfall,ele)
          rainfall_mom_mat=shape_shape(u_shape,ele_shape(rainfall,ele),detwei)
-         rhs_addto(3,:loc)=rhs_addto(3,:loc) +matmul(rainfall_mom_mat,ele_val(rainfall,ele)*sele_area/ele_loc(u,ele))
+         rhs_addto(3,:loc)=rhs_addto(3,:loc) +matmul(rainfall_mom_mat,ele_val(rainfall,ele))
       end if
     
     if(have_gravity.and.acceleration.and.assemble_element) then
