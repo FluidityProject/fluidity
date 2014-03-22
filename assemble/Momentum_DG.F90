@@ -1007,10 +1007,11 @@ contains
         !!Define variables for the rainfall sources! --TZhang
     type(scalar_field), intent(inout) :: ct_rhs
     type(scalar_field), intent(inout) :: rainfall
-    real, dimension(ele_loc(p,ele),ele_loc(u,ele))::rainfall_mat
-    real, dimension(ele_loc(u,ele),ele_loc(u,ele))::rainfall_mom_mat
-    real :: sele_area
-    real, dimension(ele_ngi(u,ele)) :: mat_unit ,mom_unit 
+    real, dimension(ele_loc(p,ele))::rainfall_mat
+    real, dimension(ele_loc(u,ele))::rainfall_mom_mat
+    real, dimension(ele_loc(rainfall,ele))::rainfall_val
+    real :: sele_area, half_p, l1, l2, l3, sum_rain
+    real, dimension(ele_ngi(u,ele)) :: mat_unit, mom_unit
     real, dimension(u%dim,ele_loc(X,ele)-1)::node_coord
     integer::j,k
     logical::same_node
@@ -1385,21 +1386,45 @@ contains
            end if
          end do
          !calculate the projected area by the coordinates of the projected nodes
-         sele_area=(sqrt((node_coord(2,1)-node_coord(2,3))**2)+sqrt((node_coord(2,2)-node_coord(2,3))**2) &
-                   *sqrt((node_coord(1,2)-node_coord(1,1))**2))/2 &
-                   -sqrt((node_coord(2,1)-node_coord(2,3))**2)*sqrt((node_coord(1,1)-node_coord(1,3))**2)/2 &
-                   -sqrt((node_coord(2,2)-node_coord(2,3))**2)*sqrt((node_coord(1,2)-node_coord(1,3))**2)/2
+         l1=sqrt((node_coord(1,1)-node_coord(1,2))**2+(node_coord(2,1)-node_coord(2,2))**2)
+         l2=sqrt((node_coord(1,2)-node_coord(1,3))**2+(node_coord(2,2)-node_coord(2,3))**2)
+         l3=sqrt((node_coord(1,1)-node_coord(1,3))**2+(node_coord(2,1)-node_coord(2,3))**2)
+         half_p=(l1+l2+l3)/2
+         sele_area=sqrt(half_p*(half_p-l1)*(half_p-l2)*(half_p-l3))
          print *,'sele_area', sele_area
          print *, 'node_coord',node_coord
          print *, 'x_val',x_val
          !get the rainfall intensity
-         rainfall_mat=shape_shape(p_shape,ele_shape(rainfall,ele),detwei)
+         !Only those cells with a face on the top will receive rainfall. Notice that you should make sure the rainfall has only been added to the top 
+         !face in the setting up.
+         k=0
+         rainfall_val=ele_val(rainfall,ele)
+         do i=1, ele_loc(rainfall,ele)
+           if (sqrt(rainfall_val(i)**2)>0.) k=k+1
+         end do
+         if (k>=3) then
+            sum_rain=sum(rainfall_val)/k*sele_area
+         else 
+            sum_rain=0.
+         end if
+         print *,'k',k
+         print *, 'sum_rain',sum_rain
+         do i=1, ele_ngi(u,ele)
+            mat_unit(i)=detwei(i)/sum(detwei)*sum_rain
+            mom_unit(i)=mat_unit(i)*9.81*dt
+         end do
+         rainfall_mat=shape_rhs(p_shape,mat_unit)
+         print *, 'mat_unit', mat_unit
+         print *, 'rainfall_mat',rainfall_mat
          !For pipe flow source and rainfall, there is only vertical source
-         call addto(ct_rhs,ele_nodes(p, ele), matmul(rainfall_mat,ele_val(rainfall,ele)))
-        ! print *,'sele_area',sele_area
+         call addto(ct_rhs,ele_nodes(p, ele),rainfall_mat )
+         print *,'ct_rhs',ele_val(ct_rhs,ele)
          print *, 'ele_loc(u,ele)',ele_loc(rainfall,ele)
-         rainfall_mom_mat=shape_shape(u_shape,ele_shape(rainfall,ele),detwei)
-         rhs_addto(3,:loc)=rhs_addto(3,:loc) +matmul(rainfall_mom_mat,ele_val(rainfall,ele))
+         rainfall_mom_mat=shape_rhs(u_shape,mom_unit)
+         print *, 'rainfall_mom_mat',rainfall_mom_mat
+         rhs_addto(3,:loc)=rhs_addto(3,:loc) +rainfall_mom_mat
+         print *, 'rhs_addto',rhs_addto
+         
       end if
     
     if(have_gravity.and.acceleration.and.assemble_element) then
