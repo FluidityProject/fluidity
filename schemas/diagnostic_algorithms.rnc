@@ -1402,6 +1402,14 @@ manifold_divergence_algorithm =
          attribute material_phase_support { "single" }
       }
    )
+sw_vorticity_algorithm =
+   (
+      ## Algorithm for calculating shallow water vorticity on manifold
+      element algorithm {
+         attribute name { "sw_vorticity" },
+         attribute material_phase_support { "single" }
+      }
+   )
 
 
 scalar_diagnostic_algorithms = universal_numbering_diagnostic_algorithm
@@ -1437,6 +1445,7 @@ scalar_diagnostic_algorithms |= element_ownership_algorithm
 scalar_diagnostic_algorithms |= element_halo_diagnostic_algorithm
 scalar_diagnostic_algorithms |= div_algorithm
 scalar_diagnostic_algorithms |= discontinuity_detector_algorithm
+scalar_diagnostic_algorithms |= sw_vorticity_algorithm
 scalar_diagnostic_algorithms |= manifold_divergence_algorithm
 scalar_diagnostic_algorithms |= curl_2d_algorithm
 scalar_diagnostic_algorithms |= column_id_algorithm

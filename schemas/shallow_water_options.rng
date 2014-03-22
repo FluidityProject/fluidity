@@ -588,6 +588,20 @@ field</a:documentation>
                 <value>0</value>
               </attribute>
               <attribute name="name">
+                <value>Vorticity</value>
+              </attribute>
+              <element name="diagnostic">
+                <ref name="scalar_diagnostic_algorithms"/>
+                <ref name="vorticity_mesh_choice"/>
+              </element>
+            </element>
+          </optional>
+          <optional>
+            <element name="scalar_field">
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <attribute name="name">
                 <value>ManifoldDivergence</value>
               </attribute>
               <element name="diagnostic">

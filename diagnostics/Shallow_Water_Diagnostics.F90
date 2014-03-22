@@ -39,12 +39,15 @@ module shallow_water_diagnostics
   use state_fields_module
   use state_module
   use vtk_cache_module
+  use manifold_tools
+  use sparsity_patterns_meshes
+  use solvers
 
   implicit none
 
   private
 
-  public :: calculate_discontinuity_detector, calculate_manifold_divergence
+  public :: calculate_discontinuity_detector, calculate_sw_vorticity, calculate_manifold_divergence
   
 contains
 
@@ -179,6 +182,101 @@ contains
     end subroutine fix_bubble_component
     
   end subroutine calculate_discontinuity_detector
+
+  subroutine calculate_sw_vorticity(state, s_field)
+    implicit none
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(inout) :: s_field
+
+    type(vector_field), pointer :: velocity, down, X
+    type(scalar_field), pointer :: pv
+    type(scalar_field) :: zeta_rhs
+    type(csr_matrix) :: zeta_mass_matrix
+    type(csr_sparsity), pointer :: zeta_mass_sparsity
+
+    integer :: ele
+    character(len=OPTION_PATH_LEN) :: path
+
+    ewrite(1,*) "Calculating sw_vorticity"
+
+    X=>extract_vector_field(state, "Coordinate")
+    down=>extract_vector_field(state, "GravityDirection")
+    velocity=>extract_vector_field(state, "LocalVelocity")
+
+    ! set solver options
+    pv => extract_scalar_field(state, "PotentialVorticity")
+    path=trim(pv%option_path)
+    print*, trim(path)
+
+    zeta_mass_sparsity => &
+         get_csr_sparsity_firstorder(state, s_field%mesh, s_field%mesh)
+    call allocate(zeta_mass_matrix,zeta_mass_sparsity)
+    call zero(zeta_mass_matrix)
+
+    call allocate(zeta_rhs, s_field%mesh, 'zetaRHS')
+    call zero(zeta_rhs)
+
+    do ele = 1, ele_count(s_field)
+       call assemble_vorticity_ele(zeta_mass_matrix, zeta_rhs, velocity, down, X, ele)
+    end do
+
+    call petsc_solve(s_field,zeta_mass_matrix,zeta_rhs,option_path=path)
+
+    call deallocate(zeta_mass_matrix)
+    call deallocate(zeta_rhs)
+
+  end subroutine calculate_sw_vorticity
+
+  subroutine assemble_vorticity_ele(zeta_mass_matrix, zeta_rhs, velocity, down, X, ele)
+    implicit none
+    type(vector_field), intent(in) :: velocity, down, X
+    type(scalar_field), intent(inout) :: zeta_rhs
+    type(csr_matrix), intent(inout) :: zeta_mass_matrix
+    integer, intent(in) :: ele
+
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+    real, dimension(ele_ngi(X,ele)) :: detwei, detJ
+    real, dimension(ele_loc(zeta_rhs,ele),ele_loc(zeta_rhs,ele)) :: l_mass_mat
+    real, dimension(ele_loc(zeta_rhs,ele)) :: l_rhs
+    real, dimension(mesh_dim(velocity),ele_ngi(velocity,ele)) :: velocity_gi,&
+         contravariant_velocity_gi, velocity_perp_gi
+    real, dimension(X%dim, ele_ngi(X,ele)) :: up_gi
+    integer :: orientation, gi
+    real, dimension(mesh_dim(X), mesh_dim(X), ele_ngi(X,ele)) :: Metric
+    type(element_type), pointer :: zeta_shape
+
+    zeta_shape=>ele_shape(zeta_rhs,ele)
+
+    up_gi = -ele_val_at_quad(down,ele)
+    call get_up_gi(X,ele,up_gi,orientation)
+
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J, detwei, detJ) 
+
+    l_mass_mat = shape_shape(zeta_shape,zeta_shape,detwei)
+
+    velocity_gi = ele_val_at_quad(velocity,ele)
+    do gi=1,ele_ngi(X,ele)
+       Metric(:,:,gi)=matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)
+       contravariant_velocity_gi(:,gi) = &
+            matmul(Metric(:,:,gi),velocity_gi(:,gi))
+    end do
+
+    select case(mesh_dim(X))
+    case (2)
+       velocity_perp_gi(1,:) = -contravariant_velocity_gi(2,:)
+       velocity_perp_gi(2,:) =  contravariant_velocity_gi(1,:)
+       l_rhs = dshape_dot_vector_rhs(zeta_rhs%mesh%shape%dn, &
+            velocity_perp_gi,X%mesh%shape%quadrature%weight)
+       l_rhs = l_rhs*orientation
+    case default
+       FLAbort('Exterior derivative not implemented for given mesh dimension')
+    end select
+
+    call addto(zeta_mass_matrix,ele_nodes(zeta_rhs,ele),&
+         ele_nodes(zeta_rhs,ele),l_mass_mat)
+    call addto(zeta_rhs,ele_nodes(zeta_rhs,ele),l_rhs)
+
+  end subroutine assemble_vorticity_ele
 
   subroutine calculate_manifold_divergence(state, s_field)
     implicit none

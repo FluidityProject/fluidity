@@ -457,6 +457,14 @@ start =
                }?,
                element scalar_field {
                   attribute rank { "0" },
+                  attribute name { "Vorticity" },
+                  element diagnostic {
+                     scalar_diagnostic_algorithms,
+                     vorticity_mesh_choice
+                  }
+               }?,
+               element scalar_field {
+                  attribute rank { "0" },
                   attribute name { "ManifoldDivergence" },
                   element diagnostic {
                      scalar_diagnostic_algorithms,

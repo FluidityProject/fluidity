@@ -1878,6 +1878,17 @@ discontinuity capturing schemes</a:documentation>
       </attribute>
     </element>
   </define>
+  <define name="sw_vorticity_algorithm">
+    <element name="algorithm">
+      <a:documentation>Algorithm for calculating shallow water vorticity on manifold</a:documentation>
+      <attribute name="name">
+        <value>sw_vorticity</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+    </element>
+  </define>
   <define name="scalar_diagnostic_algorithms">
     <ref name="universal_numbering_diagnostic_algorithm"/>
   </define>
@@ -1976,6 +1987,9 @@ discontinuity capturing schemes</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="discontinuity_detector_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="sw_vorticity_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="manifold_divergence_algorithm"/>
