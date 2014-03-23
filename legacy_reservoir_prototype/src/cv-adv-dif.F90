@@ -315,6 +315,7 @@ contains
            SBCVFENLX, SBCVFENLY, SBCVFENLZ, SBUFEN, SBUFENSLX, SBUFENSLY, &
            SBUFENLX, SBUFENLY, SBUFENLZ, &
            DUMMY_ZERO_NDIM_NDIM
+      REAL, DIMENSION( : ), allocatable :: SHAPE_CV_SNL, SHAPE_U_SNL
       REAL, DIMENSION( :, :, : ), allocatable :: DTX_ELE,DTY_ELE,DTZ_ELE,  &
            DTOLDX_ELE,DTOLDY_ELE,DTOLDZ_ELE
       REAL, pointer, DIMENSION( :, :, : ) :: INV_JAC
@@ -506,12 +507,16 @@ contains
       ALLOCATE( SCVFENLZ( CV_NLOC, SCVNGI ))
       ALLOCATE( SCVFEWEIGH( SCVNGI ))
 
+      ALLOCATE( SHAPE_CV_SNL( CV_NLOC ))
+
       ALLOCATE( SUFEN( U_NLOC, SCVNGI ))
       ALLOCATE( SUFENSLX( U_NLOC, SCVNGI ))
       ALLOCATE( SUFENSLY( U_NLOC, SCVNGI ))
       ALLOCATE( SUFENLX( U_NLOC, SCVNGI ))
       ALLOCATE( SUFENLY( U_NLOC, SCVNGI ))
       ALLOCATE( SUFENLZ( U_NLOC, SCVNGI ))
+
+      ALLOCATE( SHAPE_U_SNL( U_NLOC ))
 
       ALLOCATE( SRA( SCVNGI ))
 
@@ -1086,6 +1091,28 @@ contains
                      INTEGRAT_AT_GI = .NOT.( (ELE==ELE2) .AND. (SELE==0) )
                   END IF
 
+                  IF(INTEGRAT_AT_GI.AND.(SELE.NE.0)) THEN
+! Calculate U_SLOC2LOC, CV_SLOC2LOC: 
+                     CV_SKLOC=0
+                     DO CV_KLOC=1,CV_NLOC
+                        CV_KLOC2 = CV_OTHER_LOC( CV_KLOC )
+                        IF(CV_KLOC2.NE.0) THEN
+                           CV_SKLOC=CV_SKLOC+1
+                           CV_SLOC2LOC(CV_SKLOC)=CV_KLOC
+                           SHAPE_CV_SNL(CV_SKLOC) = SCVFEN(CV_KLOC,GI) 
+                        ENDIF
+                     END DO
+                     U_SKLOC=0
+                     DO U_KLOC=1,U_NLOC
+                        U_KLOC2 = U_OTHER_LOC( U_KLOC )
+                        IF(U_KLOC2.NE.0) THEN
+                           U_SKLOC=U_SKLOC+1
+                           U_SLOC2LOC(U_SKLOC)=U_KLOC
+                           SHAPE_U_SNL(CV_SKLOC) = SUFEN(U_KLOC,GI) 
+                        ENDIF
+                     END DO
+                  ENDIF
+
                END IF Conditional_CheckingNeighbourhood
 
                ! Avoid integrating across the middle of a CV on the boundaries of elements
@@ -1171,16 +1198,12 @@ contains
 !                IF ( CV_KLOC == CV_ILOC ) CV_SILOC=CV_SKLOC
 !             END DO
 !          ENDIF
-          IF( (ELE2 > 0) .and. (SELE /= 0) ) THEN
+          IF( (ELE2 > 0) .OR. (SELE /= 0) ) THEN
              DO CV_SKLOC = 1, CV_SNLOC
                 CV_KLOC = CV_SLOC2LOC( CV_SKLOC )
 
                    SLOC_F(:, CV_SKLOC) = LOC_F(:, CV_KLOC) 
                    SLOC_FEMF(:, CV_SKLOC) = LOC_FEMF(:, CV_KLOC) 
-
-                   SLOC2_F(:, CV_SKLOC)    = SLOC_F(:, CV_SKLOC)
-                   SLOC2_FEMF(:, CV_SKLOC) = SLOC_FEMF(:, CV_SKLOC)
-
 
                 
                    IF(ELE2>0) THEN
@@ -1207,9 +1230,7 @@ contains
                       SLOC2_FEMF(:, CV_SKLOC) = SLOC_FEMF(:, CV_SKLOC)
                    ENDIF
              END DO
-          ENDIF
 
-          IF( SELE /= 0 ) THEN
              DO U_SKLOC = 1, U_SNLOC
                 U_KLOC = U_SLOC2LOC( U_SKLOC )
                 U_KLOC2 = U_OTHER_LOC( U_KLOC )
@@ -1221,20 +1242,21 @@ contains
 
                    DO IDIM=1,NDIM
                       IPT=1
-                      CALL PACK_OR_UNPACK_LOC( SLOC_U(IDIM, :, U_SKLOC),   U_ALL( IDIM, :, U_NODK ),   NPHASE, NFIELD, IPT, PACK, STORE, IGOT_U_ALL(1))
+                      CALL PACK_OR_UNPACK_LOC( SLOC_U(IDIM, :, U_SKLOC),   U_ALL( IDIM, :, U_NODK2 ),   NPHASE, NFIELD, IPT, PACK, STORE, IGOT_U_ALL(1))
                    END DO
                    DO IDIM=1,NDIM
                       IPT=1+NPHASE
-                      CALL PACK_OR_UNPACK_LOC( SLOC_U(IDIM, :, U_SKLOC), NUOLD_ALL( IDIM, :, U_NODK ), NPHASE, NFIELD, IPT, PACK, STORE, IGOT_U_ALL(2))
+                      CALL PACK_OR_UNPACK_LOC( SLOC_U(IDIM, :, U_SKLOC), NUOLD_ALL( IDIM, :, U_NODK2 ), NPHASE, NFIELD, IPT, PACK, STORE, IGOT_U_ALL(2))
                    END DO
+                ELSE
+                   SLOC2_U(:, :, U_SKLOC) = SLOC_U(:, :, U_SKLOC) 
                 ENDIF
 
              END DO
 
-!             DO IFI=1,NFIELD/NPHASE
-!                SLOC_U(:, 1+(IFI-1)*NPHASE:IFI*NPHASE, :)   =   SLOC_U(:, 1:NPHASE, :)
-!                SLOC2_U(:, 1+(IFI-1)*NPHASE:IFI*NPHASE, :)  =   SLOC2_U(:, 1:NPHASE, :)
-!             END DO
+          ENDIF ! ENDOF IF( (ELE2 > 0) .OR. (SELE /= 0) ) THEN ...
+
+          IF( SELE /= 0 ) THEN
 ! bcs: 
 ! What type of b.c's -integer
              DO IPHASE=1,NPHASE
