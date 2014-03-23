@@ -1027,13 +1027,13 @@ contains
     
 ! loc_u
           DO U_KLOC = 1, U_NLOC
-             U_NODK = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_KLOC ) 
-             IPT=1
-             DO IDIM=1,NDIM
+             U_NODK = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_KLOC )
+             DO IDIM=1,NDIM 
+                IPT=1
                 CALL PACK_OR_UNPACK_LOC( LOC_U(IDIM, :, U_KLOC),          U_ALL( IDIM, :, U_NODK ),    NPHASE, NFIELD, IPT, PACK, STORE, IGOT_U_ALL(1))
              END DO
-             IPT=1+NPHASE
              DO IDIM=1,NDIM
+                IPT=1+NPHASE
                 CALL PACK_OR_UNPACK_LOC( LOC_U(IDIM, :, U_KLOC), NUOLD_ALL( IDIM, :, U_NODK ), NPHASE, NFIELD, IPT, PACK, STORE, IGOT_U_ALL(2))
              END DO
           END DO
@@ -1165,12 +1165,12 @@ contains
 
 ! local surface information***********
 
-          IF( SELE .NE. 0 ) THEN
-             DO CV_SKLOC = 1, CV_SNLOC
-                CV_KLOC = CV_SLOC2LOC( CV_SKLOC )
-                IF ( CV_KLOC == CV_ILOC ) CV_SILOC=CV_SKLOC
-             END DO
-          ENDIF
+!          IF( SELE .NE. 0 ) THEN
+!             DO CV_SKLOC = 1, CV_SNLOC
+!                CV_KLOC = CV_SLOC2LOC( CV_SKLOC )
+!                IF ( CV_KLOC == CV_ILOC ) CV_SILOC=CV_SKLOC
+!             END DO
+!          ENDIF
           IF( (ELE2 > 0) .and. (SELE /= 0) ) THEN
              DO CV_SKLOC = 1, CV_SNLOC
                 CV_KLOC = CV_SLOC2LOC( CV_SKLOC )
@@ -1214,34 +1214,27 @@ contains
                 U_KLOC = U_SLOC2LOC( U_SKLOC )
                 U_KLOC2 = U_OTHER_LOC( U_KLOC )
 
-                U_NODK = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_KLOC ) 
-                DO IPHASE=1,NPHASE
-                   U_NODK_IPHA =  U_NODK + (IPHASE-1)*U_NONODS
+                SLOC_U(:, :, U_SKLOC) = LOC_U(:, :, U_KLOC) 
 
-                   SLOC_U(1, IPHASE, U_SKLOC) = U(U_NODK_IPHA)
-                   IF(NDIM.GE.2) SLOC_U(2, IPHASE, U_SKLOC) = V(U_NODK_IPHA)
-                   IF(NDIM.GE.3) SLOC_U(3, IPHASE, U_SKLOC) = W(U_NODK_IPHA)
+                IF(ELE2>0) THEN
+                   U_NODK2 = U_NDGLN( ( ELE2 - 1 ) * U_NLOC + U_KLOC2 ) 
 
+                   DO IDIM=1,NDIM
+                      IPT=1
+                      CALL PACK_OR_UNPACK_LOC( SLOC_U(IDIM, :, U_SKLOC),   U_ALL( IDIM, :, U_NODK ),   NPHASE, NFIELD, IPT, PACK, STORE, IGOT_U_ALL(1))
+                   END DO
+                   DO IDIM=1,NDIM
+                      IPT=1+NPHASE
+                      CALL PACK_OR_UNPACK_LOC( SLOC_U(IDIM, :, U_SKLOC), NUOLD_ALL( IDIM, :, U_NODK ), NPHASE, NFIELD, IPT, PACK, STORE, IGOT_U_ALL(2))
+                   END DO
+                ENDIF
 
-                   IF(ELE2>0) THEN
-                      U_NODK2 = U_NDGLN( ( ELE2 - 1 ) * U_NLOC + U_KLOC2 ) 
-                      U_NODK2_IPHA =  U_NODK2 + (IPHASE-1)*U_NONODS
-
-                      SLOC2_U(1, IPHASE, U_SKLOC) = U(U_NODK2_IPHA)
-                      IF(NDIM.GE.2) SLOC2_U(2, IPHASE, U_SKLOC) = V(U_NODK2_IPHA)
-                      IF(NDIM.GE.3) SLOC2_U(3, IPHASE, U_SKLOC) = W(U_NODK2_IPHA)
-                   ELSE
-                      SLOC2_U(1, IPHASE, U_SKLOC) = U(U_NODK_IPHA)
-                      IF(NDIM.GE.2) SLOC2_U(2, IPHASE, U_SKLOC) = V(U_NODK_IPHA)
-                      IF(NDIM.GE.3) SLOC2_U(3, IPHASE, U_SKLOC) = W(U_NODK_IPHA)
-                   ENDIF
-                END DO ! END OF DO IPHASE=1,NPHASE
              END DO
 
-             DO IFI=1,NFIELD/NPHASE
-                SLOC_U(:, 1+(IFI-1)*NPHASE:IFI*NPHASE, :)   =   SLOC_U(:, 1:NPHASE, :)
-                SLOC2_U(:, 1+(IFI-1)*NPHASE:IFI*NPHASE, :)  =   SLOC2_U(:, 1:NPHASE, :)
-             END DO
+!             DO IFI=1,NFIELD/NPHASE
+!                SLOC_U(:, 1+(IFI-1)*NPHASE:IFI*NPHASE, :)   =   SLOC_U(:, 1:NPHASE, :)
+!                SLOC2_U(:, 1+(IFI-1)*NPHASE:IFI*NPHASE, :)  =   SLOC2_U(:, 1:NPHASE, :)
+!             END DO
 ! bcs: 
 ! What type of b.c's -integer
              DO IPHASE=1,NPHASE
@@ -9430,6 +9423,9 @@ pure real function ptolfun(value)
   END SUBROUTINE SURRO_CV_MINMAX
  
 
+
+
+
   SUBROUTINE CALC_SELE( ELE, SELE, CV_SILOC, CV_ILOC, U_SLOC2LOC, CV_SLOC2LOC, &
        FACE_ELE, NFACE, CVFEM_ON_FACE, &
        CV_NONODS, CV_NLOC, U_NLOC, CV_SNLOC, U_SNLOC, &
@@ -9511,6 +9507,9 @@ pure real function ptolfun(value)
 
     RETURN
   END SUBROUTINE CALC_SELE
+
+
+
 
   SUBROUTINE RE1DN3(NGI,NLOC,WEIGHT,N,NLX )
     IMPLICIT NONE
