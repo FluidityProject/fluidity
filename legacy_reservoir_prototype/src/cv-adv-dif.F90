@@ -1010,20 +1010,20 @@ contains
              CV_NODK = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_KLOC ) 
              IPT=1
              IPT2=IPT
-             IF(IGOT_T_ALL(1)==1) CALL PACK_OR_UNPACK_LOC( LOC_F(IPT2:IPT2-1+NPHASE, CV_KLOC), T_ALL( :, CV_NODK ),    NPHASE, IPT, PACK, STORE )
+             CALL PACK_OR_UNPACK_LOC( LOC_F(:, CV_KLOC), T_ALL( :, CV_NODK ),    NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(1) )
              IPT2=IPT
-             IF(IGOT_T_ALL(2)==1) CALL PACK_OR_UNPACK_LOC( LOC_F(IPT2:IPT2-1+NPHASE, CV_KLOC), TOLD_ALL( :, CV_NODK ), NPHASE, IPT, PACK, STORE )
+             CALL PACK_OR_UNPACK_LOC( LOC_F(:, CV_KLOC), TOLD_ALL( :, CV_NODK ), NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(2) )
 
 !              print *,'nfield,ipt:',nfield,ipt
              IPT2=IPT
-             IF(IGOT_T_ALL(3)==1) CALL PACK_OR_UNPACK_LOC( LOC_F(IPT2:IPT2-1+NPHASE, CV_KLOC), DEN_ALL( :, CV_NODK ),    NPHASE, IPT, PACK, STORE )
+             CALL PACK_OR_UNPACK_LOC( LOC_F(:, CV_KLOC), DEN_ALL( :, CV_NODK ),    NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(3) )
              IPT2=IPT
-             IF(IGOT_T_ALL(4)==1) CALL PACK_OR_UNPACK_LOC( LOC_F(IPT2:IPT2-1+NPHASE, CV_KLOC), DENOLD_ALL( :, CV_NODK ), NPHASE, IPT, PACK, STORE )
+             CALL PACK_OR_UNPACK_LOC( LOC_F(:, CV_KLOC), DENOLD_ALL( :, CV_NODK ), NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(4) )
 
              IPT2=IPT
-             IF(IGOT_T_ALL(5)==1) CALL PACK_OR_UNPACK_LOC( LOC_F(IPT2:IPT2-1+NPHASE, CV_KLOC), T2_ALL( :, CV_NODK ),    NPHASE, IPT, PACK, STORE )
+             CALL PACK_OR_UNPACK_LOC( LOC_F(:, CV_KLOC), T2_ALL( :, CV_NODK ),    NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(5) )
              IPT2=IPT
-             IF(IGOT_T_ALL(6)==1) CALL PACK_OR_UNPACK_LOC( LOC_F(IPT2:IPT2-1+NPHASE, CV_KLOC), T2OLD_ALL( :, CV_NODK ), NPHASE, IPT, PACK, STORE )
+             CALL PACK_OR_UNPACK_LOC( LOC_F(:, CV_KLOC), T2OLD_ALL( :, CV_NODK ), NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(6) )
           END DO
     
 ! loc_u
@@ -1031,11 +1031,11 @@ contains
              U_NODK = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_KLOC ) 
              IPT=1
              DO IDIM=1,NDIM
-                IF(IGOT_U_ALL(1)==1) CALL PACK_OR_UNPACK_LOC( LOC_U(IDIM, 1:NPHASE, U_KLOC),          U_ALL( IDIM, :, U_NODK ),    NPHASE, IPT, PACK, STORE )
+                CALL PACK_OR_UNPACK_LOC( LOC_U(IDIM, :, U_KLOC),          U_ALL( IDIM, :, U_NODK ),    NPHASE, NFIELD, IPT, PACK, STORE, IGOT_U_ALL(1))
              END DO
              IPT=1+NPHASE
              DO IDIM=1,NDIM
-                IF(IGOT_U_ALL(2)==1) CALL PACK_OR_UNPACK_LOC( LOC_U(IDIM, 1+NPHASE:2*NPHASE, U_KLOC), NUOLD_ALL( IDIM, :, U_NODK ), NPHASE, IPT, PACK, STORE )
+                CALL PACK_OR_UNPACK_LOC( LOC_U(IDIM, :, U_KLOC), NUOLD_ALL( IDIM, :, U_NODK ), NPHASE, NFIELD, IPT, PACK, STORE, IGOT_U_ALL(2))
              END DO
           END DO
 ! Generate some local F variables ***************...
@@ -1529,19 +1529,19 @@ contains
           DO CV_KLOC = 1, CV_NLOC
              IPT=1
              IPT2=IPT
-             IF(IGOT_T_ALL(1)==1) CALL PACK_OR_UNPACK_LOC( LIMF(IPT2:IPT2-1+NPHASE), LIMT( : ),    NPHASE, IPT, UNPACK, STORE )
+             CALL PACK_OR_UNPACK_LOC( LIMF(IPT2:IPT2-1+NPHASE), LIMT( : ),    NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(1))
              IPT2=IPT
-             IF(IGOT_T_ALL(2)==1) CALL PACK_OR_UNPACK_LOC( LIMF(IPT2:IPT2-1+NPHASE), LIMTOLD( : ), NPHASE, IPT, UNPACK, STORE )
+             CALL PACK_OR_UNPACK_LOC( LIMF(IPT2:IPT2-1+NPHASE), LIMTOLD( : ), NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(2))
 
              IPT2=IPT
-             IF(IGOT_T_ALL(3)==1) CALL PACK_OR_UNPACK_LOC( LIMF(IPT2:IPT2-1+NPHASE), LIMD( : ),    NPHASE, IPT, UNPACK, STORE )
+             CALL PACK_OR_UNPACK_LOC( LIMF(IPT2:IPT2-1+NPHASE), LIMD( : ),    NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(3) )
              IPT2=IPT
-             IF(IGOT_T_ALL(4)==1) CALL PACK_OR_UNPACK_LOC( LIMF(IPT2:IPT2-1+NPHASE), LIMDOLD( : ), NPHASE, IPT, UNPACK, STORE )
+             CALL PACK_OR_UNPACK_LOC( LIMF(IPT2:IPT2-1+NPHASE), LIMDOLD( : ), NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(4) )
 
              IPT2=IPT
-             IF(IGOT_T_ALL(5)==1) CALL PACK_OR_UNPACK_LOC( LIMF(IPT2:IPT2-1+NPHASE), LIMT2( : ),    NPHASE, IPT, UNPACK, STORE )
+             CALL PACK_OR_UNPACK_LOC( LIMF(IPT2:IPT2-1+NPHASE), LIMT2( : ),    NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(5) )
              IPT2=IPT
-             IF(IGOT_T_ALL(6)==1) CALL PACK_OR_UNPACK_LOC( LIMF(IPT2:IPT2-1+NPHASE), LIMT2OLD( : ), NPHASE, IPT, UNPACK, STORE )
+             CALL PACK_OR_UNPACK_LOC( LIMF(IPT2:IPT2-1+NPHASE), LIMT2OLD( : ), NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(6) )
           END DO
     
 ! loc_u
@@ -1549,11 +1549,11 @@ contains
 !             U_NODK = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_KLOC ) 
 !             IPT=1
 !             DO IDIM=1,NDIM
-!                IF(STORE, IGOT_U_ALL(1)==1) CALL PACK_OR_UNPACK_LOC( LOC_U(IDIM, 1:NPHASE, U_KLOC),          U_ALL( IDIM, :, U_NODK ),    NPHASE, IPT, UNPACK, STORE )
+!                CALL PACK_OR_UNPACK_LOC( LOC_U(IDIM, :, U_KLOC),          U_ALL( IDIM, :, U_NODK ),    NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_U_ALL(1))
 !             END DO
 !             IPT=1+NPHASE
 !             DO IDIM=1,NDIM
-!                IF(STORE, IGOT_U_ALL(2)==2) CALL PACK_OR_UNPACK_LOC( LOC_U(IDIM, 1+NPHASE:2*NPHASE, U_KLOC), NUOLD_ALL( IDIM, :, U_NODK ), NPHASE, IPT, UNPACK, STORE )
+!                CALL PACK_OR_UNPACK_LOC( LOC_U(IDIM, :, U_KLOC), NUOLD_ALL( IDIM, :, U_NODK ), NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_U_ALL(2))
 !             END DO
 !          END DO
 
@@ -2084,7 +2084,7 @@ contains
 
 
 
-             SUBROUTINE PACK_OR_UNPACK_LOC( LOC_F, T_ALL, NPHASE, IPT, PACK, STORE )
+             SUBROUTINE PACK_OR_UNPACK_LOC2( LOC_F, T_ALL, NPHASE, IPT, PACK, STORE )
              LOGICAL, intent( in ) :: PACK, STORE
              INTEGER, intent( in ) :: NPHASE
              INTEGER, intent( inout ) :: IPT
@@ -2109,6 +2109,50 @@ contains
                    ENDIF
                
              ENDIF
+             RETURN
+             END SUBROUTINE PACK_OR_UNPACK_LOC2
+
+
+
+
+             SUBROUTINE PACK_OR_UNPACK_LOC( LOC_F, T_ALL, NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T )
+! If PACK then pack T_ALL into LOC_F as long at IGOT_T==1 and STORE and not already in storage. 
+             LOGICAL, intent( in ) :: PACK, STORE
+             INTEGER, intent( in ) :: NPHASE, IGOT_T
+             INTEGER, intent( inout ) :: IPT
+             REAL, DIMENSION(NPHASE), intent( inout ) :: T_ALL
+             REAL, DIMENSION(NFIELD), intent( inout ) :: LOC_F
+! local variables...
+             LOGICAL :: IN_STORAGE
+
+             IN_STORAGE = .FALSE.
+             IF(STORE) THEN
+             ! IF STORE then look to see if in storage
+                 IN_STORAGE = .FALSE.
+             ENDIF
+             
+             IF(IGOT_T==1) THEN
+                IF(PACK) THEN
+! Pack solution into LOC_F
+                   IF(.NOT.IN_STORAGE) THEN
+                      LOC_F(IPT:IPT-1+NPHASE) = T_ALL(:)
+                      IPT=IPT+NPHASE
+                  ENDIF
+                ELSE
+! Unpack...
+                   IF(STORE) THEN 
+                      IF(.NOT.IN_STORAGE) THEN ! See if we are already storing limited value
+                      ENDIF
+! Put LOC_F(1:NPHASE, CV_KLOC) = DEN_ALL( 1:NPHASE, CV_NODK ) into storage...
+!                      T_ALL = LOC_F ???
+                      IPT=IPT+NPHASE
+                   ELSE
+! Put LOC_F(1:NPHASE, CV_KLOC) = DEN_ALL( 1:NPHASE, CV_NODK ) into storage...
+                      T_ALL(:) = LOC_F(IPT:IPT-1+NPHASE)
+                   ENDIF
+               
+                ENDIF ! ENDOF IF(PACK) THEN ELSE
+             ENDIF ! END OF IF(IGOT_T==1) THEN
              RETURN
              END SUBROUTINE PACK_OR_UNPACK_LOC
 
