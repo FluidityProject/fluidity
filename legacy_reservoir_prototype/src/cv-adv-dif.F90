@@ -388,7 +388,7 @@ contains
       INTEGER :: IGOT_NOT_CONST_DEN, IBOTH, IBOTH_TIME_LEVELS, NFIELD, CV_KLOC, CV_NODK, CV_NODK_IPHA, IT, ID, IT2, IFI
       INTEGER :: COUNT_IN, COUNT_OUT,CV_KLOC2,CV_NODK2,CV_NODK2_IPHA,CV_SKLOC, CV_SNODK, CV_SNODK_IPHA
       INTEGER :: U_KLOC2,U_NODK2,U_NODK2_IPHA,U_SKLOC
-      INTEGER :: IGOT_T_ALL(6),IGOT_U_ALL(2),IPT,IPT2
+      INTEGER :: IGOT_T_ALL(6),IGOT_U_ALL(2),IPT
       LOGICAL :: PACK,UNPACK,STORE
       REAL :: R
 
@@ -1009,21 +1009,20 @@ contains
           DO CV_KLOC = 1, CV_NLOC
              CV_NODK = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_KLOC ) 
              IPT=1
-             IPT2=IPT
              CALL PACK_OR_UNPACK_LOC( LOC_F(:, CV_KLOC), T_ALL( :, CV_NODK ),    NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(1) )
-             IPT2=IPT
              CALL PACK_OR_UNPACK_LOC( LOC_F(:, CV_KLOC), TOLD_ALL( :, CV_NODK ), NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(2) )
-
-!              print *,'nfield,ipt:',nfield,ipt
-             IPT2=IPT
              CALL PACK_OR_UNPACK_LOC( LOC_F(:, CV_KLOC), DEN_ALL( :, CV_NODK ),    NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(3) )
-             IPT2=IPT
              CALL PACK_OR_UNPACK_LOC( LOC_F(:, CV_KLOC), DENOLD_ALL( :, CV_NODK ), NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(4) )
-
-             IPT2=IPT
              CALL PACK_OR_UNPACK_LOC( LOC_F(:, CV_KLOC), T2_ALL( :, CV_NODK ),    NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(5) )
-             IPT2=IPT
              CALL PACK_OR_UNPACK_LOC( LOC_F(:, CV_KLOC), T2OLD_ALL( :, CV_NODK ), NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(6) )
+! for FEM variables...
+             IPT=1
+             CALL PACK_OR_UNPACK_LOC( LOC_FEMF(:, CV_KLOC), FEMT_ALL( :, CV_NODK ),    NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(1) )
+             CALL PACK_OR_UNPACK_LOC( LOC_FEMF(:, CV_KLOC), FEMTOLD_ALL( :, CV_NODK ), NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(2) )
+             CALL PACK_OR_UNPACK_LOC( LOC_FEMF(:, CV_KLOC), FEMDEN_ALL( :, CV_NODK ),    NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(3) )
+             CALL PACK_OR_UNPACK_LOC( LOC_FEMF(:, CV_KLOC), FEMDENOLD_ALL( :, CV_NODK ), NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(4) )
+             CALL PACK_OR_UNPACK_LOC( LOC_FEMF(:, CV_KLOC), FEMT2_ALL( :, CV_NODK ),    NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(5) )
+             CALL PACK_OR_UNPACK_LOC( LOC_FEMF(:, CV_KLOC), FEMT2OLD_ALL( :, CV_NODK ), NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(6) )
           END DO
     
 ! loc_u
@@ -1175,43 +1174,38 @@ contains
           IF( (ELE2 > 0) .and. (SELE /= 0) ) THEN
              DO CV_SKLOC = 1, CV_SNLOC
                 CV_KLOC = CV_SLOC2LOC( CV_SKLOC )
-                CV_NODK = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_KLOC )
-                DO IPHASE=1,NPHASE
-                   CV_NODK_IPHA =  CV_NODK + (IPHASE-1)*CV_NONODS
-                   IT=IPHASE
-                   ID=IPHASE+NPHASE
-                   IT2=IPHASE+IBOTH*NPHASE
 
-                   SLOC_F(IT, CV_SKLOC)    = T( CV_NODK_IPHA ) 
-                   IF ( IGOT_NOT_CONST_DEN == 1 ) SLOC_F(ID, CV_SKLOC) = DEN(CV_NODK_IPHA)
-                   IF ( IGOT_T2 == 1 ) SLOC_F(IT2, CV_SKLOC)   = T2( CV_NODK_IPHA ) 
+                   SLOC_F(:, CV_SKLOC) = LOC_F(:, CV_KLOC) 
+                   SLOC_FEMF(:, CV_SKLOC) = LOC_FEMF(:, CV_KLOC) 
 
-                   SLOC_FEMF(IT, CV_SKLOC)    = FEMT( CV_NODK_IPHA ) 
-                   IF ( IGOT_NOT_CONST_DEN == 1 ) SLOC_FEMF(ID, CV_SKLOC) = FEMDEN(CV_NODK_IPHA)
-                   IF ( IGOT_T2 == 1 ) SLOC_FEMF(IT2, CV_SKLOC)   = FEMT2( CV_NODK_IPHA ) 
+                   SLOC2_F(:, CV_SKLOC)    = SLOC_F(:, CV_SKLOC)
+                   SLOC2_FEMF(:, CV_SKLOC) = SLOC_FEMF(:, CV_SKLOC)
 
+
+                
                    IF(ELE2>0) THEN
                       CV_KLOC2 = CV_OTHER_LOC( CV_KLOC )
                       CV_NODK2 = CV_NDGLN( ( ELE2 - 1 ) * CV_NLOC + CV_KLOC2 ) 
-                      CV_NODK2_IPHA =  CV_NODK2 + (IPHASE-1)*CV_NONODS
- 
-                      SLOC2_F(IT, CV_SKLOC)    = T( CV_NODK2_IPHA ) 
-                      IF ( IGOT_NOT_CONST_DEN == 1 ) SLOC2_F(ID, CV_SKLOC) = DEN(CV_NODK2_IPHA)
-                      IF ( IGOT_T2 == 1 ) SLOC2_F(IT2, CV_SKLOC)   = T2( CV_NODK2_IPHA ) 
- 
-                      SLOC2_FEMF(IT, CV_SKLOC)    = FEMT( CV_NODK2_IPHA ) 
-                      IF ( IGOT_NOT_CONST_DEN == 1 ) SLOC2_FEMF(ID, CV_SKLOC) = FEMDEN(CV_NODK2_IPHA)
-                      IF ( IGOT_T2 == 1 ) SLOC2_FEMF(IT2, CV_SKLOC)   = FEMT2( CV_NODK2_IPHA ) 
-                   ELSE
-                      SLOC2_F(IT, CV_SKLOC)    = T( CV_NODK_IPHA ) 
-                      IF ( IGOT_NOT_CONST_DEN == 1 ) SLOC2_F(ID, CV_SKLOC) = DEN(CV_NODK_IPHA)
-                      IF ( IGOT_T2 == 1 ) SLOC2_F(IT2, CV_SKLOC)   = T2( CV_NODK_IPHA ) 
+             IPT=1
+             CALL PACK_OR_UNPACK_LOC( SLOC2_F(:, CV_KLOC), T_ALL( :, CV_NODK2 ),    NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(1) )
+             CALL PACK_OR_UNPACK_LOC( SLOC2_F(:, CV_KLOC), TOLD_ALL( :, CV_NODK2 ), NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(2) )
+             CALL PACK_OR_UNPACK_LOC( SLOC2_F(:, CV_KLOC), DEN_ALL( :, CV_NODK2 ),    NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(3) )
+             CALL PACK_OR_UNPACK_LOC( SLOC2_F(:, CV_KLOC), DENOLD_ALL( :, CV_NODK2 ), NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(4) )
+             CALL PACK_OR_UNPACK_LOC( SLOC2_F(:, CV_KLOC), T2_ALL( :, CV_NODK2 ),    NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(5) )
+             CALL PACK_OR_UNPACK_LOC( SLOC2_F(:, CV_KLOC), T2OLD_ALL( :, CV_NODK2 ), NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(6) )
+! fem:
+             IPT=1
+             CALL PACK_OR_UNPACK_LOC( SLOC2_FEMF(:, CV_KLOC), FEMT_ALL( :, CV_NODK2 ),    NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(1) )
+             CALL PACK_OR_UNPACK_LOC( SLOC2_FEMF(:, CV_KLOC), FEMTOLD_ALL( :, CV_NODK2 ), NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(2) )
+             CALL PACK_OR_UNPACK_LOC( SLOC2_FEMF(:, CV_KLOC), FEMDEN_ALL( :, CV_NODK2 ),    NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(3) )
+             CALL PACK_OR_UNPACK_LOC( SLOC2_FEMF(:, CV_KLOC), FEMDENOLD_ALL( :, CV_NODK2 ), NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(4) )
+             CALL PACK_OR_UNPACK_LOC( SLOC2_FEMF(:, CV_KLOC), FEMT2_ALL( :, CV_NODK2 ),    NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(5) )
+             CALL PACK_OR_UNPACK_LOC( SLOC2_FEMF(:, CV_KLOC), FEMT2OLD_ALL( :, CV_NODK2 ), NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(6) )
 
-                      SLOC2_FEMF(IT, CV_SKLOC)    = FEMT( CV_NODK_IPHA ) 
-                      IF ( IGOT_NOT_CONST_DEN == 1 ) SLOC2_FEMF(ID, CV_SKLOC) = FEMDEN(CV_NODK_IPHA)
-                      IF ( IGOT_T2 == 1 ) SLOC2_FEMF(IT2, CV_SKLOC)   = FEMT2( CV_NODK_IPHA ) 
+                   ELSE
+                      SLOC2_F(:, CV_SKLOC)    = SLOC_F(:, CV_SKLOC)
+                      SLOC2_FEMF(:, CV_SKLOC) = SLOC_FEMF(:, CV_SKLOC)
                    ENDIF
-                END DO ! ENDOF DO IPHASE=1,NPHASE
              END DO
           ENDIF
 
@@ -1528,20 +1522,12 @@ contains
 ! loc_f - Unpack into the limiting variables LIMT etc.
           DO CV_KLOC = 1, CV_NLOC
              IPT=1
-             IPT2=IPT
-             CALL PACK_OR_UNPACK_LOC( LIMF(IPT2:IPT2-1+NPHASE), LIMT( : ),    NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(1))
-             IPT2=IPT
-             CALL PACK_OR_UNPACK_LOC( LIMF(IPT2:IPT2-1+NPHASE), LIMTOLD( : ), NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(2))
-
-             IPT2=IPT
-             CALL PACK_OR_UNPACK_LOC( LIMF(IPT2:IPT2-1+NPHASE), LIMD( : ),    NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(3) )
-             IPT2=IPT
-             CALL PACK_OR_UNPACK_LOC( LIMF(IPT2:IPT2-1+NPHASE), LIMDOLD( : ), NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(4) )
-
-             IPT2=IPT
-             CALL PACK_OR_UNPACK_LOC( LIMF(IPT2:IPT2-1+NPHASE), LIMT2( : ),    NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(5) )
-             IPT2=IPT
-             CALL PACK_OR_UNPACK_LOC( LIMF(IPT2:IPT2-1+NPHASE), LIMT2OLD( : ), NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(6) )
+             CALL PACK_OR_UNPACK_LOC( LIMF(:), LIMT( : ),    NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(1))
+             CALL PACK_OR_UNPACK_LOC( LIMF(:), LIMTOLD( : ), NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(2))
+             CALL PACK_OR_UNPACK_LOC( LIMF(:), LIMD( : ),    NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(3) )
+             CALL PACK_OR_UNPACK_LOC( LIMF(:), LIMDOLD( : ), NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(4) )
+             CALL PACK_OR_UNPACK_LOC( LIMF(:), LIMT2( : ),    NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(5) )
+             CALL PACK_OR_UNPACK_LOC( LIMF(:), LIMT2OLD( : ), NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(6) )
           END DO
     
 ! loc_u
