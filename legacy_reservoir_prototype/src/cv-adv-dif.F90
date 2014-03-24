@@ -1556,7 +1556,7 @@ contains
                         ! Calculate T and DEN on the CV face at quadrature point GI.
 !                        CALL GET_INT_T_DEN_new( FVT(:), FVT2(:), FVD(:), LIMD(:,global_face), LIMT(:,global_face), LIMT2(:,global_face), &
 !                             LIMDT(:,global_face), LIMDTT2(:,global_face),& 
-                        CALL GET_INT_T_DEN_new( FVF(:), LIMF(:), & 
+                        CALL GET_INT_T_DEN_new( LIMF(:), & 
                              CV_DISOPT, CV_NONODS, NPHASE, NFIELD, CV_NODI, CV_NODJ, CV_ILOC, CV_JLOC, CV_SILOC, ELE, ELE2, GI,   &
                              CV_NLOC, TOTELE, CV_NDGLN, CV_OTHER_LOC, SCVNGI, SCVFEN, T_INCOME, &
                              LOC_F, LOC_FEMF, SLOC_F, SLOC_FEMF, SLOC2_F, SLOC2_FEMF, &
@@ -1570,6 +1570,9 @@ contains
                              LOC_U, SLOC_U, SLOC2_U,  &
                              U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              FUPWIND_IN, FUPWIND_OUT, DISTCONTINUOUS_METHOD, QUAD_ELEMENTS) 
+
+                        FVT(:)=T_ALL(:,CV_NODI)*(1.0-INCOME(:)) + T_ALL(:,CV_NODJ)*INCOME(:) 
+                        FVD(:)=DEN_ALL(:,CV_NODI)*(1.0-INCOME(:)) + DEN_ALL(:,CV_NODJ)*INCOME(:) 
 
             ENDIF
 
@@ -9003,7 +9006,7 @@ pure real function ptolfun(value)
  
 
 
-  SUBROUTINE GET_INT_T_DEN_new(FVF, LIMF, &
+  SUBROUTINE GET_INT_T_DEN_new(LIMF, &
        CV_DISOPT, CV_NONODS, NPHASE, NFIELD, CV_NODI, CV_NODJ, CV_ILOC, CV_JLOC, CV_SILOC, ELE, ELE2, GI, &
        CV_NLOC, TOTELE, CV_NDGLN, CV_OTHER_LOC, SCVNGI, SCVFEN, T_INCOME, &
        LOC_F, LOC_FEMF, SLOC_F, SLOC_FEMF, SLOC2_F, SLOC2_FEMF,  &
@@ -9037,7 +9040,7 @@ pure real function ptolfun(value)
     REAL, DIMENSION( :, :  ), intent( in ) :: SCVFEN
     REAL, DIMENSION( :, :  ), intent( in ) :: SCVFENX, SCVFENY, SCVFENZ
     REAL, DIMENSION( :  ), intent( in ) :: CVNORMX, CVNORMY, CVNORMZ
-      REAL, DIMENSION ( NFIELD), intent( inout ) :: FVF, LIMF
+      REAL, DIMENSION ( NFIELD), intent( inout ) :: LIMF
       REAL, DIMENSION ( NFIELD), intent( in ) :: NDOTQ
 
       REAL, DIMENSION ( NFIELD,CV_NLOC), intent( in ) :: LOC_F, LOC_FEMF
@@ -9217,25 +9220,25 @@ pure real function ptolfun(value)
 
 
 
-    IF ( SELE == 0 ) THEN ! Is NOT on boundary of the domain
+!    IF ( SELE == 0 ) THEN ! Is NOT on boundary of the domain
 
-       FVF(:)    = F_INCOME(:) * LOC_F( :, CV_JLOC ) + ( 1. - F_INCOME(:) ) * LOC_F( :, CV_ILOC )
+!       FVF(:)    = F_INCOME(:) * LOC_F( :, CV_JLOC ) + ( 1. - F_INCOME(:) ) * LOC_F( :, CV_ILOC )
 
-    ELSE ! Is on boundary of the domain
+!    ELSE ! Is on boundary of the domain
 
-       DO IFIELD=1,NFIELD
-          IF( SELE_LOC_WIC_F_BC( IFIELD ) /= WIC_T_BC_DIRICHLET ) THEN !  WIC_T(T,D,T2)_BC_DIRICHLET all have the same value=1
-             ! Dont apply a Dirichlet b.c.
-             FVF(IFIELD)    = LOC_F( IFIELD, CV_ILOC )
-          ELSE
-             FVF(IFIELD)    = F_INCOME(IFIELD) * SLOC_SUF_F_BC(IFIELD, CV_SILOC) + ( 1. - F_INCOME(IFIELD) ) * LOC_F( IFIELD, CV_ILOC) 
-          END IF
-       END DO ! ENDOF DO IFIELD=1,NFIELD
+!       DO IFIELD=1,NFIELD
+!          IF( SELE_LOC_WIC_F_BC( IFIELD ) /= WIC_T_BC_DIRICHLET ) THEN !  WIC_T(T,D,T2)_BC_DIRICHLET all have the same value=1
+!             ! Dont apply a Dirichlet b.c.
+!             FVF(IFIELD)    = LOC_F( IFIELD, CV_ILOC )
+!          ELSE
+!             FVF(IFIELD)    = F_INCOME(IFIELD) * SLOC_SUF_F_BC(IFIELD, CV_SILOC) + ( 1. - F_INCOME(IFIELD) ) * LOC_F( IFIELD, CV_ILOC) 
+!          END IF
+!       END DO ! ENDOF DO IFIELD=1,NFIELD
 
-    END IF
+!    END IF
 
     ! By default do not use first-order upwinding
-    FIRSTORD = .FALSE.
+!    FIRSTORD = .FALSE.
 
     ! No limiting if CV_DISOPT is 6 or 7  (why not just define limt=femt and skip to assembly?)
     NOLIMI = ( INT( CV_DISOPT / 2 ) == 3 ) 
@@ -9244,8 +9247,8 @@ pure real function ptolfun(value)
     ! (Depends on discetisation option, CV_DISOPT)                
     SELECT CASE( CV_DISOPT / 2 )
 
-    CASE( 0 ) ! First-order upwinding
-       FEMFGI(:)    = FVF(:)
+!    CASE( 0 ) ! First-order upwinding is achived through the limiting
+!       FEMFGI(:)    = FVF(:)
 
     CASE( 1 ) ! Central differencing [Trapezoidal rule (2 OR 3)]
        FEMFGI(:)    = 0.5 * ( LOC_F( :, CV_ILOC ) + LOC_F( :, CV_JLOC ) )        
