@@ -151,7 +151,7 @@ module momentum_DG
   
   logical::have_sigma
   logical::have_a
-  logical::have_SWMM, have_rainfall
+  logical:: have_rainfall
   
 contains
 
@@ -1353,12 +1353,7 @@ contains
       end if
     end if
     
-    !Add the interacted flux with drainage system to the RHS of Continuity Equation. The flux can be calculated by SWMM.
-    !Add the interacted flux with drainage system to the RHS of Continuity Equation. The flux can be calculated by SWMM. 
-    !Assume that there is only one source point at most in each cell.   --TZhang
-    
    
-      
       !Input of rainfall is in term of intensity (m/s). Note usually the unit of rainfall observation data is mm/s. 
       !Unit conversion is needed before being read to the code.   --TZhang
       

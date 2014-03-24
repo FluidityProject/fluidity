@@ -137,7 +137,7 @@
     ! the calls to get_entire_boundary_condition below
     integer, parameter :: BC_TYPE_WEAKDIRICHLET = 1, BC_TYPE_NO_NORMAL_FLOW=2, &
                           BC_TYPE_INTERNAL = 3, BC_TYPE_FREE_SURFACE = 4, &
-                          BC_TYPE_FLUX = 5, BC_TYPE_SWMM =6, BC_TYPE_RAINFALL = 7
+                          BC_TYPE_FLUX = 5
     integer, parameter :: PRESSURE_BC_TYPE_WEAKDIRICHLET = 1, PRESSURE_BC_DIRICHLET = 2
 
     ! Stabilisation schemes.
@@ -175,8 +175,8 @@
     real :: ib_min_grad
     real::d0_a
     real::d0
-    !logical :: have_SWMM 
-    !logical :: have_rainfall
+ 
+    logical :: have_rainfall
     ! Are we running a multi-phase flow simulation?
     logical :: multiphase
     
@@ -302,7 +302,7 @@
       type(element_type), dimension(:), allocatable :: supg_element
       !Add the source term representing the inflow and outflow from the drainage system
       !type(scalar_field), pointer ::source_SWMM
-      !type(scalar_field), pointer ::source_rainfall
+      type(scalar_field) :: rainfall
       
       
       ewrite(1,*) 'Entering construct_momentum_cg'
@@ -331,7 +331,10 @@
       have_source = stat == 0
       if(.not. have_source) source=>dummyvector
       ewrite_minmax(source)
-
+      
+      have_rainfall = has_scalar_field(state, "Rainfall")
+      if (have_rainfall)   rainfall= extract_scalar_field(state, "Rainfall")
+    
       absorption=>extract_vector_field(state, "VelocityAbsorption", stat)
       have_absorption = stat == 0
       if(.not. have_absorption) absorption=>dummyvector
@@ -776,7 +779,7 @@
               swe_bottom_drag, old_pressure, p, &
               assemble_ct_matrix_here, depth, &
               alpha_u_field, abs_wd, temperature, nvfrac, &
-              supg_element(thread_num+1))
+              supg_element(thread_num+1),rainfall=rainfall)
       end do element_loop
       !$OMP END DO
 
@@ -1232,65 +1235,6 @@
         end do
       end if
 
-      !Add the interacted flux with drainage system to the RHS of Continuity Equation. The flux can be calculated by SWMM.
-      !Add the interacted flux with drainage system to the RHS of Continuity Equation. The flux can be calculated by SWMM. 
-      !Assume that there is only one source point at most in each cell.
-      if (any(velocity_bc_type(:,sele)==BC_TYPE_SWMM) ) then
-         source_q_gi=ele_val_at_quad(velocity_bc, sele, 3)
-         source_guess_mat=shape_rhs(p_shape,source_q_gi*detwei_bdy)
-         sum_guess = 0
-         sum_source=0.
-         have_constant=0
-         do i=1,face_ngi(u, sele)
-           sum_source=sum_source+source_q_gi(i)
-           !check whether the input is constant value. 
-           if (i>1) then
-             if(source_q_gi(i) /= source_q_gi(i-1)) then
-              have_constant=have_constant+1
-             end if
-           end if 
-         end do
-         if (have_constant==0) then 
-             sum_source=sum_source/face_ngi(u, sele)
-         end if
-         do i=1, face_loc(ct_rhs, sele)
-          sum_guess = sum_guess + source_guess_mat(i)
-         end do
-         do i=1, face_loc(ct_rhs, sele)
-          source_mat(i)=sum_source*source_guess_mat(i)/sum_guess
-         end do
-         !For pipe flow source and rainfall, there is only vertical source
-         call addto(ct_rhs,p_nodes_bdy, source_mat)
-      end if
-      
-      !Input of rainfall is in term of intensity (m/s). Note usually the unit of rainfall observation data is mm/s or inch/h. 
-      !Unit conversion is needed before being read to the code. 
-      
-      if (any(velocity_bc_type(:,sele)==BC_TYPE_RAINFALL) ) then
-         sele_area=sum(detwei_bdy)
-         !get the rainfall intensity
-         intensity_gi=ele_val_at_quad(velocity_bc, sele, 3)
-         rainfall_guess_mat=shape_rhs(p_shape,intensity_gi*detwei_bdy)
-         sum_guess_rainfall=0
-         sum_rainfall=0
-         have_constant=0
-         do i=1,face_ngi(u, sele)
-           sum_rainfall=sum_rainfall+intensity_gi(i)
-         end do
-         !sum_rainfall is the sum of the intensity value of all the gaussion quadrature points.
-         sum_rainfall=sum_rainfall/face_ngi(u, sele)
-        
-         do i=1, face_loc(ct_rhs, sele)
-          sum_guess_rainfall= sum_guess_rainfall + rainfall_guess_mat(i)
-         end do
-         !distribute the rainfall amount (intensity*area, m^3/s) to each node. 
-         do i=1, face_loc(ct_rhs, sele)
-          rainfall_mat(i)=sele_area*sum_rainfall*rainfall_guess_mat(i)/sum_guess_rainfall
-         end do
-         !For pipe flow source and rainfall, there is only vertical source
-         call addto(ct_rhs,p_nodes_bdy, rainfall_mat)
-      end if
-      
     end subroutine construct_momentum_surface_element_cg
 
     subroutine construct_momentum_element_cg(state, ele, big_m, rhs, ct_m, &
@@ -1303,7 +1247,7 @@
                                             gp, surfacetension, &
                                             swe_bottom_drag, old_pressure, p, &
                                             assemble_ct_matrix_here, depth, &
-                                            alpha_u_field, abs_wd, temperature, nvfrac, supg_shape)
+                                            alpha_u_field, abs_wd, temperature, nvfrac, supg_shape, rainfall)
 
       !!< Assembles the local element matrix contributions and places them in big_m
       !!< and rhs for the continuous galerkin momentum equations
@@ -1324,7 +1268,8 @@
 
       type(vector_field), intent(in) :: x, u, oldu, nu 
       type(vector_field), pointer :: x_old, x_new, ug
-      type(scalar_field), intent(in) :: density, buoyancy, ct_rhs
+      type(scalar_field), intent(in) :: density, buoyancy 
+      type(scalar_field), intent(inout) ::ct_rhs
       type(vector_field), intent(in) :: source, absorption, gravity
       type(tensor_field), intent(in) :: viscosity, grad_u
 
@@ -1382,6 +1327,7 @@
       type(element_type) :: test_function
       !Sigma term
       real, dimension(u%dim, ele_loc(u, ele)) :: u_val
+      type(scalar_field), intent(inout) :: rainfall
 
       if(move_mesh) then
         ! we've assumed the following in the declarations
@@ -1526,6 +1472,11 @@
       ! Source terms
       if(have_source) then
         call add_sources_element_cg(ele, test_function, u, density, source, detwei, rhs_addto)
+      end if
+      
+      !Rainfall
+      if(have_rainfall) then
+        call add_rainfall_element_cg(x, ele, u, p, ct_rhs, detwei, rhs_addto, rainfall)
       end if
       
       ! Buoyancy terms
@@ -1859,6 +1810,93 @@
       
     end subroutine add_sources_element_cg
     
+    subroutine add_rainfall_element_cg(x, ele, u, p, ct_rhs, detwei, rhs_addto, rainfall)
+      !!Define variables for the rainfall sources! --TZhang
+      type(scalar_field), intent(in) ::  p
+      !type(scalar_field), intent(in) ::density    #only consider incompressible water with a constant desity of 1g/ml at the moment
+      type(vector_field), intent(in) :: u, x
+      integer, intent(in) :: ele
+      real, dimension(ele_ngi(u, ele)), intent(in) :: detwei
+      type(scalar_field), intent(inout) :: rainfall
+      type(scalar_field), intent(inout) :: ct_rhs
+      real, dimension(u%dim, ele_loc(u, ele)), intent(inout) :: rhs_addto
+      type(element_type), pointer :: u_shape, p_shape
+      real, dimension(x%dim, ele_loc(x,ele)) :: x_val
+      real, dimension(ele_loc(p,ele))::rainfall_mat
+      real, dimension(ele_loc(u,ele))::rainfall_mom_mat
+      real, dimension(ele_loc(rainfall,ele))::rainfall_val
+      real :: sele_area, half_p, l1, l2, l3, sum_rain
+      real, dimension(ele_ngi(u,ele)) :: mat_unit, mom_unit
+      real, dimension(u%dim,ele_loc(x,ele)-1)::node_coord
+      integer::i,j,k,loc
+      logical::same_node
+         !calculate the projected area of the element on horizontal surface
+          !The node horizontal coordinates of the projected triangle are stored in array node_coord
+       k=1
+       x_val=ele_val(x,ele)
+       p_shape=>ele_shape(ct_rhs, ele)
+       u_shape=>ele_shape(u, ele)
+       do i=1, ele_loc(X,ele)
+         if (i<2) then
+            node_coord(:,k)=x_val(:,i)
+            k=k+1
+         else 
+            do j=1,ele_loc(X,ele)-1
+              if (node_coord(1,j)==x_val(1,i) .and. node_coord(2,j)==x_val(2,i)) then
+                 same_node=.True.  
+                 exit 
+              else
+                 same_node=.False.
+              end if
+            end do
+            if (.not. same_node) then  
+              node_coord(:,k)=x_val(:,i)
+              k=k+1
+            end if   
+         end if
+       end do
+         !calculate the projected area by the coordinates of the projected nodes
+         l1=sqrt((node_coord(1,1)-node_coord(1,2))**2+(node_coord(2,1)-node_coord(2,2))**2)
+         l2=sqrt((node_coord(1,2)-node_coord(1,3))**2+(node_coord(2,2)-node_coord(2,3))**2)
+         l3=sqrt((node_coord(1,1)-node_coord(1,3))**2+(node_coord(2,1)-node_coord(2,3))**2)
+         half_p=(l1+l2+l3)/2
+         sele_area=sqrt(half_p*(half_p-l1)*(half_p-l2)*(half_p-l3))
+         print *,'sele_area', sele_area
+         print *, 'node_coord',node_coord
+         print *, 'x_val',x_val
+         !get the rainfall intensity
+         !Only those cells with a face on the top will receive rainfall. Notice that you should make sure the rainfall has only been added to the top 
+         !face in the setting up.
+         k=0
+         rainfall_val=ele_val(rainfall,ele)
+         do i=1, ele_loc(rainfall,ele)
+           if (sqrt(rainfall_val(i)**2)>0.) k=k+1
+         end do
+         if (k>=3) then
+            sum_rain=sum(rainfall_val)/k*sele_area
+         else 
+            sum_rain=0.
+         end if
+         print *,'k',k
+         print *, 'sum_rain',sum_rain
+         do i=1, ele_ngi(u,ele)
+            mat_unit(i)=detwei(i)/sum(detwei)*sum_rain
+            mom_unit(i)=mat_unit(i)*gravity_magnitude*dt
+         end do
+         rainfall_mat=shape_rhs(p_shape,mat_unit)
+         print *, 'mat_unit', mat_unit
+         print *, 'rainfall_mat',rainfall_mat
+         !For pipe flow source and rainfall, there is only vertical source
+         call addto(ct_rhs,ele_nodes(p, ele),rainfall_mat )
+         print *,'ct_rhs',ele_val(ct_rhs,ele)
+         print *, 'ele_loc(u,ele)',ele_loc(rainfall,ele)
+         rainfall_mom_mat=shape_rhs(u_shape,mom_unit)
+         print *, 'rainfall_mom_mat',rainfall_mom_mat
+         rhs_addto(3,:loc)=rhs_addto(3,:loc) +rainfall_mom_mat
+         print *, 'rhs_addto',rhs_addto 
+    
+    end subroutine add_rainfall_element_cg
+    
     subroutine add_buoyancy_element_cg(positions, ele, test_function, u, buoyancy, hb_density, gravity, nvfrac, detwei, rhs_addto)
       type(vector_field), intent(in) :: positions
       integer, intent(in) :: ele
@@ -1923,6 +1961,8 @@
       end if
       
     end subroutine add_surfacetension_element_cg
+    
+    
     
     subroutine add_absorption_element_cg(positions, ele, test_function,  u, oldu_val, &
                                          density, absorption, detwei, &
