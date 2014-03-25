@@ -4592,8 +4592,12 @@ of the wetting and drying alpha coefficient.</a:documentation>
         </element>
       </element>
       <element name="scalar_field">
-        <a:documentation>SWMM. Specify the flow rate exchanged with the subsurface drainage system.
-Please set the mesh as P0,because the value is uniform for each element.</a:documentation>
+        <a:documentation>SWMM. Specify the flow rate exchanged with the subsurface drainage system, value unit is m^3/s.
+Nomally the pipe flow in/out to/from the domain from the bottom surface, so only give value to the bottom.
+Please set the mesh on the CoordinateMesh.
+If you use P2 mesh for pressure, please open a new scalar field named 'SWMM_pmesh' and use 'scalar_galerkin_projection'
+to project this field onto PressureMesh.
+If you use more complicated mesh for velocity (except P1CG and P1DG), please project this field onto VelocityMesh and name the new field as 'SWMM_vmesh'</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>

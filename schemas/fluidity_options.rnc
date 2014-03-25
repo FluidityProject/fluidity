@@ -3532,8 +3532,12 @@ scalar_field_choice =
                
             )
          }|
-         ## SWMM. Specify the flow rate exchanged with the subsurface drainage system.
-         ## Please set the mesh as P0,because the value is uniform for each element.
+         ## SWMM. Specify the flow rate exchanged with the subsurface drainage system, value unit is m^3/s.
+         ## Nomally the pipe water flow in/out to/from the domain through the bottom surface, so please only give value to the bottom.
+         ## Please set the mesh on the CoordinateMesh.
+         ## If you use P2 mesh for pressure, please open a new scalar field named 'SWMM_pmesh' and use 'scalar_galerkin_projection'
+         ## to project this field onto PressureMesh.
+         ## If you use a complicated mesh for velocity (except P1CG and P1DG), please project this field onto VelocityMesh and name the new field as 'SWMM_vmesh'.
          element scalar_field {
             attribute rank { "0" },
             attribute name { "SWMM" },

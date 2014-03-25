@@ -137,7 +137,7 @@
       ! Do we have a prognostic free surface (currently only in 
       ! combination with a no_normal_stress free_surface)
       logical :: implicit_prognostic_fs, explicit_prognostic_fs, standard_fs
-      logical :: have_SWMM, have_SWMM_vmesh
+      logical :: have_SWMM, have_SWMM_vmesh, have_SWMM_pmesh
 
    contains
 
@@ -273,7 +273,7 @@
          logical :: have_fp_drag
          integer::i
          !Add the source term representing the inflow and outflow from the drainage system
-         type(scalar_field)::source_SWMM_pmesh, source_SWMM_vmesh, source_SWMM
+         type(scalar_field)::source_SWMM, source_SWMM_vmesh, source_SWMM_pmesh
          ewrite(1,*) 'Entering solve_momentum'
 
 
@@ -610,19 +610,30 @@
             !/Start************************21 Mar 2012, TZhang******************/
             !add SWMM to ct_rhs and mom_rhs, only for incompressible fluids
             have_SWMM=has_scalar_field(state(istate), "SWMM")
-            !have_SWMM_vmesh=has_scalar_field(state(istate), "SWMM_vmesh")
+            have_SWMM_pmesh=has_scalar_field(state(istate), "SWMM_pmesh")
+            have_SWMM_vmesh=has_scalar_field(state(istate), "SWMM_vmesh")
             if (have_SWMM) then
-              source_SWMM = extract_scalar_field(state(istate), "SWMM")
-              call allocate(source_SWMM_pmesh, p%mesh)
-              call allocate(source_SWMM_vmesh, u%mesh)
-              call project_field(source_SWMM,source_SWMM_pmesh,X)
-              call project_field(source_SWMM,source_SWMM_vmesh,X)
-              !add Q (discharge) to the ct_rhs
-              call addto(ct_rhs(istate),source_SWMM_pmesh)
-              !add rho*Q*g*dt to mom_rhs
-              call addto(mom_rhs(istate),3,source_SWMM_vmesh,9.81*dt)
+              source_SWMM= extract_scalar_field(state(istate), "SWMM")
+              if (have_SWMM_pmesh) then
+                 source_SWMM_pmesh=extract_scalar_field(state(istate), "SWMM_pmesh")
+              else
+                 call allocate(source_SWMM_pmesh, p%mesh)
+                 call project_field(source_SWMM,source_SWMM_pmesh,X)   
+              end if 
+              if (have_SWMM_vmesh) then
+                 source_SWMM_vmesh=extract_scalar_field(state(istate), "SWMM_vmesh")
+              else
+                 call allocate(source_SWMM_vmesh, u%mesh)
+                 call project_field(source_SWMM,source_SWMM_vmesh,X)
+              end if
             end if
             
+            if (have_SWMM) then
+              !add Q (discharge) to the ct_rhs
+              call addto(ct_rhs(istate),source_SWMM_pmesh)
+                !add rho*Q*g*dt to mom_rhs
+              call addto(mom_rhs(istate),3,source_SWMM_vmesh,9.81*dt)
+            end if
             do i=1, ele_count(ct_rhs(istate))
                print *,'ct_rhs',ele_val(ct_rhs(istate),i)
             end do
@@ -677,8 +688,6 @@
                      assemble_ct_matrix_here=reassemble_ct_m .and. .not. cv_pressure, &
                      include_pressure_and_continuity_bcs=.not. cv_pressure)
             end if
-            
-            
             
             ! If CV pressure then add in any dirichlet pressure BC integrals to the mom_rhs.
             if (cv_pressure) then
