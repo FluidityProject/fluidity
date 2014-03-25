@@ -1009,7 +1009,7 @@ contains
     type(scalar_field), intent(inout) :: rainfall
     real, dimension(ele_loc(p,ele))::rainfall_mat
     real, dimension(ele_loc(u,ele))::rainfall_mom_mat
-    real, dimension(ele_loc(rainfall,ele))::rainfall_val
+    real, dimension(ele_loc(x,ele))::rainfall_val
     real :: sele_area, half_p, l1, l2, l3, sum_rain
     real, dimension(ele_ngi(u,ele)) :: mat_unit, mom_unit
     real, dimension(u%dim,ele_loc(X,ele)-1)::node_coord
