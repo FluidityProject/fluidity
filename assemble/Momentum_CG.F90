@@ -301,7 +301,6 @@
 
       type(element_type), dimension(:), allocatable :: supg_element
       !Add the source term representing the inflow and outflow from the drainage system
-      !type(scalar_field), pointer ::source_SWMM
       type(scalar_field) :: rainfall
       
       
@@ -344,18 +343,6 @@
      have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
      have_sigma=has_scalar_field(state, "Sigma_d0")
      have_a=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/a")
-     
-     !Extract the source_SWMM field or set it to dummy scalar field
-    ! source_SWMM=>extract_scalar_field(state, "source_SWMM", stat)
-    ! have_SWMM = stat == 0
-    ! if(.not. have_SWMM) source_SWMM=>dummyscalar
-     !ewrite_minmax(source_SWMM) 
-            
-     !Extract the source_Rainfall field or set it to dummy scalar field
-     !source_rainfall=>extract_scalar_field(state, "source_rainfall", stat)
-     !have_rainfall = stat == 0
-     !if(.not. have_rainfall) source_rainfall=>dummyscalar
-    ! ewrite_minmax(source_rainfall) 
  
       have_wd_abs=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/dry_absorption")
       ! Absorption term in dry zones for wetting and drying
@@ -805,9 +792,7 @@
              "no_normal_flow", &
              "internal      ", &
              "free_surface  ", &
-             "flux          ", &
-             "source_SWMM   ", &
-             "rainfall      "  &
+             "flux          "  &
            & /), velocity_bc, velocity_bc_type)
            
          allocate(pressure_bc_type(surface_element_count(p)))
@@ -1828,7 +1813,7 @@
       real :: sele_area, half_p, l1, l2, l3, sum_rain
       real, dimension(ele_ngi(u,ele)) :: mat_unit, mom_unit
       real, dimension(u%dim,ele_loc(x,ele)-1)::node_coord
-      integer::i,j,k,loc
+      integer::i,j,k
       logical::same_node
          !calculate the projected area of the element on horizontal surface
           !The node horizontal coordinates of the projected triangle are stored in array node_coord
@@ -1892,7 +1877,7 @@
          print *, 'ele_loc(u,ele)',ele_loc(rainfall,ele)
          rainfall_mom_mat=shape_rhs(u_shape,mom_unit)
          print *, 'rainfall_mom_mat',rainfall_mom_mat
-         rhs_addto(3,:loc)=rhs_addto(3,:loc) +rainfall_mom_mat
+         rhs_addto(3,:)=rhs_addto(3,:) +rainfall_mom_mat
          print *, 'rhs_addto',rhs_addto 
     
     end subroutine add_rainfall_element_cg
