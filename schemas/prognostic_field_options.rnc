@@ -1360,7 +1360,7 @@ prognostic_pressure_field =
                comment
             )
          },
-         ## Use the incompressible projection method to determine
+         ## Use the projection method to determine
          ## the pressure and satisfy continuity
          element use_projection_method {
             ## Assemble and use the full schur complement.

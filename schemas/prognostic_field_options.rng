@@ -1677,7 +1677,7 @@ runs to ensure correct results.</a:documentation>
         <ref name="comment"/>
       </element>
       <element name="use_projection_method">
-        <a:documentation>Use the incompressible projection method to determine
+        <a:documentation>Use the projection method to determine
 the pressure and satisfy continuity</a:documentation>
         <optional>
           <element name="full_schur_complement">
