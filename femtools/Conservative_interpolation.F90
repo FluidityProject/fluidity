@@ -341,6 +341,8 @@ module conservative_interpolation_module
     logical, dimension(:, :), allocatable :: force_bc
     integer :: bc
 
+    logical :: not_halo_2_element
+
     ewrite(1, *) "In interpolation_galerkin_scalars"
 
     stat = 0
@@ -508,7 +510,21 @@ module conservative_interpolation_module
     ewrite(1, *) "Entering supermeshing loop"
 
     do ele_B=1,ele_count(new_position)
-      if (element_owned(new_position, ele_B)) then
+
+      ! halo 2 elements are inconsistent after an adapt, and assembling over these is unneccesary, so we skip
+      ! anything without any owned nodes (i.e. in halo 2)
+      not_halo_2_element = .false.
+      nloc = ele_loc(new_position, ele_B)
+      ele_nodes_B => ele_nodes(new_position, ele_B)
+      
+      do j = 1, nloc
+        if (node_owned(new_position, ele_nodes_B(j))) then
+           not_halo_2_element = .true.
+           exit
+        end if
+      end do
+
+      if (not_halo_2_element) then
 
         call galerkin_projection_inner_loop(ele_B, little_mass_matrix, detJ, local_rhs, conservation_tolerance, stat, &
              field_counts, old_fields, old_position, new_fields, new_position, &
@@ -605,17 +621,17 @@ module conservative_interpolation_module
 
         end do
       end if
+      
+    end do
 
+    ewrite(1, *) "Supermeshing complete"
+
+    if (.not. present(map_BA)) then
+      do ele_B=1,ele_count(new_position)
+        call deallocate(lmap_BA(ele_B))
       end do
-
-      ewrite(1, *) "Supermeshing complete"
-
-      if (.not. present(map_BA)) then
-        do ele_B=1,ele_count(new_position)
-          call deallocate(lmap_BA(ele_B))
-        end do
-        deallocate(lmap_BA)
-      end if
+      deallocate(lmap_BA)
+    end if
 
     do mesh = 1, mesh_count
       if(field_counts(mesh)>0) then
