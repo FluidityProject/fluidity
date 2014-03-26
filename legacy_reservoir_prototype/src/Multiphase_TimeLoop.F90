@@ -190,6 +190,7 @@
            
       real, dimension( :, : ), allocatable ::theta_flux, one_m_theta_flux, theta_flux_j, one_m_theta_flux_j, &
                                sum_theta_flux, sum_one_m_theta_flux, sum_theta_flux_j, sum_one_m_theta_flux_j, theta0_flux
+      real, dimension( : ), allocatable ::Density_one
 
 !!$ Material_Absorption_Stab = u_abs_stab; Material_Absorption = u_absorb; ScalarField_Absorption = v_absorb
 !!$ Component_Absorption = comp_absorb; ScalarAdvectionField_Absorption = t_absorb
@@ -565,11 +566,13 @@
            sum_one_m_theta_flux( nphase, ncv_faces * igot_theta_flux ), &
            sum_theta_flux_j( nphase, ncv_faces * igot_theta_flux ), &
            sum_one_m_theta_flux_j( nphase, ncv_faces * igot_theta_flux ), &
+           Density_one(nphase*cv_nonods*igot_theta_flux ), &
            theta_gdiff( cv_nonods * nphase ), ScalarField_Source_Store( cv_nonods * nphase ), &
            ScalarField_Source_Component( cv_nonods * nphase ) )
 
       sum_theta_flux = 1. ; sum_one_m_theta_flux = 0.
       sum_theta_flux_j = 1. ; sum_one_m_theta_flux_j = 0.
+      Density_one = 1.
       ScalarField_Source_Store=0. ; ScalarField_Source_Component=0.
 
 !!$ Defining discretisation options
@@ -1058,6 +1061,7 @@
 
                if (igot_theta_flux>0) then
 
+
                call VolumeFraction_Assemble_Solve( state, packed_state, &
                     NCOLACV, FINACV, COLACV, MIDACV, &
                     small_FINACV, small_COLACV, small_MIDACV, &
@@ -1073,7 +1077,8 @@
                     x, y, z, Velocity_U, Velocity_V, Velocity_W, &
                     Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
                     PhaseVolumeFraction, PhaseVolumeFraction_Old, &
-                    Density, Density_Old, &
+                    Density_one, Density_one, &   ! use DEN=1 because the density is already in the theta variables
+!                    Density, Density_Old, &
 !!$
                     MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
 !!$
@@ -1634,7 +1639,7 @@
                  Momentum_Diffusion, ScalarAdvectionField_Diffusion, &
                  Component_Diffusion, &
                  theta_flux, one_m_theta_flux, theta_flux_j, one_m_theta_flux_j, sum_theta_flux, &
-                 sum_one_m_theta_flux, sum_theta_flux_j, sum_one_m_theta_flux_j, density_tmp, density_old_tmp )
+                 sum_one_m_theta_flux, sum_theta_flux_j, sum_one_m_theta_flux_j, Density_one, density_tmp, density_old_tmp )
 
 deallocate(NDOTQOLD,&
            NDOTQVOLD,LIMTOLD,LIMT2OLD,&
