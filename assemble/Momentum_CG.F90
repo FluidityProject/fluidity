@@ -1039,13 +1039,7 @@
 
       real, dimension(u%dim, face_loc(u, sele)) :: oldu_val
       real, dimension(u%dim, face_ngi(u, sele)) :: ndotk_k
-      !real, dimension(face_ngi(u, sele)) ::test_mat
-      real::sum_guess ,sum_source, sum_guess_rainfall, sum_rainfall
-      real, dimension(face_loc(ct_rhs,sele))::source_guess_mat, source_mat,rainfall_guess_mat, rainfall_mat
-      real, dimension(face_ngi(u, sele))::source_q_gi, intensity_gi
-      integer::have_constant
-      real :: sele_area
-      
+        
       u_shape=> face_shape(u, sele)
       p_shape=> face_shape(ct_rhs, sele)
 
@@ -1846,9 +1840,7 @@
          l3=sqrt((node_coord(1,1)-node_coord(1,3))**2+(node_coord(2,1)-node_coord(2,3))**2)
          half_p=(l1+l2+l3)/2
          sele_area=sqrt(half_p*(half_p-l1)*(half_p-l2)*(half_p-l3))
-         print *,'sele_area', sele_area
-         print *, 'node_coord',node_coord
-         print *, 'x_val',x_val
+      
          !get the rainfall intensity
          !Only those cells with a face on the top will receive rainfall. Notice that you should make sure the rainfall has only been added to the top 
          !face in the setting up.
@@ -1862,23 +1854,17 @@
          else 
             sum_rain=0.
          end if
-         print *,'k',k
-         print *, 'sum_rain',sum_rain
+         
          do i=1, ele_ngi(u,ele)
             mat_unit(i)=detwei(i)/sum(detwei)*sum_rain
             mom_unit(i)=mat_unit(i)*gravity_magnitude*dt
          end do
          rainfall_mat=shape_rhs(p_shape,mat_unit)
-         print *, 'mat_unit', mat_unit
-         print *, 'rainfall_mat',rainfall_mat
+         
          !For pipe flow source and rainfall, there is only vertical source
          call addto(ct_rhs,ele_nodes(p, ele),rainfall_mat )
-         print *,'ct_rhs',ele_val(ct_rhs,ele)
-         print *, 'ele_loc(u,ele)',ele_loc(rainfall,ele)
          rainfall_mom_mat=shape_rhs(u_shape,mom_unit)
-         print *, 'rainfall_mom_mat',rainfall_mom_mat
          rhs_addto(3,:)=rhs_addto(3,:) +rainfall_mom_mat
-         print *, 'rhs_addto',rhs_addto 
     
     end subroutine add_rainfall_element_cg
     

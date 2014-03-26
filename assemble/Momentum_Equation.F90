@@ -634,14 +634,6 @@
                 !add rho*Q*g*dt to mom_rhs
               call addto(mom_rhs(istate),3,source_SWMM_vmesh,9.81*dt)
             end if
-            do i=1, ele_count(ct_rhs(istate))
-               print *,'ct_rhs',ele_val(ct_rhs(istate),i)
-            end do
-            print*, 'p_node',node_count(ct_rhs(istate))
-            do i=1, ele_count(mom_rhs(istate))
-              print *,'mom_rhs',ele_val(mom_rhs(istate),i)
-            end do
-            print*, 'v_node',node_count(mom_rhs(istate))
             !/End************************21 Mar 2012, TZhang******************/
             
             if(has_scalar_field(state(istate), hp_name)) then
@@ -742,10 +734,7 @@
                   call assemble_divergence_matrix_cg(ct_m(istate)%ptr, state(istate), ct_rhs=ct_rhs(istate), &
                    test_mesh=p_theta%mesh, field=u, get_ct=reassemble_ct_m)
             end if
-            do i=1, element_count(p)
-                 print *, 'ct_rhs_momentum_equation',ele_val(ct_rhs(istate),i)
-            end do
-          
+            
             if (implicit_prognostic_fs .and. reassemble_ct_m) then
               call add_implicit_viscous_free_surface_integrals(state(istate), &
                 ct_m(istate)%ptr, u, p_mesh, free_surface)
