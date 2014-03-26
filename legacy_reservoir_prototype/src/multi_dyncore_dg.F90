@@ -102,7 +102,7 @@ contains
     MEAN_PORE_CV, &
     option_path, &
     mass_ele_transp, &
-    thermal, THETA_FLUX, ONE_M_THETA_FLUX,&
+    thermal, THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, &
     StorageIndexes   )
 
         ! Solve for internal energy using a control volume method.
@@ -141,7 +141,7 @@ contains
         REAL, DIMENSION( : ), intent( in ) :: DEN, DENOLD
         REAL, DIMENSION( : ), intent( in ) :: T2, T2OLD
         REAL, DIMENSION( : ), intent( inout ) :: THETA_GDIFF
-        REAL, DIMENSION( :,: ), intent( inout ), optional :: THETA_FLUX, ONE_M_THETA_FLUX
+        REAL, DIMENSION( :,: ), intent( inout ), optional :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
         REAL, DIMENSION( :,:,:, : ), intent( in ) :: TDIFFUSION
         INTEGER, intent( in ) :: T_DISOPT, T_DG_VEL_INT_OPT
         REAL, intent( in ) :: DT, T_THETA
@@ -246,7 +246,7 @@ contains
             OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
             T_FEMT, DEN_FEMT, &
             IGOT_T2, T2, T2OLD,IGOT_THETA_FLUX ,SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
-            THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
+            THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, THETA_GDIFF, &
             SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
             NOIT_DIM, &
             MEAN_PORE_CV, &
@@ -370,7 +370,7 @@ contains
     OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
     T_FEMT, DEN_FEMT, &
     IGOT_T2, T2, T2OLD, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
-    THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
+    THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, THETA_GDIFF, &
     SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
     NOIT_DIM, &
     MEAN_PORE_CV, &
@@ -418,7 +418,7 @@ contains
         REAL, DIMENSION( :), intent( in ) :: DEN, DENOLD
         REAL, DIMENSION( : ), intent( in ) :: T2, T2OLD
         REAL, DIMENSION( : ), intent( inout ) :: THETA_GDIFF
-        REAL, DIMENSION(:, :),  intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX
+        REAL, DIMENSION(:, :),  intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
         REAL, DIMENSION( :, :, :, : ), intent( in ) :: TDIFFUSION
         INTEGER, intent( in ) :: T_DISOPT, T_DG_VEL_INT_OPT
         REAL, intent( in ) :: DT, T_THETA
@@ -493,7 +493,7 @@ contains
             OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
             T_FEMT, DEN_FEMT, &
             IGOT_T2, T2, T2OLD, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
-            THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
+            THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, THETA_GDIFF, &
             SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
             NOIT_DIM, &
             MEAN_PORE_CV, &
@@ -898,7 +898,7 @@ contains
     NOIT_DIM, &
     option_path, &
     mass_ele_transp,&
-    THETA_FLUX, ONE_M_THETA_FLUX,&
+    THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, &
     StorageIndexes)
 
         implicit none
@@ -932,7 +932,7 @@ contains
         REAL, DIMENSION( : ), intent( in ) :: U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD
         REAL, DIMENSION( : ), intent( inout ) :: SATURA, SATURAOLD, Sat_FEMT, DEN_FEMT
         REAL, DIMENSION( : ), intent( in ) :: DEN, DENOLD
-        REAL, DIMENSION( :, :), intent( inout ), optional :: THETA_FLUX, ONE_M_THETA_FLUX
+        REAL, DIMENSION( :, :), intent( inout ), optional :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
         INTEGER, intent( in ) :: V_DISOPT, V_DG_VEL_INT_OPT
         REAL, intent( in ) :: DT, V_THETA
         REAL, intent( inout ) :: V_BETA
@@ -1055,7 +1055,7 @@ contains
             OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
             Sat_FEMT, DEN_FEMT, &
             IGOT_T2, T2, T2OLD, igot_theta_flux, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
-            THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
+            THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, THETA_GDIFF, &
             SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
             NOIT_DIM, &
             MEAN_PORE_CV, &
@@ -1097,7 +1097,7 @@ contains
             !              MEAN_PORE_CV, &
             !              SMALL_FINACV, SMALL_COLACV, size(small_colacv), mass_mn_pres, THERMAL, &
             !              mass_ele_transp, &
-            !              THETA_FLUX, ONE_M_THETA_FLUX,&
+            !              THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, &
             !              StorageIndexes)
 
             satura=0.0 !saturaold([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)])
@@ -1185,7 +1185,7 @@ contains
     UDEN, UDENOLD, UDIFFUSION, &
     OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
     IGOT_THETA_FLUX, SCVNGI_THETA, USE_THETA_FLUX, &
-    THETA_FLUX, ONE_M_THETA_FLUX, &
+    THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, &
     IN_ELE_UPWIND, DG_ELE_UPWIND, &
     NOIT_DIM, &
     IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
@@ -1268,7 +1268,7 @@ contains
         REAL, DIMENSION(  : ,  : ,  : ,  :  ), intent( in ) :: UDIFFUSION
         REAL, DIMENSION(  :  ), intent( in ) :: OPT_VEL_UPWIND_COEFS
         REAL, DIMENSION( : ,  :  ), intent( inout ) :: &
-        THETA_FLUX, ONE_M_THETA_FLUX
+        THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
         INTEGER, INTENT( IN ) :: NOIT_DIM
         REAL, DIMENSION( :  ), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
         integer, dimension(:), intent(inout) :: StorageIndexes
@@ -1482,7 +1482,7 @@ contains
         UDEN_ALL, UDENOLD_ALL, UDIFFUSION_ALL, &
         OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
         IGOT_THETA_FLUX, SCVNGI_THETA, USE_THETA_FLUX, &
-        THETA_FLUX, ONE_M_THETA_FLUX, &
+        THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, &
         IN_ELE_UPWIND, DG_ELE_UPWIND, &
         NOIT_DIM, &
         IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF_ALL, PLIKE_GRAD_SOU_GRAD_ALL,scale_momentum_by_volume_fraction ,&
@@ -1901,7 +1901,7 @@ contains
     UDEN_ALL, UDENOLD_ALL, UDIFFUSION_ALL, &
     OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
     IGOT_THETA_FLUX, SCVNGI_THETA, USE_THETA_FLUX, &
-    THETA_FLUX, ONE_M_THETA_FLUX, &
+    THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, &
     IN_ELE_UPWIND, DG_ELE_UPWIND, &
     NOIT_DIM, &
     IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF_ALL, PLIKE_GRAD_SOU_GRAD_ALL ,scale_momentum_by_volume_fraction,&
@@ -1940,7 +1940,7 @@ contains
         REAL, DIMENSION(  :  ), intent( in ) :: CV_P, P
         REAL, DIMENSION(  :  ), intent( in ) :: DEN, DENOLD, SATURA, SATURAOLD
         REAL, DIMENSION(  :  ), intent( in ) :: DERIV
-        REAL, DIMENSION(  : ,  :   ), intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX
+        REAL, DIMENSION(  : ,  :   ), intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
         REAL, intent( in ) :: DT
         INTEGER, DIMENSION(  :  ), intent( in ) :: FINDC
         INTEGER, DIMENSION(  :  ), intent( in ) :: COLC
@@ -2199,7 +2199,7 @@ contains
         OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
         SAT_FEMT, DEN_FEMT, &
         IGOT_T2, T2, T2OLD, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
-        THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
+        THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, THETA_GDIFF, &
         SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
         NOIT_DIM, &
         MEAN_PORE_CV, &

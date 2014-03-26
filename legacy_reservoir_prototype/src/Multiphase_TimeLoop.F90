@@ -188,7 +188,8 @@
       real, dimension( :, :, :, : ), allocatable :: Momentum_Diffusion, ScalarAdvectionField_Diffusion, &
            Component_Diffusion
            
-      real, dimension( :, : ), allocatable ::theta_flux, one_m_theta_flux, sum_theta_flux, sum_one_m_theta_flux, theta0_flux
+      real, dimension( :, : ), allocatable ::theta_flux, one_m_theta_flux, theta_flux_j, one_m_theta_flux_j, &
+                               sum_theta_flux, sum_one_m_theta_flux, sum_theta_flux_j, sum_one_m_theta_flux_j, theta0_flux
 
 !!$ Material_Absorption_Stab = u_abs_stab; Material_Absorption = u_absorb; ScalarField_Absorption = v_absorb
 !!$ Component_Absorption = comp_absorb; ScalarAdvectionField_Absorption = t_absorb
@@ -558,12 +559,17 @@
 
       allocate( theta_flux( nphase, ncv_faces * igot_theta_flux ), &
            one_m_theta_flux( nphase, ncv_faces * igot_theta_flux ), &
+           theta_flux_j( nphase, ncv_faces * igot_theta_flux ), &
+           one_m_theta_flux_j( nphase, ncv_faces * igot_theta_flux ), &
            sum_theta_flux( nphase, ncv_faces * igot_theta_flux ), &
            sum_one_m_theta_flux( nphase, ncv_faces * igot_theta_flux ), &
+           sum_theta_flux_j( nphase, ncv_faces * igot_theta_flux ), &
+           sum_one_m_theta_flux_j( nphase, ncv_faces * igot_theta_flux ), &
            theta_gdiff( cv_nonods * nphase ), ScalarField_Source_Store( cv_nonods * nphase ), &
            ScalarField_Source_Component( cv_nonods * nphase ) )
 
       sum_theta_flux = 1. ; sum_one_m_theta_flux = 0.
+      sum_theta_flux_j = 1. ; sum_one_m_theta_flux_j = 0.
       ScalarField_Source_Store=0. ; ScalarField_Source_Component=0.
 
 !!$ Defining discretisation options
@@ -1028,7 +1034,7 @@
                     U_Density, U_Density_Old, Momentum_Diffusion, &
                     opt_vel_upwind_coefs, nopt_vel_upwind_coefs, &
                     igot_theta_flux, scvngi_theta, volfra_use_theta_flux, &
-                    sum_theta_flux, sum_one_m_theta_flux, &
+                    sum_theta_flux, sum_one_m_theta_flux, sum_theta_flux_j, sum_one_m_theta_flux_j, &
                     in_ele_upwind, dg_ele_upwind, &
 !!$
                     NOIT_DIM, & ! This need to be removed as it is already deprecated
@@ -1091,7 +1097,7 @@
 !!$                 nits_flux_lim_volfra, &
                     option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction', &
                     mass_ele_transp = mass_ele,&
-                    theta_flux=sum_theta_flux, one_m_theta_flux=sum_one_m_theta_flux,&
+                    theta_flux=sum_theta_flux, one_m_theta_flux=sum_one_m_theta_flux, theta_flux_j=sum_theta_flux_j, one_m_theta_flux_j=sum_one_m_theta_flux_j,&
                            StorageIndexes=StorageIndexes)
                else
                   call VolumeFraction_Assemble_Solve( state, packed_state,&
@@ -1141,7 +1147,7 @@
             end if Conditional_PhaseVolumeFraction
 
 !!$ Starting loop over components
-            sum_theta_flux = 0. ; sum_one_m_theta_flux = 0. ; ScalarField_Source_Component = 0.
+            sum_theta_flux = 0. ; sum_one_m_theta_flux = 0. ; sum_theta_flux_j = 0. ; sum_one_m_theta_flux_j = 0. ; ScalarField_Source_Component = 0.
 
             Conditional_Components:if( have_component_field ) then
                Loop_Components: do icomp = 1, ncomp
@@ -1246,7 +1252,7 @@
                                 !option_path = '', &
                           mass_ele_transp = dummy_ele, &
                           thermal = .false.,& ! the false means that we don't add an extra source term
-                          theta_flux=theta_flux, one_m_theta_flux=one_m_theta_flux,&
+                          theta_flux=theta_flux, one_m_theta_flux=one_m_theta_flux, theta_flux_j=theta_flux_j, one_m_theta_flux_j=one_m_theta_flux_j,&
                            StorageIndexes=StorageIndexes)
 
                    Component( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods )  &
@@ -1257,6 +1263,9 @@
 
                   sum_theta_flux = sum_theta_flux + theta_flux
                   sum_one_m_theta_flux = sum_one_m_theta_flux + one_m_theta_flux
+
+                  sum_theta_flux_j = sum_theta_flux_j + theta_flux_j
+                  sum_one_m_theta_flux_j = sum_one_m_theta_flux_j + one_m_theta_flux_j
 
 
                   ! We have divided through by density 
@@ -1624,7 +1633,8 @@
                  Component_Diffusion_Operator_Coefficient, &
                  Momentum_Diffusion, ScalarAdvectionField_Diffusion, &
                  Component_Diffusion, &
-                 theta_flux, one_m_theta_flux, sum_theta_flux, sum_one_m_theta_flux, density_tmp, density_old_tmp )
+                 theta_flux, one_m_theta_flux, theta_flux_j, one_m_theta_flux_j, sum_theta_flux, &
+                 sum_one_m_theta_flux, sum_theta_flux_j, sum_one_m_theta_flux_j, density_tmp, density_old_tmp )
 
 deallocate(NDOTQOLD,&
            NDOTQVOLD,LIMTOLD,LIMT2OLD,&
@@ -1880,13 +1890,18 @@ deallocate(NDOTQOLD,&
                  cv_ngi, cv_ngi_short, scvngi_theta, sbcvngi, nface, .false. )
 
             allocate( theta_flux( nphase, scvngi_theta*cv_nloc*totele * igot_theta_flux ), &
-                 one_m_theta_flux( nphase, scvngi_theta*cv_nloc*totele * igot_theta_flux ), &
+                 one_m_theta_flux( nphase, scvngi_theta*cv_nloc*totele * igot_theta_flux ), & 
+                 theta_flux_j( nphase, scvngi_theta*cv_nloc*totele * igot_theta_flux ), &
+                 one_m_theta_flux_j( nphase, scvngi_theta*cv_nloc*totele * igot_theta_flux ), & 
                  sum_theta_flux( nphase, scvngi_theta*cv_nloc*totele * igot_theta_flux ), &
                  sum_one_m_theta_flux( nphase, scvngi_theta*cv_nloc*totele * igot_theta_flux ), &
+                 sum_theta_flux_j( nphase, scvngi_theta*cv_nloc*totele * igot_theta_flux ), &
+                 sum_one_m_theta_flux_j( nphase, scvngi_theta*cv_nloc*totele * igot_theta_flux ), &
                  theta_gdiff( cv_nonods * nphase ), ScalarField_Source_Store( cv_nonods * nphase ), &
                  ScalarField_Source_Component( cv_nonods * nphase ) )
 
             sum_theta_flux = 1. ; sum_one_m_theta_flux = 0.  
+            sum_theta_flux_j = 1. ; sum_one_m_theta_flux_j = 0.  
             ScalarField_Source_Store=0. ; ScalarField_Source_Component=0.
 
             allocate( Component_Diffusion_Operator_Coefficient( ncomp, ncomp_diff_coef, nphase ) )  
@@ -1973,7 +1988,7 @@ deallocate(NDOTQOLD,&
            Component_Diffusion_Operator_Coefficient, &
            Momentum_Diffusion, ScalarAdvectionField_Diffusion, &
            Component_Diffusion, &
-           theta_flux, one_m_theta_flux, sum_theta_flux, sum_one_m_theta_flux, density_tmp, density_old_tmp )
+           theta_flux, one_m_theta_flux, theta_flux_j, one_m_theta_flux_j, sum_theta_flux, sum_one_m_theta_flux, sum_theta_flux_j, sum_one_m_theta_flux_j, density_tmp, density_old_tmp )
 
         !deallocate arrays for adaptive_time_stepping and adaptive_non_linear iterations
         if (nonLinearAdaptTs) deallocate( Velocity_U_backup, Velocity_V_backup,  &
