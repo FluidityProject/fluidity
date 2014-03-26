@@ -1135,7 +1135,7 @@ contains
                         IF(U_KLOC2.NE.0) THEN
                            U_SKLOC=U_SKLOC+1
                            U_SLOC2LOC(U_SKLOC)=U_KLOC
-                           SHAPE_U_SNL(CV_SKLOC) = SUFEN(U_KLOC,GI) 
+                           SHAPE_U_SNL(U_SKLOC) = SUFEN(U_KLOC,GI) 
                         ENDIF
                      END DO
                   ENDIF
@@ -1625,7 +1625,7 @@ contains
                              SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:),CVNORMX, CVNORMY, CVNORMZ, &
                              LOC_U, SLOC_U, SLOC2_U,  &
                              U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
-                             FUPWIND_IN, FUPWIND_OUT, DISTCONTINUOUS_METHOD, QUAD_ELEMENTS) 
+                             FUPWIND_IN, FUPWIND_OUT, DISTCONTINUOUS_METHOD, QUAD_ELEMENTS, SHAPE_CV_SNL, SHAPE_U_SNL) 
                   ENDIF
 
                         FVT(:)=T_ALL(:,CV_NODI)*(1.0-INCOME(:)) + T_ALL(:,CV_NODJ)*INCOME(:) 
@@ -9135,7 +9135,7 @@ pure real function ptolfun(value)
        SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
        LOC_U,SLOC_U,SLOC2_U,  &
        U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
-       FUPWIND_IN, FUPWIND_OUT, DISTCONTINUOUS_METHOD, QUAD_ELEMENTS) 
+       FUPWIND_IN, FUPWIND_OUT, DISTCONTINUOUS_METHOD, QUAD_ELEMENTS, SHAPE_CV_SNL, SHAPE_U_SNL) 
     !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===============
     IMPLICIT NONE
     ! Calculate T and DEN on the CV face at quadrature point GI.
@@ -9152,6 +9152,8 @@ pure real function ptolfun(value)
     INTEGER, DIMENSION( NFIELD ), intent( in ) :: SELE_LOC_WIC_F_BC
     INTEGER, DIMENSION( : ), intent( in ) :: U_SLOC2LOC
     INTEGER, DIMENSION( : ), intent( in ) :: U_OTHER_LOC
+    REAL, DIMENSION( CV_SNLOC ), intent( in ) :: SHAPE_CV_SNL
+    REAL, DIMENSION( U_SNLOC ), intent( in ) :: SHAPE_U_SNL
     REAL, DIMENSION( :, :  ), intent( in ) :: SUFEN
     REAL, DIMENSION( :, :  ), intent( in ) :: SCVFEN
     REAL, DIMENSION( :, :  ), intent( in ) :: SCVFENX, SCVFENY, SCVFENZ
