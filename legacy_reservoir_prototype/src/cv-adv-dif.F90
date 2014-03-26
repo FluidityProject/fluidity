@@ -306,6 +306,7 @@ contains
            T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, &
            T2OLDMIN_2ND_MC, &
            UP_WIND_NOD, DU, DV, DW, PERM_ELE
+      REAL, DIMENSION( :, : ), allocatable :: CVNORMX_ALL
       REAL, DIMENSION( :, : ), allocatable :: UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
            UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2
       REAL, DIMENSION( : , : ), allocatable :: CVN, CVN_SHORT, CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
@@ -484,6 +485,7 @@ contains
       ALLOCATE( CVNORMX( SCVNGI ))
       ALLOCATE( CVNORMY( SCVNGI ))
       ALLOCATE( CVNORMZ( SCVNGI ))
+      ALLOCATE( CVNORMX_ALL( NDIM, SCVNGI ))
       ALLOCATE( COLGPTS( CV_NLOC * SCVNGI )) !The size of this vector is over-estimated
       ALLOCATE( FINDGPTS( CV_NLOC + 1 ))
       ALLOCATE( SNDOTQ( SCVNGI ))
@@ -1167,6 +1169,10 @@ contains
                        X_ALL(1,:), X_ALL(2,:), X_ALL(3,:), &
                        D1, D3, DCYL )
 
+                  CVNORMX_ALL(1,:)=CVNORMX(:)
+                  IF(NDIM.GE.2) CVNORMX_ALL(2,:)=CVNORMY(:)
+                  IF(NDIM.GE.3) CVNORMX_ALL(3,:)=CVNORMZ(:)
+
                   
                   X_NODI = X_NDGLN( ( ELE - 1 ) * X_NLOC  + CV_ILOC )
 
@@ -1728,7 +1734,7 @@ contains
                         CALL PUT_IN_CT_RHS( CT, CT_RHS, U_NLOC, SCVNGI, GI, NCOLCT, NDIM, &
                              CV_NONODS, U_NONODS, NPHASE, IPHASE, TOTELE, ELE, ELE2, SELE, &
                              JCOUNT_KLOC, JCOUNT_KLOC2, ICOUNT_KLOC, ICOUNT_KLOC2, U_OTHER_LOC, U_NDGLN, U, V, W, &
-                             SUFEN, SCVDETWEI, CVNORMX, CVNORMY, CVNORMZ, DEN, CV_NODI, CV_NODI_IPHA, CV_NODJ, CV_NODJ_IPHA,&
+                             SUFEN, SCVDETWEI, CVNORMX, CVNORMY, CVNORMZ, CVNORMX_ALL, DEN, CV_NODI, CV_NODI_IPHA, CV_NODJ, CV_NODJ_IPHA,&
                              UGI_COEF_ELE(IPHASE,:), VGI_COEF_ELE(IPHASE,:), WGI_COEF_ELE(IPHASE,:), &
                              UGI_COEF_ELE2(IPHASE,:), VGI_COEF_ELE2(IPHASE,:), WGI_COEF_ELE2(IPHASE,:), &
                              NDOTQNEW(IPHASE), NDOTQOLD(IPHASE), LIMDT(IPHASE), LIMDTOLD(IPHASE), &
@@ -10340,7 +10346,7 @@ CONTAINS
   SUBROUTINE PUT_IN_CT_RHS( CT, CT_RHS, U_NLOC, SCVNGI, GI, NCOLCT, NDIM, &
        CV_NONODS, U_NONODS, NPHASE, IPHASE, TOTELE, ELE, ELE2, SELE, &
        JCOUNT_KLOC, JCOUNT_KLOC2, ICOUNT_KLOC, ICOUNT_KLOC2, U_OTHER_LOC, U_NDGLN,  NU, NV, NW,  &
-       SUFEN, SCVDETWEI, CVNORMX, CVNORMY, CVNORMZ, DEN, CV_NODI, CV_NODI_IPHA, CV_NODJ, CV_NODJ_IPHA,&
+       SUFEN, SCVDETWEI, CVNORMX, CVNORMY, CVNORMZ, CVNORMX_ALL, DEN, CV_NODI, CV_NODI_IPHA, CV_NODJ, CV_NODJ_IPHA,&
        UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
        UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2, &
        NDOTQ, NDOTQOLD, LIMDT, LIMDTOLD, &
@@ -10359,6 +10365,7 @@ CONTAINS
          UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2
     REAL, DIMENSION( :, : ), intent( in ) :: SUFEN
     REAL, DIMENSION( : ), intent( in ) :: SCVDETWEI, CVNORMX, CVNORMY, CVNORMZ
+    REAL, DIMENSION( NDIM, SCVNGI ), intent( in ) :: CVNORMX_ALL
     REAL, DIMENSION( : ), intent( in ) :: NU, NV, NW
     REAL, DIMENSION( : ), intent( in ) :: DEN
     REAL, intent( in ) :: NDOTQ, NDOTQOLD, LIMDT, LIMDTOLD, FTHETA_T2, ONE_M_FTHETA_T2OLD, FTHETA_T2_J, ONE_M_FTHETA_T2OLD_J
@@ -10375,45 +10382,23 @@ CONTAINS
        RCON    = SCVDETWEI( GI ) * FTHETA_T2 * LIMDT  &
             * SUFEN( U_KLOC, GI ) / DEN( CV_NODI_IPHA )
 
-       IDIM = 1
-       CT( IDIM, IPHASE, JCOUNT_KLOC( U_KLOC ) ) &
+       DO IDIM = 1, NDIM
+          CT( IDIM, IPHASE, JCOUNT_KLOC( U_KLOC ) ) &
             = CT( IDIM, IPHASE, JCOUNT_KLOC( U_KLOC ) ) &
-            + RCON * UGI_COEF_ELE( U_KLOC ) * CVNORMX( GI )
+            + RCON * UGI_COEF_ELE( U_KLOC ) * CVNORMX_ALL( IDIM, GI )
+       END DO
 ! flux from the other side (change of sign because normal is -ve)...
     if(integrate_other_side_and_not_boundary) then
        RCON_J    = SCVDETWEI( GI ) * FTHETA_T2_J * LIMDT  &
             * SUFEN( U_KLOC, GI ) / DEN( CV_NODJ_IPHA )
 
-       CT( IDIM, IPHASE, ICOUNT_KLOC( U_KLOC ) ) &
+       DO IDIM = 1, NDIM
+          CT( IDIM, IPHASE, ICOUNT_KLOC( U_KLOC ) ) &
             = CT( IDIM, IPHASE, ICOUNT_KLOC( U_KLOC ) ) &
-            - RCON_J * UGI_COEF_ELE( U_KLOC ) * CVNORMX( GI )
+            - RCON_J * UGI_COEF_ELE( U_KLOC ) * CVNORMX_ALL( IDIM, GI )
+       END DO
     endif
 
-       IDIM = 2
-       IF( NDIM >= 2 ) &
-            CT( IDIM, IPHASE, JCOUNT_KLOC( U_KLOC ) ) &
-            = CT( IDIM, IPHASE, JCOUNT_KLOC( U_KLOC ) ) &
-            + RCON * VGI_COEF_ELE( U_KLOC ) * CVNORMY( GI )
-! flux from the other side (change of sign because normal is -ve)...
-    if(integrate_other_side_and_not_boundary) then
-       IF( NDIM >= 2 ) &
-            CT( IDIM, IPHASE, ICOUNT_KLOC( U_KLOC ) ) &
-            = CT( IDIM, IPHASE, ICOUNT_KLOC( U_KLOC ) ) &
-            - RCON_J * VGI_COEF_ELE( U_KLOC ) * CVNORMY( GI )
-    endif
-
-       IDIM = 3
-       IF( NDIM >= 3 ) &
-            CT( IDIM, IPHASE, JCOUNT_KLOC( U_KLOC ) ) &
-            = CT( IDIM, IPHASE, JCOUNT_KLOC( U_KLOC ) ) &
-            + RCON * WGI_COEF_ELE( U_KLOC ) * CVNORMZ( GI )
-! flux from the other side (change of sign because normal is -ve)...
-    if(integrate_other_side_and_not_boundary) then
-       IF( NDIM >= 3 ) &
-            CT( IDIM, IPHASE, ICOUNT_KLOC( U_KLOC ) ) &
-            = CT( IDIM, IPHASE, ICOUNT_KLOC( U_KLOC ) ) &
-            - RCON_J * WGI_COEF_ELE( U_KLOC ) * CVNORMZ( GI )
-    endif
     END DO
 
     IF(SELE /= 0) THEN
@@ -10457,44 +10442,21 @@ CONTAINS
              RCON = SCVDETWEI( GI ) * FTHETA_T2 * LIMDT  &
                   * SUFEN( U_KLOC, GI ) / DEN( CV_NODI_IPHA )
 
-             IDIM = 1
-             CT( IDIM, IPHASE, JCOUNT_KLOC2( U_KLOC2 ) ) &
+             DO IDIM = 1, NDIM
+                CT( IDIM, IPHASE, JCOUNT_KLOC2( U_KLOC2 ) ) &
                   = CT( IDIM, IPHASE, JCOUNT_KLOC2( U_KLOC2 ) ) &
-                  + RCON * UGI_COEF_ELE2( U_KLOC2 ) * CVNORMX( GI )
+                  + RCON * UGI_COEF_ELE2( U_KLOC2 ) * CVNORMX_ALL( IDIM, GI )
+             END DO
 ! flux from the other side (change of sign because normal is -ve)...
     if(integrate_other_side_and_not_boundary) then
              RCON_J = SCVDETWEI( GI ) * FTHETA_T2_J * LIMDT  &
                   * SUFEN( U_KLOC, GI ) / DEN( CV_NODJ_IPHA )
 
-             CT( IDIM, IPHASE, ICOUNT_KLOC2( U_KLOC2 ) ) &
+             DO IDIM = 1, NDIM
+                CT( IDIM, IPHASE, ICOUNT_KLOC2( U_KLOC2 ) ) &
                   = CT( IDIM, IPHASE, ICOUNT_KLOC2( U_KLOC2 ) ) &
-                  - RCON_J * UGI_COEF_ELE2( U_KLOC2 ) * CVNORMX( GI )
-    endif
-
-             IDIM = 2
-             IF ( NDIM >= 2 ) &
-                  CT( IDIM, IPHASE, JCOUNT_KLOC2( U_KLOC2 ) ) &
-                  = CT( IDIM, IPHASE, JCOUNT_KLOC2( U_KLOC2 ) ) &
-                  + RCON * VGI_COEF_ELE2( U_KLOC2 ) * CVNORMY( GI )
-! flux from the other side...
-    if(integrate_other_side_and_not_boundary) then
-             IF ( NDIM >= 2 ) &
-                  CT( IDIM, IPHASE, ICOUNT_KLOC2( U_KLOC2 ) ) &
-                  = CT( IDIM, IPHASE, ICOUNT_KLOC2( U_KLOC2 ) ) &
-                  - RCON_J * VGI_COEF_ELE2( U_KLOC2 ) * CVNORMY( GI )
-    endif
-
-             IDIM = 3
-             IF ( NDIM >= 3 ) &
-                  CT( IDIM, IPHASE, JCOUNT_KLOC2( U_KLOC2 ) ) &
-                  = CT( IDIM, IPHASE, JCOUNT_KLOC2( U_KLOC2 ) ) &
-                  + RCON * WGI_COEF_ELE2( U_KLOC2 ) * CVNORMZ( GI )
-! flux from the other side...
-    if(integrate_other_side_and_not_boundary) then
-             IF ( NDIM >= 3 ) &
-                  CT( IDIM, IPHASE, ICOUNT_KLOC2( U_KLOC2 ) ) &
-                  = CT( IDIM, IPHASE, ICOUNT_KLOC2( U_KLOC2 ) ) &
-                  - RCON_J * WGI_COEF_ELE2( U_KLOC2 ) * CVNORMZ( GI )
+                  - RCON_J * UGI_COEF_ELE2( U_KLOC2 ) * CVNORMX_ALL( IDIM, GI )
+             END DO
     endif
 
           END IF
