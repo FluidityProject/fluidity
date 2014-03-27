@@ -402,6 +402,7 @@ contains
       REAL, DIMENSION( :, : ), ALLOCATABLE :: X_ALL, T_ALL, TOLD_ALL, &
            DEN_ALL, DENOLD_ALL, T2_ALL, T2OLD_ALL, FEMT_ALL, FEMTOLD_ALL, &
            FEMDEN_ALL, FEMDENOLD_ALL, FEMT2_ALL, FEMT2OLD_ALL, SOURCT_ALL
+      LOGICAL, DIMENSION( : ), ALLOCATABLE :: DOWNWIND_EXTRAP_INDIVIDUAL
 
 
 
@@ -819,6 +820,8 @@ contains
 ! limiting and upwinding: 
       ALLOCATE( FVF( NFIELD ), LIMF( NFIELD ) )
       ALLOCATE( F_INCOME( NFIELD ), F_NDOTQ( NFIELD ) )
+! 
+      ALLOCATE( DOWNWIND_EXTRAP_INDIVIDUAL( NFIELD ) )
 
 ! NFIELD Variables: 
       ALLOCATE(DIFF_COEF_DIVDX(NPHASE), DIFF_COEFOLD_DIVDX(NPHASE), &
@@ -1007,6 +1010,30 @@ contains
             END IF
          END IF
       END IF
+
+
+! FOR packing as well as for detemining which variables to apply interface tracking**********
+          PACK=.TRUE.
+          UNPACK=.FALSE.
+          STORE=.FALSE.
+          IGOT_T_ALL = 1
+          IGOT_U_ALL = 1
+          IGOT_T_ALL(5)= IGOT_T2
+          IGOT_T_ALL(6)= IGOT_T2
+          DOWNWIND_EXTRAP_INDIVIDUAL=.FALSE.
+          IPT=1
+          IF( cv_disopt>=8 ) THEN
+             IF(IGOT_T_ALL(1)==1) THEN
+                DOWNWIND_EXTRAP_INDIVIDUAL(IPT:IPT-1+NPHASE)=.TRUE.
+                IPT=NPHASE+1
+             ENDIF
+             IF(IGOT_T_ALL(2)==1) THEN
+                DOWNWIND_EXTRAP_INDIVIDUAL(IPT:IPT-1+NPHASE)=.TRUE.
+             ENDIF
+          ENDIF
+! FOR packing as well as for detemining which variables to apply interface tracking**********
+
+
 
       GLOBAL_FACE = 0
 
@@ -1634,7 +1661,7 @@ contains
                              SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:),CVNORMX, CVNORMY, CVNORMZ, &
                              LOC_U, SLOC_U, SLOC2_U,  &
                              U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
-                             FUPWIND_IN, FUPWIND_OUT, DISTCONTINUOUS_METHOD, QUAD_ELEMENTS, SHAPE_CV_SNL, SHAPE_U_SNL) 
+                             FUPWIND_IN, FUPWIND_OUT, DISTCONTINUOUS_METHOD, QUAD_ELEMENTS, SHAPE_CV_SNL, SHAPE_U_SNL, DOWNWIND_EXTRAP_INDIVIDUAL) 
                   ENDIF
 
                         FVT(:)=T_ALL(:,CV_NODI)*(1.0-INCOME(:)) + T_ALL(:,CV_NODJ)*INCOME(:) 
@@ -8291,7 +8318,8 @@ pure real function ptolfun(value)
          DENMIN_STORE, DENMAX_STORE, &
          COURANT_OR_MINUS_ONE_NEW
     INTEGER :: CV_KLOC, CV_NODK, CV_NODK_IPHA, CV_KLOC2, CV_NODK2, CV_NODK2_IPHA, CV_STAR_IPHA, &
-         CV_SKLOC, CV_SNODK, CV_SNODK_IPHA, U_KLOC,U_NODK,U_NODK_IPHA, IDIM, ELE_DOWN
+         CV_SKLOC, CV_SNODK, CV_SNODK_IPHA, U_KLOC,U_NODK,U_NODK_IPHA, IDIM, ELE_DOWN  
+
     INTEGER, DIMENSION( CV_NLOC ) :: E_CV_NODK_IPHA
     INTEGER, DIMENSION( U_NLOC )  ::E_U_NODK_IPHA
     integer, DIMENSION( : ), ALLOCATABLE :: SE_CV_NODK_IPHA, SE_CV_SNODK_IPHA
@@ -9144,7 +9172,7 @@ pure real function ptolfun(value)
        SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
        LOC_U,SLOC_U,SLOC2_U,  &
        U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
-       FUPWIND_IN, FUPWIND_OUT, DISTCONTINUOUS_METHOD, QUAD_ELEMENTS, SHAPE_CV_SNL, SHAPE_U_SNL) 
+       FUPWIND_IN, FUPWIND_OUT, DISTCONTINUOUS_METHOD, QUAD_ELEMENTS, SHAPE_CV_SNL, SHAPE_U_SNL, DOWNWIND_EXTRAP_INDIVIDUAL) 
     !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===============
     IMPLICIT NONE
     ! Calculate T and DEN on the CV face at quadrature point GI.
@@ -9152,6 +9180,7 @@ pure real function ptolfun(value)
     INTEGER, intent( in ) :: CV_DISOPT,CV_NONODS,NPHASE,NFIELD,CV_NODI,CV_NODJ,CV_ILOC,CV_JLOC,CV_SILOC,ELE,ELE2,  &
          CV_NLOC,TOTELE,SCVNGI,GI,SELE,CV_SNLOC,U_SNLOC,STOTEL, &
          WIC_T_BC_DIRICHLET,WIC_D_BC_DIRICHLET, U_NLOC,U_NONODS,NDIM
+    LOGICAL, DIMENSION( NFIELD ), intent( in ) :: DOWNWIND_EXTRAP_INDIVIDUAL
     INTEGER, intent( in ) :: IGOT_NOT_CONST_DEN, IGOT_T2
     LOGICAL, intent( in ) :: DISTCONTINUOUS_METHOD, QUAD_ELEMENTS
     INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
@@ -9186,7 +9215,6 @@ pure real function ptolfun(value)
     ! If UPWIND then use upwind flux between elements else use central. 
     ! If HI_ORDER_HALF then use high order interpolation when around 
     ! a volume frac of 0.5 and gradually apply limiting near 0 and 1. 
-    LOGICAL, PARAMETER :: UPWIND = .TRUE., HI_ORDER_HALF = .FALSE., LIM_VOL_ADJUST2 = .TRUE.
     LOGICAL :: DOWNWIND_EXTRAP ! Extrapolate a downwind value for interface tracking.
 
     ! Scaling to reduce the downwind bias(=1downwind, =0central)
@@ -9236,7 +9264,7 @@ pure real function ptolfun(value)
       REAL, DIMENSION ( : ), allocatable ::  courant_or_minus_one_new, XI_LIMIT
       REAL, DIMENSION ( : ), allocatable ::  FEMFGI, RGRAY, RSHAPE, DIFF_COEF, COEF
       REAL, DIMENSION ( : ), allocatable ::  P_STAR, U_DOT_GRADF_GI, A_STAR_F
-      REAL, DIMENSION ( : ), allocatable ::  RESIDGI, ELE_LENGTH_SCALE, RSCALE, COEF2
+      REAL, DIMENSION ( : ), allocatable ::  RESIDGI, ELE_LENGTH_SCALE, RSCALE, COEF2, FEMFGI_CENT, FEMFGI_UP
 
 
 ! F:
@@ -9285,6 +9313,7 @@ pure real function ptolfun(value)
       ALLOCATE( FEMFGI(NFIELD), RGRAY(NFIELD), RSHAPE(NFIELD), DIFF_COEF(NFIELD), COEF(NFIELD) )
       ALLOCATE( P_STAR(NFIELD), U_DOT_GRADF_GI(NFIELD), A_STAR_F(NFIELD) )
       ALLOCATE( RESIDGI(NFIELD), ELE_LENGTH_SCALE(NFIELD), RSCALE(NFIELD), COEF2(NFIELD) )
+      ALLOCATE( FEMFGI_CENT(NFIELD), FEMFGI_UP(NFIELD) )
       ALLOCATE( VEC_VEL2(NDIM,NFIELD) )
 
 
@@ -9315,25 +9344,6 @@ pure real function ptolfun(value)
     end if
 
 
-
-
-
-!    IF ( SELE == 0 ) THEN ! Is NOT on boundary of the domain
-
-!       FVF(:)    = F_INCOME(:) * LOC_F( :, CV_JLOC ) + ( 1. - F_INCOME(:) ) * LOC_F( :, CV_ILOC )
-
-!    ELSE ! Is on boundary of the domain
-
-!       DO IFIELD=1,NFIELD
-!          IF( SELE_LOC_WIC_F_BC( IFIELD ) /= WIC_T_BC_DIRICHLET ) THEN !  WIC_T(T,D,T2)_BC_DIRICHLET all have the same value=1
-!             ! Dont apply a Dirichlet b.c.
-!             FVF(IFIELD)    = LOC_F( IFIELD, CV_ILOC )
-!          ELSE
-!             FVF(IFIELD)    = F_INCOME(IFIELD) * SLOC_SUF_F_BC(IFIELD, CV_SILOC) + ( 1. - F_INCOME(IFIELD) ) * LOC_F( IFIELD, CV_ILOC) 
-!          END IF
-!       END DO ! ENDOF DO IFIELD=1,NFIELD
-
-!    END IF
 
     ! By default do not use first-order upwinding
 !    FIRSTORD = .FALSE.
@@ -9375,7 +9385,7 @@ pure real function ptolfun(value)
 
              IF ( DOWNWIND_EXTRAP  ) THEN
 
-                DO IFIELD=1,NPHASE
+                DO IFIELD=1,MIN(2*NPHASE,NFIELD) 
                    DO IDIM=1,NDIM
                       FXGI_ALL(IDIM,IFIELD) = dot_product(SCVFENX_ALL(IDIM, : , GI ) , LOC_FEMF(IFIELD,:)) 
                    END DO
@@ -9388,7 +9398,7 @@ pure real function ptolfun(value)
 
                 IF ( NON_LIN_PETROV_INTERFACE == 0 ) THEN ! NOT Petrov-Galerkin for interface capturing...  
                    ! no cosine rule :
-                   DO IFIELD=1,NPHASE ! It should be NPHASE because interface tracking only applied to the 1st set of fields.
+                   DO IFIELD=1,MIN(2*NPHASE,NFIELD) ! It should be NPHASE because interface tracking only applied to the 1st set of fields.
                       RSCALE(IFIELD) = 1.0 / PTOLFUN( SQRT( SUM( UDGI_ALL(:,IFIELD)**2)   ) )
 
                       DO IDIM = 1, NDIM
@@ -9403,7 +9413,7 @@ pure real function ptolfun(value)
                    END DO
                 ELSE ! Interface capturing...
 
-                   DO IFIELD=1,NPHASE ! It should be NPHASE because interface tracking only applied to the 1st set of fields.
+                   DO IFIELD=1,MIN(2*NPHASE,NFIELD) ! It should be NPHASE because interface tracking only applied to the 1st set of fields.
 
                       U_DOT_GRADF_GI(IFIELD) = SUM( UDGI_ALL(:,IFIELD)*FXGI_ALL(:,IFIELD)  ) 
 
@@ -9445,14 +9455,14 @@ pure real function ptolfun(value)
                 END IF ! Petrov-Galerkin end of IF(NON_LIN_PETROV_INTERFACE==0) THEN 
 
             
-             END IF ! DOWNWIND_EXTRAP .AND. CFL>=0
+             END IF ! DOWNWIND_EXTRAP 
          
           END IF ! SCALE_DOWN_WIND
 
           DO CV_KLOC = 1, CV_NLOC
-             DO IFIELD=1,NPHASE ! Only perform this loop for the 1st field which is the interface tracking field...
+             DO IFIELD=1,NFIELD ! Only perform this loop for the 1st field which is the interface tracking field...
 
-                IF( DOWNWIND_EXTRAP  ) THEN ! Extrapolate to the downwind value...
+                IF( DOWNWIND_EXTRAP_INDIVIDUAL(IFIELD)  ) THEN ! Extrapolate to the downwind value...
              
                    IF ( NON_LIN_PETROV_INTERFACE.NE.0 ) THEN
                       if ( .false. ) then
@@ -9479,52 +9489,29 @@ pure real function ptolfun(value)
                 END IF
              END DO ! ENDOF DO IFIELD=1,NPHASE
 
-             DO IFIELD=NPHASE+1,NFIELD,1
-                FEMFGI(IFIELD)   = FEMFGI(IFIELD)     +  SCVFEN( CV_KLOC, GI ) * LOC_FEMF( IFIELD, CV_KLOC) 
-             END DO ! ENDOF DO IFIELD=NPHASE+1,NFIELD,1
 
 
           END DO ! ENDOF DO CV_KLOC = 1, CV_NLOC
 
        ELSE  ! DG saturation across elements
 
-          IF ( UPWIND ) THEN
-
-             ! Interface tracking...
-             RSCALE=1.0 ! Scaling to reduce the downwind bias(=1downwind, =0central)
-             IF( DOWNWIND_EXTRAP ) THEN
-
-! Central for DG...
-                   FEMFGI(:) = 0.0
-                   DO CV_SKLOC = 1, CV_SNLOC
-                         ! Central...
-                         FEMFGI(:) = FEMFGI(:) +  SHAPE_CV_SNL( CV_SKLOC ) * 0.5 * ( SLOC_FEMF( :, CV_SKLOC ) & 
-                                    + SLOC2_FEMF( :, CV_SKLOC )    )
-                   END DO
-                   
-
-             ELSE ! Standard DG upwinding...
-
-               FEMFGI(:)  = 0.0
-
-                DO CV_SKLOC = 1, CV_SNLOC
-
-                   FEMFGI(:) = FEMFGI(:) +  SHAPE_CV_SNL( CV_SKLOC ) * ( SLOC2_FEMF( :, CV_SKLOC)  & 
-                           * F_INCOME(:) + SLOC_FEMF( :, CV_SKLOC) * ( 1. - F_INCOME(:) ) )
-                END DO
-             ENDIF ! END OF IF(DOWNWIND_EXTRAP.AND.(courant_or_minus_one_new.GE.0.0)) THEN ELSE ...
-
-          ELSE ! Central DG...
-
-            FEMFGI  = 0.0
-
+             FEMFGI_CENT(:) = 0.0
+             FEMFGI_UP(:)   = 0.0
              DO CV_SKLOC = 1, CV_SNLOC
-
-                FEMFGI(:) = FEMFGI(:) +  SHAPE_CV_SNL( CV_SKLOC ) * 0.5 * ( SLOC_FEMF( :, CV_SKLOC ) & 
-                         + SLOC2_FEMF( :, CV_SKLOC ) )
+! Central for DG...
+                FEMFGI_CENT(:) = FEMFGI_CENT(:) +  SHAPE_CV_SNL( CV_SKLOC ) * 0.5 * ( SLOC_FEMF( :, CV_SKLOC ) & 
+                              + SLOC2_FEMF( :, CV_SKLOC )    )
+! Standard DG upwinding...
+                FEMFGI_UP(:) = FEMFGI_UP(:) +  SHAPE_CV_SNL( CV_SKLOC ) * ( SLOC2_FEMF( :, CV_SKLOC)  & 
+                     * F_INCOME(:) + SLOC_FEMF( :, CV_SKLOC) * ( 1. - F_INCOME(:) ) )
              END DO
-
-          END IF ! IF UPWIND / Central DG
+             DO IFIELD=1,NFIELD
+                IF( DOWNWIND_EXTRAP_INDIVIDUAL(IFIELD)  ) THEN ! Extrapolate to the downwind value...
+                   FEMFGI(IFIELD) = FEMFGI_CENT(IFIELD)
+                ELSE
+                   FEMFGI(IFIELD) = FEMFGI_UP(IFIELD)
+                ENDIF
+             END DO
 
        ENDIF Conditional_CV_DISOPT_ELE2
 
