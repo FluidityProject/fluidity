@@ -639,6 +639,19 @@ field</a:documentation>
           <zeroOrMore>
             <ref name="scalar_field_choice"/>
           </zeroOrMore>
+          <optional>
+            <element name="vector_field">
+              <attribute name="rank">
+                <value>1</value>
+              </attribute>
+              <attribute name="name">
+                <value>InitialVelocity</value>
+              </attribute>
+              <element name="diagnostic">
+                <ref name="velocity_mesh_choice"/>
+              </element>
+            </element>
+          </optional>
           <zeroOrMore>
             <ref name="vector_field_choice"/>
           </zeroOrMore>

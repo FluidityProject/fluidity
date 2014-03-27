@@ -486,6 +486,13 @@ start =
                  }
                }?,
                scalar_field_choice*,
+               element vector_field {
+                  attribute rank { "1" },
+                  attribute name { "InitialVelocity" },
+                  element diagnostic {
+                     velocity_mesh_choice
+                 }
+               }?,
                vector_field_choice*,
                tensor_field_choice*
             )
