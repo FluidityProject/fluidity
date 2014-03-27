@@ -331,11 +331,11 @@ contains
       REAL, DIMENSION( :, :, : ), allocatable :: LOC_U, SLOC_U, SLOC2_U
       INTEGER, DIMENSION( : ), allocatable :: SELE_LOC_WIC_F_BC
       REAL, DIMENSION( :, : ), allocatable :: SLOC_SUF_F_BC
-      REAL, DIMENSION( : ), allocatable :: FUPWIND_IN, FUPWIND_OUT, T_INCOME, T_INCOMEOLD, FVF, LIMF
+      REAL, DIMENSION( : ), allocatable :: FUPWIND_IN, FUPWIND_OUT, FVF, LIMF, F_INCOME, F_NDOTQ
 
 ! NPHASE Variables: 
       REAL, DIMENSION( : ), allocatable :: DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX, &
-               NDOTQNEW,  NDOTQOLD, INCOMEOLD,  INCOME_J, INCOMEOLD_J, T_NDOTQ, LIMT2OLD, LIMDTOLD, &
+               NDOTQNEW,  NDOTQOLD, INCOMEOLD,  INCOME_J, INCOMEOLD_J, LIMT2OLD, LIMDTOLD, &
                NDOTQ, INCOME, LIMT2, LIMTOLD, LIMT, &
                FVTOLD, FVT2OLD, FVDOLD, &
                LIMDOLD, LIMDTT2OLD,&
@@ -816,11 +816,9 @@ contains
 ! limiting values...
       ALLOCATE( FUPWIND_IN( NFIELD ) )
       ALLOCATE( FUPWIND_OUT( NFIELD ) )
-! incomming?:
-      ALLOCATE( T_INCOME( NPHASE ) )
-      ALLOCATE( T_INCOMEOLD( NPHASE ) )
 ! limiting and upwinding: 
       ALLOCATE( FVF( NFIELD ), LIMF( NFIELD ) )
+      ALLOCATE( F_INCOME( NFIELD ), F_NDOTQ( NFIELD ) )
 
 ! NFIELD Variables: 
       ALLOCATE(DIFF_COEF_DIVDX(NPHASE), DIFF_COEFOLD_DIVDX(NPHASE), &
@@ -830,7 +828,6 @@ contains
                LIMDOLD(NPHASE), LIMDTT2OLD(NPHASE),&
                FVT(NPHASE), FVT2(NPHASE), FVD(NPHASE), LIMD(NPHASE),  &
                LIMDT(NPHASE), LIMDTT2(NPHASE), SUM_LIMT(NPHASE), SUM_LIMTOLD(NPHASE)  )
-      ALLOCATE(T_NDOTQ(NPHASE)) 
       ALLOCATE(INCOME_J(NPHASE),INCOMEold_J(NPHASE)) 
 
       ndotq = 0. ; ndotqold = 0.
@@ -1535,14 +1532,26 @@ contains
                                 TUPWIND_MAT )
                         END IF
 
-                         T_INCOME(IPHASE)=INCOME(IPHASE)
-                         T_INCOMEOLD(IPHASE)=INCOMEOLD(IPHASE)
-                         T_NDOTQ(IPHASE)=NDOTQ(IPHASE)
                          INCOME_J(IPHASE)=1.-INCOME(IPHASE)
                          INCOMEold_J(IPHASE)=1.-INCOMEold(IPHASE)
 
 !           print *,'done velocity'
                   END DO Loop_IPHASE21
+! Pack ndotq information: 
+             IPT=1
+             CALL PACK_OR_UNPACK_LOC( F_INCOME(:), INCOME( : ),    NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(1)) ! t
+             CALL PACK_OR_UNPACK_LOC( F_INCOME(:), INCOMEOLD( : ), NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(2)) ! TOLD
+             CALL PACK_OR_UNPACK_LOC( F_INCOME(:), INCOME( : ),    NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(3) )  ! d
+             CALL PACK_OR_UNPACK_LOC( F_INCOME(:), INCOMEOLD( : ), NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(4) )  ! DOLD
+             CALL PACK_OR_UNPACK_LOC( F_INCOME(:), INCOME( : ),    NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(5) )  ! T2
+             CALL PACK_OR_UNPACK_LOC( F_INCOME(:), INCOMEOLD( : ), NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(6) )  ! T2OLD
+             IPT=1
+             CALL PACK_OR_UNPACK_LOC( F_NDOTQ(:), NDOTQ( : ),    NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(1)) ! t
+             CALL PACK_OR_UNPACK_LOC( F_NDOTQ(:), NDOTQOLD( : ), NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(2)) ! TOLD
+             CALL PACK_OR_UNPACK_LOC( F_NDOTQ(:), NDOTQ( : ),    NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(3) )  ! d
+             CALL PACK_OR_UNPACK_LOC( F_NDOTQ(:), NDOTQOLD( : ), NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(4) )  ! DOLD
+             CALL PACK_OR_UNPACK_LOC( F_NDOTQ(:), NDOTQ( : ),    NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(5) )  ! T2
+             CALL PACK_OR_UNPACK_LOC( F_NDOTQ(:), NDOTQOLD( : ), NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(6) )  ! T2OLD
 
 
              IF(.TRUE.) THEN
@@ -1614,14 +1623,14 @@ contains
                   IF(NFIELD.GT.0) THEN
                         CALL GET_INT_T_DEN_new( LIMF(:), & 
                              CV_DISOPT, CV_NONODS, NPHASE, NFIELD, CV_NODI, CV_NODJ, CV_ILOC, CV_JLOC, CV_SILOC, ELE, ELE2, GI,   &
-                             CV_NLOC, TOTELE, CV_NDGLN, CV_OTHER_LOC, SCVNGI, SCVFEN, T_INCOME, &
+                             CV_NLOC, TOTELE, CV_NDGLN, CV_OTHER_LOC, SCVNGI, SCVFEN, F_INCOME, F_NDOTQ, &
                              LOC_F, LOC_FEMF, SLOC_F, SLOC_FEMF, SLOC2_F, SLOC2_FEMF, &
                              SELE, CV_SNLOC,  U_SNLOC,  STOTEL, CV_SLOC2LOC, SLOC_SUF_F_BC, &
                              U_SLOC2LOC, U_OTHER_LOC,  &
                              SELE_LOC_WIC_F_BC,   &
                              WIC_T_BC_DIRICHLET, WIC_D_BC_DIRICHLET,  &
                              IGOT_NOT_CONST_DEN, IGOT_T2, &
-                             HDC, T_NDOTQ, DT, &
+                             HDC, DT, &
                              SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:),CVNORMX, CVNORMY, CVNORMZ, &
                              LOC_U, SLOC_U, SLOC2_U,  &
                              U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
@@ -1637,7 +1646,7 @@ contains
 ! Generate some local F variables ***************
        IF(.FALSE.) THEN
 ! loc_f - Unpack into the limiting variables LIMT etc.
-          DO CV_KLOC = 1, CV_NLOC
+!          DO CV_KLOC = 1, CV_NLOC
              IPT=1
              CALL PACK_OR_UNPACK_LOC( LIMF(:), LIMT( : ),    NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(1))
              CALL PACK_OR_UNPACK_LOC( LIMF(:), LIMTOLD( : ), NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(2))
@@ -1645,7 +1654,7 @@ contains
              CALL PACK_OR_UNPACK_LOC( LIMF(:), LIMDOLD( : ), NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(4) )
              CALL PACK_OR_UNPACK_LOC( LIMF(:), LIMT2( : ),    NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(5) )
              CALL PACK_OR_UNPACK_LOC( LIMF(:), LIMT2OLD( : ), NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(6) )
-          END DO
+!          END DO
     
           IF( IGOT_T2 == 0 ) THEN
              LIMT2   =1.0
@@ -9124,14 +9133,14 @@ pure real function ptolfun(value)
 
   SUBROUTINE GET_INT_T_DEN_new(LIMF, &
        CV_DISOPT, CV_NONODS, NPHASE, NFIELD, CV_NODI, CV_NODJ, CV_ILOC, CV_JLOC, CV_SILOC, ELE, ELE2, GI, &
-       CV_NLOC, TOTELE, CV_NDGLN, CV_OTHER_LOC, SCVNGI, SCVFEN, T_INCOME, &
+       CV_NLOC, TOTELE, CV_NDGLN, CV_OTHER_LOC, SCVNGI, SCVFEN, F_INCOME, F_NDOTQ, &
        LOC_F, LOC_FEMF, SLOC_F, SLOC_FEMF, SLOC2_F, SLOC2_FEMF,  &
        SELE, CV_SNLOC,   U_SNLOC,     STOTEL, CV_SLOC2LOC, SLOC_SUF_F_BC, &
        U_SLOC2LOC, U_OTHER_LOC,  &
        SELE_LOC_WIC_F_BC,   &
        WIC_T_BC_DIRICHLET, WIC_D_BC_DIRICHLET, &
        IGOT_NOT_CONST_DEN, IGOT_T2, &
-       HDC, NDOTQ, DT, &
+       HDC, DT, &
        SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
        LOC_U,SLOC_U,SLOC2_U,  &
        U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
@@ -9139,7 +9148,6 @@ pure real function ptolfun(value)
     !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===============
     IMPLICIT NONE
     ! Calculate T and DEN on the CV face at quadrature point GI.
-    REAL, intent( in ) :: T_INCOME(NPHASE) 
     REAL, intent( in ) :: HDC,DT
     INTEGER, intent( in ) :: CV_DISOPT,CV_NONODS,NPHASE,NFIELD,CV_NODI,CV_NODJ,CV_ILOC,CV_JLOC,CV_SILOC,ELE,ELE2,  &
          CV_NLOC,TOTELE,SCVNGI,GI,SELE,CV_SNLOC,U_SNLOC,STOTEL, &
@@ -9159,7 +9167,7 @@ pure real function ptolfun(value)
     REAL, DIMENSION( :, :  ), intent( in ) :: SCVFENX, SCVFENY, SCVFENZ
     REAL, DIMENSION( :  ), intent( in ) :: CVNORMX, CVNORMY, CVNORMZ
       REAL, DIMENSION ( NFIELD), intent( inout ) :: LIMF
-      REAL, DIMENSION ( NFIELD), intent( in ) :: NDOTQ
+      REAL, DIMENSION ( NFIELD), intent( in ) :: F_INCOME, F_NDOTQ
 
       REAL, DIMENSION ( NFIELD,CV_NLOC), intent( in ) :: LOC_F, LOC_FEMF
     REAL, DIMENSION(NFIELD, CV_SNLOC), intent( in ) :: SLOC_SUF_F_BC
@@ -9225,7 +9233,7 @@ pure real function ptolfun(value)
       REAL, DIMENSION ( :, : ), allocatable :: VEC_VEL2
 !      INTEGER, DIMENSION ( : ), allocatable :: SELE_LOC_WIC_F_BC
 !      REAL, DIMENSION ( :, : ), allocatable :: SLOC_SUF_F_BC
-      REAL, DIMENSION ( : ), allocatable ::  F_INCOME, courant_or_minus_one_new, XI_LIMIT
+      REAL, DIMENSION ( : ), allocatable ::  courant_or_minus_one_new, XI_LIMIT
       REAL, DIMENSION ( : ), allocatable ::  FEMFGI, RGRAY, RSHAPE, DIFF_COEF, COEF
       REAL, DIMENSION ( : ), allocatable ::  P_STAR, U_DOT_GRADF_GI, A_STAR_F
       REAL, DIMENSION ( : ), allocatable ::  RESIDGI, ELE_LENGTH_SCALE, RSCALE, COEF2
@@ -9269,8 +9277,6 @@ pure real function ptolfun(value)
       IF(NDIM.GE.3) CVNORMX_ALL(3,:)=CVNORMZ(:)
 
 
-      ALLOCATE( F_INCOME( NFIELD ) ) 
-
       ALLOCATE(courant_or_minus_one_new(NFIELD))
       ALLOCATE(XI_LIMIT(NFIELD))
 
@@ -9282,30 +9288,6 @@ pure real function ptolfun(value)
       ALLOCATE( VEC_VEL2(NDIM,NFIELD) )
 
 
-!      CV_NODI = CV_NODI_IPHA - (IPHASE-1)*CV_NONODS
-!      CV_NODJ = CV_NODJ_IPHA - (IPHASE-1)*CV_NONODS
-
-! START LOCAL VARIABLES ********************************
-!          DO CV_KLOC = 1, CV_NLOC
-!             CV_NODK = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_KLOC ) 
-!             IF ( CV_NODK ==CV_NODI ) CV_ILOC=CV_KLOC
-!             IF ( CV_NODK ==CV_NODJ ) CV_JLOC=CV_KLOC
-!          END DO
-
-!          IF( SELE .NE. 0 ) THEN
-!             DO CV_SKLOC = 1, CV_SNLOC
-!                CV_KLOC = CV_SLOC2LOC( CV_SKLOC )
-!                IF ( CV_KLOC == CV_ILOC ) CV_SILOC=CV_SKLOC
-!             END DO
-!          ENDIF
-
-
-
-
-
-          DO IFI=1,NFIELD/NPHASE
-             F_INCOME(1+(IFI-1)*NPHASE:IFI*NPHASE)   =   T_INCOME(1:NPHASE) 
-          END DO
 
 
 ! limiting VALUES************start
@@ -9325,9 +9307,7 @@ pure real function ptolfun(value)
     DOWNWIND_EXTRAP = ( cv_disopt>=8 )
 
     if ( DOWNWIND_EXTRAP ) then
-       DO IFI=1,NFIELD/NPHASE
-          courant_or_minus_one_new(1+(IFI-1)*NPHASE:IFI*NPHASE) = abs ( dt * ndotq(1:NPHASE) / hdc )
-       END DO
+       courant_or_minus_one_new(1:NFIELD) = abs ( dt * F_ndotq(1:NFIELD) / hdc )
        XI_LIMIT(:)=MAX(1./(2.*courant_or_minus_one_new(:)),2.0) 
     else
        courant_or_minus_one_new(:) = -1.0
@@ -9382,8 +9362,7 @@ pure real function ptolfun(value)
                 FEMFGI(IFIELD)    = dot_product( SCVFEN(:, GI ) , LOC_FEMF( IFIELD, : )  )
              ELSE
                 DO CV_SKLOC = 1, CV_SNLOC
-                   CV_KLOC = CV_SLOC2LOC( CV_SKLOC )
-                   FEMFGI(IFIELD) = FEMFGI(IFIELD) +   SCVFEN( CV_KLOC, GI ) * ( SLOC_SUF_F_BC( IFIELD,  CV_SKLOC) & 
+                   FEMFGI(IFIELD) = FEMFGI(IFIELD) +   SHAPE_CV_SNL( CV_SKLOC) * ( SLOC_SUF_F_BC( IFIELD,  CV_SKLOC) & 
                      * F_INCOME(IFIELD) + SLOC_FEMF( IFIELD, CV_SKLOC ) * ( 1. - F_INCOME(IFIELD) )   )
                 END DO
              END IF
@@ -9519,8 +9498,7 @@ pure real function ptolfun(value)
                    FEMFGI(:) = 0.0
                    DO CV_SKLOC = 1, CV_SNLOC
                          ! Central...
-                         CV_KLOC = CV_SLOC2LOC( CV_SKLOC )
-                         FEMFGI(:) = FEMFGI(:) +  SCVFEN( CV_KLOC, GI ) * 0.5 * ( SLOC_FEMF( :, CV_SKLOC ) & 
+                         FEMFGI(:) = FEMFGI(:) +  SHAPE_CV_SNL( CV_SKLOC ) * 0.5 * ( SLOC_FEMF( :, CV_SKLOC ) & 
                                     + SLOC2_FEMF( :, CV_SKLOC )    )
                    END DO
                    
@@ -9531,9 +9509,7 @@ pure real function ptolfun(value)
 
                 DO CV_SKLOC = 1, CV_SNLOC
 
-                   CV_KLOC = CV_SLOC2LOC( CV_SKLOC )
-
-                   FEMFGI(:) = FEMFGI(:) +  SCVFEN( CV_KLOC, GI ) * ( SLOC2_FEMF( :, CV_SKLOC)  & 
+                   FEMFGI(:) = FEMFGI(:) +  SHAPE_CV_SNL( CV_SKLOC ) * ( SLOC2_FEMF( :, CV_SKLOC)  & 
                            * F_INCOME(:) + SLOC_FEMF( :, CV_SKLOC) * ( 1. - F_INCOME(:) ) )
                 END DO
              ENDIF ! END OF IF(DOWNWIND_EXTRAP.AND.(courant_or_minus_one_new.GE.0.0)) THEN ELSE ...
@@ -9543,9 +9519,8 @@ pure real function ptolfun(value)
             FEMFGI  = 0.0
 
              DO CV_SKLOC = 1, CV_SNLOC
-                CV_KLOC = CV_SLOC2LOC( CV_SKLOC )
 
-                FEMFGI(:) = FEMFGI(:) +  SCVFEN( CV_KLOC, GI ) * 0.5 * ( SLOC_FEMF( :, CV_SKLOC ) & 
+                FEMFGI(:) = FEMFGI(:) +  SHAPE_CV_SNL( CV_SKLOC ) * 0.5 * ( SLOC_FEMF( :, CV_SKLOC ) & 
                          + SLOC2_FEMF( :, CV_SKLOC ) )
              END DO
 
