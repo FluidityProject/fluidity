@@ -125,9 +125,9 @@ contains
     call delete_option("/reduced_model/adjoint")  ! switch to forward ROM
     ewrite(1,*) 'Forward ROM', have_option("/reduced_model/adjoint")
 
-    call fluids()
+!    call fluids()
     ewrite(1,*) 'Completed the initial forward running'
-    stop 11
+!    stop 11
     !------------------------------------------------------------------------
     ! allocate variables:
     ! nocva: number of control variables to be optimised
