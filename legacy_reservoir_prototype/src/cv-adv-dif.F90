@@ -1223,7 +1223,6 @@ contains
                         END DO
                         JCOUNT_KLOC( U_KLOC ) = JCOUNT
                 if(integrate_other_side) then
-!                if(.true.) then
 ! for integrating just on one side...
                         ICOUNT = 0
                         DO COUNT = FINDCT( CV_NODJ ), FINDCT( CV_NODJ + 1 ) - 1
@@ -1247,7 +1246,6 @@ contains
                            END DO
                            JCOUNT_KLOC2( U_KLOC ) = JCOUNT
                 if(integrate_other_side) then
-!                if(.true.) then
 ! for integrating just on one side...
                            ICOUNT = 0
                            DO COUNT = FINDCT( CV_NODJ ), FINDCT( CV_NODJ + 1 ) - 1
@@ -1884,8 +1882,8 @@ contains
                              CV_NONODS, U_NONODS, NPHASE, IPHASE, TOTELE, ELE, ELE2, SELE, &
                              JCOUNT_KLOC, JCOUNT_KLOC2, ICOUNT_KLOC, ICOUNT_KLOC2, U_OTHER_LOC, U_NDGLN, U_ALL, &
                              SUFEN, SCVDETWEI, CVNORMX_ALL, DEN_ALL, CV_NODI, CV_NODI_IPHA, CV_NODJ, CV_NODJ_IPHA,&
-                             UGI_COEF_ELE_ALL(:,IPHASE,:),  &
-                             UGI_COEF_ELE2_ALL(:,IPHASE,:),  &
+                             UGI_COEF_ELE_ALL,  &
+                             UGI_COEF_ELE2_ALL,  &
                              NDOTQNEW(IPHASE), NDOTQOLD(IPHASE), LIMDT(IPHASE), LIMDTOLD(IPHASE), &
                              FTHETA_T2, ONE_M_FTHETA_T2OLD, FTHETA_T2_J, ONE_M_FTHETA_T2OLD_J, integrate_other_side_and_not_boundary )
 
@@ -10436,7 +10434,7 @@ CONTAINS
     INTEGER, DIMENSION( : ), intent( in ) :: JCOUNT_KLOC, JCOUNT_KLOC2, ICOUNT_KLOC, ICOUNT_KLOC2, U_OTHER_LOC
     REAL, DIMENSION( :, :, : ), intent( inout ) :: CT
     REAL, DIMENSION( : ), intent( inout ) :: CT_RHS
-    REAL, DIMENSION( NDIM, U_NLOC ), intent( in ) :: UGI_COEF_ELE_ALL, UGI_COEF_ELE2_ALL
+    REAL, DIMENSION( NDIM, NPHASE, U_NLOC ), intent( in ) :: UGI_COEF_ELE_ALL, UGI_COEF_ELE2_ALL
     REAL, DIMENSION( :, : ), intent( in ) :: SUFEN
     REAL, DIMENSION( : ), intent( in ) :: SCVDETWEI
     REAL, DIMENSION( NDIM, SCVNGI ), intent( in ) :: CVNORMX_ALL
@@ -10459,7 +10457,7 @@ CONTAINS
        DO IDIM = 1, NDIM
           CT( IDIM, IPHASE, JCOUNT_KLOC( U_KLOC ) ) &
             = CT( IDIM, IPHASE, JCOUNT_KLOC( U_KLOC ) ) &
-            + RCON * UGI_COEF_ELE_ALL( IDIM, U_KLOC ) * CVNORMX_ALL( IDIM, GI )
+            + RCON * UGI_COEF_ELE_ALL( IDIM, IPHASE, U_KLOC ) * CVNORMX_ALL( IDIM, GI )
        END DO
 ! flux from the other side (change of sign because normal is -ve)...
     if(integrate_other_side_and_not_boundary) then
@@ -10469,7 +10467,7 @@ CONTAINS
        DO IDIM = 1, NDIM
           CT( IDIM, IPHASE, ICOUNT_KLOC( U_KLOC ) ) &
             = CT( IDIM, IPHASE, ICOUNT_KLOC( U_KLOC ) ) &
-            - RCON_J * UGI_COEF_ELE_ALL( IDIM, U_KLOC ) * CVNORMX_ALL( IDIM, GI )
+            - RCON_J * UGI_COEF_ELE_ALL( IDIM, IPHASE, U_KLOC ) * CVNORMX_ALL( IDIM, GI )
        END DO
     endif
 
@@ -10479,7 +10477,7 @@ CONTAINS
        UDGI_IMP_ALL=0.0
        DO U_KLOC = 1, U_NLOC
           U_NODK = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_KLOC )
-          UDGI_IMP_ALL(:) = UDGI_IMP_ALL(:) + SUFEN( U_KLOC, GI ) * UGI_COEF_ELE_ALL( :, U_KLOC ) * NU_ALL( :, IPHASE, U_NODK ) 
+          UDGI_IMP_ALL(:) = UDGI_IMP_ALL(:) + SUFEN( U_KLOC, GI ) * UGI_COEF_ELE_ALL( :, IPHASE, U_KLOC ) * NU_ALL( :, IPHASE, U_NODK ) 
        END DO
 
        NDOTQ_IMP= SUM( CVNORMX_ALL( :,GI ) * UDGI_IMP_ALL(:) ) 
@@ -10514,7 +10512,7 @@ CONTAINS
              DO IDIM = 1, NDIM
                 CT( IDIM, IPHASE, JCOUNT_KLOC2( U_KLOC2 ) ) &
                   = CT( IDIM, IPHASE, JCOUNT_KLOC2( U_KLOC2 ) ) &
-                  + RCON * UGI_COEF_ELE2_ALL( IDIM, U_KLOC2 ) * CVNORMX_ALL( IDIM, GI )
+                  + RCON * UGI_COEF_ELE2_ALL( IDIM, IPHASE, U_KLOC2 ) * CVNORMX_ALL( IDIM, GI )
              END DO
 ! flux from the other side (change of sign because normal is -ve)...
     if(integrate_other_side_and_not_boundary) then
@@ -10524,7 +10522,7 @@ CONTAINS
              DO IDIM = 1, NDIM
                 CT( IDIM, IPHASE, ICOUNT_KLOC2( U_KLOC2 ) ) &
                   = CT( IDIM, IPHASE, ICOUNT_KLOC2( U_KLOC2 ) ) &
-                  - RCON_J * UGI_COEF_ELE2_ALL( IDIM, U_KLOC2 ) * CVNORMX_ALL( IDIM, GI )
+                  - RCON_J * UGI_COEF_ELE2_ALL( IDIM, IPHASE, U_KLOC2 ) * CVNORMX_ALL( IDIM, GI )
              END DO
     endif
 
