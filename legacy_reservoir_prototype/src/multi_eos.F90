@@ -888,7 +888,7 @@
         INTEGER, intent( in ) :: IPHASE
         type(corey_options), intent(in) :: options
         ! Local variables...
-        REAL :: S_GC, S_OR, &
+        REAL :: S_GC, S_OR,ABS_SUM, &
         KR, VISC, SATURATION, Krmax
 
         !Kr_max should only multiply the wetting phase,
@@ -905,18 +905,17 @@
         else
             SATURATION = 1.0 - SAT
             Krmax = options%kr2_max
-            KR = Krmax * ( ( SATURATION - S_OR ) / ( 1. - S_GC - S_OR )) ** options%kr2_exp
+            KR =  Krmax*( ( SATURATION - S_OR ) / ( 1. - S_GC - S_OR )) ** options%kr2_exp
             VISC = MOBILITY
         end if
 
         !Make sure that the relperm is between bounds
         KR = min(max(1d-20, KR),Krmax)!Lower value just to make sure we do not divide by zero.
-
-        ABSP = INV_PERM * (VISC * max(1d-10,SATURATION)) / KR!<-- 1d-10 in theory should never be used, just for safety
+        ABS_SUM = KR / VISC * max( 1d-10, SATURATION )!<-- 1d-20 is for safety. I think it might be used at the boundaries.
+        ABSP = INV_PERM / ABS_SUM
 
       RETURN
     END SUBROUTINE relperm_corey_epsilon
-
 
     SUBROUTINE relperm_corey( ABSP, MOBILITY, INV_PERM, SAT, IPHASE,options )
       IMPLICIT NONE
