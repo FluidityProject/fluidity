@@ -539,6 +539,15 @@
          s_field%val = D%val
       end if
 
+      !Initial velocity
+      v_field=>extract_vector_field(state, "InitialVelocity"&
+           &,stat)    
+      if(stat==0) then
+         print *, "setting initial velocity"
+         print*, U%val
+         v_field%val = U%val
+      end if
+
     end subroutine setup_fields
 
     subroutine compute_enstrophy(state,enstrophy)
@@ -835,7 +844,7 @@
     subroutine set_velocity_galerkin_projection(state)
       type(state_type), intent(in) :: state
       !
-      type(vector_field), pointer  :: X, U
+      type(vector_field), pointer  :: X, U, U_cart
       integer :: ele
       character(len=PYTHON_FUNC_LEN) :: Python_Function
 
@@ -843,6 +852,7 @@
 
       X=>extract_vector_field(state,"Coordinate")
       U=>extract_vector_field(state,"LocalVelocity")
+      U_cart=>extract_vector_field(state,"Velocity")
       call get_option('/material_phase::Fluid/vector_field::Velocity/prognos&
            &tic/initial_condition::WholeMesh/galerkin_projection/python'&
            &,Python_Function)
@@ -850,6 +860,8 @@
       do ele = 1, ele_count(X)
          call set_velocity_galerkin_projection_ele(U,Python_Function,X,ele)
       end do
+      call project_local_to_cartesian(X,U,U_cart)
+
     end subroutine set_velocity_galerkin_projection
 
     subroutine set_velocity_galerkin_projection_ele(U,Python_Function,X,ele)
