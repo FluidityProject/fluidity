@@ -879,60 +879,40 @@
            options%kr2_exp, default=2.0)
     end subroutine get_land_options
 
-SUBROUTINE relperm_corey_epsilon( ABSP, MOBILITY, INV_PERM, SAT, IPHASE,options )
-        !This subroutine add a small quantity to the corey function to avoid getting a relperm=0 that may give problems
-        !when dividing it to obtain the sigma.
-      IMPLICIT NONE
-      REAL, intent( inout ) :: ABSP
-      REAL, intent( in ) :: MOBILITY, SAT, INV_PERM
-      INTEGER, intent( in ) :: IPHASE
-      type(corey_options), intent(in) :: options
-      ! Local variables...
-      REAL :: S_GC, S_OR, &
-           KR1, KR2, KR, VISC, SATURATION, ABS_SUM, &
-           kr1_max, kr2_max, kr1_exp, kr2_exp, threshold
-
-        !Safe boundary to make sure the saturation does not go out of bounds
-        threshold = 1d-8 !SIngle precision epsilon
+    SUBROUTINE relperm_corey_epsilon( ABSP, MOBILITY, INV_PERM, SAT, IPHASE,options )
+          !This subroutine add a small quantity to the corey function to avoid getting a relperm=0 that may give problems
+          !when dividing it to obtain the sigma.
+        IMPLICIT NONE
+        REAL, intent( inout ) :: ABSP
+        REAL, intent( in ) :: MOBILITY, SAT, INV_PERM
+        INTEGER, intent( in ) :: IPHASE
+        type(corey_options), intent(in) :: options
+        ! Local variables...
+        REAL :: S_GC, S_OR, &
+        KR, VISC, SATURATION, Krmax
 
         !Kr_max should only multiply the wetting phase,
         !however as we do not know if it is phase 1 or 2, we let the decision to the user
         !and we multiply both phases by kr_max. By default kr_max= 1
         s_gc=options%s_gc
         s_or=options%s_or
-        kr1_max=options%kr1_max
-        kr2_max=options%kr2_max
-        kr1_exp=options%kr1_exp
-        kr2_exp=options%kr2_exp
 
         IF( IPHASE == 1 ) THEN
-          SATURATION = SAT
-          IF( SATURATION < S_GC + threshold) THEN
-             KR = 0.0
-          ELSE IF( SATURATION > 1. - S_OR - threshold ) THEN
-             KR = kr1_max
-          ELSE
-             KR = kr1_max*(( ( SATURATION - S_GC) / ( 1. - S_GC - S_OR )) ** kr1_exp)
-          ENDIF
-         VISC = 1.0
-        ELSE
-        SATURATION = 1.0 - SAT
-          IF( SATURATION < S_OR + threshold ) THEN
-             KR = 0.0
-          ELSEIF( SATURATION > 1. - S_GC  - threshold ) THEN
-             KR = kr2_max
-          ELSE
-             KR = kr2_max*(( ( SATURATION - S_OR ) / ( 1. - S_GC - S_OR )) ** kr2_exp)
-          ENDIF
-         VISC = MOBILITY
-        ENDIF
+            Krmax = options%kr1_max
+            KR = Krmax*( ( SAT - S_GC) / ( 1. - S_GC - S_OR )) ** options%kr1_exp
+            Visc = 1.0
+            SATURATION = SAT
+        else
+            SATURATION = 1.0 - SAT
+            Krmax = options%kr2_max
+            KR = Krmax * ( ( SATURATION - S_OR ) / ( 1. - S_GC - S_OR )) ** options%kr2_exp
+            VISC = MOBILITY
+        end if
 
-        KR = KR + 1d-20 !Raise the function this quantity so it never gets to zero
-        ABS_SUM = KR / VISC * max(1d-10,SATURATION) !<-- 1d-10 in theory should never be used, just for safety
-        ABSP = INV_PERM /  ABS_SUM
+        !Make sure that the relperm is between bounds
+        KR = min(max(1d-20, KR),Krmax)!Lower value just to make sure we do not divide by zero.
 
-        !Limit to bound the value from extremly high values
-!        ABSP =  min( 1d30, ABSP )
+        ABSP = INV_PERM * (VISC * max(1d-10,SATURATION)) / KR!<-- 1d-10 in theory should never be used, just for safety
 
       RETURN
     END SUBROUTINE relperm_corey_epsilon
@@ -948,8 +928,6 @@ SUBROUTINE relperm_corey_epsilon( ABSP, MOBILITY, INV_PERM, SAT, IPHASE,options 
       REAL :: S_GC, S_OR, &
            KR1, KR2, KR, VISC, SATURATION, ABS_SUM, SAT2, &
            kr1_max, kr2_max, kr1_exp, kr2_exp
-
-
 
       s_gc=options%s_gc
       s_or=options%s_or
@@ -1009,32 +987,6 @@ SUBROUTINE relperm_corey_epsilon( ABSP, MOBILITY, INV_PERM, SAT, IPHASE,options 
             endif
          endif
       endif
-
-!      if(iphase==1) then
-!       print *,'S_GC, S_OR:',S_GC,S_OR
-!        stop 392
-!      endif
-
-!      if(iphase==1) then
-!         if(sat.lt.0.202) then
-!               ABSP = ABSP*max(1.0,  (0.202-sat)*1.e+10 )
-!         endif
-!      endif
-
-!    if(.true.) then
-!    !if(.false.) then
-!      if(iphase==1) then
-!         if(SATURATION.lt.S_GC+0.01) then
-!               ABSP = ABSP*max(1.0,  (S_GC+0.01-SATURATION)*1.e+10 )
-!         endif
-!      endif
-!      if(iphase==2) then
-!         if(SATURATION.lt.s_or+0.01) then
-!               ABSP = ABSP*max(1.0,  (s_or+0.01-SATURATION)*1.e+10 )
-!         endif
-!      endif
-!    endif
-
 
       RETURN
     END SUBROUTINE relperm_corey
@@ -1684,6 +1636,5 @@ SUBROUTINE relperm_corey_epsilon( ABSP, MOBILITY, INV_PERM, SAT, IPHASE,options 
 
       return
     end subroutine update_velocity_absorption
-
 
   end module multiphase_EOS

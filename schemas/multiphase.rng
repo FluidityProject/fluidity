@@ -460,6 +460,13 @@ A Variable to check has to be chosen:
                     <ref name="integer"/>
                     <group>
                       <optional>
+                        <element name="keep_sat_bounds">
+                          <a:documentation>Reduce time step if saturation goes out of bounds.
+i.e. The saturation gets smaller than the irreducible one.</a:documentation>
+                          <empty/>
+                        </element>
+                      </optional>
+                      <optional>
                         <element name="increase_factor">
                           <a:documentation>Multiply present timestep by this factor when increasing it.
 By default 1.2</a:documentation>
@@ -483,7 +490,7 @@ By default unlimmited.</a:documentation>
                       <optional>
                         <element name="min_timestep">
                           <a:documentation>Minimum timestep. Beyond this value the timestep will not be decreased.
-By default unlimmited.</a:documentation>
+By default dt*1e-10.</a:documentation>
                           <ref name="real"/>
                         </element>
                       </optional>

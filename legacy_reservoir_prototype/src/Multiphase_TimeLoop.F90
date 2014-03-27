@@ -268,18 +268,22 @@
       call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear/max_timestep', &
            max_ts, default = huge(min_ts) )
       call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear/min_timestep', &
-           min_ts, default = 0. )
+           min_ts, default = -1. )
       call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear/increase_ts_switch', &
            increase_ts_switch, default = 1d-3 )
       call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear/decrease_ts_switch', &
            decrease_ts_switch, default = 1d-1 )
-      !Get irresidual water saturation and irreducible oil to repeat a timestep if the saturation goes below these values
+      !Get irresidual water saturation and irreducible oil to repeat a timestep if the saturation goes out of these values
       call get_option("/material_phase[0]/multiphase_properties/immobile_fraction", &
            s_gc, default=0.0)
       call get_option("/material_phase[1]/multiphase_properties/immobile_fraction", &
            s_or, default=0.0)
 
+      !Get time step
       call get_option( '/timestepping/timestep', initial_dt )
+     !By default the minimum time-steps is ten orders smaller than the initial timestep
+     if(min_ts<0) min_ts = initial_dt * 1d-10
+
 !!$ Compute primary scalars used in most of the code
       call Get_Primary_Scalars( state, &         
            nphase, nstate, ncomp, totele, ndim, stotel, &
@@ -531,6 +535,7 @@
       call calculate_diagnostic_variables( state, exclude_nonrecalculated = .true. )
       call calculate_diagnostic_variables_new( state, exclude_nonrecalculated = .true. )
 
+
 !!$ Dummy field used in the scalar advection option:
       Dummy_PhaseVolumeFraction_FEMT = 1.
 
@@ -672,6 +677,8 @@
       itime = 0
       Loop_Time: do
 !!$
+
+
          itime = itime + 1
          timestep = itime
          call get_option( '/timestepping/timestep', dt )
@@ -1388,62 +1395,79 @@
                         case (2)
                             ts_ref_val = max(maxval(abs(Velocity_U- Velocity_U_nonlin_check)),&
                             maxval(abs(Velocity_V - Velocity_V_nonlin_check)),&
-                           maxval(abs(Velocity_W - Velocity_W_nonlin_check)) )
+                            maxval(abs(Velocity_W - Velocity_W_nonlin_check)) )
                         case default
                             ts_ref_val = maxval(abs(PhaseVolumeFraction-PhaseVolumeFraction_nonlin_check))
                     end select
 
-                  !Check that saturation is between bounds, works for two phases
-                  Repeat_time_step = (maxval(s_gc-PhaseVolumeFraction(1:cv_nonods))>check_sat_threshold&
-                     .or.maxval(s_or-PhaseVolumeFraction(1+cv_nonods:nphase*cv_nonods))>check_sat_threshold)
-                    !Increase Ts section
-                   if (nonLinearAdaptTs.and.((ts_ref_val < increase_ts_switch .and.dt*increaseFactor<max_ts).and..not.Repeat_time_step)) then
-                        call get_option( '/timestepping/timestep', dt )
-                        dt = dt * increaseFactor
-                        call set_option( '/timestepping/timestep', dt )
-                        ewrite(1,*) "Time step increased to:", dt
-                        print *, "Time step increased to:", dt
+
+                    !If only non-linear iterations
+                    if (.not.nonLinearAdaptTs) then
+                        !Automatic non-linear iteration checking
+                        if (ts_ref_val < tolerance_between_non_linear) exit
+                    else!If adaptive time-stepping based on non-linear iterations then...
+                        !Check that saturation is between bounds, works for two phases only!!
+                        if (have_option(  '/timestepping/nonlinear_iterations/&
+                            nonlinear_iterations_automatic/adaptive_timestep_nonlinear/keep_sat_bounds') )  &
+                                Repeat_time_step = (maxval(s_gc-PhaseVolumeFraction(1:cv_nonods))>check_sat_threshold&
+                                    .or.maxval(s_or-PhaseVolumeFraction(1+cv_nonods:nphase*cv_nonods))>check_sat_threshold)
+
+                         !Increase Ts section
+                        if ((ts_ref_val < increase_ts_switch .and.dt*increaseFactor<max_ts).and..not.Repeat_time_step) then
+                            call get_option( '/timestepping/timestep', dt )
+                            dt = dt * increaseFactor
+                            call set_option( '/timestepping/timestep', dt )
+                            ewrite(1,*) "Time step increased to:", dt
+                            print *, "Time step increased to:", dt
+                        end if
+
+                        !Exit loop section
+                        if ((ts_ref_val < tolerance_between_non_linear).and..not.Repeat_time_step) exit
+
+                        !Decrease Ts section
+                        if ((ts_ref_val > decrease_ts_switch ).or.&
+                        (repeat_time_step.and.its>=NonLinearIteration)) then
+
+                            if ( dt / decreaseFactor < min_ts) then
+                                !Do not decrease
+                                Repeat_time_step = .false.
+                                exit
+                            end if
+
+                            !Decrease time step and repeat!
+                            call get_option( '/timestepping/timestep', dt )
+                            dt = dt / decreaseFactor
+                            call set_option( '/timestepping/timestep', dt )
+                            ewrite(1,*) "Time step decreased to:", dt
+                            print *, "Time step decreased to:", dt
+                            Repeat_time_step = .true.
+
+                            !Recover backup
+                            PhaseVolumeFraction = PhaseVolumeFraction_backup
+                            Pressure_CV =  Pressure_CV_backup
+                            Velocity_U= Velocity_U_backup
+                            Velocity_V = Velocity_V_backup
+                            Velocity_W = Velocity_W_backup
+                            Density = Density_backup
+                            Component = Component_backup
+                            Density_Cp = Density_Cp_backup
+                            Pressure_FEM =  Pressure_FEM_backup
+                            Density_Component = Density_Component_backup
+                            Temperature = Temperature_backup
+                            acctim = acctim_backup
+
+                            !!Update all fields from backup
+                            Velocity_U_Old = Velocity_U ; Velocity_V_Old = Velocity_V ; Velocity_W_Old = Velocity_W
+                            Velocity_NU = Velocity_U ; Velocity_NV = Velocity_V ; Velocity_NW = Velocity_W
+                            Velocity_NU_Old = Velocity_U ; Velocity_NV_Old = Velocity_V ; Velocity_NW_Old = Velocity_W
+                            Density_Old = Density ;  Density_Cp_Old = Density_Cp ; Pressure_FEM_Old = Pressure_FEM ; Pressure_CV_Old = Pressure_CV
+                            PhaseVolumeFraction_Old = PhaseVolumeFraction ; Temperature_Old = Temperature ; Component_Old = Component
+                            Density_Old_tmp = Density ; Density_Component_Old = Density_Component
+
+                            exit
+                        end if
                     end if
 
-                    !Exit loop section
-                    if ((ts_ref_val < tolerance_between_non_linear).and..not.Repeat_time_step) exit
-
-
-                    !Decrease Ts section
-                    if (nonLinearAdaptTs.and.((ts_ref_val > decrease_ts_switch .and. dt / decreaseFactor > min_ts).or.&
-                    (repeat_time_step.and.its>=NonLinearIteration))) then
-                        !Decrease time step and repeat!
-                        call get_option( '/timestepping/timestep', dt )
-                        dt = dt / decreaseFactor
-                        call set_option( '/timestepping/timestep', dt )
-                        ewrite(1,*) "Time step decreased to:", dt
-                        print *, "Time step decreased to:", dt
-                        Repeat_time_step = .true.
-
-                        !Recover backup
-                        PhaseVolumeFraction = PhaseVolumeFraction_backup
-                        Pressure_CV =  Pressure_CV_backup
-                        Velocity_U= Velocity_U_backup
-                        Velocity_V = Velocity_V_backup
-                        Velocity_W = Velocity_W_backup
-                        Density = Density_backup
-                        Component = Component_backup
-                        Density_Cp = Density_Cp_backup
-                        Pressure_FEM =  Pressure_FEM_backup
-                        Density_Component = Density_Component_backup
-                        Temperature = Temperature_backup
-                        acctim = acctim_backup
-
-                        !!Update all fields from backup
-                         Velocity_U_Old = Velocity_U ; Velocity_V_Old = Velocity_V ; Velocity_W_Old = Velocity_W
-                         Velocity_NU = Velocity_U ; Velocity_NV = Velocity_V ; Velocity_NW = Velocity_W
-                         Velocity_NU_Old = Velocity_U ; Velocity_NV_Old = Velocity_V ; Velocity_NW_Old = Velocity_W
-                         Density_Old = Density ;  Density_Cp_Old = Density_Cp ; Pressure_FEM_Old = Pressure_FEM ; Pressure_CV_Old = Pressure_CV
-                         PhaseVolumeFraction_Old = PhaseVolumeFraction ; Temperature_Old = Temperature ; Component_Old = Component
-                         Density_Old_tmp = Density ; Density_Component_Old = Density_Component
-
-                        exit
-                    end if
                 end if
 
          end do Loop_NonLinearIteration

@@ -398,6 +398,11 @@ start =
                     element adaptive_timestep_nonlinear{
                         integer,
                       (
+                        ## Reduce time step if saturation goes out of bounds.
+                        ## i.e. The saturation gets smaller than the irreducible one.
+                        element keep_sat_bounds{
+                        empty
+                        }?,
                         ## Multiply present timestep by this factor when increasing it.
                         ## By default 1.2
                         element increase_factor{
@@ -414,7 +419,7 @@ start =
                         real
                         }?,
                         ## Minimum timestep. Beyond this value the timestep will not be decreased.
-                        ## By default unlimmited.
+                        ## By default dt*1e-10.
                         element min_timestep{
                         real
                         }?,
