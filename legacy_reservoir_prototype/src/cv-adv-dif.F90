@@ -309,6 +309,8 @@ contains
       REAL, DIMENSION( :, : ), allocatable :: CVNORMX_ALL
       REAL, DIMENSION( :, : ), allocatable :: UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
            UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2
+      REAL, DIMENSION( :, :, : ), allocatable :: UGI_COEF_ELE_ALL, UGI_COEF_ELE2_ALL
+
       REAL, DIMENSION( : , : ), allocatable :: CVN, CVN_SHORT, CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
            CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT,  &
            UFEN, UFENLX, UFENLY, UFENLZ, SCVFEN, SCVFENSLX, SCVFENSLY, &
@@ -405,9 +407,9 @@ contains
       LOGICAL, DIMENSION( : ), ALLOCATABLE :: DOWNWIND_EXTRAP_INDIVIDUAL
 
      ! LOCAL VARIABLE FOR INDIRECT ADDRESSING----------------------------------------------
-     REAL, DIMENSION ( :, :, : ), allocatable :: UGI_COEF_ELE_ALL, UGI_COEF_ELE2_ALL
-     ALLOCATE( UGI_COEF_ELE_ALL( NDIM, NPHASE, U_NLOC) )
-     ALLOCATE( UGI_COEF_ELE2_ALL( NDIM, NPHASE, U_NLOC) )
+!     REAL, DIMENSION ( :, :, : ), allocatable :: UGI_COEF_ELE_ALL, UGI_COEF_ELE2_ALL
+!     ALLOCATE( UGI_COEF_ELE_ALL( NDIM, NPHASE, U_NLOC) )
+!     ALLOCATE( UGI_COEF_ELE2_ALL( NDIM, NPHASE, U_NLOC) )
      !-------------------------------------------------------------------------------------
 
 
@@ -575,6 +577,9 @@ contains
 
       ALLOCATE( UGI_COEF_ELE(NPHASE,U_NLOC),  VGI_COEF_ELE(NPHASE,U_NLOC),  WGI_COEF_ELE(NPHASE,U_NLOC) )
       ALLOCATE( UGI_COEF_ELE2(NPHASE,U_NLOC), VGI_COEF_ELE2(NPHASE,U_NLOC), WGI_COEF_ELE2(NPHASE,U_NLOC) )
+
+      ALLOCATE( UGI_COEF_ELE_ALL(NDIM,NPHASE,U_NLOC) )
+      ALLOCATE( UGI_COEF_ELE2_ALL(NDIM,NPHASE,U_NLOC) )
 !      print *,'before allocate here2'
       ! The procity mapped to the CV nodes
       ALLOCATE( SUM_CV( CV_NONODS ))
@@ -1566,6 +1571,14 @@ contains
                          INCOME_J(IPHASE)=1.-INCOME(IPHASE)
                          INCOMEold_J(IPHASE)=1.-INCOMEold(IPHASE)
 
+                         UGI_COEF_ELE_ALL(1, IPHASE,:) = UGI_COEF_ELE(IPHASE,:)
+           IF(NDIM.GE.2) UGI_COEF_ELE_ALL(2, IPHASE,:) = VGI_COEF_ELE(IPHASE,:)
+           IF(NDIM.GE.3) UGI_COEF_ELE_ALL(3, IPHASE,:) = WGI_COEF_ELE(IPHASE,:) 
+
+                         UGI_COEF_ELE2_ALL(1, IPHASE,:) = UGI_COEF_ELE2(IPHASE,:)
+           IF(NDIM.GE.2) UGI_COEF_ELE2_ALL(2, IPHASE,:) = VGI_COEF_ELE2(IPHASE,:)
+           IF(NDIM.GE.3) UGI_COEF_ELE2_ALL(3, IPHASE,:) = WGI_COEF_ELE2(IPHASE,:)
+
 !           print *,'done velocity'
                   END DO Loop_IPHASE21
 
@@ -1678,7 +1691,7 @@ contains
              CALL PACK_OR_UNPACK_LOC( F_NDOTQ(:), NDOTQOLD( : ), NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T_ALL(6) )  ! T2OLD
 
 
-             IF(.TRUE.) THEN
+             IF(.true.) THEN
 
                   Loop_IPHASE3: DO IPHASE = 1, NPHASE
 
@@ -1745,9 +1758,10 @@ contains
 !                        CALL GET_INT_T_DEN_new( FVT(:), FVT2(:), FVD(:), LIMD(:,global_face), LIMT(:,global_face), LIMT2(:,global_face), &
 !                             LIMDT(:,global_face), LIMDTT2(:,global_face),& 
                   IF(NFIELD.GT.0) THEN
+!                      print *,'here 1'
                         CALL GET_INT_T_DEN_new( LIMF(:), & 
                              CV_DISOPT, CV_NONODS, NPHASE, NFIELD, CV_NODI, CV_NODJ, CV_ILOC, CV_JLOC, CV_SILOC, ELE, ELE2, GI,   &
-                             CV_NLOC, TOTELE, CV_NDGLN, CV_OTHER_LOC, SCVNGI, SCVFEN, F_INCOME, F_NDOTQ, &
+                             CV_NLOC, TOTELE, CV_OTHER_LOC, SCVNGI, SCVFEN, F_INCOME, F_NDOTQ, &
                              LOC_F, LOC_FEMF, SLOC_F, SLOC_FEMF, SLOC2_F, SLOC2_FEMF, &
                              SELE, CV_SNLOC,  U_SNLOC,  STOTEL, CV_SLOC2LOC, SLOC_SUF_F_BC, &
                              U_SLOC2LOC, U_OTHER_LOC,  &
@@ -1757,10 +1771,11 @@ contains
                              HDC, DT, &
                              SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:), CVNORMX_ALL, &
                              LOC_U, SLOC_U, SLOC2_U,  &
-                             U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
+                             U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              FUPWIND_IN, FUPWIND_OUT, DISTCONTINUOUS_METHOD, QUAD_ELEMENTS, SHAPE_CV_SNL, SHAPE_U_SNL, DOWNWIND_EXTRAP_INDIVIDUAL) 
                   ENDIF
 
+!                      print *,'here 2'
                         FVT(:)=T_ALL(:,CV_NODI)*(1.0-INCOME(:)) + T_ALL(:,CV_NODJ)*INCOME(:) 
                         FVD(:)=DEN_ALL(:,CV_NODI)*(1.0-INCOME(:)) + DEN_ALL(:,CV_NODJ)*INCOME(:) 
 
@@ -1768,9 +1783,8 @@ contains
 
 !           print *,'done temp'
 ! Generate some local F variables ***************
-       IF(.FALSE.) THEN
+       IF(.false.) THEN
 ! loc_f - Unpack into the limiting variables LIMT etc.
-!          DO CV_KLOC = 1, CV_NLOC
              IPT=1
              CALL PACK_OR_UNPACK_LOC( LIMF(:), LIMT( : ),    NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(1))
              CALL PACK_OR_UNPACK_LOC( LIMF(:), LIMTOLD( : ), NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(2))
@@ -1778,8 +1792,8 @@ contains
              CALL PACK_OR_UNPACK_LOC( LIMF(:), LIMDOLD( : ), NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(4) )
              CALL PACK_OR_UNPACK_LOC( LIMF(:), LIMT2( : ),    NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(5) )
              CALL PACK_OR_UNPACK_LOC( LIMF(:), LIMT2OLD( : ), NPHASE, NFIELD, IPT, UNPACK, STORE, IGOT_T_ALL(6) )
-!          END DO
     
+!                      print *,'here 3'
           IF( IGOT_T2 == 0 ) THEN
              LIMT2   =1.0
              LIMT2OLD=1.0
@@ -1868,10 +1882,10 @@ contains
 
                         CALL PUT_IN_CT_RHS( CT, CT_RHS, U_NLOC, SCVNGI, GI, NCOLCT, NDIM, &
                              CV_NONODS, U_NONODS, NPHASE, IPHASE, TOTELE, ELE, ELE2, SELE, &
-                             JCOUNT_KLOC, JCOUNT_KLOC2, ICOUNT_KLOC, ICOUNT_KLOC2, U_OTHER_LOC, U_NDGLN, U, V, W, &
-                             SUFEN, SCVDETWEI, CVNORMX, CVNORMY, CVNORMZ, CVNORMX_ALL, DEN, CV_NODI, CV_NODI_IPHA, CV_NODJ, CV_NODJ_IPHA,&
-                             UGI_COEF_ELE(IPHASE,:), VGI_COEF_ELE(IPHASE,:), WGI_COEF_ELE(IPHASE,:), &
-                             UGI_COEF_ELE2(IPHASE,:), VGI_COEF_ELE2(IPHASE,:), WGI_COEF_ELE2(IPHASE,:), &
+                             JCOUNT_KLOC, JCOUNT_KLOC2, ICOUNT_KLOC, ICOUNT_KLOC2, U_OTHER_LOC, U_NDGLN, U_ALL, &
+                             SUFEN, SCVDETWEI, CVNORMX_ALL, DEN_ALL, CV_NODI, CV_NODI_IPHA, CV_NODJ, CV_NODJ_IPHA,&
+                             UGI_COEF_ELE_ALL(:,IPHASE,:),  &
+                             UGI_COEF_ELE2_ALL(:,IPHASE,:),  &
                              NDOTQNEW(IPHASE), NDOTQOLD(IPHASE), LIMDT(IPHASE), LIMDTOLD(IPHASE), &
                              FTHETA_T2, ONE_M_FTHETA_T2OLD, FTHETA_T2_J, ONE_M_FTHETA_T2OLD_J, integrate_other_side_and_not_boundary )
 
@@ -9258,7 +9272,7 @@ pure real function ptolfun(value)
 
   SUBROUTINE GET_INT_T_DEN_new(LIMF, &
        CV_DISOPT, CV_NONODS, NPHASE, NFIELD, CV_NODI, CV_NODJ, CV_ILOC, CV_JLOC, CV_SILOC, ELE, ELE2, GI, &
-       CV_NLOC, TOTELE, CV_NDGLN, CV_OTHER_LOC, SCVNGI, SCVFEN, F_INCOME, F_NDOTQ, &
+       CV_NLOC, TOTELE, CV_OTHER_LOC, SCVNGI, SCVFEN, F_INCOME, F_NDOTQ, &
        LOC_F, LOC_FEMF, SLOC_F, SLOC_FEMF, SLOC2_F, SLOC2_FEMF,  &
        SELE, CV_SNLOC,   U_SNLOC,     STOTEL, CV_SLOC2LOC, SLOC_SUF_F_BC, &
        U_SLOC2LOC, U_OTHER_LOC,  &
@@ -9268,7 +9282,7 @@ pure real function ptolfun(value)
        HDC, DT, &
        SCVFENX, SCVFENY, SCVFENZ, CVNORMX_ALL,  &
        LOC_U,SLOC_U,SLOC2_U,  &
-       U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
+       U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
        FUPWIND_IN, FUPWIND_OUT, DISTCONTINUOUS_METHOD, QUAD_ELEMENTS, SHAPE_CV_SNL, SHAPE_U_SNL, DOWNWIND_EXTRAP_INDIVIDUAL) 
     !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===============
     IMPLICIT NONE
@@ -9280,7 +9294,6 @@ pure real function ptolfun(value)
     LOGICAL, DIMENSION( NFIELD ), intent( in ) :: DOWNWIND_EXTRAP_INDIVIDUAL
     INTEGER, intent( in ) :: IGOT_NOT_CONST_DEN, IGOT_T2
     LOGICAL, intent( in ) :: DISTCONTINUOUS_METHOD, QUAD_ELEMENTS
-    INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
     INTEGER, DIMENSION( : ), intent( in ) :: CV_OTHER_LOC
     INTEGER, DIMENSION( : ), intent( in ) :: CV_SLOC2LOC
     INTEGER, DIMENSION( NFIELD ), intent( in ) :: SELE_LOC_WIC_F_BC
@@ -9302,7 +9315,6 @@ pure real function ptolfun(value)
 
     REAL, DIMENSION(NFIELD,CV_SNLOC), intent( in ) :: SLOC_F, SLOC_FEMF, SLOC2_F, SLOC2_FEMF
 
-    INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
     REAL, DIMENSION( : , : , : ), intent( in ) :: INV_JAC
     REAL, DIMENSION( NFIELD  ), intent( in ) :: FUPWIND_IN, FUPWIND_OUT
 
@@ -10408,10 +10420,10 @@ CONTAINS
 
   SUBROUTINE PUT_IN_CT_RHS( CT, CT_RHS, U_NLOC, SCVNGI, GI, NCOLCT, NDIM, &
        CV_NONODS, U_NONODS, NPHASE, IPHASE, TOTELE, ELE, ELE2, SELE, &
-       JCOUNT_KLOC, JCOUNT_KLOC2, ICOUNT_KLOC, ICOUNT_KLOC2, U_OTHER_LOC, U_NDGLN,  NU, NV, NW,  &
-       SUFEN, SCVDETWEI, CVNORMX, CVNORMY, CVNORMZ, CVNORMX_ALL, DEN, CV_NODI, CV_NODI_IPHA, CV_NODJ, CV_NODJ_IPHA,&
-       UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
-       UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2, &
+       JCOUNT_KLOC, JCOUNT_KLOC2, ICOUNT_KLOC, ICOUNT_KLOC2, U_OTHER_LOC, U_NDGLN,  NU_ALL,  &
+       SUFEN, SCVDETWEI, CVNORMX_ALL, DEN_ALL, CV_NODI, CV_NODI_IPHA, CV_NODJ, CV_NODJ_IPHA,&
+       UGI_COEF_ELE_ALL,  &
+       UGI_COEF_ELE2_ALL,  &
        NDOTQ, NDOTQOLD, LIMDT, LIMDTOLD, &
        FTHETA_T2, ONE_M_FTHETA_T2OLD, FTHETA_T2_J, ONE_M_FTHETA_T2OLD_J, integrate_other_side_and_not_boundary)
     ! This subroutine caculates the discretised cty eqn acting on the velocities i.e. CT, CT_RHS
@@ -10424,75 +10436,69 @@ CONTAINS
     INTEGER, DIMENSION( : ), intent( in ) :: JCOUNT_KLOC, JCOUNT_KLOC2, ICOUNT_KLOC, ICOUNT_KLOC2, U_OTHER_LOC
     REAL, DIMENSION( :, :, : ), intent( inout ) :: CT
     REAL, DIMENSION( : ), intent( inout ) :: CT_RHS
-    REAL, DIMENSION( : ), intent( in ) :: UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
-         UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2
+    REAL, DIMENSION( NDIM, U_NLOC ), intent( in ) :: UGI_COEF_ELE_ALL, UGI_COEF_ELE2_ALL
     REAL, DIMENSION( :, : ), intent( in ) :: SUFEN
-    REAL, DIMENSION( : ), intent( in ) :: SCVDETWEI, CVNORMX, CVNORMY, CVNORMZ
+    REAL, DIMENSION( : ), intent( in ) :: SCVDETWEI
     REAL, DIMENSION( NDIM, SCVNGI ), intent( in ) :: CVNORMX_ALL
-    REAL, DIMENSION( : ), intent( in ) :: NU, NV, NW
-    REAL, DIMENSION( : ), intent( in ) :: DEN
+    REAL, DIMENSION( NDIM, NPHASE, U_NONODS ), intent( in ) :: NU_ALL
+    REAL, DIMENSION( NPHASE, CV_NONODS ), intent( in ) :: DEN_ALL
     REAL, intent( in ) :: NDOTQ, NDOTQOLD, LIMDT, LIMDTOLD, FTHETA_T2, ONE_M_FTHETA_T2OLD, FTHETA_T2_J, ONE_M_FTHETA_T2OLD_J
 
     ! Local variables...
     INTEGER :: U_KLOC, U_KLOC2, JCOUNT_IPHA, IDIM, U_NODK, U_NODK_IPHA, JCOUNT2_IPHA, &
          U_KLOC_LEV, U_NLOC_LEV
-    REAL :: RCON,RCON_J,UDGI_IMP,VDGI_IMP,WDGI_IMP,NDOTQ_IMP
+    REAL :: RCON,RCON_J, UDGI_IMP_ALL(NDIM), NDOTQ_IMP
 
 
 
     DO U_KLOC = 1, U_NLOC
 
        RCON    = SCVDETWEI( GI ) * FTHETA_T2 * LIMDT  &
-            * SUFEN( U_KLOC, GI ) / DEN( CV_NODI_IPHA )
+            * SUFEN( U_KLOC, GI ) / DEN_ALL( IPHASE, CV_NODI )
 
        DO IDIM = 1, NDIM
           CT( IDIM, IPHASE, JCOUNT_KLOC( U_KLOC ) ) &
             = CT( IDIM, IPHASE, JCOUNT_KLOC( U_KLOC ) ) &
-            + RCON * UGI_COEF_ELE( U_KLOC ) * CVNORMX_ALL( IDIM, GI )
+            + RCON * UGI_COEF_ELE_ALL( IDIM, U_KLOC ) * CVNORMX_ALL( IDIM, GI )
        END DO
 ! flux from the other side (change of sign because normal is -ve)...
     if(integrate_other_side_and_not_boundary) then
        RCON_J    = SCVDETWEI( GI ) * FTHETA_T2_J * LIMDT  &
-            * SUFEN( U_KLOC, GI ) / DEN( CV_NODJ_IPHA )
+            * SUFEN( U_KLOC, GI ) / DEN_ALL( IPHASE, CV_NODJ )
 
        DO IDIM = 1, NDIM
           CT( IDIM, IPHASE, ICOUNT_KLOC( U_KLOC ) ) &
             = CT( IDIM, IPHASE, ICOUNT_KLOC( U_KLOC ) ) &
-            - RCON_J * UGI_COEF_ELE( U_KLOC ) * CVNORMX_ALL( IDIM, GI )
+            - RCON_J * UGI_COEF_ELE_ALL( IDIM, U_KLOC ) * CVNORMX_ALL( IDIM, GI )
        END DO
     endif
 
     END DO
 
     IF(SELE /= 0) THEN
-       UDGI_IMP=0.0
-       VDGI_IMP=0.0
-       WDGI_IMP=0.0
+       UDGI_IMP_ALL=0.0
        DO U_KLOC = 1, U_NLOC
           U_NODK = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_KLOC )
-          U_NODK_IPHA = U_NODK + (IPHASE-1)*U_NONODS
-          UDGI_IMP = UDGI_IMP + SUFEN( U_KLOC, GI ) * UGI_COEF_ELE( U_KLOC ) * NU( U_NODK_IPHA ) 
-          VDGI_IMP = VDGI_IMP + SUFEN( U_KLOC, GI ) * VGI_COEF_ELE( U_KLOC ) * NV( U_NODK_IPHA ) 
-          WDGI_IMP = WDGI_IMP + SUFEN( U_KLOC, GI ) * WGI_COEF_ELE( U_KLOC ) * NW( U_NODK_IPHA ) 
+          UDGI_IMP_ALL(:) = UDGI_IMP_ALL(:) + SUFEN( U_KLOC, GI ) * UGI_COEF_ELE_ALL( :, U_KLOC ) * NU_ALL( :, IPHASE, U_NODK ) 
        END DO
 
-       NDOTQ_IMP=CVNORMX( GI ) * UDGI_IMP + CVNORMY( GI ) * VDGI_IMP + CVNORMZ( GI ) * WDGI_IMP
+       NDOTQ_IMP= SUM( CVNORMX_ALL( :,GI ) * UDGI_IMP_ALL(:) ) 
 
        CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - SCVDETWEI( GI ) * ( &
             ONE_M_FTHETA_T2OLD * LIMDTOLD * NDOTQOLD &
             + FTHETA_T2  * LIMDT * (NDOTQ-NDOTQ_IMP) &
-            ) / DEN( CV_NODI_IPHA )
+            ) / DEN_ALL( IPHASE, CV_NODI )
 
     ELSE
 
        CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - SCVDETWEI( GI ) * ( &
             ONE_M_FTHETA_T2OLD * LIMDTOLD * NDOTQOLD &
-            ) / DEN( CV_NODI_IPHA ) 
+            ) / DEN_ALL( IPHASE, CV_NODI ) 
 ! flux from the other side (change of sign because normal is -ve)...
     if(integrate_other_side_and_not_boundary) then
        CT_RHS( CV_NODJ ) = CT_RHS( CV_NODJ ) + SCVDETWEI( GI ) * ( &
             ONE_M_FTHETA_T2OLD_J * LIMDTOLD * NDOTQOLD &
-            ) / DEN( CV_NODJ_IPHA ) 
+            ) / DEN_ALL( IPHASE, CV_NODJ ) 
     endif
     END IF
 
@@ -10503,22 +10509,22 @@ CONTAINS
           IF ( U_KLOC2 /= 0 ) THEN
 
              RCON = SCVDETWEI( GI ) * FTHETA_T2 * LIMDT  &
-                  * SUFEN( U_KLOC, GI ) / DEN( CV_NODI_IPHA )
+                  * SUFEN( U_KLOC, GI ) / DEN_ALL( IPHASE, CV_NODI )
 
              DO IDIM = 1, NDIM
                 CT( IDIM, IPHASE, JCOUNT_KLOC2( U_KLOC2 ) ) &
                   = CT( IDIM, IPHASE, JCOUNT_KLOC2( U_KLOC2 ) ) &
-                  + RCON * UGI_COEF_ELE2( U_KLOC2 ) * CVNORMX_ALL( IDIM, GI )
+                  + RCON * UGI_COEF_ELE2_ALL( IDIM, U_KLOC2 ) * CVNORMX_ALL( IDIM, GI )
              END DO
 ! flux from the other side (change of sign because normal is -ve)...
     if(integrate_other_side_and_not_boundary) then
              RCON_J = SCVDETWEI( GI ) * FTHETA_T2_J * LIMDT  &
-                  * SUFEN( U_KLOC, GI ) / DEN( CV_NODJ_IPHA )
+                  * SUFEN( U_KLOC, GI ) / DEN_ALL( IPHASE, CV_NODJ )
 
              DO IDIM = 1, NDIM
                 CT( IDIM, IPHASE, ICOUNT_KLOC2( U_KLOC2 ) ) &
                   = CT( IDIM, IPHASE, ICOUNT_KLOC2( U_KLOC2 ) ) &
-                  - RCON_J * UGI_COEF_ELE2( U_KLOC2 ) * CVNORMX_ALL( IDIM, GI )
+                  - RCON_J * UGI_COEF_ELE2_ALL( IDIM, U_KLOC2 ) * CVNORMX_ALL( IDIM, GI )
              END DO
     endif
 
