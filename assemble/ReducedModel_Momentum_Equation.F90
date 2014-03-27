@@ -439,7 +439,7 @@
                       p=>extract_scalar_field(state(istate), "Pressure")
                       x => extract_vector_field(state(istate), "Coordinate") 
                       ! get the coordinate values
-                      adaptive_observation = .true.
+                      adaptive_observation = .false.
                       if(adaptive_observation) then
                          if(.false.) then
                             open(10,file = 'observation_u_ini.dat')
@@ -451,15 +451,43 @@
                             open(10,file = 'observation_p_ini.dat')
                             write(10,*) (p%val(i),i=1,size(u%val,2))
                             close(10)
-!                            stop 24
+                            stop 24
                          else
-                            no_optimal_obv = 1000
+                            no_optimal_obv = 600
                             ! save the optimal coordinate values
                             allocate(u_tmp(size(u%val,2)))
                             allocate(optimal_location(size(u%val,2)))
                             open(10,file='optimal_sensor_location.dat')
                             read(10,*) (optimal_location(i),i=1,size(optimal_location))
                             close(10)  
+if(.false.) then
+                open(10,file='optimal_sensor_coordinate_50.dat')
+                do i=1,50 ! only save 200 optimal location
+                   j=optimal_location(i)
+                   write(10,*) x%val(1,j),x%val(2,j)
+                enddo
+                close(10)
+                open(10,file='optimal_sensor_coordinate_51_100.dat')
+                do i=51,100 ! only save 200 optimal location
+                   j=optimal_location(i)
+                   write(10,*) x%val(1,j),x%val(2,j)
+                enddo
+                close(10)
+                open(10,file='optimal_sensor_coordinate_100_200.dat')
+                do i=101,200 ! only save 200 optimal location
+                   j=optimal_location(i)
+                   write(10,*) x%val(1,j),x%val(2,j)
+                enddo
+                close(10)
+                open(10,file='optimal_sensor_coordinate_200_300.dat')
+                do i=201,300 ! only save 200 optimal location
+                   j=optimal_location(i)
+                   write(10,*) x%val(1,j),x%val(2,j)
+                enddo
+                close(10)
+    
+stop 36
+endif
                             ! u component
                             open(10,file = 'observation_u_ini.dat')
                             read(10,*) (u_tmp(i),i=1,size(u%val,2))
@@ -467,8 +495,8 @@
                             do i=1,no_optimal_obv
                                j=optimal_location(i)
                                print*,u%val(1,j),u_tmp(j)
-                               u%val(1,j)=u_tmp(j)
-!                               u%val(1,size(optimal_location)-i)=u_tmp(size(optimal_location)-i)
+                  !             u%val(1,j)=u_tmp(j)
+                               u%val(1,2000-i)=u_tmp(1000-i)
                   !             u%val(1,i)=u_tmp(i)
                             enddo
                             ! v component
@@ -479,9 +507,9 @@
                                j=optimal_location(i)
                                print*,u%val(2,j),u_tmp(j)
                                ! use the optimal observational data
-                               u%val(2,j)=u_tmp(j)
+                  !             u%val(2,j)=u_tmp(j)
                                ! use the random observational data
-!                               u%val(2,size(optimal_location)-i)=u_tmp(size(optimal_location)-i)
+                               u%val(2,2000-i)=u_tmp(1000-i)
                            !    u%val(2,i)=u_tmp(i)
                             enddo
                            ! p 
@@ -491,9 +519,9 @@
                             do i=1,no_optimal_obv
                                j=optimal_location(i)
                                ! use the optimal observational data
-                               p%val(j)=u_tmp(j)
+                   !            p%val(j)=u_tmp(j)
                                ! use the random observational data
-!                               p%val(size(optimal_location)-i)=u_tmp(size(optimal_location)-i)
+                               p%val(2000-i)=u_tmp(1000-i)
                     !           p%val(i)=u_tmp(i)
                             enddo
                             deallocate(u_tmp)
@@ -857,6 +885,16 @@
              call deallocate(pod_rhs)
              deallocate(pod_coef)
 
+             if(timestep.eq.total_timestep-1) then
+                
+                open(10, file = 'num_last.dat')
+                do i=1,u%dim
+                   write(10,*) (u%val(i,j),j=1,node_count(u))
+                enddo
+                write(10,*) (p%val(j),j=1,node_count(p))
+                close(10)
+             endif
+
              if(timestep.eq.total_timestep) then
                 deallocate(pod_coef0)
              endif
@@ -960,6 +998,7 @@
       	real, dimension(:), allocatable :: g,ds,ds_tmp
 
        logical :: adaptive_observation
+       real,dimension(:), allocatable :: misfit_POD_rhs
 
        ewrite(1,*) 'Adjoint model, timestep',timestep,total_timestep
        ewrite(1,*) '================================================'
@@ -1028,10 +1067,6 @@
       	pod_matrix_B%val=pod_matrix_snapmean(:,:)/(theta*dt)
       	pod_matrix_B0%val=pod_matrix_snapmean(:,:)/(theta*dt)
       
-      	open(1,file='coef_pod_all_obv')
-      	read(1,*)((pod_coef_all_obv(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=0,total_timestep)
-      	! pod_coef_adjoint() save the coef_pod_all_obv temporarily
-      	close(1)
       	open(30,file='advection_matrix_perturbed')
       	adjoint_pod_A%val =0.0
       	adjoint_pod_B%val =0.0
@@ -1102,12 +1137,23 @@
        adjoint_A_extra%val=transpose(adjoint_A_extra%val)
        adjoint_A%val=transpose(pod_matrix%val)     
        pod_rhs_adjoint%val=-matmul(adjoint_A_extra%val,pod_coef_adjoint_tmp(timestep+1,:))    
+       
+       
 
 !       if(2*int(timestep/2).eq.timestep) then
        if(timestep.eq.total_timestep-1) then
- !      if(timestep.eq.total_timestep-1) then
+          ! calculate the misfit between the data and numerical results, then project onto the reduced space
+          allocate(misfit_POD_rhs((u%dim+1)*size(POD_state,1)))
+          call misfit_POD(POD_state,misfit_POD_rhs)
+!print*,misfit_POD_rhs
+!print*,'****************'
+!print*,pod_coef_all_obv(timestep,1:u%dim*size(POD_state,1))-pod_coef_all(timestep,1:u%dim*size(POD_state,1))
+!stop 99
           pod_rhs_adjoint%val(1:u%dim*size(POD_state,1))= pod_rhs_adjoint%val(1:u%dim*size(POD_state,1))+ &
-               pod_coef_all_obv(timestep,1:u%dim*size(POD_state,1))-pod_coef_all(timestep,1:u%dim*size(POD_state,1))
+!               pod_coef_all_obv(timestep,1:u%dim*size(POD_state,1))-pod_coef_all(timestep,1:u%dim*size(POD_state,1))
+               misfit_POD_rhs(1:u%dim*size(POD_state,1))
+
+          deallocate(misfit_POD_rhs)
        endif
 
        call solve(adjoint_A%val,pod_rhs_adjoint%val)
@@ -1127,9 +1173,7 @@
            ! print*,'ds_tmp', ds_tmp
              g(i)= g(i) + dot_product(pod_rhs_adjoint%val,ds_tmp)
           enddo
-          
           call project_adjoint_gradient(delta_u, delta_p, POD_state(:,:,1), g)
-         
                 snapmean_velocity=>extract_vector_field(POD_state(1,1,1),"SnapmeanVelocity")
                 snapmean_pressure=>extract_Scalar_field(POD_state(1,2,1),"SnapmeanPressure")
                 !call addto(u, delta_u, dt)
@@ -1141,8 +1185,6 @@
                 !endif
           call addto(u, delta_u)
           call addto(p, delta_p)
-
-
           ! sort out the order of magniture of delta_u -- important map of sensor location
           adaptive_observation = .true.
           if(adaptive_observation) then
@@ -1178,7 +1220,6 @@
              close(2)
              
           endif
-     
           if(timestep.eq.total_timestep-1) then
               open(unit=2,file='adjoint_g_alltime')
               write(2,*)(g(i),i=1, (u%dim+1)*size(POD_state,1))
@@ -1206,9 +1247,10 @@
        call deallocate(pod_matrix_B)
        deallocate(pod_matrix_snapmean)
        call deallocate(pod_matrix_mass)
+       deallocate(pod_coef_all_obv)
 
      end subroutine solve_reduced_adjoint
-
+     
      subroutine max_sort(n,a,counter)
        implicit none
        integer :: n
@@ -1243,4 +1285,71 @@
        end do
      end subroutine max_sort
 
-   end module momentum_equation_reduced
+     subroutine misfit_POD(POD_state,misfit_POD_rhs)
+       implicit none
+       type(state_type), dimension(:,:,:), intent(inout) :: POD_state
+       integer:: n
+       real, dimension(:),intent(inout) :: misfit_POD_rhs
+       real, allocatable, dimension(:) :: num, obs,diff
+       type(vector_field), pointer :: pod_velocity,x
+       type(scalar_field), pointer :: pod_pressure
+       integer :: istate,nonods
+       integer :: i,j,k,node
+       type(vector_field), pointer :: snapmean_velocity
+       type(scalar_field), pointer :: snapmean_pressure
+       print*,'misfit_POD'
+       istate =1
+       pod_velocity=>extract_vector_field(POD_state(1,1,istate), "Velocity")
+       x => extract_vector_field(POD_state(1,1,istate), "Coordinate") 
+       nonods=node_count(pod_velocity)
+       allocate(num( (pod_velocity%dim+1)*nonods))
+       allocate(obs( (pod_velocity%dim+1)*nonods))
+       allocate(diff( (pod_velocity%dim+1)*nonods))
+       num=0.0
+       obs=0.0
+       diff=0.0
+
+       open(10, file = 'num_last.dat')
+       do i=1,pod_velocity%dim
+          read(10,*) (num((i-1)*nonods+j),j=1,nonods)
+       enddo
+       read(10,*) (num(pod_velocity%dim*nonods+j),j=1,nonods)
+       close(10) 
+
+       open(20, file = 'obs_last.dat')
+       do i=1,pod_velocity%dim
+          read(20,*) (obs((i-1)*nonods+j),j=1,nonods)
+       enddo
+       read(20,*) (obs(pod_velocity%dim*nonods+j),j=1,nonods)
+       close(20) 
+
+       diff = obs-num
+       do node = 1, nonods
+!          if(abs(x%val(1,node)).gt.0.3.or.abs(x%val(1,node)).lt.0.05.or.  &
+!               abs(x%val(2,node)).gt.0.9.or.abs(x%val(2,node)).lt.0.7) then
+          if(abs(x%val(1,node)).gt.1.05.or.abs(x%val(1,node)).lt.0.79.or.  &
+               abs(x%val(2,node)).gt.0.65.or.abs(x%val(2,node)).lt.0.47) then
+      !       data(node) = 0.0
+      !       num(node) = 0.0
+             diff(node) = 0.0
+          endif
+       enddo
+    do i=1,size(POD_state,1)
+       pod_velocity=>extract_vector_field(POD_state(i,1,istate), "Velocity")
+       snapmean_velocity=>extract_vector_field(POD_state(i,1,istate),"SnapmeanVelocity")
+       snapmean_pressure=>extract_Scalar_field(POD_state(i,2,istate),"SnapmeanPressure") 
+       do j=1,pod_velocity%dim
+          misfit_POD_rhs(i+size(POD_state,1)*(j-1))=   &
+               dot_product(POD_velocity%val(j,:), diff((j-1)*nonods+1:j*nonods) )
+       enddo
+       POD_pressure=>extract_scalar_field(POD_state(i,2,istate), "Pressure")
+       misfit_POD_rhs(i+size(POD_state,1)*pod_velocity%dim)= &
+            dot_product(POD_pressure%val(:), diff(pod_velocity%dim*nonods+1:(pod_velocity%dim+1)*nonods) )   
+    enddo
+    deallocate(num)
+    deallocate(obs)
+    deallocate(diff)
+       
+  end subroutine misfit_POD
+  
+end module momentum_equation_reduced

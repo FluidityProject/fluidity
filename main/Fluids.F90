@@ -134,7 +134,7 @@ contains
     logical, optional :: if_optimal
     real, optional :: valfun
     integer :: nocva
-    type(vector_field), pointer :: u
+    type(vector_field), pointer :: u,x,u1
     type(scalar_field), pointer :: p 
     logical :: adjoint_reduced
     !     System state wrapper.
@@ -464,8 +464,7 @@ contains
             call melt_bc(state(1))
           endif
     end if
-    
-    ! Checkpoint at start
+   ! Checkpoint at start
     if(do_checkpoint_simulation(dump_no)) call checkpoint_simulation(state, cp_no = dump_no)
     ! Dump at start
     if( &
@@ -571,7 +570,7 @@ contains
           !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
           ! Intermediate dumps
-          if(do_checkpoint_simulation(dump_no)) then
+           if(do_checkpoint_simulation(dump_no)) then
              call checkpoint_simulation(state, cp_no = dump_no)
           end if
           call write_state(dump_no, state)
@@ -885,6 +884,8 @@ contains
                         POD_state=POD_state, POD_state_deim=POD_state_deim,its=its, total_timestep=total_timestep)
                 endif
              endif
+
+
           end if
 
           if(nonlinear_iterations > 1) then
@@ -984,7 +985,10 @@ contains
 
        ! if strong bc or weak that overwrite then enforce the bc on the fields
        ! (should only do something for weak bcs with that options switched on)
-       call set_dirichlet_consistent(state)
+
+       if(.not.have_option("/reduced_model/execute_reduced_model").and.have_option("/reduced_model/adjoint")) then
+          call set_dirichlet_consistent(state)
+       endif
 
        if(have_option("/timestepping/steady_state")) then
 

@@ -1035,7 +1035,7 @@ contains
         type(state_type), dimension(:,:), intent(in) :: POD_state
         real, dimension(:), intent(in) :: pod_coef
 
-        type(vector_field), pointer :: POD_velocity
+        type(vector_field), pointer :: POD_velocity,x
         type(scalar_field), pointer :: POD_pressure
 
         type(vector_field), pointer :: snapmean_velocity
@@ -1100,16 +1100,14 @@ contains
 
            POD_velocity=>extract_vector_field(POD_state(i,1), "Velocity")
            POD_pressure=>extract_scalar_field(POD_state(i,2), "Pressure")
-
+ 
            do d=1,POD_velocity%dim
               do j =1,size(POD_velocity%val,2)
                  pod_sol_velocity(j,d)=pod_sol_velocity(j,d)+  &
                       pod_coef(i+(d-1)*size(POD_state,1))*matrix_Dalpha_Du(i+(d-1)*size(POD_state,1),j)
               enddo
            enddo
-
 !           print*,pod_sol_velocity(:,1)
-
 !           do j =1, size(POD_pressure%val)
 !              if(abs(POD_pressure%val(j)).gt.0.05) then
 !                 pod_sol_pressure(j)=pod_sol_pressure(j)+pod_coef(i+POD_velocity%dim*size(POD_state,1))/POD_pressure%val(j)

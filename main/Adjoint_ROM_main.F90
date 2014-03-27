@@ -127,7 +127,7 @@ contains
 
     call fluids()
     ewrite(1,*) 'Completed the initial forward running'
-   stop 11
+    stop 11
     !------------------------------------------------------------------------
     ! allocate variables:
     ! nocva: number of control variables to be optimised
