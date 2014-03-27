@@ -1,5 +1,5 @@
 input: clean
-	tar -xzvf ../bdfm1_sphere/src/sphere.tgz
+	tar -xzvf ../sw_common/sphere.tgz
 
 clean:
 	rm -f *.d.* *.vtu

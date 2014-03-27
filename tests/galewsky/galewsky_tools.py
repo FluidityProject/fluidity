@@ -9,7 +9,7 @@ def u(phi):
     phi0 = pi/7.0
     phi1 = pi/2.0-phi0
     en = exp(-4.0/(phi1-phi0)**2)
-    uout[phi1<phi1 and phi>phi0] = umax/en*exp(1./(phi-phi0)/(phi-phi1))
+    uout = umax/en*exp(1./(phi-phi0)/(phi-phi1))
     uout[phi>=phi1] = 0.
     uout[phi<=phi0] = 0.
     return uout

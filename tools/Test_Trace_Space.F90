@@ -214,7 +214,7 @@
       type(state_type), intent(inout) :: state
       !
       type(scalar_field), pointer :: D,L
-      type(vector_field), pointer :: X
+      type(vector_field), pointer :: X,U
       type(scalar_field) :: L_projected, L_projected_rhs
       type(csr_sparsity) :: L_mass_sparsity
       type(csr_matrix) :: L_mass_mat
@@ -223,9 +223,10 @@
       D=>extract_scalar_field(state, "LayerThickness")
       L=>extract_scalar_field(state, "LagrangeMultiplier")
       X=>extract_vector_field(state, "Coordinate")
+      U=>extract_vector_field(state, "Velocity")
 
       call allocate(L_projected,L%mesh, "ProjectedLagrangeMultiplier")
-      L_projected%option_path = L%option_path
+      L_projected%option_path = U%mesh%option_path//"/constraint_type/solver"
       call allocate(L_projected_rhs,L%mesh,&
            & "ProjectedLagrangeMultiplierRHS")
       call zero(L_projected)
@@ -244,6 +245,8 @@
 
       if(maxval(abs(L_projected%val-L%val))>1.0e-5) then
          FLExit('Projection to trace space looks funky.')
+      else
+         print*, 'projection looks good'
       end if
 
       call deallocate(L_mass_mat)
@@ -312,10 +315,7 @@
       integer :: i
       D=>extract_scalar_field(state, "LayerThickness")
       L=>extract_scalar_field(state, "LagrangeMultiplier")
-      print*, 'L number2count'
-      do i = 1, size(L%mesh%shape%numbering%number2count,1)
-         print*, L%mesh%shape%numbering%number2count(i,:)
-      end do
+
       print*, 'D local coordinates'
       do i = 1, D%mesh%shape%ndof
          print*, i,local_coords(i, D%mesh%shape)
@@ -324,6 +324,7 @@
       do i = 1, L%mesh%shape%ndof
          print*, i,local_coords(i, L%mesh%shape)
       end do
+
     end subroutine test_local_coords
 
     subroutine test_trace_values(state)
@@ -383,12 +384,10 @@
       print *, "face_nodes L", face_local_nodes(L,face)
       print *, "D_face", D_face
       print *, "L_face", L_face
-      !if(any(abs(D_face-L_face)>1.0e-10)) then
-      !   print *, 'BAD'
-      !   !FLExit('Test Trace Values Failed')
-      !else
-      !   print *, 'NOT BAD'
-      !end if
+      if(any(abs(D_face-L_face)>1.0e-10)) then
+         print *, 'BAD'
+!         FLExit('Test Trace Values Failed')
+      end if
     end subroutine test_trace_values_face
 
     subroutine read_command_line()
