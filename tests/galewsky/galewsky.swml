@@ -335,6 +335,18 @@ val = galewsky_tools.HPval</string_value>
         <debug/>
       </prognostic>
     </scalar_field>
+    <scalar_field name="Vorticity" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VorticityMesh"/>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="ManifoldDivergence" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="PressureMesh"/>
+      </diagnostic>
+    </scalar_field>
     <scalar_field name="DG_CourantNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
