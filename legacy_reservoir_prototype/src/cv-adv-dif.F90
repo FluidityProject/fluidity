@@ -1658,7 +1658,7 @@ contains
                              WIC_T_BC_DIRICHLET, WIC_D_BC_DIRICHLET,  &
                              IGOT_NOT_CONST_DEN, IGOT_T2, &
                              HDC, DT, &
-                             SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:),CVNORMX, CVNORMY, CVNORMZ, &
+                             SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:), CVNORMX_ALL, &
                              LOC_U, SLOC_U, SLOC2_U,  &
                              U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              FUPWIND_IN, FUPWIND_OUT, DISTCONTINUOUS_METHOD, QUAD_ELEMENTS, SHAPE_CV_SNL, SHAPE_U_SNL, DOWNWIND_EXTRAP_INDIVIDUAL) 
@@ -9169,7 +9169,7 @@ pure real function ptolfun(value)
        WIC_T_BC_DIRICHLET, WIC_D_BC_DIRICHLET, &
        IGOT_NOT_CONST_DEN, IGOT_T2, &
        HDC, DT, &
-       SCVFENX, SCVFENY, SCVFENZ, CVNORMX, CVNORMY, CVNORMZ, &
+       SCVFENX, SCVFENY, SCVFENZ, CVNORMX_ALL,  &
        LOC_U,SLOC_U,SLOC2_U,  &
        U_NDGLN,U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
        FUPWIND_IN, FUPWIND_OUT, DISTCONTINUOUS_METHOD, QUAD_ELEMENTS, SHAPE_CV_SNL, SHAPE_U_SNL, DOWNWIND_EXTRAP_INDIVIDUAL) 
@@ -9194,7 +9194,7 @@ pure real function ptolfun(value)
     REAL, DIMENSION( :, :  ), intent( in ) :: SUFEN
     REAL, DIMENSION( :, :  ), intent( in ) :: SCVFEN
     REAL, DIMENSION( :, :  ), intent( in ) :: SCVFENX, SCVFENY, SCVFENZ
-    REAL, DIMENSION( :  ), intent( in ) :: CVNORMX, CVNORMY, CVNORMZ
+    REAL, DIMENSION( :, :  ), intent( in ) :: CVNORMX_ALL
       REAL, DIMENSION ( NFIELD), intent( inout ) :: LIMF
       REAL, DIMENSION ( NFIELD), intent( in ) :: F_INCOME, F_NDOTQ
 
@@ -9252,7 +9252,7 @@ pure real function ptolfun(value)
       REAL, DIMENSION ( :, :, : ), allocatable :: SCVFENX_ALL
 !      REAL, DIMENSION ( :, : ), allocatable :: SNORMXN_ALL
 !      REAL, DIMENSION ( : ), allocatable :: TXGI_ALL, UDGI_ALL, A_STAR_X_ALL
-      REAL, DIMENSION ( :, : ), allocatable :: CVNORMX_ALL
+!      REAL, DIMENSION ( :, : ), allocatable :: CVNORMX_ALL
 ! F: 
 !      REAL, DIMENSION ( :, : ), allocatable :: LOC_F, LOC_FEMF, SLOC_F, SLOC_FEMF, SLOC2_F, SLOC2_FEMF,  FXGI_ALL
       REAL, DIMENSION ( :, : ), allocatable :: FXGI_ALL
@@ -9299,10 +9299,10 @@ pure real function ptolfun(value)
       ALLOCATE(A_STAR_X_ALL(NDIM,NFIELD)) 
 
 
-      ALLOCATE(CVNORMX_ALL(NDIM,SCVNGI))
-      CVNORMX_ALL(1,:)=CVNORMX(:)
-      IF(NDIM.GE.2) CVNORMX_ALL(2,:)=CVNORMY(:)
-      IF(NDIM.GE.3) CVNORMX_ALL(3,:)=CVNORMZ(:)
+!      ALLOCATE(CVNORMX_ALL(NDIM,SCVNGI))
+!      CVNORMX_ALL(1,:)=CVNORMX(:)
+!      IF(NDIM.GE.2) CVNORMX_ALL(2,:)=CVNORMY(:)
+!      IF(NDIM.GE.3) CVNORMX_ALL(3,:)=CVNORMZ(:)
 
 
       ALLOCATE(courant_or_minus_one_new(NFIELD))
