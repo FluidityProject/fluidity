@@ -337,13 +337,13 @@ val = galewsky_tools.HPval</string_value>
     </scalar_field>
     <scalar_field name="Vorticity" rank="0">
       <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
+        <algorithm name="sw_vorticity" material_phase_support="single"/>
         <mesh name="VorticityMesh"/>
       </diagnostic>
     </scalar_field>
     <scalar_field name="ManifoldDivergence" rank="0">
       <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
+        <algorithm name="manifold_divergence" material_phase_support="single"/>
         <mesh name="PressureMesh"/>
       </diagnostic>
     </scalar_field>
