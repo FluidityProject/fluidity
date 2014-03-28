@@ -1333,7 +1333,7 @@ contains
 
              END DO
 
-          ENDIF ! ENDOF IF( (ELE2 > 0) .OR. (SELE /= 0) ) THEN ...
+          ENDIF ! ENDOF IF( (ELE2 > 0) .OR. (SELE /= 0) ) THEN ELSE...
 
           IF( SELE /= 0 ) THEN
 ! bcs: 
@@ -2437,6 +2437,7 @@ contains
                    ELSE
 ! Put LOC_F(1:NPHASE, CV_KLOC) = DEN_ALL( 1:NPHASE, CV_NODK ) into storage...
                       T_ALL(:) = LOC_F(IPT:IPT-1+NPHASE)
+                      IPT=IPT+NPHASE
                    ENDIF
                
                 ENDIF ! ENDOF IF(PACK) THEN ELSE
