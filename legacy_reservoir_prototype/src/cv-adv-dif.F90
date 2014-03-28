@@ -1360,8 +1360,9 @@ contains
                 END DO
              END DO
          ENDIF ! IF( SELE /= 0 ) THEN
+! local surface information***********
 
-! limiting VALUES: 
+! limiting VALUES*************: 
        IF( CV_NODJ /= CV_NODI ) THEN
           DO COUNT = SMALL_FINDRM(CV_NODJ), SMALL_FINDRM(CV_NODJ+1)-1
              IF ( SMALL_COLM(COUNT) == CV_NODI ) THEN
@@ -1419,7 +1420,7 @@ contains
 
        END IF
 
-! local surface information***********
+! limiting VALUES*************:
 !               print *,'before vel'
 
               SUM2ONE = .FALSE.
@@ -1668,14 +1669,14 @@ contains
                                 TUPWIND_MAT )
                         ENDIF
                      
-                     UGI_COEF_ELE=0.0;VGI_COEF_ELE=0.0;WGI_COEF_ELE=0.0;
-                     UGI_COEF_ELE = UGI_COEF_ELE_ALL(1,:,:)
-                     IF (NDIM>=2 ) VGI_COEF_ELE = UGI_COEF_ELE_ALL(2,:,:)
-                     IF (NDIM==3 ) WGI_COEF_ELE = UGI_COEF_ELE_ALL(3,:,:)
-                     UGI_COEF_ELE2=0.0;VGI_COEF_ELE2=0.0;WGI_COEF_ELE2=0.0;
-                     UGI_COEF_ELE2 = UGI_COEF_ELE2_ALL(1,:,:)
-                     IF (NDIM>=2 ) VGI_COEF_ELE2 = UGI_COEF_ELE2_ALL(2,:,:)
-                     IF (NDIM==3 ) WGI_COEF_ELE2 = UGI_COEF_ELE2_ALL(3,:,:)
+!                     UGI_COEF_ELE=0.0;VGI_COEF_ELE=0.0;WGI_COEF_ELE=0.0
+!                     UGI_COEF_ELE = UGI_COEF_ELE_ALL(1,:,:)
+!                     IF (NDIM>=2 ) VGI_COEF_ELE = UGI_COEF_ELE_ALL(2,:,:)
+!                     IF (NDIM==3 ) WGI_COEF_ELE = UGI_COEF_ELE_ALL(3,:,:)
+!                     UGI_COEF_ELE2=0.0;VGI_COEF_ELE2=0.0;WGI_COEF_ELE2=0.0
+!                     UGI_COEF_ELE2 = UGI_COEF_ELE2_ALL(1,:,:)
+!                     IF (NDIM>=2 ) VGI_COEF_ELE2 = UGI_COEF_ELE2_ALL(2,:,:)
+!                     IF (NDIM==3 ) WGI_COEF_ELE2 = UGI_COEF_ELE2_ALL(3,:,:)
 
                      INCOME_J=1.-INCOME
                      INCOMEold_J=1.-INCOMEold
