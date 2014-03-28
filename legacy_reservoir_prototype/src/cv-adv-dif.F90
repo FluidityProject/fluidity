@@ -2413,40 +2413,6 @@ contains
 
 
 
-
-
-             SUBROUTINE PACK_OR_UNPACK_LOC2( LOC_F, T_ALL, NPHASE, IPT, PACK, STORE, GLOBAL_FACE )
-             LOGICAL, intent( in ) :: PACK, STORE
-             INTEGER, intent( in ) :: NPHASE, GLOBAL_FACE
-! GLOBAL_FACE is the quadrature point which helps point into the storage memory
-             INTEGER, intent( inout ) :: IPT
-             REAL, DIMENSION(NPHASE), intent( inout ) :: T_ALL
-             REAL, DIMENSION(NPHASE), intent( inout ) :: LOC_F
-             
-             IF(PACK) THEN
-! Pack solution into LOC_F
-                   IF(.NOT.STORE) THEN
-                      LOC_F = T_ALL
-                      IPT=IPT+NPHASE
-                  ENDIF
-             ELSE
-! Unpack...
-                   IF(STORE) THEN 
-! Put LOC_F(1:NPHASE, CV_KLOC) = DEN_ALL( 1:NPHASE, CV_NODK ) into storage...
-!                      T_ALL = LOC_F ???
-                      IPT=IPT+NPHASE
-                   ELSE
-! Put LOC_F(1:NPHASE, CV_KLOC) = DEN_ALL( 1:NPHASE, CV_NODK ) into storage...
-                      T_ALL = LOC_F
-                   ENDIF
-               
-             ENDIF
-             RETURN
-             END SUBROUTINE PACK_OR_UNPACK_LOC2
-
-
-
-
              SUBROUTINE PACK_OR_UNPACK_LOC( LOC_F, T_ALL, NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T , GLOBAL_FACE)
 ! If PACK then pack T_ALL into LOC_F as long at IGOT_T==1 and STORE and not already in storage. 
              LOGICAL, intent( in ) :: PACK, STORE
@@ -2489,17 +2455,6 @@ contains
              ENDIF ! END OF IF(IGOT_T==1) THEN
              RETURN
              END SUBROUTINE PACK_OR_UNPACK_LOC
-
-
-
-
-
-
-
-
-
-
-
 
 
 
