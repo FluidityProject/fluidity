@@ -879,40 +879,36 @@
            options%kr2_exp, default=2.0)
     end subroutine get_land_options
 
-    SUBROUTINE relperm_corey_epsilon( ABSP, MOBILITY, INV_PERM, SAT, IPHASE,options )
+    SUBROUTINE relperm_corey_epsilon( ABSP, MOBILITY, INV_PERM, SAT, IPHASE,opt )
           !This subroutine add a small quantity to the corey function to avoid getting a relperm=0 that may give problems
           !when dividing it to obtain the sigma.
         IMPLICIT NONE
         REAL, intent( inout ) :: ABSP
         REAL, intent( in ) :: MOBILITY, SAT, INV_PERM
         INTEGER, intent( in ) :: IPHASE
-        type(corey_options), intent(in) :: options
+        type(corey_options), intent(in) :: opt
         ! Local variables...
-        REAL :: S_GC, S_OR,ABS_SUM, &
-        KR, VISC, SATURATION, Krmax
+        REAL :: KR, VISC, SATURATION, Krmax
 
         !Kr_max should only multiply the wetting phase,
         !however as we do not know if it is phase 1 or 2, we let the decision to the user
         !and we multiply both phases by kr_max. By default kr_max= 1
-        s_gc=options%s_gc
-        s_or=options%s_or
 
         IF( IPHASE == 1 ) THEN
-            Krmax = options%kr1_max
-            KR = Krmax*( ( SAT - S_GC) / ( 1. - S_GC - S_OR )) ** options%kr1_exp
+            Krmax = opt%kr1_max
+            KR = Krmax*( ( SAT - opt%s_gc) / ( 1. - opt%s_gc - opt%s_or )) ** opt%kr1_exp
             Visc = 1.0
             SATURATION = SAT
         else
             SATURATION = 1.0 - SAT
-            Krmax = options%kr2_max
-            KR =  Krmax*( ( SATURATION - S_OR ) / ( 1. - S_GC - S_OR )) ** options%kr2_exp
+            Krmax = opt%kr2_max
+            KR = Krmax * ( ( SATURATION - opt%s_or ) / ( 1. - opt%s_gc - opt%s_or )) ** opt%kr2_exp
             VISC = MOBILITY
         end if
 
         !Make sure that the relperm is between bounds
         KR = min(max(1d-20, KR),Krmax)!Lower value just to make sure we do not divide by zero.
-        ABS_SUM = KR / VISC * max( 1d-10, SATURATION )!<-- 1d-20 is for safety. I think it might be used at the boundaries.
-        ABSP = INV_PERM / ABS_SUM
+        ABSP = INV_PERM * (VISC * max(1d-6,SATURATION)) / KR
 
       RETURN
     END SUBROUTINE relperm_corey_epsilon
