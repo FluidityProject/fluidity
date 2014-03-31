@@ -2000,17 +2000,15 @@ contains
              CALL UNPACK_LOC( LIMF(:), LIMT2OLD( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,6), GLOBAL_FACE, IGOT_T_CONST(:,6), IGOT_T_CONST_VALUE(:,6) )
     
 !                      print *,'here 3'
-          IF( IGOT_T2 == 0 ) THEN
-             LIMT2   =1.0
-             LIMT2OLD=1.0
-          END IF 
+!          IF( IGOT_T2 == 0 ) THEN
+!             LIMT2   =1.0
+!             LIMT2OLD=1.0
+!          END IF 
 
     ! Amend for porosity...
           IF ( ELE2 /= 0 ) THEN 
-!       FVD(:)    = 0.5 * ( VOLFRA_PORE(ELE) + VOLFRA_PORE(ELE2) ) * FVD(:) 
              LIMD   = 0.5 * ( ONE_PORE(ELE) + ONE_PORE(ELE2) ) * LIMD
           ELSE
-!       FVD(:)    = VOLFRA_PORE(ELE) * FVD(:)
              LIMD   = VOLFRA_PORE(ELE) * LIMD
           END IF
 
@@ -2092,7 +2090,7 @@ contains
                         CALL PUT_IN_CT_RHS( CT, CT_RHS, U_NLOC, SCVNGI, GI, NCOLCT, NDIM, &
                              CV_NONODS, U_NONODS, NPHASE, IPHASE, TOTELE, ELE, ELE2, SELE, &
                              JCOUNT_KLOC, JCOUNT_KLOC2, ICOUNT_KLOC, ICOUNT_KLOC2, U_OTHER_LOC, U_NDGLN, U_ALL, &
-                             SUFEN, SCVDETWEI, CVNORMX_ALL, DEN_ALL, CV_NODI, CV_NODI_IPHA, CV_NODJ, CV_NODJ_IPHA,&
+                             SUFEN, SCVDETWEI, CVNORMX_ALL, DEN_ALL, CV_NODI, CV_NODJ, &
                              UGI_COEF_ELE_ALL,  &
                              UGI_COEF_ELE2_ALL,  &
                              NDOTQNEW(IPHASE), NDOTQOLD(IPHASE), LIMDT(IPHASE), LIMDTOLD(IPHASE), &
@@ -10811,7 +10809,7 @@ CONTAINS
   SUBROUTINE PUT_IN_CT_RHS( CT, CT_RHS, U_NLOC, SCVNGI, GI, NCOLCT, NDIM, &
        CV_NONODS, U_NONODS, NPHASE, IPHASE, TOTELE, ELE, ELE2, SELE, &
        JCOUNT_KLOC, JCOUNT_KLOC2, ICOUNT_KLOC, ICOUNT_KLOC2, U_OTHER_LOC, U_NDGLN,  NU_ALL,  &
-       SUFEN, SCVDETWEI, CVNORMX_ALL, DEN_ALL, CV_NODI, CV_NODI_IPHA, CV_NODJ, CV_NODJ_IPHA,&
+       SUFEN, SCVDETWEI, CVNORMX_ALL, DEN_ALL, CV_NODI, CV_NODJ, &
        UGI_COEF_ELE_ALL,  &
        UGI_COEF_ELE2_ALL,  &
        NDOTQ, NDOTQOLD, LIMDT, LIMDTOLD, &
@@ -10820,7 +10818,7 @@ CONTAINS
     IMPLICIT NONE
     INTEGER, intent( in ) :: U_NLOC, SCVNGI, GI, NCOLCT, NDIM, &
          CV_NONODS, U_NONODS, NPHASE, IPHASE, TOTELE,  ELE, ELE2, SELE, &
-         CV_NODI, CV_NODI_IPHA, CV_NODJ, CV_NODJ_IPHA
+         CV_NODI, CV_NODJ
     LOGICAL, intent( in ) :: integrate_other_side_and_not_boundary
     INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
     INTEGER, DIMENSION( : ), intent( in ) :: JCOUNT_KLOC, JCOUNT_KLOC2, ICOUNT_KLOC, ICOUNT_KLOC2, U_OTHER_LOC
