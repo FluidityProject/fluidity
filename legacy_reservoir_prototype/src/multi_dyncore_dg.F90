@@ -325,7 +325,7 @@ contains
         DEALLOCATE( CV_RHS )
 
         ewrite(3,*)'t:', t
-        ewrite(3,*)'told:', told
+        !ewrite(3,*)'told:', told
 
         ewrite(3,*) 'Leaving INTENERGE_ASSEM_SOLVE'
 
@@ -1588,19 +1588,19 @@ contains
 
             CALL ULONG_2_UVW( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
 
-            ewrite(3,*) 'u::', u
-            ewrite(3,*) 'v::', v
-            ewrite(3,*) 'w::', w
-            ewrite(3,*) 'ct::', ct
-            ewrite(3,*) 'c::', c
-            ewrite(3,*) 'ct_rhs::', ct_rhs
+            !ewrite(3,*) 'u::', u
+            !ewrite(3,*) 'v::', v
+            !ewrite(3,*) 'w::', w
+            !ewrite(3,*) 'ct::', ct
+            !ewrite(3,*) 'c::', c
+            !ewrite(3,*) 'ct_rhs::', ct_rhs
 
             ! put on rhs the cty eqn; put most recent pressure in RHS of momentum eqn
             ! NB. P_RHS = -CT * U + CT_RHS
             CALL CT_MULT( P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
             CT, NCOLCT, FINDCT, COLCT )
 
-            ewrite(3,*) 'P_RHS1::', p_rhs
+            !ewrite(3,*) 'P_RHS1::', p_rhs
 
             P_RHS = -P_RHS + CT_RHS
 
@@ -1617,8 +1617,8 @@ contains
             'prognostic/reference_node', ndpset, default = 0 )
             if ( ndpset /= 0 ) p_rhs( ndpset ) = 0.0
 
-            ewrite(3,*) 'P_RHS2::', p_rhs
-            ewrite(3,*) 'CT_RHS::', ct_rhs
+            !ewrite(3,*) 'P_RHS2::', p_rhs
+            !ewrite(3,*) 'CT_RHS::', ct_rhs
 
             ! solve for pressure correction DP that is solve CMC*DP=P_RHS...
             ewrite(3,*)'about to solve for pressure'
@@ -1639,7 +1639,7 @@ contains
                !stop 1244
             end if
 
-            ewrite(3,*)'b4 pressure solve P_RHS:', P_RHS
+            ewrite(3,*)'b4 pressure solve P_RHS:' !, P_RHS
             DP = 0.
 
             ! Add diffusion to DG version of CMC to try and encourage a continuous formulation...
@@ -1652,13 +1652,13 @@ contains
             end if
 
             if( cv_nonods == x_nonods .or. .true. ) then ! a continuous pressure
-                CALL SOLVER( CMC, DP, P_RHS, &
-                FINDCMC, COLCMC, &
-                option_path = '/material_phase[0]/scalar_field::Pressure' )
+               CALL SOLVER( CMC, DP, P_RHS, &
+                    FINDCMC, COLCMC, &
+                    option_path = '/material_phase[0]/scalar_field::Pressure' )
             else ! a discontinuous pressure multi-grid solver
-                CALL PRES_DG_MULTIGRID(CMC, CMC_PRECON, IGOT_CMC_PRECON, DP, P_RHS, &
-                NCOLCMC, cv_NONODS, FINDCMC, COLCMC, MIDCMC, &
-                totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln )
+               CALL PRES_DG_MULTIGRID(CMC, CMC_PRECON, IGOT_CMC_PRECON, DP, P_RHS, &
+                    NCOLCMC, cv_NONODS, FINDCMC, COLCMC, MIDCMC, &
+                    totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln )
             end if
 
             ewrite(3,*) 'after pressure solve DP:', DP

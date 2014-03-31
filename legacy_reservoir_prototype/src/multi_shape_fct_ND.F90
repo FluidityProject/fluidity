@@ -2630,25 +2630,25 @@
               x_ndgln, lx, ly, x, y, fem_nod )
 
          !! Just debugging local numbering:
-         ewrite(3,*)'Just out of Make_QTri'
-         ewrite(3,*)'cv_ele_type, totele, x_nonods, quad_cv_nloc :', &
-              cv_ele_type, totele, x_nonods, quad_cv_nloc
-         ewrite(3,*)'fem_nod:', ( fem_nod( ele ), ele = 1, 6 )
-         ewrite(3,*)'lx:', ( lx( ele ), ele = 1, 3 )
-         ewrite(3,*)'ly:', ( ly( ele ), ele = 1, 3 )
-         ewrite(3,*)'x_ndgln:'
-         do ele = 1, totele
-            ewrite(3,*) ele, ( x_ndgln( ( ele - 1 ) * quad_cv_nloc + cv_iloc ), &
-                 cv_iloc = 1, quad_cv_nloc )
-         end do
+         !ewrite(3,*)'Just out of Make_QTri'
+         !ewrite(3,*)'cv_ele_type, totele, x_nonods, quad_cv_nloc :', &
+         !     cv_ele_type, totele, x_nonods, quad_cv_nloc
+         !ewrite(3,*)'fem_nod:', ( fem_nod( ele ), ele = 1, 6 )
+         !ewrite(3,*)'lx:', ( lx( ele ), ele = 1, 3 )
+         !ewrite(3,*)'ly:', ( ly( ele ), ele = 1, 3 )
+         !ewrite(3,*)'x_ndgln:'
+         !do ele = 1, totele
+         !   ewrite(3,*) ele, ( x_ndgln( ( ele - 1 ) * quad_cv_nloc + cv_iloc ), &
+         !        cv_iloc = 1, quad_cv_nloc )
+         !end do
 
-         ewrite(3,*)'X / Y / Z'
-         do ele = 1, totele
-            do cv_iloc = 1, quad_cv_nloc
-               xnod = x_ndgln( ( ele - 1 ) * quad_cv_nloc + cv_iloc )
-               ewrite(3,*) ele, cv_iloc, xnod, x( xnod ), y( xnod ), z ( xnod )
-            end do
-         end do
+         !ewrite(3,*)'X / Y / Z'
+         !do ele = 1, totele
+         !   do cv_iloc = 1, quad_cv_nloc
+         !      xnod = x_ndgln( ( ele - 1 ) * quad_cv_nloc + cv_iloc )
+         !      ewrite(3,*) ele, cv_iloc, xnod, x( xnod ), y( xnod ), z ( xnod )
+         !   end do
+         !end do
 
       case( 7 ) ! Linear Tetrahedra
          x_nonods = 15
@@ -2920,26 +2920,26 @@
            scvfen, scvfenlx, scvfenly, scvfenlz, scvfenslx, scvfensly, &
            scvfeweigh, cv_neiloc, cvfem_neiloc )
 
-      ewrite(3,*)'Shape Functions for scalar fields -- SCVFEN'
-      call PrintOutFunMat( cv_nloc, scvngi, scvfen )
+      !ewrite(3,*)'Shape Functions for scalar fields -- SCVFEN'
+      !call PrintOutFunMat( cv_nloc, scvngi, scvfen )
 
-      ewrite(3,*)'Shape Functions for scalar fields -- SCVFENLX'
-      call PrintOutFunMat( cv_nloc, scvngi, scvfenlx )
+      !ewrite(3,*)'Shape Functions for scalar fields -- SCVFENLX'
+      !call PrintOutFunMat( cv_nloc, scvngi, scvfenlx )
 
-      ewrite(3,*)'Shape Functions for scalar fields -- SCVFENLY'
-      call PrintOutFunMat( cv_nloc, scvngi, scvfenly )
+      !ewrite(3,*)'Shape Functions for scalar fields -- SCVFENLY'
+      !call PrintOutFunMat( cv_nloc, scvngi, scvfenly )
 
-      ewrite(3,*)'Shape Functions for scalar fields -- SCVFENLZ'
-      call PrintOutFunMat( cv_nloc, scvngi, scvfenlz )
+      !ewrite(3,*)'Shape Functions for scalar fields -- SCVFENLZ'
+      !call PrintOutFunMat( cv_nloc, scvngi, scvfenlz )
 
-      ewrite(3,*)'Shape Functions for scalar fields -- SCVFENSLX'
-      call PrintOutFunMat( cv_nloc, scvngi, scvfenslx )
+      !ewrite(3,*)'Shape Functions for scalar fields -- SCVFENSLX'
+      !call PrintOutFunMat( cv_nloc, scvngi, scvfenslx )
 
-      ewrite(3,*)'Shape Functions for scalar fields -- SCVFENSLY'
-      call PrintOutFunMat( cv_nloc, scvngi, scvfensly )
+      !ewrite(3,*)'Shape Functions for scalar fields -- SCVFENSLY'
+      !call PrintOutFunMat( cv_nloc, scvngi, scvfensly )
 
-      ewrite(3,*)'Shape Functions for scalar fields -- SCVFEWEIGH'
-      ewrite(3,*) ( scvfeweigh( cv_iloc ), cv_iloc = 1, scvngi )
+      !ewrite(3,*)'Shape Functions for scalar fields -- SCVFEWEIGH'
+      !ewrite(3,*) ( scvfeweigh( cv_iloc ), cv_iloc = 1, scvngi )
 
       ! And for velocities:
       if( u_nloc == 1 ) then ! a constant basis function 
@@ -2958,26 +2958,26 @@
               scvfeweigh_dummy, cv_neiloc_cells_dummy, ufem_neiloc )
       endif
 
-      ewrite(3,*)'Shape Functions for velocity fields -- SUFEN'
-      call PrintOutFunMat( u_nloc, scvngi, sufen )
+      !ewrite(3,*)'Shape Functions for velocity fields -- SUFEN'
+      !call PrintOutFunMat( u_nloc, scvngi, sufen )
 
-      ewrite(3,*)'Shape Functions for velocity fields -- SUFENLX'
-      call PrintOutFunMat( u_nloc, scvngi, sufenlx )
+      !ewrite(3,*)'Shape Functions for velocity fields -- SUFENLX'
+      !call PrintOutFunMat( u_nloc, scvngi, sufenlx )
 
-      ewrite(3,*)'Shape Functions for velocity fields -- SUFENLY'
-      call PrintOutFunMat( u_nloc, scvngi, sufenly )
+      !ewrite(3,*)'Shape Functions for velocity fields -- SUFENLY'
+      !call PrintOutFunMat( u_nloc, scvngi, sufenly )
 
-      ewrite(3,*)'Shape Functions for velocity fields -- SUFENLZ'
-      call PrintOutFunMat( u_nloc, scvngi, sufenlz )
+      !ewrite(3,*)'Shape Functions for velocity fields -- SUFENLZ'
+      !call PrintOutFunMat( u_nloc, scvngi, sufenlz )
 
-      ewrite(3,*)'Shape Functions for velocity fields -- SUFENSLX'
-      call PrintOutFunMat( u_nloc, scvngi, sufenslx )
+      !ewrite(3,*)'Shape Functions for velocity fields -- SUFENSLX'
+      !call PrintOutFunMat( u_nloc, scvngi, sufenslx )
 
-      ewrite(3,*)'Shape Functions for velocity fields -- SUFENSLY'
-      call PrintOutFunMat( u_nloc, scvngi, sufensly )
+      !ewrite(3,*)'Shape Functions for velocity fields -- SUFENSLY'
+      !call PrintOutFunMat( u_nloc, scvngi, sufensly )
 
-      ewrite(3,*)'Shape Functions for velocity fields -- SCVFEWEIGH'
-      ewrite(3,*) ( scvfeweigh( cv_iloc ), cv_iloc = 1, scvngi )
+      !ewrite(3,*)'Shape Functions for velocity fields -- SCVFEWEIGH'
+      !ewrite(3,*) ( scvfeweigh( cv_iloc ), cv_iloc = 1, scvngi )
    
       deallocate( lx )
       deallocate( ly )
@@ -3051,11 +3051,11 @@
       real :: half_side_length
       real, dimension(cv_nloc, x_nonods) :: sn_i_xj
 
-      ewrite(3,*)'Compute_SurfaceShapeFunctions_Triangle_Tetrahedron'
-      ewrite(3,*)'scvngi=',scvngi
-      ewrite(3,*)'lx:', lx( 1 : quad_cv_nloc )
-      ewrite(3,*)'ly:', ly( 1 : quad_cv_nloc )
-      ewrite(3,*)'lz:', lz( 1 : quad_cv_nloc )
+      !ewrite(3,*)'Compute_SurfaceShapeFunctions_Triangle_Tetrahedron'
+      !ewrite(3,*)'scvngi=',scvngi
+      !ewrite(3,*)'lx:', lx( 1 : quad_cv_nloc )
+      !ewrite(3,*)'ly:', ly( 1 : quad_cv_nloc )
+      !ewrite(3,*)'lz:', lz( 1 : quad_cv_nloc )
 
       sn = 0.0
       snlx = 0.0
@@ -3161,7 +3161,6 @@
       ewrite(3,*) 'dummy_sngi, dummy_snloc, dummy_smloc, quad_cv_ngi:', &
            dummy_sngi, dummy_snloc, dummy_smloc, quad_cv_ngi
        ewrite(3,*)'scvngi,quad_cv_sngi=',scvngi,quad_cv_sngi
-!        stop 331
 
       ! Work out local coords of the nodes
       loc_coord_nod_l1 = 0. ; loc_coord_nod_l2 = 0. ; loc_coord_nod_l3 = 0. ; &
@@ -3194,23 +3193,23 @@
            quad_cvweight, quad_n, quad_nlx, quad_nly, quad_nlz, &
            quad_scvweight, quad_sn, quad_snlx, quad_snly, quad_sm, quad_smlx, quad_smly, &
            nwicel, d3 )
-      ewrite(3,*)'quad_sn:', quad_sn
-      ewrite(3,*)'quad_snlx:', quad_snlx
+      !ewrite(3,*)'quad_sn:', quad_sn
+      !ewrite(3,*)'quad_snlx:', quad_snlx
       ! Checking the output from shape_l_q_quad
-      ewrite(3,*)'quad_cvweight:', ( quad_cvweight( xnod ), xnod = 1, quad_cv_ngi )
-      ewrite(3,*)'quad_scvweight:', ( quad_scvweight( xnod ), xnod = 1, quad_cv_sngi )
-      do xnod = 1, quad_cv_nloc
-         ewrite(3,*)'quad_n:', xnod, ( quad_n( xnod, ele ), ele = 1, quad_cv_ngi )
-         ewrite(3,*)'quad_nlx:', xnod, ( quad_nlx( xnod, ele ), ele = 1, quad_cv_ngi )
-         ewrite(3,*)'quad_nly:', xnod, ( quad_nly( xnod, ele ), ele = 1, quad_cv_ngi )
-         ewrite(3,*)''
-      end do
-      do xnod = 1, quad_cv_snloc
-         ewrite(3,*)'quad_sn:', xnod, ( quad_sn( xnod, ele ), ele = 1, quad_cv_sngi )
-         ewrite(3,*)'quad_snlx:', xnod, ( quad_snlx( xnod, ele ), ele = 1, quad_cv_sngi )
-         ewrite(3,*)'quad_snly:', xnod, ( quad_snly( xnod, ele ), ele = 1, quad_cv_sngi )
-         ewrite(3,*)''
-      end do
+      !ewrite(3,*)'quad_cvweight:', ( quad_cvweight( xnod ), xnod = 1, quad_cv_ngi )
+      !ewrite(3,*)'quad_scvweight:', ( quad_scvweight( xnod ), xnod = 1, quad_cv_sngi )
+      !do xnod = 1, quad_cv_nloc
+      !   ewrite(3,*)'quad_n:', xnod, ( quad_n( xnod, ele ), ele = 1, quad_cv_ngi )
+      !   ewrite(3,*)'quad_nlx:', xnod, ( quad_nlx( xnod, ele ), ele = 1, quad_cv_ngi )
+      !   ewrite(3,*)'quad_nly:', xnod, ( quad_nly( xnod, ele ), ele = 1, quad_cv_ngi )
+      !   ewrite(3,*)''
+      !end do
+      !do xnod = 1, quad_cv_snloc
+      !   ewrite(3,*)'quad_sn:', xnod, ( quad_sn( xnod, ele ), ele = 1, quad_cv_sngi )
+      !   ewrite(3,*)'quad_snlx:', xnod, ( quad_snlx( xnod, ele ), ele = 1, quad_cv_sngi )
+      !   ewrite(3,*)'quad_snly:', xnod, ( quad_snly( xnod, ele ), ele = 1, quad_cv_sngi )
+      !   ewrite(3,*)''
+      !end do
 
       ! Now determine the basis functions at the 
       ! node pts
@@ -3221,14 +3220,13 @@
            sn_i_xj, rdummy2, rdummy2, rdummy2, &
            tri_tet  )
       ! Chacking the output from shatri
-      do xnod = 1, x_nonods
-         ewrite(3,*)'loc_coord_nod_l1/4, sum:', loc_coord_nod_l1(xnod), &
-              loc_coord_nod_l2(xnod), loc_coord_nod_l3(xnod), loc_coord_nod_l4(xnod)
-      end do
-      do xnod = 1, cv_nloc
-         ewrite(3,*)'sn_i_xj:', xnod, ( sn_i_xj( xnod, ele ), ele = 1, x_nonods )
-      end do
-      !stop 2929
+      !do xnod = 1, x_nonods
+      !   ewrite(3,*)'loc_coord_nod_l1/4, sum:', loc_coord_nod_l1(xnod), &
+      !        loc_coord_nod_l2(xnod), loc_coord_nod_l3(xnod), loc_coord_nod_l4(xnod)
+      !end do
+      !do xnod = 1, cv_nloc
+      !   ewrite(3,*)'sn_i_xj:', xnod, ( sn_i_xj( xnod, ele ), ele = 1, x_nonods )
+      !end do
 
       Loop_Elements: do ele = 1, totele ! Calculate SDETWEI,RA,SNX,SNY,SNZ for element ELE
          ! What is the fem node belonging to this element (CV_ILOC):
@@ -3237,10 +3235,10 @@
             xnod = x_ndgln( ( ele - 1 ) * quad_cv_nloc + quad_cv_iloc )
             if( fem_nod( xnod ) /= 0 ) cv_iloc_belong = xnod
 
-            ewrite(3,*) ele, quad_cv_iloc, &
-                 ( ele - 1 ) * quad_cv_nloc + quad_cv_iloc, &
-                 xnod, fem_nod(xnod), &
-                 x(xnod), y(xnod),z(xnod)
+            !ewrite(3,*) ele, quad_cv_iloc, &
+            !     ( ele - 1 ) * quad_cv_nloc + quad_cv_iloc, &
+            !     xnod, fem_nod(xnod), &
+            !     x(xnod), y(xnod),z(xnod)
          end do
 
          Loop_SurfaceElements: do sele = 1, stotel ! Extract surface nodes
@@ -3277,9 +3275,9 @@
                         x_sndgln( ( sele - 1 ) * quad_cv_snloc + quad_cv_siloc ) = &
                              x_ndgln( ( ele - 1 ) * quad_cv_nloc + quad_cv_iloc )
                         loc_2nd_lev( sele, quad_cv_siloc ) = quad_cv_iloc
-                        ewrite(3, *) 'ele,sele,quad_cv_snloc,quad_cv_nloc,quad_cv_siloc,x_sndgln:', &
-                             ele,sele,quad_cv_snloc,quad_cv_nloc,quad_cv_siloc,&
-                             x_sndgln( ( sele - 1 ) * quad_cv_snloc + quad_cv_siloc )
+                        !ewrite(3, *) 'ele,sele,quad_cv_snloc,quad_cv_nloc,quad_cv_siloc,x_sndgln:', &
+                        !     ele,sele,quad_cv_snloc,quad_cv_nloc,quad_cv_siloc,&
+                        !     x_sndgln( ( sele - 1 ) * quad_cv_snloc + quad_cv_siloc )
                      end if
                   end do Loop_Poly2d_1_2
                end do Loop_Poly2d_1_1
@@ -3311,9 +3309,9 @@
                            x_sndgln( ( sele - 1 ) * quad_cv_snloc + quad_cv_siloc ) = &
                                 x_ndgln( ( ele - 1 ) * quad_cv_nloc + quad_cv_iloc )
                            loc_2nd_lev( sele, quad_cv_siloc ) = quad_cv_iloc
-                           ewrite(3, *) 'ele,sele,quad_cv_snloc,quad_cv_nloc,quad_cv_siloc,x_sndgln:', &
-                                ele,sele,quad_cv_snloc,quad_cv_nloc,quad_cv_siloc,&
-                                x_sndgln( ( sele - 1 ) * quad_cv_snloc + quad_cv_siloc )
+                           !ewrite(3, *) 'ele,sele,quad_cv_snloc,quad_cv_nloc,quad_cv_siloc,x_sndgln:', &
+                           !     ele,sele,quad_cv_snloc,quad_cv_nloc,quad_cv_siloc,&
+                           !     x_sndgln( ( sele - 1 ) * quad_cv_snloc + quad_cv_siloc )
                         end if
                      end do Loop_Poly3d_2_3
                   end do Loop_Poly3d_2_2
@@ -3387,8 +3385,8 @@
 
             end do Loop_QUAD_CV_SGI
 
-            ewrite(3,*)'ele, sele, totele, quad_cv_sngi, quad_cv_snloc:', &
-                 ele, sele, totele, quad_cv_sngi, quad_cv_snloc
+            !ewrite(3,*)'ele, sele, totele, quad_cv_sngi, quad_cv_snloc:', &
+            !     ele, sele, totele, quad_cv_sngi, quad_cv_snloc
 
             ! Determine the quadrature points and weights
             Loop_NGI: do quad_cv_sgi = 1, quad_cv_sngi 
@@ -3399,7 +3397,7 @@
                ! gl_quad_scvweigh( cv_sgi ) = quad_sdetwei( quad_cv_sgi )
                gl_quad_scvweigh( cv_sgi ) = quad_scvweight( quad_cv_sgi )
 
-               ewrite(3,*) ''
+               !ewrite(3,*) ''
 
                xgi = 0. ; ygi = 0. ; zgi = 0.
                do quad_cv_siloc = 1, quad_cv_snloc
@@ -3451,20 +3449,20 @@
            cv_nloc, stotel * quad_cv_sngi * totele, &
            gl_quad_sn, gl_quad_snlx, gl_quad_snly, gl_quad_snlz, &
            tri_tet )
-      ewrite(3,*)'gl_quad_l1:', ( gl_quad_l1( cv_sgi ), cv_sgi = 1, stotel * quad_cv_sngi * totele )
-      ewrite(3,*)'gl_quad_l2:', ( gl_quad_l2( cv_sgi ), cv_sgi = 1, stotel * quad_cv_sngi * totele )
-      ewrite(3,*)'gl_quad_l3:', ( gl_quad_l3( cv_sgi ), cv_sgi = 1, stotel * quad_cv_sngi * totele )
-      ewrite(3,*)'gl_quad_l4:', ( gl_quad_l4( cv_sgi ), cv_sgi = 1, stotel * quad_cv_sngi * totele )
-      ewrite(3,*)' '
+      !ewrite(3,*)'gl_quad_l1:', ( gl_quad_l1( cv_sgi ), cv_sgi = 1, stotel * quad_cv_sngi * totele )
+      !ewrite(3,*)'gl_quad_l2:', ( gl_quad_l2( cv_sgi ), cv_sgi = 1, stotel * quad_cv_sngi * totele )
+      !ewrite(3,*)'gl_quad_l3:', ( gl_quad_l3( cv_sgi ), cv_sgi = 1, stotel * quad_cv_sngi * totele )
+      !ewrite(3,*)'gl_quad_l4:', ( gl_quad_l4( cv_sgi ), cv_sgi = 1, stotel * quad_cv_sngi * totele )
+      !ewrite(3,*)' '
 
-      do xnod = 1, cv_nloc
-         ewrite(3,*)'gl_quad_sn:', xnod, ( gl_quad_sn( xnod, ele ), &
-              ele = 1, stotel * quad_cv_sngi * totele )
-         ewrite(3,*)'gl_quad_snlx:', xnod, ( gl_quad_snlx( xnod, ele ), &
-              ele = 1, stotel * quad_cv_sngi * totele )
-         ewrite(3,*)'gl_quad_snly:', xnod, ( gl_quad_snly( xnod, ele ), &
-              ele = 1, stotel * quad_cv_sngi * totele )
-      end do
+      !do xnod = 1, cv_nloc
+      !   ewrite(3,*)'gl_quad_sn:', xnod, ( gl_quad_sn( xnod, ele ), &
+      !        ele = 1, stotel * quad_cv_sngi * totele )
+      !   ewrite(3,*)'gl_quad_snlx:', xnod, ( gl_quad_snlx( xnod, ele ), &
+      !        ele = 1, stotel * quad_cv_sngi * totele )
+      !   ewrite(3,*)'gl_quad_snly:', xnod, ( gl_quad_snly( xnod, ele ), &
+      !        ele = 1, stotel * quad_cv_sngi * totele )
+      !end do
       ! 
       ! Find shared quadrature points to see what is on the other side 
       do cv_sgi = 1, stotel * quad_cv_sngi * totele
@@ -3494,8 +3492,8 @@
          endif
       end do
 
-      ewrite(3,*)'stotel, quad_cv_sngi, totele:',stotel, quad_cv_sngi, totele
-      ewrite(3,*)'stotel * quad_cv_sngi * totele:',stotel * quad_cv_sngi * totele
+      !ewrite(3,*)'stotel, quad_cv_sngi, totele:',stotel, quad_cv_sngi, totele
+      !ewrite(3,*)'stotel * quad_cv_sngi * totele:',stotel * quad_cv_sngi * totele
 
       allocate( sn_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; sn_2 = 0.
       allocate( suf_snlx_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; suf_snlx_2 = 0.
@@ -3545,12 +3543,12 @@
       ! This is determined by looking to see if any of the face nodes 
       ! have a local fem node. 
 
-      ewrite(3,*) 'suf_quad_snlx:', suf_quad_snlx
-      ewrite(3,*) 'suf_quad_snly:', suf_quad_snly
-      ewrite(3,*) 'remove_ig_pt:', remove_ig_pt
-      ewrite(3,*) 'fem_nod:', fem_nod
-      ewrite(3,*) 'stotel, quad_cv_sngi, totele:', stotel, &
-           quad_cv_sngi, totele, stotel * quad_cv_sngi * totele
+      !ewrite(3,*) 'suf_quad_snlx:', suf_quad_snlx
+      !ewrite(3,*) 'suf_quad_snly:', suf_quad_snly
+      !ewrite(3,*) 'remove_ig_pt:', remove_ig_pt
+      !ewrite(3,*) 'fem_nod:', fem_nod
+      !ewrite(3,*) 'stotel, quad_cv_sngi, totele:', stotel, &
+      !     quad_cv_sngi, totele, stotel * quad_cv_sngi * totele
 
       cv_sgk = 0 ; cv_neiloc_cells_2 = 0
       do cv_sgi = 1, stotel * quad_cv_sngi * totele
@@ -3569,19 +3567,18 @@
             l2_2( cv_sgk ) = gl_quad_l2( cv_sgi )
             l3_2( cv_sgk ) = gl_quad_l3( cv_sgi )
             if( d3 ) l4_2( cv_sgk ) = gl_quad_l4( cv_sgi )
-            ewrite(3,*)'cv_sgk, l1/2/3/4:', cv_sgk, l1_2( cv_sgk ), &
-                 l2_2( cv_sgk ), l3_2( cv_sgk ), l4_2( cv_sgk )
+            !ewrite(3,*)'cv_sgk, l1/2/3/4:', cv_sgk, l1_2( cv_sgk ), &
+            !     l2_2( cv_sgk ), l3_2( cv_sgk ), l4_2( cv_sgk )
          end if
       end do
 
-      ewrite(3,*) 'suf_snlx_2:', suf_snlx_2
+      !ewrite(3,*) 'suf_snlx_2:', suf_snlx_2
 
       cv_sngi_2 = cv_sgk
-      ewrite(3,*) 'quad_cv_ngi, cv_sngi_2:', quad_cv_sngi, cv_sngi_2
+      !ewrite(3,*) 'quad_cv_ngi, cv_sngi_2:', quad_cv_sngi, cv_sngi_2
 
-      ewrite(3,*) 'd3, stotel * quad_cv_sngi * totele, cv_sngi_2:', &
-           d3, stotel * quad_cv_sngi * totele, cv_sngi_2
-!       stop 83
+      !ewrite(3,*) 'd3, stotel * quad_cv_sngi * totele, cv_sngi_2:', &
+      !     d3, stotel * quad_cv_sngi * totele, cv_sngi_2
 
       ! Take out repetition of quadrature points
       cv_sgk = 0 ; cv_neiloc_cells = 0 ; l1 = 0. ; l2 = 0. ; l3 = 0. ; l4=0.
@@ -3599,7 +3596,7 @@
          if( .not. found ) then
             cv_sgk = cv_sgk + 1
 
-            ewrite(3,*)cv_sgi, cv_sgk,scvngi,cv_sngi_2, sn_2( 1:3, cv_sgi )
+            !ewrite(3,*)cv_sgi, cv_sgk,scvngi,cv_sngi_2, sn_2( 1:3, cv_sgi )
 
             sn( :, cv_sgk ) = sn_2( :, cv_sgi )
             if( ndim.ge.2 ) sufnlx( :, cv_sgk ) = suf_snlx_2( :, cv_sgi )
@@ -3616,21 +3613,21 @@
          endif
       end do Loop_CV_SGI
 
-      ewrite(3,*) 'sufnlx( : , 1 : scvngi ):', sufnlx( :, 1 : scvngi )
+      !ewrite(3,*) 'sufnlx( : , 1 : scvngi ):', sufnlx( :, 1 : scvngi )
 
       if( scvngi /= cv_sgk ) then
          ewrite(3,*) 'scvngi, cv_sgk:', scvngi, cv_sgk
          FLExit( "SCVNGI /= CV_SGK " )
       endif
 
-      ewrite(3,*)'l1:', l1
-      ewrite(3,*)'l2:', l2
-      ewrite(3,*)'l3:', l3
-      ewrite(3,*)'l4:', l4
-      ewrite(3,*)'sn:', sn
-      ewrite(3,*)'snlx:', snlx
-      ewrite(3,*)'snly:', snly
-      ewrite(3,*)'snlz:', snlz
+      !ewrite(3,*)'l1:', l1
+      !ewrite(3,*)'l2:', l2
+      !ewrite(3,*)'l3:', l3
+      !ewrite(3,*)'l4:', l4
+      !ewrite(3,*)'sn:', sn
+      !ewrite(3,*)'snlx:', snlx
+      !ewrite(3,*)'snly:', snly
+      !ewrite(3,*)'snlz:', snlz
 
       ! Remapping over the common quadrature points across CV
       do cv_iloc_cells = 1, cv_nloc_cells
@@ -3655,11 +3652,11 @@
 !         if(zer_l4 ) icount=icount+1
          if( zer_l1 .or. zer_l2 .or. zer_l3 .or. zer_l4 )  icount=icount+1
 
-         ewrite(3,*) 'gi, l1/2/3/4:', cv_sgi, abs( l1( cv_sgi ) ), abs( l2( cv_sgi ) ), &
-              abs( l3( cv_sgi ) ), abs( l4( cv_sgi ) )
+         !ewrite(3,*) 'gi, l1/2/3/4:', cv_sgi, abs( l1( cv_sgi ) ), abs( l2( cv_sgi ) ), &
+         !     abs( l3( cv_sgi ) ), abs( l4( cv_sgi ) )
 
          Conditional_Neiloc: if ( d3 ) then
-            ewrite(3,*)'cv_sgi, zer_l1/2/3/4:', cv_sgi, (zer_l1.or.zer_l2.or.zer_l3.or.zer_l4)
+            !ewrite(3,*)'cv_sgi, zer_l1/2/3/4:', cv_sgi, (zer_l1.or.zer_l2.or.zer_l3.or.zer_l4)
             if ( zer_l1 .or. zer_l2 .or. zer_l3 .or. zer_l4 ) then
                ! on the surface of the element: 
                if(cv_nloc==10) then
@@ -3698,8 +3695,8 @@
                  endif
                else
                do cv_iloc = 1, cv_nloc
-                  ewrite(3,*)'iloc, sn',cv_iloc, abs(sn( cv_iloc, cv_sgi )), &
-                       abs ( sn( cv_iloc, cv_sgi )) > 1.e-4
+                  !ewrite(3,*)'iloc, sn',cv_iloc, abs(sn( cv_iloc, cv_sgi )), &
+                  !     abs ( sn( cv_iloc, cv_sgi )) > 1.e-4
                   if ( abs ( sn( cv_iloc, cv_sgi )) > 1.e-4 ) &
                        cvfem_neiloc( cv_iloc, cv_sgi ) = -1
 
@@ -3707,7 +3704,7 @@
                endif
             endif
          else
-            ewrite(3,*)'cv_sgi, zer_l1/2/3:', cv_sgi, (zer_l1.or.zer_l2.or.zer_l3)
+            !ewrite(3,*)'cv_sgi, zer_l1/2/3:', cv_sgi, (zer_l1.or.zer_l2.or.zer_l3)
             if ( zer_l1 .or. zer_l2 .or. zer_l3 ) then
                ! on the surface of the element: 
                if(cv_nloc==6) then ! quadratic triangle
@@ -3729,11 +3726,11 @@
                  endif
                else
                   do cv_iloc = 1, cv_nloc
-                     ewrite(3,*)'iloc, sn',cv_iloc, abs(sn( cv_iloc, cv_sgi )), &
-                          abs ( sn( cv_iloc, cv_sgi )) > 1.e-4
+                     !ewrite(3,*)'iloc, sn',cv_iloc, abs(sn( cv_iloc, cv_sgi )), &
+                     !     abs ( sn( cv_iloc, cv_sgi )) > 1.e-4
                      if ( abs( sn( cv_iloc, cv_sgi )) > 1.e-4 ) &
                           cvfem_neiloc( cv_iloc, cv_sgi ) = -1
-                     ewrite(3,*)'iloc, sn',cv_iloc, abs(sn( cv_iloc, cv_sgi )), abs ( sn( cv_iloc, cv_sgi )) > 1.e-4
+                     !ewrite(3,*)'iloc, sn',cv_iloc, abs(sn( cv_iloc, cv_sgi )), abs ( sn( cv_iloc, cv_sgi )) > 1.e-4
                   end do
                endif
             endif
@@ -3741,19 +3738,19 @@
 
       end do Loop_SurfaceQuadrature
 
-      ewrite(3,*)'icount::',icount
+      !ewrite(3,*)'icount::',icount
 
-      do quad_cv_siloc = 1, cv_nloc
-         do cv_sgi = 1, scvngi
-            ewrite(3,*)'iloc, gi, cvfem_neiloc::', &
-                 quad_cv_siloc, cv_sgi, cvfem_neiloc( quad_cv_siloc, cv_sgi )
-         end do
-      end do
+      !do quad_cv_siloc = 1, cv_nloc
+      !   do cv_sgi = 1, scvngi
+      !      ewrite(3,*)'iloc, gi, cvfem_neiloc::', &
+      !           quad_cv_siloc, cv_sgi, cvfem_neiloc( quad_cv_siloc, cv_sgi )
+      !   end do
+      !end do
 
-      do cv_sgi = 1, scvngi
-         ewrite(3,*)'cv_sgi, cvfem_neiloc::', &
-              cv_sgi, cvfem_neiloc( :, cv_sgi )
-      end do
+      !do cv_sgi = 1, scvngi
+      !   ewrite(3,*)'cv_sgi, cvfem_neiloc::', &
+      !        cv_sgi, cvfem_neiloc( :, cv_sgi )
+      !end do
 
       ! Calculate cvfem_neiloc from local coordinates l1-4: (hard-wired for linear traingles)
       if( .false. ) then
@@ -3778,29 +3775,27 @@
          cvfem_neiloc( cv_iloc, 3 ) = -1
       end if
 
-      ewrite(3,*) 'scvweigh:',scvweigh
-      ewrite(3,*) ' '
-      do cv_sgi = 1, scvngi
-         ewrite(3,*) 'cv_sgi=',cv_sgi
-         ewrite(3,*) 'sn( :, cv_sgi )    =', sn( :, cv_sgi )
-      end do
-      ewrite(3,*) ' '
-      do cv_sgi = 1, scvngi
-         ewrite(3,*) 'cv_sgi=',cv_sgi
-         ewrite(3,*) 'sufnlx( :, cv_sgi )=',sufnlx( :, cv_sgi )
-      end do
-      ewrite(3,*) ' '
-      do cv_sgi = 1, scvngi
-         ewrite(3,*) 'cv_sgi=',cv_sgi
-         ewrite(3,*) 'snlx( :, cv_sgi ):', snlx( :, cv_sgi )
-      end do
-      ewrite(3,*) ' '
-      do cv_sgi = 1, scvngi
-         ewrite(3,*) 'cv_sgi=',cv_sgi
-         ewrite(3,*) 'snly( :, cv_sgi ):', snly( :, cv_sgi )
-      end do
-!      stop 281
-
+      !ewrite(3,*) 'scvweigh:',scvweigh
+      !ewrite(3,*) ' '
+      !do cv_sgi = 1, scvngi
+      !   ewrite(3,*) 'cv_sgi=',cv_sgi
+      !   ewrite(3,*) 'sn( :, cv_sgi )    =', sn( :, cv_sgi )
+      !end do
+      !ewrite(3,*) ' '
+      !do cv_sgi = 1, scvngi
+      !   ewrite(3,*) 'cv_sgi=',cv_sgi
+      !   ewrite(3,*) 'sufnlx( :, cv_sgi )=',sufnlx( :, cv_sgi )
+      !end do
+      !ewrite(3,*) ' '
+      !do cv_sgi = 1, scvngi
+      !   ewrite(3,*) 'cv_sgi=',cv_sgi
+      !   ewrite(3,*) 'snlx( :, cv_sgi ):', snlx( :, cv_sgi )
+      !end do
+      !ewrite(3,*) ' '
+      !do cv_sgi = 1, scvngi
+      !   ewrite(3,*) 'cv_sgi=',cv_sgi
+      !   ewrite(3,*) 'snly( :, cv_sgi ):', snly( :, cv_sgi )
+      !end do
 
       deallocate( quad_cvweight )
       deallocate( detwei )
@@ -4102,7 +4097,6 @@
            quad_cv_nloc, quad_cv_ngi
       ewrite(3,*)'quad_cv_ngi, lowqua, mloc, nwicel:', &
            quad_cv_ngi, lowqua, mloc, nwicel
-!       stop 3821
 
       ! Now we need to compute QUAD_NLX/Y/Z - get the hex or quad
       ! shape functions quad_n etc.
@@ -4112,33 +4106,10 @@
            rdummy, rdummy2, rdummy2, rdummy2, rdummy2, rdummy2, rdummy2, &
            nwicel, d3 )   
 
-      ewrite(3,*)'quad_n:',quad_n
-      ewrite(3,*)'quad_nlx:',quad_nlx
-      ewrite(3,*)'quad_nly:',quad_nly
-      ewrite(3,*)'quad_nlz:',quad_nlz
-
-      !        stop 2921
-
-      if(.false.) then
-         xnod = x_ndgln( 1 )
-         ewrite(3,*)'node1, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
-         xnod = x_ndgln( 3 )
-         ewrite(3,*)'node3, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
-         xnod = x_ndgln( 7 )
-         ewrite(3,*)'node7, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
-         xnod = x_ndgln( 9 )
-         ewrite(3,*)'node9, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
-
-         xnod = x_ndgln( 19 )
-         ewrite(3,*)'node19, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
-         xnod = x_ndgln( 21 )
-         ewrite(3,*)'node21, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
-         xnod = x_ndgln( 25 )
-         ewrite(3,*)'node25, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
-         xnod = x_ndgln( 27 )
-         ewrite(3,*)'node27, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
-         stop 3923
-      endif
+      !ewrite(3,*)'quad_n:',quad_n
+      !ewrite(3,*)'quad_nlx:',quad_nlx
+      !ewrite(3,*)'quad_nly:',quad_nly
+      !ewrite(3,*)'quad_nlz:',quad_nlz
 
       Loop_Elements: do ele = 1, totele ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
 
@@ -4296,7 +4267,7 @@
             end do
 
 
-            ewrite(3,*)'d1, d3, dcyl:',d1, d3, dcyl
+            !ewrite(3,*)'d1, d3, dcyl:',d1, d3, dcyl
             !         call detnlxr( ele, x, y, z, x_ndgln, totele, x_nonods, quad_cv_nloc, quad_cv_ngi, &
             call detnlxr( ele, x_temp, y_temp, z_temp, x_ndgln_temp, 1, x_nonods, quad_cv_nloc, quad_cv_ngi, &
                  quad_n, quad_nlx, quad_nly, quad_nlz, quad_cvweight, &
@@ -4378,15 +4349,15 @@
                     z(nod7), z(nod3), z(nod2), z(nod8) )
             endif
 
-            ewrite(3,*)'rsum1,rsum2,rsum3,rsum4,rsum5,rsum6:', &
-                 rsum1,rsum2,rsum3,rsum4,rsum5,rsum6
+            !ewrite(3,*)'rsum1,rsum2,rsum3,rsum4,rsum5,rsum6:', &
+            !     rsum1,rsum2,rsum3,rsum4,rsum5,rsum6
 
-            ewrite(3,*) 'should be 1/32=', 1./32.
-            ewrite(3,*)'rsum1+rsum2+rsum3+rsum4+rsum5+rsum6:', &
-                 abs(rsum1) + abs(rsum2) + abs(rsum3) + &
-                 abs(rsum4) + abs(rsum5) + abs(rsum6)
+            !ewrite(3,*) 'should be 1/32=', 1./32.
+            !ewrite(3,*)'rsum1+rsum2+rsum3+rsum4+rsum5+rsum6:', &
+            !     abs(rsum1) + abs(rsum2) + abs(rsum3) + &
+            !     abs(rsum4) + abs(rsum5) + abs(rsum6)
 
-            ewrite(3,*)'detwei, volume:',detwei, volume
+            !ewrite(3,*)'detwei, volume:',detwei, volume
 
             !stop 2921
 
@@ -4399,30 +4370,25 @@
               detwei, ra, volume, d1, d3, dcyl, &       
               quad_nx, quad_ny, quad_nz )
          
-         ewrite(3,*)'quad_cv_ngi=',quad_cv_ngi
-         ewrite(3,*)'detwei for ele=:', ele, detwei
-! adjust the volume so that we get the volume correct: 
+         !ewrite(3,*)'quad_cv_ngi=',quad_cv_ngi
+         !ewrite(3,*)'detwei for ele=:', ele, detwei
+         ! adjust the volume so that we get the volume correct: 
          if(d3.and.(quad_cv_ngi==1)) detwei=detwei*(2.0310311939315246**3/8.0)
-!         stop 3821
 
-         do quad_cv_iloc = 1, quad_cv_nloc
-            ewrite(3,*)' quad_cv_iloc: ', quad_cv_iloc
+         !do quad_cv_iloc = 1, quad_cv_nloc
+         !   ewrite(3,*)' quad_cv_iloc: ', quad_cv_iloc
+         !   ewrite(3,*)'quad_nlx:', ( quad_nlx( quad_cv_iloc, quad_cv_gi ), &
+         !        quad_cv_gi = 1, quad_cv_ngi )
+         !   ewrite(3,*)'quad_nx:', ( quad_nx( quad_cv_iloc, quad_cv_gi ), &
+         !        quad_cv_gi = 1, quad_cv_ngi )
+         !   ewrite(3,*)'quad_ny:', ( quad_ny( quad_cv_iloc, quad_cv_gi ), &
+         !        quad_cv_gi = 1, quad_cv_ngi )
+         !   ewrite(3,*)'quad_nz:', ( quad_nz( quad_cv_iloc, quad_cv_gi ), &
+         !        quad_cv_gi = 1, quad_cv_ngi )
+         !   ewrite(3,*)'detwei:', ( detwei( quad_cv_gi ), quad_cv_gi = 1, quad_cv_ngi )
+         !end do
 
-            ewrite(3,*)'quad_nlx:', ( quad_nlx( quad_cv_iloc, quad_cv_gi ), &
-                 quad_cv_gi = 1, quad_cv_ngi )
-
-            ewrite(3,*)'quad_nx:', ( quad_nx( quad_cv_iloc, quad_cv_gi ), &
-                 quad_cv_gi = 1, quad_cv_ngi )
-            ewrite(3,*)'quad_ny:', ( quad_ny( quad_cv_iloc, quad_cv_gi ), &
-                 quad_cv_gi = 1, quad_cv_ngi )
-            ewrite(3,*)'quad_nz:', ( quad_nz( quad_cv_iloc, quad_cv_gi ), &
-                 quad_cv_gi = 1, quad_cv_ngi )
-            ewrite(3,*)'detwei:', ( detwei( quad_cv_gi ), quad_cv_gi = 1, quad_cv_ngi )
-         end do
-
-         ewrite(3,*) 'vol:', sum(detwei)
-
-!         stop 3838
+         !ewrite(3,*) 'vol:', sum(detwei)
 
          Loop_NGI: do quad_cv_gi = 1, quad_cv_ngi ! Determine the quadrature points and weights
             cv_gi = ( ele - 1 ) * quad_cv_ngi + quad_cv_gi
@@ -4468,27 +4434,26 @@
       call shatri_hex( quad_l1, quad_l2, quad_l3, quad_l4, rdummy, d3, &
            cv_nloc, cv_ngi, n, nlx, nly, nlz, &
            .true. )
-      ewrite(3,*)'cvweigh:',cvweigh
-      ewrite(3,*)'nlx(1,:):',nlx(1,:)
+      !ewrite(3,*)'cvweigh:',cvweigh
+      !ewrite(3,*)'nlx(1,:):',nlx(1,:)
       rsum=-1.e+5
       do cv_gi = 1, cv_ngi
          rsum = max(rsum,nlx(1,cv_gi))
       end do
-      ewrite(3,*)'max(nlx(1,:)):',rsum
+      !ewrite(3,*)'max(nlx(1,:)):',rsum
       rsum=+1.e+5
       do cv_gi = 1, cv_ngi
          rsum = min(rsum,nlx(1,cv_gi))
       end do
-      ewrite(3,*)'min(nlx(1,:)):',rsum
+      !ewrite(3,*)'min(nlx(1,:)):',rsum
 
-      ewrite(3,*)'sum(nlx(1,:)):',sum(nlx(1,:))
+      !ewrite(3,*)'sum(nlx(1,:)):',sum(nlx(1,:))
       rsum = 0.0
       do cv_gi = 1, cv_ngi
          rsum = rsum + cvweigh( cv_gi )
       end do
-      ewrite(3,*)'rsum:', rsum
-      ewrite(3,*)'sum(cvweigh):',sum(cvweigh)
-      !stop 2921
+      !ewrite(3,*)'rsum:', rsum
+      !ewrite(3,*)'sum(cvweigh):',sum(cvweigh)
 
       deallocate( quad_l1 )
       deallocate( quad_l2 )
@@ -4980,7 +4945,7 @@
          do quad_cv_iloc = 1, quad_cv_nloc
             xnod = x_ndgln( ( ele - 1 ) * quad_cv_nloc + quad_cv_iloc )
             if( fem_nod( xnod ) /= 0 ) nod = fem_nod( xnod )
-            ewrite(3,*) 'ele, xnod, fem_nod, nod:', ele, xnod, fem_nod( xnod ), nod
+            !ewrite(3,*) 'ele, xnod, fem_nod, nod:', ele, xnod, fem_nod( xnod ), nod
          end do
 
          if( nod == 0 ) FLExit(" Problem with CVN calculation " )
@@ -5650,12 +5615,12 @@
       x_nonods=count_nod
 
 
-      ewrite(3,*)'xndgln0:'
-      do ele = 1, totele
-         ewrite(3,*) ele, ( x_ndgln( ( ele - 1 ) * x_nloc + x_iloc ), x_iloc = 1, 4 )
-         ewrite(3,*) ele, ( x(x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )), x_iloc = 1, 4 )
-         ewrite(3,*) ele, ( y(x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )), x_iloc = 1, 4 )
-      end do
+      !ewrite(3,*)'xndgln0:'
+      !do ele = 1, totele
+      !   ewrite(3,*) ele, ( x_ndgln( ( ele - 1 ) * x_nloc + x_iloc ), x_iloc = 1, 4 )
+      !   ewrite(3,*) ele, ( x(x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )), x_iloc = 1, 4 )
+      !   ewrite(3,*) ele, ( y(x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )), x_iloc = 1, 4 )
+      !end do
 
       ! Extra Nodes in each Quad (now 9 / quad )
       call Adding_Extra_Parametric_Nodes( totele, x_nloc, mx_x_nonods, &
@@ -5958,11 +5923,11 @@
       ewrite(3,*) 'In Adding_Extra_Parametric_Nodes'
 
       x_loc_ref = maxval( x_ndgln ) 
-      ewrite(3,*)' x_loc_ref:', x_loc_ref
-      do ele = 1, totele
-         ewrite(3,*)'x_ndgln:', ele, &
-              ( x_ndgln( ( ele - 1 ) * x_nloc + iloc ) , iloc = 1, x_nloc )
-      end do
+      !ewrite(3,*)' x_loc_ref:', x_loc_ref
+      !do ele = 1, totele
+      !   ewrite(3,*)'x_ndgln:', ele, &
+      !        ( x_ndgln( ( ele - 1 ) * x_nloc + iloc ) , iloc = 1, x_nloc )
+      !end do
 
       if( .true. ) then
          iloc_list(1)=1
@@ -6049,13 +6014,12 @@
          end do
       end do
 
-      ewrite(3,*) '-'
-      ewrite(3,*) ''
-
-      do ele = 1, totele
-         ewrite(3,*)'x_ndgln:', ele, &
-              ( x_ndgln( ( ele - 1 ) * x_nloc + iloc ) , iloc = 1, x_nloc )
-      end do
+      !ewrite(3,*) '-'
+      !ewrite(3,*) ''
+      !do ele = 1, totele
+      !   ewrite(3,*)'x_ndgln:', ele, &
+      !        ( x_ndgln( ( ele - 1 ) * x_nloc + iloc ) , iloc = 1, x_nloc )
+      !end do
 
       deallocate( x_ndgln2 )
       deallocate( loclist )
@@ -6168,10 +6132,10 @@
          end do
       end do
 
-      do ele = 1, totele
-         ewrite(3,*)'x_ndgln:', ele, &
-              ( x_ndgln( ( ele - 1 ) * x_nloc + iloc ) , iloc = 1, x_nloc )
-      end do
+      !do ele = 1, totele
+      !   ewrite(3,*)'x_ndgln:', ele, &
+      !        ( x_ndgln( ( ele - 1 ) * x_nloc + iloc ) , iloc = 1, x_nloc )
+      !end do
 
       deallocate( x_ndgln2 )
       deallocate( loclist )

@@ -1820,8 +1820,8 @@ ewrite(3,*)'lll:', option_path_len
 
       Conditional_OverlappingMethod2: if( is_overlapping ) then
          u_ele_type2 = 1
-         ewrite(3,*)'cv_nloc, cv_ngi, scvngi:', cv_nloc, cv_ngi, scvngi
-         ewrite(3,*)'u_nloc, u_nloc2:', u_nloc, u_nloc2
+         !ewrite(3,*)'cv_nloc, cv_ngi, scvngi:', cv_nloc, cv_ngi, scvngi
+         !ewrite(3,*)'u_nloc, u_nloc2:', u_nloc, u_nloc2
 
 
          if(.not.QUAD_OVER_WHOLE_ELE) then ! not integrate over whole element 
@@ -1907,8 +1907,8 @@ ewrite(3,*)'lll:', option_path_len
          u_nloc2 = u_nloc / cv_nloc
          u_snloc2 = u_snloc / cv_nloc
 
-         ewrite(3,*) 'U_NLOC  , U_SNLOC  ', u_nloc  , u_snloc
-         ewrite(3,*) 'U_NLOC2, U_SNLOC2', u_nloc2, u_snloc2
+         !ewrite(3,*) 'U_NLOC  , U_SNLOC  ', u_nloc  , u_snloc
+         !ewrite(3,*) 'U_NLOC2, U_SNLOC2', u_nloc2, u_snloc2
 
          if(.not.QUAD_OVER_WHOLE_ELE) then ! not integrate over whole element 
             call det_suf_ele_shape( scvngi, nface, &
@@ -1924,10 +1924,10 @@ ewrite(3,*)'lll:', option_path_len
                  cv_sloclist, u_sloclist2, cv_snloc, u_snloc2, &
                  ndim, cv_ele_type )
          endif
-         ewrite(3,*) 'sbufen2:', sbufen2
-         ewrite(3,*) 'sbcvfen:', sbcvfen
-         ewrite(3,*) 'sufen2:', sufen2
-         ewrite(3,*) 'scvfen:', scvfen
+         !ewrite(3,*) 'sbufen2:', sbufen2
+         !ewrite(3,*) 'sbcvfen:', sbcvfen
+         !ewrite(3,*) 'sufen2:', sufen2
+         !ewrite(3,*) 'scvfen:', scvfen
 
          Loop_ILEV3: do ilev = 1, cv_nloc
 
@@ -2028,12 +2028,12 @@ ewrite(3,*)'lll:', option_path_len
       END DO
 
 
-      ewrite(3,*) 'cv_on_face: ', cv_on_face
-      ewrite(3,*) 'u_on_face: ', u_on_face
-      ewrite(3,*) 'cv_sloclist: ', cv_sloclist
-      ewrite(3,*) 'u_sloclist: ', u_sloclist
-      ewrite(3,*) 'leaving cv_fem_shape_funs subrt, ncolgpts', ncolgpts
-      ewrite(3,*) '----sum(cvweight):',sum(cvweight)
+      !ewrite(3,*) 'cv_on_face: ', cv_on_face
+      !ewrite(3,*) 'u_on_face: ', u_on_face
+      !ewrite(3,*) 'cv_sloclist: ', cv_sloclist
+      !ewrite(3,*) 'u_sloclist: ', u_sloclist
+      !ewrite(3,*) 'leaving cv_fem_shape_funs subrt, ncolgpts', ncolgpts
+      !ewrite(3,*) '----sum(cvweight):',sum(cvweight)
 
     
       deallocate( m, mlx, mly, mlz, sm, smlx, smly )
@@ -2092,22 +2092,22 @@ ewrite(3,*)'lll:', option_path_len
       ewrite(3,*) 'In DET_SUF_ELE_SHAPE'
     
       ! Obtain SBCVFEN from SCVFEN: 
-      ewrite(3,*)'for cv:'
+      !ewrite(3,*)'for cv:'
       CALL SCVFEN_2_SBCVFEN( CV_NLOC, CV_SNLOC, SCVNGI, SBCVNGI, &
            CV_NLOC, CV_SNLOC, CVFEM_ON_FACE, &
            SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFENLX, SBCVFENLY, SBCVFENLZ, SBCVFEWEIGH, &
            SCVFEN, SCVFENSLX, SCVFENSLY, SCVFENLX, SCVFENLY, SCVFENLZ, SCVFEWEIGH )
 
-      ewrite(3,*)'U_NLOC, U_SNLOC, SCVNGI, SBCVNGI, CV_NLOC, CV_SNLOC:', &
-               U_NLOC, U_SNLOC, SCVNGI, SBCVNGI, CV_NLOC, CV_SNLOC
-      ewrite(3,*)'for u:'
+      !ewrite(3,*)'U_NLOC, U_SNLOC, SCVNGI, SBCVNGI, CV_NLOC, CV_SNLOC:', &
+      !         U_NLOC, U_SNLOC, SCVNGI, SBCVNGI, CV_NLOC, CV_SNLOC
+      !ewrite(3,*)'for u:'
       ! Obtain SBUFEN from SUFEN: 
       CALL SCVFEN_2_SBCVFEN( U_NLOC, U_SNLOC, SCVNGI, SBCVNGI, &
            CV_NLOC, CV_SNLOC, CVFEM_ON_FACE, &
            SBUFEN, SBUFENSLX, SBUFENSLY, SBUFENLX, SBUFENLY, SBUFENLZ, SBCVFEWEIGH, &
            SUFEN, SUFENSLX, SUFENSLY, SUFENLX, SUFENLY, SUFENLZ, SCVFEWEIGH )
-       ewrite(3,*)'SBUFEN:',SBUFEN
-       ewrite(3,*)'SUFEN:',SUFEN
+       !ewrite(3,*)'SBUFEN:',SBUFEN
+       !ewrite(3,*)'SUFEN:',SUFEN
 
       ! Determine CV_SLOCLIST & U_SLOCLIST
       CALL DETERMIN_SLOCLIST( CV_SLOCLIST, CV_NLOC, CV_SNLOC, NFACE, &
@@ -2119,10 +2119,9 @@ ewrite(3,*)'lll:', option_path_len
          CALL DETERMIN_SLOCLIST( U_SLOCLIST, U_NLOC, U_SNLOC, NFACE, &
               NDIM, CV_ELE_TYPE )
       ENDIF
-      ewrite(3,*)'CV_SNLOC, U_SNLOC, SCVNGI:', CV_SNLOC, U_SNLOC, SCVNGI
-      ewrite(3,*)'CV_SLOCLIST:', CV_SLOCLIST
-      ewrite(3,*)'U_SLOCLIST:', U_SLOCLIST
-      !stop 2982
+      !ewrite(3,*)'CV_SNLOC, U_SNLOC, SCVNGI:', CV_SNLOC, U_SNLOC, SCVNGI
+      !ewrite(3,*)'CV_SLOCLIST:', CV_SLOCLIST
+      !ewrite(3,*)'U_SLOCLIST:', U_SLOCLIST
 
       RETURN
     END SUBROUTINE DET_SUF_ELE_SHAPE
@@ -2148,9 +2147,9 @@ ewrite(3,*)'lll:', option_path_len
       integer :: cv_siloc, cv_iloc, cv_bsgi, cv_sgi, cv_iloc_cells
       real :: r_prodt
 
-      ewrite(3,*) ' In scvfen_2_sbcvfen'
-      ewrite(3,*) ' cv_nloc, cv_snloc, scvngi, sbcvngi, cv_nloc_cells, cv_snloc_cells:', &
-           cv_nloc, cv_snloc, scvngi, sbcvngi, cv_nloc_cells, cv_snloc_cells
+      !ewrite(3,*) ' In scvfen_2_sbcvfen'
+      !ewrite(3,*) ' cv_nloc, cv_snloc, scvngi, sbcvngi, cv_nloc_cells, cv_snloc_cells:', &
+      !     cv_nloc, cv_snloc, scvngi, sbcvngi, cv_nloc_cells, cv_snloc_cells
 
       allocate( candidate_gi( scvngi ) )
       allocate( candidate_gi2( scvngi ) )
@@ -2161,8 +2160,8 @@ ewrite(3,*)'lll:', option_path_len
          candidate_gi2( cv_sgi ) = .true.
          do cv_iloc_cells = 1, cv_snloc_cells
             if( .not.cvfem_on_face(cv_iloc_cells,cv_sgi) ) candidate_gi2( cv_sgi ) = .false.
-            ewrite(3,*)'cv_iloc_cells, cv_sgi, cvfem_on_face(cv_iloc_cells,cv_sgi):', &
-                 cv_iloc_cells,cv_sgi, cvfem_on_face(cv_iloc_cells,cv_sgi)
+            !ewrite(3,*)'cv_iloc_cells, cv_sgi, cvfem_on_face(cv_iloc_cells,cv_sgi):', &
+            !     cv_iloc_cells,cv_sgi, cvfem_on_face(cv_iloc_cells,cv_sgi)
          end do
       end do
 
@@ -2172,9 +2171,9 @@ ewrite(3,*)'lll:', option_path_len
          Loop_SGI2: do cv_sgi = 1, scvngi
                Conditional_2: if( candidate_gi2( cv_sgi ) ) then
                   cv_bsgi = cv_bsgi + 1
-                  ewrite(3,*) 'cv_siloc, cv_bsgi,cv_iloc, cv_sgi:', &
-                       cv_siloc, cv_bsgi,cv_iloc, cv_sgi
-                  ewrite(3,*) 'scvfen( cv_iloc, cv_sgi ):', scvfen( cv_iloc, cv_sgi )
+                  !ewrite(3,*) 'cv_siloc, cv_bsgi,cv_iloc, cv_sgi:', &
+                  !     cv_siloc, cv_bsgi,cv_iloc, cv_sgi
+                  !ewrite(3,*) 'scvfen( cv_iloc, cv_sgi ):', scvfen( cv_iloc, cv_sgi )
                   sbcvfen( cv_siloc, cv_bsgi ) = scvfen( cv_iloc, cv_sgi )
                   sbcvfenslx( cv_siloc, cv_bsgi ) = scvfenslx( cv_iloc, cv_sgi )
                   sbcvfensly( cv_siloc, cv_bsgi ) = scvfensly( cv_iloc, cv_sgi )
@@ -2343,11 +2342,11 @@ ewrite(3,*)'lll:', option_path_len
          end do
       end do
 
-      do iloc = 1, cv_nloc
-         ewrite(3,*)'iloc, cv_on_face:', iloc, ( cv_on_face( iloc, gi ), gi = 1, scvngi )
-         ewrite(3,*)'iloc, cvfem_neiloc:', iloc, ( cvfem_neiloc( iloc, gi ), gi = 1, scvngi )
-         ewrite(3,*)'iloc, cvfem_on_face:', iloc, ( cvfem_on_face( iloc, gi ), gi = 1, scvngi )
-      end do
+      !do iloc = 1, cv_nloc
+      !   ewrite(3,*)'iloc, cv_on_face:', iloc, ( cv_on_face( iloc, gi ), gi = 1, scvngi )
+      !   ewrite(3,*)'iloc, cvfem_neiloc:', iloc, ( cvfem_neiloc( iloc, gi ), gi = 1, scvngi )
+      !   ewrite(3,*)'iloc, cvfem_on_face:', iloc, ( cvfem_on_face( iloc, gi ), gi = 1, scvngi )
+      !end do
 
       deallocate( m )
       deallocate( mu )
@@ -2421,7 +2420,7 @@ ewrite(3,*)'lll:', option_path_len
       GETNDP=.TRUE.
       !      Compute standard Gauss quadrature. weits and points
       CALL LAGROT(WEI,CV_NODPOS,CV_NLOC,GETNDP) 
-      EWRITE(3,*)'CV_NODPOS:',CV_NODPOS
+      !EWRITE(3,*)'CV_NODPOS:',CV_NODPOS
 
       Loop_P2: DO GPOI = 1, NCV_BOU
 
@@ -7440,12 +7439,12 @@ ewrite(3,*)'lll:', option_path_len
 
       u_on_face = .false.
       u_nloc2 = u_nloc / cv_nloc
-      ewrite(3,*)u_nloc, cv_nloc, u_nloc2
+      !ewrite(3,*)u_nloc, cv_nloc, u_nloc2
 
       do cv_iloc = 1, cv_nloc
          do gi = 1, scvngi
             ! if ( cv_neiloc( cv_iloc, gi ) == -1 ) then
-            ewrite(3,*)'cv_neiloc:', u_nloc2, cv_iloc, gi, cv_neiloc( cv_iloc, gi )
+            !ewrite(3,*)'cv_neiloc:', u_nloc2, cv_iloc, gi, cv_neiloc( cv_iloc, gi )
             !  endif
          end do
       end do

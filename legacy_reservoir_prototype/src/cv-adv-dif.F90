@@ -11001,7 +11001,6 @@ CONTAINS
              ewrite(3,*)x(x_ndgln((ele-1)*x_nloc+cv_iloc)),SATURA(cv_ndgln((ele-1)*cv_nloc+cv_iloc)+(iphase-1)*cv_nonods)
           ENDIF
 
-          ewrite(3,*)'iphase, nphase, ele, totele: ',iphase, nphase, ele, totele
        end do
     end do
     RETURN
