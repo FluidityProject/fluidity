@@ -960,18 +960,12 @@ contains
 
       NORMALISE = .FALSE.
       IF ( NORMALISE ) THEN
-          ! make sure the FEM representation sums to unity so we dont get surprising results...
-          DO CV_INOD = 1, CV_NONODS
-              RSUM = 0.0
-              DO IPHASE = 1, NPHASE
-                  RSUM = RSUM + FEMT_ALL(IPHASE, CV_INOD )
-              END DO
-              DO IPHASE = 1, NPHASE
-                  FEMT_ALL(IPHASE, CV_INOD ) =  FEMT_ALL(IPHASE, CV_INOD ) / RSUM
-              END DO
-          END DO
+         ! Make sure the FEM representation sums to unity so we don't get surprising results...
+         DO CV_INOD = 1, CV_NONODS
+            RSUM = SUM( FEMT_ALL( :, CV_INOD ) )
+            FEMT_ALL( :, CV_INOD ) = FEMT_ALL( :, CV_INOD ) / RSUM
+         END DO
       END IF
-
 
       ! Calculate MEAN_PORE_CV
       MEAN_PORE_CV = 0.0 ; SUM_CV = 0.0 
