@@ -394,12 +394,12 @@ contains
 
 
       INTEGER :: NLEV, U_NLOC2, ILEV, IDIM, U_ILOC, U_INOD
-      INTEGER :: IGOT_NOT_CONST_DEN, IBOTH, IBOTH_TIME_LEVELS, NFIELD, CV_KLOC, CV_NODK, CV_NODK_IPHA
+      INTEGER :: NFIELD, CV_KLOC, CV_NODK, CV_NODK_IPHA
       INTEGER :: IT, ITOLD, ID, IDOLD, IT2, IT2OLD, IFI
       INTEGER :: COUNT_IN, COUNT_OUT,CV_KLOC2,CV_NODK2,CV_NODK2_IPHA,CV_SKLOC, CV_SNODK, CV_SNODK_IPHA
       INTEGER :: IPT_IN, IPT_OUT
       INTEGER :: U_KLOC2,U_NODK2,U_NODK2_IPHA,U_SKLOC
-      INTEGER :: IGOT_T_ALL(6),IGOT_U_ALL(2),IPT,ILOOP,IMID
+      INTEGER :: IPT,ILOOP,IMID
       LOGICAL :: STORE, integrate_other_side_and_not_boundary, prep_stop
       REAL :: R
       REAL :: LIMT_keep(NPHASE ),  LIMTOLD_keep( NPHASE ), LIMD_keep( NPHASE ),   LIMDOLD_keep( NPHASE ), LIMT2_keep( NPHASE ),   LIMT2OLD_keep(NPHASE)
@@ -812,82 +812,71 @@ contains
 
 ! variables for get_int_tden********************
 ! Set up the fields...
-      IGOT_NOT_CONST_DEN=1
-      IBOTH             =IGOT_NOT_CONST_DEN + IGOT_T2
-      IBOTH_TIME_LEVELS = 1
-      NFIELD=(1+IBOTH)*NPHASE*(1+IBOTH_TIME_LEVELS)
-! 
-      ALLOCATE( DOWNWIND_EXTRAP_INDIVIDUAL( NFIELD ) )
+
       ALLOCATE( IGOT_T_PACK( NPHASE, 6 ), IGOT_T_CONST( NPHASE, 6 ), IGOT_T_CONST_VALUE( NPHASE, 6 ) )
 
 ! FOR packing as well as for detemining which variables to apply interface tracking**********
           STORE=.FALSE.
-          IGOT_T_ALL = 1
-          IGOT_U_ALL = 1
-          IGOT_T_ALL(5)= IGOT_T2
-          IGOT_T_ALL(6)= IGOT_T2
 
           IGOT_T_PACK=.TRUE.
           IGOT_T_CONST      =.FALSE.
           IGOT_T_CONST_VALUE=0.0
-
-          IPT=1
+! If we have any b.c then assume we ave a non-uniform field... 
           DO IPHASE=1,NPHASE
-             CALL IS_FIELD_CONSTANT(IGOT_T_CONST(IPHASE,1), IGOT_T_CONST_VALUE(IPHASE,1), T_ALL(IPHASE,:),CV_NONODS)
-             IPT=IPT+1
+             IF( SUM(  WIC_T_BC( 1 + (IPHASE-1)*STOTEL: IPHASE*STOTEL ) ) == 0)  &
+                          CALL IS_FIELD_CONSTANT(IGOT_T_CONST(IPHASE,1), IGOT_T_CONST_VALUE(IPHASE,1), T_ALL(IPHASE,:),CV_NONODS)
           END DO
           DO IPHASE=1,NPHASE
-             CALL IS_FIELD_CONSTANT(IGOT_T_CONST(IPHASE,2), IGOT_T_CONST_VALUE(IPHASE,2), TOLD_ALL(IPHASE,:),CV_NONODS)
-             IPT=IPT+1
+             IF( SUM(  WIC_T_BC( 1 + (IPHASE-1)*STOTEL: IPHASE*STOTEL ) ) == 0)  &
+                          CALL IS_FIELD_CONSTANT(IGOT_T_CONST(IPHASE,2), IGOT_T_CONST_VALUE(IPHASE,2), TOLD_ALL(IPHASE,:),CV_NONODS)
           END DO
           DO IPHASE=1,NPHASE
-             CALL IS_FIELD_CONSTANT(IGOT_T_CONST(IPHASE,3), IGOT_T_CONST_VALUE(IPHASE,3), DEN_ALL(IPHASE,:),CV_NONODS)
-             IPT=IPT+1
+             IF( SUM(  WIC_D_BC( 1 + (IPHASE-1)*STOTEL: IPHASE*STOTEL ) ) == 0)  &
+                          CALL IS_FIELD_CONSTANT(IGOT_T_CONST(IPHASE,3), IGOT_T_CONST_VALUE(IPHASE,3), DEN_ALL(IPHASE,:),CV_NONODS)
           END DO
           DO IPHASE=1,NPHASE
-             CALL IS_FIELD_CONSTANT(IGOT_T_CONST(IPHASE,4), IGOT_T_CONST_VALUE(IPHASE,4), DENOLD_ALL(IPHASE,:),CV_NONODS)
-             IPT=IPT+1
+             IF( SUM(  WIC_D_BC( 1 + (IPHASE-1)*STOTEL: IPHASE*STOTEL ) ) == 0)  &
+                          CALL IS_FIELD_CONSTANT(IGOT_T_CONST(IPHASE,4), IGOT_T_CONST_VALUE(IPHASE,4), DENOLD_ALL(IPHASE,:),CV_NONODS)
           END DO
 
           DO IPHASE=1,NPHASE
              IF(IGOT_T2==1) THEN
-                CALL IS_FIELD_CONSTANT(IGOT_T_CONST(IPHASE,5), IGOT_T_CONST_VALUE(IPHASE,5), T2_ALL(IPHASE,:),CV_NONODS)
+                IF( SUM(  WIC_T2_BC( 1 + (IPHASE-1)*STOTEL: IPHASE*STOTEL ) ) == 0)  &
+                          CALL IS_FIELD_CONSTANT(IGOT_T_CONST(IPHASE,5), IGOT_T_CONST_VALUE(IPHASE,5), T2_ALL(IPHASE,:),CV_NONODS)
              ELSE
                 IGOT_T_CONST(IPHASE,5)=.TRUE. 
                 IGOT_T_CONST_VALUE(IPHASE,5)=1.0
              ENDIF
-             IPT=IPT+1
           END DO
           DO IPHASE=1,NPHASE
              IF(IGOT_T2==1) THEN
-                CALL IS_FIELD_CONSTANT(IGOT_T_CONST(IPHASE,6), IGOT_T_CONST_VALUE(IPHASE,6), T2OLD_ALL(IPHASE,:),CV_NONODS)
+                IF( SUM(  WIC_T2_BC( 1 + (IPHASE-1)*STOTEL: IPHASE*STOTEL ) ) == 0)  &
+                          CALL IS_FIELD_CONSTANT(IGOT_T_CONST(IPHASE,6), IGOT_T_CONST_VALUE(IPHASE,6), T2OLD_ALL(IPHASE,:),CV_NONODS)
              ELSE
                 IGOT_T_CONST(IPHASE,6)=.TRUE. 
                 IGOT_T_CONST_VALUE(IPHASE,6)=1.0
              ENDIF
-             IPT=IPT+1
           END DO
 
-          DOWNWIND_EXTRAP_INDIVIDUAL=.FALSE.
-          IPT=1
-          IF( cv_disopt>=8 ) THEN
-             IF(IGOT_T_ALL(1)==1) THEN
-                DO IPHASE=1,NPHASE
-                   IF(.NOT.IGOT_T_CONST(IPHASE,1)) THEN
-                      DOWNWIND_EXTRAP_INDIVIDUAL(IPT)=.TRUE.
-                      IPT=IPT+1
-                   ENDIF
-                END DO
-             ENDIF
-             IF(IGOT_T_ALL(2)==1) THEN
-                DO IPHASE=1,NPHASE
-                   IF(.NOT.IGOT_T_CONST(IPHASE,2)) THEN
-                      DOWNWIND_EXTRAP_INDIVIDUAL(IPT)=.TRUE.
-                      IPT=IPT+1
-                   ENDIF
-                END DO
-             ENDIF
-          ENDIF
+          NFIELD=0
+          DO IFI=1,6
+             DO IPHASE=1,NPHASE
+                IF(.not.IGOT_T_CONST(IPHASE,IFI)) NFIELD=NFIELD+1
+             END DO
+          END DO
+
+!          print *,'WIC_T_BC:',WIC_T_BC
+!          print *,'WIC_d_BC:',WIC_d_BC
+!          print *,'WIC_T2_BC:',WIC_T2_BC
+
+!          print *,'nfield,IGOT_T2:',nfield,IGOT_T2
+!          print *,'IGOT_T_CONST:',IGOT_T_CONST
+!          print *,'IGOT_T_CONST_value:',IGOT_T_CONST_value
+
+          ALLOCATE( DOWNWIND_EXTRAP_INDIVIDUAL( NFIELD ) )
+
+          
+
 ! Determine IGOT_T_PACK(IPHASE,:): 
           IGOT_T_PACK=.FALSE.
           DO IPHASE=1,NPHASE
@@ -898,6 +887,29 @@ contains
                 ENDIF
              END DO
           END DO
+
+          DOWNWIND_EXTRAP_INDIVIDUAL=.FALSE.
+          IPT=1
+          IF( cv_disopt>=8 ) THEN
+             IF(IGOT_T2==1) THEN
+                DO IPHASE=1,NPHASE
+                   IF(.NOT.IGOT_T_CONST(IPHASE,1)) THEN
+                      DOWNWIND_EXTRAP_INDIVIDUAL(IPT)=.TRUE.
+                      IPT=IPT+1
+                   ENDIF
+                END DO
+             ENDIF
+             IF(IGOT_T2==1) THEN
+                DO IPHASE=1,NPHASE
+                   IF(.NOT.IGOT_T_CONST(IPHASE,2)) THEN
+                      DOWNWIND_EXTRAP_INDIVIDUAL(IPT)=.TRUE.
+                      IPT=IPT+1
+                   ENDIF
+                END DO
+             ENDIF
+          ENDIF
+
+!         print *,'DOWNWIND_EXTRAP_INDIVIDUAL:',DOWNWIND_EXTRAP_INDIVIDUAL
 ! FOR packing as well as for detemining which variables to apply interface tracking**********
 
 
@@ -1196,26 +1208,6 @@ contains
              END DO
 
           END DO
-
-
-
-!             IPT=1
-!             DO ILOOP=1,3
-!                IF(IGOT_T_ALL((ILOOP-1)*2+1)==1) THEN ! T: 
-!                   LOC_UF(:, IPT:IPT-1+NPHASE, U_KLOC) =   U_ALL( :, :, U_NODK )
-!                   IPT=IPT+NPHASE
-!                END IF 
-!                IF(IGOT_T_ALL(ILOOP*2)==1) THEN ! TOLD: 
-!         if(correct_method_petrov_method) then
-!                   LOC_UF(:, IPT:IPT-1+NPHASE, U_KLOC) =   NUOLD_ALL( :, :, U_NODK )
-!         else
-!                   LOC_UF(:, IPT:IPT-1+NPHASE, U_KLOC) =   U_ALL( :, :, U_NODK )
-!         endif
-!                   IPT=IPT+NPHASE
-!                END IF 
-!             END DO
-
-!          END DO
 
 ! Generate some local F variables ***************...
 ! 
@@ -1913,7 +1905,6 @@ contains
                              U_SLOC2LOC, U_OTHER_LOC,  &
                              SELE_LOC_WIC_F_BC,   &
                              WIC_T_BC_DIRICHLET, WIC_D_BC_DIRICHLET,  & 
-                             IGOT_NOT_CONST_DEN, IGOT_T2, &
                              HDC, DT, &
                              SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:), CVNORMX_ALL, &
                              LOC_UF, SLOC_UF, SLOC2_UF,  &
@@ -1942,7 +1933,7 @@ contains
                 if( abs(LIMTOLD_keep(iphase)-LIMTOLD(iphase)).gt.0.1) prep_stop=.true.
                 if( abs(LIMD_keep(iphase)-LIMD(iphase)).gt.0.1) prep_stop=.true.
                 if( abs(LIMDOLD_keep(iphase)-LIMDOLD(iphase)).gt.0.1) prep_stop=.true.
-                if(IGOT_T_ALL(5)==1) then
+                if(IGOT_T2==1) then
                    if( abs(LIMT2_keep(iphase)-LIMT2(iphase)).gt.0.1) prep_stop=.true.
                    if( abs(LIMT2old_keep(iphase)-LIMT2old(iphase)).gt.0.1) prep_stop=.true.
                 endif
@@ -1953,7 +1944,7 @@ contains
                 print *,'ele,nphase,nfield=',ele,nphase,nfield
                 print *,'ele,sele,ele2=',ele,sele,ele2
                 print *,'cv_nodi,cv_nodj:',cv_nodi,cv_nodj
-                print *,'IGOT_T_ALL(5):',IGOT_T_ALL(5)
+                print *,'IGOT_T2:',IGOT_T2
                 do iphase=1,nfield
                    print *,'iphase,Lloc_f(iphase,:):',iphase,loc_f(iphase,:)
                 end do
@@ -1967,7 +1958,7 @@ contains
                 print *,'LIMdold_keep:',LIMdold_keep
                 print *,'LIMdold:',LIMdold
 
-                if(IGOT_T_ALL(5)==1) then
+                if(IGOT_T2==1) then
                    print *,'LIMT2_keep:',LIMT2_keep
                    print *,'LIMT2:',LIMT2
                    print *,'LIMT2old_keep:',LIMT2old_keep
@@ -9571,10 +9562,6 @@ contains
 
 
 
-
-
-
-
  
 
 
@@ -9586,7 +9573,6 @@ contains
        U_SLOC2LOC, U_OTHER_LOC,  &
        SELE_LOC_WIC_F_BC,   &
        WIC_T_BC_DIRICHLET, WIC_D_BC_DIRICHLET, &
-       IGOT_NOT_CONST_DEN, IGOT_T2, &
        HDC, DT, &
        SCVFENX, SCVFENY, SCVFENZ, CVNORMX_ALL,  &
        LOC_UF,SLOC_UF,SLOC2_UF,  &
@@ -9601,7 +9587,6 @@ contains
          CV_NLOC,TOTELE,SCVNGI,GI,SELE,CV_SNLOC,U_SNLOC,STOTEL, &
          WIC_T_BC_DIRICHLET,WIC_D_BC_DIRICHLET, U_NLOC,U_NONODS,NDIM
     LOGICAL, DIMENSION( NFIELD ), intent( in ) :: DOWNWIND_EXTRAP_INDIVIDUAL
-    INTEGER, intent( in ) :: IGOT_NOT_CONST_DEN, IGOT_T2
     LOGICAL, intent( in ) :: DISTCONTINUOUS_METHOD, QUAD_ELEMENTS
     INTEGER, DIMENSION( : ), intent( in ) :: CV_OTHER_LOC
     INTEGER, DIMENSION( : ), intent( in ) :: CV_SLOC2LOC
@@ -9639,6 +9624,7 @@ contains
     ! Scaling to reduce the downwind bias(=1downwind, =0central)
     LOGICAL, PARAMETER :: SCALE_DOWN_WIND = .true.
 ! The new simple limiter NEW_LIMITER can produce very slightly different results 
+!    LOGICAL, PARAMETER :: NEW_LIMITER = .true.
     LOGICAL, PARAMETER :: NEW_LIMITER = .false.
     ! Non-linear Petrov-Galerkin option for interface tracking...
     ! =4 is anisotropic downwind diffusion based on a projected 1D system (1st recommend)
