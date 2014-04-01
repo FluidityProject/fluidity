@@ -1409,7 +1409,7 @@
                     else!If adaptive time-stepping based on non-linear iterations then...
                         !Check that saturation is between bounds, works for two phases only!!
                         if (have_option(  '/timestepping/nonlinear_iterations/&
-                            nonlinear_iterations_automatic/adaptive_timestep_nonlinear/keep_sat_bounds') )  &
+                            &nonlinear_iterations_automatic/adaptive_timestep_nonlinear/keep_sat_bounds') )  &
                                 Repeat_time_step = (maxval(s_gc-PhaseVolumeFraction(1:cv_nonods))>check_sat_threshold&
                                     .or.maxval(s_or-PhaseVolumeFraction(1+cv_nonods:nphase*cv_nonods))>check_sat_threshold)
 

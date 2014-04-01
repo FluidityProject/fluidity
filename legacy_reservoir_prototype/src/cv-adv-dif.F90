@@ -324,7 +324,7 @@ contains
            DUMMY_ZERO_NDIM_NDIM
       REAL, DIMENSION( : ), allocatable :: SHAPE_CV_SNL, SHAPE_U_SNL
       REAL, DIMENSION( :, :, : ), allocatable :: DTX_ELE,DTY_ELE,DTZ_ELE,  &
-           DTOLDX_ELE,DTOLDY_ELE,DTOLDZ_ELE
+           DTOLDX_ELE,DTOLDY_ELE,DTOLDZ_ELE, DUMMY_ZERO_NDIM_NDIM_NPHASE
       REAL, pointer, DIMENSION( :, :, : ) :: INV_JAC
       real, pointer, dimension( : ) :: SCVDETWEI, SCVRA
       real, pointer, dimension( :, :, : ) :: SCVFENX_ALL
@@ -502,7 +502,7 @@ contains
       ALLOCATE( CVNORMX( SCVNGI ))
       ALLOCATE( CVNORMY( SCVNGI ))
       ALLOCATE( CVNORMZ( SCVNGI ))
-      ALLOCATE( CVNORMX_ALL( NDIM, SCVNGI ))
+      ALLOCATE( CVNORMX_ALL( NDIM, SCVNGI )) ; CVNORMX_ALL=0.0 
       ALLOCATE( COLGPTS( CV_NLOC * SCVNGI )) !The size of this vector is over-estimated
       ALLOCATE( FINDGPTS( CV_NLOC + 1 ))
       ALLOCATE( SNDOTQ( SCVNGI ))
@@ -572,6 +572,8 @@ contains
       ALLOCATE( SBUFENLZ( U_SNLOC, SBCVNGI ))
       ALLOCATE( DUMMY_ZERO_NDIM_NDIM(NDIM,NDIM))
       DUMMY_ZERO_NDIM_NDIM=0.0
+      ALLOCATE( DUMMY_ZERO_NDIM_NDIM_NPHASE(NDIM,NDIM,NPHASE))
+      DUMMY_ZERO_NDIM_NDIM_NPHASE=0.0
 !         print *,'just entered sub -4'
 
       ALLOCATE( CV_SLOC2LOC( CV_SNLOC ))
@@ -1576,55 +1578,22 @@ contains
 ! limiting VALUES*************:
 !         
 
-
-
-
-             if(.true.) then
-                  Loop_IPHASE1: DO IPHASE = 1, NPHASE
-
-                     CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
-                     CV_NODJ_IPHA = CV_NODJ + ( IPHASE - 1 ) * CV_NONODS
-                     RHS_NODI_IPHA = IPHASE +  (CV_NODI - 1 ) * NPHASE
-                     RHS_NODJ_IPHA = IPHASE +  (CV_NODJ - 1 ) * NPHASE
-
-                     If_GOT_DIFFUS: IF ( GOT_DIFFUS ) THEN
-                        ! This sub caculates the effective diffusion
-                        ! coefficient DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX
-                        CALL DIFFUS_CAL_COEFF( DIFF_COEF_DIVDX(IPHASE), DIFF_COEFOLD_DIVDX(IPHASE),  &
-                             CV_NLOC, MAT_NLOC, CV_NONODS, NPHASE, TOTELE, MAT_NONODS, MAT_NDGLN, &
-                             SCVFEN, SCVFEN, SCVNGI, GI, IPHASE, NDIM, TDIFFUSION, DUMMY_ZERO_NDIM_NDIM, &
-                             HDC, &
-                             T( CV_NODJ_IPHA ), T( CV_NODI_IPHA ), &
-                             TOLD( CV_NODJ_IPHA ), TOLD( CV_NODI_IPHA ), &
-                             ELE, ELE2, CVNORMX, CVNORMY, CVNORMZ,  &
-                             DTX_ELE, DTY_ELE, DTZ_ELE,DTOLDX_ELE, DTOLDY_ELE, DTOLDZ_ELE, &
-                             SELE, STOTEL, WIC_T_BC, WIC_T_BC_DIRICHLET, CV_OTHER_LOC, MAT_OTHER_LOC )
-                     ELSE
-                        DIFF_COEF_DIVDX(IPHASE)    = 0.0
-                        DIFF_COEFOLD_DIVDX(IPHASE) = 0.0
-                     END IF If_GOT_DIFFUS
-
-                  END DO Loop_IPHASE1 
-              else
-                     If_GOT_DIFFUS2: IF ( GOT_DIFFUS ) THEN
-                        ! This sub caculates the effective diffusion
-                        ! coefficient DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX
-!                        CALL DIFFUS_CAL_COEFF_NEW( DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX,  &
-!                             CV_NLOC, MAT_NLOC, CV_NONODS, NPHASE, TOTELE, MAT_NONODS, MAT_NDGLN, &
-!                             SCVFEN, SCVFEN, SCVNGI, GI, IPHASE, NDIM, TDIFFUSION, DUMMY_ZERO_NDIM_NDIM, &
-!                             HDC, &
-!                             T( :, CV_NODJ ), T( :, CV_NODI ), &
-!                             TOLD( :, CV_NODJ ), TOLD( :, CV_NODI ), &
-!                             ELE, ELE2, CVNORMX_ALL,   &
-!                             DTX_ELE, DTY_ELE, DTZ_ELE,DTOLDX_ELE, DTOLDY_ELE, DTOLDZ_ELE, &
-!                             SELE, STOTEL, WIC_T_BC, WIC_T_BC_DIRICHLET, CV_OTHER_LOC, MAT_OTHER_LOC )
-                     ELSE
-                        DIFF_COEF_DIVDX(:)    = 0.0
-                        DIFF_COEFOLD_DIVDX(:) = 0.0
-                     END IF If_GOT_DIFFUS2
-
-              endif
-
+       If_GOT_DIFFUS2: IF ( GOT_DIFFUS ) THEN
+          ! This sub caculates the effective diffusion
+          ! coefficient DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX
+          CALL DIFFUS_CAL_COEFF( DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX,  &
+               CV_NLOC, MAT_NLOC, CV_NONODS, NPHASE, TOTELE, MAT_NONODS, MAT_NDGLN, &
+               SCVFEN, SCVFEN, SCVNGI, GI, NDIM, TDIFFUSION, DUMMY_ZERO_NDIM_NDIM_NPHASE, &
+               HDC, &
+               T_ALL( :, CV_NODJ ), T_ALL( :, CV_NODI ), &
+               TOLD_ALL( :, CV_NODJ ), TOLD_ALL( :, CV_NODI ), &
+               ELE, ELE2, CVNORMX_ALL( :, GI ), &
+               DTX_ELE, DTY_ELE, DTZ_ELE,DTOLDX_ELE, DTOLDY_ELE, DTOLDZ_ELE, &
+               SELE, STOTEL, WIC_T_BC, WIC_T_BC_DIRICHLET, CV_OTHER_LOC, MAT_OTHER_LOC )
+       ELSE
+          DIFF_COEF_DIVDX = 0.0
+          DIFF_COEFOLD_DIVDX = 0.0
+       END IF If_GOT_DIFFUS2
 
              IF(.TRUE.) THEN  ! Current GET_INT_VEL, otherwise the new version
 
@@ -6249,204 +6218,200 @@ contains
 
 
 
-
   SUBROUTINE DIFFUS_CAL_COEFF(DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX,  &
        CV_NLOC, MAT_NLOC, CV_NONODS, NPHASE, TOTELE, MAT_NONODS, MAT_NDGLN, &
-       SMATFEN, SCVFEN, SCVNGI, GI, IPHASE, NDIM, TDIFFUSION, DIFF_GI_ADDED, &
+       SMATFEN, SCVFEN, SCVNGI, GI, NDIM, TDIFFUSION, DIFF_GI_ADDED, &
        HDC, &
-       T_CV_NODJ_IPHA, T_CV_NODI_IPHA, &
-       TOLD_CV_NODJ_IPHA, TOLD_CV_NODI_IPHA, &
-       ELE, ELE2, CVNORMX, CVNORMY, CVNORMZ, &
+       T_CV_NODJ, T_CV_NODI, &
+       TOLD_CV_NODJ, TOLD_CV_NODI, &
+       ELE, ELE2, CVNORMX_ALL,  &
        DTX_ELE, DTY_ELE, DTZ_ELE, DTOLDX_ELE, DTOLDY_ELE, DTOLDZ_ELE, &
        SELE, STOTEL, WIC_T_BC, WIC_T_BC_DIRICHLET, CV_OTHER_LOC, MAT_OTHER_LOC )
-    ! This sub calculates the effective diffusion coefficientd DIFF_COEF_DIVDX,DIFF_COEFOLD_DIVDX
+    ! This sub calculates the effective diffusion coefficientd DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX
     ! based on a non-linear method and a non-oscillating scheme.
     IMPLICIT NONE
     INTEGER, intent( in ) :: CV_NLOC, MAT_NLOC, CV_NONODS,NPHASE, TOTELE, MAT_NONODS, &
-         &                   SCVNGI, GI, IPHASE, NDIM, ELE, ELE2, &
+         &                   SCVNGI, GI, NDIM, ELE, ELE2, &
          &                   SELE, STOTEL, WIC_T_BC_DIRICHLET
-    REAL, intent( in ) :: HDC, T_CV_NODJ_IPHA, T_CV_NODI_IPHA, &
-         &                TOLD_CV_NODJ_IPHA, TOLD_CV_NODI_IPHA
-    REAL, intent( inout ) :: DIFF_COEF_DIVDX,DIFF_COEFOLD_DIVDX
-    INTEGER, DIMENSION( : ), intent( in ) ::MAT_NDGLN
-    INTEGER, DIMENSION( : ), intent( in ) ::WIC_T_BC
-    INTEGER, DIMENSION( : ), intent( in ) ::CV_OTHER_LOC
-    INTEGER, DIMENSION( : ), intent( in ) ::MAT_OTHER_LOC
-    REAL, DIMENSION( :,: ), intent( in ) :: SMATFEN
-    REAL, DIMENSION( :,: ), intent( in ) :: SCVFEN
-    REAL, DIMENSION( :,:,:,: ), intent( in ) :: TDIFFUSION
-    REAL, DIMENSION( NDIM, NDIM ), intent( in ) :: DIFF_GI_ADDED
-    REAL, DIMENSION( CV_NLOC, NPHASE, TOTELE ), intent( in ) :: DTX_ELE,DTY_ELE,DTZ_ELE, &
-         &                                                      DTOLDX_ELE,DTOLDY_ELE,DTOLDZ_ELE
-    REAL, DIMENSION( SCVNGI ), intent( in ) :: CVNORMX,CVNORMY,CVNORMZ
+    REAL, intent( in ) :: HDC
+    REAL, DIMENSION( NPHASE ), intent( in ) :: T_CV_NODJ, T_CV_NODI, &
+         &                                     TOLD_CV_NODJ, TOLD_CV_NODI
+    REAL, DIMENSION( NPHASE ), intent( inout ) :: DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX
+    INTEGER, DIMENSION( : ), intent( in ) :: MAT_NDGLN
+    INTEGER, DIMENSION( : ), intent( in ) :: WIC_T_BC
+    INTEGER, DIMENSION( : ), intent( in ) :: CV_OTHER_LOC
+    INTEGER, DIMENSION( : ), intent( in ) :: MAT_OTHER_LOC
+    REAL, DIMENSION( :, : ), intent( in ) :: SMATFEN
+    REAL, DIMENSION( :, : ), intent( in ) :: SCVFEN
+    REAL, DIMENSION( :, :, :, : ), intent( in ) :: TDIFFUSION
+    REAL, DIMENSION( :, :, : ), intent( in ) :: DIFF_GI_ADDED
+    REAL, DIMENSION( :, :, : ), intent( in ) :: DTX_ELE, DTY_ELE, DTZ_ELE, &
+         &                                      DTOLDX_ELE, DTOLDY_ELE, DTOLDZ_ELE
+    REAL, DIMENSION( : ), intent( in ) :: CVNORMX_ALL
 
     ! local variables
-    !        ===>  REALS  <===
+
     ! DIFF_MIN_FRAC is the fraction of the standard diffusion coefficient to use 
     ! in the non-linear diffusion scheme. DIFF_MAX_FRAC is the maximum fraction. 
     REAL, PARAMETER :: DIFF_MIN_FRAC = 0.05, DIFF_MAX_FRAC = 20.0
-    REAL, DIMENSION( : , : ), allocatable :: DIFF_GI,DIFF_GI2
-    REAL :: DTDX_GI,DTDY_GI,DTDZ_GI,DTOLDDX_GI,DTOLDDY_GI,DTOLDDZ_GI, &
-         DTDX_GI2,DTDY_GI2,DTDZ_GI2,DTOLDDX_GI2,DTOLDDY_GI2,DTOLDDZ_GI2, &
-         N_DOT_DKDT,N_DOT_DKDTOLD,  &
-         N_DOT_DKDT2,N_DOT_DKDTOLD2, &
-         DIFF_STAND_DIVDX,DIFF_STAND_DIVDX2,COEF
-    INTEGER :: CV_KLOC,CV_KLOC2,MAT_KLOC,MAT_KLOC2,MAT_NODK,MAT_NODK2
+
+    REAL :: COEF
+    INTEGER :: CV_KLOC, CV_KLOC2, MAT_KLOC, MAT_KLOC2, MAT_NODK, MAT_NODK2, CV_ILOC, IPHASE
     LOGICAL :: ZER_DIFF
 
-    ALLOCATE( DIFF_GI(3,3) )
-    ALLOCATE( DIFF_GI2(3,3) )
+    REAL, DIMENSION ( :, : ), allocatable :: DTDX_GI_ALL, DTOLDDX_GI_ALL, DTDX_GI2_ALL, DTOLDDX_GI2_ALL
+    REAL, DIMENSION ( : ), allocatable :: N_DOT_DKDT_ALL, N_DOT_DKDTOLD_ALL, N_DOT_DKDT2_ALL, N_DOT_DKDTOLD2_ALL
+    REAL, DIMENSION ( : ), allocatable :: DIFF_STAND_DIVDX_ALL, DIFF_STAND_DIVDX2_ALL
+    REAL, DIMENSION ( :, :, :, : ), allocatable :: DTX_ELE_ALL, DTOLDX_ELE_ALL
+    REAL, DIMENSION ( :, : ), allocatable :: WIC_T_BC_ALL
+    REAL, DIMENSION ( :, :, : ), allocatable :: LOC_DTX_ELE_ALL, LOC_DTOLDX_ELE_ALL, &
+         &                                      LOC2_DTX_ELE_ALL, LOC2_DTOLDX_ELE_ALL
+    REAL, DIMENSION ( :, :, : ), allocatable :: DIFF_GI, DIFF_GI2
 
-    ZER_DIFF=.FALSE.
-    IF(SELE /= 0) ZER_DIFF= (WIC_T_BC(SELE+(IPHASE-1)*STOTEL) /= WIC_T_BC_DIRICHLET)
+    ALLOCATE( DTDX_GI_ALL( NDIM, NPHASE ), DTOLDDX_GI_ALL( NDIM, NPHASE ) )
+    ALLOCATE( DTDX_GI2_ALL( NDIM, NPHASE ), DTOLDDX_GI2_ALL( NDIM, NPHASE ) )
+    ALLOCATE( N_DOT_DKDT_ALL( NPHASE ), N_DOT_DKDTOLD_ALL( NPHASE ) )
+    ALLOCATE( N_DOT_DKDT2_ALL( NPHASE ), N_DOT_DKDTOLD2_ALL( NPHASE ) )
+    ALLOCATE( DIFF_STAND_DIVDX_ALL( NPHASE ), DIFF_STAND_DIVDX2_ALL( NPHASE ) )
+    ALLOCATE( DTX_ELE_ALL( NDIM, NPHASE, CV_NLOC, TOTELE ) )
+    ALLOCATE( DTOLDX_ELE_ALL( NDIM, NPHASE, CV_NLOC, TOTELE ) )
+    ALLOCATE( WIC_T_BC_ALL( NPHASE, STOTEL ) )
 
-    Cond_ZerDiff: IF(ZER_DIFF) THEN
+    ALLOCATE( LOC_DTX_ELE_ALL( NDIM, NPHASE, CV_NLOC ) )
+    ALLOCATE( LOC_DTOLDX_ELE_ALL( NDIM, NPHASE, CV_NLOC ) )
+    ALLOCATE( LOC2_DTX_ELE_ALL( NDIM, NPHASE, CV_NLOC ) )
+    ALLOCATE( LOC2_DTOLDX_ELE_ALL( NDIM, NPHASE, CV_NLOC ) )
 
-       DIFF_COEF_DIVDX    = 0.0 
+    IF ( SELE /= 0 ) THEN
+       DO IPHASE = 1, NPHASE
+          WIC_T_BC_ALL( IPHASE, SELE ) = &
+               WIC_T_BC( SELE + (IPHASE-1)*STOTEL )
+       END DO
+    END IF
+
+    DO CV_ILOC = 1, CV_NLOC
+       DTX_ELE_ALL( 1, :, CV_ILOC, : ) = DTX_ELE( CV_ILOC, :, : )
+       IF ( NDIM >= 2 ) DTX_ELE_ALL( 2, :, CV_ILOC, : ) = DTY_ELE( CV_ILOC, :, : )
+       IF ( NDIM >= 3 ) DTX_ELE_ALL( 3, :, CV_ILOC, : ) = DTZ_ELE( CV_ILOC, :, : )
+
+       DTOLDX_ELE_ALL( 1, :, CV_ILOC, : ) = DTOLDX_ELE( CV_ILOC, :, : )
+       IF ( NDIM >= 2 ) DTOLDX_ELE_ALL( 2, :, CV_ILOC, : ) = DTOLDY_ELE( CV_ILOC, :, : )
+       IF ( NDIM >= 3 ) DTOLDX_ELE_ALL( 3, :, CV_ILOC, : ) = DTOLDZ_ELE( CV_ILOC, :, : )
+    END DO
+
+    LOC_DTX_ELE_ALL = DTX_ELE_ALL( :, :, :, ELE )
+    LOC_DTOLDX_ELE_ALL = DTOLDX_ELE_ALL( :, :, :, ELE )
+
+    IF ( SELE /= 0 ) THEN
+       DO IPHASE = 1, NPHASE
+          WIC_T_BC_ALL( IPHASE, SELE ) = WIC_T_BC( SELE + (IPHASE-1)*STOTEL )
+       END DO
+    END IF
+
+    ALLOCATE( DIFF_GI( NDIM, NDIM, NPHASE ) ) ; DIFF_GI=0.0
+    ALLOCATE( DIFF_GI2( NDIM, NDIM, NPHASE ) ) ; DIFF_GI2=0.0
+
+    ZER_DIFF = .FALSE.
+    IF ( SELE /= 0 ) ZER_DIFF = ANY ( WIC_T_BC_ALL( :, SELE ) /= WIC_T_BC_DIRICHLET )
+
+    Cond_ZerDiff: IF ( ZER_DIFF ) THEN
+
+       DIFF_COEF_DIVDX = 0.0 
        DIFF_COEFOLD_DIVDX = 0.0
 
     ELSE
 
-       DTDX_GI = 0.0
-       DTDY_GI = 0.0
-       DTDZ_GI = 0.0
-       DTOLDDX_GI = 0.0
-       DTOLDDY_GI = 0.0
-       DTOLDDZ_GI = 0.0
-
+       DTDX_GI_ALL = 0.0 ; DTOLDDX_GI_ALL = 0.0
        DO CV_KLOC = 1, CV_NLOC
-          DTDX_GI = DTDX_GI + SCVFEN( CV_KLOC, GI ) * DTX_ELE(CV_KLOC,IPHASE,ELE)
-          DTDY_GI = DTDY_GI + SCVFEN( CV_KLOC, GI ) * DTY_ELE(CV_KLOC,IPHASE,ELE)
-          DTDZ_GI = DTDZ_GI + SCVFEN( CV_KLOC, GI ) * DTZ_ELE(CV_KLOC,IPHASE,ELE)
-
-          DTOLDDX_GI = DTOLDDX_GI + SCVFEN( CV_KLOC, GI ) * DTOLDX_ELE(CV_KLOC,IPHASE,ELE)
-          DTOLDDY_GI = DTOLDDY_GI + SCVFEN( CV_KLOC, GI ) * DTOLDY_ELE(CV_KLOC,IPHASE,ELE)
-          DTOLDDZ_GI = DTOLDDZ_GI + SCVFEN( CV_KLOC, GI ) * DTOLDZ_ELE(CV_KLOC,IPHASE,ELE)
+          DTDX_GI_ALL( :, : ) = DTDX_GI_ALL( :, : ) + SCVFEN( CV_KLOC, GI ) * LOC_DTX_ELE_ALL( :, :, CV_KLOC )
+          DTOLDDX_GI_ALL( :, : ) = DTOLDDX_GI_ALL( :, : ) + SCVFEN( CV_KLOC, GI ) * LOC_DTOLDX_ELE_ALL( :, :, CV_KLOC )
        END DO
 
-       DIFF_GI(:,:) = 0.0
+       DIFF_GI = 0.0
        DO MAT_KLOC = 1, MAT_NLOC
-          MAT_NODK = MAT_NDGLN(( ELE - 1 ) * MAT_NLOC + MAT_KLOC )
-          !ewrite(3,*)'MAT_KLOC,cv_nloc,mat_nloc,MAT_NODK,mat_nonods,cv_nonods:', &
-          !         MAT_KLOC,cv_nloc,mat_nloc,MAT_NODK,mat_nonods,cv_nonods
-          DIFF_GI( 1:NDIM , 1:NDIM ) = DIFF_GI( 1:NDIM , 1:NDIM ) &
-               + SMATFEN( MAT_KLOC, GI ) * TDIFFUSION( MAT_NODK, 1:NDIM , 1:NDIM , IPHASE )
-          !                 + SCVFEN( MAT_KLOC, GI ) * TDIFFUSION( MAT_NODK, 1:NDIM , 1:NDIM , IPHASE )
-       END DO
-       DIFF_GI( 1:NDIM , 1:NDIM ) = DIFF_GI( 1:NDIM , 1:NDIM )+DIFF_GI_ADDED( 1:NDIM , 1:NDIM )
-
-       N_DOT_DKDT=CVNORMX(GI)*(DIFF_GI(1,1)*DTDX_GI+DIFF_GI(1,2)*DTDY_GI+DIFF_GI(1,3)*DTDZ_GI) &
-            +CVNORMY(GI)*(DIFF_GI(2,1)*DTDX_GI+DIFF_GI(2,2)*DTDY_GI+DIFF_GI(2,3)*DTDZ_GI) &
-            +CVNORMZ(GI)*(DIFF_GI(3,1)*DTDX_GI+DIFF_GI(3,2)*DTDY_GI+DIFF_GI(3,3)*DTDZ_GI) 
-
-       N_DOT_DKDTOLD=CVNORMX(GI)*(DIFF_GI(1,1)*DTOLDDX_GI  &
-            +DIFF_GI(1,2)*DTOLDDY_GI+DIFF_GI(1,3)*DTOLDDZ_GI) &
-            +CVNORMY(GI)*(DIFF_GI(2,1)*DTOLDDX_GI  &
-            +DIFF_GI(2,2)*DTOLDDY_GI+DIFF_GI(2,3)*DTOLDDZ_GI) &
-            +CVNORMZ(GI)*(DIFF_GI(3,1)*DTOLDDX_GI  &
-            +DIFF_GI(3,2)*DTOLDDY_GI+DIFF_GI(3,3)*DTOLDDZ_GI)
-
-       ! This is the minimum diffusion...
-       COEF=&
-            CVNORMX(GI)*(DIFF_GI(1,1)*CVNORMX(GI)+ DIFF_GI(1,2)*CVNORMY(GI)+DIFF_GI(1,3)*CVNORMZ(GI))&
-            +CVNORMY(GI)*(DIFF_GI(2,1)*CVNORMX(GI)+ DIFF_GI(2,2)*CVNORMY(GI)+DIFF_GI(2,3)*CVNORMZ(GI))&
-            +CVNORMZ(GI)*(DIFF_GI(3,1)*CVNORMX(GI)+ DIFF_GI(3,2)*CVNORMY(GI)+DIFF_GI(3,3)*CVNORMZ(GI))
-       DIFF_STAND_DIVDX= COEF  /HDC
-       !         DIFF_STAND_DIVDX=( ABS(CVNORMX(GI))*DIFF_GI(1,1) &
-       !              +ABS(CVNORMY(GI))*DIFF_GI(2,2) + ABS(CVNORMZ(GI))*DIFF_GI(3,3) ) /HDC
-
-       Conditional_MAT_DISOPT_ELE2: IF( ( ELE2 /= 0 ).AND.( ELE2 /= ELE) ) THEN
-          DIFF_GI2(:,:) = 0.0
-          DO MAT_KLOC = 1, MAT_NLOC
-             MAT_KLOC2 = MAT_OTHER_LOC( MAT_KLOC )
-             IF(MAT_KLOC2 /= 0 )THEN
-                MAT_NODK2 = MAT_NDGLN(( ELE2 - 1 ) * MAT_NLOC + MAT_KLOC2 )
-                !                  DIFF_GI2( 1:NDIM, 1:NDIM )=DIFF_GI2( 1:NDIM, 1:NDIM ) +SCVFEN( MAT_KLOC, GI ) &
-                DIFF_GI2( 1:NDIM, 1:NDIM )=DIFF_GI2( 1:NDIM, 1:NDIM ) +SMATFEN( MAT_KLOC, GI ) &
-                     *TDIFFUSION(MAT_NODK2, 1:NDIM, 1:NDIM ,IPHASE)
-             ENDIF
+          MAT_NODK = MAT_NDGLN( ( ELE - 1 ) * MAT_NLOC + MAT_KLOC )
+          DO IPHASE = 1, NPHASE
+             DIFF_GI( :, :, IPHASE ) = DIFF_GI( :, :, IPHASE ) &
+                  + SMATFEN( MAT_KLOC, GI ) * TDIFFUSION( MAT_NODK, :, :, IPHASE )
           END DO
+       END DO
+       DIFF_GI = DIFF_GI + DIFF_GI_ADDED
+       DIFF_GI = MAX( 0.0, DIFF_GI ) 
 
-          DTDX_GI2 = 0.0
-          DTDY_GI2 = 0.0
-          DTDZ_GI2 = 0.0
-          DTOLDDX_GI2 = 0.0
-          DTOLDDY_GI2 = 0.0
-          DTOLDDZ_GI2 = 0.0
+       DO IPHASE = 1, NPHASE
+          N_DOT_DKDT_ALL( IPHASE ) = DOT_PRODUCT( CVNORMX_ALL, MATMUL( DIFF_GI( :, :, IPHASE ), DTDX_GI_ALL( :, IPHASE ) ) )
+          N_DOT_DKDTOLD_ALL( IPHASE ) = DOT_PRODUCT( CVNORMX_ALL, MATMUL( DIFF_GI( :, :, IPHASE ), DTOLDDX_GI_ALL( :, IPHASE ) ) )
+
+          COEF = DOT_PRODUCT( CVNORMX_ALL, MATMUL( DIFF_GI( :, :, IPHASE ), CVNORMX_ALL ) )
+          DIFF_STAND_DIVDX_ALL( IPHASE ) = COEF / HDC
+       END DO
+
+
+
+       Conditional_MAT_DISOPT_ELE2: IF ( ( ELE2 /= 0 ) .AND. ( ELE2 /= ELE ) ) THEN
+
+          LOC2_DTX_ELE_ALL =  DTX_ELE_ALL( :, :, :, ELE2 )
+          LOC2_DTOLDX_ELE_ALL =  DTOLDX_ELE_ALL( :, :, :, ELE2 )
+
+          DTDX_GI2_ALL = 0.0 ; DTOLDDX_GI2_ALL = 0.0
           DO CV_KLOC = 1, CV_NLOC
              CV_KLOC2 = CV_OTHER_LOC( CV_KLOC )
-             IF(CV_KLOC2 /= 0 )THEN
-                DTDX_GI2 = DTDX_GI2 + SCVFEN( CV_KLOC, GI ) * DTX_ELE(CV_KLOC2,IPHASE,ELE2)
-                DTDY_GI2 = DTDY_GI2 + SCVFEN( CV_KLOC, GI ) * DTY_ELE(CV_KLOC2,IPHASE,ELE2)
-                DTDZ_GI2 = DTDZ_GI2 + SCVFEN( CV_KLOC, GI ) * DTZ_ELE(CV_KLOC2,IPHASE,ELE2)
-
-                DTOLDDX_GI2 = DTOLDDX_GI2 + SCVFEN( CV_KLOC, GI ) *DTOLDX_ELE(CV_KLOC2,IPHASE,ELE2)
-                DTOLDDY_GI2 = DTOLDDY_GI2 + SCVFEN( CV_KLOC, GI ) *DTOLDY_ELE(CV_KLOC2,IPHASE,ELE2)
-                DTOLDDZ_GI2 = DTOLDDZ_GI2 + SCVFEN( CV_KLOC, GI ) *DTOLDZ_ELE(CV_KLOC2,IPHASE,ELE2)
-             ENDIF
+             IF ( CV_KLOC2 /= 0 )THEN
+                DTDX_GI2_ALL( :, : ) = DTDX_GI2_ALL( :, : ) + SCVFEN( CV_KLOC, GI ) *  LOC2_DTX_ELE_ALL( :, :, CV_KLOC )
+                DTOLDDX_GI2_ALL( :, : ) = DTOLDDX_GI2_ALL( :, : ) + SCVFEN( CV_KLOC, GI ) * LOC2_DTOLDX_ELE_ALL( :, :, CV_KLOC )
+             END IF
           END DO
-          N_DOT_DKDT2=CVNORMX(GI)*(DIFF_GI2(1,1)*DTDX_GI2  &
-               +DIFF_GI2(1,2)*DTDY_GI2+DIFF_GI2(1,3)*DTDZ_GI2) &
-               +CVNORMY(GI)*(DIFF_GI2(2,1)*DTDX_GI2  &
-               +DIFF_GI2(2,2)*DTDY_GI2+DIFF_GI2(2,3)*DTDZ_GI2) &
-               +CVNORMZ(GI)*(DIFF_GI2(3,1)*DTDX_GI2  &
-               +DIFF_GI2(3,2)*DTDY_GI2+DIFF_GI2(3,3)*DTDZ_GI2) 
 
-          N_DOT_DKDTOLD2=CVNORMX(GI)*(DIFF_GI2(1,1)*DTOLDDX_GI2  &
-               +DIFF_GI2(1,2)*DTOLDDY_GI2+DIFF_GI2(1,3)*DTOLDDZ_GI2) &
-               +CVNORMY(GI)*(DIFF_GI2(2,1)*DTOLDDX_GI2  &
-               +DIFF_GI2(2,2)*DTOLDDY_GI2+DIFF_GI2(2,3)*DTOLDDZ_GI2) &
-               +CVNORMZ(GI)*(DIFF_GI2(3,1)*DTOLDDX_GI2  &
-               +DIFF_GI2(3,2)*DTOLDDY_GI2+DIFF_GI2(3,3)*DTOLDDZ_GI2) 
+          DIFF_GI2 = 0.0
+          DO MAT_KLOC = 1, MAT_NLOC
+             MAT_KLOC2 = MAT_OTHER_LOC( MAT_KLOC )
+             IF ( MAT_KLOC2 /= 0 ) THEN
+                MAT_NODK2 = MAT_NDGLN( ( ELE2 - 1 ) * MAT_NLOC + MAT_KLOC2 )
+                DO IPHASE = 1, NPHASE
+                   DIFF_GI2( :, :, IPHASE ) = DIFF_GI2( :, :, IPHASE ) &
+                        + SMATFEN( MAT_KLOC, GI ) * TDIFFUSION( MAT_NODK2, :, :, IPHASE )
+                END DO
+             END IF
+          END DO
 
-          ! This is the minimum diffusion...
-          COEF=&
-               CVNORMX(GI)*(DIFF_GI2(1,1)*CVNORMX(GI)+ DIFF_GI2(1,2)*CVNORMY(GI)+DIFF_GI2(1,3)*CVNORMZ(GI))&
-               +CVNORMY(GI)*(DIFF_GI2(2,1)*CVNORMX(GI)+ DIFF_GI2(2,2)*CVNORMY(GI)+DIFF_GI2(2,3)*CVNORMZ(GI))&
-               +CVNORMZ(GI)*(DIFF_GI2(3,1)*CVNORMX(GI)+ DIFF_GI2(3,2)*CVNORMY(GI)+DIFF_GI2(3,3)*CVNORMZ(GI))
-          DIFF_STAND_DIVDX2 = COEF  /HDC
-          !            DIFF_STAND_DIVDX2 = ( ABS(CVNORMX(GI))*DIFF_GI2(1,1) &
-          !                 +ABS(CVNORMY(GI))*DIFF_GI2(2,2) + ABS(CVNORMZ(GI))*DIFF_GI2(3,3) ) /HDC
+          DO IPHASE = 1, NPHASE
+             N_DOT_DKDT2_ALL( IPHASE ) = DOT_PRODUCT( CVNORMX_ALL, MATMUL( DIFF_GI2( :, :, IPHASE ), DTDX_GI2_ALL( :, IPHASE ) ) )
+             N_DOT_DKDTOLD2_ALL( IPHASE ) = DOT_PRODUCT( CVNORMX_ALL, MATMUL( DIFF_GI2( :, :, IPHASE ), DTOLDDX_GI2_ALL( :, IPHASE ) ) )
 
-          N_DOT_DKDT = 0.5*( N_DOT_DKDT + N_DOT_DKDT2 )
-          N_DOT_DKDTOLD= 0.5*( N_DOT_DKDTOLD + N_DOT_DKDTOLD2 )
+             COEF = DOT_PRODUCT( CVNORMX_ALL, MATMUL( DIFF_GI2( :, :, IPHASE ), CVNORMX_ALL ) )
+             DIFF_STAND_DIVDX2_ALL( IPHASE ) = COEF  /HDC
+          END DO
 
-          !   ewrite(3,*)'DToldDX_GI,DToldDX_GI2,N_DOT_DKDTOLD,N_DOT_DKDTOLD2:',  &
-          !            DToldDX_GI,DToldDX_GI2,N_DOT_DKDTOLD,N_DOT_DKDTOLD2
+          N_DOT_DKDT_ALL = 0.5 * ( N_DOT_DKDT_ALL + N_DOT_DKDT2_ALL )
+          N_DOT_DKDTOLD_ALL = 0.5 * ( N_DOT_DKDTOLD_ALL + N_DOT_DKDTOLD2_ALL )
 
-          ! This is the minimum diffusion...
-          DIFF_STAND_DIVDX = MIN( DIFF_STAND_DIVDX, DIFF_STAND_DIVDX2 ) 
+          DIFF_STAND_DIVDX_ALL = MIN( DIFF_STAND_DIVDX_ALL, DIFF_STAND_DIVDX2_ALL ) 
 
-       ENDIF Conditional_MAT_DISOPT_ELE2
+       END IF Conditional_MAT_DISOPT_ELE2
 
 
-       !          EWRITE(3,*)'CV_NODI_IPHA,CV_NODJ_IPHA:',CV_NODI_IPHA,CV_NODJ_IPHA
-       DIFF_COEF_DIVDX    = MAX( DIFF_MIN_FRAC*DIFF_STAND_DIVDX, N_DOT_DKDT / &
-            TOLFUN( T_CV_NODJ_IPHA  - T_CV_NODI_IPHA )  )
-       !              TOLFUN( T( CV_NODJ_IPHA ) - T( CV_NODI_IPHA )) )
-       DIFF_COEFOLD_DIVDX = MAX( DIFF_MIN_FRAC*DIFF_STAND_DIVDX, N_DOT_DKDTOLD /  &
-            TOLFUN( TOLD_CV_NODJ_IPHA  - TOLD_CV_NODI_IPHA )  )
-       !              TOLFUN( TOLD( CV_NODJ_IPHA ) - TOLD( CV_NODI_IPHA )))
+       DIFF_COEF_DIVDX = MAX( DIFF_MIN_FRAC * DIFF_STAND_DIVDX_ALL, N_DOT_DKDT_ALL / TOLFUN_MANY( T_CV_NODJ - T_CV_NODI ) )
+       DIFF_COEFOLD_DIVDX = MAX( DIFF_MIN_FRAC * DIFF_STAND_DIVDX_ALL, N_DOT_DKDTOLD_ALL / TOLFUN_MANY( TOLD_CV_NODJ - TOLD_CV_NODI ) )
 
-       ! Make sure the diffusion has an upper bound...       
-       DIFF_COEF_DIVDX    = MIN( DIFF_MAX_FRAC*DIFF_STAND_DIVDX, DIFF_COEF_DIVDX )
-       DIFF_COEFOLD_DIVDX = MIN( DIFF_MAX_FRAC*DIFF_STAND_DIVDX, DIFF_COEFOLD_DIVDX )
+       DIFF_COEF_DIVDX = MIN( DIFF_MAX_FRAC * DIFF_STAND_DIVDX_ALL, DIFF_COEF_DIVDX )
+       DIFF_COEFOLD_DIVDX = MIN( DIFF_MAX_FRAC * DIFF_STAND_DIVDX_ALL, DIFF_COEFOLD_DIVDX )
 
     END IF Cond_ZerDiff
 
-    !ewrite(3,*)'HDC, TOLFUN, DIFF_COEF_DIVDX,DIFF_COEFOLD_DIVDX, DIFF_GI, DIFF_GI2:', &
-    !     HDC, TOLFUN( T_CV_NODJ_IPHA - T_CV_NODI_IPHA ), DIFF_COEF_DIVDX,DIFF_COEFOLD_DIVDX, &
-    !     '::', DIFF_GI, '::', DIFF_GI2
-
-    DEALLOCATE( DIFF_GI, DIFF_GI2 )
+    DEALLOCATE( DIFF_GI, DIFF_GI2, &
+         DTDX_GI_ALL, DTOLDDX_GI_ALL, &
+         DTDX_GI2_ALL, DTOLDDX_GI2_ALL, &
+         N_DOT_DKDT_ALL, N_DOT_DKDTOLD_ALL, &
+         N_DOT_DKDT2_ALL, N_DOT_DKDTOLD2_ALL, &
+         DIFF_STAND_DIVDX_ALL, DIFF_STAND_DIVDX2_ALL, &
+         DTX_ELE_ALL, DTOLDX_ELE_ALL, &
+         WIC_T_BC_ALL, &
+         LOC_DTX_ELE_ALL, LOC_DTOLDX_ELE_ALL, &
+         LOC2_DTX_ELE_ALL, LOC2_DTOLDX_ELE_ALL )
 
     RETURN            
 
   END SUBROUTINE DIFFUS_CAL_COEFF
-
-
-
-
 
 
 
