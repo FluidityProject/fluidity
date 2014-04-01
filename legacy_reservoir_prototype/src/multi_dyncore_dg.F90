@@ -152,7 +152,7 @@ contains
         REAL, DIMENSION( :, : ), intent( in ) :: SUF_SIG_DIAGTEN_BC
         REAL, DIMENSION( : ), intent( in ) :: SUF_T_BC_ROB1, SUF_T_BC_ROB2
         REAL, DIMENSION( : ), intent( in ) :: SUF_T2_BC_ROB1, SUF_T2_BC_ROB2
-        REAL, DIMENSION( : ), intent( in ) :: DERIV
+        REAL, DIMENSION( NPHASE, CV_NONODS ), intent( in ) :: DERIV
         REAL, DIMENSION( : ), intent( in ) :: P
         REAL, DIMENSION( : ), intent( in ) :: T_SOURCE
         REAL, DIMENSION( : , : , : ), intent( in ) :: T_ABSORB
@@ -429,7 +429,7 @@ contains
         REAL, DIMENSION( :, : ), intent( in ) :: SUF_SIG_DIAGTEN_BC
         REAL, DIMENSION( : ), intent( in ) :: SUF_T_BC_ROB1, SUF_T_BC_ROB2
         REAL, DIMENSION( : ), intent( in ) :: SUF_T2_BC_ROB1, SUF_T2_BC_ROB2
-        REAL, DIMENSION( : ), intent( in ) :: DERIV
+        REAL, DIMENSION( NPHASE, CV_NONODS ), intent( in ) :: DERIV
         REAL, DIMENSION( : ), intent( in ) :: P
         REAL, DIMENSION( : ), intent( in ) :: T_SOURCE
         REAL, DIMENSION( :, :, : ), intent( in ) :: T_ABSORB
@@ -939,7 +939,7 @@ contains
         REAL, DIMENSION( : ), intent( in ) :: SUF_VOL_BC, SUF_D_BC
         REAL, DIMENSION( : ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
         REAL, DIMENSION( :, : ), intent( in ) :: SUF_SIG_DIAGTEN_BC
-        REAL, DIMENSION( : ), intent( in ) :: DERIV
+        REAL, DIMENSION( NPHASE, CV_NONODS ), intent( in ) :: DERIV
         REAL, DIMENSION( : ), intent( in ) :: P
         REAL, DIMENSION( : ), intent( in ) :: V_SOURCE
         REAL, DIMENSION( :, :, : ), intent( in ) :: V_ABSORB
@@ -1225,7 +1225,7 @@ contains
         REAL, DIMENSION(  :  ), intent( inout ) :: P,CV_P
         REAL, DIMENSION(  :  ), intent( in ) :: DEN, DENOLD, SATURAOLD
         REAL, DIMENSION(  :  ), intent( inout ) :: SATURA
-        REAL, DIMENSION(  : ), intent( in ) :: DERIV
+        REAL, DIMENSION(  NPHASE, CV_NONODS ), intent( in ) :: DERIV
         REAL, DIMENSION(  :  ), intent( in ) :: SUF_VOL_BC, SUF_D_BC
         REAL, DIMENSION(  :  ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
         REAL, DIMENSION(  :  ), intent( in ) :: SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC
@@ -1939,7 +1939,7 @@ contains
         REAL, DIMENSION(  : ,:,: ), intent( in ) :: U_ALL, UOLD_ALL
         REAL, DIMENSION(  :  ), intent( in ) :: CV_P, P
         REAL, DIMENSION(  :  ), intent( in ) :: DEN, DENOLD, SATURA, SATURAOLD
-        REAL, DIMENSION(  :  ), intent( in ) :: DERIV
+        REAL, DIMENSION(  NPHASE, CV_NONODS  ), intent( in ) :: DERIV
         REAL, DIMENSION(  : ,  :   ), intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
         REAL, intent( in ) :: DT
         INTEGER, DIMENSION(  :  ), intent( in ) :: FINDC

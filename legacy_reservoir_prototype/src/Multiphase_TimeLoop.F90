@@ -169,7 +169,7 @@
            Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
            Pressure_FEM, Pressure_CV, Temperature, Density, Density_Cp, Density_Component, PhaseVolumeFraction, &
            Component, U_Density, Pressure_FEM_Old, Pressure_CV_Old, Temperature_Old, Density_Old, Density_Cp_Old, &
-           Density_Component_Old, PhaseVolumeFraction_Old, Component_Old, U_Density_Old, DRhoDPressure, &
+           Density_Component_Old, PhaseVolumeFraction_Old, Component_Old, U_Density_Old,  &
            Porosity, &
            Velocity_U_Source, Velocity_U_Source_CV, Temperature_Source, PhaseVolumeFraction_Source, &
            ScalarField_Source, Component_Source, ScalarAdvectionField_Source, &
@@ -180,6 +180,7 @@
            theta_gdiff,  ScalarField_Source_Store, ScalarField_Source_Component, &
            mass_ele, dummy_ele, density_tmp, density_old_tmp, &
            suf_momu_bc, suf_momv_bc, suf_momw_bc
+      real, dimension( :, : ), pointer ::  DRhoDPressure
 !!$
       real, dimension( :, :, : ), allocatable :: Permeability, Material_Absorption, Material_Absorption_Stab, &
            Velocity_Absorption, ScalarField_Absorption, Component_Absorption, Temperature_Absorption, &
@@ -378,7 +379,7 @@
            Temperature( nphase * cv_nonods ), Density( nphase * cv_nonods ),  Density_Cp( nphase * cv_nonods ), &
            Density_Component( nphase * cv_nonods * ncomp ), &
            PhaseVolumeFraction( nphase * cv_nonods ), Component( nphase * cv_nonods * ncomp ), &
-           U_Density( nphase * cv_nonods ), DRhoDPressure( nphase * cv_nonods ), &
+           U_Density( nphase * cv_nonods ), DRhoDPressure( nphase, cv_nonods ), &
 !!$
            Pressure_FEM_Old( cv_nonods ), Pressure_CV_Old( cv_nonods ), &
            Temperature_Old( nphase * cv_nonods ), Density_Old( nphase * cv_nonods ), Density_Cp_Old( nphase * cv_nonods ), &
@@ -1756,7 +1757,7 @@ deallocate(NDOTQOLD,&
                  Temperature( nphase * cv_nonods ), Density( nphase * cv_nonods ), Density_Cp( nphase * cv_nonods ), &
                  Density_Component( nphase * cv_nonods * ncomp ), &
                  PhaseVolumeFraction( nphase * cv_nonods ), Component( nphase * cv_nonods * ncomp ), &
-                 U_Density( nphase * cv_nonods ), DRhoDPressure( nphase * cv_nonods ), &
+                 U_Density( nphase * cv_nonods ), DRhoDPressure( nphase, cv_nonods ), &
 !!$
                  Pressure_FEM_Old( cv_nonods ), Pressure_CV_Old( cv_nonods ), &
                  Temperature_Old( nphase * cv_nonods ), Density_Old( nphase * cv_nonods ), Density_Cp_Old( nphase * cv_nonods ), &

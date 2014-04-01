@@ -71,7 +71,7 @@
 
       real, dimension( : ), intent( in ) :: Component
       real, dimension( : ), intent( inout ) :: Density_Bulk, DensityCp_Bulk
-      real, dimension(: ), intent( inout ), optional :: DRhoDPressure
+      real, dimension( nphase, cv_nonods ), intent( inout ), optional :: DRhoDPressure
       real, dimension( : ), intent( inout ) :: Density_Component
 
       real, dimension( : ), allocatable :: Rho, dRhodP, Cp, Component_l, c_cv_nod
@@ -152,7 +152,7 @@
                end if
 
                Density_Bulk( sp : ep ) = Density_Bulk( sp : ep ) + Rho * Component_l
-               DRhoDPressure( sp : ep ) = DRhoDPressure( sp : ep ) + dRhodP * Component_l / Rho
+               DRhoDPressure( iphase, : ) = DRhoDPressure( iphase, : ) + dRhodP * Component_l / Rho
                Density_Component( sc : ec ) = Rho
 
                Cp_s => extract_scalar_field( state( nphase + icomp ), &
@@ -163,7 +163,7 @@
             else
 
                Density_Bulk( sp : ep ) = Rho
-               DRhoDPressure( sp : ep ) = dRhodP
+               DRhoDPressure( iphase, : ) = dRhodP
 
                Cp_s => extract_scalar_field( state( iphase ), 'HeatCapacity', stat )
                if( stat == 0 ) Cp = Cp_s % val

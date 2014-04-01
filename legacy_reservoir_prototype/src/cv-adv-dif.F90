@@ -252,7 +252,7 @@ contains
       REAL, DIMENSION( :, : ), intent( in ) :: SUF_SIG_DIAGTEN_BC
       REAL, DIMENSION(: ), intent( in ) :: SUF_T_BC_ROB1, SUF_T_BC_ROB2
       REAL, DIMENSION( : ), intent( in ) :: SUF_T2_BC_ROB1, SUF_T2_BC_ROB2
-      REAL, DIMENSION( : ), intent( in ) :: DERIV
+      REAL, DIMENSION( NPHASE, CV_NONODS ), intent( in ) :: DERIV
       REAL, DIMENSION( : ), intent( in ) :: CV_P
       REAL, DIMENSION( : ), intent( in ) :: SOURCT
       REAL, DIMENSION( :, :, : ), intent( in ) :: ABSORBT
@@ -2106,7 +2106,7 @@ contains
 
                            ! - Calculate the integration of the limited, high-order flux over a face
                            ! Conservative discretisation. The matrix (PIVOT ON LOW ORDER SOLN)
-                           IF ( ( CV_NODI_IPHA /= CV_NODJ_IPHA ) .AND. ( CV_NODJ /= 0 ) ) THEN
+                           IF ( ( CV_NODI /= CV_NODJ ) .AND. ( CV_NODJ /= 0 ) ) THEN
                               CSR_ACV( IPHASE+(JCOUNT_IPHA-1)*NPHASE ) =  CSR_ACV( IPHASE+(JCOUNT_IPHA-1)*NPHASE ) &
                                    + SECOND_THETA * FTHETA_T2 * SCVDETWEI( GI ) * NDOTQNEW(IPHASE) * INCOME(IPHASE) * LIMD(IPHASE) & ! Advection
                                    - FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX(IPHASE) ! Diffusion contribution
@@ -2307,16 +2307,8 @@ contains
 
          Loop_CVNODI2: DO CV_NODI = 1, CV_NONODS ! Put onto the diagonal of the matrix
 
-            DO COUNT = SMALL_FINDRM( CV_NODI ), SMALL_FINDRM( CV_NODI + 1 ) - 1
-               IF ( SMALL_COLM( COUNT ) == CV_NODI )  then
-                  JCOUNT_IPHA = COUNT
-                  EXIT
-               END IF
-            END DO
-
-
             Loop_IPHASE2: DO IPHASE = 1, NPHASE
-               CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
+!               CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
                RHS_NODI_IPHA = IPHASE + ( CV_NODI -1 ) * NPHASE
                IMID_IPHA = IPHASE + (SMALL_CENTRM(CV_NODI)-1)*NPHASE
 
@@ -2368,6 +2360,9 @@ contains
       END IF Conditional_GETCV_DISC2
 
       IF ( GETCT ) THEN
+         W_SUM_ONE1 = 1.0 !If == 1.0 applies constraint to T
+         W_SUM_ONE2 = 0.0 !If == 1.0 applies constraint to TOLD
+
          DIAG_SCALE_PRES = 0.0
 
          DO IPHASE = 1, NPHASE
@@ -2375,16 +2370,13 @@ contains
                CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
                RHS_NODI_IPHA = IPHASE + (CV_NODI-1 ) * NPHASE
 
-               W_SUM_ONE1 = 1.0 !If == 1.0 applies constraint to T
-               W_SUM_ONE2 = 0.0 !If == 1.0 applies constraint to TOLD
-
                R = MASS_CV( CV_NODI ) * MEAN_PORE_CV( CV_NODI ) / DT
 
                CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) &
                     - R * ( &
                     + (1.0-W_SUM_ONE1) * T_ALL( IPHASE, CV_NODI ) - (1.0-W_SUM_ONE2) * TOLD_ALL( IPHASE, CV_NODI ) &
                     + ( TOLD_ALL( IPHASE, CV_NODI ) * ( DEN_ALL( IPHASE, CV_NODI ) - DENOLD_ALL( IPHASE, CV_NODI ) ) &
-                    - DERIV( CV_NODI_IPHA ) * CV_P( CV_NODI ) * T_ALL( IPHASE, CV_NODI ) ) / DEN_ALL( IPHASE, CV_NODI ) )
+                    - DERIV( IPHASE, CV_NODI ) * CV_P( CV_NODI ) * T_ALL( IPHASE, CV_NODI ) ) / DEN_ALL( IPHASE, CV_NODI ) )
 
                IF ( IPHASE == 1 ) THEN ! Add constraint to force sum of volume fracts to be unity...
                   ! W_SUM_ONE==1 applies the constraint
@@ -2393,7 +2385,7 @@ contains
                END IF
 
                DIAG_SCALE_PRES( CV_NODI ) = DIAG_SCALE_PRES( CV_NODI ) + &
-                    MEAN_PORE_CV( CV_NODI ) * T_ALL( IPHASE, CV_NODI ) * DERIV( CV_NODI_IPHA )  &
+                    MEAN_PORE_CV( CV_NODI ) * T_ALL( IPHASE, CV_NODI ) * DERIV( IPHASE, CV_NODI )  &
                     / ( DT * DEN_ALL( IPHASE, CV_NODI ) )
 
                CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + MASS_CV( CV_NODI ) * SOURCT_ALL( IPHASE, CV_NODI ) / DEN_ALL( IPHASE, CV_NODI )
