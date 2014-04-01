@@ -322,7 +322,7 @@ contains
            SBCVFENLX, SBCVFENLY, SBCVFENLZ, SBUFEN, SBUFENSLX, SBUFENSLY, &
            SBUFENLX, SBUFENLY, SBUFENLZ, &
            DUMMY_ZERO_NDIM_NDIM
-      REAL, DIMENSION( : ), allocatable :: SHAPE_CV_SNL, SHAPE_U_SNL
+      REAL, DIMENSION( : ), allocatable :: SHAPE_CV_SNL
       REAL, DIMENSION( :, :, : ), allocatable :: DTX_ELE,DTY_ELE,DTZ_ELE,  &
            DTOLDX_ELE,DTOLDY_ELE,DTOLDZ_ELE, DUMMY_ZERO_NDIM_NDIM_NPHASE
       REAL, pointer, DIMENSION( :, :, : ) :: INV_JAC
@@ -336,6 +336,8 @@ contains
       INTEGER, DIMENSION( : ), allocatable :: SELE_LOC_WIC_F_BC
       REAL, DIMENSION( :, : ), allocatable :: SLOC_SUF_F_BC
       REAL, DIMENSION( : ), allocatable :: FUPWIND_IN, FUPWIND_OUT, FVF, LIMF, F_INCOME, F_NDOTQ
+      INTEGER, DIMENSION( :, : ), allocatable :: WIC_T_BC_ALL, WIC_D_BC_ALL, WIC_T2_BC_ALL
+      REAL, DIMENSION( :, :, :, : ), allocatable :: DTX_ELE_ALL, DTOLDX_ELE_ALL
 
 ! NPHASE Variables: 
       REAL, DIMENSION( : ), allocatable :: DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX, &
@@ -560,8 +562,6 @@ contains
       ALLOCATE( SUFENLY( U_NLOC, SCVNGI ))
       ALLOCATE( SUFENLZ( U_NLOC, SCVNGI ))
 
-      ALLOCATE( SHAPE_U_SNL( U_NLOC ))
-
       ALLOCATE( SRA( SCVNGI ))
 
       ALLOCATE( SBCVN( CV_SNLOC, SBCVNGI ))
@@ -751,6 +751,8 @@ contains
 
       ALLOCATE( SOURCT_ALL( NPHASE, CV_NONODS ), ABSORBT_ALL( NPHASE, NPHASE, CV_NONODS ) )
 
+      ALLOCATE( WIC_T_BC_ALL( NPHASE, STOTEL ), WIC_D_BC_ALL( NPHASE, STOTEL ), WIC_T2_BC_ALL( NPHASE, STOTEL ) )
+
       ALLOCATE( WIC_T_BC_ALL( NPHASE, STOTEL ), WIC_D_BC_ALL( NPHASE, STOTEL ), WIC_U_BC_ALL( NDIM, NPHASE, STOTEL ) )
       ALLOCATE( SUF_T_BC_ALL( NPHASE, CV_SNLOC, STOTEL ), SUF_D_BC_ALL( NPHASE, CV_SNLOC, STOTEL ) )
       ALLOCATE( SUF_T_BC_ROB1_ALL( NPHASE, CV_SNLOC, STOTEL ), SUF_T_BC_ROB2_ALL( NPHASE, CV_SNLOC, STOTEL ) )
@@ -760,9 +762,9 @@ contains
       ALLOCATE( SUF_T2_BC_ALL( NPHASE, CV_SNLOC, STOTEL ) )
       ALLOCATE( SUF_T2_BC_ROB1_ALL( NPHASE, CV_SNLOC, STOTEL ), SUF_T2_BC_ROB2_ALL( NPHASE, CV_SNLOC, STOTEL ) )
 
-      NU_ALL=0. ; NUOLD_ALL=0. ; X_ALL=0. ;  X_ALL=0.
-      T_ALL=0. ; TOLD_ALL=0. ; DEN_ALL=0. ; DENOLD_ALL=0. ; T2_ALL=0. ; T2OLD_ALL=0.
-      FEMT_ALL=0. ; FEMTOLD_ALL=0. ; FEMDEN_ALL=0. ; FEMDENOLD_ALL=0. ; FEMT2_ALL=0. ; FEMT2OLD_ALL=0.
+!      NU_ALL=0. ; NUOLD_ALL=0. ; X_ALL=0. ;  X_ALL=0.
+!      T_ALL=0. ; TOLD_ALL=0. ; DEN_ALL=0. ; DENOLD_ALL=0. ; T2_ALL=0. ; T2OLD_ALL=0.
+!      FEMT_ALL=0. ; FEMTOLD_ALL=0. ; FEMDEN_ALL=0. ; FEMDENOLD_ALL=0. ; FEMT2_ALL=0. ; FEMT2OLD_ALL=0.
       SOURCT_ALL=0. ; ABSORBT_ALL=0.
 
       WIC_T_BC_ALL=0 ; WIC_D_BC_ALL=0 ; WIC_U_BC_ALL=0
@@ -836,6 +838,15 @@ contains
       END DO
 
 
+      DO IPHASE = 1, NPHASE
+         DO SELE=1,STOTEL
+            WIC_T_BC_ALL(IPHASE,SELE) = WIC_T_BC( (IPHASE-1)*STOTEL + SELE ) 
+            WIC_D_BC_ALL(IPHASE,SELE) = WIC_D_BC( (IPHASE-1)*STOTEL + SELE ) 
+            IF ( IGOT_T2 == 1 ) WIC_T2_BC_ALL(IPHASE,SELE) = WIC_T2_BC( (IPHASE-1)*STOTEL + SELE ) 
+         END DO
+      END DO
+
+
       DO SELE = 1, STOTEL
          DO IPHASE = 1, NPHASE
             WIC_T_BC_ALL( IPHASE, SELE ) = WIC_T_BC( SELE + (IPHASE-1)*STOTEL )
@@ -887,9 +898,6 @@ contains
 
 
 
-
-
-
 !      print *,'before allocate'
 
 ! variables for get_int_tden********************
@@ -905,25 +913,25 @@ contains
           IGOT_T_CONST_VALUE=0.0
 ! If we have any b.c then assume we ave a non-uniform field... 
           DO IPHASE=1,NPHASE
-             IF( SUM(  WIC_T_BC( 1 + (IPHASE-1)*STOTEL: IPHASE*STOTEL ) ) == 0)  &
+             IF( SUM(  WIC_T_BC_ALL( IPHASE, : ) ) == 0)  &
                           CALL IS_FIELD_CONSTANT(IGOT_T_CONST(IPHASE,1), IGOT_T_CONST_VALUE(IPHASE,1), T_ALL(IPHASE,:),CV_NONODS)
           END DO
           DO IPHASE=1,NPHASE
-             IF( SUM(  WIC_T_BC( 1 + (IPHASE-1)*STOTEL: IPHASE*STOTEL ) ) == 0)  &
+             IF( SUM(  WIC_T_BC_ALL( IPHASE, : ) ) == 0)  &
                           CALL IS_FIELD_CONSTANT(IGOT_T_CONST(IPHASE,2), IGOT_T_CONST_VALUE(IPHASE,2), TOLD_ALL(IPHASE,:),CV_NONODS)
           END DO
           DO IPHASE=1,NPHASE
-             IF( SUM(  WIC_D_BC( 1 + (IPHASE-1)*STOTEL: IPHASE*STOTEL ) ) == 0)  &
+             IF( SUM(  WIC_D_BC_ALL( IPHASE, : ) ) == 0)  &
                           CALL IS_FIELD_CONSTANT(IGOT_T_CONST(IPHASE,3), IGOT_T_CONST_VALUE(IPHASE,3), DEN_ALL(IPHASE,:),CV_NONODS)
           END DO
           DO IPHASE=1,NPHASE
-             IF( SUM(  WIC_D_BC( 1 + (IPHASE-1)*STOTEL: IPHASE*STOTEL ) ) == 0)  &
+             IF( SUM(  WIC_D_BC_ALL( IPHASE, : ) ) == 0)  &
                           CALL IS_FIELD_CONSTANT(IGOT_T_CONST(IPHASE,4), IGOT_T_CONST_VALUE(IPHASE,4), DENOLD_ALL(IPHASE,:),CV_NONODS)
           END DO
 
           DO IPHASE=1,NPHASE
              IF(IGOT_T2==1) THEN
-                IF( SUM(  WIC_T2_BC( 1 + (IPHASE-1)*STOTEL: IPHASE*STOTEL ) ) == 0)  &
+                IF( SUM(  WIC_T2_BC_ALL( IPHASE, : ) ) == 0)  &
                           CALL IS_FIELD_CONSTANT(IGOT_T_CONST(IPHASE,5), IGOT_T_CONST_VALUE(IPHASE,5), T2_ALL(IPHASE,:),CV_NONODS)
              ELSE
                 IGOT_T_CONST(IPHASE,5)=.TRUE. 
@@ -932,7 +940,7 @@ contains
           END DO
           DO IPHASE=1,NPHASE
              IF(IGOT_T2==1) THEN
-                IF( SUM(  WIC_T2_BC( 1 + (IPHASE-1)*STOTEL: IPHASE*STOTEL ) ) == 0)  &
+                IF( SUM(  WIC_T2_BC_ALL( IPHASE, : ) ) == 0)  &
                           CALL IS_FIELD_CONSTANT(IGOT_T_CONST(IPHASE,6), IGOT_T_CONST_VALUE(IPHASE,6), T2OLD_ALL(IPHASE,:),CV_NONODS)
              ELSE
                 IGOT_T_CONST(IPHASE,6)=.TRUE. 
@@ -1049,6 +1057,9 @@ contains
            CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
            X_NONODS, X_ALL, NCOLM, FINDM, COLM, MIDM, &
            IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC )
+
+
+
 
       MASS_ELE_TRANSP = MASS_ELE
 
@@ -1180,7 +1191,20 @@ contains
               WIC_T_BC_DIRICHLET, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
               SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
               state, "CV", StorageIndexes(16) )
+
+          ALLOCATE(  DTX_ELE_ALL(NDIM, NPHASE, CV_NLOC, TOTELE) , DTOLDX_ELE_ALL(NDIM, NPHASE, CV_NLOC, TOTELE)   )  
+          DO ELE=1,TOTELE
+             DO IPHASE=1,NPHASE
+                DO CV_ILOC=1,CV_NLOC
+                   DTX_ELE_ALL(1,IPHASE,CV_ILOC,ELE)   =DTX_ELE(CV_ILOC, IPHASE, TOTELE)
+     IF(NDIM.GE.2) DTX_ELE_ALL(2,IPHASE,CV_ILOC,ELE)   =DTY_ELE(CV_ILOC, IPHASE, TOTELE)
+     IF(NDIM.GE.3) DTX_ELE_ALL(3,IPHASE,CV_ILOC,ELE)   =DTZ_ELE(CV_ILOC, IPHASE, TOTELE)
+                END DO
+             END DO
+          END DO
+
       END IF
+
 
       !     =============== DEFINE THETA FOR TIME-STEPPING ===================
       ! Define the type of time integration:
@@ -1355,15 +1379,6 @@ contains
                            SHAPE_CV_SNL(CV_SKLOC) = SCVFEN(CV_KLOC,GI) 
                         ENDIF
                      END DO
-                     U_SKLOC=0
-                     DO U_KLOC=1,U_NLOC
-                        U_KLOC2 = U_OTHER_LOC( U_KLOC )
-                        IF(U_KLOC2.NE.0) THEN
-                           U_SKLOC=U_SKLOC+1
-                           U_SLOC2LOC(U_SKLOC)=U_KLOC
-                           SHAPE_U_SNL(U_SKLOC) = SUFEN(U_KLOC,GI) 
-                        ENDIF
-                     END DO
                   ENDIF
 
                END IF Conditional_CheckingNeighbourhood
@@ -1532,30 +1547,6 @@ contains
                    ENDIF
              END DO
 
-             DO U_SKLOC = 1, U_SNLOC
-                U_KLOC = U_SLOC2LOC( U_SKLOC )
-
-                SLOC_UF(:, :, U_SKLOC) = LOC_UF(:, :, U_KLOC) 
-
-                IF(ELE2>0) THEN
-                   U_KLOC2 = U_OTHER_LOC( U_KLOC )
-                   U_NODK2 = U_NDGLN( ( ELE2 - 1 ) * U_NLOC + U_KLOC2 ) 
-
-                   DO IDIM=1,NDIM
-                      IPT=1
-             CALL PACK_LOC( SLOC2_UF(IDIM, :, U_SKLOC), U_ALL(IDIM, :, U_NODK2 ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,1) )
-             CALL PACK_LOC( SLOC2_UF(IDIM, :, U_SKLOC), NUOLD_ALL(IDIM, :, U_NODK2 ), NPHASE, NFIELD, IPT, IGOT_T_PACK(:,2) )
-             CALL PACK_LOC( SLOC2_UF(IDIM, :, U_SKLOC), U_ALL(IDIM, :, U_NODK2 ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,3) )
-             CALL PACK_LOC( SLOC2_UF(IDIM, :, U_SKLOC), NUOLD_ALL(IDIM, :, U_NODK2 ), NPHASE, NFIELD, IPT, IGOT_T_PACK(:,4) )
-             CALL PACK_LOC( SLOC2_UF(IDIM, :, U_SKLOC), U_ALL(IDIM, :, U_NODK2 ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,5) )
-             CALL PACK_LOC( SLOC2_UF(IDIM, :, U_SKLOC), NUOLD_ALL(IDIM, :, U_NODK2 ), NPHASE, NFIELD, IPT, IGOT_T_PACK(:,6) )
-                   END DO
-
-                ELSE
-                   SLOC2_UF(:, :, U_SKLOC) = SLOC_UF(:, :, U_SKLOC) 
-                ENDIF
-
-             END DO
 
           ENDIF ! ENDOF IF( (ELE2 > 0) .OR. (SELE > 0) ) THEN ELSE...
 
@@ -1564,25 +1555,25 @@ contains
 ! What type of b.c's -integer
              IPT=1
              DO IPHASE=1,NPHASE
-                CALL I_PACK_LOC( SELE_LOC_WIC_F_BC( : ), WIC_T_BC( SELE + (IPHASE-1)*STOTEL: SELE + (IPHASE-1)*STOTEL ),    1, NFIELD, IPT, IGOT_T_PACK(IPHASE,1) )
+                CALL I_PACK_LOC( SELE_LOC_WIC_F_BC( : ), WIC_T_BC_ALL( IPHASE:IPHASE, SELE ),    1, NFIELD, IPT, IGOT_T_PACK(IPHASE,1) )
              END DO
              DO IPHASE=1,NPHASE
-                CALL I_PACK_LOC( SELE_LOC_WIC_F_BC( : ), WIC_T_BC( SELE + (IPHASE-1)*STOTEL: SELE + (IPHASE-1)*STOTEL ),    1, NFIELD, IPT, IGOT_T_PACK(IPHASE,2) )
+                CALL I_PACK_LOC( SELE_LOC_WIC_F_BC( : ), WIC_T_BC_ALL( IPHASE:IPHASE, SELE ),    1, NFIELD, IPT, IGOT_T_PACK(IPHASE,2) )
              END DO
 
              DO IPHASE=1,NPHASE
-                CALL I_PACK_LOC( SELE_LOC_WIC_F_BC( : ), WIC_D_BC( SELE + (IPHASE-1)*STOTEL: SELE + (IPHASE-1)*STOTEL ),    1, NFIELD, IPT, IGOT_T_PACK(IPHASE,3) )
+                CALL I_PACK_LOC( SELE_LOC_WIC_F_BC( : ), WIC_D_BC_ALL( IPHASE:IPHASE, SELE ),    1, NFIELD, IPT, IGOT_T_PACK(IPHASE,3) )
              END DO
              DO IPHASE=1,NPHASE
-                CALL I_PACK_LOC( SELE_LOC_WIC_F_BC( : ), WIC_D_BC( SELE + (IPHASE-1)*STOTEL: SELE + (IPHASE-1)*STOTEL ),    1, NFIELD, IPT, IGOT_T_PACK(IPHASE,4) )
+                CALL I_PACK_LOC( SELE_LOC_WIC_F_BC( : ), WIC_D_BC_ALL( IPHASE:IPHASE, SELE ),    1, NFIELD, IPT, IGOT_T_PACK(IPHASE,4) )
              END DO
 
           IF(IGOT_T2==1) THEN
              DO IPHASE=1,NPHASE
-                CALL I_PACK_LOC( SELE_LOC_WIC_F_BC( : ), WIC_T2_BC( SELE + (IPHASE-1)*STOTEL: SELE + (IPHASE-1)*STOTEL ),    1, NFIELD, IPT, IGOT_T_PACK(IPHASE,5) )
+                CALL I_PACK_LOC( SELE_LOC_WIC_F_BC( : ), WIC_T2_BC_ALL( IPHASE:IPHASE, SELE ),    1, NFIELD, IPT, IGOT_T_PACK(IPHASE,5) )
              END DO
              DO IPHASE=1,NPHASE
-                CALL I_PACK_LOC( SELE_LOC_WIC_F_BC( : ), WIC_T2_BC( SELE + (IPHASE-1)*STOTEL: SELE + (IPHASE-1)*STOTEL ),    1, NFIELD, IPT, IGOT_T_PACK(IPHASE,6) )
+                CALL I_PACK_LOC( SELE_LOC_WIC_F_BC( : ), WIC_T2_BC_ALL( IPHASE:IPHASE, SELE ),    1, NFIELD, IPT, IGOT_T_PACK(IPHASE,6) )
              END DO
           ENDIF
 ! The b.c values: 
@@ -1668,8 +1659,8 @@ contains
                T_ALL( :, CV_NODJ ), T_ALL( :, CV_NODI ), &
                TOLD_ALL( :, CV_NODJ ), TOLD_ALL( :, CV_NODI ), &
                ELE, ELE2, CVNORMX_ALL( :, GI ), &
-               DTX_ELE, DTY_ELE, DTZ_ELE,DTOLDX_ELE, DTOLDY_ELE, DTOLDZ_ELE, &
-               SELE, STOTEL, WIC_T_BC, WIC_T_BC_DIRICHLET, CV_OTHER_LOC, MAT_OTHER_LOC )
+               DTX_ELE_ALL(:,:,:,ELE), DTOLDX_ELE_ALL(:,:,:,ELE),  DTX_ELE_ALL(:,:,:,MAX(1,ELE2)), DTOLDX_ELE_ALL(:,:,:,MAX(ELE2,1)), &
+               SELE, STOTEL, WIC_T_BC_ALL(:,MAX(1,SELE)), WIC_T_BC_DIRICHLET, CV_OTHER_LOC, MAT_OTHER_LOC )
        ELSE
           DIFF_COEF_DIVDX = 0.0
           DIFF_COEFOLD_DIVDX = 0.0
@@ -1958,7 +1949,7 @@ contains
                              SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:), CVNORMX_ALL, &
                              LOC_UF, SLOC_UF, SLOC2_UF,  &
                              U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
-                             FUPWIND_IN, FUPWIND_OUT, DISTCONTINUOUS_METHOD, QUAD_ELEMENTS, SHAPE_CV_SNL, SHAPE_U_SNL, DOWNWIND_EXTRAP_INDIVIDUAL, &
+                             FUPWIND_IN, FUPWIND_OUT, DISTCONTINUOUS_METHOD, QUAD_ELEMENTS, SHAPE_CV_SNL, DOWNWIND_EXTRAP_INDIVIDUAL, &
                              F_CV_NODI, F_CV_NODJ) 
                   ENDIF
 
@@ -2299,6 +2290,17 @@ contains
                                    - CV_P( CV_NODI ) * SCVDETWEI( GI ) * ( &
                                    THERM_FTHETA * NDOTQNEW(IPHASE) * LIMT2(IPHASE) &
                                    + ( 1. - THERM_FTHETA ) * NDOTQOLD(IPHASE) * LIMT2OLD(IPHASE) )
+!                              IF(GOT_VIS) THEN
+!                                  ! stress form of viscosity...
+!                                        CALL CALC_STRESS_TEN( STRESS_IJ_ELE( :, :, IPHASE, U_ILOC, U_JLOC ), ZERO_OR_TWO_THIRDS, NDIM, &
+!                                        U_ALL( 1:NDIM, U_ILOC, GI ), CV_NORMX_ALL(1:NDIM,GI) * DETWEI( GI ), TEN_XX( :, :, IPHASE, GI ) )
+!!                                        UFENX_ALL( 1:NDIM, U_ILOC, GI ), UFENX_ALL( 1:NDIM, U_JLOC, GI )* DETWEI( GI ), TEN_XX( :, :, IPHASE, GI ) )
+!                                    DO IDIM=1,NDIM
+!                                    DO JDIM=1,NDIM
+!                                        VECS_STRESS(IDIM,JDIM,IPHASE,CV_NODI) =
+!                                    END DO
+!                                    END DO
+!                              ENDIF
                         if(integrate_other_side_and_not_boundary) then
                               CV_RHS( RHS_NODJ_IPHA ) = CV_RHS( RHS_NODJ_IPHA ) &
                                    + CV_P( CV_NODJ ) * SCVDETWEI( GI ) * ( &
@@ -2684,7 +2686,7 @@ contains
 
              DO IPHASE=1,NPHASE
                 IF(IGOT_T_PACK(IPHASE)) THEN ! Put into packing vector LOC_F
-                   LOC_F(IPT-1+IPHASE) = T_ALL(IPHASE)
+                   LOC_F(IPT) = T_ALL(IPHASE)
                    IPT=IPT+1
                 ENDIF
              END DO
@@ -2709,7 +2711,7 @@ contains
 
              DO IPHASE=1,NPHASE
                 IF(IGOT_T_PACK(IPHASE)) THEN ! Put into packing vector LOC_F
-                   LOC_F(IPT-1+IPHASE) = T_ALL(IPHASE)
+                   LOC_F(IPT) = T_ALL(IPHASE)
                    IPT=IPT+1
                 ENDIF
              END DO
@@ -6571,8 +6573,8 @@ contains
        T_CV_NODJ, T_CV_NODI, &
        TOLD_CV_NODJ, TOLD_CV_NODI, &
        ELE, ELE2, CVNORMX_ALL,  &
-       DTX_ELE, DTY_ELE, DTZ_ELE, DTOLDX_ELE, DTOLDY_ELE, DTOLDZ_ELE, &
-       SELE, STOTEL, WIC_T_BC, WIC_T_BC_DIRICHLET, CV_OTHER_LOC, MAT_OTHER_LOC )
+       LOC_DTX_ELE_ALL, LOC_DTOLDX_ELE_ALL, LOC2_DTX_ELE_ALL, LOC2_DTOLDX_ELE_ALL, &
+       SELE, STOTEL, LOC_WIC_T_BC, WIC_T_BC_DIRICHLET, CV_OTHER_LOC, MAT_OTHER_LOC )
     ! This sub calculates the effective diffusion coefficientd DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX
     ! based on a non-linear method and a non-oscillating scheme.
     IMPLICIT NONE
@@ -6584,15 +6586,14 @@ contains
          &                                     TOLD_CV_NODJ, TOLD_CV_NODI
     REAL, DIMENSION( NPHASE ), intent( inout ) :: DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX
     INTEGER, DIMENSION( : ), intent( in ) :: MAT_NDGLN
-    INTEGER, DIMENSION( : ), intent( in ) :: WIC_T_BC
+    INTEGER, DIMENSION( NPHASE ), intent( in ) :: LOC_WIC_T_BC
     INTEGER, DIMENSION( : ), intent( in ) :: CV_OTHER_LOC
     INTEGER, DIMENSION( : ), intent( in ) :: MAT_OTHER_LOC
     REAL, DIMENSION( :, : ), intent( in ) :: SMATFEN
     REAL, DIMENSION( :, : ), intent( in ) :: SCVFEN
     REAL, DIMENSION( :, :, :, : ), intent( in ) :: TDIFFUSION
     REAL, DIMENSION( :, :, : ), intent( in ) :: DIFF_GI_ADDED
-    REAL, DIMENSION( :, :, : ), intent( in ) :: DTX_ELE, DTY_ELE, DTZ_ELE, &
-         &                                      DTOLDX_ELE, DTOLDY_ELE, DTOLDZ_ELE
+    REAL, DIMENSION( NDIM, NPHASE, CV_NLOC ), intent( in ) :: LOC_DTX_ELE_ALL, LOC_DTOLDX_ELE_ALL, LOC2_DTX_ELE_ALL, LOC2_DTOLDX_ELE_ALL
     REAL, DIMENSION( : ), intent( in ) :: CVNORMX_ALL
 
     ! local variables
@@ -6608,10 +6609,6 @@ contains
     REAL, DIMENSION ( :, : ), allocatable :: DTDX_GI_ALL, DTOLDDX_GI_ALL, DTDX_GI2_ALL, DTOLDDX_GI2_ALL
     REAL, DIMENSION ( : ), allocatable :: N_DOT_DKDT_ALL, N_DOT_DKDTOLD_ALL, N_DOT_DKDT2_ALL, N_DOT_DKDTOLD2_ALL
     REAL, DIMENSION ( : ), allocatable :: DIFF_STAND_DIVDX_ALL, DIFF_STAND_DIVDX2_ALL
-    REAL, DIMENSION ( :, :, :, : ), allocatable :: DTX_ELE_ALL, DTOLDX_ELE_ALL
-    REAL, DIMENSION ( :, : ), allocatable :: WIC_T_BC_ALL
-    REAL, DIMENSION ( :, :, : ), allocatable :: LOC_DTX_ELE_ALL, LOC_DTOLDX_ELE_ALL, &
-         &                                      LOC2_DTX_ELE_ALL, LOC2_DTOLDX_ELE_ALL
     REAL, DIMENSION ( :, :, : ), allocatable :: DIFF_GI, DIFF_GI2
 
     ALLOCATE( DTDX_GI_ALL( NDIM, NPHASE ), DTOLDDX_GI_ALL( NDIM, NPHASE ) )
@@ -6619,40 +6616,12 @@ contains
     ALLOCATE( N_DOT_DKDT_ALL( NPHASE ), N_DOT_DKDTOLD_ALL( NPHASE ) )
     ALLOCATE( N_DOT_DKDT2_ALL( NPHASE ), N_DOT_DKDTOLD2_ALL( NPHASE ) )
     ALLOCATE( DIFF_STAND_DIVDX_ALL( NPHASE ), DIFF_STAND_DIVDX2_ALL( NPHASE ) )
-    ALLOCATE( DTX_ELE_ALL( NDIM, NPHASE, CV_NLOC, TOTELE ) )
-    ALLOCATE( DTOLDX_ELE_ALL( NDIM, NPHASE, CV_NLOC, TOTELE ) )
-    ALLOCATE( WIC_T_BC_ALL( NPHASE, STOTEL ) )
 
-    ALLOCATE( LOC_DTX_ELE_ALL( NDIM, NPHASE, CV_NLOC ) )
-    ALLOCATE( LOC_DTOLDX_ELE_ALL( NDIM, NPHASE, CV_NLOC ) )
-    ALLOCATE( LOC2_DTX_ELE_ALL( NDIM, NPHASE, CV_NLOC ) )
-    ALLOCATE( LOC2_DTOLDX_ELE_ALL( NDIM, NPHASE, CV_NLOC ) )
-
-    IF ( SELE /= 0 ) THEN
-       DO IPHASE = 1, NPHASE
-          WIC_T_BC_ALL( IPHASE, SELE ) = &
-               WIC_T_BC( SELE + (IPHASE-1)*STOTEL )
-       END DO
-    END IF
-
-    DO CV_ILOC = 1, CV_NLOC
-       DTX_ELE_ALL( 1, :, CV_ILOC, : ) = DTX_ELE( CV_ILOC, :, : )
-       IF ( NDIM >= 2 ) DTX_ELE_ALL( 2, :, CV_ILOC, : ) = DTY_ELE( CV_ILOC, :, : )
-       IF ( NDIM >= 3 ) DTX_ELE_ALL( 3, :, CV_ILOC, : ) = DTZ_ELE( CV_ILOC, :, : )
-
-       DTOLDX_ELE_ALL( 1, :, CV_ILOC, : ) = DTOLDX_ELE( CV_ILOC, :, : )
-       IF ( NDIM >= 2 ) DTOLDX_ELE_ALL( 2, :, CV_ILOC, : ) = DTOLDY_ELE( CV_ILOC, :, : )
-       IF ( NDIM >= 3 ) DTOLDX_ELE_ALL( 3, :, CV_ILOC, : ) = DTOLDZ_ELE( CV_ILOC, :, : )
-    END DO
-
-    LOC_DTX_ELE_ALL = DTX_ELE_ALL( :, :, :, ELE )
-    LOC_DTOLDX_ELE_ALL = DTOLDX_ELE_ALL( :, :, :, ELE )
-
-    ALLOCATE( DIFF_GI( NDIM, NDIM, NPHASE ) ) ; DIFF_GI=0.0
-    ALLOCATE( DIFF_GI2( NDIM, NDIM, NPHASE ) ) ; DIFF_GI2=0.0
+    ALLOCATE( DIFF_GI( NDIM, NDIM, NPHASE ) ) 
+    ALLOCATE( DIFF_GI2( NDIM, NDIM, NPHASE ) ) 
 
     ZER_DIFF = .FALSE.
-    IF ( SELE /= 0 ) ZER_DIFF = ANY ( WIC_T_BC_ALL( :, SELE ) /= WIC_T_BC_DIRICHLET )
+    IF ( SELE /= 0 ) ZER_DIFF = ANY ( LOC_WIC_T_BC( : ) /= WIC_T_BC_DIRICHLET )
 
     Cond_ZerDiff: IF ( ZER_DIFF ) THEN
 
@@ -6690,8 +6659,6 @@ contains
 
        Conditional_MAT_DISOPT_ELE2: IF ( ( ELE2 /= 0 ) .AND. ( ELE2 /= ELE ) ) THEN
 
-          LOC2_DTX_ELE_ALL =  DTX_ELE_ALL( :, :, :, ELE2 )
-          LOC2_DTOLDX_ELE_ALL =  DTOLDX_ELE_ALL( :, :, :, ELE2 )
 
           DTDX_GI2_ALL = 0.0 ; DTOLDDX_GI2_ALL = 0.0
           DO CV_KLOC = 1, CV_NLOC
@@ -6743,11 +6710,7 @@ contains
          DTDX_GI2_ALL, DTOLDDX_GI2_ALL, &
          N_DOT_DKDT_ALL, N_DOT_DKDTOLD_ALL, &
          N_DOT_DKDT2_ALL, N_DOT_DKDTOLD2_ALL, &
-         DIFF_STAND_DIVDX_ALL, DIFF_STAND_DIVDX2_ALL, &
-         DTX_ELE_ALL, DTOLDX_ELE_ALL, &
-         WIC_T_BC_ALL, &
-         LOC_DTX_ELE_ALL, LOC_DTOLDX_ELE_ALL, &
-         LOC2_DTX_ELE_ALL, LOC2_DTOLDX_ELE_ALL )
+         DIFF_STAND_DIVDX_ALL, DIFF_STAND_DIVDX2_ALL )
 
     RETURN            
 
@@ -9872,7 +9835,7 @@ contains
        SCVFENX, SCVFENY, SCVFENZ, CVNORMX_ALL,  &
        LOC_UF,SLOC_UF,SLOC2_UF,  &
        U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
-       FUPWIND_IN, FUPWIND_OUT, DISTCONTINUOUS_METHOD, QUAD_ELEMENTS, SHAPE_CV_SNL, SHAPE_U_SNL, DOWNWIND_EXTRAP_INDIVIDUAL, &
+       FUPWIND_IN, FUPWIND_OUT, DISTCONTINUOUS_METHOD, QUAD_ELEMENTS, SHAPE_CV_SNL, DOWNWIND_EXTRAP_INDIVIDUAL, &
        F_CV_NODI, F_CV_NODJ) 
     !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===============
     IMPLICIT NONE
@@ -9889,7 +9852,6 @@ contains
     INTEGER, DIMENSION( : ), intent( in ) :: U_SLOC2LOC
     INTEGER, DIMENSION( : ), intent( in ) :: U_OTHER_LOC
     REAL, DIMENSION( CV_SNLOC ), intent( in ) :: SHAPE_CV_SNL
-    REAL, DIMENSION( U_SNLOC ), intent( in ) :: SHAPE_U_SNL
     REAL, DIMENSION( :, :  ), intent( in ) :: SUFEN
     REAL, DIMENSION( :, :  ), intent( in ) :: SCVFEN
     REAL, DIMENSION( :, :  ), intent( in ) :: SCVFENX, SCVFENY, SCVFENZ
