@@ -13533,7 +13533,7 @@ CONTAINS
     REAL, DIMENSION ( :, :, : ), allocatable :: UGI_COEF_ELE_ALL, UGI_COEF_ELE2_ALL
     REAL, DIMENSION ( :, : ), allocatable :: UDGI_ALL, UDGI2_ALL, UDGI_INT_ALL
     REAL, DIMENSION ( :, :, : ), allocatable :: LOC_NU, LOC2_NU, SLOC_NU, SUF_U_BC_ALL
-    REAL, DIMENSION ( :, : ), allocatable :: LOC_T, LOC_DEN
+    REAL, DIMENSION ( : ), allocatable :: LOC_T_I, LOC_T_J, LOC_DEN_I, LOC_DEN_J
     INTEGER :: IPHASE, CV_NODI_IPHA, CV_NODJ_IPHA
     REAL, DIMENSION(NPHASE) :: DT_I,DT_J,NDOTQ_INT
 
@@ -13544,7 +13544,7 @@ CONTAINS
     ALLOCATE( LOC_NU(NDIM, NPHASE, U_NLOC), LOC2_NU(NDIM, NPHASE, U_NLOC) )
     ALLOCATE( SLOC_NU(NDIM, NPHASE, U_SNLOC) )
     ALLOCATE( SUF_U_BC_ALL(NDIM, NPHASE, U_SNLOC) )
-    ALLOCATE( LOC_T( NPHASE, CV_NONODS), LOC_DEN( NPHASE, CV_NONODS) )
+    ALLOCATE( LOC_T_I( NPHASE ), LOC_T_J( NPHASE ), LOC_DEN_I( NPHASE ), LOC_DEN_J( NPHASE ) )
 
     CVNORMX_ALL(1)= CVNORMX(GI)
     IF (NDIM>=2 ) CVNORMX_ALL(2)=CVNORMY(GI)
@@ -13608,10 +13608,10 @@ CONTAINS
 
     CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
     CV_NODJ_IPHA = CV_NODJ + ( IPHASE - 1 ) * CV_NONODS
-    LOC_T( IPHASE, CV_NODI ) = T(CV_NODI_IPHA)
-    LOC_T( IPHASE, CV_NODJ ) = T(CV_NODJ_IPHA)
-    LOC_DEN( IPHASE, CV_NODI ) = DEN(CV_NODI_IPHA)
-    LOC_DEN( IPHASE, CV_NODJ ) = DEN(CV_NODJ_IPHA)
+    LOC_T_I( IPHASE ) = T(CV_NODI_IPHA)
+    LOC_T_J( IPHASE ) = T(CV_NODJ_IPHA)
+    LOC_DEN_I( IPHASE ) = DEN(CV_NODI_IPHA)
+    LOC_DEN_J( IPHASE ) = DEN(CV_NODJ_IPHA)
     ! Copy local variables----End
     END DO
 
@@ -13662,11 +13662,11 @@ CONTAINS
              DT_I=1.0
              DT_J=1.0
           ELSE IF( ABS(CV_DG_VEL_INT_OPT ) == 2) THEN
-             DT_I=MAX(1.E-2,LOC_T( :, CV_NODI ))
-             DT_J=MAX(1.E-2,LOC_T( :, CV_NODJ ))
+             DT_I=MAX(1.E-2,LOC_T_I)
+             DT_J=MAX(1.E-2,LOC_T_J)
           ELSE IF( ABS(CV_DG_VEL_INT_OPT ) == 3) THEN
-             DT_I=LOC_DEN( :, CV_NODI )*LOC_T( :, CV_NODI )
-             DT_J=LOC_DEN( :, CV_NODJ )*LOC_T( :, CV_NODJ )
+             DT_I=LOC_DEN_I*LOC_T_I
+             DT_J=LOC_DEN_J*LOC_T_J
           ENDIF
           ! Amend weighting for porosity only across elements...
           IF(ABS(CV_DG_VEL_INT_OPT ) >= 2) THEN 
@@ -13735,7 +13735,7 @@ CONTAINS
     DEALLOCATE( LOC_NU, LOC2_NU )
     DEALLOCATE( SLOC_NU )
     DEALLOCATE( SUF_U_BC_ALL )
-    DEALLOCATE( LOC_T, LOC_DEN )
+    DEALLOCATE( LOC_T_I, LOC_T_J, LOC_DEN_I, LOC_DEN_J)
 
     RETURN  
 
@@ -13862,7 +13862,8 @@ CONTAINS
     REAL, DIMENSION ( :, :, : ), allocatable :: UGI_COEF_ELE_ALL, UGI_COEF_ELE2_ALL
     REAL, DIMENSION ( :, : ), allocatable :: UDGI_ALL, UDGI2_ALL, UDGI_INT_ALL
     REAL, DIMENSION ( :, :, : ), allocatable :: LOC_NU, LOC2_NU, OTHER_NU, SLOC_NU, SLOC2_NU, SUF_U_BC_ALL
-    REAL, DIMENSION ( :, : ), allocatable :: LOC_T, LOC_DEN, LOC_FEMT, LOC2_FEMT
+    REAL, DIMENSION ( :, : ), allocatable :: LOC_FEMT, LOC2_FEMT
+    REAL, DIMENSION ( : ), allocatable :: LOC_T_I, LOC_T_J, LOC_DEN_I, LOC_DEN_J
     REAL, DIMENSION(NDIM) :: CVNORMX_ALL
     INTEGER :: IPHASE, CV_NODI_IPHA, CV_NODJ_IPHA
 
@@ -13872,8 +13873,8 @@ CONTAINS
     ALLOCATE( LOC_NU(NDIM, NPHASE, U_NLOC), LOC2_NU(NDIM, NPHASE, U_NLOC), OTHER_NU(NDIM, NPHASE, U_NLOC) )
     ALLOCATE( SLOC_NU(NDIM, NPHASE, U_SNLOC), SLOC2_NU(NDIM, NPHASE, U_SNLOC) )
     ALLOCATE( SUF_U_BC_ALL(NDIM, NPHASE, U_SNLOC) )
-    ALLOCATE( LOC_T( NPHASE, CV_NONODS), LOC_DEN( NPHASE, CV_NONODS) )
     ALLOCATE( LOC_FEMT(NPHASE, CV_NLOC), LOC2_FEMT(NPHASE, CV_NLOC) )
+    ALLOCATE( LOC_T_I( NPHASE ), LOC_T_J( NPHASE ), LOC_DEN_I( NPHASE ), LOC_DEN_J( NPHASE ) )
 
     CVNORMX_ALL(1)= CVNORMX(GI)
     IF (NDIM>=2 ) CVNORMX_ALL(2)=CVNORMY(GI)
@@ -13966,10 +13967,10 @@ CONTAINS
 
     CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
     CV_NODJ_IPHA = CV_NODJ + ( IPHASE - 1 ) * CV_NONODS
-    LOC_T( IPHASE, CV_NODI ) = T(CV_NODI_IPHA)
-    LOC_T( IPHASE, CV_NODJ ) = T(CV_NODJ_IPHA)
-    LOC_DEN( IPHASE, CV_NODI ) = DEN(CV_NODI_IPHA)
-    LOC_DEN( IPHASE, CV_NODJ ) = DEN(CV_NODJ_IPHA)
+    LOC_T_I( IPHASE ) = T(CV_NODI_IPHA)
+    LOC_T_J( IPHASE ) = T(CV_NODJ_IPHA)
+    LOC_DEN_I( IPHASE ) = DEN(CV_NODI_IPHA)
+    LOC_DEN_J( IPHASE ) = DEN(CV_NODJ_IPHA)
     ! Copy local variables----End
     END DO ! PHASE LOOP
 
@@ -14159,13 +14160,13 @@ CONTAINS
              if(IANISOTROPIC==0) then ! this is the only needed for isotropic limiting for velocity...
                 !FEMTGI_IPHA = ( MASS_CV(CV_NODJ) * T(CV_NODI_IPHA) + &
                 !     MASS_CV(CV_NODI) * T(CV_NODJ_IPHA) ) / (MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
-                FEMTGI_IPHA = ( MASS_CV(CV_NODJ) * LOC_T(:, CV_NODI) + &
-                     MASS_CV(CV_NODI) * LOC_T(:, CV_NODJ) ) / (MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
+                FEMTGI_IPHA = ( MASS_CV(CV_NODJ) * LOC_T_I + &
+                     MASS_CV(CV_NODI) * LOC_T_J ) / (MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
              endif
              !GEOMTGI_IPHA = ( MASS_CV(CV_NODJ) * T(CV_NODI_IPHA) + &
              !     MASS_CV(CV_NODI) * T(CV_NODJ_IPHA) ) / (MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
-             GEOMTGI_IPHA = ( MASS_CV(CV_NODJ) * LOC_T(:, CV_NODI) + &
-                  MASS_CV(CV_NODI) * LOC_T(:, CV_NODJ) ) / (MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
+             GEOMTGI_IPHA = ( MASS_CV(CV_NODJ) * LOC_T_I + &
+                  MASS_CV(CV_NODI) * LOC_T_J ) / (MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
 
              !NVEC(1)=CVNORMX(GI)
              !NVEC(2)=CVNORMY(GI)
@@ -14221,9 +14222,9 @@ CONTAINS
              if(ROE_AVE) then
 
                 ! do the Roe average of the rest of the velocity...
-                NDOTQ_TILDE  = ( LOC_DEN(:, CV_NODI) * LOC_T(:, CV_NODI) * NDOTQ -  &
-                     &           LOC_DEN(:, CV_NODJ) * LOC_T(:, CV_NODJ) * NDOTQ2 ) & 
-                     / vtolfun( VOLFRA_PORE(ELE)*LOC_DEN(:, CV_NODI) * LOC_T(:, CV_NODI) - VOLFRA_PORE(ELE)*LOC_DEN(:, CV_NODJ) * LOC_T(:, CV_NODJ) )
+                NDOTQ_TILDE  = ( LOC_DEN_I * LOC_T_I * NDOTQ -  &
+                     &           LOC_DEN_J * LOC_T_J * NDOTQ2 ) & 
+                     / vtolfun( VOLFRA_PORE(ELE)*LOC_DEN_I * LOC_T_I - VOLFRA_PORE(ELE)*LOC_DEN_J * LOC_T_J )
                 NDOTQ2_TILDE = NDOTQ_TILDE
 
                 ! Make sure we have some sort of velocity (only needed between elements)...
@@ -14261,9 +14262,9 @@ CONTAINS
 
              if(IANISOTROPIC==0) then ! this is the only good isotropic limiting for velocity...
 
-                T_PELE = LOC_T( IPHASE, CV_NODI )
+                T_PELE = LOC_T_I( IPHASE )
                 IF( CV_NODJ /= CV_NODI ) THEN
-                   T_PELEOT    = LOC_T( IPHASE, CV_NODJ )
+                   T_PELEOT    = LOC_T_J( IPHASE )
                    TMIN_PELE   = TMIN( CV_NODI_IPHA )
                    TMAX_PELE   = TMAX( CV_NODI_IPHA )
                    TMIN_PELEOT = TMIN( CV_NODJ_IPHA )
@@ -14330,8 +14331,8 @@ CONTAINS
 
 
 
-             abs_tilde(IPHASE) =  0.5*(  ABS_CV_NODI_IPHA(IPHASE)  + ( limt3   -  LOC_T(IPHASE, CV_NODI)  ) * GRAD_ABS_CV_NODI_IPHA(IPHASE)   +   &
-                  ABS_CV_NODJ_IPHA(IPHASE)  + ( limt3   -  LOC_T(IPHASE, CV_NODJ)  ) * GRAD_ABS_CV_NODJ_IPHA(IPHASE) )
+             abs_tilde(IPHASE) =  0.5*(  ABS_CV_NODI_IPHA(IPHASE)  + ( limt3   -  LOC_T_I(IPHASE)  ) * GRAD_ABS_CV_NODI_IPHA(IPHASE)   +   &
+                  ABS_CV_NODJ_IPHA(IPHASE)  + ( limt3   -  LOC_T_J(IPHASE)  ) * GRAD_ABS_CV_NODJ_IPHA(IPHASE) )
              END DO ! PHASE LOOP
 
              abs_max=max(ABS_CV_NODI_IPHA,  ABS_CV_NODJ_IPHA)
@@ -14492,11 +14493,11 @@ CONTAINS
              DT_I=1.0
              DT_J=1.0
           ELSE IF( ABS(CV_DG_VEL_INT_OPT ) == 2) THEN
-             DT_I=MAX(1.E-2,LOC_T( :, CV_NODI ))
-             DT_J=MAX(1.E-2,LOC_T( :, CV_NODJ ))
+             DT_I=MAX(1.E-2,LOC_T_I)
+             DT_J=MAX(1.E-2,LOC_T_J)
           ELSE IF( ABS(CV_DG_VEL_INT_OPT ) == 3) THEN
-             DT_I=LOC_DEN( :, CV_NODI )*LOC_T( :, CV_NODI )
-             DT_J=LOC_DEN( :, CV_NODJ )*LOC_T( :, CV_NODJ )
+             DT_I=LOC_DEN_I*LOC_T_I
+             DT_J=LOC_DEN_J*LOC_T_J
           ELSE IF( ABS(CV_DG_VEL_INT_OPT ) == 4) THEN
 
 
@@ -14571,9 +14572,9 @@ CONTAINS
              if(ROE_AVE) then
 
                 ! do the Roe average of the rest of the velocity...
-                NDOTQ_TILDE  = ( LOC_DEN(:, CV_NODI) * LOC_T(:, CV_NODI) * NDOTQ -  &
-                     &           LOC_DEN(:, CV_NODJ) * LOC_T(:, CV_NODJ) * NDOTQ2 ) & 
-                     / vtolfun( VOLFRA_PORE(ELE)*LOC_DEN(:, CV_NODI) * LOC_T(:, CV_NODI) - VOLFRA_PORE(ELE2)*LOC_DEN(:, CV_NODJ) * LOC_T(:, CV_NODJ) )
+                NDOTQ_TILDE  = ( LOC_DEN_I * LOC_T_I * NDOTQ -  &
+                     &           LOC_DEN_J * LOC_T_J * NDOTQ2 ) & 
+                     / vtolfun( VOLFRA_PORE(ELE)*LOC_DEN_I * LOC_T_I - VOLFRA_PORE(ELE2)*LOC_DEN_J * LOC_T_J )
                 NDOTQ2_TILDE = NDOTQ_TILDE
 
                 ! Make sure we have some sort of velocity (only needed between elements)...
@@ -14641,8 +14642,8 @@ CONTAINS
 
 
                 ! redefine so that it detects oscillations...
-                abs_tilde1 =  ABS_CV_NODI_IPHA  + 0.5*( LOC_T(:, CV_NODJ)   -  LOC_T(:, CV_NODI)  ) * GRAD_ABS_CV_NODI_IPHA   
-                abs_tilde2 =  ABS_CV_NODJ_IPHA  + 0.5*( LOC_T(:, CV_NODI)   -  LOC_T(:, CV_NODJ)  ) * GRAD_ABS_CV_NODJ_IPHA 
+                abs_tilde1 =  ABS_CV_NODI_IPHA  + 0.5*( LOC_T_J   -  LOC_T_I  ) * GRAD_ABS_CV_NODI_IPHA   
+                abs_tilde2 =  ABS_CV_NODJ_IPHA  + 0.5*( LOC_T_I   -  LOC_T_J  ) * GRAD_ABS_CV_NODJ_IPHA 
 
 
                 abs_max=max(ABS_CV_NODI_IPHA,  ABS_CV_NODJ_IPHA)
@@ -14850,14 +14851,14 @@ CONTAINS
                    if(iphase==1) then
                       !  IF(0.5*(NDOTQ_TILDE+NDOTQ2_TILDE) >= 0.0) THEN 
                       IF(0.5*(NDOTQ(IPHASE)+NDOTQ2(IPHASE)) >= 0.0) THEN 
-                         IF(LOC_T(IPHASE, CV_NODI) < 0.5) then
+                         IF(LOC_T_I(IPHASE) < 0.5) then
                             enforce_abs = .true.
-                            relax=min( 10.*(0.5-LOC_T(IPHASE, CV_NODI)), 1.0)
+                            relax=min( 10.*(0.5-LOC_T_I(IPHASE)), 1.0)
                          ENDIF
                       ELSE
-                         IF(LOC_T(IPHASE, CV_NODJ) < 0.5) THEN
+                         IF(LOC_T_J(IPHASE) < 0.5) THEN
                             enforce_abs = .true. 
-                            relax=min( 10.*(0.5-LOC_T(IPHASE, CV_NODJ)), 1.0)
+                            relax=min( 10.*(0.5-LOC_T_J(IPHASE)), 1.0)
                          ENDIF
                       ENDIF
                    endif
@@ -14865,14 +14866,14 @@ CONTAINS
                    if(iphase==2) then
                       !  IF(0.5*(NDOTQ_TILDE+NDOTQ2_TILDE) >= 0.0) THEN 
                       IF(0.5*(NDOTQ(IPHASE)+NDOTQ2(IPHASE)) >= 0.0) THEN 
-                         IF(LOC_T(IPHASE, CV_NODI) < 0.5) then
+                         IF(LOC_T_I(IPHASE) < 0.5) then
                             enforce_abs = .true.
-                            relax=min( 10.*(0.5-LOC_T(IPHASE, CV_NODI)), 1.0)
+                            relax=min( 10.*(0.5-LOC_T_I(IPHASE)), 1.0)
                          ENDIF
                       ELSE
-                         IF(LOC_T(IPHASE, CV_NODJ) < 0.5) THEN
+                         IF(LOC_T_J(IPHASE) < 0.5) THEN
                             enforce_abs = .true. 
-                            relax=min( 10.*(0.5-LOC_T(IPHASE, CV_NODJ)), 1.0)
+                            relax=min( 10.*(0.5-LOC_T_J(IPHASE)), 1.0)
                          ENDIF
                       ENDIF
                    endif
@@ -15021,7 +15022,7 @@ CONTAINS
     DEALLOCATE( LOC_NU, LOC2_NU, OTHER_NU )
     DEALLOCATE( SLOC_NU, SLOC2_NU )
     DEALLOCATE( SUF_U_BC_ALL )
-    DEALLOCATE( LOC_T, LOC_DEN, LOC_FEMT, LOC2_FEMT )
+    DEALLOCATE( LOC_T_I, LOC_T_J, LOC_DEN_I, LOC_DEN_J, LOC_FEMT, LOC2_FEMT )
 
     RETURN  
 
