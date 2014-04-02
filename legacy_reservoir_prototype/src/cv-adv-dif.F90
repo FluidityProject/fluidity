@@ -842,16 +842,6 @@ contains
 
       END DO
 
-
-!      DO IPHASE = 1, NPHASE
-!         DO SELE=1,STOTEL
-!            WIC_T_BC_ALL(IPHASE,SELE) = WIC_T_BC( (IPHASE-1)*STOTEL + SELE ) 
-!            WIC_D_BC_ALL(IPHASE,SELE) = WIC_D_BC( (IPHASE-1)*STOTEL + SELE ) 
-!            IF ( IGOT_T2 == 1 ) WIC_T2_BC_ALL(IPHASE,SELE) = WIC_T2_BC( (IPHASE-1)*STOTEL + SELE ) 
-!         END DO
-!      END DO
-
-
       DO SELE = 1, STOTEL
          DO IPHASE = 1, NPHASE
             WIC_T_BC_ALL( IPHASE, SELE ) = WIC_T_BC( SELE + (IPHASE-1)*STOTEL )
