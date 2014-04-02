@@ -66,8 +66,7 @@ module multiphase_1D_engine
 
 contains
 
-    SUBROUTINE INTENERGE_ASSEM_SOLVE( state, &
-    LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,NDOTQOLD,&
+    SUBROUTINE INTENERGE_ASSEM_SOLVE( state, packed_state, &
     NCOLACV, FINACV, COLACV, MIDACV, &
     SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
     block_to_global_acv, global_dense_block_acv, &
@@ -78,7 +77,6 @@ contains
     CV_NLOC, U_NLOC, X_NLOC,  &
     CV_NDGLN, X_NDGLN, U_NDGLN, &
     CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-    X, Y, Z, &
     NU, NV, NW, NUOLD, NVOLD, NWOLD, &
     UG, VG, WG, &
     T, TOLD, &
@@ -109,7 +107,8 @@ contains
 
         implicit none
         type( state_type ), dimension( : ), intent( inout ) :: state
-        REAL, DIMENSION( : , : ) :: LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,NDOTQOLD
+        type( state_type ), intent( inout ) :: packed_state
+
         INTEGER, intent( in ) :: NCOLACV, NCOLCT, CV_NONODS, U_NONODS, X_NONODS, MAT_NONODS, TOTELE, &
         U_ELE_TYPE, CV_ELE_TYPE, CV_SELE_TYPE, NPHASE, CV_NLOC, U_NLOC, X_NLOC,  MAT_NLOC, &
         CV_SNLOC, U_SNLOC, STOTEL, XU_NLOC, NDIM, NCOLM, NCOLELE, &
@@ -134,7 +133,6 @@ contains
         integer, dimension (:,:) :: global_dense_block_acv
         INTEGER, DIMENSION( : ), intent( in ) :: FINDCT
         INTEGER, DIMENSION( : ), intent( in ) :: COLCT
-        REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
         REAL, DIMENSION( : ), intent( in ) :: NU, NV, NW, NUOLD, NVOLD, NWOLD, UG, VG, WG
         REAL, DIMENSION( : ), intent( inout ) :: T, T_FEMT, DEN_FEMT
         REAL, DIMENSION( : ), intent( in ) :: TOLD
@@ -182,7 +180,6 @@ contains
         INTEGER :: STAT
         character( len = option_path_len ) :: path
 
-
         ALLOCATE( ACV( NCOLACV ) )
         ALLOCATE( mass_mn_pres( size(small_COLACV ) ))
         allocate( block_acv(size(block_to_global_acv) ) )
@@ -219,7 +216,7 @@ contains
         Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, NITS_FLUX_LIM
 
 
-            call CV_ASSEMB( state, &
+            call CV_ASSEMB( state, packed_state, &
             CV_RHS, &
             NCOLACV,  block_acv, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
             SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV,&
@@ -230,7 +227,7 @@ contains
             CV_NLOC, U_NLOC, X_NLOC, &
             CV_NDGLN, X_NDGLN, U_NDGLN, &
             CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-            X, Y, Z, NU, NV, NW, &!IT SHOULD BE U,V,W
+            NU, NV, NW, &!IT SHOULD BE U,V,W
             NU, NV, NW, NUOLD, NVOLD, NWOLD, &
             T, TOLD, DEN, DENOLD, &
             MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
@@ -343,7 +340,7 @@ contains
 
 
 
-    SUBROUTINE CV_ASSEMB_CV_DG( state, &
+    SUBROUTINE CV_ASSEMB_CV_DG( state, packed_state, &
     CV_RHS, &
     NCOLACV, ACV, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
     SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
@@ -382,6 +379,8 @@ contains
 
         implicit none
         type( state_type ), dimension( : ), intent( inout ) :: state
+        type( state_type ), intent( inout ) :: packed_state
+
         INTEGER, intent( in ) :: NCOLACV, NCOLCT, CV_NONODS, U_NONODS, X_NONODS, MAT_NONODS, TOTELE, &
         CV_ELE_TYPE, NPHASE, CV_NLOC, U_NLOC, X_NLOC,  MAT_NLOC, &
         CV_SNLOC, U_SNLOC, STOTEL, XU_NLOC, NDIM, NCOLM, NCOLELE, &
@@ -466,7 +465,7 @@ contains
 
         IF(CV_METHOD) THEN ! cv method...
 
-            CALL CV_ASSEMB( state, &
+            CALL CV_ASSEMB( state, packed_state, &
             CV_RHS1, &
             NCOLACV, ACV, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
             SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
@@ -477,7 +476,7 @@ contains
             CV_NLOC, U_NLOC, X_NLOC,  &
             CV_NDGLN, X_NDGLN, U_NDGLN, &
             CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-            X, Y, Z, NU, NV, NW, &
+            NU, NV, NW, &
             NU, NV, NW, NUOLD, NVOLD, NWOLD, &
             T, TOLD, DEN, DENOLD, &
             MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
@@ -1028,7 +1027,7 @@ contains
         Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, 1 !nits_flux_lim
 
 
-            call CV_ASSEMB( state, &
+            call CV_ASSEMB( state, packed_state, &
             CV_RHS, &
             NCOLACV,  block_acv, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
             SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV,&
@@ -1039,7 +1038,7 @@ contains
             CV_NLOC, U_NLOC, X_NLOC, &
             CV_NDGLN, X_NDGLN, U_NDGLN, &
             CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-            X, Y, Z, U,V,W, &!IT SHOULD BE U,V,W
+            U, V, W, &!IT SHOULD BE U,V,W
             NU, NV, NW, NUOLD, NVOLD, NWOLD, &
             SATURA, SATURAOLD, DEN, DENOLD, &
             MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
@@ -1449,7 +1448,7 @@ contains
         !##########TEMPORARY ADAPT FROM OLD VARIABLES TO NEW############
 
 
-        CALL CV_ASSEMB_FORCE_CTY( state, &
+        CALL CV_ASSEMB_FORCE_CTY( state, packed_state, &
         NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
         U_ELE_TYPE, P_ELE_TYPE, &
         U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -1868,7 +1867,7 @@ contains
 
 
 
-    SUBROUTINE CV_ASSEMB_FORCE_CTY( state, &
+    SUBROUTINE CV_ASSEMB_FORCE_CTY( state, packed_state, &
     NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
     U_ELE_TYPE, P_ELE_TYPE, &
     U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -1912,6 +1911,8 @@ contains
         ! Form the global CTY and momentum eqns and combine to form one large matrix eqn.
 
         type( state_type ), dimension( : ), intent( inout ) :: state
+        type( state_type ), intent( inout ) :: packed_state
+
         INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, &
         TOTELE, U_ELE_TYPE, P_ELE_TYPE, &
         U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -2172,7 +2173,7 @@ contains
 
 
 
-        call CV_ASSEMB( state, &
+        call CV_ASSEMB( state, packed_state, &
         CV_RHS, &
         NCOLACV,  ACV, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
         SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV,&
@@ -2183,7 +2184,7 @@ contains
         CV_NLOC, U_NLOC, X_NLOC, &
         CV_NDGLN, X_NDGLN, U_NDGLN, &
         CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-        X_ALL(1,:), X_ALL(2,:), X_ALL(3,:), NU, NV, NW, &!IT SHOULD BE U,V,W
+        NU, NV, NW, &!IT SHOULD BE U,V,W
         NU, NV, NW, NUOLD, NVOLD, NWOLD, &
         SATURA, SATURAOLD, DEN_OR_ONE, DENOLD_OR_ONE, &
         MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
@@ -5559,7 +5560,7 @@ contains
     END SUBROUTINE LUMP_ENERGY_EQNS
 
 
-    SUBROUTINE CALCULATE_SURFACE_TENSION( state, nphase, ncomp, &
+    SUBROUTINE CALCULATE_SURFACE_TENSION( state, packed_state, nphase, ncomp, &
     PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, IPLIKE_GRAD_SOU, &
     U_SOURCE_CV, U_SOURCE, &
     COMP, &
@@ -5587,6 +5588,7 @@ contains
         real, dimension( u_nonods * nphase * ndim ), intent( inout ) :: U_SOURCE
 
         type(state_type), dimension( : ), intent( inout ) :: state
+        type(state_type), intent( inout ) :: packed_state
         integer, intent( in ) :: nphase, ncomp, cv_nonods, U_NONODS, X_NONODS, MAT_NONODS, &
         NCOLACV, NCOLCT, TOTELE, CV_ELE_TYPE, CV_SELE_TYPE, U_ELE_TYPE, &
         CV_NLOC, U_NLOC, X_NLOC, MAT_NLOC, CV_SNLOC, U_SNLOC, NDIM, &
@@ -5676,7 +5678,7 @@ contains
 
                 do iphase = 1, nphase
 
-                    CALL SURFACE_TENSION_WRAPPER( state, &
+                    CALL SURFACE_TENSION_WRAPPER( state, packed_state, &
                     U_FORCE_X_SUF_TEN, U_FORCE_Y_SUF_TEN, U_FORCE_Z_SUF_TEN, &
                     CV_U_FORCE_X_SUF_TEN, CV_U_FORCE_Y_SUF_TEN, CV_U_FORCE_Z_SUF_TEN, &
                     PLIKE_GRAD_SOU_COEF( 1+CV_NONODS*(IPHASE-1) : CV_NONODS*IPHASE ), & 
@@ -5724,7 +5726,7 @@ contains
         RETURN
     END SUBROUTINE CALCULATE_SURFACE_TENSION
 
-    SUBROUTINE SURFACE_TENSION_WRAPPER( state, &
+    SUBROUTINE SURFACE_TENSION_WRAPPER( state, packed_state, &
     U_FORCE_X_SUF_TEN, U_FORCE_Y_SUF_TEN, U_FORCE_Z_SUF_TEN, &
     CV_U_FORCE_X_SUF_TEN, CV_U_FORCE_Y_SUF_TEN, CV_U_FORCE_Z_SUF_TEN, &
     PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
@@ -5873,6 +5875,8 @@ contains
         ! Inputs/Outputs
         IMPLICIT NONE
         type(state_type), dimension( : ), intent( inout ) :: state
+        type(state_type), intent( inout ) :: packed_state
+
         INTEGER, PARAMETER :: NPHASE = 1
         INTEGER, PARAMETER :: SMOOTH_NITS = 0 ! smoothing iterations, 10 seems good.
         INTEGER, intent( in ) :: NCOLACV, NCOLCT, CV_NONODS, U_NONODS, X_NONODS, MAT_NONODS, &
@@ -6729,8 +6733,7 @@ contains
             LUMP_EQNS=.FALSE.
 
 
-            CALL INTENERGE_ASSEM_SOLVE( state, &
-            ALIMTOLD,ALIMT2OLD,ALIMDOLD,ALIMDTOLD,ALIMDTT2OLD,ANDOTQOLD,&
+            CALL INTENERGE_ASSEM_SOLVE( state, packed_state, &
             NCOLACV, FINACV, COLACV, MIDACV, &
             SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
             block_to_global_acv, global_dense_block_acv, &
@@ -6741,7 +6744,6 @@ contains
             CV_NLOC, U_NLOC, X_NLOC,  &
             CV_NDGLN, X_NDGLN, U_NDGLN, &
             CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-            X, Y, Z, &
             RZERO,RZERO,RZERO, RZERO,RZERO,RZERO, RZERO,RZERO,RZERO, &
             CURVATURE, VOLUME_FRAC, &
             RZERO,RZERO, &

@@ -47,7 +47,7 @@ module cv_advection
 
 contains
 
-    SUBROUTINE CV_ASSEMB( state, &
+    SUBROUTINE CV_ASSEMB( state, packed_state, &
          CV_RHS, &
          NCOLACV, CSR_ACV, dense_acv, FINACV, COLACV, MIDACV, &
          SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM,&
@@ -58,7 +58,7 @@ contains
          CV_NLOC, U_NLOC, X_NLOC, &
          CV_NDGLN, X_NDGLN, U_NDGLN, &
          CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-         X, Y, Z, U, V, W, &
+         U, V, W, &
          NU, NV, NW, NUOLD, NVOLD, NWOLD, &
          T, TOLD, DEN, DENOLD, &
          MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
@@ -204,6 +204,8 @@ contains
       ! Inputs/Outputs
       IMPLICIT NONE
       type( state_type ), dimension( : ), intent( inout ) :: state
+      type( state_type ), intent( inout ) :: packed_state
+
       INTEGER, intent( in ) :: NCOLACV, NCOLCT, CV_NONODS, U_NONODS, X_NONODS, MAT_NONODS, &
            TOTELE, &
            CV_ELE_TYPE, &
@@ -238,7 +240,6 @@ contains
       INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
       REAL, DIMENSION( : ), intent( inout ) :: MASS_MN_PRES
 
-      REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
       REAL, DIMENSION( : ), intent( in ) :: U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD
       REAL, DIMENSION( : ), intent( in ) :: T, TOLD, DEN, DENOLD
       REAL, DIMENSION( : ), intent( in ) :: T2, T2OLD
@@ -422,6 +423,18 @@ contains
       REAL, DIMENSION( :, :, : ), ALLOCATABLE :: SUF_T_BC_ALL, SUF_D_BC_ALL, SUF_T_BC_ROB1_ALL, SUF_T_BC_ROB2_ALL, &
            &                                     SUF_T2_BC_ALL, SUF_T2_BC_ROB1_ALL, SUF_T2_BC_ROB2_ALL   
       REAL, DIMENSION( :, :, :, : ), ALLOCATABLE :: SUF_U_BC_ALL
+
+
+      type( vector_field ), pointer:: x
+
+
+      x => extract_vector_field( packed_state, "PressureCoordinate" )
+      allocate( x_all( ndim, x_nonods ) ) ; x_all=0.0
+      x_all( 1, : ) = x % val( 1, : )
+      if (ndim >=2 ) x_all( 2, : ) = x % val( 2, : )
+      if (ndim >=3 ) x_all( 3, : ) = x % val( 3, : )
+
+
 
 
      ! LOCAL VARIABLE FOR INDIRECT ADDRESSING----------------------------------------------
@@ -744,7 +757,7 @@ contains
 ! TEMP STUFF HERE
 
       ALLOCATE( U_ALL( NDIM, NPHASE, U_NONODS ), NU_ALL( NDIM, NPHASE, U_NONODS ), NUOLD_ALL( NDIM, NPHASE, U_NONODS ) )
-      ALLOCATE( X_ALL( NDIM, X_NONODS ) )
+!      ALLOCATE( X_ALL( NDIM, X_NONODS ) )
       ALLOCATE( T_ALL( NPHASE, CV_NONODS ), TOLD_ALL( NPHASE, CV_NONODS ) )
       ALLOCATE( DEN_ALL( NPHASE, CV_NONODS ), DENOLD_ALL( NPHASE, CV_NONODS ) )
       ALLOCATE( T2_ALL( NPHASE, CV_NONODS ), T2OLD_ALL( NPHASE, CV_NONODS ) )
@@ -811,15 +824,15 @@ contains
             END DO
          END DO
       END DO
-      DO IDIM = 1, NDIM
-         IF ( IDIM==1 ) THEN
-            X_ALL( IDIM, : ) = X
-         ELSE IF ( IDIM==2 ) THEN
-            X_ALL( IDIM, : ) = Y
-         ELSE
-            X_ALL( IDIM, : ) = Z
-         END IF
-      END DO
+  !    DO IDIM = 1, NDIM
+  !       IF ( IDIM==1 ) THEN
+  !          X_ALL( IDIM, : ) = X
+  !       ELSE IF ( IDIM==2 ) THEN
+  !          X_ALL( IDIM, : ) = Y
+  !       ELSE
+  !          X_ALL( IDIM, : ) = Z
+  !       END IF
+  !    END DO
 
       DO IPHASE = 1, NPHASE
 

@@ -742,7 +742,6 @@
               have_option( '/material_phase[0]/scalar_field::Temperature/prognostic' ) ) then
             call get_option( '/material_phase[0]/scalar_field::Temperature/prognostic/temporal_discretisation' // &
               '/control_volumes/second_theta', second_theta, default=1. )
-
          end if
 
          if( have_component_field ) then
@@ -842,8 +841,7 @@
                call calculate_diffusivity( state, ncomp, nphase, ndim, cv_nonods, mat_nonods, &
                                            mat_nloc, totele, mat_ndgln, ScalarAdvectionField_Diffusion )
 
-               call INTENERGE_ASSEM_SOLVE( state, &
-                    LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,NDOTQOLD,&
+               call INTENERGE_ASSEM_SOLVE( state, packed_state, &
                     NCOLACV, FINACV, COLACV, MIDACV, &
                     small_FINACV, small_COLACV, small_MIDACV, &
                     block_to_global_acv, global_dense_block_acv, &
@@ -854,7 +852,6 @@
                     CV_NLOC, U_NLOC, X_NLOC, &
                     CV_NDGLN, X_NDGLN, U_NDGLN, &
                     CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-                    X, Y, Z, &
 !!$
                     Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
                     ug, vg, wg, &
@@ -924,7 +921,7 @@
                        PhaseVolumeFraction )
                end if
 
-               CALL CALCULATE_SURFACE_TENSION( state, nphase, ncomp, &
+               CALL CALCULATE_SURFACE_TENSION( state, packed_state, nphase, ncomp, &
                     PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, IPLIKE_GRAD_SOU, &
                     Velocity_U_Source_CV, Velocity_U_Source, Component, &
                     NCOLACV, FINACV, COLACV, MIDACV, &
@@ -1085,8 +1082,7 @@
                     x, y, z, Velocity_U, Velocity_V, Velocity_W, &
                     Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
                     PhaseVolumeFraction, PhaseVolumeFraction_Old, &
-                    Density_one, Density_one, &   ! use DEN=1 because the density is already in the theta variables
-!                    Density, Density_Old, &
+                    Density_one, Density_one, & ! use DEN=1 because the density is already in the theta variables
 !!$
                     MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
 !!$
@@ -1111,7 +1107,7 @@
                     option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction', &
                     mass_ele_transp = mass_ele,&
                     theta_flux=sum_theta_flux, one_m_theta_flux=sum_one_m_theta_flux, theta_flux_j=sum_theta_flux_j, one_m_theta_flux_j=sum_one_m_theta_flux_j,&
-                           StorageIndexes=StorageIndexes)
+                    StorageIndexes=StorageIndexes )
                else
                   call VolumeFraction_Assemble_Solve( state, packed_state,&
                     NCOLACV, FINACV, COLACV, MIDACV, &
@@ -1210,13 +1206,7 @@
                   Loop_NonLinearIteration_Components: do its2 = 1, NonLinearIteration_Components
                      comp_use_theta_flux = .false. ; comp_get_theta_flux = .true.
 
-                     call INTENERGE_ASSEM_SOLVE( state, &
-                          LIMCOLD(  : ,:, icomp ),&
-                          LIMC2OLD(  : ,:, icomp ),&
-                          LIMCOLD(  : ,:, icomp ),&
-                          LIMCDTOLD(  : ,:, icomp ),&
-                          LIMCDTT2OLD(  : ,:, icomp ),&
-                          NDOTQCOLD(  : ,:, icomp ),&
+                     call INTENERGE_ASSEM_SOLVE( state, packed_state, &
                           NCOLACV, FINACV, COLACV, MIDACV, & ! CV sparsity pattern matrix
                           SMALL_FINACV, SMALL_COLACV, small_MIDACV,&
                           block_to_global_acv, global_dense_block_acv, &
@@ -1227,7 +1217,6 @@
                           CV_NLOC, U_NLOC, X_NLOC,  &
                           CV_NDGLN, X_NDGLN, U_NDGLN, &
                           CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-                          X, Y, Z, &
 !!$
                           Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
                           ug, vg, wg, &
