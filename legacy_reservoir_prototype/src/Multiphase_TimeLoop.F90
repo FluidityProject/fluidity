@@ -235,7 +235,7 @@
       REAL, DIMENSION( : , : ,: ), allocatable :: NDOTQCOLD,LIMCOLD,LIMC2OLD,LIMCDOLD,LIMCDTOLD,LIMCDTT2OLD
 
       !Variable to store where we store things. Do not oversize this array, the size has to be the last index in use
-      integer, dimension (33) :: StorageIndexes
+      integer, dimension (39) :: StorageIndexes
       !Initially we set to use Stored data and that we have a new mesh
       StorageIndexes = 0!Initialize them as zero ! Entries 1, 2 and 3 are unused, for future purposes
 
@@ -754,14 +754,14 @@
             !Store variable to check afterwards
             if (tolerance_between_non_linear>0.) then
                select case (variable_selection)
-               case (1)
-                  Pressure_nonlin_check = Pressure_FEM
-               case (2)
-                  Velocity_U_nonlin_check = Velocity_U
-                  Velocity_V_nonlin_check = Velocity_V
-                  Velocity_W_nonlin_check = Velocity_W
-               case default
-                  PhaseVolumeFraction_nonlin_check = PhaseVolumeFraction
+                   case (1)
+                       Pressure_nonlin_check = Pressure_FEM
+                   case (2)
+                       Velocity_U_nonlin_check = Velocity_U
+                       Velocity_V_nonlin_check = Velocity_V
+                       Velocity_W_nonlin_check = Velocity_W
+                   case default
+                       PhaseVolumeFraction_nonlin_check = PhaseVolumeFraction
                end select
             end if
 
@@ -1432,7 +1432,7 @@
                             if ( dt / decreaseFactor < min_ts) then
                                 !Do not decrease
                                 Repeat_time_step = .false.
-                                exit
+                                exit Loop_NonLinearIteration
                             end if
 
                             !Decrease time step and repeat!
@@ -1458,14 +1458,14 @@
                             acctim = acctim_backup
 
                             !!Update all fields from backup
-                            Velocity_U_Old = Velocity_U ; Velocity_V_Old = Velocity_V ; Velocity_W_Old = Velocity_W
+!                            Velocity_U_Old = Velocity_U ; Velocity_V_Old = Velocity_V ; Velocity_W_Old = Velocity_W
                             Velocity_NU = Velocity_U ; Velocity_NV = Velocity_V ; Velocity_NW = Velocity_W
-                            Velocity_NU_Old = Velocity_U ; Velocity_NV_Old = Velocity_V ; Velocity_NW_Old = Velocity_W
-                            Density_Old = Density ;  Density_Cp_Old = Density_Cp ; Pressure_FEM_Old = Pressure_FEM ; Pressure_CV_Old = Pressure_CV
-                            PhaseVolumeFraction_Old = PhaseVolumeFraction ; Temperature_Old = Temperature ; Component_Old = Component
-                            Density_Old_tmp = Density ; Density_Component_Old = Density_Component
+!                            Velocity_NU_Old = Velocity_U ; Velocity_NV_Old = Velocity_V ; Velocity_NW_Old = Velocity_W
+!                            Density_Old = Density ;  Density_Cp_Old = Density_Cp ; Pressure_FEM_Old = Pressure_FEM ; Pressure_CV_Old = Pressure_CV
+!                            PhaseVolumeFraction_Old = PhaseVolumeFraction ; Temperature_Old = Temperature ; Component_Old = Component
+!                            Density_Old_tmp = Density ; Density_Component_Old = Density_Component
 
-                            exit
+                            exit Loop_NonLinearIteration
                         end if
                     end if
 
@@ -1480,12 +1480,15 @@
          current_time = acctim
 
          !If repeat timestep we don't want to adapt mesh or dump results
-         if ( Repeat_time_step ) cycle
-
+         if ( Repeat_time_step ) then
+            itime = itime - 1
+            cycle Loop_Time
+        end if
 !!$ Copying fields back to state:
          call copy_into_state( state, & ! Copying main fields into state
               PhaseVolumeFraction, Temperature, Pressure_CV, Velocity_U, Velocity_V, Velocity_W, &
               Density, Component, ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
+
 
 !!$ Calculate diagnostic fields
          call calculate_diagnostic_variables( state, exclude_nonrecalculated = .true. )

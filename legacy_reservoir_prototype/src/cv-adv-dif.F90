@@ -901,7 +901,7 @@ contains
       ALLOCATE( IGOT_T_PACK( NPHASE, 6 ), IGOT_T_CONST( NPHASE, 6 ), IGOT_T_CONST_VALUE( NPHASE, 6 ) )
 
 ! FOR packing as well as for detemining which variables to apply interface tracking**********
-          STORE=.FALSE.
+          STORE=.TRUE.
 
           IGOT_T_PACK=.TRUE.
           IGOT_T_CONST      =.FALSE.
@@ -1244,8 +1244,6 @@ contains
               NDIM, INV_JAC, state, "CVI", StorageIndexes(29) )
 
 
-
-
 ! Generate some local F variables ***************
 
 ! loc_f
@@ -1363,6 +1361,7 @@ contains
                            SHAPE_CV_SNL(CV_SKLOC) = SCVFEN(CV_KLOC,GI) 
                         ENDIF
                      END DO
+
                   ENDIF
 
                END IF Conditional_CheckingNeighbourhood
@@ -1921,6 +1920,7 @@ contains
 !                             LIMDT(:,global_face), LIMDTT2(:,global_face),& 
                   IF(NFIELD.GT.0) THEN
 !                      print *,'here 1'
+
                         CALL GET_INT_T_DEN_new( LIMF(:), & 
                              CV_DISOPT, CV_NONODS, NPHASE, NFIELD, CV_NODI, CV_NODJ, CV_ILOC, CV_JLOC, CV_SILOC, ELE, ELE2, GI,   &
                              CV_NLOC, TOTELE, CV_OTHER_LOC, SCVNGI, SCVFEN, F_INCOME, F_NDOTQ, &
@@ -1931,7 +1931,7 @@ contains
                              WIC_T_BC_DIRICHLET, WIC_D_BC_DIRICHLET,  & 
                              HDC, DT, &
                              SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:), CVNORMX_ALL, &
-                             LOC_UF, SLOC_UF, SLOC2_UF,  &
+                             LOC_UF,  &
                              U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              FUPWIND_IN, FUPWIND_OUT, DISTCONTINUOUS_METHOD, QUAD_ELEMENTS, SHAPE_CV_SNL, DOWNWIND_EXTRAP_INDIVIDUAL, &
                              F_CV_NODI, F_CV_NODJ) 
@@ -1942,87 +1942,101 @@ contains
 
             ENDIF
 
-        if(.false.) then ! testing
-             IPT=1
-             CALL UNPACK_LOC( LIMF(:), LIMT_keep( : ),    NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,1), GLOBAL_FACE, IGOT_T_CONST(:,1), IGOT_T_CONST_VALUE(:,1) )
-             CALL UNPACK_LOC( LIMF(:), LIMTOLD_keep( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,2), GLOBAL_FACE, IGOT_T_CONST(:,2), IGOT_T_CONST_VALUE(:,2) )
-             CALL UNPACK_LOC( LIMF(:), LIMD_keep( : ),    NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,3), GLOBAL_FACE, IGOT_T_CONST(:,3), IGOT_T_CONST_VALUE(:,3) )
-             CALL UNPACK_LOC( LIMF(:), LIMDOLD_keep( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,4), GLOBAL_FACE, IGOT_T_CONST(:,4), IGOT_T_CONST_VALUE(:,4) )
-             CALL UNPACK_LOC( LIMF(:), LIMT2_keep( : ),    NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,5), GLOBAL_FACE, IGOT_T_CONST(:,5), IGOT_T_CONST_VALUE(:,5) )
-             CALL UNPACK_LOC( LIMF(:), LIMT2OLD_keep( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,6), GLOBAL_FACE, IGOT_T_CONST(:,6), IGOT_T_CONST_VALUE(:,6) )
-! is LIMT_keep and LIMT the same? 
-             prep_stop=.false.
-             do iphase=1,nphase
-                if( abs(LIMT_keep(iphase)-LIMT(iphase)).gt.0.1) prep_stop=.true.
-                if( abs(LIMTOLD_keep(iphase)-LIMTOLD(iphase)).gt.0.1) prep_stop=.true.
-                if( abs(LIMD_keep(iphase)-LIMD(iphase)).gt.0.1) prep_stop=.true.
-                if( abs(LIMDOLD_keep(iphase)-LIMDOLD(iphase)).gt.0.1) prep_stop=.true.
-                if(IGOT_T2==1) then
-                   if( abs(LIMT2_keep(iphase)-LIMT2(iphase)).gt.0.1) prep_stop=.true.
-                   if( abs(LIMT2old_keep(iphase)-LIMT2old(iphase)).gt.0.1) prep_stop=.true.
-                endif
-             end do
-
-             if(prep_stop) then
-!             if(.false.) then
-                print *,'ele,nphase,nfield=',ele,nphase,nfield
-                print *,'ele,sele,ele2=',ele,sele,ele2
-                print *,'cv_nodi,cv_nodj:',cv_nodi,cv_nodj
-                print *,'IGOT_T2:',IGOT_T2
-                do iphase=1,nfield
-                   print *,'iphase,Lloc_f(iphase,:):',iphase,loc_f(iphase,:)
-                end do
-                print *,'LIMT_keep:',LIMT_keep
-                print *,'LIMT:',LIMT
-                print *,'LIMTold_keep:',LIMTold_keep
-                print *,'LIMTold:',LIMTold
-
-                print *,'LIMd_keep:',LIMd_keep
-                print *,'LIMd:',LIMd
-                print *,'LIMdold_keep:',LIMdold_keep
-                print *,'LIMdold:',LIMdold
-
-                if(IGOT_T2==1) then
-                   print *,'LIMT2_keep:',LIMT2_keep
-                   print *,'LIMT2:',LIMT2
-                   print *,'LIMT2old_keep:',LIMT2old_keep
-                   print *,'LIMT2old:',LIMT2old
-                ENDIF
-            print *,'LOC_F:',loc_f 
-               print *,'limf:',limf
-                print *,'ipt:',ipt
-                print *,'DOWNWIND_EXTRAP_INDIVIDUAL:',DOWNWIND_EXTRAP_INDIVIDUAL
-
-
-          DO CV_KLOC = 1, CV_NLOC
-             CV_NODK = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_KLOC ) 
-             print *,'cv_nodk,T_ALL( 1, CV_NODK ):',cv_nodk,T_ALL( 1, CV_NODK )
-          end do
-             print *,'cv_nodi,cv_nodj,T_ALL( 1, CV_NODi ),T_ALL( 1, CV_NODj ):',cv_nodi,cv_nodj,T_ALL( 1, CV_NODi ), T_ALL( 1, CV_NODj )
-             print *,'cv_nodi,cv_nodj,Told_ALL( 1, CV_NODi ),Told_ALL( 1, CV_NODj ):',cv_nodi,cv_nodj,Told_ALL( 1, CV_NODi ), Told_ALL( 1, CV_NODj )
-             print *,'DOWNWIND_EXTRAP_INDIVIDUAL:',DOWNWIND_EXTRAP_INDIVIDUAL
-             
-!              print *,'t:',t 
-             print *,'FUPWIND_IN(1):',FUPWIND_IN(1)
-             print *,'FUPWIND_OUT(1):',FUPWIND_OUT(1)
-             print *,'FUPWIND_IN(2):',FUPWIND_IN(2)
-             print *,'FUPWIND_OUT(2):',FUPWIND_OUT(2)
-                stop 221
-             endif
-       endif ! testing
+!        if(.true.) then ! testing
+!             IPT=1
+!             CALL UNPACK_LOC( LIMF(:), LIMT_keep( : ),    NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,1), GLOBAL_FACE, IGOT_T_CONST(:,1), IGOT_T_CONST_VALUE(:,1),&
+!                ELE, TOTELE, CV_ILOC, CV_NLOC,  state, 'limf11', StorageIndexes(40))
+!             CALL UNPACK_LOC( LIMF(:), LIMTOLD_keep( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,2), GLOBAL_FACE, IGOT_T_CONST(:,2), IGOT_T_CONST_VALUE(:,2),&
+!                ELE, TOTELE, CV_ILOC, CV_NLOC,  state, 'limf21', StorageIndexes(41) )
+!             CALL UNPACK_LOC( LIMF(:), LIMD_keep( : ),    NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,3), GLOBAL_FACE, IGOT_T_CONST(:,3), IGOT_T_CONST_VALUE(:,3) ,&
+!                ELE, TOTELE, CV_ILOC, CV_NLOC,  state, 'limf31', StorageIndexes(42) )
+!             CALL UNPACK_LOC( LIMF(:), LIMDOLD_keep( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,4), GLOBAL_FACE, IGOT_T_CONST(:,4), IGOT_T_CONST_VALUE(:,4) ,&
+!                ELE, TOTELE, CV_ILOC, CV_NLOC,  state, 'limf41', StorageIndexes(43) )
+!             CALL UNPACK_LOC( LIMF(:), LIMT2_keep( : ),    NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,5), GLOBAL_FACE, IGOT_T_CONST(:,5), IGOT_T_CONST_VALUE(:,5) ,&
+!                ELE, TOTELE, CV_ILOC, CV_NLOC,  state, 'limf51', StorageIndexes(44) )
+!             CALL UNPACK_LOC( LIMF(:), LIMT2OLD_keep( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,6), GLOBAL_FACE, IGOT_T_CONST(:,6), IGOT_T_CONST_VALUE(:,6) ,&
+!                ELE, TOTELE, CV_ILOC, CV_NLOC,  state, 'limf61', StorageIndexes(45) )
+!    ! is LIMT_keep and LIMT the same?
+!             prep_stop=.false.
+!             do iphase=1,nphase
+!                if( abs(LIMT_keep(iphase)-LIMT(iphase)).gt.0.1) prep_stop=.true.
+!                if( abs(LIMTOLD_keep(iphase)-LIMTOLD(iphase)).gt.0.1) prep_stop=.true.
+!                if( abs(LIMD_keep(iphase)-LIMD(iphase)).gt.0.1) prep_stop=.true.
+!                if( abs(LIMDOLD_keep(iphase)-LIMDOLD(iphase)).gt.0.1) prep_stop=.true.
+!                if(IGOT_T2==1) then
+!                   if( abs(LIMT2_keep(iphase)-LIMT2(iphase)).gt.0.1) prep_stop=.true.
+!                   if( abs(LIMT2old_keep(iphase)-LIMT2old(iphase)).gt.0.1) prep_stop=.true.
+!                endif
+!             end do
+!
+!             if(prep_stop) then
+!    !             if(.false.) then
+!                print *,'ele,nphase,nfield=',ele,nphase,nfield
+!                print *,'ele,sele,ele2=',ele,sele,ele2
+!                print *,'cv_nodi,cv_nodj:',cv_nodi,cv_nodj
+!                print *,'IGOT_T2:',IGOT_T2
+!                do iphase=1,nfield
+!                   print *,'iphase,Lloc_f(iphase,:):',iphase,loc_f(iphase,:)
+!                end do
+!                print *,'LIMT_keep:',LIMT_keep
+!                print *,'LIMT:',LIMT
+!                print *,'LIMTold_keep:',LIMTold_keep
+!                print *,'LIMTold:',LIMTold
+!
+!                print *,'LIMd_keep:',LIMd_keep
+!                print *,'LIMd:',LIMd
+!                print *,'LIMdold_keep:',LIMdold_keep
+!                print *,'LIMdold:',LIMdold
+!
+!                if(IGOT_T2==1) then
+!                   print *,'LIMT2_keep:',LIMT2_keep
+!                   print *,'LIMT2:',LIMT2
+!                   print *,'LIMT2old_keep:',LIMT2old_keep
+!                   print *,'LIMT2old:',LIMT2old
+!                ENDIF
+!            print *,'LOC_F:',loc_f
+!               print *,'limf:',limf
+!                print *,'ipt:',ipt
+!                print *,'DOWNWIND_EXTRAP_INDIVIDUAL:',DOWNWIND_EXTRAP_INDIVIDUAL
+!
+!
+!          DO CV_KLOC = 1, CV_NLOC
+!             CV_NODK = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_KLOC )
+!             print *,'cv_nodk,T_ALL( 1, CV_NODK ):',cv_nodk,T_ALL( 1, CV_NODK )
+!          end do
+!             print *,'cv_nodi,cv_nodj,T_ALL( 1, CV_NODi ),T_ALL( 1, CV_NODj ):',cv_nodi,cv_nodj,T_ALL( 1, CV_NODi ), T_ALL( 1, CV_NODj )
+!             print *,'cv_nodi,cv_nodj,Told_ALL( 1, CV_NODi ),Told_ALL( 1, CV_NODj ):',cv_nodi,cv_nodj,Told_ALL( 1, CV_NODi ), Told_ALL( 1, CV_NODj )
+!             print *,'DOWNWIND_EXTRAP_INDIVIDUAL:',DOWNWIND_EXTRAP_INDIVIDUAL
+!
+!    !              print *,'t:',t
+!             print *,'FUPWIND_IN(1):',FUPWIND_IN(1)
+!             print *,'FUPWIND_OUT(1):',FUPWIND_OUT(1)
+!             print *,'FUPWIND_IN(2):',FUPWIND_IN(2)
+!             print *,'FUPWIND_OUT(2):',FUPWIND_OUT(2)
+!                stop 221
+!             endif
+!       endif ! testing
 
 !           print *,'done temp'
 ! Generate some local F variables ***************
        IF(.false.) THEN
 ! loc_f - Unpack into the limiting variables LIMT and may be store them in the cache.
              IPT=1
-             CALL UNPACK_LOC( LIMF(:), LIMT( : ),    NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,1), GLOBAL_FACE, IGOT_T_CONST(:,1), IGOT_T_CONST_VALUE(:,1) )
-             CALL UNPACK_LOC( LIMF(:), LIMTOLD( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,2), GLOBAL_FACE, IGOT_T_CONST(:,2), IGOT_T_CONST_VALUE(:,2) )
-             CALL UNPACK_LOC( LIMF(:), LIMD( : ),    NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,3), GLOBAL_FACE, IGOT_T_CONST(:,3), IGOT_T_CONST_VALUE(:,3) )
-             CALL UNPACK_LOC( LIMF(:), LIMDOLD( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,4), GLOBAL_FACE, IGOT_T_CONST(:,4), IGOT_T_CONST_VALUE(:,4) )
-             CALL UNPACK_LOC( LIMF(:), LIMT2( : ),    NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,5), GLOBAL_FACE, IGOT_T_CONST(:,5), IGOT_T_CONST_VALUE(:,5) )
-             CALL UNPACK_LOC( LIMF(:), LIMT2OLD( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,6), GLOBAL_FACE, IGOT_T_CONST(:,6), IGOT_T_CONST_VALUE(:,6) )
+             CALL UNPACK_LOC( LIMF(:), LIMT( : ),    NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,1), GLOBAL_FACE, IGOT_T_CONST(:,1), IGOT_T_CONST_VALUE(:,1),&
+                ELE, TOTELE, CV_ILOC, CV_NLOC,  state, 'limf1', StorageIndexes(34) )
+             CALL UNPACK_LOC( LIMF(:), LIMTOLD( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,2), GLOBAL_FACE, IGOT_T_CONST(:,2), IGOT_T_CONST_VALUE(:,2),&
+                ELE, TOTELE, CV_ILOC, CV_NLOC,  state, 'limf2', StorageIndexes(35) )
+             CALL UNPACK_LOC( LIMF(:), LIMD( : ),    NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,3), GLOBAL_FACE, IGOT_T_CONST(:,3), IGOT_T_CONST_VALUE(:,3),&
+                ELE, TOTELE, CV_ILOC, CV_NLOC,  state, 'limf3', StorageIndexes(36) )
+             CALL UNPACK_LOC( LIMF(:), LIMDOLD( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,4), GLOBAL_FACE, IGOT_T_CONST(:,4), IGOT_T_CONST_VALUE(:,4),&
+                ELE, TOTELE, CV_ILOC, CV_NLOC,  state, 'limf4', StorageIndexes(37) )
+             CALL UNPACK_LOC( LIMF(:), LIMT2( : ),    NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,5), GLOBAL_FACE, IGOT_T_CONST(:,5), IGOT_T_CONST_VALUE(:,5),&
+                ELE, TOTELE, CV_ILOC, CV_NLOC,  state, 'limf5', StorageIndexes(38) )
+             CALL UNPACK_LOC( LIMF(:), LIMT2OLD( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,6), GLOBAL_FACE, IGOT_T_CONST(:,6), IGOT_T_CONST_VALUE(:,6),&
+                ELE, TOTELE, CV_ILOC, CV_NLOC,  state, 'limf6', StorageIndexes(39) )
     
+
+
 !                      print *,'here 3'
 !          IF( IGOT_T2 == 0 ) THEN
 !             LIMT2   =1.0
@@ -2704,40 +2718,75 @@ contains
              END SUBROUTINE I_PACK_LOC
 
 
-
-
-
-
-             SUBROUTINE UNPACK_LOC( LOC_F, T_ALL, NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK, GLOBAL_FACE, IGOT_T_CONST, IGOT_T_CONST_VALUE )
-! If PACK then UNpack loc_f into T_ALL  as long at IGOT_T==1 and STORE and not already in storage. 
+             SUBROUTINE UNPACK_LOC( LOC_F, T_ALL, NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK, GLOBAL_FACE, IGOT_T_CONST, IGOT_T_CONST_VALUE,&
+                ELE, TOTELE, CV_ILOC, CV_NLOC,  state, StorName, indx )
+! If PACK then UNpack loc_f into T_ALL  as long at IGOT_T==1 and STORE and not already in storage.
              IMPLICIT NONE
              LOGICAL, intent( in ) :: STORE
-             INTEGER, intent( in ) :: NPHASE,NFIELD
+             INTEGER, intent( in ) :: NPHASE,NFIELD, totele, CV_NLOC, CV_ILOC, ELE
              INTEGER, intent( in ) :: GLOBAL_FACE
 ! GLOBAL_FACE is the quadrature point which helps point into the storage memory
              INTEGER, intent( inout ) :: IPT
              LOGICAL, DIMENSION(NPHASE), intent( in ) :: IGOT_T_PACK, IGOT_T_CONST
              REAL, DIMENSION(NPHASE), intent( inout ) :: T_ALL
              REAL, DIMENSION(NPHASE), intent( in ) :: IGOT_T_CONST_VALUE
-             REAL, DIMENSION(NFIELD), intent( in ) :: LOC_F
+             REAL, DIMENSION(NFIELD), intent( inout ) :: LOC_F
+             type( state_type ), intent( inout ), dimension(:) :: state
+             character(len=*), intent(in) :: StorName
+             integer, intent(inout) :: indx
+             !Local variables
+             !Variables to store things in state
+             type(mesh_type), pointer :: fl_mesh
+             type(mesh_type) :: Auxmesh
+             type(scalar_field), target :: targ_fieldToStore
 ! local variables...
              INTEGER :: IPHASE
 
              DO IPHASE=1,NPHASE
-                IF(IGOT_T_PACK(IPHASE)) THEN ! Put into packing vector LOC_F
-                   T_ALL(IPHASE) = LOC_F(IPT) 
-                   IF(STORE) THEN ! Put in storage if not already in storage...
-                      
-                   ENDIF
-                   IPT=IPT+1
-                ELSE IF(IGOT_T_CONST(IPHASE)) THEN
-                   T_ALL(IPHASE) = IGOT_T_CONST_VALUE(IPHASE)
-                ELSE IF(STORE) THEN
-! Check storge and pull out of storage
-                ELSE ! Set to 1 as last resort e.g. for T2, T2OLD
-                   T_ALL(IPHASE) = 1.0
-                ENDIF
+                 IF(IGOT_T_PACK(IPHASE)) THEN
+                     T_ALL(IPHASE) = LOC_F(IPT)
+                     if (.not.IGOT_T_CONST(IPHASE)) then
+                         IF(STORE.and.indx<=0) THEN ! Put in storage if not already in storage...
+                             if (indx < 0) then!We need to store a new value
+                                 !Store in state, indx is an input
+                                 state(1)%scalar_fields(-indx)%ptr%val(IPT+CV_NLOC*(CV_ILOC-1) + CV_NLOC*(ELE-1)) = T_ALL(IPHASE)
+                             else if (ELE==1 .and. IPHASE == 1) then !The first time we need to introduce the targets in state
+                                 if (has_scalar_field(state(1), "Fld"//StorName)) then
+                                     !If we are recalculating due to a mesh modification then
+                                     !we return to the original situation
+                                     call remove_scalar_field(state(1), "Fld"//StorName)
+                                 end if
+                                  !Get mesh file just to be able to allocate the fields we want to store
+                                 fl_mesh => extract_mesh( state(1), "CoordinateMesh" )
+                                 Auxmesh = fl_mesh
+                                 !The number of nodes I want does not coincide
+                                 Auxmesh%nodes = NFIELD*CV_NLOC*totele
+                                 call allocate (targ_fieldToStore, Auxmesh)
+
+                                 !Now we insert them in state and store the indexes
+                                 call insert(state(1), targ_fieldToStore, "Fld"//StorName)
+                                 !Store index with a negative value, because if the index is
+                                 !zero or negative then we have to calculate stuff
+                                 indx = -size(state(1)%scalar_fields)
+
+                                  !Store in state
+                                 state(1)%scalar_fields(-indx)%ptr%val(IPT+CV_NLOC*(CV_ILOC-1) + CV_NLOC*(ELE-1)) = T_ALL(IPHASE)
+                             end if
+                         end if
+                     ENDIF
+                     IPT=IPT+1
+                 ELSE IF(IGOT_T_CONST(IPHASE)) THEN
+                     T_ALL(IPHASE) = IGOT_T_CONST_VALUE(IPHASE)
+                 ELSE IF(STORE) THEN ! Check storage and pull out of storage
+                     T_ALL(IPHASE) = state(1)%scalar_fields(indx)%ptr%val(IPT+CV_NLOC*(CV_ILOC-1) + CV_NLOC*(ELE-1))
+                     IPT=IPT+1
+                 ELSE ! Set to 1 as last resort e.g. for T2, T2OLD
+                     T_ALL(IPHASE) = 1.0
+                 ENDIF
              END DO
+
+            !When all the elements have been stored, indx is set to a positive value
+            if (ELE==TOTELE) indx = abs(indx)
 
              RETURN
              END SUBROUTINE UNPACK_LOC
@@ -2748,47 +2797,47 @@ contains
 
 
              SUBROUTINE PACK_OR_UNPACK_LOC( LOC_F, T_ALL, NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T , GLOBAL_FACE)
-! If PACK then pack T_ALL into LOC_F as long at IGOT_T==1 and STORE and not already in storage. 
-             LOGICAL, intent( in ) :: STORE, PACK
-             INTEGER, intent( in ) :: NPHASE, IGOT_T
-             INTEGER, intent( in ) :: GLOBAL_FACE
-! GLOBAL_FACE is the quadrature point which helps point into the storage memory
-             INTEGER, intent( inout ) :: IPT
-             REAL, DIMENSION(NPHASE), intent( inout ) :: T_ALL
-             REAL, DIMENSION(NFIELD), intent( inout ) :: LOC_F
-! local variables...
-             LOGICAL :: IN_STORAGE
+                 ! If PACK then pack T_ALL into LOC_F as long at IGOT_T==1 and STORE and not already in storage.
+                 LOGICAL, intent( in ) :: STORE, PACK
+                 INTEGER, intent( in ) :: NPHASE, IGOT_T
+                 INTEGER, intent( in ) :: GLOBAL_FACE
+                 ! GLOBAL_FACE is the quadrature point which helps point into the storage memory
+                 INTEGER, intent( inout ) :: IPT
+                 REAL, DIMENSION(NPHASE), intent( inout ) :: T_ALL
+                 REAL, DIMENSION(NFIELD), intent( inout ) :: LOC_F
+                 ! local variables...
+                 LOGICAL :: IN_STORAGE
 
-             IN_STORAGE = .FALSE.
-             IF(STORE) THEN
-             ! IF STORE then look to see if in storage
                  IN_STORAGE = .FALSE.
-             ENDIF
+                 IF(STORE) THEN
+                     ! IF STORE then look to see if in storage
+                     IN_STORAGE = .FALSE.
+                 ENDIF
              
-             IF(IGOT_T==1) THEN
-                IF(PACK) THEN
-! Pack solution into LOC_F
-                   IF(.NOT.IN_STORAGE) THEN
-                      LOC_F(IPT:IPT-1+NPHASE) = T_ALL(:)
-                      IPT=IPT+NPHASE
-                  ENDIF
-                ELSE
-! Unpack...
-                   IF(STORE) THEN 
-                      IF(.NOT.IN_STORAGE) THEN ! See if we are already storing limited value
-                      ENDIF
-! Put LOC_F(1:NPHASE, CV_KLOC) = DEN_ALL( 1:NPHASE, CV_NODK ) into storage...
-!                      T_ALL = LOC_F ???
-                      IPT=IPT+NPHASE
-                   ELSE
-! Put LOC_F(1:NPHASE, CV_KLOC) = DEN_ALL( 1:NPHASE, CV_NODK ) into storage...
-                      T_ALL(:) = LOC_F(IPT:IPT-1+NPHASE)
-                      IPT=IPT+NPHASE
-                   ENDIF
+                 IF(IGOT_T==1) THEN
+                     IF(PACK) THEN
+                         ! Pack solution into LOC_F
+                         IF(.NOT.IN_STORAGE) THEN
+                             LOC_F(IPT:IPT-1+NPHASE) = T_ALL(:)
+                             IPT=IPT+NPHASE
+                         ENDIF
+                     ELSE
+                         ! Unpack...
+                         IF(STORE) THEN
+                             IF(.NOT.IN_STORAGE) THEN ! See if we are already storing limited value
+                             ENDIF
+                             ! Put LOC_F(1:NPHASE, CV_KLOC) = DEN_ALL( 1:NPHASE, CV_NODK ) into storage...
+                             !                      T_ALL = LOC_F ???
+                             IPT=IPT+NPHASE
+                         ELSE
+                             ! Put LOC_F(1:NPHASE, CV_KLOC) = DEN_ALL( 1:NPHASE, CV_NODK ) into storage...
+                             T_ALL(:) = LOC_F(IPT:IPT-1+NPHASE)
+                             IPT=IPT+NPHASE
+                         ENDIF
                
-                ENDIF ! ENDOF IF(PACK) THEN ELSE
-             ENDIF ! END OF IF(IGOT_T==1) THEN
-             RETURN
+                     ENDIF ! ENDOF IF(PACK) THEN ELSE
+                 ENDIF ! END OF IF(IGOT_T==1) THEN
+                 RETURN
              END SUBROUTINE PACK_OR_UNPACK_LOC
 
 
@@ -3286,10 +3335,11 @@ contains
                DO U_KLOC2 = 1, XU_NLOC
                   XU_NODK2 = XU_NDGLN(( ELE2 - 1 ) * XU_NLOC + U_KLOC2 )
                   ! XU_NLOC==1 is a special case...
+
                   IF ( ( XU_NODK2 == XU_NODK ) .OR. ( XU_NLOC == 1 ) ) THEN
                      DO ILEV = 1, CV_NLOC
                         JLEV = CV_OTHER_LOC( ILEV )
-                        IF ( JLEV /= 0 ) THEN 
+                        IF ( JLEV /= 0 ) THEN
                            U_OTHER_LOC( U_KLOC + ( ILEV - 1 ) * XU_NLOC ) = U_KLOC2 + &
                                 ( JLEV - 1 ) * XU_NLOC
                         END IF
@@ -9818,7 +9868,7 @@ contains
        WIC_T_BC_DIRICHLET, WIC_D_BC_DIRICHLET, &
        HDC, DT, &
        SCVFENX, SCVFENY, SCVFENZ, CVNORMX_ALL,  &
-       LOC_UF,SLOC_UF,SLOC2_UF,  &
+       LOC_UF,  &
        U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
        FUPWIND_IN, FUPWIND_OUT, DISTCONTINUOUS_METHOD, QUAD_ELEMENTS, SHAPE_CV_SNL, DOWNWIND_EXTRAP_INDIVIDUAL, &
        F_CV_NODI, F_CV_NODJ) 
@@ -9848,7 +9898,6 @@ contains
       REAL, DIMENSION ( NFIELD,CV_NLOC), intent( in ) :: LOC_F, LOC_FEMF
     REAL, DIMENSION(NFIELD, CV_SNLOC), intent( in ) :: SLOC_SUF_F_BC
     REAL, DIMENSION(NDIM,NFIELD,U_NLOC), intent( in ) ::  LOC_UF
-    REAL, DIMENSION(NDIM,NFIELD,U_SNLOC), intent( in ) ::  SLOC_UF, SLOC2_UF
 
     REAL, DIMENSION(NFIELD,CV_SNLOC), intent( in ) :: SLOC_F, SLOC_FEMF, SLOC2_F, SLOC2_FEMF
 
@@ -9896,7 +9945,6 @@ contains
 
 !      REAL, DIMENSION ( :, : ), allocatable :: SLOC_DEN, SLOC_T, SLOC_T2, SLOC_FEMDEN, SLOC_FEMT, SLOC_FEMT2
 !      REAL, DIMENSION ( :, : ), allocatable :: SLOC2_DEN, SLOC2_T, SLOC2_T2, SLOC2_FEMDEN, SLOC2_FEMT, SLOC2_FEMT2
-!      REAL, DIMENSION ( :, :, : ), allocatable :: LOC_UF, SLOC_UF, SLOC2_UF
 !      REAL, DIMENSION ( :, : ), allocatable :: SLOC_SUF_T_BC, SLOC_SUF_T2_BC, SLOC_SUF_D_BC
 ! All dimensions/derivatives...
       REAL, DIMENSION ( :, :, : ), allocatable :: SCVFENX_ALL
@@ -9906,7 +9954,6 @@ contains
 ! F: 
 !      REAL, DIMENSION ( :, : ), allocatable :: LOC_F, LOC_FEMF, SLOC_F, SLOC_FEMF, SLOC2_F, SLOC2_FEMF,  FXGI_ALL
       REAL, DIMENSION ( :, : ), allocatable :: FXGI_ALL
-!      REAL, DIMENSION ( :, :, : ), allocatable :: LOC_UF, SLOC_UF, SLOC2_UF
       REAL, DIMENSION ( :, : ), allocatable :: UDGI_ALL, A_STAR_X_ALL
       REAL, DIMENSION ( :, : ), allocatable :: VEC_VEL2
 !      INTEGER, DIMENSION ( : ), allocatable :: SELE_LOC_WIC_F_BC
