@@ -424,6 +424,7 @@ contains
            &                                     SUF_T2_BC_ALL, SUF_T2_BC_ROB1_ALL, SUF_T2_BC_ROB2_ALL   
       REAL, DIMENSION( :, :, :, : ), ALLOCATABLE :: SUF_U_BC_ALL
 
+      TYPE( TENSOR_FIELD ), POINTER :: NU_s, NUOLD_s
 
       type( vector_field ), pointer:: x
 
@@ -793,6 +794,12 @@ contains
       WIC_T2_BC_ALL=0
       SUF_T2_BC_ALL=0. ; SUF_T2_BC_ROB1_ALL=0. ; SUF_T2_BC_ROB2_ALL=0.
 
+      NU_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedNonlinearVelocity" )
+      NU_ALL = NU_s % val
+
+      NUOLD_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldNonlinearVelocity" )
+      NUOLD_ALL = NUOLD_s % val
+
       IF ( IS_OVERLAPPING ) THEN
          NLEV = CV_NLOC
          U_NLOC2 = MAX( 1, U_NLOC / CV_NLOC )
@@ -808,31 +815,25 @@ contains
                   DO IDIM = 1, NDIM
                      IF ( IDIM==1 ) THEN
                         U_ALL( IDIM, IPHASE, U_INOD ) = U( U_INOD + (IPHASE-1)*U_NONODS )
-                        NU_ALL( IDIM, IPHASE, U_INOD ) = NU( U_INOD + (IPHASE-1)*U_NONODS )
-                        NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NUOLD( U_INOD + (IPHASE-1)*U_NONODS )
+                        !NU_ALL( IDIM, IPHASE, U_INOD ) = NU( U_INOD + (IPHASE-1)*U_NONODS )
+                        !NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NUOLD( U_INOD + (IPHASE-1)*U_NONODS )
                      ELSE IF ( IDIM==2 ) THEN
                         U_ALL( IDIM, IPHASE, U_INOD ) = V( U_INOD + (IPHASE-1)*U_NONODS )
-                        NU_ALL( IDIM, IPHASE, U_INOD ) = NV( U_INOD + (IPHASE-1)*U_NONODS )
-                        NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NVOLD( U_INOD + (IPHASE-1)*U_NONODS )
+                        !NU_ALL( IDIM, IPHASE, U_INOD ) = NV( U_INOD + (IPHASE-1)*U_NONODS )
+                        !NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NVOLD( U_INOD + (IPHASE-1)*U_NONODS )
                      ELSE
                         U_ALL( IDIM, IPHASE, U_INOD ) = W( U_INOD + (IPHASE-1)*U_NONODS )
-                        NU_ALL( IDIM, IPHASE, U_INOD ) = NW( U_INOD + (IPHASE-1)*U_NONODS )
-                        NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NWOLD( U_INOD + (IPHASE-1)*U_NONODS )
+                        !NU_ALL( IDIM, IPHASE, U_INOD ) = NW( U_INOD + (IPHASE-1)*U_NONODS )
+                        !NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NWOLD( U_INOD + (IPHASE-1)*U_NONODS )
                      END IF
                   END DO
                END DO
             END DO
          END DO
       END DO
-  !    DO IDIM = 1, NDIM
-  !       IF ( IDIM==1 ) THEN
-  !          X_ALL( IDIM, : ) = X
-  !       ELSE IF ( IDIM==2 ) THEN
-  !          X_ALL( IDIM, : ) = Y
-  !       ELSE
-  !          X_ALL( IDIM, : ) = Z
-  !       END IF
-  !    END DO
+
+
+
 
       DO IPHASE = 1, NPHASE
 

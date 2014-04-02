@@ -226,13 +226,11 @@
       real, dimension(:), allocatable :: Velocity_U_backup, Velocity_V_backup, Velocity_W_backup, Temperature_backup
       real, dimension(:), allocatable :: Density_backup, Component_backup, Density_Cp_backup, Density_Component_backup
 
+      type( tensor_field ), pointer :: NU_s, NUOLD_s, U_s, UOLD_s
+
       !! face value storage
       integer :: ncv_faces
       real::  second_theta
-      REAL, DIMENSION( : , : ), allocatable :: NDOTQOLD,NDOTQVOLD
-      REAL, DIMENSION( : , : ), allocatable :: LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD
-      REAL, DIMENSION( : , : ), allocatable :: LIMVOLD,LIMV2OLD,LIMVDOLD,LIMVDTOLD,LIMVDTT2OLD
-      REAL, DIMENSION( : , : ,: ), allocatable :: NDOTQCOLD,LIMCOLD,LIMC2OLD,LIMCDOLD,LIMCDTOLD,LIMCDTT2OLD
 
       !Variable to store where we store things. Do not oversize this array, the size has to be the last index in use
       integer, dimension (39) :: StorageIndexes
@@ -429,25 +427,6 @@
            plike_grad_sou_coef( cv_nonods * nphase ) )
 
       ncv_faces=CV_count_faces( packed_state, CV_ELE_TYPE, stotel, cv_sndgln, u_sndgln)
-
-      allocate(NDOTQOLD(nphase,ncv_faces),&
-           NDOTQVOLD(nphase,ncv_faces),&
-           LIMTOLD(nphase,ncv_faces),&
-           LIMT2OLD(nphase,ncv_faces),&
-           LIMDOLD(nphase,ncv_faces),&
-           LIMDTOLD(nphase,ncv_faces),&
-           LIMDTT2OLD(nphase,ncv_faces),&
-           LIMVOLD(nphase,ncv_faces),&
-           LIMV2OLD(nphase,ncv_faces),&
-           LIMVDOLD(nphase,ncv_faces),&
-           LIMVDTOLD(nphase,ncv_faces),&
-           LIMVDTT2OLD(nphase,ncv_faces),&
-           NDOTQCOLD(nphase,ncv_faces,ncomp),&
-           LIMCOLD(nphase,ncv_faces,ncomp),&
-           LIMC2OLD(nphase,ncv_faces,ncomp),&
-           LIMCDOLD(nphase,ncv_faces,ncomp),&
-           LIMCDTOLD(nphase,ncv_faces,ncomp),&
-           LIMCDTT2OLD(nphase,ncv_faces,ncomp))
 
 
 !!$
@@ -710,11 +689,22 @@
          PhaseVolumeFraction_Old = PhaseVolumeFraction ; Temperature_Old = Temperature ; Component_Old = Component
          Density_Old_tmp = Density_tmp ; Density_Component_Old = Density_Component
 
+         U_s  => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedVelocity" )
+
+         UOLD_s  => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldVelocity" )
+         UOLD_s % val = U_s % val
+
+         NU_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedNonlinearVelocity" )
+         NU_s % val = U_s % val
+
+         NUOLD_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldNonlinearVelocity" )
+         NUOLD_s % val = U_s % val
+
          ! evaluate prescribed fields at time = current_time+dt
          call set_prescribed_field_values( state, exclude_interpolated = .true., &
               exclude_nonreprescribed = .true., time = acctim )
 
-         call copy_packed_new_to_old(packed_state)
+         !call copy_packed_new_to_old(packed_state)
 
 
          ! update velocity absorption
@@ -838,6 +828,12 @@
 
                Velocity_NU = Velocity_U ; Velocity_NV = Velocity_V ; Velocity_NW = Velocity_W
 
+               U_s  => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedVelocity" )
+
+               NU_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedNonlinearVelocity" )
+               NU_s % val = U_s % val
+
+
                call calculate_diffusivity( state, ncomp, nphase, ndim, cv_nonods, mat_nonods, &
                                            mat_nloc, totele, mat_ndgln, ScalarAdvectionField_Diffusion )
 
@@ -910,6 +906,16 @@
 !!$ Updating velocities:
                Velocity_NU = Velocity_U ; Velocity_NV = Velocity_V ; Velocity_NW = Velocity_W 
                Velocity_NU_Old = Velocity_U_Old ; Velocity_NV_Old = Velocity_V_Old ; Velocity_NW_Old = Velocity_W_Old
+
+               U_s  => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedVelocity" )
+               UOLD_s  => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldVelocity" )
+
+               NU_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedNonlinearVelocity" )
+               NU_s % val = U_s % val
+
+               NUOLD_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldNonlinearVelocity" )
+               NUOLD_s % val = UOLD_s % val
+
 
 !!$ Diffusion-like term -- here used as part of the capillary pressure for porous media. It can also be 
 !!$ extended to surface tension -like term.
@@ -1658,14 +1664,6 @@
                  theta_flux, one_m_theta_flux, theta_flux_j, one_m_theta_flux_j, sum_theta_flux, &
                  sum_one_m_theta_flux, sum_theta_flux_j, sum_one_m_theta_flux_j, Density_one, density_tmp, density_old_tmp )
 
-deallocate(NDOTQOLD,&
-           NDOTQVOLD,LIMTOLD,LIMT2OLD,&
-           LIMDOLD,LIMDTOLD,LIMDTT2OLD,&
-           LIMVOLD,LIMV2OLD,LIMVDOLD,&
-           LIMVDTOLD,LIMVDTT2OLD,NDOTQCOLD,&
-           LIMCOLD,LIMC2OLD,LIMCDOLD,&
-           LIMCDTOLD,LIMCDTT2OLD)
-
 
 !!$  Compute primary scalars used in most of the code
             call Get_Primary_Scalars( state, &         
@@ -1866,25 +1864,6 @@ deallocate(NDOTQOLD,&
 
             ncv_faces=CV_count_faces( packed_state, CV_ELE_TYPE, stotel, cv_sndgln, u_sndgln )
 
-      allocate(NDOTQOLD(nphase,ncv_faces),&
-           NDOTQVOLD(nphase,ncv_faces),&
-           LIMTOLD(nphase,ncv_faces),&
-           LIMT2OLD(nphase,ncv_faces),&
-           LIMDOLD(nphase,ncv_faces),&
-           LIMDTOLD(nphase,ncv_faces),&
-           LIMDTT2OLD(nphase,ncv_faces),&
-           LIMVOLD(nphase,ncv_faces),&
-           LIMV2OLD(nphase,ncv_faces),&
-           LIMVDOLD(nphase,ncv_faces),&
-           LIMVDTOLD(nphase,ncv_faces),&
-           LIMVDTT2OLD(nphase,ncv_faces),&
-           NDOTQCOLD(nphase,ncv_faces,ncomp),&
-           LIMCOLD(nphase,ncv_faces,ncomp),&
-           LIMC2OLD(nphase,ncv_faces,ncomp),&
-           LIMCDOLD(nphase,ncv_faces,ncomp),&
-           LIMCDTOLD(nphase,ncv_faces,ncomp),&
-           LIMCDTT2OLD(nphase,ncv_faces,ncomp))
-
 
 !!$
 !!$ Initialising Robin boundary conditions --  this still need to be defined in the schema:
@@ -2018,14 +1997,6 @@ deallocate(NDOTQOLD,&
                PhaseVolumeFraction_backup, Component_backup&
                , Velocity_W_backup, Pressure_FEM_backup,&
                 Density_Component_backup, Density_Cp_backup)
-
-        deallocate(NDOTQOLD,&
-             NDOTQVOLD,LIMTOLD,LIMT2OLD,&
-             LIMDOLD,LIMDTOLD,LIMDTT2OLD,&
-             LIMVOLD,LIMV2OLD,LIMVDOLD,&
-             LIMVDTOLD,LIMVDTT2OLD,NDOTQCOLD,&
-             LIMCOLD,LIMC2OLD,LIMCDOLD,&
-             LIMCDTOLD,LIMCDTT2OLD)
 
         call finalise_multistate(packed_state,multiphase_state,&
              multicomponent_state)
