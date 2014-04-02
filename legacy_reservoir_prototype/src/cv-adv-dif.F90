@@ -325,6 +325,7 @@ contains
       REAL, DIMENSION( : ), allocatable :: SHAPE_CV_SNL
       REAL, DIMENSION( :, :, : ), allocatable :: DTX_ELE,DTY_ELE,DTZ_ELE,  &
            DTOLDX_ELE,DTOLDY_ELE,DTOLDZ_ELE, DUMMY_ZERO_NDIM_NDIM_NPHASE
+      REAL, DIMENSION( :, :, :, : ), allocatable :: DTX_ELE_ALL, DTOLDX_ELE_ALL
       REAL, pointer, DIMENSION( :, :, : ) :: INV_JAC
       real, pointer, dimension( : ) :: SCVDETWEI, SCVRA
       real, pointer, dimension( :, :, : ) :: SCVFENX_ALL
@@ -337,7 +338,6 @@ contains
       REAL, DIMENSION( :, : ), allocatable :: SLOC_SUF_F_BC
       REAL, DIMENSION( : ), allocatable :: FUPWIND_IN, FUPWIND_OUT, FVF, LIMF, F_INCOME, F_NDOTQ
       INTEGER, DIMENSION( :, : ), allocatable :: WIC_T_BC_ALL, WIC_D_BC_ALL, WIC_T2_BC_ALL
-      REAL, DIMENSION( :, :, :, : ), allocatable :: DTX_ELE_ALL, DTOLDX_ELE_ALL
 
 ! NPHASE Variables: 
       REAL, DIMENSION( : ), allocatable :: DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX, &
@@ -733,6 +733,10 @@ contains
       ALLOCATE( DTOLDY_ELE( CV_NLOC, NPHASE,TOTELE ))
       ALLOCATE( DTOLDZ_ELE( CV_NLOC, NPHASE,TOTELE ))
 
+      ALLOCATE( DTX_ELE_ALL( NDIM, NPHASE, CV_NLOC, TOTELE ))
+      ALLOCATE( DTOLDX_ELE_ALL( NDIM, NPHASE, CV_NLOC, TOTELE ))
+
+
       IGETCT = 0
       IF ( GETCT ) IGETCT = 1
 
@@ -756,7 +760,7 @@ contains
       ALLOCATE(  WIC_U_BC_ALL( NDIM, NPHASE, STOTEL ) )
       ALLOCATE( SUF_T_BC_ALL( NPHASE, CV_SNLOC, STOTEL ), SUF_D_BC_ALL( NPHASE, CV_SNLOC, STOTEL ) )
       ALLOCATE( SUF_T_BC_ROB1_ALL( NPHASE, CV_SNLOC, STOTEL ), SUF_T_BC_ROB2_ALL( NPHASE, CV_SNLOC, STOTEL ) )
-      ALLOCATE( SUF_U_BC_ALL( NDIM, NPHASE, CV_SNLOC, STOTEL ) )
+      ALLOCATE( SUF_U_BC_ALL( NDIM, NPHASE, U_SNLOC, STOTEL ) )
 
 !      ALLOCATE( WIC_T2_BC_ALL( NPHASE, STOTEL ) )
       ALLOCATE( SUF_T2_BC_ALL( NPHASE, CV_SNLOC, STOTEL ) )
@@ -1179,31 +1183,20 @@ contains
            NCOLELE, FINELE, COLELE, CV_NLOC, CV_SNLOC, CV_NONODS, CV_NDGLN, CV_SNDGLN, &
            CV_SLOCLIST, X_NLOC, X_NDGLN )
 
-      IF( GOT_DIFFUS ) THEN
-         CALL DG_DERIVS( FEMT, FEMTOLD, &
-              DTX_ELE, DTY_ELE, DTZ_ELE, DTOLDX_ELE, DTOLDY_ELE, DTOLDZ_ELE, &
+
+      IF ( GOT_DIFFUS ) THEN
+         CALL DG_DERIVS_ALL2( FEMT_ALL, FEMTOLD_ALL, &
+              DTX_ELE_ALL, DTOLDX_ELE_ALL, &
               NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, &
-              X_NDGLN, X_NLOC, X_NDGLN, &
-              CV_NGI_SHORT, CV_NLOC, CVWEIGHT_SHORT, &
+              X_NDGLN, X_NLOC, X_NDGLN,&
+              CV_NGI, CV_NLOC, CVWEIGHT_SHORT, &
               CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
-              CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
-              X_NONODS, X_ALL(1,:), X_ALL(2,:), X_ALL(3,:),  &
-              NFACE, FACE_ELE, CV_SLOCLIST, CV_SLOCLIST, STOTEL, CV_SNLOC, CV_SNLOC, WIC_T_BC, SUF_T_BC, &
-              WIC_T_BC_DIRICHLET, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
+              CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &         
+              X_NONODS, X_ALL(1,:),X_ALL(2,:),X_ALL(3,:), &
+              NFACE, FACE_ELE, CV_SLOCLIST, CV_SLOCLIST, STOTEL, CV_SNLOC, CV_SNLOC, WIC_T_BC_ALL, SUF_T_BC_ALL, &
+              SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
               SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
-              state, "CV", StorageIndexes(16) )
-
-          ALLOCATE(  DTX_ELE_ALL(NDIM, NPHASE, CV_NLOC, TOTELE) , DTOLDX_ELE_ALL(NDIM, NPHASE, CV_NLOC, TOTELE)   )  
-          DO ELE=1,TOTELE
-             DO IPHASE=1,NPHASE
-                DO CV_ILOC=1,CV_NLOC
-                   DTX_ELE_ALL(1,IPHASE,CV_ILOC,ELE)   =DTX_ELE(CV_ILOC, IPHASE, TOTELE)
-     IF(NDIM.GE.2) DTX_ELE_ALL(2,IPHASE,CV_ILOC,ELE)   =DTY_ELE(CV_ILOC, IPHASE, TOTELE)
-     IF(NDIM.GE.3) DTX_ELE_ALL(3,IPHASE,CV_ILOC,ELE)   =DTZ_ELE(CV_ILOC, IPHASE, TOTELE)
-                END DO
-             END DO
-          END DO
-
+              state, "CVN", StorageIndexes( 33 ) )
       END IF
 
 
@@ -4731,7 +4724,7 @@ contains
 
   SUBROUTINE DG_DERIVS_ALL2( FEMT, FEMTOLD, &
        DTX_ELE, DTOLDX_ELE, &
-       NDIM, NPHASE, NCOMP, CV_NONODS, TOTELE, CV_NDGLN, &
+       NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, &
        XCV_NDGLN, X_NLOC, X_NDGLN,&
        CV_NGI, CV_NLOC, CVWEIGHT, &
        N, NLX, NLY, NLZ, &
@@ -4740,7 +4733,7 @@ contains
        NFACE, FACE_ELE, CV_SLOCLIST, X_SLOCLIST, STOTEL, CV_SNLOC, X_SNLOC, WIC_T_BC, SUF_T_BC, &
        SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBWEIGH, &
        X_SBCVFEN, X_SBCVFENSLX, X_SBCVFENSLY,&
-      state, StorName, StorageIndexes  )
+       state, StorName, StorageIndexes  )
 
     ! determine FEMT (finite element wise) etc from T (control volume wise)
     use shape_functions
@@ -4748,8 +4741,8 @@ contains
     use matrix_operations
     IMPLICIT NONE
 
-    INTEGER, intent( in ) :: NDIM, NPHASE, NCOMP,CV_NONODS, TOTELE, X_NLOC, CV_NGI, CV_NLOC, &
-         X_NONODS, STOTEL, CV_SNLOC, X_SNLOC, SBCVNGI, NFACE
+    INTEGER, intent( in ) :: NDIM, NPHASE, CV_NONODS, TOTELE, X_NLOC, CV_NGI, CV_NLOC, &
+         &                   X_NONODS, STOTEL, CV_SNLOC, X_SNLOC, SBCVNGI, NFACE
     REAL, DIMENSION( :, : ), intent( in ) :: FEMT, FEMTOLD
     REAL, DIMENSION( :, :, :, : ), intent( inout ) :: DTX_ELE, DTOLDX_ELE
     INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
@@ -4769,7 +4762,9 @@ contains
     REAL, DIMENSION( : ), intent( in ) :: SBWEIGH
     type( state_type ), dimension( : ), intent( inout ) :: state
     character(len=*), intent(in) :: StorName
-    integer, dimension(:), intent(inout) :: StorageIndexes
+    !integer, dimension(:), intent(inout) :: StorageIndexes
+    integer, intent(inout) :: StorageIndexes
+
     ! Local variables
     REAL, DIMENSION( :, :, : ), ALLOCATABLE :: MASELE
     REAL, DIMENSION( :, :, :, : ), ALLOCATABLE :: VTX_ELE, VTOLDX_ELE
@@ -4796,10 +4791,7 @@ contains
     ALLOCATE( VTX_ELE( NDIM, NPHASE, CV_NLOC, TOTELE ) )
     ALLOCATE( VTOLDX_ELE( NDIM, NPHASE, CV_NLOC, TOTELE ) )
 
-    MASELE = 0.0
-    VTX_ELE = 0.0
-
-    VTOLDX_ELE = 0.0
+    MASELE = 0.0 ; VTX_ELE = 0.0 ; VTOLDX_ELE = 0.0
 
     D1 = ( NDIM == 1 )
     D3 = ( NDIM == 3 )
@@ -4813,7 +4805,7 @@ contains
             X_N, X_NLX, X_NLY, X_NLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
             X_NX_ALL, &
             CV_NLOC, NLX, NLY, NLZ, NX_ALL&
-            , state,StorName , StorageIndexes(23) )
+            , state,StorName , StorageIndexes )
 
        Loop_CV_ILOC: DO CV_ILOC = 1, CV_NLOC
 
@@ -4834,7 +4826,7 @@ contains
                      + NNX (:) * FEMT( IPHASE, CV_NODJ )
 
                 VTOLDX_ELE( :, IPHASE, CV_ILOC, ELE ) = &
-                     VTX_ELE( :, IPHASE, CV_ILOC, ELE ) &
+                     VTOLDX_ELE( :, IPHASE, CV_ILOC, ELE ) &
                      + NNX (:) * FEMTOLD( IPHASE, CV_NODJ )
              END DO
 
@@ -4883,7 +4875,7 @@ contains
              DO CV_SILOC = 1, CV_SNLOC
                 CV_ILOC = SLOC2LOC( CV_SILOC )
                 CV_INOD = XCV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_ILOC )
-
+                
                 DO CV_ILOC2 = 1, CV_NLOC
                    CV_INOD2 = XCV_NDGLN(( ELE2 - 1 ) * CV_NLOC + CV_ILOC2 )
 
@@ -4896,6 +4888,8 @@ contains
           ELSE
              APPLYBC = ( WIC_T_BC( :, SELE2 ) == WIC_T_BC_DIRICHLET )
           END IF
+
+
 
           DO CV_SILOC = 1, CV_SNLOC
              CV_ILOC = SLOC2LOC( CV_SILOC )
@@ -4921,12 +4915,12 @@ contains
                 ! add diffusion term...
                 DO IPHASE = 1, NPHASE
                    IF ( APPLYBC( IPHASE ) ) THEN
-                  
-                      VTX_ELE(:, IPHASE, CV_ILOC, ELE ) = &
+
+                      VTX_ELE( :, IPHASE, CV_ILOC, ELE ) = &
                            VTX_ELE( :, IPHASE, CV_ILOC, ELE ) &
                            - VLM_NORX(:) * 0.5 * ( FEMT( IPHASE, CV_NODJ ) - FEMT( IPHASE, CV_NODJ2 ) * NRBC )
                       VTOLDX_ELE( :, IPHASE, CV_ILOC, ELE ) = &
-                           VTX_ELE( :, IPHASE, CV_ILOC, ELE ) &
+                           VTOLDX_ELE( :, IPHASE, CV_ILOC, ELE ) &
                            - VLM_NORX(:) * 0.5 * ( FEMTOLD( IPHASE, CV_NODJ ) - FEMTOLD( IPHASE, CV_NODJ2 ) * NRBC )
 
                       IF ( SELE2 /= 0 ) THEN
