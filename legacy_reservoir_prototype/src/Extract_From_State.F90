@@ -2050,6 +2050,8 @@
       type(element_type) :: overlapping_shape
       character( len = option_path_len ) :: vel_element_type
 
+      logical :: has_density, has_phase_volume_fraction
+
       ncomp=option_count('/material_phase/is_multiphase_component')
       nphase=size(state)-ncomp
       position=>extract_vector_field(state(1),"Coordinate")
@@ -2088,24 +2090,28 @@
            shape=velocity%mesh%shape,&
            continuity=1,name="VelocityMesh_Continuous")
       call insert(packed_state,ovmesh,"VelocityMesh_Continuous")
+      if ( .not. has_mesh(state(1),"VelocityMesh_Continuous") ) &
+           call insert(state(1),ovmesh,"VelocityMesh_Continuous")
       call allocate(u_position,ndim,ovmesh,"VelocityCoordinate")
       ovmesh=make_mesh(position%mesh,&
            shape=pressure%mesh%shape,&
            continuity=1,name="PressureMesh_Continuous")
       call insert(packed_state,ovmesh,"PressureMesh_Continuous")
-    
+      if ( .not. has_mesh(state(1),"PressureMesh_Continuous") ) &
+           call insert(state(1),ovmesh,"PressureMesh_Continuous")
 
       call allocate(p_position,ndim,ovmesh,"PressureCoordinate")
       ovmesh=make_mesh(position%mesh,&
            shape=pressure%mesh%shape,&
-           continuity=-1,name="PressureMesh_Discontinuous")
+           continuity=-11,name="PressureMesh_Discontinuous")
       call insert(packed_state,ovmesh,"PressureMesh_Discontinuous")
       if ( .not. has_mesh(state(1),"PressureMesh_Discontinuous") ) &
            call insert(state(1),ovmesh,"PressureMesh_Discontinuous")
-      call allocate(m_position,ndim,ovmesh,"MaterialCoordinate")
+      call allocate(m_position,ndim,ovmesh,"MaterialCoordinate")    
+
       call remap_field( position, u_position )
       call remap_field( position, p_position )
-      call project_field( position, m_position, position )
+      call remap_field( position, m_position )
   
       call insert(packed_state,position,"Coordinate")
       call insert(packed_state,u_position,"VelocityCoordinate")
@@ -2114,6 +2120,9 @@
       call deallocate(p_position)
       call deallocate(u_position)
       call deallocate(m_position)
+
+      has_density=has_scalar_field(state(1),"Density")
+      has_phase_volume_fraction=has_scalar_field(state(1),"PhaseVolumeFraction")
 
       if (trim(vel_element_type)=='overlapping') then
          !overlapping
@@ -2170,10 +2179,18 @@
             icomp=icomp+1
             cycle
          else
-            call unpack_sfield(state(i),packed_state,"Density",1,iphase)
-            call unpack_sfield(state(i),packed_state,"OldDensity",1,iphase)
-            call unpack_sfield(state(i),packed_state,"IteratedDensity",1,iphase)
-            call insert(multi_state(1,iphase), extract_scalar_field(state(i),"Density"),"Density")
+
+            
+            if (has_density) then
+               call unpack_sfield(state(i),packed_state,"IteratedDensity",1,iphase,&
+                    check_paired(extract_scalar_field(state(i),"Density"),&
+                    extract_scalar_field(state(i),"IteratedDensity")))
+               call unpack_sfield(state(i),packed_state,"OldDensity",1,iphase,&
+                    check_paired(extract_scalar_field(state(i),"Density"),&
+                    extract_scalar_field(state(i),"OldDensity")))
+               call unpack_sfield(state(i),packed_state,"Density",1,iphase)
+               call insert(multi_state(1,iphase), extract_scalar_field(state(i),"Density"),"Density")
+            end if
 
             if(have_option(trim(state(i)%option_path)&
                  //'scalar_field::Temperature')) then
@@ -2184,15 +2201,20 @@
             end if
 
             
+            if(has_phase_volume_fraction) then
+               call unpack_sfield(state(i),packed_state,"PhaseVolumeFraction",1,iphase)
+               call unpack_sfield(state(i),packed_state,"OldPhaseVolumeFraction",1,iphase)
+               call unpack_sfield(state(i),packed_state,"IteratedPhaseVolumeFraction",1,iphase)
+               call insert(multi_state(1,iphase), extract_scalar_field(state(i),"PhaseVolumeFraction"),"PhaseVolumeFraction")
+            end if
 
-            call unpack_sfield(state(i),packed_state,"PhaseVolumeFraction",1,iphase)
-            call unpack_sfield(state(i),packed_state,"OldPhaseVolumeFraction",1,iphase)
-            call unpack_sfield(state(i),packed_state,"IteratedPhaseVolumeFraction",1,iphase)
-            call insert(multi_state(1,iphase), extract_scalar_field(state(i),"PhaseVolumeFraction"),"PhaseVolumeFraction")
-
+            call unpack_vfield(state(i),packed_state,"IteratedVelocity",iphase,&
+                 check_vpaired(extract_vector_field(state(i),"Velocity"),&
+                 extract_vector_field(state(i),"IteratedVelocity")))
+            call unpack_vfield(state(i),packed_state,"OldVelocity",iphase,&
+                 check_vpaired(extract_vector_field(state(i),"Velocity"),&
+                 extract_vector_field(state(i),"OldVelocity")))
             call unpack_vfield(state(i),packed_state,"Velocity",iphase)
-            call unpack_vfield(state(i),packed_state,"OldVelocity",iphase)
-            call unpack_vfield(state(i),packed_state,"IteratedVelocity",iphase)
             call insert(multi_state(1,iphase), extract_vector_field(state(i),"Velocity"),"Velocity")
 
             iphase=iphase+1
@@ -2372,15 +2394,22 @@
 
         end subroutine insert_vfield
 
-        subroutine unpack_sfield(nstate,mstate,name,icomp, iphase)
+        subroutine unpack_sfield(nstate,mstate,name,icomp, iphase,free)
           type(state_type), intent(inout) :: nstate, mstate
           character(len=*) :: name
           integer :: icomp,iphase, stat
+          logical, optional :: free 
 
-          
-          type(scalar_field), pointer :: nfield
+          type(scalar_field), pointer :: nfield, onfield
           type(tensor_field), pointer :: mfield
+          logical lfree
 
+
+          if (present(free)) then
+             lfree=free
+          else
+             lfree=.true.
+          end if
 
           mfield=>extract_tensor_field(mstate,"Packed"//name)
 
@@ -2389,7 +2418,7 @@
           if (icomp==1 .and. iphase == 1) then
              mfield%option_path=nfield%option_path
           end if
-          deallocate(nfield%val)
+          if(lfree) deallocate(nfield%val)
           nfield%val=>mfield%val(icomp,iphase,:)
           nfield%val_stride=ncomp*nphase
           nfield%wrapped=.true.
@@ -2397,15 +2426,23 @@
 
         end subroutine unpack_sfield
 
-        subroutine unpack_vfield(nstate,mstate,name,iphase)
+        subroutine unpack_vfield(nstate,mstate,name,iphase,free)
           type(state_type), intent(inout) :: nstate, mstate
           character(len=*) :: name
           integer :: iphase
+          logical, optional :: free 
 
           
           type(vector_field), pointer :: nfield
           type(tensor_field), pointer ::mfield
           integer :: ndim,rdim, nonods
+          logical lfree
+
+          if (present(free)) then
+             lfree=free
+          else
+             lfree=.true.
+          end if
 
           nfield=>extract_vector_field(nstate,name)
           mfield=>extract_tensor_field(mstate,"Packed"//name)
@@ -2414,11 +2451,13 @@
           if (icomp==1 .and. iphase == 1) then
              mfield%option_path=nfield%option_path
           end if
+          if (lfree) then
 #ifdef HAVE_MEMORY_STATS
-          call register_deallocation("vector_field", "real", &
-               size(nfield%val), name=nfield%name)
+             call register_deallocation("vector_field", "real", &
+                  size(nfield%val), name=nfield%name)
 #endif
-          deallocate(nfield%val)
+             deallocate(nfield%val)
+          end if
           nfield%val=>mfield%val(:,iphase,:)
           nfield%wrapped=.true.
 
@@ -2567,6 +2606,22 @@
           end do
 
        end subroutine allocate_multiphase_vector_bcs
+
+       function check_paired(sfield1,sfield2) result(unpaired)
+         type(scalar_field) :: sfield1,sfield2
+         logical unpaired
+
+         unpaired = .not. associated(sfield2%val,sfield1%val)
+
+       end function check_paired
+
+       function check_vpaired(vfield1,vfield2) result(unpaired)
+         type(vector_field) :: vfield1,vfield2
+         logical unpaired
+
+         unpaired = .not. associated(vfield2%val,vfield1%val)
+
+       end function check_vpaired
 
 
       end subroutine pack_multistate
