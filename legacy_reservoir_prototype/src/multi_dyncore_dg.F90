@@ -244,7 +244,7 @@ contains
             MEAN_PORE_CV, &
             SMALL_FINACV, SMALL_COLACV, size(small_colacv), mass_Mn_pres, THERMAL, &
             mass_ele_transp,&
-            StorageIndexes=StorageIndexes)
+            StorageIndexes=StorageIndexes, for_Sat=.false. )
 
 
 
@@ -491,7 +491,7 @@ contains
             MEAN_PORE_CV, &
             FINACv, COLACV, NCOLACV, ACV, THERMAL, &
             mass_ele_transp , &
-            StorageIndexes=StorageIndexes)
+            StorageIndexes=StorageIndexes, for_Sat=.false. )
 
         ELSE ! this is for DG...
 
@@ -1045,7 +1045,7 @@ contains
             MEAN_PORE_CV, &
             SMALL_FINACV, SMALL_COLACV, size(small_colacv), mass_Mn_pres, THERMAL, &
             mass_ele_transp,&
-            StorageIndexes=StorageIndexes)
+            StorageIndexes=StorageIndexes, for_Sat=.true.)
 
             satura=0.0 !saturaold([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)])
 
@@ -2152,7 +2152,7 @@ contains
         MEAN_PORE_CV, &
         FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL, &
         dummy_transp, &
-        StorageIndexes=StorageIndexes )
+        StorageIndexes=StorageIndexes, For_Sat=.false. )
 
         ewrite(3,*)'Back from cv_assemb'
 

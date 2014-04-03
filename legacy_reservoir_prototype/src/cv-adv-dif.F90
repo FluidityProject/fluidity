@@ -79,7 +79,7 @@ contains
          FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL, &
          MASS_ELE_TRANSP, &
          option_path_spatial_discretisation,&
-         StorageIndexes )
+         StorageIndexes, For_Sat )
 
       !  =====================================================================
       !     In this subroutine the advection terms in the advection-diffusion
@@ -255,7 +255,7 @@ contains
       REAL, DIMENSION( : ), intent( in ) :: SOURCT
       REAL, DIMENSION( :, :, : ), intent( in ) :: ABSORBT
       REAL, DIMENSION( : ), intent( in ) :: VOLFRA_PORE
-      LOGICAL, intent( in ) :: GETCV_DISC, GETCT, GET_THETA_FLUX, USE_THETA_FLUX, THERMAL
+      LOGICAL, intent( in ) :: GETCV_DISC, GETCT, GET_THETA_FLUX, USE_THETA_FLUX, THERMAL, For_Sat
       INTEGER, DIMENSION( : ), intent( in ) :: FINDM
       INTEGER, DIMENSION( : ), intent( in ) :: COLM
       INTEGER, DIMENSION( : ), intent( in ) :: MIDM
@@ -269,6 +269,7 @@ contains
       character( len = * ), intent( in ), optional :: option_path_spatial_discretisation
       integer, dimension(:), intent(in) :: SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM
       integer, dimension(:), intent(inout) :: StorageIndexes
+
       !character( len = option_path_len ), intent( in ), optional :: option_path_spatial_discretisation
 
 
@@ -793,9 +794,6 @@ contains
       SUF_T2_BC_ALL=0. ; SUF_T2_BC_ROB1_ALL=0. ; SUF_T2_BC_ROB2_ALL=0.
 
 
-      ! this should be u and not nu...
-      U_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedNonlinearVelocity" )
-      U_ALL = U_s % val
 
       NU_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedNonlinearVelocity" )
       NU_ALL = NU_s % val
@@ -803,6 +801,9 @@ contains
       NUOLD_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldNonlinearVelocity" )
       NUOLD_ALL = NUOLD_s % val
 
+      U_ALL = NU_ALL
+      U_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedVelocity" )
+      if ( for_Sat ) U_ALL = U_s % val
 
       ALLOCATE( U( NPHASE * U_NONODS ) ) ; U=0.0
       ALLOCATE( V( NPHASE * U_NONODS ) ) ; V=0.0
