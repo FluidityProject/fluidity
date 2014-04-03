@@ -1149,11 +1149,6 @@ contains
          NSMALL_COLM = 1
       ELSE
          NSMALL_COLM = SIZE( SMALL_COLM )
-        !######TEMPORARY ALLOCATING OLD VARIABLES####
-         ALLOCATE( TUPWIND_MAT( NSMALL_COLM*NPHASE ), TOLDUPWIND_MAT( NSMALL_COLM*NPHASE ), &
-              DENUPWIND_MAT( NSMALL_COLM*NPHASE ), DENOLDUPWIND_MAT( NSMALL_COLM*NPHASE ) )
-         ALLOCATE( T2UPWIND_MAT( NSMALL_COLM*NPHASE*IGOT_T2 ), T2OLDUPWIND_MAT( NSMALL_COLM*NPHASE*IGOT_T2 ) )
-         !######TEMPORARY ALLOCATING OLD VARIABLES####
 
           ALLOCATE( TUPWIND_MAT_ALL( NPHASE, NSMALL_COLM ), TOLDUPWIND_MAT_ALL( NPHASE, NSMALL_COLM ), &
               DENUPWIND_MAT_ALL( NPHASE, NSMALL_COLM ), DENOLDUPWIND_MAT_ALL( NPHASE, NSMALL_COLM ) )
@@ -1177,6 +1172,11 @@ contains
 
     !#############CONVERSION FROM NEW VARIABLES TO OLD VARIABLES############
         !###UPWIND VALUES###
+        !######TEMPORARY ALLOCATING OLD VARIABLES####
+         ALLOCATE( TUPWIND_MAT( NSMALL_COLM*NPHASE ), TOLDUPWIND_MAT( NSMALL_COLM*NPHASE ), &
+              DENUPWIND_MAT( NSMALL_COLM*NPHASE ), DENOLDUPWIND_MAT( NSMALL_COLM*NPHASE ) )
+         ALLOCATE( T2UPWIND_MAT( NSMALL_COLM*NPHASE*IGOT_T2 ), T2OLDUPWIND_MAT( NSMALL_COLM*NPHASE*IGOT_T2 ) )
+         !######TEMPORARY ALLOCATING OLD VARIABLES####
       DO CV_INOD = 1, NSMALL_COLM
           DO IPHASE = 1, NPHASE
               TUPWIND_MAT(CV_INOD + ( IPHASE - 1 ) * CV_NONODS) = TUPWIND_MAT_ALL(IPHASE, CV_INOD)
@@ -1209,10 +1209,6 @@ contains
       end if
 
     !########################################################
-
-
-
-
 
 
 ! make sure the diagonal is equal to the value: 
@@ -12170,79 +12166,6 @@ CONTAINS
     INTEGER, DIMENSION( : ), intent( in) :: SMALL_CENTRM
     REAL, DIMENSION( : ), intent( in ) :: XC_CV, YC_CV, ZC_CV
 
-!    REAL, DIMENSION(:), ALLOCATABLE :: SOL
-    !
-    !    ! Allocate memory
-    !    INTEGER :: COUNT, COUNT2, CV_NOD
-    !
-    !    !####TEMPORARY VARIABLES TO CONVERT FROM NEW TO OLD########
-    !    real, dimension(size(TUPWIND_MAT_ALL,1)*size(TUPWIND_MAT_ALL,2)) :: TUPWIND_MAT,&
-    !         TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT
-    !    real, dimension(size(DEN_ALL,1)* size(DEN_ALL,2)) :: DEN, DENOLD, T, TOLD, T2, T2OLD
-    !    real, dimension(size(FEMT_ALL,1)*size(FEMT_ALL, 2)) :: FEMT, FEMTOLD,&
-    !         FEMDEN, FEMDENOLD, FEMT2, FEMT2OLD
-    !    real, dimension(size(X_ALL,2)) :: X, Y, Z
-    !    integer :: k, CV_INOD, IPHASE
-
-    !    !#############CONVERSION FROM NEW VARIABLES TO OLD VARIABLES############
-    !    do k = 1, size(X_ALL,2)
-    !        select case (size(X_ALL,1))
-    !            case (1)
-    !                X(k) = X_ALL(1,k)
-    !            case (2)
-    !                X(k) = X_ALL(1,k)
-    !                Y(k) = X_ALL(2,k)
-    !            case(3)
-    !                X(k) = X_ALL(1,k)
-    !                Y(k) = X_ALL(2,k)
-    !                Z(k) = X_ALL(3, k)
-    !        end select
-    !    end do
-    !        !###UPWIND VALUES###
-    !      DO CV_INOD = 1, NSMALL_COLM
-    !          DO IPHASE = 1, NPHASE
-    !              TUPWIND_MAT(CV_INOD + ( IPHASE - 1 ) * CV_NONODS) = TUPWIND_MAT_ALL(IPHASE, CV_INOD)
-    !              TOLDUPWIND_MAT(CV_INOD + ( IPHASE - 1 ) * CV_NONODS) = TOLDUPWIND_MAT_ALL(IPHASE, CV_INOD)
-    !              DENUPWIND_MAT(CV_INOD + ( IPHASE - 1 ) * CV_NONODS) = DENUPWIND_MAT_ALL(IPHASE, CV_INOD)
-    !              DENOLDUPWIND_MAT(CV_INOD + ( IPHASE - 1 ) * CV_NONODS) = DENOLDUPWIND_MAT_ALL(IPHASE, CV_INOD)
-    !              IF ( IGOT_T2 == 1 ) THEN
-    !                  T2UPWIND_MAT(CV_INOD + ( IPHASE - 1 ) * CV_NONODS) = T2UPWIND_MAT_ALL(IPHASE, CV_INOD)
-    !                  T2OLDUPWIND_MAT(CV_INOD + ( IPHASE - 1 ) * CV_NONODS) = T2OLDUPWIND_MAT_ALL(IPHASE, CV_INOD)
-    !              end if
-    !          end do
-    !      end do
-    !
-    !      !###DENSITY AND SATURATION VALUES###
-    !      DO IPHASE = 1, NPHASE
-    !         DEN( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS ) = DEN_ALL( IPHASE, : )
-    !         DENOLD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS ) = DENOLD_ALL( IPHASE, : )
-    !         T( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS ) = T_ALL( IPHASE, : )
-    !         TOLD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS ) = TOLD_ALL( IPHASE, : )
-    !         IF ( IGOT_T2 == 1 ) THEN
-    !            T2( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS ) = T2_ALL( IPHASE, : )
-    !             T2OLD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS ) = T2OLD_ALL( IPHASE, : )
-    !         END IF
-    !      END DO
-    !
-    !       !###FEM VALUES###
-    !      DO CV_INOD = 1, CV_NONODS
-    !          DO IPHASE = 1, NPHASE
-    !              FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT_ALL( IPHASE, CV_INOD)
-    !              FEMTOLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMTOLD_ALL( IPHASE, CV_INOD)
-    !              FEMDEN( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMDEN_ALL( IPHASE, CV_INOD)
-    !              FEMDENOLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMDENOLD_ALL( IPHASE, CV_INOD)
-    !          END DO
-    !      END DO
-    !      if (IGOT_T2>0) then
-    !          DO CV_INOD = 1, CV_NONODS
-    !              DO IPHASE = 1, NPHASE
-    !                  FEMT2( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT2_ALL( IPHASE, CV_INOD)
-    !                  FEMT2OLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT2OLD_ALL( IPHASE, CV_INOD)
-    !              END DO
-    !          END DO
-    !      end if
-
-    !########################################################
 
     !Find upwind field values for limiting
     CALL CALC_ANISOTROP_LIM_VALS( T_ALL, FEMT_ALL, USE_FEMT, TUPWIND_MAT_ALL,  &
@@ -12272,71 +12195,6 @@ CONTAINS
         SMALL_COLM,NSMALL_COLM, X_NDGLN,X_NONODS,NDIM, X_ALL, XC_CV, YC_CV, ZC_CV )
 
     END IF
-
-
-    ! Allocate memory and find upwind field values for limiting...
-!    IF(IGOT_T2.NE.0) THEN
-!       allocate( sol( 6*nsmall_colm*nphase) )
-!       sol = (/TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT/)
-!
-!       ! Obtain the weights
-!       CALL CALC_ANISOTROP_LIM_VALS( &
-!            ! Caculate the upwind values stored in matrix form...
-!            (/T,TOLD,DEN,DENOLD,T2,T2OLD/), &
-!            (/FEMT,FEMTOLD,FEMDEN,FEMDENOLD,FEMT2,FEMT2OLD/), USE_FEMT, &
-!            SOL,  &
-!            NPHASE*6,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, &
-!            SMALL_FINDRM,SMALL_COLM,NSMALL_COLM, &
-!            X_NDGLN,X_NONODS,NDIM, &
-!            X,Y,Z, XC_CV, YC_CV, ZC_CV )
-!
-!       TUPWIND_MAT = sol( 1 : nsmall_colm*nphase )
-!       TOLDUPWIND_MAT= sol( 1+nsmall_colm*nphase : 2*nsmall_colm*nphase )
-!       DENUPWIND_MAT = sol( 1+2*nsmall_colm*nphase : 3*nsmall_colm*nphase )
-!       DENOLDUPWIND_MAT = sol(1+3*nsmall_colm*nphase : 4*nsmall_colm*nphase )
-!       T2UPWIND_MAT = sol( 1+4*nsmall_colm*nphase : 5*nsmall_colm*nphase )
-!       T2OLDUPWIND_MAT = sol( 1+5*nsmall_colm*nphase : 6*nsmall_colm*nphase )
-!
-!       deallocate( sol )
-!    ELSE
-!       allocate( sol( 4*nsmall_colm*nphase ) )
-!       sol = (/TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, DENOLDUPWIND_MAT/)
-!
-!       CALL CALC_ANISOTROP_LIM_VALS( &
-!            ! Calculate the upwind values stored in matrix form...
-!            (/T,TOLD,DEN,DENOLD/),&
-!            (/FEMT,FEMTOLD,FEMDEN,FEMDENOLD/), USE_FEMT, &
-!            SOL,  &
-!            NPHASE*4,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, &
-!            SMALL_FINDRM,SMALL_COLM,NSMALL_COLM, &
-!            X_NDGLN,X_NONODS,NDIM, &
-!            X,Y,Z, XC_CV, YC_CV, ZC_CV )
-!
-!       TUPWIND_MAT = sol( 1 : nsmall_colm*nphase )
-!       TOLDUPWIND_MAT = sol( 1 + nsmall_colm*nphase : 2*nsmall_colm*nphase )
-!       DENUPWIND_MAT = sol( 1+2*nsmall_colm*nphase : 3*nsmall_colm*nphase )
-!       DENOLDUPWIND_MAT = sol( 1+3*nsmall_colm*nphase : 4*nsmall_colm*nphase )
-!       deallocate( sol )
-!    ENDIF
-
-
-
-
-    !#############CONVERSION FROM OLD VARIABLES TO NEW VARIABLES############
-        !###UPWIND VALUES###
-!      DO CV_INOD = 1, NSMALL_COLM
-!          DO IPHASE = 1, NPHASE
-!              TUPWIND_MAT_ALL(IPHASE, CV_INOD) = TUPWIND_MAT(CV_INOD + ( IPHASE - 1 ) * CV_NONODS)
-!              TOLDUPWIND_MAT_ALL(IPHASE, CV_INOD) = TOLDUPWIND_MAT(CV_INOD + ( IPHASE - 1 ) * CV_NONODS)
-!              DENUPWIND_MAT_ALL(IPHASE, CV_INOD) = DENUPWIND_MAT(CV_INOD + ( IPHASE - 1 ) * CV_NONODS)
-!              DENOLDUPWIND_MAT_ALL(IPHASE, CV_INOD) = DENOLDUPWIND_MAT(CV_INOD + ( IPHASE - 1 ) * CV_NONODS)
-!              IF ( IGOT_T2 == 1 ) THEN
-!                  T2UPWIND_MAT_ALL(IPHASE, CV_INOD) = T2UPWIND_MAT(CV_INOD + ( IPHASE - 1 ) * CV_NONODS)
-!                  T2OLDUPWIND_MAT_ALL(IPHASE, CV_INOD) = T2OLDUPWIND_MAT(CV_INOD + ( IPHASE - 1 ) * CV_NONODS)
-!              end if
-!          end do
-!      end do
-!    !########################################################
 
   END SUBROUTINE CALC_ANISOTROP_LIM
 
@@ -12585,9 +12443,6 @@ CONTAINS
     INTEGER MXNCOLEL,NCOLEL,adapt_time_steps
     REAL current_time
 
-    !############TEMPORARY LOCAL VARIABLE#############
-    real, dimension(size(TUPWIND_ALL,2),size(TUPWIND_ALL,1)) :: TUPWIND_AUX
-    !#############################################
     ! Over-estimate the size of the COLELE array
     MXNCOLEL=20*TOTELE+500
 
@@ -12608,10 +12463,10 @@ CONTAINS
        ALLOCATE( ELEMATPSI( NCOLM ) )
        ALLOCATE( ELEMATWEI( NCOLM * NLOC ) )
 
-       CALL FINPTSSTORE(transpose(T_ALL),transpose(FEMT_ALL),USE_FEMT,NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
-            TUPWIND_AUX,FINDRM,COLM,NCOLM,NDIM, &
+       CALL FINPTSSTORE(T_ALL,FEMT_ALL,USE_FEMT,NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
+            TUPWIND_ALL,FINDRM,COLM,NCOLM,NDIM, &
             X_NDGLN,X_NONODS, &
-            X_ALL(1,:),X_ALL(2,:),X_ALL(3,:), XC_CV, YC_CV, ZC_CV,&
+            X_ALL, XC_CV, YC_CV, ZC_CV,&
             N,NLX,NLY,NLZ, WEIGHT, &
             NOD_FINDELE,NOD_COLELE,NCOLEL, &
             ELEMATPSI,ELEMATWEI,1, &
@@ -12621,8 +12476,8 @@ CONTAINS
        
        ! Find the weights for the interpolation
        ! This does depend on the solns T when BOUND...
-       CALL GETSTOREELEWEI(transpose(T_ALL),NFIELD,NONODS,NLOC,TOTELE,NDGLNO, &
-            TUPWIND_AUX,FINDRM,COLM,NCOLM,BOUND, &
+       CALL GETSTOREELEWEI(T_ALL,NFIELD,NONODS,NLOC,TOTELE,NDGLNO, &
+            TUPWIND_ALL,FINDRM,COLM,NCOLM,BOUND, &
             ELEMATPSI,ELEMATWEI)
 
     ELSE 
@@ -12631,10 +12486,10 @@ CONTAINS
        ALLOCATE(DUMMYINT(NCOLM))
        ALLOCATE(DUMMYREAL(NCOLM*NLOC))
 
-       CALL FINPTSSTORE(transpose(T_ALL),transpose(FEMT_ALL),USE_FEMT,NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
-            TUPWIND_AUX,FINDRM,COLM,NCOLM,NDIM, &
+       CALL FINPTSSTORE(T_ALL,FEMT_ALL,USE_FEMT,NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
+            TUPWIND_ALL,FINDRM,COLM,NCOLM,NDIM, &
             X_NDGLN,X_NONODS, &
-            X_ALL(1,:),X_ALL(2,:),X_ALL(3,:), XC_CV, YC_CV, ZC_CV,&
+            X_ALL, XC_CV, YC_CV, ZC_CV,&
             N,NLX,NLY,NLZ, WEIGHT, &
             NOD_FINDELE,NOD_COLELE,NCOLEL, &
             DUMMYINT,DUMMYREAL,0, &
@@ -12643,9 +12498,6 @@ CONTAINS
        DEALLOCATE(DUMMYINT,DUMMYREAL) 
 
     ENDIF
-!#####TEMPORARY####
-TUPWIND_ALL = transpose(TUPWIND_AUX)
-!#################
 
     store_ele = .false. ; ret_store_ele = .true.
     if( have_option( '/mesh_adaptivity/hr_adaptivity') ) then
@@ -12668,8 +12520,8 @@ TUPWIND_ALL = transpose(TUPWIND_AUX)
   END SUBROUTINE CALC_ANISOTROP_LIM_VALS2
 
 
-  SUBROUTINE GETSTOREELEWEI(PSI,NFIELD,NONODS,NLOC,TOTELE,NDGLNO, &
-       &     MATPSI,FINDRM,COLM,NCOLM,BOUND,&
+  SUBROUTINE GETSTOREELEWEI(PSI_ALL,NFIELD,NONODS,NLOC,TOTELE,NDGLNO, &
+       &     MATPSI_ALL,FINDRM,COLM,NCOLM,BOUND,&
        &     ELEMATPSI,ELEMATWEI)
     ! use the stored interpolation coeffs to caclulate MATPSI.
     !     This sub finds the matrix values MATPSI for a given point on the 
@@ -12679,12 +12531,12 @@ TUPWIND_ALL = transpose(TUPWIND_AUX)
     LOGICAL BOUND
     PARAMETER(FRALINE=0.001)
     INTEGER, intent(in) :: NFIELD,NONODS,NLOC,TOTELE,NDGLNO(TOTELE*NLOC)
-    REAL, DIMENSION(NONODS*NFIELD), INTENT(IN) :: PSI
+    REAL, DIMENSION(:,:), INTENT(IN) :: PSI_ALL
     INTEGER, INTENT(IN) :: NCOLM
-    INTEGER, DIMENSION(NONODS+1), INTENT(IN) :: FINDRM
-    INTEGER, DIMENSION(NCOLM), INTENT(IN) :: COLM
-    REAL, DIMENSION(NCOLM*NFIELD), INTENT(INOUT) :: MATPSI
-    INTEGER, DIMENSION(NCOLM), INTENT(IN) :: ELEMATPSI
+    INTEGER, DIMENSION(:), INTENT(IN) :: FINDRM
+    INTEGER, DIMENSION(:), INTENT(IN) :: COLM
+    REAL, DIMENSION(:,:), INTENT(INOUT) :: MATPSI_ALL
+    INTEGER, DIMENSION(:), INTENT(IN) :: ELEMATPSI
     REAL, DIMENSION(NCOLM*NLOC),  INTENT(IN) ::  ELEMATWEI
     !  LOCAL VARIABLES...
     INTEGER NOD,COUNT,ELEWIC,ILOC,INOD,IFIELD
@@ -12698,11 +12550,10 @@ TUPWIND_ALL = transpose(TUPWIND_AUX)
        ALLOCATE( MAXPSI( TOTELE*NFIELD ) )
 
        ! find the max and min local to each element...
-       CALL MINMAXELEWIC( PSI,NFIELD,NONODS,NLOC,TOTELE,NDGLNO, &
+       CALL MINMAXELEWIC( PSI_ALL,NFIELD,NONODS,NLOC,TOTELE,NDGLNO, &
             &     FINDRM,COLM,NCOLM,&
             &     MINPSI,MAXPSI )
     end if
-
     do NOD = 1, NONODS
        do COUNT=FINDRM(NOD),FINDRM(NOD+1)-1
           IF(NOD.NE.COLM(COUNT)) THEN
@@ -12711,19 +12562,19 @@ TUPWIND_ALL = transpose(TUPWIND_AUX)
                 RMATPSI=0.0
                 DO ILOC = 1, NLOC
                    INOD = NDGLNO( (ELEWIC-1)*NLOC + ILOC )
-                   RMATPSI = RMATPSI + ELEMATWEI( (COUNT-1)*NLOC+ILOC) * PSI(INOD+(IFIELD-1)*NONODS)
+                   RMATPSI = RMATPSI + ELEMATWEI( (COUNT-1)*NLOC+ILOC) * PSI_ALL(IFIELD,INOD)
                 END DO
 
-                RMATPSI   =PSI(NOD+(IFIELD-1)*NONODS)   &
-                     +(1./FRALINE)*(RMATPSI   -PSI(NOD+(IFIELD-1)*NONODS))
+                RMATPSI   =PSI_ALL(IFIELD,NOD)   &
+                     +(1./FRALINE)*(RMATPSI   -PSI_ALL(IFIELD,NOD))
 
                 ! make locally bounded...
                 if ( bound ) then
-                   MATPSI(COUNT+(IFIELD-1)*NCOLM)   &
+                   MATPSI_ALL(IFIELD, COUNT)   &
                         =MAX(MIN(RMATPSI,   MAXPSI(ELEWIC+(IFIELD-1)*TOTELE)),   &
                         &                            MINPSI(ELEWIC+(IFIELD-1)*TOTELE))
                 else
-                   MATPSI(COUNT+(IFIELD-1)*NCOLM)   =RMATPSI
+                   MATPSI_ALL(IFIELD, COUNT)   =RMATPSI
                 end if
              END DO
           END IF
@@ -12734,14 +12585,14 @@ TUPWIND_ALL = transpose(TUPWIND_AUX)
 
   end subroutine getstoreelewei
 
-  SUBROUTINE MINMAXELEWIC(PSI,NFIELD,NONODS,NLOC,TOTELE,NDGLNO, &
+  SUBROUTINE MINMAXELEWIC(PSI_ALL,NFIELD,NONODS,NLOC,TOTELE,NDGLNO, &
        &     FINDRM,COLM,NCOLM,&
        &     MINPSI,MAXPSI)
     ! This sub calculates the max and min values of PSI in local vacinity of 
     ! an element. 
     IMPLICIT NONE
     INTEGER, intent(in) :: NFIELD,NONODS,NLOC,TOTELE,NDGLNO(TOTELE*NLOC)
-    REAL, INTENT(IN) :: PSI(NONODS*NFIELD)
+    REAL, DIMENSION(:,:), INTENT(IN) :: PSI_ALL
     INTEGER, INTENT(IN) :: NCOLM
     INTEGER, INTENT(IN) :: FINDRM(NONODS+1),COLM(NCOLM)
     REAL, INTENT(INOUT) :: MINPSI(TOTELE*NFIELD),MAXPSI(TOTELE*NFIELD)
@@ -12761,9 +12612,10 @@ TUPWIND_ALL = transpose(TUPWIND_AUX)
              JNOD = COLM( COUNT2 )
              DO IFIELD = 1, NFIELD
                 MINPSI( ELEWIC+(IFIELD-1)*TOTELE )  &
-                     = MIN( PSI(JNOD+(IFIELD-1)*NONODS), MINPSI(ELEWIC+(IFIELD-1)*TOTELE) )
+                     = MIN( PSI_ALL(IFIELD, JNOD), MINPSI(ELEWIC+(IFIELD-1)*TOTELE) )
                 MAXPSI( ELEWIC+(IFIELD-1)*TOTELE )  &
-                     = MAX( PSI(JNOD+(IFIELD-1)*NONODS), MAXPSI(ELEWIC+(IFIELD-1)*TOTELE) )
+                     = MAX( PSI_ALL(IFIELD, JNOD), MAXPSI(ELEWIC+(IFIELD-1)*TOTELE) )
+!                     = MAX( PSI_ALL(JNOD+(IFIELD-1)*NONODS), MAXPSI(ELEWIC+(IFIELD-1)*TOTELE) )
              END DO
           END DO
        END DO
@@ -12779,10 +12631,10 @@ TUPWIND_ALL = transpose(TUPWIND_AUX)
 !     
 !     
 !     
-  SUBROUTINE FINPTSSTORE(PSI,FEMPSI,USE_FEMPSI,NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
-       &     MATPSI,FINDRM,COLM,NCOLM,NDIM, &
+  SUBROUTINE FINPTSSTORE(PSI_ALL,FEMPSI_ALL,USE_FEMPSI,NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
+       &     MATPSI_ALL,FINDRM,COLM,NCOLM,NDIM, &
        &     X_NDGLN,X_NONODS, &
-       &     X,Y,Z, XC_CV, YC_CV, ZC_CV,&
+       &     X_ALL, XC_CV, YC_CV, ZC_CV,&
        &     N,NLX,NLY,NLZ, WEIGHT,&
        !     work space...
        &     FINDELE,COLELE,NCOLEL,&
@@ -12797,15 +12649,15 @@ TUPWIND_ALL = transpose(TUPWIND_AUX)
     ! do limiting. 
     INTEGER, intent(in) :: NFIELD,NONODS,NLOC,NGI,TOTELE,NDIM,X_NONODS
     INTEGER, dimension(TOTELE*NLOC),intent(in) :: NDGLNO
-    REAL, dimension(NONODS*NFIELD), intent(in) :: PSI
-    REAL, dimension(NONODS*NFIELD), intent(in) :: FEMPSI
+    REAL, dimension(:,:), intent(in) :: PSI_ALL
+    REAL, dimension(:,:), intent(in) :: FEMPSI_ALL
     LOGICAL, intent(in) :: USE_FEMPSI
     INTEGER, intent(in) :: NCOLM,NCOLEL
     INTEGER, dimension(NONODS+1), intent(in) :: FINDRM
     INTEGER, dimension(NCOLM),intent(in) :: COLM
-    REAL, dimension(NCOLM*NFIELD), intent(inout) :: MATPSI
+    REAL, dimension(:,:), intent(inout) :: MATPSI_ALL
     INTEGER, dimension(TOTELE*NLOC),  intent(in) :: X_NDGLN
-    REAL, dimension(X_NONODS), intent(in) :: X,Y,Z
+    REAL, dimension(:,:), intent(in) :: X_ALL
     REAL, DIMENSION( : ), intent( in ) :: XC_CV, YC_CV, ZC_CV
     REAL, dimension(NLOC,NGI), intent(in) :: N,NLX,NLY,NLZ
     REAL, dimension(NGI), intent(in) :: WEIGHT
@@ -12833,7 +12685,11 @@ TUPWIND_ALL = transpose(TUPWIND_AUX)
     REAL, ALLOCATABLE, DIMENSION(:)::MINPSI
     REAL, ALLOCATABLE, DIMENSION(:)::MAXPSI
     INTEGER, ALLOCATABLE, DIMENSION(:)::NOD2XNOD
-    REAL :: X1,Y1,Z1, X2,Y2,Z2
+
+    !######TEMPORARY, that three should be size(X_ALL,1)#####
+    real, dimension(3) :: X1_ALL, X2_ALL
+    !#####################################
+
 
     NORMX1=0.0
     NORMY1=0.0
@@ -12850,7 +12706,7 @@ TUPWIND_ALL = transpose(TUPWIND_AUX)
        MLUM(1:NONODS) = 0.0
        DO ELE=1,TOTELE! Was loop 
           !     Calculate DETWEI,RA,NX,NY,NZ for element ELE
-          CALL DETNLXR(ELE, X,Y,Z, X_NDGLN, TOTELE,X_NONODS,NLOC,NGI, &
+          CALL DETNLXR(ELE, X_ALL(1, :),X_ALL(2, :),X_ALL(3, :), X_NDGLN, TOTELE,X_NONODS,NLOC,NGI, &
                &        N,NLX,NLY,NLZ, WEIGHT, DETWEI,RA,VOLUME,NDIM==1,NDIM==3,.FALSE., &
                &        NX,NY,NZ) 
           !     
@@ -12886,7 +12742,7 @@ TUPWIND_ALL = transpose(TUPWIND_AUX)
 
     IF(BOUND) THEN
        ! find the max and min local to each element...
-       CALL MINMAXELEWIC(PSI,NFIELD,NONODS,NLOC,TOTELE,NDGLNO, &
+       CALL MINMAXELEWIC(PSI_ALL,NFIELD,NONODS,NLOC,TOTELE,NDGLNO, &
             &     FINDRM,COLM,NCOLM,&
             &     MINPSI,MAXPSI)
     ENDIF
@@ -12904,7 +12760,7 @@ TUPWIND_ALL = transpose(TUPWIND_AUX)
     END DO
     !     
 
-    MATPSI=0.
+    MATPSI_ALL=0.
     DO NOD=1,NONODS! Was loop 10
 
        XNOD=NOD2XNOD(NOD)
@@ -12922,30 +12778,25 @@ TUPWIND_ALL = transpose(TUPWIND_AUX)
                 NORMZ1=NORMZ(NOD)
              ENDIF
              IF(NONODS.NE.X_NONODS) THEN ! Its a DG soln field...
-               X1=XC_CV(NOD)
-               Y1=YC_CV(NOD)
-               Z1=ZC_CV(NOD)
+               X1_ALL(1)=XC_CV(NOD)
+               X1_ALL(2)=YC_CV(NOD)
+               X1_ALL(3)=ZC_CV(NOD)
 
-               X2=XC_CV(NODJ)
-               Y2=YC_CV(NODJ)
-               Z2=ZC_CV(NODJ)
+               X2_ALL(1)=XC_CV(NODJ)
+               X2_ALL(2)=YC_CV(NODJ)
+               X2_ALL(3)=ZC_CV(NODJ)
              ELSE
-               X1=X(XNOD)
-               Y1=Y(XNOD)
-               Z1=Z(XNOD)
-
-               X2=X(XNODJ)
-               Y2=Y(XNODJ)
-               Z2=Z(XNODJ)
+               X1_ALL(1:size(X_ALL,1)) = X_ALL(:,XNOD)
+               X2_ALL(1:size(X_ALL,1)) = X_ALL(:,XNODJ)
              ENDIF
-             CALL MATPTSSTORE(MATPSI,COUNT,NFIELD,NOD,XNOD,&
-                  &              PSI,FEMPSI,USE_FEMPSI,NONODS,X_NONODS,&
+             CALL MATPTSSTORE(MATPSI_ALL,COUNT,NFIELD,NOD,XNOD,&
+                  &              PSI_ALL,FEMPSI_ALL,USE_FEMPSI,NONODS,X_NONODS,&
                   &              NLOC,TOTELE,X_NDGLN,NDGLNO,&
                   &              NCOLM,&
-                  &              X1,Y1,Z1,&
-                  &              X2,Y2,Z2,&
+                  &              X1_ALL(1),X1_ALL(2) ,X1_ALL(3),&
+                  &              X2_ALL(1),X2_ALL(2),X2_ALL(3),&
                   &              NORMX1,NORMY1,NORMZ1,&
-                  &              X,Y,Z,&
+                  &              X_ALL,&
                   !     work space...
                   &              FINDELE,COLELE,NCOLEL, &
                   &              MINPSI,MAXPSI, &
@@ -12969,14 +12820,14 @@ TUPWIND_ALL = transpose(TUPWIND_AUX)
 !     
 !     
 !     
-      SUBROUTINE MATPTSSTORE(MATPSI,COUNT,NFIELD,NOD,XNOD,&
-     &     PSI,FEMPSI,USE_FEMPSI,NONODS,X_NONODS,&
+      SUBROUTINE MATPTSSTORE(MATPSI_ALL,COUNT,NFIELD,NOD,XNOD,&
+     &     PSI_ALL,FEMPSI_ALL,USE_FEMPSI,NONODS,X_NONODS,&
      &     NLOC,TOTELE,X_NDGLN,NDGLNO,&
      &     NCOLM,&
      &     X1,Y1,Z1,&
      &     X2,Y2,Z2,&
      &     NORMX1,NORMY1,NORMZ1,&
-     &     X,Y,Z,&
+     &     X_ALL,&
 !     work space...
      &     FINDELE,COLELE,NCOLEL,&
      &     MINPSI,MAXPSI,  &
@@ -12993,14 +12844,14 @@ TUPWIND_ALL = transpose(TUPWIND_AUX)
       PARAMETER(INFINY=1.E+20,FRALINE2=0.001)
       LOGICAL, intent(in) :: BOUND
       INTEGER, intent(in) :: COUNT,NFIELD,NOD,XNOD,NONODS,X_NONODS,NLOC,TOTELE,NDIM
-      REAL, intent(in) :: PSI(NONODS*NFIELD)
-      REAL, intent(in) :: FEMPSI(NONODS*NFIELD)
+      REAL, dimension(:,:), intent(in) :: PSI_ALL
+      REAL, dimension(:,:), intent(in) :: FEMPSI_ALL
       LOGICAL, intent(in) :: USE_FEMPSI
-      REAL, intent(inout) :: MATPSI(NCOLM*NFIELD)
+      REAL, dimension(:,:), intent(inout) :: MATPSI_ALL
       INTEGER, intent(in) :: X_NDGLN(NLOC*TOTELE),NDGLNO(NLOC*TOTELE)
       INTEGER, intent(in) :: NCOLM
       REAL, intent(in) :: X1,Y1,Z1,X2,Y2,Z2,NORMX1,NORMY1,NORMZ1
-      REAL, intent(in) :: X(X_NONODS),Y(X_NONODS),Z(X_NONODS)
+      REAL, dimension(:,:), intent(in) :: X_ALL
       INTEGER, intent(in) :: NCOLEL
       INTEGER, intent(in) :: FINDELE(X_NONODS+1),COLELE(NCOLEL)
       REAL, intent(in) :: MINPSI(TOTELE*NFIELD),MAXPSI(TOTELE*NFIELD)
@@ -13096,17 +12947,17 @@ TUPWIND_ALL = transpose(TUPWIND_AUX)
             CALL TRILOCCORDS(XC,YC,ZC, &
                  &        LOCCORDS(1),LOCCORDS(2),LOCCORDS(3),LOCCORDS(4),&
                  !     The 4 corners of the tet...
-                 &        X(LOCNODS(1)),Y(LOCNODS(1)),Z(LOCNODS(1)),&
-                 &        X(LOCNODS(2)),Y(LOCNODS(2)),Z(LOCNODS(2)),&
-                 &        X(LOCNODS(3)),Y(LOCNODS(3)),Z(LOCNODS(3)),&
-                 &        X(LOCNODS(4)),Y(LOCNODS(4)),Z(LOCNODS(4)) )
+                 &        X_ALL(1,LOCNODS(1)),X_ALL(2,LOCNODS(1)),X_ALL(3,LOCNODS(1)),&
+                 &        X_ALL(1,LOCNODS(2)),X_ALL(2,LOCNODS(2)),X_ALL(3,LOCNODS(2)),&
+                 &        X_ALL(1,LOCNODS(3)),X_ALL(2,LOCNODS(3)),X_ALL(3,LOCNODS(3)),&
+                 &        X_ALL(1,LOCNODS(4)),X_ALL(2,LOCNODS(4)),X_ALL(3,LOCNODS(4)) )
          ELSE
             CALL TRILOCCORDS2D(XC,YC, &
                  &        LOCCORDS(1),LOCCORDS(2),LOCCORDS(3),&
                  !     The 3 corners of the tri...
-                 &        X(LOCNODS(1)),Y(LOCNODS(1)),&
-                 &        X(LOCNODS(2)),Y(LOCNODS(2)),&
-                 &        X(LOCNODS(3)),Y(LOCNODS(3)) )
+                 &        X_ALL(1,LOCNODS(1)),X_ALL(2,LOCNODS(1)),&
+                 &        X_ALL(1,LOCNODS(2)),X_ALL(2,LOCNODS(2)),&
+                 &        X_ALL(1,LOCNODS(3)),X_ALL(2,LOCNODS(3)) )
          END IF
 
          MINCOR=MINVAL( LOCCORDS(1:NLOC) )
@@ -13144,9 +12995,9 @@ TUPWIND_ALL = transpose(TUPWIND_AUX)
          RMATPSI=0.0
          DO ILOC=1,NLOC! Was loop 
             IF(USE_FEMPSI) THEN
-               RMATPSI   =RMATPSI  +LOCCORDSK(ILOC)*FEMPSI(NLOCNODSK(ILOC)+(IFIELD-1)*NONODS)
+               RMATPSI   =RMATPSI  +LOCCORDSK(ILOC)*FEMPSI_ALL(IFIELD,NLOCNODSK(ILOC))
             ELSE
-               RMATPSI   =RMATPSI  +LOCCORDSK(ILOC)*PSI(NLOCNODSK(ILOC)+(IFIELD-1)*NONODS)
+               RMATPSI   =RMATPSI  +LOCCORDSK(ILOC)*PSI_ALL(IFIELD, NLOCNODSK(ILOC))
             ENDIF
 !         XC=XC+LOCCORDSK(ILOC)*X(LOCNODSK(ILOC))
 !         YC=YC+LOCCORDSK(ILOC)*Y(LOCNODSK(ILOC))
@@ -13154,18 +13005,18 @@ TUPWIND_ALL = transpose(TUPWIND_AUX)
          END DO
 !     Exaduate difference by a factor of 100.
          IF(USE_FEMPSI) THEN
-            RMATPSI   = FEMPSI( NOD + (IFIELD-1)*NONODS )  &
-         + (1./FRALINE) * ( RMATPSI - FEMPSI( NOD + (IFIELD-1)*NONODS) )
+            RMATPSI   = FEMPSI_ALL(IFIELD,  NOD )  &
+         + (1./FRALINE) * ( RMATPSI - FEMPSI_ALL( IFIELD, NOD) )
          ELSE
-            RMATPSI   = PSI( NOD + (IFIELD-1)*NONODS )  &
-         + (1./FRALINE) * ( RMATPSI - PSI( NOD + (IFIELD-1)*NONODS) )
+            RMATPSI   = PSI_ALL( IFIELD, NOD )  &
+         + (1./FRALINE) * ( RMATPSI - PSI_ALL(IFIELD,  NOD) )
          ENDIF
 
 !     Now correct to make sure that we get a bounded soln...
          IF(BOUND) THEN
            RMATPSI   =MAX(MIN(RMATPSI,   MAXPSI(ELEWIC+(IFIELD-1)*TOTELE)),   MINPSI(ELEWIC+(IFIELD-1)*TOTELE))
          ENDIF
-         MATPSI(COUNT+(IFIELD-1)*NCOLM)   =RMATPSI
+         MATPSI_ALL(IFIELD, COUNT)   =RMATPSI
       END DO
 !
       RETURN
