@@ -616,7 +616,6 @@ contains
       ALLOCATE( SUM_CV( CV_NONODS ))
       ALLOCATE( UP_WIND_NOD( CV_NONODS * NPHASE ))
 
-
       UP_WIND_NOD = 0.0
 
       ALLOCATE( ONE_PORE( TOTELE ))

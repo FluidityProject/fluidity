@@ -1070,9 +1070,6 @@
 
             Conditional_PhaseVolumeFraction: if ( solve_PhaseVolumeFraction ) then
 
-               if (igot_theta_flux>0) then
-
-
                call VolumeFraction_Assemble_Solve( state, packed_state, &
                     NCOLACV, FINACV, COLACV, MIDACV, &
                     small_FINACV, small_COLACV, small_MIDACV, &
@@ -1085,10 +1082,9 @@
                     CV_NDGLN, X_NDGLN, U_NDGLN, &
                     CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
 !!$
-                    x, y, z, Velocity_U, Velocity_V, Velocity_W, &
-                    Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
+                    x, y, z, &
                     PhaseVolumeFraction, PhaseVolumeFraction_Old, &
-                    Density_one, Density_one, & ! use DEN=1 because the density is already in the theta variables
+                    Density, Density_Old, & ! use DEN=1 because the density is already in the theta variables
 !!$
                     MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
 !!$
@@ -1114,50 +1110,8 @@
                     mass_ele_transp = mass_ele,&
                     theta_flux=sum_theta_flux, one_m_theta_flux=sum_one_m_theta_flux, theta_flux_j=sum_theta_flux_j, one_m_theta_flux_j=sum_one_m_theta_flux_j,&
                     StorageIndexes=StorageIndexes )
-               else
-                  call VolumeFraction_Assemble_Solve( state, packed_state,&
-                    NCOLACV, FINACV, COLACV, MIDACV, &
-                    small_FINACV, small_COLACV, small_MIDACV, &
-                    block_to_global_acv, global_dense_block_acv, &
-                    NCOLCT, FINDCT, COLCT, &
-                    CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
-                    CV_ELE_TYPE, &
-                    NPHASE, &
-                    CV_NLOC, U_NLOC, X_NLOC,  &
-                    CV_NDGLN, X_NDGLN, U_NDGLN, &
-                    CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-!!$
-                    x, y, z, Velocity_U, Velocity_V, Velocity_W, &
-                    Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
-                    PhaseVolumeFraction, PhaseVolumeFraction_Old, &
-                    Density, Density_Old, &
-!!$
-                    MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
-!!$
-                    v_disopt, v_dg_vel_int_opt, dt, v_theta, v_beta, &
-                    PhaseVolumeFraction_BC, Density_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, SUF_SIG_DIAGTEN_BC, &
-                    PhaseVolumeFraction_BC_Spatial, Density_BC_Spatial, Velocity_U_BC_Spatial, &
-                    DRhoDPressure, Pressure_FEM, &
-                    ScalarField_Source_Store, ScalarField_Absorption, Porosity, &
-!!$
-                    NDIM, &
-                    NCOLM, FINDM, COLM, MIDM, &
-                    XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
-!!$
-                    opt_vel_upwind_coefs, nopt_vel_upwind_coefs, &
-                    PhaseVolumeFraction_FEMT, Density_FEMT, &
-                    igot_theta_flux,scvngi_theta, volfra_use_theta_flux, &
-                    in_ele_upwind, dg_ele_upwind, &
-!!$                    
-                    NOIT_DIM, & ! This need to be removed as it is already deprecated
-!!$
-!!$                 nits_flux_lim_volfra, &
-                    option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction', &
-                    mass_ele_transp = mass_ele,&
-                           StorageIndexes=StorageIndexes )
-                              end if
 
-                PhaseVolumeFraction=min( max(PhaseVolumeFraction,0.0), 1.0)
+               PhaseVolumeFraction = min( max( PhaseVolumeFraction, 0.0 ), 1.0 )
 
             end if Conditional_PhaseVolumeFraction
 

@@ -872,8 +872,8 @@ contains
     CV_NLOC, U_NLOC, X_NLOC, &
     CV_NDGLN, X_NDGLN, U_NDGLN, &
     CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-    X, Y, Z, U, V, W, &
-    NU, NV, NW, NUOLD, NVOLD, NWOLD, SATURA, SATURAOLD, DEN, DENOLD, &
+    X, Y, Z, &
+    SATURA, SATURAOLD, DEN, DENOLD, &
     MAT_NLOC,MAT_NDGLN,MAT_NONODS, &
     V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
     SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
@@ -921,7 +921,6 @@ contains
         INTEGER, DIMENSION( : ), intent( in ) :: FINDCT
         INTEGER, DIMENSION( : ), intent( in ) :: COLCT
         REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
-        REAL, DIMENSION( : ), intent( in ) :: U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD
         REAL, DIMENSION( : ), intent( inout ) :: SATURA, SATURAOLD, Sat_FEMT, DEN_FEMT
         REAL, DIMENSION( : ), intent( in ) :: DEN, DENOLD
         REAL, DIMENSION( :, :), intent( inout ), optional :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
@@ -955,28 +954,14 @@ contains
         REAL, DIMENSION( : ), allocatable :: SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, SUF_T2_BC
         INTEGER, DIMENSION( : ), allocatable :: WIC_T2_BC
         REAL, DIMENSION( : ), allocatable :: THETA_GDIFF, T2, T2OLD, MEAN_PORE_CV
+        REAL, DIMENSION( : ), allocatable :: DENSITY_OR_ONE, DENSITYOLD_OR_ONE
         LOGICAL :: GET_THETA_FLUX
         REAL :: SECOND_THETA
         INTEGER :: STAT, i,j
         character( len = option_path_len ) :: path
         LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE.
 
-        type(vector_field), pointer :: p_position
 
-        REAL, DIMENSION( : , :  ), allocatable :: LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,NDOTQOLD
-        integer :: cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, face_count
-
-        p_position=>extract_vector_field(packed_state,"PressureCoordinate")
-
-        face_count=CV_count_faces( packed_state,&
-        +                 CV_ELE_TYPE, STOTEL, CV_SNDGLN, U_SNDGLN )
-
-        allocate(ndotqold(nphase,face_count),&
-        LIMTOLD(nphase,face_count),&
-        LIMT2OLD(nphase,face_count),&
-        LIMDOLD(nphase,face_count),&
-        LIMDTOLD(nphase,face_count),&
-        LIMDTT2OLD(nphase,face_count))
 
         GET_THETA_FLUX = .FALSE.
         IGOT_T2 = 0
@@ -1004,6 +989,15 @@ contains
         ALLOCATE( SUF_VOL_BC_ROB2(STOTEL * CV_SNLOC * NPHASE ) )
         ALLOCATE( MEAN_PORE_CV( CV_NONODS ) )
 
+
+      ALLOCATE( DENSITY_OR_ONE( CV_NONODS * NPHASE ), DENSITYOLD_OR_ONE( CV_NONODS * NPHASE ) )
+      IF ( IGOT_THETA_FLUX == 1 ) THEN
+         DENSITY_OR_ONE=1.0 ; DENSITYOLD_OR_ONE=1.0
+      ELSE
+          DENSITY_OR_ONE=DEN ; DENSITYOLD_OR_ONE=DENOLD
+      END IF
+
+
         TDIFFUSION = 0.0
         SUF_VOL_BC_ROB1 = 0.0
         SUF_VOL_BC_ROB2 = 0.0
@@ -1027,11 +1021,11 @@ contains
             NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
             CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
             CV_ELE_TYPE,  &
-            NPHASE,  &
+            NPHASE, &
             CV_NLOC, U_NLOC, X_NLOC, &
             CV_NDGLN, X_NDGLN, U_NDGLN, &
             CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-            SATURA, SATURAOLD, DEN, DENOLD, &
+            SATURA, SATURAOLD, DENSITY_OR_ONE, DENSITYOLD_OR_ONE, &
             MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
             V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, SECOND_THETA, V_BETA, &
             SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
@@ -1052,43 +1046,6 @@ contains
             SMALL_FINACV, SMALL_COLACV, size(small_colacv), mass_Mn_pres, THERMAL, &
             mass_ele_transp,&
             StorageIndexes=StorageIndexes)
-
-
-            !         CALL CV_ASSEMB_ADV_DIF( state, &
-            !              LIMTOLD,LIMT2OLD,LIMDOLD,LIMDTOLD,LIMDTT2OLD,NDOTQOLD,&
-            !              CV_RHS, &
-            !              NCOLACV, block_ACV, dense_block_matrix, FINACV, COLACV, MIDACV, &
-            !              SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
-            !              CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
-            !              CV_ELE_TYPE,  &
-            !              NPHASE,  &
-            !              CV_NLOC, U_NLOC, X_NLOC,  &
-            !              CV_NDGLN, X_NDGLN, U_NDGLN, &
-            !              CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-            !              X, Y, Z, U, V, W, &
-            !              NU, NV, NW, NUOLD, NVOLD, NWOLD, &
-            !              SATURA, SATURAOLD, DEN, DENOLD, &
-            !              MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
-            !              V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, SECOND_THETA, V_BETA, &
-            !              SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
-            !              SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2,  &
-            !              WIC_VOL_BC, WIC_D_BC, WIC_U_BC, &
-            !              DERIV, P, &
-            !              V_SOURCE, V_ABSORB, VOLFRA_PORE, &
-            !              NDIM,&
-            !              NCOLM, FINDM, COLM, MIDM, &
-            !              XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
-            !              OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
-            !              Sat_FEMT, DEN_FEMT, &
-            !              IGOT_T2, T2, T2OLD, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
-            !              THETA_GDIFF, &
-            !              SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
-            !              NOIT_DIM, &
-            !              MEAN_PORE_CV, &
-            !              SMALL_FINACV, SMALL_COLACV, size(small_colacv), mass_mn_pres, THERMAL, &
-            !              mass_ele_transp, &
-            !              THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, &
-            !              StorageIndexes)
 
             satura=0.0 !saturaold([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)])
 
