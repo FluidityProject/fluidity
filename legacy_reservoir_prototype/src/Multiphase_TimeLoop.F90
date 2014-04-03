@@ -1567,7 +1567,6 @@
             call deallocate(packed_state)
             call pack_multistate(state,packed_state,&
                  multiphase_state,multicomponent_state)
-            call temp_mem_hacks()
 
 !!$ Deallocating array variables:
             deallocate( &
@@ -1685,6 +1684,8 @@
                  mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, &
 !!$ CV-FEM matrix
                  mx_ncolm, ncolm, findm, colm, midm, mx_nface_p1 )
+
+            call temp_mem_hacks()
 
 !!$ Allocating space for various arrays:
             allocate( xu( xu_nonods ), yu( xu_nonods ), zu( xu_nonods ), &
