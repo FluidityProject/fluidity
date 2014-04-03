@@ -908,8 +908,8 @@
 
         !Make sure that the relperm is between bounds
         KR = min(max(1d-20, KR),Krmax)!Lower value just to make sure we do not divide by zero.
-        ABSP = INV_PERM * (VISC * max(1d-6,SATURATION)) / KR
-
+        ABSP = INV_PERM * (VISC * max(1d-10,SATURATION)) / KR !The value1d-10 is only used if the boundaries have values of saturation of zero.
+                                                                                                         !Otherwise, the saturation should never be zero, since immobile fraction is always bigger than zero.
       RETURN
     END SUBROUTINE relperm_corey_epsilon
 
