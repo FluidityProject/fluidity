@@ -58,7 +58,6 @@ contains
          CV_NLOC, U_NLOC, X_NLOC, &
          CV_NDGLN, X_NDGLN, U_NDGLN, &
          CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-         U, V, W, &
          T, TOLD, DEN, DENOLD, &
          MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
          CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, SECOND_THETA, CV_BETA, &
@@ -239,7 +238,6 @@ contains
       INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
       REAL, DIMENSION( : ), intent( inout ) :: MASS_MN_PRES
 
-      REAL, DIMENSION( : ), intent( in ) :: U, V, W
       REAL, DIMENSION( : ), intent( in ) :: T, TOLD, DEN, DENOLD
       REAL, DIMENSION( : ), intent( in ) :: T2, T2OLD
       REAL, DIMENSION( : ), intent( inout ) :: THETA_GDIFF
@@ -423,8 +421,8 @@ contains
            &                                     SUF_T2_BC_ALL, SUF_T2_BC_ROB1_ALL, SUF_T2_BC_ROB2_ALL   
       REAL, DIMENSION( :, :, :, : ), ALLOCATABLE :: SUF_U_BC_ALL
 
-      TYPE( TENSOR_FIELD ), POINTER :: NU_s, NUOLD_s
-      REAL, DIMENSION( : ), ALLOCATABLE :: NU, NUOLD, NV, NVOLD, NW, NWOLD
+      TYPE( TENSOR_FIELD ), POINTER :: U_s, NU_s, NUOLD_s
+      REAL, DIMENSION( : ), ALLOCATABLE :: U, V, W, NU, NUOLD, NV, NVOLD, NW, NWOLD
 
 
       type( vector_field ), pointer:: x
@@ -795,11 +793,21 @@ contains
       WIC_T2_BC_ALL=0
       SUF_T2_BC_ALL=0. ; SUF_T2_BC_ROB1_ALL=0. ; SUF_T2_BC_ROB2_ALL=0.
 
+
+      ! this should be u and not nu...
+      U_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedNonlinearVelocity" )
+      U_ALL = U_s % val
+
       NU_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedNonlinearVelocity" )
       NU_ALL = NU_s % val
 
       NUOLD_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldNonlinearVelocity" )
       NUOLD_ALL = NUOLD_s % val
+
+
+      ALLOCATE( U( NPHASE * U_NONODS ) ) ; U=0.0
+      ALLOCATE( V( NPHASE * U_NONODS ) ) ; V=0.0
+      ALLOCATE( W( NPHASE * U_NONODS ) ) ; W=0.0
 
       ALLOCATE( NU( NPHASE * U_NONODS ), NUOLD( NPHASE * U_NONODS ) ) ; NU=0.0 ; NUOLD=0.0
       ALLOCATE( NV( NPHASE * U_NONODS ), NVOLD( NPHASE * U_NONODS ) ) ; NV=0.0 ; NVOLD=0.0
@@ -819,21 +827,25 @@ contains
                DO IPHASE = 1, NPHASE
                   DO IDIM = 1, NDIM
                      IF ( IDIM==1 ) THEN
-                        U_ALL( IDIM, IPHASE, U_INOD ) = U( U_INOD + (IPHASE-1)*U_NONODS )
+                        !U_ALL( IDIM, IPHASE, U_INOD ) = U( U_INOD + (IPHASE-1)*U_NONODS )
                         !NU_ALL( IDIM, IPHASE, U_INOD ) = NU( U_INOD + (IPHASE-1)*U_NONODS )
                         !NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NUOLD( U_INOD + (IPHASE-1)*U_NONODS )
+                        U( U_INOD + (IPHASE-1)*U_NONODS ) = U_ALL( IDIM, IPHASE, U_INOD )
                         NU( U_INOD + (IPHASE-1)*U_NONODS ) = NU_ALL( IDIM, IPHASE, U_INOD )
                         NUOLD( U_INOD + (IPHASE-1)*U_NONODS ) = NUOLD_ALL( IDIM, IPHASE, U_INOD )
                      ELSE IF ( IDIM==2 ) THEN
-                        U_ALL( IDIM, IPHASE, U_INOD ) = V( U_INOD + (IPHASE-1)*U_NONODS )
+                        !U_ALL( IDIM, IPHASE, U_INOD ) = V( U_INOD + (IPHASE-1)*U_NONODS )
                         !NU_ALL( IDIM, IPHASE, U_INOD ) = NV( U_INOD + (IPHASE-1)*U_NONODS )
                         !NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NVOLD( U_INOD + (IPHASE-1)*U_NONODS )
+ 
+                        V( U_INOD + (IPHASE-1)*U_NONODS ) = U_ALL( IDIM, IPHASE, U_INOD )
                         NV( U_INOD + (IPHASE-1)*U_NONODS ) = NU_ALL( IDIM, IPHASE, U_INOD )
                         NVOLD( U_INOD + (IPHASE-1)*U_NONODS ) = NUOLD_ALL( IDIM, IPHASE, U_INOD )
                      ELSE
-                        U_ALL( IDIM, IPHASE, U_INOD ) = W( U_INOD + (IPHASE-1)*U_NONODS )
+                        !U_ALL( IDIM, IPHASE, U_INOD ) = W( U_INOD + (IPHASE-1)*U_NONODS )
                         !NU_ALL( IDIM, IPHASE, U_INOD ) = NW( U_INOD + (IPHASE-1)*U_NONODS )
                         !NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NWOLD( U_INOD + (IPHASE-1)*U_NONODS )
+                        W( U_INOD + (IPHASE-1)*U_NONODS ) = U_ALL( IDIM, IPHASE, U_INOD )
                         NW( U_INOD + (IPHASE-1)*U_NONODS ) = NU_ALL( IDIM, IPHASE, U_INOD )
                         NWOLD( U_INOD + (IPHASE-1)*U_NONODS ) = NUOLD_ALL( IDIM, IPHASE, U_INOD )
                      END IF
@@ -843,7 +855,7 @@ contains
          END DO
       END DO
 
-
+!print *, u_all(1,1,:)
 
 
       DO IPHASE = 1, NPHASE

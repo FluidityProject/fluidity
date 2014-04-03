@@ -164,7 +164,7 @@
       integer, dimension( : ), allocatable :: PhaseVolumeFraction_BC_Spatial, Pressure_FEM_BC_Spatial, &
            Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, Temperature_BC_Spatial, &
            wic_momu_bc
-      real, dimension( : ), pointer :: temp,xu, yu, zu, x, y, z, ug, vg, wg, &
+      real, dimension( : ), pointer :: temp,xu, yu, zu, x, y, z, &
            Velocity_U, Velocity_V, Velocity_W, Velocity_U_Old, Velocity_V_Old, Velocity_W_Old, &
            Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
            Pressure_FEM, Pressure_CV, Temperature, Density, Density_Cp, Density_Component, PhaseVolumeFraction, &
@@ -366,7 +366,6 @@
 !!$ Allocating space for various arrays:
       allocate( xu( xu_nonods ), yu( xu_nonods ), zu( xu_nonods ), &
            x( x_nonods ), y( x_nonods ), z( x_nonods ), &
-           ug( u_nonods * nphase ), vg( u_nonods * nphase ), wg( u_nonods * nphase ), &
 !!$
            Velocity_U( u_nonods * nphase ), Velocity_V( u_nonods * nphase ), Velocity_W( u_nonods * nphase ), &
            Velocity_U_Old( u_nonods * nphase ), Velocity_V_Old( u_nonods * nphase ), Velocity_W_Old( u_nonods * nphase ), &
@@ -432,7 +431,6 @@
 !!$
       xu=0. ; yu=0. ; zu=0.
       x=0. ; y=0. ; z=0.
-      ug=0. ; vg=0. ; wg=0.
 !!$
       Velocity_U=0. ; Velocity_V=0 ; Velocity_W=0.
       Velocity_U_Old=0. ; Velocity_V_Old=0. ; Velocity_W_Old=0.
@@ -658,6 +656,8 @@
       Loop_Time: do
 !!$
 
+!print *, '    NEW DT', itime+1
+
 
          itime = itime + 1
          timestep = itime
@@ -727,6 +727,8 @@
 
 !!$ Start non-linear loop
          Loop_NonLinearIteration: do  its = 1, NonLinearIteration
+
+!print *, '  NEW ITS', its
 
          if( have_temperature_field .and. &
               have_option( '/material_phase[0]/scalar_field::Temperature/prognostic' ) ) then
@@ -849,8 +851,6 @@
                     CV_NDGLN, X_NDGLN, U_NDGLN, &
                     CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
 !!$
-                    Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
-                    ug, vg, wg, &
                     Temperature, Temperature_Old, &
                     Density_Cp, Density_Cp_Old, &
 !!$
@@ -1224,8 +1224,6 @@
                           CV_NDGLN, X_NDGLN, U_NDGLN, &
                           CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
 !!$
-                          Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
-                          ug, vg, wg, &
                           Component( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods ), &
                           Component_Old( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods ), &
                           DENSITY_COMPONENT( ( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS ), &
@@ -1638,7 +1636,7 @@
 !!$ Working arrays
                  PhaseVolumeFraction_BC_Spatial, Pressure_FEM_BC_Spatial, &
                  Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, wic_momu_bc, Temperature_BC_Spatial, &
-                 xu, yu, zu, x, y, z, ug, vg, wg, &
+                 xu, yu, zu, x, y, z, &
                  Velocity_U, Velocity_V, Velocity_W, Velocity_U_Old, Velocity_V_Old, Velocity_W_Old, &
                  Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
                  Pressure_FEM, Pressure_CV, Temperature, Density, Density_Cp, Density_Component, PhaseVolumeFraction, &
@@ -1736,7 +1734,6 @@
 !!$ Allocating space for various arrays:
             allocate( xu( xu_nonods ), yu( xu_nonods ), zu( xu_nonods ), &
                  x( x_nonods ), y( x_nonods ), z( x_nonods ), &
-                 ug( u_nonods * nphase ), vg( u_nonods * nphase ), wg( u_nonods * nphase ), &
 !!$
                  Velocity_U( u_nonods * nphase ), Velocity_V( u_nonods * nphase ), Velocity_W( u_nonods * nphase ), &
                  Velocity_U_Old( u_nonods * nphase ), Velocity_V_Old( u_nonods * nphase ), Velocity_W_Old( u_nonods * nphase ), &
@@ -1800,7 +1797,6 @@
             Velocity_U_Old=0. ; Velocity_V_Old=0. ; Velocity_W_Old=0.
             Velocity_NU=0. ; Velocity_NV=0. ; Velocity_NW=0.
             Velocity_NU_Old=0. ; Velocity_NV_Old=0. ; Velocity_NW_Old=0.
-            UG=0. ; VG=0. ; WG=0.
             Velocity_U_Source = 0. ; Velocity_Absorption = 0. ; Velocity_U_Source_CV = 0. 
             Velocity_U_BC_Spatial=0 ; Velocity_U_BC=0. ; Velocity_V_BC=0. ; Velocity_W_BC=0.
             Momentum_Diffusion=0.
@@ -1967,7 +1963,7 @@
 !!$ Working arrays
            PhaseVolumeFraction_BC_Spatial, Pressure_FEM_BC_Spatial, &
            Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, Temperature_BC_Spatial, &
-           xu, yu, zu, x, y, z, ug, vg, wg, &
+           xu, yu, zu, x, y, z, &
            Velocity_U, Velocity_V, Velocity_W, Velocity_U_Old, Velocity_V_Old, Velocity_W_Old, &
            Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
            Pressure_FEM, Pressure_CV, Temperature, Density, Density_Cp, Density_Component, PhaseVolumeFraction, &

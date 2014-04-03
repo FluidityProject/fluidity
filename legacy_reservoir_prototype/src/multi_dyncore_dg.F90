@@ -77,8 +77,6 @@ contains
     CV_NLOC, U_NLOC, X_NLOC,  &
     CV_NDGLN, X_NDGLN, U_NDGLN, &
     CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-    NU, NV, NW, NUOLD, NVOLD, NWOLD, &
-    UG, VG, WG, &
     T, TOLD, &
     DEN, DENOLD, &
     MAT_NLOC,MAT_NDGLN,MAT_NONODS, TDIFFUSION, &
@@ -133,7 +131,6 @@ contains
         integer, dimension (:,:) :: global_dense_block_acv
         INTEGER, DIMENSION( : ), intent( in ) :: FINDCT
         INTEGER, DIMENSION( : ), intent( in ) :: COLCT
-        REAL, DIMENSION( : ), intent( in ) :: NU, NV, NW, NUOLD, NVOLD, NWOLD, UG, VG, WG
         REAL, DIMENSION( : ), intent( inout ) :: T, T_FEMT, DEN_FEMT
         REAL, DIMENSION( : ), intent( in ) :: TOLD
         REAL, DIMENSION( : ), intent( in ) :: DEN, DENOLD
@@ -218,7 +215,7 @@ contains
 
             call CV_ASSEMB( state, packed_state, &
             CV_RHS, &
-            NCOLACV,  block_acv, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
+            NCOLACV, block_acv, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
             SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV,&
             NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
             CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
@@ -227,7 +224,6 @@ contains
             CV_NLOC, U_NLOC, X_NLOC, &
             CV_NDGLN, X_NDGLN, U_NDGLN, &
             CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-            NU, NV, NW, &!IT SHOULD BE U,V,W
             T, TOLD, DEN, DENOLD, &
             MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
             T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, SECOND_THETA, T_BETA, &
@@ -475,7 +471,6 @@ contains
             CV_NLOC, U_NLOC, X_NLOC,  &
             CV_NDGLN, X_NDGLN, U_NDGLN, &
             CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-            NU, NV, NW, &
             T, TOLD, DEN, DENOLD, &
             MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
             T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, SECOND_THETA, T_BETA, &
@@ -1027,7 +1022,7 @@ contains
 
             call CV_ASSEMB( state, packed_state, &
             CV_RHS, &
-            NCOLACV,  block_acv, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
+            NCOLACV, block_acv, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
             SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV,&
             NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
             CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
@@ -1036,7 +1031,6 @@ contains
             CV_NLOC, U_NLOC, X_NLOC, &
             CV_NDGLN, X_NDGLN, U_NDGLN, &
             CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-            U, V, W, &!IT SHOULD BE U,V,W
             SATURA, SATURAOLD, DEN, DENOLD, &
             MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
             V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, SECOND_THETA, V_BETA, &
@@ -2181,7 +2175,6 @@ contains
         CV_NLOC, U_NLOC, X_NLOC, &
         CV_NDGLN, X_NDGLN, U_NDGLN, &
         CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-        NU, NV, NW, &!IT SHOULD BE U,V,W
         SATURA, SATURAOLD, DEN_OR_ONE, DENOLD_OR_ONE, &
         MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
         V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, SECOND_THETA, V_BETA, &
@@ -6740,7 +6733,6 @@ contains
             CV_NLOC, U_NLOC, X_NLOC,  &
             CV_NDGLN, X_NDGLN, U_NDGLN, &
             CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-            RZERO,RZERO,RZERO, RZERO,RZERO,RZERO, RZERO,RZERO,RZERO, &
             CURVATURE, VOLUME_FRAC, &
             RZERO,RZERO, &
             MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
