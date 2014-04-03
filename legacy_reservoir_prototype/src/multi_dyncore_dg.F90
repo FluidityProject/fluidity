@@ -1106,7 +1106,7 @@ contains
     U_NDGLN, P_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN, &
     STOTEL, CV_SNDGLN, U_SNDGLN, P_SNDGLN, &
     U_SNLOC, P_SNLOC, CV_SNLOC, &
-    X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
+    U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
     U, V, W, UOLD, VOLD, WOLD, &
     P, CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
     DT, &
@@ -1163,7 +1163,6 @@ contains
         INTEGER, DIMENSION(  : ), intent( in ) :: CV_SNDGLN
         INTEGER, DIMENSION(  : ), intent( in ) :: XU_NDGLN
         INTEGER, DIMENSION(  : ), intent( in ) ::  WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_MOMU_BC, WIC_P_BC
-        REAL, DIMENSION(  :  ), intent( in ) :: X, Y, Z
         REAL, DIMENSION(  :, :, :  ), intent( in ) :: U_ABS_STAB, U_ABSORB
         REAL, DIMENSION(  :  ), intent( in ) :: U_SOURCE
         REAL, DIMENSION(  :  ), intent( in ) :: U_SOURCE_CV
