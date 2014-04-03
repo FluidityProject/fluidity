@@ -982,6 +982,11 @@
 
     END SUBROUTINE PHA_BLOCK_MAT_VEC_old
 
+
+
+
+
+
      SUBROUTINE PHA_BLOCK_MAT_VEC( U, BLOCK_MAT, CDP, U_NONODS, NDIM, NPHASE, &
          TOTELE, U_NLOC, U_NDGLN ) 
       implicit none

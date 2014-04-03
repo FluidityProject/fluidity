@@ -1018,7 +1018,9 @@
                     U_SNLOC, P_SNLOC, CV_SNLOC, &
 !!$
                     Material_Absorption_Stab, Material_Absorption+Velocity_Absorption, Velocity_U_Source, Velocity_U_Source_CV, &
-                    Velocity_U, Velocity_V, Velocity_W, Velocity_U_Old, Velocity_V_Old, Velocity_W_Old, &
+
+                    Velocity_U, Velocity_V, Velocity_W, &
+
                     Pressure_FEM, Pressure_CV, Density, Density_Old, PhaseVolumeFraction, PhaseVolumeFraction_Old, & 
                     DRhoDPressure, &
                     dt, &
@@ -1033,7 +1035,6 @@
                     NCOLCT, FINDCT, COLCT, & ! CT sparsity - global cty eqn.
                     CV_ELE_TYPE, &
 !!$
-                    Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
                     v_disopt, v_dg_vel_int_opt, v_theta, &
                     PhaseVolumeFraction_BC, Density_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, SUF_SIG_DIAGTEN_BC, &
                     SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC, Pressure_FEM_BC, &

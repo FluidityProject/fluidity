@@ -1107,7 +1107,9 @@ contains
     STOTEL, CV_SNDGLN, U_SNDGLN, P_SNDGLN, &
     U_SNLOC, P_SNLOC, CV_SNLOC, &
     U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
-    U, V, W, UOLD, VOLD, WOLD, &
+
+    U, V, W, &
+
     P, CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
     DT, &
     NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn
@@ -1119,7 +1121,6 @@ contains
     NLENMCY, NCOLMCY, FINMCY, COLMCY, MIDMCY, & ! Force balance plus cty multi-phase eqns
     NCOLCT, FINDCT, COLCT, & ! CT sparcity - global cty eqn.
     CV_ELE_TYPE, &
-    NU, NV, NW, NUOLD, NVOLD, NWOLD, &
     V_DISOPT, V_DG_VEL_INT_OPT, V_THETA, &
     SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
     SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC, SUF_P_BC, &
@@ -1151,23 +1152,24 @@ contains
         CV_ELE_TYPE, V_DISOPT, V_DG_VEL_INT_OPT, NCOLM, XU_NLOC, &
         NOPT_VEL_UPWIND_COEFS, IGOT_THETA_FLUX, SCVNGI_THETA, IN_ELE_UPWIND, DG_ELE_UPWIND, &
         IPLIKE_GRAD_SOU
-        LOGICAL, intent( in ) :: USE_THETA_FLUX,scale_momentum_by_volume_fraction
+        LOGICAL, intent( in ) :: USE_THETA_FLUX, scale_momentum_by_volume_fraction
         INTEGER, DIMENSION(  :  ), intent( in ) :: U_NDGLN
         INTEGER, DIMENSION(  :  ), intent( in ) :: P_NDGLN
         INTEGER, DIMENSION(  :  ), intent( in ) :: CV_NDGLN
-        INTEGER, DIMENSION(  :  ), intent( in ) ::  X_NDGLN
-        INTEGER, DIMENSION(  :  ), intent( in ) ::  MAT_NDGLN
+        INTEGER, DIMENSION(  :  ), intent( in ) :: X_NDGLN
+        INTEGER, DIMENSION(  :  ), intent( in ) :: MAT_NDGLN
         INTEGER, DIMENSION(  :  ), intent( in ) :: U_SNDGLN
         INTEGER, DIMENSION(  :  ), intent( in ) :: P_SNDGLN
 
         INTEGER, DIMENSION(  : ), intent( in ) :: CV_SNDGLN
         INTEGER, DIMENSION(  : ), intent( in ) :: XU_NDGLN
-        INTEGER, DIMENSION(  : ), intent( in ) ::  WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_MOMU_BC, WIC_P_BC
+        INTEGER, DIMENSION(  : ), intent( in ) :: WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_MOMU_BC, WIC_P_BC
         REAL, DIMENSION(  :, :, :  ), intent( in ) :: U_ABS_STAB, U_ABSORB
         REAL, DIMENSION(  :  ), intent( in ) :: U_SOURCE
         REAL, DIMENSION(  :  ), intent( in ) :: U_SOURCE_CV
+
         REAL, DIMENSION(  : ), intent( inout ) :: U, V, W
-        REAL, DIMENSION(  :  ), intent( in ) :: UOLD, VOLD, WOLD
+
         REAL, DIMENSION(  :  ), intent( inout ) :: P,CV_P
         REAL, DIMENSION(  :  ), intent( in ) :: DEN, DENOLD, SATURAOLD
         REAL, DIMENSION(  :  ), intent( inout ) :: SATURA
@@ -1202,7 +1204,6 @@ contains
         INTEGER, DIMENSION(  :  ), intent( in ) :: MIDMCY
         INTEGER, DIMENSION(  :  ), intent( in ) :: FINDCT
         INTEGER, DIMENSION(  :  ), intent( in ) :: COLCT
-        REAL, DIMENSION(  :  ), intent( inout ) :: NU, NV, NW, NUOLD, NVOLD, NWOLD
         REAL, intent( in ) :: V_THETA
         REAL, DIMENSION(  :  ), intent( in ) :: V_SOURCE
         REAL, DIMENSION(  : ,  : ,: ), intent( in ) :: V_ABSORB
@@ -1247,7 +1248,7 @@ contains
         REAL, DIMENSION ( :, :, :, : ), allocatable :: SUF_U_ROB1_BC_ALL, SUF_U_ROB2_BC_ALL
         REAL, DIMENSION ( :, :, : ), allocatable :: SUF_P_BC_ALL
 
-        type( tensor_field), pointer :: u_all2
+        type( tensor_field), pointer :: u_all2, uold_all2
         type( vector_field), pointer :: x_all2
 
 
@@ -1300,8 +1301,8 @@ contains
         U_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedVelocity" )
         U_ALL = U_ALL2%VAL
 
-        U_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldVelocity" )
-        UOLD_ALL = U_ALL2%VAL
+        UOLD_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldVelocity" )
+        UOLD_ALL = UOLD_ALL2%VAL
 
         X_ALL2 => EXTRACT_VECTOR_FIELD( PACKED_STATE, "PressureCoordinate" )
         X_ALL = X_ALL2%VAL
@@ -1403,7 +1404,7 @@ contains
         STOTEL, CV_SNDGLN, U_SNDGLN, P_SNDGLN, &
         U_SNLOC, P_SNLOC, CV_SNLOC, &
         X_ALL, U_ABS_STAB_ALL, U_ABSORB_ALL, U_SOURCE_ALL, U_SOURCE_CV_ALL, &
-        U_ALL, UOLD_ALL,  &
+        U_ALL, UOLD_ALL, &
         P, CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
         DT, &
         NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn
@@ -1414,7 +1415,6 @@ contains
         SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
         NCOLCT, FINDCT, COLCT, &
         CV_ELE_TYPE, &
-        NU, NV, NW, NUOLD, NVOLD, NWOLD, &
         V_DISOPT, V_DG_VEL_INT_OPT, V_THETA, &
         SUF_VOL_BC, SUF_D_BC, SUF_U_BC_ALL, SUF_SIG_DIAGTEN_BC, &
         SUF_MOMU_BC_ALL, SUF_P_BC_ALL, &
@@ -1465,10 +1465,9 @@ contains
             FINMCY, COLMCY, &
             option_path = '/material_phase[0]/vector_field::Velocity')
 
-            CALL ULONG_2_UVW( U, V, W, UP, U_NONODS, NDIM, NPHASE )
+            U_ALL2 %val = reshape( UP( 1 : U_NONODS * NDIM * NPHASE ), (/ ndim, nphase, u_nonods/) )
 
-            P( 1 : CV_NONODS ) = UP( U_NONODS * NDIM * NPHASE + 1 : &
-            U_NONODS * NDIM * NPHASE + CV_NONODS )
+            P( 1 : CV_NONODS ) = UP( U_NONODS * NDIM * NPHASE + 1 : U_NONODS * NDIM * NPHASE + CV_NONODS )
 
         ELSE ! solve using a projection method
 
@@ -1508,12 +1507,14 @@ contains
                 UP_VEL = 0.0
                 CALL SOLVER( DGM_PHA, UP_VEL, U_RHS_CDP, &
                 FINDGM_PHA, COLDGM_PHA, &
-                option_path = '/material_phase[0]/vector_field::Velocity',block_size = NDIM*NPHASE*U_NLOC)
+                option_path = '/material_phase[0]/vector_field::Velocity', &
+                block_size = NDIM*NPHASE*U_NLOC )
 
                ! FOR NEW NUMBERING
                !CALL SOLVER( DGM_PHA, UP_VEL, U_RHS_CDP, &
                !     FINELE, COLELE, &
-               !     option_path = '/material_phase[0]/vector_field::Velocity',block_size = NDIM*NPHASE*U_NLOC)
+               !     option_path = '/material_phase[0]/vector_field::Velocity', &
+               !     block_size = NDIM*NPHASE*U_NLOC )
 
             END IF
 
@@ -1625,8 +1626,6 @@ contains
             U = U + DU
             IF( NDIM >= 2 ) V = V + DV
             IF( NDIM >= 3 ) W = W + DW
-
-            U_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedVelocity" )
 
             DO ELE = 1, TOTELE
                 DO U_ILOC = 1, U_NLOC
@@ -1822,7 +1821,7 @@ contains
     STOTEL, CV_SNDGLN, U_SNDGLN, P_SNDGLN, &
     U_SNLOC, P_SNLOC, CV_SNLOC, &
     X_ALL, U_ABS_STAB_ALL, U_ABSORB_ALL, U_SOURCE_ALL, U_SOURCE_CV_ALL, &
-    U_ALL, UOLD_ALL,  &
+    U_ALL, UOLD_ALL, &
     P, CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
     DT, &
     NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn
@@ -1833,7 +1832,6 @@ contains
     SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
     NCOLCT, FINDCT, COLCT, &
     CV_ELE_TYPE, &
-    NU, NV, NW, NUOLD, NVOLD, NWOLD, &
     V_DISOPT, V_DG_VEL_INT_OPT, V_THETA, &
     SUF_VOL_BC, SUF_D_BC, SUF_U_BC_ALL, SUF_SIG_DIAGTEN_BC, &
     SUF_MOMU_BC_ALL, SUF_P_BC_ALL, &
@@ -1905,7 +1903,6 @@ contains
         integer, dimension(:), intent(in) :: SMALL_FINACV, SMALL_COLACV, small_midacv
         INTEGER, DIMENSION(  :  ), intent( in ) :: FINDCT
         INTEGER, DIMENSION(  :  ), intent( in ) :: COLCT
-        REAL, DIMENSION(  :  ), intent( in ) :: NU, NV, NW, NUOLD, NVOLD, NWOLD
         REAL, intent( in ) :: V_THETA
         REAL, DIMENSION(  :  ), intent( in ) :: SUF_VOL_BC, SUF_D_BC
         REAL, DIMENSION( : , :, : ,:), intent( in ) :: SUF_U_BC_ALL
