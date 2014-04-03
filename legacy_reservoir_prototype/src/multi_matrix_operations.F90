@@ -1216,6 +1216,50 @@
 
 
 
+
+
+    SUBROUTINE CT_MULT2( CV_RHS, U, CV_NONODS, U_NONODS, NDIM, NPHASE, &
+         CT, NCOLCT, FINDCT, COLCT ) 
+      ! CV_RHS=CT*U
+      implicit none
+      INTEGER, intent( in ) :: CV_NONODS, U_NONODS, NDIM, NPHASE, NCOLCT
+      REAL, DIMENSION( CV_NONODS ), intent( inout ) :: CV_RHS
+      REAL, DIMENSION( NDIM, NPHASE, U_NONODS ), intent( in ) :: U
+      INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
+      INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
+      REAL, DIMENSION( NDIM, NPHASE, NCOLCT ), intent( in ) :: CT
+
+      ! Local variables
+      INTEGER :: CV_INOD, COUNT, U_JNOD
+
+      CV_RHS = 0.0
+
+      DO CV_INOD = 1, CV_NONODS
+
+         DO COUNT = FINDCT( CV_INOD ), FINDCT( CV_INOD + 1 ) - 1
+            U_JNOD = COLCT( COUNT )
+
+            CV_RHS( CV_INOD ) = CV_RHS( CV_INOD ) + SUM( CT( :, :, COUNT ) * U( :, :, U_JNOD ) )
+
+         END DO
+
+      END DO
+
+      RETURN
+
+    END SUBROUTINE CT_MULT2
+
+
+
+
+
+
+
+
+
+
+
+
 !!$
 !!$    SUBROUTINE CT_MULT( CV_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
 !!$         CT, NCOLCT, FINDCT, COLCT ) 

@@ -1544,7 +1544,7 @@ contains
 
             ! put on rhs the cty eqn; put most recent pressure in RHS of momentum eqn
             ! NB. P_RHS = -CT * U + CT_RHS
-            CALL CT_MULT( P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
+            CALL CT_MULT2( P_RHS, UP_VEL2, CV_NONODS, U_NONODS, NDIM, NPHASE, &
             CT, NCOLCT, FINDCT, COLCT )
 
             !ewrite(3,*) 'P_RHS1::', p_rhs
