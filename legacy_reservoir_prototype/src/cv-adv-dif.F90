@@ -59,7 +59,6 @@ contains
          CV_NDGLN, X_NDGLN, U_NDGLN, &
          CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
          U, V, W, &
-         NU, NV, NW, NUOLD, NVOLD, NWOLD, &
          T, TOLD, DEN, DENOLD, &
          MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
          CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, SECOND_THETA, CV_BETA, &
@@ -240,7 +239,7 @@ contains
       INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
       REAL, DIMENSION( : ), intent( inout ) :: MASS_MN_PRES
 
-      REAL, DIMENSION( : ), intent( in ) :: U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD
+      REAL, DIMENSION( : ), intent( in ) :: U, V, W
       REAL, DIMENSION( : ), intent( in ) :: T, TOLD, DEN, DENOLD
       REAL, DIMENSION( : ), intent( in ) :: T2, T2OLD
       REAL, DIMENSION( : ), intent( inout ) :: THETA_GDIFF
@@ -425,6 +424,8 @@ contains
       REAL, DIMENSION( :, :, :, : ), ALLOCATABLE :: SUF_U_BC_ALL
 
       TYPE( TENSOR_FIELD ), POINTER :: NU_s, NUOLD_s
+      REAL, DIMENSION( : ), ALLOCATABLE :: NU, NUOLD, NV, NVOLD, NW, NWOLD
+
 
       type( vector_field ), pointer:: x
 
@@ -800,6 +801,10 @@ contains
       NUOLD_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldNonlinearVelocity" )
       NUOLD_ALL = NUOLD_s % val
 
+      ALLOCATE( NU( NPHASE * U_NONODS ), NUOLD( NPHASE * U_NONODS ) ) ; NU=0.0 ; NUOLD=0.0
+      ALLOCATE( NV( NPHASE * U_NONODS ), NVOLD( NPHASE * U_NONODS ) ) ; NV=0.0 ; NVOLD=0.0
+      ALLOCATE( NW( NPHASE * U_NONODS ), NWOLD( NPHASE * U_NONODS ) ) ; NW=0.0 ; NWOLD=0.0
+
       IF ( IS_OVERLAPPING ) THEN
          NLEV = CV_NLOC
          U_NLOC2 = MAX( 1, U_NLOC / CV_NLOC )
@@ -817,14 +822,20 @@ contains
                         U_ALL( IDIM, IPHASE, U_INOD ) = U( U_INOD + (IPHASE-1)*U_NONODS )
                         !NU_ALL( IDIM, IPHASE, U_INOD ) = NU( U_INOD + (IPHASE-1)*U_NONODS )
                         !NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NUOLD( U_INOD + (IPHASE-1)*U_NONODS )
+                        NU( U_INOD + (IPHASE-1)*U_NONODS ) = NU_ALL( IDIM, IPHASE, U_INOD )
+                        NUOLD( U_INOD + (IPHASE-1)*U_NONODS ) = NUOLD_ALL( IDIM, IPHASE, U_INOD )
                      ELSE IF ( IDIM==2 ) THEN
                         U_ALL( IDIM, IPHASE, U_INOD ) = V( U_INOD + (IPHASE-1)*U_NONODS )
                         !NU_ALL( IDIM, IPHASE, U_INOD ) = NV( U_INOD + (IPHASE-1)*U_NONODS )
                         !NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NVOLD( U_INOD + (IPHASE-1)*U_NONODS )
+                        NV( U_INOD + (IPHASE-1)*U_NONODS ) = NU_ALL( IDIM, IPHASE, U_INOD )
+                        NVOLD( U_INOD + (IPHASE-1)*U_NONODS ) = NUOLD_ALL( IDIM, IPHASE, U_INOD )
                      ELSE
                         U_ALL( IDIM, IPHASE, U_INOD ) = W( U_INOD + (IPHASE-1)*U_NONODS )
                         !NU_ALL( IDIM, IPHASE, U_INOD ) = NW( U_INOD + (IPHASE-1)*U_NONODS )
                         !NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NWOLD( U_INOD + (IPHASE-1)*U_NONODS )
+                        NW( U_INOD + (IPHASE-1)*U_NONODS ) = NU_ALL( IDIM, IPHASE, U_INOD )
+                        NWOLD( U_INOD + (IPHASE-1)*U_NONODS ) = NUOLD_ALL( IDIM, IPHASE, U_INOD )
                      END IF
                   END DO
                END DO

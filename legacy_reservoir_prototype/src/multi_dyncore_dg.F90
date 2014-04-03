@@ -228,7 +228,6 @@ contains
             CV_NDGLN, X_NDGLN, U_NDGLN, &
             CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
             NU, NV, NW, &!IT SHOULD BE U,V,W
-            NU, NV, NW, NUOLD, NVOLD, NWOLD, &
             T, TOLD, DEN, DENOLD, &
             MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
             T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, SECOND_THETA, T_BETA, &
@@ -477,7 +476,6 @@ contains
             CV_NDGLN, X_NDGLN, U_NDGLN, &
             CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
             NU, NV, NW, &
-            NU, NV, NW, NUOLD, NVOLD, NWOLD, &
             T, TOLD, DEN, DENOLD, &
             MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
             T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, SECOND_THETA, T_BETA, &
@@ -1039,7 +1037,6 @@ contains
             CV_NDGLN, X_NDGLN, U_NDGLN, &
             CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
             U, V, W, &!IT SHOULD BE U,V,W
-            NU, NV, NW, NUOLD, NVOLD, NWOLD, &
             SATURA, SATURAOLD, DEN, DENOLD, &
             MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
             V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, SECOND_THETA, V_BETA, &
@@ -2185,7 +2182,6 @@ contains
         CV_NDGLN, X_NDGLN, U_NDGLN, &
         CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
         NU, NV, NW, &!IT SHOULD BE U,V,W
-        NU, NV, NW, NUOLD, NVOLD, NWOLD, &
         SATURA, SATURAOLD, DEN_OR_ONE, DENOLD_OR_ONE, &
         MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
         V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, SECOND_THETA, V_BETA, &
