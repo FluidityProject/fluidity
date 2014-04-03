@@ -109,6 +109,7 @@
     logical :: have_vertical_stabilization
     logical :: have_implicit_buoyancy
     logical :: have_vertical_velocity_relaxation
+    logical :: have_swe_bottom_drag
     logical :: have_viscosity
     logical :: have_surfacetension
     logical :: have_coriolis
@@ -155,6 +156,13 @@
 
     ! wetting and drying switch
     logical :: have_wd_abs
+
+    ! If .true., the pressure and density fields will be split up into hydrostatic
+    ! and perturbed components. The hydrostatic components will be subtracted 
+    ! from the pressure and density used in the pressure gradient and buoyancy terms
+    ! in the momentum equation. This helps to maintain hydrostatic balance and prevent
+    ! spurious oscillations in the pressure field when using unbalanced finite element pairs.
+    logical :: subtract_out_reference_profile
 
     ! scale factor for the absorption
     real :: vvr_sf 
@@ -242,6 +250,8 @@
       ! lumping on the submesh
       type(vector_field) :: abslump
       type(scalar_field) :: absdensity, abslump_component, abs_component
+      ! for swe bottom drag
+      type(scalar_field), pointer :: swe_bottom_drag, old_pressure
 
       ! for all LES models:
       character(len=OPTION_PATH_LEN) :: les_option_path
@@ -254,6 +264,9 @@
 
       ! for temperature dependent viscosity :
       type(scalar_field), pointer :: temperature
+
+      ! Fields for the subtract_out_reference_profile option under the Velocity field
+      type(scalar_field), pointer :: hb_density, hb_pressure
 
       integer :: stat, dim, ele, sele
 
@@ -276,8 +289,10 @@
       type(integer_set), dimension(:), pointer :: colours
       integer :: clr, nnid, len, i
       integer :: num_threads, thread_num
+#ifdef _OPENMP
       !! Did we successfully prepopulate the transform_to_physical_cache?
       logical :: cache_valid
+#endif
 
 
       type(element_type), dimension(:), allocatable :: supg_element
@@ -347,10 +362,28 @@
                         ib_min_grad, default=0.0)
       end if
 
+      have_swe_bottom_drag = have_option(trim(u%option_path)//'/prognostic/equation::ShallowWater/bottom_drag')
+      if (have_swe_bottom_drag) then
+        swe_bottom_drag => extract_scalar_field(state, "BottomDragCoefficient")
+        assert(.not. have_vertical_velocity_relaxation)
+        depth = extract_scalar_field(state, "BottomDepth") ! we reuse the field that's already passed for VVR
+        old_pressure => extract_scalar_field(state, "OldPressure")
+      else
+        ! just to be sure, nullify these pointer instead of passing them undefined:
+        nullify(swe_bottom_drag)
+        nullify(old_pressure)
+      end if
+
       call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude, &
           stat=stat)
       have_gravity = stat == 0
-      if(have_gravity) then
+      if (have_option(trim(u%option_path)//'/prognostic/equation::ShallowWater')) then
+        ! for the swe there's no buoyancy term
+        have_gravity = .false.
+        buoyancy=>dummyscalar
+        gravity=>dummyvector
+        ! but we do need gravity_magnitude to convert pressure to free surface elevation
+      else if(have_gravity) then
         buoyancy=>extract_scalar_field(state, "VelocityBuoyancyDensity")
         gravity=>extract_vector_field(state, "GravityDirection", stat)
       else
@@ -359,6 +392,21 @@
         gravity_magnitude = 0.0
       end if
       ewrite_minmax(buoyancy)
+
+      ! Splits up the Density and Pressure fields into a hydrostatic component (') and a perturbed component (''). 
+      ! The hydrostatic components, denoted p' and rho', should satisfy the balance: grad(p') = rho'*g
+      ! We subtract the hydrostatic component from the density used in the buoyancy term of the momentum equation.
+      if (have_option(trim(state%option_path)//'/equation_of_state/compressible/subtract_out_reference_profile')) then
+         subtract_out_reference_profile = .true.
+         hb_density => extract_scalar_field(state, "HydrostaticReferenceDensity", stat)
+         if(stat /= 0) then
+            FLExit("When using the subtract_out_reference_profile option, please set a (prescribed) HydrostaticReferenceDensity field.")
+            ewrite(-1,*) 'The HydrostaticReferenceDensity field, defining the hydrostatic component of the density field, needs to be set.'
+         end if
+      else
+         subtract_out_reference_profile = .false.
+         hb_density => dummyscalar
+      end if
 
       viscosity=>extract_tensor_field(state, "Viscosity", stat)
       have_viscosity = stat == 0
@@ -684,10 +732,11 @@
          call construct_momentum_element_cg(state, ele, big_m, rhs, ct_m, mass, inverse_masslump, &
               x, x_old, x_new, u, oldu, nu, ug, &
               density, ct_rhs, &
-              source, absorption, buoyancy, gravity, &
+              source, absorption, buoyancy, hb_density, gravity, &
               viscosity, grad_u, &
               fnu, tnu, leonard, strainprod, alpha, gamma, &
               gp, surfacetension, &
+              swe_bottom_drag, old_pressure, p, &
               assemble_ct_matrix_here, depth, &
               alpha_u_field, abs_wd, temperature, nvfrac, &
               supg_element(thread_num+1))
@@ -730,6 +779,16 @@
            fs_sf=get_surface_stab_scale_factor(u)
          end if
 
+         if(subtract_out_reference_profile.and.integrate_continuity_by_parts.and.(assemble_ct_matrix_here .or. include_pressure_and_continuity_bcs)) then
+            hb_pressure => extract_scalar_field(state, "HydrostaticReferencePressure", stat)
+            if(stat /= 0) then
+               FLExit("When using the subtract_out_reference_profile option, please set a (prescribed) HydrostaticReferencePressure field.")
+               ewrite(-1,*) 'The HydrostaticReferencePressure field, defining the hydrostatic component of the pressure field, needs to be set.'
+            end if
+         else
+            hb_pressure => dummyscalar
+         end if
+
          surface_element_loop: do sele=1, surface_element_count(u)
             
             ! if no_normal flow and no other condition in the tangential directions, or if periodic
@@ -744,7 +803,7 @@
             call construct_momentum_surface_element_cg(sele, big_m, rhs, ct_m, ct_rhs, &
                  inverse_masslump, x, u, nu, ug, density, gravity, &
                  velocity_bc, velocity_bc_type, &
-                 pressure_bc, pressure_bc_type, &
+                 pressure_bc, pressure_bc_type, hb_pressure, &
                  assemble_ct_matrix_here, include_pressure_and_continuity_bcs, oldu, nvfrac)
             
          end do surface_element_loop
@@ -898,7 +957,7 @@
     subroutine construct_momentum_surface_element_cg(sele, big_m, rhs, ct_m, ct_rhs, &
                                                      masslump, x, u, nu, ug, density, gravity, &
                                                      velocity_bc, velocity_bc_type, &
-                                                     pressure_bc, pressure_bc_type, &
+                                                     pressure_bc, pressure_bc_type, hb_pressure, &
                                                      assemble_ct_matrix_here, include_pressure_and_continuity_bcs,&
                                                      oldu, nvfrac)
 
@@ -923,6 +982,7 @@
 
       type(scalar_field), intent(in) :: pressure_bc
       integer, dimension(:), intent(in) :: pressure_bc_type
+      type(scalar_field), intent(in) :: hb_pressure
       
       logical, intent(in) :: assemble_ct_matrix_here, include_pressure_and_continuity_bcs
 
@@ -1028,8 +1088,15 @@
                 !      /
                 ! add -|  N_i M_j \vec n p_j, where p_j are the prescribed bc values
                 !      /
-                call addto(rhs, dim, u_nodes_bdy, -matmul( ele_val(pressure_bc, sele), &
+                if (subtract_out_reference_profile) then
+                   ! Here we subtract the hydrostatic component from the pressure boundary condition used in the surface integral when
+                   ! assembling ct_m. Hopefully this will be the same as the pressure boundary condition itself.
+                   call addto(rhs, dim, u_nodes_bdy, -matmul(ele_val(pressure_bc, sele)-face_val(hb_pressure, sele), &
                                                             ct_mat_bdy(dim,:,:) ))
+                else
+                   call addto(rhs, dim, u_nodes_bdy, -matmul( ele_val(pressure_bc, sele), &
+                                                            ct_mat_bdy(dim,:,:) ))
+                end if
              end if
           end do
         end if
@@ -1125,10 +1192,11 @@
                                             mass, masslump, &
                                             x, x_old, x_new, u, oldu, nu, ug, &
                                             density, ct_rhs, &
-                                            source, absorption, buoyancy, gravity, &
+                                            source, absorption, buoyancy, hb_density, gravity, &
                                             viscosity, grad_u, &
                                             fnu, tnu, leonard, strainprod, alpha, gamma, &
                                             gp, surfacetension, &
+                                            swe_bottom_drag, old_pressure, p, &
                                             assemble_ct_matrix_here, depth, &
                                             alpha_u_field, abs_wd, temperature, nvfrac, supg_shape)
 
@@ -1162,6 +1230,10 @@
       type(scalar_field), intent(in) :: gp
       type(tensor_field), intent(in) :: surfacetension
 
+      ! only used with have_swe_bottom_drag - otherwised undefined pointers
+      type(scalar_field), pointer :: swe_bottom_drag, old_pressure
+      type(scalar_field), intent(in) :: p
+
       logical, intent(in) :: assemble_ct_matrix_here
 
       ! Wetting and Drying
@@ -1171,6 +1243,8 @@
 
       ! Temperature dependent viscosity:
       type(scalar_field), intent(in) :: temperature
+
+      type(scalar_field), intent(in) :: hb_density
 
       ! Non-linear approximation of the volume fraction
       type(scalar_field), intent(in) :: nvfrac
@@ -1347,7 +1421,7 @@
       
       ! Buoyancy terms
       if(have_gravity) then
-        call add_buoyancy_element_cg(x, ele, test_function, u, buoyancy, gravity, nvfrac, detwei, rhs_addto)
+        call add_buoyancy_element_cg(x, ele, test_function, u, buoyancy, hb_density, gravity, nvfrac, detwei, rhs_addto)
       end if
       
       ! Surface tension
@@ -1356,10 +1430,11 @@
       end if
 
       ! Absorption terms (sponges) and WettingDrying absorption
-      if (have_absorption .or. have_vertical_stabilization .or. have_wd_abs) then
+      if (have_absorption .or. have_vertical_stabilization .or. have_wd_abs .or. have_swe_bottom_drag) then
        call add_absorption_element_cg(x, ele, test_function, u, oldu_val, density, &
                                       absorption, detwei, big_m_diag_addto, big_m_tensor_addto, rhs_addto, &
                                       masslump, mass, depth, gravity, buoyancy, &
+                                      swe_bottom_drag, old_pressure, p, nu, &
                                       alpha_u_field, abs_wd)
       end if
 
@@ -1673,12 +1748,12 @@
       
     end subroutine add_sources_element_cg
     
-    subroutine add_buoyancy_element_cg(positions, ele, test_function, u, buoyancy, gravity, nvfrac, detwei, rhs_addto)
+    subroutine add_buoyancy_element_cg(positions, ele, test_function, u, buoyancy, hb_density, gravity, nvfrac, detwei, rhs_addto)
       type(vector_field), intent(in) :: positions
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
       type(vector_field), intent(in) :: u
-      type(scalar_field), intent(in) :: buoyancy
+      type(scalar_field), intent(in) :: buoyancy, hb_density
       type(vector_field), intent(in) :: gravity
       type(scalar_field), intent(in) :: nvfrac
       real, dimension(ele_ngi(u, ele)), intent(in) :: detwei
@@ -1687,12 +1762,14 @@
       real, dimension(ele_ngi(u, ele)) :: nvfrac_gi
       real, dimension(ele_ngi(u, ele)) :: coefficient_detwei
       
-      if(multiphase) then
-         nvfrac_gi = ele_val_at_quad(nvfrac, ele)
+      if (subtract_out_reference_profile) then
+        coefficient_detwei = gravity_magnitude*(ele_val_at_quad(buoyancy, ele)-ele_val_at_quad(hb_density, ele))*detwei
+      else
+        coefficient_detwei = gravity_magnitude*ele_val_at_quad(buoyancy, ele)*detwei
       end if
 
-      coefficient_detwei = gravity_magnitude*ele_val_at_quad(buoyancy, ele)*detwei
       if(multiphase) then
+         nvfrac_gi = ele_val_at_quad(nvfrac, ele)
          coefficient_detwei = coefficient_detwei*nvfrac_gi
       end if
 
@@ -1740,6 +1817,7 @@
                                          density, absorption, detwei, &
                                          big_m_diag_addto, big_m_tensor_addto, rhs_addto, &
                                          masslump, mass, depth, gravity, buoyancy, &
+                                         swe_bottom_drag, old_pressure, p, nu, &
                                          alpha_u_field, abs_wd)
       type(vector_field), intent(in) :: positions
       integer, intent(in) :: ele
@@ -1757,6 +1835,10 @@
       type(scalar_field), intent(in) :: depth
       type(vector_field), intent(in) :: gravity
       type(scalar_field), intent(in) :: buoyancy
+      ! fields used for swe bottom drag:
+      type(scalar_field), pointer :: swe_bottom_drag, old_pressure ! these are undefined pointers if .not. have_swe_bottom_drag
+      type(scalar_field), intent(in) :: p
+      type(vector_field), intent(in) :: nu
       ! Wetting and drying parameters
       type(scalar_field), intent(in) :: alpha_u_field
       type(vector_field), intent(in) :: abs_wd
@@ -1871,6 +1953,17 @@
           absorption_gi=absorption_gi-vvr_abs_diag-ib_abs_diag
         end if
 
+      end if
+
+      if (have_swe_bottom_drag) then
+        ! first compute total water depth H
+        depth_at_quads = ele_val_at_quad(depth, ele) + (itheta*ele_val_at_quad(p, ele) + (1.0-itheta)*ele_val_at_quad(old_pressure, ele))/gravity_magnitude
+        ! now reuse depth_at_quads to be the absorption coefficient: C_D*|u|/H
+        depth_at_quads = (ele_val_at_quad(swe_bottom_drag, ele)*sqrt(sum(ele_val_at_quad(nu, ele)**2, dim=1)))/depth_at_quads
+        do i=1, u%dim
+          absorption_gi(i,:) = absorption_gi(i,:) + depth_at_quads
+        end do
+      
       end if
       
       ! element absorption matrix

@@ -366,7 +366,6 @@ contains
 
     ! Reorder element node numbering (if necessary):
     ! (allows for different element types)
-    allocate(total_elem_node_list(0))
     call reorder_node_numbering(num_elem_blk, num_nodes_per_elem, num_elem_in_block, elem_connectivity, elem_type, total_elem_node_list)
 
     ! check if number of vertices/nodes are consistent with shape
@@ -783,7 +782,19 @@ contains
 
     integer, allocatable, dimension(:) :: elem_node_list
 
-    integer :: i, e, n, z
+    integer :: i, e, n, z, total_size
+
+    ! Get the total size of array total_elem_node_list
+    ! so that it can be allocated outside a loop
+    ! which gives us a massive speedup compared to dynamically
+    ! increasing the size of the array within the loop
+    total_size = 0
+    do i=1, num_elem_blk
+       total_size = total_size + num_nodes_per_elem(i)*num_elem_in_block(i)
+    end do
+    ! Now we can allocate the array containing the node list of all elements
+    ! (all elements, meaning of the entire mesh, which is required for fluidity)
+    allocate(total_elem_node_list(total_size))
 
     z = 0
     do i=1, num_elem_blk
@@ -795,7 +806,9 @@ contains
           end do
           call toFluidityElementNodeOrdering( elem_node_list, elem_type(i) )
           ! Now append elem_node_list to total_elem_node_list
-          call append_array(total_elem_node_list, elem_node_list)
+          do n=1, num_nodes_per_elem(i)
+             total_elem_node_list(z+n) = elem_node_list(n)
+          end do
           z = z + num_nodes_per_elem(i)
        ! reset node list:
        elem_node_list = 0
@@ -1118,7 +1131,7 @@ contains
              field%mesh%ndglno(n+z) = exo_element(exo_e)%nodeIDs(n)
           end do
           ! Set region_id of element (this will be its blockID in exodus)
-          field%mesh%region_ids = exo_element(exo_e)%blockID
+          field%mesh%region_ids(i) = exo_element(exo_e)%blockID
           exo_e = exo_e+1
           z = z+num_nodes_per_elem_ele
        end if

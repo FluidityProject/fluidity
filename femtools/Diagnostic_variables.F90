@@ -1268,7 +1268,7 @@ contains
   end subroutine initialise_steady_state
   
   subroutine write_diagnostics(state, time, dt, timestep)
-    !!< Write the diagnostics to the previously opened diagnostics file.
+      !!< Write the diagnostics to the previously opened diagnostics file.
     type(state_type), dimension(:), intent(inout) :: state
     real, intent(in) :: time, dt
     integer, intent(in) :: timestep

@@ -1,7 +1,7 @@
 default: input
 
 input: clean
-	gmsh -2 src/square.geo -o square.msh
+	gmsh -2 -bin src/square.geo -o square.msh
 
 clean: clean-mesh clean-run
 clean-mesh:

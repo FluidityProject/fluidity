@@ -71,21 +71,9 @@ fi
 #
 # Name fluidity
 #
-AC_ARG_ENABLE(gcov,
-    [AC_HELP_STRING([--enable-gcov],
-	    [turns on GNUs coverage tool - gcov])])
-
 AC_ARG_ENABLE(debugging,
     [AC_HELP_STRING([--enable-debugging],
 	    [turns on debugging flags])])
-
-if test "x$enable_gcov" == "xyes" ; then
-    enable_debugging="yes"
-    FCFLAGS="$FCFLAGS -fprofile-arcs -ftest-coverage"
-    CFLAGS="$CFLAGS -fprofile-arcs -ftest-coverage"
-    CXXFLAGS="$CXXFLAGS -fprofile-arcs -ftest-coverage"
-    LDFLAGS="$LDFLAGS -fprofile-arcs -ftest-coverage"
-fi
  
 FLFEMDEM="femdem"
 
@@ -153,7 +141,6 @@ if test "$fcompiler" = "ifort" ; then
     FFLAGS="$FFLAGS -vec-report=0"
     FCFLAGS="$FCFLAGS -vec-report=0"
 fi
-
 
 AC_PROG_CC(icc ecc suncc pgcc gcc cc)
 AC_PROG_CXX(icpc icc ecc sunCC pgCC g++ CC)
@@ -604,6 +591,8 @@ else
 #define NDEBUG 1
 EOF
     OPTIMIZATION_FFLAGS="$OPTIMIZATION_FFLAGS -O3"
+
+    AC_CHECK_LIB(tcmalloc,malloc,,AC_MSG_WARN([No tcmalloc support available.]))
 fi
 
 FFLAGS="$FFLAGS $OPTIMIZATION_FFLAGS"
@@ -862,6 +851,8 @@ fi
 if test "$HAVE_HYPRE" == "1"; then
   CPPFLAGS="$CPPFLAGS -DHAVE_HYPRE"
 fi
+CPPFLAGS=`echo $CPPFLAGS | sed 's/-petsc-version-/3.4.2.0/' | sed 's/x86_64\/x86_64/x86_64/'`
+FCFLAGS=`echo $FCFLAGS | sed 's/-petsc-version-/3.4.2.0/' | sed 's/x86_64\/x86_64/x86_64/'`
 
 # Double precision.
 AC_MSG_CHECKING(what voodoo is required to get 64 bit reals....)
@@ -1215,15 +1206,20 @@ if test -d libspud ; then
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
 
     # Check if we're on hector xe6
-    if echo $(hostname) | grep -q "^hector-xe6"; then
-        AC_MSG_NOTICE([Building on hector xe6; disabling shared libraries])
-        SHFLAG=--disable-shared
+    if echo $(hostname) | egrep -q '(hector|eslogin)'; then
+        AC_MSG_NOTICE([Building on HECTOR/ARCHER; disabling shared libraries])
+        CONFIG_FLAG=--disable-shared
         SPUD_ONLY="yes"
         FLLINKER=$CXX
     else
         FLLINKER=$FC
-        SHFLAG=--enable-shared
+        CONFIG_FLAG=--enable-shared
     fi
+
+    if test "$enable_profiling" = "yes" ; then
+        CONFIG_FLAG="${CONFIG_FLAG} --enable-profiling"
+    fi
+
     AC_SUBST(SPUD_ONLY)
 
     cd libspud
@@ -1234,7 +1230,7 @@ if test -d libspud ; then
     # fluidity's (except for MPI)
     echo "${env_fcflags}"
     echo "${env_fflags}"
-    FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" CFLAGS="${env_cflags} $PIC_FLAG $PROFILING_FLAG" CXXFLAGS="${env_cxxflags} $PIC_FLAG $PROFILING_FLAG" CPPFLAGS="${env_cppflags}" ./configure --prefix=${PWD}/.. ${SHFLAG}
+    FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" CFLAGS="${env_cflags} $PIC_FLAG $PROFILING_FLAG" CXXFLAGS="${env_cxxflags} $PIC_FLAG $PROFILING_FLAG" CPPFLAGS="${env_cppflags}" ./configure --prefix=${PWD}/.. ${CONFIG_FLAG}
     if test "$?" -ne "0"; then
       AC_MSG_ERROR([Configuration of libspud has failed.])
       exit -1
@@ -1459,17 +1455,6 @@ if test "x$enable_mba3d" = "xyes"; then
   AC_SUBST(MBA3D)
 fi
 
-AC_ARG_ENABLE(algencan,
-[AC_HELP_STRING([--enable-algencan],
-[Enabled algencan optimisation library])])
-
-if test "x$enable_algencan" = "xyes"; then
-  echo "#define HAVE_ALGENCAN 1" >> include/confdefs.h
-  LIBS="$LIBS -lalgencan"
-  ALGENCAN="yes"
-  AC_SUBST(ALGENCAN)
-fi
-
 AC_ARG_ENABLE(memory_stats,
 [AC_HELP_STRING([--enable-memory-stats],
 [Enable memory statistics])])
@@ -1552,7 +1537,6 @@ AC_OUTPUT(Makefile
           libjudy/src/JudyL/Makefile
           libjudy/src/JudySL/Makefile
           libjudy/src/JudyHS/Makefile
-      	  libalgencan/Makefile
           libwm/Makefile
           libvtkfortran/Makefile
           schemas/flml

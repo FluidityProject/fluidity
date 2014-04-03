@@ -2,9 +2,10 @@
 <testproblem>
   <name>Detectors with adaptivity in parallel</name>
   <owner userid="jhill1"/>
-  <tags>flml detectors parallel</tags>
-  <problem_definition length="short" nprocs="1">
-    <command_line>mpiexec -n 2 ../../bin/fluidity -v2 -l detectors_flredecomp.flml</command_line>
+  <tags>flml parallel</tags>
+  <problem_definition length="short" nprocs="2">
+    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 2 -v -l detectors detectors_flredecomp &amp;&amp;
+mpiexec ../../bin/fluidity -v2 -l detectors_flredecomp.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="solvers_converged" language="python">
@@ -17,12 +18,18 @@ s= stat_parser("detectors.stat")
 ElapsedTime=s["ElapsedTime"]["value"]
     </variable>
     <variable name="last_locations_error" language="python">
-from readtool import readstat
-last_locations_error = readstat("detectors.detectors")
-    </variable>
-    <variable name="particle_sizes" language="python">
 from fluidity_tools import stat_parser
-particle_sizes = stat_parser("ParticleTest.detectors")['Size']
+from numpy import zeros,fromfile
+
+s = stat_parser('detectors.detectors')
+last_locations_error = zeros((2,100))
+X = fromfile('Xvals.txt',sep=' ')
+Y = fromfile('Yvals.txt',sep=' ')
+for i in range(100):
+    name = 'Steve_' + str(i+1).zfill(3)
+    # +0.5 due to domain change from the lagrangian_detectors setup
+    last_locations_error[0,i] = s[name]['position'][0][-1] - X[i] + 0.5
+    last_locations_error[1,i] = s[name]['position'][1][-1] - Y[i] + 0.5
     </variable>
   </variables>
   <pass_tests>
@@ -34,11 +41,6 @@ assert ElapsedTime[-1] &gt; 7.9999
     </test>
     <test name="CorrectLagrangianTrajectory" language="python">
 assert abs(last_locations_error).max() &lt; 1.0e-6
-    </test>
-    <test name="CorrectParticleAgents" language="python">
-assert len(particle_sizes) - 100 &lt; 1.0e-6
-for (pid,psize) in particle_sizes.iteritems():
-    assert psize.all() -5. &lt; 1.0e-6
     </test>
   </pass_tests>
   <warn_tests>

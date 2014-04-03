@@ -517,9 +517,13 @@ contains
       face_tangents(1,:) = -face_normals(2,:)
       face_tangents(2,:) = face_normals(1,:)
 
+      ! work around for gfortran bug http://gcc.gnu.org/bugzilla/show_bug.cgi?id=57798
+      ! if you put the product below directly in the sum(..,dim=1) you get a segfault on 4.8.1
+      face_tangents = face_tangents*face_val_at_quad(source, sele)
+
       call addto(rhs, face_global_nodes(rhs, sele), &
         & shape_rhs(face_shape(rhs, sele), detwei* &
-        &   sum(face_tangents*face_val_at_quad(source, sele), dim=1)))
+        &   sum(face_tangents, dim=1)))
 
     end subroutine assemble_curl_sele_dg
 
