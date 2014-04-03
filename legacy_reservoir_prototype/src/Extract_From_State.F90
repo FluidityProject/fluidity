@@ -2165,15 +2165,20 @@
             if (stat==0) velocity%wrapped=.true.
             velocity=>extract_vector_field(state(i),"IteratedVelocity",stat)
             if (stat==0) velocity%wrapped=.true.
-            call unpack_component_sfield(state(i),packed_state,"ComponentDensity",icomp)
-            call unpack_component_sfield(state(i),packed_state,"OldComponentDensity",icomp)
-            call unpack_component_sfield(state(i),packed_state,"ComponentMassFraction",icomp)
-            call unpack_component_sfield(state(i),packed_state,"OldComponentMassFraction",icomp)
+
 
             call unpack_component_sfield(state(i),packed_state,"FEComponentDensity",icomp)
             !call unpack_component_sfield(state(i),packed_state,"FEOldComponentDensity",icomp)
             call unpack_component_sfield(state(i),packed_state,"FEComponentMassFraction",icomp)
             !call unpack_component_sfield(state(i),packed_state,"FEOldComponentMassFraction",icomp)
+
+
+            call unpack_component_sfield(state(i),packed_state,"OldComponentDensity",icomp,prefix='Old')
+            call unpack_component_sfield(state(i),packed_state,"OldComponentMassFraction",icomp,prefix='Old')
+            call unpack_component_sfield(state(i),packed_state,"ComponentDensity",icomp)
+            call unpack_component_sfield(state(i),packed_state,"ComponentMassFraction",icomp)
+
+
 
 
             icomp=icomp+1
@@ -2202,9 +2207,13 @@
 
             
             if(has_phase_volume_fraction) then
+               call unpack_sfield(state(i),packed_state,"IteratedPhaseVolumeFraction",1,iphase,&
+                    check_paired(extract_scalar_field(state(i),"PhaseVolumeFraction"),&
+                    extract_scalar_field(state(i),"IteratedPhaseVolumeFraction")))
+               call unpack_sfield(state(i),packed_state,"OldPhaseVolumeFraction",1,iphase,&
+                    check_paired(extract_scalar_field(state(i),"PhaseVolumeFraction"),&
+                    extract_scalar_field(state(i),"OldPhaseVolumeFraction")))
                call unpack_sfield(state(i),packed_state,"PhaseVolumeFraction",1,iphase)
-               call unpack_sfield(state(i),packed_state,"OldPhaseVolumeFraction",1,iphase)
-               call unpack_sfield(state(i),packed_state,"IteratedPhaseVolumeFraction",1,iphase)
                call insert(multi_state(1,iphase), extract_scalar_field(state(i),"PhaseVolumeFraction"),"PhaseVolumeFraction")
             end if
 
@@ -2463,14 +2472,18 @@
 
         end subroutine unpack_vfield
 
-        subroutine unpack_component_sfield(st,mst,name,ic)
+        subroutine unpack_component_sfield(st,mst,name,ic,prefix)
           type(state_type) :: st, mst
           character (len=*) :: name
           integer :: ic
           integer :: ip
+          character (len=*), optional :: prefix
 
-          type(scalar_field), pointer :: nfield
+
+          type(scalar_field), pointer :: nfield,pnfield
           type(tensor_field), pointer :: mfield
+          logical :: free
+          
 
           mfield=>extract_tensor_field(mst,"Packed"//name)
 
@@ -2478,13 +2491,21 @@
              if ( has_scalar_field(st,name//"Phase"//int2str(ip)) ) then
 
                 nfield=>extract_scalar_field(st,name//"Phase"//int2str(ip))
+                if (present(prefix)) then
+                   pnfield=>extract_scalar_field(st,name(len(prefix)+1:)//"Phase"//int2str(ip))
+                   free=check_paired(pnfield,nfield)
+                else
+                   free=.true.
+                end if
+
+                
                
                 
                 mfield%val(ic,ip,:)=nfield%val(:)
                 if (ic==1) then
                    mfield%option_path=nfield%option_path
                 end if
-                deallocate(nfield%val)
+                if (free) deallocate(nfield%val)
                 nfield%val=>mfield%val(ic,ip,:)
                 nfield%val_stride=ncomp*nphase
                 nfield%wrapped=.true.
