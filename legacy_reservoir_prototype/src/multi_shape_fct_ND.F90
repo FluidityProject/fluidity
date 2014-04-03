@@ -3098,7 +3098,7 @@
       allocate( quad_ny( quad_cv_nloc, quad_cv_ngi ) ) ; quad_ny = 0.
       allocate( quad_nz( quad_cv_nloc, quad_cv_ngi ) ) ; quad_nz = 0.
       allocate( rdummy( 10000 ) ) ; rdummy = 0.
-      allocate( rdummy2( 100, 100 ) ) ; rdummy2 = 0.
+      allocate( rdummy2( 100, max(100,x_nonods) ) ) ; rdummy2 = 0.
 
       ! For surfaces
       allocate( quad_scvweight( quad_cv_sngi ) ) ; quad_scvweight = 0.
