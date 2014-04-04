@@ -1169,6 +1169,22 @@ contains
               X_NDGLN,X_NONODS,NDIM, &
               X_ALL, XC_CV, YC_CV, ZC_CV)
 
+! make sure the diagonal is equal to the value:
+         DO CV_NODI=1,CV_NONODS
+            IMID=SMALL_CENTRM(CV_NODI)
+            DO IPHASE=1,NPHASE
+               TUPWIND_MAT_ALL( IPHASE, IMID)=T_ALL( IPHASE, CV_NODI)
+               TOLDUPWIND_MAT_ALL(  IPHASE, IMID)=TOLD_ALL( IPHASE, CV_NODI)
+
+               DENUPWIND_MAT_ALL(  IPHASE, IMID)=DEN_ALL( IPHASE, CV_NODI)
+               DENOLDUPWIND_MAT_ALL(  IPHASE, IMID)=DENOLD_ALL( IPHASE, CV_NODI)
+
+               IF( IGOT_T2 == 1 ) THEN
+                  T2UPWIND_MAT_ALL(IPHASE, IMID)=T2_ALL( IPHASE, CV_NODI)
+                  T2OLDUPWIND_MAT_ALL(IPHASE, IMID)=T2OLD_ALL( IPHASE, CV_NODI)
+               ENDIF
+            END DO
+         END DO
 
     !#############CONVERSION FROM NEW VARIABLES TO OLD VARIABLES############
         !###UPWIND VALUES###
@@ -1211,22 +1227,6 @@ contains
     !########################################################
 
 
-! make sure the diagonal is equal to the value: 
-         DO CV_NODI=1,CV_NONODS
-            IMID=SMALL_CENTRM(CV_NODI) 
-            DO IPHASE=1,NPHASE
-               TUPWIND_MAT( (IPHASE-1)*nsmall_colm + IMID)=T_ALL( IPHASE, CV_NODI)
-               TOLDUPWIND_MAT( (IPHASE-1)*nsmall_colm + IMID)=TOLD_ALL( IPHASE, CV_NODI)
-
-               DENUPWIND_MAT( (IPHASE-1)*nsmall_colm + IMID)=DEN_ALL( IPHASE, CV_NODI)
-               DENOLDUPWIND_MAT( (IPHASE-1)*nsmall_colm + IMID)=DENOLD_ALL( IPHASE, CV_NODI)
-
-               IF( IGOT_T2 == 1 ) THEN
-                  T2UPWIND_MAT( (IPHASE-1)*nsmall_colm + IMID)=T2_ALL( IPHASE, CV_NODI)
-                  T2OLDUPWIND_MAT( (IPHASE-1)*nsmall_colm + IMID)=T2OLD_ALL( IPHASE, CV_NODI)
-               ENDIF
-            END DO
-         END DO
 
 
          if ( .false. ) then
@@ -1245,7 +1245,6 @@ contains
            NCOLELE, FINELE, COLELE, CV_NLOC, CV_SNLOC, CV_NONODS, CV_NDGLN, CV_SNDGLN, &
            CV_SLOCLIST, X_NLOC, X_NDGLN )
 
-
       IF ( GOT_DIFFUS ) THEN
          CALL DG_DERIVS_ALL2( FEMT_ALL, FEMTOLD_ALL, &
               DTX_ELE_ALL, DTOLDX_ELE_ALL, &
@@ -1260,6 +1259,7 @@ contains
               SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
               state, "CVN", StorageIndexes( 33 ) )
       END IF
+
 
 
       !     =============== DEFINE THETA FOR TIME-STEPPING ===================
