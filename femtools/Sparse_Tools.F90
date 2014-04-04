@@ -3846,7 +3846,7 @@ contains
     !local variables
     integer :: i, j
 
-    assert(size(vector_in)==size(mat,2))
+    assert(size(vector_in)==size(mat,2)) ! debug place free surface
     assert(size(vector_out)==size(mat,1))
 
     do i = 1, size(vector_out)

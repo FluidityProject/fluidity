@@ -769,22 +769,22 @@
           ewrite_minmax(visc_inverse_masslump)
           
           ! Now invert the original inverse_masslump, apply dirichlet conditions:
-          if(.not.reduced_model) then
+        !  if(.not.reduced_model) then
              call invert(inverse_masslump)
              call apply_dirichlet_conditions_inverse_mass(inverse_masslump, u)
              ewrite_minmax(inverse_masslump)
              ewrite(2,*) "****************************************"
-          endif
+        !  endif
    
         else 
           ! thus far we have just assembled the lumped mass in inverse_masslump
           ! now invert it:
-          if(.not.reduced_model) then
+         ! if(.not.reduced_model) then
              call invert(inverse_masslump)
              ! apply boundary conditions (zeroing out strong dirichl. rows)
              call apply_dirichlet_conditions_inverse_mass(inverse_masslump, u)
              ewrite_minmax(inverse_masslump)
-          endif
+        !  endif
 
  
         endif

@@ -195,7 +195,7 @@ contains
 
   subroutine write_state(dump_no, state, adjoint)
     !!< Data output routine. Write output data.
-
+    
     integer, intent(inout) :: dump_no
     type(state_type), dimension(:), intent(inout) :: state
     logical, intent(in), optional :: adjoint
@@ -203,7 +203,7 @@ contains
     character(len = OPTION_PATH_LEN) :: dump_filename, dump_format,simulation_name1
     integer :: max_dump_no, stat
     integer :: increment
-
+    !print * ,'dump_nostart' , dump_no
     ewrite(1, *) "In write_state"
     call profiler_tic("I/O")
 
@@ -247,7 +247,7 @@ contains
 
     call profiler_toc("I/O")
     ewrite(1, *) "Exiting write_state"
-
+    ! print * ,'dump_noend' , dump_no
   end subroutine write_state
 
   subroutine vtk_write_state_new_options(filename, index, state, write_region_ids)

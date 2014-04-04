@@ -78,7 +78,7 @@ contains
 
     select case(b%field_type)
     case(FIELD_TYPE_NORMAL)
-      call mult(x%val, A, b%val)
+      call mult(x%val, A, b%val) !debug place
     case(FIELD_TYPE_CONSTANT)
       allocate(tmp(size(x%val)))
       tmp=b%val(1)

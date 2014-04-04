@@ -16,6 +16,16 @@ should be run in reduced mode.
           </optional>
         </element>
       </optional>
+      <optional>
+        <element name="Non_intrusive">
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="training">
+          <empty/>
+        </element>
+      </optional>
       <element name="pod_basis_formation">
         <element name="dump_sampling_period">
           <a:documentation>How frequently should the dumps be sampled to form the POD basis? 

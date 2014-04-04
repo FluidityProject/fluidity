@@ -10,7 +10,13 @@ reduced_model =
          ## Petrov-Galerkin
          element petrov_galerkin {
             empty
-         }?          
+         }?   
+      }?,
+      element Non_intrusive{
+           empty
+      }?,
+         element training{
+           empty
       }?,
       element pod_basis_formation {
          ## How frequently should the dumps be sampled to form the POD basis? 

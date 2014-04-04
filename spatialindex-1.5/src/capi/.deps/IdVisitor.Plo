@@ -36,8 +36,7 @@ IdVisitor.lo: IdVisitor.cc ../../include/capi/sidx_impl.h \
  /usr/lib/gcc/x86_64-linux-gnu/4.6/include/stdarg.h \
  /usr/include/x86_64-linux-gnu/bits/wchar.h \
  /usr/lib/gcc/x86_64-linux-gnu/4.6/include/stddef.h \
- /usr/include/xlocale.h /usr/include/x86_64-linux-gnu/bits/wchar2.h \
- /usr/include/c++/4.6/bits/localefwd.h \
+ /usr/include/xlocale.h /usr/include/c++/4.6/bits/localefwd.h \
  /usr/include/c++/4.6/x86_64-linux-gnu/./bits/c++locale.h \
  /usr/include/c++/4.6/clocale /usr/include/locale.h \
  /usr/include/x86_64-linux-gnu/bits/locale.h /usr/include/c++/4.6/iosfwd \
@@ -63,7 +62,6 @@ IdVisitor.lo: IdVisitor.cc ../../include/capi/sidx_impl.h \
  /usr/include/x86_64-linux-gnu/bits/posix_opt.h \
  /usr/include/x86_64-linux-gnu/bits/environments.h \
  /usr/include/x86_64-linux-gnu/bits/confname.h /usr/include/getopt.h \
- /usr/include/x86_64-linux-gnu/bits/unistd.h \
  /usr/include/c++/4.6/x86_64-linux-gnu/./bits/atomic_word.h \
  /usr/include/c++/4.6/bits/basic_string.tcc /usr/include/c++/4.6/vector \
  /usr/include/c++/4.6/bits/stl_vector.h \
@@ -85,8 +83,7 @@ IdVisitor.lo: IdVisitor.cc ../../include/capi/sidx_impl.h \
  /usr/include/c++/4.6/bits/ostream.tcc \
  /usr/include/c++/4.6/bits/istream.tcc \
  /usr/include/c++/4.6/bits/sstream.tcc /usr/include/c++/4.6/cstring \
- /usr/include/string.h /usr/include/x86_64-linux-gnu/bits/string3.h \
- ../../include/capi/sidx_config.h \
+ /usr/include/string.h ../../include/capi/sidx_config.h \
  /usr/lib/gcc/x86_64-linux-gnu/4.6/include/stdint.h /usr/include/stdint.h \
  ../../include/SpatialIndex.h ../../include/tools/Tools.h \
  /usr/include/assert.h /usr/include/c++/4.6/iostream \
@@ -96,8 +93,6 @@ IdVisitor.lo: IdVisitor.cc ../../include/capi/sidx_impl.h \
  /usr/include/libio.h /usr/include/_G_config.h \
  /usr/include/x86_64-linux-gnu/bits/stdio_lim.h \
  /usr/include/x86_64-linux-gnu/bits/sys_errlist.h \
- /usr/include/x86_64-linux-gnu/bits/stdio.h \
- /usr/include/x86_64-linux-gnu/bits/stdio2.h \
  /usr/include/c++/4.6/x86_64-linux-gnu/./bits/basic_file.h \
  /usr/include/c++/4.6/x86_64-linux-gnu/./bits/c++io.h \
  /usr/include/c++/4.6/bits/fstream.tcc /usr/include/c++/4.6/queue \
@@ -117,9 +112,7 @@ IdVisitor.lo: IdVisitor.cc ../../include/capi/sidx_impl.h \
  /usr/include/x86_64-linux-gnu/sys/select.h \
  /usr/include/x86_64-linux-gnu/bits/select.h \
  /usr/include/x86_64-linux-gnu/bits/sigset.h \
- /usr/include/x86_64-linux-gnu/bits/select2.h \
  /usr/include/x86_64-linux-gnu/sys/sysmacros.h /usr/include/alloca.h \
- /usr/include/x86_64-linux-gnu/bits/stdlib.h \
  /usr/include/c++/4.6/bits/algorithmfwd.h \
  /usr/include/c++/4.6/bits/stl_tempbuf.h \
  ../../include/tools/SmartPointer.h ../../include/tools/PointerPool.h \
@@ -231,8 +224,6 @@ IdVisitor.lo: IdVisitor.cc ../../include/capi/sidx_impl.h \
 
 /usr/include/xlocale.h:
 
-/usr/include/x86_64-linux-gnu/bits/wchar2.h:
-
 /usr/include/c++/4.6/bits/localefwd.h:
 
 /usr/include/c++/4.6/x86_64-linux-gnu/./bits/c++locale.h:
@@ -301,8 +292,6 @@ IdVisitor.lo: IdVisitor.cc ../../include/capi/sidx_impl.h \
 
 /usr/include/getopt.h:
 
-/usr/include/x86_64-linux-gnu/bits/unistd.h:
-
 /usr/include/c++/4.6/x86_64-linux-gnu/./bits/atomic_word.h:
 
 /usr/include/c++/4.6/bits/basic_string.tcc:
@@ -363,8 +352,6 @@ IdVisitor.lo: IdVisitor.cc ../../include/capi/sidx_impl.h \
 
 /usr/include/string.h:
 
-/usr/include/x86_64-linux-gnu/bits/string3.h:
-
 ../../include/capi/sidx_config.h:
 
 /usr/lib/gcc/x86_64-linux-gnu/4.6/include/stdint.h:
@@ -398,10 +385,6 @@ IdVisitor.lo: IdVisitor.cc ../../include/capi/sidx_impl.h \
 /usr/include/x86_64-linux-gnu/bits/stdio_lim.h:
 
 /usr/include/x86_64-linux-gnu/bits/sys_errlist.h:
-
-/usr/include/x86_64-linux-gnu/bits/stdio.h:
-
-/usr/include/x86_64-linux-gnu/bits/stdio2.h:
 
 /usr/include/c++/4.6/x86_64-linux-gnu/./bits/basic_file.h:
 
@@ -459,13 +442,9 @@ IdVisitor.lo: IdVisitor.cc ../../include/capi/sidx_impl.h \
 
 /usr/include/x86_64-linux-gnu/bits/sigset.h:
 
-/usr/include/x86_64-linux-gnu/bits/select2.h:
-
 /usr/include/x86_64-linux-gnu/sys/sysmacros.h:
 
 /usr/include/alloca.h:
-
-/usr/include/x86_64-linux-gnu/bits/stdlib.h:
 
 /usr/include/c++/4.6/bits/algorithmfwd.h:
 

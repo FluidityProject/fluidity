@@ -72,6 +72,7 @@ contains
          '/reduced_model/pod_basis_formation/pod_basis_count', total_dumps)
     allocate(POD_state(total_dumps))
 
+
     VelocityMesh=extract_velocity_mesh(state)
     PressureMesh=extract_pressure_mesh(state)
     velo => extract_vector_field(state, "Velocity")
@@ -257,6 +258,11 @@ contains
     
     velo => extract_vector_field(state, "Velocity")
     call get_option('/simulation_name', simulation_name)
+    
+    if (have_option("/reduced_model/Non_intrusive").and.(.not.have_option("/reduced_model/execute_reduced_model"))) then
+     simulation_name=trim(simulation_name)//'_POD'
+    endif
+
     call get_option('/geometry/quadrature/degree', quadrature_degree)
     adjoint_reduced= have_option("/reduced_model/adjoint")
     call get_option(&

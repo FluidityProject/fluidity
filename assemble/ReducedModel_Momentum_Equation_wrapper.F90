@@ -217,7 +217,8 @@
                     enddo
                  enddo
                  
-                 call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its,total_timestep)           
+                 call solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its,total_timestep)  
+                       !free surface debug place        
                  
   
                  POD_velocity=>extract_vector_field(POD_state(1,1,istate), "Velocity")

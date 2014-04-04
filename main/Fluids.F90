@@ -241,7 +241,7 @@ contains
   
     ewrite(3,*)'before have_option test'
     
-    if (have_option("/reduced_model/execute_reduced_model")) then
+    if (have_option("/reduced_model/execute_reduced_model").or.have_option("/reduced_model/Non_intrusive")) then
 	!do m = 1,size(state)
 !              if (deim) then
 !                    call read_input_states_deimres(deim_state_resl)
@@ -464,12 +464,13 @@ contains
          ! unless explicitly disabled
          & .and. .not. have_option("/io/disable_dump_at_start") &
          & ) then
+       !print * ,'dump_no467' , dump_no
        call write_state(dump_no, state)
 !           if (.not.deim .and. (have_option("/reduced_model/execute_reduced_model"))) then
 !           call write_state(dump_no,deim_state_res)
 !        endif
     end if
-
+    !stop 22222
     call initialise_convergence(filename, state)
     call initialise_steady_state(filename, state)
     call initialise_advection_convergence(state)
@@ -530,8 +531,12 @@ contains
           ! Intermediate dumps
           if(do_checkpoint_simulation(dump_no)) then
              call checkpoint_simulation(state, cp_no = dump_no)
+          ! print * ,'timestep and dump_no' , timestep, dump_no
+           !if (timestep>2) stop
           end if
+          !print * ,'timestep and dump_no536' , timestep, dump_no
           call write_state(dump_no, state)
+         ! print * ,'timestep and dump_no539' , timestep, dump_no
 !            if (.not.deim .and. (have_option("/reduced_model/execute_reduced_model"))) then
 !             call vtk_write_state(filename=trim(filename)//"DEIMRES", index=dump_no, state=deim_state_res)
            
@@ -999,6 +1004,7 @@ contains
     end if
     ! Dump at end, unless explicitly disabled
     if(.not. have_option("/io/disable_dump_at_end")) then
+       !print * ,'dump_no1005' , dump_no
        call write_state(dump_no, state)
        !        if (.not.deim .and. (have_option("/reduced_model/execute_reduced_model"))) then
        !        call write_state(dump_no, deim_state_res)
@@ -1089,20 +1095,22 @@ contains
 #endif
    ! if (flag==1) then ! if run pod then print 
  if (have_option("/reduced_model/execute_reduced_model")) then
-  open(unit=60,file='rsme')
-  do i=1,timestep-3
-!   print *, i, rmse(i)
-   write(60,*) i,rmse(i)
-  enddo 
-  close(60)
-
   open(unit=61,file='coorelation')
   do i=1,timestep-5
-!    print *, i, coor(i)
-    write(61,*)i,coor(i)
+     print *, i, coor(i)
+     write(61,*)i,coor(i)
    enddo
    close(61)
   endif
+
+  open(unit=60,file='rsme')
+   do i=1,timestep-3
+    print *, i, rmse(i)
+     write(60,*) i,rmse(i)
+   enddo 
+   close(60)
+
+  
  
   contains
 

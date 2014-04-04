@@ -11,6 +11,6 @@ if ! which trang > /dev/null; then
   exit 1
 fi
 
-cp /home/fangf/fluidity_bzr/ROM_DA_DEIM/libspud/../share/spud/spud_base.rnc $(dirname $1)
+cp /home/dxiao/Fluidity/ROM_Non_Intru/libspud/../share/spud/spud_base.rnc $(dirname $1)
 trang $1 ${1/rnc/rng}
 rm -f $(dirname $1)/spud_base.rn{c,g}

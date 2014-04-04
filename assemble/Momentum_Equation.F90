@@ -87,7 +87,7 @@
 
       ! The timestep
       real :: dt
-
+      type(csr_matrix) :: fs_m, fs_m_temp
       ! Are we going to form the Diagonal Schur complement preconditioner?
       logical :: get_diag_schur
       ! Do we need the scaled pressure mass matrix?
@@ -287,9 +287,9 @@
       logical :: timestep_check
       type(scalar_field) :: u_cpt
 
-     !   real, dimension(:,:), allocatable :: A_deim ,mom_rhs_deim  !() name change
-     !  real, dimension(:), allocatable :: b_deim,Ny
-        real, dimension(:,:), allocatable :: P_mn,Temp_pu,Temp_vu,Temp_vupu,mom_rhs_deim !A_deim,
+     ! real, dimension(:,:), allocatable :: A_deim ,mom_rhs_deim  !() name change
+     ! real, dimension(:), allocatable :: b_deim,Ny
+      real, dimension(:,:), allocatable :: P_mn,Temp_pu,Temp_vu,Temp_vupu,mom_rhs_deim !A_deim,
       real, dimension(:,:,:), allocatable :: V_kn,U_nm, U_mn
       real, dimension(:), allocatable :: Ny ,b_deim
        real, dimension(:,:), allocatable :: A_deim    !() name change
@@ -332,12 +332,12 @@
       integer, intent(in),optional ::total_timestep
 
       !free surface matrix
-      type(csr_matrix) :: fs_m
+     !type(csr_matrix) :: fs_m
 
       logical :: on_sphere, have_absorption, have_vertical_stabilization
       type(vector_field), pointer :: dummy_absorption
       logical :: lump_mass_form
-
+      real :: ann_start,ann_end
       ! Adjoint model
       logical :: adjoint_reduced
       type(pod_rhs_type) :: pod_rhs_adjoint
@@ -354,11 +354,11 @@
            endif
 
 
- 	if(timestep==1)then 
-         	timestep_check=.true.
-    	  else
-     		timestep_check= .false.
-      	endif
+           if(timestep==1)then 
+              timestep_check=.true.
+           else
+              timestep_check= .false.
+           endif
          u => extract_vector_field(state(1), "Velocity", stat)
          DT1=0.1
          !! Get diagnostics (equations of state, etc) and assemble matrices
@@ -490,6 +490,8 @@
 
                ! Get the pressure poisson matrix (i.e. the CMC/projection matrix)
                cmc_m => get_pressure_poisson_matrix(state(istate), get_cmc=reassemble_cmc_m) ! ...and similarly for reassemble_cmc_m
+               call allocate(fs_m_temp,cmc_m%sparsity)
+               call zero(fs_m_temp)
                reassemble_cmc_m = reassemble_cmc_m .or. reassemble_all_cmc_m
                call profiler_toc(p, "assembly")
             end if
@@ -706,8 +708,8 @@
             end if
             
             ! If CV pressure then add in any dirichlet pressure BC integrals to the mom_rhs.
-            if (cv_pressure) then
-!            if (cv_pressure.and.(.not.reduced_model)) then
+           !if (cv_pressure) then
+            if (cv_pressure.and.(.not.reduced_model)) then
                call add_pressure_dirichlet_bcs_cv(mom_rhs(istate), u, p, state(istate))
             end if
             
@@ -940,7 +942,12 @@
                            cmc_m, dt, theta_pg, theta_divergence, &
                            get_cmc=reassemble_cmc_m, rhs=ct_rhs(istate), fs_m=fs_m)
                end if
-               
+                    ! print *, 'fs_m945', size(fs_m_temp%val)
+                   open(22,file='fs_m.dat')      
+                   write(22,*) fs_m%val!fs_m_size,
+                   close(22)
+                  
+                 !stop 111
                if(get_diag_schur) then
                   ! Assemble diagonal Schur complement preconditioner:
                   call assemble_diagonal_schur(cmc_m, u, inner_m(istate)%ptr, ctp_m(istate)%ptr, ct_m(istate)%ptr)
@@ -1185,37 +1192,64 @@
 
             end if ! prognostic pressure
 
-           
+           if (have_option("/reduced_model/Non_intrusive")) then
                call get_option("/timestepping/current_time", current_time)
        	       call get_option("/timestepping/finish_time", finish_time)
                call get_option("/timestepping/timestep", dt)       
-              ! allocate(pod_coef_all_obv(total_timestep,((u%dim+1)*size(POD_state,1))))
-              ! if(its==nonlinear_iterations) then
-                 ! do i=1,size(POD_state,1)
-                        !  POD_velocity=>extract_vector_field(POD_state(i,1,istate), "Velocity")
-                          ! snapmean_velocity=>extract_vector_field(POD_state(i,1,istate),"SnapmeanVelocity")
-                          !  snapmean_pressure=>extract_Scalar_field(POD_state(i,2,istate),"SnapmeanPressure") 
-                           ! do j=1,u%dim
-                          !  pod_coef_all_obv(timestep,i+size(POD_state,1)*(j-1))=&
-                           !            dot_product(POD_velocity%val(j,:),(u%val(j,:)-snapmean_velocity%val(j,:)))
-                          !  enddo
-                           ! POD_pressure=>extract_scalar_field(POD_state(i,2,istate), "Pressure")
-                           ! pod_coef_all_obv(timestep,i+size(POD_state,1)*u%dim)= &
-                         !              dot_product(POD_pressure%val(:),(p%val(:)-snapmean_pressure%val(:)))
-                        ! enddo
-                              !write(40,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state,1))
-                !  open(101,file='coef_pod_all_obv',position='append',ACTION='WRITE')
-                ! write(101,*)(pod_coef_all_obv(timestep,i),i=1,(u%dim+1)*size(POD_state,1))
-                ! close(101)
-            !  endif
-
+              print *, 'timestep', timestep
+              allocate(pod_coef_all_obv(total_timestep,((u%dim+1)*size(POD_state,1))))
+               if(its==nonlinear_iterations) then
+                   do i=1,size(POD_state,1)
+                           POD_velocity=>extract_vector_field(POD_state(i,1,1), "Velocity")
+                             snapmean_velocity=>extract_vector_field(POD_state(i,1,1),"SnapmeanVelocity")
+                             snapmean_pressure=>extract_Scalar_field(POD_state(i,2,1),"SnapmeanPressure") 
+                             do j=1,u%dim
+                            !  print *, 'POD_velocity%val(j,:), u%val(j,:)',POD_velocity%val(j,:), u%val(j,:),snapmean_velocity%val(j,:)
+                             pod_coef_all_obv(timestep,i+size(POD_state,1)*(j-1))=&
+                                        dot_product(POD_velocity%val(j,:),(u%val(j,:)-snapmean_velocity%val(j,:)))
+                             enddo
+                             POD_pressure=>extract_scalar_field(POD_state(i,2,1), "Pressure")
+                             pod_coef_all_obv(timestep,i+size(POD_state,1)*u%dim)= &
+                                        dot_product(POD_pressure%val(:),(p%val(:)-snapmean_pressure%val(:)))
+                         enddo
+                  !write(40,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state,1))
+                  if(timestep .eq. 1) then 
+                   open(11,file='coef_pod_all_obv')
+                   write(11,*)(pod_coef_all_obv(timestep,:))
+                   close(11)
+                  else 
+                   open(11,file='coef_pod_all_obv', position='append',ACTION='WRITE')
+                   write(11,*)(pod_coef_all_obv(timestep,:))
+                   close(11)
+                  endif
+               endif
+              deallocate(pod_coef_all_obv)
+           endif
          else !! Reduced model version
-            
+                
+      
+             ! stop 212
+          if (has_boundary_condition(u, "free_surface")) then
+             !print *, 'fs_m1243',   size(fs_m_temp%val) 
+             open(unit=22,file='fs_m.dat')      
+             ! read(22,*) fs_m_size!(f(fs_m%val(i),i=1, 3826)
+             ! allocate(fs_m_temp(fs_m_size))
+             read(22,*)   fs_m_temp%val(:)!,i=1, fs_m_size)
+             close(22)
+            ! fs_m_temp%val(:)=0
+            ! print *, 'fs_m1217',   size(fs_m_temp%val)  
+            ! call mult(ct_rhs(istate),fs_m_temp,p)
+            ! ct_rhs(istate)%val=dot_product(fs_m_temp, p)
             call solve_momentum_reduced(state, u,p,big_m, ct_m, mom_rhs, ct_rhs, inverse_masslump, &
-                 at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its, total_timestep, if_optimal=if_optimal)           
-         end if ! end of 'if .not.reduced_model'
-
-
+                 at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its, total_timestep, if_optimal=if_optimal,fs_m=fs_m_temp) 
+       
+          else 
+              call solve_momentum_reduced(state, u,p,big_m, ct_m, mom_rhs, ct_rhs, inverse_masslump, &
+                 at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its, total_timestep, if_optimal=if_optimal) 
+         endif          
+         end if ! end of 'if .not.reduced_model' free surface debug place
+          
+           !  print *, 'fs_m1239'
  	if(.not.reduced_model .or. (reduced_model .and. timestep_check))then
          !! Finalisation and memory deallocation
          call profiler_tic("finalisation_loop")
@@ -1270,6 +1304,7 @@
          deallocate(lump_mass)
          deallocate(sphere_absorption)
 	endif
+      
       end subroutine solve_momentum
 
 

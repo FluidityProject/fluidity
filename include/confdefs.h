@@ -26,7 +26,7 @@
 #define HAVE_LIBPTHREAD 1
 #define HAVE_LIBUDUNITS 1
 #define USING_GFORTRAN 1
-#define NDEBUG 1
+#define DDEBUG 1
 #define HAVE_MPI 1
 #define HAVE_MPI_CXX 1
 #define _MPI_CPP_BINDINGS 1
@@ -53,4 +53,4 @@
 #define HAVE_LIBVTKFILTERING 1
 #define HAVE_LIBVTKGRAPHICS 1
 #define HAVE_LIBVTKIO 1
-#define HAVE_MBA_2D 1
+#define HAVE_MEMORY_STATS 1

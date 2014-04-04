@@ -90,7 +90,7 @@ module reduced_projection
   end interface
     type(vector_field), pointer :: velo !,podvelo ! RMSE
     real :: u_nodes ,nodesum !RMSE
-  real :: nodetemp(2),rmsetemp,coor(1500),fullnodesum,podnodesum,coor_xy,coor_x,coor_y , rmse(1500)
+  real :: nodetemp(2),rmsetemp,coor(15000),fullnodesum,podnodesum,coor_xy,coor_x,coor_y , rmse(15000)
   integer :: rmsestep =1,flag
   integer, dimension(:), allocatable :: phi
 contains
@@ -180,7 +180,7 @@ contains
     integer :: i, j, d, d1, d2, u_nodes, p_nodes, POD_num
     real, dimension(:,:), allocatable :: pod_tmp
 
-    type(csr_matrix), optional, intent(in) :: fs_m
+    type(csr_matrix), optional, intent(inout) :: fs_m
     type(scalar_field) :: fs_tmp
 
     ewrite(1,*)'in project_reduced'
@@ -218,7 +218,7 @@ contains
        POD_u=>extract_vector_field(POD_state(j,1), "Velocity")
        POD_p=>extract_scalar_field(POD_state(j,2), "Pressure")
 
-!!summation of rows after multiplication       
+!!summation of rows after multiplication      
        do d1=1,POD_u%dim
           do d2=1,POD_u%dim
              if (d1==d2) then
@@ -230,7 +230,6 @@ contains
 
           call mult(u_tmp(d1), big_m, u_c)
           call mult(ct_tmp, ct_m, u_c)
-
 
           !!calculations for pod_rhs
           call addto(POD_state(:,1), pod_rhs, j, d1, sum(dot_product(mom_rhs, u_c)))
@@ -246,7 +245,6 @@ contains
                   & pod_matrix%val(i+pod_matrix%u_dim*POD_num, j+(d1-1)*POD_num)
             end do
          end do
-
          call addto_p(POD_state(:,2), POD_u, pod_rhs, j, dot_product(ct_rhs, POD_p), 1.0)
 
 !!free surface matrix
@@ -255,6 +253,9 @@ contains
            call mult(fs_tmp, fs_m, POD_p)       
            do i=1, POD_num
               POD_p=>extract_scalar_field(POD_state(i,2), "Pressure")
+
+              fs_tmp%val=-fs_tmp%val
+
               call addto_p(POD_state(:,2), pod_matrix, i, j, dot_product(fs_tmp, POD_p))
            enddo
         endif
@@ -851,33 +852,33 @@ contains
          !!! added for RMSE and correlation coeeficient                        
                       
                                         
-                           u_nodes=node_count(velo) 
-                           !u_nodes=node_count(POD_velocity)
-                           nodesum=0
-                           fullnodesum=0
-                           podnodesum=0
+                            u_nodes=node_count(velo) 
+                                     !u_nodes=node_count(POD_velocity)
+                            nodesum=0
+                            fullnodesum=0
+                            podnodesum=0
                         do i=1,u_nodes
-                           nodetemp=node_val(velo,i) 
+                            nodetemp=node_val(velo,i) 
                          ! print *,'nodetemp(2)pod_sol_velocity(i,2)', nodetemp(2),pod_sol_velocity(i,2)                                      
-                           rmsetemp=(nodetemp(2)-pod_sol_velocity(i,2))**2
-                           nodesum=nodesum+rmsetemp
-                           fullnodesum= fullnodesum+nodetemp(2) !coor
-                           podnodesum=podnodesum+pod_sol_velocity(i,2)!coor
+                            rmsetemp=(nodetemp(2)-pod_sol_velocity(i,2))**2
+                            nodesum=nodesum+rmsetemp
+                            fullnodesum= fullnodesum+nodetemp(2) !coor
+                            podnodesum=podnodesum+pod_sol_velocity(i,2)!coor
                         enddo
-                           rmse(rmsestep)=SQRT(nodesum/u_nodes) 
+                            rmse(rmsestep)=SQRT(nodesum/u_nodes) 
                             
                            
                       coor_xy=0 
                       coor_x=0
                       coor_y=0
                 do i=1,u_nodes
-                  nodetemp=node_val(velo,i)
-                  coor_xy=coor_xy+(nodetemp(1)-fullnodesum/u_nodes)*(pod_sol_velocity(i,1)-podnodesum/u_nodes)
-                  coor_x=coor_x+(nodetemp(1)-fullnodesum/u_nodes)*(nodetemp(1)-fullnodesum/u_nodes)
-                  coor_y=coor_y+(pod_sol_velocity(i,1)-podnodesum/u_nodes)*(pod_sol_velocity(i,1)-podnodesum/u_nodes)                        
+                   nodetemp=node_val(velo,i)
+                   coor_xy=coor_xy+(nodetemp(2)-fullnodesum/u_nodes)*(pod_sol_velocity(i,2)-podnodesum/u_nodes)
+                   coor_x=coor_x+(nodetemp(2)-fullnodesum/u_nodes)*(nodetemp(2)-fullnodesum/u_nodes)
+                   coor_y=coor_y+(pod_sol_velocity(i,2)-podnodesum/u_nodes)*(pod_sol_velocity(i,2)-podnodesum/u_nodes)                        
                 enddo
-                coor(rmsestep)=coor_xy/(SQRT(coor_x)*SQRT(coor_y))
-                coor(rmsestep)=abs(coor(rmsestep))
+                 coor(rmsestep)=coor_xy/(SQRT(coor_x)*SQRT(coor_y))
+                 coor(rmsestep)=abs(coor(rmsestep))
 
  
         deallocate(pod_sol_velocity)
@@ -1029,6 +1030,108 @@ contains
     enddo
 
   end subroutine project_from_full_to_pod
+
+      subroutine project_adjoint_gradient(delta_u, delta_p, POD_state, pod_coef)
+
+        type(vector_field), intent(inout) :: delta_u
+        type(scalar_field), intent(inout) :: delta_p
+        type(state_type), dimension(:,:), intent(in) :: POD_state
+        real, dimension(:), intent(in) :: pod_coef
+
+        type(vector_field), pointer :: POD_velocity
+        type(scalar_field), pointer :: POD_pressure
+
+        type(vector_field), pointer :: snapmean_velocity
+        type(scalar_field), pointer :: snapmean_pressure
+
+        integer :: d, POD_num, i, j,k,u_nodes, p_nodes, stat
+
+        type(mesh_type), pointer :: pod_umesh, pod_pmesh
+        type(pod_matrix_type) :: pod_matrix_mass
+
+        real, dimension(:,:), allocatable :: pod_sol_velocity
+        real, dimension(:), allocatable :: pod_sol_pressure
+        real, dimension(:,:), allocatable :: matrix_Dalpha_Du
+        real, dimension(:,:), allocatable :: matrix_Dalpha_Dp
+
+        real :: dt
+
+        print*,'in  project_adjoint_gradient'
+        call get_option("/timestepping/timestep", dt)
+
+        POD_velocity=>extract_vector_field(POD_state(1,1), "Velocity")
+        POD_pressure=>extract_scalar_field(POD_state(1,2), "Pressure")
+
+        u_nodes=node_count(POD_velocity)
+        p_nodes=node_count(POD_pressure)
+
+        allocate(pod_sol_velocity(u_nodes,POD_velocity%dim))
+        allocate(pod_sol_pressure(p_nodes))
+        pod_sol_velocity=0.0
+        pod_sol_pressure=0.0
+
+        allocate(matrix_Dalpha_Du(POD_velocity%dim*size(POD_state,1),u_nodes))
+        allocate(matrix_Dalpha_Dp(size(POD_state,2),p_nodes))
+        matrix_Dalpha_Du = 0.0
+        matrix_Dalpha_Dp = 0.0
+
+        call allocate(pod_matrix_mass, POD_velocity, POD_pressure)
+        open(unit=20,file='mass_matrix')
+        read(20,*)((pod_matrix_mass%val(i,j),j=1,(POD_velocity%dim+1)*size(POD_state,1)),i=1,(POD_velocity%dim+1)*size(POD_state,1))
+        close(20)
+       ! pod_matrix_mass%val = (pod_matrix_mass%val)/dt
+
+        do i =1, size(POD_state,1)
+           POD_velocity=>extract_vector_field(POD_state(i,1), "Velocity")
+           POD_pressure=>extract_scalar_field(POD_state(i,2), "Pressure")
+           
+           do k = 1, POD_velocity%dim*size(POD_state,1)
+              do d=1,POD_velocity%dim
+                 do j=1,u_nodes
+                    matrix_Dalpha_Du(k,j) = &
+                         matrix_Dalpha_Du(k,j) + &
+                         pod_matrix_mass%val(k,(d-1)*size(POD_state,1)+i)*POD_velocity%val(d,j)
+                    
+                 enddo
+              enddo
+           enddo
+           
+        enddo
+
+        do i=1,size(POD_state,1)
+!        do i=1,1
+
+           POD_velocity=>extract_vector_field(POD_state(i,1), "Velocity")
+           POD_pressure=>extract_scalar_field(POD_state(i,2), "Pressure")
+
+           do d=1,POD_velocity%dim
+              do j =1,size(POD_velocity%val,2)
+                 pod_sol_velocity(j,d)=pod_sol_velocity(j,d)+  &
+                      pod_coef(i+(d-1)*size(POD_state,1))*matrix_Dalpha_Du(i+(d-1)*size(POD_state,1),j)
+              enddo
+           enddo
+
+!           print*,pod_sol_velocity(:,1)
+
+!           do j =1, size(POD_pressure%val)
+!              if(abs(POD_pressure%val(j)).gt.0.05) then
+!                 pod_sol_pressure(j)=pod_sol_pressure(j)+pod_coef(i+POD_velocity%dim*size(POD_state,1))/POD_pressure%val(j)
+!              endif
+!           enddo
+           pod_umesh => extract_mesh(pod_state(1,1), "Mesh", stat)
+           pod_pmesh => extract_mesh(pod_state(1,2), "Mesh", stat)
+
+           do d=1, POD_velocity%dim
+              call set_all(delta_u, d, pod_sol_velocity(:,d))
+           end do
+
+           call set_all(delta_p, pod_sol_pressure(:))
+
+        enddo
+
+        deallocate(pod_sol_velocity)
+        deallocate(pod_sol_pressure)
+      end subroutine project_adjoint_gradient
 
 end module reduced_projection
 
