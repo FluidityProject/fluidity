@@ -1227,8 +1227,8 @@ contains
         REAL, DIMENSION( : ), allocatable :: CT_RHS, DIAG_SCALE_PRES, &
         MCY_RHS, MCY, &
         CMC, CMC_PRECON, MASS_MN_PRES, MASS_CV, P_RHS, UP, U_RHS_CDP, DP, &
-        DU_VEL, UP_VEL, UP_VEL2, DU, DV, DW, DGM_PHA, DIAG_P_SQRT, ACV
-        REAL, DIMENSION( :, :, : ), allocatable :: PIVIT_MAT, C, CDP, CT, U_RHS
+        UP_VEL, DGM_PHA, DIAG_P_SQRT, ACV
+        REAL, DIMENSION( :, :, : ), allocatable :: PIVIT_MAT, C, CDP, CT, U_RHS, DU_VEL, U_RHS_CDP2
         INTEGER :: CV_NOD, COUNT, CV_JNOD, IPHASE, ele, x_nod1, x_nod2, x_nod3, cv_iloc, &
         cv_nod1, cv_nod2, cv_nod3, mat_nod1, u_iloc, u_nod, u_nod_pha, ndpset
         REAL :: der1, der2, der3, uabs, rsum, xc, yc
@@ -1282,14 +1282,16 @@ contains
         ALLOCATE( P_RHS( CV_NONODS )) ; P_RHS=0.
         ALLOCATE( UP( NLENMCY )) ; UP=0.
         ALLOCATE( U_RHS_CDP( NDIM * NPHASE * U_NONODS )) ; U_RHS_CDP=0.
+        ALLOCATE( U_RHS_CDP2( NDIM, NPHASE, U_NONODS )) ; U_RHS_CDP2=0.
+
         ALLOCATE( DP( CV_NONODS )) ; DP = 0.
         ALLOCATE( CDP( NDIM, NPHASE, U_NONODS )) ; CDP = 0.
-        ALLOCATE( DU_VEL( NDIM * NPHASE * U_NONODS )) ; DU_VEL = 0.
+        ALLOCATE( DU_VEL( NDIM,  NPHASE, U_NONODS )) ; DU_VEL = 0.
         ALLOCATE( UP_VEL( NDIM * NPHASE * U_NONODS )) ; UP_VEL = 0.
-        ALLOCATE( UP_VEL2( NDIM * NPHASE * U_NONODS )) ; UP_VEL2 = 0.
-        ALLOCATE( DU( NPHASE * U_NONODS )) ; DU = 0.
-        ALLOCATE( DV( NPHASE * U_NONODS )) ; DV = 0.
-        ALLOCATE( DW( NPHASE * U_NONODS )) ; DW = 0.
+
+
+
+
         ALLOCATE( PIVIT_MAT( NDIM * NPHASE * U_NLOC, NDIM * NPHASE * U_NLOC, TOTELE )) ; PIVIT_MAT=0.0
         ALLOCATE( DGM_PHA( NCOLDGM_PHA )) ; DGM_PHA=0.
         ALLOCATE( ACV( NCOLACV )) ; ACV = 0.
@@ -1465,44 +1467,26 @@ contains
             FINMCY, COLMCY, &
             option_path = '/material_phase[0]/vector_field::Velocity')
 
-            U_ALL2 %val = reshape( UP( 1 : U_NONODS * NDIM * NPHASE ), (/ ndim, nphase, u_nonods/) )
+            U_ALL2 % val = reshape( UP( 1 : U_NONODS * NDIM * NPHASE ), (/ ndim, nphase, u_nonods /) )
 
             P( 1 : CV_NONODS ) = UP( U_NONODS * NDIM * NPHASE + 1 : U_NONODS * NDIM * NPHASE + CV_NONODS )
 
         ELSE ! solve using a projection method
 
-            ! Put pressure in rhs of force balance eqn:  CDP = C * P
-            CALL C_MULT2( CDP, P, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
-
-            U_RHS_CDP = 0.0
-            DO ELE = 1, TOTELE
-                DO U_ILOC = 1, U_NLOC
-                    U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
-                    DO IPHASE = 1, NPHASE
-                        DO IDIM = 1, NDIM
-                            !I = U_INOD + (IDIM-1)*U_NONODS + (IPHASE-1)*NDIM*U_NONODS
-                            !U_RHS_CDP( I ) = U_RHS( IDIM, IPHASE, U_INOD ) + CDP( IDIM, IPHASE, U_INOD )
-                            ! FOR NEW NUMBERING
-                            I = IDIM + (IPHASE-1) * NDIM + (U_INOD-1)*NDIM*NPHASE
-                            U_RHS_CDP( I ) = U_RHS( IDIM, IPHASE, U_INOD ) + CDP( IDIM, IPHASE, U_INOD )
-                        END DO
-                    END DO
-                END DO
-            END DO
+            ! Put pressure in rhs of force balance eqn: CDP = C * P
+            CALL C_MULT2( CDP, P, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC) 
 
             IF ( JUST_BL_DIAG_MAT .OR. NO_MATRIX_STORE ) THEN
 
+                U_RHS_CDP2 = U_RHS + CDP
+
                 ! DU = BLOCK_MAT * CDP
-                CALL PHA_BLOCK_MAT_VEC_old( UP_VEL, PIVIT_MAT, U_RHS_CDP, U_NONODS, NDIM, NPHASE, &
+                CALL PHA_BLOCK_MAT_VEC_old( UP_VEL, PIVIT_MAT, U_RHS_CDP2, U_NONODS, NDIM, NPHASE, &
                 TOTELE, U_NLOC, U_NDGLN )
 
             ELSE
 
-                !ewrite(3,*) 'before velocity solve:'
-                !ewrite(3,*) 'up_vel', up_vel
-                !ewrite(3,*) 'u_rhs', u_rhs
-                !ewrite(3,*) 'cdp', cdp
-                !ewrite(3,*) 'dgm_pha', dgm_pha
+                U_RHS_CDP = RESHAPE( U_RHS + CDP, (/ NDIM * NPHASE * U_NONODS /) )
 
                 UP_VEL = 0.0
                 CALL SOLVER( DGM_PHA, UP_VEL, U_RHS_CDP, &
@@ -1510,30 +1494,10 @@ contains
                 option_path = '/material_phase[0]/vector_field::Velocity', &
                 block_size = NDIM*NPHASE*U_NLOC )
 
-               ! FOR NEW NUMBERING
-               !CALL SOLVER( DGM_PHA, UP_VEL, U_RHS_CDP, &
-               !     FINELE, COLELE, &
-               !     option_path = '/material_phase[0]/vector_field::Velocity', &
-               !     block_size = NDIM*NPHASE*U_NLOC )
-
             END IF
 
-            ! RENUMBER UP_VEL AFTER SOLVE...
-            UP_VEL2 = UP_VEL
-            DO ELE = 1, TOTELE
-                DO U_ILOC = 1, U_NLOC
-                    U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
-                    DO IPHASE = 1, NPHASE
-                        DO IDIM = 1, NDIM
-                            I = IDIM + (IPHASE-1) * NDIM + (U_INOD-1)*NDIM*NPHASE ! NEW
-                            J = U_INOD + (IDIM-1)*U_NONODS + (IPHASE-1)*NDIM*U_NONODS ! OLD
-                            UP_VEL( J ) = UP_VEL2( I )
-                        END DO
-                    END DO
-                END DO
-            END DO
+            U_ALL2 % VAL = RESHAPE( UP_VEL, (/ NDIM, NPHASE, U_NONODS /) )
 
-            CALL ULONG_2_UVW( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
 
             !ewrite(3,*) 'u::', u
             !ewrite(3,*) 'v::', v
@@ -1544,10 +1508,8 @@ contains
 
             ! put on rhs the cty eqn; put most recent pressure in RHS of momentum eqn
             ! NB. P_RHS = -CT * U + CT_RHS
-            CALL CT_MULT2( P_RHS, UP_VEL2, CV_NONODS, U_NONODS, NDIM, NPHASE, &
+            CALL CT_MULT2( P_RHS, UP_VEL, CV_NONODS, U_NONODS, NDIM, NPHASE, &
             CT, NCOLCT, FINDCT, COLCT )
-
-            !ewrite(3,*) 'P_RHS1::', p_rhs
 
             P_RHS = -P_RHS + CT_RHS
 
@@ -1556,7 +1518,7 @@ contains
                 DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                     CV_JNOD = COLCMC( COUNT )
                     P_RHS( CV_NOD ) = P_RHS( CV_NOD ) &
-                    -DIAG_SCALE_PRES( CV_NOD ) * MASS_MN_PRES( COUNT ) * P( CV_JNOD )    
+                    -DIAG_SCALE_PRES( CV_NOD ) * MASS_MN_PRES( COUNT ) * P( CV_JNOD )
                 END DO
             END DO
 
@@ -1618,14 +1580,10 @@ contains
 
             ! Correct velocity...
             ! DU = BLOCK_MAT * CDP
-            CALL PHA_BLOCK_MAT_VEC( DU_VEL, PIVIT_MAT, CDP, U_NONODS, NDIM, NPHASE, &
+            CALL PHA_BLOCK_MAT_VEC2( DU_VEL, PIVIT_MAT, CDP, U_NONODS, NDIM, NPHASE, &
             TOTELE, U_NLOC, U_NDGLN )
+            U_ALL2 % VAL = U_ALL2 % VAL + DU_VEL
 
-            CALL ULONG_2_UVW( DU, DV, DW, DU_VEL, U_NONODS, NDIM, NPHASE )
-
-            U = U + DU
-            IF( NDIM >= 2 ) V = V + DV
-            IF( NDIM >= 3 ) W = W + DW
 
             DO ELE = 1, TOTELE
                 DO U_ILOC = 1, U_NLOC
@@ -1634,16 +1592,17 @@ contains
                         J = U_INOD + (IPHASE-1)*U_NONODS ! OLD
                         DO IDIM = 1, NDIM
                             IF ( IDIM == 1 ) THEN
-                                U_ALL2%VAL( IDIM, IPHASE, U_INOD ) = U( J )
+                                U( J ) = U_ALL2%VAL( IDIM, IPHASE, U_INOD )
                             ELSE IF ( IDIM == 2 ) THEN
-                                U_ALL2%VAL( IDIM, IPHASE, U_INOD ) = V( J )
+                                V( J ) = U_ALL2%VAL( IDIM, IPHASE, U_INOD )
                             ELSE IF ( IDIM == 3 ) THEN
-                                U_ALL2%VAL( IDIM, IPHASE, U_INOD ) = W( J )
+                                W( J ) = U_ALL2%VAL( IDIM, IPHASE, U_INOD )
                             END IF
                         END DO
                     END DO
                 END DO
             END DO
+
 
         END IF
 
@@ -1674,9 +1633,6 @@ contains
         DEALLOCATE( CDP )
         DEALLOCATE( DU_VEL )
         DEALLOCATE( UP_VEL )
-        DEALLOCATE( DU )
-        DEALLOCATE( DV )
-        DEALLOCATE( DW )
         DEALLOCATE( PIVIT_MAT )
 
         ewrite(3,*) 'Leaving FORCE_BAL_CTY_ASSEM_SOLVE'
