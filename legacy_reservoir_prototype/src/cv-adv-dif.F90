@@ -2093,21 +2093,24 @@ contains
 ! Generate some local F variables ***************
        IF(.false.) THEN
 ! loc_f - Unpack into the limiting variables LIMT and may be store them in the cache.
+
+             !###############TEMPORARY USAGE IN UNPACK_LOC #######################
+             !Currently for UNPACK_LOC we are passing SCVNGI*TOTELE as the maximum Global_face value
+             !However, that is an overstimate. THAT VALUE WILL NEED TO BE CHANGED!!
+             !###############################################################
              IPT=1
              CALL UNPACK_LOC( LIMF(:), LIMT( : ),    NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,1), GLOBAL_FACE, IGOT_T_CONST(:,1), IGOT_T_CONST_VALUE(:,1),&
-                ELE, TOTELE, CV_ILOC, CV_NLOC,  state, 'limf1', StorageIndexes(34) )
+                SCVNGI*TOTELE,state, 'limf1', StorageIndexes(34) )
              CALL UNPACK_LOC( LIMF(:), LIMTOLD( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,2), GLOBAL_FACE, IGOT_T_CONST(:,2), IGOT_T_CONST_VALUE(:,2),&
-                ELE, TOTELE, CV_ILOC, CV_NLOC,  state, 'limf2', StorageIndexes(35) )
+                SCVNGI*TOTELE,state, 'limf2', StorageIndexes(35) )
              CALL UNPACK_LOC( LIMF(:), LIMD( : ),    NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,3), GLOBAL_FACE, IGOT_T_CONST(:,3), IGOT_T_CONST_VALUE(:,3),&
-                ELE, TOTELE, CV_ILOC, CV_NLOC,  state, 'limf3', StorageIndexes(36) )
+                SCVNGI*TOTELE,state, 'limf3', StorageIndexes(36) )
              CALL UNPACK_LOC( LIMF(:), LIMDOLD( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,4), GLOBAL_FACE, IGOT_T_CONST(:,4), IGOT_T_CONST_VALUE(:,4),&
-                ELE, TOTELE, CV_ILOC, CV_NLOC,  state, 'limf4', StorageIndexes(37) )
+                SCVNGI*TOTELE,state, 'limf4', StorageIndexes(37) )
              CALL UNPACK_LOC( LIMF(:), LIMT2( : ),    NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,5), GLOBAL_FACE, IGOT_T_CONST(:,5), IGOT_T_CONST_VALUE(:,5),&
-                ELE, TOTELE, CV_ILOC, CV_NLOC,  state, 'limf5', StorageIndexes(38) )
+                SCVNGI*TOTELE,state, 'limf5', StorageIndexes(38) )
              CALL UNPACK_LOC( LIMF(:), LIMT2OLD( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,6), GLOBAL_FACE, IGOT_T_CONST(:,6), IGOT_T_CONST_VALUE(:,6),&
-                ELE, TOTELE, CV_ILOC, CV_NLOC,  state, 'limf6', StorageIndexes(39) )
-    
-
+                SCVNGI*TOTELE,state, 'limf6', StorageIndexes(39) )
 
 !                      print *,'here 3'
 !          IF( IGOT_T2 == 0 ) THEN
@@ -2797,11 +2800,11 @@ contains
 
 
              SUBROUTINE UNPACK_LOC( LOC_F, T_ALL, NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK, GLOBAL_FACE, IGOT_T_CONST, IGOT_T_CONST_VALUE,&
-                ELE, TOTELE, CV_ILOC, CV_NLOC,  state, StorName, indx )
+                TOTAL_GLOBAL_FACE, state, StorName, indx )
 ! If PACK then UNpack loc_f into T_ALL  as long at IGOT_T==1 and STORE and not already in storage.
              IMPLICIT NONE
              LOGICAL, intent( in ) :: STORE
-             INTEGER, intent( in ) :: NPHASE,NFIELD, totele, CV_NLOC, CV_ILOC, ELE
+             INTEGER, intent( in ) :: NPHASE,NFIELD, TOTAL_GLOBAL_FACE
              INTEGER, intent( in ) :: GLOBAL_FACE
 ! GLOBAL_FACE is the quadrature point which helps point into the storage memory
              INTEGER, intent( inout ) :: IPT
@@ -2820,15 +2823,26 @@ contains
 ! local variables...
              INTEGER :: IPHASE
 
+            !Initial check to know whether we have already stored all the values
+            if (indx < 0) then
+                if (GLOBAL_FACE<state(1)%scalar_fields(-indx)%ptr%val(size(state(1)%scalar_fields(-indx)%ptr%val,1))) then
+                    !If the input index is smaller than the last stored index, then we have re-started and we should be extracting stored values
+                    indx = abs(indx)
+                end if
+            end if
+
              DO IPHASE=1,NPHASE
                  IF(IGOT_T_PACK(IPHASE)) THEN
                      T_ALL(IPHASE) = LOC_F(IPT)
+                      IPT=IPT+1
                      if (.not.IGOT_T_CONST(IPHASE)) then
-                         IF(STORE.and.indx<=0) THEN ! Put in storage if not already in storage...
-                             if (indx < 0) then!We need to store a new value
+                         IF(STORE) THEN ! Put in storage if not already in storage...
+                             if (indx < 0) then!We may need to store a new value
                                  !Store in state, indx is an input
-                                 state(1)%scalar_fields(-indx)%ptr%val(IPT+CV_NLOC*(CV_ILOC-1) + CV_NLOC*(ELE-1)) = T_ALL(IPHASE)
-                             else if (ELE==1 .and. IPHASE == 1) then !The first time we need to introduce the targets in state
+                                 state(1)%scalar_fields(-indx)%ptr%val(IPHASE+(GLOBAL_FACE-1)*NPHASE) = T_ALL(IPHASE)
+                                 !Store input index to check when we start to get data instead of sting data
+                                 state(1)%scalar_fields(-indx)%ptr%val(size(state(1)%scalar_fields(-indx)%ptr%val,1)) = GLOBAL_FACE
+                             else if (GLOBAL_FACE==1) then !The first time we need to introduce the targets in state
                                  if (has_scalar_field(state(1), "Fld"//StorName)) then
                                      !If we are recalculating due to a mesh modification then
                                      !we return to the original situation
@@ -2838,7 +2852,10 @@ contains
                                  fl_mesh => extract_mesh( state(1), "CoordinateMesh" )
                                  Auxmesh = fl_mesh
                                  !The number of nodes I want does not coincide
-                                 Auxmesh%nodes = NFIELD*CV_NLOC*totele
+                                 !############################################################################
+                                 !TOTAL_GLOBAL_FACE*NPHASE, SEEMS AN OVERSTIMATE, MAYBE TOTAL_GLOBAL_FACE*NFIELD IS ENOUGH???????
+                                 !############################################################################
+                                 Auxmesh%nodes = TOTAL_GLOBAL_FACE*NPHASE+1!(+1 to store the last input index)
                                  call allocate (targ_fieldToStore, Auxmesh)
 
                                  !Now we insert them in state and store the indexes
@@ -2848,30 +2865,21 @@ contains
                                  indx = -size(state(1)%scalar_fields)
 
                                   !Store in state
-                                 state(1)%scalar_fields(-indx)%ptr%val(IPT+CV_NLOC*(CV_ILOC-1) + CV_NLOC*(ELE-1)) = T_ALL(IPHASE)
+                                 state(1)%scalar_fields(-indx)%ptr%val(IPHASE+(GLOBAL_FACE-1)*NPHASE) = T_ALL(IPHASE)
                              end if
                          end if
                      ENDIF
-                     IPT=IPT+1
                  ELSE IF(IGOT_T_CONST(IPHASE)) THEN
                      T_ALL(IPHASE) = IGOT_T_CONST_VALUE(IPHASE)
-                 ELSE IF(STORE) THEN ! Check storage and pull out of storage
-                     T_ALL(IPHASE) = state(1)%scalar_fields(indx)%ptr%val(IPT+CV_NLOC*(CV_ILOC-1) + CV_NLOC*(ELE-1))
-                     IPT=IPT+1
+                 ELSE IF(STORE.and.indx>0) THEN ! Check storage and pull out of storage
+                     T_ALL(IPHASE) = state(1)%scalar_fields(indx)%ptr%val(IPHASE+(GLOBAL_FACE-1)*NPHASE)
                  ELSE ! Set to 1 as last resort e.g. for T2, T2OLD
                      T_ALL(IPHASE) = 1.0
                  ENDIF
              END DO
 
-            !When all the elements have been stored, indx is set to a positive value
-            if (ELE==TOTELE) indx = abs(indx)
-
              RETURN
              END SUBROUTINE UNPACK_LOC
-
-
-
-
 
 
              SUBROUTINE PACK_OR_UNPACK_LOC( LOC_F, T_ALL, NPHASE, NFIELD, IPT, PACK, STORE, IGOT_T , GLOBAL_FACE)

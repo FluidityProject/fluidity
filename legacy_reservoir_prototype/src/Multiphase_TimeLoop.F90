@@ -226,6 +226,7 @@
       real, dimension(:), allocatable :: Velocity_U_backup, Velocity_V_backup, Velocity_W_backup, Temperature_backup
       real, dimension(:), allocatable :: Density_backup, Component_backup, Density_Cp_backup, Density_Component_backup
 
+
       type( tensor_field ), pointer :: NU_s, NUOLD_s, U_s, UOLD_s
 
       !! face value storage
@@ -639,6 +640,7 @@
            PhaseVolumeFraction_backup( nphase * cv_nonods ), Component_backup( nphase * cv_nonods * ncomp )&
            , Velocity_W_backup( u_nonods * nphase ), Pressure_FEM_backup( cv_nonods ),&
             Density_Component_backup( nphase * cv_nonods * ncomp ), Density_Cp_backup( nphase * cv_nonods ))
+
         !
         if (tolerance_between_non_linear>0.) then
             select case (variable_selection)
@@ -657,7 +659,6 @@
 !!$
 
 !print *, '    NEW DT', itime+1
-
 
          itime = itime + 1
          timestep = itime
@@ -679,6 +680,38 @@
                ewrite(1,*) "Passed final timestep"
                exit Loop_Time
             end if
+         end if
+
+         !Procedure to repeat time-steps
+         if (nonLinearAdaptTs) then
+             !Store backup
+             if (.not.Repeat_time_step) then
+                 PhaseVolumeFraction_backup = PhaseVolumeFraction
+                 Pressure_CV_backup =  Pressure_CV
+                 Velocity_U_backup= Velocity_U
+                 Velocity_V_backup = Velocity_V
+                 Velocity_W_backup = Velocity_W
+                 Density_backup = Density
+                 Component_backup = Component
+                 Pressure_FEM_backup =  Pressure_FEM
+                 Density_CP_Backup = Density_CP
+                 Density_Component_Backup = Density_Component
+                 Temperature = Temperature_backup
+                 acctim_backup = acctim - dt
+             else
+                 !Recover backup
+                 PhaseVolumeFraction = PhaseVolumeFraction_backup
+                 Pressure_CV =  Pressure_CV_backup
+                 Velocity_U= Velocity_U_backup
+                 Velocity_V = Velocity_V_backup
+                 Velocity_W = Velocity_W_backup
+                 Density = Density_backup
+                 Component = Component_backup
+                 Density_Cp = Density_Cp_backup
+                 Pressure_FEM =  Pressure_FEM_backup
+                 Density_Component = Density_Component_backup
+                 Temperature = Temperature_backup
+             end if
          end if
 
 !!$ Update all fields from time-step 'N - 1'
@@ -754,43 +787,6 @@
                    case default
                        PhaseVolumeFraction_nonlin_check = PhaseVolumeFraction
                end select
-            end if
-
-            !Store backup
-            if (nonLinearAdaptTs.and.its==1.and..not.Repeat_time_step) then
-               PhaseVolumeFraction_backup = PhaseVolumeFraction
-               Pressure_CV_backup =  Pressure_CV
-               Velocity_U_backup= Velocity_U
-               Velocity_V_backup = Velocity_V
-               Velocity_W_backup = Velocity_W
-               Density_backup = Density
-               Component_backup = Component
-               Pressure_FEM_backup =  Pressure_FEM
-               Density_CP_Backup = Density_CP
-               Density_Component_Backup = Density_Component
-               Temperature = Temperature_backup
-               acctim_backup = acctim - dt
-            else if (nonLinearAdaptTs.and.Repeat_time_step) then
-               !Recover backup
-               PhaseVolumeFraction = PhaseVolumeFraction_backup
-               Pressure_CV =  Pressure_CV_backup
-               Velocity_U= Velocity_U_backup
-               Velocity_V = Velocity_V_backup
-               Velocity_W = Velocity_W_backup
-               Density = Density_backup
-               Component = Component_backup
-               Density_Cp = Density_Cp_backup
-               Pressure_FEM =  Pressure_FEM_backup
-               Density_Component = Density_Component_backup
-               Temperature = Temperature_backup
-
-               !!Update all fields from backup
-               Velocity_U_Old = Velocity_U ; Velocity_V_Old = Velocity_V ; Velocity_W_Old = Velocity_W
-               Velocity_NU = Velocity_U ; Velocity_NV = Velocity_V ; Velocity_NW = Velocity_W
-               Velocity_NU_Old = Velocity_U ; Velocity_NV_Old = Velocity_V ; Velocity_NW_Old = Velocity_W
-               Density_Old = Density ; Density_Cp_Old = Density_Cp ; Pressure_FEM_Old = Pressure_FEM ; Pressure_CV_Old = Pressure_CV
-               PhaseVolumeFraction_Old = PhaseVolumeFraction ; Temperature_Old = Temperature ; Component_Old = Component
-               Density_Old_tmp = Density ; Density_Component_Old = Density_Component
             end if
 
             call Calculate_All_Rhos( state, ncomp, nphase, ndim, cv_nonods, cv_nloc, totele, &
@@ -1373,8 +1369,8 @@
                         !Exit loop section
                         if ((ts_ref_val < tolerance_between_non_linear).and..not.Repeat_time_step) exit
 
-                        !Decrease Ts section
-                        if ((ts_ref_val > decrease_ts_switch ).or.&
+                        !Decrease Ts section only if we have done at least the 75% of the  nonLinearIterations
+                        if ((ts_ref_val > decrease_ts_switch .and.its>=int(0.75*NonLinearIteration)).or.&
                         (repeat_time_step.and.its>=NonLinearIteration)) then
 
                             if ( dt / decreaseFactor < min_ts) then
@@ -1405,14 +1401,6 @@
                             Temperature = Temperature_backup
                             acctim = acctim_backup
 
-                            !!Update all fields from backup
-!                            Velocity_U_Old = Velocity_U ; Velocity_V_Old = Velocity_V ; Velocity_W_Old = Velocity_W
-                            Velocity_NU = Velocity_U ; Velocity_NV = Velocity_V ; Velocity_NW = Velocity_W
-!                            Velocity_NU_Old = Velocity_U ; Velocity_NV_Old = Velocity_V ; Velocity_NW_Old = Velocity_W
-!                            Density_Old = Density ;  Density_Cp_Old = Density_Cp ; Pressure_FEM_Old = Pressure_FEM ; Pressure_CV_Old = Pressure_CV
-!                            PhaseVolumeFraction_Old = PhaseVolumeFraction ; Temperature_Old = Temperature ; Component_Old = Component
-!                            Density_Old_tmp = Density ; Density_Component_Old = Density_Component
-
                             exit Loop_NonLinearIteration
                         end if
                     end if
@@ -1421,17 +1409,17 @@
 
          end do Loop_NonLinearIteration
 
+         !If repeat timestep we don't want to adapt mesh or dump results
+         if ( Repeat_time_step ) then
+            itime = itime - 1
+            cycle Loop_Time
+        end if
 
          call set_option( '/timestepping/current_time', acctim )
          call set_option( '/timestepping/timestep', dt)
 
          current_time = acctim
 
-         !If repeat timestep we don't want to adapt mesh or dump results
-         if ( Repeat_time_step ) then
-            itime = itime - 1
-            cycle Loop_Time
-        end if
 !!$ Copying fields back to state:
          call copy_into_state( state, & ! Copying main fields into state
               PhaseVolumeFraction, Temperature, Pressure_CV, Velocity_U, Velocity_V, Velocity_W, &
