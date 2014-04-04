@@ -1594,6 +1594,7 @@ contains
 ! local surface information***********
 
           IF( (ELE2 > 0) .OR. (SELE > 0) ) THEN
+!          IF( (ELE2 > 0) .and. (SELE > 0) ) THEN
              DO CV_SKLOC = 1, CV_SNLOC
                 CV_KLOC = CV_SLOC2LOC( CV_SKLOC )
 
@@ -1927,7 +1928,7 @@ contains
 !             print *,'F_NDOTQ:',F_NDOTQ
 
 
-             IF(.false.) THEN
+             IF(.true.) THEN
 
                   Loop_IPHASE3: DO IPHASE = 1, NPHASE
 
@@ -2098,7 +2099,7 @@ contains
 
 !           print *,'done temp'
 ! Generate some local F variables ***************
-       IF(.true.) THEN
+       IF(.false.) THEN
 ! loc_f - Unpack into the limiting variables LIMT and may be store them in the cache.
 
              !###############TEMPORARY USAGE IN UNPACK_LOC #######################
