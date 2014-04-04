@@ -274,6 +274,7 @@ contains
 
 
       ! Local variables
+      REAL, PARAMETER :: ZERO_OR_TWO_THIRDS = 0.0
       INTEGER, PARAMETER :: WIC_T_BC_DIRICHLET = 1, WIC_T_BC_ROBIN = 2, &
            WIC_T_BC_DIRI_ADV_AND_ROBIN = 3, WIC_D_BC_DIRICHLET = 1, &
            WIC_U_BC_DIRICHLET = 1
@@ -402,11 +403,14 @@ contains
       INTEGER :: COUNT_IN, COUNT_OUT,CV_KLOC2,CV_NODK2,CV_NODK2_IPHA,CV_SKLOC, CV_SNODK, CV_SNODK_IPHA
       INTEGER :: IPT_IN, IPT_OUT
       INTEGER :: U_KLOC2,U_NODK2,U_NODK2_IPHA,U_SKLOC
-      INTEGER :: IPT,ILOOP,IMID
-      LOGICAL :: STORE, integrate_other_side_and_not_boundary, prep_stop
+      INTEGER :: IPT,ILOOP,IMID,JDIM
+      LOGICAL :: STORE, integrate_other_side_and_not_boundary, prep_stop, GOT_VIS
       REAL :: R
       REAL :: LIMT_keep(NPHASE ),  LIMTOLD_keep( NPHASE ), LIMD_keep( NPHASE ),   LIMDOLD_keep( NPHASE ), LIMT2_keep( NPHASE ),   LIMT2OLD_keep(NPHASE)
       REAL , DIMENSION( : ), ALLOCATABLE :: F_CV_NODI, F_CV_NODJ
+      REAL , DIMENSION( :, : ), ALLOCATABLE :: NUOLDGI_ALL, NUGI_ALL, NU_LEV_GI
+      REAL , DIMENSION( :, :, :, : ), ALLOCATABLE :: VECS_STRESS, VECS_GRAD_U
+      REAL , DIMENSION( :, :, : ), ALLOCATABLE :: STRESS_IJ_THERM, STRESS_IJ_THERM_J
 
 
       REAL, DIMENSION( :, :, : ), ALLOCATABLE :: U_ALL, NU_ALL, NUOLD_ALL, ABSORBT_ALL
@@ -416,6 +420,7 @@ contains
       LOGICAL, DIMENSION( : ), ALLOCATABLE :: DOWNWIND_EXTRAP_INDIVIDUAL
       LOGICAL, DIMENSION( :, : ), ALLOCATABLE :: IGOT_T_PACK, IGOT_T_CONST
       REAL, DIMENSION( :, : ), ALLOCATABLE :: IGOT_T_CONST_VALUE
+      REAL, DIMENSION( :, :, : ), ALLOCATABLE :: TEN_XX_ONE
 
 
 !      INTEGER, DIMENSION( :, : ), ALLOCATABLE :: WIC_T_BC_ALL, WIC_D_BC_ALL, WIC_T2_BC_ALL
@@ -478,6 +483,8 @@ contains
       !ewrite(3,*) 'DEN', DEN
       !ewrite(3,*) 'DENOLD', DENOLD
       !ewrite(3,*) 'MEAN_PORE_CV', MEAN_PORE_CV
+
+      GOT_VIS = .FALSE. 
 
       GOT_DIFFUS = ( R2NORM( TDIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0 )
 
@@ -618,6 +625,8 @@ contains
       ! The procity mapped to the CV nodes
       ALLOCATE( SUM_CV( CV_NONODS ))
       ALLOCATE( UP_WIND_NOD( CV_NONODS * NPHASE ))
+
+      ALLOCATE( TEN_XX_ONE( NDIM, NDIM, NPHASE )); TEN_XX_ONE=1.0
 
       UP_WIND_NOD = 0.0
 
@@ -788,9 +797,9 @@ contains
 
 !      WIC_T_BC_ALL=0 ; WIC_D_BC_ALL=0 
       WIC_U_BC_ALL=0
-      SUF_T_BC_ALL=0. ; SUF_D_BC_ALL=0.
+!      SUF_T_BC_ALL=0. ; SUF_D_BC_ALL=0.
       SUF_T_BC_ROB1_ALL=0. ; SUF_T_BC_ROB2_ALL=0.
-      SUF_U_BC_ALL=0.
+!      SUF_U_BC_ALL=0.
 
       WIC_T2_BC_ALL=0
       SUF_T2_BC_ALL=0. ; SUF_T2_BC_ROB1_ALL=0. ; SUF_T2_BC_ROB2_ALL=0.
@@ -897,6 +906,7 @@ contains
                I = ( IPHASE - 1 ) * STOTEL * CV_SNLOC + ( SELE - 1 ) * CV_SNLOC + CV_SILOC
 
                SUF_T_BC_ALL( IPHASE, CV_SILOC, SELE ) = SUF_T_BC( I )
+               SUF_D_BC_ALL( IPHASE, CV_SILOC, SELE ) = SUF_D_BC( I )
                SUF_T_BC_ROB1_ALL( IPHASE, CV_SILOC, SELE ) = SUF_T_BC_ROB1( I )
                SUF_T_BC_ROB2_ALL( IPHASE, CV_SILOC, SELE ) = SUF_T_BC_ROB2( I )
 
@@ -940,7 +950,8 @@ contains
       ALLOCATE( IGOT_T_PACK( NPHASE, 6 ), IGOT_T_CONST( NPHASE, 6 ), IGOT_T_CONST_VALUE( NPHASE, 6 ) )
 
 ! FOR packing as well as for detemining which variables to apply interface tracking**********
-          STORE=.TRUE.
+!          STORE=.TRUE.
+          STORE=.FALSE.
 
           IGOT_T_PACK=.TRUE.
           IGOT_T_CONST      =.FALSE.
@@ -1062,6 +1073,13 @@ contains
       ALLOCATE( F_INCOME( NFIELD ), F_NDOTQ( NFIELD ) )
 ! 
       ALLOCATE( F_CV_NODI( NFIELD ), F_CV_NODJ( NFIELD ) )
+! 
+      ALLOCATE( NUOLDGI_ALL( NDIM, NPHASE ), NUGI_ALL( NDIM, NPHASE ),  NU_LEV_GI( NDIM, NPHASE ) )
+! 
+      IF(THERMAL.AND.GOT_VIS) THEN
+         ALLOCATE( VECS_STRESS( NDIM, NDIM, NPHASE, CV_NONODS ), VECS_GRAD_U( NDIM, NDIM, NPHASE, CV_NONODS ) )
+         ALLOCATE( STRESS_IJ_THERM( NDIM, NDIM, NPHASE ), STRESS_IJ_THERM_J( NDIM, NDIM, NPHASE ) )
+      ENDIF
 
 ! NFIELD Variables: 
       ALLOCATE(DIFF_COEF_DIVDX(NPHASE), DIFF_COEFOLD_DIVDX(NPHASE), &
@@ -1193,18 +1211,19 @@ contains
               DENUPWIND_MAT( NSMALL_COLM*NPHASE ), DENOLDUPWIND_MAT( NSMALL_COLM*NPHASE ) )
          ALLOCATE( T2UPWIND_MAT( NSMALL_COLM*NPHASE*IGOT_T2 ), T2OLDUPWIND_MAT( NSMALL_COLM*NPHASE*IGOT_T2 ) )
          !######TEMPORARY ALLOCATING OLD VARIABLES####
-      DO CV_INOD = 1, NSMALL_COLM
+      DO COUNT = 1, NSMALL_COLM
           DO IPHASE = 1, NPHASE
-              TUPWIND_MAT(CV_INOD + ( IPHASE - 1 ) * CV_NONODS) = TUPWIND_MAT_ALL(IPHASE, CV_INOD)
-              TOLDUPWIND_MAT(CV_INOD + ( IPHASE - 1 ) * CV_NONODS) = TOLDUPWIND_MAT_ALL(IPHASE, CV_INOD)
-              DENUPWIND_MAT(CV_INOD + ( IPHASE - 1 ) * CV_NONODS) = DENUPWIND_MAT_ALL(IPHASE, CV_INOD)
-              DENOLDUPWIND_MAT(CV_INOD + ( IPHASE - 1 ) * CV_NONODS) = DENOLDUPWIND_MAT_ALL(IPHASE, CV_INOD)
+              TUPWIND_MAT(COUNT + ( IPHASE - 1 ) * NSMALL_COLM) = TUPWIND_MAT_ALL(IPHASE, COUNT)
+              TOLDUPWIND_MAT(COUNT + ( IPHASE - 1 ) * NSMALL_COLM) = TOLDUPWIND_MAT_ALL(IPHASE, COUNT)
+              DENUPWIND_MAT(COUNT + ( IPHASE - 1 ) * NSMALL_COLM) = DENUPWIND_MAT_ALL(IPHASE, COUNT)
+              DENOLDUPWIND_MAT(COUNT + ( IPHASE - 1 ) * NSMALL_COLM) = DENOLDUPWIND_MAT_ALL(IPHASE, COUNT)
               IF ( IGOT_T2 == 1 ) THEN
-                  T2UPWIND_MAT(CV_INOD + ( IPHASE - 1 ) * CV_NONODS) = T2UPWIND_MAT_ALL(IPHASE, CV_INOD)
-                  T2OLDUPWIND_MAT(CV_INOD + ( IPHASE - 1 ) * CV_NONODS) = T2OLDUPWIND_MAT_ALL(IPHASE, CV_INOD)
+                  T2UPWIND_MAT(COUNT + ( IPHASE - 1 ) * NSMALL_COLM) = T2UPWIND_MAT_ALL(IPHASE, COUNT)
+                  T2OLDUPWIND_MAT(COUNT + ( IPHASE - 1 ) * NSMALL_COLM) = T2OLDUPWIND_MAT_ALL(IPHASE, COUNT)
               end if
           end do
       end do
+
 
        !###FEM VALUES###
       DO CV_INOD = 1, CV_NONODS
@@ -1303,7 +1322,6 @@ contains
 
 
       GLOBAL_FACE = 0
-
 
       Loop_Elements: DO ELE = 1, TOTELE
 
@@ -1556,9 +1574,14 @@ contains
                         EXIT
                      END IF
                   END DO
-
+ 
+!         if(.true.) then
 ! Generate some local F variables ***************
              IPT=1
+!             print *,'nphase,nfield:',nphase,nfield
+!             do i=1,6
+!                print *,'i,IGOT_T_PACK(:,i):',i,IGOT_T_PACK(:,i)
+!             end do
              CALL PACK_LOC( F_CV_NODJ(:), T_ALL( :, CV_NODJ ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,1) )
              CALL PACK_LOC( F_CV_NODJ(:), TOLD_ALL( :, CV_NODJ ), NPHASE, NFIELD, IPT, IGOT_T_PACK(:,2) )
              CALL PACK_LOC( F_CV_NODJ(:), DEN_ALL( :, CV_NODJ ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,3) )
@@ -1567,9 +1590,10 @@ contains
              CALL PACK_LOC( F_CV_NODJ(:), T2OLD_ALL( :, CV_NODJ ), NPHASE, NFIELD, IPT, IGOT_T_PACK(:,6) )
 ! Generate some local F variables ***************
 
+!             print *,'here1'
 ! local surface information***********
 
-          IF( (ELE2 > 0) .AND. (SELE > 0) ) THEN
+          IF( (ELE2 > 0) .OR. (SELE > 0) ) THEN
              DO CV_SKLOC = 1, CV_SNLOC
                 CV_KLOC = CV_SLOC2LOC( CV_SKLOC )
 
@@ -1580,21 +1604,22 @@ contains
                    IF(ELE2>0) THEN
                       CV_KLOC2 = CV_OTHER_LOC( CV_KLOC )
                       CV_NODK2 = CV_NDGLN( ( ELE2 - 1 ) * CV_NLOC + CV_KLOC2 ) 
+!                       print *,'CV_KLOC2, CV_NODK2:',CV_KLOC2, CV_NODK2
              IPT=1
-             CALL PACK_LOC( SLOC2_F(:, CV_KLOC), T_ALL( :, CV_NODK2 ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,1) )
-             CALL PACK_LOC( SLOC2_F(:, CV_KLOC), TOLD_ALL( :, CV_NODK2 ), NPHASE, NFIELD, IPT, IGOT_T_PACK(:,2) )
-             CALL PACK_LOC( SLOC2_F(:, CV_KLOC), DEN_ALL( :, CV_NODK2 ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,3) )
-             CALL PACK_LOC( SLOC2_F(:, CV_KLOC), DENOLD_ALL( :, CV_NODK2 ), NPHASE, NFIELD, IPT, IGOT_T_PACK(:,4) )
-             CALL PACK_LOC( SLOC2_F(:, CV_KLOC), T2_ALL( :, CV_NODK2 ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,5) )
-             CALL PACK_LOC( SLOC2_F(:, CV_KLOC), T2OLD_ALL( :, CV_NODK2 ), NPHASE, NFIELD, IPT, IGOT_T_PACK(:,6) )
+             CALL PACK_LOC( SLOC2_F(:, CV_SKLOC), T_ALL( :, CV_NODK2 ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,1) )
+             CALL PACK_LOC( SLOC2_F(:, CV_SKLOC), TOLD_ALL( :, CV_NODK2 ), NPHASE, NFIELD, IPT, IGOT_T_PACK(:,2) )
+             CALL PACK_LOC( SLOC2_F(:, CV_SKLOC), DEN_ALL( :, CV_NODK2 ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,3) )
+             CALL PACK_LOC( SLOC2_F(:, CV_SKLOC), DENOLD_ALL( :, CV_NODK2 ), NPHASE, NFIELD, IPT, IGOT_T_PACK(:,4) )
+             CALL PACK_LOC( SLOC2_F(:, CV_SKLOC), T2_ALL( :, CV_NODK2 ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,5) )
+             CALL PACK_LOC( SLOC2_F(:, CV_SKLOC), T2OLD_ALL( :, CV_NODK2 ), NPHASE, NFIELD, IPT, IGOT_T_PACK(:,6) )
 ! femf:
              IPT=1
-             CALL PACK_LOC( SLOC2_FEMF(:, CV_KLOC), FEMT_ALL( :, CV_NODK2 ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,1) )
-             CALL PACK_LOC( SLOC2_FEMF(:, CV_KLOC), FEMTOLD_ALL( :, CV_NODK2 ), NPHASE, NFIELD, IPT, IGOT_T_PACK(:,2) )
-             CALL PACK_LOC( SLOC2_FEMF(:, CV_KLOC), FEMDEN_ALL( :, CV_NODK2 ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,3) )
-             CALL PACK_LOC( SLOC2_FEMF(:, CV_KLOC), FEMDENOLD_ALL( :, CV_NODK2 ), NPHASE, NFIELD, IPT, IGOT_T_PACK(:,4) )
-             CALL PACK_LOC( SLOC2_FEMF(:, CV_KLOC), FEMT2_ALL( :, CV_NODK2 ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,5) )
-             CALL PACK_LOC( SLOC2_FEMF(:, CV_KLOC), FEMT2OLD_ALL( :, CV_NODK2 ), NPHASE, NFIELD, IPT, IGOT_T_PACK(:,6) )
+             CALL PACK_LOC( SLOC2_FEMF(:, CV_SKLOC), FEMT_ALL( :, CV_NODK2 ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,1) )
+             CALL PACK_LOC( SLOC2_FEMF(:, CV_SKLOC), FEMTOLD_ALL( :, CV_NODK2 ), NPHASE, NFIELD, IPT, IGOT_T_PACK(:,2) )
+             CALL PACK_LOC( SLOC2_FEMF(:, CV_SKLOC), FEMDEN_ALL( :, CV_NODK2 ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,3) )
+             CALL PACK_LOC( SLOC2_FEMF(:, CV_SKLOC), FEMDENOLD_ALL( :, CV_NODK2 ), NPHASE, NFIELD, IPT, IGOT_T_PACK(:,4) )
+             CALL PACK_LOC( SLOC2_FEMF(:, CV_SKLOC), FEMT2_ALL( :, CV_NODK2 ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,5) )
+             CALL PACK_LOC( SLOC2_FEMF(:, CV_SKLOC), FEMT2OLD_ALL( :, CV_NODK2 ), NPHASE, NFIELD, IPT, IGOT_T_PACK(:,6) )
 
                    ELSE
                       SLOC2_F(:, CV_SKLOC)    = SLOC_F(:, CV_SKLOC)
@@ -1605,65 +1630,35 @@ contains
 
           ENDIF ! ENDOF IF( (ELE2 > 0) .OR. (SELE > 0) ) THEN ELSE...
 
+!         if(.true.) then
           IF( SELE > 0 ) THEN
 ! bcs: 
 ! What type of b.c's -integer
              IPT=1
-             DO IPHASE=1,NPHASE
-                CALL I_PACK_LOC( SELE_LOC_WIC_F_BC( : ), WIC_T_BC_ALL( IPHASE:IPHASE, SELE ),    1, NFIELD, IPT, IGOT_T_PACK(IPHASE,1) )
-             END DO
-             DO IPHASE=1,NPHASE
-                CALL I_PACK_LOC( SELE_LOC_WIC_F_BC( : ), WIC_T_BC_ALL( IPHASE:IPHASE, SELE ),    1, NFIELD, IPT, IGOT_T_PACK(IPHASE,2) )
-             END DO
+             CALL I_PACK_LOC( SELE_LOC_WIC_F_BC( : ), WIC_T_BC_ALL( :, SELE ),    NPHASE, NFIELD, IPT, IGOT_T_PACK( :,1) )
+             CALL I_PACK_LOC( SELE_LOC_WIC_F_BC( : ), WIC_T_BC_ALL( :, SELE ),    NPHASE, NFIELD, IPT, IGOT_T_PACK( :,2) )
 
-             DO IPHASE=1,NPHASE
-                CALL I_PACK_LOC( SELE_LOC_WIC_F_BC( : ), WIC_D_BC_ALL( IPHASE:IPHASE, SELE ),    1, NFIELD, IPT, IGOT_T_PACK(IPHASE,3) )
-             END DO
-             DO IPHASE=1,NPHASE
-                CALL I_PACK_LOC( SELE_LOC_WIC_F_BC( : ), WIC_D_BC_ALL( IPHASE:IPHASE, SELE ),    1, NFIELD, IPT, IGOT_T_PACK(IPHASE,4) )
-             END DO
+             CALL I_PACK_LOC( SELE_LOC_WIC_F_BC( : ), WIC_D_BC_ALL( :, SELE ),    NPHASE, NFIELD, IPT, IGOT_T_PACK( :,3) )
+             CALL I_PACK_LOC( SELE_LOC_WIC_F_BC( : ), WIC_D_BC_ALL( :, SELE ),    NPHASE, NFIELD, IPT, IGOT_T_PACK( :,4) )
 
-          IF(IGOT_T2==1) THEN
-             DO IPHASE=1,NPHASE
-                CALL I_PACK_LOC( SELE_LOC_WIC_F_BC( : ), WIC_T2_BC_ALL( IPHASE:IPHASE, SELE ),    1, NFIELD, IPT, IGOT_T_PACK(IPHASE,5) )
-             END DO
-             DO IPHASE=1,NPHASE
-                CALL I_PACK_LOC( SELE_LOC_WIC_F_BC( : ), WIC_T2_BC_ALL( IPHASE:IPHASE, SELE ),    1, NFIELD, IPT, IGOT_T_PACK(IPHASE,6) )
-             END DO
-          ENDIF
+             IF(IGOT_T2==1) THEN
+                CALL I_PACK_LOC( SELE_LOC_WIC_F_BC( : ), WIC_T2_BC_ALL( :, SELE ),    NPHASE, NFIELD, IPT, IGOT_T_PACK( :,5) )
+                CALL I_PACK_LOC( SELE_LOC_WIC_F_BC( : ), WIC_T2_BC_ALL( :, SELE ),    NPHASE, NFIELD, IPT, IGOT_T_PACK( :,6) )
+             ENDIF
 ! The b.c values: 
              DO CV_SKLOC=1,CV_SNLOC
-                CV_SNODK = ( SELE - 1 ) * CV_SNLOC + CV_SKLOC 
                 IPT=1
-                DO IPHASE=1,NPHASE
-                   CV_SNODK_IPHA = CV_SNODK + ( IPHASE - 1 ) * STOTEL*CV_SNLOC
-                   CALL PACK_LOC( SLOC_SUF_F_BC( :, CV_SKLOC ), SUF_T_BC(CV_SNODK_IPHA:CV_SNODK_IPHA),    1, NFIELD, IPT, IGOT_T_PACK(IPHASE,1) )
-                END DO
-                DO IPHASE=1,NPHASE
-                   CV_SNODK_IPHA = CV_SNODK + ( IPHASE - 1 ) * STOTEL*CV_SNLOC
-                   CALL PACK_LOC( SLOC_SUF_F_BC( :, CV_SKLOC ), SUF_T_BC(CV_SNODK_IPHA:CV_SNODK_IPHA),    1, NFIELD, IPT, IGOT_T_PACK(IPHASE,2) )
-                END DO
+                CALL PACK_LOC( SLOC_SUF_F_BC( :, CV_SKLOC ), SUF_T_BC_ALL( :, CV_SKLOC, SELE),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,1) )
+                CALL PACK_LOC( SLOC_SUF_F_BC( :, CV_SKLOC ), SUF_T_BC_ALL( :, CV_SKLOC, SELE),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,2) )
 
-                DO IPHASE=1,NPHASE
-                   CV_SNODK_IPHA = CV_SNODK + ( IPHASE - 1 ) * STOTEL*CV_SNLOC
-                   CALL PACK_LOC( SLOC_SUF_F_BC( :, CV_SKLOC ), SUF_D_BC(CV_SNODK_IPHA:CV_SNODK_IPHA),    1, NFIELD, IPT, IGOT_T_PACK(IPHASE,3) )
-                END DO
-                DO IPHASE=1,NPHASE
-                   CV_SNODK_IPHA = CV_SNODK + ( IPHASE - 1 ) * STOTEL*CV_SNLOC
-                   CALL PACK_LOC( SLOC_SUF_F_BC( :, CV_SKLOC ), SUF_D_BC(CV_SNODK_IPHA:CV_SNODK_IPHA),    1, NFIELD, IPT, IGOT_T_PACK(IPHASE,4) )
-                END DO
+                CALL PACK_LOC( SLOC_SUF_F_BC( :, CV_SKLOC ), SUF_D_BC_ALL( :, CV_SKLOC, SELE),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,3) )
+                CALL PACK_LOC( SLOC_SUF_F_BC( :, CV_SKLOC ), SUF_D_BC_ALL( :, CV_SKLOC, SELE),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,4) )
 
-          IF(IGOT_T2==1) THEN
-                DO IPHASE=1,NPHASE
-                   CV_SNODK_IPHA = CV_SNODK + ( IPHASE - 1 ) * STOTEL*CV_SNLOC
-                   CALL PACK_LOC( SLOC_SUF_F_BC( :, CV_SKLOC ), SUF_T2_BC(CV_SNODK_IPHA:CV_SNODK_IPHA),    1, NFIELD, IPT, IGOT_T_PACK(IPHASE,5) )
-                END DO
-                DO IPHASE=1,NPHASE
-                   CV_SNODK_IPHA = CV_SNODK + ( IPHASE - 1 ) * STOTEL*CV_SNLOC
-                   CALL PACK_LOC( SLOC_SUF_F_BC( :, CV_SKLOC ), SUF_T2_BC(CV_SNODK_IPHA:CV_SNODK_IPHA),    1, NFIELD, IPT, IGOT_T_PACK(IPHASE,6) )
-                END DO
-          ENDIF
-             END DO
+               IF(IGOT_T2==1) THEN
+                   CALL PACK_LOC( SLOC_SUF_F_BC( :, CV_SKLOC ), SUF_T2_BC_ALL( :, CV_SKLOC, SELE),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,5) )
+                   CALL PACK_LOC( SLOC_SUF_F_BC( :, CV_SKLOC ), SUF_T2_BC_ALL( :, CV_SKLOC, SELE),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,6) )
+               ENDIF
+            END DO
          ENDIF ! IF( SELE > 0 ) THEN
 ! local surface information***********
 
@@ -1676,6 +1671,10 @@ contains
           DO IPHASE=1,NPHASE
              CALL PACK_LOC( FUPWIND_IN( : ),  TUPWIND_MAT( (IPHASE-1)*nsmall_colm + COUNT_IN),    1, NFIELD, IPT_IN, IGOT_T_PACK(IPHASE,1) )
              CALL PACK_LOC( FUPWIND_OUT( : ), TUPWIND_MAT( (IPHASE-1)*nsmall_colm +COUNT_OUT),    1, NFIELD, IPT_OUT, IGOT_T_PACK(IPHASE,1) )
+!        if((cv_nodi==433).and.(cv_nodj==435)) then
+!            print *,'&&&&&&&  iphase, COUNT_IN, COUNT_OUT,  (IPHASE-1)*nsmall_colm + COUNT_IN, (IPHASE-1)*nsmall_colm +COUNT_OUT:', &
+!                              iphase, COUNT_IN, COUNT_OUT,  (IPHASE-1)*nsmall_colm + COUNT_IN, (IPHASE-1)*nsmall_colm +COUNT_OUT
+!        endif
           END DO
           DO IPHASE=1,NPHASE
              CALL PACK_LOC( FUPWIND_IN( : ),  TOLDUPWIND_MAT( (IPHASE-1)*nsmall_colm + COUNT_IN),    1, NFIELD, IPT_IN, IGOT_T_PACK(IPHASE,2) )
@@ -1702,6 +1701,7 @@ contains
           END DO
        ENDIF
 ! limiting VALUES*************:
+!     endif ! endof if(.false.) then
 !         
 
        If_GOT_DIFFUS2: IF ( GOT_DIFFUS ) THEN
@@ -1844,7 +1844,7 @@ contains
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 T2OLDMIN_2ND_MC, T2OLDMAX_2ND_MC, &
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
-                                T2OLDUPWIND_MAT )
+                                T2OLDUPWIND_MAT, NUOLDGI_ALL )
                             CALL GET_INT_VEL_NEW( NPHASE, NDOTQNEW, NDOTQ, INCOME, &
                                 HDC, GI, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
                                 T2, FEMT2, DEN, &
@@ -1861,7 +1861,7 @@ contains
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 T2MIN_2ND_MC, T2MAX_2ND_MC, &
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
-                                T2UPWIND_MAT )
+                                T2UPWIND_MAT, NUGI_ALL )
                         ELSE
                            CALL GET_INT_VEL_NEW( NPHASE, NDOTQNEW, NDOTQOLD, INCOMEOLD, &
                                 HDC, GI, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
@@ -1879,7 +1879,7 @@ contains
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 TOLDMIN_2ND_MC, TOLDMAX_2ND_MC, &
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
-                                TOLDUPWIND_MAT )
+                                TOLDUPWIND_MAT, NUOLDGI_ALL )
                            CALL GET_INT_VEL_NEW( NPHASE, NDOTQNEW, NDOTQ, INCOME, &
                                 HDC, GI, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
                                 T, FEMT, DEN, &
@@ -1896,7 +1896,7 @@ contains
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 TMIN_2ND_MC, TMAX_2ND_MC, &
                                 IANISOLIM, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
-                                TUPWIND_MAT )
+                                TUPWIND_MAT, NUGI_ALL  )
                         ENDIF
                      
 
@@ -1905,6 +1905,7 @@ contains
 
              END IF ! End of choose which version of GET_INT_VEL
 
+          if(.true.) then
 ! Pack ndotq information: 
              IPT=1
              CALL PACK_LOC( F_INCOME(:), INCOME( : ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,1) ) ! t
@@ -1920,12 +1921,13 @@ contains
              CALL PACK_LOC( F_NDOTQ(:), NDOTQOLD( : ), NPHASE, NFIELD, IPT, IGOT_T_PACK(:,4) )  ! DOLD
              CALL PACK_LOC( F_NDOTQ(:), NDOTQ( : ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,5) )  ! T2
              CALL PACK_LOC( F_NDOTQ(:), NDOTQOLD( : ), NPHASE, NFIELD, IPT, IGOT_T_PACK(:,6) )  ! T2OLD
+          endif
 
 !             print *,'F_INCOME:',F_INCOME
 !             print *,'F_NDOTQ:',F_NDOTQ
 
 
-             IF(.true.) THEN
+             IF(.false.) THEN
 
                   Loop_IPHASE3: DO IPHASE = 1, NPHASE
 
@@ -1985,6 +1987,8 @@ contains
 
                   END DO Loop_IPHASE3
             ELSE
+!                    print *,'IANISOLIM:',IANISOLIM
+!                    stop 282
 
                         !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===============
                         ! Calculate T and DEN on the CV face at quadrature point GI.
@@ -2014,84 +2018,87 @@ contains
 
             ENDIF
 
-!        if(.true.) then ! testing
-!             IPT=1
-!             CALL UNPACK_LOC( LIMF(:), LIMT_keep( : ),    NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,1), GLOBAL_FACE, IGOT_T_CONST(:,1), IGOT_T_CONST_VALUE(:,1),&
-!                ELE, TOTELE, CV_ILOC, CV_NLOC,  state, 'limf11', StorageIndexes(40))
-!             CALL UNPACK_LOC( LIMF(:), LIMTOLD_keep( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,2), GLOBAL_FACE, IGOT_T_CONST(:,2), IGOT_T_CONST_VALUE(:,2),&
-!                ELE, TOTELE, CV_ILOC, CV_NLOC,  state, 'limf21', StorageIndexes(41) )
-!             CALL UNPACK_LOC( LIMF(:), LIMD_keep( : ),    NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,3), GLOBAL_FACE, IGOT_T_CONST(:,3), IGOT_T_CONST_VALUE(:,3) ,&
-!                ELE, TOTELE, CV_ILOC, CV_NLOC,  state, 'limf31', StorageIndexes(42) )
-!             CALL UNPACK_LOC( LIMF(:), LIMDOLD_keep( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,4), GLOBAL_FACE, IGOT_T_CONST(:,4), IGOT_T_CONST_VALUE(:,4) ,&
-!                ELE, TOTELE, CV_ILOC, CV_NLOC,  state, 'limf41', StorageIndexes(43) )
-!             CALL UNPACK_LOC( LIMF(:), LIMT2_keep( : ),    NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,5), GLOBAL_FACE, IGOT_T_CONST(:,5), IGOT_T_CONST_VALUE(:,5) ,&
-!                ELE, TOTELE, CV_ILOC, CV_NLOC,  state, 'limf51', StorageIndexes(44) )
-!             CALL UNPACK_LOC( LIMF(:), LIMT2OLD_keep( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,6), GLOBAL_FACE, IGOT_T_CONST(:,6), IGOT_T_CONST_VALUE(:,6) ,&
-!                ELE, TOTELE, CV_ILOC, CV_NLOC,  state, 'limf61', StorageIndexes(45) )
-!    ! is LIMT_keep and LIMT the same?
-!             prep_stop=.false.
-!             do iphase=1,nphase
-!                if( abs(LIMT_keep(iphase)-LIMT(iphase)).gt.0.1) prep_stop=.true.
-!                if( abs(LIMTOLD_keep(iphase)-LIMTOLD(iphase)).gt.0.1) prep_stop=.true.
-!                if( abs(LIMD_keep(iphase)-LIMD(iphase)).gt.0.1) prep_stop=.true.
-!                if( abs(LIMDOLD_keep(iphase)-LIMDOLD(iphase)).gt.0.1) prep_stop=.true.
-!                if(IGOT_T2==1) then
-!                   if( abs(LIMT2_keep(iphase)-LIMT2(iphase)).gt.0.1) prep_stop=.true.
-!                   if( abs(LIMT2old_keep(iphase)-LIMT2old(iphase)).gt.0.1) prep_stop=.true.
-!                endif
-!             end do
-!
-!             if(prep_stop) then
-!    !             if(.false.) then
-!                print *,'ele,nphase,nfield=',ele,nphase,nfield
-!                print *,'ele,sele,ele2=',ele,sele,ele2
-!                print *,'cv_nodi,cv_nodj:',cv_nodi,cv_nodj
-!                print *,'IGOT_T2:',IGOT_T2
-!                do iphase=1,nfield
-!                   print *,'iphase,Lloc_f(iphase,:):',iphase,loc_f(iphase,:)
-!                end do
-!                print *,'LIMT_keep:',LIMT_keep
-!                print *,'LIMT:',LIMT
-!                print *,'LIMTold_keep:',LIMTold_keep
-!                print *,'LIMTold:',LIMTold
-!
-!                print *,'LIMd_keep:',LIMd_keep
-!                print *,'LIMd:',LIMd
-!                print *,'LIMdold_keep:',LIMdold_keep
-!                print *,'LIMdold:',LIMdold
-!
-!                if(IGOT_T2==1) then
-!                   print *,'LIMT2_keep:',LIMT2_keep
-!                   print *,'LIMT2:',LIMT2
-!                   print *,'LIMT2old_keep:',LIMT2old_keep
-!                   print *,'LIMT2old:',LIMT2old
-!                ENDIF
-!            print *,'LOC_F:',loc_f
-!               print *,'limf:',limf
-!                print *,'ipt:',ipt
-!                print *,'DOWNWIND_EXTRAP_INDIVIDUAL:',DOWNWIND_EXTRAP_INDIVIDUAL
-!
-!
-!          DO CV_KLOC = 1, CV_NLOC
-!             CV_NODK = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_KLOC )
-!             print *,'cv_nodk,T_ALL( 1, CV_NODK ):',cv_nodk,T_ALL( 1, CV_NODK )
-!          end do
-!             print *,'cv_nodi,cv_nodj,T_ALL( 1, CV_NODi ),T_ALL( 1, CV_NODj ):',cv_nodi,cv_nodj,T_ALL( 1, CV_NODi ), T_ALL( 1, CV_NODj )
-!             print *,'cv_nodi,cv_nodj,Told_ALL( 1, CV_NODi ),Told_ALL( 1, CV_NODj ):',cv_nodi,cv_nodj,Told_ALL( 1, CV_NODi ), Told_ALL( 1, CV_NODj )
-!             print *,'DOWNWIND_EXTRAP_INDIVIDUAL:',DOWNWIND_EXTRAP_INDIVIDUAL
-!
-!    !              print *,'t:',t
-!             print *,'FUPWIND_IN(1):',FUPWIND_IN(1)
-!             print *,'FUPWIND_OUT(1):',FUPWIND_OUT(1)
-!             print *,'FUPWIND_IN(2):',FUPWIND_IN(2)
-!             print *,'FUPWIND_OUT(2):',FUPWIND_OUT(2)
-!                stop 221
-!             endif
-!       endif ! testing
+        if(.false.) then ! testing
+             IPT=1
+             CALL UNPACK_LOC( LIMF(:), LIMT_keep( : ),    NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,1), GLOBAL_FACE, IGOT_T_CONST(:,1), IGOT_T_CONST_VALUE(:,1), &
+                SCVNGI*TOTELE,state, 'limf1', StorageIndexes(34) )
+             CALL UNPACK_LOC( LIMF(:), LIMTOLD_keep( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,2), GLOBAL_FACE, IGOT_T_CONST(:,2), IGOT_T_CONST_VALUE(:,2), &
+                SCVNGI*TOTELE,state, 'limf2', StorageIndexes(35) )
+             CALL UNPACK_LOC( LIMF(:), LIMD_keep( : ),    NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,3), GLOBAL_FACE, IGOT_T_CONST(:,3), IGOT_T_CONST_VALUE(:,3), &
+                SCVNGI*TOTELE,state, 'limf3', StorageIndexes(36) )
+             CALL UNPACK_LOC( LIMF(:), LIMDOLD_keep( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,4), GLOBAL_FACE, IGOT_T_CONST(:,4), IGOT_T_CONST_VALUE(:,4), &
+                SCVNGI*TOTELE,state, 'limf4', StorageIndexes(37) )
+             CALL UNPACK_LOC( LIMF(:), LIMT2_keep( : ),    NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,5), GLOBAL_FACE, IGOT_T_CONST(:,5), IGOT_T_CONST_VALUE(:,5), &
+                SCVNGI*TOTELE,state, 'limf5', StorageIndexes(38) )
+             CALL UNPACK_LOC( LIMF(:), LIMT2OLD_keep( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,6), GLOBAL_FACE, IGOT_T_CONST(:,6), IGOT_T_CONST_VALUE(:,6), &
+                SCVNGI*TOTELE,state, 'limf6', StorageIndexes(39) )
+! is LIMT_keep and LIMT the same? 
+             prep_stop=.false.
+             do iphase=1,nphase
+                if( abs(LIMT_keep(iphase)-LIMT(iphase)).gt.0.1) prep_stop=.true.
+                if( abs(LIMTOLD_keep(iphase)-LIMTOLD(iphase)).gt.0.1) prep_stop=.true.
+                if( abs(LIMD_keep(iphase)-LIMD(iphase)).gt.0.1) prep_stop=.true.
+                if( abs(LIMDOLD_keep(iphase)-LIMDOLD(iphase)).gt.0.1) prep_stop=.true.
+                if(IGOT_T2==1) then
+                   if( abs(LIMT2_keep(iphase)-LIMT2(iphase)).gt.0.1) prep_stop=.true.
+                   if( abs(LIMT2old_keep(iphase)-LIMT2old(iphase)).gt.0.1) prep_stop=.true.
+                endif
+             end do
+
+             if(prep_stop) then
+!             if(.false.) then
+                print *,'ele,nphase,nfield=',ele,nphase,nfield
+                print *,'ele,sele,ele2=',ele,sele,ele2
+                print *,'cv_nodi,cv_nodj:',cv_nodi,cv_nodj
+                print *,'IGOT_T2:',IGOT_T2
+                do iphase=1,nfield
+                   print *,'iphase,Lloc_f(iphase,:):',iphase,loc_f(iphase,:)
+                end do
+                print *,'LIMT_keep:',LIMT_keep
+                print *,'LIMT:',LIMT
+                print *,'LIMTold_keep:',LIMTold_keep
+                print *,'LIMTold:',LIMTold
+
+                print *,'LIMd_keep:',LIMd_keep
+                print *,'LIMd:',LIMd
+                print *,'LIMdold_keep:',LIMdold_keep
+                print *,'LIMdold:',LIMdold
+
+                if(IGOT_T2==1) then
+                   print *,'LIMT2_keep:',LIMT2_keep
+                   print *,'LIMT2:',LIMT2
+                   print *,'LIMT2old_keep:',LIMT2old_keep
+                   print *,'LIMT2old:',LIMT2old
+                ENDIF
+            print *,'LOC_F:',loc_f 
+               print *,'limf:',limf
+                print *,'ipt:',ipt
+                print *,'DOWNWIND_EXTRAP_INDIVIDUAL:',DOWNWIND_EXTRAP_INDIVIDUAL
+
+
+       do iphase=1,nphase
+          print *,'iphase=',iphase
+          DO CV_KLOC = 1, CV_NLOC
+             CV_NODK = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_KLOC ) 
+             print *,'cv_nodk,T_ALL( iphase, CV_NODK ):',cv_nodk,T_ALL( iphase, CV_NODK )
+          end do
+             print *,'cv_nodi,cv_nodj,T_ALL( iphase, CV_NODi ),T_ALL( iphase, CV_NODj ):',cv_nodi,cv_nodj,T_ALL( iphase, CV_NODi ), T_ALL( iphase, CV_NODj )
+             print *,'cv_nodi,cv_nodj,Told_ALL( iphase, CV_NODi ),Told_ALL( iphase, CV_NODj ):',cv_nodi,cv_nodj,Told_ALL( iphase, CV_NODi ), Told_ALL( iphase, CV_NODj )
+      end do
+             print *,'DOWNWIND_EXTRAP_INDIVIDUAL:',DOWNWIND_EXTRAP_INDIVIDUAL
+             
+!              print *,'t:',t 
+             print *,'FUPWIND_IN(1):',FUPWIND_IN(1)
+             print *,'FUPWIND_OUT(1):',FUPWIND_OUT(1)
+             print *,'FUPWIND_IN(2):',FUPWIND_IN(2)
+             print *,'FUPWIND_OUT(2):',FUPWIND_OUT(2)
+                stop 221
+             endif
+       endif ! testing
 
 !           print *,'done temp'
 ! Generate some local F variables ***************
-       IF(.false.) THEN
+       IF(.true.) THEN
 ! loc_f - Unpack into the limiting variables LIMT and may be store them in the cache.
 
              !###############TEMPORARY USAGE IN UNPACK_LOC #######################
@@ -2363,17 +2370,31 @@ contains
                                    - CV_P( CV_NODI ) * SCVDETWEI( GI ) * ( &
                                    THERM_FTHETA * NDOTQNEW(IPHASE) * LIMT2(IPHASE) &
                                    + ( 1. - THERM_FTHETA ) * NDOTQOLD(IPHASE) * LIMT2OLD(IPHASE) )
-!                              IF(GOT_VIS) THEN
-!                                  ! stress form of viscosity...
-!                                        CALL CALC_STRESS_TEN( STRESS_IJ_ELE( :, :, IPHASE, U_ILOC, U_JLOC ), ZERO_OR_TWO_THIRDS, NDIM, &
-!                                        U_ALL( 1:NDIM, U_ILOC, GI ), CV_NORMX_ALL(1:NDIM,GI) * DETWEI( GI ), TEN_XX( :, :, IPHASE, GI ) )
-!!                                        UFENX_ALL( 1:NDIM, U_ILOC, GI ), UFENX_ALL( 1:NDIM, U_JLOC, GI )* DETWEI( GI ), TEN_XX( :, :, IPHASE, GI ) )
-!                                    DO IDIM=1,NDIM
-!                                    DO JDIM=1,NDIM
-!                                        VECS_STRESS(IDIM,JDIM,IPHASE,CV_NODI) =
-!                                    END DO
-!                                    END DO
-!                              ENDIF
+                              IF(GOT_VIS) THEN
+                                  ! stress form of viscosity...
+                                        TEN_XX_ONE(:,:,IPHASE)=1.0
+                                        NU_LEV_GI(:, IPHASE) =((1.-THERM_FTHETA)*NUOLDGI_ALL( :, IPHASE ) + THERM_FTHETA*NUGI_ALL( :, IPHASE ) )
+
+                                        CALL CALC_STRESS_TEN( STRESS_IJ_THERM( :, :, IPHASE ), ZERO_OR_TWO_THIRDS, NDIM, &
+                 CVNORMX_ALL(:,GI), NU_LEV_GI(:, IPHASE) * SCVDETWEI(GI), TEN_XX_ONE(:,:,IPHASE) )
+!                                        UFENX_ALL( 1:NDIM, U_ILOC, GI ), UFENX_ALL( 1:NDIM, U_JLOC, GI )* DETWEI( GI ), TEN_XX_ONE )
+
+!                        if(integrate_other_side_and_not_boundary) then
+!                                    STRESS_IJ_THERM_J( :, :, IPHASE )=STRESS_IJ_THERM( :, :, IPHASE )*U_DIFFUSION(:,:,IPHASE,CV_NODJ)
+!                        endif
+!                                    STRESS_IJ_THERM( :, :, IPHASE )=STRESS_IJ_THERM( :, :, IPHASE )*U_DIFFUSION(:,:,IPHASE,CV_NODI)
+
+                                    DO IDIM=1,NDIM
+                                    DO JDIM=1,NDIM
+                                        VECS_STRESS(IDIM,JDIM,IPHASE,CV_NODI) =VECS_STRESS(IDIM,JDIM,IPHASE,CV_NODI)+STRESS_IJ_THERM( IDIM, JDIM, IPHASE )
+                                        VECS_GRAD_U(IDIM,JDIM,IPHASE,CV_NODI) =VECS_GRAD_U(IDIM,JDIM,IPHASE,CV_NODI)+NU_LEV_GI(IDIM, IPHASE) *CVNORMX_ALL(JDIM,GI) * SCVDETWEI(GI)
+                        if(integrate_other_side_and_not_boundary) then
+                                        VECS_STRESS(IDIM,JDIM,IPHASE,CV_NODJ) =VECS_STRESS(IDIM,JDIM,IPHASE,CV_NODJ)-STRESS_IJ_THERM_J( IDIM, JDIM, IPHASE )
+                                        VECS_GRAD_U(IDIM,JDIM,IPHASE,CV_NODJ) =VECS_GRAD_U(IDIM,JDIM,IPHASE,CV_NODJ)-NU_LEV_GI(IDIM, IPHASE) *CVNORMX_ALL(JDIM,GI) * SCVDETWEI(GI)
+                        endif
+                                    END DO
+                                    END DO
+                              ENDIF
                         if(integrate_other_side_and_not_boundary) then
                               CV_RHS( RHS_NODJ_IPHA ) = CV_RHS( RHS_NODJ_IPHA ) &
                                    + CV_P( CV_NODJ ) * SCVDETWEI( GI ) * ( &
@@ -2437,6 +2458,13 @@ contains
                IMID_IPHA = IPHASE + (SMALL_CENTRM(CV_NODI)-1)*NPHASE
 
                 R = MEAN_PORE_CV( CV_NODI ) * MASS_CV( CV_NODI ) / DT
+
+               IF(THERMAL) THEN
+                  IF(GOT_VIS) THEN
+                     CV_RHS( RHS_NODI_IPHA ) = CV_RHS( RHS_NODI_IPHA ) &
+                       + SUM( VECS_STRESS(:,:,IPHASE,CV_NODI)*VECS_GRAD_U(:,:,IPHASE,CV_NODI)  )/MASS_CV(CV_NODI) 
+                  ENDIF
+               ENDIF
 
                IF ( IGOT_T2 == 1 ) THEN
                   CV_RHS( RHS_NODI_IPHA ) = CV_RHS( RHS_NODI_IPHA ) &
@@ -2765,6 +2793,7 @@ contains
 
              DO IPHASE=1,NPHASE
                 IF(IGOT_T_PACK(IPHASE)) THEN ! Put into packing vector LOC_F
+!                   print *,'nphase,nfield,ipt:',nphase,nfield,ipt
                    LOC_F(IPT) = T_ALL(IPHASE)
                    IPT=IPT+1
                 ENDIF
@@ -5099,21 +5128,6 @@ contains
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
  SUBROUTINE ONVDLIM_ALL( TOTELE, &
        TDLIM, TDCEN, INCOME, PELE, PELEOT, &
        ETDNEW, TDMIN, TDMAX, &
@@ -5258,14 +5272,14 @@ contains
     ELSE
 
        ! Calculate normalisation parameters for incomming velocities 
-       TUPWIN = ETDNEW_PELE ** POWER
-       UCIN = ETDNEW_PELE ** POWER
+       TUPWIN = ETDNEW_PELE 
+       UCIN = ETDNEW_PELE 
        DENOIN = 1.
        CTILIN = 0.
 
        ! Calculate normalisation parameters for out going velocities 
-       TUPWI2 = ETDNEW_PELE ** POWER
-       UCOU = ETDNEW_PELE ** POWER
+       TUPWI2 = ETDNEW_PELE 
+       UCOU = ETDNEW_PELE 
        DENOOU = 1.
        CTILOU = 0.
 
@@ -5288,6 +5302,12 @@ contains
        TDLIM = MAX( TDLIM, 0.0 ) ** (1.0/POWER)
 
     ENDIF Conditional_FIRORD
+
+!     if((PELE==433).and.(PELEOT==435)) then
+!          print *,'***INCOME,TUPWIN,TUPWI2,TDCEN,ETDNEW_PELE,ETDNEW_PELEOT:',INCOME,TUPWIN,TUPWI2,TDCEN,ETDNEW_PELE,ETDNEW_PELEOT
+!          print *,'***FTILOU, CTILOU, COURANT_OR_MINUS_ONE, TDLIM:',FTILOU, CTILOU, COURANT_OR_MINUS_ONE, TDLIM
+!          print *,'***NOLIMI, FIRORD, TUPWIN2, TUPWI22:', NOLIMI, FIRORD, TUPWIN2, TUPWI22
+!     endif
 
     RETURN
 
@@ -5798,7 +5818,7 @@ contains
           ENDIF
        ELSE !For the normal limiting
           MAXUF = MAX( 0.0, UF )
-          !MAXUF = MAX( UC, UF )
+         ! MAXUF = MAX( UC, UF )
           TILDEUF = MIN( 1.0, XI * UC, MAXUF )
           !TILDEUF = MIN( 1.0, 3.0 * UC, MAXUF )
        ENDIF
@@ -9008,6 +9028,8 @@ contains
   END SUBROUTINE GET_INT_VEL_ORIG
 
 
+
+
   SUBROUTINE GET_INT_T_DEN(FVT, FVT2, FVD, LIMD, LIMT, LIMT2, &
        LIMDT, LIMDTT2,  &
        FEMDGI, FEMTGI,FEMT2GI, &
@@ -9758,6 +9780,10 @@ contains
             T2MAX_2ND_MC, T2MIN_2ND_MC, &
             LIMT, LIMD, LIMT2 )
 
+!        if( (CV_NODI_IPHA-(iphase-1)*cv_nonods==433) .and. (CV_NODJ_IPHA-(iphase-1)*cv_nonods==435) ) then
+!            print *,'iphase, LIMT, FEMTGI:',iphase, LIMT, FEMTGI
+!        endif
+
     END IF
 
     ! Amend for porosity...
@@ -9777,6 +9803,9 @@ contains
     LIMDT = LIMD * LIMT
 
     LIMDTT2 = LIMD * LIMT * LIMT2
+
+!       if(sele=26) then
+!           print *,'iphase, FEMDGI, LIMT, FIRSTORD, NOLIMI, CV_NODI_IPHA, CV_NODJ_IPHA
 
     IF ( SELE /=0 ) DEALLOCATE( SE_CV_NODK_IPHA, SE_CV_SNODK_IPHA )
 
@@ -9863,17 +9892,17 @@ contains
        IF( CV_NODJ /= CV_NODI ) THEN
           DO COUNT = SMALL_FINDRM(CV_NODJ), SMALL_FINDRM(CV_NODJ+1)-1
              IF ( SMALL_COLM(COUNT) == CV_NODI ) THEN
-                TUPWIN = TUPWIND_MAT( COUNT )
-                DENUPWIN = DENUPWIND_MAT( COUNT )
-                IF ( IGOT_T2 == 1 ) T2UPWIN = T2UPWIND_MAT( COUNT )
+                TUPWIN = TUPWIND_MAT( COUNT + (IPHASE-1)*NSMALL_COLM)
+                DENUPWIN = DENUPWIND_MAT( COUNT + (IPHASE-1)*NSMALL_COLM)
+                IF ( IGOT_T2 == 1 ) T2UPWIN = T2UPWIND_MAT( COUNT + (IPHASE-1)*NSMALL_COLM)
                 EXIT
              END IF
           END DO
           DO COUNT = SMALL_FINDRM(CV_NODI), SMALL_FINDRM(CV_NODI+1)-1
              IF ( SMALL_COLM(COUNT) == CV_NODJ ) THEN
-                TUPWI2 = TUPWIND_MAT( COUNT )
-                DENUPWI2 = DENUPWIND_MAT( COUNT )
-                IF ( IGOT_T2 == 1 ) T2UPWI2 = T2UPWIND_MAT( COUNT )
+                TUPWI2 = TUPWIND_MAT( COUNT + (IPHASE-1)*NSMALL_COLM)
+                DENUPWI2 = DENUPWIND_MAT( COUNT + (IPHASE-1)*NSMALL_COLM)
+                IF ( IGOT_T2 == 1 ) T2UPWI2 = T2UPWIND_MAT( COUNT + (IPHASE-1)*NSMALL_COLM)
                 EXIT
              END IF
           END DO
@@ -9889,10 +9918,11 @@ contains
          TMIN_2ND_MC( S:E ), TMAX_2ND_MC( S:E ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_NEW, &
          IANISOTROPIC, TUPWIN, TUPWI2 )
 
-!       if((cv_nodi==67).and.(cv_nodj==736)) then
-!       if((cv_nodi==90).and.(cv_nodj==795)) then
-!          print *,'TUPWIN, TUPWI2,T(CV_NODI), t(CV_NODJ), LIMT, FEMTGI,INCOME:', &
-!                   TUPWIN, TUPWI2,T(CV_NODI), t(CV_NODJ), LIMT, FEMTGI,INCOME
+!       if((cv_nodi==433).and.(cv_nodj==435)) then
+!!       if((cv_nodi==67).and.(cv_nodj==736)) then
+!!       if((cv_nodi==90).and.(cv_nodj==795)) then
+!          print *,'TUPWIN, TUPWI2,T(CV_NODI_IPHA), t(CV_NODj_IPHA), LIMT, FEMTGI,INCOME:', &
+!                   TUPWIN, TUPWI2,T(CV_NODI_IPHA), t(CV_NODj_IPHA), LIMT, FEMTGI,INCOME
 !       endif
 
     CALL ONVDLIM_ALL( CV_NONODS, &
@@ -10001,8 +10031,8 @@ contains
     ! Scaling to reduce the downwind bias(=1downwind, =0central)
     LOGICAL, PARAMETER :: SCALE_DOWN_WIND = .true.
 ! The new simple limiter NEW_LIMITER can produce very slightly different results 
-!    LOGICAL, PARAMETER :: NEW_LIMITER = .true.
-    LOGICAL, PARAMETER :: NEW_LIMITER = .false.
+    LOGICAL, PARAMETER :: NEW_LIMITER = .true.
+!    LOGICAL, PARAMETER :: NEW_LIMITER = .false.
     ! Non-linear Petrov-Galerkin option for interface tracking...
     ! =4 is anisotropic downwind diffusion based on a projected 1D system (1st recommend)
     ! =0 is anisotropic downwind diffusion based on a velocity projection like SUPG 
@@ -10264,6 +10294,10 @@ contains
 
 ! limiting ****************************************start
 
+       Conditional_CV_DISOPT_ELE3: IF ( SELE > 0 ) THEN
+          LIMF(:)    = (1.-F_INCOME(:))*LOC_F( :, CV_ILOC )   + F_INCOME(:)*  FEMFGI(:)
+       ELSE ! Conditional_CV_DISOPT_ELE3
+
    if(NEW_LIMITER) then
     CALL ONVDLIM_ANO_MANY( NFIELD, &
        LIMF(:), FEMFGI(:), F_INCOME(:), & 
@@ -10279,10 +10313,14 @@ contains
      end do
    endif
 
+       ENDIF Conditional_CV_DISOPT_ELE3
+
       if(.false.) then
-         if((cv_nodi==90).and.(cv_nodj==795)) then
+!         if((cv_nodi==90).and.(cv_nodj==795)) then
 !         if((cv_nodi==67).and.(cv_nodj==736)) then
 !         if((cv_nodi==1).and.(cv_nodj==1)) then
+         if((cv_nodi==433).and.(cv_nodj==435)) then
+!         if(sele==26) then
             print *,'femfgi=',femfgi
             print *,'limf=',limf
             print  *,'F_INCOME:',F_INCOME
@@ -10293,6 +10331,7 @@ contains
             print *,'XI_LIMIT:',XI_LIMIT 
             print *,'F_INCOME:',F_INCOME
             print *,'F_NDOTQ:',F_NDOTQ
+            print *,'---'
          endif
       endif
 
@@ -10440,14 +10479,14 @@ CONTAINS
     ELSE
 
        ! Calculate normalisation parameters for incomming velocities 
-       TUPWIN = ETDNEW_PELE ** POWER
-       UCIN = ETDNEW_PELE ** POWER
+       TUPWIN = ETDNEW_PELE 
+       UCIN = ETDNEW_PELE
        DENOIN = 1.
        CTILIN = 0.
 
        ! Calculate normalisation parameters for out going velocities 
-       TUPWI2 = ETDNEW_PELE ** POWER
-       UCOU = ETDNEW_PELE ** POWER
+       TUPWI2 = ETDNEW_PELE
+       UCOU = ETDNEW_PELE 
        DENOOU = 1.
        CTILOU = 0.
 
@@ -10466,11 +10505,19 @@ CONTAINS
        ! Velocity is going out of element
        TDLIM =        INCOME   * ( TUPWIN + NVDFUNNEW( FTILIN, CTILIN, COURANT_OR_MINUS_ONE ) * DENOIN ) &
             + ( 1.0 - INCOME ) * ( TUPWI2 + NVDFUNNEW( FTILOU, CTILOU, COURANT_OR_MINUS_ONE ) * DENOOU )
+!       TDLIM =        INCOME   * ( TUPWIN + NVDFUNNEW( FTILIN, CTILIN, -1. ) * DENOIN ) &
+!            + ( 1.0 - INCOME ) * ( TUPWI2 + NVDFUNNEW( FTILOU, CTILOU, -1. ) * DENOOU )
 
        TDLIM = MAX( TDLIM, 0.0 ) ** (1.0/POWER)
 
     ENDIF Conditional_FIRORD
-
+!       if(( PELE==433).and.( PELEOT==435))  print *,'++ firord,TDLIM, INCOME, TUPWI2, FTILOU, CTILOU, COURANT_OR_MINUS_ONE:', &
+!                                                        firord,TDLIM, INCOME, TUPWI2, FTILOU, CTILOU, COURANT_OR_MINUS_ONE
+!     if((PELE==433).and.(PELEOT==435)) then
+!          print *,'---new INCOME,TUPWIN,TUPWI2,TDCEN,ETDNEW_PELE,ETDNEW_PELEOT:',INCOME,TUPWIN,TUPWI2,TDCEN,ETDNEW_PELE,ETDNEW_PELEOT
+!          print *,'---new FTILOU, CTILOU, COURANT_OR_MINUS_ONE, TDLIM:',FTILOU, CTILOU, COURANT_OR_MINUS_ONE, TDLIM
+!          print *,'---new NOLIMI, FIRORD, TUPWIN2, TUPWI22:', NOLIMI, FIRORD, TUPWIN2, TUPWI22
+!     endif
     RETURN
 
   END SUBROUTINE ONVDLIM_ANO
@@ -13377,7 +13424,7 @@ CONTAINS
        IN_ELE_UPWIND, DG_ELE_UPWIND, &
        TMIN_2ND_MC, TMAX_2ND_MC, &
        IANISOTROPIC, SMALL_FINDRM, SMALL_COLM, NSMALL_COLM, &
-       TUPWIND_MAT )
+       TUPWIND_MAT, NUGI_ALL )
     ! Calculate NDOTQ and INCOME on the CV boundary at quadrature pt GI. 
     IMPLICIT NONE
     INTEGER, intent( in ) :: NPHASE, GI, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, &
@@ -13399,6 +13446,7 @@ CONTAINS
     REAL, DIMENSION( : ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
     REAL, DIMENSION( :, : ), intent( in ) :: SUF_SIG_DIAGTEN_BC
     REAL, DIMENSION( :, :, : ), intent( inout ) :: UGI_COEF_ELE_ALL, UGI_COEF_ELE2_ALL
+    REAL, DIMENSION( NDIM, NPHASE ), intent( inout ) :: NUGI_ALL
     REAL, DIMENSION( :  ), intent( in ) :: VOLFRA_PORE
     REAL, DIMENSION( :, :  ), intent( in ) :: SCVFEN
     INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
@@ -13516,20 +13564,24 @@ CONTAINS
  
     ! Calculate NDOTQNEW from NDOTQ
     NDOTQNEW = NDOTQ ! initialize it like this so that it contains the b.c's
+    NUGI_ALL=0.0
     DO U_KLOC = 1, U_NLOC
        U_NODK = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC ) 
        NDOTQNEW=NDOTQNEW + MATMUL(CVNORMX_ALL, SUFEN( U_KLOC, GI )*UGI_COEF_ELE_ALL(:, :, U_KLOC) & 
                                        *( LOC_U(:, :, U_KLOC) - LOC_NU(:, :, U_KLOC) ) )
+       NUGI_ALL(:, :) = NUGI_ALL(:, :) + SUFEN( U_KLOC, GI )*LOC_NU(:, :, U_KLOC)
     END DO
     !     endif
 
     IF( (ELE2 /= 0) .AND. (ELE2 /= ELE) ) THEN
+       NUGI_ALL(:, :) = 0.5*NUGI_ALL(:, :) ! Reduce by half and take the other half from the other side of element...
        ! We have a discontinuity between elements so integrate along the face...
        DO U_KLOC = 1, U_NLOC
           U_KLOC2 = U_OTHER_LOC( U_KLOC )
           IF( U_KLOC2 /= 0 ) THEN
           NDOTQNEW=NDOTQNEW + MATMUL(CVNORMX_ALL, SUFEN( U_KLOC, GI )*UGI_COEF_ELE2_ALL(:, :, U_KLOC2) & 
                                        *( LOC2_U(:, :, U_KLOC) - LOC2_NU(:, :, U_KLOC) ) )
+          NUGI_ALL(:, :) = NUGI_ALL(:, :) + 0.5*SUFEN( U_KLOC, GI )*LOC2_NU(:, :, U_KLOC)
           END IF
        END DO
     END IF
