@@ -1722,7 +1722,7 @@ contains
           DIFF_COEFOLD_DIVDX = 0.0
        END IF If_GOT_DIFFUS2
 
-             IF(.FALSE.) THEN  ! Current GET_INT_VEL, otherwise the new version
+             IF(.TRUE.) THEN  ! Current GET_INT_VEL, otherwise the new version
 
                   Loop_IPHASE21: DO IPHASE = 1, NPHASE
 
