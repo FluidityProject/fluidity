@@ -12542,12 +12542,16 @@ CONTAINS
     INTEGER NOD,COUNT,ELEWIC,ILOC,INOD,IFIELD
     INTEGER KNOD,COUNT2,JNOD
     REAL RMATPSI
-    REAL, ALLOCATABLE, DIMENSION(:)::MINPSI
-    REAL, ALLOCATABLE, DIMENSION(:)::MAXPSI
+!    REAL, ALLOCATABLE, DIMENSION(:)::MINPSI
+!    REAL, ALLOCATABLE, DIMENSION(:)::MAXPSI
+    REAL, ALLOCATABLE, DIMENSION(:,:)::MINPSI
+    REAL, ALLOCATABLE, DIMENSION(:,:)::MAXPSI
 
     if ( bound ) then
-       ALLOCATE( MINPSI( TOTELE*NFIELD ) )
-       ALLOCATE( MAXPSI( TOTELE*NFIELD ) )
+!       ALLOCATE( MINPSI( TOTELE*NFIELD ) )
+!       ALLOCATE( MAXPSI( TOTELE*NFIELD ) )
+       ALLOCATE( MINPSI( NFIELD, TOTELE ) )
+       ALLOCATE( MAXPSI( NFIELD, TOTELE ) )
 
        ! find the max and min local to each element...
        CALL MINMAXELEWIC( PSI_ALL,NFIELD,NONODS,NLOC,TOTELE,NDGLNO, &
@@ -12571,8 +12575,8 @@ CONTAINS
                 ! make locally bounded...
                 if ( bound ) then
                    MATPSI_ALL(IFIELD, COUNT)   &
-                        =MAX(MIN(RMATPSI,   MAXPSI(ELEWIC+(IFIELD-1)*TOTELE)),   &
-                        &                            MINPSI(ELEWIC+(IFIELD-1)*TOTELE))
+                        =MAX(MIN(RMATPSI,   MAXPSI(IFIELD, ELEWIC)),   &
+                        &                            MINPSI(IFIELD, ELEWIC))
                 else
                    MATPSI_ALL(IFIELD, COUNT)   =RMATPSI
                 end if
@@ -12580,6 +12584,10 @@ CONTAINS
           END IF
        END DO
     END DO
+
+    if ( bound ) then
+       DEALLOCATE( MINPSI, MAXPSI )
+    end if
 
     RETURN
 
@@ -12595,7 +12603,8 @@ CONTAINS
     REAL, DIMENSION(:,:), INTENT(IN) :: PSI_ALL
     INTEGER, INTENT(IN) :: NCOLM
     INTEGER, INTENT(IN) :: FINDRM(NONODS+1),COLM(NCOLM)
-    REAL, INTENT(INOUT) :: MINPSI(TOTELE*NFIELD),MAXPSI(TOTELE*NFIELD)
+!    REAL, INTENT(INOUT) :: MINPSI(TOTELE*NFIELD),MAXPSI(TOTELE*NFIELD)
+    REAL, DIMENSION(:,:), INTENT(INOUT) :: MINPSI,MAXPSI
     !  LOCAL VARIABLES...
     INTEGER NOD,COUNT,ELEWIC,ILOC,INOD,IFIELD
     INTEGER KNOD,COUNT2,JNOD
@@ -12610,13 +12619,13 @@ CONTAINS
           ! Search around node KNOD for max and min PSI...
           DO COUNT2 = FINDRM(KNOD), FINDRM(KNOD+1)-1
              JNOD = COLM( COUNT2 )
-             DO IFIELD = 1, NFIELD
-                MINPSI( ELEWIC+(IFIELD-1)*TOTELE )  &
-                     = MIN( PSI_ALL(IFIELD, JNOD), MINPSI(ELEWIC+(IFIELD-1)*TOTELE) )
-                MAXPSI( ELEWIC+(IFIELD-1)*TOTELE )  &
-                     = MAX( PSI_ALL(IFIELD, JNOD), MAXPSI(ELEWIC+(IFIELD-1)*TOTELE) )
+             !DO IFIELD = 1, NFIELD
+                MINPSI( :, ELEWIC )  &
+                     = MIN( PSI_ALL(:, JNOD), MINPSI(:, ELEWIC) )
+                MAXPSI( :, ELEWIC )  &
+                     = MAX( PSI_ALL(:, JNOD), MAXPSI(:, ELEWIC) )
 !                     = MAX( PSI_ALL(JNOD+(IFIELD-1)*NONODS), MAXPSI(ELEWIC+(IFIELD-1)*TOTELE) )
-             END DO
+             !END DO
           END DO
        END DO
     END DO
@@ -12682,8 +12691,10 @@ CONTAINS
     REAL, ALLOCATABLE, DIMENSION(:)::NORMY
     REAL, ALLOCATABLE, DIMENSION(:)::NORMZ
     REAL, ALLOCATABLE, DIMENSION(:)::MLUM
-    REAL, ALLOCATABLE, DIMENSION(:)::MINPSI
-    REAL, ALLOCATABLE, DIMENSION(:)::MAXPSI
+!    REAL, ALLOCATABLE, DIMENSION(:)::MINPSI
+!    REAL, ALLOCATABLE, DIMENSION(:)::MAXPSI
+    REAL, ALLOCATABLE, DIMENSION(:,:)::MINPSI
+    REAL, ALLOCATABLE, DIMENSION(:,:)::MAXPSI
     INTEGER, ALLOCATABLE, DIMENSION(:)::NOD2XNOD
 
     !######TEMPORARY, that three should be size(X_ALL,1)#####
@@ -12737,8 +12748,10 @@ CONTAINS
        END DO
     ENDIF
 
-    ALLOCATE(MINPSI(TOTELE*NFIELD))
-    ALLOCATE(MAXPSI(TOTELE*NFIELD))
+!    ALLOCATE(MINPSI(TOTELE*NFIELD))
+!    ALLOCATE(MAXPSI(TOTELE*NFIELD))
+    ALLOCATE(MINPSI(NFIELD, TOTELE))
+    ALLOCATE(MAXPSI(NFIELD, TOTELE))
 
     IF(BOUND) THEN
        ! find the max and min local to each element...
@@ -12854,7 +12867,8 @@ CONTAINS
       REAL, dimension(:,:), intent(in) :: X_ALL
       INTEGER, intent(in) :: NCOLEL
       INTEGER, intent(in) :: FINDELE(X_NONODS+1),COLELE(NCOLEL)
-      REAL, intent(in) :: MINPSI(TOTELE*NFIELD),MAXPSI(TOTELE*NFIELD)
+!      REAL, intent(in) :: MINPSI(TOTELE*NFIELD),MAXPSI(TOTELE*NFIELD)
+      REAL, DIMENSION(:, :), intent(in) :: MINPSI,MAXPSI
       INTEGER, intent(inout) :: ELEWIC
       REAL, intent(inout) :: LOCCORDSK(NLOC)
 !     
@@ -13014,7 +13028,7 @@ CONTAINS
 
 !     Now correct to make sure that we get a bounded soln...
          IF(BOUND) THEN
-           RMATPSI   =MAX(MIN(RMATPSI,   MAXPSI(ELEWIC+(IFIELD-1)*TOTELE)),   MINPSI(ELEWIC+(IFIELD-1)*TOTELE))
+           RMATPSI   =MAX(MIN(RMATPSI,   MAXPSI(IFIELD, ELEWIC)),   MINPSI(IFIELD, ELEWIC))
          ENDIF
          MATPSI_ALL(IFIELD, COUNT)   =RMATPSI
       END DO
