@@ -872,7 +872,6 @@ contains
     CV_NLOC, U_NLOC, X_NLOC, &
     CV_NDGLN, X_NDGLN, U_NDGLN, &
     CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-    X, Y, Z, &
     SATURA, SATURAOLD, DEN, DENOLD, &
     MAT_NLOC,MAT_NDGLN,MAT_NONODS, &
     V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
@@ -920,7 +919,7 @@ contains
         integer, dimension(:,:), intent(in) :: global_dense_block_acv
         INTEGER, DIMENSION( : ), intent( in ) :: FINDCT
         INTEGER, DIMENSION( : ), intent( in ) :: COLCT
-        REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
+
         REAL, DIMENSION( : ), intent( inout ) :: SATURA, SATURAOLD, Sat_FEMT, DEN_FEMT
         REAL, DIMENSION( : ), intent( in ) :: DEN, DENOLD
         REAL, DIMENSION( :, :), intent( inout ), optional :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J

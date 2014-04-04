@@ -1079,7 +1079,6 @@
                     CV_NDGLN, X_NDGLN, U_NDGLN, &
                     CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
 !!$
-                    x, y, z, &
                     PhaseVolumeFraction, PhaseVolumeFraction_Old, &
                     Density, Density_Old, & ! use DEN=1 because the density is already in the theta variables
 !!$
