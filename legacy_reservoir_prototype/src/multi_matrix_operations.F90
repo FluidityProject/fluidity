@@ -1056,7 +1056,8 @@
       REAL, DIMENSION( :, :, : ), intent( in ) :: CDP
       ! Local 
       INTEGER :: ELE, N
-      INTEGER, DIMENSION( : ), pointer :: U_NOD
+!      INTEGER, DIMENSION( : ), pointer :: U_NOD
+      INTEGER, DIMENSION( U_NLOC ) :: U_NOD
       REAL, DIMENSION( NDIM * NPHASE * U_NLOC ) :: LCDP, LU
       
       interface 
@@ -1076,7 +1077,8 @@
 
       Loop_Elements: DO ELE = 1, TOTELE
 
-         U_NOD => U_NDGLN( ( ELE - 1 ) * U_NLOC +1 : ELE * U_NLOC )
+!         U_NOD => U_NDGLN( ( ELE - 1 ) * U_NLOC +1 : ELE * U_NLOC )
+         U_NOD = U_NDGLN( ( ELE - 1 ) * U_NLOC +1 : ELE * U_NLOC )
 
          LCDP = RESHAPE( CDP( :, :, U_NOD ) , (/ N /) )
          CALL DGEMV( 'N', N, N, 1.0d0, BLOCK_MAT( : , : , ELE ), N, LCDP, 1, 0.0d0, LU, 1 )
