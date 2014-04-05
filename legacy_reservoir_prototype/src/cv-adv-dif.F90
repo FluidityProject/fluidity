@@ -403,7 +403,7 @@ contains
       INTEGER :: COUNT_IN, COUNT_OUT,CV_KLOC2,CV_NODK2,CV_NODK2_IPHA,CV_SKLOC, CV_SNODK, CV_SNODK_IPHA
       INTEGER :: IPT_IN, IPT_OUT
       INTEGER :: U_KLOC2,U_NODK2,U_NODK2_IPHA,U_SKLOC
-      INTEGER :: IPT,ILOOP,IMID,JDIM
+      INTEGER :: IPT,ILOOP,IMID,JMID,JDIM
       LOGICAL :: STORE, integrate_other_side_and_not_boundary, prep_stop, GOT_VIS
       REAL :: R
       REAL :: LIMT_keep(NPHASE ),  LIMTOLD_keep( NPHASE ), LIMD_keep( NPHASE ),   LIMDOLD_keep( NPHASE ), LIMT2_keep( NPHASE ),   LIMT2OLD_keep(NPHASE)
@@ -1396,9 +1396,10 @@ contains
 
             ! Global node number of the local node
             CV_NODI = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
+            IMID = SMALL_CENTRM(CV_NODI)
 
 ! Generate some local F variables ***************
-             F_CV_NODI(:)= LOC_F(:, CV_ILOC)
+            F_CV_NODI(:)= LOC_F(:, CV_ILOC)
 ! Generate some local F variables ***************
 
             ! Loop over quadrature (gauss) points in ELE neighbouring ILOC
@@ -1482,6 +1483,7 @@ contains
                   integrate_other_side_and_not_boundary = integrate_other_side.and.(SELE.LE.0)
 
                   GLOBAL_FACE = GLOBAL_FACE + 1
+                  JMID = SMALL_CENTRM(CV_NODJ)
 
 
                   ! Calculate the control volume normals at the Gauss pts.
@@ -1989,10 +1991,7 @@ contains
 
                         !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===============
                         ! Calculate T and DEN on the CV face at quadrature point GI.
-!                        CALL GET_INT_T_DEN_new( FVT(:), FVT2(:), FVD(:), LIMD(:,global_face), LIMT(:,global_face), LIMT2(:,global_face), &
-!                             LIMDT(:,global_face), LIMDTT2(:,global_face),& 
                   IF(NFIELD.GT.0) THEN
-!                      print *,'here 1'
 
                         CALL GET_INT_T_DEN_new( LIMF(:), & 
                              CV_DISOPT, CV_NONODS, NPHASE, NFIELD, CV_NODI, CV_NODJ, CV_ILOC, CV_JLOC, CV_SILOC, ELE, ELE2, GI,   &
@@ -2274,8 +2273,10 @@ contains
                            END IF
 
 
-                           IMID_IPHA = IPHASE + (SMALL_CENTRM(CV_NODI)-1)*NPHASE
-                           JMID_IPHA = IPHASE + (SMALL_CENTRM(CV_NODJ)-1)*NPHASE
+                           IMID_IPHA = IPHASE + (IMID-1)*NPHASE
+                           JMID_IPHA = IPHASE + (JMID-1)*NPHASE
+!                           IMID_IPHA = IPHASE + (SMALL_CENTRM(CV_NODI)-1)*NPHASE
+!                           JMID_IPHA = IPHASE + (SMALL_CENTRM(CV_NODJ)-1)*NPHASE
 
                            CSR_ACV( IMID_IPHA ) =  CSR_ACV( IMID_IPHA ) &
                                 +  SECOND_THETA * FTHETA_T2 * SCVDETWEI( GI ) * NDOTQNEW(IPHASE) * ( 1. - INCOME(IPHASE) ) * LIMD(IPHASE) & ! Advection
