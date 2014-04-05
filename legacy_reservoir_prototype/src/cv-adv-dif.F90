@@ -1671,54 +1671,32 @@ contains
                ENDIF
             END DO
 
-!            if((cv_nodi==41).and.(cv_nodj==41)) then
-!               print *,'%%%% SELE_LOC_WIC_F_BC:',SELE_LOC_WIC_F_BC
-!               print *,'%%%% SLOC_SUF_F_BC:',SLOC_SUF_F_BC
-!            endif
-!              SELE_LOC_WIC_F_BC=0
-!              SLOC_SUF_F_BC=0
 
          ENDIF ! IF( SELE > 0 ) THEN
 ! local surface information***********
 
 ! limiting VALUES*************: 
-                 COUNT_OUT=JCOUNT_IPHA
-                 COUNT_IN =ICOUNT_IPHA
+          COUNT_OUT=JCOUNT_IPHA
+          COUNT_IN =ICOUNT_IPHA
           
           IPT_IN =1
           IPT_OUT=1
-          DO IPHASE=1,NPHASE
-             CALL PACK_LOC( FUPWIND_IN( : ),  TUPWIND_MAT( (IPHASE-1)*nsmall_colm + COUNT_IN),    1, NFIELD, IPT_IN, IGOT_T_PACK(IPHASE,1) )
-             CALL PACK_LOC( FUPWIND_OUT( : ), TUPWIND_MAT( (IPHASE-1)*nsmall_colm +COUNT_OUT),    1, NFIELD, IPT_OUT, IGOT_T_PACK(IPHASE,1) )
-!        if((cv_nodi==433).and.(cv_nodj==435)) then
-!            print *,'&&&&&&&  iphase, COUNT_IN, COUNT_OUT,  (IPHASE-1)*nsmall_colm + COUNT_IN, (IPHASE-1)*nsmall_colm +COUNT_OUT:', &
-!                              iphase, COUNT_IN, COUNT_OUT,  (IPHASE-1)*nsmall_colm + COUNT_IN, (IPHASE-1)*nsmall_colm +COUNT_OUT
-!        endif
-          END DO
-          DO IPHASE=1,NPHASE
-             CALL PACK_LOC( FUPWIND_IN( : ),  TOLDUPWIND_MAT( (IPHASE-1)*nsmall_colm + COUNT_IN),    1, NFIELD, IPT_IN, IGOT_T_PACK(IPHASE,2) )
-             CALL PACK_LOC( FUPWIND_OUT( : ), TOLDUPWIND_MAT( (IPHASE-1)*nsmall_colm +COUNT_OUT),    1, NFIELD, IPT_OUT, IGOT_T_PACK(IPHASE,2) )
-          END DO
+          CALL PACK_LOC( FUPWIND_IN( : ),  TUPWIND_MAT_ALL( :, COUNT_IN),    NPHASE, NFIELD, IPT_IN, IGOT_T_PACK(:,1) )
+          CALL PACK_LOC( FUPWIND_OUT( : ), TUPWIND_MAT_ALL( :, COUNT_OUT),    NPHASE, NFIELD, IPT_OUT, IGOT_T_PACK(:,1) )
+          CALL PACK_LOC( FUPWIND_IN( : ),  TOLDUPWIND_MAT_ALL( :, COUNT_IN),    NPHASE, NFIELD, IPT_IN, IGOT_T_PACK(:,2) )
+          CALL PACK_LOC( FUPWIND_OUT( : ), TOLDUPWIND_MAT_ALL( :, COUNT_OUT),    NPHASE, NFIELD, IPT_OUT, IGOT_T_PACK(:,2) )
 
-          DO IPHASE=1,NPHASE
-             CALL PACK_LOC( FUPWIND_IN( : ),  DENUPWIND_MAT( (IPHASE-1)*nsmall_colm + COUNT_IN),    1, NFIELD, IPT_IN, IGOT_T_PACK(IPHASE,3) )
-             CALL PACK_LOC( FUPWIND_OUT( : ), DENUPWIND_MAT( (IPHASE-1)*nsmall_colm +COUNT_OUT),    1, NFIELD, IPT_OUT, IGOT_T_PACK(IPHASE,3) )
-          END DO
-          DO IPHASE=1,NPHASE
-             CALL PACK_LOC( FUPWIND_IN( : ),  DENOLDUPWIND_MAT( (IPHASE-1)*nsmall_colm + COUNT_IN),    1, NFIELD, IPT_IN, IGOT_T_PACK(IPHASE,4) )
-             CALL PACK_LOC( FUPWIND_OUT( : ), DENOLDUPWIND_MAT( (IPHASE-1)*nsmall_colm +COUNT_OUT),    1, NFIELD, IPT_OUT, IGOT_T_PACK(IPHASE,4) )
-          END DO
+          CALL PACK_LOC( FUPWIND_IN( : ),  DENUPWIND_MAT_ALL( :, COUNT_IN),    NPHASE, NFIELD, IPT_IN, IGOT_T_PACK(:,3) )
+          CALL PACK_LOC( FUPWIND_OUT( : ), DENUPWIND_MAT_ALL( :, COUNT_OUT),    NPHASE, NFIELD, IPT_OUT, IGOT_T_PACK(:,3) )
+          CALL PACK_LOC( FUPWIND_IN( : ),  DENOLDUPWIND_MAT_ALL( :, COUNT_IN),    NPHASE, NFIELD, IPT_IN, IGOT_T_PACK(:,4) )
+          CALL PACK_LOC( FUPWIND_OUT( : ), DENOLDUPWIND_MAT_ALL( :, COUNT_OUT),    NPHASE, NFIELD, IPT_OUT, IGOT_T_PACK(:,4) )
 
-       IF(IGOT_T2==1) THEN
-          DO IPHASE=1,NPHASE
-             CALL PACK_LOC( FUPWIND_IN( : ),  T2UPWIND_MAT( (IPHASE-1)*nsmall_colm + COUNT_IN),    1, NFIELD, IPT_IN, IGOT_T_PACK(IPHASE,5) )
-             CALL PACK_LOC( FUPWIND_OUT( : ), T2UPWIND_MAT( (IPHASE-1)*nsmall_colm +COUNT_OUT),    1, NFIELD, IPT_OUT, IGOT_T_PACK(IPHASE,5) )
-          END DO
-          DO IPHASE=1,NPHASE
-             CALL PACK_LOC( FUPWIND_IN( : ),  T2OLDUPWIND_MAT( (IPHASE-1)*nsmall_colm + COUNT_IN),    1, NFIELD, IPT_IN, IGOT_T_PACK(IPHASE,6) )
-             CALL PACK_LOC( FUPWIND_OUT( : ), T2OLDUPWIND_MAT( (IPHASE-1)*nsmall_colm +COUNT_OUT),    1, NFIELD, IPT_OUT, IGOT_T_PACK(IPHASE,6) )
-          END DO
-       ENDIF
+          IF(IGOT_T2==1) THEN
+             CALL PACK_LOC( FUPWIND_IN( : ),  T2UPWIND_MAT_ALL( :, COUNT_IN),    NPHASE, NFIELD, IPT_IN, IGOT_T_PACK(:,5) )
+             CALL PACK_LOC( FUPWIND_OUT( : ), T2UPWIND_MAT_ALL( :, COUNT_OUT),    NPHASE, NFIELD, IPT_OUT, IGOT_T_PACK(:,5) )
+             CALL PACK_LOC( FUPWIND_IN( : ),  T2OLDUPWIND_MAT_ALL( :, COUNT_IN),    NPHASE, NFIELD, IPT_IN, IGOT_T_PACK(:,6) )
+             CALL PACK_LOC( FUPWIND_OUT( : ), T2OLDUPWIND_MAT_ALL( :, COUNT_OUT),    NPHASE, NFIELD, IPT_OUT, IGOT_T_PACK(:,6) )
+          ENDIF
 ! limiting VALUES*************:
 !     endif ! endof if(.false.) then
 !         
@@ -1924,7 +1902,7 @@ contains
 
              END IF ! End of choose which version of GET_INT_VEL
 
-          if(.true.) then
+!          if(.true.) then
 ! Pack ndotq information: 
              IPT=1
              CALL PACK_LOC( F_INCOME(:), INCOME( : ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,1) ) ! t
@@ -1940,7 +1918,7 @@ contains
              CALL PACK_LOC( F_NDOTQ(:), NDOTQOLD( : ), NPHASE, NFIELD, IPT, IGOT_T_PACK(:,4) )  ! DOLD
              CALL PACK_LOC( F_NDOTQ(:), NDOTQ( : ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,5) )  ! T2
              CALL PACK_LOC( F_NDOTQ(:), NDOTQOLD( : ), NPHASE, NFIELD, IPT, IGOT_T_PACK(:,6) )  ! T2OLD
-          endif
+!          endif
 
 !             print *,'F_INCOME:',F_INCOME
 !             print *,'F_NDOTQ:',F_NDOTQ
@@ -10140,18 +10118,6 @@ contains
 
 
 
-    ! Extrapolate a downwind value for interface tracking.
-    DOWNWIND_EXTRAP = ( cv_disopt>=8 )
-
-    DO IFIELD=1,NFIELD
-       IF( DOWNWIND_EXTRAP_INDIVIDUAL(IFIELD)  ) THEN 
-          courant_or_minus_one_new(IFIELD) = abs ( dt * F_ndotq(IFIELD) / hdc )
-          XI_LIMIT(IFIELD)=MAX(1./max(tolerance,(3.*courant_or_minus_one_new(IFIELD))),2.0) 
-       else
-          courant_or_minus_one_new(IFIELD) = -1.0
-          XI_LIMIT(IFIELD) = 2.0
-       end if
-    END DO
 
 
 
@@ -10191,6 +10157,20 @@ contains
           LIMF(:)    = (1.-F_INCOME(:))*LOC_F( :, CV_ILOC )   + F_INCOME(:)*  FEMFGI(:)
 
        ELSE Conditional_CV_DISOPT_ELE2
+    ! Extrapolate a downwind value for interface tracking.
+
+          DOWNWIND_EXTRAP = ( cv_disopt>=8 )
+
+          DO IFIELD=1,NFIELD
+             IF( DOWNWIND_EXTRAP_INDIVIDUAL(IFIELD)  ) THEN 
+                courant_or_minus_one_new(IFIELD) = abs ( dt * F_ndotq(IFIELD) / hdc )
+                XI_LIMIT(IFIELD)=MAX(1./max(tolerance,(3.*courant_or_minus_one_new(IFIELD))),2.0) 
+             else
+                courant_or_minus_one_new(IFIELD) = -1.0
+                XI_LIMIT(IFIELD) = 2.0
+             end if
+          END DO
+
          IF( ( ELE2 == 0 ) .OR. ( ELE2 == ELE ) ) THEN
 
           RSCALE(:) = 1.0 ! Scaling to reduce the downwind bias(=1downwind, =0central)
