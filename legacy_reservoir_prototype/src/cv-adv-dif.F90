@@ -10188,7 +10188,10 @@ contains
              END IF
           END DO ! END OF DO IFIELD=1,NFIELD
 
-       ELSE IF( ( ELE2 == 0 ) .OR. ( ELE2 == ELE ) ) THEN
+          LIMF(:)    = (1.-F_INCOME(:))*LOC_F( :, CV_ILOC )   + F_INCOME(:)*  FEMFGI(:)
+
+       ELSE Conditional_CV_DISOPT_ELE2
+         IF( ( ELE2 == 0 ) .OR. ( ELE2 == ELE ) ) THEN
 
           RSCALE(:) = 1.0 ! Scaling to reduce the downwind bias(=1downwind, =0central)
           IF ( SCALE_DOWN_WIND ) THEN
@@ -10303,7 +10306,7 @@ contains
 
           END DO ! ENDOF DO CV_KLOC = 1, CV_NLOC
 
-       ELSE  ! DG saturation across elements
+       ELSE  ! END OF IF( ( ELE2 == 0 ) .OR. ( ELE2 == ELE ) ) THEN  ---DG saturation across elements
 
              FEMFGI_CENT(:) = 0.0
              FEMFGI_UP(:)   = 0.0
@@ -10322,17 +10325,8 @@ contains
                    FEMFGI(IFIELD) = FEMFGI_UP(IFIELD)
                 ENDIF
              END DO
+        ENDIF ! ENDOF IF( ( ELE2 == 0 ) .OR. ( ELE2 == ELE ) ) THEN ELSE
 
-       ENDIF Conditional_CV_DISOPT_ELE2
-
-    END SELECT
-
-
-! limiting ****************************************start
-
-       Conditional_CV_DISOPT_ELE3: IF ( SELE > 0 ) THEN
-          LIMF(:)    = (1.-F_INCOME(:))*LOC_F( :, CV_ILOC )   + F_INCOME(:)*  FEMFGI(:)
-       ELSE ! Conditional_CV_DISOPT_ELE3
 
    if(NEW_LIMITER) then
     CALL ONVDLIM_ANO_MANY( NFIELD, &
@@ -10349,7 +10343,13 @@ contains
      end do
    endif
 
-       ENDIF Conditional_CV_DISOPT_ELE3
+       ENDIF Conditional_CV_DISOPT_ELE2
+
+    END SELECT
+
+
+! limiting ****************************************start
+
 
       if(.false.) then
 !         if((cv_nodi==90).and.(cv_nodj==795)) then
