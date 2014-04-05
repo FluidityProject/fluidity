@@ -1440,17 +1440,27 @@ contains
                      INTEGRAT_AT_GI = .NOT.( (ELE==ELE2) .AND. (SELE==0) )
                   END IF
 
-                  IF(INTEGRAT_AT_GI.AND.(SELE.LE.0)) THEN ! this is for DG
+                  IF(INTEGRAT_AT_GI)  THEN ! this is for DG and boundaries of the domain
+                     IF(SELE.LE.0) THEN ! this is for DG
 ! Calculate U_SLOC2LOC, CV_SLOC2LOC: 
-                     CV_SKLOC=0
-                     DO CV_KLOC=1,CV_NLOC
-                        CV_KLOC2 = CV_OTHER_LOC( CV_KLOC )
-                        IF(CV_KLOC2.NE.0) THEN
-                           CV_SKLOC=CV_SKLOC+1
-                           CV_SLOC2LOC(CV_SKLOC)=CV_KLOC
-                           SHAPE_CV_SNL(CV_SKLOC) = SCVFEN(CV_KLOC,GI) 
-                        ENDIF
+                        CV_SKLOC=0
+                        DO CV_KLOC=1,CV_NLOC
+                           CV_KLOC2 = CV_OTHER_LOC( CV_KLOC )
+                           IF(CV_KLOC2.NE.0) THEN
+                              CV_SKLOC=CV_SKLOC+1
+                              CV_SLOC2LOC(CV_SKLOC)=CV_KLOC
+                              SHAPE_CV_SNL(CV_SKLOC) = SCVFEN(CV_KLOC,GI) 
+                           ENDIF
+                        END DO
+                     ENDIF ! ENDOF IF(SELE.LE.0) THEN
+
+                     DO CV_SKLOC=1,CV_SNLOC
+                        CV_KLOC = CV_SLOC2LOC(CV_SKLOC)
+                        SHAPE_CV_SNL(CV_SKLOC) = SCVFEN(CV_KLOC,GI) 
                      END DO
+
+!                     print *,'cv_snloc,CV_SKLOC:',cv_snloc,CV_SKLOC
+!                     stop 281
 
                   ENDIF
 
@@ -1660,6 +1670,14 @@ contains
                    CALL PACK_LOC( SLOC_SUF_F_BC( :, CV_SKLOC ), SUF_T2_BC_ALL( :, CV_SKLOC, SELE),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,6) )
                ENDIF
             END DO
+
+!            if((cv_nodi==41).and.(cv_nodj==41)) then
+!               print *,'%%%% SELE_LOC_WIC_F_BC:',SELE_LOC_WIC_F_BC
+!               print *,'%%%% SLOC_SUF_F_BC:',SLOC_SUF_F_BC
+!            endif
+!              SELE_LOC_WIC_F_BC=0
+!              SLOC_SUF_F_BC=0
+
          ENDIF ! IF( SELE > 0 ) THEN
 ! local surface information***********
 
@@ -1928,7 +1946,7 @@ contains
 !             print *,'F_NDOTQ:',F_NDOTQ
 
 
-             IF(.true.) THEN
+             IF(.false.) THEN
 
                   Loop_IPHASE3: DO IPHASE = 1, NPHASE
 
@@ -2065,6 +2083,17 @@ contains
                 print *,'LIMdold_keep:',LIMdold_keep
                 print *,'LIMdold:',LIMdold
 
+
+               print *,'LOC_F:',LOC_F
+!               print *,'LOC_FEMF:',LOC_FEMF
+!               print *,'SLOC_F:',SLOC_F
+!               print *,'SLOC_FEMF:',SLOC_FEMF
+!               print *,'SLOC2_F:',SLOC2_F
+!               print *,'SLOC2_FEMF:',SLOC2_FEMF
+!               print *,'SLOC_SUF_F_BC:',SLOC_SUF_F_BC
+!               print *,'SELE_LOC_WIC_F_BC:',SELE_LOC_WIC_F_BC
+
+
                 if(IGOT_T2==1) then
                    print *,'LIMT2_keep:',LIMT2_keep
                    print *,'LIMT2:',LIMT2
@@ -2076,6 +2105,12 @@ contains
                 print *,'ipt:',ipt
                 print *,'DOWNWIND_EXTRAP_INDIVIDUAL:',DOWNWIND_EXTRAP_INDIVIDUAL
 
+           print *,'ele,sele=',ele,sele
+           print *,'SELE_LOC_WIC_F_BC:',SELE_LOC_WIC_F_BC
+           print *,'SLOC_SUF_F_BC:',SLOC_SUF_F_BC
+
+           print *,'WIC_T_BC_ALL:',WIC_T_BC_ALL
+           print *,'SUF_T_BC_ALL:',SUF_T_BC_ALL
 
        do iphase=1,nphase
           print *,'iphase=',iphase
@@ -2099,7 +2134,7 @@ contains
 
 !           print *,'done temp'
 ! Generate some local F variables ***************
-       IF(.false.) THEN
+       IF(.true.) THEN
 ! loc_f - Unpack into the limiting variables LIMT and may be store them in the cache.
 
              !###############TEMPORARY USAGE IN UNPACK_LOC #######################
@@ -10032,8 +10067,8 @@ contains
     ! Scaling to reduce the downwind bias(=1downwind, =0central)
     LOGICAL, PARAMETER :: SCALE_DOWN_WIND = .true.
 ! The new simple limiter NEW_LIMITER can produce very slightly different results 
-    LOGICAL, PARAMETER :: NEW_LIMITER = .true.
-!    LOGICAL, PARAMETER :: NEW_LIMITER = .false.
+!    LOGICAL, PARAMETER :: NEW_LIMITER = .true.
+    LOGICAL, PARAMETER :: NEW_LIMITER = .false.
     ! Non-linear Petrov-Galerkin option for interface tracking...
     ! =4 is anisotropic downwind diffusion based on a projected 1D system (1st recommend)
     ! =0 is anisotropic downwind diffusion based on a velocity projection like SUPG 
@@ -10320,7 +10355,9 @@ contains
 !         if((cv_nodi==90).and.(cv_nodj==795)) then
 !         if((cv_nodi==67).and.(cv_nodj==736)) then
 !         if((cv_nodi==1).and.(cv_nodj==1)) then
-         if((cv_nodi==433).and.(cv_nodj==435)) then
+!         if((cv_nodi==433).and.(cv_nodj==435)) then
+!         if((cv_nodi==41).and.(cv_nodj==41)) then
+         if((cv_nodi==21).and.(cv_nodj==701)) then
 !         if(sele==26) then
             print *,'femfgi=',femfgi
             print *,'limf=',limf
@@ -10332,6 +10369,12 @@ contains
             print *,'XI_LIMIT:',XI_LIMIT 
             print *,'F_INCOME:',F_INCOME
             print *,'F_NDOTQ:',F_NDOTQ
+            print *,'SHAPE_CV_SNL:', SHAPE_CV_SNL
+            print *,'SLOC_SUF_F_BC:',SLOC_SUF_F_BC
+            print *,'SLOC_FEMF:',SLOC_FEMF
+            print *,'sum(SHAPE_CV_SNL( 1:CV_SNLOC, GI )):',sum(SHAPE_CV_SNL( 1:CV_SNLOC ))
+            print *,'SHAPE_CV_SNL( :, GI ):',SHAPE_CV_SNL( : )
+            print *,'cv_snloc,cv_nloc:',cv_snloc,cv_nloc
             print *,'---'
          endif
       endif
