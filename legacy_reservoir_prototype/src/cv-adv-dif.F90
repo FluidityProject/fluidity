@@ -1441,7 +1441,8 @@ contains
                      INTEGRAT_AT_GI = .NOT.( (ELE==ELE2) .AND. (SELE==0) )
                   END IF
 
-                  IF(INTEGRAT_AT_GI)  THEN ! this is for DG and boundaries of the domain
+                  IF(INTEGRAT_AT_GI)  THEN 
+! this is for DG and boundaries of the domain
                      IF(SELE.LE.0) THEN ! this is for DG
 ! Calculate U_SLOC2LOC, CV_SLOC2LOC: 
                         CV_SKLOC=0
@@ -1459,9 +1460,6 @@ contains
                         CV_KLOC = CV_SLOC2LOC(CV_SKLOC)
                         SHAPE_CV_SNL(CV_SKLOC) = SCVFEN(CV_KLOC,GI) 
                      END DO
-
-!                     print *,'cv_snloc,CV_SKLOC:',cv_snloc,CV_SKLOC
-!                     stop 281
 
                   ENDIF
 
@@ -3098,6 +3096,13 @@ contains
       call retrieve_ngi( TOTELE, cv_ele_type, CV_NLOC,U_NLOC, &
            cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
 
+                  global_face=totele * SCVNGI 
+                  return
+
+
+
+
+
       ! Allocate memory for the control volume surface shape functions, etc.
 
       ALLOCATE( CVNORMX( SCVNGI ))
@@ -3379,6 +3384,7 @@ contains
       DEALLOCATE( SELE_OVERLAP_SCALE )
 
      
+      return
     end function CV_COUNT_FACES
 
 
@@ -11126,11 +11132,11 @@ CONTAINS
          U_JLOC, U_JNOD, CV_KLOC, CV_SKNOD, &
          U_KLOC, U_SKLOC, U_SKNOD, CV_SKLOC, CV_SKLOC2, I
     LOGICAL :: FOUND
-    INTEGER, DIMENSION( : ), ALLOCATABLE :: LOG_ON_BOUND
+    INTEGER, DIMENSION( CV_SNLOC ) :: LOG_ON_BOUND
 
     !ewrite(3,*)'In Calc_Sele'
 
-    ALLOCATE( LOG_ON_BOUND( CV_SNLOC ) ) ; I = 1
+    I = 1
     DO CV_JLOC = 1, CV_NLOC  
        CV_JNOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_JLOC )
        IF ( .NOT.CVFEM_ON_FACE( CV_JLOC ) ) THEN
@@ -11180,7 +11186,7 @@ CONTAINS
        END DO
     END IF Conditional_Sele
 
-    DEALLOCATE( LOG_ON_BOUND )
+!    DEALLOCATE( LOG_ON_BOUND )
 
     RETURN
   END SUBROUTINE CALC_SELE
