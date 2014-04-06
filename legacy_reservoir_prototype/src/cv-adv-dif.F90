@@ -837,9 +837,7 @@ contains
          NLEV = 1
          U_NLOC2 = U_NLOC
       END IF
-      DO ELE = 1, TOTELE
-            DO U_ILOC = 1, U_NLOC 
-               U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
+            DO U_INOD = 1, U_NONODS
                DO IPHASE = 1, NPHASE
                   DO IDIM = 1, NDIM
                      IF ( IDIM==1 ) THEN
@@ -868,7 +866,6 @@ contains
                   END DO
                END DO
             END DO
-      END DO
 
 !print *, u_all(1,1,:)
 
@@ -1485,19 +1482,21 @@ contains
 
 
                   ! Calculate the control volume normals at the Gauss pts.
-                  CALL SCVDETNX( ELE, GI, &
-                       X_NLOC, SCVNGI, TOTELE, &
+                  CALL SCVDETNX_new( ELE, GI, &
+                       X_NLOC, SCVNGI, TOTELE, NDIM, &
                        X_NDGLN, X_NONODS, &
                        SCVDETWEI, CVNORMX, CVNORMY, &
                        CVNORMZ, SCVFEN, SCVFENSLX, &
-                       SCVFENSLY, SCVFEWEIGH, XC_CV_ALL( 1, CV_NODI ), &
-                       XC_CV_ALL( 2, CV_NODI ), XC_CV_ALL( NDIM, CV_NODI ), &
-                       X_ALL(1,:), X_ALL(2,:), X_ALL(NDIM,:), &
+                       SCVFENSLY, SCVFEWEIGH, XC_CV_ALL( 1:NDIM, CV_NODI ), &
+                       X_ALL(1:NDIM,:),  &
                        D1, D3, DCYL )
 
-                  CVNORMX_ALL(1,:)=CVNORMX(:)
-                  IF(NDIM.GE.2) CVNORMX_ALL(2,:)=CVNORMY(:)
-                  IF(NDIM.GE.3) CVNORMX_ALL(3,:)=CVNORMZ(:)
+                  CVNORMX_ALL(1,GI)=CVNORMX(GI)
+                  IF(NDIM.GE.2) CVNORMX_ALL(2,GI)=CVNORMY(GI)
+                  IF(NDIM.GE.3) CVNORMX_ALL(3,GI)=CVNORMZ(GI)
+               !   CVNORMX(GI) = CVNORMX_ALL(1,GI)
+               !   IF(NDIM.GE.2) CVNORMY(GI) =CVNORMX_ALL(2,GI)
+               !   IF(NDIM.GE.3) CVNORMZ(GI) =CVNORMX_ALL(3,GI)
 
                   
                   X_NODI = X_NDGLN( ( ELE - 1 ) * X_NLOC  + CV_ILOC )
@@ -1624,6 +1623,7 @@ contains
 
 
           ENDIF ! ENDOF IF( (ELE2 > 0) .OR. (SELE > 0) ) THEN ELSE...
+
 
 !         if(.true.) then
           IF( SELE > 0 ) THEN
@@ -1986,7 +1986,7 @@ contains
                              SELE_LOC_WIC_F_BC,   &
                              WIC_T_BC_DIRICHLET, WIC_D_BC_DIRICHLET,  & 
                              HDC, DT, &
-                             SCVFENX_ALL(1,:,:), SCVFENX_ALL(2,:,:), SCVFENX_ALL(3,:,:), CVNORMX_ALL, &
+                             SCVFENX_ALL(1:NDIM,:,:), CVNORMX_ALL, &
                              LOC_UF,  &
                              U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
                              FUPWIND_IN, FUPWIND_OUT, DISTCONTINUOUS_METHOD, QUAD_ELEMENTS, SHAPE_CV_SNL, DOWNWIND_EXTRAP_INDIVIDUAL, &
@@ -2138,6 +2138,9 @@ contains
       ENDIF
 ! Generate some local F variables ***************...
 
+! Make allowances for no matrix stencil operating from outside the boundary.
+          BCZERO=1.0
+          IF( SELE > 0 ) BCZERO=1.0-INCOME
 
                   Loop_IPHASE: DO IPHASE = 1, NPHASE
 
@@ -2294,9 +2297,9 @@ contains
                         TMID_J = T_ALL( IPHASE, CV_NODJ )
                         TOLDMID_J = TOLD_ALL( IPHASE, CV_NODJ )
 
-                        ! Make allowances for no matrix stencil operating from outside the boundary.
-                        BCZERO(IPHASE) = 1.0
-                        IF ( (SELE /= 0) .AND. (INCOME(IPHASE) > 0.5) ) BCZERO(IPHASE)=0.0
+!                        ! Make allowances for no matrix stencil operating from outside the boundary.
+!                        BCZERO(IPHASE) = 1.0
+!                        IF ( (SELE /= 0) .AND. (INCOME(IPHASE) > 0.5) ) BCZERO(IPHASE)=0.0
 
                         ! Put results into the RHS vector
                         CV_RHS( RHS_NODI_IPHA ) =  CV_RHS( RHS_NODI_IPHA )  &
@@ -5898,16 +5901,15 @@ contains
 
 
 
-  SUBROUTINE SCVDETNX( ELE,      GI,        &
+  SUBROUTINE SCVDETNX_new( ELE,      GI,        &
                                 !     - INTEGERS
-       NLOC,     SVNGI,   TOTELE,   &
+       NLOC,     SVNGI,   TOTELE, NDIM,  &
        XNDGLN,   XNONOD,&
                                 !     - REALS
-       CVDETWEI, CVNORMX, CVNORMY,  &
-       CVNORMZ,  SVN,     SVNLX,    &
-       SVNLY,    SVWEIGH, XC,     &
-       YC,       ZC,      X,        &
-       Y,        Z,  &
+       CVDETWEI, CVNORMX, CVNORMy,&
+       CVNORMz,SVN,     SVNLX,    &
+       SVNLY,    SVWEIGH, XC_ALL,     &
+       X_ALL,        &
                                 !     - LOGICALS
        D1,       D3,       DCYL )
     use shape_functions_NDim
@@ -5925,14 +5927,15 @@ contains
     IMPLICIT NONE
     INTEGER, intent( in ) :: ELE,    GI
     INTEGER, intent( in ) ::  NLOC
-    INTEGER , intent( in ) ::  SVNGI,  TOTELE
+    INTEGER , intent( in ) ::  SVNGI,  TOTELE, NDIM
     INTEGER, intent( in ) ::   XNONOD     
-    REAL, intent( in ) ::   XC,YC,ZC
+    REAL, DIMENSION( NDIM ), intent( in ) ::   XC_ALL
     INTEGER, DIMENSION( : ), intent( in ) :: XNDGLN
-    REAL, DIMENSION( : ), intent( inout ) :: CVDETWEI, CVNORMX, CVNORMY, CVNORMZ
+    REAL, DIMENSION( SVNGI ), intent( inout ) :: CVNORMX, CVNORMy, CVNORMz
+    REAL, DIMENSION( : ), intent( inout ) :: CVDETWEI
     REAL, DIMENSION( :, : ), intent( in ) :: SVN, SVNLX, SVNLY
     REAL, DIMENSION( : ), intent( in ) :: SVWEIGH
-    REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
+    REAL, DIMENSION( :, : ), intent( in ) :: X_ALL ! dimension(NDIM,XNONOD)
     LOGICAL, intent( in ) ::  D1, D3, DCYL
 
     !     - Local variables
@@ -5944,7 +5947,7 @@ contains
     REAL :: TWOPI
     REAL, PARAMETER :: PI = 3.14159265
     REAL :: POSVGIX, POSVGIY, POSVGIZ
-    REAL :: RGI
+    REAL :: RGI, RDUM
 
     !ewrite(3,*)' In SCVDETNX'
 
@@ -5967,25 +5970,25 @@ contains
 
           NODJ = XNDGLN((ELE-1)*NLOC+JLOC)
 
-          DXDLX = DXDLX + SVNLX(JLOC,GI)*X(NODJ)
-          DXDLY = DXDLY + SVNLY(JLOC,GI)*X(NODJ) 
-          DYDLX = DYDLX + SVNLX(JLOC,GI)*Y(NODJ) 
-          DYDLY = DYDLY + SVNLY(JLOC,GI)*Y(NODJ) 
-          DZDLX = DZDLX + SVNLX(JLOC,GI)*Z(NODJ) 
-          DZDLY = DZDLY + SVNLY(JLOC,GI)*Z(NODJ) 
+          DXDLX = DXDLX + SVNLX(JLOC,GI)*X_ALL(1,NODJ)
+          DXDLY = DXDLY + SVNLY(JLOC,GI)*X_ALL(1,NODJ) 
+          DYDLX = DYDLX + SVNLX(JLOC,GI)*X_ALL(2,NODJ) 
+          DYDLY = DYDLY + SVNLY(JLOC,GI)*X_ALL(2,NODJ) 
+          DZDLX = DZDLX + SVNLX(JLOC,GI)*X_ALL(3,NODJ) 
+          DZDLY = DZDLY + SVNLY(JLOC,GI)*X_ALL(3,NODJ) 
 
-          POSVGIX = POSVGIX + SVN(JLOC,GI)*X(NODJ)
-          POSVGIY = POSVGIY + SVN(JLOC,GI)*Y(NODJ)
-          POSVGIZ = POSVGIZ + SVN(JLOC,GI)*Z(NODJ)
+          POSVGIX = POSVGIX + SVN(JLOC,GI)*X_ALL(1,NODJ)
+          POSVGIY = POSVGIY + SVN(JLOC,GI)*X_ALL(2,NODJ)
+          POSVGIZ = POSVGIZ + SVN(JLOC,GI)*X_ALL(3,NODJ)
        end do
 
        !     - Note that POSVGIX,POSVGIY and POSVGIZ can be considered as the 
        !     - components of the Gauss pnt GI with the co-ordinate origin 
        !     - positioned at the current control volume NODI.
 
-       POSVGIX = POSVGIX - XC
-       POSVGIY = POSVGIY - YC
-       POSVGIZ = POSVGIZ - ZC
+       POSVGIX = POSVGIX - XC_ALL(1)
+       POSVGIY = POSVGIY - XC_ALL(2)
+       POSVGIZ = POSVGIZ - XC_ALL(3)
 
        A = DYDLX*DZDLY - DYDLY*DZDLX
        B = DXDLX*DZDLY - DXDLY*DZDLX
@@ -6005,6 +6008,7 @@ contains
        !     - Perform cross-product. N = T1 x T2
        !     
        CALL NORMGI( CVNORMX(GI), CVNORMY(GI), CVNORMZ(GI),&
+!       CALL NORMGI( CVNORMX_ALL(1,GI), CVNORMX_ALL(2,GI), CVNORMX_ALL(3,GI),&
             DXDLX,       DYDLX,       DZDLX, &
             DXDLY,       DYDLY,       DZDLY,&
             POSVGIX,     POSVGIY,     POSVGIZ ) 
@@ -6037,13 +6041,13 @@ contains
 
           NODJ = XNDGLN((ELE-1)*NLOC+JLOC)
 
-          DXDLX = DXDLX + SVNLX(JLOC,GI)*X(NODJ) 
-          DYDLX = DYDLX + SVNLX(JLOC,GI)*Y(NODJ) 
+          DXDLX = DXDLX + SVNLX(JLOC,GI)*X_ALL(1,NODJ) 
+          DYDLX = DYDLX + SVNLX(JLOC,GI)*X_ALL(2,NODJ) 
 
-          POSVGIX = POSVGIX + SVN(JLOC,GI)*X(NODJ)
-          POSVGIY = POSVGIY + SVN(JLOC,GI)*Y(NODJ)
+          POSVGIX = POSVGIX + SVN(JLOC,GI)*X_ALL(1,NODJ)
+          POSVGIY = POSVGIY + SVN(JLOC,GI)*X_ALL(2,NODJ)
 
-          RGI = RGI + SVN(JLOC,GI)*Y(NODJ)
+          RGI = RGI + SVN(JLOC,GI)*X_ALL(2,NODJ)
 
        end do ! Was loop 300
        !     
@@ -6052,8 +6056,8 @@ contains
        !     - current control volume NODI.
        !     
 
-       POSVGIX = POSVGIX - XC
-       POSVGIY = POSVGIY - YC
+       POSVGIX = POSVGIX - XC_ALL(1)
+       POSVGIY = POSVGIY - XC_ALL(2)
 
        IF( .NOT. DCYL ) RGI = 1.0 
 
@@ -6066,6 +6070,7 @@ contains
        !     - Perform cross-product. N = T1 x T2
        !     
        CALL NORMGI( CVNORMX(GI), CVNORMY(GI), CVNORMZ(GI),&
+!       CALL NORMGI( CVNORMX_ALL(1,GI), CVNORMX_ALL(2,GI), RDUM,&
             DXDLX,       DYDLX,       DZDLX, &
             DXDLY,       DYDLY,       DZDLY,&
             POSVGIX,     POSVGIY,     POSVGIZ )
@@ -6086,7 +6091,7 @@ contains
 
           NODJ = XNDGLN((ELE-1)*NLOC+JLOC)
 
-          POSVGIX = POSVGIX + SVN(JLOC,GI)*X(NODJ)
+          POSVGIX = POSVGIX + SVN(JLOC,GI)*X_ALL(1,NODJ)
 
        end do ! Was loop 300
        !     
@@ -6095,14 +6100,18 @@ contains
        !     - current control volume NODI.
        !     
        !          EWRITE(3,*)'POSVGIX, XC,POSVGIX - XC:',POSVGIX, XC,POSVGIX - XC
-       POSVGIX = POSVGIX - XC
-       IF(POSVGIX > 0 ) THEN
-          CVNORMX(GI) = +1.0
-       ELSE
-          CVNORMX(GI) = -1.0
-       ENDIF
-       CVNORMY(GI)=0.0 
-       CVNORMZ(GI)=0.0
+       POSVGIX = POSVGIX - XC_ALL(1)
+! SIGN(A,B) sign of B times A. 
+       CVNORMX(GI) = SIGN( 1.0, POSVGIX )
+!       CVNORMX_ALL(1,GI) = SIGN( 1.0, POSVGIX )
+
+!       IF(POSVGIX > 0 ) THEN
+!          CVNORMX_ALL(1,GI) = +1.0
+!       ELSE
+!          CVNORMX_ALL(1,GI) = -1.0
+!       ENDIF
+!       CVNORMY(GI)=0.0 
+!       CVNORMZ(GI)=0.0
 
        DETJ = 1.0
        CVDETWEI(GI)  = DETJ*SVWEIGH(GI)
@@ -6114,7 +6123,7 @@ contains
 
     ENDIF Conditional_Dimension
 
-  END SUBROUTINE SCVDETNX
+  END SUBROUTINE SCVDETNX_new
 
 
 
@@ -9991,7 +10000,7 @@ contains
        SELE_LOC_WIC_F_BC,   &
        WIC_T_BC_DIRICHLET, WIC_D_BC_DIRICHLET, &
        HDC, DT, &
-       SCVFENX, SCVFENY, SCVFENZ, CVNORMX_ALL,  &
+       SCVFENX_ALL, CVNORMX_ALL,  &
        LOC_UF,  &
        U_NLOC,U_NONODS,NDIM,SUFEN, INV_JAC, &
        FUPWIND_IN, FUPWIND_OUT, DISTCONTINUOUS_METHOD, QUAD_ELEMENTS, SHAPE_CV_SNL, DOWNWIND_EXTRAP_INDIVIDUAL, &
@@ -10010,10 +10019,11 @@ contains
     INTEGER, DIMENSION( NFIELD ), intent( in ) :: SELE_LOC_WIC_F_BC
     INTEGER, DIMENSION( : ), intent( in ) :: U_SLOC2LOC
     INTEGER, DIMENSION( : ), intent( in ) :: U_OTHER_LOC
+    REAL, DIMENSION(NDIM,CV_NLOC,SCVNGI), intent( in ) :: SCVFENX_ALL
     REAL, DIMENSION( CV_SNLOC ), intent( in ) :: SHAPE_CV_SNL
     REAL, DIMENSION( :, :  ), intent( in ) :: SUFEN
     REAL, DIMENSION( :, :  ), intent( in ) :: SCVFEN
-    REAL, DIMENSION( :, :  ), intent( in ) :: SCVFENX, SCVFENY, SCVFENZ
+!    REAL, DIMENSION( :, :  ), intent( in ) :: SCVFENX, SCVFENY, SCVFENZ
     REAL, DIMENSION( :, :  ), intent( in ) :: CVNORMX_ALL
       REAL, DIMENSION ( NFIELD), intent( inout ) :: LIMF
       REAL, DIMENSION ( NFIELD), intent( in ) :: F_INCOME, F_NDOTQ
@@ -10071,7 +10081,7 @@ contains
 !      REAL, DIMENSION ( :, : ), allocatable :: SLOC2_DEN, SLOC2_T, SLOC2_T2, SLOC2_FEMDEN, SLOC2_FEMT, SLOC2_FEMT2
 !      REAL, DIMENSION ( :, : ), allocatable :: SLOC_SUF_T_BC, SLOC_SUF_T2_BC, SLOC_SUF_D_BC
 ! All dimensions/derivatives...
-      REAL, DIMENSION ( :, :, : ), allocatable :: SCVFENX_ALL
+!      REAL, DIMENSION ( :, :, : ), allocatable :: SCVFENX_ALL
 !      REAL, DIMENSION ( :, : ), allocatable :: SNORMXN_ALL
 !      REAL, DIMENSION ( : ), allocatable :: TXGI_ALL, UDGI_ALL, A_STAR_X_ALL
 !      REAL, DIMENSION ( :, : ), allocatable :: CVNORMX_ALL
@@ -10090,11 +10100,11 @@ contains
 
 ! F:
       ALLOCATE(FXGI_ALL(NDIM,NFIELD)) 
-      ALLOCATE(SCVFENX_ALL(NDIM,CV_NLOC,SCVNGI))
+!      ALLOCATE(SCVFENX_ALL(NDIM,CV_NLOC,SCVNGI))
 
-      SCVFENX_ALL(1,:,:)=SCVFENX(:,:)
-      IF(NDIM.GE.2) SCVFENX_ALL(2,:,:)=SCVFENY(:,:)
-      IF(NDIM.GE.3) SCVFENX_ALL(3,:,:)=SCVFENZ(:,:)
+!      SCVFENX_ALL(1,:,:)=SCVFENX(:,:)
+!      IF(NDIM.GE.2) SCVFENX_ALL(2,:,:)=SCVFENY(:,:)
+!      IF(NDIM.GE.3) SCVFENX_ALL(3,:,:)=SCVFENZ(:,:)
 
       ALLOCATE(UDGI_ALL(NDIM,NFIELD)) 
       ALLOCATE(A_STAR_X_ALL(NDIM,NFIELD)) 
