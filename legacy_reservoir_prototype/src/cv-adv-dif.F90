@@ -240,7 +240,7 @@ contains
 
       REAL, DIMENSION( : ), intent( in ) :: T, TOLD, DEN, DENOLD
       REAL, DIMENSION( : ), intent( in ) :: T2, T2OLD
-      REAL, DIMENSION( : ), intent( inout ) :: THETA_GDIFF
+      REAL, DIMENSION( :, : ), intent( inout ) :: THETA_GDIFF ! (NPHASE,CV_NONODS)
       REAL, DIMENSION( :, : ), intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
       REAL, DIMENSION( :, :, :, : ), intent( in ) :: TDIFFUSION
       REAL, intent( in ) :: DT, CV_THETA, SECOND_THETA, CV_BETA
@@ -1393,6 +1393,7 @@ contains
 
             ! Global node number of the local node
             CV_NODI = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
+            X_NODI = X_NDGLN( ( ELE - 1 ) * X_NLOC  + CV_ILOC )
             IMID = SMALL_CENTRM(CV_NODI)
 
 ! Generate some local F variables ***************
@@ -1499,8 +1500,6 @@ contains
                !   IF(NDIM.GE.3) CVNORMZ(GI) =CVNORMX_ALL(3,GI)
 
                   
-                  X_NODI = X_NDGLN( ( ELE - 1 ) * X_NLOC  + CV_ILOC )
-
                   IF( GETCT ) THEN
                      DO U_KLOC = 1, U_NLOC
                         U_NODK = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_KLOC )
@@ -2238,11 +2237,11 @@ contains
                         endif
 
                               IF ( GET_GTHETA ) THEN
-                                 THETA_GDIFF( CV_NODI_IPHA ) =  THETA_GDIFF( CV_NODI_IPHA ) &
+                                 THETA_GDIFF( IPHASE, CV_NODI ) =  THETA_GDIFF( IPHASE, CV_NODI ) &
                                       + FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX(IPHASE) * T_ALL( IPHASE, CV_NODJ ) ! Diffusion contribution
 ! integrate the other CV side contribution (the sign is changed)...
                         if(integrate_other_side_and_not_boundary) then
-                                 THETA_GDIFF( CV_NODJ_IPHA ) =  THETA_GDIFF( CV_NODJ_IPHA ) &
+                                 THETA_GDIFF( IPHASE, CV_NODJ ) =  THETA_GDIFF( IPHASE, CV_NODJ ) &
                                       + FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX(IPHASE) * T_ALL( IPHASE, CV_NODI ) ! Diffusion contribution
                         endif
                               END IF
@@ -2252,7 +2251,7 @@ contains
                                       + FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX(IPHASE) &
                                       * SUF_T_BC( CV_SILOC + (SELE-1)*CV_SNLOC + (IPHASE-1)*STOTEL*CV_SNLOC )
                                  IF(GET_GTHETA) THEN
-                                    THETA_GDIFF( CV_NODI_IPHA ) =  THETA_GDIFF( CV_NODI_IPHA ) &
+                                    THETA_GDIFF( IPHASE, CV_NODI ) =  THETA_GDIFF( IPHASE, CV_NODI ) &
                                          + FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX(IPHASE) &
                                          * SUF_T_BC( CV_SILOC + (SELE-1)*CV_SNLOC + (IPHASE-1)*STOTEL*CV_SNLOC )
                                  END IF
@@ -2274,11 +2273,11 @@ contains
                         endif
 
                            IF ( GET_GTHETA ) THEN
-                              THETA_GDIFF( CV_NODI_IPHA ) =  THETA_GDIFF( CV_NODI_IPHA ) &
+                              THETA_GDIFF( IPHASE, CV_NODI ) =  THETA_GDIFF( IPHASE, CV_NODI ) &
                                    -  FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX(IPHASE) * T_ALL( IPHASE, CV_NODI ) & ! Diffusion contribution
                                    -  SCVDETWEI( GI ) * ROBIN1 * T_ALL( IPHASE, CV_NODI )  ! Robin bc
                         if(integrate_other_side_and_not_boundary) then
-                              THETA_GDIFF( CV_NODJ_IPHA ) =  THETA_GDIFF( CV_NODJ_IPHA ) &
+                              THETA_GDIFF( IPHASE, CV_NODJ ) =  THETA_GDIFF( IPHASE, CV_NODJ ) &
                                    -  FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX(IPHASE) * T_ALL( IPHASE, CV_NODJ ) ! Diffusion contribution
                         endif
                            END IF
@@ -2347,13 +2346,13 @@ contains
                              * ( TOLD_ALL( IPHASE, CV_NODI ) - TOLD_ALL( IPHASE, CV_NODJ ) ) 
                         endif
                         IF ( GET_GTHETA ) THEN
-                           THETA_GDIFF( CV_NODI_IPHA ) =  THETA_GDIFF( CV_NODI_IPHA ) &
+                           THETA_GDIFF( IPHASE, CV_NODI ) =  THETA_GDIFF( IPHASE, CV_NODI ) &
                                 + (1.-FTHETA) * SCVDETWEI(GI) * DIFF_COEFOLD_DIVDX(IPHASE) &
                                 * ( TOLD_ALL( IPHASE, CV_NODJ ) - TOLD_ALL( IPHASE, CV_NODI ) ) &
                                 ! Robin bc
                                 + SCVDETWEI( GI ) * ROBIN2
                         if(integrate_other_side_and_not_boundary) then
-                           THETA_GDIFF( CV_NODJ_IPHA ) =  THETA_GDIFF( CV_NODJ_IPHA ) &
+                           THETA_GDIFF( IPHASE, CV_NODJ ) =  THETA_GDIFF( IPHASE, CV_NODJ ) &
                                 + (1.-FTHETA) * SCVDETWEI(GI) * DIFF_COEFOLD_DIVDX(IPHASE) &
                                 * ( TOLD_ALL( IPHASE, CV_NODI ) - TOLD_ALL( IPHASE, CV_NODJ ) ) 
                         endif
@@ -2436,8 +2435,8 @@ contains
       IF(GET_GTHETA) THEN
          DO CV_NODI = 1, CV_NONODS
             DO IPHASE = 1, NPHASE
-               CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
-               THETA_GDIFF(CV_NODI_IPHA) = THETA_GDIFF(CV_NODI_IPHA) / MASS_CV(CV_NODI)
+!               CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
+               THETA_GDIFF(IPHASE, CV_NODI) = THETA_GDIFF(IPHASE, CV_NODI) / MASS_CV(CV_NODI)
             END DO
          END DO
       ENDIF

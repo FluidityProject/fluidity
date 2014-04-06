@@ -177,9 +177,12 @@
            Density_BC, Component_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, Temperature_BC, &
            suf_u_bc_rob1, suf_v_bc_rob1, suf_w_bc_rob1, suf_u_bc_rob2, suf_v_bc_rob2, suf_w_bc_rob2, &
            suf_t_bc_rob1, suf_t_bc_rob2, suf_vol_bc_rob1, suf_vol_bc_rob2, suf_comp_bc_rob1, suf_comp_bc_rob2, &
-           theta_gdiff,  ScalarField_Source_Store, ScalarField_Source_Component, &
+           ScalarField_Source_Store, ScalarField_Source_Component, &
            mass_ele, dummy_ele, density_tmp, density_old_tmp, &
            suf_momu_bc, suf_momv_bc, suf_momw_bc
+
+      real, dimension( :, : ), pointer :: THETA_GDIFF
+
       real, dimension( :, : ), pointer ::  DRhoDPressure
 !!$
       real, dimension( :, :, : ), allocatable :: Permeability, Material_Absorption, Material_Absorption_Stab, &
@@ -551,7 +554,7 @@
            sum_theta_flux_j( nphase, ncv_faces * igot_theta_flux ), &
            sum_one_m_theta_flux_j( nphase, ncv_faces * igot_theta_flux ), &
            Density_one(nphase*cv_nonods*igot_theta_flux ), &
-           theta_gdiff( cv_nonods * nphase ), ScalarField_Source_Store( cv_nonods * nphase ), &
+           theta_gdiff( nphase, cv_nonods ), ScalarField_Source_Store( cv_nonods * nphase ), &
            ScalarField_Source_Component( cv_nonods * nphase ) )
 
       sum_theta_flux = 1. ; sum_one_m_theta_flux = 0.
@@ -867,7 +870,7 @@
                     Temperature_FEMT, Dummy_PhaseVolumeFraction_FEMT, &
                     0,Temperature, Temperature_Old,igot_theta_flux, scvngi_theta, &
                     t_get_theta_flux, t_use_theta_flux, &
-                    Temperature, &
+                    THETA_GDIFF, &
                     Temperature_BC, suf_t_bc_rob1, suf_t_bc_rob2, Temperature_BC_Spatial, &
                     in_ele_upwind, dg_ele_upwind, &
 !!$                    
@@ -1225,7 +1228,11 @@
 
 
                   ! We have divided through by density 
-                  ScalarField_Source_Component = ScalarField_Source_Component + THETA_GDIFF
+                  do cv_inod=1,cv_nonods
+                     do iphase=1,nphase
+                  ScalarField_Source_Component((iphase-1)*cv_nonods+cv_inod) = ScalarField_Source_Component((iphase-1)*cv_nonods+cv_inod) + THETA_GDIFF(iphase,cv_inod)
+                     end do
+                  end do
 
                end do Loop_Components
 
@@ -1837,7 +1844,7 @@
                  sum_one_m_theta_flux( nphase, scvngi_theta*cv_nloc*totele * igot_theta_flux ), &
                  sum_theta_flux_j( nphase, scvngi_theta*cv_nloc*totele * igot_theta_flux ), &
                  sum_one_m_theta_flux_j( nphase, scvngi_theta*cv_nloc*totele * igot_theta_flux ), &
-                 theta_gdiff( cv_nonods * nphase ), ScalarField_Source_Store( cv_nonods * nphase ), &
+                 theta_gdiff( nphase, cv_nonods ), ScalarField_Source_Store( cv_nonods * nphase ), &
                  ScalarField_Source_Component( cv_nonods * nphase ) )
 
             sum_theta_flux = 1. ; sum_one_m_theta_flux = 0.  

@@ -135,7 +135,7 @@ contains
         REAL, DIMENSION( : ), intent( in ) :: TOLD
         REAL, DIMENSION( : ), intent( in ) :: DEN, DENOLD
         REAL, DIMENSION( : ), intent( in ) :: T2, T2OLD
-        REAL, DIMENSION( : ), intent( inout ) :: THETA_GDIFF
+        REAL, DIMENSION( :, : ), intent( inout ) :: THETA_GDIFF
         REAL, DIMENSION( :,: ), intent( inout ), optional :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
         REAL, DIMENSION( :,:,:, : ), intent( in ) :: TDIFFUSION
         INTEGER, intent( in ) :: T_DISOPT, T_DG_VEL_INT_OPT
@@ -411,7 +411,7 @@ contains
         REAL, DIMENSION( :), intent( in ) :: TOLD
         REAL, DIMENSION( :), intent( in ) :: DEN, DENOLD
         REAL, DIMENSION( : ), intent( in ) :: T2, T2OLD
-        REAL, DIMENSION( : ), intent( inout ) :: THETA_GDIFF
+        REAL, DIMENSION( :, : ), intent( inout ) :: THETA_GDIFF
         REAL, DIMENSION(:, :),  intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
         REAL, DIMENSION( :, :, :, : ), intent( in ) :: TDIFFUSION
         INTEGER, intent( in ) :: T_DISOPT, T_DG_VEL_INT_OPT
@@ -952,7 +952,8 @@ contains
         REAL, DIMENSION( :,:,:,: ), allocatable :: TDIFFUSION
         REAL, DIMENSION( : ), allocatable :: SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, SUF_T2_BC
         INTEGER, DIMENSION( : ), allocatable :: WIC_T2_BC
-        REAL, DIMENSION( : ), allocatable :: THETA_GDIFF, T2, T2OLD, MEAN_PORE_CV
+        REAL, DIMENSION( :, : ), allocatable :: THETA_GDIFF
+        REAL, DIMENSION( : ), allocatable :: T2, T2OLD, MEAN_PORE_CV
         REAL, DIMENSION( : ), allocatable :: DENSITY_OR_ONE, DENSITYOLD_OR_ONE
         LOGICAL :: GET_THETA_FLUX
         REAL :: SECOND_THETA
@@ -971,7 +972,7 @@ contains
         ALLOCATE( SUF_T2_BC_ROB2( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  ))
         ALLOCATE( SUF_T2_BC( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  ))
         ALLOCATE( WIC_T2_BC( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  ))
-        ALLOCATE( THETA_GDIFF( CV_NONODS * NPHASE * IGOT_T2 ))
+        ALLOCATE( THETA_GDIFF( NPHASE * IGOT_T2, CV_NONODS * IGOT_T2 ))
 
         ewrite(3,*) 'In VOLFRA_ASSEM_SOLVE'
 
@@ -1902,7 +1903,8 @@ contains
         REAL, DIMENSION( :,:,:,: ), allocatable :: TDIFFUSION
         REAL, DIMENSION( : ), allocatable :: SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, SUF_T2_BC
         INTEGER, DIMENSION( : ), allocatable :: WIC_T2_BC
-        REAL, DIMENSION( : ), allocatable :: THETA_GDIFF, T2, T2OLD, MEAN_PORE_CV, DEN_OR_ONE, DENOLD_OR_ONE
+        REAL, DIMENSION( :, : ), allocatable :: THETA_GDIFF
+        REAL, DIMENSION( : ), allocatable :: T2, T2OLD, MEAN_PORE_CV, DEN_OR_ONE, DENOLD_OR_ONE
         LOGICAL :: GET_THETA_FLUX
         INTEGER :: IGOT_T2, I, P_SJLOC, SELE, U_SILOC
 
@@ -1929,7 +1931,7 @@ contains
         ALLOCATE( SUF_T2_BC_ROB2( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  ))
         ALLOCATE( SUF_T2_BC( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  )) ; SUF_T2_BC = 0.
         ALLOCATE( WIC_T2_BC( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  )) ; WIC_T2_BC = 0
-        ALLOCATE( THETA_GDIFF( CV_NONODS * NPHASE * IGOT_T2 )) ; THETA_GDIFF = 0.
+        ALLOCATE( THETA_GDIFF( NPHASE * IGOT_T2, CV_NONODS * IGOT_T2 )) ; THETA_GDIFF = 0.
         ALLOCATE( ACV( NCOLACV )) ; ACV = 0.
         ALLOCATE( BLOCK_ACV( NPHASE*size(SMALL_COLACV )))  ; BLOCK_ACV = 0.
         ALLOCATE( DENSE_BLOCK_MATRIX( NPHASE,nphase,cv_nonods))  ; DENSE_BLOCK_MATRIX = 0.
@@ -5917,7 +5919,8 @@ contains
         REAL FEMT_CV_NOD(CV_NLOC)
 
         CHARACTER(LEN=OPTION_PATH_LEN) :: OPTION_PATH
-        REAL, DIMENSION(TOTELE) :: DUMMY_ELE
+        REAL, allocatable, DIMENSION(:) :: DUMMY_ELE
+
         real, dimension(0,0,0,0):: tflux
         real, allocatable, dimension(:,:,:) :: T_ABSORB
         real, allocatable, dimension(:,:,:,:) :: tdiffusion
@@ -5926,8 +5929,11 @@ contains
         real, pointer, dimension(:,:,:) :: CVFENX_ALL, UFENX_ALL
         real, pointer, dimension(:) :: DETWEI, RA
         real, pointer :: VOLUME
+
+        REAL, DIMENSION(1,1) :: DUMMY_THETA_GDIFF
       
 
+        ALLOCATE(DUMMY_ELE(TOTELE))
         DUMMY_ELE = 0
 
         IGOT_T2=0
@@ -6656,7 +6662,8 @@ contains
             RDUM, NOPT_VEL_UPWIND_COEFS, &
             RDUM, CV_ONE, &
             IGOT_T2, CURVATURE, VOLUME_FRAC,IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
-            CURVATURE, &
+            DUMMY_THETA_GDIFF, &
+!            CURVATURE, &
             RZERO, RZERO, RZERO, IDUM, IN_ELE_UPWIND, DG_ELE_UPWIND, &
             NOIT_DIM, &
             ! nits_flux_lim_t
