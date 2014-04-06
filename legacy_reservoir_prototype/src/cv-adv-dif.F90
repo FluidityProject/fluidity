@@ -308,7 +308,7 @@ contains
            T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, &
            T2OLDMIN_2ND_MC, &
            UP_WIND_NOD, DU, DV, DW, PERM_ELE
-      REAL, DIMENSION( :, : ), allocatable :: CVNORMX_ALL
+      REAL, DIMENSION( :, : ), allocatable :: CVNORMX_ALL, XC_CV_ALL
       REAL, DIMENSION( :, : ), allocatable :: UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
            UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2
       REAL, DIMENSION( :, :, : ), allocatable :: UGI_COEF_ELE_ALL, UGI_COEF_ELE2_ALL
@@ -367,7 +367,7 @@ contains
            FTHETA, VTHETA, &
            FEMDGI, FEMTGI,FEMT2GI, FEMDOLDGI, FEMTOLDGI, FEMT2OLDGI, &
            TMID, TOLDMID, TMID_J, TOLDMID_J,&
-           BCZERO, ROBIN1, ROBIN2, &
+           ROBIN1, ROBIN2, &
            RSUM, &
            FTHETA_T2, ONE_M_FTHETA_T2OLD, FTHETA_T2_J, ONE_M_FTHETA_T2OLD_J, THERM_FTHETA, &
            W_SUM_ONE1, W_SUM_ONE2
@@ -411,6 +411,7 @@ contains
       REAL , DIMENSION( :, : ), ALLOCATABLE :: NUOLDGI_ALL, NUGI_ALL, NU_LEV_GI
       REAL , DIMENSION( :, :, :, : ), ALLOCATABLE :: VECS_STRESS, VECS_GRAD_U
       REAL , DIMENSION( :, :, : ), ALLOCATABLE :: STRESS_IJ_THERM, STRESS_IJ_THERM_J
+      REAL :: BCZERO(NPHASE) 
 
 
       REAL, DIMENSION( :, :, : ), ALLOCATABLE :: U_ALL, NU_ALL, NUOLD_ALL, ABSORBT_ALL
@@ -512,11 +513,15 @@ contains
       call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
            cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
 
+    
       ! Allocate memory for the control volume surface shape functions, etc.
-      ALLOCATE( JCOUNT_KLOC( U_NLOC )) ; jcount_kloc = 0
-      ALLOCATE( JCOUNT_KLOC2( U_NLOC )) ; jcount_kloc2 = 0
-      ALLOCATE( ICOUNT_KLOC( U_NLOC )) ; icount_kloc = 0
-      ALLOCATE( ICOUNT_KLOC2( U_NLOC )) ; icount_kloc2 = 0
+
+      IF(GETCT) THEN
+         ALLOCATE( JCOUNT_KLOC( U_NLOC )) ; jcount_kloc = 0
+         ALLOCATE( JCOUNT_KLOC2( U_NLOC )) ; jcount_kloc2 = 0
+         ALLOCATE( ICOUNT_KLOC( U_NLOC )) ; icount_kloc = 0
+         ALLOCATE( ICOUNT_KLOC2( U_NLOC )) ; icount_kloc2 = 0
+      ENDIF
 
 
       QUAD_OVER_WHOLE_ELE=.FALSE.
@@ -750,6 +755,7 @@ contains
       ALLOCATE( XC_CV( CV_NONODS ))
       ALLOCATE( YC_CV( CV_NONODS ))
       ALLOCATE( ZC_CV( CV_NONODS ))
+      ALLOCATE( XC_CV_ALL( NDIM, CV_NONODS ))
       ALLOCATE( DTX_ELE( CV_NLOC, NPHASE,TOTELE ))
       ALLOCATE( DTY_ELE( CV_NLOC, NPHASE,TOTELE ))
       ALLOCATE( DTZ_ELE( CV_NLOC, NPHASE,TOTELE ))
@@ -832,8 +838,7 @@ contains
          U_NLOC2 = U_NLOC
       END IF
       DO ELE = 1, TOTELE
-         DO ILEV = 1, NLEV
-            DO U_ILOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
+            DO U_ILOC = 1, U_NLOC 
                U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
                DO IPHASE = 1, NPHASE
                   DO IDIM = 1, NDIM
@@ -863,7 +868,6 @@ contains
                   END DO
                END DO
             END DO
-         END DO
       END DO
 
 !print *, u_all(1,1,:)
@@ -1000,14 +1004,6 @@ contains
              END DO
           END DO
 
-!          print *,'WIC_T_BC:',WIC_T_BC
-!          print *,'WIC_d_BC:',WIC_d_BC
-!          print *,'WIC_T2_BC:',WIC_T2_BC
-
-!          print *,'nfield,IGOT_T2:',nfield,IGOT_T2
-!          print *,'IGOT_T_CONST:',IGOT_T_CONST
-!          print *,'IGOT_T_CONST_value:',IGOT_T_CONST_value
-
           ALLOCATE( DOWNWIND_EXTRAP_INDIVIDUAL( NFIELD ) )
 
           
@@ -1109,6 +1105,10 @@ contains
            CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
            X_NONODS, X_ALL, NCOLM, FINDM, COLM, MIDM, &
            IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC )
+
+      XC_CV_ALL(1,:)=XC_CV(:)
+      IF(NDIM.GE.2) XC_CV_ALL(2,:)=YC_CV(:)
+      IF(NDIM.GE.3) XC_CV_ALL(3,:)=ZC_CV(:)
 
 
 
@@ -1490,9 +1490,9 @@ contains
                        X_NDGLN, X_NONODS, &
                        SCVDETWEI, CVNORMX, CVNORMY, &
                        CVNORMZ, SCVFEN, SCVFENSLX, &
-                       SCVFENSLY, SCVFEWEIGH, XC_CV( CV_NODI ), &
-                       YC_CV( CV_NODI ), ZC_CV( CV_NODI ), &
-                       X_ALL(1,:), X_ALL(2,:), X_ALL(3,:), &
+                       SCVFENSLY, SCVFEWEIGH, XC_CV_ALL( 1, CV_NODI ), &
+                       XC_CV_ALL( 2, CV_NODI ), XC_CV_ALL( NDIM, CV_NODI ), &
+                       X_ALL(1,:), X_ALL(2,:), X_ALL(NDIM,:), &
                        D1, D3, DCYL )
 
                   CVNORMX_ALL(1,:)=CVNORMX(:)
@@ -1553,22 +1553,12 @@ contains
 
                   ! Compute the distance HDC between the nodes either side of the CV face
                   ! (this is needed to compute the local courant number and the non-linear theta)
+                  
                   IF ( SELE == 0 ) THEN
-                     HDC = SQRT( (XC_CV(CV_NODI)-XC_CV(CV_NODJ))**2+(YC_CV(CV_NODI)-YC_CV(CV_NODJ))**2 &
-                          +(ZC_CV(CV_NODI)-ZC_CV(CV_NODJ))**2  )
+                     HDC = SQRT( SUM( (XC_CV_ALL(1:NDIM,CV_NODI)-XC_CV_ALL(1:NDIM,CV_NODJ))**2) )
                   ELSE
-                   !TEMPORARY, UNTIL WE VECTORIZE EVERYTHING
-                    select case (ndim)
-                        case (1)
-                         HDC = SQRT( (XC_CV(CV_NODI)-X_ALL(1,X_NODI))**2 )
-                        case (2)
-                         HDC = SQRT( (XC_CV(CV_NODI)-X_ALL(1,X_NODI))**2+(YC_CV(CV_NODI)-X_ALL(2,X_NODI))**2  )
-                        case default
-                         HDC = SQRT( (XC_CV(CV_NODI)-X_ALL(1,X_NODI))**2+(YC_CV(CV_NODI)-X_ALL(2,X_NODI))**2 &
-                              +(ZC_CV(CV_NODI)-X_ALL(3,X_NODI))**2  )
-                    end select
+                     HDC = SQRT( SUM( (XC_CV_ALL(1:NDIM,CV_NODI)-X_ALL(1:NDIM,X_NODI))**2) )
                   END IF
-
 
 
                   DO COUNT = SMALL_FINDRM( CV_NODI ), SMALL_FINDRM( CV_NODI + 1 ) - 1
@@ -1588,10 +1578,6 @@ contains
 !         if(.true.) then
 ! Generate some local F variables ***************
              IPT=1
-!             print *,'nphase,nfield:',nphase,nfield
-!             do i=1,6
-!                print *,'i,IGOT_T_PACK(:,i):',i,IGOT_T_PACK(:,i)
-!             end do
              CALL PACK_LOC( F_CV_NODJ(:), T_ALL( :, CV_NODJ ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,1) )
              CALL PACK_LOC( F_CV_NODJ(:), TOLD_ALL( :, CV_NODJ ), NPHASE, NFIELD, IPT, IGOT_T_PACK(:,2) )
              CALL PACK_LOC( F_CV_NODJ(:), DEN_ALL( :, CV_NODJ ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,3) )
@@ -1600,7 +1586,6 @@ contains
              CALL PACK_LOC( F_CV_NODJ(:), T2OLD_ALL( :, CV_NODJ ), NPHASE, NFIELD, IPT, IGOT_T_PACK(:,6) )
 ! Generate some local F variables ***************
 
-!             print *,'here1'
 ! local surface information***********
 
           IF( (ELE2 > 0) .OR. (SELE > 0) ) THEN
@@ -1615,7 +1600,6 @@ contains
                    IF(ELE2>0) THEN
                       CV_KLOC2 = CV_OTHER_LOC( CV_KLOC )
                       CV_NODK2 = CV_NDGLN( ( ELE2 - 1 ) * CV_NLOC + CV_KLOC2 ) 
-!                       print *,'CV_KLOC2, CV_NODK2:',CV_KLOC2, CV_NODK2
              IPT=1
              CALL PACK_LOC( SLOC2_F(:, CV_SKLOC), T_ALL( :, CV_NODK2 ),    NPHASE, NFIELD, IPT, IGOT_T_PACK(:,1) )
              CALL PACK_LOC( SLOC2_F(:, CV_SKLOC), TOLD_ALL( :, CV_NODK2 ), NPHASE, NFIELD, IPT, IGOT_T_PACK(:,2) )
@@ -1643,7 +1627,9 @@ contains
 
 !         if(.true.) then
           IF( SELE > 0 ) THEN
-! bcs: 
+! bcs:              
+             ! Make allowances for no matrix stencil operating from outside the boundary.
+             BCZERO=1.0-INCOME
 ! What type of b.c's -integer
              IPT=1
              CALL I_PACK_LOC( SELE_LOC_WIC_F_BC( : ), WIC_T_BC_ALL( :, SELE ),    NPHASE, NFIELD, IPT, IGOT_T_PACK( :,1) )
@@ -2273,8 +2259,6 @@ contains
 
                            IMID_IPHA = IPHASE + (IMID-1)*NPHASE
                            JMID_IPHA = IPHASE + (JMID-1)*NPHASE
-!                           IMID_IPHA = IPHASE + (SMALL_CENTRM(CV_NODI)-1)*NPHASE
-!                           JMID_IPHA = IPHASE + (SMALL_CENTRM(CV_NODJ)-1)*NPHASE
 
                            CSR_ACV( IMID_IPHA ) =  CSR_ACV( IMID_IPHA ) &
                                 +  SECOND_THETA * FTHETA_T2 * SCVDETWEI( GI ) * NDOTQNEW(IPHASE) * ( 1. - INCOME(IPHASE) ) * LIMD(IPHASE) & ! Advection
@@ -2311,19 +2295,19 @@ contains
                         TOLDMID_J = TOLD_ALL( IPHASE, CV_NODJ )
 
                         ! Make allowances for no matrix stencil operating from outside the boundary.
-                        BCZERO = 1.0
-                        IF ( (SELE /= 0) .AND. (INCOME(IPHASE) > 0.5) ) BCZERO=0.0
+                        BCZERO(IPHASE) = 1.0
+                        IF ( (SELE /= 0) .AND. (INCOME(IPHASE) > 0.5) ) BCZERO(IPHASE)=0.0
 
                         ! Put results into the RHS vector
                         CV_RHS( RHS_NODI_IPHA ) =  CV_RHS( RHS_NODI_IPHA )  &
                                 ! subtract 1st order adv. soln.
-                             + SECOND_THETA * FTHETA_T2 * NDOTQNEW(IPHASE) * SCVDETWEI( GI ) * LIMD(IPHASE) * FVT(IPHASE) * BCZERO &
+                             + SECOND_THETA * FTHETA_T2 * NDOTQNEW(IPHASE) * SCVDETWEI( GI ) * LIMD(IPHASE) * FVT(IPHASE) * BCZERO(IPHASE) &
                              -  SCVDETWEI( GI ) * ( FTHETA_T2 * NDOTQNEW(IPHASE) * LIMDT(IPHASE) &
                                 + ONE_M_FTHETA_T2OLD * NDOTQOLD(IPHASE) * LIMDTOLD(IPHASE) ) ! hi order adv
                         if(integrate_other_side_and_not_boundary) then
                         CV_RHS( RHS_NODJ_IPHA ) =  CV_RHS( RHS_NODJ_IPHA )  &
                                 ! subtract 1st order adv. soln.
-                             - SECOND_THETA * FTHETA_T2_J * NDOTQNEW(IPHASE) * SCVDETWEI( GI ) * LIMD(IPHASE) * FVT(IPHASE) * BCZERO &
+                             - SECOND_THETA * FTHETA_T2_J * NDOTQNEW(IPHASE) * SCVDETWEI( GI ) * LIMD(IPHASE) * FVT(IPHASE) * BCZERO(IPHASE) &
                              +  SCVDETWEI( GI ) * ( FTHETA_T2_J * NDOTQNEW(IPHASE) * LIMDT(IPHASE) &
                                 + ONE_M_FTHETA_T2OLD_J * NDOTQOLD(IPHASE) * LIMDTOLD(IPHASE) ) ! hi order adv
                         endif
@@ -2639,7 +2623,9 @@ contains
 
       ! Deallocating temporary working arrays
 
-      DEALLOCATE( JCOUNT_KLOC )
+      IF(GETCT) THEN
+         DEALLOCATE( JCOUNT_KLOC )
+      ENDIF
       DEALLOCATE( CVNORMX )
       DEALLOCATE( CVNORMY )
       DEALLOCATE( CVNORMZ )
@@ -2738,6 +2724,7 @@ contains
       DEALLOCATE( XC_CV )
       DEALLOCATE( YC_CV )
       DEALLOCATE( ZC_CV )
+      DEALLOCATE( XC_CV_ALL )
       DEALLOCATE( DTX_ELE )
       DEALLOCATE( DTY_ELE )
       DEALLOCATE( DTZ_ELE )
