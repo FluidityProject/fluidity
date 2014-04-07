@@ -94,7 +94,7 @@
 
       ! local variables        
       integer :: stat
-      integer :: i,j,k,p,ele,jloc
+      integer :: i,j,k,p,ele,jloc, pos
       integer :: number_nodes
       integer :: nstates
       integer :: nloc, nlev
@@ -102,13 +102,19 @@
       type(scalar_field), pointer :: phasevolumefraction => null()
       type(scalar_field), pointer :: phasetemperature => null()      
       type(scalar_field), pointer :: pressure => null()
-      type(vector_field), pointer :: velocity => null()
+      type(vector_field), pointer :: velocity => null(), position=>null()
       type(scalar_field), pointer :: density => null()
       type(scalar_field), pointer :: componentmassfraction => null()
       character(len=option_path_len) :: material_phase_name, vel_element_type
       logical :: is_overlapping
       real, dimension(:), allocatable :: proto_velocity_u_tmp, proto_velocity_v_tmp, proto_velocity_w_tmp
+
+      type(vector_field_pointer), dimension(:), allocatable:: full_velocity
+      real, dimension(3) :: vals
+
       ewrite(3,*) "In copy_into_state"
+
+      position=>extract_vector_field(state(1),"Coordinates",stat)
 
       assert(size(state) >= nphase)
 
@@ -132,18 +138,22 @@
       if ( is_overlapping ) then
 
          ! in case of overlapping elements just take
-         ! the average of the various levels
+         ! the average of the various levels for the vector value.
          !
          ! this means that this field cannot be used 
          ! for any cv-fem calculations
          !
          ! ONLY for visualisation purposes
 
+
+         !! Full value is aliased onto a collection of vectsor fields
+
          pressure => extract_scalar_field(state(1), "Pressure")
          nlev = ele_loc( pressure, 1 )
          nloc = ele_loc( velocity, 1 )
 
          do p = 1, nphase
+
             do i = 1, element_count( velocity )
                do j = 1, nlev
                   proto_velocity_u_tmp ( (p-1)*number_nodes + (i-1)*nloc + 1 : (p-1)*number_nodes + i*nloc ) = &
@@ -268,9 +278,32 @@
 
          end if
 
+
          number_nodes = node_count(velocity)
 
-         vel_ele_loop: do i = 1,element_count(velocity)
+
+         if ( is_overlapping ) then
+            pressure => extract_scalar_field(state(1), "Pressure")
+            allocate(full_velocity(ele_loc(pressure,1)))
+            full_velocity=extract_or_insert_velocity_tensor(state,p,&
+                 position,velocity,pressure)
+            do ele=1,ele_count(pressure)
+               do j = 1, nlev
+                  do i=1,nloc
+                     pos=(p-1)*number_nodes*nlev + (ele-1)*nloc*nlev&
+                       + (j-1)*nloc+ i
+                     vals=(/proto_velocity_u(pos),&
+                          proto_velocity_v(pos),&
+                          proto_velocity_w(pos)/)
+                     full_velocity(j)%ptr%val(1:ndim,(ele-1)*nloc+i)=&
+                          vals(1:ndim)
+                  end do
+               end do
+            end do
+            deallocate(full_velocity)
+         end if
+         
+            vel_ele_loop: do i = 1,element_count(velocity)
 
             element_nodes => ele_nodes(velocity,i)
 
@@ -392,6 +425,88 @@
 
     end subroutine copy_into_state
 
+    function extract_or_insert_velocity_tensor(states,phase,position,velocity,pressure) result(vfields)
+
+      type(state_type), dimension(:), target :: states
+      integer :: phase
+      type(vector_field) :: position,velocity
+      type(scalar_field) :: pressure
+
+      type(vector_field_pointer), dimension(ele_loc(pressure,1))  :: vfields
+      type(vector_field), dimension(ele_loc(pressure,1)) :: vfield_array
+      type(mesh_type) :: fem_velocity_mesh
+      type(element_type) :: shape
+      type(mesh_type) :: mesh
+      type(state_type), pointer :: state
+      integer :: stat, i, ic, nics
+      character(len=OPTION_PATH_LEN) :: name
+
+      ewrite(3,*) "In extract_or_insert_velocity_tensor"
+
+      state=>states(phase)
+
+      ewrite(3,*) "ndim "// int2str(mesh_dim(velocity)) 
+      ewrite(3,*) "nloc "// int2str(ele_loc(pressure,1))
+      
+      
+
+      if (has_vector_field(state,"VelocityChunk1") )then
+         do i=1,ele_loc(pressure,1)
+            name="VelocityChunk"//int2str(i)
+            vfields(i)%ptr=>extract_vector_field(state,trim(name))
+         end do
+      else
+
+         call copy_option(trim(velocity%mesh%option_path),&
+              "/geometry/mesh::FEM"//trim(velocity%mesh%name),stat)
+         call set_option("/geometry/mesh::FEM"//trim(velocity%mesh%name)//&
+              "/from_mesh/mesh_shape/element_type",&
+              "lagrangian")
+
+         if (has_mesh(state,"FEM"//trim(velocity%mesh%name))) then
+            mesh=extract_mesh(states(1),"FEM"//trim(velocity%mesh%name))
+         else
+            shape=ele_shape(velocity,1)
+            mesh=make_mesh(model=pressure%mesh,shape=shape,continuity=-1,&
+            name="FEM"//trim(velocity%mesh%name))
+            mesh%option_path="/geometry/mesh::FEM"//trim(velocity%mesh%name)
+            call insert(state,mesh,"FEM"//trim(velocity%mesh%name))
+         end if
+
+         call add_option(trim(complete_field_path(velocity%option_path))&
+              //"/exclude_from_checkpointing",stat)
+
+         do i=1,ele_loc(pressure,1)
+            name="VelocityChunk"//int2str(i)
+            call allocate(vfield_array(i),dim=mesh_dim(velocity),&
+              mesh=mesh,name=trim(name))
+            call add_option(trim(state%option_path)&
+                 //"/vector_field::"//trim(name)//"/prognostic/mesh",stat)
+            call add_option(trim(state%option_path)&
+               //"/vector_field::"//trim(name)//&
+               "/prognostic/initial_condition"&
+               ,stat)
+            call add_option(trim(state%option_path)&
+               //"/vector_field::"//trim(name)//&
+               "/prognostic/output/exclude_from_vtu"&
+               ,stat)
+            call set_option(trim(state%option_path)&
+              //"/vector_field::"//trim(name)//"/prognostic/mesh/name",&
+              "FEM"//trim(velocity%mesh%name),stat)
+         
+            vfield_array(i)%option_path=trim(state%option_path)&
+                 //"/vector_field::"//trim(name)
+
+            call insert(state,vfield_array(i),trim(name))
+            call deallocate(vfield_array(i))
+            vfields(i)%ptr=>extract_vector_field(state,trim(name))
+         end do
+      end if
+
+      ewrite(3,*) "Leaving extract_or_insert_velocity_tensor"
+      
+
+    end function extract_or_insert_velocity_tensor
 
 
   end module Copy_BackTo_State

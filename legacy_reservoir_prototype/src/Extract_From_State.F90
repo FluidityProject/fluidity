@@ -1275,13 +1275,14 @@
       ! Local variables
       type( mesh_type ), pointer :: pmesh, cmesh
       type(vector_field) :: dummy
-      type(vector_field), pointer :: positions, field_source, field_absorption
+      type(vector_field), pointer :: positions, field_source, field_absorption, chunk
       type(scalar_field), pointer :: pressure
       integer, dimension(:), allocatable :: sufid_bc, face_nodes
       character( len = option_path_len ) :: option_path, option_path2, field_name, bct
-      integer :: ndim, stotel, snloc, snloc2, nonods, nobcs, bc_type, j, k, kk, l, &
-           shape_option( 2 ), count, u_nonods, idim, stat
+      integer :: ndim, stotel, snloc, snloc2, nonods, nobcs, bc_type, i,j, k, kk, l, &
+           shape_option( 2 ), count, u_nonods, idim, stat,nlev,nloc, ele
       real, dimension( : ), allocatable :: initial_constant
+      integer, dimension(:), allocatable :: order
       logical :: have_source, have_absorption
       character(len=8192) :: func
 
@@ -1297,7 +1298,13 @@
       nonods = node_count( field )
       field_name = trim( field % name )
       u_nonods = nonods
-      if ( is_overlapping ) u_nonods = nonods * ele_loc( pmesh, 1)
+      nlev=1
+      if ( is_overlapping ) then
+         u_nonods = nonods * ele_loc( pmesh, 1)
+         nlev=ele_loc( pmesh, 1)
+      end if
+      
+
 
       have_absorption = .false.
       Conditional_AbsorptionField: if( present( field_prot_absorption ) ) then
@@ -1317,6 +1324,30 @@
             field_u_prot = 0.
             field_v_prot = 0.
             field_w_prot = 0.
+            
+
+            allocate(order(nonods))
+            nloc=ele_loc(field,1)
+            do j=1,nlev
+               if (has_vector_field(state(iphase),trim(field%name)//"Chunk"//int2str(j))) then
+                  chunk=>extract_vector_field(state(iphase),&
+                       trim(field%name)//"Chunk"//int2str(j))
+                   order=(/((( iphase - 1 ) * nonods *nlev+  (ele-1)*nloc*nlev&
+                       + (j-1)*nloc+ i,i=1,ele_loc(field,ele)),ele=1,ele_count(field))/)
+                   print*, order
+                  field_u_prot(order) = chunk % val( 1, : )
+                  if( ndim > 1 ) field_v_prot(order) = chunk % val( 2, : )
+                  if( ndim > 2 ) field_w_prot(order) = chunk % val( 3, : )
+
+               else
+                  order=(/((( iphase - 1 ) * nonods *nlev+  (ele-1)*nloc*nlev&
+                       + (j-1)*nloc+ i,i=1,ele_loc(field,ele)),ele=1,ele_count(field))/)
+                  field_u_prot(order) = field % val( 1, : )
+                  if( ndim > 1 ) field_v_prot(order) = field % val( 2, : )
+                  if( ndim > 2 ) field_w_prot(order) = field % val( 3, : )
+               end if
+            end do
+            deallocate(order)
          else
             field_u_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = field % val( 1, : )
             if( ndim > 1 ) field_v_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = field % val( 2, : )
@@ -1349,7 +1380,7 @@
 
             call deallocate( dummy )
          elseif( have_option( trim( option_path ) // '/from_file')) then
-             field_u_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = field % val( 1, : )
+            field_u_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = field % val( 1, : )
             if( ndim > 1 ) field_v_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = field % val( 2, : )
             if( ndim > 2 ) field_w_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = field % val( 3, : )
          else
@@ -1357,6 +1388,36 @@
             ewrite(-1,*) 'No initial condition for field::', trim( field_name )
             FLAbort( 'Check initial conditions' )
 
+         end if
+
+         if ( is_overlapping ) then
+            field_u_prot = 0.
+            field_v_prot = 0.
+            field_w_prot = 0.
+            
+
+            allocate(order(nonods))
+            nloc=ele_loc(field,1)
+            do j=1,nlev
+               if (has_vector_field(state(iphase),trim(field%name)//"Chunk"//int2str(j))) then
+                  chunk=>extract_vector_field(state(iphase),&
+                       trim(field%name)//"Chunk"//int2str(j))
+                   order=(/((( iphase - 1 ) * nonods *nlev+  (ele-1)*nloc*nlev&
+                       + (j-1)*nloc+ i,i=1,ele_loc(field,ele)),ele=1,ele_count(field))/)
+                   print*, order
+                  field_u_prot(order) = chunk % val( 1, : )
+                  if( ndim > 1 ) field_v_prot(order) = chunk % val( 2, : )
+                  if( ndim > 2 ) field_w_prot(order) = chunk % val( 3, : )
+
+               else
+                  order=(/((( iphase - 1 ) * nonods *nlev+  (ele-1)*nloc*nlev&
+                       + (j-1)*nloc+ i,i=1,ele_loc(field,ele)),ele=1,ele_count(field))/)
+                  field_u_prot(order) = field % val( 1, : )
+                  if( ndim > 1 ) field_v_prot(order) = field % val( 2, : )
+                  if( ndim > 2 ) field_w_prot(order) = field % val( 3, : )
+               end if
+            end do
+            deallocate(order)
          end if
       end if Conditional_InitialisationFromFLML
 
