@@ -1244,8 +1244,13 @@
                  at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its, total_timestep, if_optimal=if_optimal,fs_m=fs_m_temp) 
        
           else 
-              call solve_momentum_reduced(state, u,p,big_m, ct_m, mom_rhs, ct_rhs, inverse_masslump, &
+               if (have_option("/reduced_model/Non_intrusive")) then
+                call solve_ann_reduced(state, u,p,big_m, ct_m, mom_rhs, ct_rhs, inverse_masslump, &
+                 at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its, total_timestep)
+               else 
+               call solve_momentum_reduced(state, u,p,big_m, ct_m, mom_rhs, ct_rhs, inverse_masslump, &
                  at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its, total_timestep, if_optimal=if_optimal) 
+             endif ! have_option("/reduced_model/Non_intrusive")
          endif          
          end if ! end of 'if .not.reduced_model' free surface debug place
           
