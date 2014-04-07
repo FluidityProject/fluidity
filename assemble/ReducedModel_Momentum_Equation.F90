@@ -1058,7 +1058,7 @@
        type(vector_field), pointer :: dummy_absorption
        logical :: lump_mass_form
        integer :: ctrl_timestep
-
+       logical :: read_obv
 
        u => extract_vector_field(state(1), "Velocity", stat)
        p => extract_scalar_field(state(1), "Pressure")
@@ -1071,17 +1071,19 @@
              call allocate(delta_u, u%dim, u%mesh, "DeltaU")
              delta_u%option_path = trim(u%option_path)
              call zero(delta_u)
-         allocate(pod_coef((u%dim+1)*size(POD_state,1)))     
-    reduced_model_loop: do istate = 1, size(state)
-              allocate(pod_coef_all_temp(total_timestep,((u%dim+1)*size(POD_state,1))))
+         allocate(pod_coef((u%dim+1)*size(POD_state,1)))
+          
+            IF(.NOT.ALLOCATED(pod_coef_all_temp)) then        
+                   allocate(pod_coef_all_temp(total_timestep,((u%dim+1)*size(POD_state,1))))
                    open(11,file='coef_pod_all_obv')
                   !open(11,file='coef_pod_all_obv',position='append',ACTION='READ')
                   read(11,*)((pod_coef_all_temp(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,total_timestep)                  
                   close(11)
-
-    
+              !    read_obv=.true.
+              endif
+         
                 pod_coef(:)=pod_coef_all_temp(timestep,:) !initilize the pod_coef
-    
+     reduced_model_loop: do istate = 1, size(state)
 
               if (have_option("/reduced_model/Non_intrusive")) then
                       if (have_option("/reduced_model/training")) then
@@ -1131,7 +1133,9 @@
                    call addto(u, delta_u)
                    p%val=snapmean_pressure%val
                    call addto(p, delta_p)
+                  if(timestep .eq. total_timestep)then
                    deallocate(pod_coef_all_temp)
+                  endif
                    deallocate(pod_coef)
           enddo reduced_model_loop
         end subroutine solve_ann_reduced

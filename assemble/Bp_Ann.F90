@@ -55,8 +55,8 @@
      real OutputData(1);
      real dv(1,45),dw(45,2);
      real e;
-      real, dimension(:,:), allocatable ::pod_coef_all_diff, pod_coef_all_ann,pod_coef_all_diff_obj
-  
+     real, dimension(:,:), allocatable ::pod_coef_all_diff, pod_coef_all_ann,pod_coef_all_diff_obj
+     real :: w_all(360,45,2),o_all(360,45),v_all(360,1,45)
     contains 
      
      subroutine ann_bp_main(total_timestep,timestep,output,l)
@@ -123,10 +123,12 @@
              ! output=ss+pod_coef_all_ann(timestep-1,1)
               print*, 'coef+coefdiff=', output
              elseif(timestep >ctrl_timestep1) then 
-             !  print *, 'coefbefore',pod_coef_all_diff(timestep-2,1)
-             !  coef= pod_coef_all_ann(timestep-2,1)
-             !  coefdiff= pod_coef_all_diff(timestep-2,1)
+               if(timestep .eq. ctrl_timestep1+1) then
+               call readallweight()
                call readweight(l)
+              else
+               call readweight(l)
+             endif
                coef= pod_coef_all_ann(timestep-2,l)
                coefdiff= pod_coef_all_ann(timestep-1,l)
                print *, 'coef,coefdiff',coef,coefdiff
@@ -428,10 +430,9 @@
      endif 
    end subroutine writeweight
 
-   subroutine readweight(l)
-     integer, intent(in) :: l
+subroutine readallweight()
      integer :: i,j,k
-     real :: w_all(360,45,2),o_all(360,45),v_all(360,1,45)
+     !real :: w_all(360,45,2),o_all(360,45),v_all(360,1,45)
       open(1,file='maxmin')
           read(1,*) Minin(1),Maxin(1),Minin(2),Maxin(2),Maxout(1),Minout(1)
       close(1)
@@ -453,6 +454,14 @@
           read(1,*)((v_all(k,i,j),j=1,45),i=1,1)           
       close(1)       
       enddo
+      
+   end subroutine readallweight
+
+   subroutine readweight(l)
+     integer, intent(in) :: l
+     integer :: i,j,k
+    ! real :: w_all(360,45,2),o_all(360,45),v_all(360,1,45)
+      
       w(:,:)=w_all(l,:,:)
       o(:)=o_all(l,:)
       v(:,:)=v_all(l,:,:)
