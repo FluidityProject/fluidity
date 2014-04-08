@@ -54,7 +54,7 @@
       use global_parameters, only: option_path_len,current_time
       use write_state_module
      ! use steam_nrs_module
-      use Bp_Neutral_Net 
+     ! use Bp_Neutral_Net 
       use ann_bp
       implicit none
 
@@ -764,7 +764,7 @@
                          pod_rhs%val=pod_rhs%val+pod_coef(k+(d-1)*size(POD_state,1))*pod_rhs_perturbed(:)
                          
                          read(60,*)((pod_matrix_adv_perturbed(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
-                         !                        pod_matrix_adv_perturbed= pod_coef(k+(d-1)*size(POD_state,1))*pod_matrix_adv_perturbed(:,:)
+                         !     pod_matrix_adv_perturbed= pod_coef(k+(d-1)*size(POD_state,1))*pod_matrix_adv_perturbed(:,:)
                          pod_matrix_perturbed= pod_coef(k+(d-1)*size(POD_state,1))*pod_matrix_perturbed(:,:)
                          !                        call Matrix_vector_multiplication(size(pod_coef),pod_rhs_adv_perturbed, &
                          !                             pod_matrix_adv_perturbed,pod_coef)

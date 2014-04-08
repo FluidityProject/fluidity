@@ -76,6 +76,13 @@
       </constant>
     </dump_period_in_timesteps>
     <output_mesh name="CoordinateMesh"/>
+    <checkpointing>
+      <checkpoint_period_in_dumps>
+        <integer_value rank="0">1</integer_value>
+      </checkpoint_period_in_dumps>
+      <checkpoint_at_start/>
+      <checkpoint_at_end/>
+    </checkpointing>
     <stat>
       <output_at_start/>
     </stat>
@@ -118,13 +125,13 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">200.0</real_value>
+      <real_value rank="0">20.0</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">2.0e+4</real_value>
     </finish_time>
     <nonlinear_iterations>
-      <integer_value rank="0">2</integer_value>
+      <integer_value rank="0">1</integer_value>
     </nonlinear_iterations>
   </timestepping>
   <physical_parameters>
@@ -339,4 +346,17 @@
       </diagnostic>
     </scalar_field>
   </material_phase>
+  <reduced_model>
+    <pod_basis_formation>
+      <dump_sampling_period>
+        <integer_value rank="0">2</integer_value>
+      </dump_sampling_period>
+      <pod_basis_count>
+        <integer_value rank="0">6</integer_value>
+      </pod_basis_count>
+      <pod_basis_perturbation_coefficient>
+        <real_value rank="0">0.1</real_value>
+      </pod_basis_perturbation_coefficient>
+    </pod_basis_formation>
+  </reduced_model>
 </fluidity_options>

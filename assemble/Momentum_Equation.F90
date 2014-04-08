@@ -139,7 +139,7 @@
 
      !! True if the momentum equation should be solved with the reduced model.
       logical :: reduced_model
-
+      real :: ann_finish, ann_start
    contains
 
       subroutine solve_momentum(state, at_first_timestep, timestep, POD_state, POD_state_deim, snapmean, eps, its, total_timestep,if_optimal)
@@ -1245,8 +1245,11 @@
        
           else 
                if (have_option("/reduced_model/Non_intrusive")) then
+                call cpu_time(ann_start)
                 call solve_ann_reduced(state, u,p,big_m, ct_m, mom_rhs, ct_rhs, inverse_masslump, &
                  at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its, total_timestep)
+                call cpu_time(ann_finish)
+                print *, 'ann_finish-ann_start', ann_finish-ann_start
                else 
                call solve_momentum_reduced(state, u,p,big_m, ct_m, mom_rhs, ct_rhs, inverse_masslump, &
                  at_first_timestep, timestep, POD_state, POD_state_deim,snapmean, eps, its, total_timestep, if_optimal=if_optimal) 
