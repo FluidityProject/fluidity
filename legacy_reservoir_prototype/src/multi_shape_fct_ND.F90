@@ -1336,14 +1336,14 @@
     END SUBROUTINE DETNLXR
 
 
-    SUBROUTINE DETNLXR_INVJAC( ELE, X,Y,Z, XONDGL, TOTELE, NONODS, NLOC, NGI, &
+    SUBROUTINE DETNLXR_INVJAC( ELE, X_ALL, XONDGL, TOTELE, NONODS, NLOC, NGI, &
          N, NLX, NLY, NLZ, WEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
          NX_ALL,&
          NDIM, INV_JAC, state, StorName, indx )
       IMPLICIT NONE
       INTEGER, intent( in ) :: ELE, TOTELE, NONODS, NLOC, NGI, NDIM
       INTEGER, DIMENSION( : ) :: XONDGL
-      REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
+      REAL, DIMENSION( :, : ), intent( in ) :: X_ALL!dimension(NDIM,size(XONDGL) )
       REAL, DIMENSION( :, : ), intent( in ) :: N, NLX, NLY, NLZ
       REAL, DIMENSION( : ), intent( in ) :: WEIGHT
       LOGICAL, intent( in ) :: D1, D3, DCYL
@@ -1369,15 +1369,11 @@
       type(scalar_field), target :: targ_DETWEI_RA
       type(scalar_field), target :: targ_VOLUME
       !#########Storing area#################################
-      !****TEMPORARY****
-      integer :: ndim2
-      NDIM2 = 3
-      !********************
       !If new mesh or mesh moved indx will be zero (set in Multiphase_TimeLoop)
       if (indx>0) then!Everything has been calculated already
           !Get from state, indx is an input
-          NX_ALL(1:NDIM2,1:NLOC,1:NGI) => &
-          state(1)%scalar_fields(indx)%ptr%val(1+NDIM2*NLOC*NGI*(ELE-1):NDIM2*NLOC*NGI*ELE)
+          NX_ALL(1:NDIM,1:NLOC,1:NGI) => &
+          state(1)%scalar_fields(indx)%ptr%val(1+NDIM*NLOC*NGI*(ELE-1):NDIM*NLOC*NGI*ELE)
           INV_JAC(1:NDIM,1:NDIM,1:NGI)  => &
           state(1)%scalar_fields(indx+1)%ptr%val(1+(ELE-1)*(NGI+NDIM*NDIM):ELE*(NGI*NDIM*NDIM))
           DETWEI(1:NGI) => state(1)%scalar_fields(indx+2)%ptr%val(1+NGI*(ELE-1):NGI*ELE)
@@ -1386,8 +1382,8 @@
           return
       else if (indx/=0) then!We need to calculate a new value
           !Get from state, indx is an input
-          NX_ALL(1:NDIM2,1:NLOC,1:NGI) => &
-          state(1)%scalar_fields(-indx)%ptr%val(1+NDIM2*NLOC*NGI*(ELE-1):NDIM2*NLOC*NGI*ELE)
+          NX_ALL(1:NDIM,1:NLOC,1:NGI) => &
+          state(1)%scalar_fields(-indx)%ptr%val(1+NDIM*NLOC*NGI*(ELE-1):NDIM*NLOC*NGI*ELE)
           INV_JAC(1:NDIM,1:NDIM,1:NGI)  => &
           state(1)%scalar_fields(-indx+1)%ptr%val(1+(ELE-1)*(NGI+NDIM*NDIM):ELE*(NGI*NDIM*NDIM))
           DETWEI(1:NGI) => state(1)%scalar_fields(-indx+2)%ptr%val(1+NGI*(ELE-1):NGI*ELE)
@@ -1406,7 +1402,7 @@
           fl_mesh => extract_mesh( state(1), "CoordinateMesh" )
           Auxmesh = fl_mesh
           !The number of nodes I want does not coincide
-          Auxmesh%nodes = totele*NLOC*NGI*NDIM2
+          Auxmesh%nodes = totele*NLOC*NGI*NDIM
           call allocate (Targ_NX_ALL, Auxmesh)
           Auxmesh%nodes = NDIM*NDIM*NGI*totele
           call allocate (targ_INV_JAC, Auxmesh)
@@ -1425,8 +1421,8 @@
           call insert(state(1), Targ_VOLUME, "V"//StorName)
 
           !Get from state, indx is an input
-          NX_ALL(1:NDIM2,1:NLOC,1:NGI) => &
-          state(1)%scalar_fields(-indx)%ptr%val(1+NDIM2*NLOC*NGI*(ELE-1):NDIM2*NLOC*NGI*ELE)
+          NX_ALL(1:NDIM,1:NLOC,1:NGI) => &
+          state(1)%scalar_fields(-indx)%ptr%val(1+NDIM*NLOC*NGI*(ELE-1):NDIM*NLOC*NGI*ELE)
           INV_JAC(1:NDIM,1:NDIM,1:NGI)  => &
           state(1)%scalar_fields(-indx+1)%ptr%val(1+(ELE-1)*(NGI+NDIM*NDIM):ELE*(NGI*NDIM*NDIM))
           DETWEI(1:NGI) => state(1)%scalar_fields(-indx+2)%ptr%val(1+NGI*(ELE-1):NGI*ELE)
@@ -1465,19 +1461,19 @@
             do  L=1,NLOC! Was loop 79
                IGLX=XONDGL((ELE-1)*NLOC+L)
                ewrite(3,*)'xndgln, x, nl:', &
-                    iglx, l, x(iglx), y(iglx), z(iglx), NLX(L,GI), NLY(L,GI), NLZ(L,GI)
+                    iglx, l, x_ALL(:,iglx), NLX(L,GI), NLY(L,GI), NLZ(L,GI)
                ! NB R0 does not appear here although the z-coord might be Z+R0. 
-               AGI=AGI+NLX(L,GI)*X(IGLX) 
-               BGI=BGI+NLX(L,GI)*Y(IGLX) 
-               CGI=CGI+NLX(L,GI)*Z(IGLX) 
+               AGI=AGI+NLX(L,GI)*X_ALL(1,IGLX)
+               BGI=BGI+NLX(L,GI)*X_ALL(2,IGLX)
+               CGI=CGI+NLX(L,GI)*X_ALL(3,IGLX)
                !
-               DGI=DGI+NLY(L,GI)*X(IGLX) 
-               EGI=EGI+NLY(L,GI)*Y(IGLX) 
-               FGI=FGI+NLY(L,GI)*Z(IGLX) 
+               DGI=DGI+NLY(L,GI)*X_ALL(1,IGLX)
+               EGI=EGI+NLY(L,GI)*X_ALL(2,IGLX)
+               FGI=FGI+NLY(L,GI)*X_ALL(3,IGLX)
                !
-               GGI=GGI+NLZ(L,GI)*X(IGLX) 
-               HGI=HGI+NLZ(L,GI)*Y(IGLX) 
-               KGI=KGI+NLZ(L,GI)*Z(IGLX)
+               GGI=GGI+NLZ(L,GI)*X_ALL(1,IGLX)
+               HGI=HGI+NLZ(L,GI)*X_ALL(2,IGLX)
+               KGI=KGI+NLZ(L,GI)*X_ALL(3,IGLX)
             end do ! Was loop 79
             !
             DETJ=AGI*(EGI*KGI-FGI*HGI)&
@@ -1536,12 +1532,12 @@
             do  L=1,NLOC! Was loop 179
                IGLX=XONDGL((ELE-1)*NLOC+L)
 
-               AGI=AGI + NLX(L,GI)*X(IGLX) 
-               BGI=BGI + NLX(L,GI)*Y(IGLX) 
-               CGI=CGI + NLY(L,GI)*X(IGLX) 
-               DGI=DGI + NLY(L,GI)*Y(IGLX) 
+               AGI=AGI + NLX(L,GI)*X_ALL(1,IGLX)
+               BGI=BGI + NLX(L,GI)*X_ALL(2,IGLX)
+               CGI=CGI + NLY(L,GI)*X_ALL(1,IGLX)
+               DGI=DGI + NLY(L,GI)*X_ALL(2,IGLX)
                !
-               RGI=RGI+N(L,GI)*Y(IGLX)
+               RGI=RGI+N(L,GI)*X_ALL(2,IGLX)
             end do ! Was loop 179
             !
             IF(.NOT.DCYL) RGI=1.0
@@ -1554,7 +1550,7 @@
             do L=1,NLOC
                NX_ALL(1,L,GI)=(DGI*NLX(L,GI)-BGI*NLY(L,GI))/DETJ
                NX_ALL(2,L,GI)=(-CGI*NLX(L,GI)+AGI*NLY(L,GI))/DETJ
-               NX_ALL(3,L,GI)=0.0
+!               NX_ALL(3,L,GI)=0.0
             END DO
 
             INV_JAC( 1,1, GI )= DGI /DETJ
@@ -1573,7 +1569,7 @@
             !
             do  L = 1, NLOC
                IGLX = XONDGL(( ELE - 1 ) * NLOC + L )
-               AGI = AGI + NLX( L, GI ) * X( IGLX ) 
+               AGI = AGI + NLX( L, GI ) * X_ALL(1, IGLX )
             end do
             !
             DETJ = AGI 
@@ -1582,8 +1578,8 @@
             !
             do L = 1, NLOC
                NX_ALL(1, L, GI ) = NLX( L, GI ) / DETJ
-               NX_ALL(2, L, GI ) = 0.0
-               NX_ALL(3, L, GI ) = 0.0
+!               NX_ALL(2, L, GI ) = 0.0
+!               NX_ALL(3, L, GI ) = 0.0
             END DO
             INV_JAC( 1,1, GI )= 1.0 /DETJ
             !

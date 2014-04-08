@@ -1549,7 +1549,388 @@
 
     end subroutine shape_cv_n
 
+    subroutine cv_fem_shape_funs_plus_storage( &
+         ndim, cv_ele_type, &
+         cv_ngi, cv_ngi_short, cv_nloc, u_nloc, cvn, cvn_short, &
+                                ! Volume shape functions
+         cvweight, cvfen, cvfenlx, cvfenly, cvfenlz, &
+         cvweight_short, cvfen_short, cvfenlx_short, cvfenly_short, cvfenlz_short, &
+         ufen, ufenlx, ufenly, ufenlz, &
+                                ! Surface of each CV shape functions
+         scvngi, cv_neiloc, cv_on_face, cvfem_on_face, &
+         scvfen, scvfenslx, scvfensly, scvfeweigh, &
+         scvfenlx, scvfenly, scvfenlz, &
+         sufen, sufenslx, sufensly, &
+         sufenlx, sufenly, sufenlz, &
+                                ! Surface element shape funcs
+         u_on_face, ufem_on_face, nface, &
+         sbcvngi, sbcvn, sbcvfen, sbcvfenslx, sbcvfensly, sbcvfeweigh, sbcvfenlx, sbcvfenly, sbcvfenlz, &
+         sbufen, sbufenslx, sbufensly, sbufenlx, sbufenly, sbufenlz, &
+         cv_sloclist, u_sloclist, cv_snloc, u_snloc, &
+                                ! Define the gauss points that lie on the surface of the CV
+         findgpts, colgpts, ncolgpts, &
+         sele_overlap_scale, QUAD_OVER_WHOLE_ELE,&
+         state, StorName , indx )
+      implicit none
+      !This subroutine calls cv_fem_shape_funs only if the shape functions have not been calculated already
+      !If they are in storage, the values are returned without calculations
+      integer, intent( in ) :: ndim, cv_ele_type, cv_ngi, cv_ngi_short, cv_nloc, u_nloc
+      real, dimension( : , : ), pointer,  intent( inout ) :: cvn ! dimension( cv_nloc, cv_ngi )
+      real, dimension(  : , : ),pointer, intent( inout ) :: cvn_short!dimension( cv_nloc, cv_ngi_short )
+      real, dimension( : ), pointer,intent( inout ) :: cvweight!dimension( cv_ngi )
+      real, dimension(  : , : ), pointer,intent( inout ) :: cvfen, cvfenlx, cvfenly, cvfenlz!dimension( cv_nloc, cv_ngi )
+      real, dimension( : ), pointer,intent( inout ) :: cvweight_short!dimension( cv_ngi_short )
+      real, dimension(  : , : ),pointer, intent( inout ) :: cvfen_short, cvfenlx_short, &!dimension( cv_nloc, cv_ngi_short )
+           cvfenly_short, cvfenlz_short
+      real, dimension(  : , : ), pointer,intent( inout ) :: ufen, ufenlx, ufenly, ufenlz!dimension( u_nloc, cv_ngi )
+      integer, intent( in ) :: scvngi
+      integer, dimension(  : , : ), pointer,intent( inout ) :: cv_neiloc!dimension( cv_nloc, scvngi )
+      logical, dimension(  : , : ),intent( inout ) :: cv_on_face, cvfem_on_face!dimension( cv_nloc, scvngi )
+      real, dimension(  : , : ), pointer,intent( inout ) :: scvfen, scvfenslx, scvfensly!dimension( cv_nloc, scvngi )
+      real, dimension( : ), pointer,intent( inout ) :: scvfeweigh!dimension( scvngi )
+      real, dimension(  : , : ),pointer, intent( inout ) :: scvfenlx, scvfenly, scvfenlz!dimension( cv_nloc, scvngi )
+      real, dimension(  : , : ),pointer, intent( inout ) :: sufen, sufenslx, sufensly, sufenlx, &!dimension( u_nloc, scvngi )
+           sufenly, sufenlz
+      logical, dimension(  : , : ), intent( inout ) :: u_on_face, ufem_on_face!dimension( u_nloc, scvngi )
+      integer, intent( in ) :: nface, sbcvngi
+      logical, intent( in ) :: QUAD_OVER_WHOLE_ELE
+      ! if QUAD_OVER_WHOLE_ELE then dont divide element into CV's to form quadrature.
+      real, dimension(  : , : ),pointer, intent( inout ) :: sbcvn!dimension( cv_snloc, sbcvngi )
+      real, dimension(  : , : ),pointer, intent( inout ) :: sbcvfen, sbcvfenslx, sbcvfensly! dimension( cv_snloc, sbcvngi )
+      real, dimension( : ),pointer, intent( inout ) :: sbcvfeweigh!dimension( sbcvngi )
+      real, dimension(  : , : ), pointer,intent( inout ) :: sbcvfenlx, sbcvfenly, sbcvfenlz!dimension( cv_snloc, sbcvngi )
+      integer, intent( in ) :: cv_snloc, u_snloc
+      real, dimension(  : , : ),pointer, intent( inout ) :: sbufen, sbufenslx, sbufensly, &!dimension( u_snloc, sbcvngi )
+           sbufenlx, sbufenly, sbufenlz
+      integer, dimension(  : , : ), pointer,intent( inout ) :: cv_sloclist!dimension( nface, cv_snloc )
+      integer, dimension(  : , : ),pointer, intent( inout ) :: u_sloclist!dimension( nface, u_snloc )
+      integer, dimension( : ),pointer, intent( inout ) :: findgpts!dimension( cv_nloc + 1 )
+      integer, dimension( : ), pointer,intent( inout ) :: colgpts!dimension( cv_nloc * scvngi )
+      integer,pointer, intent( inout ) :: ncolgpts
+      real, dimension( : ),pointer, intent( inout ) :: sele_overlap_scale!dimension( cv_nloc )
+      type( state_type ), intent( inout ), dimension(:) :: state
+      character(len=*), intent(in) :: StorName
+      integer, intent(inout) :: indx
 
+      ! Local variables
+      real, dimension( : , : ), allocatable :: cvn2 ! dimension( cv_nloc, cv_ngi )
+      real, dimension(  : , : ), allocatable :: cvn_short2!dimension( cv_nloc, cv_ngi_short )
+      real, dimension( : ), allocatable :: cvweight2!dimension( cv_ngi )
+      real, dimension(  : , : ), allocatable :: cvfen2, cvfenlx2, cvfenly2, cvfenlz2!dimension( cv_nloc, cv_ngi )
+      real, dimension( : ), allocatable :: cvweight_short2!dimension( cv_ngi_short )
+      real, dimension(  : , : ), allocatable :: cvfen_short2, cvfenlx_short2, &!dimension( cv_nloc, cv_ngi_short )
+           cvfenly_short2, cvfenlz_short2
+      real, dimension(  : , : ), allocatable :: ufen2, ufenlx2, ufenly2, ufenlz2!dimension( u_nloc, cv_ngi )
+      integer, dimension(  : , : ), allocatable :: cv_neiloc2!dimension( cv_nloc, scvngi )
+      real, dimension(  : , : ), allocatable :: scvfen2, scvfenslx2, scvfensly2!dimension( cv_nloc, scvngi )
+      real, dimension( : ), allocatable :: scvfeweigh2!dimension( scvngi )
+      real, dimension(  : , : ), allocatable :: scvfenlx2, scvfenly2, scvfenlz2!dimension( cv_nloc, scvngi )
+      real, dimension(  : , : ), allocatable :: sufen2, sufenslx2, sufensly2, sufenlx2, &!dimension( u_nloc, scvngi )
+           sufenly2, sufenlz2
+      real, dimension(  : , : ), allocatable :: sbcvn2!dimension( cv_snloc, sbcvngi )
+      real, dimension(  : , : ), allocatable :: sbcvfen2, sbcvfenslx2, sbcvfensly2! dimension( cv_snloc, sbcvngi )
+      real, dimension( : ), allocatable :: sbcvfeweigh2!dimension( sbcvngi )
+      real, dimension(  : , : ), allocatable :: sbcvfenlx2, sbcvfenly2, sbcvfenlz2!dimension( cv_snloc, sbcvngi )
+      real, dimension(  : , : ), allocatable :: sbufen2, sbufenslx2, sbufensly2, &!dimension( u_snloc, sbcvngi )
+           sbufenlx2, sbufenly2, sbufenlz2
+      integer, dimension(  : , : ), allocatable :: cv_sloclist2!dimension( nface, cv_snloc )
+      integer, dimension(  : , : ), allocatable :: u_sloclist2!dimension( nface, u_snloc )
+      integer, dimension( : ), allocatable :: findgpts2!dimension( cv_nloc + 1 )
+      integer, dimension( : ), allocatable :: colgpts2!dimension( cv_nloc * scvngi )
+      integer :: ncolgpts2
+      real, dimension( : ), allocatable :: sele_overlap_scale2!dimension( cv_nloc )
+
+      !Variables to store things in state
+      type(mesh_type), pointer :: fl_mesh
+      type(mesh_type) :: Auxmesh
+      type(scalar_field), target :: targ_Storage
+      type(scalar_field), pointer :: pntr_Storage
+      integer, dimension(:), allocatable, target :: target_in_mesh
+      integer :: counter_from, counter_to, siz1,siz2
+      logical :: recovering_values
+      integer, dimension(  : , : ),pointer :: ptr_u_on_face, ptr_ufem_on_face!dimension( u_nloc, scvngi )
+      integer, dimension(  : , : ),pointer:: ptr_cv_on_face, ptr_cvfem_on_face!dimension( cv_nloc, scvngi )
+      ewrite(3,*) 'in  cv_fem_shape_funs subrt'
+
+      !#########Storing area#################################
+      !If new mesh or mesh moved indx will be zero (set in Multiphase_TimeLoop)
+      recovering_values = .false.
+      if (indx>0) recovering_values = .true.!Everything has been calculated already
+
+      !If values not stored then create space in state
+      if (indx <=0) then
+          if (has_scalar_field(state(1),StorName)) then
+               !We have to deallocate also the mesh type we are using inside the scalar field
+               pntr_Storage => extract_scalar_field(state(1), StorName)
+               !deallocate mesh
+               call deallocate(pntr_Storage%mesh)
+              call remove_scalar_field(state(1), StorName)
+          end if
+          !Get mesh file just to be able to allocate the fields we want to store
+          fl_mesh => extract_mesh( state(1), "CoordinateMesh" )
+          Auxmesh = fl_mesh
+          !The number of nodes I want does not coincide
+          Auxmesh%nodes = CV_NLOC*CV_NGI*5 + CV_NLOC*CV_NGI_SHORT*5 + CV_NGI + CV_NGI_SHORT +&
+           SCVNGI + SBCVNGI + U_NLOC*CV_NGI * 4 + CV_NLOC * SCVNGI * 6+ U_NLOC*SCVNGI * 6 + &
+           CV_SNLOC * SBCVNGI * 7 + U_SNLOC * SBCVNGI * 6 + CV_NLOC
+
+          call allocate (targ_Storage, Auxmesh)
+          !Prepare room to store integers and logicals
+          Auxmesh%nodes = nface*cv_snloc + nface * u_snloc + u_nloc*scvngi*2 + cv_nloc*scvngi*2+&
+                ( cv_nloc + 1 ) + cv_nloc * scvngi + (1) + cv_nloc * scvngi
+          Auxmesh%shape%loc =1!nodes times %loc is the size of the array I want to store
+          call allocate (targ_Storage%mesh, Auxmesh%nodes, Auxmesh%nodes,Auxmesh%shape )
+          !Now we insert them in state and store the index
+          call insert(state(1), targ_Storage, StorName)
+          indx = size(state(1)%scalar_fields)
+      end if
+
+          !Set the pointers to state, indx is an input
+          !###cv_nloc*cv_ngi section###
+          siz1 = cv_nloc;  siz2 = cv_ngi
+          counter_from = 1; counter_to = siz1*siz2
+          cvn(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          cvfen(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          cvfenlx(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          cvfenly(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          cvfenlz(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          !###cv_nloc*cv_ngi_short section###
+          siz1 = cv_nloc;  siz2 = cv_ngi_short
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          cvn_short(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          cvfen_short(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          cvfenlx_short(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          cvfenly_short(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          cvfenlz_short(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+
+          !###u_nloc*cv_ngi section###
+          siz1 = u_nloc;  siz2 = cv_ngi
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          ufen(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          ufenlx(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          ufenly(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          ufenlz(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+
+          !###cv_nloc*scvngi section###
+          siz1 = cv_nloc;  siz2 = scvngi
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          scvfen(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          scvfenslx(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          scvfensly(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          scvfenlx(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          scvfenly(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          scvfenlz(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+
+          !###u_nloc*scvngi section###
+          siz1 = u_nloc;  siz2 = scvngi
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sufen(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sufenslx(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sufensly(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sufenlx(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sufenly(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sufenlz(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+
+          !###cv_snloc*sbcvngi section###
+          siz1 = cv_snloc;  siz2 = sbcvngi
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sbcvn(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sbcvfen(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sbcvfenslx(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sbcvfensly(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sbcvfenlx(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sbcvfenly(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sbcvfenlz(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+
+          !###u_snloc*sbcvngi section###
+          siz1 = u_snloc;  siz2 = sbcvngi
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sbufen(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sbufenslx(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sbufensly(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sbufenlx(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sbufenly(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sbufenlz(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+
+          !###cv_ngi###
+          siz1 = cv_ngi
+          counter_from = counter_to + 1; counter_to = counter_to + siz1
+          cvweight(1:siz1) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          !###cv_ngi_short###
+          siz1 = cv_ngi_short
+          counter_from = counter_to + 1; counter_to = counter_to + siz1
+          cvweight_short(1:siz1) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+
+          !###scvngi###
+          siz1 = scvngi
+          counter_from = counter_to + 1; counter_to = counter_to + siz1
+          scvfeweigh(1:siz1) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+
+          !###sbcvngi###
+          siz1 = sbcvngi
+          counter_from = counter_to + 1; counter_to = counter_to + siz1
+          sbcvfeweigh(1:siz1) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+
+          !###cv_nloc###
+          siz1 = cv_nloc
+          counter_from = counter_to + 1; counter_to = counter_to + siz1
+          sele_overlap_scale(1:siz1) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+
+          !###STORE INTEGERS###
+          !###cv_nloc + 1###
+          siz1 = cv_nloc + 1
+          counter_from = 1; counter_to = siz1
+          findgpts(1:siz1) => state(1)%scalar_fields(indx)%ptr%mesh%ndglno(counter_from:counter_to)
+          !###cv_nloc * scvngi###
+          siz1 = cv_nloc * scvngi
+          counter_from = counter_to + 1; counter_to = counter_to + siz1
+          colgpts(1:siz1) => state(1)%scalar_fields(indx)%ptr%mesh%ndglno(counter_from:counter_to)
+          !###cv_nloc*scvngi section###
+          siz1 = cv_nloc;  siz2 = scvngi
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          cv_neiloc(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%mesh%ndglno(counter_from:counter_to)
+          !###nface*cv_snloc section###
+          siz1 = nface;  siz2 = cv_snloc
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          cv_sloclist(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%mesh%ndglno(counter_from:counter_to)
+          !###nface*u_snloc section###
+          siz1 = nface;  siz2 = u_snloc
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          u_sloclist(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%mesh%ndglno(counter_from:counter_to)
+          !###1###
+          siz1 = 1
+          counter_from = counter_to + 1; counter_to = counter_to + siz1
+          ncolgpts => state(1)%scalar_fields(indx)%ptr%mesh%ndglno(counter_from)
+          !Store logicals as integer since there are no data types to store logicals in state
+          !###u_nloc*scvngi section###
+          siz1 = u_nloc;  siz2 = scvngi
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          ptr_u_on_face(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%mesh%ndglno(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          ptr_ufem_on_face(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%mesh%ndglno(counter_from:counter_to)
+
+          !###cv_nloc*scvngi section###
+          siz1 = cv_nloc;  siz2 = scvngi
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          ptr_cv_on_face(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%mesh%ndglno(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          ptr_cvfem_on_face(1:siz1,1:siz2) =>state(1)%scalar_fields(indx)%ptr%mesh%ndglno(counter_from:counter_to)
+          if (recovering_values) then
+              !Recover logical values from integer storage...not the best way to store logicals...
+              !but in theory they take the same space
+              u_on_face = ptr_u_on_face
+              ufem_on_face = ptr_ufem_on_face
+              cv_on_face = ptr_cv_on_face
+              cvfem_on_face = ptr_cvfem_on_face
+          else
+              !Allocate local variables
+              allocate(cvn2( cv_nloc, cv_ngi ), cvn_short2( cv_nloc, cv_ngi_short ), cvweight2( cv_ngi ), cvfen2( cv_nloc, cv_ngi ),&
+              cvfenlx2( cv_nloc, cv_ngi ), cvfenly2( cv_nloc, cv_ngi ), cvfenlz2( cv_nloc, cv_ngi ), cvweight_short2( cv_ngi_short ),&
+              cvfen_short2( cv_nloc, cv_ngi_short ), cvfenlx_short2( cv_nloc, cv_ngi_short ),cvfenly_short2( cv_nloc, cv_ngi_short ), &
+              cvfenlz_short2( cv_nloc, cv_ngi_short ), ufen2( u_nloc, cv_ngi ), ufenlx2( u_nloc, cv_ngi ), ufenly2( u_nloc, cv_ngi ), &
+              ufenlz2( u_nloc, cv_ngi ), cv_neiloc2( cv_nloc, scvngi ),scvfen2( cv_nloc, scvngi ), scvfenslx2( cv_nloc, scvngi ), &
+              scvfensly2( cv_nloc, scvngi ), scvfeweigh2( scvngi ),scvfenlx2( cv_nloc, scvngi ), scvfenly2( cv_nloc, scvngi ),&
+              scvfenlz2( cv_nloc, scvngi ),  sufen2( u_nloc, scvngi ),sufenslx2( u_nloc, scvngi ), sufensly2( u_nloc, scvngi ),&
+              sufenlx2( u_nloc, scvngi ), sufenly2( u_nloc, scvngi ), sufenlz2( u_nloc, scvngi ), sbcvn2( cv_snloc, sbcvngi ),&
+              sbcvfen2( cv_snloc, sbcvngi ), sbcvfenslx2( cv_snloc, sbcvngi ), sbcvfensly2( cv_snloc, sbcvngi ),  sbcvfeweigh2( sbcvngi ),&
+              sbcvfenlx2( cv_snloc, sbcvngi ), sbcvfenly2( cv_snloc, sbcvngi ), sbcvfenlz2( cv_snloc, sbcvngi ), sbufen2( u_snloc, sbcvngi ),&
+              sbufenslx2( u_snloc, sbcvngi ), sbufensly2( u_snloc, sbcvngi ), sbufenlx2( u_snloc, sbcvngi ), sbufenly2( u_snloc, sbcvngi ), &
+              sbufenlz2( u_snloc, sbcvngi ), cv_sloclist2( nface, cv_snloc ),  u_sloclist2( nface, u_snloc ), findgpts2( cv_nloc + 1 ),&
+              colgpts2( cv_nloc * scvngi ), sele_overlap_scale2( cv_nloc ))
+          
+              findgpts2 = 0; colgpts2= 0; ncolgpts2 = 0
+          
+              call cv_fem_shape_funs( &
+              ndim, cv_ele_type, &
+              cv_ngi, cv_ngi_short, cv_nloc, u_nloc, cvn2, cvn_short2, &
+                                     ! Volume shape functions
+              cvweight2, cvfen2, cvfenlx2, cvfenly2, cvfenlz2, &
+              cvweight_short2, cvfen_short2, cvfenlx_short2, cvfenly_short2, cvfenlz_short2, &
+              ufen2, ufenlx2, ufenly2, ufenlz2, &
+                                     ! Surface of each CV shape functions
+              scvngi, cv_neiloc2, cv_on_face, cvfem_on_face, &
+              scvfen2, scvfenslx2, scvfensly2, scvfeweigh2, &
+              scvfenlx2, scvfenly2, scvfenlz2, &
+              sufen2, sufenslx2, sufensly2, &
+              sufenlx2, sufenly2, sufenlz2, &
+                                     ! Surface element shape funcs
+              u_on_face, ufem_on_face, nface, &
+              sbcvngi, sbcvn2, sbcvfen2, sbcvfenslx2, sbcvfensly2, sbcvfeweigh2, sbcvfenlx2, sbcvfenly2, sbcvfenlz2, &
+              sbufen2, sbufenslx2, sbufensly2, sbufenlx2, sbufenly2, sbufenlz2, &
+              cv_sloclist2, u_sloclist2, cv_snloc, u_snloc, &
+                                     ! Define the gauss points that lie on the surface of the CV
+              findgpts2, colgpts2, ncolgpts2, &
+              sele_overlap_scale2, QUAD_OVER_WHOLE_ELE)
+
+              !Store data into state
+              cvn = cvn2; cvn_short = cvn_short2; cvweight = cvweight2; cvfen = cvfen2;  cvfenlx = cvfenlx2;
+              cvfenly = cvfenly2; cvfenlz = cvfenlz2; cvweight_short = cvweight_short2
+              cvfen_short = cvfen_short2; cvfenlx_short = cvfenlx_short2; cvfenly_short = cvfenly_short2;
+              cvfenlz_short = cvfenlz_short2; ufen = ufen2; ufenlx = ufenlx2; ufenly = ufenly2; ufenlz = ufenlz2
+              cv_neiloc = cv_neiloc2; scvfen = scvfen2; scvfenslx = scvfenslx2; scvfensly = scvfensly2
+              scvfeweigh = scvfeweigh2; scvfenlx = scvfenlx2; scvfenly = scvfenly2; scvfenlz = scvfenlz2
+              sufen = sufen2; sufenslx = sufenslx2;  sufensly = sufensly2; sufenlx = sufenlx2;
+              sufenly = sufenly2; sufenlz = sufenlz2; sbcvn = sbcvn2; sbcvfen = sbcvfen2; sbcvfenslx = sbcvfenslx2;
+              sbcvfensly = sbcvfensly2; sbcvfeweigh = sbcvfeweigh2; sbcvfenlx = sbcvfenlx2; sbcvfenly = sbcvfenly2;
+              sbcvfenlz = sbcvfenlz2; sbufen = sbufen2; sbufenslx = sbufenslx2; sbufensly = sbufensly2;
+              sbufenlx = sbufenlx2; sbufenly = sbufenly2; sbufenlz = sbufenlz2; cv_sloclist = cv_sloclist2;
+              u_sloclist = u_sloclist2;findgpts = findgpts2; colgpts = colgpts2; ncolgpts = ncolgpts2;
+              sele_overlap_scale = sele_overlap_scale2
+              !Store logicals as integers into state
+              ptr_u_on_face = u_on_face
+              ptr_ufem_on_face = ufem_on_face
+              ptr_cv_on_face = cv_on_face
+              ptr_cvfem_on_face = cvfem_on_face
+
+              !deallocate local variables
+              deallocate(cvn2, cvn_short2, cvweight2, cvfen2,&
+              cvfenlx2, cvfenly2, cvfenlz2, cvweight_short2,&
+              cvfen_short2, cvfenlx_short2,cvfenly_short2, &
+              cvfenlz_short2, ufen2, ufenlx2, ufenly2, &
+              ufenlz2, cv_neiloc2,scvfen2, scvfenslx2, &
+              scvfensly2, scvfeweigh2, scvfenlx2, scvfenly2, &
+              scvfenlz2,  sufen2, sufenslx2, sufensly2, &
+              sufenlx2, sufenly2, sufenlz2, sbcvn2,&
+              sbcvfen2, sbcvfenslx2, sbcvfensly2,  sbcvfeweigh2,&
+              sbcvfenlx2, sbcvfenly2, sbcvfenlz2, sbufen2,&
+              sbufenslx2, sbufensly2, sbufenlx2, sbufenly2, &
+              sbufenlz2, cv_sloclist2,  u_sloclist2, findgpts2,&
+              colgpts2, sele_overlap_scale2)
+
+          end if
+    end subroutine
 
 
     subroutine cv_fem_shape_funs( &
@@ -1572,10 +1953,10 @@
          cv_sloclist, u_sloclist, cv_snloc, u_snloc, &
                                 ! Define the gauss points that lie on the surface of the CV
          findgpts, colgpts, ncolgpts, &
-         sele_overlap_scale, QUAD_OVER_WHOLE_ELE ) 
+         sele_overlap_scale, QUAD_OVER_WHOLE_ELE )
       ! This subrt defines the sub-control volume and FEM shape functions.
-      ! Shape functions associated with volume integration using both CV basis 
-      ! functions CVN as well as FEM basis functions CVFEN (and its derivatives 
+      ! Shape functions associated with volume integration using both CV basis
+      ! functions CVN as well as FEM basis functions CVFEN (and its derivatives
       ! CVFENLX, CVFENLY, CVFENLZ)
       implicit none
       integer, intent( in ) :: ndim, cv_ele_type, cv_ngi, cv_ngi_short, cv_nloc, u_nloc
@@ -1615,12 +1996,12 @@
       ! Local variables
       logical, dimension( :, : ), allocatable :: u_on_face2, ufem_on_face2
       integer, dimension( :, : ), allocatable :: u_sloclist2
-      real, dimension( :, : ), allocatable :: ufen2, ufenlx2, ufenly2, ufenlz2, & 
+      real, dimension( :, : ), allocatable :: ufen2, ufenlx2, ufenly2, ufenlz2, &
            sufen2, sufenslx2, sufensly2, sufenlx2, sufenly2, sufenlz2, &
-           sbufen2, sbufenslx2, sbufensly2, sbufenlx2, sbufenly2, sbufenlz2 
+           sbufen2, sbufenslx2, sbufensly2, sbufenlx2, sbufenly2, sbufenlz2
       real, dimension( :, : ), allocatable :: M,MLX,MLY,MLZ, sm,SMLX,SMLY
-      character( len = option_path_len ) :: overlapping_path, dummy_path, dummypath2 
-      logical :: is_overlapping   
+      character( len = option_path_len ) :: overlapping_path, dummy_path, dummypath2
+      logical :: is_overlapping
       integer :: u_nloc2, ilev, ilev2, u_snloc2, u_ele_type2, gi, MLOC, SMLOC
       integer :: sgi, cv_siloc, cv_skloc
       real :: rmax
@@ -2035,7 +2416,7 @@ ewrite(3,*)'lll:', option_path_len
       !ewrite(3,*) 'leaving cv_fem_shape_funs subrt, ncolgpts', ncolgpts
       !ewrite(3,*) '----sum(cvweight):',sum(cvweight)
 
-    
+
       deallocate( m, mlx, mly, mlz, sm, smlx, smly )
 
       return
