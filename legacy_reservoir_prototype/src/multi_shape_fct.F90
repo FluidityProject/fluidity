@@ -1553,19 +1553,19 @@
          ndim, cv_ele_type, &
          cv_ngi, cv_ngi_short, cv_nloc, u_nloc, cvn, cvn_short, &
                                 ! Volume shape functions
-         cvweight, cvfen, cvfenlx, cvfenly, cvfenlz, &
-         cvweight_short, cvfen_short, cvfenlx_short, cvfenly_short, cvfenlz_short, &
-         ufen, ufenlx, ufenly, ufenlz, &
+         cvweight, cvfen, cvfenlx_all, &
+         cvweight_short, cvfen_short, cvfenlx_short_all, &
+         ufen, ufenlx_all, &
                                 ! Surface of each CV shape functions
          scvngi, cv_neiloc, cv_on_face, cvfem_on_face, &
          scvfen, scvfenslx, scvfensly, scvfeweigh, &
-         scvfenlx, scvfenly, scvfenlz, &
+         scvfenlx_all, &
          sufen, sufenslx, sufensly, &
-         sufenlx, sufenly, sufenlz, &
+         sufenlx_all, &
                                 ! Surface element shape funcs
          u_on_face, ufem_on_face, nface, &
-         sbcvngi, sbcvn, sbcvfen, sbcvfenslx, sbcvfensly, sbcvfeweigh, sbcvfenlx, sbcvfenly, sbcvfenlz, &
-         sbufen, sbufenslx, sbufensly, sbufenlx, sbufenly, sbufenlz, &
+         sbcvngi, sbcvn, sbcvfen, sbcvfenslx, sbcvfensly, sbcvfeweigh, sbcvfenlx_all, &
+         sbufen, sbufenslx, sbufensly, sbufenlx_all, &
          cv_sloclist, u_sloclist, cv_snloc, u_snloc, &
                                 ! Define the gauss points that lie on the surface of the CV
          findgpts, colgpts, ncolgpts, &
@@ -1578,19 +1578,23 @@
       real, dimension( : , : ), pointer,  intent( inout ) :: cvn ! dimension( cv_nloc, cv_ngi )
       real, dimension(  : , : ),pointer, intent( inout ) :: cvn_short!dimension( cv_nloc, cv_ngi_short )
       real, dimension( : ), pointer,intent( inout ) :: cvweight!dimension( cv_ngi )
-      real, dimension(  : , : ), pointer,intent( inout ) :: cvfen, cvfenlx, cvfenly, cvfenlz!dimension( cv_nloc, cv_ngi )
+      real, dimension(  : , : ), pointer,intent( inout ) :: cvfen!dimension( cv_nloc, cv_ngi )
+      real, dimension(  : , : , :), pointer,intent( inout ) ::  cvfenlx_all!dimension( ndim, cv_nloc, cv_ngi )
       real, dimension( : ), pointer,intent( inout ) :: cvweight_short!dimension( cv_ngi_short )
-      real, dimension(  : , : ),pointer, intent( inout ) :: cvfen_short, cvfenlx_short, &!dimension( cv_nloc, cv_ngi_short )
-           cvfenly_short, cvfenlz_short
-      real, dimension(  : , : ), pointer,intent( inout ) :: ufen, ufenlx, ufenly, ufenlz!dimension( u_nloc, cv_ngi )
+      real, dimension(  : , : ),pointer, intent( inout ) :: cvfen_short!dimension( cv_nloc, cv_ngi_short )
+      real, dimension(  : , :,: ),pointer, intent( inout ) :: cvfenlx_short_all!dimension(ndim, cv_nloc, cv_ngi_short )
+
+      real, dimension(  : , : ), pointer,intent( inout ) :: ufen!dimension( u_nloc, cv_ngi )
+      real, dimension(  : , :,: ), pointer,intent( inout ) :: ufenlx_all!dimension( ndim, u_nloc, cv_ngi )
+
       integer, intent( in ) :: scvngi
       integer, dimension(  : , : ), pointer,intent( inout ) :: cv_neiloc!dimension( cv_nloc, scvngi )
       logical, dimension(  : , : ),intent( inout ) :: cv_on_face, cvfem_on_face!dimension( cv_nloc, scvngi )
       real, dimension(  : , : ), pointer,intent( inout ) :: scvfen, scvfenslx, scvfensly!dimension( cv_nloc, scvngi )
       real, dimension( : ), pointer,intent( inout ) :: scvfeweigh!dimension( scvngi )
-      real, dimension(  : , : ),pointer, intent( inout ) :: scvfenlx, scvfenly, scvfenlz!dimension( cv_nloc, scvngi )
-      real, dimension(  : , : ),pointer, intent( inout ) :: sufen, sufenslx, sufensly, sufenlx, &!dimension( u_nloc, scvngi )
-           sufenly, sufenlz
+      real, dimension(  : , : ,: ),pointer, intent( inout ) :: scvfenlx_all!dimension( ndim, cv_nloc, scvngi )
+      real, dimension(  : , : ),pointer, intent( inout ) :: sufen, sufenslx, sufensly!dimension( u_nloc, scvngi )
+      real, dimension(  : , :, : ),pointer, intent( inout ) :: sufenlx_all !dimension( ndim, u_nloc, scvngi )
       logical, dimension(  : , : ), intent( inout ) :: u_on_face, ufem_on_face!dimension( u_nloc, scvngi )
       integer, intent( in ) :: nface, sbcvngi
       logical, intent( in ) :: QUAD_OVER_WHOLE_ELE
@@ -1598,10 +1602,10 @@
       real, dimension(  : , : ),pointer, intent( inout ) :: sbcvn!dimension( cv_snloc, sbcvngi )
       real, dimension(  : , : ),pointer, intent( inout ) :: sbcvfen, sbcvfenslx, sbcvfensly! dimension( cv_snloc, sbcvngi )
       real, dimension( : ),pointer, intent( inout ) :: sbcvfeweigh!dimension( sbcvngi )
-      real, dimension(  : , : ), pointer,intent( inout ) :: sbcvfenlx, sbcvfenly, sbcvfenlz!dimension( cv_snloc, sbcvngi )
+      real, dimension(  : , :, : ), pointer,intent( inout ) :: sbcvfenlx_all!dimension( ndim, cv_snloc, sbcvngi )
       integer, intent( in ) :: cv_snloc, u_snloc
-      real, dimension(  : , : ),pointer, intent( inout ) :: sbufen, sbufenslx, sbufensly, &!dimension( u_snloc, sbcvngi )
-           sbufenlx, sbufenly, sbufenlz
+      real, dimension(  : , : ),pointer, intent( inout ) :: sbufen, sbufenslx, sbufensly!dimension( u_snloc, sbcvngi )
+      real, dimension(  : , :,: ),pointer, intent( inout ) :: sbufenlx_all !dimension( ndim, u_snloc, sbcvngi )
       integer, dimension(  : , : ), pointer,intent( inout ) :: cv_sloclist!dimension( nface, cv_snloc )
       integer, dimension(  : , : ),pointer, intent( inout ) :: u_sloclist!dimension( nface, u_snloc )
       integer, dimension( : ),pointer, intent( inout ) :: findgpts!dimension( cv_nloc + 1 )
@@ -1669,9 +1673,9 @@
           fl_mesh => extract_mesh( state(1), "CoordinateMesh" )
           Auxmesh = fl_mesh
           !The number of nodes I want does not coincide
-          Auxmesh%nodes = CV_NLOC*CV_NGI*5 + CV_NLOC*CV_NGI_SHORT*5 + CV_NGI + CV_NGI_SHORT +&
-           SCVNGI + SBCVNGI + U_NLOC*CV_NGI * 4 + CV_NLOC * SCVNGI * 6+ U_NLOC*SCVNGI * 6 + &
-           CV_SNLOC * SBCVNGI * 7 + U_SNLOC * SBCVNGI * 6 + CV_NLOC
+          Auxmesh%nodes = CV_NLOC*CV_NGI*(2+ndim) + CV_NLOC*CV_NGI_SHORT*(2+ndim) + CV_NGI + CV_NGI_SHORT +&
+           SCVNGI + SBCVNGI + U_NLOC*CV_NGI * (1+ndim) + CV_NLOC * SCVNGI * (3+ndim)+ U_NLOC*SCVNGI * (3+ndim) + &
+           CV_SNLOC * SBCVNGI * (4+ndim) + U_SNLOC * SBCVNGI * (3+ndim) + CV_NLOC
 
           call allocate (targ_Storage, Auxmesh)
           !Prepare room to store integers and logicals
@@ -1691,35 +1695,23 @@
           cvn(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
           counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
           cvfen(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
-          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
-          cvfenlx(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
-          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
-          cvfenly(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
-          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
-          cvfenlz(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2*ndim
+          cvfenlx_all(1:ndim,1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
           !###cv_nloc*cv_ngi_short section###
           siz1 = cv_nloc;  siz2 = cv_ngi_short
           counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
           cvn_short(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
           counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
           cvfen_short(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
-          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
-          cvfenlx_short(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
-          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
-          cvfenly_short(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
-          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
-          cvfenlz_short(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2*ndim
+          cvfenlx_short_all(1:ndim,1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
 
           !###u_nloc*cv_ngi section###
           siz1 = u_nloc;  siz2 = cv_ngi
           counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
           ufen(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
-          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
-          ufenlx(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
-          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
-          ufenly(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
-          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
-          ufenlz(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2*ndim
+          ufenlx_all(1:ndim, 1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
 
           !###cv_nloc*scvngi section###
           siz1 = cv_nloc;  siz2 = scvngi
@@ -1729,12 +1721,8 @@
           scvfenslx(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
           counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
           scvfensly(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
-          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
-          scvfenlx(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
-          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
-          scvfenly(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
-          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
-          scvfenlz(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2*ndim
+          scvfenlx_all(1:ndim,1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
 
           !###u_nloc*scvngi section###
           siz1 = u_nloc;  siz2 = scvngi
@@ -1744,12 +1732,8 @@
           sufenslx(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
           counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
           sufensly(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
-          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
-          sufenlx(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
-          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
-          sufenly(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
-          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
-          sufenlz(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2*ndim
+          sufenlx_all(1:ndim,1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
 
           !###cv_snloc*sbcvngi section###
           siz1 = cv_snloc;  siz2 = sbcvngi
@@ -1761,12 +1745,8 @@
           sbcvfenslx(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
           counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
           sbcvfensly(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
-          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
-          sbcvfenlx(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
-          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
-          sbcvfenly(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
-          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
-          sbcvfenlz(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2*ndim
+          sbcvfenlx_all(1:ndim,1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
 
           !###u_snloc*sbcvngi section###
           siz1 = u_snloc;  siz2 = sbcvngi
@@ -1776,12 +1756,8 @@
           sbufenslx(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
           counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
           sbufensly(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
-          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
-          sbufenlx(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
-          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
-          sbufenly(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
-          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
-          sbufenlz(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2*ndim
+          sbufenlx_all(1:ndim,1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
 
           !###cv_ngi###
           siz1 = cv_ngi
@@ -1894,19 +1870,36 @@
               sele_overlap_scale2, QUAD_OVER_WHOLE_ELE)
 
               !Store data into state
-              cvn = cvn2; cvn_short = cvn_short2; cvweight = cvweight2; cvfen = cvfen2;  cvfenlx = cvfenlx2;
-              cvfenly = cvfenly2; cvfenlz = cvfenlz2; cvweight_short = cvweight_short2
-              cvfen_short = cvfen_short2; cvfenlx_short = cvfenlx_short2; cvfenly_short = cvfenly_short2;
-              cvfenlz_short = cvfenlz_short2; ufen = ufen2; ufenlx = ufenlx2; ufenly = ufenly2; ufenlz = ufenlz2
+              cvn = cvn2; cvn_short = cvn_short2; cvweight = cvweight2; cvfen = cvfen2;
+              cvweight_short = cvweight_short2; cvfen_short = cvfen_short2; ufen = ufen2;
               cv_neiloc = cv_neiloc2; scvfen = scvfen2; scvfenslx = scvfenslx2; scvfensly = scvfensly2
-              scvfeweigh = scvfeweigh2; scvfenlx = scvfenlx2; scvfenly = scvfenly2; scvfenlz = scvfenlz2
-              sufen = sufen2; sufenslx = sufenslx2;  sufensly = sufensly2; sufenlx = sufenlx2;
-              sufenly = sufenly2; sufenlz = sufenlz2; sbcvn = sbcvn2; sbcvfen = sbcvfen2; sbcvfenslx = sbcvfenslx2;
-              sbcvfensly = sbcvfensly2; sbcvfeweigh = sbcvfeweigh2; sbcvfenlx = sbcvfenlx2; sbcvfenly = sbcvfenly2;
-              sbcvfenlz = sbcvfenlz2; sbufen = sbufen2; sbufenslx = sbufenslx2; sbufensly = sbufensly2;
-              sbufenlx = sbufenlx2; sbufenly = sbufenly2; sbufenlz = sbufenlz2; cv_sloclist = cv_sloclist2;
-              u_sloclist = u_sloclist2;findgpts = findgpts2; colgpts = colgpts2; ncolgpts = ncolgpts2;
+              scvfeweigh = scvfeweigh2; sufen = sufen2; sufenslx = sufenslx2;  sufensly = sufensly2;
+              sbcvn = sbcvn2; sbcvfen = sbcvfen2; sbcvfenslx = sbcvfenslx2; sbcvfensly = sbcvfensly2;
+              sbcvfeweigh = sbcvfeweigh2; sbufen = sbufen2; sbufenslx = sbufenslx2;
+              sbufensly = sbufensly2; cv_sloclist = cv_sloclist2; u_sloclist = u_sloclist2;
+              findgpts = findgpts2; colgpts = colgpts2; ncolgpts = ncolgpts2;
               sele_overlap_scale = sele_overlap_scale2
+
+              !Store only the necessary dimensions
+              cvfenlx_all(1,:,:) = cvfenlx2; cvfenlx_short_all(1,:,:) = cvfenlx_short2
+              ufenlx_all(1,:,:) = ufenlx2; scvfenlx_all(1,:,:) = scvfenlx2;
+              sufenlx_all(1,:,:) = sufenlx2;  sbcvfenlx_all(1,:,:) = sbcvfenlx2
+              sbufenlx_all(1,:,:) = sbufenlx2
+              if (ndim >=2) then
+                  cvfenlx_all(2,:,:) = cvfenly2; cvfenlx_short_all(2,:,:) = cvfenly_short2
+                  ufenlx_all(2,:,:) = ufenly2; scvfenlx_all(2,:,:) = scvfenly2
+                  sufenlx_all(2,:,:) = sufenly2; sbcvfenlx_all(2,:,:) = sbcvfenly2
+                  sbufenlx_all(2,:,:) = sbufenly2
+              end if
+
+              if (ndim ==3) then
+                  cvfenlx_all(3,:,:) = cvfenlz2; cvfenlx_short_all(3,:,:) = cvfenlz_short2
+                  ufenlx_all(3,:,:) = ufenlz2; scvfenlx_all(3,:,:) = scvfenlz2
+                  sufenlx_all(3,:,:) = sufenlz2;  sbcvfenlx_all(3,:,:) = sbcvfenlz2
+                  sbufenlx_all(3,:,:) = sbufenlz2
+              end if
+
+
               !Store logicals as integers into state
               ptr_u_on_face = u_on_face
               ptr_ufem_on_face = ufem_on_face
@@ -8034,9 +8027,9 @@ ewrite(3,*)'lll:', option_path_len
       type(scalar_field), target :: targ_DETWEI_RA
       type(scalar_field), target :: targ_VOLUME
       !#########Storing area#################################
-      !****TEMPORARY****
-      NDIM = 3
-      !********************
+      NDIM = 2
+      if (D1) ndim =1
+      if (D3) ndim = 3
       !If new mesh or mesh moved indx will be zero (set in Multiphase_TimeLoop)
       if (indx>0) then!Everything has been calculated already
           !Get from state, indx is an input
@@ -8104,145 +8097,142 @@ ewrite(3,*)'lll:', option_path_len
 
       VOLUME = 0.
 
-      Conditional_D3: IF( D3 ) THEN
-         Loop_GI1: DO GI = 1, NGI
+      select case (ndim)
+          case (1)
+              Loop_GI14: DO GI = 1, NGI
 
-            AGI = 0.
-            BGI = 0.
-            CGI = 0.
-            DGI = 0.
-            EGI = 0.
-            FGI = 0.
-            GGI = 0.
-            HGI = 0.
-            KGI = 0.
+                  AGI = 0.
 
-            Loop_L1: DO L = 1, X_NLOC ! NB R0 does not appear here although the z-coord might be Z+R0.
-               IGLX = XONDGL(( ELE - 1 ) * X_NLOC + L)
+                  Loop_L15: DO L = 1, X_NLOC
+                      IGLX = XONDGL(( ELE - 1 ) * X_NLOC + L )
+                      AGI = AGI + NLX( L, GI ) * X( IGLX )
+                  END DO Loop_L15
 
-               AGI = AGI + NLX( L, GI) * X( IGLX ) 
-               BGI = BGI + NLX( L, GI) * Y( IGLX ) 
-               CGI = CGI + NLX( L, GI) * Z( IGLX ) 
-               DGI = DGI + NLY( L, GI) * X( IGLX ) 
-               EGI = EGI + NLY( L, GI) * Y( IGLX ) 
-               FGI = FGI + NLY( L, GI) * Z( IGLX ) 
-               GGI = GGI + NLZ( L, GI) * X( IGLX ) 
-               HGI = HGI + NLZ( L, GI) * Y( IGLX ) 
-               KGI = KGI + NLZ( L, GI) * Z( IGLX )
-            END DO Loop_L1
+                  DETJ = AGI
+                  RA( GI ) = 1.0
+                  DETWEI( GI ) = ABS(DETJ) * WEIGHT( GI )
+                  VOLUME = VOLUME + DETWEI( GI )
 
-            DETJ = AGI * ( EGI * KGI - FGI * HGI ) &
-                 -BGI * ( DGI * KGI - FGI * GGI ) &
-                 +CGI * ( DGI * HGI - EGI * GGI )
-            DETWEI( GI ) = ABS( DETJ ) * WEIGHT( GI )
-            RA( GI ) = 1.0
-            VOLUME = VOLUME + DETWEI( GI )
+                  Loop_L16: DO L = 1, X_NLOC
+                      NX_ALL(1, L, GI ) = NLX( L, GI ) / DETJ
+!                      NX_ALL(2, L, GI ) = 0.0
+!                      NX_ALL(3, L, GI ) = 0.0
+                  END DO Loop_L16
 
-            ! For coefficient in the inverse mat of the jacobian. 
-            A11=   ( EGI * KGI - FGI * HGI ) / DETJ
-            A21= - ( DGI * KGI - FGI * GGI ) / DETJ
-            A31=   ( DGI * HGI - EGI * GGI ) / DETJ
-            A12= - ( BGI * KGI - CGI * HGI ) / DETJ
-            A22=   ( AGI * KGI - CGI * GGI ) / DETJ
-            A32= - ( AGI * HGI - BGI * GGI ) / DETJ
-            A13=   ( BGI * FGI - CGI * EGI ) / DETJ
-            A23= - ( AGI * FGI - CGI * DGI ) / DETJ
-            A33=   ( AGI * EGI - BGI * DGI ) / DETJ
+                  Loop_L17: DO L = 1, U_NLOC
+                      UNX_ALL(1, L, GI ) = UNLX( L, GI ) / DETJ
+!                      UNX_ALL(2, L, GI ) = 0.0
+!                      UNX_ALL(3, L, GI ) = 0.0
+                  END DO Loop_L17
 
-            Loop_L2: DO L = 1, X_NLOC
-               NX_ALL(1, L, GI ) = A11 * NLX( L, GI) + A12 * NLY( L, GI ) + A13 * NLZ( L, GI )
-               NX_ALL(2, L, GI ) = A21 * NLX( L, GI) + A22 * NLY( L, GI ) + A23 * NLZ( L, GI )
-               NX_ALL(3, L, GI ) = A31 * NLX( L, GI) + A32 * NLY( L, GI ) + A33 * NLZ( L, GI )
-            END DO Loop_L2
+              END DO Loop_GI14
+          case (2)
+              TWOPIE = 1.0
+              IF( DCYL ) TWOPIE = 2. * PIE
+              !rsum=0.0
 
-            Loop_L3: DO L = 1, U_NLOC
-               UNX_ALL(1, L, GI ) = A11 * UNLX( L, GI) + A12 * UNLY( L, GI ) + A13 * UNLZ( L, GI )
-               UNX_ALL(2, L, GI ) = A21 * UNLX( L, GI) + A22 * UNLY( L, GI ) + A23 * UNLZ( L, GI )
-               UNX_ALL(3, L, GI ) = A31 * UNLX( L, GI) + A32 * UNLY( L, GI ) + A33 * UNLZ( L, GI )
-            END DO Loop_L3
+              Loop_GI2: DO GI = 1, NGI
 
-         END DO Loop_GI1
+                  RGI = 0.
+                  AGI = 0.
+                  BGI = 0.
+                  CGI = 0.
+                  DGI = 0.
 
-      ELSE IF(.NOT.D1) THEN
+                  Loop_L4: DO L = 1, X_NLOC
+                      IGLX = XONDGL(( ELE - 1 ) * X_NLOC + L )
+                      AGI = AGI + NLX( L, GI ) * X( IGLX )
+                      BGI = BGI + NLX( L, GI ) * Y( IGLX )
+                      CGI = CGI + NLY( L, GI ) * X( IGLX )
+                      DGI = DGI + NLY( L, GI ) * Y( IGLX )
+                      RGI = RGI + N( L, GI ) * Y( IGLX )
+                     !  print *,'l,gi,IGLX,X( IGLX ),Y( IGLX ):',l,gi,IGLX,X( IGLX ),Y( IGLX )
+                     !  print *,'agi,bgi,cgi,dgi,rgi:',agi,bgi,cgi,dgi,rgi
+                     !  print *,'NLX( L, GI ),NLY( L, GI ):',NLX( L, GI ),NLY( L, GI )
+                  END DO Loop_L4
 
-         TWOPIE = 1.0 
-         IF( DCYL ) TWOPIE = 2. * PIE
-         !rsum=0.0
+                  IF( .NOT. DCYL ) RGI = 1.0
 
-         Loop_GI2: DO GI = 1, NGI
+                  DETJ = AGI * DGI - BGI * CGI
+                  RA( GI ) = RGI
+                  DETWEI( GI ) = TWOPIE * RGI * ABS(DETJ) * WEIGHT( GI )
+                  VOLUME = VOLUME + DETWEI( GI )
 
-            RGI = 0.
-            AGI = 0.
-            BGI = 0.
-            CGI = 0.
-            DGI = 0.
-
-            Loop_L4: DO L = 1, X_NLOC
-               IGLX = XONDGL(( ELE - 1 ) * X_NLOC + L )
-               AGI = AGI + NLX( L, GI ) * X( IGLX ) 
-               BGI = BGI + NLX( L, GI ) * Y( IGLX ) 
-               CGI = CGI + NLY( L, GI ) * X( IGLX ) 
-               DGI = DGI + NLY( L, GI ) * Y( IGLX ) 
-               RGI = RGI + N( L, GI ) * Y( IGLX )
-               !  print *,'l,gi,IGLX,X( IGLX ),Y( IGLX ):',l,gi,IGLX,X( IGLX ),Y( IGLX )
-               !  print *,'agi,bgi,cgi,dgi,rgi:',agi,bgi,cgi,dgi,rgi                                       
-               !  print *,'NLX( L, GI ),NLY( L, GI ):',NLX( L, GI ),NLY( L, GI )
-            END DO Loop_L4
-
-            IF( .NOT. DCYL ) RGI = 1.0
-
-            DETJ = AGI * DGI - BGI * CGI 
-            RA( GI ) = RGI
-            DETWEI( GI ) = TWOPIE * RGI * ABS(DETJ) * WEIGHT( GI )
-            VOLUME = VOLUME + DETWEI( GI )
-
-            Loop_L5: DO L = 1, X_NLOC
-               NX_ALL(1, L, GI ) = (  DGI * NLX( L, GI ) - BGI * NLY( L, GI )) / DETJ
-               NX_ALL(2, L, GI ) = ( -CGI * NLX( L, GI ) + AGI * NLY( L, GI )) / DETJ
-               NX_ALL(3,L, GI ) = 0.0
-            END DO Loop_L5
+                  Loop_L5: DO L = 1, X_NLOC
+                      NX_ALL(1, L, GI ) = (  DGI * NLX( L, GI ) - BGI * NLY( L, GI )) / DETJ
+                      NX_ALL(2, L, GI ) = ( -CGI * NLX( L, GI ) + AGI * NLY( L, GI )) / DETJ
+!                      NX_ALL(3,L, GI ) = 0.0
+                  END DO Loop_L5
 
 
-            Loop_L6: DO L = 1, U_NLOC
-               UNX_ALL(1, L, GI ) = (  DGI * UNLX( L, GI ) - BGI * UNLY( L, GI )) / DETJ
-               UNX_ALL(2,L, GI ) = ( -CGI * UNLX( L, GI ) + AGI * UNLY( L, GI )) / DETJ
-               UNX_ALL(3, L, GI ) = 0.0
-            END DO Loop_L6
+                  Loop_L6: DO L = 1, U_NLOC
+                      UNX_ALL(1, L, GI ) = (  DGI * UNLX( L, GI ) - BGI * UNLY( L, GI )) / DETJ
+                      UNX_ALL(2,L, GI ) = ( -CGI * UNLX( L, GI ) + AGI * UNLY( L, GI )) / DETJ
+!                      UNX_ALL(3, L, GI ) = 0.0
+                  END DO Loop_L6
 
-         END DO Loop_GI2
+              END DO Loop_GI2
 
-         !ewrite(3,*)'ngi,sum(weight),rsum:',ngi,sum(weight),rsum
+          !ewrite(3,*)'ngi,sum(weight),rsum:',ngi,sum(weight),rsum
+          case default
+              Loop_GI1: DO GI = 1, NGI
 
-      ELSE ! FOR 1D...
+                  AGI = 0.
+                  BGI = 0.
+                  CGI = 0.
+                  DGI = 0.
+                  EGI = 0.
+                  FGI = 0.
+                  GGI = 0.
+                  HGI = 0.
+                  KGI = 0.
 
-         Loop_GI14: DO GI = 1, NGI
+                  Loop_L1: DO L = 1, X_NLOC ! NB R0 does not appear here although the z-coord might be Z+R0.
+                      IGLX = XONDGL(( ELE - 1 ) * X_NLOC + L)
 
-            AGI = 0.
+                      AGI = AGI + NLX( L, GI) * X( IGLX )
+                      BGI = BGI + NLX( L, GI) * Y( IGLX )
+                      CGI = CGI + NLX( L, GI) * Z( IGLX )
+                      DGI = DGI + NLY( L, GI) * X( IGLX )
+                      EGI = EGI + NLY( L, GI) * Y( IGLX )
+                      FGI = FGI + NLY( L, GI) * Z( IGLX )
+                      GGI = GGI + NLZ( L, GI) * X( IGLX )
+                      HGI = HGI + NLZ( L, GI) * Y( IGLX )
+                      KGI = KGI + NLZ( L, GI) * Z( IGLX )
+                  END DO Loop_L1
 
-            Loop_L15: DO L = 1, X_NLOC
-               IGLX = XONDGL(( ELE - 1 ) * X_NLOC + L )
-               AGI = AGI + NLX( L, GI ) * X( IGLX ) 
-            END DO Loop_L15
+                  DETJ = AGI * ( EGI * KGI - FGI * HGI ) &
+                  -BGI * ( DGI * KGI - FGI * GGI ) &
+                  +CGI * ( DGI * HGI - EGI * GGI )
+                  DETWEI( GI ) = ABS( DETJ ) * WEIGHT( GI )
+                  RA( GI ) = 1.0
+                  VOLUME = VOLUME + DETWEI( GI )
 
-            DETJ = AGI 
-            RA( GI ) = 1.0
-            DETWEI( GI ) = ABS(DETJ) * WEIGHT( GI )
-            VOLUME = VOLUME + DETWEI( GI )
+                  ! For coefficient in the inverse mat of the jacobian.
+                  A11=   ( EGI * KGI - FGI * HGI ) / DETJ
+                  A21= - ( DGI * KGI - FGI * GGI ) / DETJ
+                  A31=   ( DGI * HGI - EGI * GGI ) / DETJ
+                  A12= - ( BGI * KGI - CGI * HGI ) / DETJ
+                  A22=   ( AGI * KGI - CGI * GGI ) / DETJ
+                  A32= - ( AGI * HGI - BGI * GGI ) / DETJ
+                  A13=   ( BGI * FGI - CGI * EGI ) / DETJ
+                  A23= - ( AGI * FGI - CGI * DGI ) / DETJ
+                  A33=   ( AGI * EGI - BGI * DGI ) / DETJ
 
-            Loop_L16: DO L = 1, X_NLOC
-               NX_ALL(1, L, GI ) = NLX( L, GI ) / DETJ
-               NX_ALL(2, L, GI ) = 0.0
-               NX_ALL(3, L, GI ) = 0.0
-            END DO Loop_L16
+                  Loop_L2: DO L = 1, X_NLOC
+                      NX_ALL(1, L, GI ) = A11 * NLX( L, GI) + A12 * NLY( L, GI ) + A13 * NLZ( L, GI )
+                      NX_ALL(2, L, GI ) = A21 * NLX( L, GI) + A22 * NLY( L, GI ) + A23 * NLZ( L, GI )
+                      NX_ALL(3, L, GI ) = A31 * NLX( L, GI) + A32 * NLY( L, GI ) + A33 * NLZ( L, GI )
+                  END DO Loop_L2
 
-            Loop_L17: DO L = 1, U_NLOC
-               UNX_ALL(1, L, GI ) = UNLX( L, GI ) / DETJ
-               UNX_ALL(2, L, GI ) = 0.0
-               UNX_ALL(3, L, GI ) = 0.0
-            END DO Loop_L17
+                  Loop_L3: DO L = 1, U_NLOC
+                      UNX_ALL(1, L, GI ) = A11 * UNLX( L, GI) + A12 * UNLY( L, GI ) + A13 * UNLZ( L, GI )
+                      UNX_ALL(2, L, GI ) = A21 * UNLX( L, GI) + A22 * UNLY( L, GI ) + A23 * UNLZ( L, GI )
+                      UNX_ALL(3, L, GI ) = A31 * UNLX( L, GI) + A32 * UNLY( L, GI ) + A33 * UNLZ( L, GI )
+                  END DO Loop_L3
 
-         END DO Loop_GI14
-      ENDIF Conditional_D3
+              END DO Loop_GI1
+      end select
 
       RETURN
     END SUBROUTINE DETNLXR_PLUS_U

@@ -1337,14 +1337,15 @@
 
 
     SUBROUTINE DETNLXR_INVJAC( ELE, X_ALL, XONDGL, TOTELE, NONODS, NLOC, NGI, &
-         N, NLX, NLY, NLZ, WEIGHT, DETWEI, RA, VOLUME, DCYL, &
+         N, NLX_ALL, WEIGHT, DETWEI, RA, VOLUME, DCYL, &
          NX_ALL,&
          NDIM, INV_JAC, state, StorName, indx )
       IMPLICIT NONE
       INTEGER, intent( in ) :: ELE, TOTELE, NONODS, NLOC, NGI, NDIM
       INTEGER, DIMENSION( : ) :: XONDGL
       REAL, DIMENSION( :, : ), intent( in ) :: X_ALL!dimension(NDIM,size(XONDGL) )
-      REAL, DIMENSION( :, : ), intent( in ) :: N, NLX, NLY, NLZ
+      REAL, DIMENSION( :, : ), intent( in ) :: N
+      REAL, DIMENSION( :, :, : ), intent( in ) :: NLX_ALL
       REAL, DIMENSION( : ), intent( in ) :: WEIGHT
       LOGICAL, intent( in ) :: DCYL
       REAL,pointer,  intent( inout ) :: VOLUME
@@ -1445,7 +1446,7 @@
                   !
                   do  L = 1, NLOC
                       IGLX = XONDGL(( ELE - 1 ) * NLOC + L )
-                      AGI = AGI + NLX( L, GI ) * X_ALL(1, IGLX )
+                      AGI = AGI + NLX_ALL(1, L, GI ) * X_ALL(1, IGLX )
                   end do
                   !
                   DETJ = AGI
@@ -1453,7 +1454,7 @@
                   VOLUME = VOLUME + DETWEI( GI )
                   !
                   do L = 1, NLOC
-                      NX_ALL(1, L, GI ) = NLX( L, GI ) / DETJ
+                      NX_ALL(1, L, GI ) = NLX_ALL(1, L, GI ) / DETJ
                   !               NX_ALL(2, L, GI ) = 0.0
                   !               NX_ALL(3, L, GI ) = 0.0
                   END DO
@@ -1476,10 +1477,10 @@
                   do  L=1,NLOC! Was loop 179
                       IGLX=XONDGL((ELE-1)*NLOC+L)
 
-                      AGI=AGI + NLX(L,GI)*X_ALL(1,IGLX)
-                      BGI=BGI + NLX(L,GI)*X_ALL(2,IGLX)
-                      CGI=CGI + NLY(L,GI)*X_ALL(1,IGLX)
-                      DGI=DGI + NLY(L,GI)*X_ALL(2,IGLX)
+                      AGI=AGI + NLX_ALL(1,L,GI)*X_ALL(1,IGLX)
+                      BGI=BGI + NLX_ALL(1,L,GI)*X_ALL(2,IGLX)
+                      CGI=CGI + NLX_ALL(2,L,GI)*X_ALL(1,IGLX)
+                      DGI=DGI + NLX_ALL(2,L,GI)*X_ALL(2,IGLX)
                       !
                       RGI=RGI+N(L,GI)*X_ALL(2,IGLX)
                   end do ! Was loop 179
@@ -1492,8 +1493,8 @@
                   VOLUME=VOLUME+DETWEI(GI)
                   !
                   do L=1,NLOC
-                      NX_ALL(1,L,GI)=(DGI*NLX(L,GI)-BGI*NLY(L,GI))/DETJ
-                      NX_ALL(2,L,GI)=(-CGI*NLX(L,GI)+AGI*NLY(L,GI))/DETJ
+                      NX_ALL(1,L,GI)=(DGI*NLX_ALL(1,L,GI)-BGI*NLX_ALL(2,L,GI))/DETJ
+                      NX_ALL(2,L,GI)=(-CGI*NLX_ALL(1,L,GI)+AGI*NLX_ALL(2,L,GI))/DETJ
                   !               NX_ALL(3,L,GI)=0.0
                   END DO
 
@@ -1526,19 +1527,19 @@
                   do  L=1,NLOC! Was loop 79
                       IGLX=XONDGL((ELE-1)*NLOC+L)
                       ewrite(3,*)'xndgln, x, nl:', &
-                      iglx, l, x_ALL(:,iglx), NLX(L,GI), NLY(L,GI), NLZ(L,GI)
+                      iglx, l, x_ALL(:,iglx), NLX_ALL(1,L,GI), NLX_ALL(2,L,GI), NLX_ALL(3,L,GI)
                       ! NB R0 does not appear here although the z-coord might be Z+R0.
-                      AGI=AGI+NLX(L,GI)*X_ALL(1,IGLX)
-                      BGI=BGI+NLX(L,GI)*X_ALL(2,IGLX)
-                      CGI=CGI+NLX(L,GI)*X_ALL(3,IGLX)
+                      AGI=AGI+NLX_ALL(1,L,GI)*X_ALL(1,IGLX)
+                      BGI=BGI+NLX_ALL(1,L,GI)*X_ALL(2,IGLX)
+                      CGI=CGI+NLX_ALL(1,L,GI)*X_ALL(3,IGLX)
                       !
-                      DGI=DGI+NLY(L,GI)*X_ALL(1,IGLX)
-                      EGI=EGI+NLY(L,GI)*X_ALL(2,IGLX)
-                      FGI=FGI+NLY(L,GI)*X_ALL(3,IGLX)
+                      DGI=DGI+NLX_ALL(2,L,GI)*X_ALL(1,IGLX)
+                      EGI=EGI+NLX_ALL(2,L,GI)*X_ALL(2,IGLX)
+                      FGI=FGI+NLX_ALL(2,L,GI)*X_ALL(3,IGLX)
                       !
-                      GGI=GGI+NLZ(L,GI)*X_ALL(1,IGLX)
-                      HGI=HGI+NLZ(L,GI)*X_ALL(2,IGLX)
-                      KGI=KGI+NLZ(L,GI)*X_ALL(3,IGLX)
+                      GGI=GGI+NLX_ALL(3,L,GI)*X_ALL(1,IGLX)
+                      HGI=HGI+NLX_ALL(3,L,GI)*X_ALL(2,IGLX)
+                      KGI=KGI+NLX_ALL(3,L,GI)*X_ALL(3,IGLX)
                   end do ! Was loop 79
                   !
                   DETJ=AGI*(EGI*KGI-FGI*HGI)&
@@ -1563,9 +1564,9 @@
                   A23=-(AGI*FGI-CGI*DGI) /DETJ
                   A33= (AGI*EGI-BGI*DGI) /DETJ
                   do  L=1,NLOC! Was loop 373
-                      NX_ALL(1,L,GI)= A11*NLX(L,GI)+A12*NLY(L,GI)+A13*NLZ(L,GI)
-                      NX_ALL(2,L,GI)= A21*NLX(L,GI)+A22*NLY(L,GI)+A23*NLZ(L,GI)
-                      NX_ALL(3,L,GI)= A31*NLX(L,GI)+A32*NLY(L,GI)+A33*NLZ(L,GI)
+                      NX_ALL(1,L,GI)= A11*NLX_ALL(1,L,GI)+A12*NLX_ALL(2,L,GI)+A13*NLX_ALL(3,L,GI)
+                      NX_ALL(2,L,GI)= A21*NLX_ALL(1,L,GI)+A22*NLX_ALL(2,L,GI)+A23*NLX_ALL(3,L,GI)
+                      NX_ALL(3,L,GI)= A31*NLX_ALL(1,L,GI)+A32*NLX_ALL(2,L,GI)+A33*NLX_ALL(3,L,GI)
                   end do ! Was loop 373
                   INV_JAC( 1,1, GI )= A11
                   INV_JAC( 2,1, GI )= A21

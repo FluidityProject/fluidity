@@ -2471,14 +2471,13 @@ contains
 
       real, dimension(:), pointer :: CVWEIGHT, CVWEIGHT_SHORT, SCVFEWEIGH, SBCVFEWEIGH,&
         SELE_OVERLAP_SCALE
-      REAL, DIMENSION( : , : ), pointer :: CVN, CVN_SHORT, CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
-           CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT,  &
-           UFEN, UFENLX, UFENLY, UFENLZ, SCVFEN, SCVFENSLX, SCVFENSLY, &
-           SCVFENLX, SCVFENLY, SCVFENLZ, &
-           SUFEN, SUFENSLX, SUFENSLY, SUFENLX, SUFENLY, SUFENLZ, &
+      REAL, DIMENSION( : , :, : ), pointer :: CVFENLX_ALL, CVFENLX_SHORT_ALL, UFENLX_ALL,&
+      SCVFENLX_ALL, SUFENLX_ALL, SBCVFENLX_ALL, SBUFENLX_ALL
+      REAL, DIMENSION( : , : ), pointer :: CVN, CVN_SHORT, CVFEN, CVFEN_SHORT, &
+           UFEN, SCVFEN, SCVFENSLX, SCVFENSLY, &
+           SUFEN, SUFENSLX, SUFENSLY,  &
            SBCVN,SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
-           SBCVFENLX, SBCVFENLY, SBCVFENLZ, SBUFEN, SBUFENSLX, SBUFENSLY, &
-           SBUFENLX, SBUFENLY, SBUFENLZ, &
+           SBUFEN, SBUFENSLX, SBUFENSLY, &
            DUMMY_ZERO_NDIM_NDIM
     !###Pointers for Shape function calculation###
         real, pointer, dimension(:,:,:) :: CVFENX_ALL, UFENX_ALL
@@ -2965,28 +2964,26 @@ contains
         !======= DEFINE THE SUB-CONTROL VOLUME & FEM SHAPE FUNCTIONS ========
         CALL cv_fem_shape_funs_plus_storage( &
                              ! Volume shape functions...
-        NDIM,P_ELE_TYPE,  &
-        CV_NGI, CV_NGI_SHORT, CV_NLOC, U_NLOC, CVN, CVN_SHORT, &
-        CVWEIGHT, CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
-        CVWEIGHT_SHORT, CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
-        UFEN, UFENLX, UFENLY, UFENLZ, &
-                             ! Surface of each CV shape functions...
-        SCVNGI, CV_NEILOC, CV_ON_FACE, CVFEM_ON_FACE, &
-        SCVFEN, SCVFENSLX, SCVFENSLY, SCVFEWEIGH, &
-        SCVFENLX, SCVFENLY, SCVFENLZ,  &
-        SUFEN, SUFENSLX, SUFENSLY,  &
-        SUFENLX, SUFENLY, SUFENLZ,  &
-                             ! Surface element shape funcs...
-        U_ON_FACE, UFEM_ON_FACE,NFACE, &
-        SBCVNGI,SBCVN, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, SBCVFENLX, SBCVFENLY, SBCVFENLZ, &
-        SBUFEN, SBUFENSLX, SBUFENSLY, SBUFENLX, SBUFENLY, SBUFENLZ, &
-        CV_SLOCLIST, U_SLOCLIST, CV_SNLOC, U_SNLOC, &
+           NDIM, P_ELE_TYPE,  &
+           CV_NGI, CV_NGI_SHORT, CV_NLOC, U_NLOC, CVN, CVN_SHORT, &
+           CVWEIGHT, CVFEN, CVFENLX_ALL, &
+           CVWEIGHT_SHORT, CVFEN_SHORT, CVFENLX_SHORT_ALL, &
+           UFEN, UFENLX_ALL, &
+                                ! Surface of each CV shape functions...
+           SCVNGI, CV_NEILOC, CV_ON_FACE, CVFEM_ON_FACE, &
+           SCVFEN, SCVFENSLX, SCVFENSLY, SCVFEWEIGH, &
+           SCVFENLX_ALL,  &
+           SUFEN, SUFENSLX, SUFENSLY,  &
+           SUFENLX_ALL,  &
+                                ! Surface element shape funcs...
+           U_ON_FACE, UFEM_ON_FACE, NFACE, &
+           SBCVNGI, SBCVN, SBCVFEN,SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, SBCVFENLX_ALL, &
+           SBUFEN, SBUFENSLX, SBUFENSLY, SBUFENLX_ALL, &
+           CV_SLOCLIST, U_SLOCLIST, CV_SNLOC, U_SNLOC, &
                              ! Define the gauss points that lie on the surface of the CV...
         FINDGPTS, COLGPTS, NCOLGPTS, &
         SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE,&
         state, 'ASEMCTY', StorageIndexes(41))
-
-
         ! Memory for rapid retreval...
         ! Storage for pointers to the other side of the element.
         ALLOCATE( STORED_U_ILOC_OTHER_SIDE( U_SNLOC, NFACE, TOTELE*ISTORED_OTHER_SIDE ) )
@@ -3008,8 +3005,8 @@ contains
             NDIM, NPHASE, NDIM_VEL, U_NONODS, TOTELE, U_NDGLN, &
             XU_NDGLN, X_NLOC, X_NDGLN, &
             CV_NGI, U_NLOC, CVWEIGHT, &
-            UFEN, UFENLX, UFENLY, UFENLZ, &
-            CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
+            UFEN, UFENLX_ALL(1,:,:), UFENLX_ALL(2,:,:), UFENLX_ALL(3,:,:), &
+            CVFEN, CVFENLX_ALL(1,:,:), CVFENLX_ALL(2,:,:), CVFENLX_ALL(3,:,:), &
             X_NONODS, X, Y, Z, &
             NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC_ALL, SUF_U_BC_ALL, &
             SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBCVFEWEIGH, &
@@ -3024,9 +3021,9 @@ contains
             ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
             CALL DETNLXR_PLUS_U( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
             X_NLOC, CV_NLOC, CV_NGI, &
-            CVFEN, CVFENLX, CVFENLY, CVFENLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
+            CVFEN, CVFENLX_ALL(1,:,:), CVFENLX_ALL(2,:,:), CVFENLX_ALL(3,:,:), CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
             CVFENX_ALL, &
-            U_NLOC, UFENLX, UFENLY, UFENLZ, UFENX_ALL , &
+            U_NLOC, UFENLX_ALL(1,:,:), UFENLX_ALL(2,:,:), UFENLX_ALL(3,:,:), UFENX_ALL , &
             state ,"C_1", StorageIndexes(25))
 
 
