@@ -14034,7 +14034,7 @@ CONTAINS
     REAL, DIMENSION(NPHASE) :: PERM_TILDE,NDOTQ_TILDE, NDOTQ2_TILDE, NDOTQOLD_TILDE, NDOTQOLD2_TILDE, rden_ave, Q_UNDERLY
     REAL, DIMENSION(NPHASE) :: NDOTQ_KEEP_IN,  NDOTQ_KEEP, NDOTQ2_KEEP
     ! coefficients for this element ELE
-    real :: gamma,  abs_tilde_i, abs_tilde_j,  grad2nd
+    real :: gamma,  grad2nd
     real :: abs_tilde_2nd, abs_tildeold_2nd, max_nodtq_keep, min_nodtq_keep
     real :: w_weight, relax
 
@@ -14435,7 +14435,7 @@ CONTAINS
 
 
 ! limiter *************
-        if(.true.) then ! the old method with the bug corrected...
+        if(.false.) then ! the old method with the bug corrected...
 
              DO IPHASE = 1, NPHASE
 
@@ -14508,13 +14508,6 @@ CONTAINS
                 CALL CAL_LIM_VOL_ADJUST(TMAX_STORE,TMAX,T,TMAX_NOD,RESET_STORE,MASS_CV, &
                      CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOME3(IPHASE) )
              END IF
-
-
-
-
-             abs_tilde_i = ABS_CV_NODI_IPHA(IPHASE)
-             abs_tilde_j = ABS_CV_NODJ_IPHA(IPHASE)
-
 
 
 
