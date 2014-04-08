@@ -1645,7 +1645,6 @@
       type(mesh_type) :: Auxmesh
       type(scalar_field), target :: targ_Storage
       type(scalar_field), pointer :: pntr_Storage
-      integer, dimension(:), allocatable, target :: target_in_mesh
       integer :: counter_from, counter_to, siz1,siz2
       logical :: recovering_values
       integer, dimension(  : , : ),pointer :: ptr_u_on_face, ptr_ufem_on_face!dimension( u_nloc, scvngi )
