@@ -12,5 +12,5 @@ test_suite = BuckleyLeverettTestSuite(
     numerical_filename_stem, model_name_list, grid_name_list_per_dimension,
     analytic_filename_stem, field_name_list)
 
-# test_suite.process_folder()
+test_suite.process_folder()
 test_suite.generate_reports()
