@@ -3011,7 +3011,7 @@ contains
             NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC_ALL, SUF_U_BC_ALL, &
             SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBCVFEWEIGH, &
             SBCVFEN, SBCVFENSLX, SBCVFENSLY ,&
-            state, "CTY", StorageIndexes(:))
+            state, "CTY", StorageIndexes(23))
         ENDIF
 
 

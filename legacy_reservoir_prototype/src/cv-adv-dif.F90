@@ -1201,6 +1201,7 @@ contains
               SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
               SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
               state, "CVN", StorageIndexes( 33 ) )
+
       END IF
 
 
@@ -4535,7 +4536,7 @@ contains
        NFACE, FACE_ELE, CV_SLOCLIST, X_SLOCLIST, STOTEL, CV_SNLOC, X_SNLOC, WIC_T_BC, SUF_T_BC, &
        SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBWEIGH, &
        X_SBCVFEN, X_SBCVFENSLX, X_SBCVFENSLY,&
-      state, StorName, StorageIndexes  )
+      state, StorName, indx  )
 
     ! determine FEMT (finite element wise) etc from T (control volume wise)
     use shape_functions
@@ -4564,7 +4565,7 @@ contains
     REAL, DIMENSION( : ), intent( in ) :: SBWEIGH
     type( state_type ), dimension( : ), intent( inout ) :: state
     character(len=*), intent(in) :: StorName
-    integer, dimension(:), intent(inout) :: StorageIndexes
+    integer, intent(inout) :: indx
     ! Local variables
     REAL, DIMENSION( :, :, : ), ALLOCATABLE :: MASELE
     REAL, DIMENSION( :, :, :, :, : ), ALLOCATABLE :: VTX_ELE, VTOLDX_ELE
@@ -4608,7 +4609,7 @@ contains
             X_N, X_NLX, X_NLY, X_NLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
             X_NX_ALL, &
             CV_NLOC, NLX, NLY, NLZ, NX_ALL&
-            , state,StorName , StorageIndexes(23) )
+            , state,StorName , indx )
 
        Loop_CV_ILOC: DO CV_ILOC = 1, CV_NLOC
 
@@ -5023,10 +5024,6 @@ contains
     RETURN
 
   END SUBROUTINE DG_DERIVS_ALL2
-
-
-
-
 
  SUBROUTINE ONVDLIM_ALL( TOTELE, &
        TDLIM, TDCEN, INCOME, PELE, PELEOT, &
