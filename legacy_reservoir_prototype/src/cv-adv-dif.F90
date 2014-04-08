@@ -1995,9 +1995,9 @@ contains
                              FUPWIND_IN, FUPWIND_OUT, DISTCONTINUOUS_METHOD, QUAD_ELEMENTS, SHAPE_CV_SNL, DOWNWIND_EXTRAP_INDIVIDUAL, &
                              F_CV_NODI, F_CV_NODJ) 
                   ENDIF
-
+! it does not matter about bcs for FVT below as its zero'ed out in the eqns:
                         FVT(:)=T_ALL(:,CV_NODI)*(1.0-INCOME(:)) + T_ALL(:,CV_NODJ)*INCOME(:) 
-                        FVD(:)=DEN_ALL(:,CV_NODI)*(1.0-INCOME(:)) + DEN_ALL(:,CV_NODJ)*INCOME(:) 
+!                        FVD(:)=DEN_ALL(:,CV_NODI)*(1.0-INCOME(:)) + DEN_ALL(:,CV_NODJ)*INCOME(:) 
 
             ENDIF
 
@@ -2017,11 +2017,11 @@ contains
                 SCVNGI*TOTELE,state, 'limf6', StorageIndexes(39) )
     ! Amend for porosity...
           IF ( ELE2 /= 0 ) THEN 
-             FVD   = 0.5 * ( ONE_PORE(ELE) + ONE_PORE(ELE2) ) * FVD
+!             FVD   = 0.5 * ( ONE_PORE(ELE) + ONE_PORE(ELE2) ) * FVD
              LIMD_keep   = 0.5 * ( ONE_PORE(ELE) + ONE_PORE(ELE2) ) * LIMD_keep
              LIMDOLD_keep   = 0.5 * ( ONE_PORE(ELE) + ONE_PORE(ELE2) ) * LIMDOLD_keep
           ELSE
-             FVD   = ONE_PORE(ELE) * FVD
+!             FVD   = ONE_PORE(ELE) * FVD
              LIMD_keep   = ONE_PORE(ELE) * LIMD_keep
              LIMDOLD_keep   = ONE_PORE(ELE) * LIMDOLD_keep
           END IF
@@ -2139,11 +2139,11 @@ contains
 !        if(.false.) then
     ! Amend for porosity...
           IF ( ELE2 /= 0 ) THEN 
-             FVD   = 0.5 * ( ONE_PORE(ELE) + ONE_PORE(ELE2) ) * FVD
+!             FVD   = 0.5 * ( ONE_PORE(ELE) + ONE_PORE(ELE2) ) * FVD
              LIMD   = 0.5 * ( ONE_PORE(ELE) + ONE_PORE(ELE2) ) * LIMD
              LIMDOLD   = 0.5 * ( ONE_PORE(ELE) + ONE_PORE(ELE2) ) * LIMDOLD
           ELSE
-             FVD   = ONE_PORE(ELE) * FVD
+!             FVD   = ONE_PORE(ELE) * FVD
              LIMD   = ONE_PORE(ELE) * LIMD
              LIMDOLD   = ONE_PORE(ELE) * LIMDOLD
           END IF
