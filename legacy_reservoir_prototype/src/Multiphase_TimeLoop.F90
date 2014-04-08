@@ -164,7 +164,7 @@
       integer, dimension( : ), allocatable :: PhaseVolumeFraction_BC_Spatial, Pressure_FEM_BC_Spatial, &
            Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, Temperature_BC_Spatial, &
            wic_momu_bc
-      real, dimension( : ), pointer :: temp,xu, yu, zu, &
+      real, dimension( : ), pointer :: temp, &
            Velocity_U, Velocity_V, Velocity_W, Velocity_U_Old, Velocity_V_Old, Velocity_W_Old, &
            Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
            Pressure_FEM, Pressure_CV, Temperature, Density, Density_Cp, Density_Component, PhaseVolumeFraction, &
@@ -366,13 +366,10 @@
 
     call temp_mem_hacks()
 
-    allocate(temp(max(xu_nonods,x_nonods,u_nonods)))
-    call temp_assigns()
-
-      IGOT_THERM_VIS=0
+    IGOT_THERM_VIS=0
 
 !!$ Allocating space for various arrays:
-      allocate( xu( xu_nonods ), yu( xu_nonods ), zu( xu_nonods ), &
+      allocate( &
 !!$
            Velocity_U( u_nonods * nphase ), Velocity_V( u_nonods * nphase ), Velocity_W( u_nonods * nphase ), &
            Velocity_U_Old( u_nonods * nphase ), Velocity_V_Old( u_nonods * nphase ), Velocity_W_Old( u_nonods * nphase ), &
@@ -435,9 +432,6 @@
  
       ncv_faces=CV_count_faces( packed_state, CV_ELE_TYPE, stotel, cv_sndgln, u_sndgln)
 
-
-!!$
-      xu=0. ; yu=0. ; zu=0.
 !!$
       Velocity_U=0. ; Velocity_V=0 ; Velocity_W=0.
       Velocity_U_Old=0. ; Velocity_V_Old=0. ; Velocity_W_Old=0.
@@ -506,7 +500,6 @@
 !!$ Extracting Mesh Dependent Fields
       initialised = .false.
       call Extracting_MeshDependentFields_From_State( state, packed_state, initialised, &
-           xu, yu, zu, &
            PhaseVolumeFraction, PhaseVolumeFraction_BC_Spatial, PhaseVolumeFraction_BC, PhaseVolumeFraction_Source, &
            Pressure_CV, Pressure_FEM, Pressure_FEM_BC_Spatial, Pressure_FEM_BC, &
            Density, Density_BC_Spatial, Density_BC, &
@@ -1580,7 +1573,6 @@
 !!$ Working arrays
                  PhaseVolumeFraction_BC_Spatial, Pressure_FEM_BC_Spatial, &
                  Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, wic_momu_bc, Temperature_BC_Spatial, &
-                 xu, yu, zu, &
                  Velocity_U, Velocity_V, Velocity_W, Velocity_U_Old, Velocity_V_Old, Velocity_W_Old, &
                  Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
                  Pressure_FEM, Pressure_CV, Temperature, Density, Density_Cp, Density_Component, PhaseVolumeFraction, &
@@ -1678,7 +1670,7 @@
             call temp_mem_hacks()
 
 !!$ Allocating space for various arrays:
-            allocate( xu( xu_nonods ), yu( xu_nonods ), zu( xu_nonods ), &
+            allocate( &
 !!$
                  Velocity_U( u_nonods * nphase ), Velocity_V( u_nonods * nphase ), Velocity_W( u_nonods * nphase ), &
                  Velocity_U_Old( u_nonods * nphase ), Velocity_V_Old( u_nonods * nphase ), Velocity_W_Old( u_nonods * nphase ), &
@@ -1785,7 +1777,6 @@
 !!$ Extracting Mesh Dependent Fields
             initialised = .true.
             call Extracting_MeshDependentFields_From_State( state, packed_state, initialised, &
-                 xu, yu, zu, &
                  PhaseVolumeFraction, PhaseVolumeFraction_BC_Spatial, PhaseVolumeFraction_BC, PhaseVolumeFraction_Source, &
                  Pressure_CV, Pressure_FEM, Pressure_FEM_BC_Spatial, Pressure_FEM_BC, &
                  Density, Density_BC_Spatial, Density_BC, &
@@ -1908,7 +1899,6 @@
 !!$ Working arrays
            PhaseVolumeFraction_BC_Spatial, Pressure_FEM_BC_Spatial, &
            Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, Temperature_BC_Spatial, &
-           xu, yu, zu, &
            Velocity_U, Velocity_V, Velocity_W, Velocity_U_Old, Velocity_V_Old, Velocity_W_Old, &
            Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
            Pressure_FEM, Pressure_CV, Temperature, Density, Density_Cp, Density_Component, PhaseVolumeFraction, &
@@ -1990,32 +1980,7 @@
         end subroutine temp_mem_hacks
 
 
-        subroutine temp_assigns()
-
-          type(vector_field), pointer :: pu,pp
-
-          pp=> extract_vector_field(packed_state,"PressureCoordinate")
-          pu=>extract_vector_field(packed_state,"VelocityCoordinate")
-
-          xu=>pu%val(1,:)
-
-
-          if ( ndim >= 2 ) then
-             yu=>pu%val(2,:)
-          else
-             yu=>temp(1:xu_nonods)
-          end if
-          
-          if ( ndim == 3 ) then
-             zu=>pu%val(3,:)
-          else
-             zu=>temp(1:xu_nonods)
-          end if
-
-        end subroutine temp_assigns
     end subroutine MultiFluids_SolveTimeLoop
-
-
 
     subroutine Updating_Linearised_Components( totele, nphase, ncomp, ndim, cv_nloc, cv_nonods, cv_ndgln, &
          component )

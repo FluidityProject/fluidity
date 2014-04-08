@@ -741,7 +741,6 @@
 
 
     subroutine Extracting_MeshDependentFields_From_State( state, packed_state, initialised, &
-         xu, yu, zu, &
          PhaseVolumeFraction, PhaseVolumeFraction_BC_Spatial, PhaseVolumeFraction_BC, PhaseVolumeFraction_Source, &
          Pressure_CV, Pressure_FEM, Pressure_FEM_BC_Spatial, Pressure_FEM_BC, &
          Density, Density_BC_Spatial, Density_BC, &
@@ -759,7 +758,7 @@
       integer, dimension( : ), intent( inout ) :: PhaseVolumeFraction_BC_Spatial, Pressure_FEM_BC_Spatial, &
            Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, Temperature_BC_Spatial, &
            wic_momu_bc
-      real, dimension( : ), intent( inout ) :: xu, yu, zu, &
+      real, dimension( : ), intent( inout ) :: &
            PhaseVolumeFraction, PhaseVolumeFraction_BC, PhaseVolumeFraction_Source, &
            Pressure_CV, Pressure_FEM, Pressure_FEM_BC, &
            Density, Density_BC, &
@@ -812,9 +811,7 @@
 
       call Get_Ele_Type( x_nloc, cv_ele_type, p_ele_type, u_ele_type )
 
-      xu = 0. ; yu = 0. ; zu = 0.
-      call Extract_Position_Field( state, &
-           xu, yu, zu )
+
 
       allocate( x( x_nonods ) , y( x_nonods ), z( x_nonods ) )
 
