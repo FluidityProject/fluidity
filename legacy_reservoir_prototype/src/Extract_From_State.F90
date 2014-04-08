@@ -2047,7 +2047,7 @@
       
       type(vector_field) :: p_position, u_position, m_position
       type(mesh_type) :: ovmesh,lmesh,nvmesh
-      type(element_type) :: overlapping_shape
+      type(element_type) :: overlapping_shape, vel_shape
       character( len = option_path_len ) :: vel_element_type
 
       logical :: has_density, has_phase_volume_fraction
@@ -2136,7 +2136,8 @@
             if (has_vector_field(state(i),"Velocity")) then
 
                velocity=>extract_vector_field(state(i),"Velocity",stat)
-               velocity%mesh%shape%numbering%type=ELEMENT_OVERLAPPING
+               velocity%mesh%shape%numbering=>&
+                    get_overlapping_version(velocity%mesh%shape%numbering)
                velocity%mesh%overlapping_shape=overlapping_shape
             end if
          end do

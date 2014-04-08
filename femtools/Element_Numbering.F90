@@ -168,12 +168,12 @@ contains
   function find_element_numbering(vertices, dimension, degree, type) result (ele_num)
     ! Return the element numbering type for an element in dimension
     ! dimensions with vertices vertices and degree polynomial bases.
-    !
+     !
     ! If no suitable numbering is available, return a null pointer.
     type(ele_numbering_type), pointer :: ele_num
     integer, intent(in) :: vertices, dimension, degree
     integer, intent(in), optional :: type
-
+ 
     integer :: ltype
 
     if (.not.initialised) call number_elements
@@ -494,10 +494,12 @@ contains
 
     call number_tets_lagrange
     call number_tets_bubble
+    call number_tets_overlapping
     call number_triangles_lagrange
     call number_triangles_bubble
     call number_triangles_trace
     call number_triangles_nc
+    call number_triangles_overlapping
     call number_intervals_lagrange
     call number_intervals_bubble
     call number_intervals_overlapping
@@ -2645,5 +2647,33 @@ contains
     end select
 
   end function ele_num_local_coords
+
+function get_overlapping_version(in_no) result(out_no)
+  type(ele_numbering_type) :: in_no
+  type(ele_numbering_type), pointer :: out_no
+
+  if (in_no%type==ELEMENT_LAGRANGIAN) then
+     select case(in_no%dimension)
+     case(1)
+        out_no=>interval_numbering_overlapping(in_no%degree)
+     case(2)
+        if (in_no%vertices==3) then
+           out_no=>tri_numbering_overlapping(in_no%degree)
+        else
+           FLAbort('Only Simplices can currently be used with overlapping')
+        end if
+     case(3)
+        if (in_no%vertices==4) then
+           out_no=>tet_numbering_overlapping(in_no%degree)
+        else
+           FLAbort('Only Simplices can currently be used with overlapping')
+        end if
+     end select
+  else     
+     FLAbort('Overlapping element basis must currently be Lagrangian')
+  end if
+
+
+end function get_overlapping_version
 
 end module element_numbering
