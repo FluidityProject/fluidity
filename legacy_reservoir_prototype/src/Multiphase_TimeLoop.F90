@@ -140,7 +140,7 @@
       integer :: velocity_max_iterations, PhaseVolumeFraction_max_iterations
 
 !!$ Shape function related fields:
-      integer :: cv_ngi, cv_ngi_short, scvngi_theta, sbcvngi, nface, igot_t2, igot_theta_flux
+      integer :: cv_ngi, cv_ngi_short, scvngi_theta, sbcvngi, nface, igot_t2, igot_theta_flux, IGOT_THERM_VIS
 
 !!$ For output:
       real, dimension( : ), allocatable :: PhaseVolumeFraction_FEMT, Temperature_FEMT, Density_FEMT, &
@@ -180,6 +180,8 @@
            ScalarField_Source_Store, ScalarField_Source_Component, &
            mass_ele, dummy_ele, density_tmp, density_old_tmp, &
            suf_momu_bc, suf_momv_bc, suf_momw_bc
+
+      real, dimension( :, :, :, : ), allocatable :: THERM_U_DIFFUSION
 
       real, dimension( :, : ), pointer :: THETA_GDIFF
 
@@ -367,6 +369,8 @@
     allocate(temp(max(xu_nonods,x_nonods,u_nonods)))
     call temp_assigns()
 
+      IGOT_THERM_VIS=0
+
 !!$ Allocating space for various arrays:
       allocate( xu( xu_nonods ), yu( xu_nonods ), zu( xu_nonods ), &
            x( x_nonods ), y( x_nonods ), z( x_nonods ), &
@@ -427,8 +431,9 @@
            Component_Diffusion( mat_nonods, ndim, ndim, nphase ), &
 !!$ Variables used in the diffusion-like term: capilarity and surface tension:
            plike_grad_sou_grad( cv_nonods * nphase ), &
-           plike_grad_sou_coef( cv_nonods * nphase ) )
-
+           plike_grad_sou_coef( cv_nonods * nphase ), &
+           THERM_U_DIFFUSION(NDIM,NDIM,NPHASE,MAT_NONODS*IGOT_THERM_VIS ) )
+ 
       ncv_faces=CV_count_faces( packed_state, CV_ELE_TYPE, stotel, cv_sndgln, u_sndgln)
 
 
@@ -853,7 +858,7 @@
                     Temperature, Temperature_Old, &
                     Density_Cp, Density_Cp_Old, &
 !!$
-                    MAT_NLOC, MAT_NDGLN, MAT_NONODS, ScalarAdvectionField_Diffusion, &
+                    MAT_NLOC, MAT_NDGLN, MAT_NONODS, ScalarAdvectionField_Diffusion, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
                     t_disopt, t_dg_vel_int_opt, dt, t_theta, t_beta, &
                     Temperature_BC, Density_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, &
                     suf_sig_diagten_bc, suf_t_bc_rob1, suf_t_bc_rob2, &
@@ -1182,7 +1187,7 @@
                           DENSITY_COMPONENT( ( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS ), &
                           DENSITY_COMPONENT_OLD( ( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS ), &
 !!$
-                          MAT_NLOC, MAT_NDGLN, MAT_NONODS, Component_Diffusion, &
+                          MAT_NLOC, MAT_NDGLN, MAT_NONODS, Component_Diffusion, 0, THERM_U_DIFFUSION, &
                           v_disopt, v_dg_vel_int_opt, dt, v_theta, v_beta, &
                           Component_BC( 1 + stotel * cv_snloc * nphase * ( icomp - 1 ) : stotel * cv_snloc * nphase * icomp ), &
                           Density_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, SUF_SIG_DIAGTEN_BC,&

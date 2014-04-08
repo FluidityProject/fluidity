@@ -59,7 +59,7 @@ contains
          CV_NDGLN, X_NDGLN, U_NDGLN, &
          CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
          T, TOLD, DEN, DENOLD, &
-         MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
+         MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
          CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, SECOND_THETA, CV_BETA, &
          SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
          SUF_T_BC_ROB1, SUF_T_BC_ROB2, &
@@ -243,6 +243,8 @@ contains
       REAL, DIMENSION( :, : ), intent( inout ) :: THETA_GDIFF ! (NPHASE,CV_NONODS)
       REAL, DIMENSION( :, : ), intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
       REAL, DIMENSION( :, :, :, : ), intent( in ) :: TDIFFUSION
+      INTEGER, intent( in ) :: IGOT_THERM_VIS
+      REAL, DIMENSION(NDIM,NDIM,NPHASE,MAT_NONODS*IGOT_THERM_VIS), intent( in ) :: THERM_U_DIFFUSION
       REAL, intent( in ) :: DT, CV_THETA, SECOND_THETA, CV_BETA
       REAL, DIMENSION( : ), intent( in ) :: SUF_T_BC, SUF_D_BC
       REAL, DIMENSION( :  ), intent( in ) :: SUF_T2_BC
@@ -463,21 +465,6 @@ contains
       IDUM = 0
       RDUM = 0.
 
-!       call TRILOCCORDS2D(Xp,Yp, &
-!     &     N1, N2, N3,  &
-!     &     X1,Y1, &
-!     &     X2,Y2, &
-!     &     X3,Y3 )
-
-!       call TRILOCCORDS2D(1.,1., &
-!     &     N1, N2, N3,  &
-!     &     0.,0., &
-!     &     1.0,0.0, &
-!     &     0.0,1.0 )
-
-!        print *,'n1,n2,n3:',n1,n2,n3
-!        stop 722
-
       ewrite(3,*) 'In CV_ASSEMB'
 
       !ewrite(3,*) 'CV_P', CV_P
@@ -486,6 +473,7 @@ contains
       !ewrite(3,*) 'MEAN_PORE_CV', MEAN_PORE_CV
 
       GOT_VIS = .FALSE. 
+!      IF(IGOT_THERM_VIS==1) GOT_VIS = ( R2NORM( THERM_U_DIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0 )
 
       GOT_DIFFUS = ( R2NORM( TDIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0 )
 
@@ -2399,10 +2387,10 @@ contains
                  CVNORMX_ALL(:,GI), NU_LEV_GI(:, IPHASE) * SCVDETWEI(GI), TEN_XX_ONE(:,:,IPHASE) )
 !                                        UFENX_ALL( 1:NDIM, U_ILOC, GI ), UFENX_ALL( 1:NDIM, U_JLOC, GI )* DETWEI( GI ), TEN_XX_ONE )
 
-!                        if(integrate_other_side_and_not_boundary) then
-!                                    STRESS_IJ_THERM_J( :, :, IPHASE )=STRESS_IJ_THERM( :, :, IPHASE )*U_DIFFUSION(:,:,IPHASE,CV_NODJ)
-!                        endif
-!                                    STRESS_IJ_THERM( :, :, IPHASE )=STRESS_IJ_THERM( :, :, IPHASE )*U_DIFFUSION(:,:,IPHASE,CV_NODI)
+                        if(integrate_other_side_and_not_boundary) then
+                                    STRESS_IJ_THERM_J( :, :, IPHASE )=STRESS_IJ_THERM( :, :, IPHASE )*THERM_U_DIFFUSION(:,:,IPHASE,CV_NODJ)
+                        endif
+                                    STRESS_IJ_THERM( :, :, IPHASE )=STRESS_IJ_THERM( :, :, IPHASE )*THERM_U_DIFFUSION(:,:,IPHASE,CV_NODI)
 
                                     DO IDIM=1,NDIM
                                     DO JDIM=1,NDIM

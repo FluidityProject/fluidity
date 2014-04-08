@@ -79,7 +79,7 @@ contains
     CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
     T, TOLD, &
     DEN, DENOLD, &
-    MAT_NLOC,MAT_NDGLN,MAT_NONODS, TDIFFUSION, &
+    MAT_NLOC,MAT_NDGLN,MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
     T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, T_BETA, &
     SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
     SUF_T_BC_ROB1, SUF_T_BC_ROB2,  &
@@ -138,6 +138,8 @@ contains
         REAL, DIMENSION( :, : ), intent( inout ) :: THETA_GDIFF
         REAL, DIMENSION( :,: ), intent( inout ), optional :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
         REAL, DIMENSION( :,:,:, : ), intent( in ) :: TDIFFUSION
+      INTEGER, intent( in ) :: IGOT_THERM_VIS
+      REAL, DIMENSION(NDIM,NDIM,NPHASE,MAT_NONODS*IGOT_THERM_VIS), intent( in ) :: THERM_U_DIFFUSION
         INTEGER, intent( in ) :: T_DISOPT, T_DG_VEL_INT_OPT
         REAL, intent( in ) :: DT, T_THETA
         REAL, intent( in ) :: T_BETA
@@ -225,7 +227,7 @@ contains
             CV_NDGLN, X_NDGLN, U_NDGLN, &
             CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
             T, TOLD, DEN, DENOLD, &
-            MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
+            MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
             T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, SECOND_THETA, T_BETA, &
             SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
             SUF_T_BC_ROB1, SUF_T_BC_ROB2,  &
@@ -441,7 +443,7 @@ contains
         integer, dimension(:), intent(inout) :: StorageIndexes
         ! Local variables
         LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE.
-        INTEGER :: ITS_FLUX_LIM
+        INTEGER :: ITS_FLUX_LIM, IGOT_THERM_VIS
         INTEGER :: NCOLACV_SUB, IPHASE, I, J
         REAL :: SECOND_THETA
         INTEGER :: STAT,U_ELE_TYPE
@@ -449,6 +451,7 @@ contains
         character( len = option_path_len ) :: path
       
         REAL, DIMENSION( : ), allocatable :: CV_RHS1
+        REAL, DIMENSION( :,:,:,: ), allocatable :: THERM_U_DIFFUSION
 
         allocate(  cv_rhs1( cv_nonods * nphase ) ) ; cv_rhs1=0.0
 
@@ -459,6 +462,9 @@ contains
         CV_METHOD = .FALSE.
 
         IF(CV_METHOD) THEN ! cv method...
+
+            IGOT_THERM_VIS=0
+            ALLOCATE( THERM_U_DIFFUSION(NDIM,NDIM,NPHASE,MAT_NONODS*IGOT_THERM_VIS ) )
 
             CALL CV_ASSEMB( state, packed_state, &
             CV_RHS1, &
@@ -472,7 +478,7 @@ contains
             CV_NDGLN, X_NDGLN, U_NDGLN, &
             CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
             T, TOLD, DEN, DENOLD, &
-            MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
+            MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
             T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, SECOND_THETA, T_BETA, &
             SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
             SUF_T_BC_ROB1, SUF_T_BC_ROB2,  &
@@ -955,9 +961,10 @@ contains
         REAL, DIMENSION( :, : ), allocatable :: THETA_GDIFF
         REAL, DIMENSION( : ), allocatable :: T2, T2OLD, MEAN_PORE_CV
         REAL, DIMENSION( : ), allocatable :: DENSITY_OR_ONE, DENSITYOLD_OR_ONE
+        REAL, DIMENSION( :, :, :, : ), allocatable :: THERM_U_DIFFUSION
         LOGICAL :: GET_THETA_FLUX
         REAL :: SECOND_THETA
-        INTEGER :: STAT, i,j
+        INTEGER :: STAT, i,j, IGOT_THERM_VIS
         character( len = option_path_len ) :: path
         LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE.
 
@@ -1010,6 +1017,8 @@ contains
 
         ! THIS DOES NOT WORK FOR NITS_FLUX_LIM>1 (NOBODY KNOWS WHY)
 
+            IGOT_THERM_VIS=0
+            ALLOCATE( THERM_U_DIFFUSION(NDIM,NDIM,NPHASE,MAT_NONODS*IGOT_THERM_VIS ) )
 
         Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, 1 !nits_flux_lim
 
@@ -1026,7 +1035,7 @@ contains
             CV_NDGLN, X_NDGLN, U_NDGLN, &
             CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
             SATURA, SATURAOLD, DENSITY_OR_ONE, DENSITYOLD_OR_ONE, &
-            MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
+            MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
             V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, SECOND_THETA, V_BETA, &
             SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
             SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2,  &
@@ -1905,8 +1914,9 @@ contains
         INTEGER, DIMENSION( : ), allocatable :: WIC_T2_BC
         REAL, DIMENSION( :, : ), allocatable :: THETA_GDIFF
         REAL, DIMENSION( : ), allocatable :: T2, T2OLD, MEAN_PORE_CV, DEN_OR_ONE, DENOLD_OR_ONE
+        REAL, DIMENSION( :,:,:,: ), allocatable :: THERM_U_DIFFUSION
         LOGICAL :: GET_THETA_FLUX
-        INTEGER :: IGOT_T2, I, P_SJLOC, SELE, U_SILOC
+        INTEGER :: IGOT_T2, I, P_SJLOC, SELE, U_SILOC, IGOT_THERM_VIS
 
         INTEGER :: U_NLOC2, ILEV, NLEV, ELE, U_ILOC, U_INOD, IPHASE, IDIM, X_ILOC, X_INOD, MAT_INOD, S, E
 
@@ -2071,7 +2081,8 @@ contains
         end do
 
           !############################################
-
+        IGOT_THERM_VIS=0
+        ALLOCATE( THERM_U_DIFFUSION(NDIM,NDIM,NPHASE,MAT_NONODS*IGOT_THERM_VIS ) )
 
 
         call CV_ASSEMB( state, packed_state, &
@@ -2086,7 +2097,7 @@ contains
         CV_NDGLN, X_NDGLN, U_NDGLN, &
         CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
         SATURA, SATURAOLD, DEN_OR_ONE, DENOLD_OR_ONE, &
-        MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
+        MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
         V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, SECOND_THETA, V_BETA, &
         SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
         SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2,  &
@@ -5625,6 +5636,10 @@ contains
         RETURN
     END SUBROUTINE CALCULATE_SURFACE_TENSION
 
+
+
+
+
     SUBROUTINE SURFACE_TENSION_WRAPPER( state, packed_state, &
     U_FORCE_X_SUF_TEN, U_FORCE_Y_SUF_TEN, U_FORCE_Z_SUF_TEN, &
     CV_U_FORCE_X_SUF_TEN, CV_U_FORCE_Y_SUF_TEN, CV_U_FORCE_Z_SUF_TEN, &
@@ -5874,6 +5889,7 @@ contains
         DX_DIFF_X, DY_DIFF_X, DZ_DIFF_X, &
         DX_DIFF_Y, DY_DIFF_Y, DZ_DIFF_Y, &
         DX_DIFF_Z, DY_DIFF_Z, DZ_DIFF_Z, rzero3
+        REAL, DIMENSION( :,:,:,: ), allocatable :: THERM_U_DIFFUSION
 
         !        ===> INTEGERS <===
         INTEGER :: CV_NGI, CV_NGI_SHORT, SCVNGI, SBCVNGI, COUNT, JCOUNT, &
@@ -5887,7 +5903,7 @@ contains
         NFACE, X_NODI,  U_INOD, U_NOD, &
         CV_INOD, CV_JNOD, MAT_NODI, FACE_ITS, NFACE_ITS, &
         CVNOD, XNOD, CV_NOD, DG_CV_NOD, IDIM, IGOT_T2, &
-        nopt_vel_upwind_coefs, DG_CV_NONODS
+        nopt_vel_upwind_coefs, DG_CV_NONODS, IGOT_THERM_VIS
         !        ===>  REALS  <===
         REAL :: NDOTQ, NDOTQOLD,  &
         INCOME, INCOMEOLD, HDC, FVT, FVTOLD, FVT2, FVT2OLD, &
@@ -6635,6 +6651,9 @@ contains
             NOIT_DIM=1
             LUMP_EQNS=.FALSE.
 
+            IGOT_THERM_VIS=0
+            ALLOCATE( THERM_U_DIFFUSION(NDIM,NDIM,NPHASE,MAT_NONODS*IGOT_THERM_VIS ) )
+
 
             CALL INTENERGE_ASSEM_SOLVE( state, packed_state, &
             NCOLACV, FINACV, COLACV, MIDACV, &
@@ -6649,7 +6668,7 @@ contains
             CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
             CURVATURE, VOLUME_FRAC, &
             RZERO,RZERO, &
-            MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
+            MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
             CV_DISOPT, CV_DG_VEL_INT_OPT, DT, T_THETA, T_BETA, &
             RZERO, RZERO, RZERO, RZERO, RZERO, RZERO_DIAGTEN, &
             RZERO, RZERO, &
