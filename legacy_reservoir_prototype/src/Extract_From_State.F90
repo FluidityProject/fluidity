@@ -741,7 +741,7 @@
 
 
     subroutine Extracting_MeshDependentFields_From_State( state, packed_state, initialised, &
-         xu, yu, zu, x, y, z, &
+         xu, yu, zu, &
          PhaseVolumeFraction, PhaseVolumeFraction_BC_Spatial, PhaseVolumeFraction_BC, PhaseVolumeFraction_Source, &
          Pressure_CV, Pressure_FEM, Pressure_FEM_BC_Spatial, Pressure_FEM_BC, &
          Density, Density_BC_Spatial, Density_BC, &
@@ -759,7 +759,7 @@
       integer, dimension( : ), intent( inout ) :: PhaseVolumeFraction_BC_Spatial, Pressure_FEM_BC_Spatial, &
            Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, Temperature_BC_Spatial, &
            wic_momu_bc
-      real, dimension( : ), intent( inout ) :: xu, yu, zu, x, y, z, &
+      real, dimension( : ), intent( inout ) :: xu, yu, zu, &
            PhaseVolumeFraction, PhaseVolumeFraction_BC, PhaseVolumeFraction_Source, &
            Pressure_CV, Pressure_FEM, Pressure_FEM_BC, &
            Density, Density_BC, &
@@ -787,6 +787,7 @@
       real :: dx
       logical :: is_overlapping, is_isotropic, is_diagonal, is_symmetric, have_gravity
       real, dimension( :, : ), allocatable :: constant
+      real, dimension( : ), allocatable :: x, y, z
 
 !!$ Extracting spatial resolution
       call Get_Primary_Scalars( state, &         
@@ -814,6 +815,8 @@
       xu = 0. ; yu = 0. ; zu = 0.
       call Extract_Position_Field( state, &
            xu, yu, zu )
+
+      allocate( x( x_nonods ) , y( x_nonods ), z( x_nonods ) )
 
       x = 0. ; y = 0. ; z = 0.
       call xp1_2_xp2( state, &
