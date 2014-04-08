@@ -1337,7 +1337,7 @@
 
 
     SUBROUTINE DETNLXR_INVJAC( ELE, X_ALL, XONDGL, TOTELE, NONODS, NLOC, NGI, &
-         N, NLX, NLY, NLZ, WEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
+         N, NLX, NLY, NLZ, WEIGHT, DETWEI, RA, VOLUME, DCYL, &
          NX_ALL,&
          NDIM, INV_JAC, state, StorName, indx )
       IMPLICIT NONE
@@ -1346,7 +1346,7 @@
       REAL, DIMENSION( :, : ), intent( in ) :: X_ALL!dimension(NDIM,size(XONDGL) )
       REAL, DIMENSION( :, : ), intent( in ) :: N, NLX, NLY, NLZ
       REAL, DIMENSION( : ), intent( in ) :: WEIGHT
-      LOGICAL, intent( in ) :: D1, D3, DCYL
+      LOGICAL, intent( in ) :: DCYL
       REAL,pointer,  intent( inout ) :: VOLUME
       REAL, pointer,  DIMENSION( : ), intent( inout ):: DETWEI, RA
       REAL, pointer, DIMENSION( :, :, : ), intent( inout ) :: NX_ALL
@@ -1432,161 +1432,155 @@
       !When all the values are obtained, the index is set to a positive value
       if (ELE == totele) indx = abs(indx)
       !#########Storing area finished########################
-
-
-
       !
       VOLUME = 0.0
       INV_JAC = 0.0
       !
-      IF(D3) THEN
-         if( first ) then
-            rsum = 0. ; rsumabs = 0.
-            first = .false.
-         end if
-         do  GI=1,NGI! Was loop 331
-            !
-            AGI=0.
-            BGI=0.
-            CGI=0.
-            !
-            DGI=0.
-            EGI=0.
-            FGI=0.
-            !
-            GGI=0.
-            HGI=0.
-            KGI=0.
-            !
-            do  L=1,NLOC! Was loop 79
-               IGLX=XONDGL((ELE-1)*NLOC+L)
-               ewrite(3,*)'xndgln, x, nl:', &
-                    iglx, l, x_ALL(:,iglx), NLX(L,GI), NLY(L,GI), NLZ(L,GI)
-               ! NB R0 does not appear here although the z-coord might be Z+R0. 
-               AGI=AGI+NLX(L,GI)*X_ALL(1,IGLX)
-               BGI=BGI+NLX(L,GI)*X_ALL(2,IGLX)
-               CGI=CGI+NLX(L,GI)*X_ALL(3,IGLX)
-               !
-               DGI=DGI+NLY(L,GI)*X_ALL(1,IGLX)
-               EGI=EGI+NLY(L,GI)*X_ALL(2,IGLX)
-               FGI=FGI+NLY(L,GI)*X_ALL(3,IGLX)
-               !
-               GGI=GGI+NLZ(L,GI)*X_ALL(1,IGLX)
-               HGI=HGI+NLZ(L,GI)*X_ALL(2,IGLX)
-               KGI=KGI+NLZ(L,GI)*X_ALL(3,IGLX)
-            end do ! Was loop 79
-            !
-            DETJ=AGI*(EGI*KGI-FGI*HGI)&
-                 -BGI*(DGI*KGI-FGI*GGI)&
-                 +CGI*(DGI*HGI-EGI*GGI)
-            DETWEI(GI)=ABS(DETJ)*WEIGHT(GI)
-            RA(GI)=1.0
-            VOLUME=VOLUME+DETWEI(GI)
-            ewrite(3,*)'gi, detj, weight(gi)', gi, detj, weight(gi)
-            rsum = rsum + detj
-            rsumabs = rsumabs + abs( detj )
-            ! For coefficient in the inverse mat of the jacobian. 
-            A11= (EGI*KGI-FGI*HGI) /DETJ
-            A21=-(DGI*KGI-FGI*GGI) /DETJ
-            A31= (DGI*HGI-EGI*GGI) /DETJ
-            !
-            A12=-(BGI*KGI-CGI*HGI) /DETJ
-            A22= (AGI*KGI-CGI*GGI) /DETJ
-            A32=-(AGI*HGI-BGI*GGI) /DETJ
-            !
-            A13= (BGI*FGI-CGI*EGI) /DETJ
-            A23=-(AGI*FGI-CGI*DGI) /DETJ
-            A33= (AGI*EGI-BGI*DGI) /DETJ
-            do  L=1,NLOC! Was loop 373
-               NX_ALL(1,L,GI)= A11*NLX(L,GI)+A12*NLY(L,GI)+A13*NLZ(L,GI)
-               NX_ALL(2,L,GI)= A21*NLX(L,GI)+A22*NLY(L,GI)+A23*NLZ(L,GI)
-               NX_ALL(3,L,GI)= A31*NLX(L,GI)+A32*NLY(L,GI)+A33*NLZ(L,GI)
-            end do ! Was loop 373 
-            INV_JAC( 1,1, GI )= A11
-            INV_JAC( 2,1, GI )= A21
-            INV_JAC( 3,1, GI )= A31
-            !
-            INV_JAC( 1,2, GI )= A12
-            INV_JAC( 2,2, GI )= A22
-            INV_JAC( 3,2, GI )= A32
-            !
-            INV_JAC( 1,3, GI )= A13
-            INV_JAC( 2,3, GI )= A23
-            INV_JAC( 3,3, GI )= A33
-            !
-         end do ! Was loop 331
-         !ewrite(3,*)'ele, sum(detj), sum(abs(detj)):', ele, rsum, rsumabs
-         ! IF(D3) THEN...
-      ELSE IF(.NOT.D1) THEN
-         TWOPIE=1.0 
-         IF(DCYL) TWOPIE=2.*PIE
-         do  GI=1,NGI! Was loop 1331
-            !
-            RGI=0.
-            !
-            AGI=0.
-            BGI=0.
-            CGI=0.
-            DGI=0.
-            !
-            do  L=1,NLOC! Was loop 179
-               IGLX=XONDGL((ELE-1)*NLOC+L)
+      select case (NDIM)
+          case (1)
+              ! For 1D...
+              do  GI = 1, NGI
+                  !
+                  AGI = 0.
+                  !
+                  do  L = 1, NLOC
+                      IGLX = XONDGL(( ELE - 1 ) * NLOC + L )
+                      AGI = AGI + NLX( L, GI ) * X_ALL(1, IGLX )
+                  end do
+                  !
+                  DETJ = AGI
+                  DETWEI( GI ) = ABS(DETJ) * WEIGHT( GI )
+                  VOLUME = VOLUME + DETWEI( GI )
+                  !
+                  do L = 1, NLOC
+                      NX_ALL(1, L, GI ) = NLX( L, GI ) / DETJ
+                  !               NX_ALL(2, L, GI ) = 0.0
+                  !               NX_ALL(3, L, GI ) = 0.0
+                  END DO
+                  INV_JAC( 1,1, GI )= 1.0 /DETJ
+                 !
+              end do
+          ! ENDOF IF(D3) THEN ELSE...
+          case (2)
+              TWOPIE=1.0
+              IF(DCYL) TWOPIE=2.*PIE
+              do  GI=1,NGI! Was loop 1331
+                  !
+                  RGI=0.
+                  !
+                  AGI=0.
+                  BGI=0.
+                  CGI=0.
+                  DGI=0.
+                  !
+                  do  L=1,NLOC! Was loop 179
+                      IGLX=XONDGL((ELE-1)*NLOC+L)
 
-               AGI=AGI + NLX(L,GI)*X_ALL(1,IGLX)
-               BGI=BGI + NLX(L,GI)*X_ALL(2,IGLX)
-               CGI=CGI + NLY(L,GI)*X_ALL(1,IGLX)
-               DGI=DGI + NLY(L,GI)*X_ALL(2,IGLX)
-               !
-               RGI=RGI+N(L,GI)*X_ALL(2,IGLX)
-            end do ! Was loop 179
-            !
-            IF(.NOT.DCYL) RGI=1.0
-            !
-            DETJ= AGI*DGI-BGI*CGI 
-            RA(GI)=RGI
-            DETWEI(GI)=TWOPIE*RGI*ABS(DETJ)*WEIGHT(GI)
-            VOLUME=VOLUME+DETWEI(GI)
-            !
-            do L=1,NLOC
-               NX_ALL(1,L,GI)=(DGI*NLX(L,GI)-BGI*NLY(L,GI))/DETJ
-               NX_ALL(2,L,GI)=(-CGI*NLX(L,GI)+AGI*NLY(L,GI))/DETJ
-!               NX_ALL(3,L,GI)=0.0
-            END DO
+                      AGI=AGI + NLX(L,GI)*X_ALL(1,IGLX)
+                      BGI=BGI + NLX(L,GI)*X_ALL(2,IGLX)
+                      CGI=CGI + NLY(L,GI)*X_ALL(1,IGLX)
+                      DGI=DGI + NLY(L,GI)*X_ALL(2,IGLX)
+                      !
+                      RGI=RGI+N(L,GI)*X_ALL(2,IGLX)
+                  end do ! Was loop 179
+                  !
+                  IF(.NOT.DCYL) RGI=1.0
+                  !
+                  DETJ= AGI*DGI-BGI*CGI
+                  RA(GI)=RGI
+                  DETWEI(GI)=TWOPIE*RGI*ABS(DETJ)*WEIGHT(GI)
+                  VOLUME=VOLUME+DETWEI(GI)
+                  !
+                  do L=1,NLOC
+                      NX_ALL(1,L,GI)=(DGI*NLX(L,GI)-BGI*NLY(L,GI))/DETJ
+                      NX_ALL(2,L,GI)=(-CGI*NLX(L,GI)+AGI*NLY(L,GI))/DETJ
+                  !               NX_ALL(3,L,GI)=0.0
+                  END DO
 
-            INV_JAC( 1,1, GI )= DGI /DETJ
-            INV_JAC( 1,2, GI )= -BGI /DETJ
+                  INV_JAC( 1,1, GI )= DGI /DETJ
+                  INV_JAC( 1,2, GI )= -BGI /DETJ
 
-            INV_JAC( 2,1, GI )= -CGI /DETJ
-            INV_JAC( 2,2, GI )= AGI /DETJ
-            !
-         end do ! Was loop 1331
-         ! ENDOF IF(D3) THEN ELSE...
-      ELSE 
-         ! For 1D...
-         do  GI = 1, NGI
-            !
-            AGI = 0.
-            !
-            do  L = 1, NLOC
-               IGLX = XONDGL(( ELE - 1 ) * NLOC + L )
-               AGI = AGI + NLX( L, GI ) * X_ALL(1, IGLX )
-            end do
-            !
-            DETJ = AGI 
-            DETWEI( GI ) = ABS(DETJ) * WEIGHT( GI )
-            VOLUME = VOLUME + DETWEI( GI )
-            !
-            do L = 1, NLOC
-               NX_ALL(1, L, GI ) = NLX( L, GI ) / DETJ
-!               NX_ALL(2, L, GI ) = 0.0
-!               NX_ALL(3, L, GI ) = 0.0
-            END DO
-            INV_JAC( 1,1, GI )= 1.0 /DETJ
-            !
-         end do
-         ! ENDOF IF(D3) THEN ELSE...
-      ENDIF
-      !
+                  INV_JAC( 2,1, GI )= -CGI /DETJ
+                  INV_JAC( 2,2, GI )= AGI /DETJ
+                 !
+              end do ! Was loop 1331
+          case default
+              if( first ) then
+                  rsum = 0. ; rsumabs = 0.
+                  first = .false.
+              end if
+              do  GI=1,NGI! Was loop 331
+                  !
+                  AGI=0.
+                  BGI=0.
+                  CGI=0.
+                  !
+                  DGI=0.
+                  EGI=0.
+                  FGI=0.
+                  !
+                  GGI=0.
+                  HGI=0.
+                  KGI=0.
+                  !
+                  do  L=1,NLOC! Was loop 79
+                      IGLX=XONDGL((ELE-1)*NLOC+L)
+                      ewrite(3,*)'xndgln, x, nl:', &
+                      iglx, l, x_ALL(:,iglx), NLX(L,GI), NLY(L,GI), NLZ(L,GI)
+                      ! NB R0 does not appear here although the z-coord might be Z+R0.
+                      AGI=AGI+NLX(L,GI)*X_ALL(1,IGLX)
+                      BGI=BGI+NLX(L,GI)*X_ALL(2,IGLX)
+                      CGI=CGI+NLX(L,GI)*X_ALL(3,IGLX)
+                      !
+                      DGI=DGI+NLY(L,GI)*X_ALL(1,IGLX)
+                      EGI=EGI+NLY(L,GI)*X_ALL(2,IGLX)
+                      FGI=FGI+NLY(L,GI)*X_ALL(3,IGLX)
+                      !
+                      GGI=GGI+NLZ(L,GI)*X_ALL(1,IGLX)
+                      HGI=HGI+NLZ(L,GI)*X_ALL(2,IGLX)
+                      KGI=KGI+NLZ(L,GI)*X_ALL(3,IGLX)
+                  end do ! Was loop 79
+                  !
+                  DETJ=AGI*(EGI*KGI-FGI*HGI)&
+                  -BGI*(DGI*KGI-FGI*GGI)&
+                  +CGI*(DGI*HGI-EGI*GGI)
+                  DETWEI(GI)=ABS(DETJ)*WEIGHT(GI)
+                  RA(GI)=1.0
+                  VOLUME=VOLUME+DETWEI(GI)
+                  ewrite(3,*)'gi, detj, weight(gi)', gi, detj, weight(gi)
+                  rsum = rsum + detj
+                  rsumabs = rsumabs + abs( detj )
+                  ! For coefficient in the inverse mat of the jacobian.
+                  A11= (EGI*KGI-FGI*HGI) /DETJ
+                  A21=-(DGI*KGI-FGI*GGI) /DETJ
+                  A31= (DGI*HGI-EGI*GGI) /DETJ
+                  !
+                  A12=-(BGI*KGI-CGI*HGI) /DETJ
+                  A22= (AGI*KGI-CGI*GGI) /DETJ
+                  A32=-(AGI*HGI-BGI*GGI) /DETJ
+                  !
+                  A13= (BGI*FGI-CGI*EGI) /DETJ
+                  A23=-(AGI*FGI-CGI*DGI) /DETJ
+                  A33= (AGI*EGI-BGI*DGI) /DETJ
+                  do  L=1,NLOC! Was loop 373
+                      NX_ALL(1,L,GI)= A11*NLX(L,GI)+A12*NLY(L,GI)+A13*NLZ(L,GI)
+                      NX_ALL(2,L,GI)= A21*NLX(L,GI)+A22*NLY(L,GI)+A23*NLZ(L,GI)
+                      NX_ALL(3,L,GI)= A31*NLX(L,GI)+A32*NLY(L,GI)+A33*NLZ(L,GI)
+                  end do ! Was loop 373
+                  INV_JAC( 1,1, GI )= A11
+                  INV_JAC( 2,1, GI )= A21
+                  INV_JAC( 3,1, GI )= A31
+                  !
+                  INV_JAC( 1,2, GI )= A12
+                  INV_JAC( 2,2, GI )= A22
+                  INV_JAC( 3,2, GI )= A32
+                  !
+                  INV_JAC( 1,3, GI )= A13
+                  INV_JAC( 2,3, GI )= A23
+                  INV_JAC( 3,3, GI )= A33
+                 !
+              end do ! Was loop 331
+      end select
       RETURN
     END SUBROUTINE DETNLXR_INVJAC
 
