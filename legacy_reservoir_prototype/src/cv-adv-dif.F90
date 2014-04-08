@@ -643,6 +643,9 @@ contains
          ! solve for porosity * actual velocity
          ONE_PORE = 1.0
       END IF
+!       PRINT *,'VOLFRA_PORE:',VOLFRA_PORE
+!       PRINT *,'ONE_PORE:',ONE_PORE
+!       STOP 22
 
       D1 = ( NDIM == 1 )
       D3 = ( NDIM == 3 )
@@ -1411,6 +1414,7 @@ contains
 
                ELE2 = 0
                SELE = 0
+               CV_SILOC=0
                INTEGRAT_AT_GI = .TRUE.
 
                Conditional_CheckingNeighbourhood: IF ( CV_JLOC == -1 ) THEN
@@ -2011,18 +2015,29 @@ contains
                 SCVNGI*TOTELE,state, 'limf5', StorageIndexes(38) )
              CALL UNPACK_LOC( LIMF(:), LIMT2OLD_keep( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,6), GLOBAL_FACE, IGOT_T_CONST(:,6), IGOT_T_CONST_VALUE(:,6), &
                 SCVNGI*TOTELE,state, 'limf6', StorageIndexes(39) )
+    ! Amend for porosity...
+          IF ( ELE2 /= 0 ) THEN 
+             FVD   = 0.5 * ( ONE_PORE(ELE) + ONE_PORE(ELE2) ) * FVD
+             LIMD_keep   = 0.5 * ( ONE_PORE(ELE) + ONE_PORE(ELE2) ) * LIMD_keep
+             LIMDOLD_keep   = 0.5 * ( ONE_PORE(ELE) + ONE_PORE(ELE2) ) * LIMDOLD_keep
+          ELSE
+             FVD   = ONE_PORE(ELE) * FVD
+             LIMD_keep   = ONE_PORE(ELE) * LIMD_keep
+             LIMDOLD_keep   = ONE_PORE(ELE) * LIMDOLD_keep
+          END IF
 ! is LIMT_keep and LIMT the same? 
              prep_stop=.false.
              do iphase=1,nphase
-                if( abs(LIMT_keep(iphase)-LIMT(iphase)).gt.0.1) prep_stop=.true.
-                if( abs(LIMTOLD_keep(iphase)-LIMTOLD(iphase)).gt.0.1) prep_stop=.true.
-                if( abs(LIMD_keep(iphase)-LIMD(iphase)).gt.0.1) prep_stop=.true.
-                if( abs(LIMDOLD_keep(iphase)-LIMDOLD(iphase)).gt.0.1) prep_stop=.true.
+                if( abs(LIMT_keep(iphase)-LIMT(iphase)).gt.0.0001) prep_stop=.true.
+                if( abs(LIMTOLD_keep(iphase)-LIMTOLD(iphase)).gt.0.0001) prep_stop=.true.
+                if( abs(LIMD_keep(iphase)-LIMD(iphase)).gt.0.0001) prep_stop=.true.
+                if( abs(LIMDOLD_keep(iphase)-LIMDOLD(iphase)).gt.0.0001) prep_stop=.true.
                 if(IGOT_T2==1) then
-                   if( abs(LIMT2_keep(iphase)-LIMT2(iphase)).gt.0.1) prep_stop=.true.
-                   if( abs(LIMT2old_keep(iphase)-LIMT2old(iphase)).gt.0.1) prep_stop=.true.
+                   if( abs(LIMT2_keep(iphase)-LIMT2(iphase)).gt.0.0001) prep_stop=.true.
+                   if( abs(LIMT2old_keep(iphase)-LIMT2old(iphase)).gt.0.0001) prep_stop=.true.
                 endif
              end do
+!             prep_stop=.true.
 
              if(prep_stop) then
 !             if(.false.) then
@@ -2121,12 +2136,18 @@ contains
 !             LIMT2OLD=1.0
 !          END IF 
 
+!        if(.false.) then
     ! Amend for porosity...
           IF ( ELE2 /= 0 ) THEN 
+             FVD   = 0.5 * ( ONE_PORE(ELE) + ONE_PORE(ELE2) ) * FVD
              LIMD   = 0.5 * ( ONE_PORE(ELE) + ONE_PORE(ELE2) ) * LIMD
+             LIMDOLD   = 0.5 * ( ONE_PORE(ELE) + ONE_PORE(ELE2) ) * LIMDOLD
           ELSE
-             LIMD   = VOLFRA_PORE(ELE) * LIMD
+             FVD   = ONE_PORE(ELE) * FVD
+             LIMD   = ONE_PORE(ELE) * LIMD
+             LIMDOLD   = ONE_PORE(ELE) * LIMDOLD
           END IF
+!       endif
 
 
           LIMDT=LIMD*LIMT
@@ -9802,6 +9823,7 @@ contains
 
     END IF
 
+!         print *,'before fvd,limd:',fvd,limd
     ! Amend for porosity...
     IF ( ELE2 /= 0 ) THEN 
        FVD    = 0.5 * ( VOLFRA_PORE(ELE) + VOLFRA_PORE(ELE2) ) * FVD
@@ -9810,6 +9832,8 @@ contains
        FVD    = VOLFRA_PORE(ELE) * FVD
        LIMD   = VOLFRA_PORE(ELE) * LIMD
     END IF
+!         print *,'after fvd,limd,VOLFRA_PORE(ELE):',fvd,limd,VOLFRA_PORE(ELE)
+!          stop  2911
 
     IF ( HI_ORDER_HALF ) THEN
        RELAX = MIN ( 2.*ABS(FEMTGI-0.5), 1.0 )
@@ -9822,8 +9846,12 @@ contains
 
 !       if(sele=26) then
 !           print *,'iphase, FEMDGI, LIMT, FIRSTORD, NOLIMI, CV_NODI_IPHA, CV_NODJ_IPHA
+!       IF ( (CV_NODI_IPHA-(iphase-1)*cv_nonods==26).and.(CV_NODJ_IPHA-(iphase-1)*cv_nonods==26) )  then
+!           print *,'iphase, FEMTGI, LIMT, FIRSTORD, NOLIMI, CV_NODI_IPHA, CV_NODJ_IPHA, income, FVT:', &
+!                    iphase, FEMTGI, LIMT, FIRSTORD, NOLIMI, CV_NODI_IPHA, CV_NODJ_IPHA, income, FVT
+!       endif
 
-    IF ( SELE /=0 ) DEALLOCATE( SE_CV_NODK_IPHA, SE_CV_SNODK_IPHA )
+!    DEALLOCATE( SE_CV_NODK_IPHA, SE_CV_SNODK_IPHA )
 
     RETURN
 
@@ -9904,6 +9932,8 @@ contains
 
     END IF
 
+!    if(IANISOTROPIC .ne. 1) stop 261
+
     IF ( IANISOTROPIC == 1 ) THEN
        IF( CV_NODJ /= CV_NODI ) THEN
           DO COUNT = SMALL_FINDRM(CV_NODJ), SMALL_FINDRM(CV_NODJ+1)-1
@@ -9936,10 +9966,10 @@ contains
 
 !       if((cv_nodi==433).and.(cv_nodj==435)) then
 !!       if((cv_nodi==67).and.(cv_nodj==736)) then
-!!       if((cv_nodi==90).and.(cv_nodj==795)) then
-!          print *,'TUPWIN, TUPWI2,T(CV_NODI_IPHA), t(CV_NODj_IPHA), LIMT, FEMTGI,INCOME:', &
-!                   TUPWIN, TUPWI2,T(CV_NODI_IPHA), t(CV_NODj_IPHA), LIMT, FEMTGI,INCOME
-!       endif
+       if((cv_nodi==26).and.(cv_nodj==26)) then
+          print *,'iphase,TUPWIN, TUPWI2,T(CV_NODI_IPHA), t(CV_NODj_IPHA), LIMT, FEMTGI,INCOME:', &
+                   iphase,TUPWIN, TUPWI2,T(CV_NODI_IPHA), t(CV_NODj_IPHA), LIMT, FEMTGI,INCOME
+       endif
 
     CALL ONVDLIM_ALL( CV_NONODS, &
          LIMD, FEMDGI, INCOME, CV_NODI, CV_NODJ, &
@@ -10148,16 +10178,20 @@ contains
 
           DO IFIELD=1,NFIELD
              IF ( SELE_LOC_WIC_F_BC(IFIELD) /= WIC_T_BC_DIRICHLET ) THEN ! Don't apply a Dirichlet bc
-                FEMFGI(IFIELD)    = dot_product( SCVFEN(:, GI ) , LOC_FEMF( IFIELD, : )  )
+!                FEMFGI(IFIELD)    = dot_product( SCVFEN(:, GI ) , LOC_FEMF( IFIELD, : )  )
+                LIMF(IFIELD)    = LOC_F( IFIELD, CV_ILOC )  
              ELSE
-                DO CV_SKLOC = 1, CV_SNLOC
-                   FEMFGI(IFIELD) = FEMFGI(IFIELD) +   SHAPE_CV_SNL( CV_SKLOC) * ( SLOC_SUF_F_BC( IFIELD,  CV_SKLOC) & 
-                     * F_INCOME(IFIELD) + SLOC_FEMF( IFIELD, CV_SKLOC ) * ( 1. - F_INCOME(IFIELD) )   )
-                END DO
+!                DO CV_SKLOC = 1, CV_SNLOC
+!                   FEMFGI(IFIELD) = FEMFGI(IFIELD) +   SHAPE_CV_SNL( CV_SKLOC) * ( SLOC_SUF_F_BC( IFIELD,  CV_SKLOC) & 
+!                     * F_INCOME(IFIELD) + SLOC_FEMF( IFIELD, CV_SKLOC ) * ( 1. - F_INCOME(IFIELD) )   )
+!                END DO
+!        if(cv_siloc==0) stop 819
+                LIMF(IFIELD)    = (1.-F_INCOME(IFIELD))*LOC_F( IFIELD, CV_ILOC )   + F_INCOME(IFIELD)*  SLOC_SUF_F_BC( IFIELD,  CV_SILOC)
              END IF
           END DO ! END OF DO IFIELD=1,NFIELD
 
-          LIMF(:)    = (1.-F_INCOME(:))*LOC_F( :, CV_ILOC )   + F_INCOME(:)*  FEMFGI(:)
+!          LIMF(:)    = (1.-F_INCOME(:))*LOC_F( :, CV_ILOC )   + F_INCOME(:)*  FEMFGI(:)
+!          LIMF(IFIELD)    = (1.-F_INCOME(IFIELD))*LOC_F( IFIELD, CV_ILOC )   + F_INCOME(IFIELD)*  SLOC_SUF_F_BC( IFIELD,  CV_SILOC)
 
        ELSE Conditional_CV_DISOPT_ELE2
     ! Extrapolate a downwind value for interface tracking.
@@ -10340,7 +10374,8 @@ contains
 !         if((cv_nodi==1).and.(cv_nodj==1)) then
 !         if((cv_nodi==433).and.(cv_nodj==435)) then
 !         if((cv_nodi==41).and.(cv_nodj==41)) then
-         if((cv_nodi==21).and.(cv_nodj==701)) then
+!         if((cv_nodi==26).and.(cv_nodj==701)) then
+         if((cv_nodi==26).and.(cv_nodj==26)) then
 !         if(sele==26) then
             print *,'femfgi=',femfgi
             print *,'limf=',limf
