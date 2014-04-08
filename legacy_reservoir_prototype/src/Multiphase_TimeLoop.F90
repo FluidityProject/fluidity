@@ -822,7 +822,7 @@
                        cv_snloc, nphase, ndim, nface, mat_nonods, cv_nonods, x_nloc, ncolele, cv_ele_type, &
                        finele, colele, cv_ndgln, cv_sndgln, x_ndgln, mat_ndgln, permeability, material_absorption, &
                        Velocity_U_BC_Spatial, PhaseVolumeFraction_BC_Spatial,  PhaseVolumeFraction_BC, PhaseVolumeFraction, &
-                       state, x_nonods, x, y, z )
+                       state, x_nonods )
                end if
             end if
 
@@ -834,9 +834,6 @@
 
                Velocity_NU = Velocity_U ; Velocity_NV = Velocity_V ; Velocity_NW = Velocity_W
 
-               U_s  => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedVelocity" )
-
-               NU_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedNonlinearVelocity" )
                NU_s % val = U_s % val
 
 
@@ -942,7 +939,6 @@
                     CV_ELE_TYPE, CV_SELE_TYPE, U_ELE_TYPE, &
                     CV_NLOC, U_NLOC, X_NLOC, CV_SNLOC, U_SNLOC, &
                     CV_NDGLN, CV_SNDGLN, X_NDGLN, U_NDGLN, U_SNDGLN, &
-                    X, Y, Z, &
                     MAT_NLOC, MAT_NDGLN, MAT_NONODS,  &
                     NDIM,  &
                     NCOLM, FINDM, COLM, MIDM, &
@@ -1211,13 +1207,11 @@
 !!$
                           NOIT_DIM, & ! This need to be removed as it is already deprecated
 !!$
-!!$                          nits_flux_lim_comp, &
                           Mean_Pore_CV, &
-                                !option_path = '', &
                           mass_ele_transp = dummy_ele, &
                           thermal = .false.,& ! the false means that we don't add an extra source term
                           theta_flux=theta_flux, one_m_theta_flux=one_m_theta_flux, theta_flux_j=theta_flux_j, one_m_theta_flux_j=one_m_theta_flux_j,&
-                           StorageIndexes=StorageIndexes)
+                          StorageIndexes=StorageIndexes )
 
                    Component( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods )  &
 !                       =min(  max(Component( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods ),0.0), 0.95) 

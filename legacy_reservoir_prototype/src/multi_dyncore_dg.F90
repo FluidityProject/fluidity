@@ -5482,7 +5482,6 @@ contains
     CV_ELE_TYPE, CV_SELE_TYPE, U_ELE_TYPE, &
     CV_NLOC, U_NLOC, X_NLOC, CV_SNLOC, U_SNLOC, &
     CV_NDGLN, CV_SNDGLN, X_NDGLN, U_NDGLN, U_SNDGLN, &
-    X, Y, Z, &
     MAT_NLOC, MAT_NDGLN, MAT_NONODS,  &
     NDIM,  &
     NCOLM, FINDM, COLM, MIDM, &
@@ -5524,7 +5523,6 @@ contains
         real, dimension( : ), intent( in ) :: SUF_COMP_BC
         integer, dimension( : ), intent( in ) :: WIC_COMP_BC
 
-        real, dimension( : ), intent( in ) :: X, Y, Z
         integer, dimension( : ), intent( in ) :: FINDM
         integer, dimension( : ), intent( in ) :: COLM
         integer, dimension( : ), intent( in ) :: MIDM
@@ -5533,7 +5531,7 @@ contains
         integer, dimension(:), intent(inout) ::  StorageIndexes
         !Local variables
         real, dimension( : ), allocatable :: U_FORCE_X_SUF_TEN, U_FORCE_Y_SUF_TEN, U_FORCE_Z_SUF_TEN, &
-        CV_U_FORCE_X_SUF_TEN, CV_U_FORCE_Y_SUF_TEN, CV_U_FORCE_Z_SUF_TEN
+        CV_U_FORCE_X_SUF_TEN, CV_U_FORCE_Y_SUF_TEN, CV_U_FORCE_Z_SUF_TEN, X, Y, Z
         real, dimension( STOTEL * CV_SNLOC ) :: DUMMY_SUF_COMP_BC
         integer, dimension( STOTEL ) :: DUMMY_WIC_COMP_BC
 
@@ -5541,7 +5539,20 @@ contains
         real :: coefficient
         logical :: surface_tension, use_pressure_force, use_smoothing
 
+        type( vector_field ), pointer :: x_all
+
+
         ewrite(3,*) 'Entering CALCULATE_SURFACE_TENSION'
+
+        allocate( X(  X_NONODS ) ) ; X = 0.0
+        allocate( Y(  X_NONODS ) ) ; Y = 0.0
+        allocate( Z(  X_NONODS ) ) ; Z = 0.0
+
+        x_all => extract_vector_field( packed_state, "PressureCoordinate" )
+        x = x_all % val( 1, : )
+        if (ndim >=2 ) y = x_all % val( 2, : )
+        if (ndim >=3 ) z = x_all % val( 3, : )
+
 
         ! Initialise...
         IPLIKE_GRAD_SOU = 0

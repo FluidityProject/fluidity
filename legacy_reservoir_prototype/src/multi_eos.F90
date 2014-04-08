@@ -1361,7 +1361,7 @@
     subroutine calculate_SUF_SIG_DIAGTEN_BC( suf_sig_diagten_bc, totele, stotel, cv_nloc, &
          cv_snloc, nphase, ndim, nface, mat_nonods, cv_nonods, x_nloc, ncolele, cv_ele_type, &
          finele, colele, cv_ndgln, cv_sndgln, x_ndgln, mat_ndgln, perm, material_absorption, &
-         wic_u_bc, wic_vol_bc, sat, vol, state, x_nonods, x,y,z )
+         wic_u_bc, wic_vol_bc, sat, vol, state, x_nonods )
 
       implicit none
 
@@ -1378,7 +1378,6 @@
       real, dimension( :, :, : ), intent( inout ) :: material_absorption
       real, dimension( : ), intent( in ) :: sat
       real, dimension( : ), intent( in ) :: vol
-      real, dimension( : ), intent( in ) :: x,y,z
       type(state_type), dimension( : ) :: state
 
       real, dimension(stotel * cv_snloc * nphase, ndim ), intent( inout ) :: suf_sig_diagten_bc
