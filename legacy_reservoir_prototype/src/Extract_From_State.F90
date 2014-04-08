@@ -2132,6 +2132,15 @@
               overlapping_shape=pressure%mesh%shape)
          overlapping_shape=pressure%mesh%shape
 
+         do i=1,size(state)
+            if (has_vector_field(state(i),"Velocity")) then
+
+               velocity=>extract_vector_field(state(i),"Velocity",stat)
+               velocity%mesh%shape%numbering%type=ELEMENT_OVERLAPPING
+               velocity%mesh%overlapping_shape=overlapping_shape
+            end if
+         end do
+
          call insert_vfield(packed_state,"Velocity",ovmesh)
          call insert_vfield(packed_state,"NonlinearVelocity",ovmesh)
          call insert(state(1),ovmesh,"InternalVelocityMesh")

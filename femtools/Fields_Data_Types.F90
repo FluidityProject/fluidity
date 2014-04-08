@@ -60,6 +60,7 @@ module fields_data_types
      !! Flag for whether ndglno is allocated
      logical :: wrapped=.true.
      type(element_type) :: shape
+     type(element_type) :: overlapping_shape
      integer :: elements
      integer :: nodes
      character(len=FIELD_NAME_LEN) :: name

@@ -270,35 +270,35 @@
 
          number_nodes = node_count(velocity)
 
-         vel_ele_loop: do i = 1,element_count(velocity)
-
-            element_nodes => ele_nodes(velocity,i)
-
-            nloc = size(element_nodes)
-
-            vel_node_loop: do j = 1,nloc
-
-               ! set u
-               call set(velocity, &
-                    1, &
-                    element_nodes(j), &
-                    proto_velocity_u_tmp( (i-1)*nloc + j + (p-1)*number_nodes) )
-
-               ! set v
-               if (ndim > 1) call set(velocity, &
-                    2, &
-                    element_nodes(j), &
-                    proto_velocity_v_tmp( (i-1)*nloc + j + (p-1)*number_nodes) )
-
-               ! set w
-               if (ndim > 2) call set(velocity, &
-                    3, &
-                    element_nodes(j), &
-                    proto_velocity_w_tmp( (i-1)*nloc + j + (p-1)*number_nodes) )
-
-            end do vel_node_loop
-
-         end do vel_ele_loop
+!!$         vel_ele_loop: do i = 1,element_count(velocity)
+!!$
+!!$            element_nodes => ele_nodes(velocity,i)
+!!$
+!!$            nloc = size(element_nodes)
+!!$
+!!$            vel_node_loop: do j = 1,nloc
+!!$
+!!$               ! set u
+!!$               call set(velocity, &
+!!$                    1, &
+!!$                    element_nodes(j), &
+!!$                    proto_velocity_u_tmp( (i-1)*nloc + j + (p-1)*number_nodes) )
+!!$
+!!$               ! set v
+!!$               if (ndim > 1) call set(velocity, &
+!!$                    2, &
+!!$                    element_nodes(j), &
+!!$                    proto_velocity_v_tmp( (i-1)*nloc + j + (p-1)*number_nodes) )
+!!$
+!!$               ! set w
+!!$               if (ndim > 2) call set(velocity, &
+!!$                    3, &
+!!$                    element_nodes(j), &
+!!$                    proto_velocity_w_tmp( (i-1)*nloc + j + (p-1)*number_nodes) )
+!!$
+!!$            end do vel_node_loop
+!!$
+!!$         end do vel_ele_loop
 
       end do phase_loop
 

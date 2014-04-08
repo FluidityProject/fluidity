@@ -63,7 +63,8 @@ implicit none
   integer, parameter, public :: REMAP_ERR_DISCONTINUOUS_CONTINUOUS = 1, &
                                 REMAP_ERR_HIGHER_LOWER_CONTINUOUS  = 2, &
                                 REMAP_ERR_UNPERIODIC_PERIODIC      = 3, &
-                                REMAP_ERR_BUBBLE_LAGRANGE          = 4
+                                REMAP_ERR_BUBBLE_LAGRANGE          = 4, &
+                                REMAP_ERR_OVERLAPPING_LAGRANGIAN   = 5
 
   interface addto
      module procedure scalar_field_vaddto, scalar_field_addto, &
@@ -1974,7 +1975,7 @@ implicit none
 
     real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc) :: locweight
 
-    integer :: fromloc, toloc, ele, i
+    integer :: fromloc, toloc, ele, i, sub_ele , n_lev, nloc
     integer, dimension(:), pointer :: from_ele, to_ele
     
     if(present(stat)) stat = 0
@@ -1995,8 +1996,55 @@ implicit none
     
       call set(to_field, from_field)
       
-    else
+
+       !! code to deal with "overlapping" element type from multiphase code
+
+    else if (from_field%mesh%shape%numbering%type==ELEMENT_OVERLAPPING .and. &
+            to_field%mesh%shape%numbering%type==ELEMENT_LAGRANGIAN ) then
+       if (present(stat)) then
+          stat = REMAP_ERR_OVERLAPPING_LAGRANGIAN
+       else
+          FLAbort("Trying to remap from overlapping to Lagrangian vector field.")
+       end if
+          
+       call zero(to_field)
+
+       n_lev=from_field%mesh%overlapping_shape%loc
+       nloc=ele_loc(from_field,1)
+
+       ! First construct remapping weights.
+        do toloc=1,size(locweight,1)
+          do fromloc=1,size(locweight,2)
+              locweight(toloc,fromloc)=eval_shape(from_field%mesh%shape, fromloc, &
+                  local_coords(toloc, to_field%mesh%shape))
+          end do
+        end do
+        
+        ! Now loop over the elements.
+        do ele=1,element_count(to_field)
+
+           to_ele=>ele_nodes(to_field, ele)
+           from_ele=>ele_nodes(from_field,ele)
+           
+           do sub_ele=1,n_lev
+              
+              do i=1,from_field%dim
+                 to_field%val(i,to_ele)= &
+                      to_field%val(i,to_ele)&
+                      + matmul(locweight,from_field%val(i,from_ele+nloc*(sub_ele-1)+nloc*n_lev*(ele-1)-nloc*(ele-1)))    
+              end do
+
+
+              
+           end do
+        end do
+        
+        to_field%val=to_field%val/n_lev
+       
+
     
+    else
+
       select case(from_field%field_type)
       case(FIELD_TYPE_NORMAL)
 
