@@ -1,9 +1,10 @@
-SHELL = sh
+include ../darcy_impes_common/Depend.mk
 
 SIM = darcy_impes_p1_pseudo1phase_velBCinlet
 
 input: clean
-	cp ../darcy_impes_common/darcy_impes_tools.py .
+	$(call import_python_code,test_tools.py)
+	$(call import_python_code,buckley_leverett_test_tools.py)
 	cp mesh_data/$(SIM)*.* .
 	cp mesh_data/square*.msh .
 	cp mesh_data/cube*.msh .
@@ -27,4 +28,6 @@ clean:
 	rm -f matrixdump*
 	rm -f first_timestep_adapted_mesh*
 	rm -f *.convergence 
-	rm -f darcy_impes_tools.py
+	rm -f error_*.txt
+	rm -f buckley_leverett_test_tools.py
+	rm -f test_tools.py

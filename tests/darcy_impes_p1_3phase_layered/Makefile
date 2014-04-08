@@ -1,4 +1,4 @@
-SHELL = sh
+include ../darcy_impes_common/Depend.mk
 
 SIM = darcy_impes_p1_3phase_layered
 
@@ -8,7 +8,8 @@ LEFT_X    = 0.0
 RIGHT_X   = 1.0
 
 input: clean
-	cp ../darcy_impes_common/darcy_impes_tools.py .
+	$(call import_python_code,test_tools.py)
+	$(call import_python_code,buckley_leverett_test_tools.py)
 	interval --dx=$(MESH_SIZE) $(LEFT_X) $(RIGHT_X) $(SIM)_1d
 	cp mesh_data/square*.msh .
 	cp mesh_data/cube*.msh .
@@ -32,4 +33,6 @@ clean:
 	rm -f matrixdump*
 	rm -f first_timestep_adapted_mesh*
 	rm -f *.convergence 
-	rm -f darcy_impes_tools.py
+	rm -f error_*.txt
+	rm -f buckley_leverett_test_tools.py
+	rm -f test_tools.py

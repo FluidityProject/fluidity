@@ -1,7 +1,8 @@
-SHELL = sh
+include ../darcy_impes_common/Depend.mk
 
 input: clean
-	cp ../darcy_impes_common/darcy_impes_tools.py .
+	$(call import_python_code,test_tools.py)
+	$(call import_python_code,buckley_leverett_test_tools.py)
 	cp ../darcy_impes_common/mesh_data/line_mesh_1d_A* .
 	cp ../darcy_impes_common/mesh_data/line_mesh_1d_B* .
 	cp ../darcy_impes_common/mesh_data/line_mesh_1d_C* .
@@ -32,5 +33,6 @@ clean:
 	rm -f first_timestep_adapted_mesh*
 	rm -f *.convergence 
 	rm -f *.pyc
-	rm -f *.txt
-	rm -f darcy_impes_tools.py
+	rm -f error_*.txt
+	rm -f buckley_leverett_test_tools.py
+	rm -f test_tools.py

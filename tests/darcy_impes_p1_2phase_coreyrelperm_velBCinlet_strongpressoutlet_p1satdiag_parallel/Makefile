@@ -1,7 +1,8 @@
-SHELL = sh
+include ../darcy_impes_common/Depend.mk
 
 input: clean
-	cp ../darcy_impes_common/darcy_impes_tools.py .
+	$(call import_python_code,test_tools.py)
+	$(call import_python_code,buckley_leverett_test_tools.py)
 	cp mesh_data/square_A.msh .
 	../../bin/fldecomp -n 2 -m gmsh square_A
 
@@ -28,4 +29,6 @@ clean:
 	rm -f *.txt
 	rm -f *checkpoint*
 	rm -rf *2d_A_0 *2d_A_1
-	rm -f darcy_impes_tools.py
+	rm -f error_*.txt
+	rm -f buckley_leverett_test_tools.py
+	rm -f test_tools.py
