@@ -1116,9 +1116,6 @@ contains
     STOTEL, CV_SNDGLN, U_SNDGLN, P_SNDGLN, &
     U_SNLOC, P_SNLOC, CV_SNLOC, &
     U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
-
-    U, V, W, &
-
     P, CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
     DT, &
     NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn
@@ -1176,8 +1173,6 @@ contains
         REAL, DIMENSION(  :, :, :  ), intent( in ) :: U_ABS_STAB, U_ABSORB
         REAL, DIMENSION(  :  ), intent( in ) :: U_SOURCE
         REAL, DIMENSION(  :  ), intent( in ) :: U_SOURCE_CV
-
-        REAL, DIMENSION(  : ), intent( inout ) :: U, V, W
 
         REAL, DIMENSION(  :  ), intent( inout ) :: P,CV_P
         REAL, DIMENSION(  :  ), intent( in ) :: DEN, DENOLD, SATURAOLD
@@ -1592,26 +1587,6 @@ contains
             CALL PHA_BLOCK_MAT_VEC2( DU_VEL, PIVIT_MAT, CDP, U_NONODS, NDIM, NPHASE, &
             TOTELE, U_NLOC, U_NDGLN )
             U_ALL2 % VAL = U_ALL2 % VAL + DU_VEL
-
-
-            DO ELE = 1, TOTELE
-                DO U_ILOC = 1, U_NLOC
-                    U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
-                    DO IPHASE = 1, NPHASE
-                        J = U_INOD + (IPHASE-1)*U_NONODS ! OLD
-                        DO IDIM = 1, NDIM
-                            IF ( IDIM == 1 ) THEN
-                                U( J ) = U_ALL2%VAL( IDIM, IPHASE, U_INOD )
-                            ELSE IF ( IDIM == 2 ) THEN
-                                V( J ) = U_ALL2%VAL( IDIM, IPHASE, U_INOD )
-                            ELSE IF ( IDIM == 3 ) THEN
-                                W( J ) = U_ALL2%VAL( IDIM, IPHASE, U_INOD )
-                            END IF
-                        END DO
-                    END DO
-                END DO
-            END DO
-
 
         END IF
 

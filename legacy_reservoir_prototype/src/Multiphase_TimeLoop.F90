@@ -164,7 +164,7 @@
       integer, dimension( : ), allocatable :: PhaseVolumeFraction_BC_Spatial, Pressure_FEM_BC_Spatial, &
            Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, Temperature_BC_Spatial, &
            wic_momu_bc
-      real, dimension( : ), pointer :: temp, &
+      real, dimension( : ), pointer :: &
            Velocity_U, Velocity_V, Velocity_W, Velocity_U_Old, Velocity_V_Old, Velocity_W_Old, &
            Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
            Pressure_FEM, Pressure_CV, Temperature, Density, Density_Cp, Density_Component, PhaseVolumeFraction, &
@@ -504,7 +504,6 @@
            Pressure_CV, Pressure_FEM, Pressure_FEM_BC_Spatial, Pressure_FEM_BC, &
            Density, Density_BC_Spatial, Density_BC, &
            Component, Component_BC_Spatial, Component_BC, Component_Source, &
-           Velocity_U, Velocity_V, Velocity_W, Velocity_NU, Velocity_NV, Velocity_NW, &
            Velocity_U_BC_Spatial, wic_momu_bc, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, &
            suf_momu_bc, suf_momv_bc, suf_momw_bc, Velocity_U_Source, Velocity_Absorption, &
            Temperature, Temperature_BC_Spatial, Temperature_BC, Temperature_Source, suf_t_bc_rob1, suf_t_bc_rob2, &
@@ -714,23 +713,19 @@
          end if
 
 !!$ Update all fields from time-step 'N - 1'
-         Velocity_U_Old = Velocity_U ; Velocity_V_Old = Velocity_V ; Velocity_W_Old = Velocity_W
-         Velocity_NU = Velocity_U ; Velocity_NV = Velocity_V ; Velocity_NW = Velocity_W
-         Velocity_NU_Old = Velocity_U ; Velocity_NV_Old = Velocity_V ; Velocity_NW_Old = Velocity_W
          Density_Old = Density ;  Density_Cp_Old = Density_Cp ; Pressure_FEM_Old = Pressure_FEM ; Pressure_CV_Old = Pressure_CV
          PhaseVolumeFraction_Old = PhaseVolumeFraction ; Temperature_Old = Temperature ; Component_Old = Component
          Density_Old_tmp = Density_tmp ; Density_Component_Old = Density_Component
 
          U_s  => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedVelocity" )
-
          UOLD_s  => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldVelocity" )
-         UOLD_s % val = U_s % val
-
          NU_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedNonlinearVelocity" )
-         NU_s % val = U_s % val
-
          NUOLD_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldNonlinearVelocity" )
+
+         UOLD_s % val = U_s % val
+         NU_s % val = U_s % val
          NUOLD_s % val = U_s % val
+
 
          ! evaluate prescribed fields at time = current_time+dt
          call set_prescribed_field_values( state, exclude_interpolated = .true., &
@@ -743,14 +738,14 @@
          call update_velocity_absorption( state, ndim, nphase, mat_nonods, velocity_absorption )
 
 !!$ FEMDEM...
-         if ( .false. ) then
-            !call femdem( state, totele, cv_nonods, u_nonods, ndim, nphase, cv_nloc, &
-            !     &            cv_ndgln, dt, density_femt, pressure_fem, velocity_u, velocity_v, &
-            !     &            velocity_absorption, permeability, porosity )
-            call blasting( state, totele, cv_nonods, u_nonods, ndim, nphase, cv_nloc, &
-                 &            cv_ndgln, dt, density_femt, pressure_fem, velocity_u, velocity_v, &
-                 &            velocity_absorption, permeability, porosity )
-         end if
+!         if ( .false. ) then
+!            !call femdem( state, totele, cv_nonods, u_nonods, ndim, nphase, cv_nloc, &
+!            !     &            cv_ndgln, dt, density_femt, pressure_fem, velocity_u, velocity_v, &
+!            !     &            velocity_absorption, permeability, porosity )
+!            call blasting( state, totele, cv_nonods, u_nonods, ndim, nphase, cv_nloc, &
+!                 &            cv_ndgln, dt, density_femt, pressure_fem, velocity_u, velocity_v, &
+!                 &            velocity_absorption, permeability, porosity )
+!         end if
 
          ! time varying boundary conditions for Temperature
          if( have_temperature_field ) &
@@ -823,10 +818,7 @@
 
                ewrite(3,*)'Now advecting Temperature Field'
 
-               Velocity_NU = Velocity_U ; Velocity_NV = Velocity_V ; Velocity_NW = Velocity_W
-
                NU_s % val = U_s % val
-
 
                call calculate_diffusivity( state, ncomp, nphase, ndim, cv_nonods, mat_nonods, &
                                            mat_nloc, totele, mat_ndgln, ScalarAdvectionField_Diffusion )
@@ -896,18 +888,8 @@
             Conditional_ForceBalanceEquation: if ( solve_force_balance ) then
 
 !!$ Updating velocities:
-               Velocity_NU = Velocity_U ; Velocity_NV = Velocity_V ; Velocity_NW = Velocity_W 
-               Velocity_NU_Old = Velocity_U_Old ; Velocity_NV_Old = Velocity_V_Old ; Velocity_NW_Old = Velocity_W_Old
-
-               U_s  => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedVelocity" )
-               UOLD_s  => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldVelocity" )
-
-               NU_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedNonlinearVelocity" )
                NU_s % val = U_s % val
-
-               NUOLD_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldNonlinearVelocity" )
                NUOLD_s % val = UOLD_s % val
-
 
 !!$ Diffusion-like term -- here used as part of the capillary pressure for porous media. It can also be 
 !!$ extended to surface tension -like term.
@@ -1009,9 +991,6 @@
                     U_SNLOC, P_SNLOC, CV_SNLOC, &
 !!$
                     Material_Absorption_Stab, Material_Absorption+Velocity_Absorption, Velocity_U_Source, Velocity_U_Source_CV, &
-
-                    Velocity_U, Velocity_V, Velocity_W, &
-
                     Pressure_FEM, Pressure_CV, Density, Density_Old, PhaseVolumeFraction, PhaseVolumeFraction_Old, & 
                     DRhoDPressure, &
                     dt, &
@@ -1417,8 +1396,8 @@
 
 !!$ Copying fields back to state:
          call copy_into_state( state, & ! Copying main fields into state
-              PhaseVolumeFraction, Temperature, Pressure_CV, Velocity_U, Velocity_V, Velocity_W, &
-              Density, Component, ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
+              PhaseVolumeFraction, Temperature, Pressure_CV, &
+              Density, Component, ncomp, nphase, cv_ndgln, p_ndgln )
 
 
 !!$ Calculate diagnostic fields
@@ -1429,8 +1408,8 @@
 
             if ( have_option( "/io/output_scalars_fem" ) ) &
                  call copy_into_state( state, & ! Copying main fields into state
-                 PhaseVolumeFraction_FEMT, Temperature_FEMT, Pressure_FEM, Velocity_U, Velocity_V, Velocity_W, &
-                 Density, Component_FEMT, ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
+                 PhaseVolumeFraction_FEMT, Temperature_FEMT, Pressure_FEM, &
+                 Density, Component_FEMT, ncomp, nphase, cv_ndgln, p_ndgln )
 
             call get_option( '/timestepping/current_time', current_time ) ! Find the current time 
 
@@ -1440,8 +1419,8 @@
 
             if ( have_option( "/io/output_scalars_fem" ) ) &
                  call copy_into_state( state, & ! Copying main fields into state
-                 PhaseVolumeFraction, Temperature, Pressure_CV, Velocity_U, Velocity_V, Velocity_W, &
-                 Density, Component, ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
+                 PhaseVolumeFraction, Temperature, Pressure_CV, &
+                 Density, Component, ncomp, nphase, cv_ndgln, p_ndgln )
 
          end if Conditional_TimeDump
 
@@ -1781,7 +1760,6 @@
                  Pressure_CV, Pressure_FEM, Pressure_FEM_BC_Spatial, Pressure_FEM_BC, &
                  Density, Density_BC_Spatial, Density_BC, &
                  Component, Component_BC_Spatial, Component_BC, Component_Source, &
-                 Velocity_U, Velocity_V, Velocity_W, Velocity_NU, Velocity_NV, Velocity_NW, &
                  Velocity_U_BC_Spatial, wic_momu_bc, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC,&
                  suf_momu_bc, suf_momv_bc, suf_momw_bc, Velocity_U_Source, Velocity_Absorption, &
                  Temperature, Temperature_BC_Spatial, Temperature_BC, Temperature_Source, suf_t_bc_rob1, suf_t_bc_rob2, &
@@ -1843,9 +1821,9 @@
 
 !!$            !$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 !!$            call copy_into_state( state, &
-!!$                 PhaseVolumeFraction, Temperature, Pressure_CV, Velocity_U, Velocity_V, Velocity_W, &
+!!$                 PhaseVolumeFraction, Temperature, Pressure_CV, &
 !!$                 Density, Component, &
-!!$                 ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
+!!$                 ncomp, nphase, cv_ndgln, p_ndgln )
 !!$            dump_no=666
 !!$            call write_state( dump_no, state ) ! Now writing into the vtu files
 !!$            stop 777

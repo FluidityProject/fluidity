@@ -60,7 +60,6 @@
     private
 
     public :: Get_Primary_Scalars, Compute_Node_Global_Numbers, Extracting_MeshDependentFields_From_State, &
-         Get_ScalarFields_Outof_State, Get_CompositionFields_Outof_State, Get_VectorFields_Outof_State, &
          Extract_TensorFields_Outof_State, Extract_Position_Field, xp1_2_xp2, Get_Ele_Type, Get_Discretisation_Options, &
          print_from_state, update_boundary_conditions, pack_multistate, finalise_multistate, get_ndglno
 
@@ -745,7 +744,7 @@
          Pressure_CV, Pressure_FEM, Pressure_FEM_BC_Spatial, Pressure_FEM_BC, &
          Density, Density_BC_Spatial, Density_BC, &
          Component, Component_BC_Spatial, Component_BC, Component_Source, &
-         Velocity_U, Velocity_V, Velocity_W, Velocity_NU, Velocity_NV, Velocity_NW, &
+!         Velocity_U, Velocity_V, Velocity_W, Velocity_NU, Velocity_NV, Velocity_NW, &
          Velocity_U_BC_Spatial,  wic_momu_bc, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, &
          suf_momu_bc, suf_momv_bc, suf_momw_bc, Velocity_U_Source, Velocity_Absorption, &
          Temperature, Temperature_BC_Spatial, Temperature_BC, Temperature_Source, suf_t_bc_rob1, suf_t_bc_rob2, &
@@ -763,7 +762,7 @@
            Pressure_CV, Pressure_FEM, Pressure_FEM_BC, &
            Density, Density_BC, &
            Component, Component_BC, Component_Source, &
-           Velocity_U, Velocity_V, Velocity_W, Velocity_NU, Velocity_NV, Velocity_NW, &
+!           Velocity_U, Velocity_V, Velocity_W, Velocity_NU, Velocity_NV, Velocity_NW, &
            Velocity_U_BC,  Velocity_V_BC, Velocity_W_BC, Velocity_U_Source, &
            Temperature, Temperature_BC, Temperature_Source, suf_t_bc_rob1, suf_t_bc_rob2, &
            Porosity, suf_momu_bc, suf_momv_bc, suf_momw_bc
@@ -894,7 +893,6 @@
       Loop_Velocity: do iphase = 1, nphase
          vectorfield => extract_vector_field( state( iphase ), 'Velocity' )
          call Get_VectorFields_Outof_State( state, initialised, iphase, vectorfield, &
-              Velocity_U, Velocity_V, Velocity_W, Velocity_NU, Velocity_NV, Velocity_NW, &
               Velocity_U_BC_Spatial, wic_momu_bc, &
               Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, &
               suf_momu_bc, suf_momv_bc, suf_momw_bc, &
@@ -1264,7 +1262,6 @@
 
 
     subroutine Get_VectorFields_Outof_State( state, initialised, iphase, field, &
-         field_u_prot, field_v_prot, field_w_prot, field_nu_prot, field_nv_prot, field_nw_prot, &
          wic_bc, wic_momu_bc, suf_u_bc, suf_v_bc, suf_w_bc, &
          suf_momu_bc, suf_momv_bc, suf_momw_bc, &
          field_prot_source, field_prot_absorption )
@@ -1273,8 +1270,8 @@
       logical, intent( in ) :: initialised
       integer, intent( in ) :: iphase
       type( vector_field ), pointer :: field, field_prot_bc
-      real, dimension( : ), intent( inout ) :: field_u_prot, field_v_prot, field_w_prot, &
-           field_nu_prot, field_nv_prot, field_nw_prot
+ !     real, dimension( : ), intent( inout ) :: field_u_prot, field_v_prot, field_w_prot, &
+ !          field_nu_prot, field_nv_prot, field_nw_prot
       real, dimension( : ), intent( inout ), optional :: field_prot_source
       real, dimension( : , :, : ), intent( inout ), optional :: field_prot_absorption
       integer, dimension( : ), intent( inout ) :: wic_bc, wic_momu_bc 
@@ -1326,69 +1323,6 @@
          end if
       end if Conditional_AbsorptionField
 
-      Conditional_InitialisationFromFLML: if( initialised ) then
-
-         if ( is_overlapping ) then
-            field_u_prot = 0.
-            field_v_prot = 0.
-            field_w_prot = 0.
-         else
-            field_u_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = field % val( 1, : )
-            if( ndim > 1 ) field_v_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = field % val( 2, : )
-            if( ndim > 2 ) field_w_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = field % val( 3, : )
-         end if
-
-      else
-         option_path = '/material_phase[' // int2str( iphase - 1 ) // ']/vector_field::' // trim( field_name ) // &
-              '/prognostic/initial_condition::WholeMesh'
-         if ( have_option( trim( option_path ) // '/constant' ) ) then
-            allocate( initial_constant( ndim ) ) ; initial_constant = 0.
-            call get_option( trim( option_path ) // '/constant', initial_constant )
-
-            field_u_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = initial_constant( 1 )
-            if( ndim > 1 ) field_v_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = initial_constant( 2 )
-            if( ndim > 2 ) field_w_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = initial_constant( 3 )
-
-            deallocate( initial_constant )
-
-         else if ( have_option( trim( option_path ) // '/python' ) ) then
-            call get_option( trim( option_path ) // '/python', func )
-
-            call allocate( dummy, field % dim, field % mesh, 'dummy' )
-            call get_option( '/timestepping/current_time', current_time )
-            call set_from_python_function( dummy, trim( func ), positions, current_time )
-
-            field_u_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = dummy % val( 1, : )
-            if( ndim > 1 ) field_v_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = dummy % val( 2, : )
-            if( ndim > 2 ) field_w_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = dummy % val( 3, : )
-
-            call deallocate( dummy )
-
-         else if (have_option( trim( option_path ) // '/prognostic/initial_condition') )then
-             call allocate( dummy, field % dim, field % mesh, 'dummy' )
-             call get_option('/timestepping/current_time', current_time)
-             call initialise_field_over_regions(dummy, trim( option_path ) // '/prognostic/initial_condition', positions, current_time)
-             field_u_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = dummy % val( 1, : )
-             if( ndim > 1 ) field_v_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = dummy % val( 2, : )
-             if( ndim > 2 ) field_w_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = dummy % val( 3, : )
-             call deallocate( dummy )
-
-         else
-
-            ewrite(-1,*) 'No initial condition for field::', trim( field_name )
-            FLAbort( 'Check initial conditions' )
-
-         end if
-      end if Conditional_InitialisationFromFLML
-
-
-      ! set nu to u
-      field_nu_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = &
-           field_u_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods )
-      if( ndim > 1 ) field_nv_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = &
-           field_v_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods )
-      if( ndim > 2 ) field_nw_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods ) = &
-           field_w_prot( ( iphase - 1 ) * nonods + 1 : iphase * nonods )
 
       option_path = '/material_phase[' // int2str( iphase - 1 )// ']/vector_field::' // trim( field_name )
       option_path2 = trim( option_path ) // '/prognostic/boundary_conditions['
@@ -2416,10 +2350,10 @@
         subroutine unpack_sfield(nstate,mstate,name,icomp, iphase,free)
           type(state_type), intent(inout) :: nstate, mstate
           character(len=*) :: name
-          integer :: icomp,iphase, stat
+          integer :: icomp, iphase
           logical, optional :: free 
 
-          type(scalar_field), pointer :: nfield, onfield
+          type(scalar_field), pointer :: nfield
           type(tensor_field), pointer :: mfield
           logical lfree
 
@@ -2453,8 +2387,7 @@
 
           
           type(vector_field), pointer :: nfield
-          type(tensor_field), pointer ::mfield
-          integer :: ndim,rdim, nonods
+          type(tensor_field), pointer :: mfield
           logical lfree
 
           if (present(free)) then
@@ -2595,7 +2528,7 @@
           type(vector_boundary_condition), pointer ::  bc
           type(tensor_boundary_condition), dimension(:), pointer :: temp
 
-          integer :: iphase,icomp,stat, n, nbc
+          integer :: iphase, stat, n, nbc
 
           nbc=0
           mfield=>extract_tensor_field(s,"Packed"//name)
