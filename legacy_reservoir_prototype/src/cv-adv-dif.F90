@@ -1109,7 +1109,7 @@ contains
               IGOT_T2,NPHASE,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, &
               SMALL_FINDRM,SMALL_CENTRM,SMALL_COLM,NSMALL_COLM, &
               X_NDGLN,X_NONODS,NDIM, &
-              X_ALL, XC_CV, YC_CV, ZC_CV)
+              X_ALL, XC_CV_ALL, IGOT_T_PACK, IGOT_T_CONST, IGOT_T_CONST_VALUE)
 
 ! make sure the diagonal is equal to the value:
          DO CV_NODI=1,CV_NONODS
@@ -12250,7 +12250,7 @@ CONTAINS
        IGOT_T2, NPHASE, CV_NONODS,CV_NLOC, X_NLOC,TOTELE, CV_NDGLN, &
        SMALL_FINDRM, SMALL_CENTRM, SMALL_COLM,NSMALL_COLM, &
        X_NDGLN, X_NONODS, NDIM, &
-       X_ALL, XC_CV, YC_CV, ZC_CV)
+       X_ALL, XC_CV_ALL, IGOT_T_PACK, IGOT_T_CONST, IGOT_T_CONST_VALUE)
     ! For the anisotropic limiting scheme we find the upwind values
     ! by interpolation using the subroutine FINPTS or IFINPTS; the upwind
     ! value for each node pair is stored in the matrices TUPWIND AND
@@ -12271,39 +12271,63 @@ CONTAINS
     INTEGER, DIMENSION( : ), intent( in) :: SMALL_FINDRM
     INTEGER, DIMENSION( : ), intent( in ) :: SMALL_COLM
     INTEGER, DIMENSION( : ), intent( in) :: SMALL_CENTRM
-    REAL, DIMENSION( : ), intent( in ) :: XC_CV, YC_CV, ZC_CV
+    LOGICAL, DIMENSION( NPHASE, 6 ), intent( in) :: IGOT_T_PACK, IGOT_T_CONST
+    REAL, DIMENSION( NPHASE, 6 ), intent( in) :: IGOT_T_CONST_VALUE
+    REAL, DIMENSION( NDIM, CV_NONODS), intent( in ) :: XC_CV_ALL
+! local variables...
+    INTEGER :: NFIELD
+    REAL, DIMENSION( :, : ), ALLOCATABLE :: F_ALL, FEMF_ALL, FUPWIND_MAT_ALL
+
+
+! Pack all the variables in:
+! Always pack in the T & TOLD & T2, T2OLD variables
+    NFIELD=(4 + 2*IGOT_T2)*NPHASE
+    ALLOCATE( FUPWIND_MAT_ALL(NFIELD,NSMALL_COLM) )
+    ALLOCATE( F_ALL(NFIELD, CV_NONODS), FEMF_ALL(NFIELD, CV_NONODS)  )
+
+    F_ALL(1:NPHASE,            :)=T_ALL(1:NPHASE, :)
+    F_ALL(1+NPHASE:  2*NPHASE, :)=TOLD_ALL(1:NPHASE, :)
+    F_ALL(1+2*NPHASE:3*NPHASE, :)=DEN_ALL(1:NPHASE, :)
+    F_ALL(1+3*NPHASE:4*NPHASE, :)=DENOLD_ALL(1:NPHASE, :)
+
+    IF(IGOT_T2.NE.0) THEN
+       F_ALL(1+4*NPHASE:5*NPHASE, :)=T2_ALL(1:NPHASE, :)
+       F_ALL(1+5*NPHASE:6*NPHASE, :)=T2OLD_ALL(1:NPHASE, :)
+    ENDIF
+! femf:
+    FEMF_ALL(1:NPHASE,            :)=FEMT_ALL(1:NPHASE, :)
+    FEMF_ALL(1+NPHASE:  2*NPHASE, :)=FEMTOLD_ALL(1:NPHASE, :)
+    FEMF_ALL(1+2*NPHASE:3*NPHASE, :)=FEMDEN_ALL(1:NPHASE, :)
+    FEMF_ALL(1+3*NPHASE:4*NPHASE, :)=FEMDENOLD_ALL(1:NPHASE, :)
+
+    IF(IGOT_T2.NE.0) THEN
+       FEMF_ALL(1+4*NPHASE:5*NPHASE, :)=FEMT2_ALL(1:NPHASE, :)
+       FEMF_ALL(1+5*NPHASE:6*NPHASE, :)=FEMT2OLD_ALL(1:NPHASE, :)
+    ENDIF
 
 
     !Find upwind field values for limiting
-    CALL CALC_ANISOTROP_LIM_VALS( T_ALL, FEMT_ALL, USE_FEMT, TUPWIND_MAT_ALL,  &
-    NPHASE,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, SMALL_FINDRM,&
-    SMALL_COLM,NSMALL_COLM, X_NDGLN,X_NONODS,NDIM, X_ALL, XC_CV, YC_CV, ZC_CV )
+    CALL CALC_ANISOTROP_LIM_VALS( F_ALL, FEMF_ALL, USE_FEMT, FUPWIND_MAT_ALL,  &
+    NFIELD,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, SMALL_FINDRM,&
+    SMALL_COLM,NSMALL_COLM, X_NDGLN,X_NONODS,NDIM, X_ALL, XC_CV_ALL )
 
-    CALL CALC_ANISOTROP_LIM_VALS( TOLD_ALL, FEMTOLD_ALL, USE_FEMT, TOLDUPWIND_MAT_ALL,&
-    NPHASE,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, SMALL_FINDRM,&
-    SMALL_COLM,NSMALL_COLM, X_NDGLN,X_NONODS,NDIM, X_ALL, XC_CV, YC_CV, ZC_CV )
 
-    CALL CALC_ANISOTROP_LIM_VALS( DEN_ALL,FEMDEN_ALL, USE_FEMT, DENUPWIND_MAT_ALL,&
-    NPHASE,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, SMALL_FINDRM,&
-    SMALL_COLM,NSMALL_COLM, X_NDGLN,X_NONODS,NDIM, X_ALL, XC_CV, YC_CV, ZC_CV )
-
-    CALL CALC_ANISOTROP_LIM_VALS(DENOLD_ALL,FEMDENOLD_ALL, USE_FEMT, DENOLDUPWIND_MAT_ALL,  &
-    NPHASE,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, SMALL_FINDRM,&
-    SMALL_COLM,NSMALL_COLM, X_NDGLN,X_NONODS,NDIM, X_ALL, XC_CV, YC_CV, ZC_CV )
+    TUPWIND_MAT_ALL(1:NPHASE,      :)=FUPWIND_MAT_ALL(1:NPHASE, :)
+    TOLDUPWIND_MAT_ALL(1:NPHASE,   :)=FUPWIND_MAT_ALL(1+NPHASE:2*NPHASE, :)
+    DENUPWIND_MAT_ALL(1:NPHASE,    :)=FUPWIND_MAT_ALL(2*NPHASE+1:3*NPHASE, :)
+    DENOLDUPWIND_MAT_ALL(1:NPHASE, :)=FUPWIND_MAT_ALL(3*NPHASE+1:4*NPHASE, :)
 
     IF(IGOT_T2.NE.0) THEN
+       T2UPWIND_MAT_ALL(1:NPHASE,    :)=FUPWIND_MAT_ALL(4*NPHASE+1:5*NPHASE, :)
+       T2OLDUPWIND_MAT_ALL(1:NPHASE, :)=FUPWIND_MAT_ALL(5*NPHASE+1:6*NPHASE, :)
+    ENDIF
 
-        CALL CALC_ANISOTROP_LIM_VALS( T2_ALL,FEMT2_ALL, USE_FEMT, T2UPWIND_MAT_ALL,&
-        NPHASE,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, SMALL_FINDRM,&
-        SMALL_COLM,NSMALL_COLM, X_NDGLN,X_NONODS,NDIM, X_ALL, XC_CV, YC_CV, ZC_CV )
+    RETURN
+    END SUBROUTINE CALC_ANISOTROP_LIM
 
-        CALL CALC_ANISOTROP_LIM_VALS(T2OLD_ALL,FEMT2OLD_ALL, USE_FEMT, T2OLDUPWIND_MAT_ALL,  &
-        NPHASE,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, SMALL_FINDRM,&
-        SMALL_COLM,NSMALL_COLM, X_NDGLN,X_NONODS,NDIM, X_ALL, XC_CV, YC_CV, ZC_CV )
 
-    END IF
 
-  END SUBROUTINE CALC_ANISOTROP_LIM
+
 
 !##############COMMENTED SUBROUTINE SINCE IT IS NEVER CALLED####################
 !  SUBROUTINE CALC_ANISOTROP_LIM_1time(&
@@ -12390,6 +12414,10 @@ CONTAINS
 !
 !  END SUBROUTINE CALC_ANISOTROP_LIM_1time
 
+
+
+
+
   SUBROUTINE CALC_ANISOTROP_LIM_VALS( &
        ! Caculate the upwind values stored in matrix form...
        T_ALL, &
@@ -12398,7 +12426,7 @@ CONTAINS
        NFIELD,NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, &
        SMALL_FINDRM,SMALL_COLM,NSMALL_COLM, &
        X_NDGLN,X_NONODS,NDIM, &
-       X_ALL, XC_CV, YC_CV, ZC_CV )
+       X_ALL, XC_CV_ALL )
     ! For the anisotropic limiting scheme we find the upwind values
     ! by interpolation using the subroutine FINPTS or IFINPTS; the upwind
     ! value for each node pair is stored in the matrices TUPWIND AND
@@ -12413,7 +12441,7 @@ CONTAINS
     INTEGER, DIMENSION( : ), intent( in ) :: SMALL_FINDRM
     INTEGER, DIMENSION( : ), intent( in ) :: SMALL_COLM
     REAL, DIMENSION( :, : ), intent( in ) :: X_ALL
-    REAL, DIMENSION( : ), intent( in ) :: XC_CV, YC_CV, ZC_CV
+    REAL, DIMENSION( NDIM, NONODS ), intent( in ) :: XC_CV_ALL
     ! the centre of each CV is: XC_CV, YC_CV, ZC_CV
 
     ! Allocate memory for the interpolated upwind values
@@ -12500,7 +12528,7 @@ CONTAINS
          NFIELD, NONODS, NLOC, NGI, SUB_TOTELE, SUB_NDGLNO, &
          SMALL_FINDRM,SMALL_COLM, NSMALL_COLM, &
          SUB_XNDGLNO, X_NONODS, NDIM, &
-         X_ALL, XC_CV, YC_CV, ZC_CV, &
+         X_ALL, XC_CV_ALL, &
          N, NLX, NLY, NLZ, WEIGHT )
 
     DEALLOCATE( N, NLX, NLY, NLZ, L1, L2, L3, L4, &
@@ -12518,7 +12546,7 @@ CONTAINS
        NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
        FINDRM,COLM,NCOLM, &
        X_NDGLN,X_NONODS,NDIM, &
-       X_ALL, XC_CV, YC_CV, ZC_CV, &
+       X_ALL, XC_CV_ALL,  &
        N,NLX,NLY,NLZ, WEIGHT )
     ! For the anisotropic limiting scheme we find the upwind values
     ! by interpolation using the subroutine FINPTS or IFINPTS; the upwind
@@ -12533,7 +12561,7 @@ CONTAINS
     INTEGER, DIMENSION( : ), INTENT(IN) :: FINDRM,COLM
 
     REAL, DIMENSION(:,:), intent( in ) :: X_ALL
-    REAL, DIMENSION( : ), intent( in ) :: XC_CV, YC_CV, ZC_CV
+    REAL, DIMENSION( NDIM, NONODS ), intent( in ) :: XC_CV_ALL
     !Local variables
     REAL, DIMENSION(NLOC,NGI), INTENT(IN) :: N,NLX,NLY,NLZ
     REAL, DIMENSION(NGI), INTENT(IN) :: WEIGHT
@@ -12573,7 +12601,7 @@ CONTAINS
        CALL FINPTSSTORE(T_ALL,FEMT_ALL,USE_FEMT,NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
             TUPWIND_ALL,FINDRM,COLM,NCOLM,NDIM, &
             X_NDGLN,X_NONODS, &
-            X_ALL, XC_CV, YC_CV, ZC_CV,&
+            X_ALL, XC_CV_ALL, &
             N,NLX,NLY,NLZ, WEIGHT, &
             NOD_FINDELE,NOD_COLELE,NCOLEL, &
             ELEMATPSI,ELEMATWEI,1, &
@@ -12596,7 +12624,7 @@ CONTAINS
        CALL FINPTSSTORE(T_ALL,FEMT_ALL,USE_FEMT,NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
             TUPWIND_ALL,FINDRM,COLM,NCOLM,NDIM, &
             X_NDGLN,X_NONODS, &
-            X_ALL, XC_CV, YC_CV, ZC_CV,&
+            X_ALL, XC_CV_ALL, &
             N,NLX,NLY,NLZ, WEIGHT, &
             NOD_FINDELE,NOD_COLELE,NCOLEL, &
             DUMMYINT,DUMMYREAL,0, &
@@ -12625,6 +12653,9 @@ CONTAINS
     DEALLOCATE( NOD_FINDELE, NOD_COLELE, NLIST, INLIST )
 
   END SUBROUTINE CALC_ANISOTROP_LIM_VALS2
+
+
+
 
 
   SUBROUTINE GETSTOREELEWEI(PSI_ALL,NFIELD,NONODS,NLOC,TOTELE,NDGLNO, &
@@ -12750,7 +12781,7 @@ CONTAINS
   SUBROUTINE FINPTSSTORE(PSI_ALL,FEMPSI_ALL,USE_FEMPSI,NFIELD,NONODS,NLOC,NGI,TOTELE,NDGLNO, &
        &     MATPSI_ALL,FINDRM,COLM,NCOLM,NDIM, &
        &     X_NDGLN,X_NONODS, &
-       &     X_ALL, XC_CV, YC_CV, ZC_CV,&
+       &     X_ALL, XC_CV_ALL, &
        &     N,NLX,NLY,NLZ, WEIGHT,&
        !     work space...
        &     FINDELE,COLELE,NCOLEL,&
@@ -12774,7 +12805,7 @@ CONTAINS
     REAL, dimension(:,:), intent(inout) :: MATPSI_ALL
     INTEGER, dimension(TOTELE*NLOC),  intent(in) :: X_NDGLN
     REAL, dimension(:,:), intent(in) :: X_ALL
-    REAL, DIMENSION( : ), intent( in ) :: XC_CV, YC_CV, ZC_CV
+    REAL, DIMENSION( NDIM, NONODS ), intent( in ) :: XC_CV_ALL
     REAL, dimension(NLOC,NGI), intent(in) :: N,NLX,NLY,NLZ
     REAL, dimension(NGI), intent(in) :: WEIGHT
     !     work space...
@@ -12898,13 +12929,15 @@ CONTAINS
                 NORMZ1=NORMZ(NOD)
              ENDIF
              IF(NONODS.NE.X_NONODS) THEN ! Its a DG soln field...
-               X1_ALL(1)=XC_CV(NOD)
-               X1_ALL(2)=YC_CV(NOD)
-               X1_ALL(3)=ZC_CV(NOD)
+               X1_ALL=0.0 ! Just in case
+               X1_ALL(1)=XC_CV_ALL(1,NOD)
+               IF(NDIM.GE.2) X1_ALL(2)=XC_CV_ALL(2,NOD)
+               IF(NDIM.GE.3) X1_ALL(3)=XC_CV_ALL(3,NOD)
 
-               X2_ALL(1)=XC_CV(NODJ)
-               X2_ALL(2)=YC_CV(NODJ)
-               X2_ALL(3)=ZC_CV(NODJ)
+               X2_ALL=0.0 ! Just in case
+               X2_ALL(1)=XC_CV_ALL(1,NODJ)
+               IF(NDIM.GE.2) X2_ALL(2)=XC_CV_ALL(2,NODJ)
+               IF(NDIM.GE.3) X2_ALL(3)=XC_CV_ALL(3,NODJ)
              ELSE
                X1_ALL(1:size(X_ALL,1)) = X_ALL(:,XNOD)
                X2_ALL(1:size(X_ALL,1)) = X_ALL(:,XNODJ)
