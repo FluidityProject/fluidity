@@ -1359,15 +1359,15 @@
       REAL, DIMENSION( NDIM, NPHASE, NCOLCT ), intent( in ) :: CT
 
       ! Local variables
-      INTEGER :: CV_INOD, COUNT, U_JNOD, IPHASE, J, IVEC
+      INTEGER :: CV_INOD, COUNT, U_JNOD, IPHASE, J, IVEC, IDIM
 
       CV_RHS = 0.0
 
       DO CV_INOD = 1, CV_NONODS
          DO COUNT = FINDCT( CV_INOD ), FINDCT( CV_INOD + 1 ) - 1
             U_JNOD = COLCT( COUNT )
-            forall (IPHASE = 1 : NPHASE, IVEC = 1 : NBLOCK)
-                  CV_RHS( IVEC, CV_INOD ) = CV_RHS( IVEC, CV_INOD )+ sum(U( IVEC, :, IPHASE, U_JNOD ) * CT( :, IPHASE, COUNT  ))
+            forall (IPHASE = 1 : NPHASE, IVEC = 1 : NBLOCK, IDIM =1:NDIM)
+                  CV_RHS( IVEC, CV_INOD ) = CV_RHS( IVEC, CV_INOD )+ U( IVEC, IDIM, IPHASE, U_JNOD ) * CT( IDIM, IPHASE, COUNT  )
             end forall
          END DO
       END DO
