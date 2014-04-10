@@ -1109,7 +1109,8 @@ contains
               IGOT_T2,NPHASE,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, &
               SMALL_FINDRM,SMALL_CENTRM,SMALL_COLM,NSMALL_COLM, &
               X_NDGLN,X_NONODS,NDIM, &
-              X_ALL, XC_CV_ALL, IGOT_T_PACK, IGOT_T_CONST, IGOT_T_CONST_VALUE)
+              X_ALL, XC_CV_ALL, IGOT_T_PACK, IGOT_T_CONST, IGOT_T_CONST_VALUE,&
+              state, "anisotrop", storageindexes(42))
 
 ! make sure the diagonal is equal to the value:
          DO CV_NODI=1,CV_NONODS
@@ -12250,7 +12251,8 @@ CONTAINS
        IGOT_T2, NPHASE, CV_NONODS,CV_NLOC, X_NLOC,TOTELE, CV_NDGLN, &
        SMALL_FINDRM, SMALL_CENTRM, SMALL_COLM,NSMALL_COLM, &
        X_NDGLN, X_NONODS, NDIM, &
-       X_ALL, XC_CV_ALL, IGOT_T_PACK, IGOT_T_CONST, IGOT_T_CONST_VALUE)
+       X_ALL, XC_CV_ALL, IGOT_T_PACK, IGOT_T_CONST, IGOT_T_CONST_VALUE,&
+       state, storname, indx)
     ! For the anisotropic limiting scheme we find the upwind values
     ! by interpolation using the subroutine FINPTS or IFINPTS; the upwind
     ! value for each node pair is stored in the matrices TUPWIND AND
@@ -12274,6 +12276,9 @@ CONTAINS
     LOGICAL, DIMENSION( NPHASE, 6 ), intent( in) :: IGOT_T_PACK, IGOT_T_CONST
     REAL, DIMENSION( NPHASE, 6 ), intent( in) :: IGOT_T_CONST_VALUE
     REAL, DIMENSION( NDIM, CV_NONODS), intent( in ) :: XC_CV_ALL
+    type( state_type ), intent( inout ), dimension(:) :: state
+    character(len=*), intent(in) :: StorName
+    integer, intent(inout) :: indx
 ! local variables...
     INTEGER :: NFIELD
     REAL, DIMENSION( :, : ), ALLOCATABLE :: F_ALL, FEMF_ALL, FUPWIND_MAT_ALL
@@ -12309,7 +12314,8 @@ CONTAINS
     !Find upwind field values for limiting
     CALL CALC_ANISOTROP_LIM_VALS( F_ALL, FEMF_ALL, USE_FEMT, FUPWIND_MAT_ALL,  &
     NFIELD,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, SMALL_FINDRM,&
-    SMALL_COLM,NSMALL_COLM, X_NDGLN,X_NONODS,NDIM, X_ALL, XC_CV_ALL )
+    SMALL_COLM,NSMALL_COLM, X_NDGLN,X_NONODS,NDIM, X_ALL, XC_CV_ALL,&
+    state, storname,indx )
 
 
     TUPWIND_MAT_ALL(1:NPHASE,      :)=FUPWIND_MAT_ALL(1:NPHASE, :)
@@ -12426,7 +12432,8 @@ CONTAINS
        NFIELD,NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, &
        SMALL_FINDRM,SMALL_COLM,NSMALL_COLM, &
        X_NDGLN,X_NONODS,NDIM, &
-       X_ALL, XC_CV_ALL )
+       X_ALL, XC_CV_ALL,&
+       state, storname, indx )
     ! For the anisotropic limiting scheme we find the upwind values
     ! by interpolation using the subroutine FINPTS or IFINPTS; the upwind
     ! value for each node pair is stored in the matrices TUPWIND AND
@@ -12442,10 +12449,14 @@ CONTAINS
     INTEGER, DIMENSION( : ), intent( in ) :: SMALL_COLM
     REAL, DIMENSION( :, : ), intent( in ) :: X_ALL
     REAL, DIMENSION( NDIM, NONODS ), intent( in ) :: XC_CV_ALL
+    type( state_type ), intent( inout ), dimension(:) :: state
+    character(len=*), intent(in) :: StorName
+    integer, intent(inout) :: indx
     ! the centre of each CV is: XC_CV, YC_CV, ZC_CV
 
     ! Allocate memory for the interpolated upwind values
-    real, dimension( :, : ), allocatable :: N, NLX, NLY, NLZ
+    real, dimension( :, : ), allocatable :: N!, NLX, NLY, NLZ
+    real, dimension (:, :, :), allocatable :: NLX_ALL
     real, dimension( : ), allocatable :: WEIGHT, L1, L2, L3, L4
     integer, dimension( : ), allocatable :: SUB_NDGLNO, SUB_XNDGLNO, ndgln_p2top1
     INTEGER :: COUNT, COUNT2, NOD, SUB_TOTELE, NGI,NLOC, ELE, IL_LOC, IQ_LOC, &
@@ -12463,16 +12474,18 @@ CONTAINS
        NLOC=4
        NGI=4
     ENDIF
-    ALLOCATE( N(NLOC,NGI), NLX(NLOC,NGI), NLY(NLOC,NGI), NLZ(NLOC,NGI) )
+    ALLOCATE( N(NLOC,NGI))
     ALLOCATE( WEIGHT(NGI) )
     ALLOCATE( L1(NGI), L2(NGI), L3(NGI), L4(NGI) )
+    allocate(NLX_ALL(size(X_ALL,1), NLOC, NGI))
     !
     ! Shape functions for triangles and tets...
     CALL TRIQUAold( L1, L2, L3, L4, WEIGHT, ndim==3, NGI )
     ! Work out the shape functions and there derivatives...
-    CALL SHATRIold( L1, L2, L3, L4, WEIGHT, ndim==3, &
-         &          NLOC,NGI,&
-         &          N,NLX,NLY,NLZ)
+    call SHATRInew(L1, L2, L3, L4, WEIGHT,  NLOC,NGI,  N,NLX_ALL)
+!    CALL SHATRIold( L1, L2, L3, L4, WEIGHT, ndim==3, &
+!         &          NLOC,NGI,&
+!         &          N,NLX,NLY,NLZ)
 
     ! ******************************************************************
     ! Calculate the sub elements for quadratic element SUB_NDGLNO ... 
@@ -12529,11 +12542,13 @@ CONTAINS
          SMALL_FINDRM,SMALL_COLM, NSMALL_COLM, &
          SUB_XNDGLNO, X_NONODS, NDIM, &
          X_ALL, XC_CV_ALL, &
-         N, NLX, NLY, NLZ, WEIGHT )
+         N, NLX_ALL, WEIGHT,&
+         state, storname, indx )
 
-    DEALLOCATE( N, NLX, NLY, NLZ, L1, L2, L3, L4, &
+!    DEALLOCATE( N, NLX, NLY, NLZ, L1, L2, L3, L4, &
+!         WEIGHT, SUB_NDGLNO, SUB_XNDGLNO )
+    DEALLOCATE( N, NLX_ALL, L1, L2, L3, L4, &
          WEIGHT, SUB_NDGLNO, SUB_XNDGLNO )
-
     RETURN
   END SUBROUTINE CALC_ANISOTROP_LIM_VALS
 
@@ -12547,7 +12562,8 @@ CONTAINS
        FINDRM,COLM,NCOLM, &
        X_NDGLN,X_NONODS,NDIM, &
        X_ALL, XC_CV_ALL,  &
-       N,NLX,NLY,NLZ, WEIGHT )
+       N,NLX_ALL, WEIGHT,&
+       state, storname, indx )
     ! For the anisotropic limiting scheme we find the upwind values
     ! by interpolation using the subroutine FINPTS or IFINPTS; the upwind
     ! value for each node pair is stored in the matrices TUPWIND AND
@@ -12562,9 +12578,13 @@ CONTAINS
 
     REAL, DIMENSION(:,:), intent( in ) :: X_ALL
     REAL, DIMENSION( NDIM, NONODS ), intent( in ) :: XC_CV_ALL
-    !Local variables
-    REAL, DIMENSION(NLOC,NGI), INTENT(IN) :: N,NLX,NLY,NLZ
+    REAL, DIMENSION(NLOC,NGI), INTENT(IN) :: N!,NLX,NLY,NLZ
+    REAL, DIMENSION(:,:,:), INTENT(IN) :: NLX_ALL!DIMENSION(NDIM, NLOC,NGI)
     REAL, DIMENSION(NGI), INTENT(IN) :: WEIGHT
+    type( state_type ), intent( inout ), dimension(:) :: state
+    character(len=*), intent(in) :: StorName
+    integer, intent(inout) :: indx
+    !Local variables
 
     INTEGER, DIMENSION( : ), ALLOCATABLE, SAVE :: ELEMATPSI
     REAL, DIMENSION( :  ), ALLOCATABLE, SAVE :: ELEMATWEI
@@ -12602,10 +12622,10 @@ CONTAINS
             TUPWIND_ALL,FINDRM,COLM,NCOLM,NDIM, &
             X_NDGLN,X_NONODS, &
             X_ALL, XC_CV_ALL, &
-            N,NLX,NLY,NLZ, WEIGHT, &
+            N,NLX_ALL, WEIGHT, &
             NOD_FINDELE,NOD_COLELE,NCOLEL, &
             ELEMATPSI,ELEMATWEI,1, &
-            BOUND, REFLECT)
+            BOUND, REFLECT, state, storName, indx)
 
     ELSE IF( RET_STORE_ELE ) THEN 
        
@@ -12625,10 +12645,10 @@ CONTAINS
             TUPWIND_ALL,FINDRM,COLM,NCOLM,NDIM, &
             X_NDGLN,X_NONODS, &
             X_ALL, XC_CV_ALL, &
-            N,NLX,NLY,NLZ, WEIGHT, &
+            N,NLX_ALL, WEIGHT, &
             NOD_FINDELE,NOD_COLELE,NCOLEL, &
             DUMMYINT,DUMMYREAL,0, &
-            BOUND, REFLECT)
+            BOUND, REFLECT, state, storname, indx)
 
        DEALLOCATE(DUMMYINT,DUMMYREAL) 
 
@@ -12680,16 +12700,10 @@ CONTAINS
     INTEGER NOD,COUNT,ELEWIC,ILOC,INOD,IFIELD
     INTEGER KNOD,COUNT2,JNOD
     REAL RMATPSI
-!    REAL, ALLOCATABLE, DIMENSION(:)::MINPSI
-!    REAL, ALLOCATABLE, DIMENSION(:)::MAXPSI
-    REAL, ALLOCATABLE, DIMENSION(:,:)::MINPSI
-    REAL, ALLOCATABLE, DIMENSION(:,:)::MAXPSI
+    REAL, DIMENSION(NFIELD, TOTELE)::MINPSI
+    REAL, DIMENSION(NFIELD, TOTELE)::MAXPSI
 
     if ( bound ) then
-!       ALLOCATE( MINPSI( TOTELE*NFIELD ) )
-!       ALLOCATE( MAXPSI( TOTELE*NFIELD ) )
-       ALLOCATE( MINPSI( NFIELD, TOTELE ) )
-       ALLOCATE( MAXPSI( NFIELD, TOTELE ) )
 
        ! find the max and min local to each element...
        CALL MINMAXELEWIC( PSI_ALL,NFIELD,NONODS,NLOC,TOTELE,NDGLNO, &
@@ -12723,9 +12737,9 @@ CONTAINS
        END DO
     END DO
 
-    if ( bound ) then
-       DEALLOCATE( MINPSI, MAXPSI )
-    end if
+!    if ( bound ) then
+!       DEALLOCATE( MINPSI, MAXPSI )
+!    end if
 
     RETURN
 
@@ -12782,11 +12796,12 @@ CONTAINS
        &     MATPSI_ALL,FINDRM,COLM,NCOLM,NDIM, &
        &     X_NDGLN,X_NONODS, &
        &     X_ALL, XC_CV_ALL, &
-       &     N,NLX,NLY,NLZ, WEIGHT,&
+       &     N,NLX_ALL, WEIGHT,&
        !     work space...
        &     FINDELE,COLELE,NCOLEL,&
        &     ELEMATPSI,ELEMATWEI,IGETSTOR,&
-       &     BOUND, REFLECT)
+       &     BOUND, REFLECT,&
+       state, storname,indx)
     !     This sub finds the matrix values MATPSI for a given point on the 
     !     stencil 
     ! IF IGETSTOR=1 then get ELEMATPSI,ELEMATWEI.
@@ -12806,8 +12821,12 @@ CONTAINS
     INTEGER, dimension(TOTELE*NLOC),  intent(in) :: X_NDGLN
     REAL, dimension(:,:), intent(in) :: X_ALL
     REAL, DIMENSION( NDIM, NONODS ), intent( in ) :: XC_CV_ALL
-    REAL, dimension(NLOC,NGI), intent(in) :: N,NLX,NLY,NLZ
-    REAL, dimension(NGI), intent(in) :: WEIGHT
+    REAL, dimension(NLOC,NGI), intent(in) :: N!,NLX,NLY,NLZ
+    REAL, dimension(:, :,:), intent(in) :: NLX_ALL!dimension(NDIM, NLOC,NGI)
+    REAL, dimension(:), intent(in) :: WEIGHT!dimenson(NGI)
+    type( state_type ), intent( inout ), dimension(:) :: state
+    character(len=*), intent(in) :: StorName
+    integer, intent(inout) :: indx
     !     work space...
     INTEGER, dimension(X_NONODS+1),intent(in) :: FINDELE
     INTEGER, dimension(NCOLEL),intent(in) :: COLELE
@@ -12820,68 +12839,56 @@ CONTAINS
     INTEGER NOD,COUNT,NODI,NODJ,ILOC,GI,ELE
     INTEGER ELEWIC,XNOD,XNODJ,IFIELD
     REAL LOCCORDSK(NLOC)
-    REAL NORMX1,NORMY1,NORMZ1
-    REAL VOLUME,INVH,LENG
+    REAL INVH,LENG
     !     work space...
-    REAL DETWEI(NGI),RA(NGI)
-    REAL NX(NLOC,NGI),NY(NLOC,NGI),NZ(NLOC,NGI)
-    REAL, ALLOCATABLE, DIMENSION(:)::NORMX
-    REAL, ALLOCATABLE, DIMENSION(:)::NORMY
-    REAL, ALLOCATABLE, DIMENSION(:)::NORMZ
+    real, pointer :: volume
+    REAL,  dimension(:), pointer :: DETWEI,RA!dimension(NGI)
+    real, dimension (size(X_ALL,1)) :: NORMX1_ALL
+    real, dimension (:, :, :), pointer :: NX_ALL ! dimension (size(X_ALL,1), NLOC, NGI)
+    real, dimension (size(X_ALL,1), NONODS) :: NORMX_ALL
     REAL, ALLOCATABLE, DIMENSION(:)::MLUM
 !    REAL, ALLOCATABLE, DIMENSION(:)::MINPSI
 !    REAL, ALLOCATABLE, DIMENSION(:)::MAXPSI
     REAL, ALLOCATABLE, DIMENSION(:,:)::MINPSI
     REAL, ALLOCATABLE, DIMENSION(:,:)::MAXPSI
     INTEGER, ALLOCATABLE, DIMENSION(:)::NOD2XNOD
-
-    !######TEMPORARY, that three should be size(X_ALL,1)#####
-    real, dimension(3) :: X1_ALL, X2_ALL
-    !#####################################
+    real, dimension(size(X_ALL,1)) :: X1_ALL, X2_ALL
 
 
-    NORMX1=0.0
-    NORMY1=0.0
-    NORMZ1=0.0
+    NORMX1_ALL=0.0
+!    NORMY1=0.0
+!    NORMZ1=0.0
     IF(REFLECT) THEN
        !     calculate normals...********************
-       ALLOCATE(NORMX(NONODS))
-       ALLOCATE(NORMY(NONODS))
-       ALLOCATE(NORMZ(NONODS))
        ALLOCATE(MLUM(NONODS))
-       NORMX(1:NONODS) = 0.0
-       NORMY(1:NONODS) = 0.0
-       NORMZ(1:NONODS) = 0.0
+       NORMX_ALL = 0
        MLUM(1:NONODS) = 0.0
        DO ELE=1,TOTELE! Was loop 
-          !     Calculate DETWEI,RA,NX,NY,NZ for element ELE
-          CALL DETNLXR(ELE, X_ALL(1, :),X_ALL(2, :),X_ALL(3, :), X_NDGLN, TOTELE,X_NONODS,NLOC,NGI, &
-               &        N,NLX,NLY,NLZ, WEIGHT, DETWEI,RA,VOLUME,NDIM==1,NDIM==3,.FALSE., &
-               &        NX,NY,NZ) 
+
+           call DETNLXR_plus_storage( ELE, X_ALL, X_NDGLN, TOTELE, X_NONODS, NLOC, NGI, &
+           N, NLX_ALL, WEIGHT, DETWEI, RA, VOLUME, .false., &
+           NX_ALL, state, StorName , indx)
+
           !     
           DO ILOC=1,NLOC! Was loop 
              NODI=NDGLNO((ELE-1)*NLOC+ILOC)
              DO GI=1,NGI! Was loop 
-                NORMX(NODI)=NORMX(NODI)+NX(ILOC,GI)*DETWEI(GI)
-                NORMY(NODI)=NORMY(NODI)+NY(ILOC,GI)*DETWEI(GI)
-                IF(NDIM==3)NORMZ(NODI)=NORMZ(NODI)+NZ(ILOC,GI)*DETWEI(GI)
+                NORMX_ALL(:,NODI) = NORMX_ALL(:,NODI) + NX_ALL(:,ILOC,GI) * DETWEI(GI)
                 MLUM(NODI) =MLUM(NODI) +N(ILOC,GI) *DETWEI(GI)
              END DO
           END DO
        END DO
        !     Renormalise
        DO NODI=1,NONODS! Was loop 
-          INVH=(ABS(NORMX(NODI))+ABS(NORMY(NODI))+ABS(NORMZ(NODI)))&
-               &          /MLUM(NODI)
+          INVH = SUM(ABS(NORMX_ALL(:,NODI)))/MLUM(NODI)
+
+!          INVH=(ABS(NORMX_ALL(1,NODI))+ABS(NORMX_ALL(2,NODI))+ABS(NORMX_ALL(3,NODI)))&
+!               &          /MLUM(NODI)
           IF(INVH.GT.1.E-5) THEN
-             LENG=SQRT(NORMX(NODI)**2+NORMY(NODI)**2+NORMZ(NODI)**2)
-             NORMX(NODI)=NORMX(NODI)/LENG
-             NORMY(NODI)=NORMY(NODI)/LENG
-             NORMZ(NODI)=NORMZ(NODI)/LENG
+             LENG = sqrt(dot_product(NORMX_ALL(:,NODI),NORMX_ALL(:,NODI)))
+             NORMX_ALL(:,NODI) = NORMX_ALL(:,NODI) / LENG
           ELSE
-             NORMX(NODI)=0.0
-             NORMY(NODI)=0.0
-             NORMZ(NODI)=0.0
+             NORMX_ALL(:,NODI) = 0.0
           END IF
        END DO
     ENDIF
@@ -12924,31 +12931,23 @@ CONTAINS
           IF(NOD.NE.NODJ) THEN
 
              IF(REFLECT) THEN
-                NORMX1=NORMX(NOD)
-                NORMY1=NORMY(NOD)
-                NORMZ1=NORMZ(NOD)
+                NORMX1_ALL = NORMX_ALL(:,NOD)
              ENDIF
              IF(NONODS.NE.X_NONODS) THEN ! Its a DG soln field...
-               X1_ALL=0.0 ! Just in case
-               X1_ALL(1)=XC_CV_ALL(1,NOD)
-               IF(NDIM.GE.2) X1_ALL(2)=XC_CV_ALL(2,NOD)
-               IF(NDIM.GE.3) X1_ALL(3)=XC_CV_ALL(3,NOD)
+               X1_ALL = XC_CV_ALL(:,NOD)
 
-               X2_ALL=0.0 ! Just in case
-               X2_ALL(1)=XC_CV_ALL(1,NODJ)
-               IF(NDIM.GE.2) X2_ALL(2)=XC_CV_ALL(2,NODJ)
-               IF(NDIM.GE.3) X2_ALL(3)=XC_CV_ALL(3,NODJ)
+                X2_ALL = XC_CV_ALL(:, NODJ)
              ELSE
-               X1_ALL(1:size(X_ALL,1)) = X_ALL(:,XNOD)
-               X2_ALL(1:size(X_ALL,1)) = X_ALL(:,XNODJ)
+               X1_ALL = X_ALL(:,XNOD)
+               X2_ALL = X_ALL(:,XNODJ)
              ENDIF
              CALL MATPTSSTORE(MATPSI_ALL,COUNT,NFIELD,NOD,XNOD,&
                   &              PSI_ALL,FEMPSI_ALL,USE_FEMPSI,NONODS,X_NONODS,&
                   &              NLOC,TOTELE,X_NDGLN,NDGLNO,&
                   &              NCOLM,&
-                  &              X1_ALL(1),X1_ALL(2) ,X1_ALL(3),&
-                  &              X2_ALL(1),X2_ALL(2),X2_ALL(3),&
-                  &              NORMX1,NORMY1,NORMZ1,&
+                  &              X1_ALL,&
+                  &              X2_ALL,&
+                  &              NORMX1_ALL,&
                   &              X_ALL,&
                   !     work space...
                   &              FINDELE,COLELE,NCOLEL, &
@@ -12977,9 +12976,9 @@ CONTAINS
      &     PSI_ALL,FEMPSI_ALL,USE_FEMPSI,NONODS,X_NONODS,&
      &     NLOC,TOTELE,X_NDGLN,NDGLNO,&
      &     NCOLM,&
-     &     X1,Y1,Z1,&
-     &     X2,Y2,Z2,&
-     &     NORMX1,NORMY1,NORMZ1,&
+     &     X1_ALL,&
+     &     X2_ALL,&
+     &     NORMX1_ALL,&
      &     X_ALL,&
 !     work space...
      &     FINDELE,COLELE,NCOLEL,&
@@ -13003,7 +13002,8 @@ CONTAINS
       REAL, dimension(:,:), intent(inout) :: MATPSI_ALL
       INTEGER, intent(in) :: X_NDGLN(NLOC*TOTELE),NDGLNO(NLOC*TOTELE)
       INTEGER, intent(in) :: NCOLM
-      REAL, intent(in) :: X1,Y1,Z1,X2,Y2,Z2,NORMX1,NORMY1,NORMZ1
+!      REAL, intent(in) :: X1,Y1,Z1,X2,Y2,Z2,NORMX1,NORMY1,NORMZ1
+      real, dimension(:) :: X1_ALL, X2_ALL, NORMX1_ALL!dimension(NDIM)
       REAL, dimension(:,:), intent(in) :: X_ALL
       INTEGER, intent(in) :: NCOLEL
       INTEGER, intent(in) :: FINDELE(X_NONODS+1),COLELE(NCOLEL)
@@ -13013,14 +13013,14 @@ CONTAINS
       REAL, intent(inout) :: LOCCORDSK(NLOC)
 !     
 !     Local variables...
-      REAL XC,YC,ZC
-      REAL LOCCORDS(4)
-      INTEGER LOCNODS(4),LOCNODSK(4)
-      INTEGER NLOCNODS(4),NLOCNODSK(4)
-      INTEGER ELE,ILOC,KNOD,JNOD,IFIELD, COUNT2
-      REAL MINCOR,MINCORK,RSUM
-      REAL VX,VY,VZ,T2X,T2Y,T2Z,T1X,T1Y,T1Z,DIST12,RN,RMATPSI
-      REAL REFX,REFY,REFZ,REFX2,REFY2,REFZ2, FRALINE
+      REAL, dimension(NDIM) ::  XC_ALL, VX_ALL, REFX_ALL, REFX2_ALL, T2X_ALL, T1X_ALL
+      REAL, dimension(4):: LOCCORDS
+      INTEGER , dimension(4) :: LOCNODS,LOCNODSK
+      INTEGER, dimension(4) :: NLOCNODS,NLOCNODSK
+      INTEGER :: ELE,ILOC,KNOD,JNOD,IFIELD, COUNT2
+      REAL :: MINCOR,MINCORK,RSUM
+      REAL :: DIST12,RN,RMATPSI
+      REAL :: FRALINE
       LOGICAL IS_DG
 
       IS_DG=NONODS.NE.X_NONODS
@@ -13028,52 +13028,54 @@ CONTAINS
       FRALINE=FRALINE2
       IF(IS_DG) FRALINE=1.0
 
-      XC=X1 - FRALINE*(X2-X1)
-      YC=Y1 - FRALINE*(Y2-Y1)
-      ZC=Z1 - FRALINE*(Z2-Z1)
+      XC_ALL = X1_ALL - FRALINE*(X2_ALL-X1_ALL)
+
       
       IF(REFLECT) THEN
-         IF(ABS(NORMX1)+ABS(NORMY1)+ABS(NORMZ1).NE.0.0) THEN
+         IF(SUM(ABS(NORMX1_ALL)).NE.0.0) THEN
 !  if (XC,YC,ZC) is outside the domain
 !     The rotation matrix in 3-D is R=  
 !     NX    NY    NZ
 !     T1X   T1Y   T1Z
 !     T2X   T2Y   T2Z
+!
+            VX_ALL = X1_ALL - X2_ALL
 !     
-            VX=X1-X2
-            VY=Y1-Y2
-            VZ=Z1-Z2
+            CALL XPROD(T2X_ALL,NORMX1_ALL, VX_ALL)
 !     
-            CALL XPROD(T2X,T2Y,T2Z, NORMX1,NORMY1,NORMZ1, VX,VY,VZ)
-!     
-            DIST12=SQRT((X1-X2)**2+(Y1-Y2)**2+(Z1-Z2)**2)
-            RN=SQRT(T2X**2+T2Y**2+T2Z**2)
+            !DIST12=SQRT((X1-X2)**2+(Y1-Y2)**2+(Z1-Z2)**2)
+            DIST12 = SQRT(DOT_PRODUCT(X1_ALL-X2_ALL,X1_ALL-X2_ALL))
+            RN = SQRT(DOT_PRODUCT(T2X_ALL,T2X_ALL))
             IF(RN.LT.(1.E-5)*DIST12) THEN
 !     Simply have VX,VY,VZ going in the opposite direction...
-               XC=X1 - VX*FRALINE
-               YC=Y1 - VY*FRALINE
-               ZC=Z1 - VZ*FRALINE
+                XC_ALL = X1_ALL - VX_ALL*FRALINE
             ELSE
-               T2X= T2X/RN
-               T2Y= T2Y/RN
-               T2Z= T2Z/RN
+                T2X_ALL = T2X_ALL/RN
 !     T1=Nx (-T2)
-               CALL XPROD(T1X,T1Y,T1Z, NORMX1,NORMY1,NORMZ1, -T2X,-T2Y,-T2Z)
+               CALL XPROD(T1X_ALL, NORMX1_ALL, -T2X_ALL)
 !     
-               REFX2= NORMX1*VX + NORMY1*VY + NORMZ1*VZ
-               REFY2= T1X   *VX + T1Y   *VY + T1Z   *VZ
-               REFZ2= T2X   *VX + T2Y   *VY + T2Z   *VZ
+               REFX2_ALL(1) = SUM(NORMX1_ALL*VX_ALL)
+               REFX2_ALL(2) = SUM(T1X_ALL(:)*VX_ALL)
+
+
+
 !     Reflect...
-               REFX2=-REFX2
+                REFX2_ALL(1) = - REFX2_ALL(1)
 !     MAP BACK USING R^T
-               REFX = NORMX1*REFX2 + T1X*REFY2 + T2X*REFZ2
-               REFY = NORMY1*REFX2 + T1Y*REFY2 + T2Y*REFZ2
-               REFZ = NORMZ1*REFX2 + T1Z*REFY2 + T2Z*REFZ2
-!     
+
 !     (REFX,REFY,REFZ) is the reflected direction...
-               XC=X1 + REFX*FRALINE
-               YC=Y1 + REFY*FRALINE
-               ZC=Z1 + REFZ*FRALINE
+                REFX_ALL(1) =  NORMX1_ALL(1) * REFX2_ALL(1) + T1X_ALL(1) * REFX2_ALL(2)
+                REFX_ALL(2) =  NORMX1_ALL(2) * REFX2_ALL(1) + T1X_ALL(2) * REFX2_ALL(2)
+                IF (NDIM==3) THEN
+                !SOME MORE THINGS NEED TO BE ADDED
+                    REFX2_ALL(3) = SUM(T2X_ALL(:)*VX_ALL)
+
+                    REFX_ALL(1) = REFX_ALL(1) + T2X_ALL(1) * REFX2_ALL(3)
+                    REFX_ALL(2) = REFX_ALL(2) + T2X_ALL(2) * REFX2_ALL(3)
+                    REFX_ALL(3) =  NORMX1_ALL(3) * REFX2_ALL(1) + T1X_ALL(3) * REFX2_ALL(2)+ T2X_ALL(3) * REFX2_ALL(3)
+                END IF
+
+                XC_ALL = X_ALL(:,1) + REFX_ALL*FRALINE
             ENDIF
 
          ENDIF
@@ -13087,18 +13089,21 @@ CONTAINS
          NLOCNODS(1)=NDGLNO((ELE-1)*NLOC+1)
          NLOCNODS(2)=NDGLNO((ELE-1)*NLOC+2)
          NLOCNODS(3)=NDGLNO((ELE-1)*NLOC+3)
-         if(ndim==3) NLOCNODS(4)=NDGLNO((ELE-1)*NLOC+4)
+         
 !     
          LOCNODS(1)=X_NDGLN((ELE-1)*NLOC+1)
          LOCNODS(2)=X_NDGLN((ELE-1)*NLOC+2)
          LOCNODS(3)=X_NDGLN((ELE-1)*NLOC+3)
-         if(ndim==3) LOCNODS(4)=X_NDGLN((ELE-1)*NLOC+4)
 !     
 ! Calculate the local coord but with 4th point replaced by INOD...
 ! Find local coords LOCCORDS of point INOD corresponding to these nodes LOCNODS...
  
          IF (NDIM==3) THEN
-            CALL TRILOCCORDS(XC,YC,ZC, &
+            !Two coordinates missing if 3D
+            NLOCNODS(4)=NDGLNO((ELE-1)*NLOC+4)
+         	LOCNODS(4)=X_NDGLN((ELE-1)*NLOC+4)
+         
+            CALL TRILOCCORDS(XC_ALL(1),XC_ALL(2),XC_ALL(3), &
                  &        LOCCORDS(1),LOCCORDS(2),LOCCORDS(3),LOCCORDS(4),&
                  !     The 4 corners of the tet...
                  &        X_ALL(1,LOCNODS(1)),X_ALL(2,LOCNODS(1)),X_ALL(3,LOCNODS(1)),&
@@ -13106,7 +13111,7 @@ CONTAINS
                  &        X_ALL(1,LOCNODS(3)),X_ALL(2,LOCNODS(3)),X_ALL(3,LOCNODS(3)),&
                  &        X_ALL(1,LOCNODS(4)),X_ALL(2,LOCNODS(4)),X_ALL(3,LOCNODS(4)) )
          ELSE
-            CALL TRILOCCORDS2D(XC,YC, &
+            CALL TRILOCCORDS2D(XC_ALL(1),XC_ALL(2), &
                  &        LOCCORDS(1),LOCCORDS(2),LOCCORDS(3),&
                  !     The 3 corners of the tri...
                  &        X_ALL(1,LOCNODS(1)),X_ALL(2,LOCNODS(1)),&

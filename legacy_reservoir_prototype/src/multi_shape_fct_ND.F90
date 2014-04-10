@@ -43,6 +43,7 @@
     use global_parameters, only: option_path_len
     use Fields_Allocates, only : allocate
     use fields_data_types, only: mesh_type, scalar_field
+
   contains
 
     subroutine re2dn4( lowqua, ngi, ngi_l, nloc, mloc, &
@@ -1176,7 +1177,92 @@
       return
     end subroutine lagrot
 
+    SUBROUTINE DETNLXR_plus_storage( ELE, X_ALL, XONDGL, TOTELE, NONODS, NLOC, NGI, &
+         N, NLX_ALL, WEIGHT, DETWEI, RA, VOLUME, DCYL, &
+         NX_ALL, state, StorName , indx)
+      IMPLICIT NONE
+      INTEGER, intent( in ) :: ELE, TOTELE, NONODS, NLOC, NGI
+      INTEGER, DIMENSION( : ) :: XONDGL
+      REAL, DIMENSION( :, : ), intent( in ) :: X_ALL!(NDIM, size(XONDGL))
+      REAL, DIMENSION( :, : ), intent( in ) :: N
+      REAL, DIMENSION( :, :, : ), intent( in ) :: NLX_ALL!(NDIM,NLOC, NGI )
+      REAL, DIMENSION( : ), intent( in ) :: WEIGHT
+      REAL, DIMENSION( : ), pointer, intent( inout ) :: DETWEI, RA
+      REAL, pointer, intent( inout ) :: VOLUME
+      LOGICAL, intent( in ) ::DCYL
+      REAL, DIMENSION( :, : ,:), pointer, intent( inout ) :: NX_ALL!dimension(ndim, NLOC, NGI)
+      type( state_type ), intent( inout ), dimension(:) :: state
+      character(len=*), intent(in) :: StorName
+      integer, intent(inout) :: indx
+     !Local variables
+     logical :: D1, D3
+     integer :: ndim, Pos1, Pos2
+      !Variables to store things in state
+      type(mesh_type), pointer :: fl_mesh
+      type(mesh_type) :: Auxmesh
+      type(scalar_field), target :: targ_Store
+      !Prepare variables
+      NDIM = size(X_ALL,1)
 
+      !#########Storing area#################################
+      !If new mesh or mesh moved indx will be zero (set in Multiphase_TimeLoop)
+      if (indx<=0) then!Everything has to be calculated
+          if (ELE==1) then !The first time we need to introduce the targets in state
+              if (has_scalar_field(state(1), StorName)) then
+                  !If we are recalculating due to a mesh modification then
+                  !we return to the original situation
+                  call remove_scalar_field(state(1), StorName)
+              end if
+
+              !Get mesh file just to be able to allocate the fields we want to store
+              fl_mesh => extract_mesh( state(1), "CoordinateMesh" )
+              Auxmesh = fl_mesh
+              !The number of nodes I want does not coincide
+              Auxmesh%nodes = totele*(NLOC*NGI*NDIM + NGI*2 + 1)
+              call allocate (targ_Store, Auxmesh)
+              !Now we insert them in state and store the indexes
+              call insert(state(1), targ_Store, StorName)
+              !Store index with a negative value, because if the index is
+              !zero or negative then we have to calculate stuff
+              indx = -size(state(1)%scalar_fields)
+          end if
+          !Get from state, indx is an input
+          Pos1 = 1+NDIM*NLOC*NGI*(ELE-1) ; Pos2 = NDIM*NLOC*NGI*ELE
+          NX_ALL(1:NDIM,1:NLOC,1:NGI) => state(1)%scalar_fields(abs(indx))%ptr%val(Pos1:Pos2)
+          Pos1 = Pos2 + 1; Pos2 = Pos2 + NGI*ELE
+          DETWEI(1:NGI) => state(1)%scalar_fields(abs(indx))%ptr%val(Pos1:Pos2)
+          Pos1 = Pos2 + 1; Pos2 = Pos2 + NGI*ELE
+          RA(1:NGI) => state(1)%scalar_fields(abs(indx))%ptr%val(Pos1:Pos2)
+          Pos1 = Pos2 + 1
+          VOLUME => state(1)%scalar_fields(abs(indx))%ptr%val(Pos1)
+      else  !If the index is bigger than zero then everything is in storage
+          !Get from state, indx is an input
+          Pos1 = 1+NDIM*NLOC*NGI*(ELE-1) ; Pos2 = NDIM*NLOC*NGI*ELE
+          NX_ALL(1:NDIM,1:NLOC,1:NGI) => state(1)%scalar_fields(abs(indx))%ptr%val(Pos1:Pos2)
+          Pos1 = Pos2 + 1; Pos2 = Pos2 + NGI*ELE
+          DETWEI(1:NGI) => state(1)%scalar_fields(abs(indx))%ptr%val(Pos1:Pos2)
+          Pos1 = Pos2 + 1; Pos2 = Pos2 + NGI*ELE
+          RA(1:NGI) => state(1)%scalar_fields(abs(indx))%ptr%val(Pos1:Pos2)
+          Pos1 = Pos2 + 1
+          VOLUME => state(1)%scalar_fields(abs(indx))%ptr%val(Pos1)
+          return
+      end if
+      !When all the values are obtained, the index is set to a positive value
+      if (ELE == totele) indx = abs(indx)
+      !#########Storing area finished########################
+
+         D1 = .false.;D3 = .false.
+         select case (ndim)
+             case (1)
+                 D1 = .true.
+             case (3)
+                 D3 = .true.
+         end select
+         call DETNLXR( ELE, X_ALL(1,:),X_ALL(2,:),X_ALL(3,:), XONDGL, TOTELE, NONODS, NLOC, NGI, &
+         N, NLX_ALL(1,:,:), NLX_ALL(2,:,:), NLX_ALL(3,:,:), WEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
+         NX_ALL(1, :,:),NX_ALL(2, :,:),NX_ALL(3, :,:) )
+
+      end subroutine DETNLXR_plus_storage
 
 
     SUBROUTINE DETNLXR( ELE, X,Y,Z, XONDGL, TOTELE, NONODS, NLOC, NGI, &
@@ -1302,7 +1388,7 @@
             do L=1,NLOC
                NX(L,GI)=(DGI*NLX(L,GI)-BGI*NLY(L,GI))/DETJ
                NY(L,GI)=(-CGI*NLX(L,GI)+AGI*NLY(L,GI))/DETJ
-               NZ(L,GI)=0.0
+!               NZ(L,GI)=0.0
             END DO
             !
          end do ! Was loop 1331
@@ -1324,8 +1410,8 @@
             !
             do L = 1, NLOC
                NX( L, GI ) = NLX( L, GI ) / DETJ
-               NY( L, GI ) = 0.0
-               NZ( L, GI ) = 0.0
+!               NY( L, GI ) = 0.0
+!               NZ( L, GI ) = 0.0
             END DO
             !
          end do
@@ -1862,6 +1948,11 @@
 
     use fldebug
     use shape_functions_Linear_Quadratic
+
+    interface XPROD
+        module procedure XPROD1
+        module procedure XPROD2
+    end interface
 
   contains
 
@@ -5411,7 +5502,7 @@
     END SUBROUTINE NORMGI
 
 
-    SUBROUTINE XPROD( AX, AY, AZ, &
+    SUBROUTINE XPROD1( AX, AY, AZ, &
          BX, BY, BZ, &
          CX, CY, CZ )
       implicit none
@@ -5424,8 +5515,19 @@
       AZ =    BX * CY - BY * CX
 
       RETURN
-    END subroutine XPROD
+    END subroutine XPROD1
 
+    SUBROUTINE XPROD2( A, B, C )
+      implicit none
+      REAL, dimension(:), intent( inout ) :: A!dim 3
+      REAL,dimension(:), intent( in )    :: B, C!dim 3
+
+        call XPROD( A(1), A(2), A(3), &
+         B(1), B(2), B(3), &
+         C(1), C(2), C(3) )
+
+      RETURN
+    END subroutine XPROD2
 
 !!!!
 
@@ -7501,7 +7603,21 @@
       
    end subroutine tr3d
       
+   SUBROUTINE SHATRInew(L1, L2, L3, L4, WEIGHT, &
+        NLOC,NGI,  N,NLX_ALL)
+     ! Interface to SHATRIold using the new style variables
+     IMPLICIT NONE
+     INTEGER , intent(in) :: NLOC,NGI
+     REAL , dimension(:), intent(in) :: L1, L2, L3, L4
+     REAL , dimension(:), intent(inout) :: WEIGHT
+     REAL , dimension(:, : ), intent(inout) ::N
+     real, dimension (:,:,:), intent(inout) :: NLX_ALL
 
+     call SHATRIold(L1, L2, L3, L4, WEIGHT, size(NLX_ALL,1)==3, &
+     NLOC,NGI,  &
+     N,NLX_ALL(1,:,:),NLX_ALL(2,:,:),NLX_ALL(3,:,:))
+
+     end subroutine SHATRInew
 !
 !
    SUBROUTINE SHATRIold(L1, L2, L3, L4, WEIGHT, D3, &
