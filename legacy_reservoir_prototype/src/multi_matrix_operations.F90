@@ -1347,8 +1347,6 @@
 !!$    END SUBROUTINE CT_MULT
 
 
-
-
     SUBROUTINE CT_MULT_MANY( CV_RHS, U, CV_NONODS, U_NONODS, NDIM, NPHASE, NBLOCK, &
          CT, NCOLCT, FINDCT, COLCT ) 
       ! CV_RHS = CT * U
@@ -1366,30 +1364,17 @@
       CV_RHS = 0.0
 
       DO CV_INOD = 1, CV_NONODS
-
          DO COUNT = FINDCT( CV_INOD ), FINDCT( CV_INOD + 1 ) - 1
             U_JNOD = COLCT( COUNT )
-
-            DO IPHASE = 1, NPHASE
-               J = U_JNOD + ( IPHASE - 1 ) * U_NONODS
-
-               DO IVEC = 1, NBLOCK
-                  CV_RHS( IVEC, CV_INOD ) = CV_RHS( IVEC, CV_INOD ) + CT( 1, IPHASE, COUNT ) * U( IVEC, 1, IPHASE, U_JNOD )
-                  IF( NDIM >= 2 ) CV_RHS( IVEC, CV_INOD ) = CV_RHS( IVEC, CV_INOD ) + CT( 2, IPHASE, COUNT ) * U( IVEC, 2, IPHASE, U_JNOD )
-                  IF( NDIM >= 3 ) CV_RHS( IVEC, CV_INOD ) = CV_RHS( IVEC, CV_INOD ) + CT( 3, IPHASE, COUNT ) * U( IVEC, 3, IPHASE, U_JNOD )
-               END DO
-            END DO
-
+            forall (IPHASE = 1 : NPHASE, IVEC = 1 : NBLOCK)
+                  CV_RHS( IVEC, CV_INOD ) = CV_RHS( IVEC, CV_INOD )+ sum(U( IVEC, :, IPHASE, U_JNOD ) * CT( :, IPHASE, COUNT  ))
+            end forall
          END DO
-
       END DO
 
       RETURN
 
     END SUBROUTINE CT_MULT_MANY
-
-
-
 
 
     SUBROUTINE C_MULT( CDP, DP, CV_NONODS, U_NONODS, NDIM, NPHASE, &

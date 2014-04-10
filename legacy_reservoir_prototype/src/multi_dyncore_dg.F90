@@ -2989,7 +2989,10 @@ contains
             state, "CTY", StorageIndexes(23))
         ENDIF
 
-
+        !This term is obtained from the surface tension and curvature
+        !For capillary pressure we are using the entry pressure method instead of
+        !calculating the entry pressure from the surface tension and curvature
+        IF ( capillary_pressure_activated ) GRAD_SOU_GI = 1.0
 
         Loop_Elements: DO ELE = 1, TOTELE ! Volume integral
 
@@ -3104,11 +3107,6 @@ contains
                     END IF
                 END DO
             END DO
-
-            !This term is obtained from the surface tension and curvature
-            !For capillary pressure we are using the entry pressure method instead of
-            !calculating the entry pressure from the surface tension and curvature
-            IF ( capillary_pressure_activated ) GRAD_SOU_GI = 1.0
 
             ! Start filtering density
             !FILT_DEN = 1

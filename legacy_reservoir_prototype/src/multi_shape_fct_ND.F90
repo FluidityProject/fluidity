@@ -2363,9 +2363,8 @@
       if(cv_nloc==10) then
         ewrite(3,*)'cv_nloc=',cv_nloc
          totele_sub=8
-         !call test_quad_tet( cv_nloc, cv_ngi, cvn, n, nlx, nly, nlz, &
          call test_quad_tet( cv_nloc, cv_ngi, cvn, n, nlx, nly, nlz, &
-              cvweigh, x_ideal, y_ideal, z_ideal, cv_nloc, x_ndgln_ideal, 1) 
+              cvweigh, x_ideal, y_ideal, z_ideal, cv_nloc, x_ndgln_ideal, 1)
       endif
 
       ! And for velocities:
@@ -2396,7 +2395,7 @@
 
 
 
-     subroutine test_quad_tet( cv_nloc, cv_ngi, cvn, n, nlx, nly, nlz, &
+    subroutine test_quad_tet( cv_nloc, cv_ngi, cvn, n, nlx, nly, nlz, &
                        cvweight, x, y, z, x_nonods, x_ndgln2, totele )
 ! test the volumes of idealised triangle 
       implicit none
@@ -2414,7 +2413,7 @@
       LOGICAL :: D1,D3,DCYL
       REAL :: VOLUME, rsum, rsum2
 
-      ALLOCATE( DETWEI( CV_NGI )) 
+      ALLOCATE( DETWEI( CV_NGI ))
       ALLOCATE( x_ndgln( CV_Nloc )) 
       do cv_iloc=1,cv_nloc
           x_ndgln( CV_iloc )=cv_iloc 
@@ -2429,7 +2428,7 @@
       ndim=3
       D1 = ( NDIM == 1 )
       D3 = ( NDIM == 3 )
-      DCYL = .FALSE. 
+      DCYL = .FALSE.
 
       RSUM=0.0
       Loop_Elements: DO ELE = 1, TOTELE
@@ -2437,7 +2436,7 @@
          ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
          CALL DETNLXR( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, CV_NLOC, CV_NGI, &
               N, NLX, NLY, NLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
-              NX, NY, NZ ) 
+              NX, NY, NZ )
          EWRITE(3,*)'ele, VOLUME=',ele, VOLUME
          ewrite(3,*)'detwei:',detwei
          EWRITE(3,*)'sum of detwei:',sum(detwei)
