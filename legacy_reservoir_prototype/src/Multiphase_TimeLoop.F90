@@ -722,16 +722,12 @@
          NU_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedNonlinearVelocity" )
          NUOLD_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldNonlinearVelocity" )
 
-         UOLD_s % val = U_s % val
-         NU_s % val = U_s % val
-         NUOLD_s % val = U_s % val
-
-
          ! evaluate prescribed fields at time = current_time+dt
          call set_prescribed_field_values( state, exclude_interpolated = .true., &
               exclude_nonreprescribed = .true., time = acctim )
 
-         !call copy_packed_new_to_old(packed_state)
+         call copy_packed_new_to_old( packed_state )
+
 
 
          ! update velocity absorption
@@ -1898,7 +1894,8 @@
            Component_Diffusion_Operator_Coefficient, &
            Momentum_Diffusion, ScalarAdvectionField_Diffusion, &
            Component_Diffusion, &
-           theta_flux, one_m_theta_flux, theta_flux_j, one_m_theta_flux_j, sum_theta_flux, sum_one_m_theta_flux, sum_theta_flux_j, sum_one_m_theta_flux_j, density_tmp, density_old_tmp )
+           theta_flux, one_m_theta_flux, theta_flux_j, one_m_theta_flux_j, &
+           sum_theta_flux, sum_one_m_theta_flux, sum_theta_flux_j, sum_one_m_theta_flux_j, density_tmp, density_old_tmp )
 
         !deallocate arrays for adaptive_time_stepping and adaptive_non_linear iterations
         if (nonLinearAdaptTs) deallocate( Velocity_U_backup, Velocity_V_backup,  &
@@ -2043,6 +2040,7 @@
            tfield%val=ntfield%val
         end if
      end do
+
 
    end subroutine copy_packed_new_to_old
 
