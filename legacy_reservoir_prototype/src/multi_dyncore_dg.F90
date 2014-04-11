@@ -84,9 +84,9 @@ contains
     SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
     SUF_T_BC_ROB1, SUF_T_BC_ROB2,  &
     WIC_T_BC, WIC_D_BC, WIC_U_BC, &
-    DERIV, P,  &
-    T_SOURCE, T_ABSORB, VOLFRA_PORE,  &
-    NDIM,  &
+    DERIV, &
+    T_SOURCE, T_ABSORB, VOLFRA_PORE, &
+    NDIM, &
     NCOLM, FINDM, COLM, MIDM, &
     XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
     OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
@@ -150,7 +150,6 @@ contains
         REAL, DIMENSION( : ), intent( in ) :: SUF_T_BC_ROB1, SUF_T_BC_ROB2
         REAL, DIMENSION( : ), intent( in ) :: SUF_T2_BC_ROB1, SUF_T2_BC_ROB2
         REAL, DIMENSION( NPHASE, CV_NONODS ), intent( in ) :: DERIV
-        REAL, DIMENSION( : ), intent( in ) :: P
         REAL, DIMENSION( : ), intent( in ) :: T_SOURCE
         REAL, DIMENSION( : , : , : ), intent( in ) :: T_ABSORB
         REAL, DIMENSION( : ), intent( in ) :: VOLFRA_PORE
@@ -173,6 +172,7 @@ contains
         REAL, DIMENSION( : ), allocatable :: block_acv, mass_mn_pres
         REAL, DIMENSION( : , : , : ), allocatable :: dense_block_matrix, CT
         REAL, DIMENSION( : ), allocatable :: CV_RHS_SUB, ACV_SUB
+        type( scalar_field ), pointer :: P
         INTEGER, DIMENSION( : ), allocatable :: COLACV_SUB, FINACV_SUB, MIDACV_SUB
         INTEGER :: NCOLACV_SUB, IPHASE, I, J
         REAL :: SECOND_THETA
@@ -184,6 +184,12 @@ contains
         allocate( block_acv(size(block_to_global_acv) ) )
         allocate( dense_block_matrix (nphase,nphase,cv_nonods) ); dense_block_matrix=0;
         ALLOCATE( CV_RHS( CV_NONODS * NPHASE ) )
+
+        if ( thermal ) then
+           p => extract_scalar_field( packed_state, "CVPressure" )
+        else
+           p => extract_scalar_field( packed_state, "FEPressure" )
+        end if
 
         if( present( option_path ) ) then
 
@@ -221,8 +227,8 @@ contains
             SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV,&
             NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
             CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
-            CV_ELE_TYPE,  &
-            NPHASE,  &
+            CV_ELE_TYPE, &
+            NPHASE, &
             CV_NLOC, U_NLOC, X_NLOC, &
             CV_NDGLN, X_NDGLN, U_NDGLN, &
             CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
@@ -232,7 +238,7 @@ contains
             SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
             SUF_T_BC_ROB1, SUF_T_BC_ROB2,  &
             WIC_T_BC, WIC_D_BC, WIC_U_BC, &
-            DERIV, P,  &
+            DERIV, P%val, &
             T_SOURCE, T_ABSORB, VOLFRA_PORE, &
             NDIM, GETCV_DISC, GETCT, &
             NCOLM, FINDM, COLM, MIDM, &
@@ -883,7 +889,7 @@ contains
     V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
     SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
     WIC_VOL_BC, WIC_D_BC, WIC_U_BC, &
-    DERIV, P,  &
+    DERIV, &
     V_SOURCE, V_ABSORB, VOLFRA_PORE, &
     NDIM, &
     NCOLM, FINDM, COLM, MIDM, &
@@ -936,7 +942,6 @@ contains
         REAL, DIMENSION( : ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
         REAL, DIMENSION( :, : ), intent( in ) :: SUF_SIG_DIAGTEN_BC
         REAL, DIMENSION( NPHASE, CV_NONODS ), intent( in ) :: DERIV
-        REAL, DIMENSION( : ), intent( in ) :: P
         REAL, DIMENSION( : ), intent( in ) :: V_SOURCE
         REAL, DIMENSION( :, :, : ), intent( in ) :: V_ABSORB
         REAL, DIMENSION( : ), intent( in ) :: VOLFRA_PORE
@@ -967,7 +972,7 @@ contains
         INTEGER :: STAT, i,j, IGOT_THERM_VIS
         character( len = option_path_len ) :: path
         LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE.
-
+        type( scalar_field ), pointer :: p
 
 
         GET_THETA_FLUX = .FALSE.
@@ -1020,6 +1025,9 @@ contains
             IGOT_THERM_VIS=0
             ALLOCATE( THERM_U_DIFFUSION(NDIM,NDIM,NPHASE,MAT_NONODS*IGOT_THERM_VIS ) )
 
+         p => extract_scalar_field( packed_state, "FEPressure" )
+
+
         Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, 1 !nits_flux_lim
 
 
@@ -1040,7 +1048,7 @@ contains
             SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
             SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2,  &
             WIC_VOL_BC, WIC_D_BC, WIC_U_BC, &
-            DERIV, P, &
+            DERIV, P%val, &
             V_SOURCE, V_ABSORB, VOLFRA_PORE, &
             NDIM, GETCV_DISC, GETCT, &
             NCOLM, FINDM, COLM, MIDM, &
@@ -1116,7 +1124,7 @@ contains
     STOTEL, CV_SNDGLN, U_SNDGLN, P_SNDGLN, &
     U_SNLOC, P_SNLOC, CV_SNLOC, &
     U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
-    P, CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
+    DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
     DT, &
     NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn
     NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, MIDDGM_PHA, &! Force balance sparcity
@@ -1174,7 +1182,6 @@ contains
         REAL, DIMENSION(  :  ), intent( in ) :: U_SOURCE
         REAL, DIMENSION(  :  ), intent( in ) :: U_SOURCE_CV
 
-        REAL, DIMENSION(  :  ), intent( inout ) :: P,CV_P
         REAL, DIMENSION(  :  ), intent( in ) :: DEN, DENOLD, SATURAOLD
         REAL, DIMENSION(  :  ), intent( inout ) :: SATURA
         REAL, DIMENSION(  NPHASE, CV_NONODS ), intent( in ) :: DERIV
@@ -1252,8 +1259,9 @@ contains
         REAL, DIMENSION ( :, :, :, : ), allocatable :: SUF_U_ROB1_BC_ALL, SUF_U_ROB2_BC_ALL
         REAL, DIMENSION ( :, :, : ), allocatable :: SUF_P_BC_ALL
 
-        type( tensor_field), pointer :: u_all2, uold_all2
-        type( vector_field), pointer :: x_all2
+        type( tensor_field ), pointer :: u_all2, uold_all2
+        type( vector_field ), pointer :: x_all2
+        type( scalar_field ), pointer :: p_all, cvp_all, Pressure_State
 
 
         ALLOCATE( U_ALL( NDIM, NPHASE, U_NONODS ), UOLD_ALL( NDIM, NPHASE, U_NONODS ), &
@@ -1312,6 +1320,9 @@ contains
 
         X_ALL2 => EXTRACT_VECTOR_FIELD( PACKED_STATE, "PressureCoordinate" )
         X_ALL = X_ALL2%VAL
+
+        P_ALL => EXTRACT_SCALAR_FIELD( PACKED_STATE, "FEPressure" )
+        CVP_ALL => EXTRACT_SCALAR_FIELD( PACKED_STATE, "CVPressure" )
 
         ! make sure is linearised in case option is switched on for p2 simulations...
         !X_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedDensity" )
@@ -1411,7 +1422,7 @@ contains
         U_SNLOC, P_SNLOC, CV_SNLOC, &
         X_ALL, U_ABS_STAB_ALL, U_ABSORB_ALL, U_SOURCE_ALL, U_SOURCE_CV_ALL, &
         U_ALL, UOLD_ALL, &
-        P, CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
+        P_ALL%VAL, CVP_ALL%VAL, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
         DT, &
         NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn
         DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparcity
@@ -1473,12 +1484,12 @@ contains
 
             U_ALL2 % val = reshape( UP( 1 : U_NONODS * NDIM * NPHASE ), (/ ndim, nphase, u_nonods /) )
 
-            P( 1 : CV_NONODS ) = UP( U_NONODS * NDIM * NPHASE + 1 : U_NONODS * NDIM * NPHASE + CV_NONODS )
+            P_ALL % val = UP( U_NONODS * NDIM * NPHASE + 1 : U_NONODS * NDIM * NPHASE + CV_NONODS )
 
         ELSE ! solve using a projection method
 
             ! Put pressure in rhs of force balance eqn: CDP = C * P
-            CALL C_MULT2( CDP, P, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC) 
+            CALL C_MULT2( CDP, P_ALL%val , CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC) 
 
             IF ( JUST_BL_DIAG_MAT .OR. NO_MATRIX_STORE ) THEN
 
@@ -1522,7 +1533,7 @@ contains
                 DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                     CV_JNOD = COLCMC( COUNT )
                     P_RHS( CV_NOD ) = P_RHS( CV_NOD ) &
-                    -DIAG_SCALE_PRES( CV_NOD ) * MASS_MN_PRES( COUNT ) * P( CV_JNOD )
+                    -DIAG_SCALE_PRES( CV_NOD ) * MASS_MN_PRES( COUNT ) * P_ALL%VAL( CV_JNOD )
                 END DO
             END DO
 
@@ -1561,7 +1572,7 @@ contains
             if ( cv_nonods/=x_nonods .or. .false. ) then !DG only...
                 CALL ADD_DIFF_CMC(CMC, &
                 NCOLCMC, cv_NONODS, FINDCMC, COLCMC, MIDCMC, &
-                totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln, p )
+                totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln, p_all%val )
             end if
 
             if( cv_nonods == x_nonods .or. .true. ) then ! a continuous pressure
@@ -1576,7 +1587,7 @@ contains
 
             ewrite(3,*) 'after pressure solve DP:', DP
 
-            P = P + DP
+            P_all % val = P_all % val + DP
 
             ! Use a projection method
             ! CDP = C * DP
@@ -1591,15 +1602,20 @@ contains
         END IF
 
         ! Calculate control volume averaged pressure CV_P from fem pressure P
-        CV_P = 0.0
+        CVP_ALL %VAL = 0.0
         MASS_CV = 0.0
         DO CV_NOD = 1, CV_NONODS
             DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
-                CV_P( CV_NOD ) = CV_P( CV_NOD ) + MASS_MN_PRES( COUNT ) * P( COLCMC( COUNT ) )
+                CVP_all%val( CV_NOD ) = CVP_all%val( CV_NOD ) + MASS_MN_PRES( COUNT ) * P_all%val( COLCMC( COUNT ) )
                 MASS_CV( CV_NOD ) = MASS_CV( CV_NOD ) + MASS_MN_PRES( COUNT )
             END DO
         END DO
-        CV_P = CV_P / MASS_CV
+        CVP_all%val = CVP_all%val / MASS_CV
+
+               Pressure_State => extract_scalar_field( state( 1 ), 'Pressure' )
+               Pressure_State % val = CVP_all%val
+
+
 
         DEALLOCATE( CT )
         DEALLOCATE( CT_RHS )
@@ -6557,7 +6573,7 @@ contains
             RZERO, RZERO, RZERO, RZERO, RZERO, RZERO_DIAGTEN, &
             RZERO, RZERO, &
             IDUM, IDUM, IDUM, &
-            RZERO, RZERO, &
+            RZERO, &
             RZERO, T_ABSORB, RZERO, &
             NDIM,  &
             NCOLM, FINDM, COLM, MIDM, &
@@ -6566,7 +6582,6 @@ contains
             RDUM, CV_ONE, &
             IGOT_T2, CURVATURE, VOLUME_FRAC,IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
             DUMMY_THETA_GDIFF, &
-!            CURVATURE, &
             RZERO, RZERO, RZERO, IDUM, IN_ELE_UPWIND, DG_ELE_UPWIND, &
             NOIT_DIM, &
             ! nits_flux_lim_t

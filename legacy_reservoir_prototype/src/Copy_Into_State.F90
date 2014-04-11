@@ -61,7 +61,6 @@
     subroutine copy_into_state( state, &
          proto_saturations, &
          proto_temperatures, &
-         proto_pressure, &
          proto_densities, &
          proto_components, &
          ncomp, &
@@ -74,7 +73,6 @@
       type(state_type), dimension(:), intent(inout) :: state
       real, dimension(:), intent(in) :: proto_saturations
       real, dimension(:), intent(in) :: proto_temperatures
-      real, dimension(:), intent(in) :: proto_pressure
       real, dimension(:), intent(in) :: proto_densities
       real, dimension(:), intent(in) :: proto_components
       integer, intent(in) :: ncomp
@@ -91,7 +89,6 @@
       integer, dimension(:), pointer :: element_nodes => null()
       type(scalar_field), pointer :: phasevolumefraction => null()
       type(scalar_field), pointer :: phasetemperature => null()      
-      type(scalar_field), pointer :: pressure => null()
       type(scalar_field), pointer :: density => null()
       type(scalar_field), pointer :: componentmassfraction => null()
       character(len=option_path_len) :: material_phase_name
@@ -250,24 +247,6 @@
       end if have_comp
 
       end do phase_loop
-
-      pressure => extract_scalar_field(state(1), "Pressure")    
-
-      press_ele_loop: do i = 1,ele_count(pressure)
-
-         element_nodes => ele_nodes(pressure,i)
-
-         nloc = size(element_nodes)
-
-         press_node_loop: do j = 1,nloc
-
-            call set(pressure, &
-                 element_nodes(j), &
-                 proto_pressure(p_ndgln((i-1)*nloc+j)))
-
-         end do press_node_loop
-
-      end do press_ele_loop
 
       ewrite(3,*) "Leaving copy_into_state"
 

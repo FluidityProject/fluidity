@@ -729,7 +729,7 @@
                call calculate_diffusivity( state, ncomp, nphase, ndim, cv_nonods, mat_nonods, &
                                            mat_nloc, totele, mat_ndgln, ScalarAdvectionField_Diffusion )
 
-               call INTENERGE_ASSEM_SOLVE( state, packed_state, &
+              call INTENERGE_ASSEM_SOLVE( state, packed_state, &
                     NCOLACV, FINACV, COLACV, MIDACV, &
                     small_FINACV, small_COLACV, small_MIDACV, &
                     block_to_global_acv, global_dense_block_acv, &
@@ -749,7 +749,7 @@
                     Temperature_BC, Density_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, &
                     suf_sig_diagten_bc, suf_t_bc_rob1, suf_t_bc_rob2, &
                     Temperature_BC_Spatial, Density_BC_Spatial, Velocity_U_BC_Spatial, &
-                    DRhoDPressure, Pressure_CV, &
+                    DRhoDPressure, &
                     Temperature_Source, Temperature_Absorption, Porosity, &
                     ndim, &
 !!$
@@ -767,12 +767,11 @@
 !!$                    
                     NOIT_DIM, & ! This need to be removed as it is already deprecated
 !!$
-!!$                 nits_flux_lim_t, &
                     Mean_Pore_CV, &
                     option_path = '/material_phase[0]/scalar_field::Temperature', &
                     mass_ele_transp = dummy_ele, &
                     thermal = have_option( '/material_phase[0]/scalar_field::Temperature/prognostic/equation::InternalEnergy'),&
-                           StorageIndexes=StorageIndexes )
+                    StorageIndexes=StorageIndexes )
 
 !!$ Update state memory
                do iphase = 1, nphase
@@ -897,7 +896,7 @@
                     U_SNLOC, P_SNLOC, CV_SNLOC, &
 !!$
                     Material_Absorption_Stab, Material_Absorption+Velocity_Absorption, Velocity_U_Source, Velocity_U_Source_CV, &
-                    Pressure_FEM, Pressure_CV, Density, Density_Old, PhaseVolumeFraction, PhaseVolumeFraction_Old, & 
+                    Density, Density_Old, PhaseVolumeFraction, PhaseVolumeFraction_Old, & 
                     DRhoDPressure, &
                     dt, &
 !!$
@@ -932,10 +931,7 @@
 !!$
                     iplike_grad_sou, plike_grad_sou_coef, plike_grad_sou_grad, &
                     scale_momentum_by_volume_fraction,&
-                           StorageIndexes=StorageIndexes )
-
-               Pressure_State => extract_scalar_field( state( 1 ), 'Pressure' )
-               Pressure_State % val = Pressure_CV
+                    StorageIndexes=StorageIndexes )
 
 
 !!$ Calculate Density_Component for compositional
@@ -967,7 +963,7 @@
                     v_disopt, v_dg_vel_int_opt, dt, v_theta, v_beta, &
                     PhaseVolumeFraction_BC, Density_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, SUF_SIG_DIAGTEN_BC, &
                     PhaseVolumeFraction_BC_Spatial, Density_BC_Spatial, Velocity_U_BC_Spatial, &
-                    DRhoDPressure, Pressure_FEM, &
+                    DRhoDPressure, &
                     ScalarField_Source_Store, ScalarField_Absorption, Porosity, &
 !!$
                     NDIM, &
@@ -981,10 +977,10 @@
 !!$                    
                     NOIT_DIM, & ! This need to be removed as it is already deprecated
 !!$
-!!$                 nits_flux_lim_volfra, &
                     option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction', &
                     mass_ele_transp = mass_ele,&
-                    theta_flux=sum_theta_flux, one_m_theta_flux=sum_one_m_theta_flux, theta_flux_j=sum_theta_flux_j, one_m_theta_flux_j=sum_one_m_theta_flux_j,&
+                    theta_flux=sum_theta_flux, one_m_theta_flux=sum_one_m_theta_flux, &
+                    theta_flux_j=sum_theta_flux_j, one_m_theta_flux_j=sum_one_m_theta_flux_j,&
                     StorageIndexes=StorageIndexes )
 
                PhaseVolumeFraction = min( max( PhaseVolumeFraction, 0.0 ), 1.0 )
@@ -1064,7 +1060,7 @@
                           Density_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, SUF_SIG_DIAGTEN_BC,&
                           suf_comp_bc_rob1, suf_comp_bc_rob2, &
                           Component_BC_Spatial, Density_BC_Spatial, Velocity_U_BC_Spatial, &
-                          DRhoDPressure, Pressure_FEM, &
+                          DRhoDPressure, &
                           Component_Source, Component_Absorption, Porosity, &
 !!$
                           NDIM,  &
@@ -1231,7 +1227,7 @@
 
 !!$ Copying fields back to state:
          call copy_into_state( state, & ! Copying main fields into state
-              PhaseVolumeFraction, Temperature, Pressure_CV, &
+              PhaseVolumeFraction, Temperature, &
               Density, Component, ncomp, nphase, cv_ndgln, p_ndgln )
 
 
@@ -1243,7 +1239,7 @@
 
             if ( have_option( "/io/output_scalars_fem" ) ) &
                  call copy_into_state( state, & ! Copying main fields into state
-                 PhaseVolumeFraction_FEMT, Temperature_FEMT, Pressure_FEM, &
+                 PhaseVolumeFraction_FEMT, Temperature_FEMT, &
                  Density, Component_FEMT, ncomp, nphase, cv_ndgln, p_ndgln )
 
             call get_option( '/timestepping/current_time', current_time ) ! Find the current time 
@@ -1254,7 +1250,7 @@
 
             if ( have_option( "/io/output_scalars_fem" ) ) &
                  call copy_into_state( state, & ! Copying main fields into state
-                 PhaseVolumeFraction, Temperature, Pressure_CV, &
+                 PhaseVolumeFraction, Temperature, &
                  Density, Component, ncomp, nphase, cv_ndgln, p_ndgln )
 
          end if Conditional_TimeDump
@@ -1860,6 +1856,13 @@
         end if
      end do
 
+     sfield=>extract_scalar_field(packed_state,"OldFEPressure")
+     nsfield=>extract_scalar_field(packed_state,"FEPressure")
+     sfield%val=nsfield%val
+
+     sfield=>extract_scalar_field(packed_state,"OldCVPressure")
+     nsfield=>extract_scalar_field(packed_state,"CVPressure")
+     sfield%val=nsfield%val
 
    end subroutine copy_packed_new_to_old
 
