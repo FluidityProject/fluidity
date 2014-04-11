@@ -2859,7 +2859,9 @@
     NonlinearVelocity, OldNonlinearVelocity,IteratedNonlinearVelocity, ComponentDensity, &
     OldComponentDensity, IteratedComponentDensity,ComponentMassFraction, OldComponentMassFraction,&
     IteratedComponentMassFraction, FEComponentDensity, OldFEComponentDensity, IteratedFEComponentDensity,&
-    FEComponentMassFraction, OldFEComponentMassFraction, IteratedFEComponentMassFraction)
+    FEComponentMassFraction, OldFEComponentMassFraction, IteratedFEComponentMassFraction,&
+    Pressure,FEPressure, OldFEPressure, CVPressure,OldCVPressure&
+    ,Coordinate, VelocityCoordinate,PressureCoordinate,MaterialCoordinate  )
         !This subroutine returns a pointer to the desired values of a variable stored in packed state
         !All the input variables (but packed_stated) are pointers following the structure of the *_ALL variables
         !and also all of them are optional, hence you can obtaine whichever you want
@@ -2871,17 +2873,103 @@
         IteratedComponentMassFraction, FEComponentDensity, OldFEComponentDensity, IteratedFEComponentDensity, FEComponentMassFraction, &
         OldFEComponentMassFraction, IteratedFEComponentMassFraction
         real, optional, dimension(:,:), pointer :: FEDensity, OldFEDensity, IteratedFEDensity, Density,&
-        OldDensity,IteratedDensity,PhaseVolumeFraction,OldPhaseVolumeFraction,IteratedPhaseVolumeFraction
-
+        OldDensity,IteratedDensity,PhaseVolumeFraction,OldPhaseVolumeFraction,IteratedPhaseVolumeFraction&
+        , Coordinate, VelocityCoordinate,PressureCoordinate,MaterialCoordinate
+        real, optional, dimension(:), pointer ::Pressure,FEPressure, OldFEPressure, CVPressure,OldCVPressure
         !Local variables
-!        type(scalar_field), pointer :: sfield
-!        type(vector_field), pointer :: vfield
+        type(scalar_field), pointer :: sfield
+        type(vector_field), pointer :: vfield
         type(tensor_field), pointer :: tfield
-        integer :: i
+        integer :: i, j, k
 
-        i = 0
+         j = 0; k = 0; i = 0
 
+        !Scalar stored
+        j = j + 1
+        if (present(Pressure)) then
+            if (use_index) then
+                sfield => extract_scalar_field( packed_state, j)
+            else
+                sfield => extract_scalar_field( packed_state, "Pressure" )
+            end if
+            Pressure =>  sfield%val(:)
+        end if
+        j = j + 1
+        if (present(FEPressure)) then
+            if (use_index) then
+                sfield => extract_scalar_field( packed_state, j)
+            else
+                sfield => extract_scalar_field( packed_state, "FEPressure" )
+            end if
+            FEPressure =>  sfield%val(:)
+        end if
+        j = j + 1
+        if (present(OldFEPressure)) then
+            if (use_index) then
+                sfield => extract_scalar_field( packed_state, j)
+            else
+                sfield => extract_scalar_field( packed_state, "OldFEPressure" )
+            end if
+            OldFEPressure =>  sfield%val(:)
+        end if
+        j = j + 1
+        if (present(CVPressure)) then
+            if (use_index) then
+                sfield => extract_scalar_field( packed_state, j)
+            else
+                sfield => extract_scalar_field( packed_state, "CVPressure" )
+            end if
+            Pressure =>  sfield%val(:)
+        end if
+        j = j + 1
+        if (present(OldCVPressure)) then
+            if (use_index) then
+                sfield => extract_scalar_field( packed_state, j)
+            else
+                sfield => extract_scalar_field( packed_state, "OldCVPressure" )
+            end if
+            Pressure =>  sfield%val(:)
+        end if
 
+        !Vectors stored
+        k = k + 1
+        if (present(Coordinate)) then
+            if (use_index) then
+                vfield => extract_vector_field( packed_state, k)
+            else
+                vfield => extract_vector_field( packed_state, "Coordinate" )
+            end if
+            Coordinate =>  vfield%val(:,:)
+        end if
+        k = k + 1
+        if (present(VelocityCoordinate)) then
+            if (use_index) then
+                vfield => extract_vector_field( packed_state, k)
+            else
+                vfield => extract_vector_field( packed_state, "VelocityCoordinate" )
+            end if
+            VelocityCoordinate =>  vfield%val(:,:)
+        end if
+        k = k + 1
+        if (present(PressureCoordinate)) then
+            if (use_index) then
+                vfield => extract_vector_field( packed_state, k)
+            else
+                vfield => extract_vector_field( packed_state, "PressureCoordinate" )
+            end if
+            PressureCoordinate =>  vfield%val(:,:)
+        end if
+        k = k + 1
+        if (present(MaterialCoordinate)) then
+            if (use_index) then
+                vfield => extract_vector_field( packed_state, k)
+            else
+                vfield => extract_vector_field( packed_state, "MaterialCoordinate" )
+            end if
+            MaterialCoordinate =>  vfield%val(:,:)
+        end if
+
+        !Tensors stored
         i = i + 1
         if (present(FEDensity)) then
             if (use_index) then
