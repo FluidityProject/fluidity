@@ -741,10 +741,9 @@
 
     subroutine Extracting_MeshDependentFields_From_State( state, packed_state, initialised, &
          PhaseVolumeFraction, PhaseVolumeFraction_BC_Spatial, PhaseVolumeFraction_BC, PhaseVolumeFraction_Source, &
-         Pressure_CV, Pressure_FEM, Pressure_FEM_BC_Spatial, Pressure_FEM_BC, &
+         Pressure_FEM_BC_Spatial, Pressure_FEM_BC, &
          Density, Density_BC_Spatial, Density_BC, &
          Component, Component_BC_Spatial, Component_BC, Component_Source, &
-!         Velocity_U, Velocity_V, Velocity_W, Velocity_NU, Velocity_NV, Velocity_NW, &
          Velocity_U_BC_Spatial,  wic_momu_bc, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, &
          suf_momu_bc, suf_momv_bc, suf_momw_bc, Velocity_U_Source, Velocity_Absorption, &
          Temperature, Temperature_BC_Spatial, Temperature_BC, Temperature_Source, suf_t_bc_rob1, suf_t_bc_rob2, &
@@ -759,10 +758,9 @@
            wic_momu_bc
       real, dimension( : ), intent( inout ) :: &
            PhaseVolumeFraction, PhaseVolumeFraction_BC, PhaseVolumeFraction_Source, &
-           Pressure_CV, Pressure_FEM, Pressure_FEM_BC, &
+           Pressure_FEM_BC, &
            Density, Density_BC, &
            Component, Component_BC, Component_Source, &
-!           Velocity_U, Velocity_V, Velocity_W, Velocity_NU, Velocity_NV, Velocity_NW, &
            Velocity_U_BC,  Velocity_V_BC, Velocity_W_BC, Velocity_U_Source, &
            Temperature, Temperature_BC, Temperature_Source, suf_t_bc_rob1, suf_t_bc_rob2, &
            Porosity, suf_momu_bc, suf_momv_bc, suf_momw_bc
@@ -785,7 +783,7 @@
       real :: dx
       logical :: is_overlapping, is_isotropic, is_diagonal, is_symmetric, have_gravity
       real, dimension( :, : ), allocatable :: constant
-      real, dimension( : ), allocatable :: x, y, z
+      real, dimension( : ), allocatable :: x, y, z, dummy
 
 !!$ Extracting spatial resolution
       call Get_Primary_Scalars( state, &         
@@ -796,7 +794,7 @@
 
 !!$ Calculating Global Node Numbers
       allocate( cv_sndgln( stotel * cv_snloc ), p_sndgln( stotel * p_snloc ), &
-           u_sndgln( stotel * u_snloc ) )
+           u_sndgln( stotel * u_snloc ), dummy( cv_nonods ) )
 
 !      x_ndgln_p1 = 0 ; x_ndgln = 0 ; cv_ndgln = 0 ; p_ndgln = 0 ; mat_ndgln = 0
  !     u_ndgln = 0 ;  xu_ndgln = 0 ; 
@@ -844,8 +842,8 @@
 !!$
       scalarfield => extract_scalar_field( state( 1 ), 'Pressure' )
       call Get_ScalarFields_Outof_State( state, initialised, 1, scalarfield, &
-           Pressure_FEM, Pressure_FEM_BC_Spatial, Pressure_FEM_BC )
-      Pressure_CV = Pressure_FEM
+           dummy, Pressure_FEM_BC_Spatial, Pressure_FEM_BC )
+      !Pressure_CV = Pressure_FEM
       if( nphase > 1 ) then ! Copy this to the other phases
          do iphase = 2, nphase
             Pressure_FEM_BC_Spatial( ( iphase - 1 ) * stotel + 1 : iphase * stotel ) = &
@@ -950,7 +948,7 @@
 
       end if Conditional_PermeabilityField
 
-      deallocate( cv_sndgln, p_sndgln, u_sndgln )
+      deallocate( cv_sndgln, p_sndgln, u_sndgln, dummy )
 
       return
     end subroutine Extracting_MeshDependentFields_From_State

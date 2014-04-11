@@ -145,7 +145,7 @@
 !!$ For output:
       real, dimension( : ), allocatable :: PhaseVolumeFraction_FEMT, Temperature_FEMT, Density_FEMT, &
            Component_FEMT, Mean_Pore_CV, SumConc_FEMT, Dummy_PhaseVolumeFraction_FEMT
-      type( scalar_field ), pointer :: Pressure_State, Temperature_State, Component_State
+      type( scalar_field ), pointer :: Temperature_State, Component_State
 
 !!$ Variables that can be effectively deleted as they are not used anymore:
       integer :: noit_dim
@@ -165,9 +165,7 @@
            Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, Temperature_BC_Spatial, &
            wic_momu_bc
       real, dimension( : ), pointer :: &
-           Velocity_U, Velocity_V, Velocity_W, Velocity_U_Old, Velocity_V_Old, Velocity_W_Old, &
-           Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
-           Pressure_FEM, Pressure_CV, Temperature, Density, Density_Cp, Density_Component, PhaseVolumeFraction, &
+           Temperature, Density, Density_Cp, Density_Component, PhaseVolumeFraction, &
            Component, U_Density, Pressure_FEM_Old, Pressure_CV_Old, Temperature_Old, Density_Old, Density_Cp_Old, &
            Density_Component_Old, PhaseVolumeFraction_Old, Component_Old, U_Density_Old,  &
            Porosity, &
@@ -337,18 +335,11 @@
 !!$ Allocating space for various arrays:
       allocate( &
 !!$
-           Velocity_U( u_nonods * nphase ), Velocity_V( u_nonods * nphase ), Velocity_W( u_nonods * nphase ), &
-           Velocity_U_Old( u_nonods * nphase ), Velocity_V_Old( u_nonods * nphase ), Velocity_W_Old( u_nonods * nphase ), &
-           Velocity_NU( u_nonods * nphase ), Velocity_NV( u_nonods * nphase ), Velocity_NW( u_nonods * nphase ), &
-           Velocity_NU_Old( u_nonods * nphase ), Velocity_NV_Old( u_nonods * nphase ), Velocity_NW_Old( u_nonods * nphase ), &
-!!$
-           Pressure_FEM( cv_nonods ), Pressure_CV( cv_nonods ), &
            Temperature( nphase * cv_nonods ), Density( nphase * cv_nonods ),  Density_Cp( nphase * cv_nonods ), &
            Density_Component( nphase * cv_nonods * ncomp ), &
            PhaseVolumeFraction( nphase * cv_nonods ), Component( nphase * cv_nonods * ncomp ), &
            U_Density( nphase * cv_nonods ), DRhoDPressure( nphase, cv_nonods ), &
 !!$
-           Pressure_FEM_Old( cv_nonods ), Pressure_CV_Old( cv_nonods ), &
            Temperature_Old( nphase * cv_nonods ), Density_Old( nphase * cv_nonods ), Density_Cp_Old( nphase * cv_nonods ), &
            Density_Component_Old( nphase * cv_nonods * ncomp ), &
            PhaseVolumeFraction_Old( nphase * cv_nonods ), Component_Old( nphase * cv_nonods * ncomp ), &
@@ -399,18 +390,11 @@
       ncv_faces=CV_count_faces( packed_state, CV_ELE_TYPE, stotel, cv_sndgln, u_sndgln)
 
 !!$
-      Velocity_U=0. ; Velocity_V=0 ; Velocity_W=0.
-      Velocity_U_Old=0. ; Velocity_V_Old=0. ; Velocity_W_Old=0.
-      Velocity_NU=0. ; Velocity_NV=0. ; Velocity_NW=0.
-      Velocity_NU_Old=0. ; Velocity_NV_Old=0. ; Velocity_NW_Old=0.
-!!$
-      Pressure_FEM=0. ; Pressure_CV=0.
       Temperature=0. ; Density=0. ; Density_Cp=0.
       Density_Component=0.
       PhaseVolumeFraction=0. ; Component=0.
       U_Density=0. ; DRhoDPressure=0.
 !!$
-      Pressure_FEM_Old=0. ; Pressure_CV_Old=0.
       Temperature_Old=0. ; Density_Old=0. ; Density_Cp_Old=0.
       Density_Component_Old=0.
       PhaseVolumeFraction_Old=0. ; Component_Old=0.
@@ -467,7 +451,7 @@
       initialised = .false.
       call Extracting_MeshDependentFields_From_State( state, packed_state, initialised, &
            PhaseVolumeFraction, PhaseVolumeFraction_BC_Spatial, PhaseVolumeFraction_BC, PhaseVolumeFraction_Source, &
-           Pressure_CV, Pressure_FEM, Pressure_FEM_BC_Spatial, Pressure_FEM_BC, &
+           Pressure_FEM_BC_Spatial, Pressure_FEM_BC, &
            Density, Density_BC_Spatial, Density_BC, &
            Component, Component_BC_Spatial, Component_BC, Component_Source, &
            Velocity_U_BC_Spatial, wic_momu_bc, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, &
@@ -634,7 +618,7 @@
 
 
 !!$ Update all fields from time-step 'N - 1'
-         Density_Old = Density ;  Density_Cp_Old = Density_Cp ; Pressure_FEM_Old = Pressure_FEM ; Pressure_CV_Old = Pressure_CV
+         Density_Old = Density ;  Density_Cp_Old = Density_Cp
          PhaseVolumeFraction_Old = PhaseVolumeFraction ; Temperature_Old = Temperature ; Component_Old = Component
          Density_Old_tmp = Density_tmp ; Density_Component_Old = Density_Component
 
@@ -1389,9 +1373,7 @@
 !!$ Working arrays
                  PhaseVolumeFraction_BC_Spatial, Pressure_FEM_BC_Spatial, &
                  Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, wic_momu_bc, Temperature_BC_Spatial, &
-                 Velocity_U, Velocity_V, Velocity_W, Velocity_U_Old, Velocity_V_Old, Velocity_W_Old, &
-                 Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
-                 Pressure_FEM, Pressure_CV, Temperature, Density, Density_Cp, Density_Component, PhaseVolumeFraction, &
+                 Temperature, Density, Density_Cp, Density_Component, PhaseVolumeFraction, &
                  Component, U_Density, &
                  Pressure_FEM_Old, Pressure_CV_Old, Temperature_Old, Density_Old, Density_Cp_Old, Density_Component_Old, &
                  PhaseVolumeFraction_Old, Component_Old, &
@@ -1488,18 +1470,11 @@
 !!$ Allocating space for various arrays:
             allocate( &
 !!$
-                 Velocity_U( u_nonods * nphase ), Velocity_V( u_nonods * nphase ), Velocity_W( u_nonods * nphase ), &
-                 Velocity_U_Old( u_nonods * nphase ), Velocity_V_Old( u_nonods * nphase ), Velocity_W_Old( u_nonods * nphase ), &
-                 Velocity_NU( u_nonods * nphase ), Velocity_NV( u_nonods * nphase ), Velocity_NW( u_nonods * nphase ), &
-                 Velocity_NU_Old( u_nonods * nphase ), Velocity_NV_Old( u_nonods * nphase ), Velocity_NW_Old( u_nonods * nphase ), &
-!!$
-                 Pressure_FEM( cv_nonods ), Pressure_CV( cv_nonods ), &
                  Temperature( nphase * cv_nonods ), Density( nphase * cv_nonods ), Density_Cp( nphase * cv_nonods ), &
                  Density_Component( nphase * cv_nonods * ncomp ), &
                  PhaseVolumeFraction( nphase * cv_nonods ), Component( nphase * cv_nonods * ncomp ), &
                  U_Density( nphase * cv_nonods ), DRhoDPressure( nphase, cv_nonods ), &
 !!$
-                 Pressure_FEM_Old( cv_nonods ), Pressure_CV_Old( cv_nonods ), &
                  Temperature_Old( nphase * cv_nonods ), Density_Old( nphase * cv_nonods ), Density_Cp_Old( nphase * cv_nonods ), &
                  Density_Component_Old( nphase * cv_nonods * ncomp ), &
                  PhaseVolumeFraction_Old( nphase * cv_nonods ), Component_Old( nphase * cv_nonods * ncomp ), &
@@ -1546,10 +1521,6 @@
                  plike_grad_sou_grad( cv_nonods * nphase ), &
                  plike_grad_sou_coef( cv_nonods * nphase ) )    
 !!$
-            Velocity_U=0. ; Velocity_V=0. ; Velocity_W=0.
-            Velocity_U_Old=0. ; Velocity_V_Old=0. ; Velocity_W_Old=0.
-            Velocity_NU=0. ; Velocity_NV=0. ; Velocity_NW=0.
-            Velocity_NU_Old=0. ; Velocity_NV_Old=0. ; Velocity_NW_Old=0.
             Velocity_U_Source = 0. ; Velocity_Absorption = 0. ; Velocity_U_Source_CV = 0. 
             Velocity_U_BC_Spatial=0 ; Velocity_U_BC=0. ; Velocity_V_BC=0. ; Velocity_W_BC=0.
             Momentum_Diffusion=0.
@@ -1562,8 +1533,6 @@
 !!$
             Porosity=0. ; Permeability=0.
 !!$
-            Pressure_CV=0. ; Pressure_FEM=0. ; 
-            Pressure_FEM_Old=0. ; Pressure_CV_Old=0.
             Pressure_FEM_BC_Spatial=0 ; Pressure_FEM_BC=0.
 !!$
             PhaseVolumeFraction=0. ; PhaseVolumeFraction_Old=0. ; PhaseVolumeFraction_BC_Spatial=0
@@ -1594,7 +1563,7 @@
             initialised = .true.
             call Extracting_MeshDependentFields_From_State( state, packed_state, initialised, &
                  PhaseVolumeFraction, PhaseVolumeFraction_BC_Spatial, PhaseVolumeFraction_BC, PhaseVolumeFraction_Source, &
-                 Pressure_CV, Pressure_FEM, Pressure_FEM_BC_Spatial, Pressure_FEM_BC, &
+                 Pressure_FEM_BC_Spatial, Pressure_FEM_BC, &
                  Density, Density_BC_Spatial, Density_BC, &
                  Component, Component_BC_Spatial, Component_BC, Component_Source, &
                  Velocity_U_BC_Spatial, wic_momu_bc, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC,&
@@ -1714,9 +1683,7 @@
 !!$ Working arrays
            PhaseVolumeFraction_BC_Spatial, Pressure_FEM_BC_Spatial, &
            Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, Temperature_BC_Spatial, &
-           Velocity_U, Velocity_V, Velocity_W, Velocity_U_Old, Velocity_V_Old, Velocity_W_Old, &
-           Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
-           Pressure_FEM, Pressure_CV, Temperature, Density, Density_Cp, Density_Component, PhaseVolumeFraction, &
+           Temperature, Density, Density_Cp, Density_Component, PhaseVolumeFraction, &
            Component, U_Density, &
            Pressure_FEM_Old, Pressure_CV_Old, Temperature_Old, Density_Old, Density_Cp_Old, Density_Component_Old, &
            PhaseVolumeFraction_Old, Component_Old, &
