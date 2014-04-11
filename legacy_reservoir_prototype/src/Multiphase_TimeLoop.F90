@@ -89,7 +89,7 @@
 
 !!$ additional state variables for multiphase & multicomponent
 
-      type(state_type) :: packed_state
+      type(state_type) :: packed_state, backup_state
       type(state_type), dimension(:), pointer :: multiphase_state, multicomponent_state
 
 
@@ -215,22 +215,9 @@
 
       type( scalar_field ), pointer :: cfl, rc_field
       real :: c, rc, minc, maxc, ic
-      !Variables for automatic non-linear iterations
-      real :: tolerance_between_non_linear, initial_dt, min_ts, max_ts, increase_ts_switch, decrease_ts_switch
       !Variables for adaptive time stepping based on non-linear iterations
-      real :: increaseFactor, decreaseFactor, ts_ref_val, s_gc, s_or
-      integer :: variable_selection
-      logical :: nonLinearAdaptTs, Repeat_time_step
-      real, dimension(:), allocatable :: PhaseVolumeFraction_nonlin_check, Pressure_nonlin_check
-      real, dimension(:), allocatable :: Velocity_U_nonlin_check, Velocity_V_nonlin_check, Velocity_W_nonlin_check
-
-      !Variables to store values to reset iteration
-      real :: acctim_backup
-      real, parameter :: check_sat_threshold = 1d-6
-      real, dimension(:), allocatable :: PhaseVolumeFraction_backup,  Pressure_CV_backup, Pressure_FEM_backup
-      real, dimension(:), allocatable :: Velocity_U_backup, Velocity_V_backup, Velocity_W_backup, Temperature_backup
-      real, dimension(:), allocatable :: Density_backup, Component_backup, Density_Cp_backup, Density_Component_backup
-
+      logical :: nonLinearAdaptTs, Repeat_time_step, ExitNonLinearLoop
+      real, dimension(:,:,:), allocatable  :: reference_field
 
       type( tensor_field ), pointer :: NU_s, NUOLD_s, U_s, UOLD_s
 
@@ -241,7 +228,7 @@
       !Variable to store where we store things. Do not oversize this array, the size has to be the last index in use
       integer, dimension (42) :: StorageIndexes
       !Initially we set to use Stored data and that we have a new mesh
-      StorageIndexes = 0!Initialize them as zero ! Entries 1, 2 and 3 are unused, for future purposes
+      StorageIndexes = 0!Initialize them as zero !
 
       !Read info for adaptive timestep based on non_linear_iterations
 
@@ -261,33 +248,12 @@
       !
       !A deallocate tfield when finished!!
 
-      variable_selection = 3 !Variable to check how good nonlinear iterations are going 1 (Pressure), 2 (Velocity), 3 (Saturation)
       Repeat_time_step = .false.!Initially has to be false
       nonLinearAdaptTs = have_option(  '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear')
-      call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear', &
-           variable_selection, default = 3)
-      call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear/increase_factor', &
-           increaseFactor, default = 1.2 )
-      call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear/decrease_factor', &
-           decreaseFactor, default = 2. )
-      call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear/max_timestep', &
-           max_ts, default = huge(min_ts) )
-      call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear/min_timestep', &
-           min_ts, default = -1. )
-      call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear/increase_ts_switch', &
-           increase_ts_switch, default = 1d-3 )
-      call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear/decrease_ts_switch', &
-           decrease_ts_switch, default = 1d-1 )
-      !Get irresidual water saturation and irreducible oil to repeat a timestep if the saturation goes out of these values
-      call get_option("/material_phase[0]/multiphase_properties/immobile_fraction", &
-           s_gc, default=0.0)
-      call get_option("/material_phase[1]/multiphase_properties/immobile_fraction", &
-           s_or, default=0.0)
 
-      !Get time step
-      call get_option( '/timestepping/timestep', initial_dt )
-     !By default the minimum time-steps is ten orders smaller than the initial timestep
-     if(min_ts<0) min_ts = initial_dt * 1d-10
+     !If adaptive time_stepping then we need to create backup_state
+    if (nonLinearAdaptTs)  call pack_multistate(state,backup_state,multiphase_state,&
+           multicomponent_state)
 
 !!$ Compute primary scalars used in most of the code
       call Get_Primary_Scalars( state, &         
@@ -590,7 +556,7 @@
       call get_option( '/timestepping/finish_time', finish_time )
       call get_option( '/io/dump_period_in_timesteps/constant', dump_period_in_timesteps, default = 1 )
       call get_option( '/timestepping/nonlinear_iterations', NonLinearIteration, default = 3 )
-      call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic', tolerance_between_non_linear, default = -1. )
+!      call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic', tolerance_between_non_linear, default = -1. )
 !!$
       have_temperature_field = .false. ; have_component_field = .false. ; have_extra_DiffusionLikeTerm = .false.
       do istate = 1, nstate
@@ -632,25 +598,6 @@
       ! still need to figure out if we need to linearise only the buoyancy term.
       linearise_density = have_option( '/material_phase[0]/linearise_density' )
 
-        !Allocate components to restart iteration
-        if (nonLinearAdaptTs) allocate( Velocity_U_backup( u_nonods * nphase ), Velocity_V_backup( u_nonods * nphase ),  &
-           Temperature_backup( nphase * cv_nonods ), Density_backup( nphase * cv_nonods ), Pressure_CV_backup( cv_nonods ),&
-           PhaseVolumeFraction_backup( nphase * cv_nonods ), Component_backup( nphase * cv_nonods * ncomp )&
-           , Velocity_W_backup( u_nonods * nphase ), Pressure_FEM_backup( cv_nonods ),&
-            Density_Component_backup( nphase * cv_nonods * ncomp ), Density_Cp_backup( nphase * cv_nonods ))
-
-        !
-        if (tolerance_between_non_linear>0.) then
-            select case (variable_selection)
-                case (1)
-                    allocate(Pressure_nonlin_check( nphase * cv_nonods ))
-                case (2)
-                    allocate( Velocity_U_nonlin_check( u_nonods * nphase ), &
-                        Velocity_V_nonlin_check( u_nonods * nphase ), Velocity_W_nonlin_check( u_nonods * nphase ))
-                case default
-                    allocate(PhaseVolumeFraction_nonlin_check( nphase * cv_nonods ))
-            end select
-        end if
 !!$ Starting Time Loop 
       itime = 0
       Loop_Time: do
@@ -680,37 +627,11 @@
             end if
          end if
 
-         !Procedure to repeat time-steps
-         if (nonLinearAdaptTs) then
-             !Store backup
-             if (.not.Repeat_time_step) then
-                 PhaseVolumeFraction_backup = PhaseVolumeFraction
-                 Pressure_CV_backup =  Pressure_CV
-                 Velocity_U_backup= Velocity_U
-                 Velocity_V_backup = Velocity_V
-                 Velocity_W_backup = Velocity_W
-                 Density_backup = Density
-                 Component_backup = Component
-                 Pressure_FEM_backup =  Pressure_FEM
-                 Density_CP_Backup = Density_CP
-                 Density_Component_Backup = Density_Component
-                 Temperature = Temperature_backup
-                 acctim_backup = acctim - dt
-             else
-                 !Recover backup
-                 PhaseVolumeFraction = PhaseVolumeFraction_backup
-                 Pressure_CV =  Pressure_CV_backup
-                 Velocity_U= Velocity_U_backup
-                 Velocity_V = Velocity_V_backup
-                 Velocity_W = Velocity_W_backup
-                 Density = Density_backup
-                 Component = Component_backup
-                 Density_Cp = Density_Cp_backup
-                 Pressure_FEM =  Pressure_FEM_backup
-                 Density_Component = Density_Component_backup
-                 Temperature = Temperature_backup
-             end if
-         end if
+        ExitNonLinearLoop = .false.
+        !Store backup to be able to repeat a timestep
+         if (nonLinearAdaptTs) call Adaptive_NonLinear(packed_state, backup_state, reference_field, its, &
+        Repeat_time_step, ExitNonLinearLoop,nonLinearAdaptTs,1)
+
 
 !!$ Update all fields from time-step 'N - 1'
          Density_Old = Density ;  Density_Cp_Old = Density_Cp ; Pressure_FEM_Old = Pressure_FEM ; Pressure_CV_Old = Pressure_CV
@@ -764,20 +685,9 @@
               'prognostic/temporal_discretisation/control_volumes/second_theta', second_theta, default=1. )
          end if
 
-
-            !Store variable to check afterwards
-            if (tolerance_between_non_linear>0.) then
-               select case (variable_selection)
-                   case (1)
-                       Pressure_nonlin_check = Pressure_FEM
-                   case (2)
-                       Velocity_U_nonlin_check = Velocity_U
-                       Velocity_V_nonlin_check = Velocity_V
-                       Velocity_W_nonlin_check = Velocity_W
-                   case default
-                       PhaseVolumeFraction_nonlin_check = PhaseVolumeFraction
-               end select
-            end if
+            !Store the field we want to compare with to check how are the computations going
+            call Adaptive_NonLinear(packed_state, backup_state, reference_field, its, &
+            Repeat_time_step, ExitNonLinearLoop,nonLinearAdaptTs,2)
 
             call Calculate_All_Rhos( state, ncomp, nphase, ndim, cv_nonods, cv_nloc, totele, &
                  cv_ndgln, Component, Density, Density_Cp, DRhoDPressure, Density_Component )
@@ -1299,90 +1209,19 @@
 
             end if Conditional_Components
 
-
-                !If Automatic_NonLinerIterations then we compare the variation of the a property from one time step to the next one
-                Repeat_time_step = .false.
-                if (tolerance_between_non_linear>0. .and. its > 1 ) then
-
-                    select case (variable_selection)
-                        case (1)
-                            ts_ref_val = maxval(abs(Pressure_nonlin_check-Pressure_FEM))
-                        case (2)
-                            ts_ref_val = max(maxval(abs(Velocity_U- Velocity_U_nonlin_check)),&
-                            maxval(abs(Velocity_V - Velocity_V_nonlin_check)),&
-                            maxval(abs(Velocity_W - Velocity_W_nonlin_check)) )
-                        case default
-                            ts_ref_val = maxval(abs(PhaseVolumeFraction-PhaseVolumeFraction_nonlin_check))
-                    end select
-
-
-                    !If only non-linear iterations
-                    if (.not.nonLinearAdaptTs) then
-                        !Automatic non-linear iteration checking
-                        if (ts_ref_val < tolerance_between_non_linear) exit
-                    else!If adaptive time-stepping based on non-linear iterations then...
-                        !Check that saturation is between bounds, works for two phases only!!
-                        if (have_option(  '/timestepping/nonlinear_iterations/&
-                            &nonlinear_iterations_automatic/adaptive_timestep_nonlinear/keep_sat_bounds') )  &
-                                Repeat_time_step = (maxval(s_gc-PhaseVolumeFraction(1:cv_nonods))>check_sat_threshold&
-                                    .or.maxval(s_or-PhaseVolumeFraction(1+cv_nonods:nphase*cv_nonods))>check_sat_threshold)
-
-                         !Increase Ts section
-                        if ((ts_ref_val < increase_ts_switch .and.dt*increaseFactor<max_ts).and..not.Repeat_time_step) then
-                            call get_option( '/timestepping/timestep', dt )
-                            dt = dt * increaseFactor
-                            call set_option( '/timestepping/timestep', dt )
-                            ewrite(1,*) "Time step increased to:", dt
-                            print *, "Time step increased to:", dt
-                        end if
-
-                        !Exit loop section
-                        if ((ts_ref_val < tolerance_between_non_linear).and..not.Repeat_time_step) exit
-
-                        !Decrease Ts section only if we have done at least the 75% of the  nonLinearIterations
-                        if ((ts_ref_val > decrease_ts_switch .and.its>=int(0.75*NonLinearIteration)).or.&
-                        (repeat_time_step.and.its>=NonLinearIteration)) then
-
-                            if ( dt / decreaseFactor < min_ts) then
-                                !Do not decrease
-                                Repeat_time_step = .false.
-                                exit Loop_NonLinearIteration
-                            end if
-
-                            !Decrease time step and repeat!
-                            call get_option( '/timestepping/timestep', dt )
-                            dt = dt / decreaseFactor
-                            call set_option( '/timestepping/timestep', dt )
-                            ewrite(1,*) "Time step decreased to:", dt
-                            print *, "Time step decreased to:", dt
-                            Repeat_time_step = .true.
-
-                            !Recover backup
-                            PhaseVolumeFraction = PhaseVolumeFraction_backup
-                            Pressure_CV =  Pressure_CV_backup
-                            Velocity_U= Velocity_U_backup
-                            Velocity_V = Velocity_V_backup
-                            Velocity_W = Velocity_W_backup
-                            Density = Density_backup
-                            Component = Component_backup
-                            Density_Cp = Density_Cp_backup
-                            Pressure_FEM =  Pressure_FEM_backup
-                            Density_Component = Density_Component_backup
-                            Temperature = Temperature_backup
-                            acctim = acctim_backup
-
-                            exit Loop_NonLinearIteration
-                        end if
-                    end if
-
-                end if
+            !Check if the results are good so far and act in consequence, only does something if requested by the user
+            call Adaptive_NonLinear(packed_state, backup_state, reference_field, its,&
+            Repeat_time_step, ExitNonLinearLoop,nonLinearAdaptTs,3)
+            if (ExitNonLinearLoop) exit Loop_NonLinearIteration
 
          end do Loop_NonLinearIteration
 
-         !If repeat timestep we don't want to adapt mesh or dump results
-         if ( Repeat_time_step ) then
-            itime = itime - 1
-            cycle Loop_Time
+        if (nonLinearAdaptTs) then
+             !If repeat timestep we don't want to adapt mesh or dump results
+             if ( Repeat_time_step ) then
+                itime = itime - 1
+                cycle Loop_Time
+            end if
         end if
 
          call set_option( '/timestepping/current_time', acctim )
@@ -1525,6 +1364,12 @@
             call deallocate(packed_state)
             call pack_multistate(state,packed_state,&
                  multiphase_state,multicomponent_state)
+        !If we are using adaptive time stepping, backup_state needs also to be redone
+        if (nonLinearAdaptTs) then
+            call deallocate(backup_state)
+            call pack_multistate(state,backup_state,&
+                 multiphase_state,multicomponent_state)
+        end if
 
 !!$ Deallocating array variables:
             deallocate( &
@@ -1896,32 +1741,6 @@
            Component_Diffusion, &
            theta_flux, one_m_theta_flux, theta_flux_j, one_m_theta_flux_j, &
            sum_theta_flux, sum_one_m_theta_flux, sum_theta_flux_j, sum_one_m_theta_flux_j, density_tmp, density_old_tmp )
-
-        !deallocate arrays for adaptive_time_stepping and adaptive_non_linear iterations
-        if (nonLinearAdaptTs) deallocate( Velocity_U_backup, Velocity_V_backup,  &
-               Temperature_backup, Density_backup, Pressure_CV_backup,&
-               PhaseVolumeFraction_backup, Component_backup&
-               , Velocity_W_backup, Pressure_FEM_backup,&
-                Density_Component_backup, Density_Cp_backup)
-
-        call finalise_multistate(packed_state,multiphase_state,&
-             multicomponent_state)
-
-
-        if (tolerance_between_non_linear>0.) then
-            select case (variable_selection)
-                case (1)
-                    deallocate(Pressure_nonlin_check)
-                case (2)
-                    deallocate(Velocity_U_nonlin_check)
-                    deallocate(Velocity_V_nonlin_check)
-                    deallocate(Velocity_W_nonlin_check)
-                case default
-                    deallocate(PhaseVolumeFraction_nonlin_check)
-            end select
-        end if
-
-
 
       return
 

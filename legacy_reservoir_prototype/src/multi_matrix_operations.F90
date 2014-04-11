@@ -1366,7 +1366,7 @@
       DO CV_INOD = 1, CV_NONODS
          DO COUNT = FINDCT( CV_INOD ), FINDCT( CV_INOD + 1 ) - 1
             U_JNOD = COLCT( COUNT )
-            forall (IPHASE = 1 : NPHASE, IVEC = 1 : NBLOCK, IDIM =1:NDIM)
+            forall ( IVEC = 1 : NBLOCK, IPHASE = 1 : NPHASE,IDIM =1:NDIM)
                   CV_RHS( IVEC, CV_INOD ) = CV_RHS( IVEC, CV_INOD )+ U( IVEC, IDIM, IPHASE, U_JNOD ) * CT( IDIM, IPHASE, COUNT  )
             end forall
          END DO

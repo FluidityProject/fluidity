@@ -61,7 +61,7 @@
 
     public :: Get_Primary_Scalars, Compute_Node_Global_Numbers, Extracting_MeshDependentFields_From_State, &
          Extract_TensorFields_Outof_State, Extract_Position_Field, xp1_2_xp2, Get_Ele_Type, Get_Discretisation_Options, &
-         print_from_state, update_boundary_conditions, pack_multistate, finalise_multistate, get_ndglno
+         print_from_state, update_boundary_conditions, pack_multistate, finalise_multistate, get_ndglno, Adaptive_NonLinear
 
     interface Get_Ndgln
        module procedure Get_Scalar_Ndgln, Get_Vector_Ndgln, Get_Mesh_Ndgln
@@ -2665,6 +2665,185 @@
 
     end subroutine add_dependant_fields_to_tensor_from_state
 
+
+    !########THIS SUBROUTINE WILL NOT WORK UNTIL THE PROGRAM DOES NOT USE, ########
+    !########AT LEAST THE PHASEVOLUMEFRACTION FROM PACKED_STATE########
+    subroutine Adaptive_NonLinear(packed_state, backup_state, reference_field, its,&
+        Repeat_time_step, ExitNonLinearLoop,nonLinearAdaptTs,order)
+        !This subroutine either store variables before the nonlinear timeloop starts, or checks
+        !how the nonlinear iterations are going and depending on that increase the timestep
+        !or decreases the timestep and repeats that timestep
+        Implicit none
+        type(state_type), intent(inout) :: packed_state, backup_state
+        real, dimension(:,:,:), allocatable, intent(inout) :: reference_field
+        logical, intent(inout) :: Repeat_time_step, ExitNonLinearLoop
+        logical, intent(in) :: nonLinearAdaptTs
+        integer, intent(in) :: its, order
+        !Local variables
+        real :: dt
+        real, parameter :: check_sat_threshold = 1d-6
+        type(scalar_field), pointer :: sfield
+        type(vector_field), pointer :: vfield
+        type(tensor_field), pointer :: tfield
+        !Variables for automatic non-linear iterations
+        real :: tolerance_between_non_linear, initial_dt, min_ts, max_ts, increase_ts_switch, decrease_ts_switch
+        !Variables for adaptive time stepping based on non-linear iterations
+        real :: increaseFactor, decreaseFactor, ts_ref_val, s_gc, s_or, acctim
+        integer :: variable_selection, i, NonLinearIteration
+
+        !First of all, check if the user wants to do something
+        call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic', tolerance_between_non_linear, default = -1. )
+        if (tolerance_between_non_linear<0) return
+        call get_option( '/timestepping/nonlinear_iterations', NonLinearIteration, default = 3 )
+        !Get data from diamond. Despite this is slow, as it is done in the outest loop, it should not affect the performance.
+      variable_selection = 3 !Variable to check how good nonlinear iterations are going 1 (Pressure), 2 (Velocity), 3 (Saturation)
+      call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear', &
+           variable_selection, default = 3)
+        call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear/increase_factor', &
+        increaseFactor, default = 1.2 )
+        call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear/decrease_factor', &
+        decreaseFactor, default = 2. )
+        call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear/max_timestep', &
+        max_ts, default = huge(min_ts) )
+        call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear/min_timestep', &
+        min_ts, default = -1. )
+        call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear/increase_ts_switch', &
+        increase_ts_switch, default = 1d-3 )
+        call get_option( '/timestepping/nonlinear_iterations/nonlinear_iterations_automatic/adaptive_timestep_nonlinear/decrease_ts_switch', &
+        decrease_ts_switch, default = 1d-1 )
+        !Get irresidual water saturation and irreducible oil to repeat a timestep if the saturation goes out of these values
+        call get_option("/material_phase[0]/multiphase_properties/immobile_fraction", &
+        s_gc, default=0.0)
+        call get_option("/material_phase[1]/multiphase_properties/immobile_fraction", &
+        s_or, default=0.0)
+        !Get time step
+        call get_option( '/timestepping/timestep', initial_dt )
+        !By default the minimum time-steps is ten orders smaller than the initial timestep
+        if(min_ts<0) min_ts = initial_dt * 1d-10
+
+        !RIGHT NOW I AM DOING A BACKUP OF EVERYTHING
+        !UNNECESSARY FOR OLD VARIABLES??? I HAVE TO CHANGE THAT IN THE FUTURE
+
+        select case (order)
+            case (1)!Store or get from backup
+                !If we do not have adaptive time stepping then there is nothing to backup
+                if (.not.nonLinearAdaptTs) return
+                !we either store the data or we recover it if repeting a timestep
+                 !Procedure to repeat time-steps
+                if (.not.Repeat_time_step) then
+                    !Backup scalar_fields
+                    do i=1,size(packed_state%scalar_fields)
+                        backup_state%scalar_fields(1)%ptr = packed_state%scalar_fields(i)%ptr
+                    end do
+                    !Backup vector_fields
+                    do i=1,size(packed_state%vector_fields)
+                        backup_state%vector_fields(1)%ptr = packed_state%vector_fields(i)%ptr
+                    end do
+                    !Backup tensor_fields
+                    do i=1,size(packed_state%tensor_fields)
+                        backup_state%tensor_fields(1)%ptr = packed_state%tensor_fields(i)%ptr
+                    end do
+                else
+                    !Recover scalar_fields
+                    do i=1,size(backup_state%scalar_fields)
+                        packed_state%scalar_fields(i)%ptr = backup_state%scalar_fields(1)%ptr
+                    end do
+                    !Recover vector_fields
+                    do i=1,size(backup_state%vector_fields)
+                        packed_state%vector_fields(i)%ptr = backup_state%vector_fields(1)%ptr
+                    end do
+                    !Recover tensor_fields
+                    do i=1,size(backup_state%tensor_fields)
+                        packed_state%tensor_fields(i)%ptr = backup_state%tensor_fields(1)%ptr
+                    end do
+                end if
+            case (2)!Calculate and store reference_field
+                if (its==1) then
+                    !Store variable to check afterwards
+                    select case (variable_selection)
+                        case (1)
+                            tfield => EXTRACT_TENSOR_FIELD( packed_state, "PackedPressureCoordinate" )
+                        case (2)
+                            tfield => EXTRACT_TENSOR_FIELD( packed_state, "PackedVelocity" )
+                        case default
+                            tfield => EXTRACT_TENSOR_FIELD( packed_state, "PackedPhaseVolumeFraction" )
+                    end select
+                    allocate (reference_field(size(tfield%val,1),size(tfield%val,2),size(tfield%val,3) ))
+                    reference_field = tfield%val
+                end if
+            case default!Check how is the process going on and decide
+                 !If Automatic_NonLinerIterations then we compare the variation of the a property from one time step to the next one
+                ExitNonLinearLoop = .false.
+                Repeat_time_step = .false.
+                if (its > 1 ) then
+
+                    select case (variable_selection)
+                        case (1)!Check that the names are the same!!
+                            tfield => EXTRACT_TENSOR_FIELD( packed_state, "PackedPressureCoordinate" )
+                        case (2)
+                            tfield => EXTRACT_TENSOR_FIELD( packed_state, "PackedVelocity" )
+                        case default
+                            tfield => EXTRACT_TENSOR_FIELD( packed_state, "PackedPhaseVolumeFraction" )
+                    end select
+                    ts_ref_val = maxval(abs(reference_field-tfield%val))
+
+                    !If only non-linear iterations
+                    if (.not.nonLinearAdaptTs) then
+                        !Automatic non-linear iteration checking
+                        if (ts_ref_val < tolerance_between_non_linear)  ExitNonLinearLoop = .true.
+                        return
+                    end if
+
+                    !Check that saturation is between bounds, works for two phases only!!
+                    if (have_option(  '/timestepping/nonlinear_iterations/&
+                            &nonlinear_iterations_automatic/adaptive_timestep_nonlinear/keep_sat_bounds') )  then
+                        tfield => EXTRACT_TENSOR_FIELD( packed_state, "PackedPhaseVolumeFraction" )
+                        Repeat_time_step = (maxval(s_gc-tfield%val(:,1,:))>check_sat_threshold&
+                        .or.maxval(s_or-tfield%val(:,2,:))>check_sat_threshold)
+                    end if
+                     !Increase Ts section
+                    if ((ts_ref_val < increase_ts_switch .and.dt*increaseFactor<max_ts).and..not.Repeat_time_step) then
+                        call get_option( '/timestepping/timestep', dt )
+                        dt = dt * increaseFactor
+                        call set_option( '/timestepping/timestep', dt )
+                        print *, "Time step increased to:", dt
+                    end if
+
+                    !Exit loop section
+                    if ((ts_ref_val < tolerance_between_non_linear).and..not.Repeat_time_step) then
+                        ExitNonLinearLoop = .true.
+                        deallocate(reference_field)
+                        return
+                    end if
+
+                    !Decrease Ts section only if we have done at least the 75% of the  nonLinearIterations
+                    if ((ts_ref_val > decrease_ts_switch .and.its>=int(0.75*NonLinearIteration)).or.&
+                    (repeat_time_step.and.its>=NonLinearIteration)) then
+
+                        if ( dt / decreaseFactor < min_ts) then
+                            !Do not decrease
+                            Repeat_time_step = .false.
+                            ExitNonLinearLoop = .true.
+                            deallocate(reference_field)
+                            return
+                        end if
+
+                        !Decrease time step, reset the time and repeat!
+                        call get_option( '/timestepping/timestep', dt )
+                        call get_option( '/timestepping/current_time', acctim )
+                        acctim = acctim - dt
+                        call set_option( '/timestepping/current_time', acctim )
+                        dt = dt / decreaseFactor
+                        call set_option( '/timestepping/timestep', dt )
+                        print *, "Time step decreased to:", dt
+                        Repeat_time_step = .true.
+                        ExitNonLinearLoop = .true.
+                        deallocate(reference_field)
+                    end if
+                end if
+        end select
+
+    end subroutine Adaptive_NonLinear
 
   end module Copy_Outof_State
 
