@@ -1942,6 +1942,8 @@ integer function get_tensor_boundary_condition_count(field)
     character(len=FIELD_NAME_LEN):: bc_type
     integer :: i, b
 
+    if (have_option("/io/initial_condition_overwrites_boundary")) return
+
     do b=1, get_boundary_condition_count(field)
        call get_boundary_condition(field, b, &
           type=bc_type, option_path=bc_option_path, &
@@ -1984,6 +1986,8 @@ integer function get_tensor_boundary_condition_count(field)
     logical:: rotated
     integer :: i, b, d
     
+    if (have_option("/io/initial_condition_overwrites_boundary")) return
+
     do b=1, get_boundary_condition_count(field)
 
        call get_boundary_condition(field, b, &

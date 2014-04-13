@@ -114,6 +114,33 @@ start =
             element output_scalars_fem {
                empty
             }?,
+	    ## Do not overwrite initial condition with boundary condition.
+	    ## Important for checkpointed runs! 
+            element initial_condition_overwrites_boundary {
+               empty
+            }?,
+	    ## Whether to enable dumping of checkpointing output.
+            ##
+            ## See http://amcg.ese.ic.ac.uk/index.php?title=Local:Checkpointing_from_new_options
+            element checkpointing {
+               ## Checkpointing period, in dumps. Non-negative value
+               ## required. A value of zero indicates that checkpoints
+               ## should be created at every dump. If
+               ## /io/max_dumpfile_count is exceeded then earlier
+               ## checkpoints may be overwritten.
+               element checkpoint_period_in_dumps {
+                  integer
+               },
+               ## Enable to checkpoint at simulation start.
+               element checkpoint_at_start {
+                  comment
+               }?,
+               ## Enable to force a checkpoint at simulation end.
+               element checkpoint_at_end {
+                  comment
+               }?,
+               comment
+            }?,
             ## Diagnostic output (.stat file) options
             element stat {
                ## Enable to write diagnostic output at simulation start

@@ -129,6 +129,41 @@ interpolated for VTK output.</a:documentation>
             <empty/>
           </element>
         </optional>
+        <optional>
+          <element name="initial_condition_overwrites_boundary">
+            <a:documentation>Do not overwrite initial condition with boundary condition.
+Important for checkpointed runs! </a:documentation>
+            <empty/>
+          </element>
+        </optional>
+        <optional>
+          <element name="checkpointing">
+            <a:documentation>Whether to enable dumping of checkpointing output.
+
+See http://amcg.ese.ic.ac.uk/index.php?title=Local:Checkpointing_from_new_options</a:documentation>
+            <element name="checkpoint_period_in_dumps">
+              <a:documentation>Checkpointing period, in dumps. Non-negative value
+required. A value of zero indicates that checkpoints
+should be created at every dump. If
+/io/max_dumpfile_count is exceeded then earlier
+checkpoints may be overwritten.</a:documentation>
+              <ref name="integer"/>
+            </element>
+            <optional>
+              <element name="checkpoint_at_start">
+                <a:documentation>Enable to checkpoint at simulation start.</a:documentation>
+                <ref name="comment"/>
+              </element>
+            </optional>
+            <optional>
+              <element name="checkpoint_at_end">
+                <a:documentation>Enable to force a checkpoint at simulation end.</a:documentation>
+                <ref name="comment"/>
+              </element>
+            </optional>
+            <ref name="comment"/>
+          </element>
+        </optional>
         <element name="stat">
           <a:documentation>Diagnostic output (.stat file) options</a:documentation>
           <optional>

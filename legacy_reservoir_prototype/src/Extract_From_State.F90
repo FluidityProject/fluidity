@@ -1050,6 +1050,8 @@
             call set_from_python_function(dummy, trim(func), positions, current_time)
             field_prot = dummy % val
             call deallocate( dummy )
+         elseif( have_option( trim( option_path ) // '/prognostic/initial_condition/from_file')) then
+            field_prot = field % val
 
          else if (have_option( trim( option_path ) // '/prognostic/initial_condition') )then
          call allocate( dummy, field % mesh, 'dummy' )
@@ -1191,7 +1193,8 @@
             call set_from_python_function( dummy, trim( func ), positions, current_time )
             field_prot = dummy % val
             call deallocate( dummy )
-
+         elseif( have_option( trim( option_path ) // '/prognostic/initial_condition/from_file')) then
+            field_prot = field % val
          else
             ewrite(-1,*) 'No initial condition for field::', trim( field_name )
             FLAbort( ' Check initial conditions ' )
@@ -1280,13 +1283,14 @@
       ! Local variables
       type( mesh_type ), pointer :: pmesh, cmesh
       type(vector_field) :: dummy
-      type(vector_field), pointer :: positions, field_source, field_absorption
+      type(vector_field), pointer :: positions, field_source, field_absorption, chunk
       type(scalar_field), pointer :: pressure
       integer, dimension(:), allocatable :: sufid_bc, face_nodes
       character( len = option_path_len ) :: option_path, option_path2, field_name, bct
-      integer :: ndim, stotel, snloc, snloc2, nonods, nobcs, bc_type, j, k, kk, l, &
-           shape_option( 2 ), count, u_nonods, idim, stat
+      integer :: ndim, stotel, snloc, snloc2, nonods, nobcs, bc_type, i,j, k, kk, l, &
+           shape_option( 2 ), count, u_nonods, idim, stat,nlev,nloc, ele
       real, dimension( : ), allocatable :: initial_constant
+      integer, dimension(:), allocatable :: order
       logical :: have_source, have_absorption
       character(len=8192) :: func
 
@@ -1302,7 +1306,13 @@
       nonods = node_count( field )
       field_name = trim( field % name )
       u_nonods = nonods
-      if ( is_overlapping ) u_nonods = nonods * ele_loc( pmesh, 1)
+      nlev=1
+      if ( is_overlapping ) then
+         u_nonods = nonods * ele_loc( pmesh, 1)
+         nlev=ele_loc( pmesh, 1)
+      end if
+      
+
 
       have_absorption = .false.
       Conditional_AbsorptionField: if( present( field_prot_absorption ) ) then

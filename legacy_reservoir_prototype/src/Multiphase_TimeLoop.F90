@@ -64,7 +64,8 @@
     use shape_functions_Linear_Quadratic
     use Compositional_Terms
     use Copy_Outof_State
-    use Copy_BackTo_State 
+    use Copy_BackTo_State
+    use checkpoint
     use boundary_conditions
 
     use multiphase_fractures
@@ -129,7 +130,7 @@
 
 !!$ Defining time- and nonlinear interations-loops variables
       integer :: itime, dump_period_in_timesteps, final_timestep, &
-           NonLinearIteration, NonLinearIteration_Components
+           NonLinearIteration, NonLinearIteration_Components, dtime
       real :: acctim, finish_time
 
 !!$ Defining problem that will be solved
@@ -222,6 +223,8 @@
       !! face value storage
       integer :: ncv_faces
       real::  second_theta
+
+      integer :: checkpoint_number
 
       !Variable to store where we store things. Do not oversize this array, the size has to be the last index in use
       integer, dimension (42) :: StorageIndexes
@@ -585,6 +588,8 @@
 
 !!$ Starting Time Loop 
       itime = 0
+      dtime = 0
+      checkpoint_number=1
       Loop_Time: do
 !!$
 
@@ -1220,6 +1225,13 @@
          call calculate_diagnostic_variables_new( state, exclude_nonrecalculated = .true. )
 
          Conditional_TimeDump: if( ( mod( itime, dump_period_in_timesteps ) == 0 ) ) then
+
+            dtime=dtime+1
+            if (do_checkpoint_simulation(dtime)) then
+               call checkpoint_simulation(state,cp_no=checkpoint_number,&
+                    protect_simulation_name=.true.,file_type='.mpml')
+               checkpoint_number=checkpoint_number+1
+            end if
 
             if ( have_option( "/io/output_scalars_fem" ) ) &
                  call copy_into_state( state, & ! Copying main fields into state
