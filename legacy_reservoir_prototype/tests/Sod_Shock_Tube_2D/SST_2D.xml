@@ -143,124 +143,124 @@ u_int_p1dgp1dg_20by20 = stat("SodShockTube_P1DGP1DG_20by20.stat")["phase1"]["Spe
 <!-- P1DG-P1 -->
     <test name="Assert density max absolute error for P1DG-P1 20by20 mesh is less than..." 
 language="python">
-assert(abs(rho_max_p1dgp1_20by20) &lt; 0.80911932642424444E+000 + 1.0e-10)
+assert(abs(rho_max_p1dgp1_20by20) &lt; 0.80779686082 + 1.0e-10)
     </test>
     <test name="Assert density min absolute error for P1DG-P1 20by20 mesh is less than..." 
 language="python">
-assert(abs(rho_min_p1dgp1_20by20) &lt; 0.12497604579467958E+000 + 1.0e-10)
+assert(abs(rho_min_p1dgp1_20by20) &lt; 0.124972051585 + 1.0e-10)
     </test>
     <test name="Assert density integral absolute error for P1DG-P1 20by20 mesh is less than..." 
 language="python">
-assert(abs(rho_int_p1dgp1_20by20) &lt; 0.24568546221527476E+000 + 1.0e-10)
+assert(abs(rho_int_p1dgp1_20by20) &lt; 0.245685121377 + 1.0e-10)
     </test>
 
 
     <test name="Assert pressure max absolute error for P1DG-P1 20by20 mesh is less than..." 
 language="python">
-assert(abs(p_max_p1dgp1_20by20) &lt; 0.74202971152954456E+000 + 1.0e-10)
+assert(abs(p_max_p1dgp1_20by20) &lt; 0.740227617057 + 1.0e-10)
     </test>
     <test name="Assert pressure min absolute error for P1DG-P1 20by20 mesh is less than..." 
 language="python">
-assert(abs(p_min_p1dgp1_20by20) &lt; 0.99975641062627491E-001 + 1.0e-10)
+assert(abs(p_min_p1dgp1_20by20) &lt; 0.0999716890072 + 1.0e-10)
     </test>
     <test name="Assert pressure integral absolute error for P1DG-P1 20by20 mesh is less than..." 
 language="python">
-assert(abs(p_int_p1dgp1_20by20) &lt; 0.19658620425521642E+000 + 1.0e-10)
+assert(abs(p_int_p1dgp1_20by20) &lt; 0.196620572462 + 1.0e-10)
     </test>
 
     <test name="Assert speed max absolute error for P1DG-P1 20by20 mesh is less than..." 
 language="python">
-assert(abs(u_max_p1dgp1_20by20) &lt; 0.12062139996695647E+001 + 1.0e-10)
+assert(abs(u_max_p1dgp1_20by20) &lt; 1.20129228043 + 1.0e-10)
     </test>
     <test name="Assert speed min absolute error for P1DG-P1 20by20 mesh is less than..." 
 language="python">
-assert(abs(u_min_p1dgp1_20by20) &lt; 0.57584854305026218E-015 + 1.0e-10)
+assert(abs(u_min_p1dgp1_20by20) &lt; 1.92554260636e-15 + 1.0e-10)
     </test>
     <test name="Assert speed integral absolute error for P1DG-P1 20by20 mesh is less than..." 
 language="python">
-assert(abs(u_int_p1dgp1_20by20) &lt; 0.51202408688922785E+000 + 1.0e-10)
+assert(abs(u_int_p1dgp1_20by20) &lt; 0.512718681543 + 1.0e-10)
     </test>
 
 <!-- P1DG-P2 -->
     <test name="Assert density max absolute error for P1DG-P2 20by20 mesh is less than..." 
 language="python">
-assert(abs(rho_max_p1dgp2_20by20) &lt; 0.81241699096457609E+000 + 1.0e-10)
+assert(abs(rho_max_p1dgp2_20by20) &lt; 0.810216615965 + 1.0e-10)
     </test>
     <test name="Assert density min absolute error for P1DG-P2 20by20 mesh is less than..." 
 language="python">
-assert(abs(rho_min_p1dgp2_20by20) &lt; 0.12499999999959779E+000 + 1.0e-10)
+assert(abs(rho_min_p1dgp2_20by20) &lt; 0.124999999986 + 1.0e-10)
     </test>
     <test name="Assert density integral absolute error for P1DG-P2 20by20 mesh is less than..." 
 language="python">
-assert(abs(rho_int_p1dgp2_20by20) &lt; 0.24010086060256142E+000 + 1.0e-10)
+assert(abs(rho_int_p1dgp2_20by20) &lt; 0.23998093714 + 1.0e-10)
     </test>
 
 
     <test name="Assert pressure max absolute error for P1DG-P2 20by20 mesh is less than..." 
 language="python">
-assert(abs(p_max_p1dgp2_20by20) &lt; 0.74554794674800595E+000 + 1.0e-10)
+assert(abs(p_max_p1dgp2_20by20) &lt; 0.742082441414 + 1.0e-10)
     </test>
     <test name="Assert pressure min absolute error for P1DG-P2 20by20 mesh is less than..." 
 language="python">
-assert(abs(p_min_p1dgp2_20by20) &lt; 0.10000000326633811E+000 + 1.0e-10)
+assert(abs(p_min_p1dgp2_20by20) &lt; 0.100000004002 + 1.0e-10)
     </test>
     <test name="Assert pressure integral absolute error for P1DG-P2 20by20 mesh is less than..." 
 language="python">
-assert(abs(p_int_p1dgp2_20by20) &lt; 0.19170755412353069E+000 + 1.0e-10)
+assert(abs(p_int_p1dgp2_20by20) &lt; 0.191111013782 + 1.0e-10)
     </test>
 
     <test name="Assert speed max absolute error for P1DG-P2 20by20 mesh is less than..." 
 language="python">
-assert(abs(u_max_p1dgp2_20by20) &lt; 0.98434089856991724E+000 + 1.0e-10)
+assert(abs(u_max_p1dgp2_20by20) &lt; 1.09358314289 + 1.0e-10)
     </test>
     <test name="Assert speed min absolute error for P1DG-P2 20by20 mesh is less than..." 
 language="python">
-assert(abs(u_min_p1dgp2_20by20) &lt; 0.16679020100623302E-013 + 1.0e-10)
+assert(abs(u_min_p1dgp2_20by20) &lt; 5.90388620496e-14 + 1.0e-10)
     </test>
     <test name="Assert speed integral absolute error for P1DG-P2 20by20 mesh is less than..." 
 language="python">
-assert(abs(u_int_p1dgp2_20by20) &lt; 0.47812443865585058E+000 + 1.0e-10)
+assert(abs(u_int_p1dgp2_20by20) &lt; 0.508394870876 + 1.0e-10)
     </test>
 
 <!-- P1DG-P1DG -->
     <test name="Assert density max absolute error for P1DG-P1DG 20by20 mesh is less than..." 
 language="python">
-assert(abs(rho_max_p1dgp1dg_20by20) &lt; 0.11817300823825208E+001 + 1.0e-10)
+assert(abs(rho_max_p1dgp1dg_20by20) &lt; 0.866851578605 + 1.0e-10)
     </test>
     <test name="Assert density min absolute error for P1DG-P1DG 20by20 mesh is less than..." 
 language="python">
-assert(abs(rho_min_p1dgp1dg_20by20) &lt; 0.12374836393542017E+000 + 1.0e-10)
+assert(abs(rho_min_p1dgp1dg_20by20) &lt; 0.123770426091 + 1.0e-10)
     </test>
     <test name="Assert density integral absolute error for P1DG-P1DG 20by20 mesh is less than..." 
 language="python">
-assert(abs(rho_int_p1dgp1dg_20by20) &lt; 0.24597332344760908E+000 + 1.0e-10)
+assert(abs(rho_int_p1dgp1dg_20by20) &lt; 0.24567693232 + 1.0e-10)
     </test>
 
 
     <test name="Assert pressure max absolute error for P1DG-P1DG 20by20 mesh is less than..." 
 language="python">
-assert(abs(p_max_p1dgp1dg_20by20) &lt; 0.98424378919838162E+000 + 1.0e-10)
+assert(abs(p_max_p1dgp1dg_20by20) &lt; 0.818302753974 + 1.0e-10)
     </test>
     <test name="Assert pressure min absolute error for P1DG-P1DG 20by20 mesh is less than..." 
 language="python">
-assert(abs(p_min_p1dgp1dg_20by20) &lt; 0.92505055880756512E-001 + 1.0e-10)
+assert(abs(p_min_p1dgp1dg_20by20) &lt; 0.0895642776665 + 1.0e-10)
     </test>
     <test name="Assert pressure integral absolute error for P1DG-P1DG 20by20 mesh is less than..." 
 language="python">
-assert(abs(p_int_p1dgp1dg_20by20) &lt; 0.19657719752569533E+000 + 1.0e-10)
+assert(abs(p_int_p1dgp1dg_20by20) &lt; 0.196168765201 + 1.0e-10)
     </test>
 
     <test name="Assert speed max absolute error for P1DG-P1DG 20by20 mesh is less than..." 
 language="python">
-assert(abs(u_max_p1dgp1dg_20by20) &lt; 0.11801882186394062E+001 + 1.0e-10)
+assert(abs(u_max_p1dgp1dg_20by20) &lt; 1.17369130951 + 1.0e-10)
     </test>
     <test name="Assert speed min absolute error for P1DG-P1DG 20by20 mesh is less than..." 
 language="python">
-assert(abs(u_min_p1dgp1dg_20by20) &lt; 0.10690241401694584E-008 + 1.0e-10)
+assert(abs(u_min_p1dgp1dg_20by20) &lt; 2.06154772271e-09 + 1.0e-10)
     </test>
     <test name="Assert speed integral absolute error for P1DG-P1DG 20by20 mesh is less than..." 
 language="python">
-assert(abs(u_int_p1dgp1dg_20by20) &lt; 0.52483447108214676E+000 + 1.0e-10)
+assert(abs(u_int_p1dgp1dg_20by20) &lt; 0.531153608219 + 1.0e-10)
     </test>
 
   </pass_tests>

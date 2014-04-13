@@ -153,4 +153,13 @@ module global_parameters
   real :: domain_volume
   logical :: running_adjoint = .false.
 
+  !! Are we using a new mesh?
+  logical :: new_mesh = .false.
+
+  !! New timestep for limiter
+  logical :: new_lim = .false.
+
+  !! Overlapping method
+  logical :: is_overlapping = .false.
+
 end module global_parameters

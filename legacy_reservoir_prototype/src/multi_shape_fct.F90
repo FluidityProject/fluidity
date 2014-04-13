@@ -41,7 +41,7 @@
     use global_parameters, only: option_path_len
     use shape_functions_Linear_Quadratic
     use shape_functions_NDim
-
+    use Fields_Allocates, only : allocate
   contains
 
 !!!
@@ -1690,6 +1690,16 @@ ewrite(3,*)'lll:', option_path_len
          case default
             sele_overlap_scale = 1.
          end Select
+! correct scaling...
+         sele_overlap_scale = real(cv_nloc)/real(cv_snloc)
+    !     if(ndim==2) then
+    !        if(cv_nloc==3) sele_overlap_scale =3.
+    !        if(cv_nloc==6) sele_overlap_scale = 6.
+    !     else if(ndim==3) then
+    !        if(cv_nloc==4) sele_overlap_scale = 2.
+    !        if(cv_nloc==10) sele_overlap_scale = 4.
+    !     endif
+     !       sele_overlap_scale = 0.33
       else
          sele_overlap_scale = 1.
       end if
@@ -1810,8 +1820,8 @@ ewrite(3,*)'lll:', option_path_len
 
       Conditional_OverlappingMethod2: if( is_overlapping ) then
          u_ele_type2 = 1
-         ewrite(3,*)'cv_nloc, cv_ngi, scvngi:', cv_nloc, cv_ngi, scvngi
-         ewrite(3,*)'u_nloc, u_nloc2:', u_nloc, u_nloc2
+         !ewrite(3,*)'cv_nloc, cv_ngi, scvngi:', cv_nloc, cv_ngi, scvngi
+         !ewrite(3,*)'u_nloc, u_nloc2:', u_nloc, u_nloc2
 
 
          if(.not.QUAD_OVER_WHOLE_ELE) then ! not integrate over whole element 
@@ -1897,8 +1907,8 @@ ewrite(3,*)'lll:', option_path_len
          u_nloc2 = u_nloc / cv_nloc
          u_snloc2 = u_snloc / cv_nloc
 
-         ewrite(3,*) 'U_NLOC  , U_SNLOC  ', u_nloc  , u_snloc
-         ewrite(3,*) 'U_NLOC2, U_SNLOC2', u_nloc2, u_snloc2
+         !ewrite(3,*) 'U_NLOC  , U_SNLOC  ', u_nloc  , u_snloc
+         !ewrite(3,*) 'U_NLOC2, U_SNLOC2', u_nloc2, u_snloc2
 
          if(.not.QUAD_OVER_WHOLE_ELE) then ! not integrate over whole element 
             call det_suf_ele_shape( scvngi, nface, &
@@ -1914,10 +1924,10 @@ ewrite(3,*)'lll:', option_path_len
                  cv_sloclist, u_sloclist2, cv_snloc, u_snloc2, &
                  ndim, cv_ele_type )
          endif
-         ewrite(3,*) 'sbufen2:', sbufen2
-         ewrite(3,*) 'sbcvfen:', sbcvfen
-         ewrite(3,*) 'sufen2:', sufen2
-         ewrite(3,*) 'scvfen:', scvfen
+         !ewrite(3,*) 'sbufen2:', sbufen2
+         !ewrite(3,*) 'sbcvfen:', sbcvfen
+         !ewrite(3,*) 'sufen2:', sufen2
+         !ewrite(3,*) 'scvfen:', scvfen
 
          Loop_ILEV3: do ilev = 1, cv_nloc
 
@@ -2018,12 +2028,12 @@ ewrite(3,*)'lll:', option_path_len
       END DO
 
 
-      ewrite(3,*) 'cv_on_face: ', cv_on_face
-      ewrite(3,*) 'u_on_face: ', u_on_face
-      ewrite(3,*) 'cv_sloclist: ', cv_sloclist
-      ewrite(3,*) 'u_sloclist: ', u_sloclist
-      ewrite(3,*) 'leaving cv_fem_shape_funs subrt, ncolgpts', ncolgpts
-      ewrite(3,*) '----sum(cvweight):',sum(cvweight)
+      !ewrite(3,*) 'cv_on_face: ', cv_on_face
+      !ewrite(3,*) 'u_on_face: ', u_on_face
+      !ewrite(3,*) 'cv_sloclist: ', cv_sloclist
+      !ewrite(3,*) 'u_sloclist: ', u_sloclist
+      !ewrite(3,*) 'leaving cv_fem_shape_funs subrt, ncolgpts', ncolgpts
+      !ewrite(3,*) '----sum(cvweight):',sum(cvweight)
 
     
       deallocate( m, mlx, mly, mlz, sm, smlx, smly )
@@ -2082,22 +2092,22 @@ ewrite(3,*)'lll:', option_path_len
       ewrite(3,*) 'In DET_SUF_ELE_SHAPE'
     
       ! Obtain SBCVFEN from SCVFEN: 
-      ewrite(3,*)'for cv:'
+      !ewrite(3,*)'for cv:'
       CALL SCVFEN_2_SBCVFEN( CV_NLOC, CV_SNLOC, SCVNGI, SBCVNGI, &
            CV_NLOC, CV_SNLOC, CVFEM_ON_FACE, &
            SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFENLX, SBCVFENLY, SBCVFENLZ, SBCVFEWEIGH, &
            SCVFEN, SCVFENSLX, SCVFENSLY, SCVFENLX, SCVFENLY, SCVFENLZ, SCVFEWEIGH )
 
-      ewrite(3,*)'U_NLOC, U_SNLOC, SCVNGI, SBCVNGI, CV_NLOC, CV_SNLOC:', &
-               U_NLOC, U_SNLOC, SCVNGI, SBCVNGI, CV_NLOC, CV_SNLOC
-      ewrite(3,*)'for u:'
+      !ewrite(3,*)'U_NLOC, U_SNLOC, SCVNGI, SBCVNGI, CV_NLOC, CV_SNLOC:', &
+      !         U_NLOC, U_SNLOC, SCVNGI, SBCVNGI, CV_NLOC, CV_SNLOC
+      !ewrite(3,*)'for u:'
       ! Obtain SBUFEN from SUFEN: 
       CALL SCVFEN_2_SBCVFEN( U_NLOC, U_SNLOC, SCVNGI, SBCVNGI, &
            CV_NLOC, CV_SNLOC, CVFEM_ON_FACE, &
            SBUFEN, SBUFENSLX, SBUFENSLY, SBUFENLX, SBUFENLY, SBUFENLZ, SBCVFEWEIGH, &
            SUFEN, SUFENSLX, SUFENSLY, SUFENLX, SUFENLY, SUFENLZ, SCVFEWEIGH )
-       ewrite(3,*)'SBUFEN:',SBUFEN
-       ewrite(3,*)'SUFEN:',SUFEN
+       !ewrite(3,*)'SBUFEN:',SBUFEN
+       !ewrite(3,*)'SUFEN:',SUFEN
 
       ! Determine CV_SLOCLIST & U_SLOCLIST
       CALL DETERMIN_SLOCLIST( CV_SLOCLIST, CV_NLOC, CV_SNLOC, NFACE, &
@@ -2109,10 +2119,9 @@ ewrite(3,*)'lll:', option_path_len
          CALL DETERMIN_SLOCLIST( U_SLOCLIST, U_NLOC, U_SNLOC, NFACE, &
               NDIM, CV_ELE_TYPE )
       ENDIF
-      ewrite(3,*)'CV_SNLOC, U_SNLOC, SCVNGI:', CV_SNLOC, U_SNLOC, SCVNGI
-      ewrite(3,*)'CV_SLOCLIST:', CV_SLOCLIST
-      ewrite(3,*)'U_SLOCLIST:', U_SLOCLIST
-      !stop 2982
+      !ewrite(3,*)'CV_SNLOC, U_SNLOC, SCVNGI:', CV_SNLOC, U_SNLOC, SCVNGI
+      !ewrite(3,*)'CV_SLOCLIST:', CV_SLOCLIST
+      !ewrite(3,*)'U_SLOCLIST:', U_SLOCLIST
 
       RETURN
     END SUBROUTINE DET_SUF_ELE_SHAPE
@@ -2138,9 +2147,9 @@ ewrite(3,*)'lll:', option_path_len
       integer :: cv_siloc, cv_iloc, cv_bsgi, cv_sgi, cv_iloc_cells
       real :: r_prodt
 
-      ewrite(3,*) ' In scvfen_2_sbcvfen'
-      ewrite(3,*) ' cv_nloc, cv_snloc, scvngi, sbcvngi, cv_nloc_cells, cv_snloc_cells:', &
-           cv_nloc, cv_snloc, scvngi, sbcvngi, cv_nloc_cells, cv_snloc_cells
+      !ewrite(3,*) ' In scvfen_2_sbcvfen'
+      !ewrite(3,*) ' cv_nloc, cv_snloc, scvngi, sbcvngi, cv_nloc_cells, cv_snloc_cells:', &
+      !     cv_nloc, cv_snloc, scvngi, sbcvngi, cv_nloc_cells, cv_snloc_cells
 
       allocate( candidate_gi( scvngi ) )
       allocate( candidate_gi2( scvngi ) )
@@ -2151,8 +2160,8 @@ ewrite(3,*)'lll:', option_path_len
          candidate_gi2( cv_sgi ) = .true.
          do cv_iloc_cells = 1, cv_snloc_cells
             if( .not.cvfem_on_face(cv_iloc_cells,cv_sgi) ) candidate_gi2( cv_sgi ) = .false.
-            ewrite(3,*)'cv_iloc_cells, cv_sgi, cvfem_on_face(cv_iloc_cells,cv_sgi):', &
-                 cv_iloc_cells,cv_sgi, cvfem_on_face(cv_iloc_cells,cv_sgi)
+            !ewrite(3,*)'cv_iloc_cells, cv_sgi, cvfem_on_face(cv_iloc_cells,cv_sgi):', &
+            !     cv_iloc_cells,cv_sgi, cvfem_on_face(cv_iloc_cells,cv_sgi)
          end do
       end do
 
@@ -2162,9 +2171,9 @@ ewrite(3,*)'lll:', option_path_len
          Loop_SGI2: do cv_sgi = 1, scvngi
                Conditional_2: if( candidate_gi2( cv_sgi ) ) then
                   cv_bsgi = cv_bsgi + 1
-                  ewrite(3,*) 'cv_siloc, cv_bsgi,cv_iloc, cv_sgi:', &
-                       cv_siloc, cv_bsgi,cv_iloc, cv_sgi
-                  ewrite(3,*) 'scvfen( cv_iloc, cv_sgi ):', scvfen( cv_iloc, cv_sgi )
+                  !ewrite(3,*) 'cv_siloc, cv_bsgi,cv_iloc, cv_sgi:', &
+                  !     cv_siloc, cv_bsgi,cv_iloc, cv_sgi
+                  !ewrite(3,*) 'scvfen( cv_iloc, cv_sgi ):', scvfen( cv_iloc, cv_sgi )
                   sbcvfen( cv_siloc, cv_bsgi ) = scvfen( cv_iloc, cv_sgi )
                   sbcvfenslx( cv_siloc, cv_bsgi ) = scvfenslx( cv_iloc, cv_sgi )
                   sbcvfensly( cv_siloc, cv_bsgi ) = scvfensly( cv_iloc, cv_sgi )
@@ -2333,11 +2342,11 @@ ewrite(3,*)'lll:', option_path_len
          end do
       end do
 
-      do iloc = 1, cv_nloc
-         ewrite(3,*)'iloc, cv_on_face:', iloc, ( cv_on_face( iloc, gi ), gi = 1, scvngi )
-         ewrite(3,*)'iloc, cvfem_neiloc:', iloc, ( cvfem_neiloc( iloc, gi ), gi = 1, scvngi )
-         ewrite(3,*)'iloc, cvfem_on_face:', iloc, ( cvfem_on_face( iloc, gi ), gi = 1, scvngi )
-      end do
+      !do iloc = 1, cv_nloc
+      !   ewrite(3,*)'iloc, cv_on_face:', iloc, ( cv_on_face( iloc, gi ), gi = 1, scvngi )
+      !   ewrite(3,*)'iloc, cvfem_neiloc:', iloc, ( cvfem_neiloc( iloc, gi ), gi = 1, scvngi )
+      !   ewrite(3,*)'iloc, cvfem_on_face:', iloc, ( cvfem_on_face( iloc, gi ), gi = 1, scvngi )
+      !end do
 
       deallocate( m )
       deallocate( mu )
@@ -2411,7 +2420,7 @@ ewrite(3,*)'lll:', option_path_len
       GETNDP=.TRUE.
       !      Compute standard Gauss quadrature. weits and points
       CALL LAGROT(WEI,CV_NODPOS,CV_NLOC,GETNDP) 
-      EWRITE(3,*)'CV_NODPOS:',CV_NODPOS
+      !EWRITE(3,*)'CV_NODPOS:',CV_NODPOS
 
       Loop_P2: DO GPOI = 1, NCV_BOU
 
@@ -7430,12 +7439,12 @@ ewrite(3,*)'lll:', option_path_len
 
       u_on_face = .false.
       u_nloc2 = u_nloc / cv_nloc
-      ewrite(3,*)u_nloc, cv_nloc, u_nloc2
+      !ewrite(3,*)u_nloc, cv_nloc, u_nloc2
 
       do cv_iloc = 1, cv_nloc
          do gi = 1, scvngi
             ! if ( cv_neiloc( cv_iloc, gi ) == -1 ) then
-            ewrite(3,*)'cv_neiloc:', u_nloc2, cv_iloc, gi, cv_neiloc( cv_iloc, gi )
+            !ewrite(3,*)'cv_neiloc:', u_nloc2, cv_iloc, gi, cv_neiloc( cv_iloc, gi )
             !  endif
          end do
       end do
@@ -7616,27 +7625,101 @@ ewrite(3,*)'lll:', option_path_len
     SUBROUTINE DETNLXR_PLUS_U( ELE, X, Y, Z, XONDGL, TOTELE, NONODS, &
          X_NLOC, CV_NLOC, NGI, &
          N, NLX, NLY, NLZ, WEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
-         NX, NY, NZ, &
-         U_NLOC, UNLX, UNLY, UNLZ, UNX, UNY, UNZ ) 
+         NX_ALL, &
+         U_NLOC, UNLX, UNLY, UNLZ, UNX_ALL, state, StorName , indx )
       implicit none
       INTEGER, intent( in ) :: ELE, TOTELE, NONODS, X_NLOC, NGI, CV_NLOC, U_NLOC
       INTEGER, DIMENSION( TOTELE * X_NLOC ), intent( in ) :: XONDGL
       REAL, DIMENSION( NONODS ), intent( in ) :: X, Y, Z
       REAL, DIMENSION( CV_NLOC, NGI ), intent( in ) :: N, NLX, NLY, NLZ 
       REAL, DIMENSION( NGI ), intent( in ) :: WEIGHT
-      REAL, DIMENSION( NGI ), intent( inout ) :: DETWEI, RA
-      REAL, intent( inout ) :: VOLUME
       LOGICAL, intent( in ) :: D1, D3, DCYL
-      REAL, DIMENSION( X_NLOC, NGI ), intent( inout ) :: NX, NY, NZ
       REAL, DIMENSION( U_NLOC, NGI ), intent( in ) :: UNLX, UNLY, UNLZ
-      REAL, DIMENSION( U_NLOC, NGI ), intent( inout ) :: UNX, UNY, UNZ
-
+      real, pointer, dimension(:,:,:), intent(inout) ::NX_ALL, UNX_ALL
+      real, pointer, dimension(:), intent(inout) :: DETWEI, RA
+      real, pointer, intent(inout) :: VOLUME
+      type( state_type ), intent( inout ), dimension(:) :: state
+      character(len=*), intent(in) :: StorName
+      integer, intent(inout) :: indx
       ! Local variables
       REAL, PARAMETER :: PIE = 3.141592654
       REAL :: AGI, BGI, CGI, DGI, EGI, FGI, GGI, HGI, KGI, A11, A12, A13, A21, &
            A22, A23, A31, A32, A33, DETJ, TWOPIE, RGI, rsum
-      INTEGER :: GI, L, IGLX
+      INTEGER :: GI, L, IGLX, NDIM
+      !Variables to store things in state
+      type(mesh_type), pointer :: fl_mesh
+      type(mesh_type) :: Auxmesh
+      type(scalar_field), target :: targ_NX_ALL
+      type(scalar_field), target :: targ_UNX_ALL
+      type(scalar_field), target :: targ_DETWEI_RA
+      type(scalar_field), target :: targ_VOLUME
+      !#########Storing area#################################
+      !****TEMPORARY****
+      NDIM = 3
+      !********************
+      !If new mesh or mesh moved indx will be zero (set in Multiphase_TimeLoop)
+      if (indx>0) then!Everything has been calculated already
+          !Get from state, indx is an input
+          NX_ALL(1:NDIM,1:X_NLOC,1:NGI) => &
+          state(1)%scalar_fields(indx)%ptr%val(1+NDIM*X_NLOC*NGI*(ELE-1):NDIM*X_NLOC*NGI*ELE)
+          UNX_ALL(1:NDIM,1:U_NLOC,1:NGI)  => &
+          state(1)%scalar_fields(indx+1)%ptr%val(1+NDIM*U_NLOC*NGI*(ELE-1):NDIM*U_NLOC*NGI*ELE)
+          DETWEI(1:NGI) => state(1)%scalar_fields(indx+2)%ptr%val(1+NGI*(ELE-1):NGI*ELE)
+          RA(1:NGI) => state(1)%scalar_fields(indx+2)%ptr%val(1+NGI*((ELE-1)+TOTELE):NGI*(ELE+TOTELE))
+          VOLUME => state(1)%scalar_fields(indx+3)%ptr%val(ELE)
+          return
+      else if (indx/=0) then!We need to calculate a new value
+          !Get from state, indx is an input
+          NX_ALL(1:NDIM,1:X_NLOC,1:NGI) => &
+          state(1)%scalar_fields(-indx)%ptr%val(1+NDIM*X_NLOC*NGI*(ELE-1):NDIM*X_NLOC*NGI*ELE)
+          UNX_ALL(1:NDIM,1:U_NLOC,1:NGI)  => &
+          state(1)%scalar_fields(-indx+1)%ptr%val(1+NDIM*U_NLOC*NGI*(ELE-1):NDIM*U_NLOC*NGI*ELE)
+          DETWEI(1:NGI) => state(1)%scalar_fields(-indx+2)%ptr%val(1+NGI*(ELE-1):NGI*ELE)
+          RA(1:NGI) => state(1)%scalar_fields(-indx+2)%ptr%val(1+NGI*((ELE-1)+TOTELE):NGI*(ELE+TOTELE))
+          VOLUME => state(1)%scalar_fields(-indx+3)%ptr%val(ELE)
+      else if (ELE==1) then !The first time we need to introduce the targets in state
+          if (has_scalar_field(state(1), "X"//StorName)) then
+              !If we are recalculating due to a mesh modification then
+              !we return to the original situation
+              call remove_scalar_field(state(1), "X"//StorName)
+              call remove_scalar_field(state(1), "UX"//StorName)
+              call remove_scalar_field(state(1), "D"//StorName)
+              call remove_scalar_field(state(1), "V"//StorName)
+          end if
+          !Get mesh file just to be able to allocate the fields we want to store
+          fl_mesh => extract_mesh( state(1), "CoordinateMesh" )
+          Auxmesh = fl_mesh
+          !The number of nodes I want does not coincide
+          Auxmesh%nodes = totele*X_NLOC*NGI*NDIM
+          call allocate (Targ_NX_ALL, Auxmesh)
+          Auxmesh%nodes = totele*U_NLOC*NGI*NDIM
+          call allocate (Targ_UNX_ALL, Auxmesh)
+          Auxmesh%nodes = totele*NGI*2
+          call allocate (Targ_DETWEI_RA, Auxmesh)
+          Auxmesh%nodes = totele
+          call allocate (Targ_VOLUME, Auxmesh)
 
+          !Now we insert them in state and store the indexes
+          call insert(state(1), Targ_NX_ALL, "X"//StorName)
+          !Store index with a negative value, because if the index is
+          !zero or negative then we have to calculate stuff
+          indx = -size(state(1)%scalar_fields)
+          call insert(state(1), Targ_UNX_ALL, "UX"//StorName)
+          call insert(state(1), Targ_DETWEI_RA, "D"//StorName)
+          call insert(state(1), Targ_VOLUME, "V"//StorName)
+
+          !Get from state, indx is an input
+          NX_ALL(1:NDIM,1:X_NLOC,1:NGI) => &
+          state(1)%scalar_fields(-indx)%ptr%val(1+NDIM*X_NLOC*NGI*(ELE-1):NDIM*X_NLOC*NGI*ELE)
+          UNX_ALL(1:NDIM,1:U_NLOC,1:NGI)  => &
+          state(1)%scalar_fields(-indx+1)%ptr%val(1+NDIM*U_NLOC*NGI*(ELE-1):NDIM*U_NLOC*NGI*ELE)
+          DETWEI(1:NGI) => state(1)%scalar_fields(-indx+2)%ptr%val(1+NGI*(ELE-1):NGI*ELE)
+          RA(1:NGI) => state(1)%scalar_fields(-indx+2)%ptr%val(1+NGI*((ELE-1)+TOTELE):NGI*(ELE+TOTELE))
+          VOLUME => state(1)%scalar_fields(-indx+3)%ptr%val(ELE)
+      end if
+      !When all the values are obtained, the index is set to a positive value
+      if (ELE == totele) indx = abs(indx)
+      !#########Storing area finished########################
       !ewrite(3,*)' In Detnlxr_Plus_U'
 
       VOLUME = 0.
@@ -7687,15 +7770,15 @@ ewrite(3,*)'lll:', option_path_len
             A33=   ( AGI * EGI - BGI * DGI ) / DETJ
 
             Loop_L2: DO L = 1, X_NLOC
-               NX( L, GI ) = A11 * NLX( L, GI) + A12 * NLY( L, GI ) + A13 * NLZ( L, GI )
-               NY( L, GI ) = A21 * NLX( L, GI) + A22 * NLY( L, GI ) + A23 * NLZ( L, GI )
-               NZ( L, GI ) = A31 * NLX( L, GI) + A32 * NLY( L, GI ) + A33 * NLZ( L, GI )
+               NX_ALL(1, L, GI ) = A11 * NLX( L, GI) + A12 * NLY( L, GI ) + A13 * NLZ( L, GI )
+               NX_ALL(2, L, GI ) = A21 * NLX( L, GI) + A22 * NLY( L, GI ) + A23 * NLZ( L, GI )
+               NX_ALL(3, L, GI ) = A31 * NLX( L, GI) + A32 * NLY( L, GI ) + A33 * NLZ( L, GI )
             END DO Loop_L2
 
             Loop_L3: DO L = 1, U_NLOC
-               UNX( L, GI ) = A11 * UNLX( L, GI) + A12 * UNLY( L, GI ) + A13 * UNLZ( L, GI )
-               UNY( L, GI ) = A21 * UNLX( L, GI) + A22 * UNLY( L, GI ) + A23 * UNLZ( L, GI )
-               UNZ( L, GI ) = A31 * UNLX( L, GI) + A32 * UNLY( L, GI ) + A33 * UNLZ( L, GI )
+               UNX_ALL(1, L, GI ) = A11 * UNLX( L, GI) + A12 * UNLY( L, GI ) + A13 * UNLZ( L, GI )
+               UNX_ALL(2, L, GI ) = A21 * UNLX( L, GI) + A22 * UNLY( L, GI ) + A23 * UNLZ( L, GI )
+               UNX_ALL(3, L, GI ) = A31 * UNLX( L, GI) + A32 * UNLY( L, GI ) + A33 * UNLZ( L, GI )
             END DO Loop_L3
 
          END DO Loop_GI1
@@ -7734,16 +7817,16 @@ ewrite(3,*)'lll:', option_path_len
             VOLUME = VOLUME + DETWEI( GI )
 
             Loop_L5: DO L = 1, X_NLOC
-               NX( L, GI ) = (  DGI * NLX( L, GI ) - BGI * NLY( L, GI )) / DETJ
-               NY( L, GI ) = ( -CGI * NLX( L, GI ) + AGI * NLY( L, GI )) / DETJ
-               NZ( L, GI ) = 0.0
+               NX_ALL(1, L, GI ) = (  DGI * NLX( L, GI ) - BGI * NLY( L, GI )) / DETJ
+               NX_ALL(2, L, GI ) = ( -CGI * NLX( L, GI ) + AGI * NLY( L, GI )) / DETJ
+               NX_ALL(3,L, GI ) = 0.0
             END DO Loop_L5
 
 
             Loop_L6: DO L = 1, U_NLOC
-               UNX( L, GI ) = (  DGI * UNLX( L, GI ) - BGI * UNLY( L, GI )) / DETJ
-               UNY( L, GI ) = ( -CGI * UNLX( L, GI ) + AGI * UNLY( L, GI )) / DETJ
-               UNZ( L, GI ) = 0.0
+               UNX_ALL(1, L, GI ) = (  DGI * UNLX( L, GI ) - BGI * UNLY( L, GI )) / DETJ
+               UNX_ALL(2,L, GI ) = ( -CGI * UNLX( L, GI ) + AGI * UNLY( L, GI )) / DETJ
+               UNX_ALL(3, L, GI ) = 0.0
             END DO Loop_L6
 
          END DO Loop_GI2
@@ -7767,15 +7850,15 @@ ewrite(3,*)'lll:', option_path_len
             VOLUME = VOLUME + DETWEI( GI )
 
             Loop_L16: DO L = 1, X_NLOC
-               NX( L, GI ) = NLX( L, GI ) / DETJ
-               NY( L, GI ) = 0.0
-               NZ( L, GI ) = 0.0
+               NX_ALL(1, L, GI ) = NLX( L, GI ) / DETJ
+               NX_ALL(2, L, GI ) = 0.0
+               NX_ALL(3, L, GI ) = 0.0
             END DO Loop_L16
 
             Loop_L17: DO L = 1, U_NLOC
-               UNX( L, GI ) = UNLX( L, GI ) / DETJ
-               UNY( L, GI ) = 0.0
-               UNZ( L, GI ) = 0.0
+               UNX_ALL(1, L, GI ) = UNLX( L, GI ) / DETJ
+               UNX_ALL(2, L, GI ) = 0.0
+               UNX_ALL(3, L, GI ) = 0.0
             END DO Loop_L17
 
          END DO Loop_GI14

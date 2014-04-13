@@ -930,6 +930,14 @@ Int grad u.kappa.grad v dV</a:documentation>
                 <a:documentation>Straightforward upwinding of the nonlinear velocity.</a:documentation>
                 <empty/>
               </element>
+              <element name="central_differencing">
+                <a:documentation>Central-differencing of the nonlinear velocity.</a:documentation>
+                <empty/>
+              </element>
+              <element name="nonlinear_flux">
+                <a:documentation>Non-linear DG flux - if we have an oscillation use upwinding else use central scheme.</a:documentation>
+                <empty/>
+              </element>
               <element name="none">
                 <a:documentation>Disable advection</a:documentation>
                 <empty/>

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>Sloshing Water TAnk</name>
+  <owner userid="jrper"/>
+  <tags>mpml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>
+
+../../../bin/multiphase_prototype Checkpointing_P1DGP1.mpml
+../../../bin/multiphase_prototype Checkpointing_P1DGP1_1_checkpoint.mpml
+../../../bin/multiphase_prototype Checkpointing_P1DGP2.mpml
+../../../bin/multiphase_prototype Checkpointing_P1DGP2_1_checkpoint.mpml
+
+    </command_line>
+    <!-- Two-dimensionaldensity driven interface. Two element pairs-->
+  </problem_definition>
+  <variables>
+    <variable name="check_P1DGP1" language="python">
+import vtk
+import numpy
+file=vtk.vtkXMLUnstructuredGridReader()
+file.SetFileName("Checkpointing_P1DGP1_3.vtu")
+file.Update()
+data=file.GetOutput()
+data.GetPointData().SetActiveScalars("phase1::Pressure")
+d1=numpy.zeros(data.GetNumberOfPoints())
+data.GetPointData().GetScalars().ExportToVoidPointer(d1)
+file2=vtk.vtkXMLUnstructuredGridReader()
+file2.SetFileName("Checkpointing_P1DGP1_checkpoint_2.vtu")
+file2.Update()
+data2=file2.GetOutput()
+data2.GetPointData().SetActiveScalars("phase1::Pressure")
+d2=numpy.zeros(data2.GetNumberOfPoints())
+data2.GetPointData().GetScalars().ExportToVoidPointer(d2)
+check_P1DGP1=d1-d2
+    </variable>
+    <variable name="check_P1DGP2" language="python">
+import vtk
+contour_check_P1DGP2=script.TestContour(('P1DGP2',))
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="P1DGP1 contours unchanged" language="python">
+assert all(contour_check_P1DGP1)
+    </test>
+    <test name="P1DGP1 bounded" language="python">
+from numpy import concatenate
+ok=lambda x,a : abs(x-a) &lt; 1.0e-6
+assert all(concatenate((ok(max_C1_P1DGP1,1.0),ok(max_C2_P1DGP1,1.0),ok(min_C1_P1DGP1,0.0),ok(min_C2_P1DGP1,0.0)),))
+    </test>
+    <test name="P1DGP2 contours unchanged" language="python">
+assert all(contour_check_P1DGP2)
+    </test>
+    <test name="P1DGP1 bounded" language="python">
+from numpy import concatenate
+ok=lambda x,a : abs(x-a) &lt; 1.0e-6
+assert all(concatenate((ok(max_C1_P1DGP2,1.0),ok(max_C2_P1DGP2,1.0),ok(min_C1_P1DGP2,0.0),ok(min_C2_P1DGP2,0.0)),))
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

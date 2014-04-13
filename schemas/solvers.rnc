@@ -27,6 +27,7 @@ linear_solver_options_asym =
          pcprometheus_options|
          pchypre_options|
          pcbjacobi_options|
+         pcpbjacobi_options|
          pcasm_options|
          pcother_options
       ),
@@ -57,6 +58,7 @@ linear_solver_options_sym =
          pcprometheus_options|
          pchypre_options|
          pcbjacobi_options|
+         pcpbjacobi_options|
          pcasm_options|
          pcksp_options|
          pcother_options
@@ -237,6 +239,16 @@ pchypre_options =
                attribute name { string }
             }
          )
+      }
+   )
+pcpbjacobi_options =
+   (
+      ## Point Block Jacobi
+      ##
+      ## Jacobi preconditioner for block-matrices
+      ## 
+      element preconditioner {
+         attribute name { "pbjacobi" }
       }
    )
 pcbjacobi_options =

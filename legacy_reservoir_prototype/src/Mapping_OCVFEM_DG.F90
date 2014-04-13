@@ -74,14 +74,14 @@ module mapping_for_ocvfem
          nphase, cv_nloc, u_nloc, &
          cv_snloc, u_snloc, stotel,  ndim
 
-    integer, dimension( totele * cv_nloc ), intent( in ) :: cv_ndgln
-    integer, dimension( totele * u_nloc ), intent( in ) :: u_ndgln 
-    integer, dimension( stotel * cv_snloc ), intent( in ) :: cv_sndgln
-    integer, dimension( stotel * u_snloc ), intent( in ) :: u_sndgln 
-    integer, dimension( totele * x_nloc ), intent( in ) :: x_ndgln 
-    real, dimension( x_nonods ), intent( in ) :: x, y, z
-    real, dimension( u_nonods * nphase ), intent( in ) :: u, v, w, uold, vold, wold
-    real, dimension(totele*cv_nloc,nphase,ndim), intent(inout) :: velocity_dg
+    integer, dimension( : ), intent( in ) :: cv_ndgln
+    integer, dimension( : ), intent( in ) :: u_ndgln
+    integer, dimension( : ), intent( in ) :: cv_sndgln
+    integer, dimension( : ), intent( in ) :: u_sndgln
+    integer, dimension( : ), intent( in ) :: x_ndgln
+    real, dimension( : ), intent( in ) :: x, y, z
+    real, dimension( : ), intent( in ) :: u, v, w, uold, vold, wold
+    real, dimension(:,:,:), intent(inout) :: velocity_dg
 
     ! local variables - allocatable arrays
     integer, dimension( : ), allocatable :: findgpts, &
@@ -495,14 +495,14 @@ module mapping_for_ocvfem
          nphase, cv_nloc, u_nloc, &
          cv_snloc, u_snloc, stotel,  ndim
 
-    integer, dimension( totele * cv_nloc ), intent( in ) :: cv_ndgln
-    integer, dimension( totele * u_nloc ), intent( in ) :: u_ndgln 
-    integer, dimension( stotel * cv_snloc ), intent( in ) :: cv_sndgln
-    integer, dimension( stotel * u_snloc ), intent( in ) :: u_sndgln 
-    integer, dimension( totele * x_nloc ), intent( in ) :: x_ndgln 
-    real, dimension( x_nonods ), intent( in ) :: x, y, z
-    real, dimension( u_nonods * nphase ), intent( in ) :: u, v, w, uold, vold, wold
-    real, dimension(totele*cv_nloc,nphase,ndim), intent(inout) :: velocity_dg
+    integer, dimension( : ), intent( in ) :: cv_ndgln
+    integer, dimension(: ), intent( in ) :: u_ndgln
+    integer, dimension( : ), intent( in ) :: cv_sndgln
+    integer, dimension( : ), intent( in ) :: u_sndgln
+    integer, dimension( : ), intent( in ) :: x_ndgln
+    real, dimension( : ), intent( in ) :: x, y, z
+    real, dimension( : ), intent( in ) :: u, v, w, uold, vold, wold
+    real, dimension(:,:,:), intent(inout) :: velocity_dg
 
     ! local variables - allocatable arrays
     integer, dimension( : ), allocatable :: findgpts, &

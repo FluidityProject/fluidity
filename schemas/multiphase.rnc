@@ -364,7 +364,7 @@ start =
             ## maximum number of non-linear iterations.
             ## 
             ## Manual suggests 2
-            element nonlinear_iterations {
+			element nonlinear_iterations {
                integer,
                ## tolerance for non-linear iteration.
                ## Manual suggests 1.0E-12
@@ -403,6 +403,62 @@ start =
                ## This option will work only if the mesh_adaptivity is switched on.
                element nonlinear_iterations_at_adapt {
                   integer
+               }?,
+               ## Non-linear iterations are chosen automatically based on the variation of the saturation between non-linear iterations.
+               ## 
+               ## The input is the tolerance between non-linear iterations.
+               ## Recommended value is 0.01
+               element nonlinear_iterations_automatic {
+                  real,
+                  (
+                    ## Adaptive timestep based on the ratio between non-linear iterations.
+                    ## Time step is increased if the ratio is over a threshold, whereas if the ratio is below another threshold or the maximum of non-linear iterations are reached,
+                    ## the calculations for that time are repeated with a lower timestep.
+                    ##
+                    ## A Variable to check has to be chosen:
+                    ## 1 = Pressure; 2 = Velocity; 3 = PhaseVolumeFraction (Default)
+                    element adaptive_timestep_nonlinear{
+                        integer,
+                      (
+                        ## Reduce time step if saturation goes out of bounds.
+                        ## i.e. The saturation gets smaller than the irreducible one.
+                        element keep_sat_bounds{
+                        empty
+                        }?,
+                        ## Multiply present timestep by this factor when increasing it.
+                        ## By default 1.2
+                        element increase_factor{
+                        real
+                        }?,
+                        ## Multiply present timestep by this factor when decreasing it.
+                        ## By default 2.0
+                        element decrease_factor{
+                        real
+                        }?,
+                        ## Maximum timestep. Beyond this value the timestep will not be increased.
+                        ## By default unlimmited.
+                        element max_timestep{
+                        real
+                        }?,
+                        ## Minimum timestep. Beyond this value the timestep will not be decreased.
+                        ## By default dt*1e-10.
+                        element min_timestep{
+                        real
+                        }?,
+                        ## If the ratio between non-linear iterations is smaller, then the timestep can be increased.
+                        ## By default 1e-3.
+                        element increase_ts_switch{
+                        real
+                        }?,
+                        ## If the ratio between non-linear iterations is bigger, then the timestep has to be decreased.
+                        ## Note that if the number of maximum non-linear iterations is reached then the timestep will be also decreased.
+                        ## By default 1e-1.
+                        element decrease_ts_switch{
+                        real
+                        }?
+                      )
+                    }?
+                  )
                }?
             }?,
             ## Vary the timestep according to the courant number.
@@ -493,6 +549,8 @@ start =
             element scale_momentum_by_volume_fraction {empty}?,
             ## linearise density
             element linearise_density{ empty }?,
+            ## linearise component for the bulk density calculation used in the momentum equation
+            element linearise_component{ empty }?,
             ## The equation of state
             equation_of_state?,
             ## Pressure
@@ -591,7 +649,10 @@ start =
                      ## Default value 2.0
                      element relperm_exponent {real}?,
                      ## Option to boost the absorption at zero saturation
-                     element boost_at_zero_saturation { comment }?
+                     element boost_at_zero_saturation { comment }?,
+                     ## This method implements the true Brooks-Corey model by adding an epsilon value (1e-20) to avoid divisions by zero. 
+                     ## (Recommended)
+                     element Use_epsilon_method { comment }?
                   }
                 },
                ## Option for capillary pressure

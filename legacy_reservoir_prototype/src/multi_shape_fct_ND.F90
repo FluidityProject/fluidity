@@ -41,7 +41,8 @@
     use state_module
     use spud
     use global_parameters, only: option_path_len
-
+    use Fields_Allocates, only : allocate
+    use fields_data_types, only: mesh_type, scalar_field
   contains
 
     subroutine re2dn4( lowqua, ngi, ngi_l, nloc, mloc, &
@@ -54,13 +55,13 @@
       implicit none
       logical, intent( in ) :: lowqua
       integer, intent( in ) :: ngi, ngi_l, nloc, mloc
-      real, dimension( mloc, ngi ), intent( inout ) :: m
-      real, dimension( ngi ), intent( inout ) :: weight
-      real, dimension( nloc, ngi ), intent( inout ) :: n, nlx, nly
+      real, dimension( :, : ), intent( inout ) :: m
+      real, dimension( : ), intent( inout ) :: weight
+      real, dimension( :, : ), intent( inout ) :: n, nlx, nly
       integer, intent( in ) :: sngi, snloc
-      real, dimension( sngi ), intent( inout ) :: sweigh
-      real, dimension( snloc, sngi ), intent( inout ) :: sn, snlx
-      real, dimension( ngi_l ), intent( in ) :: l1, l2
+      real, dimension( : ), intent( inout ) :: sweigh
+      real, dimension( :, : ), intent( inout ) :: sn, snlx
+      real, dimension(: ), intent( in ) :: l1, l2
       ! Local variables:
       integer, parameter :: nl = 16, nlp = 4, npq = 2
       real, dimension( : ), allocatable :: lx, ly, lxp, lyp, weit
@@ -210,13 +211,13 @@
       implicit none
       logical, intent( in ) :: lowqua
       integer, intent( in ) :: ngi, ngi_l, nloc, mloc
-      real, dimension( mloc, ngi ), intent( inout ) :: m
-      real, dimension( ngi ), intent( inout ) :: weight
-      real, dimension( nloc, ngi ), intent( inout ) :: n, nlx, nly, nlz
+      real, dimension( :, : ), intent( inout ) :: m
+      real, dimension( : ), intent( inout ) :: weight
+      real, dimension( :, : ), intent( inout ) :: n, nlx, nly, nlz
       integer, intent( in ) :: sngi, snloc
-      real, dimension( sngi ), intent( inout ) :: sweigh
-      real, dimension( snloc, sngi ), intent( inout ) :: sn, snlx, snly
-      real, dimension( ngi_l ), intent( in ) :: l1, l2, l3
+      real, dimension( : ), intent( inout ) :: sweigh
+      real, dimension( :, : ), intent( inout ) :: sn, snlx, snly
+      real, dimension( : ), intent( in ) :: l1, l2, l3
       ! Local variables:
       integer, parameter :: nl = 4, nlp = 8, npq = 2
       real, dimension( : ), allocatable :: lx, ly, lz, lxp, lyp, lzp, weit, rdum2
@@ -400,10 +401,10 @@
       implicit none
       logical, intent( in ) :: lowqua 
       integer, intent( in ) :: ngi, ngi_l, nloc, mloc
-      real, dimension( mloc, ngi ), intent( inout ) :: m
-      real, dimension( ngi ), intent( inout ) :: weight
-      real, dimension( nloc, ngi ), intent( inout ) :: n, nlx, nly
-      real, dimension( ngi_l ), intent( in ) :: l1, l2
+      real, dimension( :, : ), intent( inout ) :: m
+      real, dimension( : ), intent( inout ) :: weight
+      real, dimension( :, : ), intent( inout ) :: n, nlx, nly
+      real, dimension( : ), intent( in ) :: l1, l2
       ! Local variables:
       integer, parameter :: nl = 3, nlp = 9, npq = 4
       real, dimension( : ), allocatable :: lx, ly, lz, lxp, lyp, weit, &
@@ -590,10 +591,10 @@
       implicit none
       logical, intent( in ) :: lowqua 
       integer, intent( in ) :: ngi, ngi_l, nloc, mloc
-      real, dimension( mloc, ngi ), intent( inout ) :: m
-      real, dimension( ngi ), intent( inout ) :: weight
-      real, dimension( nloc, ngi ), intent( inout ) :: n, nlx, nly, nlz
-      real, dimension( ngi_l ), intent( in ) :: l1, l2, l3
+      real, dimension( :, : ), intent( inout ) :: m
+      real, dimension( : ), intent( inout ) :: weight
+      real, dimension( :, : ), intent( inout ) :: n, nlx, nly, nlz
+      real, dimension( : ), intent( in ) :: l1, l2, l3
       ! Local variables:
       integer, parameter :: nl = 3, nlp = 27, npq = 4
       real, dimension( : ), allocatable :: lx, ly, lz, lxp, lyp, lzp, weit, &
@@ -833,7 +834,23 @@
       integer, PARAMETER :: whole_ele_surface_order=0
       !      integer, PARAMETER :: whole_ele_surface_order=1
       !      integer, PARAMETER :: whole_ele_surface_order=2
+
+      integer :: U_NLOC2
+      logical :: is_overlapping
       character( len = option_path_len ) :: overlapping_path
+
+    !  print *,'1=cv_ele_type, cv_ngi, :',cv_ele_type, cv_ngi
+
+      is_overlapping = .false.
+      call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
+           overlapping_path )
+      if( trim( overlapping_path ) == 'overlapping' ) is_overlapping = .true.
+
+      if(is_overlapping) then
+         U_NLOC2=max(1,U_NLOC/CV_NLOC)
+      else
+         U_NLOC2=U_NLOC
+      endif
 
       Conditional_EleType: Select Case( cv_ele_type )
 
@@ -857,10 +874,22 @@
       case( 3, 4 ) ! Triangles
          Conditional_CV_NLOC2D_Tri: Select Case( cv_nloc )
          case( 3 ) ! Linear Triangle
+   !   print *,'QUAD_OVER_WHOLE_ELE,volume_order:',QUAD_OVER_WHOLE_ELE,volume_order
+   !   print *,'1=cv_ngi, :',cv_ngi
             if(QUAD_OVER_WHOLE_ELE) then
                cv_ngi = 3
                sbcvngi = 2 
                scvngi = 2
+               if(u_nloc2==6) then ! use a quadratic interpolation pt set...
+                  cv_ngi = 7
+                  sbcvngi = 3
+                  scvngi = 3
+               endif
+               if(u_nloc2==10) then ! use a quadratic interpolation pt set...
+                  cv_ngi = 14
+                  sbcvngi = 4
+                  scvngi = 4
+               endif
                if (whole_ele_volume_order==1) cv_ngi = 1
                if (whole_ele_surface_order==1) sbcvngi = 1
                if (whole_ele_surface_order==1) scvngi = 1
@@ -876,11 +905,17 @@
                if (surface_order==2) scvngi = 3*2
                if (surface_order==2) sbcvngi = 2*2
             endif
+     ! print *,'2=cv_ngi, :',cv_ngi
          case( 6 ) ! Quadratic Triangle
             if(QUAD_OVER_WHOLE_ELE) then
                cv_ngi = 7
                sbcvngi = 3
                scvngi = 3
+               if(u_nloc2==10) then ! use a quadratic interpolation pt set...
+                  cv_ngi = 14
+                  sbcvngi = 4
+                  scvngi = 4
+               endif
                if (whole_ele_volume_order==1) cv_ngi = 1
                if (whole_ele_surface_order==1) sbcvngi = 1
                if (whole_ele_surface_order==1) scvngi = 1
@@ -965,6 +1000,11 @@
                cv_ngi = 4
                sbcvngi = 3
                scvngi = 3
+               if(u_nloc2==10) then ! use a quadratic interpolation pt set...
+                  cv_ngi = 11
+                  sbcvngi = 7
+                  scvngi = 7
+               endif
                if (whole_ele_volume_order==1) cv_ngi = 1
                if (whole_ele_surface_order==1) sbcvngi = 1
                if (whole_ele_surface_order==1) scvngi = 1
@@ -1072,14 +1112,16 @@
 
       end Select Conditional_EleType
 
+    !    print *,'here2  cv_ngi, scvngi,nface,sbcvngi:',cv_ngi, scvngi,nface,sbcvngi
+
       if(.not.QUAD_OVER_WHOLE_ELE) then
          if( cv_ele_type > 2 ) scvngi = scvngi + nface * sbcvngi
       endif
       cv_ngi_short = cv_ngi
 
-      call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
-           overlapping_path )
-      if( trim( overlapping_path ) == 'overlapping' ) cv_ngi = cv_ngi * cv_nloc
+      if( is_overlapping) cv_ngi = cv_ngi * cv_nloc
+
+     !   print *,'here3  cv_ngi, scvngi,nface,sbcvngi:',cv_ngi, scvngi,nface,sbcvngi
 
       !         ewrite(3,*)'cv_ele_type,cv_ngicv_ngi_short=', &
       !                  cv_ele_type,cv_ngi,cv_ngi_short
@@ -1094,7 +1136,7 @@
       ! If (GETNDP == T) then get the position of the nodes and neglect the weights.
       implicit none
       integer, intent( in ) :: ndgi
-      real, dimension( ndgi ), intent( inout ) :: weit, quadpos
+      real, dimension( : ), intent( inout ) :: weit, quadpos
       logical, intent( in ) :: getndp
       ! Local variables
       logical :: weight
@@ -1142,14 +1184,14 @@
          NX, NY, NZ) 
       IMPLICIT NONE
       INTEGER, intent( in ) :: ELE, TOTELE, NONODS, NLOC, NGI
-      INTEGER, DIMENSION( TOTELE * NLOC ) :: XONDGL
-      REAL, DIMENSION( NONODS ), intent( in ) :: X, Y, Z
-      REAL, DIMENSION( NLOC, NGI ), intent( in ) :: N, NLX, NLY, NLZ 
-      REAL, DIMENSION( NGI ), intent( in ) :: WEIGHT
-      REAL, DIMENSION( NGI ), intent( inout ) :: DETWEI, RA
+      INTEGER, DIMENSION( : ) :: XONDGL
+      REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
+      REAL, DIMENSION( :, : ), intent( in ) :: N, NLX, NLY, NLZ
+      REAL, DIMENSION( : ), intent( in ) :: WEIGHT
+      REAL, DIMENSION( : ), intent( inout ) :: DETWEI, RA
       REAL, intent( inout ) :: VOLUME
       LOGICAL, intent( in ) :: D1, D3, DCYL
-      REAL, DIMENSION( NLOC, NGI ), intent( inout ) :: NX, NY, NZ
+      REAL, DIMENSION( :, : ), intent( inout ) :: NX, NY, NZ
       ! Local variables
       REAL, PARAMETER :: PIE = 3.141592654
       REAL :: AGI, BGI, CGI, DGI, EGI, FGI, GGI, HGI, KGI, A11, A12, A13, A21, &
@@ -1296,19 +1338,22 @@
 
     SUBROUTINE DETNLXR_INVJAC( ELE, X,Y,Z, XONDGL, TOTELE, NONODS, NLOC, NGI, &
          N, NLX, NLY, NLZ, WEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
-         NX, NY, NZ,&
-         NDIM, INV_JAC  )
+         NX_ALL,&
+         NDIM, INV_JAC, state, StorName, indx )
       IMPLICIT NONE
       INTEGER, intent( in ) :: ELE, TOTELE, NONODS, NLOC, NGI, NDIM
-      INTEGER, DIMENSION( TOTELE * NLOC ) :: XONDGL
-      REAL, DIMENSION( NONODS ), intent( in ) :: X, Y, Z
-      REAL, DIMENSION( NLOC, NGI ), intent( in ) :: N, NLX, NLY, NLZ 
-      REAL, DIMENSION( NGI ), intent( in ) :: WEIGHT
-      REAL, DIMENSION( NGI ), intent( inout ) :: DETWEI, RA
-      REAL, intent( inout ) :: VOLUME
+      INTEGER, DIMENSION( : ) :: XONDGL
+      REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
+      REAL, DIMENSION( :, : ), intent( in ) :: N, NLX, NLY, NLZ
+      REAL, DIMENSION( : ), intent( in ) :: WEIGHT
       LOGICAL, intent( in ) :: D1, D3, DCYL
-      REAL, DIMENSION( NLOC, NGI ), intent( inout ) :: NX, NY, NZ
-      REAL, DIMENSION( NDIM,NDIM, NGI ), intent( inout ):: INV_JAC
+      REAL,pointer,  intent( inout ) :: VOLUME
+      REAL, pointer,  DIMENSION( : ), intent( inout ):: DETWEI, RA
+      REAL, pointer, DIMENSION( :, :, : ), intent( inout ) :: NX_ALL
+      REAL, pointer, DIMENSION( :,:, : ), intent( inout ):: INV_JAC
+      type( state_type ), intent( inout ), dimension(:) :: state
+      character(len=*), intent(in) :: StorName
+      integer, intent(inout) :: indx
       ! Local variables
       REAL, PARAMETER :: PIE = 3.141592654
       REAL :: AGI, BGI, CGI, DGI, EGI, FGI, GGI, HGI, KGI, A11, A12, A13, A21, &
@@ -1316,6 +1361,84 @@
       INTEGER :: GI, L, IGLX, ii
       logical, save :: first = .true.
       real, save :: rsum, rsumabs
+      !Variables to store things in state
+      type(mesh_type), pointer :: fl_mesh
+      type(mesh_type) :: Auxmesh
+      type(scalar_field), target :: targ_NX_ALL
+      type(scalar_field), target :: targ_INV_JAC
+      type(scalar_field), target :: targ_DETWEI_RA
+      type(scalar_field), target :: targ_VOLUME
+      !#########Storing area#################################
+      !****TEMPORARY****
+      integer :: ndim2
+      NDIM2 = 3
+      !********************
+      !If new mesh or mesh moved indx will be zero (set in Multiphase_TimeLoop)
+      if (indx>0) then!Everything has been calculated already
+          !Get from state, indx is an input
+          NX_ALL(1:NDIM2,1:NLOC,1:NGI) => &
+          state(1)%scalar_fields(indx)%ptr%val(1+NDIM2*NLOC*NGI*(ELE-1):NDIM2*NLOC*NGI*ELE)
+          INV_JAC(1:NDIM,1:NDIM,1:NGI)  => &
+          state(1)%scalar_fields(indx+1)%ptr%val(1+(ELE-1)*(NGI+NDIM*NDIM):ELE*(NGI*NDIM*NDIM))
+          DETWEI(1:NGI) => state(1)%scalar_fields(indx+2)%ptr%val(1+NGI*(ELE-1):NGI*ELE)
+          RA(1:NGI) => state(1)%scalar_fields(indx+2)%ptr%val(1+NGI*((ELE-1)+TOTELE):NGI*(ELE+TOTELE))
+          VOLUME => state(1)%scalar_fields(indx+3)%ptr%val(ELE)
+          return
+      else if (indx/=0) then!We need to calculate a new value
+          !Get from state, indx is an input
+          NX_ALL(1:NDIM2,1:NLOC,1:NGI) => &
+          state(1)%scalar_fields(-indx)%ptr%val(1+NDIM2*NLOC*NGI*(ELE-1):NDIM2*NLOC*NGI*ELE)
+          INV_JAC(1:NDIM,1:NDIM,1:NGI)  => &
+          state(1)%scalar_fields(-indx+1)%ptr%val(1+(ELE-1)*(NGI+NDIM*NDIM):ELE*(NGI*NDIM*NDIM))
+          DETWEI(1:NGI) => state(1)%scalar_fields(-indx+2)%ptr%val(1+NGI*(ELE-1):NGI*ELE)
+          RA(1:NGI) => state(1)%scalar_fields(-indx+2)%ptr%val(1+NGI*((ELE-1)+TOTELE):NGI*(ELE+TOTELE))
+          VOLUME => state(1)%scalar_fields(-indx+3)%ptr%val(ELE)
+      else if (ELE==1) then !The first time we need to introduce the targets in state
+          if (has_scalar_field(state(1), "X"//StorName)) then
+              !If we are recalculating due to a mesh modification then
+              !we return to the original situation
+              call remove_scalar_field(state(1), "X"//StorName)
+              call remove_scalar_field(state(1), "UX"//StorName)
+              call remove_scalar_field(state(1), "D"//StorName)
+              call remove_scalar_field(state(1), "V"//StorName)
+          end if
+          !Get mesh file just to be able to allocate the fields we want to store
+          fl_mesh => extract_mesh( state(1), "CoordinateMesh" )
+          Auxmesh = fl_mesh
+          !The number of nodes I want does not coincide
+          Auxmesh%nodes = totele*NLOC*NGI*NDIM2
+          call allocate (Targ_NX_ALL, Auxmesh)
+          Auxmesh%nodes = NDIM*NDIM*NGI*totele
+          call allocate (targ_INV_JAC, Auxmesh)
+          Auxmesh%nodes = totele*NGI*2
+          call allocate (Targ_DETWEI_RA, Auxmesh)
+          Auxmesh%nodes = totele
+          call allocate (Targ_VOLUME, Auxmesh)
+
+          !Now we insert them in state and store the indexes
+          call insert(state(1), Targ_NX_ALL, "X"//StorName)
+          !Store index with a negative value, because if the index is
+          !zero or negative then we have to calculate stuff
+          indx = -size(state(1)%scalar_fields)
+          call insert(state(1), targ_INV_JAC, "UX"//StorName)
+          call insert(state(1), Targ_DETWEI_RA, "D"//StorName)
+          call insert(state(1), Targ_VOLUME, "V"//StorName)
+
+          !Get from state, indx is an input
+          NX_ALL(1:NDIM2,1:NLOC,1:NGI) => &
+          state(1)%scalar_fields(-indx)%ptr%val(1+NDIM2*NLOC*NGI*(ELE-1):NDIM2*NLOC*NGI*ELE)
+          INV_JAC(1:NDIM,1:NDIM,1:NGI)  => &
+          state(1)%scalar_fields(-indx+1)%ptr%val(1+(ELE-1)*(NGI+NDIM*NDIM):ELE*(NGI*NDIM*NDIM))
+          DETWEI(1:NGI) => state(1)%scalar_fields(-indx+2)%ptr%val(1+NGI*(ELE-1):NGI*ELE)
+          RA(1:NGI) => state(1)%scalar_fields(-indx+2)%ptr%val(1+NGI*((ELE-1)+TOTELE):NGI*(ELE+TOTELE))
+          VOLUME => state(1)%scalar_fields(-indx+3)%ptr%val(ELE)
+      end if
+      !When all the values are obtained, the index is set to a positive value
+      if (ELE == totele) indx = abs(indx)
+      !#########Storing area finished########################
+
+
+
       !
       VOLUME = 0.0
       INV_JAC = 0.0
@@ -1379,9 +1502,9 @@
             A23=-(AGI*FGI-CGI*DGI) /DETJ
             A33= (AGI*EGI-BGI*DGI) /DETJ
             do  L=1,NLOC! Was loop 373
-               NX(L,GI)= A11*NLX(L,GI)+A12*NLY(L,GI)+A13*NLZ(L,GI)
-               NY(L,GI)= A21*NLX(L,GI)+A22*NLY(L,GI)+A23*NLZ(L,GI)
-               NZ(L,GI)= A31*NLX(L,GI)+A32*NLY(L,GI)+A33*NLZ(L,GI)
+               NX_ALL(1,L,GI)= A11*NLX(L,GI)+A12*NLY(L,GI)+A13*NLZ(L,GI)
+               NX_ALL(2,L,GI)= A21*NLX(L,GI)+A22*NLY(L,GI)+A23*NLZ(L,GI)
+               NX_ALL(3,L,GI)= A31*NLX(L,GI)+A32*NLY(L,GI)+A33*NLZ(L,GI)
             end do ! Was loop 373 
             INV_JAC( 1,1, GI )= A11
             INV_JAC( 2,1, GI )= A21
@@ -1429,9 +1552,9 @@
             VOLUME=VOLUME+DETWEI(GI)
             !
             do L=1,NLOC
-               NX(L,GI)=(DGI*NLX(L,GI)-BGI*NLY(L,GI))/DETJ
-               NY(L,GI)=(-CGI*NLX(L,GI)+AGI*NLY(L,GI))/DETJ
-               NZ(L,GI)=0.0
+               NX_ALL(1,L,GI)=(DGI*NLX(L,GI)-BGI*NLY(L,GI))/DETJ
+               NX_ALL(2,L,GI)=(-CGI*NLX(L,GI)+AGI*NLY(L,GI))/DETJ
+               NX_ALL(3,L,GI)=0.0
             END DO
 
             INV_JAC( 1,1, GI )= DGI /DETJ
@@ -1458,9 +1581,9 @@
             VOLUME = VOLUME + DETWEI( GI )
             !
             do L = 1, NLOC
-               NX( L, GI ) = NLX( L, GI ) / DETJ
-               NY( L, GI ) = 0.0
-               NZ( L, GI ) = 0.0
+               NX_ALL(1, L, GI ) = NLX( L, GI ) / DETJ
+               NX_ALL(2, L, GI ) = 0.0
+               NX_ALL(3, L, GI ) = 0.0
             END DO
             INV_JAC( 1,1, GI )= 1.0 /DETJ
             !
@@ -1702,8 +1825,8 @@
       ! determine the 1d shape functions sn and its local derivative slnx. 
       implicit none
       integer, intent( in ) :: sngi, snloc
-      real, dimension( snloc, sngi ), intent( inout ) :: sn, snlx
-      real, dimension( sngi ), intent( inout ) :: sweigh
+      real, dimension( :, : ), intent( inout ) :: sn, snlx
+      real, dimension( : ), intent( inout ) :: sweigh
       ! local variables...
       integer :: iloc, gpoi
       real :: lxgp
@@ -1757,10 +1880,10 @@
       ! its derivatives NLX, NLY, NLZ)
       implicit none
       integer, intent( in ) :: cv_ngi, cv_nloc, u_nloc
-      real, dimension( cv_nloc, cv_ngi ), intent( inout ) :: cvn
-      real, dimension( cv_ngi ), intent( inout ) :: cvweigh
-      real, dimension( cv_nloc, cv_ngi ), intent( inout ) :: n, nlx
-      real, dimension( u_nloc, cv_ngi ), intent( inout ) :: un, unlx
+      real, dimension( :, : ), intent( inout ) :: cvn
+      real, dimension( : ), intent( inout ) :: cvweigh
+      real, dimension( :, : ), intent( inout ) :: n, nlx
+      real, dimension( :, : ), intent( inout ) :: un, unlx
       ! Local Variables
       integer, parameter :: three = 3
       real, dimension( : ), allocatable :: lx, wei, rdummy, xi_min, xi_max, &
@@ -1901,10 +2024,10 @@
 
       implicit none
       integer, intent( in ) :: ndim, cv_ele_type, cv_ngi, cv_nloc, u_nloc
-      real, dimension( cv_nloc, cv_ngi ), intent( inout ) :: cvn
-      real, dimension( cv_ngi ), intent( inout ) :: cvweigh 
-      real, dimension( cv_nloc, cv_ngi ), intent( inout ) :: n, nlx, nly, nlz
-      real, dimension( u_nloc, cv_ngi ), intent( inout ) :: un, unlx, unly, unlz
+      real, dimension( :, : ), intent( inout ) :: cvn
+      real, dimension( : ), intent( inout ) :: cvweigh
+      real, dimension( :, : ), intent( inout ) :: n, nlx, nly, nlz
+      real, dimension( :, : ), intent( inout ) :: un, unlx, unly, unlz
 
       ! Local variables
       real, dimension( :, : ), allocatable :: cvn_dum, cvn_1d_dum, n_1d, &
@@ -1987,13 +2110,13 @@
       ! functions N (and its derivatives NLX, NLY, NLZ)
       implicit none
       integer, intent( in ) :: cv_ele_type, ndim, cv_ngi, cv_nloc
-      real, dimension( cv_nloc, cv_ngi ), intent( inout ) :: cvn
-      real, dimension( cv_ngi ), intent( inout ) :: cvweigh
-      real, dimension( cv_nloc, cv_ngi ), intent( inout ) :: n, nlx, nly, nlz
+      real, dimension( :, : ), intent( inout ) :: cvn
+      real, dimension( : ), intent( inout ) :: cvweigh
+      real, dimension( :, : ), intent( inout ) :: n, nlx, nly, nlz
       integer, intent( in ) :: cv_ngi_1d, cv_nloc_1d
-      real, dimension( cv_nloc_1d, cv_ngi_1d ), intent( in ) :: cvn_1d
-      real, dimension( cv_ngi_1d ), intent( in ) :: cvweigh_1d
-      real, dimension( cv_nloc_1d, cv_ngi_1d ), intent( in ) :: n_1d, nlx_1d
+      real, dimension( :, : ), intent( in ) :: cvn_1d
+      real, dimension( : ), intent( in ) :: cvweigh_1d
+      real, dimension( :, : ), intent( in ) :: n_1d, nlx_1d
       ! Local variables
       integer :: cv_iloc_1d, cv_jloc_1d, cv_kloc_1d, cv_iloc, cv_jloc, cv_kloc, cv_igi, &
            cv_igi_1d, cv_jgi_1d, cv_kgi_1d
@@ -2078,10 +2201,10 @@
       ! for velocity basis functions UN, UNLX, UNLY, UNLZ.
       implicit none
       integer, intent( in ) :: cv_ele_type, ndim, cv_ngi, cv_nloc, u_nloc
-      real, dimension( cv_nloc, cv_ngi ), intent( inout ) :: cvn
-      real, dimension( cv_ngi ), intent( inout ) :: cvweigh
-      real, dimension( cv_nloc, cv_ngi ), intent( inout ) :: n, nlx, nly, nlz
-      real, dimension( u_nloc, cv_ngi ), intent( inout ) :: un, unlx, unly, unlz
+      real, dimension( :, : ), intent( inout ) :: cvn
+      real, dimension( : ), intent( inout ) :: cvweigh
+      real, dimension( :, : ), intent( inout ) :: n, nlx, nly, nlz
+      real, dimension( :, : ), intent( inout ) :: un, unlx, unly, unlz
       ! Local variables
       integer, dimension( : ), allocatable :: x_ndgln, fem_nod, x_ndgln_ideal
       real, dimension( : ), allocatable :: lx, ly, lz, x, y, z, cvweigh_dummy, &
@@ -2196,11 +2319,11 @@
 ! test the volumes of idealised triangle 
       implicit none
       integer, intent( in ) :: cv_nloc, cv_ngi, x_nonods, totele
-      real, dimension( x_nonods ), intent( in ) :: x, y, z
-      integer, dimension( totele * cv_nloc ), intent( in ) :: x_ndgln2
-      real, dimension( cv_ngi ), intent( in ) :: cvweight
-      real, dimension( cv_nloc,cv_ngi ), intent( in ) :: cvn
-      REAL, DIMENSION( CV_NLOC, CV_NGI ), intent( in ) :: N, NLX, NLY, NLZ 
+      real, dimension( : ), intent( in ) :: x, y, z
+      integer, dimension( : ), intent( in ) :: x_ndgln2
+      real, dimension( : ), intent( in ) :: cvweight
+      real, dimension( :,: ), intent( in ) :: cvn
+      REAL, DIMENSION( :, : ), intent( in ) :: N, NLX, NLY, NLZ
 ! local variables...
       integer, dimension( : ), allocatable :: x_ndgln
       real, dimension( : ), allocatable :: DETWEI,RA
@@ -2274,11 +2397,11 @@
       implicit none
       integer, intent( in ) :: cv_ele_type, max_totele, max_x_nonods, quad_cv_nloc
       integer, intent( inout ) :: totele, x_nonods
-      real, dimension( max_x_nonods ), intent( inout ) :: lx, ly, lz, x, y, z
-      integer, dimension( max_x_nonods ), intent( inout ) :: fem_nod
-      integer, dimension( max_totele * quad_cv_nloc ), intent( inout ) :: x_ndgln
-      real, dimension( max_x_nonods ), intent( inout ) :: x_ideal, y_ideal, z_ideal
-      integer, dimension( max_x_nonods ), intent( inout ) :: x_ndgln_ideal
+      real, dimension( : ), intent( inout ) :: lx, ly, lz, x, y, z
+      integer, dimension( : ), intent( inout ) :: fem_nod
+      integer, dimension( : ), intent( inout ) :: x_ndgln
+      real, dimension( : ), intent( inout ) :: x_ideal, y_ideal, z_ideal
+      integer, dimension( : ), intent( inout ) :: x_ndgln_ideal
       ! Local variables
       integer, dimension( : ), allocatable :: x_ndgln2, x_ndgln_big
       real, dimension( : ), allocatable :: x2, y2, z2
@@ -2507,25 +2630,25 @@
               x_ndgln, lx, ly, x, y, fem_nod )
 
          !! Just debugging local numbering:
-         ewrite(3,*)'Just out of Make_QTri'
-         ewrite(3,*)'cv_ele_type, totele, x_nonods, quad_cv_nloc :', &
-              cv_ele_type, totele, x_nonods, quad_cv_nloc
-         ewrite(3,*)'fem_nod:', ( fem_nod( ele ), ele = 1, 6 )
-         ewrite(3,*)'lx:', ( lx( ele ), ele = 1, 3 )
-         ewrite(3,*)'ly:', ( ly( ele ), ele = 1, 3 )
-         ewrite(3,*)'x_ndgln:'
-         do ele = 1, totele
-            ewrite(3,*) ele, ( x_ndgln( ( ele - 1 ) * quad_cv_nloc + cv_iloc ), &
-                 cv_iloc = 1, quad_cv_nloc )
-         end do
+         !ewrite(3,*)'Just out of Make_QTri'
+         !ewrite(3,*)'cv_ele_type, totele, x_nonods, quad_cv_nloc :', &
+         !     cv_ele_type, totele, x_nonods, quad_cv_nloc
+         !ewrite(3,*)'fem_nod:', ( fem_nod( ele ), ele = 1, 6 )
+         !ewrite(3,*)'lx:', ( lx( ele ), ele = 1, 3 )
+         !ewrite(3,*)'ly:', ( ly( ele ), ele = 1, 3 )
+         !ewrite(3,*)'x_ndgln:'
+         !do ele = 1, totele
+         !   ewrite(3,*) ele, ( x_ndgln( ( ele - 1 ) * quad_cv_nloc + cv_iloc ), &
+         !        cv_iloc = 1, quad_cv_nloc )
+         !end do
 
-         ewrite(3,*)'X / Y / Z'
-         do ele = 1, totele
-            do cv_iloc = 1, quad_cv_nloc
-               xnod = x_ndgln( ( ele - 1 ) * quad_cv_nloc + cv_iloc )
-               ewrite(3,*) ele, cv_iloc, xnod, x( xnod ), y( xnod ), z ( xnod )
-            end do
-         end do
+         !ewrite(3,*)'X / Y / Z'
+         !do ele = 1, totele
+         !   do cv_iloc = 1, quad_cv_nloc
+         !      xnod = x_ndgln( ( ele - 1 ) * quad_cv_nloc + cv_iloc )
+         !      ewrite(3,*) ele, cv_iloc, xnod, x( xnod ), y( xnod ), z ( xnod )
+         !   end do
+         !end do
 
       case( 7 ) ! Linear Tetrahedra
          x_nonods = 15
@@ -2684,9 +2807,9 @@
       implicit none
       integer, intent( in ) :: max_x_nonods2, max_totele2, quad_cv_nloc2
       integer, intent( inout ) :: x_nonods2, totele2
-      integer, dimension( max_x_nonods2 ), intent( inout ) :: fem_nod
-      integer, dimension( max_totele2 * quad_cv_nloc2 ), intent( inout ) :: x_ndgln_return
-      real, dimension( max_x_nonods2 ), intent( inout ) :: lx, ly, lz, x, y, z
+      integer, dimension( : ), intent( inout ) :: fem_nod
+      integer, dimension( : ), intent( inout ) :: x_ndgln_return
+      real, dimension( : ), intent( inout ) :: lx, ly, lz, x, y, z
       ! Local variables
       integer, dimension( : ), allocatable :: x_ndgln_big, x_ndgln2
       integer :: triangle_totele, nodeplustetnodes
@@ -2727,13 +2850,13 @@
       ! Also the derivatives along the CV faces: sufnlx, sufnly, sufunlx, sufunly  
       implicit none
       integer, intent( in ) :: cv_ele_type, ndim, scvngi, cv_nloc, u_nloc
-      real, dimension( scvngi ), intent( inout ) :: scvfeweigh
-      real, dimension( cv_nloc, scvngi ), intent( inout ) :: scvfen, scvfenlx, scvfenly, &
+      real, dimension( : ), intent( inout ) :: scvfeweigh
+      real, dimension( :, : ), intent( inout ) :: scvfen, scvfenlx, scvfenly, &
            scvfenlz, scvfenslx, scvfensly
-      real, dimension( u_nloc, scvngi ), intent( inout ) :: sufen, sufenlx, sufenly, sufenlz, &
+      real, dimension( :, : ), intent( inout ) :: sufen, sufenlx, sufenly, sufenlz, &
            sufenslx, sufensly
-      integer, dimension( cv_nloc, scvngi ), intent( inout ) :: cv_neiloc, cvfem_neiloc
-      integer, dimension( u_nloc, scvngi ), intent( inout ) :: ufem_neiloc
+      integer, dimension( :, : ), intent( inout ) :: cv_neiloc, cvfem_neiloc
+      integer, dimension( :, : ), intent( inout ) :: ufem_neiloc
       ! Local variables
       integer, parameter :: max_totele = 1000, max_x_nonods = 10000
       integer, dimension( : ), allocatable :: x_ndgln, fem_nod, x_ndgln_ideal
@@ -2797,26 +2920,26 @@
            scvfen, scvfenlx, scvfenly, scvfenlz, scvfenslx, scvfensly, &
            scvfeweigh, cv_neiloc, cvfem_neiloc )
 
-      ewrite(3,*)'Shape Functions for scalar fields -- SCVFEN'
-      call PrintOutFunMat( cv_nloc, scvngi, scvfen )
+      !ewrite(3,*)'Shape Functions for scalar fields -- SCVFEN'
+      !call PrintOutFunMat( cv_nloc, scvngi, scvfen )
 
-      ewrite(3,*)'Shape Functions for scalar fields -- SCVFENLX'
-      call PrintOutFunMat( cv_nloc, scvngi, scvfenlx )
+      !ewrite(3,*)'Shape Functions for scalar fields -- SCVFENLX'
+      !call PrintOutFunMat( cv_nloc, scvngi, scvfenlx )
 
-      ewrite(3,*)'Shape Functions for scalar fields -- SCVFENLY'
-      call PrintOutFunMat( cv_nloc, scvngi, scvfenly )
+      !ewrite(3,*)'Shape Functions for scalar fields -- SCVFENLY'
+      !call PrintOutFunMat( cv_nloc, scvngi, scvfenly )
 
-      ewrite(3,*)'Shape Functions for scalar fields -- SCVFENLZ'
-      call PrintOutFunMat( cv_nloc, scvngi, scvfenlz )
+      !ewrite(3,*)'Shape Functions for scalar fields -- SCVFENLZ'
+      !call PrintOutFunMat( cv_nloc, scvngi, scvfenlz )
 
-      ewrite(3,*)'Shape Functions for scalar fields -- SCVFENSLX'
-      call PrintOutFunMat( cv_nloc, scvngi, scvfenslx )
+      !ewrite(3,*)'Shape Functions for scalar fields -- SCVFENSLX'
+      !call PrintOutFunMat( cv_nloc, scvngi, scvfenslx )
 
-      ewrite(3,*)'Shape Functions for scalar fields -- SCVFENSLY'
-      call PrintOutFunMat( cv_nloc, scvngi, scvfensly )
+      !ewrite(3,*)'Shape Functions for scalar fields -- SCVFENSLY'
+      !call PrintOutFunMat( cv_nloc, scvngi, scvfensly )
 
-      ewrite(3,*)'Shape Functions for scalar fields -- SCVFEWEIGH'
-      ewrite(3,*) ( scvfeweigh( cv_iloc ), cv_iloc = 1, scvngi )
+      !ewrite(3,*)'Shape Functions for scalar fields -- SCVFEWEIGH'
+      !ewrite(3,*) ( scvfeweigh( cv_iloc ), cv_iloc = 1, scvngi )
 
       ! And for velocities:
       if( u_nloc == 1 ) then ! a constant basis function 
@@ -2835,26 +2958,26 @@
               scvfeweigh_dummy, cv_neiloc_cells_dummy, ufem_neiloc )
       endif
 
-      ewrite(3,*)'Shape Functions for velocity fields -- SUFEN'
-      call PrintOutFunMat( u_nloc, scvngi, sufen )
+      !ewrite(3,*)'Shape Functions for velocity fields -- SUFEN'
+      !call PrintOutFunMat( u_nloc, scvngi, sufen )
 
-      ewrite(3,*)'Shape Functions for velocity fields -- SUFENLX'
-      call PrintOutFunMat( u_nloc, scvngi, sufenlx )
+      !ewrite(3,*)'Shape Functions for velocity fields -- SUFENLX'
+      !call PrintOutFunMat( u_nloc, scvngi, sufenlx )
 
-      ewrite(3,*)'Shape Functions for velocity fields -- SUFENLY'
-      call PrintOutFunMat( u_nloc, scvngi, sufenly )
+      !ewrite(3,*)'Shape Functions for velocity fields -- SUFENLY'
+      !call PrintOutFunMat( u_nloc, scvngi, sufenly )
 
-      ewrite(3,*)'Shape Functions for velocity fields -- SUFENLZ'
-      call PrintOutFunMat( u_nloc, scvngi, sufenlz )
+      !ewrite(3,*)'Shape Functions for velocity fields -- SUFENLZ'
+      !call PrintOutFunMat( u_nloc, scvngi, sufenlz )
 
-      ewrite(3,*)'Shape Functions for velocity fields -- SUFENSLX'
-      call PrintOutFunMat( u_nloc, scvngi, sufenslx )
+      !ewrite(3,*)'Shape Functions for velocity fields -- SUFENSLX'
+      !call PrintOutFunMat( u_nloc, scvngi, sufenslx )
 
-      ewrite(3,*)'Shape Functions for velocity fields -- SUFENSLY'
-      call PrintOutFunMat( u_nloc, scvngi, sufensly )
+      !ewrite(3,*)'Shape Functions for velocity fields -- SUFENSLY'
+      !call PrintOutFunMat( u_nloc, scvngi, sufensly )
 
-      ewrite(3,*)'Shape Functions for velocity fields -- SCVFEWEIGH'
-      ewrite(3,*) ( scvfeweigh( cv_iloc ), cv_iloc = 1, scvngi )
+      !ewrite(3,*)'Shape Functions for velocity fields -- SCVFEWEIGH'
+      !ewrite(3,*) ( scvfeweigh( cv_iloc ), cv_iloc = 1, scvngi )
    
       deallocate( lx )
       deallocate( ly )
@@ -2888,15 +3011,15 @@
       integer, intent( in ) :: cv_nloc_cells, cv_ele_type_cells
       integer, intent( in ) :: cv_ele_type, ndim, totele, cv_nloc, scvngi, &
            x_nonods, quad_cv_nloc
-      integer, dimension( totele * quad_cv_nloc ), intent( in ) :: x_ndgln
-      integer, dimension( x_nonods ), intent( in ) :: fem_nod
-      integer, dimension( cv_nloc_cells, scvngi ), intent( inout ) :: cv_neiloc_cells
-      integer, dimension( cv_nloc, scvngi ), intent( inout ) :: cvfem_neiloc
-      real, dimension( x_nonods ), intent( in ) :: x, y, z
-      real, dimension( quad_cv_nloc ), intent( in ) :: lx, ly, lz
-      real, dimension( cv_nloc, scvngi ), intent( inout ) :: sn, snlx, snly, snlz, &
+      integer, dimension( : ), intent( in ) :: x_ndgln
+      integer, dimension( : ), intent( in ) :: fem_nod
+      integer, dimension( :, : ), intent( inout ) :: cv_neiloc_cells
+      integer, dimension( :, : ), intent( inout ) :: cvfem_neiloc
+      real, dimension( : ), intent( in ) :: x, y, z
+      real, dimension( : ), intent( in ) :: lx, ly, lz
+      real, dimension( :, : ), intent( inout ) :: sn, snlx, snly, snlz, &
            sufnlx, sufnly
-      real, dimension( scvngi ), intent( inout ) ::  scvweigh
+      real, dimension( : ), intent( inout ) ::  scvweigh
       ! Local variables
       logical, dimension( : ), allocatable :: remove_ig_pt
       integer, dimension( : ), allocatable :: x_sndgln, next_to_cv_iloc_gi, &
@@ -2910,7 +3033,7 @@
            gl_quad_l1, gl_quad_l2, gl_quad_l3, gl_quad_l4, gl_quad_scvweigh, &
            xsl, ysl, zsl, scvweigh_2, l1, l2, l3, l4
       real, dimension( :, : ), allocatable :: quad_n, quad_nlx, quad_nly, quad_nlz, &
-           quad_nx, quad_ny, quad_nz, sn_i_xj, quad_sn, quad_snlx, quad_snly, &
+           quad_nx, quad_ny, quad_nz,  quad_sn, quad_snlx, quad_snly, &
            quad_snx, quad_sny, quad_sm, quad_smlx, quad_smly, &
            suf_quad_sn, suf_quad_snlx, suf_quad_snly, &
            gl_quad_sn, gl_quad_snlx, gl_quad_snly, gl_quad_snlz, &
@@ -2926,12 +3049,13 @@
            xnodi, xnodj, nodi, nodj, cv_iloc_cells, cv_jloc_cells, npoly_ngi, icount
       real :: xgi, ygi, zgi, volume, sarea, normx, normy, normz, d2_quad
       real :: half_side_length
+      real, dimension(cv_nloc, x_nonods) :: sn_i_xj
 
-      ewrite(3,*)'Compute_SurfaceShapeFunctions_Triangle_Tetrahedron'
-      ewrite(3,*)'scvngi=',scvngi
-      ewrite(3,*)'lx:', lx( 1 : quad_cv_nloc )
-      ewrite(3,*)'ly:', ly( 1 : quad_cv_nloc )
-      ewrite(3,*)'lz:', lz( 1 : quad_cv_nloc )
+      !ewrite(3,*)'Compute_SurfaceShapeFunctions_Triangle_Tetrahedron'
+      !ewrite(3,*)'scvngi=',scvngi
+      !ewrite(3,*)'lx:', lx( 1 : quad_cv_nloc )
+      !ewrite(3,*)'ly:', ly( 1 : quad_cv_nloc )
+      !ewrite(3,*)'lz:', lz( 1 : quad_cv_nloc )
 
       sn = 0.0
       snlx = 0.0
@@ -2974,7 +3098,7 @@
       allocate( quad_ny( quad_cv_nloc, quad_cv_ngi ) ) ; quad_ny = 0.
       allocate( quad_nz( quad_cv_nloc, quad_cv_ngi ) ) ; quad_nz = 0.
       allocate( rdummy( 10000 ) ) ; rdummy = 0.
-      allocate( rdummy2( 100, 100 ) ) ; rdummy2 = 0.
+      allocate( rdummy2( 100, max(100,x_nonods) ) ) ; rdummy2 = 0.
 
       ! For surfaces
       allocate( quad_scvweight( quad_cv_sngi ) ) ; quad_scvweight = 0.
@@ -2993,7 +3117,7 @@
       allocate( loc_coord_nod_l2( x_nonods ) ) ; loc_coord_nod_l2 = 0.
       allocate( loc_coord_nod_l3( x_nonods ) ) ; loc_coord_nod_l3 = 0.
       allocate( loc_coord_nod_l4( x_nonods ) ) ; loc_coord_nod_l4 = 0.
-      allocate( sn_i_xj( cv_nloc, x_nonods ) ) ; sn_i_xj = 0.
+!      allocate( sn_i_xj( cv_nloc, x_nonods ) ) ; sn_i_xj = 0.
 
       allocate( suf_quad_sn( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; suf_quad_sn = 0.
       allocate( suf_quad_snlx( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; suf_quad_snlx = 0.
@@ -3037,7 +3161,6 @@
       ewrite(3,*) 'dummy_sngi, dummy_snloc, dummy_smloc, quad_cv_ngi:', &
            dummy_sngi, dummy_snloc, dummy_smloc, quad_cv_ngi
        ewrite(3,*)'scvngi,quad_cv_sngi=',scvngi,quad_cv_sngi
-!        stop 331
 
       ! Work out local coords of the nodes
       loc_coord_nod_l1 = 0. ; loc_coord_nod_l2 = 0. ; loc_coord_nod_l3 = 0. ; &
@@ -3066,27 +3189,27 @@
 
       ! Get the shape functions on lines (in 2D) and quadrilateria surfaces in 3D: 
       call shape_l_q_quad( lowqua, quad_cv_ngi, quad_cv_nloc, mloc, &
-           quad_cv_sngi, quad_cv_snloc, dummy_smloc, rdummy, rdummy, rdummy, rdummy, &
+           quad_cv_sngi, quad_cv_snloc, dummy_smloc, rdummy2, rdummy2, rdummy2, rdummy2, &
            quad_cvweight, quad_n, quad_nlx, quad_nly, quad_nlz, &
            quad_scvweight, quad_sn, quad_snlx, quad_snly, quad_sm, quad_smlx, quad_smly, &
            nwicel, d3 )
-      ewrite(3,*)'quad_sn:', quad_sn
-      ewrite(3,*)'quad_snlx:', quad_snlx
+      !ewrite(3,*)'quad_sn:', quad_sn
+      !ewrite(3,*)'quad_snlx:', quad_snlx
       ! Checking the output from shape_l_q_quad
-      ewrite(3,*)'quad_cvweight:', ( quad_cvweight( xnod ), xnod = 1, quad_cv_ngi )
-      ewrite(3,*)'quad_scvweight:', ( quad_scvweight( xnod ), xnod = 1, quad_cv_sngi )
-      do xnod = 1, quad_cv_nloc
-         ewrite(3,*)'quad_n:', xnod, ( quad_n( xnod, ele ), ele = 1, quad_cv_ngi )
-         ewrite(3,*)'quad_nlx:', xnod, ( quad_nlx( xnod, ele ), ele = 1, quad_cv_ngi )
-         ewrite(3,*)'quad_nly:', xnod, ( quad_nly( xnod, ele ), ele = 1, quad_cv_ngi )
-         ewrite(3,*)''
-      end do
-      do xnod = 1, quad_cv_snloc
-         ewrite(3,*)'quad_sn:', xnod, ( quad_sn( xnod, ele ), ele = 1, quad_cv_sngi )
-         ewrite(3,*)'quad_snlx:', xnod, ( quad_snlx( xnod, ele ), ele = 1, quad_cv_sngi )
-         ewrite(3,*)'quad_snly:', xnod, ( quad_snly( xnod, ele ), ele = 1, quad_cv_sngi )
-         ewrite(3,*)''
-      end do
+      !ewrite(3,*)'quad_cvweight:', ( quad_cvweight( xnod ), xnod = 1, quad_cv_ngi )
+      !ewrite(3,*)'quad_scvweight:', ( quad_scvweight( xnod ), xnod = 1, quad_cv_sngi )
+      !do xnod = 1, quad_cv_nloc
+      !   ewrite(3,*)'quad_n:', xnod, ( quad_n( xnod, ele ), ele = 1, quad_cv_ngi )
+      !   ewrite(3,*)'quad_nlx:', xnod, ( quad_nlx( xnod, ele ), ele = 1, quad_cv_ngi )
+      !   ewrite(3,*)'quad_nly:', xnod, ( quad_nly( xnod, ele ), ele = 1, quad_cv_ngi )
+      !   ewrite(3,*)''
+      !end do
+      !do xnod = 1, quad_cv_snloc
+      !   ewrite(3,*)'quad_sn:', xnod, ( quad_sn( xnod, ele ), ele = 1, quad_cv_sngi )
+      !   ewrite(3,*)'quad_snlx:', xnod, ( quad_snlx( xnod, ele ), ele = 1, quad_cv_sngi )
+      !   ewrite(3,*)'quad_snly:', xnod, ( quad_snly( xnod, ele ), ele = 1, quad_cv_sngi )
+      !   ewrite(3,*)''
+      !end do
 
       ! Now determine the basis functions at the 
       ! node pts
@@ -3097,14 +3220,13 @@
            sn_i_xj, rdummy2, rdummy2, rdummy2, &
            tri_tet  )
       ! Chacking the output from shatri
-      do xnod = 1, x_nonods
-         ewrite(3,*)'loc_coord_nod_l1/4, sum:', loc_coord_nod_l1(xnod), &
-              loc_coord_nod_l2(xnod), loc_coord_nod_l3(xnod), loc_coord_nod_l4(xnod)
-      end do
-      do xnod = 1, cv_nloc
-         ewrite(3,*)'sn_i_xj:', xnod, ( sn_i_xj( xnod, ele ), ele = 1, x_nonods )
-      end do
-      !stop 2929
+      !do xnod = 1, x_nonods
+      !   ewrite(3,*)'loc_coord_nod_l1/4, sum:', loc_coord_nod_l1(xnod), &
+      !        loc_coord_nod_l2(xnod), loc_coord_nod_l3(xnod), loc_coord_nod_l4(xnod)
+      !end do
+      !do xnod = 1, cv_nloc
+      !   ewrite(3,*)'sn_i_xj:', xnod, ( sn_i_xj( xnod, ele ), ele = 1, x_nonods )
+      !end do
 
       Loop_Elements: do ele = 1, totele ! Calculate SDETWEI,RA,SNX,SNY,SNZ for element ELE
          ! What is the fem node belonging to this element (CV_ILOC):
@@ -3113,10 +3235,10 @@
             xnod = x_ndgln( ( ele - 1 ) * quad_cv_nloc + quad_cv_iloc )
             if( fem_nod( xnod ) /= 0 ) cv_iloc_belong = xnod
 
-            ewrite(3,*) ele, quad_cv_iloc, &
-                 ( ele - 1 ) * quad_cv_nloc + quad_cv_iloc, &
-                 xnod, fem_nod(xnod), &
-                 x(xnod), y(xnod),z(xnod)
+            !ewrite(3,*) ele, quad_cv_iloc, &
+            !     ( ele - 1 ) * quad_cv_nloc + quad_cv_iloc, &
+            !     xnod, fem_nod(xnod), &
+            !     x(xnod), y(xnod),z(xnod)
          end do
 
          Loop_SurfaceElements: do sele = 1, stotel ! Extract surface nodes
@@ -3153,9 +3275,9 @@
                         x_sndgln( ( sele - 1 ) * quad_cv_snloc + quad_cv_siloc ) = &
                              x_ndgln( ( ele - 1 ) * quad_cv_nloc + quad_cv_iloc )
                         loc_2nd_lev( sele, quad_cv_siloc ) = quad_cv_iloc
-                        ewrite(3, *) 'ele,sele,quad_cv_snloc,quad_cv_nloc,quad_cv_siloc,x_sndgln:', &
-                             ele,sele,quad_cv_snloc,quad_cv_nloc,quad_cv_siloc,&
-                             x_sndgln( ( sele - 1 ) * quad_cv_snloc + quad_cv_siloc )
+                        !ewrite(3, *) 'ele,sele,quad_cv_snloc,quad_cv_nloc,quad_cv_siloc,x_sndgln:', &
+                        !     ele,sele,quad_cv_snloc,quad_cv_nloc,quad_cv_siloc,&
+                        !     x_sndgln( ( sele - 1 ) * quad_cv_snloc + quad_cv_siloc )
                      end if
                   end do Loop_Poly2d_1_2
                end do Loop_Poly2d_1_1
@@ -3187,9 +3309,9 @@
                            x_sndgln( ( sele - 1 ) * quad_cv_snloc + quad_cv_siloc ) = &
                                 x_ndgln( ( ele - 1 ) * quad_cv_nloc + quad_cv_iloc )
                            loc_2nd_lev( sele, quad_cv_siloc ) = quad_cv_iloc
-                           ewrite(3, *) 'ele,sele,quad_cv_snloc,quad_cv_nloc,quad_cv_siloc,x_sndgln:', &
-                                ele,sele,quad_cv_snloc,quad_cv_nloc,quad_cv_siloc,&
-                                x_sndgln( ( sele - 1 ) * quad_cv_snloc + quad_cv_siloc )
+                           !ewrite(3, *) 'ele,sele,quad_cv_snloc,quad_cv_nloc,quad_cv_siloc,x_sndgln:', &
+                           !     ele,sele,quad_cv_snloc,quad_cv_nloc,quad_cv_siloc,&
+                           !     x_sndgln( ( sele - 1 ) * quad_cv_snloc + quad_cv_siloc )
                         end if
                      end do Loop_Poly3d_2_3
                   end do Loop_Poly3d_2_2
@@ -3205,7 +3327,6 @@
                !ewrite(3,*)'x/y/zsl:', ele, sele, quad_cv_siloc, xsl( quad_cv_siloc ), &
                !     ysl( quad_cv_siloc ), zsl( quad_cv_siloc )
             end do
-
             call dgsdetnxloc2( quad_cv_snloc, quad_cv_sngi, &
                  xsl, ysl, zsl, &
                  quad_sn, quad_snlx, quad_snly, quad_scvweight, quad_sdetwei, sarea, &
@@ -3264,8 +3385,8 @@
 
             end do Loop_QUAD_CV_SGI
 
-            ewrite(3,*)'ele, sele, totele, quad_cv_sngi, quad_cv_snloc:', &
-                 ele, sele, totele, quad_cv_sngi, quad_cv_snloc
+            !ewrite(3,*)'ele, sele, totele, quad_cv_sngi, quad_cv_snloc:', &
+            !     ele, sele, totele, quad_cv_sngi, quad_cv_snloc
 
             ! Determine the quadrature points and weights
             Loop_NGI: do quad_cv_sgi = 1, quad_cv_sngi 
@@ -3276,7 +3397,7 @@
                ! gl_quad_scvweigh( cv_sgi ) = quad_sdetwei( quad_cv_sgi )
                gl_quad_scvweigh( cv_sgi ) = quad_scvweight( quad_cv_sgi )
 
-               ewrite(3,*) ''
+               !ewrite(3,*) ''
 
                xgi = 0. ; ygi = 0. ; zgi = 0.
                do quad_cv_siloc = 1, quad_cv_snloc
@@ -3328,20 +3449,20 @@
            cv_nloc, stotel * quad_cv_sngi * totele, &
            gl_quad_sn, gl_quad_snlx, gl_quad_snly, gl_quad_snlz, &
            tri_tet )
-      ewrite(3,*)'gl_quad_l1:', ( gl_quad_l1( cv_sgi ), cv_sgi = 1, stotel * quad_cv_sngi * totele )
-      ewrite(3,*)'gl_quad_l2:', ( gl_quad_l2( cv_sgi ), cv_sgi = 1, stotel * quad_cv_sngi * totele )
-      ewrite(3,*)'gl_quad_l3:', ( gl_quad_l3( cv_sgi ), cv_sgi = 1, stotel * quad_cv_sngi * totele )
-      ewrite(3,*)'gl_quad_l4:', ( gl_quad_l4( cv_sgi ), cv_sgi = 1, stotel * quad_cv_sngi * totele )
-      ewrite(3,*)' '
+      !ewrite(3,*)'gl_quad_l1:', ( gl_quad_l1( cv_sgi ), cv_sgi = 1, stotel * quad_cv_sngi * totele )
+      !ewrite(3,*)'gl_quad_l2:', ( gl_quad_l2( cv_sgi ), cv_sgi = 1, stotel * quad_cv_sngi * totele )
+      !ewrite(3,*)'gl_quad_l3:', ( gl_quad_l3( cv_sgi ), cv_sgi = 1, stotel * quad_cv_sngi * totele )
+      !ewrite(3,*)'gl_quad_l4:', ( gl_quad_l4( cv_sgi ), cv_sgi = 1, stotel * quad_cv_sngi * totele )
+      !ewrite(3,*)' '
 
-      do xnod = 1, cv_nloc
-         ewrite(3,*)'gl_quad_sn:', xnod, ( gl_quad_sn( xnod, ele ), &
-              ele = 1, stotel * quad_cv_sngi * totele )
-         ewrite(3,*)'gl_quad_snlx:', xnod, ( gl_quad_snlx( xnod, ele ), &
-              ele = 1, stotel * quad_cv_sngi * totele )
-         ewrite(3,*)'gl_quad_snly:', xnod, ( gl_quad_snly( xnod, ele ), &
-              ele = 1, stotel * quad_cv_sngi * totele )
-      end do
+      !do xnod = 1, cv_nloc
+      !   ewrite(3,*)'gl_quad_sn:', xnod, ( gl_quad_sn( xnod, ele ), &
+      !        ele = 1, stotel * quad_cv_sngi * totele )
+      !   ewrite(3,*)'gl_quad_snlx:', xnod, ( gl_quad_snlx( xnod, ele ), &
+      !        ele = 1, stotel * quad_cv_sngi * totele )
+      !   ewrite(3,*)'gl_quad_snly:', xnod, ( gl_quad_snly( xnod, ele ), &
+      !        ele = 1, stotel * quad_cv_sngi * totele )
+      !end do
       ! 
       ! Find shared quadrature points to see what is on the other side 
       do cv_sgi = 1, stotel * quad_cv_sngi * totele
@@ -3371,8 +3492,8 @@
          endif
       end do
 
-      ewrite(3,*)'stotel, quad_cv_sngi, totele:',stotel, quad_cv_sngi, totele
-      ewrite(3,*)'stotel * quad_cv_sngi * totele:',stotel * quad_cv_sngi * totele
+      !ewrite(3,*)'stotel, quad_cv_sngi, totele:',stotel, quad_cv_sngi, totele
+      !ewrite(3,*)'stotel * quad_cv_sngi * totele:',stotel * quad_cv_sngi * totele
 
       allocate( sn_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; sn_2 = 0.
       allocate( suf_snlx_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; suf_snlx_2 = 0.
@@ -3422,12 +3543,12 @@
       ! This is determined by looking to see if any of the face nodes 
       ! have a local fem node. 
 
-      ewrite(3,*) 'suf_quad_snlx:', suf_quad_snlx
-      ewrite(3,*) 'suf_quad_snly:', suf_quad_snly
-      ewrite(3,*) 'remove_ig_pt:', remove_ig_pt
-      ewrite(3,*) 'fem_nod:', fem_nod
-      ewrite(3,*) 'stotel, quad_cv_sngi, totele:', stotel, &
-           quad_cv_sngi, totele, stotel * quad_cv_sngi * totele
+      !ewrite(3,*) 'suf_quad_snlx:', suf_quad_snlx
+      !ewrite(3,*) 'suf_quad_snly:', suf_quad_snly
+      !ewrite(3,*) 'remove_ig_pt:', remove_ig_pt
+      !ewrite(3,*) 'fem_nod:', fem_nod
+      !ewrite(3,*) 'stotel, quad_cv_sngi, totele:', stotel, &
+      !     quad_cv_sngi, totele, stotel * quad_cv_sngi * totele
 
       cv_sgk = 0 ; cv_neiloc_cells_2 = 0
       do cv_sgi = 1, stotel * quad_cv_sngi * totele
@@ -3446,19 +3567,18 @@
             l2_2( cv_sgk ) = gl_quad_l2( cv_sgi )
             l3_2( cv_sgk ) = gl_quad_l3( cv_sgi )
             if( d3 ) l4_2( cv_sgk ) = gl_quad_l4( cv_sgi )
-            ewrite(3,*)'cv_sgk, l1/2/3/4:', cv_sgk, l1_2( cv_sgk ), &
-                 l2_2( cv_sgk ), l3_2( cv_sgk ), l4_2( cv_sgk )
+            !ewrite(3,*)'cv_sgk, l1/2/3/4:', cv_sgk, l1_2( cv_sgk ), &
+            !     l2_2( cv_sgk ), l3_2( cv_sgk ), l4_2( cv_sgk )
          end if
       end do
 
-      ewrite(3,*) 'suf_snlx_2:', suf_snlx_2
+      !ewrite(3,*) 'suf_snlx_2:', suf_snlx_2
 
       cv_sngi_2 = cv_sgk
-      ewrite(3,*) 'quad_cv_ngi, cv_sngi_2:', quad_cv_sngi, cv_sngi_2
+      !ewrite(3,*) 'quad_cv_ngi, cv_sngi_2:', quad_cv_sngi, cv_sngi_2
 
-      ewrite(3,*) 'd3, stotel * quad_cv_sngi * totele, cv_sngi_2:', &
-           d3, stotel * quad_cv_sngi * totele, cv_sngi_2
-!       stop 83
+      !ewrite(3,*) 'd3, stotel * quad_cv_sngi * totele, cv_sngi_2:', &
+      !     d3, stotel * quad_cv_sngi * totele, cv_sngi_2
 
       ! Take out repetition of quadrature points
       cv_sgk = 0 ; cv_neiloc_cells = 0 ; l1 = 0. ; l2 = 0. ; l3 = 0. ; l4=0.
@@ -3476,7 +3596,7 @@
          if( .not. found ) then
             cv_sgk = cv_sgk + 1
 
-            ewrite(3,*)cv_sgi, cv_sgk,scvngi,cv_sngi_2, sn_2( 1:3, cv_sgi )
+            !ewrite(3,*)cv_sgi, cv_sgk,scvngi,cv_sngi_2, sn_2( 1:3, cv_sgi )
 
             sn( :, cv_sgk ) = sn_2( :, cv_sgi )
             if( ndim.ge.2 ) sufnlx( :, cv_sgk ) = suf_snlx_2( :, cv_sgi )
@@ -3493,21 +3613,21 @@
          endif
       end do Loop_CV_SGI
 
-      ewrite(3,*) 'sufnlx( : , 1 : scvngi ):', sufnlx( :, 1 : scvngi )
+      !ewrite(3,*) 'sufnlx( : , 1 : scvngi ):', sufnlx( :, 1 : scvngi )
 
       if( scvngi /= cv_sgk ) then
          ewrite(3,*) 'scvngi, cv_sgk:', scvngi, cv_sgk
          FLExit( "SCVNGI /= CV_SGK " )
       endif
 
-      ewrite(3,*)'l1:', l1
-      ewrite(3,*)'l2:', l2
-      ewrite(3,*)'l3:', l3
-      ewrite(3,*)'l4:', l4
-      ewrite(3,*)'sn:', sn
-      ewrite(3,*)'snlx:', snlx
-      ewrite(3,*)'snly:', snly
-      ewrite(3,*)'snlz:', snlz
+      !ewrite(3,*)'l1:', l1
+      !ewrite(3,*)'l2:', l2
+      !ewrite(3,*)'l3:', l3
+      !ewrite(3,*)'l4:', l4
+      !ewrite(3,*)'sn:', sn
+      !ewrite(3,*)'snlx:', snlx
+      !ewrite(3,*)'snly:', snly
+      !ewrite(3,*)'snlz:', snlz
 
       ! Remapping over the common quadrature points across CV
       do cv_iloc_cells = 1, cv_nloc_cells
@@ -3532,11 +3652,11 @@
 !         if(zer_l4 ) icount=icount+1
          if( zer_l1 .or. zer_l2 .or. zer_l3 .or. zer_l4 )  icount=icount+1
 
-         ewrite(3,*) 'gi, l1/2/3/4:', cv_sgi, abs( l1( cv_sgi ) ), abs( l2( cv_sgi ) ), &
-              abs( l3( cv_sgi ) ), abs( l4( cv_sgi ) )
+         !ewrite(3,*) 'gi, l1/2/3/4:', cv_sgi, abs( l1( cv_sgi ) ), abs( l2( cv_sgi ) ), &
+         !     abs( l3( cv_sgi ) ), abs( l4( cv_sgi ) )
 
          Conditional_Neiloc: if ( d3 ) then
-            ewrite(3,*)'cv_sgi, zer_l1/2/3/4:', cv_sgi, (zer_l1.or.zer_l2.or.zer_l3.or.zer_l4)
+            !ewrite(3,*)'cv_sgi, zer_l1/2/3/4:', cv_sgi, (zer_l1.or.zer_l2.or.zer_l3.or.zer_l4)
             if ( zer_l1 .or. zer_l2 .or. zer_l3 .or. zer_l4 ) then
                ! on the surface of the element: 
                if(cv_nloc==10) then
@@ -3575,8 +3695,8 @@
                  endif
                else
                do cv_iloc = 1, cv_nloc
-                  ewrite(3,*)'iloc, sn',cv_iloc, abs(sn( cv_iloc, cv_sgi )), &
-                       abs ( sn( cv_iloc, cv_sgi )) > 1.e-4
+                  !ewrite(3,*)'iloc, sn',cv_iloc, abs(sn( cv_iloc, cv_sgi )), &
+                  !     abs ( sn( cv_iloc, cv_sgi )) > 1.e-4
                   if ( abs ( sn( cv_iloc, cv_sgi )) > 1.e-4 ) &
                        cvfem_neiloc( cv_iloc, cv_sgi ) = -1
 
@@ -3584,7 +3704,7 @@
                endif
             endif
          else
-            ewrite(3,*)'cv_sgi, zer_l1/2/3:', cv_sgi, (zer_l1.or.zer_l2.or.zer_l3)
+            !ewrite(3,*)'cv_sgi, zer_l1/2/3:', cv_sgi, (zer_l1.or.zer_l2.or.zer_l3)
             if ( zer_l1 .or. zer_l2 .or. zer_l3 ) then
                ! on the surface of the element: 
                if(cv_nloc==6) then ! quadratic triangle
@@ -3606,11 +3726,11 @@
                  endif
                else
                   do cv_iloc = 1, cv_nloc
-                     ewrite(3,*)'iloc, sn',cv_iloc, abs(sn( cv_iloc, cv_sgi )), &
-                          abs ( sn( cv_iloc, cv_sgi )) > 1.e-4
+                     !ewrite(3,*)'iloc, sn',cv_iloc, abs(sn( cv_iloc, cv_sgi )), &
+                     !     abs ( sn( cv_iloc, cv_sgi )) > 1.e-4
                      if ( abs( sn( cv_iloc, cv_sgi )) > 1.e-4 ) &
                           cvfem_neiloc( cv_iloc, cv_sgi ) = -1
-                     ewrite(3,*)'iloc, sn',cv_iloc, abs(sn( cv_iloc, cv_sgi )), abs ( sn( cv_iloc, cv_sgi )) > 1.e-4
+                     !ewrite(3,*)'iloc, sn',cv_iloc, abs(sn( cv_iloc, cv_sgi )), abs ( sn( cv_iloc, cv_sgi )) > 1.e-4
                   end do
                endif
             endif
@@ -3618,19 +3738,19 @@
 
       end do Loop_SurfaceQuadrature
 
-      ewrite(3,*)'icount::',icount
+      !ewrite(3,*)'icount::',icount
 
-      do quad_cv_siloc = 1, cv_nloc
-         do cv_sgi = 1, scvngi
-            ewrite(3,*)'iloc, gi, cvfem_neiloc::', &
-                 quad_cv_siloc, cv_sgi, cvfem_neiloc( quad_cv_siloc, cv_sgi )
-         end do
-      end do
+      !do quad_cv_siloc = 1, cv_nloc
+      !   do cv_sgi = 1, scvngi
+      !      ewrite(3,*)'iloc, gi, cvfem_neiloc::', &
+      !           quad_cv_siloc, cv_sgi, cvfem_neiloc( quad_cv_siloc, cv_sgi )
+      !   end do
+      !end do
 
-      do cv_sgi = 1, scvngi
-         ewrite(3,*)'cv_sgi, cvfem_neiloc::', &
-              cv_sgi, cvfem_neiloc( :, cv_sgi )
-      end do
+      !do cv_sgi = 1, scvngi
+      !   ewrite(3,*)'cv_sgi, cvfem_neiloc::', &
+      !        cv_sgi, cvfem_neiloc( :, cv_sgi )
+      !end do
 
       ! Calculate cvfem_neiloc from local coordinates l1-4: (hard-wired for linear traingles)
       if( .false. ) then
@@ -3655,28 +3775,27 @@
          cvfem_neiloc( cv_iloc, 3 ) = -1
       end if
 
-      ewrite(3,*) 'scvweigh:',scvweigh
-      ewrite(3,*) ' '
-      do cv_sgi = 1, scvngi
-         ewrite(3,*) 'cv_sgi=',cv_sgi
-         ewrite(3,*) 'sn( :, cv_sgi )    =', sn( :, cv_sgi )
-      end do
-      ewrite(3,*) ' '
-      do cv_sgi = 1, scvngi
-         ewrite(3,*) 'cv_sgi=',cv_sgi
-         ewrite(3,*) 'sufnlx( :, cv_sgi )=',sufnlx( :, cv_sgi )
-      end do
-      ewrite(3,*) ' '
-      do cv_sgi = 1, scvngi
-         ewrite(3,*) 'cv_sgi=',cv_sgi
-         ewrite(3,*) 'snlx( :, cv_sgi ):', snlx( :, cv_sgi )
-      end do
-      ewrite(3,*) ' '
-      do cv_sgi = 1, scvngi
-         ewrite(3,*) 'cv_sgi=',cv_sgi
-         ewrite(3,*) 'snly( :, cv_sgi ):', snly( :, cv_sgi )
-      end do
-!      stop 281
+      !ewrite(3,*) 'scvweigh:',scvweigh
+      !ewrite(3,*) ' '
+      !do cv_sgi = 1, scvngi
+      !   ewrite(3,*) 'cv_sgi=',cv_sgi
+      !   ewrite(3,*) 'sn( :, cv_sgi )    =', sn( :, cv_sgi )
+      !end do
+      !ewrite(3,*) ' '
+      !do cv_sgi = 1, scvngi
+      !   ewrite(3,*) 'cv_sgi=',cv_sgi
+      !   ewrite(3,*) 'sufnlx( :, cv_sgi )=',sufnlx( :, cv_sgi )
+      !end do
+      !ewrite(3,*) ' '
+      !do cv_sgi = 1, scvngi
+      !   ewrite(3,*) 'cv_sgi=',cv_sgi
+      !   ewrite(3,*) 'snlx( :, cv_sgi ):', snlx( :, cv_sgi )
+      !end do
+      !ewrite(3,*) ' '
+      !do cv_sgi = 1, scvngi
+      !   ewrite(3,*) 'cv_sgi=',cv_sgi
+      !   ewrite(3,*) 'snly( :, cv_sgi ):', snly( :, cv_sgi )
+      !end do
 
       deallocate( quad_cvweight )
       deallocate( detwei )
@@ -3705,7 +3824,7 @@
       deallocate( loc_coord_nod_l2 )
       deallocate( loc_coord_nod_l3 )
       deallocate( loc_coord_nod_l4 )
-      deallocate( sn_i_xj )
+!      deallocate( sn_i_xj )
       deallocate( suf_quad_sn )
       deallocate( suf_quad_snlx )
       deallocate( suf_quad_snly )
@@ -3863,11 +3982,11 @@
       implicit none
       integer, intent( in ) :: cv_ele_type, ndim, totele, cv_nloc, cv_ngi, &
            x_nonods, quad_cv_nloc, cv_ele_type_cells, cv_nloc_cells
-      integer, dimension( totele * quad_cv_nloc ), intent( in ) :: x_ndgln
-      real, dimension( x_nonods ), intent( in ) :: x, y, z
-      real, dimension( quad_cv_nloc ), intent( in ) :: lx, ly, lz
-      real, dimension( cv_nloc, cv_ngi ), intent( inout ) :: n, nlx, nly, nlz
-      real, dimension( cv_ngi ), intent( inout ) ::  cvweigh
+      integer, dimension( : ), intent( in ) :: x_ndgln
+      real, dimension( : ), intent( in ) :: x, y, z
+      real, dimension( : ), intent( in ) :: lx, ly, lz
+      real, dimension( :, : ), intent( inout ) :: n, nlx, nly, nlz
+      real, dimension( : ), intent( inout ) ::  cvweigh
       ! Local variables
       logical :: d1, dcyl, d3, lowqua
       integer :: ele, quad_cv_ngi, quad_cv_gi, cv_gi, nwicel, xnod, quad_cv_iloc, &
@@ -3881,7 +4000,7 @@
            quad_cvweight, detwei, ra, rdummy, &
            x_temp, y_temp, z_temp
       real, dimension( :, : ), allocatable :: quad_n, quad_nlx, quad_nly, quad_nlz, &
-           quad_nx, quad_ny, quad_nz
+           quad_nx, quad_ny, quad_nz, rdummy2
       integer, dimension( : ), allocatable :: x_ndgln_temp, nod_pt
 
 
@@ -3969,6 +4088,7 @@
       allocate( quad_ny( quad_cv_nloc, quad_cv_ngi ) ) ; quad_ny = 0.
       allocate( quad_nz( quad_cv_nloc, quad_cv_ngi ) ) ; quad_nz = 0.
       allocate( rdummy( 10000 ) ) ;  rdummy = 0.
+      allocate( rdummy2( 100, 100 ) ) ;  rdummy2 = 0.
 
       ewrite(3,*)'Just b4 shape_l_q_quad from shape_tri_tet'
       ewrite(3,*) 'totele, x_nonods, cv_nloc_cells, cv_nloc, cv_ngi:', &
@@ -3977,43 +4097,19 @@
            quad_cv_nloc, quad_cv_ngi
       ewrite(3,*)'quad_cv_ngi, lowqua, mloc, nwicel:', &
            quad_cv_ngi, lowqua, mloc, nwicel
-!       stop 3821
 
       ! Now we need to compute QUAD_NLX/Y/Z - get the hex or quad
       ! shape functions quad_n etc.
       call shape_l_q_quad( lowqua, quad_cv_ngi, quad_cv_nloc, mloc, &
-           dummy_sngi, dummy_snloc, dummy_smloc, rdummy, rdummy, rdummy, rdummy, &
+           dummy_sngi, dummy_snloc, dummy_smloc, rdummy2, rdummy2, rdummy2, rdummy2, &
            quad_cvweight, quad_n, quad_nlx, quad_nly, quad_nlz, &
-           rdummy, rdummy, rdummy, rdummy, rdummy, rdummy, rdummy, &
+           rdummy, rdummy2, rdummy2, rdummy2, rdummy2, rdummy2, rdummy2, &
            nwicel, d3 )   
 
-      ewrite(3,*)'quad_n:',quad_n
-      ewrite(3,*)'quad_nlx:',quad_nlx
-      ewrite(3,*)'quad_nly:',quad_nly
-      ewrite(3,*)'quad_nlz:',quad_nlz
-
-      !        stop 2921
-
-      if(.false.) then
-         xnod = x_ndgln( 1 )
-         ewrite(3,*)'node1, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
-         xnod = x_ndgln( 3 )
-         ewrite(3,*)'node3, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
-         xnod = x_ndgln( 7 )
-         ewrite(3,*)'node7, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
-         xnod = x_ndgln( 9 )
-         ewrite(3,*)'node9, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
-
-         xnod = x_ndgln( 19 )
-         ewrite(3,*)'node19, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
-         xnod = x_ndgln( 21 )
-         ewrite(3,*)'node21, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
-         xnod = x_ndgln( 25 )
-         ewrite(3,*)'node25, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
-         xnod = x_ndgln( 27 )
-         ewrite(3,*)'node27, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
-         stop 3923
-      endif
+      !ewrite(3,*)'quad_n:',quad_n
+      !ewrite(3,*)'quad_nlx:',quad_nlx
+      !ewrite(3,*)'quad_nly:',quad_nly
+      !ewrite(3,*)'quad_nlz:',quad_nlz
 
       Loop_Elements: do ele = 1, totele ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
 
@@ -4171,7 +4267,7 @@
             end do
 
 
-            ewrite(3,*)'d1, d3, dcyl:',d1, d3, dcyl
+            !ewrite(3,*)'d1, d3, dcyl:',d1, d3, dcyl
             !         call detnlxr( ele, x, y, z, x_ndgln, totele, x_nonods, quad_cv_nloc, quad_cv_ngi, &
             call detnlxr( ele, x_temp, y_temp, z_temp, x_ndgln_temp, 1, x_nonods, quad_cv_nloc, quad_cv_ngi, &
                  quad_n, quad_nlx, quad_nly, quad_nlz, quad_cvweight, &
@@ -4253,15 +4349,15 @@
                     z(nod7), z(nod3), z(nod2), z(nod8) )
             endif
 
-            ewrite(3,*)'rsum1,rsum2,rsum3,rsum4,rsum5,rsum6:', &
-                 rsum1,rsum2,rsum3,rsum4,rsum5,rsum6
+            !ewrite(3,*)'rsum1,rsum2,rsum3,rsum4,rsum5,rsum6:', &
+            !     rsum1,rsum2,rsum3,rsum4,rsum5,rsum6
 
-            ewrite(3,*) 'should be 1/32=', 1./32.
-            ewrite(3,*)'rsum1+rsum2+rsum3+rsum4+rsum5+rsum6:', &
-                 abs(rsum1) + abs(rsum2) + abs(rsum3) + &
-                 abs(rsum4) + abs(rsum5) + abs(rsum6)
+            !ewrite(3,*) 'should be 1/32=', 1./32.
+            !ewrite(3,*)'rsum1+rsum2+rsum3+rsum4+rsum5+rsum6:', &
+            !     abs(rsum1) + abs(rsum2) + abs(rsum3) + &
+            !     abs(rsum4) + abs(rsum5) + abs(rsum6)
 
-            ewrite(3,*)'detwei, volume:',detwei, volume
+            !ewrite(3,*)'detwei, volume:',detwei, volume
 
             !stop 2921
 
@@ -4274,30 +4370,25 @@
               detwei, ra, volume, d1, d3, dcyl, &       
               quad_nx, quad_ny, quad_nz )
          
-         ewrite(3,*)'quad_cv_ngi=',quad_cv_ngi
-         ewrite(3,*)'detwei for ele=:', ele, detwei
-! adjust the volume so that we get the volume correct: 
+         !ewrite(3,*)'quad_cv_ngi=',quad_cv_ngi
+         !ewrite(3,*)'detwei for ele=:', ele, detwei
+         ! adjust the volume so that we get the volume correct: 
          if(d3.and.(quad_cv_ngi==1)) detwei=detwei*(2.0310311939315246**3/8.0)
-!         stop 3821
 
-         do quad_cv_iloc = 1, quad_cv_nloc
-            ewrite(3,*)' quad_cv_iloc: ', quad_cv_iloc
+         !do quad_cv_iloc = 1, quad_cv_nloc
+         !   ewrite(3,*)' quad_cv_iloc: ', quad_cv_iloc
+         !   ewrite(3,*)'quad_nlx:', ( quad_nlx( quad_cv_iloc, quad_cv_gi ), &
+         !        quad_cv_gi = 1, quad_cv_ngi )
+         !   ewrite(3,*)'quad_nx:', ( quad_nx( quad_cv_iloc, quad_cv_gi ), &
+         !        quad_cv_gi = 1, quad_cv_ngi )
+         !   ewrite(3,*)'quad_ny:', ( quad_ny( quad_cv_iloc, quad_cv_gi ), &
+         !        quad_cv_gi = 1, quad_cv_ngi )
+         !   ewrite(3,*)'quad_nz:', ( quad_nz( quad_cv_iloc, quad_cv_gi ), &
+         !        quad_cv_gi = 1, quad_cv_ngi )
+         !   ewrite(3,*)'detwei:', ( detwei( quad_cv_gi ), quad_cv_gi = 1, quad_cv_ngi )
+         !end do
 
-            ewrite(3,*)'quad_nlx:', ( quad_nlx( quad_cv_iloc, quad_cv_gi ), &
-                 quad_cv_gi = 1, quad_cv_ngi )
-
-            ewrite(3,*)'quad_nx:', ( quad_nx( quad_cv_iloc, quad_cv_gi ), &
-                 quad_cv_gi = 1, quad_cv_ngi )
-            ewrite(3,*)'quad_ny:', ( quad_ny( quad_cv_iloc, quad_cv_gi ), &
-                 quad_cv_gi = 1, quad_cv_ngi )
-            ewrite(3,*)'quad_nz:', ( quad_nz( quad_cv_iloc, quad_cv_gi ), &
-                 quad_cv_gi = 1, quad_cv_ngi )
-            ewrite(3,*)'detwei:', ( detwei( quad_cv_gi ), quad_cv_gi = 1, quad_cv_ngi )
-         end do
-
-         ewrite(3,*) 'vol:', sum(detwei)
-
-!         stop 3838
+         !ewrite(3,*) 'vol:', sum(detwei)
 
          Loop_NGI: do quad_cv_gi = 1, quad_cv_ngi ! Determine the quadrature points and weights
             cv_gi = ( ele - 1 ) * quad_cv_ngi + quad_cv_gi
@@ -4343,27 +4434,26 @@
       call shatri_hex( quad_l1, quad_l2, quad_l3, quad_l4, rdummy, d3, &
            cv_nloc, cv_ngi, n, nlx, nly, nlz, &
            .true. )
-      ewrite(3,*)'cvweigh:',cvweigh
-      ewrite(3,*)'nlx(1,:):',nlx(1,:)
+      !ewrite(3,*)'cvweigh:',cvweigh
+      !ewrite(3,*)'nlx(1,:):',nlx(1,:)
       rsum=-1.e+5
       do cv_gi = 1, cv_ngi
          rsum = max(rsum,nlx(1,cv_gi))
       end do
-      ewrite(3,*)'max(nlx(1,:)):',rsum
+      !ewrite(3,*)'max(nlx(1,:)):',rsum
       rsum=+1.e+5
       do cv_gi = 1, cv_ngi
          rsum = min(rsum,nlx(1,cv_gi))
       end do
-      ewrite(3,*)'min(nlx(1,:)):',rsum
+      !ewrite(3,*)'min(nlx(1,:)):',rsum
 
-      ewrite(3,*)'sum(nlx(1,:)):',sum(nlx(1,:))
+      !ewrite(3,*)'sum(nlx(1,:)):',sum(nlx(1,:))
       rsum = 0.0
       do cv_gi = 1, cv_ngi
          rsum = rsum + cvweigh( cv_gi )
       end do
-      ewrite(3,*)'rsum:', rsum
-      ewrite(3,*)'sum(cvweigh):',sum(cvweigh)
-      !stop 2921
+      !ewrite(3,*)'rsum:', rsum
+      !ewrite(3,*)'sum(cvweigh):',sum(cvweigh)
 
       deallocate( quad_l1 )
       deallocate( quad_l2 )
@@ -4393,10 +4483,10 @@
       implicit none
       integer, intent( in ) :: nloc, ngi
       logical, intent( in ) :: tri_tet
-      real, dimension( ngi ), intent( in ) :: l1, l2, l3, l4
-      real, dimension( ngi ), intent( inout ) :: weight
+      real, dimension( : ), intent( in ) :: l1, l2, l3, l4
+      real, dimension( : ), intent( inout ) :: weight
       logical, intent( in ) :: d3
-      real, dimension( nloc, ngi ), intent( inout ) :: n, nlx, nly, nlz
+      real, dimension( :, : ), intent( inout ) :: n, nlx, nly, nlz
       ! Local variables
       logical :: lowqua
       integer :: nwicel, mloc, snloc, sngi
@@ -4473,26 +4563,45 @@
     end subroutine shatri_hex
 
 
+
     subroutine shatri( l1, l2, l3, l4, weight, d3, &
          nloc, ngi, &
          n, nlx, nly, nlz )
       implicit none
       integer, intent( in ) :: nloc, ngi
-      real, dimension( ngi ), intent( in ) :: l1, l2, l3, l4, weight
+      real, dimension( : ), intent( in ) :: l1, l2, l3, l4, weight
       logical, intent( in ) :: d3
-      real, dimension( nloc, ngi ), intent( inout ) :: n, nlx, nly, nlz
+      real, dimension( :, : ), intent( inout ) :: n, nlx, nly, nlz
       ! Local variables
       logical :: base_order
       integer :: gi, ndim, cv_ele_type_dummy, u_nloc_dummy
       real, dimension( :, : ), allocatable :: cvn_dummy, un_dummy, unlx_dummy, &
            unly_dummy, unlz_dummy
       real, dimension( : ), allocatable :: cvweigh_dummy
+      real :: a,b
 
       ewrite(3,*)'In shatri d3,nloc=',d3,nloc
 
       Conditional_Dimensionality: if( .not. d3 ) then ! Assume a triangle
 
          Conditional_NLOC: Select Case( nloc )
+         case( 10 )
+! cubic triangle...
+
+! get the shape functions for a cubic triangle...
+            call shape_triangle_cubic( l1, l2, l3, l4, weight, d3, &
+         nloc, ngi, &
+         n, nlx, nly, nlz )
+
+            base_order=.true.
+            if(base_order) then
+               ! order so that the 1st nodes are on the base...
+              call base_order_tri(n,nloc,ngi)
+              call base_order_tri(nlx,nloc,ngi)
+              call base_order_tri(nly,nloc,ngi)
+            endif
+
+!stop 6661
          case( 6, 7 )
             do gi = 1, ngi           
                n( 1, gi ) = ( 2. * l1( gi ) - 1. ) * l1( gi )            
@@ -4501,7 +4610,7 @@
                n( 4, gi ) = 4. * l1( gi ) * l2( gi )         
                n( 5, gi ) = 4. * l2( gi ) * l3( gi )         
                n( 6, gi ) = 4. * l1( gi ) * l3( gi )
-               ! x-derivative (nb. l1 + l2 + l3 + l4 = 1 )                
+               ! x-derivative (nb. l1 + l2 + l3  = 1 )                
                nlx( 1, gi ) = 4. * l1( gi ) - 1.              
                nlx( 2, gi ) = 0.           
                nlx( 3, gi ) = -4. * ( 1. - l2( gi ) ) + 4. * l1( gi ) + 1. 
@@ -4648,6 +4757,88 @@
 
 
 
+
+    subroutine shape_triangle_cubic( l1, l2, l3, l4, weight, d3, &
+         nloc, ngi, &
+         n, nlx, nly, nlz )
+      implicit none
+      integer, intent( in ) :: nloc, ngi
+      real, dimension( : ), intent( in ) :: l1, l2, l3, l4, weight
+      logical, intent( in ) :: d3
+      real, dimension( :, : ), intent( inout ) :: n, nlx, nly, nlz
+      ! Local variables
+      logical :: base_order
+      integer :: gi, ndim, cv_ele_type_dummy, u_nloc_dummy
+      real, dimension( :, : ), allocatable :: cvn_dummy, un_dummy, unlx_dummy, &
+           unly_dummy, unlz_dummy
+      real, dimension( : ), allocatable :: cvweigh_dummy
+      real :: a,b
+
+      ewrite(3,*)'In shatri d3,nloc=',d3,nloc
+      if(nloc.ne.10) then ! wrong element type
+          stop 28213
+      endif
+
+
+! cubic triangle...
+            do gi = 1, ngi   
+! corner nodes...
+               n( 1, gi ) = 0.5*( 3. * l1( gi ) - 1. ) * (3. * l1( gi )   -2.) *  l1( gi ) 
+               n( 2, gi ) = 0.5*( 3. * l2( gi ) - 1. ) * (3. * l2( gi )   -2.) *  l2( gi ) 
+               n( 3, gi ) = 0.5*( 3. * l3( gi ) - 1. ) * (3. * l3( gi )   -2.) *  l3( gi ) 
+! mid side nodes...
+               n( 4, gi ) = (9./2.)*l1( gi )*l2( gi )*( 3. * l1( gi ) - 1. ) 
+               n( 5, gi ) = (9./2.)*l2( gi )*l1( gi )*( 3. * l2( gi ) - 1. ) 
+
+               n( 6, gi ) = (9./2.)*l2( gi )*l3( gi )*( 3. * l2( gi ) - 1. ) 
+               n( 7, gi ) = (9./2.)*l3( gi )*l2( gi )*( 3. * l3( gi ) - 1. ) 
+
+               n( 8, gi ) = (9./2.)*l3( gi )*l1( gi )*( 3. * l3( gi ) - 1. ) 
+               n( 9, gi ) = (9./2.)*l1( gi )*l3( gi )*( 3. * l1( gi ) - 1. ) 
+! central node...
+               n( 10, gi ) = 27.*l1( gi )*l2( gi )*l3( gi ) 
+
+          ! x-derivative (nb. l1 + l2 + l3  = 1 )  
+! corner nodes...
+               nlx( 1, gi ) = 0.5*( 27. * l1( gi )**2  - 18. *  l1( gi ) + 2. )  
+               nlx( 2, gi ) = 0.0
+               nlx( 3, gi ) = 0.5*( 27. * l3( gi )**2  - 18. *  l3( gi ) + 2. )   *  (-1.0)
+! mid side nodes...
+               nlx( 4, gi ) = (9./2.)*(6.*l1( gi )*l2( gi )  - l2( gi ) )
+               nlx( 5, gi ) = (9./2.)*l2( gi )*( 3. * l2( gi ) - 1. ) 
+
+               nlx( 6, gi ) = - (9./2.)*l2( gi )*( 3. * l2( gi ) - 1. ) 
+               nlx( 7, gi ) = (9./2.)*(   -l2(gi)*( 6.*l3(gi) -1. )    )
+                 
+               nlx( 8, gi ) = -(9./2.)*( l1( gi )*(6.*l3(gi)-1.) + l3(gi)*(3.*l3(gi)-1.)  )
+               nlx( 9, gi ) = (9./2.)*(  l3(gi)*(3.*l1(gi)-1.) -l1(gi)*(3.*l1(gi)-1.)  )
+! central node...
+               nlx( 10, gi ) = 27.*l2( gi )*( 1. - 2.*l1(gi)  - l2( gi ) )
+ 
+          ! y-derivative (nb. l1 + l2 + l3  = 1 )  
+! corner nodes...
+               nly( 1, gi ) = 0.0  
+               nly( 2, gi ) = 0.5*( 27. * l2( gi )**2  - 18. *  l2( gi ) + 2.  )
+               nly( 3, gi ) = 0.5*( 27. * l3( gi )**2  - 18. *  l3( gi ) + 2.  )   *  (-1.0)
+! mid side nodes...
+               nly( 4, gi ) = (9./2.)*l1( gi )*( 3. * l1( gi ) - 1. ) 
+               nly( 5, gi ) = (9./2.)*l1( gi )*( 6. * l2( gi ) - 1. ) 
+
+               nly( 6, gi ) = (9./2.)*( l3( gi )*( 6. * l2( gi ) - 1. ) -l2(gi)*( 3.*l2(gi)-1. )  ) 
+               nly( 7, gi ) = (9./2.)*( -l2( gi )*( 6. * l3( gi ) - 1. ) +l3(gi)*(3.*l3(gi)-1.)  )
+
+               nly( 8, gi ) = -(9./2.)*l1( gi )*( 6. * l3( gi ) - 1. ) 
+               nly( 9, gi ) = -(9./2.)*l1( gi )*( 3. * l1( gi ) - 1. ) 
+! central node...
+               nly( 10, gi ) = 27.*l1( gi )*( 1. - 2.*l2(gi)  - l1( gi ) )
+           end do
+
+    end subroutine shape_triangle_cubic
+
+
+
+
+
     subroutine base_order_tri(n,nloc,ngi)
       ! order so that the 1st nodes are on the base for a 
       ! quadratic triangle...
@@ -4663,12 +4854,31 @@
       allocate(old2new(nloc))
       rn=n
 
-      old2new(1)=1
-      old2new(2)=4
-      old2new(3)=2
-      old2new(4)=6
-      old2new(5)=5
-      old2new(6)=3
+      if(nloc==6) then ! quadratic triangle
+
+         old2new(1)=1
+         old2new(2)=4
+         old2new(3)=2
+         old2new(4)=6
+         old2new(5)=5
+         old2new(6)=3
+
+      else if(nloc==10) then ! cubic triangle
+
+         old2new(1)=1
+         old2new(2)=4
+         old2new(3)=5
+         old2new(4)=2
+         old2new(5)=9
+         old2new(6)=10
+         old2new(7)=6
+         old2new(8)=8
+         old2new(9)=7
+         old2new(10)=3
+
+      else ! another element option not available
+         stop 921
+      endif
 
     do iloc=1,nloc
       n(iloc,:)=rn(old2new(iloc),:)
@@ -4720,9 +4930,9 @@
       implicit none
       integer, intent( in ) :: cv_ele_type, totele, cv_nloc, cv_ngi, &
            x_nonods, quad_cv_nloc
-      integer, dimension( totele * quad_cv_nloc ), intent( in ) :: x_ndgln
-      integer, dimension( x_nonods ), intent( in ) :: fem_nod
-      real, dimension( cv_nloc, cv_ngi ), intent( inout ) :: cvn
+      integer, dimension( : ), intent( in ) :: x_ndgln
+      integer, dimension( : ), intent( in ) :: fem_nod
+      real, dimension( :, : ), intent( inout ) :: cvn
       ! Local variables
       integer :: ele, nod, quad_cv_iloc, xnod, quad_cv_gi, cv_gi, &
            quad_cv_ngi
@@ -4735,7 +4945,7 @@
          do quad_cv_iloc = 1, quad_cv_nloc
             xnod = x_ndgln( ( ele - 1 ) * quad_cv_nloc + quad_cv_iloc )
             if( fem_nod( xnod ) /= 0 ) nod = fem_nod( xnod )
-            ewrite(3,*) 'ele, xnod, fem_nod, nod:', ele, xnod, fem_nod( xnod ), nod
+            !ewrite(3,*) 'ele, xnod, fem_nod, nod:', ele, xnod, fem_nod( xnod ), nod
          end do
 
          if( nod == 0 ) FLExit(" Problem with CVN calculation " )
@@ -4764,18 +4974,17 @@
       implicit none
       logical, intent( in ) :: lowqua
       integer, intent( in ) :: ngi, nloc, mloc, sngi, snloc, smloc
-      real, dimension( mloc, ngi ), intent( inout ) :: m, mlx, mly, mlz
-      real, dimension( ngi ), intent( inout ) :: weight
-      real, dimension( nloc, ngi ), intent( inout ) :: n, nlx, nly, nlz
-      real, dimension( sngi ), intent( inout ) :: sweigh
-      real, dimension( snloc, sngi ), intent( inout ) :: sn, snlx, snly
-      real, dimension( smloc, sngi ), intent( inout ) :: sm, smlx, smly
+      real, dimension( :, : ), intent( inout ) :: m, mlx, mly, mlz
+      real, dimension( : ), intent( inout ) :: weight
+      real, dimension( :, : ), intent( inout ) :: n, nlx, nly, nlz
+      real, dimension( : ), intent( inout ) :: sweigh
+      real, dimension( :, : ), intent( inout ) :: sn, snlx, snly
+      real, dimension( :, : ), intent( inout ) :: sm, smlx, smly
       integer, intent( in ) :: nwicel
       logical, intent( in ) :: d3
       ! Local variables
       integer :: ipoly, iqadra, iloc
       real, dimension( : ), allocatable :: rdum 
-
       ewrite(3,*)' In shape_l_q_quad', nwicel, d3
 
       allocate( rdum( 1 ) )
@@ -4801,7 +5010,7 @@
          if( .not. d3 ) then
             call re2dn9( lowqua, ngi, 0, nloc, mloc, &
                  m, weight, n, nlx, nly, &
-                 rdum, rdum )
+                 rdum, rdum)
 
             call quad_basis_funs_1d(sngi, snloc,  &
                  sweigh, sn, snlx )
@@ -4831,11 +5040,12 @@
     real function volume_quad_map( cv_iloc, xgi, ygi, zgi, lx, ly, lz )
       ! Compute the cv_iloc^{th} shape function value at point (xgi, ygi, zgi)
       implicit none
-      integer :: cv_iloc
-      real :: xgi, ygi, zgi
-      real, dimension( : ) :: lx, ly, lz
+      integer, intent(in) :: cv_iloc
+      real , intent(in) :: xgi, ygi, zgi
+      real, dimension( : ), intent(in) :: lx, ly, lz
       ! Local variables
-      real :: lxyz( size(lx), 3 ), xyzgi( 3 )
+      real , dimension(size(lx), 3):: lxyz
+      real, dimension(3) :: xyzgi
       real :: loc_x_coord, loc_y_coord, loc_z_coord, loc_zz_coord
 
       lxyz( :, 1 ) = lx( : ) 
@@ -4866,8 +5076,8 @@
       implicit none
       integer :: cv_iloc
       real :: xgi, ygi
-      integer, parameter :: n = 3
-      real, dimension( n ) :: lx, ly
+!      integer, parameter :: n = 3
+      real, dimension( : ) :: lx, ly
       ! Local variables
       real :: loc_x_coord, loc_y_coord, loc_z_coord
 
@@ -4888,7 +5098,7 @@
     real function tet_vol( a, b, c, d ) 
       implicit none
       integer, parameter :: n = 3
-      real, dimension( n ) :: a, b, c, d
+      real, dimension( : ), intent(in) :: a, b, c, d
       ! Local variables
       real, dimension( : ), allocatable :: am, bm, cm, cp
 
@@ -4915,7 +5125,7 @@
 
     real function triareaf( x1, y1, x2, y2, x3, y3 )
       implicit none
-      real :: x1, y1, x2, y2, x3, y3
+      real , intent(in) :: x1, y1, x2, y2, x3, y3
 
       triareaf = 0.5 * abs( ( x2 * y3 - y2 * x3 ) - x1 * ( y3 - y2 ) + y1 * ( x3 - x2 ) )
 
@@ -4937,8 +5147,8 @@
     subroutine CrossProduct( n, cp, a, b )
       implicit none
       integer, intent( in ) :: n
-      real, dimension( n ), intent( inout ) :: cp
-      real, dimension( n ), intent( in ) :: a, b
+      real, dimension( : ), intent( inout ) :: cp
+      real, dimension( : ), intent( in ) :: a, b
 
       cp( 1 ) = a( 2 ) * b( 3 ) - a( 3 ) * b( 2 )
       cp( 2 ) = a( 3 ) * b( 1 ) - a( 1 ) * b( 3 )
@@ -4950,7 +5160,7 @@
     subroutine PrintOutFunMat( n, m, a )
       implicit none
       integer, intent( in ) :: n, m
-      real, dimension( n, m ), intent( in ) :: a
+      real, dimension( :,: ), intent( in ) :: a
       ! Local variables
       integer :: in, im
 
@@ -4962,6 +5172,9 @@
     end subroutine PrintOutFunMat
 
 
+
+
+
     SUBROUTINE DGSDETNXLOC2( SNLOC, SNGI, &
          XSL, YSL, ZSL, &
          SN, SNLX, SNLY, SWEIGH, SDETWE, SAREA, &
@@ -4971,13 +5184,13 @@
       IMPLICIT NONE
 
       INTEGER, intent( in ) :: SNLOC, SNGI
-      REAL, DIMENSION( SNLOC ), intent( in ) :: XSL, YSL, ZSL
-      REAL, DIMENSION( SNLOC, SNGI ), intent( in ) :: SN, SNLX, SNLY
-      REAL, DIMENSION( SNGI ), intent( in ) :: SWEIGH
-      REAL, DIMENSION( SNGI ), intent( inout ) :: SDETWE 
+      REAL, DIMENSION( : ), intent( in ) :: XSL, YSL, ZSL
+      REAL, DIMENSION( :, : ), intent( in ) :: SN, SNLX, SNLY
+      REAL, DIMENSION( : ), intent( in ) :: SWEIGH
+      REAL, DIMENSION( : ), intent( inout ) :: SDETWE
       REAL, intent( inout ) ::  SAREA
       LOGICAL, intent( in ) ::  D1,D3,DCYL
-      REAL, DIMENSION( SNGI ), intent( inout ) :: NORMXN, NORMYN, NORMZN
+      REAL, DIMENSION( : ), intent( inout ) :: NORMXN, NORMYN, NORMZN
       REAL, intent( in ) :: NORMX, NORMY, NORMZ
       ! Local variables
       real, parameter :: pi = 3.141592654
@@ -5066,6 +5279,118 @@
 
     END SUBROUTINE DGSDETNXLOC2
 
+
+
+
+
+    SUBROUTINE DGSDETNXLOC2_ALL( SNLOC, SNGI, NDIM, &
+         XSL_ALL,  &
+         SN, SNLX, SNLY, SWEIGH, SDETWE, SAREA, &
+         NORMXN_ALL,  &
+         NORMX_ALL )
+      IMPLICIT NONE
+
+      INTEGER, intent( in ) :: SNLOC, SNGI, NDIM
+      REAL, DIMENSION( NDIM, SNLOC ), intent( in ) :: XSL_ALL
+      REAL, DIMENSION( SNLOC, SNGI ), intent( in ) :: SN
+      REAL, DIMENSION( SNLOC, SNGI ), intent( in ) :: SNLX, SNLY
+      REAL, DIMENSION( SNGI ), intent( in ) :: SWEIGH
+      REAL, DIMENSION( SNGI ), intent( inout ) :: SDETWE 
+      REAL, intent( inout ) ::  SAREA
+      REAL, DIMENSION( NDIM, SNGI ), intent( inout ) :: NORMXN_ALL 
+      REAL, DIMENSION( NDIM ), intent( in ) :: NORMX_ALL
+      ! Local variables
+      real, parameter :: pi = 3.141592654
+      INTEGER :: GI, SL, IGLX
+      REAL :: DXDLX, DXDLY, DYDLX, DYDLY, DZDLX, DZDLY
+      REAL :: A, B, C, DETJ, RGI, TWOPI, RUB3, RUB4
+
+      SAREA=0.
+
+      IF(NDIM==3) THEN
+         DO GI=1,SNGI
+
+            DXDLX=0.
+            DXDLY=0.
+            DYDLX=0.
+            DYDLY=0.
+            DZDLX=0.
+            DZDLY=0.
+
+            DO SL=1,SNLOC
+               DXDLX=DXDLX + SNLX(SL,GI)*XSL_ALL(1,SL)
+               DXDLY=DXDLY + SNLY(SL,GI)*XSL_ALL(1,SL)
+               DYDLX=DYDLX + SNLX(SL,GI)*XSL_ALL(2,SL)
+               DYDLY=DYDLY + SNLY(SL,GI)*XSL_ALL(2,SL)
+               DZDLX=DZDLX + SNLX(SL,GI)*XSL_ALL(3,SL)
+               DZDLY=DZDLY + SNLY(SL,GI)*XSL_ALL(3,SL)
+            END DO
+            A = DYDLX*DZDLY - DYDLY*DZDLX
+            B = DXDLX*DZDLY - DXDLY*DZDLX
+            C = DXDLX*DYDLY - DXDLY*DYDLX
+
+            DETJ=SQRT( A**2 + B**2 + C**2)
+            SDETWE(GI)=DETJ*SWEIGH(GI)
+            SAREA=SAREA+SDETWE(GI)
+
+            ! Calculate the normal at the Gauss pts...
+            ! Perform x-product. N=T1 x T2
+            CALL NORMGI(NORMXN_ALL(1,GI),NORMXN_ALL(2,GI),NORMXN_ALL(3,GI), &
+                 DXDLX,DYDLX,DZDLX, DXDLY,DYDLY,DZDLY, &
+                 NORMX_ALL(1),NORMX_ALL(2),NORMX_ALL(3))
+         END DO
+      ELSE IF(NDIM==2) THEN
+         TWOPI=1.0
+!         IF(DCYL) TWOPI=2.*PI
+
+         DO GI=1,SNGI
+            RGI=0.
+            DXDLX=0.
+            DXDLY=0.
+            DYDLX=0.
+            DYDLY=0.
+            DZDLX=0.
+            ! DZDLY=1 is to calculate the normal.
+            DZDLY=1.
+            DO SL=1,SNLOC
+               DXDLX=DXDLX + SNLX(SL,GI)*XSL_ALL(1, SL)
+               DYDLX=DYDLX + SNLX(SL,GI)*XSL_ALL(2, SL)
+               RGI=RGI+SN(SL,GI)*XSL_ALL(2, SL)
+            END DO
+!            IF(.NOT.DCYL) RGI=1.0
+            RGI=1.0
+            DETJ=SQRT( DXDLX**2 + DYDLX**2 )
+            SDETWE(GI)=TWOPI*RGI*DETJ*SWEIGH(GI)
+            SAREA=SAREA+SDETWE(GI)
+            RUB3=0.0
+            RUB4=0.0
+            CALL NORMGI(NORMXN_ALL(1,GI),NORMXN_ALL(2,GI),RUB3, &
+                 DXDLX,DYDLX,DZDLX, DXDLY,DYDLY,DZDLY, &
+                 NORMX_ALL(1),NORMX_ALL(2),RUB4)
+         END DO
+
+      ELSE ! For 1D...
+         DO GI = 1, SNGI
+            DXDLX = 0.
+            DO SL = 1, SNLOC
+               DXDLX = DXDLX + SNLX( SL, GI ) * XSL_ALL( 1, SL )
+            END DO
+            SDETWE( GI ) = SWEIGH( GI )
+            SAREA = SAREA + SDETWE( GI )
+            NORMXN_ALL( 1, GI ) = NORMX_ALL(1)
+         END DO
+
+      ENDIF
+
+      RETURN
+
+    END SUBROUTINE DGSDETNXLOC2_ALL
+
+
+
+
+
+
     SUBROUTINE NORMGI( NORMXN, NORMYN, NORMZN, &
          DXDLX, DYDLX, DZDLX, DXDLY, DYDLY, DZDLY, &
          NORMX, NORMY, NORMZ) 
@@ -5118,9 +5443,9 @@
       implicit none
       integer, intent( in ) :: totele, x_nloc, max_x_nonods
       integer, intent( inout ) :: x_nonods
-      integer, dimension( totele * x_nloc ), intent( inout ) :: x_ndgln
-      real, dimension( max_x_nonods ), intent( inout ) :: lx, ly, x, y
-      integer, dimension( max_x_nonods ), intent( inout ) :: fem_nod
+      integer, dimension( : ), intent( inout ) :: x_ndgln
+      real, dimension( : ), intent( inout ) :: lx, ly, x, y
+      integer, dimension( : ), intent( inout ) :: fem_nod
       ! Local variables
       ! Scaling factor to give a unity area of the local triangle
       real, parameter :: h_scale =  1.5196713713031851
@@ -5290,12 +5615,12 @@
       x_nonods=count_nod
 
 
-      ewrite(3,*)'xndgln0:'
-      do ele = 1, totele
-         ewrite(3,*) ele, ( x_ndgln( ( ele - 1 ) * x_nloc + x_iloc ), x_iloc = 1, 4 )
-         ewrite(3,*) ele, ( x(x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )), x_iloc = 1, 4 )
-         ewrite(3,*) ele, ( y(x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )), x_iloc = 1, 4 )
-      end do
+      !ewrite(3,*)'xndgln0:'
+      !do ele = 1, totele
+      !   ewrite(3,*) ele, ( x_ndgln( ( ele - 1 ) * x_nloc + x_iloc ), x_iloc = 1, 4 )
+      !   ewrite(3,*) ele, ( x(x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )), x_iloc = 1, 4 )
+      !   ewrite(3,*) ele, ( y(x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )), x_iloc = 1, 4 )
+      !end do
 
       ! Extra Nodes in each Quad (now 9 / quad )
       call Adding_Extra_Parametric_Nodes( totele, x_nloc, mx_x_nonods, &
@@ -5320,8 +5645,8 @@
       implicit none
       integer, intent( in ) :: ele_big, x_nloc_big, totele_big, x_nonods_big
       integer, intent( inout ) :: increment_ele_big
-      integer, dimension( x_nloc_big * totele_big ), intent( inout ) :: x_ndgln_big
-      real, dimension( x_nonods_big ), intent( inout ) :: x_big, y_big
+      integer, dimension( : ), intent( inout ) :: x_ndgln_big
+      real, dimension( : ), intent( inout ) :: x_big, y_big
       ! Local variables
       integer :: iloc, xnod1, xnod2, xnod3, iloc2, x_nloc_big2
 
@@ -5365,12 +5690,12 @@
          x_nonods, x_nloc, totele, x_ndgln, ele_ref, x, y )
       implicit none
       integer, intent( in ) :: ele_big, x_nloc_big, totele_big, x_nonods_big
-      integer, dimension( x_nloc_big * totele_big ), intent( in ) :: x_ndgln_big
-      real, dimension( x_nonods_big ), intent( in ) :: x_big, y_big
+      integer, dimension(: ), intent( in ) :: x_ndgln_big
+      real, dimension( : ), intent( in ) :: x_big, y_big
       integer, intent( in ) :: x_nonods, x_nloc, totele
-      integer, dimension( x_nloc * totele ), intent( inout ) :: x_ndgln
+      integer, dimension( : ), intent( inout ) :: x_ndgln
       integer, intent( inout ) :: ele_ref
-      real, dimension( x_nonods ), intent( inout ) :: x, y
+      real, dimension( : ), intent( inout ) :: x, y
       ! Local variables
       integer :: xnod, iloc, x_nloc_big2, ele_ref2, ele
 
@@ -5453,8 +5778,8 @@
       integer, intent( in ) :: totele, x_nloc
       integer, intent( in ) :: x_nonods
       logical, intent( in ) :: over_all
-      integer, dimension( totele * x_nloc ), intent( inout ) :: x_ndgln
-      real, dimension( x_nonods ), intent( in ) :: x, y
+      integer, dimension( : ), intent( inout ) :: x_ndgln
+      real, dimension( : ), intent( in ) :: x, y
       ! Local variables
       real, parameter :: toler = 1.e-5
       integer :: ele, ele2, iloc, jloc, inod, jnod, jnod2, x_nloc2, isum, iref
@@ -5515,9 +5840,9 @@
       implicit none
       integer, intent( in ) :: totele, x_nloc, mx_x_nonods
       integer, intent( inout ) :: x_nonods
-      integer, dimension( totele * x_nloc ), intent( inout ) :: x_ndgln
-      real, dimension( mx_x_nonods ), intent( inout ) :: x, y
-      real, dimension( mx_x_nonods ), intent( inout ), optional :: z
+      integer, dimension( : ), intent( inout ) :: x_ndgln
+      real, dimension( : ), intent( inout ) :: x, y
+      real, dimension( : ), intent( inout ), optional :: z
       ! Local variables
       real, parameter :: toler = 1.e-10
       integer :: ele, ele2, iloc, jloc, inod, jnod, jnod2, x_nloc2, isum, iref
@@ -5587,8 +5912,8 @@
          x_ndgln, x, y )
       implicit none
       integer, intent( in ) :: totele, x_nloc, mx_x_nonods
-      integer, dimension( totele * x_nloc ), intent( inout ) :: x_ndgln
-      real, dimension( mx_x_nonods ), intent( inout ) :: x, y
+      integer, dimension( : ), intent( inout ) :: x_ndgln
+      real, dimension( : ), intent( inout ) :: x, y
       ! Local variables
       integer, dimension( : ), allocatable :: x_ndgln2, loclist
       integer :: ele, iloc, iloc2, x_loc_ref, xnod1, xnod2, xnod3, xnod4, npoly, inod
@@ -5598,11 +5923,11 @@
       ewrite(3,*) 'In Adding_Extra_Parametric_Nodes'
 
       x_loc_ref = maxval( x_ndgln ) 
-      ewrite(3,*)' x_loc_ref:', x_loc_ref
-      do ele = 1, totele
-         ewrite(3,*)'x_ndgln:', ele, &
-              ( x_ndgln( ( ele - 1 ) * x_nloc + iloc ) , iloc = 1, x_nloc )
-      end do
+      !ewrite(3,*)' x_loc_ref:', x_loc_ref
+      !do ele = 1, totele
+      !   ewrite(3,*)'x_ndgln:', ele, &
+      !        ( x_ndgln( ( ele - 1 ) * x_nloc + iloc ) , iloc = 1, x_nloc )
+      !end do
 
       if( .true. ) then
          iloc_list(1)=1
@@ -5689,13 +6014,12 @@
          end do
       end do
 
-      ewrite(3,*) '-'
-      ewrite(3,*) ''
-
-      do ele = 1, totele
-         ewrite(3,*)'x_ndgln:', ele, &
-              ( x_ndgln( ( ele - 1 ) * x_nloc + iloc ) , iloc = 1, x_nloc )
-      end do
+      !ewrite(3,*) '-'
+      !ewrite(3,*) ''
+      !do ele = 1, totele
+      !   ewrite(3,*)'x_ndgln:', ele, &
+      !        ( x_ndgln( ( ele - 1 ) * x_nloc + iloc ) , iloc = 1, x_nloc )
+      !end do
 
       deallocate( x_ndgln2 )
       deallocate( loclist )
@@ -5707,8 +6031,8 @@
          x_ndgln, x, y, z )
       implicit none
       integer, intent( in ) :: totele, x_nloc, mx_x_nonods
-      integer, dimension( totele * x_nloc ), intent( inout ) :: x_ndgln
-      real, dimension( mx_x_nonods ), intent( inout ) :: x, y, z
+      integer, dimension( : ), intent( inout ) :: x_ndgln
+      real, dimension( : ), intent( inout ) :: x, y, z
       ! Local variables
       integer, dimension( : ), allocatable :: x_ndgln2, loclist
       integer :: ele, iloc, iloc2, x_loc_ref
@@ -5808,10 +6132,10 @@
          end do
       end do
 
-      do ele = 1, totele
-         ewrite(3,*)'x_ndgln:', ele, &
-              ( x_ndgln( ( ele - 1 ) * x_nloc + iloc ) , iloc = 1, x_nloc )
-      end do
+      !do ele = 1, totele
+      !   ewrite(3,*)'x_ndgln:', ele, &
+      !        ( x_ndgln( ( ele - 1 ) * x_nloc + iloc ) , iloc = 1, x_nloc )
+      !end do
 
       deallocate( x_ndgln2 )
       deallocate( loclist )
@@ -5836,11 +6160,11 @@
       implicit none
       integer, intent( inout ) :: totele, x_nonods
       integer, intent( in ) :: quad_cv_nloc, x_nloc, max_x_nonods
-      integer, dimension( max_x_nonods ), intent( inout ) :: x_ndgln_real
-      real, dimension( max_x_nonods ), intent( inout ) :: lx, ly, lz, x, y, z
-      integer, dimension( max_x_nonods ), intent( inout ) :: fem_nod
-      real, dimension( max_x_nonods ), intent( inout ) :: xp2, yp2, zp2
-      integer, dimension( max_x_nonods ), intent( inout ) :: x_ndgln_p2
+      integer, dimension( : ), intent( inout ) :: x_ndgln_real
+      real, dimension( : ), intent( inout ) :: lx, ly, lz, x, y, z
+      integer, dimension( : ), intent( inout ) :: fem_nod
+      real, dimension( : ), intent( inout ) :: xp2, yp2, zp2
+      integer, dimension( : ), intent( inout ) :: x_ndgln_p2
       ! Local variables
       real, parameter :: h_scale = 2.0396489026555056
       integer, parameter :: number_of_hexs = 4,  number_of_nodes = 27
@@ -6107,9 +6431,9 @@
       integer, intent( in ) :: ele, quad_cv_nloc, x_nloc, x_nonods, &
            &                           number_of_hexs
       real, dimension( 10 ), intent( in ) :: xp2, yp2, zp2
-      real, dimension( x_nonods ), intent( inout ) :: x, y, z
-      integer, dimension( x_nonods ), intent( in ) :: x_ndgln_p2
-      integer, dimension( x_nonods ), intent( inout ) :: x_ndgln
+      real, dimension( : ), intent( inout ) :: x, y, z
+      integer, dimension( : ), intent( in ) :: x_ndgln_p2
+      integer, dimension( : ), intent( inout ) :: x_ndgln
 
       ! Local variables
       real, dimension( 4 ) :: lx, ly, lz
@@ -6305,8 +6629,8 @@
     implicit none
     integer, intent( in ) :: totele, number_of_hexs, quad_cv_nloc
     integer, intent( inout ) :: x_nonods
-    real, dimension( x_nonods ), intent( inout ) :: x, y, z
-    integer, dimension( x_nonods ), intent( inout ) :: x_ndgln
+    real, dimension( : ), intent( inout ) :: x, y, z
+    integer, dimension( : ), intent( inout ) :: x_ndgln
     ! Local variables
     integer :: ele, ele_hex, iloc, kloc, ele_hex2
 
@@ -6330,8 +6654,8 @@
        x, y, z, x_ndgln )
     implicit none
     integer, intent( in ) :: ele, ele_hex, totele, number_of_hexs, quad_cv_nloc, x_nonods
-    real, dimension( x_nonods ), intent( inout ) :: x, y, z
-    integer, dimension( x_nonods ), intent( inout ) :: x_ndgln
+    real, dimension( : ), intent( inout ) :: x, y, z
+    integer, dimension( : ), intent( inout ) :: x_ndgln
     ! Local variables
     integer, parameter :: jloc2 = 8
     integer :: inod2, jnod, knod, iloc, ele_hex2, kloc
@@ -6572,17 +6896,17 @@
       ! CVFENLX, CVFENLY, CVFENLZ)
       implicit none
       integer, intent( in ) :: ndim, cv_ele_type, cv_ngi, cv_nloc, u_nloc
-      real, dimension( cv_ngi ), intent( inout ) :: cvweight
-      real, dimension( cv_nloc, cv_ngi ), intent( inout ) :: cvfen, cvfenlx, cvfenly, cvfenlz
-      real, dimension( u_nloc, cv_ngi ), intent( inout ) :: ufen, ufenlx, ufenly, ufenlz
+      real, dimension( : ), intent( inout ) :: cvweight
+      real, dimension( :, : ), intent( inout ) :: cvfen, cvfenlx, cvfenly, cvfenlz
+      real, dimension( :, : ), intent( inout ) :: ufen, ufenlx, ufenly, ufenlz
       integer, intent( in ) :: sbcvngi
       integer, intent( in ) :: cv_snloc, u_snloc
-      real, dimension( cv_snloc, sbcvngi ), intent( inout ) :: sbcvfen, sbcvfenslx, sbcvfensly
-      real, dimension( sbcvngi ), intent( inout ) :: sbcvfeweigh
-      real, dimension( u_snloc, sbcvngi ), intent( inout ) :: sbufen, sbufenslx, sbufensly
+      real, dimension( :, : ), intent( inout ) :: sbcvfen, sbcvfenslx, sbcvfensly
+      real, dimension( : ), intent( inout ) :: sbcvfeweigh
+      real, dimension( :, : ), intent( inout ) :: sbufen, sbufenslx, sbufensly
       integer, intent( in ) :: nface
-      integer, dimension( nface, cv_snloc ), intent( inout ) :: cv_sloclist
-      integer, dimension( nface, u_snloc ), intent( inout ) :: u_sloclist
+      integer, dimension( :, : ), intent( inout ) :: cv_sloclist
+      integer, dimension( :, : ), intent( inout ) :: u_sloclist
 
 ! local variables...
       real, dimension( :, : ), allocatable :: M,MLX,MLY,MLZ, sm,SMLX,SMLY
@@ -6616,6 +6940,8 @@
             nwicel = 4
          else if( cv_nloc == 10 ) then ! Quadratic tets
             nwicel = 5
+         else if( cv_nloc == 20 ) then ! Cubic tets
+            nwicel = 6
          end if
       else
          nwicel = 2
@@ -6623,10 +6949,14 @@
             nwicel = 1
          else if( cv_nloc == 9 ) then ! Quadratic hex
             nwicel = 3
-         else if ( cv_nloc == 3 ) then ! Linear tets
+         else if ( cv_nloc == 3 ) then ! Linear triangle
             nwicel = 4
-         else if ( cv_nloc == 6 ) then ! Quadratic tets
+         else if ( cv_nloc == 6 ) then ! Quadratic triangle
             nwicel = 5
+         else if ( cv_nloc == 10 ) then ! Cubic triangle
+            nwicel = 6
+         else
+             stop 2929
          end if
       end if Conditional_Dimensionality1
             
@@ -6648,6 +6978,8 @@
             nwicel = 4
          else if( u_nloc == 10 ) then ! Quadratic tets
             nwicel = 5
+         else if( u_nloc == 20 ) then ! Cubic tets
+            nwicel = 6
          end if
       else
          nwicel = 2
@@ -6659,6 +6991,8 @@
             nwicel = 4
          else if ( u_nloc == 6 ) then ! Quadratic tets
             nwicel = 5
+         else if ( u_nloc == 10 ) then ! Quadratic tets
+            nwicel = 6
          end if
       end if Conditional_Dimensionality2
 ! for velocity...
@@ -6728,12 +7062,12 @@
         NWICEL,D3)
      LOGICAL, INTENT(IN)::LOWQUA
      INTEGER, INTENT(IN)::NGI,NLOC,MLOC,SNGI,SNLOC,SMLOC
-     REAL, INTENT(OUT)::M(MLOC,NGI),MLX(MLOC,NGI),MLY(MLOC,NGI),MLZ(MLOC,NGI)
-     REAL, INTENT(OUT)::WEIGHT(NGI)
-     REAL, INTENT(OUT)::N(NLOC,NGI),NLX(NLOC,NGI),NLY(NLOC,NGI),NLZ(NLOC,NGI)
-     REAL, INTENT(OUT)::SWEIGH(SNGI)
-     REAL, INTENT(OUT)::SN(SNLOC,SNGI),SNLX(SNLOC,SNGI),SNLY(SNLOC,SNGI)
-     REAL, INTENT(OUT)::SM(SMLOC,SNGI),SMLX(SMLOC,SNGI),SMLY(SMLOC,SNGI)
+     REAL, dimension(:,:), INTENT(OUT)::M,MLX,MLY,MLZ
+     REAL, dimension(:),INTENT(OUT)::WEIGHT
+     REAL,dimension(:,:), INTENT(OUT)::N,NLX,NLY,NLZ
+     REAL, dimension(:),INTENT(OUT)::SWEIGH
+     REAL, dimension(:,:),INTENT(OUT)::SN,SNLX,SNLY
+     REAL,dimension(:,:), INTENT(OUT)::SM,SMLX,SMLY
      INTEGER, INTENT(IN)::NWICEL
      LOGICAL, INTENT(IN)::D3
      
@@ -6747,12 +7081,12 @@
            CALL RE2DN4(LOWQUA,NGI,0,NLOC,MLOC, &
                 M,WEIGHT,N,NLX,NLY,          &
                 SNGI,SNLOC,SWEIGH,SN,SNLX, &
-                m,m)
+                m(:,1),m(:,1))
         ELSE
            CALL RE3DN8(LOWQUA,NGI,0,NLOC,MLOC, &
                 M,WEIGHT,N,NLX,NLY,NLZ,      &
                 SNGI,SNLOC,SWEIGH,SN,SNLX,SNLY, &
-                m,m,m)
+                m(:,1),m(:,1),m(:,1))
         ENDIF
      ENDIF
      
@@ -6773,7 +7107,7 @@
         IF(.NOT.D3) THEN
            CALL RE2DN9(LOWQUA,NGI,0,NLOC,MLOC, &
                 M,WEIGHT,N,NLX,NLY, &
-                m,m)
+                m(:,1),m(:,1))
            sweigh=0.0
            sn=0.0
            snlx=0.0
@@ -6794,15 +7128,15 @@
            ! LAGRANGE 27 NODE 3-D ELEMENT -BILINEAR PRESSURE
            CALL RE3D27(LOWQUA,NGI,0,NLOC,MLOC, &
                 M,WEIGHT,N,NLX,NLY,NLZ, &
-                m,m,m)
+                m(:,1),m(:,1),m(:,1))
            CALL RE2DN9(LOWQUA,SNGI,0,SNLOC,MLOC, &
                 M,SWEIGH,SN,SNLX,SNLY, &
-                m,m)
+                m(:,1),m(:,1))
         ENDIF
      ENDIF
      
-     IF((NWICEL.EQ.4).or.(NWICEL.EQ.5)) THEN 
-! works for linear or quadratic triangles or tets...
+     IF((NWICEL.EQ.4).or.(NWICEL.EQ.5).or.(NWICEL.EQ.6)) THEN 
+! works for linear or quadratic triangles or tets (also cubic triangles)...
            CALL TR2or3DQU(NGI,NLOC,MLOC,        &
                 M,MLX,MLY,MLZ,                  &
                 WEIGHT,N,NLX,NLY,NLZ,           &
@@ -6833,19 +7167,16 @@
 !      This subroutine defines the shape functions M and N and their
 !      derivatives at the Gauss points for quadratic elements. 
 ! For 3-D FLOW. 
-      INTEGER NLOC,MLOC,NGI,SNGI,SNLOC,SMLOC
-      REAL M(MLOC,NGI),MLX(MLOC,NGI),MLY(MLOC,NGI)
-      REAL WEIGHT(NGI)
-      REAL N(NLOC,NGI),NLX(NLOC,NGI),NLY(NLOC,NGI)
-      REAL SWEIGH(SNGI)
-      REAL SN(SNLOC,SNGI),SNLX(SNLOC,SNGI)
-      REAL SM(SMLOC,SNGI),SMLX(SMLOC,SNGI)
+      INTEGER , intent(in) :: NLOC,MLOC,NGI,SNGI,SNLOC,SMLOC
+      REAL , dimension(:,:), intent(inout) :: M,MLX,MLY, N, NLX, NLY, SN, SNLX, SM, SMLX
+      REAL , dimension(:), intent(inout) :: WEIGHT, SWEIGH
 ! Local variables...
-      REAL POSI,TLY
-      INTEGER IPOLY,IQADRA
-      REAL L1(20),L2(20),L3(20)
-      REAL RUB(10)
-      LOGICAL DD3
+      REAL :: POSI,TLY
+      INTEGER :: IPOLY,IQADRA
+      REAL :: L1(20),L2(20),L3(20)
+      REAL :: RUB(10)
+      REAL, dimension(10,10) ::  RUB2
+      LOGICAL :: DD3
 ! NB LXP(I) AND LYP(I) ARE THE LOCAL X AND Y COORDS OF NODAL POINT I
        
       ewrite(3,*) 'HERE 1 MLOC,NLOC,NGI=',MLOC,NLOC,NGI
@@ -6873,11 +7204,11 @@
 
           ewrite(3,*)'for sn:'
          CALL SPECTR(SNGI,SNLOC,0,&
-     &   RUB,SWEIGH,SN,SNLX,SNLX,SNLX,.FALSE.,.FALSE., IPOLY,IQADRA)
+     &   RUB2,SWEIGH,SN,SNLX,SNLX,SNLX,.FALSE.,.FALSE., IPOLY,IQADRA)
 
           ewrite(3,*)'for sm:'
          CALL SPECTR(SNGI,SMLOC,0,&
-     &   RUB,SWEIGH,SM,SMLX,SMLX,SMLX,.FALSE.,.FALSE., IPOLY,IQADRA)
+     &   RUB2,SWEIGH,SM,SMLX,SMLX,SMLX,.FALSE.,.FALSE., IPOLY,IQADRA)
       ENDIF
       
    END subroutine tr2dqu
@@ -6893,19 +7224,16 @@
      !     This subroutine defines the shape functions M and N and their
      !     derivatives at the Gauss points for quadratic elements. 
      !     For 3-D FLOW. 
-     INTEGER SNGI,SNLOC,SMLOC,NLOC,MLOC,NGI
-     REAL SWEIGH(SNGI)
-     REAL SN(SNLOC,SNGI),SNLX(SNLOC,SNGI),SNLY(SNLOC,SNGI)
-     REAL SM(SMLOC,SNGI),SMLX(SMLOC,SNGI),SMLY(SMLOC,SNGI)
-     REAL M(MLOC,NGI),MLX(MLOC,NGI),MLY(MLOC,NGI),MLZ(MLOC,NGI)
-     REAL WEIGHT(NGI)
-     REAL N(NLOC,NGI),NLX(NLOC,NGI),NLY(NLOC,NGI),NLZ(NLOC,NGI)
-     LOGICAL D3
+     INTEGER , intent(in) :: SNGI,SNLOC,SMLOC,NLOC,MLOC,NGI
+     real, dimension(:), intent(inout) :: SWEIGH, WEIGHT
+     real, dimension(:,:), intent(inout) :: SN, SNLX, SNLY, SM, SMLX, SMLY, M, MLX, MLY, MLZ, N, NLX, NLY, NLZ
+     LOGICAL , intent(in) ::D3
      ! Local variables...
-     REAL RUB(500)
-     LOGICAL DD3,base_order
-     REAL L1(50),L2(50),L3(50),L4(50)
-     integer IQADRA,IPOLY
+     REAL :: RUB(500)
+     real, dimension(25, 25) :: RUB2
+     LOGICAL :: DD3,base_order
+     REAL :: L1(50),L2(50),L3(50),L4(50)
+     integer :: IQADRA,IPOLY
      ! NB LXP(I) AND LYP(I) ARE THE LOCAL X AND Y COORDS OF NODAL POINT I
 
      ewrite(3,*) 'HERE 1 MLOC,NLOC,NGI=',MLOC,NLOC,NGI
@@ -6938,7 +7266,7 @@
            endif
         endif
      else
-        if(nloc==6) then
+        if((nloc==6).or.(nloc==10)) then
            base_order=.true.
            if(base_order) then
               ! order so that the 1st nodes are on the base...
@@ -6964,8 +7292,8 @@
            ! Work out the shape functions and there derivatives...
            CALL SHATRIold(L1, L2, L3, L4, SWEIGH, DD3,&
                               SNLOC,SNGI,&
-                              SN,SNLX,SNLY,RUB) 
-           if(snloc==6) then
+                              SN,SNLX,SNLY,RUB2)
+           if((snloc==6).or.(snloc==10)) then
               base_order=.true.
               if(base_order) then
                  ! order so that the 1st nodes are on the base...
@@ -6976,7 +7304,7 @@
            endif
            CALL SHATRIold(L1, L2, L3, L4, SWEIGH, DD3,&
                               SMLOC,NGI,&
-                              SM,SMLX,SMLY,RUB) 
+                              SM,SMLX,SMLY,RUB2)
         ELSE
            ewrite(3,*)'for surfaces SNGI,SNLOC,smloc:',SNGI,SNLOC,smloc
            ! IQADRA=1 corresponds to Gaussian quadrature.
@@ -6987,13 +7315,13 @@
            ewrite(3,*)'for sn IPOLY,IQADRA,SNGI,SNLOC:', &
                 IPOLY,IQADRA,SNGI,SNLOC
            CALL SPECTR(SNGI,SNLOC,0,&
-                   RUB,SWEIGH,SN,SNLX,RUB,RUB,.FALSE.,.FALSE., IPOLY,IQADRA)
+                   RUB2,SWEIGH,SN,SNLX,RUB2,RUB2,.FALSE.,.FALSE., IPOLY,IQADRA)
            ewrite(3,*)'+++for sn SWEIGH:',SWEIGH
 
            if(.false.) then
               ewrite(3,*)'for sm:'
               CALL SPECTR(SNGI,SMLOC,0,&
-                      RUB,SWEIGH,SM,SMLX,RUB,RUB,.FALSE.,.FALSE., IPOLY,IQADRA)
+                      RUB2,SWEIGH,SM,SMLX,RUB2,RUB2,.FALSE.,.FALSE., IPOLY,IQADRA)
            endif
         ENDIF
 
@@ -7017,17 +7345,16 @@
 !     This subroutine defines the shape functions M and N and their
 !     derivatives at the Gauss points
 !     For 3-D FLOW. 
-      INTEGER NGI,NLOC,MLOC
-      REAL M(MLOC,NGI),WEIGHT(NGI)
-      REAL N(NLOC,NGI),NLX(NLOC,NGI),NLY(NLOC,NGI)
-      INTEGER SNGI,SNLOC
-      REAL SWEIGH(SNGI)
-      REAL SN(SNLOC,SNGI),SNLX(SNLOC,SNGI)
-      REAL POSI,TLY
-      INTEGER P,Q,CORN,GPOI,ILOC,JLOC,GI
-      LOGICAL LOWQUA,GETNDP
-      REAL WEIT(20),LX(20),LXP(2)
-      INTEGER I
+      INTEGER , intent(in) :: NGI,NLOC,MLOC
+      real, dimension(:), intent(inout) :: WEIGHT, SWEIGH
+      real, dimension(:,:), intent(inout) :: M, N, NLX, NLY, SN, SNLX
+      INTEGER , intent(in) :: SNGI,SNLOC
+      !Local variables
+      REAL :: POSI,TLY
+      INTEGER :: P,Q,CORN,GPOI,ILOC,JLOC,GI
+      LOGICAL :: LOWQUA,GETNDP
+      REAL :: WEIT(20),LX(20),LXP(2)
+      INTEGER :: I
 ! NB LXP(I) AND LYP(I) ARE THE LOCAL X AND Y COORDS OF NODAL POINT I
        
       ewrite(3,*) 'HERE 1 MLOC,NLOC,NGI=',MLOC,NLOC,NGI
@@ -7112,18 +7439,18 @@
 !     This subroutine defines the shape functions M and N and their
 !     derivatives at the Gauss points
 !     For 3-D FLOW.
-      INTEGER NGI,NLOC,MLOC
-      REAL ALPHA,BETA
-      PARAMETER(ALPHA=0.58541020,BETA=0.13819660)
-      INTEGER SNGI,SNLOC
-      REAL SWEIGH(SNGI)
-      REAL SN(SNLOC,SNGI),SNLX(SNLOC,SNGI),SNLY(SNLOC,SNGI)
-      REAL M(MLOC,NGI),WEIGHT(NGI)
-      REAL N(NLOC,NGI),NLX(NLOC,NGI),NLY(NLOC,NGI),NLZ(NLOC,NGI)
-      REAL RUB(20)
-      INTEGER P,Q,CORN,GPOI,ILOC,JLOC,GI
-      LOGICAL LOWQUA
-      INTEGER I
+      INTEGER , intent(in) :: NGI,NLOC,MLOC
+      INTEGER , intent(in) :: SNGI,SNLOC
+      REAL , dimension(:), intent(inout) :: SWEIGH, WEIGHT
+      real, dimension(:,:), intent(inout) :: SN, SNLX, SNLY, M, N, NLX, NLY, NLZ
+      !Local variables
+      real, parameter ::ALPHA=0.58541020
+      real, parameter :: BETA=0.13819660
+      REAL :: RUB(20)
+      REAL :: RUB2(20,20)
+      INTEGER :: P,Q,CORN,GPOI,ILOC,JLOC,GI
+      LOGICAL :: LOWQUA
+      INTEGER :: I
 ! NB LXP(I) AND LYP(I) ARE THE LOCAL X AND Y COORDS OF NODAL POINT I
        
       ewrite(3,*) 'HERE 1 MLOC,NLOC,NGI=',MLOC,NLOC,NGI
@@ -7170,8 +7497,8 @@
 
       IF(SNGI.GT.0) THEN
          CALL TR2D(.FALSE.,SNGI,SNLOC,SNLOC,&
-           RUB,SWEIGH,SN,SNLX,SNLY, &
-           0,0,RUB,RUB,RUB )
+           RUB2,SWEIGH,SN,SNLX,SNLY, &
+           0,0,RUB,RUB2,RUB2 )
       ENDIF 
 
       do I=1,NGI
@@ -7191,17 +7518,44 @@
         N,NLX,NLY,NLZ) 
      ! Work out the shape functions and there derivatives...
      IMPLICIT NONE
-     INTEGER NLOC,NGI
-     LOGICAL D3
-     REAL L1(NGI), L2(NGI), L3(NGI), L4(NGI)
-     REAL WEIGHT(NGI)
-     REAL N(NLOC,NGI),NLX(NLOC,NGI),NLY(NLOC,NGI),NLZ(NLOC,NGI)
+     INTEGER , intent(in) :: NLOC,NGI
+     LOGICAL , intent(in) :: D3
+     REAL , dimension(:), intent(in) :: L1, L2, L3, L4
+     REAL , dimension(:), intent(inout) :: WEIGHT
+     REAL , dimension(:, : ), intent(inout) ::N,NLX,NLY,NLZ
      ! Local variables...
-     INTEGER GI
+     INTEGER ::  GI
      !
      IF(.NOT.D3) THEN
         ! Assume a triangle...
-        IF((NLOC.EQ.6).OR.(NLOC.EQ.7)) THEN
+              !
+              IF(NLOC.EQ.1) THEN
+                 DO 30 GI=1,NGI
+                    N(1,GI)=1.0
+                    NLX(1,GI)=0.0
+                    NLY(1,GI)=0.0
+30               CONTINUE
+              ELSE IF((NLOC.EQ.3).OR.(NLOC.EQ.4)) THEN
+                 DO 20 GI=1,NGI
+                    N(1,GI)=L1(GI)
+                    N(2,GI)=L2(GI)
+                    N(3,GI)=L3(GI)
+                 !
+                    NLX(1,GI)=1.0
+                    NLX(2,GI)=0.0
+                    NLX(3,GI)=-1.0
+                 !
+                    NLY(1,GI)=0.0
+                    NLY(2,GI)=1.0
+                    NLY(3,GI)=-1.0
+                    IF(NLOC.EQ.4) THEN
+                    ! Bubble function...
+                       N(4,GI)  =L1(GI)*L2(GI)*L3(GI)
+                       NLX(4,GI)=L2(GI)*(1.-L2(GI))-2.*L1(GI)*L2(GI)
+                       NLY(4,GI)=L1(GI)*(1.-L1(GI))-2.*L1(GI)*L2(GI)
+                    ENDIF
+20               CONTINUE
+              ELSE IF((NLOC.EQ.6).OR.(NLOC.EQ.7)) THEN
            DO 10 GI=1,NGI
               N(1,GI)=(2.*L1(GI)-1.)*L1(GI)
               N(2,GI)=(2.*L2(GI)-1.)*L2(GI)
@@ -7238,37 +7592,15 @@
               ENDIF
 10            CONTINUE
               ! ENDOF IF(NLOC.EQ.6) THEN...
+           ELSE IF(NLOC==10) THEN ! Cubic triangle...
+! get the shape functions for a cubic triangle...
+            call shape_triangle_cubic( l1, l2, l3, l4, weight, d3, &
+         nloc, ngi, &
+         n, nlx, nly, nlz )
+           
+           ELSE ! has not found the element shape functions
+              stop 811 
            ENDIF
-           !
-           IF((NLOC.EQ.3).OR.(NLOC.EQ.4)) THEN
-              DO 20 GI=1,NGI
-                 N(1,GI)=L1(GI)
-                 N(2,GI)=L2(GI)
-                 N(3,GI)=L3(GI)
-                 !
-                 NLX(1,GI)=1.0
-                 NLX(2,GI)=0.0
-                 NLX(3,GI)=-1.0
-                 !
-                 NLY(1,GI)=0.0
-                 NLY(2,GI)=1.0
-                 NLY(3,GI)=-1.0
-                 IF(NLOC.EQ.4) THEN
-                    ! Bubble function...
-                    N(4,GI)  =L1(GI)*L2(GI)*L3(GI)
-                    NLX(4,GI)=L2(GI)*(1.-L2(GI))-2.*L1(GI)*L2(GI)
-                    NLY(4,GI)=L1(GI)*(1.-L1(GI))-2.*L1(GI)*L2(GI)
-                 ENDIF
-20               CONTINUE
-              ENDIF
-              !
-              IF(NLOC.EQ.1) THEN
-                 DO 30 GI=1,NGI
-                    N(1,GI)=1.0
-                    NLX(1,GI)=0.0
-                    NLY(1,GI)=0.0
-30                  CONTINUE
-                 ENDIF
                  !
                  ! ENDOF IF(.NOT.D3) THEN
               ENDIF
@@ -7407,13 +7739,14 @@
 ! If D3 it does this for 3Dtetrahedra elements else 
 ! triangular elements.
         IMPLICIT NONE
-        INTEGER NGI
-        LOGICAL D3
-        REAL L1(NGI), L2(NGI), L3(NGI), L4(NGI), WEIGHT(NGI)
+        INTEGER , intent(in):: NGI
+        LOGICAL , intent(in) :: D3
+        REAL , dimension(:) , intent(inout) ::L1, L2, L3, L4, WEIGHT
 ! Local variables...
-        REAL ALPHA,BETA
-        REAL ALPHA1,BETA1
-        REAL ALPHA2,BETA2
+        REAL :: ALPHA,BETA
+        REAL :: ALPHA1,BETA1
+        REAL :: ALPHA2,BETA2
+        real :: rsum
         INTEGER I
 !
         IF(D3) THEN
@@ -7575,6 +7908,58 @@
                   L2(6)=ALPHA2
 ! ENDOF IF(NGI.EQ.7) THEN...
           ENDIF
+
+          IF(NGI.EQ.14) THEN
+! 5th order quadrature set...
+             L1(1) = 6.943184420297371E-002
+             L1(2) = 6.943184420297371E-002
+             L1(3) = 6.943184420297371E-002
+             L1(4) = 6.943184420297371E-002
+             L1(5) = 6.943184420297371E-002
+             L1(6) = 0.330009478207572
+             L1(7) = 0.330009478207572
+             L1(8) = 0.330009478207572
+             L1(9) = 0.330009478207572
+             L1(10) = 0.669990521792428
+             L1(11) = 0.669990521792428
+             L1(12) = 0.669990521792428
+             L1(13) = 0.930568155797026
+             L1(14) = 0.930568155797026
+! local coord 1:
+             L2(1) = 4.365302387072518E-002
+             L2(2) = 0.214742881469342
+             L2(3) = 0.465284077898513
+             L2(4) = 0.715825274327684
+             L2(5) = 0.886915131926301
+             L2(6) = 4.651867752656094E-002
+             L2(7) = 0.221103222500738
+             L2(8) = 0.448887299291690
+             L2(9) = 0.623471844265867
+             L2(10) = 3.719261778493340E-002
+             L2(11) = 0.165004739103786
+             L2(12) = 0.292816860422638
+             L2(13) = 1.467267513102734E-002
+             L2(14) = 5.475916907194637E-002
+! local coord 2:
+             WEIGHT(1) = 1.917346464706755E-002
+             WEIGHT(2) = 3.873334126144628E-002
+             WEIGHT(3) = 4.603770904527855E-002
+             WEIGHT(4) = 3.873334126144628E-002
+             WEIGHT(5) = 1.917346464706755E-002
+             WEIGHT(6) = 3.799714764789616E-002
+             WEIGHT(7) = 7.123562049953998E-002
+             WEIGHT(8) = 7.123562049953998E-002
+             WEIGHT(9) = 3.799714764789616E-002
+             WEIGHT(10) = 2.989084475992800E-002
+             WEIGHT(11) = 4.782535161588505E-002
+             WEIGHT(12) = 2.989084475992800E-002
+             WEIGHT(13) = 6.038050853208200E-003
+             WEIGHT(14) = 6.038050853208200E-003
+             rsum=SUM(WEIGHT(1:NGI)) 
+             WEIGHT(1:NGI)=WEIGHT(1:NGI)/RSUM
+! ENDOF IF(NGI.EQ.14) THEN...
+          ENDIF
+
 !
           DO I=1,NGI
                   L3(I)=1.0-L1(I)-L2(I)
@@ -7591,16 +7976,17 @@
        SUBROUTINE SPECTR(NGI,NLOC,MLOC,&
      &      M,WEIGHT,N,NLX,NLY,NLZ,D3,D2, IPOLY,IQADRA  )
        IMPLICIT NONE
-       INTEGER NGI,NLOC,MLOC,IPOLY,IQADRA
-       REAL M(MLOC,NGI),WEIGHT(NGI)
-       REAL N(NLOC,NGI),NLX(NLOC,NGI),NLY(NLOC,NGI)
-        REAL NLZ(NLOC,NGI)
-         REAL RGPTWE
-         REAL WEIT(30),NODPOS(30),QUAPOS(30)
-         INTEGER GPOI
-         LOGICAL DIFF,NDIFF,D3,D2
-       INTEGER NDGI,NDNOD,NMDNOD,IGR,IGQ,IGP,KNOD,JNOD,INOD,ILOC
-       REAL LXGP,LYGP,LZGP
+       INTEGER , intent(in) :: NGI, NLOC, MLOC
+       INTEGER , intent(inout) :: IPOLY,IQADRA
+       REAL, dimension(:,:), intent(inout) ::  M, N, NLX, NLY, NLZ
+       real, dimension(:), intent(inout) :: WEIGHT
+       !Local variables
+       REAL :: RGPTWE
+       REAL , dimension (30) :: WEIT,NODPOS,QUAPOS
+       INTEGER :: GPOI
+       LOGICAL :: DIFF,NDIFF,D3,D2
+       INTEGER :: NDGI,NDNOD,NMDNOD,IGR,IGQ,IGP,KNOD,JNOD,INOD,ILOC
+       REAL :: LXGP,LYGP,LZGP
 ! This subroutine defines a spectal element.
 ! IPOLY defines the element type and IQADRA the quadrature. 
 ! In 2-D the spectral local node numbering is as..
@@ -7835,9 +8221,10 @@
       
       SUBROUTINE GTROOT(IPOLY,IQADRA,WEIT,NODPOS,QUAPOS,NDGI,NDNOD)
       IMPLICIT NONE
-      INTEGER IPOLY,IQADRA,NDGI,NDNOD
-      REAL WEIT(NDGI),QUAPOS(NDGI),NODPOS(NDNOD)
-      LOGICAL GETNDP
+      INTEGER , intent(inout) :: IPOLY,IQADRA,NDGI,NDNOD
+      REAL , dimension(:), intent(inout) :: WEIT,QUAPOS,NODPOS
+      !Local variables
+      LOGICAL :: GETNDP
 !     This sub returns the weights WEIT the quadrature points QUAPOS and 
 !     the node points NODPOS. 
 !     NODAL POISTIONS ******
@@ -7866,9 +8253,10 @@
 
 
       REAL FUNCTION SPECFU(DIFF,LXGP,INOD,NDNOD,IPOLY,NODPOS)
-      LOGICAL DIFF
-      INTEGER INOD,NDNOD,IPOLY
-      REAL LXGP,NODPOS(NDNOD)
+      LOGICAL , intent(inout):: DIFF
+      INTEGER , intent(inout) :: INOD,NDNOD,IPOLY
+      REAL , intent(inout) :: LXGP
+      real, dimension(:), intent(inout) :: NODPOS
 !     INOD contains the node at which the polynomial is associated with
 !     LXGP is the position at which the polynomial is to be avaluated.\
 !     If(DIFF) then find the D poly/DX. 
@@ -7886,16 +8274,16 @@
 
       SUBROUTINE CHEROT(WEIT,QUAPOS,NDGI,GETNDP)
       IMPLICIT NONE
-      INTEGER NDGI
-      REAL PIE
-      PARAMETER(PIE=3.141569254)
+      INTEGER , intent(inout) :: NDGI
+      REAL, dimension(:), intent(inout) :: WEIT, QUAPOS
+      LOGICAL , intent(inout) :: GETNDP
 !     This computes the weight and points for Chebyshev-Gauss-Lobatto quadrature.
 !     See page 67 of:Spectral Methods in Fluid Dynamics, C.Canuto
 !     IF(GETNDP) then get the POSITION OF THE NODES 
 !     AND DONT BOTHER WITH THE WEITS.
-      REAL WEIT(NDGI),QUAPOS(NDGI)
-      LOGICAL GETNDP
-      INTEGER IG,J
+    !Local variables
+      real , PARAMETER :: PIE=3.141569254
+      INTEGER :: IG,J
 !     
       IF(.NOT.GETNDP) THEN
 !     THE WEIGHTS...
@@ -7919,10 +8307,11 @@
 !     See page 69 of:Spectral Methods in Fluid Dynamics, C.Canuto
 !     IF(GETNDP) then get the POSITION OF THE NODES 
 !     AND DONT BOTHER WITH THE WEITS.
-      INTEGER NDGI
-      REAL WEIT(NDGI),QUAPOS(NDGI)
-      LOGICAL GETNDP
-      INTEGER N,IG
+      INTEGER , intent(inout) :: NDGI
+      REAL , dimension(:) , intent(inout) :: WEIT,QUAPOS
+      LOGICAL , intent(inout) :: GETNDP
+      !Local variables
+      INTEGER :: N,IG
 !     Work out the root's i.e the quad positions first.
       CALL LROOTS(QUAPOS,NDGI)
       IF(.NOT.GETNDP) THEN
@@ -7935,9 +8324,11 @@
       END SUBROUTINE LEGROT
 
   real function PLEGEN(LX,K)
-      REAL LX
-      REAL R
-      INTEGER K,L
+      REAL , intent(in):: LX
+      INTEGER , intent(in) :: K
+      !Local variables
+      REAL :: R
+      INTEGER :: L
       R=0.
       DO L=0,INT(K/2)
          R=R+((-1)**L)*binomial_coefficient(K,L)*binomial_coefficient(2*K-2*L,K)*LX**(K-2*L)
@@ -7956,8 +8347,9 @@
 
       SUBROUTINE LROOTS(QUAPOS,NDGI)
       IMPLICIT NONE
-      INTEGER NDGI
-      REAL QUAPOS(NDGI)
+      INTEGER :: NDGI
+      REAL , dimension(:), intent(inout) :: QUAPOS
+      !Local variables
       REAL ALPHA,BETA,RKEEP
       INTEGER N,I
 !     This sub works out the Gauss-Lobatto-Legendre roots.
@@ -7976,9 +8368,13 @@
 
       REAL FUNCTION CHEBY1(DIFF,LX,INOD,NDNOD,NODPOS)
       IMPLICIT NONE
-      INTEGER NDNOD,INOD
-      REAL NODPOS(NDNOD),LX,RNX
-      LOGICAL DIFF,DIFF2
+      INTEGER, intent(inout) :: NDNOD,INOD
+      REAL, intent(inout) :: LX
+      real, dimension(:), intent(inout) :: NODPOS
+      LOGICAL, intent(inout)  ::  DIFF
+      !Local variables
+      LOGICAL  ::  DIFF2
+      real :: RNX
 !     If DIFF then returns the spectral function DIFFERENTIATED W.R.T X 
 !     associated.
 !     This function returns the spectral function associated 
@@ -8019,10 +8415,12 @@
       
       REAL FUNCTION CHEBY2(DIFF,LX,INOD,NDNOD,NODPOS)
       IMPLICIT NONE
-      INTEGER NDNOD,INOD
-      REAL NODPOS(NDNOD)
-      REAL LX,R,RR,RCONST
-      LOGICAL DIFF
+      INTEGER , intent(inout) :: NDNOD,INOD
+      REAL, dimension(:), intent(inout) ::  NODPOS
+      LOGICAL , intent(inout) :: DIFF
+      REAL, intent(inout) :: LX
+      !Local variables
+      real :: R,RR,RCONST
 !     If DIFF then returns the spectral function DIFFERENTIATED W.R.T X 
 !     associated.
 !     This function returns the spectral function associated 
@@ -8074,10 +8472,13 @@
       REAL FUNCTION TCHEB(N,XPT,DIFF,DIFF2)
 !      use math_utilities
       IMPLICIT NONE
-      LOGICAL DIFF,DIFF2
-      REAL DDT,DT,T,XPT,TTEMP,TM1,DTM1,DTEMP,R,RR
-      INTEGER K,L,N
-      INTEGER NI
+      LOGICAL , intent(in) :: DIFF,DIFF2
+      integer, intent(in) :: N
+      real, intent(in) :: XPT
+      !Local variables
+      REAL :: DDT,DT,T,TTEMP,TM1,DTM1,DTEMP,R,RR
+      INTEGER :: K,L
+      INTEGER :: NI
 ! If DIFF then return the n'th Chebyshef polynomial 
 ! differentiated w.r.t x.
 ! If DIFF2 then form the 2'nd derivative. 
@@ -8166,10 +8567,10 @@
 
 
       REAL FUNCTION LEGEND(DIFF,LX,INOD,NDNOD,NODPOS)
-      INTEGER INOD,NDNOD
-      REAL NODPOS(NDNOD)
-      REAL LX
-      LOGICAL DIFF
+      INTEGER , intent(inout) :: INOD,NDNOD
+      REAL, dimension(:), intent(inout) :: NODPOS
+      REAL, intent(inout) :: LX
+      LOGICAL , intent(inout) :: DIFF
 !     If DIFF then returns the spectral function DIFFERENTIATED W.R.T X 
 !     associated.
 !     This function returns the spectral function associated 
@@ -8187,7 +8588,7 @@
       ! determine CV_SLOCLIST
       IMPLICIT NONE
       INTEGER, intent( in ) :: CV_NLOC, CV_SNLOC, NFACE, ndim, cv_ele_type
-      INTEGER, DIMENSION( NFACE, CV_SNLOC ), intent( inout ) :: CV_SLOCLIST
+      INTEGER, DIMENSION( :, : ), intent( inout ) :: CV_SLOCLIST
       ! Local variables
       INTEGER :: IFACE, quad_cv_siloc, quad_cv_iloc, NPOLY, IP, JP, KP
       LOGICAL :: FOUND
@@ -8261,6 +8662,29 @@
             CV_SLOCLIST(4,1)=7
             CV_SLOCLIST(4,2)=8
             CV_SLOCLIST(4,3)=9
+         ELSE IF(CV_NLOC==10) THEN ! Cubic triangle
+         !    print *,'need to correct this'
+         !    stop 28
+            IF(NFACE/=3) THEN
+               EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
+               STOP 4337
+            ENDIF
+            CV_SLOCLIST(1,1)=1
+            CV_SLOCLIST(1,2)=2
+            CV_SLOCLIST(1,3)=3
+            CV_SLOCLIST(1,4)=4
+
+            CV_SLOCLIST(2,1)=1
+            CV_SLOCLIST(2,2)=5
+            CV_SLOCLIST(2,3)=8
+            CV_SLOCLIST(2,4)=10
+
+            CV_SLOCLIST(3,1)=4
+            CV_SLOCLIST(3,2)=7
+            CV_SLOCLIST(3,3)=9
+            CV_SLOCLIST(3,4)=10
+         ELSE ! option not available
+             stop 39211
 
          END IF
 
@@ -8285,7 +8709,7 @@
             CV_SLOCLIST(4,2)=3
             CV_SLOCLIST(4,3)=4
             ! quadratic triangle: 
-         ELSE IF(CV_NLOC==10) THEN
+         ELSE IF(CV_NLOC==10) THEN ! quadratic...
             IF(NFACE/=4) THEN
                EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
                STOP 4338
@@ -8376,11 +8800,12 @@
 !     XJAC:    OUTPUT ARRAY WITH THE GAUSS-LOBATTO ROOTS
 !     THEY ARE ORDERED FROM LARGEST (+1.0) TO SMALLEST (-1.0)
 !     
-      INTEGER N
-      REAL ALPHA,BETA
+      INTEGER , intent(in) :: N
+      REAL , intent(inout) :: ALPHA,BETA
 !      IMPLICIT REAL(A-H,O-Z)
 !      REAL XJAC(1)
-      REAL XJAC(N+1)
+      REAL , dimension(: ) :: XJAC
+      !Local variables
       REAL ALP,BET,RV
       REAL PNP1P,PDNP1P,PNP,PDNP,PNM1P,PDNM1,PNP1M,PDNP1M,PNM,PDNM,PNM1M
       REAL DET,RP,RM,A,B,DTH,CD,SD,CS,SS,X,PNP1,PDNP1,PN,PDN,PNM1,POLY
@@ -8461,12 +8886,14 @@
 !     COMPUTES THE JACOBI POLYNOMIAL (POLY) AND ITS DERIVATIVE
 !     (PDER) OF DEGREE  N  AT  X
 !     
-      INTEGER N
-      REAL APB,POLY,PDER,POLYM1,PDERM1,POLYM2,PDERM2,X
+      INTEGER , intent(in):: N
+      REAL , intent(inout) :: POLY, PDER,POLYM1,PDERM1,POLYM2,PDERM2
+      real, intent(in) :: X
 !     IMPLICIT REAL(A-H,O-Z)
       COMMON /JACPAR/ALP,BET,RV
+      !Local variabes
       REAL ALP,BET,RV,POLYLST,PDERLST,A1,A2,B3,A3,A4
-      REAL POLYN,PDERN,PSAVE,PDSAVE
+      REAL POLYN,PDERN,PSAVE,PDSAVE,APB
       INTEGER K
       APB = ALP+BET
       POLY = 1.0
@@ -8507,10 +8934,11 @@
        y1, y2, y3, y4, &
        z1, z2, z3, z4 )
     implicit none
-    logical :: hexs
-    real :: x1, x2, x3, x4, &
+    logical , intent(in) :: hexs
+    real, intent(in) :: x1, x2, x3, x4, &
        y1, y2, y3, y4, &
        z1, z2, z3, z4 
+   !Local variables
     integer :: iloc
 
     Volume_TetHex = &

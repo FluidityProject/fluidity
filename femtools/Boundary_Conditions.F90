@@ -53,6 +53,7 @@ implicit none
   interface get_boundary_condition
      module procedure get_scalar_boundary_condition_by_number, &
        get_vector_boundary_condition_by_number, &
+       get_tensor_boundary_condition_by_number, &
        get_scalar_boundary_condition_by_name, &
        get_vector_boundary_condition_by_name
   end interface
@@ -84,12 +85,14 @@ implicit none
     
   interface get_boundary_condition_count
      module procedure get_scalar_boundary_condition_count, &
-       get_vector_boundary_condition_count
+       get_vector_boundary_condition_count, &
+       get_tensor_boundary_condition_count
   end interface
     
   interface get_entire_boundary_condition
      module procedure get_entire_scalar_boundary_condition, &
-       get_entire_vector_boundary_condition
+       get_entire_vector_boundary_condition, &
+       get_entire_tensor_boundary_condition
   end interface
 
   interface get_boundary_condition_nodes
@@ -820,6 +823,18 @@ contains
   
   end function get_vector_boundary_condition_count
 
+integer function get_tensor_boundary_condition_count(field)
+  !!< Get number of boundary conditions of a scalar field
+  type(tensor_field), intent(in):: field
+    
+    if (associated(field%bc%boundary_condition)) then
+      get_tensor_boundary_condition_count=size(field%bc%boundary_condition)
+    else
+      get_tensor_boundary_condition_count=0
+    end if
+  
+  end function get_tensor_boundary_condition_count
+
   subroutine get_scalar_boundary_condition_by_number(field, n, name, type, &
     surface_element_list, surface_node_list, surface_mesh, &
     option_path)
@@ -927,6 +942,63 @@ contains
     end if
     
   end subroutine get_vector_boundary_condition_by_number
+
+  subroutine get_tensor_boundary_condition_by_number(field, n, name, type, &
+    surface_element_list, surface_node_list, applies, surface_mesh, &
+    option_path)
+  !!< Get boundary condition of a vector field
+  type(tensor_field), intent(in):: field
+  !! which boundary condition
+  integer, intent(in):: n
+  !! name of the b.c.
+  character(len=*), intent(out), optional:: name
+  !! type of b.c., any of: ...
+  character(len=*), intent(out), optional:: type
+  !! pointer to list of surface elements where this b.c. is applied
+  integer, dimension(:), pointer, optional:: surface_element_list
+  !! pointer to list of surface nodes where this b.c. is applied
+  integer, dimension(:), pointer, optional:: surface_node_list
+  !! vector components to which this b.c. applies
+  logical, dimension(:,:), intent(out), optional:: applies
+  !! surface mesh on which surface fields can be allocated
+  type(mesh_type), pointer, optional:: surface_mesh
+  !! option_path for the bc
+  character(len=*), intent(out), optional:: option_path
+  
+  type(tensor_boundary_condition), pointer:: bc
+
+    assert(n>=1 .and. n<=size(field%bc%boundary_condition))
+    bc => field%bc%boundary_condition(n)
+    
+    if (present(name)) then
+      name=bc%name
+    end if
+    
+    if (present(type)) then
+      type=bc%type
+    end if
+    
+    if (present(surface_element_list)) then
+      surface_element_list => bc%surface_element_list
+    end if
+    
+    if (present(surface_node_list)) then
+      surface_node_list => bc%surface_node_list
+    end if
+    
+    if (present(applies)) then
+      applies=bc%applies(1:size(applies,1),1:size(applies,2))
+    end if
+        
+    if (present(surface_mesh)) then
+      surface_mesh => bc%surface_mesh
+    end if
+    
+    if (present(option_path)) then
+      option_path = bc%option_path
+    end if
+    
+  end subroutine get_tensor_boundary_condition_by_number
 
   subroutine get_scalar_boundary_condition_by_name(field, name, &
     type, surface_node_list, surface_element_list, surface_mesh, &
@@ -1287,6 +1359,156 @@ contains
     end if
 
   end subroutine get_entire_vector_boundary_condition
+
+  subroutine get_entire_tensor_boundary_condition(field, &
+     types, boundary_value, bc_type_list, bc_number_list)
+    !!< Gets the boundary conditions on the entire surface mesh for all
+    !!< bc types requested
+    
+    !! field of which boundary conditions are retrieved
+    type(tensor_field), intent(in), target :: field
+    !! list of bc types you want (others are ignored)
+    character(len=*), dimension(:), intent(in):: types
+    !! A field over the entire surface containing the boundary values
+    !! for the bcs of the type requested. This field is defined on a 
+    !! dg surface mesh so that it can deal with discontinuities between
+    !! differen boundary conditions.
+    !! The ordering of the (surface) elements in this mesh is the same
+    !! as the ordering of the surface elements (faces) of the given
+    !! field.
+    !! This field should be deallocated after use.
+    type(tensor_field), intent(out):: boundary_value
+    !! For each surface_element returns the position in the types argument list,
+    !! thus identifying the applied boundary condition type,
+    !! or zero, if no bc of the requested types are applied to this face.
+    !! BC can be set for each component separately, so dim1 x dim2 x  surface_element_count()
+    integer, dimension(:,:,:), intent(out):: bc_type_list
+    !! For each surface_element returns the number of the boundary condition,
+    !! which can be used to extract further information
+    !! BC can be set for each component separately, so ndim x surface_element_count()
+    integer, dimension(:,:,:), intent(out), optional:: bc_number_list
+    
+    type(tensor_field), pointer:: surface_field
+    type(vector_field), pointer:: vector_surface_field
+    type(scalar_field), pointer:: scalar_surface_field
+    type(mesh_type), pointer:: surface_mesh, volume_mesh
+    character(len=FIELD_NAME_LEN) bctype
+    integer, dimension(:), pointer:: surface_element_list
+    logical, dimension(field%dim(1),field%dim(2)):: applies
+    integer i, j, k, n,m, sele
+
+    integer, dimension(:), pointer :: neigh
+    integer :: l_face_number, ele
+
+    volume_mesh => field%mesh
+    surface_mesh => get_dg_surface_mesh(volume_mesh)
+
+    call allocate(boundary_value, surface_mesh, &
+       name=trim(field%name)//"EntireBC", dim=field%dim)
+    call zero(boundary_value)
+    bc_type_list=0
+    
+    bcloop: do i=1, get_boundary_condition_count(field)
+       call get_boundary_condition(field, i, type=bctype, applies=applies, &
+          surface_element_list=surface_element_list)
+          
+       ! see if we're interested in this one, if not skip it
+       do j=1, size(types)
+          if (trim(types(j))==trim(bctype)) exit
+       end do
+       if (j>size(types)) cycle
+       
+       if (associated(field%bc%boundary_condition(i)%surface_fields)) then
+          ! extract 1st surface field
+          surface_field => field%bc%boundary_condition(i)%surface_fields(1)
+       else
+          nullify(surface_field)
+       end if   
+       
+       if (associated(field%bc%boundary_condition(i)%vector_surface_fields)) then
+          ! extract 1st surface field
+          vector_surface_field => field%bc%boundary_condition(i)%vector_surface_fields(1)
+       else
+          nullify(vector_surface_field)
+       end if
+
+       if (associated(field%bc%boundary_condition(i)%scalar_surface_fields)) then
+          ! extract 1st surface field
+          scalar_surface_field => field%bc%boundary_condition(i)%scalar_surface_fields(1)
+       else
+          nullify(scalar_surface_field)
+       end if
+       
+       faceloop: do k=1, size(surface_element_list)
+          sele=surface_element_list(k)
+          
+          do m=1, field%dim(2)
+             do n=1, field%dim(1)
+                if (applies(n,m)) then
+                   if (bc_type_list(n,m, sele)/=0) then
+                      ewrite(0,*) 'Requested types:', types
+                      ewrite(0,*) 'Of these boundary condition types'
+                      ewrite(0,*) 'only one may be applied'
+                      ewrite(0,*) 'to each surface element.'
+                      ewrite(0,*) 'Surface element nr.:', sele
+                      ewrite(0,*) 'Component :', n, m
+                      ewrite(0,*) 'has types', types(bc_type_list(n,m, sele)), bctype
+                      FLAbort("Can't have that.")
+                   end if
+                   bc_type_list(n,m, sele)=j
+                   if (present(bc_number_list)) then
+                      bc_number_list(n,m,sele)=i
+                   end if
+                   
+                   if (associated(surface_field)) then
+                      call set(boundary_value, n,m, ele_nodes(surface_mesh, sele), &
+                           ele_val(surface_field, n,m, k))
+                   end if
+                   if (associated(vector_surface_field)) then
+                      if (all(applies(:,m))) then
+                         call set(boundary_value, n,m, ele_nodes(surface_mesh, sele), &
+                              ele_val(vector_surface_field ,n,k))
+                      else
+                         call set(boundary_value, n,m, ele_nodes(surface_mesh, sele), &
+                              ele_val(vector_surface_field ,m,k))
+                      end if
+                   end if
+                   if (associated(scalar_surface_field)) then
+                      call set(boundary_value, n,m, ele_nodes(surface_mesh, sele), &
+                           ele_val(scalar_surface_field ,k))
+                   end if
+                   
+                end if
+             end do
+          end do
+          
+       end do faceloop
+    end do bcloop
+
+    ! now let's search for internal bcs (this includes periodic boundaries)
+    do j=1, size(types)
+      if (trim(types(j))=="internal") exit
+    end do
+    if (j<=size(types)) then
+      do sele = 1, surface_element_count(field)
+        ele = face_ele(field, sele)
+        l_face_number = local_face_number(field, sele)
+        neigh => ele_neigh(field, ele)
+        
+        if(neigh(l_face_number)>0) then
+          
+          if (all(bc_type_list(:,:,sele)==0)) then
+             ! an internal (or periodic) boundary condition only
+             ! gets assigned if no other boundary condition type
+             ! has been assigned to this surface element
+             bc_type_list(:,:,sele)=j
+          end if
+          
+        end if
+      end do
+    end if
+
+  end subroutine get_entire_tensor_boundary_condition
     
   function get_dg_surface_mesh(mesh)
   !! Returns a pointer a DG version of the entire surface mesh

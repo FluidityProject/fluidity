@@ -470,6 +470,78 @@ This option will work only if the mesh_adaptivity is switched on.</a:documentati
                 <ref name="integer"/>
               </element>
             </optional>
+            <optional>
+              <element name="nonlinear_iterations_automatic">
+                <a:documentation>Non-linear iterations are chosen automatically based on the variation of the saturation between non-linear iterations.
+
+The input is the tolerance between non-linear iterations.
+Recommended value is 0.01</a:documentation>
+                <ref name="real"/>
+                <optional>
+                  <element name="adaptive_timestep_nonlinear">
+                    <a:documentation>Adaptive timestep based on the ratio between non-linear iterations.
+Time step is increased if the ratio is over a threshold, whereas if the ratio is below another threshold or the maximum of non-linear iterations are reached,
+the calculations for that time are repeated with a lower timestep.
+
+A Variable to check has to be chosen:
+1 = Pressure; 2 = Velocity; 3 = PhaseVolumeFraction (Default)</a:documentation>
+                    <ref name="integer"/>
+                    <group>
+                      <optional>
+                        <element name="keep_sat_bounds">
+                          <a:documentation>Reduce time step if saturation goes out of bounds.
+i.e. The saturation gets smaller than the irreducible one.</a:documentation>
+                          <empty/>
+                        </element>
+                      </optional>
+                      <optional>
+                        <element name="increase_factor">
+                          <a:documentation>Multiply present timestep by this factor when increasing it.
+By default 1.2</a:documentation>
+                          <ref name="real"/>
+                        </element>
+                      </optional>
+                      <optional>
+                        <element name="decrease_factor">
+                          <a:documentation>Multiply present timestep by this factor when decreasing it.
+By default 2.0</a:documentation>
+                          <ref name="real"/>
+                        </element>
+                      </optional>
+                      <optional>
+                        <element name="max_timestep">
+                          <a:documentation>Maximum timestep. Beyond this value the timestep will not be increased.
+By default unlimmited.</a:documentation>
+                          <ref name="real"/>
+                        </element>
+                      </optional>
+                      <optional>
+                        <element name="min_timestep">
+                          <a:documentation>Minimum timestep. Beyond this value the timestep will not be decreased.
+By default dt*1e-10.</a:documentation>
+                          <ref name="real"/>
+                        </element>
+                      </optional>
+                      <optional>
+                        <element name="increase_ts_switch">
+                          <a:documentation>If the ratio between non-linear iterations is smaller, then the timestep can be increased.
+By default 1e-3.</a:documentation>
+                          <ref name="real"/>
+                        </element>
+                      </optional>
+                      <optional>
+                        <element name="decrease_ts_switch">
+                          <a:documentation>If the ratio between non-linear iterations is bigger, then the timestep has to be decreased.
+Note that if the number of maximum non-linear iterations is reached then the timestep will be also decreased.
+By default 1e-1.</a:documentation>
+                          <ref name="real"/>
+                        </element>
+                      </optional>
+                    </group>
+                  </element>
+                </optional>
+              </element>
+            </optional>
           </element>
         </optional>
         <optional>
@@ -602,6 +674,12 @@ to sum to 1 by adding constraint into compositional source term.</a:documentatio
           <optional>
             <element name="linearise_density">
               <a:documentation>linearise density</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="linearise_component">
+              <a:documentation>linearise component for the bulk density calculation used in the momentum equation</a:documentation>
               <empty/>
             </element>
           </optional>
@@ -751,6 +829,13 @@ Default value 2.0</a:documentation>
                   <optional>
                     <element name="boost_at_zero_saturation">
                       <a:documentation>Option to boost the absorption at zero saturation</a:documentation>
+                      <ref name="comment"/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="Use_epsilon_method">
+                      <a:documentation>This method implements the true Brooks-Corey model by adding an epsilon value (1e-20) to avoid divisions by zero. 
+(Recommended)</a:documentation>
                       <ref name="comment"/>
                     </element>
                   </optional>

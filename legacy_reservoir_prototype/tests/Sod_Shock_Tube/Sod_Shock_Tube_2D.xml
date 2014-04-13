@@ -64,7 +64,7 @@ drho_int_p1dgp2_20layers = stat("SodShockTube_P1DGP2_20layers.stat")["phase1"]["
 from fluidity_tools import stat_parser as stat
 drho_max_p1dgp2_80layers = stat("SodShockTube_P1DGP2_80layers.stat")["phase1"]["DensityDifference"]["max"][-1]
     </variable>
-    <variable name="drho_int_p1dgp1_80layers" language="python">
+    <variable name="drho_int_p1dgp2_80layers" language="python">
 from fluidity_tools import stat_parser as stat
 drho_int_p1dgp2_80layers = stat("SodShockTube_P1DGP2_80layers.stat")["phase1"]["DensityDifference"]["integral"][-1]
     </variable>
@@ -122,7 +122,7 @@ dp_int_p1dgp2_20layers = stat("SodShockTube_P1DGP2_20layers.stat")["phase1"]["Pr
 from fluidity_tools import stat_parser as stat
 dp_max_p1dgp2_80layers = stat("SodShockTube_P1DGP2_80layers.stat")["phase1"]["PressureDifference"]["max"][-1]
     </variable>
-    <variable name="dp_int_p1dgp1_80layers" language="python">
+    <variable name="dp_int_p1dgp2_80layers" language="python">
 from fluidity_tools import stat_parser as stat
 dp_int_p1dgp2_80layers = stat("SodShockTube_P1DGP2_80layers.stat")["phase1"]["PressureDifference"]["integral"][-1]
     </variable>
@@ -180,7 +180,7 @@ de_int_p1dgp2_20layers = stat("SodShockTube_P1DGP2_20layers.stat")["phase1"]["Te
 from fluidity_tools import stat_parser as stat
 de_max_p1dgp2_80layers = stat("SodShockTube_P1DGP2_80layers.stat")["phase1"]["TemperatureDifference"]["max"][-1]
     </variable>
-    <variable name="de_int_p1dgp1_80layers" language="python">
+    <variable name="de_int_p1dgp2_80layers" language="python">
 from fluidity_tools import stat_parser as stat
 de_int_p1dgp2_80layers = stat("SodShockTube_P1DGP2_80layers.stat")["phase1"]["TemperatureDifference"]["integral"][-1]
     </variable>
@@ -238,7 +238,7 @@ du_int_p1dgp2_20layers = stat("SodShockTube_P1DGP2_20layers.stat")["phase1"]["Sp
 from fluidity_tools import stat_parser as stat
 du_max_p1dgp2_80layers = stat("SodShockTube_P1DGP2_80layers.stat")["phase1"]["SpeedDifference"]["max"][-1]
     </variable>
-    <variable name="du_int_p1dgp1_80layers" language="python">
+    <variable name="du_int_p1dgp2_80layers" language="python">
 from fluidity_tools import stat_parser as stat
 du_int_p1dgp2_80layers = stat("SodShockTube_P1DGP2_80layers.stat")["phase1"]["SpeedDifference"]["integral"][-1]
     </variable>
@@ -268,185 +268,185 @@ du_int_p1dgp1dg_80layers = stat("SodShockTube_P1DGP1DG_80layers.stat")["phase1"]
 
 
     <test name="Assert density max absolute analytic_error for P1DG-P1 20-layer mesh is less than..." language="python">
-assert(abs(drho_max_p1dgp1_20layers) &lt; 0.12783281326807272 + 1.0e-10)
+assert(abs(drho_max_p1dgp1_20layers) &lt; 0.12783281326807272 + 1.0e-6)
     </test>
     <test name="Assert density integral absolute analytic_error for P1DG-P1 20-layer mesh is less than..." language="python">
-assert(abs(drho_int_p1dgp1_20layers) &lt; 0.00175344915831938 + 1.0e-10)
+assert(abs(drho_int_p1dgp1_20layers) &lt; 0.00175344915831938 + 1.0e-6)
     </test>
 
     <test name="Assert density max absolute analytic_error for P1DG-P1 80-layer mesh is less than..." language="python">
-assert(abs(drho_max_p1dgp1_80layers) &lt; 0.15317992804544783 + 1.0e-10)
+assert(abs(drho_max_p1dgp1_80layers) &lt; 0.15317992804544783 + 1.0e-6)
     </test>
     <test name="Assert density integral absolute analytic_error for P1DG-P1 80-layer mesh is less than..." language="python">
-assert(abs(drho_int_p1dgp1_80layers) &lt; 0.0011195223822254789 + 1.0e-10)
+assert(abs(drho_int_p1dgp1_80layers) &lt; 0.0011195223822254789 + 1.0e-6)
     </test>
 
 
     <test name="Assert density max absolute analytic_error for P1DG-P2 20-layer mesh is less than..." language="python">
-assert(abs(drho_max_p1dgp2_20layers) &lt; 0.14108365744345125 + 1.0e-10)
+assert(abs(drho_max_p1dgp2_20layers) &lt; 0.14108365744345125 + 1.0e-6)
     </test>
     <test name="Assert density integral absolute analytic_error for P1DG-P2 20-layer mesh is less than..." language="python">
-assert(abs(drho_int_p1dgp2_20layers) &lt; 0.0011368817459780141 + 1.0e-10)
+assert(abs(drho_int_p1dgp2_20layers) &lt; 0.0011368817459780141 + 1.0e-6)
     </test>
 
     <test name="Assert density max absolute analytic_error for P1DG-P2 80-layer mesh is less than..." language="python">
-assert(abs(drho_max_p1dgp2_80layers) &lt; 0.14771843187929379 + 1.0e-10)
+assert(abs(drho_max_p1dgp2_80layers) &lt; 0.14771843187929379 + 1.0e-6)
     </test>
     <test name="Assert density integral absolute analytic_error for P1DG-P2 80-layer mesh is less than..." language="python">
-assert(abs(drho_int_p1dgp2_80layers) &lt; 0.00079804107711516146 + 1.0e-10)
+assert(abs(drho_int_p1dgp2_80layers) &lt; 0.00079804107711516146 + 1.0e-6)
     </test>
 
 
     <test name="Assert density max absolute analytic_error for P1DG-P1DG 20-layer mesh is less than..." language="python">
-assert(abs(drho_max_p1dgp1dg_20layers) &lt; 0.15798031062749157 + 1.0e-10)
+assert(abs(drho_max_p1dgp1dg_20layers) &lt; 0.15798031062749157 + 1.0e-6)
     </test>
     <test name="Assert density integral absolute analytic_error for P1DG-P1DG 20-layer mesh is less than..." language="python">
-assert(abs(drho_int_p1dgp1dg_20layers) &lt; 0.0017574443819309963 + 1.0e-10)
+assert(abs(drho_int_p1dgp1dg_20layers) &lt; 0.0017574443819309963 + 1.0e-6)
     </test>
 
     <test name="Assert density max absolute analytic_error for P1DG-P1DG 80-layer mesh is less than..." language="python">
-assert(abs(drho_max_p1dgp1dg_80layers) &lt; 0.15622826340145785 + 1.0e-10)
+assert(abs(drho_max_p1dgp1dg_80layers) &lt; 0.15622826340145785 + 1.0e-6)
     </test>
     <test name="Assert density integral absolute analytic_error for P1DG-P1DG 80-layer mesh is less than..." language="python">
-assert(abs(drho_int_p1dgp1dg_80layers) &lt; 0.0014653851078430132 + 1.0e-10)
+assert(abs(drho_int_p1dgp1dg_80layers) &lt; 0.0014653851078430132 + 1.0e-6)
     </test>
 
 
 
     <test name="Assert pressure max absolute analytic_error for P1DG-P1 20-layer mesh is less than..." language="python">
-assert(abs(dp_max_p1dgp1_20layers) &lt; 0.12420327459259611 + 1.0e-10)
+assert(abs(dp_max_p1dgp1_20layers) &lt; 0.165113913345 + 1.0e-6)
     </test>
     <test name="Assert pressure integral absolute analytic_error for P1DG-P1 20-layer mesh is less than..." language="python">
-assert(abs(dp_int_p1dgp1_20layers) &lt; 0.0016406819239805218 + 1.0e-10)
+assert(abs(dp_int_p1dgp1_20layers) &lt; 0.0016406819239805218 + 1.0e-6)
     </test>
 
     <test name="Assert pressure max absolute analytic_error for P1DG-P1 80-layer mesh is less than..." language="python">
-assert(abs(dp_max_p1dgp1_80layers) &lt; 0.21683792506635513 + 1.0e-10)
+assert(abs(dp_max_p1dgp1_80layers) &lt; 0.21683792506635513 + 1.0e-6)
     </test>
     <test name="Assert pressure integral absolute analytic_error for P1DG-P1 80-layer mesh is less than..." language="python">
-assert(abs(dp_int_p1dgp1_80layers) &lt; 0.001054225438378493 + 1.0e-10)
+assert(abs(dp_int_p1dgp1_80layers) &lt; 0.001054225438378493 + 1.0e-6)
     </test>
 
 
     <test name="Assert pressure max absolute analytic_error for P1DG-P2 20-layer mesh is less than..." language="python">
-assert(abs(dp_max_p1dgp2_20layers) &lt;  0.20369921499455212 + 1.0e-10)
+assert(abs(dp_max_p1dgp2_20layers) &lt;  0.20369921499455212 + 1.0e-6)
     </test>
     <test name="Assert pressure integral absolute analytic_error for P1DG-P2 20-layer mesh is less than..." language="python">
-assert(abs(dp_int_p1dgp2_20layers) &lt; 0.0010777927921554245 + 1.0e-10)
+assert(abs(dp_int_p1dgp2_20layers) &lt; 0.0010777927921554245 + 1.0e-6)
     </test>
 
     <test name="Assert pressure max absolute analytic_error for P1DG-P2 80-layer mesh is less than..." language="python">
-assert(abs(dp_max_p1dgp2_80layers) &lt;  0.2110250738533842 + 1.0e-10)
+assert(abs(dp_max_p1dgp2_80layers) &lt;  0.2110250738533842 + 1.0e-6)
     </test>
     <test name="Assert pressure integral absolute analytic_error for P1DG-P2 80-layer mesh is less than..." language="python">
-assert(abs(dp_int_p1dgp2_80layers) &lt;  0.00067461117365455827 + 1.0e-10)
+assert(abs(dp_int_p1dgp2_80layers) &lt;  0.00067461117365455827 + 1.0e-6)
     </test>
 
 
     <test name="Assert pressure max absolute analytic_error for P1DG-P1DG 20-layer mesh is less than..." language="python">
-assert(abs(dp_max_p1dgp1dg_20layers) &lt; 0.20126018176297 + 1.0e-10)
+assert(abs(dp_max_p1dgp1dg_20layers) &lt; 0.216653496157 + 1.0e-6)
     </test>
     <test name="Assert pressure integral absolute analytic_error for P1DG-P1DG 20-layer mesh is less than..." language="python">
-assert(abs(dp_int_p1dgp1dg_20layers) &lt; 0.0016916368592727511 + 1.0e-10)
+assert(abs(dp_int_p1dgp1dg_20layers) &lt; 0.0016916368592727511 + 1.0e-6)
     </test>
 
     <test name="Assert pressure max absolute analytic_error for P1DG-P1DG 80-layer mesh is less than..." language="python">
-assert(abs(dp_max_p1dgp1dg_80layers) &lt; 0.2141548832310472 + 1.0e-10)
+assert(abs(dp_max_p1dgp1dg_80layers) &lt; 0.2141548832310472 + 1.0e-6)
     </test>
     <test name="Assert pressure integral absolute analytic_error for P1DG-P1DG 80-layer mesh is less than..." language="python">
-assert(abs(dp_int_p1dgp1dg_80layers) &lt; 0.001459127149614024 + 1.0e-10)
+assert(abs(dp_int_p1dgp1dg_80layers) &lt; 0.001459127149614024 + 1.0e-6)
     </test>
 
 
 
     <test name="Assert internal energy max absolute analytic_error for P1DG-P1 20-layer mesh is less than..." language="python">
-assert(abs(de_max_p1dgp1_20layers) &lt; 0.69048582955228355 + 1.0e-10)
+assert(abs(de_max_p1dgp1_20layers) &lt; 0.69048582955228355 + 1.0e-6)
     </test>
     <test name="Assert internal energy integral absolute analytic_error for P1DG-P1 20-layer mesh is less than..." language="python">
-assert(abs(de_int_p1dgp1_20layers) &lt; 0.0067555538956610307 + 1.0e-10)
+assert(abs(de_int_p1dgp1_20layers) &lt; 0.0067555538956610307 + 1.0e-6)
     </test>
 
     <test name="Assert internal energy max absolute analytic_error for P1DG-P1 80-layer mesh is less than..." language="python">
-assert(abs(de_max_p1dgp1_80layers) &lt; 0.93372024800046072 + 1.0e-10)
+assert(abs(de_max_p1dgp1_80layers) &lt; 0.93372024800046072 + 1.0e-6)
     </test>
     <test name="Assert internal energy integral absolute analytic_error for P1DG-P1 80-layer mesh is less than..." language="python">
-assert(abs(de_int_p1dgp1_80layers) &lt; 0.0053714256641956932 + 1.0e-10)
+assert(abs(de_int_p1dgp1_80layers) &lt; 0.0053714256641956932 + 1.0e-6)
     </test>
 
 
     <test name="Assert internal energy max absolute analytic_error for P1DG-P2 20-layer mesh is less than..." language="python">
-assert(abs(de_max_p1dgp2_20layers) &lt; 0.85661801091098955 + 1.0e-10)
+assert(abs(de_max_p1dgp2_20layers) &lt; 0.85661801091098955 + 1.0e-6)
     </test>
     <test name="Assert internal energy integral absolute analytic_error for P1DG-P2 20-layer mesh is less than..." language="python">
-assert(abs(de_int_p1dgp2_20layers) &lt; 0.0056608472350803242 + 1.0e-10)
+assert(abs(de_int_p1dgp2_20layers) &lt; 0.0056608472350803242 + 1.0e-6)
     </test>
 
     <test name="Assert internal energy max absolute analytic_error for P1DG-P2 80-layer mesh is less than..." language="python">
-assert(abs(de_max_p1dgp2_80layers) &lt; 0.90067420529356434 + 1.0e-10)
+assert(abs(de_max_p1dgp2_80layers) &lt; 0.90067420529356434 + 1.0e-6)
     </test>
     <test name="Assert internal energy integral absolute analytic_error for P1DG-P2 80-layer mesh is less than..." language="python">
-assert(abs(de_int_p1dgp2_80layers) &lt; 0.004756310346923461 + 1.0e-10)
+assert(abs(de_int_p1dgp2_80layers) &lt; 0.004756310346923461 + 1.0e-6)
     </test>
 
 
     <test name="Assert internal energy max absolute analytic_error for P1DG-P1DG 20-layer mesh is less than..." language="python">
-assert(abs(de_max_p1dgp1dg_20layers) &lt; 0.84134192124711449 + 1.0e-10)
+assert(abs(de_max_p1dgp1dg_20layers) &lt; 0.934927555837 + 1.0e-6)
     </test>
     <test name="Assert internal energy integral absolute analytic_error for P1DG-P1DG 20-layer mesh is less than..." language="python">
-assert(abs(de_int_p1dgp1dg_20layers) &lt; 0.0064640922991990018 + 1.0e-10)
+assert(abs(de_int_p1dgp1dg_20layers) &lt; 0.0064640922991990018 + 1.0e-6)
     </test>
 
     <test name="Assert internal energy max absolute analytic_error for P1DG-P1DG 80-layer mesh is less than..." language="python">
-assert(abs(de_max_p1dgp1dg_80layers) &lt; 0.91905673710726332 + 1.0e-10)
+assert(abs(de_max_p1dgp1dg_80layers) &lt; 0.91905673710726332 + 1.0e-6)
     </test>
     <test name="Assert internal energy integral absolute analytic_error for P1DG-P1DG 80-layer mesh is less than..." language="python">
-assert(abs(de_int_p1dgp1dg_80layers) &lt; 0.006369827330013871 + 1.0e-10)
+assert(abs(de_int_p1dgp1dg_80layers) &lt; 0.006369827330013871 + 1.0e-6)
     </test>
 
 
 
     <test name="Assert speed max absolute analytic_error for P1DG-P1 20-layer mesh is less than..." language="python">
-assert(abs(du_max_p1dgp1_20layers) &lt; 1.1431806289589739 + 1.0e-10)
+assert(abs(du_max_p1dgp1_20layers) &lt; 1.1431806289589739 + 1.0e-6)
     </test>
     <test name="Assert speed integral absolute analytic_error for P1DG-P1 20-layer mesh is less than..." language="python">
-assert(abs(du_int_p1dgp1_20layers) &lt; 0.0063417802469166069 + 1.0e-10)
+assert(abs(du_int_p1dgp1_20layers) &lt; 0.0063417802469166069 + 1.0e-6)
     </test>
 
     <test name="Assert speed max absolute analytic_error for P1DG-P1 80-layer mesh is less than..." language="python">
-assert(abs(du_max_p1dgp1_80layers) &lt; 0.87680967207401628 + 1.0e-10)
+assert(abs(du_max_p1dgp1_80layers) &lt; 0.920824907476 + 1.0e-6)
     </test>
     <test name="Assert speed integral absolute analytic_error for P1DG-P1 80-layer mesh is less than..." language="python">
-assert(abs(du_int_p1dgp1_80layers) &lt; 0.0040891760872614133 + 1.0e-10)
+assert(abs(du_int_p1dgp1_80layers) &lt; 0.0040891760872614133 + 1.0e-6)
     </test>
 
 
     <test name="Assert speed max absolute analytic_error for P1DG-P2 20-layer mesh is less than..." language="python">
-assert(abs(du_max_p1dgp2_20layers) &lt; 0.78145234957383558 + 1.0e-10)
+assert(abs(du_max_p1dgp2_20layers) &lt; 0.811937786662 + 1.0e-6)
     </test>
     <test name="Assert speed integral absolute analytic_error for P1DG-P2 20-layer mesh is less than..." language="python">
-assert(abs(du_int_p1dgp2_20layers) &lt; 0.0025334639967225375 + 1.0e-10)
+assert(abs(du_int_p1dgp2_20layers) &lt; 0.0025334639967225375 + 1.0e-6)
     </test>
 
     <test name="Assert speed max absolute analytic_error for P1DG-P2 80-layer mesh is less than..." language="python">
-assert(abs(du_max_p1dgp2_80layers) &lt; 0.92513654652853639 + 1.0e-10)
+assert(abs(du_max_p1dgp2_80layers) &lt; 0.92513654652853639 + 1.0e-6)
     </test>
     <test name="Assert speed integral absolute analytic_error for P1DG-P2 80-layer mesh is less than..." language="python">
-assert(abs(du_int_p1dgp2_80layers) &lt; 0.0020384838089003653 + 1.0e-10)
+assert(abs(du_int_p1dgp2_80layers) &lt; 0.0020384838089003653 + 1.0e-6)
     </test>
 
 
     <test name="Assert speed max absolute analytic_error for P1DG-P1DG 20-layer mesh is less than..." language="python">
-assert(abs(du_max_p1dgp1dg_20layers) &lt; 1.0669148258478001 + 1.0e-10)
+assert(abs(du_max_p1dgp1dg_20layers) &lt; 1.0669148258478001 + 1.0e-6)
     </test>
     <test name="Assert speed integral absolute analytic_error for P1DG-P1DG 20-layer mesh is less than..." language="python">
-assert(abs(du_int_p1dgp1dg_20layers) &lt; 0.009763967746114521 + 1.0e-10)
+assert(abs(du_int_p1dgp1dg_20layers) &lt; 0.009763967746114521 + 1.0e-6)
     </test>
 
     <test name="Assert speed max absolute analytic_error for P1DG-P1DG 80-layer mesh is less than..." language="python">
-assert(abs(du_max_p1dgp1dg_80layers) &lt; 1.1800311513783832 + 1.0e-10)
+assert(abs(du_max_p1dgp1dg_80layers) &lt; 1.1800311513783832 + 1.0e-6)
     </test>
     <test name="Assert speed integral absolute analytic_error for P1DG-P1DG 80-layer mesh is less than..." language="python">
-assert(abs(du_int_p1dgp1dg_80layers) &lt; 0.014361989765792943 + 1.0e-10)
+assert(abs(du_int_p1dgp1dg_80layers) &lt; 0.014361989765792943 + 1.0e-6)
     </test>
 
 

@@ -98,7 +98,7 @@ contains
   end function do_checkpoint_simulation
 
   subroutine checkpoint_simulation(state, prefix, postfix, cp_no, protect_simulation_name, &
-    keep_initial_data)
+    keep_initial_data,file_type)
     !!< Checkpoint the whole simulation
     
     type(state_type), dimension(:), intent(in) :: state
@@ -114,6 +114,7 @@ contains
     !! checkpoint extruded meshes if the extrusion can be repeated using the initial sizing_function, 
     !! i.e. if this run has not been started with a checkpointed extruded mesh (extrude/checkpoint_from_file)
     logical, optional, intent(in) :: keep_initial_data
+    character(len = *), optional, intent(in) :: file_type
 
     character(len = PREFIX_LEN) :: lpostfix, lprefix
 
@@ -142,7 +143,7 @@ contains
     if(getrank() == 0) then
       ! Only rank zero should write out the options tree in parallel
       call checkpoint_options(lprefix, postfix = lpostfix, cp_no = cp_no, &
-        & protect_simulation_name = .not. present_and_false(protect_simulation_name))
+        & protect_simulation_name = .not. present_and_false(protect_simulation_name),file_type=file_type)
     end if
     
   end subroutine checkpoint_simulation
@@ -762,7 +763,7 @@ contains
 
   end subroutine checkpoint_fields
   
-  subroutine checkpoint_options(prefix, postfix, cp_no, protect_simulation_name)
+  subroutine checkpoint_options(prefix, postfix, cp_no, protect_simulation_name,file_type)
     !!< Checkpoint the entire options tree. Outputs to an FLML file with name:
     !!<   [prefix][_cp_no][_postfix].flml
     !!< where cp_no is optional.
@@ -775,13 +776,21 @@ contains
     !! If present and .false., do not protect the simulation_name when
     !! checkpointing the options tree
     logical, optional, intent(in) :: protect_simulation_name
+    character(len = *), intent(in), optional :: file_type
 
     character(len = OPTION_PATH_LEN) :: simulation_name, options_file_filename
     logical :: lprotect_simulation_name
+    character(len=8) :: lfile_type
 
     ewrite(2, *) "Checkpointing options tree"
 
     assert(len_trim(prefix) > 0)
+
+    if (present(file_type)) then
+       lfile_type=file_type
+    else
+       lfile_type='.flml'
+    end if
 
     lprotect_simulation_name = .not. present_and_false(protect_simulation_name)
 
@@ -798,7 +807,7 @@ contains
     options_file_filename = trim(prefix)
     if(present(cp_no)) options_file_filename = trim(options_file_filename) // "_" // int2str(cp_no)
     if(present_and_nonempty(postfix)) options_file_filename = trim(options_file_filename) // "_" // trim(postfix)
-    options_file_filename = trim(options_file_filename) //  ".flml"
+    options_file_filename = trim(options_file_filename) //  trim(lfile_type)
 
     call write_options(options_file_filename)
 

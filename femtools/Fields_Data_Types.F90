@@ -40,8 +40,8 @@ module fields_data_types
   public adjacency_cache, &
      mesh_type, mesh_faces, mesh_subdomain_mesh, scalar_field, vector_field, tensor_field, &
      mesh_pointer, scalar_field_pointer, vector_field_pointer, tensor_field_pointer, &
-     scalar_boundary_condition, vector_boundary_condition, &
-     scalar_boundary_conditions_ptr, vector_boundary_conditions_ptr
+     scalar_boundary_condition, vector_boundary_condition, tensor_boundary_condition, &
+     scalar_boundary_conditions_ptr, vector_boundary_conditions_ptr, tensor_boundary_conditions_ptr
 
   !! Types of different halo associated with a field:
   integer, public, parameter :: HALO_TYPES=2
@@ -160,12 +160,19 @@ module fields_data_types
      logical :: py_positions_same_mesh
      integer :: py_dim
      type(element_type), pointer :: py_positions_shape => null()
+     !Pointers to store fields
+     logical, pointer :: updated => null()
+     type(scalar_field_pointer), dimension(:), pointer :: dependant_scalar_field=> null()
+     type(vector_field_pointer), dimension(:), pointer :: dependant_vector_field=> null()
+     type(tensor_field_pointer), dimension(:), pointer :: dependant_tensor_field=> null()
   end type scalar_field
 
   type vector_field
      !! dim x nonods vector values
      real, dimension(:,:), pointer :: val
-     !! Flag for whether val is allocated
+     !! Stride of val
+     integer, dimension(2) :: val_stride= (/ 1 , 1 /)
+     !! Flag for whether val is allocated 
      logical :: wrapped = .true.
      !! The data source to be used
      integer :: field_type = FIELD_TYPE_NORMAL
@@ -187,6 +194,11 @@ module fields_data_types
      !! Picker used for spatial indexing (pointer to a pointer to ensure
      !! correct handling on assignment)
      type(picker_ptr), pointer :: picker => null()
+     !Pointers to store fields
+     logical, pointer :: updated => null()
+     type(scalar_field_pointer), dimension(:), pointer :: dependant_scalar_field=> null()
+     type(vector_field_pointer), dimension(:), pointer :: dependant_vector_field=> null()
+     type(tensor_field_pointer), dimension(:), pointer :: dependant_tensor_field=> null()
   end type vector_field
 
   type tensor_field
@@ -198,6 +210,8 @@ module fields_data_types
      integer :: field_type = FIELD_TYPE_NORMAL
      character(len=FIELD_NAME_LEN) :: name
      integer, dimension(2) :: dim
+     !! boundary conditions:
+     type(tensor_boundary_conditions_ptr), pointer :: bc => null()
      !! path to options in the options tree
 #ifdef DDEBUG
      character(len=OPTION_PATH_LEN) :: option_path="/uninitialised_path/"
@@ -209,6 +223,11 @@ module fields_data_types
      type(refcount_type), pointer :: refcount=>null()
      !! Indicator for whether this is an alias to another field.
      logical :: aliased=.false.
+     !Pointers to store fields
+     logical, pointer :: updated => null()
+     type(scalar_field_pointer), dimension(:), pointer :: dependant_scalar_field => null()
+     type(vector_field_pointer), dimension(:), pointer :: dependant_vector_field=> null()
+     type(tensor_field_pointer), dimension(:), pointer :: dependant_tensor_field=> null()
   end type tensor_field
 
   type mesh_pointer
@@ -276,6 +295,33 @@ module fields_data_types
      character(len=OPTION_PATH_LEN) :: option_path
 #endif
   end type vector_boundary_condition
+
+ type tensor_boundary_condition
+     !!< Type to hold boundary condition information for a vector field
+     character(len=FIELD_NAME_LEN) :: name
+     !! b.c. type, any of: ...
+     character(len=FIELD_NAME_LEN) :: type=""
+     !! boundary condition is only applied for component with applies is .true.
+     logical, dimension(:,:), pointer :: applies => null()
+     !! list of surface elements to which boundary condition is applied:
+     integer, dimension(:), pointer:: surface_element_list => null()
+     !! list of surface nodes to which boundary condition is applied:
+     integer, dimension(:), pointer:: surface_node_list => null()
+     !! mesh consisting of these elements and nodes only:
+     type(mesh_type), pointer :: surface_mesh
+     !! surface fields on this mesh containing b.c. values
+     type(tensor_field), dimension(:), pointer :: surface_fields => null()
+     !! vector surface fields on this mesh containing b.c. values
+     type(vector_field), dimension(:), pointer :: vector_surface_fields => null()
+     !! scalar surface fields on this mesh containing b.c. values
+     type(scalar_field), dimension(:), pointer :: scalar_surface_fields => null()
+     !! path to options in the options tree
+#ifdef DDEBUG
+     character(len=OPTION_PATH_LEN) :: option_path="/uninitialised_path/"
+#else
+     character(len=OPTION_PATH_LEN) :: option_path
+#endif
+  end type tensor_boundary_condition
     
   ! container for pointer to array of scalar bcs. This is put in a separate
   ! container pointed at by the field so that we don't leak memory
@@ -291,4 +337,11 @@ module fields_data_types
      type(vector_boundary_condition), dimension(:), pointer:: boundary_condition => null()
   end type vector_boundary_conditions_ptr
   
+  ! container for pointer to array of tensor bcs. This is put in a separate
+  ! container pointed at by the field so that we don't leak memory
+  ! if we change the bcs on one copy of the field when there are more copies around
+  type tensor_boundary_conditions_ptr
+     type(tensor_boundary_condition), dimension(:), pointer:: boundary_condition => null()
+  end type tensor_boundary_conditions_ptr
+
 end module fields_data_types

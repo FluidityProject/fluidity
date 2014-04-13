@@ -84,12 +84,25 @@ module python_state
       character(len=name_len) :: name
       real,dimension(sizex) :: arr
     end subroutine python_add_array_double_1d
+    subroutine python_add_array_double_1d_noncontiguous(arr,sizex,name,name_len,stride)
+      implicit none
+      integer :: name_len,sizex, stride
+      character(len=name_len) :: name
+      real,dimension(sizex) :: arr
+    end subroutine python_add_array_double_1d_noncontiguous
     subroutine python_add_array_double_2d(arr,sizex,sizey,name,name_len)
       implicit none
       integer :: name_len,sizex,sizey
       character(len=name_len) :: name
       real,dimension(sizex,sizey) :: arr
     end subroutine python_add_array_double_2d
+    subroutine python_add_array_double_2d_noncontiguous(arr,sizex,sizey,name,name_len,stride)
+      implicit none
+      integer :: name_len,sizex,sizey
+      character(len=name_len) :: name
+      real,dimension(sizex,sizey) :: arr
+      integer, dimension(2) :: stride
+    end subroutine python_add_array_double_2d_noncontiguous
     subroutine python_add_array_double_3d(arr,sizex,sizey,sizez,name,name_len)
       implicit none
       integer :: name_len,sizex,sizey,sizez
@@ -138,6 +151,16 @@ module python_state
       character(len=oplen) :: option_path
       character(len=mesh_name_len) :: mesh_name
     end subroutine python_add_scalar
+    subroutine python_add_scalar_noncontiguous(sx,x,name,nlen,field_type,option_path,oplen,state_name,snlen,&
+      &mesh_name,mesh_name_len,stride)
+      implicit none
+      integer :: sx,nlen,field_type,oplen,snlen,mesh_name_len,stride
+      real :: x
+      character(len=nlen) :: name
+      character(len=snlen) :: state_name
+      character(len=oplen) :: option_path
+      character(len=mesh_name_len) :: mesh_name
+    end subroutine python_add_scalar_noncontiguous
     subroutine python_add_vector(numdim,sx,x,&
       &name,nlen,field_type,option_path,oplen,state_name,snlen,&
       &mesh_name,mesh_name_len)
@@ -234,8 +257,13 @@ module python_state
     snlen = len(trim(st%name))
     oplen = len(trim(S%option_path))
     mesh_name_len = len(trim(S%mesh%name))
-    call python_add_scalar(size(S%val,1),S%val,&
-      trim(S%name),slen, S%field_type,S%option_path,oplen,trim(st%name),snlen,S%mesh%name,mesh_name_len)
+    if (S%val_stride==1) then
+       call python_add_scalar(size(S%val,1),S%val,&
+            trim(S%name),slen, S%field_type,S%option_path,oplen,trim(st%name),snlen,S%mesh%name,mesh_name_len)
+    else
+       call python_add_scalar_noncontiguous(size(S%val,1),S%val(1),&
+            trim(S%name),slen, S%field_type,S%option_path,oplen,trim(st%name),snlen,S%mesh%name,mesh_name_len,8*S%val_stride)
+    end if
   end subroutine python_add_scalar_directly
 
   subroutine python_add_vector_directly(V,st)
@@ -250,8 +278,13 @@ module python_state
     mesh_name_len = len(trim(V%mesh%name))
     
     assert(v%dim==size(v%val,1))
-    call python_add_vector(V%dim, size(V%val,2), V%val, &
-      trim(V%name), slen, V%field_type, V%option_path, oplen,trim(st%name),snlen,V%mesh%name,mesh_name_len)
+    if (all(v%val_stride==1)) then
+       call python_add_vector(V%dim, size(V%val,2), V%val, &
+            trim(V%name), slen, V%field_type, V%option_path, oplen,trim(st%name),snlen,V%mesh%name,mesh_name_len)
+   else
+       call python_add_vector_noncontiguous(V%dim, size(V%val,2), V%val(1,1), &
+            trim(V%name), slen, V%field_type, V%option_path, oplen,trim(st%name),snlen,V%mesh%name,mesh_name_len,8*v%val_stride)
+    end if
     
   end subroutine python_add_vector_directly
 
@@ -384,8 +417,8 @@ module python_state
       end do
     end if
     if ( associated(S%scalar_fields) )  then
-      do i=1,(size(S%scalar_fields)) 
-        call python_add_field(S%scalar_fields(i)%ptr,S)
+      do i=1,(size(S%scalar_fields))
+         call python_add_field(S%scalar_fields(i)%ptr,S)
       end do
     end if
     if ( associated(S%vector_fields) )  then

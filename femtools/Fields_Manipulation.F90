@@ -58,6 +58,7 @@ implicit none
   public :: get_patch_ele, get_patch_node, patch_type
   public :: set_ele_nodes, normalise, tensor_second_invariant
   public :: remap_to_subdomain, remap_to_full_domain
+  public :: mark_as_updated, unmark_as_updated
   
   integer, parameter, public :: REMAP_ERR_DISCONTINUOUS_CONTINUOUS = 1, &
                                 REMAP_ERR_HIGHER_LOWER_CONTINUOUS  = 2, &
@@ -94,6 +95,7 @@ implicit none
                    & set_vector_field_nodes, &
                    & set_vector_field_nodes_dim, &
                    & set_tensor_field_nodes, &
+                   & set_tensor_field_nodes_dim, &
                    & set_scalar_field_field, &
                    & set_scalar_field_from_vector_field, &
                    & set_vector_field_field, &
@@ -170,6 +172,14 @@ implicit none
   interface clone_header
     module procedure clone_header_scalar, clone_header_vector, clone_header_tensor
   end interface clone_header
+
+  interface mark_as_updated
+     module procedure mark_scalar_as_updated, mark_vector_as_updated, mark_tensor_as_updated
+  end interface mark_as_updated
+
+  interface unmark_as_updated
+     module procedure unmark_scalar_as_updated, unmark_vector_as_updated, unmark_tensor_as_updated
+  end interface unmark_as_updated
   
   interface normalise
     module procedure normalise_scalar, normalise_vector
@@ -182,6 +192,11 @@ implicit none
   interface remap_to_full_domain
     module procedure remap_to_full_domain_scalar, remap_to_full_domain_vector, remap_to_full_domain_tensor
   end interface
+
+  interface clone_field
+     module procedure clone_one_scalar_field, clone_one_vector_field, clone_one_tensor_field
+     module procedure clone_many_scalar_field, clone_many_vector_field, clone_many_tensor_field
+  end interface clone_field
 
 
   type patch_type
@@ -1411,6 +1426,20 @@ implicit none
     field%val(:, :, node_numbers) = val
     
   end subroutine set_tensor_field_nodes
+
+  subroutine set_tensor_field_nodes_dim(field, i,j, node_numbers, val)
+    !!< Set the tensor field at the specified nodes
+    !!< Does not work for constant fields
+    type(tensor_field), intent(inout) :: field
+    integer, intent(in) :: i,j
+    integer, dimension(:), intent(in) :: node_numbers
+    real, intent(in), dimension(:) :: val
+
+    assert(field%field_type==FIELD_TYPE_NORMAL)
+
+    field%val(i, j, node_numbers) = val
+    
+  end subroutine set_tensor_field_nodes_dim
     
   subroutine set_tensor_field(field, val)
     !!< Sets tensor with constant value
@@ -3993,5 +4022,369 @@ implicit none
     
   end subroutine remap_to_full_domain_tensor
   
+
+  subroutine mark_scalar_as_updated(infield)
+    !! subroutine for multiphase code, marks input field as updated and
+    !! sets all dependancies as NOT updated
+
+    type(scalar_field), intent(inout) :: infield
+
+    if (associated(infield%updated)) then
+       infield%updated=.true.
+    else
+       allocate(infield%updated)
+       infield%updated=.true.
+    end if
+    
+    
+    if (associated(infield%dependant_scalar_field)) then
+       call unmark_scalar_children(infield%dependant_scalar_field)
+    end if
+
+    if (associated(infield%dependant_vector_field)) then
+       call unmark_vector_children(infield%dependant_vector_field)
+    end if
+
+    if (associated(infield%dependant_tensor_field)) then
+       call unmark_tensor_children(infield%dependant_tensor_field)
+    end if
+
+  end subroutine mark_scalar_as_updated
+
+  subroutine mark_vector_as_updated(infield)
+    !! subroutine for multiphase code, marks input field as updated and
+    !! sets all dependancies as NOT updated
+
+    type(vector_field), intent(inout) :: infield
+
+    if (associated(infield%updated)) then
+       infield%updated=.true.
+    else
+       allocate(infield%updated)
+       infield%updated=.true.
+    end if
+    
+    
+    if (associated(infield%dependant_scalar_field)) then
+       call unmark_scalar_children(infield%dependant_scalar_field)
+    end if
+
+    if (associated(infield%dependant_vector_field)) then
+       call unmark_vector_children(infield%dependant_vector_field)
+    end if
+
+    if (associated(infield%dependant_tensor_field)) then
+       call unmark_tensor_children(infield%dependant_tensor_field)
+    end if
+
+  end subroutine mark_vector_as_updated
+
+  subroutine mark_tensor_as_updated(infield)
+    !! subroutine for multiphase code, marks input field as updated and
+    !! sets all dependancies as NOT updated
+
+    type(tensor_field), intent(inout) :: infield
+
+    if (associated(infield%updated)) then
+       infield%updated=.true.
+    else
+       allocate(infield%updated)
+       infield%updated=.true.
+    end if
+    
+    
+    if (associated(infield%dependant_scalar_field)) then
+       call unmark_scalar_children(infield%dependant_scalar_field)
+    end if
+
+    if (associated(infield%dependant_vector_field)) then
+       call unmark_vector_children(infield%dependant_vector_field)
+    end if
+
+    if (associated(infield%dependant_tensor_field)) then
+       call unmark_tensor_children(infield%dependant_tensor_field)
+    end if
+
+  end subroutine mark_tensor_as_updated
+
+  recursive subroutine unmark_scalar_children(field_ptr)
+    type(scalar_field_pointer), dimension(:) :: field_ptr
+
+    integer :: i
+    logical :: traverse
+    
+    ! helper subprogram to the mark_as_updated subroutines
+    ! recursively traverse child dependant fields and mark as
+    ! NOT updated. Only fail to recurse if child is already marked as
+    ! not updated. This prevents infinite loops, but will lead to greedy evalutation
+    ! if the dependant fields form a cycle
+
+    do i=1,size(field_ptr)
+
+       traverse=.false.
+    
+       if (associated(field_ptr(i)%ptr)) then
+          if (associated(field_ptr(i)%ptr%updated)) then
+             traverse=field_ptr(i)%ptr%updated
+             field_ptr(i)%ptr%updated=.false.
+          end if
+
+          if (traverse) then
+                
+             if (associated(field_ptr(i)%ptr%dependant_scalar_field)) then
+                call unmark_scalar_children(field_ptr(i)%ptr%dependant_scalar_field)
+             end if
+             
+             if (associated(field_ptr(i)%ptr%dependant_vector_field)) then
+                call unmark_vector_children(field_ptr(i)%ptr%dependant_vector_field)
+             end if
+
+             if (associated(field_ptr(i)%ptr%dependant_tensor_field)) then
+                call unmark_tensor_children(field_ptr(i)%ptr%dependant_tensor_field)
+             end if
+
+          end if
+       end if
+    end do
+
+  end subroutine unmark_scalar_children
+
+  recursive subroutine unmark_vector_children(field_ptr)
+    type(vector_field_pointer), dimension(:) :: field_ptr
+
+    integer :: i
+    logical :: traverse
+    
+    ! helper subprogram to the mark_as_updated subroutines
+    ! recursively traverse child dependant fields and mark as
+    ! NOT updated. Only fail to recurse if child is already marked as
+    ! not updated. This prevents infinite loops, but will lead to greedy evalutation
+    ! if the dependant fields form a cycle
+
+    do i=1,size(field_ptr)
+
+       traverse=.false.
+    
+       if (associated(field_ptr(i)%ptr)) then
+          if (associated(field_ptr(i)%ptr%updated)) then
+             traverse=field_ptr(i)%ptr%updated
+             field_ptr(i)%ptr%updated=.false.
+          end if
+
+          if (traverse) then
+                
+             if (associated(field_ptr(i)%ptr%dependant_scalar_field)) then
+                call unmark_scalar_children(field_ptr(i)%ptr%dependant_scalar_field)
+             end if
+             
+             if (associated(field_ptr(i)%ptr%dependant_vector_field)) then
+                call unmark_vector_children(field_ptr(i)%ptr%dependant_vector_field)
+             end if
+
+             if (associated(field_ptr(i)%ptr%dependant_tensor_field)) then
+                call unmark_tensor_children(field_ptr(i)%ptr%dependant_tensor_field)
+             end if
+
+          end if
+       end if
+    end do
+
+  end subroutine unmark_vector_children
+
+  recursive subroutine unmark_tensor_children(field_ptr)
+    type(tensor_field_pointer), dimension(:) :: field_ptr
+
+    integer :: i
+    logical :: traverse
+    
+    ! helper subprogram to the mark_as_updated subroutines
+    ! recursively traverse child dependant fields and mark as
+    ! NOT updated. Only fail to recurse if child is already marked as
+    ! not updated. This prevents infinite loops, but will lead to greedy evalutation
+    ! if the dependant fields form a cycle
+
+    do i=1,size(field_ptr)
+
+       traverse=.false.
+    
+       if (associated(field_ptr(i)%ptr)) then
+          if (associated(field_ptr(i)%ptr%updated)) then
+             traverse=field_ptr(i)%ptr%updated
+             field_ptr(i)%ptr%updated=.false.
+          end if
+
+          if (traverse) then
+             
+             if (associated(field_ptr(i)%ptr%dependant_scalar_field)) then
+                call unmark_scalar_children(field_ptr(i)%ptr%dependant_scalar_field)
+             end if
+                
+             if (associated(field_ptr(i)%ptr%dependant_vector_field)) then
+                call unmark_vector_children(field_ptr(i)%ptr%dependant_vector_field)
+             end if
+
+             if (associated(field_ptr(i)%ptr%dependant_tensor_field)) then
+                call unmark_tensor_children(field_ptr(i)%ptr%dependant_tensor_field)
+             end if
+
+          end if
+       end if
+    end do
+
+  end subroutine unmark_tensor_children
+
+ subroutine unmark_scalar_as_updated(infield)
+    !! subroutine for multiphase code, marks input field as NOT updated and
+    !! leaves dependancies unmodified
+
+    type(scalar_field), intent(inout) :: infield
+
+    if (associated(infield%updated)) then
+       infield%updated=.false.
+    else
+       allocate(infield%updated)
+       infield%updated=.false.
+    end if
+
+  end subroutine unmark_scalar_as_updated
+
+  subroutine unmark_vector_as_updated(infield)
+    !! subroutine for multiphase code, marks input field as NOT updated and
+    !! leaves dependancies unmodified
+
+    type(vector_field), intent(inout) :: infield
+
+    if (associated(infield%updated)) then
+       infield%updated=.false.
+    else
+       allocate(infield%updated)
+       infield%updated=.false.
+    end if
+
+  end subroutine unmark_vector_as_updated
+
+subroutine unmark_tensor_as_updated(infield)
+    !! subroutine for multiphase code, marks input field as NOT updated and
+    !! leaves dependancies unmodified
+
+    type(tensor_field), intent(inout) :: infield
+
+    if (associated(infield%updated)) then
+       infield%updated=.false.
+    else
+       allocate(infield%updated)
+       infield%updated=.false.
+    end if
+
+  end subroutine unmark_tensor_as_updated
+
+             
+  function clone_one_scalar_field(model,name) result(clone)
+    ! convenience function creates a field with new memory and name, but 
+    ! mesh and option_path information from another model field.
+
+    ! result must be deallocated when it is finished with
+
+    type(scalar_field), intent(inout) :: model
+    type(scalar_field) :: clone
+    character(len=*) :: name
+
+    call allocate(field=clone,mesh=model%mesh,name=name)
+    clone%option_path=model%option_path
+
+  end function clone_one_scalar_field
+
+function clone_many_scalar_field(model,names) result(clones)
+    ! convenience function creates many fields with new memory and names, but 
+    ! mesh and option_path information from another model field.
+
+    ! results must be calldeallocated when it is finished with.
+
+    type(scalar_field), intent(inout) :: model
+    character(len=*), dimension(:) :: names
+    type(scalar_field), dimension(:), pointer  :: clones
+    
+    integer :: i
+
+    allocate(clones(size(names)))
+
+    do i=1,size(names)
+       clones(i)=clone_one_scalar_field(model,names(i))
+    end do
+
+  end function clone_many_scalar_field
+
+  function clone_one_vector_field(model,name) result(clone)
+    ! convenience function creates a field with new memory and name, but 
+    ! mesh and option_path information from another model field.
+
+    ! result must be deallocated when it is finished with
+
+    type(vector_field), intent(inout) :: model
+    type(vector_field) :: clone
+    character(len=*) :: name
+
+    call allocate(field=clone,mesh=model%mesh,name=name,dim=model%dim)
+    clone%option_path=model%option_path
+
+  end function clone_one_vector_field
+
+function clone_many_vector_field(model,names) result(clones)
+    ! convenience function creates many fields with new memory and names, but 
+    ! mesh and option_path information from another model field.
+
+    ! results must be calldeallocated when it is finished with.
+
+    type(vector_field), intent(inout) :: model
+    character(len=*), dimension(:) :: names
+    type(vector_field), dimension(:), pointer  :: clones
+    
+    integer :: i
+
+    allocate(clones(size(names)))
+
+    do i=1,size(names)
+       clones(i)=clone_one_vector_field(model,names(i))
+    end do
+
+  end function clone_many_vector_field
+
+
+  function clone_one_tensor_field(model,name) result(clone)
+    ! convenience function creates a field with new memory and name, but 
+    ! mesh and option_path information from another model field.
+
+    ! result must be deallocated when it is finished with
+
+    type(tensor_field), intent(inout) :: model
+    type(tensor_field) :: clone
+    character(len=*) :: name
+
+    call allocate(field=clone,mesh=model%mesh,name=name,dim=model%dim)
+    clone%option_path=model%option_path
+
+  end function clone_one_tensor_field
+
+function clone_many_tensor_field(model,names) result(clones)
+    ! convenience function creates many fields with new memory and names, but 
+    ! mesh and option_path information from another model field.
+
+    ! results must be calldeallocated when it is finished with.
+
+    type(tensor_field), intent(inout) :: model
+    character(len=*), dimension(:) :: names
+    type(tensor_field), dimension(:), pointer  :: clones
+    
+    integer :: i
+
+    allocate(clones(size(names)))
+
+    do i=1,size(names)
+       clones(i)=clone_one_tensor_field(model,names(i))
+    end do
+
+  end function clone_many_tensor_field
+    
+
 end module fields_manipulation
 
