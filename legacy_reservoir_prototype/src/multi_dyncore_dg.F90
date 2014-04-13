@@ -338,11 +338,6 @@ contains
 
 
 
-
-
-
-
-
     SUBROUTINE CV_ASSEMB_CV_DG( state, packed_state, &
     CV_RHS, &
     NCOLACV, ACV, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
@@ -356,7 +351,7 @@ contains
     CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
     X, Y, Z,  &
     NU, NV, NW, NUOLD, NVOLD, NWOLD, UG, VG, WG, &
-    T, TOLD, DEN, DENOLD, &
+    T, TOLD, DEN, DENOLD, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
     MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
     T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, SECOND_THETA, T_BETA, &
     SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
@@ -388,7 +383,7 @@ contains
         CV_ELE_TYPE, NPHASE, CV_NLOC, U_NLOC, X_NLOC,  MAT_NLOC, &
         CV_SNLOC, U_SNLOC, STOTEL, XU_NLOC, NDIM, NCOLM, NCOLELE, &
         NOPT_VEL_UPWIND_COEFS, &
-        IGOT_T2, IGOT_THETA_FLUX, SCVNGI_THETA, IN_ELE_UPWIND, DG_ELE_UPWIND
+        IGOT_T2, IGOT_THETA_FLUX, SCVNGI_THETA, IN_ELE_UPWIND, DG_ELE_UPWIND, IDIVID_BY_VOL_FRAC
 
         LOGICAL, intent( in ) :: GET_THETA_FLUX, USE_THETA_FLUX, THERMAL
         INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
@@ -418,6 +413,7 @@ contains
         REAL, DIMENSION( : ), intent( inout ) :: T, T_FEMT, DEN_FEMT
         REAL, DIMENSION( :), intent( in ) :: TOLD
         REAL, DIMENSION( :), intent( in ) :: DEN, DENOLD
+        REAL, DIMENSION( :, :), intent( in ) :: FEM_VOL_FRAC
         REAL, DIMENSION( : ), intent( in ) :: T2, T2OLD
         REAL, DIMENSION( :, : ), intent( inout ) :: THETA_GDIFF
         REAL, DIMENSION(:, :),  intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
@@ -520,7 +516,7 @@ contains
             X, Y, Z, T_ABSORB, T_SOURCE, TDIFFUSION, &
             T, TOLD, &
             NU, NV, NW, NUOLD, NVOLD, NWOLD, &
-            DEN, DENOLD, &
+            DEN, DENOLD, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
             DT, &
             SUF_T_BC, &
             SUF_U_BC, SUF_V_BC, SUF_W_BC,  &
@@ -550,7 +546,7 @@ contains
     X, Y, Z, T_ABSORB, T_SOURCE, TDIFFUSION, &
     T, TOLD, &
     U, V, W, UOLD, VOLD, WOLD, &
-    DEN, DENOLD, &
+    DEN, DENOLD, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
     DT, &
     SUF_T_BC, &
     SUF_U_BC, SUF_V_BC, SUF_W_BC,  &
@@ -570,7 +566,7 @@ contains
         INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
         U_ELE_TYPE, CV_ELE_TYPE, U_NONODS, CV_NONODS, X_NONODS, &
         MAT_NONODS, STOTEL, U_SNLOC, CV_SNLOC, &
-        NCOLACV, NCOLELE, XU_NLOC
+        NCOLACV, NCOLELE, XU_NLOC, IDIVID_BY_VOL_FRAC
         INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
         INTEGER, DIMENSION( : ), intent( in )  :: CV_NDGLN
         INTEGER, DIMENSION( : ), intent( in )  :: X_NDGLN
@@ -597,6 +593,7 @@ contains
         INTEGER, DIMENSION( : ), intent( in ) :: FINELE
         INTEGER, DIMENSION( : ), intent( in ) :: COLELE
         REAL, DIMENSION( :, :, :, : ), intent( in ) :: TDIFFUSION
+        REAL, DIMENSION( :, : ), intent( in ) :: FEM_VOL_FRAC
         character( len = * ), intent( in ), optional :: option_path
         integer, dimension(:), intent(inout) :: StorageIndexes
         ! Local  variables... none
@@ -771,7 +768,7 @@ contains
         X_ALL, RZERO, T_ABSORB_ALL, T_SOURCE_ALL, RDUM3, &
         T_IN, TOLD_IN, &
         U_ALL, UOLD_ALL, &
-        DEN_ALL, DENOLD_ALL, &
+        DEN_ALL, DENOLD_ALL, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
         DT, &
 
         SUF_T_BC_ALL, &
@@ -1106,16 +1103,6 @@ contains
 
 
 
-
-
-
-
-
-
-
-
-
-
     SUBROUTINE FORCE_BAL_CTY_ASSEM_SOLVE( state, packed_state, &
     NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
     U_ELE_TYPE, P_ELE_TYPE, &
@@ -1124,7 +1111,7 @@ contains
     STOTEL, CV_SNDGLN, U_SNDGLN, P_SNDGLN, &
     U_SNLOC, P_SNLOC, CV_SNLOC, &
     U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
-    DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
+    DEN, DENOLD, SATURA, SATURAOLD, DERIV, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
     DT, &
     NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn
     NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, MIDDGM_PHA, &! Force balance sparcity
@@ -1165,7 +1152,7 @@ contains
         NCOLC, NCOLDGM_PHA, NCOLELE, NCOLCMC, NCOLACV, ncolsmall, NLENMCY, NCOLMCY, NCOLCT, &
         CV_ELE_TYPE, V_DISOPT, V_DG_VEL_INT_OPT, NCOLM, XU_NLOC, &
         NOPT_VEL_UPWIND_COEFS, IGOT_THETA_FLUX, SCVNGI_THETA, IN_ELE_UPWIND, DG_ELE_UPWIND, &
-        IPLIKE_GRAD_SOU
+        IPLIKE_GRAD_SOU, IDIVID_BY_VOL_FRAC
         LOGICAL, intent( in ) :: USE_THETA_FLUX, scale_momentum_by_volume_fraction
         INTEGER, DIMENSION(  :  ), intent( in ) :: U_NDGLN
         INTEGER, DIMENSION(  :  ), intent( in ) :: P_NDGLN
@@ -1185,6 +1172,7 @@ contains
         REAL, DIMENSION(  :  ), intent( in ) :: DEN, DENOLD, SATURAOLD
         REAL, DIMENSION(  :  ), intent( inout ) :: SATURA
         REAL, DIMENSION(  NPHASE, CV_NONODS ), intent( in ) :: DERIV
+        REAL, DIMENSION(  NPHASE*IDIVID_BY_VOL_FRAC, CV_NONODS *IDIVID_BY_VOL_FRAC ), intent( in ) :: FEM_VOL_FRAC
         REAL, DIMENSION(  :  ), intent( in ) :: SUF_VOL_BC, SUF_D_BC
         REAL, DIMENSION(  :  ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
         REAL, DIMENSION(  :  ), intent( in ) :: SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC
@@ -1422,7 +1410,7 @@ contains
         U_SNLOC, P_SNLOC, CV_SNLOC, &
         X_ALL, U_ABS_STAB_ALL, U_ABSORB_ALL, U_SOURCE_ALL, U_SOURCE_CV_ALL, &
         U_ALL, UOLD_ALL, &
-        P_ALL%VAL, CVP_ALL%VAL, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
+        P_ALL%VAL, CVP_ALL%VAL, DEN, DENOLD, SATURA, SATURAOLD, DERIV, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
         DT, &
         NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn
         DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparcity
@@ -1778,7 +1766,7 @@ contains
     U_SNLOC, P_SNLOC, CV_SNLOC, &
     X_ALL, U_ABS_STAB_ALL, U_ABSORB_ALL, U_SOURCE_ALL, U_SOURCE_CV_ALL, &
     U_ALL, UOLD_ALL, &
-    P, CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
+    P, CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV,  IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
     DT, &
     NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn
     DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparcity
@@ -1822,7 +1810,7 @@ contains
         NCOLC, NCOLDGM_PHA, NCOLELE, NCOLCMC, NCOLACV, NCOLCT, &
         CV_ELE_TYPE, V_DISOPT, V_DG_VEL_INT_OPT, NCOLM, XU_NLOC, &
         NLENMCY, NCOLMCY, NOPT_VEL_UPWIND_COEFS, IGOT_THETA_FLUX, SCVNGI_THETA, &
-        IN_ELE_UPWIND, DG_ELE_UPWIND, IPLIKE_GRAD_SOU
+        IN_ELE_UPWIND, DG_ELE_UPWIND, IPLIKE_GRAD_SOU,  IDIVID_BY_VOL_FRAC
         LOGICAL, intent( in ) :: USE_THETA_FLUX,scale_momentum_by_volume_fraction
         INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
         INTEGER, DIMENSION( :  ), intent( in ) :: P_NDGLN
@@ -1841,6 +1829,7 @@ contains
         REAL, DIMENSION(  : ,:,: ), intent( in ) :: U_ALL, UOLD_ALL
         REAL, DIMENSION(  :  ), intent( in ) :: CV_P, P
         REAL, DIMENSION(  :  ), intent( in ) :: DEN, DENOLD, SATURA, SATURAOLD
+        REAL, DIMENSION(  :, :  ), intent( in ) :: FEM_VOL_FRAC
         REAL, DIMENSION(  NPHASE, CV_NONODS  ), intent( in ) :: DERIV
         REAL, DIMENSION(  : ,  :   ), intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
         REAL, intent( in ) :: DT
@@ -1983,7 +1972,7 @@ contains
         X_ALL, U_ABS_STAB_ALL, U_ABSORB_ALL, U_SOURCE_ALL, U_SOURCE_CV_ALL, &
         U_ALL, UOLD_ALL, &
         U_ALL, UOLD_ALL, &    ! This is nu...
-        UDEN_ALL, UDENOLD_ALL, &
+        UDEN_ALL, UDENOLD_ALL, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
         DT, &
 
         SUF_U_BC_ALL, &
@@ -2308,7 +2297,7 @@ contains
     X_ALL, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
     U_ALL, UOLD_ALL, &
     NU_ALL, NUOLD_ALL, &
-    UDEN, UDENOLD, &
+    UDEN, UDENOLD,  IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
     DT, &
          
     SUF_U_BC_ALL, &
@@ -2336,7 +2325,8 @@ contains
         INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
         U_ELE_TYPE, P_ELE_TYPE, U_NONODS, CV_NONODS, X_NONODS, &
         MAT_NONODS, STOTEL, U_SNLOC, P_SNLOC, CV_SNLOC, &
-        NCOLC, NCOLDGM_PHA, NCOLELE, XU_NLOC, IPLIKE_GRAD_SOU, NDIM_VEL
+        NCOLC, NCOLDGM_PHA, NCOLELE, XU_NLOC, IPLIKE_GRAD_SOU, NDIM_VEL, IDIVID_BY_VOL_FRAC
+! If IDIVID_BY_VOL_FRAC==1 then modify the stress term to take into account dividing through by volume fraction. 
         ! NDIM_VEL
         INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
         INTEGER, DIMENSION( : ), intent( in )  :: P_NDGLN
@@ -2363,6 +2353,7 @@ contains
         REAL, DIMENSION ( :, :, : ), intent( in ) :: U_ALL, UOLD_ALL, NU_ALL, NUOLD_ALL
 
         REAL, DIMENSION( :, : ), intent( in ) :: UDEN, UDENOLD
+        REAL, DIMENSION( NPHASE, CV_NONODS*IDIVID_BY_VOL_FRAC ), intent( in ) :: FEM_VOL_FRAC
         REAL, intent( in ) :: DT
         REAL, DIMENSION( :, :, : ), intent( inout ) :: U_RHS
         REAL, DIMENSION( :, :, : ), intent( inout ) :: C
@@ -2562,6 +2553,11 @@ contains
         REAL, DIMENSION ( :, :, :, : ), allocatable :: NN_SIGMAGI_ELE, NN_SIGMAGI_STAB_ELE,NN_MASS_ELE,NN_MASSOLD_ELE
         REAL, DIMENSION ( :, :, :, :, : ), allocatable :: STRESS_IJ_ELE, DUX_ELE_ALL, DUOLDX_ELE_ALL
         REAL, DIMENSION ( :, :, : ), allocatable :: VLK_ELE
+
+! for the option where we divid by voln fraction...
+        REAL, DIMENSION ( :, : ), allocatable :: VOL_FRA_GI
+        REAL, DIMENSION ( :, :, : ), allocatable :: VOL_FRA_GI_DX_ALL
+        REAL, DIMENSION ( :, : ), allocatable :: SLOC_VOL_FRA, SLOC2_VOL_FRA,  SVOL_FRA, SVOL_FRA2
 
         logical :: capillary_pressure_activated
         !Variables to store things in state
@@ -2897,6 +2893,12 @@ contains
 
         ALLOCATE( X(X_NONODS), Y(X_NONODS), Z(X_NONODS) ) ; X=0. ; Y=0. ; Z=0.
 
+        IF(IDIVID_BY_VOL_FRAC==1) THEN
+            ALLOCATE( VOL_FRA_GI(NPHASE, CV_NGI_SHORT), VOL_FRA_GI_DX_ALL( NDIM, NPHASE, CV_NGI_SHORT) )
+            ALLOCATE( SLOC_VOL_FRA(NPHASE, CV_SNLOC), SLOC2_VOL_FRA(NPHASE, CV_SNLOC))
+            ALLOCATE( SVOL_FRA(NPHASE, SBCVNGI), SVOL_FRA2(NPHASE, SBCVNGI) )
+        ENDIF
+
         DO IDIM = 1, NDIM
             IF ( IDIM == 1 ) THEN
                 X = X_ALL( IDIM, : )
@@ -3102,10 +3104,26 @@ contains
             UDOLD_ND( 1:NDIM_VEL, :, : ) = UDOLD
 
 
+            IF(IDIVID_BY_VOL_FRAC==1) THEN
+
+               VOL_FRA_GI_DX_ALL=0.0
+               VOL_FRA_GI=0.0
+               DO CV_ILOC = 1, CV_NLOC
+                  CV_INOD = CV_NDGLN( (ELE-1)*CV_NLOC + CV_ILOC ) 
+                  DO GI = 1, CV_NGI_SHORT
+                     DO IPHASE=1,NPHASE
+                        VOL_FRA_GI( IPHASE, GI )           = VOL_FRA_GI( IPHASE,GI )            + CVFEN_SHORT( CV_ILOC, GI )       * FEM_VOL_FRAC( IPHASE, CV_INOD )
+                        VOL_FRA_GI_DX_ALL( :, IPHASE, GI ) = VOL_FRA_GI_DX_ALL( :, IPHASE, GI ) + CVFENX_ALL( 1:NDIM, CV_ILOC, GI )* FEM_VOL_FRAC( IPHASE, CV_INOD )
+                     END DO
+                  END DO
+               END DO
+               VOL_FRA_GI=MAX(VOL_FRA_GI, 0.0)
+
+            ENDIF
+
 
             DENGI = 0.0 ; DENGIOLD = 0.0
             GRAD_SOU_GI = 0.0
-
             DO CV_ILOC = 1, CV_NLOC
                 DO GI = 1, CV_NGI_SHORT
                     IF ( .FALSE. ) then ! FEM DEN...
@@ -3214,8 +3232,13 @@ contains
                             DO GI = 1 + (ILEV-1)*CV_NGI_SHORT, ILEV*CV_NGI_SHORT
                                 DO JPHASE = 1, NPHASE
                                     IF ( STRESS_FORM ) THEN ! stress form of viscosity...
-                                        CALL CALC_STRESS_TEN( STRESS_IJ_ELE( :, :, IPHASE, U_ILOC, U_JLOC ), ZERO_OR_TWO_THIRDS, NDIM, &
-                                        UFENX_ALL( 1:NDIM, U_ILOC, GI ), UFENX_ALL( 1:NDIM, U_JLOC, GI )* DETWEI( GI ), TEN_XX( :, :, IPHASE, GI ) )
+                                        IF(IDIVID_BY_VOL_FRAC==1) THEN
+                                           CALL CALC_STRESS_TEN( STRESS_IJ_ELE( :, :, IPHASE, U_ILOC, U_JLOC ), ZERO_OR_TWO_THIRDS, NDIM, &
+        ( -UFEN( U_ILOC, GI )*VOL_FRA_GI_DX_ALL(1:NDIM,JPHASE,GI) + UFENX_ALL( 1:NDIM, U_ILOC, GI )*VOL_FRA_GI(JPHASE,GI) ),  UFENX_ALL( 1:NDIM, U_JLOC, GI )* DETWEI( GI ), TEN_XX( :, :, IPHASE, GI ) )
+                                        ELSE
+                                           CALL CALC_STRESS_TEN( STRESS_IJ_ELE( :, :, IPHASE, U_ILOC, U_JLOC ), ZERO_OR_TWO_THIRDS, NDIM, &
+                                           UFENX_ALL( 1:NDIM, U_ILOC, GI ), UFENX_ALL( 1:NDIM, U_JLOC, GI )* DETWEI( GI ), TEN_XX( :, :, IPHASE, GI ) )
+                                        ENDIF
                                     ELSE
                                         DO IDIM = 1, NDIM
                                             VLK_ELE( IPHASE, U_ILOC, U_JLOC ) = VLK_ELE( IPHASE, U_ILOC, U_JLOC ) + &
@@ -3942,10 +3965,15 @@ contains
                     SLOC_UDENOLD( :, CV_SILOC ) = UDENOLD( :, CV_INOD )
                     SLOC2_UDENOLD( :, CV_SILOC ) = UDENOLD( :, CV_INOD2 )
 
+                    IF(IDIVID_BY_VOL_FRAC==1) THEN
+                       SLOC_VOL_FRA( :, CV_SILOC )  = FEM_VOL_FRAC( :, CV_INOD )
+                       SLOC2_VOL_FRA( :, CV_SILOC ) = FEM_VOL_FRAC( :, CV_INOD2 )
+                    ENDIF
+
                     IF ( GOT_DIFFUS ) THEN
                         DO IPHASE = 1, NPHASE
-                            SLOC_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_INOD )
-                            SLOC2_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_INOD2 )
+                           SLOC_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_INOD )
+                           SLOC2_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_INOD2 )
                         END DO
                     END IF
                 END DO
@@ -4101,6 +4129,10 @@ contains
                     SDENOLD=0.0
                     SDEN_KEEP=0.0 ; SDEN2_KEEP=0.0
                     SDENOLD_KEEP=0.0 ; SDENOLD2_KEEP=0.0
+                    IF(IDIVID_BY_VOL_FRAC==1) THEN
+                       SVOL_FRA =0.0
+                       SVOL_FRA2=0.0
+                    ENDIF
                     DO CV_SILOC=1,CV_SNLOC
                         DO SGI=1,SBCVNGI
                             DO IPHASE=1, NPHASE
@@ -4118,6 +4150,10 @@ contains
                                 *SLOC_UDENOLD(IPHASE,CV_SILOC)*WITH_NONLIN
                                 SDENOLD2_KEEP(IPHASE,SGI)=SDENOLD2_KEEP(IPHASE,SGI) + SBCVFEN(CV_SILOC,SGI) &
                                 *SLOC2_UDENOLD(IPHASE,CV_SILOC)*WITH_NONLIN
+                                IF(IDIVID_BY_VOL_FRAC==1) THEN
+                                   SVOL_FRA(IPHASE,SGI) =SVOL_FRA(IPHASE,SGI) + SBCVFEN(CV_SILOC,SGI) *SLOC_VOL_FRA(IPHASE,CV_SILOC)
+                                   SVOL_FRA2(IPHASE,SGI)=SVOL_FRA2(IPHASE,SGI)+ SBCVFEN(CV_SILOC,SGI) *SLOC2_VOL_FRA(IPHASE,CV_SILOC)
+                                ENDIF
                             END DO
                         END DO
                     END DO
@@ -4501,10 +4537,17 @@ contains
 
                                         VLM=VLM+RNN
 
-                                        VLM_NEW = VLM_NEW + FTHETA( IDIM,IPHASE,SGI ) * RNN &
-                                        * DIFF_COEF_DIVDX( IDIM,IPHASE,SGI )
-                                        VLM_OLD = VLM_OLD + (1.-FTHETA( IDIM,IPHASE,SGI )) * RNN &
-                                        * DIFF_COEFOLD_DIVDX( IDIM,IPHASE,SGI )
+                                        IF(IDIVID_BY_VOL_FRAC==1) THEN ! We are dividing by vol fract.
+                                           VLM_NEW = VLM_NEW + FTHETA( IDIM,IPHASE,SGI ) * RNN &
+                                           * DIFF_COEF_DIVDX( IDIM,IPHASE,SGI ) * SVOL_FRA2(IPHASE,SGI)
+                                           VLM_OLD = VLM_OLD + (1.-FTHETA( IDIM,IPHASE,SGI )) * RNN &
+                                           * DIFF_COEFOLD_DIVDX( IDIM,IPHASE,SGI ) * SVOL_FRA2(IPHASE,SGI)
+                                        ELSE
+                                           VLM_NEW = VLM_NEW + FTHETA( IDIM,IPHASE,SGI ) * RNN &
+                                           * DIFF_COEF_DIVDX( IDIM,IPHASE,SGI )
+                                           VLM_OLD = VLM_OLD + (1.-FTHETA( IDIM,IPHASE,SGI )) * RNN &
+                                           * DIFF_COEFOLD_DIVDX( IDIM,IPHASE,SGI )
+                                        ENDIF
 
                                         NN_SNDOTQ_IN    = NN_SNDOTQ_IN     + SNDOTQ_IN(IDIM,IPHASE,SGI)    *RNN
                                         NN_SNDOTQ_OUT   = NN_SNDOTQ_OUT    + SNDOTQ_OUT(IDIM,IPHASE,SGI)   *RNN

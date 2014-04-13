@@ -121,7 +121,7 @@
       integer :: cv_ele_type, p_ele_type, u_ele_type, mat_ele_type, u_sele_type, cv_sele_type, &
            t_disopt, v_disopt, t_dg_vel_int_opt, u_dg_vel_int_opt, v_dg_vel_int_opt, w_dg_vel_int_opt, &
            comp_diffusion_opt, ncomp_diff_coef, in_ele_upwind, dg_ele_upwind, nopt_vel_upwind_coefs, &
-           nits_flux_lim_t, nits_flux_lim_volfra, nits_flux_lim_comp
+           nits_flux_lim_t, nits_flux_lim_volfra, nits_flux_lim_comp,  IDIVID_BY_VOL_FRAC
       logical :: volfra_use_theta_flux, volfra_get_theta_flux, comp_use_theta_flux, comp_get_theta_flux, &
            t_use_theta_flux, t_get_theta_flux, scale_momentum_by_volume_fraction
       real :: t_beta, v_beta, t_theta, v_theta, u_theta
@@ -183,7 +183,7 @@
 
       real, dimension( :, : ), pointer :: THETA_GDIFF
 
-      real, dimension( :, : ), pointer ::  DRhoDPressure
+      real, dimension( :, : ), pointer ::  DRhoDPressure, FEM_VOL_FRAC
 !!$
       real, dimension( :, :, : ), allocatable :: Permeability, Material_Absorption, Material_Absorption_Stab, &
            Velocity_Absorption, ScalarField_Absorption, Component_Absorption, Temperature_Absorption, &
@@ -235,6 +235,7 @@
       call pack_multistate(state,packed_state,multiphase_state,&
            multicomponent_state)
 
+      IDIVID_BY_VOL_FRAC=0
       !call print_state( packed_state )
       !stop 78
 
@@ -338,7 +339,7 @@
            Temperature( nphase * cv_nonods ), Density( nphase * cv_nonods ),  Density_Cp( nphase * cv_nonods ), &
            Density_Component( nphase * cv_nonods * ncomp ), &
            PhaseVolumeFraction( nphase * cv_nonods ), Component( nphase * cv_nonods * ncomp ), &
-           U_Density( nphase * cv_nonods ), DRhoDPressure( nphase, cv_nonods ), &
+           U_Density( nphase * cv_nonods ), DRhoDPressure( nphase, cv_nonods ), FEM_VOL_FRAC( nphase, cv_nonods ),&
 !!$
            Temperature_Old( nphase * cv_nonods ), Density_Old( nphase * cv_nonods ), Density_Cp_Old( nphase * cv_nonods ), &
            Density_Component_Old( nphase * cv_nonods * ncomp ), &
@@ -880,7 +881,7 @@
 !!$
                     Material_Absorption_Stab, Material_Absorption+Velocity_Absorption, Velocity_U_Source, Velocity_U_Source_CV, &
                     Density, Density_Old, PhaseVolumeFraction, PhaseVolumeFraction_Old, & 
-                    DRhoDPressure, &
+                    DRhoDPressure, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
                     dt, &
 !!$
                     NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn 
@@ -1686,7 +1687,7 @@
            Component, U_Density, &
            Pressure_FEM_Old, Pressure_CV_Old, Temperature_Old, Density_Old, Density_Cp_Old, Density_Component_Old, &
            PhaseVolumeFraction_Old, Component_Old, &
-           U_Density_Old, DRhoDPressure, &
+           U_Density_Old, DRhoDPressure, FEM_VOL_FRAC, &
            Porosity, &
            Velocity_U_Source, Velocity_U_Source_CV, Temperature_Source, PhaseVolumeFraction_Source, &
            ScalarField_Source, Component_Source, ScalarAdvectionField_Source, &
