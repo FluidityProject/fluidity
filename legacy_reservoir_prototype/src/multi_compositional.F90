@@ -33,6 +33,7 @@
     use shape_functions_linear_quadratic
     use Copy_Outof_State
     use futils, only: int2str
+    use global_parameters, only: is_overlapping
 
   contains
 
@@ -169,13 +170,12 @@
     end subroutine Calculate_ComponentAbsorptionTerm
 
 
-    subroutine Calculate_ComponentDiffusionTerm( state, &
+    subroutine Calculate_ComponentDiffusionTerm( state, packed_state, &
          mat_ndgln, u_ndgln, x_ndgln, &
-         x, y, z, nu, nv, nw, &
          u_ele_type, p_ele_type, ncomp_diff_coef, comp_diffusion_opt, &
          comp_diff_coef, &
          comp_diffusion,&
-          StorageIndexes)
+         StorageIndexes )
 !!$ Calculate the diffusion coefficient COMP_DIFFUSION for current composition...
 !!$ based on page 136 in Reservoir-Simulation-Mathematical-Techniques-In-Oil-Recovery-(2007).pdf
 !!$ COMP_DIFFUSION_OPT, integer option defining diffusion coeff
@@ -183,8 +183,9 @@
 !!$ COMP_DIFF_COEF( NCOMP,  NCOMP_DIFF_COEF, NPHASE  )
       implicit none
       type( state_type ), dimension( : ), intent( inout ) :: state
+      type( state_type ), intent( in ) :: packed_state
+
       integer, dimension( : ), intent( in ) :: mat_ndgln, u_ndgln, x_ndgln
-      real, dimension( : ), intent( in ) :: x, y, z, nu, nv, nw
       integer, intent( in ) :: u_ele_type, p_ele_type, ncomp_diff_coef, comp_diffusion_opt
       real, dimension( :, : ), intent( in ) :: comp_diff_coef
       real, dimension( :, :, :, : ),intent( inout ) :: comp_diffusion
@@ -193,9 +194,17 @@
       integer :: nphase, nstate, ncomp, totele, ndim, stotel, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, x_nloc_p1, p_nloc, mat_nloc, x_snloc, cv_snloc, u_snloc, &
            p_snloc, cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, x_nonods_p1, p_nonods, &
-           ele, cv_nod, mat_nod, iphase, idim
+           ele, cv_nod, mat_nod, iphase, idim, ilev, nlev, u_iloc, u_inod, u_nloc2
       real :: diff_molecular, diff_longitudinal, diff_transverse
-      real, dimension( : ), allocatable :: ud, mat_u
+      real, dimension( : ), allocatable :: ud, mat_u, x, y, z, nu, nv, nw
+      type( vector_field ), pointer :: x_all
+      type( tensor_field ), pointer :: nu_all
+
+
+
+
+
+
 
 !!$ Extracting the primary scalars from state:
       call Get_Primary_Scalars( state, &         
@@ -209,7 +218,49 @@
          return
       endif
 
-      ALLOCATE( MAT_U( NPHASE * NDIM * CV_NONODS ), UD( NDIM ) ) ; mat_u = 0. ; ud = 0.
+        allocate( X(  X_NONODS ) ) ; X = 0.0
+        allocate( Y(  X_NONODS ) ) ; Y = 0.0
+        allocate( Z(  X_NONODS ) ) ; Z = 0.0
+
+        x_all => extract_vector_field( packed_state, "PressureCoordinate" )
+        x = x_all % val( 1, : )
+        if (ndim >=2 ) y = x_all % val( 2, : )
+        if (ndim >=3 ) z = x_all % val( 3, : )
+
+        allocate( NU(  U_NONODS ) ) ; NU = 0.0
+        allocate( NV(  U_NONODS ) ) ; NV = 0.0
+        allocate( NW(  U_NONODS ) ) ; NW = 0.0
+
+        nu_all => extract_tensor_field( packed_state, "PackedNonlinearVelocity" )
+
+      IF ( IS_OVERLAPPING ) THEN
+         NLEV = CV_NLOC
+         U_NLOC2 = MAX( 1, U_NLOC / CV_NLOC )
+      ELSE
+         NLEV = 1
+         U_NLOC2 = U_NLOC
+      END IF
+      DO ELE = 1, TOTELE
+         DO ILEV = 1, NLEV
+            DO U_ILOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
+               U_INOD = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_ILOC )
+               DO IPHASE = 1, NPHASE
+                  DO IDIM = 1, NDIM
+                     IF ( IDIM==1 ) THEN
+                        NU( U_INOD + (IPHASE-1)*U_NONODS ) = NU_ALL % VAL( IDIM, IPHASE, U_INOD )
+                     ELSE IF ( IDIM==2 ) THEN
+                        NV( U_INOD + (IPHASE-1)*U_NONODS ) = NU_ALL % VAL( IDIM, IPHASE, U_INOD )
+                     ELSE
+                        NW( U_INOD + (IPHASE-1)*U_NONODS ) = NU_ALL % VAL( IDIM, IPHASE, U_INOD )
+                     END IF
+                  END DO
+               END DO
+            END DO
+         END DO
+      END DO
+
+
+      ALLOCATE( MAT_U( NDIM * NPHASE * CV_NONODS ), UD( NDIM ) ) ; mat_u = 0. ; ud = 0.
 
       CALL PROJ_U2MAT( NDIM, NPHASE, COMP_DIFFUSION_OPT, MAT_NONODS, &
            TOTELE, CV_NONODS, MAT_NLOC, CV_NLOC, U_NLOC, X_NLOC, CV_SNLOC, U_SNLOC, &

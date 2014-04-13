@@ -600,7 +600,8 @@ contains
        diffl4=huge(0.0)
     end if
        
-  end function diffl4
+  end function diffl4  
+
 
 #include "Reference_count_element_type.F90"
 

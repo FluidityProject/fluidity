@@ -1549,7 +1549,380 @@
 
     end subroutine shape_cv_n
 
+    subroutine cv_fem_shape_funs_plus_storage( &
+         ndim, cv_ele_type, &
+         cv_ngi, cv_ngi_short, cv_nloc, u_nloc, cvn, cvn_short, &
+                                ! Volume shape functions
+         cvweight, cvfen, cvfenlx_all, &
+         cvweight_short, cvfen_short, cvfenlx_short_all, &
+         ufen, ufenlx_all, &
+                                ! Surface of each CV shape functions
+         scvngi, cv_neiloc, cv_on_face, cvfem_on_face, &
+         scvfen, scvfenslx, scvfensly, scvfeweigh, &
+         scvfenlx_all, &
+         sufen, sufenslx, sufensly, &
+         sufenlx_all, &
+                                ! Surface element shape funcs
+         u_on_face, ufem_on_face, nface, &
+         sbcvngi, sbcvn, sbcvfen, sbcvfenslx, sbcvfensly, sbcvfeweigh, sbcvfenlx_all, &
+         sbufen, sbufenslx, sbufensly, sbufenlx_all, &
+         cv_sloclist, u_sloclist, cv_snloc, u_snloc, &
+                                ! Define the gauss points that lie on the surface of the CV
+         findgpts, colgpts, ncolgpts, &
+         sele_overlap_scale, QUAD_OVER_WHOLE_ELE,&
+         state, StorName , indx )
+      implicit none
+      !This subroutine calls cv_fem_shape_funs only if the shape functions have not been calculated already
+      !If they are in storage, the values are returned without calculations
+      integer, intent( in ) :: ndim, cv_ele_type, cv_ngi, cv_ngi_short, cv_nloc, u_nloc
+      real, dimension( : , : ), pointer,  intent( inout ) :: cvn ! dimension( cv_nloc, cv_ngi )
+      real, dimension(  : , : ),pointer, intent( inout ) :: cvn_short!dimension( cv_nloc, cv_ngi_short )
+      real, dimension( : ), pointer,intent( inout ) :: cvweight!dimension( cv_ngi )
+      real, dimension(  : , : ), pointer,intent( inout ) :: cvfen!dimension( cv_nloc, cv_ngi )
+      real, dimension(  : , : , :), pointer,intent( inout ) ::  cvfenlx_all!dimension( ndim, cv_nloc, cv_ngi )
+      real, dimension( : ), pointer,intent( inout ) :: cvweight_short!dimension( cv_ngi_short )
+      real, dimension(  : , : ),pointer, intent( inout ) :: cvfen_short!dimension( cv_nloc, cv_ngi_short )
+      real, dimension(  : , :,: ),pointer, intent( inout ) :: cvfenlx_short_all!dimension(ndim, cv_nloc, cv_ngi_short )
 
+      real, dimension(  : , : ), pointer,intent( inout ) :: ufen!dimension( u_nloc, cv_ngi )
+      real, dimension(  : , :,: ), pointer,intent( inout ) :: ufenlx_all!dimension( ndim, u_nloc, cv_ngi )
+
+      integer, intent( in ) :: scvngi
+      integer, dimension(  : , : ), pointer,intent( inout ) :: cv_neiloc!dimension( cv_nloc, scvngi )
+      logical, dimension(  : , : ),intent( inout ) :: cv_on_face, cvfem_on_face!dimension( cv_nloc, scvngi )
+      real, dimension(  : , : ), pointer,intent( inout ) :: scvfen, scvfenslx, scvfensly!dimension( cv_nloc, scvngi )
+      real, dimension( : ), pointer,intent( inout ) :: scvfeweigh!dimension( scvngi )
+      real, dimension(  : , : ,: ),pointer, intent( inout ) :: scvfenlx_all!dimension( ndim, cv_nloc, scvngi )
+      real, dimension(  : , : ),pointer, intent( inout ) :: sufen, sufenslx, sufensly!dimension( u_nloc, scvngi )
+      real, dimension(  : , :, : ),pointer, intent( inout ) :: sufenlx_all !dimension( ndim, u_nloc, scvngi )
+      logical, dimension(  : , : ), intent( inout ) :: u_on_face, ufem_on_face!dimension( u_nloc, scvngi )
+      integer, intent( in ) :: nface, sbcvngi
+      logical, intent( in ) :: QUAD_OVER_WHOLE_ELE
+      ! if QUAD_OVER_WHOLE_ELE then dont divide element into CV's to form quadrature.
+      real, dimension(  : , : ),pointer, intent( inout ) :: sbcvn!dimension( cv_snloc, sbcvngi )
+      real, dimension(  : , : ),pointer, intent( inout ) :: sbcvfen, sbcvfenslx, sbcvfensly! dimension( cv_snloc, sbcvngi )
+      real, dimension( : ),pointer, intent( inout ) :: sbcvfeweigh!dimension( sbcvngi )
+      real, dimension(  : , :, : ), pointer,intent( inout ) :: sbcvfenlx_all!dimension( ndim, cv_snloc, sbcvngi )
+      integer, intent( in ) :: cv_snloc, u_snloc
+      real, dimension(  : , : ),pointer, intent( inout ) :: sbufen, sbufenslx, sbufensly!dimension( u_snloc, sbcvngi )
+      real, dimension(  : , :,: ),pointer, intent( inout ) :: sbufenlx_all !dimension( ndim, u_snloc, sbcvngi )
+      integer, dimension(  : , : ), pointer,intent( inout ) :: cv_sloclist!dimension( nface, cv_snloc )
+      integer, dimension(  : , : ),pointer, intent( inout ) :: u_sloclist!dimension( nface, u_snloc )
+      integer, dimension( : ),pointer, intent( inout ) :: findgpts!dimension( cv_nloc + 1 )
+      integer, dimension( : ), pointer,intent( inout ) :: colgpts!dimension( cv_nloc * scvngi )
+      integer,pointer, intent( inout ) :: ncolgpts
+      real, dimension( : ),pointer, intent( inout ) :: sele_overlap_scale!dimension( cv_nloc )
+      type( state_type ), intent( inout ), dimension(:) :: state
+      character(len=*), intent(in) :: StorName
+      integer, intent(inout) :: indx
+
+      ! Local variables
+      real, dimension( : , : ), allocatable :: cvn2 ! dimension( cv_nloc, cv_ngi )
+      real, dimension(  : , : ), allocatable :: cvn_short2!dimension( cv_nloc, cv_ngi_short )
+      real, dimension( : ), allocatable :: cvweight2!dimension( cv_ngi )
+      real, dimension(  : , : ), allocatable :: cvfen2, cvfenlx2, cvfenly2, cvfenlz2!dimension( cv_nloc, cv_ngi )
+      real, dimension( : ), allocatable :: cvweight_short2!dimension( cv_ngi_short )
+      real, dimension(  : , : ), allocatable :: cvfen_short2, cvfenlx_short2, &!dimension( cv_nloc, cv_ngi_short )
+           cvfenly_short2, cvfenlz_short2
+      real, dimension(  : , : ), allocatable :: ufen2, ufenlx2, ufenly2, ufenlz2!dimension( u_nloc, cv_ngi )
+      integer, dimension(  : , : ), allocatable :: cv_neiloc2!dimension( cv_nloc, scvngi )
+      real, dimension(  : , : ), allocatable :: scvfen2, scvfenslx2, scvfensly2!dimension( cv_nloc, scvngi )
+      real, dimension( : ), allocatable :: scvfeweigh2!dimension( scvngi )
+      real, dimension(  : , : ), allocatable :: scvfenlx2, scvfenly2, scvfenlz2!dimension( cv_nloc, scvngi )
+      real, dimension(  : , : ), allocatable :: sufen2, sufenslx2, sufensly2, sufenlx2, &!dimension( u_nloc, scvngi )
+           sufenly2, sufenlz2
+      real, dimension(  : , : ), allocatable :: sbcvn2!dimension( cv_snloc, sbcvngi )
+      real, dimension(  : , : ), allocatable :: sbcvfen2, sbcvfenslx2, sbcvfensly2! dimension( cv_snloc, sbcvngi )
+      real, dimension( : ), allocatable :: sbcvfeweigh2!dimension( sbcvngi )
+      real, dimension(  : , : ), allocatable :: sbcvfenlx2, sbcvfenly2, sbcvfenlz2!dimension( cv_snloc, sbcvngi )
+      real, dimension(  : , : ), allocatable :: sbufen2, sbufenslx2, sbufensly2, &!dimension( u_snloc, sbcvngi )
+           sbufenlx2, sbufenly2, sbufenlz2
+      integer, dimension(  : , : ), allocatable :: cv_sloclist2!dimension( nface, cv_snloc )
+      integer, dimension(  : , : ), allocatable :: u_sloclist2!dimension( nface, u_snloc )
+      integer, dimension( : ), allocatable :: findgpts2!dimension( cv_nloc + 1 )
+      integer, dimension( : ), allocatable :: colgpts2!dimension( cv_nloc * scvngi )
+      integer :: ncolgpts2
+      real, dimension( : ), allocatable :: sele_overlap_scale2!dimension( cv_nloc )
+
+      !Variables to store things in state
+      type(mesh_type), pointer :: fl_mesh
+      type(mesh_type) :: Auxmesh
+      type(scalar_field), target :: targ_Storage
+      type(scalar_field), pointer :: pntr_Storage
+      integer :: counter_from, counter_to, siz1,siz2
+      logical :: recovering_values
+      integer, dimension(  : , : ),pointer :: ptr_u_on_face, ptr_ufem_on_face!dimension( u_nloc, scvngi )
+      integer, dimension(  : , : ),pointer:: ptr_cv_on_face, ptr_cvfem_on_face!dimension( cv_nloc, scvngi )
+      ewrite(3,*) 'in  cv_fem_shape_funs subrt'
+
+      !#########Storing area#################################
+      !If new mesh or mesh moved indx will be zero (set in Multiphase_TimeLoop)
+      recovering_values = .false.
+      if (indx>0) recovering_values = .true.!Everything has been calculated already
+
+      !If values not stored then create space in state
+      if (indx <=0) then
+          if (has_scalar_field(state(1),StorName)) then
+               !We have to deallocate also the mesh type we are using inside the scalar field
+               pntr_Storage => extract_scalar_field(state(1), StorName)
+               !deallocate mesh
+               call deallocate(pntr_Storage%mesh)
+              call remove_scalar_field(state(1), StorName)
+          end if
+          !Get mesh file just to be able to allocate the fields we want to store
+          fl_mesh => extract_mesh( state(1), "CoordinateMesh" )
+          Auxmesh = fl_mesh
+          !The number of nodes I want does not coincide
+          Auxmesh%nodes = CV_NLOC*CV_NGI*(2+ndim) + CV_NLOC*CV_NGI_SHORT*(2+ndim) + CV_NGI + CV_NGI_SHORT +&
+           SCVNGI + SBCVNGI + U_NLOC*CV_NGI * (1+ndim) + CV_NLOC * SCVNGI * (3+ndim)+ U_NLOC*SCVNGI * (3+ndim) + &
+           CV_SNLOC * SBCVNGI * (4+ndim) + U_SNLOC * SBCVNGI * (3+ndim) + CV_NLOC
+
+          call allocate (targ_Storage, Auxmesh)
+          !Prepare room to store integers and logicals
+          Auxmesh%nodes = nface*cv_snloc + nface * u_snloc + u_nloc*scvngi*2 + cv_nloc*scvngi*2+&
+                ( cv_nloc + 1 ) + cv_nloc * scvngi + (1) + cv_nloc * scvngi
+          Auxmesh%shape%loc =1!nodes times %loc is the size of the array I want to store
+          call allocate (targ_Storage%mesh, Auxmesh%nodes, Auxmesh%nodes,Auxmesh%shape )
+          !Now we insert them in state and store the index
+          call insert(state(1), targ_Storage, StorName)
+          indx = size(state(1)%scalar_fields)
+      end if
+
+          !Set the pointers to state, indx is an input
+          !###cv_nloc*cv_ngi section###
+          siz1 = cv_nloc;  siz2 = cv_ngi
+          counter_from = 1; counter_to = siz1*siz2
+          cvn(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          cvfen(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2*ndim
+          cvfenlx_all(1:ndim,1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          !###cv_nloc*cv_ngi_short section###
+          siz1 = cv_nloc;  siz2 = cv_ngi_short
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          cvn_short(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          cvfen_short(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2*ndim
+          cvfenlx_short_all(1:ndim,1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+
+          !###u_nloc*cv_ngi section###
+          siz1 = u_nloc;  siz2 = cv_ngi
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          ufen(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2*ndim
+          ufenlx_all(1:ndim, 1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+
+          !###cv_nloc*scvngi section###
+          siz1 = cv_nloc;  siz2 = scvngi
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          scvfen(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          scvfenslx(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          scvfensly(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2*ndim
+          scvfenlx_all(1:ndim,1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+
+          !###u_nloc*scvngi section###
+          siz1 = u_nloc;  siz2 = scvngi
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sufen(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sufenslx(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sufensly(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2*ndim
+          sufenlx_all(1:ndim,1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+
+          !###cv_snloc*sbcvngi section###
+          siz1 = cv_snloc;  siz2 = sbcvngi
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sbcvn(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sbcvfen(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sbcvfenslx(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sbcvfensly(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2*ndim
+          sbcvfenlx_all(1:ndim,1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+
+          !###u_snloc*sbcvngi section###
+          siz1 = u_snloc;  siz2 = sbcvngi
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sbufen(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sbufenslx(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          sbufensly(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2*ndim
+          sbufenlx_all(1:ndim,1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+
+          !###cv_ngi###
+          siz1 = cv_ngi
+          counter_from = counter_to + 1; counter_to = counter_to + siz1
+          cvweight(1:siz1) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+          !###cv_ngi_short###
+          siz1 = cv_ngi_short
+          counter_from = counter_to + 1; counter_to = counter_to + siz1
+          cvweight_short(1:siz1) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+
+          !###scvngi###
+          siz1 = scvngi
+          counter_from = counter_to + 1; counter_to = counter_to + siz1
+          scvfeweigh(1:siz1) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+
+          !###sbcvngi###
+          siz1 = sbcvngi
+          counter_from = counter_to + 1; counter_to = counter_to + siz1
+          sbcvfeweigh(1:siz1) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+
+          !###cv_nloc###
+          siz1 = cv_nloc
+          counter_from = counter_to + 1; counter_to = counter_to + siz1
+          sele_overlap_scale(1:siz1) => state(1)%scalar_fields(indx)%ptr%val(counter_from:counter_to)
+
+          !###STORE INTEGERS###
+          !###cv_nloc + 1###
+          siz1 = cv_nloc + 1
+          counter_from = 1; counter_to = siz1
+          findgpts(1:siz1) => state(1)%scalar_fields(indx)%ptr%mesh%ndglno(counter_from:counter_to)
+          !###cv_nloc * scvngi###
+          siz1 = cv_nloc * scvngi
+          counter_from = counter_to + 1; counter_to = counter_to + siz1
+          colgpts(1:siz1) => state(1)%scalar_fields(indx)%ptr%mesh%ndglno(counter_from:counter_to)
+          !###cv_nloc*scvngi section###
+          siz1 = cv_nloc;  siz2 = scvngi
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          cv_neiloc(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%mesh%ndglno(counter_from:counter_to)
+          !###nface*cv_snloc section###
+          siz1 = nface;  siz2 = cv_snloc
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          cv_sloclist(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%mesh%ndglno(counter_from:counter_to)
+          !###nface*u_snloc section###
+          siz1 = nface;  siz2 = u_snloc
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          u_sloclist(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%mesh%ndglno(counter_from:counter_to)
+          !###1###
+          siz1 = 1
+          counter_from = counter_to + 1; counter_to = counter_to + siz1
+          ncolgpts => state(1)%scalar_fields(indx)%ptr%mesh%ndglno(counter_from)
+          !Store logicals as integer since there are no data types to store logicals in state
+          !###u_nloc*scvngi section###
+          siz1 = u_nloc;  siz2 = scvngi
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          ptr_u_on_face(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%mesh%ndglno(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          ptr_ufem_on_face(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%mesh%ndglno(counter_from:counter_to)
+
+          !###cv_nloc*scvngi section###
+          siz1 = cv_nloc;  siz2 = scvngi
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          ptr_cv_on_face(1:siz1,1:siz2) => state(1)%scalar_fields(indx)%ptr%mesh%ndglno(counter_from:counter_to)
+          counter_from = counter_to + 1; counter_to = counter_to + siz1*siz2
+          ptr_cvfem_on_face(1:siz1,1:siz2) =>state(1)%scalar_fields(indx)%ptr%mesh%ndglno(counter_from:counter_to)
+          if (recovering_values) then
+              !Recover logical values from integer storage...not the best way to store logicals...
+              !but in theory they take the same space
+              u_on_face = ptr_u_on_face
+              ufem_on_face = ptr_ufem_on_face
+              cv_on_face = ptr_cv_on_face
+              cvfem_on_face = ptr_cvfem_on_face
+          else
+              !Allocate local variables
+              allocate(cvn2( cv_nloc, cv_ngi ), cvn_short2( cv_nloc, cv_ngi_short ), cvweight2( cv_ngi ), cvfen2( cv_nloc, cv_ngi ),&
+              cvfenlx2( cv_nloc, cv_ngi ), cvfenly2( cv_nloc, cv_ngi ), cvfenlz2( cv_nloc, cv_ngi ), cvweight_short2( cv_ngi_short ),&
+              cvfen_short2( cv_nloc, cv_ngi_short ), cvfenlx_short2( cv_nloc, cv_ngi_short ),cvfenly_short2( cv_nloc, cv_ngi_short ), &
+              cvfenlz_short2( cv_nloc, cv_ngi_short ), ufen2( u_nloc, cv_ngi ), ufenlx2( u_nloc, cv_ngi ), ufenly2( u_nloc, cv_ngi ), &
+              ufenlz2( u_nloc, cv_ngi ), cv_neiloc2( cv_nloc, scvngi ),scvfen2( cv_nloc, scvngi ), scvfenslx2( cv_nloc, scvngi ), &
+              scvfensly2( cv_nloc, scvngi ), scvfeweigh2( scvngi ),scvfenlx2( cv_nloc, scvngi ), scvfenly2( cv_nloc, scvngi ),&
+              scvfenlz2( cv_nloc, scvngi ),  sufen2( u_nloc, scvngi ),sufenslx2( u_nloc, scvngi ), sufensly2( u_nloc, scvngi ),&
+              sufenlx2( u_nloc, scvngi ), sufenly2( u_nloc, scvngi ), sufenlz2( u_nloc, scvngi ), sbcvn2( cv_snloc, sbcvngi ),&
+              sbcvfen2( cv_snloc, sbcvngi ), sbcvfenslx2( cv_snloc, sbcvngi ), sbcvfensly2( cv_snloc, sbcvngi ),  sbcvfeweigh2( sbcvngi ),&
+              sbcvfenlx2( cv_snloc, sbcvngi ), sbcvfenly2( cv_snloc, sbcvngi ), sbcvfenlz2( cv_snloc, sbcvngi ), sbufen2( u_snloc, sbcvngi ),&
+              sbufenslx2( u_snloc, sbcvngi ), sbufensly2( u_snloc, sbcvngi ), sbufenlx2( u_snloc, sbcvngi ), sbufenly2( u_snloc, sbcvngi ), &
+              sbufenlz2( u_snloc, sbcvngi ), cv_sloclist2( nface, cv_snloc ),  u_sloclist2( nface, u_snloc ), findgpts2( cv_nloc + 1 ),&
+              colgpts2( cv_nloc * scvngi ), sele_overlap_scale2( cv_nloc ))
+          
+              findgpts2 = 0; colgpts2= 0; ncolgpts2 = 0
+          
+              call cv_fem_shape_funs( &
+              ndim, cv_ele_type, &
+              cv_ngi, cv_ngi_short, cv_nloc, u_nloc, cvn2, cvn_short2, &
+                                     ! Volume shape functions
+              cvweight2, cvfen2, cvfenlx2, cvfenly2, cvfenlz2, &
+              cvweight_short2, cvfen_short2, cvfenlx_short2, cvfenly_short2, cvfenlz_short2, &
+              ufen2, ufenlx2, ufenly2, ufenlz2, &
+                                     ! Surface of each CV shape functions
+              scvngi, cv_neiloc2, cv_on_face, cvfem_on_face, &
+              scvfen2, scvfenslx2, scvfensly2, scvfeweigh2, &
+              scvfenlx2, scvfenly2, scvfenlz2, &
+              sufen2, sufenslx2, sufensly2, &
+              sufenlx2, sufenly2, sufenlz2, &
+                                     ! Surface element shape funcs
+              u_on_face, ufem_on_face, nface, &
+              sbcvngi, sbcvn2, sbcvfen2, sbcvfenslx2, sbcvfensly2, sbcvfeweigh2, sbcvfenlx2, sbcvfenly2, sbcvfenlz2, &
+              sbufen2, sbufenslx2, sbufensly2, sbufenlx2, sbufenly2, sbufenlz2, &
+              cv_sloclist2, u_sloclist2, cv_snloc, u_snloc, &
+                                     ! Define the gauss points that lie on the surface of the CV
+              findgpts2, colgpts2, ncolgpts2, &
+              sele_overlap_scale2, QUAD_OVER_WHOLE_ELE)
+
+              !Store data into state
+              cvn = cvn2; cvn_short = cvn_short2; cvweight = cvweight2; cvfen = cvfen2;
+              cvweight_short = cvweight_short2; cvfen_short = cvfen_short2; ufen = ufen2;
+              cv_neiloc = cv_neiloc2; scvfen = scvfen2; scvfenslx = scvfenslx2; scvfensly = scvfensly2
+              scvfeweigh = scvfeweigh2; sufen = sufen2; sufenslx = sufenslx2;  sufensly = sufensly2;
+              sbcvn = sbcvn2; sbcvfen = sbcvfen2; sbcvfenslx = sbcvfenslx2; sbcvfensly = sbcvfensly2;
+              sbcvfeweigh = sbcvfeweigh2; sbufen = sbufen2; sbufenslx = sbufenslx2;
+              sbufensly = sbufensly2; cv_sloclist = cv_sloclist2; u_sloclist = u_sloclist2;
+              findgpts = findgpts2; colgpts = colgpts2; ncolgpts = ncolgpts2;
+              sele_overlap_scale = sele_overlap_scale2
+
+              !Store only the necessary dimensions
+              cvfenlx_all(1,:,:) = cvfenlx2; cvfenlx_short_all(1,:,:) = cvfenlx_short2
+              ufenlx_all(1,:,:) = ufenlx2; scvfenlx_all(1,:,:) = scvfenlx2;
+              sufenlx_all(1,:,:) = sufenlx2;  sbcvfenlx_all(1,:,:) = sbcvfenlx2
+              sbufenlx_all(1,:,:) = sbufenlx2
+              if (ndim >=2) then
+                  cvfenlx_all(2,:,:) = cvfenly2; cvfenlx_short_all(2,:,:) = cvfenly_short2
+                  ufenlx_all(2,:,:) = ufenly2; scvfenlx_all(2,:,:) = scvfenly2
+                  sufenlx_all(2,:,:) = sufenly2; sbcvfenlx_all(2,:,:) = sbcvfenly2
+                  sbufenlx_all(2,:,:) = sbufenly2
+              end if
+
+              if (ndim ==3) then
+                  cvfenlx_all(3,:,:) = cvfenlz2; cvfenlx_short_all(3,:,:) = cvfenlz_short2
+                  ufenlx_all(3,:,:) = ufenlz2; scvfenlx_all(3,:,:) = scvfenlz2
+                  sufenlx_all(3,:,:) = sufenlz2;  sbcvfenlx_all(3,:,:) = sbcvfenlz2
+                  sbufenlx_all(3,:,:) = sbufenlz2
+              end if
+
+
+              !Store logicals as integers into state
+              ptr_u_on_face = u_on_face
+              ptr_ufem_on_face = ufem_on_face
+              ptr_cv_on_face = cv_on_face
+              ptr_cvfem_on_face = cvfem_on_face
+
+              !deallocate local variables
+              deallocate(cvn2, cvn_short2, cvweight2, cvfen2,&
+              cvfenlx2, cvfenly2, cvfenlz2, cvweight_short2,&
+              cvfen_short2, cvfenlx_short2,cvfenly_short2, &
+              cvfenlz_short2, ufen2, ufenlx2, ufenly2, &
+              ufenlz2, cv_neiloc2,scvfen2, scvfenslx2, &
+              scvfensly2, scvfeweigh2, scvfenlx2, scvfenly2, &
+              scvfenlz2,  sufen2, sufenslx2, sufensly2, &
+              sufenlx2, sufenly2, sufenlz2, sbcvn2,&
+              sbcvfen2, sbcvfenslx2, sbcvfensly2,  sbcvfeweigh2,&
+              sbcvfenlx2, sbcvfenly2, sbcvfenlz2, sbufen2,&
+              sbufenslx2, sbufensly2, sbufenlx2, sbufenly2, &
+              sbufenlz2, cv_sloclist2,  u_sloclist2, findgpts2,&
+              colgpts2, sele_overlap_scale2)
+
+          end if
+    end subroutine
 
 
     subroutine cv_fem_shape_funs( &
@@ -1572,10 +1945,10 @@
          cv_sloclist, u_sloclist, cv_snloc, u_snloc, &
                                 ! Define the gauss points that lie on the surface of the CV
          findgpts, colgpts, ncolgpts, &
-         sele_overlap_scale, QUAD_OVER_WHOLE_ELE ) 
+         sele_overlap_scale, QUAD_OVER_WHOLE_ELE )
       ! This subrt defines the sub-control volume and FEM shape functions.
-      ! Shape functions associated with volume integration using both CV basis 
-      ! functions CVN as well as FEM basis functions CVFEN (and its derivatives 
+      ! Shape functions associated with volume integration using both CV basis
+      ! functions CVN as well as FEM basis functions CVFEN (and its derivatives
       ! CVFENLX, CVFENLY, CVFENLZ)
       implicit none
       integer, intent( in ) :: ndim, cv_ele_type, cv_ngi, cv_ngi_short, cv_nloc, u_nloc
@@ -1615,12 +1988,12 @@
       ! Local variables
       logical, dimension( :, : ), allocatable :: u_on_face2, ufem_on_face2
       integer, dimension( :, : ), allocatable :: u_sloclist2
-      real, dimension( :, : ), allocatable :: ufen2, ufenlx2, ufenly2, ufenlz2, & 
+      real, dimension( :, : ), allocatable :: ufen2, ufenlx2, ufenly2, ufenlz2, &
            sufen2, sufenslx2, sufensly2, sufenlx2, sufenly2, sufenlz2, &
-           sbufen2, sbufenslx2, sbufensly2, sbufenlx2, sbufenly2, sbufenlz2 
+           sbufen2, sbufenslx2, sbufensly2, sbufenlx2, sbufenly2, sbufenlz2
       real, dimension( :, : ), allocatable :: M,MLX,MLY,MLZ, sm,SMLX,SMLY
-      character( len = option_path_len ) :: overlapping_path, dummy_path, dummypath2 
-      logical :: is_overlapping   
+      character( len = option_path_len ) :: overlapping_path, dummy_path, dummypath2
+      logical :: is_overlapping
       integer :: u_nloc2, ilev, ilev2, u_snloc2, u_ele_type2, gi, MLOC, SMLOC
       integer :: sgi, cv_siloc, cv_skloc
       real :: rmax
@@ -2035,7 +2408,7 @@ ewrite(3,*)'lll:', option_path_len
       !ewrite(3,*) 'leaving cv_fem_shape_funs subrt, ncolgpts', ncolgpts
       !ewrite(3,*) '----sum(cvweight):',sum(cvweight)
 
-    
+
       deallocate( m, mlx, mly, mlz, sm, smlx, smly )
 
       return
@@ -7654,9 +8027,9 @@ ewrite(3,*)'lll:', option_path_len
       type(scalar_field), target :: targ_DETWEI_RA
       type(scalar_field), target :: targ_VOLUME
       !#########Storing area#################################
-      !****TEMPORARY****
-      NDIM = 3
-      !********************
+      NDIM = 2
+      if (D1) ndim =1
+      if (D3) ndim = 3
       !If new mesh or mesh moved indx will be zero (set in Multiphase_TimeLoop)
       if (indx>0) then!Everything has been calculated already
           !Get from state, indx is an input
@@ -7724,145 +8097,142 @@ ewrite(3,*)'lll:', option_path_len
 
       VOLUME = 0.
 
-      Conditional_D3: IF( D3 ) THEN
-         Loop_GI1: DO GI = 1, NGI
+      select case (ndim)
+          case (1)
+              Loop_GI14: DO GI = 1, NGI
 
-            AGI = 0.
-            BGI = 0.
-            CGI = 0.
-            DGI = 0.
-            EGI = 0.
-            FGI = 0.
-            GGI = 0.
-            HGI = 0.
-            KGI = 0.
+                  AGI = 0.
 
-            Loop_L1: DO L = 1, X_NLOC ! NB R0 does not appear here although the z-coord might be Z+R0.
-               IGLX = XONDGL(( ELE - 1 ) * X_NLOC + L)
+                  Loop_L15: DO L = 1, X_NLOC
+                      IGLX = XONDGL(( ELE - 1 ) * X_NLOC + L )
+                      AGI = AGI + NLX( L, GI ) * X( IGLX )
+                  END DO Loop_L15
 
-               AGI = AGI + NLX( L, GI) * X( IGLX ) 
-               BGI = BGI + NLX( L, GI) * Y( IGLX ) 
-               CGI = CGI + NLX( L, GI) * Z( IGLX ) 
-               DGI = DGI + NLY( L, GI) * X( IGLX ) 
-               EGI = EGI + NLY( L, GI) * Y( IGLX ) 
-               FGI = FGI + NLY( L, GI) * Z( IGLX ) 
-               GGI = GGI + NLZ( L, GI) * X( IGLX ) 
-               HGI = HGI + NLZ( L, GI) * Y( IGLX ) 
-               KGI = KGI + NLZ( L, GI) * Z( IGLX )
-            END DO Loop_L1
+                  DETJ = AGI
+                  RA( GI ) = 1.0
+                  DETWEI( GI ) = ABS(DETJ) * WEIGHT( GI )
+                  VOLUME = VOLUME + DETWEI( GI )
 
-            DETJ = AGI * ( EGI * KGI - FGI * HGI ) &
-                 -BGI * ( DGI * KGI - FGI * GGI ) &
-                 +CGI * ( DGI * HGI - EGI * GGI )
-            DETWEI( GI ) = ABS( DETJ ) * WEIGHT( GI )
-            RA( GI ) = 1.0
-            VOLUME = VOLUME + DETWEI( GI )
+                  Loop_L16: DO L = 1, X_NLOC
+                      NX_ALL(1, L, GI ) = NLX( L, GI ) / DETJ
+!                      NX_ALL(2, L, GI ) = 0.0
+!                      NX_ALL(3, L, GI ) = 0.0
+                  END DO Loop_L16
 
-            ! For coefficient in the inverse mat of the jacobian. 
-            A11=   ( EGI * KGI - FGI * HGI ) / DETJ
-            A21= - ( DGI * KGI - FGI * GGI ) / DETJ
-            A31=   ( DGI * HGI - EGI * GGI ) / DETJ
-            A12= - ( BGI * KGI - CGI * HGI ) / DETJ
-            A22=   ( AGI * KGI - CGI * GGI ) / DETJ
-            A32= - ( AGI * HGI - BGI * GGI ) / DETJ
-            A13=   ( BGI * FGI - CGI * EGI ) / DETJ
-            A23= - ( AGI * FGI - CGI * DGI ) / DETJ
-            A33=   ( AGI * EGI - BGI * DGI ) / DETJ
+                  Loop_L17: DO L = 1, U_NLOC
+                      UNX_ALL(1, L, GI ) = UNLX( L, GI ) / DETJ
+!                      UNX_ALL(2, L, GI ) = 0.0
+!                      UNX_ALL(3, L, GI ) = 0.0
+                  END DO Loop_L17
 
-            Loop_L2: DO L = 1, X_NLOC
-               NX_ALL(1, L, GI ) = A11 * NLX( L, GI) + A12 * NLY( L, GI ) + A13 * NLZ( L, GI )
-               NX_ALL(2, L, GI ) = A21 * NLX( L, GI) + A22 * NLY( L, GI ) + A23 * NLZ( L, GI )
-               NX_ALL(3, L, GI ) = A31 * NLX( L, GI) + A32 * NLY( L, GI ) + A33 * NLZ( L, GI )
-            END DO Loop_L2
+              END DO Loop_GI14
+          case (2)
+              TWOPIE = 1.0
+              IF( DCYL ) TWOPIE = 2. * PIE
+              !rsum=0.0
 
-            Loop_L3: DO L = 1, U_NLOC
-               UNX_ALL(1, L, GI ) = A11 * UNLX( L, GI) + A12 * UNLY( L, GI ) + A13 * UNLZ( L, GI )
-               UNX_ALL(2, L, GI ) = A21 * UNLX( L, GI) + A22 * UNLY( L, GI ) + A23 * UNLZ( L, GI )
-               UNX_ALL(3, L, GI ) = A31 * UNLX( L, GI) + A32 * UNLY( L, GI ) + A33 * UNLZ( L, GI )
-            END DO Loop_L3
+              Loop_GI2: DO GI = 1, NGI
 
-         END DO Loop_GI1
+                  RGI = 0.
+                  AGI = 0.
+                  BGI = 0.
+                  CGI = 0.
+                  DGI = 0.
 
-      ELSE IF(.NOT.D1) THEN
+                  Loop_L4: DO L = 1, X_NLOC
+                      IGLX = XONDGL(( ELE - 1 ) * X_NLOC + L )
+                      AGI = AGI + NLX( L, GI ) * X( IGLX )
+                      BGI = BGI + NLX( L, GI ) * Y( IGLX )
+                      CGI = CGI + NLY( L, GI ) * X( IGLX )
+                      DGI = DGI + NLY( L, GI ) * Y( IGLX )
+                      RGI = RGI + N( L, GI ) * Y( IGLX )
+                     !  print *,'l,gi,IGLX,X( IGLX ),Y( IGLX ):',l,gi,IGLX,X( IGLX ),Y( IGLX )
+                     !  print *,'agi,bgi,cgi,dgi,rgi:',agi,bgi,cgi,dgi,rgi
+                     !  print *,'NLX( L, GI ),NLY( L, GI ):',NLX( L, GI ),NLY( L, GI )
+                  END DO Loop_L4
 
-         TWOPIE = 1.0 
-         IF( DCYL ) TWOPIE = 2. * PIE
-         !rsum=0.0
+                  IF( .NOT. DCYL ) RGI = 1.0
 
-         Loop_GI2: DO GI = 1, NGI
+                  DETJ = AGI * DGI - BGI * CGI
+                  RA( GI ) = RGI
+                  DETWEI( GI ) = TWOPIE * RGI * ABS(DETJ) * WEIGHT( GI )
+                  VOLUME = VOLUME + DETWEI( GI )
 
-            RGI = 0.
-            AGI = 0.
-            BGI = 0.
-            CGI = 0.
-            DGI = 0.
-
-            Loop_L4: DO L = 1, X_NLOC
-               IGLX = XONDGL(( ELE - 1 ) * X_NLOC + L )
-               AGI = AGI + NLX( L, GI ) * X( IGLX ) 
-               BGI = BGI + NLX( L, GI ) * Y( IGLX ) 
-               CGI = CGI + NLY( L, GI ) * X( IGLX ) 
-               DGI = DGI + NLY( L, GI ) * Y( IGLX ) 
-               RGI = RGI + N( L, GI ) * Y( IGLX )
-               !  print *,'l,gi,IGLX,X( IGLX ),Y( IGLX ):',l,gi,IGLX,X( IGLX ),Y( IGLX )
-               !  print *,'agi,bgi,cgi,dgi,rgi:',agi,bgi,cgi,dgi,rgi                                       
-               !  print *,'NLX( L, GI ),NLY( L, GI ):',NLX( L, GI ),NLY( L, GI )
-            END DO Loop_L4
-
-            IF( .NOT. DCYL ) RGI = 1.0
-
-            DETJ = AGI * DGI - BGI * CGI 
-            RA( GI ) = RGI
-            DETWEI( GI ) = TWOPIE * RGI * ABS(DETJ) * WEIGHT( GI )
-            VOLUME = VOLUME + DETWEI( GI )
-
-            Loop_L5: DO L = 1, X_NLOC
-               NX_ALL(1, L, GI ) = (  DGI * NLX( L, GI ) - BGI * NLY( L, GI )) / DETJ
-               NX_ALL(2, L, GI ) = ( -CGI * NLX( L, GI ) + AGI * NLY( L, GI )) / DETJ
-               NX_ALL(3,L, GI ) = 0.0
-            END DO Loop_L5
+                  Loop_L5: DO L = 1, X_NLOC
+                      NX_ALL(1, L, GI ) = (  DGI * NLX( L, GI ) - BGI * NLY( L, GI )) / DETJ
+                      NX_ALL(2, L, GI ) = ( -CGI * NLX( L, GI ) + AGI * NLY( L, GI )) / DETJ
+!                      NX_ALL(3,L, GI ) = 0.0
+                  END DO Loop_L5
 
 
-            Loop_L6: DO L = 1, U_NLOC
-               UNX_ALL(1, L, GI ) = (  DGI * UNLX( L, GI ) - BGI * UNLY( L, GI )) / DETJ
-               UNX_ALL(2,L, GI ) = ( -CGI * UNLX( L, GI ) + AGI * UNLY( L, GI )) / DETJ
-               UNX_ALL(3, L, GI ) = 0.0
-            END DO Loop_L6
+                  Loop_L6: DO L = 1, U_NLOC
+                      UNX_ALL(1, L, GI ) = (  DGI * UNLX( L, GI ) - BGI * UNLY( L, GI )) / DETJ
+                      UNX_ALL(2,L, GI ) = ( -CGI * UNLX( L, GI ) + AGI * UNLY( L, GI )) / DETJ
+!                      UNX_ALL(3, L, GI ) = 0.0
+                  END DO Loop_L6
 
-         END DO Loop_GI2
+              END DO Loop_GI2
 
-         !ewrite(3,*)'ngi,sum(weight),rsum:',ngi,sum(weight),rsum
+          !ewrite(3,*)'ngi,sum(weight),rsum:',ngi,sum(weight),rsum
+          case default
+              Loop_GI1: DO GI = 1, NGI
 
-      ELSE ! FOR 1D...
+                  AGI = 0.
+                  BGI = 0.
+                  CGI = 0.
+                  DGI = 0.
+                  EGI = 0.
+                  FGI = 0.
+                  GGI = 0.
+                  HGI = 0.
+                  KGI = 0.
 
-         Loop_GI14: DO GI = 1, NGI
+                  Loop_L1: DO L = 1, X_NLOC ! NB R0 does not appear here although the z-coord might be Z+R0.
+                      IGLX = XONDGL(( ELE - 1 ) * X_NLOC + L)
 
-            AGI = 0.
+                      AGI = AGI + NLX( L, GI) * X( IGLX )
+                      BGI = BGI + NLX( L, GI) * Y( IGLX )
+                      CGI = CGI + NLX( L, GI) * Z( IGLX )
+                      DGI = DGI + NLY( L, GI) * X( IGLX )
+                      EGI = EGI + NLY( L, GI) * Y( IGLX )
+                      FGI = FGI + NLY( L, GI) * Z( IGLX )
+                      GGI = GGI + NLZ( L, GI) * X( IGLX )
+                      HGI = HGI + NLZ( L, GI) * Y( IGLX )
+                      KGI = KGI + NLZ( L, GI) * Z( IGLX )
+                  END DO Loop_L1
 
-            Loop_L15: DO L = 1, X_NLOC
-               IGLX = XONDGL(( ELE - 1 ) * X_NLOC + L )
-               AGI = AGI + NLX( L, GI ) * X( IGLX ) 
-            END DO Loop_L15
+                  DETJ = AGI * ( EGI * KGI - FGI * HGI ) &
+                  -BGI * ( DGI * KGI - FGI * GGI ) &
+                  +CGI * ( DGI * HGI - EGI * GGI )
+                  DETWEI( GI ) = ABS( DETJ ) * WEIGHT( GI )
+                  RA( GI ) = 1.0
+                  VOLUME = VOLUME + DETWEI( GI )
 
-            DETJ = AGI 
-            RA( GI ) = 1.0
-            DETWEI( GI ) = ABS(DETJ) * WEIGHT( GI )
-            VOLUME = VOLUME + DETWEI( GI )
+                  ! For coefficient in the inverse mat of the jacobian.
+                  A11=   ( EGI * KGI - FGI * HGI ) / DETJ
+                  A21= - ( DGI * KGI - FGI * GGI ) / DETJ
+                  A31=   ( DGI * HGI - EGI * GGI ) / DETJ
+                  A12= - ( BGI * KGI - CGI * HGI ) / DETJ
+                  A22=   ( AGI * KGI - CGI * GGI ) / DETJ
+                  A32= - ( AGI * HGI - BGI * GGI ) / DETJ
+                  A13=   ( BGI * FGI - CGI * EGI ) / DETJ
+                  A23= - ( AGI * FGI - CGI * DGI ) / DETJ
+                  A33=   ( AGI * EGI - BGI * DGI ) / DETJ
 
-            Loop_L16: DO L = 1, X_NLOC
-               NX_ALL(1, L, GI ) = NLX( L, GI ) / DETJ
-               NX_ALL(2, L, GI ) = 0.0
-               NX_ALL(3, L, GI ) = 0.0
-            END DO Loop_L16
+                  Loop_L2: DO L = 1, X_NLOC
+                      NX_ALL(1, L, GI ) = A11 * NLX( L, GI) + A12 * NLY( L, GI ) + A13 * NLZ( L, GI )
+                      NX_ALL(2, L, GI ) = A21 * NLX( L, GI) + A22 * NLY( L, GI ) + A23 * NLZ( L, GI )
+                      NX_ALL(3, L, GI ) = A31 * NLX( L, GI) + A32 * NLY( L, GI ) + A33 * NLZ( L, GI )
+                  END DO Loop_L2
 
-            Loop_L17: DO L = 1, U_NLOC
-               UNX_ALL(1, L, GI ) = UNLX( L, GI ) / DETJ
-               UNX_ALL(2, L, GI ) = 0.0
-               UNX_ALL(3, L, GI ) = 0.0
-            END DO Loop_L17
+                  Loop_L3: DO L = 1, U_NLOC
+                      UNX_ALL(1, L, GI ) = A11 * UNLX( L, GI) + A12 * UNLY( L, GI ) + A13 * UNLZ( L, GI )
+                      UNX_ALL(2, L, GI ) = A21 * UNLX( L, GI) + A22 * UNLY( L, GI ) + A23 * UNLZ( L, GI )
+                      UNX_ALL(3, L, GI ) = A31 * UNLX( L, GI) + A32 * UNLY( L, GI ) + A33 * UNLZ( L, GI )
+                  END DO Loop_L3
 
-         END DO Loop_GI14
-      ENDIF Conditional_D3
+              END DO Loop_GI1
+      end select
 
       RETURN
     END SUBROUTINE DETNLXR_PLUS_U

@@ -934,18 +934,15 @@
       ! U = BLOCK_MAT * CDP
       INTEGER, intent( in )  :: U_NONODS, NDIM, NPHASE, TOTELE, U_NLOC
       INTEGER, DIMENSION( : ), intent( in ), target ::  U_NDGLN
-      REAL, DIMENSION( :), intent( inout ) :: U
+      REAL, DIMENSION( : ), intent( inout ) :: U
       REAL, DIMENSION( :, :, : ), intent( in ), target :: BLOCK_MAT
-      REAL, DIMENSION( : ), intent( in ) :: CDP
+      REAL, DIMENSION( :, :, : ), intent( in ) :: CDP
       ! Local 
-      INTEGER :: ELE, U_ILOC, U_INOD, IDIM, IPHASE, I, U_JLOC, U_JNOD, JDIM, JPHASE, J, II, JJ
+      INTEGER :: ELE, N, U_ILOC
+      INTEGER, DIMENSION(:), pointer :: U_NOD
+      REAL, DIMENSION( NDIM, NPHASE, U_NLOC ) :: LU
+      REAL, DIMENSION( NDIM * NPHASE * U_NLOC ) :: LCDP
 
-      integer, dimension(:), pointer :: U_NOD
-
-      real, dimension(NDIM,NPHASE,U_NLOC) ::  lu
-      real, dimension(NDIM*NPHASE*U_NLOC) :: lcdp
-      integer :: N
-      
       interface 
          subroutine dgemv(T,M,N,alpha,MAT,NMAX,X,Xinc,beta,Y,yinc)
            implicit none
@@ -963,17 +960,14 @@
 
       Loop_Elements: DO ELE = 1, TOTELE
 
-         U_NOD => U_NDGLN(( ELE - 1 ) * U_NLOC +1: ELE * U_NLOC) 
-         
-         do u_iloc=1,u_nloc
-            lcdp(1+(u_iloc-1)*nphase*ndim:u_iloc*nphase*ndim) = CDP( 1+(U_NOD(u_iloc)-1)*ndim*nphase:U_NOD(u_iloc)*ndim*nphase )
-         end do
+         U_NOD => U_NDGLN( ( ELE - 1 ) * U_NLOC +1 : ELE * U_NLOC ) 
 
-         call dgemv( 'N', N, N, 1.0d0, BLOCK_MAT( : , : , ele ), N, LCDP, 1, 0.0d0, LU, 1 )
+         LCDP = RESHAPE( CDP( :, :, U_NOD ) , (/ N /) )
+         CALL DGEMV( 'N', N, N, 1.0d0, BLOCK_MAT( : , : , ELE ), N, LCDP, 1, 0.0d0, LU, 1 )
 
-         do u_iloc=1,u_nloc
-            U( 1+(U_NOD(u_iloc)-1)*ndim*nphase:U_NOD(u_iloc)*ndim*nphase ) = [LU(:,:,u_iloc)]
-         end do
+         DO U_ILOC = 1, U_NLOC
+            U( 1+(U_NOD(U_ILOC)-1)*NDIM*NPHASE : U_NOD(U_ILOC)*NDIM*NPHASE ) = [LU(:,:,U_ILOC)]
+         END DO
 
       END DO Loop_Elements
 
@@ -1049,6 +1043,52 @@
 
 
 
+
+
+     SUBROUTINE PHA_BLOCK_MAT_VEC2( U, BLOCK_MAT, CDP, U_NONODS, NDIM, NPHASE, &
+         TOTELE, U_NLOC, U_NDGLN ) 
+      implicit none
+      ! U = BLOCK_MAT * CDP
+      INTEGER, intent( in )  :: U_NONODS, NDIM, NPHASE, TOTELE, U_NLOC
+      INTEGER, DIMENSION( : ), intent( in ), target ::  U_NDGLN
+      REAL, DIMENSION( :, :, : ), intent( inout ) :: U
+      REAL, DIMENSION( :, :, : ), intent( in ), target :: BLOCK_MAT
+      REAL, DIMENSION( :, :, : ), intent( in ) :: CDP
+      ! Local 
+      INTEGER :: ELE, N
+!      INTEGER, DIMENSION( : ), pointer :: U_NOD
+      INTEGER, DIMENSION( U_NLOC ) :: U_NOD
+      REAL, DIMENSION( NDIM * NPHASE * U_NLOC ) :: LCDP, LU
+      
+      interface 
+         subroutine dgemv(T,M,N,alpha,MAT,NMAX,X,Xinc,beta,Y,yinc)
+           implicit none
+           character(len=1) :: T
+           integer :: m,n,nmax,xinc,yinc
+           real ::  alpha, beta
+           real, dimension(nmax,n) :: MAT
+           real, dimension(N) :: X
+           real, dimension(M) :: Y
+         end subroutine dgemv
+      end interface
+           
+
+      N = U_NLOC * NDIM * NPHASE
+
+      Loop_Elements: DO ELE = 1, TOTELE
+
+!         U_NOD => U_NDGLN( ( ELE - 1 ) * U_NLOC +1 : ELE * U_NLOC )
+         U_NOD = U_NDGLN( ( ELE - 1 ) * U_NLOC +1 : ELE * U_NLOC )
+
+         LCDP = RESHAPE( CDP( :, :, U_NOD ) , (/ N /) )
+         CALL DGEMV( 'N', N, N, 1.0d0, BLOCK_MAT( : , : , ELE ), N, LCDP, 1, 0.0d0, LU, 1 )
+         U( :, :, U_NOD ) = RESHAPE( LU, (/ NDIM, NPHASE, U_NLOC/) )
+      
+      END DO Loop_Elements
+
+      RETURN
+
+    END SUBROUTINE PHA_BLOCK_MAT_VEC2
 
 
 
@@ -1307,8 +1347,6 @@
 !!$    END SUBROUTINE CT_MULT
 
 
-
-
     SUBROUTINE CT_MULT_MANY( CV_RHS, U, CV_NONODS, U_NONODS, NDIM, NPHASE, NBLOCK, &
          CT, NCOLCT, FINDCT, COLCT ) 
       ! CV_RHS = CT * U
@@ -1321,35 +1359,22 @@
       REAL, DIMENSION( NDIM, NPHASE, NCOLCT ), intent( in ) :: CT
 
       ! Local variables
-      INTEGER :: CV_INOD, COUNT, U_JNOD, IPHASE, J, IVEC
+      INTEGER :: CV_INOD, COUNT, U_JNOD, IPHASE, J, IVEC, IDIM
 
       CV_RHS = 0.0
 
       DO CV_INOD = 1, CV_NONODS
-
          DO COUNT = FINDCT( CV_INOD ), FINDCT( CV_INOD + 1 ) - 1
             U_JNOD = COLCT( COUNT )
-
-            DO IPHASE = 1, NPHASE
-               J = U_JNOD + ( IPHASE - 1 ) * U_NONODS
-
-               DO IVEC = 1, NBLOCK
-                  CV_RHS( IVEC, CV_INOD ) = CV_RHS( IVEC, CV_INOD ) + CT( 1, IPHASE, COUNT ) * U( IVEC, 1, IPHASE, U_JNOD )
-                  IF( NDIM >= 2 ) CV_RHS( IVEC, CV_INOD ) = CV_RHS( IVEC, CV_INOD ) + CT( 2, IPHASE, COUNT ) * U( IVEC, 2, IPHASE, U_JNOD )
-                  IF( NDIM >= 3 ) CV_RHS( IVEC, CV_INOD ) = CV_RHS( IVEC, CV_INOD ) + CT( 3, IPHASE, COUNT ) * U( IVEC, 3, IPHASE, U_JNOD )
-               END DO
-            END DO
-
+            forall ( IVEC = 1 : NBLOCK, IPHASE = 1 : NPHASE,IDIM =1:NDIM)
+                  CV_RHS( IVEC, CV_INOD ) = CV_RHS( IVEC, CV_INOD )+ U( IVEC, IDIM, IPHASE, U_JNOD ) * CT( IDIM, IPHASE, COUNT  )
+            end forall
          END DO
-
       END DO
 
       RETURN
 
     END SUBROUTINE CT_MULT_MANY
-
-
-
 
 
     SUBROUTINE C_MULT( CDP, DP, CV_NONODS, U_NONODS, NDIM, NPHASE, &

@@ -130,6 +130,13 @@ interpolated for VTK output.</a:documentation>
           </element>
         </optional>
         <optional>
+          <element name="initial_condition_overwrites_boundary">
+            <a:documentation>Do not overwrite initial condition with boundary condition.
+Important for checkpointed runs! </a:documentation>
+            <empty/>
+          </element>
+        </optional>
+        <optional>
           <element name="checkpointing">
             <a:documentation>Whether to enable dumping of checkpointing output.
 

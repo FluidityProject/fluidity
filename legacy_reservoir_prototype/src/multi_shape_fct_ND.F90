@@ -43,6 +43,7 @@
     use global_parameters, only: option_path_len
     use Fields_Allocates, only : allocate
     use fields_data_types, only: mesh_type, scalar_field
+
   contains
 
     subroutine re2dn4( lowqua, ngi, ngi_l, nloc, mloc, &
@@ -1176,7 +1177,92 @@
       return
     end subroutine lagrot
 
+    SUBROUTINE DETNLXR_plus_storage( ELE, X_ALL, XONDGL, TOTELE, NONODS, NLOC, NGI, &
+         N, NLX_ALL, WEIGHT, DETWEI, RA, VOLUME, DCYL, &
+         NX_ALL, state, StorName , indx)
+      IMPLICIT NONE
+      INTEGER, intent( in ) :: ELE, TOTELE, NONODS, NLOC, NGI
+      INTEGER, DIMENSION( : ) :: XONDGL
+      REAL, DIMENSION( :, : ), intent( in ) :: X_ALL!(NDIM, size(XONDGL))
+      REAL, DIMENSION( :, : ), intent( in ) :: N
+      REAL, DIMENSION( :, :, : ), intent( in ) :: NLX_ALL!(NDIM,NLOC, NGI )
+      REAL, DIMENSION( : ), intent( in ) :: WEIGHT
+      REAL, DIMENSION( : ), pointer, intent( inout ) :: DETWEI, RA
+      REAL, pointer, intent( inout ) :: VOLUME
+      LOGICAL, intent( in ) ::DCYL
+      REAL, DIMENSION( :, : ,:), pointer, intent( inout ) :: NX_ALL!dimension(ndim, NLOC, NGI)
+      type( state_type ), intent( inout ), dimension(:) :: state
+      character(len=*), intent(in) :: StorName
+      integer, intent(inout) :: indx
+     !Local variables
+     logical :: D1, D3
+     integer :: ndim, Pos1, Pos2
+      !Variables to store things in state
+      type(mesh_type), pointer :: fl_mesh
+      type(mesh_type) :: Auxmesh
+      type(scalar_field), target :: targ_Store
+      !Prepare variables
+      NDIM = size(X_ALL,1)
 
+      !#########Storing area#################################
+      !If new mesh or mesh moved indx will be zero (set in Multiphase_TimeLoop)
+      if (indx<=0) then!Everything has to be calculated
+          if (ELE==1) then !The first time we need to introduce the targets in state
+              if (has_scalar_field(state(1), StorName)) then
+                  !If we are recalculating due to a mesh modification then
+                  !we return to the original situation
+                  call remove_scalar_field(state(1), StorName)
+              end if
+
+              !Get mesh file just to be able to allocate the fields we want to store
+              fl_mesh => extract_mesh( state(1), "CoordinateMesh" )
+              Auxmesh = fl_mesh
+              !The number of nodes I want does not coincide
+              Auxmesh%nodes = totele*(NLOC*NGI*NDIM + NGI*2 + 1)
+              call allocate (targ_Store, Auxmesh)
+              !Now we insert them in state and store the indexes
+              call insert(state(1), targ_Store, StorName)
+              !Store index with a negative value, because if the index is
+              !zero or negative then we have to calculate stuff
+              indx = -size(state(1)%scalar_fields)
+          end if
+          !Get from state, indx is an input
+          Pos1 = 1+NDIM*NLOC*NGI*(ELE-1) ; Pos2 = NDIM*NLOC*NGI*ELE
+          NX_ALL(1:NDIM,1:NLOC,1:NGI) => state(1)%scalar_fields(abs(indx))%ptr%val(Pos1:Pos2)
+          Pos1 = Pos2 + 1; Pos2 = Pos2 + NGI*ELE
+          DETWEI(1:NGI) => state(1)%scalar_fields(abs(indx))%ptr%val(Pos1:Pos2)
+          Pos1 = Pos2 + 1; Pos2 = Pos2 + NGI*ELE
+          RA(1:NGI) => state(1)%scalar_fields(abs(indx))%ptr%val(Pos1:Pos2)
+          Pos1 = Pos2 + 1
+          VOLUME => state(1)%scalar_fields(abs(indx))%ptr%val(Pos1)
+      else  !If the index is bigger than zero then everything is in storage
+          !Get from state, indx is an input
+          Pos1 = 1+NDIM*NLOC*NGI*(ELE-1) ; Pos2 = NDIM*NLOC*NGI*ELE
+          NX_ALL(1:NDIM,1:NLOC,1:NGI) => state(1)%scalar_fields(abs(indx))%ptr%val(Pos1:Pos2)
+          Pos1 = Pos2 + 1; Pos2 = Pos2 + NGI*ELE
+          DETWEI(1:NGI) => state(1)%scalar_fields(abs(indx))%ptr%val(Pos1:Pos2)
+          Pos1 = Pos2 + 1; Pos2 = Pos2 + NGI*ELE
+          RA(1:NGI) => state(1)%scalar_fields(abs(indx))%ptr%val(Pos1:Pos2)
+          Pos1 = Pos2 + 1
+          VOLUME => state(1)%scalar_fields(abs(indx))%ptr%val(Pos1)
+          return
+      end if
+      !When all the values are obtained, the index is set to a positive value
+      if (ELE == totele) indx = abs(indx)
+      !#########Storing area finished########################
+
+         D1 = .false.;D3 = .false.
+         select case (ndim)
+             case (1)
+                 D1 = .true.
+             case (3)
+                 D3 = .true.
+         end select
+         call DETNLXR( ELE, X_ALL(1,:),X_ALL(2,:),X_ALL(3,:), XONDGL, TOTELE, NONODS, NLOC, NGI, &
+         N, NLX_ALL(1,:,:), NLX_ALL(2,:,:), NLX_ALL(3,:,:), WEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
+         NX_ALL(1, :,:),NX_ALL(2, :,:),NX_ALL(3, :,:) )
+
+      end subroutine DETNLXR_plus_storage
 
 
     SUBROUTINE DETNLXR( ELE, X,Y,Z, XONDGL, TOTELE, NONODS, NLOC, NGI, &
@@ -1302,7 +1388,7 @@
             do L=1,NLOC
                NX(L,GI)=(DGI*NLX(L,GI)-BGI*NLY(L,GI))/DETJ
                NY(L,GI)=(-CGI*NLX(L,GI)+AGI*NLY(L,GI))/DETJ
-               NZ(L,GI)=0.0
+!               NZ(L,GI)=0.0
             END DO
             !
          end do ! Was loop 1331
@@ -1324,8 +1410,8 @@
             !
             do L = 1, NLOC
                NX( L, GI ) = NLX( L, GI ) / DETJ
-               NY( L, GI ) = 0.0
-               NZ( L, GI ) = 0.0
+!               NY( L, GI ) = 0.0
+!               NZ( L, GI ) = 0.0
             END DO
             !
          end do
@@ -1336,17 +1422,18 @@
     END SUBROUTINE DETNLXR
 
 
-    SUBROUTINE DETNLXR_INVJAC( ELE, X,Y,Z, XONDGL, TOTELE, NONODS, NLOC, NGI, &
-         N, NLX, NLY, NLZ, WEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
+    SUBROUTINE DETNLXR_INVJAC( ELE, X_ALL, XONDGL, TOTELE, NONODS, NLOC, NGI, &
+         N, NLX_ALL, WEIGHT, DETWEI, RA, VOLUME, DCYL, &
          NX_ALL,&
          NDIM, INV_JAC, state, StorName, indx )
       IMPLICIT NONE
       INTEGER, intent( in ) :: ELE, TOTELE, NONODS, NLOC, NGI, NDIM
       INTEGER, DIMENSION( : ) :: XONDGL
-      REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
-      REAL, DIMENSION( :, : ), intent( in ) :: N, NLX, NLY, NLZ
+      REAL, DIMENSION( :, : ), intent( in ) :: X_ALL!dimension(NDIM,size(XONDGL) )
+      REAL, DIMENSION( :, : ), intent( in ) :: N
+      REAL, DIMENSION( :, :, : ), intent( in ) :: NLX_ALL
       REAL, DIMENSION( : ), intent( in ) :: WEIGHT
-      LOGICAL, intent( in ) :: D1, D3, DCYL
+      LOGICAL, intent( in ) :: DCYL
       REAL,pointer,  intent( inout ) :: VOLUME
       REAL, pointer,  DIMENSION( : ), intent( inout ):: DETWEI, RA
       REAL, pointer, DIMENSION( :, :, : ), intent( inout ) :: NX_ALL
@@ -1369,15 +1456,11 @@
       type(scalar_field), target :: targ_DETWEI_RA
       type(scalar_field), target :: targ_VOLUME
       !#########Storing area#################################
-      !****TEMPORARY****
-      integer :: ndim2
-      NDIM2 = 3
-      !********************
       !If new mesh or mesh moved indx will be zero (set in Multiphase_TimeLoop)
       if (indx>0) then!Everything has been calculated already
           !Get from state, indx is an input
-          NX_ALL(1:NDIM2,1:NLOC,1:NGI) => &
-          state(1)%scalar_fields(indx)%ptr%val(1+NDIM2*NLOC*NGI*(ELE-1):NDIM2*NLOC*NGI*ELE)
+          NX_ALL(1:NDIM,1:NLOC,1:NGI) => &
+          state(1)%scalar_fields(indx)%ptr%val(1+NDIM*NLOC*NGI*(ELE-1):NDIM*NLOC*NGI*ELE)
           INV_JAC(1:NDIM,1:NDIM,1:NGI)  => &
           state(1)%scalar_fields(indx+1)%ptr%val(1+(ELE-1)*(NGI+NDIM*NDIM):ELE*(NGI*NDIM*NDIM))
           DETWEI(1:NGI) => state(1)%scalar_fields(indx+2)%ptr%val(1+NGI*(ELE-1):NGI*ELE)
@@ -1386,8 +1469,8 @@
           return
       else if (indx/=0) then!We need to calculate a new value
           !Get from state, indx is an input
-          NX_ALL(1:NDIM2,1:NLOC,1:NGI) => &
-          state(1)%scalar_fields(-indx)%ptr%val(1+NDIM2*NLOC*NGI*(ELE-1):NDIM2*NLOC*NGI*ELE)
+          NX_ALL(1:NDIM,1:NLOC,1:NGI) => &
+          state(1)%scalar_fields(-indx)%ptr%val(1+NDIM*NLOC*NGI*(ELE-1):NDIM*NLOC*NGI*ELE)
           INV_JAC(1:NDIM,1:NDIM,1:NGI)  => &
           state(1)%scalar_fields(-indx+1)%ptr%val(1+(ELE-1)*(NGI+NDIM*NDIM):ELE*(NGI*NDIM*NDIM))
           DETWEI(1:NGI) => state(1)%scalar_fields(-indx+2)%ptr%val(1+NGI*(ELE-1):NGI*ELE)
@@ -1406,7 +1489,7 @@
           fl_mesh => extract_mesh( state(1), "CoordinateMesh" )
           Auxmesh = fl_mesh
           !The number of nodes I want does not coincide
-          Auxmesh%nodes = totele*NLOC*NGI*NDIM2
+          Auxmesh%nodes = totele*NLOC*NGI*NDIM
           call allocate (Targ_NX_ALL, Auxmesh)
           Auxmesh%nodes = NDIM*NDIM*NGI*totele
           call allocate (targ_INV_JAC, Auxmesh)
@@ -1425,8 +1508,8 @@
           call insert(state(1), Targ_VOLUME, "V"//StorName)
 
           !Get from state, indx is an input
-          NX_ALL(1:NDIM2,1:NLOC,1:NGI) => &
-          state(1)%scalar_fields(-indx)%ptr%val(1+NDIM2*NLOC*NGI*(ELE-1):NDIM2*NLOC*NGI*ELE)
+          NX_ALL(1:NDIM,1:NLOC,1:NGI) => &
+          state(1)%scalar_fields(-indx)%ptr%val(1+NDIM*NLOC*NGI*(ELE-1):NDIM*NLOC*NGI*ELE)
           INV_JAC(1:NDIM,1:NDIM,1:NGI)  => &
           state(1)%scalar_fields(-indx+1)%ptr%val(1+(ELE-1)*(NGI+NDIM*NDIM):ELE*(NGI*NDIM*NDIM))
           DETWEI(1:NGI) => state(1)%scalar_fields(-indx+2)%ptr%val(1+NGI*(ELE-1):NGI*ELE)
@@ -1436,161 +1519,155 @@
       !When all the values are obtained, the index is set to a positive value
       if (ELE == totele) indx = abs(indx)
       !#########Storing area finished########################
-
-
-
       !
       VOLUME = 0.0
       INV_JAC = 0.0
       !
-      IF(D3) THEN
-         if( first ) then
-            rsum = 0. ; rsumabs = 0.
-            first = .false.
-         end if
-         do  GI=1,NGI! Was loop 331
-            !
-            AGI=0.
-            BGI=0.
-            CGI=0.
-            !
-            DGI=0.
-            EGI=0.
-            FGI=0.
-            !
-            GGI=0.
-            HGI=0.
-            KGI=0.
-            !
-            do  L=1,NLOC! Was loop 79
-               IGLX=XONDGL((ELE-1)*NLOC+L)
-               ewrite(3,*)'xndgln, x, nl:', &
-                    iglx, l, x(iglx), y(iglx), z(iglx), NLX(L,GI), NLY(L,GI), NLZ(L,GI)
-               ! NB R0 does not appear here although the z-coord might be Z+R0. 
-               AGI=AGI+NLX(L,GI)*X(IGLX) 
-               BGI=BGI+NLX(L,GI)*Y(IGLX) 
-               CGI=CGI+NLX(L,GI)*Z(IGLX) 
-               !
-               DGI=DGI+NLY(L,GI)*X(IGLX) 
-               EGI=EGI+NLY(L,GI)*Y(IGLX) 
-               FGI=FGI+NLY(L,GI)*Z(IGLX) 
-               !
-               GGI=GGI+NLZ(L,GI)*X(IGLX) 
-               HGI=HGI+NLZ(L,GI)*Y(IGLX) 
-               KGI=KGI+NLZ(L,GI)*Z(IGLX)
-            end do ! Was loop 79
-            !
-            DETJ=AGI*(EGI*KGI-FGI*HGI)&
-                 -BGI*(DGI*KGI-FGI*GGI)&
-                 +CGI*(DGI*HGI-EGI*GGI)
-            DETWEI(GI)=ABS(DETJ)*WEIGHT(GI)
-            RA(GI)=1.0
-            VOLUME=VOLUME+DETWEI(GI)
-            ewrite(3,*)'gi, detj, weight(gi)', gi, detj, weight(gi)
-            rsum = rsum + detj
-            rsumabs = rsumabs + abs( detj )
-            ! For coefficient in the inverse mat of the jacobian. 
-            A11= (EGI*KGI-FGI*HGI) /DETJ
-            A21=-(DGI*KGI-FGI*GGI) /DETJ
-            A31= (DGI*HGI-EGI*GGI) /DETJ
-            !
-            A12=-(BGI*KGI-CGI*HGI) /DETJ
-            A22= (AGI*KGI-CGI*GGI) /DETJ
-            A32=-(AGI*HGI-BGI*GGI) /DETJ
-            !
-            A13= (BGI*FGI-CGI*EGI) /DETJ
-            A23=-(AGI*FGI-CGI*DGI) /DETJ
-            A33= (AGI*EGI-BGI*DGI) /DETJ
-            do  L=1,NLOC! Was loop 373
-               NX_ALL(1,L,GI)= A11*NLX(L,GI)+A12*NLY(L,GI)+A13*NLZ(L,GI)
-               NX_ALL(2,L,GI)= A21*NLX(L,GI)+A22*NLY(L,GI)+A23*NLZ(L,GI)
-               NX_ALL(3,L,GI)= A31*NLX(L,GI)+A32*NLY(L,GI)+A33*NLZ(L,GI)
-            end do ! Was loop 373 
-            INV_JAC( 1,1, GI )= A11
-            INV_JAC( 2,1, GI )= A21
-            INV_JAC( 3,1, GI )= A31
-            !
-            INV_JAC( 1,2, GI )= A12
-            INV_JAC( 2,2, GI )= A22
-            INV_JAC( 3,2, GI )= A32
-            !
-            INV_JAC( 1,3, GI )= A13
-            INV_JAC( 2,3, GI )= A23
-            INV_JAC( 3,3, GI )= A33
-            !
-         end do ! Was loop 331
-         !ewrite(3,*)'ele, sum(detj), sum(abs(detj)):', ele, rsum, rsumabs
-         ! IF(D3) THEN...
-      ELSE IF(.NOT.D1) THEN
-         TWOPIE=1.0 
-         IF(DCYL) TWOPIE=2.*PIE
-         do  GI=1,NGI! Was loop 1331
-            !
-            RGI=0.
-            !
-            AGI=0.
-            BGI=0.
-            CGI=0.
-            DGI=0.
-            !
-            do  L=1,NLOC! Was loop 179
-               IGLX=XONDGL((ELE-1)*NLOC+L)
+      select case (NDIM)
+          case (1)
+              ! For 1D...
+              do  GI = 1, NGI
+                  !
+                  AGI = 0.
+                  !
+                  do  L = 1, NLOC
+                      IGLX = XONDGL(( ELE - 1 ) * NLOC + L )
+                      AGI = AGI + NLX_ALL(1, L, GI ) * X_ALL(1, IGLX )
+                  end do
+                  !
+                  DETJ = AGI
+                  DETWEI( GI ) = ABS(DETJ) * WEIGHT( GI )
+                  VOLUME = VOLUME + DETWEI( GI )
+                  !
+                  do L = 1, NLOC
+                      NX_ALL(1, L, GI ) = NLX_ALL(1, L, GI ) / DETJ
+                  !               NX_ALL(2, L, GI ) = 0.0
+                  !               NX_ALL(3, L, GI ) = 0.0
+                  END DO
+                  INV_JAC( 1,1, GI )= 1.0 /DETJ
+                 !
+              end do
+          ! ENDOF IF(D3) THEN ELSE...
+          case (2)
+              TWOPIE=1.0
+              IF(DCYL) TWOPIE=2.*PIE
+              do  GI=1,NGI! Was loop 1331
+                  !
+                  RGI=0.
+                  !
+                  AGI=0.
+                  BGI=0.
+                  CGI=0.
+                  DGI=0.
+                  !
+                  do  L=1,NLOC! Was loop 179
+                      IGLX=XONDGL((ELE-1)*NLOC+L)
 
-               AGI=AGI + NLX(L,GI)*X(IGLX) 
-               BGI=BGI + NLX(L,GI)*Y(IGLX) 
-               CGI=CGI + NLY(L,GI)*X(IGLX) 
-               DGI=DGI + NLY(L,GI)*Y(IGLX) 
-               !
-               RGI=RGI+N(L,GI)*Y(IGLX)
-            end do ! Was loop 179
-            !
-            IF(.NOT.DCYL) RGI=1.0
-            !
-            DETJ= AGI*DGI-BGI*CGI 
-            RA(GI)=RGI
-            DETWEI(GI)=TWOPIE*RGI*ABS(DETJ)*WEIGHT(GI)
-            VOLUME=VOLUME+DETWEI(GI)
-            !
-            do L=1,NLOC
-               NX_ALL(1,L,GI)=(DGI*NLX(L,GI)-BGI*NLY(L,GI))/DETJ
-               NX_ALL(2,L,GI)=(-CGI*NLX(L,GI)+AGI*NLY(L,GI))/DETJ
-               NX_ALL(3,L,GI)=0.0
-            END DO
+                      AGI=AGI + NLX_ALL(1,L,GI)*X_ALL(1,IGLX)
+                      BGI=BGI + NLX_ALL(1,L,GI)*X_ALL(2,IGLX)
+                      CGI=CGI + NLX_ALL(2,L,GI)*X_ALL(1,IGLX)
+                      DGI=DGI + NLX_ALL(2,L,GI)*X_ALL(2,IGLX)
+                      !
+                      RGI=RGI+N(L,GI)*X_ALL(2,IGLX)
+                  end do ! Was loop 179
+                  !
+                  IF(.NOT.DCYL) RGI=1.0
+                  !
+                  DETJ= AGI*DGI-BGI*CGI
+                  RA(GI)=RGI
+                  DETWEI(GI)=TWOPIE*RGI*ABS(DETJ)*WEIGHT(GI)
+                  VOLUME=VOLUME+DETWEI(GI)
+                  !
+                  do L=1,NLOC
+                      NX_ALL(1,L,GI)=(DGI*NLX_ALL(1,L,GI)-BGI*NLX_ALL(2,L,GI))/DETJ
+                      NX_ALL(2,L,GI)=(-CGI*NLX_ALL(1,L,GI)+AGI*NLX_ALL(2,L,GI))/DETJ
+                  !               NX_ALL(3,L,GI)=0.0
+                  END DO
 
-            INV_JAC( 1,1, GI )= DGI /DETJ
-            INV_JAC( 1,2, GI )= -BGI /DETJ
+                  INV_JAC( 1,1, GI )= DGI /DETJ
+                  INV_JAC( 1,2, GI )= -BGI /DETJ
 
-            INV_JAC( 2,1, GI )= -CGI /DETJ
-            INV_JAC( 2,2, GI )= AGI /DETJ
-            !
-         end do ! Was loop 1331
-         ! ENDOF IF(D3) THEN ELSE...
-      ELSE 
-         ! For 1D...
-         do  GI = 1, NGI
-            !
-            AGI = 0.
-            !
-            do  L = 1, NLOC
-               IGLX = XONDGL(( ELE - 1 ) * NLOC + L )
-               AGI = AGI + NLX( L, GI ) * X( IGLX ) 
-            end do
-            !
-            DETJ = AGI 
-            DETWEI( GI ) = ABS(DETJ) * WEIGHT( GI )
-            VOLUME = VOLUME + DETWEI( GI )
-            !
-            do L = 1, NLOC
-               NX_ALL(1, L, GI ) = NLX( L, GI ) / DETJ
-               NX_ALL(2, L, GI ) = 0.0
-               NX_ALL(3, L, GI ) = 0.0
-            END DO
-            INV_JAC( 1,1, GI )= 1.0 /DETJ
-            !
-         end do
-         ! ENDOF IF(D3) THEN ELSE...
-      ENDIF
-      !
+                  INV_JAC( 2,1, GI )= -CGI /DETJ
+                  INV_JAC( 2,2, GI )= AGI /DETJ
+                 !
+              end do ! Was loop 1331
+          case default
+              if( first ) then
+                  rsum = 0. ; rsumabs = 0.
+                  first = .false.
+              end if
+              do  GI=1,NGI! Was loop 331
+                  !
+                  AGI=0.
+                  BGI=0.
+                  CGI=0.
+                  !
+                  DGI=0.
+                  EGI=0.
+                  FGI=0.
+                  !
+                  GGI=0.
+                  HGI=0.
+                  KGI=0.
+                  !
+                  do  L=1,NLOC! Was loop 79
+                      IGLX=XONDGL((ELE-1)*NLOC+L)
+                      ewrite(3,*)'xndgln, x, nl:', &
+                      iglx, l, x_ALL(:,iglx), NLX_ALL(1,L,GI), NLX_ALL(2,L,GI), NLX_ALL(3,L,GI)
+                      ! NB R0 does not appear here although the z-coord might be Z+R0.
+                      AGI=AGI+NLX_ALL(1,L,GI)*X_ALL(1,IGLX)
+                      BGI=BGI+NLX_ALL(1,L,GI)*X_ALL(2,IGLX)
+                      CGI=CGI+NLX_ALL(1,L,GI)*X_ALL(3,IGLX)
+                      !
+                      DGI=DGI+NLX_ALL(2,L,GI)*X_ALL(1,IGLX)
+                      EGI=EGI+NLX_ALL(2,L,GI)*X_ALL(2,IGLX)
+                      FGI=FGI+NLX_ALL(2,L,GI)*X_ALL(3,IGLX)
+                      !
+                      GGI=GGI+NLX_ALL(3,L,GI)*X_ALL(1,IGLX)
+                      HGI=HGI+NLX_ALL(3,L,GI)*X_ALL(2,IGLX)
+                      KGI=KGI+NLX_ALL(3,L,GI)*X_ALL(3,IGLX)
+                  end do ! Was loop 79
+                  !
+                  DETJ=AGI*(EGI*KGI-FGI*HGI)&
+                  -BGI*(DGI*KGI-FGI*GGI)&
+                  +CGI*(DGI*HGI-EGI*GGI)
+                  DETWEI(GI)=ABS(DETJ)*WEIGHT(GI)
+                  RA(GI)=1.0
+                  VOLUME=VOLUME+DETWEI(GI)
+                  ewrite(3,*)'gi, detj, weight(gi)', gi, detj, weight(gi)
+                  rsum = rsum + detj
+                  rsumabs = rsumabs + abs( detj )
+                  ! For coefficient in the inverse mat of the jacobian.
+                  A11= (EGI*KGI-FGI*HGI) /DETJ
+                  A21=-(DGI*KGI-FGI*GGI) /DETJ
+                  A31= (DGI*HGI-EGI*GGI) /DETJ
+                  !
+                  A12=-(BGI*KGI-CGI*HGI) /DETJ
+                  A22= (AGI*KGI-CGI*GGI) /DETJ
+                  A32=-(AGI*HGI-BGI*GGI) /DETJ
+                  !
+                  A13= (BGI*FGI-CGI*EGI) /DETJ
+                  A23=-(AGI*FGI-CGI*DGI) /DETJ
+                  A33= (AGI*EGI-BGI*DGI) /DETJ
+                  do  L=1,NLOC! Was loop 373
+                      NX_ALL(1,L,GI)= A11*NLX_ALL(1,L,GI)+A12*NLX_ALL(2,L,GI)+A13*NLX_ALL(3,L,GI)
+                      NX_ALL(2,L,GI)= A21*NLX_ALL(1,L,GI)+A22*NLX_ALL(2,L,GI)+A23*NLX_ALL(3,L,GI)
+                      NX_ALL(3,L,GI)= A31*NLX_ALL(1,L,GI)+A32*NLX_ALL(2,L,GI)+A33*NLX_ALL(3,L,GI)
+                  end do ! Was loop 373
+                  INV_JAC( 1,1, GI )= A11
+                  INV_JAC( 2,1, GI )= A21
+                  INV_JAC( 3,1, GI )= A31
+                  !
+                  INV_JAC( 1,2, GI )= A12
+                  INV_JAC( 2,2, GI )= A22
+                  INV_JAC( 3,2, GI )= A32
+                  !
+                  INV_JAC( 1,3, GI )= A13
+                  INV_JAC( 2,3, GI )= A23
+                  INV_JAC( 3,3, GI )= A33
+                 !
+              end do ! Was loop 331
+      end select
       RETURN
     END SUBROUTINE DETNLXR_INVJAC
 
@@ -1871,6 +1948,11 @@
 
     use fldebug
     use shape_functions_Linear_Quadratic
+
+    interface XPROD
+        module procedure XPROD1
+        module procedure XPROD2
+    end interface
 
   contains
 
@@ -2281,9 +2363,8 @@
       if(cv_nloc==10) then
         ewrite(3,*)'cv_nloc=',cv_nloc
          totele_sub=8
-         !call test_quad_tet( cv_nloc, cv_ngi, cvn, n, nlx, nly, nlz, &
          call test_quad_tet( cv_nloc, cv_ngi, cvn, n, nlx, nly, nlz, &
-              cvweigh, x_ideal, y_ideal, z_ideal, cv_nloc, x_ndgln_ideal, 1) 
+              cvweigh, x_ideal, y_ideal, z_ideal, cv_nloc, x_ndgln_ideal, 1)
       endif
 
       ! And for velocities:
@@ -2314,7 +2395,7 @@
 
 
 
-     subroutine test_quad_tet( cv_nloc, cv_ngi, cvn, n, nlx, nly, nlz, &
+    subroutine test_quad_tet( cv_nloc, cv_ngi, cvn, n, nlx, nly, nlz, &
                        cvweight, x, y, z, x_nonods, x_ndgln2, totele )
 ! test the volumes of idealised triangle 
       implicit none
@@ -2332,7 +2413,7 @@
       LOGICAL :: D1,D3,DCYL
       REAL :: VOLUME, rsum, rsum2
 
-      ALLOCATE( DETWEI( CV_NGI )) 
+      ALLOCATE( DETWEI( CV_NGI ))
       ALLOCATE( x_ndgln( CV_Nloc )) 
       do cv_iloc=1,cv_nloc
           x_ndgln( CV_iloc )=cv_iloc 
@@ -2347,7 +2428,7 @@
       ndim=3
       D1 = ( NDIM == 1 )
       D3 = ( NDIM == 3 )
-      DCYL = .FALSE. 
+      DCYL = .FALSE.
 
       RSUM=0.0
       Loop_Elements: DO ELE = 1, TOTELE
@@ -2355,7 +2436,7 @@
          ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
          CALL DETNLXR( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, CV_NLOC, CV_NGI, &
               N, NLX, NLY, NLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
-              NX, NY, NZ ) 
+              NX, NY, NZ )
          EWRITE(3,*)'ele, VOLUME=',ele, VOLUME
          ewrite(3,*)'detwei:',detwei
          EWRITE(3,*)'sum of detwei:',sum(detwei)
@@ -5420,7 +5501,7 @@
     END SUBROUTINE NORMGI
 
 
-    SUBROUTINE XPROD( AX, AY, AZ, &
+    SUBROUTINE XPROD1( AX, AY, AZ, &
          BX, BY, BZ, &
          CX, CY, CZ )
       implicit none
@@ -5433,8 +5514,19 @@
       AZ =    BX * CY - BY * CX
 
       RETURN
-    END subroutine XPROD
+    END subroutine XPROD1
 
+    SUBROUTINE XPROD2( A, B, C )
+      implicit none
+      REAL, dimension(:), intent( inout ) :: A!dim 3
+      REAL,dimension(:), intent( in )    :: B, C!dim 3
+
+        call XPROD( A(1), A(2), A(3), &
+         B(1), B(2), B(3), &
+         C(1), C(2), C(3) )
+
+      RETURN
+    END subroutine XPROD2
 
 !!!!
 
@@ -7510,7 +7602,21 @@
       
    end subroutine tr3d
       
+   SUBROUTINE SHATRInew(L1, L2, L3, L4, WEIGHT, &
+        NLOC,NGI,  N,NLX_ALL)
+     ! Interface to SHATRIold using the new style variables
+     IMPLICIT NONE
+     INTEGER , intent(in) :: NLOC,NGI
+     REAL , dimension(:), intent(in) :: L1, L2, L3, L4
+     REAL , dimension(:), intent(inout) :: WEIGHT
+     REAL , dimension(:, : ), intent(inout) ::N
+     real, dimension (:,:,:), intent(inout) :: NLX_ALL
 
+     call SHATRIold(L1, L2, L3, L4, WEIGHT, size(NLX_ALL,1)==3, &
+     NLOC,NGI,  &
+     N,NLX_ALL(1,:,:),NLX_ALL(2,:,:),NLX_ALL(3,:,:))
+
+     end subroutine SHATRInew
 !
 !
    SUBROUTINE SHATRIold(L1, L2, L3, L4, WEIGHT, D3, &
