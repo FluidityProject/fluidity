@@ -2862,11 +2862,12 @@
     end subroutine Adaptive_NonLinear
 
 
-    subroutine get_var_from_packed_state(packed_state,use_index,FEDensity,&
+    subroutine get_var_from_packed_state(packed_state,FEDensity,&
     OldFEDensity,IteratedFEDensity,Density,OldDensity,IteratedDensity,PhaseVolumeFraction,&
     OldPhaseVolumeFraction,IteratedPhaseVolumeFraction, Velocity, OldVelocity, IteratedVelocity, &
     NonlinearVelocity, OldNonlinearVelocity,IteratedNonlinearVelocity, ComponentDensity, &
     OldComponentDensity, IteratedComponentDensity,ComponentMassFraction, OldComponentMassFraction,&
+    Temperature,OldTemperature, IteratedTemperature,&
     IteratedComponentMassFraction, FEComponentDensity, OldFEComponentDensity, IteratedFEComponentDensity,&
     FEComponentMassFraction, OldFEComponentMassFraction, IteratedFEComponentMassFraction,&
     Pressure,FEPressure, OldFEPressure, CVPressure,OldCVPressure&
@@ -2876,350 +2877,178 @@
         !and also all of them are optional, hence you can obtaine whichever you want
         implicit none
         type(state_type), intent(inout) :: packed_state
-        logical, intent(in) :: use_index!If .true. we use already known positions in packed_state, not robust
         real, optional, dimension(:,:,:), pointer :: Velocity, OldVelocity, IteratedVelocity, NonlinearVelocity, OldNonlinearVelocity,&
         IteratedNonlinearVelocity,ComponentDensity, OldComponentDensity, IteratedComponentDensity,ComponentMassFraction, OldComponentMassFraction,&
         IteratedComponentMassFraction, FEComponentDensity, OldFEComponentDensity, IteratedFEComponentDensity, FEComponentMassFraction, &
         OldFEComponentMassFraction, IteratedFEComponentMassFraction
         real, optional, dimension(:,:), pointer :: FEDensity, OldFEDensity, IteratedFEDensity, Density,&
-        OldDensity,IteratedDensity,PhaseVolumeFraction,OldPhaseVolumeFraction,IteratedPhaseVolumeFraction&
-        , Coordinate, VelocityCoordinate,PressureCoordinate,MaterialCoordinate
+        OldDensity,IteratedDensity,PhaseVolumeFraction,OldPhaseVolumeFraction,IteratedPhaseVolumeFraction,&
+        Temperature, OldTemperature, IteratedTemperature, Coordinate, VelocityCoordinate,PressureCoordinate,MaterialCoordinate
         real, optional, dimension(:), pointer ::Pressure,FEPressure, OldFEPressure, CVPressure,OldCVPressure
         !Local variables
         type(scalar_field), pointer :: sfield
         type(vector_field), pointer :: vfield
         type(tensor_field), pointer :: tfield
-        integer :: i, j, k
-
-         j = 0; k = 0; i = 0
 
         !Scalar stored
-        j = j + 1
         if (present(Pressure)) then
-            if (use_index) then
-                sfield => extract_scalar_field( packed_state, j)
-            else
-                sfield => extract_scalar_field( packed_state, "Pressure" )
-            end if
+            sfield => extract_scalar_field( packed_state, "Pressure" )
             Pressure =>  sfield%val(:)
         end if
-        j = j + 1
         if (present(FEPressure)) then
-            if (use_index) then
-                sfield => extract_scalar_field( packed_state, j)
-            else
-                sfield => extract_scalar_field( packed_state, "FEPressure" )
-            end if
+            sfield => extract_scalar_field( packed_state, "FEPressure" )
             FEPressure =>  sfield%val(:)
         end if
-        j = j + 1
         if (present(OldFEPressure)) then
-            if (use_index) then
-                sfield => extract_scalar_field( packed_state, j)
-            else
-                sfield => extract_scalar_field( packed_state, "OldFEPressure" )
-            end if
+            sfield => extract_scalar_field( packed_state, "OldFEPressure" )
             OldFEPressure =>  sfield%val(:)
         end if
-        j = j + 1
         if (present(CVPressure)) then
-            if (use_index) then
-                sfield => extract_scalar_field( packed_state, j)
-            else
-                sfield => extract_scalar_field( packed_state, "CVPressure" )
-            end if
+            sfield => extract_scalar_field( packed_state, "CVPressure" )
             Pressure =>  sfield%val(:)
         end if
-        j = j + 1
         if (present(OldCVPressure)) then
-            if (use_index) then
-                sfield => extract_scalar_field( packed_state, j)
-            else
-                sfield => extract_scalar_field( packed_state, "OldCVPressure" )
-            end if
+            sfield => extract_scalar_field( packed_state, "OldCVPressure" )
             Pressure =>  sfield%val(:)
         end if
 
         !Vectors stored
-        k = k + 1
         if (present(Coordinate)) then
-            if (use_index) then
-                vfield => extract_vector_field( packed_state, k)
-            else
-                vfield => extract_vector_field( packed_state, "Coordinate" )
-            end if
+            vfield => extract_vector_field( packed_state, "Coordinate" )
             Coordinate =>  vfield%val(:,:)
         end if
-        k = k + 1
         if (present(VelocityCoordinate)) then
-            if (use_index) then
-                vfield => extract_vector_field( packed_state, k)
-            else
-                vfield => extract_vector_field( packed_state, "VelocityCoordinate" )
-            end if
+            vfield => extract_vector_field( packed_state, "VelocityCoordinate" )
             VelocityCoordinate =>  vfield%val(:,:)
         end if
-        k = k + 1
         if (present(PressureCoordinate)) then
-            if (use_index) then
-                vfield => extract_vector_field( packed_state, k)
-            else
-                vfield => extract_vector_field( packed_state, "PressureCoordinate" )
-            end if
+            vfield => extract_vector_field( packed_state, "PressureCoordinate" )
             PressureCoordinate =>  vfield%val(:,:)
         end if
-        k = k + 1
         if (present(MaterialCoordinate)) then
-            if (use_index) then
-                vfield => extract_vector_field( packed_state, k)
-            else
-                vfield => extract_vector_field( packed_state, "MaterialCoordinate" )
-            end if
+            vfield => extract_vector_field( packed_state, "MaterialCoordinate" )
             MaterialCoordinate =>  vfield%val(:,:)
         end if
 
         !Tensors stored
-        i = i + 1
         if (present(FEDensity)) then
-            if (use_index) then
-                tfield => extract_tensor_field( packed_state, i)
-            else
-                tfield => extract_tensor_field( packed_state, "PackedFEDensity" )
-            end if
+            tfield => extract_tensor_field( packed_state, "PackedFEDensity" )
             FEDensity =>  tfield%val(1,:,:)
         end if
-        i = i + 1
         if (present(OldFEDensity)) then
-            if (use_index) then
-                tfield => extract_tensor_field( packed_state, i)
-            else
-                tfield => extract_tensor_field( packed_state, "PackedOldFEDensity" )
-            end if
+            tfield => extract_tensor_field( packed_state, "PackedOldFEDensity" )
             OldFEDensity =>  tfield%val(1,:,:)
         end if
-        i = i + 1
         if (present(IteratedFEDensity)) then
-            if (use_index) then
-                tfield => extract_tensor_field( packed_state, i)
-            else
-                tfield => extract_tensor_field( packed_state, "PackedIteratedFEDensity" )
-            end if
+            tfield => extract_tensor_field( packed_state, "PackedIteratedFEDensity" )
             IteratedFEDensity => tfield%val(1,:,:)
         end if
-        i = i + 1
         if (present(Density)) then
-            if (use_index) then
-                tfield => extract_tensor_field( packed_state, i)
-            else
-                tfield => extract_tensor_field( packed_state, "PackedDensity" )
-            end if
+            tfield => extract_tensor_field( packed_state, "PackedDensity" )
             Density => tfield%val(1,:,:)
         end if
-        i = i + 1
         if (present(OldDensity)) then
-            if (use_index) then
-                tfield => extract_tensor_field( packed_state, i)
-            else
-                tfield => extract_tensor_field( packed_state, "PackedOldDensity" )
-            end if
+            tfield => extract_tensor_field( packed_state, "PackedOldDensity" )
             OldDensity => tfield%val(1,:,:)
         end if
-        i = i + 1
         if (present(IteratedDensity)) then
-            if (use_index) then
-                tfield => extract_tensor_field( packed_state, i)
-            else
-                tfield => extract_tensor_field( packed_state, "PackedIteratedDensity" )
-            end if
+            tfield => extract_tensor_field( packed_state, "PackedIteratedDensity" )
             IteratedDensity =>  tfield%val(1,:,:)
         end if
-        i = i + 1
         if (present(PhaseVolumeFraction)) then
-            if (use_index) then
-                tfield => extract_tensor_field( packed_state, i)
-            else
-                tfield => extract_tensor_field( packed_state, "PackedPhaseVolumeFraction" )
-            end if
+            tfield => extract_tensor_field( packed_state, "PackedPhaseVolumeFraction" )
             PhaseVolumeFraction =>  tfield%val(1,:,:)
         end if
-        i = i + 1
         if (present(OldPhaseVolumeFraction)) then
-            if (use_index) then
-                tfield => extract_tensor_field( packed_state, i)
-            else
-                tfield => extract_tensor_field( packed_state, "PackedOldPhaseVolumeFraction" )
-            end if
+            tfield => extract_tensor_field( packed_state, "PackedOldPhaseVolumeFraction" )
             OldPhaseVolumeFraction =>  tfield%val(1,:,:)
         end if
-        i = i + 1
         if (present(IteratedPhaseVolumeFraction)) then
-            if (use_index) then
-                tfield => extract_tensor_field( packed_state, i)
-            else
-                tfield => extract_tensor_field( packed_state, "PackedIteratedPhaseVolumeFraction" )
-            end if
+            tfield => extract_tensor_field( packed_state, "PackedIteratedPhaseVolumeFraction" )
             IteratedPhaseVolumeFraction =>  tfield%val(1,:,:)
         end if
-        i = i + 1
+        if (present(Temperature)) then
+            tfield => extract_tensor_field( packed_state, "PackedTemperature" )
+            PhaseVolumeFraction =>  tfield%val(1,:,:)
+        end if
+        if (present(OldTemperature)) then
+            tfield => extract_tensor_field( packed_state, "PackedOldTemperature" )
+            OldPhaseVolumeFraction =>  tfield%val(1,:,:)
+        end if
+        if (present(IteratedTemperature)) then
+            tfield => extract_tensor_field( packed_state, "PackedIteratedTemperature" )
+            IteratedPhaseVolumeFraction =>  tfield%val(1,:,:)
+        end if
         if (present(Velocity)) then
-            if (use_index) then
-                tfield => extract_tensor_field( packed_state, i)
-            else
-                tfield => extract_tensor_field( packed_state, "PackedVelocity" )
-            end if
+            tfield => extract_tensor_field( packed_state, "PackedVelocity" )
             Velocity => tfield%val(:,:,:)
         end if
-        i = i + 1
         if (present(OldVelocity)) then
-            if (use_index) then
-                tfield => extract_tensor_field( packed_state, i)
-            else
-                tfield => extract_tensor_field( packed_state, "PackedOldVelocity" )
-            end if
+            tfield => extract_tensor_field( packed_state, "PackedOldVelocity" )
             OldVelocity => tfield%val(:,:,:)
         end if
-        i = i + 1
         if (present(IteratedVelocity)) then
-            if (use_index) then
-                tfield => extract_tensor_field( packed_state, i)
-            else
-                tfield => extract_tensor_field( packed_state, "PackedIteratedVelocity" )
-            end if
+            tfield => extract_tensor_field( packed_state, "PackedIteratedVelocity" )
             IteratedVelocity => tfield%val(:,:,:)
         end if
-        i = i + 1
         if (present(NonlinearVelocity)) then
-            if (use_index) then
-                tfield => extract_tensor_field( packed_state, i)
-            else
-                tfield => extract_tensor_field( packed_state, "PackedNonlinearVelocity" )
-            end if
+            tfield => extract_tensor_field( packed_state, "PackedNonlinearVelocity" )
             NonlinearVelocity => tfield%val(:,:,:)
         end if
-        i = i + 1
         if (present(OldNonlinearVelocity)) then
-            if (use_index) then
-                tfield => extract_tensor_field( packed_state, i)
-            else
-                tfield => extract_tensor_field( packed_state, "PackedOldNonlinearVelocity" )
-            end if
+            tfield => extract_tensor_field( packed_state, "PackedOldNonlinearVelocity" )
             OldNonlinearVelocity => tfield%val(:,:,:)
         end if
-        i = i + 1
         if (present(IteratedNonlinearVelocity)) then
-            if (use_index) then
-                tfield => extract_tensor_field( packed_state, i)
-            else
-                tfield => extract_tensor_field( packed_state, "PackedIteratedNonlinearVelocity" )
-            end if
+            tfield => extract_tensor_field( packed_state, "PackedIteratedNonlinearVelocity" )
             IteratedNonlinearVelocity => tfield%val(:,:,:)
         end if
-        i = i + 1
         if (present(ComponentDensity)) then
-            if (use_index) then
-                tfield => extract_tensor_field( packed_state, i)
-            else
-                tfield => extract_tensor_field( packed_state, "PackedComponentDensity" )
-            end if
+            tfield => extract_tensor_field( packed_state, "PackedComponentDensity" )
             ComponentDensity => tfield%val(:,:,:)
         end if
-        i = i + 1
         if (present(OldComponentDensity)) then
-            if (use_index) then
-                tfield => extract_tensor_field( packed_state, i)
-            else
-                tfield => extract_tensor_field( packed_state, "PackedOldComponentDensity" )
-            end if
+            tfield => extract_tensor_field( packed_state, "PackedOldComponentDensity" )
             OldComponentDensity => tfield%val(:,:,:)
         end if
-        i = i + 1
         if (present(IteratedComponentDensity)) then
-            if (use_index) then
-                tfield => extract_tensor_field( packed_state, i)
-            else
-                tfield => extract_tensor_field( packed_state, "PackedIteratedComponentDensity" )
-            end if
+            tfield => extract_tensor_field( packed_state, "PackedIteratedComponentDensity" )
             IteratedComponentDensity => tfield%val(:,:,:)
         end if
-        i = i + 1
         if (present(ComponentMassFraction)) then
-            if (use_index) then
-                tfield => extract_tensor_field( packed_state, i)
-            else
-                tfield => extract_tensor_field( packed_state, "PackedComponentMassFraction" )
-            end if
+            tfield => extract_tensor_field( packed_state, "PackedComponentMassFraction" )
             ComponentMassFraction => tfield%val(:,:,:)
         end if
-        i = i + 1
         if (present(OldComponentMassFraction)) then
-            if (use_index) then
-                tfield => extract_tensor_field( packed_state, i)
-            else
-                tfield => extract_tensor_field( packed_state, "PackedOldComponentMassFraction" )
-            end if
+            tfield => extract_tensor_field( packed_state, "PackedOldComponentMassFraction" )
             OldComponentMassFraction => tfield%val(:,:,:)
         end if
-        i = i + 1
         if (present(IteratedComponentMassFraction)) then
-            if (use_index) then
-                tfield => extract_tensor_field( packed_state, i)
-            else
-                tfield => extract_tensor_field( packed_state, "PackedIteratedComponentMassFraction" )
-            end if
+            tfield => extract_tensor_field( packed_state, "PackedIteratedComponentMassFraction" )
             IteratedComponentMassFraction => tfield%val(:,:,:)
         end if
-        i = i + 1
         if (present(FEComponentDensity)) then
-            if (use_index) then
-                tfield => extract_tensor_field( packed_state, i)
-            else
-                tfield => extract_tensor_field( packed_state, "PackedFEComponentDensity" )
-            end if
+            tfield => extract_tensor_field( packed_state, "PackedFEComponentDensity" )
             FEComponentDensity => tfield%val(:,:,:)
         end if
-        i = i + 1
         if (present(OldFEComponentDensity)) then
-            if (use_index) then
-                tfield => extract_tensor_field( packed_state, i)
-            else
-                tfield => extract_tensor_field( packed_state, "PackedOldFEComponentDensity" )
-            end if
+            tfield => extract_tensor_field( packed_state, "PackedOldFEComponentDensity" )
             OldFEComponentDensity => tfield%val(:,:,:)
         end if
-        i = i + 1
         if (present(IteratedFEComponentDensity)) then
-            if (use_index) then
-                tfield => extract_tensor_field( packed_state, i)
-            else
-                tfield => extract_tensor_field( packed_state, "PackedIteratedFEComponentDensity" )
-            end if
+            tfield => extract_tensor_field( packed_state, "PackedIteratedFEComponentDensity" )
             IteratedFEComponentDensity => tfield%val(:,:,:)
         end if
-        i = i + 1
         if (present(FEComponentMassFraction)) then
-            if (use_index) then
-                tfield => extract_tensor_field( packed_state, i)
-            else
-                tfield => extract_tensor_field( packed_state, "PackedFEComponentMassFraction" )
-            end if
+            tfield => extract_tensor_field( packed_state, "PackedFEComponentMassFraction" )
             FEComponentMassFraction => tfield%val(:,:,:)
         end if
-        i = i + 1
         if (present(OldFEComponentMassFraction)) then
-            if (use_index) then
-                tfield => extract_tensor_field( packed_state, i)
-            else
-                tfield => extract_tensor_field( packed_state, "PackedOldFEComponentMassFraction" )
-            end if
+            tfield => extract_tensor_field( packed_state, "PackedOldFEComponentMassFraction" )
             OldFEComponentMassFraction => tfield%val(:,:,:)
         end if
-        i = i + 1
         if (present(IteratedFEComponentMassFraction)) then
-            if (use_index) then
-                tfield => extract_tensor_field( packed_state, i)
-            else
-                tfield => extract_tensor_field( packed_state, "PackedIteratedFEComponentMassFraction" )
-            end if
+            tfield => extract_tensor_field( packed_state, "PackedIteratedFEComponentMassFraction" )
             IteratedFEComponentMassFraction => tfield%val(:,:,:)
         end if
 
