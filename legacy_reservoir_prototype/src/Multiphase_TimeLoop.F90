@@ -167,8 +167,8 @@
            wic_momu_bc
       real, dimension( : ), pointer :: &
            Temperature, Density, Density_Cp, Density_Component, PhaseVolumeFraction, &
-           Component, U_Density, Pressure_FEM_Old, Pressure_CV_Old, Temperature_Old, Density_Old, Density_Cp_Old, &
-           Density_Component_Old, PhaseVolumeFraction_Old, Component_Old, U_Density_Old,  &
+           Component, Pressure_FEM_Old, Pressure_CV_Old, Temperature_Old, Density_Old, Density_Cp_Old, &
+           Density_Component_Old, PhaseVolumeFraction_Old, Component_Old, &
            Porosity, &
            Velocity_U_Source, Velocity_U_Source_CV, Temperature_Source, PhaseVolumeFraction_Source, &
            ScalarField_Source, Component_Source, ScalarAdvectionField_Source, &
@@ -177,7 +177,7 @@
            suf_u_bc_rob1, suf_v_bc_rob1, suf_w_bc_rob1, suf_u_bc_rob2, suf_v_bc_rob2, suf_w_bc_rob2, &
            suf_t_bc_rob1, suf_t_bc_rob2, suf_vol_bc_rob1, suf_vol_bc_rob2, suf_comp_bc_rob1, suf_comp_bc_rob2, &
            ScalarField_Source_Store, ScalarField_Source_Component, &
-           mass_ele, dummy_ele, density_tmp, density_old_tmp, &
+           mass_ele, dummy_ele, &
            suf_momu_bc, suf_momv_bc, suf_momw_bc
 
       real, dimension( :, :, :, : ), allocatable :: THERM_U_DIFFUSION
@@ -194,8 +194,7 @@
            Component_Diffusion
            
       real, dimension( :, : ), allocatable ::theta_flux, one_m_theta_flux, theta_flux_j, one_m_theta_flux_j, &
-                               sum_theta_flux, sum_one_m_theta_flux, sum_theta_flux_j, sum_one_m_theta_flux_j, theta0_flux
-      real, dimension( : ), allocatable ::Density_one
+                               sum_theta_flux, sum_one_m_theta_flux, sum_theta_flux_j, sum_one_m_theta_flux_j
 
 !!$ Material_Absorption_Stab = u_abs_stab; Material_Absorption = u_absorb; ScalarField_Absorption = v_absorb
 !!$ Component_Absorption = comp_absorb; ScalarAdvectionField_Absorption = t_absorb
@@ -209,8 +208,8 @@
       integer :: stat, istate, iphase, jphase, icomp, its, its2, cv_nodi, adapt_time_steps, cv_inod
       real, dimension( : ), allocatable :: rsum
 
-      real, dimension(:, :), allocatable :: DEN_CV_NOD, SUF_SIG_DIAGTEN_BC
-      integer :: CV_NOD, CV_NOD_PHA, CV_ILOC, ELE, I
+      real, dimension(:, :), allocatable :: SUF_SIG_DIAGTEN_BC
+      integer :: I
 
       type( scalar_field ), pointer :: cfl, rc_field
       real :: c, rc, minc, maxc, ic
@@ -218,7 +217,7 @@
       logical :: nonLinearAdaptTs, Repeat_time_step, ExitNonLinearLoop
       real, dimension(:,:,:), allocatable  :: reference_field
 
-      type( tensor_field ), pointer :: NU_s, NUOLD_s, U_s, UOLD_s
+      type( tensor_field ), pointer :: NU_s, NUOLD_s, U_s, UOLD_s, D_s, DOLD_s, DC_s, DCOLD_s
 
       !! face value storage
       integer :: ncv_faces
@@ -299,8 +298,7 @@
            findm( cv_nonods + 1 ), colm( mx_ncolm ), midm( cv_nonods ) )
 
 
-      allocate( global_dense_block_acv( nphase , cv_nonods ))
-      allocate(theta0_flux(0,0))
+      allocate( global_dense_block_acv( nphase , cv_nonods ) )
 
       finacv = 0 ; colacv = 0 ; midacv = 0 ; finmcy = 0 ; colmcy = 0 ; midmcy = 0 ; finele = 0
       colele = 0 ; midele = 0 ; findgm_pha = 0 ; coldgm_pha = 0 ; middgm_pha = 0 ; findct = 0
@@ -342,12 +340,11 @@
            Temperature( nphase * cv_nonods ), Density( nphase * cv_nonods ),  Density_Cp( nphase * cv_nonods ), &
            Density_Component( nphase * cv_nonods * ncomp ), &
            PhaseVolumeFraction( nphase * cv_nonods ), Component( nphase * cv_nonods * ncomp ), &
-           U_Density( nphase * cv_nonods ), DRhoDPressure( nphase, cv_nonods ), FEM_VOL_FRAC( nphase, cv_nonods ),&
+           DRhoDPressure( nphase, cv_nonods ), FEM_VOL_FRAC( nphase, cv_nonods ),&
 !!$
            Temperature_Old( nphase * cv_nonods ), Density_Old( nphase * cv_nonods ), Density_Cp_Old( nphase * cv_nonods ), &
            Density_Component_Old( nphase * cv_nonods * ncomp ), &
            PhaseVolumeFraction_Old( nphase * cv_nonods ), Component_Old( nphase * cv_nonods * ncomp ), &
-           U_Density_Old( nphase * cv_nonods ), &
 !!$
            PhaseVolumeFraction_BC_Spatial( stotel * nphase ), Pressure_FEM_BC_Spatial( stotel * nphase ), &
            Density_BC_Spatial( stotel * nphase ), Component_BC_Spatial( stotel * nphase ), &
@@ -397,12 +394,11 @@
       Temperature=0. ; Density=0. ; Density_Cp=0.
       Density_Component=0.
       PhaseVolumeFraction=0. ; Component=0.
-      U_Density=0. ; DRhoDPressure=0.
+      DRhoDPressure=0.
 !!$
       Temperature_Old=0. ; Density_Old=0. ; Density_Cp_Old=0.
       Density_Component_Old=0.
       PhaseVolumeFraction_Old=0. ; Component_Old=0.
-      U_Density_Old=0.
 !!$
       PhaseVolumeFraction_BC_Spatial=0 ; Pressure_FEM_BC_Spatial=0
       Density_BC_Spatial=0 ; Component_BC_Spatial=0
@@ -447,16 +443,13 @@
       plike_grad_sou_coef=0.
       iplike_grad_sou=0 
 
-      ! dummy densities for testing
-      allocate( density_tmp(cv_nonods*nphase) , density_old_tmp(cv_nonods*nphase) )
-      density_tmp=0. ; density_old_tmp=0.
 
 !!$ Extracting Mesh Dependent Fields
       initialised = .false.
       call Extracting_MeshDependentFields_From_State( state, packed_state, initialised, &
            PhaseVolumeFraction, PhaseVolumeFraction_BC_Spatial, PhaseVolumeFraction_BC, PhaseVolumeFraction_Source, &
            Pressure_FEM_BC_Spatial, Pressure_FEM_BC, &
-           Density, Density_BC_Spatial, Density_BC, &
+           Density_BC_Spatial, Density_BC, &
            Component, Component_BC_Spatial, Component_BC, Component_Source, &
            Velocity_U_BC_Spatial, wic_momu_bc, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, &
            suf_momu_bc, suf_momv_bc, suf_momw_bc, Velocity_U_Source, Velocity_Absorption, &
@@ -502,13 +495,11 @@
            sum_one_m_theta_flux( nphase, ncv_faces * igot_theta_flux ), &
            sum_theta_flux_j( nphase, ncv_faces * igot_theta_flux ), &
            sum_one_m_theta_flux_j( nphase, ncv_faces * igot_theta_flux ), &
-           Density_one(nphase*cv_nonods*igot_theta_flux ), &
            theta_gdiff( nphase, cv_nonods ), ScalarField_Source_Store( cv_nonods * nphase ), &
            ScalarField_Source_Component( cv_nonods * nphase ) )
 
       sum_theta_flux = 1. ; sum_one_m_theta_flux = 0.
       sum_theta_flux_j = 1. ; sum_one_m_theta_flux_j = 0.
-      Density_one = 1.
       ScalarField_Source_Store=0. ; ScalarField_Source_Component=0.
 
 !!$ Defining discretisation options
@@ -554,7 +545,7 @@
               have_component_field = .true.
 !!$
  if( have_temperature_field ) then
-            call Calculate_All_Rhos( state, ncomp, nphase, ndim, cv_nonods, cv_nloc, totele, &
+            call Calculate_All_Rhos( state, packed_state, ncomp, nphase, ndim, cv_nonods, cv_nloc, totele, &
                  cv_ndgln, Component, Density, Density_Cp, DRhoDPressure, Density_Component )
       end if
 
@@ -626,13 +617,19 @@
 !!$ Update all fields from time-step 'N - 1'
          Density_Old = Density ;  Density_Cp_Old = Density_Cp
          PhaseVolumeFraction_Old = PhaseVolumeFraction ; Temperature_Old = Temperature ; Component_Old = Component
-         Density_Old_tmp = Density_tmp ; Density_Component_Old = Density_Component
+         Density_Component_Old = Density_Component
 
          U_s  => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedVelocity" )
          UOLD_s  => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldVelocity" )
          NU_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedNonlinearVelocity" )
          NUOLD_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldNonlinearVelocity" )
 
+         D_s  => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedDensity" )
+         DOLD_s  => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldDensity" )
+         if( have_component_field ) then
+            DC_s  => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedComponentDensity" )
+            DCOLD_s  => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldComponentDensity" )
+         end if
 
          ! evaluate prescribed fields at time = current_time+dt
          call set_prescribed_field_values( state, exclude_interpolated = .true., &
@@ -678,7 +675,7 @@
             call Adaptive_NonLinear(packed_state, backup_state, reference_field, its, &
             Repeat_time_step, ExitNonLinearLoop,nonLinearAdaptTs,2)
 
-            call Calculate_All_Rhos( state, ncomp, nphase, ndim, cv_nonods, cv_nloc, totele, &
+            call Calculate_All_Rhos( state, packed_state, ncomp, nphase, ndim, cv_nonods, cv_nloc, totele, &
                  cv_ndgln, Component, Density, Density_Cp, DRhoDPressure, Density_Component )
 
             if( its == 1 ) then
@@ -687,6 +684,12 @@
                if( have_component_field ) then
                   Density_Component_Old = Density_Component
                end if
+
+               DOLD_s%val = D_s%val
+               if( have_component_field ) then
+                  DCOLD_s%val = DC_s%val
+               end if 
+
             end if
 
             if( solve_force_balance ) then
@@ -768,7 +771,7 @@
                   Temperature_State % val = Temperature( 1 + ( iphase - 1 ) * cv_nonods : iphase * cv_nonods )
                end do
 
-               call Calculate_All_Rhos( state, ncomp, nphase, ndim, cv_nonods, cv_nloc, totele, &
+               call Calculate_All_Rhos( state, packed_state, ncomp, nphase, ndim, cv_nonods, cv_nloc, totele, &
                     cv_ndgln, Component, Density, Density_Cp, DRhoDPressure, Density_Component )
 
             end if Conditional_ScalarAdvectionField
@@ -812,79 +815,18 @@
                     XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
                     Component_BC_Spatial, Component_BC ,&
                     StorageIndexes=StorageIndexes )
-!!$ Set U_Density
-               U_Density = 0. ; U_Density_Old = 0.
-               if( .not. have_option( '/material_phase[0]/multiphase_properties/relperm_type' ) )then
-                  U_Density = Density ; U_Density_Old = Density_Old
-               end if
-
-                density_tmp = density
-               if ( have_option( "/material_phase[0]/linearise_density" ) .and. & 
-                    .not.have_option( "/material_phase[0]/multiphase_properties/relperm_type" ) ) then
-
-                  if ( cv_nloc==6 .or. (cv_nloc==10 .and. ndim==3) ) then
-
-                     allocate( den_cv_nod( cv_nloc, nphase) ) 
-
-                     do ele = 1, totele
-                        do cv_iloc = 1, cv_nloc
-                           cv_nod = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
-                           do iphase = 1,nphase
-                              cv_nod_pha = cv_nod +( iphase - 1) * cv_nonods
-                              den_cv_nod( cv_iloc, iphase ) = density_tmp( cv_nod_pha )
-                           end do
-                        end do
-
-                        den_cv_nod( 2, : ) = 0.5 * ( den_cv_nod( 1, : ) + den_cv_nod( 3, : ) )
-                        den_cv_nod( 4, : ) = 0.5 * ( den_cv_nod( 1, : ) + den_cv_nod( 6, : ) )
-                        den_cv_nod( 5, : ) = 0.5 * ( den_cv_nod( 3, : ) + den_cv_nod( 6, : ) )
-
-                        if ( cv_nloc==10 ) then
-                           den_cv_nod( 7, : ) = 0.5 * ( den_cv_nod( 1, : ) + den_cv_nod( 10, : ) )
-                           den_cv_nod( 8, : ) = 0.5 * ( den_cv_nod( 3, : ) + den_cv_nod( 10, : ) )
-                           den_cv_nod( 9, : ) = 0.5 * ( den_cv_nod( 6, : ) + den_cv_nod( 10, : ) )
-                        end if
-
-                        do cv_iloc = 1, cv_nloc
-                           cv_nod = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
-                           do iphase = 1, nphase
-                              cv_nod_pha = cv_nod +( iphase - 1) * cv_nonods
-                              density_tmp( cv_nod_pha ) = den_cv_nod( cv_iloc, iphase )
-                           end do
-                        end do
-                     end do
-
-                     deallocate( den_cv_nod )
-
-                     u_density = density_tmp
-                     u_density_old = density_old_tmp
-                     if ( its == 1 ) u_density_old = density_tmp
-                  end if
-               end if
-
-!!$ This calculates u_source_cv = ScalarField_Source_CV -- ie, the buoyancy term and as the name
-!!$ suggests it's a CV source term for the velocity field
 
 
-               call calculate_u_source_cv( state, cv_nonods, ndim, nphase, density_tmp, Velocity_U_Source_CV )
-
-               ! calculate the viscosity for the momentum equation...
-               if ( its == 1 ) &
-                    call calculate_viscosity( state, ncomp, nphase, ndim, mat_nonods, mat_ndgln, Momentum_Diffusion )
-
-               ! stabilisation for high aspect ratio problems - switched off
-               call calculate_u_abs_stab( Material_Absorption_Stab, Material_Absorption, &
-                    opt_vel_upwind_coefs, nphase, ndim, totele, cv_nloc, mat_nloc, mat_nonods, mat_ndgln )
 
                CALL FORCE_BAL_CTY_ASSEM_SOLVE( state, packed_state, &
-                    NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
+                    NDIM, NPHASE, NCOMP, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
                     U_ELE_TYPE, P_ELE_TYPE, &
                     U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
                     U_NDGLN, P_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN,&
                     STOTEL, CV_SNDGLN, U_SNDGLN, P_SNDGLN, &
                     U_SNLOC, P_SNLOC, CV_SNLOC, &
 !!$
-                    Material_Absorption_Stab, Material_Absorption+Velocity_Absorption, Velocity_U_Source, Velocity_U_Source_CV, &
+                    Material_Absorption_Stab, Material_Absorption, Velocity_Absorption, Velocity_U_Source, Velocity_U_Source_CV, &
                     Density, Density_Old, PhaseVolumeFraction, PhaseVolumeFraction_Old, & 
                     DRhoDPressure, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
                     dt, &
@@ -910,7 +852,7 @@
                     NCOLM, FINDM, COLM, MIDM, & ! Sparsity for the CV-FEM
                     XU_NLOC, XU_NDGLN, &
 !!$
-                    U_Density, U_Density_Old, Momentum_Diffusion, &
+                    Momentum_Diffusion, &
                     opt_vel_upwind_coefs, nopt_vel_upwind_coefs, &
                     igot_theta_flux, scvngi_theta, volfra_use_theta_flux, &
                     sum_theta_flux, sum_one_m_theta_flux, sum_theta_flux_j, sum_one_m_theta_flux_j, &
@@ -925,8 +867,8 @@
 
 !!$ Calculate Density_Component for compositional
                if( have_component_field ) &
-                    call Calculate_Component_Rho( state, ncomp, nphase, &
-                    cv_nonods, Density_Component )
+                    call Calculate_Component_Rho( state, packed_state, &
+                    ncomp, nphase, cv_nonods, Density_Component )
 
             end if Conditional_ForceBalanceEquation
 
@@ -1273,8 +1215,6 @@
             Conditional_Adaptivity: if( have_option( '/mesh_adaptivity/hr_adaptivity ') ) then
 
                Conditional_Adapt_by_TimeStep: if( mod( itime, adapt_time_steps ) == 0 ) then
-!!$               Conditional_Adapt_by_TimeStep: if( do_adapt_mesh( current_time, itime ) ) then
-!!$               Conditional_Adapt_by_TimeStep: if( do_adapt_mesh( current_time, timestep ) ) then
 
                   ! linearise compositional fields:
                   Conditional_Components_Linearisation2: if ( ncomp > 1 ) then
@@ -1386,10 +1326,10 @@
                  PhaseVolumeFraction_BC_Spatial, Pressure_FEM_BC_Spatial, &
                  Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, wic_momu_bc, Temperature_BC_Spatial, &
                  Temperature, Density, Density_Cp, Density_Component, PhaseVolumeFraction, &
-                 Component, U_Density, &
+                 Component, &
                  Pressure_FEM_Old, Pressure_CV_Old, Temperature_Old, Density_Old, Density_Cp_Old, Density_Component_Old, &
                  PhaseVolumeFraction_Old, Component_Old, &
-                 U_Density_Old, DRhoDPressure, &
+                 DRhoDPressure, &
                  Porosity, &
                  Velocity_U_Source, Velocity_U_Source_CV, Temperature_Source, PhaseVolumeFraction_Source, &
                  ScalarField_Source, Component_Source, ScalarAdvectionField_Source, &
@@ -1406,7 +1346,7 @@
                  Momentum_Diffusion, ScalarAdvectionField_Diffusion, &
                  Component_Diffusion, &
                  theta_flux, one_m_theta_flux, theta_flux_j, one_m_theta_flux_j, sum_theta_flux, &
-                 sum_one_m_theta_flux, sum_theta_flux_j, sum_one_m_theta_flux_j, Density_one, density_tmp, density_old_tmp )
+                 sum_one_m_theta_flux, sum_theta_flux_j, sum_one_m_theta_flux_j )
 
 
 !!$  Compute primary scalars used in most of the code
@@ -1485,12 +1425,11 @@
                  Temperature( nphase * cv_nonods ), Density( nphase * cv_nonods ), Density_Cp( nphase * cv_nonods ), &
                  Density_Component( nphase * cv_nonods * ncomp ), &
                  PhaseVolumeFraction( nphase * cv_nonods ), Component( nphase * cv_nonods * ncomp ), &
-                 U_Density( nphase * cv_nonods ), DRhoDPressure( nphase, cv_nonods ), &
+                 DRhoDPressure( nphase, cv_nonods ), &
 !!$
                  Temperature_Old( nphase * cv_nonods ), Density_Old( nphase * cv_nonods ), Density_Cp_Old( nphase * cv_nonods ), &
                  Density_Component_Old( nphase * cv_nonods * ncomp ), &
                  PhaseVolumeFraction_Old( nphase * cv_nonods ), Component_Old( nphase * cv_nonods * ncomp ), &
-                 U_Density_Old( nphase * cv_nonods ), &
 !!$
                  PhaseVolumeFraction_BC_Spatial( stotel * nphase ), Pressure_FEM_BC_Spatial( stotel * nphase ), &
                  Density_BC_Spatial( stotel * nphase ), Component_BC_Spatial( stotel * nphase ), &
@@ -1552,7 +1491,7 @@
             PhaseVolumeFraction_FEMT=0. ; Dummy_PhaseVolumeFraction_FEMT=0.
 !!$
             Density=0. ; Density_Old=0. ; Density_BC_Spatial=0 ; Density_BC=0.
-            U_Density=0. ; U_Density_Old=0. ; Density_Cp=0. ; Density_Cp_Old=0.
+            Density_Cp=0. ; Density_Cp_Old=0.
 !!$
             ScalarAdvectionField_Diffusion=0. ; ScalarField_Absorption=0.
             ScalarField_Source=0. ; ScalarAdvectionField_Source=0.
@@ -1576,7 +1515,7 @@
             call Extracting_MeshDependentFields_From_State( state, packed_state, initialised, &
                  PhaseVolumeFraction, PhaseVolumeFraction_BC_Spatial, PhaseVolumeFraction_BC, PhaseVolumeFraction_Source, &
                  Pressure_FEM_BC_Spatial, Pressure_FEM_BC, &
-                 Density, Density_BC_Spatial, Density_BC, &
+                 Density_BC_Spatial, Density_BC, &
                  Component, Component_BC_Spatial, Component_BC, Component_Source, &
                  Velocity_U_BC_Spatial, wic_momu_bc, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC,&
                  suf_momu_bc, suf_momv_bc, suf_momw_bc, Velocity_U_Source, Velocity_Absorption, &
@@ -1585,9 +1524,6 @@
 
 !!$ Dummy field used in the scalar advection option:
             Dummy_PhaseVolumeFraction_FEMT = 1.
-
-            allocate( density_tmp(cv_nonods*nphase) , density_old_tmp(cv_nonods*nphase) )
-            density_tmp=0. ; density_old_tmp=0.
 
 
             ncv_faces=CV_count_faces( packed_state, CV_ELE_TYPE, stotel, cv_sndgln, u_sndgln )
@@ -1696,10 +1632,10 @@
            PhaseVolumeFraction_BC_Spatial, Pressure_FEM_BC_Spatial, &
            Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, Temperature_BC_Spatial, &
            Temperature, Density, Density_Cp, Density_Component, PhaseVolumeFraction, &
-           Component, U_Density, &
+           Component, &
            Temperature_Old, Density_Old, Density_Cp_Old, Density_Component_Old, &
            PhaseVolumeFraction_Old, Component_Old, &
-           U_Density_Old, DRhoDPressure, FEM_VOL_FRAC, &
+           DRhoDPressure, FEM_VOL_FRAC, &
            Porosity, &
            Velocity_U_Source, Velocity_U_Source_CV, Temperature_Source, PhaseVolumeFraction_Source, &
            ScalarField_Source, Component_Source, ScalarAdvectionField_Source, &
@@ -1715,7 +1651,7 @@
            Momentum_Diffusion, ScalarAdvectionField_Diffusion, &
            Component_Diffusion, &
            theta_flux, one_m_theta_flux, theta_flux_j, one_m_theta_flux_j, &
-           sum_theta_flux, sum_one_m_theta_flux, sum_theta_flux_j, sum_one_m_theta_flux_j, density_tmp, density_old_tmp )
+           sum_theta_flux, sum_one_m_theta_flux, sum_theta_flux_j, sum_one_m_theta_flux_j )
 
       return
 

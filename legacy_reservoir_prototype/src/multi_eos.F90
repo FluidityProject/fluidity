@@ -60,12 +60,13 @@
 
   contains
 
-    subroutine Calculate_All_Rhos( state, ncomp_in, nphase, ndim, cv_nonods, cv_nloc, totele, &
+    subroutine Calculate_All_Rhos( state, packed_state, ncomp_in, nphase, ndim, cv_nonods, cv_nloc, totele, &
          cv_ndgln, Component, Density_Bulk, DensityCp_Bulk, DRhoDPressure, Density_Component )
 
       implicit none
 
-      type( state_type ), dimension( : ), intent( in) :: state
+      type( state_type ), dimension( : ), intent( in ) :: state
+      type( state_type ), intent( inout ) :: packed_state
       integer, intent( in ) :: ncomp_in, nphase, ndim, cv_nonods, cv_nloc, totele
       integer, dimension( : ), intent( in ) :: cv_ndgln
 
@@ -76,6 +77,7 @@
 
       real, dimension( : ), allocatable :: Rho, dRhodP, Cp, Component_l, c_cv_nod
       character( len = option_path_len ), dimension( : ), allocatable :: eos_option_path
+      type( tensor_field ), pointer :: field1, field2, field3
       type( scalar_field ), pointer :: Cp_s
       integer :: icomp, iphase, ncomp, sc, ec, sp, ep, stat, cv_iloc, cv_nod, ele
 
@@ -122,7 +124,7 @@
             if( ncomp > 1 ) then
 
                Component_l = Component( sc : ec )
-               if ( have_option( '/material_phase[0]/linearise_component' ) .and. ncomp>1 ) then
+               if ( have_option( '/material_phase[0]/linearise_component' ) ) then
                   ! linearise component
                   if ( cv_nloc==6 .or. (cv_nloc==10 .and. ndim==3) ) then ! P2 triangle or tet
                      allocate( c_cv_nod( cv_nloc ) )
@@ -173,11 +175,33 @@
 
          end do ! iphase
       end do ! icomp
+
+      if( ncomp > 1 ) then
+         call Cap_Bulk_Rho( state, ncomp, nphase, &
+            cv_nonods, Density_Component, Density_Bulk, DensityCp_Bulk )
+      end if
+
+      field1 => extract_tensor_field( packed_state, "PackedDensity" )
+      !field2 => extract_tensor_field( packed_state, "PackedDensityHeatCapacity" )
+      if( ncomp > 1 ) field3 => extract_tensor_field( packed_state, "PackedComponentDensity" )
+
+      do iphase = 1, nphase
+         sp = ( iphase - 1 ) * cv_nonods + 1 
+         ep = iphase * cv_nonods 
+         field1 % val ( 1, iphase, :) = Density_Bulk( sp : ep )
+         !field2 % val ( 1, iphase, :) = DensityCp_Bulk( sp : ep )
+         if( ncomp > 1 ) then
+            do icomp = 1, ncomp
+               sc = ( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1
+               ec = ( icomp - 1 ) * nphase * cv_nonods + iphase * cv_nonods
+               field3 % val ( icomp, iphase, :) = Density_Component( sc : ec )
+            end do ! icomp
+         end if
+      end do ! iphase
+
+
       deallocate( Rho, dRhodP, Cp, Component_l )
       deallocate( eos_option_path )
-
-      if( ncomp > 1 ) call Cap_Bulk_Rho( state, ncomp, nphase, &
-           cv_nonods, Density_Component, Density_Bulk, DensityCp_Bulk )
 
     end subroutine Calculate_All_Rhos
 
@@ -240,21 +264,25 @@
     end subroutine Cap_Bulk_Rho
 
 
-    subroutine Calculate_Component_Rho( state, ncomp, nphase, &
-         cv_nonods, Density_Component )
+    subroutine Calculate_Component_Rho( state, packed_state, &
+         ncomp, nphase, cv_nonods, Density_Component )
 
       implicit none
 
-      type( state_type ), dimension( : ), intent( in) :: state
+      type( state_type ), dimension( : ), intent( in ) :: state
+      type( state_type ), intent( inout ) :: packed_state
       integer, intent( in ) :: ncomp, nphase, cv_nonods
       real, dimension( : ), intent( inout ) :: Density_Component
 
       real, dimension( : ), allocatable :: Rho, dRhodP
+      type( tensor_field ), pointer :: field
       character( len = option_path_len ) :: eos_option_path
       integer :: icomp, iphase, s, e
 
       Density_Component = 0.
       allocate( Rho( cv_nonods ), dRhodP( cv_nonods ) )
+
+      field => extract_tensor_field( packed_state, "PackedComponentDensity" )
 
       do icomp = 1, ncomp
 
@@ -272,6 +300,7 @@
                  nphase, ncomp, eos_option_path, Rho, dRhodP )
 
             Density_Component( s : e ) = Rho
+            field % val( icomp, iphase, : ) = Rho
 
          end do ! iphase
       end do ! icomp
@@ -1187,7 +1216,7 @@
     subroutine calculate_u_source_cv(state, cv_nonods, ndim, nphase, den, u_source_cv)
       type(state_type), dimension(:), intent(in) :: state
       integer, intent(in) :: cv_nonods, ndim, nphase
-      real, dimension(:), intent(in) :: den
+      real, dimension(:,:,:), intent(in) :: den
       real, dimension(:), intent(inout) :: u_source_cv
 
       type(vector_field), pointer :: gravity_direction
@@ -1209,7 +1238,7 @@
             do iphase = 1, nphase
                do nod = 1, cv_nonods
                   u_source_cv( nod + (idim-1)*cv_nonods + ndim*cv_nonods*(iphase-1) ) = &
-                       den( nod + (iphase-1)*cv_nonods ) * g( idim )
+                       den( 1, iphase, nod ) * g( idim )
                end do
             end do
          end do

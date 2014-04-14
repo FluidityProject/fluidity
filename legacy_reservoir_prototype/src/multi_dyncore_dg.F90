@@ -45,6 +45,7 @@ module multiphase_1D_engine
     use shape_functions
     use spact
     use Copy_Outof_State
+    use multiphase_EOS
     use fldebug
 
     implicit none
@@ -1104,13 +1105,13 @@ contains
 
 
     SUBROUTINE FORCE_BAL_CTY_ASSEM_SOLVE( state, packed_state, &
-    NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
+    NDIM, NPHASE, NCOMP, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
     U_ELE_TYPE, P_ELE_TYPE, &
     U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
     U_NDGLN, P_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN, &
     STOTEL, CV_SNDGLN, U_SNDGLN, P_SNDGLN, &
     U_SNLOC, P_SNLOC, CV_SNLOC, &
-    U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
+    U_ABS_STAB, MAT_ABSORB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
     DEN, DENOLD, SATURA, SATURAOLD, DERIV, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
     DT, &
     NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn
@@ -1131,7 +1132,7 @@ contains
     V_SOURCE, V_ABSORB, VOLFRA_PORE, &
     NCOLM, FINDM, COLM, MIDM, & ! Sparsity for the CV-FEM
     XU_NLOC, XU_NDGLN, &
-    UDEN, UDENOLD, UDIFFUSION, &
+    UDIFFUSION, &
     OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
     IGOT_THETA_FLUX, SCVNGI_THETA, USE_THETA_FLUX, &
     THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, &
@@ -1144,7 +1145,7 @@ contains
         IMPLICIT NONE
         type( state_type ), dimension( : ), intent( inout ) :: state
         type( state_type ), intent( inout ) :: packed_state
-        INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, &
+        INTEGER, intent( in ) :: NDIM, NPHASE, NCOMP, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, &
         TOTELE, U_ELE_TYPE, P_ELE_TYPE, &
         U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
         STOTEL, U_SNLOC, P_SNLOC, &
@@ -1165,9 +1166,9 @@ contains
         INTEGER, DIMENSION(  : ), intent( in ) :: CV_SNDGLN
         INTEGER, DIMENSION(  : ), intent( in ) :: XU_NDGLN
         INTEGER, DIMENSION(  : ), intent( in ) :: WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_MOMU_BC, WIC_P_BC
-        REAL, DIMENSION(  :, :, :  ), intent( in ) :: U_ABS_STAB, U_ABSORB
+        REAL, DIMENSION(  :, :, :  ), intent( inout ) :: U_ABS_STAB, MAT_ABSORB, U_ABSORB
         REAL, DIMENSION(  :  ), intent( in ) :: U_SOURCE
-        REAL, DIMENSION(  :  ), intent( in ) :: U_SOURCE_CV
+        REAL, DIMENSION(  :  ), intent( inout ) :: U_SOURCE_CV
 
         REAL, DIMENSION(  :  ), intent( in ) :: DEN, DENOLD, SATURAOLD
         REAL, DIMENSION(  :  ), intent( inout ) :: SATURA
@@ -1210,8 +1211,7 @@ contains
         INTEGER, DIMENSION(  :  ), intent( in ) :: FINDM
         INTEGER, DIMENSION(  :  ), intent( in ) :: COLM
         INTEGER, DIMENSION(  :  ), intent( in ) :: MIDM
-        REAL, DIMENSION(  : ), intent( in ) :: UDEN, UDENOLD
-        REAL, DIMENSION(  : ,  : ,  : ,  :  ), intent( in ) :: UDIFFUSION
+        REAL, DIMENSION(  : ,  : ,  : ,  :  ), intent( inout ) :: UDIFFUSION
         REAL, DIMENSION(  :  ), intent( in ) :: OPT_VEL_UPWIND_COEFS
         REAL, DIMENSION( : ,  :  ), intent( inout ) :: &
         THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
@@ -1247,7 +1247,7 @@ contains
         REAL, DIMENSION ( :, :, :, : ), allocatable :: SUF_U_ROB1_BC_ALL, SUF_U_ROB2_BC_ALL
         REAL, DIMENSION ( :, :, : ), allocatable :: SUF_P_BC_ALL
 
-        type( tensor_field ), pointer :: u_all2, uold_all2
+        type( tensor_field ), pointer :: u_all2, uold_all2, uden_all2, udenold_all2
         type( vector_field ), pointer :: x_all2
         type( scalar_field ), pointer :: p_all, cvp_all, Pressure_State
 
@@ -1313,16 +1313,43 @@ contains
         CVP_ALL => EXTRACT_SCALAR_FIELD( PACKED_STATE, "CVPressure" )
 
         ! make sure is linearised in case option is switched on for p2 simulations...
-        !X_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedDensity" )
-        !UDEN_ALL = X_ALL2%VAL
-        !X_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldDensity" )
-        !UDENOLD_ALL = X_ALL2%VAL
-        ! call linearise_field( )
+        UDEN_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedDensity" )
+        call linearise_field( UDEN_ALL2 )
+        UDEN_ALL = UDEN_ALL2%VAL( 1, :, : )
 
-        do iphase = 1, nphase
-            uden_all( iphase, : ) = uden( 1 + (iphase-1)*cv_nonods : iphase*cv_nonods )
-            udenold_all( iphase, : ) = udenold( 1 + (iphase-1)*cv_nonods : iphase*cv_nonods )
-        end do
+        UDENOLD_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldDensity" )
+        call linearise_field( UDENOLD_ALL2 )
+        UDENOLD_ALL = UDENOLD_ALL2%VAL( 1, :, : )
+
+        if( have_option( '/material_phase[0]/multiphase_properties/relperm_type' ) )then
+           UDEN_ALL=0.0
+           UDENOLD_ALL=0.0
+        end if
+
+
+
+               call calculate_u_source_cv( state, cv_nonods, ndim, nphase, uden_all2%val, U_Source_CV )
+
+               ! calculate the viscosity for the momentum equation...
+               !if ( its == 1 ) 
+               call calculate_viscosity( state, ncomp, nphase, ndim, mat_nonods, mat_ndgln, uDiffusion )
+
+               ! stabilisation for high aspect ratio problems - switched off
+               call calculate_u_abs_stab( U_ABS_STAB, MAT_ABSORB, &
+                    opt_vel_upwind_coefs, nphase, ndim, totele, cv_nloc, mat_nloc, mat_nonods, mat_ndgln )
+
+               U_ABSORB = U_ABSORB + MAT_ABSORB
+
+
+
+
+
+
+
+
+
+
+
 
         do sele = 1, stotel
             do iphase = 1, nphase
@@ -6918,10 +6945,9 @@ contains
         implicit none
         type( tensor_field ), intent( inout ) :: field
 
-        type( tensor_field ) :: field_tmp
-        integer, dimension( : ), pointer :: ndglno
-        integer :: n, totele, cv_nloc, ncomp, nphase, ele, cv_iloc, cv_nod
-        real, dimension( :, :, : ), allocatable :: field_cv_nod
+        integer, dimension( : ), pointer :: ndglno, cv_nods
+        integer :: n, totele, cv_nloc, ncomp, nphase, cv_nonods, ele, cv_iloc, cv_nod
+        real, dimension( :, :, : ), allocatable :: field_tmp, field_cv_nod
 
         ! This sub will linearise a p2 field
 
@@ -6937,17 +6963,18 @@ contains
             ncomp = size( field%val, 1 )
             nphase = size( field%val, 2 )
 
+            allocate( field_tmp( ncomp, nphase, cv_nonods ) ) ; field_tmp = field % val
             allocate( field_cv_nod( ncomp, nphase, cv_nloc ) ) ; field_cv_nod = 0.0
-
-            call allocate( field_tmp, field%mesh )
-            call set( field_tmp, field )
 
             do ele = 1, totele
 
-                do cv_iloc = 1, cv_nloc
-                    cv_nod = ndglno( ( ele - 1 ) * cv_nloc + cv_iloc )
-                    field_cv_nod( :, :, cv_iloc ) =  node_val( field_tmp, cv_nod )
-                end do
+                !do cv_iloc = 1, cv_nloc
+                !    cv_nod = ndglno( ( ele - 1 ) * cv_nloc + cv_iloc )
+                !    field_cv_nod( :, :, cv_iloc ) =  field_tmp( :, :, cv_nod )
+                !end do
+
+                cv_nods => ndglno( ( ele - 1 ) * cv_nloc + 1 : ele * cv_nloc )
+                field_cv_nod =  field_tmp( :, :, cv_nods )
 
                 field_cv_nod( :, :, 2 ) = 0.5 * ( field_cv_nod( :, :, 1 ) + field_cv_nod( :, :, 3 ) )
                 field_cv_nod( :, :, 4 ) = 0.5 * ( field_cv_nod( :, :, 1 ) + field_cv_nod( :, :, 6 ) )
@@ -6966,8 +6993,7 @@ contains
 
             end do
 
-            call deallocate( field_tmp )
-            deallocate( field_cv_nod )
+            deallocate( field_tmp, field_cv_nod )
 
         end if
 

@@ -743,7 +743,7 @@
     subroutine Extracting_MeshDependentFields_From_State( state, packed_state, initialised, &
          PhaseVolumeFraction, PhaseVolumeFraction_BC_Spatial, PhaseVolumeFraction_BC, PhaseVolumeFraction_Source, &
          Pressure_FEM_BC_Spatial, Pressure_FEM_BC, &
-         Density, Density_BC_Spatial, Density_BC, &
+         Density_BC_Spatial, Density_BC, &
          Component, Component_BC_Spatial, Component_BC, Component_Source, &
          Velocity_U_BC_Spatial,  wic_momu_bc, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, &
          suf_momu_bc, suf_momv_bc, suf_momw_bc, Velocity_U_Source, Velocity_Absorption, &
@@ -760,7 +760,7 @@
       real, dimension( : ), intent( inout ) :: &
            PhaseVolumeFraction, PhaseVolumeFraction_BC, PhaseVolumeFraction_Source, &
            Pressure_FEM_BC, &
-           Density, Density_BC, &
+           Density_BC, &
            Component, Component_BC, Component_Source, &
            Velocity_U_BC,  Velocity_V_BC, Velocity_W_BC, Velocity_U_Source, &
            Temperature, Temperature_BC, Temperature_Source, suf_t_bc_rob1, suf_t_bc_rob2, &
@@ -844,7 +844,6 @@
       scalarfield => extract_scalar_field( state( 1 ), 'Pressure' )
       call Get_ScalarFields_Outof_State( state, initialised, 1, scalarfield, &
            dummy, Pressure_FEM_BC_Spatial, Pressure_FEM_BC )
-      !Pressure_CV = Pressure_FEM
       if( nphase > 1 ) then ! Copy this to the other phases
          do iphase = 2, nphase
             Pressure_FEM_BC_Spatial( ( iphase - 1 ) * stotel + 1 : iphase * stotel ) = &
@@ -859,9 +858,9 @@
 !!$
       Loop_Density: do iphase = 1, nphase
          scalarfield => extract_scalar_field( state( iphase ), 'Density' )
-         knod = ( iphase - 1 ) * node_count( scalarfield )
+         !knod = ( iphase - 1 ) * node_count( scalarfield )
          call Get_ScalarFields_Outof_State( state, initialised, iphase, scalarfield, &
-              Density(  knod + 1 : knod + node_count( scalarfield ) ), Density_BC_Spatial, Density_BC )
+              dummy, Density_BC_Spatial, Density_BC )
       end do Loop_Density
 
 !!$
