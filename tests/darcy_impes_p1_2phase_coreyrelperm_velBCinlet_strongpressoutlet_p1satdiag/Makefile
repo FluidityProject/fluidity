@@ -1,6 +1,7 @@
 include ../darcy_impes_common/Depend.mk
 
 input: clean
+	$(call import_python_code,batch_tools.py)
 	$(call import_python_code,test_tools.py)
 	$(call import_python_code,buckley_leverett_test_tools.py)
 	cp ../darcy_impes_common/mesh_data/line_mesh_1d_A* .
@@ -36,3 +37,4 @@ clean:
 	rm -f error_*.txt
 	rm -f buckley_leverett_test_tools.py
 	rm -f test_tools.py
+	rm -f batch_tools.py

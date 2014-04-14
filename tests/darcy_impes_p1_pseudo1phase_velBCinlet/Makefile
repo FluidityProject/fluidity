@@ -3,6 +3,7 @@ include ../darcy_impes_common/Depend.mk
 SIM = darcy_impes_p1_pseudo1phase_velBCinlet
 
 input: clean
+	$(call import_python_code,batch_tools.py)
 	$(call import_python_code,test_tools.py)
 	$(call import_python_code,buckley_leverett_test_tools.py)
 	cp mesh_data/$(SIM)*.* .
@@ -31,3 +32,4 @@ clean:
 	rm -f error_*.txt
 	rm -f buckley_leverett_test_tools.py
 	rm -f test_tools.py
+	rm -f batch_tools.py

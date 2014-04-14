@@ -1,146 +1,139 @@
-#!/usr/bin/env python
-
-import sys
-sys.path.append('../../python')
-
+from batch_tools import Command, CommandList, verbose, HandlerList, CompositeHandler
 import os
-os.environ['PYTHONPATH'] = "../../python/"
+import re
+import subprocess
+import numpy
+import fluidity_tools
 
-verbose = True
-def set_verbose(new_verbose):
-    global verbose
-    verbose = new_verbose
+def join_with_underscores(strings):
+    result = None
+    for s in strings:
+        # for flexibility, any nil values are ignored
+        if s is None: continue
+        if result is None:
+            result = s
+        else:
+            result = result + '_' + s
+    return result
 
-class Command:
-    """Class to encapsulate a family of commands corresponding to a tree of
-    Handlers (see below).  The commands are coded up for different
-    levels of the tree in the 'execute' method.
-    """
-    
-    def execute(self, level_name, value):
-        """The level_name argument tells the Command where it is in the Handler tree.
-        The Command can then choose what to do accordingly.  It may use
-        additional information supplied in the value argument.
-        """
-        pass
+         
+class Dummy(Command):
+   def __init__(self):
+      pass
+   def execute(self, level_name, value, indent):
+      pass      
+            
+
+class RunSimulation(Command):
+
+    def __init__(self):
+        self.binary_path = "../../bin/darcy_impes"
+        if not os.path.isfile(self.binary_path): 
+            raise IOError("Cannot find the binary.")
+        # can add more levels to this list
+        self.stem = None
+        self.model = None
+        self.dim = None
+        self.mesh_type = None
+
+    def execute(self, level_name, value, indent):
+        # can add more levels to this list
+        if level_name == 'stem':
+            self.stem = value
+        elif level_name == 'model':
+            self.model = value
+        elif level_name == 'dim':
+            self.dim = value
+        elif level_name == 'mesh_type':
+            self.mesh_type = value
+        elif level_name == 'mesh_suffix':
+            mesh_suffix = value
+
+            filename = join_with_underscores((
+                self.stem, self.model, str(self.dim)+'d',
+                self.mesh_type, mesh_suffix)) + '.diml'
+            
+            # start simulation (TODO: guard against absent mesh)
+            subprocess.call([self.binary_path, filename,
+                             '-v3'], stdout=open(os.devnull, 'wb'))
 
 
-class Handler:
-    """A composite to enable recursion over arbitrary combinations of
-    simulation options (e.g. domain dimensions, grid resolutions).  The
-    'handle' method combines the recursion with executing of a Command.
-    """
-    
-    def __init__(self, level_name, value):
-        self.level_name = level_name
-        self.value = value
-        self.level_index = 0
+class WriteToReport(Command):
+
+    def __init__(self, norms_file=None, rates_file=None):
+        # both args are optional
+        self.norms_file = norms_file
+        self.rates_file = rates_file
+        # can add more levels to this list
+        self.stem = None
+        self.model = None
+        self.dim = None
+        self.mesh_type = None
+        self.phase_index = None
+        self.var_name = None
+        self.field_short = None
+        self.norm = None
+        self.mesh_suffix = None
         
-    def set_level_index(self, level_index):
-        pass
+    def execute(self, level_name, value, indent):
+        if level_name!='mesh_suffix':
+            level_str = '{0}{1}: {2}\n'.format(indent, level_name, value)
+            if self.norms_file is not None:
+                self.norms_file.write(level_str)
+            if self.rates_file is not None:
+                self.rates_file.write(level_str)
+            
+        # can add more levels to this list
+        if level_name == 'stem':
+            self.stem = value
+        elif level_name == 'model':
+            self.model = value
+        elif level_name == 'dim':
+            self.dim = value
+        elif level_name == 'mesh_type':
+            self.mesh_type = value
+        elif level_name == 'field':
+            # split up field name into useful bits
+            pattern = 'Phase(.)::(.*)'
+            self.phase_index = re.sub(pattern, '\\1', value)
+            self.var_name = re.sub(pattern, '\\2', value)
+            self.field_short = str.lower(self.var_name)+self.phase_index
+        elif level_name == 'norm':
+            self.norm = value
+        elif level_name == 'mesh_suffix':
+            self.mesh_suffix = value
 
-    def handle(self, command):
-        pass
+            err = self.get_norm()
 
+            if self.norms_file is not None:
+                key = join_with_underscores((
+                    self.model, str(self.dim)+'d', self.mesh_type,
+                    self.field_short, 'l'+str(self.norm),
+                    self.mesh_suffix))
+                self.norms_file.write('{0}{1}{2:12.3e}\n'.format(
+                    indent, key, err))
 
-class CompositeHandler(Handler):
-    """A tree of handlers."""
+            # can only start computing rates from the 2nd mesh
+            if self.rates_file is not None and self.mesh_suffix!='A':
+                # print a new ID and the rate
+                key = join_with_underscores((
+                    self.model, str(self.dim)+'d', self.mesh_type,
+                    self.field_short, 'l'+str(self.norm),
+                    self.mesh_suffix0+self.mesh_suffix))
+                self.rates_file.write('{0}{1}{2:12.6f}\n'.format(
+                    indent, key, numpy.log2(self.err0/err)))
+            self.err0 = err
+            self.mesh_suffix0 = self.mesh_suffix
 
-    def __init__(self, level_name, value, children):
-        Handler.__init__(self, level_name, value)
-        try:
-            # if children is a HandlerList (see below), convert it back
-            self.children = children.get_handlers()
-        except AttributeError:
-            # already a Python list of Handlers
-            self.children = children
-        for child in self.children:
-            child.set_level_index(self.level_index + 1)
-        
-    def set_level_index(self, level_index):
-        self.level_index = level_index
-        # recurse
-        for child in self.children:
-            child.set_level_index(self.level_index + 1)
-        
-    def handle(self, command):
-        if verbose: print self.level_index*'  ' + \
-           self.level_name + ': ' + str(self.value)
-        # try executing the command at this level
-        command.execute(self.level_name, self.value)
-        # recurse
-        for child in self.children:
-            child.handle(command)
-
-        
-class LeafHandler(Handler):
-    """A single handler."""
-
-    def __init__(self, level_name, value):
-        Handler.__init__(self, level_name, value)
-        
-    def set_level_index(self, level_index):
-        self.level_index = level_index
-
-    def handle(self, command):
-        if verbose:
-            self.level_name+': '+str(self.value)
-        # try executing the command at this level
-        command.execute(self.level_name, self.value)
-
-        
-class HandlerList:
-    """A Python list of Handlers.  It is different to a CompositeHandler in
-    that there is no parent-child relationship -- here there is simply
-    some children.  It has extra methods for building trees and doesn't
-    need to be polymorphic.
-
-    """
-
-    def __init__(self, level_name, values):
-        """Using LeafHandler, initialises from a Python list of generic values.
-        """        
-        self.handlers = []
-        for value in values:
-            self.handlers.append( LeafHandler(level_name, value) )
-
-    def expand(self, handler_list):
-        """Using CompositeHandler, takes another HandlerList and appends copies
-        of it to each element in its own list of Handlers, effectively
-        multiplying the HandlerLists together.  I.e. does
-        self.handlers[i].append(handler_list).  Returns a fresh
-        HandlerList; does not self-modify.
-        """
-        new_handler_list = HandlerList(None, [])
-        new_handlers = []
-        for handler in self.handlers:
-            new_handlers.append(
-                CompositeHandler(handler.level_name, handler.value, 
-                                 handler_list.handlers))
-        new_handler_list.handlers = new_handlers
-        return new_handler_list
-    
-    def splice(self, handler_lists):
-        """Using CompositeHandler, takes a (Python) list of other HandlerLists
-        and appends each HandlerList to the corresponding element in its
-        own list of Handlers, effectively doing a splice.  I.e. does
-        self.handlers[i].append(handler_lists[i]).  Returns a fresh
-        HandlerList; does not self-modify.
-        """
-        new_handler_list = HandlerList(None, [])
-        new_handlers = []
-        for i, handler in enumerate(self.handlers):
-            new_handlers.append(
-                CompositeHandler(handler.level_name, handler.value, 
-                                 handler_lists[i].handlers))
-        new_handler_list.handlers = new_handlers
-        return new_handler_list
-
-    def get_handlers(self):
-        return self.handlers
-
-    def handle(self, request):
-        """Simple delegation"""
-        for handler in self.handlers:
-            handler.handle(request)
-    
+    def get_norm(self):
+        filename = join_with_underscores((
+            self.stem, self.model, str(self.dim)+'d',
+            self.mesh_type, self.mesh_suffix)) + '.stat'
+        if self.norm==1:
+            self.calc_type = "integral"
+        elif self.norm==2:
+            self.calc_type = "l2norm"
+        return fluidity_tools.stat_parser(filename)\
+            ['Phase'+self.phase_index]\
+            [self.var_name+'AbsError']\
+            [self.calc_type][-1]

@@ -8,6 +8,7 @@ LEFT_X    = 0.0
 RIGHT_X   = 1.0
 
 input: clean
+	$(call import_python_code,batch_tools.py)
 	$(call import_python_code,test_tools.py)
 	$(call import_python_code,buckley_leverett_test_tools.py)
 	interval --dx=$(MESH_SIZE) $(LEFT_X) $(RIGHT_X) $(SIM)_1d
@@ -36,3 +37,4 @@ clean:
 	rm -f error_*.txt
 	rm -f buckley_leverett_test_tools.py
 	rm -f test_tools.py
+	rm -f batch_tools.py

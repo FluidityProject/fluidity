@@ -30,15 +30,14 @@ import numpy
 import re
 import subprocess
 import os
-from test_tools import Command, HandlerList, CompositeHandler, set_verbose
-import pdb
+from test_tools import Command, CommandList, HandlerList, CompositeHandler, WriteToReport, RunSimulation, verbose
 
-verbose = True
-set_verbose(verbose)
-
+error_norms_1D_filename = "error_norms_1d.txt"
 error_norms_filename = "error_norms.txt"
 error_rates_filename = "error_rates.txt"
 
+verbose(True)
+debug = True
 
 ## HELPER FUNCTIONS/CLASSES
     
@@ -75,7 +74,7 @@ def find(report, key):
     """Searches a report and returns the value associated with key
     (ID). """
     report.seek(0)
-    v = 0.
+    v = numpy.nan
     for l in report:
         if not l.strip(): continue
         if l.split()[0] == key: 
@@ -84,49 +83,45 @@ def find(report, key):
     return v
 
         
-class RunSimulation(Command):
-    """Preprocesses an input file before running the respective
-    simulation."""
-        
-    def __init__(self):
-        self.binary_path = "../../bin/darcy_impes"
+class Preprocess(Command):
+    def __init__(self, clean=False):
+        # alternative role
+        self.clean = clean
 
-    def execute(self, level_name, value):
+    def execute(self, level_name, value, indent):
         # most levels just record level names
         if level_name == 'stem':
             self.stem = value
-        if level_name == 'model':
+        elif level_name == 'model':
             self.model = value
-        if level_name == 'dim':
+        elif level_name == 'dim':
             self.dim = value
-        if level_name == 'grid':
+        elif level_name == 'mesh_suffix':
             # last level
-            grid = value
+            mesh_suffix = value
             
-            # for the most coarse grid, an options file should exist.
-            # For the other grids, adapt it
-            case = self.stem+'_'+self.model+'_'+self.dim
-            filename_new = case+'_'+grid+'.diml'
-            if grid!='A':
-                filename_A = case+'_A.diml'
-                with open(filename_A, 'r') as f_A:
-                    f = open(filename_new, 'w')
-                    for line in f_A:
-                        f.write(line.replace('_A', '_'+grid))
-                    f.close()
+            case = self.stem+'_'+self.model+'_'+str(self.dim)+'d'
+            filename_new = case+'_'+mesh_suffix+'.diml'
+            if mesh_suffix!='A':
+                if not self.clean:
+                    # for the most coarse mesh, an options file should
+                    # exist.  For the other meshes, adapt it
+                    filename_A = case+'_A.diml'
+                    with open(filename_A, 'r') as f_A:
+                        f = open(filename_new, 'w')
+                        for line in f_A:
+                            f.write(line.replace('_A', '_'+mesh_suffix))
+                        f.close()
+                else:
+                    # undo the above
+                    os.remove(filename_new)
 
-            # process and clean up 
-            if not os.path.isfile(self.binary_path):
-                raise IOError("The darcy_impes binary hasn't been built yet.")
-            subprocess.call([self.binary_path, filename_new])
-            if grid!='A': os.remove(filename_new)
-        
                 
 class WriteErrorNorm1D(Command):
     """Compares a 1D numerical solution with the appropriate analytical
     solution, writing the error norm to a report.  The output report
     has two columns: the first has identifiers in the format
-    model_name_1D_grid_name_field_ID_normtype; the second has the values
+    model_name_1d_mesh_suffix_field_ID_normtype; the second has the values
     of the error norms.
     """
 
@@ -134,28 +129,31 @@ class WriteErrorNorm1D(Command):
         self.analytic_stem = analytic_stem
         self.norms_file = norms_file
 
-    def execute(self, level_name, value):
+    def execute(self, level_name, value, indent):
         if level_name == 'stem':
             self.stem = value
-        if level_name == 'model':
+        elif level_name == 'model':
             self.model = value
-        if level_name == 'grid':
-            self.suffix = self.model+'_1d_'+value
-        if level_name == 'field':
+        elif level_name == 'mesh_suffix':
+            self.mesh_suffix = value
+        elif level_name == 'field':
             # translate the field_name to shorthand form
             field = value
             self.field_short = str.lower(re.sub('Phase(.)::(.*)', '\\2\\1',
                                                 field))
             # store the errors and dx for this field
+            num_suf = self.model+'_1d_'+self.mesh_suffix
             [self.errs, self.dx] = self.compute_abs_errors(
-                self.suffix, self.field_short, field)
+                num_suf, self.field_short, field)
             
-        if level_name == 'norm':
+        elif level_name == 'norm':
             self.norm = value
             
-            # print the ID and value
-            key = '{0}_{1}_l{2:g}'.format(
-                self.suffix, self.field_short, self.norm)
+            # print the ID and value.  N.B. key is different to 
+            # num_suf passed to compute_abs_errors.
+            key = '{0}_1d_{1}_l{2:g}_{3}'.format(
+                self.model, self.field_short, self.norm,
+                self.mesh_suffix)
             v = self.compute_norm(self.errs, self.dx)
             self.norms_file.write(
                 '{0}{1:24.12e}\n'.format(key,v))
@@ -163,7 +161,7 @@ class WriteErrorNorm1D(Command):
     def compute_abs_errors(self, numerical_suffix, analytic_suffix, 
                            field_name):
         """Computes errors between interpolated numerical values and analytic
-        point values.  Also returns mean grid spacing."""
+        point values.  Also returns mean mesh spacing."""
         s_a = self.analytic_stem+'_'+analytic_suffix+'.txt'
         s_n = self.stem+'_'+numerical_suffix+'_1.vtu'
         [x_a, v_a] = read_analytic_solution(s_a)
@@ -171,19 +169,19 @@ class WriteErrorNorm1D(Command):
         v_nInterp = numpy.interp(x_a, x_n, v_n)
         return numpy.abs(v_nInterp - v_a), (x_a[-1] - x_a[0])/(len(x_a) - 1)
 
-    def compute_norm(self, errors, grid_spacing):
+    def compute_norm(self, errors, mesh_spacing):
         """Computes a norm.  Uniform, linear elements are assumed, so the
         integral over the domain can be approximated by the trapezium rule
         (for the L1 norm at least).
         """
         E = numpy.array(errors)
         if self.norm == 1: 
-            I = (E[0]/2 + sum(E[1:-1]) + E[-1]/2)*grid_spacing
+            I = (E[0]/2 + sum(E[1:-1]) + E[-1]/2)*mesh_spacing
         elif self.norm == 2:
             # does not make much difference, but previously I = (E[0]**2/2 +
-            # sum(E[1:-1]**2) + E[-1]**2/2)*grid_spacing
+            # sum(E[1:-1]**2) + E[-1]**2/2)*mesh_spacing
             I = (E[0]**2 + sum(E[:-1]*E[1:]) + 2*sum(E[1:-1]**2) + \
-                     E[-1]**2)*grid_spacing/3
+                     E[-1]**2)*mesh_spacing/3
         else: 
             print("Only l1 or l2 norms may be computed; i.e. self.norm "
                   "must be 1 or 2.")
@@ -191,86 +189,33 @@ class WriteErrorNorm1D(Command):
         return I**(1/float(self.norm))
    
 
-class WriteConvergenceRate(Command):
-    """Analyses the rate at which an error norm is converging to zero.  For
-    this to work, the previously analysed grid needs to be coarser by a
-    factor of two.  The output report has two columns: the first has
-    identifiers in the format
-    modelname_dimension_fieldID_normtype_gridpair; the second has the
-    values of the convergence rates.
-
+class ModifiedWriteToReport(WriteToReport):
+    """Overrides WriteToReport and its get_norm method
+    in order to allow customised computation of 1D errors.
     """
 
-    def __init__(self, rates_file, dimension):
-        self.rates_file = rates_file
-        self.dim = str(dimension)
+    def __init__(self, norms_file, rates_file, norms_file_1D):
+        WriteToReport.__init__(self, norms_file, rates_file)
+        self.norms_file_1D = norms_file_1D
 
-    def execute(self, level_name, value):
-        if level_name == 'stem':
-            self.stem = value
-        if level_name == 'model':
-            self.model = value
-        if level_name == 'field':
-            # split up field name into useful bits
-            self.phase_index = re.sub('Phase(.)::(.*)', '\\1', value)
-            self.var_name = re.sub('Phase(.)::(.*)', '\\2', value)
-            self.field_short = str.lower(self.var_name)+self.phase_index
-        if level_name == 'norm':
-            self.norm = value
-        if level_name == 'grid':
-            grid = value
-            v = self.get_norm(grid)
-            
-            # can only start computing rates from the 2nd grid
-            if grid!='A':
-                # print a new ID and the rate
-                key = self.model+'_'+self.dim+'d_'+self.field_short+\
-                      '_l'+str(self.norm)+'_'+self.grid0+grid
-                self.rates_file.write('{0}{1:12.6f}\n'.format(
-                    key,numpy.log2(self.v0/v)))
-            self.v0 = v
-            self.grid0 = grid
-
-    def get_norm(self): 
-        # defer to subclasses
-        pass
-
-
-class Dim1_WriteConvergenceRate(WriteConvergenceRate):
-    """Can be run after WriteErrorNorm1D has been handled.  N.B. Has a
-    different ordering and formatting of the IDs on the LHS.
-    """
-    def __init__(self, rates_file, norms_file):
-        WriteConvergenceRate.__init__(self, rates_file, 1)
-        self.norms_file = norms_file
-
-    def get_norm(self, grid): 
-        suffix = self.model+'_1d_'+grid
-        key = '{0}_{1}_l{2:g}'.format(suffix, self.field_short,
-                                      self.norm)
-        return find(self.norms_file, key)
-        
-
-class DimN_WriteConvergenceRate(WriteConvergenceRate):
-    """Produces a similar output to sibling Dim1, but uses
-    information associated with multidimensional VTU files incorporating
-    interp_using_analytic.  This is a more versatile approach as
-    explained at the top of the file.
-    """
-    def __init__(self, rates_file, dimension):
-        WriteConvergenceRate.__init__(self, rates_file, dimension)
-
-    def get_norm(self, grid): 
-        filename = self.stem+'_'+self.model+'_'+self.dim+'d_'+\
-                   grid+'.stat'
-        if self.norm==1:
-            self.calc_type = "integral"
-        elif self.norm==2:
-            self.calc_type = "l2norm"
-        return fluidity_tools.stat_parser(filename)\
-            ['Phase'+self.phase_index]\
-            ['Analytic'+self.var_name+'Error']\
-            [self.calc_type][-1]
+    def get_norm(self):
+        if self.dim==1:
+            key = '{0}_1d_{1}_l{2:g}_{3}'.format(
+                self.model, self.field_short, self.norm,
+                self.mesh_suffix)
+            v = find(self.norms_file_1D, key)
+        else:
+            filename = self.stem+'_'+self.model+'_'+\
+                       str(self.dim)+'d_'+self.mesh_suffix+'.stat'
+            if self.norm==1:
+                self.calc_type = "integral"
+            elif self.norm==2:
+                self.calc_type = "l2norm"
+            v = fluidity_tools.stat_parser(filename)\
+                ['Phase'+self.phase_index]\
+                ['Analytic'+self.var_name+'Error']\
+                [self.calc_type][-1]
+        return v
                 
             
 
@@ -295,8 +240,8 @@ def find_rate(key):
 class BuckleyLeverettTestSuite:
     """Class to help run and postprocess tests.  numerical_filename_stem is
     a string to be appended with the elements in model_name_list and
-    grid_name_list, where the latter is one of three elements in the
-    list grid_name_list_per_dimension.  analytic_filename_stem is a
+    mesh_suffix_list, where the latter is one of three elements in the
+    list mesh_suffix_list_per_dimension.  analytic_filename_stem is a
     string to be appended with shorthand names for the fields in
     question, which in turn are translated from the elements in
     field_name_list.  If a field_name is 'Phase2::Saturation', then the
@@ -304,18 +249,18 @@ class BuckleyLeverettTestSuite:
 
     """
     def __init__(self, numerical_filename_stem, model_name_list,
-                 grid_name_list_per_dimension, analytic_filename_stem,
+                 mesh_suffix_list_per_dimension, analytic_filename_stem,
                  field_name_list):
         
         self.numerical_filename_stem = numerical_filename_stem
         self.analytic_filename_stem = analytic_filename_stem
 
         # convert lists
-        self.grid_handler_list = []
-        for grid_name_list in grid_name_list_per_dimension:
-            self.grid_handler_list.append(
-                HandlerList('grid', grid_name_list))
-        self.dim_handler_list = HandlerList('dim', ('1d', '2d', '3d'))
+        self.mesh_suffix_handler_list = []
+        for mesh_suffix_list in mesh_suffix_list_per_dimension:
+            self.mesh_suffix_handler_list.append(
+                HandlerList('mesh_suffix', mesh_suffix_list))
+        self.dim_handler_list = HandlerList('dim', (1, 2, 3))
         self.model_handler_list = HandlerList('model', model_name_list)
         self.field_handler_list = HandlerList('field', field_name_list)
         self.norm_handler_list = HandlerList('norm', (1, 2))
@@ -328,26 +273,28 @@ class BuckleyLeverettTestSuite:
  
  
     def process_folder(self):
-        if verbose: print '\nProcessing folder '
+        if verbose(): print '\nProcessing folder '
         # build handler structure
         handler = self.new_handler(
             self.model_handler_list.expand(
                 self.dim_handler_list.splice(
                     # n.b. splice lists here
-                    self.grid_handler_list)))
+                    self.mesh_suffix_handler_list)))
         # pass it a command 
-        handler.handle( RunSimulation() )
+        handler.handle(CommandList((Preprocess(),
+                                    RunSimulation(),
+                                    Preprocess(clean=True))))
 
         
     def generate_error_report_1D(self):
-        if verbose: print '\nComputing 1D error norms'
+        if verbose(): print '\nComputing 1D error norms'
         # open write file
-        with open(error_norms_filename, "w") as f_norms:
+        with open(error_norms_1D_filename, "w") as f_norms:
             # build handler structure
             handler = self.new_handler(
                 self.model_handler_list.expand(
-                    # 1D, so just expand grid_handler_list[0]
-                    self.grid_handler_list[0].expand(
+                    # 1D, so just expand mesh_suffix_handler_list[0]
+                    self.mesh_suffix_handler_list[0].expand(
                         self.field_handler_list.expand(
                             self.norm_handler_list))))
             # pass it a command 
@@ -356,24 +303,33 @@ class BuckleyLeverettTestSuite:
     
     
     def generate_convergence_report(self):
-        if verbose: print '\nComputing convergence rates'
-        # open write file and start looping over dimensions
+        if verbose(): print '\nComputing convergence rates'
+        # open write file(s)
         with open(error_rates_filename, "w") as f_rates:
+            
+            # build handler structure
+            dim_handlers = []
             for i, dim in enumerate((1, 2, 3)):
-                # build handler structure
-                handler = self.new_handler(
-                    self.model_handler_list.expand(
+                dim_handlers.append(CompositeHandler('dim', dim,
                         self.field_handler_list.expand(
                             self.norm_handler_list.expand(
-                                self.grid_handler_list[i]))))
-                # pass it a command
-                if dim==1:
-                    with open(error_norms_filename, "r") as f_norms:
-                        handler.handle(
-                            Dim1_WriteConvergenceRate(f_rates, f_norms))
+                                self.mesh_suffix_handler_list[i]))))
+            handler = self.new_handler(
+                self.model_handler_list.expand(dim_handlers))
+
+            # pass it a command
+            with open(error_norms_1D_filename, "r") as f_norms_1D:
+                # also write ND norms?
+                if debug:
+                    f_norms = open(error_norms_filename, "w")
                 else:
+                    f_norms = None
+                try:
                     handler.handle(
-                        DimN_WriteConvergenceRate(f_rates, dim))
+                        ModifiedWriteToReport(
+                            f_norms, f_rates, f_norms_1D))
+                finally:
+                    if debug: f_norms.close()
         
     
     def generate_reports(self):
