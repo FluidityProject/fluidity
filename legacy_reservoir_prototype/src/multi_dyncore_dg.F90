@@ -1111,7 +1111,7 @@ contains
     U_NDGLN, P_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN, &
     STOTEL, CV_SNDGLN, U_SNDGLN, P_SNDGLN, &
     U_SNLOC, P_SNLOC, CV_SNLOC, &
-    U_ABS_STAB, MAT_ABSORB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
+    U_ABS_STAB, MAT_ABSORB, U_ABSORBIN, U_SOURCE, U_SOURCE_CV, &
     DEN, DENOLD, SATURA, SATURAOLD, DERIV, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
     DT, &
     NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn
@@ -1166,7 +1166,7 @@ contains
         INTEGER, DIMENSION(  : ), intent( in ) :: CV_SNDGLN
         INTEGER, DIMENSION(  : ), intent( in ) :: XU_NDGLN
         INTEGER, DIMENSION(  : ), intent( in ) :: WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_MOMU_BC, WIC_P_BC
-        REAL, DIMENSION(  :, :, :  ), intent( inout ) :: U_ABS_STAB, MAT_ABSORB, U_ABSORB
+        REAL, DIMENSION(  :, :, :  ), intent( inout ) :: U_ABS_STAB, U_ABSORBIN, MAT_ABSORB
         REAL, DIMENSION(  :  ), intent( in ) :: U_SOURCE
         REAL, DIMENSION(  :  ), intent( inout ) :: U_SOURCE_CV
 
@@ -1231,14 +1231,14 @@ contains
         INTEGER :: CV_NOD, COUNT, CV_JNOD, IPHASE, ele, x_nod1, x_nod2, x_nod3, cv_iloc, &
         cv_nod1, cv_nod2, cv_nod3, mat_nod1, u_iloc, u_nod, u_nod_pha, ndpset
         REAL :: der1, der2, der3, uabs, rsum, xc, yc
-        LOGICAL :: JUST_BL_DIAG_MAT, NO_MATRIX_STORE, SCALE_P_MATRIX
+        LOGICAL :: JUST_BL_DIAG_MAT, NO_MATRIX_STORE, SCALE_P_MATRIX, LINEARISE_DENSITY
 
         INTEGER :: I, J, IDIM, U_INOD
 
         !TEMPORARY VARIABLES, ADAPT FROM OLD VARIABLES TO NEW
         INTEGER :: U_NLOC2, ILEV, NLEV, X_ILOC, X_INOD, MAT_INOD, S, E, sele, p_sjloc, u_siloc
-        REAL, DIMENSION( :, :, : ), allocatable :: U_ALL, UOLD_ALL, U_SOURCE_ALL, U_SOURCE_CV_ALL, U_ABSORB_ALL, U_ABS_STAB_ALL
-        REAL, DIMENSION( :, : ), allocatable :: X_ALL, UDEN_ALL, UDENOLD_ALL, PLIKE_GRAD_SOU_COEF_ALL, PLIKE_GRAD_SOU_GRAD_ALL
+        REAL, DIMENSION( :, :, : ), allocatable :: U_ALL, UOLD_ALL, U_SOURCE_ALL, U_SOURCE_CV_ALL, U_ABSORB_ALL, U_ABS_STAB_ALL, U_ABSORB
+        REAL, DIMENSION( :, : ), allocatable :: X_ALL, UDEN_ALL, UDENOLD_ALL, DEN_ALL, DENOLD_ALL, PLIKE_GRAD_SOU_COEF_ALL, PLIKE_GRAD_SOU_GRAD_ALL
         REAL, DIMENSION( :, :, :, : ), allocatable :: UDIFFUSION_ALL
 
         INTEGER, DIMENSION ( :, :, : ), allocatable :: WIC_U_BC_ALL, WIC_MOMU_BC_ALL
@@ -1247,14 +1247,16 @@ contains
         REAL, DIMENSION ( :, :, :, : ), allocatable :: SUF_U_ROB1_BC_ALL, SUF_U_ROB2_BC_ALL
         REAL, DIMENSION ( :, :, : ), allocatable :: SUF_P_BC_ALL
 
-        type( tensor_field ), pointer :: u_all2, uold_all2, uden_all2, udenold_all2
+        type( tensor_field ), pointer :: u_all2, uold_all2, den_all2, denold_all2
         type( vector_field ), pointer :: x_all2
         type( scalar_field ), pointer :: p_all, cvp_all, Pressure_State
 
 
         ALLOCATE( U_ALL( NDIM, NPHASE, U_NONODS ), UOLD_ALL( NDIM, NPHASE, U_NONODS ), &
-        X_ALL( NDIM, X_NONODS ), UDEN_ALL( NPHASE, CV_NONODS ), UDENOLD_ALL( NPHASE, CV_NONODS ) )
+        X_ALL( NDIM, X_NONODS ), UDEN_ALL( NPHASE, CV_NONODS ), UDENOLD_ALL( NPHASE, CV_NONODS ), &
+        DEN_ALL( NPHASE, CV_NONODS ), DENOLD_ALL( NPHASE, CV_NONODS ) )
         U_ALL = 0. ; UOLD_ALL = 0. ; X_ALL = 0. ; UDEN_ALL = 0. ; UDENOLD_ALL = 0.
+        DEN_ALL = 0. ; DENOLD_ALL = 0.
 
         ALLOCATE( WIC_U_BC_ALL( NDIM,NPHASE,STOTEL ) ) ; WIC_U_BC_ALL = 0
         ALLOCATE( WIC_MOMU_BC_ALL( NDIM,NPHASE,STOTEL ) ) ; WIC_MOMU_BC_ALL = 0
@@ -1312,33 +1314,40 @@ contains
         P_ALL => EXTRACT_SCALAR_FIELD( PACKED_STATE, "FEPressure" )
         CVP_ALL => EXTRACT_SCALAR_FIELD( PACKED_STATE, "CVPressure" )
 
-        ! make sure is linearised in case option is switched on for p2 simulations...
-        UDEN_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedDensity" )
-        call linearise_field( UDEN_ALL2 )
-        UDEN_ALL = UDEN_ALL2%VAL( 1, :, : )
+        linearise_density = have_option( '/material_phase[0]/linearise_density' )
 
-        UDENOLD_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldDensity" )
-        call linearise_field( UDENOLD_ALL2 )
-        UDENOLD_ALL = UDENOLD_ALL2%VAL( 1, :, : )
+        DEN_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedDensity" )
+        DENOLD_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldDensity" )
 
-        if( have_option( '/material_phase[0]/multiphase_properties/relperm_type' ) )then
+        DEN_ALL = DEN_ALL2%VAL( 1, :, : )
+        DENOLD_ALL = DENOLD_ALL2%VAL( 1, :, : )
+
+        if ( have_option ( '/material_phase[0]/multiphase_properties/relperm_type' ) )then
            UDEN_ALL=0.0
            UDENOLD_ALL=0.0
+        else
+           if ( linearise_density ) then
+              call linearise_field( DEN_ALL2, UDEN_ALL )
+              call linearise_field( DENOLD_ALL2, UDENOLD_ALL )
+           else
+              UDEN_ALL = DEN_ALL2%VAL( 1, :, : )
+              UDENOLD_ALL = DENOLD_ALL2%VAL( 1, :, : )
+           end if
         end if
 
+        call calculate_u_source_cv( state, cv_nonods, ndim, nphase, uden_all, U_Source_CV )
 
+        ! calculate the viscosity for the momentum equation...
+        !if ( its == 1 ) 
+        call calculate_viscosity( state, ncomp, nphase, ndim, mat_nonods, mat_ndgln, uDiffusion )
 
-               call calculate_u_source_cv( state, cv_nonods, ndim, nphase, uden_all2%val, U_Source_CV )
+        ! stabilisation for high aspect ratio problems - switched off
+        call calculate_u_abs_stab( U_ABS_STAB, MAT_ABSORB, &
+           opt_vel_upwind_coefs, nphase, ndim, totele, cv_nloc, mat_nloc, mat_nonods, mat_ndgln )
 
-               ! calculate the viscosity for the momentum equation...
-               !if ( its == 1 ) 
-               call calculate_viscosity( state, ncomp, nphase, ndim, mat_nonods, mat_ndgln, uDiffusion )
+        allocate( U_ABSORB( mat_nonods, ndim * nphase, ndim * nphase ) )
 
-               ! stabilisation for high aspect ratio problems - switched off
-               call calculate_u_abs_stab( U_ABS_STAB, MAT_ABSORB, &
-                    opt_vel_upwind_coefs, nphase, ndim, totele, cv_nloc, mat_nloc, mat_nonods, mat_ndgln )
-
-               U_ABSORB = U_ABSORB + MAT_ABSORB
+        U_ABSORB = U_ABSORBIN + MAT_ABSORB
 
 
 
@@ -1437,7 +1446,7 @@ contains
         U_SNLOC, P_SNLOC, CV_SNLOC, &
         X_ALL, U_ABS_STAB_ALL, U_ABSORB_ALL, U_SOURCE_ALL, U_SOURCE_CV_ALL, &
         U_ALL, UOLD_ALL, &
-        P_ALL%VAL, CVP_ALL%VAL, DEN, DENOLD, SATURA, SATURAOLD, DERIV, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
+        P_ALL%VAL, CVP_ALL%VAL, DEN, DENOLD, DEN_ALL, DENOLD_ALL, SATURA, SATURAOLD, DERIV, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
         DT, &
         NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn
         DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparcity
@@ -1793,7 +1802,7 @@ contains
     U_SNLOC, P_SNLOC, CV_SNLOC, &
     X_ALL, U_ABS_STAB_ALL, U_ABSORB_ALL, U_SOURCE_ALL, U_SOURCE_CV_ALL, &
     U_ALL, UOLD_ALL, &
-    P, CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV,  IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
+    P, CV_P, DEN, DENOLD, DEN_ALL, DENOLD_ALL, SATURA, SATURAOLD, DERIV,  IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
     DT, &
     NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn
     DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparcity
@@ -1856,7 +1865,7 @@ contains
         REAL, DIMENSION(  : ,:,: ), intent( in ) :: U_ALL, UOLD_ALL
         REAL, DIMENSION(  :  ), intent( in ) :: CV_P, P
         REAL, DIMENSION(  :  ), intent( in ) :: DEN, DENOLD, SATURA, SATURAOLD
-        REAL, DIMENSION(  :, :  ), intent( in ) :: FEM_VOL_FRAC
+        REAL, DIMENSION(  :, :  ), intent( in ) :: FEM_VOL_FRAC, DEN_ALL, DENOLD_ALL
         REAL, DIMENSION(  NPHASE, CV_NONODS  ), intent( in ) :: DERIV
         REAL, DIMENSION(  : ,  :   ), intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
         REAL, intent( in ) :: DT
@@ -1940,8 +1949,8 @@ contains
         GET_THETA_FLUX = .FALSE.
         IGOT_T2 = 0
 
-        ALLOCATE( DEN_OR_ONE( CV_NONODS * NPHASE )) ; DEN_OR_ONE = 0.
-        ALLOCATE( DENOLD_OR_ONE( CV_NONODS * NPHASE )) ; DENOLD_OR_ONE = 0.
+        ALLOCATE( DEN_OR_ONE( NPHASE * CV_NONODS )) ; DEN_OR_ONE = 0.
+        ALLOCATE( DENOLD_OR_ONE( NPHASE * CV_NONODS )) ; DENOLD_OR_ONE = 0.
         ALLOCATE( T2( CV_NONODS * NPHASE * IGOT_T2 )) ; T2 = 0.
         ALLOCATE( T2OLD( CV_NONODS * NPHASE * IGOT_T2 )) ; T2OLD =0.
         ALLOCATE( SUF_T2_BC_ROB1( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  ))
@@ -2007,13 +2016,6 @@ contains
         SUF_NU_BC_ALL, SUF_P_BC_ALL, &
         SUF_U_BC_ROB1_ALL, SUF_U_BC_ROB2_ALL, &
         WIC_U_BC_ALL, WIC_MOMU_BC_ALL, WIC_U_BC_ALL, WIC_P_BC_ALL, &
-
-        !SUF_U_BC, SUF_V_BC, SUF_W_BC, &
-        !SUF_MOMU_BC, SUF_MOMV_BC, SUF_MOMW_BC, &
-        !SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_P_BC, &
-        !SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2, &
-        !SUF_W_BC_ROB1, SUF_W_BC_ROB2, &
-        !WIC_U_BC, WIC_MOMU_BC, WIC_U_BC, WIC_P_BC, &
 
         U_RHS, &
         C, NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn
@@ -6941,9 +6943,10 @@ contains
     END SUBROUTINE SURFACE_TENSION_WRAPPER
 
 
-    subroutine linearise_field( field )
+    subroutine linearise_field( field_in, field_out )
         implicit none
-        type( tensor_field ), intent( inout ) :: field
+        type( tensor_field ), intent( in ) :: field_in
+        real, dimension( :, : ), intent( inout ) :: field_out
 
         integer, dimension( : ), pointer :: ndglno, cv_nods
         integer :: n, totele, cv_nloc, ncomp, nphase, cv_nonods, ele, cv_iloc, cv_nod
@@ -6951,27 +6954,24 @@ contains
 
         ! This sub will linearise a p2 field
 
-        n = field%mesh%shape%degree
+        field_out = 0.0
+
+        n = field_in%mesh%shape%degree
 
         if ( n==2 ) then
 
-            ndglno => get_ndglno( field%mesh )
+            ndglno => get_ndglno( field_in%mesh )
 
-            totele = field%mesh%elements
-            cv_nloc = field%mesh%shape%loc
+            totele = field_in%mesh%elements
+            cv_nloc = field_in%mesh%shape%loc
 
-            ncomp = size( field%val, 1 )
-            nphase = size( field%val, 2 )
+            ncomp = size( field_in%val, 1 )
+            nphase = size( field_in%val, 2 )
 
-            allocate( field_tmp( ncomp, nphase, cv_nonods ) ) ; field_tmp = field % val
+            allocate( field_tmp( ncomp, nphase, cv_nonods ) ) ; field_tmp = field_in % val
             allocate( field_cv_nod( ncomp, nphase, cv_nloc ) ) ; field_cv_nod = 0.0
 
             do ele = 1, totele
-
-                !do cv_iloc = 1, cv_nloc
-                !    cv_nod = ndglno( ( ele - 1 ) * cv_nloc + cv_iloc )
-                !    field_cv_nod( :, :, cv_iloc ) =  field_tmp( :, :, cv_nod )
-                !end do
 
                 cv_nods => ndglno( ( ele - 1 ) * cv_nloc + 1 : ele * cv_nloc )
                 field_cv_nod =  field_tmp( :, :, cv_nods )
@@ -6988,7 +6988,7 @@ contains
 
                 do cv_iloc = 1, cv_nloc
                     cv_nod = ndglno( ( ele - 1 ) * cv_nloc + cv_iloc )
-                    field%val( :, :, cv_nod ) = field_cv_nod( :, :, cv_iloc )
+                    field_out( :, cv_nod ) = field_cv_nod( 1, :, cv_iloc )
                 end do
 
             end do

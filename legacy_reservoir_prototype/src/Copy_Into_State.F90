@@ -61,35 +61,30 @@
     subroutine copy_into_state( state, &
          proto_saturations, &
          proto_temperatures, &
-         proto_densities, &
          proto_components, &
          ncomp, &
          nphase, &
-         cv_ndgln, &
-         p_ndgln )
+         cv_ndgln )
 
       !!< Copy prototype solution arrays into fluidity state array for output
 
       type(state_type), dimension(:), intent(inout) :: state
       real, dimension(:), intent(in) :: proto_saturations
       real, dimension(:), intent(in) :: proto_temperatures
-      real, dimension(:), intent(in) :: proto_densities
       real, dimension(:), intent(in) :: proto_components
       integer, intent(in) :: ncomp
       integer, intent(in) :: nphase
       integer, dimension(:), intent(in) :: cv_ndgln
-      integer, dimension(:), intent(in) :: p_ndgln
 
       ! local variables
       integer :: stat
-      integer :: i,j,k,p,ele,jloc, pos
+      integer :: i,j,k,p,ele,jloc
       integer :: number_nodes
       integer :: nstates
       integer :: nloc
       integer, dimension(:), pointer :: element_nodes => null()
       type(scalar_field), pointer :: phasevolumefraction => null()
       type(scalar_field), pointer :: phasetemperature => null()      
-      type(scalar_field), pointer :: density => null()
       type(scalar_field), pointer :: componentmassfraction => null()
       character(len=option_path_len) :: material_phase_name
 
@@ -152,35 +147,6 @@
             end do temp_ele_loop
 
          end if found_temp
-
-         density => extract_scalar_field(state(p), "Density", stat=stat)
-
-         if (stat /= 0) then 
-
-            ewrite(1,*) 'Issue in prototype interface for phase ',p
-
-            FLAbort('Failed to extract phase density from state in copy_into_state')
-
-         end if
-
-         number_nodes = node_count(density)
-
-         den_ele_loop: do i = 1,element_count(density)
-
-            element_nodes => ele_nodes(density,i)
-
-            nloc = size(element_nodes)
-
-            den_node_loop: do j = 1,nloc
-
-               call set(density, &
-                    element_nodes(j), &
-                    proto_densities((cv_ndgln((i-1)*nloc+j)) + (p-1)*number_nodes))
-
-            end do den_node_loop
-
-         end do den_ele_loop
-
 
       ! comp is stored in the order
       !   comp1 phase1
@@ -254,20 +220,19 @@
 
     end subroutine copy_into_state
 
-    function extract_or_insert_velocity_tensor(states,phase,position,velocity,pressure) result(vfields)
+    function extract_or_insert_velocity_tensor(states,phase,velocity,pressure) result(vfields)
 
       type(state_type), dimension(:), target :: states
       integer :: phase
-      type(vector_field) :: position,velocity
+      type(vector_field) :: velocity
       type(scalar_field) :: pressure
 
       type(vector_field_pointer), dimension(ele_loc(pressure,1))  :: vfields
       type(vector_field), dimension(ele_loc(pressure,1)) :: vfield_array
-      type(mesh_type) :: fem_velocity_mesh
       type(element_type) :: shape
       type(mesh_type) :: mesh
       type(state_type), pointer :: state
-      integer :: stat, i, ic, nics
+      integer :: stat, i
       character(len=OPTION_PATH_LEN) :: name
 
       ewrite(3,*) "In extract_or_insert_velocity_tensor"

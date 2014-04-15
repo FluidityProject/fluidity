@@ -135,7 +135,7 @@
 
 !!$ Defining problem that will be solved
       logical :: have_temperature_field, have_component_field, have_extra_DiffusionLikeTerm, &
-           solve_force_balance, solve_PhaseVolumeFraction, linearise_density
+           solve_force_balance, solve_PhaseVolumeFraction
 
 !!$ Defining solver options
       integer :: velocity_max_iterations, PhaseVolumeFraction_max_iterations
@@ -572,10 +572,7 @@
    !   print *,'mx_ncolm, ncolm:',mx_ncolm, ncolm
    !   stop 282
 
-      ! linearise density field for P2 simulations
-      ! this is used for buoyancy term in the momentum eq.
-      ! still need to figure out if we need to linearise only the buoyancy term.
-      linearise_density = have_option( '/material_phase[0]/linearise_density' )
+
 
 !!$ Starting Time Loop 
       itime = 0
@@ -827,6 +824,7 @@
                     U_SNLOC, P_SNLOC, CV_SNLOC, &
 !!$
                     Material_Absorption_Stab, Material_Absorption, Velocity_Absorption, Velocity_U_Source, Velocity_U_Source_CV, &
+
                     Density, Density_Old, PhaseVolumeFraction, PhaseVolumeFraction_Old, & 
                     DRhoDPressure, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
                     dt, &
@@ -1159,7 +1157,7 @@
 !!$ Copying fields back to state:
          call copy_into_state( state, & ! Copying main fields into state
               PhaseVolumeFraction, Temperature, &
-              Density, Component, ncomp, nphase, cv_ndgln, p_ndgln )
+              Component, ncomp, nphase, cv_ndgln )
 
 
 !!$ Calculate diagnostic fields
@@ -1178,7 +1176,7 @@
             if ( have_option( "/io/output_scalars_fem" ) ) &
                  call copy_into_state( state, & ! Copying main fields into state
                  PhaseVolumeFraction_FEMT, Temperature_FEMT, &
-                 Density, Component_FEMT, ncomp, nphase, cv_ndgln, p_ndgln )
+                 Component_FEMT, ncomp, nphase, cv_ndgln )
 
             call get_option( '/timestepping/current_time', current_time ) ! Find the current time 
 
@@ -1189,7 +1187,7 @@
             if ( have_option( "/io/output_scalars_fem" ) ) &
                  call copy_into_state( state, & ! Copying main fields into state
                  PhaseVolumeFraction, Temperature, &
-                 Density, Component, ncomp, nphase, cv_ndgln, p_ndgln )
+                 Component, ncomp, nphase, cv_ndgln )
 
          end if Conditional_TimeDump
 
@@ -1572,16 +1570,6 @@
             allocate( Component_Diffusion_Operator_Coefficient( ncomp, ncomp_diff_coef, nphase ) )  
             nopt_vel_upwind_coefs = mat_nonods * nphase * ndim * ndim * 2
             allocate( opt_vel_upwind_coefs( nopt_vel_upwind_coefs ) ) ; opt_vel_upwind_coefs = 0.
-
-!!$            !$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-!!$            call copy_into_state( state, &
-!!$                 PhaseVolumeFraction, Temperature, Pressure_CV, &
-!!$                 Density, Component, &
-!!$                 ncomp, nphase, cv_ndgln, p_ndgln )
-!!$            dump_no=666
-!!$            call write_state( dump_no, state ) ! Now writing into the vtu files
-!!$            stop 777
-!!$            !$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
          end if Conditional_ReallocatingFields
 
