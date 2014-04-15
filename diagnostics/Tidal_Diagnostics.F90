@@ -436,7 +436,7 @@ subroutine save_harmonic_x_in_fields(harmonic_x, residual, M, harmonic_fields, n
          call set( harmonic_current, node, sqrt( harmonic_x(MM+1)**2 + harmonic_x(MM+1+M)**2 ) )
       elseif (harmonic_fields(i)%target=='Phase') then
          if (harmonic_x(MM+1+M)==0 .and. harmonic_x(MM+1)==0) then
-            FLAbort('Error while calculating harmonic analysis phase!')
+            FLAbort('Error in tidal harmonic analysis. Could not calculate phase of constituent '//harmonic_fields(i)%name)
          end if
          result = atan2(harmonic_x(MM+1+M),harmonic_x(MM+1))
          !*180.0/pi
