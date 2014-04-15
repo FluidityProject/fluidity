@@ -1128,6 +1128,16 @@ contains
            T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, &
            DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD )
 
+! Populate  limiting matrix based on max and min values OLD:
+         CALL CALC_LIMIT_MATRIX_MAX_MIN(TOLDMAX, TOLDMIN, DENOLDMAX, DENOLDMIN, &
+       T2OLDMAX, T2OLDMIN,  &
+       TOLD,  T2OLD, DENOLD, IGOT_T2, NPHASE, CV_NONODS, &
+       TOLDMIN_NOD, TOLDMAX_NOD,  &
+       T2OLDMIN_NOD, T2OLDMAX_NOD,  &
+       DENOLDMIN_NOD, DENOLDMAX_NOD,  &
+       NSMALL_COLM, SMALL_FINDRM, SMALL_COLM,   &
+       TOLDUPWIND_MAT, DENOLDUPWIND_MAT, T2OLDUPWIND_MAT, MASS_CV )
+
 ! Populate  limiting matrix based on max and min values
          CALL CALC_LIMIT_MATRIX_MAX_MIN(TMAX, TMIN, DENMAX, DENMIN, &
        T2MAX, T2MIN,  &
@@ -1155,19 +1165,6 @@ contains
             END DO
          END DO
 
-      DO COUNT = 1, NSMALL_COLM
-          DO IPHASE = 1, NPHASE
-            TUPWIND_MAT_ALL(IPHASE, COUNT) = TUPWIND_MAT(COUNT + ( IPHASE - 1 ) * NSMALL_COLM) 
-            TOLDUPWIND_MAT_ALL(IPHASE, COUNT) = TOLDUPWIND_MAT(COUNT + ( IPHASE - 1 ) * NSMALL_COLM) 
-            DENUPWIND_MAT_ALL(IPHASE, COUNT) = DENUPWIND_MAT(COUNT + ( IPHASE - 1 ) * NSMALL_COLM) 
-            DENOLDUPWIND_MAT_ALL(IPHASE, COUNT) = DENOLDUPWIND_MAT(COUNT + ( IPHASE - 1 ) * NSMALL_COLM) 
-              IF ( IGOT_T2 == 1 ) THEN
-                  T2UPWIND_MAT_ALL(IPHASE, COUNT) = T2UPWIND_MAT(COUNT + ( IPHASE - 1 ) * NSMALL_COLM) 
-                  T2OLDUPWIND_MAT_ALL(IPHASE, COUNT)= T2OLDUPWIND_MAT(COUNT + ( IPHASE - 1 ) * NSMALL_COLM)
-              end if
-          end do
-      end do
-
 
       ELSE ! endof IF ( IANISOLIM == 0 ) THEN
 
@@ -1186,6 +1183,10 @@ contains
               X_ALL, XC_CV_ALL, IGOT_T_PACK, IGOT_T_CONST, IGOT_T_CONST_VALUE,&
               state, "anisotrop", storageindexes(42))
 
+         
+      END IF ! endof IF ( IANISOLIM == 0 ) THEN ELSE
+
+
       DO COUNT = 1, NSMALL_COLM
           DO IPHASE = 1, NPHASE
               TUPWIND_MAT(COUNT + ( IPHASE - 1 ) * NSMALL_COLM) = TUPWIND_MAT_ALL(IPHASE, COUNT)
@@ -1198,11 +1199,6 @@ contains
               end if
           end do
       end do
-
-         
-      END IF ! endof IF ( IANISOLIM == 0 ) THEN ELSE
-
-
 
       ALLOCATE( FACE_ELE( NFACE, TOTELE ) ) ; FACE_ELE = 0
       CALL CALC_FACE_ELE( FACE_ELE, TOTELE, STOTEL, NFACE, &
