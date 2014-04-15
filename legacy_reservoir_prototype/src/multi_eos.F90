@@ -182,14 +182,14 @@
       end if
 
       field1 => extract_tensor_field( packed_state, "PackedDensity" )
-      !field2 => extract_tensor_field( packed_state, "PackedDensityHeatCapacity" )
+      field2 => extract_tensor_field( packed_state, "PackedDensityHeatCapacity" )
       if( ncomp > 1 ) field3 => extract_tensor_field( packed_state, "PackedComponentDensity" )
 
       do iphase = 1, nphase
          sp = ( iphase - 1 ) * cv_nonods + 1 
          ep = iphase * cv_nonods 
          field1 % val ( 1, iphase, :) = Density_Bulk( sp : ep )
-         !field2 % val ( 1, iphase, :) = DensityCp_Bulk( sp : ep )
+         field2 % val ( 1, iphase, :) = DensityCp_Bulk( sp : ep )
          if( ncomp > 1 ) then
             do icomp = 1, ncomp
                sc = ( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1

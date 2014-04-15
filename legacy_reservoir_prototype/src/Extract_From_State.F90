@@ -2018,16 +2018,18 @@
       call add_new_memory(packed_state,pressure,"OldCVPressure")
 
       p2=>extract_scalar_field(packed_state,"FEPressure")
-      call set( p2, pressure  )
+      call set( p2, pressure )
 
       p2=>extract_scalar_field(packed_state,"CVPressure")
-      call set( p2, pressure  )
+      call set( p2, pressure )
 
 
       call insert_sfield(packed_state,"FEDensity",1,nphase)
 
-
       call insert_sfield(packed_state,"Density",1,nphase)
+      call insert_sfield(packed_state,"DensityHeatCapacity",1,nphase)
+
+
       if (option_count("/material_phase/scalar_field::Temperature")>0) then
          call insert_sfield(packed_state,"Temperature",1,nphase)
       end if

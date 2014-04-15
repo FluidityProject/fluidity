@@ -58,7 +58,7 @@ contains
          CV_NLOC, U_NLOC, X_NLOC, &
          CV_NDGLN, X_NDGLN, U_NDGLN, &
          CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-         T, TOLD, DEN, DENOLD, &
+         T, TOLD, DEN_ALL, DENOLD_ALL, &
          MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
          CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, SECOND_THETA, CV_BETA, &
          SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
@@ -222,7 +222,6 @@ contains
       INTEGER, DIMENSION( : ), intent( in ) ::  WIC_T_BC, WIC_D_BC, WIC_U_BC
       INTEGER, DIMENSION( : ), intent( in ) ::  WIC_T2_BC
       REAL, DIMENSION( : ), intent( inout ) :: CV_RHS
-      !REAL, DIMENSION( NCOLACV ), intent( inout ) :: ACV
       real, dimension(:), intent(inout) :: CSR_ACV
       real, dimension(:,:,:), intent(inout) :: dense_acv
       INTEGER, DIMENSION( : ), intent( in ) :: FINACV
@@ -238,7 +237,8 @@ contains
       INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
       REAL, DIMENSION( : ), intent( inout ) :: MASS_MN_PRES
 
-      REAL, DIMENSION( : ), intent( in ) :: T, TOLD, DEN, DENOLD
+      REAL, DIMENSION( : ), intent( in ) :: T, TOLD
+      REAL, DIMENSION( :, : ), intent( in ) :: DEN_ALL, DENOLD_ALL
       REAL, DIMENSION( : ), intent( in ) :: T2, T2OLD
       REAL, DIMENSION( :, : ), intent( inout ) :: THETA_GDIFF ! (NPHASE,CV_NONODS)
       REAL, DIMENSION( :, : ), intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
@@ -263,7 +263,7 @@ contains
       INTEGER, DIMENSION( : ), intent( in ) :: MIDM
       INTEGER, DIMENSION( : ), intent( in ) :: FINELE
       INTEGER, DIMENSION( : ), intent( in ) :: COLELE
-      REAL, DIMENSION(: ), intent( inout ) :: T_FEMT, DEN_FEMT
+      REAL, DIMENSION( : ), intent( inout ) :: T_FEMT, DEN_FEMT
       REAL, DIMENSION( : ), intent( in ) :: OPT_VEL_UPWIND_COEFS
       INTEGER, INTENT( IN ) :: NOIT_DIM
       REAL, DIMENSION( : ), intent( inout ) :: MEAN_PORE_CV
@@ -308,7 +308,7 @@ contains
            T2OLDMIN, &
            T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, &
            T2OLDMIN_2ND_MC, &
-           UP_WIND_NOD, DU, DV, DW, PERM_ELE
+           UP_WIND_NOD, DU, DV, DW, PERM_ELE, DEN, DENOLD
       REAL, DIMENSION( :, : ), allocatable :: CVNORMX_ALL, XC_CV_ALL
       REAL, DIMENSION( :, : ), allocatable :: UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
            UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2
@@ -431,7 +431,7 @@ contains
 
       REAL, DIMENSION( :, :, : ), ALLOCATABLE :: U_ALL, NU_ALL, NUOLD_ALL, ABSORBT_ALL
       REAL, DIMENSION( :, : ), ALLOCATABLE :: X_ALL, T_ALL, TOLD_ALL, &
-           DEN_ALL, DENOLD_ALL, T2_ALL, T2OLD_ALL, FEMT_ALL, FEMTOLD_ALL, &
+           T2_ALL, T2OLD_ALL, FEMT_ALL, FEMTOLD_ALL, &
            FEMDEN_ALL, FEMDENOLD_ALL, FEMT2_ALL, FEMT2OLD_ALL, SOURCT_ALL
       LOGICAL, DIMENSION( : ), ALLOCATABLE :: DOWNWIND_EXTRAP_INDIVIDUAL
       LOGICAL, DIMENSION( :, : ), ALLOCATABLE :: IGOT_T_PACK, IGOT_T_CONST
@@ -712,10 +712,11 @@ contains
 
 ! TEMP STUFF HERE
 
+      ALLOCATE( DEN( NPHASE * CV_NONODS ), DENOLD( NPHASE * CV_NONODS ) )
+
       ALLOCATE( U_ALL( NDIM, NPHASE, U_NONODS ), NU_ALL( NDIM, NPHASE, U_NONODS ), NUOLD_ALL( NDIM, NPHASE, U_NONODS ) )
 !      ALLOCATE( X_ALL( NDIM, X_NONODS ) )
       ALLOCATE( T_ALL( NPHASE, CV_NONODS ), TOLD_ALL( NPHASE, CV_NONODS ) )
-      ALLOCATE( DEN_ALL( NPHASE, CV_NONODS ), DENOLD_ALL( NPHASE, CV_NONODS ) )
       ALLOCATE( T2_ALL( NPHASE, CV_NONODS ), T2OLD_ALL( NPHASE, CV_NONODS ) )
 
       ALLOCATE( FEMT_ALL( NPHASE, CV_NONODS ), FEMTOLD_ALL( NPHASE, CV_NONODS ) )
@@ -808,11 +809,10 @@ contains
 
 !print *, u_all(1,1,:)
 
-
       DO IPHASE = 1, NPHASE
 
-         DEN_ALL( IPHASE, : ) = DEN( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
-         DENOLD_ALL( IPHASE, : ) = DENOLD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
+         DEN( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS ) = DEN_ALL( IPHASE, : )
+         DENOLD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS ) = DENOLD_ALL( IPHASE, : )
 
          T_ALL( IPHASE, : ) = T( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
          TOLD_ALL( IPHASE, : ) = TOLD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
@@ -829,6 +829,7 @@ contains
          END DO
 
       END DO
+
 
       DO SELE = 1, STOTEL
          DO IPHASE = 1, NPHASE
@@ -12944,7 +12945,7 @@ CONTAINS
          IF (NDIM==3) THEN
             !Two coordinates missing if 3D
             NLOCNODS(4)=NDGLNO((ELE-1)*NLOC+4)
-         	LOCNODS(4)=X_NDGLN((ELE-1)*NLOC+4)
+            LOCNODS(4)=X_NDGLN((ELE-1)*NLOC+4)
          
             CALL TRILOCCORDS(XC_ALL(1),XC_ALL(2),XC_ALL(3), &
                  &        LOCCORDS(1),LOCCORDS(2),LOCCORDS(3),LOCCORDS(4),&

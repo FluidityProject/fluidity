@@ -100,7 +100,7 @@ contains
     option_path, &
     mass_ele_transp, &
     thermal, THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, &
-    StorageIndexes   )
+    StorageIndexes, icomp )
 
         ! Solve for internal energy using a control volume method.
 
@@ -165,6 +165,7 @@ contains
         character( len = * ), intent( in ), optional :: option_path
         real, dimension( : ), intent( inout ), optional :: mass_ele_transp
         integer, dimension(:), intent(inout) :: StorageIndexes
+        integer, optional :: icomp
         ! Local variables
         LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE.
         integer :: nits_flux_lim, its_flux_lim
@@ -172,6 +173,7 @@ contains
         REAL, DIMENSION( : ), allocatable :: ACV, CV_RHS, DIAG_SCALE_PRES, CT_RHS
         REAL, DIMENSION( : ), allocatable :: block_acv, mass_mn_pres
         REAL, DIMENSION( : , : , : ), allocatable :: dense_block_matrix, CT
+        REAL, DIMENSION( : , : ), allocatable :: den_all, denold_all
         REAL, DIMENSION( : ), allocatable :: CV_RHS_SUB, ACV_SUB
         type( scalar_field ), pointer :: P
         INTEGER, DIMENSION( : ), allocatable :: COLACV_SUB, FINACV_SUB, MIDACV_SUB
@@ -179,6 +181,7 @@ contains
         REAL :: SECOND_THETA
         INTEGER :: STAT
         character( len = option_path_len ) :: path
+        type( tensor_field ), pointer :: den_all2, denold_all2
 
         ALLOCATE( ACV( NCOLACV ) )
         ALLOCATE( mass_mn_pres( size(small_COLACV ) ))
@@ -186,10 +189,22 @@ contains
         allocate( dense_block_matrix (nphase,nphase,cv_nonods) ); dense_block_matrix=0;
         ALLOCATE( CV_RHS( CV_NONODS * NPHASE ) )
 
+
+        allocate( den_all( nphase, cv_nonods ), denold_all( nphase, cv_nonods ) )
+
+
         if ( thermal ) then
            p => extract_scalar_field( packed_state, "CVPressure" )
+           den_all2 => extract_tensor_field( packed_state, "PackedDensityHeatCapacity" )
+           denold_all2 => extract_tensor_field( packed_state, "PackedOldDensityHeatCapacity" )
+           den_all    = den_all2    % val ( 1, :, : )
+           denold_all = denold_all2 % val ( 1, :, : )
         else
            p => extract_scalar_field( packed_state, "FEPressure" )
+           den_all2 => extract_tensor_field( packed_state, "PackedComponentDensity" )
+           denold_all2 => extract_tensor_field( packed_state, "PackedOldComponentDensity" )
+           den_all    = den_all2    % val ( icomp, :, : )
+           denold_all = denold_all2 % val ( icomp, :, : )
         end if
 
         if( present( option_path ) ) then
@@ -233,7 +248,7 @@ contains
             CV_NLOC, U_NLOC, X_NLOC, &
             CV_NDGLN, X_NDGLN, U_NDGLN, &
             CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-            T, TOLD, DEN, DENOLD, &
+            T, TOLD, DEN_ALL, DENOLD_ALL, &
             MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
             T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, SECOND_THETA, T_BETA, &
             SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
@@ -402,7 +417,6 @@ contains
         INTEGER, DIMENSION( : ), intent( in ) :: SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV
         INTEGER, DIMENSION( : ), intent( in ) :: FINDCT
         INTEGER, DIMENSION( : ), intent( in ) :: COLCT
-        !      REAL, DIMENSION( NCOLACV ), intent( inout ) :: ACV
         REAL, DIMENSION( : ), allocatable, intent( inout ) :: ACV
         REAL, DIMENSION( :, :, : ), intent( inout ) :: DENSE_BLOCK_MATRIX
         REAL, DIMENSION( :, :, : ), intent( inout ) :: CV_RHS
@@ -413,17 +427,17 @@ contains
         REAL, DIMENSION( : ), intent( in ) :: NU, NV, NW, NUOLD, NVOLD, NWOLD, UG, VG, WG
         REAL, DIMENSION( : ), intent( inout ) :: T, T_FEMT, DEN_FEMT
         REAL, DIMENSION( :), intent( in ) :: TOLD
-        REAL, DIMENSION( :), intent( in ) :: DEN, DENOLD
-        REAL, DIMENSION( :, :), intent( in ) :: FEM_VOL_FRAC
+        REAL, DIMENSION( :, : ), intent( in ) :: DEN, DENOLD
+        REAL, DIMENSION( :, : ), intent( in ) :: FEM_VOL_FRAC
         REAL, DIMENSION( : ), intent( in ) :: T2, T2OLD
         REAL, DIMENSION( :, : ), intent( inout ) :: THETA_GDIFF
-        REAL, DIMENSION(:, :),  intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
+        REAL, DIMENSION(:, : ),  intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
         REAL, DIMENSION( :, :, :, : ), intent( in ) :: TDIFFUSION
         INTEGER, intent( in ) :: T_DISOPT, T_DG_VEL_INT_OPT
         REAL, intent( in ) :: DT, T_THETA
         REAL, intent( in ) :: T_BETA
         REAL, DIMENSION( : ), intent( in ) :: SUF_T_BC, SUF_D_BC
-        REAL, DIMENSION( :  ), intent( in ) :: SUF_T2_BC
+        REAL, DIMENSION( : ), intent( in ) :: SUF_T2_BC
         REAL, DIMENSION( : ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
         REAL, DIMENSION( :, : ), intent( in ) :: SUF_SIG_DIAGTEN_BC
         REAL, DIMENSION( : ), intent( in ) :: SUF_T_BC_ROB1, SUF_T_BC_ROB2
@@ -484,9 +498,9 @@ contains
             MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
             T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, SECOND_THETA, T_BETA, &
             SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
-            SUF_T_BC_ROB1, SUF_T_BC_ROB2,  &
+            SUF_T_BC_ROB1, SUF_T_BC_ROB2, &
             WIC_T_BC, WIC_D_BC, WIC_U_BC, &
-            DERIV, P,  &
+            DERIV, P, &
             T_SOURCE, T_ABSORB, VOLFRA_PORE, &
             NDIM, GETCV_DISC, GETCT, &
             NCOLM, FINDM, COLM, MIDM, &
@@ -547,7 +561,7 @@ contains
     X, Y, Z, T_ABSORB, T_SOURCE, TDIFFUSION, &
     T, TOLD, &
     U, V, W, UOLD, VOLD, WOLD, &
-    DEN, DENOLD, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
+    DEN_ALL, DENOLD_ALL, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
     DT, &
     SUF_T_BC, &
     SUF_U_BC, SUF_V_BC, SUF_W_BC,  &
@@ -585,7 +599,7 @@ contains
         REAL, DIMENSION( : ), intent( in ) :: T_SOURCE
         REAL, DIMENSION( : ), intent( in ) :: U, V, W, UOLD, VOLD, WOLD
         REAL, DIMENSION( : ), intent( in ) :: T, TOLD
-        REAL, DIMENSION( : ), intent( in ) :: DEN, DENOLD
+        REAL, DIMENSION( :, : ), intent( in ) :: DEN_ALL, DENOLD_ALL
         REAL, intent( in ) :: DT
         REAL, DIMENSION( :, :, : ), intent( inout ) :: CV_RHS
         REAL, DIMENSION( : ),  intent( inout ) :: ACV
@@ -609,7 +623,7 @@ contains
 
         INTEGER :: U_NLOC2, ILEV, NLEV, ELE, U_ILOC, U_INOD, IPHASE, IDIM, I, SELE, U_SILOC
         REAL, DIMENSION( :, :, : ), allocatable :: U_ALL, UOLD_ALL, T_SOURCE_ALL, T_ABSORB_ALL
-        REAL, DIMENSION( :, : ), allocatable :: X_ALL, DEN_ALL, DENOLD_ALL
+        REAL, DIMENSION( :, : ), allocatable :: X_ALL
 
         INTEGER, DIMENSION( :, :, : ), allocatable :: WIC_T_BC_ALL, WIC_NU_BC_ALL
         INTEGER, DIMENSION( :, : ), allocatable :: IZERO2
@@ -620,8 +634,8 @@ contains
         ndim_in = 1 ; nphase_in = 1
 
         ALLOCATE( U_ALL( NDIM, NPHASE, U_NONODS ), UOLD_ALL( NDIM, NPHASE, U_NONODS ), &
-        X_ALL( NDIM, X_NONODS ), DEN_ALL( NPHASE_IN, U_NONODS ), DENOLD_ALL( NPHASE_IN, U_NONODS ) )
-        U_ALL = 0. ; UOLD_ALL = 0. ; X_ALL = 0. ; DEN_ALL = 0. ; DENOLD_ALL = 0.
+        X_ALL( NDIM, X_NONODS ) )
+        U_ALL = 0. ; UOLD_ALL = 0. ; X_ALL = 0.
 
         IF(U_NLOC.NE.CV_NLOC) THEN
             ewrite(3,*) 'u_nloc, cv_nloc:', u_nloc, cv_nloc
@@ -677,10 +691,6 @@ contains
             ELSE
                 X_ALL( IDIM, : ) = Z
             END IF
-        END DO
-        DO IPHASE = 1, NPHASE_IN
-            DEN_ALL( IPHASE, : ) = DEN( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
-            DENOLD_ALL( IPHASE, : ) = DENOLD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
         END DO
 
         ALLOCATE( T_SOURCE_ALL( NDIM_IN, NPHASE_IN, U_NONODS ) )
@@ -777,13 +787,6 @@ contains
         SUF_NU_BC_ALL, RDUM3, &
         SUF_T_ROB1_BC_ALL, SUF_T_ROB2_BC_ALL, &
         WIC_T_BC_ALL, WIC_T_BC_ALL, WIC_NU_BC_ALL, IZERO2, &
-
-        !SUF_T_BC, SUF_T_BC, SUF_T_BC, &
-        !SUF_T_BC, SUF_T_BC, SUF_T_BC, &
-        !SUF_U_BC, SUF_V_BC, SUF_W_BC, RDUM, &
-        !SUF_T_BC_ROB1, SUF_T_BC_ROB2, RDUM, RDUM, &
-        !RDUM, RDUM, &
-        !WIC_T_BC, WIC_T_BC, WIC_U_BC, IZERO, &
 
         CV_RHS, &
         RDUM3, 0, IDUM, IDUM, &
@@ -961,7 +964,7 @@ contains
         REAL, DIMENSION( :,:,:,: ), allocatable :: TDIFFUSION
         REAL, DIMENSION( : ), allocatable :: SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, SUF_T2_BC
         INTEGER, DIMENSION( : ), allocatable :: WIC_T2_BC
-        REAL, DIMENSION( :, : ), allocatable :: THETA_GDIFF
+        REAL, DIMENSION( :, : ), allocatable :: THETA_GDIFF, DEN_ALL, DENOLD_ALL
         REAL, DIMENSION( : ), allocatable :: T2, T2OLD, MEAN_PORE_CV
         REAL, DIMENSION( : ), allocatable :: DENSITY_OR_ONE, DENSITYOLD_OR_ONE
         REAL, DIMENSION( :, :, :, : ), allocatable :: THERM_U_DIFFUSION
@@ -971,7 +974,7 @@ contains
         character( len = option_path_len ) :: path
         LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE.
         type( scalar_field ), pointer :: p
-
+        type( tensor_field ), pointer :: den_all2, denold_all2
 
         GET_THETA_FLUX = .FALSE.
         IGOT_T2 = 0
@@ -1007,6 +1010,16 @@ contains
           DENSITY_OR_ONE=DEN ; DENSITYOLD_OR_ONE=DENOLD
       END IF
 
+      ALLOCATE( DEN_ALL( NPHASE, CV_NONODS  ), DENOLD_ALL( NPHASE, CV_NONODS ) )
+      IF ( IGOT_THETA_FLUX == 1 ) THEN
+         DEN_ALL=1.0 ; DENOLD_ALL=1.0
+      ELSE
+      
+         DEN_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedDensity" )
+         DENOLD_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldDensity" )
+         DEN_ALL = DEN_ALL2%VAL( 1, :, : ) ; DENOLD_ALL = DENOLD_ALL2%VAL( 1, :, : )
+      END IF
+
 
         TDIFFUSION = 0.0
         SUF_VOL_BC_ROB1 = 0.0
@@ -1040,7 +1053,7 @@ contains
             CV_NLOC, U_NLOC, X_NLOC, &
             CV_NDGLN, X_NDGLN, U_NDGLN, &
             CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-            SATURA, SATURAOLD, DENSITY_OR_ONE, DENSITYOLD_OR_ONE, &
+            SATURA, SATURAOLD, DEN_ALL, DENOLD_ALL, &
             MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
             V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, SECOND_THETA, V_BETA, &
             SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
@@ -1802,7 +1815,7 @@ contains
     U_SNLOC, P_SNLOC, CV_SNLOC, &
     X_ALL, U_ABS_STAB_ALL, U_ABSORB_ALL, U_SOURCE_ALL, U_SOURCE_CV_ALL, &
     U_ALL, UOLD_ALL, &
-    P, CV_P, DEN, DENOLD, DEN_ALL, DENOLD_ALL, SATURA, SATURAOLD, DERIV,  IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
+    P, CV_P, DEN, DENOLD, DEN_ALL, DENOLD_ALL, SATURA, SATURAOLD, DERIV, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
     DT, &
     NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn
     DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparcity
@@ -1928,8 +1941,8 @@ contains
         REAL, DIMENSION( :,:,:,: ), allocatable :: TDIFFUSION
         REAL, DIMENSION( : ), allocatable :: SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, SUF_T2_BC
         INTEGER, DIMENSION( : ), allocatable :: WIC_T2_BC
-        REAL, DIMENSION( :, : ), allocatable :: THETA_GDIFF
-        REAL, DIMENSION( : ), allocatable :: T2, T2OLD, MEAN_PORE_CV, DEN_OR_ONE, DENOLD_OR_ONE
+        REAL, DIMENSION( :, : ), allocatable :: THETA_GDIFF, DEN_OR_ONE, DENOLD_OR_ONE
+        REAL, DIMENSION( : ), allocatable :: T2, T2OLD, MEAN_PORE_CV !, DEN_OR_ONE, DENOLD_OR_ONE
         REAL, DIMENSION( :,:,:,: ), allocatable :: THERM_U_DIFFUSION
         LOGICAL :: GET_THETA_FLUX
         INTEGER :: IGOT_T2, I, P_SJLOC, SELE, U_SILOC, IGOT_THERM_VIS
@@ -1949,8 +1962,13 @@ contains
         GET_THETA_FLUX = .FALSE.
         IGOT_T2 = 0
 
-        ALLOCATE( DEN_OR_ONE( NPHASE * CV_NONODS )) ; DEN_OR_ONE = 0.
-        ALLOCATE( DENOLD_OR_ONE( NPHASE * CV_NONODS )) ; DENOLD_OR_ONE = 0.
+!        ALLOCATE( DEN_OR_ONE( NPHASE * CV_NONODS )) ; DEN_OR_ONE = 0.
+!        ALLOCATE( DENOLD_OR_ONE( NPHASE * CV_NONODS )) ; DENOLD_OR_ONE = 0.
+ 
+        ALLOCATE( DEN_OR_ONE( NPHASE, CV_NONODS )) ; DEN_OR_ONE = 0.
+        ALLOCATE( DENOLD_OR_ONE( NPHASE, CV_NONODS )) ; DENOLD_OR_ONE = 0.
+ 
+ 
         ALLOCATE( T2( CV_NONODS * NPHASE * IGOT_T2 )) ; T2 = 0.
         ALLOCATE( T2OLD( CV_NONODS * NPHASE * IGOT_T2 )) ; T2OLD =0.
         ALLOCATE( SUF_T2_BC_ROB1( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  ))
@@ -2053,13 +2071,26 @@ contains
             U_NONODS, NCOLC, C, FINDC )
         END IF
 
+!        IF ( USE_THETA_FLUX ) THEN ! We have already put density in theta...
+!            DEN_OR_ONE = 1.0
+!            DENOLD_OR_ONE = 1.0
+!        ELSE
+!            DEN_OR_ONE = DEN
+!            DENOLD_OR_ONE = DENOLD
+!        END IF
+
+
+
         IF ( USE_THETA_FLUX ) THEN ! We have already put density in theta...
             DEN_OR_ONE = 1.0
             DENOLD_OR_ONE = 1.0
         ELSE
-            DEN_OR_ONE = DEN
-            DENOLD_OR_ONE = DENOLD
+            DEN_OR_ONE = DEN_ALL
+            DENOLD_OR_ONE = DENOLD_ALL
         END IF
+
+
+
 
         ! unused at this stage
         second_theta = 0.0
