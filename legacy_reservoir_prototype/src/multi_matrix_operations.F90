@@ -1361,14 +1361,27 @@
       ! Local variables
       INTEGER :: CV_INOD, COUNT, U_JNOD, IPHASE, J, IVEC, IDIM
 
+      interface 
+         subroutine dgemv(T,M,N,alpha,MAT,NMAX,X,Xinc,beta,Y,yinc)
+           implicit none
+           character(len=1) :: T
+           integer :: m,n,nmax,xinc,yinc
+           real ::  alpha, beta
+           real, dimension(nmax,n) :: MAT
+           real, dimension(N) :: X
+           real, dimension(M) :: Y
+         end subroutine dgemv
+      end interface
+
       CV_RHS = 0.0
 
       DO CV_INOD = 1, CV_NONODS
          DO COUNT = FINDCT( CV_INOD ), FINDCT( CV_INOD + 1 ) - 1
             U_JNOD = COLCT( COUNT )
-            forall ( IVEC = 1 : NBLOCK, IPHASE = 1 : NPHASE,IDIM =1:NDIM)
-                  CV_RHS( IVEC, CV_INOD ) = CV_RHS( IVEC, CV_INOD )+ U( IVEC, IDIM, IPHASE, U_JNOD ) * CT( IDIM, IPHASE, COUNT  )
-            end forall
+!            forall ( IVEC = 1 : NBLOCK, IPHASE = 1 : NPHASE,IDIM =1:NDIM)
+!                  CV_RHS( IVEC, CV_INOD ) = CV_RHS( IVEC, CV_INOD )+ U( IVEC, IDIM, IPHASE, U_JNOD ) * CT( IDIM, IPHASE, COUNT  )
+!            end forall
+            call dgemv('N',NBLOCK,NPHASE*NDIM,1.0,U(:,:,:,U_JNOD),NBLOCK,CT(:,:,COUNT),1,1.0,CV_RHS(:,CV_INOD),1)
          END DO
       END DO
 
