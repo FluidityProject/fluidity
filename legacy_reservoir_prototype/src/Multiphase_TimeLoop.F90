@@ -166,9 +166,9 @@
            Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, Temperature_BC_Spatial, &
            wic_momu_bc
       real, dimension( : ), pointer :: &
-           Temperature, Density, Density_Cp, Density_Component, PhaseVolumeFraction, &
+           Temperature, Density, Density_Cp, PhaseVolumeFraction, &
            Component, Pressure_FEM_Old, Pressure_CV_Old, Temperature_Old, Density_Old, Density_Cp_Old, &
-           Density_Component_Old, PhaseVolumeFraction_Old, Component_Old, &
+           PhaseVolumeFraction_Old, Component_Old, &
            Porosity, &
            Velocity_U_Source, Velocity_U_Source_CV, Temperature_Source, PhaseVolumeFraction_Source, &
            ScalarField_Source, Component_Source, ScalarAdvectionField_Source, &
@@ -338,12 +338,10 @@
       allocate( &
 !!$
            Temperature( nphase * cv_nonods ), Density( nphase * cv_nonods ),  Density_Cp( nphase * cv_nonods ), &
-           Density_Component( nphase * cv_nonods * ncomp ), &
            PhaseVolumeFraction( nphase * cv_nonods ), Component( nphase * cv_nonods * ncomp ), &
            DRhoDPressure( nphase, cv_nonods ), FEM_VOL_FRAC( nphase, cv_nonods ),&
 !!$
            Temperature_Old( nphase * cv_nonods ), Density_Old( nphase * cv_nonods ), Density_Cp_Old( nphase * cv_nonods ), &
-           Density_Component_Old( nphase * cv_nonods * ncomp ), &
            PhaseVolumeFraction_Old( nphase * cv_nonods ), Component_Old( nphase * cv_nonods * ncomp ), &
 !!$
            PhaseVolumeFraction_BC_Spatial( stotel * nphase ), Pressure_FEM_BC_Spatial( stotel * nphase ), &
@@ -392,12 +390,10 @@
 
 !!$
       Temperature=0. ; Density=0. ; Density_Cp=0.
-      Density_Component=0.
       PhaseVolumeFraction=0. ; Component=0.
       DRhoDPressure=0.
 !!$
       Temperature_Old=0. ; Density_Old=0. ; Density_Cp_Old=0.
-      Density_Component_Old=0.
       PhaseVolumeFraction_Old=0. ; Component_Old=0.
 !!$
       PhaseVolumeFraction_BC_Spatial=0 ; Pressure_FEM_BC_Spatial=0
@@ -546,7 +542,7 @@
 !!$
  if( have_temperature_field ) then
             call Calculate_All_Rhos( state, packed_state, ncomp, nphase, ndim, cv_nonods, cv_nloc, totele, &
-                 cv_ndgln, Component, Density, Density_Cp, DRhoDPressure, Density_Component )
+                 cv_ndgln, Component, Density, Density_Cp, DRhoDPressure )
       end if
 
          if( have_component_field ) then
@@ -614,7 +610,6 @@
 !!$ Update all fields from time-step 'N - 1'
          Density_Old = Density ;  Density_Cp_Old = Density_Cp
          PhaseVolumeFraction_Old = PhaseVolumeFraction ; Temperature_Old = Temperature ; Component_Old = Component
-         Density_Component_Old = Density_Component
 
          U_s  => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedVelocity" )
          UOLD_s  => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldVelocity" )
@@ -673,14 +668,11 @@
             Repeat_time_step, ExitNonLinearLoop,nonLinearAdaptTs,2)
 
             call Calculate_All_Rhos( state, packed_state, ncomp, nphase, ndim, cv_nonods, cv_nloc, totele, &
-                 cv_ndgln, Component, Density, Density_Cp, DRhoDPressure, Density_Component )
+                 cv_ndgln, Component, Density, Density_Cp, DRhoDPressure )
 
             if( its == 1 ) then
                Density_Old = Density
                Density_Cp_Old = Density_Cp
-               if( have_component_field ) then
-                  Density_Component_Old = Density_Component
-               end if
 
                DOLD_s%val = D_s%val
                if( have_component_field ) then
@@ -731,7 +723,7 @@
                     CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
 !!$
                     Temperature, Temperature_Old, &
-                    Density_Cp, Density_Cp_Old, &
+                    !Density_Cp, Density_Cp_Old, &
 !!$
                     MAT_NLOC, MAT_NDGLN, MAT_NONODS, ScalarAdvectionField_Diffusion, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
                     t_disopt, t_dg_vel_int_opt, dt, t_theta, t_beta, &
@@ -769,7 +761,7 @@
                end do
 
                call Calculate_All_Rhos( state, packed_state, ncomp, nphase, ndim, cv_nonods, cv_nloc, totele, &
-                    cv_ndgln, Component, Density, Density_Cp, DRhoDPressure, Density_Component )
+                    cv_ndgln, Component, Density, Density_Cp, DRhoDPressure )
 
             end if Conditional_ScalarAdvectionField
 
@@ -866,7 +858,7 @@
 !!$ Calculate Density_Component for compositional
                if( have_component_field ) &
                     call Calculate_Component_Rho( state, packed_state, &
-                    ncomp, nphase, cv_nonods, Density_Component )
+                    ncomp, nphase, cv_nonods )
 
             end if Conditional_ForceBalanceEquation
 
@@ -980,8 +972,6 @@
 !!$
                           Component( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods ), &
                           Component_Old( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods ), &
-                          DENSITY_COMPONENT( ( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS ), &
-                          DENSITY_COMPONENT_OLD( ( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS ), &
 !!$
                           MAT_NLOC, MAT_NDGLN, MAT_NONODS, Component_Diffusion, 0, THERM_U_DIFFUSION, &
                           v_disopt, v_dg_vel_int_opt, dt, v_theta, v_beta, &
@@ -1090,7 +1080,7 @@
                                 ScalarField_Source_Component( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) - &
                                 Component_Absorption( CV_NODI, IPHASE, JPHASE ) * &
                                 Component( CV_NODI + ( JPHASE - 1 ) * CV_NONODS + ( ICOMP - 1 ) * NPHASE * CV_NONODS ) / &
-                                DENSITY_COMPONENT( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + ( ICOMP - 1 ) * NPHASE * CV_NONODS )
+                                DC_s%val( icomp, iphase, cv_nodi  )
                         END DO
                      end do Loop_Phase_SourceTerm2
                   end do Loop_Phase_SourceTerm1
@@ -1099,16 +1089,11 @@
                   DO IPHASE = 1, NPHASE
                      DO CV_NODI = 1, CV_NONODS
                         ScalarField_Source_Component( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) = &
-                             ScalarField_Source_Component( CV_NODI + ( IPHASE - 1 ) * CV_NONODS )  &
-                             + Mean_Pore_CV( CV_NODI ) * Component_Old( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + &
-                             ( ICOMP - 1 ) * NPHASE * CV_NONODS )  &
-                             * ( DENSITY_COMPONENT_OLD( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + &
-                             ( ICOMP - 1 ) * NPHASE * CV_NONODS ) &
-                             - DENSITY_COMPONENT( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + &
-                             ( ICOMP - 1 ) * NPHASE * CV_NONODS ) ) &
+                             ScalarField_Source_Component( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
+                             + Mean_Pore_CV( CV_NODI ) * Component_Old( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + ( ICOMP - 1 ) * NPHASE * CV_NONODS ) &
+                             * ( DCOLD_s%val( ICOMP, IPHASE, CV_NODI ) - DC_s%val( ICOMP, IPHASE, CV_NODI) ) &
                              * PhaseVolumeFraction_Old( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
-                             / ( DENSITY_COMPONENT( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + &
-                             ( ICOMP - 1 ) * NPHASE * CV_NONODS ) * DT )
+                             / ( DC_s%val( ICOMP, IPHASE, CV_NODI ) * DT )
                      END DO
                   END DO
 
@@ -1118,7 +1103,7 @@
                     ']/is_multiphase_component/Comp_Sum2One' ) .and. ( ncomp > 1 ) ) then
                   call Cal_Comp_Sum2One_Sou( ScalarField_Source_Component, cv_nonods, nphase, ncomp, dt, its, &
                        NonLinearIteration, &
-                       Mean_Pore_CV, PhaseVolumeFraction, PhaseVolumeFraction_Old, Density_Component, Density_Component_Old, &
+                       Mean_Pore_CV, PhaseVolumeFraction, PhaseVolumeFraction_Old, &
                        Component, Component_Old )
                end if
 
@@ -1323,9 +1308,9 @@
 !!$ Working arrays
                  PhaseVolumeFraction_BC_Spatial, Pressure_FEM_BC_Spatial, &
                  Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, wic_momu_bc, Temperature_BC_Spatial, &
-                 Temperature, Density, Density_Cp, Density_Component, PhaseVolumeFraction, &
+                 Temperature, Density, Density_Cp, PhaseVolumeFraction, &
                  Component, &
-                 Pressure_FEM_Old, Pressure_CV_Old, Temperature_Old, Density_Old, Density_Cp_Old, Density_Component_Old, &
+                 Pressure_FEM_Old, Pressure_CV_Old, Temperature_Old, Density_Old, Density_Cp_Old, &
                  PhaseVolumeFraction_Old, Component_Old, &
                  DRhoDPressure, &
                  Porosity, &
@@ -1421,12 +1406,10 @@
             allocate( &
 !!$
                  Temperature( nphase * cv_nonods ), Density( nphase * cv_nonods ), Density_Cp( nphase * cv_nonods ), &
-                 Density_Component( nphase * cv_nonods * ncomp ), &
                  PhaseVolumeFraction( nphase * cv_nonods ), Component( nphase * cv_nonods * ncomp ), &
                  DRhoDPressure( nphase, cv_nonods ), &
 !!$
                  Temperature_Old( nphase * cv_nonods ), Density_Old( nphase * cv_nonods ), Density_Cp_Old( nphase * cv_nonods ), &
-                 Density_Component_Old( nphase * cv_nonods * ncomp ), &
                  PhaseVolumeFraction_Old( nphase * cv_nonods ), Component_Old( nphase * cv_nonods * ncomp ), &
 !!$
                  PhaseVolumeFraction_BC_Spatial( stotel * nphase ), Pressure_FEM_BC_Spatial( stotel * nphase ), &
@@ -1619,9 +1602,9 @@
 !!$ Working arrays
            PhaseVolumeFraction_BC_Spatial, Pressure_FEM_BC_Spatial, &
            Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, Temperature_BC_Spatial, &
-           Temperature, Density, Density_Cp, Density_Component, PhaseVolumeFraction, &
+           Temperature, Density, Density_Cp, PhaseVolumeFraction, &
            Component, &
-           Temperature_Old, Density_Old, Density_Cp_Old, Density_Component_Old, &
+           Temperature_Old, Density_Old, Density_Cp_Old, &
            PhaseVolumeFraction_Old, Component_Old, &
            DRhoDPressure, FEM_VOL_FRAC, &
            Porosity, &

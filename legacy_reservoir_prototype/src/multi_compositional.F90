@@ -786,7 +786,7 @@
 
 
     SUBROUTINE CAL_COMP_SUM2ONE_SOU( V_SOURCE_COMP, CV_NONODS, NPHASE, NCOMP2, DT, ITS, NITS, &  
-         MEAN_PORE_CV, SATURA, SATURAOLD, DEN_COMP, DENOLD_COMP, COMP, COMPOLD )
+         MEAN_PORE_CV, SATURA, SATURAOLD, COMP, COMPOLD )
       ! make sure the composition sums to 1.0 
       use futils
       implicit none
@@ -795,7 +795,7 @@
       real, dimension( : ), intent( inout ) :: V_SOURCE_COMP
       real, dimension( : ), intent( in ) :: MEAN_PORE_CV
       real, dimension( : ), intent( in ) :: SATURA, SATURAOLD
-      real, dimension( : ), intent( in ) :: COMP, COMPOLD, DEN_COMP, DENOLD_COMP
+      real, dimension( : ), intent( in ) :: COMP, COMPOLD
 
       ! the relaxing (sum2one_relax) is to help convergence. 
       ! =1 is full adjustment to make sure we have sum to 1. 

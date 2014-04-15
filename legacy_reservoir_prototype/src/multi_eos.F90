@@ -61,7 +61,7 @@
   contains
 
     subroutine Calculate_All_Rhos( state, packed_state, ncomp_in, nphase, ndim, cv_nonods, cv_nloc, totele, &
-         cv_ndgln, Component, Density_Bulk, DensityCp_Bulk, DRhoDPressure, Density_Component )
+         cv_ndgln, Component, Density_Bulk, DensityCp_Bulk, DRhoDPressure )
 
       implicit none
 
@@ -73,15 +73,14 @@
       real, dimension( : ), intent( in ) :: Component
       real, dimension( : ), intent( inout ) :: Density_Bulk, DensityCp_Bulk
       real, dimension( nphase, cv_nonods ), intent( inout ), optional :: DRhoDPressure
-      real, dimension( : ), intent( inout ) :: Density_Component
 
-      real, dimension( : ), allocatable :: Rho, dRhodP, Cp, Component_l, c_cv_nod
+      real, dimension( : ), allocatable :: Rho, dRhodP, Density_Component, Cp, Component_l, c_cv_nod
       character( len = option_path_len ), dimension( : ), allocatable :: eos_option_path
       type( tensor_field ), pointer :: field1, field2, field3
       type( scalar_field ), pointer :: Cp_s
       integer :: icomp, iphase, ncomp, sc, ec, sp, ep, stat, cv_iloc, cv_nod, ele
 
-      Density_Bulk =0. ; DensityCp_Bulk = 0. ; DRhoDPressure = 0.
+      Density_Bulk = 0. ; DensityCp_Bulk = 0. ; DRhoDPressure = 0.
 
       ncomp = ncomp_in
       if( ncomp_in == 0 ) ncomp = 1
@@ -107,6 +106,7 @@
 
       allocate( Rho( cv_nonods ), dRhodP( cv_nonods ) )
       allocate( Cp( cv_nonods ) ) ; Cp = 1.
+      allocate( Density_Component( ncomp * nphase * cv_nonods ) )
       allocate( Component_l( cv_nonods ) ) ; Component_l = 0.
 
       do icomp = 1, ncomp
@@ -265,21 +265,19 @@
 
 
     subroutine Calculate_Component_Rho( state, packed_state, &
-         ncomp, nphase, cv_nonods, Density_Component )
+         ncomp, nphase, cv_nonods )
 
       implicit none
 
       type( state_type ), dimension( : ), intent( in ) :: state
       type( state_type ), intent( inout ) :: packed_state
       integer, intent( in ) :: ncomp, nphase, cv_nonods
-      real, dimension( : ), intent( inout ) :: Density_Component
 
       real, dimension( : ), allocatable :: Rho, dRhodP
       type( tensor_field ), pointer :: field
       character( len = option_path_len ) :: eos_option_path
       integer :: icomp, iphase, s, e
 
-      Density_Component = 0.
       allocate( Rho( cv_nonods ), dRhodP( cv_nonods ) )
 
       field => extract_tensor_field( packed_state, "PackedComponentDensity" )
@@ -299,7 +297,6 @@
             call Calculate_Rho_dRhodP( state, iphase, icomp, &
                  nphase, ncomp, eos_option_path, Rho, dRhodP )
 
-            Density_Component( s : e ) = Rho
             field % val( icomp, iphase, : ) = Rho
 
          end do ! iphase

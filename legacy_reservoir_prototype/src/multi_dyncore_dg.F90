@@ -79,7 +79,7 @@ contains
     CV_NDGLN, X_NDGLN, U_NDGLN, &
     CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
     T, TOLD, &
-    DEN, DENOLD, &
+!    DEN, DENOLD,
     MAT_NLOC,MAT_NDGLN,MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
     T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, T_BETA, &
     SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
@@ -134,7 +134,7 @@ contains
         INTEGER, DIMENSION( : ), intent( in ) :: COLCT
         REAL, DIMENSION( : ), intent( inout ) :: T, T_FEMT, DEN_FEMT
         REAL, DIMENSION( : ), intent( in ) :: TOLD
-        REAL, DIMENSION( : ), intent( in ) :: DEN, DENOLD
+!        REAL, DIMENSION( : ), intent( in ) :: DEN, DENOLD
         REAL, DIMENSION( : ), intent( in ) :: T2, T2OLD
         REAL, DIMENSION( :, : ), intent( inout ) :: THETA_GDIFF
         REAL, DIMENSION( :,: ), intent( inout ), optional :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
@@ -199,13 +199,17 @@ contains
            denold_all2 => extract_tensor_field( packed_state, "PackedOldDensityHeatCapacity" )
            den_all    = den_all2    % val ( 1, :, : )
            denold_all = denold_all2 % val ( 1, :, : )
-        else
+        else if ( icomp > 0 ) then
            p => extract_scalar_field( packed_state, "FEPressure" )
            den_all2 => extract_tensor_field( packed_state, "PackedComponentDensity" )
            denold_all2 => extract_tensor_field( packed_state, "PackedOldComponentDensity" )
-           den_all    = den_all2    % val ( icomp, :, : )
+           den_all = den_all2 % val ( icomp, :, : )
            denold_all = denold_all2 % val ( icomp, :, : )
+        else
+              den_all=0.0
+              denold_all=0.0
         end if
+
 
         if( present( option_path ) ) then
 
@@ -6670,7 +6674,6 @@ contains
             CV_NDGLN, X_NDGLN, U_NDGLN, &
             CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
             CURVATURE, VOLUME_FRAC, &
-            RZERO,RZERO, &
             MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
             CV_DISOPT, CV_DG_VEL_INT_OPT, DT, T_THETA, T_BETA, &
             RZERO, RZERO, RZERO, RZERO, RZERO, RZERO_DIAGTEN, &
@@ -6692,7 +6695,7 @@ contains
             option_path = '/material_phase[0]/scalar_field::Pressure', &
             mass_ele_transp = dummy_ele, &
             thermal = .FALSE.,&
-            StorageIndexes=StorageIndexes)
+            StorageIndexes=StorageIndexes, icomp=-1)
 
             DEALLOCATE(T_ABSORB)
 
