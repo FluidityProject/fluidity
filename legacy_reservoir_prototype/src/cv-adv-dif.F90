@@ -525,7 +525,9 @@ contains
 
   
     DISTCONTINUOUS_METHOD=.false.  
-    IF(U_NONODS==CV_NONODS) DISTCONTINUOUS_METHOD=.true.  ! *****need to change this...
+    IF(X_NONODS.NE.CV_NONODS) DISTCONTINUOUS_METHOD=.true.  ! *****need to change this...
+!     print *,'DISTCONTINUOUS_METHOD,X_NONODS,CV_NONODS:',DISTCONTINUOUS_METHOD,X_NONODS,CV_NONODS
+!       stop 281
 ! Quadratic elements
     QUAD_ELEMENTS = ( ((NDIM==2).AND.(CV_NLOC==6)).or.((NDIM==3).AND.(CV_NLOC==10)) ) 
 
@@ -1383,6 +1385,7 @@ contains
 ! Generate some local F variables ***************
             F_CV_NODI(:)= LOC_F(:, CV_ILOC)
 ! Generate some local F variables ***************
+
             ! Loop over quadrature (gauss) points in ELE neighbouring ILOC
             Loop_GCOUNT: DO GCOUNT = FINDGPTS( CV_ILOC ), FINDGPTS( CV_ILOC + 1 ) - 1
                ! COLGPTS stores the local Gauss-point number in the ELE
@@ -1405,7 +1408,7 @@ contains
                        MAT_OTHER_LOC, MAT_NLOC, INTEGRAT_AT_GI, &
                        X_NLOC, XU_NLOC, X_NDGLN, CV_NDGLN, XU_NDGLN, &
                        CV_SNLOC, CVFEM_ON_FACE( :, GI ), X_SHARE, X_NONODS, ELE, ELE2,  &
-                       FINELE, COLELE, NCOLELE )
+                       FINELE, COLELE, NCOLELE, DISTCONTINUOUS_METHOD)
 
                   IF ( INTEGRAT_AT_GI ) THEN
                      CV_JLOC = CV_OTHER_LOC( CV_ILOC )
@@ -1744,7 +1747,7 @@ contains
           DIFF_COEFOLD_DIVDX = 0.0
        END IF If_GOT_DIFFUS2
 
-             IF(.TRUE.) THEN  ! Current GET_INT_VEL, otherwise the new version
+             IF(.true.) THEN  ! Current GET_INT_VEL, otherwise the new version
 
                   Loop_IPHASE21: DO IPHASE = 1, NPHASE
 
@@ -3094,299 +3097,19 @@ contains
                   return
 
 
-
-
-
-      ! Allocate memory for the control volume surface shape functions, etc.
-
-      ALLOCATE( CVNORMX( SCVNGI ))
-      ALLOCATE( CVNORMY( SCVNGI ))
-      ALLOCATE( CVNORMZ( SCVNGI ))
-      ALLOCATE( SCVRA( SCVNGI ))
-      ALLOCATE( COLGPTS( CV_NLOC * SCVNGI )) !The size of this vector is over-estimated
-      ALLOCATE( FINDGPTS( CV_NLOC + 1 ))
-      ALLOCATE( CV_ON_FACE( CV_NLOC, SCVNGI ))
-      ALLOCATE( CVFEM_ON_FACE( CV_NLOC, SCVNGI ))
-      ALLOCATE( U_ON_FACE( U_NLOC, SCVNGI ))
-      ALLOCATE( UFEM_ON_FACE( U_NLOC, SCVNGI ))
-      ALLOCATE( CV_OTHER_LOC( CV_NLOC ))
-      ALLOCATE( U_OTHER_LOC( U_NLOC ))
-      ALLOCATE( MAT_OTHER_LOC( MAT_NLOC ))
-      ALLOCATE( X_SHARE( X_NONODS ))
-      ALLOCATE( CVWEIGHT( CV_NGI ))
-      ALLOCATE( CVN( CV_NLOC, CV_NGI ))
-      ALLOCATE( CVFEN( CV_NLOC, CV_NGI ))
-      ALLOCATE( CVFENLX( CV_NLOC, CV_NGI ))
-      ALLOCATE( CVFENLY( CV_NLOC, CV_NGI ))
-      ALLOCATE( CVFENLZ( CV_NLOC, CV_NGI ))
-
-      ALLOCATE( CVWEIGHT_SHORT( CV_NGI_SHORT ))
-      ALLOCATE( CVN_SHORT( CV_NLOC, CV_NGI_SHORT ))
-      ALLOCATE( CVFEN_SHORT( CV_NLOC, CV_NGI_SHORT))
-      ALLOCATE( CVFENLX_SHORT( CV_NLOC, CV_NGI_SHORT ))
-      ALLOCATE( CVFENLY_SHORT( CV_NLOC, CV_NGI_SHORT ))
-      ALLOCATE( CVFENLZ_SHORT( CV_NLOC, CV_NGI_SHORT ))
-
-      ALLOCATE( UFEN( U_NLOC, CV_NGI))
-      ALLOCATE( UFENLX( U_NLOC, CV_NGI ))
-      ALLOCATE( UFENLY( U_NLOC, CV_NGI ))
-      ALLOCATE( UFENLZ( U_NLOC, CV_NGI ))
-
-      ALLOCATE( SCVFEN( CV_NLOC, SCVNGI ))
-      ALLOCATE( SCVFENSLX( CV_NLOC, SCVNGI ))
-      ALLOCATE( SCVFENSLY( CV_NLOC, SCVNGI ))
-      ALLOCATE( SCVFENLX( CV_NLOC, SCVNGI ))
-      ALLOCATE( SCVFENLY( CV_NLOC, SCVNGI ))
-      ALLOCATE( SCVFENLZ( CV_NLOC, SCVNGI ))
-      ALLOCATE( SCVFENX( CV_NLOC, SCVNGI ))
-      ALLOCATE( SCVFENY( CV_NLOC, SCVNGI ))
-      ALLOCATE( SCVFENZ( CV_NLOC, SCVNGI ))
-      ALLOCATE( SCVFEWEIGH( SCVNGI ))
-
-      ALLOCATE( SUFEN( U_NLOC, SCVNGI ))
-      ALLOCATE( SUFENSLX( U_NLOC, SCVNGI ))
-      ALLOCATE( SUFENSLY( U_NLOC, SCVNGI ))
-      ALLOCATE( SUFENLX( U_NLOC, SCVNGI ))
-      ALLOCATE( SUFENLY( U_NLOC, SCVNGI ))
-      ALLOCATE( SUFENLZ( U_NLOC, SCVNGI ))
-
-      ALLOCATE( SCVDETWEI( SCVNGI )) ; SCVDETWEI = 0.
-      ALLOCATE( SRA( SCVNGI ))
-
-      ALLOCATE( SBCVN( CV_SNLOC, SBCVNGI ))
-      ALLOCATE( SBCVFEN( CV_SNLOC, SBCVNGI ))
-      ALLOCATE( SBCVFENSLX( CV_SNLOC, SBCVNGI ))
-      ALLOCATE( SBCVFENSLY( CV_SNLOC, SBCVNGI ))
-      ALLOCATE( SBCVFEWEIGH( SBCVNGI ))
-      ALLOCATE( SBCVFENLX( CV_SNLOC, SBCVNGI ))
-      ALLOCATE( SBCVFENLY( CV_SNLOC, SBCVNGI ))
-      ALLOCATE( SBCVFENLZ( CV_SNLOC, SBCVNGI ))
-      ALLOCATE( SBUFEN( U_SNLOC, SBCVNGI ))
-      ALLOCATE( SBUFENSLX( U_SNLOC, SBCVNGI ))
-      ALLOCATE( SBUFENSLY( U_SNLOC, SBCVNGI ))
-      ALLOCATE( SBUFENLX( U_SNLOC, SBCVNGI ))
-      ALLOCATE( SBUFENLY( U_SNLOC, SBCVNGI ))
-      ALLOCATE( SBUFENLZ( U_SNLOC, SBCVNGI ))
-
-      ALLOCATE( CV_SLOC2LOC( CV_SNLOC ))
-      ALLOCATE( U_SLOC2LOC( U_SNLOC ))
-      ALLOCATE( CV_SLOCLIST( NFACE, CV_SNLOC ))
-      ALLOCATE( U_SLOCLIST( NFACE, U_SNLOC ))
-      ALLOCATE( CV_NEILOC( CV_NLOC, SCVNGI ))
-
-      ALLOCATE( SELE_OVERLAP_SCALE(CV_NLOC) )
-
-
-      ewrite(3,*)'here1'
-
-
-      X_SHARE = .FALSE.
-
-      ! If using the original limiting scheme, the first step is to estimate
-      ! the upwind field value from the surrounding nodes
-
-      ! Allocate memory for terms needed by GETGXYZ OR ONVDLIM
-
-      NCOLGPTS = 0
-      COLGPTS = 0
-      FINDGPTS = 0
-
-      !     ======= DEFINE THE SUB-CONTROL VOLUME & FEM SHAPE FUNCTIONS ========
-
-      CALL CV_FEM_SHAPE_FUNS( &
-                                ! Volume shape functions...
-           NDIM, CV_ELE_TYPE,  &
-           CV_NGI, CV_NGI_SHORT, CV_NLOC, U_NLOC, CVN, CVN_SHORT, &
-           CVWEIGHT, CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
-           CVWEIGHT_SHORT, CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
-           UFEN, UFENLX, UFENLY, UFENLZ, &
-                                ! Surface of each CV shape functions...
-           SCVNGI, CV_NEILOC, CV_ON_FACE, CVFEM_ON_FACE, &
-           SCVFEN, SCVFENSLX, SCVFENSLY, SCVFEWEIGH, &
-           SCVFENLX, SCVFENLY, SCVFENLZ,  &
-           SUFEN, SUFENSLX, SUFENSLY,  &
-           SUFENLX, SUFENLY, SUFENLZ,  &
-                                ! Surface element shape funcs...
-           U_ON_FACE, UFEM_ON_FACE, NFACE, &
-           SBCVNGI, SBCVN, SBCVFEN,SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, SBCVFENLX, SBCVFENLY, SBCVFENLZ, &
-           SBUFEN, SBUFENSLX, SBUFENSLY, SBUFENLX, SBUFENLY, SBUFENLZ, &
-           CV_SLOCLIST, U_SLOCLIST, CV_SNLOC, U_SNLOC, &
-                                ! Define the gauss points that lie on the surface of the CV...
-           FINDGPTS, COLGPTS, NCOLGPTS, &
-           SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE )
-
-      ALLOCATE( FACE_ELE( NFACE, TOTELE ) ) ; FACE_ELE = 0
-      ! Calculate FACE_ELE
-      CALL CALC_FACE_ELE( FACE_ELE, TOTELE, STOTEL, NFACE, &
-           size(connectivity%colm), connectivity%findrm, connectivity%colm,&
-           CV_NLOC, CV_SNLOC, CV_NONODS, CV_NDGLN, CV_SNDGLN, &
-           CV_SLOCLIST, X_NLOC, X_NDGLN )
-
-      !     =============== DEFINE THETA FOR TIME-STEPPING ===================
-      ! Define the type of time integration:
-      ! Timopt is 0 if CV_DISOPT is even (theta specified);
-      ! Timopt is 1 if CV_DISOPT is odd (non-linear theta scheme)
-
-      ! Now we begin the loop over elements to assemble the advection terms
-      ! into the matrix (ACV) and the RHS
-      Loop_Elements: DO ELE = 1, TOTELE
-
-
-         Loop_CV_ILOC: DO CV_ILOC = 1, CV_NLOC ! Loop over the nodes of the element
-
-            ! Global node number of the local node
-            CV_NODI = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_ILOC )
-
-            ! Loop over quadrature (gauss) points in ELE neighbouring ILOC
-            Loop_GCOUNT: DO GCOUNT = FINDGPTS( CV_ILOC ), FINDGPTS( CV_ILOC + 1 ) - 1, 1
-
-               ! COLGPTS stores the local Gauss-point number in the ELE
-               GI = COLGPTS( GCOUNT )
-
-               ! Get the neighbouring node for node ILOC and Gauss point GI
-               CV_JLOC = CV_NEILOC( CV_ILOC, GI )
-
-               ELE2 = 0
-               SELE = 0
-               INTEGRAT_AT_GI=.TRUE.
-
-               Conditional_CheckingNeighbourhood: IF( CV_JLOC == -1 ) THEN
-
-                  ! We are on the boundary or next to another element.  Determine CV_OTHER_LOC
-                  ! CVFEM_ON_FACE(CV_KLOC,GI)=.TRUE. if CV_KLOC is on the face that GI is centred on.
-                  ! Look for these nodes on the other elements.
-                  CALL FIND_OTHER_SIDE( CV_OTHER_LOC, CV_NLOC, CV_NODI, U_OTHER_LOC, U_NLOC,  &
-                       MAT_OTHER_LOC, MAT_NLOC, INTEGRAT_AT_GI,  &
-                       X_NLOC, XU_NLOC, X_NDGLN, CV_NDGLN, XU_NDGLN, &
-                       CV_SNLOC, CVFEM_ON_FACE(:,GI), X_SHARE, X_NONODS, ELE, ELE2,  &
-                       connectivity%findrm,connectivity%colm, size(connectivity%colm) )
-
-                  !ewrite(3,*)'================================================================================= '
-                  !ewrite(3,*)' ele, cv_iloc, cv_nodi, gi, cv_jloc: ', ele, cv_iloc, cv_nodi, gi, cv_jloc
-                  !ewrite(3,*)' ele2, integrat_at_gi:', ele2, integrat_at_gi
-                  !ewrite(3,*)'================================================================================= '
-                  !ewrite(3,*)'cv_other_loc:', cv_other_loc( 1 : cv_nloc )
-                  !ewrite(3,*)'u_other_loc:', u_other_loc( 1 : u_nloc )
-                  !ewrite(3,*)'mat_other_loc:', mat_other_loc( 1 : mat_nloc )
-                  !ewrite(3,*)'INTEGRAT_AT_GI=', INTEGRAT_AT_GI
-                  !ewrite(3,*)'================================================================================= '
-
-                  IF(INTEGRAT_AT_GI) THEN
-                     CV_JLOC = CV_OTHER_LOC( CV_ILOC )
-                     SELE=0
-
-                     IF( CV_JLOC == 0 ) THEN ! We are on the boundary of the domain
-                        CV_JLOC = CV_ILOC
-                        ! Calculate SELE, CV_SILOC, U_SLOC2LOC, CV_SLOC2LOC
-                        CALL CALC_SELE( ELE, SELE, CV_SILOC, CV_ILOC, U_SLOC2LOC, CV_SLOC2LOC, &
-                             FACE_ELE, NFACE, CVFEM_ON_FACE( :, GI ), &
-                             CV_NONODS, CV_NLOC, U_NLOC, CV_SNLOC, U_SNLOC, &
-                             CV_NDGLN, U_NDGLN, CV_SNDGLN, U_SNDGLN )
-                        !EWRITE(3,*)'*****AFTER CALC_SELE SELE,CV_SILOC,CV_SNLOC:',SELE,CV_SILOC,CV_SNLOC
-                     END IF
-                     INTEGRAT_AT_GI=.NOT.((ELE==ELE2).AND.(SELE==0))
-                  END IF
-
-               END IF Conditional_CheckingNeighbourhood
-
-               ! avoid indegrating across the middle of a CV on the boundaries of elements
-               Conditional_integration: IF(INTEGRAT_AT_GI) THEN
-
-                  global_face=global_face+1
-
-                  
-
-               end IF Conditional_integration
-            end DO Loop_GCOUNT
-         end DO Loop_CV_ILOC
-      end DO Loop_Elements
-
-      DEALLOCATE( FACE_ELE )
-
-      DEALLOCATE( SCVRA )
-      DEALLOCATE( COLGPTS ) !The size of this vector is over-estimated
-      DEALLOCATE( FINDGPTS )
-      DEALLOCATE( CV_ON_FACE )
-      DEALLOCATE( CVFEM_ON_FACE )
-      DEALLOCATE( U_ON_FACE )
-      DEALLOCATE( UFEM_ON_FACE )
-      DEALLOCATE( CV_OTHER_LOC )
-      DEALLOCATE( U_OTHER_LOC )
-      DEALLOCATE( MAT_OTHER_LOC )
-      DEALLOCATE( X_SHARE )
-      DEALLOCATE( CVWEIGHT )
-      DEALLOCATE( CVN )
-      DEALLOCATE( CVFEN )
-      DEALLOCATE( CVFENLX )
-      DEALLOCATE( CVFENLY )
-      DEALLOCATE( CVFENLZ )
-
-      DEALLOCATE( CVWEIGHT_SHORT )
-      DEALLOCATE( CVN_SHORT )
-      DEALLOCATE( CVFEN_SHORT )
-      DEALLOCATE( CVFENLX_SHORT )
-      DEALLOCATE( CVFENLY_SHORT )
-      DEALLOCATE( CVFENLZ_SHORT )
-
-      DEALLOCATE( UFEN )
-      DEALLOCATE( UFENLX )
-      DEALLOCATE( UFENLY )
-      DEALLOCATE( UFENLZ )
-
-      DEALLOCATE( SCVFEN)
-      DEALLOCATE( SCVFENSLX)
-      DEALLOCATE( SCVFENSLY)
-      DEALLOCATE( SCVFENLX)
-      DEALLOCATE( SCVFENLY)
-      DEALLOCATE( SCVFENLZ)
-      DEALLOCATE( SCVFENX)
-      DEALLOCATE( SCVFENY)
-      DEALLOCATE( SCVFENZ)
-      DEALLOCATE( SCVFEWEIGH)
-
-      DEALLOCATE( SUFEN )
-      DEALLOCATE( SUFENSLX )
-      DEALLOCATE( SUFENSLY )
-      DEALLOCATE( SUFENLX )
-      DEALLOCATE( SUFENLY )
-      DEALLOCATE( SUFENLZ )
-
-      DEALLOCATE( SCVDETWEI) 
-      DEALLOCATE( SRA)
-
-      DEALLOCATE( SBCVN)
-      DEALLOCATE( SBCVFEN)
-      DEALLOCATE( SBCVFENSLX)
-      DEALLOCATE( SBCVFENSLY)
-      DEALLOCATE( SBCVFEWEIGH)
-      DEALLOCATE( SBCVFENLX)
-      DEALLOCATE( SBCVFENLY)
-      DEALLOCATE( SBCVFENLZ)
-      DEALLOCATE( SBUFEN)
-      DEALLOCATE( SBUFENSLX)
-      DEALLOCATE( SBUFENSLY)
-      DEALLOCATE( SBUFENLX)
-      DEALLOCATE( SBUFENLY)
-      DEALLOCATE( SBUFENLZ)
-
-      DEALLOCATE( CV_SLOC2LOC)
-      DEALLOCATE( U_SLOC2LOC)
-      DEALLOCATE( CV_SLOCLIST)
-      DEALLOCATE( U_SLOCLIST)
-      DEALLOCATE( CV_NEILOC)
-
-      DEALLOCATE( SELE_OVERLAP_SCALE )
-
      
       return
     end function CV_COUNT_FACES
+
+
+
 
 
     SUBROUTINE FIND_OTHER_SIDE( CV_OTHER_LOC, CV_NLOC, CV_NODI, U_OTHER_LOC, U_NLOC,  &
          MAT_OTHER_LOC, MAT_NLOC, INTEGRAT_AT_GI, &
          X_NLOC, XU_NLOC, X_NDGLN, CV_NDGLN, XU_NDGLN, &
          CV_SNLOC, CVFEM_ON_FACE, X_SHARE, X_NONODS, ELE, ELE2,  &
-         FINELE, COLELE, NCOLELE) 
+         FINELE, COLELE, NCOLELE, DISTCONTINUOUS_METHOD) 
       ! We are on the boundary or next to another element. Determine CV_OTHER_LOC,
       ! U_OTHER_LOC. 
       ! CVFEM_ON_FACE(CV_KLOC,GI)=.TRUE. if CV_KLOC is on the face that GI is centred on.
@@ -3405,6 +3128,7 @@ contains
       LOGICAL, DIMENSION( : ), intent( inout ) :: X_SHARE
       INTEGER, intent( inout ) :: ELE2
       LOGICAL, intent( inout ) :: INTEGRAT_AT_GI
+      LOGICAL, intent( in ) :: DISTCONTINUOUS_METHOD
       ! Local variables
       INTEGER :: X_KLOC, X_NODK, X_NODK2, COUNT, ELE3, SUF_COUNT, CV_KLOC, CV_KLOC2, &
            &     U_KLOC, U_KLOC2, CV_NODK, XU_NODK, XU_NODK2, ILEV, JLEV
@@ -3429,6 +3153,14 @@ contains
          IF ( SUF_COUNT == CV_SNLOC ) ELE3 = ELE2
          !ewrite(3,*)'suf_count:', ele, ele2, suf_count, cv_snloc
       END DO
+
+! Quite because there is no work to do here...
+!      IF(.NOT.DISTCONTINUOUS_METHOD) THEN
+!         IF(ELE3.NE.0) THEN ! this is not on the boundary of the domain.
+!            INTEGRAT_AT_GI=.FALSE.
+!            RETURN
+!         ENDIF
+!      ENDIF
 
       DO X_KLOC = 1, X_NLOC
          X_NODK = X_NDGLN( ( ELE - 1 ) * X_NLOC + X_KLOC )
