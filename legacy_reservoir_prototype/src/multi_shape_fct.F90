@@ -1677,13 +1677,14 @@
            SCVNGI + SBCVNGI + U_NLOC*CV_NGI * (1+ndim) + CV_NLOC * SCVNGI * (3+ndim)+ U_NLOC*SCVNGI * (3+ndim) + &
            CV_SNLOC * SBCVNGI * (4+ndim) + U_SNLOC * SBCVNGI * (3+ndim) + CV_NLOC
 
-          call allocate (targ_Storage, Auxmesh)
+          call allocate (targ_Storage, Auxmesh,name="StorageMesh")
           !Prepare room to store integers and logicals
           Auxmesh%nodes = nface*cv_snloc + nface * u_snloc + u_nloc*scvngi*2 + cv_nloc*scvngi*2+&
                 ( cv_nloc + 1 ) + cv_nloc * scvngi + (1) + cv_nloc * scvngi
           Auxmesh%shape%loc =1!nodes times %loc is the size of the array I want to store
-          call allocate (targ_Storage%mesh, Auxmesh%nodes, Auxmesh%nodes,Auxmesh%shape )
+          call allocate (targ_Storage%mesh, Auxmesh%nodes, Auxmesh%nodes,Auxmesh%shape, name="StorageMesh" )
           !Now we insert them in state and store the index
+           call insert(state(1), targ_Storage%mesh, "StorageMesh")
           call insert(state(1), targ_Storage, StorName)
           indx = size(state(1)%scalar_fields)
       end if

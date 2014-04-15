@@ -9951,7 +9951,7 @@ contains
     INTEGER :: U_KLOC2, U_NODK2, U_NODK2_IPHA
     INTEGER :: U_SKLOC, COUNT, COUNT_IN, COUNT_OUT, COUNT_IN_PHA, COUNT_OUT_PHA
     INTEGER :: IFIELD,IFI
-   
+ 
 !      REAL, DIMENSION ( :, : ), allocatable :: LOC_DEN, LOC_T, LOC_T2, LOC_FEMDEN, LOC_FEMT, LOC_FEMT2
 
 !      REAL, DIMENSION ( :, : ), allocatable :: SLOC_DEN, SLOC_T, SLOC_T2, SLOC_FEMDEN, SLOC_FEMT, SLOC_FEMT2
@@ -13544,7 +13544,7 @@ CONTAINS
     REAL, DIMENSION( :, :, :, : ), intent( in ) :: SUF_U_BC_ALL
     REAL, DIMENSION( :, : ), intent( in ) :: SUF_SIG_DIAGTEN_BC
     REAL, DIMENSION( :, :, : ), intent( inout ) :: UGI_COEF_ELE_ALL, UGI_COEF_ELE2_ALL
-    REAL, DIMENSION( NDIM, NPHASE ), intent( inout ) :: NUGI_ALL
+    REAL, DIMENSION( :, : ), intent( inout ) :: NUGI_ALL
     REAL, DIMENSION( :  ), intent( in ) :: VOLFRA_PORE
     REAL, DIMENSION( :, :  ), intent( in ) :: SCVFEN
     INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
@@ -13559,7 +13559,7 @@ CONTAINS
     INTEGER, DIMENSION( : ), intent( in ) :: SMALL_FINDRM
     INTEGER, DIMENSION( : ), intent( in ) :: SMALL_COLM
     REAL, DIMENSION( : ), intent( in ) :: TUPWIND_MAT
-    REAL, DIMENSION( NPHASE ), intent( in ) :: TUPWIND_IN, TUPWIND_OUT
+    REAL, DIMENSION( : ), intent( in ) :: TUPWIND_IN, TUPWIND_OUT
     ! local variables
     INTEGER :: U_NLOC_LEV,U_KLOC_LEV,U_KLOC,U_NODK_IPHA, U_KLOC2, U_NODK2_IPHA
 
@@ -13635,7 +13635,7 @@ CONTAINS
     RETURN
 
 
-  end SUBROUTINE GET_INT_VEL_NEW
+contains
 
 
 
@@ -13820,9 +13820,7 @@ CONTAINS
 
   END SUBROUTINE GET_INT_VEL_ORIG_NEW
 
-
-
-
+end SUBROUTINE GET_INT_VEL_NEW
 
       SUBROUTINE GET_INT_VEL_OVERLAP_NEW( NPHASE, NDOTQ,INCOME, &
        HDC, GI, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
