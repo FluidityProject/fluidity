@@ -613,19 +613,6 @@ contains
       ALLOCATE( DENOLDMIN( CV_NONODS * NPHASE) )
       ALLOCATE( DENOLDMAX( CV_NONODS * NPHASE) )
 
-      ALLOCATE(      TMIN_2ND_MC( CV_NONODS * NPHASE) )
-      ALLOCATE(      TMAX_2ND_MC( CV_NONODS * NPHASE) )
-      ALLOCATE(   TOLDMIN_2ND_MC( CV_NONODS * NPHASE) )
-      ALLOCATE(   TOLDMAX_2ND_MC( CV_NONODS * NPHASE) )
-      ALLOCATE(      T2MIN_2ND_MC( CV_NONODS * NPHASE* IGOT_T2) )
-      ALLOCATE(      T2MAX_2ND_MC( CV_NONODS * NPHASE* IGOT_T2) )
-      ALLOCATE(   T2OLDMIN_2ND_MC( CV_NONODS * NPHASE* IGOT_T2) )
-      ALLOCATE(   T2OLDMAX_2ND_MC( CV_NONODS * NPHASE* IGOT_T2) )
-      ALLOCATE(    DENMIN_2ND_MC( CV_NONODS * NPHASE) )
-      ALLOCATE(    DENMAX_2ND_MC( CV_NONODS * NPHASE) )
-      ALLOCATE( DENOLDMIN_2ND_MC( CV_NONODS * NPHASE) )
-      ALLOCATE( DENOLDMAX_2ND_MC( CV_NONODS * NPHASE) )
-
       ALLOCATE(      TMIN_NOD( CV_NONODS * NPHASE) )
       ALLOCATE(      TMAX_NOD( CV_NONODS * NPHASE) )
       ALLOCATE(   TOLDMIN_NOD( CV_NONODS * NPHASE) )
@@ -1063,6 +1050,24 @@ contains
            X_NONODS, X_ALL, NCOLM, FINDM, COLM, MIDM, &
            IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC )
 
+       !###FEM VALUES###
+      DO CV_INOD = 1, CV_NONODS
+          DO IPHASE = 1, NPHASE
+              FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT_ALL( IPHASE, CV_INOD)
+              FEMTOLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMTOLD_ALL( IPHASE, CV_INOD)
+              FEMDEN( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMDEN_ALL( IPHASE, CV_INOD)
+              FEMDENOLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMDENOLD_ALL( IPHASE, CV_INOD)
+          END DO
+      END DO
+      if (IGOT_T2>0) then
+          DO CV_INOD = 1, CV_NONODS
+              DO IPHASE = 1, NPHASE
+                  FEMT2( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT2_ALL( IPHASE, CV_INOD)
+                  FEMT2OLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT2OLD_ALL( IPHASE, CV_INOD)
+              END DO
+          END DO
+      end if
+
       XC_CV_ALL(1,:)=XC_CV(:)
       IF(NDIM.GE.2) XC_CV_ALL(2,:)=YC_CV(:)
       IF(NDIM.GE.3) XC_CV_ALL(3,:)=ZC_CV(:)
@@ -1094,21 +1099,6 @@ contains
       MEAN_PORE_CV = MEAN_PORE_CV / SUM_CV
       ewrite(3,*) 'MEAN_PORE_CV MIN/MAX:', MINVAL( MEAN_PORE_CV ), MAXVAL( MEAN_PORE_CV )
 
-      ! For each node, find the largest and smallest value of T and
-      ! DENSITY for both the current and previous timestep, out of
-      ! the node value and all its surrounding nodes including Dirichlet b.c's.
-      CALL SURRO_CV_MINMAX( TMAX, TMIN, TOLDMAX, TOLDMIN, DENMAX, DENMIN, DENOLDMAX, DENOLDMIN, &
-           T2MAX, T2MIN, T2OLDMAX, T2OLDMIN, &
-           TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC, DENMAX_2ND_MC, DENMIN_2ND_MC, &
-           DENOLDMAX_2ND_MC, DENOLDMIN_2ND_MC, &
-           T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, T2OLDMIN_2ND_MC, &
-           T, TOLD, T2, T2OLD, DEN, DENOLD, IGOT_T2, NPHASE, CV_NONODS, size(small_colm), SMALL_FINDRM, SMALL_COLM, &
-           STOTEL, CV_SNLOC, CV_SNDGLN, SUF_T_BC, SUF_T2_BC, SUF_D_BC, WIC_T_BC, WIC_T2_BC, WIC_D_BC, &
-           WIC_T_BC_DIRICHLET, WIC_T_BC_DIRI_ADV_AND_ROBIN, &
-           WIC_D_BC_DIRICHLET, MASS_CV, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, TOLDMAX_NOD, &
-           T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, &
-           DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD )
-
       IANISOLIM = 0
       IF ( CV_DISOPT >= 5 ) IANISOLIM = 1
 
@@ -1125,6 +1115,18 @@ contains
 
 
       IF ( IANISOLIM == 0 ) THEN
+
+      ! For each node, find the largest and smallest value of T and
+      ! DENSITY for both the current and previous timestep, out of
+      ! the node value and all its surrounding nodes including Dirichlet b.c's.
+      CALL SURRO_CV_MINMAX( TMAX, TMIN, TOLDMAX, TOLDMIN, DENMAX, DENMIN, DENOLDMAX, DENOLDMIN, &
+           T2MAX, T2MIN, T2OLDMAX, T2OLDMIN, &
+           T, TOLD, T2, T2OLD, DEN, DENOLD, IGOT_T2, NPHASE, CV_NONODS, size(small_colm), SMALL_FINDRM, SMALL_COLM, &
+           STOTEL, CV_SNLOC, CV_SNDGLN, SUF_T_BC, SUF_T2_BC, SUF_D_BC, WIC_T_BC, WIC_T2_BC, WIC_D_BC, &
+           WIC_T_BC_DIRICHLET, WIC_T_BC_DIRI_ADV_AND_ROBIN, &
+           WIC_D_BC_DIRICHLET, MASS_CV, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, TOLDMAX_NOD, &
+           T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, &
+           DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD )
 
 ! Populate  limiting matrix based on max and min values
          CALL CALC_LIMIT_MATRIX_MAX_MIN(TMAX, TMIN, DENMAX, DENMIN, &
@@ -1184,23 +1186,6 @@ contains
               X_ALL, XC_CV_ALL, IGOT_T_PACK, IGOT_T_CONST, IGOT_T_CONST_VALUE,&
               state, "anisotrop", storageindexes(42))
 
-! make sure the diagonal is equal to the value:
-         DO CV_NODI=1,CV_NONODS
-            IMID=SMALL_CENTRM(CV_NODI)
-            DO IPHASE=1,NPHASE
-               TUPWIND_MAT_ALL( IPHASE, IMID)=T_ALL( IPHASE, CV_NODI)
-               TOLDUPWIND_MAT_ALL(  IPHASE, IMID)=TOLD_ALL( IPHASE, CV_NODI)
-
-               DENUPWIND_MAT_ALL(  IPHASE, IMID)=DEN_ALL( IPHASE, CV_NODI)
-               DENOLDUPWIND_MAT_ALL(  IPHASE, IMID)=DENOLD_ALL( IPHASE, CV_NODI)
-
-               IF( IGOT_T2 == 1 ) THEN
-                  T2UPWIND_MAT_ALL(IPHASE, IMID)=T2_ALL( IPHASE, CV_NODI)
-                  T2OLDUPWIND_MAT_ALL(IPHASE, IMID)=T2OLD_ALL( IPHASE, CV_NODI)
-               ENDIF
-            END DO
-         END DO
-
       DO COUNT = 1, NSMALL_COLM
           DO IPHASE = 1, NPHASE
               TUPWIND_MAT(COUNT + ( IPHASE - 1 ) * NSMALL_COLM) = TUPWIND_MAT_ALL(IPHASE, COUNT)
@@ -1214,27 +1199,10 @@ contains
           end do
       end do
 
-
-       !###FEM VALUES###
-      DO CV_INOD = 1, CV_NONODS
-          DO IPHASE = 1, NPHASE
-              FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT_ALL( IPHASE, CV_INOD)
-              FEMTOLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMTOLD_ALL( IPHASE, CV_INOD)
-              FEMDEN( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMDEN_ALL( IPHASE, CV_INOD)
-              FEMDENOLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMDENOLD_ALL( IPHASE, CV_INOD)
-          END DO
-      END DO
-      if (IGOT_T2>0) then
-          DO CV_INOD = 1, CV_NONODS
-              DO IPHASE = 1, NPHASE
-                  FEMT2( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT2_ALL( IPHASE, CV_INOD)
-                  FEMT2OLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT2OLD_ALL( IPHASE, CV_INOD)
-              END DO
-          END DO
-      end if
-
          
       END IF ! endof IF ( IANISOLIM == 0 ) THEN ELSE
+
+
 
       ALLOCATE( FACE_ELE( NFACE, TOTELE ) ) ; FACE_ELE = 0
       CALL CALC_FACE_ELE( FACE_ELE, TOTELE, STOTEL, NFACE, &
@@ -10983,8 +10951,6 @@ CONTAINS
 
   SUBROUTINE SURRO_CV_MINMAX( TMAX, TMIN, TOLDMAX, TOLDMIN, DENMAX, DENMIN, DENOLDMAX, DENOLDMIN, &
        T2MAX, T2MIN, T2OLDMAX, T2OLDMIN, &
-       TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC, DENMAX_2ND_MC, DENMIN_2ND_MC, DENOLDMAX_2ND_MC, DENOLDMIN_2ND_MC, &
-       T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, T2OLDMIN_2ND_MC, &
        T, TOLD,  T2, T2OLD, DEN, DENOLD, IGOT_T2, NPHASE, CV_NONODS, NCOLACV, FINACV, COLACV, &
        STOTEL, CV_SNLOC, CV_SNDGLN, SUF_T_BC,  SUF_T2_BC, SUF_D_BC, WIC_T_BC, WIC_T2_BC, WIC_D_BC, &
        WIC_T_BC_DIRICHLET, WIC_T_BC_DIRI_ADV_AND_ROBIN, &
@@ -11008,10 +10974,6 @@ CONTAINS
     REAL, DIMENSION( : ), intent( inout ) :: TMAX, TMIN, TOLDMAX, TOLDMIN,  &
          DENMAX, DENMIN, DENOLDMAX, DENOLDMIN
     REAL, DIMENSION( : ), intent( inout ) :: T2MAX, T2MIN, T2OLDMAX, T2OLDMIN
-
-    REAL, DIMENSION( : ), intent( inout ) :: TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC,  &
-         DENMAX_2ND_MC, DENMIN_2ND_MC, DENOLDMAX_2ND_MC, DENOLDMIN_2ND_MC
-    REAL, DIMENSION( : ), intent( inout ) :: T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, T2OLDMIN_2ND_MC
 
     REAL, DIMENSION( : ), intent( in ) :: T,TOLD,DEN,DENOLD
     REAL, DIMENSION( :), intent( in ) :: T2,T2OLD
@@ -12323,7 +12285,7 @@ CONTAINS
     character(len=*), intent(in) :: StorName
     integer, intent(inout) :: indx
 ! local variables...
-    INTEGER :: NFIELD
+    INTEGER :: NFIELD, IMID, NOD, IFIELD
     REAL, DIMENSION( :, : ), ALLOCATABLE :: F_ALL, FEMF_ALL, FUPWIND_MAT_ALL
 
 
@@ -12359,6 +12321,14 @@ CONTAINS
     NFIELD,CV_NONODS,CV_NLOC,X_NLOC,TOTELE,CV_NDGLN, SMALL_FINDRM,&
     SMALL_COLM,NSMALL_COLM, X_NDGLN,X_NONODS,NDIM, X_ALL, XC_CV_ALL,&
     state, storname,indx )
+
+! make sure the diagonal is equal to the value:
+         DO NOD=1,CV_NONODS
+            IMID=SMALL_CENTRM(NOD)
+            DO IFIELD=1,NFIELD
+               FUPWIND_MAT_ALL( IFIELD, IMID)=F_ALL( IFIELD, NOD)
+            END DO
+         END DO
 
 
     TUPWIND_MAT_ALL(1:NPHASE,      :)=FUPWIND_MAT_ALL(1:NPHASE, :)
@@ -12503,7 +12473,7 @@ CONTAINS
     real, dimension( : ), allocatable :: WEIGHT, L1, L2, L3, L4
     integer, dimension( : ), allocatable :: SUB_NDGLNO, SUB_XNDGLNO, ndgln_p2top1
     INTEGER :: COUNT, COUNT2, NOD, SUB_TOTELE, NGI,NLOC, ELE, IL_LOC, IQ_LOC, &
-         LOC_ELE, SUB_ELE, SUB_LIN_TOTELE
+         LOC_ELE, SUB_ELE, SUB_LIN_TOTELE, IMID
 
 
     ! **********************Calculate linear shape functions...
@@ -12587,6 +12557,7 @@ CONTAINS
          X_ALL, XC_CV_ALL, &
          N, NLX_ALL, WEIGHT,&
          state, storname, indx )
+
 
 !    DEALLOCATE( N, NLX, NLY, NLZ, L1, L2, L3, L4, &
 !         WEIGHT, SUB_NDGLNO, SUB_XNDGLNO )
