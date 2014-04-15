@@ -61,7 +61,7 @@
   contains
 
     subroutine Calculate_All_Rhos( state, packed_state, ncomp_in, nphase, ndim, cv_nonods, cv_nloc, totele, &
-         cv_ndgln, Component, Density_Bulk, DensityCp_Bulk, DRhoDPressure )
+         cv_ndgln, Component, DRhoDPressure )
 
       implicit none
 
@@ -71,16 +71,16 @@
       integer, dimension( : ), intent( in ) :: cv_ndgln
 
       real, dimension( : ), intent( in ) :: Component
-      real, dimension( : ), intent( inout ) :: Density_Bulk, DensityCp_Bulk
       real, dimension( nphase, cv_nonods ), intent( inout ), optional :: DRhoDPressure
 
-      real, dimension( : ), allocatable :: Rho, dRhodP, Density_Component, Cp, Component_l, c_cv_nod
+      real, dimension( : ), allocatable :: Rho, dRhodP, Density_Bulk, DensityCp_Bulk, &
+                                               Density_Component, Cp, Component_l, c_cv_nod
       character( len = option_path_len ), dimension( : ), allocatable :: eos_option_path
       type( tensor_field ), pointer :: field1, field2, field3
       type( scalar_field ), pointer :: Cp_s
       integer :: icomp, iphase, ncomp, sc, ec, sp, ep, stat, cv_iloc, cv_nod, ele
 
-      Density_Bulk = 0. ; DensityCp_Bulk = 0. ; DRhoDPressure = 0.
+      DRhoDPressure = 0.
 
       ncomp = ncomp_in
       if( ncomp_in == 0 ) ncomp = 1
@@ -107,6 +107,9 @@
       allocate( Rho( cv_nonods ), dRhodP( cv_nonods ) )
       allocate( Cp( cv_nonods ) ) ; Cp = 1.
       allocate( Density_Component( ncomp * nphase * cv_nonods ) )
+      allocate( Density_Bulk( nphase * cv_nonods ), DensityCp_Bulk( nphase * cv_nonods ) )
+      Density_Bulk = 0. ; DensityCp_Bulk = 0.
+
       allocate( Component_l( cv_nonods ) ) ; Component_l = 0.
 
       do icomp = 1, ncomp
@@ -201,6 +204,7 @@
 
 
       deallocate( Rho, dRhodP, Cp, Component_l )
+      deallocate( Density_Component, Density_Bulk, DensityCp_Bulk )
       deallocate( eos_option_path )
 
     end subroutine Calculate_All_Rhos

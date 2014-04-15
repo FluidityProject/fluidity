@@ -79,7 +79,6 @@ contains
     CV_NDGLN, X_NDGLN, U_NDGLN, &
     CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
     T, TOLD, &
-!    DEN, DENOLD,
     MAT_NLOC,MAT_NDGLN,MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
     T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, T_BETA, &
     SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
@@ -134,7 +133,6 @@ contains
         INTEGER, DIMENSION( : ), intent( in ) :: COLCT
         REAL, DIMENSION( : ), intent( inout ) :: T, T_FEMT, DEN_FEMT
         REAL, DIMENSION( : ), intent( in ) :: TOLD
-!        REAL, DIMENSION( : ), intent( in ) :: DEN, DENOLD
         REAL, DIMENSION( : ), intent( in ) :: T2, T2OLD
         REAL, DIMENSION( :, : ), intent( inout ) :: THETA_GDIFF
         REAL, DIMENSION( :,: ), intent( inout ), optional :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
@@ -889,7 +887,7 @@ contains
     CV_NLOC, U_NLOC, X_NLOC, &
     CV_NDGLN, X_NDGLN, U_NDGLN, &
     CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-    SATURA, SATURAOLD, DEN, DENOLD, &
+    SATURA, SATURAOLD, &
     MAT_NLOC,MAT_NDGLN,MAT_NONODS, &
     V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
     SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
@@ -938,7 +936,6 @@ contains
         INTEGER, DIMENSION( : ), intent( in ) :: COLCT
 
         REAL, DIMENSION( : ), intent( inout ) :: SATURA, SATURAOLD, Sat_FEMT, DEN_FEMT
-        REAL, DIMENSION( : ), intent( in ) :: DEN, DENOLD
         REAL, DIMENSION( :, :), intent( inout ), optional :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
         INTEGER, intent( in ) :: V_DISOPT, V_DG_VEL_INT_OPT
         REAL, intent( in ) :: DT, V_THETA
@@ -1007,18 +1004,12 @@ contains
         ALLOCATE( MEAN_PORE_CV( CV_NONODS ) )
 
 
-      ALLOCATE( DENSITY_OR_ONE( CV_NONODS * NPHASE ), DENSITYOLD_OR_ONE( CV_NONODS * NPHASE ) )
-      IF ( IGOT_THETA_FLUX == 1 ) THEN
-         DENSITY_OR_ONE=1.0 ; DENSITYOLD_OR_ONE=1.0
-      ELSE
-          DENSITY_OR_ONE=DEN ; DENSITYOLD_OR_ONE=DENOLD
-      END IF
 
       ALLOCATE( DEN_ALL( NPHASE, CV_NONODS  ), DENOLD_ALL( NPHASE, CV_NONODS ) )
       IF ( IGOT_THETA_FLUX == 1 ) THEN
+         ! use DEN=1 because the density is already in the theta variables
          DEN_ALL=1.0 ; DENOLD_ALL=1.0
       ELSE
-      
          DEN_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedDensity" )
          DENOLD_ALL2 => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldDensity" )
          DEN_ALL = DEN_ALL2%VAL( 1, :, : ) ; DENOLD_ALL = DENOLD_ALL2%VAL( 1, :, : )
@@ -1129,7 +1120,7 @@ contains
     STOTEL, CV_SNDGLN, U_SNDGLN, P_SNDGLN, &
     U_SNLOC, P_SNLOC, CV_SNLOC, &
     U_ABS_STAB, MAT_ABSORB, U_ABSORBIN, U_SOURCE, U_SOURCE_CV, &
-    DEN, DENOLD, SATURA, SATURAOLD, DERIV, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
+    SATURA, SATURAOLD, DERIV, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
     DT, &
     NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn
     NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, MIDDGM_PHA, &! Force balance sparcity
@@ -1187,7 +1178,7 @@ contains
         REAL, DIMENSION(  :  ), intent( in ) :: U_SOURCE
         REAL, DIMENSION(  :  ), intent( inout ) :: U_SOURCE_CV
 
-        REAL, DIMENSION(  :  ), intent( in ) :: DEN, DENOLD, SATURAOLD
+        REAL, DIMENSION(  :  ), intent( in ) :: SATURAOLD
         REAL, DIMENSION(  :  ), intent( inout ) :: SATURA
         REAL, DIMENSION(  NPHASE, CV_NONODS ), intent( in ) :: DERIV
         REAL, DIMENSION(  NPHASE*IDIVID_BY_VOL_FRAC, CV_NONODS *IDIVID_BY_VOL_FRAC ), intent( in ) :: FEM_VOL_FRAC
@@ -1463,7 +1454,7 @@ contains
         U_SNLOC, P_SNLOC, CV_SNLOC, &
         X_ALL, U_ABS_STAB_ALL, U_ABSORB_ALL, U_SOURCE_ALL, U_SOURCE_CV_ALL, &
         U_ALL, UOLD_ALL, &
-        P_ALL%VAL, CVP_ALL%VAL, DEN, DENOLD, DEN_ALL, DENOLD_ALL, SATURA, SATURAOLD, DERIV, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
+        P_ALL%VAL, CVP_ALL%VAL, DEN_ALL, DENOLD_ALL, SATURA, SATURAOLD, DERIV, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
         DT, &
         NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn
         DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparcity
@@ -1819,7 +1810,7 @@ contains
     U_SNLOC, P_SNLOC, CV_SNLOC, &
     X_ALL, U_ABS_STAB_ALL, U_ABSORB_ALL, U_SOURCE_ALL, U_SOURCE_CV_ALL, &
     U_ALL, UOLD_ALL, &
-    P, CV_P, DEN, DENOLD, DEN_ALL, DENOLD_ALL, SATURA, SATURAOLD, DERIV, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
+    P, CV_P, DEN_ALL, DENOLD_ALL, SATURA, SATURAOLD, DERIV, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
     DT, &
     NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn
     DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparcity
@@ -1881,7 +1872,7 @@ contains
         REAL, DIMENSION(  :, :, :  ), intent( in ) :: U_SOURCE_CV_ALL
         REAL, DIMENSION(  : ,:,: ), intent( in ) :: U_ALL, UOLD_ALL
         REAL, DIMENSION(  :  ), intent( in ) :: CV_P, P
-        REAL, DIMENSION(  :  ), intent( in ) :: DEN, DENOLD, SATURA, SATURAOLD
+        REAL, DIMENSION(  :  ), intent( in ) :: SATURA, SATURAOLD
         REAL, DIMENSION(  :, :  ), intent( in ) :: FEM_VOL_FRAC, DEN_ALL, DENOLD_ALL
         REAL, DIMENSION(  NPHASE, CV_NONODS  ), intent( in ) :: DERIV
         REAL, DIMENSION(  : ,  :   ), intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J

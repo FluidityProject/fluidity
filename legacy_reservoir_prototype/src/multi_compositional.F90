@@ -50,7 +50,8 @@
       type( state_type ), dimension( : ), intent( in ) :: state
       integer, intent( in ) :: icomp
       integer, dimension( : ), intent( in ) :: cv_ndgln
-      real, dimension( : ), intent( in ) :: denold, saturaold, volfra_pore, mass_ele
+      real, dimension( : ), intent( in ) :: saturaold, volfra_pore, mass_ele
+      real, dimension( :, :, : ), intent( in ) :: denold
       real, dimension( :, :, : ), intent( inout ) :: comp_absorb
 
       ! Local Variables
@@ -117,10 +118,10 @@
 
                ALPHA( CV_NOD ) = ALPHA_BETA * VOLFRA_PORE_NOD( CV_NOD ) * &
                     ( max( 0.0, SATURAOLD( ( IPHASE - 1) * CV_NONODS + CV_NOD ) * &
-                    DENOLD( ( IPHASE - 1) * CV_NONODS + CV_NOD )) / &
+                    DENOLD( 1, IPHASE, CV_NOD ) ) / &
                     K_COMP2( ICOMP, CV_NOD, IPHASE, JPHASE ) + &
                     max( 0.0, SATURAOLD( ( JPHASE - 1) * CV_NONODS + CV_NOD ) * &
-                    DENOLD( ( JPHASE - 1) * CV_NONODS + CV_NOD ))) / DT
+                    DENOLD( 1, JPHASE, CV_NOD ) ) ) / DT
 
                COMP_ABSORB( CV_NOD, IPHASE, IPHASE ) = &
                     COMP_ABSORB( CV_NOD, IPHASE, IPHASE ) + &
@@ -128,7 +129,7 @@
                     K_COMP2( ICOMP, CV_NOD, IPHASE, JPHASE ) 
 
                COMP_ABSORB( CV_NOD, IPHASE, JPHASE ) = &
-                    - ALPHA( CV_NOD )                  
+                    - ALPHA( CV_NOD )
 
             END DO
          END DO
@@ -140,10 +141,10 @@
 
                ALPHA( CV_NOD ) = ALPHA_BETA * VOLFRA_PORE_NOD( CV_NOD ) * &
                     ( max(0.0,SATURAOLD( ( IPHASE - 1) * CV_NONODS + CV_NOD ) * &
-                    DENOLD( ( IPHASE - 1) * CV_NONODS + CV_NOD )) + &
+                    DENOLD( 1, IPHASE, CV_NOD ) ) + &
                     max(0.0,SATURAOLD( ( JPHASE - 1) * CV_NONODS + CV_NOD ) * &
-                    DENOLD( ( JPHASE - 1) * CV_NONODS + CV_NOD )) / &
-                    K_COMP2( ICOMP, CV_NOD, JPHASE, IPHASE )) / DT
+                    DENOLD( 1, JPHASE, CV_NOD ) ) / &
+                    K_COMP2( ICOMP, CV_NOD, JPHASE, IPHASE ) ) / DT
 
                COMP_ABSORB( CV_NOD, IPHASE, IPHASE ) = &
                     COMP_ABSORB( CV_NOD, IPHASE, IPHASE ) + ALPHA( CV_NOD )
