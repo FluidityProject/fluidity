@@ -1127,7 +1127,7 @@ contains
     STOTEL, CV_SNDGLN, U_SNDGLN, P_SNDGLN, &
     U_SNLOC, P_SNLOC, CV_SNLOC, &
     U_ABS_STAB, MAT_ABSORB, U_ABSORBIN, U_SOURCE, U_SOURCE_CV, &
-    SATURA, SATURAOLD, DERIV, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
+    DERIV, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
     DT, &
     NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn
     NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, MIDDGM_PHA, &! Force balance sparcity
@@ -1185,8 +1185,8 @@ contains
         REAL, DIMENSION(  :  ), intent( in ) :: U_SOURCE
         REAL, DIMENSION(  :  ), intent( inout ) :: U_SOURCE_CV
 
-        REAL, DIMENSION(  :  ), intent( in ) :: SATURAOLD
-        REAL, DIMENSION(  :  ), intent( inout ) :: SATURA
+!        REAL, DIMENSION(  :  ), intent( in ) :: SATURAOLD
+!        REAL, DIMENSION(  :  ), intent( inout ) :: SATURA
         REAL, DIMENSION(  NPHASE, CV_NONODS ), intent( in ) :: DERIV
         REAL, DIMENSION(  NPHASE*IDIVID_BY_VOL_FRAC, CV_NONODS *IDIVID_BY_VOL_FRAC ), intent( in ) :: FEM_VOL_FRAC
         REAL, DIMENSION(  :  ), intent( in ) :: SUF_VOL_BC, SUF_D_BC
@@ -1461,7 +1461,7 @@ contains
         U_SNLOC, P_SNLOC, CV_SNLOC, &
         X_ALL, U_ABS_STAB_ALL, U_ABSORB_ALL, U_SOURCE_ALL, U_SOURCE_CV_ALL, &
         U_ALL, UOLD_ALL, &
-        P_ALL%VAL, CVP_ALL%VAL, DEN_ALL, DENOLD_ALL, SATURA, SATURAOLD, DERIV, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
+        P_ALL%VAL, CVP_ALL%VAL, DEN_ALL, DENOLD_ALL, DERIV, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
         DT, &
         NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn
         DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparcity
@@ -1817,7 +1817,7 @@ contains
     U_SNLOC, P_SNLOC, CV_SNLOC, &
     X_ALL, U_ABS_STAB_ALL, U_ABSORB_ALL, U_SOURCE_ALL, U_SOURCE_CV_ALL, &
     U_ALL, UOLD_ALL, &
-    P, CV_P, DEN_ALL, DENOLD_ALL, SATURA, SATURAOLD, DERIV, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
+    P, CV_P, DEN_ALL, DENOLD_ALL, DERIV, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
     DT, &
     NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn
     DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparcity
@@ -1879,7 +1879,7 @@ contains
         REAL, DIMENSION(  :, :, :  ), intent( in ) :: U_SOURCE_CV_ALL
         REAL, DIMENSION(  : ,:,: ), intent( in ) :: U_ALL, UOLD_ALL
         REAL, DIMENSION(  :  ), intent( in ) :: CV_P, P
-        REAL, DIMENSION(  :  ), intent( in ) :: SATURA, SATURAOLD
+!        REAL, DIMENSION(  :  ), intent( in ) :: SATURA, SATURAOLD
         REAL, DIMENSION(  :, :  ), intent( in ) :: FEM_VOL_FRAC, DEN_ALL, DENOLD_ALL
         REAL, DIMENSION(  NPHASE, CV_NONODS  ), intent( in ) :: DERIV
         REAL, DIMENSION(  : ,  :   ), intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J

@@ -831,8 +831,7 @@
                     U_SNLOC, P_SNLOC, CV_SNLOC, &
 !!$
                     Material_Absorption_Stab, Material_Absorption, Velocity_Absorption, Velocity_U_Source, Velocity_U_Source_CV, &
-
-                    PhaseVolumeFraction, PhaseVolumeFraction_Old, & 
+!                    PhaseVolumeFraction, PhaseVolumeFraction_Old, & 
                     DRhoDPressure, IDIVID_BY_VOL_FRAC, FEM_VOL_FRAC, &
                     dt, &
 !!$
@@ -876,16 +875,8 @@
                     ncomp, nphase, cv_nonods )
 
             end if Conditional_ForceBalanceEquation
-
             Conditional_PhaseVolumeFraction: if ( solve_PhaseVolumeFraction ) then
-    !######TEMPORARY CONVERSION FROM OLD PhaseVolumeFraction TO PACKED######
-    do cv_inod = 1, size(SAT_s,2)
-        do iphase = 1, size(SAT_s,1)
-            SAT_s(iphase,cv_inod) = phaseVolumeFraction(cv_inod +(iphase-1)*size(SAT_s,2))
-            OldSAT_s(iphase,cv_inod) = PhaseVolumeFraction_Old(cv_inod +(iphase-1)*size(SAT_s,2))
-        end do
-    end do
-    !#############################################################
+
                call VolumeFraction_Assemble_Solve( state, packed_state, &
                     NCOLACV, FINACV, COLACV, MIDACV, &
                     small_FINACV, small_COLACV, small_MIDACV, &
