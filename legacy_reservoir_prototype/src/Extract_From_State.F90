@@ -2092,7 +2092,6 @@
                velocity%mesh%overlapping_shape=overlapping_shape
             end if
          end do
-
          call insert_vfield(packed_state,"Velocity",ovmesh)
          call insert_vfield(packed_state,"NonlinearVelocity",ovmesh)
          call insert(state(1),ovmesh,"InternalVelocityMesh")
@@ -2303,9 +2302,9 @@
 
         subroutine insert_sfield(mstate,name,ncomp,nphase,nmesh)
           type(state_type), intent(inout) :: mstate
-          character(len=*) :: name
+          character(len=*), intent(in) :: name
           type(mesh_type),optional, target :: nmesh
-          integer :: ncomp,nphase
+          integer, intent(in) :: ncomp,nphase
 
           type(scalar_field), pointer :: nfield
           type(mesh_type), pointer :: lmesh
@@ -2337,13 +2336,12 @@
 
         subroutine insert_vfield(mstate,name,nmesh)
           type(state_type), intent(inout) :: mstate
-          character(len=*) :: name
+          character(len=*), intent(in) :: name
           type(mesh_type), optional, target :: nmesh
 
           type(vector_field), pointer :: nfield
           type(mesh_type), pointer :: lmesh
           type(tensor_field)  :: mfield
-
 
           nfield=>extract_vector_field(state(1),name)
           if (present(nmesh)) then

@@ -1270,6 +1270,7 @@
 
             end if Conditional_Adaptivity
 
+            call nullify( packed_state )
             call deallocate(packed_state)
             call pack_multistate(state,packed_state,&
                  multiphase_state,multicomponent_state)
