@@ -662,14 +662,7 @@
 
 !!$ Start non-linear loop
          Loop_NonLinearIteration: do  its = 1, NonLinearIteration
-    !######TEMPORARY CONVERSION FROM OLD PhaseVolumeFraction TO PACKED######
-    do cv_inod = 1, size(SAT_s,2)
-        do iphase = 1, size(SAT_s,1)
-            SAT_s(iphase,cv_inod) = phaseVolumeFraction(cv_inod +(iphase-1)*size(SAT_s,2))
-            OldSAT_s(iphase,cv_inod) = PhaseVolumeFraction_Old(cv_inod +(iphase-1)*size(SAT_s,2))
-        end do
-    end do
-    !#############################################################
+
 !print *, '  NEW ITS', its
 
          if( have_temperature_field .and. &
@@ -918,16 +911,7 @@
 
 !               PhaseVolumeFraction = min( max( PhaseVolumeFraction, 0.0 ), 1.0 )!<==Now this is inside VolumeFraction_Assemble_Solve
 
-    !######TEMPORARY CONVERSION FROM PACKED PhaseVolumeFraction TO OLD######
-    do cv_inod = 1, size(SAT_s,2)
-        do iphase = 1, size(SAT_s,1)
-            phaseVolumeFraction(cv_inod +(iphase-1)*size(SAT_s,2)) = SAT_s(iphase,cv_inod)
-            PhaseVolumeFraction_Old(cv_inod +(iphase-1)*size(SAT_s,2)) = OldSAT_s(iphase,cv_inod)
-        end do
-    end do
-    !#############################################################
             end if Conditional_PhaseVolumeFraction
-
 !!$ Starting loop over components
             sum_theta_flux = 0. ; sum_one_m_theta_flux = 0. ; sum_theta_flux_j = 0. ; sum_one_m_theta_flux_j = 0. ; ScalarField_Source_Component = 0.
 
@@ -935,9 +919,9 @@
                Loop_Components: do icomp = 1, ncomp
 
 !!$ Computing the absorption term for the multi-components equation
-                  call Calculate_ComponentAbsorptionTerm( state, &
+                  call Calculate_ComponentAbsorptionTerm( state, packed_state, &
                        icomp, cv_ndgln, & 
-                       D_s%val, PhaseVolumeFraction, Porosity, mass_ele, &
+                       D_s%val, Porosity, mass_ele, &
                        Component_Absorption )
 
                   Conditional_SmoothAbsorption: if( have_option( '/material_phase[' // int2str( nstate - ncomp ) // &
@@ -1073,9 +1057,9 @@
 
                DO ICOMP = 1, NCOMP
 
-                  call Calculate_ComponentAbsorptionTerm( state, &
+                  call Calculate_ComponentAbsorptionTerm( state, packed_state,&
                        icomp, cv_ndgln, & 
-                       D_s%val, PhaseVolumeFraction, Porosity, mass_ele, &
+                       D_s%val, Porosity, mass_ele, &
                        Component_Absorption )
 
                   if( have_option( '/material_phase[' // int2str( nstate - ncomp ) // &
@@ -1086,7 +1070,7 @@
                               do jphase = min( iphase + 1, nphase ), nphase
                                  Component_Absorption( cv_nodi, iphase, jphase ) = &
                                       Component_Absorption( cv_nodi, iphase, jphase ) * max( 0.01, &
-                                      20. * ( 1. - PhaseVolumeFraction( cv_nodi ) ) )
+                                      20. * ( 1. - SAT_s(1, cv_nodi ) ) )
                               end do
                            end do
                         end if
@@ -1112,7 +1096,7 @@
                              ScalarField_Source_Component( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
                              + Mean_Pore_CV( CV_NODI ) * Component_Old( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + ( ICOMP - 1 ) * NPHASE * CV_NONODS ) &
                              * ( DCOLD_s%val( ICOMP, IPHASE, CV_NODI ) - DC_s%val( ICOMP, IPHASE, CV_NODI) ) &
-                             * PhaseVolumeFraction_Old( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
+                             * OldSAT_s( IPHASE, CV_NONODS ) &
                              / ( DC_s%val( ICOMP, IPHASE, CV_NODI ) * DT )
                      END DO
                   END DO
@@ -1121,9 +1105,9 @@
 
                if( have_option( '/material_phase[' // int2str( nstate - ncomp ) // & 
                     ']/is_multiphase_component/Comp_Sum2One' ) .and. ( ncomp > 1 ) ) then
-                  call Cal_Comp_Sum2One_Sou( ScalarField_Source_Component, cv_nonods, nphase, ncomp, dt, its, &
+                  call Cal_Comp_Sum2One_Sou( packed_state, ScalarField_Source_Component, cv_nonods, nphase, ncomp, dt, its, &
                        NonLinearIteration, &
-                       Mean_Pore_CV, PhaseVolumeFraction, PhaseVolumeFraction_Old, &
+                       Mean_Pore_CV,&
                        Component, Component_Old )
                end if
 
@@ -1158,6 +1142,15 @@
          call set_option( '/timestepping/timestep', dt)
 
          current_time = acctim
+
+    !######TEMPORARY CONVERSION FROM PACKED PhaseVolumeFraction TO OLD######
+do cv_inod = 1, size(SAT_s,2)
+    do iphase = 1, size(SAT_s,1)
+        phaseVolumeFraction(cv_inod +(iphase-1)*size(SAT_s,2)) = SAT_s(iphase,cv_inod)
+        PhaseVolumeFraction_Old(cv_inod +(iphase-1)*size(SAT_s,2)) = OldSAT_s(iphase,cv_inod)
+    end do
+end do
+    !#############################################################
 
 !!$ Copying fields back to state:
          call copy_into_state( state, & ! Copying main fields into state
