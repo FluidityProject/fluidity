@@ -9738,54 +9738,22 @@ contains
     INTEGER :: U_SKLOC, COUNT, COUNT_IN, COUNT_OUT, COUNT_IN_PHA, COUNT_OUT_PHA
     INTEGER :: IFIELD,IFI
  
-!      REAL, DIMENSION ( :, : ), allocatable :: LOC_DEN, LOC_T, LOC_T2, LOC_FEMDEN, LOC_FEMT, LOC_FEMT2
-
-!      REAL, DIMENSION ( :, : ), allocatable :: SLOC_DEN, SLOC_T, SLOC_T2, SLOC_FEMDEN, SLOC_FEMT, SLOC_FEMT2
-!      REAL, DIMENSION ( :, : ), allocatable :: SLOC2_DEN, SLOC2_T, SLOC2_T2, SLOC2_FEMDEN, SLOC2_FEMT, SLOC2_FEMT2
-!      REAL, DIMENSION ( :, : ), allocatable :: SLOC_SUF_T_BC, SLOC_SUF_T2_BC, SLOC_SUF_D_BC
-! All dimensions/derivatives...
-!      REAL, DIMENSION ( :, :, : ), allocatable :: SCVFENX_ALL
-!      REAL, DIMENSION ( :, : ), allocatable :: SNORMXN_ALL
-!      REAL, DIMENSION ( : ), allocatable :: TXGI_ALL, UDGI_ALL, A_STAR_X_ALL
-!      REAL, DIMENSION ( :, : ), allocatable :: CVNORMX_ALL
-! F: 
-!      REAL, DIMENSION ( :, : ), allocatable :: LOC_F, LOC_FEMF, SLOC_F, SLOC_FEMF, SLOC2_F, SLOC2_FEMF,  FXGI_ALL
-      REAL, DIMENSION ( :, : ), allocatable :: FXGI_ALL
-      REAL, DIMENSION ( :, : ), allocatable :: UDGI_ALL, A_STAR_X_ALL
-      REAL, DIMENSION ( :, : ), allocatable :: VEC_VEL2
-!      INTEGER, DIMENSION ( : ), allocatable :: SELE_LOC_WIC_F_BC
-!      REAL, DIMENSION ( :, : ), allocatable :: SLOC_SUF_F_BC
-      REAL, DIMENSION ( : ), allocatable ::  courant_or_minus_one_new, XI_LIMIT
-      REAL, DIMENSION ( : ), allocatable ::  FEMFGI, RGRAY, RSHAPE, DIFF_COEF, COEF
-      REAL, DIMENSION ( : ), allocatable ::  P_STAR, U_DOT_GRADF_GI, A_STAR_F
-      REAL, DIMENSION ( : ), allocatable ::  RESIDGI, ELE_LENGTH_SCALE, RSCALE, COEF2, FEMFGI_CENT, FEMFGI_UP
-
-
 ! F:
-      ALLOCATE(FXGI_ALL(NDIM,NFIELD)) 
-!      ALLOCATE(SCVFENX_ALL(NDIM,CV_NLOC,SCVNGI))
+      REAL :: FXGI_ALL(NDIM,NFIELD)
 
-!      SCVFENX_ALL(1,:,:)=SCVFENX(:,:)
-!      IF(NDIM.GE.2) SCVFENX_ALL(2,:,:)=SCVFENY(:,:)
-!      IF(NDIM.GE.3) SCVFENX_ALL(3,:,:)=SCVFENZ(:,:)
+      REAL :: UDGI_ALL(NDIM,NFIELD)
+      REAL :: A_STAR_X_ALL(NDIM,NFIELD)
 
-      ALLOCATE(UDGI_ALL(NDIM,NFIELD)) 
-      ALLOCATE(A_STAR_X_ALL(NDIM,NFIELD)) 
-
-      ALLOCATE(courant_or_minus_one_new(NFIELD))
-      ALLOCATE(XI_LIMIT(NFIELD))
+      REAL :: courant_or_minus_one_new(NFIELD)
+      REAL :: XI_LIMIT(NFIELD)
 
 ! Allocate quadrature pt variables...
 
-      ALLOCATE( FEMFGI(NFIELD), RGRAY(NFIELD), RSHAPE(NFIELD), DIFF_COEF(NFIELD), COEF(NFIELD) )
-      ALLOCATE( P_STAR(NFIELD), U_DOT_GRADF_GI(NFIELD), A_STAR_F(NFIELD) )
-      ALLOCATE( RESIDGI(NFIELD), ELE_LENGTH_SCALE(NFIELD), RSCALE(NFIELD), COEF2(NFIELD) )
-      ALLOCATE( FEMFGI_CENT(NFIELD), FEMFGI_UP(NFIELD) )
-      ALLOCATE( VEC_VEL2(NDIM,NFIELD) )
-
-
-
-
+      REAL :: FEMFGI(NFIELD), RGRAY(NFIELD), RSHAPE(NFIELD), DIFF_COEF(NFIELD), COEF(NFIELD) 
+      REAL :: P_STAR(NFIELD), U_DOT_GRADF_GI(NFIELD), A_STAR_F(NFIELD) 
+      REAL :: RESIDGI(NFIELD), ELE_LENGTH_SCALE(NFIELD), RSCALE(NFIELD), COEF2(NFIELD) 
+      REAL :: FEMFGI_CENT(NFIELD), FEMFGI_UP(NFIELD) 
+      REAL :: VEC_VEL2(NDIM,NFIELD) 
 
 
     ! By default do not use first-order upwinding
@@ -9812,20 +9780,11 @@ contains
 
           DO IFIELD=1,NFIELD
              IF ( SELE_LOC_WIC_F_BC(IFIELD) /= WIC_T_BC_DIRICHLET ) THEN ! Don't apply a Dirichlet bc
-!                FEMFGI(IFIELD)    = dot_product( SCVFEN(:, GI ) , LOC_FEMF( IFIELD, : )  )
                 LIMF(IFIELD)    = LOC_F( IFIELD, CV_ILOC )  
              ELSE
-!                DO CV_SKLOC = 1, CV_SNLOC
-!                   FEMFGI(IFIELD) = FEMFGI(IFIELD) +   SHAPE_CV_SNL( CV_SKLOC) * ( SLOC_SUF_F_BC( IFIELD,  CV_SKLOC) & 
-!                     * F_INCOME(IFIELD) + SLOC_FEMF( IFIELD, CV_SKLOC ) * ( 1. - F_INCOME(IFIELD) )   )
-!                END DO
-!        if(cv_siloc==0) stop 819
                 LIMF(IFIELD)    = (1.-F_INCOME(IFIELD))*LOC_F( IFIELD, CV_ILOC )   + F_INCOME(IFIELD)*  SLOC_SUF_F_BC( IFIELD,  CV_SILOC)
              END IF
           END DO ! END OF DO IFIELD=1,NFIELD
-
-!          LIMF(:)    = (1.-F_INCOME(:))*LOC_F( :, CV_ILOC )   + F_INCOME(:)*  FEMFGI(:)
-!          LIMF(IFIELD)    = (1.-F_INCOME(IFIELD))*LOC_F( IFIELD, CV_ILOC )   + F_INCOME(IFIELD)*  SLOC_SUF_F_BC( IFIELD,  CV_SILOC)
 
        ELSE Conditional_CV_DISOPT_ELE2
     ! Extrapolate a downwind value for interface tracking.
