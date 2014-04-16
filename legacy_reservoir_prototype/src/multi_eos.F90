@@ -634,16 +634,16 @@
 
 
 
-    subroutine Calculate_AbsorptionTerm( state, &
+    subroutine Calculate_AbsorptionTerm( state, packed_state,&
          cv_ndgln, mat_ndgln, &
-         satura, perm, &
+         perm, &
          nopt_vel_upwind_coefs, opt_vel_upwind_coefs, u_absorb )
       ! Calculate absorption for momentum eqns
       use matrix_operations
       implicit none
       type( state_type ), dimension( : ), intent( in ) :: state
+      type( state_type ), intent( inout ) :: packed_state
       integer, dimension( : ), intent( in ) :: cv_ndgln, mat_ndgln
-      real, dimension( : ), intent( in ) :: satura
       real, dimension( :, :, : ), intent( in ) :: perm
       integer, intent( in ) :: nopt_vel_upwind_coefs
       real, dimension( : ), intent( inout ) :: opt_vel_upwind_coefs
@@ -656,7 +656,13 @@
            ele, imat, icv, iphase, cv_iloc, idim, jdim, ij,i
       real :: Mobility, pert
       real, dimension( :, :, : ), allocatable :: u_absorb2
-      real, dimension( : ), allocatable :: satura2
+!      real, dimension( : ), allocatable :: satura2
+        real, dimension( :, : ), allocatable :: satura2
+      !Working pointers
+      real, dimension(:,:), pointer :: Satura
+
+    !Get from packed_state
+    call get_var_from_packed_state(packed_state,PhaseVolumeFraction = Satura)
 
 !!$ Obtaining a few scalars that will be used in the current subroutine tree:
       call Get_Primary_Scalars( state, &         
@@ -679,7 +685,7 @@
          Mobility = 0.
       end if
 
-      allocate( u_absorb2( mat_nonods, nphase * ndim, nphase * ndim ), satura2( cv_nonods * nphase ) )
+      allocate( u_absorb2( mat_nonods, nphase * ndim, nphase * ndim ), satura2( nphase, cv_nonods ) )
       u_absorb2 = 0. ; satura2 = 0.
 
       CALL calculate_absorption2( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA, TOTELE, CV_NLOC, MAT_NLOC, &
@@ -687,8 +693,11 @@
            U_ABSORB, PERM, MOBILITY)
 
       PERT = 0.0001
-      SATURA2( 1 : CV_NONODS ) = SATURA( 1 : CV_NONODS ) + PERT
-      IF ( NPHASE > 1 ) SATURA2( 1 + CV_NONODS : 2 * CV_NONODS ) = SATURA( 1 + CV_NONODS : 2 * CV_NONODS ) - PERT
+!      SATURA2( 1 : CV_NONODS ) = SATURA( 1 : CV_NONODS ) + PERT
+!      IF ( NPHASE > 1 ) SATURA2( 1 + CV_NONODS : 2 * CV_NONODS ) = SATURA( 1 + CV_NONODS : 2 * CV_NONODS ) - PERT
+
+      SATURA2( 1,: ) = SATURA( 1,: ) + PERT
+      IF ( NPHASE > 1 ) SATURA2( 2,: ) = SATURA( 2,: ) - PERT
 
       CALL calculate_absorption2( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA2, TOTELE, CV_NLOC, MAT_NLOC, &
            CV_NDGLN, MAT_NDGLN, &
@@ -706,10 +715,14 @@
                      OPT_VEL_UPWIND_COEFS( IJ ) &
                           = U_ABSORB( IMAT, IDIM + ( IPHASE - 1 ) * NDIM, JDIM + ( IPHASE - 1 ) * NDIM ) 
                      ! This is the gradient...
+!                     OPT_VEL_UPWIND_COEFS( IJ + NPHASE * MAT_NONODS * NDIM * NDIM ) &
+!                          = ( U_ABSORB2( IMAT, IDIM + ( IPHASE - 1 ) * NDIM, JDIM + ( IPHASE - 1 ) * NDIM ) &
+!                          - U_ABSORB( IMAT, IDIM + ( IPHASE - 1 ) * NDIM, JDIM + ( IPHASE - 1 ) * NDIM ) )  &
+!                          / ( SATURA2( ICV + ( IPHASE - 1 ) * CV_NONODS ) - SATURA( ICV + ( IPHASE - 1 ) * CV_NONODS ) )
                      OPT_VEL_UPWIND_COEFS( IJ + NPHASE * MAT_NONODS * NDIM * NDIM ) &
                           = ( U_ABSORB2( IMAT, IDIM + ( IPHASE - 1 ) * NDIM, JDIM + ( IPHASE - 1 ) * NDIM ) &
                           - U_ABSORB( IMAT, IDIM + ( IPHASE - 1 ) * NDIM, JDIM + ( IPHASE - 1 ) * NDIM ) )  &
-                          / ( SATURA2( ICV + ( IPHASE - 1 ) * CV_NONODS ) - SATURA( ICV + ( IPHASE - 1 ) * CV_NONODS ) ) 
+                          / ( SATURA2(IPHASE, ICV ) - SATURA(IPHASE, ICV))
                   END DO
                END DO
             END DO
@@ -734,7 +747,7 @@
       !    use cv_advection
       implicit none
       INTEGER, intent( in ) :: MAT_NONODS, CV_NONODS, NPHASE, NDIM, TOTELE, CV_NLOC,MAT_NLOC
-      REAL, DIMENSION( : ), intent( in ) :: SATURA
+      REAL, DIMENSION( :, : ), intent( in ) :: SATURA
       INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
       INTEGER, DIMENSION( : ), intent( in ) :: MAT_NDGLN
       REAL, DIMENSION( :, :, : ), intent( inout ) :: U_ABSORB
@@ -799,7 +812,7 @@
                   Loop_DimensionsJ: DO JDIM = 1, NDIM
 
                      CV_PHA_NOD = CV_NOD + ( IPHASE - 1 ) * CV_NONODS
-                     SATURATION = SATURA( CV_PHA_NOD ) 
+                     SATURATION = SATURA( IPHASE,CV_NOD )
                      IPHA_IDIM = ( IPHASE - 1 ) * NDIM + IDIM 
                      JPHA_JDIM = ( IPHASE - 1 ) * NDIM + JDIM 
 
@@ -807,11 +820,11 @@
                      if (is_corey) then
                           if (options%is_Corey_epsilon_method) then
                              CALL relperm_corey_epsilon( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
-                                 INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(CV_NOD))), IPHASE,&
-                                 options)
+                                 INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(1,CV_NOD))), IPHASE,&
+                                 options)!Second phase is considered inside the subroutine
                           else
                                 CALL relperm_corey( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
-                                     INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(CV_NOD))), IPHASE,&
+                                     INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(1,CV_NOD))), IPHASE,&
                                      options)
                              end if
 
@@ -821,7 +834,7 @@
 
                      else if (is_land) then
                         CALL relperm_land( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
-                             INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(CV_NOD))), IPHASE,&
+                             INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(1,CV_NOD))), IPHASE,&
                              options)
                      else
                         U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ) = 0.0
@@ -1119,7 +1132,7 @@
 !      RETURN
 !    END SUBROUTINE calculate_capillary_pressure
 !
-   SUBROUTINE calculate_capillary_pressure( state, CV_NONODS, NPHASE, capillary_pressure, SATURA )
+   SUBROUTINE calculate_capillary_pressure( state, packed_state, CV_NONODS, NPHASE, capillary_pressure )
 
       ! CAPIL_PRES_OPT is the capillary pressure option for deciding what form it might take.
       ! CAPIL_PRES_COEF( NCAPIL_PRES_COEF, NPHASE, NPHASE ) are the coefficients
@@ -1127,17 +1140,22 @@
       ! used to calculate the capillary pressure.
 
       IMPLICIT NONE
-      type(state_type), dimension(:) :: state
+      type(state_type), dimension(:), intent(in) :: state
+      type(state_type), intent(inout) :: packed_state
       INTEGER, intent( in ) :: CV_NONODS, NPHASE
       REAL, DIMENSION( : ), intent( inout ) :: capillary_pressure
-      REAL, DIMENSION( : ), intent( in ) :: SATURA
       ! Local Variables
       INTEGER :: nstates, ncomps, nphases, IPHASE, JPHASE, i, j, k
       real c, a, S_OR, S_GC, auxO, auxW
       character(len=OPTION_PATH_LEN) option_path, phase_name
-      REAL, DIMENSION( CV_NONODS * NPHASE ) :: saturation
+      REAL, DIMENSION( NPHASE, CV_NONODS ) :: saturation
       !Corey options
       type(corey_options) :: options
+      !Working pointers
+      real, dimension(:,:), pointer :: Satura
+
+      !Get from packed_state
+      call get_var_from_packed_state(packed_state,PhaseVolumeFraction = Satura)
       !Get corey options
       call get_corey_options(options)
       s_gc=options%s_gc
@@ -1184,11 +1202,14 @@
                         auxW = S_OR
                         auxO = S_GC
                     end if
-                    forall (k = 1 + ( JPHASE - 1 ) * CV_NONODS : JPHASE * CV_NONODS)
+!                    forall (k = 1 + ( JPHASE - 1 ) * CV_NONODS : JPHASE * CV_NONODS)
+!                        !Effective saturation has to be between one and zero
+!                        saturation(k) = max(min((saturation(k) - auxW)/(1.0 - auxW -  auxO), 1.0), max(0.5*auxW,0.01))!<--Inferior limit just to avoid NaN... in theory it should never be reached
+!                    end forall                                                                                                                                                  !...value chosen since in the plots below 0.1, Brooks-Corey is not defined
+                    forall (k = 1  : CV_NONODS )
                         !Effective saturation has to be between one and zero
-                        saturation(k) = max(min((saturation(k) - auxW)/(1.0 - auxW -  auxO), 1.0), max(0.5*auxW,0.01))!<--Inferior limit just to avoid NaN... in theory it should never be reached
+                        saturation(jphase,k) = max(min((saturation(jphase,k) - auxW)/(1.0 - auxW -  auxO), 1.0), max(0.5*auxW,0.01))!<--Inferior limit just to avoid NaN... in theory it should never be reached
                     end forall                                                                                                                                                  !...value chosen since in the plots below 0.1, Brooks-Corey is not defined
-
                   call get_option(trim(option_path)//"/phase["//int2str(j)//"]/c", c)
                   call get_option(trim(option_path)//"/phase["//int2str(j)//"]/a", a)
     !Later this is multiplied by a value obtained from the surface tension and the shape and weight functions...
@@ -1197,9 +1218,7 @@
 
                   capillary_pressure( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) = &
                        capillary_pressure( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) + &
-                       c * &
-                       MAX( saturation( 1 + ( JPHASE - 1 ) * CV_NONODS : JPHASE * CV_NONODS )  , 0.0 ) &
-                       ** (-a)
+                       c * saturation( jphase,: ) ** (-a)
                endif
 
             END DO
@@ -1388,13 +1407,13 @@
       return
     end subroutine calculate_viscosity
 
-    subroutine calculate_SUF_SIG_DIAGTEN_BC( suf_sig_diagten_bc, totele, stotel, cv_nloc, &
+    subroutine calculate_SUF_SIG_DIAGTEN_BC( packed_state, suf_sig_diagten_bc, totele, stotel, cv_nloc, &
          cv_snloc, nphase, ndim, nface, mat_nonods, cv_nonods, x_nloc, ncolele, cv_ele_type, &
          finele, colele, cv_ndgln, cv_sndgln, x_ndgln, mat_ndgln, perm, material_absorption, &
-         wic_u_bc, wic_vol_bc, sat, vol, state, x_nonods )
+         wic_u_bc, wic_vol_bc, vol, state, x_nonods )
 
       implicit none
-
+      type( state_type ), intent( inout ) :: packed_state
       integer, intent(in) :: totele, stotel, cv_nloc, cv_snloc, nphase, ndim, nface, &
            mat_nonods, cv_nonods, x_nloc, ncolele, cv_ele_type, x_nonods
       integer, dimension( : ), intent( in ) :: finele
@@ -1406,7 +1425,6 @@
       integer, dimension( : ), intent( in ) :: wic_u_bc, wic_vol_bc
       real, dimension( :, :, : ), intent( in ) :: perm
       real, dimension( :, :, : ), intent( inout ) :: material_absorption
-      real, dimension( : ), intent( in ) :: sat
       real, dimension( : ), intent( in ) :: vol
       type(state_type), dimension( : ) :: state
 
@@ -1431,7 +1449,11 @@
       logical, parameter :: mat_perm_bc_dg = .true.
       logical :: is_land, is_corey
       type(corey_options) :: options
+      !Working pointers
+      real, dimension(:,:), pointer :: Sat
 
+    !Get from packed_state
+    call get_var_from_packed_state(packed_state,PhaseVolumeFraction = Sat)
 
       if( have_option( '/physical_parameters/mobility' ) )then
          call get_option( '/physical_parameters/mobility', mobility )
@@ -1499,8 +1521,8 @@
 
                         ! this is the boundary condition
                         ! of the first phase
-                        satura_bc = sat( cv_snodi )
-
+!                        satura_bc = sat( cv_snodi )
+                        satura_bc = sat(1,cv_snodi )!We consider only the first phase, the second is calculated inside the subroutine if necessary
                         sigma_out = 0.
                         do idim = 1, ndim
                            do jdim = 1, ndim

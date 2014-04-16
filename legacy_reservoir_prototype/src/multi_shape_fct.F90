@@ -2411,7 +2411,6 @@ ewrite(3,*)'lll:', option_path_len
 
 
       deallocate( m, mlx, mly, mlz, sm, smlx, smly )
-
       return
     end subroutine cv_fem_shape_funs
 
