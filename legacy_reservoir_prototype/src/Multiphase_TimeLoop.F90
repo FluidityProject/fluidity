@@ -878,7 +878,14 @@
             end if Conditional_ForceBalanceEquation
 
             Conditional_PhaseVolumeFraction: if ( solve_PhaseVolumeFraction ) then
-
+    !######TEMPORARY CONVERSION FROM OLD PhaseVolumeFraction TO PACKED######
+    do cv_inod = 1, size(SAT_s,2)
+        do iphase = 1, size(SAT_s,1)
+            SAT_s(iphase,cv_inod) = phaseVolumeFraction(cv_inod +(iphase-1)*size(SAT_s,2))
+            OldSAT_s(iphase,cv_inod) = PhaseVolumeFraction_Old(cv_inod +(iphase-1)*size(SAT_s,2))
+        end do
+    end do
+    !#############################################################
                call VolumeFraction_Assemble_Solve( state, packed_state, &
                     NCOLACV, FINACV, COLACV, MIDACV, &
                     small_FINACV, small_COLACV, small_MIDACV, &
@@ -891,7 +898,7 @@
                     CV_NDGLN, X_NDGLN, U_NDGLN, &
                     CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
 !!$
-                    PhaseVolumeFraction, PhaseVolumeFraction_Old, &
+!!                    PhaseVolumeFraction, PhaseVolumeFraction_Old, &
 !!$
                     MAT_NLOC, MAT_NDGLN, MAT_NONODS, &
 !!$
@@ -918,8 +925,16 @@
                     theta_flux_j=sum_theta_flux_j, one_m_theta_flux_j=sum_one_m_theta_flux_j,&
                     StorageIndexes=StorageIndexes )
 
-               PhaseVolumeFraction = min( max( PhaseVolumeFraction, 0.0 ), 1.0 )
+!               PhaseVolumeFraction = min( max( PhaseVolumeFraction, 0.0 ), 1.0 )!<==Now this is inside VolumeFraction_Assemble_Solve
 
+    !######TEMPORARY CONVERSION FROM PACKED PhaseVolumeFraction TO OLD######
+    do cv_inod = 1, size(SAT_s,2)
+        do iphase = 1, size(SAT_s,1)
+            phaseVolumeFraction(cv_inod +(iphase-1)*size(SAT_s,2)) = SAT_s(iphase,cv_inod)
+            PhaseVolumeFraction_Old(cv_inod +(iphase-1)*size(SAT_s,2)) = OldSAT_s(iphase,cv_inod)
+        end do
+    end do
+    !#############################################################
             end if Conditional_PhaseVolumeFraction
 
 !!$ Starting loop over components

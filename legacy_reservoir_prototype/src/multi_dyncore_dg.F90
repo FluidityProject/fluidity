@@ -250,7 +250,7 @@ contains
             CV_NLOC, U_NLOC, X_NLOC, &
             CV_NDGLN, X_NDGLN, U_NDGLN, &
             CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-            T, TOLD, DEN_ALL, DENOLD_ALL, &
+            DEN_ALL, DENOLD_ALL, &
             MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
             T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, SECOND_THETA, T_BETA, &
             SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
@@ -270,13 +270,7 @@ contains
             MEAN_PORE_CV, &
             SMALL_FINACV, SMALL_COLACV, size(small_colacv), mass_Mn_pres, THERMAL, &
             mass_ele_transp,&
-            StorageIndexes=StorageIndexes, for_Sat=.false. )
-
-
-
-
-
-
+            StorageIndexes, -1, T_input = T, TOLD_input=TOLD )
             t=0.
 
             Conditional_Lumping: IF ( LUMP_EQNS ) THEN
@@ -496,7 +490,7 @@ contains
             CV_NLOC, U_NLOC, X_NLOC,  &
             CV_NDGLN, X_NDGLN, U_NDGLN, &
             CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-            T, TOLD, DEN, DENOLD, &
+            DEN, DENOLD, &
             MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
             T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, SECOND_THETA, T_BETA, &
             SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
@@ -516,7 +510,7 @@ contains
             MEAN_PORE_CV, &
             FINACv, COLACV, NCOLACV, ACV, THERMAL, &
             mass_ele_transp , &
-            StorageIndexes=StorageIndexes, for_Sat=.false. )
+            StorageIndexes, -1,  T_input = T, TOLD_input=TOLD )
 
         ELSE ! this is for DG...
 
@@ -887,7 +881,6 @@ contains
     CV_NLOC, U_NLOC, X_NLOC, &
     CV_NDGLN, X_NDGLN, U_NDGLN, &
     CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-    SATURA, SATURAOLD, &
     MAT_NLOC,MAT_NDGLN,MAT_NONODS, &
     V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
     SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
@@ -934,8 +927,7 @@ contains
         integer, dimension(:,:), intent(in) :: global_dense_block_acv
         INTEGER, DIMENSION( : ), intent( in ) :: FINDCT
         INTEGER, DIMENSION( : ), intent( in ) :: COLCT
-
-        REAL, DIMENSION( : ), intent( inout ) :: SATURA, SATURAOLD, Sat_FEMT, DEN_FEMT
+        REAL, DIMENSION( : ), intent( inout ) :: Sat_FEMT, DEN_FEMT
         REAL, DIMENSION( :, :), intent( inout ), optional :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
         INTEGER, intent( in ) :: V_DISOPT, V_DG_VEL_INT_OPT
         REAL, intent( in ) :: DT, V_THETA
@@ -974,8 +966,16 @@ contains
         INTEGER :: STAT, i,j, IGOT_THERM_VIS
         character( len = option_path_len ) :: path
         LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE.
-        type( scalar_field ), pointer :: p
+        real, dimension(:), allocatable :: X
         type( tensor_field ), pointer :: den_all2, denold_all2
+        !type( scalar_field ), pointer :: p
+        !Working pointers
+        real, dimension(:), pointer :: p
+        real, dimension(:,:), pointer :: satura,saturaold
+
+      call get_var_from_packed_state(packed_state,FEPressure = P,&
+      PhaseVolumeFraction = satura,OldPhaseVolumeFraction = saturaold )
+
 
         GET_THETA_FLUX = .FALSE.
         IGOT_T2 = 0
@@ -1031,7 +1031,7 @@ contains
             IGOT_THERM_VIS=0
             ALLOCATE( THERM_U_DIFFUSION(NDIM,NDIM,NPHASE,MAT_NONODS*IGOT_THERM_VIS ) )
 
-         p => extract_scalar_field( packed_state, "FEPressure" )
+!         p => extract_scalar_field( packed_state, "FEPressure" )
 
 
         Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, 1 !nits_flux_lim
@@ -1048,13 +1048,13 @@ contains
             CV_NLOC, U_NLOC, X_NLOC, &
             CV_NDGLN, X_NDGLN, U_NDGLN, &
             CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-            SATURA, SATURAOLD, DEN_ALL, DENOLD_ALL, &
+            DEN_ALL, DENOLD_ALL, &
             MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
             V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, SECOND_THETA, V_BETA, &
             SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
             SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2,  &
             WIC_VOL_BC, WIC_D_BC, WIC_U_BC, &
-            DERIV, P%val, &
+            DERIV, P, &
             V_SOURCE, V_ABSORB, VOLFRA_PORE, &
             NDIM, GETCV_DISC, GETCT, &
             NCOLM, FINDM, COLM, MIDM, &
@@ -1068,19 +1068,26 @@ contains
             MEAN_PORE_CV, &
             SMALL_FINACV, SMALL_COLACV, size(small_colacv), mass_Mn_pres, THERMAL, &
             mass_ele_transp,&
-            StorageIndexes=StorageIndexes, for_Sat=.true.)
+            StorageIndexes, 3 )
 
-            satura=0.0 !saturaold([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)])
+!            satura=0.0 !saturaold([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)])
 
+            allocate(X(size(CV_RHS,1)))
+            X = 0.
             call assemble_global_multiphase_csr(acv,&
             block_acv,dense_block_matrix,&
             block_to_global_acv,global_dense_block_acv)
-            CALL SOLVER( ACV, SATURA, CV_RHS, &
+
+            CALL SOLVER( ACV, X, CV_RHS, &
             FINACV, COLACV, &
             trim(option_path) )
+            !Copy and force to be between bounds
+            do j = 1, cv_nonods
+                satura(:,j) = min(max(x(1+(j-1)*NPHASE : j*NPHASE),0.0),1.0)
+            end do
+            deallocate(X)
 
-            satura([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)])=satura
-
+!            satura([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)])=satura
         END DO Loop_NonLinearFlux
 
         DEALLOCATE( ACV )
@@ -2131,7 +2138,7 @@ contains
         CV_NLOC, U_NLOC, X_NLOC, &
         CV_NDGLN, X_NDGLN, U_NDGLN, &
         CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-        SATURA, SATURAOLD, DEN_OR_ONE, DENOLD_OR_ONE, &
+        DEN_OR_ONE, DENOLD_OR_ONE, &
         MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
         V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, SECOND_THETA, V_BETA, &
         SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
@@ -2151,7 +2158,7 @@ contains
         MEAN_PORE_CV, &
         FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL, &
         dummy_transp, &
-        StorageIndexes=StorageIndexes, For_Sat=.false. )
+        StorageIndexes, 3 )
 
         ewrite(3,*)'Back from cv_assemb'
 

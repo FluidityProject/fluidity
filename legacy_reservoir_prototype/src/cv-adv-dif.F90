@@ -58,7 +58,7 @@ contains
          CV_NLOC, U_NLOC, X_NLOC, &
          CV_NDGLN, X_NDGLN, U_NDGLN, &
          CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-         T, TOLD, DEN_ALL, DENOLD_ALL, &
+         DEN_ALL, DENOLD_ALL, &
          MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
          CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, SECOND_THETA, CV_BETA, &
          SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
@@ -78,8 +78,8 @@ contains
          MEAN_PORE_CV, &
          FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL, &
          MASS_ELE_TRANSP, &
-         option_path_spatial_discretisation,&
-         StorageIndexes, For_Sat )
+         StorageIndexes, Field_selector, icomp,&
+         option_path_spatial_discretisation,T_input,TOLD_input)
 
       !  =====================================================================
       !     In this subroutine the advection terms in the advection-diffusion
@@ -211,7 +211,7 @@ contains
            CV_SNLOC, U_SNLOC, STOTEL, CV_DISOPT, CV_DG_VEL_INT_OPT, NDIM, &
            NCOLM, XU_NLOC, NCOLELE, NOPT_VEL_UPWIND_COEFS, &
            IGOT_T2, IGOT_THETA_FLUX, SCVNGI_THETA, IN_ELE_UPWIND, DG_ELE_UPWIND, &
-           NCOLCMC
+           NCOLCMC, Field_selector
       INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
       INTEGER, DIMENSION( : ), intent( in ) ::  X_NDGLN
       INTEGER, DIMENSION( : ), intent( in ) :: U_NDGLN
@@ -236,8 +236,7 @@ contains
       INTEGER, DIMENSION( : ), intent( in ) :: FINDCMC
       INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
       REAL, DIMENSION( : ), intent( inout ) :: MASS_MN_PRES
-
-      REAL, DIMENSION( : ), intent( in ) :: T, TOLD
+      REAL, DIMENSION( : ), optional, intent( in ) :: T_input, TOLD_input !<========TEMPORARY UNTIL ALL THE VARIABLES ARE INSIDE PACKED_STATE!!!
       REAL, DIMENSION( :, : ), intent( in ) :: DEN_ALL, DENOLD_ALL
       REAL, DIMENSION( : ), intent( in ) :: T2, T2OLD
       REAL, DIMENSION( :, : ), intent( inout ) :: THETA_GDIFF ! (NPHASE,CV_NONODS)
@@ -257,7 +256,7 @@ contains
       REAL, DIMENSION( : ), intent( in ) :: SOURCT
       REAL, DIMENSION( :, :, : ), intent( in ) :: ABSORBT
       REAL, DIMENSION( : ), intent( in ) :: VOLFRA_PORE
-      LOGICAL, intent( in ) :: GETCV_DISC, GETCT, GET_THETA_FLUX, USE_THETA_FLUX, THERMAL, For_Sat
+      LOGICAL, intent( in ) :: GETCV_DISC, GETCT, GET_THETA_FLUX, USE_THETA_FLUX, THERMAL
       INTEGER, DIMENSION( : ), intent( in ) :: FINDM
       INTEGER, DIMENSION( : ), intent( in ) :: COLM
       INTEGER, DIMENSION( : ), intent( in ) :: MIDM
@@ -271,7 +270,7 @@ contains
       character( len = * ), intent( in ), optional :: option_path_spatial_discretisation
       integer, dimension(:), intent(in) :: SMALL_FINDRM, SMALL_COLM, SMALL_CENTRM
       integer, dimension(:), intent(inout) :: StorageIndexes
-
+     integer, optional, intent(in) :: icomp
       !character( len = option_path_len ), intent( in ), optional :: option_path_spatial_discretisation
 
 
@@ -431,9 +430,9 @@ contains
       REAL :: BCZERO(NPHASE) 
 
 
-      REAL, DIMENSION( :, :, : ), ALLOCATABLE :: U_ALL, NU_ALL, NUOLD_ALL, ABSORBT_ALL
-      REAL, DIMENSION( :, : ), ALLOCATABLE :: X_ALL, T_ALL, TOLD_ALL, &
-           T2_ALL, T2OLD_ALL, FEMT_ALL, FEMTOLD_ALL, &
+      REAL, DIMENSION( :, :, : ), ALLOCATABLE :: ABSORBT_ALL!U_ALL, NU_ALL, NUOLD_ALL,
+      REAL, DIMENSION( :, : ), ALLOCATABLE :: &!X_ALL, T_ALL, TOLD_ALL,
+            T2_ALL, T2OLD_ALL, FEMT_ALL, FEMTOLD_ALL, &
            FEMDEN_ALL, FEMDENOLD_ALL, FEMT2_ALL, FEMT2OLD_ALL, SOURCT_ALL
       LOGICAL, DIMENSION( : ), ALLOCATABLE :: DOWNWIND_EXTRAP_INDIVIDUAL
       LOGICAL, DIMENSION( :, : ), ALLOCATABLE :: IGOT_T_PACK, IGOT_T_CONST
@@ -447,18 +446,60 @@ contains
            &                                     SUF_T2_BC_ALL, SUF_T2_BC_ROB1_ALL, SUF_T2_BC_ROB2_ALL   
       REAL, DIMENSION( :, :, :, : ), ALLOCATABLE :: SUF_U_BC_ALL
 
-      TYPE( TENSOR_FIELD ), POINTER :: U_s, NU_s, NUOLD_s
+!      TYPE( TENSOR_FIELD ), POINTER :: U_s, NU_s, NUOLD_s
       REAL, DIMENSION( : ), ALLOCATABLE :: U, V, W, NU, NUOLD, NV, NVOLD, NW, NWOLD
+!      type( vector_field ), pointer:: x
+      !Working pointers
+      real, dimension(:), allocatable :: T, TOLD !<= TEMPORARY, TO REMOVE WHEN CONVERSION IS FINISHED
+      real, dimension(:,:), allocatable, target :: T_ALL_TARGET, TOLD_ALL_TARGET
+      real, dimension(:,:), pointer :: T_ALL, TOLD_ALL, X_ALL
+      real, dimension(:, :, :), pointer :: comp, comp_old, U_ALL, NU_ALL, NUOLD_ALL
+      !#################SET WORKING VARIABLES#################
+      call get_var_from_packed_state(packed_state,PressureCoordinate = X_ALL,&
+      OldNonlinearVelocity = NUOLD_ALL, NonlinearVelocity = NU_ALL)
+      !For every Field_selector value but 3 (saturation) we need U_ALL to be NU_ALL
+      U_ALL => NU_ALL
+      if (.not.present(T_input)) then!<==TEMPORARY
+          select case (Field_selector)
+              case (1)!Temperature
+                  call get_var_from_packed_state(packed_state,Temperature = T_ALL,&
+                  OldTemperature = TOLD_ALL)
+              case (2)!Component mass fraction
+                  if (present(icomp)) then
+                      call get_var_from_packed_state(packed_state,ComponentMassFraction = comp, &
+                      OldComponentMassFraction = comp_old )
+                      T_ALL => comp(icomp,:,:)
+                      TOLD_ALL => comp_old(icomp,:,:)
+                  else
+                      FLAbort('Component field require to introduce icomp')
+                  end if
+              case (3)!Saturation
+                  call get_var_from_packed_state(packed_state,PhaseVolumeFraction = T_ALL,&
+                  OldPhaseVolumeFraction = TOLD_ALL, Velocity = U_ALL)
+              case default
+                  FLAbort('Invalid field_selector value')
+          end select
 
+      else
+          ALLOCATE( T_ALL_TARGET( NPHASE, CV_NONODS ), TOLD_ALL_TARGET( NPHASE, CV_NONODS ) )
+          do cv_inod = 1, cv_nonods
+              do iphase = 1, nphase
+                  T_ALL_TARGET(iphase, cv_inod) = T_input(cv_inod+(iphase-1)*cv_nonods)
+                  TOLD_ALL_TARGET(iphase, cv_inod) = TOLD_input(cv_inod+(iphase-1)*cv_nonods)
+              end do
+          end do
+          T_ALL => T_ALL_TARGET
+          TOLD_ALL => TOLD_ALL_TARGET
+      end if
+      allocate (T (NPHASE* CV_NONODS), TOLD(NPHASE* CV_NONODS))!TEMPORARY
 
-      type( vector_field ), pointer:: x
+     !##################END OF SET VARIABLES##################
 
-
-      x => extract_vector_field( packed_state, "PressureCoordinate" )
-      allocate( x_all( ndim, x_nonods ) ) ; x_all=0.0
-      x_all( 1, : ) = x % val( 1, : )
-      if (ndim >=2 ) x_all( 2, : ) = x % val( 2, : )
-      if (ndim >=3 ) x_all( 3, : ) = x % val( 3, : )
+!      x => extract_vector_field( packed_state, "PressureCoordinate" )
+!      allocate( x_all( ndim, x_nonods ) ) ; x_all=0.0
+!      x_all( 1, : ) = x % val( 1, : )
+!      if (ndim >=2 ) x_all( 2, : ) = x % val( 2, : )
+!      if (ndim >=3 ) x_all( 3, : ) = x % val( 3, : )
 
 
 
@@ -703,9 +744,10 @@ contains
 
       ALLOCATE( DEN( NPHASE * CV_NONODS ), DENOLD( NPHASE * CV_NONODS ) )
 
-      ALLOCATE( U_ALL( NDIM, NPHASE, U_NONODS ), NU_ALL( NDIM, NPHASE, U_NONODS ), NUOLD_ALL( NDIM, NPHASE, U_NONODS ) )
+!      ALLOCATE( U_ALL( NDIM, NPHASE, U_NONODS ), NU_ALL( NDIM, NPHASE, U_NONODS ), NUOLD_ALL( NDIM, NPHASE, U_NONODS ) )
 !      ALLOCATE( X_ALL( NDIM, X_NONODS ) )
-      ALLOCATE( T_ALL( NPHASE, CV_NONODS ), TOLD_ALL( NPHASE, CV_NONODS ) )
+!      ALLOCATE( T_ALL( NPHASE, CV_NONODS ), TOLD_ALL( NPHASE, CV_NONODS ) )
+
       ALLOCATE( T2_ALL( NPHASE, CV_NONODS ), T2OLD_ALL( NPHASE, CV_NONODS ) )
 
       ALLOCATE( FEMT_ALL( NPHASE, CV_NONODS ), FEMTOLD_ALL( NPHASE, CV_NONODS ) )
@@ -741,15 +783,15 @@ contains
 
 
 
-      NU_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedNonlinearVelocity" )
-      NU_ALL = NU_s % val
-
-      NUOLD_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldNonlinearVelocity" )
-      NUOLD_ALL = NUOLD_s % val
-
-      U_ALL = NU_ALL
-      U_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedVelocity" )
-      if ( for_Sat ) U_ALL = U_s % val
+!      NU_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedNonlinearVelocity" )
+!      NU_ALL = NU_s % val
+!
+!      NUOLD_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldNonlinearVelocity" )
+!      NUOLD_ALL = NUOLD_s % val
+!
+!      U_ALL = NU_ALL
+!      U_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedVelocity" )
+!      if ( for_Sat ) U_ALL = U_s % val
 
       ALLOCATE( U( NPHASE * U_NONODS ) ) ; U=0.0
       ALLOCATE( V( NPHASE * U_NONODS ) ) ; V=0.0
@@ -803,8 +845,11 @@ contains
          DEN( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS ) = DEN_ALL( IPHASE, : )
          DENOLD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS ) = DENOLD_ALL( IPHASE, : )
 
-         T_ALL( IPHASE, : ) = T( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
-         TOLD_ALL( IPHASE, : ) = TOLD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
+!         T_ALL( IPHASE, : ) = T( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
+!         TOLD_ALL( IPHASE, : ) = TOLD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
+
+         T( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS ) = T_ALL( IPHASE, : )
+         TOLD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS ) = TOLD_ALL( IPHASE, : )
 
          IF ( IGOT_T2 == 1 ) THEN
             T2_ALL( IPHASE, : ) = T2( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
@@ -2752,6 +2797,9 @@ contains
       DEALLOCATE(DENOLDUPWIND_MAT_ALL)
       DEALLOCATE(T2UPWIND_MAT_ALL)
       DEALLOCATE(T2OLDUPWIND_MAT_ALL)
+
+
+      deallocate (t, told)!TEMPORARY
 
       ewrite(3,*) 'Leaving CV_ASSEMB'
 
