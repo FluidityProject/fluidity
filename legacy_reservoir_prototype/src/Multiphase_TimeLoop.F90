@@ -1195,22 +1195,18 @@
 
                   ! linearise compositional fields:
                   Conditional_Components_Linearisation2: if ( ncomp > 1 ) then
-                     call Updating_Linearised_Components( totele, nphase, ncomp, ndim, cv_nloc, cv_nonods, cv_ndgln, &
-                          component )
-
-                     !component_old = component
 
                      do icomp = 1, ncomp
                         do iphase = 1, nphase
+
+                           call Updating_Linearised_Components( totele, ndim, cv_nloc, cv_nonods, cv_ndgln, &
+                              component ( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
+                              nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods ) )
+
                            Component_State => extract_scalar_field( state( icomp + nphase ), & 
                                 'ComponentMassFractionPhase' // int2str( iphase ) )
                            Component_State % val = component( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
                                 nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
-
-                           !Component_State => extract_scalar_field( state( icomp + nphase ), & 
-                           !     'ComponentMassFractionPhase' // int2str( iphase ) // 'Old' )
-                           !Component_State % val = component_old( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
-                           !     nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
                         end do
                      end do
                   end if Conditional_Components_Linearisation2
@@ -1652,46 +1648,39 @@
 
     end subroutine MultiFluids_SolveTimeLoop
 
-    subroutine Updating_Linearised_Components( totele, nphase, ncomp, ndim, cv_nloc, cv_nonods, cv_ndgln, &
+    subroutine Updating_Linearised_Components( totele, ndim, cv_nloc, cv_nonods, cv_ndgln, &
          component )
       implicit none
-      integer, intent( in ) :: totele, nphase, ncomp, ndim, cv_nloc, cv_nonods
+      integer, intent( in ) :: totele, ndim, cv_nloc, cv_nonods
       integer, dimension( : ), intent( in ) :: cv_ndgln
       real, dimension ( : ), intent( inout ) :: component
 !!$Local variables
-      integer :: ele, iphase, cv_iloc, cv_nod, cv_nod_pha
-      real, dimension( : ), allocatable :: density_tmp
-      real, dimension( :, : ), allocatable :: den_cv_nod
+      integer :: ele, cv_iloc, cv_nod
+      real, dimension( : ), allocatable :: density_tmp, den_cv_nod
 
-      allocate( density_tmp( cv_nonods * nphase * max( 1, ncomp ) ), den_cv_nod( cv_nloc, nphase ) ) ; &
-           density_tmp = 0. ; den_cv_nod = 0.
+      allocate( density_tmp( cv_nonods ), den_cv_nod( cv_nloc ) )
+      density_tmp = 0. ; den_cv_nod = 0.
 
       Conditional_CV_Number: if( cv_nloc == 6 .or. (cv_nloc == 10 .and. ndim==3) ) then ! P2 triangle or tet
          density_tmp = component
          Loop_Elements: do ele = 1, totele
             Loop_CV: do cv_iloc = 1, cv_nloc
                cv_nod = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
-               do iphase = 1, nphase
-                  cv_nod_pha = cv_nod + ( iphase - 1 ) * cv_nonods
-                  den_cv_nod( cv_iloc, iphase ) = density_tmp( cv_nod_pha )
-               end do
+               den_cv_nod( cv_iloc ) = density_tmp( cv_nod )
             end do Loop_CV
 
-            den_cv_nod( 2, : ) = 0.5 * ( den_cv_nod( 1, : ) + den_cv_nod( 3, : ) )
-            den_cv_nod( 4, : ) = 0.5 * ( den_cv_nod( 1, : ) + den_cv_nod( 6, : ) )
-            den_cv_nod( 5, : ) = 0.5 * ( den_cv_nod( 3, : ) + den_cv_nod( 6, : ) )
+            den_cv_nod( 2 ) = 0.5 * ( den_cv_nod( 1 ) + den_cv_nod( 3 ) )
+            den_cv_nod( 4 ) = 0.5 * ( den_cv_nod( 1 ) + den_cv_nod( 6 ) )
+            den_cv_nod( 5 ) = 0.5 * ( den_cv_nod( 3 ) + den_cv_nod( 6 ) )
             if( cv_nloc == 10 ) then
-               den_cv_nod( 7, : ) = 0.5 * ( den_cv_nod( 1, : ) + den_cv_nod( 10, : ) )
-               den_cv_nod( 8, : ) = 0.5 * ( den_cv_nod( 3, : ) + den_cv_nod( 10, : ) )
-               den_cv_nod( 9, : ) = 0.5 * ( den_cv_nod( 6, : ) + den_cv_nod( 10, : ) )
+               den_cv_nod( 7 ) = 0.5 * ( den_cv_nod( 1 ) + den_cv_nod( 10 ) )
+               den_cv_nod( 8 ) = 0.5 * ( den_cv_nod( 3 ) + den_cv_nod( 10 ) )
+               den_cv_nod( 9 ) = 0.5 * ( den_cv_nod( 6 ) + den_cv_nod( 10 ) )
             end if
 
             Loop_CV2: do cv_iloc = 1, cv_nloc
                cv_nod = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
-               do iphase = 1, nphase
-                  cv_nod_pha = cv_nod + ( iphase - 1 ) * cv_nonods
-                  component( cv_nod_pha ) = den_cv_nod( cv_iloc, iphase )
-               end do
+               component( cv_nod ) = den_cv_nod( cv_iloc )
             end do Loop_CV2
 
          end do Loop_Elements
