@@ -9900,12 +9900,6 @@ contains
                   
                    RSHAPE(IFIELD)    = SCVFEN( CV_KLOC, GI ) + RGRAY(IFIELD)
                    FEMFGI(IFIELD)    = FEMFGI(IFIELD)     +  RSHAPE(IFIELD)     * LOC_FEMF( IFIELD, CV_KLOC) 
-!       if((cv_nodi==67).and.(cv_nodj==736)) then
-!       if(ifield==1) then
-!            print *,'--cv_kloc,FEMFGI(IFIELD), RSHAPE(IFIELD),LOC_FEMF( IFIELD, CV_KLOC):', &
-!                       cv_kloc,FEMFGI(IFIELD), RSHAPE(IFIELD),LOC_FEMF( IFIELD, CV_KLOC)
-!       endif
-!       endif
                 ELSE
 
                    FEMFGI(IFIELD)    = FEMFGI(IFIELD)     +  SCVFEN( CV_KLOC, GI ) * LOC_FEMF( IFIELD, CV_KLOC)            
@@ -9956,42 +9950,6 @@ contains
        ENDIF Conditional_CV_DISOPT_ELE2
 
     END SELECT
-
-
-! limiting ****************************************start
-
-
-      if(.false.) then
-!         if((cv_nodi==90).and.(cv_nodj==795)) then
-!         if((cv_nodi==67).and.(cv_nodj==736)) then
-!         if((cv_nodi==1).and.(cv_nodj==1)) then
-!         if((cv_nodi==433).and.(cv_nodj==435)) then
-!         if((cv_nodi==41).and.(cv_nodj==41)) then
-!         if((cv_nodi==26).and.(cv_nodj==701)) then
-         if((cv_nodi==26).and.(cv_nodj==26)) then
-!         if(sele==26) then
-            print *,'femfgi=',femfgi
-            print *,'limf=',limf
-            print  *,'F_INCOME:',F_INCOME
-            print *,'FUPWIND_IN:',FUPWIND_IN
-            print *,'FUPWIND_out:',FUPWIND_out
-            print *,'F_CV_NODI:',F_CV_NODI
-            print *,'F_CV_NODj:',F_CV_NODj
-            print *,'XI_LIMIT:',XI_LIMIT 
-            print *,'F_INCOME:',F_INCOME
-            print *,'F_NDOTQ:',F_NDOTQ
-            print *,'SHAPE_CV_SNL:', SHAPE_CV_SNL
-            print *,'SLOC_SUF_F_BC:',SLOC_SUF_F_BC
-            print *,'SLOC_FEMF:',SLOC_FEMF
-            print *,'sum(SHAPE_CV_SNL( 1:CV_SNLOC, GI )):',sum(SHAPE_CV_SNL( 1:CV_SNLOC ))
-            print *,'SHAPE_CV_SNL( :, GI ):',SHAPE_CV_SNL( : )
-            print *,'cv_snloc,cv_nloc:',cv_snloc,cv_nloc
-            print *,'---'
-         endif
-      endif
-
-! limiting ****************************************end
-
 
 
     RETURN
