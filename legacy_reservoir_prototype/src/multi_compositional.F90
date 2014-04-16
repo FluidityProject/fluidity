@@ -37,9 +37,9 @@
 
   contains
 
-    subroutine Calculate_ComponentAbsorptionTerm( state, packed_state, &
+    subroutine Calculate_ComponentAbsorptionTerm( state, &
          icomp, cv_ndgln, & 
-         denold, volfra_pore, mass_ele, &
+         denold, saturaold, volfra_pore, mass_ele, &
          comp_absorb )
 
 !!$ Calculate compositional model linkage between the phase expressed in COMP_ABSORB. 
@@ -48,10 +48,9 @@
 
       implicit none
       type( state_type ), dimension( : ), intent( in ) :: state
-      type( state_type ), intent( inout ) :: packed_state
       integer, intent( in ) :: icomp
       integer, dimension( : ), intent( in ) :: cv_ndgln
-      real, dimension( : ), intent( in ) :: volfra_pore, mass_ele
+      real, dimension( : ), intent( in ) :: saturaold, volfra_pore, mass_ele
       real, dimension( :, :, : ), intent( in ) :: denold
       real, dimension( :, :, : ), intent( inout ) :: comp_absorb
 
@@ -67,11 +66,6 @@
       real, dimension( : ), allocatable :: alpha, sum_nod, volfra_pore_nod 
       real, dimension( :, :, : ), allocatable :: k_comp
       real, dimension( :, :, :, : ), allocatable :: k_comp2
-      !working pointers
-      real, dimension(:,:), pointer :: satura
-
-      call get_var_from_packed_state(packed_state,PhaseVolumeFraction = satura)
-
 
       call Get_Primary_Scalars( state, &         
            nphase, nstate, ncomp, totele, ndim, stotel, &
@@ -112,12 +106,8 @@
       COMP_ABSORB = 0.0
       MIN_K = max( 1.e-1, MINVAL( K_COMP( ICOMP, : , : )))
       MAX_K = MAXVAL( K_COMP( ICOMP, : , : ) )
-!      CALL Calc_KComp2( cv_nonods, nphase, ncomp, icomp, KComp_Sigmoid, &
-!           min( 1., max( 0., Saturaold )), K_Comp, max_k, min_k, &
-!           K_Comp2 )
-
       CALL Calc_KComp2( cv_nonods, nphase, ncomp, icomp, KComp_Sigmoid, &
-           min( 1., max( 0., satura )), K_Comp, max_k, min_k, &
+           min( 1., max( 0., Saturaold )), K_Comp, max_k, min_k, &
            K_Comp2 )
 
       !ewrite(3,*)'icomp, min,max K:', ICOMP, MIN_K, MAX_K
@@ -126,19 +116,11 @@
          DO IPHASE = 1, NPHASE
             DO JPHASE = IPHASE + 1, NPHASE, 1
 
-!               ALPHA( CV_NOD ) = ALPHA_BETA * VOLFRA_PORE_NOD( CV_NOD ) * &
-!                    ( max( 0.0, SATURAOLD( ( IPHASE - 1) * CV_NONODS + CV_NOD ) * &
-!                    DENOLD( ( IPHASE - 1) * CV_NONODS + CV_NOD )) / &
-!                    K_COMP2( ICOMP, CV_NOD, IPHASE, JPHASE ) + &
-!                    max( 0.0, SATURAOLD( ( JPHASE - 1) * CV_NONODS + CV_NOD ) * &
-!                    DENOLD( ( JPHASE - 1) * CV_NONODS + CV_NOD ))) / DT
-
                ALPHA( CV_NOD ) = ALPHA_BETA * VOLFRA_PORE_NOD( CV_NOD ) * &
-
-                    ( max( 0.0, SATURA( IPHASE, CV_NOD ) * &
+                    ( max( 0.0, SATURAOLD( ( IPHASE - 1) * CV_NONODS + CV_NOD ) * &
                     DENOLD( 1, IPHASE, CV_NOD ) ) / &
                     K_COMP2( ICOMP, CV_NOD, IPHASE, JPHASE ) + &
-                    max( 0.0, SATURA( JPHASE,CV_NOD ) * &
+                    max( 0.0, SATURAOLD( ( JPHASE - 1) * CV_NONODS + CV_NOD ) * &
                     DENOLD( 1, JPHASE, CV_NOD ) ) ) / DT
 
                COMP_ABSORB( CV_NOD, IPHASE, IPHASE ) = &
@@ -157,17 +139,10 @@
          DO IPHASE = 1, NPHASE
             DO JPHASE = 1, IPHASE - 1
 
-!               ALPHA( CV_NOD ) = ALPHA_BETA * VOLFRA_PORE_NOD( CV_NOD ) * &
-!                    ( max(0.0,SATURAOLD( ( IPHASE - 1) * CV_NONODS + CV_NOD ) * &
-!                    DENOLD( ( IPHASE - 1) * CV_NONODS + CV_NOD )) + &
-!                    max(0.0,SATURAOLD( ( JPHASE - 1) * CV_NONODS + CV_NOD ) * &
-!                    DENOLD( ( JPHASE - 1) * CV_NONODS + CV_NOD )) / &
-!                    K_COMP2( ICOMP, CV_NOD, JPHASE, IPHASE )) / DT
-
                ALPHA( CV_NOD ) = ALPHA_BETA * VOLFRA_PORE_NOD( CV_NOD ) * &
-                    ( max(0.0,SATURA (IPHASE, CV_NOD ) * &
+                    ( max(0.0,SATURAOLD( ( IPHASE - 1) * CV_NONODS + CV_NOD ) * &
                     DENOLD( 1, IPHASE, CV_NOD ) ) + &
-                    max(0.0,SATURA (JPHASE, CV_NOD ) * &
+                    max(0.0,SATURAOLD( ( JPHASE - 1) * CV_NONODS + CV_NOD ) * &
                     DENOLD( 1, JPHASE, CV_NOD ) ) / &
                     K_COMP2( ICOMP, CV_NOD, JPHASE, IPHASE ) ) / DT
 
@@ -714,7 +689,7 @@
       implicit none
       integer, intent( in ) :: cv_nonods, nphase, ncomp, icomp
       logical, intent( in ) :: KComp_Sigmoid
-      real, dimension( :, : ), intent( in ) :: Satura
+      real, dimension( : ), intent( in ) :: Satura
       real, dimension( :, :, : ), intent( in ) :: K_Comp
       real, intent( in ) :: max_k, min_k 
       real, dimension( :, :, :, : ), intent( inout ) :: K_Comp2
@@ -746,8 +721,7 @@
                do jphase = 1, nphase
                   if ( jphase /= iphase ) then
                      K_Comp2( icomp, cv_nod, iphase, jphase ) = &
-!                          1. / sigmoid_function( satura( ( iphase - 1 ) * cv_nonods + cv_nod ), &
-                           1. / sigmoid_function( satura(iphase,cv_nod ), &
+                          1. / sigmoid_function( satura( ( iphase - 1 ) * cv_nonods + cv_nod ), &
                           Sat0, Width, min_k, max_k )
                          !Sat0, Width, max_k, min_k )
                   endif
@@ -812,17 +786,16 @@
 
 
 
-    SUBROUTINE CAL_COMP_SUM2ONE_SOU( packed_state, V_SOURCE_COMP, CV_NONODS, NPHASE, NCOMP2, DT, ITS, NITS, &
-         MEAN_PORE_CV, COMP, COMPOLD )
+    SUBROUTINE CAL_COMP_SUM2ONE_SOU( V_SOURCE_COMP, CV_NONODS, NPHASE, NCOMP2, DT, ITS, NITS, &  
+         MEAN_PORE_CV, SATURA, SATURAOLD, COMP, COMPOLD )
       ! make sure the composition sums to 1.0 
       use futils
       implicit none
-      type( state_type ) :: packed_state
       integer, intent( in ) :: cv_nonods, nphase, ncomp2, its, nits
       real, intent( in ) :: dt
       real, dimension( : ), intent( inout ) :: V_SOURCE_COMP
       real, dimension( : ), intent( in ) :: MEAN_PORE_CV
-!      real, dimension( : ), intent( in ) :: SATURA
+      real, dimension( : ), intent( in ) :: SATURA, SATURAOLD
       real, dimension( : ), intent( in ) :: COMP, COMPOLD
 
       ! the relaxing (sum2one_relax) is to help convergence. 
@@ -831,11 +804,6 @@
       real :: sum2one_relax, comp_sum
       integer :: iphase, cv_nodi, icomp
       logical :: ensure_positive
-    !Working pointer
-      real, dimension(:,:), pointer ::satura
-
-     call get_var_from_packed_state(packed_state,PhaseVolumeFraction = satura)
-
 
       if( have_option( '/material_phase[' // int2str( nphase ) // &
            ']/is_multiphase_component/Comp_Sum2One/Relaxation_Coefficient' ) ) then
@@ -863,10 +831,10 @@
 
             IF ( ENSURE_POSITIVE ) THEN
                V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) = V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) & 
-                    - SUM2ONE_RELAX * MEAN_PORE_CV( CV_NODI ) * SATURA( IPHASE, CV_NODI ) * MAX( ( 1. - COMP_SUM ), 0. ) / DT
+                    - SUM2ONE_RELAX * MEAN_PORE_CV( CV_NODI ) * SATURA( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) * MAX( ( 1. - COMP_SUM ), 0. ) / DT
             ELSE
                V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) = V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) & 
-                    - SUM2ONE_RELAX * MEAN_PORE_CV( CV_NODI ) * SATURA( IPHASE, CV_NODI ) * ( 1. - COMP_SUM ) / DT
+                    - SUM2ONE_RELAX * MEAN_PORE_CV( CV_NODI ) * SATURA( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) * ( 1. - COMP_SUM ) / DT
             END IF
 
          END DO
