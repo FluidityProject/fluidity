@@ -137,8 +137,8 @@ contains
         REAL, DIMENSION( :, : ), intent( inout ) :: THETA_GDIFF
         REAL, DIMENSION( :,: ), intent( inout ), optional :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
         REAL, DIMENSION( :,:,:, : ), intent( in ) :: TDIFFUSION
-      INTEGER, intent( in ) :: IGOT_THERM_VIS
-      REAL, DIMENSION(NDIM,NDIM,NPHASE,MAT_NONODS*IGOT_THERM_VIS), intent( in ) :: THERM_U_DIFFUSION
+        INTEGER, intent( in ) :: IGOT_THERM_VIS
+        REAL, DIMENSION(NDIM,NDIM,NPHASE,MAT_NONODS*IGOT_THERM_VIS), intent( in ) :: THERM_U_DIFFUSION
         INTEGER, intent( in ) :: T_DISOPT, T_DG_VEL_INT_OPT
         REAL, intent( in ) :: DT, T_THETA
         REAL, intent( in ) :: T_BETA

@@ -167,7 +167,7 @@
            wic_momu_bc
       real, dimension( : ), pointer :: &
            Temperature, PhaseVolumeFraction, &
-           Component, Pressure_FEM_Old, Pressure_CV_Old, Temperature_Old, &
+           Component, Temperature_Old, &
            PhaseVolumeFraction_Old, Component_Old, &
            Porosity, &
            Velocity_U_Source, Velocity_U_Source_CV, Temperature_Source, PhaseVolumeFraction_Source, &
@@ -1304,7 +1304,7 @@
                  Density_BC_Spatial, Component_BC_Spatial, Velocity_U_BC_Spatial, wic_momu_bc, Temperature_BC_Spatial, &
                  Temperature, PhaseVolumeFraction, &
                  Component, &
-                 Pressure_FEM_Old, Pressure_CV_Old, Temperature_Old, &
+                 Temperature_Old, &
                  PhaseVolumeFraction_Old, Component_Old, &
                  DRhoDPressure, &
                  Porosity, &
