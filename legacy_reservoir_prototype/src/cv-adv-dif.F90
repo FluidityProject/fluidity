@@ -1053,8 +1053,8 @@ contains
       ! END OF TEMP STUFF HERE
 
       CALL PROJ_CV_TO_FEM_4( state, &
-           FEMT_ALL, FEMTOLD_ALL, FEMDEN_ALL, FEMDENOLD_ALL, T, TOLD, DEN, DENOLD, &
-           IGOT_T2, T2,T2OLD, FEMT2_ALL,FEMT2OLD_ALL, &
+           FEMT_ALL, FEMTOLD_ALL, FEMDEN_ALL, FEMDENOLD_ALL, T_ALL, TOLD_ALL, DEN_ALL, DENOLD_ALL, &
+           IGOT_T2, T2_ALL,T2OLD_ALL, FEMT2_ALL,FEMT2OLD_ALL, &
            XC_CV, YC_CV, ZC_CV, MASS_CV, MASS_ELE, &
            NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
            CV_NGI_SHORT, CV_NLOC, CVN_SHORT, CVWEIGHT_SHORT, &
@@ -3188,9 +3188,12 @@ contains
   end subroutine proj_cv_to_fem_n
 
 
+
+
+
   SUBROUTINE PROJ_CV_TO_FEM_4( state, &
-       FEMT_ALL, FEMTOLD_ALL, FEMDEN_ALL, FEMDENOLD_ALL, T, TOLD, DEN, DENOLD, &
-       IGOT_T2,T2,T2OLD, FEMT2_ALL,FEMT2OLD_ALL, &
+       FEMT_ALL, FEMTOLD_ALL, FEMDEN_ALL, FEMDENOLD_ALL, T_ALL, TOLD_ALL, DEN_ALL, DENOLD_ALL, &
+       IGOT_T2,T2_ALL,T2OLD_ALL, FEMT2_ALL,FEMT2OLD_ALL, &
        XC_CV,YC_CV,ZC_CV, MASS_CV, MASS_ELE, &
        NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
        CV_NGI, CV_NLOC, CVN, CVWEIGHT, N, NLX, NLY, NLZ, &
@@ -3206,8 +3209,8 @@ contains
     INTEGER, DIMENSION( : ), intent( in ) ::  X_NDGLN
     REAL, DIMENSION( :,: ), intent( inout ) :: FEMT_ALL, FEMTOLD_ALL, FEMDEN_ALL, FEMDENOLD_ALL
     REAL, DIMENSION( :,: ), intent( inout ) :: FEMT2_ALL, FEMT2OLD_ALL
-    REAL, DIMENSION( : ), intent( in ) :: T, TOLD, DEN, DENOLD
-    REAL, DIMENSION( : ), intent( in ) :: T2, T2OLD
+    REAL, DIMENSION( :, : ), intent( in ) :: T_ALL, TOLD_ALL, DEN_ALL, DENOLD_ALL
+    REAL, DIMENSION( :, : ), intent( in ) :: T2_ALL, T2OLD_ALL
     REAL, DIMENSION( : ), intent( inout ) :: MASS_CV, XC_CV,YC_CV,ZC_CV
     REAL, DIMENSION( : ), intent( inout ) :: MASS_ELE
     REAL, DIMENSION( :, : ), intent( in ) :: CVN
@@ -3261,15 +3264,36 @@ contains
     NTSOL_INT = 1
 
     NL=CV_NONODS*NPHASE
-    PSI( 1 + 0 * NL : NL + 0 * NL )  =      T( 1 : NL )
-    PSI( 1 + 1 * NL : NL + 1 * NL )  =   TOLD( 1 : NL )
-    PSI( 1 + 2 * NL : NL + 2 * NL )  =    DEN( 1 : NL )
-    PSI( 1 + 3 * NL : NL + 3 * NL )  = DENOLD( 1 : NL )
+!    PSI( 1 + 0 * NL : NL + 0 * NL )  =      T( 1 : NL )
+!    PSI( 1 + 1 * NL : NL + 1 * NL )  =   TOLD( 1 : NL )
+!    PSI( 1 + 2 * NL : NL + 2 * NL )  =    DEN( 1 : NL )
+!    PSI( 1 + 3 * NL : NL + 3 * NL )  = DENOLD( 1 : NL )
 
-    IF(IGOT_T2==1) THEN
-       PSI( 1 + 4 * NL : NL + 4 * NL )  =      T2( 1 : NL )
-       PSI( 1 + 5 * NL : NL + 5 * NL )  =   T2OLD( 1 : NL )
-    ENDIF
+!    IF(IGOT_T2==1) THEN
+!       PSI( 1 + 4 * NL : NL + 4 * NL )  =      T2( 1 : NL )
+!       PSI( 1 + 5 * NL : NL + 5 * NL )  =   T2OLD( 1 : NL )
+!    ENDIF
+         k = 1
+         DO IPHASE = 1, NPHASE
+             DO CV_INOD = 1, CV_NONODS
+                 PSI( k ) = T_ALL( IPHASE, CV_INOD) 
+                 PSI( k + NL ) = TOLD_ALL( IPHASE, CV_INOD) 
+                 PSI( k + 2*NL ) = DEN_ALL( IPHASE, CV_INOD) 
+                 PSI( k + 3*NL ) = DENOLD_ALL( IPHASE, CV_INOD) 
+                 k = k + 1
+             END DO
+         END DO
+         if (IGOT_T2>0) then
+             k = 1
+             DO IPHASE = 1, NPHASE
+                 DO CV_INOD = 1, CV_NONODS
+                     PSI( k + 4*NL ) = T2_ALL( IPHASE, CV_INOD) 
+                     PSI( k + 5*NL ) = T2OLD_ALL( IPHASE, CV_INOD) 
+                     k = k + 1
+                 END DO
+             END DO
+         end if
+
 
     DO ELE=1,TOTELE
        DO CV_ILOC=1,CV_NLOC
@@ -3342,6 +3366,9 @@ contains
     RETURN
 
   END SUBROUTINE PROJ_CV_TO_FEM_4
+
+
+
 
   SUBROUTINE PROJ_CV_TO_FEM_2( state, &
        FEMT, FEMDEN, T, DEN, &
