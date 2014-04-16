@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+   
+  <name>mphase_subtract_out_reference_profile</name>
+  <owner userid="ctj10"/>
+  <tags>flml</tags>
+  
+  <problem_definition length="short" nprocs="1">
+    <command_line>make run</command_line>
+  </problem_definition>
+  
+  <variables>  
+    <variable name="gas_velocity_max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_subtract_out_reference_profile_1d.stat")
+gas_velocity_max = s["Gas"]["Velocity%magnitude"]["max"][-1]
+    </variable>
+
+    <variable name="particles_velocity_max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_subtract_out_reference_profile_1d.stat")
+particles_velocity_max = s["Particles"]["Velocity%magnitude"]["max"][-1]
+    </variable>
+  
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+  </variables>
+    
+  <pass_tests>
+    <test name="Maximum Gas::Velocity remains (near) zero" language="python">
+assert(abs(gas_velocity_max) &lt; 1e-4)
+    </test>
+     
+    <test name="Particles settle at Stokes law velocity" language="python">
+assert(abs(particles_velocity_max) &lt; 2.0)
+    </test>
+
+    <test name="Solvers converged" language="python">
+assert(solvers_converged)
+    </test>
+  </pass_tests>
+  
+  <warn_tests>
+  </warn_tests>
+  
+</testproblem>

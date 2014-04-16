@@ -72,18 +72,23 @@ contains
 
   end function get_n_sediment_fields
 
-  subroutine get_sediment_field(state, i_field, item, stat)
+  subroutine get_sediment_field(state, i_field, item, stat, old)
 
-    ! Returns sediment field string option
+    ! Returns sediment field pointer
     type(state_type), intent(in)                :: state
     integer, intent(in)                         :: i_field
     type(scalar_field), pointer, intent(out)    :: item
     integer, intent(out), optional              :: stat
     character(len=FIELD_NAME_LEN)               :: name
+    logical, intent(in), optional               :: old
 
-	! had to remove trim(state%option_path)// as this didn't work with flredecomp
+    ! had to remove trim(state%option_path)// as this didn't work with flredecomp
     call get_option('/material_phase[0]/sediment/scalar_field['//int2str(i_field -&
          & 1)//']/name', name) 
+
+    if (present(old) .and. old) then
+      name = "Old"//trim(name)
+    end if
     item => extract_scalar_field(state, trim(name), stat)
 
   end subroutine get_sediment_field
@@ -96,7 +101,7 @@ contains
     character(len=FIELD_NAME_LEN), intent(out)  :: item
     integer, intent(out), optional              :: stat
 
-	! had to remove trim(state%option_path)// as this didn't work with flredecomp
+    ! had to remove trim(state%option_path)// as this didn't work with flredecomp
     call get_option('/material_phase[0]/sediment/scalar_field['//int2str(i_field -&
          & 1)//']/name', item, stat=stat) 
 
@@ -111,7 +116,7 @@ contains
     character(len=FIELD_NAME_LEN), intent(out)  :: item
     integer, intent(out), optional              :: stat
 
-	! had to remove trim(state%option_path)// as this didn't work with flredecomp
+    ! had to remove trim(state%option_path)// as this didn't work with flredecomp
     call get_option('/material_phase[0]/sediment/scalar_field['//int2str(i_field -&
          & 1)//']/prognostic/'//option, item, stat=stat) 
 
@@ -127,7 +132,7 @@ contains
     integer, intent(out), optional              :: stat
     real, intent(in), optional                  :: default
     
-	! had to remove trim(state%option_path)// as this didn't work with flredecomp
+    ! had to remove trim(state%option_path)// as this didn't work with flredecomp
     call get_option('/material_phase[0]/sediment/scalar_field['//int2str(i_field -&
          & 1)//']/prognostic/'//option, item, stat = stat, default = default) 
 
@@ -144,7 +149,7 @@ contains
     
     character(len=FIELD_NAME_LEN)               :: field_name
 
-	! had to remove trim(state%option_path)// as this didn't work with flredecomp
+    ! had to remove trim(state%option_path)// as this didn't work with flredecomp
     call get_option('/material_phase[0]/sediment/scalar_field['//int2str(i_field -&
          & 1)//']/name', field_name) 
     item => extract_scalar_field(state, trim(field_name)//option, stat)
@@ -199,14 +204,14 @@ contains
     type(state_type), intent(in)              :: state
     type(scalar_field), intent(in), pointer   :: sediment_field
     type(scalar_field), pointer               :: reentrainment, bedload, sink_U, d50,&
-         & sigma, volume_fraction
+         & sigma, volume_fraction, diagnostic_field, old_diagnostic_field
     type(scalar_field)                        :: masslump, bedload_remap
     type(tensor_field), pointer               :: viscosity_pointer
     type(tensor_field), target                :: viscosity
     type(vector_field), pointer               :: x, shear_stress
     type(mesh_type), pointer                  :: surface_mesh
     character(len = FIELD_NAME_LEN)           :: bc_name, bc_path, algorithm
-    integer                                   :: stat, i_ele, i_field, i_node, i, j
+    integer                                   :: stat, i_ele, i_field, i_node, i_face, i, j
     integer, dimension(:), pointer            :: surface_element_list
     real, dimension(2,2)                      :: algorithm_viscosity
 
@@ -309,6 +314,30 @@ contains
           call set(reentrainment, i_node, max(node_val(reentrainment, i_node), 0.0))
        end if
     end do nodes
+    
+    ! store erosion rate in diagnositc field
+    call get_sediment_item(state, i_field, "BedloadErosionRate", diagnostic_field, stat)
+    if (stat == 0 .and. dt > 1e-15) then
+       call zero(diagnostic_field)
+       do i_ele = 1, ele_count(reentrainment)
+          i_face=surface_element_list(i_ele)
+          call set(diagnostic_field, face_global_nodes(diagnostic_field, i_face), &
+               & ele_val(reentrainment, i_ele))
+       end do
+       ! I also need to set the old field value otherwise this get overwritten with zero straight away
+       ! This is a bit messy but the important thing is that at the end of the timestep we have recorded 
+       ! the erosion rate, this fools Fluidity such that we get that.
+       old_diagnostic_field => extract_scalar_field(state, "Old"//trim(diagnostic_field%name), stat)
+       if (stat == 0) then 
+          call set(old_diagnostic_field, diagnostic_field)
+       end if
+    end if
+
+    ! only for mms tests
+    if (have_option(trim(bc_path)//"/type[0]/set_to_zero")) then
+       ! zero reentrainment
+       call zero(reentrainment)
+    end if
 
     ewrite_minmax(bedload)  
     ewrite_minmax(reentrainment)  
@@ -342,7 +371,7 @@ contains
     real, dimension(ele_ngi(reentrainment, i_ele))   :: shear, lambda_m
     real, dimension(shear_stress%dim, &
          & ele_ngi(reentrainment, i_ele))            :: shear_quad
-    integer                                          :: i_gi
+    integer                                          :: i_gi, stat
 
     A = 1.3*10.0**(-7.0)
     
@@ -371,7 +400,8 @@ contains
     end where 
     
     ! calculate u_star (shear velocity)
-    call get_option(trim(shear_stress%option_path)//"/diagnostic/density", density)
+    call get_option(trim(shear_stress%option_path)//"/diagnostic/density", density, stat)
+    if (stat /= 0) density = 1.0
     ! calculate magnitude of shear stress at quadrature points
     shear_quad = face_val_at_quad(shear_stress, surface_element_list(i_ele))
     do i_gi = 1, ele_ngi(reentrainment, i_ele)
@@ -539,6 +569,11 @@ contains
           nbcs=option_count(trim(field_option_path)//'/boundary_conditions')
           ! Loop over boundary conditions for field
           boundary_conditions: do i_bc=0, nbcs-1
+          
+             ! Get name and type of boundary condition
+             call get_option(trim(field_option_path)//&
+                  '/boundary_conditions['//int2str(i_bc)//&
+                  ']/type[0]/name', bc_type)
 
              ! check whether this is a reentrainment boundary
              if (.not. (trim(bc_type) .eq. "sediment_reentrainment")) then

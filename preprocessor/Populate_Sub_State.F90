@@ -67,7 +67,7 @@ module populate_sub_state_module
 
   public populate_sub_state, set_full_domain_prescribed_fields, &
       &  sub_state_remap_to_full_mesh, update_subdomain_fields, &
-      &  use_sub_state
+      &  use_sub_state, populate_sub_state_module_check_options
 
 contains
 
@@ -106,7 +106,7 @@ contains
 
     call allocate_and_insert_fields(sub_states)
 
-    call populate_boundary_conditions(sub_states)
+    call populate_boundary_conditions(sub_states, suppress_warnings=.true.)
 
     call set_boundary_conditions_values(sub_states)
 
@@ -204,6 +204,9 @@ contains
 
       deallocate(prescribed_region_ids)
     end do
+
+    ! failing this may be caused by not preserving region ids in adaptivity - see options check below
+    assert(associated(external_mesh%region_ids))
 
     ! Derive subdomain_mesh_element list (an integer set):
     call allocate(subdomain_mesh_element_list)
@@ -639,5 +642,20 @@ contains
     end do
 
   end subroutine sub_state_remap_to_full_mesh
+
+  subroutine populate_sub_state_module_check_options
+
+    if (option_count('/material_phase/vector_field::Velocity/prognostic/prescribed_region')>0) then
+
+      if (have_option('/mesh_adaptivity/hr_adaptivity') .and. &
+        .not. have_option('/mesh_adaptivity/hr_adaptivity/preserve_mesh_regions')) then
+
+        ewrite(0,*) "When using prescribed regions with mesh adaptivity:"
+        FLExit("Need /mesh_adaptivity/hr_adaptivity/preserve_mesh_regions option")
+        
+      end if
+
+    end if
+  end subroutine populate_sub_state_module_check_options
 
 end module populate_sub_state_module

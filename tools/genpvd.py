@@ -57,6 +57,10 @@ if (len(fluid_vtus) == 0):
 time = []
 for filename in fluid_vtus:
     sys.stdout.write("Processing file: "+filename+"\n")
+    # Drastically reducing the computational effort by only opening the first partition of the mesh (if it ran in parallel):
+    if (filename.endswith('.pvtu')):
+        simbasename = filename.replace('.pvtu','')
+        filename = simbasename+'/'+simbasename+'_0.vtu'
     # Get the unstructured mesh:
     data = vtk.vtu(filename)
     # Only process the first node in the mesh, as the time is constant over the whole mesh:

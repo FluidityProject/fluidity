@@ -62,7 +62,7 @@ implicit none
   ! Outline:
   !  - call diagnostics to obtain source terms and calculate eddy viscosity
   !  - after each scalar field solve recalculates the eddy viscosity
-  !  - wall functions are added to selected boundaries in keps_bcs and wall_functions
+  !  - wall functions are added to selected boundaries in keps_bcs
 
 contains
 
@@ -965,60 +965,13 @@ subroutine keps_bcs(state)
         ! Get name and type of boundary condition
         call get_option(trim(bc_path_i)//"/name", bc_name)
         call get_option(trim(bc_path_i)//"/type[0]/name", bc_type)
-        ! Do we have high- or low-Reynolds-number wall functions?
+        ! Do we have low-Reynolds-number wall functions?
         call get_option(trim(bc_path_i)//"/type::k_epsilon/", wall_fns, stat=stat)
 
         if (trim(bc_type)=="k_epsilon" .and. wall_fns=="low_Re") then
-           
            ! lowRe BC's are just zero Dirichlet or Neumann - damping functions get calculated in 
            ! keps_calc_rhs
            low_Re = .true.
-
-        else if (trim(bc_type)=="k_epsilon" .and. wall_fns=="high_Re") then
-           
-           ! Get bc by name. Get type just to make sure it's now dirichlet
-           call get_boundary_condition(field1, name=bc_name, type=bc_type, surface_node_list=surface_node_list, &
-                surface_element_list=surface_elements, surface_mesh=surface_mesh)
-           
-           ewrite(2,*) "Calculating highRe k-epsilon BC: ",trim(field1%name),' ',trim(bc_name),' ',trim(bc_type),' ',trim(wall_fns)
-
-           ! Get surface field already created in bcs_from_options
-           surface_field => extract_surface_field(field1, bc_name=bc_name, name="value")
-           call zero(surface_field)
-
-           call allocate(surface_values, surface_mesh, name="surfacevalues")
-           call allocate(rhs_field, field1%mesh, name="rhs")
-           call zero(surface_values); call zero(rhs_field)
-
-           if(continuity(field1)>=0) then
-              call allocate(masslump, field1%mesh, 'Masslump')
-              call zero(masslump)
-           end if
-
-           ! Calculate high-Re wall function
-           do sele = 1, ele_count(surface_mesh)
-              call keps_wall_function(field1, X, u, masslump, scalar_eddy_visc, density, sele, &
-                   index, c_mu, rhs_field)
-           end do
-           
-           ! In the continuous case we globally apply inverse mass
-           if(continuity(field1)>=0) then
-             where (masslump%val/=0.0)
-               masslump%val=1./masslump%val
-             end where
-             call scale(rhs_field, masslump)
-             call deallocate(masslump)
-           end if
-
-           ! Put values onto surface mesh
-           call remap_field_to_surface(rhs_field, surface_values, surface_elements)
-           ewrite_minmax(rhs_field)
-           do j = 1, size(surface_node_list)
-              call set(surface_field, j, node_val(surface_values, j))
-           end do
-
-           call deallocate(surface_values); call deallocate(rhs_field)
-
         end if
      end do boundary_conditions
   end do field_loop
@@ -1027,115 +980,6 @@ subroutine keps_bcs(state)
   deallocate(dummydensity)
 
 end subroutine keps_bcs
-
-!--------------------------------------------------------------------------------!
-! Only used if bc type == k_epsilon for field and high_Re.                       !
-!--------------------------------------------------------------------------------!
-subroutine keps_wall_function(field1,X,U,masslump,scalar_eddy_visc,density,sele,index,c_mu,rhs_field)
-
-  type(scalar_field), pointer, intent(in)              :: field1, scalar_eddy_visc, density
-  type(vector_field), pointer, intent(in)              :: X, U
-  type(scalar_field), intent(inout)                    :: masslump, rhs_field
-  integer, intent(in)                                  :: sele, index
-  type(element_type), pointer                          :: shape, f_shape
-  type(element_type)                                   :: augmented_shape
-  integer                                              :: i, j, gi, ele, dim
-  integer, dimension(face_loc(rhs_field, sele))        :: nodes_bdy
-  real                                                 :: kappa, h, c_mu
-  real, dimension(1,1)                                 :: hb
-  real, dimension(face_ngi(field1,sele))               :: detwei, tau_wall_at_quad, visc_at_quad, density_at_quad
-  real, dimension(X%dim,1)                             :: n
-  real, dimension(X%dim,X%dim)                         :: G
-  real, dimension(face_loc(rhs_field, sele))           :: rhs
-  real, dimension(X%dim,face_ngi(field1,sele))         :: normal, normal_shear_at_quad
-  real, dimension(X%dim, X%dim, face_ngi(field1, sele)):: f_invJ, grad_U_at_quad, shear_at_quad
-  real, dimension(face_loc(field1, sele), face_loc(field1, sele))                     :: fmass
-  real, dimension(X%dim, X%dim, ele_ngi(field1, face_ele(field1, sele)))              :: invJ
-  real, dimension(ele_loc(X, face_ele(field1, sele)), face_ngi(field1, sele), X%dim)  :: ele_dshape_at_face_quad
-
-  nodes_bdy = face_global_nodes(rhs_field, sele) ! nodes in rhs_field
-  ele       = face_ele(field1, sele) ! ele number for volume mesh
-  dim       = mesh_dim(X) ! field dimension 
-
-  ! get shape functions
-  f_shape => face_shape(field1, sele)  
-  shape   => ele_shape(field1, ele)
-  
-  ! generate shape functions that include quadrature points on the face required
-  ! check that the shape does not already have these first
-  assert(shape%degree == 1)
-  if(associated(shape%dn_s)) then
-    augmented_shape = shape
-    call incref(augmented_shape)
-  else
-     augmented_shape = make_element_shape(shape%loc, shape%dim, shape%degree, shape%quadrature, quad_s=f_shape%quadrature)
-  end if
-    
-  ! assumes that the jacobian is the same for all quadrature points
-  ! this is not valid for spheres!
-  call compute_inverse_jacobian(ele_val(X, ele), ele_shape(X, ele), invj = invJ)
-  assert(ele_numbering_family(shape) == FAMILY_SIMPLEX)
-  f_invJ = spread(invJ(:, :, 1), 3, size(f_invJ, 3))
-   
-  call transform_facet_to_physical(X, sele, detwei_f = detwei, normal = normal)
-
-  ! Evaluate the volume element shape function derivatives at the surface
-  ! element quadrature points
-  ele_dshape_at_face_quad = eval_volume_dshape_at_face_quad(augmented_shape, &
-    & local_face_number(X, sele), f_invJ)
-
-  ! Calculate grad of U at the surface element quadrature points
-  do i=1, dim
-    do j=1, dim
-      grad_U_at_quad(i, j, :) = matmul(ele_val(U, j, ele), ele_dshape_at_face_quad(:,:,i))
-    end do
-  end do
-
-  density_at_quad = face_val_at_quad(density, sele)
-  visc_at_quad = face_val_at_quad(scalar_eddy_visc, sele)
-  do gi = 1, face_ngi(X, sele)
-    ! Multiply by visosity
-    shear_at_quad(:,:,gi) = grad_U_at_quad(:,:,gi)*visc_at_quad(gi)
-    ! Multiply by surface normal (dim,sgi) to obtain shear in direction normal
-    ! to surface - transpose (because fluidity stores data in row-major order??)
-    normal_shear_at_quad(:,gi) = matmul(shear_at_quad(:,:,gi), normal(:,gi))
-    ! Wall shear stress tau_wall/rho = nu_T*du/dn.
-    ! Get streamwise velocity gradient by taking sqrt(grad_n.grad_n).
-    ! Eddy viscosity is dynamic not kinematic so divide by density.
-    tau_wall_at_quad(gi) = norm2(normal_shear_at_quad(:,gi))
-  end do
-
-  if (index==1) then
-    ! k = tau_wall/rho/c_mu**0.5
-    rhs = shape_rhs(f_shape, tau_wall_at_quad/density_at_quad/c_mu**0.5*detwei)
-  else if (index==2) then
-    ! calculate wall-normal element size
-    G = matmul(transpose(invJ(:,:,1)), invJ(:,:,1))
-    n(:,1) = normal(:,1)
-    hb = 1. / sqrt( matmul(matmul(transpose(n), G), n) )
-    h  = hb(1,1)
-    ! Von Karman's constant
-    kappa = 0.43
-    ! epsilon = (tau_wall/rho)**1.5/kappa/h
-    rhs = shape_rhs(f_shape, (tau_wall_at_quad/density_at_quad)**1.5/kappa/h*detwei)  
-  end if
-
-  fmass = shape_shape(f_shape, f_shape, detwei)
-  ! In the CG case we need to calculate a global lumped mass
-  if(continuity(field1)>=0) then
-    call addto(masslump, nodes_bdy, sum(fmass,1))
-  else ! In the DG case we will apply the inverse mass locally.
-    do i = 1,dim
-    rhs = matmul(inverse(fmass), rhs)
-    end do
-  end if
-
-  ! add to rhs field
-  call addto(rhs_field, nodes_bdy, rhs)
-
-  call deallocate(augmented_shape)
-
-end subroutine keps_wall_function
 
 !---------------------------------------------------------------------------------
 

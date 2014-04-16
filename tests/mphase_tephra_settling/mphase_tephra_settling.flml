@@ -169,6 +169,7 @@
           <discontinuous_galerkin>
             <viscosity_scheme>
               <bassi_rebay/>
+              <tensor_form/>
             </viscosity_scheme>
             <advection_scheme>
               <upwind/>
@@ -383,6 +384,7 @@
           <discontinuous_galerkin>
             <viscosity_scheme>
               <bassi_rebay/>
+              <tensor_form/>
             </viscosity_scheme>
             <advection_scheme>
               <upwind/>

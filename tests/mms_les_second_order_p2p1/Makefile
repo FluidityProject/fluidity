@@ -1,11 +1,8 @@
 input:	clean
 	./copy_script
-	gmsh -2 src/MMS_A.geo
-	gmsh -2 src/MMS_B.geo
-	gmsh -2 src/MMS_C.geo
-	../../bin/gmsh2triangle --2d src/MMS_A.msh
-	../../bin/gmsh2triangle --2d src/MMS_B.msh
-	../../bin/gmsh2triangle --2d src/MMS_C.msh
+	gmsh -2 -bin src/MMS_A.geo
+	gmsh -2 -bin src/MMS_B.geo
+	gmsh -2 -bin src/MMS_C.geo
 
 run:
 	../../bin/fluidity MMS_A.flml

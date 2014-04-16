@@ -50,8 +50,7 @@ Bound_field.o ../include/bound_field_module.mod: Bound_field.F90 \
    ../include/parallel_fields.mod ../include/parallel_tools.mod \
    ../include/quicksort.mod ../include/sparse_matrices_fields.mod \
    ../include/sparse_tools.mod ../include/sparsity_patterns.mod \
-   ../include/spud.mod ../include/transform_elements.mod \
-   ../include/vector_tools.mod
+   ../include/spud.mod ../include/transform_elements.mod
 
 ../include/boundary_conditions.mod: Boundary_Conditions.o
 	@true
@@ -267,11 +266,11 @@ Diagnostic_Fields.o ../include/diagnostic_fields.mod: Diagnostic_Fields.F90 \
    ../include/global_parameters.mod ../include/halos.mod \
    ../include/interpolation_module.mod ../include/meshdiagnostics.mod \
    ../include/parallel_tools.mod ../include/quicksort.mod \
-   ../include/solvers.mod ../include/sparsity_patterns.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
-   ../include/state_fields_module.mod ../include/state_module.mod \
-   ../include/streamfunction.mod ../include/unittest_tools.mod \
-   ../include/vector_tools.mod
+   ../include/solvers.mod ../include/sparse_matrices_fields.mod \
+   ../include/sparsity_patterns.mod ../include/sparsity_patterns_meshes.mod \
+   ../include/spud.mod ../include/state_fields_module.mod \
+   ../include/state_module.mod ../include/streamfunction.mod \
+   ../include/unittest_tools.mod ../include/vector_tools.mod
 
 ../include/diagnostic_variables.mod: Diagnostic_variables.o
 	@true
@@ -384,12 +383,13 @@ Field_Options.o ../include/field_options.mod: Field_Options.F90 \
 	@true
 
 Field_derivatives.o ../include/field_derivatives.mod: Field_derivatives.F90 \
-   ../include/elements.mod ../include/eventcounter.mod ../include/fdebug.h \
-   ../include/fetools.mod ../include/fields.mod ../include/halos.mod \
-   ../include/node_boundary.mod ../include/state_module.mod \
-   ../include/superconvergence.mod ../include/surfacelabels.mod \
-   ../include/transform_elements.mod ../include/vector_set.mod \
-   ../include/vector_tools.mod ../include/vtk_interfaces.mod
+   ../include/boundary_conditions.mod ../include/elements.mod \
+   ../include/eventcounter.mod ../include/fdebug.h ../include/fetools.mod \
+   ../include/fields.mod ../include/halos.mod ../include/node_boundary.mod \
+   ../include/state_module.mod ../include/superconvergence.mod \
+   ../include/surfacelabels.mod ../include/transform_elements.mod \
+   ../include/vector_set.mod ../include/vector_tools.mod \
+   ../include/vtk_interfaces.mod
 
 ../include/fields.mod: Fields.o
 	@true
@@ -1232,17 +1232,6 @@ Vertical_Extrapolation.o ../include/vertical_extrapolation_module.mod: \
 
 Wandzura_Quadrature.o ../include/wandzura_quadrature.mod: \
    Wandzura_Quadrature.F90 ../include/global_parameters.mod
-
-../include/weak_bcs.mod: Weak_BCs.o
-	@true
-
-Weak_BCs.o ../include/weak_bcs.mod: Weak_BCs.F90 \
-   ../include/boundary_conditions.mod ../include/elements.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/parallel_tools.mod \
-   ../include/sparse_tools_petsc.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/surface_integrals.mod \
-   ../include/transform_elements.mod
 
 ../include/write_gmsh.mod: Write_GMSH.o
 	@true

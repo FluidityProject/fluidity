@@ -909,7 +909,7 @@ contains
       end if
 
       ! Form the new metric
-      old_mesh => extract_mesh(states(1), "CoordinateMesh")
+      old_mesh => extract_mesh(states(1), topology_mesh_name)
       call allocate(metric, old_mesh, "ErrorMetric")
       call assemble_metric(states, metric)
 

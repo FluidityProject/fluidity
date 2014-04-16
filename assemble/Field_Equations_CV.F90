@@ -75,8 +75,6 @@ module field_equations_cv
   logical :: move_mesh = .false.
   ! are we including density?
   logical :: include_density = .false.
-  ! is the Density field prognostic?
-  logical :: prognostic_density = .false.
   ! are we including a souce?
   logical :: include_source = .false.
   ! Add source directly to the right hand side?
@@ -296,12 +294,6 @@ contains
               include_density = .true.
               tdensity=>extract_scalar_field(state(istate), "Density")
               oldtdensity=>extract_scalar_field(state(istate), "OldDensity")
-
-              if(have_option(trim(tdensity%option_path)//"/prognostic")) then
-                 prognostic_density = .true.
-              else
-                 prognostic_density = .false.
-              end if
            case("Boussinesq")
               tdensity => dummydensity
               oldtdensity => dummydensity
@@ -329,35 +321,33 @@ contains
         oldtdensity=>extract_scalar_field(state(istate), "Old"//trim(tmpstring))
         ewrite_minmax(oldtdensity)
            
-        if(have_option(trim(tdensity%option_path)//"/prognostic")) then
-           prognostic_density = .true.
-        else
-           prognostic_density = .false.
-        end if
       end select
 
-      ! get the density option path
+      ! get the tdensity discretisation options from:
+      ! 1) the user specified options for the coefficient of this field
+      ! 2) the options underneath the density field itself if it is prognostic and cv
+      ! 3) throw an error as otherwise it would default to poorly defined options
       if(include_density) then
-         if(prognostic_density) then
-            if(have_option(trim(option_path)//'/prognostic/equation[0]/density[0]/discretisation_options')) then
-               tdensity_option_path = trim(option_path)//'/prognostic/equation[0]/density[0]/discretisation_options'
-            else
-               tdensity_option_path = trim(tdensity%option_path)
-            end if
-         else
-            tdensity_option_path = trim(tfield%option_path)
-         end if
+        if(have_option(trim(option_path)//'/prognostic/equation[0]/density[0]/discretisation_options')) then
+          tdensity_option_path = trim(option_path)//'/prognostic/equation[0]/density[0]/discretisation_options'
+        else
+          if(have_option(trim(tdensity%option_path)//"/prognostic/spatial_discretisation/control_volumes")) then
+            tdensity_option_path = trim(tdensity%option_path)
+          else
+            FLExit("Additional discretisation options required for the density coefficient. Please set equation/density/discretisation_options.")
+          end if
+        end if
+      else
+        tdensity_option_path = ""
       end if
 
       ! now we can get the options for these fields
       ! handily wrapped in a new type...
       tfield_options=get_cv_options(tfield%option_path, tfield%mesh%shape%numbering%family, mesh_dim(tfield))
       if(include_density) then
-        if(prognostic_density) then
-          tdensity_options=get_cv_options(tdensity_option_path, tdensity%mesh%shape%numbering%family, mesh_dim(tdensity),  coefficient_field=.true.)
-        else
-          tdensity_options=tfield_options
-        end if
+        tdensity_options=get_cv_options(tdensity_option_path, tdensity%mesh%shape%numbering%family, mesh_dim(tdensity),  coefficient_field=.true.)
+      else
+        tdensity_options=tfield_options  ! dummy so we don't leave variables undefined but shouldn't get used
       end if
 
       ! extract fields from state
@@ -1567,6 +1557,7 @@ contains
       ! some temporal discretisation options for clarity
       ptheta = tfield_options%ptheta
       beta = tfield_options%beta
+      equation_type = equation_type_index(trim(tfield%option_path))
 
       ! loop over elements
       element_loop: do ele=1, element_count(tfield)
@@ -1610,7 +1601,6 @@ contains
                                     shape=t_cvshape_full, dshape=dt_t)
           diffusivity_gi = ele_val_at_quad(diffusivity, ele, diff_cvshape_full)
           
-          equation_type = equation_type_index(trim(tfield%option_path))
           if(multiphase .and. equation_type==FIELD_EQUATION_INTERNALENERGY) then
             nvfrac_gi = ele_val_at_quad(nvfrac, ele, diff_cvshape_full)
           end if
@@ -2548,18 +2538,32 @@ contains
           ! is solved for with this subroutine and the correct priority ordering.
           oldtdensity(f)%ptr=>extract_scalar_field(state(state_indices(f)), "Old"//trim(tmpstring))
         end select
-        ! its option path
-        if(have_option(trim(option_path(f))//'/prognostic/equation[0]/density[0]/discretisation_options')) then
-          tdensity_option_path(f)=trim(option_path(f))//'/prognostic/equation[0]/density[0]/discretisation_options'
+
+        ! get the tdensity discretisation options from:
+        ! 1) the user specified options for the coefficient of this field
+        ! 2) the options underneath the density field itself if it is prognostic and cv
+        ! 3) throw an error as otherwise it would default to poorly defined options
+        if(include_density) then
+          if(have_option(trim(option_path(f))//'/prognostic/equation[0]/density[0]/discretisation_options')) then
+            tdensity_option_path(f) = trim(option_path(f))//'/prognostic/equation[0]/density[0]/discretisation_options'
+          else
+            if(have_option(trim(tdensity(f)%ptr%option_path)//"/prognostic/spatial_discretisation/control_volumes")) then
+              tdensity_option_path(f) = trim(tdensity(f)%ptr%option_path)
+            else
+              FLExit("Additional discretisation options required for the density coefficient. Please set equation/density/discretisation_options.")
+            end if
+          end if
         else
-          tdensity_option_path(f)=tdensity(f)%ptr%option_path
+          tdensity_option_path(f) = ""
         end if
-        
+
         ! now we can get the options for these fields
         ! handily wrapped in a new type...
         tfield_options(f)=get_cv_options(tfield(f)%ptr%option_path, tfield(f)%ptr%mesh%shape%numbering%family, mesh_dim(tfield(f)%ptr))
         if(include_density) then
-          tdensity_options(f)=get_cv_options(tdensity_option_path(f), tdensity(f)%ptr%mesh%shape%numbering%family, mesh_dim(tdensity(f)%ptr), coefficient_field=.true.)
+          tdensity_options(f)=get_cv_options(tdensity_option_path(f), tdensity(f)%ptr%mesh%shape%numbering%family, mesh_dim(tdensity(f)%ptr),  coefficient_field=.true.)
+        else
+          tdensity_options(f)=tfield_options(f)  ! dummy so we don't leave variables undefined but shouldn't get used
         end if
 
         source(f)%ptr=>extract_scalar_field(state(state_indices(f)), trim(field_name)//"Source", stat=stat)

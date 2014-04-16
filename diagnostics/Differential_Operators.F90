@@ -71,10 +71,18 @@ contains
     type(vector_field), pointer :: positions
     
     source_field => scalar_source_field(state, v_field)
+    if (source_field%mesh%continuity<0 .and. .not. (v_field%mesh%continuity<0)) then
+      ewrite(-1,*) "For diagnostic algorithm (grad)"
+      ewrite(-1,*) "You are trying to take the derivative of field: ", trim(source_field%name)
+      ewrite(-1,*) "which is on a discontinuous mesh. and store it on: ", trim(v_field%name)
+      ewrite(-1,*) "which is continuous. The code does not support this."
+      ewrite(-1,*) "Please change the diagnostic field discretisation to discontinuous"
+      ewrite(-1,*) "or use a galerkin_projection first to derive a continuous approximation"
+      ewrite(-1,*) "of the source field."
+      FLExit("Diagnostic algorithm does not support taking continuous gradients of discontinuous fields")
+    end if
     
     positions => extract_vector_field(state, "Coordinate")
-    
-    call check_source_mesh_derivative(source_field, "grad")
     
     call grad(source_field, positions, v_field)
     
@@ -89,8 +97,16 @@ contains
 
     positions => extract_vector_field(state, "Coordinate")
     source_field => vector_source_field(state, t_field)
-
-    call check_source_mesh_derivative(source_field, "grad_vector")
+    if (source_field%mesh%continuity<0 .and. .not. (t_field%mesh%continuity<0)) then
+      ewrite(-1,*) "For diagnostic algorithm (grad)"
+      ewrite(-1,*) "You are trying to take the derivative of field: ", trim(source_field%name)
+      ewrite(-1,*) "which is on a discontinuous mesh. and store it on: ", trim(t_field%name)
+      ewrite(-1,*) "which is continuous. The code does not support this."
+      ewrite(-1,*) "Please change the diagnostic field discretisation to discontinuous"
+      ewrite(-1,*) "or use a galerkin_projection first to derive a continuous approximation"
+      ewrite(-1,*) "of the source field."
+      FLExit("Diagnostic algorithm does not support taking continuous gradients of discontinuous fields")
+    end if
 
     call grad(source_field, positions, t_field)
 
@@ -501,9 +517,13 @@ contains
       face_tangents(1,:) = -face_normals(2,:)
       face_tangents(2,:) = face_normals(1,:)
 
+      ! work around for gfortran bug http://gcc.gnu.org/bugzilla/show_bug.cgi?id=57798
+      ! if you put the product below directly in the sum(..,dim=1) you get a segfault on 4.8.1
+      face_tangents = face_tangents*face_val_at_quad(source, sele)
+
       call addto(rhs, face_global_nodes(rhs, sele), &
         & shape_rhs(face_shape(rhs, sele), detwei* &
-        &   sum(face_tangents*face_val_at_quad(source, sele), dim=1)))
+        &   sum(face_tangents, dim=1)))
 
     end subroutine assemble_curl_sele_dg
 

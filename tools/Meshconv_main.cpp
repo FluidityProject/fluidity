@@ -54,8 +54,6 @@ void Usage(){
   cerr << "Usage: meshconv [OPTIONS] ... inputname \n"
        << "with 'inputname' being the basename of the input mesh file\n"
        << "\n"
-       << "Must be run in serial!\n"
-       << "\n"
        << "Options:\n"
        << "\n"
        << "-h\t\tDisplay this help\n"
