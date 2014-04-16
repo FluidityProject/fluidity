@@ -227,6 +227,10 @@
 
       !Variable to store where we store things. Do not oversize this array, the size has to be the last index in use
       integer, dimension (42) :: StorageIndexes
+
+            !Working pointers
+      real, dimension(:,:), pointer :: SAT_s, OldSAT_s
+
       !Initially we set to use Stored data and that we have a new mesh
       StorageIndexes = 0!Initialize them as zero !
 
@@ -237,6 +241,9 @@
       call pack_multistate(state,packed_state,multiphase_state,&
            multicomponent_state)
 
+    !Get from packed_state
+    call get_var_from_packed_state(packed_state,PhaseVolumeFraction = SAT_s,&
+    OldPhaseVolumeFraction=OldSAT_s)
       IDIVID_BY_VOL_FRAC=0
       !call print_state( packed_state )
       !stop 78
@@ -569,8 +576,15 @@
    !   stop 282
 
 
-
-!!$ Starting Time Loop 
+    !######TEMPORARY CONVERSION FROM OLD PhaseVolumeFraction TO PACKED######
+    do cv_inod = 1, size(SAT_s,2)
+        do iphase = 1, size(SAT_s,1)
+            SAT_s(iphase,cv_inod) = phaseVolumeFraction(cv_inod +(iphase-1)*size(SAT_s,2))
+            OldSAT_s(iphase,cv_inod) = PhaseVolumeFraction_Old(cv_inod +(iphase-1)*size(SAT_s,2))
+        end do
+    end do
+    !#############################################################
+!!$ Starting Time Loop
       itime = 0
       dtime = 0
       checkpoint_number=1
@@ -625,7 +639,7 @@
          ! evaluate prescribed fields at time = current_time+dt
          call set_prescribed_field_values( state, exclude_interpolated = .true., &
               exclude_nonreprescribed = .true., time = acctim )
-
+        !! Update all fields from time-step 'N - 1'
          call copy_packed_new_to_old( packed_state )
 
          ! update velocity absorption
@@ -648,7 +662,14 @@
 
 !!$ Start non-linear loop
          Loop_NonLinearIteration: do  its = 1, NonLinearIteration
-
+    !######TEMPORARY CONVERSION FROM OLD PhaseVolumeFraction TO PACKED######
+    do cv_inod = 1, size(SAT_s,2)
+        do iphase = 1, size(SAT_s,1)
+            SAT_s(iphase,cv_inod) = phaseVolumeFraction(cv_inod +(iphase-1)*size(SAT_s,2))
+            OldSAT_s(iphase,cv_inod) = PhaseVolumeFraction_Old(cv_inod +(iphase-1)*size(SAT_s,2))
+        end do
+    end do
+    !#############################################################
 !print *, '  NEW ITS', its
 
          if( have_temperature_field .and. &
@@ -678,19 +699,19 @@
             end if
 
             if( solve_force_balance ) then
-               call Calculate_AbsorptionTerm( state, &
+               call Calculate_AbsorptionTerm( state, packed_state,&
                     cv_ndgln, mat_ndgln, &
-                    PhaseVolumeFraction, Permeability, &
+                    Permeability, &
                     nopt_vel_upwind_coefs, opt_vel_upwind_coefs, Material_Absorption )
 
                ! calculate SUF_SIG_DIAGTEN_BC this is \sigma_in^{-1} \sigma_out
                ! \sigma_in and \sigma_out have the same anisotropy so SUF_SIG_DIAGTEN_BC
                ! is diagonal
                if( is_overlapping ) then
-                  call calculate_SUF_SIG_DIAGTEN_BC( suf_sig_diagten_bc, totele, stotel, cv_nloc, &
+                  call calculate_SUF_SIG_DIAGTEN_BC( packed_state, suf_sig_diagten_bc, totele, stotel, cv_nloc, &
                        cv_snloc, nphase, ndim, nface, mat_nonods, cv_nonods, x_nloc, ncolele, cv_ele_type, &
                        finele, colele, cv_ndgln, cv_sndgln, x_ndgln, mat_ndgln, permeability, material_absorption, &
-                       Velocity_U_BC_Spatial, PhaseVolumeFraction_BC_Spatial,  PhaseVolumeFraction_BC, PhaseVolumeFraction, &
+                       Velocity_U_BC_Spatial, PhaseVolumeFraction_BC_Spatial,  PhaseVolumeFraction_BC, &
                        state, x_nonods )
                end if
             end if
@@ -778,8 +799,7 @@
                plike_grad_sou_grad = 0
                if( have_option( '/material_phase[0]/multiphase_properties/capillary_pressure' ) )then
                   iplike_grad_sou = 1
-                  call calculate_capillary_pressure( state, cv_nonods, nphase, plike_grad_sou_grad, &
-                       PhaseVolumeFraction )
+                  call calculate_capillary_pressure( state, packed_state, cv_nonods, nphase, plike_grad_sou_grad)
                end if
 
                CALL CALCULATE_SURFACE_TENSION( state, packed_state, nphase, ncomp, &
