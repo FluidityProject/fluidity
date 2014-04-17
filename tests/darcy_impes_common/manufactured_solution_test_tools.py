@@ -2,7 +2,7 @@
 
 """manufactured_solution_test_tools.py
 
-"""
+Documentation to come."""
 
 import sys
 sys.path.append('../../python')
@@ -13,8 +13,9 @@ import subprocess
 import re
 import numpy
 import glob
-# from batch_tools import Command, CommandList, HandlerList, CompositeHandler, verbose
-from test_tools import Command, CommandList, HandlerList, CompositeHandler, RunSimulation, WriteToReport, verbose
+from test_tools import Command, CommandList, HandlerLevel, \
+   CompositeHandler, RunSimulation, WriteToReport, verbose
+from fluidity_tools import stat_parser
 
 error_rates_filename = "error_rates.txt"
 error_norms_filename = "error_norms.txt"
@@ -43,16 +44,15 @@ class Parameterisation:
       # filenames
       if dim==1:
          mt = ''
-         # me = '.ele'
+         ge = '.sh'
       else:
          mt = '_'+mesh_type
-         # me = '.msh'
+         ge = '.geo'
       self.mesh_name = self.domain_shape+mt+'_'+mesh_suffix
       self.options_name = case+'_'+str(dim)+'d'+mt+'_'+mesh_suffix
       self.geo_template_filename = self.mesh_template_prefix+'_'+\
-                                   self.domain_shape+mt+'.geo'
+                                   self.domain_shape+mt+ge
       self.geo_filename = self.mesh_name+'.geo'
-      # self.mesh_filename = self.mesh_name+me
       self.options_filename = self.options_name+'.diml'
       
    def compute_more_options(self):
@@ -60,7 +60,8 @@ class Parameterisation:
       It is placed here so as not to burden other clients.
       """
 
-      self.timestep_scale_factor = self.mesh_res/self.mesh_res_dict['A']
+      self.timestep_scale_factor = float(self.mesh_res_dict['A'])/\
+                                   float(self.mesh_res)
       
       # dictionary entries
       if self.dim==1:
@@ -75,19 +76,16 @@ class Parameterisation:
          
       # more dictionary entries
       if self.dim==1:
-         self.gravity_direction = '-1'
          self.outlet_ID = '2'
          self.inlet_ID = '1'
          self.wall_IDs = ''
          self.wall_num = '0'
       elif self.dim==2:
-         self.gravity_direction = '-1 0'
          self.outlet_ID = '11'
          self.inlet_ID = '13'
          self.wall_IDs = '12 14'
          self.wall_num = '2'
       elif self.dim==3:
-         self.gravity_direction = '-1 0 0'
          self.outlet_ID = '28'
          self.inlet_ID = '29'
          self.wall_IDs = '30 31 32 33'
@@ -132,7 +130,6 @@ class ExpandOptionsTemplate(Command):
             'DOMAIN_DIM': str(self.dim), 
             'TIME_STEP': str(time_step),
             'FINISH_TIME': self.finish_time,
-            'GRAVITY_DIRECTION': param.gravity_direction,
             'INLET_ID': param.inlet_ID,
             'OUTLET_ID': param.outlet_ID,
             'WALL_IDS': param.wall_IDs,
@@ -153,17 +150,15 @@ class ExpandOptionsTemplate(Command):
          with open(param.options_filename, 'w') as tgt:
             tgt.write(buf)
 
-         
-
             
 class ProcessMesh(Command):
 
-   def __init__(self, domain_length_1D):
+   def __init__(self, domain_extents):
       self.binary_path = "../../bin/darcy_impes"
       self.stem = None
       self.dim = None
       self.mesh_type = None
-      self.domain_length_1D = domain_length_1D
+      self.domain_extents = domain_extents
       
    def execute(self, level_name, value, indent):
       if level_name == 'stem':
@@ -176,13 +171,28 @@ class ProcessMesh(Command):
          mesh_suffix = value
 
          # compute useful stuff
-         param = Parameterisation(self.stem, self.dim,
-                                  self.mesh_type, mesh_suffix)
-
+         param = Parameterisation(self.stem, self.dim, self.mesh_type,
+                                  mesh_suffix)
+         
+         # compose the dictionary
+         geo_dict = {'MESH_NAME': str(param.mesh_name)}
+         for i, dim_str in enumerate(('X', 'Y', 'Z')):
+            # calculate element number along domain edge, keeping dx, dy
+            # and dz approximately the same but scaling consistently to
+            # higher mesh resolutions
+            D = self.domain_extents[i]
+             # reference number along x-edge
+            nx_A = param.mesh_res_dict['A']
+            # reference number along edge in this dimension
+            n_A = numpy.round(nx_A * D / self.domain_extents[0])
+            # number scaled up for this mesh resolution
+            n = int(n_A * param.mesh_res / nx_A)
+            geo_dict.update({
+               'DOMAIN_LENGTH_'+dim_str : str(D),
+               'EL_NUM_'+dim_str : str(n),
+               'EL_SIZE_'+dim_str : str(D/n) })
+            
          # expand mesh template
-         geo_dict = {
-            'EL_NUM': str(param.mesh_res),
-            'MESH_NAME': str(param.mesh_name) }
          with open(param.geo_template_filename) as src:
             buf = string.Template( src.read() )
          buf = buf.safe_substitute(geo_dict)
@@ -191,8 +201,8 @@ class ProcessMesh(Command):
 
          # call interval or gmsh
          if self.dim==1:
-            lx=self.domain_length_1D
-            dx=lx/param.mesh_res
+            lx=self.domain_extents[0]
+            dx=lx/float(param.mesh_res)
             subprocess.call(['../../bin/interval', '0.0',
                              str(lx), '--dx='+str(dx),
                              param.mesh_name])
@@ -201,61 +211,41 @@ class ProcessMesh(Command):
                              param.geo_filename],
                             stdout=open(os.devnull, 'wb'))
 
-        
-# class Analyse(Command):
-
-#    def __init__(self):
-#       self.stem = None
-#       self.dim = None
-#       self.mesh_type = None
-
-#    def execute(self, level_name, value, indent):
-#       if level_name == 'stem':
-#          self.stem = value
-#       if level_name == 'dim':
-#          self.dim = value
-#       if level_name == 'mesh_type':
-#          self.mesh_type = value
-#       if level_name == 'mesh_suffix':
-#          mesh_suffix = value
-
       
 class ManufacturedSolutionTestSuite:
    def __init__(self, case_name, solution_dict, finish_time,
-                domain_length_1D, mesh_type_list,
+                domain_extents, mesh_type_list,
                 mesh_suffix_list_per_dimension,
-                field_name_list):
+                field_name_list, norm_list):
 
       self.case_name = case_name
       self.solution_dict = solution_dict
       self.finish_time = finish_time
 
-      # domain_length_1D is only needed to create 1D meshes;
-      # it can be initialised with a dummy value otherwise
-      self.domain_length_1D = domain_length_1D
+      # needed for e.g. creating 1D meshes, but do not rely on this
+      # for true mesh dimensions otherwise
+      self.domain_extents = domain_extents
       
       # build handlers
-      mesh_type_handler_list = HandlerList('mesh_type', mesh_type_list)
-      field_handler_list = HandlerList('field', field_name_list)
-      norm_handler_list = HandlerList('norm', (1, 2))
+      mesh_type_handler_level = HandlerLevel('mesh_type', mesh_type_list)
+      field_handler_level = HandlerLevel('field', field_name_list)
+      norm_handler_level = HandlerLevel('norm', norm_list)
       # maintain one tree for running simulations etc. and one
       # for postprocessing 
       for hdlr_type in ('main', 'post'):
          dim_handlers = []
+         
          for dim in (1, 2, 3):
             # start with mesh suffix list
-            children = HandlerList(
+            children = HandlerLevel(
                'mesh_suffix', mesh_suffix_list_per_dimension[dim-1])
-
             # if postprocessing, first need to treat fields and norms
             if hdlr_type=='post':
-               children = field_handler_list.expand(
-                  norm_handler_list.expand(children))
-
+               children = field_handler_level.add_sub(
+                  norm_handler_level.add_sub(children))
             # if dim > 1, also treat irreg and reg meshes 
             if dim > 1:
-               children = mesh_type_handler_list.expand(children)
-               
+               children = mesh_type_handler_level.add_sub(children)
             dim_handlers.append(CompositeHandler('dim', dim, children))
 
          hdlr = CompositeHandler('stem', case_name, dim_handlers)
@@ -271,7 +261,7 @@ class ManufacturedSolutionTestSuite:
          if verbose(): print '\nPreprocessing'
          cmds = CommandList([
             ExpandOptionsTemplate(self.finish_time, self.solution_dict),
-            ProcessMesh(self.domain_length_1D)])
+            ProcessMesh(self.domain_extents)])
          self.main_handler.handle( cmds )
          
       if what=='pro' or what=='run' or what=='all':
@@ -284,117 +274,3 @@ class ManufacturedSolutionTestSuite:
             with open(error_rates_filename, 'w') as f_rates:
                self.post_handler.handle(
                   WriteToReport(f_norms, f_rates))
-
-
-   # def analyse(self):
-   #    print '\n{0:s}::{1:s} at ElapsedTime={2:g}'.\
-   #       format(self.options.phase_name, self.options.var_name, \
-   #              self.options.end_time)
-   #    for domain_dim in self.domain_dim_list:
-   #       print '   '+str(domain_dim)+'d:'
-   #       for domain_size in self.domain_size_list:
-   #          print '      scale='+domain_size+':'
-   #          for mesh_type in self.mesh_type_list:
-   #             print '         mesh='+str(mesh_type)+':'
-   #             self.analyse_mesh_series(str(domain_dim)+'D_'+\
-   #                                    domain_size+'_'+\
-   #                                    str(mesh_type))
-
-   # def clean(self):
-   #    print '\nCleaning'
-   #    for domain_dim in self.domain_dim_list:
-   #       print '   '+str(domain_dim)+'D:'
-   #       for domain_size in self.domain_size_list:
-   #          print '      scale='+domain_size+':'
-   #          for mesh_type in self.mesh_type_list:
-   #             print '         mesh='+str(mesh_type)+':'
-   #             for mesh_res in self.mesh_res_list:
-   #                print '            res='+str(mesh_res)
-   #                s = Sim(domain_dim, domain_size, mesh_type,
-   #                        mesh_res, self.options)
-   #                s.clean()
-
-   def analyse_mesh_series(self, filename_stem):
-      sys.path.append(self.options.fluidity_path + "python/")
-      from fluidity_tools import stat_parser as stat
-
-      if self.options.read_errors:
-         metric_name = 'l2_norm'
-      else:
-         metric_name = 'max_abs'
-     
-      n_mesh = len(self.mesh_res_list)
-      metric = range(n_mesh)
-      delta = range(n_mesh-1)
-      order = range(n_mesh-1)
-
-      # for each mesh, take samples within the specified time window.
-      # Can use a nearest neighbour lookup.  Note that the time abscissa
-      # may vary from mesh to mesh if e.g. adaptive timestepping is
-      # used.  
-      first = True
-      for i_mesh, mesh_res in enumerate(self.mesh_res_list):
-
-         # check stat file exists
-         fname = filename_stem+'_'+self.options.mesh_suffix_dict[mesh_res]+\
-                 '.stat'
-         if not os.path.isfile(fname): continue
-         
-         # get the time history of the metric of interest
-         if self.options.read_errors:
-            vals = numpy.abs(stat(fname)[self.options.phase_name]\
-                             [self.options.var_name]['l2norm'])
-         else:
-            min_vals = numpy.abs(stat(fname)[self.options.phase_name]\
-                                 [self.options.var_name]['min'])
-            max_vals = numpy.abs(stat(fname)[self.options.phase_name]\
-                                 [self.options.var_name]['max'])
-            vals = numpy.amax(numpy.abs(numpy.vstack((min_vals, max_vals))), axis=0)
-
-         # look up the proper end index by end time
-         # (for some reason the last value is sometimes spurious)
-         t = stat(fname)['ElapsedTime']['value']
-         ii = range(len(t))
-         i1 = int(numpy.interp(self.options.end_time, t, ii))
-         metric[i_mesh] = vals[i1]
-
-         # print stuff
-         if first:
-            print 12*' '+'res={0:3g}: {1:s}={2:11.4e}'.\
-               format(mesh_res, metric_name, metric[i_mesh])
-            first = False
-         elif self.options.read_errors:
-            arg1 = metric[i_mesh-1]/metric[i_mesh]
-            if arg1 == 0.:
-               order[i_mesh-1] = numpy.nan
-               order_str = 'N/A'
-            else:
-               arg2 = self.mesh_res_list[i_mesh] \
-                      /self.mesh_res_list[i_mesh-1]
-               order[i_mesh-1] = numpy.log(arg1)/numpy.log(arg2)
-               order_str = '{0:7.4f}'.format(order[i_mesh-1])
-               
-            print 12*' '+'res={0:3g}: {1:s}={2:11.4e}, order={3:s}'.\
-               format(mesh_res, metric_name, metric[i_mesh], \
-                      order_str)
-         else:
-            delta[i_mesh-1] = metric[i_mesh] - metric[i_mesh-1]
-            print 12*' '+'res={0:3g}: {1:s}={2:11.4e}, delta={3:11.4e}'.\
-               format(mesh_res, metric_name, metric[i_mesh], \
-                      delta[i_mesh-1])
-
-         # write more stuff to files if requested
-         if self.options.summarise_history:
-            dt = stat(fname)['dt']['value']
-            fname = filename_stem+'_'+\
-                    self.options.mesh_suffix_dict[mesh_res]+'_'+\
-                    self.options.var_name+'_'+\
-                    self.options.phase_name+'.hist'
-            with open(fname, 'w') as f:
-               f.write('t' + 10*' ' + 'dt' + 10*' ' + \
-                       metric_name + '\n')
-               for i in range(len(t)):
-                  f.write('{0:8.4e} {1:8.4e} {2:12.4e}\n'.\
-                          format(t[i], dt[i], vals[i]))
-               
-               

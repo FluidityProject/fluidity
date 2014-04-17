@@ -1,9 +1,11 @@
-from batch_tools import Command, CommandList, verbose, HandlerList, CompositeHandler
+from batch_tools import Command, CommandList, verbose, HandlerLevel, CompositeHandler
 import os
 import re
 import subprocess
 import numpy
-import fluidity_tools
+import sys
+from fluidity_tools import stat_parser
+
 
 def join_with_underscores(strings):
     result = None
@@ -15,13 +17,6 @@ def join_with_underscores(strings):
         else:
             result = result + '_' + s
     return result
-
-         
-class Dummy(Command):
-   def __init__(self):
-      pass
-   def execute(self, level_name, value, indent):
-      pass      
             
 
 class RunSimulation(Command):
@@ -112,6 +107,8 @@ class WriteToReport(Command):
                     self.mesh_suffix))
                 self.norms_file.write('{0}{1}{2:12.3e}\n'.format(
                     indent, key, err))
+                if verbose(): sys.stdout.write ('   err: {0:.3e}'.\
+                                                format(err))
 
             # can only start computing rates from the 2nd mesh
             if self.rates_file is not None and self.mesh_suffix!='A':
@@ -120,12 +117,17 @@ class WriteToReport(Command):
                     self.model, str(self.dim)+'d', self.mesh_type,
                     self.field_short, 'l'+str(self.norm),
                     self.mesh_suffix0+self.mesh_suffix))
+                rate = numpy.log2(self.err0/err)
                 self.rates_file.write('{0}{1}{2:12.6f}\n'.format(
-                    indent, key, numpy.log2(self.err0/err)))
+                    indent, key, rate))
+                if verbose(): sys.stdout.write ('   rate: {0:.6f}'.\
+                                                format(rate))
             self.err0 = err
             self.mesh_suffix0 = self.mesh_suffix
 
+
     def get_norm(self):
+        # Clients may want to override this method
         filename = join_with_underscores((
             self.stem, self.model, str(self.dim)+'d',
             self.mesh_type, self.mesh_suffix)) + '.stat'
@@ -133,7 +135,14 @@ class WriteToReport(Command):
             self.calc_type = "integral"
         elif self.norm==2:
             self.calc_type = "l2norm"
-        return fluidity_tools.stat_parser(filename)\
+        return stat_parser(filename)\
             ['Phase'+self.phase_index]\
             [self.var_name+'AbsError']\
             [self.calc_type][-1]
+
+         
+# class Dummy(Command):
+#    def __init__(self):
+#       pass
+#    def execute(self, level_name, value, indent):
+#       pass      

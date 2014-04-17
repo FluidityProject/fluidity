@@ -5,7 +5,9 @@ define import_python_code
 @echo '' >> temp
 @echo '# ************ THIS FILE IS A COPY THAT WILL BE DISCARDED. ************' >> temp
 @echo '#   ' >> temp
-@echo '#   If you want to edit it, consider editing' >> temp
+@echo '#   The copy has been made as an alternative to using Python''s import '
+@echo '#   function, as the latter doesn''t work well in the Fluidity '
+@echo '#   test harness.  If you want to edit the file, consider editing '
 @echo '#   ../darcy_impes_common/$1 instead.' >> temp
 @echo '#   ' >> temp
 @echo '# *********************************************************************' >> temp

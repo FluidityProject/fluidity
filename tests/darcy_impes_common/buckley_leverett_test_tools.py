@@ -30,7 +30,7 @@ import numpy
 import re
 import subprocess
 import os
-from test_tools import Command, CommandList, HandlerList, CompositeHandler, WriteToReport, RunSimulation, verbose
+from test_tools import Command, CommandList, HandlerLevel, CompositeHandler, WriteToReport, RunSimulation, verbose
 
 error_norms_1D_filename = "error_norms_1d.txt"
 error_norms_filename = "error_norms.txt"
@@ -189,7 +189,7 @@ class WriteErrorNorm1D(Command):
         return I**(1/float(self.norm))
    
 
-class ModifiedWriteToReport(WriteToReport):
+class BLWriteToReport(WriteToReport):
     """Overrides WriteToReport and its get_norm method
     in order to allow customised computation of 1D errors.
     """
@@ -256,30 +256,30 @@ class BuckleyLeverettTestSuite:
         self.analytic_filename_stem = analytic_filename_stem
 
         # convert lists
-        self.mesh_suffix_handler_list = []
+        self.mesh_suffix_handler_levels = []
         for mesh_suffix_list in mesh_suffix_list_per_dimension:
-            self.mesh_suffix_handler_list.append(
-                HandlerList('mesh_suffix', mesh_suffix_list))
-        self.dim_handler_list = HandlerList('dim', (1, 2, 3))
-        self.model_handler_list = HandlerList('model', model_name_list)
-        self.field_handler_list = HandlerList('field', field_name_list)
-        self.norm_handler_list = HandlerList('norm', (1, 2))
+            self.mesh_suffix_handler_levels.append(
+                HandlerLevel('mesh_suffix', mesh_suffix_list))
+        self.dim_handler_level = HandlerLevel('dim', (1, 2, 3))
+        self.model_handler_level = HandlerLevel('model', model_name_list)
+        self.field_handler_level = HandlerLevel('field', field_name_list)
+        self.norm_handler_level = HandlerLevel('norm', (1, 2))
         
             
-    def new_handler(self, handlers):
+    def new_handler(self, handler_level):
         """Short wrapper for CompositeHandler."""
         return CompositeHandler('stem', self.numerical_filename_stem,
-                                handlers )
+                                handler_level )
  
  
     def process_folder(self):
         if verbose(): print '\nProcessing folder '
         # build handler structure
         handler = self.new_handler(
-            self.model_handler_list.expand(
-                self.dim_handler_list.splice(
+            self.model_handler_level.add_sub(
+                self.dim_handler_level.splice(
                     # n.b. splice lists here
-                    self.mesh_suffix_handler_list)))
+                    self.mesh_suffix_handler_levels)))
         # pass it a command 
         handler.handle(CommandList((Preprocess(),
                                     RunSimulation(),
@@ -292,11 +292,11 @@ class BuckleyLeverettTestSuite:
         with open(error_norms_1D_filename, "w") as f_norms:
             # build handler structure
             handler = self.new_handler(
-                self.model_handler_list.expand(
-                    # 1D, so just expand mesh_suffix_handler_list[0]
-                    self.mesh_suffix_handler_list[0].expand(
-                        self.field_handler_list.expand(
-                            self.norm_handler_list))))
+                self.model_handler_level.add_sub(
+                    # 1D, so just add_sub mesh_suffix_handler_levels[0]
+                    self.mesh_suffix_handler_levels[0].add_sub(
+                        self.field_handler_level.add_sub(
+                            self.norm_handler_level))))
             # pass it a command 
             handler.handle(
                 WriteErrorNorm1D(self.analytic_filename_stem, f_norms))
@@ -311,11 +311,11 @@ class BuckleyLeverettTestSuite:
             dim_handlers = []
             for i, dim in enumerate((1, 2, 3)):
                 dim_handlers.append(CompositeHandler('dim', dim,
-                        self.field_handler_list.expand(
-                            self.norm_handler_list.expand(
-                                self.mesh_suffix_handler_list[i]))))
+                        self.field_handler_level.add_sub(
+                            self.norm_handler_level.add_sub(
+                                self.mesh_suffix_handler_levels[i]))))
             handler = self.new_handler(
-                self.model_handler_list.expand(dim_handlers))
+                self.model_handler_level.add_sub(dim_handlers))
 
             # pass it a command
             with open(error_norms_1D_filename, "r") as f_norms_1D:
@@ -326,8 +326,7 @@ class BuckleyLeverettTestSuite:
                     f_norms = None
                 try:
                     handler.handle(
-                        ModifiedWriteToReport(
-                            f_norms, f_rates, f_norms_1D))
+                        BLWriteToReport(f_norms, f_rates, f_norms_1D))
                 finally:
                     if debug: f_norms.close()
         

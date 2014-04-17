@@ -53,6 +53,8 @@ class Handler:
         self.level_name = level_name
         self.value = value
         self.level_index = 0
+        self.beg_char = ''
+        self.end_char = '\n'
         
     def set_level_index(self, level_index):
         pass
@@ -67,7 +69,7 @@ class CompositeHandler(Handler):
     def __init__(self, level_name, value, children):
         Handler.__init__(self, level_name, value)
         try:
-            # if children is a HandlerList (see below), convert it back
+            # if children is a HandlerLevel (see below), convert it back
             self.children = children.get_handlers()
         except AttributeError:
             # already a Python list of Handlers
@@ -77,19 +79,23 @@ class CompositeHandler(Handler):
         
     def set_level_index(self, level_index):
         self.level_index = level_index
+        if level_index > 0:
+            self.beg_char = '\n'
+            self.end_char = ''
         # recurse
         for child in self.children:
             child.set_level_index(self.level_index + 1)
         
     def handle(self, command):
-        if verbose: print self.level_index*indent + \
-           self.level_name + ': ' + str(self.value)
+        if verbose: sys.stdout.write(self.beg_char+self.level_index*indent + \
+           self.level_name + ': ' + str(self.value))
         # try executing the command at this level
         command.execute(self.level_name, self.value,
                         self.level_index*indent)
         # recurse
         for child in self.children:
             child.handle(command)
+        if verbose: sys.stdout.write(self.end_char)
         
         
 class LeafHandler(Handler):
@@ -100,16 +106,20 @@ class LeafHandler(Handler):
         
     def set_level_index(self, level_index):
         self.level_index = level_index
+        if level_index > 0:
+            self.beg_char = '\n'
+            self.end_char = ''
 
     def handle(self, command):
-        if verbose: print self.level_index*indent + \
-            self.level_name+': '+str(self.value)
+        if verbose: sys.stdout.write(self.beg_char+self.level_index*indent+\
+            self.level_name+': '+str(self.value))
         # try executing the command at this level
         command.execute(self.level_name, self.value,
                         self.level_index*indent)
+        if verbose: sys.stdout.write(self.end_char)
 
         
-class HandlerList:
+class HandlerLevel:
     """A Python list of Handlers.  It is different to a CompositeHandler in
     that there is no parent-child relationship -- here there is simply
     some children.  It has extra methods for building trees and doesn't
@@ -124,42 +134,44 @@ class HandlerList:
         for value in values:
             self.handlers.append( LeafHandler(level_name, value) )
 
-    def expand(self, handler_list):
-        """Using CompositeHandler, takes another HandlerList, or list of
-        Handlers, and appends copies of it to each element in its own
-        list of Handlers, effectively multiplying the HandlerLists
-        together.  I.e. does self.handlers[i].append(handler_list).
-        Returns a fresh HandlerList; does not self-modify.
+    def add_sub(self, handlers_or_handler_level):
+        """Using CompositeHandler, takes another HandlerLevel, or list of
+        Handlers, and appends copies to each element in its own list of
+        Handlers, effectively adding a sub-level to each Handler.
+        I.e. does self.handlers[i].append(handlers).  Returns a fresh
+        HandlerLevel; does not self-modify.
 
         """
-        new_handler_list = HandlerList(None, [])
+        new_handler_level = HandlerLevel(None, [])
         new_handlers = []
         try:
-            sub_handlers = handler_list.handlers
+            sub_handlers = handlers_or_handler_level.handlers
         except AttributeError:
-            sub_handlers = handler_list
+            sub_handlers = handlers_or_handler_level
         for handler in self.handlers:
             new_handlers.append(
                 CompositeHandler(handler.level_name, handler.value, 
                                  sub_handlers))
-        new_handler_list.handlers = new_handlers
-        return new_handler_list
-    
-    def splice(self, handler_lists):
-        """Using CompositeHandler, takes a (Python) list of other HandlerLists
-        and appends each HandlerList to the corresponding element in its
-        own list of Handlers, effectively doing a splice.  I.e. does
-        self.handlers[i].append(handler_lists[i]).  Returns a fresh
-        HandlerList; does not self-modify.
+        new_handler_level.handlers = new_handlers
+        return new_handler_level
+        
+    def splice(self, handler_levels):
+        # DEPRECATED - not useful enough; will only cause confusion
+        """Using CompositeHandler, takes a list of other HandlerLevels and
+        appends the contents of each HandlerLevel to the corresponding
+        element in its own list of Handlers, effectively doing a splice.
+        I.e. does self.handlers[i].append(handler_levels[i]).  Returns a
+        fresh HandlerLevel; does not self-modify.
+
         """
-        new_handler_list = HandlerList(None, [])
+        new_handler_level = HandlerLevel(None, [])
         new_handlers = []
         for i, handler in enumerate(self.handlers):
             new_handlers.append(
                 CompositeHandler(handler.level_name, handler.value, 
-                                 handler_lists[i].handlers))
-        new_handler_list.handlers = new_handlers
-        return new_handler_list
+                                 handler_levels[i].handlers))
+        new_handler_level.handlers = new_handlers
+        return new_handler_level
 
     def get_handlers(self):
         return self.handlers
