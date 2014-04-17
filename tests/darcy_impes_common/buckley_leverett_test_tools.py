@@ -35,7 +35,7 @@ from test_tools import Command, CommandList, HandlerLevel, CompositeHandler, Wri
 error_norms_1D_filename = "error_norms_1d.txt"
 
 verbose(True)
-debug = True
+debug = False
 
 ## HELPER FUNCTIONS/CLASSES
     

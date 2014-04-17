@@ -19,8 +19,8 @@ from test_tools import Command, CommandList, HandlerLevel, \
 from fluidity_tools import stat_parser
 from getpass import getuser
 
-debug = True
 verbose(True)
+debug = False
 
 class Parameterisation:
    """Parameters determined from a small, fixed set of
@@ -315,7 +315,9 @@ python processing.py pre proc post clean
   </problem_definition>
   <pass_tests>
     <test name="Solvers converged" language="python">
-assert(solvers_converged)
+import os
+files = os.listdir("./")
+assert(not "matrixdump" in files and not "matrixdump.info" in files)
     </test>""".format(self.case_name, getuser()))
 
       

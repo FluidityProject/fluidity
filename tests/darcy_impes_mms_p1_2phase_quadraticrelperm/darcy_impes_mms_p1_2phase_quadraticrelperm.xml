@@ -12,30 +12,32 @@ python processing.py pre proc post clean
   </problem_definition>
   <pass_tests>
     <test name="Solvers converged" language="python">
-assert(solvers_converged)
+import os
+files = os.listdir("./")
+assert(not "matrixdump" in files and not "matrixdump.info" in files)
     </test>
     <test name="1d_pressure1_l2_E: expect norm lt 0.01" language="python">
-from test_tools import find_rate
+from test_tools import find_norm
 assert(find_norm("1d_pressure1_l2_E") &lt; 0.01)
     </test>
     <test name="1d_saturation2_l2_E: expect norm lt 0.0001" language="python">
-from test_tools import find_rate
+from test_tools import find_norm
 assert(find_norm("1d_saturation2_l2_E") &lt; 0.0001)
     </test>
     <test name="2d_reg_pressure1_l2_D: expect norm lt 0.01" language="python">
-from test_tools import find_rate
+from test_tools import find_norm
 assert(find_norm("2d_reg_pressure1_l2_D") &lt; 0.01)
     </test>
     <test name="2d_reg_saturation2_l2_D: expect norm lt 0.0001" language="python">
-from test_tools import find_rate
+from test_tools import find_norm
 assert(find_norm("2d_reg_saturation2_l2_D") &lt; 0.0001)
     </test>
     <test name="3d_reg_pressure1_l2_C: expect norm lt 0.01" language="python">
-from test_tools import find_rate
+from test_tools import find_norm
 assert(find_norm("3d_reg_pressure1_l2_C") &lt; 0.01)
     </test>
     <test name="3d_reg_saturation2_l2_C: expect norm lt 0.0001" language="python">
-from test_tools import find_rate
+from test_tools import find_norm
 assert(find_norm("3d_reg_saturation2_l2_C") &lt; 0.0001)
     </test>
     <test name="1d_pressure1_l2_BC: expect rate gt 0.6" language="python">

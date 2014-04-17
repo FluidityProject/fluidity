@@ -44,7 +44,7 @@ def find(report_filename, key):
     with key (ID).
     """
     with open(report_filename, "r") as f:
-        v = find(f, key)
+        v = find_in_open(f, key)
         return v
 
 def find_norm(key): return find(error_norms_filename, key)
@@ -117,7 +117,7 @@ class WriteXMLSnippet(Command):
     
             self.xml_file.write("""
     <test name="{1}: expect {0} {2} {3:g}" language="python">
-from test_tools import find_rate
+from test_tools import find_{0}
 assert(find_{0}("{1}") &{2}; {3:g})
     </test>""".format(self.metric_type, key, self.rel_op, 
                       self.rescaled_threshold))

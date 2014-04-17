@@ -1,6 +1,6 @@
 include ../darcy_impes_common/Depend.mk
 
-default: clean code geo
+input: clean code geo
 
 code:
 	$(call import_python_code,batch_tools.py)
