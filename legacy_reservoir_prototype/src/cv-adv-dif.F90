@@ -293,14 +293,10 @@ contains
       REAL, DIMENSION( : ), allocatable ::  &
            CVNORMX, &
            CVNORMY, CVNORMZ, MASS_CV, MASS_ELE, SNDOTQ, SNDOTQOLD,  &
-           FEMT, FEMTOLD, FEMT2, FEMT2OLD, FEMDEN, FEMDENOLD, XC_CV, YC_CV, ZC_CV, &
+           XC_CV, YC_CV, ZC_CV, &
            SRA,   &
            SUM_CV, ONE_PORE, &
-           T2MAX, T2MIN, T2OLDMAX, &
-           T2OLDMIN, &
-           T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, &
-           T2OLDMIN_2ND_MC, &
-           UP_WIND_NOD, DU, DV, DW, PERM_ELE, DEN, DENOLD
+           UP_WIND_NOD, DU, DV, DW, PERM_ELE
       REAL, DIMENSION( :, : ), allocatable :: CVNORMX_ALL, XC_CV_ALL
       REAL, DIMENSION( :, : ), allocatable :: UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
            UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2
@@ -325,8 +321,7 @@ contains
     !###Pointers for Shape function calculation###
 
       REAL, DIMENSION( : ), allocatable :: SHAPE_CV_SNL
-      REAL, DIMENSION( :, :, : ), allocatable :: DTX_ELE,DTY_ELE,DTZ_ELE,  &
-           DTOLDX_ELE,DTOLDY_ELE,DTOLDZ_ELE, DUMMY_ZERO_NDIM_NDIM_NPHASE
+      REAL, DIMENSION( :, :, : ), allocatable :: DUMMY_ZERO_NDIM_NDIM_NPHASE
       REAL, DIMENSION( :, :, :, : ), allocatable :: DTX_ELE_ALL, DTOLDX_ELE_ALL
       REAL, pointer, DIMENSION( :, :, : ) :: INV_JAC
       real, pointer, dimension( : ) :: SCVDETWEI, SCVRA
@@ -509,13 +504,9 @@ contains
 
       ewrite(3,*) 'In CV_ASSEMB'
 
-      !ewrite(3,*) 'CV_P', CV_P
-      !ewrite(3,*) 'DEN', DEN
-      !ewrite(3,*) 'DENOLD', DENOLD
-      !ewrite(3,*) 'MEAN_PORE_CV', MEAN_PORE_CV
 
       GOT_VIS = .FALSE. 
-!      IF(IGOT_THERM_VIS==1) GOT_VIS = ( R2NORM( THERM_U_DIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0 )
+      IF(IGOT_THERM_VIS==1) GOT_VIS = ( R2NORM( THERM_U_DIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0 )
 
       GOT_DIFFUS = ( R2NORM( TDIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0 )
 
@@ -525,15 +516,6 @@ contains
            CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, SECOND_THETA, GOT_DIFFUS
       ewrite(3,*)'GETCV_DISC, GETCT', GETCV_DISC, GETCT
 
-      !ewrite(3,*)'tdiffusion=', tdiffusion
-      !ewrite(3,*)'suf_t_bc=', suf_t_bc
-      !ewrite(3,*)'wic_t_bc=', wic_t_bc
-      !ewrite(3,*)'nu=', nu
-      !ewrite(3,*)'nv=', nv
-      !ewrite(3,*)'nw=', w
-      !ewrite(3,*)'den=', den
-      !ewrite(3,*)'denold=', denold
-!         print *,'just entered sub -1'
 
 !      ndotq = 0. ; ndotqold = 0.
 
@@ -680,24 +662,12 @@ contains
       ! Determine FEMT (finite element wise) etc from T (control volume wise)
       ! Also determine the CV mass matrix MASS_CV and centre of the CV's XC_CV,YC_CV,ZC_CV.
       ! This is for projecting to finite element basis functions...
-      ALLOCATE( FEMT( CV_NONODS * NPHASE ))
-      ALLOCATE( FEMTOLD( CV_NONODS * NPHASE ))
-      ALLOCATE( FEMDEN( CV_NONODS * NPHASE ))
-      ALLOCATE( FEMDENOLD( CV_NONODS * NPHASE ))
-      ALLOCATE( FEMT2( CV_NONODS * NPHASE * IGOT_T2 ))
-      ALLOCATE( FEMT2OLD( CV_NONODS * NPHASE * IGOT_T2 ))
       ALLOCATE( MASS_CV( CV_NONODS ))
       ALLOCATE( MASS_ELE( TOTELE ))
       ALLOCATE( XC_CV( CV_NONODS ))
       ALLOCATE( YC_CV( CV_NONODS ))
       ALLOCATE( ZC_CV( CV_NONODS ))
       ALLOCATE( XC_CV_ALL( NDIM, CV_NONODS ))
-      ALLOCATE( DTX_ELE( CV_NLOC, NPHASE,TOTELE ))
-      ALLOCATE( DTY_ELE( CV_NLOC, NPHASE,TOTELE ))
-      ALLOCATE( DTZ_ELE( CV_NLOC, NPHASE,TOTELE ))
-      ALLOCATE( DTOLDX_ELE( CV_NLOC, NPHASE,TOTELE ))
-      ALLOCATE( DTOLDY_ELE( CV_NLOC, NPHASE,TOTELE ))
-      ALLOCATE( DTOLDZ_ELE( CV_NLOC, NPHASE,TOTELE ))
 
       ALLOCATE( DTX_ELE_ALL( NDIM, NPHASE, CV_NLOC, TOTELE ))
       ALLOCATE( DTOLDX_ELE_ALL( NDIM, NPHASE, CV_NLOC, TOTELE ))
@@ -708,8 +678,6 @@ contains
 
 
 ! TEMP STUFF HERE
-
-      ALLOCATE( DEN( NPHASE * CV_NONODS ), DENOLD( NPHASE * CV_NONODS ) )
 
 !      ALLOCATE( U_ALL( NDIM, NPHASE, U_NONODS ), NU_ALL( NDIM, NPHASE, U_NONODS ), NUOLD_ALL( NDIM, NPHASE, U_NONODS ) )
 !      ALLOCATE( X_ALL( NDIM, X_NONODS ) )
@@ -809,14 +777,14 @@ contains
 
       DO IPHASE = 1, NPHASE
 
-         DEN( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS ) = DEN_ALL( IPHASE, : )
-         DENOLD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS ) = DENOLD_ALL( IPHASE, : )
+!         DEN( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS ) = DEN_ALL( IPHASE, : )
+!         DENOLD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS ) = DENOLD_ALL( IPHASE, : )
 
 !         T_ALL( IPHASE, : ) = T( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
 !         TOLD_ALL( IPHASE, : ) = TOLD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
 
-         T( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS ) = T_ALL( IPHASE, : )
-         TOLD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS ) = TOLD_ALL( IPHASE, : )
+!         T( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS ) = T_ALL( IPHASE, : )
+!         TOLD( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS ) = TOLD_ALL( IPHASE, : )
 
          IF ( IGOT_T2 == 1 ) THEN
             T2_ALL( IPHASE, : ) = T2( 1 + (IPHASE-1)*CV_NONODS : IPHASE*CV_NONODS )
@@ -1063,22 +1031,29 @@ contains
            IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC )
 
        !###FEM VALUES###
+! ***********LOOK AT T_FEMT,DEN_FEMT WITH A VIEW TO DELETING EVENTUALLY
       DO CV_INOD = 1, CV_NONODS
           DO IPHASE = 1, NPHASE
-              FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT_ALL( IPHASE, CV_INOD)
-              FEMTOLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMTOLD_ALL( IPHASE, CV_INOD)
-              FEMDEN( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMDEN_ALL( IPHASE, CV_INOD)
-              FEMDENOLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMDENOLD_ALL( IPHASE, CV_INOD)
+              T_FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT_ALL( IPHASE, CV_INOD)
+              DEN_FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMDEN_ALL( IPHASE, CV_INOD)
           END DO
       END DO
-      if (IGOT_T2>0) then
-          DO CV_INOD = 1, CV_NONODS
-              DO IPHASE = 1, NPHASE
-                  FEMT2( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT2_ALL( IPHASE, CV_INOD)
-                  FEMT2OLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT2OLD_ALL( IPHASE, CV_INOD)
-              END DO
-          END DO
-      end if
+!      DO CV_INOD = 1, CV_NONODS
+!          DO IPHASE = 1, NPHASE
+!              FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT_ALL( IPHASE, CV_INOD)
+!              FEMTOLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMTOLD_ALL( IPHASE, CV_INOD)
+!              FEMDEN( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMDEN_ALL( IPHASE, CV_INOD)
+!              FEMDENOLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMDENOLD_ALL( IPHASE, CV_INOD)
+!          END DO
+!      END DO
+!      if (IGOT_T2>0) then
+!          DO CV_INOD = 1, CV_NONODS
+!              DO IPHASE = 1, NPHASE
+!                  FEMT2( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT2_ALL( IPHASE, CV_INOD)
+!                  FEMT2OLD( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT2OLD_ALL( IPHASE, CV_INOD)
+!              END DO
+!          END DO
+!      end if
 
       XC_CV_ALL(1,:)=XC_CV(:)
       IF(NDIM.GE.2) XC_CV_ALL(2,:)=YC_CV(:)
@@ -2453,8 +2428,8 @@ contains
       !end do
 
       ! for the output
-      T_FEMT = FEMT
-      DEN_FEMT = FEMDEN
+!      T_FEMT = FEMT
+!      DEN_FEMT = FEMDEN
 
       ewrite(3,*) '----------sub cv_assemb--------'
       if( .false. .and. getct) then
@@ -2522,21 +2497,15 @@ contains
       DEALLOCATE( CV_SLOC2LOC )
       DEALLOCATE( U_SLOC2LOC )
 
-      DEALLOCATE( FEMT )
-      DEALLOCATE( FEMTOLD )
-      DEALLOCATE( FEMDEN )
-      DEALLOCATE( FEMDENOLD )
+!      DEALLOCATE( FEMT )
+!      DEALLOCATE( FEMTOLD )
+!      DEALLOCATE( FEMDEN )
+!      DEALLOCATE( FEMDENOLD )
       DEALLOCATE( MASS_CV )
       DEALLOCATE( XC_CV )
       DEALLOCATE( YC_CV )
       DEALLOCATE( ZC_CV )
       DEALLOCATE( XC_CV_ALL )
-      DEALLOCATE( DTX_ELE )
-      DEALLOCATE( DTY_ELE )
-      DEALLOCATE( DTZ_ELE )
-      DEALLOCATE( DTOLDX_ELE )
-      DEALLOCATE( DTOLDY_ELE )
-      DEALLOCATE( DTOLDZ_ELE )
       DEALLOCATE( FACE_ELE )
       DEALLOCATE(TUPWIND_MAT_ALL)
       DEALLOCATE(TOLDUPWIND_MAT_ALL)
