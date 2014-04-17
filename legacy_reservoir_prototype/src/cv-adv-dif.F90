@@ -296,10 +296,10 @@ contains
            XC_CV, YC_CV, ZC_CV, &
            SRA,   &
            SUM_CV, ONE_PORE, &
-           UP_WIND_NOD, DU, DV, DW, PERM_ELE
+           DU, DV, DW, PERM_ELE
       REAL, DIMENSION( :, : ), allocatable :: CVNORMX_ALL, XC_CV_ALL
-      REAL, DIMENSION( :, : ), allocatable :: UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
-           UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2
+!      REAL, DIMENSION( :, : ), allocatable :: UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
+!           UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2
       REAL, DIMENSION( :, :, : ), allocatable :: UGI_COEF_ELE_ALL, UGI_COEF_ELE2_ALL
 
 
@@ -392,8 +392,8 @@ contains
            path_comp, path_spatial_discretisation
 
 
-      real, dimension(:), allocatable :: TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, &
-           DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT
+!      real, dimension(:), allocatable :: TUPWIND_MAT, TOLDUPWIND_MAT, DENUPWIND_MAT, &
+!           DENOLDUPWIND_MAT, T2UPWIND_MAT, T2OLDUPWIND_MAT
       real, dimension(:,:), allocatable :: TUPWIND_MAT_ALL, TOLDUPWIND_MAT_ALL, DENUPWIND_MAT_ALL, &
            DENOLDUPWIND_MAT_ALL, T2UPWIND_MAT_ALL, T2OLDUPWIND_MAT_ALL
       INTEGER :: IDUM(1)
@@ -435,7 +435,7 @@ contains
       REAL, DIMENSION( :, :, :, : ), ALLOCATABLE :: SUF_U_BC_ALL
 
 !      TYPE( TENSOR_FIELD ), POINTER :: U_s, NU_s, NUOLD_s
-      REAL, DIMENSION( : ), ALLOCATABLE :: U, V, W, NU, NUOLD, NV, NVOLD, NW, NWOLD
+!      REAL, DIMENSION( : ), ALLOCATABLE :: U, V, W, NU, NUOLD, NV, NVOLD, NW, NWOLD
 !      type( vector_field ), pointer:: x
       !Working pointers
       real, dimension(:), allocatable :: T, TOLD !<= TEMPORARY, TO REMOVE WHEN CONVERSION IS FINISHED
@@ -529,10 +529,10 @@ contains
       ! Allocate memory for the control volume surface shape functions, etc.
 
       IF(GETCT) THEN
-         ALLOCATE( JCOUNT_KLOC( U_NLOC )) ; jcount_kloc = 0
-         ALLOCATE( JCOUNT_KLOC2( U_NLOC )) ; jcount_kloc2 = 0
-         ALLOCATE( ICOUNT_KLOC( U_NLOC )) ; icount_kloc = 0
-         ALLOCATE( ICOUNT_KLOC2( U_NLOC )) ; icount_kloc2 = 0
+         ALLOCATE( JCOUNT_KLOC( U_NLOC ))   
+         ALLOCATE( JCOUNT_KLOC2( U_NLOC ))
+         ALLOCATE( ICOUNT_KLOC( U_NLOC )) 
+         ALLOCATE( ICOUNT_KLOC2( U_NLOC )) 
       ENDIF
 
 
@@ -579,18 +579,12 @@ contains
       ALLOCATE( CV_SLOC2LOC( CV_SNLOC ))
       ALLOCATE( U_SLOC2LOC( U_SNLOC ))
 
-      ALLOCATE( UGI_COEF_ELE(NPHASE,U_NLOC),  VGI_COEF_ELE(NPHASE,U_NLOC),  WGI_COEF_ELE(NPHASE,U_NLOC) )
-      ALLOCATE( UGI_COEF_ELE2(NPHASE,U_NLOC), VGI_COEF_ELE2(NPHASE,U_NLOC), WGI_COEF_ELE2(NPHASE,U_NLOC) )
-
       ALLOCATE( UGI_COEF_ELE_ALL(NDIM,NPHASE,U_NLOC) )
       ALLOCATE( UGI_COEF_ELE2_ALL(NDIM,NPHASE,U_NLOC) )
       ! The procity mapped to the CV nodes
       ALLOCATE( SUM_CV( CV_NONODS ))
-      ALLOCATE( UP_WIND_NOD( CV_NONODS * NPHASE ))
 
       ALLOCATE( TEN_XX_ONE( NDIM, NDIM, NPHASE )); TEN_XX_ONE=1.0
-
-      UP_WIND_NOD = 0.0
 
       ALLOCATE( ONE_PORE( TOTELE ))
       IF ( have_option( '/porous_media/actual_velocity' ) ) THEN
@@ -705,7 +699,7 @@ contains
 !      NU_ALL=0. ; NUOLD_ALL=0. ; X_ALL=0. ;  X_ALL=0.
 !      T_ALL=0. ; TOLD_ALL=0. ; DEN_ALL=0. ; DENOLD_ALL=0. ; T2_ALL=0. ; T2OLD_ALL=0.
 !      FEMT_ALL=0. ; FEMTOLD_ALL=0. ; FEMDEN_ALL=0. ; FEMDENOLD_ALL=0. ; FEMT2_ALL=0. ; FEMT2OLD_ALL=0.
-      SOURCT_ALL=0. ; ABSORBT_ALL=0.
+!      SOURCT_ALL=0. ; ABSORBT_ALL=0.
 
 !      WIC_T_BC_ALL=0 ; WIC_D_BC_ALL=0 
       WIC_U_BC_ALL=0
@@ -728,13 +722,13 @@ contains
 !      U_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedVelocity" )
 !      if ( for_Sat ) U_ALL = U_s % val
 
-      ALLOCATE( U( NPHASE * U_NONODS ) ) ; U=0.0
-      ALLOCATE( V( NPHASE * U_NONODS ) ) ; V=0.0
-      ALLOCATE( W( NPHASE * U_NONODS ) ) ; W=0.0
+!      ALLOCATE( U( NPHASE * U_NONODS ) ) ; U=0.0
+!      ALLOCATE( V( NPHASE * U_NONODS ) ) ; V=0.0
+!      ALLOCATE( W( NPHASE * U_NONODS ) ) ; W=0.0
 
-      ALLOCATE( NU( NPHASE * U_NONODS ), NUOLD( NPHASE * U_NONODS ) ) ; NU=0.0 ; NUOLD=0.0
-      ALLOCATE( NV( NPHASE * U_NONODS ), NVOLD( NPHASE * U_NONODS ) ) ; NV=0.0 ; NVOLD=0.0
-      ALLOCATE( NW( NPHASE * U_NONODS ), NWOLD( NPHASE * U_NONODS ) ) ; NW=0.0 ; NWOLD=0.0
+!      ALLOCATE( NU( NPHASE * U_NONODS ), NUOLD( NPHASE * U_NONODS ) ) ; NU=0.0 ; NUOLD=0.0
+!      ALLOCATE( NV( NPHASE * U_NONODS ), NVOLD( NPHASE * U_NONODS ) ) ; NV=0.0 ; NVOLD=0.0
+!      ALLOCATE( NW( NPHASE * U_NONODS ), NWOLD( NPHASE * U_NONODS ) ) ; NW=0.0 ; NWOLD=0.0
 
       IF ( IS_OVERLAPPING ) THEN
          NLEV = CV_NLOC
@@ -743,35 +737,36 @@ contains
          NLEV = 1
          U_NLOC2 = U_NLOC
       END IF
-            DO U_INOD = 1, U_NONODS
-               DO IPHASE = 1, NPHASE
-                  DO IDIM = 1, NDIM
-                     IF ( IDIM==1 ) THEN
-                        !U_ALL( IDIM, IPHASE, U_INOD ) = U( U_INOD + (IPHASE-1)*U_NONODS )
-                        !NU_ALL( IDIM, IPHASE, U_INOD ) = NU( U_INOD + (IPHASE-1)*U_NONODS )
-                        !NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NUOLD( U_INOD + (IPHASE-1)*U_NONODS )
-                        U( U_INOD + (IPHASE-1)*U_NONODS ) = U_ALL( IDIM, IPHASE, U_INOD )
-                        NU( U_INOD + (IPHASE-1)*U_NONODS ) = NU_ALL( IDIM, IPHASE, U_INOD )
-                        NUOLD( U_INOD + (IPHASE-1)*U_NONODS ) = NUOLD_ALL( IDIM, IPHASE, U_INOD )
-                     ELSE IF ( IDIM==2 ) THEN
-                        !U_ALL( IDIM, IPHASE, U_INOD ) = V( U_INOD + (IPHASE-1)*U_NONODS )
-                        !NU_ALL( IDIM, IPHASE, U_INOD ) = NV( U_INOD + (IPHASE-1)*U_NONODS )
-                        !NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NVOLD( U_INOD + (IPHASE-1)*U_NONODS )
- 
-                        V( U_INOD + (IPHASE-1)*U_NONODS ) = U_ALL( IDIM, IPHASE, U_INOD )
-                        NV( U_INOD + (IPHASE-1)*U_NONODS ) = NU_ALL( IDIM, IPHASE, U_INOD )
-                        NVOLD( U_INOD + (IPHASE-1)*U_NONODS ) = NUOLD_ALL( IDIM, IPHASE, U_INOD )
-                     ELSE
-                        !U_ALL( IDIM, IPHASE, U_INOD ) = W( U_INOD + (IPHASE-1)*U_NONODS )
-                        !NU_ALL( IDIM, IPHASE, U_INOD ) = NW( U_INOD + (IPHASE-1)*U_NONODS )
-                        !NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NWOLD( U_INOD + (IPHASE-1)*U_NONODS )
-                        W( U_INOD + (IPHASE-1)*U_NONODS ) = U_ALL( IDIM, IPHASE, U_INOD )
-                        NW( U_INOD + (IPHASE-1)*U_NONODS ) = NU_ALL( IDIM, IPHASE, U_INOD )
-                        NWOLD( U_INOD + (IPHASE-1)*U_NONODS ) = NUOLD_ALL( IDIM, IPHASE, U_INOD )
-                     END IF
-                  END DO
-               END DO
-            END DO
+
+!            DO U_INOD = 1, U_NONODS
+!               DO IPHASE = 1, NPHASE
+!                  DO IDIM = 1, NDIM
+!                     IF ( IDIM==1 ) THEN
+!                        !U_ALL( IDIM, IPHASE, U_INOD ) = U( U_INOD + (IPHASE-1)*U_NONODS )
+!                        !NU_ALL( IDIM, IPHASE, U_INOD ) = NU( U_INOD + (IPHASE-1)*U_NONODS )
+!                        !NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NUOLD( U_INOD + (IPHASE-1)*U_NONODS )
+!                        U( U_INOD + (IPHASE-1)*U_NONODS ) = U_ALL( IDIM, IPHASE, U_INOD )
+!                        NU( U_INOD + (IPHASE-1)*U_NONODS ) = NU_ALL( IDIM, IPHASE, U_INOD )
+!                        NUOLD( U_INOD + (IPHASE-1)*U_NONODS ) = NUOLD_ALL( IDIM, IPHASE, U_INOD )
+!                     ELSE IF ( IDIM==2 ) THEN
+!                        !U_ALL( IDIM, IPHASE, U_INOD ) = V( U_INOD + (IPHASE-1)*U_NONODS )
+!                        !NU_ALL( IDIM, IPHASE, U_INOD ) = NV( U_INOD + (IPHASE-1)*U_NONODS )
+!                        !NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NVOLD( U_INOD + (IPHASE-1)*U_NONODS )
+! 
+!                        V( U_INOD + (IPHASE-1)*U_NONODS ) = U_ALL( IDIM, IPHASE, U_INOD )
+!                        NV( U_INOD + (IPHASE-1)*U_NONODS ) = NU_ALL( IDIM, IPHASE, U_INOD )
+!                        NVOLD( U_INOD + (IPHASE-1)*U_NONODS ) = NUOLD_ALL( IDIM, IPHASE, U_INOD )
+!                     ELSE
+!                        !U_ALL( IDIM, IPHASE, U_INOD ) = W( U_INOD + (IPHASE-1)*U_NONODS )
+!                        !NU_ALL( IDIM, IPHASE, U_INOD ) = NW( U_INOD + (IPHASE-1)*U_NONODS )
+!                        !NUOLD_ALL( IDIM, IPHASE, U_INOD ) = NWOLD( U_INOD + (IPHASE-1)*U_NONODS )
+!                        W( U_INOD + (IPHASE-1)*U_NONODS ) = U_ALL( IDIM, IPHASE, U_INOD )
+!                        NW( U_INOD + (IPHASE-1)*U_NONODS ) = NU_ALL( IDIM, IPHASE, U_INOD )
+!                        NWOLD( U_INOD + (IPHASE-1)*U_NONODS ) = NUOLD_ALL( IDIM, IPHASE, U_INOD )
+!                     END IF
+!                  END DO
+!               END DO
+!            END DO
 
 !print *, u_all(1,1,:)
 
@@ -1096,9 +1091,9 @@ contains
       ALLOCATE( T2UPWIND_MAT_ALL( NPHASE*IGOT_T2, NSMALL_COLM* IGOT_T2), T2OLDUPWIND_MAT_ALL( NPHASE*IGOT_T2, NSMALL_COLM*IGOT_T2 ) )
 
     !#############CONVERSION FROM NEW VARIABLES TO OLD VARIABLES############
-         ALLOCATE( TUPWIND_MAT( NSMALL_COLM*NPHASE ), TOLDUPWIND_MAT( NSMALL_COLM*NPHASE ), &
-              DENUPWIND_MAT( NSMALL_COLM*NPHASE ), DENOLDUPWIND_MAT( NSMALL_COLM*NPHASE ) )
-         ALLOCATE( T2UPWIND_MAT( NSMALL_COLM*NPHASE*IGOT_T2 ), T2OLDUPWIND_MAT( NSMALL_COLM*NPHASE*IGOT_T2 ) )
+!         ALLOCATE( TUPWIND_MAT( NSMALL_COLM*NPHASE ), TOLDUPWIND_MAT( NSMALL_COLM*NPHASE ), &
+!              DENUPWIND_MAT( NSMALL_COLM*NPHASE ), DENOLDUPWIND_MAT( NSMALL_COLM*NPHASE ) )
+!         ALLOCATE( T2UPWIND_MAT( NSMALL_COLM*NPHASE*IGOT_T2 ), T2OLDUPWIND_MAT( NSMALL_COLM*NPHASE*IGOT_T2 ) )
 
 
       IF ( IANISOLIM == 0 ) THEN
@@ -1135,18 +1130,18 @@ contains
       END IF ! endof IF ( IANISOLIM == 0 ) THEN ELSE
 
 
-      DO COUNT = 1, NSMALL_COLM
-          DO IPHASE = 1, NPHASE
-              TUPWIND_MAT(COUNT + ( IPHASE - 1 ) * NSMALL_COLM) = TUPWIND_MAT_ALL(IPHASE, COUNT)
-              TOLDUPWIND_MAT(COUNT + ( IPHASE - 1 ) * NSMALL_COLM) = TOLDUPWIND_MAT_ALL(IPHASE, COUNT)
-              DENUPWIND_MAT(COUNT + ( IPHASE - 1 ) * NSMALL_COLM) = DENUPWIND_MAT_ALL(IPHASE, COUNT)
-              DENOLDUPWIND_MAT(COUNT + ( IPHASE - 1 ) * NSMALL_COLM) = DENOLDUPWIND_MAT_ALL(IPHASE, COUNT)
-              IF ( IGOT_T2 == 1 ) THEN
-                  T2UPWIND_MAT(COUNT + ( IPHASE - 1 ) * NSMALL_COLM) = T2UPWIND_MAT_ALL(IPHASE, COUNT)
-                  T2OLDUPWIND_MAT(COUNT + ( IPHASE - 1 ) * NSMALL_COLM) = T2OLDUPWIND_MAT_ALL(IPHASE, COUNT)
-              end if
-          end do
-      end do
+!      DO COUNT = 1, NSMALL_COLM
+!          DO IPHASE = 1, NPHASE
+!              TUPWIND_MAT(COUNT + ( IPHASE - 1 ) * NSMALL_COLM) = TUPWIND_MAT_ALL(IPHASE, COUNT)
+!              TOLDUPWIND_MAT(COUNT + ( IPHASE - 1 ) * NSMALL_COLM) = TOLDUPWIND_MAT_ALL(IPHASE, COUNT)
+!              DENUPWIND_MAT(COUNT + ( IPHASE - 1 ) * NSMALL_COLM) = DENUPWIND_MAT_ALL(IPHASE, COUNT)
+!              DENOLDUPWIND_MAT(COUNT + ( IPHASE - 1 ) * NSMALL_COLM) = DENOLDUPWIND_MAT_ALL(IPHASE, COUNT)
+!              IF ( IGOT_T2 == 1 ) THEN
+!                  T2UPWIND_MAT(COUNT + ( IPHASE - 1 ) * NSMALL_COLM) = T2UPWIND_MAT_ALL(IPHASE, COUNT)
+!                  T2OLDUPWIND_MAT(COUNT + ( IPHASE - 1 ) * NSMALL_COLM) = T2OLDUPWIND_MAT_ALL(IPHASE, COUNT)
+!              end if
+!          end do
+!      end do
 
       ALLOCATE( FACE_ELE( NFACE, TOTELE ) ) ; FACE_ELE = 0
       CALL CALC_FACE_ELE( FACE_ELE, TOTELE, STOTEL, NFACE, &
@@ -1442,6 +1437,7 @@ contains
 
                   
                   IF( GETCT ) THEN
+! could retrieve JCOUNT_KLOC and ICOUNT_KLOC from storage depending on quadrature point GLOBAL_FACE
                      DO U_KLOC = 1, U_NLOC
                         U_NODK = U_NDGLN( ( ELE - 1 ) * U_NLOC + U_KLOC )
                         JCOUNT = 0
