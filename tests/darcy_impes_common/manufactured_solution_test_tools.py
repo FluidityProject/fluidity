@@ -14,11 +14,10 @@ import re
 import numpy
 import glob
 from test_tools import Command, CommandList, HandlerLevel, \
-   CompositeHandler, RunSimulation, WriteToReport, verbose
+   CompositeHandler, LeafHandler, WriteXMLSnippet, RunSimulation, \
+   WriteToReport, error_norms_filename, error_rates_filename, verbose
 from fluidity_tools import stat_parser
-
-error_rates_filename = "error_rates.txt"
-error_norms_filename = "error_norms.txt"
+from getpass import getuser
 
 debug = True
 verbose(True)
@@ -43,17 +42,23 @@ class Parameterisation:
 
       # filenames
       if dim==1:
-         mt = ''
-         ge = '.sh'
+         m_t = ''
+         g_e = '.sh'
+         m_e_l = ['.bound', '.ele', '.node']
       else:
-         mt = '_'+mesh_type
-         ge = '.geo'
-      self.mesh_name = self.domain_shape+mt+'_'+mesh_suffix
-      self.options_name = case+'_'+str(dim)+'d'+mt+'_'+mesh_suffix
+         m_t = '_'+mesh_type
+         g_e = '.geo'
+         m_e_l = ['.msh']
+      self.mesh_name = self.domain_shape+m_t+'_'+mesh_suffix
+      self.options_name = case+'_'+str(dim)+'d'+m_t+'_'+mesh_suffix
       self.geo_template_filename = self.mesh_template_prefix+'_'+\
-                                   self.domain_shape+mt+ge
+                                   self.domain_shape+m_t+g_e
       self.geo_filename = self.mesh_name+'.geo'
       self.options_filename = self.options_name+'.diml'
+      self.mesh_filenames = []
+      for m_e in m_e_l:
+         self.mesh_filenames.append(self.mesh_name+m_e)
+
       
    def compute_more_options(self):
       """Options template expansion typically requires more stuff.
@@ -90,7 +95,7 @@ class Parameterisation:
          self.inlet_ID = '29'
          self.wall_IDs = '30 31 32 33'
          self.wall_num = '4'
-
+         
       
 class ExpandOptionsTemplate(Command):
    
@@ -211,11 +216,43 @@ class ProcessMesh(Command):
                              param.geo_filename],
                             stdout=open(os.devnull, 'wb'))
 
+            
+class CleanUp(Command):
+   """Removes generated geometry, mesh, options and results files, but leaves
+    stat files and error reports intact."""
+
+   def __init__(self):
+      self.stem = None
+      self.dim = None
+      self.mesh_type = None
       
+   def execute(self, level_name, value, indent):
+      if level_name == 'stem':
+         self.stem = value
+      if level_name == 'dim':
+         self.dim = value
+      if level_name == 'mesh_type':
+         self.mesh_type = value
+      if level_name == 'mesh_suffix':
+         mesh_suffix = value
+
+         # compute useful stuff
+         param = Parameterisation(self.stem, self.dim, self.mesh_type,
+                                  mesh_suffix)
+
+         # try removing input files, mesh files, results files
+         for f in [param.options_filename, param.geo_filename] + \
+             param.mesh_filenames + glob.glob(param.options_name+'_*.vtu'):
+            try:
+               os.remove(f)
+               if verbose(): sys.stdout.write('\n'+indent+'   removed '+f)
+            except OSError:
+               pass
+
+         
 class ManufacturedSolutionTestSuite:
    def __init__(self, case_name, solution_dict, finish_time,
-                domain_extents, mesh_type_list,
-                mesh_suffix_list_per_dimension,
+                mesh_type_list, mesh_suffix_list_per_dimension,
                 field_name_list, norm_list):
 
       self.case_name = case_name
@@ -224,7 +261,7 @@ class ManufacturedSolutionTestSuite:
 
       # needed for e.g. creating 1D meshes, but do not rely on this
       # for true mesh dimensions otherwise
-      self.domain_extents = domain_extents
+      self.domain_extents = solution_dict['domain_extents']
       
       # build handlers
       mesh_type_handler_level = HandlerLevel('mesh_type', mesh_type_list)
@@ -232,15 +269,20 @@ class ManufacturedSolutionTestSuite:
       norm_handler_level = HandlerLevel('norm', norm_list)
       # maintain one tree for running simulations etc. and one
       # for postprocessing 
-      for hdlr_type in ('main', 'post'):
+      for hdlr_type in ('main', 'post', 'post_onemesh'):
          dim_handlers = []
          
          for dim in (1, 2, 3):
-            # start with mesh suffix list
-            children = HandlerLevel(
-               'mesh_suffix', mesh_suffix_list_per_dimension[dim-1])
+            # start with mesh suffix list.  If 'onemesh', choose only
+            # the last mesh
+            if hdlr_type=='post_onemesh':
+               children = HandlerLevel(
+                  'mesh_suffix', [mesh_suffix_list_per_dimension[dim-1][-1]])
+            else:
+               children = HandlerLevel(
+                  'mesh_suffix', mesh_suffix_list_per_dimension[dim-1])
             # if postprocessing, first need to treat fields and norms
-            if hdlr_type=='post':
+            if hdlr_type[0:4]=='post':
                children = field_handler_level.add_sub(
                   norm_handler_level.add_sub(children))
             # if dim > 1, also treat irreg and reg meshes 
@@ -251,11 +293,54 @@ class ManufacturedSolutionTestSuite:
          hdlr = CompositeHandler('stem', case_name, dim_handlers)
          if hdlr_type=='post':
             self.post_handler = hdlr
+         elif hdlr_type=='post_onemesh':
+            self.post_onemesh_handler = hdlr
          else:
             self.main_handler = hdlr
+
+            
+   def write_xml_begin(self):
+      self.xml_file = open(self.case_name+'.xml', 'w')
+      self.xml_file.write("""<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>{0}</name>
+  <owner userid="{1}"/>
+  <tags>diml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>
+python processing.py pre proc post clean
+    </command_line>
+  </problem_definition>
+  <pass_tests>
+    <test name="Solvers converged" language="python">
+assert(solvers_converged)
+    </test>""".format(self.case_name, getuser()))
+
+      
+   def write_xml_end(self):
+      self.xml_file.write("""
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>""".format(self.case_name, getuser()))
+      self.xml_file.close()
+
             
    def do(self, what):
       what = str.lower(what[0:3])
+      
+      if what=='xml' or what=='all':
+         if verbose(): print '\nGenerating XML file'
+         self.write_xml_begin()
+         self.post_onemesh_handler.handle(
+            WriteXMLSnippet(self.xml_file, 'norm', 0.01,
+                            self.solution_dict))
+         self.post_handler.handle(
+            WriteXMLSnippet(self.xml_file, 'rate', 0.6,
+                            self.solution_dict))
+         self.write_xml_end()
       
       if what=='pre' or what=='all':
          if verbose(): print '\nPreprocessing'
@@ -264,13 +349,17 @@ class ManufacturedSolutionTestSuite:
             ProcessMesh(self.domain_extents)])
          self.main_handler.handle( cmds )
          
-      if what=='pro' or what=='run' or what=='all':
+      if what=='pro' or what=='all':
          if verbose(): print '\nRunning simulations'
          self.main_handler.handle( RunSimulation() )
          
-      if what=='pos' or what=='ana' or what=='all':
+      if what=='pos' or what=='all':
          if verbose(): print '\nAnalysing'
          with open(error_norms_filename, 'w') as f_norms:
             with open(error_rates_filename, 'w') as f_rates:
                self.post_handler.handle(
                   WriteToReport(f_norms, f_rates))
+
+      if what=='cle':
+         if verbose(): print '\nCleaning up'
+         self.main_handler.handle( CleanUp() )

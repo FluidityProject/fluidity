@@ -30,11 +30,9 @@ import numpy
 import re
 import subprocess
 import os
-from test_tools import Command, CommandList, HandlerLevel, CompositeHandler, WriteToReport, RunSimulation, verbose
+from test_tools import Command, CommandList, HandlerLevel, CompositeHandler, WriteToReport, RunSimulation, error_norms_filename, error_rates_filename, find, find_rate, verbose
 
 error_norms_1D_filename = "error_norms_1d.txt"
-error_norms_filename = "error_norms.txt"
-error_rates_filename = "error_rates.txt"
 
 verbose(True)
 debug = True
@@ -68,19 +66,6 @@ def read_numerical_solution(filename, field_name):
                "x-coordinates not monotonically increasing.")
         sys.exit()
     return x, v
-   
-   
-def find(report, key):
-    """Searches a report and returns the value associated with key
-    (ID). """
-    report.seek(0)
-    v = numpy.nan
-    for l in report:
-        if not l.strip(): continue
-        if l.split()[0] == key: 
-            v = float(l.split()[1])
-            break
-    return v
 
         
 class Preprocess(Command):
@@ -194,16 +179,15 @@ class BLWriteToReport(WriteToReport):
     in order to allow customised computation of 1D errors.
     """
 
-    def __init__(self, norms_file, rates_file, norms_file_1D):
+    def __init__(self, norms_file, rates_file):
         WriteToReport.__init__(self, norms_file, rates_file)
-        self.norms_file_1D = norms_file_1D
 
     def get_norm(self):
         if self.dim==1:
             key = '{0}_1d_{1}_l{2:g}_{3}'.format(
                 self.model, self.field_short, self.norm,
                 self.mesh_suffix)
-            v = find(self.norms_file_1D, key)
+            v = find(error_norms_1D_filename, key)
         else:
             filename = self.stem+'_'+self.model+'_'+\
                        str(self.dim)+'d_'+self.mesh_suffix+'.stat'
@@ -220,21 +204,13 @@ class BLWriteToReport(WriteToReport):
             
 
 ## FOR PUBLIC USE 
+    
 
 def interp_using_analytic(x, analytic_filename):
     """Interpolates at point x using the profile given by
     analytic_filename."""
     [x_a, v_a] = read_analytic_solution(analytic_filename)
     return numpy.interp(x, x_a, v_a)
-
-       
-def find_rate(key):
-    """Opens and searches the rates report and returns the value associated
-    with key.
-    """
-    with open(error_rates_filename, "r") as f:
-        v = find(f, key)
-        return v
 
        
 class BuckleyLeverettTestSuite:
@@ -317,18 +293,18 @@ class BuckleyLeverettTestSuite:
             handler = self.new_handler(
                 self.model_handler_level.add_sub(dim_handlers))
 
-            # pass it a command
-            with open(error_norms_1D_filename, "r") as f_norms_1D:
-                # also write ND norms?
-                if debug:
-                    f_norms = open(error_norms_filename, "w")
-                else:
-                    f_norms = None
-                try:
-                    handler.handle(
-                        BLWriteToReport(f_norms, f_rates, f_norms_1D))
-                finally:
-                    if debug: f_norms.close()
+            # also write ND norms?
+            if debug:
+                f_norms = open(error_norms_filename, "w")
+            else:
+                f_norms = None
+                
+            # pass the handler a command
+            try:
+                handler.handle(
+                    BLWriteToReport(f_norms, f_rates))
+            finally:
+                if debug: f_norms.close()
         
     
     def generate_reports(self):

@@ -9,8 +9,8 @@ def generate():
     # elements along domain edges in the x-direction, where mesh_res is
     # 5 for mesh 'A', 10 for 'B', etc.  Irregular meshes will try to
     # fill the domain with uniformly sized elements.  This means that
-    # the domain should be sized 'nicely' in each dimension if there is
-    # to be good convergence on these meshes.
+    # the domain probably needs to be sized 'nicely' in each dimension
+    # if there is to be good convergence on these meshes.
     
     D = (1.0, 1.2, 0.8)         # domain size
     g_mag = 9.8                 # gravity magnitude
@@ -22,11 +22,12 @@ def generate():
     rho = (1.284, 1000.);         # density
     K = lambda s: ka * s**2       # relperm
 
-    sh = SolutionHarness(D, g_mag, ka, phi, mu, rho, K)
-
     # arbitrary p and s2 scales (may affect stability)
     p = 1.
     s2 = 0.01
+
+    sh = SolutionHarness(D, g_mag, ka, phi, mu, rho, K,
+                         p, s2)
 
     # helper 1D functions
     fs = lambda x: 3*(1. - x)*(1.5*x)**2

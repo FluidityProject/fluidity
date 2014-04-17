@@ -31,7 +31,11 @@ def spacetime_lambdify(expression, dim):
     Xt = spacetime[:dim] + spacetime[3:]
     return lambdify(Xt, expression)
 
-def write_expression(genfile, key, value):
+def write_expression_py(genfile, key, value):
+    genfile.write('    "'+key+'" : {0}'.format(value))
+    genfile.write(',\n\n')
+
+def write_expression_txt(genfile, key, value):
     genfile.write('    "'+key+'" : "')
     try:
         for component in value:
@@ -101,23 +105,27 @@ class ManufacturedSolution:
         for Xt in coords_and_time:
             u_max = max((u_max, U(*Xt)))
         return u_max
-        
-    def write_expressions(self, genfile, phase_num):
+
+    def write_main_expressions(self, genfile):
         # append domain dimension to each variable name
         suf = '_' + str(self.dim) + 'D'
-        write_expression(genfile, 'GRAVITY_DIRECTION'+suf, self.g_dir)
-        write_expression(genfile, 'PRESSURE'+suf, self.p)
-        write_expression(genfile, 'SATURATION2'+suf, self.s[1])
+        write_expression_txt(genfile, 'GRAVITY_DIRECTION'+suf, self.g_dir)
+        write_expression_txt(genfile, 'PRESSURE'+suf, self.p)
+        write_expression_txt(genfile, 'SATURATION2'+suf, self.s[1])
+        
+    def write_phase_expressions(self, genfile, phase_num):
+        # append domain dimension to each variable name
+        suf = '_' + str(self.dim) + 'D'
         i = phase_num-1
-        write_expression(
+        write_expression_txt(
             genfile, 'DARCY_VELOCITY'+str(i+1)+'_MAGNITUDE'+suf,
             self.u_mag[i])
-        write_expression(
+        write_expression_txt(
             genfile, 'SOURCE_SATURATION'+str(i+1)+suf, self.q[i])
         
 
 class SolutionHarness:
-    def __init__(self, D, g_mag, ka, phi, mu, rho, K):
+    def __init__(self, D, g_mag, ka, phi, mu, rho, K, p_scale, s2_scale):
         # settings
         self.genfilename = 'solution_expressions.py'
         # parameters
@@ -130,6 +138,9 @@ class SolutionHarness:
         self.rho = rho;         # density
         # the following should be a lambda func
         self.K = K              # relperm
+        # field magnitudes, for scaling error norms appropriately
+        self.p_scale = p_scale 
+        self.s2_scale = s2_scale 
 
     def compute_reference_p_grad( 
             self, phase_num, reference_saturation,
@@ -144,28 +155,31 @@ class SolutionHarness:
         f = open(self.genfilename, 'w')
         f.write('# THIS FILE HAS BEEN AUTOMATICALLY GENERATED.\n\n')
                 
-        # preface with other useful info
-        f.write('domain_extents = {0}\n\n'.format(self.D))
-
         # start writing dictionary
         f.write('solution_dict = {\n\n')
         
+        # stuff that will be used again in Python code
+        write_expression_py(f, 'domain_extents', self.D)
+        
         # constants
-        write_expression(f, 'GRAVITY_MAGNITUDE', self.g_mag)
-        write_expression(f, 'VISCOSITY1', self.mu[0])
-        write_expression(f, 'VISCOSITY2', self.mu[1])
-        write_expression(f, 'DENSITY1', self.rho[0])
-        write_expression(f, 'DENSITY2', self.rho[1])
-        write_expression(f, 'POROSITY', self.phi)
-        write_expression(f, 'ABSOLUTE_PERMEABILITY', self.ka)
+        write_expression_py(f, 'pressure1_scale', self.p_scale)
+        write_expression_py(f, 'saturation2_scale', self.s2_scale)
+        write_expression_txt(f, 'GRAVITY_MAGNITUDE', self.g_mag)
+        write_expression_txt(f, 'VISCOSITY1', self.mu[0])
+        write_expression_txt(f, 'VISCOSITY2', self.mu[1])
+        write_expression_txt(f, 'DENSITY1', self.rho[0])
+        write_expression_txt(f, 'DENSITY2', self.rho[1])
+        write_expression_txt(f, 'POROSITY', self.phi)
+        write_expression_txt(f, 'ABSOLUTE_PERMEABILITY', self.ka)
 
         # solutions (one per domain dimension)
         for ms in manufactured_solution_list:
+            ms.write_main_expressions(f)
             for i, phase_num in enumerate((1, 2)):
                 ms.compute_phase(phase_num, self.phi,
                                  self.K, self.mu[i],
                                  self.rho[i], self.g_mag)
-                ms.write_expressions(f, phase_num)
+                ms.write_phase_expressions(f, phase_num)
             
         # finish writing dictionary
         f.write('    }')

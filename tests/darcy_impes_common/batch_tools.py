@@ -7,7 +7,7 @@ import os
 os.environ['PYTHONPATH'] = "../../python/"
 
 indent = '   '
-verbose_state = True
+verbose_state = False
 
 # setter/getter of verbose_state
 def verbose(new_verbose_state=None):
@@ -87,7 +87,7 @@ class CompositeHandler(Handler):
             child.set_level_index(self.level_index + 1)
         
     def handle(self, command):
-        if verbose: sys.stdout.write(self.beg_char+self.level_index*indent + \
+        if verbose(): sys.stdout.write(self.beg_char+self.level_index*indent + \
            self.level_name + ': ' + str(self.value))
         # try executing the command at this level
         command.execute(self.level_name, self.value,
@@ -95,7 +95,7 @@ class CompositeHandler(Handler):
         # recurse
         for child in self.children:
             child.handle(command)
-        if verbose: sys.stdout.write(self.end_char)
+        if verbose(): sys.stdout.write(self.end_char)
         
         
 class LeafHandler(Handler):
@@ -111,12 +111,12 @@ class LeafHandler(Handler):
             self.end_char = ''
 
     def handle(self, command):
-        if verbose: sys.stdout.write(self.beg_char+self.level_index*indent+\
+        if verbose(): sys.stdout.write(self.beg_char+self.level_index*indent+\
             self.level_name+': '+str(self.value))
         # try executing the command at this level
         command.execute(self.level_name, self.value,
                         self.level_index*indent)
-        if verbose: sys.stdout.write(self.end_char)
+        if verbose(): sys.stdout.write(self.end_char)
 
         
 class HandlerLevel:
