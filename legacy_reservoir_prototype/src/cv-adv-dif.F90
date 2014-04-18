@@ -293,7 +293,6 @@ contains
       REAL, DIMENSION( : ), allocatable ::  &
            CVNORMX, &
            CVNORMY, CVNORMZ, MASS_CV, MASS_ELE, SNDOTQ, SNDOTQOLD,  &
-           XC_CV, YC_CV, ZC_CV, &
            SRA,   &
            SUM_CV, ONE_PORE, &
            DU, DV, DW, PERM_ELE
@@ -654,13 +653,10 @@ contains
 
 
       ! Determine FEMT (finite element wise) etc from T (control volume wise)
-      ! Also determine the CV mass matrix MASS_CV and centre of the CV's XC_CV,YC_CV,ZC_CV.
+      ! Also determine the CV mass matrix MASS_CV and centre of the CV's XC_CV_ALL
       ! This is for projecting to finite element basis functions...
       ALLOCATE( MASS_CV( CV_NONODS ))
       ALLOCATE( MASS_ELE( TOTELE ))
-      ALLOCATE( XC_CV( CV_NONODS ))
-      ALLOCATE( YC_CV( CV_NONODS ))
-      ALLOCATE( ZC_CV( CV_NONODS ))
       ALLOCATE( XC_CV_ALL( NDIM, CV_NONODS ))
 
       ALLOCATE( DTX_ELE_ALL( NDIM, NPHASE, CV_NLOC, TOTELE ))
@@ -1018,7 +1014,7 @@ contains
       CALL PROJ_CV_TO_FEM_4( state, &
            FEMT_ALL, FEMTOLD_ALL, FEMDEN_ALL, FEMDENOLD_ALL, T_ALL, TOLD_ALL, DEN_ALL, DENOLD_ALL, &
            IGOT_T2, T2_ALL,T2OLD_ALL, FEMT2_ALL,FEMT2OLD_ALL, &
-           XC_CV, YC_CV, ZC_CV, MASS_CV, MASS_ELE, &
+           XC_CV_ALL, MASS_CV, MASS_ELE, &
            NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
            CV_NGI_SHORT, CV_NLOC, CVN_SHORT, CVWEIGHT_SHORT, &
            CVFEN_SHORT, CVFENLX_SHORT_ALL(1,:,:), CVFENLX_SHORT_ALL(2,:,:), CVFENLX_SHORT_ALL(3,:,:), &
@@ -1050,9 +1046,9 @@ contains
 !          END DO
 !      end if
 
-      XC_CV_ALL(1,:)=XC_CV(:)
-      IF(NDIM.GE.2) XC_CV_ALL(2,:)=YC_CV(:)
-      IF(NDIM.GE.3) XC_CV_ALL(3,:)=ZC_CV(:)
+!      XC_CV_ALL(1,:)=XC_CV(:)
+!      IF(NDIM.GE.2) XC_CV_ALL(2,:)=YC_CV(:)
+!      IF(NDIM.GE.3) XC_CV_ALL(3,:)=ZC_CV(:)
 
 
 
@@ -2498,9 +2494,6 @@ contains
 !      DEALLOCATE( FEMDEN )
 !      DEALLOCATE( FEMDENOLD )
       DEALLOCATE( MASS_CV )
-      DEALLOCATE( XC_CV )
-      DEALLOCATE( YC_CV )
-      DEALLOCATE( ZC_CV )
       DEALLOCATE( XC_CV_ALL )
       DEALLOCATE( FACE_ELE )
       DEALLOCATE(TUPWIND_MAT_ALL)
@@ -3159,7 +3152,7 @@ contains
   SUBROUTINE PROJ_CV_TO_FEM_4( state, &
        FEMT_ALL, FEMTOLD_ALL, FEMDEN_ALL, FEMDENOLD_ALL, T_ALL, TOLD_ALL, DEN_ALL, DENOLD_ALL, &
        IGOT_T2,T2_ALL,T2OLD_ALL, FEMT2_ALL,FEMT2OLD_ALL, &
-       XC_CV,YC_CV,ZC_CV, MASS_CV, MASS_ELE, &
+       XC_CV_ALL, MASS_CV, MASS_ELE, &
        NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
        CV_NGI, CV_NLOC, CVN, CVWEIGHT, N, NLX, NLY, NLZ, &
        X_NONODS, X_ALL, NCOLM, FINDM, COLM, MIDM, &
@@ -3176,7 +3169,8 @@ contains
     REAL, DIMENSION( :,: ), intent( inout ) :: FEMT2_ALL, FEMT2OLD_ALL
     REAL, DIMENSION( :, : ), intent( in ) :: T_ALL, TOLD_ALL, DEN_ALL, DENOLD_ALL
     REAL, DIMENSION( :, : ), intent( in ) :: T2_ALL, T2OLD_ALL
-    REAL, DIMENSION( : ), intent( inout ) :: MASS_CV, XC_CV,YC_CV,ZC_CV
+    REAL, DIMENSION( : ), intent( inout ) :: MASS_CV
+    REAL, DIMENSION( :, : ), intent( inout ) :: XC_CV_ALL ! (NDIM,X_NONODS)
     REAL, DIMENSION( : ), intent( inout ) :: MASS_ELE
     REAL, DIMENSION( :, : ), intent( in ) :: CVN
     REAL, DIMENSION( : ), intent( inout ) :: CVWEIGHT
@@ -3316,9 +3310,9 @@ contains
 
 
 
-    XC_CV( 1 : CV_NONODS ) = PSI_AVE( 1 : CV_NONODS )
-    YC_CV( 1 : CV_NONODS ) = PSI_AVE( 1 +CV_NONODS:   2*CV_NONODS )
-    ZC_CV( 1 : CV_NONODS ) = PSI_AVE( 1 +2*CV_NONODS: 3*CV_NONODS )
+    XC_CV_ALL( 1, 1 : CV_NONODS ) = PSI_AVE( 1 : CV_NONODS )
+    IF(NDIM.GE.2) XC_CV_ALL( 2, 1 : CV_NONODS ) = PSI_AVE( 1 +CV_NONODS:   2*CV_NONODS )
+    IF(NDIM.GE.3) XC_CV_ALL( 3, 1 : CV_NONODS ) = PSI_AVE( 1 +2*CV_NONODS: 3*CV_NONODS )
     MASS_CV( 1 : CV_NONODS ) = PSI_INT( 1 : CV_NONODS )
 
     DEALLOCATE( PSI )
