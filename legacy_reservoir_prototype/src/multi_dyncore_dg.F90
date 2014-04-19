@@ -2347,8 +2347,6 @@ contains
 
 
 
-
-
     SUBROUTINE ASSEMB_FORCE_CTY( state, &
     NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
     U_ELE_TYPE, P_ELE_TYPE, &
@@ -2384,7 +2382,7 @@ contains
         implicit none
 
         type( state_type ), dimension( : ), intent( inout ) :: state
-! If IGOT_VOL_X_PRESSURE=1 then have a voln fraction in the pressure term...
+! If IGOT_VOL_X_PRESSURE=1 then have a voln fraction in the pressure term and multiply density by volume fraction...
         INTEGER, PARAMETER :: IGOT_VOL_X_PRESSURE = 0
         INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
         U_ELE_TYPE, P_ELE_TYPE, U_NONODS, CV_NONODS, X_NONODS, &
@@ -3124,9 +3122,13 @@ contains
 
             DO CV_ILOC = 1, CV_NLOC
                 CV_INOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC )
-
-                LOC_UDEN( :, CV_ILOC ) = UDEN( :, CV_INOD )
-                LOC_UDENOLD( :, CV_ILOC) = UDENOLD( :, CV_INOD )
+                IF(IGOT_VOL_X_PRESSURE==1) THEN
+                   LOC_UDEN( :, CV_ILOC ) = UDEN( :, CV_INOD ) * FEM_VOL_FRAC( :, CV_INOD )
+                   LOC_UDENOLD( :, CV_ILOC) = UDENOLD( :, CV_INOD ) * FEM_VOL_FRAC( :, CV_INOD )
+                ELSE
+                   LOC_UDEN( :, CV_ILOC ) = UDEN( :, CV_INOD )
+                   LOC_UDENOLD( :, CV_ILOC) = UDENOLD( :, CV_INOD )
+                ENDIF
 
                 DO IPHASE = 1, NPHASE
                     IF ( IPLIKE_GRAD_SOU /= 0 ) THEN
@@ -4034,10 +4036,17 @@ contains
                         CV_INOD2 = CV_INOD
                     END IF
 
-                    SLOC_UDEN( :, CV_SILOC )  = UDEN( :, CV_INOD )
-                    SLOC2_UDEN( :, CV_SILOC ) = UDEN( :, CV_INOD2 )
-                    SLOC_UDENOLD( :, CV_SILOC ) = UDENOLD( :, CV_INOD )
-                    SLOC2_UDENOLD( :, CV_SILOC ) = UDENOLD( :, CV_INOD2 )
+                    IF(IGOT_VOL_X_PRESSURE==1) THEN
+                       SLOC_UDEN( :, CV_SILOC )  = UDEN( :, CV_INOD ) * FEM_VOL_FRAC( :, CV_INOD )
+                       SLOC2_UDEN( :, CV_SILOC ) = UDEN( :, CV_INOD2 ) * FEM_VOL_FRAC( :, CV_INOD2 )
+                       SLOC_UDENOLD( :, CV_SILOC ) = UDENOLD( :, CV_INOD ) * FEM_VOL_FRAC( :, CV_INOD )
+                       SLOC2_UDENOLD( :, CV_SILOC ) = UDENOLD( :, CV_INOD2 ) * FEM_VOL_FRAC( :, CV_INOD2 )
+                    ELSE
+                       SLOC_UDEN( :, CV_SILOC )  = UDEN( :, CV_INOD )
+                       SLOC2_UDEN( :, CV_SILOC ) = UDEN( :, CV_INOD2 )
+                       SLOC_UDENOLD( :, CV_SILOC ) = UDENOLD( :, CV_INOD )
+                       SLOC2_UDENOLD( :, CV_SILOC ) = UDENOLD( :, CV_INOD2 )
+                    ENDIF
 
                     IF(IDIVID_BY_VOL_FRAC+IGOT_VOL_X_PRESSURE.GE.1) THEN
                        SLOC_VOL_FRA( :, CV_SILOC )  = FEM_VOL_FRAC( :, CV_INOD )
