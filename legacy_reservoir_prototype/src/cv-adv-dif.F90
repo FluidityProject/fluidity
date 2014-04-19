@@ -2909,9 +2909,13 @@ contains
                IF ( X_SHARE( X_NODK ) ) SUF_COUNT = SUF_COUNT + 1
             END DO
          END IF
-         IF ( SUF_COUNT == CV_SNLOC ) ELE3 = ELE2
+         IF( SUF_COUNT == CV_SNLOC ) THEN
+            ELE3 = ELE2
+            EXIT
+         ENDIF
          !ewrite(3,*)'suf_count:', ele, ele2, suf_count, cv_snloc
       END DO
+      ELE2 = ELE3
 
       DO X_KLOC = 1, X_NLOC
          X_NODK = X_NDGLN( ( ELE - 1 ) * X_NLOC + X_KLOC )
@@ -2928,16 +2932,19 @@ contains
       ENDIF 
  
 
-      ELE2 = ELE3
-      IF ( ELE2 /= 0 ) THEN 
-         ! Is CV_NODI in element ELE2 if yes set ELE2=0 as we don't want to integrate in 
-         ! the middle of a CV. 
-         DO CV_KLOC = 1, CV_NLOC
-            CV_NODK = CV_NDGLN( ( ELE2 - 1 ) * CV_NLOC + CV_KLOC )
-            !ewrite(3,*)'cv_nodi, cv_nodk:', cv_nodi, cv_nodk, ele, ele2
-            IF ( CV_NODK == CV_NODI ) INTEGRAT_AT_GI = .FALSE.
-         END DO
-      END IF
+!      IF ( ELE2 /= 0 ) THEN 
+!         ! Is CV_NODI in element ELE2 if yes set ELE2=0 as we don't want to integrate in 
+!         ! the middle of a CV. 
+!         DO CV_KLOC = 1, CV_NLOC
+!            CV_NODK = CV_NDGLN( ( ELE2 - 1 ) * CV_NLOC + CV_KLOC )
+!            !ewrite(3,*)'cv_nodi, cv_nodk:', cv_nodi, cv_nodk, ele, ele2
+!            IF( CV_NODK == CV_NODI ) THEN
+!               INTEGRAT_AT_GI = .FALSE.
+!               stop 2911
+!               EXIT
+!            ENDIF
+!         END DO
+!      END IF
 
       IF ( ( ELE2 /= 0 ) .AND. INTEGRAT_AT_GI ) THEN ! Determine CV_OTHER_LOC(CV_KLOC)
          CV_OTHER_LOC = 0
@@ -2946,7 +2953,10 @@ contains
                X_NODK = X_NDGLN( ( ELE - 1 ) * X_NLOC + CV_KLOC )
                DO CV_KLOC2 = 1, CV_NLOC
                   X_NODK2 = X_NDGLN( ( ELE2 - 1 ) * X_NLOC + CV_KLOC2 )
-                  IF ( X_NODK2 == X_NODK ) CV_OTHER_LOC( CV_KLOC ) = CV_KLOC2
+                  IF( X_NODK2 == X_NODK ) THEN
+                     CV_OTHER_LOC( CV_KLOC ) = CV_KLOC2
+                     EXIT
+                  ENDIF
                END DO
             END IF
          END DO
