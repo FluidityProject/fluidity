@@ -2384,6 +2384,8 @@ contains
         implicit none
 
         type( state_type ), dimension( : ), intent( inout ) :: state
+! If IGOT_VOL_X_PRESSURE=1 then have a voln fraction in the pressure term...
+        INTEGER, PARAMETER :: IGOT_VOL_X_PRESSURE = 0
         INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
         U_ELE_TYPE, P_ELE_TYPE, U_NONODS, CV_NONODS, X_NONODS, &
         MAT_NONODS, STOTEL, U_SNLOC, P_SNLOC, CV_SNLOC, &
@@ -2415,7 +2417,7 @@ contains
         REAL, DIMENSION ( :, :, : ), intent( in ) :: U_ALL, UOLD_ALL, NU_ALL, NUOLD_ALL
 
         REAL, DIMENSION( :, : ), intent( in ) :: UDEN, UDENOLD
-        REAL, DIMENSION( NPHASE, CV_NONODS*IDIVID_BY_VOL_FRAC ), intent( in ) :: FEM_VOL_FRAC
+        REAL, DIMENSION( NPHASE, CV_NONODS*max(1,IDIVID_BY_VOL_FRAC+IGOT_VOL_X_PRESSURE) ), intent( in ) :: FEM_VOL_FRAC
         REAL, intent( in ) :: DT
         REAL, DIMENSION( :, :, : ), intent( inout ) :: U_RHS
         REAL, DIMENSION( :, :, : ), intent( inout ) :: C
@@ -2619,7 +2621,7 @@ contains
 ! for the option where we divid by voln fraction...
         REAL, DIMENSION ( :, : ), allocatable :: VOL_FRA_GI
         REAL, DIMENSION ( :, :, : ), allocatable :: VOL_FRA_GI_DX_ALL
-        REAL, DIMENSION ( :, : ), allocatable :: SLOC_VOL_FRA, SLOC2_VOL_FRA,  SVOL_FRA, SVOL_FRA2
+        REAL, DIMENSION ( :, : ), allocatable :: SLOC_VOL_FRA, SLOC2_VOL_FRA,  SVOL_FRA, SVOL_FRA2, VOL_FRA_NMX_ALL
 
         logical :: capillary_pressure_activated
         !Variables to store things in state
@@ -2953,12 +2955,13 @@ contains
         ALLOCATE( UOLD_NODI_SGI_IPHASE_ALL(NDIM_VEL,NPHASE,SBCVNGI) )
         ALLOCATE( UOLD_NODJ_SGI_IPHASE_ALL(NDIM_VEL,NPHASE,SBCVNGI) )
 
-        ALLOCATE( X(X_NONODS), Y(X_NONODS), Z(X_NONODS) ) ; X=0. ; Y=0. ; Z=0.
+        ALLOCATE( X(X_NONODS), Y(X_NONODS), Z(X_NONODS) ) !; X=0. ; Y=0. ; Z=0.
 
-        IF(IDIVID_BY_VOL_FRAC==1) THEN
+        IF(IDIVID_BY_VOL_FRAC+IGOT_VOL_X_PRESSURE.GE.1) THEN
             ALLOCATE( VOL_FRA_GI(NPHASE, CV_NGI_SHORT), VOL_FRA_GI_DX_ALL( NDIM, NPHASE, CV_NGI_SHORT) )
             ALLOCATE( SLOC_VOL_FRA(NPHASE, CV_SNLOC), SLOC2_VOL_FRA(NPHASE, CV_SNLOC))
             ALLOCATE( SVOL_FRA(NPHASE, SBCVNGI), SVOL_FRA2(NPHASE, SBCVNGI) )
+            ALLOCATE( VOL_FRA_NMX_ALL(NDIM,NPHASE) )
         ENDIF
 
         DO IDIM = 1, NDIM
@@ -3166,7 +3169,7 @@ contains
             UDOLD_ND( 1:NDIM_VEL, :, : ) = UDOLD
 
 
-            IF(IDIVID_BY_VOL_FRAC==1) THEN
+            IF(IDIVID_BY_VOL_FRAC+IGOT_VOL_X_PRESSURE.GE.1) THEN
 
                VOL_FRA_GI_DX_ALL=0.0
                VOL_FRA_GI=0.0
@@ -3590,6 +3593,7 @@ contains
 
                         NMX_ALL = 0.0
                         GRAD_SOU_GI_NMX = 0.0
+                        IF(IGOT_VOL_X_PRESSURE==1) VOL_FRA_NMX_ALL(:,:) = 0.0
                         Loop_GaussPoints1: DO GI = 1 + (ILEV-1)*CV_NGI_SHORT, ILEV*CV_NGI_SHORT
                             RN = UFEN( U_ILOC, GI ) * DETWEI( GI )
 
@@ -3603,6 +3607,11 @@ contains
                                     + GRAD_SOU_GI( :, GI ) * RNMX_ALL( IDIM )
                                 END DO
                             END IF
+                            IF(IGOT_VOL_X_PRESSURE==1) THEN
+                               DO IPHASE = 1, NPHASE
+                                  VOL_FRA_NMX_ALL( :, IPHASE ) = VOL_FRA_NMX_ALL( :, IPHASE ) + VOL_FRA_GI( IPHASE,GI ) * RNMX_ALL( : )
+                               END DO
+                            ENDIF
 
                         END DO Loop_GaussPoints1
 
@@ -3618,9 +3627,12 @@ contains
 
                             ! Put into matrix
                             IF ( .NOT.GOT_C_MATRIX ) THEN
-                                COUNT_PHA = COUNT + ( IPHASE - 1 ) * NDIM_VEL * NCOLC
                                 DO IDIM = 1, NDIM_VEL
-                                    C( IDIM, IPHASE, COUNT ) = C( IDIM, IPHASE, COUNT ) - NMX_ALL( IDIM )
+                                    IF(IGOT_VOL_X_PRESSURE==1) THEN
+                                       C( IDIM, IPHASE, COUNT ) = C( IDIM, IPHASE, COUNT ) - VOL_FRA_NMX_ALL( IDIM, IPHASE )
+                                    ELSE
+                                       C( IDIM, IPHASE, COUNT ) = C( IDIM, IPHASE, COUNT ) - NMX_ALL( IDIM )
+                                    ENDIF
                                 END DO
                             END IF
 
@@ -4027,7 +4039,7 @@ contains
                     SLOC_UDENOLD( :, CV_SILOC ) = UDENOLD( :, CV_INOD )
                     SLOC2_UDENOLD( :, CV_SILOC ) = UDENOLD( :, CV_INOD2 )
 
-                    IF(IDIVID_BY_VOL_FRAC==1) THEN
+                    IF(IDIVID_BY_VOL_FRAC+IGOT_VOL_X_PRESSURE.GE.1) THEN
                        SLOC_VOL_FRA( :, CV_SILOC )  = FEM_VOL_FRAC( :, CV_INOD )
                        SLOC2_VOL_FRA( :, CV_SILOC ) = FEM_VOL_FRAC( :, CV_INOD2 )
                     ENDIF
@@ -4122,76 +4134,13 @@ contains
                 END DO
 
 
-                If_on_boundary_domain: IF(SELE /= 0) THEN
-                    ! ***********SUBROUTINE DETERMINE_SUF_PRES - START************
-                    ! Put the surface integrals in for pressure b.c.'s
-                    ! that is add into C matrix and U_RHS. (DG velocities)
-
-                    U_NLOC2 = MAX( 1, U_NLOC/CV_NLOC )
-                    Loop_ILOC2: DO U_SILOC = 1, U_SNLOC
-                        U_ILOC = U_SLOC2LOC( U_SILOC )
-                        ILEV = (U_ILOC-1)/U_NLOC2 + 1
-
-                        if( .not. is_overlapping ) ilev = 1
-
-                        if(.not.got_c_matrix) IU_NOD = U_SNDGLN(( SELE - 1 ) * U_SNLOC + U_SILOC )
-
-                        Loop_JLOC2: DO P_SJLOC = 1, P_SNLOC
-                            P_JLOC = CV_SLOC2LOC( P_SJLOC )
-
-
-                            if( ( .not. is_overlapping ) .or. ( p_jloc == ilev ) ) then
-                                if(.not.got_c_matrix) JCV_NOD = P_SNDGLN(( SELE - 1 ) * P_SNLOC + P_SJLOC )
-
-                                NMX_ALL = 0.0
-                                Loop_GaussPoints2: DO SGI = 1, SBCVNGI
-                                    NMX_ALL(:) = NMX_ALL(:) + SNORMXN_ALL( :, SGI ) *SBUFEN( U_SILOC, SGI ) * SBCVFEN( P_SJLOC, SGI ) * SDETWE( SGI )
-                                END DO Loop_GaussPoints2
-
-
-                                ! Put into matrix
-
-                                ! Find COUNT - position in matrix : FINMCY, COLMCY
-                                IF ( .NOT.GOT_C_MATRIX ) THEN
-                                    CALL USE_POSINMAT_C_STORE( COUNT, IU_NOD, JCV_NOD, &
-                                    U_NONODS, FINDC, COLC, NCOLC, &
-                                    IDO_STORE_AC_SPAR_PT, STORED_AC_SPAR_PT, POSINMAT_C_STORE, ELE, U_ILOC, P_JLOC, &
-                                    TOTELE, U_NLOC, P_NLOC )
-                                END IF
-
-                                Loop_Phase2: DO IPHASE = 1, NPHASE
-                                    IF( WIC_P_BC_ALL( IPHASE, SELE ) == WIC_P_BC_DIRICHLET ) THEN
-
-                                        DO IDIM = 1, NDIM_VEL
-                                            IF ( .NOT.GOT_C_MATRIX ) THEN
-                                                C( IDIM, IPHASE, COUNT ) = C( IDIM, IPHASE, COUNT ) &
-                                                + NMX_ALL( IDIM ) * SELE_OVERLAP_SCALE( P_JLOC )
-                                            END IF
-                                            LOC_U_RHS( IDIM, IPHASE, U_ILOC) =  LOC_U_RHS( IDIM, IPHASE, U_ILOC ) &
-                                            - NMX_ALL( IDIM ) * SUF_P_BC_ALL( IPHASE, P_SJLOC, SELE ) * SELE_OVERLAP_SCALE( P_JLOC )
-                                        END DO
-
-                                    END IF
-
-                                END DO Loop_Phase2
-                            ENDIF
-
-
-
-                        END DO Loop_JLOC2
-
-                    END DO Loop_ILOC2
-                   ! ***********SUBROUTINE DETERMINE_SUF_PRES - END************
-                ENDIF If_on_boundary_domain
-
-
 
                 If_diffusion_or_momentum1: IF(GOT_DIFFUS .OR. GOT_UDEN) THEN
                     SDEN=0.0
                     SDENOLD=0.0
                     SDEN_KEEP=0.0 ; SDEN2_KEEP=0.0
                     SDENOLD_KEEP=0.0 ; SDENOLD2_KEEP=0.0
-                    IF(IDIVID_BY_VOL_FRAC==1) THEN
+                    IF(IDIVID_BY_VOL_FRAC+IGOT_VOL_X_PRESSURE.GE.1) THEN
                        SVOL_FRA =0.0
                        SVOL_FRA2=0.0
                     ENDIF
@@ -4212,7 +4161,7 @@ contains
                                 *SLOC_UDENOLD(IPHASE,CV_SILOC)*WITH_NONLIN
                                 SDENOLD2_KEEP(IPHASE,SGI)=SDENOLD2_KEEP(IPHASE,SGI) + SBCVFEN(CV_SILOC,SGI) &
                                 *SLOC2_UDENOLD(IPHASE,CV_SILOC)*WITH_NONLIN
-                                IF(IDIVID_BY_VOL_FRAC==1) THEN
+                                IF(IDIVID_BY_VOL_FRAC+IGOT_VOL_X_PRESSURE.GE.1) THEN
                                    SVOL_FRA(IPHASE,SGI) =SVOL_FRA(IPHASE,SGI) + SBCVFEN(CV_SILOC,SGI) *SLOC_VOL_FRA(IPHASE,CV_SILOC)
                                    SVOL_FRA2(IPHASE,SGI)=SVOL_FRA2(IPHASE,SGI)+ SBCVFEN(CV_SILOC,SGI) *SLOC2_VOL_FRA(IPHASE,CV_SILOC)
                                 ENDIF
@@ -4237,6 +4186,89 @@ contains
 
 
                 ENDIF If_diffusion_or_momentum1
+
+
+
+                If_on_boundary_domain: IF(SELE /= 0) THEN
+                    ! ***********SUBROUTINE DETERMINE_SUF_PRES - START************
+                    ! Put the surface integrals in for pressure b.c.'s
+                    ! that is add into C matrix and U_RHS. (DG velocities)
+
+                    U_NLOC2 = MAX( 1, U_NLOC/CV_NLOC )
+                    Loop_ILOC2: DO U_SILOC = 1, U_SNLOC
+                        U_ILOC = U_SLOC2LOC( U_SILOC )
+                        ILEV = (U_ILOC-1)/U_NLOC2 + 1
+
+                        if( .not. is_overlapping ) ilev = 1
+
+                        if(.not.got_c_matrix) IU_NOD = U_SNDGLN(( SELE - 1 ) * U_SNLOC + U_SILOC )
+
+                        Loop_JLOC2: DO P_SJLOC = 1, P_SNLOC
+                            P_JLOC = CV_SLOC2LOC( P_SJLOC )
+
+
+                            if( ( .not. is_overlapping ) .or. ( p_jloc == ilev ) ) then
+                                if(.not.got_c_matrix) JCV_NOD = P_SNDGLN(( SELE - 1 ) * P_SNLOC + P_SJLOC )
+
+                                NMX_ALL = 0.0
+                                IF(IGOT_VOL_X_PRESSURE==1) VOL_FRA_NMX_ALL(:,:) = 0.0
+                                Loop_GaussPoints2: DO SGI = 1, SBCVNGI
+                                    NMX_ALL(:) = NMX_ALL(:) + SNORMXN_ALL( :, SGI ) *SBUFEN( U_SILOC, SGI ) * SBCVFEN( P_SJLOC, SGI ) * SDETWE( SGI )
+                                    IF(IGOT_VOL_X_PRESSURE==1) THEN
+                                       DO IPHASE = 1, NPHASE
+                                          VOL_FRA_NMX_ALL( :, IPHASE ) = VOL_FRA_NMX_ALL( :, IPHASE ) + SVOL_FRA( IPHASE,SGI ) * RNMX_ALL( : )
+                                       END DO
+                                    ENDIF
+                                END DO Loop_GaussPoints2
+
+
+                                ! Put into matrix
+
+                                ! Find COUNT - position in matrix : FINMCY, COLMCY
+                                IF ( .NOT.GOT_C_MATRIX ) THEN
+                                    CALL USE_POSINMAT_C_STORE( COUNT, IU_NOD, JCV_NOD, &
+                                    U_NONODS, FINDC, COLC, NCOLC, &
+                                    IDO_STORE_AC_SPAR_PT, STORED_AC_SPAR_PT, POSINMAT_C_STORE, ELE, U_ILOC, P_JLOC, &
+                                    TOTELE, U_NLOC, P_NLOC )
+                                END IF
+
+                                Loop_Phase2: DO IPHASE = 1, NPHASE
+                                    IF( WIC_P_BC_ALL( IPHASE, SELE ) == WIC_P_BC_DIRICHLET ) THEN
+
+                                        DO IDIM = 1, NDIM_VEL
+                                            IF(IGOT_VOL_X_PRESSURE==1) THEN
+                                               IF ( .NOT.GOT_C_MATRIX ) THEN
+                                                   C( IDIM, IPHASE, COUNT ) = C( IDIM, IPHASE, COUNT ) &
+                                                   + VOL_FRA_NMX_ALL( IDIM, IPHASE ) * SELE_OVERLAP_SCALE( P_JLOC )
+                                               END IF
+                                               LOC_U_RHS( IDIM, IPHASE, U_ILOC) =  LOC_U_RHS( IDIM, IPHASE, U_ILOC ) &
+                                               - VOL_FRA_NMX_ALL( IDIM, IPHASE ) * SUF_P_BC_ALL( IPHASE, P_SJLOC, SELE ) * SELE_OVERLAP_SCALE( P_JLOC )
+                                            ELSE
+                                               IF ( .NOT.GOT_C_MATRIX ) THEN
+                                                   C( IDIM, IPHASE, COUNT ) = C( IDIM, IPHASE, COUNT ) &
+                                                   + NMX_ALL( IDIM ) * SELE_OVERLAP_SCALE( P_JLOC )
+                                               END IF
+                                               LOC_U_RHS( IDIM, IPHASE, U_ILOC) =  LOC_U_RHS( IDIM, IPHASE, U_ILOC ) &
+                                               - NMX_ALL( IDIM ) * SUF_P_BC_ALL( IPHASE, P_SJLOC, SELE ) * SELE_OVERLAP_SCALE( P_JLOC )
+                                            ENDIF
+                                        END DO
+
+                                    END IF
+
+                                END DO Loop_Phase2
+                            ENDIF
+
+
+
+                        END DO Loop_JLOC2
+
+                    END DO Loop_ILOC2
+                   ! ***********SUBROUTINE DETERMINE_SUF_PRES - END************
+                ENDIF If_on_boundary_domain
+
+
+
+
 
                 If_ele2_notzero: IF(ELE2 /= 0) THEN
 

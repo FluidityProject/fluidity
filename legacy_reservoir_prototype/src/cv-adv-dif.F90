@@ -541,8 +541,9 @@ contains
            cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
 
   
-    DISTCONTINUOUS_METHOD=.false.  
-    IF(X_NONODS.NE.CV_NONODS) DISTCONTINUOUS_METHOD=.true.  ! *****need to change this...
+!    DISTCONTINUOUS_METHOD=.false.  
+!    IF(X_NONODS.NE.CV_NONODS) DISTCONTINUOUS_METHOD=.true.  ! *****need to change this...
+    DISTCONTINUOUS_METHOD = ( CV_NONODS == TOTELE * CV_NLOC )
 !     print *,'DISTCONTINUOUS_METHOD,X_NONODS,CV_NONODS:',DISTCONTINUOUS_METHOD,X_NONODS,CV_NONODS
 !       stop 281
 ! Quadratic elements
