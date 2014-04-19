@@ -1353,7 +1353,7 @@ contains
                        MAT_OTHER_LOC, MAT_NLOC, INTEGRAT_AT_GI, &
                        X_NLOC, XU_NLOC, X_NDGLN, CV_NDGLN, XU_NDGLN, &
                        CV_SNLOC, CVFEM_ON_FACE( :, GI ), X_SHARE, X_NONODS, ELE, ELE2,  &
-                       FINELE, COLELE, NCOLELE, DISTCONTINUOUS_METHOD)
+                       FINELE, COLELE, NCOLELE, DISTCONTINUOUS_METHOD )
 
                   IF ( INTEGRAT_AT_GI ) THEN
                      CV_JLOC = CV_OTHER_LOC( CV_ILOC )
@@ -2867,7 +2867,7 @@ contains
          MAT_OTHER_LOC, MAT_NLOC, INTEGRAT_AT_GI, &
          X_NLOC, XU_NLOC, X_NDGLN, CV_NDGLN, XU_NDGLN, &
          CV_SNLOC, CVFEM_ON_FACE, X_SHARE, X_NONODS, ELE, ELE2,  &
-         FINELE, COLELE, NCOLELE, DISTCONTINUOUS_METHOD) 
+         FINELE, COLELE, NCOLELE, DISTCONTINUOUS_METHOD ) 
       ! We are on the boundary or next to another element. Determine CV_OTHER_LOC,
       ! U_OTHER_LOC. 
       ! CVFEM_ON_FACE(CV_KLOC,GI)=.TRUE. if CV_KLOC is on the face that GI is centred on.
@@ -2890,6 +2890,7 @@ contains
       ! Local variables
       INTEGER :: X_KLOC, X_NODK, X_NODK2, COUNT, ELE3, SUF_COUNT, CV_KLOC, CV_KLOC2, &
            &     U_KLOC, U_KLOC2, CV_NODK, XU_NODK, XU_NODK2, ILEV, JLEV
+      LOGICAL :: INTEGRAT_AT_GI2
 
       !ewrite(3,*) 'In FIND_OTHER_SIDE'
 
@@ -2912,18 +2913,20 @@ contains
          !ewrite(3,*)'suf_count:', ele, ele2, suf_count, cv_snloc
       END DO
 
-! Quite because there is no work to do here...
-!      IF(.NOT.DISTCONTINUOUS_METHOD) THEN
-!         IF(ELE3.NE.0) THEN ! this is not on the boundary of the domain.
-!            INTEGRAT_AT_GI=.FALSE.
-!            RETURN
-!         ENDIF
-!      ENDIF
-
       DO X_KLOC = 1, X_NLOC
          X_NODK = X_NDGLN( ( ELE - 1 ) * X_NLOC + X_KLOC )
          X_SHARE( X_NODK ) = .FALSE.
       END DO
+
+
+! Quite because there is no work to do here...
+      IF(.NOT.DISTCONTINUOUS_METHOD) THEN
+         IF(ELE3.NE.0) THEN ! this is not on the boundary of the domain.
+            INTEGRAT_AT_GI=.FALSE.
+            RETURN
+         ENDIF
+      ENDIF 
+ 
 
       ELE2 = ELE3
       IF ( ELE2 /= 0 ) THEN 
