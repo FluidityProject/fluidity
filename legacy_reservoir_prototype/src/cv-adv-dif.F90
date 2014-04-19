@@ -13371,6 +13371,7 @@ contains
     REAL, DIMENSION(NPHASE) :: DT_I,DT_J,NDOTQ_INT
 
 
+!          stop 2928
     ! coefficients for this element ELE
     UGI_COEF_ELE_ALL = 0.0 
 
@@ -13384,7 +13385,7 @@ contains
           UDGI_ALL(:, IPHASE) = 0.0
           DO U_KLOC = 1, U_NLOC
                 UDGI_ALL(:, IPHASE) = UDGI_ALL(:, IPHASE) + SUFEN( U_KLOC, GI ) * LOC_NU( :, IPHASE, U_KLOC )
-                UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) = UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) + 1.0
+                UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) = 1.0
           END DO
        ELSE ! Specified vel bc.
           UDGI_ALL(:, IPHASE) = 0.0
@@ -13394,9 +13395,10 @@ contains
              IF (WIC_U_BC_ALL(1, IPHASE, SELE) == 10) THEN
                 UDGI_ALL(:, IPHASE) = UDGI_ALL(:, IPHASE) + SUFEN( U_KLOC, GI ) * 0.5 * &
                                      ( SLOC_NU( :, IPHASE, U_SKLOC ) + SUF_U_BC_ALL( :, IPHASE, U_SKLOC, SELE ) )
-                UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) = UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) + 0.5   
+                UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) = 0.5   
              ELSE
                 UDGI_ALL(:, IPHASE) = UDGI_ALL(:, IPHASE) + SUFEN( U_KLOC, GI ) * SUF_U_BC_ALL(:, IPHASE, U_SKLOC, SELE)
+                UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) = 0.0  
              END IF
 
           END DO
@@ -13408,7 +13410,7 @@ contains
        UDGI_ALL = 0.0
        DO U_KLOC = 1, U_NLOC
           UDGI_ALL = UDGI_ALL + SUFEN( U_KLOC, GI ) * LOC_NU( :, :, U_KLOC )
-          UGI_COEF_ELE_ALL(:, :, U_KLOC) = UGI_COEF_ELE_ALL(:, :, U_KLOC) + 1.0
+          UGI_COEF_ELE_ALL(:, :, U_KLOC) = 1.0
        END DO
 
        Conditional_ELE2: IF( ELE2 /= 0 ) THEN
@@ -13417,7 +13419,7 @@ contains
              U_KLOC2 = U_OTHER_LOC( U_KLOC )
              IF ( U_KLOC2 /= 0 ) THEN ! MAKE SURE WE DONT NEED THIS...
                 UDGI2_ALL = UDGI2_ALL + SUFEN( U_KLOC, GI ) * LOC2_NU(:, :, U_KLOC)
-                UGI_COEF_ELE2_ALL( :, :, U_KLOC2) = UGI_COEF_ELE2_ALL( :, :, U_KLOC2) + 1.0
+                UGI_COEF_ELE2_ALL( :, :, U_KLOC2) = 1.0
              ENDIF
           END DO
 
