@@ -2925,7 +2925,7 @@ contains
 
 ! Quite because there is no work to do here...
       IF(.NOT.DISTCONTINUOUS_METHOD) THEN
-         IF(ELE3.NE.0) THEN ! this is not on the boundary of the domain.
+         IF(ELE2.NE.0) THEN ! this is not on the boundary of the domain.
             INTEGRAT_AT_GI=.FALSE.
             RETURN
          ENDIF
