@@ -1831,115 +1831,9 @@ contains
 !                        FVD(:)=DEN_ALL(:,CV_NODI)*(1.0-INCOME(:)) + DEN_ALL(:,CV_NODJ)*INCOME(:) 
 
 
-        if(.false.) then ! testing
-             IPT=1
-             CALL UNPACK_LOC( LIMF(:), LIMT_keep( : ),    NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,1), GLOBAL_FACE, IGOT_T_CONST(:,1), IGOT_T_CONST_VALUE(:,1), &
-                SCVNGI*TOTELE,state, 'limf1', StorageIndexes(34) )
-             CALL UNPACK_LOC( LIMF(:), LIMTOLD_keep( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,2), GLOBAL_FACE, IGOT_T_CONST(:,2), IGOT_T_CONST_VALUE(:,2), &
-                SCVNGI*TOTELE,state, 'limf2', StorageIndexes(35) )
-             CALL UNPACK_LOC( LIMF(:), LIMD_keep( : ),    NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,3), GLOBAL_FACE, IGOT_T_CONST(:,3), IGOT_T_CONST_VALUE(:,3), &
-                SCVNGI*TOTELE,state, 'limf3', StorageIndexes(36) )
-             CALL UNPACK_LOC( LIMF(:), LIMDOLD_keep( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,4), GLOBAL_FACE, IGOT_T_CONST(:,4), IGOT_T_CONST_VALUE(:,4), &
-                SCVNGI*TOTELE,state, 'limf4', StorageIndexes(37) )
-             CALL UNPACK_LOC( LIMF(:), LIMT2_keep( : ),    NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,5), GLOBAL_FACE, IGOT_T_CONST(:,5), IGOT_T_CONST_VALUE(:,5), &
-                SCVNGI*TOTELE,state, 'limf5', StorageIndexes(38) )
-             CALL UNPACK_LOC( LIMF(:), LIMT2OLD_keep( : ), NPHASE, NFIELD, IPT, STORE, IGOT_T_PACK(:,6), GLOBAL_FACE, IGOT_T_CONST(:,6), IGOT_T_CONST_VALUE(:,6), &
-                SCVNGI*TOTELE,state, 'limf6', StorageIndexes(39) )
-    ! Amend for porosity...
-          IF ( ELE2 /= 0 ) THEN 
-!             FVD   = 0.5 * ( ONE_PORE(ELE) + ONE_PORE(ELE2) ) * FVD
-             LIMD_keep   = 0.5 * ( ONE_PORE(ELE) + ONE_PORE(ELE2) ) * LIMD_keep
-             LIMDOLD_keep   = 0.5 * ( ONE_PORE(ELE) + ONE_PORE(ELE2) ) * LIMDOLD_keep
-          ELSE
-!             FVD   = ONE_PORE(ELE) * FVD
-             LIMD_keep   = ONE_PORE(ELE) * LIMD_keep
-             LIMDOLD_keep   = ONE_PORE(ELE) * LIMDOLD_keep
-          END IF
-! is LIMT_keep and LIMT the same? 
-             prep_stop=.false.
-             do iphase=1,nphase
-                if( abs(LIMT_keep(iphase)-LIMT(iphase)).gt.0.0001) prep_stop=.true.
-                if( abs(LIMTOLD_keep(iphase)-LIMTOLD(iphase)).gt.0.0001) prep_stop=.true.
-                if( abs(LIMD_keep(iphase)-LIMD(iphase)).gt.0.0001) prep_stop=.true.
-                if( abs(LIMDOLD_keep(iphase)-LIMDOLD(iphase)).gt.0.0001) prep_stop=.true.
-                if(IGOT_T2==1) then
-                   if( abs(LIMT2_keep(iphase)-LIMT2(iphase)).gt.0.0001) prep_stop=.true.
-                   if( abs(LIMT2old_keep(iphase)-LIMT2old(iphase)).gt.0.0001) prep_stop=.true.
-                endif
-             end do
-!             prep_stop=.true.
-
-             if(prep_stop) then
-!             if(.false.) then
-                print *,'ele,nphase,nfield=',ele,nphase,nfield
-                print *,'ele,sele,ele2=',ele,sele,ele2
-                print *,'cv_nodi,cv_nodj:',cv_nodi,cv_nodj
-                print *,'IGOT_T2:',IGOT_T2
-                do iphase=1,nfield
-                   print *,'iphase,Lloc_f(iphase,:):',iphase,loc_f(iphase,:)
-                end do
-                print *,'LIMT_keep:',LIMT_keep
-                print *,'LIMT:',LIMT
-                print *,'LIMTold_keep:',LIMTold_keep
-                print *,'LIMTold:',LIMTold
-
-                print *,'LIMd_keep:',LIMd_keep
-                print *,'LIMd:',LIMd
-                print *,'LIMdold_keep:',LIMdold_keep
-                print *,'LIMdold:',LIMdold
-
-
-               print *,'LOC_F:',LOC_F
-!               print *,'LOC_FEMF:',LOC_FEMF
-!               print *,'SLOC_F:',SLOC_F
-!               print *,'SLOC_FEMF:',SLOC_FEMF
-!               print *,'SLOC2_F:',SLOC2_F
-!               print *,'SLOC2_FEMF:',SLOC2_FEMF
-!               print *,'SLOC_SUF_F_BC:',SLOC_SUF_F_BC
-!               print *,'SELE_LOC_WIC_F_BC:',SELE_LOC_WIC_F_BC
-
-
-                if(IGOT_T2==1) then
-                   print *,'LIMT2_keep:',LIMT2_keep
-                   print *,'LIMT2:',LIMT2
-                   print *,'LIMT2old_keep:',LIMT2old_keep
-                   print *,'LIMT2old:',LIMT2old
-                ENDIF
-            print *,'LOC_F:',loc_f 
-               print *,'limf:',limf
-                print *,'ipt:',ipt
-                print *,'DOWNWIND_EXTRAP_INDIVIDUAL:',DOWNWIND_EXTRAP_INDIVIDUAL
-
-           print *,'ele,sele=',ele,sele
-           print *,'SELE_LOC_WIC_F_BC:',SELE_LOC_WIC_F_BC
-           print *,'SLOC_SUF_F_BC:',SLOC_SUF_F_BC
-
-           print *,'WIC_T_BC_ALL:',WIC_T_BC_ALL
-           print *,'SUF_T_BC_ALL:',SUF_T_BC_ALL
-
-       do iphase=1,nphase
-          print *,'iphase=',iphase
-          DO CV_KLOC = 1, CV_NLOC
-             CV_NODK = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_KLOC ) 
-             print *,'cv_nodk,T_ALL( iphase, CV_NODK ):',cv_nodk,T_ALL( iphase, CV_NODK )
-          end do
-             print *,'cv_nodi,cv_nodj,T_ALL( iphase, CV_NODi ),T_ALL( iphase, CV_NODj ):',cv_nodi,cv_nodj,T_ALL( iphase, CV_NODi ), T_ALL( iphase, CV_NODj )
-             print *,'cv_nodi,cv_nodj,Told_ALL( iphase, CV_NODi ),Told_ALL( iphase, CV_NODj ):',cv_nodi,cv_nodj,Told_ALL( iphase, CV_NODi ), Told_ALL( iphase, CV_NODj )
-      end do
-             print *,'DOWNWIND_EXTRAP_INDIVIDUAL:',DOWNWIND_EXTRAP_INDIVIDUAL
-             
-!              print *,'t:',t 
-             print *,'FUPWIND_IN(1):',FUPWIND_IN(1)
-             print *,'FUPWIND_OUT(1):',FUPWIND_OUT(1)
-             print *,'FUPWIND_IN(2):',FUPWIND_IN(2)
-             print *,'FUPWIND_OUT(2):',FUPWIND_OUT(2)
-                stop 221
-             endif
-       endif ! testing
-
 !           print *,'done temp'
 ! Generate some local F variables ***************
-       IF(.true.) THEN
+!       IF(.true.) THEN
 ! loc_f - Unpack into the limiting variables LIMT and may be store them in the cache.
 
              !###############TEMPORARY USAGE IN UNPACK_LOC #######################
@@ -1977,7 +1871,7 @@ contains
 
           LIMDTT2=LIMD*LIMT*LIMT2
           LIMDTT2OLD=LIMDOLD*LIMTOLD*LIMT2OLD
-      ENDIF
+!      ENDIF
 ! Generate some local F variables ***************...
 
 ! Make allowances for no matrix stencil operating from outside the boundary.
@@ -13585,11 +13479,6 @@ contains
     NDOTQ =  MATMUL( CVNORMX_ALL(:, GI), UDGI_ALL)
 
     ! Define whether flux is incoming or outgoing, depending on direction of flow
-    !IF( NDOTQ >  0.0 ) THEN
-    !   INCOME = 0.0  !Outgoing
-    !ELSE
-    !   INCOME = 1.0  !Incoming
-    !ENDIF
     INCOME = 0.5*( 1. + SIGN(1.0, -NDOTQ) )
 
 
