@@ -13354,7 +13354,6 @@ contains
                                              UGI_COEF_ELE2_ALL
     REAL, DIMENSION( :, :  ), intent( in ) :: SCVFEN
     INTEGER, DIMENSION( : ), intent( in ) :: CV_OTHER_LOC
-    integer :: s,e
 
     ! Local variables
     REAL :: UDGI,VDGI,WDGI,  &
