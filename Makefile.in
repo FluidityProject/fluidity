@@ -501,7 +501,7 @@ distclean: clean
 test: fltools bin/$(FLUIDITY) bin/shallow_water serialtest bin/burgers_equation
 
 serialtest: fltools bin/$(FLUIDITY) bin/shallow_water
-	@cd tests; ../bin/testharness -l short -p serial $(EXCLUDE_TAGS) -n $(THREADS)
+	@cd tests; ../bin/testharness -l short $(EXCLUDE_TAGS) -n $(THREADS)
 
 mediumtest: fltools bin/$(FLUIDITY) manual bin/burgers_equation bin/shallow_water spudtools
 	@cd tests; ../bin/testharness -l medium $(EXCLUDE_TAGS) -n $(THREADS)
@@ -624,7 +624,7 @@ install: default fltools bin/shallow_water bin/burgers_equation
 	rm -rf $(DESTDIR)$(docdir)/fluidity/examples/
 
 install-diamond: 
-	cd libspud; ./configure --prefix=$(DESTDIR)@prefix@; cd ../..
+	cd libspud; ./configure --prefix=@prefix@; cd ../..
 	cd libspud; $(MAKE) clean; cd ../..
 	cd libspud; $(MAKE) install-diamond; cd ../..
 	cd libspud; $(MAKE) install-dxdiff; cd ../..

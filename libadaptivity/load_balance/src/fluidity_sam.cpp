@@ -68,7 +68,6 @@ using namespace std;
 #define sam_add_field_fc F77_FUNC(sam_add_field_c, SAM_ADD_FIELD_C)
 #define sam_pop_field_fc F77_FUNC(sam_pop_field_c, SAM_POP_FIELD_C)
 #define sam_export_node_ownership_fc F77_FUNC(sam_export_node_ownership_c, SAM_EXPORT_NODE_OWNERSHIP_C)
-#define sam_migrate_halo2_fc F77_FUNC(sam_migrate_halo2_c, SAM_MIGRATE_HALO2_C)
 
 // "Mesh" is the principle object that does everything for SAM.
 Mesh *mesh = NULL;
@@ -147,29 +146,6 @@ extern "C"{
       mesh->invent_pressure_mesh();
       mesh->formHalo2();
     }
-#endif
-    return;
-  }
-
-  void sam_migrate_halo2_fc(void)
-  {
-#ifdef HAVE_MPI
-    assert(mesh != NULL);
-		assert(mesh->mixed_formulation());
-
-		// create noodom list for mesh
-		unsigned ncnt = mesh->num_nodes("total");
-		for(unsigned i = 0; i < ncnt; i++) {
-			noddom.push_back(mesh->node_list[i].get_current_owner());
-		}
-
-    // Migrate halo nodes.
-    ECHO("Migrating halo...");
-    mesh->migrate( noddom );
-    ECHO("...migrated.");
-
-		mesh->invent_pressure_mesh();
-		mesh->formHalo2();
 #endif
     return;
   }
