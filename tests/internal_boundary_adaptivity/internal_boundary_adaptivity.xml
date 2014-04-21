@@ -2,7 +2,7 @@
 <testproblem>
   <name>interal_boundary_adaptivity<comment>Tests: internal boundaries+adaptivity+checkpointing</comment></name>
   <owner userid="skramer"/>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="medium" nprocs="1">
     <command_line>fluidity -v2 -l internal_boundary.flml &amp;&amp;
 spud-set ib_1_checkpoint.flml /timestepping/finish_time 0.999999 &amp;&amp;
 fluidity -v2 -l ib_1_checkpoint.flml</command_line>
