@@ -707,7 +707,7 @@ contains
         DO MAT_INOD = 1, MAT_NONODS
             T_ABSORB_ALL( :, :, MAT_INOD ) = T_ABSORB( MAT_INOD, :, : )
         END DO
-
+ 
 
 
 

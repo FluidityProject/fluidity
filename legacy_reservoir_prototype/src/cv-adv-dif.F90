@@ -439,17 +439,15 @@ contains
       type(tensor_field) :: velocity_BCs,tracer_BCs, density_BCs, saturation_BCs
       type(tensor_field) :: tracer_BCs_robin2, saturation_BCs_robin2
 
-      INTEGER, DIMENSION( tracer%dim(1) , tracer%dim(2) , face_count(tracer) ) :: WIC_T_BC_ALL
-      INTEGER, DIMENSION( 1 ,  tracer%dim(2) , face_count(tracer) ) ::&
+      INTEGER, DIMENSION(:, :, : ), pointer :: WIC_T_BC_ALL
+      INTEGER, DIMENSION( :, :,: ), pointer ::&
            WIC_D_BC_ALL, WIC_T2_BC_ALL
-      INTEGER, DIMENSION( velocity%dim(1) , velocity%dim(2) ,&
-           face_count(velocity) ) :: WIC_U_BC_ALL
-      REAL, DIMENSION( tracer%dim(1), tracer%dim(2) , face_loc(tracer,1)*surface_element_count(tracer) ) :: SUF_T_BC_ALL,&
+      INTEGER, DIMENSION( :, :, :), pointer :: WIC_U_BC_ALL
+      REAL, DIMENSION( :,:,: ), pointer :: SUF_T_BC_ALL,&
            SUF_T_BC_ROB2_ALL
-      REAL, DIMENSION( 1 , tracer%dim(2) ,&
-           face_loc(tracer,1)*surface_element_count(tracer) ) :: SUF_D_BC_ALL,&
-           SUF_T2_BC_ALL, SUF_T2_BC_ROB1_ALL, SUF_T2_BC_ROB2_ALL   
-      REAL, DIMENSION( velocity%dim(1), velocity%dim(2), face_loc(velocity,1)*surface_element_count(velocity) ) :: SUF_U_BC_ALL
+      REAL, DIMENSION(:,:,: ), pointer :: SUF_D_BC_ALL,&
+           SUF_T2_BC_ALL, SUF_T2_BC_ROB2_ALL   
+      REAL, DIMENSION(:,:,: ), pointer :: SUF_U_BC_ALL
 
 
       !#################SET WORKING VARIABLES#################
@@ -513,11 +511,13 @@ contains
       
       !! reassignments to old arrays, to be discussed
 
-      SUF_T_BC_ALL=tracer_BCs%val(:,:,:)
-      SUF_D_BC_ALL=density_BCs%val(:,:,:)
-      SUF_U_BC_ALL=velocity_BCs%val
+      SUF_T_BC_ALL=>tracer_BCs%val
+      SUF_T_BC_ROB2_ALL=>tracer_BCs_robin2%val
+      SUF_D_BC_ALL=>density_BCs%val
+      SUF_U_BC_ALL=>velocity_BCs%val
       if(present(saturation)) then
-         SUF_T2_BC_ALL=saturation_BCs%val(:,:,:)
+         SUF_T2_BC_ALL=>saturation_BCs%val
+         SUF_T2_BC_ROB2_ALL=>saturation_BCs_robin2%val
       end if
 
 !      x => extract_vector_field( packed_state, "PressureCoordinate" )
@@ -13649,12 +13649,12 @@ end SUBROUTINE GET_INT_VEL_NEW
 
              IF(WIC_U_BC_ALL( 1, IPHASE, SELE ) == 10) THEN
                 UDGI_ALL(:, IPHASE) = UDGI_ALL(:, IPHASE) + SUFEN( U_KLOC, GI ) * 0.5 * &
-                                      (SLOC_NU(:, IPHASE, U_SKLOC) + SUF_U_BC_ALL(:, IPHASE, U_SNLOC* (SELE-1) +U_SKLOC_LEV))
+                                      (SLOC_NU(:, IPHASE, U_SKLOC) + SUF_U_BC_ALL(:, IPHASE, U_SNLOC_LEV* (SELE-1) +U_SKLOC_LEV))
 
                 UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC)=UGI_COEF_ELE_ALL(:, IPHASE, U_KLOC) + 0.5
              ELSE
 
-                UDGI_ALL(:, IPHASE) = UDGI_ALL(:, IPHASE) + SUFEN( U_KLOC, GI )*SUF_U_BC_ALL(:, IPHASE, U_SNLOC* (SELE-1) +U_SKLOC_LEV)
+                UDGI_ALL(:, IPHASE) = UDGI_ALL(:, IPHASE) + SUFEN( U_KLOC, GI )*SUF_U_BC_ALL(:, IPHASE, U_SNLOC_LEV* (SELE-1) +U_SKLOC_LEV)
              END IF
           END DO
        END IF
