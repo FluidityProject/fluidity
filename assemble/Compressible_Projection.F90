@@ -39,6 +39,7 @@ module compressible_projection
   use fefields, only: compute_cv_mass
   use state_fields_module
   use upwind_stabilisation
+  use multiphase_module
   implicit none 
 
   ! Buffer for output messages.
@@ -56,7 +57,10 @@ module compressible_projection
   integer :: nu_bar_scheme
   real :: nu_bar_scale
 
-contains
+  !! Are we running a multiphase flow simulation?
+  logical :: multiphase
+
+ contains
 
   subroutine assemble_compressible_projection_cv(state, cmc, rhs, dt, theta_pg, theta_divergence, cmcget)
 
@@ -367,11 +371,12 @@ contains
 
   end subroutine assemble_mmat_compressible_projection_cv
   
-  subroutine assemble_compressible_projection_cg(state, cmc, rhs, dt, theta_pg, theta_divergence, cmcget)
+  subroutine assemble_compressible_projection_cg(state, istate, cmc, rhs, dt, theta_pg, theta_divergence, cmcget)
 
     ! inputs:
     ! bucket full of fields
     type(state_type), dimension(:), intent(inout) :: state
+    integer, intent(in) :: istate
 
     type(csr_matrix), intent(inout) :: cmc
     type(scalar_field), intent(inout) :: rhs
@@ -380,17 +385,25 @@ contains
     real, intent(in) :: theta_pg, theta_divergence
     logical, intent(in) :: cmcget
 
-    if((size(state)==1).and.(.not.has_scalar_field(state(1), "MaterialVolumeFraction"))) then
-    
-      call assemble_1mat_compressible_projection_cg(state(1), cmc, rhs, dt, &
-                                                    theta_pg, theta_divergence, cmcget)
-      
+    if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
+       multiphase = .true.
+       call assemble_1mat_compressible_projection_cg(state(istate), cmc, rhs, dt, &
+                                                      theta_pg, theta_divergence, cmcget)
     else
+       multiphase = .false.
+
+       if((size(state)==1).and.(.not.has_scalar_field(state(1), "MaterialVolumeFraction"))) then
       
-        FLExit("Multimaterial compressible continuous_galerkin pressure not possible.")
-      
-    end if
-    
+          call assemble_1mat_compressible_projection_cg(state(1), cmc, rhs, dt, &
+                                                      theta_pg, theta_divergence, cmcget)
+         
+       else
+         
+          FLExit("Multimaterial compressible continuous_galerkin pressure not possible.")
+         
+       end if
+
+   end if    
 
   end subroutine assemble_compressible_projection_cg
 
@@ -441,6 +454,11 @@ contains
     logical :: have_absorption, have_source
     integer :: stat
 
+    !! Multiphase variables
+    ! Volume fraction fields
+    type(scalar_field), pointer :: vfrac
+    type(scalar_field) :: nvfrac
+
     ! =============================================================
     ! Subroutine to construct the matrix CT_m (a.k.a. C1/2/3T).
     ! =============================================================
@@ -470,6 +488,15 @@ contains
   
       velocity=>extract_vector_field(state, "Velocity")
       nonlinearvelocity=>extract_vector_field(state, "NonlinearVelocity") ! maybe this should be updated after the velocity solve?
+
+      ! Get the non-linear PhaseVolumeFraction field if multiphase
+      if(multiphase) then
+         vfrac => extract_scalar_field(state, "PhaseVolumeFraction")
+         call allocate(nvfrac, vfrac%mesh, "NonlinearPhaseVolumeFraction")
+         call zero(nvfrac)
+         call get_nonlinear_volume_fraction(state, nvfrac)
+         ewrite_minmax(nvfrac)
+      end if
       
       pressure => extract_scalar_field(state, "Pressure")
   
@@ -552,7 +579,11 @@ contains
         ! Important note: with SUPG the test function derivatives have not been
         ! modified.
   
-        ele_mat = (1./(dt*dt*theta_divergence*theta_pg))*shape_shape(test_shape, test_shape_ptr, detwei*drhodp_at_quad)
+        if(multiphase) then
+           ele_mat = (1./(dt*dt*theta_divergence*theta_pg))*shape_shape(test_shape, test_shape_ptr, detwei*ele_val_at_quad(nvfrac, ele)*drhodp_at_quad)
+        else
+           ele_mat = (1./(dt*dt*theta_divergence*theta_pg))*shape_shape(test_shape, test_shape_ptr, detwei*drhodp_at_quad)
+        end if
         !       /
         ! rhs = |test_shape* &
         !       /
@@ -560,8 +591,14 @@ contains
         ! +(absorption)*(drhodp*theta*(eospressure - (pressure + atmospheric_pressure)) 
         !                - theta*density - (1-theta)*olddensity)
         ! +source)dV
-        ele_rhs = (1./dt)*shape_rhs(test_shape, detwei*((drhodp_at_quad*(eosp_at_quad - p_at_quad)) &
+
+        if(multiphase) then
+            ele_rhs = (1./dt)*shape_rhs(test_shape, detwei*(ele_val_at_quad(nvfrac, ele))*((drhodp_at_quad*(eosp_at_quad - p_at_quad)) &
                                                        +(olddensity_at_quad - density_at_quad)))
+        else
+            ele_rhs = (1./dt)*shape_rhs(test_shape, detwei*((drhodp_at_quad*(eosp_at_quad - p_at_quad)) &
+                                                       +(olddensity_at_quad - density_at_quad)))
+        end if
         
         if(have_source) then
           ele_rhs = ele_rhs + shape_rhs(test_shape, detwei*ele_val_at_quad(source, ele))
@@ -587,6 +624,10 @@ contains
   
       call deallocate(drhodp)
       call deallocate(eospressure)
+
+      if(multiphase) then
+         call deallocate(nvfrac)
+      end if
     
     end if
 
@@ -597,17 +638,29 @@ contains
     type(state_type), dimension(:), intent(inout) :: state
     
     type(scalar_field), pointer :: density
+
+    integer :: istate
     
-    if((size(state)==1).and.(.not.has_scalar_field(state(1), "MaterialVolumeFraction"))) then
-    
-      density=>extract_scalar_field(state(1),'Density')
+    if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
+       do istate=1,size(state)
+          density=>extract_scalar_field(state(istate),'Density')
+          
+          if(have_option(trim(density%option_path)//"/prognostic")) then
+            call compressible_eos(state(istate), density=density)
+          end if
+       end do
+    else
+       if((size(state)==1).and.(.not.has_scalar_field(state(1), "MaterialVolumeFraction"))) then
+       
+          density=>extract_scalar_field(state(1),'Density')
+          
+          if(have_option(trim(density%option_path)//"/prognostic")) then
+         
+             call compressible_eos(state(1), density=density)
+         
+          end if
       
-      if(have_option(trim(density%option_path)//"/prognostic")) then
-        
-        call compressible_eos(state(1), density=density)
-      
-      end if
-    
+       end if
     end if
   
   end subroutine update_compressible_density
@@ -620,8 +673,8 @@ contains
     do i=0, option_count("/material_phase")-1
       prognostic_pressure_path="/material_phase"//int2str(i)//"/scalar_field::Pressure/prognostic"
       if (have_option(trim(prognostic_pressure_path)//"/spatial_discretisation/discontinuous_galerkin") &
-        .and. have_option(trim(prognostic_pressure_path)//"/scheme/use_compressible_projection")) then
-        FLExit("With a DG pressure you cannot have use_compressible_projection")
+        .and. have_option(trim(prognostic_pressure_path)//"/scheme/use_compressible_projection_method")) then
+        FLExit("With a DG pressure you cannot have use_compressible_projection_method")
       end if
     end do
 

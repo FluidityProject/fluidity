@@ -104,7 +104,7 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   CGAL_Tools_C.o CGAL_Tools.o \
   Rotated_Boundary_Conditions.o MPI_Interfaces.o Parallel_Tools.o \
   Fields_Halos.o Profiler.o Profiler_Fortran.o Streamfunction.o \
-  GMSH_Common.o Read_GMSH.o Write_GMSH.o Mesh_Files.o
+  GMSH_Common.o Read_GMSH.o Write_GMSH.o Mesh_Files.o Vertical_Extrapolation.o
 
 
 # objects to be included in libfemtools:

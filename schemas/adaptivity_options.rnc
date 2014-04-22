@@ -974,6 +974,20 @@ hr_adaptivity =
             element additional_adapt_iterations {
                 integer
             }?,
+            element field_weighted_partitions {
+            ## Field weighted partitions: turning on this option allows one to 
+            ## weight mesh partitions, based upon a prescribed scalar field. 
+            ## Note that the field should have a minimum value of 0 and a maximum
+            ## value of 1 (no normalisation is done within the code).
+	        element scalar_field {
+                  attribute rank { "0" },
+                  attribute name { "FieldWeightedPartitionValues" },
+                  element prescribed {
+                     coordinate_mesh_choice,
+                     prescribed_scalar_field
+                  }
+               }
+            }?,
             ## Zoltan Debugging
             ## 
             ## Turn on more verbose output for use when debugging Zoltan.

@@ -75,10 +75,10 @@
     </quadrature>
     <ocean_boundaries>
       <top_surface_ids>
-        <integer_value shape="1" rank="1">8</integer_value>
+        <integer_value shape="1" rank="1">11</integer_value>
       </top_surface_ids>
       <bottom_surface_ids>
-        <integer_value shape="1" rank="1">11</integer_value>
+        <integer_value shape="1" rank="1">8</integer_value>
       </bottom_surface_ids>
       <scalar_field name="DistanceToTop" rank="0">
         <diagnostic>
@@ -212,10 +212,10 @@
         <calculate_boundaries>
           <string_value>neumann</string_value>
           <top_surface_ids>
-            <integer_value shape="1" rank="1">8</integer_value>
+            <integer_value shape="1" rank="1">11</integer_value>
           </top_surface_ids>
           <bottom_surface_ids>
-            <integer_value shape="1" rank="1">11</integer_value>
+            <integer_value shape="1" rank="1">8</integer_value>
           </bottom_surface_ids>
         </calculate_boundaries>
         <scalar_field name="GLSTurbulentKineticEnergy" rank="0">

@@ -43,6 +43,12 @@ from fluidity_tools import stat_parser
 s = stat_parser("mphase_tephra_settling.stat")
 divergence = s["Tephra"]["SumVelocityDivergence"]["max"]
     </variable>
+    
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
   </variables>
     
   <pass_tests>
@@ -75,6 +81,10 @@ assert abs(particle_reynolds_number_max[-1] - 0.08) &lt; 0.5
     
     <test name="SumVelocityDivergence is less than 1e-7 at the final timestep" language="python">
 assert abs(divergence[-1]) &lt; 1e-7
+    </test>
+   
+    <test name="Solvers converged" language="python">
+assert(solvers_converged)
     </test>
   </pass_tests>
   

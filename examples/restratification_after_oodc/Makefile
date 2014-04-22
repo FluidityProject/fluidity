@@ -10,8 +10,8 @@ preprocess:
 	gmsh -2 circle.geo 
 	@echo **********Converting the gmsh mesh to triangle format:
 	$(SCRIPTS)gmsh2triangle --2d circle.msh; 
-ifneq ($(NPROCS),32)
-	@echo **********WARNING: This simulation is best run on 32 processors
+ifneq ($(NPROCS),64)
+	@echo **********WARNING: This simulation is best run on 64 processors
 endif
 ifeq ($(NPROCS),1)
 	@echo **********Serial run: not decomposing mesh
@@ -24,8 +24,8 @@ else
 endif
 
 run:
-ifneq ($(NPROCS),32)
-	@echo **********WARNING: This simulation is best run on 32 processors
+ifneq ($(NPROCS),64)
+	@echo **********WARNING: This simulation is best run on 64 processors
 endif
 ifeq ($(NPROCS),1)
 	@echo **********WARNING: This is a large simulation and will take a very long time in serial. Find a handy supercomputer.
@@ -40,7 +40,7 @@ postprocess:
 	@echo **********No postprocessing needed
 
 input: clean
-	$(MAKE) preprocess NPROCS=32
+	$(MAKE) preprocess NPROCS=64
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:

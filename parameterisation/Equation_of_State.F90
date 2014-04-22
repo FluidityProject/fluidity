@@ -32,8 +32,8 @@ module equation_of_state
   use fields
   use state_module
   use global_parameters, only: OPTION_PATH_LEN
+  use sediment, only: get_n_sediment_fields, get_sediment_item
   use spud
-  use sediment, only: get_sediment_name, get_nSediments
   implicit none
   
   private
@@ -54,12 +54,12 @@ contains
     type(scalar_field), pointer:: T, S, oldT, oldS, topdis
     type(scalar_field) DeltaT, DeltaS, remapT, remapS, fluidconcentration,&
          & sedimentdensity
-    character(len=OPTION_PATH_LEN) option_path, dep_option_path, class_name, sfield_name
+    character(len=OPTION_PATH_LEN) option_path, dep_option_path, sediment_field_name, class_name, sfield_name
     logical, dimension(:), allocatable:: done
     logical include_depth_below
     real T0, S0, gamma, rho_0, salt, temp, dist, dens, theta
     integer, dimension(:), pointer:: density_nodes
-    integer ele, i, node, nSediments, f
+    integer ele, i, node, n_sediment_fields, f
     
     ewrite(1,*) 'In calculate_perturbation_density'
     
@@ -205,27 +205,20 @@ contains
        call allocate(deltaS, density%mesh, "DeltaS")
        call allocate(remapS, density%mesh, "RemapS")
        call allocate(sedimentdensity, density%mesh, "SedimentDensity")
-       ! fluidconcentration is 1-sedimentconcentration.
-       call allocate(fluidconcentration, density%mesh, &
-            "FluidConcentration")
        call zero(sedimentdensity)
-       call set(fluidconcentration, 1.0)
-       nSediments=get_nSediments()
 
-       do i=1,nSediments
+       n_sediment_fields = get_n_sediment_fields()
 
-          class_name = get_sediment_name(i)
+       do i=1,n_sediment_fields
+       
+          call get_sediment_item(state, i, S)
 
-          S=>extract_scalar_field(state,trim(class_name))
-          option_path = S%option_path
-
-          call get_option(trim(option_path)//'/density', gamma)
-          ! Note that 1000.0 is a hack. We actually need to properly
-          ! account for the reference density of seawater.
-          gamma=rho_0*(gamma/1000.0) - rho_0
+          call get_sediment_item(state, i, 'submerged_specific_gravity', gamma)
+          
+          gamma = gamma * rho_0
 
           oldS => extract_scalar_field(state, &
-               "Old"//trim(class_name))
+               "Old"//trim(S%name))
           
           ! deltaS=theta*S+(1-theta)*oldS-S0
           call remap_field(S, remapS)
@@ -236,16 +229,13 @@ contains
           call addto(deltaS, remapS, 1.0-theta)
           ! density=density+gamma*deltaS
           call addto(sedimentdensity, deltaS, scale=gamma)
-          call addto(fluidconcentration, deltaS, scale=-1.0)
 
        end do
        
-       call scale(density,fluidconcentration)
        call addto(density,sedimentdensity)
 
        call deallocate(deltaS)
        call deallocate(remapS)
-       call deallocate(fluidconcentration)
        call deallocate(sedimentdensity)
        
     end if

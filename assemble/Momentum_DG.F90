@@ -905,7 +905,11 @@ contains
     
     ! In parallel, we construct terms on elements we own and those in
     ! the L1 element halo.
-    assemble_element = .not.dg.or.element_neighbour_owned(U, ele)
+    ! Note that element_neighbour_owned(U, ele) may return .false. if
+    ! ele is owned.  For example, if ele is the only owned element on
+    ! this process.  Hence we have to check for element ownership
+    ! directly as well.
+    assemble_element = .not.dg.or.element_neighbour_owned(U, ele).or.element_owned(U, ele)
 
     primal = .not.dg
     if(viscosity_scheme == CDG) primal = .true.

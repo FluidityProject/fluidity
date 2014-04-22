@@ -17,4 +17,4 @@ copy_tests:
 	sed -n '1h;1!H;$${;g;s/<timestep>.*<\/timestep>/<timestep>\n<real_value rank="0">$(dt_B)<\/real_value>\n<\/timestep>/g;p;}' $(source_swml) | sed 's/wave/wave_dt_dx_B/' | sed 's/src\/mesh/src\/mesh_B/' > wave_dt_dx_B.swml
 	sed -n '1h;1!H;$${;g;s/<timestep>.*<\/timestep>/<timestep>\n<real_value rank="0">$(dt_C)<\/real_value>\n<\/timestep>/g;p;}' $(source_swml) | sed 's/wave/wave_dt_dx_C/' | sed 's/src\/mesh/src\/mesh_C/' > wave_dt_dx_C.swml
 clean:
-	rm -f *.vtu *.stat wave_dt_*.swml src/mesh*.msh 
+	rm -f *.vtu *.stat wave_dt_*.swml src/mesh*.msh src/*.edge src/*.ele src/*.node

@@ -86,7 +86,8 @@ implicit none
                    & set_vector_field_node, set_vector_field, &
                    & set_vector_field_node_dim, set_vector_field_dim, &
                    & set_tensor_field_node, set_tensor_field, &
-                   & set_scalar_field_nodes, set_tensor_field_node_dim, &
+                   & set_scalar_field_nodes, set_scalar_field_constant_nodes, &
+                   & set_tensor_field_node_dim, &
                    & set_vector_field_nodes, &
                    & set_vector_field_nodes_dim, &
                    & set_tensor_field_nodes, &
@@ -849,10 +850,25 @@ implicit none
     real, dimension(:), intent(in) :: val
 
     assert(field%field_type==FIELD_TYPE_NORMAL)
-    
+    assert(size(node_numbers)==size(val))
+
     field%val(node_numbers) = val
     
   end subroutine set_scalar_field_nodes
+  
+  subroutine set_scalar_field_constant_nodes(field, node_numbers, val)
+    !!< Set the scalar field at the specified node_numbers
+    !!< to a constant value
+    !!< Does not work for constant fields
+    type(scalar_field), intent(inout) :: field
+    integer, dimension(:), intent(in) :: node_numbers
+    real, intent(in) :: val
+
+    assert(field%field_type==FIELD_TYPE_NORMAL)
+
+    field%val(node_numbers) = val
+    
+  end subroutine set_scalar_field_constant_nodes
   
   subroutine set_scalar_field(field, val)
     !!< Set the scalar field with a constant value

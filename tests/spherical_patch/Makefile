@@ -5,7 +5,6 @@ input: clean
 	../../bin/fldecomp -n $(NPROCS) -s -m gmsh patch
 
 clean:
-	rm -rf *.msh *.halo *.vtu *.stat fluidity.*
+	rm -rf *.msh *.halo *.vtu *.stat serial.flml fluidity.*
 	rm -rf spherical_segment_* *.pvtu
 	rm -rf flredecomp.* matrixdump*
-

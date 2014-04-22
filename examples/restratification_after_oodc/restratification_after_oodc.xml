@@ -6,7 +6,7 @@
 </comment></name>
   <owner userid="fpm08"/>
   <tags>flml </tags>
-    <problem_definition length="long" nprocs="32">
+    <problem_definition length="long" nprocs="64">
     <command_line>mpiexec fluidity -v2 -l restratification_after_oodc.flml </command_line>
   </problem_definition>  
    <variables>

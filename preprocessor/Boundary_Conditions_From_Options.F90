@@ -51,7 +51,7 @@ use ice_melt_interface
 !use integer_set_module !for iceshelf
 !use fields_base !for iceshelf
 !use fields ! for iceshelf
-use sediment, only: set_sediment_reentrainment, set_sediment_bc_id
+use sediment, only: set_sediment_reentrainment
 use halos_numbering
 use halos_base
 use fefields
@@ -224,16 +224,20 @@ contains
 
        ! Same thing for sediments. It's of type sediment_reentrainment
        if (trim(bc_type) .eq. "sediment_reentrainment") then
+          ewrite(2,*) "Changing sediment_reentrainment BC type to neumann"
           bc_type = "neumann"
-          ! set which ID it is as sediment classes are created onthe fly so
-          ! aren't in the options tree as normal fields
-          call set_sediment_bc_id(field%name, i+1)
        end if
 
        ! Same thing for k_epsilon turbulence model.
        if (trim(bc_type) .eq. "k_epsilon") then
-          ewrite(2,*) "Changing k_epsilon BC type to dirichlet"
-          bc_type = "dirichlet"
+          call get_option(trim(bc_path_i)//"/type::k_epsilon/", bc_type)
+          if (trim(bc_type) .eq. "low_Re" .and. trim(field%name) .eq. "TurbulentDissipation") then
+             ewrite(2,*) "Changing low_Re epsilon BC type to neumann"
+             bc_type = "neumann"
+          else
+             ewrite(2,*) "Changing k_epsilon BC type to dirichlet"
+             bc_type = "dirichlet"
+          end if
        end if
 
        if(have_option(trim(bc_path_i)//"/type[0]/apply_weakly")) then
@@ -615,11 +619,6 @@ contains
         call set_sediment_reentrainment(states(1))
     end if
 
-    if (have_option(trim(states(1)%option_path)//'/subgridscale_parameterisations/k-epsilon')) then
-        ewrite(2,*) "Calling keps_bcs"
-        call keps_bcs(states(1))
-    end if
-
     nphases = size(states)
     do p = 0, nphases-1
 
@@ -657,6 +656,12 @@ contains
                position, shift_time=shift_time)
 
        end do
+       
+       ! Special k-epsilon boundary conditions
+       if (have_option(trim(states(p+1)%option_path)//'/subgridscale_parameterisations/k-epsilon')) then
+          ewrite(2,*) "Calling keps_bcs"
+          call keps_bcs(states(p+1))
+       end if
 
     end do
 
@@ -710,9 +715,9 @@ contains
        end if
 
        if (trim(bc_type) .eq. "sediment_reentrainment") then
-            ! skip sediment boundareis - done seperately
-            ! see assemble/Sediment.F90
-            cycle boundary_conditions
+          ! skip sediment boundaries - done seperately
+          ! see assemble/Sediment.F90
+          cycle boundary_conditions
        end if
 
        if (trim(bc_type) .eq. "k_epsilon") then
@@ -730,6 +735,7 @@ contains
             surface_element_list=surface_element_list)
 
        if((surface_mesh%shape%degree==0).and.(bc_type=="dirichlet")) then
+
          ! if the boundary condition is on a 0th degree mesh and is of type strong dirichlet
          ! then the positions used to calculate the bc should be body element centred not
          ! surface element centred

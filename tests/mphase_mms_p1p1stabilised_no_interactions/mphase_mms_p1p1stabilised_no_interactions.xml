@@ -169,6 +169,11 @@ cd_ratio = c_error / d_error
 cd_convergence_p = log(cd_ratio, 2)
     </variable>
 
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
   </variables>
   
   <pass_tests>
@@ -224,6 +229,10 @@ assert(cd_convergence_vel[1][1] &gt; 1.7)
     
     <test name="cd_convergence_p: L2 order > 1.1" language="python">
 assert(cd_convergence_p &gt; 1.1)
+    </test>
+    
+    <test name="Solvers converged" language="python">
+assert(solvers_converged)
     </test>
     
   </pass_tests>

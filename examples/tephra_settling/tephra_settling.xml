@@ -20,10 +20,17 @@ from fluidity_tools import stat_parser
 s = stat_parser("tephra_settling.stat")
 tephra_u_max=s["Tephra"]["Velocity%magnitude"]["max"]
     </variable>
+    
     <variable name="time" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("tephra_settling.stat")
 time=s["ElapsedTime"]["value"]
+    </variable>
+    
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
   </variables>
     
@@ -41,6 +48,10 @@ for t in range(0,len(time)):
       assert min(tephra_u_max[t:]) &gt; 0.002
       assert max(tephra_u_max[t:]) &lt; 0.05
       break
+    </test>
+    
+    <test name="Solvers converged" language="python">
+assert(solvers_converged)
     </test>
   </pass_tests>
   

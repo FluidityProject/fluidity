@@ -37,6 +37,13 @@ ug = vtktools.vtu('single_phase_results.vtu')
 ug.GetFieldNames()
 single_phase_u = ug.GetVectorField('Velocity')
     </variable>
+    
+    
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
   </variables>
     
   <pass_tests>
@@ -63,6 +70,10 @@ for i in range(nnodes):
       
 assert max(difference_f1) &lt; 1e-8       
 assert max(difference_f2) &lt; 1e-8
+    </test>
+    
+    <test name="Solvers converged" language="python">
+assert(solvers_converged)
     </test>
   </pass_tests>
   

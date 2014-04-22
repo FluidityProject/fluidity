@@ -765,6 +765,8 @@ contains
     
     type(halo_type), intent(in) :: halo
     real, dimension(:), intent(in) :: real_array
+
+    real :: epsl
     
     logical :: verifies
     
@@ -778,14 +780,16 @@ contains
     
     call halo_update(halo, lreal_array)
     
-    verifies = all(abs(real_array - lreal_array) < 10000.0 * max(spacing(lreal_array), epsilon(lreal_array)))
+    epsl = spacing( maxval( abs( lreal_array ))) * 10000.
+    call allmax(epsl)
+
+    verifies = all(abs(real_array - lreal_array) < epsl )
 #ifdef DDEBUG
     if(.not. verifies) then
       do i = 1, halo_proc_count(halo)
         do j = 1, halo_receive_count(halo, i)
           receive = halo_receive(halo, i, j)
-          if(abs(real_array(receive) - lreal_array(receive)) >= 10000.0&
-               &*max(spacing(real_array(receive)), epsilon(real_array(receive)))) then 
+          if(abs(real_array(receive) - lreal_array(receive)) >= epsl) then
             ewrite(0, *) "Warning: Halo receive ", receive, " for halo " // halo_name(halo) // " failed verification"
             ewrite(0, *) "Reference = ", real_array(receive)
             ewrite(0, *) "Value in verification array = ", lreal_array(receive)
@@ -794,13 +798,12 @@ contains
       end do
       
       do i = 1, size(real_array)
-        if(abs(real_array(i) - lreal_array(i)) >= 10000.0&
-               &*max(spacing(real_array(i)), epsilon(real_array(i)))) then
-          ewrite(0, *) "Warning: Reference index ", i, " for halo " // halo_name(halo) // " failed verification"
-          ewrite(0, *) "Reference = ", real_array(i)
-          ewrite(0, *) "Value in verification array = ", lreal_array(i)
-        end if
-      end do
+         if(abs(real_array(i) - lreal_array(i)) >= epsl ) then
+            ewrite(0, *) "Warning: Reference index ", i, " for halo " // halo_name(halo) // " failed verification"
+            ewrite(0, *) "Reference = ", real_array(i)
+            ewrite(0, *) "Value in verification array = ", lreal_array(i)
+         end if
+     end do
     end if
 #endif
     

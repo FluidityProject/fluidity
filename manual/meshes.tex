@@ -238,7 +238,13 @@ mpiexec -n 4 `\fluiditysourcepath'/bin/flredecomp \
 The output of running flredecomp is a series of mesh and vtu files as well
 as the new flml; in this case \lstinline+foo_flredecomp.flml+. 
 Note that \lstinline[language=bash]+flredecomp+ must be run on a number of processors equal to the larger number of processors between input and output.
-More information can be found in section~\ref{sec:flredecomp}.
+
+When using flredecomp, it is possible to partition the mesh based upon a user defined weighting. 
+This is achieved by prescribing a scalar field, bounded between values of 0 and 1, under 
+\option{/flredecomp/field\_weighted\_partitions}. Flredecomp will then try to ensure that the sum 
+of weights on each partition is approximately equal.
+
+Further information on flredecomp can be found in section~\ref{sec:flredecomp}.
 
 \subsection{Decomposing a periodic mesh}
 \index{mesh!meshing tools!periodise}

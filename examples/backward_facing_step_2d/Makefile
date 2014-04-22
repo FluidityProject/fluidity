@@ -6,7 +6,7 @@ preprocess:
 	cd $(TYPE); \
 	ln -s ../backward_facing_step_2d_kim_$(TYPE).flml .; \
 	echo **********Generating mesh for $(TYPE) simulation.; \
-	gmsh -2 -o step2d-kim-med.msh ../src/step2d-kim-med.geo; \
+	gmsh -2 -optimize -o step2d-kim-med.msh ../src/step2d-kim-med.geo; \
 	$(BIN)/gmsh2triangle -2 step2d-kim-med.msh; \
 	cd ..
 
@@ -29,3 +29,7 @@ clean:
 	@echo **********Cleaning the output from previous fluidity runs
 	rm -r kepsilon reference *.pdf
 
+space:
+	@$(foreach N,1 2 3 4 5 6 7 8 9, \
+		rm $(TYPE)/*_*$(N).vtu; \
+	)

@@ -57,7 +57,6 @@ module populate_state_module
   use data_structures
   use fields_halos
   use read_triangle
-  use sediment, only: get_nSediments, get_sediment_name
 
   implicit none
 
@@ -82,21 +81,31 @@ module populate_state_module
   end interface allocate_field_as_constant
     
   !! A list of locations in which additional scalar/vector/tensor fields
-  !! are to be found. It is assumed that all additional fields are
-  !! in state 1.
-  character(len=OPTION_PATH_LEN), dimension(11) :: field_locations=&
+  !! are to be found. These are absolute paths in the schema.
+  character(len=OPTION_PATH_LEN), dimension(8) :: additional_fields_absolute=&
        (/ &
        "/ocean_biology/pznd                                                                                                   ", &
        "/ocean_biology/six_component                                                                                          ", &
-       "/material_phase[0]/subgridscale_parameterisations/Mellor_Yamada                                                       ", &
-       "/material_phase[0]/subgridscale_parameterisations/prescribed_diffusivity                                              ", &
-       "/material_phase[0]/subgridscale_parameterisations/GLS                                                                 ", &
-       "/material_phase[0]/subgridscale_parameterisations/k-epsilon                                                           ", &
        "/ocean_forcing/iceshelf_meltrate/Holland08                                                                            ", &
        "/ocean_forcing/bulk_formulae/output_fluxes_diagnostics                                                                ", &
        "/porous_media                                                                                                         ", &
        "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/dynamic_les ", &
-       "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/second_order" &
+       "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/second_order", &
+       "/material_phase[0]/sediment/                                                                                          " &
+       /)
+       
+  !! A list of relative paths under /material_phase[i]
+  !! that are searched for additional fields to be added.
+  character(len=OPTION_PATH_LEN), dimension(8) :: additional_fields_relative=&
+       (/ &
+       "/subgridscale_parameterisations/Mellor_Yamada                                                       ", &
+       "/subgridscale_parameterisations/prescribed_diffusivity                                              ", &
+       "/subgridscale_parameterisations/GLS                                                                 ", &
+       "/subgridscale_parameterisations/k-epsilon                                                           ", &
+       "/subgridscale_parameterisations/k-epsilon/debugging_options/source_term_output_fields               ", &
+       "/subgridscale_parameterisations/k-epsilon/debugging_options/prescribed_source_terms                 ", &
+       "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/dynamic_les ", &
+       "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/second_order" &
        /)
 
   !! Relative paths under a field that are searched for grandchildren
@@ -1160,8 +1169,8 @@ contains
     !! able to one by one allocate them as we get them back from SAM.
     logical, optional, intent(in):: dont_allocate_prognostic_value_spaces
 
-    character(len=OPTION_PATH_LEN) :: field_name
-    integer :: i ! counters
+    character(len=OPTION_PATH_LEN) :: field_name, absolute_path
+    integer :: i, istate ! counters
     integer :: nstates ! number of states
     character(len=255) :: tmp ! temporary string to make life a little easier
     type(scalar_field), pointer :: fshistory_sfield
@@ -1202,6 +1211,15 @@ contains
             states(1), dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     end if
 
+    ! Field that controls the weighting of partitions:
+    if (have_option('/flredecomp/field_weighted_partitions')) then
+       call allocate_and_insert_scalar_field('/flredecomp/field_weighted_partitions/scalar_field::FieldWeightedPartitionValues', states(1))
+    end if
+    
+    if (have_option('/mesh_adaptivity/hr_adaptivity/zoltan_options/field_weighted_partitions')) then
+       call allocate_and_insert_scalar_field('/mesh_adaptivity/hr_adaptivity/zoltan_options/field_weighted_partitions/scalar_field::FieldWeightedPartitionValues', states(1))
+    end if
+    
     ! grid velocity
     if (have_option('/mesh_adaptivity/mesh_movement/vector_field::GridVelocity')) then
        call allocate_and_insert_vector_field('/mesh_adaptivity/mesh_movement/vector_field::GridVelocity', &
@@ -1252,13 +1270,25 @@ contains
     end if
 
     ! insert miscellaneous scalar fields
-    do i=1, size(field_locations)
-       if (have_option(trim(field_locations(i)))) then
+    do i=1, size(additional_fields_absolute)
+       if (have_option(trim(additional_fields_absolute(i)))) then
 
-          call allocate_and_insert_one_phase(field_locations(i), states(1), &
+          call allocate_and_insert_one_phase(additional_fields_absolute(i), states(1), &
              dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
           
        end if
+    end do
+    
+    do i=1, size(additional_fields_relative)
+       do istate = 1, size(states)
+         absolute_path = "/material_phase["//int2str(istate-1)//"]/"//trim(additional_fields_relative(i))
+         if (have_option(absolute_path)) then
+
+            call allocate_and_insert_one_phase(absolute_path, states(istate), &
+               dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+            
+         end if
+       end do
     end do
 
     call allocate_metric_limits(states(1))
@@ -1344,49 +1374,7 @@ contains
 
        end do tensor_field_loop
 
-       ! Sediment submodel
-       if (have_option(trim(state_path)//"/sediment")) then 
-          call allocate_and_insert_sediment(state_path, state)
-       end if
-
     end subroutine allocate_and_insert_one_phase
-
-    subroutine allocate_and_insert_sediment(state_path, state)
-      !! Allocate all the sediment submodel fields.
-      character(len=*), intent(in) :: state_path
-      type(state_type), intent(inout) :: state
-      
-      integer :: nfields, j
-      character(len=OPTION_PATH_LEN) :: field_name
-      character(len=FIELD_NAME_LEN)  :: class_name
-
-      type(scalar_field), pointer :: sedimentflux
-
-      nfields=get_nSediments()
-
-      sediment_class_loop: do j=1,nfields
-         ! Note that this currently duplicates shared subfields such as
-         ! diffusivity. This should be changed.
-
-         class_name=get_sediment_name(j)
-
-         ! Now set up the diagnostic flux field.
-         field_name="SedimentFlux"//trim(class_name)
-
-         call allocate_and_insert_scalar_field(&
-               trim(state_path)&
-               //"/sediment/scalar_field::SedimentFluxTemplate", &
-               state, field_name=field_name, &
-               dont_allocate_prognostic_value_spaces&
-               =dont_allocate_prognostic_value_spaces)
-             
-         sedimentflux=>extract_scalar_field(state, field_name)
-
-         call zero(sedimentflux)
-
-        end do sediment_class_loop
-
-    end subroutine allocate_and_insert_sediment
 
     subroutine allocate_and_insert_irradiance(state)
       ! Allocate irradiance fields for 36 wavebands in PAR
@@ -1676,39 +1664,6 @@ contains
                "/prognostic/subgridscale_parameterisation&
                &::GLS")) then
              
-             tfield%name=trim(sfield%name)//"Diffusivity"
-             call insert(states(i), tfield, tfield%name)
-
-          end if
-
-       end do
-       
-    end do
-
-    ! Eddy diffusivity from K-Epsilon 2-equation turbulence model
-    do i = 1, size(states)
-       
-       tfield=extract_tensor_field(states(i), "KEpsEddyViscosity", stat)
-
-       if (stat/=0) cycle
-
-       tfield%aliased=.True.
-
-       do s = 1, scalar_field_count(states(i))
-
-          sfield => extract_scalar_field(states(i), s)
-          
-          if (have_option(trim(sfield%option_path)//&
-               "/prognostic/subgridscale_parameterisation&
-               &::k_epsilon")) then
-
-             ! Get Prandtl number, if specified.
-             call get_option(trim(sfield%option_path)//&
-               "/prognostic/subgridscale_parameterisation&
-               &::k_epsilon/Prandtl_number", Pr, default = 1.0)
-
-             ! Scale field by Prandtl number
-             call scale(tfield, 1./Pr)
              tfield%name=trim(sfield%name)//"Diffusivity"
              call insert(states(i), tfield, tfield%name)
 
@@ -2458,50 +2413,12 @@ contains
           end if
        end do
 
-       if (have_option(trim(phase_path)//"/sediment")) then
-          call initialise_prognostic_sediment
-       end if
-
     end do
       
     if (.not. present_and_true(save_vtk_cache)) then
        ! flush the cache
        call vtk_cache_finalise()
     end if
-
-  contains
-    
-    subroutine initialise_prognostic_sediment
-      character(len=OPTION_PATH_LEN):: class_path, class_name, field_name
-
-      nsfields=option_count(trim(phase_path)//"/sediment/sediment_class")
-      do f=0,nsfields-1
-         class_path=trim(phase_path)//"/sediment/sediment_class["&
-              //int2str(f)//"]"
-
-         ! Don't bother unless an additional initial condition is provided
-         ! for this field (otherwise it defaults to the general case).
-         if (.not.have_option(trim(class_path)//"/initial_condition")) then 
-            cycle
-         end if
-         
-         call get_option(trim(class_path)//"/name", class_name)
-         field_name="SedimentConcentration"//trim(class_name)
-         
-         sfield => extract_scalar_field(states(p+1),field_name)
-
-         if (mesh_changed .and. needs_initial_mesh(sfield)) cycle
-         if (.not. aliased(sfield) .and. &
-              have_option(trim(sfield%option_path)//'/prognostic')) then
-            call zero(sfield)
-            call initialise_field_over_regions(sfield, &
-                 trim(class_path)//'/initial_condition', &
-                 position)
-         end if
-         
-      end do
-
-    end subroutine initialise_prognostic_sediment
 
   end subroutine initialise_prognostic_fields
 
