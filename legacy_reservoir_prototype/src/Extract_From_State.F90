@@ -2195,6 +2195,9 @@
       call allocate_multiphase_scalar_bcs(packed_state,multi_state,"PhaseVolumeFraction")
       call allocate_multiphase_vector_bcs(packed_state,multi_state,"Velocity")
 
+      call allocate_multicomponent_scalar_bcs(multicomponent_state,multi_state,"ComponentMassFraction")
+      call allocate_multicomponent_scalar_bcs(multicomponent_state,multi_state,"ComponentDensity")
+
       !! // How to add density as a dependant of olddensity,  as an example
       !! // Suppose we have a previous declaration
 
@@ -2231,26 +2234,26 @@
           integer :: icomp
 
           type(tensor_field), pointer :: component, density
-          type(vector_field) :: vfield
+          type(tensor_field) :: vfield
 
 
           component=>extract_tensor_field(mstate,"PackedComponentMassFraction")
           density=>extract_tensor_field(mstate,"PackedComponentDensity")
 
           do icomp=1,ncomp
-             call allocate(vfield,nphase,component%mesh,"ComponentMassFraction",field_type=FIELD_TYPE_DEFERRED)
+             call allocate(vfield,component%mesh,"ComponentMassFraction",field_type=FIELD_TYPE_DEFERRED,dim=[1,nphase])
              vfield%option_path=component%option_path
              deallocate(vfield%val)
-             vfield%val=>component%val(icomp,:,:)
+             vfield%val=>component%val(icomp:icomp,:,:)
              vfield%wrapped=.true.
              call insert(mcstate(icomp),vfield,vfield%name)
              call deallocate(vfield)
 
 
-             call allocate(vfield,nphase,component%mesh,"ComponentDensity",field_type=FiELD_TYPE_DEFERRED)
+             call allocate(vfield,component%mesh,"ComponentDensity",field_type=FiELD_TYPE_DEFERRED,dim=[1,nphase])
              vfield%option_path=component%option_path
              deallocate(vfield%val)
-             vfield%val=>component%val(icomp,:,:)
+             vfield%val=>component%val(icomp:icomp,:,:)
              vfield%wrapped=.true.
              call insert(mcstate(icomp),vfield,vfield%name)
              call deallocate(vfield)
@@ -2585,6 +2588,65 @@
           end do
 
        end subroutine allocate_multiphase_vector_bcs
+
+
+subroutine allocate_multicomponent_scalar_bcs(s,ms,name)
+
+          type(state_type), dimension(:), intent(inout) :: s
+          type(state_type), dimension(:,:), intent(inout) :: ms
+          character( len=*) :: name
+
+          type(tensor_field), pointer :: mfield
+          type(scalar_field), pointer :: sfield
+          type(tensor_boundary_condition) :: tbc
+          type(scalar_boundary_condition), pointer ::  bc
+          type(tensor_boundary_condition), dimension(:), pointer :: temp
+
+          integer :: iphase,icomp,stat, n, nbc
+
+
+          do icomp=1,size(s)
+             nbc=0
+             mfield=>extract_tensor_field(s(icomp),name)
+             allocate(mfield%bc)
+          
+             do iphase=1,mfield%dim(2)
+                sfield=>extract_scalar_field( ms(icomp,iphase),trim(name)//"Phase"//int2str(iphase),stat)
+                if (stat/= 0 ) cycle
+
+                allocate(tbc%applies(mfield%dim(1),mfield%dim(2)))
+                tbc%applies= .false.
+                tbc%applies(icomp,iphase)=.true.
+                
+                do n=1,get_boundary_condition_count(sfield)
+                   
+                   bc=>sfield%bc%boundary_condition(n)
+                   
+                  tbc%name=bc%name
+                  tbc%type=bc%type
+                  tbc%surface_element_list=>bc%surface_element_list
+                  tbc%surface_node_list=>bc%surface_node_list
+                  tbc%surface_mesh=>bc%surface_mesh
+                  call incref(tbc%surface_mesh)
+                  tbc%scalar_surface_fields=>bc%surface_fields
+                  
+                  nbc=nbc+1
+                  if (nbc>1) then
+                     temp=>mfield%bc%boundary_condition
+                     allocate(mfield%bc%boundary_condition(nbc))
+                     mfield%bc%boundary_condition(1:nbc-1)=temp
+                     deallocate(temp)
+                     mfield%bc%boundary_condition(nbc)=tbc
+                  else
+                     allocate(mfield%bc%boundary_condition(nbc))
+                     mfield%bc%boundary_condition(nbc)=tbc
+                  end if
+               end do
+            end do
+         end do
+               
+
+       end subroutine allocate_multicomponent_scalar_bcs
 
        function check_paired(sfield1,sfield2) result(unpaired)
          type(scalar_field) :: sfield1,sfield2

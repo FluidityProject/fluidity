@@ -68,6 +68,7 @@ module multiphase_1D_engine
 contains
 
     SUBROUTINE INTENERGE_ASSEM_SOLVE( state, packed_state, &
+         tracer, velocity, density, &
     NCOLACV, FINACV, COLACV, MIDACV, &
     SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
     block_to_global_acv, global_dense_block_acv, &
@@ -81,9 +82,7 @@ contains
     T, TOLD, &
     MAT_NLOC,MAT_NDGLN,MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
     T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, T_BETA, &
-    SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
-    SUF_T_BC_ROB1, SUF_T_BC_ROB2,  &
-    WIC_T_BC, WIC_D_BC, WIC_U_BC, &
+    SUF_SIG_DIAGTEN_BC, &
     DERIV, &
     T_SOURCE, T_ABSORB, VOLFRA_PORE, &
     NDIM, &
@@ -93,19 +92,21 @@ contains
     T_FEMT, DEN_FEMT, &
     IGOT_T2, T2, T2OLD, igot_theta_flux,SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
     THETA_GDIFF, &
-    SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
+    IN_ELE_UPWIND, DG_ELE_UPWIND, &
     NOIT_DIM, &
     MEAN_PORE_CV, &
     option_path, &
     mass_ele_transp, &
     thermal, THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, &
-    StorageIndexes, icomp )
+    StorageIndexes, icomp, saturation )
 
         ! Solve for internal energy using a control volume method.
 
         implicit none
         type( state_type ), dimension( : ), intent( inout ) :: state
         type( state_type ), intent( inout ) :: packed_state
+        type(tensor_field), intent(inout) :: tracer
+        type(tensor_field), intent(in) :: velocity, density
 
         INTEGER, intent( in ) :: NCOLACV, NCOLCT, CV_NONODS, U_NONODS, X_NONODS, MAT_NONODS, TOTELE, &
         U_ELE_TYPE, CV_ELE_TYPE, CV_SELE_TYPE, NPHASE, CV_NLOC, U_NLOC, X_NLOC,  MAT_NLOC, &
@@ -121,8 +122,6 @@ contains
         INTEGER, DIMENSION( : ), intent( in ) :: MAT_NDGLN
         INTEGER, DIMENSION( : ), intent( in ) :: CV_SNDGLN
         INTEGER, DIMENSION( : ), intent( in ) :: U_SNDGLN
-        INTEGER, DIMENSION( : ), intent( in ) ::  WIC_T_BC, WIC_D_BC, WIC_U_BC
-        INTEGER, DIMENSION( : ), intent( in ) ::  WIC_T2_BC
         INTEGER, DIMENSION( : ), intent( in ) :: FINACV
         INTEGER, DIMENSION( : ), intent( in ) :: COLACV
         INTEGER, DIMENSION( : ), intent( in ) :: MIDACV
@@ -142,12 +141,7 @@ contains
         INTEGER, intent( in ) :: T_DISOPT, T_DG_VEL_INT_OPT
         REAL, intent( in ) :: DT, T_THETA
         REAL, intent( in ) :: T_BETA
-        REAL, DIMENSION( : ), intent( in ) :: SUF_T_BC, SUF_D_BC
-        REAL, DIMENSION( : ), intent( in ) :: SUF_T2_BC
-        REAL, DIMENSION( : ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
         REAL, DIMENSION( :, : ), intent( in ) :: SUF_SIG_DIAGTEN_BC
-        REAL, DIMENSION( : ), intent( in ) :: SUF_T_BC_ROB1, SUF_T_BC_ROB2
-        REAL, DIMENSION( : ), intent( in ) :: SUF_T2_BC_ROB1, SUF_T2_BC_ROB2
         REAL, DIMENSION( NPHASE, CV_NONODS ), intent( in ) :: DERIV
         REAL, DIMENSION( : ), intent( in ) :: T_SOURCE
         REAL, DIMENSION( : , : , : ), intent( in ) :: T_ABSORB
@@ -163,6 +157,8 @@ contains
         character( len = * ), intent( in ), optional :: option_path
         real, dimension( : ), intent( inout ), optional :: mass_ele_transp
         integer, dimension(:), intent(inout) :: StorageIndexes
+        type(tensor_field), intent(in), optional :: saturation
+        
         integer, optional :: icomp
         ! Local variables
         LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE.
@@ -180,6 +176,13 @@ contains
         INTEGER :: STAT
         character( len = option_path_len ) :: path
         type( tensor_field ), pointer :: den_all2, denold_all2
+        integer :: lcomp
+
+        if (present(icomp)) then
+           lcomp=icomp
+        else
+           lcomp=0
+        end if
 
         ALLOCATE( ACV( NCOLACV ) )
         ALLOCATE( mass_mn_pres( size(small_COLACV ) ))
@@ -197,7 +200,7 @@ contains
            denold_all2 => extract_tensor_field( packed_state, "PackedOldDensityHeatCapacity" )
            den_all    = den_all2    % val ( 1, :, : )
            denold_all = denold_all2 % val ( 1, :, : )
-        else if ( icomp > 0 ) then
+        else if ( lcomp > 0 ) then
            p => extract_scalar_field( packed_state, "FEPressure" )
            den_all2 => extract_tensor_field( packed_state, "PackedComponentDensity" )
            denold_all2 => extract_tensor_field( packed_state, "PackedOldComponentDensity" )
@@ -240,6 +243,7 @@ contains
 
 
             call CV_ASSEMB( state, packed_state, &
+                 tracer, velocity, density, &
             CV_RHS, &
             NCOLACV, block_acv, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
             SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV,&
@@ -253,9 +257,7 @@ contains
             DEN_ALL, DENOLD_ALL, &
             MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
             T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, SECOND_THETA, T_BETA, &
-            SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
-            SUF_T_BC_ROB1, SUF_T_BC_ROB2,  &
-            WIC_T_BC, WIC_D_BC, WIC_U_BC, &
+            SUF_SIG_DIAGTEN_BC, &
             DERIV, P%val, &
             T_SOURCE, T_ABSORB, VOLFRA_PORE, &
             NDIM, GETCV_DISC, GETCT, &
@@ -265,12 +267,13 @@ contains
             T_FEMT, DEN_FEMT, &
             IGOT_T2, T2, T2OLD,IGOT_THETA_FLUX ,SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
             THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, THETA_GDIFF, &
-            SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
+            IN_ELE_UPWIND, DG_ELE_UPWIND, &
             NOIT_DIM, &
             MEAN_PORE_CV, &
             SMALL_FINACV, SMALL_COLACV, size(small_colacv), mass_Mn_pres, THERMAL, &
             mass_ele_transp,&
-            StorageIndexes, -1, T_input = T, TOLD_input=TOLD )
+            StorageIndexes, -1, T_input = T, TOLD_input=TOLD,&
+            saturation=saturation)
             t=0.
 
             Conditional_Lumping: IF ( LUMP_EQNS ) THEN
@@ -351,6 +354,7 @@ contains
 
 
     SUBROUTINE CV_ASSEMB_CV_DG( state, packed_state, &
+         tracer, velocity, density, &
     CV_RHS, &
     NCOLACV, ACV, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
     SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
@@ -390,6 +394,8 @@ contains
         implicit none
         type( state_type ), dimension( : ), intent( inout ) :: state
         type( state_type ), intent( inout ) :: packed_state
+        type(tensor_field), intent(inout) :: tracer
+        type(tensor_field), intent(in) :: velocity, density
 
         INTEGER, intent( in ) :: NCOLACV, NCOLCT, CV_NONODS, U_NONODS, X_NONODS, MAT_NONODS, TOTELE, &
         CV_ELE_TYPE, NPHASE, CV_NLOC, U_NLOC, X_NLOC,  MAT_NLOC, &
@@ -480,6 +486,7 @@ contains
             ALLOCATE( THERM_U_DIFFUSION(NDIM,NDIM,NPHASE,MAT_NONODS*IGOT_THERM_VIS ) )
 
             CALL CV_ASSEMB( state, packed_state, &
+                 tracer, velocity, density, &
             CV_RHS1, &
             NCOLACV, ACV, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
             SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
@@ -493,9 +500,7 @@ contains
             DEN, DENOLD, &
             MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
             T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, SECOND_THETA, T_BETA, &
-            SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
-            SUF_T_BC_ROB1, SUF_T_BC_ROB2, &
-            WIC_T_BC, WIC_D_BC, WIC_U_BC, &
+            SUF_SIG_DIAGTEN_BC, &
             DERIV, P, &
             T_SOURCE, T_ABSORB, VOLFRA_PORE, &
             NDIM, GETCV_DISC, GETCT, &
@@ -505,7 +510,7 @@ contains
             T_FEMT, DEN_FEMT, &
             IGOT_T2, T2, T2OLD, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
             THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, THETA_GDIFF, &
-            SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
+            IN_ELE_UPWIND, DG_ELE_UPWIND, &
             NOIT_DIM, &
             MEAN_PORE_CV, &
             FINACv, COLACV, NCOLACV, ACV, THERMAL, &
@@ -972,6 +977,9 @@ contains
         !Working pointers
         real, dimension(:), pointer :: p
         real, dimension(:,:), pointer :: satura,saturaold
+        type(tensor_field), pointer :: tracer, velocity, density
+
+        
 
       call get_var_from_packed_state(packed_state,FEPressure = P,&
       PhaseVolumeFraction = satura,OldPhaseVolumeFraction = saturaold )
@@ -1034,10 +1042,15 @@ contains
 !         p => extract_scalar_field( packed_state, "FEPressure" )
 
 
+        tracer=>extract_tensor_field(packed_state,"PackedPhaseVolumeFraction")
+        velocity=>extract_tensor_field(packed_state,"PackedVelocity")
+        density=>extract_tensor_field(packed_state,"PackedDensity")
+
         Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, 1 !nits_flux_lim
 
 
             call CV_ASSEMB( state, packed_state, &
+                 tracer, velocity, density, &
             CV_RHS, &
             NCOLACV, block_acv, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
             SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV,&
@@ -1051,9 +1064,7 @@ contains
             DEN_ALL, DENOLD_ALL, &
             MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
             V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, SECOND_THETA, V_BETA, &
-            SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
-            SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2,  &
-            WIC_VOL_BC, WIC_D_BC, WIC_U_BC, &
+            SUF_SIG_DIAGTEN_BC, &
             DERIV, P, &
             V_SOURCE, V_ABSORB, VOLFRA_PORE, &
             NDIM, GETCV_DISC, GETCT, &
@@ -1063,7 +1074,7 @@ contains
             Sat_FEMT, DEN_FEMT, &
             IGOT_T2, T2, T2OLD, igot_theta_flux, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
             THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, THETA_GDIFF, &
-            SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
+            IN_ELE_UPWIND, DG_ELE_UPWIND, &
             NOIT_DIM, &
             MEAN_PORE_CV, &
             SMALL_FINACV, SMALL_COLACV, size(small_colacv), mass_Mn_pres, THERMAL, &
@@ -1956,6 +1967,9 @@ contains
         !Temporary variables to convert from new to old
         integer, dimension(NPHASE*STOTEL) :: wic_u_bc
         real, dimension(STOTEL * U_SNLOC * NPHASE) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
+
+        type(tensor_field), pointer :: tracer, velocity, density
+
         SUF_U_BC =0.0; SUF_V_BC=0.0; SUF_W_BC=0.0;
 
 
@@ -2127,7 +2141,12 @@ contains
         ALLOCATE( THERM_U_DIFFUSION(NDIM,NDIM,NPHASE,MAT_NONODS*IGOT_THERM_VIS ) )
 
 
+        tracer=>extract_tensor_field(packed_state,"PackedPhaseVolumeFraction")
+        velocity=>extract_tensor_field(packed_state,"PackedVelocity")
+        density=>extract_tensor_field(packed_state,"PackedDensity")
+
         call CV_ASSEMB( state, packed_state, &
+             tracer, velocity, density, &
         CV_RHS, &
         NCOLACV,  ACV, DENSE_BLOCK_MATRIX, FINACV, COLACV, MIDACV, &
         SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV,&
@@ -2141,9 +2160,7 @@ contains
         DEN_OR_ONE, DENOLD_OR_ONE, &
         MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
         V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, SECOND_THETA, V_BETA, &
-        SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_SIG_DIAGTEN_BC, &
-        SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2,  &
-        WIC_VOL_BC, WIC_D_BC, WIC_U_BC, &
+        SUF_SIG_DIAGTEN_BC, &
         DERIV, CV_P, &
         V_SOURCE, V_ABSORB, VOLFRA_PORE, &
         NDIM, GETCV_DISC, GETCT, &
@@ -2153,7 +2170,7 @@ contains
         SAT_FEMT, DEN_FEMT, &
         IGOT_T2, T2, T2OLD, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
         THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, THETA_GDIFF, &
-        SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
+        IN_ELE_UPWIND, DG_ELE_UPWIND, &
         NOIT_DIM, &
         MEAN_PORE_CV, &
         FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL, &
@@ -5993,6 +6010,7 @@ contains
         real, pointer :: VOLUME
 
         REAL, DIMENSION(1,1) :: DUMMY_THETA_GDIFF
+        type(tensor_field) :: tfield
       
 
         ALLOCATE(DUMMY_ELE(TOTELE))
@@ -6702,6 +6720,7 @@ contains
 
 
             CALL INTENERGE_ASSEM_SOLVE( state, packed_state, &
+                 tfield, tfield,tfield,&
             NCOLACV, FINACV, COLACV, MIDACV, &
             SMALL_FINACV, SMALL_COLACV, SMALL_MIDACV, &
             block_to_global_acv, global_dense_block_acv, &
@@ -6715,9 +6734,7 @@ contains
             CURVATURE, VOLUME_FRAC, &
             MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
             CV_DISOPT, CV_DG_VEL_INT_OPT, DT, T_THETA, T_BETA, &
-            RZERO, RZERO, RZERO, RZERO, RZERO, RZERO_DIAGTEN, &
-            RZERO, RZERO, &
-            IDUM, IDUM, IDUM, &
+            RZERO_DIAGTEN, &
             RZERO, &
             RZERO, T_ABSORB, RZERO, &
             NDIM,  &
@@ -6727,7 +6744,7 @@ contains
             RDUM, CV_ONE, &
             IGOT_T2, CURVATURE, VOLUME_FRAC,IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
             DUMMY_THETA_GDIFF, &
-            RZERO, RZERO, RZERO, IDUM, IN_ELE_UPWIND, DG_ELE_UPWIND, &
+            IN_ELE_UPWIND, DG_ELE_UPWIND, &
             NOIT_DIM, &
             ! nits_flux_lim_t
             RZERO, &

@@ -231,6 +231,8 @@
             !Working pointers
       real, dimension(:,:), pointer :: SAT_s, OldSAT_s
 
+      type( tensor_field ), pointer :: tracer_field, velocity_field, density_field, saturation_field
+
       !Initially we set to use Stored data and that we have a new mesh
       StorageIndexes = 0!Initialize them as zero !
 
@@ -720,7 +722,12 @@
                call calculate_diffusivity( state, ncomp, nphase, ndim, cv_nonods, mat_nonods, &
                                            mat_nloc, totele, mat_ndgln, ScalarAdvectionField_Diffusion )
 
+               tracer_field=>extract_tensor_field(packed_state,"PackedTemperature")
+               velocity_field=>extract_tensor_field(packed_state,"PackedVelocity")
+               density_field=>extract_tensor_field(packed_state,"PackedDensity",stat)
+
               call INTENERGE_ASSEM_SOLVE( state, packed_state, &
+                   tracer_field,velocity_field,density_field,&
                     NCOLACV, FINACV, COLACV, MIDACV, &
                     small_FINACV, small_COLACV, small_MIDACV, &
                     block_to_global_acv, global_dense_block_acv, &
@@ -736,9 +743,7 @@
 !!$
                     MAT_NLOC, MAT_NDGLN, MAT_NONODS, ScalarAdvectionField_Diffusion, IGOT_THERM_VIS, THERM_U_DIFFUSION, &
                     t_disopt, t_dg_vel_int_opt, dt, t_theta, t_beta, &
-                    Temperature_BC, Density_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, &
-                    suf_sig_diagten_bc, suf_t_bc_rob1, suf_t_bc_rob2, &
-                    Temperature_BC_Spatial, Density_BC_Spatial, Velocity_U_BC_Spatial, &
+                    suf_sig_diagten_bc,&
                     DRhoDPressure, &
                     Temperature_Source, Temperature_Absorption, Porosity, &
                     ndim, &
@@ -752,7 +757,6 @@
                     0,Temperature, Temperature_Old,igot_theta_flux, scvngi_theta, &
                     t_get_theta_flux, t_use_theta_flux, &
                     THETA_GDIFF, &
-                    Temperature_BC, suf_t_bc_rob1, suf_t_bc_rob2, Temperature_BC_Spatial, &
                     in_ele_upwind, dg_ele_upwind, &
 !!$                    
                     NOIT_DIM, & ! This need to be removed as it is already deprecated
@@ -915,8 +919,16 @@
 !!$ Starting loop over components
             sum_theta_flux = 0. ; sum_one_m_theta_flux = 0. ; sum_theta_flux_j = 0. ; sum_one_m_theta_flux_j = 0. ; ScalarField_Source_Component = 0.
 
+            velocity_field=>extract_tensor_field(packed_state,"PackedVelocity")
+            saturation_field=>extract_tensor_field(packed_state,"PackedPhaseVolumeFraction")
+               
+
+
             Conditional_Components:if( have_component_field ) then
                Loop_Components: do icomp = 1, ncomp
+
+                  tracer_field=>extract_tensor_field(multicomponent_state(icomp),"ComponentMassFraction")
+                  density_field=>extract_tensor_field(multicomponent_state(icomp),"ComponentDensity",stat)
 
 !!$ Computing the absorption term for the multi-components equation
                   call Calculate_ComponentAbsorptionTerm( state, packed_state, &
@@ -963,6 +975,7 @@
                      comp_use_theta_flux = .false. ; comp_get_theta_flux = .true.
 
                      call INTENERGE_ASSEM_SOLVE( state, packed_state, &
+                          tracer_field,velocity_field,density_field,&
                           NCOLACV, FINACV, COLACV, MIDACV, & ! CV sparsity pattern matrix
                           SMALL_FINACV, SMALL_COLACV, small_MIDACV,&
                           block_to_global_acv, global_dense_block_acv, &
@@ -979,12 +992,9 @@
 !!$
                           MAT_NLOC, MAT_NDGLN, MAT_NONODS, Component_Diffusion, 0, THERM_U_DIFFUSION, &
                           v_disopt, v_dg_vel_int_opt, dt, v_theta, v_beta, &
-                          Component_BC( 1 + stotel * cv_snloc * nphase * ( icomp - 1 ) : stotel * cv_snloc * nphase * icomp ), &
-                          Density_BC, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, SUF_SIG_DIAGTEN_BC,&
-                          suf_comp_bc_rob1, suf_comp_bc_rob2, &
-                          Component_BC_Spatial, Density_BC_Spatial, Velocity_U_BC_Spatial, &
-                          DRhoDPressure, &
-                          Component_Source, Component_Absorption, Porosity, &
+                         SUF_SIG_DIAGTEN_BC,&
+                         DRhoDPressure, &
+                         Component_Source, Component_Absorption, Porosity, &
 !!$
                           NDIM,  &
                           NCOLM, FINDM, COLM, MIDM, &
@@ -996,7 +1006,6 @@
                           igot_t2, PhaseVolumeFraction, PhaseVolumeFraction_Old, igot_theta_flux, scvngi_theta, &
                           comp_get_theta_flux, comp_use_theta_flux, &
                           theta_gdiff, &
-                          PhaseVolumeFraction_BC, suf_vol_bc_rob1, suf_vol_bc_rob2, PhaseVolumeFraction_BC_Spatial, &
                           in_ele_upwind, dg_ele_upwind, &
 !!$
                           NOIT_DIM, & ! This need to be removed as it is already deprecated
@@ -1005,7 +1014,7 @@
                           mass_ele_transp = dummy_ele, &
                           thermal = .false.,& ! the false means that we don't add an extra source term
                           theta_flux=theta_flux, one_m_theta_flux=one_m_theta_flux, theta_flux_j=theta_flux_j, one_m_theta_flux_j=one_m_theta_flux_j,&
-                          StorageIndexes=StorageIndexes, icomp=icomp )
+                          StorageIndexes=StorageIndexes, icomp=icomp, saturation=saturation_field )
 
                    Component( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods )  &
 !                       =min(  max(Component( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods ),0.0), 0.95) 
