@@ -2528,6 +2528,15 @@ contains
         real, pointer, dimension(:) :: RA, DETWEI
         real, pointer :: VOLUME
 
+! Local variables...
+            INTEGER, PARAMETER :: LES_DISOPT=0
+! LES_DISOPT is LES option e.g. =0 No LES
+!                               =1 Anisotropic element length scale
+!                               =2 Take the average length scale h
+!                               =3 Take the min length scale h
+!                               =4 Take the max length scale h
+            REAL, PARAMETER :: LES_THETA=1.0
+! LES_THETA =1 is backward Euler for the LES viscocity.
 
         !
         ! Variables used to reduce indirect addressing...
@@ -2615,6 +2624,7 @@ contains
         REAL, DIMENSION ( :, :, :, : ), allocatable :: NN_SIGMAGI_ELE, NN_SIGMAGI_STAB_ELE,NN_MASS_ELE,NN_MASSOLD_ELE
         REAL, DIMENSION ( :, :, :, :, : ), allocatable :: STRESS_IJ_ELE, DUX_ELE_ALL, DUOLDX_ELE_ALL
         REAL, DIMENSION ( :, :, : ), allocatable :: VLK_ELE
+        REAL, DIMENSION ( :, :, :, : ), allocatable :: UDIFFUSION_ALL, LES_UDIFFUSION
 
 ! for the option where we divid by voln fraction...
         REAL, DIMENSION ( :, : ), allocatable :: VOL_FRA_GI
@@ -2974,6 +2984,7 @@ contains
 
         GOT_DIFFUS = ( R2NORM( UDIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0.0 )  &
         .OR. BETWEEN_ELE_STAB
+        IF(LES_DISOPT.NE.0) GOT_DIFFUS=.TRUE.
 
         GOT_UDEN = .FALSE.
         DO IPHASE = 1, NPHASE
@@ -3070,6 +3081,23 @@ contains
             state, "CTY", StorageIndexes(23))
         ENDIF
 
+
+! LES VISCOCITY CALC.
+        IF(GOT_DIFFUS ) THEN
+           ALLOCATE(UDIFFUSION_ALL(NDIM,NDIM,NPHASE,MAT_NONODS))
+           IF(LES_DISOPT.NE.0) THEN
+              ALLOCATE(LES_UDIFFUSION(NDIM,NDIM,NPHASE,MAT_NONODS))
+              CALL VISCOCITY_TENSOR_LES_CALC(LES_UDIFFUSION, LES_THETA*DUX_ELE_ALL + (1.-LES_THETA)*DUOLDX_ELE_ALL, &
+                                             NDIM,NPHASE, U_NLOC,X_NLOC,TOTELE, X_NONODS, &
+                                             X_ALL, X_NDGLN,  MAT_NONODS, MAT_NLOC, MAT_NDGLN, LES_DISOPT)
+              UDIFFUSION_ALL=UDIFFUSION + LES_UDIFFUSION
+           ELSE
+              UDIFFUSION_ALL=UDIFFUSION
+           ENDIF
+        ENDIF
+
+
+
         !This term is obtained from the surface tension and curvature
         !For capillary pressure we are using the entry pressure method instead of
         !calculating the entry pressure from the surface tension and curvature
@@ -3150,7 +3178,11 @@ contains
                 MAT_INOD = MAT_NDGLN( ( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
                 LOC_U_ABSORB( :, :, MAT_ILOC ) = U_ABSORB( :, :, MAT_INOD )
                 LOC_U_ABS_STAB( :, :, MAT_ILOC ) = U_ABS_STAB( :, :, MAT_INOD )
-                LOC_UDIFFUSION( :, :, :, MAT_ILOC ) = UDIFFUSION( :, :, :, MAT_INOD )
+                IF ( GOT_DIFFUS ) THEN
+                   LOC_UDIFFUSION( :, :, :, MAT_ILOC ) = UDIFFUSION_ALL( :, :, :, MAT_INOD )
+                ELSE
+                   LOC_UDIFFUSION( :, :, :, MAT_ILOC ) = 0.0
+                ENDIF
             END DO
 
 
@@ -4055,8 +4087,8 @@ contains
 
                     IF ( GOT_DIFFUS ) THEN
                         DO IPHASE = 1, NPHASE
-                           SLOC_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_INOD )
-                           SLOC2_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_INOD2 )
+                           SLOC_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION_ALL( 1:NDIM, 1:NDIM, IPHASE, CV_INOD )
+                           SLOC2_UDIFFUSION( 1:NDIM, 1:NDIM, IPHASE, CV_SILOC ) = UDIFFUSION_ALL( 1:NDIM, 1:NDIM, IPHASE, CV_INOD2 )
                         END DO
                     END IF
                 END DO
@@ -4978,6 +5010,437 @@ contains
 
     END SUBROUTINE ASSEMB_FORCE_CTY
 
+
+
+
+
+            SUBROUTINE VISCOCITY_TENSOR_LES_CALC(LES_UDIFFUSION, DUX_ELE_ALL, &
+                                                 NDIM,NPHASE, U_NLOC,X_NLOC,TOTELE, X_NONODS, &
+                                                 X_ALL, X_NDGLN,  MAT_NONODS, MAT_NLOC, MAT_NDGLN, LES_DISOPT)
+! This subroutine calculates a tensor of viscocity LES_UDIFFUSION. 
+            IMPLICIT NONE
+            INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, TOTELE, X_NONODS, MAT_NONODS, MAT_NLOC, LES_DISOPT
+            INTEGER, DIMENSION( X_NLOC * TOTELE  ), intent( in ) :: X_NDGLN
+            INTEGER, DIMENSION( MAT_NLOC * TOTELE  ), intent( in ) :: MAT_NDGLN
+            REAL, DIMENSION( NDIM, X_NONODS  ), intent( in ) :: X_ALL
+            REAL, DIMENSION( NDIM, NDIM, NPHASE, MAT_NONODS  ), intent( inout ) :: LES_UDIFFUSION
+            REAL, DIMENSION( NDIM, NDIM, NPHASE, U_NLOC, TOTELE  ), intent( in ) :: DUX_ELE_ALL
+! Local variables...
+!            INTEGER, PARAMETER :: LES_DISOPT=1
+! LES_DISOPT is LES option e.g. =1 Anisotropic element length scale
+!                               =2 Take the average length scale h
+!                               =3 Take the min length scale h
+!                               =4 Take the max length scale h
+            integer :: ele, MAT_iloc, MAT_INOD
+            real, dimension( :, :, :, :, : ), allocatable :: LES_U_UDIFFUSION, LES_MAT_UDIFFUSION
+            integer, dimension( : ), allocatable :: NOD_COUNT
+
+            ALLOCATE(LES_U_UDIFFUSION(NDIM,NDIM,NPHASE,U_NLOC,TOTELE))
+            ALLOCATE(LES_MAT_UDIFFUSION(NDIM,NDIM,NPHASE,MAT_NLOC,TOTELE))
+            ALLOCATE(NOD_COUNT(MAT_NONODS))
+
+            CALL VISCOCITY_TENSOR_LES_CALC_U(LES_U_UDIFFUSION, DUX_ELE_ALL, NDIM,NPHASE, U_NLOC,X_NLOC,TOTELE, X_NONODS, &
+                                                 X_ALL, X_NDGLN, LES_DISOPT)
+
+            IF(MAT_NLOC==U_NLOC) THEN
+               LES_MAT_UDIFFUSION=LES_U_UDIFFUSION
+            ELSE IF( (U_NLOC==3.AND.MAT_NLOC==6) .OR. (U_NLOC==4.AND.MAT_NLOC==10) ) THEN
+! 
+               LES_MAT_UDIFFUSION(:,:,:,1,:) = LES_U_UDIFFUSION(:,:,:,1,:)
+               LES_MAT_UDIFFUSION(:,:,:,3,:) = LES_U_UDIFFUSION(:,:,:,2,:)
+               LES_MAT_UDIFFUSION(:,:,:,6,:) = LES_U_UDIFFUSION(:,:,:,3,:)
+
+               LES_MAT_UDIFFUSION(:,:,:,2,:) = 0.5 * ( LES_U_UDIFFUSION(:,:,:,1,:) + LES_U_UDIFFUSION(:,:,:,2,:) )
+               LES_MAT_UDIFFUSION(:,:,:,4,:) = 0.5 * ( LES_U_UDIFFUSION(:,:,:,1,:) + LES_U_UDIFFUSION(:,:,:,3,:) )
+               LES_MAT_UDIFFUSION(:,:,:,5,:) = 0.5 * ( LES_U_UDIFFUSION(:,:,:,2,:) + LES_U_UDIFFUSION(:,:,:,3,:) )
+
+               if( MAT_NLOC == 10 ) then
+                  LES_MAT_UDIFFUSION(:,:,:,7,:) = 0.5 * ( LES_U_UDIFFUSION(:,:,:,1,:) + LES_U_UDIFFUSION(:,:,:,10,:) )
+                  LES_MAT_UDIFFUSION(:,:,:,8,:) = 0.5 * ( LES_U_UDIFFUSION(:,:,:,3,:) + LES_U_UDIFFUSION(:,:,:,10,:) )
+                  LES_MAT_UDIFFUSION(:,:,:,9,:) = 0.5 * ( LES_U_UDIFFUSION(:,:,:,6,:) + LES_U_UDIFFUSION(:,:,:,10,:) )
+
+                  LES_MAT_UDIFFUSION(:,:,:,10,:) = LES_U_UDIFFUSION(:,:,:,4,:)
+               end if
+
+            ELSE IF( (U_NLOC==6.AND.MAT_NLOC==3) .OR. (U_NLOC==10.AND.MAT_NLOC==4) ) THEN
+               LES_MAT_UDIFFUSION(:,:,:,1,:) = LES_U_UDIFFUSION(:,:,:,1,:)
+               LES_MAT_UDIFFUSION(:,:,:,2,:) = LES_U_UDIFFUSION(:,:,:,3,:)
+               LES_MAT_UDIFFUSION(:,:,:,3,:) = LES_U_UDIFFUSION(:,:,:,6,:)
+               if( MAT_nloc == 10 ) then
+                  LES_MAT_UDIFFUSION(:,:,:,4,:) = LES_U_UDIFFUSION(:,:,:,10,:)
+               end if
+            ELSE
+              PRINT *,'not ready to onvert between these elements'
+              STOP 2211
+            ENDIF
+
+
+! Now map to nodal variables from element variables...
+         NOD_COUNT=0
+         LES_UDIFFUSION=0.0
+         do ele = 1, totele
+            do MAT_iloc = 1, MAT_nloc
+               MAT_Inod = MAT_ndgln( ( ele - 1 ) * MAT_nloc + MAT_iloc )
+               LES_UDIFFUSION(:,:,:,MAT_Inod) = LES_UDIFFUSION(:,:,:,MAT_Inod) + LES_MAT_UDIFFUSION(:,:,:,MAT_ILOC,ELE)
+               NOD_COUNT(MAT_INOD) = NOD_COUNT(MAT_INOD) + 1
+            END DO
+         END DO
+
+         DO MAT_INOD=1,MAT_NONODS
+               LES_UDIFFUSION(:,:,:,MAT_INOD) = LES_UDIFFUSION(:,:,:,MAT_INOD)/REAL( NOD_COUNT(MAT_INOD) )
+         END DO
+
+         RETURN
+         END SUBROUTINE VISCOCITY_TENSOR_LES_CALC
+
+
+
+
+            SUBROUTINE VISCOCITY_TENSOR_LES_CALC_U(LES_U_UDIFFUSION, DUX_ELE_ALL, NDIM,NPHASE, U_NLOC,X_NLOC,TOTELE, X_NONODS, &
+                                                 X_ALL, X_NDGLN, LES_DISOPT)
+! This subroutine calculates a tensor of viscocity LES_UDIFFUSION. 
+            IMPLICIT NONE
+            INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, TOTELE, X_NONODS, LES_DISOPT
+! LES_DISOPT is LES option e.g. =1 Anisotropic element length scale
+            INTEGER, DIMENSION( X_NLOC * TOTELE  ), intent( in ) :: X_NDGLN
+            REAL, DIMENSION( NDIM, X_NONODS  ), intent( in ) :: X_ALL
+            REAL, DIMENSION( NDIM, NDIM, NPHASE, U_NLOC, TOTELE  ), intent( inout ) :: LES_U_UDIFFUSION
+            REAL, DIMENSION( NDIM, NDIM, NPHASE, U_NLOC, TOTELE  ), intent( in ) :: DUX_ELE_ALL
+! Local variables...
+            LOGICAL, PARAMETER :: ONE_OVER_H2=.TRUE.
+            !     SET to metric which has 1/h^2 in it
+            REAL, PARAMETER :: CS=0.1
+            REAL :: LOC_X_ALL(NDIM, X_NLOC), TENSXX_ALL(NDIM, NDIM), RSUM, FOURCS, CS2, VIS 
+            INTEGER :: ELE, X_ILOC, U_ILOC, IPHASE, X_NODI, IDIM, JDIM, KDIM
+
+            CS2=CS**2
+            FOURCS=4.*CS2
+
+            DO ELE=1,TOTELE
+
+               DO X_ILOC=1,X_NLOC
+                  X_NODI = X_NDGLN((ELE-1)*X_NLOC+X_ILOC) 
+                  LOC_X_ALL(:,X_ILOC) = X_ALL(:,X_NODI)
+               END DO
+
+               CALL ONEELETENS_ALL( LOC_X_ALL, LES_DISOPT, ONE_OVER_H2, TENSXX_ALL, X_NLOC, NDIM )
+
+               DO U_ILOC=1,U_NLOC
+                  DO IPHASE=1,NPHASE 
+
+                     RSUM=0.0
+                     DO IDIM=1,NDIM
+                        DO JDIM=1,NDIM
+                           RSUM=RSUM + (0.5*( DUX_ELE_ALL(IDIM,JDIM,IPHASE,U_ILOC,ELE) + DUX_ELE_ALL(JDIM,IDIM,IPHASE,U_ILOC,ELE) ))**2
+                        END DO
+                     END DO
+                     RSUM=SQRT(RSUM) 
+                     VIS=RSUM 
+
+! THEN FIND TURBULENT 'VISCOSITIES'
+
+               ! Put a bit in here which multiplies E by FOURCS*VIS 
+                     LES_U_UDIFFUSION(:,:,IPHASE,U_ILOC,ELE)= FOURCS*VIS*TENSXX_ALL(:,:)
+
+                  END DO ! DO IPHASE=1,NPHASE
+               END DO ! DO U_ILOC=1,U_NLOC
+
+            END DO
+            RETURN
+            END SUBROUTINE VISCOCITY_TENSOR_LES_CALC_U
+
+
+
+
+
+       SUBROUTINE ONEELETENS_ALL( LOC_X_ALL, LES_DISOPT, ONE_OVER_H2, TENSXX_ALL, X_NLOC, NDIM )
+         !     This sub calculates the ELEMENT-WISE TENSOR TENS
+         !     REPRESENTS THE SIZE AND SHAPE OF THE SURROUNDING ELEMENTS.
+         !     LES_DISOPT=LES option.
+         IMPLICIT NONE
+         INTEGER, intent( in ) ::  X_NLOC, NDIM
+         LOGICAL, intent( in ) ::  ONE_OVER_H2
+         INTEGER, intent( in ) ::  LES_DISOPT
+
+         REAL, intent( inout ) ::  TENSXX_ALL(NDIM,NDIM) 
+         REAL, intent( in ) ::  LOC_X_ALL(NDIM,X_NLOC)
+
+         !     HX,HY-characteristic length scales in x,y directions.
+         !     Local variables...
+         ! IF ONE_OVER_H2=.TRUE. then SET to metric which has 1/h^2 in it
+         REAL RN
+         REAL AA(NDIM,NDIM),V(NDIM,NDIM),D(NDIM),A(NDIM,NDIM)
+
+         REAL UDL_ALL(NDIM, X_NLOC*X_NLOC)
+         REAL GAMMA(X_NLOC*X_NLOC)
+
+         INTEGER ELE,ILOC,L,L1,L2,IGLX1,IGLX2,IGLX,ID,NID,IDIM,JDIM,KDIM
+
+         REAL HOVERQ
+         REAL RWIND, D_SCALAR
+         REAL RFACT,RT1,RT2,RT3,D1,D2,D3,VOLUME
+
+         RWIND =1./REAL(6)
+         NID=X_NLOC*X_NLOC
+
+         TENSXX_ALL=0.0
+
+         !     This subroutine forms a contabution to the Right Hand Side
+         !     of Poissons pressure equation, as well as  F1 & F2.
+
+
+            !     C The first is the old filter term, the second the new one MDP getting
+            !     c different results and stabiltiy for tidal applications ????
+            RWIND =1./REAL(6)
+            NID=X_NLOC*X_NLOC
+            !     **********calculate normalised velocitys across element...  
+            ID=0
+            do L1=1,X_NLOC
+               do L2=1,X_NLOC
+                  ID=ID+1
+                  if(l1.eq.l2) then
+                     UDL_ALL(:,ID)=0.0
+                     GAMMA(ID)=0.0
+                  else
+                     UDL_ALL(:,ID)=LOC_X_ALL(:,L1)-LOC_X_ALL(:,L2)
+
+                     !     Normalise 
+                     RN=SQRT( SUM(UDL_ALL(:,ID)**2) )
+                     UDL_ALL(:,ID)=UDL_ALL(:,ID)/RN
+                     !     HX,HY are the characteristic length scales in x,y directions. 
+                     HOVERQ=RN
+                     GAMMA(ID)=RWIND*HOVERQ 
+                  endif
+               END DO
+            END DO
+            !     **********calculate normalised velocitys across element... 
+
+
+         do  ID=1,NID
+
+               RFACT=GAMMA(ID)/REAL(X_NLOC) 
+
+               DO IDIM=1,NDIM
+                  DO JDIM=1,NDIM
+                     TENSXX_ALL(IDIM,JDIM)=TENSXX_ALL(IDIM,JDIM) + RFACT*UDL_ALL(IDIM,ID)*UDL_ALL(JDIM,ID)
+                  END DO
+               END DO
+
+               !     USE THE COMPONENT OF DIFLIN THE X,Y & Z-DIRECTIONS 
+               !     RESPECTIVELY FOR C1T,C2T,C3T.
+         end do
+
+         !     nb we want 1/L^2 - at the moment we have L on the diagonal.
+         !     Make sure the eigen-values are positive...
+         AA=TENSXX_ALL
+
+         CALL JACDIA(AA,V,D,NDIM,A,.FALSE.)
+
+         IF(LES_DISOPT==1) THEN ! Take the anisotropic length scales
+            D(:)=D(:)
+         ELSE IF(LES_DISOPT==2) THEN ! Take the average length scale h
+            D_SCALAR=SUM(D(:))/REAL(NDIM)
+            D(:)=D_SCALAR
+         ELSE IF(LES_DISOPT==3) THEN ! Take the min length scale h
+            D_SCALAR=MINVAL(D(:))
+            D(:)=D_SCALAR
+         ELSE IF(LES_DISOPT==4) THEN ! Take the max length scale h
+            D_SCALAR=MAXVAL(D(:))
+            D(:)=D_SCALAR
+         ELSE
+            !            ERROR("NOT A VALID OPTION FOR LES ASSEMBLED EQNS")
+            STOP 9331
+         ENDIF
+
+         IF(ONE_OVER_H2) THEN
+            !     SET to metric which has 1/h^2 in it...
+            D(:)=1./MAX(1.E-16,D(:)**2)
+         ELSE 
+            !     set to inverse of metric which is a multiple of the tensor
+            D(:)=MAX(1.E-16,D(:)**2)
+         ENDIF
+
+         TENSXX_ALL=0.0
+         DO IDIM=1,NDIM
+            DO JDIM=1,NDIM
+
+               DO KDIM=1,NDIM
+! TENSOR=V^T D V
+                     TENSXX_ALL(IDIM,JDIM)=TENSXX_ALL(IDIM,JDIM) + V(KDIM,IDIM) * D(KDIM) * V(KDIM,JDIM)
+               END DO
+
+            END DO
+         END DO
+
+       RETURN
+       END SUBROUTINE ONEELETENS_ALL
+
+
+!
+!
+          SUBROUTINE JACDIA(AA,V,D,N, &
+! Working arrays...
+     &       A,PRISCR) 
+! This sub performs Jacobi rotations of a symmetric matrix in order to 
+! find the eigen-vectors V and the eigen values A so 
+! that AA=V^T D V & D is diagonal. 
+! It uses the algorithm of Matrix Computations 2nd edition, p196. 
+          IMPLICIT NONE
+          REAL TOLER,CONVEG
+          PARAMETER(TOLER=1.E-14,CONVEG=1.E-7) 
+          INTEGER N
+          REAL AA(N,N),V(N,N),D(N), A(N,N)
+          LOGICAL PRISCR
+! Local variables...
+          REAL R,ABSA,MAXA,COSAL2,COSALF,SINAL2,SINALF,MAXEIG
+          INTEGER ITS,NITS,Q,P,QQ,PP 
+! 
+          NITS=9*(N*N-N)/2
+!
+!          CALL RCLEAR(V,N*N)
+!          CALL TOCOPY(A,AA,N*N) 
+      do P=1,N
+      do Q=1,N
+            V(P,Q)=0.
+            A(P,Q)=AA(P,Q)
+!             ewrite(2,*) 'P,Q,AA:',P,Q,AA(P,Q) 
+          END DO
+          END DO
+!
+!
+!
+!     Check first whether matrix is diagonal
+            IF(Q.EQ.0) THEN
+
+      do PP=1,N
+                  D(PP) = A(PP,PP)
+      do QQ=1,N
+                     IF(PP.EQ.QQ) THEN
+                        V(PP,QQ) = 1.0
+                     ELSE
+                        V(PP,QQ) = 0.0
+                     END IF
+                  END DO
+               END DO
+               RETURN
+            END IF
+!
+!
+!            
+          MAXEIG=0.
+      do P=1,N
+            V(P,P)=1.0
+            MAXEIG=MAX(MAXEIG,ABS(A(P,P)))
+          END DO
+          IF(MAXEIG.LT.TOLER) THEN
+            D(1:N) = 0.0
+            GOTO 2000
+          ENDIF
+!           ewrite(2,*) 'maxeig=',maxeig
+!
+      do  ITS=1,NITS! Was loop 10
+! Find maximum on upper diagonal of matrix. 
+! QQ is the coln; PP is the row. 
+            Q=0
+            P=0
+            MAXA=0.
+      do PP=1,N-1
+      do QQ=PP+1,N
+                  ABSA=ABS(A(PP,QQ)) 
+                  IF(ABSA.GT.MAXA) THEN
+                     MAXA=ABSA
+                     Q=QQ
+                     P=PP
+                  ENDIF
+               END DO
+            END DO
+
+!            IF(PRISCR) ewrite(2,*) 'MAXA,MAXEIG,its=',MAXA,MAXEIG,its
+            IF(MAXA/MAXEIG.LT.CONVEG) GOTO 2000
+! Rotate with (Q,P) postions.
+            R=MAX(TOLER,SQRT( (A(P,P)-A(Q,Q))**2 + 4.*A(P,Q)**2 ) ) 
+            IF(A(P,P).GT.A(Q,Q)) THEN
+              COSAL2=0.5+0.5*(A(P,P)-A(Q,Q))/R
+              COSALF=SQRT(COSAL2)
+              IF(ABS(COSALF).LT.TOLER) COSALF=TOLER
+              SINALF=A(Q,P)/(R*COSALF)
+            ELSE
+              SINAL2=0.5-0.5*(A(P,P)-A(Q,Q))/R
+              SINALF=SQRT(SINAL2)
+              IF(ABS(SINALF).LT.TOLER) SINALF=TOLER
+              COSALF=A(Q,P)/(R*SINALF)
+            ENDIF
+! Pre and Post multiply of A=R^T A R  by rotation matrix. 
+            CALL JACPRE(-SINALF,COSALF,P,Q,A,N)
+            CALL JACPOS( SINALF,COSALF,P,Q,A,N)
+! Accumulate rotations V=R^T V
+            CALL JACPRE(-SINALF,COSALF,P,Q,V,N)
+      end do ! Was loop 10
+!
+2000      CONTINUE 
+! Put e-values in a vector...
+      do Q=1,N
+            D(Q)=A(Q,Q)
+          END DO
+!
+          RETURN
+          END
+!
+!
+!
+!
+          SUBROUTINE JACPRE(SINALF,COSALF,P,Q,A,N)
+! This sub performs matrix-matrix multiplication A=R*A. 
+! PRE-MULTIPLY matrix A by transpose of Rotation matrix 
+! is realised by passing -SINALF down into SINALF. 
+          IMPLICIT NONE
+          INTEGER N
+          REAL SINALF,COSALF,A(N,N)
+          LOGICAL TRANSP
+          INTEGER P,Q
+! Local variables...
+          INTEGER I
+          REAL P1I
+!
+! Premultiply by rotation matrix...
+      do I=1,N
+! Row P 1st...
+              P1I   =COSALF*A(P,I)-SINALF*A(Q,I)
+! Row 2nd put strait in A...
+              A(Q,I)=SINALF*A(P,I)+COSALF*A(Q,I)
+              A(P,I)=P1I 
+            END DO
+          RETURN
+          END    
+!
+!
+!
+!
+          SUBROUTINE JACPOS(SINALF,COSALF,P,Q,A,N)
+! This sub performs matrix-matrix multiplication A=A*R. 
+! POST-MULTIPLY matrix A by transpose of Rotation matrix 
+! is realised by passing -SINALF down into SINALF. 
+          IMPLICIT NONE
+          INTEGER N
+          REAL SINALF,COSALF,A(N,N)
+          INTEGER P,Q
+! Local variables...
+          INTEGER I
+          REAL IP1
+!
+! Post multiply by rotation matrix...
+      do I=1,N
+! Column P 1st...
+              IP1   = COSALF*A(I,P)+SINALF*A(I,Q)
+! column 2nd put strait in A...
+              A(I,Q)=-SINALF*A(I,P)+COSALF*A(I,Q)
+              A(I,P)=IP1
+            END DO
+!
+          RETURN
+          END    
+!
+! 
 
 
 
