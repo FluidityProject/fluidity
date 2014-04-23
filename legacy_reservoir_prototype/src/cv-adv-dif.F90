@@ -439,10 +439,10 @@ contains
       type(tensor_field) :: velocity_BCs,tracer_BCs, density_BCs, saturation_BCs
       type(tensor_field) :: tracer_BCs_robin2, saturation_BCs_robin2
 
-      INTEGER, DIMENSION(:, :, : ), pointer :: WIC_T_BC_ALL
-      INTEGER, DIMENSION( :, :,: ), pointer ::&
+      INTEGER, DIMENSION( 1 , nphase , surface_element_count(tracer) ) :: WIC_T_BC_ALL
+      INTEGER, DIMENSION( 1 , nphase , surface_element_count(tracer) ) ::&
            WIC_D_BC_ALL, WIC_T2_BC_ALL
-      INTEGER, DIMENSION( :, :, :), pointer :: WIC_U_BC_ALL
+      INTEGER, DIMENSION( ndim , nphase , surface_element_count(tracer) ) :: WIC_U_BC_ALL
       REAL, DIMENSION( :,:,: ), pointer :: SUF_T_BC_ALL,&
            SUF_T_BC_ROB2_ALL
       REAL, DIMENSION(:,:,: ), pointer :: SUF_D_BC_ALL,&
