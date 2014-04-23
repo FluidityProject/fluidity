@@ -44,7 +44,11 @@ module cv_advection
 
   INTEGER, PARAMETER :: WIC_T_BC_DIRICHLET = 1, WIC_T_BC_ROBIN = 2, &
        WIC_T_BC_DIRI_ADV_AND_ROBIN = 3, WIC_D_BC_DIRICHLET = 1, &
-       WIC_U_BC_DIRICHLET = 1
+       WIC_U_BC_DIRICHLET = 1, &
+       WIC_U_BC_ROBIN = 2, &
+       WIC_U_BC_DIRI_ADV_AND_ROBIN = 3, &
+       WIC_U_BC_DIRICHLET_INOUT = 5, &
+       WIC_P_BC_DIRICHLET = 1
 
 contains
 
@@ -4072,7 +4076,7 @@ contains
     INTEGER, DIMENSION( : ), intent( in ) ::  X_NDGLN
     INTEGER, DIMENSION( : ), intent( in ) ::  XCV_NDGLN
     INTEGER, DIMENSION( :, :, : ), intent( in ) ::  WIC_T_BC
-    REAL, DIMENSION( :, :, :, : ), intent( in ) ::  SUF_T_BC
+    REAL, DIMENSION( :, :, : ), intent( in ) ::  SUF_T_BC
     INTEGER, DIMENSION( :, : ), intent( in ) ::  CV_SLOCLIST
     INTEGER, DIMENSION( :, : ), intent( in ) ::  X_SLOCLIST
     INTEGER, DIMENSION( :, : ), intent( in ) ::  FACE_ELE
@@ -4251,7 +4255,7 @@ contains
                          IF ( SELE2 /= 0 ) THEN
                             IF ( WIC_T_BC( ICOMP, IPHASE, SELE2 ) == WIC_T_BC_DIRICHLET ) THEN
 
-                               RTBC = SUF_T_BC( ICOMP, IPHASE, CV_SJLOC2, SELE2 )
+                               RTBC = SUF_T_BC( ICOMP, IPHASE, CV_SJLOC2 + CV_SNLOC * ( SELE2 - 1 ) )
 
                                VTX_ELE( :, ICOMP, IPHASE, CV_ILOC, ELE ) = VTX_ELE( :, ICOMP, IPHASE, CV_ILOC, ELE ) &
                                     + VLM_NORX(:) * 0.5 * RTBC
