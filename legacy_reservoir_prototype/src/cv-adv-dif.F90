@@ -70,7 +70,7 @@ contains
          NCOLM, FINDM, COLM, MIDM, &
          XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
          OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
-         T_FEMT, DEN_FEMT, &
+         DEN_FEMT, &
          IGOT_T2, T2, T2OLD, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
          THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, THETA_GDIFF, &
          SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
@@ -79,7 +79,7 @@ contains
          FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL, &
          MASS_ELE_TRANSP, &
          StorageIndexes, Field_selector, icomp,&
-         option_path_spatial_discretisation,T_input,TOLD_input)
+         option_path_spatial_discretisation,T_input,TOLD_input, FEMT_input)
 
       !  =====================================================================
       !     In this subroutine the advection terms in the advection-diffusion
@@ -236,7 +236,7 @@ contains
       INTEGER, DIMENSION( : ), intent( in ) :: FINDCMC
       INTEGER, DIMENSION( : ), intent( in ) :: COLCMC
       REAL, DIMENSION( : ), intent( inout ) :: MASS_MN_PRES
-      REAL, DIMENSION( : ), optional, intent( in ) :: T_input, TOLD_input !<========TEMPORARY UNTIL ALL THE VARIABLES ARE INSIDE PACKED_STATE!!!
+      REAL, DIMENSION( : ), optional, intent( in ) :: T_input, TOLD_input, FEMT_input !<========TEMPORARY UNTIL ALL THE VARIABLES ARE INSIDE PACKED_STATE!!!
       REAL, DIMENSION( :, : ), intent( in ) :: DEN_ALL, DENOLD_ALL
       REAL, DIMENSION( : ), intent( in ) :: T2, T2OLD
       REAL, DIMENSION( :, : ), intent( inout ) :: THETA_GDIFF ! (NPHASE,CV_NONODS)
@@ -262,7 +262,7 @@ contains
       INTEGER, DIMENSION( : ), intent( in ) :: MIDM
       INTEGER, DIMENSION( : ), intent( in ) :: FINELE
       INTEGER, DIMENSION( : ), intent( in ) :: COLELE
-      REAL, DIMENSION( : ), intent( inout ) :: T_FEMT, DEN_FEMT
+      REAL, DIMENSION( : ), intent( inout ) :: DEN_FEMT!, T_FEMT
       REAL, DIMENSION( : ), intent( in ) :: OPT_VEL_UPWIND_COEFS
       INTEGER, INTENT( IN ) :: NOIT_DIM
       REAL, DIMENSION( : ), intent( inout ) :: MEAN_PORE_CV
@@ -419,7 +419,7 @@ contains
 
       REAL, DIMENSION( :, :, : ), ALLOCATABLE :: ABSORBT_ALL!U_ALL, NU_ALL, NUOLD_ALL,
       REAL, DIMENSION( :, : ), ALLOCATABLE :: &!X_ALL, T_ALL, TOLD_ALL,
-            T2_ALL, T2OLD_ALL, FEMT_ALL, FEMTOLD_ALL, &
+            T2_ALL, T2OLD_ALL, &!FEMT_ALL, FEMTOLD_ALL, &
            FEMDEN_ALL, FEMDENOLD_ALL, FEMT2_ALL, FEMT2OLD_ALL, SOURCT_ALL
       LOGICAL, DIMENSION( : ), ALLOCATABLE :: DOWNWIND_EXTRAP_INDIVIDUAL
       LOGICAL, DIMENSION( :, : ), ALLOCATABLE :: IGOT_T_PACK, IGOT_T_CONST
@@ -438,9 +438,9 @@ contains
 !      type( vector_field ), pointer:: x
       !Working pointers
       real, dimension(:), allocatable :: T, TOLD !<= TEMPORARY, TO REMOVE WHEN CONVERSION IS FINISHED
-      real, dimension(:,:), allocatable, target :: T_ALL_TARGET, TOLD_ALL_TARGET
-      real, dimension(:,:), pointer :: T_ALL, TOLD_ALL, X_ALL
-      real, dimension(:, :, :), pointer :: comp, comp_old, U_ALL, NU_ALL, NUOLD_ALL
+      real, dimension(:,:), allocatable, target :: T_ALL_TARGET, TOLD_ALL_TARGET, FEMT_ALL_TARGET, FEMTOLD_ALL_TARGET
+      real, dimension(:,:), pointer :: T_ALL, TOLD_ALL, X_ALL, FEMT_ALL, FEMTOLD_ALL
+      real, dimension(:, :, :), pointer :: comp, comp_old, fecomp, fecomp_old, U_ALL, NU_ALL, NUOLD_ALL
       !#################SET WORKING VARIABLES#################
       call get_var_from_packed_state(packed_state,PressureCoordinate = X_ALL,&
       OldNonlinearVelocity = NUOLD_ALL, NonlinearVelocity = NU_ALL)
@@ -450,33 +450,42 @@ contains
           select case (Field_selector)
               case (1)!Temperature
                   call get_var_from_packed_state(packed_state,Temperature = T_ALL,&
-                  OldTemperature = TOLD_ALL)
+                  OldTemperature = TOLD_ALL, FETemperature =FEMT_ALL,OldFETemperature = FEMTOLD_ALL)
               case (2)!Component mass fraction
                   if (present(icomp)) then
                       call get_var_from_packed_state(packed_state,ComponentMassFraction = comp, &
-                      OldComponentMassFraction = comp_old )
+                      OldComponentMassFraction = comp_old, FEComponentMassFraction = fecomp, &
+                     OldFEComponentMassFraction = fecomp_old )
                       T_ALL => comp(icomp,:,:)
                       TOLD_ALL => comp_old(icomp,:,:)
+                      FEMT_ALL => fecomp(icomp,:,:)
+                      FEMTOLD_ALL => fecomp_old(icomp,:,:)
                   else
                       FLAbort('Component field require to introduce icomp')
                   end if
               case (3)!Saturation
                   call get_var_from_packed_state(packed_state,PhaseVolumeFraction = T_ALL,&
-                  OldPhaseVolumeFraction = TOLD_ALL, Velocity = U_ALL)
+                  OldPhaseVolumeFraction = TOLD_ALL, Velocity = U_ALL,&
+                  FEPhaseVolumeFraction =FEMT_ALL, OldFEPhaseVolumeFraction = FEMTOLD_ALL)
               case default
                   FLAbort('Invalid field_selector value')
           end select
 
       else
-          ALLOCATE( T_ALL_TARGET( NPHASE, CV_NONODS ), TOLD_ALL_TARGET( NPHASE, CV_NONODS ) )
+          ALLOCATE( T_ALL_TARGET( NPHASE, CV_NONODS ), TOLD_ALL_TARGET( NPHASE, CV_NONODS ), FEMT_ALL_TARGET(NPHASE, CV_NONODS) )
           do cv_inod = 1, cv_nonods
               do iphase = 1, nphase
                   T_ALL_TARGET(iphase, cv_inod) = T_input(cv_inod+(iphase-1)*cv_nonods)
                   TOLD_ALL_TARGET(iphase, cv_inod) = TOLD_input(cv_inod+(iphase-1)*cv_nonods)
+                  FEMT_ALL_TARGET(iphase, cv_inod) = FEMT_input(cv_inod+(iphase-1)*cv_nonods)
               end do
           end do
           T_ALL => T_ALL_TARGET
           TOLD_ALL => TOLD_ALL_TARGET
+          FEMT_ALL => FEMT_ALL_TARGET
+          allocate (FEMTOLD_ALL_TARGET(NPHASE, CV_NONODS))
+          FEMTOLD_ALL_TARGET = 0.
+          FEMTOLD_ALL => FEMTOLD_ALL_TARGET
       end if
       allocate (T (NPHASE* CV_NONODS), TOLD(NPHASE* CV_NONODS))!TEMPORARY
 
@@ -676,7 +685,7 @@ contains
 
       ALLOCATE( T2_ALL( NPHASE, CV_NONODS ), T2OLD_ALL( NPHASE, CV_NONODS ) )
 
-      ALLOCATE( FEMT_ALL( NPHASE, CV_NONODS ), FEMTOLD_ALL( NPHASE, CV_NONODS ) )
+!      ALLOCATE( FEMT_ALL( NPHASE, CV_NONODS ), FEMTOLD_ALL( NPHASE, CV_NONODS ) )
       ALLOCATE( FEMDEN_ALL( NPHASE, CV_NONODS ), FEMDENOLD_ALL( NPHASE, CV_NONODS ) )
       ALLOCATE( FEMT2_ALL( NPHASE, CV_NONODS ), FEMT2OLD_ALL( NPHASE, CV_NONODS ) )
 
@@ -1024,12 +1033,12 @@ contains
 
        !###FEM VALUES###
 ! ***********LOOK AT T_FEMT,DEN_FEMT WITH A VIEW TO DELETING EVENTUALLY
-      DO CV_INOD = 1, CV_NONODS
-          DO IPHASE = 1, NPHASE
-              T_FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT_ALL( IPHASE, CV_INOD)
-              DEN_FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMDEN_ALL( IPHASE, CV_INOD)
-          END DO
-      END DO
+!      DO CV_INOD = 1, CV_NONODS
+!          DO IPHASE = 1, NPHASE
+!              T_FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT_ALL( IPHASE, CV_INOD)
+!              DEN_FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMDEN_ALL( IPHASE, CV_INOD)
+!          END DO
+!      END DO
 !      DO CV_INOD = 1, CV_NONODS
 !          DO IPHASE = 1, NPHASE
 !              FEMT( CV_INOD + ( IPHASE - 1 ) * CV_NONODS ) = FEMT_ALL( IPHASE, CV_INOD)
@@ -2400,6 +2409,10 @@ contains
 
 
       deallocate (t, told)!TEMPORARY
+if (present(T_input)) then!<==TEMPORARY
+      deallocate( T_ALL_TARGET, TOLD_ALL_TARGET, FEMT_ALL_TARGET, FEMTOLD_ALL_TARGET)
+end if
+
 
       ewrite(3,*) 'Leaving CV_ASSEMB'
 

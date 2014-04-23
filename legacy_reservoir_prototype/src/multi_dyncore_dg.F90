@@ -262,7 +262,7 @@ contains
             NCOLM, FINDM, COLM, MIDM, &
             XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
             OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
-            T_FEMT, DEN_FEMT, &
+            DEN_FEMT, &
             IGOT_T2, T2, T2OLD,IGOT_THETA_FLUX ,SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
             THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, THETA_GDIFF, &
             SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
@@ -270,7 +270,7 @@ contains
             MEAN_PORE_CV, &
             SMALL_FINACV, SMALL_COLACV, size(small_colacv), mass_Mn_pres, THERMAL, &
             mass_ele_transp,&
-            StorageIndexes, -1, T_input = T, TOLD_input=TOLD )
+            StorageIndexes, -1, T_input = T, TOLD_input=TOLD, FEMT_input =  T_FEMT )
             t=0.
 
             Conditional_Lumping: IF ( LUMP_EQNS ) THEN
@@ -375,7 +375,7 @@ contains
     NCOLM, FINDM, COLM, MIDM, &
     XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
     OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
-    T_FEMT, DEN_FEMT, &
+    DEN_FEMT, &
     IGOT_T2, T2, T2OLD, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
     THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, THETA_GDIFF, &
     SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
@@ -383,7 +383,7 @@ contains
     MEAN_PORE_CV, &
     THERMAL, &
     mass_ele_transp, &
-    option_path, StorageIndexes )
+    option_path, StorageIndexes, Field_selector )
 
         ! Solve for internal energy using a control volume method.
 
@@ -395,7 +395,7 @@ contains
         CV_ELE_TYPE, NPHASE, CV_NLOC, U_NLOC, X_NLOC,  MAT_NLOC, &
         CV_SNLOC, U_SNLOC, STOTEL, XU_NLOC, NDIM, NCOLM, NCOLELE, &
         NOPT_VEL_UPWIND_COEFS, &
-        IGOT_T2, IGOT_THETA_FLUX, SCVNGI_THETA, IN_ELE_UPWIND, DG_ELE_UPWIND, IDIVID_BY_VOL_FRAC
+        IGOT_T2, IGOT_THETA_FLUX, SCVNGI_THETA, IN_ELE_UPWIND, DG_ELE_UPWIND, IDIVID_BY_VOL_FRAC, Field_selector
 
         LOGICAL, intent( in ) :: GET_THETA_FLUX, USE_THETA_FLUX, THERMAL
         INTEGER, DIMENSION( : ), intent( in ) :: CV_NDGLN
@@ -421,7 +421,7 @@ contains
         REAL, DIMENSION( :, :, : ), intent( inout ) :: CT
         REAL, DIMENSION( : ), intent( in ) :: X, Y, Z
         REAL, DIMENSION( : ), intent( in ) :: NU, NV, NW, NUOLD, NVOLD, NWOLD, UG, VG, WG
-        REAL, DIMENSION( : ), intent( inout ) :: T, T_FEMT, DEN_FEMT
+        REAL, DIMENSION( : ), intent( inout ) :: T, DEN_FEMT
         REAL, DIMENSION( :), intent( in ) :: TOLD
         REAL, DIMENSION( :, : ), intent( in ) :: DEN, DENOLD
         REAL, DIMENSION( :, : ), intent( in ) :: FEM_VOL_FRAC
@@ -502,7 +502,7 @@ contains
             NCOLM, FINDM, COLM, MIDM, &
             XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
             OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
-            T_FEMT, DEN_FEMT, &
+            DEN_FEMT, &
             IGOT_T2, T2, T2OLD, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
             THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, THETA_GDIFF, &
             SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
@@ -510,7 +510,7 @@ contains
             MEAN_PORE_CV, &
             FINACv, COLACV, NCOLACV, ACV, THERMAL, &
             mass_ele_transp , &
-            StorageIndexes, -1,  T_input = T, TOLD_input=TOLD )
+            StorageIndexes, Field_selector)!-1,  T_input = T, TOLD_input=TOLD )
 
         ELSE ! this is for DG...
 
@@ -891,7 +891,7 @@ contains
     NCOLM, FINDM, COLM, MIDM, &
     XU_NLOC, XU_NDGLN ,FINELE, COLELE, NCOLELE, &
     OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
-    Sat_FEMT, DEN_FEMT, &
+    DEN_FEMT, &
     igot_theta_flux, SCVNGI_THETA, USE_THETA_FLUX, &
     IN_ELE_UPWIND, DG_ELE_UPWIND, &
     NOIT_DIM, &
@@ -927,7 +927,7 @@ contains
         integer, dimension(:,:), intent(in) :: global_dense_block_acv
         INTEGER, DIMENSION( : ), intent( in ) :: FINDCT
         INTEGER, DIMENSION( : ), intent( in ) :: COLCT
-        REAL, DIMENSION( : ), intent( inout ) :: Sat_FEMT, DEN_FEMT
+        REAL, DIMENSION( : ), intent( inout ) :: DEN_FEMT
         REAL, DIMENSION( :, :), intent( inout ), optional :: THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J
         INTEGER, intent( in ) :: V_DISOPT, V_DG_VEL_INT_OPT
         REAL, intent( in ) :: DT, V_THETA
@@ -968,6 +968,7 @@ contains
         LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE.
         real, dimension(:), allocatable :: X
         type( tensor_field ), pointer :: den_all2, denold_all2
+        real, dimension(:, :), allocatable :: relperm, relpermOld
         !type( scalar_field ), pointer :: p
         !Working pointers
         real, dimension(:), pointer :: p
@@ -1032,10 +1033,15 @@ contains
             ALLOCATE( THERM_U_DIFFUSION(NDIM,NDIM,NPHASE,MAT_NONODS*IGOT_THERM_VIS ) )
 
 !         p => extract_scalar_field( packed_state, "FEPressure" )
+         allocate(X(size(CV_RHS,1)))
 
+
+!        allocate(relperm(size(satura,1), size(satura,2)), relpermOld(size(satura,1), size(satura,2)))
 
         Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, 1 !nits_flux_lim
 
+            !Calculate and store the old value of relperm
+!            call get_InvRelperm(packed_state, relpermOld, .true.)
 
             call CV_ASSEMB( state, packed_state, &
             CV_RHS, &
@@ -1060,7 +1066,7 @@ contains
             NCOLM, FINDM, COLM, MIDM, &
             XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
             OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
-            Sat_FEMT, DEN_FEMT, &
+            DEN_FEMT, &
             IGOT_T2, T2, T2OLD, igot_theta_flux, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
             THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, THETA_GDIFF, &
             SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
@@ -1072,7 +1078,8 @@ contains
 
 !            satura=0.0 !saturaold([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)])
 
-            allocate(X(size(CV_RHS,1)))
+
+
             X = 0.
             call assemble_global_multiphase_csr(acv,&
             block_acv,dense_block_matrix,&
@@ -1081,14 +1088,22 @@ contains
             CALL SOLVER( ACV, X, CV_RHS, &
             FINACV, COLACV, &
             trim(option_path) )
+
+
             !Copy and force to be between bounds
             do j = 1, cv_nonods
                 satura(:,j) = min(max(x(1+(j-1)*NPHASE : j*NPHASE),0.0),1.0)
             end do
-            deallocate(X)
+
+            !Get new value of relperm
+!            call get_InvRelperm(packed_state, relperm, .true.)
+
 
 !            satura([([(i+(j-1)*cv_nonods,j=1,nphase)],i=1,cv_nonods)])=satura
         END DO Loop_NonLinearFlux
+        deallocate(X)
+!        deallocate(relperm, relpermOld)
+
 
         DEALLOCATE( ACV )
         DEALLOCATE( mass_mn_pres )
@@ -1608,7 +1623,7 @@ contains
             ! Add diffusion to DG version of CMC to try and encourage a continuous formulation...
             ! the idea is to stabilize pressure without effecting the soln i.e. the rhs of the eqns as
             ! pressure may have some singularities associated with it.
-            if ( cv_nonods/=x_nonods .or. .false. ) then !DG only...
+            if ( cv_nonods/=x_nonods .and. .false. ) then !DG only...
                 CALL ADD_DIFF_CMC(CMC, &
                 NCOLCMC, cv_NONODS, FINDCMC, COLCMC, MIDCMC, &
                 totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln, p_all%val )
@@ -2150,7 +2165,7 @@ contains
         NCOLM, FINDM, COLM, MIDM, &
         XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
         OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
-        SAT_FEMT, DEN_FEMT, &
+        DEN_FEMT, &
         IGOT_T2, T2, T2OLD, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
         THETA_FLUX, ONE_M_THETA_FLUX, THETA_FLUX_J, ONE_M_THETA_FLUX_J, THETA_GDIFF, &
         SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &

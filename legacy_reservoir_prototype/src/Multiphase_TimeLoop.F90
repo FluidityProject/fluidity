@@ -229,7 +229,7 @@
       integer, dimension (42) :: StorageIndexes
 
             !Working pointers
-      real, dimension(:,:), pointer :: SAT_s, OldSAT_s
+      real, dimension(:,:), pointer :: SAT_s, OldSAT_s, FESAT_s
 
       !Initially we set to use Stored data and that we have a new mesh
       StorageIndexes = 0!Initialize them as zero !
@@ -243,7 +243,7 @@
 
     !Get from packed_state
     call get_var_from_packed_state(packed_state,PhaseVolumeFraction = SAT_s,&
-    OldPhaseVolumeFraction=OldSAT_s)
+    OldPhaseVolumeFraction=OldSAT_s,FEPhaseVolumeFraction = FESAT_s )
       IDIVID_BY_VOL_FRAC=0
       !call print_state( packed_state )
       !stop 78
@@ -626,6 +626,7 @@
 
          U_s  => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedVelocity" )
          UOLD_s  => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldVelocity" )
+
          NU_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedNonlinearVelocity" )
          NUOLD_s => EXTRACT_TENSOR_FIELD( PACKED_STATE, "PackedOldNonlinearVelocity" )
 
@@ -869,7 +870,6 @@
 
             end if Conditional_ForceBalanceEquation
             Conditional_PhaseVolumeFraction: if ( solve_PhaseVolumeFraction ) then
-
                call VolumeFraction_Assemble_Solve( state, packed_state, &
                     NCOLACV, FINACV, COLACV, MIDACV, &
                     small_FINACV, small_COLACV, small_MIDACV, &
@@ -897,7 +897,7 @@
                     XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
 !!$
                     opt_vel_upwind_coefs, nopt_vel_upwind_coefs, &
-                    PhaseVolumeFraction_FEMT, Density_FEMT, &
+                    Density_FEMT, &
                     igot_theta_flux,scvngi_theta, volfra_use_theta_flux, &
                     in_ele_upwind, dg_ele_upwind, &
 !!$                    
@@ -912,6 +912,8 @@
 !               PhaseVolumeFraction = min( max( PhaseVolumeFraction, 0.0 ), 1.0 )!<==Now this is inside VolumeFraction_Assemble_Solve
 
             end if Conditional_PhaseVolumeFraction
+
+
 !!$ Starting loop over components
             sum_theta_flux = 0. ; sum_one_m_theta_flux = 0. ; sum_theta_flux_j = 0. ; sum_one_m_theta_flux_j = 0. ; ScalarField_Source_Component = 0.
 
@@ -1147,7 +1149,8 @@
 do cv_inod = 1, size(SAT_s,2)
     do iphase = 1, size(SAT_s,1)
         phaseVolumeFraction(cv_inod +(iphase-1)*size(SAT_s,2)) = SAT_s(iphase,cv_inod)
-        PhaseVolumeFraction_Old(cv_inod +(iphase-1)*size(SAT_s,2)) = OldSAT_s(iphase,cv_inod)
+        PhaseVolumeFraction_Old(cv_inod +(iphase-1)*size(OldSAT_s,2)) = OldSAT_s(iphase,cv_inod)
+        phaseVolumeFraction_FEMT(cv_inod +(iphase-1)*size(FESAT_s,2)) = FESAT_s(iphase,cv_inod)
     end do
 end do
     !#############################################################

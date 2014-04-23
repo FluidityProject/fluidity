@@ -1057,6 +1057,45 @@
       RETURN
     END SUBROUTINE relperm_land
 
+
+    subroutine get_InvRelperm(packed_state, relperm, FEM_representation)
+        !Returns the inverse of the relative permeability values in relperm
+        !Only works for Brooks-Corey
+        Implicit none
+        type( state_type ), intent( inout ) :: packed_state
+        real, dimension(:, :), intent(inout) :: relperm!dim(Nphase, cv_nonods)
+        logical, intent(in) :: FEM_representation
+        !Local variables
+        integer :: k,iphase
+        type(corey_options) :: options
+        real, dimension(:,:), pointer :: Satura
+
+
+        !Check that we are using Brooks-Corey
+        if (.not.have_option("/material_phase["// int2str(0) //&
+        "]/multiphase_properties/relperm_type/Corey")) return
+        call get_corey_options(options)
+
+        !Assign pointers
+        if (FEM_representation) then
+            call get_var_from_packed_state(packed_state, FEPhaseVolumeFraction = Satura)
+        else
+            call get_var_from_packed_state(packed_state, PhaseVolumeFraction = Satura)
+        end if
+       do k = 1, size(Satura,2)
+           do iphase = 1, size(Satura,1)
+               if (options%is_Corey_epsilon_method) then
+                   call relperm_corey_epsilon( Relperm(iphase,k), 1.0, &
+                   1.0, Satura(1, k), iphase,options)!Second phase is considered inside the subroutine
+               else
+                   call relperm_corey(Relperm(iphase,k), 1.0, &
+                   1.0, Satura(1, k), iphase,options)!Second phase is considered inside the subroutine
+               end if
+           end do
+       end do
+    end subroutine get_InvRelperm
+
+
 !    SUBROUTINE calculate_capillary_pressure( state, CV_NONODS, NPHASE, capillary_pressure, SATURA )
 !   Previous method to calculate the capillary pressure.
 !

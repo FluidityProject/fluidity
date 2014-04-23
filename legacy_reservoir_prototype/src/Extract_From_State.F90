@@ -2032,8 +2032,10 @@
 
       if (option_count("/material_phase/scalar_field::Temperature")>0) then
          call insert_sfield(packed_state,"Temperature",1,nphase)
+          call insert_sfield(packed_state,"FETemperature",1,nphase)
       end if
       call insert_sfield(packed_state,"PhaseVolumeFraction",1,nphase)
+      call insert_sfield(packed_state,"FEPhaseVolumeFraction",1,nphase)
 
       velocity=>extract_vector_field(state(1),"Velocity")
       call insert(packed_state,velocity%mesh,"VelocityMesh")
@@ -2865,16 +2867,27 @@
     subroutine get_var_from_packed_state(packed_state,FEDensity,&
     OldFEDensity,IteratedFEDensity,Density,OldDensity,IteratedDensity,PhaseVolumeFraction,&
     OldPhaseVolumeFraction,IteratedPhaseVolumeFraction, Velocity, OldVelocity, IteratedVelocity, &
+    FEPhaseVolumeFraction, OldFEPhaseVolumeFraction, IteratedFEPhaseVolumeFraction,&
     NonlinearVelocity, OldNonlinearVelocity,IteratedNonlinearVelocity, ComponentDensity, &
     OldComponentDensity, IteratedComponentDensity,ComponentMassFraction, OldComponentMassFraction,&
-    Temperature,OldTemperature, IteratedTemperature,&
+    Temperature,OldTemperature, IteratedTemperature,FETemperature, OldFETemperature, IteratedFETemperature,&
     IteratedComponentMassFraction, FEComponentDensity, OldFEComponentDensity, IteratedFEComponentDensity,&
     FEComponentMassFraction, OldFEComponentMassFraction, IteratedFEComponentMassFraction,&
-    Pressure,FEPressure, OldFEPressure, CVPressure,OldCVPressure&
-    ,Coordinate, VelocityCoordinate,PressureCoordinate,MaterialCoordinate  )
+    Pressure,FEPressure, OldFEPressure, CVPressure,OldCVPressure,&
+    Coordinate, VelocityCoordinate,PressureCoordinate,MaterialCoordinate  )
         !This subroutine returns a pointer to the desired values of a variable stored in packed state
         !All the input variables (but packed_stated) are pointers following the structure of the *_ALL variables
         !and also all of them are optional, hence you can obtaine whichever you want
+        !######################EXAMPLE OF USAGE OF THIS SUBROUTINE:#####################################
+        !If we want to get the velocity and the phasevolumefraction one should proceed this way:
+        !Define variables:
+        !real, dimension(:,:,:), pointer :: Velocity_pointer
+        !real, dimension(:,:), pointer :: PhaseVolumeFraction_pointer
+        !Assign the pointers
+        !call get_var_from_packed_state(packed_state, Velocity = Velocity_pointer, PhaseVolumeFraction = PhaseVolumeFraction_pointer)
+        !
+        ! In this way we only have to introduce the name of the variables we want to get from packed_state
+        !########################################################################################
         implicit none
         type(state_type), intent(inout) :: packed_state
         real, optional, dimension(:,:,:), pointer :: Velocity, OldVelocity, IteratedVelocity, NonlinearVelocity, OldNonlinearVelocity,&
@@ -2883,7 +2896,9 @@
         OldFEComponentMassFraction, IteratedFEComponentMassFraction
         real, optional, dimension(:,:), pointer :: FEDensity, OldFEDensity, IteratedFEDensity, Density,&
         OldDensity,IteratedDensity,PhaseVolumeFraction,OldPhaseVolumeFraction,IteratedPhaseVolumeFraction,&
-        Temperature, OldTemperature, IteratedTemperature, Coordinate, VelocityCoordinate,PressureCoordinate,MaterialCoordinate
+        Temperature, OldTemperature, IteratedTemperature, FETemperature, OldFETemperature, IteratedFETemperature,&
+        Coordinate, VelocityCoordinate,PressureCoordinate,MaterialCoordinate, &
+        FEPhaseVolumeFraction, OldFEPhaseVolumeFraction, IteratedFEPhaseVolumeFraction
         real, optional, dimension(:), pointer ::Pressure,FEPressure, OldFEPressure, CVPressure,OldCVPressure
         !Local variables
         type(scalar_field), pointer :: sfield
@@ -2967,17 +2982,41 @@
             tfield => extract_tensor_field( packed_state, "PackedIteratedPhaseVolumeFraction" )
             IteratedPhaseVolumeFraction =>  tfield%val(1,:,:)
         end if
+        if (present(FEPhaseVolumeFraction)) then
+            tfield => extract_tensor_field( packed_state, "PackedFEPhaseVolumeFraction" )
+            FEPhaseVolumeFraction =>  tfield%val(1,:,:)
+        end if
+        if (present(OldFEPhaseVolumeFraction)) then
+            tfield => extract_tensor_field( packed_state, "PackedOldFEPhaseVolumeFraction" )
+            OldFEPhaseVolumeFraction =>  tfield%val(1,:,:)
+        end if
+        if (present(IteratedFEPhaseVolumeFraction)) then
+            tfield => extract_tensor_field( packed_state, "PackedIteratedFEPhaseVolumeFraction" )
+            IteratedFEPhaseVolumeFraction =>  tfield%val(1,:,:)
+        end if
         if (present(Temperature)) then
             tfield => extract_tensor_field( packed_state, "PackedTemperature" )
-            PhaseVolumeFraction =>  tfield%val(1,:,:)
+            Temperature =>  tfield%val(1,:,:)
         end if
         if (present(OldTemperature)) then
             tfield => extract_tensor_field( packed_state, "PackedOldTemperature" )
-            OldPhaseVolumeFraction =>  tfield%val(1,:,:)
+            OldTemperature =>  tfield%val(1,:,:)
         end if
         if (present(IteratedTemperature)) then
             tfield => extract_tensor_field( packed_state, "PackedIteratedTemperature" )
-            IteratedPhaseVolumeFraction =>  tfield%val(1,:,:)
+            IteratedTemperature =>  tfield%val(1,:,:)
+        end if
+         if (present(FETemperature)) then
+            tfield => extract_tensor_field( packed_state, "PackedFETemperature" )
+            FETemperature =>  tfield%val(1,:,:)
+        end if
+         if (present(OldFETemperature)) then
+            tfield => extract_tensor_field( packed_state, "PackedOldFETemperature" )
+            OldFETemperature =>  tfield%val(1,:,:)
+        end if
+        if (present(IteratedFETemperature)) then
+            tfield => extract_tensor_field( packed_state, "PackedIteratedFETemperature" )
+            IteratedFETemperature =>  tfield%val(1,:,:)
         end if
         if (present(Velocity)) then
             tfield => extract_tensor_field( packed_state, "PackedVelocity" )
